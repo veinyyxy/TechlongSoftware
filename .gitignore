@@ -34,7 +34,7 @@ yarn-error.log*
 
 # local task logs
 .npm-ci.*.log
-.dev-server.*.log
+.dev-*.log
 
 # vercel
 .vercel

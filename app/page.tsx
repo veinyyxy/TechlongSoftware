@@ -18,33 +18,31 @@ export default function Home() {
           <span>{platformConfig.name}</span>
         </Link>
         <nav className="marketing-nav" aria-label="主要导航">
-          <a href="#scope">MVP 范围</a>
-          <a href="#architecture">架构</a>
-          <Link href="/dashboard">客户控制台</Link>
-          <Link className="button button-dark button-small" href="/admin">
-            管理端预览
+          <a href="#scope">阶段范围</a>
+          <Link href="/login">登录</Link>
+          <Link href="/register">注册</Link>
+          <Link className="button button-dark button-small" href="/dashboard">
+            进入控制台
           </Link>
         </nav>
       </header>
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">FOUNDATION · 阶段 0</p>
-          <h1>先把运营闭环搭稳，<br />再逐步接入自动化。</h1>
+          <p className="eyebrow">FOUNDATION & ROLES · 阶段 1</p>
+          <h1>每个企业都有独立、<br />清晰的工作区边界。</h1>
           <p className="hero-description">
-            为企业客户管理套餐、付款状态和餐饮订单系统实例。
-            第一版采用管理员手动确认与开通，降低上线风险。
+            用户登录后自动建立平台账号和企业工作区。
+            客户角色与平台管理员严格分离，所有权限在服务端执行。
           </p>
           <div className="hero-actions">
             <Link className="button button-primary" href="/dashboard">
-              预览客户侧结构
+              登录客户控制台
             </Link>
-            <a className="button button-ghost" href="#architecture">
-              查看技术边界
-            </a>
+            <Link className="button button-ghost" href="/register">创建企业账号</Link>
           </div>
           <p className="hero-note">
-            平台正式名称、支付服务与现有餐饮系统对接方式仍待确认。
+            本阶段不包含套餐、订阅、付款或应用实例功能。
           </p>
         </div>
 
@@ -54,7 +52,7 @@ export default function Home() {
               <span className="board-kicker">MVP OPERATING LOOP</span>
               <h2>人工开通闭环</h2>
             </div>
-            <span className="status-pill status-foundation">骨架就绪</span>
+            <span className="status-pill status-foundation">权限基础已接入</span>
           </div>
           <ol className="process-list">
             {platformConfig.mvpFlow.map((step, index) => (
@@ -76,7 +74,7 @@ export default function Home() {
         <div className="section-heading">
           <p className="eyebrow">FIRST RELEASE</p>
           <h2>只做能形成真实运营闭环的能力</h2>
-          <p>本阶段提供导航、页面边界、领域模型和健康检查，不虚构已完成的登录、付款或部署能力。</p>
+          <p>本阶段只实现账号、企业工作区、成员关系和平台管理员权限，不提前进入收费或应用开通。</p>
         </div>
         <div className="scope-grid">
           {platformConfig.scopes.map((scope) => (
@@ -115,11 +113,12 @@ export default function Home() {
       <footer className="marketing-footer">
         <div>
           <strong>{platformConfig.name}</strong>
-          <p>项目骨架 · 等待下一阶段接入身份与工作区。</p>
+          <p>阶段 1 · 身份、工作区与权限基础。</p>
         </div>
         <div className="footer-links">
           <Link href="/dashboard">客户侧</Link>
           <Link href="/admin">管理端</Link>
+          <Link href="/login">登录</Link>
           <a href="/api/health">健康检查</a>
         </div>
       </footer>

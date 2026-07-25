@@ -1,8 +1,34 @@
 # 餐饮 SaaS 平台
 
-面向企业客户的 SaaS 平台项目骨架，用于逐步实现客户、套餐、订阅、付款记录和餐饮订单系统实例管理。
+面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前只完成 Foundation 阶段：公共入口、客户控制台、平台管理端、领域边界与健康检查。没有实现真实登录、数据库写入、在线付款或自动部署。
+当前完成阶段 1：平台基础与角色权限。
+
+## 已实现
+
+- 使用 OpenAI Sites 的 ChatGPT 登录完成身份验证。
+- 首次登录自动同步平台用户。
+- 首次登录自动创建企业工作区和 `owner` 成员关系。
+- 企业工作区状态：`active`、`suspended`、`disabled`。
+- 工作区成员角色：`owner`、`member`。
+- 用户表中的 `is_platform_admin` 平台管理员标记。
+- 平台管理员邮箱允许名单。
+- 客户控制台、成员页面和工作区设置基础页。
+- 管理员概览、用户列表和工作区列表基础页。
+- 服务端工作区成员校验和平台管理员校验。
+- 无权限页面及统一的 `401` / `403` API 响应。
+
+## 本阶段没有实现
+
+- 套餐管理。
+- 订阅和付款。
+- 应用实例开通。
+- 真实支付。
+- 自动部署业务流程。
+- 成员邀请和角色变更。
+- 密码注册、密码存储和密码重置。
+
+登录由 OpenAI Sites 处理，平台不会保存 ChatGPT 密码。首次 ChatGPT 登录等同于创建平台账号。
 
 ## 技术栈
 
@@ -11,10 +37,8 @@
 - Next.js 16 API / App Router 风格
 - Vinext + Vite
 - Tailwind CSS 4
-- Drizzle ORM
-- Cloudflare Worker / Sites
-
-采用模块化单体，优先降低 MVP 的开发和部署复杂度。数据库将在下一实施阶段确认；详情见 [docs/architecture.md](./docs/architecture.md)。
+- Drizzle ORM + Cloudflare D1
+- Cloudflare Worker / OpenAI Sites
 
 ## 本地运行
 
@@ -22,44 +46,66 @@
 
 ```bash
 npm ci
+copy .env.example .env.local
 npm run dev
 ```
 
-其他命令：
+在 `.env.local` 设置本地管理员允许名单：
 
-```bash
-npm run build
-npm test
-npm run lint
-npm run db:generate
+```env
+PLATFORM_ADMIN_EMAILS=you@example.com
 ```
 
-复制 `.env.example` 为 `.env.local` 后可覆盖平台显示名称。任何服务端密钥都不得使用 `NEXT_PUBLIC_` 前缀。
+常用命令：
+
+```bash
+npm run db:generate
+npm run build
+npm run lint
+npm test
+```
+
+## 数据库
+
+逻辑 D1 绑定名为 `DB`。数据库结构位于 `db/schema.ts`，迁移文件位于 `drizzle/`。
+
+阶段 1 创建：
+
+- `users`
+- `workspaces`
+- `workspace_members`
+
+所有客户业务查询必须通过 `workspace_id` 和成员关系限制范围。平台管理员是唯一允许跨工作区读取基础数据的角色。
 
 ## 当前路由
 
-- `/`：项目公共入口与 MVP 范围
-- `/dashboard`：企业客户控制台
-- `/dashboard/apps`：我的应用
-- `/dashboard/billing`：订阅与账单
-- `/dashboard/settings`：工作区设置
-- `/admin`：平台管理概览
-- `/admin/customers`：客户管理
-- `/admin/plans`：套餐管理
-- `/admin/subscriptions`：订阅管理
-- `/admin/payments`：付款记录
-- `/admin/instances`：应用实例
-- `/admin/audit`：操作日志
-- `/api/health`：健康检查
+公共路由：
 
-业务页面目前只固定路由和信息架构，并明确显示“尚未连接”；没有伪造可操作功能或客户数据。
+- `/`
+- `/login`
+- `/register`
+- `/unauthorized`
+- `/api/health`
 
-## 下一阶段建议
+客户路由：
 
-按 `implementation-steps/01-foundation-and-roles.md` 实现：
+- `/dashboard`
+- `/dashboard/members`
+- `/dashboard/settings`
+- `/api/account`
+- `/api/workspaces/:workspaceId`
 
-1. 账号与会话。
-2. 平台管理员、Owner、Admin、Member 角色。
-3. 工作区上下文。
-4. 服务端权限校验。
-5. 首批数据库迁移与对应测试。
+管理员路由：
+
+- `/admin`
+- `/admin/users`
+- `/admin/workspaces`
+- `/api/admin/overview`
+
+保留的后续阶段占位路由不会出现在当前导航中。
+
+## 下一阶段
+
+确认阶段 1 的账号、工作区和管理员权限后，可以执行：
+
+`implementation-steps/02-admin-customer-and-plan-management.md`

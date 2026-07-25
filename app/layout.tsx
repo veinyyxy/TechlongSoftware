@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,18 +13,53 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "餐饮 SaaS 平台",
-    template: "%s · 餐饮 SaaS 平台",
-  },
-  description:
-    "面向餐饮企业的客户、套餐、订阅、付款与应用实例管理平台。",
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const requestHeaders = await headers();
+  const host =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const protocol =
+    requestHeaders.get("x-forwarded-proto") === "http" ? "http" : "https";
+  const metadataBase = safeMetadataBase(host, protocol);
+  const title = "餐饮 SaaS 平台";
+  const description =
+    "为餐饮企业提供安全的用户账号、企业工作区、成员角色和平台管理权限基础。";
+  const socialImage = new URL("/og.png", metadataBase).toString();
+
+  return {
+    metadataBase,
+    title: {
+      default: title,
+      template: `%s · ${title}`,
+    },
+    description,
+    icons: {
+      icon: "/favicon.svg",
+      shortcut: "/favicon.svg",
+    },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      images: [{ url: socialImage, width: 1732, height: 909, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [socialImage],
+    },
+  };
+}
+
+function safeMetadataBase(host: string | null, protocol: "http" | "https") {
+  if (host && /^[a-z0-9.-]+(?::\d+)?$/i.test(host)) {
+    return new URL(`${protocol}://${host}`);
+  }
+
+  return new URL(
+    "https://restaurant-saas-foundation.ethan-yang007.chatgpt.site",
+  );
+}
 
 export default function RootLayout({
   children,

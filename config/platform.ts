@@ -1,7 +1,7 @@
 export const platformConfig = {
   name: process.env.NEXT_PUBLIC_PLATFORM_NAME ?? "餐饮 SaaS 平台",
   productName: "餐饮订单系统",
-  phase: "foundation",
+  phase: "foundation-and-roles",
   stack: [
     "TypeScript",
     "React 19",
@@ -11,30 +11,30 @@ export const platformConfig = {
     "Cloudflare Worker",
   ],
   mvpFlow: [
-    "管理员配置套餐",
-    "建立企业客户工作区",
-    "记录订阅与付款状态",
-    "创建应用实例并填写地址",
-    "客户查看状态并进入系统",
+    "用户使用 ChatGPT 完成登录",
+    "同步平台用户账号",
+    "首次登录创建企业工作区",
+    "建立 Owner 成员关系",
+    "服务端校验工作区或平台权限",
   ],
   scopes: [
     {
       index: "01",
-      title: "企业客户侧",
-      description: "让客户明确知道买了什么、是否付款、服务是否可用。",
-      items: ["工作区上下文", "套餐与付款状态", "应用实例与访问入口"],
+      title: "用户账号",
+      description: "由 OpenAI Sites 处理身份验证，平台只保存必要的账号资料。",
+      items: ["登录与退出", "首次登录注册", "当前用户信息"],
     },
     {
       index: "02",
-      title: "平台管理侧",
-      description: "为运营人员提供可审计的手动管理流程。",
-      items: ["客户与套餐管理", "订阅与付款记录", "实例开通与暂停"],
+      title: "企业工作区",
+      description: "企业工作区是客户数据的唯一租户边界。",
+      items: ["工作区持久化", "Owner / Member", "成员范围查询"],
     },
     {
       index: "03",
-      title: "本阶段边界",
-      description: "只完成可运行骨架，后续按阶段逐项接入真实能力。",
-      items: ["不接在线自动扣款", "不接自动部署流水线", "不实现多产品市场"],
+      title: "平台管理员",
+      description: "平台管理员与客户 Owner 完全分离，并由服务端授权。",
+      items: ["管理员允许名单", "用户与工作区只读视图", "无权限页面"],
     },
   ],
 } as const;

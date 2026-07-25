@@ -1,4 +1,5 @@
-export type UserRole = "platform_admin" | "owner" | "admin" | "member";
+export type PlatformRole = "platform_admin";
+export type WorkspaceRole = "owner" | "member";
 
 export type SubscriptionStatus =
   | "pending"
@@ -31,22 +32,17 @@ export interface WorkspaceScopedEntity {
 export interface WorkspaceContext {
   workspaceId: string;
   userId: string;
-  role: Exclude<UserRole, "platform_admin">;
+  role: WorkspaceRole;
 }
 
 export const PLATFORM_PERMISSIONS = [
   "platform:read",
-  "customers:manage",
-  "plans:manage",
-  "billing:manage",
-  "instances:manage",
-  "audit:read",
+  "users:read",
+  "workspaces:read",
 ] as const;
 
 export const WORKSPACE_PERMISSIONS = [
   "workspace:read",
   "workspace:update",
   "members:manage",
-  "billing:read",
-  "apps:read",
 ] as const;

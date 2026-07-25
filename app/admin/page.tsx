@@ -1,39 +1,54 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import {
+  getAdminAccount,
+  getPlatformOverview,
+} from "@/lib/auth/account";
 
 export const metadata: Metadata = { title: "管理概览" };
+export const dynamic = "force-dynamic";
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  await getAdminAccount();
+  const overview = await getPlatformOverview();
+
   return (
     <>
-      <header className="page-header">
-        <h1>管理概览</h1>
-        <p>面向平台运营人员的客户、收费与实例开通工作台。</p>
+      <header className="page-header page-header-split">
+        <div>
+          <p className="page-kicker">PLATFORM ADMIN</p>
+          <h1>管理概览</h1>
+          <p>平台管理员可以读取全部用户和企业工作区基础信息。</p>
+        </div>
+        <Link className="button button-ghost button-small" href="/dashboard">
+          返回客户控制台
+        </Link>
       </header>
       <div className="readiness-grid">
         <article className="readiness-card">
-          <small>企业客户</small>
-          <strong>—</strong>
-          <p>等待客户管理阶段接入。</p>
+          <small>用户账号</small>
+          <strong>{overview.users}</strong>
+          <p>已完成首次登录同步的账号。</p>
         </article>
         <article className="readiness-card">
-          <small>有效订阅</small>
-          <strong>—</strong>
-          <p>等待订阅管理阶段接入。</p>
+          <small>企业工作区</small>
+          <strong>{overview.workspaces}</strong>
+          <p>当前平台中的租户边界。</p>
         </article>
         <article className="readiness-card">
-          <small>运行实例</small>
-          <strong>—</strong>
-          <p>等待实例开通阶段接入。</p>
+          <small>成员关系</small>
+          <strong>{overview.memberships}</strong>
+          <p>用户与工作区之间的角色记录。</p>
         </article>
       </div>
       <section className="placeholder-panel">
-        <h2>首版运营闭环</h2>
-        <p>管理员完成以下记录后，客户控制台才展示对应真实状态。</p>
+        <h2>管理员权限范围</h2>
+        <p>当前只开放用户和工作区只读基础视图，未进入客户管理、套餐或收费阶段。</p>
         <ul className="placeholder-list">
-          <li>创建企业工作区并关联负责人</li>
-          <li>为工作区选择有效套餐</li>
-          <li>手动确认订阅与付款状态</li>
-          <li>创建实例、填写地址并标记已开通</li>
+          <li>查看平台用户及管理员标记</li>
+          <li>查看企业工作区和成员数量</li>
+          <li>普通用户访问管理端时服务端拒绝</li>
+          <li>套餐、付款、应用实例保持未实现</li>
         </ul>
       </section>
     </>

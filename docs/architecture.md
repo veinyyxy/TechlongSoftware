@@ -1,94 +1,110 @@
-# SaaS 平台项目架构
+# SaaS 平台架构
 
 ## 当前阶段
 
-本仓库只完成可以继续开发的项目骨架，不实现真实登录、收费、客户管理或实例开通。
-
-第一版运营闭环固定为：
+阶段 1 已实现身份、用户、企业工作区、成员关系和平台管理员边界。
 
 ```text
-管理员配置套餐
-→ 管理企业客户工作区
-→ 手动记录订阅和付款状态
-→ 手动创建餐饮订单系统实例
-→ 客户查看真实状态和应用入口
+ChatGPT 登录
+→ 同步平台用户
+→ 首次登录创建企业工作区
+→ 建立 Owner 成员关系
+→ 服务端按工作区或平台角色授权
 ```
 
-## 技术选择
+套餐、订阅、付款、应用实例和自动部署没有进入本阶段。
 
-- 模块化单体：保持一个部署单元，减少 MVP 运维成本。
-- TypeScript + React + Next.js 风格路由：公共站点、客户控制台、管理端和 API 共享类型。
-- Vinext + Cloudflare Worker：保持 Next.js 开发体验，并可快速发布到边缘运行环境。
-- Tailwind CSS 4：提供基础设计系统；当前页面主要使用项目级语义样式。
-- Drizzle ORM：后续接入数据库时保留显式 Schema 与迁移文件。
-- Zod：将在账号和业务写接口阶段用于环境变量和输入验证。
+## 身份方案
 
-数据库供应商尚未最终确认。模板保留 D1 接入能力；如果现有餐饮系统或团队要求 PostgreSQL，可在接入数据阶段切换 Drizzle 驱动，不影响当前页面与领域边界。
+部署环境使用 OpenAI Sites 提供的 Sign in with ChatGPT：
+
+- `/signin-with-chatgpt`、`/signout-with-chatgpt` 和 `/callback` 由平台负责。
+- 应用从受信任请求头读取当前用户邮箱和可选姓名。
+- 首次登录时在 D1 中创建或更新 `users` 记录。
+- 平台不保存密码、OAuth Token 或 ChatGPT 会话 Cookie。
+
+身份验证不等于工作区授权。每个服务端页面和 API 都会继续检查平台角色或工作区成员关系。
+
+## 数据模型
+
+```text
+User
+├── is_platform_admin
+└── WorkspaceMember >── Workspace
+                           └── owner_id -> User
+```
+
+### `users`
+
+- 唯一规范化邮箱。
+- 账号状态：`active`、`disabled`。
+- `is_platform_admin` 区分平台管理员和客户角色。
+- 管理员身份由服务器端 `PLATFORM_ADMIN_EMAILS` 允许名单授予。
+
+### `workspaces`
+
+- 企业客户的数据隔离边界。
+- 状态：`active`、`suspended`、`disabled`。
+- `owner_id` 指向工作区所有者。
+
+### `workspace_members`
+
+- 连接用户和企业工作区。
+- 当前 MVP 角色：`owner`、`member`。
+- `(workspace_id, user_id)` 唯一，防止重复成员关系。
+
+## 服务端权限
+
+```text
+请求
+├── 没有身份 → 401 或登录跳转
+├── 用户被禁用 → 403
+├── 工作区被暂停/禁用 → 403
+├── 平台管理员 → 可读取所有工作区基础数据
+└── 普通用户
+    ├── 是目标工作区成员 → 允许
+    └── 不是目标工作区成员 → 403
+```
+
+页面隐藏不作为安全边界。`/api/workspaces/:workspaceId` 会在服务端验证成员关系，`/api/admin/overview` 会验证 `is_platform_admin`。
+
+## 平台管理员初始化
+
+生产环境通过 Sites 配置：
+
+```env
+PLATFORM_ADMIN_EMAILS=owner@example.com,second-admin@example.com
+```
+
+允许名单中的用户登录后会被提升为平台管理员。移除允许名单不会自动降级已经提升的管理员，避免配置误操作导致平台失去所有管理员；需要显式数据库操作才能降级。
 
 ## 目录边界
 
 ```text
 app/
-├── page.tsx                 公共入口
-├── dashboard/               企业客户侧
-├── admin/                   平台管理侧
-└── api/                     HTTP 接口
+├── login/ register/      登录和首次注册入口
+├── dashboard/            工作区成员页面
+├── admin/                平台管理员页面
+└── api/                  受保护的 HTTP 接口
 components/
-├── foundation/              当前阶段说明组件
-└── shell/                   客户端与管理端外壳
-config/                      产品级配置
+├── auth/                 身份页面组件
+└── shell/                客户端和管理端外壳
+db/
+├── schema.ts             D1 / Drizzle Schema
+└── index.ts              D1 绑定入口
 lib/
-├── api/                     API 响应约定
-└── domain/                  领域类型与权限词汇
-db/                          数据库 Schema（下一阶段接入）
-drizzle/                     数据库迁移
-docs/                        架构和决策记录
-tests/                       构建产物测试
-worker/                      Cloudflare Worker 入口
+├── auth/                 账号同步和权限规则
+├── api/                  统一 API 响应
+└── domain/               领域词汇
+drizzle/                  数据库迁移
+tests/                    页面、权限和迁移测试
 ```
 
-## 目标领域模型
+## 第 2 阶段入口条件
 
-所有客户业务数据必须通过 `workspace_id` 隔离。
+- D1 迁移成功应用。
+- 至少一个 `platform_admin` 可以进入 `/admin`。
+- 普通用户只能查看自己的工作区。
+- 登录、退出和首次工作区创建验证通过。
 
-```text
-User ──< WorkspaceMember >── Workspace
-                                  │
-                                  ├── Subscription ── Plan
-                                  ├── PaymentRecord
-                                  ├── AppInstance ── Product
-                                  └── AuditLog
-```
-
-第一批目标表：
-
-- `users`
-- `workspaces`
-- `workspace_members`
-- `plans`
-- `subscriptions`
-- `payment_records`
-- `products`
-- `app_instances`
-- `audit_logs`
-
-本阶段没有创建数据库表，因此没有迁移变化。
-
-## 强制边界
-
-- 普通用户只能读取当前工作区的数据。
-- 平台管理员权限与工作区 Owner/Admin 权限必须分离。
-- 页面隐藏不能代替服务端权限检查。
-- 所有写接口需要输入验证、审计记录和幂等策略。
-- 金额使用最小货币单位，时间以 UTC 保存。
-- 密钥只从环境变量读取，不进入客户端或仓库。
-
-## 待确认
-
-1. 平台正式名称。
-2. 现有餐饮订单系统技术栈及多租户方式。
-3. 客户入口使用子域名、独立域名还是路径。
-4. MVP 数据库采用 PostgreSQL 还是 D1。
-5. 登录方式及邮件服务。
-6. 套餐、币种与计费周期。
-7. SaaS 平台与餐饮订单系统的数据库关系。
+满足后可以进入客户与套餐管理阶段。
