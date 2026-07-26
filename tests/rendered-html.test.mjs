@@ -25,15 +25,15 @@ async function render(pathname = "/") {
   );
 }
 
-test("server-renders the stage 1 landing page", async () => {
+test("server-renders the stage 2 landing page", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /FOUNDATION &amp; ROLES/);
-  assert.match(html, /工作区边界/);
-  assert.match(html, /服务端校验工作区或平台权限/);
+  assert.match(html, /CUSTOMERS &amp; PLANS/);
+  assert.match(html, /客户与套餐运营/);
+  assert.match(html, /管理员配置数据库套餐/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 
@@ -77,6 +77,18 @@ test("account API rejects anonymous requests", async () => {
   const body = await response.json();
   assert.equal(body.success, false);
   assert.equal(body.error.code, "UNAUTHORIZED");
+});
+
+test("admin customer and plan APIs reject anonymous requests", async () => {
+  const [customers, plans] = await Promise.all([
+    render("/api/admin/customers"),
+    render("/api/admin/plans"),
+  ]);
+
+  assert.equal(customers.status, 401);
+  assert.equal((await customers.json()).error.code, "UNAUTHORIZED");
+  assert.equal(plans.status, 401);
+  assert.equal((await plans.json()).error.code, "UNAUTHORIZED");
 });
 
 test("keeps secrets out of the committed environment example", async () => {

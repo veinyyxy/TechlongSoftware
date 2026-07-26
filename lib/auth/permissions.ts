@@ -36,3 +36,7 @@ export function canAccessWorkspace(input: {
 export function canManageWorkspace(role: WorkspaceRole): boolean {
   return role === "owner";
 }
+
+export function canAccessPlatformAdmin(isPlatformAdmin: boolean): boolean {
+  return isPlatformAdmin;
+}

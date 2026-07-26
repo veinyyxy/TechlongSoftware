@@ -1,16 +1,25 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 
-test("stage 1 migration applies and enforces one membership per user/workspace", async () => {
-  const migration = await readFile(
-    new URL("../drizzle/0000_minor_khan.sql", import.meta.url),
-    "utf8",
+async function readMigrations() {
+  const directory = new URL("../drizzle/", import.meta.url);
+  const files = (await readdir(directory))
+    .filter((file) => file.endsWith(".sql"))
+    .sort();
+  return Promise.all(
+    files.map((file) => readFile(new URL(file, directory), "utf8")),
   );
+}
+
+test("stage 2 migrations preserve membership isolation and add plan-backed customer state", async () => {
+  const migrations = await readMigrations();
   const database = new DatabaseSync(":memory:");
   database.exec("PRAGMA foreign_keys = ON");
-  database.exec(migration.replaceAll("--> statement-breakpoint", ""));
+  for (const migration of migrations) {
+    database.exec(migration.replaceAll("--> statement-breakpoint", ""));
+  }
 
   const now = Date.now();
   database
@@ -22,11 +31,40 @@ test("stage 1 migration applies and enforces one membership per user/workspace",
     .run("usr_one", "owner@example.com", "Owner", now, now);
   database
     .prepare(
-      `INSERT INTO workspaces
-       (id, name, owner_id, status, created_at, updated_at)
-       VALUES (?, ?, ?, 'active', ?, ?)`,
+      `INSERT INTO plans
+       (id, name, description, price_amount, currency, billing_interval,
+        status, features, limits, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
     )
-    .run("wsp_one", "Example Workspace", "usr_one", now, now);
+    .run(
+      "pln_basic",
+      "Basic",
+      "Single restaurant",
+      4900,
+      "CAD",
+      "month",
+      JSON.stringify(["Order management"]),
+      JSON.stringify({ stores: "1" }),
+      now,
+      now,
+    );
+  database
+    .prepare(
+      `INSERT INTO workspaces
+       (id, name, owner_id, status, contact_name, contact_email, plan_id,
+        created_at, updated_at)
+       VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      "wsp_one",
+      "Example Workspace",
+      "usr_one",
+      "Owner",
+      "owner@example.com",
+      "pln_basic",
+      now,
+      now,
+    );
   database
     .prepare(
       `INSERT INTO workspace_members
@@ -57,6 +95,32 @@ test("stage 1 migration applies and enforces one membership per user/workspace",
   assert.deepEqual(
     { role: membership.role, name: membership.name },
     { role: "owner", name: "Example Workspace" },
+  );
+
+  const workspace = database
+    .prepare(
+      `SELECT plan_id, subscription_status, app_instance_status
+       FROM workspaces WHERE id = ?`,
+    )
+    .get("wsp_one");
+  assert.deepEqual(
+    {
+      planId: workspace.plan_id,
+      subscriptionStatus: workspace.subscription_status,
+      appInstanceStatus: workspace.app_instance_status,
+    },
+    {
+      planId: "pln_basic",
+      subscriptionStatus: "not_configured",
+      appInstanceStatus: "not_provisioned",
+    },
+  );
+
+  database.prepare("DELETE FROM plans WHERE id = ?").run("pln_basic");
+  assert.equal(
+    database.prepare("SELECT plan_id FROM workspaces WHERE id = ?").get("wsp_one")
+      .plan_id,
+    null,
   );
   database.close();
 });

@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前完成阶段 1：平台基础与角色权限。
+当前完成阶段 2：管理员客户与套餐管理。
 
 ## 已实现
 
@@ -17,11 +17,15 @@
 - 管理员概览、用户列表和工作区列表基础页。
 - 服务端工作区成员校验和平台管理员校验。
 - 无权限页面及统一的 `401` / `403` API 响应。
+- 管理员客户列表、搜索、状态筛选和客户详情。
+- 创建、编辑、暂停及恢复企业客户工作区。
+- 创建、编辑、启用及停用套餐。
+- 套餐价格使用最小货币单位保存，功能和限制保存在数据库中。
+- 客户详情和客户控制台读取当前套餐、订阅状态和应用实例状态。
 
-## 本阶段没有实现
+## 当前没有实现
 
-- 套餐管理。
-- 订阅和付款。
+- 订阅创建、续费和付款记录。
 - 应用实例开通。
 - 真实支付。
 - 自动部署业务流程。
@@ -75,6 +79,17 @@ npm test
 - `workspaces`
 - `workspace_members`
 
+阶段 2 新增：
+
+- `plans`
+- `workspaces.contact_name`
+- `workspaces.contact_email`
+- `workspaces.plan_id`
+- `workspaces.subscription_status`
+- `workspaces.app_instance_status`
+
+订阅状态和应用实例状态目前只是工作区上的可读取状态快照，阶段 2 不创建订阅或应用实例记录。
+
 所有客户业务查询必须通过 `workspace_id` 和成员关系限制范围。平台管理员是唯一允许跨工作区读取基础数据的角色。
 
 ## 当前路由
@@ -99,13 +114,23 @@ npm test
 
 - `/admin`
 - `/admin/users`
-- `/admin/workspaces`
+- `/admin/customers`
+- `/admin/customers/new`
+- `/admin/customers/:customerId`
+- `/admin/customers/:customerId/edit`
+- `/admin/plans`
+- `/admin/plans/new`
+- `/admin/plans/:planId/edit`
 - `/api/admin/overview`
+- `/api/admin/customers`
+- `/api/admin/customers/:customerId`
+- `/api/admin/plans`
+- `/api/admin/plans/:planId`
 
 保留的后续阶段占位路由不会出现在当前导航中。
 
 ## 下一阶段
 
-确认阶段 1 的账号、工作区和管理员权限后，可以执行：
+确认客户与套餐管理后，可以执行：
 
-`implementation-steps/02-admin-customer-and-plan-management.md`
+`implementation-steps/03-manual-subscription-and-payment.md`

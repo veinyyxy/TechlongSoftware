@@ -3,8 +3,8 @@ import Link from "next/link";
 import { platformConfig } from "@/config/platform";
 
 export const metadata: Metadata = {
-  title: "项目基础",
-  description: "餐饮 SaaS 平台的产品定位、MVP 边界与项目入口。",
+  title: "客户与套餐运营",
+  description: "餐饮 SaaS 平台的企业客户与套餐管理入口。",
 };
 
 export default function Home() {
@@ -29,11 +29,11 @@ export default function Home() {
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">FOUNDATION & ROLES · 阶段 1</p>
-          <h1>每个企业都有独立、<br />清晰的工作区边界。</h1>
+          <p className="eyebrow">CUSTOMERS & PLANS · 阶段 2</p>
+          <h1>让客户与套餐运营，<br />从一开始就有据可查。</h1>
           <p className="hero-description">
-            用户登录后自动建立平台账号和企业工作区。
-            客户角色与平台管理员严格分离，所有权限在服务端执行。
+            平台管理员可以维护企业客户、服务状态和套餐目录。
+            价格、功能与限制均由数据库提供，所有管理操作继续在服务端鉴权。
           </p>
           <div className="hero-actions">
             <Link className="button button-primary" href="/dashboard">
@@ -42,7 +42,7 @@ export default function Home() {
             <Link className="button button-ghost" href="/register">创建企业账号</Link>
           </div>
           <p className="hero-note">
-            本阶段不包含套餐、订阅、付款或应用实例功能。
+            本阶段不包含真实订阅、付款、应用实例开通或自动部署。
           </p>
         </div>
 
@@ -52,7 +52,7 @@ export default function Home() {
               <span className="board-kicker">MVP OPERATING LOOP</span>
               <h2>人工开通闭环</h2>
             </div>
-            <span className="status-pill status-foundation">权限基础已接入</span>
+            <span className="status-pill status-foundation">客户与套餐已接入</span>
           </div>
           <ol className="process-list">
             {platformConfig.mvpFlow.map((step, index) => (
@@ -74,7 +74,7 @@ export default function Home() {
         <div className="section-heading">
           <p className="eyebrow">FIRST RELEASE</p>
           <h2>只做能形成真实运营闭环的能力</h2>
-          <p>本阶段只实现账号、企业工作区、成员关系和平台管理员权限，不提前进入收费或应用开通。</p>
+          <p>本阶段完成客户和套餐管理，并保留清晰的订阅与实例状态字段，不提前进入收费或应用开通。</p>
         </div>
         <div className="scope-grid">
           {platformConfig.scopes.map((scope) => (
@@ -96,7 +96,7 @@ export default function Home() {
           <h2>快速上线，也保留清晰的扩展边界</h2>
           <p>
             单一 TypeScript 项目承载公共站点、客户控制台、管理端与 API。
-            业务代码按领域拆分，后续接入数据库和认证时无需重写页面结构。
+            业务代码按领域拆分，D1 持久化客户和套餐；后续订阅、付款和实例阶段可以沿当前边界继续扩展。
           </p>
           <div className="architecture-tags">
             {platformConfig.stack.map((item) => <span key={item}>{item}</span>)}
@@ -113,7 +113,7 @@ export default function Home() {
       <footer className="marketing-footer">
         <div>
           <strong>{platformConfig.name}</strong>
-          <p>阶段 1 · 身份、工作区与权限基础。</p>
+          <p>阶段 2 · 企业客户与套餐运营。</p>
         </div>
         <div className="footer-links">
           <Link href="/dashboard">客户侧</Link>

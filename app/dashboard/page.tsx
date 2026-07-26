@@ -4,13 +4,22 @@ import {
   getDashboardAccount,
   listWorkspaceMembers,
 } from "@/lib/auth/account";
+import { getCustomer } from "@/lib/admin/management";
+import {
+  appInstanceStatusLabels,
+  formatMoney,
+  subscriptionStatusLabels,
+} from "@/lib/admin/presentation";
 
 export const metadata: Metadata = { title: "客户控制台" };
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const account = await getDashboardAccount();
-  const members = await listWorkspaceMembers(account.workspace.id);
+  const [members, customer] = await Promise.all([
+    listWorkspaceMembers(account.workspace.id),
+    getCustomer(account.workspace.id),
+  ]);
 
   return (
     <>
@@ -18,7 +27,7 @@ export default async function DashboardPage() {
         <div>
           <p className="page-kicker">企业工作区</p>
           <h1>欢迎回来，{account.user.name}</h1>
-          <p>账号、工作区与成员权限已经接入真实持久化数据。</p>
+          <p>查看当前工作区、套餐与服务状态。</p>
         </div>
         {account.user.isPlatformAdmin ? (
           <Link className="button button-dark button-small" href="/admin">
@@ -34,33 +43,48 @@ export default async function DashboardPage() {
           <p>状态：{account.workspace.status}</p>
         </article>
         <article className="readiness-card">
-          <small>我的角色</small>
-          <strong>{account.membership.role}</strong>
-          <p>{account.membership.role === "owner" ? "可管理工作区基础信息" : "可访问工作区内容"}</p>
+          <small>当前套餐</small>
+          <strong>{customer?.plan?.name ?? "尚未分配"}</strong>
+          <p>
+            {customer?.plan
+              ? formatMoney(customer.plan.priceAmount, customer.plan.currency)
+              : "由平台管理员维护"}
+          </p>
         </article>
         <article className="readiness-card">
-          <small>团队成员</small>
-          <strong>{members.length}</strong>
-          <p>成员数据仅在当前工作区范围内读取。</p>
+          <small>订阅状态</small>
+          <strong>
+            {customer
+              ? subscriptionStatusLabels[customer.subscriptionStatus]
+              : "尚未配置"}
+          </strong>
+          <p>第 3 阶段将接入人工订阅记录。</p>
         </article>
       </div>
 
       <div className="dashboard-columns">
         <section className="module-card">
-          <h2>阶段 1 已启用</h2>
-          <p>以下能力已连接服务器端身份和数据库。</p>
+          <h2>工作区服务概览</h2>
+          <p>以下状态来自当前工作区的数据库记录。</p>
           <ul className="foundation-checklist">
-            <li><span>ChatGPT 登录与退出</span><span className="check-state">READY</span></li>
-            <li><span>首次登录创建企业工作区</span><span className="check-state">READY</span></li>
-            <li><span>工作区成员权限隔离</span><span className="check-state">READY</span></li>
-            <li><span>平台管理员独立权限</span><span className="check-state">READY</span></li>
+            <li><span>工作区状态</span><span className="check-state">{account.workspace.status}</span></li>
+            <li><span>我的角色</span><span className="check-state">{account.membership.role}</span></li>
+            <li><span>团队成员</span><span className="check-state">{members.length}</span></li>
+            <li>
+              <span>应用实例</span>
+              <span className="check-state pending">
+                {customer
+                  ? appInstanceStatusLabels[customer.appInstanceStatus]
+                  : "尚未开通"}
+              </span>
+            </li>
           </ul>
         </section>
         <aside className="module-card">
-          <h2>后续阶段</h2>
-          <p>套餐、订阅、付款和应用实例仍未接入，本阶段不会展示虚构状态。</p>
+          <h2>阶段边界</h2>
+          <p>当前套餐可读取，但订阅、付款和应用实例业务尚未接入。</p>
           <div className="notice notice-neutral">
-            下一阶段可以开始实现客户和套餐管理。
+            当前页面没有套餐购买或付款按钮，避免形成无法工作的入口。
           </div>
         </aside>
       </div>

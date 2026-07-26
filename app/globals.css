@@ -138,6 +138,17 @@ select {
   border-color: #bdc1ba;
 }
 
+.button-danger {
+  background: #a93d32;
+  color: white;
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+  transform: none;
+}
+
 .hero {
   display: grid;
   gap: 72px;
@@ -875,6 +886,17 @@ select {
   color: var(--success);
 }
 
+.status-suspended,
+.status-inactive {
+  background: #fff0d9;
+  color: var(--warning);
+}
+
+.status-disabled {
+  background: #f3e1df;
+  color: #8e332d;
+}
+
 .data-panel {
   background: var(--surface);
   border: 1px solid rgba(23, 34, 27, 0.08);
@@ -987,6 +1009,300 @@ select {
   font-size: 10px;
 }
 
+/* Admin management */
+.header-actions,
+.form-actions,
+.plan-card-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-bar {
+  align-items: end;
+  background: var(--surface);
+  border: 1px solid rgba(23, 34, 27, 0.08);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+  padding: 18px;
+}
+
+.filter-field {
+  display: grid;
+  flex: 1 1 280px;
+  gap: 7px;
+}
+
+.filter-field-compact {
+  flex: 0 1 190px;
+}
+
+.filter-field > span,
+.form-field > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.filter-field input,
+.filter-field select,
+.form-field input,
+.form-field select,
+.form-field textarea {
+  background: white;
+  border: 1px solid #cdd0ca;
+  border-radius: 11px;
+  color: var(--foreground);
+  min-height: 44px;
+  outline: none;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.form-field textarea {
+  resize: vertical;
+}
+
+.filter-field input:focus,
+.filter-field select:focus,
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(37, 106, 72, 0.1);
+}
+
+.data-table-wide {
+  min-width: 980px;
+}
+
+.table-link {
+  color: var(--success);
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 750;
+  margin-top: 18px;
+}
+
+.data-table .table-link {
+  margin-top: 0;
+}
+
+.empty-state {
+  color: var(--muted);
+  padding: 54px 28px;
+  text-align: center;
+}
+
+.empty-state strong {
+  color: var(--foreground);
+  display: block;
+  font-size: 18px;
+}
+
+.empty-state p {
+  font-size: 13px;
+  margin: 8px 0 20px;
+}
+
+.standalone-empty {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  margin-top: 32px;
+}
+
+.form-panel {
+  background: var(--surface);
+  border: 1px solid rgba(23, 34, 27, 0.08);
+  border-radius: var(--radius-md);
+  margin-top: 32px;
+  padding: 28px;
+}
+
+.admin-form {
+  display: grid;
+  gap: 24px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-field {
+  align-content: start;
+  display: grid;
+  gap: 7px;
+}
+
+.form-field-wide {
+  grid-column: 1 / -1;
+}
+
+.form-field > small:not(.form-error) {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.form-error {
+  color: #a93d32;
+  font-size: 11px;
+  margin: 0;
+}
+
+.form-message {
+  background: #f8e7e4;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.compact-error {
+  max-width: 250px;
+  padding-top: 6px;
+}
+
+.inline-action {
+  display: inline-grid;
+}
+
+.detail-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 32px;
+}
+
+.detail-grid .notice {
+  margin-top: 20px;
+}
+
+.plan-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 24px;
+}
+
+.plan-card {
+  background: var(--surface);
+  border: 1px solid rgba(23, 34, 27, 0.08);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  min-height: 340px;
+  padding: 26px;
+}
+
+.plan-card-heading {
+  align-items: start;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.plan-card-heading h2 {
+  font-size: 24px;
+  margin: 12px 0 0;
+}
+
+.plan-card-heading > strong {
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+.plan-card-heading > strong small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.plan-card > p,
+.muted-copy {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.plan-summary {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 18px;
+  margin: 18px 0;
+  padding: 12px 0;
+}
+
+.plan-summary span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.value-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.value-list li {
+  font-size: 12px;
+  margin: 9px 0;
+  padding-left: 16px;
+  position: relative;
+}
+
+.value-list li::before {
+  color: var(--success);
+  content: "•";
+  left: 0;
+  position: absolute;
+}
+
+.compact-list {
+  margin-bottom: 22px;
+}
+
+.plan-card-actions {
+  margin-top: auto;
+}
+
+.plan-content-grid {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 40px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 26px;
+}
+
+.plan-content-grid h3 {
+  font-size: 13px;
+  margin: 0;
+}
+
+.limit-list {
+  margin: 16px 0 0;
+}
+
+.limit-list > div {
+  border-top: 1px solid var(--line);
+  display: flex;
+  font-size: 12px;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.limit-list dt {
+  color: var(--muted);
+}
+
+.limit-list dd {
+  font-weight: 700;
+  margin: 0;
+}
+
 @media (max-width: 900px) {
   .marketing-nav > a:not(.button) {
     display: none;
@@ -1004,7 +1320,9 @@ select {
 
   .scope-grid,
   .readiness-grid,
-  .settings-grid {
+  .settings-grid,
+  .detail-grid,
+  .plan-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1109,8 +1427,14 @@ select {
   }
 
   .dashboard-columns,
-  .placeholder-list {
+  .placeholder-list,
+  .form-grid,
+  .plan-content-grid {
     grid-template-columns: 1fr;
+  }
+
+  .form-field-wide {
+    grid-column: auto;
   }
 
   .auth-card {

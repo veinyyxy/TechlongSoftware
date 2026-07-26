@@ -31,8 +31,9 @@ const customerNavigation: NavigationItem[] = [
 
 const adminNavigation: NavigationItem[] = [
   { href: "/admin", label: "管理概览" },
+  { href: "/admin/customers", label: "客户管理" },
+  { href: "/admin/plans", label: "套餐管理" },
   { href: "/admin/users", label: "用户账号" },
-  { href: "/admin/workspaces", label: "企业工作区" },
 ];
 
 export function AppShell({ children, mode, user, workspace }: AppShellProps) {
@@ -69,7 +70,7 @@ export function AppShell({ children, mode, user, workspace }: AppShellProps) {
       <section className="app-main">
         <header className="topbar">
           <p>{isAdmin ? "平台运营视图" : "企业客户视图"}</p>
-          <span className="environment-badge">STAGE 01 · AUTHORIZED</span>
+          <span className="environment-badge">STAGE 02 · ADMIN OPERATIONS</span>
         </header>
         <div className="app-content">{children}</div>
       </section>

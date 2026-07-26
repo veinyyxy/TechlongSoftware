@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  canAccessPlatformAdmin,
   canAccessWorkspace,
   canManageWorkspace,
   isPlatformAdminEmail,
@@ -53,6 +54,11 @@ test("allows platform admins to cross workspace boundaries", () => {
     }),
     true,
   );
+});
+
+test("blocks ordinary customers from platform administration", () => {
+  assert.equal(canAccessPlatformAdmin(false), false);
+  assert.equal(canAccessPlatformAdmin(true), true);
 });
 
 test("only workspace owners can manage workspace settings", () => {

@@ -7,6 +7,7 @@ import {
   type ChatGPTUser,
 } from "@/app/chatgpt-auth";
 import { getD1 } from "@/db";
+import { stableId } from "@/lib/domain/ids";
 import {
   canAccessWorkspace,
   isPlatformAdminEmail,
@@ -93,16 +94,6 @@ function getPlatformAdminEmails(): string[] {
       : undefined;
 
   return parseAdminEmailAllowlist(value);
-}
-
-async function stableId(prefix: string, value: string): Promise<string> {
-  const bytes = new TextEncoder().encode(`${prefix}:${value}`);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  const hash = Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-
-  return `${prefix}_${hash.slice(0, 24)}`;
 }
 
 function defaultWorkspaceName(identity: ChatGPTUser): string {
@@ -346,10 +337,20 @@ export async function listWorkspaceMembers(
 
 export async function getPlatformOverview() {
   const db = getD1();
-  const [usersResult, workspacesResult, membersResult] = await db.batch([
+  const [
+    usersResult,
+    workspacesResult,
+    membersResult,
+    activePlansResult,
+    suspendedWorkspacesResult,
+  ] = await db.batch([
     db.prepare("SELECT COUNT(*) AS count FROM users"),
     db.prepare("SELECT COUNT(*) AS count FROM workspaces"),
     db.prepare("SELECT COUNT(*) AS count FROM workspace_members"),
+    db.prepare("SELECT COUNT(*) AS count FROM plans WHERE status = 'active'"),
+    db.prepare(
+      "SELECT COUNT(*) AS count FROM workspaces WHERE status = 'suspended'",
+    ),
   ]);
 
   const count = (result: D1Result<unknown>) =>
@@ -359,6 +360,8 @@ export async function getPlatformOverview() {
     users: count(usersResult),
     workspaces: count(workspacesResult),
     memberships: count(membersResult),
+    activePlans: count(activePlansResult),
+    suspendedWorkspaces: count(suspendedWorkspacesResult),
   };
 }
 

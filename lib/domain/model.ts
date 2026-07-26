@@ -2,6 +2,7 @@ export type PlatformRole = "platform_admin";
 export type WorkspaceRole = "owner" | "member";
 
 export type SubscriptionStatus =
+  | "not_configured"
   | "pending"
   | "active"
   | "past_due"
@@ -15,6 +16,7 @@ export type PaymentStatus =
   | "refunded";
 
 export type AppInstanceStatus =
+  | "not_provisioned"
   | "pending"
   | "provisioning"
   | "running"
@@ -39,6 +41,8 @@ export const PLATFORM_PERMISSIONS = [
   "platform:read",
   "users:read",
   "workspaces:read",
+  "customers:manage",
+  "plans:manage",
 ] as const;
 
 export const WORKSPACE_PERMISSIONS = [

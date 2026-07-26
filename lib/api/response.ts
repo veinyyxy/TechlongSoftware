@@ -12,6 +12,14 @@ export function apiSuccess<T>(data: T): ApiResponse<T> {
   return { success: true, data, error: null };
 }
 
-export function apiError(code: string, message: string): ApiResponse<never> {
-  return { success: false, data: null, error: { code, message } };
+export function apiError(
+  code: string,
+  message: string,
+  fields?: Record<string, string[]>,
+): ApiResponse<never> {
+  return {
+    success: false,
+    data: null,
+    error: fields ? { code, message, fields } : { code, message },
+  };
 }

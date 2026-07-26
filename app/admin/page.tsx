@@ -36,21 +36,31 @@ export default async function AdminPage() {
           <p>当前平台中的租户边界。</p>
         </article>
         <article className="readiness-card">
-          <small>成员关系</small>
-          <strong>{overview.memberships}</strong>
-          <p>用户与工作区之间的角色记录。</p>
+          <small>启用套餐</small>
+          <strong>{overview.activePlans}</strong>
+          <p>当前可以继续销售或分配的套餐。</p>
         </article>
       </div>
-      <section className="placeholder-panel">
-        <h2>管理员权限范围</h2>
-        <p>当前只开放用户和工作区只读基础视图，未进入客户管理、套餐或收费阶段。</p>
-        <ul className="placeholder-list">
-          <li>查看平台用户及管理员标记</li>
-          <li>查看企业工作区和成员数量</li>
-          <li>普通用户访问管理端时服务端拒绝</li>
-          <li>套餐、付款、应用实例保持未实现</li>
-        </ul>
-      </section>
+      <div className="dashboard-columns">
+        <section className="module-card">
+          <h2>客户运营</h2>
+          <p>维护企业资料、工作区状态和当前套餐。</p>
+          <ul className="foundation-checklist">
+            <li><span>客户总数</span><span>{overview.workspaces}</span></li>
+            <li><span>暂停客户</span><span>{overview.suspendedWorkspaces}</span></li>
+            <li><span>成员关系</span><span>{overview.memberships}</span></li>
+          </ul>
+          <Link className="table-link" href="/admin/customers">进入客户管理 →</Link>
+        </section>
+        <section className="module-card">
+          <h2>套餐目录</h2>
+          <p>套餐价格、功能与限制由数据库提供。</p>
+          <div className="notice notice-neutral">
+            本阶段不创建订阅、不接支付，也不执行应用开通。
+          </div>
+          <Link className="table-link" href="/admin/plans">进入套餐管理 →</Link>
+        </section>
+      </div>
     </>
   );
 }
