@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前完成阶段 2：管理员客户与套餐管理。
+当前完成阶段 3：管理员手工订阅与付款记录。
 
 ## 已实现
 
@@ -22,12 +22,20 @@
 - 创建、编辑、启用及停用套餐。
 - 套餐价格使用最小货币单位保存，功能和限制保存在数据库中。
 - 客户详情和客户控制台读取当前套餐、订阅状态和应用实例状态。
+- 管理员创建、编辑并查看客户订阅。
+- 订阅支持 `manual_pending`、`active`、`past_due`、`paused`、`canceled`。
+- 管理员可以暂停、恢复和取消订阅。
+- 管理员手工录入并筛选付款记录。
+- 付款金额使用最小货币单位整数保存。
+- 付款状态支持 `pending`、`paid`、`failed`。
+- 客户只读查看本工作区的订阅、当前账期和付款历史。
+- 非有效订阅或最近付款失败时，客户控制台显示明显提醒。
 
 ## 当前没有实现
 
-- 订阅创建、续费和付款记录。
 - 应用实例开通。
-- 真实支付。
+- Stripe、Paddle、真实在线支付、Webhook 和自动扣款。
+- 复杂发票、优惠券和自动退款。
 - 自动部署业务流程。
 - 成员邀请和角色变更。
 - 密码注册、密码存储和密码重置。
@@ -88,7 +96,14 @@ npm test
 - `workspaces.subscription_status`
 - `workspaces.app_instance_status`
 
-订阅状态和应用实例状态目前只是工作区上的可读取状态快照，阶段 2 不创建订阅或应用实例记录。
+阶段 3 新增：
+
+- `subscriptions`
+- `payment_records`
+
+订阅关联 `workspace` 和 `plan`，当前 MVP 每个工作区最多一条订阅。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。
+
+工作区上的 `plan_id` 和 `subscription_status` 作为兼容状态快照，由订阅管理操作同步更新。应用实例状态仍是占位字段，本阶段不创建应用实例记录。
 
 所有客户业务查询必须通过 `workspace_id` 和成员关系限制范围。平台管理员是唯一允许跨工作区读取基础数据的角色。
 
@@ -107,8 +122,10 @@ npm test
 - `/dashboard`
 - `/dashboard/members`
 - `/dashboard/settings`
+- `/dashboard/billing`
 - `/api/account`
 - `/api/workspaces/:workspaceId`
+- `/api/workspaces/:workspaceId/billing`
 
 管理员路由：
 
@@ -121,16 +138,25 @@ npm test
 - `/admin/plans`
 - `/admin/plans/new`
 - `/admin/plans/:planId/edit`
+- `/admin/subscriptions`
+- `/admin/subscriptions/new`
+- `/admin/subscriptions/:subscriptionId`
+- `/admin/subscriptions/:subscriptionId/edit`
+- `/admin/payments`
+- `/admin/payments/new`
 - `/api/admin/overview`
 - `/api/admin/customers`
 - `/api/admin/customers/:customerId`
 - `/api/admin/plans`
 - `/api/admin/plans/:planId`
+- `/api/admin/subscriptions`
+- `/api/admin/subscriptions/:subscriptionId`
+- `/api/admin/payments`
 
 保留的后续阶段占位路由不会出现在当前导航中。
 
 ## 下一阶段
 
-确认客户与套餐管理后，可以执行：
+确认手工订阅与付款记录后，可以执行：
 
-`implementation-steps/03-manual-subscription-and-payment.md`
+`implementation-steps/04-app-instance-provisioning.md`

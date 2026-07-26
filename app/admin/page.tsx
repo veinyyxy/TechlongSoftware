@@ -36,9 +36,9 @@ export default async function AdminPage() {
           <p>当前平台中的租户边界。</p>
         </article>
         <article className="readiness-card">
-          <small>启用套餐</small>
-          <strong>{overview.activePlans}</strong>
-          <p>当前可以继续销售或分配的套餐。</p>
+          <small>有效订阅</small>
+          <strong>{overview.activeSubscriptions}</strong>
+          <p>由管理员手动标记为有效的订阅。</p>
         </article>
       </div>
       <div className="dashboard-columns">
@@ -53,12 +53,17 @@ export default async function AdminPage() {
           <Link className="table-link" href="/admin/customers">进入客户管理 →</Link>
         </section>
         <section className="module-card">
-          <h2>套餐目录</h2>
-          <p>套餐价格、功能与限制由数据库提供。</p>
-          <div className="notice notice-neutral">
-            本阶段不创建订阅、不接支付，也不执行应用开通。
+          <h2>手动收费状态</h2>
+          <p>订阅与付款记录由平台管理员维护。</p>
+          <ul className="foundation-checklist">
+            <li><span>启用套餐</span><span>{overview.activePlans}</span></li>
+            <li><span>有效订阅</span><span>{overview.activeSubscriptions}</span></li>
+            <li><span>失败付款</span><span>{overview.failedPayments}</span></li>
+          </ul>
+          <div className="header-actions">
+            <Link className="table-link" href="/admin/subscriptions">订阅管理 →</Link>
+            <Link className="table-link" href="/admin/payments">付款记录 →</Link>
           </div>
-          <Link className="table-link" href="/admin/plans">进入套餐管理 →</Link>
         </section>
       </div>
     </>

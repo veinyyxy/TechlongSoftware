@@ -64,10 +64,12 @@ export const workspaces = sqliteTable(
     subscriptionStatus: text("subscription_status", {
       enum: [
         "not_configured",
+        "manual_pending",
         "pending",
         "active",
         "past_due",
         "paused",
+        "canceled",
         "cancelled",
       ],
     })
@@ -93,6 +95,82 @@ export const workspaces = sqliteTable(
     index("workspaces_owner_id_idx").on(table.ownerId),
     index("workspaces_plan_id_idx").on(table.planId),
     index("workspaces_status_idx").on(table.status),
+  ],
+);
+
+export const subscriptions = sqliteTable(
+  "subscriptions",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    planId: text("plan_id")
+      .notNull()
+      .references(() => plans.id, { onDelete: "restrict" }),
+    status: text("status", {
+      enum: [
+        "manual_pending",
+        "active",
+        "past_due",
+        "paused",
+        "canceled",
+      ],
+    })
+      .notNull()
+      .default("manual_pending"),
+    currentPeriodStart: integer("current_period_start", {
+      mode: "timestamp_ms",
+    }).notNull(),
+    currentPeriodEnd: integer("current_period_end", {
+      mode: "timestamp_ms",
+    }).notNull(),
+    cancelAtPeriodEnd: integer("cancel_at_period_end", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("subscriptions_workspace_unique").on(table.workspaceId),
+    index("subscriptions_plan_id_idx").on(table.planId),
+    index("subscriptions_status_idx").on(table.status),
+  ],
+);
+
+export const paymentRecords = sqliteTable(
+  "payment_records",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    subscriptionId: text("subscription_id").references(
+      () => subscriptions.id,
+      { onDelete: "set null" },
+    ),
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull(),
+    status: text("status", { enum: ["pending", "paid", "failed"] })
+      .notNull()
+      .default("pending"),
+    paidAt: integer("paid_at", { mode: "timestamp_ms" }),
+    paymentMethod: text("payment_method").notNull(),
+    reference: text("reference"),
+    note: text("note"),
+    recordedByUserId: text("recorded_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    index("payment_records_workspace_id_idx").on(table.workspaceId),
+    index("payment_records_subscription_id_idx").on(table.subscriptionId),
+    index("payment_records_status_idx").on(table.status),
   ],
 );
 

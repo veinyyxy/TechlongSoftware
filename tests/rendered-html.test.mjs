@@ -25,15 +25,15 @@ async function render(pathname = "/") {
   );
 }
 
-test("server-renders the stage 2 landing page", async () => {
+test("server-renders the stage 3 landing page", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /CUSTOMERS &amp; PLANS/);
-  assert.match(html, /客户与套餐运营/);
-  assert.match(html, /管理员配置数据库套餐/);
+  assert.match(html, /MANUAL BILLING/);
+  assert.match(html, /手工订阅与付款记录/);
+  assert.match(html, /管理员创建企业客户与套餐/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 
@@ -79,16 +79,26 @@ test("account API rejects anonymous requests", async () => {
   assert.equal(body.error.code, "UNAUTHORIZED");
 });
 
-test("admin customer and plan APIs reject anonymous requests", async () => {
-  const [customers, plans] = await Promise.all([
+test("stage 3 protected APIs reject anonymous requests", async () => {
+  const [customers, plans, subscriptions, payments, workspaceBilling] =
+    await Promise.all([
     render("/api/admin/customers"),
     render("/api/admin/plans"),
+    render("/api/admin/subscriptions"),
+    render("/api/admin/payments"),
+    render("/api/workspaces/workspace-a/billing"),
   ]);
 
   assert.equal(customers.status, 401);
   assert.equal((await customers.json()).error.code, "UNAUTHORIZED");
   assert.equal(plans.status, 401);
   assert.equal((await plans.json()).error.code, "UNAUTHORIZED");
+  assert.equal(subscriptions.status, 401);
+  assert.equal((await subscriptions.json()).error.code, "UNAUTHORIZED");
+  assert.equal(payments.status, 401);
+  assert.equal((await payments.json()).error.code, "UNAUTHORIZED");
+  assert.equal(workspaceBilling.status, 401);
+  assert.equal((await workspaceBilling.json()).error.code, "UNAUTHORIZED");
 });
 
 test("keeps secrets out of the committed environment example", async () => {

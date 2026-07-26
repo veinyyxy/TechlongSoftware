@@ -343,6 +343,8 @@ export async function getPlatformOverview() {
     membersResult,
     activePlansResult,
     suspendedWorkspacesResult,
+    activeSubscriptionsResult,
+    failedPaymentsResult,
   ] = await db.batch([
     db.prepare("SELECT COUNT(*) AS count FROM users"),
     db.prepare("SELECT COUNT(*) AS count FROM workspaces"),
@@ -350,6 +352,12 @@ export async function getPlatformOverview() {
     db.prepare("SELECT COUNT(*) AS count FROM plans WHERE status = 'active'"),
     db.prepare(
       "SELECT COUNT(*) AS count FROM workspaces WHERE status = 'suspended'",
+    ),
+    db.prepare(
+      "SELECT COUNT(*) AS count FROM subscriptions WHERE status = 'active'",
+    ),
+    db.prepare(
+      "SELECT COUNT(*) AS count FROM payment_records WHERE status = 'failed'",
     ),
   ]);
 
@@ -362,6 +370,8 @@ export async function getPlatformOverview() {
     memberships: count(membersResult),
     activePlans: count(activePlansResult),
     suspendedWorkspaces: count(suspendedWorkspacesResult),
+    activeSubscriptions: count(activeSubscriptionsResult),
+    failedPayments: count(failedPaymentsResult),
   };
 }
 

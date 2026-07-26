@@ -15,6 +15,13 @@
       "when": 1785090223424,
       "tag": "0001_little_hercules",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1785093090069,
+      "tag": "0002_typical_living_tribunal",
+      "breakpoints": true
     }
   ]
 }

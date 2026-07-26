@@ -3,6 +3,8 @@ import Link from "next/link";
 import { StatusActionButton } from "@/components/admin/StatusActionButton";
 import { getAdminAccount } from "@/lib/auth/account";
 import { getCustomer } from "@/lib/admin/management";
+import { getWorkspaceBillingSummary } from "@/lib/billing/management";
+import { subscriptionStatusLabels as billingStatusLabels } from "@/lib/billing/presentation";
 import {
   appInstanceStatusLabels,
   billingIntervalLabels,
@@ -39,6 +41,7 @@ export default async function CustomerDetailPage({
   }
 
   const isActive = customer.status === "active";
+  const billing = await getWorkspaceBillingSummary(customer.id);
 
   return (
     <>
@@ -106,7 +109,11 @@ export default async function CustomerDetailPage({
             </div>
             <div>
               <dt>订阅状态</dt>
-              <dd>{subscriptionStatusLabels[customer.subscriptionStatus]}</dd>
+              <dd>
+                {billing.subscription
+                  ? billingStatusLabels[billing.subscription.status]
+                  : subscriptionStatusLabels[customer.subscriptionStatus]}
+              </dd>
             </div>
             <div>
               <dt>应用实例</dt>
@@ -114,8 +121,20 @@ export default async function CustomerDetailPage({
             </div>
           </dl>
           <div className="notice notice-neutral">
-            订阅与应用实例为数据库读取字段；本阶段不创建订阅、不收款，也不开通实例。
+            订阅与付款由管理员手动维护；应用实例仍未开通。
           </div>
+          {billing.subscription ? (
+            <Link
+              className="table-link"
+              href={`/admin/subscriptions/${billing.subscription.id}`}
+            >
+              查看订阅详情 →
+            </Link>
+          ) : (
+            <Link className="table-link" href="/admin/subscriptions/new">
+              为客户创建订阅 →
+            </Link>
+          )}
         </section>
       </div>
 

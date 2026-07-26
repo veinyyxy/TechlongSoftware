@@ -887,14 +887,21 @@ select {
 }
 
 .status-suspended,
-.status-inactive {
+.status-inactive,
+.status-warning {
   background: #fff0d9;
   color: var(--warning);
 }
 
-.status-disabled {
+.status-disabled,
+.status-danger {
   background: #f3e1df;
   color: #8e332d;
+}
+
+.status-neutral {
+  background: #ece9e1;
+  color: var(--muted);
 }
 
 .data-panel {
@@ -1076,6 +1083,41 @@ select {
   box-shadow: 0 0 0 3px rgba(37, 106, 72, 0.1);
 }
 
+.form-field input:disabled {
+  background: var(--surface-muted);
+  color: var(--muted);
+}
+
+.check-field {
+  align-items: start;
+  background: var(--background);
+  border-radius: 12px;
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+}
+
+.check-field > input {
+  accent-color: var(--success);
+  height: 18px;
+  margin-top: 2px;
+  width: 18px;
+}
+
+.check-field > span {
+  display: grid;
+  gap: 4px;
+}
+
+.check-field strong {
+  font-size: 12px;
+}
+
+.check-field small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
 .data-table-wide {
   min-width: 980px;
 }
@@ -1164,6 +1206,34 @@ select {
 .compact-error {
   max-width: 250px;
   padding-top: 6px;
+}
+
+.notice-danger {
+  background: #f8e7e4;
+  border-left-color: #a93d32;
+  color: #762e28;
+}
+
+.billing-alert {
+  display: grid;
+  gap: 4px;
+  margin-top: 20px;
+}
+
+.billing-alert strong {
+  font-size: 12px;
+}
+
+.billing-alert span {
+  font-size: 11px;
+}
+
+.billing-disclaimer {
+  margin-top: 24px;
+}
+
+.compact-empty {
+  padding: 30px 10px;
 }
 
 .inline-action {

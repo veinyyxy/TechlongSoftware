@@ -24,10 +24,12 @@ export const billingIntervalLabels: Record<BillingInterval, string> = {
 
 export const subscriptionStatusLabels: Record<SubscriptionStatus, string> = {
   not_configured: "尚未配置",
+  manual_pending: "人工待确认",
   pending: "待生效",
   active: "有效",
   past_due: "逾期",
   paused: "已暂停",
+  canceled: "已取消",
   cancelled: "已取消",
 };
 

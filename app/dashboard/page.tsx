@@ -5,21 +5,29 @@ import {
   listWorkspaceMembers,
 } from "@/lib/auth/account";
 import { getCustomer } from "@/lib/admin/management";
+import { getWorkspaceBillingSummary } from "@/lib/billing/management";
 import {
   appInstanceStatusLabels,
   formatMoney,
-  subscriptionStatusLabels,
 } from "@/lib/admin/presentation";
+import {
+  paymentStatusLabels,
+  subscriptionStatusLabels,
+} from "@/lib/billing/presentation";
 
 export const metadata: Metadata = { title: "客户控制台" };
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const account = await getDashboardAccount();
-  const [members, customer] = await Promise.all([
+  const [members, customer, billing] = await Promise.all([
     listWorkspaceMembers(account.workspace.id),
     getCustomer(account.workspace.id),
+    getWorkspaceBillingSummary(account.workspace.id),
   ]);
+  const subscription = billing.subscription;
+  const subscriptionIsActive = subscription?.status === "active";
+  const recentPaymentFailed = billing.recentPayment?.status === "failed";
 
   return (
     <>
@@ -44,23 +52,47 @@ export default async function DashboardPage() {
         </article>
         <article className="readiness-card">
           <small>当前套餐</small>
-          <strong>{customer?.plan?.name ?? "尚未分配"}</strong>
+          <strong>{subscription?.planName ?? customer?.plan?.name ?? "尚未分配"}</strong>
           <p>
-            {customer?.plan
-              ? formatMoney(customer.plan.priceAmount, customer.plan.currency)
+            {subscription
+              ? formatMoney(
+                  subscription.planPriceAmount,
+                  subscription.planCurrency,
+                )
+              : customer?.plan
+                ? formatMoney(customer.plan.priceAmount, customer.plan.currency)
               : "由平台管理员维护"}
           </p>
         </article>
         <article className="readiness-card">
           <small>订阅状态</small>
           <strong>
-            {customer
-              ? subscriptionStatusLabels[customer.subscriptionStatus]
-              : "尚未配置"}
+            {subscription
+              ? subscriptionStatusLabels[subscription.status]
+              : "尚未创建"}
           </strong>
-          <p>第 3 阶段将接入人工订阅记录。</p>
+          <p>由平台管理员手动维护。</p>
         </article>
       </div>
+
+      {!subscriptionIsActive ? (
+        <div className="notice notice-danger billing-alert">
+          <strong>订阅当前不是有效状态</strong>
+          <span>
+            {subscription
+              ? `当前状态：${subscriptionStatusLabels[subscription.status]}。`
+              : "尚未创建订阅。"}
+            请联系平台运营人员。
+          </span>
+        </div>
+      ) : null}
+
+      {recentPaymentFailed ? (
+        <div className="notice notice-danger billing-alert">
+          <strong>最近付款状态：{paymentStatusLabels.failed}</strong>
+          <span>请进入“订阅与账单”查看记录，并联系平台运营人员核对。</span>
+        </div>
+      ) : null}
 
       <div className="dashboard-columns">
         <section className="module-card">
@@ -81,11 +113,14 @@ export default async function DashboardPage() {
           </ul>
         </section>
         <aside className="module-card">
-          <h2>阶段边界</h2>
-          <p>当前套餐可读取，但订阅、付款和应用实例业务尚未接入。</p>
+          <h2>订阅与付款</h2>
+          <p>当前工作区可以只读查看管理员手动记录的订阅和付款状态。</p>
           <div className="notice notice-neutral">
-            当前页面没有套餐购买或付款按钮，避免形成无法工作的入口。
+            不支持在线付款、自动扣款或客户自行修改状态。
           </div>
+          <Link className="table-link" href="/dashboard/billing">
+            查看订阅与账单 →
+          </Link>
         </aside>
       </div>
     </>

@@ -7,10 +7,12 @@ export type PlanStatus = "active" | "inactive";
 export type BillingInterval = "month" | "year";
 export type SubscriptionStatus =
   | "not_configured"
+  | "manual_pending"
   | "pending"
   | "active"
   | "past_due"
   | "paused"
+  | "canceled"
   | "cancelled";
 export type AppInstanceStatus =
   | "not_provisioned"
