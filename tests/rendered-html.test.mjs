@@ -25,13 +25,13 @@ async function render(pathname = "/") {
   );
 }
 
-test("server-renders the stage 5 landing page", async () => {
+test("server-renders the launch-ready landing page", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /CUSTOMER READY/);
+  assert.match(html, /LAUNCH READY/);
   assert.match(html, /客户服务 Dashboard/);
   assert.match(html, /管理员创建企业客户与套餐/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
@@ -98,7 +98,7 @@ test("account API rejects anonymous requests", async () => {
   assert.equal(body.error.code, "UNAUTHORIZED");
 });
 
-test("stage 5 protected APIs reject anonymous requests", async () => {
+test("launch-stage protected APIs reject anonymous requests", async () => {
   const [customers, plans, subscriptions, payments, instances, workspaceBilling, workspaceApps] =
     await Promise.all([
     render("/api/admin/customers"),

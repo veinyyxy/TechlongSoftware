@@ -1,7 +1,7 @@
 export const platformConfig = {
   name: process.env.NEXT_PUBLIC_PLATFORM_NAME ?? "餐饮 SaaS 平台",
   productName: "餐饮订单系统",
-  phase: "customer-dashboard",
+  phase: "testing-and-launch",
   stack: [
     "TypeScript",
     "React 19",
