@@ -17,6 +17,8 @@ export default async function UnauthorizedPage({
   const { reason } = await searchParams;
   const message =
     messages[reason ?? ""] ?? "当前账号无权访问所请求的页面。";
+  const canReturnToDashboard =
+    reason !== "workspace_status" && reason !== "user_status";
 
   return (
     <main className="auth-page">
@@ -26,9 +28,11 @@ export default async function UnauthorizedPage({
         <h1>无权限访问</h1>
         <p className="auth-description">{message}</p>
         <div className="hero-actions">
-          <Link className="button button-primary" href="/dashboard">
-            返回客户控制台
-          </Link>
+          {canReturnToDashboard ? (
+            <Link className="button button-primary" href="/dashboard">
+              返回客户控制台
+            </Link>
+          ) : null}
           <Link className="button button-ghost" href="/">
             返回首页
           </Link>

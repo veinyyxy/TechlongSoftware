@@ -38,10 +38,11 @@ test("server-renders the stage 5 landing page", async () => {
 });
 
 test("renders login, registration, and unauthorized pages", async () => {
-  const [login, register, unauthorized] = await Promise.all([
+  const [login, register, unauthorized, suspendedWorkspace] = await Promise.all([
     render("/login"),
     render("/register"),
     render("/unauthorized?reason=platform_admin"),
+    render("/unauthorized?reason=workspace_status"),
   ]);
 
   assert.equal(login.status, 200);
@@ -50,6 +51,10 @@ test("renders login, registration, and unauthorized pages", async () => {
   assert.match(await register.text(), /首次使用 ChatGPT 登录后/);
   assert.equal(unauthorized.status, 200);
   assert.match(await unauthorized.text(), /当前账号不是平台管理员/);
+  assert.equal(suspendedWorkspace.status, 200);
+  const suspendedHtml = await suspendedWorkspace.text();
+  assert.match(suspendedHtml, /当前企业工作区已暂停或停用/);
+  assert.doesNotMatch(suspendedHtml, /返回客户控制台/);
 });
 
 test("protected pages redirect anonymous visitors through Sites sign-in", async () => {

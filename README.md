@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前完成阶段 5：客户 Dashboard 与服务状态闭环。
+当前完成阶段 6：测试、修复明显问题与上线试运行检查。
 
 ## 已实现
 
@@ -41,6 +41,7 @@
 - 客户 Dashboard 显示企业名称、当前套餐、订阅状态、当前周期结束时间和最近付款状态。
 - 客户 Dashboard 显示餐饮订单系统状态与管理员登记的访问地址；仅在有效订阅、已开通实例和有效 URL 同时满足时显示进入按钮。
 - `manual_pending`、付款已确认但未开通、订阅异常、服务暂停、开通失败和未创建实例均有明确客户侧提示。
+- 健康检查会返回当前发布阶段；被暂停或停用的工作区会收到明确提示，不会被循环跳转回受限的客户控制台。
 
 ## 当前没有实现
 
@@ -83,10 +84,25 @@ PLATFORM_ADMIN_EMAILS=you@example.com
 
 ```bash
 npm run db:generate
+npm run typecheck
 npm run build
 npm run lint
 npm test
 ```
+
+## 环境变量与管理员初始化
+
+`NEXT_PUBLIC_PLATFORM_NAME` 仅用于公开品牌名称。`PLATFORM_ADMIN_EMAILS` 是以逗号分隔的管理员邮箱允许名单，必须配置在本地 `.env.local` 或 Sites 的生产环境变量中，不能提交真实邮箱、密码或密钥。
+
+管理员不通过数据库脚本或密码创建：将真实 ChatGPT 邮箱加入 `PLATFORM_ADMIN_EMAILS` 后，该用户首次使用 ChatGPT 登录时会自动同步为平台用户、创建所属工作区，并获得平台管理员权限。普通企业用户不在允许名单中，首次登录只会创建自己的企业工作区。
+
+不要使用 `sites-screenshot-service-noreply@chatgpt.com` 作为测试客户；它是 Sites 的系统截图服务账号，不能供人工登录。
+
+## 上线试运行
+
+发布前依次执行 `npm run lint`、`npm run typecheck`、`npm run build` 和 `npm test`。完整的管理员流程、客户流程、状态提示、权限隔离和数据来源验收步骤见 [上线检查清单](./docs/launch-checklist.md)。
+
+在私有 Sites 上试运行时，应至少使用两个真实 ChatGPT 账号：一个在管理员允许名单内，另一个作为普通企业客户。先在管理员端创建测试套餐、客户、订阅、付款和实例，再用客户账号验证 Dashboard 与应用入口。
 
 ## 数据库
 
@@ -180,8 +196,6 @@ npm test
 
 保留的后续阶段占位路由不会出现在当前导航中。
 
-## 下一阶段
+## 下一步建议
 
-确认客户 Dashboard 和状态提示后，可以执行：
-
-`implementation-steps/06-testing-and-launch-checklist.md`
+完成真实双账号试运行、记录运营反馈并确认手动流程稳定后，再优先评估支付平台接入方案。真实支付、Webhook、自动扣款、自动开通与自动部署仍不属于当前版本。

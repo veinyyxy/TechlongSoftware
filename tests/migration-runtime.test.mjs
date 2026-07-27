@@ -13,7 +13,7 @@ async function readMigrations() {
   );
 }
 
-test("stage 4 migrations preserve workspace isolation and application integrity", async () => {
+test("launch data flow preserves workspace isolation and application integrity", async () => {
   const migrations = await readMigrations();
   const database = new DatabaseSync(":memory:");
   database.exec("PRAGMA foreign_keys = ON");
