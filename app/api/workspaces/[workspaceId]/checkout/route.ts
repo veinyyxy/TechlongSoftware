@@ -37,13 +37,13 @@ export async function POST(request: Request, context: RouteContext) {
     const result = validateCheckoutInput(await readJsonBody(request));
     if (!result.data) {
       return Response.json(
-        apiError("VALIDATION_ERROR", "请先选择有效套餐。", result.errors),
+        apiError("VALIDATION_ERROR", "请先选择平台配置的待付款订阅。", result.errors),
         { status: 400 },
       );
     }
     const checkout = await createPaymentCheckout({
       workspaceId,
-      planId: result.data.planId,
+      subscriptionId: result.data.subscriptionId,
       initiatedByUserId: account.user.id,
       customerEmail: account.user.email,
       origin: checkoutOrigin(request.url),

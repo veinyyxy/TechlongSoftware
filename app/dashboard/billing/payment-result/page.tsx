@@ -48,7 +48,7 @@ export default async function PaymentResultPage({ searchParams }: PaymentResultP
         ? "付款已取消"
         : "正在确认付款结果";
   const message = confirmed
-    ? "您的付款已确认，系统正在开通中。餐饮订单系统仍需由平台管理员手动创建并标记为已开通。"
+    ? "您的付款已确认，系统正在开通中。平台会创建待开通记录，管理员仍需填写入口并手动标记为已开通。"
     : failed
       ? "Stripe 尚未完成这笔付款。您可以返回后重新发起付款，或联系平台管理员。"
       : wasCancelled

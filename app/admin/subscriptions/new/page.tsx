@@ -26,7 +26,7 @@ export default async function NewSubscriptionPage() {
       <header className="page-header">
         <p className="page-kicker">NEW MANUAL SUBSCRIPTION</p>
         <h1>创建客户订阅</h1>
-        <p>选择企业客户和套餐，并手动设置当前计费周期。</p>
+        <p>选择企业客户和套餐，默认创建“人工待确认”订阅，供客户确认套餐选项并完成 Stripe 付款。</p>
       </header>
       <section className="form-panel">
         {availableCustomers.length && plans.length ? (

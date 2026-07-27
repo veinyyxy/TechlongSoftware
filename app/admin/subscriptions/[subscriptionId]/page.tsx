@@ -142,7 +142,7 @@ export default async function SubscriptionDetailPage({
             </div>
           </dl>
           <div className="notice notice-neutral">
-            此订阅由管理员手动维护，不会自动扣款或触发应用实例开通。
+            此订阅由管理员配置。客户只能针对这条订阅发起 Stripe 付款；付款确认后只会生成待开通记录，不会自动开通应用实例。
           </div>
         </section>
       </div>

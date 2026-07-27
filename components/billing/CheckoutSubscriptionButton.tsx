@@ -2,17 +2,17 @@
 
 import { useState } from "react";
 
-interface CheckoutPlanButtonProps {
+interface CheckoutSubscriptionButtonProps {
   endpoint: string;
-  planId: string;
   planName: string;
+  subscriptionId: string;
 }
 
-export function CheckoutPlanButton({
+export function CheckoutSubscriptionButton({
   endpoint,
-  planId,
   planName,
-}: CheckoutPlanButtonProps) {
+  subscriptionId,
+}: CheckoutSubscriptionButtonProps) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -23,7 +23,7 @@ export function CheckoutPlanButton({
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({ subscriptionId }),
       });
       const payload = (await response.json()) as {
         data?: { checkoutUrl?: string } | null;
@@ -44,7 +44,7 @@ export function CheckoutPlanButton({
   return (
     <div className="checkout-action">
       <button className="button button-dark" disabled={pending} onClick={beginCheckout} type="button">
-        {pending ? "正在前往付款…" : `选择 ${planName} 并付款`}
+        {pending ? "正在前往付款…" : `确认 ${planName} 并前往 Stripe 付款`}
       </button>
       {error ? <p className="form-error compact-error">{error}</p> : null}
     </div>

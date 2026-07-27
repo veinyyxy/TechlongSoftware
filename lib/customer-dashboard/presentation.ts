@@ -54,8 +54,8 @@ export function getCustomerSubscriptionNotice(
   if (input.subscriptionStatus === "manual_pending") {
     return {
       tone: "warning",
-      title: "订阅等待确认",
-      message: "您的订阅正在等待确认。确认后将为您开通餐饮订单系统。",
+      title: "待确认订阅",
+      message: "平台已为您设置待付款订阅。请确认套餐选项并完成付款，付款确认后将为您开通餐饮订单系统。",
     };
   }
 

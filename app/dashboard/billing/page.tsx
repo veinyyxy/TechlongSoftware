@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckoutPlanButton } from "@/components/billing/CheckoutPlanButton";
+import { CheckoutSubscriptionButton } from "@/components/billing/CheckoutSubscriptionButton";
 import { getDashboardAccount } from "@/lib/auth/account";
-import { getCustomer, listPlans } from "@/lib/admin/management";
+import { getCustomer } from "@/lib/admin/management";
 import { formatDate, formatMoney } from "@/lib/admin/presentation";
 import { getWorkspaceBillingSummary } from "@/lib/billing/management";
 import {
@@ -19,12 +19,15 @@ export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
   const account = await getDashboardAccount();
-  const [billing, customer, availablePlans] = await Promise.all([
+  const [billing, customer] = await Promise.all([
     getWorkspaceBillingSummary(account.workspace.id),
     getCustomer(account.workspace.id),
-    listPlans({ status: "active" }),
   ]);
   const subscription = billing.subscription;
+  const configuredPlan =
+    subscription && customer?.plan?.id === subscription.planId
+      ? customer.plan
+      : null;
   const onlinePaymentEnabled = hasStripePaymentConfiguration();
   const latestFailed = billing.recentPayment?.status === "failed";
   const subscriptionNotice = subscription
@@ -39,7 +42,7 @@ export default async function BillingPage() {
       <header className="page-header">
         <p className="page-kicker">SUBSCRIPTION & BILLING</p>
         <h1>订阅与账单</h1>
-        <p>选择数据库中启用的套餐并安全跳转至 Stripe 付款页面；最终付款结果以后端记录为准。</p>
+        <p>查看平台管理员为当前企业设置的订阅与套餐选项，并安全跳转至 Stripe 付款页面；最终付款结果以后端记录为准。</p>
       </header>
 
       {subscriptionNotice ? (
@@ -50,7 +53,7 @@ export default async function BillingPage() {
       ) : !subscription ? (
         <div className="notice notice-warning billing-alert">
           <strong>尚未创建订阅</strong>
-          <span>选择套餐并完成在线付款后，系统会确认订阅；餐饮订单系统仍由平台管理员手动开通。</span>
+          <span>请联系平台管理员先为您的企业设置待付款订阅；确认套餐选项并完成付款后，系统会等待管理员手动开通。</span>
         </div>
       ) : null}
 
@@ -208,11 +211,21 @@ export default async function BillingPage() {
       <section className="data-panel plan-purchase-panel">
         <div className="data-panel-heading">
           <div>
-            <h2>选择套餐并在线付款</h2>
-            <p>价格、币种、计费周期和功能均来自平台数据库。付款确认后会生成待开通记录，仍需管理员检查后手动开通。</p>
+            <h2>平台配置的订阅与付款选项</h2>
+            <p>套餐、价格、周期、功能和限制均来自平台管理员配置的数据库记录。客户不能修改价格或订阅状态。</p>
           </div>
         </div>
-        {!onlinePaymentEnabled ? (
+        {!subscription ? (
+          <div className="empty-state">
+            <strong>等待平台管理员设置订阅</strong>
+            <p>管理员设置待付款订阅后，这里会显示套餐选项与 Stripe 付款入口。</p>
+          </div>
+        ) : !configuredPlan ? (
+          <div className="empty-state">
+            <strong>当前订阅的套餐暂不可用</strong>
+            <p>请联系平台管理员检查套餐配置后再发起付款。</p>
+          </div>
+        ) : !onlinePaymentEnabled ? (
           <div className="empty-state">
             <strong>在线付款正在配置中</strong>
             <p>平台尚未完成 Stripe Checkout 与支付通知配置，请联系平台管理员使用现有人工付款流程。</p>
@@ -220,37 +233,43 @@ export default async function BillingPage() {
         ) : account.membership.role !== "owner" ? (
           <div className="empty-state">
             <strong>仅工作区 Owner 可以发起付款</strong>
-            <p>请联系企业工作区 Owner 选择套餐并完成付款。</p>
+            <p>请联系企业工作区 Owner 确认平台配置的订阅并完成付款。</p>
           </div>
-        ) : availablePlans.filter((plan) => plan.priceAmount > 0).length ? (
+        ) : subscription.status === "manual_pending" || subscription.status === "past_due" ? (
           <div className="plan-purchase-grid">
-            {availablePlans.filter((plan) => plan.priceAmount > 0).map((plan) => (
-              <article className="plan-purchase-card" key={plan.id}>
-                <div>
-                  <h3>{plan.name}</h3>
-                  <p>{plan.description || "套餐详细说明由平台管理员维护。"}</p>
-                </div>
-                <strong className="plan-purchase-price">
-                  {formatMoney(plan.priceAmount, plan.currency)}
-                  <small>/{plan.billingInterval === "year" ? "年" : "月"}</small>
-                </strong>
-                {plan.features.length ? (
-                  <ul className="value-list">
-                    {plan.features.slice(0, 4).map((feature) => <li key={feature}>{feature}</li>)}
-                  </ul>
-                ) : null}
-                <CheckoutPlanButton
-                  endpoint={`/api/workspaces/${account.workspace.id}/checkout`}
-                  planId={plan.id}
-                  planName={plan.name}
-                />
-              </article>
-            ))}
+            <article className="plan-purchase-card">
+              <div>
+                <h3>{configuredPlan.name}</h3>
+                <p>{configuredPlan.description || "套餐详细说明由平台管理员维护。"}</p>
+              </div>
+              <strong className="plan-purchase-price">
+                {formatMoney(configuredPlan.priceAmount, configuredPlan.currency)}
+                <small>/{configuredPlan.billingInterval === "year" ? "年" : "月"}</small>
+              </strong>
+              <p>订阅状态：{subscriptionStatusLabels[subscription.status]}</p>
+              {configuredPlan.features.length ? (
+                <ul className="value-list">
+                  {configuredPlan.features.map((feature) => <li key={feature}>{feature}</li>)}
+                </ul>
+              ) : null}
+              {Object.keys(configuredPlan.limits).length ? (
+                <dl className="limit-list">
+                  {Object.entries(configuredPlan.limits).map(([key, value]) => (
+                    <div key={key}><dt>{key}</dt><dd>{value}</dd></div>
+                  ))}
+                </dl>
+              ) : null}
+              <CheckoutSubscriptionButton
+                endpoint={`/api/workspaces/${account.workspace.id}/checkout`}
+                planName={configuredPlan.name}
+                subscriptionId={subscription.id}
+              />
+            </article>
           </div>
         ) : (
           <div className="empty-state">
-            <strong>当前没有可在线购买的套餐</strong>
-            <p>请联系平台管理员配置启用的付费套餐。</p>
+            <strong>当前订阅无需在线付款</strong>
+            <p>订阅状态为“{subscriptionStatusLabels[subscription.status]}”。如需变更套餐或重新付款，请联系平台管理员。</p>
           </div>
         )}
       </section>

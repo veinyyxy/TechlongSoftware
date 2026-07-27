@@ -5,17 +5,18 @@ import test from "node:test";
 import { validateCheckoutInput } from "../lib/payments/validation.ts";
 import { verifyStripeWebhook } from "../lib/payments/stripe.ts";
 
-test("validates a customer checkout request without accepting amount or payment status", () => {
+test("validates a configured subscription checkout without accepting a client price or plan", () => {
   const valid = validateCheckoutInput({
-    planId: "pln_monthly",
+    subscriptionId: "sub_monthly",
+    planId: "forged_plan",
     amount: 1,
     status: "paid",
   });
-  assert.deepEqual(valid.data, { planId: "pln_monthly" });
+  assert.deepEqual(valid.data, { subscriptionId: "sub_monthly" });
 
-  const invalid = validateCheckoutInput({ planId: "" });
+  const invalid = validateCheckoutInput({ subscriptionId: "" });
   assert.equal(invalid.data, null);
-  assert.ok(invalid.errors.planId);
+  assert.ok(invalid.errors.subscriptionId);
 });
 
 test("accepts a correctly signed Stripe webhook and rejects a forged one", async () => {
@@ -50,16 +51,20 @@ test("accepts a correctly signed Stripe webhook and rejects a forged one", async
 
 test("keeps Stripe checkout authority on the server and verifies raw webhook payloads", async () => {
   const root = new URL("../", import.meta.url);
-  const [checkoutRoute, webhookRoute, checkoutButton] = await Promise.all([
+  const [checkoutRoute, webhookRoute, checkoutButton, paymentManagement] = await Promise.all([
     readFile(new URL("app/api/workspaces/[workspaceId]/checkout/route.ts", root), "utf8"),
     readFile(new URL("app/api/stripe/webhook/route.ts", root), "utf8"),
-    readFile(new URL("components/billing/CheckoutPlanButton.tsx", root), "utf8"),
+    readFile(new URL("components/billing/CheckoutSubscriptionButton.tsx", root), "utf8"),
+    readFile(new URL("lib/payments/management.ts", root), "utf8"),
   ]);
 
   assert.match(checkoutRoute, /createPaymentCheckout/);
   assert.match(checkoutRoute, /account\.membership\.role !== "owner"/);
-  assert.match(checkoutButton, /JSON\.stringify\(\{ planId \}\)/);
-  assert.doesNotMatch(checkoutButton, /amount|priceAmount|paymentStatus/);
+  assert.match(checkoutButton, /JSON\.stringify\(\{ subscriptionId \}\)/);
+  assert.doesNotMatch(checkoutButton, /amount|priceAmount|paymentStatus|planId/);
+  assert.match(paymentManagement, /getWorkspaceSubscription/);
+  assert.match(paymentManagement, /subscription\.status !== "manual_pending"/);
+  assert.match(paymentManagement, /subscription_id/);
   assert.match(webhookRoute, /request\.text\(\)/);
   assert.match(webhookRoute, /verifyStripeWebhook/);
   assert.match(webhookRoute, /processStripeWebhookEvent/);

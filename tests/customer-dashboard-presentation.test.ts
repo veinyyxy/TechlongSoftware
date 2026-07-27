@@ -25,7 +25,7 @@ function service(input: Partial<Parameters<typeof getCustomerServiceNotice>[0]>)
 test("shows the required customer service messages for subscription and application states", () => {
   assert.equal(
     service({ subscriptionStatus: "manual_pending" }).message,
-    "您的订阅正在等待确认。确认后将为您开通餐饮订单系统。",
+    "平台已为您设置待付款订阅。请确认套餐选项并完成付款，付款确认后将为您开通餐饮订单系统。",
   );
   assert.equal(
     service({ latestPaymentStatus: "paid", appInstanceStatus: "pending" }).message,

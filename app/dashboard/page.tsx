@@ -174,7 +174,7 @@ export default async function DashboardPage() {
           <h2>订阅与付款</h2>
           <p>当前工作区可查看订阅、手动付款记录和已验证的 Stripe 在线付款状态。</p>
           <div className="notice notice-neutral">
-            可从“订阅与账单”选择套餐并进入安全付款页面；应用实例仍由平台管理员手动开通。
+            可从“订阅与账单”查看管理员配置的订阅和套餐选项，并进入安全付款页面；应用实例仍由平台管理员手动开通。
           </div>
           <Link className="table-link" href="/dashboard/billing">
             查看订阅与账单 →

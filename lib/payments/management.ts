@@ -1,6 +1,10 @@
 import { getD1 } from "@/db";
 import { ManagementError, getPlan, type BillingInterval, type PlanView } from "@/lib/admin/management";
-import type { PaymentStatus, SubscriptionStatus } from "@/lib/billing/management";
+import {
+  getWorkspaceSubscription,
+  type PaymentStatus,
+  type SubscriptionStatus,
+} from "@/lib/billing/management";
 import { randomId } from "@/lib/domain/ids";
 import {
   preparePendingRestaurantAppInstance,
@@ -22,6 +26,7 @@ export type CheckoutStatus =
 export interface PaymentCheckoutView {
   id: string;
   workspaceId: string;
+  subscriptionId: string | null;
   planId: string;
   planName: string;
   amount: number;
@@ -39,6 +44,7 @@ export interface PaymentCheckoutView {
 interface CheckoutRow {
   id: string;
   workspace_id: string;
+  subscription_id: string | null;
   plan_id: string;
   plan_name: string;
   amount: number;
@@ -59,7 +65,7 @@ interface CheckoutRow {
 
 const checkoutSelect = `
   SELECT
-    cs.id, cs.workspace_id, cs.plan_id, p.name AS plan_name,
+    cs.id, cs.workspace_id, pr.subscription_id, cs.plan_id, p.name AS plan_name,
     pr.amount, pr.currency, pr.status AS payment_status, cs.status,
     cs.provider_session_id, cs.provider_payment_id, cs.checkout_url,
     pr.failure_reason, cs.expires_at, cs.completed_at, cs.created_at,
@@ -72,6 +78,7 @@ function toCheckoutView(row: CheckoutRow): PaymentCheckoutView {
   return {
     id: row.id,
     workspaceId: row.workspace_id,
+    subscriptionId: row.subscription_id,
     planId: row.plan_id,
     planName: row.plan_name,
     amount: Number(row.amount),
@@ -107,18 +114,36 @@ export async function getPaymentCheckout(
 
 export async function createPaymentCheckout(input: {
   workspaceId: string;
-  planId: string;
+  subscriptionId: string;
   initiatedByUserId: string;
   customerEmail: string;
   origin: string;
 }): Promise<{ checkout: PaymentCheckoutView; checkoutUrl: string; reused: boolean }> {
-  const plan = await getPlan(input.planId);
+  const subscription = await getWorkspaceSubscription(input.workspaceId);
+  if (!subscription || subscription.id !== input.subscriptionId) {
+    throw new ManagementError(
+      "SUBSCRIPTION_NOT_FOUND",
+      "没有找到平台为当前工作区配置的订阅。",
+      404,
+    );
+  }
+  if (
+    subscription.status !== "manual_pending" &&
+    subscription.status !== "past_due"
+  ) {
+    throw new ManagementError(
+      "SUBSCRIPTION_NOT_PAYABLE",
+      "当前订阅不是待付款状态，请联系平台管理员确认订阅设置。",
+      409,
+    );
+  }
+  const plan = await getPlan(subscription.planId);
   assertPurchasablePlan(plan);
   await assertActiveWorkspace(input.workspaceId);
 
   const reusable = await getReusableOpenCheckout(input.workspaceId);
   if (reusable) {
-    if (reusable.plan_id !== input.planId || !reusable.checkout_url) {
+    if (reusable.plan_id !== subscription.planId || !reusable.checkout_url) {
       throw new ManagementError(
         "CHECKOUT_ALREADY_OPEN",
         "当前工作区已有一笔待完成的在线付款，请先完成或取消该付款。",
@@ -141,12 +166,13 @@ export async function createPaymentCheckout(input: {
           id, workspace_id, subscription_id, amount, currency, status, paid_at,
           payment_method, provider, provider_payment_id, provider_event_id,
           reference, note, failure_reason, recorded_by_user_id, created_at, updated_at
-        ) VALUES (?, ?, NULL, ?, ?, 'pending', NULL, 'Stripe Checkout', 'stripe',
+        ) VALUES (?, ?, ?, ?, ?, 'pending', NULL, 'Stripe Checkout', 'stripe',
           NULL, NULL, NULL, NULL, NULL, ?, ?, ?)`,
       )
       .bind(
         paymentRecordId,
         input.workspaceId,
+        subscription.id,
         plan.priceAmount,
         plan.currency,
         input.initiatedByUserId,
@@ -163,7 +189,7 @@ export async function createPaymentCheckout(input: {
       .bind(
         checkoutId,
         input.workspaceId,
-        input.planId,
+        subscription.planId,
         paymentRecordId,
         input.initiatedByUserId,
         now,
@@ -404,12 +430,22 @@ async function completeCheckout(
   if (checkout.status === "completed" || checkout.payment_status === "paid") return;
   const now = Date.now();
   const { providerSessionId, providerPaymentId } = providerIdentifiers(event, checkout);
-  const currentSubscription = await getD1()
-    .prepare(
-      `SELECT id, status FROM subscriptions WHERE workspace_id = ? LIMIT 1`,
-    )
-    .bind(checkout.workspace_id)
-    .first<{ id: string; status: SubscriptionStatus }>();
+  const currentSubscription = checkout.subscription_id
+    ? await getD1()
+        .prepare(
+          `SELECT id, status
+           FROM subscriptions
+           WHERE id = ? AND workspace_id = ?
+           LIMIT 1`,
+        )
+        .bind(checkout.subscription_id, checkout.workspace_id)
+        .first<{ id: string; status: SubscriptionStatus }>()
+    : await getD1()
+        .prepare(
+          `SELECT id, status FROM subscriptions WHERE workspace_id = ? LIMIT 1`,
+        )
+        .bind(checkout.workspace_id)
+        .first<{ id: string; status: SubscriptionStatus }>();
   const subscriptionId = currentSubscription?.id ?? randomId("sub");
   const periodEnd = addBillingPeriod(now, checkout.billing_interval);
   const db = getD1();

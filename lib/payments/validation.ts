@@ -1,7 +1,7 @@
 import type { FieldErrors, ValidationResult } from "@/lib/billing/validation";
 
 export interface CheckoutInput {
-  planId: string;
+  subscriptionId: string;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -12,13 +12,14 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 export function validateCheckoutInput(value: unknown): ValidationResult<CheckoutInput> {
   const input = asRecord(value);
-  const planId = typeof input.planId === "string" ? input.planId.trim() : "";
+  const subscriptionId =
+    typeof input.subscriptionId === "string" ? input.subscriptionId.trim() : "";
   const errors: FieldErrors = {};
-  if (planId.length < 4 || planId.length > 100) {
-    errors.planId = ["请选择有效的套餐。"];
+  if (subscriptionId.length < 4 || subscriptionId.length > 100) {
+    errors.subscriptionId = ["请选择平台为当前工作区配置的订阅。"];
   }
   return {
-    data: Object.keys(errors).length ? null : { planId },
+    data: Object.keys(errors).length ? null : { subscriptionId },
     errors,
   };
 }
