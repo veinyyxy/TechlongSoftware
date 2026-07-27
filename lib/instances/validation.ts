@@ -37,7 +37,7 @@ function validId(value: string): boolean {
   return value.length >= 4 && value.length <= 100;
 }
 
-function isHttpUrl(value: string): boolean {
+export function isValidAppInstanceAccessUrl(value: string): boolean {
   try {
     const url = new URL(value);
     return (url.protocol === "https:" || url.protocol === "http:") &&
@@ -97,8 +97,11 @@ export function validateAppInstanceInput(
   if (domain && (domain.length > 253 || /\s/.test(domain))) {
     addError(errors, "domain", "域名或路径不能包含空格，且不超过 253 个字符。");
   }
-  if (accessUrl.length > 2048 || !isHttpUrl(accessUrl)) {
+  if (accessUrl.length > 2048 || (accessUrl && !isValidAppInstanceAccessUrl(accessUrl))) {
     addError(errors, "accessUrl", "请输入有效的 http:// 或 https:// 访问地址。");
+  }
+  if (status === "active" && !isValidAppInstanceAccessUrl(accessUrl)) {
+    addError(errors, "accessUrl", "标记为已开通前，必须填写有效的 http:// 或 https:// 访问地址。");
   }
   if (!/^[a-z0-9][a-z0-9_-]{1,63}$/.test(tenantKey)) {
     addError(errors, "tenantKey", "租户标识需为 2–64 位小写字母、数字、下划线或连字符。");

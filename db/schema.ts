@@ -304,6 +304,11 @@ export const appInstances = sqliteTable(
     domain: text("domain"),
     accessUrl: text("access_url").notNull(),
     tenantKey: text("tenant_key").notNull(),
+    provisioningSource: text("provisioning_source", {
+      enum: ["manual", "payment_success"],
+    })
+      .notNull()
+      .default("manual"),
     status: text("status", {
       enum: ["pending", "active", "suspended", "failed"],
     })
@@ -320,6 +325,10 @@ export const appInstances = sqliteTable(
   (table) => [
     uniqueIndex("app_instances_slug_unique").on(table.slug),
     uniqueIndex("app_instances_tenant_key_unique").on(table.tenantKey),
+    uniqueIndex("app_instances_workspace_product_unique").on(
+      table.workspaceId,
+      table.productId,
+    ),
     index("app_instances_workspace_id_idx").on(table.workspaceId),
     index("app_instances_product_id_idx").on(table.productId),
     index("app_instances_subscription_id_idx").on(table.subscriptionId),

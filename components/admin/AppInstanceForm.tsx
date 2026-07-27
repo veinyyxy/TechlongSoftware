@@ -209,8 +209,15 @@ export function AppInstanceForm({
         </label>
         <label className="form-field form-field-wide">
           <span>访问地址 access_url</span>
-          <input defaultValue={initial?.accessUrl} maxLength={2048} name="accessUrl" placeholder="https://orders.example.com/admin" required type="url" />
-          <small>由管理员手动填写；平台只保存入口，不会部署或修改餐饮订单系统。</small>
+          <input
+            defaultValue={initial?.accessUrl}
+            maxLength={2048}
+            name="accessUrl"
+            placeholder="https://orders.example.com/admin"
+            required={status === "active"}
+            type="url"
+          />
+          <small>激活前必须填写；待开通、暂停或失败记录可暂不填写。平台只保存入口，不会部署或修改餐饮订单系统。</small>
           {fieldError("accessUrl") ? <small className="form-error">{fieldError("accessUrl")}</small> : null}
         </label>
         <label className="form-field">
@@ -231,6 +238,11 @@ export function AppInstanceForm({
       {activeSubscriptionRequired ? (
         <div className="notice notice-danger">
           只有关联有效订阅的客户才允许将实例标记为“已开通”。请先选择有效订阅，或将状态保留为等待开通。
+        </div>
+      ) : null}
+      {status === "active" ? (
+        <div className="notice notice-neutral">
+          标记为已开通前，请确认已经填写有效的访问地址；保存时会再次校验。
         </div>
       ) : null}
       <div className="notice notice-neutral">

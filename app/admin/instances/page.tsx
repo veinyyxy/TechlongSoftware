@@ -13,6 +13,7 @@ import {
   appInstanceStatusTone,
 } from "@/lib/instances/presentation";
 import { isAppInstanceStatus } from "@/lib/instances/validation";
+import { hasRecordedAccessUrl } from "@/lib/customer-dashboard/presentation";
 
 export const metadata: Metadata = { title: "应用实例管理" };
 export const dynamic = "force-dynamic";
@@ -36,7 +37,7 @@ export default async function InstancesPage({ searchParams }: InstancesPageProps
         <div>
           <p className="page-kicker">MANUAL PROVISIONING</p>
           <h1>应用实例管理</h1>
-          <p>手动维护客户对应的餐饮订单系统入口与开通状态。</p>
+          <p>查看支付成功后自动生成的待开通记录，并维护客户入口与开通状态。</p>
         </div>
         <Link className="button button-dark button-small" href="/admin/instances/new">
           创建应用实例
@@ -70,6 +71,7 @@ export default async function InstancesPage({ searchParams }: InstancesPageProps
                 <tr>
                   <th>企业客户</th>
                   <th>实例</th>
+                  <th>来源</th>
                   <th>状态</th>
                   <th>入口地址</th>
                   <th>关联订阅</th>
@@ -89,13 +91,21 @@ export default async function InstancesPage({ searchParams }: InstancesPageProps
                       <span>{instance.productName} · {instance.tenantKey}</span>
                     </td>
                     <td>
+                      <strong>
+                        {instance.provisioningSource === "payment_success"
+                          ? "付款成功自动创建"
+                          : "管理员手动创建"}
+                      </strong>
+                      {instance.status === "pending" ? <span>待管理员开通</span> : null}
+                    </td>
+                    <td>
                       <span className={`status-pill status-${appInstanceStatusTone(instance.status)}`}>
                         {appInstanceStatusLabels[instance.status]}
                       </span>
                     </td>
                     <td>
                       <strong>{instance.domain ?? instance.slug}</strong>
-                      <span>{instance.accessUrl}</span>
+                      <span>{hasRecordedAccessUrl(instance.accessUrl) ? instance.accessUrl : "尚未登记"}</span>
                     </td>
                     <td>
                       {instance.subscriptionStatus

@@ -9,11 +9,15 @@ import type {
   AppInstanceInput,
   AppInstanceStatus,
 } from "./validation";
-import { canActivateAppInstance } from "./validation";
+import {
+  canActivateAppInstance,
+  isValidAppInstanceAccessUrl,
+} from "./validation";
 
 export type { AppInstanceStatus } from "./validation";
 
 export type ProductStatus = "active" | "inactive";
+export type AppInstanceProvisioningSource = "manual" | "payment_success";
 
 export interface ProductView {
   id: string;
@@ -40,6 +44,7 @@ export interface AppInstanceView {
   domain: string | null;
   accessUrl: string;
   tenantKey: string;
+  provisioningSource: AppInstanceProvisioningSource;
   status: AppInstanceStatus;
   provisionedAt: number | null;
   suspendedAt: number | null;
@@ -74,6 +79,7 @@ type AppInstanceRow = {
   domain: string | null;
   access_url: string;
   tenant_key: string;
+  provisioning_source: AppInstanceProvisioningSource;
   status: AppInstanceStatus;
   provisioned_at: number | null;
   suspended_at: number | null;
@@ -111,6 +117,7 @@ function toAppInstanceView(row: AppInstanceRow): AppInstanceView {
     domain: row.domain,
     accessUrl: row.access_url,
     tenantKey: row.tenant_key,
+    provisioningSource: row.provisioning_source,
     status: row.status,
     provisionedAt: row.provisioned_at,
     suspendedAt: row.suspended_at,
@@ -127,7 +134,7 @@ const appInstanceSelect = `
     w.status AS workspace_status, ai.product_id, p.name AS product_name,
     p.slug AS product_slug, ai.subscription_id,
     s.status AS subscription_status, ai.name, ai.slug, ai.domain,
-    ai.access_url, ai.tenant_key, ai.status, ai.provisioned_at,
+    ai.access_url, ai.tenant_key, ai.provisioning_source, ai.status, ai.provisioned_at,
     ai.suspended_at, ai.created_by_user_id, u.name AS created_by_name,
     ai.created_at, ai.updated_at
   FROM app_instances ai
@@ -275,7 +282,7 @@ async function assertSubscriptionForInstance(
   }
 }
 
-function syncWorkspaceAppInstanceStatusStatement(
+export function syncWorkspaceAppInstanceStatusStatement(
   workspaceId: string,
   now: number,
 ) {
@@ -298,6 +305,67 @@ function syncWorkspaceAppInstanceStatusStatement(
        WHERE id = ?`,
     )
     .bind(workspaceId, now, workspaceId);
+}
+
+export async function preparePendingRestaurantAppInstance(input: {
+  workspaceId: string;
+  workspaceName: string;
+  subscriptionId: string;
+  createdByUserId: string;
+  now: number;
+}): Promise<D1PreparedStatement | null> {
+  const db = getD1();
+  const product = await db
+    .prepare(
+      `SELECT id
+       FROM products
+       WHERE slug = 'restaurant-order-system' AND status = 'active'
+       LIMIT 1`,
+    )
+    .first<{ id: string }>();
+  if (!product) {
+    throw new ManagementError(
+      "RESTAURANT_PRODUCT_NOT_FOUND",
+      "未找到启用中的餐饮订单系统产品，无法创建待开通实例。",
+      500,
+    );
+  }
+
+  const existing = await db
+    .prepare(
+      `SELECT id
+       FROM app_instances
+       WHERE workspace_id = ? AND product_id = ?
+       LIMIT 1`,
+    )
+    .bind(input.workspaceId, product.id)
+    .first<{ id: string }>();
+  if (existing) return null;
+
+  const id = randomId("app");
+  const slug = `pending-${id.replaceAll("_", "-")}`;
+  const tenantKey = `pending_${id}`;
+  return db
+    .prepare(
+      `INSERT INTO app_instances (
+        id, workspace_id, product_id, subscription_id, name, slug, domain,
+        access_url, tenant_key, provisioning_source, status, provisioned_at,
+        suspended_at, created_by_user_id, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, NULL, '', ?, 'payment_success', 'pending',
+        NULL, NULL, ?, ?, ?)`,
+    )
+    .bind(
+      id,
+      input.workspaceId,
+      product.id,
+      input.subscriptionId,
+      `${input.workspaceName} - 餐饮订单系统`,
+      slug,
+      tenantKey,
+      input.createdByUserId,
+      input.now,
+      input.now,
+    );
 }
 
 export async function createAppInstance(
@@ -445,6 +513,13 @@ export async function updateAppInstanceStatus(
     existing.subscriptionId,
     status,
   );
+  if (status === "active" && !isValidAppInstanceAccessUrl(existing.accessUrl)) {
+    throw new ManagementError(
+      "ACCESS_URL_REQUIRED",
+      "填写有效访问地址后，才能将实例标记为已开通。",
+      400,
+    );
+  }
 
   const now = Date.now();
   const provisionedAt = status === "active" ? existing.provisionedAt ?? now : existing.provisionedAt;

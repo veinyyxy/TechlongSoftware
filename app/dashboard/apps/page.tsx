@@ -10,6 +10,7 @@ import {
 import {
   canEnterCustomerApplication,
   getCustomerApplicationMessage,
+  hasRecordedAccessUrl,
 } from "@/lib/customer-dashboard/presentation";
 
 export const metadata: Metadata = { title: "我的应用" };
@@ -64,7 +65,7 @@ export default async function AppsPage() {
                   accessUrl: instance.accessUrl,
                 })}</p>
                 <dl className="app-instance-summary">
-                  <div><dt>访问地址</dt><dd>{instance.accessUrl}</dd></div>
+                  <div><dt>访问地址</dt><dd>{hasRecordedAccessUrl(instance.accessUrl) ? instance.accessUrl : "平台管理员尚未登记"}</dd></div>
                   <div><dt>租户标识</dt><dd><code>{instance.tenantKey}</code></dd></div>
                 </dl>
                 {instance.status === "active" && !canEnter ? (

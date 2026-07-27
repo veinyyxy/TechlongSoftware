@@ -9,6 +9,7 @@ import {
   appInstanceStatusLabels,
   appInstanceStatusTone,
 } from "@/lib/instances/presentation";
+import { hasRecordedAccessUrl } from "@/lib/customer-dashboard/presentation";
 
 export const metadata: Metadata = { title: "应用实例详情" };
 export const dynamic = "force-dynamic";
@@ -34,7 +35,8 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
   }
 
   const subscriptionIsActive = instance.subscriptionStatus === "active";
-  const canActivate = subscriptionIsActive && instance.status !== "active";
+  const hasAccessUrl = hasRecordedAccessUrl(instance.accessUrl);
+  const canActivate = subscriptionIsActive && hasAccessUrl && instance.status !== "active";
 
   return (
     <>
@@ -68,6 +70,24 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
               nextStatus="active"
             />
           ) : null}
+          {instance.status !== "failed" && instance.status !== "active" ? (
+            <StatusActionButton
+              confirmMessage={`确认将“${instance.name}”标记为开通失败吗？客户将看到失败提示。`}
+              endpoint={`/api/admin/instances/${instance.id}`}
+              label="标记开通失败"
+              nextStatus="failed"
+              tone="danger"
+            />
+          ) : null}
+          {instance.status !== "suspended" && instance.status !== "active" ? (
+            <StatusActionButton
+              confirmMessage={`确认暂停“${instance.name}”吗？客户将不能进入该应用。`}
+              endpoint={`/api/admin/instances/${instance.id}`}
+              label="暂停实例"
+              nextStatus="suspended"
+              tone="danger"
+            />
+          ) : null}
         </div>
       </header>
 
@@ -77,6 +97,12 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
           <span>只有有效订阅的客户才允许把实例标记为已开通。请先处理客户订阅，再恢复此实例。</span>
         </div>
       ) : null}
+      {subscriptionIsActive && !hasAccessUrl && instance.status !== "active" ? (
+        <div className="notice notice-warning billing-alert">
+          <strong>尚未登记访问地址</strong>
+          <span>请先编辑并填写有效的 access_url，再将此待开通实例标记为已开通。</span>
+        </div>
+      ) : null}
 
       <div className="detail-grid">
         <section className="module-card">
@@ -84,6 +110,7 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
           <dl className="detail-list">
             <div><dt>企业客户</dt><dd>{instance.workspaceName}</dd></div>
             <div><dt>产品</dt><dd>{instance.productName}</dd></div>
+            <div><dt>创建来源</dt><dd>{instance.provisioningSource === "payment_success" ? "付款成功自动创建" : "管理员手动创建"}</dd></div>
             <div><dt>路径标识</dt><dd><code>{instance.slug}</code></dd></div>
             <div><dt>域名或路径</dt><dd>{instance.domain ?? "未填写"}</dd></div>
             <div><dt>租户标识</dt><dd><code>{instance.tenantKey}</code></dd></div>
@@ -99,7 +126,9 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
             <div><dt>最后更新</dt><dd>{formatDate(instance.updatedAt)} UTC</dd></div>
           </dl>
           <div className="notice notice-neutral">
-            这是管理员手动维护的实例记录，不包含部署日志、自动发布或云资源操作。
+            {instance.provisioningSource === "payment_success"
+              ? "该记录由已验证的付款成功 Webhook 自动创建，仍需管理员检查、填写入口并手动开通。"
+              : "这是管理员手动维护的实例记录，不包含部署日志、自动发布或云资源操作。"}
           </div>
         </section>
       </div>
@@ -110,11 +139,13 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
             <h2>客户访问入口</h2>
             <p>入口地址直接来自管理员保存的 access_url。</p>
           </div>
-          <a className="button button-dark button-small" href={instance.accessUrl} rel="noreferrer" target="_blank">
-            打开入口
-          </a>
+          {hasAccessUrl ? (
+            <a className="button button-dark button-small" href={instance.accessUrl} rel="noreferrer" target="_blank">
+              打开入口
+            </a>
+          ) : null}
         </div>
-        <div className="instance-url-value">{instance.accessUrl}</div>
+        <div className="instance-url-value">{hasAccessUrl ? instance.accessUrl : "尚未登记访问地址"}</div>
       </section>
     </>
   );

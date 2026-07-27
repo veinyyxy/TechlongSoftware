@@ -1,0 +1,2 @@
+ALTER TABLE `app_instances` ADD `provisioning_source` text DEFAULT 'manual' NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX `app_instances_workspace_product_unique` ON `app_instances` (`workspace_id`,`product_id`);

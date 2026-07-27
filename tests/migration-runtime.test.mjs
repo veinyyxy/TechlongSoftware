@@ -352,6 +352,73 @@ test("launch data flow preserves workspace isolation and application integrity",
     },
   );
 
+  assert.equal(
+    database.prepare("SELECT provisioning_source FROM app_instances WHERE id = ?")
+      .get("app_one").provisioning_source,
+    "manual",
+  );
+
+  database
+    .prepare(
+      `INSERT INTO workspaces
+       (id, name, owner_id, status, plan_id, created_at, updated_at)
+       VALUES (?, ?, ?, 'active', ?, ?, ?)`,
+    )
+    .run("wsp_two", "Automatic Workspace", "usr_one", "pln_basic", now, now);
+  database
+    .prepare(
+      `INSERT INTO subscriptions
+       (id, workspace_id, plan_id, status, current_period_start,
+        current_period_end, cancel_at_period_end, created_by_user_id,
+        created_at, updated_at)
+       VALUES (?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
+    )
+    .run(
+      "sub_two",
+      "wsp_two",
+      "pln_basic",
+      now,
+      now + 30 * 24 * 60 * 60 * 1000,
+      "usr_one",
+      now,
+      now,
+    );
+  database
+    .prepare(
+      `INSERT INTO app_instances
+       (id, workspace_id, product_id, subscription_id, name, slug, domain,
+        access_url, tenant_key, provisioning_source, status, created_by_user_id,
+        created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, NULL, '', ?, 'payment_success', 'pending', ?, ?, ?)`,
+    )
+    .run(
+      "app_auto_pending",
+      "wsp_two",
+      "prd_restaurant_order_system",
+      "sub_two",
+      "Automatic Workspace - 餐饮订单系统",
+      "pending-app-auto",
+      "pending_app_auto",
+      "usr_one",
+      now,
+      now,
+    );
+  const autoPendingInstance = database
+    .prepare(
+      `SELECT subscription_id, provisioning_source, status, access_url
+       FROM app_instances WHERE id = ?`,
+    )
+    .get("app_auto_pending");
+  assert.deepEqual(
+    { ...autoPendingInstance },
+    {
+      subscription_id: "sub_two",
+      provisioning_source: "payment_success",
+      status: "pending",
+      access_url: "",
+    },
+  );
+
   assert.throws(() => {
     database
       .prepare(
@@ -367,7 +434,7 @@ test("launch data flow preserves workspace isolation and application integrity",
         "Duplicate tenant",
         "duplicate-tenant",
         "https://orders.example.com/duplicate",
-        "example_workspace",
+        "example_second",
         "usr_one",
         now,
         now,

@@ -64,3 +64,20 @@ test("keeps Stripe checkout authority on the server and verifies raw webhook pay
   assert.match(webhookRoute, /verifyStripeWebhook/);
   assert.match(webhookRoute, /processStripeWebhookEvent/);
 });
+
+test("creates only a pending restaurant instance from the verified payment completion path", async () => {
+  const root = new URL("../", import.meta.url);
+  const [paymentManagement, instanceManagement] = await Promise.all([
+    readFile(new URL("lib/payments/management.ts", root), "utf8"),
+    readFile(new URL("lib/instances/management.ts", root), "utf8"),
+  ]);
+
+  assert.match(paymentManagement, /preparePendingRestaurantAppInstance/);
+  assert.match(paymentManagement, /syncWorkspaceAppInstanceStatusStatement/);
+  assert.match(paymentManagement, /pendingInstanceStatement/);
+  assert.match(instanceManagement, /restaurant-order-system/);
+  assert.match(instanceManagement, /provisioning_source/);
+  assert.match(instanceManagement, /'payment_success', 'pending'/);
+  assert.match(instanceManagement, /WHERE workspace_id = \? AND product_id = \?/);
+  assert.doesNotMatch(instanceManagement, /'payment_success', 'active'/);
+});

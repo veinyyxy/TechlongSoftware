@@ -55,3 +55,26 @@ test("only active subscriptions may activate application instances", () => {
   assert.equal(canActivateAppInstance("past_due"), false);
   assert.equal(canActivateAppInstance(null), false);
 });
+
+test("permits a pending instance without an entry URL but never activates it without one", () => {
+  const pending = validateAppInstanceInput({
+    workspaceId: "wsp_one",
+    productId: "prd_restaurant_order_system",
+    subscriptionId: "sub_one",
+    name: "Northshore Orders",
+    slug: "northshore-orders",
+    domain: "",
+    accessUrl: "",
+    tenantKey: "northshore_pending",
+    status: "pending",
+  });
+  assert.deepEqual(pending.errors, {});
+  assert.equal(pending.data?.accessUrl, "");
+
+  const active = validateAppInstanceInput({
+    ...pending.data,
+    status: "active",
+  });
+  assert.equal(active.data, null);
+  assert.ok(active.errors.accessUrl);
+});

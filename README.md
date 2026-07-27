@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前完成阶段 7：Stripe 真实支付一期（Checkout 与已验证 Webhook），保留人工开通应用实例。
+当前完成阶段 8：Stripe 付款成功后自动创建待开通实例，保留管理员最终开通检查。
 
 ## 已实现
 
@@ -45,7 +45,9 @@
 - 客户工作区 Owner 可从“订阅与账单”选择数据库中启用的付费套餐，并跳转至 Stripe Checkout。
 - Checkout 金额、币种和套餐名称只由后端套餐记录生成；前端不会提交价格或付款状态。
 - Stripe Webhook 使用原始请求体和签名密钥验证事件，保存事件摘要并按事件 ID 去重。
-- 已验证的 Stripe 付款会写入付款记录并激活或更新订阅；不会自动创建或开通餐饮订单系统实例。
+- 已验证的 Stripe 付款会写入付款记录并激活或更新订阅；若该工作区尚无餐饮订单系统实例，会自动创建一条 `pending` 待开通记录。
+- 自动创建的实例没有访问入口且绝不会直接开通；管理员必须填写有效 `access_url` 后才可标记为已开通。
+- 每个工作区的每个产品最多一条应用实例，避免重复 Webhook 或重复付款生成多个入口；实例来源可区分“付款成功自动创建”和管理员手动创建。
 - 管理员原有的手动订阅、手动付款记录和订阅状态调整能力继续保留；付款记录标记来源为 Stripe 或人工记录。
 
 ## 当前没有实现
@@ -109,7 +111,7 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 
 发布前依次执行 `npm run lint`、`npm run typecheck`、`npm run build` 和 `npm test`。完整的管理员流程、客户流程、状态提示、权限隔离和数据来源验收步骤见 [上线检查清单](./docs/launch-checklist.md)。Stripe 测试模式、Webhook 与上线操作见 [Stripe 支付操作说明](./docs/stripe-payment-operations.md)。
 
-在私有 Sites 上试运行时，应至少使用两个真实 ChatGPT 账号：一个在管理员允许名单内，另一个作为普通企业客户。先在管理员端创建测试套餐、客户、订阅、付款和实例，再用客户账号验证 Dashboard 与应用入口。
+在私有 Sites 上试运行时，应至少使用两个真实 ChatGPT 账号：一个在管理员允许名单内，另一个作为普通企业客户。可先在管理员端完成手动流程；也可通过 Stripe 测试付款验证自动待开通流程，详细操作见 [支付后待开通实例说明](./docs/auto-pending-provisioning.md)。
 
 ## 数据库
 
@@ -148,6 +150,11 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `payment_records.provider_payment_id`
 - `payment_records.provider_event_id`
 - `payment_records.failure_reason`
+
+阶段 8 新增：
+
+- `app_instances.provisioning_source`（`manual` / `payment_success`）
+- `app_instances` 的 `(workspace_id, product_id)` 唯一约束，当前 MVP 每个工作区仅允许一个产品实例
 
 订阅关联 `workspace` 和 `plan`，当前 MVP 每个工作区最多一条订阅。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。应用实例关联 `workspace`、`product`，并可选关联订阅；保存管理员填写的 `access_url`、`domain` / `slug` 和 `tenant_key`。
 
@@ -217,4 +224,4 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 
 ## 下一步建议
 
-先在 Stripe 测试模式完成双账号验收与 Webhook 重复投递测试，再决定是否配置 Stripe 生产密钥。自动续扣、Stripe 订阅模式、退款、自动开通与自动部署仍不属于当前版本。
+先在 Stripe 测试模式完成双账号验收、Webhook 重复投递测试和管理员待开通检查，再决定是否配置 Stripe 生产密钥。自动续扣、Stripe 订阅模式、退款、自动部署和多实例仍不属于当前版本。

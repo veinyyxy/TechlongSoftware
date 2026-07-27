@@ -45,6 +45,8 @@ test("stage 4 migrations contain workspace-scoped products and application insta
   assert.match(sql, /`access_url` text NOT NULL/);
   assert.match(sql, /`tenant_key` text NOT NULL/);
   assert.match(sql, /app_instances_tenant_key_unique/);
+  assert.match(sql, /`provisioning_source` text DEFAULT 'manual' NOT NULL/);
+  assert.match(sql, /app_instances_workspace_product_unique/);
   assert.match(sql, /CREATE TABLE `payment_checkout_sessions`/);
   assert.match(sql, /CREATE TABLE `payment_webhook_events`/);
   assert.match(sql, /payment_webhook_events_provider_event_unique/);

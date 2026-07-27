@@ -3,6 +3,10 @@ import { ManagementError, getPlan, type BillingInterval, type PlanView } from "@
 import type { PaymentStatus, SubscriptionStatus } from "@/lib/billing/management";
 import { randomId } from "@/lib/domain/ids";
 import {
+  preparePendingRestaurantAppInstance,
+  syncWorkspaceAppInstanceStatusStatement,
+} from "@/lib/instances/management";
+import {
   createStripeCheckoutSession,
   type StripeWebhookEvent,
 } from "./stripe";
@@ -409,6 +413,13 @@ async function completeCheckout(
   const subscriptionId = currentSubscription?.id ?? randomId("sub");
   const periodEnd = addBillingPeriod(now, checkout.billing_interval);
   const db = getD1();
+  const pendingInstanceStatement = await preparePendingRestaurantAppInstance({
+    workspaceId: checkout.workspace_id,
+    workspaceName: await getWorkspaceName(checkout.workspace_id),
+    subscriptionId,
+    createdByUserId: checkout.initiated_by_user_id,
+    now,
+  });
   const statements: D1PreparedStatement[] = [];
   if (currentSubscription) {
     statements.push(
@@ -476,7 +487,24 @@ async function completeCheckout(
       )
       .bind(checkout.plan_id, now, checkout.workspace_id),
   );
+  if (pendingInstanceStatement) {
+    statements.push(
+      pendingInstanceStatement,
+      syncWorkspaceAppInstanceStatusStatement(checkout.workspace_id, now),
+    );
+  }
   await db.batch(statements);
+}
+
+async function getWorkspaceName(workspaceId: string): Promise<string> {
+  const workspace = await getD1()
+    .prepare("SELECT name FROM workspaces WHERE id = ? LIMIT 1")
+    .bind(workspaceId)
+    .first<{ name: string }>();
+  if (!workspace) {
+    throw new ManagementError("WORKSPACE_NOT_FOUND", "没有找到付款对应的企业客户。", 404);
+  }
+  return workspace.name;
 }
 
 async function failCheckout(checkout: CheckoutRow, event: StripeWebhookEvent): Promise<void> {

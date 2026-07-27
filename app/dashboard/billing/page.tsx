@@ -209,7 +209,7 @@ export default async function BillingPage() {
         <div className="data-panel-heading">
           <div>
             <h2>选择套餐并在线付款</h2>
-            <p>价格、币种、计费周期和功能均来自平台数据库。付款成功后不会自动开通应用实例。</p>
+            <p>价格、币种、计费周期和功能均来自平台数据库。付款确认后会生成待开通记录，仍需管理员检查后手动开通。</p>
           </div>
         </div>
         {!onlinePaymentEnabled ? (
@@ -256,7 +256,7 @@ export default async function BillingPage() {
       </section>
 
       <div className="notice notice-neutral billing-disclaimer">
-        在线付款通过 Stripe Checkout 完成；付款结果仅由支付 Webhook 写入。平台不会自动创建或开通餐饮订单系统实例。
+        在线付款通过 Stripe Checkout 完成；付款结果仅由支付 Webhook 写入。平台只会自动创建待开通记录，不会自动开通或部署餐饮订单系统。
         <Link href="/dashboard/billing/payment-result">查看最近一次付款返回状态</Link>
       </div>
     </>
