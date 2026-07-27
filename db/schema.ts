@@ -156,13 +156,17 @@ export const paymentRecords = sqliteTable(
     ),
     amount: integer("amount").notNull(),
     currency: text("currency").notNull(),
-    status: text("status", { enum: ["pending", "paid", "failed"] })
+    status: text("status", { enum: ["pending", "paid", "failed", "canceled"] })
       .notNull()
       .default("pending"),
     paidAt: integer("paid_at", { mode: "timestamp_ms" }),
     paymentMethod: text("payment_method").notNull(),
+    provider: text("provider").notNull().default("manual"),
+    providerPaymentId: text("provider_payment_id"),
+    providerEventId: text("provider_event_id"),
     reference: text("reference"),
     note: text("note"),
+    failureReason: text("failure_reason"),
     recordedByUserId: text("recorded_by_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
@@ -173,6 +177,92 @@ export const paymentRecords = sqliteTable(
     index("payment_records_workspace_id_idx").on(table.workspaceId),
     index("payment_records_subscription_id_idx").on(table.subscriptionId),
     index("payment_records_status_idx").on(table.status),
+    uniqueIndex("payment_records_provider_payment_id_unique").on(
+      table.provider,
+      table.providerPaymentId,
+    ),
+    uniqueIndex("payment_records_provider_event_id_unique").on(
+      table.provider,
+      table.providerEventId,
+    ),
+  ],
+);
+
+export const paymentCheckoutSessions = sqliteTable(
+  "payment_checkout_sessions",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    planId: text("plan_id")
+      .notNull()
+      .references(() => plans.id, { onDelete: "restrict" }),
+    paymentRecordId: text("payment_record_id")
+      .notNull()
+      .references(() => paymentRecords.id, { onDelete: "cascade" }),
+    initiatedByUserId: text("initiated_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    provider: text("provider").notNull().default("stripe"),
+    providerSessionId: text("provider_session_id"),
+    providerPaymentId: text("provider_payment_id"),
+    checkoutUrl: text("checkout_url"),
+    status: text("status", {
+      enum: ["creating", "open", "completed", "failed", "canceled", "expired"],
+    })
+      .notNull()
+      .default("creating"),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+    completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("payment_checkout_sessions_provider_session_unique").on(
+      table.provider,
+      table.providerSessionId,
+    ),
+    index("payment_checkout_sessions_workspace_id_idx").on(table.workspaceId),
+    index("payment_checkout_sessions_payment_record_id_idx").on(
+      table.paymentRecordId,
+    ),
+    index("payment_checkout_sessions_status_idx").on(table.status),
+  ],
+);
+
+export const paymentWebhookEvents = sqliteTable(
+  "payment_webhook_events",
+  {
+    id: text("id").primaryKey(),
+    provider: text("provider").notNull(),
+    providerEventId: text("provider_event_id").notNull(),
+    eventType: text("event_type").notNull(),
+    checkoutSessionId: text("checkout_session_id").references(
+      () => paymentCheckoutSessions.id,
+      { onDelete: "set null" },
+    ),
+    payloadHash: text("payload_hash").notNull(),
+    processingStatus: text("processing_status", {
+      enum: ["pending", "processed", "ignored", "failed"],
+    })
+      .notNull()
+      .default("pending"),
+    lastError: text("last_error"),
+    receivedAt: integer("received_at", { mode: "timestamp_ms" }).notNull(),
+    processedAt: integer("processed_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    uniqueIndex("payment_webhook_events_provider_event_unique").on(
+      table.provider,
+      table.providerEventId,
+    ),
+    index("payment_webhook_events_checkout_session_id_idx").on(
+      table.checkoutSessionId,
+    ),
+    index("payment_webhook_events_processing_status_idx").on(
+      table.processingStatus,
+    ),
   ],
 );
 

@@ -69,9 +69,10 @@ test("stores manual payment amounts as integer minor currency units", () => {
   assert.ok(invalid.errors.paymentMethod);
 });
 
-test("accepts only stage 3 subscription and payment statuses", () => {
+test("accepts supported manual and online payment statuses", () => {
   assert.equal(isSubscriptionStatus("paused"), true);
   assert.equal(isSubscriptionStatus("trialing"), false);
   assert.equal(isPaymentStatus("failed"), true);
+  assert.equal(isPaymentStatus("canceled"), true);
   assert.equal(isPaymentStatus("refunded"), false);
 });

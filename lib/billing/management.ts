@@ -44,6 +44,9 @@ export interface PaymentRecordView {
   status: PaymentStatus;
   paidAt: number | null;
   paymentMethod: string;
+  provider: string;
+  providerPaymentId: string | null;
+  failureReason: string | null;
   reference: string | null;
   note: string | null;
   recordedByUserId: string;
@@ -89,6 +92,9 @@ type PaymentRow = {
   status: PaymentStatus;
   paid_at: number | null;
   payment_method: string;
+  provider: string;
+  provider_payment_id: string | null;
+  failure_reason: string | null;
   reference: string | null;
   note: string | null;
   recorded_by_user_id: string;
@@ -131,6 +137,9 @@ function toPaymentView(row: PaymentRow): PaymentRecordView {
     status: row.status,
     paidAt: row.paid_at,
     paymentMethod: row.payment_method,
+    provider: row.provider,
+    providerPaymentId: row.provider_payment_id,
+    failureReason: row.failure_reason,
     reference: row.reference,
     note: row.note,
     recordedByUserId: row.recorded_by_user_id,
@@ -158,7 +167,8 @@ const paymentSelect = `
   SELECT
     pr.id, pr.workspace_id, w.name AS workspace_name,
     pr.subscription_id, p.name AS plan_name, pr.amount, pr.currency,
-    pr.status, pr.paid_at, pr.payment_method, pr.reference, pr.note,
+    pr.status, pr.paid_at, pr.payment_method, pr.provider,
+    pr.provider_payment_id, pr.failure_reason, pr.reference, pr.note,
     pr.recorded_by_user_id, u.name AS recorded_by_name,
     pr.created_at, pr.updated_at
   FROM payment_records pr

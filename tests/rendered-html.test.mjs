@@ -4,14 +4,15 @@ import test from "node:test";
 
 const templateRoot = new URL("../", import.meta.url);
 
-async function render(pathname = "/") {
+async function render(pathname = "/", init = {}) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
   return worker.fetch(
     new Request(`http://localhost${pathname}`, {
-      headers: { accept: "text/html" },
+      ...init,
+      headers: { accept: "text/html", ...(init.headers ?? {}) },
     }),
     {
       ASSETS: {
@@ -99,7 +100,7 @@ test("account API rejects anonymous requests", async () => {
 });
 
 test("launch-stage protected APIs reject anonymous requests", async () => {
-  const [customers, plans, subscriptions, payments, instances, workspaceBilling, workspaceApps] =
+  const [customers, plans, subscriptions, payments, instances, workspaceBilling, workspaceApps, checkout] =
     await Promise.all([
     render("/api/admin/customers"),
     render("/api/admin/plans"),
@@ -108,6 +109,7 @@ test("launch-stage protected APIs reject anonymous requests", async () => {
     render("/api/admin/instances"),
     render("/api/workspaces/workspace-a/billing"),
     render("/api/workspaces/workspace-a/apps"),
+    render("/api/workspaces/workspace-a/checkout", { method: "POST" }),
   ]);
 
   assert.equal(customers.status, 401);
@@ -124,10 +126,13 @@ test("launch-stage protected APIs reject anonymous requests", async () => {
   assert.equal((await workspaceBilling.json()).error.code, "UNAUTHORIZED");
   assert.equal(workspaceApps.status, 401);
   assert.equal((await workspaceApps.json()).error.code, "UNAUTHORIZED");
+  assert.equal(checkout.status, 401);
+  assert.equal((await checkout.json()).error.code, "UNAUTHORIZED");
 });
 
 test("keeps secrets out of the committed environment example", async () => {
   const environment = await readFile(new URL(".env.example", templateRoot), "utf8");
-  assert.doesNotMatch(environment, /sk-|PRIVATE_KEY|PASSWORD=/);
+  assert.doesNotMatch(environment, /sk_(live|test)_[A-Za-z0-9]{16,}|PRIVATE_KEY|PASSWORD=/);
   assert.match(environment, /PLATFORM_ADMIN_EMAILS=owner@example\.com/);
+  assert.match(environment, /STRIPE_SECRET_KEY=sk_test_replace_me/);
 });

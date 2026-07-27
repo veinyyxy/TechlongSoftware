@@ -251,6 +251,56 @@ test("launch data flow preserves workspace isolation and application integrity",
     },
   );
 
+  assert.equal(
+    database
+      .prepare("SELECT provider FROM payment_records WHERE id = ?")
+      .get("pay_one").provider,
+    "manual",
+  );
+
+  database
+    .prepare(
+      `INSERT INTO payment_checkout_sessions
+       (id, workspace_id, plan_id, payment_record_id, initiated_by_user_id,
+        provider, provider_session_id, checkout_url, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'stripe', ?, ?, 'open', ?, ?)`,
+    )
+    .run(
+      "chk_one",
+      "wsp_one",
+      "pln_basic",
+      "pay_one",
+      "usr_one",
+      "cs_test_one",
+      "https://checkout.stripe.com/c/pay/cs_test_one",
+      now,
+      now,
+    );
+  database
+    .prepare(
+      `INSERT INTO payment_webhook_events
+       (id, provider, provider_event_id, event_type, checkout_session_id,
+        payload_hash, processing_status, received_at)
+       VALUES (?, 'stripe', ?, ?, ?, ?, 'processed', ?)`,
+    )
+    .run(
+      "evt_one",
+      "evt_test_one",
+      "checkout.session.completed",
+      "chk_one",
+      "sha256:test",
+      now,
+    );
+  assert.throws(() => {
+    database
+      .prepare(
+        `INSERT INTO payment_webhook_events
+         (id, provider, provider_event_id, event_type, payload_hash, processing_status, received_at)
+         VALUES (?, 'stripe', ?, ?, ?, 'pending', ?)`,
+      )
+      .run("evt_duplicate", "evt_test_one", "checkout.session.completed", "sha256:duplicate", now);
+  }, /UNIQUE constraint failed/);
+
   database
     .prepare(
       `INSERT INTO app_instances

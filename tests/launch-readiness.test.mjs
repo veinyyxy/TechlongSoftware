@@ -25,5 +25,6 @@ test("README documents startup, hosted admin initialization, and launch scope", 
   const readme = await read("README.md");
   assert.match(readme, /PLATFORM_ADMIN_EMAILS/);
   assert.match(readme, /ChatGPT 登录/);
-  assert.match(readme, /Stripe、Paddle、真实在线支付/);
+  assert.match(readme, /Stripe Webhook/);
+  assert.match(readme, /Paddle、自动续扣/);
 });

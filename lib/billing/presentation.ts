@@ -12,6 +12,7 @@ export const paymentStatusLabels: Record<PaymentStatus, string> = {
   pending: "待确认",
   paid: "已付款",
   failed: "付款失败",
+  canceled: "已取消",
 };
 
 export function subscriptionStatusTone(
@@ -27,6 +28,6 @@ export function paymentStatusTone(
   status: PaymentStatus,
 ): "active" | "warning" | "danger" {
   if (status === "paid") return "active";
-  if (status === "failed") return "danger";
+  if (status === "failed" || status === "canceled") return "danger";
   return "warning";
 }

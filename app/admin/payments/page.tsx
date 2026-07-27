@@ -33,9 +33,9 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
     <>
       <header className="page-header page-header-split">
         <div>
-          <p className="page-kicker">MANUAL PAYMENT RECORDS</p>
+          <p className="page-kicker">PAYMENT RECORDS</p>
           <h1>付款记录</h1>
-          <p>查看管理员手动录入的客户付款结果。</p>
+          <p>查看管理员手动录入与 Stripe 在线支付写入的客户付款结果。</p>
         </div>
         <Link
           className="button button-dark button-small"
@@ -54,13 +54,14 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
           { value: "pending", label: "待确认" },
           { value: "paid", label: "已付款" },
           { value: "failed", label: "付款失败" },
+          { value: "canceled", label: "已取消" },
         ]}
       />
 
       <section className="data-panel">
         <div className="data-panel-heading">
           <div>
-            <h2>手动付款记录</h2>
+            <h2>付款记录</h2>
             <p>共显示 {payments.length} 条记录</p>
           </div>
         </div>
@@ -96,6 +97,7 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
                     </td>
                     <td>
                       <strong>{payment.paymentMethod}</strong>
+                      <span>{payment.provider === "stripe" ? "Stripe 在线支付" : "管理员手工记录"}</span>
                       <span>{payment.reference ?? "无参考号"}</span>
                     </td>
                     <td>
@@ -117,7 +119,7 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
         )}
       </section>
       <div className="notice billing-disclaimer">
-        这些记录由管理员手动录入，不代表网站已经接入真实在线支付。
+        管理员仍可新增和维护手动付款记录。Stripe 付款记录只能由已验证的支付 Webhook 更新。
       </div>
     </>
   );

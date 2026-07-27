@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前完成阶段 6：测试、修复明显问题与上线试运行检查。
+当前完成阶段 7：Stripe 真实支付一期（Checkout 与已验证 Webhook），保留人工开通应用实例。
 
 ## 已实现
 
@@ -27,7 +27,7 @@
 - 管理员可以暂停、恢复和取消订阅。
 - 管理员手工录入并筛选付款记录。
 - 付款金额使用最小货币单位整数保存。
-- 付款状态支持 `pending`、`paid`、`failed`。
+- 付款状态支持 `pending`、`paid`、`failed`、`canceled`。
 - 客户只读查看本工作区的订阅、当前账期和付款历史。
 - 非有效订阅或最近付款失败时，客户控制台显示明显提醒。
 - 内置一个可分配产品：`餐饮订单系统`（`restaurant-order-system`）。
@@ -42,10 +42,15 @@
 - 客户 Dashboard 显示餐饮订单系统状态与管理员登记的访问地址；仅在有效订阅、已开通实例和有效 URL 同时满足时显示进入按钮。
 - `manual_pending`、付款已确认但未开通、订阅异常、服务暂停、开通失败和未创建实例均有明确客户侧提示。
 - 健康检查会返回当前发布阶段；被暂停或停用的工作区会收到明确提示，不会被循环跳转回受限的客户控制台。
+- 客户工作区 Owner 可从“订阅与账单”选择数据库中启用的付费套餐，并跳转至 Stripe Checkout。
+- Checkout 金额、币种和套餐名称只由后端套餐记录生成；前端不会提交价格或付款状态。
+- Stripe Webhook 使用原始请求体和签名密钥验证事件，保存事件摘要并按事件 ID 去重。
+- 已验证的 Stripe 付款会写入付款记录并激活或更新订阅；不会自动创建或开通餐饮订单系统实例。
+- 管理员原有的手动订阅、手动付款记录和订阅状态调整能力继续保留；付款记录标记来源为 Stripe 或人工记录。
 
 ## 当前没有实现
 
-- Stripe、Paddle、真实在线支付、Webhook 和自动扣款。
+- Paddle、自动续扣、Stripe 订阅模式、退款自动化、优惠券和复杂发票系统。
 - 复杂发票、优惠券和自动退款。
 - 自动部署、云资源创建、Docker / Kubernetes 发布和复杂部署日志。
 - 多产品市场。
@@ -94,13 +99,15 @@ npm test
 
 `NEXT_PUBLIC_PLATFORM_NAME` 仅用于公开品牌名称。`PLATFORM_ADMIN_EMAILS` 是以逗号分隔的管理员邮箱允许名单，必须配置在本地 `.env.local` 或 Sites 的生产环境变量中，不能提交真实邮箱、密码或密钥。
 
+Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WEBHOOK_SECRET`。本地测试使用 `sk_test_...` 和 Stripe CLI 生成的 `whsec_...`；生产环境在 Sites 中配置对应的真实值。两者都不能以公开环境变量、前端代码或 Git 提交方式保存。
+
 管理员不通过数据库脚本或密码创建：将真实 ChatGPT 邮箱加入 `PLATFORM_ADMIN_EMAILS` 后，该用户首次使用 ChatGPT 登录时会自动同步为平台用户、创建所属工作区，并获得平台管理员权限。普通企业用户不在允许名单中，首次登录只会创建自己的企业工作区。
 
 不要使用 `sites-screenshot-service-noreply@chatgpt.com` 作为测试客户；它是 Sites 的系统截图服务账号，不能供人工登录。
 
 ## 上线试运行
 
-发布前依次执行 `npm run lint`、`npm run typecheck`、`npm run build` 和 `npm test`。完整的管理员流程、客户流程、状态提示、权限隔离和数据来源验收步骤见 [上线检查清单](./docs/launch-checklist.md)。
+发布前依次执行 `npm run lint`、`npm run typecheck`、`npm run build` 和 `npm test`。完整的管理员流程、客户流程、状态提示、权限隔离和数据来源验收步骤见 [上线检查清单](./docs/launch-checklist.md)。Stripe 测试模式、Webhook 与上线操作见 [Stripe 支付操作说明](./docs/stripe-payment-operations.md)。
 
 在私有 Sites 上试运行时，应至少使用两个真实 ChatGPT 账号：一个在管理员允许名单内，另一个作为普通企业客户。先在管理员端创建测试套餐、客户、订阅、付款和实例，再用客户账号验证 Dashboard 与应用入口。
 
@@ -133,6 +140,15 @@ npm test
 - `products`
 - `app_instances`
 
+阶段 7 新增：
+
+- `payment_checkout_sessions`
+- `payment_webhook_events`
+- `payment_records.provider`
+- `payment_records.provider_payment_id`
+- `payment_records.provider_event_id`
+- `payment_records.failure_reason`
+
 订阅关联 `workspace` 和 `plan`，当前 MVP 每个工作区最多一条订阅。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。应用实例关联 `workspace`、`product`，并可选关联订阅；保存管理员填写的 `access_url`、`domain` / `slug` 和 `tenant_key`。
 
 迁移会幂等写入默认产品：`餐饮订单系统` / `restaurant-order-system` / `active`。工作区上的 `plan_id`、`subscription_status` 和 `app_instance_status` 作为兼容状态快照，由订阅和应用实例管理操作同步更新；实际应用实例以 `app_instances` 为准。
@@ -155,12 +171,15 @@ npm test
 - `/dashboard/members`
 - `/dashboard/settings`
 - `/dashboard/billing`
+- `/dashboard/billing/payment-result`
 - `/dashboard/apps`
 - `/dashboard/apps/:instanceId`
 - `/api/account`
 - `/api/workspaces/:workspaceId`
 - `/api/workspaces/:workspaceId/billing`
 - `/api/workspaces/:workspaceId/apps`
+- `/api/workspaces/:workspaceId/checkout`
+- `/api/stripe/webhook`
 
 管理员路由：
 
@@ -198,4 +217,4 @@ npm test
 
 ## 下一步建议
 
-完成真实双账号试运行、记录运营反馈并确认手动流程稳定后，再优先评估支付平台接入方案。真实支付、Webhook、自动扣款、自动开通与自动部署仍不属于当前版本。
+先在 Stripe 测试模式完成双账号验收与 Webhook 重复投递测试，再决定是否配置 Stripe 生产密钥。自动续扣、Stripe 订阅模式、退款、自动开通与自动部署仍不属于当前版本。

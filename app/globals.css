@@ -1246,6 +1246,62 @@ select {
   margin-top: 24px;
 }
 
+.billing-disclaimer a {
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.plan-purchase-panel {
+  margin-top: 24px;
+}
+
+.plan-purchase-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.plan-purchase-card {
+  background: var(--surface);
+  border: 1px solid rgba(23, 34, 27, 0.1);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+}
+
+.plan-purchase-card h3,
+.plan-purchase-card p {
+  margin: 0;
+}
+
+.plan-purchase-card p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 7px;
+}
+
+.plan-purchase-price {
+  font-size: 24px;
+}
+
+.plan-purchase-price small {
+  color: var(--muted);
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.checkout-action {
+  margin-top: auto;
+}
+
+.payment-result-card {
+  margin-top: 24px;
+  max-width: 680px;
+}
+
 .compact-empty {
   padding: 30px 10px;
 }

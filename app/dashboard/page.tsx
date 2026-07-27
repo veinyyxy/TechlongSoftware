@@ -118,7 +118,7 @@ export default async function DashboardPage() {
           <p>
             {billing.recentPayment
               ? formatMoney(billing.recentPayment.amount, billing.recentPayment.currency)
-              : "由平台管理员手动录入"}
+              : "尚无付款记录"}
           </p>
         </article>
         <article className="readiness-card readiness-card-wide">
@@ -172,9 +172,9 @@ export default async function DashboardPage() {
         </section>
         <aside className="module-card">
           <h2>订阅与付款</h2>
-          <p>当前工作区可以只读查看管理员手动记录的订阅和付款状态。</p>
+          <p>当前工作区可查看订阅、手动付款记录和已验证的 Stripe 在线付款状态。</p>
           <div className="notice notice-neutral">
-            不支持在线付款、自动扣款或客户自行修改状态。
+            可从“订阅与账单”选择套餐并进入安全付款页面；应用实例仍由平台管理员手动开通。
           </div>
           <Link className="table-link" href="/dashboard/billing">
             查看订阅与账单 →

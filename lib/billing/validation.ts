@@ -7,7 +7,7 @@ export type SubscriptionStatus =
   | "paused"
   | "canceled";
 
-export type PaymentStatus = "pending" | "paid" | "failed";
+export type PaymentStatus = "pending" | "paid" | "failed" | "canceled";
 
 export interface SubscriptionInput {
   workspaceId: string;
@@ -75,7 +75,12 @@ export function isSubscriptionStatus(
 }
 
 export function isPaymentStatus(value: unknown): value is PaymentStatus {
-  return value === "pending" || value === "paid" || value === "failed";
+  return (
+    value === "pending" ||
+    value === "paid" ||
+    value === "failed" ||
+    value === "canceled"
+  );
 }
 
 export function validateSubscriptionInput(
