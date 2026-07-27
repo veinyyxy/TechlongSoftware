@@ -7,16 +7,23 @@ import {
 import { getCustomer } from "@/lib/admin/management";
 import { getWorkspaceBillingSummary } from "@/lib/billing/management";
 import {
+  formatDate,
   formatMoney,
 } from "@/lib/admin/presentation";
 import {
   paymentStatusLabels,
   subscriptionStatusLabels,
 } from "@/lib/billing/presentation";
+import { listWorkspaceAppInstances } from "@/lib/instances/management";
 import {
-  listWorkspaceAppInstances,
-} from "@/lib/instances/management";
-import { appInstanceStatusLabels } from "@/lib/instances/presentation";
+  appInstanceStatusLabels,
+  appInstanceStatusTone,
+} from "@/lib/instances/presentation";
+import {
+  canEnterCustomerApplication,
+  getCustomerServiceNotice,
+  hasRecordedAccessUrl,
+} from "@/lib/customer-dashboard/presentation";
 
 export const metadata: Metadata = { title: "客户控制台" };
 export const dynamic = "force-dynamic";
@@ -30,9 +37,28 @@ export default async function DashboardPage() {
     listWorkspaceAppInstances(account.workspace.id),
   ]);
   const subscription = billing.subscription;
-  const subscriptionIsActive = subscription?.status === "active";
   const recentPaymentFailed = billing.recentPayment?.status === "failed";
-  const primaryInstance = instances[0] ?? null;
+  const primaryInstance =
+    instances.find((instance) => instance.status === "active") ??
+    instances.find((instance) => instance.status === "pending") ??
+    instances[0] ??
+    null;
+  const serviceNotice = getCustomerServiceNotice({
+    subscriptionStatus: subscription?.status ?? null,
+    currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
+    latestPaymentStatus: billing.recentPayment?.status ?? null,
+    appInstanceStatus: primaryInstance?.status ?? null,
+    accessUrl: primaryInstance?.accessUrl ?? null,
+  });
+  const canEnter = primaryInstance
+    ? canEnterCustomerApplication({
+        subscriptionStatus: subscription?.status ?? null,
+        currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
+        appInstanceStatus: primaryInstance.status,
+        accessUrl: primaryInstance.accessUrl,
+      })
+    : false;
+  const hasPrimaryAccessUrl = hasRecordedAccessUrl(primaryInstance?.accessUrl);
 
   return (
     <>
@@ -40,7 +66,7 @@ export default async function DashboardPage() {
         <div>
           <p className="page-kicker">企业工作区</p>
           <h1>欢迎回来，{account.user.name}</h1>
-          <p>查看当前工作区、套餐与服务状态。</p>
+          <p>查看 {account.workspace.name} 的套餐、账单和餐饮订单系统服务状态。</p>
         </div>
         {account.user.isPlatformAdmin ? (
           <Link className="button button-dark button-small" href="/admin">
@@ -51,9 +77,9 @@ export default async function DashboardPage() {
 
       <div className="readiness-grid">
         <article className="readiness-card">
-          <small>当前工作区</small>
+          <small>企业名称</small>
           <strong>{account.workspace.name}</strong>
-          <p>状态：{account.workspace.status}</p>
+          <p>工作区状态：{account.workspace.status}</p>
         </article>
         <article className="readiness-card">
           <small>当前套餐</small>
@@ -76,26 +102,48 @@ export default async function DashboardPage() {
               ? subscriptionStatusLabels[subscription.status]
               : "尚未创建"}
           </strong>
-          <p>由平台管理员手动维护。</p>
+          <p>
+            {subscription
+              ? `当前周期结束：${formatDate(subscription.currentPeriodEnd)} UTC`
+              : "当前周期尚未设置"}
+          </p>
         </article>
         <article className="readiness-card">
-          <small>我的应用</small>
-          <strong>{instances.length}</strong>
-          <p>{primaryInstance ? appInstanceStatusLabels[primaryInstance.status] : "等待平台管理员开通"}</p>
+          <small>最近付款状态</small>
+          <strong>
+            {billing.recentPayment
+              ? paymentStatusLabels[billing.recentPayment.status]
+              : "暂无记录"}
+          </strong>
+          <p>
+            {billing.recentPayment
+              ? formatMoney(billing.recentPayment.amount, billing.recentPayment.currency)
+              : "由平台管理员手动录入"}
+          </p>
+        </article>
+        <article className="readiness-card readiness-card-wide">
+          <small>餐饮订单系统</small>
+          <strong>
+            {primaryInstance ? appInstanceStatusLabels[primaryInstance.status] : "尚未开通"}
+          </strong>
+          <p>{hasPrimaryAccessUrl ? primaryInstance?.accessUrl : "平台管理员尚未登记有效访问入口"}</p>
+          {canEnter && primaryInstance ? (
+            <a
+              className="button button-dark button-small dashboard-entry"
+              href={primaryInstance.accessUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              进入餐饮订单系统
+            </a>
+          ) : null}
         </article>
       </div>
 
-      {!subscriptionIsActive ? (
-        <div className="notice notice-danger billing-alert">
-          <strong>订阅当前不是有效状态</strong>
-          <span>
-            {subscription
-              ? `当前状态：${subscriptionStatusLabels[subscription.status]}。`
-              : "尚未创建订阅。"}
-            请联系平台运营人员。
-          </span>
-        </div>
-      ) : null}
+      <div className={`notice notice-${serviceNotice.tone} billing-alert`}>
+        <strong>{serviceNotice.title}</strong>
+        <span>{serviceNotice.message}</span>
+      </div>
 
       {recentPaymentFailed ? (
         <div className="notice notice-danger billing-alert">
@@ -114,7 +162,7 @@ export default async function DashboardPage() {
             <li><span>团队成员</span><span className="check-state">{members.length}</span></li>
             <li>
               <span>应用实例</span>
-              <span className="check-state pending">
+              <span className={`status-pill status-${primaryInstance ? appInstanceStatusTone(primaryInstance.status) : "neutral"}`}>
                 {primaryInstance
                   ? appInstanceStatusLabels[primaryInstance.status]
                   : "尚未开通"}
@@ -134,6 +182,9 @@ export default async function DashboardPage() {
           <Link className="table-link" href="/dashboard/apps">
             查看我的应用 →
           </Link>
+          {primaryInstance && hasPrimaryAccessUrl ? (
+            <span className="muted-copy">当前入口已由平台管理员登记。</span>
+          ) : null}
         </aside>
       </div>
     </>

@@ -3,12 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatDate } from "@/lib/admin/presentation";
 import { getDashboardAccount } from "@/lib/auth/account";
+import { getWorkspaceBillingSummary } from "@/lib/billing/management";
 import { subscriptionStatusLabels } from "@/lib/billing/presentation";
 import { getAppInstance } from "@/lib/instances/management";
 import {
   appInstanceStatusLabels,
   appInstanceStatusTone,
 } from "@/lib/instances/presentation";
+import {
+  canEnterCustomerApplication,
+  getCustomerApplicationMessage,
+  hasRecordedAccessUrl,
+} from "@/lib/customer-dashboard/presentation";
 
 export const metadata: Metadata = { title: "应用详情" };
 export const dynamic = "force-dynamic";
@@ -22,19 +28,30 @@ export default async function CustomerAppDetailPage({ params }: CustomerAppDetai
   const { instanceId } = await params;
   const instance = await getAppInstance(instanceId);
   if (!instance || instance.workspaceId !== account.workspace.id) notFound();
+  const billing = await getWorkspaceBillingSummary(account.workspace.id);
+  const currentPeriodEnd =
+    billing.subscription?.id === instance.subscriptionId
+      ? billing.subscription.currentPeriodEnd
+      : null;
 
   const canEnter =
-    instance.status === "active" && instance.subscriptionStatus === "active";
-  const statusMessage =
-    instance.status === "pending"
-      ? "等待开通"
-      : instance.status === "suspended"
-        ? "服务已暂停"
-        : instance.status === "failed"
-          ? "开通失败，请联系平台管理员"
-          : canEnter
-            ? "服务已开通，可以进入餐饮订单系统。"
-            : "当前订阅不是有效状态，暂时不能进入应用。";
+    canEnterCustomerApplication({
+      subscriptionStatus: instance.subscriptionStatus,
+      currentPeriodEnd,
+      appInstanceStatus: instance.status,
+      accessUrl: instance.accessUrl,
+    });
+  const statusMessage = getCustomerApplicationMessage({
+    subscriptionStatus: instance.subscriptionStatus,
+    currentPeriodEnd,
+    appInstanceStatus: instance.status,
+    accessUrl: instance.accessUrl,
+  });
+  const noticeTone = canEnter
+    ? "active"
+    : instance.status === "pending"
+      ? "warning"
+      : "danger";
 
   return (
     <>
@@ -53,7 +70,7 @@ export default async function CustomerAppDetailPage({ params }: CustomerAppDetai
         </Link>
       </header>
 
-      <div className={`notice ${canEnter ? "notice-neutral" : "notice-danger"} billing-alert`}>
+      <div className={`notice notice-${noticeTone} billing-alert`}>
         <strong>{appInstanceStatusLabels[instance.status]}</strong>
         <span>{statusMessage}</span>
       </div>
@@ -65,7 +82,7 @@ export default async function CustomerAppDetailPage({ params }: CustomerAppDetai
             <div><dt>产品</dt><dd>{instance.productName}</dd></div>
             <div><dt>实例名称</dt><dd>{instance.name}</dd></div>
             <div><dt>域名或路径</dt><dd>{instance.domain ?? instance.slug}</dd></div>
-            <div><dt>访问地址</dt><dd>{instance.accessUrl}</dd></div>
+            <div><dt>访问地址</dt><dd>{hasRecordedAccessUrl(instance.accessUrl) ? instance.accessUrl : "平台管理员尚未登记"}</dd></div>
           </dl>
         </section>
         <section className="module-card">

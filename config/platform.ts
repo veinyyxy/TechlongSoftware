@@ -1,7 +1,7 @@
 export const platformConfig = {
   name: process.env.NEXT_PUBLIC_PLATFORM_NAME ?? "餐饮 SaaS 平台",
   productName: "餐饮订单系统",
-  phase: "app-instance-provisioning",
+  phase: "customer-dashboard",
   stack: [
     "TypeScript",
     "React 19",
@@ -16,26 +16,26 @@ export const platformConfig = {
     "记录线下付款结果",
     "管理员登记餐饮订单系统入口",
     "手动开通或暂停客户实例",
-    "客户查看并进入自己的应用",
+    "客户在 Dashboard 查看服务状态并进入自己的应用",
   ],
   scopes: [
     {
       index: "01",
-      title: "实例记录",
-      description: "将餐饮订单系统与企业工作区、订阅和租户标识关联。",
-      items: ["客户工作区", "关联订阅", "访问地址"],
+      title: "服务概览",
+      description: "客户一眼查看企业名称、套餐、订阅周期与最近付款状态。",
+      items: ["当前套餐", "订阅周期", "付款状态"],
     },
     {
       index: "02",
-      title: "手动开通",
-      description: "管理员维护开通状态，不调用任何云服务或部署系统。",
-      items: ["等待开通", "已开通", "暂停与失败"],
+      title: "开通状态",
+      description: "按订阅、付款和实例状态给出清楚的服务提示。",
+      items: ["等待确认", "开通中", "异常提醒"],
     },
     {
       index: "03",
-      title: "客户入口",
-      description: "客户只读取本工作区的状态与管理员登记的应用入口。",
-      items: ["状态提醒", "应用详情", "安全进入"],
+      title: "安全入口",
+      description: "仅在订阅、实例和访问地址都有效时显示产品入口。",
+      items: ["我的应用", "应用详情", "安全进入"],
     },
   ],
 } as const;

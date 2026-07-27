@@ -25,14 +25,14 @@ async function render(pathname = "/") {
   );
 }
 
-test("server-renders the stage 4 landing page", async () => {
+test("server-renders the stage 5 landing page", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /MANUAL PROVISIONING/);
-  assert.match(html, /应用实例手动开通/);
+  assert.match(html, /CUSTOMER READY/);
+  assert.match(html, /客户服务 Dashboard/);
   assert.match(html, /管理员创建企业客户与套餐/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
@@ -53,14 +53,28 @@ test("renders login, registration, and unauthorized pages", async () => {
 });
 
 test("protected pages redirect anonymous visitors through Sites sign-in", async () => {
-  const [dashboard, admin] = await Promise.all([
+  const [dashboard, apps, billing, admin] = await Promise.all([
     render("/dashboard"),
+    render("/dashboard/apps"),
+    render("/dashboard/billing"),
     render("/admin"),
   ]);
 
   assert.ok(dashboard.status >= 300 && dashboard.status < 400);
   assert.match(
     dashboard.headers.get("location") ?? "",
+    /\/signin-with-chatgpt\?return_to=%2Fdashboard/,
+  );
+
+  assert.ok(apps.status >= 300 && apps.status < 400);
+  assert.match(
+    apps.headers.get("location") ?? "",
+    /\/signin-with-chatgpt\?return_to=%2Fdashboard/,
+  );
+
+  assert.ok(billing.status >= 300 && billing.status < 400);
+  assert.match(
+    billing.headers.get("location") ?? "",
     /\/signin-with-chatgpt\?return_to=%2Fdashboard/,
   );
 
@@ -79,7 +93,7 @@ test("account API rejects anonymous requests", async () => {
   assert.equal(body.error.code, "UNAUTHORIZED");
 });
 
-test("stage 4 protected APIs reject anonymous requests", async () => {
+test("stage 5 protected APIs reject anonymous requests", async () => {
   const [customers, plans, subscriptions, payments, instances, workspaceBilling, workspaceApps] =
     await Promise.all([
     render("/api/admin/customers"),

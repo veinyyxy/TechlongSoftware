@@ -3,8 +3,8 @@ import Link from "next/link";
 import { platformConfig } from "@/config/platform";
 
 export const metadata: Metadata = {
-  title: "应用实例手动开通",
-  description: "餐饮 SaaS 平台的管理员应用实例管理与客户应用入口。",
+  title: "客户服务 Dashboard",
+  description: "餐饮 SaaS 平台的客户服务状态、账单和应用入口。",
 };
 
 export default function Home() {
@@ -29,11 +29,11 @@ export default function Home() {
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">MANUAL PROVISIONING · 阶段 4</p>
-          <h1>让每个企业客户的餐饮订单系统，<br />都有清楚的开通入口。</h1>
+          <p className="eyebrow">CUSTOMER READY · 阶段 5</p>
+          <h1>让每个企业客户一眼看清，<br />自己的餐饮订单系统是否可用。</h1>
           <p className="hero-description">
-            平台管理员为企业客户登记餐饮订单系统的访问地址、租户标识与开通状态。
-            客户只能查看和进入自己工作区的应用，所有管理操作继续在服务端鉴权。
+            客户 Dashboard 汇总套餐、订阅周期、付款记录、应用状态与访问入口。
+            只有服务状态和入口地址都有效时，客户才能进入自己的餐饮订单系统。
           </p>
           <div className="hero-actions">
             <Link className="button button-primary" href="/dashboard">
@@ -42,7 +42,7 @@ export default function Home() {
             <Link className="button button-ghost" href="/register">创建企业账号</Link>
           </div>
           <p className="hero-note">
-            本阶段只记录入口与开通状态，不代表已经自动部署应用。
+            付款、开通和访问地址仍由平台管理员手动维护，不代表已接入自动部署或支付。
           </p>
         </div>
 
@@ -50,9 +50,9 @@ export default function Home() {
           <div className="board-heading">
             <div>
               <span className="board-kicker">MVP OPERATING LOOP</span>
-              <h2>人工开通闭环</h2>
+              <h2>客户服务闭环</h2>
             </div>
-            <span className="status-pill status-foundation">应用入口已接入</span>
+            <span className="status-pill status-foundation">客户侧已就绪</span>
           </div>
           <ol className="process-list">
             {platformConfig.mvpFlow.map((step, index) => (
@@ -74,7 +74,7 @@ export default function Home() {
         <div className="section-heading">
           <p className="eyebrow">FIRST RELEASE</p>
           <h2>只做能形成真实运营闭环的能力</h2>
-          <p>本阶段把客户、订阅和餐饮订单系统入口关联起来，保留人工开通流程，不提前接入自动部署或云服务。</p>
+          <p>本阶段完善客户自助查看闭环，保留人工订阅、付款确认和开通流程，不提前接入自动支付或云服务。</p>
         </div>
         <div className="scope-grid">
           {platformConfig.scopes.map((scope) => (
@@ -113,7 +113,7 @@ export default function Home() {
       <footer className="marketing-footer">
         <div>
           <strong>{platformConfig.name}</strong>
-          <p>阶段 4 · 应用实例手动开通。</p>
+          <p>阶段 5 · 客户 Dashboard 与服务闭环。</p>
         </div>
         <div className="footer-links">
           <Link href="/dashboard">客户侧</Link>

@@ -9,6 +9,7 @@ import {
   subscriptionStatusLabels,
   subscriptionStatusTone,
 } from "@/lib/billing/presentation";
+import { getCustomerSubscriptionNotice } from "@/lib/customer-dashboard/presentation";
 
 export const metadata: Metadata = { title: "订阅与账单" };
 export const dynamic = "force-dynamic";
@@ -21,6 +22,12 @@ export default async function BillingPage() {
   ]);
   const subscription = billing.subscription;
   const latestFailed = billing.recentPayment?.status === "failed";
+  const subscriptionNotice = subscription
+    ? getCustomerSubscriptionNotice({
+        subscriptionStatus: subscription.status,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+      })
+    : null;
 
   return (
     <>
@@ -30,15 +37,15 @@ export default async function BillingPage() {
         <p>查看平台管理员为当前工作区记录的订阅与付款状态。</p>
       </header>
 
-      {!subscription || subscription.status !== "active" ? (
-        <div className="notice notice-danger billing-alert">
-          <strong>订阅当前不是有效状态</strong>
-          <span>
-            {subscription
-              ? `当前状态：${subscriptionStatusLabels[subscription.status]}。`
-              : "平台管理员尚未为此工作区创建订阅。"}
-            如需处理，请联系平台运营人员。
-          </span>
+      {subscriptionNotice ? (
+        <div className={`notice notice-${subscriptionNotice.tone} billing-alert`}>
+          <strong>{subscriptionNotice.title}</strong>
+          <span>{subscriptionNotice.message}</span>
+        </div>
+      ) : !subscription ? (
+        <div className="notice notice-warning billing-alert">
+          <strong>尚未创建订阅</strong>
+          <span>平台管理员尚未为此工作区创建订阅。</span>
         </div>
       ) : null}
 

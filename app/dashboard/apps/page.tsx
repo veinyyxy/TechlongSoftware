@@ -1,25 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getDashboardAccount } from "@/lib/auth/account";
+import { getWorkspaceBillingSummary } from "@/lib/billing/management";
 import { listWorkspaceAppInstances } from "@/lib/instances/management";
 import {
   appInstanceStatusLabels,
   appInstanceStatusTone,
 } from "@/lib/instances/presentation";
+import {
+  canEnterCustomerApplication,
+  getCustomerApplicationMessage,
+} from "@/lib/customer-dashboard/presentation";
 
 export const metadata: Metadata = { title: "我的应用" };
 export const dynamic = "force-dynamic";
 
-function statusMessage(status: "pending" | "active" | "suspended" | "failed") {
-  if (status === "pending") return "等待开通";
-  if (status === "suspended") return "服务已暂停";
-  if (status === "failed") return "开通失败，请联系平台管理员";
-  return "已开通";
-}
-
 export default async function AppsPage() {
   const account = await getDashboardAccount();
-  const instances = await listWorkspaceAppInstances(account.workspace.id);
+  const [instances, billing] = await Promise.all([
+    listWorkspaceAppInstances(account.workspace.id),
+    getWorkspaceBillingSummary(account.workspace.id),
+  ]);
 
   return (
     <>
@@ -33,8 +34,15 @@ export default async function AppsPage() {
         <section className="app-instance-grid">
           {instances.map((instance) => {
             const canEnter =
-              instance.status === "active" &&
-              instance.subscriptionStatus === "active";
+              canEnterCustomerApplication({
+                subscriptionStatus: instance.subscriptionStatus,
+                currentPeriodEnd:
+                  billing.subscription?.id === instance.subscriptionId
+                    ? billing.subscription.currentPeriodEnd
+                    : null,
+                appInstanceStatus: instance.status,
+                accessUrl: instance.accessUrl,
+              });
             return (
               <article className="app-instance-card" key={instance.id}>
                 <div className="app-instance-card-heading">
@@ -46,7 +54,15 @@ export default async function AppsPage() {
                     {appInstanceStatusLabels[instance.status]}
                   </span>
                 </div>
-                <p>{statusMessage(instance.status)}</p>
+                <p>{getCustomerApplicationMessage({
+                  subscriptionStatus: instance.subscriptionStatus,
+                  currentPeriodEnd:
+                    billing.subscription?.id === instance.subscriptionId
+                      ? billing.subscription.currentPeriodEnd
+                      : null,
+                  appInstanceStatus: instance.status,
+                  accessUrl: instance.accessUrl,
+                })}</p>
                 <dl className="app-instance-summary">
                   <div><dt>访问地址</dt><dd>{instance.accessUrl}</dd></div>
                   <div><dt>租户标识</dt><dd><code>{instance.tenantKey}</code></dd></div>

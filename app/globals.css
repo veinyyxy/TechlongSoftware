@@ -649,6 +649,14 @@ select {
   margin: 8px 0 0;
 }
 
+.readiness-card-wide {
+  grid-column: span 2;
+}
+
+.dashboard-entry {
+  margin-top: 14px;
+}
+
 .dashboard-columns {
   display: grid;
   gap: 16px;
@@ -710,6 +718,12 @@ select {
 }
 
 .notice-neutral {
+  background: #eef2ea;
+  border-left-color: var(--success);
+  color: #315343;
+}
+
+.notice-active {
   background: #eef2ea;
   border-left-color: var(--success);
   color: #315343;
@@ -1477,6 +1491,10 @@ select {
   .app-instance-grid,
   .plan-grid {
     grid-template-columns: 1fr;
+  }
+
+  .readiness-card-wide {
+    grid-column: auto;
   }
 
   .architecture-section {
