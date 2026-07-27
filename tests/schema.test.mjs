@@ -12,7 +12,7 @@ async function readMigrations() {
   ).join("\n");
 }
 
-test("stage 3 migrations contain workspace-scoped subscriptions and payments", async () => {
+test("stage 4 migrations contain workspace-scoped products and application instances", async () => {
   const sql = await readMigrations();
 
   assert.match(sql, /CREATE TABLE `users`/);
@@ -36,6 +36,15 @@ test("stage 3 migrations contain workspace-scoped subscriptions and payments", a
   assert.match(sql, /`amount` integer NOT NULL/);
   assert.match(sql, /`subscription_id` text/);
   assert.match(sql, /ON DELETE set null/);
+  assert.match(sql, /CREATE TABLE `products`/);
+  assert.match(sql, /`slug` text NOT NULL/);
+  assert.match(sql, /restaurant-order-system/);
+  assert.match(sql, /CREATE TABLE `app_instances`/);
+  assert.match(sql, /`workspace_id` text NOT NULL/);
+  assert.match(sql, /`product_id` text NOT NULL/);
+  assert.match(sql, /`access_url` text NOT NULL/);
+  assert.match(sql, /`tenant_key` text NOT NULL/);
+  assert.match(sql, /app_instances_tenant_key_unique/);
 
-  assert.doesNotMatch(sql, /CREATE TABLE `(app_instances|deployments|webhooks)`/);
+  assert.doesNotMatch(sql, /CREATE TABLE `(deployments|webhooks)`/);
 });

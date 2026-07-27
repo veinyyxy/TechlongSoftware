@@ -3,8 +3,8 @@ import Link from "next/link";
 import { platformConfig } from "@/config/platform";
 
 export const metadata: Metadata = {
-  title: "手工订阅与付款记录",
-  description: "餐饮 SaaS 平台的管理员手工订阅与客户账单入口。",
+  title: "应用实例手动开通",
+  description: "餐饮 SaaS 平台的管理员应用实例管理与客户应用入口。",
 };
 
 export default function Home() {
@@ -29,11 +29,11 @@ export default function Home() {
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">MANUAL BILLING · 阶段 3</p>
-          <h1>让每笔手工订阅与付款，<br />都有清楚的状态记录。</h1>
+          <p className="eyebrow">MANUAL PROVISIONING · 阶段 4</p>
+          <h1>让每个企业客户的餐饮订单系统，<br />都有清楚的开通入口。</h1>
           <p className="hero-description">
-            平台管理员可以为企业客户创建订阅、设置账期，并录入线下付款结果。
-            客户只能查看自己工作区的订阅和账单状态，所有写操作继续在服务端鉴权。
+            平台管理员为企业客户登记餐饮订单系统的访问地址、租户标识与开通状态。
+            客户只能查看和进入自己工作区的应用，所有管理操作继续在服务端鉴权。
           </p>
           <div className="hero-actions">
             <Link className="button button-primary" href="/dashboard">
@@ -42,7 +42,7 @@ export default function Home() {
             <Link className="button button-ghost" href="/register">创建企业账号</Link>
           </div>
           <p className="hero-note">
-            付款记录由管理员手工录入，不代表已接入真实在线支付。
+            本阶段只记录入口与开通状态，不代表已经自动部署应用。
           </p>
         </div>
 
@@ -52,7 +52,7 @@ export default function Home() {
               <span className="board-kicker">MVP OPERATING LOOP</span>
               <h2>人工开通闭环</h2>
             </div>
-            <span className="status-pill status-foundation">手工账单已接入</span>
+            <span className="status-pill status-foundation">应用入口已接入</span>
           </div>
           <ol className="process-list">
             {platformConfig.mvpFlow.map((step, index) => (
@@ -74,7 +74,7 @@ export default function Home() {
         <div className="section-heading">
           <p className="eyebrow">FIRST RELEASE</p>
           <h2>只做能形成真实运营闭环的能力</h2>
-          <p>本阶段完成手工订阅和付款记录，只形成可审计的人工运营闭环，不提前接入支付网关或应用开通。</p>
+          <p>本阶段把客户、订阅和餐饮订单系统入口关联起来，保留人工开通流程，不提前接入自动部署或云服务。</p>
         </div>
         <div className="scope-grid">
           {platformConfig.scopes.map((scope) => (
@@ -96,7 +96,7 @@ export default function Home() {
           <h2>快速上线，也保留清晰的扩展边界</h2>
           <p>
             单一 TypeScript 项目承载公共站点、客户控制台、管理端与 API。
-            业务代码按领域拆分，D1 持久化客户、套餐、订阅和付款记录；后续实例开通阶段可以沿当前边界继续扩展。
+            业务代码按领域拆分，D1 持久化客户、套餐、订阅、付款记录与应用实例；后续可沿当前边界扩展真实部署能力。
           </p>
           <div className="architecture-tags">
             {platformConfig.stack.map((item) => <span key={item}>{item}</span>)}
@@ -113,7 +113,7 @@ export default function Home() {
       <footer className="marketing-footer">
         <div>
           <strong>{platformConfig.name}</strong>
-          <p>阶段 3 · 手工订阅与付款记录。</p>
+          <p>阶段 4 · 应用实例手动开通。</p>
         </div>
         <div className="footer-links">
           <Link href="/dashboard">客户侧</Link>

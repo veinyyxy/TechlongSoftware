@@ -9,7 +9,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",
-    "test": "npm run build && node --experimental-loader ./tests/cloudflare-loader.mjs --test tests/rendered-html.test.mjs tests/schema.test.mjs tests/migration-runtime.test.mjs tests/authorization.test.ts tests/admin-validation.test.ts tests/billing-validation.test.ts",
+    "test": "npm run build && node --experimental-loader ./tests/cloudflare-loader.mjs --test tests/rendered-html.test.mjs tests/schema.test.mjs tests/migration-runtime.test.mjs tests/authorization.test.ts tests/admin-validation.test.ts tests/billing-validation.test.ts tests/instances-validation.test.ts",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },

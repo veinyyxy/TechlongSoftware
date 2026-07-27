@@ -13,7 +13,7 @@ async function readMigrations() {
   );
 }
 
-test("stage 3 migrations preserve workspace isolation and payment integrity", async () => {
+test("stage 4 migrations preserve workspace isolation and application integrity", async () => {
   const migrations = await readMigrations();
   const database = new DatabaseSync(":memory:");
   database.exec("PRAGMA foreign_keys = ON");
@@ -114,6 +114,24 @@ test("stage 3 migrations preserve workspace isolation and payment integrity", as
   assert.deepEqual(
     { role: membership.role, name: membership.name },
     { role: "owner", name: "Example Workspace" },
+  );
+
+  const defaultProduct = database
+    .prepare("SELECT id, name, slug, status FROM products WHERE id = ?")
+    .get("prd_restaurant_order_system");
+  assert.deepEqual(
+    {
+      id: defaultProduct.id,
+      name: defaultProduct.name,
+      slug: defaultProduct.slug,
+      status: defaultProduct.status,
+    },
+    {
+      id: "prd_restaurant_order_system",
+      name: "餐饮订单系统",
+      slug: "restaurant-order-system",
+      status: "active",
+    },
   );
 
   const workspace = database
@@ -233,8 +251,87 @@ test("stage 3 migrations preserve workspace isolation and payment integrity", as
     },
   );
 
+  database
+    .prepare(
+      `INSERT INTO app_instances
+       (id, workspace_id, product_id, subscription_id, name, slug, domain,
+        access_url, tenant_key, status, provisioned_at, created_by_user_id,
+        created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+    )
+    .run(
+      "app_one",
+      "wsp_one",
+      "prd_restaurant_order_system",
+      "sub_one",
+      "Example Orders",
+      "example-orders",
+      "orders.example.com",
+      "https://orders.example.com/admin",
+      "example_workspace",
+      now,
+      "usr_one",
+      now,
+      now,
+    );
+
+  const application = database
+    .prepare(
+      `SELECT ai.access_url, ai.status, ai.tenant_key, p.slug AS product_slug,
+              s.workspace_id AS subscription_workspace_id
+       FROM app_instances ai
+       INNER JOIN products p ON p.id = ai.product_id
+       INNER JOIN subscriptions s ON s.id = ai.subscription_id
+       WHERE ai.id = ?`,
+    )
+    .get("app_one");
+  assert.deepEqual(
+    {
+      accessUrl: application.access_url,
+      status: application.status,
+      tenantKey: application.tenant_key,
+      productSlug: application.product_slug,
+      workspaceId: application.subscription_workspace_id,
+    },
+    {
+      accessUrl: "https://orders.example.com/admin",
+      status: "active",
+      tenantKey: "example_workspace",
+      productSlug: "restaurant-order-system",
+      workspaceId: "wsp_one",
+    },
+  );
+
+  assert.throws(() => {
+    database
+      .prepare(
+        `INSERT INTO app_instances
+         (id, workspace_id, product_id, name, slug, access_url, tenant_key,
+          status, created_by_user_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
+      )
+      .run(
+        "app_duplicate_tenant",
+        "wsp_one",
+        "prd_restaurant_order_system",
+        "Duplicate tenant",
+        "duplicate-tenant",
+        "https://orders.example.com/duplicate",
+        "example_workspace",
+        "usr_one",
+        now,
+        now,
+      );
+  }, /UNIQUE constraint failed/);
+
   assert.throws(() => {
     database.prepare("DELETE FROM plans WHERE id = ?").run("pln_basic");
+  }, /FOREIGN KEY constraint failed/);
+
+  assert.throws(() => {
+    database
+      .prepare("DELETE FROM products WHERE id = ?")
+      .run("prd_restaurant_order_system");
   }, /FOREIGN KEY constraint failed/);
 
   database.prepare("DELETE FROM subscriptions WHERE id = ?").run("sub_one");
@@ -242,6 +339,12 @@ test("stage 3 migrations preserve workspace isolation and payment integrity", as
     database
       .prepare("SELECT subscription_id FROM payment_records WHERE id = ?")
       .get("pay_one").subscription_id,
+    null,
+  );
+  assert.equal(
+    database
+      .prepare("SELECT subscription_id FROM app_instances WHERE id = ?")
+      .get("app_one").subscription_id,
     null,
   );
   database.close();

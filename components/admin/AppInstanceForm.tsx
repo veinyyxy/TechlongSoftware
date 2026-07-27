@@ -1,0 +1,250 @@
+"use client";
+
+import { useMemo, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import type { AppInstanceStatus } from "@/lib/instances/validation";
+
+interface CustomerOption {
+  id: string;
+  name: string;
+}
+
+interface ProductOption {
+  id: string;
+  name: string;
+}
+
+interface SubscriptionOption {
+  id: string;
+  workspaceId: string;
+  planName: string;
+  status: string;
+}
+
+interface AppInstanceFormProps {
+  mode: "create" | "edit";
+  instanceId?: string;
+  customers: CustomerOption[];
+  products: ProductOption[];
+  subscriptions: SubscriptionOption[];
+  initial?: {
+    workspaceId: string;
+    workspaceName: string;
+    productId: string;
+    subscriptionId: string | null;
+    name: string;
+    slug: string;
+    domain: string | null;
+    accessUrl: string;
+    tenantKey: string;
+    status: AppInstanceStatus;
+  };
+}
+
+interface ErrorPayload {
+  error?: {
+    message?: string;
+    fields?: Record<string, string[]>;
+  } | null;
+}
+
+export function AppInstanceForm({
+  mode,
+  instanceId,
+  customers,
+  products,
+  subscriptions,
+  initial,
+}: AppInstanceFormProps) {
+  const router = useRouter();
+  const [workspaceId, setWorkspaceId] = useState(initial?.workspaceId ?? "");
+  const [subscriptionId, setSubscriptionId] = useState(
+    initial?.subscriptionId ?? "",
+  );
+  const [status, setStatus] = useState<AppInstanceStatus>(
+    initial?.status ?? "pending",
+  );
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+
+  const availableSubscriptions = useMemo(
+    () => subscriptions.filter((subscription) => subscription.workspaceId === workspaceId),
+    [subscriptions, workspaceId],
+  );
+  const selectedSubscription = availableSubscriptions.find(
+    (subscription) => subscription.id === subscriptionId,
+  );
+  const activeSubscriptionRequired =
+    status === "active" && selectedSubscription?.status !== "active";
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (activeSubscriptionRequired) {
+      setMessage("标记为已开通前，必须选择该客户的一条有效订阅。");
+      return;
+    }
+
+    setPending(true);
+    setMessage("");
+    setFieldErrors({});
+    const formData = new FormData(event.currentTarget);
+    const payload = {
+      workspaceId: String(formData.get("workspaceId") ?? ""),
+      productId: String(formData.get("productId") ?? ""),
+      subscriptionId: String(formData.get("subscriptionId") ?? ""),
+      name: String(formData.get("name") ?? ""),
+      slug: String(formData.get("slug") ?? ""),
+      domain: String(formData.get("domain") ?? ""),
+      accessUrl: String(formData.get("accessUrl") ?? ""),
+      tenantKey: String(formData.get("tenantKey") ?? ""),
+      status: String(formData.get("status") ?? ""),
+    };
+
+    try {
+      const endpoint =
+        mode === "create"
+          ? "/api/admin/instances"
+          : `/api/admin/instances/${instanceId}`;
+      const response = await fetch(endpoint, {
+        method: mode === "create" ? "POST" : "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = (await response.json()) as ErrorPayload & {
+        data?: { id?: string };
+      };
+      if (!response.ok) {
+        setMessage(result.error?.message ?? "保存失败，请检查表单。");
+        setFieldErrors(result.error?.fields ?? {});
+        return;
+      }
+
+      const savedId = result.data?.id ?? instanceId;
+      router.push(`/admin/instances/${savedId}`);
+      router.refresh();
+    } catch {
+      setMessage("网络连接失败，请稍后重试。");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const fieldError = (name: string) => fieldErrors[name]?.[0];
+
+  return (
+    <form className="admin-form" onSubmit={handleSubmit}>
+      <div className="form-grid">
+        <label className="form-field form-field-wide">
+          <span>企业客户</span>
+          {mode === "edit" && initial ? (
+            <>
+              <input aria-label="企业客户" disabled value={initial.workspaceName} />
+              <input name="workspaceId" type="hidden" value={initial.workspaceId} />
+            </>
+          ) : (
+            <select
+              name="workspaceId"
+              onChange={(event) => {
+                setWorkspaceId(event.target.value);
+                setSubscriptionId("");
+              }}
+              required
+              value={workspaceId}
+            >
+              <option disabled value="">请选择企业客户</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>{customer.name}</option>
+              ))}
+            </select>
+          )}
+          {fieldError("workspaceId") ? <small className="form-error">{fieldError("workspaceId")}</small> : null}
+        </label>
+        <label className="form-field">
+          <span>产品</span>
+          <select defaultValue={initial?.productId ?? ""} name="productId" required>
+            <option disabled value="">请选择产品</option>
+            {products.map((product) => (
+              <option key={product.id} value={product.id}>{product.name}</option>
+            ))}
+          </select>
+          {fieldError("productId") ? <small className="form-error">{fieldError("productId")}</small> : null}
+        </label>
+        <label className="form-field">
+          <span>关联订阅（可选）</span>
+          <select
+            name="subscriptionId"
+            onChange={(event) => setSubscriptionId(event.target.value)}
+            value={subscriptionId}
+          >
+            <option value="">暂不关联订阅</option>
+            {availableSubscriptions.map((subscription) => (
+              <option key={subscription.id} value={subscription.id}>
+                {subscription.planName} · {subscription.status}
+              </option>
+            ))}
+          </select>
+          <small>若状态设为“已开通”，必须选择一条有效订阅。</small>
+          {fieldError("subscriptionId") ? <small className="form-error">{fieldError("subscriptionId")}</small> : null}
+        </label>
+        <label className="form-field">
+          <span>实例名称</span>
+          <input defaultValue={initial?.name} maxLength={100} name="name" required />
+          {fieldError("name") ? <small className="form-error">{fieldError("name")}</small> : null}
+        </label>
+        <label className="form-field">
+          <span>路径标识 slug</span>
+          <input defaultValue={initial?.slug} maxLength={80} name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="northshore-orders" required />
+          {fieldError("slug") ? <small className="form-error">{fieldError("slug")}</small> : null}
+        </label>
+        <label className="form-field">
+          <span>域名或路径（可选）</span>
+          <input defaultValue={initial?.domain ?? ""} maxLength={253} name="domain" placeholder="orders.example.com 或 /northshore" />
+          {fieldError("domain") ? <small className="form-error">{fieldError("domain")}</small> : null}
+        </label>
+        <label className="form-field">
+          <span>租户标识 tenant_key</span>
+          <input defaultValue={initial?.tenantKey} maxLength={64} name="tenantKey" pattern="[a-z0-9][a-z0-9_-]{1,63}" placeholder="northshore" required />
+          {fieldError("tenantKey") ? <small className="form-error">{fieldError("tenantKey")}</small> : null}
+        </label>
+        <label className="form-field form-field-wide">
+          <span>访问地址 access_url</span>
+          <input defaultValue={initial?.accessUrl} maxLength={2048} name="accessUrl" placeholder="https://orders.example.com/admin" required type="url" />
+          <small>由管理员手动填写；平台只保存入口，不会部署或修改餐饮订单系统。</small>
+          {fieldError("accessUrl") ? <small className="form-error">{fieldError("accessUrl")}</small> : null}
+        </label>
+        <label className="form-field">
+          <span>实例状态</span>
+          <select
+            name="status"
+            onChange={(event) => setStatus(event.target.value as AppInstanceStatus)}
+            value={status}
+          >
+            <option value="pending">等待开通</option>
+            <option value="active">已开通</option>
+            <option value="suspended">服务已暂停</option>
+            <option value="failed">开通失败</option>
+          </select>
+          {fieldError("status") ? <small className="form-error">{fieldError("status")}</small> : null}
+        </label>
+      </div>
+      {activeSubscriptionRequired ? (
+        <div className="notice notice-danger">
+          只有关联有效订阅的客户才允许将实例标记为“已开通”。请先选择有效订阅，或将状态保留为等待开通。
+        </div>
+      ) : null}
+      <div className="notice notice-neutral">
+        此页面只维护开通记录与客户入口，不会调用云服务、Docker、Kubernetes 或支付平台。
+      </div>
+      {message ? <p className="form-error form-message">{message}</p> : null}
+      <div className="form-actions">
+        <button className="button button-dark" disabled={pending || activeSubscriptionRequired} type="submit">
+          {pending ? "保存中…" : mode === "create" ? "创建应用实例" : "保存修改"}
+        </button>
+        <button className="button button-ghost" disabled={pending} onClick={() => router.back()} type="button">
+          取消
+        </button>
+      </div>
+    </form>
+  );
+}

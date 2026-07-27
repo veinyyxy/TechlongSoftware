@@ -345,6 +345,8 @@ export async function getPlatformOverview() {
     suspendedWorkspacesResult,
     activeSubscriptionsResult,
     failedPaymentsResult,
+    appInstancesResult,
+    activeAppInstancesResult,
   ] = await db.batch([
     db.prepare("SELECT COUNT(*) AS count FROM users"),
     db.prepare("SELECT COUNT(*) AS count FROM workspaces"),
@@ -359,6 +361,8 @@ export async function getPlatformOverview() {
     db.prepare(
       "SELECT COUNT(*) AS count FROM payment_records WHERE status = 'failed'",
     ),
+    db.prepare("SELECT COUNT(*) AS count FROM app_instances"),
+    db.prepare("SELECT COUNT(*) AS count FROM app_instances WHERE status = 'active'"),
   ]);
 
   const count = (result: D1Result<unknown>) =>
@@ -372,6 +376,8 @@ export async function getPlatformOverview() {
     suspendedWorkspaces: count(suspendedWorkspacesResult),
     activeSubscriptions: count(activeSubscriptionsResult),
     failedPayments: count(failedPaymentsResult),
+    appInstances: count(appInstancesResult),
+    activeAppInstances: count(activeAppInstancesResult),
   };
 }
 

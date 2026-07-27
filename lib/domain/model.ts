@@ -18,8 +18,10 @@ export type AppInstanceStatus =
   | "not_provisioned"
   | "pending"
   | "provisioning"
+  | "active"
   | "running"
   | "failed"
+  | "suspended"
   | "paused"
   | "disabled";
 
@@ -44,6 +46,7 @@ export const PLATFORM_PERMISSIONS = [
   "plans:manage",
   "subscriptions:manage",
   "payments:manage",
+  "instances:manage",
 ] as const;
 
 export const WORKSPACE_PERMISSIONS = [

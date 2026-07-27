@@ -37,8 +37,10 @@ export const appInstanceStatusLabels: Record<AppInstanceStatus, string> = {
   not_provisioned: "尚未开通",
   pending: "待开通",
   provisioning: "开通中",
+  active: "已开通",
   running: "运行中",
   failed: "开通失败",
+  suspended: "服务已暂停",
   paused: "已暂停",
   disabled: "已停用",
 };

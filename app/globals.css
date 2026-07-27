@@ -1251,6 +1251,88 @@ select {
   margin-top: 20px;
 }
 
+.app-instance-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 32px;
+}
+
+.app-instance-card {
+  background: var(--surface);
+  border: 1px solid rgba(23, 34, 27, 0.08);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px;
+}
+
+.app-instance-card-heading {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.app-instance-card-heading h2 {
+  font-size: 22px;
+  margin: 7px 0 0;
+}
+
+.app-instance-card > p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.app-instance-summary {
+  margin: 0;
+}
+
+.app-instance-summary > div {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 78px minmax(0, 1fr);
+  padding: 11px 0;
+}
+
+.app-instance-summary dt {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.app-instance-summary dd {
+  font-size: 11px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.app-instance-summary code,
+.instance-url-value {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 10px;
+}
+
+.app-instance-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.compact-notice {
+  font-size: 11px;
+  margin: 0;
+  padding: 11px 13px;
+}
+
+.app-detail-entry {
+  margin-top: 28px;
+}
+
 .plan-grid {
   display: grid;
   gap: 16px;
@@ -1392,6 +1474,7 @@ select {
   .readiness-grid,
   .settings-grid,
   .detail-grid,
+  .app-instance-grid,
   .plan-grid {
     grid-template-columns: 1fr;
   }

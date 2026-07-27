@@ -80,8 +80,10 @@ export const workspaces = sqliteTable(
         "not_provisioned",
         "pending",
         "provisioning",
+        "active",
         "running",
         "failed",
+        "suspended",
         "paused",
         "disabled",
       ],
@@ -171,6 +173,67 @@ export const paymentRecords = sqliteTable(
     index("payment_records_workspace_id_idx").on(table.workspaceId),
     index("payment_records_subscription_id_idx").on(table.subscriptionId),
     index("payment_records_status_idx").on(table.status),
+  ],
+);
+
+export const products = sqliteTable(
+  "products",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    description: text("description").notNull().default(""),
+    status: text("status", { enum: ["active", "inactive"] })
+      .notNull()
+      .default("active"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("products_slug_unique").on(table.slug),
+    index("products_status_idx").on(table.status),
+  ],
+);
+
+export const appInstances = sqliteTable(
+  "app_instances",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "restrict" }),
+    subscriptionId: text("subscription_id").references(
+      () => subscriptions.id,
+      { onDelete: "set null" },
+    ),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    domain: text("domain"),
+    accessUrl: text("access_url").notNull(),
+    tenantKey: text("tenant_key").notNull(),
+    status: text("status", {
+      enum: ["pending", "active", "suspended", "failed"],
+    })
+      .notNull()
+      .default("pending"),
+    provisionedAt: integer("provisioned_at", { mode: "timestamp_ms" }),
+    suspendedAt: integer("suspended_at", { mode: "timestamp_ms" }),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("app_instances_slug_unique").on(table.slug),
+    uniqueIndex("app_instances_tenant_key_unique").on(table.tenantKey),
+    index("app_instances_workspace_id_idx").on(table.workspaceId),
+    index("app_instances_product_id_idx").on(table.productId),
+    index("app_instances_subscription_id_idx").on(table.subscriptionId),
+    index("app_instances_status_idx").on(table.status),
   ],
 );
 

@@ -18,8 +18,10 @@ export type AppInstanceStatus =
   | "not_provisioned"
   | "pending"
   | "provisioning"
+  | "active"
   | "running"
   | "failed"
+  | "suspended"
   | "paused"
   | "disabled";
 

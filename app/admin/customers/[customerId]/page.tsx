@@ -4,6 +4,11 @@ import { StatusActionButton } from "@/components/admin/StatusActionButton";
 import { getAdminAccount } from "@/lib/auth/account";
 import { getCustomer } from "@/lib/admin/management";
 import { getWorkspaceBillingSummary } from "@/lib/billing/management";
+import { listWorkspaceAppInstances } from "@/lib/instances/management";
+import {
+  appInstanceStatusLabels as instanceStatusLabels,
+  appInstanceStatusTone,
+} from "@/lib/instances/presentation";
 import { subscriptionStatusLabels as billingStatusLabels } from "@/lib/billing/presentation";
 import {
   appInstanceStatusLabels,
@@ -41,7 +46,10 @@ export default async function CustomerDetailPage({
   }
 
   const isActive = customer.status === "active";
-  const billing = await getWorkspaceBillingSummary(customer.id);
+  const [billing, instances] = await Promise.all([
+    getWorkspaceBillingSummary(customer.id),
+    listWorkspaceAppInstances(customer.id),
+  ]);
 
   return (
     <>
@@ -117,11 +125,11 @@ export default async function CustomerDetailPage({
             </div>
             <div>
               <dt>应用实例</dt>
-              <dd>{appInstanceStatusLabels[customer.appInstanceStatus]}</dd>
+              <dd>{instances.length ? `${instances.length} 个已登记实例` : appInstanceStatusLabels[customer.appInstanceStatus]}</dd>
             </div>
           </dl>
           <div className="notice notice-neutral">
-            订阅与付款由管理员手动维护；应用实例仍未开通。
+            订阅、付款与应用实例均由平台管理员手动维护，不会触发自动部署。
           </div>
           {billing.subscription ? (
             <Link
@@ -137,6 +145,53 @@ export default async function CustomerDetailPage({
           )}
         </section>
       </div>
+
+      <section className="data-panel">
+        <div className="data-panel-heading">
+          <div>
+            <h2>应用实例</h2>
+            <p>客户对应的餐饮订单系统入口</p>
+          </div>
+          <Link className="table-link" href="/admin/instances/new">
+            创建应用实例
+          </Link>
+        </div>
+        {instances.length ? (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr><th>实例</th><th>状态</th><th>访问地址</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                {instances.map((instance) => (
+                  <tr key={instance.id}>
+                    <td>
+                      <strong>{instance.name}</strong>
+                      <span>{instance.tenantKey}</span>
+                    </td>
+                    <td>
+                      <span className={`status-pill status-${appInstanceStatusTone(instance.status)}`}>
+                        {instanceStatusLabels[instance.status]}
+                      </span>
+                    </td>
+                    <td>{instance.accessUrl}</td>
+                    <td>
+                      <Link className="table-link" href={`/admin/instances/${instance.id}`}>
+                        查看详情
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <strong>尚未创建应用实例</strong>
+            <p>创建实例后，客户可以在“我的应用”中看到对应入口。</p>
+          </div>
+        )}
+      </section>
 
       {customer.plan ? (
         <section className="data-panel plan-detail-panel">

@@ -7,27 +7,32 @@ import {
 import { getCustomer } from "@/lib/admin/management";
 import { getWorkspaceBillingSummary } from "@/lib/billing/management";
 import {
-  appInstanceStatusLabels,
   formatMoney,
 } from "@/lib/admin/presentation";
 import {
   paymentStatusLabels,
   subscriptionStatusLabels,
 } from "@/lib/billing/presentation";
+import {
+  listWorkspaceAppInstances,
+} from "@/lib/instances/management";
+import { appInstanceStatusLabels } from "@/lib/instances/presentation";
 
 export const metadata: Metadata = { title: "客户控制台" };
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const account = await getDashboardAccount();
-  const [members, customer, billing] = await Promise.all([
+  const [members, customer, billing, instances] = await Promise.all([
     listWorkspaceMembers(account.workspace.id),
     getCustomer(account.workspace.id),
     getWorkspaceBillingSummary(account.workspace.id),
+    listWorkspaceAppInstances(account.workspace.id),
   ]);
   const subscription = billing.subscription;
   const subscriptionIsActive = subscription?.status === "active";
   const recentPaymentFailed = billing.recentPayment?.status === "failed";
+  const primaryInstance = instances[0] ?? null;
 
   return (
     <>
@@ -73,6 +78,11 @@ export default async function DashboardPage() {
           </strong>
           <p>由平台管理员手动维护。</p>
         </article>
+        <article className="readiness-card">
+          <small>我的应用</small>
+          <strong>{instances.length}</strong>
+          <p>{primaryInstance ? appInstanceStatusLabels[primaryInstance.status] : "等待平台管理员开通"}</p>
+        </article>
       </div>
 
       {!subscriptionIsActive ? (
@@ -105,8 +115,8 @@ export default async function DashboardPage() {
             <li>
               <span>应用实例</span>
               <span className="check-state pending">
-                {customer
-                  ? appInstanceStatusLabels[customer.appInstanceStatus]
+                {primaryInstance
+                  ? appInstanceStatusLabels[primaryInstance.status]
                   : "尚未开通"}
               </span>
             </li>
@@ -120,6 +130,9 @@ export default async function DashboardPage() {
           </div>
           <Link className="table-link" href="/dashboard/billing">
             查看订阅与账单 →
+          </Link>
+          <Link className="table-link" href="/dashboard/apps">
+            查看我的应用 →
           </Link>
         </aside>
       </div>

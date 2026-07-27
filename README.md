@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前完成阶段 3：管理员手工订阅与付款记录。
+当前完成阶段 4：餐饮订单系统应用实例管理与手动开通。
 
 ## 已实现
 
@@ -30,13 +30,21 @@
 - 付款状态支持 `pending`、`paid`、`failed`。
 - 客户只读查看本工作区的订阅、当前账期和付款历史。
 - 非有效订阅或最近付款失败时，客户控制台显示明显提醒。
+- 内置一个可分配产品：`餐饮订单系统`（`restaurant-order-system`）。
+- 管理员可以创建、编辑、筛选和查看客户应用实例。
+- 应用实例关联工作区、产品，并可选关联订阅。
+- 应用实例状态支持 `pending`、`active`、`suspended`、`failed`。
+- 只有关联有效订阅的实例允许被标记为 `active`。
+- 管理员可以暂停和恢复应用实例；所有实例管理接口均要求平台管理员权限。
+- 客户只能查看自己工作区的“我的应用”、应用状态和管理员登记的访问地址。
+- `access_url` 由管理员在后端记录中维护；平台不会自动部署或修改餐饮订单系统。
 
 ## 当前没有实现
 
-- 应用实例开通。
 - Stripe、Paddle、真实在线支付、Webhook 和自动扣款。
 - 复杂发票、优惠券和自动退款。
-- 自动部署业务流程。
+- 自动部署、云资源创建、Docker / Kubernetes 发布和复杂部署日志。
+- 多产品市场。
 - 成员邀请和角色变更。
 - 密码注册、密码存储和密码重置。
 
@@ -101,9 +109,14 @@ npm test
 - `subscriptions`
 - `payment_records`
 
-订阅关联 `workspace` 和 `plan`，当前 MVP 每个工作区最多一条订阅。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。
+阶段 4 新增：
 
-工作区上的 `plan_id` 和 `subscription_status` 作为兼容状态快照，由订阅管理操作同步更新。应用实例状态仍是占位字段，本阶段不创建应用实例记录。
+- `products`
+- `app_instances`
+
+订阅关联 `workspace` 和 `plan`，当前 MVP 每个工作区最多一条订阅。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。应用实例关联 `workspace`、`product`，并可选关联订阅；保存管理员填写的 `access_url`、`domain` / `slug` 和 `tenant_key`。
+
+迁移会幂等写入默认产品：`餐饮订单系统` / `restaurant-order-system` / `active`。工作区上的 `plan_id`、`subscription_status` 和 `app_instance_status` 作为兼容状态快照，由订阅和应用实例管理操作同步更新；实际应用实例以 `app_instances` 为准。
 
 所有客户业务查询必须通过 `workspace_id` 和成员关系限制范围。平台管理员是唯一允许跨工作区读取基础数据的角色。
 
@@ -123,9 +136,12 @@ npm test
 - `/dashboard/members`
 - `/dashboard/settings`
 - `/dashboard/billing`
+- `/dashboard/apps`
+- `/dashboard/apps/:instanceId`
 - `/api/account`
 - `/api/workspaces/:workspaceId`
 - `/api/workspaces/:workspaceId/billing`
+- `/api/workspaces/:workspaceId/apps`
 
 管理员路由：
 
@@ -144,6 +160,10 @@ npm test
 - `/admin/subscriptions/:subscriptionId/edit`
 - `/admin/payments`
 - `/admin/payments/new`
+- `/admin/instances`
+- `/admin/instances/new`
+- `/admin/instances/:instanceId`
+- `/admin/instances/:instanceId/edit`
 - `/api/admin/overview`
 - `/api/admin/customers`
 - `/api/admin/customers/:customerId`
@@ -152,11 +172,13 @@ npm test
 - `/api/admin/subscriptions`
 - `/api/admin/subscriptions/:subscriptionId`
 - `/api/admin/payments`
+- `/api/admin/instances`
+- `/api/admin/instances/:instanceId`
 
 保留的后续阶段占位路由不会出现在当前导航中。
 
 ## 下一阶段
 
-确认手工订阅与付款记录后，可以执行：
+确认客户侧应用入口与实例状态呈现后，可以执行：
 
-`implementation-steps/04-app-instance-provisioning.md`
+`implementation-steps/05-customer-dashboard.md`

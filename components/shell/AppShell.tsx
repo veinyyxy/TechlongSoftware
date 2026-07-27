@@ -25,6 +25,7 @@ interface AppShellProps {
 
 const customerNavigation: NavigationItem[] = [
   { href: "/dashboard", label: "概览" },
+  { href: "/dashboard/apps", label: "我的应用" },
   { href: "/dashboard/billing", label: "订阅与账单" },
   { href: "/dashboard/members", label: "团队成员" },
   { href: "/dashboard/settings", label: "工作区设置" },
@@ -36,6 +37,7 @@ const adminNavigation: NavigationItem[] = [
   { href: "/admin/plans", label: "套餐管理" },
   { href: "/admin/subscriptions", label: "订阅管理" },
   { href: "/admin/payments", label: "付款记录" },
+  { href: "/admin/instances", label: "应用实例管理" },
   { href: "/admin/users", label: "用户账号" },
 ];
 
@@ -73,7 +75,7 @@ export function AppShell({ children, mode, user, workspace }: AppShellProps) {
       <section className="app-main">
         <header className="topbar">
           <p>{isAdmin ? "平台运营视图" : "企业客户视图"}</p>
-          <span className="environment-badge">STAGE 03 · MANUAL BILLING</span>
+          <span className="environment-badge">STAGE 04 · MANUAL PROVISIONING</span>
         </header>
         <div className="app-content">{children}</div>
       </section>

@@ -65,6 +65,15 @@ export default async function AdminPage() {
             <Link className="table-link" href="/admin/payments">付款记录 →</Link>
           </div>
         </section>
+        <section className="module-card">
+          <h2>应用实例</h2>
+          <p>手动记录客户对应的餐饮订单系统入口与开通状态。</p>
+          <ul className="foundation-checklist">
+            <li><span>实例总数</span><span>{overview.appInstances}</span></li>
+            <li><span>已开通实例</span><span>{overview.activeAppInstances}</span></li>
+          </ul>
+          <Link className="table-link" href="/admin/instances">应用实例管理 →</Link>
+        </section>
       </div>
     </>
   );
