@@ -1,13 +1,15 @@
 import { getD1 } from "@/db";
 import { ManagementError, getPlan, type BillingInterval, type PlanView } from "@/lib/admin/management";
 import {
-  getWorkspaceSubscription,
+  getSubscription,
+  getWorkspaceProductCurrentSubscription,
+  syncWorkspaceSubscriptionSummaryStatement,
   type PaymentStatus,
   type SubscriptionStatus,
 } from "@/lib/billing/management";
 import { randomId } from "@/lib/domain/ids";
 import {
-  preparePendingRestaurantAppInstance,
+  preparePendingAppInstance,
   syncWorkspaceAppInstanceStatusStatement,
 } from "@/lib/instances/management";
 import {
@@ -26,7 +28,10 @@ export type CheckoutStatus =
 export interface PaymentCheckoutView {
   id: string;
   workspaceId: string;
-  subscriptionId: string | null;
+  subscriptionId: string;
+  subscriptionStatus: SubscriptionStatus;
+  productId: string;
+  productName: string;
   planId: string;
   planName: string;
   amount: number;
@@ -36,6 +41,7 @@ export interface PaymentCheckoutView {
   providerSessionId: string | null;
   checkoutUrl: string | null;
   failureReason: string | null;
+  attentionNote: string | null;
   expiresAt: number | null;
   completedAt: number | null;
   createdAt: number;
@@ -44,7 +50,10 @@ export interface PaymentCheckoutView {
 interface CheckoutRow {
   id: string;
   workspace_id: string;
-  subscription_id: string | null;
+  subscription_id: string;
+  subscription_status: SubscriptionStatus;
+  product_id: string;
+  product_name: string;
   plan_id: string;
   plan_name: string;
   amount: number;
@@ -55,6 +64,7 @@ interface CheckoutRow {
   provider_payment_id: string | null;
   checkout_url: string | null;
   failure_reason: string | null;
+  payment_note: string | null;
   expires_at: number | null;
   completed_at: number | null;
   created_at: number;
@@ -65,20 +75,28 @@ interface CheckoutRow {
 
 const checkoutSelect = `
   SELECT
-    cs.id, cs.workspace_id, pr.subscription_id, cs.plan_id, p.name AS plan_name,
+    cs.id, cs.workspace_id, cs.subscription_id, s.status AS subscription_status,
+    s.product_id,
+    product.name AS product_name, cs.plan_id, p.name AS plan_name,
     pr.amount, pr.currency, pr.status AS payment_status, cs.status,
     cs.provider_session_id, cs.provider_payment_id, cs.checkout_url,
-    pr.failure_reason, cs.expires_at, cs.completed_at, cs.created_at,
+    pr.failure_reason, pr.note AS payment_note, cs.expires_at,
+    cs.completed_at, cs.created_at,
     cs.payment_record_id, cs.initiated_by_user_id, p.billing_interval
   FROM payment_checkout_sessions cs
   INNER JOIN plans p ON p.id = cs.plan_id
-  INNER JOIN payment_records pr ON pr.id = cs.payment_record_id`;
+  INNER JOIN payment_records pr ON pr.id = cs.payment_record_id
+  INNER JOIN subscriptions s ON s.id = cs.subscription_id
+  INNER JOIN products product ON product.id = s.product_id`;
 
 function toCheckoutView(row: CheckoutRow): PaymentCheckoutView {
   return {
     id: row.id,
     workspaceId: row.workspace_id,
     subscriptionId: row.subscription_id,
+    subscriptionStatus: row.subscription_status,
+    productId: row.product_id,
+    productName: row.product_name,
     planId: row.plan_id,
     planName: row.plan_name,
     amount: Number(row.amount),
@@ -88,6 +106,7 @@ function toCheckoutView(row: CheckoutRow): PaymentCheckoutView {
     providerSessionId: row.provider_session_id,
     checkoutUrl: row.checkout_url,
     failureReason: row.failure_reason,
+    attentionNote: row.payment_note,
     expiresAt: row.expires_at,
     completedAt: row.completed_at,
     createdAt: row.created_at,
@@ -119,12 +138,23 @@ export async function createPaymentCheckout(input: {
   customerEmail: string;
   origin: string;
 }): Promise<{ checkout: PaymentCheckoutView; checkoutUrl: string; reused: boolean }> {
-  const subscription = await getWorkspaceSubscription(input.workspaceId);
-  if (!subscription || subscription.id !== input.subscriptionId) {
+  const subscription = await getSubscription(input.subscriptionId);
+  if (!subscription || subscription.workspaceId !== input.workspaceId) {
     throw new ManagementError(
       "SUBSCRIPTION_NOT_FOUND",
       "没有找到平台为当前工作区配置的订阅。",
       404,
+    );
+  }
+  const currentSubscription = await getWorkspaceProductCurrentSubscription(
+    input.workspaceId,
+    subscription.productId,
+  );
+  if (!currentSubscription || currentSubscription.id !== subscription.id) {
+    throw new ManagementError(
+      "SUBSCRIPTION_NOT_CURRENT",
+      "这条订阅已经结束或已被新订阅替代，不能再发起付款。",
+      409,
     );
   }
   if (
@@ -137,11 +167,21 @@ export async function createPaymentCheckout(input: {
       409,
     );
   }
+  if (subscription.productStatus !== "active") {
+    throw new ManagementError(
+      "PRODUCT_NOT_AVAILABLE",
+      "当前订阅产品已停用，不能发起在线付款。",
+      409,
+    );
+  }
   const plan = await getPlan(subscription.planId);
   assertPurchasablePlan(plan);
   await assertActiveWorkspace(input.workspaceId);
 
-  const reusable = await getReusableOpenCheckout(input.workspaceId);
+  const reusable = await getReusableOpenCheckout(
+    input.workspaceId,
+    subscription.id,
+  );
   if (reusable) {
     if (reusable.plan_id !== subscription.planId || !reusable.checkout_url) {
       throw new ManagementError(
@@ -158,44 +198,56 @@ export async function createPaymentCheckout(input: {
   const checkoutId = randomId("chk");
   const paymentRecordId = randomId("pay");
   const now = Date.now();
+  const reservationExpiresAt = now + 10 * 60 * 1000;
   const db = getD1();
-  await db.batch([
-    db
-      .prepare(
-        `INSERT INTO payment_records (
-          id, workspace_id, subscription_id, amount, currency, status, paid_at,
-          payment_method, provider, provider_payment_id, provider_event_id,
-          reference, note, failure_reason, recorded_by_user_id, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, 'pending', NULL, 'Stripe Checkout', 'stripe',
-          NULL, NULL, NULL, NULL, NULL, ?, ?, ?)`,
-      )
-      .bind(
-        paymentRecordId,
-        input.workspaceId,
-        subscription.id,
-        plan.priceAmount,
-        plan.currency,
-        input.initiatedByUserId,
-        now,
-        now,
-      ),
-    db
-      .prepare(
-        `INSERT INTO payment_checkout_sessions (
-          id, workspace_id, plan_id, payment_record_id, initiated_by_user_id,
-          provider, status, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, 'stripe', 'creating', ?, ?)`,
-      )
-      .bind(
-        checkoutId,
-        input.workspaceId,
-        subscription.planId,
-        paymentRecordId,
-        input.initiatedByUserId,
-        now,
-        now,
-      ),
-  ]);
+  try {
+    await db.batch([
+      db
+        .prepare(
+          `INSERT INTO payment_records (
+            id, workspace_id, subscription_id, amount, currency, status, paid_at,
+            payment_method, provider, provider_payment_id, provider_event_id,
+            reference, note, failure_reason, recorded_by_user_id, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, 'pending', NULL, 'Stripe Checkout', 'stripe',
+            NULL, NULL, NULL, NULL, NULL, ?, ?, ?)`,
+        )
+        .bind(
+          paymentRecordId,
+          input.workspaceId,
+          subscription.id,
+          plan.priceAmount,
+          plan.currency,
+          input.initiatedByUserId,
+          now,
+          now,
+        ),
+      db
+        .prepare(
+          `INSERT INTO payment_checkout_sessions (
+            id, workspace_id, subscription_id, plan_id, payment_record_id,
+            initiated_by_user_id, provider, status, expires_at, created_at,
+            updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, 'stripe', 'creating', ?, ?, ?)`,
+        )
+        .bind(
+          checkoutId,
+          input.workspaceId,
+          subscription.id,
+          subscription.planId,
+          paymentRecordId,
+          input.initiatedByUserId,
+          reservationExpiresAt,
+          now,
+          now,
+        ),
+    ]);
+  } catch {
+    throw new ManagementError(
+      "CHECKOUT_ALREADY_OPEN",
+      "这条订阅已有一笔正在创建或等待完成的在线付款，请稍后重试。",
+      409,
+    );
+  }
 
   const resultUrl = `${input.origin}/dashboard/billing/payment-result`;
   try {
@@ -215,7 +267,7 @@ export async function createPaymentCheckout(input: {
           `UPDATE payment_checkout_sessions
            SET provider_session_id = ?, checkout_url = ?, status = 'open',
                expires_at = ?, updated_at = ?
-           WHERE id = ?`,
+           WHERE id = ? AND status = 'creating'`,
         )
         .bind(stripeSession.id, stripeSession.url, stripeSession.expiresAt, Date.now(), checkoutId),
       db
@@ -229,14 +281,16 @@ export async function createPaymentCheckout(input: {
     await db.batch([
       db
         .prepare(
-          "UPDATE payment_checkout_sessions SET status = 'failed', updated_at = ? WHERE id = ?",
+          `UPDATE payment_checkout_sessions
+           SET status = 'failed', updated_at = ?
+           WHERE id = ? AND status = 'creating'`,
         )
         .bind(Date.now(), checkoutId),
       db
         .prepare(
           `UPDATE payment_records
            SET status = 'failed', failure_reason = ?, updated_at = ?
-           WHERE id = ?`,
+           WHERE id = ? AND status = 'pending'`,
         )
         .bind(message, Date.now(), paymentRecordId),
     ]);
@@ -283,22 +337,53 @@ export async function processStripeWebhookEvent(input: {
   event: StripeWebhookEvent;
   payloadHash: string;
 }): Promise<{ duplicate: boolean; handled: boolean }> {
+  const claimedAt = Date.now();
+  const staleClaimBefore = claimedAt - 5 * 60 * 1000;
   const existing = await getD1()
     .prepare(
-      `SELECT id, processing_status
+      `SELECT id, processing_status, received_at
        FROM payment_webhook_events
        WHERE provider = 'stripe' AND provider_event_id = ?
        LIMIT 1`,
     )
     .bind(input.event.id)
-    .first<{ id: string; processing_status: string }>();
+    .first<{ id: string; processing_status: string; received_at: number }>();
 
   if (existing?.processing_status === "processed" || existing?.processing_status === "ignored") {
     return { duplicate: true, handled: false };
   }
 
   const eventId = existing?.id ?? randomId("evt");
-  if (!existing) {
+  if (existing) {
+    if (
+      existing.processing_status === "pending" &&
+      existing.received_at > staleClaimBefore
+    ) {
+      return { duplicate: true, handled: false };
+    }
+    const claim = await getD1()
+      .prepare(
+        `UPDATE payment_webhook_events
+         SET event_type = ?, payload_hash = ?, processing_status = 'pending',
+             received_at = ?, processed_at = NULL, last_error = NULL
+         WHERE id = ?
+           AND (
+             processing_status = 'failed'
+             OR (processing_status = 'pending' AND received_at <= ?)
+           )`,
+      )
+      .bind(
+        input.event.type,
+        input.payloadHash,
+        claimedAt,
+        eventId,
+        staleClaimBefore,
+      )
+      .run();
+    if (!claim.meta.changes) {
+      return { duplicate: true, handled: false };
+    }
+  } else {
     try {
       await getD1()
         .prepare(
@@ -307,7 +392,7 @@ export async function processStripeWebhookEvent(input: {
             processing_status, received_at
           ) VALUES (?, 'stripe', ?, ?, ?, 'pending', ?)`,
         )
-        .bind(eventId, input.event.id, input.event.type, input.payloadHash, Date.now())
+        .bind(eventId, input.event.id, input.event.type, input.payloadHash, claimedAt)
         .run();
     } catch {
       return { duplicate: true, handled: false };
@@ -334,7 +419,7 @@ export async function processStripeWebhookEvent(input: {
       .prepare(
         `UPDATE payment_webhook_events
          SET checkout_session_id = ?, processing_status = ?, processed_at = ?, last_error = NULL
-         WHERE id = ?`,
+         WHERE id = ? AND processing_status = 'pending'`,
       )
       .bind(checkout?.id ?? null, handled ? "processed" : "ignored", Date.now(), eventId)
       .run();
@@ -342,7 +427,9 @@ export async function processStripeWebhookEvent(input: {
   } catch (error) {
     await getD1()
       .prepare(
-        "UPDATE payment_webhook_events SET processing_status = 'failed', last_error = ? WHERE id = ?",
+        `UPDATE payment_webhook_events
+         SET processing_status = 'failed', last_error = ?
+         WHERE id = ? AND processing_status = 'pending'`,
       )
       .bind(error instanceof Error ? error.message.slice(0, 500) : "Webhook processing failed.", eventId)
       .run();
@@ -350,7 +437,10 @@ export async function processStripeWebhookEvent(input: {
   }
 }
 
-async function getReusableOpenCheckout(workspaceId: string): Promise<{
+async function getReusableOpenCheckout(
+  workspaceId: string,
+  subscriptionId: string,
+): Promise<{
   id: string;
   plan_id: string;
   checkout_url: string | null;
@@ -358,13 +448,14 @@ async function getReusableOpenCheckout(workspaceId: string): Promise<{
 } | null> {
   const row = await getD1()
     .prepare(
-      `SELECT id, plan_id, checkout_url, expires_at
-       FROM payment_checkout_sessions
-       WHERE workspace_id = ? AND status = 'open'
-       ORDER BY created_at DESC
+      `SELECT cs.id, cs.plan_id, cs.checkout_url, cs.expires_at
+       FROM payment_checkout_sessions cs
+       WHERE cs.workspace_id = ? AND cs.subscription_id = ?
+         AND cs.status IN ('creating', 'open')
+       ORDER BY cs.created_at DESC
        LIMIT 1`,
     )
-    .bind(workspaceId)
+    .bind(workspaceId, subscriptionId)
     .first<{
       id: string;
       plan_id: string;
@@ -427,109 +518,129 @@ async function completeCheckout(
   checkout: CheckoutRow,
   event: StripeWebhookEvent,
 ): Promise<void> {
-  if (checkout.status === "completed" || checkout.payment_status === "paid") return;
+  const paymentAlreadyRecorded =
+    checkout.status === "completed" || checkout.payment_status === "paid";
   const now = Date.now();
   const { providerSessionId, providerPaymentId } = providerIdentifiers(event, checkout);
-  const currentSubscription = checkout.subscription_id
-    ? await getD1()
-        .prepare(
-          `SELECT id, status
-           FROM subscriptions
-           WHERE id = ? AND workspace_id = ?
-           LIMIT 1`,
-        )
-        .bind(checkout.subscription_id, checkout.workspace_id)
-        .first<{ id: string; status: SubscriptionStatus }>()
-    : await getD1()
-        .prepare(
-          `SELECT id, status FROM subscriptions WHERE workspace_id = ? LIMIT 1`,
-        )
-        .bind(checkout.workspace_id)
-        .first<{ id: string; status: SubscriptionStatus }>();
-  const subscriptionId = currentSubscription?.id ?? randomId("sub");
-  const periodEnd = addBillingPeriod(now, checkout.billing_interval);
-  const db = getD1();
-  const pendingInstanceStatement = await preparePendingRestaurantAppInstance({
-    workspaceId: checkout.workspace_id,
-    workspaceName: await getWorkspaceName(checkout.workspace_id),
-    subscriptionId,
-    createdByUserId: checkout.initiated_by_user_id,
-    now,
-  });
-  const statements: D1PreparedStatement[] = [];
-  if (currentSubscription) {
-    statements.push(
-      db
-        .prepare(
-          `UPDATE subscriptions
-           SET plan_id = ?, status = 'active', current_period_start = ?,
-               current_period_end = ?, cancel_at_period_end = 0, updated_at = ?
-           WHERE id = ?`,
-        )
-        .bind(checkout.plan_id, now, periodEnd, now, subscriptionId),
+  const subscription = await getSubscription(checkout.subscription_id);
+  if (!subscription || subscription.workspaceId !== checkout.workspace_id) {
+    throw new ManagementError(
+      "CHECKOUT_SUBSCRIPTION_NOT_FOUND",
+      "付款会话关联的订阅不存在或不属于当前客户。",
+      409,
     );
-  } else {
+  }
+  const currentSubscription = await getWorkspaceProductCurrentSubscription(
+    checkout.workspace_id,
+    subscription.productId,
+  );
+  const isCurrentSubscription = currentSubscription?.id === subscription.id;
+  const activationRequested =
+    !paymentAlreadyRecorded &&
+    isCurrentSubscription &&
+    (subscription.status === "manual_pending" ||
+      subscription.status === "past_due");
+  const attentionNote = activationRequested
+    ? null
+    : "Stripe 已确认收款，但付款对应的订阅已不处于待付款状态，请平台管理员人工核对。";
+  const db = getD1();
+  if (!paymentAlreadyRecorded) {
+    const periodEnd = addBillingPeriod(now, checkout.billing_interval);
+    const statements: D1PreparedStatement[] = [];
+    if (activationRequested) {
+      statements.push(
+        db
+          .prepare(
+            `UPDATE subscriptions
+             SET plan_id = ?, status = 'active', current_period_start = ?,
+                 current_period_end = ?, cancel_at_period_end = 0, updated_at = ?
+             WHERE id = ? AND workspace_id = ? AND product_id = ?
+               AND status IN ('manual_pending', 'past_due')`,
+          )
+          .bind(
+            checkout.plan_id,
+            now,
+            periodEnd,
+            now,
+            subscription.id,
+            checkout.workspace_id,
+            subscription.productId,
+          ),
+        syncWorkspaceSubscriptionSummaryStatement(checkout.workspace_id, now),
+      );
+    }
     statements.push(
       db
         .prepare(
-          `INSERT INTO subscriptions (
-            id, workspace_id, plan_id, status, current_period_start,
-            current_period_end, cancel_at_period_end, created_by_user_id,
-            created_at, updated_at
-          ) VALUES (?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
+          `UPDATE payment_records
+           SET subscription_id = ?, status = 'paid', paid_at = ?, provider_payment_id = ?,
+               provider_event_id = ?, reference = ?, note = COALESCE(?, note),
+               failure_reason = NULL, updated_at = ?
+           WHERE id = ? AND status <> 'paid'`,
         )
         .bind(
-          subscriptionId,
-          checkout.workspace_id,
-          checkout.plan_id,
+          subscription.id,
           now,
-          periodEnd,
-          checkout.initiated_by_user_id,
+          providerPaymentId,
+          event.id,
+          providerSessionId,
+          attentionNote,
           now,
-          now,
+          checkout.payment_record_id,
         ),
+      db
+        .prepare(
+          `UPDATE payment_checkout_sessions
+           SET provider_session_id = ?, provider_payment_id = ?, status = 'completed',
+               completed_at = ?, updated_at = ?
+           WHERE id = ? AND status <> 'completed'`,
+        )
+        .bind(providerSessionId, providerPaymentId, now, now, checkout.id),
     );
+    await db.batch(statements);
   }
-  statements.push(
-    db
+
+  const confirmedSubscription = await getSubscription(subscription.id);
+  const confirmedCurrentSubscription = confirmedSubscription
+    ? await getWorkspaceProductCurrentSubscription(
+        checkout.workspace_id,
+        confirmedSubscription.productId,
+      )
+    : null;
+  const canPrepareApplication =
+    confirmedSubscription?.status === "active" &&
+    confirmedCurrentSubscription?.id === confirmedSubscription.id;
+  if (activationRequested && !canPrepareApplication) {
+    await db
       .prepare(
         `UPDATE payment_records
-         SET subscription_id = ?, status = 'paid', paid_at = ?, provider_payment_id = ?,
-             provider_event_id = ?, reference = ?, failure_reason = NULL, updated_at = ?
-         WHERE id = ?`,
+         SET note = COALESCE(note, ?), updated_at = ?
+         WHERE id = ? AND status = 'paid'`,
       )
       .bind(
-        subscriptionId,
-        now,
-        providerPaymentId,
-        event.id,
-        providerSessionId,
-        now,
+        "Stripe 已确认收款，但订阅在付款确认期间发生变化，请平台管理员人工核对。",
+        Date.now(),
         checkout.payment_record_id,
-      ),
-    db
-      .prepare(
-        `UPDATE payment_checkout_sessions
-         SET provider_session_id = ?, provider_payment_id = ?, status = 'completed',
-             completed_at = ?, updated_at = ?
-         WHERE id = ?`,
       )
-      .bind(providerSessionId, providerPaymentId, now, now, checkout.id),
-    db
-      .prepare(
-        `UPDATE workspaces
-         SET plan_id = ?, subscription_status = 'active', updated_at = ?
-         WHERE id = ?`,
-      )
-      .bind(checkout.plan_id, now, checkout.workspace_id),
-  );
-  if (pendingInstanceStatement) {
-    statements.push(
-      pendingInstanceStatement,
-      syncWorkspaceAppInstanceStatusStatement(checkout.workspace_id, now),
-    );
+      .run();
   }
-  await db.batch(statements);
+
+  if (canPrepareApplication) {
+    const pendingInstanceStatement = await preparePendingAppInstance({
+      workspaceId: checkout.workspace_id,
+      workspaceName: await getWorkspaceName(checkout.workspace_id),
+      productId: confirmedSubscription.productId,
+      subscriptionId: confirmedSubscription.id,
+      createdByUserId: checkout.initiated_by_user_id,
+      now,
+    });
+    if (pendingInstanceStatement) {
+      await db.batch([
+        pendingInstanceStatement,
+        syncWorkspaceAppInstanceStatusStatement(checkout.workspace_id, now),
+      ]);
+    }
+  }
 }
 
 async function getWorkspaceName(workspaceId: string): Promise<string> {
@@ -555,14 +666,14 @@ async function failCheckout(checkout: CheckoutRow, event: StripeWebhookEvent): P
         `UPDATE payment_records
          SET status = 'failed', provider_payment_id = ?, provider_event_id = ?,
              reference = ?, failure_reason = ?, updated_at = ?
-         WHERE id = ?`,
+         WHERE id = ? AND status <> 'paid'`,
       )
       .bind(providerPaymentId, event.id, providerSessionId, failureReason, now, checkout.payment_record_id),
     getD1()
       .prepare(
         `UPDATE payment_checkout_sessions
          SET provider_session_id = ?, provider_payment_id = ?, status = 'failed', updated_at = ?
-         WHERE id = ?`,
+         WHERE id = ? AND status <> 'completed'`,
       )
       .bind(providerSessionId, providerPaymentId, now, checkout.id),
   ]);
@@ -583,7 +694,7 @@ async function expireCheckout(checkout: CheckoutRow, event: StripeWebhookEvent):
       .prepare(
         `UPDATE payment_checkout_sessions
          SET status = 'expired', updated_at = ?
-         WHERE id = ?`,
+         WHERE id = ? AND status <> 'completed'`,
       )
       .bind(now, checkout.id),
   ]);

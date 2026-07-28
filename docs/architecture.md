@@ -2,7 +2,7 @@
 
 ## 当前阶段
 
-阶段 3 在已有客户与套餐运营基础上，增加管理员手工订阅和付款记录。
+当前平台已完成阶段 1–8，并将订阅模型升级为按产品保留当前与历史记录。
 
 ```text
 ChatGPT 登录
@@ -11,11 +11,12 @@ ChatGPT 登录
 → 建立 Owner 成员关系
 → 服务端按工作区或平台角色授权
 → 平台管理员维护客户和套餐
-→ 平台管理员创建订阅并录入付款
-→ 客户只读查看本工作区账单
+→ 平台管理员按产品创建订阅并录入付款
+→ 客户只读查看本工作区的当前订阅、历史订阅和账单
+→ Stripe 确认付款后创建待管理员开通的产品实例
 ```
 
-真实支付、自动扣款、应用实例和自动部署没有进入本阶段。
+Stripe Checkout 与签名 Webhook 已接入。自动续扣和自动部署不在当前版本范围内。
 
 ## 身份方案
 
@@ -36,7 +37,8 @@ User
 └── WorkspaceMember >── Workspace
                            └── owner_id -> User
                            └── plan_id -> Plan
-                           └── Subscription >── Plan
+                           └── Subscription >── Product
+                                  ├── Plan
                                   └── PaymentRecord
 ```
 
@@ -69,8 +71,10 @@ User
 
 ### `subscriptions`
 
-- 必须关联一个工作区和一个套餐。
-- 当前 MVP 使用唯一索引限制每个工作区一条订阅。
+- 必须关联一个工作区、一个产品和一个套餐。
+- 一个工作区可同时拥有不同产品的当前订阅，并可保留同一产品的多条历史订阅。
+- 条件唯一索引只限制当前状态：同一 `(workspace_id, product_id)` 最多一条 `manual_pending`、`active`、`past_due` 或 `paused` 订阅。
+- `canceled` 订阅保留为历史记录，不物理删除；取消后可为同一产品创建新订阅。
 - 状态：`manual_pending`、`active`、`past_due`、`paused`、`canceled`。
 - 保存当前计费周期起止时间和到期后取消标记。
 - 保存创建订阅的平台管理员。
@@ -81,12 +85,12 @@ User
 - 金额使用最小货币单位整数保存。
 - 状态：`pending`、`paid`、`failed`。
 - 保存手工付款方式、参考号、备注和录入管理员。
-- 删除订阅时付款历史保留，仅将关联订阅设为空。
+- 历史订阅不物理删除，因此付款与订阅的审计关系继续保留。
 
 ### 工作区兼容字段
 
 - 联系人和联系邮箱属于企业客户资料。
-- `plan_id` 记录当前套餐，并由订阅管理操作同步。
+- `plan_id` 和 `subscription_status` 仅记录兼容摘要，并由当前订阅管理操作同步；客户资料表单不能直接修改它们，多产品订阅真值来自 `subscriptions`。
 - `subscription_status` 默认 `not_configured`。
 - `app_instance_status` 默认 `not_provisioned`。
 - `subscription_status` 由真实订阅记录同步，实例状态仍为后续阶段占位。
@@ -108,7 +112,7 @@ User
 
 所有 `/api/admin/customers/**`、`/api/admin/plans/**`、`/api/admin/subscriptions/**` 和 `/api/admin/payments/**` 接口都复用同一个服务端平台管理员守卫。普通客户无法创建或修改客户、套餐、订阅及付款记录。
 
-客户账单接口先验证当前身份及目标工作区成员关系，再使用 `workspace_id` 同时过滤订阅和付款记录。普通客户没有账单写接口，也不能指定其他工作区读取数据。
+客户账单接口先验证当前身份及目标工作区成员关系，再使用 `workspace_id` 同时过滤订阅和付款记录，并区分当前订阅与历史订阅。普通客户没有账单写接口，也不能指定其他工作区读取数据。
 
 ## 平台管理员初始化
 

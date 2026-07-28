@@ -8,7 +8,6 @@ import {
 } from "@/lib/admin/management";
 import {
   appInstanceStatusLabels,
-  subscriptionStatusLabels,
   workspaceStatusLabels,
 } from "@/lib/admin/presentation";
 import { isWorkspaceStatus } from "@/lib/admin/validation";
@@ -69,8 +68,7 @@ export default async function CustomersPage({
               <thead>
                 <tr>
                   <th>企业客户</th>
-                  <th>当前套餐</th>
-                  <th>订阅状态</th>
+                  <th>当前订阅</th>
                   <th>应用状态</th>
                   <th>客户状态</th>
                   <th>操作</th>
@@ -85,9 +83,10 @@ export default async function CustomersPage({
                         {customer.contactName} · {customer.contactEmail}
                       </span>
                     </td>
-                    <td>{customer.planName ?? "未分配"}</td>
                     <td>
-                      {subscriptionStatusLabels[customer.subscriptionStatus]}
+                      {customer.currentSubscriptionCount
+                        ? `${customer.currentSubscriptionCount} 个产品`
+                        : "暂无当前订阅"}
                     </td>
                     <td>
                       {appInstanceStatusLabels[customer.appInstanceStatus]}

@@ -8,17 +8,282 @@ async function readMigrations() {
   const files = (await readdir(directory))
     .filter((file) => file.endsWith(".sql"))
     .sort();
-  return Promise.all(
-    files.map((file) => readFile(new URL(file, directory), "utf8")),
-  );
+  return Promise.all(files.map(async (file) => ({
+    file,
+    sql: await readFile(new URL(file, directory), "utf8"),
+  })));
 }
+
+function applyMigration(database, migration, transactional = false) {
+  const sql = migration.sql.replaceAll("--> statement-breakpoint", "");
+  database.exec(transactional ? `BEGIN;\n${sql}\nCOMMIT;` : sql);
+}
+
+test("multi-product migration backfills existing subscriptions without losing history links", async () => {
+  const migrations = await readMigrations();
+  const database = new DatabaseSync(":memory:");
+  database.exec("PRAGMA foreign_keys = ON");
+  const previousMigrations = migrations.filter(({ file }) => file < "0007_");
+  const productSubscriptionMigrations = migrations.filter(
+    ({ file }) => file >= "0007_",
+  );
+  assert.equal(productSubscriptionMigrations.length, 2);
+  for (const migration of previousMigrations) applyMigration(database, migration);
+
+  const now = Date.now();
+  database
+    .prepare(
+      `INSERT INTO users
+       (id, email, name, status, is_platform_admin, created_at, updated_at)
+       VALUES ('usr_upgrade', 'upgrade@example.com', 'Upgrade Owner', 'active', 0, ?, ?)`,
+    )
+    .run(now, now);
+  database
+    .prepare(
+      `INSERT INTO plans
+       (id, name, description, price_amount, currency, billing_interval,
+        status, features, limits, created_at, updated_at)
+       VALUES ('pln_upgrade', 'Upgrade Plan', '', 4900, 'CAD', 'month',
+        'active', '[]', '{}', ?, ?)`,
+    )
+    .run(now, now);
+  database
+    .prepare(
+      `INSERT INTO workspaces
+       (id, name, owner_id, status, plan_id, created_at, updated_at)
+       VALUES ('wsp_upgrade', 'Upgrade Workspace', 'usr_upgrade', 'active',
+        'pln_upgrade', ?, ?)`,
+    )
+    .run(now, now);
+  database
+    .prepare(
+      `INSERT INTO subscriptions
+       (id, workspace_id, plan_id, status, current_period_start,
+        current_period_end, cancel_at_period_end, created_by_user_id,
+        created_at, updated_at)
+       VALUES ('sub_upgrade', 'wsp_upgrade', 'pln_upgrade', 'active', ?, ?, 0,
+        'usr_upgrade', ?, ?)`,
+    )
+    .run(now, now + 1_000_000, now, now);
+  database
+    .prepare(
+      `INSERT INTO payment_records
+       (id, workspace_id, subscription_id, amount, currency, status,
+       payment_method, recorded_by_user_id, created_at, updated_at)
+       VALUES ('pay_upgrade', 'wsp_upgrade', 'sub_upgrade', 4900, 'CAD',
+        'pending', 'Migration test', 'usr_upgrade', ?, ?)`,
+    )
+    .run(now, now);
+  database
+    .prepare(
+      `INSERT INTO payment_records
+       (id, workspace_id, subscription_id, amount, currency, status,
+        payment_method, recorded_by_user_id, created_at, updated_at)
+       VALUES ('pay_upgrade_new', 'wsp_upgrade', 'sub_upgrade', 4900, 'CAD',
+        'pending', 'Migration test', 'usr_upgrade', ?, ?)`,
+    )
+    .run(now + 1, now + 1);
+  database
+    .prepare(
+      `INSERT INTO app_instances
+       (id, workspace_id, product_id, subscription_id, name, slug, access_url,
+        tenant_key, status, created_by_user_id, created_at, updated_at)
+       VALUES ('app_upgrade', 'wsp_upgrade', 'prd_restaurant_order_system',
+        'sub_upgrade', 'Upgrade App', 'upgrade-app', 'https://example.com',
+        'upgrade_app', 'active', 'usr_upgrade', ?, ?)`,
+    )
+    .run(now, now);
+  database
+    .prepare(
+      `INSERT INTO payment_checkout_sessions
+       (id, workspace_id, plan_id, payment_record_id, initiated_by_user_id,
+        provider, checkout_url, status, created_at, updated_at)
+       VALUES ('chk_upgrade_new', 'wsp_upgrade', 'pln_upgrade',
+        'pay_upgrade_new', 'usr_upgrade', 'stripe',
+        'https://checkout.stripe.com/test-new', 'creating', ?, ?)`,
+    )
+    .run(now + 1, now + 1);
+
+  database
+    .prepare(
+      `INSERT INTO payment_checkout_sessions
+       (id, workspace_id, plan_id, payment_record_id, initiated_by_user_id,
+        provider, provider_session_id, checkout_url, status, created_at, updated_at)
+       VALUES ('chk_upgrade', 'wsp_upgrade', 'pln_upgrade', 'pay_upgrade',
+        'usr_upgrade', 'stripe', 'cs_upgrade', 'https://checkout.stripe.com/test',
+        'open', ?, ?)`,
+    )
+    .run(now, now);
+  database
+    .prepare(
+      `INSERT INTO payment_webhook_events
+       (id, provider, provider_event_id, event_type, checkout_session_id,
+        payload_hash, processing_status, received_at)
+       VALUES ('evt_upgrade', 'stripe', 'evt_upgrade_provider',
+        'checkout.session.completed', 'chk_upgrade', 'hash', 'pending', ?)`,
+    )
+    .run(now);
+
+  for (const migration of productSubscriptionMigrations) {
+    applyMigration(database, migration, true);
+  }
+
+  const upgraded = database
+    .prepare(
+      `SELECT product_id FROM subscriptions WHERE id = 'sub_upgrade'`,
+    )
+    .get();
+  assert.equal(upgraded.product_id, "prd_restaurant_order_system");
+  assert.equal(
+    database
+      .prepare("SELECT subscription_id FROM payment_records WHERE id = 'pay_upgrade'")
+      .get().subscription_id,
+    "sub_upgrade",
+  );
+  assert.deepEqual(
+    database
+      .prepare(
+        `SELECT id, subscription_id, status
+         FROM payment_checkout_sessions
+         WHERE id IN ('chk_upgrade', 'chk_upgrade_new')
+         ORDER BY id`,
+      )
+      .all()
+      .map((row) => ({ ...row })),
+    [
+      {
+        id: "chk_upgrade",
+        subscription_id: "sub_upgrade",
+        status: "open",
+      },
+      {
+        id: "chk_upgrade_new",
+        subscription_id: "sub_upgrade",
+        status: "expired",
+      },
+    ],
+  );
+  assert.equal(
+    database
+      .prepare("SELECT status FROM payment_records WHERE id = 'pay_upgrade_new'")
+      .get().status,
+    "canceled",
+  );
+  assert.equal(
+    database
+      .prepare(
+        "SELECT subscription_id FROM payment_checkout_sessions WHERE id = 'chk_upgrade'",
+      )
+      .get().subscription_id,
+    "sub_upgrade",
+  );
+  assert.equal(
+    database
+      .prepare(
+        "SELECT checkout_session_id FROM payment_webhook_events WHERE id = 'evt_upgrade'",
+      )
+      .get().checkout_session_id,
+    "chk_upgrade",
+  );
+  assert.equal(
+    database
+      .prepare("SELECT subscription_id FROM app_instances WHERE id = 'app_upgrade'")
+      .get().subscription_id,
+    "sub_upgrade",
+  );
+
+  const indexes = database
+    .prepare("PRAGMA index_list('subscriptions')")
+    .all()
+    .map((row) => row.name);
+  assert.equal(indexes.includes("subscriptions_workspace_unique"), false);
+  assert.equal(
+    indexes.includes("subscriptions_workspace_product_current_unique"),
+    true,
+  );
+  assert.equal(
+    database
+      .prepare(
+        `SELECT COUNT(*) AS count FROM sqlite_master
+         WHERE type = 'trigger'
+           AND name LIKE 'subscriptions_product_required_%'`,
+      )
+      .get().count,
+    2,
+  );
+  assert.equal(
+    database
+      .prepare(
+        `SELECT COUNT(*) AS count FROM sqlite_master
+         WHERE type = 'trigger'
+           AND name LIKE 'payment_checkout_sessions_subscription_required_%'`,
+      )
+      .get().count,
+    2,
+  );
+  assert.equal(
+    database
+      .prepare("PRAGMA foreign_key_list('subscriptions')")
+      .all()
+      .find((foreignKey) => foreignKey.from === "product_id")?.on_delete,
+    "RESTRICT",
+  );
+  assert.equal(
+    database
+      .prepare("PRAGMA foreign_key_list('payment_checkout_sessions')")
+      .all()
+      .find((foreignKey) => foreignKey.from === "subscription_id")?.on_delete,
+    "CASCADE",
+  );
+  assert.throws(() =>
+    database
+      .prepare(
+        `INSERT INTO subscriptions
+         (id, workspace_id, product_id, plan_id, status, current_period_start,
+          current_period_end, cancel_at_period_end, created_by_user_id,
+          created_at, updated_at)
+         VALUES ('sub_null_product', 'wsp_upgrade', NULL, 'pln_upgrade',
+          'canceled', ?, ?, 0, 'usr_upgrade', ?, ?)`,
+      )
+      .run(now, now + 1_000_000, now, now),
+  );
+  assert.throws(() =>
+    database
+      .prepare(
+        `INSERT INTO payment_checkout_sessions
+         (id, workspace_id, subscription_id, plan_id, payment_record_id,
+          initiated_by_user_id, provider, status, created_at, updated_at)
+         VALUES ('chk_upgrade_duplicate', 'wsp_upgrade', 'sub_upgrade',
+          'pln_upgrade', 'pay_upgrade', 'usr_upgrade', 'stripe', 'creating',
+          ?, ?)`,
+      )
+      .run(now, now),
+  );
+  assert.throws(() =>
+    database
+      .prepare(
+        `INSERT INTO payment_checkout_sessions
+         (id, workspace_id, subscription_id, plan_id, payment_record_id,
+          initiated_by_user_id, provider, status, created_at, updated_at)
+         VALUES ('chk_null_subscription', 'wsp_upgrade', NULL, 'pln_upgrade',
+          'pay_upgrade', 'usr_upgrade', 'stripe', 'failed', ?, ?)`,
+      )
+      .run(now, now),
+  );
+  assert.equal(
+    database.prepare("PRAGMA foreign_keys").get().foreign_keys,
+    1,
+  );
+  assert.deepEqual(database.prepare("PRAGMA foreign_key_check").all(), []);
+  database.close();
+});
 
 test("launch data flow preserves workspace isolation and application integrity", async () => {
   const migrations = await readMigrations();
   const database = new DatabaseSync(":memory:");
   database.exec("PRAGMA foreign_keys = ON");
   for (const migration of migrations) {
-    database.exec(migration.replaceAll("--> statement-breakpoint", ""));
+    applyMigration(database, migration, true);
   }
 
   const now = Date.now();
@@ -133,6 +398,20 @@ test("launch data flow preserves workspace isolation and application integrity",
       status: "active",
     },
   );
+  database
+    .prepare(
+      `INSERT INTO products
+       (id, name, slug, description, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'active', ?, ?)`,
+    )
+    .run(
+      "prd_inventory",
+      "库存管理系统",
+      "inventory-system",
+      "Second product for subscription isolation",
+      now,
+      now,
+    );
 
   const workspace = database
     .prepare(
@@ -169,14 +448,15 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO subscriptions
-       (id, workspace_id, plan_id, status, current_period_start,
+       (id, workspace_id, product_id, plan_id, status, current_period_start,
         current_period_end, cancel_at_period_end, created_by_user_id,
         created_at, updated_at)
-       VALUES (?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
     )
     .run(
       "sub_one",
       "wsp_one",
+      "prd_restaurant_order_system",
       "pln_basic",
       now,
       now + 30 * 24 * 60 * 60 * 1000,
@@ -189,14 +469,15 @@ test("launch data flow preserves workspace isolation and application integrity",
     database
       .prepare(
         `INSERT INTO subscriptions
-         (id, workspace_id, plan_id, status, current_period_start,
+         (id, workspace_id, product_id, plan_id, status, current_period_start,
           current_period_end, cancel_at_period_end, created_by_user_id,
           created_at, updated_at)
-         VALUES (?, ?, ?, 'manual_pending', ?, ?, 0, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, 'manual_pending', ?, ?, 0, ?, ?, ?)`,
       )
       .run(
         "sub_duplicate",
         "wsp_one",
+        "prd_restaurant_order_system",
         "pln_basic",
         now,
         now + 60 * 24 * 60 * 60 * 1000,
@@ -205,6 +486,26 @@ test("launch data flow preserves workspace isolation and application integrity",
         now,
       );
   }, /UNIQUE constraint failed/);
+
+  database
+    .prepare(
+      `INSERT INTO subscriptions
+       (id, workspace_id, product_id, plan_id, status, current_period_start,
+        current_period_end, cancel_at_period_end, created_by_user_id,
+        created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
+    )
+    .run(
+      "sub_inventory",
+      "wsp_one",
+      "prd_inventory",
+      "pln_basic",
+      now,
+      now + 30 * 24 * 60 * 60 * 1000,
+      "usr_one",
+      now,
+      now,
+    );
 
   database
     .prepare(
@@ -261,13 +562,15 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO payment_checkout_sessions
-       (id, workspace_id, plan_id, payment_record_id, initiated_by_user_id,
-        provider, provider_session_id, checkout_url, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'stripe', ?, ?, 'open', ?, ?)`,
+       (id, workspace_id, subscription_id, plan_id, payment_record_id,
+        initiated_by_user_id, provider, provider_session_id, checkout_url,
+        status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'stripe', ?, ?, 'open', ?, ?)`,
     )
     .run(
       "chk_one",
       "wsp_one",
+      "sub_one",
       "pln_basic",
       "pay_one",
       "usr_one",
@@ -371,14 +674,15 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO subscriptions
-       (id, workspace_id, plan_id, status, current_period_start,
+       (id, workspace_id, product_id, plan_id, status, current_period_start,
         current_period_end, cancel_at_period_end, created_by_user_id,
         created_at, updated_at)
-       VALUES (?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
     )
     .run(
       "sub_two",
       "wsp_two",
+      "prd_restaurant_order_system",
       "pln_basic",
       now,
       now + 30 * 24 * 60 * 60 * 1000,
@@ -455,18 +759,89 @@ test("launch data flow preserves workspace isolation and application integrity",
       .run("prd_restaurant_order_system");
   }, /FOREIGN KEY constraint failed/);
 
-  database.prepare("DELETE FROM subscriptions WHERE id = ?").run("sub_one");
+  database
+    .prepare("UPDATE subscriptions SET status = 'canceled', updated_at = ? WHERE id = ?")
+    .run(now + 1, "sub_one");
+  database
+    .prepare(
+      `INSERT INTO subscriptions
+       (id, workspace_id, product_id, plan_id, status, current_period_start,
+        current_period_end, cancel_at_period_end, created_by_user_id,
+        created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'manual_pending', ?, ?, 0, ?, ?, ?)`,
+    )
+    .run(
+      "sub_restaurant_renewed",
+      "wsp_one",
+      "prd_restaurant_order_system",
+      "pln_basic",
+      now + 2,
+      now + 60 * 24 * 60 * 60 * 1000,
+      "usr_one",
+      now + 2,
+      now + 2,
+    );
+
+  assert.throws(() => {
+    database
+      .prepare("UPDATE subscriptions SET status = 'active' WHERE id = ?")
+      .run("sub_one");
+  }, /UNIQUE constraint failed/);
+  database
+    .prepare(
+      "UPDATE subscriptions SET status = 'canceled', updated_at = ? WHERE id = ?",
+    )
+    .run(now + 3, "sub_restaurant_renewed");
+  database
+    .prepare(
+      `INSERT INTO subscriptions
+       (id, workspace_id, product_id, plan_id, status, current_period_start,
+        current_period_end, cancel_at_period_end, created_by_user_id,
+        created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
+    )
+    .run(
+      "sub_restaurant_third",
+      "wsp_one",
+      "prd_restaurant_order_system",
+      "pln_basic",
+      now + 4,
+      now + 90 * 24 * 60 * 60 * 1000,
+      "usr_one",
+      now + 4,
+      now + 4,
+    );
+  assert.throws(() => {
+    database
+      .prepare("UPDATE subscriptions SET status = 'active' WHERE id = ?")
+      .run("sub_restaurant_renewed");
+  }, /UNIQUE constraint failed/);
+  assert.deepEqual(
+    database
+      .prepare(
+        `SELECT id, status FROM subscriptions
+         WHERE workspace_id = ? AND product_id = ?
+         ORDER BY created_at`,
+      )
+      .all("wsp_one", "prd_restaurant_order_system")
+      .map((row) => ({ ...row })),
+    [
+      { id: "sub_one", status: "canceled" },
+      { id: "sub_restaurant_renewed", status: "canceled" },
+      { id: "sub_restaurant_third", status: "active" },
+    ],
+  );
   assert.equal(
     database
       .prepare("SELECT subscription_id FROM payment_records WHERE id = ?")
       .get("pay_one").subscription_id,
-    null,
+    "sub_one",
   );
   assert.equal(
     database
       .prepare("SELECT subscription_id FROM app_instances WHERE id = ?")
       .get("app_one").subscription_id,
-    null,
+    "sub_one",
   );
   database.close();
 });

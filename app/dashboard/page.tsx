@@ -4,7 +4,6 @@ import {
   getDashboardAccount,
   listWorkspaceMembers,
 } from "@/lib/auth/account";
-import { getCustomer } from "@/lib/admin/management";
 import { getWorkspaceBillingSummary } from "@/lib/billing/management";
 import {
   formatDate,
@@ -23,30 +22,54 @@ import {
   canEnterCustomerApplication,
   getCustomerServiceNotice,
   hasRecordedAccessUrl,
+  selectCurrentProductSubscription,
 } from "@/lib/customer-dashboard/presentation";
 
 export const metadata: Metadata = { title: "客户控制台" };
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+interface DashboardPageProps {
+  searchParams?: Promise<{ product?: string }>;
+}
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const account = await getDashboardAccount();
-  const [members, customer, billing, instances] = await Promise.all([
+  const [members, billing, instances] = await Promise.all([
     listWorkspaceMembers(account.workspace.id),
-    getCustomer(account.workspace.id),
     getWorkspaceBillingSummary(account.workspace.id),
     listWorkspaceAppInstances(account.workspace.id),
   ]);
-  const subscription = billing.subscription;
-  const recentPaymentFailed = billing.recentPayment?.status === "failed";
+  const requestedProductId = (await searchParams)?.product ?? "";
+  const subscription = selectCurrentProductSubscription(
+    billing.currentSubscriptions,
+    requestedProductId,
+  );
+  const selectedProductId =
+    subscription?.productId ??
+    instances.find((instance) => instance.productId === requestedProductId)?.productId ??
+    instances[0]?.productId ??
+    null;
+  const recentPayment =
+    billing.payments.find(
+      (payment) => payment.subscriptionId === subscription?.id,
+    ) ?? null;
+  const recentPaymentFailed = recentPayment?.status === "failed";
   const primaryInstance =
-    instances.find((instance) => instance.status === "active") ??
-    instances.find((instance) => instance.status === "pending") ??
-    instances[0] ??
+    instances.find(
+      (instance) =>
+        instance.productId === selectedProductId && instance.status === "active",
+    ) ??
+    instances.find(
+      (instance) =>
+        instance.productId === selectedProductId && instance.status === "pending",
+    ) ??
+    instances.find((instance) => instance.productId === selectedProductId) ??
     null;
   const serviceNotice = getCustomerServiceNotice({
+    productName: subscription?.productName ?? primaryInstance?.productName ?? null,
     subscriptionStatus: subscription?.status ?? null,
     currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
-    latestPaymentStatus: billing.recentPayment?.status ?? null,
+    latestPaymentStatus: recentPayment?.status ?? null,
     appInstanceStatus: primaryInstance?.status ?? null,
     accessUrl: primaryInstance?.accessUrl ?? null,
   });
@@ -59,6 +82,8 @@ export default async function DashboardPage() {
       })
     : false;
   const hasPrimaryAccessUrl = hasRecordedAccessUrl(primaryInstance?.accessUrl);
+  const selectedProductName =
+    subscription?.productName ?? primaryInstance?.productName ?? "应用系统";
 
   return (
     <>
@@ -66,7 +91,7 @@ export default async function DashboardPage() {
         <div>
           <p className="page-kicker">企业工作区</p>
           <h1>欢迎回来，{account.user.name}</h1>
-          <p>查看 {account.workspace.name} 的套餐、账单和餐饮订单系统服务状态。</p>
+          <p>查看 {account.workspace.name} 的产品订阅、账单和应用服务状态。</p>
         </div>
         {account.user.isPlatformAdmin ? (
           <Link className="button button-dark button-small" href="/admin">
@@ -74,6 +99,22 @@ export default async function DashboardPage() {
           </Link>
         ) : null}
       </header>
+
+      {billing.currentSubscriptions.length > 1 ? (
+        <nav aria-label="订阅产品切换" className="header-actions">
+          {billing.currentSubscriptions.map((item) => (
+            <Link
+              className={`button button-small ${
+                item.productId === selectedProductId ? "button-dark" : "button-ghost"
+              }`}
+              href={`/dashboard?product=${encodeURIComponent(item.productId)}`}
+              key={item.productId}
+            >
+              {item.productName}
+            </Link>
+          ))}
+        </nav>
+      ) : null}
 
       <div className="readiness-grid">
         <article className="readiness-card">
@@ -83,17 +124,18 @@ export default async function DashboardPage() {
         </article>
         <article className="readiness-card">
           <small>当前套餐</small>
-          <strong>{subscription?.planName ?? customer?.plan?.name ?? "尚未分配"}</strong>
+          <strong>{subscription?.planName ?? "尚未分配"}</strong>
           <p>
             {subscription
               ? formatMoney(
                   subscription.planPriceAmount,
                   subscription.planCurrency,
                 )
-              : customer?.plan
-                ? formatMoney(customer.plan.priceAmount, customer.plan.currency)
-              : "由平台管理员维护"}
+              : "由平台管理员按产品维护"}
           </p>
+          {subscription ? (
+            <p>{subscription.productName} · 产品{subscription.productStatus === "active" ? "已启用" : "已停用"}</p>
+          ) : null}
         </article>
         <article className="readiness-card">
           <small>订阅状态</small>
@@ -111,18 +153,18 @@ export default async function DashboardPage() {
         <article className="readiness-card">
           <small>最近付款状态</small>
           <strong>
-            {billing.recentPayment
-              ? paymentStatusLabels[billing.recentPayment.status]
+            {recentPayment
+              ? paymentStatusLabels[recentPayment.status]
               : "暂无记录"}
           </strong>
           <p>
-            {billing.recentPayment
-              ? formatMoney(billing.recentPayment.amount, billing.recentPayment.currency)
+            {recentPayment
+              ? formatMoney(recentPayment.amount, recentPayment.currency)
               : "尚无付款记录"}
           </p>
         </article>
         <article className="readiness-card readiness-card-wide">
-          <small>餐饮订单系统</small>
+          <small>{selectedProductName}</small>
           <strong>
             {primaryInstance ? appInstanceStatusLabels[primaryInstance.status] : "尚未开通"}
           </strong>
@@ -134,7 +176,7 @@ export default async function DashboardPage() {
               rel="noreferrer"
               target="_blank"
             >
-              进入餐饮订单系统
+              进入{selectedProductName}
             </a>
           ) : null}
         </article>

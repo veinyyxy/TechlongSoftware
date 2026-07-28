@@ -61,21 +61,22 @@ export default async function SubscriptionDetailPage({
           </p>
         </div>
         <div className="header-actions">
-          <Link
-            className="button button-ghost button-small"
-            href={`/admin/subscriptions/${subscription.id}/edit`}
-          >
-            编辑订阅
-          </Link>
-          {subscription.status === "paused" ||
-          subscription.status === "canceled" ? (
+          {subscription.status !== "canceled" ? (
+            <Link
+              className="button button-ghost button-small"
+              href={`/admin/subscriptions/${subscription.id}/edit`}
+            >
+              编辑订阅
+            </Link>
+          ) : null}
+          {subscription.status === "paused" ? (
             <StatusActionButton
-              confirmMessage={`确认把“${subscription.workspaceName}”的订阅恢复为有效状态吗？`}
+              confirmMessage={`确认把“${subscription.workspaceName} · ${subscription.productName}”的订阅恢复为有效状态吗？`}
               endpoint={`/api/admin/subscriptions/${subscription.id}`}
               label="恢复订阅"
               nextStatus="active"
             />
-          ) : (
+          ) : subscription.status !== "canceled" ? (
             <StatusActionButton
               confirmMessage={`确认暂停“${subscription.workspaceName}”的订阅吗？客户侧会立即看到暂停提醒。`}
               endpoint={`/api/admin/subscriptions/${subscription.id}`}
@@ -83,7 +84,7 @@ export default async function SubscriptionDetailPage({
               nextStatus="paused"
               tone="danger"
             />
-          )}
+          ) : null}
           {subscription.status !== "canceled" ? (
             <StatusActionButton
               confirmMessage={`确认取消“${subscription.workspaceName}”的订阅吗？这是手动状态变更，不会联系支付平台。`}
@@ -101,6 +102,7 @@ export default async function SubscriptionDetailPage({
           <h2>订阅信息</h2>
           <dl className="detail-list">
             <div><dt>企业客户</dt><dd>{subscription.workspaceName}</dd></div>
+            <div><dt>订阅产品</dt><dd>{subscription.productName}</dd></div>
             <div><dt>套餐</dt><dd>{subscription.planName}</dd></div>
             <div>
               <dt>套餐价格</dt>
@@ -142,7 +144,9 @@ export default async function SubscriptionDetailPage({
             </div>
           </dl>
           <div className="notice notice-neutral">
-            此订阅由管理员配置。客户只能针对这条订阅发起 Stripe 付款；付款确认后只会生成待开通记录，不会自动开通应用实例。
+            {subscription.status === "canceled"
+              ? "这是历史订阅，将继续保留用于账单与审计。如需重新订阅同一产品，请创建一条新订阅。"
+              : "此订阅由管理员配置。客户只能针对这条订阅发起 Stripe 付款；付款确认后只会生成待开通记录，不会自动开通应用实例。"}
           </div>
         </section>
       </div>

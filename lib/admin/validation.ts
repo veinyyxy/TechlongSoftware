@@ -4,7 +4,6 @@ export interface CustomerInput {
   name: string;
   contactName: string;
   contactEmail: string;
-  planId: string | null;
 }
 
 export interface PlanInput {
@@ -44,7 +43,6 @@ export function validateCustomerInput(
   const name = asTrimmedString(input.name);
   const contactName = asTrimmedString(input.contactName);
   const contactEmail = asTrimmedString(input.contactEmail).toLowerCase();
-  const planIdValue = asTrimmedString(input.planId);
 
   if (name.length < 2 || name.length > 100) {
     addError(errors, "name", "企业名称需要为 2–100 个字符。");
@@ -58,10 +56,6 @@ export function validateCustomerInput(
   ) {
     addError(errors, "contactEmail", "请输入有效的联系人邮箱。");
   }
-  if (planIdValue.length > 80) {
-    addError(errors, "planId", "套餐标识不正确。");
-  }
-
   return {
     data:
       Object.keys(errors).length === 0
@@ -69,7 +63,6 @@ export function validateCustomerInput(
             name,
             contactName,
             contactEmail,
-            planId: planIdValue || null,
           }
         : null,
     errors,

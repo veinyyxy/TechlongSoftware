@@ -96,6 +96,7 @@ export async function createStripeCheckoutSession(
       headers: {
         authorization: `Bearer ${secretKey}`,
         "content-type": "application/x-www-form-urlencoded",
+        "idempotency-key": `checkout_${input.checkoutId}`,
       },
       body: body.toString(),
     });

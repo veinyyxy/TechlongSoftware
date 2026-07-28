@@ -7,6 +7,10 @@ import type {
   SubscriptionInput,
   SubscriptionStatus,
 } from "./validation";
+import {
+  isCurrentSubscriptionStatus,
+  isHistoricalSubscriptionStatus,
+} from "./validation";
 
 export type {
   PaymentStatus,
@@ -18,6 +22,10 @@ export interface SubscriptionView {
   workspaceId: string;
   workspaceName: string;
   workspaceStatus: "active" | "suspended" | "disabled";
+  productId: string;
+  productName: string;
+  productSlug: string;
+  productStatus: "active" | "inactive";
   planId: string;
   planName: string;
   planPriceAmount: number;
@@ -38,6 +46,8 @@ export interface PaymentRecordView {
   workspaceId: string;
   workspaceName: string;
   subscriptionId: string | null;
+  productId: string | null;
+  productName: string | null;
   planName: string | null;
   amount: number;
   currency: string;
@@ -56,7 +66,9 @@ export interface PaymentRecordView {
 }
 
 export interface WorkspaceBillingSummary {
-  subscription: SubscriptionView | null;
+  subscriptions: SubscriptionView[];
+  currentSubscriptions: SubscriptionView[];
+  historicalSubscriptions: SubscriptionView[];
   payments: PaymentRecordView[];
   recentPayment: PaymentRecordView | null;
 }
@@ -66,6 +78,10 @@ type SubscriptionRow = {
   workspace_id: string;
   workspace_name: string;
   workspace_status: "active" | "suspended" | "disabled";
+  product_id: string;
+  product_name: string;
+  product_slug: string;
+  product_status: "active" | "inactive";
   plan_id: string;
   plan_name: string;
   plan_price_amount: number;
@@ -86,6 +102,8 @@ type PaymentRow = {
   workspace_id: string;
   workspace_name: string;
   subscription_id: string | null;
+  product_id: string | null;
+  product_name: string | null;
   plan_name: string | null;
   amount: number;
   currency: string;
@@ -109,6 +127,10 @@ function toSubscriptionView(row: SubscriptionRow): SubscriptionView {
     workspaceId: row.workspace_id,
     workspaceName: row.workspace_name,
     workspaceStatus: row.workspace_status,
+    productId: row.product_id,
+    productName: row.product_name,
+    productSlug: row.product_slug,
+    productStatus: row.product_status,
     planId: row.plan_id,
     planName: row.plan_name,
     planPriceAmount: Number(row.plan_price_amount),
@@ -131,6 +153,8 @@ function toPaymentView(row: PaymentRow): PaymentRecordView {
     workspaceId: row.workspace_id,
     workspaceName: row.workspace_name,
     subscriptionId: row.subscription_id,
+    productId: row.product_id,
+    productName: row.product_name,
     planName: row.plan_name,
     amount: Number(row.amount),
     currency: row.currency,
@@ -152,7 +176,9 @@ function toPaymentView(row: PaymentRow): PaymentRecordView {
 const subscriptionSelect = `
   SELECT
     s.id, s.workspace_id, w.name AS workspace_name,
-    w.status AS workspace_status, s.plan_id, p.name AS plan_name,
+    w.status AS workspace_status, s.product_id, product.name AS product_name,
+    product.slug AS product_slug, product.status AS product_status,
+    s.plan_id, p.name AS plan_name,
     p.price_amount AS plan_price_amount, p.currency AS plan_currency,
     p.billing_interval AS plan_billing_interval, s.status,
     s.current_period_start, s.current_period_end, s.cancel_at_period_end,
@@ -160,13 +186,15 @@ const subscriptionSelect = `
     s.created_at, s.updated_at
   FROM subscriptions s
   INNER JOIN workspaces w ON w.id = s.workspace_id
+  INNER JOIN products product ON product.id = s.product_id
   INNER JOIN plans p ON p.id = s.plan_id
   INNER JOIN users u ON u.id = s.created_by_user_id`;
 
 const paymentSelect = `
   SELECT
     pr.id, pr.workspace_id, w.name AS workspace_name,
-    pr.subscription_id, p.name AS plan_name, pr.amount, pr.currency,
+    pr.subscription_id, product.id AS product_id,
+    product.name AS product_name, p.name AS plan_name, pr.amount, pr.currency,
     pr.status, pr.paid_at, pr.payment_method, pr.provider,
     pr.provider_payment_id, pr.failure_reason, pr.reference, pr.note,
     pr.recorded_by_user_id, u.name AS recorded_by_name,
@@ -174,6 +202,7 @@ const paymentSelect = `
   FROM payment_records pr
   INNER JOIN workspaces w ON w.id = pr.workspace_id
   LEFT JOIN subscriptions s ON s.id = pr.subscription_id
+  LEFT JOIN products product ON product.id = s.product_id
   LEFT JOIN plans p ON p.id = s.plan_id
   INNER JOIN users u ON u.id = pr.recorded_by_user_id`;
 
@@ -189,9 +218,9 @@ export async function listSubscriptions(input?: {
   if (query) {
     const pattern = `%${query}%`;
     clauses.push(
-      "(w.name LIKE ? OR w.contact_email LIKE ? OR p.name LIKE ?)",
+      "(w.name LIKE ? OR w.contact_email LIKE ? OR p.name LIKE ? OR product.name LIKE ?)",
     );
-    bindings.push(pattern, pattern, pattern);
+    bindings.push(pattern, pattern, pattern, pattern);
   }
   if (status) {
     clauses.push("s.status = ?");
@@ -222,12 +251,33 @@ export async function getSubscription(
   return row ? toSubscriptionView(row) : null;
 }
 
-export async function getWorkspaceSubscription(
+export async function listWorkspaceSubscriptions(
   workspaceId: string,
+): Promise<SubscriptionView[]> {
+  const result = await getD1()
+    .prepare(
+      `${subscriptionSelect}
+       WHERE s.workspace_id = ?
+       ORDER BY s.created_at DESC`,
+    )
+    .bind(workspaceId)
+    .all<SubscriptionRow>();
+  return result.results.map(toSubscriptionView);
+}
+
+export async function getWorkspaceProductCurrentSubscription(
+  workspaceId: string,
+  productId: string,
 ): Promise<SubscriptionView | null> {
   const row = await getD1()
-    .prepare(`${subscriptionSelect} WHERE s.workspace_id = ? LIMIT 1`)
-    .bind(workspaceId)
+    .prepare(
+      `${subscriptionSelect}
+       WHERE s.workspace_id = ? AND s.product_id = ?
+         AND s.status IN ('manual_pending', 'active', 'past_due', 'paused')
+       ORDER BY s.created_at DESC
+       LIMIT 1`,
+    )
+    .bind(workspaceId, productId)
     .first<SubscriptionRow>();
   return row ? toSubscriptionView(row) : null;
 }
@@ -266,22 +316,127 @@ async function assertPlanAssignable(
   }
 }
 
+async function assertProductAssignable(
+  productId: string,
+  currentProductId?: string,
+): Promise<void> {
+  const product = await getD1()
+    .prepare("SELECT id, status FROM products WHERE id = ? LIMIT 1")
+    .bind(productId)
+    .first<{ id: string; status: "active" | "inactive" }>();
+  if (!product) {
+    throw new ManagementError("PRODUCT_NOT_FOUND", "所选产品不存在。", 400);
+  }
+  if (product.status !== "active" && product.id !== currentProductId) {
+    throw new ManagementError(
+      "PRODUCT_INACTIVE",
+      "不能为订阅选择已停用的产品。",
+      400,
+    );
+  }
+}
+
+async function assertNoOtherCurrentSubscription(
+  workspaceId: string,
+  productId: string,
+  excludeSubscriptionId?: string,
+): Promise<void> {
+  const statement = getD1().prepare(
+    `SELECT id
+     FROM subscriptions
+     WHERE workspace_id = ? AND product_id = ?
+       AND status IN ('manual_pending', 'active', 'past_due', 'paused')
+       ${excludeSubscriptionId ? "AND id <> ?" : ""}
+     LIMIT 1`,
+  );
+  const row = await (
+    excludeSubscriptionId
+      ? statement.bind(workspaceId, productId, excludeSubscriptionId)
+      : statement.bind(workspaceId, productId)
+  ).first<{ id: string }>();
+  if (row) {
+    throw new ManagementError(
+      "CURRENT_SUBSCRIPTION_EXISTS",
+      "该客户的这个产品已经有当前订阅，请先处理现有订阅。",
+      409,
+    );
+  }
+}
+
+export function syncWorkspaceSubscriptionSummaryStatement(
+  workspaceId: string,
+  now: number,
+) {
+  return getD1()
+    .prepare(
+      `UPDATE workspaces
+       SET plan_id = (
+         SELECT plan_id FROM subscriptions
+         WHERE workspace_id = ?
+           AND status IN ('manual_pending', 'active', 'past_due', 'paused')
+         ORDER BY CASE status
+           WHEN 'active' THEN 0
+           WHEN 'manual_pending' THEN 1
+           WHEN 'past_due' THEN 2
+           WHEN 'paused' THEN 3
+           ELSE 4
+         END, created_at DESC
+         LIMIT 1
+       ),
+       subscription_status = COALESCE((
+         SELECT status FROM subscriptions
+         WHERE workspace_id = ?
+           AND status IN ('manual_pending', 'active', 'past_due', 'paused')
+         ORDER BY CASE status
+           WHEN 'active' THEN 0
+           WHEN 'manual_pending' THEN 1
+           WHEN 'past_due' THEN 2
+           WHEN 'paused' THEN 3
+           ELSE 4
+         END, created_at DESC
+         LIMIT 1
+       ), 'not_configured'),
+       updated_at = ?
+       WHERE id = ?`,
+    )
+    .bind(workspaceId, workspaceId, now, workspaceId);
+}
+
+function cancelOpenCheckoutStatements(
+  subscriptionId: string,
+  now: number,
+): D1PreparedStatement[] {
+  const db = getD1();
+  return [
+    db
+      .prepare(
+        `UPDATE payment_checkout_sessions
+         SET status = 'canceled', updated_at = ?
+         WHERE subscription_id = ? AND status IN ('creating', 'open')`,
+      )
+      .bind(now, subscriptionId),
+    db
+      .prepare(
+        `UPDATE payment_records
+         SET status = 'canceled',
+             failure_reason = '关联订阅已由管理员取消。',
+             updated_at = ?
+         WHERE subscription_id = ? AND provider = 'stripe' AND status = 'pending'`,
+      )
+      .bind(now, subscriptionId),
+  ];
+}
+
 export async function createSubscription(
   input: SubscriptionInput,
   createdByUserId: string,
 ): Promise<SubscriptionView> {
   await Promise.all([
     assertWorkspaceExists(input.workspaceId),
+    assertProductAssignable(input.productId),
     assertPlanAssignable(input.planId),
+    assertNoOtherCurrentSubscription(input.workspaceId, input.productId),
   ]);
-
-  if (await getWorkspaceSubscription(input.workspaceId)) {
-    throw new ManagementError(
-      "SUBSCRIPTION_EXISTS",
-      "该客户已经有订阅，请编辑现有订阅。",
-      409,
-    );
-  }
 
   const id = randomId("sub");
   const now = Date.now();
@@ -292,14 +447,15 @@ export async function createSubscription(
       db
         .prepare(
           `INSERT INTO subscriptions (
-            id, workspace_id, plan_id, status, current_period_start,
+            id, workspace_id, product_id, plan_id, status, current_period_start,
             current_period_end, cancel_at_period_end, created_by_user_id,
             created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
           input.workspaceId,
+          input.productId,
           input.planId,
           input.status,
           input.currentPeriodStart,
@@ -309,18 +465,13 @@ export async function createSubscription(
           now,
           now,
         ),
-      db
-        .prepare(
-          `UPDATE workspaces
-           SET plan_id = ?, subscription_status = ?, updated_at = ?
-           WHERE id = ?`,
-        )
-        .bind(input.planId, input.status, now, input.workspaceId),
+      syncWorkspaceSubscriptionSummaryStatement(input.workspaceId, now),
     ]);
-  } catch {
+  } catch (error) {
+    if (error instanceof ManagementError) throw error;
     throw new ManagementError(
       "SUBSCRIPTION_CREATE_FAILED",
-      "订阅创建失败，该客户可能已经有订阅。",
+      "订阅创建失败，该客户的这个产品可能已经有当前订阅。",
       409,
     );
   }
@@ -348,6 +499,13 @@ export async function updateSubscription(
       404,
     );
   }
+  if (existing.status === "canceled") {
+    throw new ManagementError(
+      "HISTORICAL_SUBSCRIPTION_IMMUTABLE",
+      "已取消订阅属于历史记录，不能修改；请创建一条新订阅。",
+      409,
+    );
+  }
   if (input.workspaceId !== existing.workspaceId) {
     throw new ManagementError(
       "WORKSPACE_CHANGE_NOT_ALLOWED",
@@ -355,34 +513,58 @@ export async function updateSubscription(
       400,
     );
   }
-  await assertPlanAssignable(input.planId, existing.planId);
+  if (input.productId !== existing.productId) {
+    throw new ManagementError(
+      "PRODUCT_CHANGE_NOT_ALLOWED",
+      "不能修改订阅所属产品；请保留历史记录并创建新订阅。",
+      400,
+    );
+  }
+  await Promise.all([
+    assertProductAssignable(input.productId, existing.productId),
+    assertPlanAssignable(input.planId, existing.planId),
+    isCurrentSubscriptionStatus(input.status)
+      ? assertNoOtherCurrentSubscription(
+          existing.workspaceId,
+          existing.productId,
+          subscriptionId,
+        )
+      : Promise.resolve(),
+  ]);
 
   const now = Date.now();
-  await getD1().batch([
-    getD1()
-      .prepare(
-        `UPDATE subscriptions
-         SET plan_id = ?, status = ?, current_period_start = ?,
-           current_period_end = ?, cancel_at_period_end = ?, updated_at = ?
-         WHERE id = ?`,
-      )
-      .bind(
-        input.planId,
-        input.status,
-        input.currentPeriodStart,
-        input.currentPeriodEnd,
-        input.cancelAtPeriodEnd ? 1 : 0,
-        now,
-        subscriptionId,
-      ),
-    getD1()
-      .prepare(
-        `UPDATE workspaces
-         SET plan_id = ?, subscription_status = ?, updated_at = ?
-         WHERE id = ?`,
-      )
-      .bind(input.planId, input.status, now, existing.workspaceId),
-  ]);
+  try {
+    const statements = [
+      getD1()
+        .prepare(
+          `UPDATE subscriptions
+           SET plan_id = ?, status = ?, current_period_start = ?,
+             current_period_end = ?, cancel_at_period_end = ?, updated_at = ?
+           WHERE id = ?`,
+        )
+        .bind(
+          input.planId,
+          input.status,
+          input.currentPeriodStart,
+          input.currentPeriodEnd,
+          input.cancelAtPeriodEnd ? 1 : 0,
+          now,
+          subscriptionId,
+        ),
+      syncWorkspaceSubscriptionSummaryStatement(existing.workspaceId, now),
+    ];
+    if (input.status === "canceled") {
+      statements.push(...cancelOpenCheckoutStatements(subscriptionId, now));
+    }
+    await getD1().batch(statements);
+  } catch (error) {
+    if (error instanceof ManagementError) throw error;
+    throw new ManagementError(
+      "CURRENT_SUBSCRIPTION_EXISTS",
+      "该客户的这个产品已经有当前订阅，不能恢复或重复启用历史订阅。",
+      409,
+    );
+  }
 
   const subscription = await getSubscription(subscriptionId);
   if (!subscription) {
@@ -408,17 +590,42 @@ export async function updateSubscriptionStatus(
     );
   }
 
+  if (existing.status === "canceled") {
+    if (status === "canceled") return existing;
+    throw new ManagementError(
+      "HISTORICAL_SUBSCRIPTION_IMMUTABLE",
+      "已取消订阅属于历史记录，不能恢复；请创建一条新订阅。",
+      409,
+    );
+  }
+
+  if (isCurrentSubscriptionStatus(status)) {
+    await assertNoOtherCurrentSubscription(
+      existing.workspaceId,
+      existing.productId,
+      subscriptionId,
+    );
+  }
   const now = Date.now();
-  await getD1().batch([
-    getD1()
-      .prepare("UPDATE subscriptions SET status = ?, updated_at = ? WHERE id = ?")
-      .bind(status, now, subscriptionId),
-    getD1()
-      .prepare(
-        "UPDATE workspaces SET subscription_status = ?, updated_at = ? WHERE id = ?",
-      )
-      .bind(status, now, existing.workspaceId),
-  ]);
+  try {
+    const statements = [
+      getD1()
+        .prepare("UPDATE subscriptions SET status = ?, updated_at = ? WHERE id = ?")
+        .bind(status, now, subscriptionId),
+      syncWorkspaceSubscriptionSummaryStatement(existing.workspaceId, now),
+    ];
+    if (status === "canceled") {
+      statements.push(...cancelOpenCheckoutStatements(subscriptionId, now));
+    }
+    await getD1().batch(statements);
+  } catch (error) {
+    if (error instanceof ManagementError) throw error;
+    throw new ManagementError(
+      "CURRENT_SUBSCRIPTION_EXISTS",
+      "该客户的这个产品已经有当前订阅，不能恢复这条历史订阅。",
+      409,
+    );
+  }
 
   const subscription = await getSubscription(subscriptionId);
   if (!subscription) {
@@ -543,12 +750,20 @@ export async function createPaymentRecord(
 export async function getWorkspaceBillingSummary(
   workspaceId: string,
 ): Promise<WorkspaceBillingSummary> {
-  const [subscription, payments] = await Promise.all([
-    getWorkspaceSubscription(workspaceId),
+  const [subscriptions, payments] = await Promise.all([
+    listWorkspaceSubscriptions(workspaceId),
     listPaymentRecords({ workspaceId }),
   ]);
+  const currentSubscriptions = subscriptions.filter((subscription) =>
+    isCurrentSubscriptionStatus(subscription.status),
+  );
+  const historicalSubscriptions = subscriptions.filter((subscription) =>
+    isHistoricalSubscriptionStatus(subscription.status),
+  );
   return {
-    subscription,
+    subscriptions,
+    currentSubscriptions,
+    historicalSubscriptions,
     payments,
     recentPayment: payments[0] ?? null,
   };

@@ -31,7 +31,12 @@ test("stage 4 migrations contain workspace-scoped products and application insta
   assert.match(sql, /`workspace_id` text NOT NULL/);
   assert.match(sql, /`plan_id` text NOT NULL/);
   assert.match(sql, /`cancel_at_period_end` integer DEFAULT false NOT NULL/);
-  assert.match(sql, /subscriptions_workspace_unique/);
+  assert.match(sql, /DROP INDEX `subscriptions_workspace_unique`/);
+  assert.match(sql, /ALTER TABLE `subscriptions` ADD `product_id` text REFERENCES products\(id\) ON DELETE RESTRICT/);
+  assert.match(sql, /__subscription_product_migration_guard/);
+  assert.match(sql, /subscriptions_workspace_product_current_unique/);
+  assert.match(sql, /WHERE "subscriptions"\."status" in \('manual_pending', 'active', 'past_due', 'paused'\)/);
+  assert.match(sql, /subscriptions_product_required_insert/);
   assert.match(sql, /CREATE TABLE `payment_records`/);
   assert.match(sql, /`amount` integer NOT NULL/);
   assert.match(sql, /`subscription_id` text/);
@@ -49,6 +54,10 @@ test("stage 4 migrations contain workspace-scoped products and application insta
   assert.match(sql, /`provisioning_source` text DEFAULT 'manual' NOT NULL/);
   assert.match(sql, /app_instances_workspace_product_unique/);
   assert.match(sql, /CREATE TABLE `payment_checkout_sessions`/);
+  assert.match(sql, /ADD `subscription_id` text REFERENCES subscriptions\(id\) ON DELETE CASCADE/);
+  assert.match(sql, /payment_checkout_sessions_subscription_inflight_unique/);
+  assert.match(sql, /__checkout_subscription_migration_guard/);
+  assert.match(sql, /payment_checkout_sessions_subscription_required_insert/);
   assert.match(sql, /CREATE TABLE `payment_webhook_events`/);
   assert.match(sql, /payment_webhook_events_provider_event_unique/);
   assert.match(sql, /ADD `provider` text DEFAULT 'manual' NOT NULL/);

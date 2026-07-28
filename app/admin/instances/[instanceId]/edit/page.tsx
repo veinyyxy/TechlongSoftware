@@ -67,6 +67,8 @@ export default async function EditInstancePage({ params }: EditInstancePageProps
           subscriptions={subscriptions.map((subscription) => ({
             id: subscription.id,
             workspaceId: subscription.workspaceId,
+            productId: subscription.productId,
+            productName: subscription.productName,
             planName: subscription.planName,
             status: subscription.status,
           }))}

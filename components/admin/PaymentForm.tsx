@@ -12,6 +12,7 @@ interface SubscriptionOption {
   id: string;
   workspaceId: string;
   workspaceName: string;
+  productName: string;
   planName: string;
 }
 
@@ -134,7 +135,7 @@ export function PaymentForm({
             <option value="">不关联订阅</option>
             {availableSubscriptions.map((subscription) => (
               <option key={subscription.id} value={subscription.id}>
-                {subscription.planName}
+                {subscription.productName} · {subscription.planName}
               </option>
             ))}
           </select>

@@ -37,7 +37,7 @@ export default async function SubscriptionsPage({
         <div>
           <p className="page-kicker">MANUAL SUBSCRIPTIONS</p>
           <h1>订阅管理</h1>
-          <p>由平台管理员手动维护客户套餐、周期和订阅状态。</p>
+          <p>按企业客户与产品维护当前订阅，并保留取消后的历史记录。</p>
         </div>
         <Link
           className="button button-dark button-small"
@@ -50,7 +50,7 @@ export default async function SubscriptionsPage({
       <AdminSearchFilters
         action="/admin/subscriptions"
         query={query}
-        queryPlaceholder="客户、邮箱或套餐"
+        queryPlaceholder="客户、邮箱、产品或套餐"
         status={status}
         statusOptions={[
           { value: "manual_pending", label: "人工待确认" },
@@ -74,6 +74,7 @@ export default async function SubscriptionsPage({
               <thead>
                 <tr>
                   <th>客户</th>
+                  <th>产品</th>
                   <th>套餐</th>
                   <th>状态</th>
                   <th>当前周期</th>
@@ -87,6 +88,10 @@ export default async function SubscriptionsPage({
                     <td>
                       <strong>{subscription.workspaceName}</strong>
                       <span>{subscription.workspaceStatus}</span>
+                    </td>
+                    <td>
+                      <strong>{subscription.productName}</strong>
+                      <span>{subscription.productSlug}</span>
                     </td>
                     <td>
                       <strong>{subscription.planName}</strong>

@@ -36,6 +36,21 @@ export default async function EditSubscriptionPage({
     );
   }
 
+  if (subscription.status === "canceled") {
+    return (
+      <section className="empty-state standalone-empty">
+        <strong>历史订阅不能编辑</strong>
+        <p>已取消订阅会原样保留用于账单和审计；如需重新订阅，请创建一条新记录。</p>
+        <Link
+          className="button button-dark button-small"
+          href={`/admin/subscriptions/${subscription.id}`}
+        >
+          返回订阅详情
+        </Link>
+      </section>
+    );
+  }
+
   const availablePlans = plans.filter(
     (plan) => plan.status === "active" || plan.id === subscription.planId,
   );
@@ -53,6 +68,8 @@ export default async function EditSubscriptionPage({
           initial={{
             workspaceId: subscription.workspaceId,
             workspaceName: subscription.workspaceName,
+            productId: subscription.productId,
+            productName: subscription.productName,
             planId: subscription.planId,
             status: subscription.status,
             currentPeriodStart: subscription.currentPeriodStart,
@@ -61,6 +78,7 @@ export default async function EditSubscriptionPage({
           }}
           mode="edit"
           plans={availablePlans.map(({ id, name }) => ({ id, name }))}
+          products={[]}
           subscriptionId={subscription.id}
         />
       </section>

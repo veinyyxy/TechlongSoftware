@@ -28,29 +28,33 @@ export default async function AppsPage() {
       <header className="page-header">
         <p className="page-kicker">MY APPLICATIONS</p>
         <h1>我的应用</h1>
-        <p>查看餐饮订单系统的买家端入口、卖家端 APK 和服务状态。</p>
+        <p>查看已订阅产品的买家端入口、卖家端 APK 和服务状态。</p>
       </header>
 
       {instances.length ? (
         <section className="app-instance-grid">
           {instances.map((instance) => {
+            const subscription =
+              billing.currentSubscriptions.find(
+                (item) => item.productId === instance.productId,
+              ) ??
+              billing.subscriptions.find(
+                (item) => item.id === instance.subscriptionId,
+              ) ??
+              null;
             const canEnter =
               canEnterCustomerApplication({
-                subscriptionStatus: instance.subscriptionStatus,
-                currentPeriodEnd:
-                  billing.subscription?.id === instance.subscriptionId
-                    ? billing.subscription.currentPeriodEnd
-                    : null,
+                subscriptionStatus:
+                  subscription?.status ?? instance.subscriptionStatus,
+                currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
                 appInstanceStatus: instance.status,
                 accessUrl: instance.accessUrl,
               });
             const canDownloadSellerApk =
               canEnterCustomerApplication({
-                subscriptionStatus: instance.subscriptionStatus,
-                currentPeriodEnd:
-                  billing.subscription?.id === instance.subscriptionId
-                    ? billing.subscription.currentPeriodEnd
-                    : null,
+                subscriptionStatus:
+                  subscription?.status ?? instance.subscriptionStatus,
+                currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
                 appInstanceStatus: instance.status,
                 accessUrl: instance.sellerApkUrl,
               });
@@ -66,11 +70,10 @@ export default async function AppsPage() {
                   </span>
                 </div>
                 <p>{getCustomerApplicationMessage({
-                  subscriptionStatus: instance.subscriptionStatus,
-                  currentPeriodEnd:
-                    billing.subscription?.id === instance.subscriptionId
-                      ? billing.subscription.currentPeriodEnd
-                      : null,
+                  productName: instance.productName,
+                  subscriptionStatus:
+                    subscription?.status ?? instance.subscriptionStatus,
+                  currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
                   appInstanceStatus: instance.status,
                   accessUrl: instance.accessUrl,
                 })}</p>
@@ -106,7 +109,7 @@ export default async function AppsPage() {
       ) : (
         <section className="empty-state standalone-empty">
           <strong>尚未登记应用实例</strong>
-          <p>平台管理员开通餐饮订单系统后，入口和服务状态会显示在这里。</p>
+          <p>平台管理员开通已订阅产品后，入口和服务状态会显示在这里。</p>
         </section>
       )}
 

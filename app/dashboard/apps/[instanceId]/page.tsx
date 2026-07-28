@@ -29,27 +29,31 @@ export default async function CustomerAppDetailPage({ params }: CustomerAppDetai
   const instance = await getAppInstance(instanceId);
   if (!instance || instance.workspaceId !== account.workspace.id) notFound();
   const billing = await getWorkspaceBillingSummary(account.workspace.id);
-  const currentPeriodEnd =
-    billing.subscription?.id === instance.subscriptionId
-      ? billing.subscription.currentPeriodEnd
-      : null;
+  const subscription =
+    billing.currentSubscriptions.find(
+      (item) => item.productId === instance.productId,
+    ) ??
+    billing.subscriptions.find((item) => item.id === instance.subscriptionId) ??
+    null;
+  const currentPeriodEnd = subscription?.currentPeriodEnd ?? null;
 
   const canEnter =
     canEnterCustomerApplication({
-      subscriptionStatus: instance.subscriptionStatus,
+      subscriptionStatus: subscription?.status ?? instance.subscriptionStatus,
       currentPeriodEnd,
       appInstanceStatus: instance.status,
       accessUrl: instance.accessUrl,
     });
   const canDownloadSellerApk =
     canEnterCustomerApplication({
-      subscriptionStatus: instance.subscriptionStatus,
+      subscriptionStatus: subscription?.status ?? instance.subscriptionStatus,
       currentPeriodEnd,
       appInstanceStatus: instance.status,
       accessUrl: instance.sellerApkUrl,
     });
   const statusMessage = getCustomerApplicationMessage({
-    subscriptionStatus: instance.subscriptionStatus,
+    productName: instance.productName,
+    subscriptionStatus: subscription?.status ?? instance.subscriptionStatus,
     currentPeriodEnd,
     appInstanceStatus: instance.status,
     accessUrl: instance.accessUrl,
@@ -97,7 +101,7 @@ export default async function CustomerAppDetailPage({ params }: CustomerAppDetai
           <h2>服务状态</h2>
           <dl className="detail-list">
             <div><dt>实例状态</dt><dd>{appInstanceStatusLabels[instance.status]}</dd></div>
-            <div><dt>订阅状态</dt><dd>{instance.subscriptionStatus ? subscriptionStatusLabels[instance.subscriptionStatus] : "未关联"}</dd></div>
+            <div><dt>订阅状态</dt><dd>{subscription ? subscriptionStatusLabels[subscription.status] : "未关联"}</dd></div>
             <div><dt>已开通时间</dt><dd>{instance.provisionedAt ? `${formatDate(instance.provisionedAt)} UTC` : "尚未开通"}</dd></div>
             <div><dt>最后更新</dt><dd>{formatDate(instance.updatedAt)} UTC</dd></div>
           </dl>

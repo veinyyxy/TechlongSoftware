@@ -252,6 +252,7 @@ async function assertProductAssignable(
 
 async function assertSubscriptionForInstance(
   workspaceId: string,
+  productId: string,
   subscriptionId: string | null,
   status: AppInstanceStatus,
 ): Promise<void> {
@@ -274,6 +275,13 @@ async function assertSubscriptionForInstance(
     throw new ManagementError(
       "SUBSCRIPTION_WORKSPACE_MISMATCH",
       "所选订阅不属于当前企业客户。",
+      400,
+    );
+  }
+  if (subscription.productId !== productId) {
+    throw new ManagementError(
+      "SUBSCRIPTION_PRODUCT_MISMATCH",
+      "所选订阅不属于当前应用产品。",
       400,
     );
   }
@@ -311,9 +319,10 @@ export function syncWorkspaceAppInstanceStatusStatement(
     .bind(workspaceId, now, workspaceId);
 }
 
-export async function preparePendingRestaurantAppInstance(input: {
+export async function preparePendingAppInstance(input: {
   workspaceId: string;
   workspaceName: string;
+  productId: string;
   subscriptionId: string;
   createdByUserId: string;
   now: number;
@@ -321,30 +330,67 @@ export async function preparePendingRestaurantAppInstance(input: {
   const db = getD1();
   const product = await db
     .prepare(
-      `SELECT id
+      `SELECT id, name
        FROM products
-       WHERE slug = 'restaurant-order-system' AND status = 'active'
+       WHERE id = ? AND status = 'active'
        LIMIT 1`,
     )
-    .first<{ id: string }>();
+    .bind(input.productId)
+    .first<{ id: string; name: string }>();
   if (!product) {
     throw new ManagementError(
-      "RESTAURANT_PRODUCT_NOT_FOUND",
-      "未找到启用中的餐饮订单系统产品，无法创建待开通实例。",
+      "PRODUCT_NOT_FOUND",
+      "未找到订阅对应的启用产品，无法准备待开通实例。",
       500,
     );
   }
 
   const existing = await db
     .prepare(
-      `SELECT id
+      `SELECT id, subscription_id, status
        FROM app_instances
        WHERE workspace_id = ? AND product_id = ?
        LIMIT 1`,
     )
     .bind(input.workspaceId, product.id)
-    .first<{ id: string }>();
-  if (existing) return null;
+    .first<{
+      id: string;
+      subscription_id: string | null;
+      status: AppInstanceStatus;
+  }>();
+  if (existing) {
+    if (existing.subscription_id === input.subscriptionId) {
+      return null;
+    }
+    return db
+      .prepare(
+        `UPDATE app_instances
+         SET subscription_id = ?, status = 'pending', provisioned_at = NULL,
+             suspended_at = NULL, updated_at = ?
+         WHERE id = ?
+           AND (
+             subscription_id IS NULL
+             OR subscription_id <> ?
+             OR status <> 'active'
+           )
+           AND EXISTS (
+             SELECT 1 FROM subscriptions subscription
+             WHERE subscription.id = ?
+               AND subscription.workspace_id = ?
+               AND subscription.product_id = ?
+               AND subscription.status = 'active'
+           )`,
+      )
+      .bind(
+        input.subscriptionId,
+        input.now,
+        existing.id,
+        input.subscriptionId,
+        input.subscriptionId,
+        input.workspaceId,
+        product.id,
+      );
+  }
 
   const id = randomId("app");
   const slug = `pending-${id.replaceAll("_", "-")}`;
@@ -355,20 +401,31 @@ export async function preparePendingRestaurantAppInstance(input: {
         id, workspace_id, product_id, subscription_id, name, slug, domain,
         access_url, seller_apk_url, tenant_key, provisioning_source, status, provisioned_at,
         suspended_at, created_by_user_id, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, NULL, '', '', ?, 'payment_success', 'pending',
-        NULL, NULL, ?, ?, ?)`,
+      )
+      SELECT ?, ?, ?, ?, ?, ?, NULL, '', '', ?, 'payment_success', 'pending',
+        NULL, NULL, ?, ?, ?
+      WHERE EXISTS (
+        SELECT 1 FROM subscriptions subscription
+        WHERE subscription.id = ?
+          AND subscription.workspace_id = ?
+          AND subscription.product_id = ?
+          AND subscription.status = 'active'
+      )`,
     )
     .bind(
       id,
       input.workspaceId,
       product.id,
       input.subscriptionId,
-      `${input.workspaceName} - 餐饮订单系统`,
+      `${input.workspaceName} - ${product.name}`,
       slug,
       tenantKey,
       input.createdByUserId,
       input.now,
       input.now,
+      input.subscriptionId,
+      input.workspaceId,
+      product.id,
     );
 }
 
@@ -381,6 +438,7 @@ export async function createAppInstance(
     assertProductAssignable(input.productId),
     assertSubscriptionForInstance(
       input.workspaceId,
+      input.productId,
       input.subscriptionId,
       input.status,
     ),
@@ -454,6 +512,7 @@ export async function updateAppInstance(
     assertProductAssignable(input.productId, existing.productId),
     assertSubscriptionForInstance(
       input.workspaceId,
+      input.productId,
       input.subscriptionId,
       input.status,
     ),
@@ -516,6 +575,7 @@ export async function updateAppInstanceStatus(
   }
   await assertSubscriptionForInstance(
     existing.workspaceId,
+    existing.productId,
     existing.subscriptionId,
     status,
   );

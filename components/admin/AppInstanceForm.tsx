@@ -17,6 +17,8 @@ interface ProductOption {
 interface SubscriptionOption {
   id: string;
   workspaceId: string;
+  productId: string;
+  productName: string;
   planName: string;
   status: string;
 }
@@ -59,6 +61,7 @@ export function AppInstanceForm({
 }: AppInstanceFormProps) {
   const router = useRouter();
   const [workspaceId, setWorkspaceId] = useState(initial?.workspaceId ?? "");
+  const [productId, setProductId] = useState(initial?.productId ?? "");
   const [subscriptionId, setSubscriptionId] = useState(
     initial?.subscriptionId ?? "",
   );
@@ -70,8 +73,14 @@ export function AppInstanceForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   const availableSubscriptions = useMemo(
-    () => subscriptions.filter((subscription) => subscription.workspaceId === workspaceId),
-    [subscriptions, workspaceId],
+    () =>
+      subscriptions.filter(
+        (subscription) =>
+          subscription.workspaceId === workspaceId &&
+          subscription.productId === productId &&
+          subscription.status !== "canceled",
+      ),
+    [subscriptions, workspaceId, productId],
   );
   const selectedSubscription = availableSubscriptions.find(
     (subscription) => subscription.id === subscriptionId,
@@ -164,7 +173,15 @@ export function AppInstanceForm({
         </label>
         <label className="form-field">
           <span>产品</span>
-          <select defaultValue={initial?.productId ?? ""} name="productId" required>
+          <select
+            name="productId"
+            onChange={(event) => {
+              setProductId(event.target.value);
+              setSubscriptionId("");
+            }}
+            required
+            value={productId}
+          >
             <option disabled value="">请选择产品</option>
             {products.map((product) => (
               <option key={product.id} value={product.id}>{product.name}</option>
@@ -186,7 +203,7 @@ export function AppInstanceForm({
               </option>
             ))}
           </select>
-          <small>若状态设为“已开通”，必须选择一条有效订阅。</small>
+          <small>仅显示该企业在所选产品下的订阅；若状态设为“已开通”，必须选择一条有效订阅。</small>
           {fieldError("subscriptionId") ? <small className="form-error">{fieldError("subscriptionId")}</small> : null}
         </label>
         <label className="form-field">

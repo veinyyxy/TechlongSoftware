@@ -28,3 +28,51 @@ test("README documents startup, hosted admin initialization, and launch scope", 
   assert.match(readme, /Stripe Webhook/);
   assert.match(readme, /Paddle、自动续扣/);
 });
+
+test("multi-product subscription pages expose current and historical records", async () => {
+  const [
+    dashboard,
+    billing,
+    apps,
+    appDetail,
+    customerDetail,
+    customerList,
+    customerForm,
+    subscriptionDetail,
+    subscriptionForm,
+    newSubscription,
+  ] =
+    await Promise.all([
+      read("app/dashboard/page.tsx"),
+      read("app/dashboard/billing/page.tsx"),
+      read("app/dashboard/apps/page.tsx"),
+      read("app/dashboard/apps/[instanceId]/page.tsx"),
+      read("app/admin/customers/[customerId]/page.tsx"),
+      read("app/admin/customers/page.tsx"),
+      read("components/admin/CustomerForm.tsx"),
+      read("app/admin/subscriptions/[subscriptionId]/page.tsx"),
+      read("components/admin/SubscriptionForm.tsx"),
+      read("app/admin/subscriptions/new/page.tsx"),
+  ]);
+
+  assert.match(dashboard, /billing\.currentSubscriptions/);
+  assert.match(dashboard, /selectCurrentProductSubscription/);
+  assert.match(dashboard, /订阅产品切换/);
+  assert.match(billing, /当前订阅/);
+  assert.match(billing, /历史订阅/);
+  assert.match(customerDetail, /billing\.currentSubscriptions/);
+  assert.match(customerDetail, /billing\.historicalSubscriptions/);
+  assert.match(customerList, /currentSubscriptionCount/);
+  assert.doesNotMatch(customerForm, /name="planId"/);
+  assert.ok(
+    apps.indexOf("billing.currentSubscriptions.find") <
+      apps.indexOf("billing.subscriptions.find"),
+  );
+  assert.ok(
+    appDetail.indexOf("billing.currentSubscriptions.find") <
+      appDetail.indexOf("billing.subscriptions.find"),
+  );
+  assert.match(subscriptionDetail, /subscription\.status !== "canceled"/);
+  assert.match(subscriptionForm, /name="productId"/);
+  assert.doesNotMatch(newSubscription, /subscribedWorkspaceIds/);
+});

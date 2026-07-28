@@ -37,18 +37,26 @@ export default async function PaymentResultPage({ searchParams }: PaymentResultP
   }
 
   const confirmed = checkout.paymentStatus === "paid" && checkout.status === "completed";
+  const confirmedNeedsReview =
+    confirmed &&
+    (checkout.subscriptionStatus !== "active" || Boolean(checkout.attentionNote));
   const failed = checkout.paymentStatus === "failed" || checkout.status === "failed";
   const wasCancelled = checkout.paymentStatus === "canceled" || checkout.status === "canceled" || checkout.status === "expired";
-  const tone = confirmed ? "active" : failed ? "danger" : wasCancelled ? "warning" : "warning";
-  const title = confirmed
-    ? "付款已确认"
+  const tone = confirmedNeedsReview ? "warning" : confirmed ? "active" : failed ? "danger" : "warning";
+  const title = confirmedNeedsReview
+    ? "付款已确认，需人工处理"
+    : confirmed
+      ? "付款已确认"
     : failed
       ? "付款未成功"
       : wasCancelled
         ? "付款已取消"
         : "正在确认付款结果";
-  const message = confirmed
-    ? "您的付款已确认，系统正在开通中。平台会创建待开通记录，管理员仍需填写入口并手动标记为已开通。"
+  const message = confirmedNeedsReview
+    ? checkout.attentionNote ??
+      "Stripe 已确认收款，但这笔付款对应的订阅已经结束或被替代。平台不会自动开通，请联系管理员核对。"
+    : confirmed
+      ? "您的付款已确认，系统正在开通中。平台会创建待开通记录，管理员仍需填写入口并手动标记为已开通。"
     : failed
       ? "Stripe 尚未完成这笔付款。您可以返回后重新发起付款，或联系平台管理员。"
       : wasCancelled
@@ -68,6 +76,7 @@ export default async function PaymentResultPage({ searchParams }: PaymentResultP
       </div>
       <section className="module-card payment-result-card">
         <dl className="detail-list">
+          <div><dt>产品</dt><dd>{checkout.productName}</dd></div>
           <div><dt>套餐</dt><dd>{checkout.planName}</dd></div>
           <div><dt>金额</dt><dd>{formatMoney(checkout.amount, checkout.currency)}</dd></div>
           <div>

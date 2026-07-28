@@ -4,6 +4,7 @@ import {
   canEnterCustomerApplication,
   getCustomerServiceNotice,
   hasRecordedAccessUrl,
+  selectCurrentProductSubscription,
 } from "../lib/customer-dashboard/presentation.ts";
 
 const now = Date.UTC(2026, 6, 27);
@@ -11,6 +12,7 @@ const now = Date.UTC(2026, 6, 27);
 function service(input: Partial<Parameters<typeof getCustomerServiceNotice>[0]>) {
   return getCustomerServiceNotice(
     {
+      productName: "餐饮订单系统",
       subscriptionStatus: "active",
       currentPeriodEnd: now + 86_400_000,
       latestPaymentStatus: null,
@@ -54,6 +56,48 @@ test("shows the required customer service messages for subscription and applicat
   assert.equal(
     service({ appInstanceStatus: null }).message,
     "您的餐饮订单系统尚未开通。",
+  );
+});
+
+test("selects the requested current product subscription with a generic fallback", () => {
+  const subscriptions = [
+    {
+      id: "sub_restaurant",
+      productId: "prd_restaurant",
+      productName: "餐饮订单系统",
+    },
+    {
+      id: "sub_inventory",
+      productId: "prd_inventory",
+      productName: "库存管理系统",
+    },
+  ];
+
+  assert.equal(
+    selectCurrentProductSubscription(subscriptions, "prd_inventory")?.id,
+    "sub_inventory",
+  );
+  assert.equal(
+    selectCurrentProductSubscription(subscriptions, "missing")?.id,
+    "sub_restaurant",
+  );
+  assert.equal(selectCurrentProductSubscription([], "prd_inventory"), null);
+});
+
+test("uses the selected product name instead of hardcoding the restaurant product", () => {
+  assert.equal(
+    service({
+      productName: "库存管理系统",
+      appInstanceStatus: "active",
+    }).message,
+    "您的库存管理系统已开通。",
+  );
+  assert.equal(
+    service({
+      productName: "库存管理系统",
+      appInstanceStatus: null,
+    }).message,
+    "您的库存管理系统尚未开通。",
   );
 });
 

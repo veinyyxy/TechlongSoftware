@@ -50,6 +50,20 @@
       "when": 1785263318812,
       "tag": "0006_true_valkyrie",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1785275026975,
+      "tag": "0007_careful_mulholland_black",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1785276715759,
+      "tag": "0008_open_sleeper",
+      "breakpoints": true
     }
   ]
 }

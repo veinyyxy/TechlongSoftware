@@ -1,6 +1,6 @@
 # Stripe 真实支付与待开通实例操作说明
 
-当前实现使用 Stripe 托管 Checkout 的一次性付款模式。付款成功会更新当前企业工作区的订阅和付款记录；如果该工作区尚无餐饮订单系统实例，系统会创建一条 `pending` 待开通记录。平台管理员仍负责检查、填写入口并手动开通。
+当前实现使用 Stripe 托管 Checkout 的一次性付款模式。付款成功只会更新 Checkout 对应的工作区、产品和订阅记录；如果该工作区尚无对应产品实例，系统会创建一条 `pending` 待开通记录。平台管理员仍负责检查、填写入口并手动开通。
 
 ## 配置
 
@@ -33,7 +33,7 @@ Webhook 签名密钥只用于对应的环境。Stripe CLI、本地环境和生�
 ## 支付成功测试
 
 1. 用普通企业 Owner 登录，进入“订阅与账单”。
-2. 请平台管理员先在“订阅管理”为该企业创建状态为“人工待确认”的订阅，并选择启用、价格大于零的套餐。
+2. 请平台管理员先在“订阅管理”为该企业选择产品和启用、价格大于零的套餐，创建状态为“人工待确认”的订阅。
 3. 客户在“订阅与账单”确认管理员配置的套餐、周期、功能和限制，再点击“确认套餐并前往 Stripe 付款”。
 4. 在 Stripe 测试模式中使用测试卡 `4242 4242 4242 4242`，使用任意未来日期、任意 CVC 和邮编完成付款。
 5. Stripe 向 `/api/stripe/webhook` 发送付款成功事件。
@@ -56,7 +56,7 @@ Webhook 签名密钥只用于对应的环境。Stripe CLI、本地环境和生�
 stripe listen --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,payment_intent.payment_failed,checkout.session.expired --forward-to http://localhost:3000/api/stripe/webhook
 ```
 
-将 CLI 输出的 `whsec_...` 写入本地 `STRIPE_WEBHOOK_SECRET`。可在 Stripe Dashboard 进行测试付款，或使用 CLI 的事件触发与重投递能力验证接口。对同一事件执行重投递后，只会保留一条 `payment_webhook_events` 记录、一笔对应付款和一条对应产品实例；不会重复延长订阅周期、重复入账或重复创建实例。
+将 CLI 输出的 `whsec_...` 写入本地 `STRIPE_WEBHOOK_SECRET`。可在 Stripe Dashboard 进行测试付款，或使用 CLI 的事件触发与重投递能力验证接口。对同一事件执行重投递后，只会保留一条 `payment_webhook_events` 记录、一笔对应付款和一条对应产品实例；不会重复延长订阅周期、重复入账或重复创建实例。Checkout 和 Webhook 均使用精确的 `subscription_id`，不会误更新该工作区其他产品的订阅。
 
 ## 生产前核对
 

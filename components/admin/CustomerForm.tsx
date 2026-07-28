@@ -3,21 +3,13 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
-export interface CustomerFormPlanOption {
-  id: string;
-  name: string;
-  status: "active" | "inactive";
-}
-
 interface CustomerFormProps {
   mode: "create" | "edit";
   customerId?: string;
-  plans: CustomerFormPlanOption[];
   initial?: {
     name: string;
     contactName: string;
     contactEmail: string;
-    planId: string | null;
   };
 }
 
@@ -31,7 +23,6 @@ interface ErrorPayload {
 export function CustomerForm({
   mode,
   customerId,
-  plans,
   initial,
 }: CustomerFormProps) {
   const router = useRouter();
@@ -50,7 +41,6 @@ export function CustomerForm({
       name: String(formData.get("name") ?? ""),
       contactName: String(formData.get("contactName") ?? ""),
       contactEmail: String(formData.get("contactEmail") ?? ""),
-      planId: String(formData.get("planId") ?? ""),
     };
 
     try {
@@ -129,19 +119,6 @@ export function CustomerForm({
           {fieldError("contactEmail") ? (
             <small className="form-error">{fieldError("contactEmail")}</small>
           ) : null}
-        </label>
-        <label className="form-field form-field-wide">
-          <span>当前套餐</span>
-          <select defaultValue={initial?.planId ?? ""} name="planId">
-            <option value="">尚未分配套餐</option>
-            {plans.map((plan) => (
-              <option key={plan.id} value={plan.id}>
-                {plan.name}
-                {plan.status === "inactive" ? "（已停用）" : ""}
-              </option>
-            ))}
-          </select>
-          <small>仅记录当前套餐；不会创建订阅或触发付款。</small>
         </label>
       </div>
       {message ? <p className="form-error form-message">{message}</p> : null}

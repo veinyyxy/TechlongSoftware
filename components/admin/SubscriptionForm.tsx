@@ -12,11 +12,15 @@ interface Option {
 interface SubscriptionFormProps {
   mode: "create" | "edit";
   subscriptionId?: string;
+  defaultWorkspaceId?: string;
   customers: Option[];
+  products: Array<Option & { status?: "active" | "inactive" }>;
   plans: Option[];
   initial?: {
     workspaceId: string;
     workspaceName: string;
+    productId: string;
+    productName: string;
     planId: string;
     status: SubscriptionStatus;
     currentPeriodStart: number;
@@ -44,7 +48,9 @@ function parseUtcInput(value: FormDataEntryValue | null): number {
 export function SubscriptionForm({
   mode,
   subscriptionId,
+  defaultWorkspaceId,
   customers,
+  products,
   plans,
   initial,
 }: SubscriptionFormProps) {
@@ -62,6 +68,7 @@ export function SubscriptionForm({
     const formData = new FormData(event.currentTarget);
     const payload = {
       workspaceId: String(formData.get("workspaceId") ?? ""),
+      productId: String(formData.get("productId") ?? ""),
       planId: String(formData.get("planId") ?? ""),
       status: String(formData.get("status") ?? ""),
       currentPeriodStart: parseUtcInput(formData.get("currentPeriodStart")),
@@ -119,8 +126,8 @@ export function SubscriptionForm({
               />
             </>
           ) : (
-            <select defaultValue="" name="workspaceId" required>
-              <option disabled value="">请选择尚未创建订阅的客户</option>
+            <select defaultValue={defaultWorkspaceId ?? ""} name="workspaceId" required>
+              <option disabled value="">请选择企业客户</option>
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
                   {customer.name}
@@ -130,6 +137,29 @@ export function SubscriptionForm({
           )}
           {fieldError("workspaceId") ? (
             <small className="form-error">{fieldError("workspaceId")}</small>
+          ) : null}
+        </label>
+        <label className="form-field form-field-wide">
+          <span>订阅产品</span>
+          {mode === "edit" && initial ? (
+            <>
+              <input aria-label="订阅产品" disabled value={initial.productName} />
+              <input name="productId" type="hidden" value={initial.productId} />
+            </>
+          ) : (
+            <select defaultValue="" name="productId" required>
+              <option disabled value="">请选择启用中的产品</option>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name}
+                  {product.status === "inactive" ? "（已停用）" : ""}
+                </option>
+              ))}
+            </select>
+          )}
+          <small>同一客户可以订阅不同产品，但每个产品同一时间只能有一条当前订阅。</small>
+          {fieldError("productId") ? (
+            <small className="form-error">{fieldError("productId")}</small>
           ) : null}
         </label>
         <label className="form-field">

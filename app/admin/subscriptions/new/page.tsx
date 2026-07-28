@@ -2,44 +2,51 @@ import type { Metadata } from "next";
 import { SubscriptionForm } from "@/components/admin/SubscriptionForm";
 import { getAdminAccount } from "@/lib/auth/account";
 import { listCustomers, listPlans } from "@/lib/admin/management";
-import { listSubscriptions } from "@/lib/billing/management";
+import { listProducts } from "@/lib/instances/management";
 
 export const metadata: Metadata = { title: "新建订阅" };
 export const dynamic = "force-dynamic";
 
-export default async function NewSubscriptionPage() {
+interface NewSubscriptionPageProps {
+  searchParams?: Promise<{ workspaceId?: string }>;
+}
+
+export default async function NewSubscriptionPage({
+  searchParams,
+}: NewSubscriptionPageProps) {
   await getAdminAccount();
-  const [customers, plans, subscriptions] = await Promise.all([
+  const requestedWorkspaceId = (await searchParams)?.workspaceId ?? "";
+  const [customers, products, plans] = await Promise.all([
     listCustomers(),
+    listProducts({ status: "active" }),
     listPlans({ status: "active" }),
-    listSubscriptions(),
   ]);
-  const subscribedWorkspaceIds = new Set(
-    subscriptions.map((subscription) => subscription.workspaceId),
-  );
-  const availableCustomers = customers.filter(
-    (customer) => !subscribedWorkspaceIds.has(customer.id),
-  );
 
   return (
     <>
       <header className="page-header">
         <p className="page-kicker">NEW MANUAL SUBSCRIPTION</p>
         <h1>创建客户订阅</h1>
-        <p>选择企业客户和套餐，默认创建“人工待确认”订阅，供客户确认套餐选项并完成 Stripe 付款。</p>
+        <p>选择企业客户、产品和套餐。已取消的历史订阅会保留，不会阻止客户重新订阅同一产品。</p>
       </header>
       <section className="form-panel">
-        {availableCustomers.length && plans.length ? (
+        {customers.length && products.length && plans.length ? (
           <SubscriptionForm
-            customers={availableCustomers.map(({ id, name }) => ({ id, name }))}
+            customers={customers.map(({ id, name }) => ({ id, name }))}
+            defaultWorkspaceId={
+              customers.some((customer) => customer.id === requestedWorkspaceId)
+                ? requestedWorkspaceId
+                : undefined
+            }
             mode="create"
             plans={plans.map(({ id, name }) => ({ id, name }))}
+            products={products.map(({ id, name, status }) => ({ id, name, status }))}
           />
         ) : (
           <div className="empty-state">
             <strong>暂时无法创建订阅</strong>
             <p>
-              需要至少一个启用套餐，以及一个尚未创建订阅的企业客户。
+              需要至少一个企业客户、一个启用产品和一个启用套餐。
             </p>
           </div>
         )}

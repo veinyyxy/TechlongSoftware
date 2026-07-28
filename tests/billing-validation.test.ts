@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  isCurrentSubscriptionStatus,
+  isHistoricalSubscriptionStatus,
   isPaymentStatus,
   isSubscriptionStatus,
   validatePaymentInput,
@@ -10,6 +12,7 @@ import {
 test("validates a manual subscription period and supported status", () => {
   const valid = validateSubscriptionInput({
     workspaceId: "wsp_one",
+    productId: "prd_restaurant_order_system",
     planId: "pln_basic",
     status: "manual_pending",
     currentPeriodStart: Date.UTC(2026, 0, 1),
@@ -18,10 +21,12 @@ test("validates a manual subscription period and supported status", () => {
   });
 
   assert.equal(valid.data?.workspaceId, "wsp_one");
+  assert.equal(valid.data?.productId, "prd_restaurant_order_system");
   assert.equal(valid.data?.status, "manual_pending");
 
   const invalid = validateSubscriptionInput({
     workspaceId: "",
+    productId: "",
     planId: "",
     status: "trialing",
     currentPeriodStart: Date.UTC(2026, 1, 1),
@@ -31,6 +36,7 @@ test("validates a manual subscription period and supported status", () => {
 
   assert.equal(invalid.data, null);
   assert.ok(invalid.errors.workspaceId);
+  assert.ok(invalid.errors.productId);
   assert.ok(invalid.errors.planId);
   assert.ok(invalid.errors.status);
   assert.ok(invalid.errors.currentPeriodEnd);
@@ -75,4 +81,13 @@ test("accepts supported manual and online payment statuses", () => {
   assert.equal(isPaymentStatus("failed"), true);
   assert.equal(isPaymentStatus("canceled"), true);
   assert.equal(isPaymentStatus("refunded"), false);
+});
+
+test("classifies current and historical subscription statuses", () => {
+  for (const status of ["manual_pending", "active", "past_due", "paused"] as const) {
+    assert.equal(isCurrentSubscriptionStatus(status), true);
+    assert.equal(isHistoricalSubscriptionStatus(status), false);
+  }
+  assert.equal(isCurrentSubscriptionStatus("canceled"), false);
+  assert.equal(isHistoricalSubscriptionStatus("canceled"), true);
 });

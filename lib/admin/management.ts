@@ -57,6 +57,7 @@ export interface CustomerListItem {
   status: WorkspaceStatus;
   planName: string | null;
   subscriptionStatus: SubscriptionStatus;
+  currentSubscriptionCount: number;
   appInstanceStatus: AppInstanceStatus;
   memberCount: number;
   createdAt: number;
@@ -326,7 +327,13 @@ export async function listCustomers(input?: {
       w.id, w.name, w.status, w.subscription_status, w.app_instance_status,
       w.created_at, COALESCE(w.contact_name, u.name) AS contact_name,
       COALESCE(w.contact_email, u.email) AS contact_email,
-      p.name AS plan_name, COUNT(wm.id) AS member_count
+      p.name AS plan_name, COUNT(wm.id) AS member_count,
+      (
+        SELECT COUNT(*)
+        FROM subscriptions subscription
+        WHERE subscription.workspace_id = w.id
+          AND subscription.status IN ('manual_pending', 'active', 'past_due', 'paused')
+      ) AS current_subscription_count
      FROM workspaces w
      INNER JOIN users u ON u.id = w.owner_id
      LEFT JOIN plans p ON p.id = w.plan_id
@@ -352,6 +359,7 @@ export async function listCustomers(input?: {
     contact_email: string;
     plan_name: string | null;
     member_count: number;
+    current_subscription_count: number;
   }>();
 
   return result.results.map((row) => ({
@@ -362,6 +370,7 @@ export async function listCustomers(input?: {
     status: row.status,
     planName: row.plan_name,
     subscriptionStatus: row.subscription_status,
+    currentSubscriptionCount: Number(row.current_subscription_count),
     appInstanceStatus: row.app_instance_status,
     memberCount: Number(row.member_count),
     createdAt: row.created_at,
@@ -382,7 +391,13 @@ export async function getCustomer(
         p.billing_interval AS plan_billing_interval, p.status AS plan_status,
         p.features AS plan_features, p.limits AS plan_limits,
         p.created_at AS plan_created_at, p.updated_at AS plan_updated_at,
-        COUNT(wm.id) AS member_count
+        COUNT(wm.id) AS member_count,
+        (
+          SELECT COUNT(*)
+          FROM subscriptions subscription
+          WHERE subscription.workspace_id = w.id
+            AND subscription.status IN ('manual_pending', 'active', 'past_due', 'paused')
+        ) AS current_subscription_count
        FROM workspaces w
        INNER JOIN users u ON u.id = w.owner_id
        LEFT JOIN plans p ON p.id = w.plan_id
@@ -419,6 +434,7 @@ export async function getCustomer(
       plan_created_at: number | null;
       plan_updated_at: number | null;
       member_count: number;
+      current_subscription_count: number;
     }>();
 
   if (!row) return null;
@@ -462,6 +478,7 @@ export async function getCustomer(
     planName: row.plan_name,
     plan,
     subscriptionStatus: row.subscription_status,
+    currentSubscriptionCount: Number(row.current_subscription_count),
     appInstanceStatus: row.app_instance_status,
     memberCount: Number(row.member_count),
     createdAt: row.created_at,
@@ -469,17 +486,9 @@ export async function getCustomer(
   };
 }
 
-async function assertPlanExists(planId: string | null): Promise<void> {
-  if (!planId) return;
-  if (!(await getPlan(planId))) {
-    throw new ManagementError("PLAN_NOT_FOUND", "所选套餐不存在。", 400);
-  }
-}
-
 export async function createCustomer(
   input: CustomerInput,
 ): Promise<CustomerDetail> {
-  await assertPlanExists(input.planId);
   const email = input.contactEmail.toLowerCase();
   const ownerId = await stableId("usr", email);
   const workspaceId = randomId("wsp");
@@ -499,9 +508,9 @@ export async function createCustomer(
     db
       .prepare(
         `INSERT INTO workspaces (
-          id, name, owner_id, status, contact_name, contact_email, plan_id,
+          id, name, owner_id, status, contact_name, contact_email,
           subscription_status, app_instance_status, created_at, updated_at
-        ) VALUES (?, ?, ?, 'active', ?, ?, ?, 'not_configured',
+        ) VALUES (?, ?, ?, 'active', ?, ?, 'not_configured',
           'not_provisioned', ?, ?)`,
       )
       .bind(
@@ -510,7 +519,6 @@ export async function createCustomer(
         ownerId,
         input.contactName,
         email,
-        input.planId,
         now,
         now,
       ),
@@ -538,19 +546,16 @@ export async function updateCustomer(
   workspaceId: string,
   input: CustomerInput,
 ): Promise<CustomerDetail> {
-  await assertPlanExists(input.planId);
   const result = await getD1()
     .prepare(
       `UPDATE workspaces
-       SET name = ?, contact_name = ?, contact_email = ?, plan_id = ?,
-         updated_at = ?
+       SET name = ?, contact_name = ?, contact_email = ?, updated_at = ?
        WHERE id = ?`,
     )
     .bind(
       input.name,
       input.contactName,
       input.contactEmail.toLowerCase(),
-      input.planId,
       Date.now(),
       workspaceId,
     )

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable(
@@ -107,6 +108,11 @@ export const subscriptions = sqliteTable(
     workspaceId: text("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
+    // D1 cannot safely add a NOT NULL foreign key to a populated table in place.
+    // Migrations backfill, validate, and enforce this field with DB triggers.
+    productId: text("product_id").references(() => products.id, {
+      onDelete: "restrict",
+    }),
     planId: text("plan_id")
       .notNull()
       .references(() => plans.id, { onDelete: "restrict" }),
@@ -137,7 +143,13 @@ export const subscriptions = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [
-    uniqueIndex("subscriptions_workspace_unique").on(table.workspaceId),
+    uniqueIndex("subscriptions_workspace_product_current_unique")
+      .on(table.workspaceId, table.productId)
+      .where(
+        sql`${table.status} in ('manual_pending', 'active', 'past_due', 'paused')`,
+      ),
+    index("subscriptions_workspace_id_idx").on(table.workspaceId),
+    index("subscriptions_product_id_idx").on(table.productId),
     index("subscriptions_plan_id_idx").on(table.planId),
     index("subscriptions_status_idx").on(table.status),
   ],
@@ -150,6 +162,7 @@ export const paymentRecords = sqliteTable(
     workspaceId: text("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
+    // See the subscription product note above; runtime rows are DB-trigger required.
     subscriptionId: text("subscription_id").references(
       () => subscriptions.id,
       { onDelete: "set null" },
@@ -195,6 +208,10 @@ export const paymentCheckoutSessions = sqliteTable(
     workspaceId: text("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
+    subscriptionId: text("subscription_id").references(
+      () => subscriptions.id,
+      { onDelete: "cascade" },
+    ),
     planId: text("plan_id")
       .notNull()
       .references(() => plans.id, { onDelete: "restrict" }),
@@ -223,7 +240,13 @@ export const paymentCheckoutSessions = sqliteTable(
       table.provider,
       table.providerSessionId,
     ),
+    uniqueIndex("payment_checkout_sessions_subscription_inflight_unique")
+      .on(table.subscriptionId)
+      .where(sql`${table.status} in ('creating', 'open')`),
     index("payment_checkout_sessions_workspace_id_idx").on(table.workspaceId),
+    index("payment_checkout_sessions_subscription_id_idx").on(
+      table.subscriptionId,
+    ),
     index("payment_checkout_sessions_payment_record_id_idx").on(
       table.paymentRecordId,
     ),

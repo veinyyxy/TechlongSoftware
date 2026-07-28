@@ -7,10 +7,22 @@ export type SubscriptionStatus =
   | "paused"
   | "canceled";
 
+export const currentSubscriptionStatuses = [
+  "manual_pending",
+  "active",
+  "past_due",
+  "paused",
+] as const satisfies readonly SubscriptionStatus[];
+
+export const historicalSubscriptionStatuses = [
+  "canceled",
+] as const satisfies readonly SubscriptionStatus[];
+
 export type PaymentStatus = "pending" | "paid" | "failed" | "canceled";
 
 export interface SubscriptionInput {
   workspaceId: string;
+  productId: string;
   planId: string;
   status: SubscriptionStatus;
   currentPeriodStart: number;
@@ -74,6 +86,22 @@ export function isSubscriptionStatus(
   );
 }
 
+export function isCurrentSubscriptionStatus(
+  status: SubscriptionStatus,
+): boolean {
+  return currentSubscriptionStatuses.includes(
+    status as (typeof currentSubscriptionStatuses)[number],
+  );
+}
+
+export function isHistoricalSubscriptionStatus(
+  status: SubscriptionStatus,
+): boolean {
+  return historicalSubscriptionStatuses.includes(
+    status as (typeof historicalSubscriptionStatuses)[number],
+  );
+}
+
 export function isPaymentStatus(value: unknown): value is PaymentStatus {
   return (
     value === "pending" ||
@@ -89,6 +117,7 @@ export function validateSubscriptionInput(
   const input = asRecord(value);
   const errors: FieldErrors = {};
   const workspaceId = asTrimmedString(input.workspaceId);
+  const productId = asTrimmedString(input.productId);
   const planId = asTrimmedString(input.planId);
   const status = input.status;
   const currentPeriodStart = input.currentPeriodStart;
@@ -96,6 +125,9 @@ export function validateSubscriptionInput(
 
   if (!validId(workspaceId)) {
     addError(errors, "workspaceId", "请选择企业客户。");
+  }
+  if (!validId(productId)) {
+    addError(errors, "productId", "请选择订阅产品。");
   }
   if (!validId(planId)) {
     addError(errors, "planId", "请选择套餐。");
@@ -125,6 +157,7 @@ export function validateSubscriptionInput(
       Object.keys(errors).length === 0
         ? {
             workspaceId,
+            productId,
             planId,
             status: status as SubscriptionStatus,
             currentPeriodStart: currentPeriodStart as number,

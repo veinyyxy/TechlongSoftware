@@ -29,6 +29,7 @@ export default async function NewPaymentPage() {
               id: subscription.id,
               workspaceId: subscription.workspaceId,
               workspaceName: subscription.workspaceName,
+              productName: subscription.productName,
               planName: subscription.planName,
             }))}
           />

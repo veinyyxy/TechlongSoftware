@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前完成阶段 8：Stripe 付款成功后自动创建待开通实例，保留管理员最终开通检查。
+当前完成阶段 8，并已将订阅升级为按“工作区 + 产品”管理：Stripe 付款成功后自动创建待开通实例，保留管理员最终开通检查。
 
 ## 已实现
 
@@ -24,6 +24,8 @@
 - 客户详情和客户控制台读取当前套餐、订阅状态和应用实例状态。
 - 管理员创建、编辑并查看客户订阅。
 - 订阅支持 `manual_pending`、`active`、`past_due`、`paused`、`canceled`。
+- 一个工作区可保留多个产品、多个历史订阅；同一工作区的同一产品同一时间只允许一个当前订阅。
+- `manual_pending`、`active`、`past_due`、`paused` 视为当前订阅，`canceled` 视为历史订阅；取消后可为同一产品重新创建订阅。
 - 管理员可以暂停、恢复和取消订阅。
 - 管理员手工录入并筛选付款记录。
 - 付款金额使用最小货币单位整数保存。
@@ -156,9 +158,16 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `app_instances.provisioning_source`（`manual` / `payment_success`）
 - `app_instances` 的 `(workspace_id, product_id)` 唯一约束，当前 MVP 每个工作区仅允许一个产品实例
 
-订阅关联 `workspace` 和 `plan`，当前 MVP 每个工作区最多一条订阅。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。应用实例关联 `workspace`、`product`，并可选关联订阅；保存管理员填写的买家端 `access_url`、卖家端 `seller_apk_url`、`domain` / `slug` 和 `tenant_key`。
+多产品订阅升级：
 
-迁移会幂等写入默认产品：`餐饮订单系统` / `restaurant-order-system` / `active`。工作区上的 `plan_id`、`subscription_status` 和 `app_instance_status` 作为兼容状态快照，由订阅和应用实例管理操作同步更新；实际应用实例以 `app_instances` 为准。
+- `subscriptions.product_id`（必填）
+- 移除 `subscriptions.workspace_id` 的旧唯一约束
+- 当前订阅的 `(workspace_id, product_id)` 条件唯一约束
+- `payment_checkout_sessions.subscription_id`（必填）及进行中 Checkout 唯一约束
+
+订阅必须关联 `workspace`、`product` 和 `plan`。数据库使用条件唯一索引保证同一 `(workspace_id, product_id)` 同一时间最多一个当前订阅，同时保留已取消订阅作为历史记录；其他产品的当前订阅互不影响。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。应用实例关联 `workspace`、`product`，并可选关联订阅；保存管理员填写的买家端 `access_url`、卖家端 `seller_apk_url`、`domain` / `slug` 和 `tenant_key`。
+
+迁移会幂等写入默认产品：`餐饮订单系统` / `restaurant-order-system` / `active`，并将旧订阅安全回填到该产品。工作区上的 `plan_id`、`subscription_status` 和 `app_instance_status` 仅作为兼容状态快照，由订阅和应用实例管理操作同步更新；实际订阅以 `subscriptions` 为准，实际应用实例以 `app_instances` 为准。
 
 所有客户业务查询必须通过 `workspace_id` 和成员关系限制范围。平台管理员是唯一允许跨工作区读取基础数据的角色。
 

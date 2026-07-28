@@ -32,6 +32,8 @@ export default async function NewInstancePage() {
             subscriptions={subscriptions.map((subscription) => ({
               id: subscription.id,
               workspaceId: subscription.workspaceId,
+              productId: subscription.productId,
+              productName: subscription.productName,
               planName: subscription.planName,
               status: subscription.status,
             }))}

@@ -12,13 +12,11 @@ test("accepts normalized customer input and rejects invalid email", () => {
     name: " 北岸餐饮 ",
     contactName: " Ethan Yang ",
     contactEmail: " OWNER@EXAMPLE.COM ",
-    planId: "",
   });
   assert.deepEqual(valid.data, {
     name: "北岸餐饮",
     contactName: "Ethan Yang",
     contactEmail: "owner@example.com",
-    planId: null,
   });
 
   const invalid = validateCustomerInput({

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckoutSubscriptionButton } from "@/components/billing/CheckoutSubscriptionButton";
-import { getDashboardAccount } from "@/lib/auth/account";
-import { getCustomer } from "@/lib/admin/management";
+import { getPlan } from "@/lib/admin/management";
 import { formatDate, formatMoney } from "@/lib/admin/presentation";
+import { getDashboardAccount } from "@/lib/auth/account";
 import { getWorkspaceBillingSummary } from "@/lib/billing/management";
 import {
   paymentStatusLabels,
@@ -19,48 +19,59 @@ export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
   const account = await getDashboardAccount();
-  const [billing, customer] = await Promise.all([
-    getWorkspaceBillingSummary(account.workspace.id),
-    getCustomer(account.workspace.id),
-  ]);
-  const subscription = billing.subscription;
-  const configuredPlan =
-    subscription && customer?.plan?.id === subscription.planId
-      ? customer.plan
-      : null;
+  const billing = await getWorkspaceBillingSummary(account.workspace.id);
+  const currentSubscriptions = billing.currentSubscriptions;
+  const historicalSubscriptions = billing.historicalSubscriptions;
+  const plans = await Promise.all(
+    currentSubscriptions.map((subscription) => getPlan(subscription.planId)),
+  );
+  const planById = new Map(
+    plans
+      .filter((plan) => plan !== null)
+      .map((plan) => [plan.id, plan]),
+  );
   const onlinePaymentEnabled = hasStripePaymentConfiguration();
   const latestFailed = billing.recentPayment?.status === "failed";
-  const subscriptionNotice = subscription
-    ? getCustomerSubscriptionNotice({
-        subscriptionStatus: subscription.status,
-        currentPeriodEnd: subscription.currentPeriodEnd,
-      })
-    : null;
 
   return (
     <>
       <header className="page-header">
         <p className="page-kicker">SUBSCRIPTION & BILLING</p>
         <h1>订阅与账单</h1>
-        <p>查看平台管理员为当前企业设置的订阅与套餐选项，并安全跳转至 Stripe 付款页面；最终付款结果以后端记录为准。</p>
+        <p>按产品查看当前订阅、历史订阅和付款记录。历史记录不会因重新订阅而删除。</p>
       </header>
 
-      {subscriptionNotice ? (
-        <div className={`notice notice-${subscriptionNotice.tone} billing-alert`}>
-          <strong>{subscriptionNotice.title}</strong>
-          <span>{subscriptionNotice.message}</span>
-        </div>
-      ) : !subscription ? (
+      {!currentSubscriptions.length ? (
         <div className="notice notice-warning billing-alert">
-          <strong>尚未创建订阅</strong>
-          <span>请联系平台管理员先为您的企业设置待付款订阅；确认套餐选项并完成付款后，系统会等待管理员手动开通。</span>
+          <strong>暂无当前订阅</strong>
+          <span>请联系平台管理员为需要的产品创建新订阅。</span>
         </div>
-      ) : null}
+      ) : (
+        currentSubscriptions.map((subscription) => {
+          const notice = getCustomerSubscriptionNotice({
+            productName: subscription.productName,
+            subscriptionStatus: subscription.status,
+            currentPeriodEnd: subscription.currentPeriodEnd,
+          });
+          return notice ? (
+            <div
+              className={`notice notice-${notice.tone} billing-alert`}
+              key={`notice-${subscription.id}`}
+            >
+              <strong>{subscription.productName}：{notice.title}</strong>
+              <span>{notice.message}</span>
+            </div>
+          ) : null;
+        })
+      )}
 
       {latestFailed ? (
         <div className="notice notice-danger billing-alert">
           <strong>最近一笔付款记录失败</strong>
           <span>
+            {billing.recentPayment?.productName
+              ? `${billing.recentPayment.productName} · `
+              : ""}
             金额：
             {formatMoney(
               billing.recentPayment!.amount,
@@ -71,97 +82,150 @@ export default async function BillingPage() {
         </div>
       ) : null}
 
-      <div className="detail-grid">
-        <section className="module-card">
-          <h2>当前订阅</h2>
-          <dl className="detail-list">
-            <div>
-              <dt>套餐</dt>
-              <dd>{subscription?.planName ?? customer?.planName ?? "尚未分配"}</dd>
-            </div>
-            <div>
-              <dt>订阅状态</dt>
-              <dd>
-                {subscription ? (
-                  <span
-                    className={`status-pill status-${subscriptionStatusTone(
-                      subscription.status,
-                    )}`}
-                  >
-                    {subscriptionStatusLabels[subscription.status]}
-                  </span>
-                ) : "尚未创建"}
-              </dd>
-            </div>
-            <div>
-              <dt>当前周期</dt>
-              <dd>
-                {subscription
-                  ? `${formatDate(subscription.currentPeriodStart)} 至 ${formatDate(
-                      subscription.currentPeriodEnd,
-                    )} UTC`
-                  : "尚未设置"}
-              </dd>
-            </div>
-            <div>
-              <dt>到期处理</dt>
-              <dd>
-                {subscription
-                  ? subscription.cancelAtPeriodEnd
-                    ? "当前周期结束后取消"
-                    : "未设置到期取消"
-                  : "—"}
-              </dd>
-            </div>
-          </dl>
-        </section>
+      <section className="data-panel">
+        <div className="data-panel-heading">
+          <div>
+            <h2>当前订阅</h2>
+            <p>每个产品同一时间最多显示一条当前订阅</p>
+          </div>
+        </div>
+        {currentSubscriptions.length ? (
+          <div className="app-instance-grid">
+            {currentSubscriptions.map((subscription) => {
+              const plan = planById.get(subscription.planId) ?? null;
+              const payable =
+                subscription.status === "manual_pending" ||
+                subscription.status === "past_due";
+              const purchasablePlan =
+                plan?.status === "active" && plan.priceAmount > 0;
+              return (
+                <article className="app-instance-card" key={subscription.id}>
+                  <div className="app-instance-card-heading">
+                    <div>
+                      <p className="page-kicker">{subscription.productName}</p>
+                      <h2>{subscription.planName}</h2>
+                    </div>
+                    <span
+                      className={`status-pill status-${subscriptionStatusTone(
+                        subscription.status,
+                      )}`}
+                    >
+                      {subscriptionStatusLabels[subscription.status]}
+                    </span>
+                  </div>
+                  <dl className="app-instance-summary">
+                    <div>
+                      <dt>产品状态</dt>
+                      <dd>{subscription.productStatus === "active" ? "已启用" : "已停用"}</dd>
+                    </div>
+                    <div>
+                      <dt>套餐价格</dt>
+                      <dd>
+                        {formatMoney(
+                          subscription.planPriceAmount,
+                          subscription.planCurrency,
+                        )}
+                        /{subscription.planBillingInterval === "year" ? "年" : "月"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>当前周期</dt>
+                      <dd>
+                        {formatDate(subscription.currentPeriodStart)} 至{" "}
+                        {formatDate(subscription.currentPeriodEnd)} UTC
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>到期处理</dt>
+                      <dd>{subscription.cancelAtPeriodEnd ? "周期结束后取消" : "继续保留"}</dd>
+                    </div>
+                  </dl>
 
-        <section className="module-card">
-          <h2>最近付款</h2>
-          {billing.recentPayment ? (
-            <dl className="detail-list">
-              <div>
-                <dt>金额</dt>
-                <dd>
-                  {formatMoney(
-                    billing.recentPayment.amount,
-                    billing.recentPayment.currency,
+                  {plan?.features.length ? (
+                    <ul className="value-list">
+                      {plan.features.map((feature) => <li key={feature}>{feature}</li>)}
+                    </ul>
+                  ) : null}
+
+                  {payable && subscription.productStatus !== "active" ? (
+                    <div className="notice notice-danger compact-notice">
+                      当前产品已停用，不能发起在线付款，请联系平台管理员。
+                    </div>
+                  ) : payable && !plan ? (
+                    <div className="notice notice-danger compact-notice">
+                      当前套餐暂不可用，请联系平台管理员检查配置。
+                    </div>
+                  ) : payable && !purchasablePlan ? (
+                    <div className="notice notice-warning compact-notice">
+                      当前套餐已停用或无需在线付款，请联系平台管理员确认付款方式。
+                    </div>
+                  ) : payable && !onlinePaymentEnabled ? (
+                    <div className="notice notice-warning compact-notice">
+                      Stripe 在线付款正在配置中，请暂时使用人工付款流程。
+                    </div>
+                  ) : payable && account.membership.role !== "owner" ? (
+                    <div className="notice notice-warning compact-notice">
+                      仅工作区 Owner 可以发起在线付款。
+                    </div>
+                  ) : payable && plan && purchasablePlan ? (
+                    <CheckoutSubscriptionButton
+                      endpoint={`/api/workspaces/${account.workspace.id}/checkout`}
+                      planName={`${subscription.productName} · ${plan.name}`}
+                      subscriptionId={subscription.id}
+                    />
+                  ) : (
+                    <div className="notice notice-neutral compact-notice">
+                      当前状态无需发起在线付款。
+                    </div>
                   )}
-                </dd>
-              </div>
-              <div>
-                <dt>付款状态</dt>
-                <dd>
-                  <span
-                    className={`status-pill status-${paymentStatusTone(
-                      billing.recentPayment.status,
-                    )}`}
-                  >
-                    {paymentStatusLabels[billing.recentPayment.status]}
-                  </span>
-                </dd>
-              </div>
-              <div>
-                <dt>付款方式</dt>
-                <dd>{billing.recentPayment.paymentMethod}</dd>
-              </div>
-              <div>
-                <dt>记录来源</dt>
-                <dd>{billing.recentPayment.provider === "stripe" ? "Stripe 在线支付" : "管理员手工记录"}</dd>
-              </div>
-              <div>
-                <dt>记录时间</dt>
-                <dd>{formatDate(billing.recentPayment.createdAt)} UTC</dd>
-              </div>
-            </dl>
-          ) : (
-            <div className="empty-state compact-empty">
-              <strong>尚无付款记录</strong>
-              <p>付款状态将由平台管理员手动录入。</p>
-            </div>
-          )}
-        </section>
-      </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <strong>等待平台管理员设置订阅</strong>
+            <p>管理员可以在保留历史记录的同时，为产品创建新的订阅。</p>
+          </div>
+        )}
+      </section>
+
+      <section className="data-panel">
+        <div className="data-panel-heading">
+          <div>
+            <h2>历史订阅</h2>
+            <p>结束的订阅仅供查看，不会被物理删除</p>
+          </div>
+        </div>
+        {historicalSubscriptions.length ? (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr><th>产品</th><th>套餐</th><th>状态</th><th>周期</th></tr>
+              </thead>
+              <tbody>
+                {historicalSubscriptions.map((subscription) => (
+                  <tr key={subscription.id}>
+                    <td><strong>{subscription.productName}</strong></td>
+                    <td>{subscription.planName}</td>
+                    <td>
+                      <span className={`status-pill status-${subscriptionStatusTone(subscription.status)}`}>
+                        {subscriptionStatusLabels[subscription.status]}
+                      </span>
+                    </td>
+                    <td>{formatDate(subscription.currentPeriodStart)} 至 {formatDate(subscription.currentPeriodEnd)} UTC</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <strong>暂无历史订阅</strong>
+            <p>取消订阅后，记录会继续保留在这里。</p>
+          </div>
+        )}
+      </section>
 
       <section className="data-panel">
         <div className="data-panel-heading">
@@ -174,11 +238,15 @@ export default async function BillingPage() {
           <div className="table-wrap">
             <table className="data-table">
               <thead>
-                <tr><th>金额</th><th>状态</th><th>付款方式</th><th>付款时间</th></tr>
+                <tr><th>产品与套餐</th><th>金额</th><th>状态</th><th>付款方式</th><th>付款时间</th></tr>
               </thead>
               <tbody>
                 {billing.payments.map((payment) => (
                   <tr key={payment.id}>
+                    <td>
+                      <strong>{payment.productName ?? "未关联产品"}</strong>
+                      <span>{payment.planName ?? "未关联订阅"}</span>
+                    </td>
                     <td>{formatMoney(payment.amount, payment.currency)}</td>
                     <td>
                       <span className={`status-pill status-${paymentStatusTone(payment.status)}`}>
@@ -190,11 +258,7 @@ export default async function BillingPage() {
                       <span>{payment.provider === "stripe" ? "Stripe 在线支付" : "管理员手工记录"}</span>
                       <span>{payment.reference ?? "无参考号"}</span>
                     </td>
-                    <td>
-                      {payment.paidAt
-                        ? `${formatDate(payment.paidAt)} UTC`
-                        : "尚未付款"}
-                    </td>
+                    <td>{payment.paidAt ? `${formatDate(payment.paidAt)} UTC` : "尚未付款"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -208,74 +272,8 @@ export default async function BillingPage() {
         )}
       </section>
 
-      <section className="data-panel plan-purchase-panel">
-        <div className="data-panel-heading">
-          <div>
-            <h2>平台配置的订阅与付款选项</h2>
-            <p>套餐、价格、周期、功能和限制均来自平台管理员配置的数据库记录。客户不能修改价格或订阅状态。</p>
-          </div>
-        </div>
-        {!subscription ? (
-          <div className="empty-state">
-            <strong>等待平台管理员设置订阅</strong>
-            <p>管理员设置待付款订阅后，这里会显示套餐选项与 Stripe 付款入口。</p>
-          </div>
-        ) : !configuredPlan ? (
-          <div className="empty-state">
-            <strong>当前订阅的套餐暂不可用</strong>
-            <p>请联系平台管理员检查套餐配置后再发起付款。</p>
-          </div>
-        ) : !onlinePaymentEnabled ? (
-          <div className="empty-state">
-            <strong>在线付款正在配置中</strong>
-            <p>平台尚未完成 Stripe Checkout 与支付通知配置，请联系平台管理员使用现有人工付款流程。</p>
-          </div>
-        ) : account.membership.role !== "owner" ? (
-          <div className="empty-state">
-            <strong>仅工作区 Owner 可以发起付款</strong>
-            <p>请联系企业工作区 Owner 确认平台配置的订阅并完成付款。</p>
-          </div>
-        ) : subscription.status === "manual_pending" || subscription.status === "past_due" ? (
-          <div className="plan-purchase-grid">
-            <article className="plan-purchase-card">
-              <div>
-                <h3>{configuredPlan.name}</h3>
-                <p>{configuredPlan.description || "套餐详细说明由平台管理员维护。"}</p>
-              </div>
-              <strong className="plan-purchase-price">
-                {formatMoney(configuredPlan.priceAmount, configuredPlan.currency)}
-                <small>/{configuredPlan.billingInterval === "year" ? "年" : "月"}</small>
-              </strong>
-              <p>订阅状态：{subscriptionStatusLabels[subscription.status]}</p>
-              {configuredPlan.features.length ? (
-                <ul className="value-list">
-                  {configuredPlan.features.map((feature) => <li key={feature}>{feature}</li>)}
-                </ul>
-              ) : null}
-              {Object.keys(configuredPlan.limits).length ? (
-                <dl className="limit-list">
-                  {Object.entries(configuredPlan.limits).map(([key, value]) => (
-                    <div key={key}><dt>{key}</dt><dd>{value}</dd></div>
-                  ))}
-                </dl>
-              ) : null}
-              <CheckoutSubscriptionButton
-                endpoint={`/api/workspaces/${account.workspace.id}/checkout`}
-                planName={configuredPlan.name}
-                subscriptionId={subscription.id}
-              />
-            </article>
-          </div>
-        ) : (
-          <div className="empty-state">
-            <strong>当前订阅无需在线付款</strong>
-            <p>订阅状态为“{subscriptionStatusLabels[subscription.status]}”。如需变更套餐或重新付款，请联系平台管理员。</p>
-          </div>
-        )}
-      </section>
-
       <div className="notice notice-neutral billing-disclaimer">
-        在线付款通过 Stripe Checkout 完成；付款结果仅由支付 Webhook 写入。平台只会自动创建待开通记录，不会自动开通或部署餐饮订单系统。
+        在线付款通过 Stripe Checkout 完成；付款结果仅由支付 Webhook 写入。平台只会准备待开通记录，不会自动部署应用。
         <Link href="/dashboard/billing/payment-result">查看最近一次付款返回状态</Link>
       </div>
     </>

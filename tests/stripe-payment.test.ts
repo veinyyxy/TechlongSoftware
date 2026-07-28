@@ -51,38 +51,52 @@ test("accepts a correctly signed Stripe webhook and rejects a forged one", async
 
 test("keeps Stripe checkout authority on the server and verifies raw webhook payloads", async () => {
   const root = new URL("../", import.meta.url);
-  const [checkoutRoute, webhookRoute, checkoutButton, paymentManagement] = await Promise.all([
+  const [checkoutRoute, webhookRoute, checkoutButton, paymentManagement, stripeGateway] = await Promise.all([
     readFile(new URL("app/api/workspaces/[workspaceId]/checkout/route.ts", root), "utf8"),
     readFile(new URL("app/api/stripe/webhook/route.ts", root), "utf8"),
     readFile(new URL("components/billing/CheckoutSubscriptionButton.tsx", root), "utf8"),
     readFile(new URL("lib/payments/management.ts", root), "utf8"),
+    readFile(new URL("lib/payments/stripe.ts", root), "utf8"),
   ]);
 
   assert.match(checkoutRoute, /createPaymentCheckout/);
   assert.match(checkoutRoute, /account\.membership\.role !== "owner"/);
   assert.match(checkoutButton, /JSON\.stringify\(\{ subscriptionId \}\)/);
   assert.doesNotMatch(checkoutButton, /amount|priceAmount|paymentStatus|planId/);
-  assert.match(paymentManagement, /getWorkspaceSubscription/);
+  assert.match(paymentManagement, /getSubscription\(input\.subscriptionId\)/);
+  assert.match(paymentManagement, /getWorkspaceProductCurrentSubscription/);
+  assert.match(paymentManagement, /currentSubscription\.id !== subscription\.id/);
   assert.match(paymentManagement, /subscription\.status !== "manual_pending"/);
+  assert.match(paymentManagement, /subscription\.productStatus !== "active"/);
   assert.match(paymentManagement, /subscription_id/);
+  assert.match(paymentManagement, /cs\.status IN \('creating', 'open'\)/);
+  assert.match(paymentManagement, /getReusableOpenCheckout\(\s*input\.workspaceId,\s*subscription\.id/);
+  assert.doesNotMatch(paymentManagement, /SELECT id, status FROM subscriptions WHERE workspace_id = \? LIMIT 1/);
+  assert.match(paymentManagement, /staleClaimBefore/);
+  assert.match(paymentManagement, /WHERE id = \? AND status <> 'paid'/);
+  assert.match(paymentManagement, /WHERE id = \? AND status <> 'completed'/);
+  assert.match(stripeGateway, /"idempotency-key": `checkout_\$\{input\.checkoutId\}`/);
   assert.match(webhookRoute, /request\.text\(\)/);
   assert.match(webhookRoute, /verifyStripeWebhook/);
   assert.match(webhookRoute, /processStripeWebhookEvent/);
 });
 
-test("creates only a pending restaurant instance from the verified payment completion path", async () => {
+test("creates or relinks only a pending product instance from the verified payment completion path", async () => {
   const root = new URL("../", import.meta.url);
   const [paymentManagement, instanceManagement] = await Promise.all([
     readFile(new URL("lib/payments/management.ts", root), "utf8"),
     readFile(new URL("lib/instances/management.ts", root), "utf8"),
   ]);
 
-  assert.match(paymentManagement, /preparePendingRestaurantAppInstance/);
+  assert.match(paymentManagement, /preparePendingAppInstance/);
+  assert.match(paymentManagement, /productId: confirmedSubscription\.productId/);
   assert.match(paymentManagement, /syncWorkspaceAppInstanceStatusStatement/);
   assert.match(paymentManagement, /pendingInstanceStatement/);
-  assert.match(instanceManagement, /restaurant-order-system/);
   assert.match(instanceManagement, /provisioning_source/);
   assert.match(instanceManagement, /'payment_success', 'pending'/);
   assert.match(instanceManagement, /WHERE workspace_id = \? AND product_id = \?/);
+  assert.match(instanceManagement, /SET subscription_id = \?, status = 'pending'/);
+  assert.match(instanceManagement, /provisioned_at = NULL/);
+  assert.match(instanceManagement, /existing\.subscription_id === input\.subscriptionId/);
   assert.doesNotMatch(instanceManagement, /'payment_success', 'active'/);
 });

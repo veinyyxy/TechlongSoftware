@@ -12,10 +12,8 @@ import {
 import { subscriptionStatusLabels as billingStatusLabels } from "@/lib/billing/presentation";
 import {
   appInstanceStatusLabels,
-  billingIntervalLabels,
   formatDate,
   formatMoney,
-  subscriptionStatusLabels,
   workspaceStatusLabels,
 } from "@/lib/admin/presentation";
 
@@ -105,23 +103,12 @@ export default async function CustomerDetailPage({
           <h2>服务状态</h2>
           <dl className="detail-list">
             <div>
-              <dt>当前套餐</dt>
-              <dd>
-                {customer.plan
-                  ? `${customer.plan.name} · ${formatMoney(
-                      customer.plan.priceAmount,
-                      customer.plan.currency,
-                    )}/${billingIntervalLabels[customer.plan.billingInterval]}`
-                  : "尚未分配"}
-              </dd>
+              <dt>当前订阅</dt>
+              <dd>{billing.currentSubscriptions.length} 个产品</dd>
             </div>
             <div>
-              <dt>订阅状态</dt>
-              <dd>
-                {billing.subscription
-                  ? billingStatusLabels[billing.subscription.status]
-                  : subscriptionStatusLabels[customer.subscriptionStatus]}
-              </dd>
+              <dt>历史订阅</dt>
+              <dd>{billing.historicalSubscriptions.length} 条记录</dd>
             </div>
             <div>
               <dt>应用实例</dt>
@@ -129,28 +116,90 @@ export default async function CustomerDetailPage({
             </div>
           </dl>
           <div className="notice notice-neutral">
-            订阅、付款与应用实例均由平台管理员手动维护，不会触发自动部署。
+            订阅和应用实例由平台管理员维护；Stripe 只确认付款，不会触发自动部署。
           </div>
-          {billing.subscription ? (
-            <Link
-              className="table-link"
-              href={`/admin/subscriptions/${billing.subscription.id}`}
-            >
-              查看订阅详情 →
-            </Link>
-          ) : (
-            <Link className="table-link" href="/admin/subscriptions/new">
-              为客户创建订阅 →
-            </Link>
-          )}
+          <Link className="table-link" href={`/admin/subscriptions/new?workspaceId=${encodeURIComponent(customer.id)}`}>
+            为客户创建订阅 →
+          </Link>
         </section>
       </div>
 
       <section className="data-panel">
         <div className="data-panel-heading">
           <div>
+            <h2>当前订阅</h2>
+            <p>按产品显示；同一产品最多一条当前订阅</p>
+          </div>
+          <Link className="table-link" href={`/admin/subscriptions/new?workspaceId=${encodeURIComponent(customer.id)}`}>
+            创建订阅
+          </Link>
+        </div>
+        {billing.currentSubscriptions.length ? (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr><th>产品</th><th>套餐</th><th>状态</th><th>当前周期</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                {billing.currentSubscriptions.map((subscription) => (
+                  <tr key={subscription.id}>
+                    <td><strong>{subscription.productName}</strong><span>{subscription.productSlug}</span></td>
+                    <td><strong>{subscription.planName}</strong><span>{formatMoney(subscription.planPriceAmount, subscription.planCurrency)}</span></td>
+                    <td>{billingStatusLabels[subscription.status]}</td>
+                    <td>{formatDate(subscription.currentPeriodStart)} 至 {formatDate(subscription.currentPeriodEnd)} UTC</td>
+                    <td><Link className="table-link" href={`/admin/subscriptions/${subscription.id}`}>查看详情</Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <strong>暂无当前订阅</strong>
+            <p>可以为该客户创建新的产品订阅。</p>
+          </div>
+        )}
+      </section>
+
+      <section className="data-panel">
+        <div className="data-panel-heading">
+          <div>
+            <h2>历史订阅</h2>
+            <p>取消后的订阅不会被删除</p>
+          </div>
+        </div>
+        {billing.historicalSubscriptions.length ? (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr><th>产品</th><th>套餐</th><th>状态</th><th>周期</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                {billing.historicalSubscriptions.map((subscription) => (
+                  <tr key={subscription.id}>
+                    <td><strong>{subscription.productName}</strong></td>
+                    <td>{subscription.planName}</td>
+                    <td>{billingStatusLabels[subscription.status]}</td>
+                    <td>{formatDate(subscription.currentPeriodStart)} 至 {formatDate(subscription.currentPeriodEnd)} UTC</td>
+                    <td><Link className="table-link" href={`/admin/subscriptions/${subscription.id}`}>查看历史</Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <strong>暂无历史订阅</strong>
+            <p>取消订阅后，记录会保留在这里。</p>
+          </div>
+        )}
+      </section>
+
+      <section className="data-panel">
+        <div className="data-panel-heading">
+          <div>
             <h2>应用实例</h2>
-            <p>客户对应的餐饮订单系统入口</p>
+            <p>客户各产品对应的应用入口</p>
           </div>
           <Link className="table-link" href="/admin/instances/new">
             创建应用实例
@@ -193,38 +242,6 @@ export default async function CustomerDetailPage({
         )}
       </section>
 
-      {customer.plan ? (
-        <section className="data-panel plan-detail-panel">
-          <div className="data-panel-heading">
-            <div>
-              <h2>{customer.plan.name} 套餐内容</h2>
-              <p>以下功能和限制来自数据库</p>
-            </div>
-          </div>
-          <div className="plan-content-grid">
-            <div>
-              <h3>功能</h3>
-              {customer.plan.features.length ? (
-                <ul className="value-list">
-                  {customer.plan.features.map((feature) => (
-                    <li key={feature}>{feature}</li>
-                  ))}
-                </ul>
-              ) : <p className="muted-copy">暂无功能描述</p>}
-            </div>
-            <div>
-              <h3>限制</h3>
-              {Object.keys(customer.plan.limits).length ? (
-                <dl className="limit-list">
-                  {Object.entries(customer.plan.limits).map(([key, value]) => (
-                    <div key={key}><dt>{key}</dt><dd>{value}</dd></div>
-                  ))}
-                </dl>
-              ) : <p className="muted-copy">暂无限制配置</p>}
-            </div>
-          </div>
-        </section>
-      ) : null}
     </>
   );
 }
