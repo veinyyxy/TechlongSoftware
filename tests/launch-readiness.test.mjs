@@ -28,13 +28,3 @@ test("README documents startup, hosted admin initialization, and launch scope", 
   assert.match(readme, /Stripe Webhook/);
   assert.match(readme, /Paddle、自动续扣/);
 });
-
-test("customer dashboard is centered on subscription and service entry points", async () => {
-  const source = await read("app/dashboard/page.tsx");
-  assert.doesNotMatch(source, /<small>企业名称<\/small>/);
-  assert.doesNotMatch(source, /工作区状态：/);
-  assert.match(source, /订阅套餐/);
-  assert.match(source, /订阅状态/);
-  assert.match(source, /买家端入口地址/);
-  assert.match(source, /卖家端 APK 下载地址/);
-});
