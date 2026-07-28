@@ -1,0 +1,1 @@
+ALTER TABLE `app_instances` ADD `seller_apk_url` text DEFAULT '' NOT NULL;

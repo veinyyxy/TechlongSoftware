@@ -43,6 +43,7 @@ test("stage 4 migrations contain workspace-scoped products and application insta
   assert.match(sql, /`workspace_id` text NOT NULL/);
   assert.match(sql, /`product_id` text NOT NULL/);
   assert.match(sql, /`access_url` text NOT NULL/);
+  assert.match(sql, /ADD `seller_apk_url` text DEFAULT '' NOT NULL/);
   assert.match(sql, /`tenant_key` text NOT NULL/);
   assert.match(sql, /app_instances_tenant_key_unique/);
   assert.match(sql, /`provisioning_source` text DEFAULT 'manual' NOT NULL/);

@@ -15,6 +15,7 @@ test("validates an application instance with a stored HTTP access URL", () => {
     slug: "Northshore-Orders",
     domain: "orders.example.com",
     accessUrl: "https://orders.example.com/admin",
+    sellerApkUrl: "https://downloads.example.com/restaurant-seller.apk",
     tenantKey: "Northshore_01",
     status: "pending",
   });
@@ -23,6 +24,10 @@ test("validates an application instance with a stored HTTP access URL", () => {
   assert.equal(valid.data?.slug, "northshore-orders");
   assert.equal(valid.data?.tenantKey, "northshore_01");
   assert.equal(valid.data?.accessUrl, "https://orders.example.com/admin");
+  assert.equal(
+    valid.data?.sellerApkUrl,
+    "https://downloads.example.com/restaurant-seller.apk",
+  );
 });
 
 test("rejects invalid instance identifiers and unsafe access addresses", () => {
@@ -33,6 +38,7 @@ test("rejects invalid instance identifiers and unsafe access addresses", () => {
     slug: "North shore",
     domain: "orders example.com",
     accessUrl: "javascript:alert(1)",
+    sellerApkUrl: "file:///restaurant-seller.apk",
     tenantKey: "A",
     status: "provisioning",
   });
@@ -44,6 +50,7 @@ test("rejects invalid instance identifiers and unsafe access addresses", () => {
   assert.ok(invalid.errors.slug);
   assert.ok(invalid.errors.domain);
   assert.ok(invalid.errors.accessUrl);
+  assert.ok(invalid.errors.sellerApkUrl);
   assert.ok(invalid.errors.tenantKey);
   assert.ok(invalid.errors.status);
 });
@@ -65,11 +72,13 @@ test("permits a pending instance without an entry URL but never activates it wit
     slug: "northshore-orders",
     domain: "",
     accessUrl: "",
+    sellerApkUrl: "",
     tenantKey: "northshore_pending",
     status: "pending",
   });
   assert.deepEqual(pending.errors, {});
   assert.equal(pending.data?.accessUrl, "");
+  assert.equal(pending.data?.sellerApkUrl, "");
 
   const active = validateAppInstanceInput({
     ...pending.data,

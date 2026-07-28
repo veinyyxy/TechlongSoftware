@@ -36,6 +36,7 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
 
   const subscriptionIsActive = instance.subscriptionStatus === "active";
   const hasAccessUrl = hasRecordedAccessUrl(instance.accessUrl);
+  const hasSellerApkUrl = hasRecordedAccessUrl(instance.sellerApkUrl);
   const canActivate = subscriptionIsActive && hasAccessUrl && instance.status !== "active";
 
   return (
@@ -136,16 +137,28 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
       <section className="data-panel">
         <div className="data-panel-heading">
           <div>
-            <h2>客户访问入口</h2>
-            <p>入口地址直接来自管理员保存的 access_url。</p>
+            <h2>客户服务入口</h2>
+            <p>买家端入口和卖家端 APK 地址由管理员维护，客户侧仅在服务可用时展示操作按钮。</p>
           </div>
           {hasAccessUrl ? (
             <a className="button button-dark button-small" href={instance.accessUrl} rel="noreferrer" target="_blank">
-              打开入口
+              打开买家端
             </a>
           ) : null}
         </div>
-        <div className="instance-url-value">{hasAccessUrl ? instance.accessUrl : "尚未登记访问地址"}</div>
+        <dl className="detail-list">
+          <div><dt>买家端入口</dt><dd>{hasAccessUrl ? instance.accessUrl : "尚未登记"}</dd></div>
+          <div>
+            <dt>卖家端 APK</dt>
+            <dd>
+              {hasSellerApkUrl ? (
+                <a className="table-link" href={instance.sellerApkUrl} rel="noreferrer" target="_blank">
+                  {instance.sellerApkUrl}
+                </a>
+              ) : "尚未登记"}
+            </dd>
+          </div>
+        </dl>
       </section>
     </>
   );

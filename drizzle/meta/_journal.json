@@ -43,6 +43,13 @@
       "when": 1785174464533,
       "tag": "0005_striped_starbolt",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1785263318812,
+      "tag": "0006_true_valkyrie",
+      "breakpoints": true
     }
   ]
 }

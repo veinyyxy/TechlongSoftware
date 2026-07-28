@@ -37,7 +37,7 @@
 - 只有关联有效订阅的实例允许被标记为 `active`。
 - 管理员可以暂停和恢复应用实例；所有实例管理接口均要求平台管理员权限。
 - 客户只能查看自己工作区的“我的应用”、应用状态和管理员登记的访问地址。
-- `access_url` 由管理员在后端记录中维护；平台不会自动部署或修改餐饮订单系统。
+- 买家端 `access_url` 与卖家端 `seller_apk_url` 由管理员在后端记录中维护；平台不会自动部署或修改餐饮订单系统。
 - 客户 Dashboard 显示企业名称、当前套餐、订阅状态、当前周期结束时间和最近付款状态。
 - 客户 Dashboard 显示餐饮订单系统状态与管理员登记的访问地址；仅在有效订阅、已开通实例和有效 URL 同时满足时显示进入按钮。
 - `manual_pending`、付款已确认但未开通、订阅异常、服务暂停、开通失败和未创建实例均有明确客户侧提示。
@@ -46,7 +46,7 @@
 - Checkout 金额、币种和套餐名称只由后端套餐记录生成；前端不会提交价格或付款状态。
 - Stripe Webhook 使用原始请求体和签名密钥验证事件，保存事件摘要并按事件 ID 去重。
 - 已验证的 Stripe 付款会写入付款记录并激活或更新订阅；若该工作区尚无餐饮订单系统实例，会自动创建一条 `pending` 待开通记录。
-- 自动创建的实例没有访问入口且绝不会直接开通；管理员必须填写有效 `access_url` 后才可标记为已开通。
+- 自动创建的实例没有访问入口且绝不会直接开通；管理员必须填写有效的买家端 `access_url` 后才可标记为已开通，并可同时维护卖家端 `seller_apk_url`。
 - 每个工作区的每个产品最多一条应用实例，避免重复 Webhook 或重复付款生成多个入口；实例来源可区分“付款成功自动创建”和管理员手动创建。
 - 管理员原有的手动订阅、手动付款记录和订阅状态调整能力继续保留；付款记录标记来源为 Stripe 或人工记录。
 
@@ -156,7 +156,7 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `app_instances.provisioning_source`（`manual` / `payment_success`）
 - `app_instances` 的 `(workspace_id, product_id)` 唯一约束，当前 MVP 每个工作区仅允许一个产品实例
 
-订阅关联 `workspace` 和 `plan`，当前 MVP 每个工作区最多一条订阅。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。应用实例关联 `workspace`、`product`，并可选关联订阅；保存管理员填写的 `access_url`、`domain` / `slug` 和 `tenant_key`。
+订阅关联 `workspace` 和 `plan`，当前 MVP 每个工作区最多一条订阅。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。应用实例关联 `workspace`、`product`，并可选关联订阅；保存管理员填写的买家端 `access_url`、卖家端 `seller_apk_url`、`domain` / `slug` 和 `tenant_key`。
 
 迁移会幂等写入默认产品：`餐饮订单系统` / `restaurant-order-system` / `active`。工作区上的 `plan_id`、`subscription_status` 和 `app_instance_status` 作为兼容状态快照，由订阅和应用实例管理操作同步更新；实际应用实例以 `app_instances` 为准。
 

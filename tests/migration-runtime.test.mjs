@@ -327,7 +327,8 @@ test("launch data flow preserves workspace isolation and application integrity",
 
   const application = database
     .prepare(
-      `SELECT ai.access_url, ai.status, ai.tenant_key, p.slug AS product_slug,
+      `SELECT ai.access_url, ai.seller_apk_url, ai.status, ai.tenant_key,
+              p.slug AS product_slug,
               s.workspace_id AS subscription_workspace_id
        FROM app_instances ai
        INNER JOIN products p ON p.id = ai.product_id
@@ -338,6 +339,7 @@ test("launch data flow preserves workspace isolation and application integrity",
   assert.deepEqual(
     {
       accessUrl: application.access_url,
+      sellerApkUrl: application.seller_apk_url,
       status: application.status,
       tenantKey: application.tenant_key,
       productSlug: application.product_slug,
@@ -345,6 +347,7 @@ test("launch data flow preserves workspace isolation and application integrity",
     },
     {
       accessUrl: "https://orders.example.com/admin",
+      sellerApkUrl: "",
       status: "active",
       tenantKey: "example_workspace",
       productSlug: "restaurant-order-system",
@@ -405,7 +408,7 @@ test("launch data flow preserves workspace isolation and application integrity",
     );
   const autoPendingInstance = database
     .prepare(
-      `SELECT subscription_id, provisioning_source, status, access_url
+      `SELECT subscription_id, provisioning_source, status, access_url, seller_apk_url
        FROM app_instances WHERE id = ?`,
     )
     .get("app_auto_pending");
@@ -416,6 +419,7 @@ test("launch data flow preserves workspace isolation and application integrity",
       provisioning_source: "payment_success",
       status: "pending",
       access_url: "",
+      seller_apk_url: "",
     },
   );
 

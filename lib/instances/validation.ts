@@ -10,6 +10,7 @@ export interface AppInstanceInput {
   slug: string;
   domain: string | null;
   accessUrl: string;
+  sellerApkUrl: string;
   tenantKey: string;
   status: AppInstanceStatus;
 }
@@ -76,6 +77,7 @@ export function validateAppInstanceInput(
   const slug = asTrimmedString(input.slug).toLowerCase();
   const domain = asTrimmedString(input.domain);
   const accessUrl = asTrimmedString(input.accessUrl);
+  const sellerApkUrl = asTrimmedString(input.sellerApkUrl);
   const tenantKey = asTrimmedString(input.tenantKey).toLowerCase();
   const status = input.status;
 
@@ -103,6 +105,12 @@ export function validateAppInstanceInput(
   if (status === "active" && !isValidAppInstanceAccessUrl(accessUrl)) {
     addError(errors, "accessUrl", "标记为已开通前，必须填写有效的 http:// 或 https:// 访问地址。");
   }
+  if (
+    sellerApkUrl.length > 2048 ||
+    (sellerApkUrl && !isValidAppInstanceAccessUrl(sellerApkUrl))
+  ) {
+    addError(errors, "sellerApkUrl", "请输入有效的 http:// 或 https:// APK 下载地址。");
+  }
   if (!/^[a-z0-9][a-z0-9_-]{1,63}$/.test(tenantKey)) {
     addError(errors, "tenantKey", "租户标识需为 2–64 位小写字母、数字、下划线或连字符。");
   }
@@ -121,6 +129,7 @@ export function validateAppInstanceInput(
             slug,
             domain: domain || null,
             accessUrl,
+            sellerApkUrl,
             tenantKey,
             status: status as AppInstanceStatus,
           }

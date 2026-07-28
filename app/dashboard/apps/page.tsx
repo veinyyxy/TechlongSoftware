@@ -28,7 +28,7 @@ export default async function AppsPage() {
       <header className="page-header">
         <p className="page-kicker">MY APPLICATIONS</p>
         <h1>我的应用</h1>
-        <p>查看当前工作区已登记的餐饮订单系统入口和服务状态。</p>
+        <p>查看餐饮订单系统的买家端入口、卖家端 APK 和服务状态。</p>
       </header>
 
       {instances.length ? (
@@ -43,6 +43,16 @@ export default async function AppsPage() {
                     : null,
                 appInstanceStatus: instance.status,
                 accessUrl: instance.accessUrl,
+              });
+            const canDownloadSellerApk =
+              canEnterCustomerApplication({
+                subscriptionStatus: instance.subscriptionStatus,
+                currentPeriodEnd:
+                  billing.subscription?.id === instance.subscriptionId
+                    ? billing.subscription.currentPeriodEnd
+                    : null,
+                appInstanceStatus: instance.status,
+                accessUrl: instance.sellerApkUrl,
               });
             return (
               <article className="app-instance-card" key={instance.id}>
@@ -65,7 +75,8 @@ export default async function AppsPage() {
                   accessUrl: instance.accessUrl,
                 })}</p>
                 <dl className="app-instance-summary">
-                  <div><dt>访问地址</dt><dd>{hasRecordedAccessUrl(instance.accessUrl) ? instance.accessUrl : "平台管理员尚未登记"}</dd></div>
+                  <div><dt>买家端入口</dt><dd>{hasRecordedAccessUrl(instance.accessUrl) ? instance.accessUrl : "平台管理员尚未登记"}</dd></div>
+                  <div><dt>卖家端 APK</dt><dd>{hasRecordedAccessUrl(instance.sellerApkUrl) ? instance.sellerApkUrl : "平台管理员尚未登记"}</dd></div>
                   <div><dt>租户标识</dt><dd><code>{instance.tenantKey}</code></dd></div>
                 </dl>
                 {instance.status === "active" && !canEnter ? (
@@ -79,7 +90,12 @@ export default async function AppsPage() {
                   </Link>
                   {canEnter ? (
                     <a className="button button-dark button-small" href={instance.accessUrl} rel="noreferrer" target="_blank">
-                      进入餐饮订单系统
+                      进入买家端
+                    </a>
+                  ) : null}
+                  {canDownloadSellerApk ? (
+                    <a className="button button-ghost button-small" href={instance.sellerApkUrl} rel="noreferrer" target="_blank">
+                      下载卖家端 APK
                     </a>
                   ) : null}
                 </div>
@@ -95,7 +111,7 @@ export default async function AppsPage() {
       )}
 
       <div className="notice notice-neutral billing-disclaimer">
-        应用入口由平台管理员手动维护。本页面不提供修改实例、部署应用或付款操作。
+        买家端入口和卖家端 APK 地址由平台管理员维护。本页面不提供修改实例、部署应用或付款操作。
       </div>
     </>
   );

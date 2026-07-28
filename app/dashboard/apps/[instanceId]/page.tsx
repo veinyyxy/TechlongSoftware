@@ -41,6 +41,13 @@ export default async function CustomerAppDetailPage({ params }: CustomerAppDetai
       appInstanceStatus: instance.status,
       accessUrl: instance.accessUrl,
     });
+  const canDownloadSellerApk =
+    canEnterCustomerApplication({
+      subscriptionStatus: instance.subscriptionStatus,
+      currentPeriodEnd,
+      appInstanceStatus: instance.status,
+      accessUrl: instance.sellerApkUrl,
+    });
   const statusMessage = getCustomerApplicationMessage({
     subscriptionStatus: instance.subscriptionStatus,
     currentPeriodEnd,
@@ -82,7 +89,8 @@ export default async function CustomerAppDetailPage({ params }: CustomerAppDetai
             <div><dt>产品</dt><dd>{instance.productName}</dd></div>
             <div><dt>实例名称</dt><dd>{instance.name}</dd></div>
             <div><dt>域名或路径</dt><dd>{instance.domain ?? instance.slug}</dd></div>
-            <div><dt>访问地址</dt><dd>{hasRecordedAccessUrl(instance.accessUrl) ? instance.accessUrl : "平台管理员尚未登记"}</dd></div>
+            <div><dt>买家端入口</dt><dd>{hasRecordedAccessUrl(instance.accessUrl) ? instance.accessUrl : "平台管理员尚未登记"}</dd></div>
+            <div><dt>卖家端 APK</dt><dd>{hasRecordedAccessUrl(instance.sellerApkUrl) ? instance.sellerApkUrl : "平台管理员尚未登记"}</dd></div>
           </dl>
         </section>
         <section className="module-card">
@@ -99,8 +107,13 @@ export default async function CustomerAppDetailPage({ params }: CustomerAppDetai
       {canEnter ? (
         <div className="app-detail-entry">
           <a className="button button-dark" href={instance.accessUrl} rel="noreferrer" target="_blank">
-            进入餐饮订单系统
+            进入买家端
           </a>
+          {canDownloadSellerApk ? (
+            <a className="button button-ghost" href={instance.sellerApkUrl} rel="noreferrer" target="_blank">
+              下载卖家端 APK
+            </a>
+          ) : null}
         </div>
       ) : null}
     </>

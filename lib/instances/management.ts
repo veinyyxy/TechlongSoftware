@@ -43,6 +43,7 @@ export interface AppInstanceView {
   slug: string;
   domain: string | null;
   accessUrl: string;
+  sellerApkUrl: string;
   tenantKey: string;
   provisioningSource: AppInstanceProvisioningSource;
   status: AppInstanceStatus;
@@ -78,6 +79,7 @@ type AppInstanceRow = {
   slug: string;
   domain: string | null;
   access_url: string;
+  seller_apk_url: string;
   tenant_key: string;
   provisioning_source: AppInstanceProvisioningSource;
   status: AppInstanceStatus;
@@ -116,6 +118,7 @@ function toAppInstanceView(row: AppInstanceRow): AppInstanceView {
     slug: row.slug,
     domain: row.domain,
     accessUrl: row.access_url,
+    sellerApkUrl: row.seller_apk_url,
     tenantKey: row.tenant_key,
     provisioningSource: row.provisioning_source,
     status: row.status,
@@ -134,7 +137,8 @@ const appInstanceSelect = `
     w.status AS workspace_status, ai.product_id, p.name AS product_name,
     p.slug AS product_slug, ai.subscription_id,
     s.status AS subscription_status, ai.name, ai.slug, ai.domain,
-    ai.access_url, ai.tenant_key, ai.provisioning_source, ai.status, ai.provisioned_at,
+    ai.access_url, ai.seller_apk_url, ai.tenant_key, ai.provisioning_source,
+    ai.status, ai.provisioned_at,
     ai.suspended_at, ai.created_by_user_id, u.name AS created_by_name,
     ai.created_at, ai.updated_at
   FROM app_instances ai
@@ -349,9 +353,9 @@ export async function preparePendingRestaurantAppInstance(input: {
     .prepare(
       `INSERT INTO app_instances (
         id, workspace_id, product_id, subscription_id, name, slug, domain,
-        access_url, tenant_key, provisioning_source, status, provisioned_at,
+        access_url, seller_apk_url, tenant_key, provisioning_source, status, provisioned_at,
         suspended_at, created_by_user_id, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, NULL, '', ?, 'payment_success', 'pending',
+      ) VALUES (?, ?, ?, ?, ?, ?, NULL, '', '', ?, 'payment_success', 'pending',
         NULL, NULL, ?, ?, ?)`,
     )
     .bind(
@@ -391,9 +395,9 @@ export async function createAppInstance(
         .prepare(
           `INSERT INTO app_instances (
             id, workspace_id, product_id, subscription_id, name, slug, domain,
-            access_url, tenant_key, status, provisioned_at, suspended_at,
+            access_url, seller_apk_url, tenant_key, status, provisioned_at, suspended_at,
             created_by_user_id, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
@@ -404,6 +408,7 @@ export async function createAppInstance(
           input.slug,
           input.domain,
           input.accessUrl,
+          input.sellerApkUrl,
           input.tenantKey,
           input.status,
           input.status === "active" ? now : null,
@@ -464,7 +469,7 @@ export async function updateAppInstance(
         .prepare(
           `UPDATE app_instances
            SET product_id = ?, subscription_id = ?, name = ?, slug = ?,
-             domain = ?, access_url = ?, tenant_key = ?, status = ?,
+             domain = ?, access_url = ?, seller_apk_url = ?, tenant_key = ?, status = ?,
              provisioned_at = ?, suspended_at = ?, updated_at = ?
            WHERE id = ?`,
         )
@@ -475,6 +480,7 @@ export async function updateAppInstance(
           input.slug,
           input.domain,
           input.accessUrl,
+          input.sellerApkUrl,
           input.tenantKey,
           input.status,
           provisionedAt,

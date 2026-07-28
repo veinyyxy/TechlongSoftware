@@ -36,6 +36,7 @@ interface AppInstanceFormProps {
     slug: string;
     domain: string | null;
     accessUrl: string;
+    sellerApkUrl: string;
     tenantKey: string;
     status: AppInstanceStatus;
   };
@@ -97,6 +98,7 @@ export function AppInstanceForm({
       slug: String(formData.get("slug") ?? ""),
       domain: String(formData.get("domain") ?? ""),
       accessUrl: String(formData.get("accessUrl") ?? ""),
+      sellerApkUrl: String(formData.get("sellerApkUrl") ?? ""),
       tenantKey: String(formData.get("tenantKey") ?? ""),
       status: String(formData.get("status") ?? ""),
     };
@@ -208,17 +210,29 @@ export function AppInstanceForm({
           {fieldError("tenantKey") ? <small className="form-error">{fieldError("tenantKey")}</small> : null}
         </label>
         <label className="form-field form-field-wide">
-          <span>访问地址 access_url</span>
+          <span>买家端入口 access_url</span>
           <input
             defaultValue={initial?.accessUrl}
             maxLength={2048}
             name="accessUrl"
-            placeholder="https://orders.example.com/admin"
+            placeholder="https://orders.example.com"
             required={status === "active"}
             type="url"
           />
-          <small>激活前必须填写；待开通、暂停或失败记录可暂不填写。平台只保存入口，不会部署或修改餐饮订单系统。</small>
+          <small>客户访问餐饮订单系统买家端的完整网址。激活前必须填写。</small>
           {fieldError("accessUrl") ? <small className="form-error">{fieldError("accessUrl")}</small> : null}
+        </label>
+        <label className="form-field form-field-wide">
+          <span>卖家端 APK 下载地址 seller_apk_url（可选）</span>
+          <input
+            defaultValue={initial?.sellerApkUrl}
+            maxLength={2048}
+            name="sellerApkUrl"
+            placeholder="https://downloads.example.com/restaurant-seller.apk"
+            type="url"
+          />
+          <small>填写管理员确认可用的 APK 下载链接；未填写时客户侧不会显示下载按钮。</small>
+          {fieldError("sellerApkUrl") ? <small className="form-error">{fieldError("sellerApkUrl")}</small> : null}
         </label>
         <label className="form-field">
           <span>实例状态</span>
@@ -242,7 +256,7 @@ export function AppInstanceForm({
       ) : null}
       {status === "active" ? (
         <div className="notice notice-neutral">
-          标记为已开通前，请确认已经填写有效的访问地址；保存时会再次校验。
+          标记为已开通前，请确认已经填写有效的买家端入口；保存时会再次校验。卖家端 APK 地址可以稍后补充。
         </div>
       ) : null}
       <div className="notice notice-neutral">

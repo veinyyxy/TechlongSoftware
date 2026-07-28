@@ -303,6 +303,7 @@ export const appInstances = sqliteTable(
     slug: text("slug").notNull(),
     domain: text("domain"),
     accessUrl: text("access_url").notNull(),
+    sellerApkUrl: text("seller_apk_url").notNull().default(""),
     tenantKey: text("tenant_key").notNull(),
     provisioningSource: text("provisioning_source", {
       enum: ["manual", "payment_success"],

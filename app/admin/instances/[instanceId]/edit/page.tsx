@@ -57,6 +57,7 @@ export default async function EditInstancePage({ params }: EditInstancePageProps
             slug: instance.slug,
             domain: instance.domain,
             accessUrl: instance.accessUrl,
+            sellerApkUrl: instance.sellerApkUrl,
             tenantKey: instance.tenantKey,
             status: instance.status,
           }}
