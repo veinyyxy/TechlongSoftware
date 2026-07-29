@@ -4,11 +4,6 @@ import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { AppInstanceStatus } from "@/lib/instances/validation";
 
-interface CustomerOption {
-  id: string;
-  name: string;
-}
-
 interface ProductOption {
   id: string;
   name: string;
@@ -17,6 +12,7 @@ interface ProductOption {
 interface SubscriptionOption {
   id: string;
   workspaceId: string;
+  workspaceName: string;
   productId: string;
   productName: string;
   planName: string;
@@ -26,7 +22,6 @@ interface SubscriptionOption {
 interface AppInstanceFormProps {
   mode: "create" | "edit";
   instanceId?: string;
-  customers: CustomerOption[];
   products: ProductOption[];
   subscriptions: SubscriptionOption[];
   initial?: {
@@ -54,13 +49,12 @@ interface ErrorPayload {
 export function AppInstanceForm({
   mode,
   instanceId,
-  customers,
   products,
   subscriptions,
   initial,
 }: AppInstanceFormProps) {
   const router = useRouter();
-  const [workspaceId, setWorkspaceId] = useState(initial?.workspaceId ?? "");
+  const workspaceId = initial?.workspaceId ?? "";
   const [productId, setProductId] = useState(initial?.productId ?? "");
   const [subscriptionId, setSubscriptionId] = useState(
     initial?.subscriptionId ?? "",
@@ -73,14 +67,18 @@ export function AppInstanceForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   const availableSubscriptions = useMemo(
-    () =>
-      subscriptions.filter(
+    () => {
+      const current = subscriptions.filter(
+        (subscription) => subscription.status !== "canceled",
+      );
+      if (mode === "create") return current;
+      return current.filter(
         (subscription) =>
           subscription.workspaceId === workspaceId &&
-          subscription.productId === productId &&
-          subscription.status !== "canceled",
-      ),
-    [subscriptions, workspaceId, productId],
+          subscription.productId === productId,
+      );
+    },
+    [mode, subscriptions, workspaceId, productId],
   );
   const selectedSubscription = availableSubscriptions.find(
     (subscription) => subscription.id === subscriptionId,
@@ -99,9 +97,7 @@ export function AppInstanceForm({
     setMessage("");
     setFieldErrors({});
     const formData = new FormData(event.currentTarget);
-    const payload = {
-      workspaceId: String(formData.get("workspaceId") ?? ""),
-      productId: String(formData.get("productId") ?? ""),
+    const sharedFields = {
       subscriptionId: String(formData.get("subscriptionId") ?? ""),
       name: String(formData.get("name") ?? ""),
       slug: String(formData.get("slug") ?? ""),
@@ -111,6 +107,14 @@ export function AppInstanceForm({
       tenantKey: String(formData.get("tenantKey") ?? ""),
       status: String(formData.get("status") ?? ""),
     };
+    const payload =
+      mode === "create"
+        ? sharedFields
+        : {
+            ...sharedFields,
+            workspaceId: String(formData.get("workspaceId") ?? ""),
+            productId: String(formData.get("productId") ?? ""),
+          };
 
     try {
       const endpoint =
@@ -146,66 +150,76 @@ export function AppInstanceForm({
   return (
     <form className="admin-form" onSubmit={handleSubmit}>
       <div className="form-grid">
-        <label className="form-field form-field-wide">
-          <span>企业客户</span>
-          {mode === "edit" && initial ? (
-            <>
-              <input aria-label="企业客户" disabled value={initial.workspaceName} />
-              <input name="workspaceId" type="hidden" value={initial.workspaceId} />
-            </>
-          ) : (
+        {mode === "create" ? (
+          <label className="form-field form-field-wide">
+            <span>关联订阅</span>
             <select
-              name="workspaceId"
-              onChange={(event) => {
-                setWorkspaceId(event.target.value);
-                setSubscriptionId("");
-              }}
+              name="subscriptionId"
+              onChange={(event) => setSubscriptionId(event.target.value)}
               required
-              value={workspaceId}
+              value={subscriptionId}
             >
-              <option disabled value="">请选择企业客户</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>{customer.name}</option>
+              <option disabled value="">请选择需要补建实例的订阅</option>
+              {availableSubscriptions.map((subscription) => (
+                <option key={subscription.id} value={subscription.id}>
+                  {subscription.workspaceName} · {subscription.productName} · {subscription.planName}
+                </option>
               ))}
             </select>
-          )}
-          {fieldError("workspaceId") ? <small className="form-error">{fieldError("workspaceId")}</small> : null}
-        </label>
-        <label className="form-field">
-          <span>产品</span>
-          <select
-            name="productId"
-            onChange={(event) => {
-              setProductId(event.target.value);
-              setSubscriptionId("");
-            }}
-            required
-            value={productId}
-          >
-            <option disabled value="">请选择产品</option>
-            {products.map((product) => (
-              <option key={product.id} value={product.id}>{product.name}</option>
-            ))}
-          </select>
-          {fieldError("productId") ? <small className="form-error">{fieldError("productId")}</small> : null}
-        </label>
-        <label className="form-field">
-          <span>关联订阅（可选）</span>
-          <select
-            name="subscriptionId"
-            onChange={(event) => setSubscriptionId(event.target.value)}
-            value={subscriptionId}
-          >
-            <option value="">暂不关联订阅</option>
-            {availableSubscriptions.map((subscription) => (
-              <option key={subscription.id} value={subscription.id}>
-                {subscription.planName} · {subscription.status}
-              </option>
-            ))}
-          </select>
-          <small>仅显示该企业在所选产品下的订阅；若状态设为“已开通”，必须选择一条有效订阅。</small>
-          {fieldError("subscriptionId") ? <small className="form-error">{fieldError("subscriptionId")}</small> : null}
-        </label>
+            <small>
+              企业、产品和套餐归属由订阅自动确定，不能在此手工指定。
+            </small>
+            {selectedSubscription ? (
+              <small>
+                当前归属：{selectedSubscription.workspaceName} · {selectedSubscription.productName} · {selectedSubscription.planName}
+              </small>
+            ) : null}
+            {fieldError("subscriptionId") ? <small className="form-error">{fieldError("subscriptionId")}</small> : null}
+          </label>
+        ) : (
+          <>
+            <label className="form-field form-field-wide">
+              <span>企业客户</span>
+              <input aria-label="企业客户" disabled value={initial?.workspaceName} />
+              <input name="workspaceId" type="hidden" value={workspaceId} />
+            </label>
+            <label className="form-field">
+              <span>产品</span>
+              <select
+                name="productId"
+                onChange={(event) => {
+                  setProductId(event.target.value);
+                  setSubscriptionId("");
+                }}
+                required
+                value={productId}
+              >
+                <option disabled value="">请选择产品</option>
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>{product.name}</option>
+                ))}
+              </select>
+              {fieldError("productId") ? <small className="form-error">{fieldError("productId")}</small> : null}
+            </label>
+            <label className="form-field">
+              <span>关联订阅（可选）</span>
+              <select
+                name="subscriptionId"
+                onChange={(event) => setSubscriptionId(event.target.value)}
+                value={subscriptionId}
+              >
+                <option value="">暂不关联订阅</option>
+                {availableSubscriptions.map((subscription) => (
+                  <option key={subscription.id} value={subscription.id}>
+                    {subscription.planName} · {subscription.status}
+                  </option>
+                ))}
+              </select>
+              <small>仅显示该企业在所选产品下的订阅；若状态设为“已开通”，必须选择一条有效订阅。</small>
+              {fieldError("subscriptionId") ? <small className="form-error">{fieldError("subscriptionId")}</small> : null}
+            </label>
+          </>
+        )}
         <label className="form-field">
           <span>实例名称</span>
           <input defaultValue={initial?.name} maxLength={100} name="name" required />
@@ -282,7 +296,7 @@ export function AppInstanceForm({
       {message ? <p className="form-error form-message">{message}</p> : null}
       <div className="form-actions">
         <button className="button button-dark" disabled={pending || activeSubscriptionRequired} type="submit">
-          {pending ? "保存中…" : mode === "create" ? "创建应用实例" : "保存修改"}
+          {pending ? "保存中…" : mode === "create" ? "补建应用实例" : "保存修改"}
         </button>
         <button className="button button-ghost" disabled={pending} onClick={() => router.back()} type="button">
           取消

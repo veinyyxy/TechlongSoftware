@@ -86,3 +86,24 @@ test("multi-product subscription pages expose current and historical records", a
   assert.match(instanceDetail, /instance\.subscriptionPlanName/);
   assert.doesNotMatch(newSubscription, /subscribedWorkspaceIds/);
 });
+
+test("manual instance fallback derives customer and product from the subscription", async () => {
+  const [newInstancePage, instanceForm, instanceRoute, instanceManagement] =
+    await Promise.all([
+      read("app/admin/instances/new/page.tsx"),
+      read("components/admin/AppInstanceForm.tsx"),
+      read("app/api/admin/instances/route.ts"),
+      read("lib/instances/management.ts"),
+    ]);
+
+  assert.doesNotMatch(newInstancePage, /listCustomers/);
+  assert.match(newInstancePage, /eligibleSubscriptions/);
+  assert.match(newInstancePage, /企业、产品和套餐由所选订阅自动确定/);
+  assert.match(instanceForm, /mode === "create"/);
+  assert.match(instanceForm, /请选择需要补建实例的订阅/);
+  assert.match(instanceForm, /企业、产品和套餐归属由订阅自动确定/);
+  assert.match(instanceRoute, /validateCreateAppInstanceInput/);
+  assert.match(instanceRoute, /createAppInstanceForSubscription/);
+  assert.match(instanceManagement, /workspaceId: subscription\.workspaceId/);
+  assert.match(instanceManagement, /productId: subscription\.productId/);
+});

@@ -8,6 +8,7 @@ import { randomId } from "@/lib/domain/ids";
 import type {
   AppInstanceInput,
   AppInstanceStatus,
+  CreateAppInstanceInput,
 } from "./validation";
 import {
   canActivateAppInstance,
@@ -502,6 +503,37 @@ export async function createAppInstance(
     throw new ManagementError("APP_INSTANCE_CREATE_FAILED", "实例创建失败。", 500);
   }
   return instance;
+}
+
+export async function createAppInstanceForSubscription(
+  input: CreateAppInstanceInput,
+  createdByUserId: string,
+): Promise<AppInstanceView> {
+  const subscription = await getSubscription(input.subscriptionId);
+  if (!subscription) {
+    throw new ManagementError(
+      "SUBSCRIPTION_NOT_FOUND",
+      "所选订阅不存在。",
+      400,
+    );
+  }
+  if (subscription.status === "canceled") {
+    throw new ManagementError(
+      "SUBSCRIPTION_NOT_CURRENT",
+      "已取消的历史订阅不能用于创建应用实例。",
+      400,
+    );
+  }
+
+  return createAppInstance(
+    {
+      ...input,
+      workspaceId: subscription.workspaceId,
+      productId: subscription.productId,
+      subscriptionId: subscription.id,
+    },
+    createdByUserId,
+  );
 }
 
 export async function updateAppInstance(

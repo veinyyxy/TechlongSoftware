@@ -2,13 +2,13 @@ import { managementErrorResponse, readJsonBody } from "@/lib/admin/http";
 import { apiError, apiSuccess } from "@/lib/api/response";
 import { requirePlatformAdminApi } from "@/lib/auth/admin-api";
 import {
-  createAppInstance,
+  createAppInstanceForSubscription,
   listAppInstances,
   type AppInstanceStatus,
 } from "@/lib/instances/management";
 import {
   isAppInstanceStatus,
-  validateAppInstanceInput,
+  validateCreateAppInstanceInput,
 } from "@/lib/instances/validation";
 
 export async function GET(request: Request) {
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   if (authorization.response) return authorization.response;
 
   try {
-    const result = validateAppInstanceInput(await readJsonBody(request));
+    const result = validateCreateAppInstanceInput(await readJsonBody(request));
     if (!result.data) {
       return Response.json(
         apiError("VALIDATION_ERROR", "请检查应用实例资料。", result.errors),
@@ -43,7 +43,10 @@ export async function POST(request: Request) {
 
     return Response.json(
       apiSuccess(
-        await createAppInstance(result.data, authorization.account.user.id),
+        await createAppInstanceForSubscription(
+          result.data,
+          authorization.account.user.id,
+        ),
       ),
       { status: 201 },
     );

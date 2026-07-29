@@ -4,6 +4,7 @@ import {
   canActivateAppInstance,
   isAppInstanceStatus,
   validateAppInstanceInput,
+  validateCreateAppInstanceInput,
 } from "../lib/instances/validation.ts";
 
 test("validates an application instance with a stored HTTP access URL", () => {
@@ -86,4 +87,36 @@ test("permits a pending instance without an entry URL but never activates it wit
   });
   assert.equal(active.data, null);
   assert.ok(active.errors.accessUrl);
+});
+
+test("creates an instance from a subscription without accepting customer ownership fields", () => {
+  const valid = validateCreateAppInstanceInput({
+    subscriptionId: "sub_one",
+    workspaceId: "wsp_forged",
+    productId: "prd_forged",
+    name: "Northshore Orders",
+    slug: "northshore-orders",
+    domain: "",
+    accessUrl: "",
+    sellerApkUrl: "",
+    tenantKey: "northshore_pending",
+    status: "pending",
+  });
+
+  assert.deepEqual(valid.errors, {});
+  assert.equal(valid.data?.subscriptionId, "sub_one");
+  assert.equal("workspaceId" in (valid.data ?? {}), false);
+  assert.equal("productId" in (valid.data ?? {}), false);
+
+  const missingSubscription = validateCreateAppInstanceInput({
+    name: "Northshore Orders",
+    slug: "northshore-orders",
+    domain: "",
+    accessUrl: "",
+    sellerApkUrl: "",
+    tenantKey: "northshore_pending",
+    status: "pending",
+  });
+  assert.equal(missingSubscription.data, null);
+  assert.ok(missingSubscription.errors.subscriptionId);
 });

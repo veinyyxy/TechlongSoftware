@@ -202,7 +202,7 @@ export default async function CustomerDetailPage({
             <p>客户各产品对应的应用入口</p>
           </div>
           <Link className="table-link" href="/admin/instances/new">
-            创建应用实例
+            补建遗漏实例
           </Link>
         </div>
         {instances.length ? (

@@ -15,6 +15,13 @@ export interface AppInstanceInput {
   status: AppInstanceStatus;
 }
 
+export type CreateAppInstanceInput = Omit<
+  AppInstanceInput,
+  "workspaceId" | "productId" | "subscriptionId"
+> & {
+  subscriptionId: string;
+};
+
 export interface ValidationResult<T> {
   data: T | null;
   errors: FieldErrors;
@@ -132,6 +139,43 @@ export function validateAppInstanceInput(
             sellerApkUrl,
             tenantKey,
             status: status as AppInstanceStatus,
+          }
+        : null,
+    errors,
+  };
+}
+
+export function validateCreateAppInstanceInput(
+  value: unknown,
+): ValidationResult<CreateAppInstanceInput> {
+  const input = asRecord(value);
+  const subscriptionId = asTrimmedString(input.subscriptionId);
+  const validated = validateAppInstanceInput({
+    ...input,
+    workspaceId: "derived_workspace",
+    productId: "derived_product",
+    subscriptionId,
+  });
+  const errors = { ...validated.errors };
+
+  delete errors.workspaceId;
+  delete errors.productId;
+  if (!validId(subscriptionId)) {
+    addError(errors, "subscriptionId", "请选择用于确定企业和产品的订阅。");
+  }
+
+  return {
+    data:
+      validated.data && Object.keys(errors).length === 0
+        ? {
+            subscriptionId,
+            name: validated.data.name,
+            slug: validated.data.slug,
+            domain: validated.data.domain,
+            accessUrl: validated.data.accessUrl,
+            sellerApkUrl: validated.data.sellerApkUrl,
+            tenantKey: validated.data.tenantKey,
+            status: validated.data.status,
           }
         : null,
     errors,

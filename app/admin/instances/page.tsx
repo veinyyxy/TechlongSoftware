@@ -40,7 +40,7 @@ export default async function InstancesPage({ searchParams }: InstancesPageProps
           <p>查看支付成功后自动生成的待开通记录，并维护客户入口与开通状态。</p>
         </div>
         <Link className="button button-dark button-small" href="/admin/instances/new">
-          创建应用实例
+          补建遗漏实例
         </Link>
       </header>
 

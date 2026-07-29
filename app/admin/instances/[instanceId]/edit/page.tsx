@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppInstanceForm } from "@/components/admin/AppInstanceForm";
-import { listCustomers } from "@/lib/admin/management";
 import { getAdminAccount } from "@/lib/auth/account";
 import { listSubscriptions } from "@/lib/billing/management";
 import { getAppInstance, listProducts } from "@/lib/instances/management";
@@ -16,9 +15,8 @@ interface EditInstancePageProps {
 export default async function EditInstancePage({ params }: EditInstancePageProps) {
   await getAdminAccount();
   const { instanceId } = await params;
-  const [instance, customers, products, subscriptions] = await Promise.all([
+  const [instance, products, subscriptions] = await Promise.all([
     getAppInstance(instanceId),
-    listCustomers(),
     listProducts(),
     listSubscriptions(),
   ]);
@@ -47,7 +45,6 @@ export default async function EditInstancePage({ params }: EditInstancePageProps
       </header>
       <section className="form-panel">
         <AppInstanceForm
-          customers={customers.map(({ id, name }) => ({ id, name }))}
           initial={{
             workspaceId: instance.workspaceId,
             workspaceName: instance.workspaceName,
@@ -67,6 +64,7 @@ export default async function EditInstancePage({ params }: EditInstancePageProps
           subscriptions={subscriptions.map((subscription) => ({
             id: subscription.id,
             workspaceId: subscription.workspaceId,
+            workspaceName: subscription.workspaceName,
             productId: subscription.productId,
             productName: subscription.productName,
             planName: subscription.planName,
