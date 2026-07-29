@@ -6,24 +6,32 @@ import { paymentStatusLabels, paymentStatusTone } from "@/lib/billing/presentati
 import {
   cancelPaymentCheckout,
   getPaymentCheckout,
+  reconcilePaymentCheckoutFromStripe,
 } from "@/lib/payments/management";
 
 export const metadata: Metadata = { title: "付款结果" };
 export const dynamic = "force-dynamic";
 
 interface PaymentResultPageProps {
-  searchParams: Promise<{ checkout_id?: string; status?: string }>;
+  searchParams: Promise<{ checkout_id?: string; session_id?: string; status?: string }>;
 }
 
 export default async function PaymentResultPage({ searchParams }: PaymentResultPageProps) {
   const account = await getDashboardAccount();
   const query = await searchParams;
   const checkoutId = typeof query.checkout_id === "string" ? query.checkout_id : "";
+  const sessionId = typeof query.session_id === "string" ? query.session_id : "";
   const cancelled = query.status === "cancelled";
   const checkout = checkoutId
     ? cancelled
       ? await cancelPaymentCheckout(account.workspace.id, checkoutId)
-      : await getPaymentCheckout(account.workspace.id, checkoutId)
+      : sessionId
+        ? await reconcilePaymentCheckoutFromStripe(
+            account.workspace.id,
+            checkoutId,
+            sessionId,
+          ).catch(() => getPaymentCheckout(account.workspace.id, checkoutId))
+        : await getPaymentCheckout(account.workspace.id, checkoutId)
     : null;
 
   if (!checkout) {
@@ -61,14 +69,14 @@ export default async function PaymentResultPage({ searchParams }: PaymentResultP
       ? "Stripe 尚未完成这笔付款。您可以返回后重新发起付款，或联系平台管理员。"
       : wasCancelled
         ? "您没有完成本次付款，订阅和应用实例都不会被自动开通。"
-        : "已从支付页面返回，但最终付款状态仍以后端收到并验证的支付通知为准。请稍后刷新此页面。";
+        : "系统正在通过 Stripe 支付通知和服务器端查询核对最终付款状态，请稍后刷新此页面。";
 
   return (
     <>
       <header className="page-header">
         <p className="page-kicker">PAYMENT RESULT</p>
         <h1>{title}</h1>
-        <p>此页面不会自行确认付款，状态来自平台已验证的支付记录。</p>
+        <p>此页面会通过 Stripe 支付通知或服务器端核对确认付款状态。</p>
       </header>
       <div className={`notice notice-${tone} billing-alert`}>
         <strong>{title}</strong>

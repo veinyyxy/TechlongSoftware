@@ -12,6 +12,7 @@ import {
 } from "@/lib/billing/presentation";
 import { isPaymentStatus } from "@/lib/billing/validation";
 import { formatDate, formatMoney } from "@/lib/admin/presentation";
+import { reconcilePendingStripeCheckouts } from "@/lib/payments/management";
 
 export const metadata: Metadata = { title: "付款记录" };
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
   const status: PaymentStatus | "" = isPaymentStatus(params.status)
     ? params.status
     : "";
+  await reconcilePendingStripeCheckouts().catch(() => undefined);
   const payments = await listPaymentRecords({ query, status });
 
   return (
@@ -119,7 +121,7 @@ export default async function PaymentsPage({ searchParams }: PaymentsPageProps) 
         )}
       </section>
       <div className="notice billing-disclaimer">
-        管理员仍可新增和维护手动付款记录。Stripe 付款记录只能由已验证的支付 Webhook 更新。
+        管理员仍可新增和维护手动付款记录。Stripe 付款会通过已验证的 Webhook 或服务器端状态核对更新。
       </div>
     </>
   );

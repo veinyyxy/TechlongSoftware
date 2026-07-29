@@ -35,6 +35,14 @@ export interface StripeCheckoutSession {
   expiresAt: number | null;
 }
 
+export interface StripeCheckoutSessionStatus {
+  id: string;
+  paymentStatus: string | null;
+  status: string | null;
+  paymentIntentId: string | null;
+  metadata: Record<string, unknown>;
+}
+
 export interface StripeWebhookEvent {
   id: string;
   type: string;
@@ -125,6 +133,60 @@ export async function createStripeCheckoutSession(
       : null;
 
   return { id, url, expiresAt };
+}
+
+export async function retrieveStripeCheckoutSession(
+  sessionId: string,
+): Promise<StripeCheckoutSessionStatus> {
+  const secretKey = binding("STRIPE_SECRET_KEY");
+  if (!secretKey) {
+    throw new StripeGatewayError(
+      "STRIPE_NOT_CONFIGURED",
+      "在线支付尚未配置，请联系平台管理员。",
+      503,
+    );
+  }
+  if (!/^cs_(?:test_|live_)?[A-Za-z0-9]+$/.test(sessionId)) {
+    throw new StripeGatewayError(
+      "STRIPE_CHECKOUT_FAILED",
+      "Stripe 付款会话编号无效。",
+      400,
+    );
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${STRIPE_API_BASE}/checkout/sessions/${encodeURIComponent(sessionId)}`,
+      { headers: { authorization: `Bearer ${secretKey}` } },
+    );
+  } catch {
+    throw new StripeGatewayError(
+      "STRIPE_CHECKOUT_FAILED",
+      "暂时无法连接在线支付服务，请稍后重试。",
+      502,
+    );
+  }
+
+  const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!response.ok || payload?.id !== sessionId) {
+    throw new StripeGatewayError(
+      "STRIPE_CHECKOUT_FAILED",
+      "暂时无法核对 Stripe 付款状态，请稍后重试。",
+      502,
+    );
+  }
+
+  return {
+    id: sessionId,
+    paymentStatus: typeof payload.payment_status === "string" ? payload.payment_status : null,
+    status: typeof payload.status === "string" ? payload.status : null,
+    paymentIntentId: typeof payload.payment_intent === "string" ? payload.payment_intent : null,
+    metadata:
+      payload.metadata && typeof payload.metadata === "object" && !Array.isArray(payload.metadata)
+        ? (payload.metadata as Record<string, unknown>)
+        : {},
+  };
 }
 
 export async function verifyStripeWebhook(

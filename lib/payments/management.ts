@@ -14,6 +14,7 @@ import {
 } from "@/lib/instances/management";
 import {
   createStripeCheckoutSession,
+  retrieveStripeCheckoutSession,
   type StripeWebhookEvent,
 } from "./stripe";
 
@@ -129,6 +130,63 @@ export async function getPaymentCheckout(
     .bind(checkoutId, workspaceId)
     .first<CheckoutRow>();
   return row ? toCheckoutView(row) : null;
+}
+
+export async function reconcilePaymentCheckoutFromStripe(
+  workspaceId: string,
+  checkoutId: string,
+  returnedSessionId?: string,
+): Promise<PaymentCheckoutView | null> {
+  const checkout = await getCheckoutRow(checkoutId);
+  if (!checkout || checkout.workspace_id !== workspaceId) return null;
+  if (checkout.status === "completed" || checkout.payment_status === "paid") {
+    return toCheckoutView(checkout);
+  }
+  if (!checkout.provider_session_id) return toCheckoutView(checkout);
+  if (returnedSessionId && returnedSessionId !== checkout.provider_session_id) {
+    return toCheckoutView(checkout);
+  }
+
+  const session = await retrieveStripeCheckoutSession(checkout.provider_session_id);
+  const metadataCheckoutId = asString(session.metadata.payment_checkout_id);
+  if (metadataCheckoutId !== checkout.id) return toCheckoutView(checkout);
+
+  if (session.paymentStatus === "paid" && session.status === "complete") {
+    await completeCheckout(checkout, {
+      id: `stripe_session_sync_${session.id}`,
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: session.id,
+          payment_status: session.paymentStatus,
+          status: session.status,
+          payment_intent: session.paymentIntentId,
+          metadata: session.metadata,
+        },
+      },
+    });
+  }
+  return getPaymentCheckout(workspaceId, checkoutId);
+}
+
+export async function reconcilePendingStripeCheckouts(limit = 10): Promise<void> {
+  const result = await getD1()
+    .prepare(
+      `SELECT cs.id, cs.workspace_id
+       FROM payment_checkout_sessions cs
+       INNER JOIN payment_records pr ON pr.id = cs.payment_record_id
+       WHERE cs.provider = 'stripe' AND cs.status = 'open' AND pr.status = 'pending'
+       ORDER BY cs.created_at DESC
+       LIMIT ?`,
+    )
+    .bind(Math.max(1, Math.min(limit, 25)))
+    .all<{ id: string; workspace_id: string }>();
+
+  await Promise.allSettled(
+    result.results.map((checkout) =>
+      reconcilePaymentCheckoutFromStripe(checkout.workspace_id, checkout.id),
+    ),
+  );
 }
 
 export async function createPaymentCheckout(input: {

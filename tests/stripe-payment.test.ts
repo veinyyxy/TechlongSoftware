@@ -81,6 +81,10 @@ test("keeps Stripe checkout authority on the server and verifies raw webhook pay
   assert.match(paymentManagement, /staleClaimBefore/);
   assert.match(paymentManagement, /WHERE id = \? AND status <> 'paid'/);
   assert.match(paymentManagement, /WHERE id = \? AND status <> 'completed'/);
+  assert.match(paymentManagement, /reconcilePaymentCheckoutFromStripe/);
+  assert.match(paymentManagement, /retrieveStripeCheckoutSession/);
+  assert.match(paymentManagement, /session\.paymentStatus === "paid"/);
+  assert.match(stripeGateway, /checkout\/sessions\/\$\{encodeURIComponent\(sessionId\)\}/);
   assert.match(stripeGateway, /"idempotency-key": `checkout_\$\{input\.checkoutId\}`/);
   assert.match(webhookRoute, /request\.text\(\)/);
   assert.match(webhookRoute, /verifyStripeWebhook/);
