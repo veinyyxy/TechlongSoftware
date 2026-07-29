@@ -118,3 +118,13 @@ test("manual instance fallback derives customer and product from the subscriptio
   assert.match(instanceManagement, /workspaceId: subscription\.workspaceId/);
   assert.match(instanceManagement, /productId: subscription\.productId/);
 });
+
+test("plan selection distinguishes the subscribed plan from other product plans", async () => {
+  const plans = await read("app/dashboard/plans/page.tsx");
+
+  assert.match(plans, /current\?\.planId === plan\.id/);
+  assert.match(plans, /当前订阅套餐/);
+  assert.match(plans, /未订阅此套餐/);
+  assert.match(plans, /当前订阅的是 \{current\.planName\}/);
+  assert.doesNotMatch(plans, />\s*已有当前订阅\s*</);
+});

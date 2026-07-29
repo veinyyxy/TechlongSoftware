@@ -85,48 +85,68 @@ export default async function CustomerPlansPage() {
               ) : null}
             </div>
             <div className="plan-purchase-grid">
-              {product.plans.map((plan) => (
-                <article className="plan-purchase-card" key={plan.id}>
-                  <div>
-                    <p className="page-kicker">
-                      {plan.templateName} · v{plan.templateVersion}
-                    </p>
-                    <h3>{plan.name}</h3>
-                    <p>{plan.description || "平台配置的标准服务套餐。"}</p>
-                  </div>
-                  <strong className="plan-purchase-price">
-                    {formatMoney(plan.priceAmount, plan.currency)}
-                    <small>/{plan.billingInterval === "year" ? "年" : "月"}</small>
-                  </strong>
-                  {plan.features.length ? (
-                    <ul className="value-list compact-list">
-                      {plan.features.map((feature) => (
-                        <li key={feature}>{feature}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  <div className="plan-card-actions">
-                    {current ? (
-                      <span className="status-pill status-warning">
-                        已有当前订阅
-                      </span>
-                    ) : account.membership.role !== "owner" ? (
-                      <span className="muted-copy">
-                        仅工作区 Owner 可以购买
-                      </span>
-                    ) : onlinePaymentEnabled ? (
-                      <Link
-                        className="button button-dark button-small"
-                        href={`/dashboard/plans/${plan.id}/purchase`}
-                      >
-                        选择并配置
-                      </Link>
-                    ) : (
-                      <span className="muted-copy">在线付款尚未启用</span>
-                    )}
-                  </div>
-                </article>
-              ))}
+              {product.plans.map((plan) => {
+                const isCurrentPlan = current?.planId === plan.id;
+                return (
+                  <article
+                    className={`plan-purchase-card${isCurrentPlan ? " plan-purchase-card-current" : ""}`}
+                    key={plan.id}
+                  >
+                    <div>
+                      <p className="page-kicker">
+                        {plan.templateName} · v{plan.templateVersion}
+                      </p>
+                      <h3>{plan.name}</h3>
+                      <p>{plan.description || "平台配置的标准服务套餐。"}</p>
+                    </div>
+                    <strong className="plan-purchase-price">
+                      {formatMoney(plan.priceAmount, plan.currency)}
+                      <small>/{plan.billingInterval === "year" ? "年" : "月"}</small>
+                    </strong>
+                    {plan.features.length ? (
+                      <ul className="value-list compact-list">
+                        {plan.features.map((feature) => (
+                          <li key={feature}>{feature}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <div className="plan-card-actions">
+                      {isCurrentPlan && current ? (
+                        <>
+                          <span className="status-pill status-active">
+                            当前订阅套餐
+                          </span>
+                          <span className="muted-copy">
+                            状态：{subscriptionStatusLabels[current.status]}
+                          </span>
+                        </>
+                      ) : current ? (
+                        <>
+                          <span className="status-pill status-neutral">
+                            未订阅此套餐
+                          </span>
+                          <span className="muted-copy">
+                            当前订阅的是 {current.planName}，暂不支持直接切换套餐。
+                          </span>
+                        </>
+                      ) : account.membership.role !== "owner" ? (
+                        <span className="muted-copy">
+                          仅工作区 Owner 可以购买
+                        </span>
+                      ) : onlinePaymentEnabled ? (
+                        <Link
+                          className="button button-dark button-small"
+                          href={`/dashboard/plans/${plan.id}/purchase`}
+                        >
+                          选择并配置
+                        </Link>
+                      ) : (
+                        <span className="muted-copy">在线付款尚未启用</span>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </section>
         );

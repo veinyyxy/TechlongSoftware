@@ -1271,6 +1271,11 @@ select {
   padding: 22px;
 }
 
+.plan-purchase-card-current {
+  border-color: var(--success);
+  box-shadow: inset 0 0 0 1px var(--success);
+}
+
 .plan-purchase-card h3,
 .plan-purchase-card p {
   margin: 0;
@@ -1291,6 +1296,12 @@ select {
   color: var(--muted);
   font-size: 12px;
   margin-left: 4px;
+}
+
+.plan-purchase-card .plan-card-actions {
+  align-items: flex-start;
+  flex-direction: column;
+  margin-top: auto;
 }
 
 .checkout-action {
