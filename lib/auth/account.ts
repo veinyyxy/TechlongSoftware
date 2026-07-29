@@ -125,7 +125,11 @@ export async function ensureAccount(
       ) VALUES (?, ?, ?, 'active', ?, ?, ?)
       ON CONFLICT(email) DO UPDATE SET
         name = excluded.name,
-        is_platform_admin = MAX(users.is_platform_admin, excluded.is_platform_admin),
+        is_platform_admin = CASE
+          WHEN users.is_platform_admin > excluded.is_platform_admin
+            THEN users.is_platform_admin
+          ELSE excluded.is_platform_admin
+        END,
         updated_at = excluded.updated_at`,
     )
     .bind(
@@ -157,9 +161,10 @@ export async function ensureAccount(
     await db.batch([
       db
         .prepare(
-          `INSERT OR IGNORE INTO workspaces (
+          `INSERT INTO workspaces (
             id, name, owner_id, status, created_at, updated_at
-          ) VALUES (?, ?, ?, 'active', ?, ?)`,
+          ) VALUES (?, ?, ?, 'active', ?, ?)
+          ON CONFLICT (id) DO NOTHING`,
         )
         .bind(
           workspaceId,
@@ -170,9 +175,10 @@ export async function ensureAccount(
         ),
       db
         .prepare(
-          `INSERT OR IGNORE INTO workspace_members (
+          `INSERT INTO workspace_members (
             id, workspace_id, user_id, role, joined_at
-          ) VALUES (?, ?, ?, 'owner', ?)`,
+          ) VALUES (?, ?, ?, 'owner', ?)
+          ON CONFLICT (id) DO NOTHING`,
         )
         .bind(membershipId, workspaceId, user.id, now),
     ]);

@@ -421,7 +421,7 @@ export async function preparePendingAppInstance(input: {
   const tenantKey = `pending_${id}`;
   return db
     .prepare(
-      `INSERT OR IGNORE INTO app_instances (
+      `INSERT INTO app_instances (
         id, workspace_id, product_id, subscription_id, template_version_id,
         configuration_snapshot, name, slug, domain,
         access_url, seller_apk_url, tenant_key, provisioning_source, status, provisioned_at,
@@ -435,7 +435,8 @@ export async function preparePendingAppInstance(input: {
           AND subscription.workspace_id = ?
           AND subscription.product_id = ?
           AND subscription.status = 'active'
-      )`,
+      )
+      ON CONFLICT (id) DO NOTHING`,
     )
     .bind(
       id,

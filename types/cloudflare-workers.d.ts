@@ -32,6 +32,7 @@ interface Fetcher {
 declare module "cloudflare:workers" {
   export const env: {
     DB?: D1Database;
+    DATABASE_URL?: string;
     PLATFORM_ADMIN_EMAILS?: string;
     [key: string]: unknown;
   };
