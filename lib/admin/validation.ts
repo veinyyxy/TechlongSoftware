@@ -16,6 +16,7 @@ export interface PlanInput {
   billingInterval: "month" | "year";
   features: string[];
   limits: Record<string, string>;
+  templateConfiguration: Record<string, unknown>;
 }
 
 export interface ValidationResult<T> {
@@ -142,6 +143,47 @@ export function validatePlanInput(value: unknown): ValidationResult<PlanInput> {
     addError(errors, "limits", "限制项最多 30 项。");
   }
 
+  const rawTemplateConfiguration = asRecord(input.templateConfiguration);
+  if (Object.keys(rawTemplateConfiguration).length > 30) {
+    addError(
+      errors,
+      "templateConfiguration",
+      "套餐模板参数最多 30 项。",
+    );
+  }
+  for (const [key, parameterValue] of Object.entries(
+    rawTemplateConfiguration,
+  )) {
+    if (!/^[a-z][A-Za-z0-9_]{1,63}$/.test(key)) {
+      addError(
+        errors,
+        "templateConfiguration",
+        "套餐模板参数名称不正确。",
+      );
+      break;
+    }
+    if (
+      typeof parameterValue !== "string" &&
+      typeof parameterValue !== "number" &&
+      typeof parameterValue !== "boolean"
+    ) {
+      addError(
+        errors,
+        "templateConfiguration",
+        "套餐模板参数只支持文字、数字或布尔值。",
+      );
+      break;
+    }
+    if (typeof parameterValue === "string" && parameterValue.length > 200) {
+      addError(
+        errors,
+        "templateConfiguration",
+        "套餐模板参数文字不能超过 200 个字符。",
+      );
+      break;
+    }
+  }
+
   return {
     data:
       Object.keys(errors).length === 0
@@ -155,6 +197,7 @@ export function validatePlanInput(value: unknown): ValidationResult<PlanInput> {
             billingInterval: billingInterval as "month" | "year",
             features,
             limits,
+            templateConfiguration: rawTemplateConfiguration,
           }
         : null,
     errors,

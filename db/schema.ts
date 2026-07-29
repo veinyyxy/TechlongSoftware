@@ -47,6 +47,9 @@ export const plans = sqliteTable(
       .default("active"),
     features: text("features").notNull().default("[]"),
     limits: text("limits").notNull().default("{}"),
+    templateConfiguration: text("template_configuration")
+      .notNull()
+      .default("{}"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },

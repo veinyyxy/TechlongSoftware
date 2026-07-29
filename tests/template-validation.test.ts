@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   resolveTemplateConfiguration,
+  resolvePlanTemplateConfiguration,
   validateAppInstanceTemplateVersionInput,
   validateTemplatePlanLimits,
 } from "../lib/templates/validation.ts";
@@ -133,4 +134,21 @@ test("requires every template-derived limit when saving a plan", () => {
   });
   assert.equal(invalid.data, null);
   assert.ok(invalid.errors.limits);
+});
+
+test("accepts customer parameter defaults at plan level but rejects fixed limits", () => {
+  assert.deepEqual(
+    resolvePlanTemplateConfiguration({
+      schema,
+      requested: { theme: "warm", storeName: "" },
+    }).data,
+    { theme: "warm" },
+  );
+
+  const forgedLimit = resolvePlanTemplateConfiguration({
+    schema,
+    requested: { visitorLimit: 9999 },
+  });
+  assert.equal(forgedLimit.data, null);
+  assert.ok(forgedLimit.errors.templateConfiguration);
 });

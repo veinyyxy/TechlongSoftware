@@ -25,6 +25,7 @@
 - 当前部署驱动只允许受控的 `manual` 标识，不接受脚本、密钥或任意部署命令。
 - 每个套餐必须归属一个产品；同名套餐可存在于不同产品中，套餐创建后不能跨产品转移。
 - 每个套餐必须绑定同一产品下的已发布实例模板版本；套餐创建后不能更换模板版本。
+- 选择模板版本后，套餐表单会直接展开模板参数：套餐限制参数在套餐中固定，客户参数可设置套餐默认值并在创建订阅时覆盖。
 - 套餐价格使用最小货币单位保存，功能和限制保存在数据库中。
 - 客户详情和客户控制台读取当前套餐、订阅状态和应用实例状态。
 - 管理员创建、编辑并查看客户订阅。
@@ -183,6 +184,7 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `app_instance_templates`：归属产品的模板主记录
 - `app_instance_template_versions`：草稿、已发布、已归档的版本记录
 - `plans.template_version_id`：套餐绑定的不可变模板版本
+- `plans.template_configuration`：套餐为客户参数设置的默认值
 - `subscriptions.template_version_id` 与 `subscriptions.instance_configuration`
 - `app_instances.template_version_id` 与 `app_instances.configuration_snapshot`
 - 默认写入并复用“餐饮订单系统标准模板 v1”，旧套餐和订阅由迁移安全回填

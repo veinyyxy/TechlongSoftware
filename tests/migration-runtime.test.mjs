@@ -27,7 +27,7 @@ test("multi-product migration backfills existing subscriptions without losing hi
   const productSubscriptionMigrations = migrations.filter(
     ({ file }) => file >= "0007_",
   );
-  assert.equal(productSubscriptionMigrations.length, 4);
+  assert.equal(productSubscriptionMigrations.length, 5);
   for (const migration of previousMigrations) applyMigration(database, migration);
 
   const now = Date.now();
@@ -155,6 +155,16 @@ test("multi-product migration backfills existing subscriptions without losing hi
       planTemplateVersionId: "tplver_restaurant_standard_v1",
       subscriptionTemplateVersionId: "tplver_restaurant_standard_v1",
     },
+  );
+  assert.deepEqual(
+    JSON.parse(
+      database
+        .prepare(
+          "SELECT template_configuration FROM plans WHERE id = 'pln_upgrade'",
+        )
+        .get().template_configuration,
+    ),
+    { theme: "classic" },
   );
   assert.equal(
     database

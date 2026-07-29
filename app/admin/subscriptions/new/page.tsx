@@ -48,6 +48,7 @@ export default async function NewSubscriptionPage({
               templateVersion,
               templateConfigurationSchema,
               templateDefaultConfiguration,
+              templateConfiguration,
               limits,
             }) => ({
               id,
@@ -58,6 +59,7 @@ export default async function NewSubscriptionPage({
               templateVersion,
               templateConfigurationSchema,
               templateDefaultConfiguration,
+              templateConfiguration,
               limits,
             }))}
             products={products.map(({ id, name, status }) => ({ id, name, status }))}

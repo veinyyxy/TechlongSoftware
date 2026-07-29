@@ -361,7 +361,10 @@ async function resolvePlanConfiguration(
   }
   const resolved = resolveTemplateConfiguration({
     schema: plan.templateConfigurationSchema,
-    defaults: plan.templateDefaultConfiguration,
+    defaults: {
+      ...plan.templateDefaultConfiguration,
+      ...plan.templateConfiguration,
+    },
     planLimits: plan.limits,
     requested: requestedConfiguration,
   });

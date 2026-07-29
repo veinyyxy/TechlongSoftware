@@ -75,6 +75,11 @@ test("stage 4 migrations contain workspace-scoped products and application insta
   assert.match(sql, /app_instances_subscription_template_match_insert/);
   assert.match(sql, /`configuration_snapshot` text DEFAULT '\{\}' NOT NULL/);
   assert.match(sql, /published template version is immutable/);
+  assert.match(
+    sql,
+    /ADD `template_configuration` text DEFAULT '\{\}' NOT NULL/,
+  );
+  assert.match(sql, /plans_template_configuration_valid_insert/);
 
   assert.doesNotMatch(sql, /CREATE TABLE `(deployments|webhooks)`/);
 });

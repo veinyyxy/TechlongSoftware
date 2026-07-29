@@ -341,6 +341,47 @@ export function validateTemplatePlanLimits(input: {
   };
 }
 
+export function resolvePlanTemplateConfiguration(input: {
+  schema: TemplateConfigurationSchema;
+  requested: Record<string, unknown>;
+}): ValidationResult<TemplateConfiguration> {
+  const errors: FieldErrors = {};
+  const customerFields = new Map(
+    input.schema.fields
+      .filter((field) => field.source === "customer")
+      .map((field) => [field.key, field]),
+  );
+  const resolved: TemplateConfiguration = {};
+
+  for (const [key, rawValue] of Object.entries(input.requested)) {
+    const field = customerFields.get(key);
+    if (!field) {
+      addError(
+        errors,
+        "templateConfiguration",
+        `“${key}”不是允许在套餐中配置的客户参数。`,
+      );
+      continue;
+    }
+    if (rawValue === "") continue;
+    const normalized = normalizeValue(field, rawValue);
+    if (normalized === null || normalized === "") {
+      addError(
+        errors,
+        `templateConfiguration.${key}`,
+        `“${field.label}”的套餐默认值不符合模板要求。`,
+      );
+      continue;
+    }
+    resolved[key] = normalized;
+  }
+
+  return {
+    data: Object.keys(errors).length ? null : resolved,
+    errors,
+  };
+}
+
 export function validateAppInstanceTemplateInput(
   value: unknown,
 ): ValidationResult<AppInstanceTemplateInput> {

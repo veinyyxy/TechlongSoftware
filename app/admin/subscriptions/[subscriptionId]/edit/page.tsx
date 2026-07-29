@@ -89,6 +89,7 @@ export default async function EditSubscriptionPage({
             templateVersion,
             templateConfigurationSchema,
             templateDefaultConfiguration,
+            templateConfiguration,
             limits,
           }) => ({
             id,
@@ -99,6 +100,7 @@ export default async function EditSubscriptionPage({
             templateVersion,
             templateConfigurationSchema,
             templateDefaultConfiguration,
+            templateConfiguration,
             limits,
           }))}
           products={[]}

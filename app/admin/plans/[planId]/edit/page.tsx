@@ -43,6 +43,8 @@ export default async function EditPlanPage({ params }: EditPlanPageProps) {
             templateName: plan.templateName,
             templateVersion: plan.templateVersion,
             templateConfigurationSchema: plan.templateConfigurationSchema,
+            templateDefaultConfiguration: plan.templateDefaultConfiguration,
+            templateConfiguration: plan.templateConfiguration,
             name: plan.name,
             description: plan.description,
             priceAmount: plan.priceAmount,

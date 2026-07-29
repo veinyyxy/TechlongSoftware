@@ -19,7 +19,7 @@ export default async function NewPlanPage() {
       <header className="page-header">
         <p className="page-kicker">NEW PLAN</p>
         <h1>新建套餐</h1>
-        <p>配置真实价格、销售周期、功能和额度限制。</p>
+        <p>选择实例模板后配置套餐参数、真实价格、销售周期、功能和额度限制。</p>
       </header>
       <section className="form-panel">
         {products.length && templateVersions.length ? (
@@ -42,12 +42,14 @@ export default async function NewPlanPage() {
                 templateName,
                 version,
                 configurationSchema,
+                defaultConfiguration,
               }) => ({
                 id,
                 productId,
                 templateName,
                 version,
                 configurationSchema,
+                defaultConfiguration,
               }))}
           />
         ) : (

@@ -27,6 +27,7 @@ interface SubscriptionFormProps {
       templateVersion: number;
       templateConfigurationSchema: TemplateConfigurationSchema;
       templateDefaultConfiguration: TemplateConfiguration;
+      templateConfiguration: TemplateConfiguration;
       limits: Record<string, string>;
     }
   >;
@@ -248,6 +249,7 @@ export function SubscriptionForm({
         {selectedPlan?.templateConfigurationSchema.fields.map((field) => {
           const existingValue =
             initial?.instanceConfiguration[field.key] ??
+            selectedPlan.templateConfiguration[field.key] ??
             selectedPlan.templateDefaultConfiguration[field.key] ??
             "";
           if (field.source === "plan_limit") {

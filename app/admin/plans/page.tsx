@@ -74,6 +74,9 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
             <div className="plan-summary">
               <span>{plan.features.length} 项功能</span>
               <span>{Object.keys(plan.limits).length} 项限制</span>
+              <span>
+                {Object.keys(plan.templateConfiguration).length} 项模板默认参数
+              </span>
             </div>
             {plan.features.length ? (
               <ul className="value-list compact-list">

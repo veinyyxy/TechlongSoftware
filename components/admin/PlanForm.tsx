@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import type { TemplateConfigurationSchema } from "@/lib/templates/validation";
+import type {
+  TemplateConfiguration,
+  TemplateConfigurationSchema,
+} from "@/lib/templates/validation";
 
 interface PlanFormProps {
   mode: "create" | "edit";
@@ -18,6 +21,7 @@ interface PlanFormProps {
     templateName: string;
     version: number;
     configurationSchema: TemplateConfigurationSchema;
+    defaultConfiguration: TemplateConfiguration;
   }>;
   initial?: {
     productId: string;
@@ -26,6 +30,8 @@ interface PlanFormProps {
     templateName: string;
     templateVersion: number;
     templateConfigurationSchema: TemplateConfigurationSchema;
+    templateDefaultConfiguration: TemplateConfiguration;
+    templateConfiguration: TemplateConfiguration;
     name: string;
     description: string;
     priceAmount: number;
@@ -90,11 +96,17 @@ export function PlanForm({
   const availableTemplateVersions = templateVersions.filter(
     (version) => version.productId === selectedProductId,
   );
+  const selectedTemplateVersion = templateVersions.find(
+    (version) => version.id === selectedTemplateVersionId,
+  );
   const selectedTemplateSchema =
-    templateVersions.find((version) => version.id === selectedTemplateVersionId)
-      ?.configurationSchema ??
+    selectedTemplateVersion?.configurationSchema ??
     initial?.templateConfigurationSchema ??
     { fields: [] };
+  const selectedTemplateDefaults =
+    selectedTemplateVersion?.defaultConfiguration ??
+    initial?.templateDefaultConfiguration ??
+    {};
   const requiredLimitKeys = selectedTemplateSchema.fields
     .filter((field) => field.source === "plan_limit")
     .map((field) => field.limitKey)
@@ -116,14 +128,25 @@ export function PlanForm({
       setFieldErrors({ limits: [parsedLimits.error] });
       return;
     }
-    const missingLimit = requiredLimitKeys.find(
-      (key) => !parsedLimits.limits[key],
-    );
-    if (missingLimit) {
-      setFieldErrors({
-        limits: [`当前实例模板要求套餐限制中包含“${missingLimit}”。`],
-      });
-      return;
+    const templateConfiguration: Record<string, unknown> = {};
+    for (const field of selectedTemplateSchema.fields) {
+      const fieldValue = formData.get(`templateParameter.${field.key}`);
+      if (field.source === "plan_limit") {
+        const limitValue = String(fieldValue ?? "").trim();
+        if (field.limitKey && limitValue) {
+          parsedLimits.limits[field.limitKey] = limitValue;
+        }
+        continue;
+      }
+      if (field.type === "boolean") {
+        templateConfiguration[field.key] = fieldValue === "on";
+      } else if (field.type === "number") {
+        const value = String(fieldValue ?? "").trim();
+        if (value) templateConfiguration[field.key] = Number(value);
+      } else {
+        const value = String(fieldValue ?? "").trim();
+        if (value) templateConfiguration[field.key] = value;
+      }
     }
 
     const features = String(formData.get("features") ?? "")
@@ -140,6 +163,7 @@ export function PlanForm({
       billingInterval: String(formData.get("billingInterval") ?? ""),
       features,
       limits: parsedLimits.limits,
+      templateConfiguration,
     };
 
     setPending(true);
@@ -173,6 +197,7 @@ export function PlanForm({
   const fieldError = (name: string) => fieldErrors[name]?.[0];
   const limitsValue = initial
     ? Object.entries(initial.limits)
+        .filter(([key]) => !requiredLimitKeys.includes(key))
         .map(([key, value]) => `${key}=${value}`)
         .join("\n")
     : "";
@@ -276,6 +301,87 @@ export function PlanForm({
             </small>
           ) : null}
         </label>
+        {selectedTemplateSchema.fields.length ? (
+          <div className="form-field form-field-wide">
+            <span>应用实例模板参数</span>
+            <small>
+              套餐固定参数会写入套餐限制；客户参数是订阅时的默认值，创建客户订阅时仍可按实际需求覆盖。
+            </small>
+          </div>
+        ) : null}
+        {selectedTemplateSchema.fields.map((field) => {
+          const parameterKey = `${selectedTemplateVersionId || initial?.templateVersionId}:${field.key}`;
+          const value =
+            field.source === "plan_limit"
+              ? initial?.limits[field.limitKey ?? ""] ?? ""
+              : initial?.templateConfiguration[field.key] ??
+                selectedTemplateDefaults[field.key] ??
+                "";
+          const helpText =
+            field.source === "plan_limit"
+              ? `套餐固定值，保存到“${field.limitKey ?? field.label}”限制中，订阅时不能覆盖。`
+              : field.required
+                ? "套餐默认值；可留空，但创建订阅时必须填写。"
+                : "套餐默认值；创建订阅时可以覆盖或不设置。";
+
+          if (field.type === "boolean") {
+            return (
+              <label className="check-field" key={parameterKey}>
+                <input
+                  defaultChecked={Boolean(value)}
+                  name={`templateParameter.${field.key}`}
+                  type="checkbox"
+                />
+                <span>
+                  <strong>{field.label}</strong>
+                  <small>{helpText}</small>
+                </span>
+              </label>
+            );
+          }
+
+          return (
+            <label className="form-field" key={parameterKey}>
+              <span>{field.label}</span>
+              {field.type === "select" ? (
+                <select
+                  defaultValue={String(value)}
+                  name={`templateParameter.${field.key}`}
+                >
+                  <option value="">订阅时填写</option>
+                  {field.options?.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  defaultValue={String(value)}
+                  max={field.max}
+                  min={field.min}
+                  name={`templateParameter.${field.key}`}
+                  required={field.source === "plan_limit" && field.required}
+                  type={field.type === "number" ? "number" : "text"}
+                />
+              )}
+              <small>{helpText}</small>
+              {fieldError(
+                field.source === "plan_limit"
+                  ? "limits"
+                  : `templateConfiguration.${field.key}`,
+              ) ? (
+                <small className="form-error">
+                  {fieldError(
+                    field.source === "plan_limit"
+                      ? "limits"
+                      : `templateConfiguration.${field.key}`,
+                  )}
+                </small>
+              ) : null}
+            </label>
+          );
+        })}
         <label className="form-field form-field-wide">
           <span>套餐名称</span>
           <input
@@ -361,14 +467,16 @@ export function PlanForm({
           ) : null}
         </label>
         <label className="form-field">
-          <span>额度与限制</span>
+          <span>其他额度与限制</span>
           <textarea
             defaultValue={limitsValue}
             name="limits"
             placeholder={"门店数=1\n成员数=5\n每月订单量=5000"}
             rows={7}
           />
-          <small>每行使用“名称=值”，内容会保存到数据库。</small>
+          <small>
+            每行使用“名称=值”。模板已经显示的固定参数不需要在这里重复填写。
+          </small>
           {fieldError("limits") ? (
             <small className="form-error">{fieldError("limits")}</small>
           ) : null}

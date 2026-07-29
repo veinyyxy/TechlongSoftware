@@ -3,6 +3,7 @@ import { randomId, stableId } from "@/lib/domain/ids";
 import {
   parseConfigurationSchema,
   parseTemplateConfiguration,
+  resolvePlanTemplateConfiguration,
   validateTemplatePlanLimits,
   type TemplateConfiguration,
   type TemplateConfigurationSchema,
@@ -65,6 +66,7 @@ export interface PlanView {
   status: PlanStatus;
   features: string[];
   limits: Record<string, string>;
+  templateConfiguration: TemplateConfiguration;
   createdAt: number;
   updatedAt: number;
 }
@@ -141,6 +143,7 @@ function toPlanView(row: {
   status: PlanStatus;
   features: string;
   limits: string;
+  template_configuration: string;
   created_at: number;
   updated_at: number;
 }): PlanView {
@@ -171,6 +174,9 @@ function toPlanView(row: {
     status: row.status,
     features: safeStringArray(row.features),
     limits: safeStringRecord(row.limits),
+    templateConfiguration: parseTemplateConfiguration(
+      row.template_configuration,
+    ),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -216,7 +222,8 @@ export async function listPlans(input?: {
       template_version.deployment_workflow_version,
       plan.name, plan.description,
       plan.price_amount, plan.currency, plan.billing_interval, plan.status,
-      plan.features, plan.limits, plan.created_at, plan.updated_at
+      plan.features, plan.limits, plan.template_configuration,
+      plan.created_at, plan.updated_at
      FROM plans plan
      INNER JOIN products product ON product.id = plan.product_id
      INNER JOIN app_instance_template_versions template_version
@@ -253,6 +260,7 @@ export async function listPlans(input?: {
     status: PlanStatus;
     features: string;
     limits: string;
+    template_configuration: string;
     created_at: number;
     updated_at: number;
   }>();
@@ -275,7 +283,8 @@ export async function getPlan(planId: string): Promise<PlanView | null> {
         template_version.deployment_workflow_version,
         plan.name, plan.description,
         plan.price_amount, plan.currency, plan.billing_interval, plan.status,
-        plan.features, plan.limits, plan.created_at, plan.updated_at
+        plan.features, plan.limits, plan.template_configuration,
+        plan.created_at, plan.updated_at
        FROM plans plan
        INNER JOIN products product ON product.id = plan.product_id
        INNER JOIN app_instance_template_versions template_version
@@ -309,6 +318,7 @@ export async function getPlan(planId: string): Promise<PlanView | null> {
       status: PlanStatus;
       features: string;
       limits: string;
+      template_configuration: string;
       created_at: number;
       updated_at: number;
     }>();
@@ -385,6 +395,18 @@ export async function createPlan(input: PlanInput): Promise<PlanView> {
     assertPlanTemplateAssignable(input.templateVersionId, input.productId),
   ]);
   assertTemplatePlanLimits(templateSchema, input.limits);
+  const planTemplateConfiguration = resolvePlanTemplateConfiguration({
+    schema: templateSchema,
+    requested: input.templateConfiguration,
+  });
+  if (!planTemplateConfiguration.data) {
+    throw new ManagementError(
+      "PLAN_TEMPLATE_CONFIGURATION_INVALID",
+      Object.values(planTemplateConfiguration.errors)[0]?.[0] ??
+        "套餐模板参数不符合所选模板要求。",
+      400,
+    );
+  }
   const id = randomId("pln");
   const now = Date.now();
 
@@ -394,8 +416,8 @@ export async function createPlan(input: PlanInput): Promise<PlanView> {
         `INSERT INTO plans (
           id, product_id, template_version_id, name, description,
           price_amount, currency, billing_interval,
-          status, features, limits, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+          status, features, limits, template_configuration, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`,
       )
       .bind(
         id,
@@ -408,6 +430,7 @@ export async function createPlan(input: PlanInput): Promise<PlanView> {
         input.billingInterval,
         JSON.stringify(input.features),
         JSON.stringify(input.limits),
+        JSON.stringify(planTemplateConfiguration.data),
         now,
         now,
       )
@@ -451,13 +474,26 @@ export async function updatePlan(
   }
   await assertPlanProductAssignable(input.productId, existing.productId);
   assertTemplatePlanLimits(existing.templateConfigurationSchema, input.limits);
+  const planTemplateConfiguration = resolvePlanTemplateConfiguration({
+    schema: existing.templateConfigurationSchema,
+    requested: input.templateConfiguration,
+  });
+  if (!planTemplateConfiguration.data) {
+    throw new ManagementError(
+      "PLAN_TEMPLATE_CONFIGURATION_INVALID",
+      Object.values(planTemplateConfiguration.errors)[0]?.[0] ??
+        "套餐模板参数不符合所选模板要求。",
+      400,
+    );
+  }
 
   try {
     const result = await getD1()
       .prepare(
         `UPDATE plans
          SET name = ?, description = ?, price_amount = ?, currency = ?,
-           billing_interval = ?, features = ?, limits = ?, updated_at = ?
+           billing_interval = ?, features = ?, limits = ?,
+           template_configuration = ?, updated_at = ?
          WHERE id = ?`,
       )
       .bind(
@@ -468,6 +504,7 @@ export async function updatePlan(
         input.billingInterval,
         JSON.stringify(input.features),
         JSON.stringify(input.limits),
+        JSON.stringify(planTemplateConfiguration.data),
         Date.now(),
         planId,
       )
@@ -599,6 +636,7 @@ export async function getCustomer(
         p.price_amount AS plan_price_amount, p.currency AS plan_currency,
         p.billing_interval AS plan_billing_interval, p.status AS plan_status,
         p.features AS plan_features, p.limits AS plan_limits,
+        p.template_configuration AS plan_template_configuration,
         p.created_at AS plan_created_at, p.updated_at AS plan_updated_at,
         pp.id AS plan_product_id, pp.name AS plan_product_name,
         pp.status AS plan_product_status,
@@ -655,6 +693,7 @@ export async function getCustomer(
       plan_status: PlanStatus | null;
       plan_features: string | null;
       plan_limits: string | null;
+      plan_template_configuration: string | null;
       plan_created_at: number | null;
       plan_updated_at: number | null;
       plan_product_id: string | null;
@@ -685,6 +724,7 @@ export async function getCustomer(
     row.plan_status &&
     row.plan_features !== null &&
     row.plan_limits !== null &&
+    row.plan_template_configuration !== null &&
     row.plan_created_at !== null &&
     row.plan_updated_at !== null &&
     row.plan_product_id &&
@@ -726,6 +766,7 @@ export async function getCustomer(
           status: row.plan_status,
           features: row.plan_features,
           limits: row.plan_limits,
+          template_configuration: row.plan_template_configuration,
           created_at: row.plan_created_at,
           updated_at: row.plan_updated_at,
         })

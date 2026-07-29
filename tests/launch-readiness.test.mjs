@@ -91,6 +91,8 @@ test("multi-product subscription pages expose current and historical records", a
   assert.match(templateList, /应用实例模板管理/);
   assert.match(templateVersionForm, /source=customer/);
   assert.match(planForm, /templateVersionId/);
+  assert.match(planForm, /应用实例模板参数/);
+  assert.match(planForm, /templateParameter\.\$\{field\.key\}/);
   assert.match(subscriptionForm, /instanceConfiguration/);
   assert.match(instanceDetail, /configurationSnapshot/);
   assert.doesNotMatch(newSubscription, /subscribedWorkspaceIds/);
