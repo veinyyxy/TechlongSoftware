@@ -64,3 +64,11 @@ test("temporary browser migration endpoint is removed after cutover", async () =
     /ENOENT/,
   );
 });
+
+test("purchase-order queries avoid PostgreSQL reserved aliases", async () => {
+  const purchases = await read("lib/purchases/management.ts");
+
+  assert.match(purchases, /INNER JOIN users creator ON creator\.id/);
+  assert.match(purchases, /creator\.name AS created_by_name/);
+  assert.doesNotMatch(purchases, /INNER JOIN users user\b/);
+});

@@ -122,7 +122,7 @@ const purchaseOrderSelect = `
     purchase.status, purchase.provider, purchase.provider_session_id,
     purchase.provider_payment_id, purchase.checkout_url,
     purchase.failure_reason, purchase.created_by_user_id,
-    user.name AS created_by_name, purchase.expires_at,
+    creator.name AS created_by_name, purchase.expires_at,
     purchase.completed_at, purchase.created_at, purchase.updated_at
   FROM subscription_purchase_orders purchase
   INNER JOIN workspaces workspace ON workspace.id = purchase.workspace_id
@@ -132,7 +132,7 @@ const purchaseOrderSelect = `
     ON template_version.id = purchase.template_version_id
   INNER JOIN app_instance_templates template
     ON template.id = template_version.template_id
-  INNER JOIN users user ON user.id = purchase.created_by_user_id
+  INNER JOIN users creator ON creator.id = purchase.created_by_user_id
   LEFT JOIN payment_records payment ON payment.id = purchase.payment_record_id`;
 
 function parseConfiguration(value: string): TemplateConfiguration {
