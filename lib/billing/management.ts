@@ -1,6 +1,7 @@
 import { getD1 } from "@/db";
 import { getPlan, ManagementError } from "@/lib/admin/management";
 import { randomId } from "@/lib/domain/ids";
+import { upsertWorkspaceProductEntitlementStatement } from "@/lib/entitlements/management";
 import {
   parseTemplateConfiguration,
   resolveTemplateConfiguration,
@@ -44,6 +45,7 @@ export interface SubscriptionView {
   currentPeriodStart: number;
   currentPeriodEnd: number;
   cancelAtPeriodEnd: boolean;
+  creationSource: "admin_manual" | "customer_checkout";
   createdByUserId: string;
   createdByName: string;
   createdAt: number;
@@ -104,6 +106,7 @@ type SubscriptionRow = {
   current_period_start: number;
   current_period_end: number;
   cancel_at_period_end: number;
+  creation_source: "admin_manual" | "customer_checkout";
   created_by_user_id: string;
   created_by_name: string;
   created_at: number;
@@ -159,6 +162,7 @@ function toSubscriptionView(row: SubscriptionRow): SubscriptionView {
     currentPeriodStart: row.current_period_start,
     currentPeriodEnd: row.current_period_end,
     cancelAtPeriodEnd: Boolean(row.cancel_at_period_end),
+    creationSource: row.creation_source,
     createdByUserId: row.created_by_user_id,
     createdByName: row.created_by_name,
     createdAt: row.created_at,
@@ -203,6 +207,7 @@ const subscriptionSelect = `
     template.name AS template_name, template_version.version AS template_version,
     s.instance_configuration, s.status,
     s.current_period_start, s.current_period_end, s.cancel_at_period_end,
+    s.creation_source,
     s.created_by_user_id, u.name AS created_by_name,
     s.created_at, s.updated_at
   FROM subscriptions s
@@ -537,6 +542,15 @@ export async function createSubscription(
           now,
           now,
         ),
+      upsertWorkspaceProductEntitlementStatement({
+        workspaceId: input.workspaceId,
+        productId: input.productId,
+        currentSubscriptionId: input.status === "canceled" ? null : id,
+        appInstanceId: null,
+        status: input.status === "canceled" ? "ended" : "pending",
+        preserveExistingServiceStatus: true,
+        now,
+      }),
       syncWorkspaceSubscriptionSummaryStatement(input.workspaceId, now),
     ]);
   } catch (error) {
@@ -647,6 +661,16 @@ export async function updateSubscription(
           now,
           subscriptionId,
         ),
+      upsertWorkspaceProductEntitlementStatement({
+        workspaceId: existing.workspaceId,
+        productId: existing.productId,
+        currentSubscriptionId:
+          input.status === "canceled" ? null : subscriptionId,
+        appInstanceId: null,
+        status: input.status === "canceled" ? "ended" : "pending",
+        preserveExistingServiceStatus: true,
+        now,
+      }),
       syncWorkspaceSubscriptionSummaryStatement(existing.workspaceId, now),
     ];
     if (input.status === "canceled") {
@@ -708,6 +732,16 @@ export async function updateSubscriptionStatus(
       getD1()
         .prepare("UPDATE subscriptions SET status = ?, updated_at = ? WHERE id = ?")
         .bind(status, now, subscriptionId),
+      upsertWorkspaceProductEntitlementStatement({
+        workspaceId: existing.workspaceId,
+        productId: existing.productId,
+        currentSubscriptionId:
+          status === "canceled" ? null : subscriptionId,
+        appInstanceId: null,
+        status: status === "canceled" ? "ended" : "pending",
+        preserveExistingServiceStatus: true,
+        now,
+      }),
       syncWorkspaceSubscriptionSummaryStatement(existing.workspaceId, now),
     ];
     if (status === "canceled") {
@@ -732,6 +766,50 @@ export async function updateSubscriptionStatus(
     );
   }
   return subscription;
+}
+
+export async function setCustomerSubscriptionCancelAtPeriodEnd(
+  workspaceId: string,
+  subscriptionId: string,
+  cancelAtPeriodEnd: boolean,
+): Promise<SubscriptionView> {
+  const subscription = await getSubscription(subscriptionId);
+  if (!subscription || subscription.workspaceId !== workspaceId) {
+    throw new ManagementError(
+      "SUBSCRIPTION_NOT_FOUND",
+      "没有找到当前工作区的订阅。",
+      404,
+    );
+  }
+  if (subscription.status !== "active") {
+    throw new ManagementError(
+      "SUBSCRIPTION_NOT_CANCELLABLE",
+      "只有有效订阅可以设置到期取消。",
+      409,
+    );
+  }
+  await getD1()
+    .prepare(
+      `UPDATE subscriptions
+       SET cancel_at_period_end = ?, updated_at = ?
+       WHERE id = ? AND workspace_id = ? AND status = 'active'`,
+    )
+    .bind(
+      cancelAtPeriodEnd ? 1 : 0,
+      Date.now(),
+      subscriptionId,
+      workspaceId,
+    )
+    .run();
+  const updated = await getSubscription(subscriptionId);
+  if (!updated) {
+    throw new ManagementError(
+      "SUBSCRIPTION_NOT_FOUND",
+      "没有找到当前工作区的订阅。",
+      404,
+    );
+  }
+  return updated;
 }
 
 export async function listPaymentRecords(input?: {

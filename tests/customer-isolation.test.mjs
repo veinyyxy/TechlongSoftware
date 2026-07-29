@@ -8,10 +8,11 @@ async function read(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
-test("customer billing and application APIs verify workspace access before returning data", async () => {
-  const [billingApi, appsApi] = await Promise.all([
+test("customer billing, purchase, and application APIs verify workspace access before returning data", async () => {
+  const [billingApi, appsApi, purchaseApi] = await Promise.all([
     read("app/api/workspaces/[workspaceId]/billing/route.ts"),
     read("app/api/workspaces/[workspaceId]/apps/route.ts"),
+    read("app/api/workspaces/[workspaceId]/purchase-orders/route.ts"),
   ]);
 
   for (const source of [billingApi, appsApi]) {
@@ -20,6 +21,8 @@ test("customer billing and application APIs verify workspace access before retur
   }
   assert.match(billingApi, /getWorkspaceBillingSummary\(workspaceId\)/);
   assert.match(appsApi, /listWorkspaceAppInstances\(workspaceId\)/);
+  assert.match(purchaseApi, /account\.workspace\.id !== workspaceId/);
+  assert.match(purchaseApi, /account\.membership\.role !== "owner"/);
 });
 
 test("customer pages query only the authenticated account workspace", async () => {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CancelAtPeriodEndButton } from "@/components/billing/CancelAtPeriodEndButton";
 import { CheckoutSubscriptionButton } from "@/components/billing/CheckoutSubscriptionButton";
 import { getPlan } from "@/lib/admin/management";
 import { formatDate, formatMoney } from "@/lib/admin/presentation";
@@ -13,12 +14,14 @@ import {
 } from "@/lib/billing/presentation";
 import { getCustomerSubscriptionNotice } from "@/lib/customer-dashboard/presentation";
 import { hasStripePaymentConfiguration } from "@/lib/payments/stripe";
+import { reconcileWorkspaceExpiredSubscriptions } from "@/lib/purchases/management";
 
 export const metadata: Metadata = { title: "订阅与账单" };
 export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
   const account = await getDashboardAccount();
+  await reconcileWorkspaceExpiredSubscriptions(account.workspace.id);
   const billing = await getWorkspaceBillingSummary(account.workspace.id);
   const currentSubscriptions = billing.currentSubscriptions;
   const historicalSubscriptions = billing.historicalSubscriptions;
@@ -38,13 +41,18 @@ export default async function BillingPage() {
       <header className="page-header">
         <p className="page-kicker">SUBSCRIPTION & BILLING</p>
         <h1>订阅与账单</h1>
-        <p>按产品查看当前订阅、历史订阅和付款记录。历史记录不会因重新订阅而删除。</p>
+        <p>按产品查看、续费和管理当前订阅，同时保留完整历史订阅与付款记录。</p>
+        <div className="header-actions">
+          <Link className="button button-dark button-small" href="/dashboard/plans">
+            选择套餐
+          </Link>
+        </div>
       </header>
 
       {!currentSubscriptions.length ? (
         <div className="notice notice-warning billing-alert">
           <strong>暂无当前订阅</strong>
-          <span>请联系平台管理员为需要的产品创建新订阅。</span>
+          <span>您可以从平台发布的套餐中自行选择并通过 Stripe 付款。</span>
         </div>
       ) : (
         currentSubscriptions.map((subscription) => {
@@ -77,7 +85,7 @@ export default async function BillingPage() {
               billing.recentPayment!.amount,
               billing.recentPayment!.currency,
             )}
-            。请联系平台运营人员核对付款信息。
+            。您可以重新发起付款，或联系平台运营人员核对。
           </span>
         </div>
       ) : null}
@@ -93,8 +101,9 @@ export default async function BillingPage() {
           <div className="app-instance-grid">
             {currentSubscriptions.map((subscription) => {
               const plan = planById.get(subscription.planId) ?? null;
-              const payable =
-                subscription.status === "manual_pending" ||
+              const legacyPayable = subscription.status === "manual_pending";
+              const renewable =
+                subscription.status === "active" ||
                 subscription.status === "past_due";
               const purchasablePlan =
                 plan?.status === "active" &&
@@ -162,32 +171,47 @@ export default async function BillingPage() {
                     </ul>
                   ) : null}
 
-                  {payable && subscription.productStatus !== "active" ? (
+                  {legacyPayable && subscription.productStatus !== "active" ? (
                     <div className="notice notice-danger compact-notice">
                       当前产品已停用，不能发起在线付款，请联系平台管理员。
                     </div>
-                  ) : payable && !plan ? (
+                  ) : legacyPayable && !plan ? (
                     <div className="notice notice-danger compact-notice">
                       当前套餐暂不可用，请联系平台管理员检查配置。
                     </div>
-                  ) : payable && !purchasablePlan ? (
+                  ) : legacyPayable && !purchasablePlan ? (
                     <div className="notice notice-warning compact-notice">
                       当前套餐已停用或无需在线付款，请联系平台管理员确认付款方式。
                     </div>
-                  ) : payable && !onlinePaymentEnabled ? (
+                  ) : (legacyPayable || renewable) && !onlinePaymentEnabled ? (
                     <div className="notice notice-warning compact-notice">
                       Stripe 在线付款正在配置中，请暂时使用人工付款流程。
                     </div>
-                  ) : payable && account.membership.role !== "owner" ? (
+                  ) : (legacyPayable || renewable) && account.membership.role !== "owner" ? (
                     <div className="notice notice-warning compact-notice">
                       仅工作区 Owner 可以发起在线付款。
                     </div>
-                  ) : payable && plan && purchasablePlan ? (
+                  ) : legacyPayable && plan && purchasablePlan ? (
                     <CheckoutSubscriptionButton
                       endpoint={`/api/workspaces/${account.workspace.id}/checkout`}
                       planName={`${subscription.productName} · ${plan.name}`}
                       subscriptionId={subscription.id}
                     />
+                  ) : renewable && plan && purchasablePlan ? (
+                    <div className="plan-card-actions">
+                      <Link
+                        className="button button-dark button-small"
+                        href={`/dashboard/plans/${plan.id}/purchase?renew=${subscription.id}`}
+                      >
+                        {subscription.status === "past_due" ? "续费并恢复" : "续费"}
+                      </Link>
+                      {subscription.status === "active" ? (
+                        <CancelAtPeriodEndButton
+                          cancelAtPeriodEnd={subscription.cancelAtPeriodEnd}
+                          endpoint={`/api/workspaces/${account.workspace.id}/subscriptions/${subscription.id}/cancel-at-period-end`}
+                        />
+                      ) : null}
+                    </div>
                   ) : (
                     <div className="notice notice-neutral compact-notice">
                       当前状态无需发起在线付款。
@@ -199,8 +223,11 @@ export default async function BillingPage() {
           </div>
         ) : (
           <div className="empty-state">
-            <strong>等待平台管理员设置订阅</strong>
-            <p>管理员可以在保留历史记录的同时，为产品创建新的订阅。</p>
+            <strong>尚未购买产品套餐</strong>
+            <p>选择平台发布的套餐并完成 Stripe 付款后，系统会创建订阅。</p>
+            <Link className="button button-dark button-small" href="/dashboard/plans">
+              选择套餐
+            </Link>
           </div>
         )}
       </section>

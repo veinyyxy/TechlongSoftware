@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前完成阶段 8，并新增了版本化“应用实例模板管理”：套餐绑定已发布模板版本，订阅保存客户配置，Stripe 付款成功后按该快照创建待开通实例，保留管理员最终开通检查。
+当前已在阶段 8 基础上完成客户自助购买一期：套餐绑定已发布模板版本，企业 Owner 自行选择套餐并填写实例参数，Stripe 付款成功后由已验证 Webhook 创建或续期订阅，并准备待开通实例；管理员仍是最终开通者。
 
 ## 已实现
 
@@ -54,7 +54,7 @@
 - 客户 Dashboard 显示餐饮订单系统状态与管理员登记的访问地址；仅在有效订阅、已开通实例和有效 URL 同时满足时显示进入按钮。
 - `manual_pending`、付款已确认但未开通、订阅异常、服务暂停、开通失败和未创建实例均有明确客户侧提示。
 - 健康检查会返回当前发布阶段；被暂停或停用的工作区会收到明确提示，不会被循环跳转回受限的客户控制台。
-- 平台管理员先为客户配置待付款订阅；客户工作区 Owner 可在“订阅与账单”查看该订阅的套餐、周期、功能和限制，并确认后跳转至 Stripe Checkout。
+- 客户工作区 Owner 可自行选择套餐、填写模板允许的客户参数并跳转至 Stripe Checkout；管理员预先创建的 `manual_pending` 订阅仍可继续使用原有付款入口。
 - Checkout 金额、币种和套餐名称只由后端套餐记录生成；前端不会提交价格或付款状态。
 - Stripe Webhook 使用原始请求体和签名密钥验证事件，保存事件摘要并按事件 ID 去重。
 - 已验证的 Stripe 付款会写入付款记录并激活或更新订阅；若该工作区尚无餐饮订单系统实例，会自动创建一条 `pending` 待开通记录。
@@ -62,6 +62,13 @@
 - 每个工作区的每个产品最多一条应用实例，避免重复 Webhook 或重复付款生成多个入口；实例来源可区分“付款成功自动创建”和管理员手动创建。
 - 管理员“补建遗漏实例”只选择订阅，企业、产品和套餐归属全部从订阅自动确定，不允许手工指定其他企业。
 - 管理员原有的手动订阅、手动付款记录和订阅状态调整能力继续保留；付款记录标记来源为 Stripe 或人工记录。
+- 企业客户可在“选择套餐”查看所有已启用、可购买的产品套餐，价格、功能、限制和模板参数全部来自后端。
+- 只有工作区 `owner` 可以发起购买、续费、取消待付款订单或设置到期取消；普通成员只有查看权限。
+- 客户新购先创建 `subscription_purchase_orders`，不会在浏览器或付款前创建有效订阅。
+- Stripe Webhook 会再次核对服务器订单金额和币种；成功后才创建 `customer_checkout` 来源订阅，续费则延长原订阅周期。
+- 客户可以对有效或逾期订阅发起同套餐续费，并可为有效订阅设置或撤销“周期结束后取消”；本期不提供即时取消、升级、降级或按比例计费。
+- `workspace_product_entitlements` 按工作区和产品保存当前订阅与唯一应用实例的对应关系；重新购买不会重复创建同产品实例。
+- 管理员可在“购买订单”查看客户新购/续费订单、Stripe 状态、关联订阅和失败原因。
 
 ## 当前没有实现
 
@@ -170,6 +177,13 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `app_instances.provisioning_source`（`manual` / `payment_success`）
 - `app_instances` 的 `(workspace_id, product_id)` 唯一约束，当前 MVP 每个工作区仅允许一个产品实例
 
+客户自助购买一期新增：
+
+- `subscription_purchase_orders`：保存新购/续费订单、套餐与模板快照、服务器金额、Stripe 会话和处理状态
+- `workspace_product_entitlements`：保存 `(workspace_id, product_id)` 对应的当前订阅和唯一应用实例
+- `subscriptions.creation_source`：区分 `admin_manual` 与 `customer_checkout`
+- `payment_webhook_events.purchase_order_id`：把已验证 Stripe 事件关联到客户购买订单
+
 多产品订阅升级：
 
 - `subscriptions.product_id`（必填）
@@ -213,6 +227,8 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `/dashboard/settings`
 - `/dashboard/billing`
 - `/dashboard/billing/payment-result`
+- `/dashboard/plans`
+- `/dashboard/plans/:planId/purchase`
 - `/dashboard/apps`
 - `/dashboard/apps/:instanceId`
 - `/api/account`
@@ -220,6 +236,9 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `/api/workspaces/:workspaceId/billing`
 - `/api/workspaces/:workspaceId/apps`
 - `/api/workspaces/:workspaceId/checkout`
+- `/api/workspaces/:workspaceId/purchase-orders`
+- `/api/workspaces/:workspaceId/purchase-orders/:orderId`
+- `/api/workspaces/:workspaceId/subscriptions/:subscriptionId/cancel-at-period-end`
 - `/api/stripe/webhook`
 
 管理员路由：
@@ -245,6 +264,7 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `/admin/subscriptions/:subscriptionId/edit`
 - `/admin/payments`
 - `/admin/payments/new`
+- `/admin/purchase-orders`
 - `/admin/instances`
 - `/admin/instances/new`
 - `/admin/instances/:instanceId`
@@ -261,6 +281,7 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `/api/admin/subscriptions`
 - `/api/admin/subscriptions/:subscriptionId`
 - `/api/admin/payments`
+- `/api/admin/purchase-orders`
 - `/api/admin/instances`
 - `/api/admin/instances/:instanceId`
 
@@ -268,4 +289,4 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 
 ## 下一步建议
 
-先在 Stripe 测试模式完成双账号验收、模板→套餐→订阅配置→实例快照链路、Webhook 重复投递和管理员待开通检查，再决定是否配置 Stripe 生产密钥。自动续扣、Stripe 订阅模式、退款、自动部署和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)。
+先在 Stripe 测试模式完成双账号验收：客户选择套餐→填写参数→Checkout→Webhook 创建订阅→生成/复用待开通实例→管理员填写入口并开通，同时验证重复事件不会重复入账。之后再决定是否启用 Stripe 订阅模式和自动续扣；升级/降级、退款、自动部署和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)。

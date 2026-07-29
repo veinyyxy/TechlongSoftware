@@ -12,6 +12,11 @@ import {
   preparePendingAppInstance,
   syncWorkspaceAppInstanceStatusStatement,
 } from "@/lib/instances/management";
+import { upsertWorkspaceProductEntitlementStatement } from "@/lib/entitlements/management";
+import {
+  findPurchaseOrderForStripeObject,
+  processPurchaseOrderStripeEvent,
+} from "@/lib/purchases/management";
 import {
   createStripeCheckoutSession,
   retrieveStripeCheckoutSession,
@@ -457,10 +462,20 @@ export async function processStripeWebhookEvent(input: {
     }
   }
 
-  const checkout = await findCheckoutForStripeObject(input.event.data.object);
+  const purchaseOrder = await findPurchaseOrderForStripeObject(
+    input.event.data.object,
+  );
+  const checkout = purchaseOrder
+    ? null
+    : await findCheckoutForStripeObject(input.event.data.object);
   try {
     let handled = false;
-    if (checkout) {
+    if (purchaseOrder) {
+      handled = await processPurchaseOrderStripeEvent(
+        purchaseOrder,
+        input.event,
+      );
+    } else if (checkout) {
       if (isSuccessfulCheckoutEvent(input.event.type, input.event.data.object)) {
         await completeCheckout(checkout, input.event);
         handled = true;
@@ -476,10 +491,17 @@ export async function processStripeWebhookEvent(input: {
     await getD1()
       .prepare(
         `UPDATE payment_webhook_events
-         SET checkout_session_id = ?, processing_status = ?, processed_at = ?, last_error = NULL
+         SET checkout_session_id = ?, purchase_order_id = ?,
+             processing_status = ?, processed_at = ?, last_error = NULL
          WHERE id = ? AND processing_status = 'pending'`,
       )
-      .bind(checkout?.id ?? null, handled ? "processed" : "ignored", Date.now(), eventId)
+      .bind(
+        checkout?.id ?? null,
+        purchaseOrder?.id ?? null,
+        handled ? "processed" : "ignored",
+        Date.now(),
+        eventId,
+      )
       .run();
     return { duplicate: false, handled };
   } catch (error) {
@@ -710,6 +732,31 @@ async function completeCheckout(
         syncWorkspaceAppInstanceStatusStatement(checkout.workspace_id, now),
       ]);
     }
+    const instance = await db
+      .prepare(
+        `SELECT id, status
+         FROM app_instances
+         WHERE workspace_id = ? AND product_id = ?
+         LIMIT 1`,
+      )
+      .bind(checkout.workspace_id, confirmedSubscription.productId)
+      .first<{
+        id: string;
+        status: "pending" | "active" | "suspended" | "failed";
+      }>();
+    await upsertWorkspaceProductEntitlementStatement({
+      workspaceId: checkout.workspace_id,
+      productId: confirmedSubscription.productId,
+      currentSubscriptionId: confirmedSubscription.id,
+      appInstanceId: instance?.id ?? null,
+      status:
+        instance?.status === "active"
+          ? "active"
+          : instance?.status === "suspended"
+            ? "suspended"
+            : "pending",
+      now,
+    }).run();
   }
 }
 

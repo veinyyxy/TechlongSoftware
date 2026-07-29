@@ -32,9 +32,9 @@ test("server-renders the launch-ready landing page", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /LAUNCH READY/);
+  assert.match(html, /CUSTOMER SELF-SERVICE/);
   assert.match(html, /客户服务 Dashboard/);
-  assert.match(html, /管理员创建企业客户与套餐/);
+  assert.match(html, /企业 Owner 自助选择套餐并安全在线付款/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 
@@ -100,17 +100,19 @@ test("account API rejects anonymous requests", async () => {
 });
 
 test("launch-stage protected APIs reject anonymous requests", async () => {
-  const [customers, plans, subscriptions, payments, instances, templates, workspaceBilling, workspaceApps, checkout] =
+  const [customers, plans, subscriptions, payments, orders, instances, templates, workspaceBilling, workspaceApps, checkout, purchaseOrders] =
     await Promise.all([
     render("/api/admin/customers"),
     render("/api/admin/plans"),
     render("/api/admin/subscriptions"),
     render("/api/admin/payments"),
+    render("/api/admin/purchase-orders"),
     render("/api/admin/instances"),
     render("/api/admin/templates"),
     render("/api/workspaces/workspace-a/billing"),
     render("/api/workspaces/workspace-a/apps"),
     render("/api/workspaces/workspace-a/checkout", { method: "POST" }),
+    render("/api/workspaces/workspace-a/purchase-orders", { method: "POST" }),
   ]);
 
   assert.equal(customers.status, 401);
@@ -121,6 +123,8 @@ test("launch-stage protected APIs reject anonymous requests", async () => {
   assert.equal((await subscriptions.json()).error.code, "UNAUTHORIZED");
   assert.equal(payments.status, 401);
   assert.equal((await payments.json()).error.code, "UNAUTHORIZED");
+  assert.equal(orders.status, 401);
+  assert.equal((await orders.json()).error.code, "UNAUTHORIZED");
   assert.equal(instances.status, 401);
   assert.equal((await instances.json()).error.code, "UNAUTHORIZED");
   assert.equal(templates.status, 401);
@@ -131,6 +135,8 @@ test("launch-stage protected APIs reject anonymous requests", async () => {
   assert.equal((await workspaceApps.json()).error.code, "UNAUTHORIZED");
   assert.equal(checkout.status, 401);
   assert.equal((await checkout.json()).error.code, "UNAUTHORIZED");
+  assert.equal(purchaseOrders.status, 401);
+  assert.equal((await purchaseOrders.json()).error.code, "UNAUTHORIZED");
 });
 
 test("keeps secrets out of the committed environment example", async () => {

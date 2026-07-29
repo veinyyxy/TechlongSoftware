@@ -1,7 +1,7 @@
 export const platformConfig = {
   name: process.env.NEXT_PUBLIC_PLATFORM_NAME ?? "餐饮 SaaS 平台",
   productName: "餐饮订单系统",
-  phase: "testing-and-launch",
+  phase: "customer-self-service-payment",
   stack: [
     "TypeScript",
     "React 19",
@@ -11,8 +11,8 @@ export const platformConfig = {
     "Cloudflare Worker",
   ],
   mvpFlow: [
-    "管理员创建企业客户与套餐",
-    "客户完成安全在线付款或管理员手工记录付款",
+    "管理员发布产品、套餐与实例模板",
+    "企业 Owner 自助选择套餐并安全在线付款",
     "已验证付款后自动创建待开通实例记录",
     "管理员登记餐饮订单系统入口",
     "手动开通或暂停客户实例",

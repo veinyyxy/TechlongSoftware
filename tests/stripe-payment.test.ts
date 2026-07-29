@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { validateCheckoutInput } from "../lib/payments/validation.ts";
 import { verifyStripeWebhook } from "../lib/payments/stripe.ts";
+import { validateCustomerPurchaseInput } from "../lib/purchases/validation.ts";
 
 test("validates a configured subscription checkout without accepting a client price or plan", () => {
   const valid = validateCheckoutInput({
@@ -17,6 +18,29 @@ test("validates a configured subscription checkout without accepting a client pr
   const invalid = validateCheckoutInput({ subscriptionId: "" });
   assert.equal(invalid.data, null);
   assert.ok(invalid.errors.subscriptionId);
+});
+
+test("accepts customer configuration without trusting a client price or payment status", () => {
+  const valid = validateCustomerPurchaseInput({
+    planId: "pln_customer",
+    renewalSubscriptionId: null,
+    instanceConfiguration: {
+      storeName: "示例餐厅",
+      theme: "warm",
+      visitorLimit: 100,
+    },
+    amount: 1,
+    paymentStatus: "paid",
+  });
+  assert.deepEqual(valid.data, {
+    planId: "pln_customer",
+    renewalSubscriptionId: null,
+    instanceConfiguration: {
+      storeName: "示例餐厅",
+      theme: "warm",
+      visitorLimit: 100,
+    },
+  });
 });
 
 test("accepts a correctly signed Stripe webhook and rejects a forged one", async () => {
@@ -111,4 +135,50 @@ test("creates one pending instance snapshot from the verified payment completion
   assert.match(instanceManagement, /configuration_snapshot/);
   assert.match(instanceManagement, /JSON\.stringify\(input\.configurationSnapshot\)/);
   assert.doesNotMatch(instanceManagement, /'payment_success', 'active'/);
+});
+
+test("customer purchase orders create subscriptions only after verified Stripe completion", async () => {
+  const root = new URL("../", import.meta.url);
+  const [
+    purchaseRoute,
+    purchaseManagement,
+    purchaseForm,
+    billingManagement,
+  ] = await Promise.all([
+    readFile(
+      new URL(
+        "app/api/workspaces/[workspaceId]/purchase-orders/route.ts",
+        root,
+      ),
+      "utf8",
+    ),
+    readFile(new URL("lib/purchases/management.ts", root), "utf8"),
+    readFile(
+      new URL("components/billing/CustomerPurchaseForm.tsx", root),
+      "utf8",
+    ),
+    readFile(new URL("lib/billing/management.ts", root), "utf8"),
+  ]);
+
+  assert.match(purchaseRoute, /account\.membership\.role !== "owner"/);
+  assert.match(purchaseRoute, /createCustomerPurchaseCheckout/);
+  assert.doesNotMatch(purchaseForm, /priceAmount|paymentStatus/);
+  assert.match(
+    purchaseManagement,
+    /const plan = await getPlan\(input\.purchase\.planId\)/,
+  );
+  assert.match(purchaseManagement, /resolveTemplateConfiguration/);
+  assert.match(purchaseManagement, /subscription_purchase_order_id/);
+  assert.match(purchaseManagement, /assertStripeAmountMatches/);
+  assert.match(purchaseManagement, /creation_source/);
+  assert.match(purchaseManagement, /'customer_checkout'/);
+  assert.match(purchaseManagement, /preparePendingAppInstance/);
+  assert.match(
+    purchaseManagement,
+    /upsertWorkspaceProductEntitlementStatement/,
+  );
+  assert.match(
+    billingManagement,
+    /setCustomerSubscriptionCancelAtPeriodEnd/,
+  );
 });

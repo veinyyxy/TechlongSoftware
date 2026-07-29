@@ -29,7 +29,7 @@ export default function Home() {
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">LAUNCH READY · 阶段 6</p>
+          <p className="eyebrow">CUSTOMER SELF-SERVICE · STRIPE</p>
           <h1>让每个企业客户一眼看清，<br />自己的餐饮订单系统是否可用。</h1>
           <p className="hero-description">
             客户 Dashboard 汇总套餐、订阅周期、付款记录、应用状态与访问入口。
@@ -42,7 +42,7 @@ export default function Home() {
             <Link className="button button-ghost" href="/register">创建企业账号</Link>
           </div>
           <p className="hero-note">
-            付款、开通和访问地址仍由平台管理员手动维护，不代表已接入自动部署或支付。
+            客户可自行选择套餐并在线付款；应用入口仍由平台管理员检查、填写和手动开通，不包含自动部署。
           </p>
         </div>
 
@@ -74,7 +74,7 @@ export default function Home() {
         <div className="section-heading">
           <p className="eyebrow">FIRST RELEASE</p>
           <h2>只做能形成真实运营闭环的能力</h2>
-          <p>当前版本已完成上线试运行检查，保留人工订阅、付款确认和开通流程，不提前接入自动支付或云服务。</p>
+          <p>当前版本支持客户自助选择套餐和 Stripe 一次性预付费，同时保留管理员人工订阅、付款记录与最终开通流程，不自动创建云资源。</p>
         </div>
         <div className="scope-grid">
           {platformConfig.scopes.map((scope) => (
@@ -113,7 +113,7 @@ export default function Home() {
       <footer className="marketing-footer">
         <div>
           <strong>{platformConfig.name}</strong>
-          <p>阶段 6 · 测试、修复与上线试运行检查。</p>
+          <p>客户自助购买一期 · Stripe 付款 · 管理员人工开通。</p>
         </div>
         <div className="footer-links">
           <Link href="/dashboard">客户侧</Link>

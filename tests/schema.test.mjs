@@ -80,6 +80,24 @@ test("stage 4 migrations contain workspace-scoped products and application insta
     /ADD `template_configuration` text DEFAULT '\{\}' NOT NULL/,
   );
   assert.match(sql, /plans_template_configuration_valid_insert/);
+  assert.match(sql, /CREATE TABLE `subscription_purchase_orders`/);
+  assert.match(
+    sql,
+    /subscription_purchase_orders_workspace_product_inflight_unique/,
+  );
+  assert.match(sql, /CREATE TABLE `workspace_product_entitlements`/);
+  assert.match(
+    sql,
+    /workspace_product_entitlements_workspace_product_unique/,
+  );
+  assert.match(
+    sql,
+    /ADD `creation_source` text DEFAULT 'admin_manual' NOT NULL/,
+  );
+  assert.match(
+    sql,
+    /ADD `purchase_order_id` text REFERENCES subscription_purchase_orders\(id\)/,
+  );
 
   assert.doesNotMatch(sql, /CREATE TABLE `(deployments|webhooks)`/);
 });

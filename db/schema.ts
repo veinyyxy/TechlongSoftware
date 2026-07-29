@@ -158,6 +158,11 @@ export const subscriptions = sqliteTable(
     cancelAtPeriodEnd: integer("cancel_at_period_end", { mode: "boolean" })
       .notNull()
       .default(false),
+    creationSource: text("creation_source", {
+      enum: ["admin_manual", "customer_checkout"],
+    })
+      .notNull()
+      .default("admin_manual"),
     createdByUserId: text("created_by_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
@@ -290,6 +295,10 @@ export const paymentWebhookEvents = sqliteTable(
       () => paymentCheckoutSessions.id,
       { onDelete: "set null" },
     ),
+    purchaseOrderId: text("purchase_order_id").references(
+      () => subscriptionPurchaseOrders.id,
+      { onDelete: "set null" },
+    ),
     payloadHash: text("payload_hash").notNull(),
     processingStatus: text("processing_status", {
       enum: ["pending", "processed", "ignored", "failed"],
@@ -307,6 +316,9 @@ export const paymentWebhookEvents = sqliteTable(
     ),
     index("payment_webhook_events_checkout_session_id_idx").on(
       table.checkoutSessionId,
+    ),
+    index("payment_webhook_events_purchase_order_id_idx").on(
+      table.purchaseOrderId,
     ),
     index("payment_webhook_events_processing_status_idx").on(
       table.processingStatus,
@@ -457,6 +469,135 @@ export const appInstances = sqliteTable(
       table.templateVersionId,
     ),
     index("app_instances_status_idx").on(table.status),
+  ],
+);
+
+export const subscriptionPurchaseOrders = sqliteTable(
+  "subscription_purchase_orders",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "restrict" }),
+    planId: text("plan_id")
+      .notNull()
+      .references(() => plans.id, { onDelete: "restrict" }),
+    templateVersionId: text("template_version_id")
+      .notNull()
+      .references(() => appInstanceTemplateVersions.id, {
+        onDelete: "restrict",
+      }),
+    subscriptionId: text("subscription_id").references(
+      () => subscriptions.id,
+      { onDelete: "set null" },
+    ),
+    renewalSubscriptionId: text("renewal_subscription_id").references(
+      () => subscriptions.id,
+      { onDelete: "set null" },
+    ),
+    paymentRecordId: text("payment_record_id").references(
+      () => paymentRecords.id,
+      { onDelete: "set null" },
+    ),
+    orderType: text("order_type", {
+      enum: ["new_subscription", "renewal"],
+    })
+      .notNull()
+      .default("new_subscription"),
+    configurationSnapshot: text("configuration_snapshot")
+      .notNull()
+      .default("{}"),
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull(),
+    billingInterval: text("billing_interval", { enum: ["month", "year"] })
+      .notNull(),
+    status: text("status", {
+      enum: [
+        "draft",
+        "checkout_pending",
+        "paid",
+        "failed",
+        "canceled",
+        "expired",
+      ],
+    })
+      .notNull()
+      .default("draft"),
+    provider: text("provider").notNull().default("stripe"),
+    providerSessionId: text("provider_session_id"),
+    providerPaymentId: text("provider_payment_id"),
+    checkoutUrl: text("checkout_url"),
+    failureReason: text("failure_reason"),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+    completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("subscription_purchase_orders_provider_session_unique").on(
+      table.provider,
+      table.providerSessionId,
+    ),
+    uniqueIndex("subscription_purchase_orders_subscription_unique").on(
+      table.subscriptionId,
+    ),
+    uniqueIndex("subscription_purchase_orders_workspace_product_inflight_unique")
+      .on(table.workspaceId, table.productId)
+      .where(sql`${table.status} in ('draft', 'checkout_pending')`),
+    index("subscription_purchase_orders_workspace_id_idx").on(
+      table.workspaceId,
+    ),
+    index("subscription_purchase_orders_product_id_idx").on(table.productId),
+    index("subscription_purchase_orders_plan_id_idx").on(table.planId),
+    index("subscription_purchase_orders_status_idx").on(table.status),
+    index("subscription_purchase_orders_created_at_idx").on(table.createdAt),
+  ],
+);
+
+export const workspaceProductEntitlements = sqliteTable(
+  "workspace_product_entitlements",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "restrict" }),
+    currentSubscriptionId: text("current_subscription_id").references(
+      () => subscriptions.id,
+      { onDelete: "set null" },
+    ),
+    appInstanceId: text("app_instance_id").references(
+      () => appInstances.id,
+      { onDelete: "set null" },
+    ),
+    status: text("status", {
+      enum: ["pending", "active", "suspended", "ended"],
+    })
+      .notNull()
+      .default("pending"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("workspace_product_entitlements_workspace_product_unique").on(
+      table.workspaceId,
+      table.productId,
+    ),
+    uniqueIndex("workspace_product_entitlements_app_instance_unique").on(
+      table.appInstanceId,
+    ),
+    index("workspace_product_entitlements_current_subscription_idx").on(
+      table.currentSubscriptionId,
+    ),
+    index("workspace_product_entitlements_status_idx").on(table.status),
   ],
 );
 

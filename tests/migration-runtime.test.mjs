@@ -27,7 +27,7 @@ test("multi-product migration backfills existing subscriptions without losing hi
   const productSubscriptionMigrations = migrations.filter(
     ({ file }) => file >= "0007_",
   );
-  assert.equal(productSubscriptionMigrations.length, 5);
+  assert.equal(productSubscriptionMigrations.length, 6);
   for (const migration of previousMigrations) applyMigration(database, migration);
 
   const now = Date.now();
@@ -222,6 +222,23 @@ test("multi-product migration backfills existing subscriptions without losing hi
       .prepare("SELECT subscription_id FROM app_instances WHERE id = 'app_upgrade'")
       .get().subscription_id,
     "sub_upgrade",
+  );
+  assert.deepEqual(
+    {
+      ...database
+        .prepare(
+          `SELECT current_subscription_id, app_instance_id, status
+           FROM workspace_product_entitlements
+           WHERE workspace_id = 'wsp_upgrade'
+             AND product_id = 'prd_restaurant_order_system'`,
+        )
+        .get(),
+    },
+    {
+      current_subscription_id: "sub_upgrade",
+      app_instance_id: "app_upgrade",
+      status: "active",
+    },
   );
 
   const indexes = database

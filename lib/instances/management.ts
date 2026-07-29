@@ -5,6 +5,7 @@ import {
   type SubscriptionStatus,
 } from "@/lib/billing/management";
 import { randomId } from "@/lib/domain/ids";
+import { upsertWorkspaceProductEntitlementStatement } from "@/lib/entitlements/management";
 import {
   parseTemplateConfiguration,
   type TemplateConfiguration,
@@ -43,6 +44,7 @@ export interface AppInstanceView {
   productName: string;
   productSlug: string;
   subscriptionId: string | null;
+  currentSubscriptionId: string | null;
   subscriptionStatus: SubscriptionStatus | null;
   subscriptionPlanId: string | null;
   subscriptionPlanName: string | null;
@@ -85,6 +87,7 @@ type AppInstanceRow = {
   product_name: string;
   product_slug: string;
   subscription_id: string | null;
+  current_subscription_id: string | null;
   subscription_status: SubscriptionStatus | null;
   subscription_plan_id: string | null;
   subscription_plan_name: string | null;
@@ -130,6 +133,7 @@ function toAppInstanceView(row: AppInstanceRow): AppInstanceView {
     productName: row.product_name,
     productSlug: row.product_slug,
     subscriptionId: row.subscription_id,
+    currentSubscriptionId: row.current_subscription_id,
     subscriptionStatus: row.subscription_status,
     subscriptionPlanId: row.subscription_plan_id,
     subscriptionPlanName: row.subscription_plan_name,
@@ -162,8 +166,10 @@ const appInstanceSelect = `
     ai.id, ai.workspace_id, w.name AS workspace_name,
     w.status AS workspace_status, ai.product_id, p.name AS product_name,
     p.slug AS product_slug, ai.subscription_id,
-    s.status AS subscription_status, subscription_plan.id AS subscription_plan_id,
-    subscription_plan.name AS subscription_plan_name,
+    entitlement.current_subscription_id,
+    COALESCE(current_subscription.status, s.status) AS subscription_status,
+    COALESCE(current_plan.id, subscription_plan.id) AS subscription_plan_id,
+    COALESCE(current_plan.name, subscription_plan.name) AS subscription_plan_name,
     ai.template_version_id, template.name AS template_name,
     template_version.version AS template_version,
     ai.configuration_snapshot,
@@ -176,6 +182,14 @@ const appInstanceSelect = `
   INNER JOIN workspaces w ON w.id = ai.workspace_id
   INNER JOIN products p ON p.id = ai.product_id
   LEFT JOIN subscriptions s ON s.id = ai.subscription_id
+  LEFT JOIN workspace_product_entitlements entitlement
+    ON entitlement.workspace_id = ai.workspace_id
+   AND entitlement.product_id = ai.product_id
+  LEFT JOIN subscriptions current_subscription
+    ON current_subscription.id = entitlement.current_subscription_id
+  LEFT JOIN plans current_plan
+    ON current_plan.id = current_subscription.plan_id
+   AND current_plan.product_id = ai.product_id
   LEFT JOIN plans subscription_plan
     ON subscription_plan.id = s.plan_id
    AND subscription_plan.product_id = ai.product_id
@@ -501,6 +515,19 @@ export async function createAppInstance(
           now,
           now,
         ),
+      upsertWorkspaceProductEntitlementStatement({
+        workspaceId: input.workspaceId,
+        productId: input.productId,
+        currentSubscriptionId: input.subscriptionId,
+        appInstanceId: id,
+        status:
+          input.status === "active"
+            ? "active"
+            : input.status === "suspended"
+              ? "suspended"
+              : "pending",
+        now,
+      }),
       syncWorkspaceAppInstanceStatusStatement(input.workspaceId, now),
     ]);
   } catch (error) {
@@ -584,7 +611,7 @@ export async function updateAppInstance(
     assertSubscriptionForInstance(
       input.workspaceId,
       input.productId,
-      input.subscriptionId,
+      existing.currentSubscriptionId ?? input.subscriptionId,
       input.status,
     ),
   ]);
@@ -616,6 +643,20 @@ export async function updateAppInstance(
           now,
           instanceId,
         ),
+      upsertWorkspaceProductEntitlementStatement({
+        workspaceId: existing.workspaceId,
+        productId: existing.productId,
+        currentSubscriptionId:
+          existing.currentSubscriptionId ?? existing.subscriptionId,
+        appInstanceId: existing.id,
+        status:
+          input.status === "active"
+            ? "active"
+            : input.status === "suspended"
+              ? "suspended"
+              : "pending",
+        now,
+      }),
       syncWorkspaceAppInstanceStatusStatement(existing.workspaceId, now),
     ]);
   } catch (error) {
@@ -645,7 +686,7 @@ export async function updateAppInstanceStatus(
   await assertSubscriptionForInstance(
     existing.workspaceId,
     existing.productId,
-    existing.subscriptionId,
+    existing.currentSubscriptionId ?? existing.subscriptionId,
     status,
   );
   if (status === "active" && !isValidAppInstanceAccessUrl(existing.accessUrl)) {
@@ -667,6 +708,20 @@ export async function updateAppInstanceStatus(
          WHERE id = ?`,
       )
       .bind(status, provisionedAt, suspendedAt, now, instanceId),
+    upsertWorkspaceProductEntitlementStatement({
+      workspaceId: existing.workspaceId,
+      productId: existing.productId,
+      currentSubscriptionId:
+        existing.currentSubscriptionId ?? existing.subscriptionId,
+      appInstanceId: existing.id,
+      status:
+        status === "active"
+          ? "active"
+          : status === "suspended"
+            ? "suspended"
+            : "pending",
+      now,
+    }),
     syncWorkspaceAppInstanceStatusStatement(existing.workspaceId, now),
   ]);
 

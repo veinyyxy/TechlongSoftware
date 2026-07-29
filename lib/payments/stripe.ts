@@ -20,6 +20,7 @@ export class StripeGatewayError extends Error {
 
 export interface StripeCheckoutSessionInput {
   checkoutId: string;
+  metadataKey?: "payment_checkout_id" | "subscription_purchase_order_id";
   planName: string;
   planDescription: string;
   amount: number;
@@ -40,6 +41,8 @@ export interface StripeCheckoutSessionStatus {
   paymentStatus: string | null;
   status: string | null;
   paymentIntentId: string | null;
+  amountTotal: number | null;
+  currency: string | null;
   metadata: Record<string, unknown>;
 }
 
@@ -94,8 +97,9 @@ export async function createStripeCheckoutSession(
     );
   }
   body.set("line_items[0][quantity]", "1");
-  body.set("metadata[payment_checkout_id]", input.checkoutId);
-  body.set("payment_intent_data[metadata][payment_checkout_id]", input.checkoutId);
+  const metadataKey = input.metadataKey ?? "payment_checkout_id";
+  body.set(`metadata[${metadataKey}]`, input.checkoutId);
+  body.set(`payment_intent_data[metadata][${metadataKey}]`, input.checkoutId);
 
   let response: Response;
   try {
@@ -182,6 +186,13 @@ export async function retrieveStripeCheckoutSession(
     paymentStatus: typeof payload.payment_status === "string" ? payload.payment_status : null,
     status: typeof payload.status === "string" ? payload.status : null,
     paymentIntentId: typeof payload.payment_intent === "string" ? payload.payment_intent : null,
+    amountTotal:
+      typeof payload.amount_total === "number" &&
+      Number.isSafeInteger(payload.amount_total)
+        ? payload.amount_total
+        : null,
+    currency:
+      typeof payload.currency === "string" ? payload.currency : null,
     metadata:
       payload.metadata && typeof payload.metadata === "object" && !Array.isArray(payload.metadata)
         ? (payload.metadata as Record<string, unknown>)
