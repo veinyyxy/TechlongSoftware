@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前完成阶段 8，并已将订阅升级为按“工作区 + 产品”管理：Stripe 付款成功后自动创建待开通实例，保留管理员最终开通检查。
+当前完成阶段 8，并新增了版本化“应用实例模板管理”：套餐绑定已发布模板版本，订阅保存客户配置，Stripe 付款成功后按该快照创建待开通实例，保留管理员最终开通检查。
 
 ## 已实现
 
@@ -20,10 +20,15 @@
 - 管理员客户列表、搜索、状态筛选和客户详情。
 - 创建、编辑、暂停及恢复企业客户工作区。
 - 创建、编辑、启用及停用套餐。
+- 管理员可以创建应用实例模板、维护草稿版本、发布不可变版本和归档旧版本。
+- 模板配置字段区分客户需求（如店铺名称、主题）与套餐限制（如访问人数限制）；套餐限制由后端读取，不能由客户覆盖。
+- 当前部署驱动只允许受控的 `manual` 标识，不接受脚本、密钥或任意部署命令。
 - 每个套餐必须归属一个产品；同名套餐可存在于不同产品中，套餐创建后不能跨产品转移。
+- 每个套餐必须绑定同一产品下的已发布实例模板版本；套餐创建后不能更换模板版本。
 - 套餐价格使用最小货币单位保存，功能和限制保存在数据库中。
 - 客户详情和客户控制台读取当前套餐、订阅状态和应用实例状态。
 - 管理员创建、编辑并查看客户订阅。
+- 创建订阅时根据套餐绑定的模板收集实例配置，并把模板版本和已解析配置固定在订阅中。
 - 订阅支持 `manual_pending`、`active`、`past_due`、`paused`、`canceled`。
 - 一个工作区可保留多个产品、多个历史订阅；同一工作区的同一产品同一时间只允许一个当前订阅。
 - 创建订阅时只显示所选产品下的套餐，服务端和数据库都会阻止跨产品套餐组合。
@@ -37,6 +42,7 @@
 - 内置一个可分配产品：`餐饮订单系统`（`restaurant-order-system`）。
 - 管理员可以创建、编辑、筛选和查看客户应用实例。
 - 应用实例关联工作区、产品，并可选关联订阅。
+- 新应用实例从订阅复制模板版本和配置快照；实例创建后不能更换产品、订阅、模板版本或配置快照。
 - 应用实例通过关联订阅读取对应套餐，管理员实例列表和详情会显示该套餐；实例表不重复保存 `plan_id`。
 - 应用实例状态支持 `pending`、`active`、`suspended`、`failed`。
 - 只有关联有效订阅的实例允许被标记为 `active`。
@@ -61,6 +67,7 @@
 - Paddle、自动续扣、Stripe 订阅模式、退款自动化、优惠券和复杂发票系统。
 - 复杂发票、优惠券和自动退款。
 - 自动部署、云资源创建、Docker / Kubernetes 发布和复杂部署日志。
+- 模板中的部署驱动目前只保存受控标识，不会执行自动部署流程。
 - 多产品市场。
 - 成员邀请和角色变更。
 - 密码注册、密码存储和密码重置。
@@ -171,6 +178,16 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - 当前订阅的 `(workspace_id, product_id)` 条件唯一约束
 - `payment_checkout_sessions.subscription_id`（必填）及进行中 Checkout 唯一约束
 
+应用实例模板扩展：
+
+- `app_instance_templates`：归属产品的模板主记录
+- `app_instance_template_versions`：草稿、已发布、已归档的版本记录
+- `plans.template_version_id`：套餐绑定的不可变模板版本
+- `subscriptions.template_version_id` 与 `subscriptions.instance_configuration`
+- `app_instances.template_version_id` 与 `app_instances.configuration_snapshot`
+- 默认写入并复用“餐饮订单系统标准模板 v1”，旧套餐和订阅由迁移安全回填
+- 数据库触发器阻止跨产品模板、套餐/订阅模板不匹配、已发布版本内容修改以及实例快照与订阅不匹配
+
 订阅必须关联 `workspace`、`product` 和该产品下的 `plan`。数据库使用触发器阻止产品与套餐不匹配，并使用条件唯一索引保证同一 `(workspace_id, product_id)` 同一时间最多一个当前订阅，同时保留已取消订阅作为历史记录；其他产品的当前订阅互不影响。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。应用实例关联 `workspace`、`product`，并可选关联订阅；对应套餐通过订阅读取，不在实例表重复保存。实例同时保存管理员填写的买家端 `access_url`、卖家端 `seller_apk_url`、`domain` / `slug` 和 `tenant_key`。
 
 迁移会幂等写入默认产品：`餐饮订单系统` / `restaurant-order-system` / `active`，并将旧订阅安全回填到该产品。工作区上的 `plan_id`、`subscription_status` 和 `app_instance_status` 仅作为兼容状态快照，由订阅和应用实例管理操作同步更新；实际订阅以 `subscriptions` 为准，实际应用实例以 `app_instances` 为准。
@@ -214,6 +231,12 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `/admin/plans`
 - `/admin/plans/new`
 - `/admin/plans/:planId/edit`
+- `/admin/templates`
+- `/admin/templates/new`
+- `/admin/templates/:templateId`
+- `/admin/templates/:templateId/edit`
+- `/admin/templates/:templateId/versions/new`
+- `/admin/templates/:templateId/versions/:versionId/edit`
 - `/admin/subscriptions`
 - `/admin/subscriptions/new`
 - `/admin/subscriptions/:subscriptionId`
@@ -229,6 +252,10 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `/api/admin/customers/:customerId`
 - `/api/admin/plans`
 - `/api/admin/plans/:planId`
+- `/api/admin/templates`
+- `/api/admin/templates/:templateId`
+- `/api/admin/templates/:templateId/versions`
+- `/api/admin/templates/:templateId/versions/:versionId`
 - `/api/admin/subscriptions`
 - `/api/admin/subscriptions/:subscriptionId`
 - `/api/admin/payments`
@@ -239,4 +266,4 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 
 ## 下一步建议
 
-先在 Stripe 测试模式完成双账号验收、Webhook 重复投递测试和管理员待开通检查，再决定是否配置 Stripe 生产密钥。自动续扣、Stripe 订阅模式、退款、自动部署和多实例仍不属于当前版本。
+先在 Stripe 测试模式完成双账号验收、模板→套餐→订阅配置→实例快照链路、Webhook 重复投递和管理员待开通检查，再决定是否配置 Stripe 生产密钥。自动续扣、Stripe 订阅模式、退款、自动部署和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)。

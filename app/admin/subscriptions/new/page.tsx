@@ -39,10 +39,26 @@ export default async function NewSubscriptionPage({
                 : undefined
             }
             mode="create"
-            plans={plans.map(({ id, name, productId }) => ({
+            plans={plans.map(({
               id,
               name,
               productId,
+              templateVersionId,
+              templateName,
+              templateVersion,
+              templateConfigurationSchema,
+              templateDefaultConfiguration,
+              limits,
+            }) => ({
+              id,
+              name,
+              productId,
+              templateVersionId,
+              templateName,
+              templateVersion,
+              templateConfigurationSchema,
+              templateDefaultConfiguration,
+              limits,
             }))}
             products={products.map(({ id, name, status }) => ({ id, name, status }))}
           />

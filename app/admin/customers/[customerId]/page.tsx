@@ -144,7 +144,11 @@ export default async function CustomerDetailPage({
                 {billing.currentSubscriptions.map((subscription) => (
                   <tr key={subscription.id}>
                     <td><strong>{subscription.productName}</strong><span>{subscription.productSlug}</span></td>
-                    <td><strong>{subscription.planName}</strong><span>{formatMoney(subscription.planPriceAmount, subscription.planCurrency)}</span></td>
+                    <td>
+                      <strong>{subscription.planName}</strong>
+                      <span>{formatMoney(subscription.planPriceAmount, subscription.planCurrency)}</span>
+                      <span>{subscription.templateName} · v{subscription.templateVersion}</span>
+                    </td>
                     <td>{billingStatusLabels[subscription.status]}</td>
                     <td>{formatDate(subscription.currentPeriodStart)} 至 {formatDate(subscription.currentPeriodEnd)} UTC</td>
                     <td><Link className="table-link" href={`/admin/subscriptions/${subscription.id}`}>查看详情</Link></td>
@@ -178,7 +182,10 @@ export default async function CustomerDetailPage({
                 {billing.historicalSubscriptions.map((subscription) => (
                   <tr key={subscription.id}>
                     <td><strong>{subscription.productName}</strong></td>
-                    <td>{subscription.planName}</td>
+                    <td>
+                      <strong>{subscription.planName}</strong>
+                      <span>{subscription.templateName} · v{subscription.templateVersion}</span>
+                    </td>
                     <td>{billingStatusLabels[subscription.status]}</td>
                     <td>{formatDate(subscription.currentPeriodStart)} 至 {formatDate(subscription.currentPeriodEnd)} UTC</td>
                     <td><Link className="table-link" href={`/admin/subscriptions/${subscription.id}`}>查看历史</Link></td>

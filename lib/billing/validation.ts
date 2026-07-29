@@ -28,6 +28,7 @@ export interface SubscriptionInput {
   currentPeriodStart: number;
   currentPeriodEnd: number;
   cancelAtPeriodEnd: boolean;
+  instanceConfiguration: Record<string, unknown>;
 }
 
 export interface PaymentInput {
@@ -122,6 +123,7 @@ export function validateSubscriptionInput(
   const status = input.status;
   const currentPeriodStart = input.currentPeriodStart;
   const currentPeriodEnd = input.currentPeriodEnd;
+  const rawInstanceConfiguration = asRecord(input.instanceConfiguration);
 
   if (!validId(workspaceId)) {
     addError(errors, "workspaceId", "请选择企业客户。");
@@ -151,6 +153,27 @@ export function validateSubscriptionInput(
   if (typeof input.cancelAtPeriodEnd !== "boolean") {
     addError(errors, "cancelAtPeriodEnd", "到期取消设置不正确。");
   }
+  if (Object.keys(rawInstanceConfiguration).length > 30) {
+    addError(errors, "instanceConfiguration", "实例配置最多 30 项。");
+  }
+  for (const [key, configValue] of Object.entries(rawInstanceConfiguration)) {
+    if (!/^[a-z][A-Za-z0-9_]{1,63}$/.test(key)) {
+      addError(errors, "instanceConfiguration", "实例配置字段名称不正确。");
+      break;
+    }
+    if (
+      typeof configValue !== "string" &&
+      typeof configValue !== "number" &&
+      typeof configValue !== "boolean"
+    ) {
+      addError(errors, "instanceConfiguration", "实例配置只支持文字、数字或布尔值。");
+      break;
+    }
+    if (typeof configValue === "string" && configValue.length > 200) {
+      addError(errors, "instanceConfiguration", "实例配置文字不能超过 200 个字符。");
+      break;
+    }
+  }
 
   return {
     data:
@@ -163,6 +186,7 @@ export function validateSubscriptionInput(
             currentPeriodStart: currentPeriodStart as number,
             currentPeriodEnd: currentPeriodEnd as number,
             cancelAtPeriodEnd: input.cancelAtPeriodEnd as boolean,
+            instanceConfiguration: rawInstanceConfiguration,
           }
         : null,
     errors,

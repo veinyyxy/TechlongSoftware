@@ -73,16 +73,33 @@ export default async function EditSubscriptionPage({
             productId: subscription.productId,
             productName: subscription.productName,
             planId: subscription.planId,
+            instanceConfiguration: subscription.instanceConfiguration,
             status: subscription.status,
             currentPeriodStart: subscription.currentPeriodStart,
             currentPeriodEnd: subscription.currentPeriodEnd,
             cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
           }}
           mode="edit"
-          plans={availablePlans.map(({ id, name, productId }) => ({
+          plans={availablePlans.map(({
             id,
             name,
             productId,
+            templateVersionId,
+            templateName,
+            templateVersion,
+            templateConfigurationSchema,
+            templateDefaultConfiguration,
+            limits,
+          }) => ({
+            id,
+            name,
+            productId,
+            templateVersionId,
+            templateName,
+            templateVersion,
+            templateConfigurationSchema,
+            templateDefaultConfiguration,
+            limits,
           }))}
           products={[]}
           subscriptionId={subscription.id}

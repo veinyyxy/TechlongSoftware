@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import type { TemplateConfigurationSchema } from "@/lib/templates/validation";
 
 interface PlanFormProps {
   mode: "create" | "edit";
@@ -11,9 +12,20 @@ interface PlanFormProps {
     name: string;
     status: "active" | "inactive";
   }>;
+  templateVersions?: Array<{
+    id: string;
+    productId: string;
+    templateName: string;
+    version: number;
+    configurationSchema: TemplateConfigurationSchema;
+  }>;
   initial?: {
     productId: string;
     productName: string;
+    templateVersionId: string;
+    templateName: string;
+    templateVersion: number;
+    templateConfigurationSchema: TemplateConfigurationSchema;
     name: string;
     description: string;
     priceAmount: number;
@@ -62,12 +74,31 @@ export function PlanForm({
   mode,
   planId,
   products = [],
+  templateVersions = [],
   initial,
 }: PlanFormProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [selectedProductId, setSelectedProductId] = useState(
+    initial?.productId ?? "",
+  );
+  const [selectedTemplateVersionId, setSelectedTemplateVersionId] = useState(
+    initial?.templateVersionId ?? "",
+  );
+  const availableTemplateVersions = templateVersions.filter(
+    (version) => version.productId === selectedProductId,
+  );
+  const selectedTemplateSchema =
+    templateVersions.find((version) => version.id === selectedTemplateVersionId)
+      ?.configurationSchema ??
+    initial?.templateConfigurationSchema ??
+    { fields: [] };
+  const requiredLimitKeys = selectedTemplateSchema.fields
+    .filter((field) => field.source === "plan_limit")
+    .map((field) => field.limitKey)
+    .filter((key): key is string => Boolean(key));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,6 +116,15 @@ export function PlanForm({
       setFieldErrors({ limits: [parsedLimits.error] });
       return;
     }
+    const missingLimit = requiredLimitKeys.find(
+      (key) => !parsedLimits.limits[key],
+    );
+    if (missingLimit) {
+      setFieldErrors({
+        limits: [`当前实例模板要求套餐限制中包含“${missingLimit}”。`],
+      });
+      return;
+    }
 
     const features = String(formData.get("features") ?? "")
       .split(/\r?\n/)
@@ -92,6 +132,7 @@ export function PlanForm({
       .filter(Boolean);
     const payload = {
       productId: String(formData.get("productId") ?? ""),
+      templateVersionId: String(formData.get("templateVersionId") ?? ""),
       name: String(formData.get("name") ?? ""),
       description: String(formData.get("description") ?? ""),
       priceAmount,
@@ -151,7 +192,15 @@ export function PlanForm({
               />
             </>
           ) : (
-            <select defaultValue="" name="productId" required>
+            <select
+              name="productId"
+              onChange={(event) => {
+                setSelectedProductId(event.target.value);
+                setSelectedTemplateVersionId("");
+              }}
+              required
+              value={selectedProductId}
+            >
               <option disabled value="">
                 请选择套餐所属产品
               </option>
@@ -165,6 +214,66 @@ export function PlanForm({
           <small>套餐创建后不能转移到其他产品。</small>
           {fieldError("productId") ? (
             <small className="form-error">{fieldError("productId")}</small>
+          ) : null}
+        </label>
+        <label className="form-field form-field-wide">
+          <span>实例模板版本</span>
+          {mode === "edit" && initial ? (
+            <>
+              <input
+                aria-label="实例模板版本"
+                disabled
+                value={`${initial.templateName} · v${initial.templateVersion}`}
+              />
+              <input
+                name="templateVersionId"
+                type="hidden"
+                value={initial.templateVersionId}
+              />
+            </>
+          ) : (
+            <select
+              disabled={
+                !selectedProductId || !availableTemplateVersions.length
+              }
+              name="templateVersionId"
+              onChange={(event) =>
+                setSelectedTemplateVersionId(event.target.value)
+              }
+              required
+              value={selectedTemplateVersionId}
+            >
+              <option disabled value="">
+                {selectedProductId
+                  ? "请选择已发布的实例模板版本"
+                  : "请先选择所属产品"}
+              </option>
+              {availableTemplateVersions.map((version) => (
+                <option key={version.id} value={version.id}>
+                  {version.templateName} · v{version.version}
+                </option>
+              ))}
+            </select>
+          )}
+          <small>
+            套餐创建后不能更换模板版本；需要升级模板时请创建新套餐。
+          </small>
+          {requiredLimitKeys.length ? (
+            <small>
+              此模板要求的套餐限制：{requiredLimitKeys.join("、")}
+            </small>
+          ) : null}
+          {selectedProductId &&
+          mode === "create" &&
+          !availableTemplateVersions.length ? (
+            <small className="form-error">
+              该产品没有已发布的模板版本，请先在实例模板管理中创建并发布。
+            </small>
+          ) : null}
+          {fieldError("templateVersionId") ? (
+            <small className="form-error">
+              {fieldError("templateVersionId")}
+            </small>
           ) : null}
         </label>
         <label className="form-field form-field-wide">

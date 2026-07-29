@@ -44,6 +44,8 @@ test("multi-product subscription pages expose current and historical records", a
     planForm,
     instanceManagement,
     instanceDetail,
+    templateList,
+    templateVersionForm,
   ] =
     await Promise.all([
       read("app/dashboard/page.tsx"),
@@ -59,6 +61,8 @@ test("multi-product subscription pages expose current and historical records", a
       read("components/admin/PlanForm.tsx"),
       read("lib/instances/management.ts"),
       read("app/admin/instances/[instanceId]/page.tsx"),
+      read("app/admin/templates/page.tsx"),
+      read("components/admin/AppInstanceTemplateVersionForm.tsx"),
   ]);
 
   assert.match(dashboard, /billing\.currentSubscriptions/);
@@ -84,6 +88,11 @@ test("multi-product subscription pages expose current and historical records", a
   assert.match(planForm, /name="productId"/);
   assert.match(instanceManagement, /subscription_plan\.product_id = ai\.product_id/);
   assert.match(instanceDetail, /instance\.subscriptionPlanName/);
+  assert.match(templateList, /应用实例模板管理/);
+  assert.match(templateVersionForm, /source=customer/);
+  assert.match(planForm, /templateVersionId/);
+  assert.match(subscriptionForm, /instanceConfiguration/);
+  assert.match(instanceDetail, /configurationSnapshot/);
   assert.doesNotMatch(newSubscription, /subscribedWorkspaceIds/);
 });
 

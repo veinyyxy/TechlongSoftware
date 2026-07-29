@@ -141,7 +141,20 @@ export default async function BillingPage() {
                       <dt>到期处理</dt>
                       <dd>{subscription.cancelAtPeriodEnd ? "周期结束后取消" : "继续保留"}</dd>
                     </div>
+                    <div>
+                      <dt>实例模板</dt>
+                      <dd>{subscription.templateName} · v{subscription.templateVersion}</dd>
+                    </div>
                   </dl>
+
+                  {Object.keys(subscription.instanceConfiguration).length ? (
+                    <div className="notice notice-neutral compact-notice">
+                      实例配置：
+                      {Object.entries(subscription.instanceConfiguration)
+                        .map(([key, value]) => `${key}=${String(value)}`)
+                        .join("，")}
+                    </div>
+                  ) : null}
 
                   {plan?.features.length ? (
                     <ul className="value-list">

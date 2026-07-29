@@ -27,7 +27,7 @@ test("multi-product migration backfills existing subscriptions without losing hi
   const productSubscriptionMigrations = migrations.filter(
     ({ file }) => file >= "0007_",
   );
-  assert.equal(productSubscriptionMigrations.length, 3);
+  assert.equal(productSubscriptionMigrations.length, 4);
   for (const migration of previousMigrations) applyMigration(database, migration);
 
   const now = Date.now();
@@ -139,6 +139,22 @@ test("multi-product migration backfills existing subscriptions without losing hi
       .prepare("SELECT product_id FROM plans WHERE id = 'pln_upgrade'")
       .get().product_id,
     "prd_restaurant_order_system",
+  );
+  assert.deepEqual(
+    {
+      planTemplateVersionId: database
+        .prepare("SELECT template_version_id FROM plans WHERE id = 'pln_upgrade'")
+        .get().template_version_id,
+      subscriptionTemplateVersionId: database
+        .prepare(
+          "SELECT template_version_id FROM subscriptions WHERE id = 'sub_upgrade'",
+        )
+        .get().template_version_id,
+    },
+    {
+      planTemplateVersionId: "tplver_restaurant_standard_v1",
+      subscriptionTemplateVersionId: "tplver_restaurant_standard_v1",
+    },
   );
   assert.equal(
     database
@@ -341,9 +357,9 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO plans
-       (id, product_id, name, description, price_amount, currency,
+       (id, product_id, template_version_id, name, description, price_amount, currency,
         billing_interval, status, features, limits, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+       VALUES (?, ?, 'tplver_restaurant_standard_v1', ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
     )
     .run(
       "pln_basic",
@@ -361,9 +377,9 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO plans
-       (id, product_id, name, description, price_amount, currency,
+       (id, product_id, template_version_id, name, description, price_amount, currency,
         billing_interval, status, features, limits, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+       VALUES (?, ?, 'tplver_restaurant_standard_v1', ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
     )
     .run(
       "pln_temp",
@@ -460,10 +476,27 @@ test("launch data flow preserves workspace isolation and application integrity",
     );
   database
     .prepare(
+      `INSERT INTO app_instance_templates
+       (id, product_id, name, description, status, created_at, updated_at)
+       VALUES ('tpl_inventory_standard', 'prd_inventory', '库存系统标准模板',
+        '', 'active', ?, ?)`,
+    )
+    .run(now, now);
+  database
+    .prepare(
+      `INSERT INTO app_instance_template_versions
+       (id, template_id, version, configuration_schema, default_configuration,
+        deployment_driver, deployment_workflow_version, status, created_at, updated_at)
+       VALUES ('tplver_inventory_standard_v1', 'tpl_inventory_standard', 1,
+        '{"fields":[]}', '{}', 'manual', 'v1', 'published', ?, ?)`,
+    )
+    .run(now, now);
+  database
+    .prepare(
       `INSERT INTO plans
-       (id, product_id, name, description, price_amount, currency,
+       (id, product_id, template_version_id, name, description, price_amount, currency,
         billing_interval, status, features, limits, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+       VALUES (?, ?, 'tplver_inventory_standard_v1', ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
     )
     .run(
       "pln_inventory_basic",
@@ -514,10 +547,13 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO subscriptions
-       (id, workspace_id, product_id, plan_id, status, current_period_start,
+       (id, workspace_id, product_id, plan_id, template_version_id,
+        instance_configuration, status, current_period_start,
         current_period_end, cancel_at_period_end, created_by_user_id,
         created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'tplver_restaurant_standard_v1',
+        '{"storeName":"Example Workspace","theme":"classic","visitorLimit":100}',
+        'active', ?, ?, 0, ?, ?, ?)`,
     )
     .run(
       "sub_one",
@@ -535,10 +571,13 @@ test("launch data flow preserves workspace isolation and application integrity",
     database
       .prepare(
         `INSERT INTO subscriptions
-         (id, workspace_id, product_id, plan_id, status, current_period_start,
+         (id, workspace_id, product_id, plan_id, template_version_id,
+          instance_configuration, status, current_period_start,
           current_period_end, cancel_at_period_end, created_by_user_id,
           created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'manual_pending', ?, ?, 0, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, 'tplver_restaurant_standard_v1',
+          '{"storeName":"Example Workspace","theme":"classic","visitorLimit":100}',
+          'manual_pending', ?, ?, 0, ?, ?, ?)`,
       )
       .run(
         "sub_duplicate",
@@ -557,10 +596,12 @@ test("launch data flow preserves workspace isolation and application integrity",
     database
       .prepare(
         `INSERT INTO subscriptions
-         (id, workspace_id, product_id, plan_id, status, current_period_start,
+         (id, workspace_id, product_id, plan_id, template_version_id,
+          instance_configuration, status, current_period_start,
           current_period_end, cancel_at_period_end, created_by_user_id,
           created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, 'tplver_restaurant_standard_v1', '{}',
+          'active', ?, ?, 0, ?, ?, ?)`,
       )
       .run(
         "sub_inventory_wrong_plan",
@@ -577,10 +618,12 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO subscriptions
-       (id, workspace_id, product_id, plan_id, status, current_period_start,
+       (id, workspace_id, product_id, plan_id, template_version_id,
+        instance_configuration, status, current_period_start,
         current_period_end, cancel_at_period_end, created_by_user_id,
         created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'tplver_inventory_standard_v1', '{}',
+        'active', ?, ?, 0, ?, ?, ?)`,
     )
     .run(
       "sub_inventory",
@@ -699,10 +742,13 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO app_instances
-       (id, workspace_id, product_id, subscription_id, name, slug, domain,
+       (id, workspace_id, product_id, subscription_id, template_version_id,
+        configuration_snapshot, name, slug, domain,
         access_url, tenant_key, status, provisioned_at, created_by_user_id,
         created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'tplver_restaurant_standard_v1',
+        '{"storeName":"Example Workspace","theme":"classic","visitorLimit":100}',
+        ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
     )
     .run(
       "app_one",
@@ -766,10 +812,13 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO subscriptions
-       (id, workspace_id, product_id, plan_id, status, current_period_start,
+       (id, workspace_id, product_id, plan_id, template_version_id,
+        instance_configuration, status, current_period_start,
         current_period_end, cancel_at_period_end, created_by_user_id,
         created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'tplver_restaurant_standard_v1',
+        '{"storeName":"Automatic Workspace","theme":"classic","visitorLimit":100}',
+        'active', ?, ?, 0, ?, ?, ?)`,
     )
     .run(
       "sub_two",
@@ -785,10 +834,13 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO app_instances
-       (id, workspace_id, product_id, subscription_id, name, slug, domain,
+       (id, workspace_id, product_id, subscription_id, template_version_id,
+        configuration_snapshot, name, slug, domain,
         access_url, tenant_key, provisioning_source, status, created_by_user_id,
         created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, NULL, '', ?, 'payment_success', 'pending', ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'tplver_restaurant_standard_v1',
+        '{"storeName":"Automatic Workspace","theme":"classic","visitorLimit":100}',
+        ?, ?, NULL, '', ?, 'payment_success', 'pending', ?, ?, ?)`,
     )
     .run(
       "app_auto_pending",
@@ -857,10 +909,13 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO subscriptions
-       (id, workspace_id, product_id, plan_id, status, current_period_start,
+       (id, workspace_id, product_id, plan_id, template_version_id,
+        instance_configuration, status, current_period_start,
         current_period_end, cancel_at_period_end, created_by_user_id,
         created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'manual_pending', ?, ?, 0, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'tplver_restaurant_standard_v1',
+        '{"storeName":"Example Workspace","theme":"warm","visitorLimit":100}',
+        'manual_pending', ?, ?, 0, ?, ?, ?)`,
     )
     .run(
       "sub_restaurant_renewed",
@@ -887,10 +942,13 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO subscriptions
-       (id, workspace_id, product_id, plan_id, status, current_period_start,
+       (id, workspace_id, product_id, plan_id, template_version_id,
+        instance_configuration, status, current_period_start,
         current_period_end, cancel_at_period_end, created_by_user_id,
         created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, 'tplver_restaurant_standard_v1',
+        '{"storeName":"Example Workspace","theme":"minimal","visitorLimit":100}',
+        'active', ?, ?, 0, ?, ?, ?)`,
     )
     .run(
       "sub_restaurant_third",

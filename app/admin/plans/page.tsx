@@ -61,6 +61,9 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
                 </span>
                 <p className="page-kicker">{plan.productName}</p>
                 <h2>{plan.name}</h2>
+                <span>
+                  模板：{plan.templateName} · v{plan.templateVersion}
+                </span>
               </div>
               <strong>
                 {formatMoney(plan.priceAmount, plan.currency)}

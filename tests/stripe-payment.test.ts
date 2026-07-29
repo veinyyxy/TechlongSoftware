@@ -91,7 +91,7 @@ test("keeps Stripe checkout authority on the server and verifies raw webhook pay
   assert.match(webhookRoute, /processStripeWebhookEvent/);
 });
 
-test("creates or relinks only a pending product instance from the verified payment completion path", async () => {
+test("creates one pending instance snapshot from the verified payment completion path", async () => {
   const root = new URL("../", import.meta.url);
   const [paymentManagement, instanceManagement] = await Promise.all([
     readFile(new URL("lib/payments/management.ts", root), "utf8"),
@@ -100,13 +100,15 @@ test("creates or relinks only a pending product instance from the verified payme
 
   assert.match(paymentManagement, /preparePendingAppInstance/);
   assert.match(paymentManagement, /productId: confirmedSubscription\.productId/);
+  assert.match(paymentManagement, /templateVersionId: confirmedSubscription\.templateVersionId/);
+  assert.match(paymentManagement, /configurationSnapshot: confirmedSubscription\.instanceConfiguration/);
   assert.match(paymentManagement, /syncWorkspaceAppInstanceStatusStatement/);
   assert.match(paymentManagement, /pendingInstanceStatement/);
   assert.match(instanceManagement, /provisioning_source/);
   assert.match(instanceManagement, /'payment_success', 'pending'/);
   assert.match(instanceManagement, /WHERE workspace_id = \? AND product_id = \?/);
-  assert.match(instanceManagement, /SET subscription_id = \?, status = 'pending'/);
-  assert.match(instanceManagement, /provisioned_at = NULL/);
-  assert.match(instanceManagement, /existing\.subscription_id === input\.subscriptionId/);
+  assert.match(instanceManagement, /if \(existing\) \{\s*return null;/);
+  assert.match(instanceManagement, /configuration_snapshot/);
+  assert.match(instanceManagement, /JSON\.stringify\(input\.configurationSnapshot\)/);
   assert.doesNotMatch(instanceManagement, /'payment_success', 'active'/);
 });

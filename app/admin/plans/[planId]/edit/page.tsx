@@ -39,6 +39,10 @@ export default async function EditPlanPage({ params }: EditPlanPageProps) {
           initial={{
             productId: plan.productId,
             productName: plan.productName,
+            templateVersionId: plan.templateVersionId,
+            templateName: plan.templateName,
+            templateVersion: plan.templateVersion,
+            templateConfigurationSchema: plan.templateConfigurationSchema,
             name: plan.name,
             description: plan.description,
             priceAmount: plan.priceAmount,

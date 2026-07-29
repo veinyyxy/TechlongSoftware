@@ -8,6 +8,7 @@ export interface CustomerInput {
 
 export interface PlanInput {
   productId: string;
+  templateVersionId: string;
   name: string;
   description: string;
   priceAmount: number;
@@ -74,6 +75,7 @@ export function validatePlanInput(value: unknown): ValidationResult<PlanInput> {
   const input = asRecord(value);
   const errors: FieldErrors = {};
   const productId = asTrimmedString(input.productId);
+  const templateVersionId = asTrimmedString(input.templateVersionId);
   const name = asTrimmedString(input.name);
   const description = asTrimmedString(input.description);
   const currency = asTrimmedString(input.currency).toUpperCase();
@@ -83,6 +85,9 @@ export function validatePlanInput(value: unknown): ValidationResult<PlanInput> {
 
   if (!/^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/.test(productId)) {
     addError(errors, "productId", "请选择套餐所属产品。");
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/.test(templateVersionId)) {
+    addError(errors, "templateVersionId", "请选择已发布的实例模板版本。");
   }
   if (name.length < 2 || name.length > 80) {
     addError(errors, "name", "套餐名称需要为 2–80 个字符。");
@@ -142,6 +147,7 @@ export function validatePlanInput(value: unknown): ValidationResult<PlanInput> {
       Object.keys(errors).length === 0
         ? {
             productId,
+            templateVersionId,
             name,
             description,
             priceAmount,

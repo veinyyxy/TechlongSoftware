@@ -100,13 +100,14 @@ test("account API rejects anonymous requests", async () => {
 });
 
 test("launch-stage protected APIs reject anonymous requests", async () => {
-  const [customers, plans, subscriptions, payments, instances, workspaceBilling, workspaceApps, checkout] =
+  const [customers, plans, subscriptions, payments, instances, templates, workspaceBilling, workspaceApps, checkout] =
     await Promise.all([
     render("/api/admin/customers"),
     render("/api/admin/plans"),
     render("/api/admin/subscriptions"),
     render("/api/admin/payments"),
     render("/api/admin/instances"),
+    render("/api/admin/templates"),
     render("/api/workspaces/workspace-a/billing"),
     render("/api/workspaces/workspace-a/apps"),
     render("/api/workspaces/workspace-a/checkout", { method: "POST" }),
@@ -122,6 +123,8 @@ test("launch-stage protected APIs reject anonymous requests", async () => {
   assert.equal((await payments.json()).error.code, "UNAUTHORIZED");
   assert.equal(instances.status, 401);
   assert.equal((await instances.json()).error.code, "UNAUTHORIZED");
+  assert.equal(templates.status, 401);
+  assert.equal((await templates.json()).error.code, "UNAUTHORIZED");
   assert.equal(workspaceBilling.status, 401);
   assert.equal((await workspaceBilling.json()).error.code, "UNAUTHORIZED");
   assert.equal(workspaceApps.status, 401);

@@ -1,5 +1,12 @@
 import { getD1 } from "@/db";
 import { randomId, stableId } from "@/lib/domain/ids";
+import {
+  parseConfigurationSchema,
+  parseTemplateConfiguration,
+  validateTemplatePlanLimits,
+  type TemplateConfiguration,
+  type TemplateConfigurationSchema,
+} from "@/lib/templates/validation";
 import type { CustomerInput, PlanInput } from "./validation";
 
 export type WorkspaceStatus = "active" | "suspended" | "disabled";
@@ -40,6 +47,16 @@ export interface PlanView {
   productId: string;
   productName: string;
   productStatus: "active" | "inactive";
+  templateVersionId: string;
+  templateId: string;
+  templateName: string;
+  templateStatus: "active" | "inactive";
+  templateVersion: number;
+  templateVersionStatus: "draft" | "published" | "archived";
+  templateConfigurationSchema: TemplateConfigurationSchema;
+  templateDefaultConfiguration: TemplateConfiguration;
+  deploymentDriver: string;
+  deploymentWorkflowVersion: string;
   name: string;
   description: string;
   priceAmount: number;
@@ -106,6 +123,16 @@ function toPlanView(row: {
   product_id: string;
   product_name: string;
   product_status: "active" | "inactive";
+  template_version_id: string;
+  template_id: string;
+  template_name: string;
+  template_status: "active" | "inactive";
+  template_version: number;
+  template_version_status: "draft" | "published" | "archived";
+  template_configuration_schema: string;
+  template_default_configuration: string;
+  deployment_driver: string;
+  deployment_workflow_version: string;
   name: string;
   description: string;
   price_amount: number;
@@ -122,6 +149,20 @@ function toPlanView(row: {
     productId: row.product_id,
     productName: row.product_name,
     productStatus: row.product_status,
+    templateVersionId: row.template_version_id,
+    templateId: row.template_id,
+    templateName: row.template_name,
+    templateStatus: row.template_status,
+    templateVersion: Number(row.template_version),
+    templateVersionStatus: row.template_version_status,
+    templateConfigurationSchema: parseConfigurationSchema(
+      row.template_configuration_schema,
+    ),
+    templateDefaultConfiguration: parseTemplateConfiguration(
+      row.template_default_configuration,
+    ),
+    deploymentDriver: row.deployment_driver,
+    deploymentWorkflowVersion: row.deployment_workflow_version,
     name: row.name,
     description: row.description,
     priceAmount: Number(row.price_amount),
@@ -164,11 +205,24 @@ export async function listPlans(input?: {
 
   const statement = getD1().prepare(
     `SELECT plan.id, plan.product_id, product.name AS product_name,
-      product.status AS product_status, plan.name, plan.description,
+      product.status AS product_status, plan.template_version_id,
+      template.id AS template_id, template.name AS template_name,
+      template.status AS template_status,
+      template_version.version AS template_version,
+      template_version.status AS template_version_status,
+      template_version.configuration_schema AS template_configuration_schema,
+      template_version.default_configuration AS template_default_configuration,
+      template_version.deployment_driver,
+      template_version.deployment_workflow_version,
+      plan.name, plan.description,
       plan.price_amount, plan.currency, plan.billing_interval, plan.status,
       plan.features, plan.limits, plan.created_at, plan.updated_at
      FROM plans plan
      INNER JOIN products product ON product.id = plan.product_id
+     INNER JOIN app_instance_template_versions template_version
+       ON template_version.id = plan.template_version_id
+     INNER JOIN app_instance_templates template
+       ON template.id = template_version.template_id
      ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
      ORDER BY plan.created_at DESC
      LIMIT 200`,
@@ -181,6 +235,16 @@ export async function listPlans(input?: {
     product_id: string;
     product_name: string;
     product_status: "active" | "inactive";
+    template_version_id: string;
+    template_id: string;
+    template_name: string;
+    template_status: "active" | "inactive";
+    template_version: number;
+    template_version_status: "draft" | "published" | "archived";
+    template_configuration_schema: string;
+    template_default_configuration: string;
+    deployment_driver: string;
+    deployment_workflow_version: string;
     name: string;
     description: string;
     price_amount: number;
@@ -200,11 +264,24 @@ export async function getPlan(planId: string): Promise<PlanView | null> {
   const row = await getD1()
     .prepare(
       `SELECT plan.id, plan.product_id, product.name AS product_name,
-        product.status AS product_status, plan.name, plan.description,
+        product.status AS product_status, plan.template_version_id,
+        template.id AS template_id, template.name AS template_name,
+        template.status AS template_status,
+        template_version.version AS template_version,
+        template_version.status AS template_version_status,
+        template_version.configuration_schema AS template_configuration_schema,
+        template_version.default_configuration AS template_default_configuration,
+        template_version.deployment_driver,
+        template_version.deployment_workflow_version,
+        plan.name, plan.description,
         plan.price_amount, plan.currency, plan.billing_interval, plan.status,
         plan.features, plan.limits, plan.created_at, plan.updated_at
        FROM plans plan
        INNER JOIN products product ON product.id = plan.product_id
+       INNER JOIN app_instance_template_versions template_version
+         ON template_version.id = plan.template_version_id
+       INNER JOIN app_instance_templates template
+         ON template.id = template_version.template_id
        WHERE plan.id = ?
        LIMIT 1`,
     )
@@ -214,6 +291,16 @@ export async function getPlan(planId: string): Promise<PlanView | null> {
       product_id: string;
       product_name: string;
       product_status: "active" | "inactive";
+      template_version_id: string;
+      template_id: string;
+      template_name: string;
+      template_status: "active" | "inactive";
+      template_version: number;
+      template_version_status: "draft" | "published" | "archived";
+      template_configuration_schema: string;
+      template_default_configuration: string;
+      deployment_driver: string;
+      deployment_workflow_version: string;
       name: string;
       description: string;
       price_amount: number;
@@ -249,8 +336,55 @@ async function assertPlanProductAssignable(
   }
 }
 
+async function assertPlanTemplateAssignable(
+  templateVersionId: string,
+  productId: string,
+): Promise<TemplateConfigurationSchema> {
+  const version = await getD1()
+    .prepare(
+      `SELECT version.id, version.configuration_schema
+       FROM app_instance_template_versions version
+       INNER JOIN app_instance_templates template
+         ON template.id = version.template_id
+       INNER JOIN products product ON product.id = template.product_id
+       WHERE version.id = ? AND template.product_id = ?
+         AND version.status = 'published'
+         AND template.status = 'active'
+         AND product.status = 'active'
+       LIMIT 1`,
+    )
+    .bind(templateVersionId, productId)
+    .first<{ id: string; configuration_schema: string }>();
+  if (!version) {
+    throw new ManagementError(
+      "TEMPLATE_VERSION_NOT_ASSIGNABLE",
+      "所选模板版本未发布、已停用或不属于套餐产品。",
+      400,
+    );
+  }
+  return parseConfigurationSchema(version.configuration_schema);
+}
+
+function assertTemplatePlanLimits(
+  schema: TemplateConfigurationSchema,
+  limits: Record<string, string>,
+): void {
+  const result = validateTemplatePlanLimits({ schema, planLimits: limits });
+  if (!result.data) {
+    throw new ManagementError(
+      "PLAN_LIMITS_TEMPLATE_MISMATCH",
+      result.errors.limits?.[0] ?? "套餐限制不符合实例模板要求。",
+      400,
+    );
+  }
+}
+
 export async function createPlan(input: PlanInput): Promise<PlanView> {
-  await assertPlanProductAssignable(input.productId);
+  const [, templateSchema] = await Promise.all([
+    assertPlanProductAssignable(input.productId),
+    assertPlanTemplateAssignable(input.templateVersionId, input.productId),
+  ]);
+  assertTemplatePlanLimits(templateSchema, input.limits);
   const id = randomId("pln");
   const now = Date.now();
 
@@ -258,13 +392,15 @@ export async function createPlan(input: PlanInput): Promise<PlanView> {
     await getD1()
       .prepare(
         `INSERT INTO plans (
-          id, product_id, name, description, price_amount, currency, billing_interval,
+          id, product_id, template_version_id, name, description,
+          price_amount, currency, billing_interval,
           status, features, limits, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
       )
       .bind(
         id,
         input.productId,
+        input.templateVersionId,
         input.name,
         input.description,
         input.priceAmount,
@@ -306,7 +442,15 @@ export async function updatePlan(
       400,
     );
   }
+  if (input.templateVersionId !== existing.templateVersionId) {
+    throw new ManagementError(
+      "PLAN_TEMPLATE_CHANGE_NOT_ALLOWED",
+      "套餐创建后不能更换实例模板版本，请创建新套餐。",
+      400,
+    );
+  }
   await assertPlanProductAssignable(input.productId, existing.productId);
+  assertTemplatePlanLimits(existing.templateConfigurationSchema, input.limits);
 
   try {
     const result = await getD1()
@@ -458,6 +602,15 @@ export async function getCustomer(
         p.created_at AS plan_created_at, p.updated_at AS plan_updated_at,
         pp.id AS plan_product_id, pp.name AS plan_product_name,
         pp.status AS plan_product_status,
+        ptv.id AS plan_template_version_id,
+        pt.id AS plan_template_id, pt.name AS plan_template_name,
+        pt.status AS plan_template_status,
+        ptv.version AS plan_template_version,
+        ptv.status AS plan_template_version_status,
+        ptv.configuration_schema AS plan_template_configuration_schema,
+        ptv.default_configuration AS plan_template_default_configuration,
+        ptv.deployment_driver AS plan_deployment_driver,
+        ptv.deployment_workflow_version AS plan_deployment_workflow_version,
         COUNT(wm.id) AS member_count,
         (
           SELECT COUNT(*)
@@ -469,6 +622,9 @@ export async function getCustomer(
        INNER JOIN users u ON u.id = w.owner_id
        LEFT JOIN plans p ON p.id = w.plan_id
        LEFT JOIN products pp ON pp.id = p.product_id
+       LEFT JOIN app_instance_template_versions ptv
+         ON ptv.id = p.template_version_id
+       LEFT JOIN app_instance_templates pt ON pt.id = ptv.template_id
        LEFT JOIN workspace_members wm ON wm.workspace_id = w.id
        WHERE w.id = ?
        GROUP BY w.id, w.name, w.status, w.contact_name, w.contact_email,
@@ -504,6 +660,16 @@ export async function getCustomer(
       plan_product_id: string | null;
       plan_product_name: string | null;
       plan_product_status: "active" | "inactive" | null;
+      plan_template_version_id: string | null;
+      plan_template_id: string | null;
+      plan_template_name: string | null;
+      plan_template_status: "active" | "inactive" | null;
+      plan_template_version: number | null;
+      plan_template_version_status: "draft" | "published" | "archived" | null;
+      plan_template_configuration_schema: string | null;
+      plan_template_default_configuration: string | null;
+      plan_deployment_driver: string | null;
+      plan_deployment_workflow_version: string | null;
       member_count: number;
       current_subscription_count: number;
     }>();
@@ -523,12 +689,35 @@ export async function getCustomer(
     row.plan_updated_at !== null &&
     row.plan_product_id &&
     row.plan_product_name &&
-    row.plan_product_status
+    row.plan_product_status &&
+    row.plan_template_version_id &&
+    row.plan_template_id &&
+    row.plan_template_name &&
+    row.plan_template_status &&
+    row.plan_template_version !== null &&
+    row.plan_template_version_status &&
+    row.plan_template_configuration_schema &&
+    row.plan_template_default_configuration &&
+    row.plan_deployment_driver &&
+    row.plan_deployment_workflow_version
       ? toPlanView({
           id: row.plan_id,
           product_id: row.plan_product_id,
           product_name: row.plan_product_name,
           product_status: row.plan_product_status,
+          template_version_id: row.plan_template_version_id,
+          template_id: row.plan_template_id,
+          template_name: row.plan_template_name,
+          template_status: row.plan_template_status,
+          template_version: row.plan_template_version,
+          template_version_status: row.plan_template_version_status,
+          template_configuration_schema:
+            row.plan_template_configuration_schema,
+          template_default_configuration:
+            row.plan_template_default_configuration,
+          deployment_driver: row.plan_deployment_driver,
+          deployment_workflow_version:
+            row.plan_deployment_workflow_version,
           name: row.plan_name,
           description: row.plan_description ?? "",
           price_amount: row.plan_price_amount,

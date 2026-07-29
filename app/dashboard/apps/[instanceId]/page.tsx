@@ -108,6 +108,23 @@ export default async function CustomerAppDetailPage({ params }: CustomerAppDetai
         </section>
       </div>
 
+      {Object.keys(instance.configurationSnapshot).length ? (
+        <section className="module-card">
+          <h2>实例配置</h2>
+          <dl className="detail-list">
+            {Object.entries(instance.configurationSnapshot).map(([key, value]) => (
+              <div key={key}>
+                <dt>{key}</dt>
+                <dd>{typeof value === "boolean" ? (value ? "是" : "否") : value}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="notice notice-neutral">
+            这是实例创建时从订阅模板生成的配置快照；如需调整，请联系平台管理员。
+          </div>
+        </section>
+      ) : null}
+
       {canEnter ? (
         <div className="app-detail-entry">
           <a className="button button-dark" href={instance.accessUrl} rel="noreferrer" target="_blank">

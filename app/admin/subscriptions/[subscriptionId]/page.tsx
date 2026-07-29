@@ -105,6 +105,12 @@ export default async function SubscriptionDetailPage({
             <div><dt>订阅产品</dt><dd>{subscription.productName}</dd></div>
             <div><dt>套餐</dt><dd>{subscription.planName}</dd></div>
             <div>
+              <dt>实例模板</dt>
+              <dd>
+                {subscription.templateName} · v{subscription.templateVersion}
+              </dd>
+            </div>
+            <div>
               <dt>套餐价格</dt>
               <dd>
                 {formatMoney(
@@ -150,6 +156,27 @@ export default async function SubscriptionDetailPage({
           </div>
         </section>
       </div>
+
+      <section className="module-card">
+        <h2>实例配置</h2>
+        {Object.keys(subscription.instanceConfiguration).length ? (
+          <dl className="detail-list">
+            {Object.entries(subscription.instanceConfiguration).map(
+              ([key, value]) => (
+                <div key={key}>
+                  <dt>{key}</dt>
+                  <dd>{typeof value === "boolean" ? (value ? "是" : "否") : value}</dd>
+                </div>
+              ),
+            )}
+          </dl>
+        ) : (
+          <div className="empty-state">
+            <strong>旧订阅没有实例配置快照</strong>
+            <p>新建订阅会根据套餐绑定的模板收集并固定配置。</p>
+          </div>
+        )}
+      </section>
 
       <section className="data-panel">
         <div className="data-panel-heading">

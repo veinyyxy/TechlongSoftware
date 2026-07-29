@@ -123,6 +123,14 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
             <div><dt>实例状态</dt><dd>{appInstanceStatusLabels[instance.status]}</dd></div>
             <div><dt>关联订阅</dt><dd>{instance.subscriptionStatus ? subscriptionStatusLabels[instance.subscriptionStatus] : "未关联"}</dd></div>
             <div><dt>订阅套餐</dt><dd>{instance.subscriptionPlanName ?? "未关联"}</dd></div>
+            <div>
+              <dt>实例模板</dt>
+              <dd>
+                {instance.templateName && instance.templateVersion
+                  ? `${instance.templateName} · v${instance.templateVersion}`
+                  : "旧实例未记录模板版本"}
+              </dd>
+            </div>
             <div><dt>首次开通时间</dt><dd>{instance.provisionedAt ? `${formatDate(instance.provisionedAt)} UTC` : "尚未开通"}</dd></div>
             <div><dt>暂停时间</dt><dd>{instance.suspendedAt ? `${formatDate(instance.suspendedAt)} UTC` : "—"}</dd></div>
             <div><dt>最后更新</dt><dd>{formatDate(instance.updatedAt)} UTC</dd></div>
@@ -134,6 +142,28 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
           </div>
         </section>
       </div>
+
+      <section className="module-card">
+        <h2>实例配置快照</h2>
+        {Object.keys(instance.configurationSnapshot).length ? (
+          <dl className="detail-list">
+            {Object.entries(instance.configurationSnapshot).map(([key, value]) => (
+              <div key={key}>
+                <dt>{key}</dt>
+                <dd>{typeof value === "boolean" ? (value ? "是" : "否") : value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <div className="empty-state">
+            <strong>旧实例没有配置快照</strong>
+            <p>新实例会从订阅绑定的模板版本生成不可变配置快照。</p>
+          </div>
+        )}
+        <div className="notice notice-neutral">
+          模板中的部署驱动目前只是受控标识；此版本不会执行脚本、创建云资源或自动部署。
+        </div>
+      </section>
 
       <section className="data-panel">
         <div className="data-panel-heading">

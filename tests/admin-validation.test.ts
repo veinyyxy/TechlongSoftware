@@ -32,6 +32,7 @@ test("accepts normalized customer input and rejects invalid email", () => {
 test("validates database-backed plan fields without floating point prices", () => {
   const valid = validatePlanInput({
     productId: "prd_restaurant_order_system",
+    templateVersionId: "tplver_restaurant_standard_v1",
     name: "Basic",
     description: "单店套餐",
     priceAmount: 4900,
@@ -47,6 +48,7 @@ test("validates database-backed plan fields without floating point prices", () =
 
   const invalid = validatePlanInput({
     productId: "",
+    templateVersionId: "",
     name: "",
     description: "",
     priceAmount: 49.5,
@@ -57,6 +59,7 @@ test("validates database-backed plan fields without floating point prices", () =
   });
   assert.equal(invalid.data, null);
   assert.ok(invalid.errors.productId);
+  assert.ok(invalid.errors.templateVersionId);
   assert.ok(invalid.errors.priceAmount);
   assert.ok(invalid.errors.billingInterval);
   assert.ok(invalid.errors.features);

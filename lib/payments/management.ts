@@ -699,6 +699,8 @@ async function completeCheckout(
       workspaceName: await getWorkspaceName(checkout.workspace_id),
       productId: confirmedSubscription.productId,
       subscriptionId: confirmedSubscription.id,
+      templateVersionId: confirmedSubscription.templateVersionId,
+      configurationSnapshot: confirmedSubscription.instanceConfiguration,
       createdByUserId: checkout.initiated_by_user_id,
       now,
     });

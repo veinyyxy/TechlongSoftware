@@ -5,6 +5,10 @@ import {
   type SubscriptionStatus,
 } from "@/lib/billing/management";
 import { randomId } from "@/lib/domain/ids";
+import {
+  parseTemplateConfiguration,
+  type TemplateConfiguration,
+} from "@/lib/templates/validation";
 import type {
   AppInstanceInput,
   AppInstanceStatus,
@@ -42,6 +46,10 @@ export interface AppInstanceView {
   subscriptionStatus: SubscriptionStatus | null;
   subscriptionPlanId: string | null;
   subscriptionPlanName: string | null;
+  templateVersionId: string | null;
+  templateName: string | null;
+  templateVersion: number | null;
+  configurationSnapshot: TemplateConfiguration;
   name: string;
   slug: string;
   domain: string | null;
@@ -80,6 +88,10 @@ type AppInstanceRow = {
   subscription_status: SubscriptionStatus | null;
   subscription_plan_id: string | null;
   subscription_plan_name: string | null;
+  template_version_id: string | null;
+  template_name: string | null;
+  template_version: number | null;
+  configuration_snapshot: string;
   name: string;
   slug: string;
   domain: string | null;
@@ -121,6 +133,13 @@ function toAppInstanceView(row: AppInstanceRow): AppInstanceView {
     subscriptionStatus: row.subscription_status,
     subscriptionPlanId: row.subscription_plan_id,
     subscriptionPlanName: row.subscription_plan_name,
+    templateVersionId: row.template_version_id,
+    templateName: row.template_name,
+    templateVersion:
+      row.template_version === null ? null : Number(row.template_version),
+    configurationSnapshot: parseTemplateConfiguration(
+      row.configuration_snapshot,
+    ),
     name: row.name,
     slug: row.slug,
     domain: row.domain,
@@ -145,6 +164,9 @@ const appInstanceSelect = `
     p.slug AS product_slug, ai.subscription_id,
     s.status AS subscription_status, subscription_plan.id AS subscription_plan_id,
     subscription_plan.name AS subscription_plan_name,
+    ai.template_version_id, template.name AS template_name,
+    template_version.version AS template_version,
+    ai.configuration_snapshot,
     ai.name, ai.slug, ai.domain,
     ai.access_url, ai.seller_apk_url, ai.tenant_key, ai.provisioning_source,
     ai.status, ai.provisioned_at,
@@ -157,6 +179,10 @@ const appInstanceSelect = `
   LEFT JOIN plans subscription_plan
     ON subscription_plan.id = s.plan_id
    AND subscription_plan.product_id = ai.product_id
+  LEFT JOIN app_instance_template_versions template_version
+    ON template_version.id = ai.template_version_id
+  LEFT JOIN app_instance_templates template
+    ON template.id = template_version.template_id
   INNER JOIN users u ON u.id = ai.created_by_user_id`;
 
 export async function listProducts(input?: {
@@ -336,6 +362,8 @@ export async function preparePendingAppInstance(input: {
   workspaceName: string;
   productId: string;
   subscriptionId: string;
+  templateVersionId: string;
+  configurationSnapshot: TemplateConfiguration;
   createdByUserId: string;
   now: number;
 }): Promise<D1PreparedStatement | null> {
@@ -371,37 +399,7 @@ export async function preparePendingAppInstance(input: {
       status: AppInstanceStatus;
   }>();
   if (existing) {
-    if (existing.subscription_id === input.subscriptionId) {
-      return null;
-    }
-    return db
-      .prepare(
-        `UPDATE app_instances
-         SET subscription_id = ?, status = 'pending', provisioned_at = NULL,
-             suspended_at = NULL, updated_at = ?
-         WHERE id = ?
-           AND (
-             subscription_id IS NULL
-             OR subscription_id <> ?
-             OR status <> 'active'
-           )
-           AND EXISTS (
-             SELECT 1 FROM subscriptions subscription
-             WHERE subscription.id = ?
-               AND subscription.workspace_id = ?
-               AND subscription.product_id = ?
-               AND subscription.status = 'active'
-           )`,
-      )
-      .bind(
-        input.subscriptionId,
-        input.now,
-        existing.id,
-        input.subscriptionId,
-        input.subscriptionId,
-        input.workspaceId,
-        product.id,
-      );
+    return null;
   }
 
   const id = randomId("app");
@@ -409,12 +407,13 @@ export async function preparePendingAppInstance(input: {
   const tenantKey = `pending_${id}`;
   return db
     .prepare(
-      `INSERT INTO app_instances (
-        id, workspace_id, product_id, subscription_id, name, slug, domain,
+      `INSERT OR IGNORE INTO app_instances (
+        id, workspace_id, product_id, subscription_id, template_version_id,
+        configuration_snapshot, name, slug, domain,
         access_url, seller_apk_url, tenant_key, provisioning_source, status, provisioned_at,
         suspended_at, created_by_user_id, created_at, updated_at
       )
-      SELECT ?, ?, ?, ?, ?, ?, NULL, '', '', ?, 'payment_success', 'pending',
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, NULL, '', '', ?, 'payment_success', 'pending',
         NULL, NULL, ?, ?, ?
       WHERE EXISTS (
         SELECT 1 FROM subscriptions subscription
@@ -429,6 +428,8 @@ export async function preparePendingAppInstance(input: {
       input.workspaceId,
       product.id,
       input.subscriptionId,
+      input.templateVersionId,
+      JSON.stringify(input.configurationSnapshot),
       `${input.workspaceName} - ${product.name}`,
       slug,
       tenantKey,
@@ -455,6 +456,16 @@ export async function createAppInstance(
       input.status,
     ),
   ]);
+  const subscription = input.subscriptionId
+    ? await getSubscription(input.subscriptionId)
+    : null;
+  if (input.subscriptionId && !subscription) {
+    throw new ManagementError(
+      "SUBSCRIPTION_NOT_FOUND",
+      "所选订阅不存在。",
+      400,
+    );
+  }
 
   const id = randomId("app");
   const now = Date.now();
@@ -464,16 +475,19 @@ export async function createAppInstance(
       db
         .prepare(
           `INSERT INTO app_instances (
-            id, workspace_id, product_id, subscription_id, name, slug, domain,
+            id, workspace_id, product_id, subscription_id, template_version_id,
+            configuration_snapshot, name, slug, domain,
             access_url, seller_apk_url, tenant_key, status, provisioned_at, suspended_at,
             created_by_user_id, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
           input.workspaceId,
           input.productId,
           input.subscriptionId,
+          subscription?.templateVersionId ?? null,
+          JSON.stringify(subscription?.instanceConfiguration ?? {}),
           input.name,
           input.slug,
           input.domain,
@@ -551,6 +565,20 @@ export async function updateAppInstance(
       400,
     );
   }
+  if (input.productId !== existing.productId) {
+    throw new ManagementError(
+      "PRODUCT_CHANGE_NOT_ALLOWED",
+      "应用实例创建后不能更换所属产品。",
+      400,
+    );
+  }
+  if (input.subscriptionId !== existing.subscriptionId) {
+    throw new ManagementError(
+      "SUBSCRIPTION_CHANGE_NOT_ALLOWED",
+      "应用实例创建后不能更换订阅或模板快照。",
+      400,
+    );
+  }
   await Promise.all([
     assertProductAssignable(input.productId, existing.productId),
     assertSubscriptionForInstance(
@@ -570,14 +598,12 @@ export async function updateAppInstance(
       getD1()
         .prepare(
           `UPDATE app_instances
-           SET product_id = ?, subscription_id = ?, name = ?, slug = ?,
+           SET name = ?, slug = ?,
              domain = ?, access_url = ?, seller_apk_url = ?, tenant_key = ?, status = ?,
              provisioned_at = ?, suspended_at = ?, updated_at = ?
            WHERE id = ?`,
         )
         .bind(
-          input.productId,
-          input.subscriptionId,
           input.name,
           input.slug,
           input.domain,

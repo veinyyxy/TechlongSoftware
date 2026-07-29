@@ -2,7 +2,7 @@
 
 ## 当前阶段
 
-当前平台已完成阶段 1–8，并将订阅模型升级为按产品保留当前与历史记录。
+当前平台已完成阶段 1–8，并在此基础上增加版本化应用实例模板，使套餐、订阅配置和实例快照形成可审计链路。
 
 ```text
 ChatGPT 登录
@@ -10,10 +10,11 @@ ChatGPT 登录
 → 首次登录创建企业工作区
 → 建立 Owner 成员关系
 → 服务端按工作区或平台角色授权
-→ 平台管理员维护客户，以及归属于产品的套餐
-→ 平台管理员按产品创建订阅并录入付款
+→ 平台管理员为产品发布不可变实例模板版本
+→ 平台管理员创建绑定模板版本的套餐
+→ 平台管理员按产品创建订阅、填写客户需求并录入付款
 → 客户只读查看本工作区的当前订阅、历史订阅和账单
-→ Stripe 确认付款后创建待管理员开通的产品实例
+→ Stripe 确认付款后按订阅快照创建待管理员开通的产品实例
 ```
 
 Stripe Checkout 与签名 Webhook 已接入。自动续扣和自动部署不在当前版本范围内。
@@ -36,10 +37,11 @@ User
 ├── is_platform_admin
 └── WorkspaceMember >── Workspace
                            └── owner_id -> User
-                           └── plan_id -> Plan
-                           └── Subscription >── Product
-                                  ├── Plan
-                                  └── PaymentRecord
+                           └── Subscription >── Plan >── AppInstanceTemplateVersion
+                                  │              └── AppInstanceTemplate >── Product
+                                  ├── Product
+                                  ├── PaymentRecord
+                                  └── AppInstance（模板与配置快照）
 ```
 
 ### `users`
@@ -64,6 +66,7 @@ User
 ### `plans`
 
 - 必须归属一个产品；套餐创建后不能转移到其他产品。
+- 必须绑定同一产品下的已发布模板版本；创建后不能更换模板版本。
 - 名称在同一产品内唯一，不同产品可以使用相同套餐名称。
 - 价格以最小货币单位整数保存。
 - 计费周期：`month`、`year`。
@@ -80,12 +83,23 @@ User
 - 状态：`manual_pending`、`active`、`past_due`、`paused`、`canceled`。
 - 保存当前计费周期起止时间和到期后取消标记。
 - 保存创建订阅的平台管理员。
+- 保存套餐绑定的模板版本和服务端解析后的实例配置。
+- 客户字段来自模板定义；套餐限制字段只从套餐数据库记录派生。
+
+### 应用实例模板
+
+- `app_instance_templates` 是归属于产品的模板主记录。
+- `app_instance_template_versions` 保存配置字段定义、客户默认值、部署驱动标识和流程版本。
+- 草稿可以编辑；发布后内容不可变，只能归档或创建更高版本。
+- 当前部署驱动仅允许 `manual`，不会执行脚本或创建云资源。
+- 模板配置禁止密码、令牌、凭据和 API 密钥字段。
 
 ### 应用实例与套餐
 
 - 应用实例直接关联工作区、产品，并可选关联订阅。
 - 套餐通过 `app_instances.subscription_id → subscriptions.plan_id` 读取。
 - `app_instances` 不重复保存 `plan_id`，避免订阅变更后出现两份不一致的套餐数据。
+- 新实例保存订阅的模板版本和配置快照；之后的模板新版本不会改变已有实例。
 
 ### `payment_records`
 
@@ -118,7 +132,7 @@ User
 
 页面隐藏不作为安全边界。`/api/workspaces/:workspaceId` 会在服务端验证成员关系，`/api/admin/overview` 会验证 `is_platform_admin`。
 
-所有 `/api/admin/customers/**`、`/api/admin/plans/**`、`/api/admin/subscriptions/**` 和 `/api/admin/payments/**` 接口都复用同一个服务端平台管理员守卫。普通客户无法创建或修改客户、套餐、订阅及付款记录。
+所有 `/api/admin/customers/**`、`/api/admin/plans/**`、`/api/admin/templates/**`、`/api/admin/subscriptions/**` 和 `/api/admin/payments/**` 接口都复用同一个服务端平台管理员守卫。普通客户无法创建或修改客户、套餐、模板、订阅及付款记录。
 
 客户账单接口先验证当前身份及目标工作区成员关系，再使用 `workspace_id` 同时过滤订阅和付款记录，并区分当前订阅与历史订阅。普通客户没有账单写接口，也不能指定其他工作区读取数据。
 
@@ -151,6 +165,7 @@ lib/
 ├── api/                  统一 API 响应
 ├── admin/                客户与套餐管理
 ├── billing/              订阅、付款和表单校验
+├── templates/            模板版本、配置解析和管理
 └── domain/               领域词汇
 drizzle/                  数据库迁移
 tests/                    页面、权限和迁移测试

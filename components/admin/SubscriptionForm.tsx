@@ -3,6 +3,10 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import type { SubscriptionStatus } from "@/lib/billing/validation";
+import type {
+  TemplateConfiguration,
+  TemplateConfigurationSchema,
+} from "@/lib/templates/validation";
 
 interface Option {
   id: string;
@@ -15,13 +19,24 @@ interface SubscriptionFormProps {
   defaultWorkspaceId?: string;
   customers: Option[];
   products: Array<Option & { status?: "active" | "inactive" }>;
-  plans: Array<Option & { productId: string }>;
+  plans: Array<
+    Option & {
+      productId: string;
+      templateVersionId: string;
+      templateName: string;
+      templateVersion: number;
+      templateConfigurationSchema: TemplateConfigurationSchema;
+      templateDefaultConfiguration: TemplateConfiguration;
+      limits: Record<string, string>;
+    }
+  >;
   initial?: {
     workspaceId: string;
     workspaceName: string;
     productId: string;
     productName: string;
     planId: string;
+    instanceConfiguration: TemplateConfiguration;
     status: SubscriptionStatus;
     currentPeriodStart: number;
     currentPeriodEnd: number;
@@ -65,6 +80,7 @@ export function SubscriptionForm({
   const availablePlans = plans.filter(
     (plan) => plan.productId === selectedProductId,
   );
+  const selectedPlan = plans.find((plan) => plan.id === selectedPlanId);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -73,6 +89,17 @@ export function SubscriptionForm({
     setFieldErrors({});
 
     const formData = new FormData(event.currentTarget);
+    const instanceConfiguration: Record<string, unknown> = {};
+    for (const field of selectedPlan?.templateConfigurationSchema.fields ?? []) {
+      if (field.source !== "customer") continue;
+      const formValue = formData.get(`instanceConfiguration.${field.key}`);
+      instanceConfiguration[field.key] =
+        field.type === "boolean"
+          ? formValue === "on"
+          : field.type === "number"
+            ? Number(formValue)
+            : String(formValue ?? "");
+    }
     const payload = {
       workspaceId: String(formData.get("workspaceId") ?? ""),
       productId: String(formData.get("productId") ?? ""),
@@ -81,6 +108,7 @@ export function SubscriptionForm({
       currentPeriodStart: parseUtcInput(formData.get("currentPeriodStart")),
       currentPeriodEnd: parseUtcInput(formData.get("currentPeriodEnd")),
       cancelAtPeriodEnd: formData.get("cancelAtPeriodEnd") === "on",
+      instanceConfiguration,
     };
 
     try {
@@ -206,6 +234,92 @@ export function SubscriptionForm({
             <small className="form-error">{fieldError("planId")}</small>
           ) : null}
         </label>
+        {selectedPlan ? (
+          <div className="form-field form-field-wide">
+            <span>应用实例模板</span>
+            <strong>
+              {selectedPlan.templateName} · v{selectedPlan.templateVersion}
+            </strong>
+            <small>
+              保存订阅时会固定这个模板版本；实例生成后，套餐和实例配置不可再修改。
+            </small>
+          </div>
+        ) : null}
+        {selectedPlan?.templateConfigurationSchema.fields.map((field) => {
+          const existingValue =
+            initial?.instanceConfiguration[field.key] ??
+            selectedPlan.templateDefaultConfiguration[field.key] ??
+            "";
+          if (field.source === "plan_limit") {
+            return (
+              <label
+                className="form-field"
+                key={`${selectedPlan.templateVersionId}:${field.key}`}
+              >
+                <span>{field.label}</span>
+                <input
+                  disabled
+                  value={selectedPlan.limits[field.limitKey ?? ""] ?? "套餐未配置"}
+                />
+                <small>此值来自套餐限制，客户和管理员不能在订阅中覆盖。</small>
+              </label>
+            );
+          }
+          if (field.type === "boolean") {
+            return (
+              <label
+                className="check-field"
+                key={`${selectedPlan.templateVersionId}:${field.key}`}
+              >
+                <input
+                  defaultChecked={Boolean(existingValue)}
+                  name={`instanceConfiguration.${field.key}`}
+                  type="checkbox"
+                />
+                <span>
+                  <strong>{field.label}</strong>
+                  <small>由客户需求确定，并保存到订阅配置。</small>
+                </span>
+              </label>
+            );
+          }
+          return (
+            <label
+              className="form-field"
+              key={`${selectedPlan.templateVersionId}:${field.key}`}
+            >
+              <span>{field.label}</span>
+              {field.type === "select" ? (
+                <select
+                  defaultValue={String(existingValue)}
+                  name={`instanceConfiguration.${field.key}`}
+                  required={field.required}
+                >
+                  {!field.required ? <option value="">不设置</option> : null}
+                  {field.options?.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  defaultValue={String(existingValue)}
+                  max={field.max}
+                  min={field.min}
+                  name={`instanceConfiguration.${field.key}`}
+                  required={field.required}
+                  type={field.type === "number" ? "number" : field.type}
+                />
+              )}
+              {fieldError(`instanceConfiguration.${field.key}`) ? (
+                <small className="form-error">
+                  {fieldError(`instanceConfiguration.${field.key}`)}
+                </small>
+              ) : null}
+            </label>
+          );
+        })}
         <label className="form-field">
           <span>订阅状态</span>
           <select

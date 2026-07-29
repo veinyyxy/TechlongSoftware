@@ -34,6 +34,7 @@ const customerNavigation: NavigationItem[] = [
 const adminNavigation: NavigationItem[] = [
   { href: "/admin", label: "管理概览" },
   { href: "/admin/customers", label: "客户管理" },
+  { href: "/admin/templates", label: "应用实例模板管理" },
   { href: "/admin/plans", label: "套餐管理" },
   { href: "/admin/subscriptions", label: "订阅管理" },
   { href: "/admin/payments", label: "付款记录" },

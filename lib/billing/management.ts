@@ -1,6 +1,11 @@
 import { getD1 } from "@/db";
-import { ManagementError } from "@/lib/admin/management";
+import { getPlan, ManagementError } from "@/lib/admin/management";
 import { randomId } from "@/lib/domain/ids";
+import {
+  parseTemplateConfiguration,
+  resolveTemplateConfiguration,
+  type TemplateConfiguration,
+} from "@/lib/templates/validation";
 import type {
   PaymentInput,
   PaymentStatus,
@@ -31,6 +36,10 @@ export interface SubscriptionView {
   planPriceAmount: number;
   planCurrency: string;
   planBillingInterval: "month" | "year";
+  templateVersionId: string;
+  templateName: string;
+  templateVersion: number;
+  instanceConfiguration: TemplateConfiguration;
   status: SubscriptionStatus;
   currentPeriodStart: number;
   currentPeriodEnd: number;
@@ -87,6 +96,10 @@ type SubscriptionRow = {
   plan_price_amount: number;
   plan_currency: string;
   plan_billing_interval: "month" | "year";
+  template_version_id: string;
+  template_name: string;
+  template_version: number;
+  instance_configuration: string;
   status: SubscriptionStatus;
   current_period_start: number;
   current_period_end: number;
@@ -136,6 +149,12 @@ function toSubscriptionView(row: SubscriptionRow): SubscriptionView {
     planPriceAmount: Number(row.plan_price_amount),
     planCurrency: row.plan_currency,
     planBillingInterval: row.plan_billing_interval,
+    templateVersionId: row.template_version_id,
+    templateName: row.template_name,
+    templateVersion: Number(row.template_version),
+    instanceConfiguration: parseTemplateConfiguration(
+      row.instance_configuration,
+    ),
     status: row.status,
     currentPeriodStart: row.current_period_start,
     currentPeriodEnd: row.current_period_end,
@@ -180,7 +199,9 @@ const subscriptionSelect = `
     product.slug AS product_slug, product.status AS product_status,
     s.plan_id, p.name AS plan_name,
     p.price_amount AS plan_price_amount, p.currency AS plan_currency,
-    p.billing_interval AS plan_billing_interval, s.status,
+    p.billing_interval AS plan_billing_interval, s.template_version_id,
+    template.name AS template_name, template_version.version AS template_version,
+    s.instance_configuration, s.status,
     s.current_period_start, s.current_period_end, s.cancel_at_period_end,
     s.created_by_user_id, u.name AS created_by_name,
     s.created_at, s.updated_at
@@ -188,6 +209,10 @@ const subscriptionSelect = `
   INNER JOIN workspaces w ON w.id = s.workspace_id
   INNER JOIN products product ON product.id = s.product_id
   INNER JOIN plans p ON p.id = s.plan_id
+  INNER JOIN app_instance_template_versions template_version
+    ON template_version.id = s.template_version_id
+  INNER JOIN app_instance_templates template
+    ON template.id = template_version.template_id
   INNER JOIN users u ON u.id = s.created_by_user_id`;
 
 const paymentSelect = `
@@ -296,23 +321,20 @@ async function assertWorkspaceExists(workspaceId: string): Promise<void> {
   }
 }
 
-async function assertPlanAssignable(
+async function resolvePlanConfiguration(
   planId: string,
   productId: string,
+  requestedConfiguration: Record<string, unknown>,
   currentPlanId?: string,
-): Promise<void> {
-  const plan = await getD1()
-    .prepare("SELECT id, product_id, status FROM plans WHERE id = ? LIMIT 1")
-    .bind(planId)
-    .first<{
-      id: string;
-      product_id: string;
-      status: "active" | "inactive";
-    }>();
+): Promise<{
+  templateVersionId: string;
+  configuration: TemplateConfiguration;
+}> {
+  const plan = await getPlan(planId);
   if (!plan) {
     throw new ManagementError("PLAN_NOT_FOUND", "所选套餐不存在。", 400);
   }
-  if (plan.product_id !== productId) {
+  if (plan.productId !== productId) {
     throw new ManagementError(
       "PLAN_PRODUCT_MISMATCH",
       "所选套餐不属于当前订阅产品。",
@@ -326,6 +348,34 @@ async function assertPlanAssignable(
       400,
     );
   }
+  if (
+    (plan.templateVersionStatus !== "published" ||
+      plan.templateStatus !== "active") &&
+    plan.id !== currentPlanId
+  ) {
+    throw new ManagementError(
+      "TEMPLATE_VERSION_UNAVAILABLE",
+      "所选套餐绑定的实例模板版本当前不可用于新订阅。",
+      400,
+    );
+  }
+  const resolved = resolveTemplateConfiguration({
+    schema: plan.templateConfigurationSchema,
+    defaults: plan.templateDefaultConfiguration,
+    planLimits: plan.limits,
+    requested: requestedConfiguration,
+  });
+  if (!resolved.data) {
+    throw new ManagementError(
+      "INSTANCE_CONFIGURATION_INVALID",
+      Object.values(resolved.errors)[0]?.[0] ?? "实例配置不符合模板要求。",
+      400,
+    );
+  }
+  return {
+    templateVersionId: plan.templateVersionId,
+    configuration: resolved.data,
+  };
 }
 
 async function assertProductAssignable(
@@ -443,10 +493,14 @@ export async function createSubscription(
   input: SubscriptionInput,
   createdByUserId: string,
 ): Promise<SubscriptionView> {
-  await Promise.all([
+  const [, , planConfiguration] = await Promise.all([
     assertWorkspaceExists(input.workspaceId),
     assertProductAssignable(input.productId),
-    assertPlanAssignable(input.planId, input.productId),
+    resolvePlanConfiguration(
+      input.planId,
+      input.productId,
+      input.instanceConfiguration,
+    ),
     assertNoOtherCurrentSubscription(input.workspaceId, input.productId),
   ]);
 
@@ -459,16 +513,19 @@ export async function createSubscription(
       db
         .prepare(
           `INSERT INTO subscriptions (
-            id, workspace_id, product_id, plan_id, status, current_period_start,
+            id, workspace_id, product_id, plan_id, template_version_id,
+            instance_configuration, status, current_period_start,
             current_period_end, cancel_at_period_end, created_by_user_id,
             created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
           input.workspaceId,
           input.productId,
           input.planId,
+          planConfiguration.templateVersionId,
+          JSON.stringify(planConfiguration.configuration),
           input.status,
           input.currentPeriodStart,
           input.currentPeriodEnd,
@@ -532,9 +589,18 @@ export async function updateSubscription(
       400,
     );
   }
-  await Promise.all([
+  const linkedInstance = await getD1()
+    .prepare("SELECT id FROM app_instances WHERE subscription_id = ? LIMIT 1")
+    .bind(subscriptionId)
+    .first<{ id: string }>();
+  const [, planConfiguration] = await Promise.all([
     assertProductAssignable(input.productId, existing.productId),
-    assertPlanAssignable(input.planId, existing.productId, existing.planId),
+    resolvePlanConfiguration(
+      input.planId,
+      existing.productId,
+      input.instanceConfiguration,
+      existing.planId,
+    ),
     isCurrentSubscriptionStatus(input.status)
       ? assertNoOtherCurrentSubscription(
           existing.workspaceId,
@@ -543,6 +609,18 @@ export async function updateSubscription(
         )
       : Promise.resolve(),
   ]);
+  if (
+    linkedInstance &&
+    (input.planId !== existing.planId ||
+      JSON.stringify(planConfiguration.configuration) !==
+        JSON.stringify(existing.instanceConfiguration))
+  ) {
+    throw new ManagementError(
+      "INSTANCE_SNAPSHOT_IMMUTABLE",
+      "该订阅已经生成应用实例，不能再修改套餐或实例配置。",
+      409,
+    );
+  }
 
   const now = Date.now();
   try {
@@ -550,12 +628,15 @@ export async function updateSubscription(
       getD1()
         .prepare(
           `UPDATE subscriptions
-           SET plan_id = ?, status = ?, current_period_start = ?,
+           SET plan_id = ?, template_version_id = ?,
+             instance_configuration = ?, status = ?, current_period_start = ?,
              current_period_end = ?, cancel_at_period_end = ?, updated_at = ?
            WHERE id = ?`,
         )
         .bind(
           input.planId,
+          planConfiguration.templateVersionId,
+          JSON.stringify(planConfiguration.configuration),
           input.status,
           input.currentPeriodStart,
           input.currentPeriodEnd,

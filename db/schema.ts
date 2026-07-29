@@ -31,6 +31,11 @@ export const plans = sqliteTable(
     productId: text("product_id").references(() => products.id, {
       onDelete: "restrict",
     }),
+    // Added to a populated D1 table; migrations backfill and enforce this field.
+    templateVersionId: text("template_version_id").references(
+      () => appInstanceTemplateVersions.id,
+      { onDelete: "restrict" },
+    ),
     name: text("name").notNull(),
     description: text("description").notNull().default(""),
     priceAmount: integer("price_amount").notNull(),
@@ -122,6 +127,14 @@ export const subscriptions = sqliteTable(
     planId: text("plan_id")
       .notNull()
       .references(() => plans.id, { onDelete: "restrict" }),
+    // Snapshots which template version and resolved configuration were sold.
+    templateVersionId: text("template_version_id").references(
+      () => appInstanceTemplateVersions.id,
+      { onDelete: "restrict" },
+    ),
+    instanceConfiguration: text("instance_configuration")
+      .notNull()
+      .default("{}"),
     status: text("status", {
       enum: [
         "manual_pending",
@@ -157,6 +170,9 @@ export const subscriptions = sqliteTable(
     index("subscriptions_workspace_id_idx").on(table.workspaceId),
     index("subscriptions_product_id_idx").on(table.productId),
     index("subscriptions_plan_id_idx").on(table.planId),
+    index("subscriptions_template_version_id_idx").on(
+      table.templateVersionId,
+    ),
     index("subscriptions_status_idx").on(table.status),
   ],
 );
@@ -314,6 +330,69 @@ export const products = sqliteTable(
   ],
 );
 
+export const appInstanceTemplates = sqliteTable(
+  "app_instance_templates",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    status: text("status", { enum: ["active", "inactive"] })
+      .notNull()
+      .default("active"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("app_instance_templates_product_name_unique").on(
+      table.productId,
+      table.name,
+    ),
+    index("app_instance_templates_product_id_idx").on(table.productId),
+    index("app_instance_templates_status_idx").on(table.status),
+  ],
+);
+
+export const appInstanceTemplateVersions = sqliteTable(
+  "app_instance_template_versions",
+  {
+    id: text("id").primaryKey(),
+    templateId: text("template_id")
+      .notNull()
+      .references(() => appInstanceTemplates.id, { onDelete: "restrict" }),
+    version: integer("version").notNull(),
+    configurationSchema: text("configuration_schema")
+      .notNull()
+      .default('{"fields":[]}'),
+    defaultConfiguration: text("default_configuration")
+      .notNull()
+      .default("{}"),
+    deploymentDriver: text("deployment_driver").notNull().default("manual"),
+    deploymentWorkflowVersion: text("deployment_workflow_version")
+      .notNull()
+      .default("v1"),
+    status: text("status", {
+      enum: ["draft", "published", "archived"],
+    })
+      .notNull()
+      .default("draft"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("app_instance_template_versions_template_version_unique").on(
+      table.templateId,
+      table.version,
+    ),
+    index("app_instance_template_versions_template_id_idx").on(
+      table.templateId,
+    ),
+    index("app_instance_template_versions_status_idx").on(table.status),
+  ],
+);
+
 export const appInstances = sqliteTable(
   "app_instances",
   {
@@ -328,6 +407,15 @@ export const appInstances = sqliteTable(
       () => subscriptions.id,
       { onDelete: "set null" },
     ),
+    // Legacy instances may remain null; all new subscription-derived instances
+    // copy an immutable template version and configuration snapshot.
+    templateVersionId: text("template_version_id").references(
+      () => appInstanceTemplateVersions.id,
+      { onDelete: "restrict" },
+    ),
+    configurationSnapshot: text("configuration_snapshot")
+      .notNull()
+      .default("{}"),
     name: text("name").notNull(),
     slug: text("slug").notNull(),
     domain: text("domain"),
@@ -362,6 +450,9 @@ export const appInstances = sqliteTable(
     index("app_instances_workspace_id_idx").on(table.workspaceId),
     index("app_instances_product_id_idx").on(table.productId),
     index("app_instances_subscription_id_idx").on(table.subscriptionId),
+    index("app_instances_template_version_id_idx").on(
+      table.templateVersionId,
+    ),
     index("app_instances_status_idx").on(table.status),
   ],
 );

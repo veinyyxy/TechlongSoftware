@@ -67,6 +67,14 @@ test("stage 4 migrations contain workspace-scoped products and application insta
   assert.match(sql, /payment_webhook_events_provider_event_unique/);
   assert.match(sql, /ADD `provider` text DEFAULT 'manual' NOT NULL/);
   assert.match(sql, /payment_records_provider_payment_id_unique/);
+  assert.match(sql, /CREATE TABLE `app_instance_templates`/);
+  assert.match(sql, /CREATE TABLE `app_instance_template_versions`/);
+  assert.match(sql, /tplver_restaurant_standard_v1/);
+  assert.match(sql, /plans_template_required_insert/);
+  assert.match(sql, /subscriptions_template_match_insert/);
+  assert.match(sql, /app_instances_subscription_template_match_insert/);
+  assert.match(sql, /`configuration_snapshot` text DEFAULT '\{\}' NOT NULL/);
+  assert.match(sql, /published template version is immutable/);
 
   assert.doesNotMatch(sql, /CREATE TABLE `(deployments|webhooks)`/);
 });
