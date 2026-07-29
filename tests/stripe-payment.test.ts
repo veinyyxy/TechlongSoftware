@@ -68,6 +68,12 @@ test("keeps Stripe checkout authority on the server and verifies raw webhook pay
   assert.match(paymentManagement, /currentSubscription\.id !== subscription\.id/);
   assert.match(paymentManagement, /subscription\.status !== "manual_pending"/);
   assert.match(paymentManagement, /subscription\.productStatus !== "active"/);
+  assert.match(paymentManagement, /plan\.productId !== productId/);
+  assert.match(paymentManagement, /PLAN_PRODUCT_MISMATCH/);
+  assert.match(
+    paymentManagement,
+    /p\.id = cs\.plan_id AND p\.product_id = s\.product_id/,
+  );
   assert.match(paymentManagement, /subscription_id/);
   assert.match(paymentManagement, /cs\.status IN \('creating', 'open'\)/);
   assert.match(paymentManagement, /getReusableOpenCheckout\(\s*input\.workspaceId,\s*subscription\.id/);

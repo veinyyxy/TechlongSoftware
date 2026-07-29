@@ -298,14 +298,26 @@ async function assertWorkspaceExists(workspaceId: string): Promise<void> {
 
 async function assertPlanAssignable(
   planId: string,
+  productId: string,
   currentPlanId?: string,
 ): Promise<void> {
   const plan = await getD1()
-    .prepare("SELECT id, status FROM plans WHERE id = ? LIMIT 1")
+    .prepare("SELECT id, product_id, status FROM plans WHERE id = ? LIMIT 1")
     .bind(planId)
-    .first<{ id: string; status: "active" | "inactive" }>();
+    .first<{
+      id: string;
+      product_id: string;
+      status: "active" | "inactive";
+    }>();
   if (!plan) {
     throw new ManagementError("PLAN_NOT_FOUND", "所选套餐不存在。", 400);
+  }
+  if (plan.product_id !== productId) {
+    throw new ManagementError(
+      "PLAN_PRODUCT_MISMATCH",
+      "所选套餐不属于当前订阅产品。",
+      400,
+    );
   }
   if (plan.status !== "active" && plan.id !== currentPlanId) {
     throw new ManagementError(
@@ -434,7 +446,7 @@ export async function createSubscription(
   await Promise.all([
     assertWorkspaceExists(input.workspaceId),
     assertProductAssignable(input.productId),
-    assertPlanAssignable(input.planId),
+    assertPlanAssignable(input.planId, input.productId),
     assertNoOtherCurrentSubscription(input.workspaceId, input.productId),
   ]);
 
@@ -522,7 +534,7 @@ export async function updateSubscription(
   }
   await Promise.all([
     assertProductAssignable(input.productId, existing.productId),
-    assertPlanAssignable(input.planId, existing.planId),
+    assertPlanAssignable(input.planId, existing.productId, existing.planId),
     isCurrentSubscriptionStatus(input.status)
       ? assertNoOtherCurrentSubscription(
           existing.workspaceId,

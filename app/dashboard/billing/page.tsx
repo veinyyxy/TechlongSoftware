@@ -97,7 +97,9 @@ export default async function BillingPage() {
                 subscription.status === "manual_pending" ||
                 subscription.status === "past_due";
               const purchasablePlan =
-                plan?.status === "active" && plan.priceAmount > 0;
+                plan?.status === "active" &&
+                plan.productId === subscription.productId &&
+                plan.priceAmount > 0;
               return (
                 <article className="app-instance-card" key={subscription.id}>
                   <div className="app-instance-card-heading">

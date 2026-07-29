@@ -37,6 +37,8 @@ export default async function EditPlanPage({ params }: EditPlanPageProps) {
       <section className="form-panel">
         <PlanForm
           initial={{
+            productId: plan.productId,
+            productName: plan.productName,
             name: plan.name,
             description: plan.description,
             priceAmount: plan.priceAmount,

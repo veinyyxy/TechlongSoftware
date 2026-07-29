@@ -14,12 +14,16 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.slice(0, 100) ?? "";
+  const productId = url.searchParams.get("productId")?.slice(0, 128) ?? "";
   const rawStatus = url.searchParams.get("status") ?? "";
   const status: PlanStatus | "" = isPlanStatus(rawStatus) ? rawStatus : "";
 
-  return Response.json(apiSuccess(await listPlans({ query, status })), {
-    headers: { "cache-control": "no-store" },
-  });
+  return Response.json(
+    apiSuccess(await listPlans({ query, status, productId })),
+    {
+      headers: { "cache-control": "no-store" },
+    },
+  );
 }
 
 export async function POST(request: Request) {

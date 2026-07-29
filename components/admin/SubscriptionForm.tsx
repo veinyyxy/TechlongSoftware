@@ -15,7 +15,7 @@ interface SubscriptionFormProps {
   defaultWorkspaceId?: string;
   customers: Option[];
   products: Array<Option & { status?: "active" | "inactive" }>;
-  plans: Option[];
+  plans: Array<Option & { productId: string }>;
   initial?: {
     workspaceId: string;
     workspaceName: string;
@@ -58,6 +58,13 @@ export function SubscriptionForm({
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [selectedProductId, setSelectedProductId] = useState(
+    initial?.productId ?? "",
+  );
+  const [selectedPlanId, setSelectedPlanId] = useState(initial?.planId ?? "");
+  const availablePlans = plans.filter(
+    (plan) => plan.productId === selectedProductId,
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -147,7 +154,15 @@ export function SubscriptionForm({
               <input name="productId" type="hidden" value={initial.productId} />
             </>
           ) : (
-            <select defaultValue="" name="productId" required>
+            <select
+              name="productId"
+              onChange={(event) => {
+                setSelectedProductId(event.target.value);
+                setSelectedPlanId("");
+              }}
+              required
+              value={selectedProductId}
+            >
               <option disabled value="">请选择启用中的产品</option>
               {products.map((product) => (
                 <option key={product.id} value={product.id}>
@@ -164,14 +179,29 @@ export function SubscriptionForm({
         </label>
         <label className="form-field">
           <span>套餐</span>
-          <select defaultValue={initial?.planId ?? ""} name="planId" required>
-            <option disabled value="">请选择启用中的套餐</option>
-            {plans.map((plan) => (
+          <select
+            disabled={!selectedProductId || !availablePlans.length}
+            name="planId"
+            onChange={(event) => setSelectedPlanId(event.target.value)}
+            required
+            value={selectedPlanId}
+          >
+            <option disabled value="">
+              {selectedProductId
+                ? "请选择该产品的启用套餐"
+                : "请先选择订阅产品"}
+            </option>
+            {availablePlans.map((plan) => (
               <option key={plan.id} value={plan.id}>
                 {plan.name}
               </option>
             ))}
           </select>
+          {selectedProductId && !availablePlans.length ? (
+            <small className="form-error">
+              该产品目前没有可选套餐，请先在套餐管理中创建。
+            </small>
+          ) : null}
           {fieldError("planId") ? (
             <small className="form-error">{fieldError("planId")}</small>
           ) : null}

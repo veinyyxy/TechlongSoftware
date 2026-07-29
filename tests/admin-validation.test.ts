@@ -31,6 +31,7 @@ test("accepts normalized customer input and rejects invalid email", () => {
 
 test("validates database-backed plan fields without floating point prices", () => {
   const valid = validatePlanInput({
+    productId: "prd_restaurant_order_system",
     name: "Basic",
     description: "单店套餐",
     priceAmount: 4900,
@@ -40,10 +41,12 @@ test("validates database-backed plan fields without floating point prices", () =
     limits: { 门店数: "1", 成员数: "5" },
   });
   assert.equal(valid.data?.currency, "CAD");
+  assert.equal(valid.data?.productId, "prd_restaurant_order_system");
   assert.equal(valid.data?.priceAmount, 4900);
   assert.deepEqual(valid.data?.features, ["订单管理", "菜单配置"]);
 
   const invalid = validatePlanInput({
+    productId: "",
     name: "",
     description: "",
     priceAmount: 49.5,
@@ -53,6 +56,7 @@ test("validates database-backed plan fields without floating point prices", () =
     limits: {},
   });
   assert.equal(invalid.data, null);
+  assert.ok(invalid.errors.productId);
   assert.ok(invalid.errors.priceAmount);
   assert.ok(invalid.errors.billingInterval);
   assert.ok(invalid.errors.features);

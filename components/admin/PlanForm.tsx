@@ -6,7 +6,14 @@ import { FormEvent, useState } from "react";
 interface PlanFormProps {
   mode: "create" | "edit";
   planId?: string;
+  products?: Array<{
+    id: string;
+    name: string;
+    status: "active" | "inactive";
+  }>;
   initial?: {
+    productId: string;
+    productName: string;
     name: string;
     description: string;
     priceAmount: number;
@@ -51,7 +58,12 @@ function parseLimits(value: string): {
   return { limits, error: "" };
 }
 
-export function PlanForm({ mode, planId, initial }: PlanFormProps) {
+export function PlanForm({
+  mode,
+  planId,
+  products = [],
+  initial,
+}: PlanFormProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
@@ -79,6 +91,7 @@ export function PlanForm({ mode, planId, initial }: PlanFormProps) {
       .map((feature) => feature.trim())
       .filter(Boolean);
     const payload = {
+      productId: String(formData.get("productId") ?? ""),
       name: String(formData.get("name") ?? ""),
       description: String(formData.get("description") ?? ""),
       priceAmount,
@@ -126,6 +139,34 @@ export function PlanForm({ mode, planId, initial }: PlanFormProps) {
   return (
     <form className="admin-form" onSubmit={handleSubmit}>
       <div className="form-grid">
+        <label className="form-field form-field-wide">
+          <span>所属产品</span>
+          {mode === "edit" && initial ? (
+            <>
+              <input aria-label="所属产品" disabled value={initial.productName} />
+              <input
+                name="productId"
+                type="hidden"
+                value={initial.productId}
+              />
+            </>
+          ) : (
+            <select defaultValue="" name="productId" required>
+              <option disabled value="">
+                请选择套餐所属产品
+              </option>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <small>套餐创建后不能转移到其他产品。</small>
+          {fieldError("productId") ? (
+            <small className="form-error">{fieldError("productId")}</small>
+          ) : null}
+        </label>
         <label className="form-field form-field-wide">
           <span>套餐名称</span>
           <input

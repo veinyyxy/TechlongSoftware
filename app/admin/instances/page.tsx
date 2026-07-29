@@ -108,9 +108,18 @@ export default async function InstancesPage({ searchParams }: InstancesPageProps
                       <span>{hasRecordedAccessUrl(instance.accessUrl) ? instance.accessUrl : "尚未登记"}</span>
                     </td>
                     <td>
-                      {instance.subscriptionStatus
-                        ? subscriptionStatusLabels[instance.subscriptionStatus]
-                        : "未关联"}
+                      {instance.subscriptionStatus ? (
+                        <>
+                          <strong>
+                            {instance.subscriptionPlanName ?? "套餐资料缺失"}
+                          </strong>
+                          <span>
+                            {subscriptionStatusLabels[instance.subscriptionStatus]}
+                          </span>
+                        </>
+                      ) : (
+                        "未关联"
+                      )}
                     </td>
                     <td>{formatDate(instance.updatedAt)} UTC</td>
                     <td>

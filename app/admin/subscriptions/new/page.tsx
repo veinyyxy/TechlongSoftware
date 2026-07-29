@@ -39,7 +39,11 @@ export default async function NewSubscriptionPage({
                 : undefined
             }
             mode="create"
-            plans={plans.map(({ id, name }) => ({ id, name }))}
+            plans={plans.map(({ id, name, productId }) => ({
+              id,
+              name,
+              productId,
+            }))}
             products={products.map(({ id, name, status }) => ({ id, name, status }))}
           />
         ) : (

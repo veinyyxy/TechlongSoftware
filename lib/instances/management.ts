@@ -39,6 +39,8 @@ export interface AppInstanceView {
   productSlug: string;
   subscriptionId: string | null;
   subscriptionStatus: SubscriptionStatus | null;
+  subscriptionPlanId: string | null;
+  subscriptionPlanName: string | null;
   name: string;
   slug: string;
   domain: string | null;
@@ -75,6 +77,8 @@ type AppInstanceRow = {
   product_slug: string;
   subscription_id: string | null;
   subscription_status: SubscriptionStatus | null;
+  subscription_plan_id: string | null;
+  subscription_plan_name: string | null;
   name: string;
   slug: string;
   domain: string | null;
@@ -114,6 +118,8 @@ function toAppInstanceView(row: AppInstanceRow): AppInstanceView {
     productSlug: row.product_slug,
     subscriptionId: row.subscription_id,
     subscriptionStatus: row.subscription_status,
+    subscriptionPlanId: row.subscription_plan_id,
+    subscriptionPlanName: row.subscription_plan_name,
     name: row.name,
     slug: row.slug,
     domain: row.domain,
@@ -136,7 +142,9 @@ const appInstanceSelect = `
     ai.id, ai.workspace_id, w.name AS workspace_name,
     w.status AS workspace_status, ai.product_id, p.name AS product_name,
     p.slug AS product_slug, ai.subscription_id,
-    s.status AS subscription_status, ai.name, ai.slug, ai.domain,
+    s.status AS subscription_status, subscription_plan.id AS subscription_plan_id,
+    subscription_plan.name AS subscription_plan_name,
+    ai.name, ai.slug, ai.domain,
     ai.access_url, ai.seller_apk_url, ai.tenant_key, ai.provisioning_source,
     ai.status, ai.provisioned_at,
     ai.suspended_at, ai.created_by_user_id, u.name AS created_by_name,
@@ -145,6 +153,9 @@ const appInstanceSelect = `
   INNER JOIN workspaces w ON w.id = ai.workspace_id
   INNER JOIN products p ON p.id = ai.product_id
   LEFT JOIN subscriptions s ON s.id = ai.subscription_id
+  LEFT JOIN plans subscription_plan
+    ON subscription_plan.id = s.plan_id
+   AND subscription_plan.product_id = ai.product_id
   INNER JOIN users u ON u.id = ai.created_by_user_id`;
 
 export async function listProducts(input?: {

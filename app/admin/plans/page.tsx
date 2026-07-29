@@ -59,6 +59,7 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
                 <span className={`status-pill status-${plan.status}`}>
                   {planStatusLabels[plan.status]}
                 </span>
+                <p className="page-kicker">{plan.productName}</p>
                 <h2>{plan.name}</h2>
               </div>
               <strong>

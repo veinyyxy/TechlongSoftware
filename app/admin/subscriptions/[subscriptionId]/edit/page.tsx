@@ -52,7 +52,9 @@ export default async function EditSubscriptionPage({
   }
 
   const availablePlans = plans.filter(
-    (plan) => plan.status === "active" || plan.id === subscription.planId,
+    (plan) =>
+      plan.productId === subscription.productId &&
+      (plan.status === "active" || plan.id === subscription.planId),
   );
 
   return (
@@ -77,7 +79,11 @@ export default async function EditSubscriptionPage({
             cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
           }}
           mode="edit"
-          plans={availablePlans.map(({ id, name }) => ({ id, name }))}
+          plans={availablePlans.map(({ id, name, productId }) => ({
+            id,
+            name,
+            productId,
+          }))}
           products={[]}
           subscriptionId={subscription.id}
         />

@@ -20,11 +20,13 @@
 - 管理员客户列表、搜索、状态筛选和客户详情。
 - 创建、编辑、暂停及恢复企业客户工作区。
 - 创建、编辑、启用及停用套餐。
+- 每个套餐必须归属一个产品；同名套餐可存在于不同产品中，套餐创建后不能跨产品转移。
 - 套餐价格使用最小货币单位保存，功能和限制保存在数据库中。
 - 客户详情和客户控制台读取当前套餐、订阅状态和应用实例状态。
 - 管理员创建、编辑并查看客户订阅。
 - 订阅支持 `manual_pending`、`active`、`past_due`、`paused`、`canceled`。
 - 一个工作区可保留多个产品、多个历史订阅；同一工作区的同一产品同一时间只允许一个当前订阅。
+- 创建订阅时只显示所选产品下的套餐，服务端和数据库都会阻止跨产品套餐组合。
 - `manual_pending`、`active`、`past_due`、`paused` 视为当前订阅，`canceled` 视为历史订阅；取消后可为同一产品重新创建订阅。
 - 管理员可以暂停、恢复和取消订阅。
 - 管理员手工录入并筛选付款记录。
@@ -35,6 +37,7 @@
 - 内置一个可分配产品：`餐饮订单系统`（`restaurant-order-system`）。
 - 管理员可以创建、编辑、筛选和查看客户应用实例。
 - 应用实例关联工作区、产品，并可选关联订阅。
+- 应用实例通过关联订阅读取对应套餐，管理员实例列表和详情会显示该套餐；实例表不重复保存 `plan_id`。
 - 应用实例状态支持 `pending`、`active`、`suspended`、`failed`。
 - 只有关联有效订阅的实例允许被标记为 `active`。
 - 管理员可以暂停和恢复应用实例；所有实例管理接口均要求平台管理员权限。
@@ -161,11 +164,13 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 多产品订阅升级：
 
 - `subscriptions.product_id`（必填）
+- `plans.product_id`（迁移回填并由数据库触发器强制必填）
+- 套餐名称唯一约束改为 `(product_id, name)`
 - 移除 `subscriptions.workspace_id` 的旧唯一约束
 - 当前订阅的 `(workspace_id, product_id)` 条件唯一约束
 - `payment_checkout_sessions.subscription_id`（必填）及进行中 Checkout 唯一约束
 
-订阅必须关联 `workspace`、`product` 和 `plan`。数据库使用条件唯一索引保证同一 `(workspace_id, product_id)` 同一时间最多一个当前订阅，同时保留已取消订阅作为历史记录；其他产品的当前订阅互不影响。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。应用实例关联 `workspace`、`product`，并可选关联订阅；保存管理员填写的买家端 `access_url`、卖家端 `seller_apk_url`、`domain` / `slug` 和 `tenant_key`。
+订阅必须关联 `workspace`、`product` 和该产品下的 `plan`。数据库使用触发器阻止产品与套餐不匹配，并使用条件唯一索引保证同一 `(workspace_id, product_id)` 同一时间最多一个当前订阅，同时保留已取消订阅作为历史记录；其他产品的当前订阅互不影响。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。应用实例关联 `workspace`、`product`，并可选关联订阅；对应套餐通过订阅读取，不在实例表重复保存。实例同时保存管理员填写的买家端 `access_url`、卖家端 `seller_apk_url`、`domain` / `slug` 和 `tenant_key`。
 
 迁移会幂等写入默认产品：`餐饮订单系统` / `restaurant-order-system` / `active`，并将旧订阅安全回填到该产品。工作区上的 `plan_id`、`subscription_status` 和 `app_instance_status` 仅作为兼容状态快照，由订阅和应用实例管理操作同步更新；实际订阅以 `subscriptions` 为准，实际应用实例以 `app_instances` 为准。
 

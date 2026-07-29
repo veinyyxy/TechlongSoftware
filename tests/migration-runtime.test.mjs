@@ -27,7 +27,7 @@ test("multi-product migration backfills existing subscriptions without losing hi
   const productSubscriptionMigrations = migrations.filter(
     ({ file }) => file >= "0007_",
   );
-  assert.equal(productSubscriptionMigrations.length, 2);
+  assert.equal(productSubscriptionMigrations.length, 3);
   for (const migration of previousMigrations) applyMigration(database, migration);
 
   const now = Date.now();
@@ -136,6 +136,12 @@ test("multi-product migration backfills existing subscriptions without losing hi
   assert.equal(upgraded.product_id, "prd_restaurant_order_system");
   assert.equal(
     database
+      .prepare("SELECT product_id FROM plans WHERE id = 'pln_upgrade'")
+      .get().product_id,
+    "prd_restaurant_order_system",
+  );
+  assert.equal(
+    database
       .prepare("SELECT subscription_id FROM payment_records WHERE id = 'pay_upgrade'")
       .get().subscription_id,
     "sub_upgrade",
@@ -216,6 +222,26 @@ test("multi-product migration backfills existing subscriptions without losing hi
       .prepare(
         `SELECT COUNT(*) AS count FROM sqlite_master
          WHERE type = 'trigger'
+           AND name LIKE 'plans_product_required_%'`,
+      )
+      .get().count,
+    2,
+  );
+  assert.equal(
+    database
+      .prepare(
+        `SELECT COUNT(*) AS count FROM sqlite_master
+         WHERE type = 'trigger'
+           AND name LIKE 'subscriptions_plan_product_match_%'`,
+      )
+      .get().count,
+    2,
+  );
+  assert.equal(
+    database
+      .prepare(
+        `SELECT COUNT(*) AS count FROM sqlite_master
+         WHERE type = 'trigger'
            AND name LIKE 'payment_checkout_sessions_subscription_required_%'`,
       )
       .get().count,
@@ -224,6 +250,13 @@ test("multi-product migration backfills existing subscriptions without losing hi
   assert.equal(
     database
       .prepare("PRAGMA foreign_key_list('subscriptions')")
+      .all()
+      .find((foreignKey) => foreignKey.from === "product_id")?.on_delete,
+    "RESTRICT",
+  );
+  assert.equal(
+    database
+      .prepare("PRAGMA foreign_key_list('plans')")
       .all()
       .find((foreignKey) => foreignKey.from === "product_id")?.on_delete,
     "RESTRICT",
@@ -246,6 +279,17 @@ test("multi-product migration backfills existing subscriptions without losing hi
           'canceled', ?, ?, 0, 'usr_upgrade', ?, ?)`,
       )
       .run(now, now + 1_000_000, now, now),
+  );
+  assert.throws(() =>
+    database
+      .prepare(
+        `INSERT INTO plans
+         (id, product_id, name, description, price_amount, currency,
+          billing_interval, status, features, limits, created_at, updated_at)
+         VALUES ('pln_null_product', NULL, 'Invalid', '', 1000, 'CAD',
+          'month', 'active', '[]', '{}', ?, ?)`,
+      )
+      .run(now, now),
   );
   assert.throws(() =>
     database
@@ -297,12 +341,13 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO plans
-       (id, name, description, price_amount, currency, billing_interval,
-        status, features, limits, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+       (id, product_id, name, description, price_amount, currency,
+        billing_interval, status, features, limits, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
     )
     .run(
       "pln_basic",
+      "prd_restaurant_order_system",
       "Basic",
       "Single restaurant",
       4900,
@@ -316,12 +361,13 @@ test("launch data flow preserves workspace isolation and application integrity",
   database
     .prepare(
       `INSERT INTO plans
-       (id, name, description, price_amount, currency, billing_interval,
-        status, features, limits, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+       (id, product_id, name, description, price_amount, currency,
+        billing_interval, status, features, limits, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
     )
     .run(
       "pln_temp",
+      "prd_restaurant_order_system",
       "Temporary",
       "Temporary plan used to verify SET NULL",
       1900,
@@ -412,6 +458,26 @@ test("launch data flow preserves workspace isolation and application integrity",
       now,
       now,
     );
+  database
+    .prepare(
+      `INSERT INTO plans
+       (id, product_id, name, description, price_amount, currency,
+        billing_interval, status, features, limits, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+    )
+    .run(
+      "pln_inventory_basic",
+      "prd_inventory",
+      "Basic",
+      "Inventory starter plan",
+      2900,
+      "CAD",
+      "month",
+      JSON.stringify(["Inventory management"]),
+      JSON.stringify({ locations: "1" }),
+      now,
+      now,
+    );
 
   const workspace = database
     .prepare(
@@ -487,6 +553,27 @@ test("launch data flow preserves workspace isolation and application integrity",
       );
   }, /UNIQUE constraint failed/);
 
+  assert.throws(() =>
+    database
+      .prepare(
+        `INSERT INTO subscriptions
+         (id, workspace_id, product_id, plan_id, status, current_period_start,
+          current_period_end, cancel_at_period_end, created_by_user_id,
+          created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)`,
+      )
+      .run(
+        "sub_inventory_wrong_plan",
+        "wsp_one",
+        "prd_inventory",
+        "pln_basic",
+        now,
+        now + 30 * 24 * 60 * 60 * 1000,
+        "usr_one",
+        now,
+        now,
+      ),
+  );
   database
     .prepare(
       `INSERT INTO subscriptions
@@ -499,13 +586,18 @@ test("launch data flow preserves workspace isolation and application integrity",
       "sub_inventory",
       "wsp_one",
       "prd_inventory",
-      "pln_basic",
+      "pln_inventory_basic",
       now,
       now + 30 * 24 * 60 * 60 * 1000,
       "usr_one",
       now,
       now,
     );
+  assert.throws(() =>
+    database
+      .prepare("UPDATE plans SET product_id = ? WHERE id = ?")
+      .run("prd_inventory", "pln_basic"),
+  );
 
   database
     .prepare(

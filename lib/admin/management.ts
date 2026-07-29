@@ -37,6 +37,9 @@ export class ManagementError extends Error {
 
 export interface PlanView {
   id: string;
+  productId: string;
+  productName: string;
+  productStatus: "active" | "inactive";
   name: string;
   description: string;
   priceAmount: number;
@@ -100,6 +103,9 @@ function safeStringRecord(value: string): Record<string, string> {
 
 function toPlanView(row: {
   id: string;
+  product_id: string;
+  product_name: string;
+  product_status: "active" | "inactive";
   name: string;
   description: string;
   price_amount: number;
@@ -113,6 +119,9 @@ function toPlanView(row: {
 }): PlanView {
   return {
     id: row.id,
+    productId: row.product_id,
+    productName: row.product_name,
+    productStatus: row.product_status,
     name: row.name,
     description: row.description,
     priceAmount: Number(row.price_amount),
@@ -129,27 +138,39 @@ function toPlanView(row: {
 export async function listPlans(input?: {
   query?: string;
   status?: PlanStatus | "";
+  productId?: string;
 }): Promise<PlanView[]> {
   const query = input?.query?.trim() ?? "";
   const status = input?.status ?? "";
+  const productId = input?.productId?.trim() ?? "";
   const clauses: string[] = [];
   const bindings: string[] = [];
 
   if (query) {
-    clauses.push("(name LIKE ? OR description LIKE ?)");
-    bindings.push(`%${query}%`, `%${query}%`);
+    clauses.push(
+      "(plan.name LIKE ? OR plan.description LIKE ? OR product.name LIKE ?)",
+    );
+    const pattern = `%${query}%`;
+    bindings.push(pattern, pattern, pattern);
   }
   if (status) {
-    clauses.push("status = ?");
+    clauses.push("plan.status = ?");
     bindings.push(status);
+  }
+  if (productId) {
+    clauses.push("plan.product_id = ?");
+    bindings.push(productId);
   }
 
   const statement = getD1().prepare(
-    `SELECT id, name, description, price_amount, currency, billing_interval,
-      status, features, limits, created_at, updated_at
-     FROM plans
+    `SELECT plan.id, plan.product_id, product.name AS product_name,
+      product.status AS product_status, plan.name, plan.description,
+      plan.price_amount, plan.currency, plan.billing_interval, plan.status,
+      plan.features, plan.limits, plan.created_at, plan.updated_at
+     FROM plans plan
+     INNER JOIN products product ON product.id = plan.product_id
      ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
-     ORDER BY created_at DESC
+     ORDER BY plan.created_at DESC
      LIMIT 200`,
   );
   const result = await (bindings.length
@@ -157,6 +178,9 @@ export async function listPlans(input?: {
     : statement
   ).all<{
     id: string;
+    product_id: string;
+    product_name: string;
+    product_status: "active" | "inactive";
     name: string;
     description: string;
     price_amount: number;
@@ -175,15 +199,21 @@ export async function listPlans(input?: {
 export async function getPlan(planId: string): Promise<PlanView | null> {
   const row = await getD1()
     .prepare(
-      `SELECT id, name, description, price_amount, currency, billing_interval,
-        status, features, limits, created_at, updated_at
-       FROM plans
-       WHERE id = ?
+      `SELECT plan.id, plan.product_id, product.name AS product_name,
+        product.status AS product_status, plan.name, plan.description,
+        plan.price_amount, plan.currency, plan.billing_interval, plan.status,
+        plan.features, plan.limits, plan.created_at, plan.updated_at
+       FROM plans plan
+       INNER JOIN products product ON product.id = plan.product_id
+       WHERE plan.id = ?
        LIMIT 1`,
     )
     .bind(planId)
     .first<{
       id: string;
+      product_id: string;
+      product_name: string;
+      product_status: "active" | "inactive";
       name: string;
       description: string;
       price_amount: number;
@@ -199,7 +229,28 @@ export async function getPlan(planId: string): Promise<PlanView | null> {
   return row ? toPlanView(row) : null;
 }
 
+async function assertPlanProductAssignable(
+  productId: string,
+  currentProductId?: string,
+): Promise<void> {
+  const product = await getD1()
+    .prepare("SELECT id, status FROM products WHERE id = ? LIMIT 1")
+    .bind(productId)
+    .first<{ id: string; status: "active" | "inactive" }>();
+  if (!product) {
+    throw new ManagementError("PRODUCT_NOT_FOUND", "所选产品不存在。", 400);
+  }
+  if (product.status !== "active" && product.id !== currentProductId) {
+    throw new ManagementError(
+      "PRODUCT_INACTIVE",
+      "不能为套餐选择已停用的产品。",
+      400,
+    );
+  }
+}
+
 export async function createPlan(input: PlanInput): Promise<PlanView> {
+  await assertPlanProductAssignable(input.productId);
   const id = randomId("pln");
   const now = Date.now();
 
@@ -207,12 +258,13 @@ export async function createPlan(input: PlanInput): Promise<PlanView> {
     await getD1()
       .prepare(
         `INSERT INTO plans (
-          id, name, description, price_amount, currency, billing_interval,
+          id, product_id, name, description, price_amount, currency, billing_interval,
           status, features, limits, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
       )
       .bind(
         id,
+        input.productId,
         input.name,
         input.description,
         input.priceAmount,
@@ -227,7 +279,7 @@ export async function createPlan(input: PlanInput): Promise<PlanView> {
   } catch {
     throw new ManagementError(
       "PLAN_NAME_CONFLICT",
-      "已经存在同名套餐，请使用其他名称。",
+      "这个产品已经存在同名套餐，请使用其他名称。",
       409,
     );
   }
@@ -243,6 +295,19 @@ export async function updatePlan(
   planId: string,
   input: PlanInput,
 ): Promise<PlanView> {
+  const existing = await getPlan(planId);
+  if (!existing) {
+    throw new ManagementError("PLAN_NOT_FOUND", "没有找到该套餐。", 404);
+  }
+  if (input.productId !== existing.productId) {
+    throw new ManagementError(
+      "PLAN_PRODUCT_CHANGE_NOT_ALLOWED",
+      "套餐创建后不能转移到其他产品。",
+      400,
+    );
+  }
+  await assertPlanProductAssignable(input.productId, existing.productId);
+
   try {
     const result = await getD1()
       .prepare(
@@ -270,7 +335,7 @@ export async function updatePlan(
     if (error instanceof ManagementError) throw error;
     throw new ManagementError(
       "PLAN_NAME_CONFLICT",
-      "已经存在同名套餐，请使用其他名称。",
+      "这个产品已经存在同名套餐，请使用其他名称。",
       409,
     );
   }
@@ -391,6 +456,8 @@ export async function getCustomer(
         p.billing_interval AS plan_billing_interval, p.status AS plan_status,
         p.features AS plan_features, p.limits AS plan_limits,
         p.created_at AS plan_created_at, p.updated_at AS plan_updated_at,
+        pp.id AS plan_product_id, pp.name AS plan_product_name,
+        pp.status AS plan_product_status,
         COUNT(wm.id) AS member_count,
         (
           SELECT COUNT(*)
@@ -401,6 +468,7 @@ export async function getCustomer(
        FROM workspaces w
        INNER JOIN users u ON u.id = w.owner_id
        LEFT JOIN plans p ON p.id = w.plan_id
+       LEFT JOIN products pp ON pp.id = p.product_id
        LEFT JOIN workspace_members wm ON wm.workspace_id = w.id
        WHERE w.id = ?
        GROUP BY w.id, w.name, w.status, w.contact_name, w.contact_email,
@@ -433,6 +501,9 @@ export async function getCustomer(
       plan_limits: string | null;
       plan_created_at: number | null;
       plan_updated_at: number | null;
+      plan_product_id: string | null;
+      plan_product_name: string | null;
+      plan_product_status: "active" | "inactive" | null;
       member_count: number;
       current_subscription_count: number;
     }>();
@@ -449,9 +520,15 @@ export async function getCustomer(
     row.plan_features !== null &&
     row.plan_limits !== null &&
     row.plan_created_at !== null &&
-    row.plan_updated_at !== null
+    row.plan_updated_at !== null &&
+    row.plan_product_id &&
+    row.plan_product_name &&
+    row.plan_product_status
       ? toPlanView({
           id: row.plan_id,
+          product_id: row.plan_product_id,
+          product_name: row.plan_product_name,
+          product_status: row.plan_product_status,
           name: row.plan_name,
           description: row.plan_description ?? "",
           price_amount: row.plan_price_amount,

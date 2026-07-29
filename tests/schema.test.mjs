@@ -24,6 +24,11 @@ test("stage 4 migrations contain workspace-scoped products and application insta
   assert.match(sql, /`price_amount` integer NOT NULL/);
   assert.match(sql, /`features` text/);
   assert.match(sql, /`limits` text/);
+  assert.match(sql, /ALTER TABLE `plans` ADD `product_id` text REFERENCES products\(id\) ON DELETE RESTRICT/);
+  assert.match(sql, /plans_product_name_unique/);
+  assert.match(sql, /plans_product_required_insert/);
+  assert.match(sql, /subscriptions_plan_product_match_insert/);
+  assert.match(sql, /__subscription_plan_product_guard/);
   assert.match(sql, /ADD `plan_id` text REFERENCES plans\(id\) ON DELETE SET NULL/);
   assert.match(sql, /ADD `subscription_status` text DEFAULT 'not_configured'/);
   assert.match(sql, /ADD `app_instance_status` text DEFAULT 'not_provisioned'/);

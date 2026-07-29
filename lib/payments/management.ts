@@ -84,9 +84,9 @@ const checkoutSelect = `
     cs.completed_at, cs.created_at,
     cs.payment_record_id, cs.initiated_by_user_id, p.billing_interval
   FROM payment_checkout_sessions cs
-  INNER JOIN plans p ON p.id = cs.plan_id
-  INNER JOIN payment_records pr ON pr.id = cs.payment_record_id
   INNER JOIN subscriptions s ON s.id = cs.subscription_id
+  INNER JOIN plans p ON p.id = cs.plan_id AND p.product_id = s.product_id
+  INNER JOIN payment_records pr ON pr.id = cs.payment_record_id
   INNER JOIN products product ON product.id = s.product_id`;
 
 function toCheckoutView(row: CheckoutRow): PaymentCheckoutView {
@@ -175,7 +175,7 @@ export async function createPaymentCheckout(input: {
     );
   }
   const plan = await getPlan(subscription.planId);
-  assertPurchasablePlan(plan);
+  assertPurchasablePlan(plan, subscription.productId);
   await assertActiveWorkspace(input.workspaceId);
 
   const reusable = await getReusableOpenCheckout(
@@ -470,9 +470,19 @@ async function getReusableOpenCheckout(
   return row;
 }
 
-function assertPurchasablePlan(plan: PlanView | null): asserts plan is PlanView {
+function assertPurchasablePlan(
+  plan: PlanView | null,
+  productId: string,
+): asserts plan is PlanView {
   if (!plan || plan.status !== "active") {
     throw new ManagementError("PLAN_NOT_AVAILABLE", "所选套餐当前不可购买。", 400);
+  }
+  if (plan.productId !== productId) {
+    throw new ManagementError(
+      "PLAN_PRODUCT_MISMATCH",
+      "当前套餐不属于订阅产品，不能发起付款。",
+      409,
+    );
   }
   if (!Number.isSafeInteger(plan.priceAmount) || plan.priceAmount <= 0) {
     throw new ManagementError(

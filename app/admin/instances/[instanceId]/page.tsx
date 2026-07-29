@@ -122,6 +122,7 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
           <dl className="detail-list">
             <div><dt>实例状态</dt><dd>{appInstanceStatusLabels[instance.status]}</dd></div>
             <div><dt>关联订阅</dt><dd>{instance.subscriptionStatus ? subscriptionStatusLabels[instance.subscriptionStatus] : "未关联"}</dd></div>
+            <div><dt>订阅套餐</dt><dd>{instance.subscriptionPlanName ?? "未关联"}</dd></div>
             <div><dt>首次开通时间</dt><dd>{instance.provisionedAt ? `${formatDate(instance.provisionedAt)} UTC` : "尚未开通"}</dd></div>
             <div><dt>暂停时间</dt><dd>{instance.suspendedAt ? `${formatDate(instance.suspendedAt)} UTC` : "—"}</dd></div>
             <div><dt>最后更新</dt><dd>{formatDate(instance.updatedAt)} UTC</dd></div>

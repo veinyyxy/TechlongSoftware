@@ -26,6 +26,11 @@ export const plans = sqliteTable(
   "plans",
   {
     id: text("id").primaryKey(),
+    // D1 cannot safely add a NOT NULL foreign key to a populated table in place.
+    // The migration backfills this field and enforces it with DB triggers.
+    productId: text("product_id").references(() => products.id, {
+      onDelete: "restrict",
+    }),
     name: text("name").notNull(),
     description: text("description").notNull().default(""),
     priceAmount: integer("price_amount").notNull(),
@@ -41,7 +46,8 @@ export const plans = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [
-    uniqueIndex("plans_name_unique").on(table.name),
+    uniqueIndex("plans_product_name_unique").on(table.productId, table.name),
+    index("plans_product_id_idx").on(table.productId),
     index("plans_status_idx").on(table.status),
   ],
 );
