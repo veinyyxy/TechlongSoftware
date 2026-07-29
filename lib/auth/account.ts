@@ -6,7 +6,7 @@ import {
   requireChatGPTUser,
   type ChatGPTUser,
 } from "@/app/chatgpt-auth";
-import { getD1 } from "@/db";
+import { getDatabase } from "@/db";
 import { stableId } from "@/lib/domain/ids";
 import {
   canAccessWorkspace,
@@ -107,7 +107,7 @@ function defaultWorkspaceName(identity: ChatGPTUser): string {
 export async function ensureAccount(
   identity: ChatGPTUser,
 ): Promise<AccountContext> {
-  const db = getD1();
+  const db = getDatabase();
   const email = normalizeEmail(identity.email);
   const userId = await stableId("usr", email);
   const workspaceId = await stableId("wsp", userId);
@@ -196,7 +196,7 @@ export async function ensureAccount(
 async function findPrimaryMembership(
   userId: string,
 ): Promise<MembershipRow | null> {
-  return getD1()
+  return getDatabase()
     .prepare(
       `SELECT
         wm.id AS membership_id,
@@ -291,7 +291,7 @@ export async function assertWorkspaceAccess(
     return true;
   }
 
-  const membership = await getD1()
+  const membership = await getDatabase()
     .prepare(
       `SELECT workspace_id
        FROM workspace_members
@@ -307,7 +307,7 @@ export async function assertWorkspaceAccess(
 export async function listWorkspaceMembers(
   workspaceId: string,
 ): Promise<WorkspaceMemberView[]> {
-  const result = await getD1()
+  const result = await getDatabase()
     .prepare(
       `SELECT
         u.id,
@@ -342,7 +342,7 @@ export async function listWorkspaceMembers(
 }
 
 export async function getPlatformOverview() {
-  const db = getD1();
+  const db = getDatabase();
   const [
     usersResult,
     workspacesResult,
@@ -371,7 +371,7 @@ export async function getPlatformOverview() {
     db.prepare("SELECT COUNT(*) AS count FROM app_instances WHERE status = 'active'"),
   ]);
 
-  const count = (result: D1Result<unknown>) =>
+  const count = (result: DatabaseResult<unknown>) =>
     Number((result.results[0] as { count?: number } | undefined)?.count ?? 0);
 
   return {
@@ -388,7 +388,7 @@ export async function getPlatformOverview() {
 }
 
 export async function listAdminUsers(): Promise<AdminUserView[]> {
-  const result = await getD1()
+  const result = await getDatabase()
     .prepare(
       `SELECT id, email, name, status, is_platform_admin, created_at
        FROM users
@@ -415,7 +415,7 @@ export async function listAdminUsers(): Promise<AdminUserView[]> {
 }
 
 export async function listAdminWorkspaces(): Promise<AdminWorkspaceView[]> {
-  const result = await getD1()
+  const result = await getDatabase()
     .prepare(
       `SELECT
         w.id,

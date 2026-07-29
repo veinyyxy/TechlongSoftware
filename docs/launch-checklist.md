@@ -5,9 +5,10 @@
 ## 发布前环境
 
 1. 确认 Sites 的生产环境变量 `PLATFORM_ADMIN_EMAILS` 包含管理员真实邮箱，多个邮箱用英文逗号分隔。
-2. 确认 `.env.local` 仅用于本地；它与任何密码、Token、私钥均不得提交。
-3. 执行：`npm run lint`、`npm run typecheck`、`npm run build`、`npm test`。
-4. 确认 `/api/health` 返回 `status: ok`，且 `phase` 与当前版本一致。
+2. 确认 Sites secret `DATABASE_URL` 是 Neon pooled connection string；本地值只放在未提交的 `.env.local`。
+3. 确认 `.env.local` 与任何数据库密码、Token、私钥均未提交。
+4. 执行：`npm run lint`、`npm run typecheck`、`npm run build`、`npm test`。
+5. 确认 `/api/health` 返回 `status: ok`，且 `phase` 与当前版本一致。
 
 ## 管理员验收流程
 

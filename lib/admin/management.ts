@@ -1,4 +1,4 @@
-import { getD1 } from "@/db";
+import { getDatabase } from "@/db";
 import { randomId, stableId } from "@/lib/domain/ids";
 import {
   parseConfigurationSchema,
@@ -209,7 +209,7 @@ export async function listPlans(input?: {
     bindings.push(productId);
   }
 
-  const statement = getD1().prepare(
+  const statement = getDatabase().prepare(
     `SELECT plan.id, plan.product_id, product.name AS product_name,
       product.status AS product_status, plan.template_version_id,
       template.id AS template_id, template.name AS template_name,
@@ -269,7 +269,7 @@ export async function listPlans(input?: {
 }
 
 export async function getPlan(planId: string): Promise<PlanView | null> {
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(
       `SELECT plan.id, plan.product_id, product.name AS product_name,
         product.status AS product_status, plan.template_version_id,
@@ -330,7 +330,7 @@ async function assertPlanProductAssignable(
   productId: string,
   currentProductId?: string,
 ): Promise<void> {
-  const product = await getD1()
+  const product = await getDatabase()
     .prepare("SELECT id, status FROM products WHERE id = ? LIMIT 1")
     .bind(productId)
     .first<{ id: string; status: "active" | "inactive" }>();
@@ -350,7 +350,7 @@ async function assertPlanTemplateAssignable(
   templateVersionId: string,
   productId: string,
 ): Promise<TemplateConfigurationSchema> {
-  const version = await getD1()
+  const version = await getDatabase()
     .prepare(
       `SELECT version.id, version.configuration_schema
        FROM app_instance_template_versions version
@@ -411,7 +411,7 @@ export async function createPlan(input: PlanInput): Promise<PlanView> {
   const now = Date.now();
 
   try {
-    await getD1()
+    await getDatabase()
       .prepare(
         `INSERT INTO plans (
           id, product_id, template_version_id, name, description,
@@ -488,7 +488,7 @@ export async function updatePlan(
   }
 
   try {
-    const result = await getD1()
+    const result = await getDatabase()
       .prepare(
         `UPDATE plans
          SET name = ?, description = ?, price_amount = ?, currency = ?,
@@ -532,7 +532,7 @@ export async function updatePlanStatus(
   planId: string,
   status: PlanStatus,
 ): Promise<PlanView> {
-  const result = await getD1()
+  const result = await getDatabase()
     .prepare("UPDATE plans SET status = ?, updated_at = ? WHERE id = ?")
     .bind(status, Date.now(), planId)
     .run();
@@ -568,7 +568,7 @@ export async function listCustomers(input?: {
     bindings.push(status);
   }
 
-  const statement = getD1().prepare(
+  const statement = getDatabase().prepare(
     `SELECT
       w.id, w.name, w.status, w.subscription_status, w.app_instance_status,
       w.created_at, COALESCE(w.contact_name, u.name) AS contact_name,
@@ -626,7 +626,7 @@ export async function listCustomers(input?: {
 export async function getCustomer(
   workspaceId: string,
 ): Promise<CustomerDetail | null> {
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(
       `SELECT
         w.id, w.name, w.status, w.contact_name, w.contact_email, w.plan_id,
@@ -801,7 +801,7 @@ export async function createCustomer(
   const workspaceId = randomId("wsp");
   const membershipId = await stableId("wsm", `${workspaceId}:${ownerId}`);
   const now = Date.now();
-  const db = getD1();
+  const db = getDatabase();
 
   await db.batch([
     db
@@ -853,7 +853,7 @@ export async function updateCustomer(
   workspaceId: string,
   input: CustomerInput,
 ): Promise<CustomerDetail> {
-  const result = await getD1()
+  const result = await getDatabase()
     .prepare(
       `UPDATE workspaces
        SET name = ?, contact_name = ?, contact_email = ?, updated_at = ?
@@ -882,7 +882,7 @@ export async function updateCustomerStatus(
   workspaceId: string,
   status: WorkspaceStatus,
 ): Promise<CustomerDetail> {
-  const result = await getD1()
+  const result = await getDatabase()
     .prepare("UPDATE workspaces SET status = ?, updated_at = ? WHERE id = ?")
     .bind(status, Date.now(), workspaceId)
     .run();

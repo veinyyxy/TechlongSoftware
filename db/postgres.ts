@@ -104,9 +104,9 @@ function normalizeRows<T>(
   });
 }
 
-function toD1Result<T>(
+function toDatabaseResult<T>(
   result: FullQueryResults<false>,
-): D1Result<T> {
+): DatabaseResult<T> {
   const rows = normalizeRows<T>(result.rows as Row[], result.fields);
   return {
     success: true,
@@ -124,16 +124,16 @@ function toD1Result<T>(
   };
 }
 
-class NeonPreparedStatement implements D1PreparedStatement {
+class NeonPreparedStatement implements DatabasePreparedStatement {
   readonly query: string;
-  readonly values: D1Value[];
+  readonly values: DatabaseValue[];
 
-  constructor(query: string, values: D1Value[] = []) {
+  constructor(query: string, values: DatabaseValue[] = []) {
     this.query = toPostgresPlaceholders(query);
     this.values = values;
   }
 
-  bind(...values: D1Value[]): D1PreparedStatement {
+  bind(...values: DatabaseValue[]): DatabasePreparedStatement {
     return new NeonPreparedStatement(this.query, values);
   }
 
@@ -143,9 +143,9 @@ class NeonPreparedStatement implements D1PreparedStatement {
     return client.query(this.query, this.values);
   }
 
-  private async execute<T>(): Promise<D1Result<T>> {
+  private async execute<T>(): Promise<DatabaseResult<T>> {
     const result = await getSqlClient().query(this.query, this.values);
-    return toD1Result<T>(result);
+    return toDatabaseResult<T>(result);
   }
 
   async first<T = unknown>(): Promise<T | null> {
@@ -153,23 +153,23 @@ class NeonPreparedStatement implements D1PreparedStatement {
     return result.results[0] ?? null;
   }
 
-  async all<T = unknown>(): Promise<D1Result<T>> {
+  async all<T = unknown>(): Promise<DatabaseResult<T>> {
     return this.execute<T>();
   }
 
-  async run(): Promise<D1Result> {
+  async run(): Promise<DatabaseResult> {
     return this.execute();
   }
 }
 
-class NeonDatabase implements D1Database {
-  prepare(query: string): D1PreparedStatement {
+class NeonDatabase implements ApplicationDatabase {
+  prepare(query: string): DatabasePreparedStatement {
     return new NeonPreparedStatement(query);
   }
 
   async batch<T = unknown>(
-    statements: D1PreparedStatement[],
-  ): Promise<D1Result<T>[]> {
+    statements: DatabasePreparedStatement[],
+  ): Promise<DatabaseResult<T>[]> {
     const prepared = statements.map((statement) => {
       if (!(statement instanceof NeonPreparedStatement)) {
         throw new Error(
@@ -184,13 +184,13 @@ class NeonDatabase implements D1Database {
         prepared.map((statement) => statement.buildQuery(transaction)),
       { fullResults: true },
     );
-    return results.map((result) => toD1Result<T>(result));
+    return results.map((result) => toDatabaseResult<T>(result));
   }
 }
 
 const neonDatabase = new NeonDatabase();
 
-export function getPostgresDatabase(): D1Database {
+export function getPostgresDatabase(): ApplicationDatabase {
   return neonDatabase;
 }
 

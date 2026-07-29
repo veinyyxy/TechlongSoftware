@@ -25,7 +25,7 @@ Stripe Checkout 与签名 Webhook 已接入。自动续扣和自动部署不在�
 
 - `/signin-with-chatgpt`、`/signout-with-chatgpt` 和 `/callback` 由平台负责。
 - 应用从受信任请求头读取当前用户邮箱和可选姓名。
-- 首次登录时在 D1 中创建或更新 `users` 记录。
+- 首次登录时在 Neon PostgreSQL 中创建或更新 `users` 记录。
 - 平台不保存密码、OAuth Token 或 ChatGPT 会话 Cookie。
 
 身份验证不等于工作区授权。每个服务端页面和 API 都会继续检查平台角色或工作区成员关系。
@@ -159,8 +159,12 @@ components/
 ├── auth/                 身份页面组件
 └── shell/                客户端和管理端外壳
 db/
-├── schema.ts             D1 / Drizzle Schema
-└── index.ts              D1 绑定入口
+├── postgres-schema.sql   Neon PostgreSQL 权威 DDL
+├── postgres-schema.ts    PostgreSQL / Drizzle Schema
+├── postgres-relations.ts PostgreSQL / Drizzle Relations
+├── postgres.ts           Neon HTTP 数据库适配器
+├── schema.ts             旧 D1 Schema（仅回滚历史）
+└── index.ts              主数据库入口
 lib/
 ├── auth/                 账号同步和权限规则
 ├── api/                  统一 API 响应
@@ -168,7 +172,7 @@ lib/
 ├── billing/              订阅、付款和表单校验
 ├── templates/            模板版本、配置解析和管理
 └── domain/               领域词汇
-drizzle/                  数据库迁移
+drizzle/                  旧 D1 迁移历史（仅回滚）
 tests/                    页面、权限和迁移测试
 ```
 

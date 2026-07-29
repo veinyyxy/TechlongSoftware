@@ -1,6 +1,6 @@
-type D1Value = string | number | boolean | null | ArrayBuffer;
+type DatabaseValue = string | number | boolean | null | ArrayBuffer;
 
-interface D1Result<T = unknown> {
+interface DatabaseResult<T = unknown> {
   success?: boolean;
   results: T[];
   meta: {
@@ -11,18 +11,18 @@ interface D1Result<T = unknown> {
   };
 }
 
-interface D1PreparedStatement {
-  bind(...values: D1Value[]): D1PreparedStatement;
+interface DatabasePreparedStatement {
+  bind(...values: DatabaseValue[]): DatabasePreparedStatement;
   first<T = unknown>(): Promise<T | null>;
-  all<T = unknown>(): Promise<D1Result<T>>;
-  run(): Promise<D1Result>;
+  all<T = unknown>(): Promise<DatabaseResult<T>>;
+  run(): Promise<DatabaseResult>;
 }
 
-interface D1Database {
-  prepare(query: string): D1PreparedStatement;
+interface ApplicationDatabase {
+  prepare(query: string): DatabasePreparedStatement;
   batch<T = unknown>(
-    statements: D1PreparedStatement[],
-  ): Promise<D1Result<T>[]>;
+    statements: DatabasePreparedStatement[],
+  ): Promise<DatabaseResult<T>[]>;
 }
 
 interface Fetcher {
@@ -31,7 +31,7 @@ interface Fetcher {
 
 declare module "cloudflare:workers" {
   export const env: {
-    DB?: D1Database;
+    DB?: ApplicationDatabase;
     DATABASE_URL?: string;
     PLATFORM_ADMIN_EMAILS?: string;
     [key: string]: unknown;

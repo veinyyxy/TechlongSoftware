@@ -1,4 +1,4 @@
-import { getD1 } from "@/db";
+import { getDatabase } from "@/db";
 import { ManagementError } from "@/lib/admin/management";
 import { randomId } from "@/lib/domain/ids";
 import type {
@@ -169,7 +169,7 @@ export async function listAppInstanceTemplates(input?: {
     bindings.push(productId);
   }
 
-  const statement = getD1().prepare(
+  const statement = getDatabase().prepare(
     `${templateSelect}
      ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
      GROUP BY template.id, template.product_id, product.name, product.status,
@@ -188,7 +188,7 @@ export async function listAppInstanceTemplates(input?: {
 export async function getAppInstanceTemplate(
   templateId: string,
 ): Promise<AppInstanceTemplateView | null> {
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(
       `${templateSelect}
        WHERE template.id = ?
@@ -206,7 +206,7 @@ async function assertTemplateProduct(
   productId: string,
   currentProductId?: string,
 ): Promise<void> {
-  const product = await getD1()
+  const product = await getDatabase()
     .prepare("SELECT id, status FROM products WHERE id = ? LIMIT 1")
     .bind(productId)
     .first<{ id: string; status: "active" | "inactive" }>();
@@ -229,7 +229,7 @@ export async function createAppInstanceTemplate(
   const id = randomId("tpl");
   const now = Date.now();
   try {
-    await getD1()
+    await getDatabase()
       .prepare(
         `INSERT INTO app_instance_templates
           (id, product_id, name, description, status, created_at, updated_at)
@@ -276,7 +276,7 @@ export async function updateAppInstanceTemplate(
   }
   await assertTemplateProduct(input.productId, existing.productId);
   try {
-    await getD1()
+    await getDatabase()
       .prepare(
         `UPDATE app_instance_templates
          SET name = ?, description = ?, status = ?, updated_at = ?
@@ -308,7 +308,7 @@ export async function updateAppInstanceTemplateStatus(
   templateId: string,
   status: TemplateStatus,
 ): Promise<AppInstanceTemplateView> {
-  const result = await getD1()
+  const result = await getDatabase()
     .prepare(
       "UPDATE app_instance_templates SET status = ?, updated_at = ? WHERE id = ?",
     )
@@ -343,7 +343,7 @@ export async function listAppInstanceTemplateVersions(input?: {
     clauses.push("version.status = ?");
     bindings.push(input.status);
   }
-  const statement = getD1().prepare(
+  const statement = getDatabase().prepare(
     `${templateVersionSelect}
      ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
      ORDER BY version.version DESC, version.created_at DESC
@@ -359,7 +359,7 @@ export async function listAppInstanceTemplateVersions(input?: {
 export async function getAppInstanceTemplateVersion(
   versionId: string,
 ): Promise<AppInstanceTemplateVersionView | null> {
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(`${templateVersionSelect} WHERE version.id = ? LIMIT 1`)
     .bind(versionId)
     .first<TemplateVersionRow>();
@@ -387,7 +387,7 @@ export async function createAppInstanceTemplateVersion(
   const id = randomId("tplver");
   const now = Date.now();
   try {
-    await getD1()
+    await getDatabase()
       .prepare(
         `INSERT INTO app_instance_template_versions (
           id, template_id, version, configuration_schema,
@@ -463,7 +463,7 @@ export async function updateDraftAppInstanceTemplateVersion(
       400,
     );
   }
-  await getD1()
+  await getDatabase()
     .prepare(
       `UPDATE app_instance_template_versions
        SET configuration_schema = ?, default_configuration = ?,
@@ -510,7 +510,7 @@ export async function archiveAppInstanceTemplateVersion(
       400,
     );
   }
-  await getD1()
+  await getDatabase()
     .prepare(
       `UPDATE app_instance_template_versions
        SET status = 'archived', updated_at = ?

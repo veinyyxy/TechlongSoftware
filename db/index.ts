@@ -1,8 +1,15 @@
 import { env } from "cloudflare:workers";
-import { drizzle } from "drizzle-orm/d1";
-import * as schema from "./schema";
+import { getPostgresDatabase } from "./postgres";
 
-export function getD1() {
+export function getDatabase() {
+  return getPostgresDatabase();
+}
+
+/**
+ * The original Sites D1 database remains bound as a read-only rollback source
+ * during the Neon cutover. Application requests must use getDatabase().
+ */
+export function getLegacyD1() {
   if (!env.DB) {
     throw new Error(
       "Cloudflare D1 binding `DB` is unavailable. Set the `d1` field in .openai/hosting.json to `DB` and apply the generated migration.",
@@ -10,8 +17,4 @@ export function getD1() {
   }
 
   return env.DB;
-}
-
-export function getDb() {
-  return drizzle(getD1(), { schema });
 }

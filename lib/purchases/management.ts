@@ -1,4 +1,4 @@
-import { getD1 } from "@/db";
+import { getDatabase } from "@/db";
 import {
   getPlan,
   ManagementError,
@@ -190,7 +190,7 @@ function toPurchaseOrderView(row: PurchaseOrderRow): PurchaseOrderView {
 async function getPurchaseOrderRow(
   purchaseOrderId: string,
 ): Promise<PurchaseOrderRow | null> {
-  return getD1()
+  return getDatabase()
     .prepare(`${purchaseOrderSelect} WHERE purchase.id = ? LIMIT 1`)
     .bind(purchaseOrderId)
     .first<PurchaseOrderRow>();
@@ -200,7 +200,7 @@ export async function getWorkspacePurchaseOrder(
   workspaceId: string,
   purchaseOrderId: string,
 ): Promise<PurchaseOrderView | null> {
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(
       `${purchaseOrderSelect}
        WHERE purchase.id = ? AND purchase.workspace_id = ?
@@ -234,7 +234,7 @@ export async function listPurchaseOrders(input?: {
     clauses.push("purchase.workspace_id = ?");
     bindings.push(input.workspaceId);
   }
-  const statement = getD1().prepare(
+  const statement = getDatabase().prepare(
     `${purchaseOrderSelect}
      ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
      ORDER BY purchase.created_at DESC
@@ -250,7 +250,7 @@ export async function listPurchaseOrders(input?: {
 export async function reconcileWorkspaceExpiredSubscriptions(
   workspaceId: string,
 ): Promise<void> {
-  const result = await getD1()
+  const result = await getDatabase()
     .prepare(
       `SELECT product_id
        FROM subscriptions
@@ -329,7 +329,7 @@ export async function createCustomerPurchaseCheckout(input: {
         409,
       );
     }
-    const existingInstance = await getD1()
+    const existingInstance = await getDatabase()
       .prepare(
         `SELECT template_version_id
          FROM app_instances
@@ -404,7 +404,7 @@ export async function createCustomerPurchaseCheckout(input: {
   const paymentRecordId = randomId("pay");
   const now = Date.now();
   const reservationExpiresAt = now + 10 * 60 * 1000;
-  const db = getD1();
+  const db = getDatabase();
   try {
     await db.batch([
       db
@@ -550,8 +550,8 @@ export async function cancelWorkspacePurchaseOrder(
     return toPurchaseOrderView(order);
   }
   const now = Date.now();
-  await getD1().batch([
-    getD1()
+  await getDatabase().batch([
+    getDatabase()
       .prepare(
         `UPDATE subscription_purchase_orders
          SET status = 'canceled',
@@ -560,7 +560,7 @@ export async function cancelWorkspacePurchaseOrder(
          WHERE id = ? AND status IN ('draft', 'checkout_pending')`,
       )
       .bind(now, purchaseOrderId),
-    getD1()
+    getDatabase()
       .prepare(
         `UPDATE payment_records
          SET status = 'canceled',
@@ -625,7 +625,7 @@ export async function findPurchaseOrderForStripeObject(
 
   const objectId = asString(stripeObject.id);
   const paymentIntentId = asString(stripeObject.payment_intent);
-  return getD1()
+  return getDatabase()
     .prepare(
       `${purchaseOrderSelect}
        WHERE purchase.provider = 'stripe'
@@ -670,7 +670,7 @@ async function completePurchaseOrder(
     const { providerSessionId, providerPaymentId } =
       providerIdentifiers(event, fresh);
     let subscriptionId = fresh.renewal_subscription_id;
-    const statements: D1PreparedStatement[] = [];
+    const statements: DatabasePreparedStatement[] = [];
 
     if (fresh.order_type === "renewal") {
       const subscription = subscriptionId
@@ -696,7 +696,7 @@ async function completePurchaseOrder(
           ? subscription.currentPeriodStart
           : now;
       statements.push(
-        getD1()
+        getDatabase()
           .prepare(
             `UPDATE subscriptions
              SET status = 'active', current_period_start = ?,
@@ -728,7 +728,7 @@ async function completePurchaseOrder(
       }
       subscriptionId = randomId("sub");
       statements.push(
-        getD1()
+        getDatabase()
           .prepare(
             `INSERT INTO subscriptions (
               id, workspace_id, product_id, plan_id, template_version_id,
@@ -762,7 +762,7 @@ async function completePurchaseOrder(
       );
     }
     statements.push(
-      getD1()
+      getDatabase()
         .prepare(
           `UPDATE payment_records
            SET subscription_id = ?, status = 'paid', paid_at = ?,
@@ -779,7 +779,7 @@ async function completePurchaseOrder(
           now,
           fresh.payment_record_id,
         ),
-      getD1()
+      getDatabase()
         .prepare(
           `UPDATE subscription_purchase_orders
            SET subscription_id = ?, provider_session_id = ?,
@@ -797,7 +797,7 @@ async function completePurchaseOrder(
         ),
       syncWorkspaceSubscriptionSummaryStatement(fresh.workspace_id, now),
     );
-    await getD1().batch(statements);
+    await getDatabase().batch(statements);
   }
 
   const confirmed = await getPurchaseOrderRow(fresh.id);
@@ -812,7 +812,7 @@ async function ensureApplicationEntitlement(
   if (!subscriptionId) return;
   const subscription = await getSubscription(subscriptionId);
   if (!subscription || subscription.status !== "active") return;
-  const workspace = await getD1()
+  const workspace = await getDatabase()
     .prepare("SELECT name FROM workspaces WHERE id = ? LIMIT 1")
     .bind(order.workspace_id)
     .first<{ name: string }>();
@@ -830,12 +830,12 @@ async function ensureApplicationEntitlement(
     now,
   });
   if (pendingStatement) {
-    await getD1().batch([
+    await getDatabase().batch([
       pendingStatement,
       syncWorkspaceAppInstanceStatusStatement(order.workspace_id, now),
     ]);
   }
-  const instance = await getD1()
+  const instance = await getDatabase()
     .prepare(
       `SELECT id, status
        FROM app_instances
@@ -869,8 +869,8 @@ async function failPurchaseOrder(
     providerIdentifiers(event, order);
   const failureReason =
     getFailureReason(event.data.object) ?? "Stripe 未能完成这笔付款。";
-  await getD1().batch([
-    getD1()
+  await getDatabase().batch([
+    getDatabase()
       .prepare(
         `UPDATE payment_records
          SET status = 'failed', provider_payment_id = ?,
@@ -886,7 +886,7 @@ async function failPurchaseOrder(
         now,
         order.payment_record_id,
       ),
-    getD1()
+    getDatabase()
       .prepare(
         `UPDATE subscription_purchase_orders
          SET provider_session_id = ?, provider_payment_id = ?,
@@ -909,8 +909,8 @@ async function expirePurchaseOrder(
 ): Promise<void> {
   if (order.status === "paid" || order.payment_status === "paid") return;
   const now = Date.now();
-  await getD1().batch([
-    getD1()
+  await getDatabase().batch([
+    getDatabase()
       .prepare(
         `UPDATE payment_records
          SET status = 'canceled', provider_event_id = ?,
@@ -918,7 +918,7 @@ async function expirePurchaseOrder(
          WHERE id = ? AND status = 'pending'`,
       )
       .bind(event.id, now, order.payment_record_id),
-    getD1()
+    getDatabase()
       .prepare(
         `UPDATE subscription_purchase_orders
          SET status = 'expired', failure_reason = 'Stripe Checkout 已过期。',
@@ -941,7 +941,7 @@ async function getReusableOrder(
   checkout_url: string | null;
   expires_at: number | null;
 } | null> {
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(
       `SELECT id, plan_id, order_type, renewal_subscription_id,
         configuration_snapshot, checkout_url, expires_at
@@ -995,8 +995,8 @@ async function reconcileEndedSubscription(
   const nextStatus: SubscriptionStatus = current.cancelAtPeriodEnd
     ? "canceled"
     : "past_due";
-  await getD1().batch([
-    getD1()
+  await getDatabase().batch([
+    getDatabase()
       .prepare(
         `UPDATE subscriptions
          SET status = ?, updated_at = ?
@@ -1042,7 +1042,7 @@ function assertPurchasablePlan(
 }
 
 async function assertActiveWorkspace(workspaceId: string): Promise<void> {
-  const workspace = await getD1()
+  const workspace = await getDatabase()
     .prepare("SELECT status FROM workspaces WHERE id = ? LIMIT 1")
     .bind(workspaceId)
     .first<{ status: string }>();

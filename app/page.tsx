@@ -96,7 +96,7 @@ export default function Home() {
           <h2>快速上线，也保留清晰的扩展边界</h2>
           <p>
             单一 TypeScript 项目承载公共站点、客户控制台、管理端与 API。
-            业务代码按领域拆分，D1 持久化客户、套餐、订阅、付款记录与应用实例；后续可沿当前边界扩展真实部署能力。
+            业务代码按领域拆分，Neon PostgreSQL 持久化客户、套餐、订阅、付款记录与应用实例；后续可沿当前边界扩展真实部署能力。
           </p>
           <div className="architecture-tags">
             {platformConfig.stack.map((item) => <span key={item}>{item}</span>)}

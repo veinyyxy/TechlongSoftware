@@ -1,4 +1,4 @@
-import { getD1 } from "@/db";
+import { getDatabase } from "@/db";
 import { getPlan, ManagementError } from "@/lib/admin/management";
 import { randomId } from "@/lib/domain/ids";
 import { upsertWorkspaceProductEntitlementStatement } from "@/lib/entitlements/management";
@@ -257,7 +257,7 @@ export async function listSubscriptions(input?: {
     bindings.push(status);
   }
 
-  const statement = getD1().prepare(
+  const statement = getDatabase().prepare(
     `${subscriptionSelect}
      ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
      ORDER BY s.created_at DESC
@@ -274,7 +274,7 @@ export async function listSubscriptions(input?: {
 export async function getSubscription(
   subscriptionId: string,
 ): Promise<SubscriptionView | null> {
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(`${subscriptionSelect} WHERE s.id = ? LIMIT 1`)
     .bind(subscriptionId)
     .first<SubscriptionRow>();
@@ -284,7 +284,7 @@ export async function getSubscription(
 export async function listWorkspaceSubscriptions(
   workspaceId: string,
 ): Promise<SubscriptionView[]> {
-  const result = await getD1()
+  const result = await getDatabase()
     .prepare(
       `${subscriptionSelect}
        WHERE s.workspace_id = ?
@@ -299,7 +299,7 @@ export async function getWorkspaceProductCurrentSubscription(
   workspaceId: string,
   productId: string,
 ): Promise<SubscriptionView | null> {
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(
       `${subscriptionSelect}
        WHERE s.workspace_id = ? AND s.product_id = ?
@@ -313,7 +313,7 @@ export async function getWorkspaceProductCurrentSubscription(
 }
 
 async function assertWorkspaceExists(workspaceId: string): Promise<void> {
-  const workspace = await getD1()
+  const workspace = await getDatabase()
     .prepare("SELECT id FROM workspaces WHERE id = ? LIMIT 1")
     .bind(workspaceId)
     .first<{ id: string }>();
@@ -390,7 +390,7 @@ async function assertProductAssignable(
   productId: string,
   currentProductId?: string,
 ): Promise<void> {
-  const product = await getD1()
+  const product = await getDatabase()
     .prepare("SELECT id, status FROM products WHERE id = ? LIMIT 1")
     .bind(productId)
     .first<{ id: string; status: "active" | "inactive" }>();
@@ -411,7 +411,7 @@ async function assertNoOtherCurrentSubscription(
   productId: string,
   excludeSubscriptionId?: string,
 ): Promise<void> {
-  const statement = getD1().prepare(
+  const statement = getDatabase().prepare(
     `SELECT id
      FROM subscriptions
      WHERE workspace_id = ? AND product_id = ?
@@ -437,7 +437,7 @@ export function syncWorkspaceSubscriptionSummaryStatement(
   workspaceId: string,
   now: number,
 ) {
-  return getD1()
+  return getDatabase()
     .prepare(
       `UPDATE workspaces
        SET plan_id = (
@@ -475,8 +475,8 @@ export function syncWorkspaceSubscriptionSummaryStatement(
 function cancelOpenCheckoutStatements(
   subscriptionId: string,
   now: number,
-): D1PreparedStatement[] {
-  const db = getD1();
+): DatabasePreparedStatement[] {
+  const db = getDatabase();
   return [
     db
       .prepare(
@@ -514,7 +514,7 @@ export async function createSubscription(
 
   const id = randomId("sub");
   const now = Date.now();
-  const db = getD1();
+  const db = getDatabase();
 
   try {
     await db.batch([
@@ -606,7 +606,7 @@ export async function updateSubscription(
       400,
     );
   }
-  const linkedInstance = await getD1()
+  const linkedInstance = await getDatabase()
     .prepare("SELECT id FROM app_instances WHERE subscription_id = ? LIMIT 1")
     .bind(subscriptionId)
     .first<{ id: string }>();
@@ -642,7 +642,7 @@ export async function updateSubscription(
   const now = Date.now();
   try {
     const statements = [
-      getD1()
+      getDatabase()
         .prepare(
           `UPDATE subscriptions
            SET plan_id = ?, template_version_id = ?,
@@ -676,7 +676,7 @@ export async function updateSubscription(
     if (input.status === "canceled") {
       statements.push(...cancelOpenCheckoutStatements(subscriptionId, now));
     }
-    await getD1().batch(statements);
+    await getDatabase().batch(statements);
   } catch (error) {
     if (error instanceof ManagementError) throw error;
     throw new ManagementError(
@@ -729,7 +729,7 @@ export async function updateSubscriptionStatus(
   const now = Date.now();
   try {
     const statements = [
-      getD1()
+      getDatabase()
         .prepare("UPDATE subscriptions SET status = ?, updated_at = ? WHERE id = ?")
         .bind(status, now, subscriptionId),
       upsertWorkspaceProductEntitlementStatement({
@@ -747,7 +747,7 @@ export async function updateSubscriptionStatus(
     if (status === "canceled") {
       statements.push(...cancelOpenCheckoutStatements(subscriptionId, now));
     }
-    await getD1().batch(statements);
+    await getDatabase().batch(statements);
   } catch (error) {
     if (error instanceof ManagementError) throw error;
     throw new ManagementError(
@@ -788,7 +788,7 @@ export async function setCustomerSubscriptionCancelAtPeriodEnd(
       409,
     );
   }
-  await getD1()
+  await getDatabase()
     .prepare(
       `UPDATE subscriptions
        SET cancel_at_period_end = ?, updated_at = ?
@@ -843,7 +843,7 @@ export async function listPaymentRecords(input?: {
     bindings.push(input.subscriptionId);
   }
 
-  const statement = getD1().prepare(
+  const statement = getDatabase().prepare(
     `${paymentSelect}
      ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
      ORDER BY pr.created_at DESC
@@ -882,7 +882,7 @@ export async function createPaymentRecord(
 
   const id = randomId("pay");
   const now = Date.now();
-  await getD1()
+  await getDatabase()
     .prepare(
       `INSERT INTO payment_records (
         id, workspace_id, subscription_id, amount, currency, status, paid_at,
@@ -907,7 +907,7 @@ export async function createPaymentRecord(
     )
     .run();
 
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(`${paymentSelect} WHERE pr.id = ? LIMIT 1`)
     .bind(id)
     .first<PaymentRow>();

@@ -1,4 +1,4 @@
-import { getD1 } from "@/db";
+import { getDatabase } from "@/db";
 import { randomId } from "@/lib/domain/ids";
 
 export type WorkspaceProductEntitlementStatus =
@@ -16,7 +16,7 @@ export function upsertWorkspaceProductEntitlementStatement(input: {
   preserveExistingServiceStatus?: boolean;
   now: number;
 }) {
-  return getD1()
+  return getDatabase()
     .prepare(
       `INSERT INTO workspace_product_entitlements (
         id, workspace_id, product_id, current_subscription_id,

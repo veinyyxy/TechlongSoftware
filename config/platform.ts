@@ -8,6 +8,7 @@ export const platformConfig = {
     "Next.js 16",
     "Tailwind CSS 4",
     "Drizzle ORM",
+    "Neon PostgreSQL",
     "Cloudflare Worker",
   ],
   mvpFlow: [

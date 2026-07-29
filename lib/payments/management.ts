@@ -1,4 +1,4 @@
-import { getD1 } from "@/db";
+import { getDatabase } from "@/db";
 import { ManagementError, getPlan, type BillingInterval, type PlanView } from "@/lib/admin/management";
 import {
   getSubscription,
@@ -120,7 +120,7 @@ function toCheckoutView(row: CheckoutRow): PaymentCheckoutView {
 }
 
 async function getCheckoutRow(checkoutId: string): Promise<CheckoutRow | null> {
-  return getD1()
+  return getDatabase()
     .prepare(`${checkoutSelect} WHERE cs.id = ? LIMIT 1`)
     .bind(checkoutId)
     .first<CheckoutRow>();
@@ -130,7 +130,7 @@ export async function getPaymentCheckout(
   workspaceId: string,
   checkoutId: string,
 ): Promise<PaymentCheckoutView | null> {
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(`${checkoutSelect} WHERE cs.id = ? AND cs.workspace_id = ? LIMIT 1`)
     .bind(checkoutId, workspaceId)
     .first<CheckoutRow>();
@@ -175,7 +175,7 @@ export async function reconcilePaymentCheckoutFromStripe(
 }
 
 export async function reconcilePendingStripeCheckouts(limit = 10): Promise<void> {
-  const result = await getD1()
+  const result = await getDatabase()
     .prepare(
       `SELECT cs.id, cs.workspace_id
        FROM payment_checkout_sessions cs
@@ -262,7 +262,7 @@ export async function createPaymentCheckout(input: {
   const paymentRecordId = randomId("pay");
   const now = Date.now();
   const reservationExpiresAt = now + 10 * 60 * 1000;
-  const db = getD1();
+  const db = getDatabase();
   try {
     await db.batch([
       db
@@ -377,15 +377,15 @@ export async function cancelPaymentCheckout(
     return toCheckoutView(checkout);
   }
   const now = Date.now();
-  await getD1().batch([
-    getD1()
+  await getDatabase().batch([
+    getDatabase()
       .prepare(
         `UPDATE payment_checkout_sessions
          SET status = 'canceled', updated_at = ?
          WHERE id = ? AND status IN ('creating', 'open')`,
       )
       .bind(now, checkoutId),
-    getD1()
+    getDatabase()
       .prepare(
         `UPDATE payment_records
          SET status = 'canceled', failure_reason = '客户取消了 Stripe Checkout 付款。', updated_at = ?
@@ -402,7 +402,7 @@ export async function processStripeWebhookEvent(input: {
 }): Promise<{ duplicate: boolean; handled: boolean }> {
   const claimedAt = Date.now();
   const staleClaimBefore = claimedAt - 5 * 60 * 1000;
-  const existing = await getD1()
+  const existing = await getDatabase()
     .prepare(
       `SELECT id, processing_status, received_at
        FROM payment_webhook_events
@@ -424,7 +424,7 @@ export async function processStripeWebhookEvent(input: {
     ) {
       return { duplicate: true, handled: false };
     }
-    const claim = await getD1()
+    const claim = await getDatabase()
       .prepare(
         `UPDATE payment_webhook_events
          SET event_type = ?, payload_hash = ?, processing_status = 'pending',
@@ -448,7 +448,7 @@ export async function processStripeWebhookEvent(input: {
     }
   } else {
     try {
-      await getD1()
+      await getDatabase()
         .prepare(
           `INSERT INTO payment_webhook_events (
             id, provider, provider_event_id, event_type, payload_hash,
@@ -488,7 +488,7 @@ export async function processStripeWebhookEvent(input: {
       }
     }
 
-    await getD1()
+    await getDatabase()
       .prepare(
         `UPDATE payment_webhook_events
          SET checkout_session_id = ?, purchase_order_id = ?,
@@ -505,7 +505,7 @@ export async function processStripeWebhookEvent(input: {
       .run();
     return { duplicate: false, handled };
   } catch (error) {
-    await getD1()
+    await getDatabase()
       .prepare(
         `UPDATE payment_webhook_events
          SET processing_status = 'failed', last_error = ?
@@ -526,7 +526,7 @@ async function getReusableOpenCheckout(
   checkout_url: string | null;
   expires_at: number | null;
 } | null> {
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(
       `SELECT cs.id, cs.plan_id, cs.checkout_url, cs.expires_at
        FROM payment_checkout_sessions cs
@@ -574,7 +574,7 @@ function assertPurchasablePlan(
 }
 
 async function assertActiveWorkspace(workspaceId: string): Promise<void> {
-  const workspace = await getD1()
+  const workspace = await getDatabase()
     .prepare("SELECT status FROM workspaces WHERE id = ? LIMIT 1")
     .bind(workspaceId)
     .first<{ status: string }>();
@@ -592,7 +592,7 @@ async function findCheckoutForStripeObject(
 
   const objectId = asString(stripeObject.id);
   const paymentIntentId = asString(stripeObject.payment_intent);
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(
       `${checkoutSelect}
        WHERE cs.provider = 'stripe'
@@ -633,10 +633,10 @@ async function completeCheckout(
   const attentionNote = activationRequested
     ? null
     : "Stripe 已确认收款，但付款对应的订阅已不处于待付款状态，请平台管理员人工核对。";
-  const db = getD1();
+  const db = getDatabase();
   if (!paymentAlreadyRecorded) {
     const periodEnd = addBillingPeriod(now, checkout.billing_interval);
-    const statements: D1PreparedStatement[] = [];
+    const statements: DatabasePreparedStatement[] = [];
     if (activationRequested) {
       statements.push(
         db
@@ -761,7 +761,7 @@ async function completeCheckout(
 }
 
 async function getWorkspaceName(workspaceId: string): Promise<string> {
-  const workspace = await getD1()
+  const workspace = await getDatabase()
     .prepare("SELECT name FROM workspaces WHERE id = ? LIMIT 1")
     .bind(workspaceId)
     .first<{ name: string }>();
@@ -777,8 +777,8 @@ async function failCheckout(checkout: CheckoutRow, event: StripeWebhookEvent): P
   const stripeObject = event.data.object;
   const { providerSessionId, providerPaymentId } = providerIdentifiers(event, checkout);
   const failureReason = getFailureReason(stripeObject) ?? "Stripe 未能完成这笔付款。";
-  await getD1().batch([
-    getD1()
+  await getDatabase().batch([
+    getDatabase()
       .prepare(
         `UPDATE payment_records
          SET status = 'failed', provider_payment_id = ?, provider_event_id = ?,
@@ -786,7 +786,7 @@ async function failCheckout(checkout: CheckoutRow, event: StripeWebhookEvent): P
          WHERE id = ? AND status <> 'paid'`,
       )
       .bind(providerPaymentId, event.id, providerSessionId, failureReason, now, checkout.payment_record_id),
-    getD1()
+    getDatabase()
       .prepare(
         `UPDATE payment_checkout_sessions
          SET provider_session_id = ?, provider_payment_id = ?, status = 'failed', updated_at = ?
@@ -799,15 +799,15 @@ async function failCheckout(checkout: CheckoutRow, event: StripeWebhookEvent): P
 async function expireCheckout(checkout: CheckoutRow, event: StripeWebhookEvent): Promise<void> {
   if (checkout.status === "completed" || checkout.payment_status === "paid") return;
   const now = Date.now();
-  await getD1().batch([
-    getD1()
+  await getDatabase().batch([
+    getDatabase()
       .prepare(
         `UPDATE payment_records
          SET status = 'canceled', provider_event_id = ?, failure_reason = ?, updated_at = ?
          WHERE id = ? AND status = 'pending'`,
       )
       .bind(event.id, "Stripe Checkout 已过期。", now, checkout.payment_record_id),
-    getD1()
+    getDatabase()
       .prepare(
         `UPDATE payment_checkout_sessions
          SET status = 'expired', updated_at = ?

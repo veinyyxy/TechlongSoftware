@@ -1,4 +1,4 @@
-import { getD1 } from "@/db";
+import { getDatabase } from "@/db";
 import { ManagementError } from "@/lib/admin/management";
 import {
   getSubscription,
@@ -203,7 +203,7 @@ export async function listProducts(input?: {
   status?: ProductStatus | "";
 }): Promise<ProductView[]> {
   const status = input?.status ?? "";
-  const statement = getD1().prepare(
+  const statement = getDatabase().prepare(
     `SELECT id, name, slug, description, status, created_at, updated_at
      FROM products
      ${status ? "WHERE status = ?" : ""}
@@ -214,7 +214,7 @@ export async function listProducts(input?: {
 }
 
 export async function getProduct(productId: string): Promise<ProductView | null> {
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(
       `SELECT id, name, slug, description, status, created_at, updated_at
        FROM products WHERE id = ? LIMIT 1`,
@@ -250,7 +250,7 @@ export async function listAppInstances(input?: {
     bindings.push(input.workspaceId);
   }
 
-  const statement = getD1().prepare(
+  const statement = getDatabase().prepare(
     `${appInstanceSelect}
      ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
      ORDER BY ai.created_at DESC
@@ -266,7 +266,7 @@ export async function listAppInstances(input?: {
 export async function getAppInstance(
   instanceId: string,
 ): Promise<AppInstanceView | null> {
-  const row = await getD1()
+  const row = await getDatabase()
     .prepare(`${appInstanceSelect} WHERE ai.id = ? LIMIT 1`)
     .bind(instanceId)
     .first<AppInstanceRow>();
@@ -280,7 +280,7 @@ export async function listWorkspaceAppInstances(
 }
 
 async function assertWorkspaceExists(workspaceId: string): Promise<void> {
-  const workspace = await getD1()
+  const workspace = await getDatabase()
     .prepare("SELECT id FROM workspaces WHERE id = ? LIMIT 1")
     .bind(workspaceId)
     .first<{ id: string }>();
@@ -350,7 +350,7 @@ export function syncWorkspaceAppInstanceStatusStatement(
   workspaceId: string,
   now: number,
 ) {
-  return getD1()
+  return getDatabase()
     .prepare(
       `UPDATE workspaces
        SET app_instance_status = COALESCE((
@@ -380,8 +380,8 @@ export async function preparePendingAppInstance(input: {
   configurationSnapshot: TemplateConfiguration;
   createdByUserId: string;
   now: number;
-}): Promise<D1PreparedStatement | null> {
-  const db = getD1();
+}): Promise<DatabasePreparedStatement | null> {
+  const db = getDatabase();
   const product = await db
     .prepare(
       `SELECT id, name
@@ -484,7 +484,7 @@ export async function createAppInstance(
 
   const id = randomId("app");
   const now = Date.now();
-  const db = getD1();
+  const db = getDatabase();
   try {
     await db.batch([
       db
@@ -622,8 +622,8 @@ export async function updateAppInstance(
     input.status === "active" ? existing.provisionedAt ?? now : existing.provisionedAt;
   const suspendedAt = input.status === "suspended" ? now : null;
   try {
-    await getD1().batch([
-      getD1()
+    await getDatabase().batch([
+      getDatabase()
         .prepare(
           `UPDATE app_instances
            SET name = ?, slug = ?,
@@ -701,8 +701,8 @@ export async function updateAppInstanceStatus(
   const now = Date.now();
   const provisionedAt = status === "active" ? existing.provisionedAt ?? now : existing.provisionedAt;
   const suspendedAt = status === "suspended" ? now : null;
-  await getD1().batch([
-    getD1()
+  await getDatabase().batch([
+    getDatabase()
       .prepare(
         `UPDATE app_instances
          SET status = ?, provisioned_at = ?, suspended_at = ?, updated_at = ?

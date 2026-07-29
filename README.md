@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前已在阶段 8 基础上完成客户自助购买一期：套餐绑定已发布模板版本，企业 Owner 自行选择套餐并填写实例参数，Stripe 付款成功后由已验证 Webhook 创建或续期订阅，并准备待开通实例；管理员仍是最终开通者。
+当前已在阶段 8 基础上完成客户自助购买一期，并将主数据库迁移到 Neon PostgreSQL：套餐绑定已发布模板版本，企业 Owner 自行选择套餐并填写实例参数，Stripe 付款成功后由已验证 Webhook 创建或续期订阅，并准备待开通实例；管理员仍是最终开通者。
 
 ## 已实现
 
@@ -89,7 +89,7 @@
 - Next.js 16 API / App Router 风格
 - Vinext + Vite
 - Tailwind CSS 4
-- Drizzle ORM + Cloudflare D1
+- Drizzle ORM + Neon PostgreSQL
 - Cloudflare Worker / OpenAI Sites
 
 ## 本地运行
@@ -106,12 +106,14 @@ npm run dev
 
 ```env
 PLATFORM_ADMIN_EMAILS=you@example.com
+DATABASE_URL=postgresql://app_user:password@example-pooler.neon.tech/neondb?sslmode=require
 ```
 
 常用命令：
 
 ```bash
 npm run db:generate
+npm run db:postgres:init
 npm run typecheck
 npm run build
 npm run lint
@@ -121,6 +123,8 @@ npm test
 ## 环境变量与管理员初始化
 
 `NEXT_PUBLIC_PLATFORM_NAME` 仅用于公开品牌名称。`PLATFORM_ADMIN_EMAILS` 是以逗号分隔的管理员邮箱允许名单，必须配置在本地 `.env.local` 或 Sites 的生产环境变量中，不能提交真实邮箱、密码或密钥。
+
+`DATABASE_URL` 是服务端使用的 Neon PostgreSQL pooled connection string。生产环境通过 Sites secret 配置，本地通过未提交的 `.env.local` 配置；不要添加 `NEXT_PUBLIC_` 前缀，也不要把真实连接串提交到 Git。`npm run db:postgres:init` 只用于初始化全新的空 `public` schema，检测到已有表时会拒绝执行。
 
 Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WEBHOOK_SECRET`。本地测试使用 `sk_test_...` 和 Stripe CLI 生成的 `whsec_...`；生产环境在 Sites 中配置对应的真实值。两者都不能以公开环境变量、前端代码或 Git 提交方式保存。
 
@@ -136,7 +140,11 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 
 ## 数据库
 
-逻辑 D1 绑定名为 `DB`。数据库结构位于 `db/schema.ts`，迁移文件位于 `drizzle/`。
+当前生产主数据库为 Neon PostgreSQL，应用只从服务端 `DATABASE_URL` 读取连接串。权威 DDL 位于 `db/postgres-schema.sql`，Drizzle 模型位于 `db/postgres-schema.ts` 和 `db/postgres-relations.ts`；`drizzle.config.ts` 已切换为 PostgreSQL。
+
+原 Sites D1 的逻辑绑定名仍为 `DB`，但不再承载应用请求，只暂时保留为切换前的回滚备份。`db/schema.ts` 与 `drizzle/*.sql` 是旧 D1 结构和迁移历史，不能用来初始化 Neon。迁移、连接和回滚注意事项见 [Neon PostgreSQL 操作说明](./docs/neon-postgresql.md)。
+
+以下列表记录业务数据结构的演进；这些表已经完整映射到 PostgreSQL。
 
 阶段 1 创建：
 
