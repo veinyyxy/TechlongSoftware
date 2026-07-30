@@ -5,9 +5,9 @@
 当前平台已完成阶段 1–8，并在此基础上增加版本化应用实例模板，使套餐、订阅配置和实例快照形成可审计链路。
 
 ```text
-ChatGPT 登录
-→ 同步平台用户
-→ 首次登录创建企业工作区
+邮箱密码注册/登录
+→ 验证加盐密码哈希并创建安全会话
+→ 自助注册创建企业工作区，或通过管理员邀请激活既有客户
 → 建立 Owner 成员关系
 → 服务端按工作区或平台角色授权
 → 平台管理员为产品发布不可变实例模板版本
@@ -21,12 +21,13 @@ Stripe Checkout 与签名 Webhook 已接入。自动续扣和自动部署不在�
 
 ## 身份方案
 
-部署环境使用 OpenAI Sites 提供的 Sign in with ChatGPT：
+应用使用自有邮箱密码认证：
 
-- `/signin-with-chatgpt`、`/signout-with-chatgpt` 和 `/callback` 由平台负责。
-- 应用从受信任请求头读取当前用户邮箱和可选姓名。
-- 首次登录时在 Neon PostgreSQL 中创建或更新 `users` 记录。
-- 平台不保存密码、OAuth Token 或 ChatGPT 会话 Cookie。
+- `user_credentials` 保存随机盐、PBKDF2-SHA256 哈希和迭代次数，不保存明文密码。
+- `auth_sessions` 只保存随机会话 Token 的 SHA-256 摘要；浏览器 Cookie 为 `HttpOnly`、`SameSite=Lax`，HTTPS 时带 `Secure`。
+- 连续五次密码错误会锁定账号 15 分钟。
+- 管理员创建的客户通过 48 小时有效的一次性邀请设置密码；数据库只保存邀请 Token 摘要。
+- 自助注册创建新用户、企业工作区和 Owner 关系；同邮箱既有用户不能被公开注册流程接管。
 
 身份验证不等于工作区授权。每个服务端页面和 API 都会继续检查平台角色或工作区成员关系。
 
@@ -49,7 +50,13 @@ User
 - 唯一规范化邮箱。
 - 账号状态：`active`、`disabled`。
 - `is_platform_admin` 区分平台管理员和客户角色。
-- 管理员身份由服务器端 `PLATFORM_ADMIN_EMAILS` 允许名单授予。
+- 管理员身份由数据库字段授予，首个管理员通过本地初始化脚本创建或提升。
+
+### 认证数据
+
+- `user_credentials` 与用户一对一，包含密码哈希和临时锁定状态。
+- `auth_sessions` 与用户多对一，会话过期或退出后失效。
+- `auth_invitations` 与受邀用户关联，只能使用一次。
 
 ### `workspaces`
 
@@ -139,13 +146,17 @@ User
 
 ## 平台管理员初始化
 
-生产环境通过 Sites 配置：
+在已有 Neon 数据库先执行迁移，再通过进程环境变量初始化：
 
-```env
-PLATFORM_ADMIN_EMAILS=owner@example.com,second-admin@example.com
+```powershell
+npm run db:postgres:migrate
+$env:AUTH_BOOTSTRAP_EMAIL="admin@example.com"
+$env:AUTH_BOOTSTRAP_PASSWORD="至少12字符的临时密码"
+npm run auth:bootstrap-admin
+Remove-Item Env:AUTH_BOOTSTRAP_PASSWORD
 ```
 
-允许名单中的用户登录后会被提升为平台管理员。移除允许名单不会自动降级已经提升的管理员，避免配置误操作导致平台失去所有管理员；需要显式数据库操作才能降级。
+重复执行初始化会重置该管理员密码、设置账号为启用、授予平台管理员权限并注销旧会话。
 
 ## 目录边界
 
@@ -162,11 +173,12 @@ db/
 ├── postgres-schema.sql   Neon PostgreSQL 权威 DDL
 ├── postgres-schema.ts    PostgreSQL / Drizzle Schema
 ├── postgres-relations.ts PostgreSQL / Drizzle Relations
+├── postgres-migrations/  已有数据库的增量迁移
 ├── postgres.ts           Neon HTTP 数据库适配器
 ├── schema.ts             旧 D1 Schema（仅回滚历史）
 └── index.ts              主数据库入口
 lib/
-├── auth/                 账号同步和权限规则
+├── auth/                 密码、会话、邀请和权限规则
 ├── api/                  统一 API 响应
 ├── admin/                客户与套餐管理
 ├── billing/              订阅、付款和表单校验

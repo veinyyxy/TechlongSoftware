@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements } from "./postgres-schema";
+import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements } from "./postgres-schema";
 
 export const appInstanceTemplatesRelations = relations(appInstanceTemplates, ({one, many}) => ({
 	product: one(products, {
@@ -62,14 +62,49 @@ export const workspacesRelations = relations(workspaces, ({one, many}) => ({
 	workspaceProductEntitlements: many(workspaceProductEntitlements),
 }));
 
-export const usersRelations = relations(users, ({many}) => ({
+export const usersRelations = relations(users, ({one, many}) => ({
 	workspaces: many(workspaces),
+	userCredential: one(userCredentials),
+	authSessions: many(authSessions),
+	authInvitations: many(authInvitations, {
+		relationName: "authInvitations_userId_users_id"
+	}),
+	createdAuthInvitations: many(authInvitations, {
+		relationName: "authInvitations_createdByUserId_users_id"
+	}),
 	subscriptions: many(subscriptions),
 	paymentRecords: many(paymentRecords),
 	paymentCheckoutSessions: many(paymentCheckoutSessions),
 	appInstances: many(appInstances),
 	subscriptionPurchaseOrders: many(subscriptionPurchaseOrders),
 	workspaceMembers: many(workspaceMembers),
+}));
+
+export const userCredentialsRelations = relations(userCredentials, ({one}) => ({
+	user: one(users, {
+		fields: [userCredentials.userId],
+		references: [users.id]
+	}),
+}));
+
+export const authSessionsRelations = relations(authSessions, ({one}) => ({
+	user: one(users, {
+		fields: [authSessions.userId],
+		references: [users.id]
+	}),
+}));
+
+export const authInvitationsRelations = relations(authInvitations, ({one}) => ({
+	user: one(users, {
+		fields: [authInvitations.userId],
+		references: [users.id],
+		relationName: "authInvitations_userId_users_id"
+	}),
+	createdByUser: one(users, {
+		fields: [authInvitations.createdByUserId],
+		references: [users.id],
+		relationName: "authInvitations_createdByUserId_users_id"
+	}),
 }));
 
 export const subscriptionsRelations = relations(subscriptions, ({one, many}) => ({

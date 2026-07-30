@@ -1,20 +1,20 @@
 # 首版上线试运行检查清单
 
-本清单适用于当前“按产品管理订阅、Stripe 或人工付款、管理员最终开通实例”的版本。请使用两个真实 ChatGPT 账号：一个平台管理员、一个普通企业客户。不要使用 `sites-screenshot-service-noreply@chatgpt.com`，它是系统截图服务账号，不能人工登录。
+本清单适用于当前“自有邮箱密码认证、按产品管理订阅、Stripe 或人工付款、管理员最终开通实例”的版本。请使用两个不同邮箱账号和两个独立浏览器会话：一个平台管理员、一个普通企业客户。
 
 ## 发布前环境
 
-1. 确认 Sites 的生产环境变量 `PLATFORM_ADMIN_EMAILS` 包含管理员真实邮箱，多个邮箱用英文逗号分隔。
-2. 确认 Sites secret `DATABASE_URL` 是 Neon pooled connection string；本地值只放在未提交的 `.env.local`。
+1. 执行 `npm run db:postgres:migrate`，并用 `npm run auth:bootstrap-admin` 初始化平台管理员。
+2. 确认 `DATABASE_URL` 是 Neon pooled connection string；本地值只放在未提交的 `.env.local`。
 3. 确认 `.env.local` 与任何数据库密码、Token、私钥均未提交。
 4. 执行：`npm run lint`、`npm run typecheck`、`npm run build`、`npm test`。
 5. 确认 `/api/health` 返回 `status: ok`，且 `phase` 与当前版本一致。
 
 ## 管理员验收流程
 
-1. 使用允许名单内的 ChatGPT 账号登录，访问 `/admin`。
+1. 使用初始化的管理员邮箱密码登录，访问 `/admin`。
 2. 在“套餐管理”创建一个启用套餐；价格以最小货币单位填写，例如 `4900` 表示 CAD 49.00。
-3. 在“客户管理”创建企业客户工作区。
+3. 在“客户管理”创建企业客户工作区，在客户详情生成一次性邀请链接，并由独立浏览器会话设置客户密码。
 4. 在“订阅管理”选择该客户、产品和套餐，创建有效订阅并设置当前周期。
 5. 在“付款记录”录入一笔 `paid` 付款记录。
 6. 在“应用实例管理”创建餐饮订单系统实例，填写完整 `https://` 或 `http://` 访问地址、slug 和 tenant key。
@@ -23,7 +23,7 @@
 
 ## 客户验收流程
 
-1. 使用不在管理员允许名单内的真实 ChatGPT 账号登录。
+1. 使用自助注册的企业账号，或使用管理员生成的邀请链接激活企业账号后登录。
 2. 在 Dashboard 核对所选产品、套餐、订阅状态、当前周期结束时间、最近付款状态、实例状态与访问地址；有多个产品时逐一切换。
 3. 打开“订阅与账单”，确认只显示该工作区的当前订阅、历史订阅和付款记录。
 4. 打开“我的应用”和应用详情，确认显示实例状态、访问地址和更新时间。
@@ -44,7 +44,7 @@
 ## 权限与隔离验收
 
 1. 普通客户访问 `/admin`，应看到无权限页面。
-2. 未登录访问 `/dashboard`、`/dashboard/billing` 或 `/dashboard/apps`，应跳转到 ChatGPT 登录。
+2. 未登录访问 `/dashboard`、`/dashboard/billing` 或 `/dashboard/apps`，应跳转到本系统 `/login`。
 3. 在浏览器中用客户 A 的登录态请求客户 B 的 `/api/workspaces/:workspaceId/billing` 和 `/api/workspaces/:workspaceId/apps`，应返回 `403 WORKSPACE_FORBIDDEN`。
 4. 暂停或禁用客户工作区后，客户应看到“当前企业工作区已暂停或停用”的页面，而不是进入客户控制台。
 5. 客户页面不应提供订阅、付款记录或应用实例状态的修改按钮。
@@ -63,7 +63,7 @@
 - 未接入 Paddle、Stripe 自动续扣、退款自动化、复杂发票或优惠券。
 - 不会自动部署、调用云服务、创建 Docker/Kubernetes 资源，亦不记录复杂部署日志。
 - 数据模型支持多产品订阅，但当前只预置餐饮订单系统，不提供多产品市场。
-- 不包含成员邀请、角色变更、密码注册、密码存储或密码重置。
+- 不包含成员邀请、角色变更、邮箱验证、忘记密码/密码重置、MFA 或自动邮件发送。
 
 ## 试运行后优先级
 

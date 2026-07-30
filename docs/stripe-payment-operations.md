@@ -5,7 +5,7 @@
 ## 配置
 
 1. 在 Stripe Dashboard 创建或使用测试模式账号。
-2. 在本地 `.env.local` 或 Sites 的服务端环境变量中设置：
+2. 在本地 `.env.local` 或目标托管平台的服务端 secret 中设置：
 
    ```env
    STRIPE_SECRET_KEY=sk_test_...
@@ -17,7 +17,7 @@
 3. 在 Stripe Workbench 的 Webhooks 中注册：
 
    ```text
-   https://<你的私有 Sites 域名>/api/stripe/webhook
+   https://<你的正式域名>/api/stripe/webhook
    ```
 
 4. 勾选至少以下事件：
@@ -63,7 +63,7 @@ stripe listen --events checkout.session.completed,checkout.session.async_payment
 
 ## 生产前核对
 
-- Sites 环境变量使用生产 Stripe 密钥，并与生产 Workbench Webhook 端点签名密钥匹配。
+- 目标托管平台的 secret 使用生产 Stripe 密钥，并与生产 Workbench Webhook 端点签名密钥匹配。
 - Webhook URL 必须是 HTTPS；不要用成功返回页、浏览器参数或前端状态认定付款成功。
 - 确认管理员仍可创建手动订阅、录入银行转账等付款记录，并可调整订阅状态。
 - 确认两个客户工作区互相请求付款结果和账单 API 时均无法读取对方数据。

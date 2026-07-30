@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { platformConfig } from "@/config/platform";
-import { chatGPTSignOutPath } from "@/app/chatgpt-auth";
 import type { WorkspaceRole } from "@/lib/auth/permissions";
 
 interface NavigationItem {
@@ -72,7 +71,9 @@ export function AppShell({ children, mode, user, workspace }: AppShellProps) {
           <small>{user.isPlatformAdmin ? "平台管理员" : "当前账号"}</small>
           <strong>{user.name}</strong>
           <span>{user.email}</span>
-          <Link href={chatGPTSignOutPath("/")}>退出登录</Link>
+          <form action="/api/auth/logout" method="post">
+            <button className="sidebar-signout" type="submit">退出登录</button>
+          </form>
         </div>
       </aside>
       <section className="app-main">

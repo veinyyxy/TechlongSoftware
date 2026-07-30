@@ -47,9 +47,9 @@ test("renders login, registration, and unauthorized pages", async () => {
   ]);
 
   assert.equal(login.status, 200);
-  assert.match(await login.text(), /使用 ChatGPT 登录/);
+  assert.match(await login.text(), /使用平台账号登录/);
   assert.equal(register.status, 200);
-  assert.match(await register.text(), /首次使用 ChatGPT 登录后/);
+  assert.match(await register.text(), /使用企业邮箱注册/);
   assert.equal(unauthorized.status, 200);
   assert.match(await unauthorized.text(), /当前账号不是平台管理员/);
   assert.equal(suspendedWorkspace.status, 200);
@@ -58,7 +58,7 @@ test("renders login, registration, and unauthorized pages", async () => {
   assert.doesNotMatch(suspendedHtml, /返回客户控制台/);
 });
 
-test("protected pages redirect anonymous visitors through Sites sign-in", async () => {
+test("protected pages redirect anonymous visitors to app-owned login", async () => {
   const [dashboard, apps, billing, admin] = await Promise.all([
     render("/dashboard"),
     render("/dashboard/apps"),
@@ -69,25 +69,25 @@ test("protected pages redirect anonymous visitors through Sites sign-in", async 
   assert.ok(dashboard.status >= 300 && dashboard.status < 400);
   assert.match(
     dashboard.headers.get("location") ?? "",
-    /\/signin-with-chatgpt\?return_to=%2Fdashboard/,
+    /\/login\?returnTo=%2Fdashboard/,
   );
 
   assert.ok(apps.status >= 300 && apps.status < 400);
   assert.match(
     apps.headers.get("location") ?? "",
-    /\/signin-with-chatgpt\?return_to=%2Fdashboard/,
+    /\/login\?returnTo=%2Fdashboard/,
   );
 
   assert.ok(billing.status >= 300 && billing.status < 400);
   assert.match(
     billing.headers.get("location") ?? "",
-    /\/signin-with-chatgpt\?return_to=%2Fdashboard/,
+    /\/login\?returnTo=%2Fdashboard/,
   );
 
   assert.ok(admin.status >= 300 && admin.status < 400);
   assert.match(
     admin.headers.get("location") ?? "",
-    /\/signin-with-chatgpt\?return_to=%2Fadmin/,
+    /\/login\?returnTo=%2Fadmin/,
   );
 });
 
@@ -142,6 +142,7 @@ test("launch-stage protected APIs reject anonymous requests", async () => {
 test("keeps secrets out of the committed environment example", async () => {
   const environment = await readFile(new URL(".env.example", templateRoot), "utf8");
   assert.doesNotMatch(environment, /sk_(live|test)_[A-Za-z0-9]{16,}|PRIVATE_KEY|PASSWORD=/);
-  assert.match(environment, /PLATFORM_ADMIN_EMAILS=owner@example\.com/);
+  assert.match(environment, /AUTH_SESSION_DAYS=7/);
+  assert.doesNotMatch(environment, /PLATFORM_ADMIN_EMAILS/);
   assert.match(environment, /STRIPE_SECRET_KEY=sk_test_replace_me/);
 });

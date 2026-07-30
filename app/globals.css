@@ -815,7 +815,25 @@ select {
 }
 
 .auth-submit {
+  margin-top: 8px;
   width: 100%;
+}
+
+.auth-form {
+  display: grid;
+  gap: 18px;
+}
+
+.auth-invitation-workspace {
+  background: var(--background);
+  border-radius: 13px;
+  display: grid;
+  gap: 5px;
+  padding: 16px;
+}
+
+.auth-invitation-workspace small {
+  color: var(--muted);
 }
 
 .auth-security-note {
@@ -874,6 +892,37 @@ select {
 .signed-in-panel .auth-text-link {
   margin: 8px 0 0;
   text-align: center;
+}
+
+.auth-text-button,
+.sidebar-signout {
+  background: none;
+  border: 0;
+  color: var(--success);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0;
+}
+
+.signed-in-panel .auth-text-button {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.sidebar-signout {
+  font-size: 12px;
+  text-align: left;
+}
+
+.invitation-result {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.invitation-result small {
+  color: var(--muted);
 }
 
 .unauthorized-card {

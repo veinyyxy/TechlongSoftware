@@ -4,27 +4,7 @@ import {
   canAccessPlatformAdmin,
   canAccessWorkspace,
   canManageWorkspace,
-  isPlatformAdminEmail,
-  normalizeEmail,
-  parseAdminEmailAllowlist,
 } from "../lib/auth/permissions.ts";
-
-test("normalizes and deduplicates platform admin emails", () => {
-  assert.equal(normalizeEmail(" Owner@Example.COM "), "owner@example.com");
-  assert.deepEqual(
-    parseAdminEmailAllowlist(
-      "owner@example.com, ADMIN@example.com,owner@example.com",
-    ),
-    ["owner@example.com", "admin@example.com"],
-  );
-  assert.equal(
-    isPlatformAdminEmail("ADMIN@EXAMPLE.COM", [
-      "owner@example.com",
-      "admin@example.com",
-    ]),
-    true,
-  );
-});
 
 test("isolates ordinary users to their workspace memberships", () => {
   assert.equal(

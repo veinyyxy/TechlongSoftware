@@ -114,6 +114,67 @@ export const users = pgTable("users", {
 	index("users_status_idx").using("btree", table.status.asc().nullsLast().op("text_ops")),
 ]);
 
+export const userCredentials = pgTable("user_credentials", {
+	userId: text("user_id").primaryKey().notNull(),
+	passwordHash: text("password_hash").notNull(),
+	passwordSalt: text("password_salt").notNull(),
+	passwordIterations: integer("password_iterations").notNull(),
+	failedAttempts: integer("failed_attempts").default(0).notNull(),
+	lockedUntil: bigint("locked_until", { mode: "number" }),
+	passwordChangedAt: bigint("password_changed_at", { mode: "number" }).notNull(),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => [
+	index("user_credentials_locked_until_idx").using("btree", table.lockedUntil.asc().nullsLast().op("int8_ops")),
+	foreignKey({
+		columns: [table.userId],
+		foreignColumns: [users.id],
+		name: "user_credentials_user_id_fkey"
+	}).onDelete("cascade"),
+]);
+
+export const authSessions = pgTable("auth_sessions", {
+	id: text().primaryKey().notNull(),
+	userId: text("user_id").notNull(),
+	tokenHash: text("token_hash").notNull(),
+	expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
+	lastSeenAt: bigint("last_seen_at", { mode: "number" }).notNull(),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => [
+	uniqueIndex("auth_sessions_token_hash_unique").using("btree", table.tokenHash.asc().nullsLast().op("text_ops")),
+	index("auth_sessions_user_id_idx").using("btree", table.userId.asc().nullsLast().op("text_ops")),
+	index("auth_sessions_expires_at_idx").using("btree", table.expiresAt.asc().nullsLast().op("int8_ops")),
+	foreignKey({
+		columns: [table.userId],
+		foreignColumns: [users.id],
+		name: "auth_sessions_user_id_fkey"
+	}).onDelete("cascade"),
+]);
+
+export const authInvitations = pgTable("auth_invitations", {
+	id: text().primaryKey().notNull(),
+	userId: text("user_id").notNull(),
+	tokenHash: text("token_hash").notNull(),
+	expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
+	acceptedAt: bigint("accepted_at", { mode: "number" }),
+	createdByUserId: text("created_by_user_id").notNull(),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => [
+	uniqueIndex("auth_invitations_token_hash_unique").using("btree", table.tokenHash.asc().nullsLast().op("text_ops")),
+	index("auth_invitations_user_id_idx").using("btree", table.userId.asc().nullsLast().op("text_ops")),
+	index("auth_invitations_expires_at_idx").using("btree", table.expiresAt.asc().nullsLast().op("int8_ops")),
+	foreignKey({
+		columns: [table.userId],
+		foreignColumns: [users.id],
+		name: "auth_invitations_user_id_fkey"
+	}).onDelete("cascade"),
+	foreignKey({
+		columns: [table.createdByUserId],
+		foreignColumns: [users.id],
+		name: "auth_invitations_created_by_user_id_fkey"
+	}).onDelete("restrict"),
+]);
+
 export const workspaces = pgTable("workspaces", {
 	id: text().primaryKey().notNull(),
 	name: text().notNull(),

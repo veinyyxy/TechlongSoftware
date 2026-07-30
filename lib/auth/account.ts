@@ -1,18 +1,13 @@
 import { cache } from "react";
-import { env } from "cloudflare:workers";
 import { redirect } from "next/navigation";
 import {
-  getChatGPTUser,
-  requireChatGPTUser,
-  type ChatGPTUser,
-} from "@/app/chatgpt-auth";
+  getAuthenticatedUser,
+  requireAuthenticatedUser,
+  type AuthenticatedUser,
+} from "./session";
 import { getDatabase } from "@/db";
-import { stableId } from "@/lib/domain/ids";
 import {
   canAccessWorkspace,
-  isPlatformAdminEmail,
-  normalizeEmail,
-  parseAdminEmailAllowlist,
   type WorkspaceRole,
 } from "./permissions";
 
@@ -86,108 +81,27 @@ export interface AdminWorkspaceView {
   createdAt: number;
 }
 
-function getPlatformAdminEmails(): string[] {
-  const bindings = env as unknown as Record<string, unknown>;
-  const value =
-    typeof bindings.PLATFORM_ADMIN_EMAILS === "string"
-      ? bindings.PLATFORM_ADMIN_EMAILS
-      : undefined;
-
-  return parseAdminEmailAllowlist(value);
-}
-
-function defaultWorkspaceName(identity: ChatGPTUser): string {
-  const baseName =
-    identity.fullName?.trim() ||
-    normalizeEmail(identity.email).split("@")[0] ||
-    "新客户";
-  return `${baseName.slice(0, 60)}的企业工作区`;
-}
-
-export async function ensureAccount(
-  identity: ChatGPTUser,
+async function loadAccount(
+  identity: AuthenticatedUser,
 ): Promise<AccountContext> {
   const db = getDatabase();
-  const email = normalizeEmail(identity.email);
-  const userId = await stableId("usr", email);
-  const workspaceId = await stableId("wsp", userId);
-  const membershipId = await stableId("wsm", `${workspaceId}:${userId}`);
-  const now = Date.now();
-  const isPlatformAdmin = isPlatformAdminEmail(
-    email,
-    getPlatformAdminEmails(),
-  );
-
-  await db
-    .prepare(
-      `INSERT INTO users (
-        id, email, name, status, is_platform_admin, created_at, updated_at
-      ) VALUES (?, ?, ?, 'active', ?, ?, ?)
-      ON CONFLICT(email) DO UPDATE SET
-        name = excluded.name,
-        is_platform_admin = CASE
-          WHEN users.is_platform_admin > excluded.is_platform_admin
-            THEN users.is_platform_admin
-          ELSE excluded.is_platform_admin
-        END,
-        updated_at = excluded.updated_at`,
-    )
-    .bind(
-      userId,
-      email,
-      identity.fullName?.trim() || identity.displayName,
-      isPlatformAdmin ? 1 : 0,
-      now,
-      now,
-    )
-    .run();
-
   const user = await db
     .prepare(
       `SELECT id, email, name, status, is_platform_admin, created_at, updated_at
        FROM users
-       WHERE email = ?
+       WHERE id = ?
        LIMIT 1`,
     )
-    .bind(email)
+    .bind(identity.id)
     .first<UserRow>();
 
   if (!user) {
-    throw new Error("Unable to create or load the authenticated user.");
+    throw new Error("Authenticated user no longer exists.");
   }
 
-  let membership = await findPrimaryMembership(user.id);
+  const membership = await findPrimaryMembership(user.id);
   if (!membership) {
-    await db.batch([
-      db
-        .prepare(
-          `INSERT INTO workspaces (
-            id, name, owner_id, status, created_at, updated_at
-          ) VALUES (?, ?, ?, 'active', ?, ?)
-          ON CONFLICT (id) DO NOTHING`,
-        )
-        .bind(
-          workspaceId,
-          defaultWorkspaceName(identity),
-          user.id,
-          now,
-          now,
-        ),
-      db
-        .prepare(
-          `INSERT INTO workspace_members (
-            id, workspace_id, user_id, role, joined_at
-          ) VALUES (?, ?, ?, 'owner', ?)
-          ON CONFLICT (id) DO NOTHING`,
-        )
-        .bind(membershipId, workspaceId, user.id, now),
-    ]);
-
-    membership = await findPrimaryMembership(user.id);
-  }
-
-  if (!membership) {
-    throw new Error("Unable to create or load the user's workspace.");
+    throw new Error("Authenticated user does not belong to a workspace.");
   }
 
   return toAccountContext(user, membership);
@@ -241,8 +155,8 @@ function toAccountContext(
 }
 
 export const getDashboardAccount = cache(async (): Promise<AccountContext> => {
-  const identity = await requireChatGPTUser("/dashboard");
-  const account = await ensureAccount(identity);
+  const identity = await requireAuthenticatedUser("/dashboard");
+  const account = await loadAccount(identity);
 
   if (account.user.status !== "active") {
     redirect("/unauthorized?reason=user_status");
@@ -255,8 +169,8 @@ export const getDashboardAccount = cache(async (): Promise<AccountContext> => {
 });
 
 export const getAdminAccount = cache(async (): Promise<AccountContext> => {
-  const identity = await requireChatGPTUser("/admin");
-  const account = await ensureAccount(identity);
+  const identity = await requireAuthenticatedUser("/admin");
+  const account = await loadAccount(identity);
 
   if (!account.user.isPlatformAdmin) {
     redirect("/unauthorized?reason=platform_admin");
@@ -269,10 +183,10 @@ export const getAdminAccount = cache(async (): Promise<AccountContext> => {
 });
 
 export async function getApiAccount(): Promise<AccountContext | null> {
-  const identity = await getChatGPTUser();
+  const identity = await getAuthenticatedUser();
   if (!identity) return null;
 
-  const account = await ensureAccount(identity);
+  const account = await loadAccount(identity);
   if (account.user.status !== "active") return null;
   return account;
 }

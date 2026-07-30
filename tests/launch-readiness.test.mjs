@@ -21,10 +21,11 @@ test("suspended and disabled customers are not sent into a dashboard redirect lo
   assert.match(source, /canReturnToDashboard/);
 });
 
-test("README documents startup, hosted admin initialization, and launch scope", async () => {
+test("README documents startup, local admin initialization, and launch scope", async () => {
   const readme = await read("README.md");
-  assert.match(readme, /PLATFORM_ADMIN_EMAILS/);
-  assert.match(readme, /ChatGPT 登录/);
+  assert.match(readme, /auth:bootstrap-admin/);
+  assert.match(readme, /邮箱密码/);
+  assert.match(readme, /一次性激活链接/);
   assert.match(readme, /Stripe Webhook/);
   assert.match(readme, /Paddle、自动续扣/);
 });

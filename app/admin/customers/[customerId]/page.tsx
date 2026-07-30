@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { StatusActionButton } from "@/components/admin/StatusActionButton";
+import { CustomerInvitationCard } from "@/components/admin/CustomerInvitationCard";
 import { getAdminAccount } from "@/lib/auth/account";
+import { userHasPassword } from "@/lib/auth/credentials";
 import { getCustomer } from "@/lib/admin/management";
 import { getWorkspaceBillingSummary } from "@/lib/billing/management";
 import { listWorkspaceAppInstances } from "@/lib/instances/management";
@@ -44,9 +46,10 @@ export default async function CustomerDetailPage({
   }
 
   const isActive = customer.status === "active";
-  const [billing, instances] = await Promise.all([
+  const [billing, instances, hasPassword] = await Promise.all([
     getWorkspaceBillingSummary(customer.id),
     listWorkspaceAppInstances(customer.id),
+    userHasPassword(customer.ownerId),
   ]);
 
   return (
@@ -122,6 +125,11 @@ export default async function CustomerDetailPage({
             为客户创建订阅 →
           </Link>
         </section>
+
+        <CustomerInvitationCard
+          customerId={customer.id}
+          hasPassword={hasPassword}
+        />
       </div>
 
       <section className="data-panel">

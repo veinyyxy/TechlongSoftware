@@ -2,13 +2,15 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前已在阶段 8 基础上完成客户自助购买一期，并将主数据库迁移到 Neon PostgreSQL：套餐绑定已发布模板版本，企业 Owner 自行选择套餐并填写实例参数，Stripe 付款成功后由已验证 Webhook 创建或续期订阅，并准备待开通实例；管理员仍是最终开通者。
+当前已在阶段 8 基础上完成客户自助购买一期、Neon PostgreSQL 迁移和自有认证一期：企业用户可用邮箱密码注册/登录，管理员创建的客户可通过一次性邀请链接设置密码；Stripe 付款成功后由已验证 Webhook 创建或续期订阅，并准备待开通实例，管理员仍是最终开通者。
 
 ## 已实现
 
-- 使用 OpenAI Sites 的 ChatGPT 登录完成身份验证。
-- 首次登录自动同步平台用户。
-- 首次登录自动创建企业工作区和 `owner` 成员关系。
+- 使用应用自有的邮箱密码完成注册和登录，不再依赖 ChatGPT 账号。
+- 密码使用随机盐和 PBKDF2-SHA256 哈希保存；连续失败会触发临时账号锁定。
+- 登录态使用数据库保存的随机会话 Token，浏览器只接收 `HttpOnly`、`SameSite=Lax` Cookie。
+- 企业用户自助注册时自动创建企业工作区和 `owner` 成员关系。
+- 管理员创建的客户不会获得默认密码；管理员可生成 48 小时有效的一次性激活链接，由客户自行设置密码。
 - 企业工作区状态：`active`、`suspended`、`disabled`。
 - 工作区成员角色：`owner`、`member`。
 - 用户表中的 `is_platform_admin` 平台管理员标记。
@@ -78,9 +80,10 @@
 - 模板中的部署驱动目前只保存受控标识，不会执行自动部署流程。
 - 多产品市场。
 - 成员邀请和角色变更。
-- 密码注册、密码存储和密码重置。
+- 邮箱验证、忘记密码/重置密码、MFA、邮件自动发送和第三方 OAuth。
+- 面向公网的 IP 级限流、验证码和完整安全告警。
 
-登录由 OpenAI Sites 处理，平台不会保存 ChatGPT 密码。首次 ChatGPT 登录等同于创建平台账号。
+当前认证一期适合本地和受控测试。密码不会以明文保存；正式公开上线前仍应补齐邮箱验证、密码重置、IP 级限流和安全监控。
 
 ## 技术栈
 
@@ -90,7 +93,7 @@
 - Vinext + Vite
 - Tailwind CSS 4
 - Drizzle ORM + Neon PostgreSQL
-- Cloudflare Worker / OpenAI Sites
+- Vinext + Vite 本地运行（可后续部署到自有托管环境）
 
 ## 本地运行
 
@@ -102,18 +105,36 @@ copy .env.example .env.local
 npm run dev
 ```
 
-在 `.env.local` 设置本地管理员允许名单：
+在 `.env.local` 设置 Neon 和 Stripe 服务端配置：
 
 ```env
-PLATFORM_ADMIN_EMAILS=you@example.com
 DATABASE_URL=postgresql://app_user:password@example-pooler.neon.tech/neondb?sslmode=require
+AUTH_SESSION_DAYS=7
+STRIPE_SECRET_KEY=sk_test_replace_me
+STRIPE_WEBHOOK_SECRET=whsec_replace_me
 ```
+
+首次切换现有 Neon 数据库时，先应用增量迁移，再初始化或重置一个平台管理员密码：
+
+```powershell
+npm run db:postgres:migrate
+$env:AUTH_BOOTSTRAP_EMAIL="admin@example.com"
+$env:AUTH_BOOTSTRAP_NAME="平台管理员"
+$env:AUTH_BOOTSTRAP_PASSWORD="请替换为至少12字符的临时密码"
+npm run auth:bootstrap-admin
+Remove-Item Env:AUTH_BOOTSTRAP_PASSWORD
+npm run dev
+```
+
+`auth:bootstrap-admin` 会复用同邮箱的现有用户，并设置 `is_platform_admin=1`；重复运行会重置该管理员密码并注销其旧会话。不要把真实密码写入 `.env.example`、源码或 Git。
 
 常用命令：
 
 ```bash
 npm run db:generate
 npm run db:postgres:init
+npm run db:postgres:migrate
+npm run auth:bootstrap-admin
 npm run typecheck
 npm run build
 npm run lint
@@ -122,21 +143,19 @@ npm test
 
 ## 环境变量与管理员初始化
 
-`NEXT_PUBLIC_PLATFORM_NAME` 仅用于公开品牌名称。`PLATFORM_ADMIN_EMAILS` 是以逗号分隔的管理员邮箱允许名单，必须配置在本地 `.env.local` 或 Sites 的生产环境变量中，不能提交真实邮箱、密码或密钥。
+`NEXT_PUBLIC_PLATFORM_NAME` 仅用于公开品牌名称。`AUTH_SESSION_DAYS` 控制自有登录会话有效天数，可设为 1–30，默认 7 天。平台管理员权限只由数据库 `users.is_platform_admin` 决定，不再通过邮箱允许名单自动提升。
 
-`DATABASE_URL` 是服务端使用的 Neon PostgreSQL pooled connection string。生产环境通过 Sites secret 配置，本地通过未提交的 `.env.local` 配置；不要添加 `NEXT_PUBLIC_` 前缀，也不要把真实连接串提交到 Git。`npm run db:postgres:init` 只用于初始化全新的空 `public` schema，检测到已有表时会拒绝执行。
+`DATABASE_URL` 是服务端使用的 Neon PostgreSQL pooled connection string。本地通过未提交的 `.env.local` 配置，未来部署时应使用目标托管平台的 secret；不要添加 `NEXT_PUBLIC_` 前缀，也不要把真实连接串提交到 Git。`npm run db:postgres:init` 只用于初始化全新的空 `public` schema，检测到已有表时会拒绝执行；已有数据库使用 `npm run db:postgres:migrate`。
 
-Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WEBHOOK_SECRET`。本地测试使用 `sk_test_...` 和 Stripe CLI 生成的 `whsec_...`；生产环境在 Sites 中配置对应的真实值。两者都不能以公开环境变量、前端代码或 Git 提交方式保存。
+Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WEBHOOK_SECRET`。本地测试使用 `sk_test_...` 和 Stripe CLI 生成的 `whsec_...`；生产环境在目标托管平台配置对应的 secret。两者都不能以公开环境变量、前端代码或 Git 提交方式保存。
 
-管理员不通过数据库脚本或密码创建：将真实 ChatGPT 邮箱加入 `PLATFORM_ADMIN_EMAILS` 后，该用户首次使用 ChatGPT 登录时会自动同步为平台用户、创建所属工作区，并获得平台管理员权限。普通企业用户不在允许名单中，首次登录只会创建自己的企业工作区。
-
-不要使用 `sites-screenshot-service-noreply@chatgpt.com` 作为测试客户；它是 Sites 的系统截图服务账号，不能供人工登录。
+平台首个管理员通过 `npm run auth:bootstrap-admin` 初始化。管理员在“客户管理”创建企业后，需要进入客户详情生成一次性激活链接并发送给 Owner；系统本期不自动发送邮件。
 
 ## 上线试运行
 
 发布前依次执行 `npm run lint`、`npm run typecheck`、`npm run build` 和 `npm test`。完整的管理员流程、客户流程、状态提示、权限隔离和数据来源验收步骤见 [上线检查清单](./docs/launch-checklist.md)。Stripe 测试模式、Webhook 与上线操作见 [Stripe 支付操作说明](./docs/stripe-payment-operations.md)。
 
-在私有 Sites 上试运行时，应至少使用两个真实 ChatGPT 账号：一个在管理员允许名单内，另一个作为普通企业客户。可先在管理员端完成手动流程；也可通过 Stripe 测试付款验证自动待开通流程，详细操作见 [支付后待开通实例说明](./docs/auto-pending-provisioning.md)。
+本地试运行时，应至少使用两个不同浏览器配置文件或一个普通窗口加一个无痕窗口：一个登录平台管理员，另一个注册普通企业客户。可先在管理员端完成手动流程；也可通过 Stripe 测试付款验证自动待开通流程，详细操作见 [支付后待开通实例说明](./docs/auto-pending-provisioning.md)。
 
 ## 数据库
 
@@ -192,6 +211,13 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `subscriptions.creation_source`：区分 `admin_manual` 与 `customer_checkout`
 - `payment_webhook_events.purchase_order_id`：把已验证 Stripe 事件关联到客户购买订单
 
+自有认证一期新增：
+
+- `user_credentials`：保存加盐密码哈希、算法迭代次数和登录失败锁定状态
+- `auth_sessions`：保存会话 Token 的 SHA-256 摘要和过期时间，不保存浏览器收到的原始 Token
+- `auth_invitations`：保存管理员为既有客户生成的一次性激活邀请摘要
+- `schema_migrations`：记录已应用的 PostgreSQL 增量迁移及校验和
+
 多产品订阅升级：
 
 - `subscriptions.product_id`（必填）
@@ -227,6 +253,9 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `/register`
 - `/unauthorized`
 - `/api/health`
+- `/api/auth/login`
+- `/api/auth/register`
+- `/api/auth/logout`
 
 客户路由：
 
@@ -280,6 +309,7 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `/api/admin/overview`
 - `/api/admin/customers`
 - `/api/admin/customers/:customerId`
+- `/api/admin/customers/:customerId/invitation`
 - `/api/admin/plans`
 - `/api/admin/plans/:planId`
 - `/api/admin/templates`

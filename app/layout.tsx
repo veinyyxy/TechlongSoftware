@@ -57,7 +57,7 @@ function safeMetadataBase(host: string | null, protocol: "http" | "https") {
   }
 
   return new URL(
-    "https://restaurant-saas-foundation.ethan-yang007.chatgpt.site",
+    "http://localhost:3000",
   );
 }
 

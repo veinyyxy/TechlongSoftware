@@ -30,6 +30,9 @@ test("PostgreSQL schema contains all business tables and core integrity rules", 
   const sql = await read("db/postgres-schema.sql");
   const expectedTables = [
     "users",
+    "user_credentials",
+    "auth_sessions",
+    "auth_invitations",
     "products",
     "app_instance_templates",
     "app_instance_template_versions",
@@ -50,6 +53,8 @@ test("PostgreSQL schema contains all business tables and core integrity rules", 
   }
 
   assert.match(sql, /subscriptions_workspace_product_current_unique/);
+  assert.match(sql, /auth_sessions_token_hash_unique/);
+  assert.match(sql, /auth_invitations_token_hash_unique/);
   assert.match(sql, /app_instances_workspace_product_unique/);
   assert.match(sql, /CREATE OR REPLACE FUNCTION enforce_subscription_relationships/);
   assert.match(sql, /CREATE OR REPLACE FUNCTION enforce_template_version_immutability/);
