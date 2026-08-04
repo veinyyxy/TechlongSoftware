@@ -3,9 +3,15 @@ import test from "node:test";
 import { compileProvisioningConfiguration } from "../lib/templates/provisioning.ts";
 import { getTemplateVersionPreset } from "../lib/templates/presets.ts";
 import {
+  buildThemePalette,
+  describeThemeField,
+  partitionTemplateFields,
+} from "../lib/templates/theme-fields.ts";
+import {
   parseTemplateConfiguration,
   resolveTemplateConfiguration,
   resolvePlanTemplateConfiguration,
+  type TemplateConfigurationField,
   validateAppInstanceTemplateVersionInput,
   validateTemplatePlanLimits,
 } from "../lib/templates/validation.ts";
@@ -460,4 +466,120 @@ test("locks SpeedFeast semantic constraints and first-owner dependencies", () =>
   });
   assert.equal(ownerWithoutUsername.data, null);
   assert.ok(ownerWithoutUsername.errors["first_owner.username"]);
+});
+
+test("groups customer theme fields by stable output paths instead of display keys", () => {
+  const fields: TemplateConfigurationField[] = [
+    {
+      key: "renamedStore",
+      label: "Store",
+      type: "text",
+      source: "customer",
+      required: true,
+      outputPath: "/default_store/name",
+    },
+    {
+      key: "renamedBuyerMode",
+      label: "Buyer mode",
+      type: "select",
+      source: "customer",
+      required: true,
+      options: ["light", "dark"],
+      outputPath: "/default_store/buyer_theme/brightness",
+    },
+    {
+      key: "renamedBuyerColor",
+      label: "Buyer primary",
+      type: "color",
+      source: "customer",
+      required: true,
+      outputPath: "/default_store/buyer_theme/primary",
+    },
+    {
+      key: "renamedMerchantColor",
+      label: "Merchant primary",
+      type: "color",
+      source: "customer",
+      required: true,
+      outputPath: "/default_store/merchant_theme/primary",
+    },
+    {
+      key: "planThemeFlag",
+      label: "Theme entitlement",
+      type: "boolean",
+      source: "plan",
+      required: true,
+      outputPath: "/entitlements/branding.custom_theme.enabled",
+    },
+  ];
+
+  const groups = partitionTemplateFields(fields);
+  assert.deepEqual(groups.basic.map((field) => field.key), ["renamedStore"]);
+  assert.deepEqual(groups.buyerTheme.map((field) => field.key), [
+    "renamedBuyerMode",
+    "renamedBuyerColor",
+  ]);
+  assert.deepEqual(groups.merchantTheme.map((field) => field.key), [
+    "renamedMerchantColor",
+  ]);
+  assert.deepEqual(groups.fixed.map((field) => field.key), ["planThemeFlag"]);
+  assert.deepEqual(describeThemeField(fields[2]), {
+    audience: "buyer",
+    token: "primary",
+  });
+});
+
+test("builds isolated buyer and merchant preview palettes from live values", () => {
+  const preset = getTemplateVersionPreset("restaurant-order-system");
+  assert.ok(preset);
+  const values = {
+    ...preset.defaultConfiguration,
+    buyerThemeBrightness: "dark",
+    buyerThemePrimary: "#aabbcc",
+    merchantThemePrimary: "#112233",
+  };
+
+  const buyer = buildThemePalette(
+    "buyer",
+    preset.configurationSchema.fields,
+    values,
+  );
+  const merchant = buildThemePalette(
+    "merchant",
+    preset.configurationSchema.fields,
+    values,
+  );
+
+  assert.equal(buyer.brightness, "dark");
+  assert.equal(buyer.primary, "#AABBCC");
+  assert.equal(merchant.brightness, "light");
+  assert.equal(merchant.primary, "#112233");
+});
+
+test("uses safe preview-only fallbacks for missing or invalid theme colors", () => {
+  const preset = getTemplateVersionPreset("restaurant-order-system");
+  assert.ok(preset);
+  const buyerFields = preset.configurationSchema.fields.filter(
+    (field) => describeThemeField(field)?.audience === "buyer",
+  );
+  buyerFields.push({
+    key: "buyerThemeOutline",
+    label: "Buyer outline",
+    type: "color",
+    source: "customer",
+    required: false,
+    outputPath: "/default_store/buyer_theme/outline",
+  });
+  const palette = buildThemePalette("buyer", buyerFields, {
+    buyerThemeBrightness: "sepia",
+    buyerThemePrimary: "not-a-color",
+    buyerThemeSecondary: "#123abc",
+    buyerThemeOutline: "#654321",
+  });
+
+  assert.equal(palette.brightness, "light");
+  assert.equal(palette.primary, "#03A9F4");
+  assert.equal(palette.secondary, "#123ABC");
+  assert.equal(palette.surface, "#FFFFFF");
+  assert.equal(palette.outline, "#654321");
 });

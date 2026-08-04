@@ -148,6 +148,8 @@ test("customer purchase orders create subscriptions only after verified Stripe c
     purchaseManagement,
     purchaseForm,
     billingManagement,
+    themeEditor,
+    themeFields,
   ] = await Promise.all([
     readFile(
       new URL(
@@ -162,11 +164,26 @@ test("customer purchase orders create subscriptions only after verified Stripe c
       "utf8",
     ),
     readFile(new URL("lib/billing/management.ts", root), "utf8"),
+    readFile(
+      new URL("components/billing/ThemeConfigurationEditor.tsx", root),
+      "utf8",
+    ),
+    readFile(new URL("lib/templates/theme-fields.ts", root), "utf8"),
   ]);
 
   assert.match(purchaseRoute, /account\.membership\.role !== "owner"/);
   assert.match(purchaseRoute, /createCustomerPurchaseCheckout/);
   assert.doesNotMatch(purchaseForm, /priceAmount|paymentStatus/);
+  assert.match(purchaseForm, /partitionTemplateFields/);
+  assert.match(purchaseForm, /ThemeConfigurationEditor/);
+  assert.match(purchaseForm, /if \(!renewalSubscriptionId\)/);
+  assert.doesNotMatch(purchaseForm, /buyerThemePrimary|merchantThemePrimary/);
+  assert.match(themeEditor, /type="color"/);
+  assert.match(themeEditor, /instanceConfiguration\.\$\{field\.key\}/);
+  assert.match(themeEditor, /theme-preview-extra-colors/);
+  assert.match(themeEditor, /浅色（Light）/);
+  assert.match(themeEditor, /深色（Dark）/);
+  assert.match(themeFields, /buyer_theme\|merchant_theme/);
   assert.match(
     purchaseManagement,
     /const plan = await getPlan\(input\.purchase\.planId\)/,
