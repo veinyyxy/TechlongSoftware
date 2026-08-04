@@ -153,8 +153,8 @@ export function validateSubscriptionInput(
   if (typeof input.cancelAtPeriodEnd !== "boolean") {
     addError(errors, "cancelAtPeriodEnd", "到期取消设置不正确。");
   }
-  if (Object.keys(rawInstanceConfiguration).length > 30) {
-    addError(errors, "instanceConfiguration", "实例配置最多 30 项。");
+  if (Object.keys(rawInstanceConfiguration).length > 100) {
+    addError(errors, "instanceConfiguration", "实例配置最多 100 项。");
   }
   for (const [key, configValue] of Object.entries(rawInstanceConfiguration)) {
     if (!/^[a-z][A-Za-z0-9_]{1,63}$/.test(key)) {
@@ -162,15 +162,16 @@ export function validateSubscriptionInput(
       break;
     }
     if (
+      configValue !== null &&
       typeof configValue !== "string" &&
       typeof configValue !== "number" &&
       typeof configValue !== "boolean"
     ) {
-      addError(errors, "instanceConfiguration", "实例配置只支持文字、数字或布尔值。");
+      addError(errors, "instanceConfiguration", "实例配置只支持文字、数字、布尔值或 null。");
       break;
     }
-    if (typeof configValue === "string" && configValue.length > 200) {
-      addError(errors, "instanceConfiguration", "实例配置文字不能超过 200 个字符。");
+    if (typeof configValue === "string" && configValue.length > 500) {
+      addError(errors, "instanceConfiguration", "实例配置文字不能超过 500 个字符。");
       break;
     }
   }

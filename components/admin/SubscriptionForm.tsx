@@ -78,6 +78,14 @@ export function SubscriptionForm({
     initial?.productId ?? "",
   );
   const [selectedPlanId, setSelectedPlanId] = useState(initial?.planId ?? "");
+  const [unlimitedFields, setUnlimitedFields] = useState<Record<string, boolean>>(
+    () =>
+      Object.fromEntries(
+        Object.entries(initial?.instanceConfiguration ?? {})
+          .filter(([, value]) => value === null)
+          .map(([key]) => [key, true]),
+      ),
+  );
   const availablePlans = plans.filter(
     (plan) => plan.productId === selectedProductId,
   );
@@ -94,12 +102,24 @@ export function SubscriptionForm({
     for (const field of selectedPlan?.templateConfigurationSchema.fields ?? []) {
       if (field.source !== "customer") continue;
       const formValue = formData.get(`instanceConfiguration.${field.key}`);
-      instanceConfiguration[field.key] =
-        field.type === "boolean"
-          ? formValue === "on"
-          : field.type === "number"
-            ? Number(formValue)
-            : String(formValue ?? "");
+      if (
+        field.nullable &&
+        (field.type === "number" || field.type === "integer") &&
+        formData.get(`instanceConfigurationMode.${field.key}`) === "unlimited"
+      ) {
+        instanceConfiguration[field.key] = null;
+      } else if (field.type === "boolean") {
+        if (field.required || formValue === "true" || formValue === "false") {
+          instanceConfiguration[field.key] =
+            formValue === "on" || formValue === "true";
+        }
+      } else if (field.type === "number" || field.type === "integer") {
+        const value = String(formValue ?? "").trim();
+        if (value) instanceConfiguration[field.key] = Number(value);
+      } else {
+        const value = String(formValue ?? "").trim();
+        if (value) instanceConfiguration[field.key] = value;
+      }
     }
     const payload = {
       workspaceId: String(formData.get("workspaceId") ?? ""),
@@ -188,6 +208,7 @@ export function SubscriptionForm({
               onChange={(event) => {
                 setSelectedProductId(event.target.value);
                 setSelectedPlanId("");
+                setUnlimitedFields({});
               }}
               required
               value={selectedProductId}
@@ -211,7 +232,25 @@ export function SubscriptionForm({
           <select
             disabled={!selectedProductId || !availablePlans.length}
             name="planId"
-            onChange={(event) => setSelectedPlanId(event.target.value)}
+            onChange={(event) => {
+              setSelectedPlanId(event.target.value);
+              const nextPlan = plans.find((plan) => plan.id === event.target.value);
+              setUnlimitedFields(
+                Object.fromEntries(
+                  (nextPlan?.templateConfigurationSchema.fields ?? [])
+                    .filter((field) => field.source === "customer" && field.nullable)
+                    .map((field) => {
+                      const value =
+                        initial && Object.hasOwn(initial.instanceConfiguration, field.key)
+                          ? initial.instanceConfiguration[field.key]
+                          : Object.hasOwn(nextPlan?.templateConfiguration ?? {}, field.key)
+                            ? nextPlan?.templateConfiguration[field.key]
+                            : nextPlan?.templateDefaultConfiguration[field.key];
+                      return [field.key, value === null];
+                    }),
+                ),
+              );
+            }}
             required
             value={selectedPlanId}
           >
@@ -248,30 +287,47 @@ export function SubscriptionForm({
         ) : null}
         {selectedPlan?.templateConfigurationSchema.fields.map((field) => {
           const existingValue =
-            initial?.instanceConfiguration[field.key] ??
-            selectedPlan.templateConfiguration[field.key] ??
-            selectedPlan.templateDefaultConfiguration[field.key] ??
-            "";
-          if (field.source === "plan_limit") {
+            initial && Object.hasOwn(initial.instanceConfiguration, field.key)
+              ? initial.instanceConfiguration[field.key]
+              : Object.hasOwn(selectedPlan.templateConfiguration, field.key)
+                ? selectedPlan.templateConfiguration[field.key]
+                : Object.hasOwn(selectedPlan.templateDefaultConfiguration, field.key)
+                  ? selectedPlan.templateDefaultConfiguration[field.key]
+                  : "";
+          if (field.source !== "customer") {
+            const fixedValue = field.source === "plan_limit"
+              ? selectedPlan.limits[field.limitKey ?? ""] === "unlimited"
+                ? field.nullLabel ?? "不限"
+                : selectedPlan.limits[field.limitKey ?? ""] ?? "套餐未配置"
+              : existingValue === null
+                ? field.nullLabel ?? "不限"
+                : existingValue === true
+                  ? "启用"
+                  : existingValue === false
+                    ? "停用"
+                    : existingValue === "" || existingValue === undefined
+                      ? "套餐未配置"
+                      : String(existingValue);
             return (
               <label
                 className="form-field"
-                key={`${selectedPlan.templateVersionId}:${field.key}`}
+                key={`${selectedPlan.id}:${field.key}`}
               >
-                <span>{field.label}</span>
+                <span>{field.group ? `${field.group} · ` : ""}{field.label}</span>
                 <input
                   disabled
-                  value={selectedPlan.limits[field.limitKey ?? ""] ?? "套餐未配置"}
+                  value={fixedValue}
                 />
-                <small>此值来自套餐限制，客户和管理员不能在订阅中覆盖。</small>
+                <small>此值来自套餐，客户和管理员不能在订阅中覆盖。</small>
+                {field.description ? <small>{field.description}</small> : null}
               </label>
             );
           }
-          if (field.type === "boolean") {
+          if (field.type === "boolean" && field.required) {
             return (
               <label
                 className="check-field"
-                key={`${selectedPlan.templateVersionId}:${field.key}`}
+                key={`${selectedPlan.id}:${field.key}`}
               >
                 <input
                   defaultChecked={Boolean(existingValue)}
@@ -281,16 +337,37 @@ export function SubscriptionForm({
                 <span>
                   <strong>{field.label}</strong>
                   <small>由客户需求确定，并保存到订阅配置。</small>
+                  {field.description ? <small>{field.description}</small> : null}
                 </span>
               </label>
             );
           }
+          if (field.type === "boolean") {
+            return (
+              <label
+                className="form-field"
+                key={`${selectedPlan.id}:${field.key}`}
+              >
+                <span>{field.group ? `${field.group} · ` : ""}{field.label}</span>
+                <select
+                  defaultValue={existingValue === true ? "true" : existingValue === false ? "false" : ""}
+                  name={`instanceConfiguration.${field.key}`}
+                >
+                  <option value="">不设置</option>
+                  <option value="true">启用</option>
+                  <option value="false">停用</option>
+                </select>
+                {field.description ? <small>{field.description}</small> : null}
+              </label>
+            );
+          }
+          const isUnlimited = unlimitedFields[field.key] ?? existingValue === null;
           return (
             <label
               className="form-field"
-              key={`${selectedPlan.templateVersionId}:${field.key}`}
+              key={`${selectedPlan.id}:${field.key}`}
             >
-              <span>{field.label}</span>
+              <span>{field.group ? `${field.group} · ` : ""}{field.label}{field.unit ? `（${field.unit}）` : ""}</span>
               {field.type === "select" ? (
                 <select
                   defaultValue={String(existingValue)}
@@ -304,16 +381,48 @@ export function SubscriptionForm({
                     </option>
                   ))}
                 </select>
+              ) : field.nullable && (field.type === "number" || field.type === "integer") ? (
+                <div className="nullable-input-grid">
+                  <select
+                    name={`instanceConfigurationMode.${field.key}`}
+                    onChange={(event) =>
+                      setUnlimitedFields((current) => ({
+                        ...current,
+                        [field.key]: event.target.value === "unlimited",
+                      }))
+                    }
+                    value={isUnlimited ? "unlimited" : "value"}
+                  >
+                    <option value="unlimited">{field.nullLabel ?? "不限"}</option>
+                    <option value="value">指定数值</option>
+                  </select>
+                  <input
+                    defaultValue={existingValue === null ? "" : String(existingValue)}
+                    disabled={isUnlimited}
+                    max={field.max}
+                    min={field.min}
+                    name={`instanceConfiguration.${field.key}`}
+                    required={field.required && !isUnlimited}
+                    step={field.type === "integer" ? 1 : "any"}
+                    type="number"
+                  />
+                </div>
               ) : (
                 <input
                   defaultValue={String(existingValue)}
                   max={field.max}
+                  maxLength={field.maxLength}
                   min={field.min}
+                  minLength={field.minLength}
                   name={`instanceConfiguration.${field.key}`}
+                  placeholder={field.placeholder}
                   required={field.required}
-                  type={field.type === "number" ? "number" : field.type}
+                  step={field.type === "integer" ? 1 : field.type === "number" ? "any" : undefined}
+                  pattern={field.type === "color" ? "#[0-9A-Fa-f]{6}" : undefined}
+                  type={field.type === "number" || field.type === "integer" ? "number" : field.type === "color" ? "text" : field.type}
                 />
               )}
+              {field.description ? <small>{field.description}</small> : null}
               {fieldError(`instanceConfiguration.${field.key}`) ? (
                 <small className="form-error">
                   {fieldError(`instanceConfiguration.${field.key}`)}

@@ -23,11 +23,11 @@
 - 创建、编辑、暂停及恢复企业客户工作区。
 - 创建、编辑、启用及停用套餐。
 - 管理员可以创建应用实例模板、维护草稿版本、发布不可变版本和归档旧版本。
-- 模板配置字段区分客户需求（如店铺名称、主题）与套餐限制（如访问人数限制）；套餐限制由后端读取，不能由客户覆盖。
+- 模板配置字段区分客户需求与套餐参数；餐饮订单系统新版本会带入与 `SAAS_CONTROL.md` 对齐的 23 项动态字段，套餐参数由后端读取，不能由客户覆盖。
 - 当前部署驱动只允许受控的 `manual` 标识，不接受脚本、密钥或任意部署命令。
 - 每个套餐必须归属一个产品；同名套餐可存在于不同产品中，套餐创建后不能跨产品转移。
 - 每个套餐必须绑定同一产品下的已发布实例模板版本；套餐创建后不能更换模板版本。
-- 选择模板版本后，套餐表单会直接展开模板参数：套餐限制参数在套餐中固定，客户参数可设置套餐默认值并在创建订阅时覆盖。
+- 选择模板版本后，套餐表单会直接展开模板参数：`plan` 参数在套餐中以 number / boolean / null 原生类型固定，`customer` 参数可设置默认值并在购买或创建订阅时填写。
 - 套餐价格使用最小货币单位保存，功能和限制保存在数据库中。
 - 客户详情和客户控制台读取当前套餐、订阅状态和应用实例状态。
 - 管理员创建、编辑并查看客户订阅。
@@ -232,11 +232,12 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `app_instance_templates`：归属产品的模板主记录
 - `app_instance_template_versions`：草稿、已发布、已归档的版本记录
 - `plans.template_version_id`：套餐绑定的不可变模板版本
-- `plans.template_configuration`：套餐为客户参数设置的默认值
+- `plans.template_configuration`：套餐级参数与客户参数默认值（保留原生 number / boolean / null）
 - `subscriptions.template_version_id` 与 `subscriptions.instance_configuration`
 - `app_instances.template_version_id` 与 `app_instances.configuration_snapshot`
 - 默认写入并复用“餐饮订单系统标准模板 v1”，旧套餐和订阅由迁移安全回填
 - 数据库触发器阻止跨产品模板、套餐/订阅模板不匹配、已发布版本内容修改以及实例快照与订阅不匹配
+- 模板 Schema v2 使用 `outputPath` 将版本快照编译为订单系统的 `entitlements`、`default_store` 和非敏感 `first_owner` JSON；订单控制面本身不接收 XML
 
 订阅必须关联 `workspace`、`product` 和该产品下的 `plan`。数据库使用触发器阻止产品与套餐不匹配，并使用条件唯一索引保证同一 `(workspace_id, product_id)` 同一时间最多一个当前订阅，同时保留已取消订阅作为历史记录；其他产品的当前订阅互不影响。付款记录关联 `workspace`，并可选关联订阅。`amount` 使用最小货币单位整数，避免浮点金额误差。应用实例关联 `workspace`、`product`，并可选关联订阅；对应套餐通过订阅读取，不在实例表重复保存。实例同时保存管理员填写的买家端 `access_url`、卖家端 `seller_apk_url`、`domain` / `slug` 和 `tenant_key`。
 

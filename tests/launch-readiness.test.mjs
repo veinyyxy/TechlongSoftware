@@ -90,7 +90,9 @@ test("multi-product subscription pages expose current and historical records", a
   assert.match(instanceManagement, /subscription_plan\.product_id = ai\.product_id/);
   assert.match(instanceDetail, /instance\.subscriptionPlanName/);
   assert.match(templateList, /应用实例模板管理/);
-  assert.match(templateVersionForm, /source=customer/);
+  assert.match(templateVersionForm, /动态参数定义/);
+  assert.match(templateVersionForm, /outputPath/);
+  assert.match(templateVersionForm, /value="customer"/);
   assert.match(planForm, /templateVersionId/);
   assert.match(planForm, /应用实例模板参数/);
   assert.match(planForm, /templateParameter\.\$\{field\.key\}/);

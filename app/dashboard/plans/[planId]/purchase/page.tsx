@@ -105,6 +105,7 @@ export default async function PurchasePage({
           <CustomerPurchaseForm
             endpoint={`/api/workspaces/${account.workspace.id}/purchase-orders`}
             initialConfiguration={initialConfiguration}
+            key={`${plan.id}:${validRenewal?.id ?? "new"}`}
             planId={plan.id}
             planName={`${plan.productName} · ${plan.name}`}
             renewalSubscriptionId={validRenewal?.id}

@@ -17,6 +17,7 @@ import {
 export interface AppInstanceTemplateView {
   id: string;
   productId: string;
+  productSlug: string;
   productName: string;
   productStatus: "active" | "inactive";
   name: string;
@@ -34,6 +35,7 @@ export interface AppInstanceTemplateVersionView {
   templateName: string;
   templateStatus: TemplateStatus;
   productId: string;
+  productSlug: string;
   productName: string;
   productStatus: "active" | "inactive";
   version: number;
@@ -49,6 +51,7 @@ export interface AppInstanceTemplateVersionView {
 type TemplateRow = {
   id: string;
   product_id: string;
+  product_slug: string;
   product_name: string;
   product_status: "active" | "inactive";
   name: string;
@@ -66,6 +69,7 @@ type TemplateVersionRow = {
   template_name: string;
   template_status: TemplateStatus;
   product_id: string;
+  product_slug: string;
   product_name: string;
   product_status: "active" | "inactive";
   version: number;
@@ -82,6 +86,7 @@ function toTemplateView(row: TemplateRow): AppInstanceTemplateView {
   return {
     id: row.id,
     productId: row.product_id,
+    productSlug: row.product_slug,
     productName: row.product_name,
     productStatus: row.product_status,
     name: row.name,
@@ -103,6 +108,7 @@ function toTemplateVersionView(
     templateName: row.template_name,
     templateStatus: row.template_status,
     productId: row.product_id,
+    productSlug: row.product_slug,
     productName: row.product_name,
     productStatus: row.product_status,
     version: Number(row.version),
@@ -119,7 +125,8 @@ function toTemplateVersionView(
 }
 
 const templateSelect = `
-  SELECT template.id, template.product_id, product.name AS product_name,
+  SELECT template.id, template.product_id, product.slug AS product_slug,
+    product.name AS product_name,
     product.status AS product_status, template.name, template.description,
     template.status,
     COUNT(version.id) AS version_count,
@@ -134,7 +141,8 @@ const templateSelect = `
 const templateVersionSelect = `
   SELECT version.id, version.template_id, template.name AS template_name,
     template.status AS template_status, template.product_id,
-    product.name AS product_name, product.status AS product_status,
+    product.slug AS product_slug, product.name AS product_name,
+    product.status AS product_status,
     version.version, version.configuration_schema,
     version.default_configuration, version.deployment_driver,
     version.deployment_workflow_version, version.status,
@@ -172,7 +180,7 @@ export async function listAppInstanceTemplates(input?: {
   const statement = getDatabase().prepare(
     `${templateSelect}
      ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
-     GROUP BY template.id, template.product_id, product.name, product.status,
+     GROUP BY template.id, template.product_id, product.slug, product.name, product.status,
        template.name, template.description, template.status,
        template.created_at, template.updated_at
      ORDER BY template.created_at DESC
@@ -192,7 +200,7 @@ export async function getAppInstanceTemplate(
     .prepare(
       `${templateSelect}
        WHERE template.id = ?
-       GROUP BY template.id, template.product_id, product.name, product.status,
+       GROUP BY template.id, template.product_id, product.slug, product.name, product.status,
          template.name, template.description, template.status,
          template.created_at, template.updated_at
        LIMIT 1`,

@@ -28,6 +28,8 @@ test("accepts customer configuration without trusting a client price or payment 
       storeName: "示例餐厅",
       theme: "warm",
       visitorLimit: 100,
+      storesMax: null,
+      customTheme: false,
     },
     amount: 1,
     paymentStatus: "paid",
@@ -39,6 +41,8 @@ test("accepts customer configuration without trusting a client price or payment 
       storeName: "示例餐厅",
       theme: "warm",
       visitorLimit: 100,
+      storesMax: null,
+      customTheme: false,
     },
   });
 });

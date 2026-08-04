@@ -93,6 +93,9 @@ export function PlanForm({
   const [selectedTemplateVersionId, setSelectedTemplateVersionId] = useState(
     initial?.templateVersionId ?? "",
   );
+  const [unlimitedParameters, setUnlimitedParameters] = useState<Record<string, boolean>>(
+    {},
+  );
   const availableTemplateVersions = templateVersions.filter(
     (version) => version.productId === selectedProductId,
   );
@@ -132,15 +135,39 @@ export function PlanForm({
     for (const field of selectedTemplateSchema.fields) {
       const fieldValue = formData.get(`templateParameter.${field.key}`);
       if (field.source === "plan_limit") {
+        if (
+          field.nullable &&
+          (field.type === "number" || field.type === "integer") &&
+          formData.get(`templateParameterMode.${field.key}`) === "unlimited"
+        ) {
+          if (field.limitKey) parsedLimits.limits[field.limitKey] = "unlimited";
+          continue;
+        }
         const limitValue = String(fieldValue ?? "").trim();
         if (field.limitKey && limitValue) {
           parsedLimits.limits[field.limitKey] = limitValue;
         }
         continue;
       }
+      if (
+        (field.type === "number" || field.type === "integer") &&
+        field.nullable &&
+        formData.get(`templateParameterMode.${field.key}`) === "unlimited"
+      ) {
+        templateConfiguration[field.key] = null;
+        continue;
+      }
       if (field.type === "boolean") {
-        templateConfiguration[field.key] = fieldValue === "on";
-      } else if (field.type === "number") {
+        if (
+          field.source !== "customer" ||
+          field.required ||
+          fieldValue === "true" ||
+          fieldValue === "false"
+        ) {
+          templateConfiguration[field.key] =
+            fieldValue === "on" || fieldValue === "true";
+        }
+      } else if (field.type === "number" || field.type === "integer") {
         const value = String(fieldValue ?? "").trim();
         if (value) templateConfiguration[field.key] = Number(value);
       } else {
@@ -222,6 +249,7 @@ export function PlanForm({
               onChange={(event) => {
                 setSelectedProductId(event.target.value);
                 setSelectedTemplateVersionId("");
+                setUnlimitedParameters({});
               }}
               required
               value={selectedProductId}
@@ -262,9 +290,22 @@ export function PlanForm({
                 !selectedProductId || !availableTemplateVersions.length
               }
               name="templateVersionId"
-              onChange={(event) =>
-                setSelectedTemplateVersionId(event.target.value)
-              }
+              onChange={(event) => {
+                const nextId = event.target.value;
+                const nextVersion = templateVersions.find((version) => version.id === nextId);
+                setSelectedTemplateVersionId(nextId);
+                setUnlimitedParameters(
+                  Object.fromEntries(
+                    (nextVersion?.configurationSchema.fields ?? [])
+                      .filter((field) => field.nullable)
+                      .map((field) => [
+                        field.key,
+                        Object.hasOwn(nextVersion?.defaultConfiguration ?? {}, field.key) &&
+                          nextVersion?.defaultConfiguration[field.key] === null,
+                      ]),
+                  ),
+                );
+              }}
               required
               value={selectedTemplateVersionId}
             >
@@ -311,61 +352,118 @@ export function PlanForm({
         ) : null}
         {selectedTemplateSchema.fields.map((field) => {
           const parameterKey = `${selectedTemplateVersionId || initial?.templateVersionId}:${field.key}`;
-          const value =
-            field.source === "plan_limit"
-              ? initial?.limits[field.limitKey ?? ""] ?? ""
-              : initial?.templateConfiguration[field.key] ??
-                selectedTemplateDefaults[field.key] ??
-                "";
+          const value = field.source === "plan_limit"
+            ? initial?.limits[field.limitKey ?? ""] ?? ""
+            : initial && Object.hasOwn(initial.templateConfiguration, field.key)
+              ? initial.templateConfiguration[field.key]
+              : Object.hasOwn(selectedTemplateDefaults, field.key)
+                ? selectedTemplateDefaults[field.key]
+                : "";
           const helpText =
             field.source === "plan_limit"
               ? `套餐固定值，保存到“${field.limitKey ?? field.label}”限制中，订阅时不能覆盖。`
-              : field.required
+              : field.source === "plan"
+                ? "套餐固定参数，客户购买时只能查看，不能覆盖。"
+                : field.required
                 ? "套餐默认值；可留空，但创建订阅时必须填写。"
                 : "套餐默认值；创建订阅时可以覆盖或不设置。";
+
+          if (field.type === "boolean" && field.source === "customer" && !field.required) {
+            return (
+              <label className="form-field" key={parameterKey}>
+                <span>{field.group ? `${field.group} · ` : ""}{field.label}</span>
+                <select
+                  defaultValue={value === true ? "true" : value === false ? "false" : ""}
+                  name={`templateParameter.${field.key}`}
+                >
+                  <option value="">沿用模板默认值</option>
+                  <option value="true">启用</option>
+                  <option value="false">停用</option>
+                </select>
+                <small>{helpText}</small>
+                {field.description ? <small>{field.description}</small> : null}
+              </label>
+            );
+          }
 
           if (field.type === "boolean") {
             return (
               <label className="check-field" key={parameterKey}>
                 <input
-                  defaultChecked={Boolean(value)}
+                  defaultChecked={value === true || value === "true"}
                   name={`templateParameter.${field.key}`}
                   type="checkbox"
                 />
                 <span>
                   <strong>{field.label}</strong>
                   <small>{helpText}</small>
+                  {field.description ? <small>{field.description}</small> : null}
                 </span>
               </label>
             );
           }
 
+          const isUnlimited =
+            unlimitedParameters[field.key] ??
+            (value === null || value === "unlimited");
           return (
             <label className="form-field" key={parameterKey}>
-              <span>{field.label}</span>
+              <span>{field.group ? `${field.group} · ` : ""}{field.label}{field.unit ? `（${field.unit}）` : ""}</span>
               {field.type === "select" ? (
                 <select
                   defaultValue={String(value)}
                   name={`templateParameter.${field.key}`}
                 >
-                  <option value="">订阅时填写</option>
+                  <option value="">{field.source === "plan" ? "请选择" : "订阅时填写"}</option>
                   {field.options?.map((option) => (
                     <option key={option} value={option}>
                       {option}
                     </option>
                   ))}
                 </select>
+              ) : field.nullable && (field.type === "number" || field.type === "integer") ? (
+                <div className="nullable-input-grid">
+                  <select
+                    name={`templateParameterMode.${field.key}`}
+                    onChange={(event) =>
+                      setUnlimitedParameters((current) => ({
+                        ...current,
+                        [field.key]: event.target.value === "unlimited",
+                      }))
+                    }
+                    value={isUnlimited ? "unlimited" : "value"}
+                  >
+                    <option value="unlimited">{field.nullLabel ?? "不限"}</option>
+                    <option value="value">指定数值</option>
+                  </select>
+                  <input
+                    defaultValue={value === null || value === "unlimited" ? "" : String(value)}
+                    disabled={isUnlimited}
+                    max={field.max}
+                    min={field.min}
+                    name={`templateParameter.${field.key}`}
+                    required={!isUnlimited && field.source === "plan" && field.required}
+                    step={field.type === "integer" ? 1 : "any"}
+                    type="number"
+                  />
+                </div>
               ) : (
                 <input
                   defaultValue={String(value)}
                   max={field.max}
+                  maxLength={field.maxLength}
                   min={field.min}
+                  minLength={field.minLength}
                   name={`templateParameter.${field.key}`}
-                  required={field.source === "plan_limit" && field.required}
-                  type={field.type === "number" ? "number" : "text"}
+                  placeholder={field.placeholder}
+                  required={(field.source === "plan" || field.source === "plan_limit") && field.required}
+                  step={field.type === "integer" ? 1 : field.type === "number" ? "any" : undefined}
+                  pattern={field.type === "color" ? "#[0-9A-Fa-f]{6}" : undefined}
+                  type={field.type === "number" || field.type === "integer" ? "number" : "text"}
                 />
               )}
               <small>{helpText}</small>
+              {field.description ? <small>{field.description}</small> : null}
               {fieldError(
                 field.source === "plan_limit"
                   ? "limits"

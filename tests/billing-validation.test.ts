@@ -18,11 +18,16 @@ test("validates a manual subscription period and supported status", () => {
     currentPeriodStart: Date.UTC(2026, 0, 1),
     currentPeriodEnd: Date.UTC(2026, 1, 1),
     cancelAtPeriodEnd: false,
+    instanceConfiguration: { storesMax: null, customTheme: false },
   });
 
   assert.equal(valid.data?.workspaceId, "wsp_one");
   assert.equal(valid.data?.productId, "prd_restaurant_order_system");
   assert.equal(valid.data?.status, "manual_pending");
+  assert.deepEqual(valid.data?.instanceConfiguration, {
+    storesMax: null,
+    customTheme: false,
+  });
 
   const invalid = validateSubscriptionInput({
     workspaceId: "",

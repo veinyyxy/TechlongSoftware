@@ -1266,6 +1266,118 @@ select {
   padding: 12px;
 }
 
+.parameter-section {
+  background: var(--background);
+  border: 1px solid rgba(23, 34, 27, 0.08);
+  border-radius: 16px;
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.parameter-editor-list {
+  display: grid;
+  gap: 12px;
+}
+
+.parameter-editor {
+  background: var(--surface);
+  border: 1px solid rgba(23, 34, 27, 0.1);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.parameter-editor > summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 5px 16px;
+  grid-template-columns: minmax(160px, 0.8fr) minmax(180px, 1fr) minmax(220px, 1.4fr);
+  list-style-position: inside;
+  padding: 16px 18px;
+}
+
+.parameter-editor > summary span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.parameter-editor > summary .form-error {
+  color: #a93d32;
+  grid-column: 1 / -1;
+}
+
+.parameter-editor > summary code,
+.parameter-section code {
+  color: var(--success);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.parameter-editor-body {
+  border-top: 1px solid rgba(23, 34, 27, 0.08);
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.parameter-editor-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.parameter-default {
+  background: var(--surface-muted);
+  border-radius: 12px;
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.nullable-input-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(120px, 0.6fr) minmax(140px, 1fr);
+}
+
+.rule-editor {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr) minmax(220px, 1.4fr) auto;
+}
+
+.rule-operator {
+  color: var(--muted);
+  font-size: 11px;
+  padding-bottom: 14px;
+}
+
+.schema-preview {
+  border: 1px solid rgba(23, 34, 27, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.schema-preview summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.schema-preview pre {
+  background: #102018;
+  border-radius: 10px;
+  color: #d9efe2;
+  font-size: 11px;
+  max-height: 440px;
+  overflow: auto;
+  padding: 16px;
+  white-space: pre-wrap;
+}
+
 .compact-error {
   max-width: 250px;
   padding-top: 6px;
@@ -1722,6 +1834,16 @@ select {
 
   .form-field-wide {
     grid-column: auto;
+  }
+
+  .parameter-editor > summary,
+  .rule-editor,
+  .nullable-input-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-operator {
+    padding: 0;
   }
 
   .auth-card {

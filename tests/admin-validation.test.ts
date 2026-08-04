@@ -40,13 +40,21 @@ test("validates database-backed plan fields without floating point prices", () =
     billingInterval: "month",
     features: ["订单管理", "菜单配置"],
     limits: { 门店数: "1", 成员数: "5" },
-    templateConfiguration: { theme: "warm" },
+    templateConfiguration: {
+      theme: "warm",
+      storesMax: null,
+      brandingCustomThemeEnabled: false,
+    },
   });
   assert.equal(valid.data?.currency, "CAD");
   assert.equal(valid.data?.productId, "prd_restaurant_order_system");
   assert.equal(valid.data?.priceAmount, 4900);
   assert.deepEqual(valid.data?.features, ["订单管理", "菜单配置"]);
-  assert.deepEqual(valid.data?.templateConfiguration, { theme: "warm" });
+  assert.deepEqual(valid.data?.templateConfiguration, {
+    theme: "warm",
+    storesMax: null,
+    brandingCustomThemeEnabled: false,
+  });
 
   const invalid = validatePlanInput({
     productId: "",

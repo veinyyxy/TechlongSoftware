@@ -40,8 +40,8 @@ export function validateCustomerPurchaseInput(
   if (renewalSubscriptionId && !validId(renewalSubscriptionId)) {
     errors.renewalSubscriptionId = ["续费订阅标识不正确。"];
   }
-  if (Object.keys(rawConfiguration).length > 30) {
-    errors.instanceConfiguration = ["实例配置最多 30 项。"];
+  if (Object.keys(rawConfiguration).length > 100) {
+    errors.instanceConfiguration = ["实例配置最多 100 项。"];
   }
   for (const [key, fieldValue] of Object.entries(rawConfiguration)) {
     if (!/^[a-z][A-Za-z0-9_]{1,63}$/.test(key)) {
@@ -49,15 +49,16 @@ export function validateCustomerPurchaseInput(
       break;
     }
     if (
+      fieldValue !== null &&
       typeof fieldValue !== "string" &&
       typeof fieldValue !== "number" &&
       typeof fieldValue !== "boolean"
     ) {
-      errors.instanceConfiguration = ["实例配置只支持文字、数字或布尔值。"];
+      errors.instanceConfiguration = ["实例配置只支持文字、数字、布尔值或 null。"];
       break;
     }
-    if (typeof fieldValue === "string" && fieldValue.length > 200) {
-      errors.instanceConfiguration = ["实例配置文字不能超过 200 个字符。"];
+    if (typeof fieldValue === "string" && fieldValue.length > 500) {
+      errors.instanceConfiguration = ["实例配置文字不能超过 500 个字符。"];
       break;
     }
     instanceConfiguration[key] = fieldValue;

@@ -349,10 +349,14 @@ async function assertPlanProductAssignable(
 async function assertPlanTemplateAssignable(
   templateVersionId: string,
   productId: string,
-): Promise<TemplateConfigurationSchema> {
+): Promise<{
+  schema: TemplateConfigurationSchema;
+  defaults: TemplateConfiguration;
+}> {
   const version = await getDatabase()
     .prepare(
-      `SELECT version.id, version.configuration_schema
+      `SELECT version.id, version.configuration_schema,
+         version.default_configuration
        FROM app_instance_template_versions version
        INNER JOIN app_instance_templates template
          ON template.id = version.template_id
@@ -364,7 +368,11 @@ async function assertPlanTemplateAssignable(
        LIMIT 1`,
     )
     .bind(templateVersionId, productId)
-    .first<{ id: string; configuration_schema: string }>();
+    .first<{
+      id: string;
+      configuration_schema: string;
+      default_configuration: string;
+    }>();
   if (!version) {
     throw new ManagementError(
       "TEMPLATE_VERSION_NOT_ASSIGNABLE",
@@ -372,7 +380,10 @@ async function assertPlanTemplateAssignable(
       400,
     );
   }
-  return parseConfigurationSchema(version.configuration_schema);
+  return {
+    schema: parseConfigurationSchema(version.configuration_schema),
+    defaults: parseTemplateConfiguration(version.default_configuration),
+  };
 }
 
 function assertTemplatePlanLimits(
@@ -390,13 +401,15 @@ function assertTemplatePlanLimits(
 }
 
 export async function createPlan(input: PlanInput): Promise<PlanView> {
-  const [, templateSchema] = await Promise.all([
+  const [, templateVersion] = await Promise.all([
     assertPlanProductAssignable(input.productId),
     assertPlanTemplateAssignable(input.templateVersionId, input.productId),
   ]);
+  const templateSchema = templateVersion.schema;
   assertTemplatePlanLimits(templateSchema, input.limits);
   const planTemplateConfiguration = resolvePlanTemplateConfiguration({
     schema: templateSchema,
+    defaults: templateVersion.defaults,
     requested: input.templateConfiguration,
   });
   if (!planTemplateConfiguration.data) {
@@ -476,6 +489,7 @@ export async function updatePlan(
   assertTemplatePlanLimits(existing.templateConfigurationSchema, input.limits);
   const planTemplateConfiguration = resolvePlanTemplateConfiguration({
     schema: existing.templateConfigurationSchema,
+    defaults: existing.templateDefaultConfiguration,
     requested: input.templateConfiguration,
   });
   if (!planTemplateConfiguration.data) {

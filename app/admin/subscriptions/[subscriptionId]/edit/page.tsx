@@ -66,6 +66,7 @@ export default async function EditSubscriptionPage({
       </header>
       <section className="form-panel">
         <SubscriptionForm
+          key={subscription.id}
           customers={[]}
           initial={{
             workspaceId: subscription.workspaceId,

@@ -6,6 +6,7 @@ import {
   getAppInstanceTemplate,
   listAppInstanceTemplateVersions,
 } from "@/lib/templates/management";
+import { getTemplateVersionPreset } from "@/lib/templates/presets";
 
 export const metadata: Metadata = { title: "新建模板版本" };
 export const dynamic = "force-dynamic";
@@ -34,6 +35,20 @@ export default async function NewTemplateVersionPage({
     );
   }
   const nextVersion = Math.max(0, ...versions.map((version) => version.version)) + 1;
+  const latestVersion = versions.reduce(
+    (latest, version) =>
+      !latest || version.version > latest.version ? version : latest,
+    versions[0] ?? null,
+  );
+  const productPreset = getTemplateVersionPreset(template.productSlug);
+  const preset =
+    latestVersion?.configurationSchema.schemaVersion === 2
+      ? {
+          name: `${latestVersion.templateName} · v${latestVersion.version} 副本`,
+          configurationSchema: latestVersion.configurationSchema,
+          defaultConfiguration: latestVersion.defaultConfiguration,
+        }
+      : productPreset;
   return (
     <>
       <header className="page-header">
@@ -44,7 +59,9 @@ export default async function NewTemplateVersionPage({
       <section className="form-panel">
         <AppInstanceTemplateVersionForm
           defaultVersion={nextVersion}
+          key={`${template.id}:${nextVersion}`}
           mode="create"
+          preset={preset ?? undefined}
           templateId={template.id}
         />
       </section>

@@ -44,6 +44,7 @@ export default async function EditTemplateVersionPage({
       </header>
       <section className="form-panel">
         <AppInstanceTemplateVersionForm
+          key={version.id}
           initial={{
             version: version.version,
             configurationSchema: version.configurationSchema,

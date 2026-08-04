@@ -144,11 +144,11 @@ export function validatePlanInput(value: unknown): ValidationResult<PlanInput> {
   }
 
   const rawTemplateConfiguration = asRecord(input.templateConfiguration);
-  if (Object.keys(rawTemplateConfiguration).length > 30) {
+  if (Object.keys(rawTemplateConfiguration).length > 100) {
     addError(
       errors,
       "templateConfiguration",
-      "套餐模板参数最多 30 项。",
+      "套餐模板参数最多 100 项。",
     );
   }
   for (const [key, parameterValue] of Object.entries(
@@ -163,6 +163,7 @@ export function validatePlanInput(value: unknown): ValidationResult<PlanInput> {
       break;
     }
     if (
+      parameterValue !== null &&
       typeof parameterValue !== "string" &&
       typeof parameterValue !== "number" &&
       typeof parameterValue !== "boolean"
@@ -170,15 +171,15 @@ export function validatePlanInput(value: unknown): ValidationResult<PlanInput> {
       addError(
         errors,
         "templateConfiguration",
-        "套餐模板参数只支持文字、数字或布尔值。",
+        "套餐模板参数只支持文字、数字、布尔值或 null。",
       );
       break;
     }
-    if (typeof parameterValue === "string" && parameterValue.length > 200) {
+    if (typeof parameterValue === "string" && parameterValue.length > 500) {
       addError(
         errors,
         "templateConfiguration",
-        "套餐模板参数文字不能超过 200 个字符。",
+        "套餐模板参数文字不能超过 500 个字符。",
       );
       break;
     }

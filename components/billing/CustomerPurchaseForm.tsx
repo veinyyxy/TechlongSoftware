@@ -26,6 +26,14 @@ export function CustomerPurchaseForm({
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [unlimitedFields, setUnlimitedFields] = useState<Record<string, boolean>>(
+    () =>
+      Object.fromEntries(
+        schema.fields
+          .filter((field) => field.source === "customer" && field.nullable)
+          .map((field) => [field.key, initialConfiguration[field.key] === null]),
+      ),
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,9 +45,20 @@ export function CustomerPurchaseForm({
     for (const field of schema.fields) {
       if (field.source !== "customer") continue;
       const rawValue = formData.get(`instanceConfiguration.${field.key}`);
+      if (
+        field.nullable &&
+        (field.type === "number" || field.type === "integer") &&
+        formData.get(`instanceConfigurationMode.${field.key}`) === "unlimited"
+      ) {
+        instanceConfiguration[field.key] = null;
+        continue;
+      }
       if (field.type === "boolean") {
-        instanceConfiguration[field.key] = rawValue === "on";
-      } else if (field.type === "number") {
+        if (field.required || rawValue === "true" || rawValue === "false") {
+          instanceConfiguration[field.key] =
+            rawValue === "on" || rawValue === "true";
+        }
+      } else if (field.type === "number" || field.type === "integer") {
         const value = String(rawValue ?? "").trim();
         if (value) instanceConfiguration[field.key] = Number(value);
       } else {
@@ -84,39 +103,48 @@ export function CustomerPurchaseForm({
   const fieldError = (key: string) =>
     fieldErrors[`instanceConfiguration.${key}`]?.[0];
 
+  const displayValue = (
+    value: TemplateConfiguration[string],
+    nullLabel = "不限",
+  ) => {
+    if (value === null) return nullLabel;
+    if (value === "unlimited") return nullLabel;
+    if (value === true) return "启用";
+    if (value === false) return "停用";
+    if (value === "" || value === undefined) return "未配置";
+    return String(value);
+  };
+
   return (
     <form className="admin-form" onSubmit={handleSubmit}>
       <div className="form-grid">
         {schema.fields.map((field) => {
-          const value = initialConfiguration[field.key] ?? "";
-          if (field.source === "plan_limit") {
+          const value = Object.hasOwn(initialConfiguration, field.key)
+            ? initialConfiguration[field.key]
+            : "";
+          if (field.source !== "customer") {
             return (
               <label className="form-field" key={field.key}>
-                <span>{field.label}</span>
-                <input disabled value={String(value || "由套餐确定")} />
-                <small>此项由套餐限制决定，购买时不能修改。</small>
+                <span>{field.group ? `${field.group} · ` : ""}{field.label}{field.unit ? `（${field.unit}）` : ""}</span>
+                <input disabled value={displayValue(value, field.nullLabel)} />
+                <small>此项由套餐决定，购买时不能修改。</small>
+                {field.description ? <small>{field.description}</small> : null}
               </label>
             );
           }
           if (renewalSubscriptionId) {
             return (
               <label className="form-field" key={field.key}>
-                <span>{field.label}</span>
+                <span>{field.group ? `${field.group} · ` : ""}{field.label}</span>
                 <input
                   disabled
-                  value={
-                    field.type === "boolean"
-                      ? value
-                        ? "是"
-                        : "否"
-                      : String(value)
-                  }
+                  value={displayValue(value, field.nullLabel)}
                 />
                 <small>续费沿用当前实例配置。</small>
               </label>
             );
           }
-          if (field.type === "boolean") {
+          if (field.type === "boolean" && field.required) {
             return (
               <label className="check-field" key={field.key}>
                 <input
@@ -127,13 +155,31 @@ export function CustomerPurchaseForm({
                 <span>
                   <strong>{field.label}</strong>
                   <small>此项会保存到待开通应用实例配置。</small>
+                  {field.description ? <small>{field.description}</small> : null}
                 </span>
               </label>
             );
           }
+          if (field.type === "boolean") {
+            return (
+              <label className="form-field" key={field.key}>
+                <span>{field.group ? `${field.group} · ` : ""}{field.label}</span>
+                <select
+                  defaultValue={value === true ? "true" : value === false ? "false" : ""}
+                  name={`instanceConfiguration.${field.key}`}
+                >
+                  <option value="">不设置</option>
+                  <option value="true">启用</option>
+                  <option value="false">停用</option>
+                </select>
+                {field.description ? <small>{field.description}</small> : null}
+              </label>
+            );
+          }
+          const isUnlimited = unlimitedFields[field.key] ?? value === null;
           return (
             <label className="form-field" key={field.key}>
-              <span>{field.label}</span>
+              <span>{field.group ? `${field.group} · ` : ""}{field.label}{field.unit ? `（${field.unit}）` : ""}</span>
               {field.type === "select" ? (
                 <select
                   defaultValue={String(value)}
@@ -147,16 +193,48 @@ export function CustomerPurchaseForm({
                     </option>
                   ))}
                 </select>
+              ) : field.nullable && (field.type === "number" || field.type === "integer") ? (
+                <div className="nullable-input-grid">
+                  <select
+                    name={`instanceConfigurationMode.${field.key}`}
+                    onChange={(event) =>
+                      setUnlimitedFields((current) => ({
+                        ...current,
+                        [field.key]: event.target.value === "unlimited",
+                      }))
+                    }
+                    value={isUnlimited ? "unlimited" : "value"}
+                  >
+                    <option value="unlimited">{field.nullLabel ?? "不限"}</option>
+                    <option value="value">指定数值</option>
+                  </select>
+                  <input
+                    defaultValue={value === null ? "" : String(value)}
+                    disabled={isUnlimited}
+                    max={field.max}
+                    min={field.min}
+                    name={`instanceConfiguration.${field.key}`}
+                    required={field.required && !isUnlimited}
+                    step={field.type === "integer" ? 1 : "any"}
+                    type="number"
+                  />
+                </div>
               ) : (
                 <input
                   defaultValue={String(value)}
                   max={field.max}
+                  maxLength={field.maxLength}
                   min={field.min}
+                  minLength={field.minLength}
                   name={`instanceConfiguration.${field.key}`}
+                  placeholder={field.placeholder}
                   required={field.required}
-                  type={field.type === "number" ? "number" : field.type}
+                  step={field.type === "integer" ? 1 : field.type === "number" ? "any" : undefined}
+                  pattern={field.type === "color" ? "#[0-9A-Fa-f]{6}" : undefined}
+                  type={field.type === "number" || field.type === "integer" ? "number" : field.type === "color" ? "text" : field.type}
                 />
               )}
+              {field.description ? <small>{field.description}</small> : null}
               {fieldError(field.key) ? (
                 <small className="form-error">
                   {fieldError(field.key)}
