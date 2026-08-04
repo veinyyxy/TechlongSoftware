@@ -96,6 +96,10 @@ test("multi-product subscription pages expose current and historical records", a
   assert.match(planForm, /templateVersionId/);
   assert.match(planForm, /应用实例模板参数/);
   assert.match(planForm, /templateParameter\.\$\{field\.key\}/);
+  assert.doesNotMatch(planForm, /其他额度与限制/);
+  assert.doesNotMatch(planForm, /name="limits"/);
+  assert.match(planForm, /limits: planLimits/);
+  assert.match(planForm, /field\.source === "plan_limit"/);
   assert.match(subscriptionForm, /instanceConfiguration/);
   assert.match(instanceDetail, /configurationSnapshot/);
   assert.doesNotMatch(newSubscription, /subscribedWorkspaceIds/);

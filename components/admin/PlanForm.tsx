@@ -55,27 +55,6 @@ function parsePrice(value: string): number | null {
   return Number.isSafeInteger(amount) ? amount : null;
 }
 
-function parseLimits(value: string): {
-  limits: Record<string, string>;
-  error: string;
-} {
-  const limits: Record<string, string> = {};
-  for (const line of value.split(/\r?\n/)) {
-    if (!line.trim()) continue;
-    const separator = line.indexOf("=");
-    if (separator < 1) {
-      return { limits: {}, error: "每个限制项请使用“名称=值”的格式。" };
-    }
-    const key = line.slice(0, separator).trim();
-    const limitValue = line.slice(separator + 1).trim();
-    if (!key || !limitValue) {
-      return { limits: {}, error: "限制项名称和值都不能为空。" };
-    }
-    limits[key] = limitValue;
-  }
-  return { limits, error: "" };
-}
-
 export function PlanForm({
   mode,
   planId,
@@ -122,15 +101,16 @@ export function PlanForm({
 
     const formData = new FormData(event.currentTarget);
     const priceAmount = parsePrice(String(formData.get("price") ?? ""));
-    const parsedLimits = parseLimits(String(formData.get("limits") ?? ""));
     if (priceAmount === null) {
       setFieldErrors({ priceAmount: ["请输入最多两位小数的非负金额。"] });
       return;
     }
-    if (parsedLimits.error) {
-      setFieldErrors({ limits: [parsedLimits.error] });
-      return;
-    }
+    // Keep existing legacy limits when editing. Template-managed limit fields
+    // below remain editable, while the removed free-form field can no longer
+    // silently erase values that may still be needed by historical templates.
+    const planLimits: Record<string, string> = initial
+      ? { ...initial.limits }
+      : {};
     const templateConfiguration: Record<string, unknown> = {};
     for (const field of selectedTemplateSchema.fields) {
       const fieldValue = formData.get(`templateParameter.${field.key}`);
@@ -140,12 +120,14 @@ export function PlanForm({
           (field.type === "number" || field.type === "integer") &&
           formData.get(`templateParameterMode.${field.key}`) === "unlimited"
         ) {
-          if (field.limitKey) parsedLimits.limits[field.limitKey] = "unlimited";
+          if (field.limitKey) planLimits[field.limitKey] = "unlimited";
           continue;
         }
         const limitValue = String(fieldValue ?? "").trim();
         if (field.limitKey && limitValue) {
-          parsedLimits.limits[field.limitKey] = limitValue;
+          planLimits[field.limitKey] = limitValue;
+        } else if (field.limitKey) {
+          delete planLimits[field.limitKey];
         }
         continue;
       }
@@ -189,7 +171,7 @@ export function PlanForm({
       currency: String(formData.get("currency") ?? ""),
       billingInterval: String(formData.get("billingInterval") ?? ""),
       features,
-      limits: parsedLimits.limits,
+      limits: planLimits,
       templateConfiguration,
     };
 
@@ -222,12 +204,6 @@ export function PlanForm({
   }
 
   const fieldError = (name: string) => fieldErrors[name]?.[0];
-  const limitsValue = initial
-    ? Object.entries(initial.limits)
-        .filter(([key]) => !requiredLimitKeys.includes(key))
-        .map(([key, value]) => `${key}=${value}`)
-        .join("\n")
-    : "";
 
   return (
     <form className="admin-form" onSubmit={handleSubmit}>
@@ -346,7 +322,7 @@ export function PlanForm({
           <div className="form-field form-field-wide">
             <span>应用实例模板参数</span>
             <small>
-              套餐固定参数会写入套餐限制；客户参数是订阅时的默认值，创建客户订阅时仍可按实际需求覆盖。
+              套餐固定参数会保存为套餐配置；客户参数是订阅时的默认值，创建客户订阅时仍可按实际需求覆盖。
             </small>
           </div>
         ) : null}
@@ -551,7 +527,7 @@ export function PlanForm({
             </small>
           ) : null}
         </label>
-        <label className="form-field">
+        <label className="form-field form-field-wide">
           <span>功能列表</span>
           <textarea
             defaultValue={initial?.features.join("\n")}
@@ -562,21 +538,6 @@ export function PlanForm({
           <small>每行一项，内容会保存到数据库。</small>
           {fieldError("features") ? (
             <small className="form-error">{fieldError("features")}</small>
-          ) : null}
-        </label>
-        <label className="form-field">
-          <span>其他额度与限制</span>
-          <textarea
-            defaultValue={limitsValue}
-            name="limits"
-            placeholder={"门店数=1\n成员数=5\n每月订单量=5000"}
-            rows={7}
-          />
-          <small>
-            每行使用“名称=值”。模板已经显示的固定参数不需要在这里重复填写。
-          </small>
-          {fieldError("limits") ? (
-            <small className="form-error">{fieldError("limits")}</small>
           ) : null}
         </label>
       </div>
