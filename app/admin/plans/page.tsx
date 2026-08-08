@@ -10,6 +10,7 @@ import {
   planStatusLabels,
 } from "@/lib/admin/presentation";
 import { isPlanStatus } from "@/lib/admin/validation";
+import { getDeploymentProfile } from "@/lib/deployments/profiles";
 
 export const metadata: Metadata = { title: "套餐管理" };
 export const dynamic = "force-dynamic";
@@ -77,6 +78,7 @@ export default async function PlansPage({ searchParams }: PlansPageProps) {
               <span>
                 {Object.keys(plan.templateConfiguration).length} 项模板默认参数
               </span>
+              <span>{getDeploymentProfile(plan.deploymentProfileKey).label}</span>
             </div>
             {plan.features.length ? (
               <ul className="value-list compact-list">

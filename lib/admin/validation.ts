@@ -1,3 +1,8 @@
+import {
+  isDeploymentProfileKey,
+  type DeploymentProfileKey,
+} from "../deployments/profiles.ts";
+
 export type FieldErrors = Record<string, string[]>;
 
 export interface CustomerInput {
@@ -14,6 +19,7 @@ export interface PlanInput {
   priceAmount: number;
   currency: string;
   billingInterval: "month" | "year";
+  deploymentProfileKey: DeploymentProfileKey;
   features: string[];
   limits: Record<string, string>;
   templateConfiguration: Record<string, unknown>;
@@ -81,6 +87,7 @@ export function validatePlanInput(value: unknown): ValidationResult<PlanInput> {
   const description = asTrimmedString(input.description);
   const currency = asTrimmedString(input.currency).toUpperCase();
   const billingInterval = asTrimmedString(input.billingInterval);
+  const deploymentProfileKey = asTrimmedString(input.deploymentProfileKey);
   const priceAmount =
     typeof input.priceAmount === "number" ? input.priceAmount : Number.NaN;
 
@@ -108,6 +115,9 @@ export function validatePlanInput(value: unknown): ValidationResult<PlanInput> {
   }
   if (billingInterval !== "month" && billingInterval !== "year") {
     addError(errors, "billingInterval", "请选择月付或年付周期。");
+  }
+  if (!isDeploymentProfileKey(deploymentProfileKey)) {
+    addError(errors, "deploymentProfileKey", "请选择有效的部署资源档位。");
   }
 
   const features = Array.isArray(input.features)
@@ -196,6 +206,7 @@ export function validatePlanInput(value: unknown): ValidationResult<PlanInput> {
             priceAmount,
             currency,
             billingInterval: billingInterval as "month" | "year",
+            deploymentProfileKey: deploymentProfileKey as DeploymentProfileKey,
             features,
             limits,
             templateConfiguration: rawTemplateConfiguration,

@@ -1,7 +1,7 @@
 export const platformConfig = {
   name: process.env.NEXT_PUBLIC_PLATFORM_NAME ?? "餐饮 SaaS 平台",
   productName: "餐饮订单系统",
-  phase: "customer-self-service-payment",
+  phase: "customer-self-service-and-aws-plan-only",
   stack: [
     "TypeScript",
     "React 19",
@@ -14,7 +14,8 @@ export const platformConfig = {
   mvpFlow: [
     "管理员发布产品、套餐与实例模板",
     "企业 Owner 自助选择套餐并安全在线付款",
-    "已验证付款后自动创建待开通实例记录",
+    "已验证付款后自动创建订阅与待开通实例",
+    "系统生成 AWS Cell plan-only 部署计划（不调用 AWS）",
     "管理员登记餐饮订单系统入口",
     "手动开通或暂停客户实例",
     "客户在 Dashboard 查看服务状态并进入自己的应用",

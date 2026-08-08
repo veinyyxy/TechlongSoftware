@@ -13,6 +13,8 @@ import {
   type SubscriptionStatus,
 } from "@/lib/billing/management";
 import { randomId } from "@/lib/domain/ids";
+import { ensurePlannedAppInstanceDeployment } from "@/lib/deployments/management";
+import type { DeploymentProfileKey } from "@/lib/deployments/profiles";
 import { upsertWorkspaceProductEntitlementStatement } from "@/lib/entitlements/management";
 import {
   preparePendingAppInstance,
@@ -21,6 +23,7 @@ import {
 } from "@/lib/instances/management";
 import {
   createStripeCheckoutSession,
+  expireStripeCheckoutSession,
   retrieveStripeCheckoutSession,
   type StripeWebhookEvent,
 } from "@/lib/payments/stripe";
@@ -60,6 +63,7 @@ export interface PurchaseOrderView {
   amount: number;
   currency: string;
   billingInterval: BillingInterval;
+  deploymentProfileKey: DeploymentProfileKey;
   status: PurchaseOrderStatus;
   provider: string;
   providerSessionId: string | null;
@@ -94,6 +98,7 @@ interface PurchaseOrderRow {
   amount: number;
   currency: string;
   billing_interval: BillingInterval;
+  deployment_profile_key: DeploymentProfileKey;
   status: PurchaseOrderStatus;
   provider: string;
   provider_session_id: string | null;
@@ -119,6 +124,7 @@ const purchaseOrderSelect = `
     purchase.payment_record_id, payment.status AS payment_status,
     purchase.order_type, purchase.configuration_snapshot,
     purchase.amount, purchase.currency, purchase.billing_interval,
+    purchase.deployment_profile_key,
     purchase.status, purchase.provider, purchase.provider_session_id,
     purchase.provider_payment_id, purchase.checkout_url,
     purchase.failure_reason, purchase.created_by_user_id,
@@ -141,6 +147,7 @@ function parseConfiguration(value: string): TemplateConfiguration {
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
     return Object.fromEntries(
       Object.entries(parsed).filter(([, item]) =>
+        item === null ||
         typeof item === "string" ||
         typeof item === "number" ||
         typeof item === "boolean"
@@ -172,6 +179,7 @@ function toPurchaseOrderView(row: PurchaseOrderRow): PurchaseOrderView {
     amount: Number(row.amount),
     currency: row.currency,
     billingInterval: row.billing_interval,
+    deploymentProfileKey: row.deployment_profile_key,
     status: row.status,
     provider: row.provider,
     providerSessionId: row.provider_session_id,
@@ -433,9 +441,9 @@ export async function createCustomerPurchaseCheckout(input: {
             id, workspace_id, product_id, plan_id, template_version_id,
             subscription_id, renewal_subscription_id, payment_record_id,
             order_type, configuration_snapshot, amount, currency,
-            billing_interval, status, provider, created_by_user_id,
-            expires_at, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?,
+            billing_interval, deployment_profile_key, status, provider,
+            created_by_user_id, expires_at, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?,
             'draft', 'stripe', ?, ?, ?, ?)`,
         )
         .bind(
@@ -451,6 +459,7 @@ export async function createCustomerPurchaseCheckout(input: {
           plan.priceAmount,
           plan.currency,
           plan.billingInterval,
+          plan.deploymentProfileKey,
           input.initiatedByUserId,
           reservationExpiresAt,
           now,
@@ -549,6 +558,45 @@ export async function cancelWorkspacePurchaseOrder(
   if (order.status === "paid" || order.payment_status === "paid") {
     return toPurchaseOrderView(order);
   }
+  if (order.provider_session_id) {
+    const session = await expireStripeCheckoutSession(
+      order.provider_session_id,
+    );
+    if (
+      asString(session.metadata.subscription_purchase_order_id) !== order.id
+    ) {
+      throw new ManagementError(
+        "PURCHASE_ORDER_STRIPE_MISMATCH",
+        "Stripe 付款会话与当前订单不匹配，未取消本地订单。",
+        409,
+      );
+    }
+    if (session.paymentStatus === "paid") {
+      await completePurchaseOrder(order, {
+        id: `stripe_order_cancel_sync_${session.id}`,
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: session.id,
+            payment_status: session.paymentStatus,
+            status: session.status,
+            payment_intent: session.paymentIntentId,
+            amount_total: session.amountTotal,
+            currency: session.currency,
+            metadata: session.metadata,
+          },
+        },
+      });
+      return getWorkspacePurchaseOrder(workspaceId, purchaseOrderId);
+    }
+    if (session.status !== "expired") {
+      throw new ManagementError(
+        "PURCHASE_ORDER_NOT_CANCELABLE",
+        "Stripe 付款正在处理中，暂时不能取消，请稍后刷新付款状态。",
+        409,
+      );
+    }
+  }
   const now = Date.now();
   await getDatabase().batch([
     getDatabase()
@@ -566,7 +614,7 @@ export async function cancelWorkspacePurchaseOrder(
          SET status = 'canceled',
              failure_reason = '客户取消了 Stripe Checkout 付款。',
              updated_at = ?
-         WHERE id = ? AND status = 'pending'`,
+         WHERE id = ? AND status IN ('pending', 'failed')`,
       )
       .bind(now, order.payment_record_id),
   ]);
@@ -664,6 +712,55 @@ async function completePurchaseOrder(
   event: StripeWebhookEvent,
 ): Promise<void> {
   const fresh = (await getPurchaseOrderRow(order.id)) ?? order;
+  if (fresh.status === "canceled" || fresh.status === "expired") {
+    if (fresh.payment_status !== "paid") {
+      assertStripeAmountMatches(fresh, event.data.object);
+      const now = Date.now();
+      const { providerSessionId, providerPaymentId } =
+        providerIdentifiers(event, fresh);
+      const reviewNote =
+        `Stripe 在订单${fresh.status === "canceled" ? "取消" : "过期"}后确认收款；` +
+        "系统未自动创建订阅或实例，请管理员核对退款或应急补录。";
+      await getDatabase().batch([
+        getDatabase()
+          .prepare(
+            `UPDATE payment_records
+             SET status = 'paid', paid_at = ?, provider_payment_id = ?,
+                 provider_event_id = ?, reference = ?, note = ?,
+                 failure_reason = ?, updated_at = ?
+             WHERE id = ? AND status <> 'paid'`,
+          )
+          .bind(
+            now,
+            providerPaymentId,
+            event.id,
+            providerSessionId,
+            reviewNote,
+            reviewNote,
+            now,
+            fresh.payment_record_id,
+          ),
+        getDatabase()
+          .prepare(
+            `UPDATE subscription_purchase_orders
+             SET provider_session_id = ?, provider_payment_id = ?,
+                 status = 'paid',
+                 completed_at = COALESCE(completed_at, ?),
+                 failure_reason = ?, updated_at = ?
+             WHERE id = ? AND status IN ('canceled', 'expired')`,
+          )
+          .bind(
+            providerSessionId,
+            providerPaymentId,
+            now,
+            reviewNote,
+            now,
+            fresh.id,
+          ),
+      ]);
+    }
+    return;
+  }
   if (fresh.status !== "paid" || fresh.payment_status !== "paid") {
     assertStripeAmountMatches(fresh, event.data.object);
     const now = Date.now();
@@ -701,13 +798,14 @@ async function completePurchaseOrder(
             `UPDATE subscriptions
              SET status = 'active', current_period_start = ?,
                  current_period_end = ?, cancel_at_period_end = 0,
-                 updated_at = ?
+                 deployment_profile_key = ?, updated_at = ?
              WHERE id = ? AND workspace_id = ? AND product_id = ?
                AND status IN ('active', 'past_due')`,
           )
           .bind(
             periodStart,
             addBillingPeriod(periodAnchor, fresh.billing_interval),
+            fresh.deployment_profile_key,
             now,
             subscription.id,
             fresh.workspace_id,
@@ -734,9 +832,9 @@ async function completePurchaseOrder(
               id, workspace_id, product_id, plan_id, template_version_id,
               instance_configuration, status, current_period_start,
               current_period_end, cancel_at_period_end, creation_source,
-              created_by_user_id, created_at, updated_at
+              deployment_profile_key, created_by_user_id, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, 0,
-              'customer_checkout', ?, ?, ?)`,
+              'customer_checkout', ?, ?, ?, ?)`,
           )
           .bind(
             subscriptionId,
@@ -747,6 +845,7 @@ async function completePurchaseOrder(
             fresh.configuration_snapshot,
             now,
             addBillingPeriod(now, fresh.billing_interval),
+            fresh.deployment_profile_key,
             fresh.created_by_user_id,
             now,
             now,
@@ -801,7 +900,9 @@ async function completePurchaseOrder(
   }
 
   const confirmed = await getPurchaseOrderRow(fresh.id);
-  if (confirmed) await ensureApplicationEntitlement(confirmed);
+  if (confirmed && !confirmed.failure_reason) {
+    await ensureApplicationEntitlement(confirmed);
+  }
 }
 
 async function ensureApplicationEntitlement(
@@ -837,13 +938,31 @@ async function ensureApplicationEntitlement(
   }
   const instance = await getDatabase()
     .prepare(
-      `SELECT id, status
+      `SELECT id, status, tenant_key
        FROM app_instances
        WHERE workspace_id = ? AND product_id = ?
        LIMIT 1`,
     )
     .bind(order.workspace_id, order.product_id)
-    .first<{ id: string; status: AppInstanceStatus }>();
+    .first<{
+      id: string;
+      status: AppInstanceStatus;
+      tenant_key: string;
+    }>();
+  if (instance) {
+    await ensurePlannedAppInstanceDeployment({
+      appInstanceId: instance.id,
+      subscriptionId,
+      purchaseOrderId: order.id,
+      workspaceId: order.workspace_id,
+      productId: order.product_id,
+      planId: order.plan_id,
+      templateVersionId: order.template_version_id,
+      tenantKey: instance.tenant_key,
+      deploymentProfileKey: order.deployment_profile_key,
+      now,
+    });
+  }
   await upsertWorkspaceProductEntitlementStatement({
     workspaceId: order.workspace_id,
     productId: order.product_id,
@@ -876,7 +995,7 @@ async function failPurchaseOrder(
          SET status = 'failed', provider_payment_id = ?,
              provider_event_id = ?, reference = ?, failure_reason = ?,
              updated_at = ?
-         WHERE id = ? AND status <> 'paid'`,
+         WHERE id = ? AND status IN ('pending', 'failed')`,
       )
       .bind(
         providerPaymentId,
@@ -890,8 +1009,8 @@ async function failPurchaseOrder(
       .prepare(
         `UPDATE subscription_purchase_orders
          SET provider_session_id = ?, provider_payment_id = ?,
-             status = 'failed', failure_reason = ?, updated_at = ?
-         WHERE id = ? AND status <> 'paid'`,
+             status = 'checkout_pending', failure_reason = ?, updated_at = ?
+         WHERE id = ? AND status IN ('draft', 'checkout_pending', 'failed')`,
       )
       .bind(
         providerSessionId,
@@ -915,7 +1034,7 @@ async function expirePurchaseOrder(
         `UPDATE payment_records
          SET status = 'canceled', provider_event_id = ?,
              failure_reason = 'Stripe Checkout 已过期。', updated_at = ?
-         WHERE id = ? AND status = 'pending'`,
+         WHERE id = ? AND status IN ('pending', 'failed')`,
       )
       .bind(event.id, now, order.payment_record_id),
     getDatabase()
@@ -923,7 +1042,7 @@ async function expirePurchaseOrder(
         `UPDATE subscription_purchase_orders
          SET status = 'expired', failure_reason = 'Stripe Checkout 已过期。',
              updated_at = ?
-         WHERE id = ? AND status <> 'paid'`,
+         WHERE id = ? AND status IN ('draft', 'checkout_pending', 'failed')`,
       )
       .bind(now, order.id),
   ]);

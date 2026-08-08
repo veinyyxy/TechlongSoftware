@@ -119,11 +119,8 @@ export default async function CustomerDetailPage({
             </div>
           </dl>
           <div className="notice notice-neutral">
-            订阅和应用实例由平台管理员维护；Stripe 只确认付款，不会触发自动部署。
+            客户付款后，系统自动创建订阅、pending 实例和 AWS plan-only 部署计划；管理员负责检查和最终开通，本阶段不会调用 AWS。
           </div>
-          <Link className="table-link" href={`/admin/subscriptions/new?workspaceId=${encodeURIComponent(customer.id)}`}>
-            为客户创建订阅 →
-          </Link>
         </section>
 
         <CustomerInvitationCard
@@ -138,9 +135,6 @@ export default async function CustomerDetailPage({
             <h2>当前订阅</h2>
             <p>按产品显示；同一产品最多一条当前订阅</p>
           </div>
-          <Link className="table-link" href={`/admin/subscriptions/new?workspaceId=${encodeURIComponent(customer.id)}`}>
-            创建订阅
-          </Link>
         </div>
         {billing.currentSubscriptions.length ? (
           <div className="table-wrap">
@@ -168,7 +162,7 @@ export default async function CustomerDetailPage({
         ) : (
           <div className="empty-state">
             <strong>暂无当前订阅</strong>
-            <p>可以为该客户创建新的产品订阅。</p>
+            <p>客户可以登录自己的工作区，选择套餐并完成付款。</p>
           </div>
         )}
       </section>
@@ -216,9 +210,6 @@ export default async function CustomerDetailPage({
             <h2>应用实例</h2>
             <p>客户各产品对应的应用入口</p>
           </div>
-          <Link className="table-link" href="/admin/instances/new">
-            补建遗漏实例
-          </Link>
         </div>
         {instances.length ? (
           <div className="table-wrap">
@@ -252,7 +243,7 @@ export default async function CustomerDetailPage({
         ) : (
           <div className="empty-state">
             <strong>尚未创建应用实例</strong>
-            <p>创建实例后，客户可以在“我的应用”中看到对应入口。</p>
+            <p>客户付款成功后，系统会自动创建 pending 实例和 AWS plan-only 部署计划。</p>
           </div>
         )}
       </section>

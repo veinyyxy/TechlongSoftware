@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CancelAtPeriodEndButton } from "@/components/billing/CancelAtPeriodEndButton";
 import { CheckoutSubscriptionButton } from "@/components/billing/CheckoutSubscriptionButton";
+import { PendingPurchaseOrderActions } from "@/components/billing/PendingPurchaseOrderActions";
 import { getPlan } from "@/lib/admin/management";
 import { formatDate, formatMoney } from "@/lib/admin/presentation";
 import { getDashboardAccount } from "@/lib/auth/account";
@@ -14,7 +15,10 @@ import {
 } from "@/lib/billing/presentation";
 import { getCustomerSubscriptionNotice } from "@/lib/customer-dashboard/presentation";
 import { hasStripePaymentConfiguration } from "@/lib/payments/stripe";
-import { reconcileWorkspaceExpiredSubscriptions } from "@/lib/purchases/management";
+import {
+  listPurchaseOrders,
+  reconcileWorkspaceExpiredSubscriptions,
+} from "@/lib/purchases/management";
 
 export const metadata: Metadata = { title: "订阅与账单" };
 export const dynamic = "force-dynamic";
@@ -22,7 +26,13 @@ export const dynamic = "force-dynamic";
 export default async function BillingPage() {
   const account = await getDashboardAccount();
   await reconcileWorkspaceExpiredSubscriptions(account.workspace.id);
-  const billing = await getWorkspaceBillingSummary(account.workspace.id);
+  const [billing, purchaseOrders] = await Promise.all([
+    getWorkspaceBillingSummary(account.workspace.id),
+    listPurchaseOrders({ workspaceId: account.workspace.id }),
+  ]);
+  const pendingPurchaseOrders = purchaseOrders.filter(
+    (order) => order.status === "draft" || order.status === "checkout_pending",
+  );
   const currentSubscriptions = billing.currentSubscriptions;
   const historicalSubscriptions = billing.historicalSubscriptions;
   const plans = await Promise.all(
@@ -88,6 +98,67 @@ export default async function BillingPage() {
             。您可以重新发起付款，或联系平台运营人员核对。
           </span>
         </div>
+      ) : null}
+
+      {pendingPurchaseOrders.length ? (
+        <section className="data-panel">
+          <div className="data-panel-heading">
+            <div>
+              <h2>待付款订单</h2>
+              <p>继续 Stripe Checkout，或取消后重新配置套餐</p>
+            </div>
+          </div>
+          <div className="app-instance-grid">
+            {pendingPurchaseOrders.map((order) => (
+              <article className="app-instance-card" key={order.id}>
+                <div className="app-instance-card-heading">
+                  <div>
+                    <p className="page-kicker">{order.productName}</p>
+                    <h2>{order.planName}</h2>
+                  </div>
+                  <span
+                    className={`status-pill status-${order.paymentStatus === "failed" ? "danger" : "warning"}`}
+                  >
+                    {order.paymentStatus === "failed" ? "付款失败，可重试" : "等待付款"}
+                  </span>
+                </div>
+                <dl className="app-instance-summary">
+                  <div>
+                    <dt>订单金额</dt>
+                    <dd>{formatMoney(order.amount, order.currency)}</dd>
+                  </div>
+                  <div>
+                    <dt>计费周期</dt>
+                    <dd>{order.billingInterval === "year" ? "按年" : "按月"}</dd>
+                  </div>
+                  <div>
+                    <dt>实例模板</dt>
+                    <dd>{order.templateName} · v{order.templateVersion}</dd>
+                  </div>
+                  <div>
+                    <dt>创建时间</dt>
+                    <dd>{formatDate(order.createdAt)} UTC</dd>
+                  </div>
+                </dl>
+                {order.paymentStatus === "failed" && order.failureReason ? (
+                  <div className="notice notice-danger compact-notice">
+                    {order.failureReason}
+                  </div>
+                ) : null}
+                {account.membership.role === "owner" ? (
+                  <PendingPurchaseOrderActions
+                    checkoutUrl={order.checkoutUrl}
+                    endpoint={`/api/workspaces/${account.workspace.id}/purchase-orders/${order.id}`}
+                  />
+                ) : (
+                  <div className="notice notice-warning compact-notice">
+                    仅工作区 Owner 可以继续付款或取消订单。
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
       ) : null}
 
       <section className="data-panel">
@@ -315,7 +386,7 @@ export default async function BillingPage() {
       </section>
 
       <div className="notice notice-neutral billing-disclaimer">
-        在线付款通过 Stripe Checkout 完成；付款结果仅由支付 Webhook 写入。平台只会准备待开通记录，不会自动部署应用。
+        在线付款通过 Stripe Checkout 完成；付款结果仅由支付 Webhook 写入。验证付款后，系统会自动创建订阅、pending 应用实例和 AWS plan-only 部署计划；本阶段不会调用 AWS。
         <Link href="/dashboard/billing/payment-result">查看最近一次付款返回状态</Link>
       </div>
     </>

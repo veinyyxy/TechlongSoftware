@@ -1,5 +1,7 @@
 import { apiError, apiSuccess } from "@/lib/api/response";
+import { managementErrorResponse } from "@/lib/admin/http";
 import { getApiAccount } from "@/lib/auth/account";
+import { StripeGatewayError } from "@/lib/payments/stripe";
 import {
   cancelWorkspacePurchaseOrder,
   getWorkspacePurchaseOrder,
@@ -57,14 +59,23 @@ export async function PATCH(_request: Request, context: RouteContext) {
       { status: 403 },
     );
   }
-  const order = await cancelWorkspacePurchaseOrder(workspaceId, orderId);
-  if (!order) {
-    return Response.json(
-      apiError("PURCHASE_ORDER_NOT_FOUND", "没有找到购买订单。"),
-      { status: 404 },
-    );
+  try {
+    const order = await cancelWorkspacePurchaseOrder(workspaceId, orderId);
+    if (!order) {
+      return Response.json(
+        apiError("PURCHASE_ORDER_NOT_FOUND", "没有找到购买订单。"),
+        { status: 404 },
+      );
+    }
+    return Response.json(apiSuccess(order), {
+      headers: { "cache-control": "no-store" },
+    });
+  } catch (error) {
+    if (error instanceof StripeGatewayError) {
+      return Response.json(apiError(error.code, error.message), {
+        status: error.status,
+      });
+    }
+    return managementErrorResponse(error);
   }
-  return Response.json(apiSuccess(order), {
-    headers: { "cache-control": "no-store" },
-  });
 }

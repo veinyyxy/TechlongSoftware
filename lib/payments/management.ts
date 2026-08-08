@@ -8,6 +8,7 @@ import {
   type SubscriptionStatus,
 } from "@/lib/billing/management";
 import { randomId } from "@/lib/domain/ids";
+import { ensurePlannedAppInstanceDeployment } from "@/lib/deployments/management";
 import {
   preparePendingAppInstance,
   syncWorkspaceAppInstanceStatusStatement,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/purchases/management";
 import {
   createStripeCheckoutSession,
+  expireStripeCheckoutSession,
   retrieveStripeCheckoutSession,
   type StripeWebhookEvent,
 } from "./stripe";
@@ -166,6 +168,8 @@ export async function reconcilePaymentCheckoutFromStripe(
           payment_status: session.paymentStatus,
           status: session.status,
           payment_intent: session.paymentIntentId,
+          amount_total: session.amountTotal,
+          currency: session.currency,
           metadata: session.metadata,
         },
       },
@@ -376,6 +380,43 @@ export async function cancelPaymentCheckout(
   if (checkout.status === "completed" || checkout.payment_status === "paid") {
     return toCheckoutView(checkout);
   }
+  if (checkout.provider_session_id) {
+    const session = await expireStripeCheckoutSession(
+      checkout.provider_session_id,
+    );
+    if (asString(session.metadata.payment_checkout_id) !== checkout.id) {
+      throw new ManagementError(
+        "CHECKOUT_STRIPE_MISMATCH",
+        "Stripe 付款会话与当前订阅付款不匹配，未取消本地记录。",
+        409,
+      );
+    }
+    if (session.paymentStatus === "paid") {
+      await completeCheckout(checkout, {
+        id: `stripe_checkout_cancel_sync_${session.id}`,
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            id: session.id,
+            payment_status: session.paymentStatus,
+            status: session.status,
+            payment_intent: session.paymentIntentId,
+            amount_total: session.amountTotal,
+            currency: session.currency,
+            metadata: session.metadata,
+          },
+        },
+      });
+      return getPaymentCheckout(workspaceId, checkoutId);
+    }
+    if (session.status !== "expired") {
+      throw new ManagementError(
+        "CHECKOUT_NOT_CANCELABLE",
+        "Stripe 付款正在处理中，暂时不能取消，请稍后刷新付款状态。",
+        409,
+      );
+    }
+  }
   const now = Date.now();
   await getDatabase().batch([
     getDatabase()
@@ -389,7 +430,7 @@ export async function cancelPaymentCheckout(
       .prepare(
         `UPDATE payment_records
          SET status = 'canceled', failure_reason = '客户取消了 Stripe Checkout 付款。', updated_at = ?
-         WHERE id = ? AND status = 'pending'`,
+         WHERE id = ? AND status IN ('pending', 'failed')`,
       )
       .bind(now, checkout.payment_record_id),
   ]);
@@ -610,6 +651,13 @@ async function completeCheckout(
 ): Promise<void> {
   const paymentAlreadyRecorded =
     checkout.status === "completed" || checkout.payment_status === "paid";
+  const checkoutWasEnded =
+    checkout.status === "canceled" || checkout.status === "expired";
+  const paymentRequiresReview =
+    checkoutWasEnded || Boolean(checkout.payment_note);
+  if (!paymentAlreadyRecorded) {
+    assertStripeCheckoutAmountMatches(checkout, event.data.object);
+  }
   const now = Date.now();
   const { providerSessionId, providerPaymentId } = providerIdentifiers(event, checkout);
   const subscription = await getSubscription(checkout.subscription_id);
@@ -627,12 +675,15 @@ async function completeCheckout(
   const isCurrentSubscription = currentSubscription?.id === subscription.id;
   const activationRequested =
     !paymentAlreadyRecorded &&
+    !checkoutWasEnded &&
     isCurrentSubscription &&
     (subscription.status === "manual_pending" ||
       subscription.status === "past_due");
   const attentionNote = activationRequested
     ? null
-    : "Stripe 已确认收款，但付款对应的订阅已不处于待付款状态，请平台管理员人工核对。";
+    : checkoutWasEnded
+      ? "Stripe 在付款会话取消或过期后确认收款；系统未自动激活订阅，请管理员核对退款或人工处理。"
+      : "Stripe 已确认收款，但付款对应的订阅已不处于待付款状态，请平台管理员人工核对。";
   const db = getDatabase();
   if (!paymentAlreadyRecorded) {
     const periodEnd = addBillingPeriod(now, checkout.billing_interval);
@@ -698,6 +749,7 @@ async function completeCheckout(
       )
     : null;
   const canPrepareApplication =
+    !paymentRequiresReview &&
     confirmedSubscription?.status === "active" &&
     confirmedCurrentSubscription?.id === confirmedSubscription.id;
   if (activationRequested && !canPrepareApplication) {
@@ -734,7 +786,7 @@ async function completeCheckout(
     }
     const instance = await db
       .prepare(
-        `SELECT id, status
+        `SELECT id, status, tenant_key
          FROM app_instances
          WHERE workspace_id = ? AND product_id = ?
          LIMIT 1`,
@@ -743,7 +795,22 @@ async function completeCheckout(
       .first<{
         id: string;
         status: "pending" | "active" | "suspended" | "failed";
+        tenant_key: string;
       }>();
+    if (instance) {
+      await ensurePlannedAppInstanceDeployment({
+        appInstanceId: instance.id,
+        subscriptionId: confirmedSubscription.id,
+        purchaseOrderId: null,
+        workspaceId: checkout.workspace_id,
+        productId: confirmedSubscription.productId,
+        planId: confirmedSubscription.planId,
+        templateVersionId: confirmedSubscription.templateVersionId,
+        tenantKey: instance.tenant_key,
+        deploymentProfileKey: confirmedSubscription.deploymentProfileKey,
+        now,
+      });
+    }
     await upsertWorkspaceProductEntitlementStatement({
       workspaceId: checkout.workspace_id,
       productId: confirmedSubscription.productId,
@@ -783,14 +850,14 @@ async function failCheckout(checkout: CheckoutRow, event: StripeWebhookEvent): P
         `UPDATE payment_records
          SET status = 'failed', provider_payment_id = ?, provider_event_id = ?,
              reference = ?, failure_reason = ?, updated_at = ?
-         WHERE id = ? AND status <> 'paid'`,
+         WHERE id = ? AND status IN ('pending', 'failed')`,
       )
       .bind(providerPaymentId, event.id, providerSessionId, failureReason, now, checkout.payment_record_id),
     getDatabase()
       .prepare(
         `UPDATE payment_checkout_sessions
-         SET provider_session_id = ?, provider_payment_id = ?, status = 'failed', updated_at = ?
-         WHERE id = ? AND status <> 'completed'`,
+         SET provider_session_id = ?, provider_payment_id = ?, status = 'open', updated_at = ?
+         WHERE id = ? AND status IN ('creating', 'open', 'failed')`,
       )
       .bind(providerSessionId, providerPaymentId, now, checkout.id),
   ]);
@@ -804,14 +871,14 @@ async function expireCheckout(checkout: CheckoutRow, event: StripeWebhookEvent):
       .prepare(
         `UPDATE payment_records
          SET status = 'canceled', provider_event_id = ?, failure_reason = ?, updated_at = ?
-         WHERE id = ? AND status = 'pending'`,
+         WHERE id = ? AND status IN ('pending', 'failed')`,
       )
       .bind(event.id, "Stripe Checkout 已过期。", now, checkout.payment_record_id),
     getDatabase()
       .prepare(
         `UPDATE payment_checkout_sessions
          SET status = 'expired', updated_at = ?
-         WHERE id = ? AND status <> 'completed'`,
+         WHERE id = ? AND status IN ('creating', 'open', 'failed')`,
       )
       .bind(now, checkout.id),
   ]);
@@ -832,6 +899,26 @@ function isSuccessfulCheckoutEvent(type: string, object: Record<string, unknown>
     (type === "checkout.session.completed" && object.payment_status === "paid") ||
     type === "checkout.session.async_payment_succeeded"
   );
+}
+
+function assertStripeCheckoutAmountMatches(
+  checkout: CheckoutRow,
+  object: Record<string, unknown>,
+): void {
+  const amount = object.amount_total;
+  const currency = asString(object.currency)?.toUpperCase();
+  if (
+    typeof amount !== "number" ||
+    !Number.isSafeInteger(amount) ||
+    amount !== Number(checkout.amount) ||
+    currency !== checkout.currency.toUpperCase()
+  ) {
+    throw new ManagementError(
+      "CHECKOUT_AMOUNT_MISMATCH",
+      "Stripe 返回的金额或币种与服务器付款记录不一致。",
+      409,
+    );
+  }
 }
 
 function isFailedPaymentEvent(type: string): boolean {

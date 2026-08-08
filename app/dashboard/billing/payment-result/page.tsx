@@ -43,7 +43,12 @@ export default async function PaymentResultPage({
 
   const purchaseOrder = orderId
     ? cancelled && account.membership.role === "owner"
-      ? await cancelWorkspacePurchaseOrder(account.workspace.id, orderId)
+      ? await cancelWorkspacePurchaseOrder(
+          account.workspace.id,
+          orderId,
+        ).catch(() =>
+          getWorkspacePurchaseOrder(account.workspace.id, orderId),
+        )
       : sessionId
         ? await reconcilePurchaseOrderFromStripe(
             account.workspace.id,
@@ -56,7 +61,12 @@ export default async function PaymentResultPage({
     : null;
   const checkout = !purchaseOrder && checkoutId
     ? cancelled && account.membership.role === "owner"
-      ? await cancelPaymentCheckout(account.workspace.id, checkoutId)
+      ? await cancelPaymentCheckout(
+          account.workspace.id,
+          checkoutId,
+        ).catch(() =>
+          getPaymentCheckout(account.workspace.id, checkoutId),
+        )
       : sessionId
         ? await reconcilePaymentCheckoutFromStripe(
             account.workspace.id,
@@ -90,11 +100,12 @@ export default async function PaymentResultPage({
   const confirmed = purchaseOrder
     ? purchaseOrder.status === "paid" && paymentStatus === "paid"
     : checkout!.status === "completed" && paymentStatus === "paid";
-  const confirmedNeedsReview =
-    Boolean(checkout) &&
-    confirmed &&
-    (checkout!.subscriptionStatus !== "active" ||
-      Boolean(checkout!.attentionNote));
+  const confirmedNeedsReview = confirmed && (
+    purchaseOrder
+      ? Boolean(purchaseOrder.failureReason)
+      : checkout!.subscriptionStatus !== "active" ||
+        Boolean(checkout!.attentionNote)
+  );
   const failed =
     paymentStatus === "failed" || record.status === "failed";
   const wasCancelled =
@@ -118,7 +129,7 @@ export default async function PaymentResultPage({
           ? "付款已取消"
           : "正在确认付款结果";
   const message = confirmedNeedsReview
-    ? checkout!.attentionNote ??
+    ? (purchaseOrder?.failureReason ?? checkout?.attentionNote) ??
       "Stripe 已确认收款，但对应订阅已发生变化，请联系管理员核对。"
     : confirmed
       ? "您的付款已确认，订阅已由服务器更新，系统正在等待平台管理员检查并开通应用。"

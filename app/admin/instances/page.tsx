@@ -33,15 +33,12 @@ export default async function InstancesPage({ searchParams }: InstancesPageProps
 
   return (
     <>
-      <header className="page-header page-header-split">
+      <header className="page-header">
         <div>
-          <p className="page-kicker">MANUAL PROVISIONING</p>
+          <p className="page-kicker">AUTOMATED ENTITLEMENTS</p>
           <h1>应用实例管理</h1>
-          <p>查看支付成功后自动生成的待开通记录，并维护客户入口与开通状态。</p>
+          <p>查看付款后自动生成的 pending 实例与 AWS plan-only 计划，并由管理员完成最终开通。应急补建能力不作为日常入口展示。</p>
         </div>
-        <Link className="button button-dark button-small" href="/admin/instances/new">
-          补建遗漏实例
-        </Link>
       </header>
 
       <AdminSearchFilters
@@ -94,7 +91,7 @@ export default async function InstancesPage({ searchParams }: InstancesPageProps
                       <strong>
                         {instance.provisioningSource === "payment_success"
                           ? "付款成功自动创建"
-                          : "管理员手动创建"}
+                          : "管理员应急补建"}
                       </strong>
                       {instance.status === "pending" ? <span>待管理员开通</span> : null}
                     </td>
@@ -135,12 +132,12 @@ export default async function InstancesPage({ searchParams }: InstancesPageProps
         ) : (
           <div className="empty-state">
             <strong>没有找到应用实例</strong>
-            <p>调整筛选条件，或者为客户创建第一条餐饮订单系统实例。</p>
+            <p>调整筛选条件；客户付款成功后，系统会自动生成 pending 实例。</p>
           </div>
         )}
       </section>
       <div className="notice billing-disclaimer">
-        本阶段只保存客户入口和手动开通状态，不会执行真实部署或调用任何云服务。
+        系统当前只生成 AWS plan-only 部署计划，不会调用 AWS、创建云资源或自动生成生产入口。
       </div>
     </>
   );

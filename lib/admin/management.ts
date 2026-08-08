@@ -1,5 +1,6 @@
 import { getDatabase } from "@/db";
 import { randomId, stableId } from "@/lib/domain/ids";
+import type { DeploymentProfileKey } from "@/lib/deployments/profiles";
 import {
   parseConfigurationSchema,
   parseTemplateConfiguration,
@@ -63,6 +64,7 @@ export interface PlanView {
   priceAmount: number;
   currency: string;
   billingInterval: BillingInterval;
+  deploymentProfileKey: DeploymentProfileKey;
   status: PlanStatus;
   features: string[];
   limits: Record<string, string>;
@@ -140,6 +142,7 @@ function toPlanView(row: {
   price_amount: number;
   currency: string;
   billing_interval: BillingInterval;
+  deployment_profile_key: DeploymentProfileKey;
   status: PlanStatus;
   features: string;
   limits: string;
@@ -171,6 +174,7 @@ function toPlanView(row: {
     priceAmount: Number(row.price_amount),
     currency: row.currency,
     billingInterval: row.billing_interval,
+    deploymentProfileKey: row.deployment_profile_key,
     status: row.status,
     features: safeStringArray(row.features),
     limits: safeStringRecord(row.limits),
@@ -221,7 +225,8 @@ export async function listPlans(input?: {
       template_version.deployment_driver,
       template_version.deployment_workflow_version,
       plan.name, plan.description,
-      plan.price_amount, plan.currency, plan.billing_interval, plan.status,
+      plan.price_amount, plan.currency, plan.billing_interval,
+      plan.deployment_profile_key, plan.status,
       plan.features, plan.limits, plan.template_configuration,
       plan.created_at, plan.updated_at
      FROM plans plan
@@ -257,6 +262,7 @@ export async function listPlans(input?: {
     price_amount: number;
     currency: string;
     billing_interval: BillingInterval;
+    deployment_profile_key: DeploymentProfileKey;
     status: PlanStatus;
     features: string;
     limits: string;
@@ -282,7 +288,8 @@ export async function getPlan(planId: string): Promise<PlanView | null> {
         template_version.deployment_driver,
         template_version.deployment_workflow_version,
         plan.name, plan.description,
-        plan.price_amount, plan.currency, plan.billing_interval, plan.status,
+        plan.price_amount, plan.currency, plan.billing_interval,
+        plan.deployment_profile_key, plan.status,
         plan.features, plan.limits, plan.template_configuration,
         plan.created_at, plan.updated_at
        FROM plans plan
@@ -315,6 +322,7 @@ export async function getPlan(planId: string): Promise<PlanView | null> {
       price_amount: number;
       currency: string;
       billing_interval: BillingInterval;
+      deployment_profile_key: DeploymentProfileKey;
       status: PlanStatus;
       features: string;
       limits: string;
@@ -428,9 +436,9 @@ export async function createPlan(input: PlanInput): Promise<PlanView> {
       .prepare(
         `INSERT INTO plans (
           id, product_id, template_version_id, name, description,
-          price_amount, currency, billing_interval,
+          price_amount, currency, billing_interval, deployment_profile_key,
           status, features, limits, template_configuration, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`,
       )
       .bind(
         id,
@@ -441,6 +449,7 @@ export async function createPlan(input: PlanInput): Promise<PlanView> {
         input.priceAmount,
         input.currency,
         input.billingInterval,
+        input.deploymentProfileKey,
         JSON.stringify(input.features),
         JSON.stringify(input.limits),
         JSON.stringify(planTemplateConfiguration.data),
@@ -506,7 +515,7 @@ export async function updatePlan(
       .prepare(
         `UPDATE plans
          SET name = ?, description = ?, price_amount = ?, currency = ?,
-           billing_interval = ?, features = ?, limits = ?,
+           billing_interval = ?, deployment_profile_key = ?, features = ?, limits = ?,
            template_configuration = ?, updated_at = ?
          WHERE id = ?`,
       )
@@ -516,6 +525,7 @@ export async function updatePlan(
         input.priceAmount,
         input.currency,
         input.billingInterval,
+        input.deploymentProfileKey,
         JSON.stringify(input.features),
         JSON.stringify(input.limits),
         JSON.stringify(planTemplateConfiguration.data),
@@ -648,7 +658,9 @@ export async function getCustomer(
         u.id AS owner_id, u.name AS owner_name, u.email AS owner_email,
         p.name AS plan_name, p.description AS plan_description,
         p.price_amount AS plan_price_amount, p.currency AS plan_currency,
-        p.billing_interval AS plan_billing_interval, p.status AS plan_status,
+        p.billing_interval AS plan_billing_interval,
+        p.deployment_profile_key AS plan_deployment_profile_key,
+        p.status AS plan_status,
         p.features AS plan_features, p.limits AS plan_limits,
         p.template_configuration AS plan_template_configuration,
         p.created_at AS plan_created_at, p.updated_at AS plan_updated_at,
@@ -704,6 +716,7 @@ export async function getCustomer(
       plan_price_amount: number | null;
       plan_currency: string | null;
       plan_billing_interval: BillingInterval | null;
+      plan_deployment_profile_key: DeploymentProfileKey | null;
       plan_status: PlanStatus | null;
       plan_features: string | null;
       plan_limits: string | null;
@@ -735,6 +748,7 @@ export async function getCustomer(
     row.plan_price_amount !== null &&
     row.plan_currency &&
     row.plan_billing_interval &&
+    row.plan_deployment_profile_key &&
     row.plan_status &&
     row.plan_features !== null &&
     row.plan_limits !== null &&
@@ -777,6 +791,7 @@ export async function getCustomer(
           price_amount: row.plan_price_amount,
           currency: row.plan_currency,
           billing_interval: row.plan_billing_interval,
+          deployment_profile_key: row.plan_deployment_profile_key,
           status: row.plan_status,
           features: row.plan_features,
           limits: row.plan_limits,

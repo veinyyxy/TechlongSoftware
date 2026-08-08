@@ -4,6 +4,8 @@ import { StatusActionButton } from "@/components/admin/StatusActionButton";
 import { formatDate } from "@/lib/admin/presentation";
 import { getAdminAccount } from "@/lib/auth/account";
 import { subscriptionStatusLabels } from "@/lib/billing/presentation";
+import { getLatestAppInstanceDeployment } from "@/lib/deployments/management";
+import { getDeploymentProfile } from "@/lib/deployments/profiles";
 import { getAppInstance } from "@/lib/instances/management";
 import {
   appInstanceStatusLabels,
@@ -33,6 +35,8 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
       </section>
     );
   }
+
+  const deployment = await getLatestAppInstanceDeployment(instance.id);
 
   const subscriptionIsActive = instance.subscriptionStatus === "active";
   const hasAccessUrl = hasRecordedAccessUrl(instance.accessUrl);
@@ -137,11 +141,56 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
           </dl>
           <div className="notice notice-neutral">
             {instance.provisioningSource === "payment_success"
-              ? "该记录由已验证的付款成功 Webhook 自动创建，仍需管理员检查、填写入口并手动开通。"
+              ? "该记录由已验证的付款成功 Webhook 自动创建；系统同时生成只读 AWS 部署计划，实例不会被直接标记为已开通。"
               : "这是管理员手动维护的实例记录，不包含部署日志、自动发布或云资源操作。"}
           </div>
         </section>
       </div>
+
+      <section className="module-card">
+        <h2>AWS 部署计划（DEMO）</h2>
+        {deployment ? (
+          <>
+            <dl className="detail-list">
+              <div><dt>计划状态</dt><dd>{deployment.status}</dd></div>
+              <div><dt>执行模式</dt><dd>{deployment.mode}（仅规划）</dd></div>
+              <div><dt>驱动与版本</dt><dd>{deployment.driver} · {deployment.workflowVersion}</dd></div>
+              <div><dt>资源档位</dt><dd>{getDeploymentProfile(deployment.deploymentProfileKey).label}</dd></div>
+              <div><dt>AWS 区域 / Cell</dt><dd>{deployment.desiredPlan.region} / {deployment.cellKey}</dd></div>
+              <div>
+                <dt>ECS Task</dt>
+                <dd>
+                  {deployment.desiredPlan.resources.tenant.taskDefinition.desiredCount} 个起步，
+                  {deployment.desiredPlan.resources.tenant.taskDefinition.cpu} CPU / {deployment.desiredPlan.resources.tenant.taskDefinition.memoryMiB} MiB
+                </dd>
+              </div>
+              <div>
+                <dt>独立扩缩容</dt>
+                <dd>
+                  {deployment.desiredPlan.resources.tenant.autoScaling.minCapacity}–{deployment.desiredPlan.resources.tenant.autoScaling.maxCapacity} 个 Task
+                </dd>
+              </div>
+              <div>
+                <dt>数据库隔离</dt>
+                <dd>
+                  {deployment.desiredPlan.resources.tenant.database.isolation === "dedicated_database"
+                    ? `独立数据库目标：${deployment.desiredPlan.resources.tenant.database.dedicatedClusterLogicalName}`
+                    : "Cell 内独立 Role + Schema"}
+                </dd>
+              </div>
+              <div><dt>租户资源</dt><dd>ECS Service、Task Definition、Target Group、Listener Rule、Secret、日志与成本标签</dd></div>
+            </dl>
+            <div className="notice notice-warning">
+              当前计划不会调用 AWS，也不会生成假的 ARN、正式访问地址或 Secret 值。下一阶段由受控 Worker 执行并回写真实资源标识。
+            </div>
+          </>
+        ) : (
+          <div className="empty-state">
+            <strong>尚无自动部署计划</strong>
+            <p>历史或应急补建实例可能没有计划；客户完成新购买后会由后端自动生成。</p>
+          </div>
+        )}
+      </section>
 
       <section className="module-card">
         <h2>实例配置快照</h2>
@@ -161,7 +210,7 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
           </div>
         )}
         <div className="notice notice-neutral">
-          模板中的部署驱动目前只是受控标识；此版本不会执行脚本、创建云资源或自动部署。
+          配置快照供后续部署执行器使用；密码等运行时 Secret 不会写入部署计划。
         </div>
       </section>
 

@@ -7,6 +7,7 @@ import { getWorkspaceBillingSummary } from "@/lib/billing/management";
 import { subscriptionStatusLabels } from "@/lib/billing/presentation";
 import { hasStripePaymentConfiguration } from "@/lib/payments/stripe";
 import { reconcileWorkspaceExpiredSubscriptions } from "@/lib/purchases/management";
+import { getDeploymentProfile } from "@/lib/deployments/profiles";
 
 export const metadata: Metadata = { title: "购买套餐" };
 export const dynamic = "force-dynamic";
@@ -51,7 +52,7 @@ export default async function CustomerPlansPage() {
         <p className="page-kicker">PRODUCTS & PLANS</p>
         <h1>选择套餐</h1>
         <p>
-          套餐价格、功能和实例参数均来自平台配置。付款成功后才会创建或续期订阅，应用仍由平台管理员人工开通。
+          套餐价格、功能和实例参数均来自平台配置。付款成功后系统会创建或续期订阅、自动生成应用实例和 AWS 部署计划。
         </p>
       </header>
 
@@ -103,6 +104,9 @@ export default async function CustomerPlansPage() {
                       {formatMoney(plan.priceAmount, plan.currency)}
                       <small>/{plan.billingInterval === "year" ? "年" : "月"}</small>
                     </strong>
+                    <span className="muted-copy">
+                      部署档位：{getDeploymentProfile(plan.deploymentProfileKey).label}
+                    </span>
                     {plan.features.length ? (
                       <ul className="value-list compact-list">
                         {plan.features.map((feature) => (

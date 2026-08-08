@@ -2,6 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import {
+  deploymentProfileOptions,
+  type DeploymentProfileKey,
+} from "@/lib/deployments/profiles";
 import type {
   TemplateConfiguration,
   TemplateConfigurationSchema,
@@ -37,6 +41,7 @@ interface PlanFormProps {
     priceAmount: number;
     currency: string;
     billingInterval: "month" | "year";
+    deploymentProfileKey: DeploymentProfileKey;
     features: string[];
     limits: Record<string, string>;
   };
@@ -170,6 +175,9 @@ export function PlanForm({
       priceAmount,
       currency: String(formData.get("currency") ?? ""),
       billingInterval: String(formData.get("billingInterval") ?? ""),
+      deploymentProfileKey: String(
+        formData.get("deploymentProfileKey") ?? "",
+      ),
       features,
       limits: planLimits,
       templateConfiguration,
@@ -524,6 +532,28 @@ export function PlanForm({
           {fieldError("billingInterval") ? (
             <small className="form-error">
               {fieldError("billingInterval")}
+            </small>
+          ) : null}
+        </label>
+        <label className="form-field form-field-wide">
+          <span>AWS 部署资源档位</span>
+          <select
+            defaultValue={initial?.deploymentProfileKey ?? "standard-v1"}
+            name="deploymentProfileKey"
+            required
+          >
+            {deploymentProfileOptions.map((profile) => (
+              <option key={profile.key} value={profile.key}>
+                {profile.label} · {profile.ecs.desiredCount} 个 ECS Task 起步
+              </option>
+            ))}
+          </select>
+          <small>
+            此项由平台套餐决定，客户购买时不能修改。本阶段只生成部署计划，不会调用 AWS。
+          </small>
+          {fieldError("deploymentProfileKey") ? (
+            <small className="form-error">
+              {fieldError("deploymentProfileKey")}
             </small>
           ) : null}
         </label>

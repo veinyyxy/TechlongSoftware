@@ -1,6 +1,7 @@
 import { getDatabase } from "@/db";
 import { getPlan, ManagementError } from "@/lib/admin/management";
 import { randomId } from "@/lib/domain/ids";
+import type { DeploymentProfileKey } from "@/lib/deployments/profiles";
 import { upsertWorkspaceProductEntitlementStatement } from "@/lib/entitlements/management";
 import {
   parseTemplateConfiguration,
@@ -37,6 +38,7 @@ export interface SubscriptionView {
   planPriceAmount: number;
   planCurrency: string;
   planBillingInterval: "month" | "year";
+  deploymentProfileKey: DeploymentProfileKey;
   templateVersionId: string;
   templateName: string;
   templateVersion: number;
@@ -98,6 +100,7 @@ type SubscriptionRow = {
   plan_price_amount: number;
   plan_currency: string;
   plan_billing_interval: "month" | "year";
+  deployment_profile_key: DeploymentProfileKey;
   template_version_id: string;
   template_name: string;
   template_version: number;
@@ -152,6 +155,7 @@ function toSubscriptionView(row: SubscriptionRow): SubscriptionView {
     planPriceAmount: Number(row.plan_price_amount),
     planCurrency: row.plan_currency,
     planBillingInterval: row.plan_billing_interval,
+    deploymentProfileKey: row.deployment_profile_key,
     templateVersionId: row.template_version_id,
     templateName: row.template_name,
     templateVersion: Number(row.template_version),
@@ -203,7 +207,8 @@ const subscriptionSelect = `
     product.slug AS product_slug, product.status AS product_status,
     s.plan_id, p.name AS plan_name,
     p.price_amount AS plan_price_amount, p.currency AS plan_currency,
-    p.billing_interval AS plan_billing_interval, s.template_version_id,
+    p.billing_interval AS plan_billing_interval, s.deployment_profile_key,
+    s.template_version_id,
     template.name AS template_name, template_version.version AS template_version,
     s.instance_configuration, s.status,
     s.current_period_start, s.current_period_end, s.cancel_at_period_end,
@@ -334,6 +339,7 @@ async function resolvePlanConfiguration(
 ): Promise<{
   templateVersionId: string;
   configuration: TemplateConfiguration;
+  deploymentProfileKey: DeploymentProfileKey;
 }> {
   const plan = await getPlan(planId);
   if (!plan) {
@@ -383,6 +389,7 @@ async function resolvePlanConfiguration(
   return {
     templateVersionId: plan.templateVersionId,
     configuration: resolved.data,
+    deploymentProfileKey: plan.deploymentProfileKey,
   };
 }
 
@@ -523,9 +530,9 @@ export async function createSubscription(
           `INSERT INTO subscriptions (
             id, workspace_id, product_id, plan_id, template_version_id,
             instance_configuration, status, current_period_start,
-            current_period_end, cancel_at_period_end, created_by_user_id,
-            created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            current_period_end, cancel_at_period_end, deployment_profile_key,
+            created_by_user_id, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
@@ -538,6 +545,7 @@ export async function createSubscription(
           input.currentPeriodStart,
           input.currentPeriodEnd,
           input.cancelAtPeriodEnd ? 1 : 0,
+          planConfiguration.deploymentProfileKey,
           createdByUserId,
           now,
           now,
@@ -646,7 +654,8 @@ export async function updateSubscription(
         .prepare(
           `UPDATE subscriptions
            SET plan_id = ?, template_version_id = ?,
-             instance_configuration = ?, status = ?, current_period_start = ?,
+             instance_configuration = ?, deployment_profile_key = ?,
+             status = ?, current_period_start = ?,
              current_period_end = ?, cancel_at_period_end = ?, updated_at = ?
            WHERE id = ?`,
         )
@@ -654,6 +663,7 @@ export async function updateSubscription(
           input.planId,
           planConfiguration.templateVersionId,
           JSON.stringify(planConfiguration.configuration),
+          planConfiguration.deploymentProfileKey,
           input.status,
           input.currentPeriodStart,
           input.currentPeriodEnd,

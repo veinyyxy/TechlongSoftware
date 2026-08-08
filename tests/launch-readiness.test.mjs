@@ -126,6 +126,39 @@ test("manual instance fallback derives customer and product from the subscriptio
   assert.match(instanceManagement, /productId: subscription\.productId/);
 });
 
+test("customer purchase is primary while administrator recovery paths remain available", async () => {
+  const [plans, purchasePage, adminSubscriptions, adminInstances] =
+    await Promise.all([
+      read("app/dashboard/plans/page.tsx"),
+      read("app/dashboard/plans/[planId]/purchase/page.tsx"),
+      read("app/admin/subscriptions/page.tsx"),
+      read("app/admin/instances/page.tsx"),
+    ]);
+
+  assert.match(plans, /选择并配置|配置并购买/);
+  assert.match(purchasePage, /CustomerPurchaseForm/);
+  assert.match(purchasePage, /自动(?:创建|生成)/);
+  assert.match(adminSubscriptions, /应急|补录|人工/);
+  assert.match(adminInstances, /应急|补建|人工/);
+});
+
+test("AWS deployment remains an inspectable plan-only demo", async () => {
+  const [example, instanceDetail, management, driver] = await Promise.all([
+    read(".env.example"),
+    read("app/admin/instances/[instanceId]/page.tsx"),
+    read("lib/deployments/management.ts"),
+    read("lib/deployments/drivers/aws-ecs-cell.ts"),
+  ]);
+
+  assert.match(example, /^AWS_REGION=/m);
+  assert.match(example, /^AWS_DEFAULT_CELL_KEY=/m);
+  assert.match(instanceDetail, /getLatestAppInstanceDeployment/);
+  assert.match(instanceDetail, /plan_only|仅生成|部署计划/);
+  assert.match(management, /status, desired_plan, plan_hash, idempotency_key/);
+  assert.match(driver, /applyEnabled:\s*false/);
+  assert.doesNotMatch(driver, /AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY/);
+});
+
 test("plan selection distinguishes the subscribed plan from other product plans", async () => {
   const plans = await read("app/dashboard/plans/page.tsx");
 

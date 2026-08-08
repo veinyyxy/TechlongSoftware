@@ -112,6 +112,9 @@ test("keeps Stripe checkout authority on the server and verifies raw webhook pay
   assert.match(paymentManagement, /reconcilePaymentCheckoutFromStripe/);
   assert.match(paymentManagement, /retrieveStripeCheckoutSession/);
   assert.match(paymentManagement, /session\.paymentStatus === "paid"/);
+  assert.match(paymentManagement, /expireStripeCheckoutSession/);
+  assert.match(paymentManagement, /assertStripeCheckoutAmountMatches/);
+  assert.match(paymentManagement, /!checkoutWasEnded/);
   assert.match(stripeGateway, /checkout\/sessions\/\$\{encodeURIComponent\(sessionId\)\}/);
   assert.match(stripeGateway, /"idempotency-key": `checkout_\$\{input\.checkoutId\}`/);
   assert.match(webhookRoute, /request\.text\(\)/);
@@ -135,10 +138,45 @@ test("creates one pending instance snapshot from the verified payment completion
   assert.match(instanceManagement, /provisioning_source/);
   assert.match(instanceManagement, /'payment_success', 'pending'/);
   assert.match(instanceManagement, /WHERE workspace_id = \? AND product_id = \?/);
-  assert.match(instanceManagement, /if \(existing\) \{\s*return null;/);
+  assert.match(instanceManagement, /subscription_id IS DISTINCT FROM \?/);
+  assert.match(instanceManagement, /configuration_snapshot = \?/);
+  assert.match(instanceManagement, /status = 'pending'/);
+  assert.match(
+    instanceManagement,
+    /ON CONFLICT \(workspace_id, product_id\) DO NOTHING/,
+  );
   assert.match(instanceManagement, /configuration_snapshot/);
   assert.match(instanceManagement, /JSON\.stringify\(input\.configurationSnapshot\)/);
   assert.doesNotMatch(instanceManagement, /'payment_success', 'active'/);
+});
+
+test("cancels customer orders only after Stripe Checkout is safely expired", async () => {
+  const root = new URL("../", import.meta.url);
+  const [stripeGateway, purchaseManagement, paymentManagement, cancelRoute] = await Promise.all([
+    readFile(new URL("lib/payments/stripe.ts", root), "utf8"),
+    readFile(new URL("lib/purchases/management.ts", root), "utf8"),
+    readFile(new URL("lib/payments/management.ts", root), "utf8"),
+    readFile(
+      new URL(
+        "app/api/workspaces/[workspaceId]/purchase-orders/[orderId]/route.ts",
+        root,
+      ),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(stripeGateway, /expireStripeCheckoutSession/);
+  assert.match(stripeGateway, /checkout\/sessions\/\$\{encodeURIComponent\(sessionId\)\}\/expire/);
+  assert.match(purchaseManagement, /await expireStripeCheckoutSession/);
+  assert.match(purchaseManagement, /session\.status !== "expired"/);
+  assert.match(purchaseManagement, /fresh\.status === "canceled" \|\| fresh\.status === "expired"/);
+  assert.match(purchaseManagement, /系统未自动创建订阅或实例/);
+  assert.match(purchaseManagement, /status = 'paid'/);
+  assert.match(purchaseManagement, /status = 'checkout_pending'/);
+  assert.match(paymentManagement, /await expireStripeCheckoutSession/);
+  assert.match(paymentManagement, /checkoutWasEnded/);
+  assert.match(paymentManagement, /系统未自动激活订阅/);
+  assert.match(cancelRoute, /StripeGatewayError/);
 });
 
 test("customer purchase orders create subscriptions only after verified Stripe completion", async () => {
@@ -190,10 +228,20 @@ test("customer purchase orders create subscriptions only after verified Stripe c
   );
   assert.match(purchaseManagement, /resolveTemplateConfiguration/);
   assert.match(purchaseManagement, /subscription_purchase_order_id/);
+  assert.match(purchaseManagement, /deployment_profile_key/);
+  assert.match(purchaseManagement, /plan\.deploymentProfileKey/);
   assert.match(purchaseManagement, /assertStripeAmountMatches/);
   assert.match(purchaseManagement, /creation_source/);
   assert.match(purchaseManagement, /'customer_checkout'/);
   assert.match(purchaseManagement, /preparePendingAppInstance/);
+  assert.match(purchaseManagement, /ensurePlannedAppInstanceDeployment/);
+  assert.match(
+    purchaseManagement,
+    /deploymentProfileKey:\s*order\.deployment_profile_key/,
+  );
+  assert.match(purchaseManagement, /purchaseOrderId:\s*order\.id/);
+  assert.match(purchaseManagement, /tenantKey:\s*instance\.tenant_key/);
+  assert.match(purchaseManagement, /item === null/);
   assert.match(
     purchaseManagement,
     /upsertWorkspaceProductEntitlementStatement/,
@@ -202,4 +250,28 @@ test("customer purchase orders create subscriptions only after verified Stripe c
     billingManagement,
     /setCustomerSubscriptionCancelAtPeriodEnd/,
   );
+});
+
+test("persists deployment plans idempotently without enabling AWS apply", async () => {
+  const root = new URL("../", import.meta.url);
+  const [deploymentManagement, driver] = await Promise.all([
+    readFile(new URL("lib/deployments/management.ts", root), "utf8"),
+    readFile(
+      new URL("lib/deployments/drivers/aws-ecs-cell.ts", root),
+      "utf8",
+    ),
+  ]);
+
+  assert.match(deploymentManagement, /INSERT INTO app_instance_deployments/);
+  assert.match(deploymentManagement, /'plan_only', 'planned'/);
+  assert.match(
+    deploymentManagement,
+    /ON CONFLICT \(idempotency_key\) DO NOTHING/,
+  );
+  assert.match(deploymentManagement, /AWS_REGION/);
+  assert.match(deploymentManagement, /AWS_DEFAULT_CELL_KEY/);
+  assert.match(driver, /createsAwsResources:\s*false/);
+  assert.match(driver, /storesSecretValues:\s*false/);
+  assert.match(driver, /throw new DeploymentAutomationDisabledError/);
+  assert.doesNotMatch(driver, /@aws-sdk|ECSClient|CloudFormationClient/);
 });

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements } from "./postgres-schema";
+import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, appInstanceDeployments, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements } from "./postgres-schema";
 
 export const appInstanceTemplatesRelations = relations(appInstanceTemplates, ({one, many}) => ({
 	product: one(products, {
@@ -138,6 +138,7 @@ export const subscriptionsRelations = relations(subscriptions, ({one, many}) => 
 		relationName: "subscriptionPurchaseOrders_renewalSubscriptionId_subscriptions_id"
 	}),
 	workspaceProductEntitlements: many(workspaceProductEntitlements),
+	appInstanceDeployments: many(appInstanceDeployments),
 }));
 
 export const paymentRecordsRelations = relations(paymentRecords, ({one, many}) => ({
@@ -181,6 +182,21 @@ export const paymentCheckoutSessionsRelations = relations(paymentCheckoutSession
 	paymentWebhookEvents: many(paymentWebhookEvents),
 }));
 
+export const appInstanceDeploymentsRelations = relations(appInstanceDeployments, ({one}) => ({
+	appInstance: one(appInstances, {
+		fields: [appInstanceDeployments.appInstanceId],
+		references: [appInstances.id]
+	}),
+	subscription: one(subscriptions, {
+		fields: [appInstanceDeployments.subscriptionId],
+		references: [subscriptions.id]
+	}),
+	subscriptionPurchaseOrder: one(subscriptionPurchaseOrders, {
+		fields: [appInstanceDeployments.purchaseOrderId],
+		references: [subscriptionPurchaseOrders.id]
+	}),
+}));
+
 export const appInstancesRelations = relations(appInstances, ({one, many}) => ({
 	workspace: one(workspaces, {
 		fields: [appInstances.workspaceId],
@@ -203,6 +219,7 @@ export const appInstancesRelations = relations(appInstances, ({one, many}) => ({
 		references: [users.id]
 	}),
 	workspaceProductEntitlements: many(workspaceProductEntitlements),
+	appInstanceDeployments: many(appInstanceDeployments),
 }));
 
 export const subscriptionPurchaseOrdersRelations = relations(subscriptionPurchaseOrders, ({one, many}) => ({
@@ -241,6 +258,7 @@ export const subscriptionPurchaseOrdersRelations = relations(subscriptionPurchas
 		references: [users.id]
 	}),
 	paymentWebhookEvents: many(paymentWebhookEvents),
+	appInstanceDeployments: many(appInstanceDeployments),
 }));
 
 export const paymentWebhookEventsRelations = relations(paymentWebhookEvents, ({one}) => ({

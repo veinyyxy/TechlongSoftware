@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前已在阶段 8 基础上完成客户自助购买一期、Neon PostgreSQL 迁移和自有认证一期：企业用户可用邮箱密码注册/登录，管理员创建的客户可通过一次性邀请链接设置密码；Stripe 付款成功后由已验证 Webhook 创建或续期订阅，并准备待开通实例，管理员仍是最终开通者。
+当前已在阶段 8 基础上完成客户自助购买一期、Neon PostgreSQL 迁移、自有认证一期和 AWS Cell 部署计划 DEMO：企业用户可用邮箱密码注册/登录，选择管理员维护的共享套餐并配置允许的租户参数；只有 Stripe 已验证 Webhook 才会创建或续期订阅、准备待开通实例并生成一份不可执行的 AWS 资源计划，管理员仍是最终开通者。
 
 ## 已实现
 
@@ -24,14 +24,15 @@
 - 创建、编辑、启用及停用套餐。
 - 管理员可以创建应用实例模板、维护草稿版本、发布不可变版本和归档旧版本。
 - 模板配置字段区分客户需求与套餐参数；餐饮订单系统新版本会带入与 `SAAS_CONTROL.md` 对齐的 23 项动态字段，套餐参数由后端读取，不能由客户覆盖。
-- 当前部署驱动只允许受控的 `manual` 标识，不接受脚本、密钥或任意部署命令。
+- 模板部署标识和 AWS 部署计划驱动都采用受控允许名单，不接受脚本、密钥或任意部署命令。
 - 每个套餐必须归属一个产品；同名套餐可存在于不同产品中，套餐创建后不能跨产品转移。
 - 每个套餐必须绑定同一产品下的已发布实例模板版本；套餐创建后不能更换模板版本。
 - 选择模板版本后，套餐表单会直接展开模板参数：`plan` 参数在套餐中以 number / boolean / null 原生类型固定，`customer` 参数可设置默认值并在购买或创建订阅时填写。
 - 套餐价格使用最小货币单位保存，功能和限制保存在数据库中。
 - 客户详情和客户控制台读取当前套餐、订阅状态和应用实例状态。
-- 管理员创建、编辑并查看客户订阅。
-- 创建订阅时根据套餐绑定的模板收集实例配置，并把模板版本和已解析配置固定在订阅中。
+- 客户 Owner 自助选择共享套餐并填写模板允许的实例配置；付款成功后系统根据套餐、模板版本和配置快照自动创建订阅，不会为每个客户复制一条套餐记录。
+- 管理员仍可查看和编辑客户订阅；手动创建订阅仅作为特殊客户或故障恢复的应急兜底。
+- 创建订阅时根据套餐绑定的模板解析实例配置，并把模板版本和已解析配置固定在订阅中。
 - 订阅支持 `manual_pending`、`active`、`past_due`、`paused`、`canceled`。
 - 一个工作区可保留多个产品、多个历史订阅；同一工作区的同一产品同一时间只允许一个当前订阅。
 - 创建订阅时只显示所选产品下的套餐，服务端和数据库都会阻止跨产品套餐组合。
@@ -45,7 +46,7 @@
 - 内置一个可分配产品：`餐饮订单系统`（`restaurant-order-system`）。
 - 管理员可以创建、编辑、筛选和查看客户应用实例。
 - 应用实例关联工作区、产品，并可选关联订阅。
-- 新应用实例从订阅复制模板版本和配置快照；实例创建后不能更换产品、订阅、模板版本或配置快照。
+- 新应用实例从订阅复制模板版本和配置快照；管理员不能在实例编辑页任意更换这些归属。客户结束旧订阅后重新购买同一产品时，系统会把唯一实例安全重绑到新订阅、刷新受控配置快照并恢复为 `pending`，等待重新开通。
 - 应用实例通过关联订阅读取对应套餐，管理员实例列表和详情会显示该套餐；实例表不重复保存 `plan_id`。
 - 应用实例状态支持 `pending`、`active`、`suspended`、`failed`。
 - 只有关联有效订阅的实例允许被标记为 `active`。
@@ -71,13 +72,16 @@
 - 客户可以对有效或逾期订阅发起同套餐续费，并可为有效订阅设置或撤销“周期结束后取消”；本期不提供即时取消、升级、降级或按比例计费。
 - `workspace_product_entitlements` 按工作区和产品保存当前订阅与唯一应用实例的对应关系；重新购买不会重复创建同产品实例。
 - 管理员可在“购买订单”查看客户新购/续费订单、Stripe 状态、关联订阅和失败原因。
+- 套餐绑定一个受控的 AWS 部署资源档位：`standard-v1`、`large-v1` 或 `large-dedicated-db-v1`；该档位随购买订单和订阅快照固定，客户不能自行篡改。
+- 已验证付款在生成或复用 `pending` 应用实例后，还会幂等生成一条 `app_instance_deployments` 计划记录，描述共享层、Cell 层和租户层资源的逻辑目标。
+- 当前部署计划固定为 `aws_ecs_cell` / `plan_only`：不调用 AWS、不创建资源、不保存 AWS 凭据、不生成 ARN、正式 URL 或 Secret 值。
 
 ## 当前没有实现
 
 - Paddle、自动续扣、Stripe 订阅模式、退款自动化、优惠券和复杂发票系统。
 - 复杂发票、优惠券和自动退款。
-- 自动部署、云资源创建、Docker / Kubernetes 发布和复杂部署日志。
-- 模板中的部署驱动目前只保存受控标识，不会执行自动部署流程。
+- AWS 执行器、云资源创建、ECS 发布、数据库建 Role/Schema、Secret 写入和复杂部署日志；当前只生成可审计的计划。
+- 模板中的部署驱动和 `app_instance_deployments` 计划都不会执行自动部署流程。
 - 多产品市场。
 - 成员邀请和角色变更。
 - 邮箱验证、忘记密码/重置密码、MFA、邮件自动发送和第三方 OAuth。
@@ -112,6 +116,8 @@ DATABASE_URL=postgresql://app_user:password@example-pooler.neon.tech/neondb?sslm
 AUTH_SESSION_DAYS=7
 STRIPE_SECRET_KEY=sk_test_replace_me
 STRIPE_WEBHOOK_SECRET=whsec_replace_me
+AWS_REGION=ca-central-1
+AWS_DEFAULT_CELL_KEY=cell-demo-1
 ```
 
 首次切换现有 Neon 数据库时，先应用增量迁移，再初始化或重置一个平台管理员密码：
@@ -149,13 +155,15 @@ npm test
 
 Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WEBHOOK_SECRET`。本地测试使用 `sk_test_...` 和 Stripe CLI 生成的 `whsec_...`；生产环境在目标托管平台配置对应的 secret。两者都不能以公开环境变量、前端代码或 Git 提交方式保存。
 
+`AWS_REGION` 和 `AWS_DEFAULT_CELL_KEY` 仅用于给部署计划填写目标区域和 Cell 标识，默认分别为 `ca-central-1`、`cell-demo-1`。本阶段没有 AWS SDK 调用，也不需要、不得配置 `AWS_ACCESS_KEY_ID`、`AWS_SECRET_ACCESS_KEY` 等 AWS 凭据；这些变量不代表资源已创建。
+
 平台首个管理员通过 `npm run auth:bootstrap-admin` 初始化。管理员在“客户管理”创建企业后，需要进入客户详情生成一次性激活链接并发送给 Owner；系统本期不自动发送邮件。
 
 ## 上线试运行
 
 发布前依次执行 `npm run lint`、`npm run typecheck`、`npm run build` 和 `npm test`。完整的管理员流程、客户流程、状态提示、权限隔离和数据来源验收步骤见 [上线检查清单](./docs/launch-checklist.md)。Stripe 测试模式、Webhook 与上线操作见 [Stripe 支付操作说明](./docs/stripe-payment-operations.md)。
 
-本地试运行时，应至少使用两个不同浏览器配置文件或一个普通窗口加一个无痕窗口：一个登录平台管理员，另一个注册普通企业客户。可先在管理员端完成手动流程；也可通过 Stripe 测试付款验证自动待开通流程，详细操作见 [支付后待开通实例说明](./docs/auto-pending-provisioning.md)。
+本地试运行时，应至少使用两个不同浏览器配置文件或一个普通窗口加一个无痕窗口：一个登录平台管理员，另一个注册普通企业客户。主流程应由企业 Owner 自助选择共享套餐、填写参数并完成 Stripe 测试付款；管理员手工订阅仅用于应急验证。支付后待开通流程见 [支付后待开通实例说明](./docs/auto-pending-provisioning.md)，AWS Cell 计划模型及其安全边界见 [AWS ECS Cell 部署计划 DEMO](./docs/aws-ecs-cell-deployment-demo.md)。
 
 ## 数据库
 
@@ -210,6 +218,13 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `workspace_product_entitlements`：保存 `(workspace_id, product_id)` 对应的当前订阅和唯一应用实例
 - `subscriptions.creation_source`：区分 `admin_manual` 与 `customer_checkout`
 - `payment_webhook_events.purchase_order_id`：把已验证 Stripe 事件关联到客户购买订单
+
+AWS Cell 部署计划 DEMO 新增：
+
+- `plans.deployment_profile_key`：管理员为共享套餐选择的受控资源档位
+- `subscription_purchase_orders.deployment_profile_key`：购买时固定的套餐资源档位快照
+- `subscriptions.deployment_profile_key`：付款成功后固定到订阅的资源档位快照
+- `app_instance_deployments`：保存应用实例对应的 plan-only 目标计划、哈希、幂等键和计划状态；不保存凭据、Secret 值、ARN 或真实访问地址
 
 自有认证一期新增：
 
@@ -328,4 +343,4 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 
 ## 下一步建议
 
-先在 Stripe 测试模式完成双账号验收：客户选择套餐→填写参数→Checkout→Webhook 创建订阅→生成/复用待开通实例→管理员填写入口并开通，同时验证重复事件不会重复入账。之后再决定是否启用 Stripe 订阅模式和自动续扣；升级/降级、退款、自动部署和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)。
+先在 Stripe 测试模式完成双账号验收：客户选择共享套餐→填写参数→Checkout→已验证 Webhook 创建订阅→生成/复用待开通实例→生成唯一 AWS Cell 计划→管理员检查并完成当前手工开通，同时验证重复事件不会重复入账或重复生成计划。下一阶段优先实现独立执行器/Worker、部署状态机、可重试任务与 AWS 最小权限身份；在执行器通过安全评审前，禁止把 `plan_only` 改成自动 Apply。升级/降级、退款和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)。

@@ -33,18 +33,12 @@ export default async function SubscriptionsPage({
 
   return (
     <>
-      <header className="page-header page-header-split">
+      <header className="page-header">
         <div>
-          <p className="page-kicker">MANUAL SUBSCRIPTIONS</p>
+          <p className="page-kicker">CUSTOMER SUBSCRIPTIONS</p>
           <h1>订阅管理</h1>
-          <p>按企业客户与产品维护当前订阅，并保留取消后的历史记录。</p>
+          <p>客户完成在线付款后由系统创建订阅；管理员在这里查看状态与历史记录。应急补录能力不作为日常入口展示。</p>
         </div>
-        <Link
-          className="button button-dark button-small"
-          href="/admin/subscriptions/new"
-        >
-          新建订阅
-        </Link>
       </header>
 
       <AdminSearchFilters
@@ -134,7 +128,7 @@ export default async function SubscriptionsPage({
         ) : (
           <div className="empty-state">
             <strong>没有找到订阅</strong>
-            <p>调整筛选条件，或者为客户创建第一条订阅。</p>
+            <p>调整筛选条件；客户完成 Stripe 付款后，系统会自动创建订阅。</p>
           </div>
         )}
       </section>

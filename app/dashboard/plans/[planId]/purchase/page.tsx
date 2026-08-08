@@ -9,6 +9,7 @@ import {
   getSubscription,
   getWorkspaceProductCurrentSubscription,
 } from "@/lib/billing/management";
+import { getDeploymentProfile } from "@/lib/deployments/profiles";
 
 export const metadata: Metadata = { title: "确认套餐购买" };
 export const dynamic = "force-dynamic";
@@ -76,7 +77,8 @@ export default async function PurchasePage({
         <p>
           {plan.productName} · {plan.name} ·{" "}
           {formatMoney(plan.priceAmount, plan.currency)}/
-          {plan.billingInterval === "year" ? "年" : "月"}
+          {plan.billingInterval === "year" ? "年" : "月"} ·
+          {getDeploymentProfile(plan.deploymentProfileKey).label}
         </p>
       </header>
 
@@ -87,7 +89,7 @@ export default async function PurchasePage({
             <p>
               {validRenewal
                 ? "续费沿用当前实例配置，不在本流程中更换套餐或模板。"
-                : `参数来自 ${plan.templateName} · v${plan.templateVersion}，付款后会保存为待开通实例快照。`}
+                : `参数来自 ${plan.templateName} · v${plan.templateVersion}，付款确认后会自动生成实例快照和 AWS 部署计划。`}
             </p>
           </div>
         </div>

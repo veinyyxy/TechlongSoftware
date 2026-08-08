@@ -38,6 +38,7 @@ test("validates database-backed plan fields without floating point prices", () =
     priceAmount: 4900,
     currency: "cad",
     billingInterval: "month",
+    deploymentProfileKey: "standard-v1",
     features: ["订单管理", "菜单配置"],
     limits: { 门店数: "1", 成员数: "5" },
     templateConfiguration: {
@@ -49,6 +50,7 @@ test("validates database-backed plan fields without floating point prices", () =
   assert.equal(valid.data?.currency, "CAD");
   assert.equal(valid.data?.productId, "prd_restaurant_order_system");
   assert.equal(valid.data?.priceAmount, 4900);
+  assert.equal(valid.data?.deploymentProfileKey, "standard-v1");
   assert.deepEqual(valid.data?.features, ["订单管理", "菜单配置"]);
   assert.deepEqual(valid.data?.templateConfiguration, {
     theme: "warm",
@@ -64,6 +66,7 @@ test("validates database-backed plan fields without floating point prices", () =
     priceAmount: 49.5,
     currency: "C",
     billingInterval: "weekly",
+    deploymentProfileKey: "customer-defined-profile",
     features: "hard-coded",
     limits: {},
     templateConfiguration: { invalid: { nested: true } },
@@ -73,6 +76,7 @@ test("validates database-backed plan fields without floating point prices", () =
   assert.ok(invalid.errors.templateVersionId);
   assert.ok(invalid.errors.priceAmount);
   assert.ok(invalid.errors.billingInterval);
+  assert.ok(invalid.errors.deploymentProfileKey);
   assert.ok(invalid.errors.features);
   assert.ok(invalid.errors.templateConfiguration);
 });

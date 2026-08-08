@@ -38,7 +38,7 @@ export default async function AdminPage() {
         <article className="readiness-card">
           <small>有效订阅</small>
           <strong>{overview.activeSubscriptions}</strong>
-          <p>由管理员手动标记为有效的订阅。</p>
+          <p>客户在线付款后由系统确认的有效订阅。</p>
         </article>
       </div>
       <div className="dashboard-columns">
@@ -53,8 +53,8 @@ export default async function AdminPage() {
           <Link className="table-link" href="/admin/customers">进入客户管理 →</Link>
         </section>
         <section className="module-card">
-          <h2>手动收费状态</h2>
-          <p>订阅与付款记录由平台管理员维护。</p>
+          <h2>自助购买与收费状态</h2>
+          <p>客户自助选择套餐并付款，管理员查看订阅和付款结果。</p>
           <ul className="foundation-checklist">
             <li><span>启用套餐</span><span>{overview.activePlans}</span></li>
             <li><span>有效订阅</span><span>{overview.activeSubscriptions}</span></li>
@@ -67,7 +67,7 @@ export default async function AdminPage() {
         </section>
         <section className="module-card">
           <h2>应用实例</h2>
-          <p>手动记录客户对应的餐饮订单系统入口与开通状态。</p>
+          <p>付款后自动准备 pending 实例与 AWS plan-only 计划，管理员负责最终开通。</p>
           <ul className="foundation-checklist">
             <li><span>实例总数</span><span>{overview.appInstances}</span></li>
             <li><span>已开通实例</span><span>{overview.activeAppInstances}</span></li>

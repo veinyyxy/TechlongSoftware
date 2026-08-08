@@ -51,6 +51,7 @@ export default async function EditPlanPage({ params }: EditPlanPageProps) {
             priceAmount: plan.priceAmount,
             currency: plan.currency,
             billingInterval: plan.billingInterval,
+            deploymentProfileKey: plan.deploymentProfileKey,
             features: plan.features,
             limits: plan.limits,
           }}

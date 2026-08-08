@@ -113,6 +113,10 @@ CREATE TABLE plans (
   price_amount integer NOT NULL,
   currency text NOT NULL,
   billing_interval text NOT NULL,
+  deployment_profile_key text NOT NULL DEFAULT 'standard-v1'
+    CHECK (deployment_profile_key IN (
+      'standard-v1', 'large-v1', 'large-dedicated-db-v1'
+    )),
   status text NOT NULL DEFAULT 'active',
   features text NOT NULL DEFAULT '[]',
   limits text NOT NULL DEFAULT '{}',
@@ -156,6 +160,10 @@ CREATE TABLE subscriptions (
   current_period_end bigint NOT NULL,
   cancel_at_period_end integer NOT NULL DEFAULT 0,
   creation_source text NOT NULL DEFAULT 'admin_manual',
+  deployment_profile_key text NOT NULL DEFAULT 'standard-v1'
+    CHECK (deployment_profile_key IN (
+      'standard-v1', 'large-v1', 'large-dedicated-db-v1'
+    )),
   created_by_user_id text NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
@@ -283,6 +291,10 @@ CREATE TABLE subscription_purchase_orders (
   amount integer NOT NULL,
   currency text NOT NULL,
   billing_interval text NOT NULL,
+  deployment_profile_key text NOT NULL DEFAULT 'standard-v1'
+    CHECK (deployment_profile_key IN (
+      'standard-v1', 'large-v1', 'large-dedicated-db-v1'
+    )),
   status text NOT NULL DEFAULT 'draft',
   provider text NOT NULL DEFAULT 'stripe',
   provider_session_id text,
@@ -312,6 +324,44 @@ CREATE INDEX subscription_purchase_orders_status_idx
   ON subscription_purchase_orders (status);
 CREATE INDEX subscription_purchase_orders_created_at_idx
   ON subscription_purchase_orders (created_at);
+
+CREATE TABLE app_instance_deployments (
+  id text PRIMARY KEY,
+  app_instance_id text NOT NULL
+    REFERENCES app_instances(id) ON DELETE CASCADE,
+  subscription_id text REFERENCES subscriptions(id) ON DELETE SET NULL,
+  purchase_order_id text
+    REFERENCES subscription_purchase_orders(id) ON DELETE SET NULL,
+  driver text NOT NULL,
+  workflow_version text NOT NULL,
+  cell_key text NOT NULL,
+  deployment_profile_key text NOT NULL
+    CHECK (deployment_profile_key IN (
+      'standard-v1', 'large-v1', 'large-dedicated-db-v1'
+    )),
+  mode text NOT NULL DEFAULT 'plan_only'
+    CHECK (mode = 'plan_only'),
+  status text NOT NULL DEFAULT 'planned'
+    CHECK (status IN (
+      'planned', 'queued', 'provisioning', 'ready', 'failed', 'canceled'
+    )),
+  desired_plan text NOT NULL
+    CHECK (jsonb_typeof(desired_plan::jsonb) = 'object'),
+  plan_hash text NOT NULL,
+  idempotency_key text NOT NULL,
+  attempts integer NOT NULL DEFAULT 0,
+  last_error text,
+  created_at bigint NOT NULL,
+  updated_at bigint NOT NULL
+);
+CREATE UNIQUE INDEX app_instance_deployments_idempotency_unique
+  ON app_instance_deployments (idempotency_key);
+CREATE INDEX app_instance_deployments_app_instance_id_idx
+  ON app_instance_deployments (app_instance_id);
+CREATE INDEX app_instance_deployments_subscription_id_idx
+  ON app_instance_deployments (subscription_id);
+CREATE INDEX app_instance_deployments_status_idx
+  ON app_instance_deployments (status);
 
 CREATE TABLE payment_webhook_events (
   id text PRIMARY KEY,

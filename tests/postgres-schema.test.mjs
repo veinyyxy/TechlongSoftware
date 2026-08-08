@@ -43,6 +43,7 @@ test("PostgreSQL schema contains all business tables and core integrity rules", 
     "payment_checkout_sessions",
     "app_instances",
     "subscription_purchase_orders",
+    "app_instance_deployments",
     "payment_webhook_events",
     "workspace_members",
     "workspace_product_entitlements",
@@ -56,11 +57,56 @@ test("PostgreSQL schema contains all business tables and core integrity rules", 
   assert.match(sql, /auth_sessions_token_hash_unique/);
   assert.match(sql, /auth_invitations_token_hash_unique/);
   assert.match(sql, /app_instances_workspace_product_unique/);
+  assert.match(sql, /app_instance_deployments_idempotency_unique/);
+  assert.match(
+    sql,
+    /CREATE TABLE plans[\s\S]*?deployment_profile_key text NOT NULL DEFAULT 'standard-v1'/,
+  );
+  assert.match(
+    sql,
+    /CREATE TABLE subscriptions[\s\S]*?deployment_profile_key text NOT NULL DEFAULT 'standard-v1'/,
+  );
+  assert.match(
+    sql,
+    /CREATE TABLE subscription_purchase_orders[\s\S]*?deployment_profile_key text NOT NULL DEFAULT 'standard-v1'/,
+  );
+  assert.match(
+    sql,
+    /CREATE TABLE app_instance_deployments[\s\S]*?mode text NOT NULL DEFAULT 'plan_only'/,
+  );
+  assert.match(
+    sql,
+    /CREATE TABLE app_instance_deployments[\s\S]*?status text NOT NULL DEFAULT 'planned'/,
+  );
+  assert.match(sql, /jsonb_typeof\(desired_plan::jsonb\) = 'object'/);
   assert.match(sql, /CREATE OR REPLACE FUNCTION enforce_subscription_relationships/);
   assert.match(sql, /CREATE OR REPLACE FUNCTION enforce_template_version_immutability/);
   assert.match(sql, /::jsonb/);
   assert.match(sql, /\bbigint\b/i);
   assert.doesNotMatch(sql, /PRAGMA|AUTOINCREMENT|INSERT OR IGNORE/);
+});
+
+test("deployment planning migration snapshots the profile and idempotent plan record", async () => {
+  const migration = await read(
+    "db/postgres-migrations/0002_app_instance_deployment_planning.sql",
+  );
+
+  for (const table of [
+    "plans",
+    "subscriptions",
+    "subscription_purchase_orders",
+  ]) {
+    assert.match(
+      migration,
+      new RegExp(
+        `ALTER TABLE ${table}[\\s\\S]*?ADD COLUMN deployment_profile_key`,
+      ),
+    );
+  }
+  assert.match(migration, /CREATE TABLE app_instance_deployments\b/);
+  assert.match(migration, /CHECK \(mode = 'plan_only'\)/);
+  assert.match(migration, /app_instance_deployments_idempotency_unique/);
+  assert.match(migration, /ON app_instance_deployments \(idempotency_key\)/);
 });
 
 test("temporary browser migration endpoint is removed after cutover", async () => {

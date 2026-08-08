@@ -74,6 +74,7 @@ export const plans = pgTable("plans", {
 	priceAmount: integer("price_amount").notNull(),
 	currency: text().notNull(),
 	billingInterval: text("billing_interval").notNull(),
+	deploymentProfileKey: text("deployment_profile_key").default('standard-v1').notNull(),
 	status: text().default('active').notNull(),
 	features: text().default('[]').notNull(),
 	limits: text().default('{}').notNull(),
@@ -97,6 +98,7 @@ export const plans = pgTable("plans", {
 			name: "plans_template_version_id_fkey"
 		}).onDelete("restrict"),
 	check("plans_template_configuration_check", sql`jsonb_typeof((template_configuration)::jsonb) = 'object'::text`),
+	check("plans_deployment_profile_check", sql`deployment_profile_key = ANY (ARRAY['standard-v1'::text, 'large-v1'::text, 'large-dedicated-db-v1'::text])`),
 ]);
 
 export const users = pgTable("users", {
@@ -219,6 +221,7 @@ export const subscriptions = pgTable("subscriptions", {
 	currentPeriodEnd: bigint("current_period_end", { mode: "number" }).notNull(),
 	cancelAtPeriodEnd: integer("cancel_at_period_end").default(0).notNull(),
 	creationSource: text("creation_source").default('admin_manual').notNull(),
+	deploymentProfileKey: text("deployment_profile_key").default('standard-v1').notNull(),
 	createdByUserId: text("created_by_user_id").notNull(),
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	createdAt: bigint("created_at", { mode: "number" }).notNull(),
@@ -257,6 +260,7 @@ export const subscriptions = pgTable("subscriptions", {
 			name: "subscriptions_created_by_user_id_fkey"
 		}).onDelete("restrict"),
 	check("subscriptions_instance_configuration_check", sql`jsonb_typeof((instance_configuration)::jsonb) = 'object'::text`),
+	check("subscriptions_deployment_profile_check", sql`deployment_profile_key = ANY (ARRAY['standard-v1'::text, 'large-v1'::text, 'large-dedicated-db-v1'::text])`),
 ]);
 
 export const paymentRecords = pgTable("payment_records", {
@@ -432,6 +436,7 @@ export const subscriptionPurchaseOrders = pgTable("subscription_purchase_orders"
 	amount: integer().notNull(),
 	currency: text().notNull(),
 	billingInterval: text("billing_interval").notNull(),
+	deploymentProfileKey: text("deployment_profile_key").default('standard-v1').notNull(),
 	status: text().default('draft').notNull(),
 	provider: text().default('stripe').notNull(),
 	providerSessionId: text("provider_session_id"),
@@ -497,6 +502,51 @@ export const subscriptionPurchaseOrders = pgTable("subscription_purchase_orders"
 			name: "subscription_purchase_orders_created_by_user_id_fkey"
 		}).onDelete("restrict"),
 	check("subscription_purchase_orders_configuration_snapshot_check", sql`jsonb_typeof((configuration_snapshot)::jsonb) = 'object'::text`),
+	check("subscription_purchase_orders_deployment_profile_check", sql`deployment_profile_key = ANY (ARRAY['standard-v1'::text, 'large-v1'::text, 'large-dedicated-db-v1'::text])`),
+]);
+
+export const appInstanceDeployments = pgTable("app_instance_deployments", {
+	id: text().primaryKey().notNull(),
+	appInstanceId: text("app_instance_id").notNull(),
+	subscriptionId: text("subscription_id"),
+	purchaseOrderId: text("purchase_order_id"),
+	driver: text().notNull(),
+	workflowVersion: text("workflow_version").notNull(),
+	cellKey: text("cell_key").notNull(),
+	deploymentProfileKey: text("deployment_profile_key").notNull(),
+	mode: text().default('plan_only').notNull(),
+	status: text().default('planned').notNull(),
+	desiredPlan: text("desired_plan").notNull(),
+	planHash: text("plan_hash").notNull(),
+	idempotencyKey: text("idempotency_key").notNull(),
+	attempts: integer().default(0).notNull(),
+	lastError: text("last_error"),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => [
+	index("app_instance_deployments_app_instance_id_idx").using("btree", table.appInstanceId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("app_instance_deployments_idempotency_unique").using("btree", table.idempotencyKey.asc().nullsLast().op("text_ops")),
+	index("app_instance_deployments_status_idx").using("btree", table.status.asc().nullsLast().op("text_ops")),
+	index("app_instance_deployments_subscription_id_idx").using("btree", table.subscriptionId.asc().nullsLast().op("text_ops")),
+	foreignKey({
+		columns: [table.appInstanceId],
+		foreignColumns: [appInstances.id],
+		name: "app_instance_deployments_app_instance_id_fkey"
+	}).onDelete("cascade"),
+	foreignKey({
+		columns: [table.subscriptionId],
+		foreignColumns: [subscriptions.id],
+		name: "app_instance_deployments_subscription_id_fkey"
+	}).onDelete("set null"),
+	foreignKey({
+		columns: [table.purchaseOrderId],
+		foreignColumns: [subscriptionPurchaseOrders.id],
+		name: "app_instance_deployments_purchase_order_id_fkey"
+	}).onDelete("set null"),
+	check("app_instance_deployments_profile_check", sql`deployment_profile_key = ANY (ARRAY['standard-v1'::text, 'large-v1'::text, 'large-dedicated-db-v1'::text])`),
+	check("app_instance_deployments_mode_check", sql`mode = 'plan_only'::text`),
+	check("app_instance_deployments_status_check", sql`status = ANY (ARRAY['planned'::text, 'queued'::text, 'provisioning'::text, 'ready'::text, 'failed'::text, 'canceled'::text])`),
+	check("app_instance_deployments_desired_plan_check", sql`jsonb_typeof((desired_plan)::jsonb) = 'object'::text`),
 ]);
 
 export const paymentWebhookEvents = pgTable("payment_webhook_events", {

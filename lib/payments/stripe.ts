@@ -150,7 +150,7 @@ export async function retrieveStripeCheckoutSession(
       503,
     );
   }
-  if (!/^cs_(?:test_|live_)?[A-Za-z0-9]+$/.test(sessionId)) {
+  if (!isStripeCheckoutSessionId(sessionId)) {
     throw new StripeGatewayError(
       "STRIPE_CHECKOUT_FAILED",
       "Stripe 付款会话编号无效。",
@@ -181,6 +181,72 @@ export async function retrieveStripeCheckoutSession(
     );
   }
 
+  return stripeCheckoutSessionStatus(payload, sessionId);
+}
+
+export async function expireStripeCheckoutSession(
+  sessionId: string,
+): Promise<StripeCheckoutSessionStatus> {
+  const secretKey = binding("STRIPE_SECRET_KEY");
+  if (!secretKey) {
+    throw new StripeGatewayError(
+      "STRIPE_NOT_CONFIGURED",
+      "在线支付尚未配置，请联系平台管理员。",
+      503,
+    );
+  }
+  if (!isStripeCheckoutSessionId(sessionId)) {
+    throw new StripeGatewayError(
+      "STRIPE_CHECKOUT_FAILED",
+      "Stripe 付款会话编号无效。",
+      400,
+    );
+  }
+
+  let response: Response | null = null;
+  try {
+    response = await fetch(
+      `${STRIPE_API_BASE}/checkout/sessions/${encodeURIComponent(sessionId)}/expire`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${secretKey}`,
+          "content-type": "application/x-www-form-urlencoded",
+          "idempotency-key": `expire_${sessionId}`,
+        },
+      },
+    );
+  } catch {
+    // The request may have reached Stripe even if the response was lost.
+    // Retrieve below before deciding whether the local order can be released.
+  }
+
+  const payload = response
+    ? ((await response.json().catch(() => null)) as Record<string, unknown> | null)
+    : null;
+  if (response?.ok && payload?.id === sessionId) {
+    return stripeCheckoutSessionStatus(payload, sessionId);
+  }
+
+  const current = await retrieveStripeCheckoutSession(sessionId);
+  if (
+    current.status === "expired" ||
+    current.status === "complete" ||
+    current.paymentStatus === "paid"
+  ) {
+    return current;
+  }
+  throw new StripeGatewayError(
+    "STRIPE_CHECKOUT_FAILED",
+    "暂时无法安全取消 Stripe 付款页面，请稍后重试。",
+    502,
+  );
+}
+
+function stripeCheckoutSessionStatus(
+  payload: Record<string, unknown>,
+  sessionId: string,
+): StripeCheckoutSessionStatus {
   return {
     id: sessionId,
     paymentStatus: typeof payload.payment_status === "string" ? payload.payment_status : null,
@@ -198,6 +264,10 @@ export async function retrieveStripeCheckoutSession(
         ? (payload.metadata as Record<string, unknown>)
         : {},
   };
+}
+
+function isStripeCheckoutSessionId(value: string): boolean {
+  return /^cs_(?:test_|live_)?[A-Za-z0-9]+$/.test(value);
 }
 
 export async function verifyStripeWebhook(

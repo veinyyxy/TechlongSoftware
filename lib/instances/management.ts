@@ -413,7 +413,23 @@ export async function preparePendingAppInstance(input: {
       status: AppInstanceStatus;
   }>();
   if (existing) {
-    return null;
+    if (existing.subscription_id === input.subscriptionId) return null;
+    return db
+      .prepare(
+        `UPDATE app_instances
+         SET subscription_id = ?, template_version_id = ?,
+             configuration_snapshot = ?, provisioning_source = 'payment_success',
+             status = 'pending', suspended_at = NULL, updated_at = ?
+         WHERE id = ? AND subscription_id IS DISTINCT FROM ?`,
+      )
+      .bind(
+        input.subscriptionId,
+        input.templateVersionId,
+        JSON.stringify(input.configurationSnapshot),
+        input.now,
+        existing.id,
+        input.subscriptionId,
+      );
   }
 
   const id = randomId("app");
@@ -436,7 +452,7 @@ export async function preparePendingAppInstance(input: {
           AND subscription.product_id = ?
           AND subscription.status = 'active'
       )
-      ON CONFLICT (id) DO NOTHING`,
+      ON CONFLICT (workspace_id, product_id) DO NOTHING`,
     )
     .bind(
       id,
