@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { migrationChecksum } from "../scripts/migration-checksum.mjs";
 
 const root = new URL("../", import.meta.url);
 
 async function read(path) {
   return readFile(new URL(path, root), "utf8");
 }
+
+test("PostgreSQL migration checksums are stable across Windows line endings", () => {
+  const lf = "CREATE TABLE example (id text);\nSELECT 1;\n";
+  const crlf = lf.replaceAll("\n", "\r\n");
+  assert.equal(migrationChecksum(lf), migrationChecksum(crlf));
+});
 
 test("runtime uses Neon PostgreSQL through the server-only DATABASE_URL", async () => {
   const [databaseEntry, adapter, example, homepage] = await Promise.all([

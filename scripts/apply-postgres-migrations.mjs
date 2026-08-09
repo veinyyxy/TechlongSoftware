@@ -1,7 +1,7 @@
-import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Pool, neonConfig } from "@neondatabase/serverless";
+import { migrationChecksum } from "./migration-checksum.mjs";
 
 const connectionString = process.env.DATABASE_URL?.trim();
 if (!connectionString) {
@@ -34,7 +34,9 @@ try {
 
   for (const filename of migrationFiles) {
     const sql = await readFile(resolve(migrationsDirectory, filename), "utf8");
-    const checksum = createHash("sha256").update(sql).digest("hex");
+    // Git stores migrations with LF, while Windows may check them out as CRLF.
+    // Normalize line endings so the immutable checksum is cross-platform.
+    const checksum = migrationChecksum(sql);
     const existing = await client.query(
       "SELECT checksum FROM schema_migrations WHERE filename = $1 LIMIT 1",
       [filename],
