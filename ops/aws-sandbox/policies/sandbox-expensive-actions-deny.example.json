@@ -1,0 +1,91 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyRegionalActionsOutsideCanadaCentral",
+      "Effect": "Deny",
+      "NotAction": [
+        "account:*",
+        "budgets:*",
+        "ce:*",
+        "cloudfront:*",
+        "iam:*",
+        "organizations:*",
+        "route53:*",
+        "sts:*",
+        "support:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "aws:RequestedRegion": "ca-central-1"
+        }
+      }
+    },
+    {
+      "Sid": "DenyCommitmentsAndMarketplacePurchases",
+      "Effect": "Deny",
+      "Action": [
+        "aws-marketplace:Subscribe",
+        "ec2:PurchaseReservedInstancesOffering",
+        "rds:PurchaseReservedDBInstancesOffering",
+        "savingsplans:CreateSavingsPlan"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyHighRiskNetworking",
+      "Effect": "Deny",
+      "Action": [
+        "ec2:AllocateAddress",
+        "ec2:CreateCustomerGateway",
+        "ec2:CreateNatGateway",
+        "ec2:CreateTransitGateway",
+        "ec2:CreateTransitGatewayPeeringAttachment",
+        "ec2:CreateVpcEndpoint",
+        "ec2:CreateVpnConnection",
+        "globalaccelerator:CreateAccelerator",
+        "network-firewall:CreateFirewall"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyUnsupportedComputeAndDataServices",
+      "Effect": "Deny",
+      "Action": [
+        "ec2:CreateFleet",
+        "ec2:RequestSpotFleet",
+        "ec2:RunInstances",
+        "eks:CreateCluster",
+        "elasticache:CreateCacheCluster",
+        "elasticache:CreateReplicationGroup",
+        "opensearch:CreateDomain",
+        "redshift:CreateCluster",
+        "sagemaker:CreateDomain"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyExpensiveRdsShapes",
+      "Effect": "Deny",
+      "Action": [
+        "rds:CreateDBProxy",
+        "rds:CreateGlobalCluster",
+        "rds:RestoreDBClusterFromSnapshot",
+        "rds:RestoreDBClusterToPointInTime"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyUnapprovedSharedEdgeAndKeyResources",
+      "Effect": "Deny",
+      "Action": [
+        "cloudfront:CreateDistribution",
+        "kms:CreateKey",
+        "route53:CreateHostedZone",
+        "wafv2:CreateWebACL"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyOutsideApprovedRegion",
+      "Effect": "Deny",
+      "NotAction": [
+        "account:*",
+        "budgets:*",
+        "ce:*",
+        "cloudfront:*",
+        "iam:*",
+        "organizations:*",
+        "route53:*",
+        "sts:*",
+        "support:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "aws:RequestedRegion": "ca-central-1"
+        }
+      }
+    },
+    {
+      "Sid": "DenyKnownCostEscalators",
+      "Effect": "Deny",
+      "Action": [
+        "aws-marketplace:Subscribe",
+        "cloudfront:CreateDistribution",
+        "ec2:AllocateAddress",
+        "ec2:CreateFleet",
+        "ec2:CreateNatGateway",
+        "ec2:CreateTransitGateway",
+        "ec2:CreateVpcEndpoint",
+        "ec2:PurchaseReservedInstancesOffering",
+        "ec2:RequestSpotFleet",
+        "ec2:RunInstances",
+        "eks:CreateCluster",
+        "elasticache:CreateCacheCluster",
+        "elasticache:CreateReplicationGroup",
+        "globalaccelerator:CreateAccelerator",
+        "kms:CreateKey",
+        "network-firewall:CreateFirewall",
+        "opensearch:CreateDomain",
+        "rds:CreateDBProxy",
+        "rds:CreateGlobalCluster",
+        "rds:PurchaseReservedDBInstancesOffering",
+        "rds:RestoreDBClusterFromSnapshot",
+        "rds:RestoreDBClusterToPointInTime",
+        "redshift:CreateCluster",
+        "route53:CreateHostedZone",
+        "sagemaker:CreateDomain",
+        "savingsplans:CreateSavingsPlan",
+        "wafv2:CreateWebACL"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowCallerIdentityCheck",
+      "Effect": "Allow",
+      "Action": "sts:GetCallerIdentity",
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowCreateOnlyTaggedSandboxStacks",
+      "Effect": "Allow",
+      "Action": "cloudformation:CreateStack",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1",
+          "aws:RequestTag/Environment": "aws-sandbox",
+          "aws:RequestTag/ManagedBy": "techlong-provisioner"
+        },
+        "Null": {
+          "aws:RequestTag/AppInstanceId": "false",
+          "aws:RequestTag/DeploymentId": "false",
+          "aws:RequestTag/ExpiresAt": "false"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "Environment",
+            "ManagedBy",
+            "DeploymentId",
+            "AppInstanceId",
+            "ExpiresAt"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "AllowSandboxStackLifecycle",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CancelUpdateStack",
+        "cloudformation:ContinueUpdateRollback",
+        "cloudformation:DeleteStack",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:DescribeStacks",
+        "cloudformation:GetTemplate",
+        "cloudformation:GetTemplateSummary",
+        "cloudformation:ListStackResources",
+        "cloudformation:UpdateStack",
+        "cloudformation:ValidateTemplate"
+      ],
+      "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-*/*"
+    },
+    {
+      "Sid": "AllowPassOnlySandboxCloudFormationRole",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "cloudformation.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "AllowReadOnlySandboxInventory",
+      "Effect": "Allow",
+      "Action": [
+        "acm:DescribeCertificate",
+        "acm:ListCertificates",
+        "budgets:ViewBudget",
+        "cloudformation:ListStacks",
+        "ec2:DescribeAddresses",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeRegions",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs",
+        "ecr:DescribeImages",
+        "ecr:DescribeRepositories",
+        "ecs:DescribeClusters",
+        "ecs:DescribeServices",
+        "ecs:DescribeTasks",
+        "ecs:ListClusters",
+        "ecs:ListServices",
+        "ecs:ListTasks",
+        "elasticloadbalancing:DescribeLoadBalancers",
+        "elasticloadbalancing:DescribeTargetGroups",
+        "logs:DescribeLogGroups",
+        "rds:DescribeDBInstances",
+        "rds:DescribeDBSnapshots",
+        "route53:ListHostedZones",
+        "secretsmanager:ListSecrets",
+        "tag:GetResources"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

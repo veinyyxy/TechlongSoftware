@@ -1,0 +1,8 @@
+{
+  "name": "techlong-aws-sandbox-static-guardrails",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node ./scripts/validate.mjs"
+  }
+}

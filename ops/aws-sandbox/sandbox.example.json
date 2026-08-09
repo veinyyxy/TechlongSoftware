@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "environment": "aws-sandbox",
+  "aws": {
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "profile": "techlong-sandbox-user",
+    "cloudApplyEnabled": false,
+    "requireStsAccountMatch": true,
+    "cloudFormationStackPrefix": "techlong-sandbox-",
+    "cloudFormationExecutionRoleName": "TechlongSandboxCloudFormationExecutionRole"
+  },
+  "costControls": {
+    "monthlyBudgetUsd": 10,
+    "budgetAlertEmail": "replace-with-verified-email@example.com",
+    "includeCreditsInBudget": false,
+    "warningThresholdPercentages": [10, 30, 50, 80, 100]
+  },
+  "lifecycle": {
+    "deploymentTtlSeconds": 7200,
+    "janitorScanIntervalSeconds": 900,
+    "requireCleanupScheduleBeforeProvisioning": true,
+    "skipFinalDatabaseSnapshot": true,
+    "cloudWatchLogRetentionDays": 1
+  },
+  "limits": {
+    "maxConcurrentCells": 1,
+    "maxConcurrentDeployments": 1,
+    "maxConcurrentTenants": 1,
+    "maxDesiredTaskCount": 1
+  },
+  "database": {
+    "provider": "aurora-postgresql-serverless-v2",
+    "engine": "aurora-postgresql",
+    "engineMajorVersion": 16,
+    "minimumEngineVersion": "16.3",
+    "isolation": "tenant_database",
+    "minAcu": 0,
+    "maxAcu": 1,
+    "secondsUntilAutoPause": 300,
+    "maxCellClusters": 1,
+    "maxReaderInstances": 0,
+    "allowDedicatedTenantDatabase": false,
+    "allowTraditionalMultiAz": false,
+    "allowDbProxy": false,
+    "allowSnapshotRestore": false
+  },
+  "dns": {
+    "delegatedZone": "sandbox.techlong.cloud",
+    "tenantHostnamePattern": "{tenant}.sandbox.techlong.cloud",
+    "createHostedZoneAutomatically": false
+  },
+  "requiredResourceTags": {
+    "Environment": "aws-sandbox",
+    "ManagedBy": "techlong-provisioner",
+    "DeploymentId": "required-at-runtime",
+    "AppInstanceId": "required-at-runtime",
+    "ExpiresAt": "required-at-runtime"
+  }
+}

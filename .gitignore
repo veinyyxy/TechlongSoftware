@@ -21,6 +21,15 @@
 # misc
 .DS_Store
 *.pem
+*.key
+*.p12
+*.pfx
+
+# local cloud accounts, credentials, and bundled CLIs
+/account.md
+/stripe_sandbox/
+/.aws-sandbox/
+/.local-secrets/
 
 # debug
 npm-debug.log*

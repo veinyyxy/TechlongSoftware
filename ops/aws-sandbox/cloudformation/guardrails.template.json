@@ -1,0 +1,201 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Static S0 guardrails for the Techlong AWS Sandbox. This template creates only a monthly cost budget with email notifications.",
+  "Metadata": {
+    "SafetyBoundary": {
+      "CloudApplyEnabled": false,
+      "CreatesComputeOrDatabaseResources": false,
+      "RequiresManualReview": true
+    }
+  },
+  "Parameters": {
+    "ExpectedAccountId": {
+      "Type": "String",
+      "Default": "402010193138",
+      "AllowedPattern": "^[0-9]{12}$",
+      "AllowedValues": ["402010193138"],
+      "Description": "The only AWS account in which these guardrails may create resources."
+    },
+    "ExpectedRegion": {
+      "Type": "String",
+      "Default": "ca-central-1",
+      "AllowedValues": ["ca-central-1"],
+      "Description": "The only regional boundary approved for the Sandbox."
+    },
+    "MonthlyBudgetUsd": {
+      "Type": "Number",
+      "Default": 10,
+      "MinValue": 10,
+      "MaxValue": 10,
+      "AllowedValues": [10],
+      "Description": "Monthly gross cost budget in USD. Credits are excluded from the calculation."
+    },
+    "BudgetAlertEmail": {
+      "Type": "String",
+      "AllowedPattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+      "Description": "Verified operational email that receives all Sandbox budget notifications."
+    },
+    "DeploymentTtlSeconds": {
+      "Type": "Number",
+      "Default": 7200,
+      "AllowedValues": [7200],
+      "Description": "Static contract for the next-stage Janitor; this S0 template does not schedule cleanup."
+    },
+    "MaxConcurrentDeployments": {
+      "Type": "Number",
+      "Default": 1,
+      "AllowedValues": [1],
+      "Description": "Static contract for the next-stage provisioner."
+    },
+    "SandboxDomain": {
+      "Type": "String",
+      "Default": "sandbox.techlong.cloud",
+      "AllowedPattern": "^[a-z0-9.-]+$",
+      "AllowedValues": ["sandbox.techlong.cloud"],
+      "Description": "Delegated Sandbox DNS boundary. This template does not create a hosted zone."
+    }
+  },
+  "Conditions": {
+    "IsExpectedAccount": {
+      "Fn::Equals": [
+        { "Ref": "AWS::AccountId" },
+        { "Ref": "ExpectedAccountId" }
+      ]
+    },
+    "IsExpectedRegion": {
+      "Fn::Equals": [
+        { "Ref": "AWS::Region" },
+        { "Ref": "ExpectedRegion" }
+      ]
+    },
+    "IsExpectedTarget": {
+      "Fn::And": [
+        { "Condition": "IsExpectedAccount" },
+        { "Condition": "IsExpectedRegion" }
+      ]
+    }
+  },
+  "Resources": {
+    "SandboxMonthlyCostBudget": {
+      "Type": "AWS::Budgets::Budget",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "Budget": {
+          "BudgetName": {
+            "Fn::Sub": "techlong-sandbox-${AWS::AccountId}-${AWS::Region}"
+          },
+          "BudgetLimit": {
+            "Amount": { "Ref": "MonthlyBudgetUsd" },
+            "Unit": "USD"
+          },
+          "BudgetType": "COST",
+          "CostTypes": {
+            "IncludeCredit": false,
+            "IncludeDiscount": true,
+            "IncludeOtherSubscription": true,
+            "IncludeRecurring": true,
+            "IncludeRefund": false,
+            "IncludeSubscription": true,
+            "IncludeSupport": true,
+            "IncludeTax": true,
+            "IncludeUpfront": true,
+            "UseAmortized": false,
+            "UseBlended": false
+          },
+          "TimeUnit": "MONTHLY"
+        },
+        "NotificationsWithSubscribers": [
+          {
+            "Notification": {
+              "ComparisonOperator": "GREATER_THAN",
+              "NotificationType": "ACTUAL",
+              "Threshold": 10,
+              "ThresholdType": "PERCENTAGE"
+            },
+            "Subscribers": [
+              {
+                "Address": { "Ref": "BudgetAlertEmail" },
+                "SubscriptionType": "EMAIL"
+              }
+            ]
+          },
+          {
+            "Notification": {
+              "ComparisonOperator": "GREATER_THAN",
+              "NotificationType": "ACTUAL",
+              "Threshold": 30,
+              "ThresholdType": "PERCENTAGE"
+            },
+            "Subscribers": [
+              {
+                "Address": { "Ref": "BudgetAlertEmail" },
+                "SubscriptionType": "EMAIL"
+              }
+            ]
+          },
+          {
+            "Notification": {
+              "ComparisonOperator": "GREATER_THAN",
+              "NotificationType": "ACTUAL",
+              "Threshold": 50,
+              "ThresholdType": "PERCENTAGE"
+            },
+            "Subscribers": [
+              {
+                "Address": { "Ref": "BudgetAlertEmail" },
+                "SubscriptionType": "EMAIL"
+              }
+            ]
+          },
+          {
+            "Notification": {
+              "ComparisonOperator": "GREATER_THAN",
+              "NotificationType": "ACTUAL",
+              "Threshold": 80,
+              "ThresholdType": "PERCENTAGE"
+            },
+            "Subscribers": [
+              {
+                "Address": { "Ref": "BudgetAlertEmail" },
+                "SubscriptionType": "EMAIL"
+              }
+            ]
+          },
+          {
+            "Notification": {
+              "ComparisonOperator": "GREATER_THAN",
+              "NotificationType": "ACTUAL",
+              "Threshold": 100,
+              "ThresholdType": "PERCENTAGE"
+            },
+            "Subscribers": [
+              {
+                "Address": { "Ref": "BudgetAlertEmail" },
+                "SubscriptionType": "EMAIL"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "SafetyMode": {
+      "Condition": "IsExpectedTarget",
+      "Description": "S0 remains static and does not enable cloud resource provisioning.",
+      "Value": "STATIC_GUARDRAILS_ONLY"
+    },
+    "ApprovedDeploymentTtlSeconds": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Ref": "DeploymentTtlSeconds" }
+    },
+    "ApprovedMaxConcurrentDeployments": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Ref": "MaxConcurrentDeployments" }
+    },
+    "ApprovedSandboxDomain": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Ref": "SandboxDomain" }
+    }
+  }
+}
