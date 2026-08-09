@@ -175,7 +175,7 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
                 <dd>
                   {deployment.desiredPlan.resources.tenant.database.isolation === "dedicated_database"
                     ? `独立数据库目标：${deployment.desiredPlan.resources.tenant.database.dedicatedClusterLogicalName}`
-                    : "Cell 内独立 Role + Schema"}
+                    : "Cell Aurora 集群内独立 Database + Role"}
                 </dd>
               </div>
               <div><dt>租户资源</dt><dd>ECS Service、Task Definition、Target Group、Listener Rule、Secret、日志与成本标签</dd></div>

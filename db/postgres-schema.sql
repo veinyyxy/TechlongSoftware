@@ -325,6 +325,78 @@ CREATE INDEX subscription_purchase_orders_status_idx
 CREATE INDEX subscription_purchase_orders_created_at_idx
   ON subscription_purchase_orders (created_at);
 
+CREATE TABLE deployment_environments (
+  id text PRIMARY KEY,
+  key text NOT NULL,
+  name text NOT NULL,
+  kind text NOT NULL
+    CHECK (kind IN ('aws_sandbox', 'aws_production')),
+  driver text NOT NULL CHECK (driver = 'aws_ecs_cell'),
+  expected_account_id text NOT NULL
+    CHECK (expected_account_id ~ '^[0-9]{12}$'),
+  region text NOT NULL,
+  cell_key text NOT NULL,
+  base_domain text NOT NULL,
+  apply_enabled integer NOT NULL DEFAULT 0
+    CHECK (apply_enabled IN (0, 1)),
+  policy text NOT NULL
+    CHECK (
+      jsonb_typeof(policy::jsonb) = 'object'
+      AND octet_length(policy) <= 16384
+    ),
+  status text NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active', 'inactive')),
+  created_at bigint NOT NULL,
+  updated_at bigint NOT NULL
+);
+CREATE UNIQUE INDEX deployment_environments_key_unique
+  ON deployment_environments (key);
+CREATE INDEX deployment_environments_status_idx
+  ON deployment_environments (status);
+
+INSERT INTO deployment_environments (
+  id, key, name, kind, driver, expected_account_id, region, cell_key,
+  base_domain, apply_enabled, policy, status, created_at, updated_at
+) VALUES (
+  'env_aws_sandbox_ca_central_1',
+  'aws-sandbox-ca-central-1',
+  'AWS Sandbox ca-central-1',
+  'aws_sandbox',
+  'aws_ecs_cell',
+  '402010193138',
+  'ca-central-1',
+  'cell-sandbox-1',
+  'sandbox.techlong.cloud',
+  0,
+  '{
+    "budgetLimitCents": 1000,
+    "ttlSeconds": 7200,
+    "maxCells": 1,
+    "maxTenants": 1,
+    "maxTaskCount": 1,
+    "allowedProfiles": ["standard-v1"],
+    "allowNatGateway": false,
+    "allowInterfaceEndpoints": false,
+    "databaseEngine": "aurora-postgresql-serverless-v2",
+    "auroraPostgresMinimumVersion": "16.3",
+    "auroraPostgresEngineVersion": "16.14",
+    "auroraEngineMode": "provisioned",
+    "allowLimitlessDatabase": false,
+    "databaseMode": "tenant_database",
+    "auroraServerlessMinAcu": 0,
+    "auroraServerlessMaxAcu": 1,
+    "auroraSecondsUntilAutoPause": 300,
+    "allowDedicatedDatabase": false,
+    "allowMultiAzDatabase": false,
+    "allowRdsProxy": false,
+    "allowGlobalDatabase": false,
+    "logRetentionDays": 1
+  }',
+  'active',
+  (extract(epoch from clock_timestamp()) * 1000)::bigint,
+  (extract(epoch from clock_timestamp()) * 1000)::bigint
+);
+
 CREATE TABLE app_instance_deployments (
   id text PRIMARY KEY,
   app_instance_id text NOT NULL
@@ -332,6 +404,8 @@ CREATE TABLE app_instance_deployments (
   subscription_id text REFERENCES subscriptions(id) ON DELETE SET NULL,
   purchase_order_id text
     REFERENCES subscription_purchase_orders(id) ON DELETE SET NULL,
+  environment_id text NOT NULL
+    REFERENCES deployment_environments(id) ON DELETE RESTRICT,
   driver text NOT NULL,
   workflow_version text NOT NULL,
   cell_key text NOT NULL,
@@ -340,17 +414,46 @@ CREATE TABLE app_instance_deployments (
       'standard-v1', 'large-v1', 'large-dedicated-db-v1'
     )),
   mode text NOT NULL DEFAULT 'plan_only'
-    CHECK (mode = 'plan_only'),
+    CHECK (mode IN ('plan_only', 'aws_sandbox', 'aws_production')),
   status text NOT NULL DEFAULT 'planned'
     CHECK (status IN (
-      'planned', 'queued', 'provisioning', 'ready', 'failed', 'canceled'
+      'planned', 'queued', 'preflight', 'database_preparing', 'migrating',
+      'infrastructure_provisioning', 'waiting_healthy', 'configuring',
+      'verifying', 'ready', 'retry_wait', 'failed', 'cancel_requested',
+      'rolling_back', 'rolled_back', 'rollback_failed', 'canceled'
     )),
   desired_plan text NOT NULL
     CHECK (jsonb_typeof(desired_plan::jsonb) = 'object'),
   plan_hash text NOT NULL,
+  configuration_hash text
+    CHECK (
+      (mode = 'plan_only' AND configuration_hash IS NULL)
+      OR (
+        mode <> 'plan_only'
+        AND configuration_hash IS NOT NULL
+        AND configuration_hash ~ '^[a-f0-9]{64}$'
+      )
+    ),
   idempotency_key text NOT NULL,
+  artifact_ref text,
+  control_payload_hash text
+    CHECK (
+      control_payload_hash IS NULL
+      OR control_payload_hash ~ '^[a-f0-9]{64}$'
+    ),
+  current_step text,
+  outputs text NOT NULL DEFAULT '{}'
+    CHECK (
+      jsonb_typeof(outputs::jsonb) = 'object'
+      AND octet_length(outputs) <= 32768
+    ),
   attempts integer NOT NULL DEFAULT 0,
   last_error text,
+  started_at bigint,
+  ready_at bigint,
+  failed_at bigint,
+  cancel_requested_at bigint,
+  rollback_at bigint,
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL
 );
@@ -362,6 +465,83 @@ CREATE INDEX app_instance_deployments_subscription_id_idx
   ON app_instance_deployments (subscription_id);
 CREATE INDEX app_instance_deployments_status_idx
   ON app_instance_deployments (status);
+CREATE INDEX app_instance_deployments_environment_id_idx
+  ON app_instance_deployments (environment_id);
+
+CREATE TABLE deployment_jobs (
+  id text PRIMARY KEY,
+  deployment_id text NOT NULL
+    REFERENCES app_instance_deployments(id) ON DELETE CASCADE,
+  job_type text NOT NULL
+    CHECK (job_type IN ('apply', 'rollback', 'reconcile')),
+  dedupe_key text NOT NULL,
+  status text NOT NULL DEFAULT 'pending'
+    CHECK (status IN (
+      'pending', 'running', 'retry_wait', 'succeeded', 'dead_letter',
+      'canceled'
+    )),
+  payload text NOT NULL DEFAULT '{}'
+    CHECK (
+      jsonb_typeof(payload::jsonb) = 'object'
+      AND octet_length(payload) <= 32768
+    ),
+  attempts integer NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+  max_attempts integer NOT NULL DEFAULT 5
+    CHECK (max_attempts BETWEEN 1 AND 20),
+  available_at bigint NOT NULL,
+  lease_owner text,
+  lease_expires_at bigint,
+  last_error_code text,
+  last_error_message text,
+  created_at bigint NOT NULL,
+  updated_at bigint NOT NULL,
+  completed_at bigint,
+  CHECK (
+    status <> 'running'
+    OR (lease_owner IS NOT NULL AND lease_expires_at IS NOT NULL)
+  )
+);
+CREATE UNIQUE INDEX deployment_jobs_dedupe_unique
+  ON deployment_jobs (dedupe_key);
+CREATE INDEX deployment_jobs_claim_idx
+  ON deployment_jobs (status, available_at, created_at);
+CREATE INDEX deployment_jobs_deployment_id_idx
+  ON deployment_jobs (deployment_id);
+CREATE UNIQUE INDEX deployment_jobs_one_running_per_deployment
+  ON deployment_jobs (deployment_id)
+  WHERE status = 'running';
+CREATE INDEX deployment_jobs_lease_expires_at_idx
+  ON deployment_jobs (lease_expires_at)
+  WHERE status = 'running';
+
+CREATE TABLE deployment_step_runs (
+  id text PRIMARY KEY,
+  deployment_id text NOT NULL
+    REFERENCES app_instance_deployments(id) ON DELETE CASCADE,
+  job_id text NOT NULL
+    REFERENCES deployment_jobs(id) ON DELETE CASCADE,
+  step_key text NOT NULL,
+  attempt integer NOT NULL CHECK (attempt >= 1),
+  status text NOT NULL DEFAULT 'running'
+    CHECK (status IN ('running', 'succeeded', 'failed', 'skipped')),
+  input_hash text NOT NULL
+    CHECK (input_hash ~ '^[a-f0-9]{64}$'),
+  output text NOT NULL DEFAULT '{}'
+    CHECK (
+      jsonb_typeof(output::jsonb) = 'object'
+      AND octet_length(output) <= 32768
+    ),
+  error_code text,
+  error_message text,
+  started_at bigint NOT NULL,
+  finished_at bigint
+);
+CREATE UNIQUE INDEX deployment_step_runs_attempt_unique
+  ON deployment_step_runs (deployment_id, step_key, input_hash, attempt);
+CREATE INDEX deployment_step_runs_deployment_id_idx
+  ON deployment_step_runs (deployment_id, started_at);
+CREATE INDEX deployment_step_runs_job_id_idx
+  ON deployment_step_runs (job_id);
 
 CREATE TABLE payment_webhook_events (
   id text PRIMARY KEY,

@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前已在阶段 8 基础上完成客户自助购买一期、Neon PostgreSQL 迁移、自有认证一期和 AWS Cell 部署计划 DEMO：企业用户可用邮箱密码注册/登录，选择管理员维护的共享套餐并配置允许的租户参数；只有 Stripe 已验证 Webhook 才会创建或续期订阅、准备待开通实例并生成一份不可执行的 AWS 资源计划，管理员仍是最终开通者。
+当前已在阶段 8 基础上完成客户自助购买一期、Neon PostgreSQL 迁移、自有认证一期，并建立 AWS Sandbox S0–S2 执行基础：企业用户可用邮箱密码注册/登录，选择管理员维护的共享套餐并配置允许的租户参数；只有 Stripe 已验证 Webhook 才会创建或续期订阅、准备待开通实例并生成可审计的 AWS 目标计划。S0 提供静态费用与权限护栏，S1 提供部署状态机、持久任务、步骤记录、预检和只渲染的 CloudFormation 租户模板，S2 的订单服务控制契约位于独立仓库。当前仍不会调用 AWS、不会创建云资源，也不会产生由本阶段代码造成的 AWS 云费用；管理员仍是最终开通者。
 
 ## 已实现
 
@@ -72,16 +72,18 @@
 - 客户可以对有效或逾期订阅发起同套餐续费，并可为有效订阅设置或撤销“周期结束后取消”；本期不提供即时取消、升级、降级或按比例计费。
 - `workspace_product_entitlements` 按工作区和产品保存当前订阅与唯一应用实例的对应关系；重新购买不会重复创建同产品实例。
 - 管理员可在“购买订单”查看客户新购/续费订单、Stripe 状态、关联订阅和失败原因。
-- 套餐绑定一个受控的 AWS 部署资源档位：`standard-v1`、`large-v1` 或 `large-dedicated-db-v1`；该档位随购买订单和订阅快照固定，客户不能自行篡改。
+- 套餐绑定版本化的受控 AWS 部署资源档位，档位会随购买订单和订阅快照固定，客户不能自行篡改；当前 Sandbox 环境策略只允许 `standard-v1`，历史或生产目标档位不能绕过 Sandbox 的 Cell、任务数和数据库限制。
 - 已验证付款在生成或复用 `pending` 应用实例后，还会幂等生成一条 `app_instance_deployments` 计划记录，描述共享层、Cell 层和租户层资源的逻辑目标。
-- 当前部署计划固定为 `aws_ecs_cell` / `plan_only`：不调用 AWS、不创建资源、不保存 AWS 凭据、不生成 ARN、正式 URL 或 Secret 值。
+- S1 已建立持久化部署环境、状态机、可租约任务、步骤执行记录、预检和 CloudFormation 租户模板渲染基础；渲染产物不包含 Secret 值，也不会被提交到 AWS。
+- `AWS_APPLY_ENABLED=false` 是当前固定安全边界；即使本地改动变量，S1 预检仍会硬拒绝 Apply。当前不调用 AWS、不创建资源、不保存 AWS 凭据、不生成 ARN、正式 URL 或 Secret 值。
+- Sandbox 的未来数据库目标限定为最多一个 Aurora PostgreSQL Serverless v2 Cell；每个租户在该 Cell 内使用独立 database 和 role，订单服务继续使用该租户数据库自己的 `public.*`。
 
 ## 当前没有实现
 
 - Paddle、自动续扣、Stripe 订阅模式、退款自动化、优惠券和复杂发票系统。
 - 复杂发票、优惠券和自动退款。
-- AWS 执行器、云资源创建、ECS 发布、数据库建 Role/Schema、Secret 写入和复杂部署日志；当前只生成可审计的计划。
-- 模板中的部署驱动和 `app_instance_deployments` 计划都不会执行自动部署流程。
+- 可调用 AWS 的执行 Worker、云资源创建、ECS 发布、Aurora Cell 创建、租户 database/role 创建、Secret 写入、DNS 变更和自动回写正式入口；当前 S1 只提供执行前基础，不提供 Apply 路径。
+- 平台尚未调用订单服务 S2 控制接口，也没有建立生产 mTLS 通道；模板部署驱动和 `app_instance_deployments` 仍不会触发真实自动部署。
 - 多产品市场。
 - 成员邀请和角色变更。
 - 邮箱验证、忘记密码/重置密码、MFA、邮件自动发送和第三方 OAuth。
@@ -117,7 +119,15 @@ AUTH_SESSION_DAYS=7
 STRIPE_SECRET_KEY=sk_test_replace_me
 STRIPE_WEBHOOK_SECRET=whsec_replace_me
 AWS_REGION=ca-central-1
-AWS_DEFAULT_CELL_KEY=cell-demo-1
+AWS_DEFAULT_CELL_KEY=cell-sandbox-1
+AWS_DEPLOYMENT_ENVIRONMENT_KEY=aws-sandbox-ca-central-1
+AWS_APPLY_ENABLED=false
+AWS_SANDBOX_ACCOUNT_ID=402010193138
+AWS_SANDBOX_BUDGET_LIMIT_USD=10
+AWS_SANDBOX_TTL_SECONDS=7200
+AWS_SANDBOX_MAX_CELLS=1
+AWS_SANDBOX_MAX_TENANTS=1
+AWS_SANDBOX_BASE_DOMAIN=sandbox.techlong.cloud
 ```
 
 首次切换现有 Neon 数据库时，先应用增量迁移，再初始化或重置一个平台管理员密码：
@@ -155,7 +165,13 @@ npm test
 
 Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WEBHOOK_SECRET`。本地测试使用 `sk_test_...` 和 Stripe CLI 生成的 `whsec_...`；生产环境在目标托管平台配置对应的 secret。两者都不能以公开环境变量、前端代码或 Git 提交方式保存。
 
-`AWS_REGION` 和 `AWS_DEFAULT_CELL_KEY` 仅用于给部署计划填写目标区域和 Cell 标识，默认分别为 `ca-central-1`、`cell-demo-1`。本阶段没有 AWS SDK 调用，也不需要、不得配置 `AWS_ACCESS_KEY_ID`、`AWS_SECRET_ACCESS_KEY` 等 AWS 凭据；这些变量不代表资源已创建。
+AWS Sandbox 变量只用于本地计划、环境策略、预检和 CloudFormation 模板渲染。固定目标为 Account `402010193138`、Region `ca-central-1`、月预算 `10 USD`、TTL `7200` 秒、最多一个 Cell 和一个租户、基础域名 `sandbox.techlong.cloud`。`AWS_APPLY_ENABLED` 必须保持 `false`，而且当前代码会独立硬拒绝 Apply；这些变量不代表资源已创建。
+
+AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`，当前终端 PATH 可能尚未刷新。在真实 Windows 用户上下文中已只读验证 Profile `techlong-sandbox-user`：Region 为 `ca-central-1`，STS Account 为 `402010193138`，身份是 `arn:aws:iam::402010193138:user/techlong-sandbox-dev`；核验没有读取或输出密钥，也没有执行 AWS 写操作。进入后续 S3/真实 Apply 前，应把该 IAM User 收敛为只允许 AssumeRole，并让 Worker 使用专用角色的短期凭据；不要在仓库或 `.env.local` 中配置长期 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`。
+
+只读 `organizations describe-organization` 返回 `AWSOrganizationsNotInUseException`，因此账号当前是 standalone，不属于 AWS Organizations。SCP 当前不可用，本方案也不会为了获得 SCP 而让账号加入 Organizations；S3 使用窄权限 IAM Policy、高风险动作显式 Deny、Permissions Boundary 和专用 AssumeRole 角色组合控制权限。账号类型已经确认，S3 前无需重复把“确认账号类型”列为门禁，除非账号归属后来被人工改变。
+
+账号当前已有只读核验到的 `My Zero-Spend Budget`，Limit 为 `1 USD`；S0 的 `10 USD` Guardrail 模板尚未应用，二者都只是告警而不是费用硬停。只读 RDS 查询显示 `ca-central-1` 当前提供普通（非 Limitless）Aurora PostgreSQL 16.8–16.14，16.3 不在当前返回列表；S0 的 `>=16.3` 只表示最低兼容约束，S3 必须动态核对并选择当时可用的非 Limitless 版本。S0–S2 的完整边界、域名规划和未来启用门禁见 [AWS Sandbox S0–S2 说明](./docs/aws-sandbox-s0-s2.md)。
 
 平台首个管理员通过 `npm run auth:bootstrap-admin` 初始化。管理员在“客户管理”创建企业后，需要进入客户详情生成一次性激活链接并发送给 Owner；系统本期不自动发送邮件。
 
@@ -163,7 +179,7 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 
 发布前依次执行 `npm run lint`、`npm run typecheck`、`npm run build` 和 `npm test`。完整的管理员流程、客户流程、状态提示、权限隔离和数据来源验收步骤见 [上线检查清单](./docs/launch-checklist.md)。Stripe 测试模式、Webhook 与上线操作见 [Stripe 支付操作说明](./docs/stripe-payment-operations.md)。
 
-本地试运行时，应至少使用两个不同浏览器配置文件或一个普通窗口加一个无痕窗口：一个登录平台管理员，另一个注册普通企业客户。主流程应由企业 Owner 自助选择共享套餐、填写参数并完成 Stripe 测试付款；管理员手工订阅仅用于应急验证。支付后待开通流程见 [支付后待开通实例说明](./docs/auto-pending-provisioning.md)，AWS Cell 计划模型及其安全边界见 [AWS ECS Cell 部署计划 DEMO](./docs/aws-ecs-cell-deployment-demo.md)。
+本地试运行时，应至少使用两个不同浏览器配置文件或一个普通窗口加一个无痕窗口：一个登录平台管理员，另一个注册普通企业客户。主流程应由企业 Owner 自助选择共享套餐、填写参数并完成 Stripe 测试付款；管理员手工订阅仅用于应急验证。支付后待开通流程见 [支付后待开通实例说明](./docs/auto-pending-provisioning.md)，AWS Cell 目标架构见 [AWS ECS Cell 部署与执行基础](./docs/aws-ecs-cell-deployment-demo.md)，S0–S2 操作边界见 [AWS Sandbox S0–S2 说明](./docs/aws-sandbox-s0-s2.md)。
 
 ## 数据库
 
@@ -219,12 +235,15 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 - `subscriptions.creation_source`：区分 `admin_manual` 与 `customer_checkout`
 - `payment_webhook_events.purchase_order_id`：把已验证 Stripe 事件关联到客户购买订单
 
-AWS Cell 部署计划 DEMO 新增：
+AWS Cell 部署计划与 S1 执行基础新增：
 
 - `plans.deployment_profile_key`：管理员为共享套餐选择的受控资源档位
 - `subscription_purchase_orders.deployment_profile_key`：购买时固定的套餐资源档位快照
 - `subscriptions.deployment_profile_key`：付款成功后固定到订阅的资源档位快照
-- `app_instance_deployments`：保存应用实例对应的 plan-only 目标计划、哈希、幂等键和计划状态；不保存凭据、Secret 值、ARN 或真实访问地址
+- `deployment_environments`：保存受控环境、预期 Account/Region、Cell、域名和策略快照；`apply_enabled` 在当前 Sandbox 保持关闭
+- `app_instance_deployments`：保存应用实例对应的目标计划、哈希、幂等键、环境关联、状态和非敏感输出；不保存凭据或 Secret 值
+- `deployment_jobs`：保存 Apply/回滚/校正任务的幂等键、租约、重试与死信状态；当前没有会调用 AWS 的执行 Worker
+- `deployment_step_runs`：保存每个部署步骤的输入哈希、尝试次数、结果摘要和脱敏错误，支持将来的可审计执行
 
 自有认证一期新增：
 
@@ -343,4 +362,4 @@ AWS Cell 部署计划 DEMO 新增：
 
 ## 下一步建议
 
-先在 Stripe 测试模式完成双账号验收：客户选择共享套餐→填写参数→Checkout→已验证 Webhook 创建订阅→生成/复用待开通实例→生成唯一 AWS Cell 计划→管理员检查并完成当前手工开通，同时验证重复事件不会重复入账或重复生成计划。下一阶段优先实现独立执行器/Worker、部署状态机、可重试任务与 AWS 最小权限身份；在执行器通过安全评审前，禁止把 `plan_only` 改成自动 Apply。升级/降级、退款和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)。
+先在 Stripe 测试模式完成双账号验收，并在本地验证 S0 静态护栏、S1 状态机/任务幂等性、预检失败和 CloudFormation 只渲染产物；同时按订单服务仓库的 S2 契约复核实例身份、配置哈希、幂等键和生产 mTLS 边界。真实 AWS Apply 必须作为后续独立阶段，在专用 Profile、STS Account 校验、预算通知、TTL Janitor、最小权限执行角色、DNS 委派和回滚演练全部通过后再实现。当前不得绕过 `AWS_APPLY_ENABLED=false` 的硬禁用。升级/降级、退款和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)，AWS 启用门禁见 [AWS Sandbox S0–S2 说明](./docs/aws-sandbox-s0-s2.md)。

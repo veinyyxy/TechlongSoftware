@@ -1,13 +1,7 @@
 import type { DeploymentProfileKey } from "./profiles.ts";
 
-export type DeploymentPlanMode = "plan_only";
-export type DeploymentStatus =
-  | "planned"
-  | "queued"
-  | "provisioning"
-  | "ready"
-  | "failed"
-  | "canceled";
+export type DeploymentPlanMode = "plan_only" | "aws_sandbox" | "aws_production";
+export type { DeploymentStatus } from "./state-machine.ts";
 
 export interface AwsEcsCellDeploymentPlan {
   schemaVersion: 1;
@@ -39,10 +33,10 @@ export interface AwsEcsCellDeploymentPlan {
       targetGroup: string;
       listenerRule: string;
       database: {
-        isolation: "schema" | "dedicated_database";
+        isolation: "tenant_database" | "dedicated_database";
         dedicatedClusterLogicalName: string | null;
         roleName: string;
-        schemaName: string;
+        databaseName: string;
       };
       secret: { logicalName: string };
       autoScaling: { minCapacity: number; maxCapacity: number };
@@ -78,4 +72,8 @@ export interface DeploymentDriver<Plan> {
   readonly workflowVersion: string;
   buildPlan(input: DeploymentPlanningInput): Plan;
   apply(plan: Plan): Promise<never>;
+}
+
+export interface DeploymentTemplateRenderer<RenderInput, Artifact> {
+  render(input: RenderInput): Artifact;
 }

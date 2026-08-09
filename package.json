@@ -10,7 +10,7 @@
     "build": "vinext build",
     "start": "vinext start",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --experimental-loader ./tests/cloudflare-loader.mjs --test tests/rendered-html.test.mjs tests/schema.test.mjs tests/postgres-schema.test.mjs tests/migration-runtime.test.mjs tests/authorization.test.ts tests/admin-validation.test.ts tests/billing-validation.test.ts tests/instances-validation.test.ts tests/template-validation.test.ts tests/customer-dashboard-presentation.test.ts tests/customer-isolation.test.mjs tests/launch-readiness.test.mjs tests/stripe-payment.test.ts tests/deployment-plan.test.ts tests/local-auth.test.ts",
+    "test": "npm run build && node --experimental-loader ./tests/cloudflare-loader.mjs --test tests/rendered-html.test.mjs tests/schema.test.mjs tests/postgres-schema.test.mjs tests/migration-runtime.test.mjs tests/authorization.test.ts tests/admin-validation.test.ts tests/billing-validation.test.ts tests/instances-validation.test.ts tests/template-validation.test.ts tests/customer-dashboard-presentation.test.ts tests/customer-isolation.test.mjs tests/launch-readiness.test.mjs tests/stripe-payment.test.ts tests/deployment-plan.test.ts tests/deployment-execution-foundation.test.ts tests/local-auth.test.ts",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "db:postgres:init": "node --env-file-if-exists=.env.local scripts/apply-postgres-schema.mjs",

@@ -28,7 +28,7 @@ test("maps standard and large tenants to isolated, progressively larger resource
 
   assert.equal(standard.ecs.desiredCount, 1);
   assert.equal(standard.autoScaling.minCapacity, 1);
-  assert.equal(standard.database.isolation, "schema");
+  assert.equal(standard.database.isolation, "tenant_database");
 
   assert.ok(large.ecs.desiredCount >= 2);
   assert.ok(large.autoScaling.minCapacity >= 2);
@@ -37,7 +37,7 @@ test("maps standard and large tenants to isolated, progressively larger resource
   assert.ok(
     large.autoScaling.maxCapacity > standard.autoScaling.maxCapacity,
   );
-  assert.equal(large.database.isolation, "schema");
+  assert.equal(large.database.isolation, "tenant_database");
 
   assert.ok(dedicated.ecs.desiredCount >= 2);
   assert.equal(dedicated.database.isolation, "dedicated_database");
@@ -103,7 +103,7 @@ test("builds a plan-only AWS cell manifest with shared, cell and tenant resource
   assert.ok(plan.resources.tenant.targetGroup);
   assert.ok(plan.resources.tenant.listenerRule);
   assert.ok(plan.resources.tenant.database.roleName);
-  assert.ok(plan.resources.tenant.database.schemaName);
+  assert.ok(plan.resources.tenant.database.databaseName);
   assert.ok(plan.resources.tenant.secret.logicalName);
   assert.equal(Object.hasOwn(plan.resources.tenant.secret, "value"), false);
   assert.ok(plan.resources.tenant.autoScaling);

@@ -1,7 +1,13 @@
 import { getDeploymentProfile } from "../profiles.ts";
+import {
+  renderAwsSandboxTenantStack,
+  type AwsSandboxTenantStackInput,
+  type CloudFormationTenantStackPlan,
+} from "../cloudformation/tenant-stack.ts";
 import type {
   AwsEcsCellDeploymentPlan,
   DeploymentDriver,
+  DeploymentPlanMode,
   DeploymentPlanningInput,
 } from "../types.ts";
 
@@ -16,6 +22,7 @@ export class DeploymentAutomationDisabledError extends Error {
 interface AwsEcsCellDriverOptions {
   region?: string;
   cellKey?: string;
+  mode?: DeploymentPlanMode;
 }
 
 function safeConfigValue(
@@ -40,10 +47,12 @@ export class AwsEcsCellPlanOnlyDriver
   readonly workflowVersion = "v1";
   private readonly region: string;
   private readonly cellKey: string;
+  private readonly mode: DeploymentPlanMode;
 
   constructor(options: AwsEcsCellDriverOptions = {}) {
     this.region = safeConfigValue(options.region, "ca-central-1");
     this.cellKey = safeConfigValue(options.cellKey, "cell-demo-1");
+    this.mode = options.mode ?? "plan_only";
   }
 
   buildPlan(input: DeploymentPlanningInput): AwsEcsCellDeploymentPlan {
@@ -57,7 +66,7 @@ export class AwsEcsCellPlanOnlyDriver
       architecture: "aws-ecs-cell",
       driver: "aws_ecs_cell",
       workflowVersion: "v1",
-      mode: "plan_only",
+      mode: this.mode,
       region,
       cellKey,
       deploymentProfileKey: profile.key,
@@ -94,7 +103,7 @@ export class AwsEcsCellPlanOnlyDriver
                 ? `${token}-dedicated-aurora-rds`
                 : null,
             roleName: `${token}-db-role`,
-            schemaName: `${token.replaceAll("-", "_")}_schema`,
+            databaseName: `${token.replaceAll("-", "_")}_db`,
           },
           secret: { logicalName: `${token}-runtime-secret` },
           autoScaling: { ...profile.autoScaling },
@@ -114,6 +123,12 @@ export class AwsEcsCellPlanOnlyDriver
         storesSecretValues: false,
       },
     };
+  }
+
+  renderTenantStack(
+    input: AwsSandboxTenantStackInput,
+  ): CloudFormationTenantStackPlan {
+    return renderAwsSandboxTenantStack(input);
   }
 
   async apply(plan: AwsEcsCellDeploymentPlan): Promise<never> {

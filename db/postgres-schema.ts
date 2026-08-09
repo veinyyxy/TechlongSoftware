@@ -505,11 +505,38 @@ export const subscriptionPurchaseOrders = pgTable("subscription_purchase_orders"
 	check("subscription_purchase_orders_deployment_profile_check", sql`deployment_profile_key = ANY (ARRAY['standard-v1'::text, 'large-v1'::text, 'large-dedicated-db-v1'::text])`),
 ]);
 
+export const deploymentEnvironments = pgTable("deployment_environments", {
+	id: text().primaryKey().notNull(),
+	key: text().notNull(),
+	name: text().notNull(),
+	kind: text().notNull(),
+	driver: text().notNull(),
+	expectedAccountId: text("expected_account_id").notNull(),
+	region: text().notNull(),
+	cellKey: text("cell_key").notNull(),
+	baseDomain: text("base_domain").notNull(),
+	applyEnabled: integer("apply_enabled").default(0).notNull(),
+	policy: text().notNull(),
+	status: text().default('active').notNull(),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => [
+	uniqueIndex("deployment_environments_key_unique").using("btree", table.key.asc().nullsLast().op("text_ops")),
+	index("deployment_environments_status_idx").using("btree", table.status.asc().nullsLast().op("text_ops")),
+	check("deployment_environments_kind_check", sql`kind = ANY (ARRAY['aws_sandbox'::text, 'aws_production'::text])`),
+	check("deployment_environments_driver_check", sql`driver = 'aws_ecs_cell'::text`),
+	check("deployment_environments_account_check", sql`expected_account_id ~ '^[0-9]{12}$'::text`),
+	check("deployment_environments_apply_check", sql`apply_enabled = ANY (ARRAY[0, 1])`),
+	check("deployment_environments_policy_check", sql`jsonb_typeof((policy)::jsonb) = 'object'::text AND octet_length(policy) <= 16384`),
+	check("deployment_environments_status_check", sql`status = ANY (ARRAY['active'::text, 'inactive'::text])`),
+]);
+
 export const appInstanceDeployments = pgTable("app_instance_deployments", {
 	id: text().primaryKey().notNull(),
 	appInstanceId: text("app_instance_id").notNull(),
 	subscriptionId: text("subscription_id"),
 	purchaseOrderId: text("purchase_order_id"),
+	environmentId: text("environment_id").notNull(),
 	driver: text().notNull(),
 	workflowVersion: text("workflow_version").notNull(),
 	cellKey: text("cell_key").notNull(),
@@ -518,9 +545,19 @@ export const appInstanceDeployments = pgTable("app_instance_deployments", {
 	status: text().default('planned').notNull(),
 	desiredPlan: text("desired_plan").notNull(),
 	planHash: text("plan_hash").notNull(),
+	configurationHash: text("configuration_hash"),
 	idempotencyKey: text("idempotency_key").notNull(),
+	artifactRef: text("artifact_ref"),
+	controlPayloadHash: text("control_payload_hash"),
+	currentStep: text("current_step"),
+	outputs: text().default('{}').notNull(),
 	attempts: integer().default(0).notNull(),
 	lastError: text("last_error"),
+	startedAt: bigint("started_at", { mode: "number" }),
+	readyAt: bigint("ready_at", { mode: "number" }),
+	failedAt: bigint("failed_at", { mode: "number" }),
+	cancelRequestedAt: bigint("cancel_requested_at", { mode: "number" }),
+	rollbackAt: bigint("rollback_at", { mode: "number" }),
 	createdAt: bigint("created_at", { mode: "number" }).notNull(),
 	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
 }, (table) => [
@@ -528,6 +565,7 @@ export const appInstanceDeployments = pgTable("app_instance_deployments", {
 	uniqueIndex("app_instance_deployments_idempotency_unique").using("btree", table.idempotencyKey.asc().nullsLast().op("text_ops")),
 	index("app_instance_deployments_status_idx").using("btree", table.status.asc().nullsLast().op("text_ops")),
 	index("app_instance_deployments_subscription_id_idx").using("btree", table.subscriptionId.asc().nullsLast().op("text_ops")),
+	index("app_instance_deployments_environment_id_idx").using("btree", table.environmentId.asc().nullsLast().op("text_ops")),
 	foreignKey({
 		columns: [table.appInstanceId],
 		foreignColumns: [appInstances.id],
@@ -543,10 +581,87 @@ export const appInstanceDeployments = pgTable("app_instance_deployments", {
 		foreignColumns: [subscriptionPurchaseOrders.id],
 		name: "app_instance_deployments_purchase_order_id_fkey"
 	}).onDelete("set null"),
+	foreignKey({
+		columns: [table.environmentId],
+		foreignColumns: [deploymentEnvironments.id],
+		name: "app_instance_deployments_environment_id_fkey"
+	}).onDelete("restrict"),
 	check("app_instance_deployments_profile_check", sql`deployment_profile_key = ANY (ARRAY['standard-v1'::text, 'large-v1'::text, 'large-dedicated-db-v1'::text])`),
-	check("app_instance_deployments_mode_check", sql`mode = 'plan_only'::text`),
-	check("app_instance_deployments_status_check", sql`status = ANY (ARRAY['planned'::text, 'queued'::text, 'provisioning'::text, 'ready'::text, 'failed'::text, 'canceled'::text])`),
+	check("app_instance_deployments_mode_check", sql`mode = ANY (ARRAY['plan_only'::text, 'aws_sandbox'::text, 'aws_production'::text])`),
+	check("app_instance_deployments_status_check", sql`status = ANY (ARRAY['planned'::text, 'queued'::text, 'preflight'::text, 'database_preparing'::text, 'migrating'::text, 'infrastructure_provisioning'::text, 'waiting_healthy'::text, 'configuring'::text, 'verifying'::text, 'ready'::text, 'retry_wait'::text, 'failed'::text, 'cancel_requested'::text, 'rolling_back'::text, 'rolled_back'::text, 'rollback_failed'::text, 'canceled'::text])`),
 	check("app_instance_deployments_desired_plan_check", sql`jsonb_typeof((desired_plan)::jsonb) = 'object'::text`),
+	check("app_instance_deployments_configuration_hash_check", sql`(mode = 'plan_only'::text AND configuration_hash IS NULL) OR (mode <> 'plan_only'::text AND configuration_hash IS NOT NULL AND configuration_hash ~ '^[a-f0-9]{64}$'::text)`),
+	check("app_instance_deployments_control_payload_hash_check", sql`control_payload_hash IS NULL OR control_payload_hash ~ '^[a-f0-9]{64}$'::text`),
+	check("app_instance_deployments_outputs_check", sql`jsonb_typeof((outputs)::jsonb) = 'object'::text AND octet_length(outputs) <= 32768`),
+]);
+
+export const deploymentJobs = pgTable("deployment_jobs", {
+	id: text().primaryKey().notNull(),
+	deploymentId: text("deployment_id").notNull(),
+	jobType: text("job_type").notNull(),
+	dedupeKey: text("dedupe_key").notNull(),
+	status: text().default('pending').notNull(),
+	payload: text().default('{}').notNull(),
+	attempts: integer().default(0).notNull(),
+	maxAttempts: integer("max_attempts").default(5).notNull(),
+	availableAt: bigint("available_at", { mode: "number" }).notNull(),
+	leaseOwner: text("lease_owner"),
+	leaseExpiresAt: bigint("lease_expires_at", { mode: "number" }),
+	lastErrorCode: text("last_error_code"),
+	lastErrorMessage: text("last_error_message"),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+	completedAt: bigint("completed_at", { mode: "number" }),
+}, (table) => [
+	uniqueIndex("deployment_jobs_dedupe_unique").using("btree", table.dedupeKey.asc().nullsLast().op("text_ops")),
+	index("deployment_jobs_claim_idx").using("btree", table.status.asc().nullsLast().op("text_ops"), table.availableAt.asc().nullsLast().op("int8_ops"), table.createdAt.asc().nullsLast().op("int8_ops")),
+	index("deployment_jobs_deployment_id_idx").using("btree", table.deploymentId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("deployment_jobs_one_running_per_deployment").using("btree", table.deploymentId.asc().nullsLast().op("text_ops")).where(sql`status = 'running'::text`),
+	index("deployment_jobs_lease_expires_at_idx").using("btree", table.leaseExpiresAt.asc().nullsLast().op("int8_ops")).where(sql`status = 'running'::text`),
+	foreignKey({
+		columns: [table.deploymentId],
+		foreignColumns: [appInstanceDeployments.id],
+		name: "deployment_jobs_deployment_id_fkey"
+	}).onDelete("cascade"),
+	check("deployment_jobs_type_check", sql`job_type = ANY (ARRAY['apply'::text, 'rollback'::text, 'reconcile'::text])`),
+	check("deployment_jobs_status_check", sql`status = ANY (ARRAY['pending'::text, 'running'::text, 'retry_wait'::text, 'succeeded'::text, 'dead_letter'::text, 'canceled'::text])`),
+	check("deployment_jobs_payload_check", sql`jsonb_typeof((payload)::jsonb) = 'object'::text AND octet_length(payload) <= 32768`),
+	check("deployment_jobs_attempts_check", sql`attempts >= 0`),
+	check("deployment_jobs_max_attempts_check", sql`max_attempts >= 1 AND max_attempts <= 20`),
+	check("deployment_jobs_lease_check", sql`status <> 'running'::text OR (lease_owner IS NOT NULL AND lease_expires_at IS NOT NULL)`),
+]);
+
+export const deploymentStepRuns = pgTable("deployment_step_runs", {
+	id: text().primaryKey().notNull(),
+	deploymentId: text("deployment_id").notNull(),
+	jobId: text("job_id").notNull(),
+	stepKey: text("step_key").notNull(),
+	attempt: integer().notNull(),
+	status: text().default('running').notNull(),
+	inputHash: text("input_hash").notNull(),
+	output: text().default('{}').notNull(),
+	errorCode: text("error_code"),
+	errorMessage: text("error_message"),
+	startedAt: bigint("started_at", { mode: "number" }).notNull(),
+	finishedAt: bigint("finished_at", { mode: "number" }),
+}, (table) => [
+	uniqueIndex("deployment_step_runs_attempt_unique").using("btree", table.deploymentId.asc().nullsLast().op("text_ops"), table.stepKey.asc().nullsLast().op("text_ops"), table.inputHash.asc().nullsLast().op("text_ops"), table.attempt.asc().nullsLast().op("int4_ops")),
+	index("deployment_step_runs_deployment_id_idx").using("btree", table.deploymentId.asc().nullsLast().op("text_ops"), table.startedAt.asc().nullsLast().op("int8_ops")),
+	index("deployment_step_runs_job_id_idx").using("btree", table.jobId.asc().nullsLast().op("text_ops")),
+	foreignKey({
+		columns: [table.deploymentId],
+		foreignColumns: [appInstanceDeployments.id],
+		name: "deployment_step_runs_deployment_id_fkey"
+	}).onDelete("cascade"),
+	foreignKey({
+		columns: [table.jobId],
+		foreignColumns: [deploymentJobs.id],
+		name: "deployment_step_runs_job_id_fkey"
+	}).onDelete("cascade"),
+	check("deployment_step_runs_attempt_check", sql`attempt >= 1`),
+	check("deployment_step_runs_status_check", sql`status = ANY (ARRAY['running'::text, 'succeeded'::text, 'failed'::text, 'skipped'::text])`),
+	check("deployment_step_runs_input_hash_check", sql`input_hash ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_step_runs_output_check", sql`jsonb_typeof((output)::jsonb) = 'object'::text AND octet_length(output) <= 32768`),
 ]);
 
 export const paymentWebhookEvents = pgTable("payment_webhook_events", {

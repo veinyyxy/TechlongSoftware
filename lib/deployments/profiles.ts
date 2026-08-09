@@ -20,7 +20,7 @@ export interface DeploymentProfile {
     maxCapacity: number;
   };
   database: {
-    isolation: "schema" | "dedicated_database";
+    isolation: "tenant_database" | "dedicated_database";
   };
 }
 
@@ -35,7 +35,7 @@ const profiles: Record<DeploymentProfileKey, DeploymentProfile> = {
       desiredCount: 1,
     },
     autoScaling: { minCapacity: 1, maxCapacity: 4 },
-    database: { isolation: "schema" },
+    database: { isolation: "tenant_database" },
   },
   "large-v1": {
     key: "large-v1",
@@ -47,7 +47,7 @@ const profiles: Record<DeploymentProfileKey, DeploymentProfile> = {
       desiredCount: 2,
     },
     autoScaling: { minCapacity: 2, maxCapacity: 12 },
-    database: { isolation: "schema" },
+    database: { isolation: "tenant_database" },
   },
   "large-dedicated-db-v1": {
     key: "large-dedicated-db-v1",

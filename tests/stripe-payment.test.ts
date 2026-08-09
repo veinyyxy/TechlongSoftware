@@ -252,10 +252,11 @@ test("customer purchase orders create subscriptions only after verified Stripe c
   );
 });
 
-test("persists deployment plans idempotently without enabling AWS apply", async () => {
+test("persists sandbox plans and outbox jobs atomically without enabling AWS apply", async () => {
   const root = new URL("../", import.meta.url);
-  const [deploymentManagement, driver] = await Promise.all([
+  const [deploymentManagement, jobs, driver] = await Promise.all([
     readFile(new URL("lib/deployments/management.ts", root), "utf8"),
+    readFile(new URL("lib/deployments/jobs.ts", root), "utf8"),
     readFile(
       new URL("lib/deployments/drivers/aws-ecs-cell.ts", root),
       "utf8",
@@ -263,13 +264,20 @@ test("persists deployment plans idempotently without enabling AWS apply", async 
   ]);
 
   assert.match(deploymentManagement, /INSERT INTO app_instance_deployments/);
-  assert.match(deploymentManagement, /'plan_only', 'planned'/);
+  assert.match(deploymentManagement, /mode: environment\.kind/);
+  assert.match(deploymentManagement, /desiredPlan\.mode/);
+  assert.match(deploymentManagement, /'planned'/);
+  assert.match(deploymentManagement, /S1 persists the pending outbox intent/);
   assert.match(
     deploymentManagement,
     /ON CONFLICT \(idempotency_key\) DO NOTHING/,
   );
-  assert.match(deploymentManagement, /AWS_REGION/);
-  assert.match(deploymentManagement, /AWS_DEFAULT_CELL_KEY/);
+  assert.match(deploymentManagement, /await db\.batch\(\[/);
+  assert.match(deploymentManagement, /job\.statement/);
+  assert.match(deploymentManagement, /AWS_DEPLOYMENT_ENVIRONMENT_KEY/);
+  assert.match(deploymentManagement, /AWS_SANDBOX_IMAGE_URI/);
+  assert.match(jobs, /INSERT INTO deployment_jobs/);
+  assert.match(jobs, /ON CONFLICT \(dedupe_key\) DO NOTHING/);
   assert.match(driver, /createsAwsResources:\s*false/);
   assert.match(driver, /storesSecretValues:\s*false/);
   assert.match(driver, /throw new DeploymentAutomationDisabledError/);

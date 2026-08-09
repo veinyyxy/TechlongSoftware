@@ -808,6 +808,7 @@ async function completeCheckout(
         templateVersionId: confirmedSubscription.templateVersionId,
         tenantKey: instance.tenant_key,
         deploymentProfileKey: confirmedSubscription.deploymentProfileKey,
+        configurationSnapshot: confirmedSubscription.instanceConfiguration,
         now,
       });
     }

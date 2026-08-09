@@ -142,7 +142,7 @@ test("customer purchase is primary while administrator recovery paths remain ava
   assert.match(adminInstances, /应急|补建|人工/);
 });
 
-test("AWS deployment remains an inspectable plan-only demo", async () => {
+test("AWS sandbox deployment remains inspectable and non-executing", async () => {
   const [example, instanceDetail, management, driver] = await Promise.all([
     read(".env.example"),
     read("app/admin/instances/[instanceId]/page.tsx"),
@@ -153,8 +153,13 @@ test("AWS deployment remains an inspectable plan-only demo", async () => {
   assert.match(example, /^AWS_REGION=/m);
   assert.match(example, /^AWS_DEFAULT_CELL_KEY=/m);
   assert.match(instanceDetail, /getLatestAppInstanceDeployment/);
-  assert.match(instanceDetail, /plan_only|仅生成|部署计划/);
-  assert.match(management, /status, desired_plan, plan_hash, idempotency_key/);
+  assert.match(instanceDetail, /仅规划|仅生成|部署计划/);
+  assert.match(
+    management,
+    /mode, status, desired_plan, plan_hash,\s*configuration_hash/,
+  );
+  assert.match(management, /prepareDeploymentJobInsert/);
+  assert.match(management, /await db\.batch\(\[/);
   assert.match(driver, /applyEnabled:\s*false/);
   assert.doesNotMatch(driver, /AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY/);
 });

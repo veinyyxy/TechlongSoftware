@@ -960,6 +960,7 @@ async function ensureApplicationEntitlement(
       templateVersionId: order.template_version_id,
       tenantKey: instance.tenant_key,
       deploymentProfileKey: order.deployment_profile_key,
+      configurationSnapshot: parseConfiguration(order.configuration_snapshot),
       now,
     });
   }

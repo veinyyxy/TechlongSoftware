@@ -43,7 +43,10 @@ test("PostgreSQL schema contains all business tables and core integrity rules", 
     "payment_checkout_sessions",
     "app_instances",
     "subscription_purchase_orders",
+    "deployment_environments",
     "app_instance_deployments",
+    "deployment_jobs",
+    "deployment_step_runs",
     "payment_webhook_events",
     "workspace_members",
     "workspace_product_entitlements",
@@ -72,13 +75,21 @@ test("PostgreSQL schema contains all business tables and core integrity rules", 
   );
   assert.match(
     sql,
-    /CREATE TABLE app_instance_deployments[\s\S]*?mode text NOT NULL DEFAULT 'plan_only'/,
+    /CREATE TABLE app_instance_deployments[\s\S]*?mode text NOT NULL DEFAULT 'plan_only'[\s\S]*?'aws_sandbox'/,
   );
   assert.match(
     sql,
     /CREATE TABLE app_instance_deployments[\s\S]*?status text NOT NULL DEFAULT 'planned'/,
   );
   assert.match(sql, /jsonb_typeof\(desired_plan::jsonb\) = 'object'/);
+  assert.match(sql, /sandbox\.techlong\.cloud/);
+  assert.match(sql, /"auroraPostgresEngineVersion": "16\.14"/);
+  assert.match(sql, /FOR UPDATE SKIP LOCKED|deployment_jobs_claim_idx/);
+  assert.match(sql, /deployment_jobs_one_running_per_deployment/);
+  assert.match(
+    sql,
+    /mode <> 'plan_only'[\s\S]*?configuration_hash IS NOT NULL/,
+  );
   assert.match(sql, /CREATE OR REPLACE FUNCTION enforce_subscription_relationships/);
   assert.match(sql, /CREATE OR REPLACE FUNCTION enforce_template_version_immutability/);
   assert.match(sql, /::jsonb/);
@@ -107,6 +118,27 @@ test("deployment planning migration snapshots the profile and idempotent plan re
   assert.match(migration, /CHECK \(mode = 'plan_only'\)/);
   assert.match(migration, /app_instance_deployments_idempotency_unique/);
   assert.match(migration, /ON app_instance_deployments \(idempotency_key\)/);
+});
+
+test("deployment execution migration adds sandbox policy, jobs, leases and step checkpoints", async () => {
+  const migration = await read(
+    "db/postgres-migrations/0003_deployment_execution_foundation.sql",
+  );
+  assert.match(migration, /CREATE TABLE deployment_environments\b/);
+  assert.match(migration, /CREATE TABLE deployment_jobs\b/);
+  assert.match(migration, /CREATE TABLE deployment_step_runs\b/);
+  assert.match(migration, /sandbox\.techlong\.cloud/);
+  assert.match(migration, /"auroraPostgresEngineVersion": "16\.14"/);
+  assert.match(migration, /'database_preparing'/);
+  assert.match(migration, /'migrating'/);
+  assert.match(migration, /'infrastructure_provisioning'/);
+  assert.match(migration, /configuration_hash text/);
+  assert.match(migration, /deployment_jobs_one_running_per_deployment/);
+  assert.match(
+    migration,
+    /mode <> 'plan_only'[\s\S]*?configuration_hash IS NOT NULL/,
+  );
+  assert.doesNotMatch(migration, /repeat\('0',\s*64\)/);
 });
 
 test("temporary browser migration endpoint is removed after cutover", async () => {

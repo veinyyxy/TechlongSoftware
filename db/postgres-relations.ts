@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, appInstanceDeployments, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements } from "./postgres-schema";
+import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, deploymentEnvironments, appInstanceDeployments, deploymentJobs, deploymentStepRuns, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements } from "./postgres-schema";
 
 export const appInstanceTemplatesRelations = relations(appInstanceTemplates, ({one, many}) => ({
 	product: one(products, {
@@ -182,7 +182,11 @@ export const paymentCheckoutSessionsRelations = relations(paymentCheckoutSession
 	paymentWebhookEvents: many(paymentWebhookEvents),
 }));
 
-export const appInstanceDeploymentsRelations = relations(appInstanceDeployments, ({one}) => ({
+export const deploymentEnvironmentsRelations = relations(deploymentEnvironments, ({many}) => ({
+	appInstanceDeployments: many(appInstanceDeployments),
+}));
+
+export const appInstanceDeploymentsRelations = relations(appInstanceDeployments, ({one, many}) => ({
 	appInstance: one(appInstances, {
 		fields: [appInstanceDeployments.appInstanceId],
 		references: [appInstances.id]
@@ -194,6 +198,31 @@ export const appInstanceDeploymentsRelations = relations(appInstanceDeployments,
 	subscriptionPurchaseOrder: one(subscriptionPurchaseOrders, {
 		fields: [appInstanceDeployments.purchaseOrderId],
 		references: [subscriptionPurchaseOrders.id]
+	}),
+	deploymentEnvironment: one(deploymentEnvironments, {
+		fields: [appInstanceDeployments.environmentId],
+		references: [deploymentEnvironments.id]
+	}),
+	deploymentJobs: many(deploymentJobs),
+	deploymentStepRuns: many(deploymentStepRuns),
+}));
+
+export const deploymentJobsRelations = relations(deploymentJobs, ({one, many}) => ({
+	appInstanceDeployment: one(appInstanceDeployments, {
+		fields: [deploymentJobs.deploymentId],
+		references: [appInstanceDeployments.id]
+	}),
+	deploymentStepRuns: many(deploymentStepRuns),
+}));
+
+export const deploymentStepRunsRelations = relations(deploymentStepRuns, ({one}) => ({
+	appInstanceDeployment: one(appInstanceDeployments, {
+		fields: [deploymentStepRuns.deploymentId],
+		references: [appInstanceDeployments.id]
+	}),
+	deploymentJob: one(deploymentJobs, {
+		fields: [deploymentStepRuns.jobId],
+		references: [deploymentJobs.id]
 	}),
 }));
 
