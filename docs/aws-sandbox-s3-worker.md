@@ -86,7 +86,8 @@ npm run deployment:worker
 
 ## 本阶段明确没有执行
 
-- 没有应用 `0004_aws_sandbox_worker.sql`。
+- `0004_aws_sandbox_worker.sql` 已应用到当前 Neon；核验结果为
+  `apply_enabled=0`、execution binding 为 0，迁移本身没有开启 AWS Apply。
 - 没有修改数据库里的 `apply_enabled` 或创建 execution binding。
 - Worker 没有调用 STS、CloudFormation、ECS、RDS、Scheduler 或其他 AWS API。
 - 没有创建、更新或删除 AWS 资源。

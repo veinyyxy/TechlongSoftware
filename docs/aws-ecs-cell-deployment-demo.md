@@ -26,7 +26,7 @@
 → 创建或复用 pending App Instance
 → 幂等保存 app_instance_deployments 目标计划
 → 同事务准备唯一 deployment_jobs apply 任务
-→ 停止：当前没有会领取任务并调用 AWS 的 Worker
+→ S3 Worker 存在，但因 `applyRuntimeReady=false` 和真实 Adapter 未配置而停止
 ```
 
 Plan 是平台维护的共享商品定义，不会因客户购买而复制。购买订单会固定套餐、模板配置和部署档位快照；部署计划再使用稳定数据库标识生成幂等键。`pending` 应用实例表示“等待开通”，`planned` 部署表示“目标已记录”，`pending` 部署任务只表示“可被未来 Worker 领取”，三者都不表示任何 AWS 资源已经存在。
@@ -89,7 +89,7 @@ S1 当前只提供以下能力：
 6. 预检核对环境状态、Account、Region、部署档位、Cell/租户计数和受控数据库策略；Apply 操作无条件失败。
 7. CloudFormation 渲染器只生成租户栈 JSON 工件，固定一个 Task，并声明 `renderOnly=true`、`callsAws=false`、`createsDatabaseResources=false`。
 
-只渲染的租户模板可以描述 ECS Task/Service、Target Group、日志和 ALB 路由，但不会提交给 CloudFormation。数据库属于未来 Cell 层，不由当前租户模板创建。S1 当前也没有 AWS SDK 客户端、凭据加载、真实 Worker 进程或资源状态回写。
+只渲染的租户模板可以描述 ECS Task/Service、Target Group、日志和 ALB 路由，但不会提交给 CloudFormation。数据库属于未来 Cell 层，不由当前租户模板创建。S1 当时没有 AWS SDK 客户端、凭据加载、真实 Worker 进程或资源状态回写；S3 已加入默认关闭的 Worker 边界，启用条件见本文开头链接。
 
 ## S2：订单服务控制契约
 

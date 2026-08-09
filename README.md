@@ -167,7 +167,7 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 
 AWS Sandbox 固定目标为 Account `402010193138`、Region `ca-central-1`、月预算 `10 USD`、TTL `7200` 秒、最多一个 Cell 和一个租户、基础域名 `sandbox.techlong.cloud`。默认 `DEPLOYMENT_WORKER_ENABLED=false`、`AWS_APPLY_ENABLED=false`；单独修改任一变量都不能执行。数据库环境开关、assumed-role STS 身份、严格参数、cleanup 记录、租户数据库迁移和 mTLS 控制对账必须同时通过。这些变量不代表资源已创建。
 
-AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`，当前终端 PATH 可能尚未刷新。在真实 Windows 用户上下文中已只读验证 Profile `techlong-sandbox-user`：Region 为 `ca-central-1`，STS Account 为 `402010193138`，身份是 `arn:aws:iam::402010193138:user/techlong-sandbox-dev`；核验没有读取或输出密钥，也没有执行 AWS 写操作。进入后续 S3/真实 Apply 前，应把该 IAM User 收敛为只允许 AssumeRole，并让 Worker 使用专用角色的短期凭据；不要在仓库或 `.env.local` 中配置长期 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`。
+AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`，当前终端 PATH 可能尚未刷新。在真实 Windows 用户上下文中已验证 Profile `techlong-sandbox-user`：Region 为 `ca-central-1`，STS Account 为 `402010193138`，身份是 `arn:aws:iam::402010193138:user/techlong-sandbox-dev`；核验没有读取或输出密钥。当前唯一 AWS 配置变更是激活 `Environment` 成本分配标签，CloudFormation 在线验证未创建 Stack 或运行资源。进入真实 Apply 前，应把该 IAM User 收敛为只允许 AssumeRole，并让 Worker 使用专用角色的短期凭据；不要在仓库或 `.env.local` 中配置长期 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`。
 
 只读 `organizations describe-organization` 返回 `AWSOrganizationsNotInUseException`，因此账号当前是 standalone，不属于 AWS Organizations。SCP 当前不可用，本方案也不会为了获得 SCP 而让账号加入 Organizations；S3 使用窄权限 IAM Policy、高风险动作显式 Deny、Permissions Boundary 和专用 AssumeRole 角色组合控制权限。账号类型已经确认，S3 前无需重复把“确认账号类型”列为门禁，除非账号归属后来被人工改变。
 
@@ -242,7 +242,7 @@ AWS Cell 部署计划与 S1 执行基础新增：
 - `subscriptions.deployment_profile_key`：付款成功后固定到订阅的资源档位快照
 - `deployment_environments`：保存受控环境、预期 Account/Region、Cell、域名和策略快照；`apply_enabled` 在当前 Sandbox 保持关闭
 - `app_instance_deployments`：保存应用实例对应的目标计划、哈希、幂等键、环境关联、状态和非敏感输出；不保存凭据或 Secret 值
-- `deployment_jobs`：保存 Apply/回滚/校正任务的幂等键、租约、重试与死信状态；当前没有会调用 AWS 的执行 Worker
+- `deployment_jobs`：保存 Apply/回滚/校正/清理任务的幂等键、租约、重试与死信状态；独立 Worker 已存在，但 `applyRuntimeReady=false` 且真实 Adapter 未配置，当前不会创建 AWS 资源
 - `deployment_step_runs`：保存每个部署步骤的输入哈希、尝试次数、结果摘要和脱敏错误，支持将来的可审计执行
 
 自有认证一期新增：
