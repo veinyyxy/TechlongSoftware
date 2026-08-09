@@ -170,7 +170,8 @@ npm --prefix .\ops\aws-sandbox test
 5. Budget 通知邮箱已作为 CloudFormation 参数提供，个人邮箱没有硬编码进模板或仓库。
 6. S3-A 已由独立的 CloudFormation Execution Role 和 Permissions Boundary 部署；Boundary 本身不授予权限。
 7. Janitor 已在真实 AWS 中验证空扫描、伪造共享 Cell 拒绝路径和到期临时租户 Stack 删除路径；测试资源已完全清除。
-8. 创建收费 Stack 前先建立一次性清理计划；创建失败时部署必须中止。
+8. 第二次受控 CodeBuild 已从后端提交 `e3f4e1722686cdc9de4e46115332afaf6da7678d` 生成 Distroless 镜像 `sha256:7063a9ab2765f8fb565a581c810047b8fc2a4119fe5d288a685bd6c87b3eae78`；构建与 smoke test 全部成功，ECR 扫描 `COMPLETE` 且没有发现漏洞。第一张含 Perl 的镜像因 `3 Critical / 5 High / 6 Medium` 被明确拒绝。
+9. 合格镜像尚未写入 execution binding，Worker 和 Apply 仍关闭；镜像构建后再次确认没有活动的 tenant/Cell Stack。创建收费 Stack 前必须先建立一次性清理计划，创建失败时部署必须中止。
 
 后续 Cell 模板只允许 `aurora-postgresql-serverless-v2`，最多一个共享 Cell，使用支持自动暂停的 PostgreSQL 16.3 或更高 16.x 版本，`minAcu=0`、`maxAcu=1`、`secondsUntilAutoPause=300`，禁止每租户独立 Cluster、额外 Reader、传统 Multi-AZ 实例、DB Proxy、Global Database、预留购买和快照恢复。Aurora Cluster 本身不能被策略绝对禁止，否则生产兼容的 Sandbox Cell 无法创建；具体 Engine、容量和数量要由受控 CloudFormation 模板、Execution Role 与部署前静态检查共同锁定。
 

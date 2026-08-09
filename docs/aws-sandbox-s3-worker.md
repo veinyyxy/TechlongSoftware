@@ -89,6 +89,8 @@ npm run deployment:worker
 - `0004_aws_sandbox_worker.sql` 已应用到当前 Neon；核验结果为
   `apply_enabled=0`、execution binding 为 0，迁移本身没有开启 AWS Apply。
 - 没有修改数据库里的 `apply_enabled` 或创建 execution binding。
-- S3-A Bootstrap 已创建受限角色/Boundary、TTL Janitor、Scheduler、空的不可变 ECR、私有源码 Bucket 和默认不可工作的 CodeBuild Project。
+- S3-A Bootstrap 已创建受限角色/Boundary、TTL Janitor、Scheduler、不可变 ECR、私有源码 Bucket 和只能显式启动的 CodeBuild Project。
 - Janitor 已通过空扫描、伪造共享 Cell 拒绝、以及已过期临时租户 Stack 的真实删除测试；测试 Stack 和日志组均已清除。
+- 后端提交 `e3f4e1722686cdc9de4e46115332afaf6da7678d` 的 Build #2 全阶段成功；源码包 SHA-256 为 `2167157c9cd420c09d4e656c3cbc582c6caf6e7dd24d4b050e1f52078df2f23f`，最终镜像固定为 `sha256:7063a9ab2765f8fb565a581c810047b8fc2a4119fe5d288a685bd6c87b3eae78`。构建期已验证 uid/gid `65532:65532`、Node `24.18.0`、`bcrypt` 与 `pg`；ECR 扫描 `COMPLETE` 且 findings 为空。
+- 第一张 Node Bookworm 完整运行时镜像因 `3 Critical / 5 High / 6 Medium` 被门禁拒绝，未写入 execution binding，也未用于租户。最新零发现镜像同样尚未启用 Apply；镜像合格不代表其余 S3-B 门禁已经完成。
 - Worker 与租户 Apply 仍未启动；没有创建 Cell、ALB、ECS 租户服务、Aurora/RDS、VPC、Route 53 或正式租户 Stack。
