@@ -157,15 +157,15 @@ npm --prefix .\ops\aws-sandbox test
 
 脚本在上传源码前先查询该 Git 标签。若 ECR 已存在 `git-<commit>`，脚本返回现有 Digest，并跳过 S3 上传和 CodeBuild，从而避免不可变标签冲突和重复构建费用。
 
-## 云端执行前仍需完成
+## 当前云端状态与后续门禁
 
 1. AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`；当前终端 PATH 尚未刷新，可以先使用绝对路径。
-2. 已使用 `techlong-sandbox-user` Profile 只读调用 STS，确认 Account 为 `402010193138`、IAM User ARN 为 `arn:aws:iam::402010193138:user/techlong-sandbox-dev`，Profile Region 为 `ca-central-1`。S3 前应让这个 IAM User 只负责 AssumeRole，不直接持有创建租户资源的长期权限。
-3. 账号中已只读发现一个现有的 `My Zero-Spend Budget`（`1 USD`）；它未被本次修改。此处的 `10 USD` 模板尚未应用，且 Budget 告警不能作为实时硬停机制。
+2. 已确认 `techlong-sandbox-dev` 绑定 MFA，并配置不含密钥的 `techlong-sandbox-provisioner` AssumeRole Profile。首次角色会话需要操作者在本地终端输入 MFA 一次性验证码；后续还应移除 IAM User 继承的长期 AdministratorAccess，只保留受控 AssumeRole 能力。
+3. 账号原有的 `My Zero-Spend Budget`（`1 USD`）未被修改；S3-A 已另行创建按 `Environment=aws-sandbox` 过滤的 `10 USD` Budget。两者都只是有延迟的告警，不能作为实时硬停机制。
 4. 已只读确认该账号当前未使用 AWS Organizations。不要为了本 Sandbox 主动加入 Organizations；当前 Deny 示例应作为 IAM 策略评审起点，不能假设 SCP 可用。
-5. 将通知邮箱作为参数提供，不把个人邮箱硬编码进模板。
-6. 人工复核策略示例，再由独立的 CloudFormation Execution Role 承担实际资源权限。Boundary 本身不授予权限。
-7. 在真实 AWS 中创建 Bootstrap 后，先用伪造 Stack 验证 Janitor 拒绝路径和到期删除路径，再允许租户 Apply。
+5. Budget 通知邮箱已作为 CloudFormation 参数提供，个人邮箱没有硬编码进模板或仓库。
+6. S3-A 已由独立的 CloudFormation Execution Role 和 Permissions Boundary 部署；Boundary 本身不授予权限。
+7. Janitor 已在真实 AWS 中验证空扫描、伪造共享 Cell 拒绝路径和到期临时租户 Stack 删除路径；测试资源已完全清除。
 8. 创建收费 Stack 前先建立一次性清理计划；创建失败时部署必须中止。
 
 后续 Cell 模板只允许 `aurora-postgresql-serverless-v2`，最多一个共享 Cell，使用支持自动暂停的 PostgreSQL 16.3 或更高 16.x 版本，`minAcu=0`、`maxAcu=1`、`secondsUntilAutoPause=300`，禁止每租户独立 Cluster、额外 Reader、传统 Multi-AZ 实例、DB Proxy、Global Database、预留购买和快照恢复。Aurora Cluster 本身不能被策略绝对禁止，否则生产兼容的 Sandbox Cell 无法创建；具体 Engine、容量和数量要由受控 CloudFormation 模板、Execution Role 与部署前静态检查共同锁定。

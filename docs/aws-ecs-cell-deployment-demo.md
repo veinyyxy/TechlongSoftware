@@ -1,6 +1,6 @@
 # AWS ECS Cell 部署与执行基础（S0–S2）
 
-> 这是 S0–S2 基线文档。默认关闭的 S3 Worker、CloudFormation Apply 编排、TTL Scheduler 和剩余数据库/mTLS 门禁见 [AWS Sandbox S3 部署执行器](./aws-sandbox-s3-worker.md)。下文“没有真实 Apply”描述的是 S0–S2 本身；S3 代码存在不代表门禁已开启或 AWS 已发生变更。
+> 这是 S0–S2 历史基线文档。2026-08-09 已部署不含 Cell/租户资源的 S3-A Bootstrap。默认关闭的 S3 Worker、TTL Scheduler 和剩余数据库/mTLS 门禁见 [AWS Sandbox S3 部署执行器](./aws-sandbox-s3-worker.md)。下文“没有真实 Apply”描述的是 S0–S2 本身。
 
 ## 当前结论
 
@@ -47,7 +47,7 @@ Plan 是平台维护的共享商品定义，不会因客户购买而复制。购
 | Sandbox 域名 | `sandbox.techlong.cloud` |
 | AWS Apply | 禁用 |
 
-表中的 `10 USD` 是 S0 Guardrail 模板目标，该模板尚未部署。账号当前只读核验到一个既有的 `My Zero-Spend Budget`，Limit 为 `1 USD`，本阶段没有修改它。任何 Budget 都只是有延迟的告警，不是实时断路器；未来真实部署前必须先有可用的 TTL Janitor 和一次性清理任务，并在创建任何收费资源前确认清理计划已建立。S0 文件只供静态审查，模板和策略尚未部署到 AWS。
+表中的 `10 USD` Guardrail 已由后续 S3-A 部署，并按 `Environment=aws-sandbox` 成本标签过滤；账号原有的 `My Zero-Spend Budget`（`1 USD`）保持不变。任何 Budget 都只是有延迟的告警，不是实时断路器；真实租户部署仍必须先确认 TTL Janitor 和一次性清理任务已建立。
 
 只读 Organizations 查询返回 `AWSOrganizationsNotInUseException`，账号类型已经确认为 standalone。SCP 当前不可用，也不应为了本 Sandbox 方案加入 Organizations。高风险动作 Deny 示例应作为 IAM Policy 使用，并与 Permissions Boundary、窄权限 Allow Policy 和专用 AssumeRole 角色共同生效；Boundary 限制最大权限，但自身不授予资源权限。除非账号归属后来被人工改变，S3 无需再次确认账号类型。
 

@@ -84,10 +84,11 @@ npm run deployment:worker
 
 脚本使用 Node 22 内置 TypeScript strip，不依赖测试 loader 或 `tsx`。默认 `.env.example` 保持所有 gate 关闭。
 
-## 本阶段明确没有执行
+## 当前数据库与 AWS 状态
 
 - `0004_aws_sandbox_worker.sql` 已应用到当前 Neon；核验结果为
   `apply_enabled=0`、execution binding 为 0，迁移本身没有开启 AWS Apply。
 - 没有修改数据库里的 `apply_enabled` 或创建 execution binding。
-- Worker 没有调用 STS、CloudFormation、ECS、RDS、Scheduler 或其他 AWS API。
-- 没有创建、更新或删除 AWS 资源。
+- S3-A Bootstrap 已创建受限角色/Boundary、TTL Janitor、Scheduler、空的不可变 ECR、私有源码 Bucket 和默认不可工作的 CodeBuild Project。
+- Janitor 已通过空扫描、伪造共享 Cell 拒绝、以及已过期临时租户 Stack 的真实删除测试；测试 Stack 和日志组均已清除。
+- Worker 与租户 Apply 仍未启动；没有创建 Cell、ALB、ECS 租户服务、Aurora/RDS、VPC、Route 53 或正式租户 Stack。
