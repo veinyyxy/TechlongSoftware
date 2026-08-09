@@ -531,6 +531,28 @@ export const deploymentEnvironments = pgTable("deployment_environments", {
 	check("deployment_environments_status_check", sql`status = ANY (ARRAY['active'::text, 'inactive'::text])`),
 ]);
 
+export const deploymentEnvironmentBindings = pgTable("deployment_environment_bindings", {
+	environmentId: text("environment_id").primaryKey().notNull(),
+	workerRoleArn: text("worker_role_arn").notNull(),
+	cloudformationRoleArn: text("cloudformation_role_arn").notNull(),
+	tenantStackParameters: text("tenant_stack_parameters").default('{}').notNull(),
+	status: text().default('inactive').notNull(),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => [
+	index("deployment_environment_bindings_status_idx").using("btree", table.status.asc().nullsLast().op("text_ops")),
+	foreignKey({
+		columns: [table.environmentId],
+		foreignColumns: [deploymentEnvironments.id],
+		name: "deployment_environment_bindings_environment_id_fkey"
+	}).onDelete("cascade"),
+	check("deployment_environment_bindings_worker_role_arn_check", sql`worker_role_arn ~ '^arn:aws:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+$'::text`),
+	check("deployment_environment_bindings_cloudformation_role_arn_check", sql`cloudformation_role_arn ~ '^arn:aws:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+$'::text`),
+	check("deployment_environment_bindings_tenant_stack_parameters_check", sql`jsonb_typeof((tenant_stack_parameters)::jsonb) = 'object'::text AND octet_length(tenant_stack_parameters) <= 32768`),
+	check("deployment_environment_bindings_status_check", sql`status = ANY (ARRAY['active'::text, 'inactive'::text])`),
+	check("deployment_environment_bindings_role_separation_check", sql`worker_role_arn <> cloudformation_role_arn`),
+]);
+
 export const appInstanceDeployments = pgTable("app_instance_deployments", {
 	id: text().primaryKey().notNull(),
 	appInstanceId: text("app_instance_id").notNull(),
@@ -595,6 +617,58 @@ export const appInstanceDeployments = pgTable("app_instance_deployments", {
 	check("app_instance_deployments_outputs_check", sql`jsonb_typeof((outputs)::jsonb) = 'object'::text AND octet_length(outputs) <= 32768`),
 ]);
 
+export const deploymentCleanupSchedules = pgTable("deployment_cleanup_schedules", {
+	id: text().primaryKey().notNull(),
+	deploymentId: text("deployment_id").notNull(),
+	environmentId: text("environment_id").notNull(),
+	stackName: text("stack_name").notNull(),
+	status: text().default('pending').notNull(),
+	expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
+	providerScheduleRef: text("provider_schedule_ref"),
+	confirmedAt: bigint("confirmed_at", { mode: "number" }),
+	lastError: text("last_error"),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+	completedAt: bigint("completed_at", { mode: "number" }),
+}, (table) => [
+	uniqueIndex("deployment_cleanup_schedules_deployment_unique").using("btree", table.deploymentId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("deployment_cleanup_schedules_stack_unique").using("btree", table.stackName.asc().nullsLast().op("text_ops")),
+	index("deployment_cleanup_schedules_due_idx").using("btree", table.status.asc().nullsLast().op("text_ops"), table.expiresAt.asc().nullsLast().op("int8_ops")),
+	foreignKey({
+		columns: [table.deploymentId],
+		foreignColumns: [appInstanceDeployments.id],
+		name: "deployment_cleanup_schedules_deployment_id_fkey"
+	}).onDelete("cascade"),
+	foreignKey({
+		columns: [table.environmentId],
+		foreignColumns: [deploymentEnvironments.id],
+		name: "deployment_cleanup_schedules_environment_id_fkey"
+	}).onDelete("restrict"),
+	check("deployment_cleanup_schedules_stack_name_check", sql`stack_name ~ '^techlong-sandbox-tenant-[a-z0-9]{1,16}$'::text`),
+	check("deployment_cleanup_schedules_status_check", sql`status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'running'::text, 'succeeded'::text, 'failed'::text, 'canceled'::text])`),
+	check("deployment_cleanup_schedules_confirmation_check", sql`status <> ALL (ARRAY['confirmed'::text, 'running'::text, 'succeeded'::text]) OR (provider_schedule_ref IS NOT NULL AND confirmed_at IS NOT NULL)`),
+]);
+
+export const deploymentEnvironmentCapacityReservations = pgTable("deployment_environment_capacity_reservations", {
+	deploymentId: text("deployment_id").primaryKey().notNull(),
+	environmentId: text("environment_id").notNull(),
+	slot: integer().notNull(),
+	reservedAt: bigint("reserved_at", { mode: "number" }).notNull(),
+}, (table) => [
+	uniqueIndex("deployment_environment_capacity_reservations_slot_unique").using("btree", table.environmentId.asc().nullsLast().op("text_ops"), table.slot.asc().nullsLast().op("int4_ops")),
+	foreignKey({
+		columns: [table.deploymentId],
+		foreignColumns: [appInstanceDeployments.id],
+		name: "deployment_environment_capacity_reservations_deployment_id_fkey"
+	}).onDelete("cascade"),
+	foreignKey({
+		columns: [table.environmentId],
+		foreignColumns: [deploymentEnvironments.id],
+		name: "deployment_environment_capacity_reservations_environment_id_fkey"
+	}).onDelete("restrict"),
+	check("deployment_environment_capacity_reservations_slot_check", sql`slot >= 1 AND slot <= 1000`),
+]);
+
 export const deploymentJobs = pgTable("deployment_jobs", {
 	id: text().primaryKey().notNull(),
 	deploymentId: text("deployment_id").notNull(),
@@ -623,7 +697,7 @@ export const deploymentJobs = pgTable("deployment_jobs", {
 		foreignColumns: [appInstanceDeployments.id],
 		name: "deployment_jobs_deployment_id_fkey"
 	}).onDelete("cascade"),
-	check("deployment_jobs_type_check", sql`job_type = ANY (ARRAY['apply'::text, 'rollback'::text, 'reconcile'::text])`),
+	check("deployment_jobs_job_type_check", sql`job_type = ANY (ARRAY['apply'::text, 'rollback'::text, 'reconcile'::text, 'cleanup'::text])`),
 	check("deployment_jobs_status_check", sql`status = ANY (ARRAY['pending'::text, 'running'::text, 'retry_wait'::text, 'succeeded'::text, 'dead_letter'::text, 'canceled'::text])`),
 	check("deployment_jobs_payload_check", sql`jsonb_typeof((payload)::jsonb) = 'object'::text AND octet_length(payload) <= 32768`),
 	check("deployment_jobs_attempts_check", sql`attempts >= 0`),

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, deploymentEnvironments, appInstanceDeployments, deploymentJobs, deploymentStepRuns, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements } from "./postgres-schema";
+import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, deploymentEnvironments, deploymentEnvironmentBindings, appInstanceDeployments, deploymentCleanupSchedules, deploymentEnvironmentCapacityReservations, deploymentJobs, deploymentStepRuns, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements } from "./postgres-schema";
 
 export const appInstanceTemplatesRelations = relations(appInstanceTemplates, ({one, many}) => ({
 	product: one(products, {
@@ -182,8 +182,18 @@ export const paymentCheckoutSessionsRelations = relations(paymentCheckoutSession
 	paymentWebhookEvents: many(paymentWebhookEvents),
 }));
 
-export const deploymentEnvironmentsRelations = relations(deploymentEnvironments, ({many}) => ({
+export const deploymentEnvironmentsRelations = relations(deploymentEnvironments, ({one, many}) => ({
 	appInstanceDeployments: many(appInstanceDeployments),
+	deploymentEnvironmentBinding: one(deploymentEnvironmentBindings),
+	deploymentCleanupSchedules: many(deploymentCleanupSchedules),
+	deploymentEnvironmentCapacityReservations: many(deploymentEnvironmentCapacityReservations),
+}));
+
+export const deploymentEnvironmentBindingsRelations = relations(deploymentEnvironmentBindings, ({one}) => ({
+	deploymentEnvironment: one(deploymentEnvironments, {
+		fields: [deploymentEnvironmentBindings.environmentId],
+		references: [deploymentEnvironments.id]
+	}),
 }));
 
 export const appInstanceDeploymentsRelations = relations(appInstanceDeployments, ({one, many}) => ({
@@ -205,6 +215,30 @@ export const appInstanceDeploymentsRelations = relations(appInstanceDeployments,
 	}),
 	deploymentJobs: many(deploymentJobs),
 	deploymentStepRuns: many(deploymentStepRuns),
+	deploymentCleanupSchedule: one(deploymentCleanupSchedules),
+	deploymentEnvironmentCapacityReservation: one(deploymentEnvironmentCapacityReservations),
+}));
+
+export const deploymentCleanupSchedulesRelations = relations(deploymentCleanupSchedules, ({one}) => ({
+	appInstanceDeployment: one(appInstanceDeployments, {
+		fields: [deploymentCleanupSchedules.deploymentId],
+		references: [appInstanceDeployments.id]
+	}),
+	deploymentEnvironment: one(deploymentEnvironments, {
+		fields: [deploymentCleanupSchedules.environmentId],
+		references: [deploymentEnvironments.id]
+	}),
+}));
+
+export const deploymentEnvironmentCapacityReservationsRelations = relations(deploymentEnvironmentCapacityReservations, ({one}) => ({
+	appInstanceDeployment: one(appInstanceDeployments, {
+		fields: [deploymentEnvironmentCapacityReservations.deploymentId],
+		references: [appInstanceDeployments.id]
+	}),
+	deploymentEnvironment: one(deploymentEnvironments, {
+		fields: [deploymentEnvironmentCapacityReservations.environmentId],
+		references: [deploymentEnvironments.id]
+	}),
 }));
 
 export const deploymentJobsRelations = relations(deploymentJobs, ({one, many}) => ({

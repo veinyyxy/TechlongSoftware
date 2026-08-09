@@ -1,0 +1,18 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - test "$AWS_ACCOUNT_ID" = "402010193138"
+      - test "$AWS_DEFAULT_REGION" = "ca-central-1"
+      - echo "$IMAGE_TAG" | grep -Eq '^git-[0-9a-f]{40}$'
+      - echo "$ECR_REPOSITORY_URI" | grep -Eq '^402010193138\.dkr\.ecr\.ca-central-1\.amazonaws\.com/techlong-sandbox-speedfeast$'
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "402010193138.dkr.ecr.ca-central-1.amazonaws.com"
+  build:
+    commands:
+      - docker build --pull --tag "$ECR_REPOSITORY_URI:$IMAGE_TAG" .
+  post_build:
+    commands:
+      - docker push "$ECR_REPOSITORY_URI:$IMAGE_TAG"
+      - IMAGE_DIGEST=$(aws ecr describe-images --repository-name techlong-sandbox-speedfeast --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)
+      - echo "Immutable image published as $ECR_REPOSITORY_URI@$IMAGE_DIGEST"

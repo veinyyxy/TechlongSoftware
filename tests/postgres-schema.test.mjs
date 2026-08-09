@@ -44,7 +44,10 @@ test("PostgreSQL schema contains all business tables and core integrity rules", 
     "app_instances",
     "subscription_purchase_orders",
     "deployment_environments",
+    "deployment_environment_bindings",
     "app_instance_deployments",
+    "deployment_cleanup_schedules",
+    "deployment_environment_capacity_reservations",
     "deployment_jobs",
     "deployment_step_runs",
     "payment_webhook_events",
@@ -139,6 +142,41 @@ test("deployment execution migration adds sandbox policy, jobs, leases and step 
     /mode <> 'plan_only'[\s\S]*?configuration_hash IS NOT NULL/,
   );
   assert.doesNotMatch(migration, /repeat\('0',\s*64\)/);
+});
+
+test("S3 worker migration adds role bindings and a confirmed TTL cleanup boundary", async () => {
+  const migration = await read(
+    "db/postgres-migrations/0004_aws_sandbox_worker.sql",
+  );
+  assert.match(migration, /CREATE TABLE deployment_environment_bindings\b/);
+  assert.match(migration, /worker_role_arn <> cloudformation_role_arn/);
+  assert.match(migration, /CREATE TABLE deployment_cleanup_schedules\b/);
+  assert.match(migration, /CREATE TABLE deployment_environment_capacity_reservations\b/);
+  assert.match(migration, /deployment_environment_capacity_reservations_slot_unique/);
+  assert.match(migration, /FOR UPDATE|ON CONFLICT|slot/);
+  assert.match(migration, /techlong-sandbox-tenant-/);
+  assert.match(migration, /provider_schedule_ref IS NOT NULL/);
+  assert.match(migration, /'cleanup'/);
+});
+
+test("S3 execution repository reserves capacity atomically and commits ready state as one statement", async () => {
+  const repository = await read("lib/deployments/execution/neon-repository.ts");
+  assert.match(
+    repository,
+    /reserveEnvironmentCapacity[\s\S]*?locked_environment AS MATERIALIZED[\s\S]*?FOR UPDATE[\s\S]*?deployment_environment_capacity_reservations[\s\S]*?ON CONFLICT DO NOTHING/,
+  );
+  assert.match(
+    repository,
+    /markInstanceUnavailable[\s\S]*?DELETE FROM deployment_environment_capacity_reservations/,
+  );
+  assert.match(
+    repository,
+    /markReady[\s\S]*?WITH eligible AS MATERIALIZED[\s\S]*?FOR UPDATE OF deployment, instance, subscription, job[\s\S]*?activated_instance AS[\s\S]*?ready_deployment AS[\s\S]*?FROM eligible, activated_instance[\s\S]*?1 \/ CASE/,
+  );
+  assert.doesNotMatch(
+    repository,
+    /markReady[\s\S]{0,500}?\.transaction\s*\(/,
+  );
 });
 
 test("temporary browser migration endpoint is removed after cutover", async () => {

@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Static S0 guardrails for the Techlong AWS Sandbox. This template creates only a monthly cost budget with email notifications.",
+  "Description": "Cost guardrail for tagged Techlong AWS Sandbox resources. This template creates only a monthly cost budget with email notifications.",
   "Metadata": {
     "SafetyBoundary": {
       "CloudApplyEnabled": false,
@@ -89,6 +89,9 @@
             "Unit": "USD"
           },
           "BudgetType": "COST",
+          "CostFilters": {
+            "TagKeyValue": ["user:Environment$aws-sandbox"]
+          },
           "CostTypes": {
             "IncludeCredit": false,
             "IncludeDiscount": true,

@@ -153,7 +153,6 @@ export function validateDeploymentEnvironment(
     if (environment.baseDomain !== "sandbox.techlong.cloud") {
       errors.push("sandbox_base_domain_invalid");
     }
-    if (environment.applyEnabled) errors.push("sandbox_apply_must_be_disabled");
     if (environment.policy.budgetLimitCents !== 1_000) {
       errors.push("sandbox_budget_invalid");
     }

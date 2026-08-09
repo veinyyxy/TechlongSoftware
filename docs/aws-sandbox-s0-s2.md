@@ -1,5 +1,7 @@
 # AWS Sandbox S0–S2 说明
 
+> 本文保留 S0–S2 基线。S3 已加入默认关闭的独立执行器、STS/CloudFormation Adapter 与 TTL 清理边界；当前门禁和剩余 fail-closed 项见 [AWS Sandbox S3 部署执行器](./aws-sandbox-s3-worker.md)。本文中“没有 Worker/SDK”的描述仅指 S0–S2 当时状态。
+
 ## 本阶段状态
 
 S0–S2 是真实 AWS 部署前的执行基础，不是一次 AWS 部署。本页包含比 S0 静态骨架创建时更晚的只读账号核验结果。本阶段只产生本地代码、数据库结构、静态 CloudFormation/IAM 文件和可审计渲染结果：

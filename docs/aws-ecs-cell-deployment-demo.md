@@ -1,5 +1,7 @@
 # AWS ECS Cell 部署与执行基础（S0–S2）
 
+> 这是 S0–S2 基线文档。默认关闭的 S3 Worker、CloudFormation Apply 编排、TTL Scheduler 和剩余数据库/mTLS 门禁见 [AWS Sandbox S3 部署执行器](./aws-sandbox-s3-worker.md)。下文“没有真实 Apply”描述的是 S0–S2 本身；S3 代码存在不代表门禁已开启或 AWS 已发生变更。
+
 ## 当前结论
 
 本阶段已经从“只保存一份资源计划”推进到可审计的部署执行基础，但仍然没有真实 AWS Apply 能力：

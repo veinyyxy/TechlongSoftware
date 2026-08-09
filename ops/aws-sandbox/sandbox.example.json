@@ -7,8 +7,12 @@
     "profile": "techlong-sandbox-user",
     "cloudApplyEnabled": false,
     "requireStsAccountMatch": true,
-    "cloudFormationStackPrefix": "techlong-sandbox-",
-    "cloudFormationExecutionRoleName": "TechlongSandboxCloudFormationExecutionRole"
+    "cloudFormationStackPrefix": "techlong-sandbox-tenant-",
+    "cloudFormationExecutionRoleName": "TechlongSandboxCloudFormationExecutionRole",
+    "provisionerRoleName": "TechlongSandboxProvisionerRole",
+    "requireMfaToAssumeProvisionerRole": true,
+    "bootstrapStackName": "techlong-s3-bootstrap",
+    "costGuardrailStackName": "techlong-cost-guardrails"
   },
   "costControls": {
     "monthlyBudgetUsd": 10,
@@ -22,6 +26,19 @@
     "requireCleanupScheduleBeforeProvisioning": true,
     "skipFinalDatabaseSnapshot": true,
     "cloudWatchLogRetentionDays": 1
+  },
+  "build": {
+    "repositoryName": "techlong-sandbox-speedfeast",
+    "imageTagMutability": "IMMUTABLE",
+    "sourceBucketName": "techlong-sandbox-build-source-402010193138-ca-central-1",
+    "sourcePrefix": "source/",
+    "sourceRetentionDays": 1,
+    "codeBuildProjectName": "techlong-sandbox-speedfeast-image",
+    "codeBuildImage": "aws/codebuild/standard:8.0",
+    "computeType": "BUILD_GENERAL1_SMALL",
+    "timeoutMinutes": 5,
+    "queuedTimeoutMinutes": 5,
+    "concurrentBuildLimit": 1
   },
   "limits": {
     "maxConcurrentCells": 1,

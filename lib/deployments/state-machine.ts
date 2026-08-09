@@ -30,7 +30,7 @@ export const deploymentJobStatuses = [
 ] as const;
 
 export type DeploymentJobStatus = (typeof deploymentJobStatuses)[number];
-export type DeploymentJobType = "apply" | "rollback" | "reconcile";
+export type DeploymentJobType = "apply" | "rollback" | "reconcile" | "cleanup";
 
 const deploymentTransitions: Record<DeploymentStatus, readonly DeploymentStatus[]> = {
   planned: ["queued", "cancel_requested", "canceled"],

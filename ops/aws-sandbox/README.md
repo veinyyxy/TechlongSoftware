@@ -1,6 +1,8 @@
-# AWS Sandbox S0 静态骨架
+# AWS Sandbox S0–S3-A 安全 Bootstrap
 
-这个目录只保存可审查的静态配置、CloudFormation 模板和 IAM 策略示例。S0 不会创建 AWS 资源，也不包含任何 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。
+这个目录保存可审查的静态配置、CloudFormation 模板、IAM 边界、TTL Janitor、镜像构建基础和默认不执行的运维脚本。仓库中不包含 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。
+
+S3-A 代码本身不会调用 AWS。`s3-bootstrap.ps1` 默认仅运行本地验证；只有显式选择 `CreateChangeSet` 或 `Apply`、确认账号、提供预算通知邮箱并确认 MFA 前置条件后，脚本才会产生 AWS 写操作。
 
 ## 固定安全边界
 
@@ -15,7 +17,7 @@
 - 数据库：最多 1 个共享 Aurora PostgreSQL Serverless v2 Cell，租户使用独立 database
 - Aurora 版本：支持自动暂停的 PostgreSQL 16.3 或更高 16.x 版本；只读核验显示 `ca-central-1` 当前提供普通版 16.8–16.14，实际创建前仍须动态确认并拒绝 `limitless`
 - Aurora 容量：最小 `0 ACU`、最大 `1 ACU`，空闲 `300` 秒后自动暂停
-- 云端 Apply：关闭
+- SaaS Worker 云端 Apply：仍关闭；Bootstrap 与租户 Apply 是两个独立开关
 
 这些默认值不是 AWS 授权。未来执行器在每次调用 AWS 前仍必须通过 STS 核对 Account、Region、Role ARN 和短期凭据，并且必须先创建可用的到期清理任务，再创建任何收费资源。
 
@@ -27,15 +29,38 @@ ops/aws-sandbox/
 ├─ package.json
 ├─ sandbox.example.json
 ├─ cloudformation/
-│  └─ guardrails.template.json
+│  ├─ guardrails.template.json
+│  └─ s3-bootstrap.template.json
+├─ codebuild/
+│  └─ buildspec.aws-sandbox.yml
+├─ lambda/
+│  └─ janitor.cjs
 ├─ policies/
 │  ├─ provisioner-permissions-boundary.example.json
 │  └─ sandbox-expensive-actions-deny.example.json
 └─ scripts/
+   ├─ render-bootstrap.mjs
+   ├─ s3-bootstrap.ps1
+   ├─ s3-build-image.ps1
+   ├─ s3-rollback.ps1
    └─ validate.mjs
 ```
 
-`guardrails.template.json` 目前只描述月度 Cost Budget 和邮件通知。它故意不创建 ECS、ALB、RDS、NAT、VPC Endpoint、Route 53 Hosted Zone、Lambda 或 EventBridge Scheduler，也不包含 Budget Action。AWS Budgets 的账单数据有延迟，不能代替 TTL Janitor。
+`guardrails.template.json` 只描述按 `user:Environment$aws-sandbox` 成本分配标签过滤的月度 Cost Budget 和邮件通知。通知邮箱只能在执行时作为参数传入。AWS Budgets 的账单数据有延迟，不能代替 TTL Janitor。
+
+此过滤依赖 Billing 中已经激活 `Environment` 用户成本分配标签；新激活标签和费用归集都可能延迟。执行 Bootstrap 前必须在 Billing 控制台确认该标签可用于 Cost Explorer/Budgets，否则 `$10` Budget 可能暂时看不到 Sandbox 费用。
+
+`s3-bootstrap.template.json` 不创建 Cell、VPC、NAT、ALB、ECS Service、Aurora/RDS、Route 53 Hosted Zone 或租户资源。它只创建：
+
+- MFA 强制的 `TechlongSandboxProvisionerRole`，信任关系只接受现有 `techlong-sandbox-dev` IAM User；不修改该用户或 Administrators 组。
+- 有独立 Permissions Boundary 的 CloudFormation Execution Role、Janitor Role、Scheduler Invoke Role、CodeBuild Role、ECS Task Execution Role 和 Task Role。
+- 全局 Janitor Lambda 与 `rate(15 minutes)` EventBridge Scheduler 安全扫描。
+- `techlong-sandbox` Scheduler Group，供每个租户先创建一次性 TTL 清理计划。
+- 标签不可覆盖、推送扫描、最多保留两个镜像的 `techlong-sandbox-speedfeast` ECR Repository。
+- 完全阻止公网访问、AES256 加密、`source/` 一天过期的专用 CodeBuild 源码 Bucket。
+- 默认构建必定失败、仅可显式 Source/Buildspec override 启动的 CodeBuild Project；固定 `aws/codebuild/standard:8.0`、最小 Compute、5 分钟超时、并发 1。
+
+Bootstrap 模板中的 Janitor 源码使用占位符，部署脚本会从 `lambda/janitor.cjs` 注入并检查渲染后模板不超过 CloudFormation 的直接 TemplateBody 限制。不要直接部署未渲染的 `s3-bootstrap.template.json`。
 
 ## 本地检查
 
@@ -55,12 +80,80 @@ npm --prefix .\ops\aws-sandbox test
 
 - 所有 JSON 都可以解析。
 - 默认 Account、Region、预算、TTL、最大并发和域名没有漂移。
-- CloudFormation 资源受 Account 与 Region 条件保护。
+- 两个 CloudFormation 模板均受 Account 与 Region 条件保护。
 - Budget 排除 Credit，避免赠送额度掩盖实际消耗。
+- Budget 只统计带 `Environment=aws-sandbox` 成本分配标签的资源。
 - 预算通知阈值为 10%、30%、50%、80%、100%。
 - Permissions Boundary 不包含允许全部动作的语句。
 - Deny 策略覆盖 NAT、VPC Endpoint、EC2、RDS Proxy、Global Database、快照恢复、预留购买、Marketplace 和客户管理 KMS Key 等高风险动作。唯一允许规划的数据库形态是受控的 Aurora PostgreSQL Serverless v2 Cell。
 - 文本中没有常见 AWS、Stripe、PostgreSQL URL 或 PEM 私钥特征。
+- Provisioner Role 信任关系强制 MFA，且模板中不存在 IAM User/Group 资源。
+- Janitor 对错误前缀、缺标签、错误标签、无效/未来 `ExpiresAt`、嵌套 Stack 和错误 DeploymentId 均拒绝删除。
+- ECR、CodeBuild、源码 Bucket、Scheduler 和角色权限边界没有漂移。
+
+## Bootstrap 操作模式
+
+所有命令默认只做本地检查，不调用 AWS：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-bootstrap.ps1
+.\ops\aws-sandbox\scripts\s3-rollback.ps1
+.\ops\aws-sandbox\scripts\s3-build-image.ps1
+```
+
+可选操作按风险递增：
+
+```powershell
+# 只读 AWS CloudFormation 模板验证
+.\ops\aws-sandbox\scripts\s3-bootstrap.ps1 -Mode OnlineValidate
+
+# 创建但不执行 Change Set；仍会在 AWS 留下 Change Set/REVIEW_IN_PROGRESS 状态
+.\ops\aws-sandbox\scripts\s3-bootstrap.ps1 `
+  -Mode CreateChangeSet `
+  -BudgetAlertEmail 'ops@example.com' `
+  -ConfirmAccountId '402010193138' `
+  -AcknowledgeMfaPrerequisite
+
+# 真实创建 Bootstrap 资源；必须再次显式选择 Apply
+.\ops\aws-sandbox\scripts\s3-bootstrap.ps1 `
+  -Mode Apply `
+  -BudgetAlertEmail 'ops@example.com' `
+  -ConfirmAccountId '402010193138' `
+  -AcknowledgeMfaPrerequisite
+```
+
+当前 IAM User 尚未配置 MFA。Bootstrap 可以由现有管理员权限创建，但新 Provisioner Role 的信任策略会拒绝无 MFA 会话。在 MFA 配置并验证之前，不应启动 SaaS Worker Apply。本模板不修改现有 IAM User 或 Administrators 组。
+
+启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
+
+## 安全镜像源码包
+
+`s3-build-image.ps1` 只读取 Git 已跟踪、工作树无修改且位于明确 allowlist 中的订单服务文件。它始终排除 `.env`、Firebase/Service Account JSON、私钥/证书、压缩包、备份、数据库 dump 和 migration artifacts，并对文本执行常见 Secret 特征扫描。未跟踪文件绝不会进入源码包。上传或启动构建只能使用 MFA 支持的 `techlong-sandbox-provisioner` AssumeRole 会话。
+
+```powershell
+# 仅检查 allowlist 与 Secret；不生成 Zip
+.\ops\aws-sandbox\scripts\s3-build-image.ps1
+
+# 只在本地生成可审查 Zip
+.\ops\aws-sandbox\scripts\s3-build-image.ps1 `
+  -Mode Package `
+  -OutputPath 'C:\temp\speedfeast-build.zip'
+
+# 上传到一天后清理的专用 S3 source/ 前缀，但不启动构建
+.\ops\aws-sandbox\scripts\s3-build-image.ps1 `
+  -Mode Upload `
+  -ConfirmAccountId '402010193138'
+
+# 上传并明确接受 CodeBuild 费用后启动一个构建
+.\ops\aws-sandbox\scripts\s3-build-image.ps1 `
+  -Mode StartBuild `
+  -ConfirmAccountId '402010193138' `
+  -AcknowledgeBuildMayIncurCost
+```
+
+上传对象键为 `source/speedfeast-<40位Git提交>.zip`，镜像标签为不可覆盖的 `git-<40位Git提交>`。CodeBuild Project 没有 Webhook、定时触发、VPC/NAT 或默认可工作的 Source；只有显式调用 `StartBuild` 才会产生构建费用。
+
+脚本在上传源码前先查询该 Git 标签。若 ECR 已存在 `git-<commit>`，脚本返回现有 Digest，并跳过 S3 上传和 CodeBuild，从而避免不可变标签冲突和重复构建费用。
 
 ## 云端执行前仍需完成
 
@@ -70,14 +163,14 @@ npm --prefix .\ops\aws-sandbox test
 4. 已只读确认该账号当前未使用 AWS Organizations。不要为了本 Sandbox 主动加入 Organizations；当前 Deny 示例应作为 IAM 策略评审起点，不能假设 SCP 可用。
 5. 将通知邮箱作为参数提供，不把个人邮箱硬编码进模板。
 6. 人工复核策略示例，再由独立的 CloudFormation Execution Role 承担实际资源权限。Boundary 本身不授予权限。
-7. 在下一阶段实现 EventBridge Scheduler + Janitor Lambda，并验证 Janitor 后，才允许打开任何云端 Apply 开关。
+7. 在真实 AWS 中创建 Bootstrap 后，先用伪造 Stack 验证 Janitor 拒绝路径和到期删除路径，再允许租户 Apply。
 8. 创建收费 Stack 前先建立一次性清理计划；创建失败时部署必须中止。
 
 后续 Cell 模板只允许 `aurora-postgresql-serverless-v2`，最多一个共享 Cell，使用支持自动暂停的 PostgreSQL 16.3 或更高 16.x 版本，`minAcu=0`、`maxAcu=1`、`secondsUntilAutoPause=300`，禁止每租户独立 Cluster、额外 Reader、传统 Multi-AZ 实例、DB Proxy、Global Database、预留购买和快照恢复。Aurora Cluster 本身不能被策略绝对禁止，否则生产兼容的 Sandbox Cell 无法创建；具体 Engine、容量和数量要由受控 CloudFormation 模板、Execution Role 与部署前静态检查共同锁定。
 
 ## TTL / Janitor 契约
 
-下一阶段的 Janitor 应每 15 分钟扫描一次，并额外为每个部署创建一次性到期任务。所有可变资源必须带有：
+Janitor 每 15 分钟扫描一次，并由每个租户 Stack 额外创建一次性到期任务。所有可变资源必须带有：
 
 ```text
 Environment=aws-sandbox
@@ -87,7 +180,9 @@ AppInstanceId=<stable id>
 ExpiresAt=<UTC timestamp>
 ```
 
-清理顺序建议为：ECS Service/Task → ALB Listener/Target Group/ALB → RDS（Sandbox 不保留最终快照）→ Secret → ENI/公共 IPv4/EIP → Log Group → DNS 临时记录。清理需要幂等；一个资源失败不能阻止后续资源继续清理。
+Janitor 不直接逐项删除 AWS 资源，只调用 CloudFormation `DeleteStack`，让 Stack 按依赖关系回滚。它同时要求：Stack 名严格匹配 `techlong-sandbox-tenant-<1至16位小写字母或数字>`、是顶层 Stack、`Environment=aws-sandbox`、`ManagedBy=techlong-provisioner`、非空 `DeploymentId`/`AppInstanceId`，以及格式严格且已经到期的 UTC `ExpiresAt`。`DELETE_IN_PROGRESS`、`DELETE_COMPLETE` 和 `REVIEW_IN_PROGRESS` 会跳过；`DELETE_FAILED` 会在全局扫描中重试。共享 Cell 即使误带租户标签也不能被 Janitor 删除。全局扫描每次最多删除一个 Stack，定向清理还必须匹配 payload 中的 `DeploymentId`。
+
+回退默认只显示计划。真实回退会先拒绝仍有租户 Stack 的环境，然后验证专用源码 Bucket 的三项安全标签、清空该 Bucket，并删除 Bootstrap；这也会清空并删除 Sandbox ECR 镜像。Budget 只有额外传入 `-DeleteBudgetGuardrail` 和准确 Stack 名时才删除。
 
 ## DNS 边界
 
@@ -96,8 +191,8 @@ ExpiresAt=<UTC timestamp>
 ## 策略示例的重要限制
 
 - `provisioner-permissions-boundary.example.json` 是最大权限边界，不是授予权限的 Identity Policy。
-- Provisioner 只被允许管理 `techlong-sandbox-*` CloudFormation Stack，并只可 Pass 指定的 Sandbox Execution Role。
+- Provisioner 只被允许管理 `techlong-sandbox-tenant-*` CloudFormation Stack，并只可 Pass 指定的 Sandbox Execution Role；共享 Cell 和 Bootstrap 不在租户 Worker 权限内。
 - `sandbox-expensive-actions-deny.example.json` 是 Deny-only 示例。当前账号未使用 AWS Organizations，因此只能把它作为 IAM Policy 评审起点，不能假设 SCP 已生效。
 - 策略中的 Account、Region 和角色名称属于非敏感固定标识，但上线前仍必须与实际账号状态核对。
 
-本目录没有自动部署入口。任何真实 AWS 部署应在单独阶段、人工批准并完成账号与费用检查后实现。
+这些脚本没有后台自动执行入口。任何真实 AWS 写操作都需要人工显式选择模式、核对账号，并满足相应确认参数；SaaS Worker 的租户 Apply 仍保持关闭。

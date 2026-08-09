@@ -224,7 +224,7 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
     deploymentId: "dep_tenant_one",
     plan,
     environment: sandbox,
-    imageUri: `402010193138.dkr.ecr.ca-central-1.amazonaws.com/speedfeast-backend@sha256:${"a".repeat(64)}`,
+    imageUri: `402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:${"a".repeat(64)}`,
     tenantHostname: "tenant-one.sandbox.techlong.cloud",
     listenerPriority: 100,
     activeCellCount: 1,
@@ -260,12 +260,19 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
     "IMAGE_S3_BUCKET",
     "IMAGE_PUBLIC_BASE_URL",
     "AWS_REGION",
+    "PGSSLMODE",
+    "PGSSL_REJECT_UNAUTHORIZED",
+    "PGSSLROOTCERT",
   ]) {
     assert.match(serialized, new RegExp(name));
   }
   assert.match(serialized, /\/api\/saas/);
   assert.match(serialized, /DistinctBusinessAndControlListeners/);
   assert.match(serialized, /DeploymentCircuitBreaker/);
+  assert.match(
+    serialized,
+    /\/usr\/local\/share\/ca-certificates\/aws-rds-global-bundle\.pem/,
+  );
   const resourceTypes = Object.values(
     rendered.template.Resources as Record<string, { Type: string }>,
   ).map((resource) => resource.Type);
@@ -278,6 +285,7 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
   assert.ok(rendered.requiredExternalParameters.includes("ControlListenerArn"));
   assert.ok(rendered.requiredExternalParameters.includes("DatabaseUrlValueFrom"));
   assert.ok(rendered.requiredExternalParameters.includes("StripeSecretKeyValueFrom"));
+  assert.equal(rendered.requiredExternalParameters.includes("PgSslRootCertValueFrom"), false);
 
   assert.throws(
     () =>
@@ -285,7 +293,7 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
         deploymentId: "dep_tenant_one",
         plan,
         environment: sandbox,
-        imageUri: `402010193138.dkr.ecr.ca-central-1.amazonaws.com/speedfeast-backend@sha256:${"a".repeat(64)}`,
+        imageUri: `402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:${"a".repeat(64)}`,
         tenantHostname: "tenant-one.example.com",
         listenerPriority: 100,
         activeCellCount: 1,

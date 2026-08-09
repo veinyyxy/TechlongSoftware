@@ -1,0 +1,1081 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "S3-A bootstrap for the Techlong AWS Sandbox: bounded roles, TTL janitor, immutable ECR and disabled-by-default CodeBuild foundation.",
+  "Metadata": {
+    "SafetyBoundary": {
+      "ExpectedAccountId": "402010193138",
+      "ExpectedRegion": "ca-central-1",
+      "TenantStackPrefix": "techlong-sandbox-tenant-",
+      "ModifiesExistingIamUserOrGroup": false,
+      "RequiresMfaToAssumeProvisionerRole": true,
+      "CreatesVpcOrDatabaseResources": false
+    }
+  },
+  "Parameters": {
+    "ExpectedAccountId": {
+      "Type": "String",
+      "Default": "402010193138",
+      "AllowedValues": ["402010193138"]
+    },
+    "ExpectedRegion": {
+      "Type": "String",
+      "Default": "ca-central-1",
+      "AllowedValues": ["ca-central-1"]
+    },
+    "ProvisionerPrincipalArn": {
+      "Type": "String",
+      "Default": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+      "AllowedValues": [
+        "arn:aws:iam::402010193138:user/techlong-sandbox-dev"
+      ],
+      "Description": "Existing IAM principal allowed to assume the dedicated role. This template never edits that user or its groups."
+    },
+    "ScheduleGroupName": {
+      "Type": "String",
+      "Default": "techlong-sandbox",
+      "AllowedValues": ["techlong-sandbox"]
+    },
+    "EcrRepositoryName": {
+      "Type": "String",
+      "Default": "techlong-sandbox-speedfeast",
+      "AllowedValues": ["techlong-sandbox-speedfeast"]
+    },
+    "CodeBuildProjectName": {
+      "Type": "String",
+      "Default": "techlong-sandbox-speedfeast-image",
+      "AllowedValues": ["techlong-sandbox-speedfeast-image"]
+    }
+  },
+  "Conditions": {
+    "IsExpectedAccount": {
+      "Fn::Equals": [
+        { "Ref": "AWS::AccountId" },
+        { "Ref": "ExpectedAccountId" }
+      ]
+    },
+    "IsExpectedRegion": {
+      "Fn::Equals": [
+        { "Ref": "AWS::Region" },
+        { "Ref": "ExpectedRegion" }
+      ]
+    },
+    "IsExpectedTarget": {
+      "Fn::And": [
+        { "Condition": "IsExpectedAccount" },
+        { "Condition": "IsExpectedRegion" }
+      ]
+    }
+  },
+  "Resources": {
+    "ServiceRoleBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxServiceRoleBoundary",
+        "Description": "Maximum permissions for narrow Sandbox service roles; this policy grants nothing by itself.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AllowJanitorStackInventory",
+              "Effect": "Allow",
+              "Action": ["cloudformation:ListStacks"],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowJanitorOnlySandboxStacks",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DeleteStack",
+                "cloudformation:DescribeStacks"
+              ],
+              "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-*/*"
+            },
+            {
+              "Sid": "AllowServiceLogs",
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": [
+                "arn:aws:logs:ca-central-1:402010193138:log-group:/aws/lambda/techlong-sandbox-janitor:*",
+                "arn:aws:logs:ca-central-1:402010193138:log-group:/aws/codebuild/techlong-sandbox-speedfeast-image:*",
+                "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-*:*"
+              ]
+            },
+            {
+              "Sid": "AllowSchedulerInvokeOnlyJanitor",
+              "Effect": "Allow",
+              "Action": ["lambda:InvokeFunction"],
+              "Resource": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-janitor"
+            },
+            {
+              "Sid": "AllowCodeBuildEcrLogin",
+              "Effect": "Allow",
+              "Action": ["ecr:GetAuthorizationToken"],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowSandboxImageRepository",
+              "Effect": "Allow",
+              "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:BatchGetImage",
+                "ecr:CompleteLayerUpload",
+                "ecr:DescribeImages",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:InitiateLayerUpload",
+                "ecr:PutImage",
+                "ecr:UploadLayerPart"
+              ],
+              "Resource": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast"
+            },
+            {
+              "Sid": "AllowTaskRuntimeSecrets",
+              "Effect": "Allow",
+              "Action": ["secretsmanager:GetSecretValue"],
+              "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/*"
+            },
+            {
+              "Sid": "AllowTaskSandboxObjects",
+              "Effect": "Allow",
+              "Action": ["s3:DeleteObject", "s3:GetObject", "s3:PutObject"],
+              "Resource": "arn:aws:s3:::techlong-sandbox-*/*"
+            },
+            {
+              "Sid": "AllowTaskSandboxBucketList",
+              "Effect": "Allow",
+              "Action": ["s3:ListBucket"],
+              "Resource": "arn:aws:s3:::techlong-sandbox-*"
+            },
+            {
+              "Sid": "AllowCodeBuildSourceRead",
+              "Effect": "Allow",
+              "Action": ["s3:GetObject", "s3:GetObjectVersion"],
+              "Resource": "arn:aws:s3:::techlong-sandbox-build-source-402010193138-ca-central-1/source/*"
+            },
+            {
+              "Sid": "AllowCodeBuildSourceList",
+              "Effect": "Allow",
+              "Action": "s3:ListBucket",
+              "Resource": "arn:aws:s3:::techlong-sandbox-build-source-402010193138-ca-central-1",
+              "Condition": {
+                "StringLike": { "s3:prefix": "source/*" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "JanitorExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxJanitorExecutionRole",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "ServiceRoleBoundary" },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "lambda.amazonaws.com" },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "JanitorDeleteExpiredSandboxStacksOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "cloudformation:ListStacks",
+                  "Resource": "*",
+                  "Condition": {
+                    "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudformation:DeleteStack",
+                    "cloudformation:DescribeStacks"
+                  ],
+                  "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-*/*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+                  "Resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/aws/lambda/techlong-sandbox-janitor:*"
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "janitor" }
+        ]
+      }
+    },
+    "JanitorLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/techlong-sandbox-janitor",
+        "RetentionInDays": 1,
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "janitor" }
+        ]
+      }
+    },
+    "JanitorFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Condition": "IsExpectedTarget",
+      "DependsOn": ["JanitorLogGroup"],
+      "Properties": {
+        "FunctionName": "techlong-sandbox-janitor",
+        "Description": "Deletes only expired, fully tagged top-level techlong-sandbox-tenant-* CloudFormation stacks.",
+        "Runtime": "nodejs22.x",
+        "Handler": "index.handler",
+        "Role": { "Fn::GetAtt": ["JanitorExecutionRole", "Arn"] },
+        "MemorySize": 128,
+        "Timeout": 30,
+        "ReservedConcurrentExecutions": 1,
+        "Architectures": ["arm64"],
+        "Code": { "ZipFile": "__JANITOR_INLINE_SOURCE__" },
+        "Environment": {
+          "Variables": {
+            "EXPECTED_ACCOUNT_ID": "402010193138",
+            "EXPECTED_REGION": "ca-central-1",
+            "STACK_PREFIX": "techlong-sandbox-tenant-",
+            "MAX_DELETIONS_PER_SCAN": "1"
+          }
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "janitor" }
+        ]
+      }
+    },
+    "SandboxScheduleGroup": {
+      "Type": "AWS::Scheduler::ScheduleGroup",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "Name": { "Ref": "ScheduleGroupName" },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "ttl-cleanup" }
+        ]
+      }
+    },
+    "SchedulerInvokeRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxSchedulerInvokeRole",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "ServiceRoleBoundary" },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "scheduler.amazonaws.com" },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceAccount": "402010193138"
+                },
+                "ArnLike": {
+                  "aws:SourceArn": "arn:aws:scheduler:ca-central-1:402010193138:schedule-group/techlong-sandbox"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "InvokeSandboxJanitorOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "lambda:InvokeFunction",
+                  "Resource": { "Fn::GetAtt": ["JanitorFunction", "Arn"] }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "ttl-cleanup" }
+        ]
+      }
+    },
+    "GlobalJanitorSchedule": {
+      "Type": "AWS::Scheduler::Schedule",
+      "Condition": "IsExpectedTarget",
+      "DependsOn": ["SandboxScheduleGroup"],
+      "Properties": {
+        "Name": "global-expired-stack-scan",
+        "Description": "Safety-net scan for expired Techlong Sandbox CloudFormation stacks.",
+        "GroupName": { "Ref": "ScheduleGroupName" },
+        "ScheduleExpression": "rate(15 minutes)",
+        "ScheduleExpressionTimezone": "UTC",
+        "FlexibleTimeWindow": { "Mode": "OFF" },
+        "State": "ENABLED",
+        "Target": {
+          "Arn": { "Fn::GetAtt": ["JanitorFunction", "Arn"] },
+          "RoleArn": { "Fn::GetAtt": ["SchedulerInvokeRole", "Arn"] },
+          "Input": "{\"schemaVersion\":1,\"action\":\"scan_expired_cloudformation_stacks\"}",
+          "RetryPolicy": {
+            "MaximumEventAgeInSeconds": 3600,
+            "MaximumRetryAttempts": 2
+          }
+        }
+      }
+    },
+    "SandboxEcrRepository": {
+      "Type": "AWS::ECR::Repository",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RepositoryName": { "Ref": "EcrRepositoryName" },
+        "ImageTagMutability": "IMMUTABLE",
+        "ImageScanningConfiguration": { "ScanOnPush": true },
+        "EncryptionConfiguration": { "EncryptionType": "AES256" },
+        "EmptyOnDelete": true,
+        "LifecyclePolicy": {
+          "LifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"description\":\"Delete untagged images after one day\",\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countUnit\":\"days\",\"countNumber\":1},\"action\":{\"type\":\"expire\"}},{\"rulePriority\":2,\"description\":\"Retain only two most recent images\",\"selection\":{\"tagStatus\":\"any\",\"countType\":\"imageCountMoreThan\",\"countNumber\":2},\"action\":{\"type\":\"expire\"}}]}"
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "container-image" }
+        ]
+      }
+    },
+    "CodeBuildSourceBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Condition": "IsExpectedTarget",
+      "DeletionPolicy": "Delete",
+      "UpdateReplacePolicy": "Delete",
+      "Properties": {
+        "BucketName": "techlong-sandbox-build-source-402010193138-ca-central-1",
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": { "SSEAlgorithm": "AES256" },
+              "BucketKeyEnabled": false
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "OwnershipControls": {
+          "Rules": [{ "ObjectOwnership": "BucketOwnerEnforced" }]
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "Id": "ExpireBuildSourcesAfterOneDay",
+              "Status": "Enabled",
+              "Prefix": "source/",
+              "ExpirationInDays": 1,
+              "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "build-source" }
+        ]
+      }
+    },
+    "CodeBuildSourceBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "Bucket": { "Ref": "CodeBuildSourceBucket" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyInsecureTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                { "Fn::GetAtt": ["CodeBuildSourceBucket", "Arn"] },
+                { "Fn::Sub": "${CodeBuildSourceBucket.Arn}/*" }
+              ],
+              "Condition": {
+                "Bool": { "aws:SecureTransport": "false" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CodeBuildLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "LogGroupName": "/aws/codebuild/techlong-sandbox-speedfeast-image",
+        "RetentionInDays": 1,
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "image-build" }
+        ]
+      }
+    },
+    "CodeBuildRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxCodeBuildRole",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "ServiceRoleBoundary" },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "codebuild.amazonaws.com" },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": { "aws:SourceAccount": "402010193138" },
+                "ArnLike": {
+                  "aws:SourceArn": "arn:aws:codebuild:ca-central-1:402010193138:project/techlong-sandbox-speedfeast-image"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "BuildAndPushSandboxImageOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "ecr:GetAuthorizationToken",
+                  "Resource": "*",
+                  "Condition": {
+                    "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:CompleteLayerUpload",
+                    "ecr:InitiateLayerUpload",
+                    "ecr:PutImage",
+                    "ecr:DescribeImages",
+                    "ecr:UploadLayerPart"
+                  ],
+                  "Resource": { "Fn::GetAtt": ["SandboxEcrRepository", "Arn"] }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+                  "Resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/aws/codebuild/techlong-sandbox-speedfeast-image:*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": ["s3:GetObject", "s3:GetObjectVersion"],
+                  "Resource": { "Fn::Sub": "${CodeBuildSourceBucket.Arn}/source/*" }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "s3:ListBucket",
+                  "Resource": { "Fn::GetAtt": ["CodeBuildSourceBucket", "Arn"] },
+                  "Condition": {
+                    "StringLike": { "s3:prefix": "source/*" }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "image-build" }
+        ]
+      }
+    },
+    "SandboxCodeBuildProject": {
+      "Type": "AWS::CodeBuild::Project",
+      "Condition": "IsExpectedTarget",
+      "DependsOn": ["CodeBuildLogGroup"],
+      "Properties": {
+        "Name": { "Ref": "CodeBuildProjectName" },
+        "Description": "Explicit-start, five-minute Docker image build foundation for the Sandbox ECR repository.",
+        "ServiceRole": { "Fn::GetAtt": ["CodeBuildRole", "Arn"] },
+        "ConcurrentBuildLimit": 1,
+        "TimeoutInMinutes": 5,
+        "QueuedTimeoutInMinutes": 5,
+        "BadgeEnabled": false,
+        "Visibility": "PRIVATE",
+        "Source": {
+          "Type": "NO_SOURCE",
+          "BuildSpec": "version: 0.2\nphases:\n  build:\n    commands:\n      - echo 'Source/buildspec override is required; refusing the placeholder build.'\n      - exit 1\n"
+        },
+        "Artifacts": { "Type": "NO_ARTIFACTS" },
+        "Cache": { "Type": "NO_CACHE" },
+        "Environment": {
+          "Type": "LINUX_CONTAINER",
+          "ComputeType": "BUILD_GENERAL1_SMALL",
+          "Image": "aws/codebuild/standard:8.0",
+          "ImagePullCredentialsType": "CODEBUILD",
+          "PrivilegedMode": true,
+          "EnvironmentVariables": [
+            {
+              "Name": "AWS_ACCOUNT_ID",
+              "Type": "PLAINTEXT",
+              "Value": "402010193138"
+            },
+            {
+              "Name": "AWS_DEFAULT_REGION",
+              "Type": "PLAINTEXT",
+              "Value": "ca-central-1"
+            },
+            {
+              "Name": "ECR_REPOSITORY_URI",
+              "Type": "PLAINTEXT",
+              "Value": { "Fn::GetAtt": ["SandboxEcrRepository", "RepositoryUri"] }
+            }
+          ]
+        },
+        "LogsConfig": {
+          "CloudWatchLogs": {
+            "Status": "ENABLED",
+            "GroupName": "/aws/codebuild/techlong-sandbox-speedfeast-image",
+            "StreamName": "build"
+          },
+          "S3Logs": { "Status": "DISABLED" }
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "image-build" }
+        ]
+      }
+    },
+    "TaskExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxTaskExecutionRole",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "ServiceRoleBoundary" },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "ecs-tasks.amazonaws.com" },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": { "aws:SourceAccount": "402010193138" },
+                "ArnLike": {
+                  "aws:SourceArn": "arn:aws:ecs:ca-central-1:402010193138:*"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "PullSandboxImageAndRuntimeSecrets",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "ecr:GetAuthorizationToken",
+                  "Resource": "*",
+                  "Condition": {
+                    "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:BatchGetImage",
+                    "ecr:GetDownloadUrlForLayer"
+                  ],
+                  "Resource": { "Fn::GetAtt": ["SandboxEcrRepository", "Arn"] }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+                  "Resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-*:*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "secretsmanager:GetSecretValue",
+                  "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/*"
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "tenant-runtime" }
+        ]
+      }
+    },
+    "TaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxTaskRole",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "ServiceRoleBoundary" },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "ecs-tasks.amazonaws.com" },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": { "aws:SourceAccount": "402010193138" },
+                "ArnLike": {
+                  "aws:SourceArn": "arn:aws:ecs:ca-central-1:402010193138:*"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "SandboxImageObjectsOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "s3:ListBucket",
+                  "Resource": "arn:aws:s3:::techlong-sandbox-*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": ["s3:DeleteObject", "s3:GetObject", "s3:PutObject"],
+                  "Resource": "arn:aws:s3:::techlong-sandbox-*/*"
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "tenant-runtime" }
+        ]
+      }
+    },
+    "ExecutionRoleBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxCloudFormationExecutionBoundary",
+        "Description": "Maximum permissions for tenant CloudFormation execution; this policy grants nothing by itself.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AllowTaggedTaskDefinitionRegistration",
+              "Effect": "Allow",
+              "Action": "ecs:RegisterTaskDefinition",
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1",
+                  "aws:RequestTag/Environment": "aws-sandbox",
+                  "aws:RequestTag/ManagedBy": "techlong-provisioner"
+                }
+              }
+            },
+            {
+              "Sid": "AllowTenantTaskDefinitionCleanup",
+              "Effect": "Allow",
+              "Action": ["ecs:DeregisterTaskDefinition", "ecs:DescribeTaskDefinition"],
+              "Resource": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-*:*"
+            },
+            {
+              "Sid": "AllowTenantEcsLifecycle",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:CreateService",
+                "ecs:DeleteService",
+                "ecs:DescribeServices",
+                "ecs:TagResource",
+                "ecs:UntagResource",
+                "ecs:UpdateService"
+              ],
+              "Resource": [
+                "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1",
+                "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-*",
+                "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-*:*"
+              ]
+            },
+            {
+              "Sid": "AllowTenantLogs",
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:DeleteLogGroup",
+                "logs:ListTagsForResource",
+                "logs:PutRetentionPolicy",
+                "logs:TagResource",
+                "logs:UntagResource"
+              ],
+              "Resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-*"
+            },
+            {
+              "Sid": "AllowDescribeTenantLogs",
+              "Effect": "Allow",
+              "Action": "logs:DescribeLogGroups",
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowTaggedTargetGroupCreation",
+              "Effect": "Allow",
+              "Action": "elasticloadbalancing:CreateTargetGroup",
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1",
+                  "aws:RequestTag/Environment": "aws-sandbox",
+                  "aws:RequestTag/ManagedBy": "techlong-provisioner"
+                }
+              }
+            },
+            {
+              "Sid": "AllowTenantLoadBalancerChildren",
+              "Effect": "Allow",
+              "Action": [
+                "elasticloadbalancing:AddTags",
+                "elasticloadbalancing:CreateRule",
+                "elasticloadbalancing:DeleteRule",
+                "elasticloadbalancing:DeleteTargetGroup",
+                "elasticloadbalancing:ModifyRule",
+                "elasticloadbalancing:ModifyTargetGroup",
+                "elasticloadbalancing:RemoveTags",
+                "elasticloadbalancing:SetRulePriorities"
+              ],
+              "Resource": [
+                "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-*/*/*",
+                "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-*/*/*/*",
+                "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-*/*"
+              ]
+            },
+            {
+              "Sid": "AllowDescribeSandboxLoadBalancerChildren",
+              "Effect": "Allow",
+              "Action": [
+                "elasticloadbalancing:DescribeListeners",
+                "elasticloadbalancing:DescribeRules",
+                "elasticloadbalancing:DescribeTargetGroups"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowTenantScheduleLifecycle",
+              "Effect": "Allow",
+              "Action": [
+                "scheduler:CreateSchedule",
+                "scheduler:DeleteSchedule",
+                "scheduler:GetSchedule",
+                "scheduler:UpdateSchedule"
+              ],
+              "Resource": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox/tenant-*"
+            },
+            {
+              "Sid": "AllowReadCellNetworkMetadata",
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeVpcs"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowReadOnlySandboxRuntimeRoles",
+              "Effect": "Allow",
+              "Action": "iam:GetRole",
+              "Resource": [
+                "arn:aws:iam::402010193138:role/TechlongSandboxSchedulerInvokeRole",
+                "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+                "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+              ]
+            },
+            {
+              "Sid": "AllowPassOnlySandboxTaskRolesToEcs",
+              "Effect": "Allow",
+              "Action": "iam:PassRole",
+              "Resource": [
+                "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+                "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+              ],
+              "Condition": {
+                "StringEquals": { "iam:PassedToService": "ecs-tasks.amazonaws.com" }
+              }
+            },
+            {
+              "Sid": "AllowPassOnlySandboxSchedulerRoleToScheduler",
+              "Effect": "Allow",
+              "Action": "iam:PassRole",
+              "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxSchedulerInvokeRole",
+              "Condition": {
+                "StringEquals": { "iam:PassedToService": "scheduler.amazonaws.com" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CloudFormationExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxCloudFormationExecutionRole",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "ExecutionRoleBoundary" },
+        "ManagedPolicyArns": [{ "Ref": "ExecutionRoleBoundary" }],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "cloudformation.amazonaws.com" },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": { "aws:SourceAccount": "402010193138" }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "cloudformation-execution" }
+        ]
+      }
+    },
+    "ProvisionerBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxProvisionerBoundary",
+        "Description": "Maximum permissions for the dedicated Sandbox provisioner role; this policy grants nothing by itself.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AllowIdentityAndStaticValidation",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:ListStacks",
+                "cloudformation:ValidateTemplate",
+                "sts:GetCallerIdentity"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "AllowCreateOnlyTaggedSandboxStacks",
+              "Effect": "Allow",
+              "Action": "cloudformation:CreateStack",
+              "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-*/*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1",
+                  "aws:RequestTag/Environment": "aws-sandbox",
+                  "aws:RequestTag/ManagedBy": "techlong-provisioner"
+                },
+                "Null": {
+                  "aws:RequestTag/AppInstanceId": "false",
+                  "aws:RequestTag/DeploymentId": "false",
+                  "aws:RequestTag/ExpiresAt": "false"
+                }
+              }
+            },
+            {
+              "Sid": "AllowSandboxStackLifecycle",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:CancelUpdateStack",
+                "cloudformation:ContinueUpdateRollback",
+                "cloudformation:DeleteStack",
+                "cloudformation:DescribeStackEvents",
+                "cloudformation:DescribeStackResources",
+                "cloudformation:DescribeStacks",
+                "cloudformation:GetTemplate",
+                "cloudformation:GetTemplateSummary",
+                "cloudformation:ListStackResources",
+                "cloudformation:UpdateStack"
+              ],
+              "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-*/*"
+            },
+            {
+              "Sid": "AllowPassOnlySandboxCloudFormationRole",
+              "Effect": "Allow",
+              "Action": "iam:PassRole",
+              "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+              "Condition": {
+                "StringEquals": {
+                  "iam:PassedToService": "cloudformation.amazonaws.com"
+                }
+              }
+            },
+            {
+              "Sid": "AllowExplicitImageBuild",
+              "Effect": "Allow",
+              "Action": [
+                "codebuild:BatchGetBuilds",
+                "codebuild:StartBuild",
+                "codebuild:StopBuild"
+              ],
+              "Resource": "arn:aws:codebuild:ca-central-1:402010193138:project/techlong-sandbox-speedfeast-image"
+            },
+            {
+              "Sid": "AllowReadSandboxImage",
+              "Effect": "Allow",
+              "Action": [
+                "ecr:BatchGetImage",
+                "ecr:DescribeImages",
+                "ecr:DescribeRepositories",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:ListImages"
+              ],
+              "Resource": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast"
+            },
+            {
+              "Sid": "AllowUploadOnlyAllowlistedBuildSource",
+              "Effect": "Allow",
+              "Action": "s3:PutObject",
+              "Resource": "arn:aws:s3:::techlong-sandbox-build-source-402010193138-ca-central-1/source/*",
+              "Condition": {
+                "StringEquals": { "s3:x-amz-server-side-encryption": "AES256" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ProvisionerRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxProvisionerRole",
+        "Description": "MFA-gated role used by the SaaS deployment worker; the existing IAM user/group is not modified.",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "ProvisionerBoundary" },
+        "ManagedPolicyArns": [{ "Ref": "ProvisionerBoundary" }],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "AWS": { "Ref": "ProvisionerPrincipalArn" } },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "Bool": { "aws:MultiFactorAuthPresent": "true" },
+                "StringEquals": { "sts:RoleSessionName": "techlong-sandbox-provisioner" }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "provisioner" }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "ProvisionerRoleArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["ProvisionerRole", "Arn"] }
+    },
+    "CloudFormationExecutionRoleArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["CloudFormationExecutionRole", "Arn"] }
+    },
+    "TaskExecutionRoleArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["TaskExecutionRole", "Arn"] }
+    },
+    "TaskRoleArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["TaskRole", "Arn"] }
+    },
+    "JanitorFunctionArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["JanitorFunction", "Arn"] }
+    },
+    "SchedulerInvokeRoleArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["SchedulerInvokeRole", "Arn"] }
+    },
+    "SchedulerGroupName": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Ref": "ScheduleGroupName" }
+    },
+    "EcrRepositoryUri": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["SandboxEcrRepository", "RepositoryUri"] }
+    },
+    "CodeBuildSourceBucketName": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Ref": "CodeBuildSourceBucket" }
+    },
+    "CodeBuildProjectName": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Ref": "SandboxCodeBuildProject" }
+    }
+  }
+}

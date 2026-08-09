@@ -36,6 +36,7 @@ export interface CloudFormationTenantStackPlan {
     allowsInterfaceEndpoints: false;
     createsDatabaseResources: false;
     controlListenerMtlsRequired: true;
+    cleanupScheduleFirst: true;
     fixedTaskCount: 1;
   };
 }
@@ -46,6 +47,10 @@ const hostnamePattern = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.
 function resourceToken(appInstanceId: string): string {
   const normalized = appInstanceId.toLowerCase().replace(/[^a-z0-9]/g, "");
   return `tenant-${normalized.slice(-16) || "pending"}`;
+}
+
+export function awsSandboxTenantStackName(ecsServiceName: string): string {
+  return `techlong-sandbox-${resourceToken(ecsServiceName)}`.slice(0, 128);
 }
 
 function assertRenderInput(input: AwsSandboxTenantStackInput): void {
@@ -103,9 +108,17 @@ export function renderAwsSandboxTenantStack(
   assertRenderInput(input);
   const imageRevision = input.imageUri.slice(input.imageUri.indexOf("@") + 1);
   const token = resourceToken(input.plan.resources.tenant.ecsService);
-  const stackName = `saas-sandbox-${token}`.slice(0, 128);
+  const stackName = awsSandboxTenantStackName(
+    input.plan.resources.tenant.ecsService,
+  );
+  const cleanupAt = new Date(
+    input.requestedAt + input.environment.policy.ttlSeconds * 1_000,
+  )
+    .toISOString()
+    .replace(/\.\d{3}Z$/, "");
   const tags = {
-    Environment: input.environment.key,
+    Environment: "aws-sandbox",
+    EnvironmentKey: input.environment.key,
     CellId: input.environment.cellKey,
     WorkspaceId: input.plan.resources.tenant.costTags.WorkspaceId,
     ProductId: input.plan.resources.tenant.costTags.ProductId,
@@ -114,9 +127,7 @@ export function renderAwsSandboxTenantStack(
     DeploymentId: input.deploymentId,
     DeploymentProfile: input.plan.deploymentProfileKey,
     ManagedBy: "techlong-provisioner",
-    ExpiresAt: new Date(
-      input.requestedAt + input.environment.policy.ttlSeconds * 1_000,
-    ).toISOString(),
+    ExpiresAt: `${cleanupAt}.000Z`,
   };
   const resourceTags = Object.entries(tags).map(([Key, Value]) => ({ Key, Value }));
   const cpu = String(input.plan.resources.tenant.taskDefinition.cpu);
@@ -152,6 +163,16 @@ export function renderAwsSandboxTenantStack(
       ImageUri: { Type: "String" },
       TenantHostname: { Type: "String" },
       AppInstanceId: { Type: "String" },
+      JanitorFunctionArn: { Type: "String" },
+      SchedulerInvokeRoleArn: { Type: "String" },
+      SchedulerGroupName: {
+        Type: "String",
+        AllowedValues: ["techlong-sandbox"],
+      },
+      CleanupAt: {
+        Type: "String",
+        AllowedPattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$",
+      },
     },
     Rules: {
       DistinctBusinessAndControlListeners: {
@@ -174,8 +195,36 @@ export function renderAwsSandboxTenantStack(
       },
     },
     Resources: {
+      TenantCleanupSchedule: {
+        Type: "AWS::Scheduler::Schedule",
+        Properties: {
+          Name: `${token}-ttl-cleanup`.slice(0, 64),
+          GroupName: ref("SchedulerGroupName"),
+          Description: `TTL cleanup for ${input.deploymentId}`.slice(0, 512),
+          ActionAfterCompletion: "DELETE",
+          FlexibleTimeWindow: { Mode: "OFF" },
+          ScheduleExpression: { "Fn::Sub": "at(${CleanupAt})" },
+          ScheduleExpressionTimezone: "UTC",
+          State: "ENABLED",
+          Target: {
+            Arn: ref("JanitorFunctionArn"),
+            RoleArn: ref("SchedulerInvokeRoleArn"),
+            RetryPolicy: {
+              MaximumEventAgeInSeconds: 3_600,
+              MaximumRetryAttempts: 5,
+            },
+            Input: JSON.stringify({
+              schemaVersion: 1,
+              action: "delete_cloudformation_stack",
+              stackName,
+              deploymentId: input.deploymentId,
+            }),
+          },
+        },
+      },
       TenantLogGroup: {
         Type: "AWS::Logs::LogGroup",
+        DependsOn: ["TenantCleanupSchedule"],
         Properties: {
           LogGroupName: input.plan.resources.tenant.logs.logGroupName,
           RetentionInDays: logRetention,
@@ -184,6 +233,7 @@ export function renderAwsSandboxTenantStack(
       },
       TenantTaskDefinition: {
         Type: "AWS::ECS::TaskDefinition",
+        DependsOn: ["TenantCleanupSchedule"],
         Properties: {
           Family: input.plan.resources.tenant.taskDefinition.logicalName,
           Cpu: cpu,
@@ -235,6 +285,12 @@ export function renderAwsSandboxTenantStack(
                   Value: ref("ImagePublicBaseUrl"),
                 },
                 { Name: "AWS_REGION", Value: input.environment.region },
+                { Name: "PGSSLMODE", Value: "verify-full" },
+                { Name: "PGSSL_REJECT_UNAUTHORIZED", Value: "true" },
+                {
+                  Name: "PGSSLROOTCERT",
+                  Value: "/usr/local/share/ca-certificates/aws-rds-global-bundle.pem",
+                },
                 { Name: "APP_IMAGE_REVISION", Value: imageRevision },
               ],
               Secrets: [
@@ -285,6 +341,7 @@ export function renderAwsSandboxTenantStack(
       },
       TenantTargetGroup: {
         Type: "AWS::ElasticLoadBalancingV2::TargetGroup",
+        DependsOn: ["TenantCleanupSchedule"],
         Properties: {
           Name: input.plan.resources.tenant.targetGroup.slice(0, 32),
           VpcId: ref("VpcId"),
@@ -299,6 +356,7 @@ export function renderAwsSandboxTenantStack(
       },
       TenantBusinessControlDenyRule: {
         Type: "AWS::ElasticLoadBalancingV2::ListenerRule",
+        DependsOn: ["TenantCleanupSchedule"],
         Properties: {
           ListenerArn: ref("HttpsListenerArn"),
           Priority: input.listenerPriority,
@@ -357,6 +415,7 @@ export function renderAwsSandboxTenantStack(
           "TenantBusinessControlDenyRule",
           "TenantListenerRule",
           "TenantControlListenerRule",
+          "TenantCleanupSchedule",
         ],
         Properties: {
           ServiceName: input.plan.resources.tenant.ecsService,
@@ -369,7 +428,7 @@ export function renderAwsSandboxTenantStack(
           ],
           DeploymentConfiguration: {
             MinimumHealthyPercent: 0,
-            MaximumPercent: 200,
+            MaximumPercent: 100,
             DeploymentCircuitBreaker: { Enable: true, Rollback: true },
           },
           NetworkConfiguration: {
@@ -390,38 +449,6 @@ export function renderAwsSandboxTenantStack(
           Tags: resourceTags,
         },
       },
-      TenantScalableTarget: {
-        Type: "AWS::ApplicationAutoScaling::ScalableTarget",
-        DependsOn: ["TenantService"],
-        Properties: {
-          MinCapacity: 1,
-          MaxCapacity: 1,
-          ResourceId: {
-            "Fn::Join": [
-              "",
-              ["service/", ref("ClusterName"), "/", { "Fn::GetAtt": ["TenantService", "Name"] }],
-            ],
-          },
-          ScalableDimension: "ecs:service:DesiredCount",
-          ServiceNamespace: "ecs",
-        },
-      },
-      TenantScalingPolicy: {
-        Type: "AWS::ApplicationAutoScaling::ScalingPolicy",
-        Properties: {
-          PolicyName: `${token}-cpu-target`,
-          PolicyType: "TargetTrackingScaling",
-          ScalingTargetId: { Ref: "TenantScalableTarget" },
-          TargetTrackingScalingPolicyConfiguration: {
-            PredefinedMetricSpecification: {
-              PredefinedMetricType: "ECSServiceAverageCPUUtilization",
-            },
-            TargetValue: 70,
-            ScaleInCooldown: 60,
-            ScaleOutCooldown: 60,
-          },
-        },
-      },
     },
     Outputs: {
       ServiceName: { Value: { Ref: "TenantService" } },
@@ -433,6 +460,7 @@ export function renderAwsSandboxTenantStack(
     ImageUri: input.imageUri,
     TenantHostname: input.tenantHostname,
     AppInstanceId: tags.AppInstanceId,
+    CleanupAt: cleanupAt,
   };
   const clientRequestToken = `render-${input.deploymentId}-${input.plan.workflowVersion}`
     .replace(/[^A-Za-z0-9._-]/g, "-")
@@ -471,6 +499,9 @@ export function renderAwsSandboxTenantStack(
       "StripeCancelUrl",
       "ImageS3Bucket",
       "ImagePublicBaseUrl",
+      "JanitorFunctionArn",
+      "SchedulerInvokeRoleArn",
+      "SchedulerGroupName",
     ],
     tags,
     safety: {
@@ -482,6 +513,7 @@ export function renderAwsSandboxTenantStack(
       allowsInterfaceEndpoints: false,
       createsDatabaseResources: false,
       controlListenerMtlsRequired: true,
+      cleanupScheduleFirst: true,
       fixedTaskCount: 1,
     },
   };

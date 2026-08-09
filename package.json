@@ -10,14 +10,17 @@
     "build": "vinext build",
     "start": "vinext start",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --experimental-loader ./tests/cloudflare-loader.mjs --test tests/rendered-html.test.mjs tests/schema.test.mjs tests/postgres-schema.test.mjs tests/migration-runtime.test.mjs tests/authorization.test.ts tests/admin-validation.test.ts tests/billing-validation.test.ts tests/instances-validation.test.ts tests/template-validation.test.ts tests/customer-dashboard-presentation.test.ts tests/customer-isolation.test.mjs tests/launch-readiness.test.mjs tests/stripe-payment.test.ts tests/deployment-plan.test.ts tests/deployment-execution-foundation.test.ts tests/local-auth.test.ts",
+    "test": "npm run build && node --experimental-loader ./tests/cloudflare-loader.mjs --test tests/rendered-html.test.mjs tests/schema.test.mjs tests/postgres-schema.test.mjs tests/migration-runtime.test.mjs tests/authorization.test.ts tests/admin-validation.test.ts tests/billing-validation.test.ts tests/instances-validation.test.ts tests/template-validation.test.ts tests/customer-dashboard-presentation.test.ts tests/customer-isolation.test.mjs tests/launch-readiness.test.mjs tests/stripe-payment.test.ts tests/deployment-plan.test.ts tests/deployment-execution-foundation.test.ts tests/deployment-s3-worker.test.ts tests/local-auth.test.ts",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "db:postgres:init": "node --env-file-if-exists=.env.local scripts/apply-postgres-schema.mjs",
     "db:postgres:migrate": "node --env-file-if-exists=.env.local scripts/apply-postgres-migrations.mjs",
-    "auth:bootstrap-admin": "node --env-file-if-exists=.env.local scripts/bootstrap-local-admin.mjs"
+    "auth:bootstrap-admin": "node --env-file-if-exists=.env.local scripts/bootstrap-local-admin.mjs",
+    "deployment:worker": "node --experimental-strip-types --env-file-if-exists=.env.local scripts/run-deployment-worker.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-cloudformation": "^3.1106.0",
+    "@aws-sdk/client-sts": "^3.1106.0",
     "@neondatabase/serverless": "^1.1.0",
     "drizzle-orm": "0.45.2",
     "next": "16.2.6",

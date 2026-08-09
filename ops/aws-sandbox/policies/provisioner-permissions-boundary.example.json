@@ -66,7 +66,7 @@
       "Sid": "AllowCreateOnlyTaggedSandboxStacks",
       "Effect": "Allow",
       "Action": "cloudformation:CreateStack",
-      "Resource": "*",
+      "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-*/*",
       "Condition": {
         "StringEquals": {
           "aws:RequestedRegion": "ca-central-1",
@@ -105,7 +105,7 @@
         "cloudformation:UpdateStack",
         "cloudformation:ValidateTemplate"
       ],
-      "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-*/*"
+      "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-*/*"
     },
     {
       "Sid": "AllowPassOnlySandboxCloudFormationRole",

@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前已在阶段 8 基础上完成客户自助购买一期、Neon PostgreSQL 迁移、自有认证一期，并建立 AWS Sandbox S0–S2 执行基础：企业用户可用邮箱密码注册/登录，选择管理员维护的共享套餐并配置允许的租户参数；只有 Stripe 已验证 Webhook 才会创建或续期订阅、准备待开通实例并生成可审计的 AWS 目标计划。S0 提供静态费用与权限护栏，S1 提供部署状态机、持久任务、步骤记录、预检和只渲染的 CloudFormation 租户模板，S2 的订单服务控制契约位于独立仓库。当前仍不会调用 AWS、不会创建云资源，也不会产生由本阶段代码造成的 AWS 云费用；管理员仍是最终开通者。
+当前已在阶段 8 基础上完成客户自助购买一期、Neon PostgreSQL 迁移、自有认证一期，并建立 AWS Sandbox S0–S3 执行基础：企业用户可用邮箱密码注册/登录，选择管理员维护的共享套餐并配置允许的租户参数；只有 Stripe 已验证 Webhook 才会创建或续期订阅、准备待开通实例并生成可审计的 AWS 目标计划。S0 提供静态费用与权限护栏，S1 提供部署状态机与任务，S2 加固订单服务控制契约，S3 新增默认关闭的独立 Worker、STS/CloudFormation Adapter、两小时 TTL 清理和 mTLS 控制边界。当前所有执行 gate 保持关闭，未配置租户数据库和 mTLS transport 时也会 fail closed；普通网站启动和测试不会调用 AWS 或创建云资源。
 
 ## 已实现
 
@@ -75,14 +75,14 @@
 - 套餐绑定版本化的受控 AWS 部署资源档位，档位会随购买订单和订阅快照固定，客户不能自行篡改；当前 Sandbox 环境策略只允许 `standard-v1`，历史或生产目标档位不能绕过 Sandbox 的 Cell、任务数和数据库限制。
 - 已验证付款在生成或复用 `pending` 应用实例后，还会幂等生成一条 `app_instance_deployments` 计划记录，描述共享层、Cell 层和租户层资源的逻辑目标。
 - S1 已建立持久化部署环境、状态机、可租约任务、步骤执行记录、预检和 CloudFormation 租户模板渲染基础；渲染产物不包含 Secret 值，也不会被提交到 AWS。
-- `AWS_APPLY_ENABLED=false` 是当前固定安全边界；即使本地改动变量，S1 预检仍会硬拒绝 Apply。当前不调用 AWS、不创建资源、不保存 AWS 凭据、不生成 ARN、正式 URL 或 Secret 值。
+- `DEPLOYMENT_WORKER_ENABLED=false` 与 `AWS_APPLY_ENABLED=false` 是默认安全边界；单独开启 Apply 变量仍会被数据库环境、执行绑定、参数、清理计划、STS 身份和未配置 Adapter 等其余门禁拒绝。Apply 关闭时，已启用 Worker 仍允许通过严格身份门禁的 cleanup/rollback 删除到期资源；要停止所有 AWS 调用必须关闭 Worker。
 - Sandbox 的未来数据库目标限定为最多一个 Aurora PostgreSQL Serverless v2 Cell；每个租户在该 Cell 内使用独立 database 和 role，订单服务继续使用该租户数据库自己的 `public.*`。
 
 ## 当前没有实现
 
 - Paddle、自动续扣、Stripe 订阅模式、退款自动化、优惠券和复杂发票系统。
 - 复杂发票、优惠券和自动退款。
-- 可调用 AWS 的执行 Worker、云资源创建、ECS 发布、Aurora Cell 创建、租户 database/role 创建、Secret 写入、DNS 变更和自动回写正式入口；当前 S1 只提供执行前基础，不提供 Apply 路径。
+- S3 Worker 与 CloudFormation adapter 边界已经存在，但真实 Tenant Database、ELBv2/EC2 Shared Cell 安全证明、mTLS Control/配置编译 adapter 仍为 fail-closed，`applyRuntimeReady=false`；因此当前不会真实创建云资源，也不包含 Aurora Cell 创建、租户 database/role/Secret 生命周期、DNS 变更或自动回写正式入口。
 - 平台尚未调用订单服务 S2 控制接口，也没有建立生产 mTLS 通道；模板部署驱动和 `app_instance_deployments` 仍不会触发真实自动部署。
 - 多产品市场。
 - 成员邀请和角色变更。
@@ -165,13 +165,13 @@ npm test
 
 Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WEBHOOK_SECRET`。本地测试使用 `sk_test_...` 和 Stripe CLI 生成的 `whsec_...`；生产环境在目标托管平台配置对应的 secret。两者都不能以公开环境变量、前端代码或 Git 提交方式保存。
 
-AWS Sandbox 变量只用于本地计划、环境策略、预检和 CloudFormation 模板渲染。固定目标为 Account `402010193138`、Region `ca-central-1`、月预算 `10 USD`、TTL `7200` 秒、最多一个 Cell 和一个租户、基础域名 `sandbox.techlong.cloud`。`AWS_APPLY_ENABLED` 必须保持 `false`，而且当前代码会独立硬拒绝 Apply；这些变量不代表资源已创建。
+AWS Sandbox 固定目标为 Account `402010193138`、Region `ca-central-1`、月预算 `10 USD`、TTL `7200` 秒、最多一个 Cell 和一个租户、基础域名 `sandbox.techlong.cloud`。默认 `DEPLOYMENT_WORKER_ENABLED=false`、`AWS_APPLY_ENABLED=false`；单独修改任一变量都不能执行。数据库环境开关、assumed-role STS 身份、严格参数、cleanup 记录、租户数据库迁移和 mTLS 控制对账必须同时通过。这些变量不代表资源已创建。
 
 AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`，当前终端 PATH 可能尚未刷新。在真实 Windows 用户上下文中已只读验证 Profile `techlong-sandbox-user`：Region 为 `ca-central-1`，STS Account 为 `402010193138`，身份是 `arn:aws:iam::402010193138:user/techlong-sandbox-dev`；核验没有读取或输出密钥，也没有执行 AWS 写操作。进入后续 S3/真实 Apply 前，应把该 IAM User 收敛为只允许 AssumeRole，并让 Worker 使用专用角色的短期凭据；不要在仓库或 `.env.local` 中配置长期 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`。
 
 只读 `organizations describe-organization` 返回 `AWSOrganizationsNotInUseException`，因此账号当前是 standalone，不属于 AWS Organizations。SCP 当前不可用，本方案也不会为了获得 SCP 而让账号加入 Organizations；S3 使用窄权限 IAM Policy、高风险动作显式 Deny、Permissions Boundary 和专用 AssumeRole 角色组合控制权限。账号类型已经确认，S3 前无需重复把“确认账号类型”列为门禁，除非账号归属后来被人工改变。
 
-账号当前已有只读核验到的 `My Zero-Spend Budget`，Limit 为 `1 USD`；S0 的 `10 USD` Guardrail 模板尚未应用，二者都只是告警而不是费用硬停。只读 RDS 查询显示 `ca-central-1` 当前提供普通（非 Limitless）Aurora PostgreSQL 16.8–16.14，16.3 不在当前返回列表；S0 的 `>=16.3` 只表示最低兼容约束，S3 必须动态核对并选择当时可用的非 Limitless 版本。S0–S2 的完整边界、域名规划和未来启用门禁见 [AWS Sandbox S0–S2 说明](./docs/aws-sandbox-s0-s2.md)。
+账号当前已有只读核验到的 `My Zero-Spend Budget`，Limit 为 `1 USD`；S0 的 `10 USD` Guardrail 模板尚未应用，二者都只是告警而不是费用硬停。只读 RDS 查询显示 `ca-central-1` 当前提供普通（非 Limitless）Aurora PostgreSQL 16.8–16.14，16.3 不在当前返回列表；S0 的 `>=16.3` 只表示最低兼容约束，真实创建前必须动态核对非 Limitless 版本。S0–S2 基线见 [AWS Sandbox S0–S2 说明](./docs/aws-sandbox-s0-s2.md)，S3 门禁与 Worker 说明见 [AWS Sandbox S3 部署执行器](./docs/aws-sandbox-s3-worker.md)。
 
 平台首个管理员通过 `npm run auth:bootstrap-admin` 初始化。管理员在“客户管理”创建企业后，需要进入客户详情生成一次性激活链接并发送给 Owner；系统本期不自动发送邮件。
 
@@ -362,4 +362,4 @@ AWS Cell 部署计划与 S1 执行基础新增：
 
 ## 下一步建议
 
-先在 Stripe 测试模式完成双账号验收，并在本地验证 S0 静态护栏、S1 状态机/任务幂等性、预检失败和 CloudFormation 只渲染产物；同时按订单服务仓库的 S2 契约复核实例身份、配置哈希、幂等键和生产 mTLS 边界。真实 AWS Apply 必须作为后续独立阶段，在专用 Profile、STS Account 校验、预算通知、TTL Janitor、最小权限执行角色、DNS 委派和回滚演练全部通过后再实现。当前不得绕过 `AWS_APPLY_ENABLED=false` 的硬禁用。升级/降级、退款和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)，AWS 启用门禁见 [AWS Sandbox S0–S2 说明](./docs/aws-sandbox-s0-s2.md)。
+先在 Stripe 测试模式完成双账号验收，并在本地验证 S0 静态护栏、S1 状态机/任务幂等性、S2 控制契约以及 S3 “任一 gate 缺失时 AWS 调用为零”、参数允许名单、幂等 Apply 和 retry。真实 AWS Apply 仍须在 assumed-role Profile、STS Account/Role 校验、预算通知、TTL Janitor、最小权限执行角色、DNS 委派、租户数据库 Adapter、mTLS transport 和回滚演练全部通过后单独批准；不得直接开启示例变量。升级/降级、退款和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)，S3 启用门禁见 [AWS Sandbox S3 部署执行器](./docs/aws-sandbox-s3-worker.md)。
