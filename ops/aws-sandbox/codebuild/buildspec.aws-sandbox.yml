@@ -11,6 +11,9 @@ phases:
   build:
     commands:
       - docker build --pull --tag "$ECR_REPOSITORY_URI:$IMAGE_TAG" .
+      - test "$(docker image inspect --format '{{.Config.User}}' "$ECR_REPOSITORY_URI:$IMAGE_TAG")" = "65532:65532"
+      - docker run --rm --entrypoint /usr/local/bin/node "$ECR_REPOSITORY_URI:$IMAGE_TAG" --version | grep -Fx 'v24.18.0'
+      - docker run --rm --entrypoint /usr/local/bin/node "$ECR_REPOSITORY_URI:$IMAGE_TAG" -e "require('bcrypt'); require('pg'); process.stdout.write('runtime-dependencies-ok\\n')"
   post_build:
     commands:
       - docker push "$ECR_REPOSITORY_URI:$IMAGE_TAG"

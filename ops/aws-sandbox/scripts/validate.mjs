@@ -66,6 +66,7 @@ const [
   boundaryResult,
   denyResult,
   janitorSource,
+  imageBuildspec,
 ] =
   await Promise.all([
     readJson("sandbox.example.json"),
@@ -74,7 +75,23 @@ const [
     readJson("policies/provisioner-permissions-boundary.example.json"),
     readJson("policies/sandbox-expensive-actions-deny.example.json"),
     readFile(path.join(root, "lambda", "janitor.cjs"), "utf8"),
+    readFile(path.join(root, "codebuild", "buildspec.aws-sandbox.yml"), "utf8"),
   ]);
+
+check(
+  imageBuildspec.includes("docker image inspect --format '{{.Config.User}}'") &&
+    imageBuildspec.includes('= "65532:65532"'),
+  "image build must verify the final runtime user",
+);
+check(
+  imageBuildspec.includes("--entrypoint /usr/local/bin/node") &&
+    imageBuildspec.includes("grep -Fx 'v24.18.0'"),
+  "image build must smoke-test the pinned Node runtime",
+);
+check(
+  imageBuildspec.includes("require('bcrypt'); require('pg');"),
+  "image build must load native and database runtime dependencies before push",
+);
 
 const config = configResult.value;
 if (config) {

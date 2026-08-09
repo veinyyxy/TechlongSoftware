@@ -159,6 +159,8 @@ npm --prefix .\ops\aws-sandbox test
 
 `StartBuild` 返回只表示构建已排队。必须继续确认 CodeBuild 为 `SUCCEEDED`、不可变标签解析到固定 Digest，并使用受限 Provisioner Role 读取 ECR scan findings。扫描未完成或存在尚未评审的高危/严重发现时，不得把镜像写入部署环境绑定或启动租户 Apply。
 
+镜像推送前，Buildspec 还会在本地构建容器上验证最终身份为 `65532:65532`、Node 版本精确为 `24.18.0`，并实际加载 `bcrypt` 与 `pg`。任一 smoke test 失败都会阻止 push；这可以在无 shell 的 distroless 运行时进入 ECR 前发现 Node ABI 或原生依赖不兼容。
+
 ## 当前云端状态与后续门禁
 
 1. AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`；当前终端 PATH 尚未刷新，可以先使用绝对路径。
