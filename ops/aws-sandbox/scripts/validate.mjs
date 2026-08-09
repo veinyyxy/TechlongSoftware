@@ -285,7 +285,10 @@ if (bootstrap) {
   const janitor = resources.JanitorFunction?.Properties;
   check(janitor?.FunctionName === "techlong-sandbox-janitor", "Janitor name drifted");
   check(janitor?.Runtime === "nodejs22.x", "Janitor runtime drifted");
-  check(janitor?.ReservedConcurrentExecutions === 1, "Janitor concurrency must remain one");
+  check(
+    !("ReservedConcurrentExecutions" in (janitor ?? {})),
+    "Janitor must not reserve account concurrency; low-quota accounts require at least ten unreserved executions",
+  );
   check(janitor?.MemorySize === 128, "Janitor memory must remain 128 MiB");
   check(janitor?.Timeout === 30, "Janitor timeout must remain 30 seconds");
   check(
