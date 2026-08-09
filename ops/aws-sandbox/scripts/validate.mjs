@@ -374,6 +374,20 @@ if (bootstrap) {
       `${sid} must be tenant-stack-only`,
     );
   }
+  const provisionerImageRead = provisionerBoundary?.Statement?.find(
+    (statement) => statement.Sid === "AllowReadSandboxImage",
+  );
+  check(
+    asArray(provisionerImageRead?.Action).includes(
+      "ecr:DescribeImageScanFindings",
+    ),
+    "Provisioner must read scan findings before an image can be approved",
+  );
+  check(
+    provisionerImageRead?.Resource ===
+      "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast",
+    "Provisioner image reads must remain limited to the Sandbox repository",
+  );
 
   const group = resources.SandboxScheduleGroup?.Properties;
   const schedule = resources.GlobalJanitorSchedule?.Properties;

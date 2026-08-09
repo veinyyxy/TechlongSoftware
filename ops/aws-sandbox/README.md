@@ -157,6 +157,8 @@ npm --prefix .\ops\aws-sandbox test
 
 脚本在上传源码前先查询该 Git 标签。若 ECR 已存在 `git-<commit>`，脚本返回现有 Digest，并跳过 S3 上传和 CodeBuild，从而避免不可变标签冲突和重复构建费用。
 
+`StartBuild` 返回只表示构建已排队。必须继续确认 CodeBuild 为 `SUCCEEDED`、不可变标签解析到固定 Digest，并使用受限 Provisioner Role 读取 ECR scan findings。扫描未完成或存在尚未评审的高危/严重发现时，不得把镜像写入部署环境绑定或启动租户 Apply。
+
 ## 当前云端状态与后续门禁
 
 1. AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`；当前终端 PATH 尚未刷新，可以先使用绝对路径。

@@ -984,6 +984,7 @@
               "Effect": "Allow",
               "Action": [
                 "ecr:BatchGetImage",
+                "ecr:DescribeImageScanFindings",
                 "ecr:DescribeImages",
                 "ecr:DescribeRepositories",
                 "ecr:GetDownloadUrlForLayer",
