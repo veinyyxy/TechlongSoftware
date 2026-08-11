@@ -30,14 +30,45 @@ export interface SaaSControlTokenProvider {
   }): Promise<string>;
 }
 
-function assertHostname(hostname: string): void {
+const dnsNamePattern =
+  /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+const tenantLabelPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+export function assertSaaSControlBaseDomain(baseDomain: string): string {
+  const normalized = baseDomain.trim();
   if (
-    !/^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+sandbox\.techlong\.cloud$/.test(
-      hostname,
-    )
+    baseDomain !== normalized ||
+    normalized !== normalized.toLowerCase() ||
+    !dnsNamePattern.test(normalized)
   ) {
-    throw new Error("SaaS control hostname is outside the sandbox domain.");
+    throw new Error("SaaS control base domain is invalid.");
   }
+  return normalized;
+}
+
+export function assertSaaSControlTenantHostname(input: {
+  hostname: string;
+  baseDomain: string;
+}): void {
+  const baseDomain = assertSaaSControlBaseDomain(input.baseDomain);
+  const hostname = input.hostname.trim();
+  const suffix = `.${baseDomain}`;
+  const tenantLabel = hostname.endsWith(suffix)
+    ? hostname.slice(0, -suffix.length)
+    : "";
+  if (
+    input.hostname !== hostname ||
+    hostname !== hostname.toLowerCase() ||
+    !dnsNamePattern.test(hostname) ||
+    !tenantLabelPattern.test(tenantLabel)
+  ) {
+    throw new Error("SaaS control hostname is outside the configured tenant domain.");
+  }
+}
+
+export interface SaaSControlEndpointPolicy {
+  /** Exact environment base domain, for example sandbox.techlong.cloud. */
+  baseDomain: string;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -193,13 +224,16 @@ function assertProvisionReceipt(body: unknown): void {
 export class MtlsSaaSControlClient implements SaaSControlPort {
   private readonly transport: SaaSControlTransport;
   private readonly tokenProvider: SaaSControlTokenProvider;
+  private readonly baseDomain: string;
 
   constructor(
     transport: SaaSControlTransport,
     tokenProvider: SaaSControlTokenProvider,
+    endpointPolicy: SaaSControlEndpointPolicy,
   ) {
     this.transport = transport;
     this.tokenProvider = tokenProvider;
+    this.baseDomain = assertSaaSControlBaseDomain(endpointPolicy.baseDomain);
   }
 
   private async request(input: {
@@ -210,7 +244,10 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
     idempotencyKey?: string;
     body?: Record<string, unknown>;
   }): Promise<unknown> {
-    assertHostname(input.hostname);
+    assertSaaSControlTenantHostname({
+      hostname: input.hostname,
+      baseDomain: this.baseDomain,
+    });
     const audience = `speedfeast-instance:${input.appInstanceId}`;
     const token = await this.tokenProvider.issue({
       instanceId: input.appInstanceId,

@@ -1,6 +1,10 @@
 import type { CloudFormationTenantStackPlan } from "../cloudformation/tenant-stack.ts";
 import type { DeploymentEnvironment } from "../environment.ts";
-import type { DeploymentJobType, DeploymentStatus } from "../state-machine.ts";
+import type {
+  DeploymentJobStatus,
+  DeploymentJobType,
+  DeploymentStatus,
+} from "../state-machine.ts";
 import type { AwsEcsCellDeploymentPlan } from "../types.ts";
 
 export interface DeploymentExecutionBinding {
@@ -28,6 +32,21 @@ export interface ClaimedDeploymentJob {
   attempt: number;
   maxAttempts: number;
   leaseExpiresAt: number;
+  /** Unique incarnation generated for every successful claim/takeover. */
+  leaseToken: string;
+}
+
+/**
+ * Exact database lease incarnation required by every state-changing repository
+ * call. `workerId` alone is deliberately insufficient because a process name
+ * may be reused after a crash or restart.
+ */
+export interface DeploymentJobLeaseFence {
+  jobId: string;
+  deploymentId: string;
+  workerId: string;
+  attempt: number;
+  leaseToken: string;
 }
 
 export interface DeploymentExecutionContext {
@@ -78,6 +97,21 @@ export interface DeploymentStepHandle {
   previousOutput: Record<string, unknown>;
 }
 
+export interface DeploymentJobEnqueueResult {
+  outcome:
+    | "inserted"
+    | "existing_active"
+    | "existing_succeeded"
+    | "existing_unusable"
+    | "lease_lost"
+    | "rejected";
+  jobId: string | null;
+  status: DeploymentJobStatus | null;
+  availableAt: number | null;
+  attempts: number | null;
+  maxAttempts: number | null;
+}
+
 export interface DeploymentExecutionRepository {
   claimNext(input: {
     workerId: string;
@@ -87,13 +121,13 @@ export interface DeploymentExecutionRepository {
   }): Promise<ClaimedDeploymentJob | null>;
   loadContext(job: ClaimedDeploymentJob): Promise<DeploymentExecutionContext>;
   reserveEnvironmentCapacity(input: {
-    deploymentId: string;
+    lease: DeploymentJobLeaseFence;
     environmentId: string;
     maxTenants: number;
     now: number;
   }): Promise<boolean>;
   confirmCleanupSchedule(input: {
-    deploymentId: string;
+    lease: DeploymentJobLeaseFence;
     environmentId: string;
     stackName: string;
     expiresAt: number;
@@ -102,15 +136,12 @@ export interface DeploymentExecutionRepository {
     now: number;
   }): Promise<DeploymentCleanupSchedule>;
   heartbeat(input: {
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
     now: number;
     leaseDurationMs: number;
   }): Promise<boolean>;
   transitionDeployment(input: {
-    deploymentId: string;
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
     from: DeploymentStatus[];
     to: DeploymentStatus;
     currentStep: string;
@@ -118,17 +149,14 @@ export interface DeploymentExecutionRepository {
     now: number;
   }): Promise<boolean>;
   beginStep(input: {
-    deploymentId: string;
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
     stepKey: string;
     inputHash: string;
-    attempt: number;
     now: number;
   }): Promise<DeploymentStepHandle>;
   finishStep(input: {
+    lease: DeploymentJobLeaseFence;
     stepId: string;
-    workerId: string;
     status: "succeeded" | "failed" | "skipped";
     output: Record<string, unknown>;
     errorCode?: string;
@@ -136,21 +164,21 @@ export interface DeploymentExecutionRepository {
     now: number;
   }): Promise<boolean>;
   enqueueJob(input: {
+    lease: DeploymentJobLeaseFence;
     deploymentId: string;
     jobType: DeploymentJobType;
     planHash: string;
     availableAt: number;
     maxAttempts: number;
     now: number;
-  }): Promise<void>;
+  }): Promise<DeploymentJobEnqueueResult>;
   completeJob(input: {
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
     now: number;
   }): Promise<boolean>;
   retryJob(input: {
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
+    cleanupScheduleId?: string | null;
     errorCode: string;
     errorMessage: string;
     retryable: boolean;
@@ -158,28 +186,28 @@ export interface DeploymentExecutionRepository {
     now: number;
   }): Promise<"retry_wait" | "dead_letter" | "lease_lost">;
   markReady(input: {
-    deploymentId: string;
+    lease: DeploymentJobLeaseFence;
     appInstanceId: string;
     subscriptionId: string;
-    jobId: string;
-    workerId: string;
     accessUrl: string;
     controlPayloadHash: string;
     outputPatch: Record<string, unknown>;
     now: number;
   }): Promise<boolean>;
   markInstanceUnavailable(input: {
-    deploymentId: string;
+    lease: DeploymentJobLeaseFence;
+    fence: TenantResourceFence;
     appInstanceId: string;
     reason: "ttl_cleanup" | "rollback";
     now: number;
-  }): Promise<void>;
+  }): Promise<boolean>;
   markCleanupStatus(input: {
+    lease: DeploymentJobLeaseFence;
     scheduleId: string;
     status: "running" | "succeeded" | "failed";
     errorMessage?: string;
     now: number;
-  }): Promise<void>;
+  }): Promise<boolean>;
   /**
    * Atomically persists a sanitized lifecycle checkpoint while the caller owns
    * the live deployment-job lease. Immutable identity conflicts fail closed.
@@ -188,29 +216,24 @@ export interface DeploymentExecutionRepository {
     input: DeploymentTenantResourceLifecycleWrite,
   ): Promise<boolean>;
   claimTenantResourceGeneration(input: {
-    deploymentId: string;
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
     identity: TenantResourceIdentity;
     now: number;
   }): Promise<TenantResourceGenerationClaim>;
   beginTenantResourceCleanup(input: {
     fence: TenantResourceFence;
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
     now: number;
   }): Promise<TenantResourceFence | null>;
   assertTenantResourceCleanupFence(input: {
     fence: TenantResourceFence;
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
     phase: TenantResourceCleanupFencePhase;
     now: number;
   }): Promise<boolean>;
   completeTenantResourceCleanup(input: {
     fence: TenantResourceFence;
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
     receipt: TenantResourceCleanupReceipt;
     now: number;
   }): Promise<boolean>;
@@ -344,9 +367,7 @@ export interface DeploymentTenantResourceRecord {
 }
 
 export interface DeploymentTenantResourceLifecycleWrite {
-  deploymentId: string;
-  jobId: string;
-  workerId: string;
+  lease: DeploymentJobLeaseFence;
   fence: TenantResourceFence;
   runtimeSecretRef: string | null;
   lifecycleStatus: DeploymentTenantResourceLifecycleStatus;
@@ -528,21 +549,18 @@ export interface TenantResourceCleanupReceipt {
 export interface TenantResourceCleanupFencePort {
   beginTenantResourceCleanup(input: {
     fence: TenantResourceFence;
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
     now: number;
   }): Promise<TenantResourceFence | null>;
   assertTenantResourceCleanupFence(input: {
     fence: TenantResourceFence;
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
     phase: TenantResourceCleanupFencePhase;
     now: number;
   }): Promise<boolean>;
   completeTenantResourceCleanup(input: {
     fence: TenantResourceFence;
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
     receipt: TenantResourceCleanupReceipt;
     now: number;
   }): Promise<boolean>;

@@ -3,15 +3,22 @@ import type {
   ApplyReadyTenantStack,
   DeploymentExecutionBinding,
 } from "./contracts.ts";
-import type { CloudFormationTenantStackPlan } from "../cloudformation/tenant-stack.ts";
+import {
+  assertAwsSandboxTenantRuntimeSecretRef,
+  type CloudFormationTenantStackPlan,
+} from "../cloudformation/tenant-stack.ts";
 
 const secretReferenceParameters = new Set([
-  "DatabaseUrlValueFrom",
   "ControlPublicKeyValueFrom",
+]);
+
+const forbiddenEnvironmentTenantSecretParameters = new Set([
+  "DatabaseUrlValueFrom",
   "HmacSecretKeyValueFrom",
   "JwtSecretKeyValueFrom",
   "StripeSecretKeyValueFrom",
   "StripeWebhookSecretValueFrom",
+  "TenantRuntimeSecretArn",
 ]);
 
 const exactRoleNames: Record<string, string> = {
@@ -23,8 +30,14 @@ const exactRoleNames: Record<string, string> = {
 const listenerParameters = new Set(["HttpsListenerArn", "ControlListenerArn"]);
 
 function assertText(name: string, value: string | undefined, maximum = 2_048): string {
-  const normalized = value?.trim() ?? "";
-  if (!normalized || normalized.length > maximum || /[\u0000-\u001f\u007f]/.test(normalized)) {
+  const raw = value ?? "";
+  const normalized = raw.trim();
+  if (
+    raw !== normalized ||
+    !normalized ||
+    normalized.length > maximum ||
+    /[\u0000-\u001f\u007f]/.test(normalized)
+  ) {
     throw new Error(`CloudFormation parameter ${name} is invalid.`);
   }
   return normalized;
@@ -186,6 +199,8 @@ export function finalizeTenantStackForApply(input: {
   rendered: CloudFormationTenantStackPlan;
   environment: DeploymentEnvironment;
   binding: DeploymentExecutionBinding;
+  /** Exact generation-bound Secret name from the durable tenant resource fence. */
+  expectedRuntimeSecretName: string;
 }): ApplyReadyTenantStack {
   if (!input.rendered.safety.renderOnly || input.rendered.safety.applyReady) {
     throw new Error("Only a reviewed render-only tenant stack can be finalized.");
@@ -196,6 +211,22 @@ export function finalizeTenantStackForApply(input: {
   ) {
     throw new Error("Rendered tenant stack account or region drifted from the environment.");
   }
+  for (const name of forbiddenEnvironmentTenantSecretParameters) {
+    if (
+      input.rendered.requiredExternalParameters.includes(name) ||
+      Object.hasOwn(input.binding.tenantStackParameters, name)
+    ) {
+      throw new Error(
+        `Tenant credential parameter ${name} cannot come from the environment binding.`,
+      );
+    }
+  }
+  assertAwsSandboxTenantRuntimeSecretRef({
+    runtimeSecretRef: input.rendered.parameters.TenantRuntimeSecretArn ?? "",
+    accountId: input.environment.expectedAccountId,
+    region: input.environment.region,
+    expectedSecretName: input.expectedRuntimeSecretName,
+  });
   const expected = new Set(input.rendered.requiredExternalParameters);
   const actual = new Set(Object.keys(input.binding.tenantStackParameters));
   const missing = [...expected].filter((name) => !actual.has(name));

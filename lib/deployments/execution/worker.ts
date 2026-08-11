@@ -1,4 +1,5 @@
 import {
+  awsSandboxTenantStackName,
   renderAwsSandboxTenantStack,
   tenantStackOperationTagKey,
   tenantStackStableOwnershipTagKeys,
@@ -9,8 +10,10 @@ import type {
   ApplyReadyTenantStack,
   AwsDeploymentPort,
   CleanupSchedulePort,
+  DeploymentJobLeaseFence,
   DeploymentExecutionContext,
   DeploymentExecutionRepository,
+  DeploymentJobEnqueueResult,
   DeploymentTenantResourceLifecycleStatus,
   SaaSControlPort,
   SaaSControlPayloadCompilerPort,
@@ -59,13 +62,15 @@ export interface DeploymentWorkerDependencies {
   tenantResourceCleanup?: {
     destroy(input: {
       fence: TenantResourceFence;
-      jobId: string;
-      workerId: string;
+      lease: DeploymentJobLeaseFence;
       idempotencyKey: string;
+      signal: AbortSignal;
     }): Promise<TenantResourceCleanupReceipt>;
   };
   controlClient: SaaSControlPort;
   controlPayloadCompiler: SaaSControlPayloadCompilerPort;
+  /** Test seam; production cadence is capped at one third of the lease. */
+  leaseHeartbeatIntervalMs?: number;
   now?: () => number;
 }
 
@@ -219,6 +224,26 @@ async function assertHashes(
   }
 }
 
+function deploymentLease(
+  context: DeploymentExecutionContext,
+  workerId: string,
+): DeploymentJobLeaseFence {
+  return claimedJobLease(context.job, workerId);
+}
+
+function claimedJobLease(
+  job: DeploymentExecutionContext["job"],
+  workerId: string,
+): DeploymentJobLeaseFence {
+  return {
+    jobId: job.id,
+    deploymentId: job.deploymentId,
+    workerId,
+    attempt: job.attempt,
+    leaseToken: job.leaseToken,
+  };
+}
+
 function currentTenantResourceFence(
   context: DeploymentExecutionContext,
 ): TenantResourceFence {
@@ -367,9 +392,7 @@ async function persistTenantLifecycleCheckpoint(input: {
       ? "database_empty"
       : parsed.lifecycleState;
   const persisted = await input.dependencies.repository.recordTenantResourceLifecycle({
-    deploymentId: input.context.deployment.id,
-    jobId: input.context.job.id,
-    workerId: input.workerId,
+    lease: deploymentLease(input.context, input.workerId),
     fence,
     runtimeSecretRef: parsed.secretRef,
     lifecycleStatus,
@@ -411,9 +434,7 @@ async function claimAndReloadTenantResource(input: {
 }): Promise<{ context: DeploymentExecutionContext }> {
   const identity = await deriveTenantResourceIdentity(input.context);
   const claim = await input.dependencies.repository.claimTenantResourceGeneration({
-    deploymentId: input.context.deployment.id,
-    jobId: input.context.job.id,
-    workerId: input.workerId,
+    lease: deploymentLease(input.context, input.workerId),
     identity,
     now: (input.dependencies.now ?? Date.now)(),
   });
@@ -489,6 +510,7 @@ function renderApplyReadyStack(input: {
 }): ApplyReadyTenantStack {
   const { context } = input;
   const fence = currentTenantResourceFence(context);
+  const runtimeSecretRef = requireVerifiedRuntimeSecretRef(context, fence);
   if (!context.binding) {
     throw new DeploymentExecutionError(
       "EXECUTION_BINDING_MISSING",
@@ -499,6 +521,8 @@ function renderApplyReadyStack(input: {
   const rendered = renderAwsSandboxTenantStack({
     deploymentId: context.deployment.id,
     resourceGeneration: fence.generation,
+    runtimeSecretRef,
+    runtimeSecretName: fence.identity.secretName,
     plan: context.deployment.desiredPlan,
     environment: context.environment,
     imageUri: context.deployment.artifactRef,
@@ -512,19 +536,117 @@ function renderApplyReadyStack(input: {
     rendered,
     environment: context.environment,
     binding: context.binding,
+    expectedRuntimeSecretName: fence.identity.secretName,
   });
+}
+
+function requireCurrentRuntimeSecretRef(
+  context: DeploymentExecutionContext,
+  fence: TenantResourceFence,
+): string {
+  const record = context.tenantResources;
+  if (
+    !record?.runtimeSecretRef ||
+    record.ownerDeploymentId !== fence.ownerDeploymentId ||
+    record.generation !== fence.generation ||
+    record.ownershipMarker !== fence.ownershipMarker
+  ) {
+    throw new DeploymentExecutionError(
+      "TENANT_RUNTIME_SECRET_UNAVAILABLE",
+      "The current tenant resource generation has no verified runtime Secret reference.",
+      true,
+    );
+  }
+  return record.runtimeSecretRef;
+}
+
+function assertEnqueueOwnership(result: DeploymentJobEnqueueResult): void {
+  if (result.outcome === "lease_lost") {
+    throw new DeploymentExecutionError(
+      "DEPLOYMENT_LEASE_LOST",
+      "Deployment worker lost its lease while enqueueing follow-up work.",
+      true,
+    );
+  }
+  if (result.outcome === "rejected") {
+    throw new DeploymentExecutionError(
+      "DEPLOYMENT_JOB_ENQUEUE_REJECTED",
+      "The follow-up deployment job could not be inserted or revalidated.",
+      true,
+    );
+  }
+}
+
+function assertUsableCleanupJob(input: {
+  result: DeploymentJobEnqueueResult;
+  expiresAt: number;
+  maxAttempts: number;
+}): void {
+  assertEnqueueOwnership(input.result);
+  const usablePendingJob =
+    (input.result.outcome === "inserted" ||
+      input.result.outcome === "existing_active") &&
+    input.result.status === "pending" &&
+    input.result.availableAt === input.expiresAt &&
+    input.result.attempts === 0 &&
+    input.result.maxAttempts !== null &&
+    input.result.maxAttempts >= input.maxAttempts;
+  if (!usablePendingJob) {
+    throw new DeploymentExecutionError(
+      "CLEANUP_JOB_UNAVAILABLE",
+      "A live pending cleanup job for the exact deployment deadline is required before external writes.",
+      false,
+    );
+  }
+}
+
+function assertUsableFollowUpJob(result: DeploymentJobEnqueueResult): void {
+  assertEnqueueOwnership(result);
+  const activeStatuses = ["pending", "running", "retry_wait"];
+  const usable =
+    (result.outcome === "inserted" && result.status === "pending") ||
+    (result.outcome === "existing_active" &&
+      result.status !== null &&
+      activeStatuses.includes(result.status) &&
+      result.attempts !== null &&
+      result.maxAttempts !== null &&
+      result.attempts <= result.maxAttempts) ||
+    (result.outcome === "existing_succeeded" && result.status === "succeeded");
+  if (!usable) {
+    throw new DeploymentExecutionError(
+      "DEPLOYMENT_FOLLOWUP_JOB_UNAVAILABLE",
+      "The deduplicated follow-up job is canceled, dead-lettered, or inconsistent.",
+      false,
+    );
+  }
+}
+
+function requireVerifiedRuntimeSecretRef(
+  context: DeploymentExecutionContext,
+  fence: TenantResourceFence,
+): string {
+  const runtimeSecretRef = requireCurrentRuntimeSecretRef(context, fence);
+  if (context.tenantResources?.lifecycleStatus !== "verified") {
+    throw new DeploymentExecutionError(
+      "TENANT_DATABASE_VERIFICATION_REQUIRED",
+      "CloudFormation cannot run until the current tenant resource generation has a persisted verified database lifecycle checkpoint.",
+      false,
+    );
+  }
+  return runtimeSecretRef;
 }
 
 async function ensureApplyCleanupSchedule(input: {
   context: DeploymentExecutionContext;
-  stack: ApplyReadyTenantStack;
   cleanupScheduler: CleanupSchedulePort;
   repository: DeploymentExecutionRepository;
+  workerId: string;
   now: number;
 }): Promise<void> {
   const { context } = input;
   const expiresAt = context.deployment.createdAt + context.environment.policy.ttlSeconds * 1_000;
-  const expectedScheduleRef = `cloudformation:${input.stack.stackName}:TenantCleanupSchedule`;
+  const stackName = awsSandboxTenantStackName(context.appInstance.id);
+  const expectedScheduleRef = `cloudformation:${stackName}:TenantCleanupSchedule`;
   let schedule = context.cleanupSchedule;
   const confirmed =
     schedule?.status === "confirmed" &&
@@ -541,9 +663,14 @@ async function ensureApplyCleanupSchedule(input: {
   if (!confirmed) {
     const confirmation = await input.cleanupScheduler.confirmSchedule({
       deploymentId: context.deployment.id,
-      stackName: input.stack.stackName,
+      stackName,
       expiresAt,
-      expectedTags: input.stack.tags,
+      expectedTags: {
+        Environment: "aws-sandbox",
+        ManagedBy: "techlong-provisioner",
+        DeploymentId: context.deployment.id,
+        ExpiresAt: new Date(expiresAt).toISOString(),
+      },
     });
     if (confirmation.providerScheduleRef !== expectedScheduleRef) {
       throw new DeploymentExecutionError(
@@ -553,9 +680,9 @@ async function ensureApplyCleanupSchedule(input: {
       );
     }
     schedule = await input.repository.confirmCleanupSchedule({
-      deploymentId: context.deployment.id,
+      lease: deploymentLease(context, input.workerId),
       environmentId: context.environment.id,
-      stackName: input.stack.stackName,
+      stackName,
       expiresAt,
       providerScheduleRef: confirmation.providerScheduleRef,
       confirmedAt: confirmation.confirmedAt,
@@ -576,13 +703,19 @@ async function ensureApplyCleanupSchedule(input: {
       false,
     );
   }
-  await input.repository.enqueueJob({
+  const cleanupJob = await input.repository.enqueueJob({
+    lease: deploymentLease(context, input.workerId),
     deploymentId: context.deployment.id,
     jobType: "cleanup",
     planHash: context.deployment.planHash,
     availableAt: expiresAt,
     maxAttempts: 20,
     now: input.now,
+  });
+  assertUsableCleanupJob({
+    result: cleanupJob,
+    expiresAt,
+    maxAttempts: 20,
   });
 }
 
@@ -594,8 +727,7 @@ async function heartbeat(input: {
   now: number;
 }): Promise<void> {
   const renewed = await input.dependencies.repository.heartbeat({
-    jobId: input.context.job.id,
-    workerId: input.workerId,
+    lease: deploymentLease(input.context, input.workerId),
     now: input.now,
     leaseDurationMs: input.config.leaseDurationMs,
   });
@@ -608,6 +740,107 @@ async function heartbeat(input: {
   }
 }
 
+async function withLeaseGuard<T>(input: {
+  dependencies: DeploymentWorkerDependencies;
+  context: DeploymentExecutionContext;
+  config: DeploymentWorkerRuntimeConfig;
+  workerId: string;
+  execute(signal: AbortSignal): Promise<T>;
+}): Promise<T> {
+  const controller = new AbortController();
+  const intervalMs = Math.max(
+    5,
+    Math.min(
+      Math.floor(input.config.leaseDurationMs / 3),
+      input.dependencies.leaseHeartbeatIntervalMs ?? Number.POSITIVE_INFINITY,
+    ),
+  );
+  let stopped = false;
+  let heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+  let deadlineTimer: ReturnType<typeof setTimeout> | null = null;
+  let renewal: Promise<void> | null = null;
+  let rejectLost!: (error: DeploymentExecutionError) => void;
+  const lost = new Promise<never>((_resolve, reject) => {
+    rejectLost = reject;
+  });
+  // Initial renewal happens before Promise.race is installed. Keep the loss
+  // promise observed so a very slow first renewal cannot surface as an
+  // unhandled rejection while still failing the renewal itself below.
+  void lost.catch(() => undefined);
+  const leaseLost = () =>
+    new DeploymentExecutionError(
+      "DEPLOYMENT_LEASE_LOST",
+      "Deployment worker lost its lease during an external operation.",
+      true,
+    );
+  const stop = (): void => {
+    stopped = true;
+    if (heartbeatTimer) clearTimeout(heartbeatTimer);
+    if (deadlineTimer) clearTimeout(deadlineTimer);
+    heartbeatTimer = null;
+    deadlineTimer = null;
+  };
+  const lose = (error: DeploymentExecutionError): void => {
+    if (stopped || controller.signal.aborted) return;
+    controller.abort(error);
+    stop();
+    rejectLost(error);
+  };
+  const armDeadline = (remainingMs: number): void => {
+    if (deadlineTimer) clearTimeout(deadlineTimer);
+    deadlineTimer = setTimeout(
+      () => lose(leaseLost()),
+      Math.max(1, Math.floor(remainingMs)),
+    );
+  };
+  const renew = (): Promise<void> => {
+    if (renewal) return renewal;
+    // The database starts the new lease from its own clock when it processes
+    // the heartbeat. Measuring from request dispatch is conservative: network
+    // and query latency are subtracted instead of accidentally extending the
+    // local deadline beyond the database lease.
+    const requestedAt = globalThis.performance.now();
+    renewal = heartbeat({
+      dependencies: input.dependencies,
+      context: input.context,
+      config: input.config,
+      workerId: input.workerId,
+      now: (input.dependencies.now ?? Date.now)(),
+    })
+      .then(() => {
+        const elapsedMs = Math.max(0, globalThis.performance.now() - requestedAt);
+        const remainingMs = input.config.leaseDurationMs - elapsedMs;
+        if (remainingMs <= 0) {
+          const error = leaseLost();
+          lose(error);
+          throw error;
+        }
+        if (!stopped) armDeadline(remainingMs);
+      })
+      .finally(() => {
+        renewal = null;
+      });
+    return renewal;
+  };
+  const schedule = (): void => {
+    if (stopped) return;
+    heartbeatTimer = setTimeout(() => {
+      void renew().then(schedule).catch((error) => lose(executionError(error)));
+    }, intervalMs);
+  };
+
+  await renew();
+  schedule();
+  try {
+    const output = await Promise.race([input.execute(controller.signal), lost]);
+    await renew();
+    if (controller.signal.aborted) throw leaseLost();
+    return output;
+  } finally {
+    stop();
+  }
+}
+
 async function checkpoint<T extends object>(input: {
   dependencies: DeploymentWorkerDependencies;
   context: DeploymentExecutionContext;
@@ -615,33 +848,29 @@ async function checkpoint<T extends object>(input: {
   workerId: string;
   stepKey: string;
   stepInput: Record<string, unknown>;
-  execute(): Promise<T>;
+  execute(signal: AbortSignal): Promise<T>;
 }): Promise<T> {
   const now = (input.dependencies.now ?? Date.now)();
   const inputHash = await sha256Hex(input.stepInput);
   const handle = await input.dependencies.repository.beginStep({
-    deploymentId: input.context.deployment.id,
-    jobId: input.context.job.id,
-    workerId: input.workerId,
+    lease: deploymentLease(input.context, input.workerId),
     stepKey: input.stepKey,
     inputHash,
-    attempt: input.context.job.attempt,
     now,
   });
   if (handle.alreadySucceeded) return handle.previousOutput as unknown as T;
-  await heartbeat({
-    dependencies: input.dependencies,
-    context: input.context,
-    config: input.config,
-    workerId: input.workerId,
-    now,
-  });
   try {
-    const output = await input.execute();
+    const output = await withLeaseGuard({
+      dependencies: input.dependencies,
+      context: input.context,
+      config: input.config,
+      workerId: input.workerId,
+      execute: input.execute,
+    });
     assertSafeDeploymentOutput(output as unknown as Record<string, unknown>);
     const finished = await input.dependencies.repository.finishStep({
+      lease: deploymentLease(input.context, input.workerId),
       stepId: handle.id,
-      workerId: input.workerId,
       status: "succeeded",
       output: output as unknown as Record<string, unknown>,
       now: (input.dependencies.now ?? Date.now)(),
@@ -657,8 +886,8 @@ async function checkpoint<T extends object>(input: {
   } catch (error) {
     const normalized = executionError(error);
     await input.dependencies.repository.finishStep({
+      lease: deploymentLease(input.context, input.workerId),
       stepId: handle.id,
-      workerId: input.workerId,
       status: "failed",
       output: {},
       errorCode: normalized.code,
@@ -687,9 +916,7 @@ async function moveState(input: {
     );
   }
   const changed = await input.dependencies.repository.transitionDeployment({
-    deploymentId: input.context.deployment.id,
-    jobId: input.context.job.id,
-    workerId: input.workerId,
+    lease: deploymentLease(input.context, input.workerId),
     from: input.from,
     to: input.to,
     currentStep: input.currentStep,
@@ -777,9 +1004,10 @@ async function validateSharedCellSecurity(input: {
 async function reserveEnvironmentCapacity(input: {
   dependencies: DeploymentWorkerDependencies;
   context: DeploymentExecutionContext;
+  workerId: string;
 }): Promise<void> {
   const reserved = await input.dependencies.repository.reserveEnvironmentCapacity({
-    deploymentId: input.context.deployment.id,
+    lease: deploymentLease(input.context, input.workerId),
     environmentId: input.context.environment.id,
     maxTenants: input.context.environment.policy.maxTenants,
     now: (input.dependencies.now ?? Date.now)(),
@@ -799,7 +1027,7 @@ async function handleApply(input: {
   config: DeploymentWorkerRuntimeConfig;
   workerId: string;
   aws: AwsDeploymentPort;
-  stack: ApplyReadyTenantStack;
+  stack?: ApplyReadyTenantStack;
 }): Promise<void> {
   if (["planned", "retry_wait"].includes(input.context.deployment.status)) {
     await moveState({
@@ -821,7 +1049,8 @@ async function handleApply(input: {
   await validateSharedCellSecurity(input);
   await reserveEnvironmentCapacity(input);
   if (["waiting_healthy", "configuring", "verifying", "ready"].includes(input.context.deployment.status)) {
-    await input.dependencies.repository.enqueueJob({
+    const reconcileJob = await input.dependencies.repository.enqueueJob({
+      lease: deploymentLease(input.context, input.workerId),
       deploymentId: input.context.deployment.id,
       jobType: "reconcile",
       planHash: input.context.deployment.planHash,
@@ -829,6 +1058,7 @@ async function handleApply(input: {
       maxAttempts: 20,
       now: (input.dependencies.now ?? Date.now)(),
     });
+    assertUsableFollowUpJob(reconcileJob);
     return;
   }
   if (input.context.deployment.status === "preflight") {
@@ -889,6 +1119,11 @@ async function handleApply(input: {
       workerId: input.workerId,
       output: migrated,
     });
+    input.context = (await claimAndReloadTenantResource(input)).context;
+    requireVerifiedRuntimeSecretRef(
+      input.context,
+      currentTenantResourceFence(input.context),
+    );
     await moveState({
       ...input,
       from: ["migrating"],
@@ -920,14 +1155,14 @@ async function handleApply(input: {
     );
   }
   input.context = refreshed;
-  input.stack = renderApplyReadyStack({
+  const stack = renderApplyReadyStack({
     context: refreshed,
   });
   await ensureApplyCleanupSchedule({
     context: refreshed,
-    stack: input.stack,
     cleanupScheduler: input.dependencies.cleanupScheduler,
     repository: input.dependencies.repository,
+    workerId: input.workerId,
     now: (input.dependencies.now ?? Date.now)(),
   });
   await validateIdentity({ ...input, phase: "prewrite" });
@@ -941,10 +1176,10 @@ async function handleApply(input: {
     const existing = await checkpoint({
       ...input,
       stepKey: "cloudformation_precreate_observe",
-      stepInput: { stackName: input.stack.stackName, expiresAt },
-      execute: () => input.aws.describeTenantStack(input.stack.stackName),
+      stepInput: { stackName: stack.stackName, expiresAt },
+      execute: () => input.aws.describeTenantStack(stack.stackName),
     });
-    assertStackOwnership({ observation: existing, expectedTags: input.stack.tags });
+    assertStackOwnership({ observation: existing, expectedTags: stack.tags });
     if (existing.state !== "ready" && existing.state !== "in_progress") {
       throw new DeploymentExecutionError(
         "SANDBOX_TTL_EXPIRED",
@@ -958,12 +1193,13 @@ async function handleApply(input: {
       to: "waiting_healthy",
       currentStep: "cloudformation_wait",
       outputPatch: {
-        stackName: input.stack.stackName,
+        stackName: stack.stackName,
         stackId: existing.stackId,
         stackOperation: "existing_near_ttl",
       },
     });
-    await input.dependencies.repository.enqueueJob({
+    const reconcileJob = await input.dependencies.repository.enqueueJob({
+      lease: deploymentLease(input.context, input.workerId),
       deploymentId: input.context.deployment.id,
       jobType: "reconcile",
       planHash: input.context.deployment.planHash,
@@ -971,18 +1207,19 @@ async function handleApply(input: {
       maxAttempts: 20,
       now: currentTime,
     });
+    assertUsableFollowUpJob(reconcileJob);
     return;
   }
   const applied = await checkpoint({
     ...input,
     stepKey: "cloudformation_apply",
     stepInput: {
-      stackName: input.stack.stackName,
-      clientRequestToken: input.stack.clientRequestToken,
-      templateHash: await sha256Hex(input.stack.templateBody),
-      parameterHash: await sha256Hex(input.stack.parameters),
+      stackName: stack.stackName,
+      clientRequestToken: stack.clientRequestToken,
+      templateHash: await sha256Hex(stack.templateBody),
+      parameterHash: await sha256Hex(stack.parameters),
     },
-    execute: () => input.aws.applyTenantStack(input.stack),
+    execute: () => input.aws.applyTenantStack(stack),
   });
   await moveState({
     ...input,
@@ -990,13 +1227,14 @@ async function handleApply(input: {
     to: "waiting_healthy",
     currentStep: "cloudformation_wait",
     outputPatch: {
-      stackName: input.stack.stackName,
+      stackName: stack.stackName,
       stackId: applied.stackId,
       stackOperation: applied.operation,
-      cleanupScheduleRef: `cloudformation:${input.stack.stackName}:TenantCleanupSchedule`,
+      cleanupScheduleRef: `cloudformation:${stack.stackName}:TenantCleanupSchedule`,
     },
   });
-  await input.dependencies.repository.enqueueJob({
+  const reconcileJob = await input.dependencies.repository.enqueueJob({
+    lease: deploymentLease(input.context, input.workerId),
     deploymentId: input.context.deployment.id,
     jobType: "reconcile",
     planHash: input.context.deployment.planHash,
@@ -1004,6 +1242,7 @@ async function handleApply(input: {
     maxAttempts: 20,
     now: (input.dependencies.now ?? Date.now)(),
   });
+  assertUsableFollowUpJob(reconcileJob);
 }
 
 async function handleReconcile(input: {
@@ -1158,11 +1397,9 @@ async function handleReconcile(input: {
   }
   const accessUrl = `https://${input.stack.parameters.TenantHostname}`;
   const ready = await input.dependencies.repository.markReady({
-    deploymentId: input.context.deployment.id,
+    lease: deploymentLease(input.context, input.workerId),
     appInstanceId: input.context.appInstance.id,
     subscriptionId: input.context.subscription?.id ?? "",
-    jobId: input.context.job.id,
-    workerId: input.workerId,
     accessUrl,
     controlPayloadHash: input.context.deployment.configurationHash,
     outputPatch: {
@@ -1187,6 +1424,7 @@ async function handleReconcile(input: {
 async function handleDelete(input: {
   dependencies: DeploymentWorkerDependencies;
   context: DeploymentExecutionContext;
+  config: DeploymentWorkerRuntimeConfig;
   workerId: string;
 }): Promise<void> {
   const cleanup = input.dependencies.tenantResourceCleanup;
@@ -1198,11 +1436,19 @@ async function handleDelete(input: {
     );
   }
   const fence = currentTenantResourceFence(input.context);
-  await cleanup.destroy({
-    fence,
-    jobId: input.context.job.id,
+  const lease = deploymentLease(input.context, input.workerId);
+  await withLeaseGuard({
+    dependencies: input.dependencies,
+    context: input.context,
+    config: input.config,
     workerId: input.workerId,
-    idempotencyKey: `${input.context.deployment.id}:generation:${fence.generation}:cleanup`,
+    execute: (signal) =>
+      cleanup.destroy({
+        fence,
+        lease,
+        idempotencyKey: `${input.context.deployment.id}:generation:${fence.generation}:cleanup`,
+        signal,
+      }),
   });
 
   const cancellable: DeploymentStatus[] = [
@@ -1234,11 +1480,19 @@ async function handleDelete(input: {
     });
   }
   if (input.context.cleanupSchedule) {
-    await input.dependencies.repository.markCleanupStatus({
+    const cleanupStatusWritten = await input.dependencies.repository.markCleanupStatus({
+      lease,
       scheduleId: input.context.cleanupSchedule.id,
       status: "succeeded",
       now: (input.dependencies.now ?? Date.now)(),
     });
+    if (!cleanupStatusWritten) {
+      throw new DeploymentExecutionError(
+        "DEPLOYMENT_LEASE_LOST",
+        "Cleanup schedule status was not written under the current job lease.",
+        true,
+      );
+    }
   }
   if (input.context.deployment.status === "rolling_back") {
     await moveState({
@@ -1249,12 +1503,20 @@ async function handleDelete(input: {
     });
   }
   if (["rolled_back", "canceled"].includes(input.context.deployment.status)) {
-    await input.dependencies.repository.markInstanceUnavailable({
-      deploymentId: input.context.deployment.id,
+    const instanceUnavailable = await input.dependencies.repository.markInstanceUnavailable({
+      lease,
+      fence,
       appInstanceId: input.context.appInstance.id,
       reason: input.context.job.jobType === "cleanup" ? "ttl_cleanup" : "rollback",
       now: (input.dependencies.now ?? Date.now)(),
     });
+    if (!instanceUnavailable) {
+      throw new DeploymentExecutionError(
+        "DEPLOYMENT_LEASE_LOST",
+        "Application instance cleanup status was not written under the current job lease.",
+        true,
+      );
+    }
   }
 }
 
@@ -1295,8 +1557,7 @@ export async function runDeploymentWorkerOnce(input: {
     !applicationExecutionReady
   ) {
     const result = await input.dependencies.repository.retryJob({
-      jobId: job.id,
-      workerId: input.workerId,
+      lease: claimedJobLease(job, input.workerId),
       errorCode: "APPLY_RUNTIME_ADAPTERS_DISABLED",
       errorMessage:
         "Apply/reconcile adapters are not configured; only cleanup work is enabled.",
@@ -1342,6 +1603,7 @@ export async function runDeploymentWorkerOnce(input: {
       await handleDelete({
         dependencies: input.dependencies,
         context,
+        config: input.config,
         workerId: input.workerId,
       });
     } else {
@@ -1352,9 +1614,6 @@ export async function runDeploymentWorkerOnce(input: {
         workerId: input.workerId,
       });
       context = claimed.context;
-      const stack = renderApplyReadyStack({
-        context,
-      });
       if (
         job.jobType === "apply" &&
         !["waiting_healthy", "configuring", "verifying", "ready"].includes(
@@ -1363,9 +1622,9 @@ export async function runDeploymentWorkerOnce(input: {
       ) {
         await ensureApplyCleanupSchedule({
           context,
-          stack,
           cleanupScheduler: input.dependencies.cleanupScheduler,
           repository: input.dependencies.repository,
+          workerId: input.workerId,
           now,
         });
       }
@@ -1382,17 +1641,18 @@ export async function runDeploymentWorkerOnce(input: {
         config: input.config,
         workerId: input.workerId,
         aws,
-        stack,
       };
       if (job.jobType === "apply") {
         await handleApply(handlerInput);
       } else {
-        await handleReconcile(handlerInput);
+        await handleReconcile({
+          ...handlerInput,
+          stack: renderApplyReadyStack({ context }),
+        });
       }
     }
     const completed = await input.dependencies.repository.completeJob({
-      jobId: job.id,
-      workerId: input.workerId,
+      lease: claimedJobLease(job, input.workerId),
       now: (input.dependencies.now ?? Date.now)(),
     });
     if (!completed) {
@@ -1407,22 +1667,14 @@ export async function runDeploymentWorkerOnce(input: {
   } catch (error) {
     const normalized = executionError(error);
     const result = await input.dependencies.repository.retryJob({
-      jobId: job.id,
-      workerId: input.workerId,
+      lease: claimedJobLease(job, input.workerId),
+      cleanupScheduleId: context?.cleanupSchedule?.id ?? null,
       errorCode: normalized.code,
       errorMessage: normalized.message,
       retryable: normalized.retryable,
       retryDelayMs: retryDelay(job.attempt),
       now: (input.dependencies.now ?? Date.now)(),
     });
-    if (context?.cleanupSchedule && !normalized.retryable) {
-      await input.dependencies.repository.markCleanupStatus({
-        scheduleId: context.cleanupSchedule.id,
-        status: "failed",
-        errorMessage: normalized.message,
-        now: (input.dependencies.now ?? Date.now)(),
-      });
-    }
     return {
       status:
         result === "retry_wait"

@@ -58,6 +58,17 @@ const sandbox: DeploymentEnvironment = {
   },
 };
 
+function tenantRuntimeSecretRef(tenantToken: string): string {
+  return (
+    `arn:aws:secretsmanager:${sandbox.region}:${sandbox.expectedAccountId}:secret:` +
+    `techlong/sandbox/tenant/${tenantToken}/runtime-abcdef`
+  );
+}
+
+function tenantRuntimeSecretName(tenantToken: string): string {
+  return `techlong/sandbox/tenant/${tenantToken}/runtime`;
+}
+
 test("models the deployment checkpoints and rejects unsafe jumps", () => {
   assert.equal(canTransitionDeployment("preflight", "database_preparing"), true);
   assert.equal(canTransitionDeployment("database_preparing", "migrating"), true);
@@ -126,51 +137,64 @@ test("builds lease bindings in placeholder order and supports expired-job takeov
     workerId: "worker-one",
     now: 1_000,
     leaseDurationMs: 5_000,
+    leaseToken: "lease_00000000000000000000000000000001",
   });
   assert.deepEqual(withoutType.bindings, [
-    1_000,
-    1_000,
-    1_000,
-    1_000,
-    1_000,
-    1_000,
-    1_000,
     "worker-one",
-    6_000,
-    1_000,
+    5_000,
+    "lease_00000000000000000000000000000001",
   ]);
+  assert.match(withoutType.sql, /clock_timestamp\(\)/);
   assert.match(withoutType.sql, /SET status = 'dead_letter'/);
   assert.match(withoutType.sql, /attempts >= max_attempts/);
-  assert.match(withoutType.sql, /status = 'running' AND lease_expires_at <= \?/);
-  assert.match(withoutType.sql, /attempts < max_attempts/);
+  assert.match(
+    withoutType.sql,
+    /status = 'running' AND lease_expires_at <= db_clock\.now_ms/,
+  );
+  assert.match(
+    withoutType.sql,
+    /candidate_job\.attempts < candidate_job\.max_attempts/,
+  );
   assert.match(withoutType.sql, /NOT EXISTS/);
-  assert.match(withoutType.sql, /FOR UPDATE(?: OF candidate_job)? SKIP LOCKED/);
+  assert.match(withoutType.sql, /sibling\.status = 'running'/);
+  assert.doesNotMatch(
+    withoutType.sql,
+    /sibling\.lease_expires_at > db_clock\.now_ms/,
+  );
+  assert.match(
+    withoutType.sql,
+    /FOR UPDATE OF candidate_job, candidate_deployment SKIP LOCKED/,
+  );
 
   const withType = buildDeploymentClaimStatement({
     workerId: "worker-one",
     now: 1_000,
     leaseDurationMs: 5_000,
+    leaseToken: "lease_00000000000000000000000000000002",
     jobType: "rollback",
   });
   assert.deepEqual(withType.bindings, [
-    1_000,
-    1_000,
-    1_000,
-    1_000,
-    1_000,
-    1_000,
     "rollback",
-    1_000,
+    "rollback",
+    "rollback",
+    "rollback",
     "worker-one",
-    6_000,
-    1_000,
+    5_000,
+    "lease_00000000000000000000000000000002",
   ]);
+  assert.match(withType.sql, /released_disallowed AS/);
+  assert.match(withType.sql, /deployment_jobs\.job_type <> \?/);
+  assert.match(withType.sql, /allowed_sibling\.job_type = \?/);
+  assert.match(withType.sql, /candidate_job\.job_type = \?/);
 });
 
 test("step checkpoints require the current unexpired worker lease", () => {
+  assert.match(beginDeploymentStepStatement, /clock_timestamp\(\)/);
   assert.match(beginDeploymentStepStatement, /lease_owner = \?/);
-  assert.match(beginDeploymentStepStatement, /lease_expires_at > \?/);
+  assert.match(beginDeploymentStepStatement, /lease_token = \?/);
+  assert.match(beginDeploymentStepStatement, /lease_expires_at > db_clock\.now_ms/);
   assert.match(beginDeploymentStepStatement, /attempts = \?/);
+  assert.match(beginDeploymentStepStatement, /FOR UPDATE OF job/);
   assert.match(beginDeploymentStepStatement, /FROM owned_job/);
   assert.match(
     beginDeploymentStepStatement,
@@ -181,7 +205,12 @@ test("step checkpoints require the current unexpired worker lease", () => {
     /ON CONFLICT \(deployment_id, step_key, input_hash, attempt\)/,
   );
   assert.match(finishDeploymentStepStatement, /job\.lease_owner = \?/);
-  assert.match(finishDeploymentStepStatement, /job\.lease_expires_at > \?/);
+  assert.match(finishDeploymentStepStatement, /job\.lease_token = \?/);
+  assert.match(
+    finishDeploymentStepStatement,
+    /job\.lease_expires_at > db_clock\.now_ms/,
+  );
+  assert.match(finishDeploymentStepStatement, /FOR UPDATE OF job/);
 });
 
 test("rejects secrets and redacts credentials before persistence", () => {
@@ -231,6 +260,8 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
   const rendered = renderAwsSandboxTenantStack({
     deploymentId: "dep_tenant_one",
     resourceGeneration: 1,
+    runtimeSecretRef: tenantRuntimeSecretRef("tenant_one_123"),
+    runtimeSecretName: tenantRuntimeSecretName("tenant_one_123"),
     plan,
     environment: sandbox,
     imageUri: `402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:${"a".repeat(64)}`,
@@ -292,15 +323,84 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
   assert.equal(rendered.tags.DeploymentId, "dep_tenant_one");
   assert.equal(rendered.tags.ExpiresAt, "2026-08-09T02:00:00.000Z");
   assert.ok(rendered.requiredExternalParameters.includes("ControlListenerArn"));
-  assert.ok(rendered.requiredExternalParameters.includes("DatabaseUrlValueFrom"));
-  assert.ok(rendered.requiredExternalParameters.includes("StripeSecretKeyValueFrom"));
+  assert.equal(rendered.requiredExternalParameters.includes("DatabaseUrlValueFrom"), false);
+  assert.equal(rendered.requiredExternalParameters.includes("HmacSecretKeyValueFrom"), false);
+  assert.equal(rendered.requiredExternalParameters.includes("JwtSecretKeyValueFrom"), false);
+  assert.equal(rendered.requiredExternalParameters.includes("StripeSecretKeyValueFrom"), false);
+  assert.equal(
+    rendered.parameters.TenantRuntimeSecretArn,
+    tenantRuntimeSecretRef("tenant_one_123"),
+  );
   assert.equal(rendered.requiredExternalParameters.includes("PgSslRootCertValueFrom"), false);
+
+  const taskDefinition = (
+    rendered.template.Resources as Record<
+      string,
+      { Properties?: { ContainerDefinitions?: Array<Record<string, unknown>> } }
+    >
+  ).TenantTaskDefinition;
+  const container = taskDefinition.Properties?.ContainerDefinitions?.[0] as {
+    Secrets: Array<{
+      Name: string;
+      ValueFrom: { "Fn::Sub": string } | { Ref: string };
+    }>;
+    HealthCheck: { Command: string[] };
+  };
+  assert.deepEqual(container.HealthCheck.Command.slice(0, 3), [
+    "CMD",
+    "/usr/local/bin/node",
+    "-e",
+  ]);
+  assert.equal(container.HealthCheck.Command.includes("CMD-SHELL"), false);
+  const runtimeSecretNames = new Set([
+    "DATABASE_URL",
+    "HMAC_SECRET_KEY",
+    "JWT_SECRET_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+  ]);
+  assert.deepEqual(
+    Object.fromEntries(
+      container.Secrets
+        .filter((secret) => runtimeSecretNames.has(secret.Name))
+        .map((secret) => [
+          secret.Name,
+          "Fn::Sub" in secret.ValueFrom
+            ? secret.ValueFrom["Fn::Sub"]
+            : null,
+        ]),
+    ),
+    {
+      DATABASE_URL: "${TenantRuntimeSecretArn}:database_url::",
+      HMAC_SECRET_KEY: "${TenantRuntimeSecretArn}:hmac_secret_key::",
+      JWT_SECRET_KEY: "${TenantRuntimeSecretArn}:jwt_secret_key::",
+      STRIPE_SECRET_KEY: "${TenantRuntimeSecretArn}:stripe_secret_key::",
+      STRIPE_WEBHOOK_SECRET:
+        "${TenantRuntimeSecretArn}:stripe_webhook_secret::",
+    },
+  );
+  assert.deepEqual(
+    container.Secrets.find((secret) => secret.Name === "SAAS_CONTROL_PUBLIC_KEY")
+      ?.ValueFrom,
+    { Ref: "ControlPublicKeyValueFrom" },
+  );
+  assert.equal(
+    (
+      rendered.template.Resources as Record<
+        string,
+        { Properties?: { PlatformVersion?: string } }
+      >
+    ).TenantService.Properties?.PlatformVersion,
+    "1.4.0",
+  );
 
   assert.throws(
     () =>
       renderAwsSandboxTenantStack({
         deploymentId: "dep_tenant_one",
         resourceGeneration: 1,
+        runtimeSecretRef: tenantRuntimeSecretRef("tenant_one_123"),
+        runtimeSecretName: tenantRuntimeSecretName("tenant_one_123"),
         plan,
         environment: sandbox,
         imageUri: `402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:${"a".repeat(64)}`,
@@ -311,5 +411,76 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
         requestedAt: Date.UTC(2026, 7, 9),
       }),
     /base domain|preflight/i,
+  );
+});
+
+test("binds each tenant stack to one exact account-and-region runtime Secret", () => {
+  const plan = new AwsEcsCellPlanOnlyDriver({
+    region: sandbox.region,
+    cellKey: sandbox.cellKey,
+    mode: "aws_sandbox",
+  }).buildPlan({
+    appInstanceId: "app_tenant_one",
+    workspaceId: "wsp_one",
+    productId: "prd_restaurant_order_system",
+    planId: "plan_basic",
+    subscriptionId: "sub_one",
+    tenantKey: "tenant_one",
+    deploymentProfileKey: "standard-v1",
+  });
+  const render = (
+    runtimeSecretRef: string,
+    runtimeSecretName = tenantRuntimeSecretName("tenant_one_123"),
+  ) =>
+    renderAwsSandboxTenantStack({
+      deploymentId: "dep_tenant_one",
+      resourceGeneration: 1,
+      runtimeSecretRef,
+      runtimeSecretName,
+      plan,
+      environment: sandbox,
+      imageUri: `402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:${"a".repeat(64)}`,
+      tenantHostname: "tenant-one.sandbox.techlong.cloud",
+      listenerPriority: 100,
+      activeCellCount: 1,
+      activeTenantCount: 0,
+      requestedAt: Date.UTC(2026, 7, 9),
+    });
+  const tenantOne = tenantRuntimeSecretRef("tenant_one_123");
+  const tenantTwo = tenantRuntimeSecretRef("tenant_two_456");
+  assert.notEqual(
+    render(tenantOne).parameters.TenantRuntimeSecretArn,
+    render(tenantTwo, tenantRuntimeSecretName("tenant_two_456")).parameters
+      .TenantRuntimeSecretArn,
+  );
+  for (const rejected of [
+    tenantOne.replace(":402010193138:", ":999999999999:"),
+    tenantOne.replace(":ca-central-1:", ":us-east-1:"),
+    `${tenantOne}:database_url::`,
+    "postgresql://owner:password@example.invalid/database",
+  ]) {
+    assert.throws(() => render(rejected), /runtime Secret.*account and region/i);
+  }
+  assert.throws(
+    () => render(tenantTwo),
+    /runtime Secret.*account and region/i,
+  );
+  assert.throws(
+    () =>
+      renderAwsSandboxTenantStack({
+        deploymentId: "dep_tenant_one",
+        resourceGeneration: 1,
+        runtimeSecretRef: tenantOne,
+        runtimeSecretName: tenantRuntimeSecretName("tenant_one_123"),
+        plan,
+        environment: sandbox,
+        imageUri: `402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:${"a".repeat(64)}`,
+        tenantHostname: "nested.tenant-one.sandbox.techlong.cloud",
+        listenerPriority: 100,
+        activeCellCount: 1,
+        activeTenantCount: 0,
+        requestedAt: Date.UTC(2026, 7, 9),
+      }),
+    /exactly one tenant label/i,
   );
 });

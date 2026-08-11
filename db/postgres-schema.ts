@@ -795,6 +795,7 @@ export const deploymentJobs = pgTable("deployment_jobs", {
 	availableAt: bigint("available_at", { mode: "number" }).notNull(),
 	leaseOwner: text("lease_owner"),
 	leaseExpiresAt: bigint("lease_expires_at", { mode: "number" }),
+	leaseToken: text("lease_token"),
 	lastErrorCode: text("last_error_code"),
 	lastErrorMessage: text("last_error_message"),
 	createdAt: bigint("created_at", { mode: "number" }).notNull(),
@@ -816,7 +817,8 @@ export const deploymentJobs = pgTable("deployment_jobs", {
 	check("deployment_jobs_payload_check", sql`jsonb_typeof((payload)::jsonb) = 'object'::text AND octet_length(payload) <= 32768`),
 	check("deployment_jobs_attempts_check", sql`attempts >= 0`),
 	check("deployment_jobs_max_attempts_check", sql`max_attempts >= 1 AND max_attempts <= 20`),
-	check("deployment_jobs_lease_check", sql`status <> 'running'::text OR (lease_owner IS NOT NULL AND lease_expires_at IS NOT NULL)`),
+	check("deployment_jobs_lease_token_check", sql`lease_token IS NULL OR lease_token ~ '^lease_[a-f0-9]{32}$'::text`),
+	check("deployment_jobs_lease_check", sql`(status = 'running'::text AND lease_owner IS NOT NULL AND lease_expires_at IS NOT NULL AND lease_token IS NOT NULL) OR (status <> 'running'::text AND lease_owner IS NULL AND lease_expires_at IS NULL AND lease_token IS NULL)`),
 ]);
 
 export const deploymentStepRuns = pgTable("deployment_step_runs", {

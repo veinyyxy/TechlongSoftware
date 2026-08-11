@@ -1,5 +1,6 @@
 import type {
   CleanupSchedulePort,
+  DeploymentJobLeaseFence,
   TenantDatabaseDestroyReceipt,
   TenantDatabaseLifecyclePort,
   TenantResourceCleanupReceipt,
@@ -196,11 +197,17 @@ export class OrderedTenantResourceCleanup {
 
   async destroy(input: {
     fence: TenantResourceFence;
-    jobId: string;
-    workerId: string;
+    lease: DeploymentJobLeaseFence;
     idempotencyKey: string;
+    signal?: AbortSignal;
   }): Promise<TenantResourceCleanupReceipt> {
     assertTenantResourceFence(input.fence);
+    if (input.lease.deploymentId !== input.fence.ownerDeploymentId) {
+      throw new TenantDatabaseLifecycleError(
+        "TENANT_CLEANUP_FENCE_REJECTED",
+        "Tenant cleanup lease does not own the resource generation.",
+      );
+    }
     if (!/^[A-Za-z0-9][A-Za-z0-9:._-]{0,199}$/.test(input.idempotencyKey)) {
       throw new TenantDatabaseLifecycleError(
         "TENANT_IDEMPOTENCY_KEY_INVALID",
@@ -210,8 +217,7 @@ export class OrderedTenantResourceCleanup {
 
     const acquired = await this.fences.beginTenantResourceCleanup({
       fence: input.fence,
-      jobId: input.jobId,
-      workerId: input.workerId,
+      lease: input.lease,
       now: this.now(),
     });
     if (!acquired) {
@@ -225,10 +231,15 @@ export class OrderedTenantResourceCleanup {
     const assertCurrent = async (
       phase: TenantResourceCleanupFencePhase,
     ): Promise<void> => {
+      if (input.signal?.aborted) {
+        throw new TenantDatabaseLifecycleError(
+          "DEPLOYMENT_LEASE_LOST",
+          "Tenant cleanup was canceled after losing its deployment lease.",
+        );
+      }
       const current = await this.fences.assertTenantResourceCleanupFence({
         fence: acquired,
-        jobId: input.jobId,
-        workerId: input.workerId,
+        lease: input.lease,
         phase,
         now: this.now(),
       });
@@ -236,6 +247,12 @@ export class OrderedTenantResourceCleanup {
         throw new TenantDatabaseLifecycleError(
           "TENANT_CLEANUP_FENCE_LOST",
           `Tenant cleanup fence was lost at ${phase}.`,
+        );
+      }
+      if (input.signal?.aborted) {
+        throw new TenantDatabaseLifecycleError(
+          "DEPLOYMENT_LEASE_LOST",
+          "Tenant cleanup was canceled after losing its deployment lease.",
         );
       }
     };
@@ -272,8 +289,7 @@ export class OrderedTenantResourceCleanup {
     await assertCurrent("before_complete");
     const completed = await this.fences.completeTenantResourceCleanup({
       fence: acquired,
-      jobId: input.jobId,
-      workerId: input.workerId,
+      lease: input.lease,
       receipt,
       now: this.now(),
     });

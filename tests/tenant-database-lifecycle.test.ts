@@ -103,6 +103,7 @@ function context(input: {
       attempt: 1,
       maxAttempts: 5,
       leaseExpiresAt: now + 60_000,
+      leaseToken: "lease_00000000000000000000000000000001",
     },
     deployment: {
       id: deploymentId,
@@ -610,6 +611,16 @@ function cleanupFences(
   };
 }
 
+function cleanupLease(resourceFence: TenantResourceFence, jobId: string) {
+  return {
+    jobId,
+    deploymentId: resourceFence.ownerDeploymentId,
+    workerId: "worker_one",
+    attempt: 1,
+    leaseToken: "lease_00000000000000000000000000000002",
+  };
+}
+
 test("fences cleanup before every external step and completes the same generation", async () => {
   const identity = await deriveTenantResourceIdentity(context());
   const resourceFence = fence(identity);
@@ -654,8 +665,7 @@ test("fences cleanup before every external step and completes the same generatio
   const call = () =>
     cleanup.destroy({
       fence: resourceFence,
-      jobId: "job_cleanup",
-      workerId: "worker_one",
+      lease: cleanupLease(resourceFence, "job_cleanup"),
       idempotencyKey: "dep_one:cleanup:g1",
     });
   const first = await call();
@@ -695,8 +705,7 @@ test("a stale cleanup fence makes zero external calls", async () => {
   await assert.rejects(
     cleanup.destroy({
       fence: staleFence,
-      jobId: "job_old_cleanup",
-      workerId: "worker_one",
+      lease: cleanupLease(staleFence, "job_old_cleanup"),
       idempotencyKey: "dep_old:cleanup:g1",
     }),
     (error: unknown) =>
@@ -739,8 +748,7 @@ test("losing the fence after workload stops database and secret deletion", async
   await assert.rejects(
     cleanup.destroy({
       fence: resourceFence,
-      jobId: "job_cleanup",
-      workerId: "worker_one",
+      lease: cleanupLease(resourceFence, "job_cleanup"),
       idempotencyKey: "dep_one:cleanup:g1",
     }),
     (error: unknown) =>
@@ -791,8 +799,7 @@ test("never deletes a secret or completes after partial database cleanup", async
   await assert.rejects(
     cleanup.destroy({
       fence: resourceFence,
-      jobId: "job_cleanup",
-      workerId: "worker_one",
+      lease: cleanupLease(resourceFence, "job_cleanup"),
       idempotencyKey: "dep_one:cleanup:g1",
     }),
     (error: unknown) =>

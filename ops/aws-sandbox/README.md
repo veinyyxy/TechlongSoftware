@@ -1,8 +1,8 @@
-# AWS Sandbox S0–S3-B 安全 Bootstrap 与离线 Cell 基础
+# AWS Sandbox S0–S3-B5 安全 Bootstrap 与离线 Cell 基础
 
 这个目录保存可审查的静态配置、CloudFormation 模板、IAM 边界、TTL Janitor、镜像构建基础和默认不执行的运维脚本。仓库中不包含 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。
 
-S3-A Bootstrap 脚本默认仅运行本地验证；只有显式选择 `CreateChangeSet` 或 `Apply`、确认账号、提供预算通知邮箱并确认 MFA 前置条件后，脚本才会产生 AWS 写操作。S3-B 新增的 Shared Cell 模板、Cell Janitor 和 Cell Operator 权限边界目前都只是离线渲染/示例基础，没有部署入口，不能执行真实 Cell Apply。
+S3-A Bootstrap 脚本默认仅运行本地验证；只有显式选择 `CreateChangeSet` 或 `Apply`、确认账号、提供预算通知邮箱并确认 MFA 前置条件后，脚本才会产生 AWS 写操作。B5 又增加了一个独立的 Cell Bootstrap：它只准备 MFA Operator、独立 CloudFormation Execution Role、Cell Janitor 和 15 分钟兜底计划，不创建 VPC、ALB、ECS、Aurora 或 Shared Cell。它的默认模式同样只做本地验证，真实写入严格拆成“创建 Change Set”和“人工审查后执行 Change Set”两次命令。
 
 ## 固定安全边界
 
@@ -30,7 +30,8 @@ ops/aws-sandbox/
 ├─ sandbox.example.json
 ├─ cloudformation/
 │  ├─ guardrails.template.json
-│  └─ s3-bootstrap.template.json
+│  ├─ s3-bootstrap.template.json
+│  └─ s3-b5-cell-bootstrap.template.json
 ├─ codebuild/
 │  └─ buildspec.aws-sandbox.yml
 ├─ lambda/
@@ -42,10 +43,13 @@ ops/aws-sandbox/
 │  └─ sandbox-expensive-actions-deny.example.json
 └─ scripts/
    ├─ render-bootstrap.mjs
+   ├─ render-b5-cell-bootstrap.mjs
+   ├─ s3-b5-cell-bootstrap.ps1
    ├─ s3-bootstrap.ps1
    ├─ s3-build-image.ps1
    ├─ s3-rollback.ps1
    ├─ validate-cell.mjs
+   ├─ validate-b5-cell-bootstrap.mjs
    └─ validate.mjs
 ```
 
@@ -75,7 +79,7 @@ Bootstrap 模板中的 Janitor 源码使用占位符，部署脚本会从 `lambd
 npm --prefix .\ops\aws-sandbox test
 ```
 
-该命令同时执行 S0–S3-A Bootstrap 静态检查和 S3-B Shared Cell 渲染检查。单独运行 `validate.mjs` 只覆盖前者，不等价于完整验证。
+该命令同时执行 S0–S3-A Bootstrap、S3-B Shared Cell 渲染，以及 B5 Cell Bootstrap/双阶段 Change Set 边界检查。单独运行 `validate.mjs` 只覆盖 S0–S3-A，不等价于完整验证。
 
 检查内容包括：
 
@@ -91,6 +95,8 @@ npm --prefix .\ops\aws-sandbox test
 - Provisioner Role 信任关系强制 MFA，且模板中不存在 IAM User/Group 资源。
 - 租户 Janitor 对错误前缀、缺标签、错误标签、无效/未来 `ExpiresAt`、嵌套 Stack，以及不匹配的 DeploymentId、AppInstanceId、CellId 或 ResourceGeneration 均拒绝删除。
 - Shared Cell 模板固定为 render-only，TTL Schedule 先于收费资源，Cell Janitor 与 Operator 权限边界保持独立且尚未部署。
+- B5 Bootstrap 本身不含 VPC、ALB、ECS、Aurora、NAT、VPC Endpoint 或 Route 53 Hosted Zone；Operator 不能直接 `CreateStack`/`UpdateStack`，只能操作固定 Cell Stack 的 Change Set。
+- B5 Operator 强制 MFA 和精确 session name；Cell、Janitor 和 Scheduler 角色彼此分离，Cell Janitor 有独立的 15 分钟扫描兜底。
 - ECR、CodeBuild、源码 Bucket、Scheduler 和角色权限边界没有漂移。
 
 ## Bootstrap 操作模式
@@ -123,6 +129,18 @@ npm --prefix .\ops\aws-sandbox test
   -ConfirmAccountId '402010193138' `
   -AcknowledgeMfaPrerequisite
 ```
+
+## B5 Cell Bootstrap（仍不创建 Shared Cell）
+
+默认命令只渲染并检查本地文件，不需要 AWS CLI，也不会调用 AWS：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-cell-bootstrap.ps1
+```
+
+`OnlineValidate` 只读取 STS 身份并调用 CloudFormation `ValidateTemplate`。`CreateChangeSet` 与 `ExecuteChangeSet` 参数形状已预留，但当前由脚本内的固定门禁在任何 AWS API 调用前硬拒绝，不能通过确认字符串或环境变量打开。其 IAM lifecycle scope、MFA 执行身份、规范化模板/参数/tag digest 绑定、精确 3 小时 TTL，以及 Stack 外资源 cleanup 完成评审后，才可在后续独立变更中打开。
+
+即使将来部署这个 Bootstrap，它也会创建 Lambda、Logs 和 Scheduler 等 AWS 运行资源，可能产生少量费用；它只是不创建 VPC、ALB、ECS 或 Aurora 等付费 Cell 资源。DNS、ACM、ACTIVE Trust Store、完整租户 database/role/Secret 清理协调器和真实 TTL 删除演练仍是独立阻断项，`applyRuntimeReady` 必须继续为 `false`。
 
 此前已确认 IAM User 绑定 MFA，并成功建立受限 Provisioner AssumeRole 会话；Provisioner Role 的信任策略仍会拒绝无 MFA 会话。本模板不修改现有 IAM User 或 Administrators 组，SaaS Worker Apply 继续保持关闭。
 
@@ -193,7 +211,7 @@ ExpiresAt=<UTC timestamp>
 
 租户 Janitor 不直接逐项删除 AWS 资源，只调用 CloudFormation `DeleteStack`，让 Stack 按依赖关系回滚。它同时要求：Stack 名严格匹配 `techlong-sandbox-tenant-<1至16位小写字母或数字>`、是顶层 Stack、`Environment=aws-sandbox`、`ManagedBy=techlong-provisioner`、非空 `DeploymentId`/`AppInstanceId`/`CellId`、正整数 `ResourceGeneration`，以及格式严格且已经到期的 UTC `ExpiresAt`。`DELETE_IN_PROGRESS`、`DELETE_COMPLETE` 和 `REVIEW_IN_PROGRESS` 会跳过；`DELETE_FAILED` 会在全局扫描中重试。共享 Cell 即使误带租户标签也不能被租户 Janitor 删除。全局扫描每次最多删除一个 Stack，定向清理还必须同时匹配 payload 中的 `DeploymentId`、`AppInstanceId` 和 `ResourceGeneration`。
 
-`cell-janitor.cjs`、`cell-operator-permissions-boundary.example.json` 与 Shared Cell 模板目前仅供离线审查，尚未部署。Cell Janitor 代码不能清理 CloudFormation Stack 外的租户 database、role 或 Secret；没有完整、有围栏的 cleanup coordinator 与真实 TTL 演练时，禁止 Cell Apply。
+`cell-janitor.cjs` 和原有 `cell-operator-permissions-boundary.example.json` 仍是离线审查来源；B5 独立 Bootstrap 已把更严格的精确单 Cell 权限、Janitor 和全局扫描计划组装为可生成 Change Set 的模板，但本次没有部署。Cell Janitor 代码仍不能清理 CloudFormation Stack 外的租户 database、role 或 Secret；没有完整、有围栏的 cleanup coordinator 与真实 TTL 演练时，禁止 Cell Apply。
 
 回退默认只显示计划。真实回退会先拒绝仍有租户 Stack 的环境，然后验证专用源码 Bucket 的三项安全标签、清空该 Bucket，并删除 Bootstrap；这也会清空并删除 Sandbox ECR 镜像。Budget 只有额外传入 `-DeleteBudgetGuardrail` 和准确 Stack 名时才删除。
 
@@ -205,6 +223,8 @@ ExpiresAt=<UTC timestamp>
 
 - `provisioner-permissions-boundary.example.json` 是最大权限边界，不是授予权限的 Identity Policy。
 - Provisioner 只被允许管理 `techlong-sandbox-tenant-*` CloudFormation Stack，并只可 Pass 指定的 Sandbox Execution Role；共享 Cell 和 Bootstrap 不在租户 Worker 权限内。
+- B5 Cell Operator 只能为精确的 `techlong-sandbox-cell-sandbox-1` 创建、读取和执行 Change Set；不能直接调用 `CreateStack` 或 `UpdateStack`。Cell Bootstrap 自身仍由现有 IAM User 通过独立双阶段脚本创建，因此移除该用户的长期 AdministratorAccess 仍是付费 Cell 前置条件。
+- B5 Cell Execution Boundary 既有明确 Allow 清单，也显式 Deny NAT、VPC Endpoint、EC2、RDS Proxy、Global Database、快照恢复和预留购买；但 IAM 条件键与 CloudFormation 实际调用必须在未来 OnlineValidate/IAM simulation 中再次核对，离线检查不构成 AWS 授权证明。
 - `sandbox-expensive-actions-deny.example.json` 是 Deny-only 示例。当前账号未使用 AWS Organizations，因此只能把它作为 IAM Policy 评审起点，不能假设 SCP 已生效。
 - 策略中的 Account、Region 和角色名称属于非敏感固定标识，但上线前仍必须与实际账号状态核对。
 

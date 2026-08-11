@@ -7,13 +7,18 @@ import {
   parseDeploymentEnvironmentPolicy,
   type DeploymentEnvironment,
 } from "../environment.ts";
-import type { DeploymentStatus } from "../state-machine.ts";
+import type {
+  DeploymentJobStatus,
+  DeploymentStatus,
+} from "../state-machine.ts";
 import { assertSafeDeploymentOutput, normalizeDeploymentError } from "../safety.ts";
+import { createDeploymentLeaseToken } from "../lease.ts";
 import type {
   ClaimedDeploymentJob,
   DeploymentCleanupSchedule,
   DeploymentExecutionContext,
   DeploymentExecutionRepository,
+  DeploymentJobEnqueueResult,
   DeploymentStepHandle,
   DeploymentTenantResourceLifecycleWrite,
   DeploymentTenantResourceRecord,
@@ -245,47 +250,146 @@ export class NeonDeploymentExecutionRepository
     leaseDurationMs: number;
     jobTypes: ClaimedDeploymentJob["jobType"][];
   }): Promise<ClaimedDeploymentJob | null> {
+    if (input.jobTypes.length === 0) {
+      throw new Error("At least one deployment job type must be allowed.");
+    }
+    const leaseToken = createDeploymentLeaseToken();
     const rows = await query<Record<string, unknown>>(
       this.sql,
-      `WITH exhausted AS (
-        UPDATE deployment_jobs
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), released_disallowed AS (
+        UPDATE deployment_jobs AS blocked
+        SET status = CASE
+              WHEN blocked.attempts >= blocked.max_attempts
+                THEN 'dead_letter'
+              ELSE 'retry_wait'
+            END,
+            available_at = db_clock.now_ms,
+            lease_owner = NULL, lease_expires_at = NULL, lease_token = NULL,
+            last_error_code = CASE
+              WHEN blocked.attempts >= blocked.max_attempts
+                THEN COALESCE(blocked.last_error_code, 'LEASE_EXHAUSTED')
+              ELSE blocked.last_error_code
+            END,
+            last_error_message = CASE
+              WHEN blocked.attempts >= blocked.max_attempts
+                THEN COALESCE(blocked.last_error_message, 'Worker lease expired.')
+              ELSE blocked.last_error_message
+            END,
+            updated_at = db_clock.now_ms,
+            completed_at = CASE
+              WHEN blocked.attempts >= blocked.max_attempts
+                THEN db_clock.now_ms
+              ELSE NULL
+            END
+        FROM db_clock
+        WHERE blocked.status = 'running'
+          AND blocked.lease_expires_at <= db_clock.now_ms
+          AND blocked.job_type <> ALL($1::text[])
+          AND EXISTS (
+            SELECT 1
+            FROM deployment_jobs AS allowed_sibling
+            WHERE allowed_sibling.deployment_id = blocked.deployment_id
+              AND allowed_sibling.id <> blocked.id
+              AND allowed_sibling.job_type = ANY($1::text[])
+              AND allowed_sibling.attempts < allowed_sibling.max_attempts
+              AND (
+                (
+                  allowed_sibling.status IN ('pending', 'retry_wait')
+                  AND allowed_sibling.available_at <= db_clock.now_ms
+                ) OR (
+                  allowed_sibling.status = 'running'
+                  AND allowed_sibling.lease_expires_at <= db_clock.now_ms
+                )
+              )
+          )
+        RETURNING blocked.id, blocked.deployment_id, blocked.job_type,
+          blocked.status
+      ), exhausted AS (
+        UPDATE deployment_jobs AS exhausted_job
         SET status = 'dead_letter', lease_owner = NULL, lease_expires_at = NULL,
+            lease_token = NULL,
             last_error_code = COALESCE(last_error_code, 'LEASE_EXHAUSTED'),
             last_error_message = COALESCE(last_error_message, 'Worker lease expired.'),
-            updated_at = $1, completed_at = $1
-        WHERE status = 'running' AND lease_expires_at <= $1
-          AND attempts >= max_attempts
-        RETURNING id
+            updated_at = db_clock.now_ms, completed_at = db_clock.now_ms
+        FROM db_clock
+        WHERE exhausted_job.status = 'running'
+          AND exhausted_job.lease_expires_at <= db_clock.now_ms
+          AND exhausted_job.attempts >= exhausted_job.max_attempts
+          AND exhausted_job.job_type = ANY($1::text[])
+        RETURNING exhausted_job.id, exhausted_job.deployment_id,
+          exhausted_job.job_type, exhausted_job.status
+      ), dead_cleanup_job AS (
+        SELECT deployment_id, job_type
+        FROM released_disallowed
+        WHERE status = 'dead_letter'
+        UNION ALL
+        SELECT deployment_id, job_type
+        FROM exhausted
+        WHERE status = 'dead_letter'
+      ), failed_cleanup AS (
+        UPDATE deployment_cleanup_schedules AS schedule
+        SET status = 'failed',
+            last_error = COALESCE(
+              schedule.last_error,
+              'The cleanup worker lease expired before the final attempt completed.'
+            ),
+            updated_at = db_clock.now_ms,
+            completed_at = db_clock.now_ms
+        FROM dead_cleanup_job, db_clock
+        WHERE schedule.deployment_id = dead_cleanup_job.deployment_id
+          AND dead_cleanup_job.job_type IN ('cleanup', 'rollback')
+          AND schedule.status <> 'succeeded'
+        RETURNING schedule.id
       ), candidate AS (
-        SELECT id
+        SELECT candidate_job.id
         FROM deployment_jobs AS candidate_job
+        INNER JOIN app_instance_deployments AS candidate_deployment
+          ON candidate_deployment.id = candidate_job.deployment_id
+        CROSS JOIN db_clock
         WHERE (
-            (status IN ('pending', 'retry_wait') AND available_at <= $1)
-            OR (status = 'running' AND lease_expires_at <= $1)
+            (
+              candidate_job.status IN ('pending', 'retry_wait')
+              AND candidate_job.available_at <= db_clock.now_ms
+            ) OR (
+              candidate_job.status = 'running'
+              AND candidate_job.lease_expires_at <= db_clock.now_ms
+            )
           )
-          AND attempts < max_attempts
-          AND job_type = ANY($4::text[])
+          AND candidate_job.attempts < candidate_job.max_attempts
+          AND candidate_job.job_type = ANY($1::text[])
           AND NOT EXISTS (
             SELECT 1 FROM deployment_jobs AS sibling
             WHERE sibling.deployment_id = candidate_job.deployment_id
               AND sibling.id <> candidate_job.id
               AND sibling.status = 'running'
-              AND sibling.lease_expires_at > $1
           )
+          AND (SELECT count(*) FROM released_disallowed) >= 0
           AND (SELECT count(*) FROM exhausted) >= 0
-        ORDER BY (status = 'running') DESC, available_at, created_at
-        FOR UPDATE OF candidate_job SKIP LOCKED
+          AND (SELECT count(*) FROM failed_cleanup) >= 0
+        ORDER BY (candidate_job.status = 'running') DESC,
+          candidate_job.available_at, candidate_job.created_at
+        FOR UPDATE OF candidate_job, candidate_deployment SKIP LOCKED
         LIMIT 1
       )
       UPDATE deployment_jobs AS job
-      SET status = 'running', lease_owner = $2, lease_expires_at = $3,
-          attempts = job.attempts + 1, updated_at = $1,
+      SET status = 'running', lease_owner = $2,
+          lease_expires_at = db_clock.now_ms + $3,
+          lease_token = $4,
+          attempts = job.attempts + 1, updated_at = db_clock.now_ms,
           last_error_code = NULL, last_error_message = NULL
-      FROM candidate
+      FROM candidate, db_clock
       WHERE job.id = candidate.id
       RETURNING job.id, job.deployment_id, job.job_type, job.payload,
-        job.attempts, job.max_attempts, job.lease_expires_at`,
-      [input.now, input.workerId, input.now + input.leaseDurationMs, input.jobTypes],
+        job.attempts, job.max_attempts, job.lease_expires_at,
+        job.lease_token`,
+      [
+        input.jobTypes,
+        input.workerId,
+        input.leaseDurationMs,
+        leaseToken,
+      ],
     );
     const row = rows[0];
     return row
@@ -297,6 +401,7 @@ export class NeonDeploymentExecutionRepository
           attempt: integer(row.attempts),
           maxAttempts: integer(row.max_attempts),
           leaseExpiresAt: integer(row.lease_expires_at),
+          leaseToken: text(row.lease_token),
         }
       : null;
   }
@@ -462,7 +567,7 @@ export class NeonDeploymentExecutionRepository
   }
 
   async reserveEnvironmentCapacity(input: {
-    deploymentId: string;
+    lease: Parameters<DeploymentExecutionRepository["reserveEnvironmentCapacity"]>[0]["lease"];
     environmentId: string;
     maxTenants: number;
     now: number;
@@ -476,16 +581,30 @@ export class NeonDeploymentExecutionRepository
     }
     const rows = await query<Record<string, unknown>>(
       this.sql,
-      `WITH locked_environment AS MATERIALIZED (
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), owned_job AS MATERIALIZED (
+        SELECT job.id
+        FROM deployment_jobs AS job
+        CROSS JOIN db_clock
+        WHERE job.id = $5 AND job.deployment_id = $1
+          AND job.status = 'running'
+          AND job.lease_owner = $6 AND job.lease_token = $7
+          AND job.attempts = $8
+          AND job.lease_expires_at > db_clock.now_ms
+        FOR UPDATE OF job
+      ), locked_environment AS MATERIALIZED (
         SELECT id
         FROM deployment_environments
         WHERE id = $2 AND kind = 'aws_sandbox'
+          AND EXISTS (SELECT 1 FROM owned_job)
         FOR UPDATE
       ), existing AS MATERIALIZED (
         SELECT reservation.deployment_id
         FROM deployment_environment_capacity_reservations reservation
         INNER JOIN locked_environment environment
           ON environment.id = reservation.environment_id
+        INNER JOIN owned_job ON true
         WHERE reservation.deployment_id = $1
           AND reservation.slot <= $3
       ), next_slot AS MATERIALIZED (
@@ -506,6 +625,7 @@ export class NeonDeploymentExecutionRepository
         )
         SELECT deployment.id, environment.id, next_slot.slot, $4
         FROM app_instance_deployments deployment
+        INNER JOIN owned_job ON true
         INNER JOIN locked_environment environment
           ON environment.id = deployment.environment_id
         INNER JOIN next_slot ON true
@@ -523,13 +643,22 @@ export class NeonDeploymentExecutionRepository
       UNION ALL
       SELECT deployment_id FROM inserted
       LIMIT 1`,
-      [input.deploymentId, input.environmentId, input.maxTenants, input.now],
+      [
+        input.lease.deploymentId,
+        input.environmentId,
+        input.maxTenants,
+        input.now,
+        input.lease.jobId,
+        input.lease.workerId,
+        input.lease.leaseToken,
+        input.lease.attempt,
+      ],
     );
     return rows.length === 1;
   }
 
   async confirmCleanupSchedule(input: {
-    deploymentId: string;
+    lease: Parameters<DeploymentExecutionRepository["confirmCleanupSchedule"]>[0]["lease"];
     environmentId: string;
     stackName: string;
     expiresAt: number;
@@ -537,13 +666,27 @@ export class NeonDeploymentExecutionRepository
     confirmedAt: number;
     now: number;
   }): Promise<DeploymentCleanupSchedule> {
-    const id = `clean_${(await sha256Hex(input.deploymentId)).slice(0, 24)}`;
+    const id = `clean_${(await sha256Hex(input.lease.deploymentId)).slice(0, 24)}`;
     const rows = await query<Record<string, unknown>>(
       this.sql,
-      `INSERT INTO deployment_cleanup_schedules (
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), owned_job AS MATERIALIZED (
+        SELECT job.id
+        FROM deployment_jobs AS job
+        CROSS JOIN db_clock
+        WHERE job.id = $9 AND job.deployment_id = $2
+          AND job.status = 'running'
+          AND job.lease_owner = $10 AND job.lease_token = $11
+          AND job.attempts = $12
+          AND job.lease_expires_at > db_clock.now_ms
+        FOR UPDATE OF job
+      )
+      INSERT INTO deployment_cleanup_schedules (
         id, deployment_id, environment_id, stack_name, status, expires_at,
         provider_schedule_ref, confirmed_at, last_error, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, 'confirmed', $5, $6, $7, NULL, $8, $8)
+      ) SELECT $1, $2, $3, $4, 'confirmed', $5, $6, $7, NULL, $8, $8
+        FROM owned_job
       ON CONFLICT (deployment_id) DO UPDATE
       SET status = 'confirmed', provider_schedule_ref = EXCLUDED.provider_schedule_ref,
           confirmed_at = EXCLUDED.confirmed_at, updated_at = EXCLUDED.updated_at,
@@ -555,13 +698,17 @@ export class NeonDeploymentExecutionRepository
       RETURNING id, deployment_id, status, expires_at, provider_schedule_ref, confirmed_at`,
       [
         id,
-        input.deploymentId,
+        input.lease.deploymentId,
         input.environmentId,
         input.stackName,
         input.expiresAt,
         input.providerScheduleRef,
         input.confirmedAt,
         input.now,
+        input.lease.jobId,
+        input.lease.workerId,
+        input.lease.leaseToken,
+        input.lease.attempt,
       ],
     );
     const row = rows[0];
@@ -577,25 +724,44 @@ export class NeonDeploymentExecutionRepository
   }
 
   async heartbeat(input: {
-    jobId: string;
-    workerId: string;
+    lease: Parameters<DeploymentExecutionRepository["heartbeat"]>[0]["lease"];
     now: number;
     leaseDurationMs: number;
   }): Promise<boolean> {
     const rows = await query(
       this.sql,
-      `UPDATE deployment_jobs SET lease_expires_at = $1, updated_at = $2
-       WHERE id = $3 AND status = 'running' AND lease_owner = $4
-         AND lease_expires_at > $2 RETURNING id`,
-      [input.now + input.leaseDurationMs, input.now, input.jobId, input.workerId],
+      `WITH db_clock AS MATERIALIZED (
+         SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), owned_job AS MATERIALIZED (
+         SELECT job.id, db_clock.now_ms
+         FROM deployment_jobs AS job
+         CROSS JOIN db_clock
+         WHERE job.id = $2 AND job.deployment_id = $3
+           AND job.status = 'running' AND job.lease_owner = $4
+           AND job.lease_token = $5 AND job.attempts = $6
+           AND job.lease_expires_at > db_clock.now_ms
+         FOR UPDATE OF job
+       )
+       UPDATE deployment_jobs AS job
+       SET lease_expires_at = owned_job.now_ms + $1,
+           updated_at = owned_job.now_ms
+       FROM owned_job
+       WHERE job.id = owned_job.id
+       RETURNING job.id`,
+      [
+        input.leaseDurationMs,
+        input.lease.jobId,
+        input.lease.deploymentId,
+        input.lease.workerId,
+        input.lease.leaseToken,
+        input.lease.attempt,
+      ],
     );
     return rows.length === 1;
   }
 
   async transitionDeployment(input: {
-    deploymentId: string;
-    jobId: string;
-    workerId: string;
+    lease: Parameters<DeploymentExecutionRepository["transitionDeployment"]>[0]["lease"];
     from: DeploymentStatus[];
     to: DeploymentStatus;
     currentStep: string;
@@ -606,54 +772,71 @@ export class NeonDeploymentExecutionRepository
     assertSafeDeploymentOutput(patch);
     const rows = await query(
       this.sql,
-      `UPDATE app_instance_deployments AS deployment
+      `WITH db_clock AS MATERIALIZED (
+         SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), owned_job AS MATERIALIZED (
+         SELECT job.id, job.deployment_id
+         FROM deployment_jobs AS job
+         CROSS JOIN db_clock
+         WHERE job.id = $7 AND job.deployment_id = $5
+           AND job.status = 'running' AND job.lease_owner = $8
+           AND job.lease_token = $9 AND job.attempts = $10
+           AND job.lease_expires_at > db_clock.now_ms
+         FOR UPDATE OF job
+       )
+       UPDATE app_instance_deployments AS deployment
        SET status = $1, current_step = $2,
            outputs = (outputs::jsonb || $3::jsonb)::text,
            started_at = COALESCE(started_at, $4), updated_at = $4
-       WHERE deployment.id = $5 AND deployment.status = ANY($6::text[])
-         AND EXISTS (
-           SELECT 1 FROM deployment_jobs job
-           WHERE job.id = $7 AND job.deployment_id = deployment.id
-             AND job.status = 'running' AND job.lease_owner = $8
-             AND job.lease_expires_at > $4
-         )
+       FROM owned_job
+       WHERE deployment.id = $5
+         AND deployment.id = owned_job.deployment_id
+         AND deployment.status = ANY($6::text[])
        RETURNING deployment.id`,
       [
         input.to,
         input.currentStep,
         JSON.stringify(patch),
         input.now,
-        input.deploymentId,
+        input.lease.deploymentId,
         input.from,
-        input.jobId,
-        input.workerId,
+        input.lease.jobId,
+        input.lease.workerId,
+        input.lease.leaseToken,
+        input.lease.attempt,
       ],
     );
     return rows.length === 1;
   }
 
   async beginStep(input: {
-    deploymentId: string;
-    jobId: string;
-    workerId: string;
+    lease: Parameters<DeploymentExecutionRepository["beginStep"]>[0]["lease"];
     stepKey: string;
     inputHash: string;
-    attempt: number;
     now: number;
   }): Promise<DeploymentStepHandle> {
-    const id = `step_${(await sha256Hex(`${input.deploymentId}:${input.jobId}:${input.stepKey}:${input.inputHash}:${input.attempt}`)).slice(0, 24)}`;
+    const id = `step_${(await sha256Hex(`${input.lease.deploymentId}:${input.lease.jobId}:${input.stepKey}:${input.inputHash}:${input.lease.attempt}`)).slice(0, 24)}`;
     const rows = await query<Record<string, unknown>>(
       this.sql,
-      `WITH owned_job AS (
-        SELECT id FROM deployment_jobs
-        WHERE id = $1 AND deployment_id = $2 AND status = 'running'
-          AND lease_owner = $3 AND lease_expires_at > $4 AND attempts = $5
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), owned_job AS MATERIALIZED (
+        SELECT job.id
+        FROM deployment_jobs AS job
+        CROSS JOIN db_clock
+        WHERE job.id = $1 AND job.deployment_id = $2
+          AND job.status = 'running' AND job.lease_owner = $3
+          AND job.lease_token = $8 AND job.attempts = $4
+          AND job.lease_expires_at > db_clock.now_ms
+        FOR UPDATE OF job
       ), inserted AS (
         INSERT INTO deployment_step_runs (
           id, deployment_id, job_id, step_key, attempt, status, input_hash,
           output, started_at
         )
-        SELECT $6, $2, $1, $7, $5, 'running', $8, '{}', $4 FROM owned_job
+        SELECT $5, $2, $1, $6, $4, 'running', $7, '{}', db_clock.now_ms
+        FROM owned_job
+        CROSS JOIN db_clock
         ON CONFLICT (job_id, step_key, input_hash, attempt) DO NOTHING
         RETURNING id, status, output
       )
@@ -662,18 +845,18 @@ export class NeonDeploymentExecutionRepository
       SELECT step.id, step.status, step.output
       FROM deployment_step_runs step
       INNER JOIN owned_job ON owned_job.id = step.job_id
-      WHERE step.deployment_id = $2 AND step.step_key = $7
-        AND step.input_hash = $8 AND step.attempt = $5
+      WHERE step.deployment_id = $2 AND step.step_key = $6
+        AND step.input_hash = $7 AND step.attempt = $4
       LIMIT 1`,
       [
-        input.jobId,
-        input.deploymentId,
-        input.workerId,
-        input.now,
-        input.attempt,
+        input.lease.jobId,
+        input.lease.deploymentId,
+        input.lease.workerId,
+        input.lease.attempt,
         id,
         input.stepKey,
         input.inputHash,
+        input.lease.leaseToken,
       ],
     );
     const row = rows[0];
@@ -686,8 +869,8 @@ export class NeonDeploymentExecutionRepository
   }
 
   async finishStep(input: {
+    lease: Parameters<DeploymentExecutionRepository["finishStep"]>[0]["lease"];
     stepId: string;
-    workerId: string;
     status: "succeeded" | "failed" | "skipped";
     output: Record<string, unknown>;
     errorCode?: string;
@@ -697,86 +880,229 @@ export class NeonDeploymentExecutionRepository
     assertSafeDeploymentOutput(input.output);
     const rows = await query(
       this.sql,
-      `UPDATE deployment_step_runs step
-       SET status = $1, output = $2, error_code = $3, error_message = $4,
-           finished_at = $5
-       WHERE step.id = $6 AND step.status = 'running'
-         AND EXISTS (
-           SELECT 1 FROM deployment_jobs job
-           WHERE job.id = step.job_id AND job.deployment_id = step.deployment_id
-             AND job.status = 'running' AND job.lease_owner = $7
-             AND job.lease_expires_at > $5
-         )
+      `WITH db_clock AS MATERIALIZED (
+         SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), owned_job AS MATERIALIZED (
+         SELECT job.id, job.deployment_id
+         FROM deployment_jobs AS job
+         CROSS JOIN db_clock
+         WHERE job.id = $1 AND job.deployment_id = $2
+           AND job.status = 'running' AND job.lease_owner = $3
+           AND job.lease_token = $4 AND job.attempts = $5
+           AND job.lease_expires_at > db_clock.now_ms
+         FOR UPDATE OF job
+       )
+       UPDATE deployment_step_runs AS step
+       SET status = $6, output = $7, error_code = $8, error_message = $9,
+           finished_at = db_clock.now_ms
+       FROM owned_job, db_clock
+       WHERE step.id = $10 AND step.status = 'running'
+         AND step.job_id = owned_job.id
+         AND step.deployment_id = owned_job.deployment_id
        RETURNING step.id`,
       [
+        input.lease.jobId,
+        input.lease.deploymentId,
+        input.lease.workerId,
+        input.lease.leaseToken,
+        input.lease.attempt,
         input.status,
         JSON.stringify(input.output),
         input.errorCode ? normalizeDeploymentError(input.errorCode, "STEP_FAILED") : null,
         input.errorMessage
           ? normalizeDeploymentError(input.errorMessage, "Deployment step failed.")
           : null,
-        input.now,
         input.stepId,
-        input.workerId,
       ],
     );
     return rows.length === 1;
   }
 
   async enqueueJob(input: {
+    lease: Parameters<DeploymentExecutionRepository["enqueueJob"]>[0]["lease"];
     deploymentId: string;
     jobType: ClaimedDeploymentJob["jobType"];
     planHash: string;
     availableAt: number;
     maxAttempts: number;
     now: number;
-  }): Promise<void> {
+  }): Promise<DeploymentJobEnqueueResult> {
     const dedupeKey = `${input.jobType}:${input.deploymentId}:${input.planHash}`;
     const id = `job_${(await sha256Hex(dedupeKey)).slice(0, 24)}`;
-    await query(
+    const payload = JSON.stringify({
+      schemaVersion: 1,
+      deploymentId: input.deploymentId,
+      planHash: input.planHash,
+    });
+    const rows = await query(
       this.sql,
-      `INSERT INTO deployment_jobs (
-        id, deployment_id, job_type, dedupe_key, status, payload, attempts,
-        max_attempts, available_at, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, 'pending', $5, 0, $6, $7, $8, $8)
-      ON CONFLICT (dedupe_key) DO NOTHING`,
+      `WITH db_clock AS MATERIALIZED (
+         SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), owned_job AS MATERIALIZED (
+         SELECT owner.id
+         FROM deployment_jobs owner
+         CROSS JOIN db_clock
+         WHERE owner.id = $8 AND owner.deployment_id = $2
+           AND owner.status = 'running' AND owner.lease_owner = $9
+           AND owner.lease_token = $10 AND owner.attempts = $11
+           AND owner.lease_expires_at > db_clock.now_ms
+         FOR UPDATE OF owner
+       ), inserted_job AS (
+         INSERT INTO deployment_jobs (
+           id, deployment_id, job_type, dedupe_key, status, payload, attempts,
+           max_attempts, available_at, created_at, updated_at
+         ) SELECT $1, $2, $3, $4, 'pending', $5, 0, $6, $7,
+                  db_clock.now_ms, db_clock.now_ms
+           FROM owned_job
+           CROSS JOIN db_clock
+         ON CONFLICT (dedupe_key) DO NOTHING
+         RETURNING id, status, available_at, attempts, max_attempts
+       ), existing_job AS MATERIALIZED (
+         SELECT existing.id, existing.status, existing.available_at,
+                existing.attempts, existing.max_attempts
+         FROM deployment_jobs existing
+         WHERE EXISTS (SELECT 1 FROM owned_job)
+           AND existing.dedupe_key = $4
+           AND existing.deployment_id = $2
+           AND existing.job_type = $3
+           AND existing.payload = $5
+         LIMIT 1
+       )
+       SELECT CASE
+         WHEN NOT EXISTS (SELECT 1 FROM owned_job) THEN 'lease_lost'
+         WHEN EXISTS (SELECT 1 FROM inserted_job) THEN 'inserted'
+         WHEN EXISTS (
+           SELECT 1 FROM existing_job
+           WHERE status IN ('pending', 'running', 'retry_wait')
+         ) THEN 'existing_active'
+         WHEN EXISTS (
+           SELECT 1 FROM existing_job WHERE status = 'succeeded'
+         ) THEN 'existing_succeeded'
+         WHEN EXISTS (
+           SELECT 1 FROM existing_job WHERE status IN ('dead_letter', 'canceled')
+         ) THEN 'existing_unusable'
+         ELSE 'rejected'
+       END AS outcome,
+       COALESCE(
+         (SELECT id FROM inserted_job),
+         (SELECT id FROM existing_job)
+       ) AS job_id,
+       COALESCE(
+         (SELECT status FROM inserted_job),
+         (SELECT status FROM existing_job)
+       ) AS job_status,
+       COALESCE(
+         (SELECT available_at FROM inserted_job),
+         (SELECT available_at FROM existing_job)
+       ) AS job_available_at,
+       COALESCE(
+         (SELECT attempts FROM inserted_job),
+         (SELECT attempts FROM existing_job)
+       ) AS job_attempts,
+       COALESCE(
+         (SELECT max_attempts FROM inserted_job),
+         (SELECT max_attempts FROM existing_job)
+       ) AS job_max_attempts`,
       [
         id,
         input.deploymentId,
         input.jobType,
         dedupeKey,
-        JSON.stringify({
-          schemaVersion: 1,
-          deploymentId: input.deploymentId,
-          planHash: input.planHash,
-        }),
+        payload,
         input.maxAttempts,
         input.availableAt,
-        input.now,
+        input.lease.jobId,
+        input.lease.workerId,
+        input.lease.leaseToken,
+        input.lease.attempt,
       ],
     );
+    const row = rows[0] ?? {};
+    const outcome = text(row.outcome);
+    if (
+      ![
+        "inserted",
+        "existing_active",
+        "existing_succeeded",
+        "existing_unusable",
+        "lease_lost",
+        "rejected",
+      ].includes(outcome)
+    ) {
+      throw new Error("PostgreSQL returned an invalid deployment enqueue outcome.");
+    }
+    const status = nullableText(row.job_status) as DeploymentJobStatus | null;
+    if (
+      status !== null &&
+      ![
+        "pending",
+        "running",
+        "retry_wait",
+        "succeeded",
+        "dead_letter",
+        "canceled",
+      ].includes(status)
+    ) {
+      throw new Error("PostgreSQL returned an invalid deployment job status.");
+    }
+    return {
+      outcome: outcome as DeploymentJobEnqueueResult["outcome"],
+      jobId: nullableText(row.job_id),
+      status,
+      availableAt:
+        row.job_available_at === null || row.job_available_at === undefined
+          ? null
+          : integer(row.job_available_at),
+      attempts:
+        row.job_attempts === null || row.job_attempts === undefined
+          ? null
+          : integer(row.job_attempts),
+      maxAttempts:
+        row.job_max_attempts === null || row.job_max_attempts === undefined
+          ? null
+          : integer(row.job_max_attempts),
+    };
   }
 
   async completeJob(input: {
-    jobId: string;
-    workerId: string;
+    lease: Parameters<DeploymentExecutionRepository["completeJob"]>[0]["lease"];
     now: number;
   }): Promise<boolean> {
     const rows = await query(
       this.sql,
-      `UPDATE deployment_jobs
+      `WITH db_clock AS MATERIALIZED (
+         SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), owned_job AS MATERIALIZED (
+         SELECT job.id, db_clock.now_ms
+         FROM deployment_jobs AS job
+         CROSS JOIN db_clock
+         WHERE job.id = $1 AND job.deployment_id = $2
+           AND job.status = 'running' AND job.lease_owner = $3
+           AND job.lease_token = $4 AND job.attempts = $5
+           AND job.lease_expires_at > db_clock.now_ms
+         FOR UPDATE OF job
+       )
+       UPDATE deployment_jobs AS job
        SET status = 'succeeded', lease_owner = NULL, lease_expires_at = NULL,
-           completed_at = $1, updated_at = $1
-       WHERE id = $2 AND status = 'running' AND lease_owner = $3
-         AND lease_expires_at > $1 RETURNING id`,
-      [input.now, input.jobId, input.workerId],
+           lease_token = NULL,
+           completed_at = owned_job.now_ms, updated_at = owned_job.now_ms
+       FROM owned_job
+       WHERE job.id = owned_job.id
+       RETURNING job.id`,
+      [
+        input.lease.jobId,
+        input.lease.deploymentId,
+        input.lease.workerId,
+        input.lease.leaseToken,
+        input.lease.attempt,
+      ],
     );
     return rows.length === 1;
   }
 
   async retryJob(input: {
-    jobId: string;
-    workerId: string;
+    lease: Parameters<DeploymentExecutionRepository["retryJob"]>[0]["lease"];
+    cleanupScheduleId?: string | null;
     errorCode: string;
     errorMessage: string;
     retryable: boolean;
@@ -785,24 +1111,56 @@ export class NeonDeploymentExecutionRepository
   }): Promise<"retry_wait" | "dead_letter" | "lease_lost"> {
     const rows = await query<Record<string, unknown>>(
       this.sql,
-      `UPDATE deployment_jobs
+      `WITH db_clock AS MATERIALIZED (
+         SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), owned_job AS MATERIALIZED (
+         SELECT job.id, db_clock.now_ms
+         FROM deployment_jobs AS job
+         CROSS JOIN db_clock
+         WHERE job.id = $5 AND job.deployment_id = $6
+           AND job.status = 'running' AND job.lease_owner = $7
+           AND job.lease_token = $8 AND job.attempts = $9
+           AND job.lease_expires_at > db_clock.now_ms
+         FOR UPDATE OF job
+       ), updated_job AS (
+       UPDATE deployment_jobs AS job
        SET status = CASE WHEN $1 = false OR attempts >= max_attempts
                          THEN 'dead_letter' ELSE 'retry_wait' END,
-           available_at = $2, lease_owner = NULL, lease_expires_at = NULL,
-           last_error_code = $3, last_error_message = $4, updated_at = $5,
+           available_at = owned_job.now_ms + $2,
+           lease_owner = NULL, lease_expires_at = NULL,
+           lease_token = NULL,
+           last_error_code = $3, last_error_message = $4,
+           updated_at = owned_job.now_ms,
            completed_at = CASE WHEN $1 = false OR attempts >= max_attempts
-                               THEN $5 ELSE NULL END
-       WHERE id = $6 AND status = 'running' AND lease_owner = $7
-         AND lease_expires_at > $5
-       RETURNING status`,
+                               THEN owned_job.now_ms ELSE NULL END
+       FROM owned_job
+       WHERE job.id = owned_job.id
+       RETURNING job.status, job.deployment_id, job.job_type
+      ), failed_cleanup AS (
+        UPDATE deployment_cleanup_schedules schedule
+        SET status = 'failed', last_error = $4,
+          updated_at = db_clock.now_ms, completed_at = db_clock.now_ms
+        FROM updated_job, db_clock
+        WHERE schedule.id = $10
+          AND schedule.deployment_id = updated_job.deployment_id
+          AND updated_job.status = 'dead_letter'
+          AND updated_job.job_type IN ('cleanup', 'rollback')
+          AND schedule.status <> 'succeeded'
+        RETURNING schedule.id
+      )
+      SELECT status, (SELECT count(*) FROM failed_cleanup) AS cleanup_failed
+      FROM updated_job`,
       [
         input.retryable,
-        input.now + input.retryDelayMs,
+        input.retryDelayMs,
         normalizeDeploymentError(input.errorCode, "DEPLOYMENT_EXECUTION_FAILED"),
         normalizeDeploymentError(input.errorMessage, "Deployment execution failed."),
-        input.now,
-        input.jobId,
-        input.workerId,
+        input.lease.jobId,
+        input.lease.deploymentId,
+        input.lease.workerId,
+        input.lease.leaseToken,
+        input.lease.attempt,
+        input.cleanupScheduleId ?? null,
       ],
     );
     const status = text(rows[0]?.status);
@@ -810,11 +1168,9 @@ export class NeonDeploymentExecutionRepository
   }
 
   async markReady(input: {
-    deploymentId: string;
+    lease: Parameters<DeploymentExecutionRepository["markReady"]>[0]["lease"];
     appInstanceId: string;
     subscriptionId: string;
-    jobId: string;
-    workerId: string;
     accessUrl: string;
     controlPayloadHash: string;
     outputPatch: Record<string, unknown>;
@@ -823,8 +1179,11 @@ export class NeonDeploymentExecutionRepository
     assertSafeDeploymentOutput(input.outputPatch);
     const rows = await query<Record<string, unknown>>(
       this.sql,
-      `WITH eligible AS MATERIALIZED (
-        SELECT deployment.id AS deployment_id, instance.id AS instance_id
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), eligible AS MATERIALIZED (
+        SELECT deployment.id AS deployment_id, instance.id AS instance_id,
+          db_clock.now_ms
         FROM app_instance_deployments deployment
         INNER JOIN app_instances instance
           ON instance.id = deployment.app_instance_id
@@ -832,25 +1191,29 @@ export class NeonDeploymentExecutionRepository
           ON subscription.id = instance.subscription_id
         INNER JOIN deployment_jobs job
           ON job.id = $1 AND job.deployment_id = deployment.id
+        CROSS JOIN db_clock
         WHERE deployment.id = $2 AND deployment.status = 'verifying'
           AND instance.id = $3 AND instance.status = 'pending'
           AND instance.subscription_id = $4
           AND subscription.id = $4 AND subscription.status = 'active'
           AND job.status = 'running' AND job.lease_owner = $5
-          AND job.lease_expires_at > $6
+          AND job.lease_token = $9 AND job.attempts = $10
+          AND job.lease_expires_at > db_clock.now_ms
         FOR UPDATE OF deployment, instance, subscription, job
       ), activated_instance AS (
         UPDATE app_instances instance
-        SET status = 'active', access_url = $7, provisioned_at = $6,
-            suspended_at = NULL, updated_at = $6
+        SET status = 'active', access_url = $6,
+            provisioned_at = eligible.now_ms,
+            suspended_at = NULL, updated_at = eligible.now_ms
         FROM eligible
         WHERE instance.id = eligible.instance_id
         RETURNING instance.id
       ), ready_deployment AS (
         UPDATE app_instance_deployments deployment
-        SET status = 'ready', current_step = 'ready', ready_at = $6,
-            control_payload_hash = $8,
-            outputs = (outputs::jsonb || $9::jsonb)::text, updated_at = $6
+        SET status = 'ready', current_step = 'ready', ready_at = eligible.now_ms,
+            control_payload_hash = $7,
+            outputs = (outputs::jsonb || $8::jsonb)::text,
+            updated_at = eligible.now_ms
         FROM eligible, activated_instance
         WHERE deployment.id = eligible.deployment_id
         RETURNING deployment.id
@@ -865,37 +1228,56 @@ export class NeonDeploymentExecutionRepository
       END AS committed
       FROM committed`,
       [
-        input.jobId,
-        input.deploymentId,
+        input.lease.jobId,
+        input.lease.deploymentId,
         input.appInstanceId,
         input.subscriptionId,
-        input.workerId,
-        input.now,
+        input.lease.workerId,
         input.accessUrl,
         input.controlPayloadHash,
         JSON.stringify(input.outputPatch),
+        input.lease.leaseToken,
+        input.lease.attempt,
       ],
     );
     return integer(rows[0]?.committed ?? 0) === 1;
   }
 
   async markInstanceUnavailable(input: {
-    deploymentId: string;
+    lease: Parameters<DeploymentExecutionRepository["markInstanceUnavailable"]>[0]["lease"];
+    fence: TenantResourceFence;
     appInstanceId: string;
     reason: "ttl_cleanup" | "rollback";
     now: number;
-  }): Promise<void> {
-    await query(
+  }): Promise<boolean> {
+    await assertTenantResourceFenceInput(input.fence);
+    const rows = await query(
       this.sql,
-      `WITH eligible AS MATERIALIZED (
-        SELECT deployment.id, deployment.app_instance_id
+      `WITH db_clock AS MATERIALIZED (
+         SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), eligible AS MATERIALIZED (
+        SELECT deployment.id, deployment.app_instance_id, db_clock.now_ms
         FROM app_instance_deployments deployment
-        WHERE deployment.id = $3 AND deployment.app_instance_id = $2
+        CROSS JOIN db_clock
+        INNER JOIN deployment_jobs job
+          ON job.id = $3 AND job.deployment_id = deployment.id
+        INNER JOIN deployment_tenant_resources resource
+          ON resource.app_instance_id = deployment.app_instance_id
+        WHERE deployment.id = $2 AND deployment.app_instance_id = $1
           AND deployment.status IN ('rolled_back', 'canceled')
-        FOR UPDATE OF deployment
+          AND job.status = 'running' AND job.lease_owner = $4
+          AND job.lease_token = $5 AND job.attempts = $6
+          AND job.lease_expires_at > db_clock.now_ms
+          AND resource.owner_deployment_id = deployment.id
+          AND resource.generation = $7
+          AND resource.ownership_marker = $8
+          AND resource.stable_identity_hash = $9
+          AND resource.lifecycle_status = 'destroyed'
+        FOR UPDATE OF deployment, job, resource
       ), suspended AS (
         UPDATE app_instances instance
-        SET status = 'suspended', access_url = '', suspended_at = $1, updated_at = $1
+        SET status = 'suspended', access_url = '',
+            suspended_at = eligible.now_ms, updated_at = eligible.now_ms
         FROM eligible
         WHERE instance.id = eligible.app_instance_id
         RETURNING instance.id
@@ -908,39 +1290,72 @@ export class NeonDeploymentExecutionRepository
       SELECT
         (SELECT count(*) FROM suspended) AS suspended_count,
         (SELECT count(*) FROM released) AS released_count`,
-      [input.now, input.appInstanceId, input.deploymentId],
+      [
+        input.appInstanceId,
+        input.lease.deploymentId,
+        input.lease.jobId,
+        input.lease.workerId,
+        input.lease.leaseToken,
+        input.lease.attempt,
+        input.fence.generation,
+        input.fence.ownershipMarker,
+        input.fence.identity.stableIdentityHash,
+      ],
     );
     void input.reason;
+    return integer(rows[0]?.suspended_count ?? 0) === 1;
   }
 
   async markCleanupStatus(input: {
+    lease: Parameters<DeploymentExecutionRepository["markCleanupStatus"]>[0]["lease"];
     scheduleId: string;
     status: "running" | "succeeded" | "failed";
     errorMessage?: string;
     now: number;
-  }): Promise<void> {
-    await query(
+  }): Promise<boolean> {
+    const rows = await query(
       this.sql,
-      `UPDATE deployment_cleanup_schedules
-       SET status = $1, last_error = $2, updated_at = $3,
-           completed_at = CASE WHEN $1 IN ('succeeded', 'failed') THEN $3 ELSE NULL END
-       WHERE id = $4`,
+      `WITH db_clock AS MATERIALIZED (
+         SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), owned_job AS MATERIALIZED (
+         SELECT job.id, db_clock.now_ms
+         FROM deployment_jobs job
+         CROSS JOIN db_clock
+         WHERE job.id = $4 AND job.deployment_id = $5
+           AND job.status = 'running' AND job.lease_owner = $6
+           AND job.lease_token = $7 AND job.attempts = $8
+           AND job.lease_expires_at > db_clock.now_ms
+         FOR UPDATE OF job
+       )
+       UPDATE deployment_cleanup_schedules schedule
+       SET status = $1, last_error = $2, updated_at = owned_job.now_ms,
+           completed_at = CASE
+             WHEN $1 IN ('succeeded', 'failed') THEN owned_job.now_ms ELSE NULL
+           END
+       FROM owned_job
+       WHERE schedule.id = $3 AND schedule.deployment_id = $5
+       RETURNING schedule.id`,
       [
         input.status,
         input.errorMessage
           ? normalizeDeploymentError(input.errorMessage, "Cleanup failed.")
           : null,
-        input.now,
         input.scheduleId,
+        input.lease.jobId,
+        input.lease.deploymentId,
+        input.lease.workerId,
+        input.lease.leaseToken,
+        input.lease.attempt,
       ],
     );
+    return rows.length === 1;
   }
 
   async recordTenantResourceLifecycle(
     input: DeploymentTenantResourceLifecycleWrite,
   ): Promise<boolean> {
     await assertTenantResourceFenceInput(input.fence);
-    if (input.deploymentId !== input.fence.ownerDeploymentId) {
+    if (input.lease.deploymentId !== input.fence.ownerDeploymentId) {
       throw Object.assign(new Error("Tenant resource owner is invalid."), {
         code: "TENANT_RESOURCE_FENCE_INVALID",
       });
@@ -967,14 +1382,18 @@ export class NeonDeploymentExecutionRepository
       input.lifecycleStatus === "failed" ? "failed" : "lifecycle_recorded";
     const rows = await query<Record<string, unknown>>(
       this.sql,
-      `WITH leased_deployment AS MATERIALIZED (
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), leased_deployment AS MATERIALIZED (
         SELECT deployment.id
         FROM app_instance_deployments deployment
         INNER JOIN deployment_jobs job
           ON job.id = $2 AND job.deployment_id = deployment.id
+        CROSS JOIN db_clock
         WHERE deployment.id = $1
           AND job.status = 'running' AND job.lease_owner = $3
-          AND job.lease_expires_at > $4
+          AND job.lease_token = $24 AND job.attempts = $25
+          AND job.lease_expires_at > db_clock.now_ms
         FOR UPDATE OF deployment, job
       ), locked_resource AS MATERIALIZED (
         SELECT resource.*
@@ -1025,9 +1444,9 @@ export class NeonDeploymentExecutionRepository
         EXISTS (SELECT 1 FROM updated) AS persisted,
         (SELECT count(*) FROM event_insert) AS event_count`,
       [
-        input.deploymentId,
-        input.jobId,
-        input.workerId,
+        input.lease.deploymentId,
+        input.lease.jobId,
+        input.lease.workerId,
         input.now,
         identity.appInstanceId,
         input.fence.generation,
@@ -1053,6 +1472,8 @@ export class NeonDeploymentExecutionRepository
             )
           : null,
         eventType,
+        input.lease.leaseToken,
+        input.lease.attempt,
       ],
     );
     const row = rows[0];
@@ -1064,16 +1485,16 @@ export class NeonDeploymentExecutionRepository
   }
 
   async claimTenantResourceGeneration(input: {
-    deploymentId: string;
-    jobId: string;
-    workerId: string;
+    lease: Parameters<DeploymentExecutionRepository["claimTenantResourceGeneration"]>[0]["lease"];
     identity: TenantResourceIdentity;
     now: number;
   }): Promise<TenantResourceGenerationClaim> {
     await assertStableTenantResourceIdentity(input.identity);
     const rows = await query<Record<string, unknown>>(
       this.sql,
-      `WITH candidate AS MATERIALIZED (
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), candidate AS MATERIALIZED (
         SELECT deployment.id AS deployment_id,
           deployment.app_instance_id, deployment.environment_id,
           deployment.created_at AS candidate_created_at,
@@ -1085,9 +1506,11 @@ export class NeonDeploymentExecutionRepository
           ON environment.id = deployment.environment_id
         INNER JOIN deployment_jobs job
           ON job.id = $2 AND job.deployment_id = deployment.id
+        CROSS JOIN db_clock
         WHERE deployment.id = $1
           AND job.status = 'running' AND job.lease_owner = $3
-          AND job.lease_expires_at > $4
+          AND job.lease_token = $14 AND job.attempts = $15
+          AND job.lease_expires_at > db_clock.now_ms
         FOR UPDATE OF deployment, instance, environment, job
       ), existing AS MATERIALIZED (
         SELECT resource.*, owner.created_at AS owner_created_at,
@@ -1095,13 +1518,14 @@ export class NeonDeploymentExecutionRepository
             SELECT 1 FROM deployment_jobs previous_job
             WHERE previous_job.deployment_id = resource.owner_deployment_id
               AND previous_job.status = 'running'
-              AND previous_job.lease_expires_at > $4
+              AND previous_job.lease_expires_at > db_clock.now_ms
           ) AS owner_has_live_job
         FROM deployment_tenant_resources resource
         INNER JOIN candidate
           ON candidate.app_instance_id = resource.app_instance_id
         INNER JOIN app_instance_deployments owner
           ON owner.id = resource.owner_deployment_id
+        CROSS JOIN db_clock
         FOR UPDATE OF resource, owner
       ), decision AS MATERIALIZED (
         SELECT candidate.*,
@@ -1312,9 +1736,9 @@ export class NeonDeploymentExecutionRepository
       FROM decision
       LEFT JOIN claim_result result ON true`,
       [
-        input.deploymentId,
-        input.jobId,
-        input.workerId,
+        input.lease.deploymentId,
+        input.lease.jobId,
+        input.lease.workerId,
         input.now,
         input.identity.appInstanceId,
         input.identity.environmentId,
@@ -1325,6 +1749,8 @@ export class NeonDeploymentExecutionRepository
         input.identity.roleName,
         input.identity.secretName,
         input.identity.stableIdentityHash,
+        input.lease.leaseToken,
+        input.lease.attempt,
       ],
     );
     const row = rows[0];
@@ -1392,22 +1818,25 @@ export class NeonDeploymentExecutionRepository
 
   async beginTenantResourceCleanup(input: {
     fence: TenantResourceFence;
-    jobId: string;
-    workerId: string;
+    lease: Parameters<DeploymentExecutionRepository["beginTenantResourceCleanup"]>[0]["lease"];
     now: number;
   }): Promise<TenantResourceFence | null> {
     await assertTenantResourceFenceInput(input.fence);
     const identity = input.fence.identity;
     const rows = await query<Record<string, unknown>>(
       this.sql,
-      `WITH leased_deployment AS MATERIALIZED (
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), leased_deployment AS MATERIALIZED (
         SELECT deployment.id
         FROM app_instance_deployments deployment
         INNER JOIN deployment_jobs job
           ON job.id = $2 AND job.deployment_id = deployment.id
+        CROSS JOIN db_clock
         WHERE deployment.id = $1
           AND job.status = 'running' AND job.lease_owner = $3
-          AND job.lease_expires_at > $4
+          AND job.lease_token = $16 AND job.attempts = $17
+          AND job.lease_expires_at > db_clock.now_ms
         FOR UPDATE OF deployment, job
       ), locked_resource AS MATERIALIZED (
         SELECT resource.* FROM deployment_tenant_resources resource
@@ -1472,8 +1901,8 @@ export class NeonDeploymentExecutionRepository
         (SELECT count(*) FROM event_insert) AS event_count`,
       [
         input.fence.ownerDeploymentId,
-        input.jobId,
-        input.workerId,
+        input.lease.jobId,
+        input.lease.workerId,
         input.now,
         identity.appInstanceId,
         input.fence.generation,
@@ -1486,6 +1915,8 @@ export class NeonDeploymentExecutionRepository
         identity.databaseName,
         identity.roleName,
         identity.secretName,
+        input.lease.leaseToken,
+        input.lease.attempt,
       ],
     );
     return flag(rows[0]?.lease_owned) && flag(rows[0]?.acquired)
@@ -1495,8 +1926,7 @@ export class NeonDeploymentExecutionRepository
 
   async assertTenantResourceCleanupFence(input: {
     fence: TenantResourceFence;
-    jobId: string;
-    workerId: string;
+    lease: Parameters<DeploymentExecutionRepository["assertTenantResourceCleanupFence"]>[0]["lease"];
     phase: Parameters<
       DeploymentExecutionRepository["assertTenantResourceCleanupFence"]
     >[0]["phase"];
@@ -1506,10 +1936,14 @@ export class NeonDeploymentExecutionRepository
     const identity = input.fence.identity;
     const rows = await query(
       this.sql,
-      `SELECT resource.app_instance_id
+      `WITH db_clock AS MATERIALIZED (
+         SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       )
+       SELECT resource.app_instance_id
        FROM deployment_tenant_resources resource
        INNER JOIN deployment_jobs job
          ON job.id = $1 AND job.deployment_id = resource.owner_deployment_id
+       CROSS JOIN db_clock
        WHERE resource.app_instance_id = $2
          AND resource.owner_deployment_id = $3
          AND resource.generation = $4
@@ -1524,10 +1958,11 @@ export class NeonDeploymentExecutionRepository
          AND resource.secret_name = $13
          AND resource.lifecycle_status IN ('destroying', 'destroyed')
          AND job.status = 'running' AND job.lease_owner = $14
-         AND job.lease_expires_at > $15
+         AND job.lease_token = $15 AND job.attempts = $16
+         AND job.lease_expires_at > db_clock.now_ms
        LIMIT 1`,
       [
-        input.jobId,
+        input.lease.jobId,
         identity.appInstanceId,
         input.fence.ownerDeploymentId,
         input.fence.generation,
@@ -1540,8 +1975,9 @@ export class NeonDeploymentExecutionRepository
         identity.databaseName,
         identity.roleName,
         identity.secretName,
-        input.workerId,
-        input.now,
+        input.lease.workerId,
+        input.lease.leaseToken,
+        input.lease.attempt,
       ],
     );
     void input.phase;
@@ -1550,8 +1986,7 @@ export class NeonDeploymentExecutionRepository
 
   async completeTenantResourceCleanup(input: {
     fence: TenantResourceFence;
-    jobId: string;
-    workerId: string;
+    lease: Parameters<DeploymentExecutionRepository["completeTenantResourceCleanup"]>[0]["lease"];
     receipt: TenantResourceCleanupReceipt;
     now: number;
   }): Promise<boolean> {
@@ -1581,14 +2016,18 @@ export class NeonDeploymentExecutionRepository
     const identity = input.fence.identity;
     const rows = await query<Record<string, unknown>>(
       this.sql,
-      `WITH leased_deployment AS MATERIALIZED (
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), leased_deployment AS MATERIALIZED (
         SELECT deployment.id
         FROM app_instance_deployments deployment
         INNER JOIN deployment_jobs job
           ON job.id = $2 AND job.deployment_id = deployment.id
+        CROSS JOIN db_clock
         WHERE deployment.id = $1
           AND job.status = 'running' AND job.lease_owner = $3
-          AND job.lease_expires_at > $4
+          AND job.lease_token = $18 AND job.attempts = $19
+          AND job.lease_expires_at > db_clock.now_ms
         FOR UPDATE OF deployment, job
       ), locked_resource AS MATERIALIZED (
         SELECT resource.* FROM deployment_tenant_resources resource
@@ -1637,8 +2076,8 @@ export class NeonDeploymentExecutionRepository
         (SELECT count(*) FROM event_insert) AS event_count`,
       [
         input.fence.ownerDeploymentId,
-        input.jobId,
-        input.workerId,
+        input.lease.jobId,
+        input.lease.workerId,
         input.now,
         identity.appInstanceId,
         input.fence.generation,
@@ -1653,6 +2092,8 @@ export class NeonDeploymentExecutionRepository
         identity.secretName,
         evidenceHash,
         JSON.stringify(evidence),
+        input.lease.leaseToken,
+        input.lease.attempt,
       ],
     );
     return flag(rows[0]?.lease_owned) && flag(rows[0]?.completed);

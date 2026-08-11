@@ -291,6 +291,7 @@ test("control readiness requires an active instance-bound reconciliation receipt
       },
     },
     { issue: async () => "signed.jwt.value" },
+    { baseDomain: "sandbox.techlong.cloud" },
   );
   responseBody = { success: true };
   assert.equal(
@@ -359,6 +360,7 @@ test("provision validates its idempotency receipt and always clears the owner pa
   const client = new MtlsSaaSControlClient(
     { send: async () => ({ status: 201, body: { success: true } }) },
     { issue: async () => "signed.jwt.value" },
+    { baseDomain: "sandbox.techlong.cloud" },
   );
   await assert.rejects(
     () =>
@@ -375,16 +377,22 @@ test("provision validates its idempotency receipt and always clears the owner pa
 
 test("mTLS transport rejects non-private endpoints and oversized bodies before I/O", async () => {
   assert.throws(
-    () => assertPrivateControlUrl("https://tenant-one.sandbox.techlong.cloud/api/saas/control"),
+    () =>
+      assertPrivateControlUrl(
+        "https://tenant-one.sandbox.techlong.cloud/api/saas/control",
+        "sandbox.techlong.cloud",
+      ),
     /port 8443/,
   );
   assert.equal(
     assertPrivateControlUrl(
       "https://tenant-one.sandbox.techlong.cloud:8443/api/saas/control",
+      "sandbox.techlong.cloud",
     ).hostname,
     "tenant-one.sandbox.techlong.cloud",
   );
   const transport = new NodeMtlsSaaSControlTransport({
+    baseDomain: "sandbox.techlong.cloud",
     clientCertificatePem: "memory-only-client-certificate",
     clientPrivateKeyPem: "memory-only-client-private-key",
     trustedCaPem: "memory-only-trusted-ca",
@@ -399,6 +407,74 @@ test("mTLS transport rejects non-private endpoints and oversized bodies before I
         body: "{}",
       }),
     /body cap/,
+  );
+});
+
+test("control endpoint policy supports an exact production base domain without widening it", async () => {
+  const requests: string[] = [];
+  const client = new MtlsSaaSControlClient(
+    {
+      send: async (request) => {
+        requests.push(request.url);
+        return {
+          status: 200,
+          body: {
+            success: true,
+            control: {
+              control_api_version: "1.1",
+              image_revision: imageRevision,
+              desired_configuration_hash: desiredConfigurationHash,
+              instance: {
+                status: "active",
+                external_instance_id: appInstanceId,
+              },
+            },
+          },
+        };
+      },
+    },
+    { issue: async () => "signed.jwt.value" },
+    { baseDomain: "apps.techlong.cloud" },
+  );
+  assert.equal(
+    (
+      await client.readConfiguration({
+        appInstanceId,
+        hostname: "tenant-one.apps.techlong.cloud",
+      })
+    ).ready,
+    true,
+  );
+  assert.equal(
+    requests[0],
+    "https://tenant-one.apps.techlong.cloud:8443/api/saas/control",
+  );
+  for (const hostname of [
+    "apps.techlong.cloud",
+    "nested.tenant-one.apps.techlong.cloud",
+    "tenant-one.apps.techlong.cloud.attacker.example",
+    "tenant-one.sandbox.techlong.cloud",
+    " tenant-one.apps.techlong.cloud",
+  ]) {
+    await assert.rejects(
+      () => client.readConfiguration({ appInstanceId, hostname }),
+      /outside the configured tenant domain/,
+    );
+  }
+  assert.equal(
+    assertPrivateControlUrl(
+      "https://tenant-one.apps.techlong.cloud:8443/api/saas/control",
+      "apps.techlong.cloud",
+    ).hostname,
+    "tenant-one.apps.techlong.cloud",
+  );
+  assert.throws(
+    () =>
+      assertPrivateControlUrl(
+        "https://tenant-one.apps.techlong.cloud.attacker.example:8443/api/saas/control",
+        "apps.techlong.cloud",
+      ),
+    /configured tenant domain/,
   );
 });
 

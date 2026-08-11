@@ -36,8 +36,8 @@ const dependencies = {
   // This remains false until every apply/reconcile boundary below has a
   // reviewed production adapter. Queued apply work remains untouched.
   applyRuntimeReady: false,
-  // Full fenced workload -> database/role -> secret cleanup adapters are not
-  // installed in B0-B4. Keep jobs queued instead of partially deleting AWS.
+  // Full crash-resumable workload -> database/role -> secret cleanup adapters
+  // are not installed in B5. Keep jobs queued instead of partially deleting AWS.
   cleanupRuntimeReady: false,
   awsFactory: ({ region }: { region: string; workerRoleArn: string }) =>
     createAwsSdkDeploymentAdapter(region),

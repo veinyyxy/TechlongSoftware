@@ -145,17 +145,22 @@ assert.equal(resources.CellDatabaseLogGroup.DeletionPolicy, "Delete");
 const policyText = JSON.stringify(policy);
 assert.match(
   policyText,
-  /stack\/techlong-sandbox-cell-\*\/\*/,
+  /stack\/techlong-sandbox-cell-sandbox-1\/\*/,
 );
+assert.doesNotMatch(policyText, /stack\/techlong-sandbox-cell-\*\/\*/);
 assert.doesNotMatch(policyText, /stack\/techlong-sandbox-tenant-/);
 assert.doesNotMatch(policyText, /"Action":"\*"/);
+assert.doesNotMatch(policyText, /cloudformation:CreateStack/);
+assert.doesNotMatch(policyText, /cloudformation:UpdateStack/);
+assert.match(policyText, /cloudformation:CreateChangeSet/);
+assert.match(policyText, /cloudformation:ExecuteChangeSet/);
 assert.match(
   policyText,
   /TechlongSandboxCellCloudFormationExecutionRole/,
 );
 assert.match(policyText, /aws:ResourceTag\/Environment/);
 assert.match(policyText, /aws:RequestTag\/ExpiresAt/);
-assert.match(policyText, /AllowUpdateOnlyOwnedAndRetaggedCellStack/);
+assert.match(policyText, /AllowCreateOnlyReviewedCellChangeSet/);
 assert.match(janitorSource, /listTenantStacks/);
 assert.match(janitorSource, /CELL_TENANT_DRAIN_IN_PROGRESS/);
 assert.match(janitorSource, /isOwnedTenantStackForCell/);

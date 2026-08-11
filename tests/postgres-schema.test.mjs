@@ -259,8 +259,44 @@ test("tenant resource migration persists reference-only lifecycle checkpoints", 
   assert.doesNotMatch(migration, /password|database_url|secret_value/i);
 });
 
+test("lease fencing migration invalidates old claims and requires a unique incarnation token", async () => {
+  const migration = await read(
+    "db/postgres-migrations/0006_deployment_lease_fencing.sql",
+  );
+  assert.match(migration, /ADD COLUMN lease_token text/);
+  assert.match(
+    migration,
+    /UPDATE deployment_jobs[\s\S]*?ELSE 'retry_wait'[\s\S]*?WHERE status = 'running'/,
+  );
+  assert.match(migration, /WHEN attempts >= max_attempts THEN 'dead_letter'/);
+  assert.match(migration, /FROM pg_constraint/);
+  assert.match(migration, /pg_get_constraintdef/);
+  assert.doesNotMatch(
+    migration,
+    /DROP CONSTRAINT deployment_jobs_lease_check\s*;/,
+  );
+  assert.match(migration, /lease_\[a-f0-9\]\{32\}/);
+  assert.match(
+    migration,
+    /status = 'running'[\s\S]*?lease_owner IS NOT NULL[\s\S]*?lease_expires_at IS NOT NULL[\s\S]*?lease_token IS NOT NULL/,
+  );
+  assert.match(
+    migration,
+    /status <> 'running'[\s\S]*?lease_owner IS NULL[\s\S]*?lease_expires_at IS NULL[\s\S]*?lease_token IS NULL/,
+  );
+});
+
 test("S3 execution repository reserves capacity atomically and commits ready state as one statement", async () => {
   const repository = await read("lib/deployments/execution/neon-repository.ts");
+  assert.doesNotMatch(repository, /lease_expires_at\s*>\s*\$\d+/);
+  assert.match(
+    repository,
+    /claimNext[\s\S]*?db_clock AS MATERIALIZED[\s\S]*?blocked\.job_type <> ALL\(\$1::text\[\]\)[\s\S]*?allowed_sibling\.job_type = ANY\(\$1::text\[\]\)[\s\S]*?candidate_job\.job_type = ANY\(\$1::text\[\]\)[\s\S]*?sibling\.status = 'running'[\s\S]*?FOR UPDATE OF candidate_job, candidate_deployment SKIP LOCKED/,
+  );
+  assert.match(
+    repository,
+    /heartbeat[\s\S]*?db_clock AS MATERIALIZED[\s\S]*?owned_job AS MATERIALIZED[\s\S]*?lease_token = \$5[\s\S]*?attempts = \$6[\s\S]*?lease_expires_at > db_clock\.now_ms[\s\S]*?FOR UPDATE OF job/,
+  );
   assert.match(
     repository,
     /ON CONFLICT \(job_id, step_key, input_hash, attempt\) DO NOTHING/,
@@ -279,7 +315,19 @@ test("S3 execution repository reserves capacity atomically and commits ready sta
   );
   assert.match(
     repository,
-    /markReady[\s\S]*?WITH eligible AS MATERIALIZED[\s\S]*?FOR UPDATE OF deployment, instance, subscription, job[\s\S]*?activated_instance AS[\s\S]*?ready_deployment AS[\s\S]*?FROM eligible, activated_instance[\s\S]*?1 \/ CASE/,
+    /enqueueJob[\s\S]*?db_clock AS MATERIALIZED[\s\S]*?owned_job AS MATERIALIZED[\s\S]*?lease_expires_at > db_clock\.now_ms[\s\S]*?FOR UPDATE OF owner[\s\S]*?ON CONFLICT \(dedupe_key\) DO NOTHING[\s\S]*?existing_job AS MATERIALIZED[\s\S]*?status IN \('dead_letter', 'canceled'\)[\s\S]*?'existing_unusable'/,
+  );
+  assert.match(
+    repository,
+    /markInstanceUnavailable[\s\S]*?lease_expires_at > db_clock\.now_ms[\s\S]*?return integer\(rows\[0\]\?\.suspended_count \?\? 0\) === 1/,
+  );
+  assert.match(
+    repository,
+    /markCleanupStatus[\s\S]*?owned_job AS MATERIALIZED[\s\S]*?FOR UPDATE OF job[\s\S]*?RETURNING schedule\.id[\s\S]*?return rows\.length === 1/,
+  );
+  assert.match(
+    repository,
+    /markReady[\s\S]*?db_clock AS MATERIALIZED[\s\S]*?eligible AS MATERIALIZED[\s\S]*?lease_expires_at > db_clock\.now_ms[\s\S]*?FOR UPDATE OF deployment, instance, subscription, job[\s\S]*?activated_instance AS[\s\S]*?ready_deployment AS[\s\S]*?FROM eligible, activated_instance[\s\S]*?1 \/ CASE/,
   );
   assert.doesNotMatch(
     repository,
@@ -314,7 +362,7 @@ test("S3 execution repository binds immutable templates and tenant lifecycle wri
   );
   assert.match(
     repository,
-    /recordTenantResourceLifecycle[\s\S]*?job\.status = 'running'[\s\S]*?job\.lease_owner = \$3[\s\S]*?job\.lease_expires_at > \$4/,
+    /recordTenantResourceLifecycle[\s\S]*?db_clock AS MATERIALIZED[\s\S]*?job\.status = 'running'[\s\S]*?job\.lease_owner = \$3[\s\S]*?job\.lease_token = \$24[\s\S]*?job\.attempts = \$25[\s\S]*?job\.lease_expires_at > db_clock\.now_ms[\s\S]*?FOR UPDATE OF deployment, job/,
   );
   assert.match(
     repository,
@@ -323,6 +371,10 @@ test("S3 execution repository binds immutable templates and tenant lifecycle wri
   assert.match(
     repository,
     /claimTenantResourceGeneration[\s\S]*?candidate_created_at[\s\S]*?owner_created_at/,
+  );
+  assert.match(
+    repository,
+    /claimTenantResourceGeneration[\s\S]*?existing AS MATERIALIZED \([\s\S]*?lease_expires_at > db_clock\.now_ms[\s\S]*?CROSS JOIN db_clock[\s\S]*?FOR UPDATE OF resource, owner/,
   );
   assert.match(
     repository,
@@ -354,7 +406,7 @@ test("S3 execution repository binds immutable templates and tenant lifecycle wri
   );
   assert.match(
     repository,
-    /sha256Hex\(`\$\{input\.deploymentId\}:\$\{input\.jobId\}:\$\{input\.stepKey\}/,
+    /sha256Hex\(`\$\{input\.lease\.deploymentId\}:\$\{input\.lease\.jobId\}:\$\{input\.stepKey\}/,
   );
   assert.match(repository, /TENANT_RESOURCE_IDENTITY_MISMATCH/);
   assert.match(

@@ -1,10 +1,17 @@
 import https from "node:https";
 import type { IncomingMessage } from "node:http";
 
-import type {
-  SaaSControlRequest,
-  SaaSControlTransport,
+import {
+  assertSaaSControlBaseDomain,
+  assertSaaSControlTenantHostname,
+  type SaaSControlRequest,
+  type SaaSControlTransport,
 } from "./control-client.ts";
+/*
+ * Keep endpoint validation in the transport as well as the higher-level
+ * client. This prevents a future caller from using the mTLS transport as a
+ * generic HTTPS client to an unrelated host.
+ */
 
 const DEFAULT_TIMEOUT_MS = 8_000;
 const DEFAULT_MAX_RESPONSE_BYTES = 1_048_576;
@@ -14,7 +21,7 @@ function controlTransportError(code: string, message: string, retryable: boolean
   return Object.assign(new Error(message), { code, retryable });
 }
 
-export function assertPrivateControlUrl(value: string): URL {
+export function assertPrivateControlUrl(value: string, baseDomain: string): URL {
   let url: URL;
   try {
     url = new URL(value);
@@ -25,19 +32,25 @@ export function assertPrivateControlUrl(value: string): URL {
       false,
     );
   }
+  try {
+    assertSaaSControlTenantHostname({ hostname: url.hostname, baseDomain });
+  } catch {
+    throw controlTransportError(
+      "SAAS_CONTROL_ENDPOINT_REJECTED",
+      "SaaS control endpoint is outside the configured tenant domain.",
+      false,
+    );
+  }
   if (
     url.protocol !== "https:" ||
     url.port !== "8443" ||
     url.username ||
     url.password ||
-    url.hash ||
-    !/^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+sandbox\.techlong\.cloud$/.test(
-      url.hostname,
-    )
+    url.hash
   ) {
     throw controlTransportError(
       "SAAS_CONTROL_ENDPOINT_REJECTED",
-      "SaaS control endpoint must use the private sandbox HTTPS listener on port 8443.",
+      "SaaS control endpoint must use the private HTTPS listener on port 8443.",
       false,
     );
   }
@@ -45,8 +58,14 @@ export function assertPrivateControlUrl(value: string): URL {
 }
 
 export interface NodeMtlsSaaSControlTransportOptions {
+  baseDomain: string;
   clientCertificatePem: string;
   clientPrivateKeyPem: string;
+  /**
+   * Trust roots for the ALB/server certificate presented to this client.
+   * This is not the client-certificate CA configured in the ALB mTLS Trust
+   * Store; wiring those two independent trust directions together is invalid.
+   */
   trustedCaPem: string;
   privateKeyPassphrase?: string;
   timeoutMs?: number;
@@ -60,6 +79,7 @@ export interface NodeMtlsSaaSControlTransportOptions {
  * responses.
  */
 export class NodeMtlsSaaSControlTransport implements SaaSControlTransport {
+  private readonly baseDomain: string;
   private readonly clientCertificatePem: string;
   private readonly clientPrivateKeyPem: string;
   private readonly trustedCaPem: string;
@@ -76,6 +96,7 @@ export class NodeMtlsSaaSControlTransport implements SaaSControlTransport {
     ) {
       throw new Error("mTLS client certificate, private key, and trusted CA are required.");
     }
+    this.baseDomain = assertSaaSControlBaseDomain(options.baseDomain);
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.maxRequestBytes = options.maxRequestBytes ?? DEFAULT_MAX_REQUEST_BYTES;
     this.maxResponseBytes = options.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
@@ -95,7 +116,7 @@ export class NodeMtlsSaaSControlTransport implements SaaSControlTransport {
   }
 
   async send(request: SaaSControlRequest): Promise<{ status: number; body: unknown }> {
-    const url = assertPrivateControlUrl(request.url);
+    const url = assertPrivateControlUrl(request.url, this.baseDomain);
     const bodyBuffer = request.body ? Buffer.from(request.body, "utf8") : null;
     if (bodyBuffer && bodyBuffer.byteLength > this.maxRequestBytes) {
       throw controlTransportError(

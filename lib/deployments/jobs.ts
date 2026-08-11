@@ -6,8 +6,10 @@ import type {
 } from "./state-machine";
 import {
   assertDeploymentLeaseDuration,
+  assertDeploymentLeaseToken,
   assertDeploymentWorkerId,
   buildDeploymentClaimStatement,
+  createDeploymentLeaseToken,
 } from "./lease.ts";
 import {
   assertSafeDeploymentOutput,
@@ -33,6 +35,7 @@ export interface DeploymentJobView {
   availableAt: number;
   leaseOwner: string | null;
   leaseExpiresAt: number | null;
+  leaseToken: string | null;
   lastErrorCode: string | null;
   lastErrorMessage: string | null;
   createdAt: number;
@@ -52,6 +55,7 @@ interface DeploymentJobRow {
   available_at: number;
   lease_owner: string | null;
   lease_expires_at: number | null;
+  lease_token: string | null;
   last_error_code: string | null;
   last_error_message: string | null;
   created_at: number;
@@ -83,6 +87,7 @@ function toJobView(row: DeploymentJobRow): DeploymentJobView {
     availableAt: row.available_at,
     leaseOwner: row.lease_owner,
     leaseExpiresAt: row.lease_expires_at,
+    leaseToken: row.lease_token,
     lastErrorCode: row.last_error_code,
     lastErrorMessage: row.last_error_message,
     createdAt: row.created_at,
@@ -135,9 +140,9 @@ export async function prepareDeploymentJobInsert(input: {
         `INSERT INTO deployment_jobs (
           id, deployment_id, job_type, dedupe_key, status, payload,
           attempts, max_attempts, available_at, lease_owner,
-          lease_expires_at, last_error_code, last_error_message,
+          lease_expires_at, lease_token, last_error_code, last_error_message,
           created_at, updated_at, completed_at
-        ) VALUES (?, ?, ?, ?, 'pending', ?, 0, ?, ?, NULL, NULL,
+        ) VALUES (?, ?, ?, ?, 'pending', ?, 0, ?, ?, NULL, NULL, NULL,
           NULL, NULL, ?, ?, NULL)
         ON CONFLICT (dedupe_key) DO NOTHING`,
       )
@@ -160,6 +165,7 @@ export async function getDeploymentJob(jobId: string): Promise<DeploymentJobView
     .prepare(
       `SELECT id, deployment_id, job_type, dedupe_key, status, payload,
         attempts, max_attempts, available_at, lease_owner, lease_expires_at,
+        lease_token,
         last_error_code, last_error_message, created_at, updated_at, completed_at
        FROM deployment_jobs WHERE id = ? LIMIT 1`,
     )
@@ -179,12 +185,13 @@ export async function claimNextDeploymentJob(input: {
   jobType?: DeploymentJobType;
 }): Promise<DeploymentJobView | null> {
   assertDeploymentWorkerId(input.workerId);
-  const now = input.now ?? Date.now();
   const leaseDurationMs = input.leaseDurationMs ?? 60_000;
+  const leaseToken = createDeploymentLeaseToken();
   const statement = buildDeploymentClaimStatement({
     workerId: input.workerId,
-    now,
+    now: input.now ?? Date.now(),
     leaseDurationMs,
+    leaseToken,
     jobType: input.jobType,
   });
   const row = await getDatabase()
@@ -197,21 +204,42 @@ export async function claimNextDeploymentJob(input: {
 export async function heartbeatDeploymentJob(input: {
   jobId: string;
   workerId: string;
+  attempt: number;
+  leaseToken: string;
   now?: number;
   leaseDurationMs?: number;
 }): Promise<boolean> {
   assertDeploymentWorkerId(input.workerId);
-  const now = input.now ?? Date.now();
+  assertDeploymentLeaseToken(input.leaseToken);
   const leaseDurationMs = input.leaseDurationMs ?? 60_000;
   assertDeploymentLeaseDuration(leaseDurationMs);
   const result = await getDatabase()
     .prepare(
-      `UPDATE deployment_jobs
-       SET lease_expires_at = ?, updated_at = ?
-       WHERE id = ? AND status = 'running' AND lease_owner = ?
-         AND lease_expires_at > ?`,
+      `WITH db_clock AS MATERIALIZED (
+         SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), owned_job AS MATERIALIZED (
+         SELECT job.id, db_clock.now_ms
+         FROM deployment_jobs AS job
+         CROSS JOIN db_clock
+         WHERE job.id = ? AND job.status = 'running'
+           AND job.lease_owner = ? AND job.lease_token = ?
+           AND job.attempts = ?
+           AND job.lease_expires_at > db_clock.now_ms
+         FOR UPDATE OF job
+       )
+       UPDATE deployment_jobs AS job
+       SET lease_expires_at = owned_job.now_ms + ?,
+           updated_at = owned_job.now_ms
+       FROM owned_job
+       WHERE job.id = owned_job.id`,
     )
-    .bind(now + leaseDurationMs, now, input.jobId, input.workerId, now)
+    .bind(
+      input.jobId,
+      input.workerId,
+      input.leaseToken,
+      input.attempt,
+      leaseDurationMs,
+    )
     .run();
   return Number(result.meta.changes ?? 0) === 1;
 }
@@ -219,19 +247,39 @@ export async function heartbeatDeploymentJob(input: {
 export async function completeDeploymentJob(input: {
   jobId: string;
   workerId: string;
+  attempt: number;
+  leaseToken: string;
   now?: number;
 }): Promise<boolean> {
   assertDeploymentWorkerId(input.workerId);
-  const now = input.now ?? Date.now();
+  assertDeploymentLeaseToken(input.leaseToken);
   const result = await getDatabase()
     .prepare(
-      `UPDATE deployment_jobs
+      `WITH db_clock AS MATERIALIZED (
+         SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), owned_job AS MATERIALIZED (
+         SELECT job.id, db_clock.now_ms
+         FROM deployment_jobs AS job
+         CROSS JOIN db_clock
+         WHERE job.id = ? AND job.status = 'running'
+           AND job.lease_owner = ? AND job.lease_token = ?
+           AND job.attempts = ?
+           AND job.lease_expires_at > db_clock.now_ms
+         FOR UPDATE OF job
+       )
+       UPDATE deployment_jobs AS job
        SET status = 'succeeded', lease_owner = NULL, lease_expires_at = NULL,
-           completed_at = ?, updated_at = ?
-       WHERE id = ? AND status = 'running' AND lease_owner = ?
-         AND lease_expires_at > ?`,
+           lease_token = NULL,
+           completed_at = owned_job.now_ms, updated_at = owned_job.now_ms
+       FROM owned_job
+       WHERE job.id = owned_job.id`,
     )
-    .bind(now, now, input.jobId, input.workerId, now)
+    .bind(
+      input.jobId,
+      input.workerId,
+      input.leaseToken,
+      input.attempt,
+    )
     .run();
   return Number(result.meta.changes ?? 0) === 1;
 }
@@ -239,42 +287,62 @@ export async function completeDeploymentJob(input: {
 export async function failDeploymentJob(input: {
   jobId: string;
   workerId: string;
+  attempt: number;
+  leaseToken: string;
   errorCode?: string | null;
   errorMessage?: string | null;
   retryDelayMs?: number;
   now?: number;
 }): Promise<DeploymentJobView | null> {
   assertDeploymentWorkerId(input.workerId);
-  const now = input.now ?? Date.now();
+  assertDeploymentLeaseToken(input.leaseToken);
   const retryDelayMs = input.retryDelayMs ?? 30_000;
   if (!Number.isSafeInteger(retryDelayMs) || retryDelayMs < 0) {
     throw new Error("Deployment retry delay is invalid.");
   }
   const row = await getDatabase()
     .prepare(
-      `UPDATE deployment_jobs
+      `WITH db_clock AS MATERIALIZED (
+         SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), owned_job AS MATERIALIZED (
+         SELECT job.id, db_clock.now_ms
+         FROM deployment_jobs AS job
+         CROSS JOIN db_clock
+         WHERE job.id = ? AND job.status = 'running'
+           AND job.lease_owner = ? AND job.lease_token = ?
+           AND job.attempts = ?
+           AND job.lease_expires_at > db_clock.now_ms
+         FOR UPDATE OF job
+       )
+       UPDATE deployment_jobs AS job
        SET status = CASE
-             WHEN attempts >= max_attempts THEN 'dead_letter'
+             WHEN job.attempts >= job.max_attempts THEN 'dead_letter'
              ELSE 'retry_wait'
            END,
-           available_at = ?, lease_owner = NULL, lease_expires_at = NULL,
-           last_error_code = ?, last_error_message = ?, updated_at = ?,
-           completed_at = CASE WHEN attempts >= max_attempts THEN ? ELSE NULL END
-       WHERE id = ? AND status = 'running' AND lease_owner = ?
-         AND lease_expires_at > ?
-       RETURNING id, deployment_id, job_type, dedupe_key, status, payload,
-         attempts, max_attempts, available_at, lease_owner, lease_expires_at,
-         last_error_code, last_error_message, created_at, updated_at, completed_at`,
+           available_at = owned_job.now_ms + ?,
+           lease_owner = NULL, lease_expires_at = NULL,
+           lease_token = NULL,
+           last_error_code = ?, last_error_message = ?,
+           updated_at = owned_job.now_ms,
+           completed_at = CASE
+             WHEN job.attempts >= job.max_attempts THEN owned_job.now_ms ELSE NULL
+           END
+       FROM owned_job
+       WHERE job.id = owned_job.id
+       RETURNING job.id, job.deployment_id, job.job_type, job.dedupe_key,
+          job.status, job.payload, job.attempts, job.max_attempts,
+          job.available_at, job.lease_owner, job.lease_expires_at,
+          job.lease_token, job.last_error_code, job.last_error_message,
+          job.created_at, job.updated_at, job.completed_at`,
     )
     .bind(
-      now + retryDelayMs,
-      normalizeDeploymentError(input.errorCode, "DEPLOYMENT_STEP_FAILED"),
-      normalizeDeploymentError(input.errorMessage, "Deployment step failed."),
-      now,
-      now,
       input.jobId,
       input.workerId,
-      now,
+      input.leaseToken,
+      input.attempt,
+      retryDelayMs,
+      normalizeDeploymentError(input.errorCode, "DEPLOYMENT_STEP_FAILED"),
+      normalizeDeploymentError(input.errorMessage, "Deployment step failed."),
     )
     .first<DeploymentJobRow>();
   return row ? toJobView(row) : null;
@@ -287,9 +355,11 @@ export async function beginDeploymentStep(input: {
   inputHash: string;
   attempt: number;
   workerId: string;
+  leaseToken: string;
   now?: number;
 }): Promise<string> {
   assertDeploymentWorkerId(input.workerId);
+  assertDeploymentLeaseToken(input.leaseToken);
   if (!Number.isSafeInteger(input.attempt) || input.attempt < 1 || input.attempt > 20) {
     throw new Error("Deployment step attempt must be between 1 and 20.");
   }
@@ -299,7 +369,6 @@ export async function beginDeploymentStep(input: {
   if (!/^[a-f0-9]{64}$/.test(input.inputHash)) {
     throw new Error("Deployment step input hash is invalid.");
   }
-  const now = input.now ?? Date.now();
   const id = await stableId(
     "step",
     `${input.deploymentId}:${input.jobId}:${input.stepKey}:${input.inputHash}:${input.attempt}`,
@@ -310,7 +379,7 @@ export async function beginDeploymentStep(input: {
       input.jobId,
       input.deploymentId,
       input.workerId,
-      now,
+      input.leaseToken,
       input.attempt,
       id,
       input.deploymentId,
@@ -318,7 +387,6 @@ export async function beginDeploymentStep(input: {
       input.stepKey,
       input.attempt,
       input.inputHash,
-      now,
       input.deploymentId,
       input.stepKey,
       input.inputHash,
@@ -336,15 +404,20 @@ export async function finishDeploymentStep(input: {
   errorCode?: string | null;
   errorMessage?: string | null;
   workerId: string;
+  attempt: number;
+  leaseToken: string;
   now?: number;
 }): Promise<boolean> {
   assertDeploymentWorkerId(input.workerId);
-  const now = input.now ?? Date.now();
+  assertDeploymentLeaseToken(input.leaseToken);
   const output = input.output ?? {};
   assertSafeDeploymentOutput(output);
   const result = await getDatabase()
     .prepare(finishDeploymentStepStatement)
     .bind(
+      input.workerId,
+      input.leaseToken,
+      input.attempt,
       input.status,
       JSON.stringify(output),
       input.errorCode
@@ -353,10 +426,7 @@ export async function finishDeploymentStep(input: {
       input.errorMessage
         ? normalizeDeploymentError(input.errorMessage, "Deployment step failed.")
         : null,
-      now,
       input.stepRunId,
-      input.workerId,
-      now,
     )
     .run();
   return Number(result.meta.changes ?? 0) === 1;

@@ -911,14 +911,23 @@ CREATE TABLE deployment_jobs (
   available_at bigint NOT NULL,
   lease_owner text,
   lease_expires_at bigint,
+  lease_token text,
   last_error_code text,
   last_error_message text,
   created_at bigint NOT NULL,
   updated_at bigint NOT NULL,
   completed_at bigint,
-  CHECK (
-    status <> 'running'
-    OR (lease_owner IS NOT NULL AND lease_expires_at IS NOT NULL)
+  CONSTRAINT deployment_jobs_lease_token_check CHECK (
+    lease_token IS NULL OR lease_token ~ '^lease_[a-f0-9]{32}$'
+  ),
+  CONSTRAINT deployment_jobs_lease_check CHECK (
+    (
+      status = 'running' AND lease_owner IS NOT NULL
+      AND lease_expires_at IS NOT NULL AND lease_token IS NOT NULL
+    ) OR (
+      status <> 'running' AND lease_owner IS NULL
+      AND lease_expires_at IS NULL AND lease_token IS NULL
+    )
   )
 );
 CREATE UNIQUE INDEX deployment_jobs_dedupe_unique

@@ -6,6 +6,14 @@ export interface AwsSandboxTenantStackInput {
   deploymentId: string;
   /** Durable external-resource incarnation claimed before rendering. */
   resourceGeneration: number;
+  /**
+   * Base ARN of the generation-bound tenant JSON Secret. The renderer derives
+   * ECS JSON-key references from this ARN; tenant credentials must never come
+   * from the environment-level execution binding.
+  */
+  runtimeSecretRef: string;
+  /** Exact logical Secret name from the current tenant resource fence. */
+  runtimeSecretName: string;
   plan: AwsEcsCellDeploymentPlan;
   environment: DeploymentEnvironment;
   imageUri: string;
@@ -46,6 +54,14 @@ export interface CloudFormationTenantStackPlan {
 const imageDigestPattern = /^(\d{12})\.dkr\.ecr\.([a-z]{2}(?:-gov)?-[a-z]+-\d)\.amazonaws\.com\/[a-z0-9][a-z0-9._\/-]{1,254}@sha256:[a-f0-9]{64}$/;
 const hostnamePattern = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 
+export const tenantRuntimeSecretJsonKeys = {
+  databaseUrl: "database_url",
+  hmacSecretKey: "hmac_secret_key",
+  jwtSecretKey: "jwt_secret_key",
+  stripeSecretKey: "stripe_secret_key",
+  stripeWebhookSecret: "stripe_webhook_secret",
+} as const;
+
 /** Tags that identify the durable tenant workload across deployments. */
 export const tenantStackStableOwnershipTagKeys = [
   "Environment",
@@ -63,6 +79,44 @@ function resourceToken(appInstanceId: string): string {
   return `tenant-${normalized.slice(-16) || "pending"}`;
 }
 
+export function assertAwsSandboxTenantRuntimeSecretRef(input: {
+  runtimeSecretRef: string;
+  accountId: string;
+  region: string;
+  expectedSecretName?: string;
+}): void {
+  const escapedRegion = input.region.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const secretNamePattern =
+    /^techlong\/sandbox\/tenant\/[a-z0-9][a-z0-9_-]{2,63}\/runtime$/;
+  if (
+    input.expectedSecretName !== undefined &&
+    !secretNamePattern.test(input.expectedSecretName)
+  ) {
+    throw new Error("Expected tenant runtime Secret name is invalid.");
+  }
+  const escapedSecretName = input.expectedSecretName?.replace(
+    /[.*+?^${}()|[\]\\]/g,
+    "\\$&",
+  );
+  const pattern = new RegExp(
+    `^arn:aws:secretsmanager:${escapedRegion}:${input.accountId}:secret:` +
+      (escapedSecretName ??
+        "techlong/sandbox/tenant/[a-z0-9][a-z0-9_-]{2,63}/runtime") +
+      "-[A-Za-z0-9]{6}$",
+  );
+  if (!pattern.test(input.runtimeSecretRef)) {
+    throw new Error(
+      "Tenant runtime Secret must be an exact base ARN in the current Sandbox account and region.",
+    );
+  }
+}
+
+function tenantRuntimeSecretValueFrom(
+  jsonKey: (typeof tenantRuntimeSecretJsonKeys)[keyof typeof tenantRuntimeSecretJsonKeys],
+): { "Fn::Sub": string } {
+  return { "Fn::Sub": `\${TenantRuntimeSecretArn}:${jsonKey}::` };
+}
+
 export function awsSandboxTenantStackName(appInstanceId: string): string {
   return `techlong-sandbox-${resourceToken(appInstanceId)}`.slice(0, 128);
 }
@@ -77,6 +131,12 @@ function assertRenderInput(input: AwsSandboxTenantStackInput): void {
   ) {
     throw new Error("Tenant resource generation is invalid.");
   }
+  assertAwsSandboxTenantRuntimeSecretRef({
+    runtimeSecretRef: input.runtimeSecretRef,
+    accountId: input.environment.expectedAccountId,
+    region: input.environment.region,
+    expectedSecretName: input.runtimeSecretName,
+  });
   if (input.plan.mode !== "aws_sandbox") {
     throw new Error("Tenant stack renderer only accepts aws_sandbox plans.");
   }
@@ -105,6 +165,15 @@ function assertRenderInput(input: AwsSandboxTenantStackInput): void {
   }
   if (!input.tenantHostname.endsWith(`.${input.environment.baseDomain}`)) {
     throw new Error("Tenant hostname must belong to the environment base domain.");
+  }
+  const tenantLabel = input.tenantHostname.slice(
+    0,
+    -(input.environment.baseDomain.length + 1),
+  );
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(tenantLabel)) {
+    throw new Error(
+      "Tenant hostname must contain exactly one tenant label before the environment base domain.",
+    );
   }
   if (!Number.isSafeInteger(input.requestedAt) || input.requestedAt <= 0) {
     throw new Error("Sandbox render time is invalid.");
@@ -165,17 +234,13 @@ export function renderAwsSandboxTenantStack(
       ControlListenerArn: { Type: "String" },
       TaskExecutionRoleArn: { Type: "String" },
       TaskRoleArn: { Type: "String" },
-      DatabaseUrlValueFrom: { Type: "String", NoEcho: true },
+      TenantRuntimeSecretArn: { Type: "String", NoEcho: true },
       ControlPublicKeyValueFrom: { Type: "String", NoEcho: true },
       ControlIssuer: { Type: "String" },
       CorsAllowedOrigins: { Type: "String" },
-      HmacSecretKeyValueFrom: { Type: "String", NoEcho: true },
-      JwtSecretKeyValueFrom: { Type: "String", NoEcho: true },
       JwtExpiresIn: { Type: "String", Default: "7d" },
       MerchantJwtExpiresIn: { Type: "String", Default: "12h" },
-      StripeSecretKeyValueFrom: { Type: "String", NoEcho: true },
       StripePublishableKey: { Type: "String" },
-      StripeWebhookSecretValueFrom: { Type: "String", NoEcho: true },
       StripeSuccessUrl: { Type: "String" },
       StripeCancelUrl: { Type: "String" },
       ImageS3Bucket: { Type: "String" },
@@ -316,22 +381,35 @@ export function renderAwsSandboxTenantStack(
                 { Name: "APP_IMAGE_REVISION", Value: imageRevision },
               ],
               Secrets: [
-                { Name: "DATABASE_URL", ValueFrom: ref("DatabaseUrlValueFrom") },
+                {
+                  Name: "DATABASE_URL",
+                  ValueFrom: tenantRuntimeSecretValueFrom(
+                    tenantRuntimeSecretJsonKeys.databaseUrl,
+                  ),
+                },
                 {
                   Name: "HMAC_SECRET_KEY",
-                  ValueFrom: ref("HmacSecretKeyValueFrom"),
+                  ValueFrom: tenantRuntimeSecretValueFrom(
+                    tenantRuntimeSecretJsonKeys.hmacSecretKey,
+                  ),
                 },
                 {
                   Name: "JWT_SECRET_KEY",
-                  ValueFrom: ref("JwtSecretKeyValueFrom"),
+                  ValueFrom: tenantRuntimeSecretValueFrom(
+                    tenantRuntimeSecretJsonKeys.jwtSecretKey,
+                  ),
                 },
                 {
                   Name: "STRIPE_SECRET_KEY",
-                  ValueFrom: ref("StripeSecretKeyValueFrom"),
+                  ValueFrom: tenantRuntimeSecretValueFrom(
+                    tenantRuntimeSecretJsonKeys.stripeSecretKey,
+                  ),
                 },
                 {
                   Name: "STRIPE_WEBHOOK_SECRET",
-                  ValueFrom: ref("StripeWebhookSecretValueFrom"),
+                  ValueFrom: tenantRuntimeSecretValueFrom(
+                    tenantRuntimeSecretJsonKeys.stripeWebhookSecret,
+                  ),
                 },
                 {
                   Name: "SAAS_CONTROL_PUBLIC_KEY",
@@ -340,8 +418,10 @@ export function renderAwsSandboxTenantStack(
               ],
               HealthCheck: {
                 Command: [
-                  "CMD-SHELL",
-                  "node -e \"fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+                  "CMD",
+                  "/usr/local/bin/node",
+                  "-e",
+                  "fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
                 ],
                 Interval: 30,
                 Timeout: 5,
@@ -443,6 +523,8 @@ export function renderAwsSandboxTenantStack(
           ServiceName: input.plan.resources.tenant.ecsService,
           Cluster: ref("ClusterName"),
           TaskDefinition: { Ref: "TenantTaskDefinition" },
+          // JSON-key Secrets Manager references require Fargate Linux 1.4.0+.
+          PlatformVersion: "1.4.0",
           DesiredCount: 1,
           EnableExecuteCommand: false,
           CapacityProviderStrategy: [
@@ -482,6 +564,7 @@ export function renderAwsSandboxTenantStack(
     ImageUri: input.imageUri,
     TenantHostname: input.tenantHostname,
     AppInstanceId: tags.AppInstanceId,
+    TenantRuntimeSecretArn: input.runtimeSecretRef,
     CleanupAt: cleanupAt,
   };
   const clientRequestToken = `render-${input.deploymentId}-${input.plan.workflowVersion}`
@@ -508,15 +591,10 @@ export function renderAwsSandboxTenantStack(
       "ControlListenerArn",
       "TaskExecutionRoleArn",
       "TaskRoleArn",
-      "DatabaseUrlValueFrom",
       "ControlPublicKeyValueFrom",
       "ControlIssuer",
       "CorsAllowedOrigins",
-      "HmacSecretKeyValueFrom",
-      "JwtSecretKeyValueFrom",
-      "StripeSecretKeyValueFrom",
       "StripePublishableKey",
-      "StripeWebhookSecretValueFrom",
       "StripeSuccessUrl",
       "StripeCancelUrl",
       "ImageS3Bucket",
