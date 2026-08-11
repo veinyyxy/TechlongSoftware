@@ -4,6 +4,8 @@ import type { AwsEcsCellDeploymentPlan } from "../types.ts";
 
 export interface AwsSandboxTenantStackInput {
   deploymentId: string;
+  /** Durable external-resource incarnation claimed before rendering. */
+  resourceGeneration: number;
   plan: AwsEcsCellDeploymentPlan;
   environment: DeploymentEnvironment;
   imageUri: string;
@@ -44,18 +46,36 @@ export interface CloudFormationTenantStackPlan {
 const imageDigestPattern = /^(\d{12})\.dkr\.ecr\.([a-z]{2}(?:-gov)?-[a-z]+-\d)\.amazonaws\.com\/[a-z0-9][a-z0-9._\/-]{1,254}@sha256:[a-f0-9]{64}$/;
 const hostnamePattern = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 
+/** Tags that identify the durable tenant workload across deployments. */
+export const tenantStackStableOwnershipTagKeys = [
+  "Environment",
+  "ManagedBy",
+  "AppInstanceId",
+  "CellId",
+  "ResourceGeneration",
+] as const;
+
+/** Tag that identifies the deployment currently operating the durable stack. */
+export const tenantStackOperationTagKey = "DeploymentId" as const;
+
 function resourceToken(appInstanceId: string): string {
   const normalized = appInstanceId.toLowerCase().replace(/[^a-z0-9]/g, "");
   return `tenant-${normalized.slice(-16) || "pending"}`;
 }
 
-export function awsSandboxTenantStackName(ecsServiceName: string): string {
-  return `techlong-sandbox-${resourceToken(ecsServiceName)}`.slice(0, 128);
+export function awsSandboxTenantStackName(appInstanceId: string): string {
+  return `techlong-sandbox-${resourceToken(appInstanceId)}`.slice(0, 128);
 }
 
 function assertRenderInput(input: AwsSandboxTenantStackInput): void {
   if (!/^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/.test(input.deploymentId)) {
     throw new Error("Deployment id is invalid.");
+  }
+  if (
+    !Number.isSafeInteger(input.resourceGeneration) ||
+    input.resourceGeneration < 1
+  ) {
+    throw new Error("Tenant resource generation is invalid.");
   }
   if (input.plan.mode !== "aws_sandbox") {
     throw new Error("Tenant stack renderer only accepts aws_sandbox plans.");
@@ -107,10 +127,9 @@ export function renderAwsSandboxTenantStack(
 ): CloudFormationTenantStackPlan {
   assertRenderInput(input);
   const imageRevision = input.imageUri.slice(input.imageUri.indexOf("@") + 1);
-  const token = resourceToken(input.plan.resources.tenant.ecsService);
-  const stackName = awsSandboxTenantStackName(
-    input.plan.resources.tenant.ecsService,
-  );
+  const appInstanceId = input.plan.resources.tenant.costTags.AppInstanceId;
+  const token = resourceToken(appInstanceId);
+  const stackName = awsSandboxTenantStackName(appInstanceId);
   const cleanupAt = new Date(
     input.requestedAt + input.environment.policy.ttlSeconds * 1_000,
   )
@@ -125,6 +144,7 @@ export function renderAwsSandboxTenantStack(
     PlanId: input.plan.resources.tenant.costTags.PlanId,
     AppInstanceId: input.plan.resources.tenant.costTags.AppInstanceId,
     DeploymentId: input.deploymentId,
+    ResourceGeneration: String(input.resourceGeneration),
     DeploymentProfile: input.plan.deploymentProfileKey,
     ManagedBy: "techlong-provisioner",
     ExpiresAt: `${cleanupAt}.000Z`,
@@ -218,6 +238,8 @@ export function renderAwsSandboxTenantStack(
               action: "delete_cloudformation_stack",
               stackName,
               deploymentId: input.deploymentId,
+              appInstanceId,
+              resourceGeneration: input.resourceGeneration,
             }),
           },
         },

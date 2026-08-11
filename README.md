@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前已在阶段 8 基础上完成客户自助购买一期、Neon PostgreSQL 迁移、自有认证一期，并建立 AWS Sandbox S0–S3 执行基础：企业用户可用邮箱密码注册/登录，选择管理员维护的共享套餐并配置允许的租户参数；只有 Stripe 已验证 Webhook 才会创建或续期订阅、准备待开通实例并生成可审计的 AWS 目标计划。S0 提供静态费用与权限护栏，S1 提供部署状态机与任务，S2 加固订单服务控制契约，S3 新增默认关闭的独立 Worker、STS/CloudFormation Adapter、两小时 TTL 清理和 mTLS 控制边界。当前所有执行 gate 保持关闭，未配置租户数据库和 mTLS transport 时也会 fail closed；普通网站启动和测试不会调用 AWS 或创建云资源。
+当前已在阶段 8 基础上完成客户自助购买一期、Neon PostgreSQL 迁移、自有认证一期，并建立 AWS Sandbox S0–S3 执行基础：企业用户可用邮箱密码注册/登录，选择管理员维护的共享套餐并配置允许的租户参数；只有 Stripe 已验证 Webhook 才会创建或续期订阅、准备待开通实例并生成可审计的 AWS 目标计划。S0 提供静态费用与权限护栏，S1 提供部署状态机与任务，S2 加固订单服务控制契约，S3 新增默认关闭的独立 Worker、STS/CloudFormation Adapter、租户 TTL 清理和 mTLS 控制边界；S3-B B0–B4 又补齐了离线可测试的租户资源生命周期、不可变模板编译、RS256/mTLS 客户端、Shared Cell 只读证据以及独立 Cell 渲染/Janitor 基础。当前所有执行 gate 保持关闭，真实 AWS、数据库和 Secret Adapter 未接线时会 fail closed；普通网站启动和测试不会调用 AWS 或创建云资源。
 
 ## 已实现
 
@@ -75,15 +75,18 @@
 - 套餐绑定版本化的受控 AWS 部署资源档位，档位会随购买订单和订阅快照固定，客户不能自行篡改；当前 Sandbox 环境策略只允许 `standard-v1`，历史或生产目标档位不能绕过 Sandbox 的 Cell、任务数和数据库限制。
 - 已验证付款在生成或复用 `pending` 应用实例后，还会幂等生成一条 `app_instance_deployments` 计划记录，描述共享层、Cell 层和租户层资源的逻辑目标。
 - S1 已建立持久化部署环境、状态机、可租约任务、步骤执行记录、预检和 CloudFormation 租户模板渲染基础；渲染产物不包含 Secret 值，也不会被提交到 AWS。
-- `DEPLOYMENT_WORKER_ENABLED=false` 与 `AWS_APPLY_ENABLED=false` 是默认安全边界；单独开启 Apply 变量仍会被数据库环境、执行绑定、参数、清理计划、STS 身份和未配置 Adapter 等其余门禁拒绝。Apply 关闭时，已启用 Worker 仍允许通过严格身份门禁的 cleanup/rollback 删除到期资源；要停止所有 AWS 调用必须关闭 Worker。
+- `DEPLOYMENT_WORKER_ENABLED=false` 与 `AWS_APPLY_ENABLED=false` 是默认安全边界；单独开启 Apply 变量仍会被数据库环境、执行绑定、参数、清理计划、STS 身份和未配置 Adapter 等其余门禁拒绝。Apply 关闭并不被设计为删除 kill switch，但 cleanup/rollback 只有在完整 fenced cleanup coordinator 明确就绪时才会领取；当前默认依赖未接线，所以不会调用 AWS。要停止未来包括删除在内的所有 AWS 调用，必须关闭 Worker。
 - Sandbox 的未来数据库目标限定为最多一个 Aurora PostgreSQL Serverless v2 Cell；每个租户在该 Cell 内使用独立 database 和 role，订单服务继续使用该租户数据库自己的 `public.*`。
+- S3-B 已提供类型化的 database/role/Secret 所有权、approved baseline、幂等创建/迁移/验证/反向清理契约，以及只保存引用与证据的 `deployment_tenant_resources` 当前状态和 append-only 事件审计；`0005` 已加入仓库迁移文件，但尚未应用到 Neon。当前 owner/generation 围栏禁止未销毁资源被另一个 deployment 接管；B5 还必须加入外部可观测 ownership epoch、长操作续租/取消与迟到完成防护，才能安全支持跨 deployment 复用和真实 Adapter。
+- S3-B 已提供不可变模板 v2 编译器、2048 位以上 RS256 实例 JWT、固定 8443 的 mTLS HTTPS transport，以及 POST provision 后再 GET control 对账的严格闭环；首位 Owner 密码不会写入部署记录。
+- Shared Cell B3/B4 只生成 `renderOnly=true`、`applyReady=false` 的独立模板。Cell TTL 固定 3 小时，租户 TTL 为 2 小时，创建/校正前还要求至少 15 分钟清理缓冲；代码和模板层已把 Cell 与租户的 Janitor、权限前缀分开，但 Cell Janitor 尚未部署。当前 Cell Janitor 代码只处理 CloudFormation workload Stack，Stack 外 database/role/Secret 的有围栏清理尚未接线，所以不能用于真实 Apply。
 
 ## 当前没有实现
 
 - Paddle、自动续扣、Stripe 订阅模式、退款自动化、优惠券和复杂发票系统。
 - 复杂发票、优惠券和自动退款。
-- S3 Worker 与 CloudFormation adapter 边界已经存在，但真实 Tenant Database、ELBv2/EC2 Shared Cell 安全证明、mTLS Control/配置编译 adapter 仍为 fail-closed，`applyRuntimeReady=false`；因此当前不会真实创建云资源，也不包含 Aurora Cell 创建、租户 database/role/Secret 生命周期、DNS 变更或自动回写正式入口。
-- 平台尚未调用订单服务 S2 控制接口，也没有建立生产 mTLS 通道；模板部署驱动和 `app_instance_deployments` 仍不会触发真实自动部署。
+- S3-B 的抽象、严格校验和 Mock 测试已经存在，但真实 Tenant Database/Secrets 实现、AWS SDK Shared Cell 证据客户端、不可变模板/稳定且可清理的 Owner Secret 数据源、Cell Apply 角色与 Change Set 仍未接线，`applyRuntimeReady=false`；因此当前不会真实创建云资源或自动回写正式入口。
+- 平台尚未实际调用订单服务 S2 控制接口，也没有部署生产 mTLS 证书、Trust Store 或 DNS；模板部署驱动和 `app_instance_deployments` 仍不会触发真实自动部署。
 - 多产品市场。
 - 成员邀请和角色变更。
 - 邮箱验证、忘记密码/重置密码、MFA、邮件自动发送和第三方 OAuth。
@@ -167,7 +170,7 @@ Stripe 一期只需要服务端环境变量：`STRIPE_SECRET_KEY` 和 `STRIPE_WE
 
 AWS Sandbox 固定目标为 Account `402010193138`、Region `ca-central-1`、月预算 `10 USD`、TTL `7200` 秒、最多一个 Cell 和一个租户、基础域名 `sandbox.techlong.cloud`。默认 `DEPLOYMENT_WORKER_ENABLED=false`、`AWS_APPLY_ENABLED=false`；单独修改任一变量都不能执行。数据库环境开关、assumed-role STS 身份、严格参数、cleanup 记录、租户数据库迁移和 mTLS 控制对账必须同时通过。这些变量不代表资源已创建。
 
-AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`，当前终端 PATH 可能尚未刷新。在真实 Windows 用户上下文中已验证 Profile `techlong-sandbox-user`：Region 为 `ca-central-1`，STS Account 为 `402010193138`，身份是 `arn:aws:iam::402010193138:user/techlong-sandbox-dev`；核验没有读取或输出密钥。该 IAM User 已绑定 MFA，本机也已配置不含密钥的 `techlong-sandbox-provisioner` AssumeRole Profile。S3-A CloudFormation Bootstrap 已部署受限角色、TTL Janitor、不可变 ECR、受控 CodeBuild 与私有源码 Bucket；最新 Distroless 应用镜像已通过构建期运行时 smoke test 和 ECR 零发现扫描，但尚未写入 execution binding，也没有启动 Worker。仍未创建 Cell、ALB、ECS、Aurora、VPC 或 DNS。进入真实租户 Apply 前，应继续把该 IAM User 收敛为只允许 AssumeRole，并让 Worker 使用专用角色的短期凭据；不要在仓库或 `.env.local` 中配置长期 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`。
+此前 S3-A 在线核验记录显示：AWS CLI v2 位于 `D:\Amazon\AWSCLIV2\aws.exe`；Profile `techlong-sandbox-user` 的 Region 为 `ca-central-1`，STS Account 为 `402010193138`，身份是 `arn:aws:iam::402010193138:user/techlong-sandbox-dev`，且核验没有读取或输出密钥。该 IAM User 已绑定 MFA，本机也已配置不含密钥的 `techlong-sandbox-provisioner` AssumeRole Profile。S3-A CloudFormation Bootstrap 已部署受限角色、TTL Janitor、不可变 ECR、受控 CodeBuild 与私有源码 Bucket；最新 Distroless 应用镜像已通过构建期运行时 smoke test 和 ECR 零发现扫描，但尚未写入 execution binding，也没有启动 Worker；当时仍未创建 Cell、ALB、ECS、Aurora、VPC 或 DNS。本次 B0–B4 收口完全离线，未重新查询 AWS。进入真实租户 Apply 前，应继续把该 IAM User 收敛为只允许 AssumeRole，并让 Worker 使用专用角色的短期凭据；不要在仓库或 `.env.local` 中配置长期 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`。
 
 只读 `organizations describe-organization` 返回 `AWSOrganizationsNotInUseException`，因此账号当前是 standalone，不属于 AWS Organizations。SCP 当前不可用，本方案也不会为了获得 SCP 而让账号加入 Organizations；S3 使用窄权限 IAM Policy、高风险动作显式 Deny、Permissions Boundary 和专用 AssumeRole 角色组合控制权限。账号类型已经确认，S3 前无需重复把“确认账号类型”列为门禁，除非账号归属后来被人工改变。
 
@@ -244,6 +247,8 @@ AWS Cell 部署计划与 S1 执行基础新增：
 - `app_instance_deployments`：保存应用实例对应的目标计划、哈希、幂等键、环境关联、状态和非敏感输出；不保存凭据或 Secret 值
 - `deployment_jobs`：保存 Apply/回滚/校正/清理任务的幂等键、租约、重试与死信状态；独立 Worker 已存在，但 `applyRuntimeReady=false` 且真实 Adapter 未配置，当前不会创建 AWS 资源
 - `deployment_step_runs`：保存每个部署步骤的输入哈希、尝试次数、结果摘要和脱敏错误，支持将来的可审计执行
+- `deployment_tenant_resources`：按应用实例保存租户 database/role/Secret 的当前 owner、generation、Secret ARN 引用和脱敏生命周期证据；对应 `0005` 当前尚未应用
+- `deployment_tenant_resource_events`：append-only 保存 claim、状态推进、清理和 reopen 的 generation 审计事件；对应 `0005` 当前尚未应用
 
 自有认证一期新增：
 
@@ -362,4 +367,4 @@ AWS Cell 部署计划与 S1 执行基础新增：
 
 ## 下一步建议
 
-先在 Stripe 测试模式完成双账号验收，并在本地验证 S0 静态护栏、S1 状态机/任务幂等性、S2 控制契约以及 S3 “任一 gate 缺失时 AWS 调用为零”、参数允许名单、幂等 Apply 和 retry。真实 AWS Apply 仍须在 assumed-role Profile、STS Account/Role 校验、预算通知、TTL Janitor、最小权限执行角色、DNS 委派、租户数据库 Adapter、mTLS transport 和回滚演练全部通过后单独批准；不得直接开启示例变量。升级/降级、退款和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)，S3 启用门禁见 [AWS Sandbox S3 部署执行器](./docs/aws-sandbox-s3-worker.md)。
+下一步是单独评审 S3-B B5，而不是直接打开变量：先为跨 deployment 复用设计可被 database/role/Secret 原子观测的 ownership epoch，并让长时间 DB/Secret/CloudFormation 操作支持续租、取消和迟到完成隔离，再审查并应用 `0005`；随后生成并独立批准空租户 PostgreSQL 16.14 baseline，部署受限 Cell Operator/Execution Role 与独立 Cell Janitor，准备 DNS/ACM/ACTIVE Trust Store，安装并接线只读 ECS/ELBv2/EC2/RDS SDK，再实现真实 Tenant Database/Secrets/稳定 Owner Secret 数据源及完整 cleanup 演练。所有门禁和真实 TTL 删除演练通过后，才可另行批准一个付费 Sandbox Cell；`applyRuntimeReady` 在此之前必须保持 `false`。升级/降级、退款和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)，S3 启用门禁见 [AWS Sandbox S3 部署执行器](./docs/aws-sandbox-s3-worker.md)。

@@ -2,6 +2,7 @@ import type {
   SaaSControlObservation,
   SaaSControlPort,
 } from "./contracts.ts";
+import { clearFirstOwnerPassword } from "./control-secret-redaction.ts";
 
 export interface SaaSControlRequest {
   method: "GET" | "POST";
@@ -39,17 +40,29 @@ function assertHostname(hostname: string): void {
   }
 }
 
-function parseObservation(value: unknown): SaaSControlObservation {
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function controlSource(value: unknown): {
+  envelope: Record<string, unknown>;
+  control: Record<string, unknown>;
+} {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("SaaS control response is not an object.");
   }
   const record = value as Record<string, unknown>;
   const source =
-    record.control && typeof record.control === "object" && !Array.isArray(record.control)
-      ? (record.control as Record<string, unknown>)
-      : record.data && typeof record.data === "object" && !Array.isArray(record.data)
-        ? (record.data as Record<string, unknown>)
-      : record;
+    asRecord(record.control) ?? asRecord(record.data) ?? record;
+  return { envelope: record, control: source };
+}
+
+function parseFields(source: Record<string, unknown>): {
+  desiredConfigurationHash: string | null;
+  imageRevision: string | null;
+} {
   const desiredConfigurationHash =
     typeof source.desired_configuration_hash === "string"
       ? source.desired_configuration_hash
@@ -62,10 +75,50 @@ function parseObservation(value: unknown): SaaSControlObservation {
   ) {
     throw new Error("SaaS control desired configuration hash is invalid.");
   }
+  if (imageRevision !== null && !/^sha256:[a-f0-9]{64}$/.test(imageRevision)) {
+    throw new Error("SaaS control image revision is not an immutable image digest.");
+  }
+  return { desiredConfigurationHash, imageRevision };
+}
+
+function parseHealthObservation(value: unknown): SaaSControlObservation {
+  const { envelope, control } = controlSource(value);
+  const fields = parseFields(control);
+  const instance = asRecord(control.instance);
+  const apiVersion = control.control_api_version;
   return {
-    ready: record.success === true || source.ready === true,
-    desiredConfigurationHash,
-    imageRevision,
+    ready:
+      envelope.success === true &&
+      typeof apiVersion === "string" &&
+      /^1\.[0-9]+$/.test(apiVersion) &&
+      instance !== null &&
+      fields.imageRevision !== null,
+    ...fields,
+  };
+}
+
+function parseReconciledObservation(
+  value: unknown,
+  appInstanceId: string,
+): SaaSControlObservation {
+  const { envelope, control } = controlSource(value);
+  const fields = parseFields(control);
+  const instance = asRecord(control.instance);
+  const apiVersion = control.control_api_version;
+  return {
+    // `success: true` only means the endpoint answered. Readiness requires an
+    // authenticated control receipt bound to this instance, active state, a
+    // desired hash, and an immutable image digest. The worker then compares
+    // both values to its persisted deployment plan before committing ready.
+    ready:
+      envelope.success === true &&
+      typeof apiVersion === "string" &&
+      /^1\.[0-9]+$/.test(apiVersion) &&
+      instance?.status === "active" &&
+      instance.external_instance_id === appInstanceId &&
+      fields.desiredConfigurationHash !== null &&
+      fields.imageRevision !== null,
+    ...fields,
   };
 }
 
@@ -122,6 +175,21 @@ function assertSuccessfulResponse(status: number, body: unknown): void {
   }
 }
 
+function assertProvisionReceipt(body: unknown): void {
+  const receipt = asRecord(body);
+  if (
+    receipt?.success !== true ||
+    typeof receipt.replayed !== "boolean"
+  ) {
+    const error = new Error("SaaS provision response did not contain a trusted idempotency receipt.");
+    Object.assign(error, {
+      code: "SAAS_CONTROL_INVALID_RECEIPT",
+      retryable: false,
+    });
+    throw error;
+  }
+}
+
 export class MtlsSaaSControlClient implements SaaSControlPort {
   private readonly transport: SaaSControlTransport;
   private readonly tokenProvider: SaaSControlTokenProvider;
@@ -155,6 +223,7 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
       headers: {
         authorization: `Bearer ${token}`,
         accept: "application/json",
+        host: input.hostname,
         ...(input.body ? { "content-type": "application/json" } : {}),
         ...(input.idempotencyKey
           ? { "idempotency-key": input.idempotencyKey }
@@ -176,7 +245,7 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
       hostname: input.hostname,
       path: "/api/saas/control",
     });
-    return parseObservation(body);
+    return parseHealthObservation(body);
   }
 
   async provision(input: {
@@ -185,20 +254,26 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
     idempotencyKey: string;
     compiledPayload: Record<string, unknown>;
   }): Promise<{ accepted: true }> {
-    assertCompiledProvisioningPayload({
-      payload: input.compiledPayload,
-      appInstanceId: input.appInstanceId,
-    });
-    const body = await this.request({
-      method: "POST",
-      appInstanceId: input.appInstanceId,
-      hostname: input.hostname,
-      path: "/api/saas/provision",
-      idempotencyKey: input.idempotencyKey,
-      body: input.compiledPayload,
-    });
-    void body;
-    return { accepted: true };
+    try {
+      assertCompiledProvisioningPayload({
+        payload: input.compiledPayload,
+        appInstanceId: input.appInstanceId,
+      });
+      const body = await this.request({
+        method: "POST",
+        appInstanceId: input.appInstanceId,
+        hostname: input.hostname,
+        path: "/api/saas/provision",
+        idempotencyKey: input.idempotencyKey,
+        body: input.compiledPayload,
+      });
+      assertProvisionReceipt(body);
+      return { accepted: true };
+    } finally {
+      // The compiler injects this secret at the last possible boundary. It is
+      // removed even when the request or receipt validation fails.
+      clearFirstOwnerPassword(input.compiledPayload);
+    }
   }
 
   async readConfiguration(input: {
@@ -211,7 +286,7 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
       hostname: input.hostname,
       path: "/api/saas/control",
     });
-    return parseObservation(body);
+    return parseReconciledObservation(body, input.appInstanceId);
   }
 }
 

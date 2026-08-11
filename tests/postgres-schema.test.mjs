@@ -57,6 +57,8 @@ test("PostgreSQL schema contains all business tables and core integrity rules", 
     "deployment_environment_capacity_reservations",
     "deployment_jobs",
     "deployment_step_runs",
+    "deployment_tenant_resources",
+    "deployment_tenant_resource_events",
     "payment_webhook_events",
     "workspace_members",
     "workspace_product_entitlements",
@@ -166,8 +168,107 @@ test("S3 worker migration adds role bindings and a confirmed TTL cleanup boundar
   assert.match(migration, /'cleanup'/);
 });
 
+test("tenant resource migration persists reference-only lifecycle checkpoints", async () => {
+  const [migration, lifecycle] = await Promise.all([
+    read("db/postgres-migrations/0005_tenant_resource_lifecycle.sql"),
+    read("lib/deployments/execution/tenant-database.ts"),
+  ]);
+  assert.match(migration, /CREATE TABLE deployment_tenant_resources\b/);
+  assert.match(migration, /app_instance_id text PRIMARY KEY/);
+  assert.match(migration, /created_by_deployment_id text NOT NULL/);
+  assert.match(migration, /owner_deployment_id text NOT NULL/);
+  assert.match(migration, /generation bigint NOT NULL DEFAULT 1/);
+  assert.match(migration, /stable_identity_hash text NOT NULL/);
+  assert.doesNotMatch(migration, /deployment_id text PRIMARY KEY/);
+  assert.doesNotMatch(migration, /last_deployment_id/);
+  assert.match(migration, /environment_id text NOT NULL/);
+  assert.match(migration, /workspace_id text NOT NULL/);
+  assert.match(migration, /product_id text NOT NULL/);
+  assert.match(migration, /database_name ~ '\^\[a-z\]\[a-z0-9_\]\{2,62\}\$'/);
+  assert.match(migration, /role_name ~ '\^\[a-z\]\[a-z0-9_\]\{2,62\}\$'/);
+  assert.match(migration, /runtime_secret_ref text/);
+  assert.match(migration, /arn:aws:secretsmanager/);
+  assert.match(migration, /'planned', 'reopening', 'secret_ready'/);
+  assert.match(migration, /'baseline_restored'/);
+  assert.match(migration, /'saas_migrated'/);
+  assert.match(migration, /'verified'/);
+  assert.match(migration, /'destroying', 'destroyed', 'failed'/);
+  assert.match(migration, /deployment_tenant_resources_database_unique/);
+  assert.match(migration, /deployment_tenant_resources_role_unique/);
+  assert.match(migration, /deployment_tenant_resources_secret_name_unique/);
+  assert.match(migration, /deployment_tenant_resources_secret_ref_unique/);
+  assert.match(migration, /deployment_tenant_resources_created_deployment_idx/);
+  assert.match(migration, /deployment_tenant_resources_owner_deployment_idx/);
+  assert.match(migration, /CREATE TABLE deployment_tenant_resource_events\b/);
+  assert.match(migration, /'claimed', 'handed_off', 'reopened'/);
+  assert.match(migration, /'cleanup_started', 'workload_destroyed'/);
+  assert.match(migration, /deployment_tenant_resource_events_instance_generation_idx/);
+  assert.match(migration, /deployment_tenant_resource_events_deployment_idx/);
+  assert.match(
+    migration,
+    /CREATE OR REPLACE FUNCTION enforce_deployment_tenant_resource_relationships/,
+  );
+  assert.match(migration, /deployment tenant resource ownership mismatch/);
+  assert.match(migration, /NEW\.owner_deployment_id/);
+  assert.match(migration, /NEW\.created_by_deployment_id/);
+  assert.match(migration, /deployment tenant resource stable identity is immutable/);
+  assert.match(migration, /deployment tenant resource owner cannot move backward/);
+  assert.match(
+    migration,
+    /non-destroyed tenant resource owner handoff is disabled/,
+  );
+  assert.match(migration, /deployment tenant resource owner still has a live lease/);
+  assert.match(migration, /deployment tenant resource cleanup fence cannot regress/);
+  assert.match(migration, /deployment tenant resource lifecycle cannot regress/);
+  assert.match(
+    migration,
+    /candidate_owner_created_at = previous_owner_created_at[\s\S]*?NEW\.owner_deployment_id <= OLD\.owner_deployment_id/,
+  );
+  assert.match(
+    migration,
+    /OLD\.lifecycle_status = 'destroyed'[\s\S]*?NEW\.lifecycle_status = 'reopening'[\s\S]*?NEW\.generation = OLD\.generation \+ 1/,
+  );
+  assert.match(
+    migration,
+    /substring\(stable_identity_hash FROM 1 FOR 32\)[\s\S]*?generation::text/,
+  );
+  assert.match(
+    lifecycle,
+    /tl_owner_\$\{identity\.stableIdentityHash\.slice\(0, 32\)\}_g\$\{generation\}/,
+  );
+  assert.match(
+    migration,
+    /WHEN 'verified' THEN 5[\s\S]*?next_lifecycle_rank > previous_lifecycle_rank/,
+  );
+  assert.match(migration, /BEFORE INSERT OR UPDATE ON deployment_tenant_resources/);
+  assert.match(migration, /deployment tenant resource events are append-only/);
+  assert.match(
+    migration,
+    /BEFORE UPDATE OR DELETE ON deployment_tenant_resource_events/,
+  );
+  assert.match(migration, /DROP INDEX deployment_step_runs_attempt_unique/);
+  assert.match(
+    migration,
+    /ON deployment_step_runs \(job_id, step_key, input_hash, attempt\)/,
+  );
+  assert.match(
+    migration,
+    /lifecycle_status = 'destroyed' AND destroyed_at IS NOT NULL/,
+  );
+  assert.match(migration, /'verified', 'destroyed'[\s\S]*?evidence_hash IS NOT NULL/);
+  assert.doesNotMatch(migration, /password|database_url|secret_value/i);
+});
+
 test("S3 execution repository reserves capacity atomically and commits ready state as one statement", async () => {
   const repository = await read("lib/deployments/execution/neon-repository.ts");
+  assert.match(
+    repository,
+    /ON CONFLICT \(job_id, step_key, input_hash, attempt\) DO NOTHING/,
+  );
+  assert.doesNotMatch(
+    repository,
+    /ON CONFLICT \(deployment_id, step_key, input_hash, attempt\) DO NOTHING/,
+  );
   assert.match(
     repository,
     /reserveEnvironmentCapacity[\s\S]*?locked_environment AS MATERIALIZED[\s\S]*?FOR UPDATE[\s\S]*?deployment_environment_capacity_reservations[\s\S]*?ON CONFLICT DO NOTHING/,
@@ -184,6 +285,83 @@ test("S3 execution repository reserves capacity atomically and commits ready sta
     repository,
     /markReady[\s\S]{0,500}?\.transaction\s*\(/,
   );
+});
+
+test("deployment step identities are scoped to the owning job", async () => {
+  const jobs = await read("lib/deployments/jobs.ts");
+  assert.match(
+    jobs,
+    /\$\{input\.deploymentId\}:\$\{input\.jobId\}:\$\{input\.stepKey\}:\$\{input\.inputHash\}:\$\{input\.attempt\}/,
+  );
+});
+
+test("S3 execution repository binds immutable templates and tenant lifecycle writes to the live lease", async () => {
+  const repository = await read("lib/deployments/execution/neon-repository.ts");
+  assert.match(repository, /ai\.template_version_id/);
+  assert.match(
+    repository,
+    /LEFT JOIN deployment_tenant_resources tr[\s\S]*?ON tr\.app_instance_id = ai\.id/,
+  );
+  assert.doesNotMatch(
+    repository,
+    /ON tr\.app_instance_id = ai\.id\s+AND tr\.environment_id/,
+  );
+  assert.match(repository, /templateVersionId/);
+  assert.match(repository, /tenantResources/);
+  assert.match(
+    repository,
+    /recordTenantResourceLifecycle[\s\S]*?assertSafeTenantResourceEvidence\(input\.evidence\)/,
+  );
+  assert.match(
+    repository,
+    /recordTenantResourceLifecycle[\s\S]*?job\.status = 'running'[\s\S]*?job\.lease_owner = \$3[\s\S]*?job\.lease_expires_at > \$4/,
+  );
+  assert.match(
+    repository,
+    /recordTenantResourceLifecycle[\s\S]*?resource\.owner_deployment_id = \$1[\s\S]*?resource\.generation = \$6[\s\S]*?resource\.ownership_marker = \$7/,
+  );
+  assert.match(
+    repository,
+    /claimTenantResourceGeneration[\s\S]*?candidate_created_at[\s\S]*?owner_created_at/,
+  );
+  assert.match(
+    repository,
+    /claimTenantResourceGeneration[\s\S]*?candidate\.candidate_created_at > existing\.owner_created_at[\s\S]*?candidate\.deployment_id > existing\.owner_deployment_id/,
+  );
+  assert.match(
+    repository,
+    /claimTenantResourceGeneration[\s\S]*?previous_status = 'destroyed'[\s\S]*?candidate_is_newer[\s\S]*?NOT owner_has_live_job/,
+  );
+  assert.match(
+    repository,
+    /previous_status = 'destroyed'[\s\S]*?previous_generation \+ 1[\s\S]*?'reopening'/,
+  );
+  assert.match(
+    repository,
+    /deployment_tenant_resource_events[\s\S]*?previousOwnerDeploymentId/,
+  );
+  assert.match(
+    repository,
+    /beginTenantResourceCleanup[\s\S]*?lifecycle_status = 'destroying'[\s\S]*?already_completed[\s\S]*?locked\.lifecycle_status = 'destroyed'[\s\S]*?cleanup_started/,
+  );
+  assert.match(
+    repository,
+    /assertTenantResourceCleanupFence[\s\S]*?resource\.generation = \$4[\s\S]*?resource\.lifecycle_status IN \('destroying', 'destroyed'\)/,
+  );
+  assert.match(
+    repository,
+    /completeTenantResourceCleanup[\s\S]*?lifecycle_status = 'destroyed'[\s\S]*?resource\.owner_deployment_id = \$1[\s\S]*?resource\.generation = \$6/,
+  );
+  assert.match(
+    repository,
+    /sha256Hex\(`\$\{input\.deploymentId\}:\$\{input\.jobId\}:\$\{input\.stepKey\}/,
+  );
+  assert.match(repository, /TENANT_RESOURCE_IDENTITY_MISMATCH/);
+  assert.match(
+    repository,
+    /TENANT_RESOURCE_HANDOFF_REQUIRES_OWNERSHIP_EPOCH/,
+  );
+  assert.match(repository, /must not contain URLs or URIs/);
 });
 
 test("temporary browser migration endpoint is removed after cutover", async () => {

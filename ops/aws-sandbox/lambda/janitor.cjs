@@ -50,7 +50,13 @@ function tagsToMap(tags) {
   );
 }
 
-function isEligibleStack(stack, nowMs, expectedDeploymentId) {
+function isEligibleStack(
+  stack,
+  nowMs,
+  expectedDeploymentId,
+  expectedAppInstanceId,
+  expectedResourceGeneration,
+) {
   if (!stack || typeof stack !== "object") return false;
   if (
     typeof stack.StackName !== "string" ||
@@ -73,13 +79,35 @@ function isEligibleStack(stack, nowMs, expectedDeploymentId) {
     tags.Environment !== EXPECTED_ENVIRONMENT ||
     tags.ManagedBy !== EXPECTED_MANAGER ||
     !tags.DeploymentId ||
-    !tags.AppInstanceId
+    !tags.AppInstanceId ||
+    !tags.CellId ||
+    !tags.ResourceGeneration
+  ) {
+    return false;
+  }
+  const resourceGeneration = Number(tags.ResourceGeneration);
+  if (
+    !Number.isSafeInteger(resourceGeneration) ||
+    resourceGeneration < 1 ||
+    String(resourceGeneration) !== tags.ResourceGeneration
   ) {
     return false;
   }
   if (
     expectedDeploymentId !== undefined &&
     tags.DeploymentId !== expectedDeploymentId
+  ) {
+    return false;
+  }
+  if (
+    expectedAppInstanceId !== undefined &&
+    tags.AppInstanceId !== expectedAppInstanceId
+  ) {
+    return false;
+  }
+  if (
+    expectedResourceGeneration !== undefined &&
+    resourceGeneration !== expectedResourceGeneration
   ) {
     return false;
   }
@@ -108,12 +136,18 @@ function createHandler(api, now = () => Date.now()) {
 
     const requestedStackName = event?.stackName;
     const expectedDeploymentId = event?.deploymentId;
+    const expectedAppInstanceId = event?.appInstanceId;
+    const expectedResourceGeneration = event?.resourceGeneration;
     if (action === "delete_cloudformation_stack") {
       if (
         typeof requestedStackName !== "string" ||
         !SAFE_STACK_NAME_PATTERN.test(requestedStackName) ||
         typeof expectedDeploymentId !== "string" ||
-        expectedDeploymentId.length < 3
+        expectedDeploymentId.length < 3 ||
+        typeof expectedAppInstanceId !== "string" ||
+        !/^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/.test(expectedAppInstanceId) ||
+        !Number.isSafeInteger(expectedResourceGeneration) ||
+        expectedResourceGeneration < 1
       ) {
         throw new Error("invalid targeted cleanup request");
       }
@@ -126,7 +160,15 @@ function createHandler(api, now = () => Date.now()) {
         }
         throw error;
       }
-      if (!isEligibleStack(stack, now(), expectedDeploymentId)) {
+      if (
+        !isEligibleStack(
+          stack,
+          now(),
+          expectedDeploymentId,
+          expectedAppInstanceId,
+          expectedResourceGeneration,
+        )
+      ) {
         return { checked: 1, deleted: [], skipped: [requestedStackName] };
       }
       await api.deleteStack(requestedStackName);

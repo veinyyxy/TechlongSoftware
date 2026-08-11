@@ -1,4 +1,20 @@
-import type { SaaSControlPayloadCompilerPort } from "./contracts.ts";
+import {
+  compileProvisioningConfiguration,
+  type ProvisioningConfiguration,
+} from "../../templates/provisioning.ts";
+import type {
+  TemplateConfiguration,
+  TemplateConfigurationSchema,
+  TemplateVersionStatus,
+} from "../../templates/validation.ts";
+import type {
+  DeploymentExecutionContext,
+  SaaSControlPayloadCompilerPort,
+} from "./contracts.ts";
+import { canonicalJson, sha256Hex } from "./hash.ts";
+
+const idPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/;
+const imageDigestPattern = /@(sha256:[a-f0-9]{64})$/;
 
 export class SaaSControlPayloadCompilerDisabledError extends Error {
   readonly code = "SAAS_CONTROL_PAYLOAD_COMPILER_DISABLED";
@@ -11,12 +27,231 @@ export class SaaSControlPayloadCompilerDisabledError extends Error {
   }
 }
 
+export class SaaSControlPayloadCompilationError extends Error {
+  readonly code = "SAAS_CONTROL_PAYLOAD_REJECTED";
+  readonly retryable = false;
+
+  constructor(message: string) {
+    super(message);
+  }
+}
+
 /**
- * The real adapter must load the immutable template-version schema, call
- * compileProvisioningConfiguration, inject the one-time owner secret from a
- * SecretStore, and add instance.metadata.configuration_hash. Raw customer
- * snapshots are never valid SaaS control request bodies.
+ * This binding is intentionally reloaded independently from the worker
+ * context. The compiler compares both immutable template-version IDs and the
+ * resolved configuration hash; it never accepts the raw context snapshot as a
+ * control request body.
  */
+export interface AppInstanceTemplateBinding {
+  appInstanceId: string;
+  templateVersionId: string;
+  resolvedConfiguration: TemplateConfiguration;
+}
+
+export interface AppInstanceTemplateBindingSource {
+  loadForAppInstance(input: {
+    appInstanceId: string;
+  }): Promise<AppInstanceTemplateBinding | null>;
+}
+
+export interface ImmutableTemplateVersion {
+  id: string;
+  status: TemplateVersionStatus;
+  configurationSchema: TemplateConfigurationSchema;
+}
+
+export interface ImmutableTemplateVersionSource {
+  loadById(input: {
+    templateVersionId: string;
+  }): Promise<ImmutableTemplateVersion | null>;
+}
+
+/**
+ * A lease must source an idempotently stable password at execution time (for
+ * example from a provider-backed one-time Secret). `dispose` releases and
+ * clears only the in-process lease; it must not rotate or delete the provider
+ * value because a lost HTTP response must be retried with the same payload and
+ * Idempotency-Key. Provider deletion happens only after the control read-back
+ * has been verified by a separately fenced lifecycle step. Implementations
+ * must never write the cleartext to logs or databases.
+ */
+export interface FirstOwnerPasswordLease {
+  read(): string;
+  dispose(): void;
+}
+
+export interface FirstOwnerPasswordSource {
+  lease(input: {
+    appInstanceId: string;
+    templateVersionId: string;
+  }): Promise<FirstOwnerPasswordLease>;
+}
+
+export interface ImmutableTemplateSaaSControlPayloadCompilerOptions {
+  bindings: AppInstanceTemplateBindingSource;
+  templateVersions: ImmutableTemplateVersionSource;
+  firstOwnerPasswords: FirstOwnerPasswordSource;
+}
+
+function assertBinding(
+  binding: AppInstanceTemplateBinding | null,
+  appInstanceId: string,
+): asserts binding is AppInstanceTemplateBinding {
+  if (
+    !binding ||
+    binding.appInstanceId !== appInstanceId ||
+    !idPattern.test(binding.templateVersionId)
+  ) {
+    throw new SaaSControlPayloadCompilationError(
+      "Application instance has no valid immutable template-version binding.",
+    );
+  }
+}
+
+function assertTemplateVersion(
+  version: ImmutableTemplateVersion | null,
+  expectedId: string,
+): asserts version is ImmutableTemplateVersion {
+  if (
+    !version ||
+    version.id !== expectedId ||
+    (version.status !== "published" && version.status !== "archived") ||
+    version.configurationSchema.schemaVersion !== 2 ||
+    version.configurationSchema.contract !== "speedfeast-saas-control-v1"
+  ) {
+    throw new SaaSControlPayloadCompilationError(
+      "The bound template version is not an immutable SpeedFeast control contract.",
+    );
+  }
+}
+
+function ensureObjectRoot(
+  compiled: ProvisioningConfiguration,
+  key: "entitlements" | "default_store" | "first_owner",
+): Record<string, unknown> {
+  const value = compiled[key];
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    if (key === "first_owner") {
+      throw new SaaSControlPayloadCompilationError(
+        "The immutable template must define the first owner configuration.",
+      );
+    }
+    const root: Record<string, unknown> = {};
+    compiled[key] = root;
+    return root;
+  }
+  return value as Record<string, unknown>;
+}
+
+function immutableImageDigest(context: DeploymentExecutionContext): string {
+  const digest = context.deployment.artifactRef.match(imageDigestPattern)?.[1];
+  if (!digest) {
+    throw new SaaSControlPayloadCompilationError(
+      "Deployment artifact is not pinned to an immutable SHA-256 image digest.",
+    );
+  }
+  return digest;
+}
+
+/**
+ * Loads an exact immutable template version and compiles its resolved values
+ * through the v2 allowlisted output paths. The raw instance snapshot is never
+ * copied into the control request.
+ */
+export class ImmutableTemplateSaaSControlPayloadCompiler
+  implements SaaSControlPayloadCompilerPort
+{
+  private readonly bindings: AppInstanceTemplateBindingSource;
+  private readonly templateVersions: ImmutableTemplateVersionSource;
+  private readonly firstOwnerPasswords: FirstOwnerPasswordSource;
+
+  constructor(options: ImmutableTemplateSaaSControlPayloadCompilerOptions) {
+    this.bindings = options.bindings;
+    this.templateVersions = options.templateVersions;
+    this.firstOwnerPasswords = options.firstOwnerPasswords;
+  }
+
+  async compile(input: {
+    context: DeploymentExecutionContext;
+    configurationHash: string;
+  }): Promise<{
+    compiledPayload: Record<string, unknown>;
+    configurationHash: string;
+  }> {
+    if (!/^[a-f0-9]{64}$/.test(input.configurationHash)) {
+      throw new SaaSControlPayloadCompilationError(
+        "Deployment configuration hash is invalid.",
+      );
+    }
+    const binding = await this.bindings.loadForAppInstance({
+      appInstanceId: input.context.appInstance.id,
+    });
+    assertBinding(binding, input.context.appInstance.id);
+    if (binding.templateVersionId !== input.context.appInstance.templateVersionId) {
+      throw new SaaSControlPayloadCompilationError(
+        "Application instance template binding changed after the deployment context was loaded.",
+      );
+    }
+    const resolvedHash = await sha256Hex(canonicalJson(binding.resolvedConfiguration));
+    if (resolvedHash !== input.configurationHash) {
+      throw new SaaSControlPayloadCompilationError(
+        "Immutable template binding does not match the persisted deployment configuration hash.",
+      );
+    }
+    const version = await this.templateVersions.loadById({
+      templateVersionId: binding.templateVersionId,
+    });
+    assertTemplateVersion(version, binding.templateVersionId);
+
+    const passwordLease = await this.firstOwnerPasswords.lease({
+      appInstanceId: input.context.appInstance.id,
+      templateVersionId: binding.templateVersionId,
+    });
+    try {
+      const firstOwnerPassword = passwordLease.read();
+      if (firstOwnerPassword.length < 10 || firstOwnerPassword.length > 256) {
+        throw new SaaSControlPayloadCompilationError(
+          "Runtime first-owner password does not meet the control contract.",
+        );
+      }
+      const result = compileProvisioningConfiguration({
+        schema: version.configurationSchema,
+        configuration: binding.resolvedConfiguration,
+        runtimeSecrets: { firstOwnerPassword },
+      });
+      if (!result.data) {
+        throw new SaaSControlPayloadCompilationError(
+          `Immutable template compilation failed for ${Object.keys(result.errors).sort().join(", ") || "unknown fields"}.`,
+        );
+      }
+      const compiled = result.data;
+      ensureObjectRoot(compiled, "entitlements");
+      ensureObjectRoot(compiled, "default_store");
+      ensureObjectRoot(compiled, "first_owner");
+      const imageRevision = immutableImageDigest(input.context);
+      return {
+        configurationHash: input.configurationHash,
+        compiledPayload: {
+          instance: {
+            external_instance_id: input.context.appInstance.id,
+            metadata: {
+              configuration_hash: input.configurationHash,
+              template_version_id: binding.templateVersionId,
+              image_revision: imageRevision,
+            },
+          },
+          entitlements: compiled.entitlements,
+          default_store: compiled.default_store,
+          first_owner: compiled.first_owner,
+        },
+      };
+    } finally {
+      passwordLease.dispose();
+    }
+  }
+}
+
+/** Fail-closed until the immutable sources and one-time SecretStore are wired. */
 export class DisabledSaaSControlPayloadCompiler
   implements SaaSControlPayloadCompilerPort
 {

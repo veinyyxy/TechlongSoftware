@@ -1,19 +1,23 @@
 import {
-  awsSandboxTenantStackName,
   renderAwsSandboxTenantStack,
+  tenantStackOperationTagKey,
+  tenantStackStableOwnershipTagKeys,
 } from "../cloudformation/tenant-stack.ts";
 import { assertSafeDeploymentOutput, normalizeDeploymentError } from "../safety.ts";
-import type { DeploymentStatus } from "../state-machine.ts";
+import type { DeploymentJobType, DeploymentStatus } from "../state-machine.ts";
 import type {
   ApplyReadyTenantStack,
   AwsDeploymentPort,
   CleanupSchedulePort,
   DeploymentExecutionContext,
   DeploymentExecutionRepository,
+  DeploymentTenantResourceLifecycleStatus,
   SaaSControlPort,
   SaaSControlPayloadCompilerPort,
   SharedCellSecurityPreflightPort,
   TenantDatabasePort,
+  TenantResourceCleanupReceipt,
+  TenantResourceFence,
 } from "./contracts.ts";
 import {
   assertExecutionGate,
@@ -26,6 +30,10 @@ import {
 } from "./gates.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import { finalizeTenantStackForApply } from "./parameters.ts";
+import {
+  assertTenantResourceFence,
+  deriveTenantResourceIdentity,
+} from "./tenant-database.ts";
 
 export interface DeploymentWorkerDependencies {
   repository: DeploymentExecutionRepository;
@@ -35,6 +43,8 @@ export interface DeploymentWorkerDependencies {
    * compiler adapters are all production-ready.
    */
   applyRuntimeReady: boolean;
+  /** Explicit capability gate for the complete fenced cleanup coordinator. */
+  cleanupRuntimeReady?: boolean;
   awsFactory(input: {
     region: string;
     workerRoleArn: string;
@@ -42,6 +52,18 @@ export interface DeploymentWorkerDependencies {
   cleanupScheduler: CleanupSchedulePort;
   sharedCellSecurityPreflight: SharedCellSecurityPreflightPort;
   tenantDatabase: TenantDatabasePort;
+  /**
+   * Full workload -> database/role -> secret cleanup boundary. When omitted,
+   * cleanup and rollback fail closed before constructing an AWS adapter.
+   */
+  tenantResourceCleanup?: {
+    destroy(input: {
+      fence: TenantResourceFence;
+      jobId: string;
+      workerId: string;
+      idempotencyKey: string;
+    }): Promise<TenantResourceCleanupReceipt>;
+  };
   controlClient: SaaSControlPort;
   controlPayloadCompiler: SaaSControlPayloadCompilerPort;
   now?: () => number;
@@ -57,12 +79,6 @@ export type DeploymentWorkerRunResult =
       deploymentId: string;
       errorCode: string;
     };
-
-interface TenantStackDeleteDescriptor {
-  stackName: string;
-  tags: Record<string, string>;
-  cloudFormationRoleArn: string;
-}
 
 class DeploymentExecutionError extends Error {
   readonly code: string;
@@ -203,27 +219,228 @@ async function assertHashes(
   }
 }
 
-function deleteDescriptor(
+function currentTenantResourceFence(
   context: DeploymentExecutionContext,
-): TenantStackDeleteDescriptor {
-  if (!context.binding) {
+): TenantResourceFence {
+  const record = context.tenantResources;
+  if (!record) {
     throw new DeploymentExecutionError(
-      "EXECUTION_BINDING_MISSING",
-      "Cleanup requires the persisted CloudFormation role binding.",
+      "TENANT_RESOURCE_GENERATION_UNCLAIMED",
+      "Tenant resources have no current generation fence.",
       false,
     );
   }
-  return {
-    stackName: awsSandboxTenantStackName(
-      context.deployment.desiredPlan.resources.tenant.ecsService,
-    ),
-    tags: {
-      Environment: "aws-sandbox",
-      DeploymentId: context.deployment.id,
-      AppInstanceId: context.appInstance.id,
-      ManagedBy: "techlong-provisioner",
+  const fence: TenantResourceFence = {
+    schemaVersion: 1,
+    identity: record.identity,
+    generation: record.generation,
+    ownerDeploymentId: record.ownerDeploymentId,
+    ownershipMarker: record.ownershipMarker,
+  };
+  assertTenantResourceFence(fence);
+  if (fence.ownerDeploymentId !== context.deployment.id) {
+    throw new DeploymentExecutionError(
+      "TENANT_RESOURCE_OWNER_STALE",
+      "The deployment no longer owns the current tenant resource generation.",
+      false,
+    );
+  }
+  return fence;
+}
+
+interface PersistableTenantLifecycleOutput {
+  databaseName: string;
+  roleName: string;
+  ownershipMarker: string;
+  resourceGeneration: number;
+  resourceOwnerDeploymentId: string;
+  secretRef: string;
+  lifecycleState: "empty" | "baseline_restored" | "saas_migrated" | "verified";
+  baselineDigest: string | null;
+  migrationContract: "speedfeast-saas-control-v1" | null;
+  evidenceHash: string;
+}
+
+function parseTenantLifecycleOutput(input: {
+  output: Record<string, unknown>;
+  context: DeploymentExecutionContext;
+  fence: TenantResourceFence;
+}): PersistableTenantLifecycleOutput {
+  assertSafeDeploymentOutput(input.output);
+  const expectedKeys = [
+    "baselineDigest",
+    "databaseName",
+    "evidenceHash",
+    "lifecycleState",
+    "migrationContract",
+    "ownershipMarker",
+    "resourceGeneration",
+    "resourceOwnerDeploymentId",
+    "roleName",
+    "secretRef",
+  ].sort();
+  if (canonicalJson(Object.keys(input.output).sort()) !== canonicalJson(expectedKeys)) {
+    throw new DeploymentExecutionError(
+      "TENANT_DATABASE_OUTPUT_INVALID",
+      "Tenant database adapter returned missing or unexpected lifecycle fields.",
+      false,
+    );
+  }
+  const output = input.output as unknown as PersistableTenantLifecycleOutput;
+  const stateToStatus: Record<
+    PersistableTenantLifecycleOutput["lifecycleState"],
+    DeploymentTenantResourceLifecycleStatus
+  > = {
+    empty: "database_empty",
+    baseline_restored: "baseline_restored",
+    saas_migrated: "saas_migrated",
+    verified: "verified",
+  };
+  if (!(output.lifecycleState in stateToStatus)) {
+    throw new DeploymentExecutionError(
+      "TENANT_DATABASE_OUTPUT_INVALID",
+      "Tenant database adapter returned an unsupported lifecycle state.",
+      false,
+    );
+  }
+  const escapedSecretName = input.fence.identity.secretName.replace(
+    /[.*+?^${}()|[\]\\]/g,
+    "\\$&",
+  );
+  const expectedSecretRef = new RegExp(
+    `^arn:aws:secretsmanager:${input.context.environment.region}:` +
+      `${input.context.environment.expectedAccountId}:secret:` +
+      `${escapedSecretName}-[A-Za-z0-9]{6}$`,
+  );
+  if (
+    output.databaseName !== input.fence.identity.databaseName ||
+    output.roleName !== input.fence.identity.roleName ||
+    output.ownershipMarker !== input.fence.ownershipMarker ||
+    output.resourceGeneration !== input.fence.generation ||
+    output.resourceOwnerDeploymentId !== input.fence.ownerDeploymentId ||
+    typeof output.secretRef !== "string" ||
+    !expectedSecretRef.test(output.secretRef) ||
+    typeof output.evidenceHash !== "string" ||
+    !/^[a-f0-9]{64}$/.test(output.evidenceHash)
+  ) {
+    throw new DeploymentExecutionError(
+      "TENANT_DATABASE_OUTPUT_FENCE_MISMATCH",
+      "Tenant database lifecycle output does not match the current resource fence.",
+      false,
+    );
+  }
+  const hasBaseline = output.lifecycleState !== "empty";
+  const hasMigration =
+    output.lifecycleState === "saas_migrated" || output.lifecycleState === "verified";
+  if (
+    (hasBaseline
+      ? typeof output.baselineDigest !== "string" ||
+        !/^[a-f0-9]{64}$/.test(output.baselineDigest)
+      : output.baselineDigest !== null) ||
+    (hasMigration
+      ? output.migrationContract !== "speedfeast-saas-control-v1"
+      : output.migrationContract !== null)
+  ) {
+    throw new DeploymentExecutionError(
+      "TENANT_DATABASE_OUTPUT_EVIDENCE_INVALID",
+      "Tenant database lifecycle output has inconsistent baseline or migration evidence.",
+      false,
+    );
+  }
+  return output;
+}
+
+async function persistTenantLifecycleCheckpoint(input: {
+  dependencies: DeploymentWorkerDependencies;
+  context: DeploymentExecutionContext;
+  workerId: string;
+  output: Record<string, unknown>;
+}): Promise<void> {
+  const fence = currentTenantResourceFence(input.context);
+  const parsed = parseTenantLifecycleOutput({
+    output: input.output,
+    context: input.context,
+    fence,
+  });
+  const lifecycleStatus: DeploymentTenantResourceLifecycleStatus =
+    parsed.lifecycleState === "empty"
+      ? "database_empty"
+      : parsed.lifecycleState;
+  const persisted = await input.dependencies.repository.recordTenantResourceLifecycle({
+    deploymentId: input.context.deployment.id,
+    jobId: input.context.job.id,
+    workerId: input.workerId,
+    fence,
+    runtimeSecretRef: parsed.secretRef,
+    lifecycleStatus,
+    baselineDigest: parsed.baselineDigest,
+    migrationContract: parsed.migrationContract,
+    evidenceHash: parsed.evidenceHash,
+    evidence: {
+      databaseName: parsed.databaseName,
+      roleName: parsed.roleName,
+      ownershipMarker: parsed.ownershipMarker,
+      resourceGeneration: parsed.resourceGeneration,
+      resourceOwnerDeploymentId: parsed.resourceOwnerDeploymentId,
+      lifecycleState: parsed.lifecycleState,
+      baselineDigest: parsed.baselineDigest,
+      migrationContract: parsed.migrationContract,
     },
-    cloudFormationRoleArn: context.binding.cloudFormationRoleArn,
+    now: (input.dependencies.now ?? Date.now)(),
+  });
+  if (!persisted) {
+    throw new DeploymentExecutionError(
+      "TENANT_RESOURCE_CHECKPOINT_REJECTED",
+      "Tenant resource lifecycle checkpoint lost its lease or generation fence.",
+      true,
+    );
+  }
+}
+
+/**
+ * Claims (or revalidates) the durable app-instance generation under the live
+ * job lease, then reloads the context. Every provisioning write boundary calls
+ * this immediately before using a tenant database, Secret, control, or AWS
+ * adapter. A superseded deployment therefore fails before the adapter call.
+ */
+async function claimAndReloadTenantResource(input: {
+  dependencies: DeploymentWorkerDependencies;
+  context: DeploymentExecutionContext;
+  config: DeploymentWorkerRuntimeConfig;
+  workerId: string;
+}): Promise<{ context: DeploymentExecutionContext }> {
+  const identity = await deriveTenantResourceIdentity(input.context);
+  const claim = await input.dependencies.repository.claimTenantResourceGeneration({
+    deploymentId: input.context.deployment.id,
+    jobId: input.context.job.id,
+    workerId: input.workerId,
+    identity,
+    now: (input.dependencies.now ?? Date.now)(),
+  });
+  assertTenantResourceFence(claim.fence);
+  if (claim.fence.ownerDeploymentId !== input.context.deployment.id) {
+    throw new DeploymentExecutionError(
+      "TENANT_RESOURCE_CLAIM_REJECTED",
+      "Tenant resource generation was not claimed by this deployment.",
+      false,
+    );
+  }
+
+  const refreshed = await input.dependencies.repository.loadContext(
+    input.context.job,
+  );
+  assertContextIntegrity(refreshed, { destructive: false });
+  await assertHashes(refreshed, { configuration: true });
+  assertExecutionGate(
+    evaluatePersistedExecutionGate({
+      config: input.config,
+      environment: refreshed.environment,
+      binding: refreshed.binding,
+    }),
+  );
+  assertTenantResourceFence(currentTenantResourceFence(refreshed), claim.fence);
+  return {
+    context: refreshed,
   };
 }
 
@@ -232,7 +449,10 @@ function assertStackOwnership(input: {
   expectedTags: Record<string, string>;
 }): void {
   if (input.observation.state === "missing") return;
-  for (const key of ["Environment", "ManagedBy", "DeploymentId", "AppInstanceId"] as const) {
+  for (const key of [
+    ...tenantStackStableOwnershipTagKeys,
+    tenantStackOperationTagKey,
+  ] as const) {
     if (input.observation.tags[key] !== input.expectedTags[key]) {
       throw new DeploymentExecutionError(
         "STACK_OWNERSHIP_MISMATCH",
@@ -268,6 +488,7 @@ function renderApplyReadyStack(input: {
   context: DeploymentExecutionContext;
 }): ApplyReadyTenantStack {
   const { context } = input;
+  const fence = currentTenantResourceFence(context);
   if (!context.binding) {
     throw new DeploymentExecutionError(
       "EXECUTION_BINDING_MISSING",
@@ -277,6 +498,7 @@ function renderApplyReadyStack(input: {
   }
   const rendered = renderAwsSandboxTenantStack({
     deploymentId: context.deployment.id,
+    resourceGeneration: fence.generation,
     plan: context.deployment.desiredPlan,
     environment: context.environment,
     imageUri: context.deployment.artifactRef,
@@ -618,7 +840,8 @@ async function handleApply(input: {
     });
   }
   if (input.context.deployment.status === "database_preparing") {
-    await checkpoint({
+    input.context = (await claimAndReloadTenantResource(input)).context;
+    const prepared = await checkpoint({
       ...input,
       stepKey: "tenant_database_prepare",
       stepInput: {
@@ -632,6 +855,12 @@ async function handleApply(input: {
           idempotencyKey: `${input.context.deployment.id}:database`,
         }),
     });
+    await persistTenantLifecycleCheckpoint({
+      dependencies: input.dependencies,
+      context: input.context,
+      workerId: input.workerId,
+      output: prepared,
+    });
     await moveState({
       ...input,
       from: ["database_preparing"],
@@ -640,7 +869,8 @@ async function handleApply(input: {
     });
   }
   if (input.context.deployment.status === "migrating") {
-    await checkpoint({
+    input.context = (await claimAndReloadTenantResource(input)).context;
+    const migrated = await checkpoint({
       ...input,
       stepKey: "tenant_database_migrate",
       stepInput: {
@@ -652,6 +882,12 @@ async function handleApply(input: {
           context: input.context,
           idempotencyKey: `${input.context.deployment.id}:migration:v1`,
         }),
+    });
+    await persistTenantLifecycleCheckpoint({
+      dependencies: input.dependencies,
+      context: input.context,
+      workerId: input.workerId,
+      output: migrated,
     });
     await moveState({
       ...input,
@@ -674,16 +910,8 @@ async function handleApply(input: {
     workerId: input.workerId,
     now: (input.dependencies.now ?? Date.now)(),
   });
-  const refreshed = await input.dependencies.repository.loadContext(input.context.job);
-  assertContextIntegrity(refreshed, { destructive: false });
-  await assertHashes(refreshed, { configuration: true });
-  assertExecutionGate(
-    evaluatePersistedExecutionGate({
-      config: input.config,
-      environment: refreshed.environment,
-      binding: refreshed.binding,
-    }),
-  );
+  const claimed = await claimAndReloadTenantResource(input);
+  const refreshed = claimed.context;
   if (refreshed.deployment.status !== "infrastructure_provisioning") {
     throw new DeploymentExecutionError(
       "DEPLOYMENT_STATE_CONFLICT",
@@ -692,7 +920,9 @@ async function handleApply(input: {
     );
   }
   input.context = refreshed;
-  input.stack = renderApplyReadyStack({ context: refreshed });
+  input.stack = renderApplyReadyStack({
+    context: refreshed,
+  });
   await ensureApplyCleanupSchedule({
     context: refreshed,
     stack: input.stack,
@@ -847,6 +1077,18 @@ async function handleReconcile(input: {
     });
   }
   if (input.context.deployment.status === "configuring") {
+    const claimed = await claimAndReloadTenantResource(input);
+    input.context = claimed.context;
+    if (input.context.deployment.status !== "configuring") {
+      throw new DeploymentExecutionError(
+        "DEPLOYMENT_STATE_CONFLICT",
+        "Deployment state changed before the SaaS control write boundary.",
+        true,
+      );
+    }
+    input.stack = renderApplyReadyStack({
+      context: input.context,
+    });
     await checkpoint({
       ...input,
       stepKey: "control_provision",
@@ -945,12 +1187,24 @@ async function handleReconcile(input: {
 async function handleDelete(input: {
   dependencies: DeploymentWorkerDependencies;
   context: DeploymentExecutionContext;
-  config: DeploymentWorkerRuntimeConfig;
   workerId: string;
-  aws: AwsDeploymentPort;
-  stack: TenantStackDeleteDescriptor;
 }): Promise<void> {
-  await validateIdentity(input);
+  const cleanup = input.dependencies.tenantResourceCleanup;
+  if (!cleanup) {
+    throw new DeploymentExecutionError(
+      "TENANT_RESOURCE_CLEANUP_DISABLED",
+      "The complete fenced workload, database, and secret cleanup boundary is not configured.",
+      false,
+    );
+  }
+  const fence = currentTenantResourceFence(input.context);
+  await cleanup.destroy({
+    fence,
+    jobId: input.context.job.id,
+    workerId: input.workerId,
+    idempotencyKey: `${input.context.deployment.id}:generation:${fence.generation}:cleanup`,
+  });
+
   const cancellable: DeploymentStatus[] = [
     "planned",
     "queued",
@@ -978,41 +1232,6 @@ async function handleDelete(input: {
       to: "rolling_back",
       currentStep: "cloudformation_delete",
     });
-  }
-  if (input.context.cleanupSchedule) {
-    await input.dependencies.repository.markCleanupStatus({
-      scheduleId: input.context.cleanupSchedule.id,
-      status: "running",
-      now: (input.dependencies.now ?? Date.now)(),
-    });
-  }
-  const observed = await input.aws.describeTenantStack(input.stack.stackName);
-  assertStackOwnership({ observation: observed, expectedTags: input.stack.tags });
-  if (observed.state === "delete_in_progress") {
-    throw new DeploymentExecutionError(
-      "CLOUDFORMATION_DELETE_IN_PROGRESS",
-      "CloudFormation stack deletion is still in progress.",
-      true,
-    );
-  }
-  if (observed.state !== "missing") {
-    await checkpoint({
-      ...input,
-      stepKey: "cloudformation_delete",
-      stepInput: { stackName: input.stack.stackName },
-      execute: () =>
-        input.aws.deleteTenantStack({
-          stackName: input.stack.stackName,
-          clientRequestToken: `delete-${input.context.deployment.id}`.slice(0, 128),
-          expectedTags: input.stack.tags,
-          cloudFormationRoleArn: input.stack.cloudFormationRoleArn,
-        }),
-    });
-    throw new DeploymentExecutionError(
-      "CLOUDFORMATION_DELETE_IN_PROGRESS",
-      "CloudFormation stack deletion has been submitted.",
-      true,
-    );
   }
   if (input.context.cleanupSchedule) {
     await input.dependencies.repository.markCleanupStatus({
@@ -1049,15 +1268,26 @@ export async function runDeploymentWorkerOnce(input: {
   const staticApplyGate = evaluateStaticExecutionGate(input.config);
   const applicationExecutionReady =
     staticApplyGate.ok && input.dependencies.applyRuntimeReady;
-  const allowedJobTypes = applicationExecutionReady
-    ? (["apply", "reconcile", "cleanup", "rollback"] as const)
-    : (["cleanup", "rollback"] as const);
+  const cleanupExecutionReady =
+    input.dependencies.cleanupRuntimeReady === true &&
+    Boolean(input.dependencies.tenantResourceCleanup);
+  if (!applicationExecutionReady && !cleanupExecutionReady) {
+    return {
+      status: "disabled",
+      failures: [
+        "No apply/reconcile or complete fenced cleanup runtime is enabled.",
+      ],
+    };
+  }
+  const allowedJobTypes: DeploymentJobType[] = [];
+  if (applicationExecutionReady) allowedJobTypes.push("apply", "reconcile");
+  if (cleanupExecutionReady) allowedJobTypes.push("cleanup", "rollback");
   const now = (input.dependencies.now ?? Date.now)();
   const job = await input.dependencies.repository.claimNext({
     workerId: input.workerId,
     now,
     leaseDurationMs: input.config.leaseDurationMs,
-    jobTypes: [...allowedJobTypes],
+    jobTypes: allowedJobTypes,
   });
   if (!job) return { status: "idle" };
   if (
@@ -1105,44 +1335,60 @@ export async function runDeploymentWorkerOnce(input: {
             binding: context.binding,
           }),
     );
-    const stack = destructive
-      ? deleteDescriptor(context)
-      : renderApplyReadyStack({ context });
-    if (
-      job.jobType === "apply" &&
-      !["waiting_healthy", "configuring", "verifying", "ready"].includes(
-        context.deployment.status,
-      )
-    ) {
-      await ensureApplyCleanupSchedule({
+    if (destructive) {
+      // The coordinator performs its atomic begin/assert/complete CAS before
+      // each workload, database, and secret adapter call. No AWS adapter is
+      // even constructed for a stale generation or an unconfigured cleanup.
+      await handleDelete({
+        dependencies: input.dependencies,
         context,
-        stack: stack as ApplyReadyTenantStack,
-        cleanupScheduler: input.dependencies.cleanupScheduler,
-        repository: input.dependencies.repository,
-        now,
+        workerId: input.workerId,
       });
-    }
-    if (!context.binding) throw new Error("Execution binding is missing.");
-    // The SDK adapter is intentionally not constructed until every local,
-    // persisted, parameter and cleanup gate above has passed.
-    const aws = await input.dependencies.awsFactory({
-      region: context.environment.region,
-      workerRoleArn: context.binding.workerRoleArn,
-    });
-    const handlerInput = {
-      dependencies: input.dependencies,
-      context,
-      config: input.config,
-      workerId: input.workerId,
-      aws,
-      stack,
-    };
-    if (job.jobType === "apply") {
-      await handleApply({ ...handlerInput, stack: stack as ApplyReadyTenantStack });
-    } else if (job.jobType === "reconcile") {
-      await handleReconcile({ ...handlerInput, stack: stack as ApplyReadyTenantStack });
     } else {
-      await handleDelete({ ...handlerInput, stack: stack as TenantStackDeleteDescriptor });
+      const claimed = await claimAndReloadTenantResource({
+        dependencies: input.dependencies,
+        context,
+        config: input.config,
+        workerId: input.workerId,
+      });
+      context = claimed.context;
+      const stack = renderApplyReadyStack({
+        context,
+      });
+      if (
+        job.jobType === "apply" &&
+        !["waiting_healthy", "configuring", "verifying", "ready"].includes(
+          context.deployment.status,
+        )
+      ) {
+        await ensureApplyCleanupSchedule({
+          context,
+          stack,
+          cleanupScheduler: input.dependencies.cleanupScheduler,
+          repository: input.dependencies.repository,
+          now,
+        });
+      }
+      if (!context.binding) throw new Error("Execution binding is missing.");
+      // The SDK adapter is intentionally not constructed until every local,
+      // persisted, parameter, generation and cleanup gate above has passed.
+      const aws = await input.dependencies.awsFactory({
+        region: context.environment.region,
+        workerRoleArn: context.binding.workerRoleArn,
+      });
+      const handlerInput = {
+        dependencies: input.dependencies,
+        context,
+        config: input.config,
+        workerId: input.workerId,
+        aws,
+        stack,
+      };
+      if (job.jobType === "apply") {
+        await handleApply(handlerInput);
+      } else {
+        await handleReconcile(handlerInput);
+      }
     }
     const completed = await input.dependencies.repository.completeJob({
       jobId: job.id,

@@ -58,6 +58,7 @@ export class AwsEcsCellPlanOnlyDriver
   buildPlan(input: DeploymentPlanningInput): AwsEcsCellDeploymentPlan {
     const profile = getDeploymentProfile(input.deploymentProfileKey);
     const token = resourceToken(input.appInstanceId);
+    const databaseToken = token.replaceAll("-", "_");
     const region = safeConfigValue(input.region, this.region);
     const cellKey = safeConfigValue(input.cellKey, this.cellKey);
 
@@ -102,8 +103,8 @@ export class AwsEcsCellPlanOnlyDriver
               profile.database.isolation === "dedicated_database"
                 ? `${token}-dedicated-aurora-rds`
                 : null,
-            roleName: `${token}-db-role`,
-            databaseName: `${token.replaceAll("-", "_")}_db`,
+            roleName: `${databaseToken}_role`,
+            databaseName: `${databaseToken}_db`,
           },
           secret: { logicalName: `${token}-runtime-secret` },
           autoScaling: { ...profile.autoScaling },

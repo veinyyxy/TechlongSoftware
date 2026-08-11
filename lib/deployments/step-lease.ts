@@ -10,7 +10,7 @@ export const beginDeploymentStepStatement = `WITH owned_job AS (
   )
   SELECT ?, ?, ?, ?, ?, 'running', ?, '{}', NULL, NULL, ?, NULL
   FROM owned_job
-  ON CONFLICT (deployment_id, step_key, input_hash, attempt) DO NOTHING
+  ON CONFLICT (job_id, step_key, input_hash, attempt) DO NOTHING
   RETURNING id
 )
 SELECT id FROM inserted

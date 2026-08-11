@@ -536,6 +536,8 @@ try {
       { Key: "ManagedBy", Value: "techlong-provisioner" },
       { Key: "DeploymentId", Value: "deployment-1" },
       { Key: "AppInstanceId", Value: "instance-1" },
+      { Key: "CellId", Value: "cell-sandbox-1" },
+      { Key: "ResourceGeneration", Value: "1" },
       { Key: "ExpiresAt", Value: "2026-08-09T11:59:59.000Z" },
     ],
   };
@@ -619,8 +621,32 @@ try {
     action: "delete_cloudformation_stack",
     stackName: safeStack.StackName,
     deploymentId: "different-deployment",
+    appInstanceId: "instance-1",
+    resourceGeneration: 1,
   });
   check(mismatchResult.deleted.length === 0, "Janitor ignored the targeted DeploymentId binding");
+  const ownerMismatchResult = await handler({
+    action: "delete_cloudformation_stack",
+    stackName: safeStack.StackName,
+    deploymentId: "deployment-1",
+    appInstanceId: "different-instance",
+    resourceGeneration: 1,
+  });
+  check(
+    ownerMismatchResult.deleted.length === 0,
+    "Janitor ignored the targeted stable AppInstanceId binding",
+  );
+  const generationMismatchResult = await handler({
+    action: "delete_cloudformation_stack",
+    stackName: safeStack.StackName,
+    deploymentId: "deployment-1",
+    appInstanceId: "instance-1",
+    resourceGeneration: 2,
+  });
+  check(
+    generationMismatchResult.deleted.length === 0,
+    "Janitor ignored the targeted tenant resource generation fence",
+  );
 
   const retryDeletes = [];
   const retryHandler = createHandler(

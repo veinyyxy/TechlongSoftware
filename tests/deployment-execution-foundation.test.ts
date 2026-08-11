@@ -172,6 +172,14 @@ test("step checkpoints require the current unexpired worker lease", () => {
   assert.match(beginDeploymentStepStatement, /lease_expires_at > \?/);
   assert.match(beginDeploymentStepStatement, /attempts = \?/);
   assert.match(beginDeploymentStepStatement, /FROM owned_job/);
+  assert.match(
+    beginDeploymentStepStatement,
+    /ON CONFLICT \(job_id, step_key, input_hash, attempt\) DO NOTHING/,
+  );
+  assert.doesNotMatch(
+    beginDeploymentStepStatement,
+    /ON CONFLICT \(deployment_id, step_key, input_hash, attempt\)/,
+  );
   assert.match(finishDeploymentStepStatement, /job\.lease_owner = \?/);
   assert.match(finishDeploymentStepStatement, /job\.lease_expires_at > \?/);
 });
@@ -222,6 +230,7 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
   });
   const rendered = renderAwsSandboxTenantStack({
     deploymentId: "dep_tenant_one",
+    resourceGeneration: 1,
     plan,
     environment: sandbox,
     imageUri: `402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:${"a".repeat(64)}`,
@@ -291,6 +300,7 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
     () =>
       renderAwsSandboxTenantStack({
         deploymentId: "dep_tenant_one",
+        resourceGeneration: 1,
         plan,
         environment: sandbox,
         imageUri: `402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:${"a".repeat(64)}`,

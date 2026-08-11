@@ -2,15 +2,24 @@
 
 ## 当前状态
 
-S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格参数校验、数据库租约/检查点、原子环境容量占位、两小时 TTL 清理计划、共享 Cell 安全预检边界和 mTLS 控制接口边界。所有执行开关默认关闭，本版本不会因启动网站或运行普通测试而调用 AWS。
+S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格参数校验、数据库租约/检查点、原子环境容量占位、两小时租户 TTL 清理计划、共享 Cell 安全预检边界和 mTLS 控制接口边界。S3-B B0–B4 进一步实现了离线可测试的类型化租户资源生命周期、不可变模板编译、RS256/mTLS 客户端、AWS 只读证据收集器、独立 Shared Cell 渲染模板和 Cell Janitor。所有执行开关默认关闭，本版本不会因启动网站或运行普通测试而调用 AWS。
 
-以下三项仍使用 fail-closed 默认实现，属于 S3-B 启用前阻断项：
+以下三项已有接口和严格单元实现，但独立 Worker 仍使用 fail-closed 默认依赖，属于真实启用前阻断项：
 
-- 租户数据库：必须实现 Cell 内独立 database + role、恢复 SpeedFeast PostgreSQL 16.14 基线并执行 `migrate:saas`；还必须定义幂等 cleanup/drop、Secret 清理与数据保留策略。
-- 共享 Cell 安全证明：必须实现 ELBv2/EC2 Describe 适配器，核对绑定账号、Region、VPC、Subnet、两个 Listener、8443 mTLS `verify` 和仅允许 ALB Security Group 访问 Task 3000 端口。
-- 控制通道：必须提供私有 ALB 控制监听器的 mTLS transport、实例级非对称 JWT signer，以及基于不可变模板 Schema 和运行时 SecretStore 的 v2 配置编译器；原始客户快照不会直接发送给实例。
+- 租户数据库：类型化 lifecycle、approved baseline 门禁、脱敏 lifecycle evidence 持久化和反向清理顺序已完成；仍缺 Cell VPC 内真实 database/role/Secrets adapter、已批准的 PostgreSQL 16.14 baseline、真实 adapter 的 Worker root 注入以及完整 cleanup coordinator 接线。
+- 共享 Cell 安全证明：可注入的 ECS/ELBv2/EC2/RDS/STS 只读收集器及严格校验已完成；根依赖尚未安装这些服务 SDK，也未给 Worker 注入真实客户端或创建只读权限。
+- 控制通道：固定 8443 的 mTLS transport、实例级 RS256 JWT 和不可变模板 v2 编译器已完成；仍缺真实证书/私钥来源、Neon immutable source、可在重试期间保持同值并在 GET 对账后有围栏删除的 Owner Secret source，以及 Worker runtime 接线。
 
 独立 Worker 的 `applyRuntimeReady` 当前固定为 `false`。上述任一适配器没有替换并整体评审前，Worker 不会领取 `apply`/`reconcile`，无论部署已经处于哪个恢复状态，也不能到达 CloudFormation Apply 或应用实例 `active`。这不是可以用环境变量绕过的提示。
+
+## S3-B B0–B4 离线成果
+
+- `0005_tenant_resource_lifecycle.sql` 定义 reference-only 的 `deployment_tenant_resources` 当前状态和 append-only 的 `deployment_tenant_resource_events` 审计记录。写入必须同时匹配 live job lease、当前 owner 和 generation；该迁移尚未应用到 Neon。
+- 同一部署的重试可以幂等复用当前 generation。资源尚未销毁时，另一个 deployment 不能接管 owner；只有完整进入 `destroyed` 后，新的 deployment 才能以 `generation + 1` 进入 `reopening`。B5 必须增加可被外部 database/role/Secret 原子观测的 ownership epoch，并为长时间操作实现续租、取消和过期租约迟到完成隔离；在此之前跨 deployment 复用与真实 Adapter 都会 fail closed。
+- 每租户资源固定为独立 database + role + Secret namespace；创建、approved baseline 恢复、`migrate:saas`、验证和 workload → database/role → Secret 清理均有幂等、ownership fail-closed 契约。
+- 控制请求只允许模板 Schema v2 编译出的 `instance/entitlements/default_store/first_owner`，不转发原始客户快照。JWT 只使用 2048 位以上 RSA，mTLS transport 固定 Sandbox hostname 与 8443，POST 后必须再次 GET 对账。
+- B3 只读证据会验证 STS、ECS Cluster、ALB/VPC/Subnet/Security Group、443 控制路径拒绝、8443 mTLS verify + ACTIVE Trust Store，以及私有 Aurora PostgreSQL 16.14 Serverless v2。
+- B4 Cell 模板只能渲染，固定 `renderOnly=true`、`applyReady=false`。Cell TTL 为 3 小时，租户 TTL 为 2 小时，另保留至少 15 分钟 cleanup buffer；代码层使用独立前缀、权限边界与 Cell Janitor，租户 Janitor 不会删除 Cell，但 Cell Janitor 尚未部署。当前 Cell Janitor 代码只能证明按精确 `CellId` 删除 CloudFormation workload Stack 的边界，不能清理 Stack 外的 database/role/Secret；必须先接入有围栏的完整 cleanup coordinator、全局扫描兜底并演练 `DELETE_FAILED`，才允许真实 Cell Apply。
 
 ## 执行门禁
 
@@ -30,7 +39,7 @@ Worker 只有同时满足以下条件，才允许进入租户数据库或 CloudF
 12. Shared Cell 安全预检返回经过校验的证据哈希。
 13. 在 CloudFormation 写入前重新读取环境和绑定，重新执行 persisted gate、租约、TTL、cleanup、STS 和 Shared Cell 安全预检，防止数据库迁移期间关闭的门禁被旧快照绕过。
 
-`DEPLOYMENT_WORKER_ENABLED=false` 时不领取任何任务，也不调用 AWS。`AWS_APPLY_ENABLED=false` 或确认短语缺失时，只禁止 create/update/reconcile；这不是删除路径的 kill switch。若 Worker 本身仍启用且账号、Region、精确 Provisioner Role 与 CloudFormation Role 绑定匹配，Worker 仍会领取 `cleanup`/`rollback` 并可调用 `DeleteStack`，即使环境已 inactive、数据库 `apply_enabled=0`、订阅已结束或配置已漂移。这可确保 TTL 到期资源不会因创建门禁关闭而泄漏。要停止包括删除在内的所有 AWS 调用，必须关闭 `DEPLOYMENT_WORKER_ENABLED`。
+`DEPLOYMENT_WORKER_ENABLED=false` 时不领取任何任务，也不调用 AWS。`AWS_APPLY_ENABLED=false` 或确认短语缺失时，只禁止 create/update/reconcile；它们不是删除路径的 kill switch。cleanup/rollback 只有在完整的 fenced cleanup coordinator 已注入时才会被领取；默认独立 Worker 没有该适配器，因此会保留任务并保持零 AWS 调用。未来 cleanup runtime 启用后，即使创建门禁关闭，也只允许匹配当前 generation/owner 的反向清理。要停止包括删除在内的所有 AWS 调用，必须关闭 `DEPLOYMENT_WORKER_ENABLED`。
 
 ## AWS Profile
 
@@ -54,7 +63,7 @@ role_session_name = techlong-sandbox-provisioner
 - Group 固定 `techlong-sandbox`。
 - `ActionAfterCompletion=DELETE`。
 - 到期时间由部署 `created_at + 7200 秒` 计算，调用者不能覆盖。
-- Payload 只含 `stackName` 和 `deploymentId`。
+- Payload 只含 schema version、动作、`stackName`、`deploymentId`、`appInstanceId` 和 `resourceGeneration`，不含凭据或客户配置。
 - 模板内除清理计划本身以外的所有租户资源都直接或通过 CloudFormation 引用关系依赖该清理计划；包括业务控制拒绝规则，不会抢先创建。
 
 数据库还会写入到期 `cleanup` job；全局 15 分钟 Janitor 扫描由 S3 Bootstrap 提供兜底。Budget 仍只是告警，不是费用断路器。
@@ -84,10 +93,13 @@ npm run deployment:worker
 
 脚本使用 Node 22 内置 TypeScript strip，不依赖测试 loader 或 `tsx`。默认 `.env.example` 保持所有 gate 关闭。
 
-## 当前数据库与 AWS 状态
+## 此前核验的数据库与 AWS 状态
+
+以下是 S3-A 阶段的历史核验记录；本次 B0–B4 收口完全离线，没有重新查询 AWS 或 Neon。
 
 - `0004_aws_sandbox_worker.sql` 已应用到当前 Neon；核验结果为
   `apply_enabled=0`、execution binding 为 0，迁移本身没有开启 AWS Apply。
+- `0005_tenant_resource_lifecycle.sql` 已加入仓库迁移文件，尚未应用到 Neon。
 - 没有修改数据库里的 `apply_enabled` 或创建 execution binding。
 - S3-A Bootstrap 已创建受限角色/Boundary、TTL Janitor、Scheduler、不可变 ECR、私有源码 Bucket 和只能显式启动的 CodeBuild Project。
 - Janitor 已通过空扫描、伪造共享 Cell 拒绝、以及已过期临时租户 Stack 的真实删除测试；测试 Stack 和日志组均已清除。

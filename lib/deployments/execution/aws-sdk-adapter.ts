@@ -4,6 +4,10 @@ import type {
   AwsDeploymentPort,
   CloudFormationStackObservation,
 } from "./contracts.ts";
+import {
+  tenantStackOperationTagKey,
+  tenantStackStableOwnershipTagKeys,
+} from "../cloudformation/tenant-stack.ts";
 
 interface AwsSdkClient {
   send(command: unknown): Promise<Record<string, unknown>>;
@@ -199,7 +203,7 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
     }
     const observed = await this.describeTenantStack(stack.stackName);
     if (observed.state !== "missing") {
-      for (const key of ["Environment", "DeploymentId", "AppInstanceId", "ManagedBy"] as const) {
+      for (const key of tenantStackStableOwnershipTagKeys) {
         if (observed.tags[key] !== stack.tags[key]) {
           throw new AwsDeploymentApiError(
             "STACK_OWNERSHIP_MISMATCH",
@@ -207,6 +211,15 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
             false,
           );
         }
+      }
+      const observedOperation = observed.tags[tenantStackOperationTagKey];
+      const currentOperation = stack.tags[tenantStackOperationTagKey];
+      if (observedOperation !== currentOperation) {
+        throw new AwsDeploymentApiError(
+          "STACK_OPERATION_FENCE_MISMATCH",
+          "Existing CloudFormation stack is not owned by the current deployment.",
+          false,
+        );
       }
     }
     if (observed.state === "delete_in_progress") {
@@ -217,6 +230,16 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
       );
     }
     if (observed.state === "in_progress") {
+      if (
+        observed.tags[tenantStackOperationTagKey] !==
+        stack.tags[tenantStackOperationTagKey]
+      ) {
+        throw new AwsDeploymentApiError(
+          "CLOUDFORMATION_PREVIOUS_OPERATION_IN_PROGRESS",
+          "The durable tenant stack is still being changed by a previous deployment.",
+          true,
+        );
+      }
       if (!observed.stackId) {
         throw new AwsDeploymentApiError(
           "CLOUDFORMATION_STACK_ID_MISSING",
@@ -287,7 +310,10 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
   }): Promise<{ operation: "delete" | "delete_in_progress" | "already_deleted" }> {
     const observed = await this.describeTenantStack(input.stackName);
     if (observed.state === "missing") return { operation: "already_deleted" };
-    for (const key of ["Environment", "DeploymentId", "AppInstanceId", "ManagedBy"] as const) {
+    for (const key of [
+      ...tenantStackStableOwnershipTagKeys,
+      tenantStackOperationTagKey,
+    ] as const) {
       if (observed.tags[key] !== input.expectedTags[key]) {
         throw new AwsDeploymentApiError(
           "STACK_OWNERSHIP_MISMATCH",

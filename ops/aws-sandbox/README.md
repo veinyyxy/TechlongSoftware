@@ -1,8 +1,8 @@
-# AWS Sandbox S0–S3-A 安全 Bootstrap
+# AWS Sandbox S0–S3-B 安全 Bootstrap 与离线 Cell 基础
 
 这个目录保存可审查的静态配置、CloudFormation 模板、IAM 边界、TTL Janitor、镜像构建基础和默认不执行的运维脚本。仓库中不包含 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。
 
-S3-A 代码本身不会调用 AWS。`s3-bootstrap.ps1` 默认仅运行本地验证；只有显式选择 `CreateChangeSet` 或 `Apply`、确认账号、提供预算通知邮箱并确认 MFA 前置条件后，脚本才会产生 AWS 写操作。
+S3-A Bootstrap 脚本默认仅运行本地验证；只有显式选择 `CreateChangeSet` 或 `Apply`、确认账号、提供预算通知邮箱并确认 MFA 前置条件后，脚本才会产生 AWS 写操作。S3-B 新增的 Shared Cell 模板、Cell Janitor 和 Cell Operator 权限边界目前都只是离线渲染/示例基础，没有部署入口，不能执行真实 Cell Apply。
 
 ## 固定安全边界
 
@@ -15,7 +15,7 @@ S3-A 代码本身不会调用 AWS。`s3-bootstrap.ps1` 默认仅运行本地验�
 - 最大并发 Cell / 部署 / 租户：均为 `1`
 - Sandbox 域名：`sandbox.techlong.cloud`
 - 数据库：最多 1 个共享 Aurora PostgreSQL Serverless v2 Cell，租户使用独立 database
-- Aurora 版本：支持自动暂停的 PostgreSQL 16.3 或更高 16.x 版本；只读核验显示 `ca-central-1` 当前提供普通版 16.8–16.14，实际创建前仍须动态确认并拒绝 `limitless`
+- Aurora 版本：B4 渲染模板固定 PostgreSQL `16.14` 且关闭自动小版本升级；此前只读核验显示 `ca-central-1` 提供普通版 16.8–16.14，实际创建前仍须重新确认并拒绝 `limitless`
 - Aurora 容量：最小 `0 ACU`、最大 `1 ACU`，空闲 `300` 秒后自动暂停
 - SaaS Worker 云端 Apply：仍关闭；Bootstrap 与租户 Apply 是两个独立开关
 
@@ -34,8 +34,10 @@ ops/aws-sandbox/
 ├─ codebuild/
 │  └─ buildspec.aws-sandbox.yml
 ├─ lambda/
-│  └─ janitor.cjs
+│  ├─ janitor.cjs
+│  └─ cell-janitor.cjs
 ├─ policies/
+│  ├─ cell-operator-permissions-boundary.example.json
 │  ├─ provisioner-permissions-boundary.example.json
 │  └─ sandbox-expensive-actions-deny.example.json
 └─ scripts/
@@ -43,6 +45,7 @@ ops/aws-sandbox/
    ├─ s3-bootstrap.ps1
    ├─ s3-build-image.ps1
    ├─ s3-rollback.ps1
+   ├─ validate-cell.mjs
    └─ validate.mjs
 ```
 
@@ -69,14 +72,10 @@ Bootstrap 模板中的 Janitor 源码使用占位符，部署脚本会从 `lambd
 不需要 AWS CLI，也不会发起网络请求：
 
 ```powershell
-node .\ops\aws-sandbox\scripts\validate.mjs
-```
-
-或：
-
-```powershell
 npm --prefix .\ops\aws-sandbox test
 ```
+
+该命令同时执行 S0–S3-A Bootstrap 静态检查和 S3-B Shared Cell 渲染检查。单独运行 `validate.mjs` 只覆盖前者，不等价于完整验证。
 
 检查内容包括：
 
@@ -90,7 +89,8 @@ npm --prefix .\ops\aws-sandbox test
 - Deny 策略覆盖 NAT、VPC Endpoint、EC2、RDS Proxy、Global Database、快照恢复、预留购买、Marketplace 和客户管理 KMS Key 等高风险动作。唯一允许规划的数据库形态是受控的 Aurora PostgreSQL Serverless v2 Cell。
 - 文本中没有常见 AWS、Stripe、PostgreSQL URL 或 PEM 私钥特征。
 - Provisioner Role 信任关系强制 MFA，且模板中不存在 IAM User/Group 资源。
-- Janitor 对错误前缀、缺标签、错误标签、无效/未来 `ExpiresAt`、嵌套 Stack 和错误 DeploymentId 均拒绝删除。
+- 租户 Janitor 对错误前缀、缺标签、错误标签、无效/未来 `ExpiresAt`、嵌套 Stack，以及不匹配的 DeploymentId、AppInstanceId、CellId 或 ResourceGeneration 均拒绝删除。
+- Shared Cell 模板固定为 render-only，TTL Schedule 先于收费资源，Cell Janitor 与 Operator 权限边界保持独立且尚未部署。
 - ECR、CodeBuild、源码 Bucket、Scheduler 和角色权限边界没有漂移。
 
 ## Bootstrap 操作模式
@@ -124,7 +124,7 @@ npm --prefix .\ops\aws-sandbox test
   -AcknowledgeMfaPrerequisite
 ```
 
-当前 IAM User 尚未配置 MFA。Bootstrap 可以由现有管理员权限创建，但新 Provisioner Role 的信任策略会拒绝无 MFA 会话。在 MFA 配置并验证之前，不应启动 SaaS Worker Apply。本模板不修改现有 IAM User 或 Administrators 组。
+此前已确认 IAM User 绑定 MFA，并成功建立受限 Provisioner AssumeRole 会话；Provisioner Role 的信任策略仍会拒绝无 MFA 会话。本模板不修改现有 IAM User 或 Administrators 组，SaaS Worker Apply 继续保持关闭。
 
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 
@@ -161,7 +161,9 @@ npm --prefix .\ops\aws-sandbox test
 
 镜像推送前，Buildspec 还会在本地构建容器上验证最终身份为 `65532:65532`、Node 版本精确为 `24.18.0`，并实际加载 `bcrypt` 与 `pg`。任一 smoke test 失败都会阻止 push；这可以在无 shell 的 distroless 运行时进入 ECR 前发现 Node ABI 或原生依赖不兼容。
 
-## 当前云端状态与后续门禁
+## 此前核验的云端状态与后续门禁
+
+以下条目来自 S3-A 阶段的历史在线核验；本次 S3-B 离线收口没有重新查询 AWS。
 
 1. AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`；当前终端 PATH 尚未刷新，可以先使用绝对路径。
 2. 已确认 `techlong-sandbox-dev` 绑定 MFA，并配置不含密钥的 `techlong-sandbox-provisioner` AssumeRole Profile。首次角色会话需要操作者在本地终端输入 MFA 一次性验证码；后续还应移除 IAM User 继承的长期 AdministratorAccess，只保留受控 AssumeRole 能力。
@@ -173,7 +175,7 @@ npm --prefix .\ops\aws-sandbox test
 8. 第二次受控 CodeBuild 已从后端提交 `e3f4e1722686cdc9de4e46115332afaf6da7678d` 生成 Distroless 镜像 `sha256:7063a9ab2765f8fb565a581c810047b8fc2a4119fe5d288a685bd6c87b3eae78`；构建与 smoke test 全部成功，ECR 扫描 `COMPLETE` 且没有发现漏洞。第一张含 Perl 的镜像因 `3 Critical / 5 High / 6 Medium` 被明确拒绝。
 9. 合格镜像尚未写入 execution binding，Worker 和 Apply 仍关闭；镜像构建后再次确认没有活动的 tenant/Cell Stack。创建收费 Stack 前必须先建立一次性清理计划，创建失败时部署必须中止。
 
-后续 Cell 模板只允许 `aurora-postgresql-serverless-v2`，最多一个共享 Cell，使用支持自动暂停的 PostgreSQL 16.3 或更高 16.x 版本，`minAcu=0`、`maxAcu=1`、`secondsUntilAutoPause=300`，禁止每租户独立 Cluster、额外 Reader、传统 Multi-AZ 实例、DB Proxy、Global Database、预留购买和快照恢复。Aurora Cluster 本身不能被策略绝对禁止，否则生产兼容的 Sandbox Cell 无法创建；具体 Engine、容量和数量要由受控 CloudFormation 模板、Execution Role 与部署前静态检查共同锁定。
+B4 Cell 模板只允许 `aurora-postgresql-serverless-v2`，最多一个共享 Cell，固定 PostgreSQL `16.14`、关闭自动小版本升级，使用 `minAcu=0`、`maxAcu=1`、`secondsUntilAutoPause=300`，并禁止每租户独立 Cluster、额外 Reader、传统 Multi-AZ 实例、DB Proxy、Global Database、预留购买和快照恢复。Aurora Cluster 本身不能被策略绝对禁止，否则生产兼容的 Sandbox Cell 无法创建；真实 Apply 前还必须重新核对该 Region 支持的 Engine/自动暂停能力，并由受控模板、Execution Role 与部署前静态检查共同锁定。
 
 ## TTL / Janitor 契约
 
@@ -184,10 +186,14 @@ Environment=aws-sandbox
 ManagedBy=techlong-provisioner
 DeploymentId=<stable id>
 AppInstanceId=<stable id>
+CellId=<stable cell id>
+ResourceGeneration=<positive integer>
 ExpiresAt=<UTC timestamp>
 ```
 
-Janitor 不直接逐项删除 AWS 资源，只调用 CloudFormation `DeleteStack`，让 Stack 按依赖关系回滚。它同时要求：Stack 名严格匹配 `techlong-sandbox-tenant-<1至16位小写字母或数字>`、是顶层 Stack、`Environment=aws-sandbox`、`ManagedBy=techlong-provisioner`、非空 `DeploymentId`/`AppInstanceId`，以及格式严格且已经到期的 UTC `ExpiresAt`。`DELETE_IN_PROGRESS`、`DELETE_COMPLETE` 和 `REVIEW_IN_PROGRESS` 会跳过；`DELETE_FAILED` 会在全局扫描中重试。共享 Cell 即使误带租户标签也不能被 Janitor 删除。全局扫描每次最多删除一个 Stack，定向清理还必须匹配 payload 中的 `DeploymentId`。
+租户 Janitor 不直接逐项删除 AWS 资源，只调用 CloudFormation `DeleteStack`，让 Stack 按依赖关系回滚。它同时要求：Stack 名严格匹配 `techlong-sandbox-tenant-<1至16位小写字母或数字>`、是顶层 Stack、`Environment=aws-sandbox`、`ManagedBy=techlong-provisioner`、非空 `DeploymentId`/`AppInstanceId`/`CellId`、正整数 `ResourceGeneration`，以及格式严格且已经到期的 UTC `ExpiresAt`。`DELETE_IN_PROGRESS`、`DELETE_COMPLETE` 和 `REVIEW_IN_PROGRESS` 会跳过；`DELETE_FAILED` 会在全局扫描中重试。共享 Cell 即使误带租户标签也不能被租户 Janitor 删除。全局扫描每次最多删除一个 Stack，定向清理还必须同时匹配 payload 中的 `DeploymentId`、`AppInstanceId` 和 `ResourceGeneration`。
+
+`cell-janitor.cjs`、`cell-operator-permissions-boundary.example.json` 与 Shared Cell 模板目前仅供离线审查，尚未部署。Cell Janitor 代码不能清理 CloudFormation Stack 外的租户 database、role 或 Secret；没有完整、有围栏的 cleanup coordinator 与真实 TTL 演练时，禁止 Cell Apply。
 
 回退默认只显示计划。真实回退会先拒绝仍有租户 Stack 的环境，然后验证专用源码 Bucket 的三项安全标签、清空该 Bucket，并删除 Bootstrap；这也会清空并删除 Sandbox ECR 镜像。Budget 只有额外传入 `-DeleteBudgetGuardrail` 和准确 Stack 名时才删除。
 

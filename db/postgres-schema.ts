@@ -617,6 +617,120 @@ export const appInstanceDeployments = pgTable("app_instance_deployments", {
 	check("app_instance_deployments_outputs_check", sql`jsonb_typeof((outputs)::jsonb) = 'object'::text AND octet_length(outputs) <= 32768`),
 ]);
 
+export const deploymentTenantResources = pgTable("deployment_tenant_resources", {
+	appInstanceId: text("app_instance_id").primaryKey().notNull(),
+	createdByDeploymentId: text("created_by_deployment_id").notNull(),
+	ownerDeploymentId: text("owner_deployment_id").notNull(),
+	generation: bigint("generation", { mode: "number" }).default(1).notNull(),
+	stableIdentityHash: text("stable_identity_hash").notNull(),
+	environmentId: text("environment_id").notNull(),
+	workspaceId: text("workspace_id").notNull(),
+	productId: text("product_id").notNull(),
+	cellKey: text("cell_key").notNull(),
+	databaseName: text("database_name").notNull(),
+	roleName: text("role_name").notNull(),
+	secretName: text("secret_name").notNull(),
+	runtimeSecretRef: text("runtime_secret_ref"),
+	ownershipMarker: text("ownership_marker").notNull(),
+	lifecycleStatus: text("lifecycle_status").default('planned').notNull(),
+	baselineDigest: text("baseline_digest"),
+	migrationContract: text("migration_contract"),
+	evidenceHash: text("evidence_hash"),
+	evidence: text().default('{}').notNull(),
+	lastError: text("last_error"),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+	destroyedAt: bigint("destroyed_at", { mode: "number" }),
+}, (table) => [
+	uniqueIndex("deployment_tenant_resources_database_unique").using("btree", table.environmentId.asc().nullsLast().op("text_ops"), table.databaseName.asc().nullsLast().op("text_ops")),
+	uniqueIndex("deployment_tenant_resources_role_unique").using("btree", table.environmentId.asc().nullsLast().op("text_ops"), table.roleName.asc().nullsLast().op("text_ops")),
+	uniqueIndex("deployment_tenant_resources_secret_name_unique").using("btree", table.secretName.asc().nullsLast().op("text_ops")),
+	uniqueIndex("deployment_tenant_resources_secret_ref_unique").using("btree", table.runtimeSecretRef.asc().nullsLast().op("text_ops")).where(sql`runtime_secret_ref IS NOT NULL`),
+	index("deployment_tenant_resources_status_idx").using("btree", table.lifecycleStatus.asc().nullsLast().op("text_ops"), table.updatedAt.asc().nullsLast().op("int8_ops")),
+	index("deployment_tenant_resources_created_deployment_idx").using("btree", table.createdByDeploymentId.asc().nullsLast().op("text_ops")),
+	index("deployment_tenant_resources_owner_deployment_idx").using("btree", table.ownerDeploymentId.asc().nullsLast().op("text_ops")),
+	foreignKey({
+		columns: [table.createdByDeploymentId],
+		foreignColumns: [appInstanceDeployments.id],
+		name: "deployment_tenant_resources_created_by_deployment_id_fkey"
+	}).onDelete("restrict"),
+	foreignKey({
+		columns: [table.ownerDeploymentId],
+		foreignColumns: [appInstanceDeployments.id],
+		name: "deployment_tenant_resources_owner_deployment_id_fkey"
+	}).onDelete("restrict"),
+	foreignKey({
+		columns: [table.appInstanceId],
+		foreignColumns: [appInstances.id],
+		name: "deployment_tenant_resources_app_instance_id_fkey"
+	}).onDelete("restrict"),
+	foreignKey({
+		columns: [table.environmentId],
+		foreignColumns: [deploymentEnvironments.id],
+		name: "deployment_tenant_resources_environment_id_fkey"
+	}).onDelete("restrict"),
+	foreignKey({
+		columns: [table.workspaceId],
+		foreignColumns: [workspaces.id],
+		name: "deployment_tenant_resources_workspace_id_fkey"
+	}).onDelete("restrict"),
+	foreignKey({
+		columns: [table.productId],
+		foreignColumns: [products.id],
+		name: "deployment_tenant_resources_product_id_fkey"
+	}).onDelete("restrict"),
+	check("deployment_tenant_resources_database_name_check", sql`database_name ~ '^[a-z][a-z0-9_]{2,62}$'::text`),
+	check("deployment_tenant_resources_role_name_check", sql`role_name ~ '^[a-z][a-z0-9_]{2,62}$'::text`),
+	check("deployment_tenant_resources_secret_name_check", sql`secret_name ~ '^techlong/sandbox/tenant/[a-z0-9][a-z0-9_-]{2,63}/runtime$'::text`),
+	check("deployment_tenant_resources_secret_ref_check", sql`runtime_secret_ref IS NULL OR runtime_secret_ref ~ '^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:techlong/sandbox/tenant/[A-Za-z0-9_/-]+-[A-Za-z0-9]{6}$'::text`),
+	check("deployment_tenant_resources_generation_check", sql`generation > 0`),
+	check("deployment_tenant_resources_stable_identity_hash_check", sql`stable_identity_hash ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_tenant_resources_ownership_marker_check", sql`ownership_marker = 'tl_owner_'::text || substring(stable_identity_hash, 1, 32) || '_g'::text || generation::text`),
+	check("deployment_tenant_resources_status_check", sql`lifecycle_status = ANY (ARRAY['planned'::text, 'reopening'::text, 'secret_ready'::text, 'database_empty'::text, 'baseline_restored'::text, 'saas_migrated'::text, 'verified'::text, 'destroying'::text, 'destroyed'::text, 'failed'::text])`),
+	check("deployment_tenant_resources_baseline_digest_check", sql`baseline_digest IS NULL OR baseline_digest ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_tenant_resources_migration_contract_check", sql`migration_contract IS NULL OR migration_contract = 'speedfeast-saas-control-v1'::text`),
+	check("deployment_tenant_resources_evidence_hash_check", sql`evidence_hash IS NULL OR evidence_hash ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_tenant_resources_evidence_check", sql`jsonb_typeof((evidence)::jsonb) = 'object'::text AND octet_length(evidence) <= 16384`),
+	check("deployment_tenant_resources_secret_ready_check", sql`lifecycle_status <> ALL (ARRAY['secret_ready'::text, 'database_empty'::text, 'baseline_restored'::text, 'saas_migrated'::text, 'verified'::text]) OR runtime_secret_ref IS NOT NULL`),
+	check("deployment_tenant_resources_baseline_ready_check", sql`lifecycle_status <> ALL (ARRAY['baseline_restored'::text, 'saas_migrated'::text, 'verified'::text]) OR baseline_digest IS NOT NULL`),
+	check("deployment_tenant_resources_migration_ready_check", sql`lifecycle_status <> ALL (ARRAY['saas_migrated'::text, 'verified'::text]) OR migration_contract = 'speedfeast-saas-control-v1'::text`),
+	check("deployment_tenant_resources_evidence_ready_check", sql`lifecycle_status <> ALL (ARRAY['secret_ready'::text, 'database_empty'::text, 'baseline_restored'::text, 'saas_migrated'::text, 'verified'::text, 'destroyed'::text]) OR evidence_hash IS NOT NULL`),
+	check("deployment_tenant_resources_destroyed_check", sql`(lifecycle_status = 'destroyed'::text AND destroyed_at IS NOT NULL) OR (lifecycle_status <> 'destroyed'::text AND destroyed_at IS NULL)`),
+]);
+
+export const deploymentTenantResourceEvents = pgTable("deployment_tenant_resource_events", {
+	id: text().primaryKey().notNull(),
+	appInstanceId: text("app_instance_id").notNull(),
+	generation: bigint("generation", { mode: "number" }).notNull(),
+	deploymentId: text("deployment_id").notNull(),
+	eventType: text("event_type").notNull(),
+	fromStatus: text("from_status"),
+	toStatus: text("to_status").notNull(),
+	evidenceHash: text("evidence_hash"),
+	evidence: text().default('{}').notNull(),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => [
+	index("deployment_tenant_resource_events_instance_generation_idx").using("btree", table.appInstanceId.asc().nullsLast().op("text_ops"), table.generation.asc().nullsLast().op("int8_ops"), table.createdAt.asc().nullsLast().op("int8_ops")),
+	index("deployment_tenant_resource_events_deployment_idx").using("btree", table.deploymentId.asc().nullsLast().op("text_ops"), table.createdAt.asc().nullsLast().op("int8_ops")),
+	foreignKey({
+		columns: [table.appInstanceId],
+		foreignColumns: [deploymentTenantResources.appInstanceId],
+		name: "deployment_tenant_resource_events_app_instance_id_fkey"
+	}).onDelete("restrict"),
+	foreignKey({
+		columns: [table.deploymentId],
+		foreignColumns: [appInstanceDeployments.id],
+		name: "deployment_tenant_resource_events_deployment_id_fkey"
+	}).onDelete("restrict"),
+	check("deployment_tenant_resource_events_generation_check", sql`generation > 0`),
+	check("deployment_tenant_resource_events_type_check", sql`event_type = ANY (ARRAY['claimed'::text, 'handed_off'::text, 'reopened'::text, 'lifecycle_recorded'::text, 'cleanup_started'::text, 'workload_destroyed'::text, 'database_destroyed'::text, 'secret_destroyed'::text, 'destroyed'::text, 'failed'::text])`),
+	check("deployment_tenant_resource_events_from_status_check", sql`from_status IS NULL OR from_status = ANY (ARRAY['planned'::text, 'reopening'::text, 'secret_ready'::text, 'database_empty'::text, 'baseline_restored'::text, 'saas_migrated'::text, 'verified'::text, 'destroying'::text, 'destroyed'::text, 'failed'::text])`),
+	check("deployment_tenant_resource_events_to_status_check", sql`to_status = ANY (ARRAY['planned'::text, 'reopening'::text, 'secret_ready'::text, 'database_empty'::text, 'baseline_restored'::text, 'saas_migrated'::text, 'verified'::text, 'destroying'::text, 'destroyed'::text, 'failed'::text])`),
+	check("deployment_tenant_resource_events_evidence_hash_check", sql`evidence_hash IS NULL OR evidence_hash ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_tenant_resource_events_evidence_check", sql`jsonb_typeof((evidence)::jsonb) = 'object'::text AND octet_length(evidence) <= 16384`),
+	check("deployment_tenant_resource_events_evidence_required_check", sql`event_type <> ALL (ARRAY['lifecycle_recorded'::text, 'workload_destroyed'::text, 'database_destroyed'::text, 'secret_destroyed'::text, 'destroyed'::text, 'failed'::text]) OR evidence_hash IS NOT NULL`),
+]);
+
 export const deploymentCleanupSchedules = pgTable("deployment_cleanup_schedules", {
 	id: text().primaryKey().notNull(),
 	deploymentId: text("deployment_id").notNull(),
@@ -719,7 +833,7 @@ export const deploymentStepRuns = pgTable("deployment_step_runs", {
 	startedAt: bigint("started_at", { mode: "number" }).notNull(),
 	finishedAt: bigint("finished_at", { mode: "number" }),
 }, (table) => [
-	uniqueIndex("deployment_step_runs_attempt_unique").using("btree", table.deploymentId.asc().nullsLast().op("text_ops"), table.stepKey.asc().nullsLast().op("text_ops"), table.inputHash.asc().nullsLast().op("text_ops"), table.attempt.asc().nullsLast().op("int4_ops")),
+	uniqueIndex("deployment_step_runs_attempt_unique").using("btree", table.jobId.asc().nullsLast().op("text_ops"), table.stepKey.asc().nullsLast().op("text_ops"), table.inputHash.asc().nullsLast().op("text_ops"), table.attempt.asc().nullsLast().op("int4_ops")),
 	index("deployment_step_runs_deployment_id_idx").using("btree", table.deploymentId.asc().nullsLast().op("text_ops"), table.startedAt.asc().nullsLast().op("int8_ops")),
 	index("deployment_step_runs_job_id_idx").using("btree", table.jobId.asc().nullsLast().op("text_ops")),
 	foreignKey({

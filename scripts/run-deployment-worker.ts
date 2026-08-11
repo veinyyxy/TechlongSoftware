@@ -34,8 +34,11 @@ const workerId = `worker:${hostname().replace(/[^A-Za-z0-9._-]/g, "-")}:${random
 const dependencies = {
   repository: new NeonDeploymentExecutionRepository(databaseUrl),
   // This remains false until every apply/reconcile boundary below has a
-  // reviewed production adapter. Cleanup/rollback stay independently usable.
+  // reviewed production adapter. Queued apply work remains untouched.
   applyRuntimeReady: false,
+  // Full fenced workload -> database/role -> secret cleanup adapters are not
+  // installed in B0-B4. Keep jobs queued instead of partially deleting AWS.
+  cleanupRuntimeReady: false,
   awsFactory: ({ region }: { region: string; workerRoleArn: string }) =>
     createAwsSdkDeploymentAdapter(region),
   cleanupScheduler: new EmbeddedCloudFormationCleanupSchedule(),

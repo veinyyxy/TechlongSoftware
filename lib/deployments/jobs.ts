@@ -302,7 +302,7 @@ export async function beginDeploymentStep(input: {
   const now = input.now ?? Date.now();
   const id = await stableId(
     "step",
-    `${input.deploymentId}:${input.stepKey}:${input.inputHash}:${input.attempt}`,
+    `${input.deploymentId}:${input.jobId}:${input.stepKey}:${input.inputHash}:${input.attempt}`,
   );
   const row = await getDatabase()
     .prepare(beginDeploymentStepStatement)
