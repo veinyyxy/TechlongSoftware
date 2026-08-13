@@ -2,11 +2,11 @@
 
 ## 当前状态
 
-S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格参数校验、数据库租约/检查点、原子环境容量占位、两小时租户 TTL 清理计划、共享 Cell 安全预检边界和 mTLS 控制接口边界。S3-B B0–B4 进一步实现了离线可测试的类型化租户资源生命周期、不可变模板编译、RS256/mTLS 客户端、AWS 只读证据收集器、独立 Shared Cell 渲染模板和 Cell Janitor。B5 当前完成 lease-token/持续续租基础、租户 JSON Secret 注入边界，以及独立 Cell Bootstrap 的本地渲染与 Change Set 安全入口。所有执行开关默认关闭，本版本不会因启动网站或运行普通测试而调用 AWS。
+S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格参数校验、数据库租约/检查点、原子环境容量占位、两小时租户 TTL 清理计划、共享 Cell 安全预检边界和 mTLS 控制接口边界。S3-B B0–B4 进一步实现了离线可测试的类型化租户资源生命周期、不可变模板编译、RS256/mTLS 客户端、AWS 只读证据收集器、独立 Shared Cell 渲染模板和 Cell Janitor。B5 当前完成 lease-token/持续续租、租户 JSON Secret 注入、provider-observed external ownership epoch、可恢复分阶段 cleanup，以及独立 Cell Bootstrap 的本地渲染与 Change Set 安全入口。所有执行开关默认关闭，本版本不会因启动网站或运行普通测试而调用 AWS。
 
 以下三项已有接口和严格单元实现，但独立 Worker 仍使用 fail-closed 默认依赖，属于真实启用前阻断项：
 
-- 租户数据库：类型化 lifecycle、approved baseline 门禁、脱敏 lifecycle evidence 持久化和反向清理顺序已完成；仍缺 Cell VPC 内真实 database/role/Secrets adapter、已批准的 PostgreSQL 16.14 baseline、真实 adapter 的 Worker root 注入以及完整 cleanup coordinator 接线。
+- 租户数据库：类型化 lifecycle、approved baseline 门禁、active provision epoch 校验、脱敏 lifecycle evidence 持久化和可恢复反向清理顺序已完成；仍缺 Cell VPC 内真实 database/role/Secrets/workload adapter、已批准的 PostgreSQL 16.14 baseline、provider marker 安装/观察以及 Worker root 注入。
 - 共享 Cell 安全证明：可注入的 ECS/ELBv2/EC2/RDS/STS 只读收集器及严格校验已完成；根依赖尚未安装这些服务 SDK，也未给 Worker 注入真实客户端或创建只读权限。
 - 控制通道：固定 8443 的 mTLS transport、实例级 RS256 JWT 和不可变模板 v2 编译器已完成；仍缺真实证书/私钥来源、Neon immutable source、可在重试期间保持同值并在 GET 对账后有围栏删除的 Owner Secret source，以及 Worker runtime 接线。
 
@@ -15,7 +15,9 @@ S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格
 ## S3-B B0–B5 离线成果
 
 - `0005_tenant_resource_lifecycle.sql` 定义 reference-only 的 `deployment_tenant_resources` 当前状态和 append-only 的 `deployment_tenant_resource_events` 审计记录。写入必须同时匹配 live job lease、当前 owner 和 generation；该迁移尚未应用到 Neon。
-- 同一部署的重试可以幂等复用当前 generation。资源尚未销毁时，另一个 deployment 不能接管 owner；只有完整进入 `destroyed` 后，新的 deployment 才能以 `generation + 1` 进入 `reopening`。`0006_deployment_lease_fencing.sql` 又为每次 job claim 增加不可复用的 lease token；长操作持续续租并获得 `AbortSignal`，Repository 写入必须匹配 attempt、token 与未过期租约，丢租后的迟到返回值不会落库。真实 Adapter 尚未消费全部 Signal，外部 database/role/Secret 也不能原子观测 ownership epoch，所以跨 deployment live handoff 与真实 Adapter 继续 fail closed；`0006` 尚未应用到 Neon。
+- 同一部署的重试可以幂等复用当前 generation。资源尚未销毁时，另一个 deployment 不能接管 owner；只有完整进入 `destroyed` 后，新的 deployment 才能以 `generation + 1` 进入 `reopening`。`0006_deployment_lease_fencing.sql` 为每次 job claim 增加不可复用的 lease token；长操作持续续租，现有外部 I/O 边界消费同一个 `AbortSignal`，Repository 写入必须匹配 attempt、token 与未过期租约，丢租后的迟到返回值不会落库。
+- `0007_external_ownership_epoch_cleanup_phases.sql` 增加 provider-observed provision/cleanup epoch、append-only ownership 事件以及可恢复 cleanup run/phase。Repository 不能自证 external marker；只有注入的 provider 安装并重新观察 marker 后才能激活。cleanup 以稳定 operation ID 恢复 workload → database/role → Secret 阶段，并原子收口资源、部署、实例、TTL 计划和容量。真实 provider 与 destroy Adapter 尚未接线，因此跨 deployment live handoff 与真实 Apply/Cleanup 继续 fail closed；`0005`–`0007` 均尚未应用到 Neon。
+- Tenant CloudFormation 标签和控制 API 请求/回读已携带 active epoch，但这不等于外部原子围栏。AWS 与订单服务端仍需实现可观察且可拒绝旧 epoch 的 provider-side compare-and-set；在此之前，即使客户端收到 abort，也不能撤销服务端已经接受的写入。
 - 每租户资源固定为独立 database + role + Secret namespace；创建、approved baseline 恢复、`migrate:saas`、验证和 workload → database/role → Secret 清理均有幂等、ownership fail-closed 契约。
 - 控制请求只允许模板 Schema v2 编译出的 `instance/entitlements/default_store/first_owner`，不转发原始客户快照。JWT 只使用 2048 位以上 RSA，mTLS transport 固定 Sandbox hostname 与 8443，POST 后必须再次 GET 对账。
 - 租户 Task 不再从环境 binding 读取共享 database/HMAC/JWT/Stripe Secret，而只接受与当前 resource generation 精确匹配的一条 Secrets Manager JSON Secret，并使用 ECS JSON-key 引用注入五个值。Task 健康检查使用 Distroless 可执行的 Node `CMD`，不依赖 Shell。
@@ -101,7 +103,7 @@ npm run deployment:worker
 
 - `0004_aws_sandbox_worker.sql` 已应用到当前 Neon；核验结果为
   `apply_enabled=0`、execution binding 为 0，迁移本身没有开启 AWS Apply。
-- `0005_tenant_resource_lifecycle.sql` 与 `0006_deployment_lease_fencing.sql` 已加入仓库迁移文件，均尚未应用到 Neon。
+- `0005_tenant_resource_lifecycle.sql`、`0006_deployment_lease_fencing.sql` 与 `0007_external_ownership_epoch_cleanup_phases.sql` 已加入仓库迁移文件，均尚未应用到 Neon。
 - 没有修改数据库里的 `apply_enabled` 或创建 execution binding。
 - S3-A Bootstrap 已创建受限角色/Boundary、TTL Janitor、Scheduler、不可变 ECR、私有源码 Bucket 和只能显式启动的 CodeBuild Project。
 - Janitor 已通过空扫描、伪造共享 Cell 拒绝、以及已过期临时租户 Stack 的真实删除测试；测试 Stack 和日志组均已清除。

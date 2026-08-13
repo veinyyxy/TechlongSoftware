@@ -69,6 +69,21 @@ function tenantRuntimeSecretName(tenantToken: string): string {
   return `techlong/sandbox/tenant/${tenantToken}/runtime`;
 }
 
+function externalOperation(
+  deploymentId = "dep_tenant_one",
+  generation = 1,
+  epoch = 1,
+) {
+  return {
+    epoch,
+    intent: "provision" as const,
+    ownerDeploymentId: deploymentId,
+    operationHash: "9".repeat(64),
+    marker: `tl_epoch_${"8".repeat(24)}_g${generation}_e${epoch}`,
+    state: "active" as const,
+  };
+}
+
 test("models the deployment checkpoints and rejects unsafe jumps", () => {
   assert.equal(canTransitionDeployment("preflight", "database_preparing"), true);
   assert.equal(canTransitionDeployment("database_preparing", "migrating"), true);
@@ -260,6 +275,7 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
   const rendered = renderAwsSandboxTenantStack({
     deploymentId: "dep_tenant_one",
     resourceGeneration: 1,
+    externalOperation: externalOperation(),
     runtimeSecretRef: tenantRuntimeSecretRef("tenant_one_123"),
     runtimeSecretName: tenantRuntimeSecretName("tenant_one_123"),
     plan,
@@ -321,6 +337,14 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
   assert.equal(resourceTypes.includes("AWS::EC2::NatGateway"), false);
   assert.equal(rendered.tags.ManagedBy, "techlong-provisioner");
   assert.equal(rendered.tags.DeploymentId, "dep_tenant_one");
+  assert.equal(rendered.tags.ExternalOperationEpoch, "1");
+  assert.equal(rendered.tags.ExternalOperationIntent, "provision");
+  assert.equal(
+    rendered.tags.ExternalOperationMarker,
+    externalOperation().marker,
+  );
+  assert.equal(rendered.tags.ExternalOperationHash, "9".repeat(64));
+  assert.match(rendered.clientRequestToken, /-e1-9999999999999999$/);
   assert.equal(rendered.tags.ExpiresAt, "2026-08-09T02:00:00.000Z");
   assert.ok(rendered.requiredExternalParameters.includes("ControlListenerArn"));
   assert.equal(rendered.requiredExternalParameters.includes("DatabaseUrlValueFrom"), false);
@@ -399,6 +423,7 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
       renderAwsSandboxTenantStack({
         deploymentId: "dep_tenant_one",
         resourceGeneration: 1,
+        externalOperation: externalOperation(),
         runtimeSecretRef: tenantRuntimeSecretRef("tenant_one_123"),
         runtimeSecretName: tenantRuntimeSecretName("tenant_one_123"),
         plan,
@@ -411,6 +436,28 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
         requestedAt: Date.UTC(2026, 7, 9),
       }),
     /base domain|preflight/i,
+  );
+  assert.throws(
+    () =>
+      renderAwsSandboxTenantStack({
+        deploymentId: "dep_tenant_one",
+        resourceGeneration: 1,
+        externalOperation: {
+          ...externalOperation(),
+          marker: `tl_epoch_${"8".repeat(24)}_g1_e2`,
+        },
+        runtimeSecretRef: tenantRuntimeSecretRef("tenant_one_123"),
+        runtimeSecretName: tenantRuntimeSecretName("tenant_one_123"),
+        plan,
+        environment: sandbox,
+        imageUri: `402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:${"a".repeat(64)}`,
+        tenantHostname: "tenant-one.sandbox.techlong.cloud",
+        listenerPriority: 100,
+        activeCellCount: 1,
+        activeTenantCount: 0,
+        requestedAt: Date.UTC(2026, 7, 9),
+      }),
+    /active provision external-operation epoch/,
   );
 });
 
@@ -435,6 +482,7 @@ test("binds each tenant stack to one exact account-and-region runtime Secret", (
     renderAwsSandboxTenantStack({
       deploymentId: "dep_tenant_one",
       resourceGeneration: 1,
+      externalOperation: externalOperation(),
       runtimeSecretRef,
       runtimeSecretName,
       plan,
@@ -470,6 +518,7 @@ test("binds each tenant stack to one exact account-and-region runtime Secret", (
       renderAwsSandboxTenantStack({
         deploymentId: "dep_tenant_one",
         resourceGeneration: 1,
+        externalOperation: externalOperation(),
         runtimeSecretRef: tenantOne,
         runtimeSecretName: tenantRuntimeSecretName("tenant_one_123"),
         plan,

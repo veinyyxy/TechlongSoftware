@@ -12,6 +12,7 @@ import type {
   DeploymentExecutionContext,
   DeploymentExecutionRepository,
   DeploymentTenantResourceRecord,
+  TenantExternalOperationFence,
   TenantResourceFence,
 } from "../lib/deployments/execution/contracts.ts";
 import {
@@ -46,6 +47,22 @@ const tenantRuntimeSecretName =
 const tenantRuntimeSecretRef =
   "arn:aws:secretsmanager:ca-central-1:402010193138:secret:" +
   `${tenantRuntimeSecretName}-abcdef`;
+const signal = () => new AbortController().signal;
+
+function stackExternalOperation(
+  deploymentId = "dep_tenant_one",
+  generation = 1,
+  epoch = 1,
+) {
+  return {
+    epoch,
+    intent: "provision" as const,
+    ownerDeploymentId: deploymentId,
+    operationHash: "9".repeat(64),
+    marker: `tl_epoch_${"8".repeat(24)}_g${generation}_e${epoch}`,
+    state: "active" as const,
+  };
+}
 
 test("loads the AWS SDK clients required by the standalone worker", async () => {
   const [{ STSClient }, { CloudFormationClient }] = await Promise.all([
@@ -193,12 +210,14 @@ async function executionFixture(): Promise<{
       configurationSnapshot,
     },
     tenantResources: null,
+    tenantExternalOperation: null,
     activeCellCount: 1,
     activeTenantCount: 0,
   };
   const rendered = renderAwsSandboxTenantStack({
     deploymentId: context.deployment.id,
     resourceGeneration: 1,
+    externalOperation: stackExternalOperation(context.deployment.id),
     runtimeSecretRef: tenantRuntimeSecretRef,
     runtimeSecretName: tenantRuntimeSecretName,
     plan,
@@ -248,6 +267,11 @@ async function attachTenantResource(
       input.lifecycleStatus === "destroyed" ? now : null,
   };
   context.tenantResources = record;
+  context.tenantExternalOperation = ["cleanup", "rollback"].includes(
+    context.job.jobType,
+  )
+    ? activeCleanupExternalFence(fenceOf(record))
+    : activeProvisionExternalFence(fenceOf(record));
   return record;
 }
 
@@ -288,15 +312,69 @@ function fenceOf(record: DeploymentTenantResourceRecord): TenantResourceFence {
   };
 }
 
+function activeCleanupExternalFence(
+  resourceFence: TenantResourceFence,
+): TenantExternalOperationFence {
+  return {
+    schemaVersion: 1,
+    resourceFence,
+    epoch: 2,
+    intent: "cleanup",
+    ownerDeploymentId: resourceFence.ownerDeploymentId,
+    operationHash: "f".repeat(64),
+    marker:
+      `tl_epoch_${resourceFence.identity.stableIdentityHash.slice(0, 24)}` +
+      `_g${resourceFence.generation}_e2`,
+    state: "active",
+  };
+}
+
+function activeProvisionExternalFence(
+  resourceFence: TenantResourceFence,
+): TenantExternalOperationFence {
+  return {
+    ...activeCleanupExternalFence(resourceFence),
+    epoch: 1,
+    intent: "provision",
+    marker:
+      `tl_epoch_${resourceFence.identity.stableIdentityHash.slice(0, 24)}` +
+      `_g${resourceFence.generation}_e1`,
+  };
+}
+
+function readyExternalOperationCoordinator() {
+  return {
+    prepareAndActivate: async (input: {
+      intent: "provision" | "cleanup";
+      context: DeploymentExecutionContext;
+      resourceFence: TenantResourceFence;
+      signal: AbortSignal;
+    }) => {
+      input.signal.throwIfAborted();
+      const active =
+        input.intent === "cleanup"
+          ? activeCleanupExternalFence(input.resourceFence)
+          : activeProvisionExternalFence(input.resourceFence);
+      input.context.tenantExternalOperation = active;
+      return active;
+    },
+  };
+}
+
 function tenantLifecycleOutput(
   context: DeploymentExecutionContext,
   lifecycleState: "empty" | "baseline_restored" | "saas_migrated" | "verified",
 ): Record<string, unknown> {
   const fence = fenceOf(context.tenantResources!);
+  const externalFence =
+    context.tenantExternalOperation ?? activeProvisionExternalFence(fence);
   const hasBaseline = lifecycleState !== "empty";
   const hasMigration =
     lifecycleState === "saas_migrated" || lifecycleState === "verified";
   return {
+    externalEpoch: externalFence.epoch,
+    externalMarker: externalFence.marker,
+    externalOperationHash: externalFence.operationHash,
     databaseName: fence.identity.databaseName,
     roleName: fence.identity.roleName,
     ownershipMarker: fence.ownershipMarker,
@@ -439,6 +517,8 @@ function inMemoryRepository(input: {
         destroyedAt: null,
       };
       input.context.tenantResources = record;
+      input.context.tenantExternalOperation ??=
+        activeProvisionExternalFence(fenceOf(record));
       return {
         outcome: existing ? (reopening ? "reopened" : "reused") : "created",
         previousOwnerDeploymentId,
@@ -473,6 +553,27 @@ function inMemoryRepository(input: {
       record.destroyedAt = cleanup.now;
       return true;
     },
+    prepareTenantExternalOperation: async () => {
+      if (!input.context.tenantExternalOperation) {
+        throw new Error("test fixture has no external operation");
+      }
+      return { outcome: "reused", fence: input.context.tenantExternalOperation };
+    },
+    activateTenantExternalOperation: async ({ proof }) => ({
+      ...proof.pendingFence,
+      state: "active" as const,
+    }),
+    assertTenantExternalOperation: async ({ externalFence }) =>
+      Boolean(
+        input.context.tenantExternalOperation &&
+          canonicalJson(input.context.tenantExternalOperation) ===
+            canonicalJson(externalFence) &&
+          externalFence.state === "active",
+      ),
+    beginOrResumeTenantResourceCleanup: async () => null,
+    beginTenantResourceCleanupPhase: async () => null,
+    completeTenantResourceCleanupPhase: async () => null,
+    finalizeTenantResourceCleanup: async () => false,
   };
 }
 
@@ -508,6 +609,11 @@ function readyAwsPort(input?: {
           AppInstanceId: "app_tenant_one",
           CellId: environment.cellKey,
           ResourceGeneration: "1",
+          ExternalOperationEpoch: "1",
+          ExternalOperationIntent: "provision",
+          ExternalOperationMarker:
+            "tl_epoch_04d32d8f09087a2ca0f1a379_g1_e1",
+          ExternalOperationHash: "f".repeat(64),
         },
       };
     },
@@ -582,6 +688,7 @@ test("closed apply and cleanup gates preserve queued work and never construct AW
         },
       } as unknown as DeploymentExecutionRepository,
       applyRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => {
         awsCalls += 1;
         throw new Error("must not construct AWS adapter");
@@ -635,6 +742,7 @@ for (const unusableCleanup of [
       dependencies: {
         repository,
         applyRuntimeReady: true,
+        tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
         awsFactory: async () => {
           awsFactoryCalls += 1;
           throw new Error("an unusable cleanup job must block AWS adapter creation");
@@ -699,6 +807,7 @@ test("an exact pending deduplicated cleanup job permits the guarded apply path",
     dependencies: {
       repository,
       applyRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => {
         awsFactoryCalls += 1;
         return readyAwsPort({
@@ -754,6 +863,7 @@ test("disabled apply adapters cannot be bypassed by an infrastructure_provisioni
       } as unknown as DeploymentExecutionRepository,
       applyRuntimeReady: false,
       cleanupRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => {
         awsFactoryCalls += 1;
         throw new Error("disabled apply must not construct AWS");
@@ -798,6 +908,7 @@ test("renders the allowlisted stack prefix, ownership tag, and cleanup-before-se
   const nextDeployment = renderAwsSandboxTenantStack({
     deploymentId: "dep_tenant_two",
     resourceGeneration: 1,
+    externalOperation: stackExternalOperation("dep_tenant_two"),
     runtimeSecretRef: tenantRuntimeSecretRef,
     runtimeSecretName: tenantRuntimeSecretName,
     plan: context.deployment.desiredPlan,
@@ -885,6 +996,7 @@ test("requires an exact, validated CloudFormation parameter set", async () => {
   const rendered = renderAwsSandboxTenantStack({
     deploymentId: context.deployment.id,
     resourceGeneration: 1,
+    externalOperation: stackExternalOperation(context.deployment.id),
     runtimeSecretRef: tenantRuntimeSecretRef,
     runtimeSecretName: tenantRuntimeSecretName,
     plan: context.deployment.desiredPlan,
@@ -1201,6 +1313,15 @@ test("Shared Cell security proof rejects a non-mTLS listener and public task ing
 });
 
 test("mTLS control client reads body.control and sends only a compiled provisioning payload", async () => {
+  const { context } = await executionFixture();
+  await attachTenantResource(context);
+  const externalFence = context.tenantExternalOperation!;
+  const externalFields = {
+    external_operation_epoch: externalFence.epoch,
+    external_operation_intent: externalFence.intent,
+    external_operation_marker: externalFence.marker,
+    external_operation_hash: externalFence.operationHash,
+  };
   const configurationHash = "b".repeat(64);
   const imageRevision = `sha256:${"a".repeat(64)}`;
   const requests: Array<{ url: string; body?: string }> = [];
@@ -1214,13 +1335,22 @@ test("mTLS control client reads body.control and sends only a compiled provision
             body: {
               success: true,
               control: {
+                control_api_version: "1.1",
                 desired_configuration_hash: configurationHash,
                 image_revision: imageRevision,
+                ...externalFields,
+                instance: {
+                  status: "active",
+                  external_instance_id: "app_tenant_one",
+                },
               },
             },
           };
         }
-        return { status: 201, body: { success: true, replayed: false } };
+        return {
+          status: 201,
+          body: { success: true, replayed: false, ...externalFields },
+        };
       },
     },
     { issue: async () => "test.jwt.signature" },
@@ -1229,6 +1359,8 @@ test("mTLS control client reads body.control and sends only a compiled provision
   const observed = await client.readConfiguration({
     appInstanceId: "app_tenant_one",
     hostname: "tenant-one.sandbox.techlong.cloud",
+    externalFence,
+    signal: signal(),
   });
   assert.equal(observed.desiredConfigurationHash, configurationHash);
   assert.equal(observed.imageRevision, imageRevision);
@@ -1237,7 +1369,7 @@ test("mTLS control client reads body.control and sends only a compiled provision
   const compiledPayload = {
     instance: {
       external_instance_id: "app_tenant_one",
-      metadata: { configuration_hash: configurationHash },
+      metadata: { configuration_hash: configurationHash, ...externalFields },
     },
     entitlements: { "stores.max": 1 },
     default_store: { name: "Tenant One" },
@@ -1254,6 +1386,8 @@ test("mTLS control client reads body.control and sends only a compiled provision
       hostname: "tenant-one.sandbox.techlong.cloud",
       idempotencyKey: `dep:${configurationHash}`,
       compiledPayload,
+      externalFence,
+      signal: signal(),
     }),
   );
   assert.equal(requests[1].url.endsWith("/api/saas/provision"), true);
@@ -1270,6 +1404,8 @@ test("mTLS control client reads body.control and sends only a compiled provision
           desired_configuration_hash: configurationHash,
           configuration: { store_name: "raw snapshot" },
         },
+        externalFence,
+        signal: signal(),
       }),
     /compiled v2 control shape/i,
   );
@@ -1291,8 +1427,13 @@ test("CloudFormation adapter creates once and treats a repeated no-update reques
   let exists = false;
   let creates = 0;
   let updates = 0;
+  const observedSignals: AbortSignal[] = [];
   const cloudFormationClient = {
-    async send(command: unknown): Promise<Record<string, unknown>> {
+    async send(
+      command: unknown,
+      options?: { abortSignal?: AbortSignal },
+    ): Promise<Record<string, unknown>> {
+      if (options?.abortSignal) observedSignals.push(options.abortSignal);
       if (command instanceof DescribeStacksCommand) {
         if (!exists) {
           throw Object.assign(new Error("Stack does not exist"), { name: "ValidationError" });
@@ -1332,10 +1473,55 @@ test("CloudFormation adapter creates once and treats a repeated no-update reques
       deleteStack: DeleteStackCommand,
     },
   });
-  assert.equal((await adapter.applyTenantStack(stack)).operation, "create");
-  assert.equal((await adapter.applyTenantStack(stack)).operation, "no_change");
+  const firstSignal = signal();
+  assert.equal(
+    (await adapter.applyTenantStack(stack, { signal: firstSignal })).operation,
+    "create",
+  );
+  assert.deepEqual(observedSignals.splice(0), [firstSignal, firstSignal]);
+  const secondSignal = signal();
+  assert.equal(
+    (await adapter.applyTenantStack(stack, { signal: secondSignal })).operation,
+    "no_change",
+  );
+  assert.deepEqual(observedSignals, [secondSignal, secondSignal]);
   assert.equal(creates, 1);
   assert.equal(updates, 1);
+});
+
+test("an already-aborted CloudFormation operation makes zero AWS SDK calls", async () => {
+  const { stack } = await executionFixture();
+  class TestCommand {
+    readonly input: Record<string, unknown>;
+    constructor(input: Record<string, unknown>) {
+      this.input = input;
+    }
+  }
+  let calls = 0;
+  const client = {
+    send: async () => {
+      calls += 1;
+      throw new Error("must not call AWS SDK");
+    },
+  };
+  const adapter = new AwsSdkDeploymentAdapter(environment.region, {
+    stsClient: client,
+    cloudFormationClient: client,
+    commands: {
+      getCallerIdentity: TestCommand,
+      describeStacks: TestCommand,
+      createStack: TestCommand,
+      updateStack: TestCommand,
+      deleteStack: TestCommand,
+    },
+  });
+  const controller = new AbortController();
+  controller.abort(new Error("lease lost"));
+  await assert.rejects(
+    adapter.applyTenantStack(stack, { signal: controller.signal }),
+    /lease lost/,
+  );
+  assert.equal(calls, 0);
 });
 
 test("a different deployment cannot update or delete the durable app stack", async () => {
@@ -1398,7 +1584,7 @@ test("a different deployment cannot update or delete the durable app stack", asy
   });
 
   await assert.rejects(
-    () => adapter.applyTenantStack(stack),
+    () => adapter.applyTenantStack(stack, { signal: signal() }),
     (error: unknown) =>
       (error as { code?: string }).code === "STACK_OPERATION_FENCE_MISMATCH",
   );
@@ -1406,7 +1592,7 @@ test("a different deployment cannot update or delete the durable app stack", asy
 
   previousOperationTags.ResourceGeneration = "2";
   await assert.rejects(
-    () => adapter.applyTenantStack(stack),
+    () => adapter.applyTenantStack(stack, { signal: signal() }),
     (error: unknown) =>
       (error as { code?: string }).code === "STACK_OWNERSHIP_MISMATCH",
   );
@@ -1415,7 +1601,7 @@ test("a different deployment cannot update or delete the durable app stack", asy
 
   stackStatus = "UPDATE_IN_PROGRESS";
   await assert.rejects(
-    () => adapter.applyTenantStack(stack),
+    () => adapter.applyTenantStack(stack, { signal: signal() }),
     (error: unknown) =>
       (error as { code?: string }).code === "STACK_OPERATION_FENCE_MISMATCH",
   );
@@ -1429,6 +1615,7 @@ test("a different deployment cannot update or delete the durable app stack", asy
         clientRequestToken: "delete-current-deployment",
         expectedTags: stack.tags,
         cloudFormationRoleArn: stack.cloudFormationRoleArn,
+        signal: signal(),
       }),
     (error: unknown) =>
       (error as { code?: string }).code === "STACK_OWNERSHIP_MISMATCH",
@@ -1462,6 +1649,7 @@ test("a live tenant generation cannot hand off to a new deployment", async () =>
     dependencies: {
       repository,
       applyRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => {
         awsFactoryCalls += 1;
         return readyAwsPort({
@@ -1554,7 +1742,7 @@ test("CloudFormation adapter resumes owned creates and treats delete-in-progress
 
   const creating = makeAdapter("CREATE_IN_PROGRESS");
   assert.equal(
-    (await creating.adapter.applyTenantStack(stack)).operation,
+    (await creating.adapter.applyTenantStack(stack, { signal: signal() })).operation,
     "existing_in_progress",
   );
   assert.deepEqual(creating.calls, { creates: 0, updates: 0, deletes: 0 });
@@ -1567,6 +1755,7 @@ test("CloudFormation adapter resumes owned creates and treats delete-in-progress
         clientRequestToken: `delete-${stack.clientRequestToken}`.slice(0, 128),
         expectedTags: stack.tags,
         cloudFormationRoleArn: stack.cloudFormationRoleArn,
+        signal: signal(),
       })
     ).operation,
     "delete_in_progress",
@@ -1581,6 +1770,7 @@ test("CloudFormation adapter resumes owned creates and treats delete-in-progress
         clientRequestToken: `delete-${stack.clientRequestToken}`.slice(0, 128),
         expectedTags: stack.tags,
         cloudFormationRoleArn: stack.cloudFormationRoleArn,
+        signal: signal(),
       })
     ).operation,
     "delete",
@@ -1589,7 +1779,7 @@ test("CloudFormation adapter resumes owned creates and treats delete-in-progress
 
   const failedApply = makeAdapter("ROLLBACK_COMPLETE");
   await assert.rejects(
-    () => failedApply.adapter.applyTenantStack(stack),
+    () => failedApply.adapter.applyTenantStack(stack, { signal: signal() }),
     /terminal state ROLLBACK_COMPLETE/,
   );
   assert.equal(failedApply.calls.updates, 0);
@@ -1666,6 +1856,8 @@ test("records a retry without calling CloudFormation when tenant database prepar
         destroyedAt: existing?.destroyedAt ?? null,
       };
       context.tenantResources = record;
+      context.tenantExternalOperation ??=
+        activeProvisionExternalFence(fenceOf(record));
       return {
         outcome: existing ? "reused" : "created",
         previousOwnerDeploymentId: existing?.ownerDeploymentId ?? null,
@@ -1676,6 +1868,19 @@ test("records a retry without calling CloudFormation when tenant database prepar
     beginTenantResourceCleanup: async () => null,
     assertTenantResourceCleanupFence: async () => false,
     completeTenantResourceCleanup: async () => false,
+    prepareTenantExternalOperation: async () => {
+      throw new Error("not used");
+    },
+    activateTenantExternalOperation: async () => null,
+    assertTenantExternalOperation: async ({ externalFence }) =>
+      Boolean(
+        context.tenantExternalOperation &&
+          canonicalJson(context.tenantExternalOperation) === canonicalJson(externalFence),
+      ),
+    beginOrResumeTenantResourceCleanup: async () => null,
+    beginTenantResourceCleanupPhase: async () => null,
+    completeTenantResourceCleanupPhase: async () => null,
+    finalizeTenantResourceCleanup: async () => false,
   };
   const result = await runDeploymentWorkerOnce({
     workerId: "worker:test:retry",
@@ -1683,6 +1888,7 @@ test("records a retry without calling CloudFormation when tenant database prepar
     dependencies: {
       repository,
       applyRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => {
         awsFactoryCalls += 1;
         return {
@@ -1726,6 +1932,7 @@ test("records a retry without calling CloudFormation when tenant database prepar
     },
   });
   assert.equal(result.status, "retry_scheduled");
+  assert.equal(result.errorCode, "DATABASE_BUSY");
   assert.equal(retryable, true);
   assert.equal(awsFactoryCalls, 1);
   assert.equal(cloudFormationCalls, 0);
@@ -1739,6 +1946,7 @@ test("a lost lease aborts a long operation and discards its late result", async 
   let lifecycleWrites = 0;
   let succeededStepWrites = 0;
   let databaseResolved = false;
+  let databaseSignal: AbortSignal | null = null;
   const baseRepository = inMemoryRepository({ context });
   const repository: DeploymentExecutionRepository = {
     ...baseRepository,
@@ -1769,12 +1977,14 @@ test("a lost lease aborts a long operation and discards its late result", async 
     dependencies: {
       repository,
       applyRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       leaseHeartbeatIntervalMs: 5,
       awsFactory: async () => readyAwsPort(),
       cleanupScheduler: new EmbeddedCloudFormationCleanupSchedule(() => now),
       sharedCellSecurityPreflight: verifiedSharedCellSecurityPreflight(),
       tenantDatabase: {
-        ensureTenantDatabase: async () => {
+        ensureTenantDatabase: async ({ signal: operationSignal }) => {
+          databaseSignal = operationSignal;
           await new Promise<void>((resolve) => setTimeout(resolve, 30));
           databaseResolved = true;
           return tenantLifecycleOutput(context, "empty");
@@ -1796,9 +2006,10 @@ test("a lost lease aborts a long operation and discards its late result", async 
   assert.ok(heartbeatCalls >= 6);
   assert.equal(lifecycleWrites, 0);
   assert.equal(succeededStepWrites, 0);
+  assert.equal((databaseSignal as AbortSignal | null)?.aborted, true);
 
-  // The adapter intentionally ignores AbortSignal in this fixture. Its late
-  // resolution must still be detached from all durable writes.
+  // The adapter observes the exact aborted Signal but intentionally resolves
+  // late in this fixture. The result must remain detached from durable writes.
   await new Promise<void>((resolve) => setTimeout(resolve, 40));
   assert.equal(databaseResolved, true);
   assert.equal(lifecycleWrites, 0);
@@ -1845,6 +2056,7 @@ test("persists fenced tenant lifecycle evidence before CloudFormation apply", as
     dependencies: {
       repository,
       applyRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () =>
         readyAwsPort({
           onApply: () => {
@@ -1911,6 +2123,7 @@ for (const lifecycleState of ["empty", "saas_migrated"] as const) {
       dependencies: {
         repository,
         applyRuntimeReady: true,
+        tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
         awsFactory: async () =>
           readyAwsPort({
             onApply: () => {
@@ -1974,6 +2187,7 @@ test("an unverified Shared Cell stops before capacity, tenant database, or Cloud
         },
       }),
       applyRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => ({
         ...aws,
         applyTenantStack: async () => {
@@ -2029,6 +2243,7 @@ test("an atomic capacity reservation loser stops before tenant database and Clou
         reserveCapacity: () => false,
       }),
       applyRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => ({
         ...aws,
         applyTenantStack: async () => {
@@ -2089,6 +2304,7 @@ test("a persisted gate flip is re-read before tenant database or CloudFormation 
     dependencies: {
       repository,
       applyRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => ({
         ...aws,
         applyTenantStack: async () => {
@@ -2147,6 +2363,7 @@ test("reconcile advances health, configuration and verification without entering
         },
       }),
       applyRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => readyAwsPort(),
       cleanupScheduler: {
         confirmSchedule: async () => {
@@ -2203,6 +2420,7 @@ test("reconcile rejects a stack with mismatched ownership tags before control ca
     dependencies: {
       repository: inMemoryRepository({ context }),
       applyRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () =>
         readyAwsPort({
           tags: {
@@ -2258,6 +2476,7 @@ test("a ready reconcile is an idempotent success without delete or control calls
     dependencies: {
       repository: inMemoryRepository({ context, transitions }),
       applyRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () =>
         readyAwsPort({
           onDescribe: () => {
@@ -2295,6 +2514,68 @@ test("a ready reconcile is an idempotent success without delete or control calls
   assert.equal(result.status, "succeeded");
   assert.deepEqual(transitions, []);
   assert.equal(describes, 0);
+  assert.equal(controlCalls, 0);
+});
+
+test("apply capability without an ownership coordinator stays disabled before claim", async () => {
+  const { context } = await executionFixture();
+  context.job.jobType = "reconcile";
+  context.deployment.status = "waiting_healthy";
+  await attachTenantResource(context, { lifecycleStatus: "verified" });
+  context.tenantExternalOperation = null;
+  const baseRepository = inMemoryRepository({ context });
+  let awsFactoryCalls = 0;
+  let controlCalls = 0;
+  let claimCalls = 0;
+  const repository: DeploymentExecutionRepository = {
+    ...baseRepository,
+    claimNext: async () => {
+      claimCalls += 1;
+      return context.job;
+    },
+    claimTenantResourceGeneration: async (claim) => {
+      const result = await baseRepository.claimTenantResourceGeneration(claim);
+      context.tenantExternalOperation = null;
+      return result;
+    },
+  };
+  const result = await runDeploymentWorkerOnce({
+    workerId: "worker:test:reconcile-no-provision-epoch",
+    config: enabledConfig,
+    dependencies: {
+      repository,
+      applyRuntimeReady: true,
+      awsFactory: async () => {
+        awsFactoryCalls += 1;
+        return readyAwsPort();
+      },
+      cleanupScheduler: new EmbeddedCloudFormationCleanupSchedule(() => now),
+      sharedCellSecurityPreflight: verifiedSharedCellSecurityPreflight(),
+      tenantDatabase: {
+        ensureTenantDatabase: async () => ({}),
+        migrateTenantDatabase: async () => ({}),
+      },
+      controlClient: {
+        waitUntilHealthy: async () => {
+          controlCalls += 1;
+          return { ready: true, desiredConfigurationHash: null, imageRevision: null };
+        },
+        provision: async () => {
+          controlCalls += 1;
+          return { accepted: true as const };
+        },
+        readConfiguration: async () => {
+          controlCalls += 1;
+          return { ready: true, desiredConfigurationHash: null, imageRevision: null };
+        },
+      },
+      controlPayloadCompiler: compiledPayloadCompiler(),
+      now: () => now,
+    },
+  });
+  assert.equal(result.status, "disabled");
+  assert.equal(claimCalls, 0);
+  assert.equal(awsFactoryCalls, 0);
   assert.equal(controlCalls, 0);
 });
 
@@ -2345,6 +2626,7 @@ for (const jobType of ["cleanup", "rollback"] as const) {
         }),
         applyRuntimeReady: false,
         cleanupRuntimeReady: true,
+        tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
         awsFactory: async () => {
           awsFactoryCalls += 1;
           throw new Error("fenced cleanup must own the workload boundary");
@@ -2373,8 +2655,10 @@ for (const jobType of ["cleanup", "rollback"] as const) {
       },
     });
     assert.equal(result.status, "succeeded");
-    assert.deepEqual(transitions, ["cancel_requested", "rolling_back", "rolled_back"]);
-    assert.equal(unavailable, 1);
+    // Deployment, schedule, instance and capacity state now converge inside
+    // the coordinator's single fenced finalize transaction.
+    assert.deepEqual(transitions, []);
+    assert.equal(unavailable, 0);
     assert.equal(cleanupEnqueues, 0);
     assert.equal(cleanupConfirmations, 0);
     assert.equal(resourceCleanupCalls, 1);
@@ -2382,7 +2666,7 @@ for (const jobType of ["cleanup", "rollback"] as const) {
   });
 }
 
-test("cleanup stops when its schedule status CAS updates zero rows", async () => {
+test("cleanup does not use the legacy standalone schedule status CAS", async () => {
   const context = await expiredCleanupContext();
   const baseRepository = inMemoryRepository({ context });
   let cleanupCalls = 0;
@@ -2407,6 +2691,7 @@ test("cleanup stops when its schedule status CAS updates zero rows", async () =>
       repository,
       applyRuntimeReady: false,
       cleanupRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => {
         throw new Error("fenced cleanup must not construct the apply AWS adapter");
       },
@@ -2428,14 +2713,13 @@ test("cleanup stops when its schedule status CAS updates zero rows", async () =>
       now: () => now,
     },
   });
-  assert.equal(result.status, "retry_scheduled");
-  assert.equal(result.errorCode, "DEPLOYMENT_LEASE_LOST");
+  assert.equal(result.status, "succeeded");
   assert.equal(cleanupCalls, 1);
   assert.equal(instanceWrites, 0);
-  assert.equal(completedJobs, 0);
+  assert.equal(completedJobs, 1);
 });
 
-test("cleanup refuses completion when the instance CAS updates zero rows", async () => {
+test("cleanup does not use the legacy standalone instance status CAS", async () => {
   const context = await expiredCleanupContext();
   const baseRepository = inMemoryRepository({ context });
   let instanceWriteAttempts = 0;
@@ -2458,6 +2742,7 @@ test("cleanup refuses completion when the instance CAS updates zero rows", async
       repository,
       applyRuntimeReady: false,
       cleanupRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => {
         throw new Error("fenced cleanup must not construct the apply AWS adapter");
       },
@@ -2477,51 +2762,45 @@ test("cleanup refuses completion when the instance CAS updates zero rows", async
       now: () => now,
     },
   });
-  assert.equal(result.status, "retry_scheduled");
-  assert.equal(result.errorCode, "DEPLOYMENT_LEASE_LOST");
-  assert.equal(instanceWriteAttempts, 1);
-  assert.equal(completedJobs, 0);
+  assert.equal(result.status, "succeeded");
+  assert.equal(instanceWriteAttempts, 0);
+  assert.equal(completedJobs, 1);
 });
 
-test("cleanup converges after resource destruction committed before a worker crash", async () => {
+test("cleanup converges when atomic finalization commits before job completion", async () => {
   const { context } = await executionFixture();
   context.job.jobType = "cleanup";
   context.deployment.status = "ready";
   context.appInstance.status = "active";
   await attachTenantResource(context);
-  let rejectFirstTransition = true;
+  let rejectFirstJobCompletion = true;
   let cleanupCalls = 0;
-  let unavailable = 0;
-  const baseRepository = inMemoryRepository({
-    context,
-    onMarkUnavailable: () => {
-      unavailable += 1;
-    },
-  });
+  const baseRepository = inMemoryRepository({ context });
   const repository: DeploymentExecutionRepository = {
     ...baseRepository,
-    transitionDeployment: async (transition) => {
-      if (rejectFirstTransition) {
-        rejectFirstTransition = false;
+    completeJob: async () => {
+      if (rejectFirstJobCompletion) {
+        rejectFirstJobCompletion = false;
         return false;
       }
-      context.deployment.status = transition.to;
       return true;
     },
   };
   const cleanup = {
     destroy: async ({ fence }: { fence: TenantResourceFence }) => {
       cleanupCalls += 1;
-      const alreadyDestroyed =
-        context.tenantResources?.lifecycleStatus === "destroyed";
       context.tenantResources!.lifecycleStatus = "destroyed";
-      context.tenantResources!.destroyedAt ??= now;
+      context.tenantResources!.destroyedAt = now;
+      context.deployment.status = "rolled_back";
+      context.appInstance.status = "suspended";
+      if (context.cleanupSchedule) context.cleanupSchedule.status = "succeeded";
+      context.tenantExternalOperation = null;
       return {
         fence,
         order: ["workload", "database", "secret"] as const,
-        workloadOutcome: alreadyDestroyed ? "already_missing" as const : "deleted" as const,
-        databaseOutcome: alreadyDestroyed ? "already_missing" as const : "deleted" as const,
-        secretOutcome: alreadyDestroyed ? "already_missing" as const : "deleted" as const,
+        workloadOutcome: "deleted" as const,
+        databaseOutcome: "deleted" as const,
+        secretOutcome: "deleted" as const,
         databaseEvidenceHash: "d".repeat(64),
       };
     },
@@ -2530,6 +2809,7 @@ test("cleanup converges after resource destruction committed before a worker cra
     repository,
     applyRuntimeReady: false,
     cleanupRuntimeReady: true,
+    tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
     awsFactory: async () => {
       throw new Error("fenced cleanup must not construct AWS here");
     },
@@ -2553,8 +2833,7 @@ test("cleanup converges after resource destruction committed before a worker cra
     config: { ...enabledConfig, applyEnabled: false, confirmation: "" },
     dependencies,
   });
-  assert.equal(first.status, "retry_scheduled");
-  assert.equal(context.tenantResources?.lifecycleStatus, "destroyed");
+  assert.equal(first.status, "lease_lost");
 
   const second = await runDeploymentWorkerOnce({
     workerId: "worker:test:cleanup-crash-window",
@@ -2562,9 +2841,7 @@ test("cleanup converges after resource destruction committed before a worker cra
     dependencies,
   });
   assert.equal(second.status, "succeeded");
-  assert.equal(context.deployment.status, "rolled_back");
-  assert.equal(cleanupCalls, 2);
-  assert.equal(unavailable, 1);
+  assert.equal(cleanupCalls, 1);
 });
 
 test("cleanup waits idempotently while CloudFormation deletion is already in progress", async () => {
@@ -2582,6 +2859,7 @@ test("cleanup waits idempotently while CloudFormation deletion is already in pro
       repository: inMemoryRepository({ context }),
       applyRuntimeReady: false,
       cleanupRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => {
         awsFactoryCalls += 1;
         throw new Error("cleanup retry must not construct an AWS adapter");
@@ -2651,6 +2929,7 @@ test("a stale cleanup job makes zero external calls and cannot delete a newer ge
       repository: inMemoryRepository({ context }),
       applyRuntimeReady: false,
       cleanupRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => {
         awsFactoryCalls += 1;
         throw new Error("stale cleanup must not construct an AWS adapter");
@@ -2687,6 +2966,149 @@ test("a stale cleanup job makes zero external calls and cannot delete a newer ge
   assert.equal(cleanupCalls, 0);
   assert.equal(awsFactoryCalls, 0);
   assert.equal(databaseCalls, 0);
+});
+
+test("cleanup capability without an ownership coordinator stays disabled before claim", async () => {
+  const context = await expiredCleanupContext();
+  context.tenantExternalOperation = null;
+  let cleanupCalls = 0;
+  let awsFactoryCalls = 0;
+  let claimCalls = 0;
+  const baseRepository = inMemoryRepository({ context });
+  const result = await runDeploymentWorkerOnce({
+    workerId: "worker:test:cleanup-epoch-inactive",
+    config: { ...enabledConfig, applyEnabled: false, confirmation: "" },
+    dependencies: {
+      repository: {
+        ...baseRepository,
+        claimNext: async () => {
+          claimCalls += 1;
+          return context.job;
+        },
+      },
+      applyRuntimeReady: false,
+      cleanupRuntimeReady: true,
+      awsFactory: async () => {
+        awsFactoryCalls += 1;
+        throw new Error("inactive cleanup epoch must not construct AWS");
+      },
+      cleanupScheduler: new EmbeddedCloudFormationCleanupSchedule(() => now),
+      sharedCellSecurityPreflight: verifiedSharedCellSecurityPreflight(),
+      tenantDatabase: {
+        ensureTenantDatabase: async () => ({}),
+        migrateTenantDatabase: async () => ({}),
+      },
+      tenantResourceCleanup: readyTenantResourceCleanup(() => {
+        cleanupCalls += 1;
+      }),
+      controlClient: {
+        waitUntilHealthy: async () => ({ ready: false, desiredConfigurationHash: null, imageRevision: null }),
+        provision: async () => ({ accepted: true as const }),
+        readConfiguration: async () => ({ ready: false, desiredConfigurationHash: null, imageRevision: null }),
+      },
+      controlPayloadCompiler: compiledPayloadCompiler(),
+      now: () => now,
+    },
+  });
+  assert.equal(result.status, "disabled");
+  assert.equal(claimCalls, 0);
+  assert.equal(cleanupCalls, 0);
+  assert.equal(awsFactoryCalls, 0);
+});
+
+test("cleanup first installs and reloads an externally proven epoch before adapters", async () => {
+  const context = await expiredCleanupContext();
+  const activeFence = context.tenantExternalOperation!;
+  context.tenantExternalOperation = null;
+  const baseRepository = inMemoryRepository({ context });
+  let coordinatorCalls = 0;
+  let cleanupCalls = 0;
+  const repository: DeploymentExecutionRepository = {
+    ...baseRepository,
+    loadContext: async () => context,
+  };
+  const result = await runDeploymentWorkerOnce({
+    workerId: "worker:test:cleanup-epoch-first-install",
+    config: { ...enabledConfig, applyEnabled: false, confirmation: "" },
+    dependencies: {
+      repository,
+      applyRuntimeReady: false,
+      cleanupRuntimeReady: true,
+      tenantExternalOperationCoordinator: {
+        prepareAndActivate: async ({ intent, resourceFence, signal }) => {
+          coordinatorCalls += 1;
+          assert.equal(intent, "cleanup");
+          assert.equal(signal.aborted, false);
+          assert.deepEqual(resourceFence, activeFence.resourceFence);
+          context.tenantExternalOperation = activeFence;
+          return activeFence;
+        },
+      },
+      awsFactory: async () => {
+        throw new Error("cleanup coordinator owns all destructive adapters");
+      },
+      cleanupScheduler: new EmbeddedCloudFormationCleanupSchedule(() => now),
+      sharedCellSecurityPreflight: verifiedSharedCellSecurityPreflight(),
+      tenantDatabase: {
+        ensureTenantDatabase: async () => ({}),
+        migrateTenantDatabase: async () => ({}),
+      },
+      tenantResourceCleanup: readyTenantResourceCleanup(() => {
+        cleanupCalls += 1;
+      }),
+      controlClient: {
+        waitUntilHealthy: async () => ({ ready: false, desiredConfigurationHash: null, imageRevision: null }),
+        provision: async () => ({ accepted: true as const }),
+        readConfiguration: async () => ({ ready: false, desiredConfigurationHash: null, imageRevision: null }),
+      },
+      controlPayloadCompiler: compiledPayloadCompiler(),
+      now: () => now,
+    },
+  });
+  assert.equal(result.status, "succeeded");
+  assert.equal(coordinatorCalls, 1);
+  assert.equal(cleanupCalls, 1);
+});
+
+test("cleanup rejects an epoch that was returned but not durably reloaded", async () => {
+  const context = await expiredCleanupContext();
+  const activeFence = context.tenantExternalOperation!;
+  context.tenantExternalOperation = null;
+  let cleanupCalls = 0;
+  const result = await runDeploymentWorkerOnce({
+    workerId: "worker:test:cleanup-epoch-not-persisted",
+    config: { ...enabledConfig, applyEnabled: false, confirmation: "" },
+    dependencies: {
+      repository: inMemoryRepository({ context }),
+      applyRuntimeReady: false,
+      cleanupRuntimeReady: true,
+      tenantExternalOperationCoordinator: {
+        prepareAndActivate: async () => activeFence,
+      },
+      awsFactory: async () => {
+        throw new Error("unpersisted epoch must not construct AWS");
+      },
+      cleanupScheduler: new EmbeddedCloudFormationCleanupSchedule(() => now),
+      sharedCellSecurityPreflight: verifiedSharedCellSecurityPreflight(),
+      tenantDatabase: {
+        ensureTenantDatabase: async () => ({}),
+        migrateTenantDatabase: async () => ({}),
+      },
+      tenantResourceCleanup: readyTenantResourceCleanup(() => {
+        cleanupCalls += 1;
+      }),
+      controlClient: {
+        waitUntilHealthy: async () => ({ ready: false, desiredConfigurationHash: null, imageRevision: null }),
+        provision: async () => ({ accepted: true as const }),
+        readConfiguration: async () => ({ ready: false, desiredConfigurationHash: null, imageRevision: null }),
+      },
+      controlPayloadCompiler: compiledPayloadCompiler(),
+      now: () => now,
+    },
+  });
+  assert.equal(result.status, "retry_scheduled");
+  assert.equal(result.errorCode, "TENANT_CLEANUP_EXTERNAL_EPOCH_NOT_PERSISTED");
+  assert.equal(cleanupCalls, 0);
 });
 
 test("standalone cleanup fails closed before AWS when the full coordinator is disabled", async () => {
@@ -2749,6 +3171,7 @@ test("cleanup with a non-allowlisted CloudFormation role makes zero AWS calls", 
       repository: inMemoryRepository({ context }),
       applyRuntimeReady: false,
       cleanupRuntimeReady: true,
+      tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
       awsFactory: async () => {
         awsFactoryCalls += 1;
         return readyAwsPort();

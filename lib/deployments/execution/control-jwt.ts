@@ -95,7 +95,9 @@ export class Rs256SaaSControlTokenProvider
     instanceId: string;
     audience: string;
     scope: "speedfeast:control";
+    signal: AbortSignal;
   }): Promise<string> {
+    input.signal.throwIfAborted();
     if (!identifierPattern.test(input.instanceId)) {
       throw new Error("SaaS control JWT instance id is invalid.");
     }
@@ -105,8 +107,10 @@ export class Rs256SaaSControlTokenProvider
     if (input.scope !== "speedfeast:control") {
       throw new Error("SaaS control JWT scope is invalid.");
     }
+    input.signal.throwIfAborted();
     const issuedAt = Math.floor(this.now() / 1_000);
     const tokenId = this.jti();
+    input.signal.throwIfAborted();
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/.test(tokenId)) {
       throw new Error("SaaS control JWT id is invalid.");
     }
@@ -126,8 +130,10 @@ export class Rs256SaaSControlTokenProvider
       jti: tokenId,
     });
     const signingInput = `${header}.${payload}`;
+    input.signal.throwIfAborted();
     const signature = sign("RSA-SHA256", Buffer.from(signingInput), this.privateKey)
       .toString("base64url");
+    input.signal.throwIfAborted();
     return `${signingInput}.${signature}`;
   }
 }

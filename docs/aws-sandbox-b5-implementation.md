@@ -25,17 +25,27 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - 默认模式只做本地渲染和静态验证。`CreateChangeSet`/`ExecuteChangeSet` 接口已预留，但当前在任何 AWS API 调用前硬禁用，后续只有完成 IAM、MFA、模板 digest、TTL 与 cleanup 评审后才能单独打开。
 - NAT Gateway、VPC Endpoint、传统 EC2、RDS Proxy、Global Database、快照恢复、Reserved Purchase 和第二个 Cell 均保持拒绝。
 
+### B5-E：外部 ownership epoch 与可恢复清理
+
+- `0007_external_ownership_epoch_cleanup_phases.sql` 为每个租户 resource generation 增加单调 external operation epoch。Repository 只能准备 `pending_external` 记录；只有 provider 把精确 marker 安装到外部资源并重新观察、返回脱敏 proof 后，CAS 才能把 epoch 激活。
+- provision 与 cleanup 使用不同的不可变 operation hash。相同意图的重试复用原 epoch；cleanup 会使未完成的 provision 意图失效并旋转到新 epoch。旧 epoch 不能再推进数据库生命周期或执行删除。
+- cleanup 持久化 run 及 workload → database/role → Secret 三个 phase。每个 phase 使用稳定 operation ID、脱敏 receipt 和 append-only 事件，崩溃后跳过已经成功的阶段；最终事务同时收口资源、部署、实例、TTL 计划和容量占位。
+- 现有 AWS SDK、HTTPS、控制通道、Shared Cell 和类型化 Tenant DB/Secret 边界都接收同一个必填 `AbortSignal`。Signal 用于尽快取消失租操作，但不能替代 provider 对 external marker 的安装与观察。
+- CloudFormation 标签/ClientRequestToken 及 SaaS Control metadata/header/idempotency/readback 已绑定当前 active provision epoch；但真实 AWS 与订单服务端尚未实现原子拒绝旧 epoch 的 provider-side compare-and-set，所以这些字段目前只是离线契约，不能据此开启执行门禁。
+- 默认 external ownership provider、Tenant DB/Secret/workload Adapter 和 standalone Worker root wiring 仍未配置，因此 Apply/Cleanup 保持 fail closed。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：
 
-1. `0005`、B5 新迁移尚未经审查并应用到 Neon。
+1. `0005`、`0006`、`0007` 尚未应用到 Neon。
 2. 尚无独立批准的 PostgreSQL 16.14 空租户 baseline；旧业务数据 dump 禁止作为租户模板。
-3. 真实 ECS one-shot Tenant Database/Secret Adapter 尚未完成并演练崩溃恢复。
-4. 外部 database、role、Secret 和 CloudFormation workload 尚不能原子验证 ownership epoch。
+3. 真实 ECS one-shot Tenant Database/Secret/workload Adapter 尚未完成并演练崩溃恢复。
+4. 离线 ownership coordinator 已完成，但尚无真实 provider 为 database、role、Secret 和 CloudFormation workload 安装并回读 external marker。
 5. Cell 外部证据尚未完整验证 ACM、精确 Trust Store、DNS、Route Table、TTL Schedule 和 Stack 所有权。
-6. Cell Janitor 尚不能通过有围栏的协调器完成 workload → database/role → Secret 清理。
+6. 分阶段 cleanup coordinator 已离线实现，但 Cell Janitor/standalone Worker 尚未接入真实 destroy Adapter 与 provider-backed ownership proof。
 7. 尚未进行真实 Cell TTL 删除演练和费用后核对。
+8. CloudFormation workload 与订单服务控制端尚未实现并演练 provider-side 单调 epoch CAS；`AbortSignal` 不能撤销服务端已经接受的写入。
 
 ## 费用与执行规则
 

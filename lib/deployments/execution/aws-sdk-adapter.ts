@@ -5,12 +5,16 @@ import type {
   CloudFormationStackObservation,
 } from "./contracts.ts";
 import {
+  tenantStackExternalOperationTagKeys,
   tenantStackOperationTagKey,
   tenantStackStableOwnershipTagKeys,
 } from "../cloudformation/tenant-stack.ts";
 
 interface AwsSdkClient {
-  send(command: unknown): Promise<Record<string, unknown>>;
+  send(
+    command: unknown,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<Record<string, unknown>>;
 }
 
 type AwsSdkClientConstructor = new (
@@ -53,6 +57,16 @@ function errorRecord(error: unknown): Record<string, unknown> {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function rethrowAbort(signal: AbortSignal): void {
+  if (!signal.aborted) return;
+  throw signal.reason instanceof Error
+    ? signal.reason
+    : Object.assign(new Error("AWS deployment operation was aborted."), {
+        name: "AbortError",
+        code: "ABORT_ERR",
+      });
 }
 
 function isStackMissing(error: unknown): boolean {
@@ -138,11 +152,14 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
     this.sdk = sdk;
   }
 
-  async getCallerIdentity(): Promise<AwsCallerIdentity> {
+  async getCallerIdentity(input: { signal: AbortSignal }): Promise<AwsCallerIdentity> {
     try {
+      input.signal.throwIfAborted();
       const response = await this.sdk.stsClient.send(
         new this.sdk.commands.getCallerIdentity({}),
+        { abortSignal: input.signal },
       );
+      input.signal.throwIfAborted();
       const accountId = textField(response.Account);
       const arn = textField(response.Arn);
       if (!accountId || !/^\d{12}$/.test(accountId) || !arn) {
@@ -154,15 +171,22 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
       }
       return { accountId, arn };
     } catch (error) {
+      rethrowAbort(input.signal);
       throw normalizeAwsError(error, "STS_GET_CALLER_IDENTITY_FAILED");
     }
   }
 
-  async describeTenantStack(stackName: string): Promise<CloudFormationStackObservation> {
+  async describeTenantStack(
+    stackName: string,
+    input: { signal: AbortSignal },
+  ): Promise<CloudFormationStackObservation> {
     try {
+      input.signal.throwIfAborted();
       const response = await this.sdk.cloudFormationClient.send(
         new this.sdk.commands.describeStacks({ StackName: stackName }),
+        { abortSignal: input.signal },
       );
+      input.signal.throwIfAborted();
       const stack = objectArray(response.Stacks)[0];
       if (!stack) {
         return { state: "missing", rawStatus: null, stackId: null, outputs: {}, tags: {} };
@@ -176,6 +200,7 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
         tags: toStringMap(stack.Tags, "Key", "Value"),
       };
     } catch (error) {
+      rethrowAbort(input.signal);
       if (isStackMissing(error)) {
         return { state: "missing", rawStatus: null, stackId: null, outputs: {}, tags: {} };
       }
@@ -183,10 +208,14 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
     }
   }
 
-  async applyTenantStack(stack: ApplyReadyTenantStack): Promise<{
+  async applyTenantStack(
+    stack: ApplyReadyTenantStack,
+    input: { signal: AbortSignal },
+  ): Promise<{
     operation: "create" | "update" | "no_change" | "existing_in_progress";
     stackId: string;
   }> {
+    input.signal.throwIfAborted();
     if (!stack.safety.applyReady || stack.safety.renderOnly) {
       throw new AwsDeploymentApiError(
         "STACK_NOT_APPLY_READY",
@@ -201,9 +230,12 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
         false,
       );
     }
-    const observed = await this.describeTenantStack(stack.stackName);
+    const observed = await this.describeTenantStack(stack.stackName, input);
     if (observed.state !== "missing") {
-      for (const key of tenantStackStableOwnershipTagKeys) {
+      for (const key of [
+        ...tenantStackStableOwnershipTagKeys,
+        ...tenantStackExternalOperationTagKeys,
+      ] as const) {
         if (observed.tags[key] !== stack.tags[key]) {
           throw new AwsDeploymentApiError(
             "STACK_OWNERSHIP_MISMATCH",
@@ -271,12 +303,15 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
     };
     try {
       if (observed.state === "missing") {
+        input.signal.throwIfAborted();
         const response = await this.sdk.cloudFormationClient.send(
           new this.sdk.commands.createStack({
             ...base,
             OnFailure: "ROLLBACK",
           }),
+          { abortSignal: input.signal },
         );
+        input.signal.throwIfAborted();
         const stackId = textField(response.StackId);
         if (!stackId) {
           throw new AwsDeploymentApiError(
@@ -289,12 +324,15 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
       }
       const response = await this.sdk.cloudFormationClient.send(
         new this.sdk.commands.updateStack(base),
+        { abortSignal: input.signal },
       );
+      input.signal.throwIfAborted();
       return {
         operation: "update",
         stackId: textField(response.StackId) ?? observed.stackId ?? stack.stackName,
       };
     } catch (error) {
+      rethrowAbort(input.signal);
       if (isNoUpdates(error) && observed.stackId) {
         return { operation: "no_change", stackId: observed.stackId };
       }
@@ -307,11 +345,14 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
     clientRequestToken: string;
     expectedTags: Record<string, string>;
     cloudFormationRoleArn: string;
+    signal: AbortSignal;
   }): Promise<{ operation: "delete" | "delete_in_progress" | "already_deleted" }> {
-    const observed = await this.describeTenantStack(input.stackName);
+    input.signal.throwIfAborted();
+    const observed = await this.describeTenantStack(input.stackName, input);
     if (observed.state === "missing") return { operation: "already_deleted" };
     for (const key of [
       ...tenantStackStableOwnershipTagKeys,
+      ...tenantStackExternalOperationTagKeys,
       tenantStackOperationTagKey,
     ] as const) {
       if (observed.tags[key] !== input.expectedTags[key]) {
@@ -326,6 +367,7 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
       return { operation: "delete_in_progress" };
     }
     try {
+      input.signal.throwIfAborted();
       await this.sdk.cloudFormationClient.send(
         new this.sdk.commands.deleteStack({
           StackName: input.stackName,
@@ -333,9 +375,11 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
           RoleARN: input.cloudFormationRoleArn,
           DeletionMode: "STANDARD",
         }),
+        { abortSignal: input.signal },
       );
       return { operation: "delete" };
     } catch (error) {
+      rethrowAbort(input.signal);
       if (isStackMissing(error)) return { operation: "already_deleted" };
       throw normalizeAwsError(error, "CLOUDFORMATION_DELETE_FAILED");
     }

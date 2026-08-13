@@ -6,6 +6,15 @@ export interface AwsSandboxTenantStackInput {
   deploymentId: string;
   /** Durable external-resource incarnation claimed before rendering. */
   resourceGeneration: number;
+  /** Exact provider-observed provision epoch for this mutation. */
+  externalOperation: {
+    epoch: number;
+    intent: "provision";
+    ownerDeploymentId: string;
+    operationHash: string;
+    marker: string;
+    state: "active";
+  };
   /**
    * Base ARN of the generation-bound tenant JSON Secret. The renderer derives
    * ECS JSON-key references from this ARN; tenant credentials must never come
@@ -74,6 +83,14 @@ export const tenantStackStableOwnershipTagKeys = [
 /** Tag that identifies the deployment currently operating the durable stack. */
 export const tenantStackOperationTagKey = "DeploymentId" as const;
 
+/** Tags that bind a workload mutation to one active external operation. */
+export const tenantStackExternalOperationTagKeys = [
+  "ExternalOperationEpoch",
+  "ExternalOperationIntent",
+  "ExternalOperationMarker",
+  "ExternalOperationHash",
+] as const;
+
 function resourceToken(appInstanceId: string): string {
   const normalized = appInstanceId.toLowerCase().replace(/[^a-z0-9]/g, "");
   return `tenant-${normalized.slice(-16) || "pending"}`;
@@ -130,6 +147,26 @@ function assertRenderInput(input: AwsSandboxTenantStackInput): void {
     input.resourceGeneration < 1
   ) {
     throw new Error("Tenant resource generation is invalid.");
+  }
+  const external = input.externalOperation;
+  const expectedMarker = external
+    ? new RegExp(
+        `^tl_epoch_[a-f0-9]{24}_g${input.resourceGeneration}_e${external.epoch}$`,
+      )
+    : null;
+  if (
+    !external ||
+    external.intent !== "provision" ||
+    external.state !== "active" ||
+    external.ownerDeploymentId !== input.deploymentId ||
+    !Number.isSafeInteger(external.epoch) ||
+    external.epoch < 1 ||
+    !/^[a-f0-9]{64}$/.test(external.operationHash) ||
+    !expectedMarker?.test(external.marker)
+  ) {
+    throw new Error(
+      "Tenant stack requires one exact active provision external-operation epoch.",
+    );
   }
   assertAwsSandboxTenantRuntimeSecretRef({
     runtimeSecretRef: input.runtimeSecretRef,
@@ -214,6 +251,10 @@ export function renderAwsSandboxTenantStack(
     AppInstanceId: input.plan.resources.tenant.costTags.AppInstanceId,
     DeploymentId: input.deploymentId,
     ResourceGeneration: String(input.resourceGeneration),
+    ExternalOperationEpoch: String(input.externalOperation.epoch),
+    ExternalOperationIntent: input.externalOperation.intent,
+    ExternalOperationMarker: input.externalOperation.marker,
+    ExternalOperationHash: input.externalOperation.operationHash,
     DeploymentProfile: input.plan.deploymentProfileKey,
     ManagedBy: "techlong-provisioner",
     ExpiresAt: `${cleanupAt}.000Z`,
@@ -567,7 +608,9 @@ export function renderAwsSandboxTenantStack(
     TenantRuntimeSecretArn: input.runtimeSecretRef,
     CleanupAt: cleanupAt,
   };
-  const clientRequestToken = `render-${input.deploymentId}-${input.plan.workflowVersion}`
+  const clientRequestToken =
+    (`render-${input.deploymentId}-${input.plan.workflowVersion}` +
+      `-e${input.externalOperation.epoch}-${input.externalOperation.operationHash.slice(0, 16)}`)
     .replace(/[^A-Za-z0-9._-]/g, "-")
     .slice(0, 128);
 

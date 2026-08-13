@@ -1,8 +1,10 @@
 import type {
   SaaSControlObservation,
   SaaSControlPort,
+  TenantExternalOperationFence,
 } from "./contracts.ts";
 import { clearFirstOwnerPassword } from "./control-secret-redaction.ts";
+import { sha256Hex } from "./hash.ts";
 
 export interface SaaSControlRequest {
   method: "GET" | "POST";
@@ -16,7 +18,7 @@ export interface SaaSControlTransport {
    * Implementations must use the private ALB control listener with verified
    * mTLS. A plain global fetch implementation is intentionally not provided.
    */
-  send(request: SaaSControlRequest): Promise<{
+  send(request: SaaSControlRequest, input: { signal: AbortSignal }): Promise<{
     status: number;
     body: unknown;
   }>;
@@ -27,12 +29,51 @@ export interface SaaSControlTokenProvider {
     instanceId: string;
     audience: string;
     scope: "speedfeast:control";
+    signal: AbortSignal;
   }): Promise<string>;
 }
 
 const dnsNamePattern =
   /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 const tenantLabelPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+function assertActiveControlFence(
+  fence: TenantExternalOperationFence,
+  appInstanceId: string,
+): void {
+  const resource = fence?.resourceFence;
+  if (
+    fence?.schemaVersion !== 1 ||
+    fence.intent !== "provision" ||
+    fence.state !== "active" ||
+    !resource ||
+    resource.identity.appInstanceId !== appInstanceId ||
+    fence.ownerDeploymentId !== resource.ownerDeploymentId ||
+    !Number.isSafeInteger(fence.epoch) ||
+    fence.epoch < 1 ||
+    !/^[a-f0-9]{64}$/.test(fence.operationHash) ||
+    fence.marker !==
+      `tl_epoch_${resource.identity.stableIdentityHash.slice(0, 24)}` +
+        `_g${resource.generation}_e${fence.epoch}`
+  ) {
+    throw Object.assign(
+      new Error("SaaS control requires one exact active provision epoch."),
+      { code: "SAAS_CONTROL_EXTERNAL_EPOCH_INVALID", retryable: false },
+    );
+  }
+}
+
+function externalOperationMatches(
+  source: Record<string, unknown>,
+  fence: TenantExternalOperationFence,
+): boolean {
+  return (
+    source.external_operation_epoch === fence.epoch &&
+    source.external_operation_intent === fence.intent &&
+    source.external_operation_marker === fence.marker &&
+    source.external_operation_hash === fence.operationHash
+  );
+}
 
 export function assertSaaSControlBaseDomain(baseDomain: string): string {
   const normalized = baseDomain.trim();
@@ -112,7 +153,11 @@ function parseFields(source: Record<string, unknown>): {
   return { desiredConfigurationHash, imageRevision };
 }
 
-function parseHealthObservation(value: unknown): SaaSControlObservation {
+function parseHealthObservation(
+  value: unknown,
+  appInstanceId: string,
+  externalFence: TenantExternalOperationFence,
+): SaaSControlObservation {
   const { envelope, control } = controlSource(value);
   const fields = parseFields(control);
   const instance = asRecord(control.instance);
@@ -123,6 +168,8 @@ function parseHealthObservation(value: unknown): SaaSControlObservation {
       typeof apiVersion === "string" &&
       /^1\.[0-9]+$/.test(apiVersion) &&
       instance !== null &&
+      instance.external_instance_id === appInstanceId &&
+      externalOperationMatches(control, externalFence) &&
       fields.imageRevision !== null,
     ...fields,
   };
@@ -131,6 +178,7 @@ function parseHealthObservation(value: unknown): SaaSControlObservation {
 function parseReconciledObservation(
   value: unknown,
   appInstanceId: string,
+  externalFence: TenantExternalOperationFence,
 ): SaaSControlObservation {
   const { envelope, control } = controlSource(value);
   const fields = parseFields(control);
@@ -147,6 +195,7 @@ function parseReconciledObservation(
       /^1\.[0-9]+$/.test(apiVersion) &&
       instance?.status === "active" &&
       instance.external_instance_id === appInstanceId &&
+      externalOperationMatches(control, externalFence) &&
       fields.desiredConfigurationHash !== null &&
       fields.imageRevision !== null,
     ...fields,
@@ -156,7 +205,9 @@ function parseReconciledObservation(
 export function assertCompiledProvisioningPayload(input: {
   payload: Record<string, unknown>;
   appInstanceId: string;
+  externalFence: TenantExternalOperationFence;
 }): void {
+  assertActiveControlFence(input.externalFence, input.appInstanceId);
   const keys = Object.keys(input.payload);
   const allowed = new Set(["instance", "entitlements", "default_store", "first_owner"]);
   if (
@@ -179,8 +230,15 @@ export function assertCompiledProvisioningPayload(input: {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
     throw new Error("Compiled SaaS provision metadata is missing.");
   }
-  if (!/^[a-f0-9]{64}$/.test(String((metadata as Record<string, unknown>).configuration_hash ?? ""))) {
+  const metadataRecord = metadata as Record<string, unknown>;
+  if (!/^[a-f0-9]{64}$/.test(String(metadataRecord.configuration_hash ?? ""))) {
     throw new Error("Compiled SaaS provision configuration hash is invalid.");
+  }
+  if (!externalOperationMatches(metadataRecord, input.externalFence)) {
+    throw Object.assign(
+      new Error("Compiled SaaS provision metadata uses a stale external epoch."),
+      { code: "SAAS_CONTROL_EXTERNAL_EPOCH_MISMATCH", retryable: false },
+    );
   }
   for (const key of ["entitlements", "default_store", "first_owner"] as const) {
     const value = input.payload[key];
@@ -206,11 +264,15 @@ function assertSuccessfulResponse(status: number, body: unknown): void {
   }
 }
 
-function assertProvisionReceipt(body: unknown): void {
+function assertProvisionReceipt(
+  body: unknown,
+  externalFence: TenantExternalOperationFence,
+): void {
   const receipt = asRecord(body);
   if (
     receipt?.success !== true ||
-    typeof receipt.replayed !== "boolean"
+    typeof receipt.replayed !== "boolean" ||
+    !externalOperationMatches(receipt, externalFence)
   ) {
     const error = new Error("SaaS provision response did not contain a trusted idempotency receipt.");
     Object.assign(error, {
@@ -243,7 +305,11 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
     path: string;
     idempotencyKey?: string;
     body?: Record<string, unknown>;
+    externalFence: TenantExternalOperationFence;
+    signal: AbortSignal;
   }): Promise<unknown> {
+    input.signal.throwIfAborted();
+    assertActiveControlFence(input.externalFence, input.appInstanceId);
     assertSaaSControlTenantHostname({
       hostname: input.hostname,
       baseDomain: this.baseDomain,
@@ -253,21 +319,33 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
       instanceId: input.appInstanceId,
       audience,
       scope: "speedfeast:control",
+      signal: input.signal,
     });
-    const response = await this.transport.send({
-      method: input.method,
-      url: `https://${input.hostname}:8443${input.path}`,
-      headers: {
-        authorization: `Bearer ${token}`,
-        accept: "application/json",
-        host: input.hostname,
-        ...(input.body ? { "content-type": "application/json" } : {}),
-        ...(input.idempotencyKey
-          ? { "idempotency-key": input.idempotencyKey }
-          : {}),
+    input.signal.throwIfAborted();
+    const response = await this.transport.send(
+      {
+        method: input.method,
+        url: `https://${input.hostname}:8443${input.path}`,
+        headers: {
+          authorization: `Bearer ${token}`,
+          accept: "application/json",
+          host: input.hostname,
+          ...(input.body ? { "content-type": "application/json" } : {}),
+          ...(input.idempotencyKey
+            ? { "idempotency-key": input.idempotencyKey }
+            : {}),
+          "x-techlong-external-operation-epoch": String(
+            input.externalFence.epoch,
+          ),
+          "x-techlong-external-operation-intent": input.externalFence.intent,
+          "x-techlong-external-operation-marker": input.externalFence.marker,
+          "x-techlong-external-operation-hash":
+            input.externalFence.operationHash,
+        },
+        ...(input.body ? { body: JSON.stringify(input.body) } : {}),
       },
-      ...(input.body ? { body: JSON.stringify(input.body) } : {}),
-    });
+      { signal: input.signal },
+    );
     assertSuccessfulResponse(response.status, response.body);
     return response.body;
   }
@@ -275,14 +353,23 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
   async waitUntilHealthy(input: {
     appInstanceId: string;
     hostname: string;
+    externalFence: TenantExternalOperationFence;
+    signal: AbortSignal;
   }): Promise<SaaSControlObservation> {
+    input.signal.throwIfAborted();
     const body = await this.request({
       method: "GET",
       appInstanceId: input.appInstanceId,
       hostname: input.hostname,
       path: "/api/saas/control",
+      externalFence: input.externalFence,
+      signal: input.signal,
     });
-    return parseHealthObservation(body);
+    return parseHealthObservation(
+      body,
+      input.appInstanceId,
+      input.externalFence,
+    );
   }
 
   async provision(input: {
@@ -290,21 +377,39 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
     hostname: string;
     idempotencyKey: string;
     compiledPayload: Record<string, unknown>;
+    externalFence: TenantExternalOperationFence;
+    signal: AbortSignal;
   }): Promise<{ accepted: true }> {
     try {
+      input.signal.throwIfAborted();
       assertCompiledProvisioningPayload({
         payload: input.compiledPayload,
         appInstanceId: input.appInstanceId,
+        externalFence: input.externalFence,
       });
+      const requestHash = await sha256Hex(input.idempotencyKey);
+      input.signal.throwIfAborted();
+      const fencedIdempotencyKey =
+        `tlctl-${requestHash.slice(0, 32)}-e${input.externalFence.epoch}-` +
+        input.externalFence.operationHash.slice(0, 16);
+      if (
+        fencedIdempotencyKey.length < 8 ||
+        fencedIdempotencyKey.length > 128 ||
+        !/^[A-Za-z0-9][A-Za-z0-9:._-]*$/.test(fencedIdempotencyKey)
+      ) {
+        throw new Error("SaaS control fenced idempotency key is invalid.");
+      }
       const body = await this.request({
         method: "POST",
         appInstanceId: input.appInstanceId,
         hostname: input.hostname,
         path: "/api/saas/provision",
-        idempotencyKey: input.idempotencyKey,
+        idempotencyKey: fencedIdempotencyKey,
         body: input.compiledPayload,
+        externalFence: input.externalFence,
+        signal: input.signal,
       });
-      assertProvisionReceipt(body);
+      assertProvisionReceipt(body, input.externalFence);
       return { accepted: true };
     } finally {
       // The compiler injects this secret at the last possible boundary. It is
@@ -316,14 +421,23 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
   async readConfiguration(input: {
     appInstanceId: string;
     hostname: string;
+    externalFence: TenantExternalOperationFence;
+    signal: AbortSignal;
   }): Promise<SaaSControlObservation> {
+    input.signal.throwIfAborted();
     const body = await this.request({
       method: "GET",
       appInstanceId: input.appInstanceId,
       hostname: input.hostname,
       path: "/api/saas/control",
+      externalFence: input.externalFence,
+      signal: input.signal,
     });
-    return parseReconciledObservation(body, input.appInstanceId);
+    return parseReconciledObservation(
+      body,
+      input.appInstanceId,
+      input.externalFence,
+    );
   }
 }
 

@@ -87,6 +87,11 @@ export interface DeploymentExecutionContext {
   };
   /** Durable, reference-only lifecycle checkpoint for tenant-owned resources. */
   tenantResources: DeploymentTenantResourceRecord | null;
+  /**
+   * Currently active, externally proven operation fence. Pending epochs are
+   * intentionally not exposed as authority to the Worker.
+   */
+  tenantExternalOperation: TenantExternalOperationFence | null;
   activeCellCount: number;
   activeTenantCount: number;
 }
@@ -237,6 +242,54 @@ export interface DeploymentExecutionRepository {
     receipt: TenantResourceCleanupReceipt;
     now: number;
   }): Promise<boolean>;
+  prepareTenantExternalOperation(input: {
+    lease: DeploymentJobLeaseFence;
+    resourceFence: TenantResourceFence;
+    intent: TenantExternalOperationIntent;
+    operationHash: string;
+    now: number;
+  }): Promise<TenantExternalOperationClaim>;
+  activateTenantExternalOperation(input: {
+    lease: DeploymentJobLeaseFence;
+    proof: TenantExternalOwnershipProof;
+    now: number;
+  }): Promise<TenantExternalOperationFence | null>;
+  assertTenantExternalOperation(input: {
+    lease: DeploymentJobLeaseFence;
+    externalFence: TenantExternalOperationFence;
+    requiredState: "active";
+    now: number;
+  }): Promise<boolean>;
+  beginOrResumeTenantResourceCleanup(input: {
+    lease: DeploymentJobLeaseFence;
+    externalFence: TenantExternalOperationFence;
+    now: number;
+  }): Promise<TenantResourceCleanupRun | null>;
+  beginTenantResourceCleanupPhase(input: {
+    lease: DeploymentJobLeaseFence;
+    externalFence: TenantExternalOperationFence;
+    runId: string;
+    phase: TenantResourceCleanupPhase;
+    now: number;
+  }): Promise<TenantResourceCleanupPhaseClaim | null>;
+  completeTenantResourceCleanupPhase<P extends TenantResourceCleanupPhase>(input: {
+    lease: DeploymentJobLeaseFence;
+    externalFence: TenantExternalOperationFence;
+    runId: string;
+    phase: P;
+    operationId: string;
+    receipt: TenantResourceCleanupPhaseReceiptMap[P];
+    now: number;
+  }): Promise<TenantResourceCleanupRun | null>;
+  finalizeTenantResourceCleanup(input: {
+    lease: DeploymentJobLeaseFence;
+    externalFence: TenantExternalOperationFence;
+    runId: string;
+    scheduleId: string | null;
+    appInstanceId: string;
+    reason: "ttl_cleanup" | "rollback";
+    now: number;
+  }): Promise<boolean>;
 }
 
 export interface AwsCallerIdentity {
@@ -274,28 +327,39 @@ export interface ApplyReadyTenantStack
 
 export interface AwsDeploymentPort {
   readonly region: string;
-  getCallerIdentity(): Promise<AwsCallerIdentity>;
-  applyTenantStack(stack: ApplyReadyTenantStack): Promise<{
+  getCallerIdentity(input: { signal: AbortSignal }): Promise<AwsCallerIdentity>;
+  applyTenantStack(
+    stack: ApplyReadyTenantStack,
+    input: { signal: AbortSignal },
+  ): Promise<{
     operation: "create" | "update" | "no_change" | "existing_in_progress";
     stackId: string;
   }>;
-  describeTenantStack(stackName: string): Promise<CloudFormationStackObservation>;
+  describeTenantStack(
+    stackName: string,
+    input: { signal: AbortSignal },
+  ): Promise<CloudFormationStackObservation>;
   deleteTenantStack(input: {
     stackName: string;
     clientRequestToken: string;
     expectedTags: Record<string, string>;
     cloudFormationRoleArn: string;
+    signal: AbortSignal;
   }): Promise<{ operation: "delete" | "delete_in_progress" | "already_deleted" }>;
 }
 
 export interface TenantDatabasePort {
   ensureTenantDatabase(input: {
     context: DeploymentExecutionContext;
+    externalFence: TenantExternalOperationFence;
     idempotencyKey: string;
+    signal: AbortSignal;
   }): Promise<Record<string, unknown>>;
   migrateTenantDatabase(input: {
     context: DeploymentExecutionContext;
+    externalFence: TenantExternalOperationFence;
     idempotencyKey: string;
+    signal: AbortSignal;
   }): Promise<Record<string, unknown>>;
 }
 
@@ -330,6 +394,54 @@ export interface TenantResourceFence {
   generation: number;
   ownerDeploymentId: string;
   ownershipMarker: string;
+}
+
+export type TenantExternalOperationIntent = "provision" | "cleanup";
+export type TenantExternalOperationState =
+  | "pending_external"
+  | "active"
+  | "retired"
+  | "failed";
+
+/**
+ * Durable external-operation epoch layered on top of a physical resource
+ * generation. A lease attempt may be replaced while the same immutable
+ * operation reuses this fence; changing from provision to cleanup rotates the
+ * epoch. The marker is safe to expose as a provider tag or ownership value.
+ */
+export interface TenantExternalOperationFence {
+  schemaVersion: 1;
+  resourceFence: TenantResourceFence;
+  epoch: number;
+  intent: TenantExternalOperationIntent;
+  ownerDeploymentId: string;
+  operationHash: string;
+  marker: string;
+  state: TenantExternalOperationState;
+}
+
+export interface TenantExternalOperationClaim {
+  outcome: "created" | "reused";
+  fence: TenantExternalOperationFence;
+}
+
+/**
+ * Reference-only proof returned after a provider adapter has installed and
+ * re-observed the exact pending epoch. Only the repository activation CAS may
+ * turn that pending fence into an active authority.
+ */
+export interface TenantExternalOwnershipProof {
+  schemaVersion: 1;
+  pendingFence: TenantExternalOperationFence;
+  evidenceHash: string;
+  evidence: Record<string, unknown>;
+}
+
+export interface TenantExternalOwnershipPort {
+  installAndObserve(input: {
+    pendingFence: TenantExternalOperationFence;
+    signal: AbortSignal;
+  }): Promise<TenantExternalOwnershipProof>;
 }
 
 export type DeploymentTenantResourceLifecycleStatus =
@@ -369,6 +481,8 @@ export interface DeploymentTenantResourceRecord {
 export interface DeploymentTenantResourceLifecycleWrite {
   lease: DeploymentJobLeaseFence;
   fence: TenantResourceFence;
+  /** Exact active provision epoch that authorized the external receipt. */
+  externalFence: TenantExternalOperationFence;
   runtimeSecretRef: string | null;
   lifecycleStatus: DeploymentTenantResourceLifecycleStatus;
   baselineDigest: string | null;
@@ -406,6 +520,7 @@ export type TenantDatabaseLifecycleState =
 
 export interface TenantDatabaseInspection {
   fence: TenantResourceFence;
+  externalFence: TenantExternalOperationFence;
   state: TenantDatabaseLifecycleState;
   databaseExists: boolean;
   roleExists: boolean;
@@ -428,6 +543,7 @@ export interface TenantApprovedBaseline {
 
 export interface TenantDatabaseMutationReceipt {
   fence: TenantResourceFence;
+  externalFence: TenantExternalOperationFence;
   operation:
     | "prepare_empty_database"
     | "restore_approved_baseline"
@@ -440,6 +556,7 @@ export interface TenantDatabaseMutationReceipt {
 
 export interface TenantDatabaseDestroyReceipt {
   fence: TenantResourceFence;
+  externalFence: TenantExternalOperationFence;
   outcome: "deleted" | "already_missing";
   databaseDeleted: boolean;
   roleDeleted: boolean;
@@ -448,6 +565,7 @@ export interface TenantDatabaseDestroyReceipt {
 
 export interface TenantSecretReceipt {
   fence: TenantResourceFence;
+  externalFence: TenantExternalOperationFence;
   outcome: "created" | "already_exists";
   secretRef: string;
   ownershipMarker: string;
@@ -456,6 +574,7 @@ export interface TenantSecretReceipt {
 
 export interface TenantSecretInspection {
   fence: TenantResourceFence;
+  externalFence: TenantExternalOperationFence;
   state: "missing" | "present";
   secretRef: string | null;
   ownershipMarker: string | null;
@@ -464,6 +583,7 @@ export interface TenantSecretInspection {
 
 export interface TenantSecretDestroyReceipt {
   fence: TenantResourceFence;
+  externalFence: TenantExternalOperationFence;
   outcome: "deleted" | "already_missing";
   ownershipMarker: string;
 }
@@ -476,33 +596,45 @@ export interface TenantSecretDestroyReceipt {
 export interface TenantDatabaseLifecyclePort {
   inspect(input: {
     fence: TenantResourceFence;
+    externalFence: TenantExternalOperationFence;
+    signal: AbortSignal;
   }): Promise<TenantDatabaseInspection>;
   prepareEmptyDatabase(input: {
     fence: TenantResourceFence;
+    externalFence: TenantExternalOperationFence;
     runtimeSecretRef: string;
     idempotencyKey: string;
+    signal: AbortSignal;
   }): Promise<TenantDatabaseMutationReceipt>;
   restoreApprovedBaseline(input: {
     fence: TenantResourceFence;
+    externalFence: TenantExternalOperationFence;
     runtimeSecretRef: string;
     baseline: TenantApprovedBaseline;
     idempotencyKey: string;
+    signal: AbortSignal;
   }): Promise<TenantDatabaseMutationReceipt>;
   migrateSaas(input: {
     fence: TenantResourceFence;
+    externalFence: TenantExternalOperationFence;
     runtimeSecretRef: string;
     command: "/usr/local/bin/node db/apply_saas_control.js";
     migrationContract: "speedfeast-saas-control-v1";
     idempotencyKey: string;
+    signal: AbortSignal;
   }): Promise<TenantDatabaseMutationReceipt>;
   verify(input: {
     fence: TenantResourceFence;
+    externalFence: TenantExternalOperationFence;
     expectedBaselineDigest: string;
     expectedMigrationContract: "speedfeast-saas-control-v1";
+    signal: AbortSignal;
   }): Promise<TenantDatabaseMutationReceipt>;
   destroy(input: {
     fence: TenantResourceFence;
+    externalFence: TenantExternalOperationFence;
     idempotencyKey: string;
+    signal: AbortSignal;
   }): Promise<TenantDatabaseDestroyReceipt>;
 }
 
@@ -513,19 +645,26 @@ export interface TenantDatabaseLifecyclePort {
 export interface TenantSecretStorePort {
   inspectRuntimeSecret(input: {
     fence: TenantResourceFence;
+    externalFence: TenantExternalOperationFence;
+    signal: AbortSignal;
   }): Promise<TenantSecretInspection>;
   ensureRuntimeSecret(input: {
     fence: TenantResourceFence;
+    externalFence: TenantExternalOperationFence;
     idempotencyKey: string;
+    signal: AbortSignal;
   }): Promise<TenantSecretReceipt>;
   destroyRuntimeSecret(input: {
     fence: TenantResourceFence;
+    externalFence: TenantExternalOperationFence;
     idempotencyKey: string;
+    signal: AbortSignal;
   }): Promise<TenantSecretDestroyReceipt>;
 }
 
 export interface TenantWorkloadDestroyReceipt {
   fence: TenantResourceFence;
+  externalFence: TenantExternalOperationFence;
   outcome: "deleted" | "already_missing";
   ownershipMarker: string;
 }
@@ -533,7 +672,9 @@ export interface TenantWorkloadDestroyReceipt {
 export interface TenantWorkloadLifecyclePort {
   destroy(input: {
     fence: TenantResourceFence;
+    externalFence: TenantExternalOperationFence;
     idempotencyKey: string;
+    signal: AbortSignal;
   }): Promise<TenantWorkloadDestroyReceipt>;
 }
 
@@ -544,6 +685,53 @@ export interface TenantResourceCleanupReceipt {
   databaseOutcome: TenantDatabaseDestroyReceipt["outcome"];
   secretOutcome: TenantSecretDestroyReceipt["outcome"];
   databaseEvidenceHash: string;
+}
+
+export type TenantResourceCleanupPhase = "workload" | "database" | "secret";
+export type TenantResourceCleanupNextPhase =
+  | TenantResourceCleanupPhase
+  | "finalize"
+  | null;
+
+export interface TenantResourceCleanupPhaseReceiptMap {
+  workload: TenantWorkloadDestroyReceipt;
+  database: TenantDatabaseDestroyReceipt;
+  secret: TenantSecretDestroyReceipt;
+}
+
+export interface TenantResourceCleanupPhaseRecord<
+  P extends TenantResourceCleanupPhase = TenantResourceCleanupPhase,
+> {
+  phase: P;
+  status: "running" | "succeeded";
+  operationId: string;
+  receipt: TenantResourceCleanupPhaseReceiptMap[P] | null;
+  receiptHash: string | null;
+  attempts: number;
+  startedAt: number;
+  updatedAt: number;
+  completedAt: number | null;
+}
+
+export interface TenantResourceCleanupRun {
+  id: string;
+  externalFence: TenantExternalOperationFence;
+  ownerDeploymentId: string;
+  status: "running" | "completed";
+  nextPhase: TenantResourceCleanupNextPhase;
+  phases: Partial<{
+    [P in TenantResourceCleanupPhase]: TenantResourceCleanupPhaseRecord<P>;
+  }>;
+  createdAt: number;
+  updatedAt: number;
+  completedAt: number | null;
+}
+
+export interface TenantResourceCleanupPhaseClaim {
+  outcome: "execute" | "already_succeeded";
+  operationId: string;
+  receipt: TenantResourceCleanupPhaseReceiptMap[TenantResourceCleanupPhase] | null;
+  run: TenantResourceCleanupRun;
 }
 
 export interface TenantResourceCleanupFencePort {
@@ -570,6 +758,7 @@ export interface SharedCellSecurityPreflightPort {
   verify(input: {
     environment: DeploymentEnvironment;
     binding: DeploymentExecutionBinding;
+    signal: AbortSignal;
   }): Promise<{ verified: true; evidenceHash: string }>;
 }
 
@@ -583,16 +772,22 @@ export interface SaaSControlPort {
   waitUntilHealthy(input: {
     appInstanceId: string;
     hostname: string;
+    externalFence: TenantExternalOperationFence;
+    signal: AbortSignal;
   }): Promise<SaaSControlObservation>;
   provision(input: {
     appInstanceId: string;
     hostname: string;
     idempotencyKey: string;
     compiledPayload: Record<string, unknown>;
+    externalFence: TenantExternalOperationFence;
+    signal: AbortSignal;
   }): Promise<{ accepted: true }>;
   readConfiguration(input: {
     appInstanceId: string;
     hostname: string;
+    externalFence: TenantExternalOperationFence;
+    signal: AbortSignal;
   }): Promise<SaaSControlObservation>;
 }
 
@@ -600,6 +795,8 @@ export interface SaaSControlPayloadCompilerPort {
   compile(input: {
     context: DeploymentExecutionContext;
     configurationHash: string;
+    externalFence: TenantExternalOperationFence;
+    signal: AbortSignal;
   }): Promise<{
     compiledPayload: Record<string, unknown>;
     configurationHash: string;

@@ -1,14 +1,23 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { OrderedTenantResourceCleanup } from "../lib/deployments/execution/cleanup.ts";
+import { RepositoryTenantExternalOwnershipCoordinator } from "../lib/deployments/execution/external-ownership-coordinator.ts";
+import { sha256Hex } from "../lib/deployments/execution/hash.ts";
+import { NeonDeploymentExecutionRepository } from "../lib/deployments/execution/neon-repository.ts";
 import type {
   DeploymentExecutionContext,
+  DeploymentExecutionRepository,
   DeploymentTenantResourceLifecycleStatus,
   TenantApprovedBaseline,
   TenantDatabaseInspection,
   TenantDatabaseLifecyclePort,
   TenantDatabaseMutationReceipt,
-  TenantResourceCleanupFencePort,
+  TenantExternalOperationFence,
+  TenantResourceCleanupPhase,
+  TenantResourceCleanupPhaseRecord,
+  TenantResourceCleanupPhaseReceiptMap,
+  TenantResourceCleanupRun,
   TenantResourceFence,
   TenantResourceIdentity,
   TenantSecretInspection,
@@ -19,8 +28,12 @@ import {
   deriveTenantResourceIdentity,
   GuardedTenantDatabasePort,
 } from "../lib/deployments/execution/tenant-database.ts";
+
 import { AwsEcsCellPlanOnlyDriver } from "../lib/deployments/drivers/aws-ecs-cell.ts";
 import type { DeploymentEnvironment } from "../lib/deployments/environment.ts";
+import { assertSafeDeploymentOutput } from "../lib/deployments/safety.ts";
+
+const signal = () => new AbortController().signal;
 
 const now = Date.UTC(2026, 7, 10);
 const evidenceHash = "a".repeat(64);
@@ -133,6 +146,7 @@ function context(input: {
       configurationSnapshot: {},
     },
     tenantResources: null,
+    tenantExternalOperation: null,
     activeCellCount: 1,
     activeTenantCount: 0,
   };
@@ -149,6 +163,23 @@ function fence(
     generation,
     ownerDeploymentId,
     ownershipMarker: deriveTenantOwnershipMarker(identity, generation),
+  };
+}
+
+function provisionExternalFence(
+  resourceFence: TenantResourceFence,
+): TenantExternalOperationFence {
+  return {
+    schemaVersion: 1,
+    resourceFence,
+    epoch: 1,
+    intent: "provision",
+    ownerDeploymentId: resourceFence.ownerDeploymentId,
+    operationHash: "e".repeat(64),
+    marker:
+      `tl_epoch_${resourceFence.identity.stableIdentityHash.slice(0, 24)}` +
+      `_g${resourceFence.generation}_e1`,
+    state: "active",
   };
 }
 
@@ -182,6 +213,7 @@ async function reservedContext(input: {
     updatedAt: now,
     destroyedAt: null,
   };
+  result.tenantExternalOperation = provisionExternalFence(resourceFence);
   return result;
 }
 
@@ -194,6 +226,7 @@ function inspection(
   const migrated = state === "saas_migrated" || state === "verified";
   return {
     fence: resourceFence,
+    externalFence: provisionExternalFence(resourceFence),
     state,
     databaseExists: exists,
     roleExists: exists,
@@ -212,6 +245,7 @@ function mutation(
 ): TenantDatabaseMutationReceipt {
   return {
     fence: resourceFence,
+    externalFence: provisionExternalFence(resourceFence),
     operation,
     outcome: "applied",
     resultingState,
@@ -225,6 +259,7 @@ function secretInspection(
 ): TenantSecretInspection {
   return {
     fence: resourceFence,
+    externalFence: provisionExternalFence(resourceFence),
     state,
     secretRef:
       state === "present"
@@ -266,32 +301,36 @@ test("prepares, restores, migrates and verifies with one exact generation fence"
       events.push(`inspect:${databaseState}:g${next.generation}`);
       return inspection(next, databaseState);
     },
-    prepareEmptyDatabase: async ({ fence: next, runtimeSecretRef }) => {
+    prepareEmptyDatabase: async ({ fence: next, externalFence, runtimeSecretRef }) => {
       events.push("prepare");
       assert.match(runtimeSecretRef, /^arn:aws:secretsmanager:/);
       databaseState = "empty";
-      return mutation(next, "prepare_empty_database", "empty");
+      return { ...mutation(next, "prepare_empty_database", "empty"), externalFence };
     },
-    restoreApprovedBaseline: async ({ fence: next, baseline: selected }) => {
+    restoreApprovedBaseline: async ({ fence: next, externalFence, baseline: selected }) => {
       events.push("baseline");
       assert.equal(selected.approvedArchiveSha256, baselineDigest);
       databaseState = "baseline_restored";
-      return mutation(next, "restore_approved_baseline", "baseline_restored");
+      return {
+        ...mutation(next, "restore_approved_baseline", "baseline_restored"),
+        externalFence,
+      };
     },
-    migrateSaas: async ({ fence: next, command, migrationContract }) => {
+    migrateSaas: async ({ fence: next, externalFence, command, migrationContract }) => {
       events.push("saas");
       assert.equal(command, "/usr/local/bin/node db/apply_saas_control.js");
       assert.equal(migrationContract, "speedfeast-saas-control-v1");
       databaseState = "saas_migrated";
-      return mutation(next, "migrate_saas", "saas_migrated");
+      return { ...mutation(next, "migrate_saas", "saas_migrated"), externalFence };
     },
-    verify: async ({ fence: next }) => {
+    verify: async ({ fence: next, externalFence }) => {
       events.push("verify");
       databaseState = "verified";
-      return mutation(next, "verify", "verified");
+      return { ...mutation(next, "verify", "verified"), externalFence };
     },
-    destroy: async ({ fence: next }) => ({
+    destroy: async ({ fence: next, externalFence }) => ({
       fence: next,
+      externalFence,
       outcome: "deleted",
       databaseDeleted: true,
       roleDeleted: true,
@@ -299,24 +338,26 @@ test("prepares, restores, migrates and verifies with one exact generation fence"
     }),
   };
   const secrets: TenantSecretStorePort = {
-    inspectRuntimeSecret: async ({ fence: next }) => {
+    inspectRuntimeSecret: async ({ fence: next, externalFence }) => {
       events.push(`secret-inspect:${secretState}:g${next.generation}`);
-      return secretInspection(next, secretState);
+      return { ...secretInspection(next, secretState), externalFence };
     },
-    ensureRuntimeSecret: async ({ fence: next }) => {
+    ensureRuntimeSecret: async ({ fence: next, externalFence }) => {
       events.push("secret-create");
       secretState = "present";
       const observed = secretInspection(next, "present");
       return {
         fence: next,
+        externalFence,
         outcome: "created",
         secretRef: observed.secretRef!,
         ownershipMarker: next.ownershipMarker,
         versionRef: observed.versionRef!,
       };
     },
-    destroyRuntimeSecret: async ({ fence: next }) => ({
+    destroyRuntimeSecret: async ({ fence: next, externalFence }) => ({
       fence: next,
+      externalFence,
       outcome: "deleted",
       ownershipMarker: next.ownershipMarker,
     }),
@@ -329,18 +370,30 @@ test("prepares, restores, migrates and verifies with one exact generation fence"
   const claimed = await reservedContext();
   const prepared = await guarded.ensureTenantDatabase({
     context: claimed,
+    externalFence: claimed.tenantExternalOperation!,
     idempotencyKey: "dep_one:database",
+    signal: signal(),
   });
   assert.equal(prepared.lifecycleState, "empty");
   assert.equal(prepared.resourceGeneration, 1);
   assert.equal(prepared.resourceOwnerDeploymentId, "dep_one");
+  assert.equal(prepared.externalEpoch, claimed.tenantExternalOperation!.epoch);
+  assert.equal(prepared.externalMarker, claimed.tenantExternalOperation!.marker);
+  assert.equal(
+    prepared.externalOperationHash,
+    claimed.tenantExternalOperation!.operationHash,
+  );
+  assertSafeDeploymentOutput(prepared);
   assert.equal(JSON.stringify(prepared).includes("password"), false);
 
   const migrated = await guarded.migrateTenantDatabase({
     context: claimed,
+    externalFence: claimed.tenantExternalOperation!,
     idempotencyKey: "dep_one:migration:v1",
+    signal: signal(),
   });
   assert.equal(migrated.lifecycleState, "verified");
+  assertSafeDeploymentOutput(migrated);
   assert.match(String(migrated.ownershipMarker), /^tl_owner_[a-f0-9]{32}_g1$/);
   assert.deepEqual(events, [
     "inspect:missing:g1",
@@ -374,13 +427,79 @@ test("makes zero adapter calls until the stable resource generation is claimed",
   await assert.rejects(
     guarded.ensureTenantDatabase({
       context: context(),
+      externalFence: undefined!,
       idempotencyKey: "dep_one:database",
+      signal: signal(),
     }),
     (error: unknown) =>
       (error as { code?: string }).code ===
       "TENANT_RESOURCE_GENERATION_UNCLAIMED",
   );
   assert.equal(calls, 0);
+});
+
+test("makes zero adapter calls without an exact active provision epoch", async () => {
+  let calls = 0;
+  const guarded = new GuardedTenantDatabasePort({
+    lifecycle: new Proxy({} as TenantDatabaseLifecyclePort, {
+      get: () => () => {
+        calls += 1;
+        throw new Error("must not call lifecycle");
+      },
+    }),
+    secrets: new Proxy({} as TenantSecretStorePort, {
+      get: () => () => {
+        calls += 1;
+        throw new Error("must not call secrets");
+      },
+    }),
+    approvedBaseline: baseline,
+  });
+  const claimed = await reservedContext();
+  const expected = claimed.tenantExternalOperation!;
+  claimed.tenantExternalOperation = null;
+  await assert.rejects(
+    guarded.ensureTenantDatabase({
+      context: claimed,
+      externalFence: expected,
+      idempotencyKey: "dep_one:database",
+      signal: signal(),
+    }),
+    (error: unknown) =>
+      (error as { code?: string }).code === "TENANT_EXTERNAL_OWNERSHIP_UNPROVEN",
+  );
+  assert.equal(calls, 0);
+});
+
+test("an already-aborted tenant database operation makes zero adapter calls", async () => {
+  let externalCalls = 0;
+  const guarded = new GuardedTenantDatabasePort({
+    lifecycle: new Proxy({} as TenantDatabaseLifecyclePort, {
+      get: () => () => {
+        externalCalls += 1;
+        throw new Error("must not call lifecycle");
+      },
+    }),
+    secrets: new Proxy({} as TenantSecretStorePort, {
+      get: () => () => {
+        externalCalls += 1;
+        throw new Error("must not call secrets");
+      },
+    }),
+    approvedBaseline: baseline,
+  });
+  const controller = new AbortController();
+  controller.abort(new Error("lease lost"));
+  await assert.rejects(
+    guarded.ensureTenantDatabase({
+      context: context(),
+      externalFence: undefined!,
+      idempotencyKey: "dep_one:database",
+      signal: controller.signal,
+    }),
+    /lease lost/,
+  );
+  assert.equal(externalCalls, 0);
 });
 
 test("rejects a cross-environment reservation before an external inspection", async () => {
@@ -406,7 +525,9 @@ test("rejects a cross-environment reservation before an external inspection", as
   await assert.rejects(
     guarded.ensureTenantDatabase({
       context: otherContext,
+      externalFence: mismatched.tenantExternalOperation!,
       idempotencyKey: "dep_one:database",
+      signal: signal(),
     }),
     (error: unknown) =>
       (error as { code?: string }).code === "TENANT_OWNERSHIP_MISMATCH",
@@ -449,7 +570,9 @@ test("reopening resumes after its current-generation Secret was created before a
   });
   const output = await guarded.ensureTenantDatabase({
     context: reopened,
+    externalFence: reopened.tenantExternalOperation!,
     idempotencyKey: "dep_one:database",
+    signal: signal(),
   });
   assert.equal(output.lifecycleState, "empty");
   assert.equal(prepareCalls, 1);
@@ -484,7 +607,9 @@ test("reopening rejects a Secret that still carries the destroyed generation", a
   await assert.rejects(
     guarded.ensureTenantDatabase({
       context: reopened,
+      externalFence: reopened.tenantExternalOperation!,
       idempotencyKey: "dep_one:database",
+      signal: signal(),
     }),
     (error: unknown) =>
       (error as { code?: string }).code === "TENANT_RESOURCE_FENCE_MISMATCH",
@@ -521,7 +646,9 @@ test("rejects a tenant Secret reference from another AWS account or region", asy
   await assert.rejects(
     guarded.ensureTenantDatabase({
       context: claimed,
+      externalFence: claimed.tenantExternalOperation!,
       idempotencyKey: "dep_one:database",
+      signal: signal(),
     }),
     (error: unknown) =>
       (error as { code?: string }).code === "TENANT_SECRET_REFERENCE_INVALID",
@@ -554,7 +681,9 @@ test("fails closed on partial database state before inspecting secrets", async (
   await assert.rejects(
     guarded.ensureTenantDatabase({
       context: claimed,
+      externalFence: claimed.tenantExternalOperation!,
       idempotencyKey: "dep_one:database",
+      signal: signal(),
     }),
     (error: unknown) =>
       (error as { code?: string }).code === "TENANT_DATABASE_PARTIAL_STATE",
@@ -578,38 +707,15 @@ test("blocks restore before adapters when no baseline is independently approved"
   await assert.rejects(
     guarded.migrateTenantDatabase({
       context: claimed,
+      externalFence: claimed.tenantExternalOperation!,
       idempotencyKey: "dep_one:migration:v1",
+      signal: signal(),
     }),
     (error: unknown) =>
       (error as { code?: string }).code === "TENANT_BASELINE_NOT_APPROVED",
   );
   assert.equal(adapterCalls, 0);
 });
-
-function cleanupFences(
-  expected: TenantResourceFence,
-  events: string[],
-  input: { begin?: boolean; loseAt?: string } = {},
-): TenantResourceCleanupFencePort {
-  return {
-    beginTenantResourceCleanup: async ({ fence: requested }) => {
-      events.push("begin");
-      assert.deepEqual(requested, expected);
-      return input.begin === false ? null : expected;
-    },
-    assertTenantResourceCleanupFence: async ({ fence: requested, phase }) => {
-      events.push(`assert:${phase}`);
-      assert.deepEqual(requested, expected);
-      return input.loseAt !== phase;
-    },
-    completeTenantResourceCleanup: async ({ fence: requested, receipt }) => {
-      events.push("complete");
-      assert.deepEqual(requested, expected);
-      assert.deepEqual(receipt.fence, expected);
-      return true;
-    },
-  };
-}
 
 function cleanupLease(resourceFence: TenantResourceFence, jobId: string) {
   return {
@@ -621,190 +727,709 @@ function cleanupLease(resourceFence: TenantResourceFence, jobId: string) {
   };
 }
 
-test("fences cleanup before every external step and completes the same generation", async () => {
-  const identity = await deriveTenantResourceIdentity(context());
-  const resourceFence = fence(identity);
-  const events: string[] = [];
-  let retry = false;
-  const cleanup = new OrderedTenantResourceCleanup({
+function cleanupExternalFence(
+  resourceFence: TenantResourceFence,
+): TenantExternalOperationFence {
+  return {
+    schemaVersion: 1,
+    resourceFence,
+    epoch: 2,
+    intent: "cleanup",
+    ownerDeploymentId: resourceFence.ownerDeploymentId,
+    operationHash: "f".repeat(64),
+    marker:
+      `tl_epoch_${resourceFence.identity.stableIdentityHash.slice(0, 24)}` +
+      `_g${resourceFence.generation}_e2`,
+    state: "active",
+  };
+}
+
+function phaseOperationId(phase: TenantResourceCleanupPhase): string {
+  const token = phase === "workload" ? "1" : phase === "database" ? "2" : "3";
+  return `tl_cleanup_${token.repeat(32)}`;
+}
+
+function recoverableCleanupRepository(input: {
+  externalFence: TenantExternalOperationFence;
+  events: string[];
+  active?: boolean;
+  rejectCompletePhase?: TenantResourceCleanupPhase;
+}) {
+  const run: TenantResourceCleanupRun = {
+    id: "cleanup_run_one",
+    externalFence: input.externalFence,
+    ownerDeploymentId: input.externalFence.ownerDeploymentId,
+    status: "running",
+    nextPhase: "workload",
+    phases: {},
+    createdAt: now,
+    updatedAt: now,
+    completedAt: null,
+  };
+  let finalized = 0;
+  const order: TenantResourceCleanupPhase[] = ["workload", "database", "secret"];
+  const repository = {
+    assertTenantExternalOperation: async () => {
+      input.events.push("assert-external");
+      return input.active !== false;
+    },
+    beginOrResumeTenantResourceCleanup: async () => {
+      input.events.push("begin-or-resume");
+      return run;
+    },
+    beginTenantResourceCleanupPhase: async ({
+      phase,
+    }: {
+      phase: TenantResourceCleanupPhase;
+    }) => {
+      input.events.push(`begin:${phase}`);
+      const existing = run.phases[phase] as
+        | TenantResourceCleanupPhaseRecord<typeof phase>
+        | undefined;
+      if (existing?.status === "succeeded") {
+        return {
+          outcome: "already_succeeded" as const,
+          operationId: existing.operationId,
+          receipt: existing.receipt,
+          run,
+        };
+      }
+      const record: TenantResourceCleanupPhaseRecord<typeof phase> =
+        existing ?? {
+          phase,
+          status: "running",
+          operationId: phaseOperationId(phase),
+          receipt: null,
+          receiptHash: null,
+          attempts: 0,
+          startedAt: now,
+          updatedAt: now,
+          completedAt: null,
+        };
+      record.attempts += 1;
+      Object.assign(run.phases, { [phase]: record });
+      return {
+        outcome: "execute" as const,
+        operationId: record.operationId,
+        receipt: null,
+        run,
+      };
+    },
+    completeTenantResourceCleanupPhase: async <P extends TenantResourceCleanupPhase>({
+      phase,
+      operationId,
+      receipt,
+    }: {
+      phase: P;
+      operationId: string;
+      receipt: TenantResourceCleanupPhaseReceiptMap[P];
+    }) => {
+      input.events.push(`complete:${phase}`);
+      if (input.rejectCompletePhase === phase) return null;
+      const record = run.phases[phase] as TenantResourceCleanupPhaseRecord<P>;
+      assert.equal(record.operationId, operationId);
+      record.status = "succeeded";
+      record.receipt = receipt;
+      record.receiptHash = "e".repeat(64);
+      record.completedAt = now;
+      const index = order.indexOf(phase);
+      run.nextPhase = index === order.length - 1 ? "finalize" : order[index + 1];
+      return run;
+    },
+    finalizeTenantResourceCleanup: async () => {
+      input.events.push("finalize");
+      if (order.some((phase) => run.phases[phase]?.status !== "succeeded")) {
+        return false;
+      }
+      finalized += 1;
+      run.status = "completed";
+      run.nextPhase = null;
+      run.completedAt ??= now;
+      return true;
+    },
+  } as unknown as DeploymentExecutionRepository;
+  return { repository, run, finalized: () => finalized };
+}
+
+function cleanupCall(
+  resourceFence: TenantResourceFence,
+  externalFence: TenantExternalOperationFence,
+  signal: AbortSignal = new AbortController().signal,
+) {
+  return {
+    fence: resourceFence,
+    externalFence,
+    lease: cleanupLease(resourceFence, "job_cleanup"),
+    idempotencyKey: "dep_one:cleanup:g1",
+    scheduleId: "clean_one",
+    appInstanceId: resourceFence.identity.appInstanceId,
+    reason: "ttl_cleanup" as const,
+    signal,
+  };
+}
+
+function cleanupAdapters(input: {
+  events: string[];
+  externalFence: TenantExternalOperationFence;
+  failDatabaseOnce?: boolean;
+  abortAfterWorkload?: AbortController;
+  partialDatabase?: boolean;
+}) {
+  let databaseFailurePending = input.failDatabaseOnce === true;
+  const operationIds: Record<string, string[]> = {};
+  const track = (phase: string, operationId: string) => {
+    input.events.push(`adapter:${phase}`);
+    (operationIds[phase] ??= []).push(operationId);
+  };
+  return {
+    operationIds,
     workload: {
-      destroy: async ({ fence: next }) => {
-        events.push("workload");
+      destroy: async ({
+        fence: next,
+        externalFence,
+        idempotencyKey,
+        signal,
+      }: {
+        fence: TenantResourceFence;
+        externalFence: TenantExternalOperationFence;
+        idempotencyKey: string;
+        signal: AbortSignal;
+      }) => {
+        assert.equal(signal.aborted, false);
+        track("workload", idempotencyKey);
+        input.abortAfterWorkload?.abort();
         return {
           fence: next,
-          outcome: retry ? "already_missing" : "deleted",
+          externalFence,
+          outcome: "deleted" as const,
           ownershipMarker: next.ownershipMarker,
         };
       },
     },
     database: {
-      destroy: async ({ fence: next }: { fence: TenantResourceFence }) => {
-        events.push("database");
+      destroy: async ({
+        fence: next,
+        externalFence,
+        idempotencyKey,
+      }: {
+        fence: TenantResourceFence;
+        externalFence: TenantExternalOperationFence;
+        idempotencyKey: string;
+      }) => {
+        track("database", idempotencyKey);
+        if (databaseFailurePending) {
+          databaseFailurePending = false;
+          throw Object.assign(new Error("database task crashed"), { retryable: true });
+        }
         return {
           fence: next,
-          outcome: retry ? "already_missing" : "deleted",
-          databaseDeleted: !retry,
-          roleDeleted: !retry,
+          externalFence,
+          outcome: "deleted" as const,
+          databaseDeleted: true,
+          roleDeleted: !input.partialDatabase,
           evidenceHash,
         };
       },
     } as unknown as TenantDatabaseLifecyclePort,
     secrets: {
-      destroyRuntimeSecret: async ({ fence: next }: { fence: TenantResourceFence }) => {
-        events.push("secret");
+      destroyRuntimeSecret: async ({
+        fence: next,
+        externalFence,
+        idempotencyKey,
+      }: {
+        fence: TenantResourceFence;
+        externalFence: TenantExternalOperationFence;
+        idempotencyKey: string;
+      }) => {
+        track("secret", idempotencyKey);
         return {
           fence: next,
-          outcome: retry ? "already_missing" : "deleted",
+          externalFence,
+          outcome: "deleted" as const,
           ownershipMarker: next.ownershipMarker,
         };
       },
     } as unknown as TenantSecretStorePort,
-    fences: cleanupFences(resourceFence, events),
+  };
+}
+
+test("persists each cleanup phase before advancing and finalizes once", async () => {
+  const resourceFence = fence(await deriveTenantResourceIdentity(context()));
+  const externalFence = cleanupExternalFence(resourceFence);
+  const events: string[] = [];
+  const state = recoverableCleanupRepository({ externalFence, events });
+  const adapters = cleanupAdapters({ events, externalFence });
+  const cleanup = new OrderedTenantResourceCleanup({
+    ...adapters,
+    repository: state.repository,
     now: () => now,
   });
-  const call = () =>
-    cleanup.destroy({
-      fence: resourceFence,
-      lease: cleanupLease(resourceFence, "job_cleanup"),
-      idempotencyKey: "dep_one:cleanup:g1",
-    });
-  const first = await call();
-  retry = true;
-  const second = await call();
-  assert.deepEqual(first.order, ["workload", "database", "secret"]);
-  assert.equal(second.secretOutcome, "already_missing");
-  const once = [
-    "begin",
-    "assert:before_workload",
-    "workload",
-    "assert:before_database",
-    "database",
-    "assert:before_secret",
-    "secret",
-    "assert:before_complete",
-    "complete",
-  ];
-  assert.deepEqual(events, [...once, ...once]);
+  const receipt = await cleanup.destroy(cleanupCall(resourceFence, externalFence));
+  assert.deepEqual(receipt.order, ["workload", "database", "secret"]);
+  assert.deepEqual(events, [
+    "assert-external",
+    "begin-or-resume",
+    "begin:workload",
+    "adapter:workload",
+    "complete:workload",
+    "begin:database",
+    "adapter:database",
+    "complete:database",
+    "begin:secret",
+    "adapter:secret",
+    "complete:secret",
+    "finalize",
+  ]);
+  assert.equal(state.run.status, "completed");
+  assert.equal(state.finalized(), 1);
 });
 
-test("a stale cleanup fence makes zero external calls", async () => {
-  const identity = await deriveTenantResourceIdentity(context());
-  const staleFence = fence(identity, 1, "dep_old");
-  let externalCalls = 0;
+test("crash recovery skips a durably completed phase and reuses operation ids", async () => {
+  const resourceFence = fence(await deriveTenantResourceIdentity(context()));
+  const externalFence = cleanupExternalFence(resourceFence);
+  const events: string[] = [];
+  const state = recoverableCleanupRepository({ externalFence, events });
+  const adapters = cleanupAdapters({
+    events,
+    externalFence,
+    failDatabaseOnce: true,
+  });
   const cleanup = new OrderedTenantResourceCleanup({
-    workload: {
-      destroy: async () => {
-        externalCalls += 1;
-        throw new Error("must not run");
-      },
-    },
-    database: {} as TenantDatabaseLifecyclePort,
-    secrets: {} as TenantSecretStorePort,
-    fences: cleanupFences(staleFence, [], { begin: false }),
+    ...adapters,
+    repository: state.repository,
+    now: () => now,
   });
   await assert.rejects(
-    cleanup.destroy({
-      fence: staleFence,
-      lease: cleanupLease(staleFence, "job_old_cleanup"),
-      idempotencyKey: "dep_old:cleanup:g1",
-    }),
-    (error: unknown) =>
-      (error as { code?: string }).code === "TENANT_CLEANUP_FENCE_REJECTED",
+    cleanup.destroy(cleanupCall(resourceFence, externalFence)),
+    /database task crashed/,
   );
-  assert.equal(externalCalls, 0);
-});
-
-test("losing the fence after workload stops database and secret deletion", async () => {
-  const identity = await deriveTenantResourceIdentity(context());
-  const resourceFence = fence(identity);
-  let workloadCalls = 0;
-  let databaseCalls = 0;
-  let secretCalls = 0;
-  const cleanup = new OrderedTenantResourceCleanup({
-    workload: {
-      destroy: async ({ fence: next }) => {
-        workloadCalls += 1;
-        return {
-          fence: next,
-          outcome: "deleted",
-          ownershipMarker: next.ownershipMarker,
-        };
-      },
-    },
-    database: {
-      destroy: async () => {
-        databaseCalls += 1;
-        throw new Error("must not run");
-      },
-    } as unknown as TenantDatabaseLifecyclePort,
-    secrets: {
-      destroyRuntimeSecret: async () => {
-        secretCalls += 1;
-        throw new Error("must not run");
-      },
-    } as unknown as TenantSecretStorePort,
-    fences: cleanupFences(resourceFence, [], { loseAt: "before_database" }),
-  });
-  await assert.rejects(
-    cleanup.destroy({
-      fence: resourceFence,
-      lease: cleanupLease(resourceFence, "job_cleanup"),
-      idempotencyKey: "dep_one:cleanup:g1",
-    }),
-    (error: unknown) =>
-      (error as { code?: string }).code === "TENANT_CLEANUP_FENCE_LOST",
+  assert.equal(state.run.phases.workload?.status, "succeeded");
+  assert.equal(state.run.phases.database?.status, "running");
+  await cleanup.destroy(cleanupCall(resourceFence, externalFence));
+  assert.equal(adapters.operationIds.workload.length, 1);
+  assert.equal(adapters.operationIds.database.length, 2);
+  assert.equal(
+    adapters.operationIds.database[0],
+    adapters.operationIds.database[1],
   );
-  assert.equal(workloadCalls, 1);
-  assert.equal(databaseCalls, 0);
-  assert.equal(secretCalls, 0);
+  assert.equal(adapters.operationIds.secret.length, 1);
 });
 
-test("never deletes a secret or completes after partial database cleanup", async () => {
-  const identity = await deriveTenantResourceIdentity(context());
-  const resourceFence = fence(identity);
-  let secretCalls = 0;
-  let completeCalls = 0;
-  const fencePort = cleanupFences(resourceFence, []);
-  const cleanup = new OrderedTenantResourceCleanup({
-    workload: {
-      destroy: async ({ fence: next }) => ({
-        fence: next,
-        outcome: "deleted",
-        ownershipMarker: next.ownershipMarker,
-      }),
-    },
-    database: {
-      destroy: async ({ fence: next }: { fence: TenantResourceFence }) => ({
-        fence: next,
-        outcome: "deleted",
-        databaseDeleted: true,
-        roleDeleted: false,
-        evidenceHash,
-      }),
-    } as unknown as TenantDatabaseLifecyclePort,
-    secrets: {
-      destroyRuntimeSecret: async () => {
-        secretCalls += 1;
-        throw new Error("must not run");
-      },
-    } as unknown as TenantSecretStorePort,
-    fences: {
-      ...fencePort,
-      completeTenantResourceCleanup: async () => {
-        completeCalls += 1;
-        return true;
-      },
-    },
+test("losing the lease after an external result leaves a resumable running phase", async () => {
+  const resourceFence = fence(await deriveTenantResourceIdentity(context()));
+  const externalFence = cleanupExternalFence(resourceFence);
+  const events: string[] = [];
+  const state = recoverableCleanupRepository({ externalFence, events });
+  const controller = new AbortController();
+  const firstAdapters = cleanupAdapters({
+    events,
+    externalFence,
+    abortAfterWorkload: controller,
+  });
+  const first = new OrderedTenantResourceCleanup({
+    ...firstAdapters,
+    repository: state.repository,
   });
   await assert.rejects(
-    cleanup.destroy({
-      fence: resourceFence,
-      lease: cleanupLease(resourceFence, "job_cleanup"),
-      idempotencyKey: "dep_one:cleanup:g1",
-    }),
+    first.destroy(cleanupCall(resourceFence, externalFence, controller.signal)),
+    (error: unknown) =>
+      (error as { code?: string }).code === "DEPLOYMENT_LEASE_LOST",
+  );
+  assert.equal(state.run.phases.workload?.status, "running");
+  const retryAdapters = cleanupAdapters({ events, externalFence });
+  const retry = new OrderedTenantResourceCleanup({
+    ...retryAdapters,
+    repository: state.repository,
+  });
+  await retry.destroy(cleanupCall(resourceFence, externalFence));
+  assert.equal(
+    firstAdapters.operationIds.workload[0],
+    retryAdapters.operationIds.workload[0],
+  );
+});
+
+test("an inactive cleanup epoch makes zero external calls", async () => {
+  const resourceFence = fence(await deriveTenantResourceIdentity(context()));
+  const externalFence = cleanupExternalFence(resourceFence);
+  const events: string[] = [];
+  const state = recoverableCleanupRepository({
+    externalFence,
+    events,
+    active: false,
+  });
+  const adapters = cleanupAdapters({ events, externalFence });
+  const cleanup = new OrderedTenantResourceCleanup({
+    ...adapters,
+    repository: state.repository,
+  });
+  await assert.rejects(
+    cleanup.destroy(cleanupCall(resourceFence, externalFence)),
+    (error: unknown) =>
+      (error as { code?: string }).code ===
+      "TENANT_CLEANUP_EXTERNAL_EPOCH_INACTIVE",
+  );
+  assert.deepEqual(adapters.operationIds, {});
+});
+
+test("partial database cleanup cannot persist or reach Secret deletion", async () => {
+  const resourceFence = fence(await deriveTenantResourceIdentity(context()));
+  const externalFence = cleanupExternalFence(resourceFence);
+  const events: string[] = [];
+  const state = recoverableCleanupRepository({ externalFence, events });
+  const adapters = cleanupAdapters({
+    events,
+    externalFence,
+    partialDatabase: true,
+  });
+  const cleanup = new OrderedTenantResourceCleanup({
+    ...adapters,
+    repository: state.repository,
+  });
+  await assert.rejects(
+    cleanup.destroy(cleanupCall(resourceFence, externalFence)),
     (error: unknown) =>
       (error as { code?: string }).code === "TENANT_DATABASE_CLEANUP_PARTIAL",
   );
-  assert.equal(secretCalls, 0);
-  assert.equal(completeCalls, 0);
+  assert.equal(state.run.phases.database?.status, "running");
+  assert.equal(adapters.operationIds.secret, undefined);
+  assert.equal(state.finalized(), 0);
+});
+
+function pendingExternalFence(
+  resourceFence: TenantResourceFence,
+  intent: "provision" | "cleanup",
+  epoch: number,
+): TenantExternalOperationFence {
+  return {
+    schemaVersion: 1,
+    resourceFence,
+    epoch,
+    intent,
+    ownerDeploymentId: resourceFence.ownerDeploymentId,
+    operationHash: "9".repeat(64),
+    marker:
+      `tl_epoch_${resourceFence.identity.stableIdentityHash.slice(0, 24)}` +
+      `_g${resourceFence.generation}_e${epoch}`,
+    state: "pending_external",
+  };
+}
+
+test("external ownership coordinator activates only provider-observed proof", async () => {
+  const selectedContext = context();
+  const resourceFence = fence(
+    await deriveTenantResourceIdentity(selectedContext),
+  );
+  const events: string[] = [];
+  let prepared: TenantExternalOperationFence | null = null;
+  const repository = {
+    prepareTenantExternalOperation: async (input: {
+      operationHash: string;
+      intent: "provision" | "cleanup";
+    }) => {
+      events.push("prepare");
+      prepared = {
+        ...pendingExternalFence(resourceFence, input.intent, 1),
+        operationHash: input.operationHash,
+      };
+      return { outcome: "created" as const, fence: prepared };
+    },
+    activateTenantExternalOperation: async ({ proof }: {
+      proof: {
+        pendingFence: TenantExternalOperationFence;
+        evidenceHash: string;
+      };
+    }) => {
+      events.push("activate");
+      assert.deepEqual(proof.pendingFence, prepared);
+      assert.equal(
+        proof.evidenceHash,
+        await sha256Hex({ registryMarker: proof.pendingFence.marker }),
+      );
+      return { ...proof.pendingFence, state: "active" as const };
+    },
+    assertTenantExternalOperation: async () => {
+      throw new Error("a pending claim must use provider proof");
+    },
+  } as unknown as DeploymentExecutionRepository;
+  const coordinator = new RepositoryTenantExternalOwnershipCoordinator(
+    repository,
+    {
+      installAndObserve: async ({ pendingFence, signal }) => {
+        events.push("provider-observe");
+        assert.equal(signal.aborted, false);
+        assert.deepEqual(pendingFence, prepared);
+        const evidence = { registryMarker: pendingFence.marker };
+        return {
+          schemaVersion: 1 as const,
+          pendingFence,
+          evidenceHash: await sha256Hex(evidence),
+          evidence,
+        };
+      },
+    },
+    () => now,
+  );
+  const result = await coordinator.prepareAndActivate({
+    intent: "provision",
+    context: selectedContext,
+    resourceFence,
+    lease: cleanupLease(resourceFence, selectedContext.job.id),
+    signal: new AbortController().signal,
+  });
+  assert.equal(result.state, "active");
+  assert.deepEqual(events, ["prepare", "provider-observe", "activate"]);
+});
+
+test("external ownership coordinator reuses an exact active epoch without provider calls", async () => {
+  const selectedContext = context();
+  const resourceFence = fence(
+    await deriveTenantResourceIdentity(selectedContext),
+  );
+  let active!: TenantExternalOperationFence;
+  let providerCalls = 0;
+  let assertCalls = 0;
+  const coordinator = new RepositoryTenantExternalOwnershipCoordinator(
+    {
+      prepareTenantExternalOperation: async ({ operationHash }: {
+        operationHash: string;
+      }) => {
+        active = {
+          ...pendingExternalFence(resourceFence, "cleanup", 2),
+          operationHash,
+          state: "active" as const,
+        };
+        return { outcome: "reused" as const, fence: active };
+      },
+      assertTenantExternalOperation: async ({ externalFence }: {
+        externalFence: TenantExternalOperationFence;
+      }) => {
+        assertCalls += 1;
+        return externalFence === active;
+      },
+    } as unknown as DeploymentExecutionRepository,
+    {
+      installAndObserve: async () => {
+        providerCalls += 1;
+        throw new Error("active epoch must not be reinstalled");
+      },
+    },
+    () => now,
+  );
+  const result = await coordinator.prepareAndActivate({
+    intent: "cleanup",
+    cleanupReason: "ttl_cleanup",
+    context: selectedContext,
+    resourceFence,
+    lease: cleanupLease(resourceFence, selectedContext.job.id),
+    signal: new AbortController().signal,
+  });
+  assert.deepEqual(result, active);
+  assert.equal(assertCalls, 1);
+  assert.equal(providerCalls, 0);
+});
+
+test("cleanup reason changes reuse the same immutable cleanup epoch", async () => {
+  const selectedContext = context();
+  const resourceFence = fence(
+    await deriveTenantResourceIdentity(selectedContext),
+  );
+  let current: TenantExternalOperationFence | null = null;
+  const preparedHashes: string[] = [];
+  let providerCalls = 0;
+  const repository = {
+    prepareTenantExternalOperation: async ({ operationHash }: {
+      operationHash: string;
+    }) => {
+      preparedHashes.push(operationHash);
+      if (current?.operationHash === operationHash) {
+        return { outcome: "reused" as const, fence: current };
+      }
+      current = {
+        ...pendingExternalFence(resourceFence, "cleanup", 1),
+        operationHash,
+      };
+      return { outcome: "created" as const, fence: current };
+    },
+    activateTenantExternalOperation: async ({ proof }: {
+      proof: { pendingFence: TenantExternalOperationFence };
+    }) => {
+      current = { ...proof.pendingFence, state: "active" as const };
+      return current;
+    },
+    assertTenantExternalOperation: async () => true,
+  } as unknown as DeploymentExecutionRepository;
+  const coordinator = new RepositoryTenantExternalOwnershipCoordinator(
+    repository,
+    {
+      installAndObserve: async ({ pendingFence }) => {
+        providerCalls += 1;
+        const evidence = { registryMarker: pendingFence.marker };
+        return {
+          schemaVersion: 1 as const,
+          pendingFence,
+          evidenceHash: await sha256Hex(evidence),
+          evidence,
+        };
+      },
+    },
+    () => now,
+  );
+  const shared = {
+    intent: "cleanup" as const,
+    context: selectedContext,
+    resourceFence,
+    lease: cleanupLease(resourceFence, selectedContext.job.id),
+    signal: new AbortController().signal,
+  };
+
+  const rollback = await coordinator.prepareAndActivate({
+    ...shared,
+    cleanupReason: "rollback",
+  });
+  const ttl = await coordinator.prepareAndActivate({
+    ...shared,
+    cleanupReason: "ttl_cleanup",
+  });
+
+  assert.equal(rollback.operationHash, ttl.operationHash);
+  assert.equal(rollback.epoch, ttl.epoch);
+  assert.deepEqual(preparedHashes, [rollback.operationHash, rollback.operationHash]);
+  assert.equal(providerCalls, 1);
+});
+
+test("Neon ownership SQL fences lifecycle and job intent before epoch mutation", async () => {
+  const source = await readFile(
+    new URL("../lib/deployments/execution/neon-repository.ts", import.meta.url),
+    "utf8",
+  );
+  const prepare = source.slice(
+    source.indexOf("async prepareTenantExternalOperation"),
+    source.indexOf("async activateTenantExternalOperation"),
+  );
+  const activate = source.slice(
+    source.indexOf("async activateTenantExternalOperation"),
+    source.indexOf("async assertTenantExternalOperation"),
+  );
+  const assertion = source.slice(
+    source.indexOf("async assertTenantExternalOperation"),
+    source.indexOf("async beginTenantResourceCleanup"),
+  );
+  const resumableCleanup = source.slice(
+    source.indexOf("async beginOrResumeTenantResourceCleanup"),
+    source.length,
+  );
+
+  for (const operation of [prepare, activate]) {
+    assert.match(operation, /lifecycle_status NOT IN \('destroying', 'destroyed'\)/);
+    assert.match(operation, /job\.job_type IN \('apply', 'reconcile'\)/);
+    assert.match(operation, /job\.job_type IN \('cleanup', 'rollback'\)/);
+    assert.match(operation, /active_cleanup_conflict/);
+  }
+  assert.match(assertion, /lifecycle_status NOT IN \('destroying', 'destroyed'\)/);
+  assert.match(assertion, /job\.job_type IN \('apply', 'reconcile'\)/);
+  assert.match(assertion, /job\.job_type IN \('cleanup', 'rollback'\)/);
+  assert.equal(
+    (resumableCleanup.match(/job\.job_type IN \('cleanup', 'rollback'\)/g) ?? [])
+      .length,
+    4,
+  );
+  assert.match(
+    resumableCleanup,
+    /phase\.phase <> selected\.phase[\s\S]*?UNION ALL[\s\S]*?SELECT selected\.run_id/,
+  );
+  assert.match(
+    resumableCleanup,
+    /phase\.phase <> completed\.phase[\s\S]*?UNION ALL[\s\S]*?SELECT completed\.run_id/,
+  );
+});
+
+test("cleanup resume rejects a succeeded phase with a corrupted receipt hash", async () => {
+  const selectedContext = context();
+  const resourceFence = fence(
+    await deriveTenantResourceIdentity(selectedContext),
+  );
+  const externalFence = cleanupExternalFence(resourceFence);
+  const repository = new NeonDeploymentExecutionRepository(
+    "postgresql://offline:offline@offline.invalid/never_contacted?sslmode=require",
+  );
+  (
+    repository as unknown as {
+      sql: { query: () => Promise<{ rows: Record<string, unknown>[] }> };
+    }
+  ).sql = {
+    query: async () => ({
+      rows: [
+        {
+          cleanup_run_id: "tlcr_offline_hash_test",
+          cleanup_run_owner_deployment_id: resourceFence.ownerDeploymentId,
+          cleanup_run_status: "running",
+          cleanup_run_next_phase: "database",
+          cleanup_run_created_at: now,
+          cleanup_run_updated_at: now,
+          cleanup_run_completed_at: null,
+          cleanup_run_phases: {
+            workload: {
+              status: "succeeded",
+              operationId: `tl_cleanup_${"a".repeat(32)}`,
+              receipt: {
+                outcome: "deleted",
+                ownershipMarker: resourceFence.ownershipMarker,
+              },
+              receiptHash: "0".repeat(64),
+              attempts: 1,
+              startedAt: now,
+              updatedAt: now,
+              completedAt: now,
+            },
+          },
+        },
+      ],
+    }),
+  };
+
+  await assert.rejects(
+    repository.beginOrResumeTenantResourceCleanup({
+      lease: cleanupLease(resourceFence, selectedContext.job.id),
+      externalFence,
+      now,
+    }),
+    (error: unknown) =>
+      (error as { code?: string }).code ===
+      "TENANT_RESOURCE_CLEANUP_RECEIPT_INVALID",
+  );
+});
+
+test("an aborted ownership handoff makes zero repository and provider calls", async () => {
+  const selectedContext = context();
+  const resourceFence = fence(
+    await deriveTenantResourceIdentity(selectedContext),
+  );
+  let calls = 0;
+  const coordinator = new RepositoryTenantExternalOwnershipCoordinator(
+    {
+      prepareTenantExternalOperation: async () => {
+        calls += 1;
+        throw new Error("must not run");
+      },
+    } as unknown as DeploymentExecutionRepository,
+    {
+      installAndObserve: async () => {
+        calls += 1;
+        throw new Error("must not run");
+      },
+    },
+  );
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(
+    coordinator.prepareAndActivate({
+      intent: "provision",
+      context: selectedContext,
+      resourceFence,
+      lease: cleanupLease(resourceFence, selectedContext.job.id),
+      signal: controller.signal,
+    }),
+    (error: unknown) => (error as { name?: string }).name === "AbortError",
+  );
+  assert.equal(calls, 0);
 });

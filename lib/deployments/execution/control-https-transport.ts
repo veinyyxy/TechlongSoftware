@@ -115,7 +115,11 @@ export class NodeMtlsSaaSControlTransport implements SaaSControlTransport {
     this.privateKeyPassphrase = options.privateKeyPassphrase;
   }
 
-  async send(request: SaaSControlRequest): Promise<{ status: number; body: unknown }> {
+  async send(
+    request: SaaSControlRequest,
+    input: { signal: AbortSignal },
+  ): Promise<{ status: number; body: unknown }> {
+    input.signal.throwIfAborted();
     const url = assertPrivateControlUrl(request.url, this.baseDomain);
     const bodyBuffer = request.body ? Buffer.from(request.body, "utf8") : null;
     if (bodyBuffer && bodyBuffer.byteLength > this.maxRequestBytes) {
@@ -127,13 +131,42 @@ export class NodeMtlsSaaSControlTransport implements SaaSControlTransport {
     }
     return new Promise((resolve, reject) => {
       let settled = false;
+      let clientRequest: ReturnType<typeof https.request> | null = null;
+      const abortError = (): Error =>
+        input.signal.reason instanceof Error
+          ? input.signal.reason
+          : Object.assign(new Error("SaaS control request was aborted."), {
+              name: "AbortError",
+              code: "ABORT_ERR",
+            });
+      const removeAbortListener = () => {
+        input.signal.removeEventListener("abort", onAbort);
+      };
       const finishReject = (error: Error) => {
         if (settled) return;
         settled = true;
+        removeAbortListener();
         reject(error);
       };
-      const clientRequest = https.request(
-        {
+      const finishResolve = (value: { status: number; body: unknown }) => {
+        if (settled) return;
+        settled = true;
+        removeAbortListener();
+        resolve(value);
+      };
+      const onAbort = () => {
+        const error = abortError();
+        clientRequest?.destroy(error);
+        finishReject(error);
+      };
+      input.signal.addEventListener("abort", onAbort, { once: true });
+      if (input.signal.aborted) {
+        onAbort();
+        return;
+      }
+      try {
+        clientRequest = https.request(
+          {
           protocol: "https:",
           hostname: url.hostname,
           port: 8443,
@@ -154,8 +187,8 @@ export class NodeMtlsSaaSControlTransport implements SaaSControlTransport {
             host: url.hostname,
             ...(bodyBuffer ? { "content-length": String(bodyBuffer.byteLength) } : {}),
           },
-        },
-        (response: IncomingMessage) => {
+          },
+          (response: IncomingMessage) => {
           const status = response.statusCode ?? 0;
           const declaredLength = Number(response.headers["content-length"] ?? 0);
           if (declaredLength > this.maxResponseBytes) {
@@ -205,8 +238,7 @@ export class NodeMtlsSaaSControlTransport implements SaaSControlTransport {
                 return;
               }
             }
-            settled = true;
-            resolve({ status, body: parsed });
+            finishResolve({ status, body: parsed });
           });
           response.on("error", () => {
             finishReject(
@@ -217,8 +249,20 @@ export class NodeMtlsSaaSControlTransport implements SaaSControlTransport {
               ),
             );
           });
-        },
-      );
+          },
+        );
+      } catch (error) {
+        finishReject(
+          error instanceof Error
+            ? error
+            : controlTransportError(
+                "SAAS_CONTROL_TLS_CONFIGURATION_INVALID",
+                "SaaS control TLS request could not be constructed.",
+                false,
+              ),
+        );
+        return;
+      }
       clientRequest.setTimeout(this.timeoutMs, () => {
         clientRequest.destroy();
         finishReject(
@@ -230,6 +274,10 @@ export class NodeMtlsSaaSControlTransport implements SaaSControlTransport {
         );
       });
       clientRequest.on("error", () => {
+        if (input.signal.aborted) {
+          finishReject(abortError());
+          return;
+        }
         finishReject(
           controlTransportError(
             "SAAS_CONTROL_RETRYABLE",

@@ -22,7 +22,12 @@ import type {
   DeploymentStepHandle,
   DeploymentTenantResourceLifecycleWrite,
   DeploymentTenantResourceRecord,
+  TenantExternalOperationClaim,
+  TenantExternalOperationFence,
   TenantResourceCleanupReceipt,
+  TenantResourceCleanupPhase,
+  TenantResourceCleanupPhaseClaim,
+  TenantResourceCleanupRun,
   TenantResourceFence,
   TenantResourceGenerationClaim,
   TenantResourceIdentity,
@@ -157,6 +162,190 @@ function sameTenantResourceFence(
   );
 }
 
+async function assertTenantExternalOperationFenceInput(
+  fence: TenantExternalOperationFence,
+): Promise<void> {
+  await assertTenantResourceFenceInput(fence.resourceFence);
+  if (
+    fence.schemaVersion !== 1 ||
+    !Number.isSafeInteger(fence.epoch) ||
+    fence.epoch < 1 ||
+    !["provision", "cleanup"].includes(fence.intent) ||
+    !["pending_external", "active", "retired", "failed"].includes(fence.state) ||
+    fence.ownerDeploymentId !== fence.resourceFence.ownerDeploymentId ||
+    !/^[a-f0-9]{64}$/.test(fence.operationHash) ||
+    fence.marker !==
+      expectedTenantExternalOperationMarker(
+        fence.resourceFence.identity.stableIdentityHash,
+        fence.resourceFence.generation,
+        fence.epoch,
+      )
+  ) {
+    throw Object.assign(
+      new Error("Tenant external operation fence is invalid."),
+      { code: "TENANT_EXTERNAL_OPERATION_FENCE_INVALID" },
+    );
+  }
+}
+
+function sameTenantExternalOperationFence(
+  actual: TenantExternalOperationFence,
+  expected: TenantExternalOperationFence,
+): boolean {
+  return (
+    sameTenantResourceFence(actual.resourceFence, expected.resourceFence) &&
+    actual.schemaVersion === expected.schemaVersion &&
+    actual.epoch === expected.epoch &&
+    actual.intent === expected.intent &&
+    actual.ownerDeploymentId === expected.ownerDeploymentId &&
+    actual.operationHash === expected.operationHash &&
+    actual.marker === expected.marker &&
+    actual.state === expected.state
+  );
+}
+
+async function cleanupRunFromRow(
+  row: Record<string, unknown>,
+  externalFence: TenantExternalOperationFence,
+): Promise<TenantResourceCleanupRun | null> {
+  const id = nullableText(row.cleanup_run_id);
+  if (!id) return null;
+  const phaseObject = parseObject(row.cleanup_run_phases);
+  const phases: TenantResourceCleanupRun["phases"] = {};
+  for (const phase of ["workload", "database", "secret"] as const) {
+    const raw = phaseObject[phase];
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const value = raw as Record<string, unknown>;
+    const status = text(value.status);
+    const operationId = text(value.operationId);
+    const receipt = parseObject(value.receipt);
+    const receiptHash = nullableText(value.receiptHash);
+    const receiptValue =
+      Object.keys(receipt).length === 0
+        ? null
+        : hydrateCleanupPhaseReceipt(phase, receipt, externalFence);
+    if (
+      !["running", "succeeded"].includes(status) ||
+      !/^tl_cleanup_[a-f0-9]{32}$/.test(operationId)
+    ) {
+      throw new Error("Persisted tenant cleanup phase is invalid.");
+    }
+    if (
+      (status === "running" && (receiptValue !== null || receiptHash !== null)) ||
+      (status === "succeeded" &&
+        (receiptValue === null ||
+          !receiptHash ||
+          !/^[a-f0-9]{64}$/.test(receiptHash) ||
+          receiptHash !== (await sha256Hex(receipt))))
+    ) {
+      throw Object.assign(
+        new Error("Persisted tenant cleanup phase receipt is invalid."),
+        {
+          code: "TENANT_RESOURCE_CLEANUP_RECEIPT_INVALID",
+          retryable: false,
+        },
+      );
+    }
+    (phases as Record<string, unknown>)[phase] = {
+      phase,
+      status: status as "running" | "succeeded",
+      operationId,
+      receipt: receiptValue as never,
+      receiptHash,
+      attempts: integer(value.attempts),
+      startedAt: integer(value.startedAt),
+      updatedAt: integer(value.updatedAt),
+      completedAt:
+        value.completedAt === null ? null : integer(value.completedAt),
+    };
+  }
+  const status = text(row.cleanup_run_status);
+  const nextPhase = nullableText(row.cleanup_run_next_phase);
+  if (
+    !["running", "completed"].includes(status) ||
+    (nextPhase !== null &&
+      !["workload", "database", "secret", "finalize"].includes(nextPhase))
+  ) {
+    throw new Error("Persisted tenant cleanup run is invalid.");
+  }
+  return {
+    id,
+    externalFence,
+    ownerDeploymentId: text(row.cleanup_run_owner_deployment_id),
+    status: status as "running" | "completed",
+    nextPhase: nextPhase as TenantResourceCleanupRun["nextPhase"],
+    phases,
+    createdAt: integer(row.cleanup_run_created_at),
+    updatedAt: integer(row.cleanup_run_updated_at),
+    completedAt:
+      row.cleanup_run_completed_at === null
+        ? null
+        : integer(row.cleanup_run_completed_at),
+  };
+}
+
+/**
+ * Persist only the non-sensitive, phase-specific result. The full in-memory
+ * receipt contains the resource fence, whose stable identity includes the
+ * provider Secret name. That identifier is required for adapter validation
+ * but is intentionally reconstructed from the already-fenced cleanup run
+ * instead of being copied into a generic JSON evidence column.
+ */
+function cleanupPhaseReceiptEvidence(
+  phase: TenantResourceCleanupPhase,
+  receipt: Record<string, unknown>,
+): Record<string, unknown> {
+  const evidence =
+    phase === "workload"
+      ? {
+          outcome: receipt.outcome,
+          ownershipMarker: receipt.ownershipMarker,
+        }
+      : phase === "database"
+        ? {
+            outcome: receipt.outcome,
+            databaseDeleted: receipt.databaseDeleted,
+            roleDeleted: receipt.roleDeleted,
+            evidenceHash: receipt.evidenceHash,
+          }
+        : {
+            outcome: receipt.outcome,
+            ownershipMarker: receipt.ownershipMarker,
+          };
+  assertSafeTenantResourceEvidence(evidence);
+  if (
+    !["deleted", "already_missing"].includes(String(evidence.outcome)) ||
+    (phase === "database"
+      ? typeof evidence.databaseDeleted !== "boolean" ||
+        typeof evidence.roleDeleted !== "boolean" ||
+        typeof evidence.evidenceHash !== "string" ||
+        !/^[a-f0-9]{64}$/.test(evidence.evidenceHash)
+      : typeof evidence.ownershipMarker !== "string" ||
+        !/^tl_owner_[a-f0-9]{32}_g[1-9][0-9]*$/.test(
+          evidence.ownershipMarker,
+        ))
+  ) {
+    throw Object.assign(new Error("Tenant cleanup phase evidence is invalid."), {
+      code: "TENANT_RESOURCE_CLEANUP_RECEIPT_INVALID",
+      retryable: false,
+    });
+  }
+  return evidence;
+}
+
+function hydrateCleanupPhaseReceipt(
+  phase: TenantResourceCleanupPhase,
+  evidence: Record<string, unknown>,
+  externalFence: TenantExternalOperationFence,
+): Record<string, unknown> {
+  const safe = cleanupPhaseReceiptEvidence(phase, evidence);
+  return {
+    fence: externalFence.resourceFence,
+    externalFence,
+    ...safe,
+  };
+}
+
 async function query<T extends Record<string, unknown>>(
   client: SqlClient | TransactionClient,
   statement: string,
@@ -230,6 +419,95 @@ function tenantResourceRecord(
     throw new Error("Persisted tenant resource generation fence is invalid.");
   }
   return record;
+}
+
+function expectedTenantExternalOperationMarker(
+  stableIdentityHash: string,
+  generation: number,
+  epoch: number,
+): string {
+  return `tl_epoch_${stableIdentityHash.slice(0, 24)}_g${generation}_e${epoch}`;
+}
+
+function tenantExternalOperationFence(
+  row: Record<string, unknown>,
+  resource: DeploymentTenantResourceRecord | null,
+): TenantExternalOperationFence | null {
+  const epochValue = row.tenant_external_epoch;
+  if (epochValue === null || epochValue === undefined || epochValue === "") {
+    return null;
+  }
+  if (!resource) {
+    throw new Error("Persisted tenant external operation has no resource generation.");
+  }
+  const epoch = integer(epochValue);
+  const fence: TenantExternalOperationFence = {
+    schemaVersion: 1,
+    resourceFence: {
+      schemaVersion: 1,
+      identity: resource.identity,
+      generation: resource.generation,
+      ownerDeploymentId: resource.ownerDeploymentId,
+      ownershipMarker: resource.ownershipMarker,
+    },
+    epoch,
+    intent: text(
+      row.tenant_external_intent,
+    ) as TenantExternalOperationFence["intent"],
+    ownerDeploymentId: text(row.tenant_external_owner_deployment_id),
+    operationHash: text(row.tenant_external_operation_hash),
+    marker: text(row.tenant_external_marker),
+    state: text(row.tenant_external_state) as TenantExternalOperationFence["state"],
+  };
+  if (
+    fence.epoch < 1 ||
+    !["provision", "cleanup"].includes(fence.intent) ||
+    !["pending_external", "active", "retired", "failed"].includes(fence.state) ||
+    !/^[a-f0-9]{64}$/.test(fence.operationHash) ||
+    fence.ownerDeploymentId !== resource.ownerDeploymentId ||
+    fence.marker !==
+      expectedTenantExternalOperationMarker(
+        resource.identity.stableIdentityHash,
+        resource.generation,
+        epoch,
+      )
+  ) {
+    throw new Error("Persisted tenant external operation fence is invalid.");
+  }
+  return fence;
+}
+
+function externalFenceFromOperationRow(
+  row: Record<string, unknown>,
+  resourceFence: TenantResourceFence,
+): TenantExternalOperationFence | null {
+  if (row.external_epoch === null || row.external_epoch === undefined) return null;
+  const epoch = integer(row.external_epoch);
+  const result: TenantExternalOperationFence = {
+    schemaVersion: 1,
+    resourceFence,
+    epoch,
+    intent: text(row.external_intent) as TenantExternalOperationFence["intent"],
+    ownerDeploymentId: text(row.external_owner_deployment_id),
+    operationHash: text(row.external_operation_hash),
+    marker: text(row.external_marker),
+    state: text(row.external_state) as TenantExternalOperationFence["state"],
+  };
+  if (
+    result.ownerDeploymentId !== resourceFence.ownerDeploymentId ||
+    !["provision", "cleanup"].includes(result.intent) ||
+    !["pending_external", "active", "retired", "failed"].includes(result.state) ||
+    !/^[a-f0-9]{64}$/.test(result.operationHash) ||
+    result.marker !==
+      expectedTenantExternalOperationMarker(
+        resourceFence.identity.stableIdentityHash,
+        resourceFence.generation,
+        epoch,
+      )
+  ) {
+    throw new Error("Persisted tenant external operation fence is invalid.");
+  }
+  return result;
 }
 
 export class NeonDeploymentExecutionRepository
@@ -446,7 +724,13 @@ export class NeonDeploymentExecutionRepository
         tr.last_error AS tenant_resource_last_error,
         tr.created_at AS tenant_resource_created_at,
         tr.updated_at AS tenant_resource_updated_at,
-        tr.destroyed_at AS tenant_resource_destroyed_at
+        tr.destroyed_at AS tenant_resource_destroyed_at,
+        external_op.epoch AS tenant_external_epoch,
+        external_op.intent AS tenant_external_intent,
+        external_op.owner_deployment_id AS tenant_external_owner_deployment_id,
+        external_op.operation_hash AS tenant_external_operation_hash,
+        external_op.marker AS tenant_external_marker,
+        external_op.state AS tenant_external_state
       FROM app_instance_deployments d
       INNER JOIN deployment_environments e ON e.id = d.environment_id
       INNER JOIN app_instances ai ON ai.id = d.app_instance_id
@@ -456,6 +740,11 @@ export class NeonDeploymentExecutionRepository
       LEFT JOIN deployment_cleanup_schedules c ON c.deployment_id = d.id
       LEFT JOIN deployment_tenant_resources tr
         ON tr.app_instance_id = ai.id
+      LEFT JOIN deployment_tenant_external_operations external_op
+        ON external_op.app_instance_id = tr.app_instance_id
+        AND external_op.generation = tr.generation
+        AND external_op.epoch = tr.external_operation_epoch
+        AND external_op.state = 'active'
       WHERE d.id = $1
       LIMIT 1`,
       [job.deploymentId],
@@ -517,6 +806,10 @@ export class NeonDeploymentExecutionRepository
     ) {
       throw new Error("Persisted tenant resource identity does not match deployment.");
     }
+    const tenantExternalOperation = tenantExternalOperationFence(
+      row,
+      tenantResources,
+    );
     return {
       job,
       deployment: {
@@ -561,6 +854,7 @@ export class NeonDeploymentExecutionRepository
         configurationSnapshot: parseObject(row.configuration_snapshot),
       },
       tenantResources,
+      tenantExternalOperation,
       activeCellCount: nullableText(row.binding_environment_id) ? 1 : 0,
       activeTenantCount: integer(countRows[0]?.tenant_count ?? 0),
     };
@@ -1355,7 +1649,16 @@ export class NeonDeploymentExecutionRepository
     input: DeploymentTenantResourceLifecycleWrite,
   ): Promise<boolean> {
     await assertTenantResourceFenceInput(input.fence);
-    if (input.lease.deploymentId !== input.fence.ownerDeploymentId) {
+    await assertTenantExternalOperationFenceInput(input.externalFence);
+    if (
+      input.lease.deploymentId !== input.fence.ownerDeploymentId ||
+      input.externalFence.intent !== "provision" ||
+      input.externalFence.state !== "active" ||
+      !sameTenantResourceFence(
+        input.externalFence.resourceFence,
+        input.fence,
+      )
+    ) {
       throw Object.assign(new Error("Tenant resource owner is invalid."), {
         code: "TENANT_RESOURCE_FENCE_INVALID",
       });
@@ -1396,12 +1699,20 @@ export class NeonDeploymentExecutionRepository
           AND job.lease_expires_at > db_clock.now_ms
         FOR UPDATE OF deployment, job
       ), locked_resource AS MATERIALIZED (
-        SELECT resource.*
+        SELECT resource.*, operation.epoch AS external_epoch
         FROM deployment_tenant_resources resource
         INNER JOIN leased_deployment leased
           ON resource.owner_deployment_id = leased.id
+        INNER JOIN deployment_tenant_external_operations operation
+          ON operation.app_instance_id = resource.app_instance_id
+          AND operation.generation = resource.generation
+          AND operation.epoch = resource.external_operation_epoch
         WHERE resource.app_instance_id = $5
-        FOR UPDATE OF resource
+          AND operation.epoch = $26 AND operation.intent = 'provision'
+          AND operation.owner_deployment_id = $1
+          AND operation.operation_hash = $27
+          AND operation.marker = $28 AND operation.state = 'active'
+        FOR UPDATE OF resource, operation
       ), updated AS (
         UPDATE deployment_tenant_resources resource
         SET runtime_secret_ref = $16, lifecycle_status = $17,
@@ -1421,6 +1732,7 @@ export class NeonDeploymentExecutionRepository
           AND resource.role_name = $13
           AND resource.secret_name = $14
           AND resource.stable_identity_hash = $15
+          AND resource.external_operation_epoch = $26
         RETURNING resource.app_instance_id, resource.generation,
           resource.owner_deployment_id, resource.lifecycle_status
       ), event_insert AS (
@@ -1474,6 +1786,9 @@ export class NeonDeploymentExecutionRepository
         eventType,
         input.lease.leaseToken,
         input.lease.attempt,
+        input.externalFence.epoch,
+        input.externalFence.operationHash,
+        input.externalFence.marker,
       ],
     );
     const row = rows[0];
@@ -1624,6 +1939,9 @@ export class NeonDeploymentExecutionRepository
             || substring(resource.stable_identity_hash FROM 1 FOR 32)
             || '_g' || eligible.claimed_generation::text,
           lifecycle_status = eligible.claimed_status,
+          external_operation_epoch = CASE
+            WHEN eligible.claim_event_type = 'reopened' THEN NULL
+            ELSE resource.external_operation_epoch END,
           runtime_secret_ref = CASE
             WHEN eligible.claim_event_type = 'reopened' THEN NULL
             ELSE resource.runtime_secret_ref END,
@@ -1816,6 +2134,472 @@ export class NeonDeploymentExecutionRepository
     };
   }
 
+  async prepareTenantExternalOperation(input: {
+    lease: Parameters<DeploymentExecutionRepository["prepareTenantExternalOperation"]>[0]["lease"];
+    resourceFence: TenantResourceFence;
+    intent: Parameters<DeploymentExecutionRepository["prepareTenantExternalOperation"]>[0]["intent"];
+    operationHash: string;
+    now: number;
+  }): Promise<TenantExternalOperationClaim> {
+    await assertTenantResourceFenceInput(input.resourceFence);
+    if (!/^[a-f0-9]{64}$/.test(input.operationHash)) {
+      throw Object.assign(new Error("Tenant external operation hash is invalid."), {
+        code: "TENANT_EXTERNAL_OPERATION_HASH_INVALID",
+        retryable: false,
+      });
+    }
+    const identity = input.resourceFence.identity;
+    const rows = await query<Record<string, unknown>>(
+      this.sql,
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), leased_resource AS MATERIALIZED (
+        SELECT resource.app_instance_id, resource.generation,
+          resource.stable_identity_hash, resource.owner_deployment_id,
+          db_clock.now_ms
+        FROM deployment_tenant_resources resource
+        INNER JOIN deployment_jobs job
+          ON job.id = $2 AND job.deployment_id = resource.owner_deployment_id
+        CROSS JOIN db_clock
+        WHERE resource.app_instance_id = $4
+          AND resource.owner_deployment_id = $1
+          AND resource.generation = $5
+          AND resource.ownership_marker = $6
+          AND resource.stable_identity_hash = $7
+          AND (
+            ($8 = 'provision'
+              AND resource.lifecycle_status NOT IN ('destroying', 'destroyed'))
+            OR $8 = 'cleanup'
+          )
+          AND job.status = 'running' AND job.lease_owner = $3
+          AND (
+            ($8 = 'provision' AND job.job_type IN ('apply', 'reconcile'))
+            OR ($8 = 'cleanup' AND job.job_type IN ('cleanup', 'rollback'))
+          )
+          AND job.lease_token = $10 AND job.attempts = $11
+          AND job.lease_expires_at > db_clock.now_ms
+        FOR UPDATE OF resource, job
+      ), same_operation AS MATERIALIZED (
+        SELECT operation.*
+        FROM deployment_tenant_external_operations operation
+        INNER JOIN leased_resource resource
+          ON resource.app_instance_id = operation.app_instance_id
+          AND resource.generation = operation.generation
+        WHERE operation.intent = $8 AND operation.operation_hash = $9
+          AND operation.owner_deployment_id = $1
+          AND operation.state IN ('pending_external', 'active')
+        FOR UPDATE OF operation
+      ), conflicting_pending AS MATERIALIZED (
+        SELECT operation.*
+        FROM deployment_tenant_external_operations operation
+        INNER JOIN leased_resource resource
+          ON resource.app_instance_id = operation.app_instance_id
+          AND resource.generation = operation.generation
+        WHERE operation.state = 'pending_external'
+          AND NOT (operation.intent = $8 AND operation.operation_hash = $9)
+        FOR UPDATE OF operation
+      ), active_cleanup_conflict AS MATERIALIZED (
+        SELECT operation.*
+        FROM deployment_tenant_external_operations operation
+        INNER JOIN leased_resource resource
+          ON resource.app_instance_id = operation.app_instance_id
+          AND resource.generation = operation.generation
+        WHERE $8 = 'provision' AND operation.intent = 'cleanup'
+          AND operation.state = 'active'
+        FOR UPDATE OF operation
+      ), superseded_pending AS (
+        UPDATE deployment_tenant_external_operations operation
+        SET state = 'failed', completed_at = resource.now_ms,
+          updated_at = resource.now_ms,
+          evidence = jsonb_build_object(
+            'supersededByIntent', $8,
+            'supersededByOperationHash', $9
+          )::text
+        FROM leased_resource resource, conflicting_pending conflict
+        WHERE $8 = 'cleanup' AND conflict.intent = 'provision'
+          AND operation.app_instance_id = conflict.app_instance_id
+          AND operation.generation = conflict.generation
+          AND operation.epoch = conflict.epoch
+          AND operation.state = 'pending_external'
+        RETURNING operation.*
+      ), next_epoch AS MATERIALIZED (
+        SELECT COALESCE(max(operation.epoch), 0) + 1 AS epoch
+        FROM leased_resource resource
+        LEFT JOIN deployment_tenant_external_operations operation
+          ON operation.app_instance_id = resource.app_instance_id
+          AND operation.generation = resource.generation
+      ), inserted AS (
+        INSERT INTO deployment_tenant_external_operations (
+          app_instance_id, generation, epoch, stable_identity_hash,
+          owner_deployment_id, created_by_job_id, created_by_attempt,
+          intent, operation_hash, marker, state, evidence_hash, evidence,
+          created_at, updated_at, activated_at, completed_at
+        )
+        SELECT resource.app_instance_id, resource.generation, next_epoch.epoch,
+          resource.stable_identity_hash, resource.owner_deployment_id,
+          $2, $11, $8, $9,
+          'tl_epoch_' || substring(resource.stable_identity_hash FROM 1 FOR 24)
+            || '_g' || resource.generation::text
+            || '_e' || next_epoch.epoch::text,
+          'pending_external', NULL, '{}', resource.now_ms, resource.now_ms,
+          NULL, NULL
+        FROM leased_resource resource CROSS JOIN next_epoch
+        WHERE NOT EXISTS (SELECT 1 FROM same_operation)
+          AND NOT EXISTS (SELECT 1 FROM active_cleanup_conflict)
+          AND NOT EXISTS (
+            SELECT 1 FROM conflicting_pending conflict
+            WHERE NOT ($8 = 'cleanup' AND conflict.intent = 'provision')
+          )
+          AND (SELECT count(*) FROM superseded_pending) >= 0
+        ON CONFLICT DO NOTHING
+        RETURNING *
+      ), result AS MATERIALIZED (
+        SELECT operation.*, 'created'::text AS claim_outcome FROM inserted operation
+        UNION ALL
+        SELECT operation.*, 'reused'::text AS claim_outcome
+        FROM same_operation operation
+        WHERE NOT EXISTS (SELECT 1 FROM active_cleanup_conflict)
+      ), event_insert AS (
+        INSERT INTO deployment_tenant_external_operation_events (
+          id, app_instance_id, generation, epoch, deployment_id, event_type,
+          from_state, to_state, evidence_hash, evidence, created_at
+        )
+        SELECT 'tevt:' || result.app_instance_id || ':'
+            || result.generation::text || ':' || result.epoch::text || ':prepared',
+          result.app_instance_id, result.generation, result.epoch, $1,
+          'prepared', NULL, 'pending_external', NULL,
+          jsonb_build_object('intent', result.intent,
+            'operationHash', result.operation_hash)::text,
+          resource.now_ms
+        FROM result
+        INNER JOIN leased_resource resource ON true
+        WHERE result.claim_outcome = 'created'
+        ON CONFLICT (id) DO NOTHING
+        RETURNING id
+      ), superseded_event AS (
+        INSERT INTO deployment_tenant_external_operation_events (
+          id, app_instance_id, generation, epoch, deployment_id, event_type,
+          from_state, to_state, evidence_hash, evidence, created_at
+        )
+        SELECT 'tevt:' || operation.app_instance_id || ':'
+            || operation.generation::text || ':' || operation.epoch::text
+            || ':failed',
+          operation.app_instance_id, operation.generation, operation.epoch,
+          $1, 'failed', 'pending_external', 'failed', NULL,
+          operation.evidence, resource.now_ms
+        FROM superseded_pending operation
+        INNER JOIN leased_resource resource ON true
+        ON CONFLICT (id) DO NOTHING RETURNING id
+      )
+      SELECT result.epoch AS external_epoch,
+        result.intent AS external_intent,
+        result.owner_deployment_id AS external_owner_deployment_id,
+        result.operation_hash AS external_operation_hash,
+        result.marker AS external_marker, result.state AS external_state,
+        result.claim_outcome,
+        EXISTS (SELECT 1 FROM leased_resource) AS lease_owned,
+        EXISTS (
+          SELECT 1 FROM conflicting_pending conflict
+          WHERE NOT ($8 = 'cleanup' AND conflict.intent = 'provision')
+        ) AND NOT EXISTS (SELECT 1 FROM same_operation) AS pending_conflict,
+        EXISTS (SELECT 1 FROM active_cleanup_conflict)
+          AS active_cleanup_conflict,
+        (SELECT count(*) FROM event_insert) AS event_count,
+        (SELECT count(*) FROM superseded_event) AS superseded_event_count
+      FROM result
+      UNION ALL
+      SELECT NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+        EXISTS (SELECT 1 FROM leased_resource),
+        EXISTS (
+          SELECT 1 FROM conflicting_pending conflict
+          WHERE NOT ($8 = 'cleanup' AND conflict.intent = 'provision')
+        ) AND NOT EXISTS (SELECT 1 FROM same_operation),
+        EXISTS (SELECT 1 FROM active_cleanup_conflict),
+        0, (SELECT count(*) FROM superseded_event)
+      WHERE NOT EXISTS (SELECT 1 FROM result)`,
+      [
+        input.lease.deploymentId,
+        input.lease.jobId,
+        input.lease.workerId,
+        identity.appInstanceId,
+        input.resourceFence.generation,
+        input.resourceFence.ownershipMarker,
+        identity.stableIdentityHash,
+        input.intent,
+        input.operationHash,
+        input.lease.leaseToken,
+        input.lease.attempt,
+      ],
+    );
+    const row = rows[0];
+    if (!flag(row?.lease_owned)) {
+      throw Object.assign(new Error("Deployment lease was lost."), {
+        code: "DEPLOYMENT_LEASE_LOST",
+        retryable: true,
+      });
+    }
+    if (flag(row?.pending_conflict)) {
+      throw Object.assign(
+        new Error("Another tenant external operation is pending proof."),
+        { code: "TENANT_EXTERNAL_OPERATION_PENDING", retryable: true },
+      );
+    }
+    if (flag(row?.active_cleanup_conflict)) {
+      throw Object.assign(
+        new Error("An active cleanup epoch owns this tenant resource generation."),
+        {
+          code: "TENANT_EXTERNAL_OPERATION_ACTIVE_CLEANUP",
+          retryable: true,
+        },
+      );
+    }
+    const fence = row
+      ? externalFenceFromOperationRow(row, input.resourceFence)
+      : null;
+    if (!fence) {
+      throw Object.assign(
+        new Error("Tenant external operation is terminal or could not be prepared."),
+        { code: "TENANT_EXTERNAL_OPERATION_PREPARE_REJECTED", retryable: false },
+      );
+    }
+    return {
+      outcome: text(row?.claim_outcome) as TenantExternalOperationClaim["outcome"],
+      fence,
+    };
+  }
+
+  async activateTenantExternalOperation(input: {
+    lease: Parameters<DeploymentExecutionRepository["activateTenantExternalOperation"]>[0]["lease"];
+    proof: Parameters<DeploymentExecutionRepository["activateTenantExternalOperation"]>[0]["proof"];
+    now: number;
+  }): Promise<TenantExternalOperationFence | null> {
+    const pendingFence = input.proof.pendingFence;
+    await assertTenantExternalOperationFenceInput(pendingFence);
+    assertSafeTenantResourceEvidence(input.proof.evidence);
+    if (
+      input.proof.schemaVersion !== 1 ||
+      pendingFence.state !== "pending_external" ||
+      !/^[a-f0-9]{64}$/.test(input.proof.evidenceHash) ||
+      input.proof.evidenceHash !== (await sha256Hex(input.proof.evidence))
+    ) {
+      throw Object.assign(new Error("External ownership evidence hash is invalid."), {
+        code: "TENANT_EXTERNAL_OPERATION_EVIDENCE_INVALID",
+        retryable: false,
+      });
+    }
+    const resource = pendingFence.resourceFence;
+    const rows = await query<Record<string, unknown>>(
+      this.sql,
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), leased_resource AS MATERIALIZED (
+        SELECT resource.app_instance_id, resource.generation,
+          resource.stable_identity_hash, resource.owner_deployment_id,
+          resource.external_operation_epoch, db_clock.now_ms
+        FROM deployment_tenant_resources resource
+        INNER JOIN deployment_jobs job
+          ON job.id = $2 AND job.deployment_id = resource.owner_deployment_id
+        CROSS JOIN db_clock
+        WHERE resource.app_instance_id = $4
+          AND resource.owner_deployment_id = $1
+          AND resource.generation = $5
+          AND resource.ownership_marker = $6
+          AND resource.stable_identity_hash = $7
+          AND (
+            ($9 = 'provision'
+              AND resource.lifecycle_status NOT IN ('destroying', 'destroyed'))
+            OR $9 = 'cleanup'
+          )
+          AND job.status = 'running' AND job.lease_owner = $3
+          AND (
+            ($9 = 'provision' AND job.job_type IN ('apply', 'reconcile'))
+            OR ($9 = 'cleanup' AND job.job_type IN ('cleanup', 'rollback'))
+          )
+          AND job.lease_token = $13 AND job.attempts = $14
+          AND job.lease_expires_at > db_clock.now_ms
+        FOR UPDATE OF resource, job
+      ), candidate AS MATERIALIZED (
+        SELECT operation.*
+        FROM deployment_tenant_external_operations operation
+        INNER JOIN leased_resource resource
+          ON resource.app_instance_id = operation.app_instance_id
+          AND resource.generation = operation.generation
+        WHERE operation.epoch = $8 AND operation.intent = $9
+          AND operation.owner_deployment_id = $1
+          AND operation.operation_hash = $10 AND operation.marker = $11
+          AND operation.state IN ('pending_external', 'active')
+        FOR UPDATE OF operation
+      ), active_cleanup_conflict AS MATERIALIZED (
+        SELECT previous.*
+        FROM deployment_tenant_external_operations previous
+        INNER JOIN leased_resource resource
+          ON resource.app_instance_id = previous.app_instance_id
+          AND resource.generation = previous.generation
+        INNER JOIN candidate ON true
+        WHERE candidate.intent = 'provision' AND previous.intent = 'cleanup'
+          AND previous.state = 'active' AND previous.epoch <> candidate.epoch
+        FOR UPDATE OF previous
+      ), retired AS (
+        UPDATE deployment_tenant_external_operations previous
+        SET state = 'retired', completed_at = resource.now_ms,
+          updated_at = resource.now_ms
+        FROM leased_resource resource, candidate
+        WHERE candidate.state = 'pending_external'
+          AND previous.app_instance_id = resource.app_instance_id
+          AND previous.generation = resource.generation
+          AND previous.epoch <> candidate.epoch AND previous.state = 'active'
+          AND NOT EXISTS (SELECT 1 FROM active_cleanup_conflict)
+        RETURNING previous.*
+      ), activated AS (
+        UPDATE deployment_tenant_external_operations operation
+        SET state = 'active', evidence_hash = $12, evidence = $15,
+          activated_at = COALESCE(operation.activated_at, resource.now_ms),
+          updated_at = resource.now_ms
+        FROM leased_resource resource, candidate
+        WHERE operation.app_instance_id = candidate.app_instance_id
+          AND operation.generation = candidate.generation
+          AND operation.epoch = candidate.epoch
+          AND (
+            candidate.state = 'pending_external'
+            OR (
+              candidate.state = 'active'
+              AND candidate.evidence_hash = $12
+              AND candidate.evidence::jsonb = $15::jsonb
+              AND resource.external_operation_epoch = candidate.epoch
+            )
+          )
+          AND NOT EXISTS (SELECT 1 FROM active_cleanup_conflict)
+          AND (SELECT count(*) FROM retired) >= 0
+        RETURNING operation.*
+      ), pointed AS (
+        UPDATE deployment_tenant_resources resource
+        SET external_operation_epoch = activated.epoch,
+          updated_at = leased.now_ms
+        FROM activated, leased_resource leased
+        WHERE resource.app_instance_id = leased.app_instance_id
+          AND resource.generation = leased.generation
+        RETURNING resource.app_instance_id
+      ), retired_events AS (
+        INSERT INTO deployment_tenant_external_operation_events (
+          id, app_instance_id, generation, epoch, deployment_id, event_type,
+          from_state, to_state, evidence_hash, evidence, created_at
+        )
+        SELECT 'tevt:' || retired.app_instance_id || ':'
+            || retired.generation::text || ':' || retired.epoch::text || ':retired',
+          retired.app_instance_id, retired.generation, retired.epoch, $1,
+          'retired', 'active', 'retired', $12,
+          jsonb_build_object('supersededByEpoch', $8)::text, resource.now_ms
+        FROM retired INNER JOIN leased_resource resource ON true
+        ON CONFLICT (id) DO NOTHING RETURNING id
+      ), activated_event AS (
+        INSERT INTO deployment_tenant_external_operation_events (
+          id, app_instance_id, generation, epoch, deployment_id, event_type,
+          from_state, to_state, evidence_hash, evidence, created_at
+        )
+        SELECT 'tevt:' || activated.app_instance_id || ':'
+            || activated.generation::text || ':' || activated.epoch::text || ':activated',
+          activated.app_instance_id, activated.generation, activated.epoch, $1,
+          'activated', 'pending_external', 'active', $12, $15,
+          resource.now_ms
+        FROM activated INNER JOIN leased_resource resource ON true
+        ON CONFLICT (id) DO NOTHING RETURNING id
+      )
+      SELECT activated.epoch AS external_epoch,
+        activated.intent AS external_intent,
+        activated.owner_deployment_id AS external_owner_deployment_id,
+        activated.operation_hash AS external_operation_hash,
+        activated.marker AS external_marker, activated.state AS external_state,
+        EXISTS (SELECT 1 FROM pointed) AS pointer_written,
+        (SELECT count(*) FROM retired_events) AS retired_event_count,
+        (SELECT count(*) FROM activated_event) AS activated_event_count
+      FROM activated`,
+      [
+        input.lease.deploymentId,
+        input.lease.jobId,
+        input.lease.workerId,
+        resource.identity.appInstanceId,
+        resource.generation,
+        resource.ownershipMarker,
+        resource.identity.stableIdentityHash,
+        pendingFence.epoch,
+        pendingFence.intent,
+        pendingFence.operationHash,
+        pendingFence.marker,
+        input.proof.evidenceHash,
+        input.lease.leaseToken,
+        input.lease.attempt,
+        JSON.stringify(input.proof.evidence),
+      ],
+    );
+    const row = rows[0];
+    if (!row || !flag(row.pointer_written)) return null;
+    return externalFenceFromOperationRow(row, resource);
+  }
+
+  async assertTenantExternalOperation(input: {
+    lease: Parameters<DeploymentExecutionRepository["assertTenantExternalOperation"]>[0]["lease"];
+    externalFence: TenantExternalOperationFence;
+    requiredState: "active";
+    now: number;
+  }): Promise<boolean> {
+    await assertTenantExternalOperationFenceInput(input.externalFence);
+    if (input.requiredState !== "active") return false;
+    const resource = input.externalFence.resourceFence;
+    const rows = await query<Record<string, unknown>>(
+      this.sql,
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      )
+      SELECT operation.epoch
+      FROM deployment_tenant_resources resource
+      INNER JOIN deployment_tenant_external_operations operation
+        ON operation.app_instance_id = resource.app_instance_id
+        AND operation.generation = resource.generation
+        AND operation.epoch = resource.external_operation_epoch
+      INNER JOIN deployment_jobs job
+        ON job.id = $1 AND job.deployment_id = resource.owner_deployment_id
+      CROSS JOIN db_clock
+      WHERE resource.app_instance_id = $2
+        AND resource.owner_deployment_id = $3
+        AND resource.generation = $4
+        AND resource.ownership_marker = $5
+        AND resource.stable_identity_hash = $6
+        AND operation.epoch = $7 AND operation.intent = $8
+        AND operation.owner_deployment_id = $3
+        AND operation.operation_hash = $9 AND operation.marker = $10
+        AND operation.state = 'active'
+        AND (
+          ($8 = 'provision'
+            AND resource.lifecycle_status NOT IN ('destroying', 'destroyed'))
+          OR $8 = 'cleanup'
+        )
+        AND job.status = 'running' AND job.lease_owner = $11
+        AND (
+          ($8 = 'provision' AND job.job_type IN ('apply', 'reconcile'))
+          OR ($8 = 'cleanup' AND job.job_type IN ('cleanup', 'rollback'))
+        )
+        AND job.lease_token = $12 AND job.attempts = $13
+        AND job.lease_expires_at > db_clock.now_ms
+      FOR UPDATE OF resource, operation, job`,
+      [
+        input.lease.jobId,
+        resource.identity.appInstanceId,
+        input.lease.deploymentId,
+        resource.generation,
+        resource.ownershipMarker,
+        resource.identity.stableIdentityHash,
+        input.externalFence.epoch,
+        input.externalFence.intent,
+        input.externalFence.operationHash,
+        input.externalFence.marker,
+        input.lease.workerId,
+        input.lease.leaseToken,
+        input.lease.attempt,
+      ],
+    );
+    return rows.length === 1;
+  }
+
   async beginTenantResourceCleanup(input: {
     fence: TenantResourceFence;
     lease: Parameters<DeploymentExecutionRepository["beginTenantResourceCleanup"]>[0]["lease"];
@@ -1835,6 +2619,7 @@ export class NeonDeploymentExecutionRepository
         CROSS JOIN db_clock
         WHERE deployment.id = $1
           AND job.status = 'running' AND job.lease_owner = $3
+          AND job.job_type IN ('cleanup', 'rollback')
           AND job.lease_token = $16 AND job.attempts = $17
           AND job.lease_expires_at > db_clock.now_ms
         FOR UPDATE OF deployment, job
@@ -1958,6 +2743,7 @@ export class NeonDeploymentExecutionRepository
          AND resource.secret_name = $13
          AND resource.lifecycle_status IN ('destroying', 'destroyed')
          AND job.status = 'running' AND job.lease_owner = $14
+         AND job.job_type IN ('cleanup', 'rollback')
          AND job.lease_token = $15 AND job.attempts = $16
          AND job.lease_expires_at > db_clock.now_ms
        LIMIT 1`,
@@ -2026,6 +2812,7 @@ export class NeonDeploymentExecutionRepository
         CROSS JOIN db_clock
         WHERE deployment.id = $1
           AND job.status = 'running' AND job.lease_owner = $3
+          AND job.job_type IN ('cleanup', 'rollback')
           AND job.lease_token = $18 AND job.attempts = $19
           AND job.lease_expires_at > db_clock.now_ms
         FOR UPDATE OF deployment, job
@@ -2097,5 +2884,636 @@ export class NeonDeploymentExecutionRepository
       ],
     );
     return flag(rows[0]?.lease_owned) && flag(rows[0]?.completed);
+  }
+
+  async beginOrResumeTenantResourceCleanup(input: {
+    lease: Parameters<DeploymentExecutionRepository["beginOrResumeTenantResourceCleanup"]>[0]["lease"];
+    externalFence: TenantExternalOperationFence;
+    now: number;
+  }): Promise<TenantResourceCleanupRun | null> {
+    await assertTenantExternalOperationFenceInput(input.externalFence);
+    if (input.externalFence.intent !== "cleanup" || input.externalFence.state !== "active") {
+      return null;
+    }
+    const resource = input.externalFence.resourceFence;
+    const runId = `tlcr_${(
+      await sha256Hex(
+        `${resource.identity.appInstanceId}:${resource.generation}:${input.externalFence.epoch}`,
+      )
+    ).slice(0, 32)}`;
+    const rows = await query<Record<string, unknown>>(
+      this.sql,
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), leased_operation AS MATERIALIZED (
+        SELECT resource.app_instance_id, resource.generation,
+          resource.lifecycle_status, resource.owner_deployment_id,
+          operation.epoch, operation.marker, db_clock.now_ms
+        FROM deployment_tenant_resources resource
+        INNER JOIN deployment_tenant_external_operations operation
+          ON operation.app_instance_id = resource.app_instance_id
+          AND operation.generation = resource.generation
+          AND operation.epoch = resource.external_operation_epoch
+        INNER JOIN deployment_jobs job
+          ON job.id = $2 AND job.deployment_id = resource.owner_deployment_id
+        CROSS JOIN db_clock
+        WHERE resource.app_instance_id = $4
+          AND resource.owner_deployment_id = $1
+          AND resource.generation = $5
+          AND resource.ownership_marker = $6
+          AND resource.stable_identity_hash = $7
+          AND operation.epoch = $8 AND operation.intent = 'cleanup'
+          AND operation.operation_hash = $9 AND operation.marker = $10
+          AND operation.owner_deployment_id = $1 AND operation.state = 'active'
+          AND job.status = 'running' AND job.lease_owner = $3
+          AND job.job_type IN ('cleanup', 'rollback')
+          AND job.lease_token = $11 AND job.attempts = $12
+          AND job.lease_expires_at > db_clock.now_ms
+        FOR UPDATE OF resource, operation, job
+      ), existing AS MATERIALIZED (
+        SELECT run.* FROM deployment_tenant_cleanup_runs run
+        INNER JOIN leased_operation operation
+          ON operation.app_instance_id = run.app_instance_id
+          AND operation.generation = run.generation
+          AND operation.epoch = run.external_epoch
+        WHERE run.id = $13 AND run.owner_deployment_id = $1
+        FOR UPDATE OF run
+      ), created AS (
+        INSERT INTO deployment_tenant_cleanup_runs (
+          id, app_instance_id, generation, external_epoch,
+          owner_deployment_id, status, next_phase,
+          created_at, updated_at, completed_at
+        )
+        SELECT $13, operation.app_instance_id, operation.generation,
+          operation.epoch, operation.owner_deployment_id,
+          'running', 'workload', operation.now_ms, operation.now_ms, NULL
+        FROM leased_operation operation
+        WHERE NOT EXISTS (SELECT 1 FROM existing)
+        ON CONFLICT (app_instance_id, generation, external_epoch) DO NOTHING
+        RETURNING *
+      ), result AS MATERIALIZED (
+        SELECT * FROM created UNION ALL SELECT * FROM existing
+      ), marked_destroying AS (
+        UPDATE deployment_tenant_resources resource
+        SET lifecycle_status = 'destroying', last_error = NULL,
+          updated_at = operation.now_ms
+        FROM leased_operation operation, result
+        WHERE resource.app_instance_id = operation.app_instance_id
+          AND resource.generation = operation.generation
+          AND result.status = 'running'
+          AND resource.lifecycle_status <> 'destroyed'
+        RETURNING resource.app_instance_id
+      ), legacy_event AS (
+        INSERT INTO deployment_tenant_resource_events (
+          id, app_instance_id, generation, deployment_id, event_type,
+          from_status, to_status, evidence_hash, evidence, created_at
+        )
+        SELECT 'trevt:' || operation.app_instance_id || ':'
+            || operation.generation::text || ':' || $1 || ':cleanup_started:'
+            || operation.epoch::text,
+          operation.app_instance_id, operation.generation, $1,
+          'cleanup_started', operation.lifecycle_status, 'destroying', NULL,
+          jsonb_build_object('externalEpoch', operation.epoch,
+            'externalMarker', operation.marker)::text, operation.now_ms
+        FROM leased_operation operation, created
+        ON CONFLICT (id) DO NOTHING RETURNING id
+      ), run_event AS (
+        INSERT INTO deployment_tenant_cleanup_events (
+          id, run_id, phase, event_type, evidence_hash, evidence, created_at
+        )
+        SELECT 'tclevt:' || created.id || ':started', created.id, NULL,
+          'run_started', NULL,
+          jsonb_build_object('externalEpoch', created.external_epoch)::text,
+          operation.now_ms
+        FROM created INNER JOIN leased_operation operation ON true
+        ON CONFLICT (id) DO NOTHING RETURNING id
+      )
+      SELECT result.id AS cleanup_run_id,
+        result.owner_deployment_id AS cleanup_run_owner_deployment_id,
+        result.status AS cleanup_run_status,
+        result.next_phase AS cleanup_run_next_phase,
+        result.created_at AS cleanup_run_created_at,
+        result.updated_at AS cleanup_run_updated_at,
+        result.completed_at AS cleanup_run_completed_at,
+        COALESCE((
+          SELECT jsonb_object_agg(phase.phase, jsonb_build_object(
+            'status', phase.status, 'operationId', phase.operation_id,
+            'receipt', phase.receipt::jsonb, 'receiptHash', phase.receipt_hash,
+            'attempts', phase.attempts, 'startedAt', phase.started_at,
+            'updatedAt', phase.updated_at, 'completedAt', phase.completed_at
+          )) FROM deployment_tenant_cleanup_phases phase
+          WHERE phase.run_id = result.id
+        ), '{}'::jsonb) AS cleanup_run_phases,
+        (SELECT count(*) FROM legacy_event) AS legacy_event_count,
+        (SELECT count(*) FROM run_event) AS run_event_count
+      FROM result`,
+      [
+        input.lease.deploymentId,
+        input.lease.jobId,
+        input.lease.workerId,
+        resource.identity.appInstanceId,
+        resource.generation,
+        resource.ownershipMarker,
+        resource.identity.stableIdentityHash,
+        input.externalFence.epoch,
+        input.externalFence.operationHash,
+        input.externalFence.marker,
+        input.lease.leaseToken,
+        input.lease.attempt,
+        runId,
+      ],
+    );
+    return rows[0] ? await cleanupRunFromRow(rows[0], input.externalFence) : null;
+  }
+
+  async beginTenantResourceCleanupPhase(input: {
+    lease: Parameters<DeploymentExecutionRepository["beginTenantResourceCleanupPhase"]>[0]["lease"];
+    externalFence: TenantExternalOperationFence;
+    runId: string;
+    phase: TenantResourceCleanupPhase;
+    now: number;
+  }): Promise<TenantResourceCleanupPhaseClaim | null> {
+    await assertTenantExternalOperationFenceInput(input.externalFence);
+    if (input.externalFence.intent !== "cleanup" || input.externalFence.state !== "active") {
+      return null;
+    }
+    const resource = input.externalFence.resourceFence;
+    const operationId = `tl_cleanup_${(
+      await sha256Hex(
+        `${resource.identity.appInstanceId}:${resource.generation}:${input.externalFence.epoch}:${input.phase}`,
+      )
+    ).slice(0, 32)}`;
+    const rows = await query<Record<string, unknown>>(
+      this.sql,
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), eligible_run AS MATERIALIZED (
+        SELECT run.*, db_clock.now_ms
+        FROM deployment_tenant_cleanup_runs run
+        INNER JOIN deployment_tenant_resources resource
+          ON resource.app_instance_id = run.app_instance_id
+          AND resource.generation = run.generation
+          AND resource.external_operation_epoch = run.external_epoch
+        INNER JOIN deployment_tenant_external_operations operation
+          ON operation.app_instance_id = run.app_instance_id
+          AND operation.generation = run.generation
+          AND operation.epoch = run.external_epoch
+        INNER JOIN deployment_jobs job
+          ON job.id = $2 AND job.deployment_id = run.owner_deployment_id
+        CROSS JOIN db_clock
+        WHERE run.id = $4 AND run.owner_deployment_id = $1
+          AND run.app_instance_id = $5 AND run.generation = $6
+          AND run.external_epoch = $7 AND run.status = 'running'
+          AND operation.intent = 'cleanup' AND operation.operation_hash = $8
+          AND operation.marker = $9 AND operation.state = 'active'
+          AND resource.ownership_marker = $10
+          AND resource.stable_identity_hash = $11
+          AND job.status = 'running' AND job.lease_owner = $3
+          AND job.job_type IN ('cleanup', 'rollback')
+          AND job.lease_token = $14 AND job.attempts = $15
+          AND job.lease_expires_at > db_clock.now_ms
+        FOR UPDATE OF run, resource, operation, job
+      ), prior AS MATERIALIZED (
+        SELECT phase.* FROM deployment_tenant_cleanup_phases phase
+        INNER JOIN eligible_run run ON run.id = phase.run_id
+        WHERE phase.phase = $12
+        FOR UPDATE OF phase
+      ), started AS (
+        INSERT INTO deployment_tenant_cleanup_phases (
+          run_id, phase, status, operation_id, receipt, receipt_hash,
+          attempts, started_at, updated_at, completed_at
+        )
+        SELECT run.id, $12, 'running', $13, '{}', NULL, 1,
+          run.now_ms, run.now_ms, NULL
+        FROM eligible_run run
+        WHERE run.next_phase = $12 AND NOT EXISTS (SELECT 1 FROM prior)
+        ON CONFLICT (run_id, phase) DO NOTHING
+        RETURNING *
+      ), resumed AS (
+        UPDATE deployment_tenant_cleanup_phases phase
+        SET attempts = phase.attempts + 1, updated_at = run.now_ms
+        FROM eligible_run run, prior
+        WHERE phase.run_id = prior.run_id AND phase.phase = prior.phase
+          AND prior.status = 'running' AND run.next_phase = $12
+          AND prior.operation_id = $13
+        RETURNING phase.*
+      ), selected AS MATERIALIZED (
+        SELECT started.*, 'execute'::text AS claim_outcome FROM started
+        UNION ALL
+        SELECT resumed.*, 'execute'::text AS claim_outcome FROM resumed
+        UNION ALL
+        SELECT prior.*, 'already_succeeded'::text AS claim_outcome
+        FROM prior WHERE prior.status = 'succeeded' AND prior.operation_id = $13
+      ), phase_event AS (
+        INSERT INTO deployment_tenant_cleanup_events (
+          id, run_id, phase, event_type, evidence_hash, evidence, created_at
+        )
+        SELECT 'tclevt:' || selected.run_id || ':' || selected.phase || ':started',
+          selected.run_id, selected.phase, 'phase_started', NULL,
+          jsonb_build_object('operationId', selected.operation_id)::text,
+          run.now_ms
+        FROM selected INNER JOIN eligible_run run ON true
+        WHERE selected.claim_outcome = 'execute'
+        ON CONFLICT (id) DO NOTHING RETURNING id
+      )
+      SELECT run.id AS cleanup_run_id,
+        run.owner_deployment_id AS cleanup_run_owner_deployment_id,
+        run.status AS cleanup_run_status,
+        run.next_phase AS cleanup_run_next_phase,
+        run.created_at AS cleanup_run_created_at,
+        run.updated_at AS cleanup_run_updated_at,
+        run.completed_at AS cleanup_run_completed_at,
+        selected.claim_outcome, selected.operation_id,
+        COALESCE((
+          SELECT jsonb_object_agg(phase.phase, jsonb_build_object(
+            'status', phase.status, 'operationId', phase.operation_id,
+            'receipt', phase.receipt::jsonb, 'receiptHash', phase.receipt_hash,
+            'attempts', phase.attempts, 'startedAt', phase.started_at,
+            'updatedAt', phase.updated_at, 'completedAt', phase.completed_at
+          )) FROM (
+            SELECT phase.run_id, phase.phase, phase.status, phase.operation_id,
+              phase.receipt, phase.receipt_hash, phase.attempts,
+              phase.started_at, phase.updated_at, phase.completed_at
+            FROM deployment_tenant_cleanup_phases phase
+            WHERE phase.run_id = run.id AND phase.phase <> selected.phase
+            UNION ALL
+            SELECT selected.run_id, selected.phase, selected.status,
+              selected.operation_id, selected.receipt, selected.receipt_hash,
+              selected.attempts, selected.started_at, selected.updated_at,
+              selected.completed_at
+          ) phase
+        ), '{}'::jsonb) AS cleanup_run_phases,
+        (SELECT count(*) FROM phase_event) AS phase_event_count
+      FROM eligible_run run INNER JOIN selected ON true`,
+      [
+        input.lease.deploymentId,
+        input.lease.jobId,
+        input.lease.workerId,
+        input.runId,
+        resource.identity.appInstanceId,
+        resource.generation,
+        input.externalFence.epoch,
+        input.externalFence.operationHash,
+        input.externalFence.marker,
+        resource.ownershipMarker,
+        resource.identity.stableIdentityHash,
+        input.phase,
+        operationId,
+        input.lease.leaseToken,
+        input.lease.attempt,
+      ],
+    );
+    const row = rows[0];
+    if (!row) return null;
+    const run = await cleanupRunFromRow(row, input.externalFence);
+    if (!run) return null;
+    const phase = run.phases[input.phase];
+    return {
+      outcome: text(row.claim_outcome) as TenantResourceCleanupPhaseClaim["outcome"],
+      operationId: text(row.operation_id),
+      receipt: phase?.receipt ?? null,
+      run,
+    };
+  }
+
+  async completeTenantResourceCleanupPhase<P extends TenantResourceCleanupPhase>(input: {
+    lease: Parameters<DeploymentExecutionRepository["completeTenantResourceCleanupPhase"]>[0]["lease"];
+    externalFence: TenantExternalOperationFence;
+    runId: string;
+    phase: P;
+    operationId: string;
+    receipt: Parameters<DeploymentExecutionRepository["completeTenantResourceCleanupPhase"]>[0]["receipt"];
+    now: number;
+  }): Promise<TenantResourceCleanupRun | null> {
+    await assertTenantExternalOperationFenceInput(input.externalFence);
+    if (
+      input.externalFence.intent !== "cleanup" ||
+      input.externalFence.state !== "active" ||
+      !sameTenantResourceFence(input.receipt.fence, input.externalFence.resourceFence) ||
+      !sameTenantExternalOperationFence(
+        input.receipt.externalFence,
+        input.externalFence,
+      )
+    ) {
+      return null;
+    }
+    const persistedReceipt = cleanupPhaseReceiptEvidence(
+      input.phase,
+      input.receipt as unknown as Record<string, unknown>,
+    );
+    const receiptHash = await sha256Hex(persistedReceipt);
+    const nextPhase =
+      input.phase === "workload"
+        ? "database"
+        : input.phase === "database"
+          ? "secret"
+          : "finalize";
+    const resource = input.externalFence.resourceFence;
+    const rows = await query<Record<string, unknown>>(
+      this.sql,
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), eligible_phase AS MATERIALIZED (
+        SELECT run.id AS run_id, phase.phase, phase.status,
+          phase.receipt_hash, phase.receipt, db_clock.now_ms
+        FROM deployment_tenant_cleanup_runs run
+        INNER JOIN deployment_tenant_cleanup_phases phase ON phase.run_id = run.id
+        INNER JOIN deployment_tenant_resources resource
+          ON resource.app_instance_id = run.app_instance_id
+          AND resource.generation = run.generation
+          AND resource.external_operation_epoch = run.external_epoch
+        INNER JOIN deployment_tenant_external_operations operation
+          ON operation.app_instance_id = run.app_instance_id
+          AND operation.generation = run.generation
+          AND operation.epoch = run.external_epoch
+        INNER JOIN deployment_jobs job
+          ON job.id = $2 AND job.deployment_id = run.owner_deployment_id
+        CROSS JOIN db_clock
+        WHERE run.id = $4 AND run.owner_deployment_id = $1
+          AND run.app_instance_id = $5 AND run.generation = $6
+          AND run.external_epoch = $7 AND run.status = 'running'
+          AND phase.phase = $12 AND phase.operation_id = $13
+          AND operation.intent = 'cleanup' AND operation.operation_hash = $8
+          AND operation.marker = $9 AND operation.state = 'active'
+          AND resource.ownership_marker = $10
+          AND resource.stable_identity_hash = $11
+          AND job.status = 'running' AND job.lease_owner = $3
+          AND job.job_type IN ('cleanup', 'rollback')
+          AND job.lease_token = $17 AND job.attempts = $18
+          AND job.lease_expires_at > db_clock.now_ms
+          AND (
+            (phase.status = 'running' AND run.next_phase = $12)
+            OR (phase.status = 'succeeded' AND phase.receipt_hash = $14
+              AND phase.receipt::jsonb = $15::jsonb)
+          )
+        FOR UPDATE OF run, phase, resource, operation, job
+      ), completed_phase AS (
+        UPDATE deployment_tenant_cleanup_phases phase
+        SET status = 'succeeded', receipt = $15, receipt_hash = $14,
+          updated_at = eligible.now_ms,
+          completed_at = COALESCE(phase.completed_at, eligible.now_ms)
+        FROM eligible_phase eligible
+        WHERE phase.run_id = eligible.run_id AND phase.phase = eligible.phase
+        RETURNING phase.*
+      ), advanced_run AS (
+        UPDATE deployment_tenant_cleanup_runs run
+        SET next_phase = CASE WHEN run.next_phase = $12 THEN $16 ELSE run.next_phase END,
+          updated_at = eligible.now_ms
+        FROM eligible_phase eligible, completed_phase
+        WHERE run.id = eligible.run_id
+        RETURNING run.*
+      ), phase_event AS (
+        INSERT INTO deployment_tenant_cleanup_events (
+          id, run_id, phase, event_type, evidence_hash, evidence, created_at
+        )
+        SELECT 'tclevt:' || completed.run_id || ':' || completed.phase || ':succeeded',
+          completed.run_id, completed.phase, 'phase_succeeded', $14,
+          jsonb_build_object('operationId', completed.operation_id)::text,
+          eligible.now_ms
+        FROM completed_phase completed
+        INNER JOIN eligible_phase eligible ON true
+        ON CONFLICT (id) DO NOTHING RETURNING id
+      )
+      SELECT run.id AS cleanup_run_id,
+        run.owner_deployment_id AS cleanup_run_owner_deployment_id,
+        run.status AS cleanup_run_status,
+        run.next_phase AS cleanup_run_next_phase,
+        run.created_at AS cleanup_run_created_at,
+        run.updated_at AS cleanup_run_updated_at,
+        run.completed_at AS cleanup_run_completed_at,
+        COALESCE((
+          SELECT jsonb_object_agg(phase.phase, jsonb_build_object(
+            'status', phase.status, 'operationId', phase.operation_id,
+            'receipt', phase.receipt::jsonb, 'receiptHash', phase.receipt_hash,
+            'attempts', phase.attempts, 'startedAt', phase.started_at,
+            'updatedAt', phase.updated_at, 'completedAt', phase.completed_at
+          )) FROM (
+            SELECT phase.run_id, phase.phase, phase.status, phase.operation_id,
+              phase.receipt, phase.receipt_hash, phase.attempts,
+              phase.started_at, phase.updated_at, phase.completed_at
+            FROM deployment_tenant_cleanup_phases phase
+            WHERE phase.run_id = run.id
+              AND phase.phase <> completed.phase
+            UNION ALL
+            SELECT completed.run_id, completed.phase, completed.status,
+              completed.operation_id, completed.receipt,
+              completed.receipt_hash, completed.attempts,
+              completed.started_at, completed.updated_at,
+              completed.completed_at
+          ) phase
+        ), '{}'::jsonb) AS cleanup_run_phases,
+        (SELECT count(*) FROM phase_event) AS phase_event_count
+      FROM advanced_run run
+      INNER JOIN completed_phase completed ON completed.run_id = run.id`,
+      [
+        input.lease.deploymentId,
+        input.lease.jobId,
+        input.lease.workerId,
+        input.runId,
+        resource.identity.appInstanceId,
+        resource.generation,
+        input.externalFence.epoch,
+        input.externalFence.operationHash,
+        input.externalFence.marker,
+        resource.ownershipMarker,
+        resource.identity.stableIdentityHash,
+        input.phase,
+        input.operationId,
+        receiptHash,
+        JSON.stringify(persistedReceipt),
+        nextPhase,
+        input.lease.leaseToken,
+        input.lease.attempt,
+      ],
+    );
+    return rows[0] ? await cleanupRunFromRow(rows[0], input.externalFence) : null;
+  }
+
+  async finalizeTenantResourceCleanup(input: {
+    lease: Parameters<DeploymentExecutionRepository["finalizeTenantResourceCleanup"]>[0]["lease"];
+    externalFence: TenantExternalOperationFence;
+    runId: string;
+    scheduleId: string | null;
+    appInstanceId: string;
+    reason: "ttl_cleanup" | "rollback";
+    now: number;
+  }): Promise<boolean> {
+    await assertTenantExternalOperationFenceInput(input.externalFence);
+    if (
+      input.externalFence.intent !== "cleanup" ||
+      input.externalFence.state !== "active" ||
+      input.appInstanceId !== input.externalFence.resourceFence.identity.appInstanceId
+    ) {
+      return false;
+    }
+    const resource = input.externalFence.resourceFence;
+    const rows = await query<Record<string, unknown>>(
+      this.sql,
+      `WITH db_clock AS MATERIALIZED (
+        SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+      ), locked AS MATERIALIZED (
+        SELECT run.id AS run_id, run.status AS run_status,
+          run.next_phase, resource.lifecycle_status,
+          operation.evidence_hash AS operation_evidence_hash,
+          operation.evidence AS operation_evidence,
+          db_clock.now_ms
+        FROM deployment_tenant_cleanup_runs run
+        INNER JOIN deployment_tenant_resources resource
+          ON resource.app_instance_id = run.app_instance_id
+          AND resource.generation = run.generation
+          AND resource.external_operation_epoch = run.external_epoch
+        INNER JOIN deployment_tenant_external_operations operation
+          ON operation.app_instance_id = run.app_instance_id
+          AND operation.generation = run.generation
+          AND operation.epoch = run.external_epoch
+        INNER JOIN app_instance_deployments deployment
+          ON deployment.id = run.owner_deployment_id
+        INNER JOIN app_instances instance ON instance.id = run.app_instance_id
+        INNER JOIN deployment_jobs job
+          ON job.id = $2 AND job.deployment_id = run.owner_deployment_id
+        CROSS JOIN db_clock
+        WHERE run.id = $4 AND run.owner_deployment_id = $1
+          AND run.app_instance_id = $5 AND run.generation = $6
+          AND run.external_epoch = $7
+          AND operation.intent = 'cleanup' AND operation.operation_hash = $8
+          AND operation.marker = $9 AND operation.state = 'active'
+          AND resource.ownership_marker = $10
+          AND resource.stable_identity_hash = $11
+          AND job.status = 'running' AND job.lease_owner = $3
+          AND job.job_type IN ('cleanup', 'rollback')
+          AND job.lease_token = $14 AND job.attempts = $15
+          AND job.lease_expires_at > db_clock.now_ms
+          AND (
+            $12::text IS NULL OR EXISTS (
+              SELECT 1 FROM deployment_cleanup_schedules schedule
+              WHERE schedule.id = $12 AND schedule.deployment_id = $1
+                AND schedule.status IN ('confirmed', 'running', 'succeeded')
+            )
+          )
+        FOR UPDATE OF run, resource, operation, deployment, instance, job
+      ), phase_evidence AS MATERIALIZED (
+        SELECT count(*) AS phase_count,
+          jsonb_object_agg(phase.phase, phase.receipt_hash) AS receipt_hashes
+        FROM deployment_tenant_cleanup_phases phase
+        INNER JOIN locked ON locked.run_id = phase.run_id
+        WHERE phase.status = 'succeeded'
+          AND phase.phase IN ('workload', 'database', 'secret')
+      ), eligible AS MATERIALIZED (
+        SELECT locked.*, phase_evidence.receipt_hashes
+        FROM locked CROSS JOIN phase_evidence
+        WHERE (
+            (locked.run_status = 'running' AND locked.next_phase = 'finalize')
+            OR (locked.run_status = 'completed' AND locked.next_phase IS NULL)
+          )
+          AND phase_evidence.phase_count = 3
+          AND locked.operation_evidence_hash IS NOT NULL
+      ), destroyed_resource AS (
+        UPDATE deployment_tenant_resources resource
+        SET lifecycle_status = 'destroyed',
+          evidence_hash = eligible.operation_evidence_hash,
+          evidence = eligible.operation_evidence,
+          last_error = NULL, updated_at = eligible.now_ms,
+          destroyed_at = COALESCE(resource.destroyed_at, eligible.now_ms)
+        FROM eligible
+        WHERE resource.app_instance_id = $5 AND resource.generation = $6
+          AND resource.lifecycle_status IN ('destroying', 'destroyed')
+        RETURNING resource.app_instance_id
+      ), completed_run AS (
+        UPDATE deployment_tenant_cleanup_runs run
+        SET status = 'completed', next_phase = NULL,
+          updated_at = eligible.now_ms,
+          completed_at = COALESCE(run.completed_at, eligible.now_ms)
+        FROM eligible, destroyed_resource
+        WHERE run.id = eligible.run_id
+        RETURNING run.id
+      ), completed_schedule AS (
+        UPDATE deployment_cleanup_schedules schedule
+        SET status = 'succeeded', last_error = NULL,
+          updated_at = eligible.now_ms,
+          completed_at = COALESCE(schedule.completed_at, eligible.now_ms)
+        FROM eligible, completed_run
+        WHERE $12::text IS NOT NULL AND schedule.id = $12
+          AND schedule.deployment_id = $1
+        RETURNING schedule.id
+      ), rolled_back AS (
+        UPDATE app_instance_deployments deployment
+        SET status = 'rolled_back', current_step = 'rolled_back',
+          updated_at = eligible.now_ms
+        FROM eligible, completed_run
+        WHERE deployment.id = $1
+        RETURNING deployment.id
+      ), suspended AS (
+        UPDATE app_instances instance
+        SET status = 'suspended', access_url = '',
+          suspended_at = eligible.now_ms, updated_at = eligible.now_ms
+        FROM eligible, completed_run
+        WHERE instance.id = $5
+        RETURNING instance.id
+      ), released AS (
+        DELETE FROM deployment_environment_capacity_reservations reservation
+        USING eligible, completed_run
+        WHERE reservation.deployment_id = $1
+        RETURNING reservation.deployment_id
+      ), legacy_event AS (
+        INSERT INTO deployment_tenant_resource_events (
+          id, app_instance_id, generation, deployment_id, event_type,
+          from_status, to_status, evidence_hash, evidence, created_at
+        )
+        SELECT 'trevt:' || $5 || ':' || $6::text || ':' || $1
+            || ':destroyed:e' || $7::text,
+          $5, $6, $1, 'destroyed', eligible.lifecycle_status, 'destroyed',
+          eligible.operation_evidence_hash,
+          eligible.operation_evidence, eligible.now_ms
+        FROM eligible, completed_run
+        ON CONFLICT (id) DO NOTHING RETURNING id
+      ), run_event AS (
+        INSERT INTO deployment_tenant_cleanup_events (
+          id, run_id, phase, event_type, evidence_hash, evidence, created_at
+        )
+        SELECT 'tclevt:' || eligible.run_id || ':completed', eligible.run_id,
+          NULL, 'run_completed', NULL,
+          jsonb_build_object('phaseReceiptHashes', eligible.receipt_hashes,
+            'reason', $13)::text, eligible.now_ms
+        FROM eligible, completed_run
+        ON CONFLICT (id) DO NOTHING RETURNING id
+      )
+      SELECT EXISTS (SELECT 1 FROM eligible) AS eligible,
+        EXISTS (SELECT 1 FROM destroyed_resource) AS destroyed,
+        EXISTS (SELECT 1 FROM completed_run) AS run_completed,
+        EXISTS (SELECT 1 FROM rolled_back) AS deployment_completed,
+        EXISTS (SELECT 1 FROM suspended) AS instance_suspended,
+        ($12::text IS NULL OR EXISTS (SELECT 1 FROM completed_schedule))
+          AS schedule_completed,
+        (SELECT count(*) FROM released) AS released_count,
+        (SELECT count(*) FROM legacy_event) AS legacy_event_count,
+        (SELECT count(*) FROM run_event) AS run_event_count`,
+      [
+        input.lease.deploymentId,
+        input.lease.jobId,
+        input.lease.workerId,
+        input.runId,
+        input.appInstanceId,
+        resource.generation,
+        input.externalFence.epoch,
+        input.externalFence.operationHash,
+        input.externalFence.marker,
+        resource.ownershipMarker,
+        resource.identity.stableIdentityHash,
+        input.scheduleId,
+        input.reason,
+        input.lease.leaseToken,
+        input.lease.attempt,
+      ],
+    );
+    const row = rows[0];
+    return Boolean(
+      row &&
+        flag(row.eligible) &&
+        flag(row.destroyed) &&
+        flag(row.run_completed) &&
+        flag(row.deployment_completed) &&
+        flag(row.instance_suspended) &&
+        flag(row.schedule_completed),
+    );
   }
 }

@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
+import https from "node:https";
 import {
   createPublicKey,
   generateKeyPairSync,
@@ -20,7 +22,10 @@ import {
   clearFirstOwnerPassword,
   redactControlSecrets,
 } from "../lib/deployments/execution/control-secret-redaction.ts";
-import type { DeploymentExecutionContext } from "../lib/deployments/execution/contracts.ts";
+import type {
+  DeploymentExecutionContext,
+  TenantExternalOperationFence,
+} from "../lib/deployments/execution/contracts.ts";
 import { canonicalJson, sha256Hex } from "../lib/deployments/execution/hash.ts";
 import type {
   TemplateConfiguration,
@@ -31,6 +36,52 @@ const appInstanceId = "app_tenant_one";
 const templateVersionId = "tplver_restaurant_v2";
 const imageRevision = `sha256:${"a".repeat(64)}`;
 const desiredConfigurationHash = "b".repeat(64);
+const signal = () => new AbortController().signal;
+
+function controlFence(epoch = 3): TenantExternalOperationFence {
+  const stableIdentityHash = "8".repeat(64);
+  const resourceFence = {
+    schemaVersion: 1 as const,
+    identity: {
+      schemaVersion: 1 as const,
+      appInstanceId,
+      workspaceId: "wsp_one",
+      productId: "prd_restaurant",
+      environmentId: "env_sandbox",
+      cellKey: "cell-sandbox-1",
+      databaseName: "tenant_one_db",
+      roleName: "tenant_one_role",
+      secretName: "techlong/sandbox/tenant/tenant_one/runtime",
+      stableIdentityHash,
+    },
+    generation: 1,
+    ownerDeploymentId: "dep_tenant_one",
+    ownershipMarker: `tl_owner_${stableIdentityHash.slice(0, 32)}_g1`,
+  };
+  return {
+    schemaVersion: 1,
+    resourceFence,
+    epoch,
+    intent: "provision",
+    ownerDeploymentId: resourceFence.ownerDeploymentId,
+    operationHash: "9".repeat(64),
+    marker: `tl_epoch_${stableIdentityHash.slice(0, 24)}_g1_e${epoch}`,
+    state: "active",
+  };
+}
+
+const externalFence = controlFence();
+
+function externalControlFields(
+  fence: TenantExternalOperationFence = externalFence,
+) {
+  return {
+    external_operation_epoch: fence.epoch,
+    external_operation_intent: fence.intent,
+    external_operation_marker: fence.marker,
+    external_operation_hash: fence.operationHash,
+  };
+}
 
 function executionContext(): DeploymentExecutionContext {
   return {
@@ -42,6 +93,7 @@ function executionContext(): DeploymentExecutionContext {
       templateVersionId,
       configurationSnapshot: { raw_snapshot_must_not_be_forwarded: "sentinel" },
     },
+    tenantExternalOperation: externalFence,
   } as unknown as DeploymentExecutionContext;
 }
 
@@ -105,6 +157,7 @@ test("RS256 provider issues a short-lived instance-bound control JWT", async () 
     instanceId: appInstanceId,
     audience: `speedfeast-instance:${appInstanceId}`,
     scope: "speedfeast:control",
+    signal: signal(),
   });
   const [header, payload, signature] = token.split(".");
   assert.deepEqual(JSON.parse(Buffer.from(header, "base64url").toString()), {
@@ -137,6 +190,7 @@ test("RS256 provider issues a short-lived instance-bound control JWT", async () 
         instanceId: appInstanceId,
         audience: "speedfeast-instance:another-instance",
         scope: "speedfeast:control",
+        signal: signal(),
       }),
     /audience is not bound/,
   );
@@ -188,6 +242,8 @@ test("immutable compiler loads the bound version and disposes the owner secret l
   const result = await compiler.compile({
     context: executionContext(),
     configurationHash,
+    externalFence,
+    signal: signal(),
   });
   assert.equal(disposed, true);
   assert.equal(leased, 1);
@@ -198,6 +254,7 @@ test("immutable compiler loads the bound version and disposes the owner secret l
       configuration_hash: configurationHash,
       template_version_id: templateVersionId,
       image_revision: imageRevision,
+      ...externalControlFields(),
     },
   });
   assert.deepEqual(result.compiledPayload.entitlements, {});
@@ -242,6 +299,8 @@ test("immutable compiler rejects binding drift before leasing a secret", async (
       compiler.compile({
         context: executionContext(),
         configurationHash: "c".repeat(64),
+        externalFence,
+        signal: signal(),
       }),
     /does not match the persisted deployment configuration hash/,
   );
@@ -274,6 +333,8 @@ test("immutable compiler rejects a template-version rebind before leasing a secr
       compiler.compile({
         context: executionContext(),
         configurationHash,
+        externalFence,
+        signal: signal(),
       }),
     /binding changed after the deployment context was loaded/,
   );
@@ -299,6 +360,8 @@ test("control readiness requires an active instance-bound reconciliation receipt
       await client.readConfiguration({
         appInstanceId,
         hostname: "tenant-one.sandbox.techlong.cloud",
+        externalFence,
+        signal: signal(),
       })
     ).ready,
     false,
@@ -309,6 +372,7 @@ test("control readiness requires an active instance-bound reconciliation receipt
       control_api_version: "1.1",
       image_revision: imageRevision,
       desired_configuration_hash: desiredConfigurationHash,
+      ...externalControlFields(),
       instance: {
         status: "active",
         external_instance_id: appInstanceId,
@@ -318,12 +382,47 @@ test("control readiness requires an active instance-bound reconciliation receipt
   const reconciled = await client.readConfiguration({
     appInstanceId,
     hostname: "tenant-one.sandbox.techlong.cloud",
+    externalFence,
+    signal: signal(),
   });
   assert.equal(reconciled.ready, true);
   assert.equal(reconciled.desiredConfigurationHash, desiredConfigurationHash);
   assert.equal(reconciled.imageRevision, imageRevision);
   assert.equal(requests.at(-1)?.url, "https://tenant-one.sandbox.techlong.cloud:8443/api/saas/control");
   assert.equal(requests.at(-1)?.headers.host, "tenant-one.sandbox.techlong.cloud");
+  assert.equal(
+    requests.at(-1)?.headers["x-techlong-external-operation-epoch"],
+    String(externalFence.epoch),
+  );
+  assert.equal(
+    requests.at(-1)?.headers["x-techlong-external-operation-marker"],
+    externalFence.marker,
+  );
+
+  responseBody = {
+    success: true,
+    control: {
+      control_api_version: "1.1",
+      image_revision: imageRevision,
+      desired_configuration_hash: desiredConfigurationHash,
+      ...externalControlFields(controlFence(2)),
+      instance: {
+        status: "active",
+        external_instance_id: appInstanceId,
+      },
+    },
+  };
+  assert.equal(
+    (
+      await client.readConfiguration({
+        appInstanceId,
+        hostname: "tenant-one.sandbox.techlong.cloud",
+        externalFence,
+        signal: signal(),
+      })
+    ).ready,
+    false,
+  );
 
   responseBody = {
     ...responseBody,
@@ -337,9 +436,21 @@ test("control readiness requires an active instance-bound reconciliation receipt
       await client.readConfiguration({
         appInstanceId,
         hostname: "tenant-one.sandbox.techlong.cloud",
+        externalFence,
+        signal: signal(),
       })
     ).ready,
     false,
+  );
+
+  await assert.rejects(
+    client.readConfiguration({
+      appInstanceId,
+      hostname: "tenant-one.sandbox.techlong.cloud",
+      externalFence: { ...externalFence, marker: "tl_epoch_invalid" },
+      signal: signal(),
+    }),
+    /exact active provision epoch/,
   );
 });
 
@@ -347,7 +458,10 @@ test("provision validates its idempotency receipt and always clears the owner pa
   const payload = {
     instance: {
       external_instance_id: appInstanceId,
-      metadata: { configuration_hash: desiredConfigurationHash },
+      metadata: {
+        configuration_hash: desiredConfigurationHash,
+        ...externalControlFields(),
+      },
     },
     entitlements: {},
     default_store: { name: "Tenant One" },
@@ -369,10 +483,96 @@ test("provision validates its idempotency receipt and always clears the owner pa
         hostname: "tenant-one.sandbox.techlong.cloud",
         idempotencyKey: `dep:${desiredConfigurationHash}`,
         compiledPayload: payload,
+        externalFence,
+        signal: signal(),
       }),
     /trusted idempotency receipt/,
   );
   assert.equal(Object.hasOwn(payload.first_owner, "password"), false);
+});
+
+test("provision binds its payload, short idempotency key and receipt to one epoch", async () => {
+  let requestHeaders: Record<string, string> = {};
+  const payload = {
+    instance: {
+      external_instance_id: appInstanceId,
+      metadata: {
+        configuration_hash: desiredConfigurationHash,
+        ...externalControlFields(),
+      },
+    },
+    entitlements: {},
+    default_store: { name: "Tenant One" },
+    first_owner: { password: "one-time-password-123" },
+  };
+  const client = new MtlsSaaSControlClient(
+    {
+      send: async (request) => {
+        requestHeaders = request.headers;
+        return {
+          status: 201,
+          body: {
+            success: true,
+            replayed: false,
+            ...externalControlFields(),
+          },
+        };
+      },
+    },
+    { issue: async () => "signed.jwt.value" },
+    { baseDomain: "sandbox.techlong.cloud" },
+  );
+  assert.deepEqual(
+    await client.provision({
+      appInstanceId,
+      hostname: "tenant-one.sandbox.techlong.cloud",
+      idempotencyKey: `dep:${desiredConfigurationHash}`,
+      compiledPayload: payload,
+      externalFence,
+      signal: signal(),
+    }),
+    { accepted: true },
+  );
+  assert.match(requestHeaders["idempotency-key"], /^tlctl-[a-f0-9]{32}-e3-[a-f0-9]{16}$/);
+  assert.ok(requestHeaders["idempotency-key"].length <= 128);
+  assert.equal(
+    requestHeaders["x-techlong-external-operation-hash"],
+    externalFence.operationHash,
+  );
+  assert.equal(Object.hasOwn(payload.first_owner, "password"), false);
+});
+
+test("an already-aborted control request makes zero token or transport calls", async () => {
+  let tokenCalls = 0;
+  let transportCalls = 0;
+  const client = new MtlsSaaSControlClient(
+    {
+      send: async () => {
+        transportCalls += 1;
+        throw new Error("must not send");
+      },
+    },
+    {
+      issue: async () => {
+        tokenCalls += 1;
+        return "must-not-be-issued";
+      },
+    },
+    { baseDomain: "sandbox.techlong.cloud" },
+  );
+  const controller = new AbortController();
+  controller.abort(new Error("lease lost"));
+  await assert.rejects(
+    client.readConfiguration({
+      appInstanceId,
+      hostname: "tenant-one.sandbox.techlong.cloud",
+      externalFence,
+      signal: controller.signal,
+    }),
+    /lease lost/,
+  );
+  assert.equal(tokenCalls, 0);
+  assert.equal(transportCalls, 0);
 });
 
 test("mTLS transport rejects non-private endpoints and oversized bodies before I/O", async () => {
@@ -400,14 +600,74 @@ test("mTLS transport rejects non-private endpoints and oversized bodies before I
   });
   await assert.rejects(
     () =>
-      transport.send({
-        method: "POST",
-        url: "https://tenant-one.sandbox.techlong.cloud:8443/api/saas/provision",
-        headers: {},
-        body: "{}",
-      }),
+      transport.send(
+        {
+          method: "POST",
+          url: "https://tenant-one.sandbox.techlong.cloud:8443/api/saas/provision",
+          headers: {},
+          body: "{}",
+        },
+        { signal: signal() },
+      ),
     /body cap/,
   );
+  const controller = new AbortController();
+  controller.abort(new Error("lease lost"));
+  await assert.rejects(
+    transport.send(
+      {
+        method: "GET",
+        url: "https://tenant-one.sandbox.techlong.cloud:8443/api/saas/control",
+        headers: {},
+      },
+      { signal: controller.signal },
+    ),
+    /lease lost/,
+  );
+});
+
+test("mTLS transport destroys an in-flight request with the same abort reason", async () => {
+  const original = Object.getOwnPropertyDescriptor(https, "request");
+  const request = new EventEmitter() as EventEmitter & {
+    setTimeout: () => void;
+    write: () => void;
+    end: () => void;
+    destroy: (error?: Error) => void;
+  };
+  let destroyedWith: Error | undefined;
+  request.setTimeout = () => undefined;
+  request.write = () => undefined;
+  request.end = () => undefined;
+  request.destroy = (error) => {
+    destroyedWith = error;
+  };
+  Object.defineProperty(https, "request", {
+    configurable: true,
+    value: () => request,
+  });
+  try {
+    const transport = new NodeMtlsSaaSControlTransport({
+      baseDomain: "sandbox.techlong.cloud",
+      clientCertificatePem: "memory-only-client-certificate",
+      clientPrivateKeyPem: "memory-only-client-private-key",
+      trustedCaPem: "memory-only-trusted-ca",
+    });
+    const controller = new AbortController();
+    const pending = transport.send(
+      {
+        method: "GET",
+        url: "https://tenant-one.sandbox.techlong.cloud:8443/api/saas/control",
+        headers: {},
+      },
+      { signal: controller.signal },
+    );
+    const reason = new Error("lease lost during TLS request");
+    controller.abort(reason);
+    await assert.rejects(pending, /lease lost during TLS request/);
+    assert.equal(destroyedWith, reason);
+  } finally {
+    if (original) Object.defineProperty(https, "request", original);
+  }
 });
 
 test("control endpoint policy supports an exact production base domain without widening it", async () => {
@@ -424,6 +684,7 @@ test("control endpoint policy supports an exact production base domain without w
               control_api_version: "1.1",
               image_revision: imageRevision,
               desired_configuration_hash: desiredConfigurationHash,
+              ...externalControlFields(),
               instance: {
                 status: "active",
                 external_instance_id: appInstanceId,
@@ -441,6 +702,8 @@ test("control endpoint policy supports an exact production base domain without w
       await client.readConfiguration({
         appInstanceId,
         hostname: "tenant-one.apps.techlong.cloud",
+        externalFence,
+        signal: signal(),
       })
     ).ready,
     true,
@@ -457,7 +720,13 @@ test("control endpoint policy supports an exact production base domain without w
     " tenant-one.apps.techlong.cloud",
   ]) {
     await assert.rejects(
-      () => client.readConfiguration({ appInstanceId, hostname }),
+      () =>
+        client.readConfiguration({
+          appInstanceId,
+          hostname,
+          externalFence,
+          signal: signal(),
+        }),
       /outside the configured tenant domain/,
     );
   }

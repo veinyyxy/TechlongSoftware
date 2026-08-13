@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, deploymentEnvironments, deploymentEnvironmentBindings, appInstanceDeployments, deploymentTenantResources, deploymentTenantResourceEvents, deploymentCleanupSchedules, deploymentEnvironmentCapacityReservations, deploymentJobs, deploymentStepRuns, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements } from "./postgres-schema";
+import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, deploymentEnvironments, deploymentEnvironmentBindings, appInstanceDeployments, deploymentTenantResources, deploymentTenantResourceEvents, deploymentCleanupSchedules, deploymentEnvironmentCapacityReservations, deploymentJobs, deploymentStepRuns, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements, deploymentTenantExternalOperations, deploymentTenantExternalOperationEvents, deploymentTenantCleanupRuns, deploymentTenantCleanupPhases, deploymentTenantCleanupEvents } from "./postgres-schema";
 
 export const appInstanceTemplatesRelations = relations(appInstanceTemplates, ({one, many}) => ({
 	product: one(products, {
@@ -231,6 +231,9 @@ export const appInstanceDeploymentsRelations = relations(appInstanceDeployments,
 		relationName: "deploymentTenantResources_ownerDeployment"
 	}),
 	tenantResourceEvents: many(deploymentTenantResourceEvents),
+	tenantExternalOperations: many(deploymentTenantExternalOperations),
+	tenantExternalOperationEvents: many(deploymentTenantExternalOperationEvents),
+	tenantCleanupRuns: many(deploymentTenantCleanupRuns),
 }));
 
 export const deploymentTenantResourcesRelations = relations(deploymentTenantResources, ({one, many}) => ({
@@ -261,6 +264,12 @@ export const deploymentTenantResourcesRelations = relations(deploymentTenantReso
 		references: [products.id]
 	}),
 	events: many(deploymentTenantResourceEvents),
+	externalOperations: many(deploymentTenantExternalOperations),
+	activeExternalOperation: one(deploymentTenantExternalOperations, {
+		fields: [deploymentTenantResources.appInstanceId, deploymentTenantResources.generation, deploymentTenantResources.externalOperationEpoch],
+		references: [deploymentTenantExternalOperations.appInstanceId, deploymentTenantExternalOperations.generation, deploymentTenantExternalOperations.epoch],
+		relationName: "deploymentTenantResource_activeExternalOperation"
+	}),
 }));
 
 export const deploymentTenantResourceEventsRelations = relations(deploymentTenantResourceEvents, ({one}) => ({
@@ -302,6 +311,7 @@ export const deploymentJobsRelations = relations(deploymentJobs, ({one, many}) =
 		references: [appInstanceDeployments.id]
 	}),
 	deploymentStepRuns: many(deploymentStepRuns),
+	createdTenantExternalOperations: many(deploymentTenantExternalOperations),
 }));
 
 export const deploymentStepRunsRelations = relations(deploymentStepRuns, ({one}) => ({
@@ -339,6 +349,66 @@ export const appInstancesRelations = relations(appInstances, ({one, many}) => ({
 	workspaceProductEntitlements: many(workspaceProductEntitlements),
 	appInstanceDeployments: many(appInstanceDeployments),
 	deploymentTenantResource: one(deploymentTenantResources),
+}));
+
+export const deploymentTenantExternalOperationsRelations = relations(deploymentTenantExternalOperations, ({one, many}) => ({
+	tenantResource: one(deploymentTenantResources, {
+		fields: [deploymentTenantExternalOperations.appInstanceId],
+		references: [deploymentTenantResources.appInstanceId]
+	}),
+	activeForTenantResource: one(deploymentTenantResources, {
+		fields: [deploymentTenantExternalOperations.appInstanceId, deploymentTenantExternalOperations.generation, deploymentTenantExternalOperations.epoch],
+		references: [deploymentTenantResources.appInstanceId, deploymentTenantResources.generation, deploymentTenantResources.externalOperationEpoch],
+		relationName: "deploymentTenantResource_activeExternalOperation"
+	}),
+	ownerDeployment: one(appInstanceDeployments, {
+		fields: [deploymentTenantExternalOperations.ownerDeploymentId],
+		references: [appInstanceDeployments.id]
+	}),
+	createdByJob: one(deploymentJobs, {
+		fields: [deploymentTenantExternalOperations.createdByJobId],
+		references: [deploymentJobs.id]
+	}),
+	events: many(deploymentTenantExternalOperationEvents),
+	cleanupRun: one(deploymentTenantCleanupRuns),
+}));
+
+export const deploymentTenantExternalOperationEventsRelations = relations(deploymentTenantExternalOperationEvents, ({one}) => ({
+	externalOperation: one(deploymentTenantExternalOperations, {
+		fields: [deploymentTenantExternalOperationEvents.appInstanceId, deploymentTenantExternalOperationEvents.generation, deploymentTenantExternalOperationEvents.epoch],
+		references: [deploymentTenantExternalOperations.appInstanceId, deploymentTenantExternalOperations.generation, deploymentTenantExternalOperations.epoch]
+	}),
+	deployment: one(appInstanceDeployments, {
+		fields: [deploymentTenantExternalOperationEvents.deploymentId],
+		references: [appInstanceDeployments.id]
+	}),
+}));
+
+export const deploymentTenantCleanupRunsRelations = relations(deploymentTenantCleanupRuns, ({one, many}) => ({
+	externalOperation: one(deploymentTenantExternalOperations, {
+		fields: [deploymentTenantCleanupRuns.appInstanceId, deploymentTenantCleanupRuns.generation, deploymentTenantCleanupRuns.externalEpoch, deploymentTenantCleanupRuns.ownerDeploymentId],
+		references: [deploymentTenantExternalOperations.appInstanceId, deploymentTenantExternalOperations.generation, deploymentTenantExternalOperations.epoch, deploymentTenantExternalOperations.ownerDeploymentId]
+	}),
+	ownerDeployment: one(appInstanceDeployments, {
+		fields: [deploymentTenantCleanupRuns.ownerDeploymentId],
+		references: [appInstanceDeployments.id]
+	}),
+	phases: many(deploymentTenantCleanupPhases),
+	events: many(deploymentTenantCleanupEvents),
+}));
+
+export const deploymentTenantCleanupPhasesRelations = relations(deploymentTenantCleanupPhases, ({one}) => ({
+	run: one(deploymentTenantCleanupRuns, {
+		fields: [deploymentTenantCleanupPhases.runId],
+		references: [deploymentTenantCleanupRuns.id]
+	}),
+}));
+
+export const deploymentTenantCleanupEventsRelations = relations(deploymentTenantCleanupEvents, ({one}) => ({
+	run: one(deploymentTenantCleanupRuns, {
+		fields: [deploymentTenantCleanupEvents.runId],
+		references: [deploymentTenantCleanupRuns.id]
+	}),
 }));
 
 export const subscriptionPurchaseOrdersRelations = relations(subscriptionPurchaseOrders, ({one, many}) => ({

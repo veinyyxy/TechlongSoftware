@@ -94,6 +94,7 @@ function dependencies(input: {
   accountId?: string;
   businessRulePriority?: string;
   calls: string[];
+  signals?: AbortSignal[];
 }) {
   const resolve = (kind: string): Record<string, unknown> => {
     input.calls.push(kind);
@@ -286,7 +287,15 @@ function dependencies(input: {
         throw new Error(`unexpected read command ${kind}`);
     }
   };
-  const client = { send: async (value: unknown) => resolve((value as { kind: string }).kind) };
+  const client = {
+    send: async (
+      value: unknown,
+      options?: { abortSignal?: AbortSignal },
+    ) => {
+      if (options?.abortSignal) input.signals?.push(options.abortSignal);
+      return resolve((value as { kind: string }).kind);
+    },
+  };
   return {
     clients: { sts: client, ecs: client, elbv2: client, ec2: client, rds: client },
     commands: {
@@ -310,13 +319,24 @@ function dependencies(input: {
 
 test("injected Shared Cell adapter collects only read evidence and hashes it", async () => {
   const calls: string[] = [];
-  const adapter = new AwsSdkSharedCellEvidenceAdapter(region, dependencies({ calls }));
-  const result = await adapter.verify({ environment, binding });
+  const signals: AbortSignal[] = [];
+  const adapter = new AwsSdkSharedCellEvidenceAdapter(
+    region,
+    dependencies({ calls, signals }),
+  );
+  const controller = new AbortController();
+  const result = await adapter.verify({
+    environment,
+    binding,
+    signal: controller.signal,
+  });
   assert.equal(result.verified, true);
   assert.match(result.evidenceHash, /^[a-f0-9]{64}$/);
   assert.ok(calls.includes("DescribeDBClusters"));
   assert.ok(calls.includes("DescribeSecurityGroups"));
   assert.equal(calls.every((name) => /^(?:Get|Describe)/.test(name)), true);
+  assert.equal(signals.length, calls.length);
+  assert.equal(signals.every((item) => item === controller.signal), true);
 });
 
 test("wrong STS account stops before any resource read", async () => {
@@ -326,10 +346,22 @@ test("wrong STS account stops before any resource read", async () => {
     dependencies({ calls, accountId: "111111111111" }),
   );
   await assert.rejects(
-    adapter.verify({ environment, binding }),
+    adapter.verify({ environment, binding, signal: new AbortController().signal }),
     /outside the reviewed Sandbox role/,
   );
   assert.deepEqual(calls, ["GetCallerIdentity"]);
+});
+
+test("an already-aborted security proof makes zero AWS SDK calls", async () => {
+  const calls: string[] = [];
+  const adapter = new AwsSdkSharedCellEvidenceAdapter(region, dependencies({ calls }));
+  const controller = new AbortController();
+  controller.abort(new Error("lease lost"));
+  await assert.rejects(
+    adapter.verify({ environment, binding, signal: controller.signal }),
+    /lease lost/,
+  );
+  assert.deepEqual(calls, []);
 });
 
 test("a lower-priority business control deny rule is rejected", async () => {
@@ -339,7 +371,7 @@ test("a lower-priority business control deny rule is rejected", async () => {
     dependencies({ calls, businessRulePriority: "2" }),
   );
   await assert.rejects(
-    adapter.verify({ environment, binding }),
+    adapter.verify({ environment, binding, signal: new AbortController().signal }),
     /must reject \/api\/saas/,
   );
 });
@@ -354,7 +386,7 @@ test("a Cell without the full tenant TTL plus cleanup buffer is rejected", async
       dependencies({ calls }),
     );
     await assert.rejects(
-      adapter.verify({ environment, binding }),
+      adapter.verify({ environment, binding, signal: new AbortController().signal }),
       /full tenant TTL plus cleanup buffer/,
     );
   } finally {
@@ -365,7 +397,7 @@ test("a Cell without the full tenant TTL plus cleanup buffer is rejected", async
 test("missing adapter is fail-closed without making a client", async () => {
   const adapter = createInjectedSharedCellSecurityPreflight(region);
   await assert.rejects(
-    adapter.verify({ environment, binding }),
+    adapter.verify({ environment, binding, signal: new AbortController().signal }),
     /not configured/,
   );
 });

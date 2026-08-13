@@ -6,6 +6,7 @@ import type {
   TenantDatabaseLifecycleState,
   TenantDatabaseMutationReceipt,
   TenantDatabasePort,
+  TenantExternalOperationFence,
   TenantResourceFence,
   TenantResourceIdentity,
   TenantSecretInspection,
@@ -263,6 +264,32 @@ export function assertTenantResourceFence(
   }
 }
 
+function assertProvisionExternalFence(
+  actual: TenantExternalOperationFence,
+  expected: TenantExternalOperationFence,
+  resourceFence: TenantResourceFence,
+): void {
+  if (
+    actual.schemaVersion !== 1 ||
+    actual.intent !== "provision" ||
+    actual.state !== "active" ||
+    actual.ownerDeploymentId !== resourceFence.ownerDeploymentId ||
+    !Number.isSafeInteger(actual.epoch) ||
+    actual.epoch < 1 ||
+    !/^[a-f0-9]{64}$/.test(actual.operationHash) ||
+    actual.marker !==
+      `tl_epoch_${resourceFence.identity.stableIdentityHash.slice(0, 24)}` +
+        `_g${resourceFence.generation}_e${actual.epoch}` ||
+    canonicalJson(actual.resourceFence) !== canonicalJson(resourceFence) ||
+    canonicalJson(actual) !== canonicalJson(expected)
+  ) {
+    throw new TenantDatabaseLifecycleError(
+      "TENANT_EXTERNAL_OWNERSHIP_FENCE_MISMATCH",
+      "Tenant adapter did not use the exact active provision epoch.",
+    );
+  }
+}
+
 function assertEvidenceHash(value: string): void {
   if (!sha256Pattern.test(value)) {
     throw new TenantDatabaseLifecycleError(
@@ -275,11 +302,13 @@ function assertEvidenceHash(value: string): void {
 function assertInspection(
   inspection: TenantDatabaseInspection,
   fence: TenantResourceFence,
+  externalFence: TenantExternalOperationFence,
 ): void {
   assertExactKeys(
     inspection,
     [
       "fence",
+      "externalFence",
       "state",
       "databaseExists",
       "roleExists",
@@ -292,6 +321,7 @@ function assertInspection(
     "Tenant database inspection",
   );
   assertTenantResourceFence(inspection.fence, fence);
+  assertProvisionExternalFence(inspection.externalFence, externalFence, fence);
   assertEvidenceHash(inspection.evidenceHash);
 
   if (inspection.state === "partial") {
@@ -390,14 +420,16 @@ function assertSecretRef(
 function assertSecretInspection(
   inspection: TenantSecretInspection,
   fence: TenantResourceFence,
+  externalFence: TenantExternalOperationFence,
   expectedAws?: { accountId: string; region: string },
 ): void {
   assertExactKeys(
     inspection,
-    ["fence", "state", "secretRef", "ownershipMarker", "versionRef"],
+    ["externalFence", "fence", "state", "secretRef", "ownershipMarker", "versionRef"],
     "Tenant secret inspection",
   );
   assertTenantResourceFence(inspection.fence, fence);
+  assertProvisionExternalFence(inspection.externalFence, externalFence, fence);
   if (inspection.state === "missing") {
     if (
       inspection.secretRef !== null ||
@@ -427,12 +459,14 @@ function assertSecretInspection(
 function assertSecretReceipt(
   receipt: TenantSecretReceipt,
   fence: TenantResourceFence,
+  externalFence: TenantExternalOperationFence,
   expectedAws?: { accountId: string; region: string },
 ): void {
   assertExactKeys(
     receipt,
     [
       "fence",
+      "externalFence",
       "outcome",
       "secretRef",
       "ownershipMarker",
@@ -441,6 +475,7 @@ function assertSecretReceipt(
     "Tenant secret receipt",
   );
   assertTenantResourceFence(receipt.fence, fence);
+  assertProvisionExternalFence(receipt.externalFence, externalFence, fence);
   assertSecretRef(receipt.secretRef, fence.identity, expectedAws);
   if (
     !["created", "already_exists"].includes(receipt.outcome) ||
@@ -458,6 +493,7 @@ function assertMutationReceipt(
   receipt: TenantDatabaseMutationReceipt,
   expected: {
     fence: TenantResourceFence;
+    externalFence: TenantExternalOperationFence;
     operation: TenantDatabaseMutationReceipt["operation"];
     states: TenantDatabaseMutationReceipt["resultingState"][];
   },
@@ -466,6 +502,7 @@ function assertMutationReceipt(
     receipt,
     [
       "fence",
+      "externalFence",
       "operation",
       "outcome",
       "resultingState",
@@ -474,6 +511,11 @@ function assertMutationReceipt(
     "Tenant database mutation receipt",
   );
   assertTenantResourceFence(receipt.fence, expected.fence);
+  assertProvisionExternalFence(
+    receipt.externalFence,
+    expected.externalFence,
+    expected.fence,
+  );
   assertEvidenceHash(receipt.evidenceHash);
   if (
     receipt.operation !== expected.operation ||
@@ -518,6 +560,7 @@ function validateApprovedBaseline(
 
 function safeOutput(input: {
   fence: TenantResourceFence;
+  externalFence: TenantExternalOperationFence;
   secretRef: string;
   state: TenantDatabaseLifecycleState;
   baselineDigest: string | null;
@@ -525,6 +568,12 @@ function safeOutput(input: {
   evidenceHash: string;
 }): Record<string, unknown> {
   return {
+    // Checkpoint output is persisted and inspected by the generic safety
+    // scanner. Keep only non-secret scalar proof here; the complete fence has
+    // already been validated against every in-memory provider receipt.
+    externalEpoch: input.externalFence.epoch,
+    externalMarker: input.externalFence.marker,
+    externalOperationHash: input.externalFence.operationHash,
     databaseName: input.fence.identity.databaseName,
     roleName: input.fence.identity.roleName,
     ownershipMarker: input.fence.ownershipMarker,
@@ -573,6 +622,22 @@ function currentFence(
   return fence;
 }
 
+function currentProvisionExternalFence(
+  context: DeploymentExecutionContext,
+  resourceFence: TenantResourceFence,
+  expected: TenantExternalOperationFence,
+): TenantExternalOperationFence {
+  const current = context.tenantExternalOperation;
+  if (!current) {
+    throw new TenantDatabaseLifecycleError(
+      "TENANT_EXTERNAL_OWNERSHIP_UNPROVEN",
+      "Tenant provisioning requires an active externally proven operation epoch.",
+    );
+  }
+  assertProvisionExternalFence(current, expected, resourceFence);
+  return current;
+}
+
 /**
  * Bridges the existing two Worker checkpoints to the reviewed, typed database
  * and secret lifecycle. It intentionally does not contain AWS or PostgreSQL
@@ -595,19 +660,37 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
 
   async ensureTenantDatabase(input: {
     context: DeploymentExecutionContext;
+    externalFence: TenantExternalOperationFence;
     idempotencyKey: string;
+    signal: AbortSignal;
   }): Promise<Record<string, unknown>> {
+    input.signal.throwIfAborted();
     assertIdempotencyKey(input.idempotencyKey);
     const identity = await deriveTenantResourceIdentity(input.context);
     const fence = currentFence(input.context, identity);
+    const externalFence = currentProvisionExternalFence(
+      input.context,
+      fence,
+      input.externalFence,
+    );
     const expectedAws = {
       accountId: input.context.environment.expectedAccountId,
       region: input.context.environment.region,
     };
-    let database = await this.lifecycle.inspect({ fence });
-    assertInspection(database, fence);
-    let secret = await this.secrets.inspectRuntimeSecret({ fence });
-    assertSecretInspection(secret, fence, expectedAws);
+    let database = await this.lifecycle.inspect({
+      fence,
+      externalFence,
+      signal: input.signal,
+    });
+    input.signal.throwIfAborted();
+    assertInspection(database, fence, externalFence);
+    let secret = await this.secrets.inspectRuntimeSecret({
+      fence,
+      externalFence,
+      signal: input.signal,
+    });
+    input.signal.throwIfAborted();
+    assertSecretInspection(secret, fence, externalFence, expectedAws);
 
     if (database.state !== "missing" && secret.state === "missing") {
       throw new TenantDatabaseLifecycleError(
@@ -618,11 +701,15 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
     if (database.state === "missing" && secret.state === "missing") {
       const created = await this.secrets.ensureRuntimeSecret({
         fence,
+        externalFence,
         idempotencyKey: `${input.idempotencyKey}:secret`,
+        signal: input.signal,
       });
-      assertSecretReceipt(created, fence, expectedAws);
+      input.signal.throwIfAborted();
+      assertSecretReceipt(created, fence, externalFence, expectedAws);
       secret = {
         fence,
+        externalFence,
         state: "present",
         secretRef: created.secretRef,
         ownershipMarker: fence.ownershipMarker,
@@ -639,16 +726,25 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
     if (database.state === "missing") {
       const receipt = await this.lifecycle.prepareEmptyDatabase({
         fence,
+        externalFence,
         runtimeSecretRef: secret.secretRef,
         idempotencyKey: `${input.idempotencyKey}:prepare`,
+        signal: input.signal,
       });
+      input.signal.throwIfAborted();
       assertMutationReceipt(receipt, {
         fence,
+        externalFence,
         operation: "prepare_empty_database",
         states: ["empty"],
       });
-      database = await this.lifecycle.inspect({ fence });
-      assertInspection(database, fence);
+      database = await this.lifecycle.inspect({
+        fence,
+        externalFence,
+        signal: input.signal,
+      });
+      input.signal.throwIfAborted();
+      assertInspection(database, fence, externalFence);
       if (database.state !== "empty") {
         throw new TenantDatabaseLifecycleError(
           "TENANT_DATABASE_PREPARE_UNVERIFIED",
@@ -659,6 +755,7 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
     }
     return safeOutput({
       fence,
+      externalFence,
       secretRef: secret.secretRef,
       state: database.state,
       baselineDigest: database.baselineDigest,
@@ -669,18 +766,31 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
 
   async migrateTenantDatabase(input: {
     context: DeploymentExecutionContext;
+    externalFence: TenantExternalOperationFence;
     idempotencyKey: string;
+    signal: AbortSignal;
   }): Promise<Record<string, unknown>> {
+    input.signal.throwIfAborted();
     assertIdempotencyKey(input.idempotencyKey);
     const identity = await deriveTenantResourceIdentity(input.context);
     const fence = currentFence(input.context, identity);
+    const externalFence = currentProvisionExternalFence(
+      input.context,
+      fence,
+      input.externalFence,
+    );
     const expectedAws = {
       accountId: input.context.environment.expectedAccountId,
       region: input.context.environment.region,
     };
     const baseline = validateApprovedBaseline(this.baseline);
-    const secret = await this.secrets.inspectRuntimeSecret({ fence });
-    assertSecretInspection(secret, fence, expectedAws);
+    const secret = await this.secrets.inspectRuntimeSecret({
+      fence,
+      externalFence,
+      signal: input.signal,
+    });
+    input.signal.throwIfAborted();
+    assertSecretInspection(secret, fence, externalFence, expectedAws);
     if (secret.state !== "present" || !secret.secretRef) {
       throw new TenantDatabaseLifecycleError(
         "TENANT_SECRET_UNAVAILABLE",
@@ -688,8 +798,13 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
       );
     }
 
-    let database = await this.lifecycle.inspect({ fence });
-    assertInspection(database, fence);
+    let database = await this.lifecycle.inspect({
+      fence,
+      externalFence,
+      signal: input.signal,
+    });
+    input.signal.throwIfAborted();
+    assertInspection(database, fence, externalFence);
     if (database.state === "missing") {
       throw new TenantDatabaseLifecycleError(
         "TENANT_DATABASE_NOT_PREPARED",
@@ -699,17 +814,22 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
     if (database.state === "empty") {
       const receipt = await this.lifecycle.restoreApprovedBaseline({
         fence,
+        externalFence,
         runtimeSecretRef: secret.secretRef,
         baseline,
         idempotencyKey: `${input.idempotencyKey}:baseline`,
+        signal: input.signal,
       });
+      input.signal.throwIfAborted();
       assertMutationReceipt(receipt, {
         fence,
+        externalFence,
         operation: "restore_approved_baseline",
         states: ["baseline_restored"],
       });
-      database = await this.lifecycle.inspect({ fence });
-      assertInspection(database, fence);
+      database = await this.lifecycle.inspect({ fence, externalFence, signal: input.signal });
+      input.signal.throwIfAborted();
+      assertInspection(database, fence, externalFence);
     }
     if (
       database.state !== "baseline_restored" &&
@@ -729,18 +849,23 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
       }
       const receipt = await this.lifecycle.migrateSaas({
         fence,
+        externalFence,
         runtimeSecretRef: secret.secretRef,
         command: saasMigrationCommand,
         migrationContract: saasMigrationContract,
         idempotencyKey: `${input.idempotencyKey}:saas`,
+        signal: input.signal,
       });
+      input.signal.throwIfAborted();
       assertMutationReceipt(receipt, {
         fence,
+        externalFence,
         operation: "migrate_saas",
         states: ["saas_migrated"],
       });
-      database = await this.lifecycle.inspect({ fence });
-      assertInspection(database, fence);
+      database = await this.lifecycle.inspect({ fence, externalFence, signal: input.signal });
+      input.signal.throwIfAborted();
+      assertInspection(database, fence, externalFence);
     }
     if (database.state !== "saas_migrated" && database.state !== "verified") {
       throw new TenantDatabaseLifecycleError(
@@ -757,16 +882,21 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
     }
     const verified = await this.lifecycle.verify({
       fence,
+      externalFence,
       expectedBaselineDigest: baseline.archiveSha256,
       expectedMigrationContract: saasMigrationContract,
+      signal: input.signal,
     });
+    input.signal.throwIfAborted();
     assertMutationReceipt(verified, {
       fence,
+      externalFence,
       operation: "verify",
       states: ["verified"],
     });
-    database = await this.lifecycle.inspect({ fence });
-    assertInspection(database, fence);
+    database = await this.lifecycle.inspect({ fence, externalFence, signal: input.signal });
+    input.signal.throwIfAborted();
+    assertInspection(database, fence, externalFence);
     if (
       database.state !== "verified" ||
       database.baselineDigest !== baseline.archiveSha256 ||
@@ -779,6 +909,7 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
     }
     return safeOutput({
       fence,
+      externalFence,
       secretRef: secret.secretRef,
       state: database.state,
       baselineDigest: database.baselineDigest,

@@ -10,6 +10,7 @@ import type {
 import type {
   DeploymentExecutionContext,
   SaaSControlPayloadCompilerPort,
+  TenantExternalOperationFence,
 } from "./contracts.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 
@@ -51,6 +52,7 @@ export interface AppInstanceTemplateBinding {
 export interface AppInstanceTemplateBindingSource {
   loadForAppInstance(input: {
     appInstanceId: string;
+    signal: AbortSignal;
   }): Promise<AppInstanceTemplateBinding | null>;
 }
 
@@ -63,6 +65,7 @@ export interface ImmutableTemplateVersion {
 export interface ImmutableTemplateVersionSource {
   loadById(input: {
     templateVersionId: string;
+    signal: AbortSignal;
   }): Promise<ImmutableTemplateVersion | null>;
 }
 
@@ -84,6 +87,7 @@ export interface FirstOwnerPasswordSource {
   lease(input: {
     appInstanceId: string;
     templateVersionId: string;
+    signal: AbortSignal;
   }): Promise<FirstOwnerPasswordLease>;
 }
 
@@ -174,18 +178,42 @@ export class ImmutableTemplateSaaSControlPayloadCompiler
   async compile(input: {
     context: DeploymentExecutionContext;
     configurationHash: string;
+    externalFence: TenantExternalOperationFence;
+    signal: AbortSignal;
   }): Promise<{
     compiledPayload: Record<string, unknown>;
     configurationHash: string;
   }> {
+    input.signal.throwIfAborted();
     if (!/^[a-f0-9]{64}$/.test(input.configurationHash)) {
       throw new SaaSControlPayloadCompilationError(
         "Deployment configuration hash is invalid.",
       );
     }
+    const external = input.externalFence;
+    if (
+      external.intent !== "provision" ||
+      external.state !== "active" ||
+      external.resourceFence.identity.appInstanceId !==
+        input.context.appInstance.id ||
+      canonicalJson(input.context.tenantExternalOperation) !==
+        canonicalJson(external) ||
+      !Number.isSafeInteger(external.epoch) ||
+      external.epoch < 1 ||
+      !/^[a-f0-9]{64}$/.test(external.operationHash) ||
+      external.marker !==
+        `tl_epoch_${external.resourceFence.identity.stableIdentityHash.slice(0, 24)}` +
+          `_g${external.resourceFence.generation}_e${external.epoch}`
+    ) {
+      throw new SaaSControlPayloadCompilationError(
+        "The control payload is not bound to the current active provision epoch.",
+      );
+    }
     const binding = await this.bindings.loadForAppInstance({
       appInstanceId: input.context.appInstance.id,
+      signal: input.signal,
     });
+    input.signal.throwIfAborted();
     assertBinding(binding, input.context.appInstance.id);
     if (binding.templateVersionId !== input.context.appInstance.templateVersionId) {
       throw new SaaSControlPayloadCompilationError(
@@ -200,15 +228,20 @@ export class ImmutableTemplateSaaSControlPayloadCompiler
     }
     const version = await this.templateVersions.loadById({
       templateVersionId: binding.templateVersionId,
+      signal: input.signal,
     });
+    input.signal.throwIfAborted();
     assertTemplateVersion(version, binding.templateVersionId);
 
     const passwordLease = await this.firstOwnerPasswords.lease({
       appInstanceId: input.context.appInstance.id,
       templateVersionId: binding.templateVersionId,
+      signal: input.signal,
     });
     try {
+      input.signal.throwIfAborted();
       const firstOwnerPassword = passwordLease.read();
+      input.signal.throwIfAborted();
       if (firstOwnerPassword.length < 10 || firstOwnerPassword.length > 256) {
         throw new SaaSControlPayloadCompilationError(
           "Runtime first-owner password does not meet the control contract.",
@@ -219,6 +252,7 @@ export class ImmutableTemplateSaaSControlPayloadCompiler
         configuration: binding.resolvedConfiguration,
         runtimeSecrets: { firstOwnerPassword },
       });
+      input.signal.throwIfAborted();
       if (!result.data) {
         throw new SaaSControlPayloadCompilationError(
           `Immutable template compilation failed for ${Object.keys(result.errors).sort().join(", ") || "unknown fields"}.`,
@@ -229,6 +263,7 @@ export class ImmutableTemplateSaaSControlPayloadCompiler
       ensureObjectRoot(compiled, "default_store");
       ensureObjectRoot(compiled, "first_owner");
       const imageRevision = immutableImageDigest(input.context);
+      input.signal.throwIfAborted();
       return {
         configurationHash: input.configurationHash,
         compiledPayload: {
@@ -238,6 +273,10 @@ export class ImmutableTemplateSaaSControlPayloadCompiler
               configuration_hash: input.configurationHash,
               template_version_id: binding.templateVersionId,
               image_revision: imageRevision,
+              external_operation_epoch: external.epoch,
+              external_operation_intent: external.intent,
+              external_operation_marker: external.marker,
+              external_operation_hash: external.operationHash,
             },
           },
           entitlements: compiled.entitlements,

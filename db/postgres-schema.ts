@@ -1,4 +1,4 @@
-import { pgTable, uniqueIndex, index, text, bigint, foreignKey, check, integer } from "drizzle-orm/pg-core"
+import { pgTable, uniqueIndex, index, text, bigint, foreignKey, check, integer, primaryKey } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
@@ -631,6 +631,7 @@ export const deploymentTenantResources = pgTable("deployment_tenant_resources", 
 	roleName: text("role_name").notNull(),
 	secretName: text("secret_name").notNull(),
 	runtimeSecretRef: text("runtime_secret_ref"),
+	externalOperationEpoch: bigint("external_operation_epoch", { mode: "number" }),
 	ownershipMarker: text("ownership_marker").notNull(),
 	lifecycleStatus: text("lifecycle_status").default('planned').notNull(),
 	baselineDigest: text("baseline_digest"),
@@ -679,10 +680,15 @@ export const deploymentTenantResources = pgTable("deployment_tenant_resources", 
 		foreignColumns: [products.id],
 		name: "deployment_tenant_resources_product_id_fkey"
 	}).onDelete("restrict"),
+	// The reverse composite pointer FK targets a table declared later and forms
+	// a real SQL cycle with externalOperations -> tenantResources. It is kept in
+	// postgres-schema.sql/0007; modeling it here makes Drizzle infer both tables
+	// as `any` (TS7022/TS7024).
 	check("deployment_tenant_resources_database_name_check", sql`database_name ~ '^[a-z][a-z0-9_]{2,62}$'::text`),
 	check("deployment_tenant_resources_role_name_check", sql`role_name ~ '^[a-z][a-z0-9_]{2,62}$'::text`),
 	check("deployment_tenant_resources_secret_name_check", sql`secret_name ~ '^techlong/sandbox/tenant/[a-z0-9][a-z0-9_-]{2,63}/runtime$'::text`),
 	check("deployment_tenant_resources_secret_ref_check", sql`runtime_secret_ref IS NULL OR runtime_secret_ref ~ '^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:techlong/sandbox/tenant/[A-Za-z0-9_/-]+-[A-Za-z0-9]{6}$'::text`),
+	check("deployment_tenant_resources_external_operation_epoch_check", sql`external_operation_epoch > 0`),
 	check("deployment_tenant_resources_generation_check", sql`generation > 0`),
 	check("deployment_tenant_resources_stable_identity_hash_check", sql`stable_identity_hash ~ '^[a-f0-9]{64}$'::text`),
 	check("deployment_tenant_resources_ownership_marker_check", sql`ownership_marker = 'tl_owner_'::text || substring(stable_identity_hash, 1, 32) || '_g'::text || generation::text`),
@@ -944,5 +950,142 @@ export const workspaceProductEntitlements = pgTable("workspace_product_entitleme
 			foreignColumns: [appInstances.id],
 			name: "workspace_product_entitlements_app_instance_id_fkey"
 		}).onDelete("set null"),
+]);
+
+export const deploymentTenantExternalOperations = pgTable("deployment_tenant_external_operations", {
+	appInstanceId: text("app_instance_id").notNull(),
+	generation: bigint("generation", { mode: "number" }).notNull(),
+	epoch: bigint({ mode: "number" }).notNull(),
+	stableIdentityHash: text("stable_identity_hash").notNull(),
+	ownerDeploymentId: text("owner_deployment_id").notNull(),
+	createdByJobId: text("created_by_job_id").notNull(),
+	createdByAttempt: integer("created_by_attempt").notNull(),
+	intent: text().notNull(),
+	operationHash: text("operation_hash").notNull(),
+	marker: text().notNull(),
+	state: text().default('pending_external').notNull(),
+	evidenceHash: text("evidence_hash"),
+	evidence: text().default('{}').notNull(),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+	activatedAt: bigint("activated_at", { mode: "number" }),
+	completedAt: bigint("completed_at", { mode: "number" }),
+}, (table) => [
+	primaryKey({ columns: [table.appInstanceId, table.generation, table.epoch], name: "deployment_tenant_external_operations_pkey" }),
+	uniqueIndex("deployment_tenant_external_operations_identity_unique").using("btree", table.appInstanceId.asc().nullsLast().op("text_ops"), table.generation.asc().nullsLast().op("int8_ops"), table.intent.asc().nullsLast().op("text_ops"), table.operationHash.asc().nullsLast().op("text_ops")),
+	uniqueIndex("deployment_tenant_external_operations_current_unique").using("btree", table.appInstanceId.asc().nullsLast().op("text_ops"), table.generation.asc().nullsLast().op("int8_ops")).where(sql`state = 'active'`),
+	uniqueIndex("deployment_tenant_external_operations_pending_unique").using("btree", table.appInstanceId.asc().nullsLast().op("text_ops"), table.generation.asc().nullsLast().op("int8_ops")).where(sql`state = 'pending_external'`),
+	index("deployment_tenant_external_operations_owner_idx").using("btree", table.ownerDeploymentId.asc().nullsLast().op("text_ops"), table.state.asc().nullsLast().op("text_ops"), table.updatedAt.asc().nullsLast().op("int8_ops")),
+	uniqueIndex("deployment_tenant_external_operations_owner_epoch_unique").using("btree", table.appInstanceId.asc().nullsLast().op("text_ops"), table.generation.asc().nullsLast().op("int8_ops"), table.epoch.asc().nullsLast().op("int8_ops"), table.ownerDeploymentId.asc().nullsLast().op("text_ops")),
+	foreignKey({ columns: [table.appInstanceId], foreignColumns: [deploymentTenantResources.appInstanceId], name: "deployment_tenant_external_operations_app_instance_id_fkey" }).onDelete("restrict"),
+	foreignKey({ columns: [table.ownerDeploymentId], foreignColumns: [appInstanceDeployments.id], name: "deployment_tenant_external_operations_owner_deployment_id_fkey" }).onDelete("restrict"),
+	foreignKey({ columns: [table.createdByJobId], foreignColumns: [deploymentJobs.id], name: "deployment_tenant_external_operations_created_by_job_id_fkey" }).onDelete("restrict"),
+	check("deployment_tenant_external_operations_generation_check", sql`generation > 0`),
+	check("deployment_tenant_external_operations_epoch_check", sql`epoch > 0`),
+	check("deployment_tenant_external_operations_identity_hash_check", sql`stable_identity_hash ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_tenant_external_operations_attempt_check", sql`created_by_attempt > 0`),
+	check("deployment_tenant_external_operations_intent_check", sql`intent = ANY (ARRAY['provision'::text, 'cleanup'::text])`),
+	check("deployment_tenant_external_operations_operation_hash_check", sql`operation_hash ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_tenant_external_operations_marker_check", sql`marker = 'tl_epoch_'::text || substring(stable_identity_hash, 1, 24) || '_g'::text || generation::text || '_e'::text || epoch::text`),
+	check("deployment_tenant_external_operations_state_check", sql`state = ANY (ARRAY['pending_external'::text, 'active'::text, 'retired'::text, 'failed'::text])`),
+	check("deployment_tenant_external_operations_evidence_hash_check", sql`evidence_hash IS NULL OR evidence_hash ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_tenant_external_operations_evidence_check", sql`jsonb_typeof((evidence)::jsonb) = 'object'::text AND octet_length(evidence) <= 16384`),
+	check("deployment_tenant_external_operations_state_timestamps_check", sql`(state = 'pending_external'::text AND activated_at IS NULL AND completed_at IS NULL) OR (state = 'active'::text AND activated_at IS NOT NULL AND completed_at IS NULL) OR (state = 'retired'::text AND activated_at IS NOT NULL AND completed_at IS NOT NULL) OR (state = 'failed'::text AND completed_at IS NOT NULL)`),
+	check("deployment_tenant_external_operations_active_evidence_check", sql`state <> 'active'::text OR (evidence_hash IS NOT NULL AND (evidence)::jsonb <> '{}'::jsonb)`),
+	check("deployment_tenant_external_operations_timestamp_order_check", sql`updated_at >= created_at AND (activated_at IS NULL OR activated_at >= created_at) AND (completed_at IS NULL OR completed_at >= created_at) AND (activated_at IS NULL OR completed_at IS NULL OR completed_at >= activated_at)`),
+]);
+
+export const deploymentTenantExternalOperationEvents = pgTable("deployment_tenant_external_operation_events", {
+	id: text().primaryKey().notNull(),
+	appInstanceId: text("app_instance_id").notNull(),
+	generation: bigint("generation", { mode: "number" }).notNull(),
+	epoch: bigint({ mode: "number" }).notNull(),
+	deploymentId: text("deployment_id").notNull(),
+	eventType: text("event_type").notNull(),
+	fromState: text("from_state"),
+	toState: text("to_state").notNull(),
+	evidenceHash: text("evidence_hash"),
+	evidence: text().default('{}').notNull(),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => [
+	index("deployment_tenant_external_operation_events_epoch_idx").using("btree", table.appInstanceId.asc().nullsLast().op("text_ops"), table.generation.asc().nullsLast().op("int8_ops"), table.epoch.asc().nullsLast().op("int8_ops"), table.createdAt.asc().nullsLast().op("int8_ops")),
+	foreignKey({ columns: [table.appInstanceId, table.generation, table.epoch], foreignColumns: [deploymentTenantExternalOperations.appInstanceId, deploymentTenantExternalOperations.generation, deploymentTenantExternalOperations.epoch], name: "deployment_tenant_external_operation_events_operation_fkey" }).onDelete("restrict"),
+	foreignKey({ columns: [table.deploymentId], foreignColumns: [appInstanceDeployments.id], name: "deployment_tenant_external_operation_events_deployment_id_fkey" }).onDelete("restrict"),
+	check("deployment_tenant_external_operation_events_generation_check", sql`generation > 0`),
+	check("deployment_tenant_external_operation_events_epoch_check", sql`epoch > 0`),
+	check("deployment_tenant_external_operation_events_event_type_check", sql`event_type = ANY (ARRAY['prepared'::text, 'activated'::text, 'retired'::text, 'failed'::text])`),
+	check("deployment_tenant_external_operation_events_from_state_check", sql`from_state IS NULL OR from_state = ANY (ARRAY['pending_external'::text, 'active'::text, 'retired'::text, 'failed'::text])`),
+	check("deployment_tenant_external_operation_events_to_state_check", sql`to_state = ANY (ARRAY['pending_external'::text, 'active'::text, 'retired'::text, 'failed'::text])`),
+	check("deployment_tenant_external_operation_events_evidence_hash_check", sql`evidence_hash IS NULL OR evidence_hash ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_tenant_external_operation_events_evidence_check", sql`jsonb_typeof((evidence)::jsonb) = 'object'::text AND octet_length(evidence) <= 16384`),
+	check("deployment_tenant_external_operation_events_transition_check", sql`(event_type = 'prepared'::text AND from_state IS NULL AND to_state = 'pending_external'::text) OR (event_type = 'activated'::text AND from_state = 'pending_external'::text AND to_state = 'active'::text) OR (event_type = 'retired'::text AND from_state = 'active'::text AND to_state = 'retired'::text) OR (event_type = 'failed'::text AND from_state = ANY (ARRAY['pending_external'::text, 'active'::text]) AND to_state = 'failed'::text)`),
+]);
+
+export const deploymentTenantCleanupRuns = pgTable("deployment_tenant_cleanup_runs", {
+	id: text().primaryKey().notNull(),
+	appInstanceId: text("app_instance_id").notNull(),
+	generation: bigint("generation", { mode: "number" }).notNull(),
+	externalEpoch: bigint("external_epoch", { mode: "number" }).notNull(),
+	ownerDeploymentId: text("owner_deployment_id").notNull(),
+	status: text().default('running').notNull(),
+	nextPhase: text("next_phase"),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+	completedAt: bigint("completed_at", { mode: "number" }),
+}, (table) => [
+	uniqueIndex("deployment_tenant_cleanup_runs_operation_unique").using("btree", table.appInstanceId.asc().nullsLast().op("text_ops"), table.generation.asc().nullsLast().op("int8_ops"), table.externalEpoch.asc().nullsLast().op("int8_ops")),
+	index("deployment_tenant_cleanup_runs_owner_idx").using("btree", table.ownerDeploymentId.asc().nullsLast().op("text_ops"), table.status.asc().nullsLast().op("text_ops"), table.updatedAt.asc().nullsLast().op("int8_ops")),
+	foreignKey({ columns: [table.appInstanceId, table.generation, table.externalEpoch, table.ownerDeploymentId], foreignColumns: [deploymentTenantExternalOperations.appInstanceId, deploymentTenantExternalOperations.generation, deploymentTenantExternalOperations.epoch, deploymentTenantExternalOperations.ownerDeploymentId], name: "deployment_tenant_cleanup_runs_operation_fkey" }).onDelete("restrict"),
+	foreignKey({ columns: [table.ownerDeploymentId], foreignColumns: [appInstanceDeployments.id], name: "deployment_tenant_cleanup_runs_owner_deployment_id_fkey" }).onDelete("restrict"),
+	check("deployment_tenant_cleanup_runs_generation_check", sql`generation > 0`),
+	check("deployment_tenant_cleanup_runs_external_epoch_check", sql`external_epoch > 0`),
+	check("deployment_tenant_cleanup_runs_status_check", sql`status = ANY (ARRAY['running'::text, 'completed'::text])`),
+	check("deployment_tenant_cleanup_runs_next_phase_check", sql`next_phase IS NULL OR next_phase = ANY (ARRAY['workload'::text, 'database'::text, 'secret'::text, 'finalize'::text])`),
+	check("deployment_tenant_cleanup_runs_state_timestamps_check", sql`(status = 'running'::text AND next_phase IS NOT NULL AND completed_at IS NULL) OR (status = 'completed'::text AND next_phase IS NULL AND completed_at IS NOT NULL)`),
+	check("deployment_tenant_cleanup_runs_timestamp_order_check", sql`updated_at >= created_at AND (completed_at IS NULL OR completed_at >= created_at)`),
+]);
+
+export const deploymentTenantCleanupPhases = pgTable("deployment_tenant_cleanup_phases", {
+	runId: text("run_id").notNull(),
+	phase: text().notNull(),
+	status: text().default('running').notNull(),
+	operationId: text("operation_id").notNull(),
+	receipt: text().default('{}').notNull(),
+	receiptHash: text("receipt_hash"),
+	attempts: integer().default(1).notNull(),
+	startedAt: bigint("started_at", { mode: "number" }).notNull(),
+	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+	completedAt: bigint("completed_at", { mode: "number" }),
+}, (table) => [
+	primaryKey({ columns: [table.runId, table.phase], name: "deployment_tenant_cleanup_phases_pkey" }),
+	uniqueIndex("deployment_tenant_cleanup_phases_operation_unique").using("btree", table.operationId.asc().nullsLast().op("text_ops")),
+	foreignKey({ columns: [table.runId], foreignColumns: [deploymentTenantCleanupRuns.id], name: "deployment_tenant_cleanup_phases_run_id_fkey" }).onDelete("restrict"),
+	check("deployment_tenant_cleanup_phases_phase_check", sql`phase = ANY (ARRAY['workload'::text, 'database'::text, 'secret'::text])`),
+	check("deployment_tenant_cleanup_phases_status_check", sql`status = ANY (ARRAY['running'::text, 'succeeded'::text])`),
+	check("deployment_tenant_cleanup_phases_operation_id_check", sql`operation_id ~ '^tl_cleanup_[a-f0-9]{32}$'::text`),
+	check("deployment_tenant_cleanup_phases_receipt_check", sql`jsonb_typeof((receipt)::jsonb) = 'object'::text AND octet_length(receipt) <= 16384`),
+	check("deployment_tenant_cleanup_phases_receipt_hash_check", sql`receipt_hash IS NULL OR receipt_hash ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_tenant_cleanup_phases_attempts_check", sql`attempts > 0`),
+	check("deployment_tenant_cleanup_phases_state_receipt_check", sql`(status = 'running'::text AND (receipt)::jsonb = '{}'::jsonb AND receipt_hash IS NULL AND completed_at IS NULL) OR (status = 'succeeded'::text AND (receipt)::jsonb <> '{}'::jsonb AND receipt_hash IS NOT NULL AND completed_at IS NOT NULL)`),
+	check("deployment_tenant_cleanup_phases_timestamp_order_check", sql`updated_at >= started_at AND (completed_at IS NULL OR completed_at >= started_at)`),
+]);
+
+export const deploymentTenantCleanupEvents = pgTable("deployment_tenant_cleanup_events", {
+	id: text().primaryKey().notNull(),
+	runId: text("run_id").notNull(),
+	phase: text(),
+	eventType: text("event_type").notNull(),
+	evidenceHash: text("evidence_hash"),
+	evidence: text().default('{}').notNull(),
+	createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => [
+	index("deployment_tenant_cleanup_events_run_idx").using("btree", table.runId.asc().nullsLast().op("text_ops"), table.createdAt.asc().nullsLast().op("int8_ops")),
+	foreignKey({ columns: [table.runId], foreignColumns: [deploymentTenantCleanupRuns.id], name: "deployment_tenant_cleanup_events_run_id_fkey" }).onDelete("restrict"),
+	check("deployment_tenant_cleanup_events_phase_check", sql`phase IS NULL OR phase = ANY (ARRAY['workload'::text, 'database'::text, 'secret'::text])`),
+	check("deployment_tenant_cleanup_events_event_type_check", sql`event_type = ANY (ARRAY['run_started'::text, 'phase_started'::text, 'phase_succeeded'::text, 'run_completed'::text])`),
+	check("deployment_tenant_cleanup_events_evidence_hash_check", sql`evidence_hash IS NULL OR evidence_hash ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_tenant_cleanup_events_evidence_check", sql`jsonb_typeof((evidence)::jsonb) = 'object'::text AND octet_length(evidence) <= 16384`),
+	check("deployment_tenant_cleanup_events_shape_check", sql`(event_type = ANY (ARRAY['phase_started'::text, 'phase_succeeded'::text]) AND phase IS NOT NULL) OR (event_type = ANY (ARRAY['run_started'::text, 'run_completed'::text]) AND phase IS NULL)`),
+	check("deployment_tenant_cleanup_events_phase_event_check", sql`(event_type = 'run_started'::text AND phase IS NULL) OR (event_type = 'run_completed'::text AND phase IS NULL) OR (event_type = 'phase_started'::text AND phase IS NOT NULL) OR (event_type = 'phase_succeeded'::text AND phase IS NOT NULL AND evidence_hash IS NOT NULL)`),
 ]);
 

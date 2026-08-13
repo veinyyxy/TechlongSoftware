@@ -1,6 +1,7 @@
 import {
   awsSandboxTenantStackName,
   renderAwsSandboxTenantStack,
+  tenantStackExternalOperationTagKeys,
   tenantStackOperationTagKey,
   tenantStackStableOwnershipTagKeys,
 } from "../cloudformation/tenant-stack.ts";
@@ -19,6 +20,7 @@ import type {
   SaaSControlPayloadCompilerPort,
   SharedCellSecurityPreflightPort,
   TenantDatabasePort,
+  TenantExternalOperationFence,
   TenantResourceCleanupReceipt,
   TenantResourceFence,
 } from "./contracts.ts";
@@ -37,6 +39,23 @@ import {
   assertTenantResourceFence,
   deriveTenantResourceIdentity,
 } from "./tenant-database.ts";
+
+export interface TenantExternalOwnershipCoordinatorPort {
+  /**
+   * Prepare a monotonic epoch, install it on the external resources, observe
+   * the exact marker there, then activate the durable record. Provision can
+   * reuse this boundary in the next slice; this slice only requests cleanup.
+   */
+  prepareAndActivate(input: {
+    context: DeploymentExecutionContext;
+    resourceFence: TenantResourceFence;
+    lease: DeploymentJobLeaseFence;
+    signal: AbortSignal;
+  } & (
+    | { intent: "provision" }
+    | { intent: "cleanup"; cleanupReason: "ttl_cleanup" | "rollback" }
+  )): Promise<TenantExternalOperationFence>;
+}
 
 export interface DeploymentWorkerDependencies {
   repository: DeploymentExecutionRepository;
@@ -62,11 +81,22 @@ export interface DeploymentWorkerDependencies {
   tenantResourceCleanup?: {
     destroy(input: {
       fence: TenantResourceFence;
+      externalFence: TenantExternalOperationFence;
       lease: DeploymentJobLeaseFence;
       idempotencyKey: string;
+      scheduleId: string | null;
+      appInstanceId: string;
+      reason: "ttl_cleanup" | "rollback";
       signal: AbortSignal;
     }): Promise<TenantResourceCleanupReceipt>;
   };
+  /**
+   * Provider-backed ownership epoch handoff. An implementation must prepare
+   * the DB epoch, propagate it to every external resource, independently
+   * observe the exact marker, and only then activate it in the repository.
+   * The Worker never treats a prepared DB row as external proof.
+   */
+  tenantExternalOperationCoordinator?: TenantExternalOwnershipCoordinatorPort;
   controlClient: SaaSControlPort;
   controlPayloadCompiler: SaaSControlPayloadCompilerPort;
   /** Test seam; production cadence is capped at one third of the lease. */
@@ -274,6 +304,9 @@ function currentTenantResourceFence(
 }
 
 interface PersistableTenantLifecycleOutput {
+  externalEpoch: number;
+  externalMarker: string;
+  externalOperationHash: string;
   databaseName: string;
   roleName: string;
   ownershipMarker: string;
@@ -296,6 +329,9 @@ function parseTenantLifecycleOutput(input: {
     "baselineDigest",
     "databaseName",
     "evidenceHash",
+    "externalEpoch",
+    "externalMarker",
+    "externalOperationHash",
     "lifecycleState",
     "migrationContract",
     "ownershipMarker",
@@ -337,7 +373,24 @@ function parseTenantLifecycleOutput(input: {
       `${input.context.environment.expectedAccountId}:secret:` +
       `${escapedSecretName}-[A-Za-z0-9]{6}$`,
   );
+  const externalFence = input.context.tenantExternalOperation;
+  const expectedExternalMarker =
+    `tl_epoch_${input.fence.identity.stableIdentityHash.slice(0, 24)}` +
+    `_g${input.fence.generation}_e${externalFence?.epoch ?? 0}`;
   if (
+    !externalFence ||
+    externalFence.schemaVersion !== 1 ||
+    externalFence.intent !== "provision" ||
+    externalFence.state !== "active" ||
+    externalFence.ownerDeploymentId !== input.fence.ownerDeploymentId ||
+    !Number.isSafeInteger(externalFence.epoch) ||
+    externalFence.epoch < 1 ||
+    !/^[a-f0-9]{64}$/.test(externalFence.operationHash) ||
+    canonicalJson(externalFence.resourceFence) !== canonicalJson(input.fence) ||
+    externalFence.marker !== expectedExternalMarker ||
+    output.externalEpoch !== externalFence.epoch ||
+    output.externalMarker !== externalFence.marker ||
+    output.externalOperationHash !== externalFence.operationHash ||
     output.databaseName !== input.fence.identity.databaseName ||
     output.roleName !== input.fence.identity.roleName ||
     output.ownershipMarker !== input.fence.ownershipMarker ||
@@ -394,6 +447,7 @@ async function persistTenantLifecycleCheckpoint(input: {
   const persisted = await input.dependencies.repository.recordTenantResourceLifecycle({
     lease: deploymentLease(input.context, input.workerId),
     fence,
+    externalFence: input.context.tenantExternalOperation!,
     runtimeSecretRef: parsed.secretRef,
     lifecycleStatus,
     baselineDigest: parsed.baselineDigest,
@@ -405,6 +459,9 @@ async function persistTenantLifecycleCheckpoint(input: {
       ownershipMarker: parsed.ownershipMarker,
       resourceGeneration: parsed.resourceGeneration,
       resourceOwnerDeploymentId: parsed.resourceOwnerDeploymentId,
+      externalEpoch: parsed.externalEpoch,
+      externalMarker: parsed.externalMarker,
+      externalOperationHash: parsed.externalOperationHash,
       lifecycleState: parsed.lifecycleState,
       baselineDigest: parsed.baselineDigest,
       migrationContract: parsed.migrationContract,
@@ -472,6 +529,7 @@ function assertStackOwnership(input: {
   if (input.observation.state === "missing") return;
   for (const key of [
     ...tenantStackStableOwnershipTagKeys,
+    ...tenantStackExternalOperationTagKeys,
     tenantStackOperationTagKey,
   ] as const) {
     if (input.observation.tags[key] !== input.expectedTags[key]) {
@@ -521,6 +579,14 @@ function renderApplyReadyStack(input: {
   const rendered = renderAwsSandboxTenantStack({
     deploymentId: context.deployment.id,
     resourceGeneration: fence.generation,
+    externalOperation: {
+      epoch: context.tenantExternalOperation!.epoch,
+      intent: "provision",
+      ownerDeploymentId: context.tenantExternalOperation!.ownerDeploymentId,
+      operationHash: context.tenantExternalOperation!.operationHash,
+      marker: context.tenantExternalOperation!.marker,
+      state: "active",
+    },
     runtimeSecretRef,
     runtimeSecretName: fence.identity.secretName,
     plan: context.deployment.desiredPlan,
@@ -953,7 +1019,7 @@ async function validateIdentity(input: {
       region: input.context.environment.region,
       workerRoleArn: input.context.binding.workerRoleArn,
     },
-    execute: () => input.aws.getCallerIdentity(),
+    execute: (signal) => input.aws.getCallerIdentity({ signal }),
   });
   assertExecutionGate(
     evaluateAwsIdentityGate({
@@ -986,10 +1052,11 @@ async function validateSharedCellSecurity(input: {
       region: input.context.environment.region,
       bindingHash: await sha256Hex(input.context.binding.tenantStackParameters),
     },
-    execute: () =>
+    execute: (signal) =>
       input.dependencies.sharedCellSecurityPreflight.verify({
         environment: input.context.environment,
         binding: input.context.binding!,
+        signal,
       }),
   });
   if (proof.verified !== true || !/^[a-f0-9]{64}$/.test(proof.evidenceHash)) {
@@ -1021,6 +1088,133 @@ async function reserveEnvironmentCapacity(input: {
   }
 }
 
+async function requireActiveProvisionEpoch(input: {
+  dependencies: DeploymentWorkerDependencies;
+  context: DeploymentExecutionContext;
+  config: DeploymentWorkerRuntimeConfig;
+  workerId: string;
+}): Promise<DeploymentExecutionContext> {
+  let context = input.context;
+  const resourceFence = currentTenantResourceFence(context);
+  const exactActive = (candidate: TenantExternalOperationFence | null): boolean =>
+    Boolean(
+      candidate &&
+        candidate.intent === "provision" &&
+        candidate.state === "active" &&
+        canonicalJson(candidate.resourceFence) === canonicalJson(resourceFence),
+    );
+  if (!exactActive(context.tenantExternalOperation)) {
+    const coordinator = input.dependencies.tenantExternalOperationCoordinator;
+    if (!coordinator) {
+      throw new DeploymentExecutionError(
+        "TENANT_PROVISION_EXTERNAL_EPOCH_INACTIVE",
+        "Provisioning requires an externally proven active epoch for the current tenant resource generation.",
+        false,
+      );
+    }
+    const activated = await withLeaseGuard({
+      dependencies: input.dependencies,
+      context,
+      config: input.config,
+      workerId: input.workerId,
+      execute: (signal) =>
+        coordinator.prepareAndActivate({
+          intent: "provision",
+          context,
+          resourceFence,
+          lease: deploymentLease(context, input.workerId),
+          signal,
+        }),
+    });
+    if (!exactActive(activated)) {
+      throw new DeploymentExecutionError(
+        "TENANT_PROVISION_EXTERNAL_EPOCH_UNVERIFIED",
+        "The ownership coordinator did not return the exact active provision epoch.",
+        false,
+      );
+    }
+    context = await input.dependencies.repository.loadContext(context.job);
+    if (
+      !exactActive(context.tenantExternalOperation) ||
+      canonicalJson(context.tenantExternalOperation) !== canonicalJson(activated)
+    ) {
+      throw new DeploymentExecutionError(
+        "TENANT_PROVISION_EXTERNAL_EPOCH_NOT_PERSISTED",
+        "The externally proven provision epoch was not durably reloaded.",
+        true,
+      );
+    }
+  }
+  const activeFence = context.tenantExternalOperation;
+  if (!activeFence || !exactActive(activeFence)) {
+    throw new DeploymentExecutionError(
+      "TENANT_PROVISION_EXTERNAL_EPOCH_INACTIVE",
+      "Provisioning has no exact active external-operation epoch.",
+      false,
+    );
+  }
+  const stillOwned = await input.dependencies.repository.assertTenantExternalOperation({
+    lease: deploymentLease(context, input.workerId),
+    externalFence: activeFence,
+    requiredState: "active",
+    now: (input.dependencies.now ?? Date.now)(),
+  });
+  if (!stillOwned) {
+    throw new DeploymentExecutionError(
+      "TENANT_PROVISION_EXTERNAL_EPOCH_LOST",
+      "Provisioning no longer owns its active external-operation epoch.",
+      true,
+    );
+  }
+  return context;
+}
+
+async function guardProvisionEpochBeforeAdapterFactory(input: {
+  dependencies: DeploymentWorkerDependencies;
+  context: DeploymentExecutionContext;
+  workerId: string;
+  jobType: DeploymentJobType;
+}): Promise<void> {
+  const resourceFence = currentTenantResourceFence(input.context);
+  const candidate = input.context.tenantExternalOperation;
+  const exactActive = Boolean(
+    candidate &&
+      candidate.intent === "provision" &&
+      candidate.state === "active" &&
+      canonicalJson(candidate.resourceFence) === canonicalJson(resourceFence),
+  );
+  const firstApplyStage =
+    input.jobType === "apply" &&
+    ["planned", "queued", "preflight", "database_preparing"].includes(
+      input.context.deployment.status,
+    );
+  if (!exactActive) {
+    if (firstApplyStage && input.dependencies.tenantExternalOperationCoordinator) {
+      // Provider installation must occur only after STS identity and Shared
+      // Cell read-only preflight inside handleApply.
+      return;
+    }
+    throw new DeploymentExecutionError(
+      "TENANT_PROVISION_EXTERNAL_EPOCH_INACTIVE",
+      "This deployment stage requires an already active provision epoch before constructing runtime adapters.",
+      false,
+    );
+  }
+  const current = await input.dependencies.repository.assertTenantExternalOperation({
+    lease: deploymentLease(input.context, input.workerId),
+    externalFence: candidate!,
+    requiredState: "active",
+    now: (input.dependencies.now ?? Date.now)(),
+  });
+  if (!current) {
+    throw new DeploymentExecutionError(
+      "TENANT_PROVISION_EXTERNAL_EPOCH_LOST",
+      "The persisted provision epoch is no longer active under this lease.",
+      true,
+    );
+  }
+}
+
 async function handleApply(input: {
   dependencies: DeploymentWorkerDependencies;
   context: DeploymentExecutionContext;
@@ -1047,6 +1241,7 @@ async function handleApply(input: {
   }
   await validateIdentity(input);
   await validateSharedCellSecurity(input);
+  input.context = await requireActiveProvisionEpoch(input);
   await reserveEnvironmentCapacity(input);
   if (["waiting_healthy", "configuring", "verifying", "ready"].includes(input.context.deployment.status)) {
     const reconcileJob = await input.dependencies.repository.enqueueJob({
@@ -1071,6 +1266,7 @@ async function handleApply(input: {
   }
   if (input.context.deployment.status === "database_preparing") {
     input.context = (await claimAndReloadTenantResource(input)).context;
+    input.context = await requireActiveProvisionEpoch(input);
     const prepared = await checkpoint({
       ...input,
       stepKey: "tenant_database_prepare",
@@ -1079,10 +1275,12 @@ async function handleApply(input: {
         roleName: input.context.deployment.desiredPlan.resources.tenant.database.roleName,
         planHash: input.context.deployment.planHash,
       },
-      execute: () =>
+      execute: (signal) =>
         input.dependencies.tenantDatabase.ensureTenantDatabase({
           context: input.context,
+          externalFence: input.context.tenantExternalOperation!,
           idempotencyKey: `${input.context.deployment.id}:database`,
+          signal,
         }),
     });
     await persistTenantLifecycleCheckpoint({
@@ -1100,6 +1298,7 @@ async function handleApply(input: {
   }
   if (input.context.deployment.status === "migrating") {
     input.context = (await claimAndReloadTenantResource(input)).context;
+    input.context = await requireActiveProvisionEpoch(input);
     const migrated = await checkpoint({
       ...input,
       stepKey: "tenant_database_migrate",
@@ -1107,10 +1306,12 @@ async function handleApply(input: {
         databaseName: input.context.deployment.desiredPlan.resources.tenant.database.databaseName,
         migrationContract: "speedfeast-pg16.14-baseline-plus-migrate-saas-v1",
       },
-      execute: () =>
+      execute: (signal) =>
         input.dependencies.tenantDatabase.migrateTenantDatabase({
           context: input.context,
+          externalFence: input.context.tenantExternalOperation!,
           idempotencyKey: `${input.context.deployment.id}:migration:v1`,
+          signal,
         }),
     });
     await persistTenantLifecycleCheckpoint({
@@ -1155,11 +1356,12 @@ async function handleApply(input: {
     );
   }
   input.context = refreshed;
+  input.context = await requireActiveProvisionEpoch(input);
   const stack = renderApplyReadyStack({
-    context: refreshed,
+    context: input.context,
   });
   await ensureApplyCleanupSchedule({
-    context: refreshed,
+    context: input.context,
     cleanupScheduler: input.dependencies.cleanupScheduler,
     repository: input.dependencies.repository,
     workerId: input.workerId,
@@ -1177,7 +1379,8 @@ async function handleApply(input: {
       ...input,
       stepKey: "cloudformation_precreate_observe",
       stepInput: { stackName: stack.stackName, expiresAt },
-      execute: () => input.aws.describeTenantStack(stack.stackName),
+      execute: (signal) =>
+        input.aws.describeTenantStack(stack.stackName, { signal }),
     });
     assertStackOwnership({ observation: existing, expectedTags: stack.tags });
     if (existing.state !== "ready" && existing.state !== "in_progress") {
@@ -1219,7 +1422,7 @@ async function handleApply(input: {
       templateHash: await sha256Hex(stack.templateBody),
       parameterHash: await sha256Hex(stack.parameters),
     },
-    execute: () => input.aws.applyTenantStack(stack),
+    execute: (signal) => input.aws.applyTenantStack(stack, { signal }),
   });
   await moveState({
     ...input,
@@ -1256,6 +1459,8 @@ async function handleReconcile(input: {
   if (input.context.deployment.status === "ready") return;
   await validateIdentity(input);
   await validateSharedCellSecurity(input);
+  input.context = await requireActiveProvisionEpoch(input);
+  input.stack = renderApplyReadyStack({ context: input.context });
   await reserveEnvironmentCapacity(input);
   const observation = await checkpoint({
     ...input,
@@ -1264,7 +1469,8 @@ async function handleReconcile(input: {
       stackName: input.stack.stackName,
       reconcileAttempt: input.context.job.attempt,
     },
-    execute: () => input.aws.describeTenantStack(input.stack.stackName),
+    execute: (signal) =>
+      input.aws.describeTenantStack(input.stack.stackName, { signal }),
   });
   assertStackOwnership({ observation, expectedTags: input.stack.tags });
   if (observation.state === "in_progress") {
@@ -1295,10 +1501,12 @@ async function handleReconcile(input: {
       ...input,
       stepKey: "control_health",
       stepInput: { hostname: input.stack.parameters.TenantHostname },
-      execute: () =>
+      execute: (signal) =>
         input.dependencies.controlClient.waitUntilHealthy({
           appInstanceId: input.context.appInstance.id,
           hostname: input.stack.parameters.TenantHostname,
+          externalFence: input.context.tenantExternalOperation!,
+          signal,
         }),
     });
     if (!health.ready) {
@@ -1317,7 +1525,12 @@ async function handleReconcile(input: {
   }
   if (input.context.deployment.status === "configuring") {
     const claimed = await claimAndReloadTenantResource(input);
-    input.context = claimed.context;
+    input.context = await requireActiveProvisionEpoch({
+      dependencies: input.dependencies,
+      context: claimed.context,
+      config: input.config,
+      workerId: input.workerId,
+    });
     if (input.context.deployment.status !== "configuring") {
       throw new DeploymentExecutionError(
         "DEPLOYMENT_STATE_CONFLICT",
@@ -1335,10 +1548,12 @@ async function handleReconcile(input: {
         configurationHash: input.context.deployment.configurationHash,
         hostname: input.stack.parameters.TenantHostname,
       },
-      execute: async () => {
+      execute: async (signal) => {
         const compiled = await input.dependencies.controlPayloadCompiler.compile({
           context: input.context,
           configurationHash: input.context.deployment.configurationHash,
+          externalFence: input.context.tenantExternalOperation!,
+          signal,
         });
         if (compiled.configurationHash !== input.context.deployment.configurationHash) {
           throw new DeploymentExecutionError(
@@ -1352,6 +1567,8 @@ async function handleReconcile(input: {
           hostname: input.stack.parameters.TenantHostname,
           idempotencyKey: `${input.context.deployment.id}:${input.context.deployment.configurationHash}`,
           compiledPayload: compiled.compiledPayload,
+          externalFence: input.context.tenantExternalOperation!,
+          signal,
         });
         return { accepted: true };
       },
@@ -1377,10 +1594,12 @@ async function handleReconcile(input: {
       configurationHash: input.context.deployment.configurationHash,
       imageRevision: input.context.deployment.artifactRef.split("@").at(-1),
     },
-    execute: () =>
+    execute: (signal) =>
       input.dependencies.controlClient.readConfiguration({
         appInstanceId: input.context.appInstance.id,
         hostname: input.stack.parameters.TenantHostname,
+        externalFence: input.context.tenantExternalOperation!,
+        signal,
       }),
   });
   const expectedImageRevision = input.context.deployment.artifactRef.split("@").at(-1) ?? null;
@@ -1435,89 +1654,102 @@ async function handleDelete(input: {
       false,
     );
   }
-  const fence = currentTenantResourceFence(input.context);
-  const lease = deploymentLease(input.context, input.workerId);
+  let context = input.context;
+  const fence = currentTenantResourceFence(context);
+  if (
+    input.context.tenantResources?.lifecycleStatus === "destroyed" &&
+    ["rolled_back", "canceled"].includes(input.context.deployment.status) &&
+    input.context.appInstance.status === "suspended" &&
+    (!input.context.cleanupSchedule ||
+      input.context.cleanupSchedule.status === "succeeded")
+  ) {
+    // The coordinator finalizes resource, schedule, deployment, instance and
+    // capacity in one transaction. A worker may crash immediately afterward,
+    // before completing the queue job; that retry has no external work left.
+    return;
+  }
+  let externalFence = context.tenantExternalOperation;
+  const exactActiveCleanupFence = (
+    candidate: TenantExternalOperationFence | null,
+  ): candidate is TenantExternalOperationFence =>
+    Boolean(
+      candidate &&
+        candidate.intent === "cleanup" &&
+        candidate.state === "active" &&
+        canonicalJson(candidate.resourceFence) === canonicalJson(fence),
+    );
+  if (!exactActiveCleanupFence(externalFence)) {
+    const coordinator = input.dependencies.tenantExternalOperationCoordinator;
+    if (!coordinator) {
+      throw new DeploymentExecutionError(
+        "TENANT_CLEANUP_EXTERNAL_EPOCH_INACTIVE",
+        "Cleanup requires an externally proven active cleanup epoch for the current tenant resource generation.",
+        false,
+      );
+    }
+    const activated = await withLeaseGuard({
+      dependencies: input.dependencies,
+      context,
+      config: input.config,
+      workerId: input.workerId,
+      execute: (signal) =>
+        coordinator.prepareAndActivate({
+          intent: "cleanup",
+          cleanupReason:
+            context.job.jobType === "cleanup" ? "ttl_cleanup" : "rollback",
+          context,
+          resourceFence: fence,
+          lease: deploymentLease(context, input.workerId),
+          signal,
+        }),
+    });
+    if (!exactActiveCleanupFence(activated)) {
+      throw new DeploymentExecutionError(
+        "TENANT_CLEANUP_EXTERNAL_EPOCH_UNVERIFIED",
+        "The ownership coordinator did not return the exact active cleanup epoch.",
+        false,
+      );
+    }
+    context = await input.dependencies.repository.loadContext(context.job);
+    externalFence = context.tenantExternalOperation;
+    if (
+      !exactActiveCleanupFence(externalFence) ||
+      canonicalJson(externalFence) !== canonicalJson(activated)
+    ) {
+      throw new DeploymentExecutionError(
+        "TENANT_CLEANUP_EXTERNAL_EPOCH_NOT_PERSISTED",
+        "The externally proven cleanup epoch was not durably reloaded under the current job.",
+        true,
+      );
+    }
+  }
+  if (
+    !exactActiveCleanupFence(externalFence)
+  ) {
+    throw new DeploymentExecutionError(
+      "TENANT_CLEANUP_EXTERNAL_EPOCH_INACTIVE",
+      "Cleanup requires an externally proven active cleanup epoch for the current tenant resource generation.",
+      false,
+    );
+  }
+  const lease = deploymentLease(context, input.workerId);
   await withLeaseGuard({
     dependencies: input.dependencies,
-    context: input.context,
+    context,
     config: input.config,
     workerId: input.workerId,
     execute: (signal) =>
       cleanup.destroy({
         fence,
+        externalFence,
         lease,
-        idempotencyKey: `${input.context.deployment.id}:generation:${fence.generation}:cleanup`,
+        idempotencyKey: `${context.deployment.id}:generation:${fence.generation}:cleanup`,
+        scheduleId: context.cleanupSchedule?.id ?? null,
+        appInstanceId: context.appInstance.id,
+        reason: context.job.jobType === "cleanup" ? "ttl_cleanup" : "rollback",
         signal,
       }),
   });
-
-  const cancellable: DeploymentStatus[] = [
-    "planned",
-    "queued",
-    "preflight",
-    "database_preparing",
-    "migrating",
-    "infrastructure_provisioning",
-    "waiting_healthy",
-    "configuring",
-    "verifying",
-    "ready",
-  ];
-  if (cancellable.includes(input.context.deployment.status)) {
-    await moveState({
-      ...input,
-      from: cancellable,
-      to: "cancel_requested",
-      currentStep: "cleanup_requested",
-    });
-  }
-  if (["cancel_requested", "failed", "rollback_failed"].includes(input.context.deployment.status)) {
-    await moveState({
-      ...input,
-      from: ["cancel_requested", "failed", "rollback_failed"],
-      to: "rolling_back",
-      currentStep: "cloudformation_delete",
-    });
-  }
-  if (input.context.cleanupSchedule) {
-    const cleanupStatusWritten = await input.dependencies.repository.markCleanupStatus({
-      lease,
-      scheduleId: input.context.cleanupSchedule.id,
-      status: "succeeded",
-      now: (input.dependencies.now ?? Date.now)(),
-    });
-    if (!cleanupStatusWritten) {
-      throw new DeploymentExecutionError(
-        "DEPLOYMENT_LEASE_LOST",
-        "Cleanup schedule status was not written under the current job lease.",
-        true,
-      );
-    }
-  }
-  if (input.context.deployment.status === "rolling_back") {
-    await moveState({
-      ...input,
-      from: ["rolling_back"],
-      to: "rolled_back",
-      currentStep: "rolled_back",
-    });
-  }
-  if (["rolled_back", "canceled"].includes(input.context.deployment.status)) {
-    const instanceUnavailable = await input.dependencies.repository.markInstanceUnavailable({
-      lease,
-      fence,
-      appInstanceId: input.context.appInstance.id,
-      reason: input.context.job.jobType === "cleanup" ? "ttl_cleanup" : "rollback",
-      now: (input.dependencies.now ?? Date.now)(),
-    });
-    if (!instanceUnavailable) {
-      throw new DeploymentExecutionError(
-        "DEPLOYMENT_LEASE_LOST",
-        "Application instance cleanup status was not written under the current job lease.",
-        true,
-      );
-    }
-  }
 }
 
 export async function runDeploymentWorkerOnce(input: {
@@ -1529,10 +1761,13 @@ export async function runDeploymentWorkerOnce(input: {
   if (!workerGate.ok) return { status: "disabled", failures: workerGate.failures };
   const staticApplyGate = evaluateStaticExecutionGate(input.config);
   const applicationExecutionReady =
-    staticApplyGate.ok && input.dependencies.applyRuntimeReady;
+    staticApplyGate.ok &&
+    input.dependencies.applyRuntimeReady &&
+    Boolean(input.dependencies.tenantExternalOperationCoordinator);
   const cleanupExecutionReady =
     input.dependencies.cleanupRuntimeReady === true &&
-    Boolean(input.dependencies.tenantResourceCleanup);
+    Boolean(input.dependencies.tenantResourceCleanup) &&
+    Boolean(input.dependencies.tenantExternalOperationCoordinator);
   if (!applicationExecutionReady && !cleanupExecutionReady) {
     return {
       status: "disabled",
@@ -1614,6 +1849,12 @@ export async function runDeploymentWorkerOnce(input: {
         workerId: input.workerId,
       });
       context = claimed.context;
+      await guardProvisionEpochBeforeAdapterFactory({
+        dependencies: input.dependencies,
+        context,
+        workerId: input.workerId,
+        jobType: job.jobType,
+      });
       if (
         job.jobType === "apply" &&
         !["waiting_healthy", "configuring", "verifying", "ready"].includes(

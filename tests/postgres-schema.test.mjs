@@ -59,6 +59,11 @@ test("PostgreSQL schema contains all business tables and core integrity rules", 
     "deployment_step_runs",
     "deployment_tenant_resources",
     "deployment_tenant_resource_events",
+    "deployment_tenant_external_operations",
+    "deployment_tenant_external_operation_events",
+    "deployment_tenant_cleanup_runs",
+    "deployment_tenant_cleanup_phases",
+    "deployment_tenant_cleanup_events",
     "payment_webhook_events",
     "workspace_members",
     "workspace_product_entitlements",
@@ -286,6 +291,125 @@ test("lease fencing migration invalidates old claims and requires a unique incar
   );
 });
 
+test("B5-E migration persists external ownership epochs and resumable cleanup phases", async () => {
+  const [migration, schema, drizzleSchema, drizzleRelations, repository] = await Promise.all([
+    read("db/postgres-migrations/0007_external_ownership_epoch_cleanup_phases.sql"),
+    read("db/postgres-schema.sql"),
+    read("db/postgres-schema.ts"),
+    read("db/postgres-relations.ts"),
+    read("lib/deployments/execution/neon-repository.ts"),
+  ]);
+
+  for (const source of [migration, schema]) {
+    assert.match(source, /CREATE TABLE deployment_tenant_external_operations\b/);
+    assert.match(source, /CREATE TABLE deployment_tenant_cleanup_runs\b/);
+    assert.match(source, /CREATE TABLE deployment_tenant_cleanup_phases\b/);
+    assert.match(source, /external_operation_epoch bigint\s+CHECK \(external_operation_epoch > 0\)/);
+    assert.match(source, /WHERE state = 'active'/);
+    assert.match(source, /WHERE state = 'pending_external'/);
+    assert.match(source, /tenant resource external operation pointer is not active/);
+    assert.match(
+      source,
+      /CREATE CONSTRAINT TRIGGER deployment_tenant_resources_external_operation_pointer[\s\S]*?AFTER UPDATE[\s\S]*?DEFERRABLE INITIALLY IMMEDIATE/,
+    );
+    assert.doesNotMatch(
+      source,
+      /CREATE TRIGGER deployment_tenant_resources_external_operation_pointer[\s\S]*?BEFORE UPDATE/,
+    );
+    assert.match(source, /B5 ownership and cleanup events are append-only/);
+    assert.doesNotMatch(source, /external_operation_epoch bigint NOT NULL/);
+    assert.match(
+      source,
+      /deployment_tenant_resources_external_operation_fkey[\s\S]*?FOREIGN KEY \(app_instance_id, generation, external_operation_epoch\)/,
+    );
+    assert.match(
+      source,
+      /deployment_tenant_external_operations_owner_epoch_unique[\s\S]*?app_instance_id, generation, epoch, owner_deployment_id/,
+    );
+    assert.match(
+      source,
+      /deployment_tenant_cleanup_runs_operation_fkey FOREIGN KEY \([\s\S]*?app_instance_id, generation, external_epoch, owner_deployment_id[\s\S]*?app_instance_id, generation, epoch, owner_deployment_id/,
+    );
+    assert.match(source, /tenant external operation proof is immutable within a state/);
+    assert.match(source, /active tenant external operation proof is immutable/);
+    assert.match(source, /provision tenant external operation cannot overtake cleanup/);
+    assert.match(
+      source,
+      /CREATE TRIGGER deployment_tenant_cleanup_runs_transition[\s\S]*?BEFORE INSERT OR UPDATE/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER deployment_tenant_cleanup_phases_transition[\s\S]*?BEFORE INSERT OR UPDATE/,
+    );
+    assert.match(source, /tenant cleanup run phase cannot regress or skip/);
+    assert.match(source, /succeeded tenant cleanup phase is immutable/);
+    assert.doesNotMatch(
+      source,
+      /UNIQUE \(app_instance_id, generation, intent, operation_hash\)/,
+    );
+    assert.doesNotMatch(source, /operation_id text NOT NULL UNIQUE/);
+  }
+
+  for (const name of [
+    "deployment_tenant_external_operations_identity_unique",
+    "deployment_tenant_external_operations_owner_epoch_unique",
+    "deployment_tenant_external_operations_state_timestamps_check",
+    "deployment_tenant_external_operations_active_evidence_check",
+    "deployment_tenant_external_operations_timestamp_order_check",
+    "deployment_tenant_external_operation_events_transition_check",
+    "deployment_tenant_cleanup_runs_operation_unique",
+    "deployment_tenant_cleanup_runs_state_timestamps_check",
+    "deployment_tenant_cleanup_runs_timestamp_order_check",
+    "deployment_tenant_cleanup_phases_operation_unique",
+    "deployment_tenant_cleanup_phases_state_receipt_check",
+    "deployment_tenant_cleanup_phases_timestamp_order_check",
+    "deployment_tenant_cleanup_events_phase_event_check",
+  ]) {
+    assert.match(drizzleSchema, new RegExp(name));
+  }
+  assert.match(
+    drizzleSchema,
+    /reverse composite pointer FK[\s\S]*?postgres-schema\.sql\/0007/,
+  );
+  for (const relation of [
+    "deploymentTenantExternalOperationsRelations",
+    "deploymentTenantExternalOperationEventsRelations",
+    "deploymentTenantCleanupRunsRelations",
+    "deploymentTenantCleanupPhasesRelations",
+    "deploymentTenantCleanupEventsRelations",
+  ]) {
+    assert.match(drizzleRelations, new RegExp(relation));
+  }
+
+  assert.match(
+    repository,
+    /prepareTenantExternalOperation[\s\S]*?superseded_pending AS[\s\S]*?\$8 = 'cleanup'[\s\S]*?conflict\.intent = 'provision'[\s\S]*?next_epoch/,
+  );
+  assert.match(
+    repository,
+    /activateTenantExternalOperation[\s\S]*?input\.proof[\s\S]*?retired AS[\s\S]*?previous\.state = 'active'[\s\S]*?activated AS[\s\S]*?pointed AS/,
+  );
+  assert.match(
+    repository,
+    /assertTenantExternalOperation[\s\S]*?operation\.epoch = resource\.external_operation_epoch[\s\S]*?job\.lease_token/,
+  );
+  for (const method of [
+    "beginOrResumeTenantResourceCleanup",
+    "beginTenantResourceCleanupPhase",
+    "completeTenantResourceCleanupPhase",
+    "finalizeTenantResourceCleanup",
+  ]) {
+    assert.match(
+      repository,
+      new RegExp(`${method}[\\s\\S]*?db_clock AS MATERIALIZED[\\s\\S]*?job\\.lease_token[\\s\\S]*?job\\.attempts[\\s\\S]*?FOR UPDATE`),
+    );
+  }
+  assert.match(
+    repository,
+    /finalizeTenantResourceCleanup[\s\S]*?phase_evidence\.phase_count = 3[\s\S]*?destroyed_resource AS[\s\S]*?completed_run AS[\s\S]*?completed_schedule AS[\s\S]*?rolled_back AS[\s\S]*?suspended AS[\s\S]*?released AS/,
+  );
+});
+
 test("S3 execution repository reserves capacity atomically and commits ready state as one statement", async () => {
   const repository = await read("lib/deployments/execution/neon-repository.ts");
   assert.doesNotMatch(repository, /lease_expires_at\s*>\s*\$\d+/);
@@ -366,7 +490,7 @@ test("S3 execution repository binds immutable templates and tenant lifecycle wri
   );
   assert.match(
     repository,
-    /recordTenantResourceLifecycle[\s\S]*?resource\.owner_deployment_id = \$1[\s\S]*?resource\.generation = \$6[\s\S]*?resource\.ownership_marker = \$7/,
+    /recordTenantResourceLifecycle[\s\S]*?assertTenantExternalOperationFenceInput\(input\.externalFence\)[\s\S]*?operation\.epoch = resource\.external_operation_epoch[\s\S]*?operation\.intent = 'provision'[\s\S]*?operation\.state = 'active'[\s\S]*?FOR UPDATE OF resource, operation[\s\S]*?resource\.owner_deployment_id = \$1[\s\S]*?resource\.generation = \$6[\s\S]*?resource\.ownership_marker = \$7[\s\S]*?resource\.external_operation_epoch = \$26/,
   );
   assert.match(
     repository,
@@ -414,6 +538,18 @@ test("S3 execution repository binds immutable templates and tenant lifecycle wri
     /TENANT_RESOURCE_HANDOFF_REQUIRES_OWNERSHIP_EPOCH/,
   );
   assert.match(repository, /must not contain URLs or URIs/);
+  assert.match(
+    repository,
+    /completeTenantResourceCleanupPhase[\s\S]*?cleanupPhaseReceiptEvidence\([\s\S]*?JSON\.stringify\(persistedReceipt\)/,
+  );
+  assert.match(
+    repository,
+    /hydrateCleanupPhaseReceipt\(phase, receipt, externalFence\)/,
+  );
+  assert.doesNotMatch(
+    repository,
+    /completeTenantResourceCleanupPhase[\s\S]*?JSON\.stringify\(input\.receipt\)/,
+  );
 });
 
 test("temporary browser migration endpoint is removed after cutover", async () => {

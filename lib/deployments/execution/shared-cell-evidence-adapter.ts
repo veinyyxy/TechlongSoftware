@@ -15,7 +15,10 @@ import {
 } from "./shared-cell-preflight.ts";
 
 interface AwsReadOnlySdkClient {
-  send(command: unknown): Promise<Record<string, unknown>>;
+  send(
+    command: unknown,
+    options?: { abortSignal?: AbortSignal },
+  ): Promise<Record<string, unknown>>;
 }
 
 type AwsReadOnlyCommandConstructor = new (
@@ -270,12 +273,24 @@ export class AwsSdkSharedCellEvidenceAdapter
   async verify(input: {
     environment: DeploymentEnvironment;
     binding: DeploymentExecutionBinding;
+    signal: AbortSignal;
   }): Promise<{ verified: true; evidenceHash: string }> {
     try {
       const observation = await this.collect(input);
+      input.signal.throwIfAborted();
       assertSharedCellSecurityObservation({ ...input, observation });
-      return { verified: true, evidenceHash: await sha256Hex(observation) };
+      const evidenceHash = await sha256Hex(observation);
+      input.signal.throwIfAborted();
+      return { verified: true, evidenceHash };
     } catch (error) {
+      if (input.signal.aborted) {
+        throw input.signal.reason instanceof Error
+          ? input.signal.reason
+          : Object.assign(new Error("Shared Cell evidence read was aborted."), {
+              name: "AbortError",
+              code: "ABORT_ERR",
+            });
+      }
       throw normalizeError(error);
     }
   }
@@ -283,7 +298,9 @@ export class AwsSdkSharedCellEvidenceAdapter
   private async collect(input: {
     environment: DeploymentEnvironment;
     binding: DeploymentExecutionBinding;
+    signal: AbortSignal;
   }): Promise<SharedCellSecurityObservation> {
+    input.signal.throwIfAborted();
     if (this.region !== input.environment.region) {
       throw new SharedCellEvidenceError(
         "SHARED_CELL_REGION_MISMATCH",
@@ -293,7 +310,9 @@ export class AwsSdkSharedCellEvidenceAdapter
     }
     const identity = await this.sdk.clients.sts.send(
       new this.sdk.commands.getCallerIdentity({}),
+      { abortSignal: input.signal },
     );
+    input.signal.throwIfAborted();
     const accountId = text(identity.Account);
     const callerArn = text(identity.Arn);
     if (
@@ -327,18 +346,22 @@ export class AwsSdkSharedCellEvidenceAdapter
             clusters: [clusterName],
             include: ["TAGS"],
           }),
+          { abortSignal: input.signal },
         ),
         this.sdk.clients.elbv2.send(
           new this.sdk.commands.describeListeners({
             ListenerArns: [httpsListenerArn, controlListenerArn],
           }),
+          { abortSignal: input.signal },
         ),
         this.sdk.clients.rds.send(
           new this.sdk.commands.describeDBClusters({
             DBClusterIdentifier: `techlong-sandbox-${input.environment.cellKey}`,
           }),
+          { abortSignal: input.signal },
         ),
       ]);
+    input.signal.throwIfAborted();
     const cluster = one(
       clusterResponse.clusters,
       (item) => text(item.clusterName) === clusterName,
@@ -405,19 +428,23 @@ export class AwsSdkSharedCellEvidenceAdapter
         new this.sdk.commands.describeLoadBalancers({
           LoadBalancerArns: [loadBalancerArn],
         }),
+        { abortSignal: input.signal },
       ),
       this.sdk.clients.elbv2.send(
         new this.sdk.commands.describeRules({ ListenerArn: httpsListenerArn }),
+        { abortSignal: input.signal },
       ),
       this.sdk.clients.elbv2.send(
         new this.sdk.commands.describeTrustStores({
           TrustStoreArns: [trustStoreArn],
         }),
+        { abortSignal: input.signal },
       ),
       this.sdk.clients.elbv2.send(
         new this.sdk.commands.describeElbv2Tags({
           ResourceArns: [loadBalancerArn],
         }),
+        { abortSignal: input.signal },
       ),
       this.sdk.clients.rds.send(
         new this.sdk.commands.describeDBInstances({
@@ -428,13 +455,16 @@ export class AwsSdkSharedCellEvidenceAdapter
             },
           ],
         }),
+        { abortSignal: input.signal },
       ),
       this.sdk.clients.rds.send(
         new this.sdk.commands.describeDBSubnetGroups({
           DBSubnetGroupName: databaseSubnetGroupName,
         }),
+        { abortSignal: input.signal },
       ),
     ]);
+    input.signal.throwIfAborted();
     const databaseSubnetGroup = one(
       databaseSubnetGroupsResponse.DBSubnetGroups,
       (item) => text(item.DBSubnetGroupName) === databaseSubnetGroupName,
@@ -479,16 +509,20 @@ export class AwsSdkSharedCellEvidenceAdapter
       await Promise.all([
         this.sdk.clients.ec2.send(
           new this.sdk.commands.describeVpcs({ VpcIds: [vpcId] }),
+          { abortSignal: input.signal },
         ),
         this.sdk.clients.ec2.send(
           new this.sdk.commands.describeSubnets({ SubnetIds: allSubnetIds }),
+          { abortSignal: input.signal },
         ),
         this.sdk.clients.ec2.send(
           new this.sdk.commands.describeSecurityGroups({
             GroupIds: allSecurityGroupIds,
           }),
+          { abortSignal: input.signal },
         ),
       ]);
+    input.signal.throwIfAborted();
     const vpc = one(
       vpcsResponse.Vpcs,
       (item) => text(item.VpcId) === vpcId,
