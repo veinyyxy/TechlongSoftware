@@ -28,7 +28,7 @@ const baselineManifestPattern =
   /^s3:\/\/[a-z0-9][a-z0-9.-]{1,62}\/_migration\/[A-Za-z0-9][A-Za-z0-9._/-]*\.manifest\.json$/;
 const saasMigrationContract = "speedfeast-saas-control-v1" as const;
 const saasMigrationCommand =
-  "/usr/local/bin/node db/apply_saas_control.js" as const;
+  "/usr/local/bin/node db/tenant_lifecycle.js migrate_saas" as const;
 
 const identityKeys = [
   "schemaVersion",

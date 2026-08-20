@@ -2,12 +2,12 @@
 
 ## 当前状态
 
-S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格参数校验、数据库租约/检查点、原子环境容量占位、两小时租户 TTL 清理计划、共享 Cell 安全预检边界和 mTLS 控制接口边界。S3-B B0–B4 进一步实现了离线可测试的类型化租户资源生命周期、不可变模板编译、RS256/mTLS 客户端、AWS 只读证据收集器、独立 Shared Cell 渲染模板和 Cell Janitor。B5 当前完成 lease-token/持续续租、租户 JSON Secret 注入、原子 external epoch authority 契约、可恢复分阶段 cleanup、SDK-free one-shot 边界，以及独立 Cell Bootstrap 的本地渲染与 Change Set 安全入口。所有执行开关默认关闭，本版本不会因启动网站或运行普通测试而调用 AWS。
+S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格参数校验、数据库租约/检查点、原子环境容量占位、两小时租户 TTL 清理计划、共享 Cell 安全预检边界和 mTLS 控制接口边界。S3-B B0–B4 进一步实现了离线可测试的类型化租户资源生命周期、不可变模板编译、RS256/mTLS 客户端、AWS 只读证据收集器、独立 Shared Cell 渲染模板和 Cell Janitor。B5 当前完成 lease-token/持续续租、租户 JSON Secret 注入、原子 external epoch authority 契约、可恢复分阶段 cleanup、ECS/Secrets Manager/DynamoDB SDK 适配器源码，以及独立 Cell Bootstrap 的本地渲染与 Change Set 安全入口。所有执行开关默认关闭，本版本不会因启动网站或运行普通测试而调用 AWS。
 
 以下三项已有接口和严格单元实现，但独立 Worker 仍使用 fail-closed 默认依赖，属于真实启用前阻断项：
 
-- 租户数据库：类型化 lifecycle、approved baseline 门禁、active provision epoch 校验、脱敏 lifecycle evidence 持久化、SDK-free one-shot/Secret Provider 接口和可恢复反向清理顺序已完成；仍缺 Cell VPC 内真实 AWS SDK provider、ARN 原生 lifecycle 任务程序/镜像、已批准的 PostgreSQL 16.14 baseline、原子 authority 实现、predecessor cleanup 接线以及 Worker root 注入。
-- 共享 Cell 安全证明：可注入的 ECS/ELBv2/EC2/RDS/STS 只读收集器及严格校验已完成；根依赖尚未安装这些服务 SDK，也未给 Worker 注入真实客户端或创建只读权限。
+- 租户数据库：类型化 lifecycle、approved baseline 门禁、active provision epoch 校验、脱敏 lifecycle evidence 持久化、ECS/Secret SDK Adapter 源码和可恢复反向清理顺序已完成；订单服务也已有默认禁用的 ARN-native 六命令入口。仍缺生产 Secret material generator、ECS receipt reader、PostgreSQL provider、已批准的 PostgreSQL 16.14 baseline、predecessor cleanup 接线、任务镜像验证以及 Worker root 注入。
+- 共享 Cell 安全证明：可注入的 ECS/ELBv2/EC2/RDS/STS 只读收集器及严格校验已完成；租户 ECS SDK 依赖已安装，但 Shared Cell 其余服务的真实 root 客户端和只读权限仍未接线。
 - 控制通道：固定 8443 的 mTLS transport、实例级 RS256 JWT 和不可变模板 v2 编译器已完成；订单服务 `POST /api/saas/provision` 源码已实现 control API v1.2 事务单调 epoch CAS，但其他控制写接口未 fence，SQL/源码也未应用或部署。仍缺真实证书/私钥来源、Neon immutable source、可在重试期间保持同值并在 GET 对账后有围栏删除的 Owner Secret source，以及 Worker runtime 接线。
 
 独立 Worker 的 `applyRuntimeReady` 当前固定为 `false`。上述任一适配器没有替换并整体评审前，Worker 不会领取 `apply`/`reconcile`，无论部署已经处于哪个恢复状态，也不能到达 CloudFormation Apply 或应用实例 `active`。这不是可以用环境变量绕过的提示。
@@ -24,7 +24,8 @@ S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格
 - B3 只读证据会验证 STS、ECS Cluster、ALB/VPC/Subnet/Security Group、443 控制路径拒绝、8443 mTLS verify + ACTIVE Trust Store，以及私有 Aurora PostgreSQL 16.14 Serverless v2。
 - B4 Cell 模板只能渲染，固定 `renderOnly=true`、`applyReady=false`。Cell TTL 为 3 小时，租户 TTL 为 2 小时，另保留至少 15 分钟 cleanup buffer；代码层使用独立前缀、权限边界与 Cell Janitor，租户 Janitor 不会删除 Cell，但 Cell Janitor 尚未部署。当前 Cell Janitor 代码只能证明按精确 `CellId` 删除 CloudFormation workload Stack 的边界，不能清理 Stack 外的 database/role/Secret；必须先接入有围栏的完整 cleanup coordinator、全局扫描兜底并演练 `DELETE_FAILED`，才允许真实 Cell Apply。
 - B5 Cell Bootstrap 仍不创建收费 Cell；它只离线生成精确单 Cell的 Operator、独立 CloudFormation Execution Role、Cell Janitor 与 15 分钟兜底 Scheduler。脚本默认 `LocalValidate`，预留的 Create/Execute Change Set 写模式当前会在任何 AWS API 调用前硬拒绝；本次没有运行任何写模式。
-- B5-F 新增 SDK-free ECS one-shot 与 exact-five-key Secret Adapter 边界。注入接口覆盖 `RunTask`、精确 `startedBy` 恢复、`DescribeTasks` 和 `StopTask`；数据库任务只收到 generation-bound Secret ARN、代码固定命令、active epoch 和必要的 approved baseline digest，不接收密码、`DATABASE_URL`、连接 URL 或 Secret value。任务失租、超时或回执失败时会停止已知任务并确认 `STOPPED`；`RunTask` 不确定提交时会在独立恢复窗口持续查询，发现后停止，持续不可见则保留“结果未知”并 fail closed。实际 Secret 名使用逻辑 `/runtime` 加 `/gN`，并精确校验租户、generation、账号和区域。真实 AWS SDK provider、ARN 原生 lifecycle 任务程序/镜像与 root wiring 仍不存在；authority predecessor 也尚未传入 lifecycle Adapter，database/Secret destroy 明确 fail closed，`cleanupRuntimeReady=false` 保持不变。
+- B5-F 先建立 SDK-free ECS one-shot 与 exact-five-key Secret Adapter 边界。注入接口覆盖 `RunTask`、精确 `startedBy` 恢复、`DescribeTasks` 和 `StopTask`；数据库任务只收到 generation-bound Secret ARN、代码固定命令、active epoch 和必要的 approved baseline digest，不接收密码、`DATABASE_URL`、连接 URL 或 Secret value。任务失租、超时或回执失败时会停止已知任务并确认 `STOPPED`；`RunTask` 不确定提交时会在独立恢复窗口持续查询，发现后停止，持续不可见则保留“结果未知”并 fail closed。实际 Secret 名使用逻辑 `/runtime` 加 `/gN`，并精确校验租户、generation、账号和区域。该阶段尚无真实 SDK/ARN lifecycle 源码；B5-G 已补入下一段所述的注入式实现基础，但 authority predecessor 仍未传入 lifecycle Adapter，database/Secret destroy 明确 fail closed，`cleanupRuntimeReady=false` 保持不变。
+- B5-G 在上述接口后增加 AWS SDK v3 ECS one-shot、Secrets Manager 与 DynamoDB authority Adapter 源码。ECS Adapter 固定账号、区域、集群、Task Definition、网络和六条生命周期命令，并在处理找回任务前独立核对完整身份；Secret Adapter 使用 generation-stable 四标签，只暴露 ARN/版本/键集合/标签证据，同 generation 的新 epoch 不修改 Secret；DynamoDB Adapter 使用完整表 ARN、强一致读取与 revision/旧记录条件写入。订单服务端的 `db/tenant_lifecycle.js` 已统一接收 `inspect`、`prepare_empty_database`、`restore_approved_baseline`、`migrate_saas`、`verify`、`destroy`，但默认 provider 禁用。生产 material generator、task receipt reader、PostgreSQL lifecycle provider、DynamoDB 表/IAM、approved baseline、root wiring 和 cleanup predecessor 尚未完成；CLI 的非秘密业务结果尚不能与 exact ECS task/request 组成最终哈希回执。因此 `applyRuntimeReady=false`、`cleanupRuntimeReady=false` 保持不变，本阶段没有调用 AWS、Neon 或真实 PostgreSQL。
 
 ## 执行门禁
 
@@ -100,7 +101,7 @@ npm run deployment:worker
 
 ## 此前核验的数据库与 AWS 状态
 
-以下是 S3-A 阶段的历史核验记录；本次 B5-F 收口完全离线，没有查询或修改 AWS、Neon，也没有进行其他网络写入。
+以下是 S3-A 阶段的历史核验记录；本次 B5-G 收口完全离线，没有查询或修改 AWS、Neon，也没有进行其他网络写入。
 
 - `0004_aws_sandbox_worker.sql` 已应用到当前 Neon；核验结果为
   `apply_enabled=0`、execution binding 为 0，迁移本身没有开启 AWS Apply。

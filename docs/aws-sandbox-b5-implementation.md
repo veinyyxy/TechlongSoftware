@@ -44,18 +44,27 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - 当前只有离线 provider DTO、严格验证和 Mock 测试，没有真实 ECS/Secrets Manager SDK provider，没有 Worker root 注入，也没有批准 baseline。订单服务现有 baseline image 仍接收明文迁移环境变量，不能直接接入此 ARN-only 边界；其 ARN 原生 lifecycle helper 需后续单独实现和审查。
 - Secret 和数据库删除不会错误地把 cleanup epoch 当作原资源的 provision ownership。authority record 已能保留 exact predecessor，但该证据尚未进入 lifecycle Adapter 输入，因此 B5-F 的两个 destroy 方法都会以 non-retryable 专用错误在任何 provider 调用前 fail closed；`cleanupRuntimeReady` 必须继续为 `false`。
 
+### B5-G：真实 SDK 形状与订单服务 lifecycle 离线基础
+
+- 平台新增可注入的 AWS SDK v3 ECS one-shot Adapter，封装 `RunTask`、`ListTasks`、`DescribeTasks` 和 `StopTask`。它固定账号、区域、集群、Task Definition、子网、安全组和六条代码自有命令；未知提交只按稳定 `startedBy` 在独立有界窗口恢复，无法证明结果时 fail closed。
+- Secrets Manager Adapter 只允许当前租户、generation、账号和区域下的 exact-five-key Secret。Secret value 由尚未实现的生产 material generator 在 provider 内生成；平台只接收 ARN、版本、标签和键集合证据，不接收明文值。
+- DynamoDB authority Adapter 使用强一致读取和条件 `PutItem`，同时比较 revision 与规范化旧记录；它只是可注入实现源码，尚未创建表、IAM 或 root wiring，也没有被 standalone Worker 使用。
+- 订单服务端新增默认禁用的 `db/tenant_lifecycle.js`，统一接受 `inspect`、`prepare_empty_database`、`restore_approved_baseline`、`migrate_saas`、`verify`、`destroy` 六条命令。Secret resolver 必须提供 exact-five-key JSON，但数据库 provider 只得到缩减后的 `database_url`；marker/epoch/ownership 状态机可在响应丢失后精确重放，旧 epoch、漂移和异主资源会被拒绝。
+- 订单服务端另提供显式手动的 PostgreSQL 16.14 集成测试 runner：只接受 loopback admin URL，只创建随机命名的一次性数据库，并在 DROP 前二次核对 runner marker。默认 `npm test` 不会进入该目录；B5-G 没有运行真实 PostgreSQL 集成测试，也没有访问 AWS、Neon 或其他数据库。
+- 当前仍缺生产 Secrets material generator、ECS task receipt reader、PostgreSQL lifecycle provider、DynamoDB 表/IAM、approved baseline、任务镜像验证、exact predecessor destroy 接线和 Worker root 注入。订单服务 CLI 只输出确定性的非秘密业务结果，不能自证 ECS task ARN；未来 reader 必须把该结果与已独立验证的 DescribeTasks 身份和 exact request 绑定，再由平台构造最终哈希回执。因此本切片只证明代码边界，不代表可以启用 Apply/Cleanup 或运行真实 ECS canary。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：
 
 1. `0005`、`0006`、`0007` 尚未应用到 Neon。
 2. 尚无独立批准的 PostgreSQL 16.14 空租户 baseline；旧业务数据 dump 禁止作为租户模板。
-3. ECS one-shot 与 exact-five-key Secret 已有 SDK-free 离线适配边界，但真实 ECS/Secrets Manager provider、ARN 原生 lifecycle helper、approved baseline、Worker root wiring 和崩溃演练尚未完成。
-4. 离线 ownership coordinator 和原子 authority 接口已完成，但没有真实 authority provider；CloudFormation 只读回读不是 CAS，不能安装或授权 external marker。
+3. ECS one-shot 与 exact-five-key Secret 已有 AWS SDK v3 Adapter 源码和订单服务 lifecycle 入口，但生产 material generator、task receipt reader、PostgreSQL provider、approved baseline、任务镜像验证、Worker root wiring 和真实崩溃演练尚未完成。
+4. 离线 ownership coordinator、原子 authority 接口和 DynamoDB 条件写 Adapter 源码已完成，但没有 DynamoDB 表/IAM/root wiring，也未在 AWS 中验证；CloudFormation 只读回读不是 CAS，不能安装或授权 external marker。
 5. Cell 外部证据尚未完整验证 ACM、精确 Trust Store、DNS、Route Table、TTL Schedule 和 Stack 所有权。
-6. 分阶段 cleanup coordinator 已离线实现，但 authority record 的 exact provision predecessor 尚未接到 lifecycle Adapter；B5-F database/Secret destroy 因此明确 fail closed，Cell Janitor/standalone Worker 也尚未接入完整 destroy Adapter。
+6. 分阶段 cleanup coordinator 已离线实现，但 authority record 的 exact provision predecessor 尚未接到 lifecycle Adapter；database/Secret destroy 因此明确 fail closed，Cell Janitor/standalone Worker 也尚未接入完整 destroy Adapter。
 7. 尚未进行真实 Cell TTL 删除演练和费用后核对。
-8. 没有真实 AWS authority/workload CAS；订单服务仅 `POST /api/saas/provision` 在未部署源码中实现单调 epoch CAS，其他控制写接口仍未 fence，也没有完成数据库迁移、部署或跨进程演练。`AbortSignal` 不能撤销服务端已经接受的写入。
+8. DynamoDB authority Adapter 和订单服务 `POST /api/saas/provision` 单调 epoch CAS 仅存在于未接线/未部署源码中；其他控制写接口仍未 fence，也没有完成数据库迁移、跨进程 CAS、AWS 条件写或 provider-side 删除演练。`AbortSignal` 不能撤销服务端已经接受的写入。
 
 ## 费用与执行规则
 

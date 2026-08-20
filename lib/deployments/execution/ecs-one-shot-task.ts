@@ -107,6 +107,7 @@ export interface EcsOneShotTaskApi {
   describeTask(input: {
     clusterArn: string;
     taskArn: string;
+    expectedRequest: EcsOneShotTaskRequest;
     signal: AbortSignal;
   }): Promise<EcsOneShotTaskObservation>;
   stopTask(input: {
@@ -341,15 +342,20 @@ function assertConfig(config: EcsOneShotTaskRunnerConfig): void {
       );
     }
   }
-  if (
-    config.commandByOperation.migrate_saas.length !== 2 ||
-    config.commandByOperation.migrate_saas[0] !== "/usr/local/bin/node" ||
-    config.commandByOperation.migrate_saas[1] !== "db/apply_saas_control.js"
-  ) {
-    throw new TenantDatabaseLifecycleError(
-      "TENANT_ONE_SHOT_COMMAND_INVALID",
-      "The SaaS migration command must match the reviewed SpeedFeast runtime contract.",
-    );
+  for (const operation of tenantDatabaseOneShotOperations) {
+    if (
+      canonicalJson(config.commandByOperation[operation]) !==
+      canonicalJson([
+        "/usr/local/bin/node",
+        "db/tenant_lifecycle.js",
+        operation,
+      ])
+    ) {
+      throw new TenantDatabaseLifecycleError(
+        "TENANT_ONE_SHOT_COMMAND_INVALID",
+        "Every database lifecycle operation must use the reviewed unified SpeedFeast task entrypoint.",
+      );
+    }
   }
   if (!containerNamePattern.test(config.containerName)) {
     throw new TenantDatabaseLifecycleError(
@@ -395,19 +401,26 @@ export const tenantDatabaseOneShotOperations = [
 
 /**
  * Command vectors are code-owned, not deployment input. The lifecycle helper
- * image is intentionally not wired yet; only the already reviewed SaaS
- * command and migration-image entrypoint correspond to current SpeedFeast
- * artifacts.
+ * image is intentionally not wired yet. All operations share one reviewed
+ * SpeedFeast entrypoint so task definitions cannot substitute ad-hoc scripts.
  */
 export const approvedTenantDatabaseOneShotCommands = {
   inspect: ["/usr/local/bin/node", "db/tenant_lifecycle.js", "inspect"],
   prepare_empty_database: [
     "/usr/local/bin/node",
     "db/tenant_lifecycle.js",
-    "prepare-empty-database",
+    "prepare_empty_database",
   ],
-  restore_approved_baseline: [],
-  migrate_saas: ["/usr/local/bin/node", "db/apply_saas_control.js"],
+  restore_approved_baseline: [
+    "/usr/local/bin/node",
+    "db/tenant_lifecycle.js",
+    "restore_approved_baseline",
+  ],
+  migrate_saas: [
+    "/usr/local/bin/node",
+    "db/tenant_lifecycle.js",
+    "migrate_saas",
+  ],
   verify: ["/usr/local/bin/node", "db/tenant_lifecycle.js", "verify"],
   destroy: ["/usr/local/bin/node", "db/tenant_lifecycle.js", "destroy"],
 } as const satisfies Readonly<
@@ -678,6 +691,7 @@ export class EcsOneShotTaskRunner {
         const observation = await this.api.describeTask({
           clusterArn: this.config.clusterArn,
           taskArn,
+          expectedRequest: draft,
           signal: input.signal,
         });
         assertObservation(observation, taskArn);
@@ -724,7 +738,12 @@ export class EcsOneShotTaskRunner {
         }
         const stopResults = await Promise.allSettled(
           recoveredTaskArns.map((recoveredTaskArn) =>
-            this.stopAndConfirm(recoveredTaskArn, "run_task_outcome_unknown"),
+            this.stopAndConfirm(
+              recoveredTaskArn,
+              "run_task_outcome_unknown",
+              draft,
+              true,
+            ),
           ),
         );
         const failedStop = stopResults.find(
@@ -744,6 +763,8 @@ export class EcsOneShotTaskRunner {
       await this.stopAndConfirm(
         taskArn,
         input.signal.aborted ? "deployment_lease_lost" : "task_timeout",
+        draft,
+        false,
       );
       if (input.signal.aborted) throw abortError(input.signal);
       throw error;
@@ -818,9 +839,24 @@ export class EcsOneShotTaskRunner {
       | "deployment_lease_lost"
       | "task_timeout"
       | "run_task_outcome_unknown",
+    expectedRequest: EcsOneShotTaskRequest,
+    requireIdentityReadback: boolean,
   ): Promise<void> {
     const cleanupSignal = AbortSignal.timeout(this.config.abortCleanupTimeoutMs);
     try {
+      // A task recovered from an uncertain RunTask response is not trusted by
+      // ARN or startedBy alone. The provider must independently prove its
+      // immutable request identity before this runner is allowed to stop it.
+      if (requireIdentityReadback) {
+        const beforeStop = await this.api.describeTask({
+          clusterArn: this.config.clusterArn,
+          taskArn,
+          expectedRequest,
+          signal: cleanupSignal,
+        });
+        assertObservation(beforeStop, taskArn);
+        if (beforeStop.lastStatus === "STOPPED") return;
+      }
       await this.api.stopTask({
         clusterArn: this.config.clusterArn,
         taskArn,
@@ -835,6 +871,7 @@ export class EcsOneShotTaskRunner {
         const observation = await this.api.describeTask({
           clusterArn: this.config.clusterArn,
           taskArn,
+          expectedRequest,
           signal: cleanupSignal,
         });
         assertObservation(observation, taskArn);

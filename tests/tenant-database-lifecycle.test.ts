@@ -327,7 +327,10 @@ test("prepares, restores, migrates and verifies with one exact generation fence"
     },
     migrateSaas: async ({ fence: next, externalFence, command, migrationContract }) => {
       events.push("saas");
-      assert.equal(command, "/usr/local/bin/node db/apply_saas_control.js");
+      assert.equal(
+        command,
+        "/usr/local/bin/node db/tenant_lifecycle.js migrate_saas",
+      );
       assert.equal(migrationContract, "speedfeast-saas-control-v1");
       databaseState = "saas_migrated";
       return { ...mutation(next, "migrate_saas", "saas_migrated"), externalFence };

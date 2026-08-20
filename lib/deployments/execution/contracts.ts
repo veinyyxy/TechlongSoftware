@@ -618,7 +618,7 @@ export interface TenantDatabaseLifecyclePort {
     fence: TenantResourceFence;
     externalFence: TenantExternalOperationFence;
     runtimeSecretRef: string;
-    command: "/usr/local/bin/node db/apply_saas_control.js";
+    command: "/usr/local/bin/node db/tenant_lifecycle.js migrate_saas";
     migrationContract: "speedfeast-saas-control-v1";
     idempotencyKey: string;
     signal: AbortSignal;

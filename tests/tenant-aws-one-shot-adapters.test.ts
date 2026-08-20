@@ -380,6 +380,7 @@ test("recovers an accepted RunTask after its response is lost, then stops it", a
   const events: string[] = [];
   let request: EcsOneShotTaskRequest | null = null;
   let recoveryAttempts = 0;
+  let describeAttempts = 0;
   const idempotencyKey = "dep_tenant_one:uncertain-run";
   const api: EcsOneShotTaskApi = {
     runTask: async (input) => {
@@ -405,10 +406,14 @@ test("recovers an accepted RunTask after its response is lost, then stops it", a
       assert.equal(reason, "run_task_outcome_unknown");
       events.push("stop");
     },
-    describeTask: async ({ signal }) => {
+    describeTask: async ({ signal, expectedRequest }) => {
       assert.equal(signal instanceof AbortSignal, true);
-      events.push("describe-stopped");
-      return stoppedObservation(null);
+      assert.equal(expectedRequest, request);
+      describeAttempts += 1;
+      events.push(`describe:${describeAttempts}`);
+      return describeAttempts === 1
+        ? runningObservation()
+        : stoppedObservation(null);
     },
   };
   const runner = new EcsOneShotTaskRunner({
@@ -433,9 +438,56 @@ test("recovers an accepted RunTask after its response is lost, then stops it", a
     "run-accepted-response-lost",
     "recover:1",
     "recover:2",
+    "describe:1",
     "stop",
-    "describe-stopped",
+    "describe:2",
   ]);
+});
+
+test("never stops a recovered task when independent identity readback fails", async () => {
+  const fence = resourceFence();
+  const external = externalFence(fence);
+  let stopCalls = 0;
+  let describeCalls = 0;
+  const identityError = Object.assign(new Error("recovered task identity drift"), {
+    code: "TENANT_ONE_SHOT_TASK_OWNERSHIP_INVALID",
+  });
+  const runner = new EcsOneShotTaskRunner({
+    api: {
+      runTask: async () => {
+        throw new Error("RunTask response lost");
+      },
+      listTaskArnsByStartedBy: async () => ({ taskArns: [taskArn] }),
+      describeTask: async () => {
+        describeCalls += 1;
+        throw identityError;
+      },
+      stopTask: async () => {
+        stopCalls += 1;
+      },
+    },
+    waiter: { wait: async () => undefined },
+    config: runnerConfig(),
+  });
+
+  await assert.rejects(
+    runner.execute({
+      operation: "inspect",
+      fence,
+      externalFence: external,
+      runtimeSecretRef: secretArn,
+      approvedBaselineDigest: null,
+      idempotencyKey: "dep_tenant_one:uncertain-foreign-task",
+      signal: new AbortController().signal,
+    }),
+    (error: unknown) =>
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "TENANT_ONE_SHOT_ABORT_CLEANUP_FAILED" &&
+      error.message.includes("recovered task identity drift"),
+  );
+  assert.equal(describeCalls, 1);
+  assert.equal(stopCalls, 0);
 });
 
 test("fails closed when an uncertain RunTask stays invisible for the recovery bound", async () => {
