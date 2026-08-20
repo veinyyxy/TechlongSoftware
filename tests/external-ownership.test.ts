@@ -70,8 +70,13 @@ test("an injected ownership provider receives the exact pending fence and signal
   const proof: TenantExternalOwnershipProof = {
     schemaVersion: 1,
     pendingFence,
+    provisionPredecessor: null,
     evidenceHash: "c".repeat(64),
-    evidence: { provider: "offline-mock", marker: pendingFence.marker },
+    evidence: {
+      provider: "offline-mock",
+      marker: pendingFence.marker,
+      provisionPredecessor: null,
+    },
   };
   const port: TenantExternalOwnershipPort = {
     installAndObserve: async (input) => {
@@ -569,6 +574,8 @@ test("cleanup may claim authority for the exact older provision workload only", 
     (proof.evidence.authorityRecord as TenantExternalEpochAuthorityRecord).intent,
     "cleanup",
   );
+  assert.deepEqual(proof.provisionPredecessor, authorityCoordinate(authorityRecord(provision)));
+  assert.deepEqual(proof.evidence.provisionPredecessor, proof.provisionPredecessor);
 });
 
 test("cleanup can supersede a provider-installed provision whose workload was never created", async () => {
@@ -617,6 +624,8 @@ test("cleanup crash replay retains the exact provision predecessor and performs 
   assert.equal(epochAuthority.compareCalls, 0);
   assert.equal(readback.calls, 2);
   assert.deepEqual(proof.evidence.authorityRecord, cleanupRecord);
+  assert.deepEqual(proof.provisionPredecessor, cleanupRecord.predecessor);
+  assert.deepEqual(proof.evidence.provisionPredecessor, cleanupRecord.predecessor);
 });
 
 test("cleanup rejects a workload that does not exactly match its authority-derived predecessor", async () => {

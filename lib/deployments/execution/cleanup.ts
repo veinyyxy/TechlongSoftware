@@ -10,6 +10,7 @@ import type {
   TenantResourceCleanupPhaseReceiptMap,
   TenantResourceCleanupRun,
   TenantResourceFence,
+  TenantProvisionPredecessor,
   TenantSecretDestroyReceipt,
   TenantSecretStorePort,
   TenantWorkloadDestroyReceipt,
@@ -20,6 +21,10 @@ import {
   assertTenantResourceFence,
   TenantDatabaseLifecycleError,
 } from "./tenant-database.ts";
+import {
+  assertTenantProvisionPredecessor,
+  requireActiveCleanupProvisionPredecessor,
+} from "./external-ownership.ts";
 
 const stackNamePattern = /^techlong-sandbox-tenant-[a-z0-9]{1,16}$/;
 
@@ -181,6 +186,8 @@ function assertExternalFence(
   actual: TenantExternalOperationFence,
   expected: TenantExternalOperationFence,
 ): void {
+  assertTenantResourceFence(actual.resourceFence, expected.resourceFence);
+  requireActiveCleanupProvisionPredecessor(actual);
   assertExactKeys(
     actual,
     [
@@ -192,10 +199,10 @@ function assertExternalFence(
       "operationHash",
       "marker",
       "state",
+      "provisionPredecessor",
     ],
     "Tenant cleanup external operation fence",
   );
-  assertTenantResourceFence(actual.resourceFence, expected.resourceFence);
   if (
     canonicalJson(actual) !== canonicalJson(expected) ||
     actual.schemaVersion !== 1 ||
@@ -279,6 +286,8 @@ export class OrderedTenantResourceCleanup {
     assertTenantResourceFence(input.fence);
     assertExternalFence(input.externalFence, input.externalFence);
     assertTenantResourceFence(input.externalFence.resourceFence, input.fence);
+    const provisionPredecessor =
+      requireActiveCleanupProvisionPredecessor(input.externalFence);
     if (input.lease.deploymentId !== input.fence.ownerDeploymentId) {
       throw new TenantDatabaseLifecycleError(
         "TENANT_CLEANUP_FENCE_REJECTED",
@@ -315,6 +324,7 @@ export class OrderedTenantResourceCleanup {
     const run = await this.repository.beginOrResumeTenantResourceCleanup({
       lease: input.lease,
       externalFence: input.externalFence,
+      provisionPredecessor,
       now: this.now(),
     });
     if (!run) {
@@ -323,6 +333,12 @@ export class OrderedTenantResourceCleanup {
         "Tenant cleanup run could not be acquired under the current lease and epoch.",
       );
     }
+    assertTenantProvisionPredecessor(
+      run.provisionPredecessor,
+      input.fence,
+      input.externalFence.epoch,
+      provisionPredecessor,
+    );
     let activeRun: TenantResourceCleanupRun = run;
 
     const phaseReceipts: Partial<TenantResourceCleanupPhaseReceiptMap> = {};
@@ -337,6 +353,7 @@ export class OrderedTenantResourceCleanup {
       const claim = await this.repository.beginTenantResourceCleanupPhase({
         lease: input.lease,
         externalFence: input.externalFence,
+        provisionPredecessor,
         runId: activeRun.id,
         phase,
         now: this.now(),
@@ -345,6 +362,18 @@ export class OrderedTenantResourceCleanup {
         throw new TenantDatabaseLifecycleError(
           "TENANT_CLEANUP_FENCE_LOST",
           `Tenant cleanup phase ${phase} lost its lease or external epoch.`,
+        );
+      }
+      assertTenantProvisionPredecessor(
+        claim.run.provisionPredecessor,
+        input.fence,
+        input.externalFence.epoch,
+        provisionPredecessor,
+      );
+      if (claim.run.id !== activeRun.id) {
+        throw new TenantDatabaseLifecycleError(
+          "TENANT_CLEANUP_FENCE_LOST",
+          `Tenant cleanup phase ${phase} returned a different cleanup run.`,
         );
       }
       let receipt: TenantResourceCleanupPhaseReceiptMap[typeof phase];
@@ -358,13 +387,17 @@ export class OrderedTenantResourceCleanup {
         receipt = claim.receipt as TenantResourceCleanupPhaseReceiptMap[typeof phase];
       } else {
         requireNotAborted(input.signal);
-        receipt = await this.executePhase(phase, claim.operationId, input);
+        receipt = await this.executePhase(phase, claim.operationId, {
+          ...input,
+          provisionPredecessor,
+        });
         requireNotAborted(input.signal);
         this.assertPhaseReceipt(phase, receipt, input);
         const completed: TenantResourceCleanupRun | null =
           await this.repository.completeTenantResourceCleanupPhase({
             lease: input.lease,
             externalFence: input.externalFence,
+            provisionPredecessor,
             runId: activeRun.id,
             phase,
             operationId: claim.operationId,
@@ -377,6 +410,12 @@ export class OrderedTenantResourceCleanup {
             `Tenant cleanup phase ${phase} could not persist its receipt.`,
           );
         }
+        assertTenantProvisionPredecessor(
+          completed.provisionPredecessor,
+          input.fence,
+          input.externalFence.epoch,
+          provisionPredecessor,
+        );
         activeRun = completed;
       }
       if (claim.outcome === "already_succeeded") {
@@ -398,6 +437,7 @@ export class OrderedTenantResourceCleanup {
     const finalized = await this.repository.finalizeTenantResourceCleanup({
       lease: input.lease,
       externalFence: input.externalFence,
+      provisionPredecessor,
       runId: activeRun.id,
       scheduleId: input.scheduleId,
       appInstanceId: input.appInstanceId,
@@ -426,12 +466,14 @@ export class OrderedTenantResourceCleanup {
     input: {
       fence: TenantResourceFence;
       externalFence: TenantExternalOperationFence;
+      provisionPredecessor: TenantProvisionPredecessor;
       signal: AbortSignal;
     },
   ): Promise<TenantResourceCleanupPhaseReceiptMap[P]> {
     const common = {
       fence: input.fence,
       externalFence: input.externalFence,
+      provisionPredecessor: input.provisionPredecessor,
       idempotencyKey: operationId,
       signal: input.signal,
     };

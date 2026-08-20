@@ -14,6 +14,7 @@ import type {
   TenantDatabaseLifecyclePort,
   TenantDatabaseMutationReceipt,
   TenantExternalOperationFence,
+  TenantProvisionPredecessor,
   TenantResourceCleanupPhase,
   TenantResourceCleanupPhaseRecord,
   TenantResourceCleanupPhaseReceiptMap,
@@ -739,6 +740,22 @@ function cleanupLease(resourceFence: TenantResourceFence, jobId: string) {
   };
 }
 
+function provisionPredecessor(
+  resourceFence: TenantResourceFence,
+): TenantProvisionPredecessor {
+  return {
+    schemaVersion: 1,
+    generation: resourceFence.generation,
+    epoch: 1,
+    intent: "provision",
+    ownerDeploymentId: resourceFence.ownerDeploymentId,
+    operationHash: "e".repeat(64),
+    marker:
+      `tl_epoch_${resourceFence.identity.stableIdentityHash.slice(0, 24)}` +
+      `_g${resourceFence.generation}_e1`,
+  };
+}
+
 function cleanupExternalFence(
   resourceFence: TenantResourceFence,
 ): TenantExternalOperationFence {
@@ -753,6 +770,7 @@ function cleanupExternalFence(
       `tl_epoch_${resourceFence.identity.stableIdentityHash.slice(0, 24)}` +
       `_g${resourceFence.generation}_e2`,
     state: "active",
+    provisionPredecessor: provisionPredecessor(resourceFence),
   };
 }
 
@@ -770,6 +788,7 @@ function recoverableCleanupRepository(input: {
   const run: TenantResourceCleanupRun = {
     id: "cleanup_run_one",
     externalFence: input.externalFence,
+    provisionPredecessor: input.externalFence.provisionPredecessor!,
     ownerDeploymentId: input.externalFence.ownerDeploymentId,
     status: "running",
     nextPhase: "workload",
@@ -781,20 +800,36 @@ function recoverableCleanupRepository(input: {
   let finalized = 0;
   const order: TenantResourceCleanupPhase[] = ["workload", "database", "secret"];
   const repository = {
-    assertTenantExternalOperation: async () => {
+    assertTenantExternalOperation: async ({
+      externalFence,
+    }: {
+      externalFence: TenantExternalOperationFence;
+    }) => {
       input.events.push("assert-external");
-      return input.active !== false;
+      return (
+        input.active !== false &&
+        JSON.stringify(externalFence.provisionPredecessor) ===
+          JSON.stringify(run.provisionPredecessor)
+      );
     },
-    beginOrResumeTenantResourceCleanup: async () => {
+    beginOrResumeTenantResourceCleanup: async ({
+      provisionPredecessor: predecessorInput,
+    }: {
+      provisionPredecessor: TenantProvisionPredecessor;
+    }) => {
       input.events.push("begin-or-resume");
+      assert.deepEqual(predecessorInput, run.provisionPredecessor);
       return run;
     },
     beginTenantResourceCleanupPhase: async ({
       phase,
+      provisionPredecessor: predecessorInput,
     }: {
       phase: TenantResourceCleanupPhase;
+      provisionPredecessor: TenantProvisionPredecessor;
     }) => {
       input.events.push(`begin:${phase}`);
+      assert.deepEqual(predecessorInput, run.provisionPredecessor);
       const existing = run.phases[phase] as
         | TenantResourceCleanupPhaseRecord<typeof phase>
         | undefined;
@@ -831,12 +866,15 @@ function recoverableCleanupRepository(input: {
       phase,
       operationId,
       receipt,
+      provisionPredecessor: predecessorInput,
     }: {
       phase: P;
       operationId: string;
       receipt: TenantResourceCleanupPhaseReceiptMap[P];
+      provisionPredecessor: TenantProvisionPredecessor;
     }) => {
       input.events.push(`complete:${phase}`);
+      assert.deepEqual(predecessorInput, run.provisionPredecessor);
       if (input.rejectCompletePhase === phase) return null;
       const record = run.phases[phase] as TenantResourceCleanupPhaseRecord<P>;
       assert.equal(record.operationId, operationId);
@@ -848,8 +886,13 @@ function recoverableCleanupRepository(input: {
       run.nextPhase = index === order.length - 1 ? "finalize" : order[index + 1];
       return run;
     },
-    finalizeTenantResourceCleanup: async () => {
+    finalizeTenantResourceCleanup: async ({
+      provisionPredecessor: predecessorInput,
+    }: {
+      provisionPredecessor: TenantProvisionPredecessor;
+    }) => {
       input.events.push("finalize");
+      assert.deepEqual(predecessorInput, run.provisionPredecessor);
       if (order.some((phase) => run.phases[phase]?.status !== "succeeded")) {
         return false;
       }
@@ -899,15 +942,21 @@ function cleanupAdapters(input: {
       destroy: async ({
         fence: next,
         externalFence,
+        provisionPredecessor: phasePredecessor,
         idempotencyKey,
         signal,
       }: {
         fence: TenantResourceFence;
         externalFence: TenantExternalOperationFence;
+        provisionPredecessor: TenantProvisionPredecessor;
         idempotencyKey: string;
         signal: AbortSignal;
       }) => {
         assert.equal(signal.aborted, false);
+        assert.deepEqual(
+          phasePredecessor,
+          input.externalFence.provisionPredecessor,
+        );
         track("workload", idempotencyKey);
         input.abortAfterWorkload?.abort();
         return {
@@ -922,12 +971,18 @@ function cleanupAdapters(input: {
       destroy: async ({
         fence: next,
         externalFence,
+        provisionPredecessor: phasePredecessor,
         idempotencyKey,
       }: {
         fence: TenantResourceFence;
         externalFence: TenantExternalOperationFence;
+        provisionPredecessor: TenantProvisionPredecessor;
         idempotencyKey: string;
       }) => {
+        assert.deepEqual(
+          phasePredecessor,
+          input.externalFence.provisionPredecessor,
+        );
         track("database", idempotencyKey);
         if (databaseFailurePending) {
           databaseFailurePending = false;
@@ -947,12 +1002,18 @@ function cleanupAdapters(input: {
       destroyRuntimeSecret: async ({
         fence: next,
         externalFence,
+        provisionPredecessor: phasePredecessor,
         idempotencyKey,
       }: {
         fence: TenantResourceFence;
         externalFence: TenantExternalOperationFence;
+        provisionPredecessor: TenantProvisionPredecessor;
         idempotencyKey: string;
       }) => {
+        assert.deepEqual(
+          phasePredecessor,
+          input.externalFence.provisionPredecessor,
+        );
         track("secret", idempotencyKey);
         return {
           fence: next,
@@ -1083,6 +1144,58 @@ test("an inactive cleanup epoch makes zero external calls", async () => {
   assert.deepEqual(adapters.operationIds, {});
 });
 
+test("missing, cross-generation, non-provision, and drifting predecessors make zero calls", async () => {
+  const resourceFence = fence(await deriveTenantResourceIdentity(context()));
+  const valid = cleanupExternalFence(resourceFence);
+  const withoutPredecessor = Object.fromEntries(
+    Object.entries(valid).filter(([key]) => key !== "provisionPredecessor"),
+  ) as unknown as TenantExternalOperationFence;
+  const invalidFences: TenantExternalOperationFence[] = [
+    withoutPredecessor,
+    {
+      ...valid,
+      provisionPredecessor: {
+        ...valid.provisionPredecessor!,
+        generation: resourceFence.generation + 1,
+      },
+    },
+    {
+      ...valid,
+      provisionPredecessor: {
+        ...valid.provisionPredecessor!,
+        intent: "cleanup",
+      } as unknown as TenantProvisionPredecessor,
+    },
+    {
+      ...valid,
+      provisionPredecessor: {
+        ...valid.provisionPredecessor!,
+        operationHash: "0".repeat(64),
+      },
+    },
+  ];
+
+  for (const externalFence of invalidFences) {
+    const events: string[] = [];
+    const state = recoverableCleanupRepository({ externalFence: valid, events });
+    const adapters = cleanupAdapters({ events, externalFence: valid });
+    const cleanup = new OrderedTenantResourceCleanup({
+      ...adapters,
+      repository: state.repository,
+    });
+    await assert.rejects(
+      cleanup.destroy(cleanupCall(resourceFence, externalFence)),
+      (error: unknown) =>
+        [
+          "TENANT_CLEANUP_PROVISION_PREDECESSOR_INVALID",
+          "TENANT_CLEANUP_EXTERNAL_EPOCH_INACTIVE",
+        ].includes(String((error as { code?: string }).code)),
+    );
+    assert.equal(events.some((event) => event.startsWith("adapter:")), false);
+    assert.deepEqual(adapters.operationIds, {});
+  }
+});
+
 test("partial database cleanup cannot persist or reach Secret deletion", async () => {
   const resourceFence = fence(await deriveTenantResourceIdentity(context()));
   const externalFence = cleanupExternalFence(resourceFence);
@@ -1149,13 +1262,17 @@ test("external ownership coordinator activates only provider-observed proof", as
       proof: {
         pendingFence: TenantExternalOperationFence;
         evidenceHash: string;
+        provisionPredecessor: TenantProvisionPredecessor | null;
       };
     }) => {
       events.push("activate");
       assert.deepEqual(proof.pendingFence, prepared);
       assert.equal(
         proof.evidenceHash,
-        await sha256Hex({ registryMarker: proof.pendingFence.marker }),
+        await sha256Hex({
+          registryMarker: proof.pendingFence.marker,
+          provisionPredecessor: null,
+        }),
       );
       return { ...proof.pendingFence, state: "active" as const };
     },
@@ -1170,10 +1287,14 @@ test("external ownership coordinator activates only provider-observed proof", as
         events.push("provider-observe");
         assert.equal(signal.aborted, false);
         assert.deepEqual(pendingFence, prepared);
-        const evidence = { registryMarker: pendingFence.marker };
+        const evidence = {
+          registryMarker: pendingFence.marker,
+          provisionPredecessor: null,
+        };
         return {
           schemaVersion: 1 as const,
           pendingFence,
+          provisionPredecessor: null,
           evidenceHash: await sha256Hex(evidence),
           evidence,
         };
@@ -1209,6 +1330,7 @@ test("external ownership coordinator reuses an exact active epoch without provid
           ...pendingExternalFence(resourceFence, "cleanup", 2),
           operationHash,
           state: "active" as const,
+          provisionPredecessor: provisionPredecessor(resourceFence),
         };
         return { outcome: "reused" as const, fence: active };
       },
@@ -1257,15 +1379,22 @@ test("cleanup reason changes reuse the same immutable cleanup epoch", async () =
         return { outcome: "reused" as const, fence: current };
       }
       current = {
-        ...pendingExternalFence(resourceFence, "cleanup", 1),
+        ...pendingExternalFence(resourceFence, "cleanup", 2),
         operationHash,
       };
       return { outcome: "created" as const, fence: current };
     },
     activateTenantExternalOperation: async ({ proof }: {
-      proof: { pendingFence: TenantExternalOperationFence };
+      proof: {
+        pendingFence: TenantExternalOperationFence;
+        provisionPredecessor: TenantProvisionPredecessor | null;
+      };
     }) => {
-      current = { ...proof.pendingFence, state: "active" as const };
+      current = {
+        ...proof.pendingFence,
+        state: "active" as const,
+        provisionPredecessor: proof.provisionPredecessor ?? undefined,
+      };
       return current;
     },
     assertTenantExternalOperation: async () => true,
@@ -1275,10 +1404,15 @@ test("cleanup reason changes reuse the same immutable cleanup epoch", async () =
     {
       installAndObserve: async ({ pendingFence }) => {
         providerCalls += 1;
-        const evidence = { registryMarker: pendingFence.marker };
+        const predecessor = provisionPredecessor(resourceFence);
+        const evidence = {
+          registryMarker: pendingFence.marker,
+          provisionPredecessor: predecessor,
+        };
         return {
           schemaVersion: 1 as const,
           pendingFence,
+          provisionPredecessor: predecessor,
           evidenceHash: await sha256Hex(evidence),
           evidence,
         };
@@ -1353,6 +1487,65 @@ test("Neon ownership SQL fences lifecycle and job intent before epoch mutation",
     resumableCleanup,
     /phase\.phase <> completed\.phase[\s\S]*?UNION ALL[\s\S]*?SELECT completed\.run_id/,
   );
+  assert.equal(
+    (
+      resumableCleanup.match(
+        /operation\.evidence::jsonb -> 'provisionPredecessor'/g,
+      ) ?? []
+    ).length,
+    4,
+  );
+});
+
+test("a reclaimed active cleanup fence reloads its predecessor from persisted authority evidence", async () => {
+  const selectedContext = context();
+  const resourceFence = fence(
+    await deriveTenantResourceIdentity(selectedContext),
+  );
+  const expected = cleanupExternalFence(resourceFence);
+  const persistedEvidence = {
+    provisionPredecessor: expected.provisionPredecessor,
+  };
+  const repository = new NeonDeploymentExecutionRepository(
+    "postgresql://offline:offline@offline.invalid/never_contacted?sslmode=require",
+  );
+  (
+    repository as unknown as {
+      sql: { query: () => Promise<{ rows: Record<string, unknown>[] }> };
+    }
+  ).sql = {
+    query: async () => ({
+      rows: [
+        {
+          external_epoch: expected.epoch,
+          external_intent: expected.intent,
+          external_owner_deployment_id: expected.ownerDeploymentId,
+          external_operation_hash: expected.operationHash,
+          external_marker: expected.marker,
+          external_state: expected.state,
+          external_evidence_hash: await sha256Hex(persistedEvidence),
+          external_evidence: persistedEvidence,
+          claim_outcome: "reused",
+          lease_owned: true,
+          pending_conflict: false,
+          active_cleanup_conflict: false,
+        },
+      ],
+    }),
+  };
+
+  const claim = await repository.prepareTenantExternalOperation({
+    lease: cleanupLease(resourceFence, selectedContext.job.id),
+    resourceFence,
+    intent: "cleanup",
+    operationHash: expected.operationHash,
+    now,
+  });
+  assert.equal(claim.outcome, "reused");
+  assert.deepEqual(
+    claim.fence.provisionPredecessor,
+    expected.provisionPredecessor,
+  );
 });
 
 test("cleanup resume rejects a succeeded phase with a corrupted receipt hash", async () => {
@@ -1403,6 +1596,7 @@ test("cleanup resume rejects a succeeded phase with a corrupted receipt hash", a
     repository.beginOrResumeTenantResourceCleanup({
       lease: cleanupLease(resourceFence, selectedContext.job.id),
       externalFence,
+      provisionPredecessor: externalFence.provisionPredecessor!,
       now,
     }),
     (error: unknown) =>

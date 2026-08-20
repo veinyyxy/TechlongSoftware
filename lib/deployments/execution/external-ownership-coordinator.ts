@@ -8,6 +8,10 @@ import type {
   TenantResourceFence,
 } from "./contracts.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
+import {
+  proofProvisionPredecessor,
+  requireActiveCleanupProvisionPredecessor,
+} from "./external-ownership.ts";
 import type { TenantExternalOwnershipCoordinatorPort } from "./worker.ts";
 
 function fail(code: string, message: string, retryable = false): Error {
@@ -30,7 +34,8 @@ function assertPendingFence(
     !/^[a-f0-9]{64}$/.test(pending.operationHash) ||
     pending.marker !==
       `tl_epoch_${expectedResource.identity.stableIdentityHash.slice(0, 24)}` +
-        `_g${expectedResource.generation}_e${pending.epoch}`
+        `_g${expectedResource.generation}_e${pending.epoch}` ||
+    pending.provisionPredecessor !== undefined
   ) {
     throw fail(
       "TENANT_EXTERNAL_OWNERSHIP_FENCE_INVALID",
@@ -107,6 +112,14 @@ export class RepositoryTenantExternalOwnershipCoordinator
       );
     }
     if (claim.fence.state === "active") {
+      if (input.intent === "cleanup") {
+        requireActiveCleanupProvisionPredecessor(claim.fence);
+      } else if (claim.fence.provisionPredecessor !== undefined) {
+        throw fail(
+          "TENANT_EXTERNAL_OWNERSHIP_FENCE_INVALID",
+          "A provision epoch cannot carry a cleanup predecessor.",
+        );
+      }
       const active = await this.repository.assertTenantExternalOperation({
         lease: input.lease,
         externalFence: claim.fence,
@@ -144,21 +157,43 @@ export class RepositoryTenantExternalOwnershipCoordinator
         "Provider ownership proof does not match the prepared epoch.",
       );
     }
+    const provisionPredecessor = proofProvisionPredecessor(proof);
     const activated = await this.repository.activateTenantExternalOperation({
       lease: input.lease,
       proof,
       now: this.now(),
     });
+    const activatedWithoutPredecessor = activated
+      ? Object.fromEntries(
+          Object.entries(activated).filter(
+            ([key]) => key !== "provisionPredecessor",
+          ),
+        )
+      : null;
     if (
       !activated ||
       activated.state !== "active" ||
-      canonicalJson({ ...activated, state: "pending_external" }) !==
+      canonicalJson({ ...activatedWithoutPredecessor, state: "pending_external" }) !==
         canonicalJson(claim.fence)
     ) {
       throw fail(
         "TENANT_EXTERNAL_OWNERSHIP_ACTIVATION_REJECTED",
         "Provider-proven external ownership epoch was not activated.",
         true,
+      );
+    }
+    if (input.intent === "cleanup") {
+      requireActiveCleanupProvisionPredecessor(
+        activated,
+        provisionPredecessor ?? undefined,
+      );
+    } else if (
+      provisionPredecessor !== null ||
+      activated.provisionPredecessor !== undefined
+    ) {
+      throw fail(
+        "TENANT_EXTERNAL_OWNERSHIP_ACTIVATION_REJECTED",
+        "A provision activation returned cleanup predecessor evidence.",
       );
     }
     return activated;

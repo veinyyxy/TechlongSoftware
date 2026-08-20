@@ -1,5 +1,6 @@
 import type {
   TenantExternalOperationFence,
+  TenantProvisionPredecessor,
   TenantResourceFence,
 } from "./contracts.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
@@ -7,6 +8,10 @@ import {
   assertTenantResourceFence,
   TenantDatabaseLifecycleError,
 } from "./tenant-database.ts";
+import {
+  assertTenantProvisionPredecessor,
+  requireActiveCleanupProvisionPredecessor,
+} from "./external-ownership.ts";
 
 const sha256Pattern = /^[a-f0-9]{64}$/;
 const arnPattern =
@@ -16,6 +21,10 @@ const secretArnPattern =
 const idempotencyKeyPattern = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,199}$/;
 const containerNamePattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,126}$/;
 const networkIdPattern = /^(subnet|sg)-[a-f0-9]{8,17}$/;
+const receiptBucketArnPattern =
+  /^arn:aws:s3:::(techlong-sandbox-[a-z0-9][a-z0-9.-]{1,45}[a-z0-9])$/;
+const receiptKeyPattern =
+  /^tenant-lifecycle\/v1\/([a-f0-9]{32})\/g([1-9][0-9]*)\/([a-f0-9]{64})\.json$/;
 
 export type TenantDatabaseOneShotOperation =
   | "inspect"
@@ -74,8 +83,18 @@ export interface EcsOneShotTaskRequest {
       TENANT_EXTERNAL_OPERATION_EPOCH: string;
       TENANT_EXTERNAL_OPERATION_MARKER: string;
       TENANT_EXTERNAL_OPERATION_HASH: string;
+      TENANT_PREDECESSOR_PROVISION_EPOCH?: string;
+      TENANT_PREDECESSOR_PROVISION_MARKER?: string;
+      TENANT_PREDECESSOR_PROVISION_OPERATION_HASH?: string;
+      TENANT_RECEIPT_BUCKET: string;
+      TENANT_RECEIPT_EXPECTED_BUCKET_OWNER: string;
+      TENANT_RECEIPT_KEY: string;
       APPROVED_TENANT_BASELINE_SHA256?: string;
     };
+  };
+  receipt: {
+    bucketArn: string;
+    key: string;
   };
   startedBy: string;
   clientToken: string;
@@ -127,6 +146,7 @@ export interface AbortableWaitPort {
 
 export interface EcsOneShotTaskRunnerConfig {
   clusterArn: string;
+  receiptBucketArn: string;
   taskDefinitionArnByOperation: Readonly<
     Record<TenantDatabaseOneShotOperation, string>
   >;
@@ -141,7 +161,7 @@ export interface EcsOneShotTaskRunnerConfig {
   abortCleanupTimeoutMs: number;
 }
 
-export interface TenantDatabaseOneShotInvocation {
+interface TenantDatabaseOneShotInvocationBase {
   operation: TenantDatabaseOneShotOperation;
   fence: TenantResourceFence;
   externalFence: TenantExternalOperationFence;
@@ -150,6 +170,16 @@ export interface TenantDatabaseOneShotInvocation {
   idempotencyKey: string;
   signal: AbortSignal;
 }
+
+export type TenantDatabaseOneShotInvocation =
+  | (TenantDatabaseOneShotInvocationBase & {
+      operation: "destroy";
+      provisionPredecessor: TenantProvisionPredecessor;
+    })
+  | (TenantDatabaseOneShotInvocationBase & {
+      operation: Exclude<TenantDatabaseOneShotOperation, "destroy">;
+      provisionPredecessor?: never;
+    });
 
 const requestKeys = [
   "schemaVersion",
@@ -161,10 +191,12 @@ const requestKeys = [
   "subnetIds",
   "securityGroupIds",
   "container",
+  "receipt",
   "startedBy",
   "clientToken",
   "tags",
 ] as const;
+const receiptLocationKeys = ["bucketArn", "key"] as const;
 const observationKeys = [
   "taskArn",
   "lastStatus",
@@ -239,6 +271,34 @@ function assertAwsScope(
   }
 }
 
+export function tenantOneShotReceiptBucketName(bucketArn: string): string {
+  const match = receiptBucketArnPattern.exec(bucketArn);
+  const bucketName = match?.[1];
+  if (
+    !bucketName ||
+    bucketName.length > 63 ||
+    bucketName.includes("..") ||
+    bucketName.includes(".-") ||
+    bucketName.includes("-.")
+  ) {
+    throw new TenantDatabaseLifecycleError(
+      "TENANT_ONE_SHOT_RECEIPT_LOCATION_INVALID",
+      "Tenant one-shot receipt requires a complete, DNS-safe sandbox S3 bucket ARN.",
+    );
+  }
+  return bucketName;
+}
+
+export function tenantOneShotExpectedReceiptBucketArn(input: {
+  accountId: string;
+  region: string;
+}): string {
+  return (
+    `arn:aws:s3:::techlong-sandbox-${input.accountId}-${input.region}-` +
+    "tenant-receipts"
+  );
+}
+
 export function assertTenantRuntimeSecretArn(
   value: string,
   expected?: {
@@ -277,7 +337,7 @@ function assertActiveExternalFence(
   externalFence: TenantExternalOperationFence,
   fence: TenantResourceFence,
   intent: "provision" | "cleanup",
-): void {
+): TenantProvisionPredecessor | null {
   assertTenantResourceFence(externalFence.resourceFence, fence);
   if (
     externalFence.schemaVersion !== 1 ||
@@ -296,10 +356,29 @@ function assertActiveExternalFence(
       "Tenant one-shot task requires the exact active external operation epoch.",
     );
   }
+  if (intent === "cleanup") {
+    return requireActiveCleanupProvisionPredecessor(externalFence);
+  }
+  if (externalFence.provisionPredecessor !== undefined) {
+    throw new TenantDatabaseLifecycleError(
+      "TENANT_EXTERNAL_OWNERSHIP_FENCE_MISMATCH",
+      "A provision task cannot carry cleanup predecessor evidence.",
+    );
+  }
+  return null;
 }
 
 function assertConfig(config: EcsOneShotTaskRunnerConfig): void {
   const cluster = parseArn(config.clusterArn, "cluster");
+  tenantOneShotReceiptBucketName(config.receiptBucketArn);
+  if (
+    config.receiptBucketArn !== tenantOneShotExpectedReceiptBucketArn(cluster)
+  ) {
+    throw new TenantDatabaseLifecycleError(
+      "TENANT_ONE_SHOT_CONFIG_INVALID",
+      "Tenant receipt bucket must encode the configured ECS account and region.",
+    );
+  }
   for (const operation of tenantDatabaseOneShotOperations) {
     const taskDefinition = parseArn(
       config.taskDefinitionArnByOperation[operation],
@@ -438,6 +517,7 @@ function requestHashInput(request: EcsOneShotTaskRequest): Record<string, unknow
     subnetIds: request.subnetIds,
     securityGroupIds: request.securityGroupIds,
     container: request.container,
+    receipt: request.receipt,
     tags: request.tags,
   };
 }
@@ -576,16 +656,24 @@ export class EcsOneShotTaskRunner {
   async execute(input: TenantDatabaseOneShotInvocation): Promise<TenantDatabaseOneShotReceipt> {
     input.signal.throwIfAborted();
     assertTenantResourceFence(input.fence);
-    assertActiveExternalFence(
+    const provisionPredecessor = assertActiveExternalFence(
       input.externalFence,
       input.fence,
       input.operation === "destroy" ? "cleanup" : "provision",
     );
     if (input.operation === "destroy") {
+      assertTenantProvisionPredecessor(
+        input.provisionPredecessor,
+        input.fence,
+        input.externalFence.epoch,
+        provisionPredecessor ?? undefined,
+      );
+    } else if (
+      Object.prototype.hasOwnProperty.call(input, "provisionPredecessor")
+    ) {
       throw new TenantDatabaseLifecycleError(
-        "TENANT_DATABASE_CLEANUP_PREDECESSOR_UNAVAILABLE",
-        "Tenant database cleanup is disabled until authority can supply the exact provision predecessor ownership evidence.",
-        false,
+        "TENANT_CLEANUP_PROVISION_PREDECESSOR_INVALID",
+        "Provision tasks must not carry cleanup predecessor evidence.",
       );
     }
     assertTenantRuntimeSecretArn(input.runtimeSecretRef, {
@@ -620,6 +708,24 @@ export class EcsOneShotTaskRunner {
     }
 
     const idempotencyHash = await sha256Hex(input.idempotencyKey);
+    const receiptBucket = tenantOneShotReceiptBucketName(
+      this.config.receiptBucketArn,
+    );
+    const receiptOwner = /^tl_owner_([a-f0-9]{32})_g([1-9][0-9]*)$/.exec(
+      input.fence.ownershipMarker,
+    );
+    if (
+      !receiptOwner ||
+      Number(receiptOwner[2]) !== input.fence.generation
+    ) {
+      throw new TenantDatabaseLifecycleError(
+        "TENANT_ONE_SHOT_RECEIPT_LOCATION_INVALID",
+        "Tenant one-shot receipt key requires the exact tenant generation owner.",
+      );
+    }
+    const receiptKey =
+      `tenant-lifecycle/v1/${receiptOwner[1]}/g${input.fence.generation}/` +
+      `${idempotencyHash}.json`;
     const environment: EcsOneShotTaskRequest["container"]["environment"] = {
       TENANT_DATABASE_OPERATION: input.operation,
       TENANT_RUNTIME_SECRET_ARN: input.runtimeSecretRef,
@@ -628,7 +734,19 @@ export class EcsOneShotTaskRunner {
       TENANT_EXTERNAL_OPERATION_EPOCH: String(input.externalFence.epoch),
       TENANT_EXTERNAL_OPERATION_MARKER: input.externalFence.marker,
       TENANT_EXTERNAL_OPERATION_HASH: input.externalFence.operationHash,
+      TENANT_RECEIPT_BUCKET: receiptBucket,
+      TENANT_RECEIPT_EXPECTED_BUCKET_OWNER: this.aws.accountId,
+      TENANT_RECEIPT_KEY: receiptKey,
     };
+    if (input.operation === "destroy") {
+      environment.TENANT_PREDECESSOR_PROVISION_EPOCH = String(
+        input.provisionPredecessor.epoch,
+      );
+      environment.TENANT_PREDECESSOR_PROVISION_MARKER =
+        input.provisionPredecessor.marker;
+      environment.TENANT_PREDECESSOR_PROVISION_OPERATION_HASH =
+        input.provisionPredecessor.operationHash;
+    }
     if (input.approvedBaselineDigest !== null) {
       environment.APPROVED_TENANT_BASELINE_SHA256 =
         input.approvedBaselineDigest;
@@ -648,6 +766,10 @@ export class EcsOneShotTaskRunner {
         command: [...this.config.commandByOperation[input.operation]],
         environment,
       },
+      receipt: {
+        bucketArn: this.config.receiptBucketArn,
+        key: receiptKey,
+      },
       startedBy: "tl-pending-request-hash",
       clientToken: idempotencyHash,
       tags: {
@@ -660,6 +782,24 @@ export class EcsOneShotTaskRunner {
       },
     };
     assertExactKeys(draft, requestKeys, "ECS one-shot request");
+    assertExactKeys(
+      draft.receipt,
+      receiptLocationKeys,
+      "ECS one-shot receipt location",
+    );
+    if (
+      !receiptKeyPattern.test(draft.receipt.key) ||
+      draft.receipt.key !== receiptKey ||
+      draft.container.environment.TENANT_RECEIPT_BUCKET !== receiptBucket ||
+      draft.container.environment.TENANT_RECEIPT_EXPECTED_BUCKET_OWNER !==
+        this.aws.accountId ||
+      draft.container.environment.TENANT_RECEIPT_KEY !== draft.receipt.key
+    ) {
+      throw new TenantDatabaseLifecycleError(
+        "TENANT_ONE_SHOT_RECEIPT_LOCATION_INVALID",
+        "Tenant one-shot receipt location is not bound to the idempotency hash.",
+      );
+    }
     assertSafeOutput(draft as unknown as TenantDatabaseOneShotOutput);
     const requestHash = await tenantOneShotRequestHash(draft);
     draft.startedBy =

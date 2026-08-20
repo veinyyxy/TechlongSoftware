@@ -89,6 +89,11 @@ const secretArn =
   `arn:aws:secretsmanager:${region}:${accountId}:secret:${secretName}-ABC123`;
 const workerRoleArn =
   `arn:aws:iam::${accountId}:role/TechlongSandboxProvisionerRole`;
+const receiptBucketName =
+  `techlong-sandbox-${accountId}-${region}-tenant-receipts`;
+const receiptBucketArn = `arn:aws:s3:::${receiptBucketName}`;
+const receiptKey =
+  `tenant-lifecycle/v1/${"8".repeat(32)}/g1/${"c".repeat(64)}.json`;
 const assumedWorkerRoleArn =
   `arn:aws:sts::${accountId}:assumed-role/TechlongSandboxProvisionerRole/b5g-test`;
 
@@ -113,7 +118,14 @@ function ecsRequest(): EcsOneShotTaskRequest {
         TENANT_EXTERNAL_OPERATION_EPOCH: "3",
         TENANT_EXTERNAL_OPERATION_MARKER: `tl_epoch_${"8".repeat(24)}_g1_e3`,
         TENANT_EXTERNAL_OPERATION_HASH: "9".repeat(64),
+        TENANT_RECEIPT_BUCKET: receiptBucketName,
+        TENANT_RECEIPT_EXPECTED_BUCKET_OWNER: accountId,
+        TENANT_RECEIPT_KEY: receiptKey,
       },
+    },
+    receipt: {
+      bucketArn: receiptBucketArn,
+      key: receiptKey,
     },
     startedBy: `tl-${"a".repeat(12)}-${"b".repeat(16)}`,
     clientToken: "c".repeat(64),
@@ -175,6 +187,7 @@ function ecsApi(sdk: AwsSdkEcsOneShotDependencies): AwsSdkEcsOneShotTaskApi {
       expectedAccountId: accountId,
       expectedRegion: region,
       clusterArn,
+      receiptBucketArn,
       allowedTaskDefinitionArns: [taskDefinitionArn],
       allowedCommandByTaskDefinitionArn: {
         [taskDefinitionArn]: [

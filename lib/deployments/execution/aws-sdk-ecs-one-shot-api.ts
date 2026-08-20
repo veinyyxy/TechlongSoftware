@@ -1,9 +1,11 @@
-import type {
-  EcsOneShotTaskApi,
-  EcsOneShotTaskObservation,
-  EcsOneShotTaskRequest,
-  TenantDatabaseOneShotReceipt,
-  TenantDatabaseOneShotOperation,
+import {
+  tenantOneShotExpectedReceiptBucketArn,
+  tenantOneShotReceiptBucketName,
+  type EcsOneShotTaskApi,
+  type EcsOneShotTaskObservation,
+  type EcsOneShotTaskRequest,
+  type TenantDatabaseOneShotReceipt,
+  type TenantDatabaseOneShotOperation,
 } from "./ecs-one-shot-task.ts";
 import { canonicalJson } from "./hash.ts";
 import { TenantDatabaseLifecycleError } from "./tenant-database.ts";
@@ -26,6 +28,7 @@ export interface EcsOneShotReceiptReader {
   read(input: {
     clusterArn: string;
     taskArn: string;
+    expectedRequest: EcsOneShotTaskRequest;
     signal: AbortSignal;
   }): Promise<TenantDatabaseOneShotReceipt | null>;
 }
@@ -45,6 +48,7 @@ export interface AwsSdkEcsOneShotConfig {
   expectedAccountId: string;
   expectedRegion: string;
   clusterArn: string;
+  receiptBucketArn: string;
   allowedTaskDefinitionArns: readonly string[];
   allowedCommandByTaskDefinitionArn: Readonly<Record<string, readonly string[]>>;
   expectedContainerName: string;
@@ -68,6 +72,8 @@ const digestPattern = /^[a-f0-9]{64}$/;
 const networkIdPattern = /^(?:subnet|sg)-[a-f0-9]{8,17}$/;
 const secretArnPattern =
   /^arn:aws:secretsmanager:([a-z]{2}(?:-gov)?-[a-z]+-\d):(\d{12}):secret:techlong\/sandbox\/tenant\/[a-z0-9][a-z0-9_-]{2,63}\/runtime\/g([1-9][0-9]*)-[A-Za-z0-9]{6}$/;
+const receiptKeyPattern =
+  /^tenant-lifecycle\/v1\/([a-f0-9]{32})\/g([1-9][0-9]*)\/([a-f0-9]{64})\.json$/;
 const operations = [
   "inspect",
   "prepare_empty_database",
@@ -85,6 +91,14 @@ const environmentKeys = [
   "TENANT_EXTERNAL_OPERATION_EPOCH",
   "TENANT_EXTERNAL_OPERATION_MARKER",
   "TENANT_EXTERNAL_OPERATION_HASH",
+  "TENANT_RECEIPT_BUCKET",
+  "TENANT_RECEIPT_EXPECTED_BUCKET_OWNER",
+  "TENANT_RECEIPT_KEY",
+] as const;
+const predecessorEnvironmentKeys = [
+  "TENANT_PREDECESSOR_PROVISION_EPOCH",
+  "TENANT_PREDECESSOR_PROVISION_MARKER",
+  "TENANT_PREDECESSOR_PROVISION_OPERATION_HASH",
 ] as const;
 const tagKeys = [
   "ManagedBy",
@@ -290,12 +304,34 @@ function assertRequest(
   request: EcsOneShotTaskRequest,
   config: AwsSdkEcsOneShotConfig,
 ): void {
+  const receiptBucket = tenantOneShotReceiptBucketName(config.receiptBucketArn);
+  const operation = request.container.environment.TENANT_DATABASE_OPERATION;
   const requiredEnvironment: string[] = [...environmentKeys];
   if (request.container.environment.APPROVED_TENANT_BASELINE_SHA256 !== undefined) {
     requiredEnvironment.push("APPROVED_TENANT_BASELINE_SHA256");
   }
+  if (operation === "destroy") {
+    requiredEnvironment.push(...predecessorEnvironmentKeys);
+  }
   if (
     request.schemaVersion !== 1 ||
+    !exactKeys(request, [
+      "schemaVersion",
+      "clusterArn",
+      "taskDefinitionArn",
+      "launchType",
+      "platformVersion",
+      "assignPublicIp",
+      "subnetIds",
+      "securityGroupIds",
+      "container",
+      "receipt",
+      "startedBy",
+      "clientToken",
+      "tags",
+    ]) ||
+    !exactKeys(request.container, ["name", "command", "environment"]) ||
+    !exactKeys(request.receipt, ["bucketArn", "key"]) ||
     request.clusterArn !== config.clusterArn ||
     !config.allowedTaskDefinitionArns.includes(request.taskDefinitionArn) ||
     request.launchType !== "FARGATE" ||
@@ -310,6 +346,7 @@ function assertRequest(
     !sameArray(request.securityGroupIds, config.allowedSecurityGroupIds) ||
     !startedByPattern.test(request.startedBy) ||
     !digestPattern.test(request.clientToken) ||
+    request.receipt.bucketArn !== config.receiptBucketArn ||
     !exactKeys(request.container.environment, requiredEnvironment) ||
     !exactKeys(request.tags, tagKeys) ||
     request.tags.ManagedBy !== "techlong-deployment-worker" ||
@@ -334,7 +371,22 @@ function assertRequest(
   );
   const generation = request.container.environment.TENANT_RESOURCE_GENERATION;
   const epoch = request.container.environment.TENANT_EXTERNAL_OPERATION_EPOCH;
-  const operation = request.container.environment.TENANT_DATABASE_OPERATION;
+  const ownerMatch = /^tl_owner_([a-f0-9]{32})_g([1-9][0-9]*)$/.exec(
+    request.container.environment.TENANT_OWNERSHIP_MARKER,
+  );
+  const predecessorEpoch =
+    request.container.environment.TENANT_PREDECESSOR_PROVISION_EPOCH;
+  const predecessorMarker =
+    request.container.environment.TENANT_PREDECESSOR_PROVISION_MARKER;
+  const predecessorHash =
+    request.container.environment.TENANT_PREDECESSOR_PROVISION_OPERATION_HASH;
+  const predecessorMatch =
+    predecessorMarker === undefined
+      ? null
+      : /^tl_epoch_([a-f0-9]{24})_g([1-9][0-9]*)_e([1-9][0-9]*)$/.exec(
+          predecessorMarker,
+        );
+  const receiptMatch = receiptKeyPattern.exec(request.receipt.key);
   if (
     !secretMatch ||
     secretMatch[1] !== config.expectedRegion ||
@@ -345,6 +397,16 @@ function assertRequest(
     !/^[1-9][0-9]*$/.test(epoch) ||
     !Number.isSafeInteger(Number(epoch)) ||
     !operations.includes(operation) ||
+    !ownerMatch ||
+    Number(ownerMatch[2]) !== Number(generation) ||
+    !receiptMatch ||
+    receiptMatch[1] !== ownerMatch[1] ||
+    receiptMatch[2] !== generation ||
+    receiptMatch[3] !== request.clientToken ||
+    request.container.environment.TENANT_RECEIPT_BUCKET !== receiptBucket ||
+    request.container.environment.TENANT_RECEIPT_EXPECTED_BUCKET_OWNER !==
+      config.expectedAccountId ||
+    request.container.environment.TENANT_RECEIPT_KEY !== request.receipt.key ||
     request.container.command[2] !== operation ||
     !/^tl_owner_[a-f0-9]{32}_g[1-9][0-9]*$/.test(
       request.container.environment.TENANT_OWNERSHIP_MARKER,
@@ -359,6 +421,20 @@ function assertRequest(
       `_g${generation}_e${epoch}`,
     ) ||
     !digestPattern.test(request.container.environment.TENANT_EXTERNAL_OPERATION_HASH) ||
+    (operation === "destroy"
+      ? !predecessorEpoch ||
+        !/^[1-9][0-9]*$/.test(predecessorEpoch) ||
+        !Number.isSafeInteger(Number(predecessorEpoch)) ||
+        Number(predecessorEpoch) >= Number(epoch) ||
+        !predecessorMatch ||
+        predecessorMatch[1] !== ownerMatch[1].slice(0, 24) ||
+        predecessorMatch[2] !== generation ||
+        predecessorMatch[3] !== predecessorEpoch ||
+        !predecessorHash ||
+        !digestPattern.test(predecessorHash)
+      : predecessorEpoch !== undefined ||
+        predecessorMarker !== undefined ||
+        predecessorHash !== undefined) ||
     (["restore_approved_baseline", "migrate_saas", "verify"].includes(
       operation,
     ) !==
@@ -424,9 +500,21 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
   private readonly scope: { region: string; accountId: string; clusterName: string };
 
   constructor(config: AwsSdkEcsOneShotConfig, sdk: AwsSdkEcsOneShotDependencies) {
+    let receiptBucketValid = true;
+    try {
+      tenantOneShotReceiptBucketName(config.receiptBucketArn);
+    } catch {
+      receiptBucketValid = false;
+    }
     if (
       !accountPattern.test(config.expectedAccountId) ||
       !regionPattern.test(config.expectedRegion) ||
+      !receiptBucketValid ||
+      config.receiptBucketArn !==
+        tenantOneShotExpectedReceiptBucketArn({
+          accountId: config.expectedAccountId,
+          region: config.expectedRegion,
+        }) ||
       !config.expectedContainerName ||
       !/^[A-Za-z0-9][A-Za-z0-9_-]{0,126}$/.test(config.expectedContainerName) ||
       config.allowedTaskDefinitionArns.length < 1 ||
@@ -654,6 +742,7 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
           ? await this.sdk.receiptReader.read({
               clusterArn: input.clusterArn,
               taskArn: input.taskArn,
+              expectedRequest: input.expectedRequest,
               signal: input.signal,
             })
           : null;

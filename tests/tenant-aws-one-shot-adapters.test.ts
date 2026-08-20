@@ -3,6 +3,7 @@ import test from "node:test";
 import type {
   TenantApprovedBaseline,
   TenantExternalOperationFence,
+  TenantProvisionPredecessor,
   TenantResourceFence,
 } from "../lib/deployments/execution/contracts.ts";
 import {
@@ -27,6 +28,7 @@ import {
   tenantRuntimeSecretExactJsonKeys,
   type TenantRuntimeSecretOwnershipEvidence,
   type TenantRuntimeSecretProviderApi,
+  type TenantRuntimeSecretProviderDeleteReceipt,
   type TenantRuntimeSecretProviderMutationReceipt,
   type TenantRuntimeSecretProviderObservation,
 } from "../lib/deployments/execution/tenant-aws-one-shot-adapters.ts";
@@ -66,17 +68,29 @@ function externalFence(
   fence = resourceFence(),
   intent: "provision" | "cleanup" = "provision",
 ): TenantExternalOperationFence {
+  const predecessor: TenantProvisionPredecessor = {
+    schemaVersion: 1,
+    generation: fence.generation,
+    epoch: 3,
+    intent: "provision",
+    ownerDeploymentId: fence.ownerDeploymentId,
+    operationHash,
+    marker:
+      `tl_epoch_${stableIdentityHash.slice(0, 24)}` +
+      `_g${fence.generation}_e3`,
+  };
   return {
     schemaVersion: 1,
     resourceFence: fence,
     epoch: intent === "provision" ? 3 : 4,
     intent,
     ownerDeploymentId: fence.ownerDeploymentId,
-    operationHash,
+    operationHash: intent === "provision" ? operationHash : "6".repeat(64),
     marker:
       `tl_epoch_${stableIdentityHash.slice(0, 24)}` +
       `_g${fence.generation}_e${intent === "provision" ? 3 : 4}`,
     state: "active",
+    ...(intent === "cleanup" ? { provisionPredecessor: predecessor } : {}),
   };
 }
 
@@ -92,6 +106,8 @@ function runnerConfig(
   return {
     clusterArn:
       "arn:aws:ecs:ca-central-1:402010193138:cluster/techlong-sandbox-cell-one",
+    receiptBucketArn:
+      "arn:aws:s3:::techlong-sandbox-402010193138-ca-central-1-tenant-receipts",
     taskDefinitionArnByOperation: taskDefinitions,
     containerName: "tenant-database-lifecycle",
     subnetIds: ["subnet-0123456789abcdef0"],
@@ -217,6 +233,9 @@ test("runs an allowlisted one-shot task using only a Secret ARN and active epoch
     "TENANT_EXTERNAL_OPERATION_HASH",
     "TENANT_EXTERNAL_OPERATION_MARKER",
     "TENANT_OWNERSHIP_MARKER",
+    "TENANT_RECEIPT_BUCKET",
+    "TENANT_RECEIPT_EXPECTED_BUCKET_OWNER",
+    "TENANT_RECEIPT_KEY",
     "TENANT_RESOURCE_GENERATION",
     "TENANT_RUNTIME_SECRET_ARN",
   ]);
@@ -226,6 +245,106 @@ test("runs an allowlisted one-shot task using only a Secret ARN and active epoch
   assert.equal(/password/i.test(encoded), false);
   assert.equal(/secret[_-]?value/i.test(encoded), false);
   assert.match(encoded, /runtime\/g1-ABC123/);
+});
+
+test("destroy runner hash-binds and independently describes the exact provision predecessor", async () => {
+  const fence = resourceFence();
+  const external = externalFence(fence, "cleanup");
+  let request: EcsOneShotTaskRequest | null = null;
+  let describedRequest: EcsOneShotTaskRequest | null = null;
+  const output = {
+    outcome: "deleted",
+    databaseDeleted: true,
+    roleDeleted: true,
+    evidenceHash,
+  };
+  const api: EcsOneShotTaskApi = {
+    runTask: async (input) => {
+      request = input.request;
+      return { taskArn };
+    },
+    listTaskArnsByStartedBy: async () =>
+      assert.fail("successful RunTask must not use recovery"),
+    describeTask: async (input) => {
+      describedRequest = input.expectedRequest;
+      return stoppedObservation(
+        await successfulTaskReceipt({
+          request: input.expectedRequest,
+          operation: "destroy",
+          fence,
+          external,
+          output,
+        }),
+      );
+    },
+    stopTask: async () => assert.fail("successful task must not be stopped"),
+  };
+  const runner = new EcsOneShotTaskRunner({
+    api,
+    waiter: { wait: async () => undefined },
+    config: runnerConfig(),
+  });
+
+  const receipt = await runner.execute({
+    operation: "destroy",
+    fence,
+    externalFence: external,
+    provisionPredecessor: external.provisionPredecessor!,
+    runtimeSecretRef: secretArn,
+    approvedBaselineDigest: null,
+    idempotencyKey: "dep_tenant_one:destroy",
+    signal: new AbortController().signal,
+  });
+  assert.deepEqual(describedRequest, request);
+  assert.equal(receipt.requestHash, await tenantOneShotRequestHash(request!));
+  assert.deepEqual(
+    Object.keys(request!.container.environment).sort(),
+    [
+      "TENANT_DATABASE_OPERATION",
+      "TENANT_EXTERNAL_OPERATION_EPOCH",
+      "TENANT_EXTERNAL_OPERATION_HASH",
+      "TENANT_EXTERNAL_OPERATION_MARKER",
+      "TENANT_OWNERSHIP_MARKER",
+      "TENANT_PREDECESSOR_PROVISION_EPOCH",
+      "TENANT_PREDECESSOR_PROVISION_MARKER",
+      "TENANT_PREDECESSOR_PROVISION_OPERATION_HASH",
+      "TENANT_RECEIPT_BUCKET",
+      "TENANT_RECEIPT_EXPECTED_BUCKET_OWNER",
+      "TENANT_RECEIPT_KEY",
+      "TENANT_RESOURCE_GENERATION",
+      "TENANT_RUNTIME_SECRET_ARN",
+    ].sort(),
+  );
+  assert.deepEqual(
+    {
+      epoch:
+        request!.container.environment.TENANT_PREDECESSOR_PROVISION_EPOCH,
+      marker:
+        request!.container.environment.TENANT_PREDECESSOR_PROVISION_MARKER,
+      hash:
+        request!.container.environment
+          .TENANT_PREDECESSOR_PROVISION_OPERATION_HASH,
+    },
+    {
+      epoch: String(external.provisionPredecessor!.epoch),
+      marker: external.provisionPredecessor!.marker,
+      hash: external.provisionPredecessor!.operationHash,
+    },
+  );
+  const driftedRequest: EcsOneShotTaskRequest = {
+    ...request!,
+    container: {
+      ...request!.container,
+      environment: {
+        ...request!.container.environment,
+        TENANT_PREDECESSOR_PROVISION_OPERATION_HASH: "0".repeat(64),
+      },
+    },
+  };
+  assert.notEqual(
+    await tenantOneShotRequestHash(driftedRequest),
+    receipt.requestHash,
+  );
 });
 
 test("stops and observes STOPPED before surfacing a lost lease", async () => {
@@ -534,8 +653,9 @@ test("fails closed when an uncertain RunTask stays invisible for the recovery bo
   assert.equal(stopCalls, 0);
 });
 
-test("public runner rejects destroy before any ECS API call", async () => {
+test("public runner rejects a drifting destroy predecessor before any ECS API call", async () => {
   const fence = resourceFence();
+  const cleanup = externalFence(fence, "cleanup");
   let calls = 0;
   const runner = new EcsOneShotTaskRunner({
     api: new Proxy({} as EcsOneShotTaskApi, {
@@ -551,7 +671,11 @@ test("public runner rejects destroy before any ECS API call", async () => {
     runner.execute({
       operation: "destroy",
       fence,
-      externalFence: externalFence(fence, "cleanup"),
+      externalFence: cleanup,
+      provisionPredecessor: {
+        ...cleanup.provisionPredecessor!,
+        operationHash: "0".repeat(64),
+      },
       runtimeSecretRef: secretArn,
       approvedBaselineDigest: null,
       idempotencyKey: "dep_tenant_one:direct-destroy",
@@ -560,9 +684,40 @@ test("public runner rejects destroy before any ECS API call", async () => {
     (error: unknown) =>
       error instanceof Error &&
       "code" in error &&
-      error.code === "TENANT_DATABASE_CLEANUP_PREDECESSOR_UNAVAILABLE" &&
+      error.code === "TENANT_CLEANUP_PROVISION_PREDECESSOR_INVALID" &&
       "retryable" in error &&
       error.retryable === false,
+  );
+  assert.equal(calls, 0);
+});
+
+test("public runner rejects predecessor fields on provision operations before APIs", async () => {
+  const fence = resourceFence();
+  let calls = 0;
+  const runner = new EcsOneShotTaskRunner({
+    api: new Proxy({} as EcsOneShotTaskApi, {
+      get: () => () => {
+        calls += 1;
+      },
+    }),
+    waiter: { wait: async () => undefined },
+    config: runnerConfig(),
+  });
+  const cleanup = externalFence(fence, "cleanup");
+  await assert.rejects(
+    runner.execute({
+      operation: "inspect",
+      fence,
+      externalFence: externalFence(fence, "provision"),
+      provisionPredecessor: cleanup.provisionPredecessor,
+      runtimeSecretRef: secretArn,
+      approvedBaselineDigest: null,
+      idempotencyKey: "dep_tenant_one:inspect-with-predecessor",
+      signal: new AbortController().signal,
+    } as unknown as Parameters<EcsOneShotTaskRunner["execute"]>[0]),
+    (error: unknown) =>
+      (error as { code?: string }).code ===
+      "TENANT_CLEANUP_PROVISION_PREDECESSOR_INVALID",
   );
   assert.equal(calls, 0);
 });
@@ -684,6 +839,33 @@ async function secretMutation(input: {
     versionRef: "version-one",
     jsonKeys: tenantRuntimeSecretExactJsonKeys,
     ownership: ownership(input.fence, input.external),
+  };
+  const withEvidence = {
+    ...base,
+    evidenceHash: await createTenantSecretProviderEvidenceHash(base),
+  };
+  return {
+    ...withEvidence,
+    receiptHash: await createTenantSecretProviderReceiptHash(withEvidence),
+  };
+}
+
+async function secretDelete(input: {
+  fence: TenantResourceFence;
+  cleanup: TenantExternalOperationFence;
+}): Promise<TenantRuntimeSecretProviderDeleteReceipt> {
+  const predecessor = input.cleanup.provisionPredecessor!;
+  const base = {
+    schemaVersion: 1 as const,
+    outcome: "deleted" as const,
+    secretName: `${input.fence.identity.secretName}/g${input.fence.generation}`,
+    ownership: {
+      resourceGeneration: input.fence.generation,
+      ownershipMarker: input.fence.ownershipMarker,
+      externalEpoch: predecessor.epoch,
+      externalMarker: predecessor.marker,
+      externalOperationHash: predecessor.operationHash,
+    },
   };
   const withEvidence = {
     ...base,
@@ -827,38 +1009,72 @@ test("rejects Secret evidence from another tenant, generation, account, or regio
   }
 });
 
-test("Secret cleanup fails closed before provider calls without a provision predecessor", async () => {
+test("Secret cleanup deletes only with the exact provision predecessor", async () => {
   const fence = resourceFence();
-  let calls = 0;
-  const provider = new Proxy({} as TenantRuntimeSecretProviderApi, {
-    get: () => () => {
-      calls += 1;
+  const cleanup = externalFence(fence, "cleanup");
+  const calls: Array<Record<string, unknown>> = [];
+  const provider = {
+    inspectSecret: async () => assert.fail("inspect is outside this test"),
+    ensureGeneratedSecret: async () => assert.fail("ensure is outside this test"),
+    deleteSecret: async (input: Record<string, unknown>) => {
+      calls.push(input);
+      return secretDelete({ fence, cleanup });
     },
-  });
+  } as TenantRuntimeSecretProviderApi;
   const adapter = new ExactTenantRuntimeSecretAdapter({
     provider,
+    expectedAccountId: "402010193138",
+    expectedRegion: "ca-central-1",
+  });
+  const receipt = await adapter.destroyRuntimeSecret({
+    fence,
+    externalFence: cleanup,
+    provisionPredecessor: cleanup.provisionPredecessor!,
+    idempotencyKey: "dep_tenant_one:cleanup:secret",
+    signal: new AbortController().signal,
+  });
+  assert.equal(receipt.outcome, "deleted");
+  assert.equal(calls.length, 1);
+  assert.deepEqual(
+    calls[0].expectedOwnership,
+    ownership(fence, externalFence(fence, "provision")),
+  );
+});
+
+test("Secret cleanup rejects predecessor drift before provider calls", async () => {
+  const fence = resourceFence();
+  const cleanup = externalFence(fence, "cleanup");
+  let calls = 0;
+  const adapter = new ExactTenantRuntimeSecretAdapter({
+    provider: new Proxy({} as TenantRuntimeSecretProviderApi, {
+      get: () => () => {
+        calls += 1;
+      },
+    }),
     expectedAccountId: "402010193138",
     expectedRegion: "ca-central-1",
   });
   await assert.rejects(
     adapter.destroyRuntimeSecret({
       fence,
-      externalFence: externalFence(fence, "cleanup"),
+      externalFence: cleanup,
+      provisionPredecessor: {
+        ...cleanup.provisionPredecessor!,
+        operationHash: "0".repeat(64),
+      },
       idempotencyKey: "dep_tenant_one:cleanup:secret",
       signal: new AbortController().signal,
     }),
     (error: unknown) =>
-      error instanceof Error &&
-      "code" in error &&
-      error.code === "TENANT_SECRET_CLEANUP_PREDECESSOR_UNAVAILABLE" &&
-      "retryable" in error &&
-      error.retryable === false,
+      (error as { code?: string }).code ===
+      "TENANT_CLEANUP_PROVISION_PREDECESSOR_INVALID",
   );
   assert.equal(calls, 0);
 });
 
-test("database cleanup also fails closed before task or Secret resolution", async () => {
+test("database cleanup validates the predecessor before Secret or task calls", async () => {
   const fence = resourceFence();
+  const cleanup = externalFence(fence, "cleanup");
   let ecsCalls = 0;
   let secretResolutionCalls = 0;
   const runner = new EcsOneShotTaskRunner({
@@ -883,19 +1099,72 @@ test("database cleanup also fails closed before task or Secret resolution", asyn
   await assert.rejects(
     lifecycle.destroy({
       fence,
-      externalFence: externalFence(fence, "cleanup"),
+      externalFence: cleanup,
+      provisionPredecessor: {
+        ...cleanup.provisionPredecessor!,
+        generation: 2,
+      },
       idempotencyKey: "dep_tenant_one:cleanup:database",
       signal: new AbortController().signal,
     }),
     (error: unknown) =>
-      error instanceof Error &&
-      "code" in error &&
-      error.code === "TENANT_DATABASE_CLEANUP_PREDECESSOR_UNAVAILABLE" &&
-      "retryable" in error &&
-      error.retryable === false,
+      (error as { code?: string }).code ===
+      "TENANT_CLEANUP_PROVISION_PREDECESSOR_INVALID",
   );
   assert.equal(secretResolutionCalls, 0);
   assert.equal(ecsCalls, 0);
+});
+
+test("database cleanup passes the exact predecessor through Secret resolution and runner input", async () => {
+  const fence = resourceFence();
+  const cleanup = externalFence(fence, "cleanup");
+  let resolutionCalls = 0;
+  let runnerCalls = 0;
+  const lifecycle = new EcsOneShotTenantDatabaseLifecycleAdapter({
+    runner: {
+      execute: async (input: {
+        externalFence: TenantExternalOperationFence;
+        operation: TenantDatabaseOneShotOperation;
+      }) => {
+        runnerCalls += 1;
+        assert.equal(input.operation, "destroy");
+        assert.deepEqual(
+          input.externalFence.provisionPredecessor,
+          cleanup.provisionPredecessor,
+        );
+        return {
+          output: {
+            outcome: "deleted",
+            databaseDeleted: true,
+            roleDeleted: true,
+            evidenceHash,
+          },
+        } as unknown as TenantDatabaseOneShotReceipt;
+      },
+    } as unknown as EcsOneShotTaskRunner,
+    secretRefs: {
+      resolve: async (input) => {
+        resolutionCalls += 1;
+        assert.deepEqual(
+          input.provisionPredecessor,
+          cleanup.provisionPredecessor,
+        );
+        return secretArn;
+      },
+    },
+    approvedBaselineDigest: baselineDigest,
+  });
+
+  const receipt = await lifecycle.destroy({
+    fence,
+    externalFence: cleanup,
+    provisionPredecessor: cleanup.provisionPredecessor!,
+    idempotencyKey: "dep_tenant_one:cleanup:database",
+    signal: new AbortController().signal,
+  });
+  assert.equal(receipt.outcome, "deleted");
+  assert.equal(resolutionCalls, 1);
+  assert.equal(runnerCalls, 1);
 });
 
 test("database lifecycle sends only a Secret ARN and approved digest and rejects extra output", async () => {
@@ -970,6 +1239,9 @@ test("database lifecycle sends only a Secret ARN and approved digest and rejects
     "TENANT_EXTERNAL_OPERATION_HASH",
     "TENANT_EXTERNAL_OPERATION_MARKER",
     "TENANT_OWNERSHIP_MARKER",
+    "TENANT_RECEIPT_BUCKET",
+    "TENANT_RECEIPT_EXPECTED_BUCKET_OWNER",
+    "TENANT_RECEIPT_KEY",
     "TENANT_RESOURCE_GENERATION",
     "TENANT_RUNTIME_SECRET_ARN",
   ]);

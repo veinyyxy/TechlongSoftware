@@ -263,11 +263,13 @@ export interface DeploymentExecutionRepository {
   beginOrResumeTenantResourceCleanup(input: {
     lease: DeploymentJobLeaseFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     now: number;
   }): Promise<TenantResourceCleanupRun | null>;
   beginTenantResourceCleanupPhase(input: {
     lease: DeploymentJobLeaseFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     runId: string;
     phase: TenantResourceCleanupPhase;
     now: number;
@@ -275,6 +277,7 @@ export interface DeploymentExecutionRepository {
   completeTenantResourceCleanupPhase<P extends TenantResourceCleanupPhase>(input: {
     lease: DeploymentJobLeaseFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     runId: string;
     phase: P;
     operationId: string;
@@ -284,6 +287,7 @@ export interface DeploymentExecutionRepository {
   finalizeTenantResourceCleanup(input: {
     lease: DeploymentJobLeaseFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     runId: string;
     scheduleId: string | null;
     appInstanceId: string;
@@ -396,6 +400,21 @@ export interface TenantResourceFence {
   ownershipMarker: string;
 }
 
+/**
+ * Exact authority-derived coordinate of the provision epoch that created or
+ * last updated a same-generation tenant resource. Cleanup may never infer this
+ * value from the current cleanup epoch or from mutable provider tags.
+ */
+export interface TenantProvisionPredecessor {
+  schemaVersion: 1;
+  generation: number;
+  epoch: number;
+  intent: "provision";
+  ownerDeploymentId: string;
+  operationHash: string;
+  marker: string;
+}
+
 export type TenantExternalOperationIntent = "provision" | "cleanup";
 export type TenantExternalOperationState =
   | "pending_external"
@@ -418,6 +437,8 @@ export interface TenantExternalOperationFence {
   operationHash: string;
   marker: string;
   state: TenantExternalOperationState;
+  /** Present only on an active cleanup fence proven by the epoch authority. */
+  provisionPredecessor?: TenantProvisionPredecessor;
 }
 
 export interface TenantExternalOperationClaim {
@@ -433,6 +454,8 @@ export interface TenantExternalOperationClaim {
 export interface TenantExternalOwnershipProof {
   schemaVersion: 1;
   pendingFence: TenantExternalOperationFence;
+  /** Null for provision; exact same-generation provision for cleanup. */
+  provisionPredecessor: TenantProvisionPredecessor | null;
   evidenceHash: string;
   evidence: Record<string, unknown>;
 }
@@ -633,6 +656,7 @@ export interface TenantDatabaseLifecyclePort {
   destroy(input: {
     fence: TenantResourceFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     idempotencyKey: string;
     signal: AbortSignal;
   }): Promise<TenantDatabaseDestroyReceipt>;
@@ -657,6 +681,7 @@ export interface TenantSecretStorePort {
   destroyRuntimeSecret(input: {
     fence: TenantResourceFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     idempotencyKey: string;
     signal: AbortSignal;
   }): Promise<TenantSecretDestroyReceipt>;
@@ -673,6 +698,7 @@ export interface TenantWorkloadLifecyclePort {
   destroy(input: {
     fence: TenantResourceFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     idempotencyKey: string;
     signal: AbortSignal;
   }): Promise<TenantWorkloadDestroyReceipt>;
@@ -716,6 +742,7 @@ export interface TenantResourceCleanupPhaseRecord<
 export interface TenantResourceCleanupRun {
   id: string;
   externalFence: TenantExternalOperationFence;
+  provisionPredecessor: TenantProvisionPredecessor;
   ownerDeploymentId: string;
   status: "running" | "completed";
   nextPhase: TenantResourceCleanupNextPhase;

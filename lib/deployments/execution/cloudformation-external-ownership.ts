@@ -11,7 +11,9 @@ import type {
   TenantExternalOperationIntent,
   TenantExternalOwnershipPort,
   TenantExternalOwnershipProof,
+  TenantProvisionPredecessor,
 } from "./contracts.ts";
+import { assertTenantProvisionPredecessor } from "./external-ownership.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 
 const digestPattern = /^[a-f0-9]{64}$/;
@@ -295,6 +297,7 @@ function assertPendingFence(fence: TenantExternalOperationFence): void {
     resource.generation < 1 ||
     !Number.isSafeInteger(fence.epoch) ||
     fence.epoch < 1 ||
+    fence.provisionPredecessor !== undefined ||
     !digestPattern.test(fence.operationHash) ||
     fence.marker !==
       `tl_epoch_${resource.identity.stableIdentityHash.slice(0, 24)}` +
@@ -752,17 +755,31 @@ export class AuthorityBackedTenantExternalOwnershipProvider
       workloadPredecessor,
     );
 
+    let provisionPredecessor: TenantProvisionPredecessor | null = null;
+    if (next.intent === "cleanup") {
+      assertTenantProvisionPredecessor(
+        next.predecessor,
+        input.pendingFence.resourceFence,
+        input.pendingFence.epoch,
+      );
+      provisionPredecessor = next.predecessor;
+    }
+
     const evidence = {
       provider: "atomic-external-epoch-authority",
       authorityKey: observed.authorityKey,
       authorityRevisionHash: await sha256Hex(observed.revision),
       authorityRecord: observed.record,
+      // Duplicated as a small canonical coordinate so the repository can
+      // recover and compare it without trusting provider-specific nesting.
+      provisionPredecessor,
       workloadReadbackBefore: safeWorkloadEvidence(workloadBefore),
       workloadReadbackAfter: safeWorkloadEvidence(workloadAfter),
     };
     return {
       schemaVersion: 1,
       pendingFence: input.pendingFence,
+      provisionPredecessor,
       evidenceHash: await sha256Hex(evidence),
       evidence,
     };

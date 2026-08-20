@@ -6,6 +6,7 @@ import type {
   TenantDatabaseLifecycleState,
   TenantDatabaseMutationReceipt,
   TenantExternalOperationFence,
+  TenantProvisionPredecessor,
   TenantResourceFence,
   TenantSecretDestroyReceipt,
   TenantSecretInspection,
@@ -20,6 +21,10 @@ import type {
 } from "./ecs-one-shot-task.ts";
 import { assertTenantRuntimeSecretArn } from "./ecs-one-shot-task.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
+import {
+  assertTenantProvisionPredecessor,
+  requireActiveCleanupProvisionPredecessor,
+} from "./external-ownership.ts";
 import {
   assertTenantResourceFence,
   deriveTenantRuntimeSecretName,
@@ -113,6 +118,7 @@ export interface TenantRuntimeSecretReferenceResolver {
   resolve(input: {
     fence: TenantResourceFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor?: TenantProvisionPredecessor;
     signal: AbortSignal;
   }): Promise<string>;
 }
@@ -140,6 +146,14 @@ const secretMutationKeys = [
   "secretArn",
   "versionRef",
   "jsonKeys",
+  "ownership",
+  "evidenceHash",
+  "receiptHash",
+] as const;
+const secretDeleteKeys = [
+  "schemaVersion",
+  "outcome",
+  "secretName",
   "ownership",
   "evidenceHash",
   "receiptHash",
@@ -195,11 +209,24 @@ function ownershipEvidence(
   };
 }
 
+function predecessorOwnershipEvidence(
+  fence: TenantResourceFence,
+  predecessor: TenantProvisionPredecessor,
+): TenantRuntimeSecretOwnershipEvidence {
+  return {
+    resourceGeneration: fence.generation,
+    ownershipMarker: fence.ownershipMarker,
+    externalEpoch: predecessor.epoch,
+    externalMarker: predecessor.marker,
+    externalOperationHash: predecessor.operationHash,
+  };
+}
+
 function assertActiveExternalFence(
   externalFence: TenantExternalOperationFence,
   fence: TenantResourceFence,
   intent: "provision" | "cleanup",
-): void {
+): TenantProvisionPredecessor | null {
   assertTenantResourceFence(externalFence.resourceFence, fence);
   if (
     externalFence.schemaVersion !== 1 ||
@@ -218,6 +245,16 @@ function assertActiveExternalFence(
       "Tenant provider call requires the exact active external operation epoch.",
     );
   }
+  if (intent === "cleanup") {
+    return requireActiveCleanupProvisionPredecessor(externalFence);
+  }
+  if (externalFence.provisionPredecessor !== undefined) {
+    throw new TenantDatabaseLifecycleError(
+      "TENANT_EXTERNAL_OWNERSHIP_FENCE_MISMATCH",
+      "A provision provider call cannot carry cleanup predecessor evidence.",
+    );
+  }
+  return null;
 }
 
 function assertOwnershipEvidence(
@@ -331,6 +368,28 @@ async function assertSecretMutationReceipt(
   }
 }
 
+async function assertSecretDeleteReceipt(
+  receipt: TenantRuntimeSecretProviderDeleteReceipt,
+  expected: TenantRuntimeSecretOwnershipEvidence,
+  expectedSecretName: string,
+): Promise<void> {
+  assertExactKeys(receipt, secretDeleteKeys, "Tenant Secret delete receipt");
+  assertOwnershipEvidence(receipt.ownership, expected);
+  if (
+    receipt.schemaVersion !== 1 ||
+    !["deleted", "already_missing"].includes(receipt.outcome) ||
+    receipt.secretName !== expectedSecretName ||
+    !sha256Pattern.test(receipt.evidenceHash) ||
+    receipt.evidenceHash !== (await secretEvidenceHash(receipt)) ||
+    receipt.receiptHash !== (await receiptHash(receipt))
+  ) {
+    throw new TenantDatabaseLifecycleError(
+      "TENANT_SECRET_DELETE_RECEIPT_INVALID",
+      "Tenant Secret deletion is stale or not hash-bound to its provision predecessor.",
+    );
+  }
+}
+
 /**
  * Enforces the exact five-key JSON schema without ever accepting raw values.
  * Provider metadata must prove both resource generation and external epoch.
@@ -435,33 +494,75 @@ export class ExactTenantRuntimeSecretAdapter
   async destroyRuntimeSecret(input: {
     fence: TenantResourceFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     idempotencyKey: string;
     signal: AbortSignal;
   }): Promise<TenantSecretDestroyReceipt> {
     input.signal.throwIfAborted();
     assertTenantResourceFence(input.fence);
-    assertActiveExternalFence(input.externalFence, input.fence, "cleanup");
-    assertIdempotencyKey(input.idempotencyKey);
-    throw new TenantDatabaseLifecycleError(
-      "TENANT_SECRET_CLEANUP_PREDECESSOR_UNAVAILABLE",
-      "Tenant Secret cleanup is disabled until authority can supply the exact provision predecessor ownership evidence.",
-      false,
+    const predecessor = assertActiveExternalFence(
+      input.externalFence,
+      input.fence,
+      "cleanup",
     );
+    assertTenantProvisionPredecessor(
+      input.provisionPredecessor,
+      input.fence,
+      input.externalFence.epoch,
+      predecessor ?? undefined,
+    );
+    assertIdempotencyKey(input.idempotencyKey);
+    const secretName = deriveTenantRuntimeSecretName(input.fence);
+    const expected = predecessorOwnershipEvidence(
+      input.fence,
+      input.provisionPredecessor,
+    );
+    input.signal.throwIfAborted();
+    const receipt = await this.provider.deleteSecret({
+      secretName,
+      expectedOwnership: expected,
+      idempotencyKey: input.idempotencyKey,
+      signal: input.signal,
+    });
+    input.signal.throwIfAborted();
+    await assertSecretDeleteReceipt(receipt, expected, secretName);
+    return {
+      fence: input.fence,
+      externalFence: input.externalFence,
+      outcome: receipt.outcome,
+      ownershipMarker: input.fence.ownershipMarker,
+    };
   }
 
   async resolve(input: {
     fence: TenantResourceFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor?: TenantProvisionPredecessor;
     signal: AbortSignal;
   }): Promise<string> {
     input.signal.throwIfAborted();
     assertTenantResourceFence(input.fence);
-    assertActiveExternalFence(
+    const predecessor = assertActiveExternalFence(
       input.externalFence,
       input.fence,
       input.externalFence.intent,
     );
-    const expected = ownershipEvidence(input.fence, input.externalFence);
+    if (predecessor) {
+      assertTenantProvisionPredecessor(
+        input.provisionPredecessor,
+        input.fence,
+        input.externalFence.epoch,
+        predecessor,
+      );
+    } else if (input.provisionPredecessor !== undefined) {
+      throw new TenantDatabaseLifecycleError(
+        "TENANT_CLEANUP_PROVISION_PREDECESSOR_INVALID",
+        "Provision Secret resolution cannot accept cleanup predecessor evidence.",
+      );
+    }
+    const expected = predecessor
+      ? predecessorOwnershipEvidence(input.fence, predecessor)
+      : ownershipEvidence(input.fence, input.externalFence);
     const secretName = deriveTenantRuntimeSecretName(input.fence);
     const observation = await this.provider.inspectSecret({
       secretName,
@@ -634,6 +735,7 @@ export class EcsOneShotTenantDatabaseLifecycleAdapter
   private async runtimeSecretRef(input: {
     fence: TenantResourceFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor?: TenantProvisionPredecessor;
     supplied?: string;
     signal: AbortSignal;
   }): Promise<string> {
@@ -641,6 +743,7 @@ export class EcsOneShotTenantDatabaseLifecycleAdapter
     const resolved = await this.secretRefs.resolve({
       fence: input.fence,
       externalFence: input.externalFence,
+      provisionPredecessor: input.provisionPredecessor,
       signal: input.signal,
     });
     input.signal.throwIfAborted();
@@ -660,33 +763,57 @@ export class EcsOneShotTenantDatabaseLifecycleAdapter
     operation: TenantDatabaseOneShotOperation;
     fence: TenantResourceFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor?: TenantProvisionPredecessor;
     runtimeSecretRef?: string;
     approvedBaselineDigest: string | null;
     idempotencyKey: string;
     signal: AbortSignal;
   }): Promise<TenantDatabaseOneShotReceipt> {
     assertTenantResourceFence(input.fence);
-    assertActiveExternalFence(
+    const predecessor = assertActiveExternalFence(
       input.externalFence,
       input.fence,
       input.operation === "destroy" ? "cleanup" : "provision",
     );
+    if (input.operation === "destroy") {
+      assertTenantProvisionPredecessor(
+        input.provisionPredecessor,
+        input.fence,
+        input.externalFence.epoch,
+        predecessor ?? undefined,
+      );
+    } else if (input.provisionPredecessor !== undefined) {
+      throw new TenantDatabaseLifecycleError(
+        "TENANT_CLEANUP_PROVISION_PREDECESSOR_INVALID",
+        "Provision database tasks cannot carry cleanup predecessor evidence.",
+      );
+    }
     assertIdempotencyKey(input.idempotencyKey);
     const runtimeSecretRef = await this.runtimeSecretRef({
       fence: input.fence,
       externalFence: input.externalFence,
+      provisionPredecessor: input.provisionPredecessor,
       supplied: input.runtimeSecretRef,
       signal: input.signal,
     });
-    return this.runner.execute({
-      operation: input.operation,
+    const common = {
       fence: input.fence,
       externalFence: input.externalFence,
       runtimeSecretRef,
       approvedBaselineDigest: input.approvedBaselineDigest,
       idempotencyKey: input.idempotencyKey,
       signal: input.signal,
-    });
+    };
+    return input.operation === "destroy"
+      ? this.runner.execute({
+          ...common,
+          operation: "destroy",
+          provisionPredecessor: input.provisionPredecessor!,
+        })
+      : this.runner.execute({
+          ...common,
+          operation: input.operation,
+        });
   }
 
   async inspect(input: {
@@ -817,18 +944,59 @@ export class EcsOneShotTenantDatabaseLifecycleAdapter
   async destroy(input: {
     fence: TenantResourceFence;
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     idempotencyKey: string;
     signal: AbortSignal;
   }): Promise<TenantDatabaseDestroyReceipt> {
     input.signal.throwIfAborted();
     assertTenantResourceFence(input.fence);
-    assertActiveExternalFence(input.externalFence, input.fence, "cleanup");
-    assertIdempotencyKey(input.idempotencyKey);
-    throw new TenantDatabaseLifecycleError(
-      "TENANT_DATABASE_CLEANUP_PREDECESSOR_UNAVAILABLE",
-      "Tenant database cleanup is disabled until authority can supply the exact provision predecessor ownership evidence.",
-      false,
+    const predecessor = assertActiveExternalFence(
+      input.externalFence,
+      input.fence,
+      "cleanup",
     );
+    assertTenantProvisionPredecessor(
+      input.provisionPredecessor,
+      input.fence,
+      input.externalFence.epoch,
+      predecessor ?? undefined,
+    );
+    assertIdempotencyKey(input.idempotencyKey);
+    const receipt = await this.execute({
+      ...input,
+      operation: "destroy",
+      approvedBaselineDigest: null,
+    });
+    const output = receipt.output;
+    assertDatabaseOutputKeys(output, [
+      "outcome",
+      "databaseDeleted",
+      "roleDeleted",
+      "evidenceHash",
+    ]);
+    const completeDelete =
+      output.outcome === "deleted" &&
+      output.databaseDeleted === true &&
+      output.roleDeleted === true;
+    const completeAbsence =
+      output.outcome === "already_missing" &&
+      output.databaseDeleted === false &&
+      output.roleDeleted === false;
+    assertEvidenceHash(output.evidenceHash);
+    if (!completeDelete && !completeAbsence) {
+      throw new TenantDatabaseLifecycleError(
+        "TENANT_DATABASE_CLEANUP_PARTIAL",
+        "Tenant database task did not delete or prove absence of both the database and role.",
+      );
+    }
+    return {
+      fence: input.fence,
+      externalFence: input.externalFence,
+      outcome: output.outcome as "deleted" | "already_missing",
+      databaseDeleted: output.databaseDeleted as boolean,
+      roleDeleted: output.roleDeleted as boolean,
+      evidenceHash: output.evidenceHash,
+    };
   }
 }
 

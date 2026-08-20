@@ -24,6 +24,7 @@ import type {
   DeploymentTenantResourceRecord,
   TenantExternalOperationClaim,
   TenantExternalOperationFence,
+  TenantProvisionPredecessor,
   TenantResourceCleanupReceipt,
   TenantResourceCleanupPhase,
   TenantResourceCleanupPhaseClaim,
@@ -32,7 +33,12 @@ import type {
   TenantResourceGenerationClaim,
   TenantResourceIdentity,
 } from "./contracts.ts";
-import { sha256Hex } from "./hash.ts";
+import { canonicalJson, sha256Hex } from "./hash.ts";
+import {
+  cleanupProvisionPredecessorFromEvidence,
+  proofProvisionPredecessor,
+  requireActiveCleanupProvisionPredecessor,
+} from "./external-ownership.ts";
 
 type SqlClient = NeonQueryFunction<false, true>;
 type TransactionClient = NeonQueryFunctionInTransaction<false, true>;
@@ -186,6 +192,14 @@ async function assertTenantExternalOperationFenceInput(
       { code: "TENANT_EXTERNAL_OPERATION_FENCE_INVALID" },
     );
   }
+  if (fence.intent === "cleanup" && fence.state === "active") {
+    requireActiveCleanupProvisionPredecessor(fence);
+  } else if (fence.provisionPredecessor !== undefined) {
+    throw Object.assign(
+      new Error("Only an active cleanup fence may carry a provision predecessor."),
+      { code: "TENANT_EXTERNAL_OPERATION_FENCE_INVALID" },
+    );
+  }
 }
 
 function sameTenantExternalOperationFence(
@@ -200,7 +214,9 @@ function sameTenantExternalOperationFence(
     actual.ownerDeploymentId === expected.ownerDeploymentId &&
     actual.operationHash === expected.operationHash &&
     actual.marker === expected.marker &&
-    actual.state === expected.state
+    actual.state === expected.state &&
+    JSON.stringify(actual.provisionPredecessor ?? null) ===
+      JSON.stringify(expected.provisionPredecessor ?? null)
   );
 }
 
@@ -271,6 +287,7 @@ async function cleanupRunFromRow(
   return {
     id,
     externalFence,
+    provisionPredecessor: requireActiveCleanupProvisionPredecessor(externalFence),
     ownerDeploymentId: text(row.cleanup_run_owner_deployment_id),
     status: status as "running" | "completed",
     nextPhase: nextPhase as TenantResourceCleanupRun["nextPhase"],
@@ -429,10 +446,10 @@ function expectedTenantExternalOperationMarker(
   return `tl_epoch_${stableIdentityHash.slice(0, 24)}_g${generation}_e${epoch}`;
 }
 
-function tenantExternalOperationFence(
+async function tenantExternalOperationFence(
   row: Record<string, unknown>,
   resource: DeploymentTenantResourceRecord | null,
-): TenantExternalOperationFence | null {
+): Promise<TenantExternalOperationFence | null> {
   const epochValue = row.tenant_external_epoch;
   if (epochValue === null || epochValue === undefined || epochValue === "") {
     return null;
@@ -459,6 +476,21 @@ function tenantExternalOperationFence(
     marker: text(row.tenant_external_marker),
     state: text(row.tenant_external_state) as TenantExternalOperationFence["state"],
   };
+  if (fence.intent === "cleanup" && fence.state === "active") {
+    const evidence = parseObject(row.tenant_external_evidence);
+    const evidenceHash = text(row.tenant_external_evidence_hash);
+    assertSafeTenantResourceEvidence(evidence);
+    if (
+      !/^[a-f0-9]{64}$/.test(evidenceHash) ||
+      evidenceHash !== (await sha256Hex(evidence))
+    ) {
+      throw new Error("Persisted cleanup predecessor evidence is not hash-bound.");
+    }
+    fence.provisionPredecessor = cleanupProvisionPredecessorFromEvidence(
+      evidence,
+      fence,
+    );
+  }
   if (
     fence.epoch < 1 ||
     !["provision", "cleanup"].includes(fence.intent) ||
@@ -477,10 +509,10 @@ function tenantExternalOperationFence(
   return fence;
 }
 
-function externalFenceFromOperationRow(
+async function externalFenceFromOperationRow(
   row: Record<string, unknown>,
   resourceFence: TenantResourceFence,
-): TenantExternalOperationFence | null {
+): Promise<TenantExternalOperationFence | null> {
   if (row.external_epoch === null || row.external_epoch === undefined) return null;
   const epoch = integer(row.external_epoch);
   const result: TenantExternalOperationFence = {
@@ -493,6 +525,21 @@ function externalFenceFromOperationRow(
     marker: text(row.external_marker),
     state: text(row.external_state) as TenantExternalOperationFence["state"],
   };
+  if (result.intent === "cleanup" && result.state === "active") {
+    const evidence = parseObject(row.external_evidence);
+    const evidenceHash = text(row.external_evidence_hash);
+    assertSafeTenantResourceEvidence(evidence);
+    if (
+      !/^[a-f0-9]{64}$/.test(evidenceHash) ||
+      evidenceHash !== (await sha256Hex(evidence))
+    ) {
+      throw new Error("Persisted cleanup predecessor evidence is not hash-bound.");
+    }
+    result.provisionPredecessor = cleanupProvisionPredecessorFromEvidence(
+      evidence,
+      result,
+    );
+  }
   if (
     result.ownerDeploymentId !== resourceFence.ownerDeploymentId ||
     !["provision", "cleanup"].includes(result.intent) ||
@@ -730,7 +777,9 @@ export class NeonDeploymentExecutionRepository
         external_op.owner_deployment_id AS tenant_external_owner_deployment_id,
         external_op.operation_hash AS tenant_external_operation_hash,
         external_op.marker AS tenant_external_marker,
-        external_op.state AS tenant_external_state
+        external_op.state AS tenant_external_state,
+        external_op.evidence_hash AS tenant_external_evidence_hash,
+        external_op.evidence AS tenant_external_evidence
       FROM app_instance_deployments d
       INNER JOIN deployment_environments e ON e.id = d.environment_id
       INNER JOIN app_instances ai ON ai.id = d.app_instance_id
@@ -806,7 +855,7 @@ export class NeonDeploymentExecutionRepository
     ) {
       throw new Error("Persisted tenant resource identity does not match deployment.");
     }
-    const tenantExternalOperation = tenantExternalOperationFence(
+    const tenantExternalOperation = await tenantExternalOperationFence(
       row,
       tenantResources,
     );
@@ -2296,6 +2345,8 @@ export class NeonDeploymentExecutionRepository
         result.owner_deployment_id AS external_owner_deployment_id,
         result.operation_hash AS external_operation_hash,
         result.marker AS external_marker, result.state AS external_state,
+        result.evidence_hash AS external_evidence_hash,
+        result.evidence AS external_evidence,
         result.claim_outcome,
         EXISTS (SELECT 1 FROM leased_resource) AS lease_owned,
         EXISTS (
@@ -2308,7 +2359,7 @@ export class NeonDeploymentExecutionRepository
         (SELECT count(*) FROM superseded_event) AS superseded_event_count
       FROM result
       UNION ALL
-      SELECT NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+      SELECT NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
         EXISTS (SELECT 1 FROM leased_resource),
         EXISTS (
           SELECT 1 FROM conflicting_pending conflict
@@ -2354,7 +2405,7 @@ export class NeonDeploymentExecutionRepository
       );
     }
     const fence = row
-      ? externalFenceFromOperationRow(row, input.resourceFence)
+      ? await externalFenceFromOperationRow(row, input.resourceFence)
       : null;
     if (!fence) {
       throw Object.assign(
@@ -2387,6 +2438,7 @@ export class NeonDeploymentExecutionRepository
         retryable: false,
       });
     }
+    proofProvisionPredecessor(input.proof);
     const resource = pendingFence.resourceFence;
     const rows = await query<Record<string, unknown>>(
       this.sql,
@@ -2509,6 +2561,8 @@ export class NeonDeploymentExecutionRepository
         activated.owner_deployment_id AS external_owner_deployment_id,
         activated.operation_hash AS external_operation_hash,
         activated.marker AS external_marker, activated.state AS external_state,
+        activated.evidence_hash AS external_evidence_hash,
+        activated.evidence AS external_evidence,
         EXISTS (SELECT 1 FROM pointed) AS pointer_written,
         (SELECT count(*) FROM retired_events) AS retired_event_count,
         (SELECT count(*) FROM activated_event) AS activated_event_count
@@ -2545,6 +2599,10 @@ export class NeonDeploymentExecutionRepository
     await assertTenantExternalOperationFenceInput(input.externalFence);
     if (input.requiredState !== "active") return false;
     const resource = input.externalFence.resourceFence;
+    const provisionPredecessor =
+      input.externalFence.intent === "cleanup"
+        ? requireActiveCleanupProvisionPredecessor(input.externalFence)
+        : null;
     const rows = await query<Record<string, unknown>>(
       this.sql,
       `WITH db_clock AS MATERIALIZED (
@@ -2568,6 +2626,10 @@ export class NeonDeploymentExecutionRepository
         AND operation.owner_deployment_id = $3
         AND operation.operation_hash = $9 AND operation.marker = $10
         AND operation.state = 'active'
+        AND (
+          $8 <> 'cleanup'
+          OR operation.evidence::jsonb -> 'provisionPredecessor' = $14::jsonb
+        )
         AND (
           ($8 = 'provision'
             AND resource.lifecycle_status NOT IN ('destroying', 'destroyed'))
@@ -2595,6 +2657,7 @@ export class NeonDeploymentExecutionRepository
         input.lease.workerId,
         input.lease.leaseToken,
         input.lease.attempt,
+        JSON.stringify(provisionPredecessor),
       ],
     );
     return rows.length === 1;
@@ -2889,12 +2952,17 @@ export class NeonDeploymentExecutionRepository
   async beginOrResumeTenantResourceCleanup(input: {
     lease: Parameters<DeploymentExecutionRepository["beginOrResumeTenantResourceCleanup"]>[0]["lease"];
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     now: number;
   }): Promise<TenantResourceCleanupRun | null> {
     await assertTenantExternalOperationFenceInput(input.externalFence);
     if (input.externalFence.intent !== "cleanup" || input.externalFence.state !== "active") {
       return null;
     }
+    const provisionPredecessor = requireActiveCleanupProvisionPredecessor(
+      input.externalFence,
+      input.provisionPredecessor,
+    );
     const resource = input.externalFence.resourceFence;
     const runId = `tlcr_${(
       await sha256Hex(
@@ -2925,6 +2993,7 @@ export class NeonDeploymentExecutionRepository
           AND operation.epoch = $8 AND operation.intent = 'cleanup'
           AND operation.operation_hash = $9 AND operation.marker = $10
           AND operation.owner_deployment_id = $1 AND operation.state = 'active'
+          AND operation.evidence::jsonb -> 'provisionPredecessor' = $14::jsonb
           AND job.status = 'running' AND job.lease_owner = $3
           AND job.job_type IN ('cleanup', 'rollback')
           AND job.lease_token = $11 AND job.attempts = $12
@@ -3021,6 +3090,7 @@ export class NeonDeploymentExecutionRepository
         input.lease.leaseToken,
         input.lease.attempt,
         runId,
+        JSON.stringify(provisionPredecessor),
       ],
     );
     return rows[0] ? await cleanupRunFromRow(rows[0], input.externalFence) : null;
@@ -3029,6 +3099,7 @@ export class NeonDeploymentExecutionRepository
   async beginTenantResourceCleanupPhase(input: {
     lease: Parameters<DeploymentExecutionRepository["beginTenantResourceCleanupPhase"]>[0]["lease"];
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     runId: string;
     phase: TenantResourceCleanupPhase;
     now: number;
@@ -3037,10 +3108,14 @@ export class NeonDeploymentExecutionRepository
     if (input.externalFence.intent !== "cleanup" || input.externalFence.state !== "active") {
       return null;
     }
+    const provisionPredecessor = requireActiveCleanupProvisionPredecessor(
+      input.externalFence,
+      input.provisionPredecessor,
+    );
     const resource = input.externalFence.resourceFence;
     const operationId = `tl_cleanup_${(
       await sha256Hex(
-        `${resource.identity.appInstanceId}:${resource.generation}:${input.externalFence.epoch}:${input.phase}`,
+        `${resource.identity.appInstanceId}:${resource.generation}:${input.externalFence.epoch}:${input.phase}:${canonicalJson(provisionPredecessor)}`,
       )
     ).slice(0, 32)}`;
     const rows = await query<Record<string, unknown>>(
@@ -3066,6 +3141,7 @@ export class NeonDeploymentExecutionRepository
           AND run.external_epoch = $7 AND run.status = 'running'
           AND operation.intent = 'cleanup' AND operation.operation_hash = $8
           AND operation.marker = $9 AND operation.state = 'active'
+          AND operation.evidence::jsonb -> 'provisionPredecessor' = $16::jsonb
           AND resource.ownership_marker = $10
           AND resource.stable_identity_hash = $11
           AND job.status = 'running' AND job.lease_owner = $3
@@ -3161,6 +3237,7 @@ export class NeonDeploymentExecutionRepository
         operationId,
         input.lease.leaseToken,
         input.lease.attempt,
+        JSON.stringify(provisionPredecessor),
       ],
     );
     const row = rows[0];
@@ -3179,6 +3256,7 @@ export class NeonDeploymentExecutionRepository
   async completeTenantResourceCleanupPhase<P extends TenantResourceCleanupPhase>(input: {
     lease: Parameters<DeploymentExecutionRepository["completeTenantResourceCleanupPhase"]>[0]["lease"];
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     runId: string;
     phase: P;
     operationId: string;
@@ -3197,6 +3275,10 @@ export class NeonDeploymentExecutionRepository
     ) {
       return null;
     }
+    const provisionPredecessor = requireActiveCleanupProvisionPredecessor(
+      input.externalFence,
+      input.provisionPredecessor,
+    );
     const persistedReceipt = cleanupPhaseReceiptEvidence(
       input.phase,
       input.receipt as unknown as Record<string, unknown>,
@@ -3235,6 +3317,7 @@ export class NeonDeploymentExecutionRepository
           AND phase.phase = $12 AND phase.operation_id = $13
           AND operation.intent = 'cleanup' AND operation.operation_hash = $8
           AND operation.marker = $9 AND operation.state = 'active'
+          AND operation.evidence::jsonb -> 'provisionPredecessor' = $19::jsonb
           AND resource.ownership_marker = $10
           AND resource.stable_identity_hash = $11
           AND job.status = 'running' AND job.lease_owner = $3
@@ -3324,6 +3407,7 @@ export class NeonDeploymentExecutionRepository
         nextPhase,
         input.lease.leaseToken,
         input.lease.attempt,
+        JSON.stringify(provisionPredecessor),
       ],
     );
     return rows[0] ? await cleanupRunFromRow(rows[0], input.externalFence) : null;
@@ -3332,6 +3416,7 @@ export class NeonDeploymentExecutionRepository
   async finalizeTenantResourceCleanup(input: {
     lease: Parameters<DeploymentExecutionRepository["finalizeTenantResourceCleanup"]>[0]["lease"];
     externalFence: TenantExternalOperationFence;
+    provisionPredecessor: TenantProvisionPredecessor;
     runId: string;
     scheduleId: string | null;
     appInstanceId: string;
@@ -3346,6 +3431,10 @@ export class NeonDeploymentExecutionRepository
     ) {
       return false;
     }
+    const provisionPredecessor = requireActiveCleanupProvisionPredecessor(
+      input.externalFence,
+      input.provisionPredecessor,
+    );
     const resource = input.externalFence.resourceFence;
     const rows = await query<Record<string, unknown>>(
       this.sql,
@@ -3377,6 +3466,7 @@ export class NeonDeploymentExecutionRepository
           AND run.external_epoch = $7
           AND operation.intent = 'cleanup' AND operation.operation_hash = $8
           AND operation.marker = $9 AND operation.state = 'active'
+          AND operation.evidence::jsonb -> 'provisionPredecessor' = $16::jsonb
           AND resource.ownership_marker = $10
           AND resource.stable_identity_hash = $11
           AND job.status = 'running' AND job.lease_owner = $3
@@ -3503,6 +3593,7 @@ export class NeonDeploymentExecutionRepository
         input.reason,
         input.lease.leaseToken,
         input.lease.attempt,
+        JSON.stringify(provisionPredecessor),
       ],
     );
     const row = rows[0];

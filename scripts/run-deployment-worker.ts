@@ -2,15 +2,12 @@ import { hostname } from "node:os";
 import { randomUUID } from "node:crypto";
 import { createAwsSdkDeploymentAdapter } from "../lib/deployments/execution/aws-sdk-adapter.ts";
 import { EmbeddedCloudFormationCleanupSchedule } from "../lib/deployments/execution/cleanup.ts";
-import { DisabledSaaSControlClient } from "../lib/deployments/execution/control-client.ts";
-import { DisabledSaaSControlPayloadCompiler } from "../lib/deployments/execution/control-payload.ts";
-import { DisabledSharedCellSecurityPreflight } from "../lib/deployments/execution/shared-cell-preflight.ts";
 import {
   evaluateWorkerRuntimeGate,
   loadDeploymentWorkerRuntimeConfig,
 } from "../lib/deployments/execution/gates.ts";
 import { NeonDeploymentExecutionRepository } from "../lib/deployments/execution/neon-repository.ts";
-import { DisabledTenantDatabasePort } from "../lib/deployments/execution/tenant-database.ts";
+import { createDefaultDisabledWorkerRuntime } from "../lib/deployments/execution/runtime-composition.ts";
 import { runDeploymentWorkerOnce } from "../lib/deployments/execution/worker.ts";
 
 const nodeVersion = process.versions.node.split(".").map(Number);
@@ -31,24 +28,13 @@ const databaseUrl = process.env.DATABASE_URL?.trim();
 if (!databaseUrl) throw new Error("Deployment worker requires DATABASE_URL.");
 
 const workerId = `worker:${hostname().replace(/[^A-Za-z0-9._-]/g, "-")}:${randomUUID().slice(0, 8)}`;
+const runtime = createDefaultDisabledWorkerRuntime();
 const dependencies = {
   repository: new NeonDeploymentExecutionRepository(databaseUrl),
-  // This remains false until every apply/reconcile boundary below has a
-  // reviewed production adapter. Queued apply work remains untouched.
-  applyRuntimeReady: false,
-  // Full crash-resumable workload -> database/role -> secret cleanup adapters
-  // are not installed in B5. Keep jobs queued instead of partially deleting AWS.
-  cleanupRuntimeReady: false,
+  ...runtime,
   awsFactory: ({ region }: { region: string; workerRoleArn: string }) =>
     createAwsSdkDeploymentAdapter(region),
   cleanupScheduler: new EmbeddedCloudFormationCleanupSchedule(),
-  sharedCellSecurityPreflight: new DisabledSharedCellSecurityPreflight(),
-  // Both boundaries deliberately fail closed until their reviewed S3 runtime
-  // adapters are supplied. The worker can never mark an instance active while
-  // either database migration or mTLS control reconciliation is unavailable.
-  tenantDatabase: new DisabledTenantDatabasePort(),
-  controlClient: new DisabledSaaSControlClient(),
-  controlPayloadCompiler: new DisabledSaaSControlPayloadCompiler(),
 };
 
 let stopping = false;
