@@ -38,6 +38,7 @@ import { finalizeTenantStackForApply } from "./parameters.ts";
 import {
   assertTenantResourceFence,
   deriveTenantResourceIdentity,
+  deriveTenantRuntimeSecretName,
 } from "./tenant-database.ts";
 
 export interface TenantExternalOwnershipCoordinatorPort {
@@ -364,7 +365,7 @@ function parseTenantLifecycleOutput(input: {
       false,
     );
   }
-  const escapedSecretName = input.fence.identity.secretName.replace(
+  const escapedSecretName = deriveTenantRuntimeSecretName(input.fence).replace(
     /[.*+?^${}()|[\]\\]/g,
     "\\$&",
   );
@@ -588,7 +589,7 @@ function renderApplyReadyStack(input: {
       state: "active",
     },
     runtimeSecretRef,
-    runtimeSecretName: fence.identity.secretName,
+    runtimeSecretName: deriveTenantRuntimeSecretName(fence),
     plan: context.deployment.desiredPlan,
     environment: context.environment,
     imageUri: context.deployment.artifactRef,
@@ -602,7 +603,7 @@ function renderApplyReadyStack(input: {
     rendered,
     environment: context.environment,
     binding: context.binding,
-    expectedRuntimeSecretName: fence.identity.secretName,
+    expectedRuntimeSecretName: deriveTenantRuntimeSecretName(fence),
   });
 }
 

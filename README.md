@@ -2,7 +2,7 @@
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。
 
-当前已在阶段 8 基础上完成客户自助购买一期、Neon PostgreSQL 迁移、自有认证一期，并建立 AWS Sandbox S0–S3 执行基础：企业用户可用邮箱密码注册/登录，选择管理员维护的共享套餐并配置允许的租户参数；只有 Stripe 已验证 Webhook 才会创建或续期订阅、准备待开通实例并生成可审计的 AWS 目标计划。S0 提供静态费用与权限护栏，S1 提供部署状态机与任务，S2 加固订单服务控制契约，S3 新增默认关闭的独立 Worker、STS/CloudFormation Adapter、租户 TTL 清理和 mTLS 控制边界；S3-B B0–B4 补齐了离线可测试的租户资源生命周期、不可变模板编译、RS256/mTLS 客户端、Shared Cell 只读证据以及独立 Cell 渲染/Janitor 基础。B5 当前完成的是默认关闭的安全基础：每次任务领取使用独立 lease token、长操作持续续租并隔离迟到结果、租户 ECS 只接受当前 resource generation 的单一 JSON Secret、外部 ownership epoch 必须由 provider 安装并回读证明，以及 workload → database/role → Secret 的可恢复分阶段清理。当前所有执行 gate 保持关闭；真实 AWS Tenant Database、Secret、workload ownership provider 和 Worker root wiring 未接线时会 fail closed，普通网站启动和测试不会调用 AWS 或创建云资源。
+当前已在阶段 8 基础上完成客户自助购买一期、Neon PostgreSQL 迁移、自有认证一期，并建立 AWS Sandbox S0–S3 执行基础：企业用户可用邮箱密码注册/登录，选择管理员维护的共享套餐并配置允许的租户参数；只有 Stripe 已验证 Webhook 才会创建或续期订阅、准备待开通实例并生成可审计的 AWS 目标计划。S0 提供静态费用与权限护栏，S1 提供部署状态机与任务，S2 加固订单服务控制契约，S3 新增默认关闭的独立 Worker、STS/CloudFormation Adapter、租户 TTL 清理和 mTLS 控制边界；S3-B B0–B4 补齐了离线可测试的租户资源生命周期、不可变模板编译、RS256/mTLS 客户端、Shared Cell 只读证据以及独立 Cell 渲染/Janitor 基础。B5 当前完成的是默认关闭的安全基础：每次任务领取使用独立 lease token、长操作持续续租并隔离迟到结果、原子 external epoch authority 契约、generation-bound 单一 JSON Secret、SDK-free ECS one-shot 边界，以及 workload → database/role → Secret 的可恢复分阶段清理。当前所有执行 gate 保持关闭；原子 authority、真实 AWS Tenant Database/Secret/workload provider、任务镜像和 Worker root wiring 未接线时会 fail closed，普通网站启动和测试不会调用 AWS 或创建云资源。
 
 ## 已实现
 
@@ -80,7 +80,8 @@
 - S3-B 已提供类型化的 database/role/Secret 所有权、approved baseline、幂等创建/迁移/验证/反向清理契约，以及只保存引用与证据的 `deployment_tenant_resources` 当前状态和 append-only 事件审计；`0005` 已加入仓库迁移文件，但尚未应用到 Neon。当前 owner/generation 围栏禁止未销毁资源被另一个 deployment 接管。
 - B5-A 新增 `0006` lease-token 围栏：每次 claim/takeover 都使用新的不可复用 token，Repository 写入同时校验 job、deployment、worker、attempt、token 与数据库时间下仍有效的租约；长时间外部调用持续续租，现有 AWS SDK、HTTPS、控制接口、Shared Cell 与类型化 Tenant DB/Secret 边界都会消费同一个 `AbortSignal`，丢租后的迟到结果不能写回。`0006` 尚未应用到 Neon，跨 deployment live handoff 继续禁止。
 - B5-B 把租户运行时凭据收敛为当前 generation 的单一 Secrets Manager JSON Secret；ECS 只按 JSON key 注入数据库、HMAC、JWT 与 Sandbox Stripe 参数，环境 binding 不再承载这些租户密钥。健康检查已改为兼容 Distroless 的无 Shell 命令，控制通道域名由 execution environment 的受控 base domain 决定。
-- B5-E 新增 `0007` 外部 ownership epoch：数据库只能先产生 `pending_external` 意图，必须由注入的 provider 把精确 marker 安装到外部资源并重新观察后才能激活；provision 与 cleanup 使用不同的单调 epoch，旧 epoch 不能记录生命周期或执行清理。CloudFormation 计划、所有权标签和 SaaS 控制请求现已携带当前 epoch；清理以持久化 run/phase 顺序执行 workload → database/role → Secret，稳定 operation ID 和阶段回执支持崩溃恢复，最终在一个事务中收口资源、部署、实例、TTL 计划和容量占位。默认 provider 仍是 fail-closed，AWS 与订单服务端尚未实现可拒绝旧 epoch 的 provider-side compare-and-set，`0007` 也尚未应用到 Neon。
+- B5-E 新增 `0007` 外部 ownership epoch：数据库只能先产生 `pending_external` 意图，必须由注入的 provider 把精确 marker 安装到外部资源并重新观察后才能激活；provision 与 cleanup 使用不同的单调 epoch，旧 epoch 不能记录生命周期或执行清理。CloudFormation 计划、所有权标签和 SaaS 控制请求现已携带当前 epoch；清理以持久化 run/phase 顺序执行 workload → database/role → Secret，稳定 operation ID 和阶段回执支持崩溃恢复，最终在一个事务中收口资源、部署、实例、TTL 计划和容量占位。`0007` 尚未应用到 Neon。
+- B5-F 新增原子 authority 接口和 SDK-free ECS one-shot/exact-five-key Secret 离线适配边界。authority 要求 provider 在一次线性化条件写入中执行 compare-and-set 并保留 predecessor，默认实现明确禁用；CloudFormation 只负责前后只读对账，标签不是 CAS。数据库任务只允许 generation-bound Secret ARN、代码固定命令、active epoch 与必要的 approved baseline digest；失租、超时或回执失败会停止已知任务并确认 `STOPPED`。`RunTask` 返回不确定时会在独立恢复窗口内按稳定 `startedBy` 轮询：一旦发现任务便停止并确认，持续不可见则以专用“结果未知”错误 fail closed，绝不把空列表当成“没有任务”。物理 Secret 名为逻辑 `/runtime` 加 `/gN`，回读证据精确绑定租户、generation、账号、区域及五个 JSON key。订单服务 `POST /api/saas/provision` 已在源码实现 control API v1.2 事务单调 epoch CAS；其他控制写接口仍未加 fence，这些 SQL 也未应用或部署。真实 authority/AWS SDK provider、ARN 原生 lifecycle helper、任务程序/镜像和 Worker root 尚未接线；predecessor 也尚未传入 database/Secret cleanup Adapter，所以删除继续 fail closed，两个 runtime gate 均为 `false`。
 - S3-B 已提供不可变模板 v2 编译器、2048 位以上 RS256 实例 JWT、固定 8443 的 mTLS HTTPS transport，以及 POST provision 后再 GET control 对账的严格闭环；首位 Owner 密码不会写入部署记录。
 - Shared Cell B3/B4 仍只生成 `renderOnly=true`、`applyReady=false` 的独立模板。B5-C 新增独立 Cell Bootstrap 模板与默认 `LocalValidate`，并预留 Change Set 分阶段接口；由于 IAM lifecycle scope、MFA 执行证据、模板 digest/精确 TTL 和 Stack 外 cleanup 尚未完成，两个写模式目前会在任何 AWS API 调用前硬拒绝。本次没有部署这个 Bootstrap，更没有创建 VPC、ALB、ECS 或 Aurora。Cell TTL 固定 3 小时，租户 TTL 为 2 小时，创建/校正前还要求至少 15 分钟清理缓冲。
 
@@ -88,7 +89,7 @@
 
 - Paddle、自动续扣、Stripe 订阅模式、退款自动化、优惠券和复杂发票系统。
 - 复杂发票、优惠券和自动退款。
-- B5 的离线 ownership epoch、可恢复 cleanup 状态机、严格校验和 Mock 测试已经存在，但真实 ECS one-shot Tenant Database/Secrets/workload Adapter、外部 marker 安装与观察实现、AWS/订单服务 provider-side 单调 epoch CAS、Shared Cell 证据客户端的 root wiring、稳定且可清理的 Owner Secret 数据源，以及 Cell Bootstrap/Cell 本身的实际部署仍未完成。`applyRuntimeReady=false`、`cleanupRuntimeReady=false`，因此当前不会真实创建云资源或自动回写正式入口。
+- B5 的离线 ownership epoch、原子 authority 契约、可恢复 cleanup 状态机、SDK-free ECS one-shot/Secret 边界、严格校验和 Mock 测试已经存在，但没有真实 authority 或 ECS/Secrets Manager/workload AWS SDK provider，也没有 ARN 原生 lifecycle helper、approved baseline、任务程序/镜像、cleanup predecessor 接线、Shared Cell 证据客户端 root wiring、稳定且可清理的 Owner Secret 数据源，以及 Cell Bootstrap/Cell 的实际部署。订单服务只有 `POST /api/saas/provision` 源码实现了单调 epoch CAS，其他控制写接口尚未加 fence，SQL/源码也未应用或部署。`applyRuntimeReady=false`、`cleanupRuntimeReady=false`，因此当前不会真实创建云资源或自动回写正式入口。
 - 平台尚未实际调用订单服务 S2 控制接口，也没有部署生产 mTLS 证书、Trust Store 或 DNS；模板部署驱动和 `app_instance_deployments` 仍不会触发真实自动部署。
 - 多产品市场。
 - 成员邀请和角色变更。
@@ -372,4 +373,4 @@ AWS Cell 部署计划与 S1 执行基础新增：
 
 ## 下一步建议
 
-下一步不是直接打开变量或执行 Cell Change Set，而是先审查并应用 `0005`、`0006`、`0007`，再实现真实 provider-backed ownership marker 安装/观察、ECS one-shot Tenant Database/Secrets/workload Adapter 与 Worker root wiring；随后生成并独立批准空租户 PostgreSQL 16.14 baseline，接线稳定 Owner Secret、Shared Cell 只读证据与控制凭据来源，并准备 DNS/ACM/ACTIVE Trust Store。所有门禁、崩溃恢复和真实 TTL 删除/费用演练通过后，才可另行批准一个付费 Sandbox Cell；`applyRuntimeReady` 与 `cleanupRuntimeReady` 在此之前必须保持 `false`。升级/降级、退款和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)，执行门禁见 [AWS Sandbox S3 部署执行器](./docs/aws-sandbox-s3-worker.md)，本次边界见 [AWS Sandbox B5 实施边界](./docs/aws-sandbox-b5-implementation.md)。
+下一步不是直接打开变量或执行 Cell Change Set，而是先审查并应用 `0005`、`0006`、`0007`，再实现并评审真实原子 epoch authority、ECS/Secrets Manager/workload AWS SDK provider、ARN 原生 lifecycle helper、任务程序/镜像和 Worker root wiring；同时把 authority 保存的 exact provision predecessor 安全传给 cleanup Adapter，并为订单服务其余控制写接口补齐 fence。随后生成并独立批准空租户 PostgreSQL 16.14 baseline，接线稳定 Owner Secret、Shared Cell 只读证据与控制凭据来源，并准备 DNS/ACM/ACTIVE Trust Store。所有门禁、崩溃恢复和真实 TTL 删除/费用演练通过后，才可另行批准一个付费 Sandbox Cell；`applyRuntimeReady` 与 `cleanupRuntimeReady` 在此之前必须保持 `false`。升级/降级、退款和多实例仍不属于当前版本。模板使用说明见 [应用实例模板管理](./docs/app-instance-template-management.md)，执行门禁见 [AWS Sandbox S3 部署执行器](./docs/aws-sandbox-s3-worker.md)，本次边界见 [AWS Sandbox B5 实施边界](./docs/aws-sandbox-b5-implementation.md)。

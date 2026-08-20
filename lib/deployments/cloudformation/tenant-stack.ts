@@ -21,7 +21,7 @@ export interface AwsSandboxTenantStackInput {
    * from the environment-level execution binding.
   */
   runtimeSecretRef: string;
-  /** Exact logical Secret name from the current tenant resource fence. */
+  /** Exact generation-bound physical Secret name derived from the resource fence. */
   runtimeSecretName: string;
   plan: AwsEcsCellDeploymentPlan;
   environment: DeploymentEnvironment;
@@ -104,7 +104,7 @@ export function assertAwsSandboxTenantRuntimeSecretRef(input: {
 }): void {
   const escapedRegion = input.region.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const secretNamePattern =
-    /^techlong\/sandbox\/tenant\/[a-z0-9][a-z0-9_-]{2,63}\/runtime$/;
+    /^techlong\/sandbox\/tenant\/[a-z0-9][a-z0-9_-]{2,63}\/runtime\/g[1-9][0-9]*$/;
   if (
     input.expectedSecretName !== undefined &&
     !secretNamePattern.test(input.expectedSecretName)
@@ -118,7 +118,7 @@ export function assertAwsSandboxTenantRuntimeSecretRef(input: {
   const pattern = new RegExp(
     `^arn:aws:secretsmanager:${escapedRegion}:${input.accountId}:secret:` +
       (escapedSecretName ??
-        "techlong/sandbox/tenant/[a-z0-9][a-z0-9_-]{2,63}/runtime") +
+        "techlong/sandbox/tenant/[a-z0-9][a-z0-9_-]{2,63}/runtime/g[1-9][0-9]*") +
       "-[A-Za-z0-9]{6}$",
   );
   if (!pattern.test(input.runtimeSecretRef)) {
@@ -174,6 +174,11 @@ function assertRenderInput(input: AwsSandboxTenantStackInput): void {
     region: input.environment.region,
     expectedSecretName: input.runtimeSecretName,
   });
+  if (!input.runtimeSecretName.endsWith(`/g${input.resourceGeneration}`)) {
+    throw new Error(
+      "Tenant runtime Secret name does not match the current resource generation.",
+    );
+  }
   if (input.plan.mode !== "aws_sandbox") {
     throw new Error("Tenant stack renderer only accepts aws_sandbox plans.");
   }

@@ -19,7 +19,7 @@ const postgresIdentifierPattern = /^[a-z][a-z0-9_]{0,62}$/;
 const sha256Pattern = /^[a-f0-9]{64}$/;
 const idempotencyKeyPattern = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,199}$/;
 const secretRefPattern =
-  /^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:techlong\/sandbox\/tenant\/[a-z0-9][a-z0-9_-]{2,63}\/runtime-[A-Za-z0-9]{6}$/;
+  /^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:techlong\/sandbox\/tenant\/[a-z0-9][a-z0-9_-]{2,63}\/runtime\/g[1-9][0-9]*-[A-Za-z0-9]{6}$/;
 const secretNamePattern =
   /^techlong\/sandbox\/tenant\/[a-z0-9][a-z0-9_-]{2,63}\/runtime$/;
 const baselineArchivePattern =
@@ -264,6 +264,18 @@ export function assertTenantResourceFence(
   }
 }
 
+/**
+ * Physical Secret names rotate with the resource generation. The immutable
+ * identity retains only the logical /runtime prefix so a Secret pending
+ * deletion from g1 cannot block a safe g2 reopen.
+ */
+export function deriveTenantRuntimeSecretName(
+  fence: TenantResourceFence,
+): string {
+  assertTenantResourceFence(fence);
+  return `${fence.identity.secretName}/g${fence.generation}`;
+}
+
 function assertProvisionExternalFence(
   actual: TenantExternalOperationFence,
   expected: TenantExternalOperationFence,
@@ -398,10 +410,13 @@ function assertInspection(
 
 function assertSecretRef(
   value: string,
-  identity: TenantResourceIdentity,
+  fence: TenantResourceFence,
   expectedAws?: { accountId: string; region: string },
 ): void {
-  const expectedName = identity.secretName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const expectedName = deriveTenantRuntimeSecretName(fence).replace(
+    /[.*+?^${}()|[\]\\]/g,
+    "\\$&",
+  );
   if (
     !secretRefPattern.test(value) ||
     !new RegExp(`:secret:${expectedName}-[A-Za-z0-9]{6}$`).test(value) ||
@@ -453,7 +468,7 @@ function assertSecretInspection(
       "Existing tenant secret is missing the expected ownership evidence.",
     );
   }
-  assertSecretRef(inspection.secretRef, fence.identity, expectedAws);
+  assertSecretRef(inspection.secretRef, fence, expectedAws);
 }
 
 function assertSecretReceipt(
@@ -476,7 +491,7 @@ function assertSecretReceipt(
   );
   assertTenantResourceFence(receipt.fence, fence);
   assertProvisionExternalFence(receipt.externalFence, externalFence, fence);
-  assertSecretRef(receipt.secretRef, fence.identity, expectedAws);
+  assertSecretRef(receipt.secretRef, fence, expectedAws);
   if (
     !["created", "already_exists"].includes(receipt.outcome) ||
     receipt.ownershipMarker !== fence.ownershipMarker ||

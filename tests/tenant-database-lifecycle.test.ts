@@ -26,6 +26,7 @@ import type {
 import {
   deriveTenantOwnershipMarker,
   deriveTenantResourceIdentity,
+  deriveTenantRuntimeSecretName,
   GuardedTenantDatabasePort,
 } from "../lib/deployments/execution/tenant-database.ts";
 
@@ -263,7 +264,7 @@ function secretInspection(
     state,
     secretRef:
       state === "present"
-        ? `arn:aws:secretsmanager:ca-central-1:402010193138:secret:${resourceFence.identity.secretName}-abcdef`
+        ? `arn:aws:secretsmanager:ca-central-1:402010193138:secret:${deriveTenantRuntimeSecretName(resourceFence)}-abcdef`
         : null,
     ownershipMarker: state === "present" ? resourceFence.ownershipMarker : null,
     versionRef: state === "present" ? "version-one" : null,
@@ -279,6 +280,14 @@ test("keeps names stable across deployments while changing only recreated genera
   for (const value of [first.databaseName, first.roleName]) {
     assert.match(value, /^[a-z][a-z0-9_]{0,62}$/);
   }
+  const generationOne = fence(first, 1, "dep_one");
+  const generationTwo = fence(first, 2, "dep_reopen");
+  assert.equal(deriveTenantRuntimeSecretName(generationOne), `${first.secretName}/g1`);
+  assert.equal(deriveTenantRuntimeSecretName(generationTwo), `${first.secretName}/g2`);
+  assert.notEqual(
+    deriveTenantRuntimeSecretName(generationOne),
+    deriveTenantRuntimeSecretName(generationTwo),
+  );
   assert.match(first.stableIdentityHash, /^[a-f0-9]{64}$/);
   assert.match(
     first.secretName,

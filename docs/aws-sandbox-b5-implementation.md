@@ -31,8 +31,18 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - provision 与 cleanup 使用不同的不可变 operation hash。相同意图的重试复用原 epoch；cleanup 会使未完成的 provision 意图失效并旋转到新 epoch。旧 epoch 不能再推进数据库生命周期或执行删除。
 - cleanup 持久化 run 及 workload → database/role → Secret 三个 phase。每个 phase 使用稳定 operation ID、脱敏 receipt 和 append-only 事件，崩溃后跳过已经成功的阶段；最终事务同时收口资源、部署、实例、TTL 计划和容量占位。
 - 现有 AWS SDK、HTTPS、控制通道、Shared Cell 和类型化 Tenant DB/Secret 边界都接收同一个必填 `AbortSignal`。Signal 用于尽快取消失租操作，但不能替代 provider 对 external marker 的安装与观察。
-- CloudFormation 标签/ClientRequestToken 及 SaaS Control metadata/header/idempotency/readback 已绑定当前 active provision epoch；但真实 AWS 与订单服务端尚未实现原子拒绝旧 epoch 的 provider-side compare-and-set，所以这些字段目前只是离线契约，不能据此开启执行门禁。
+- CloudFormation 标签/ClientRequestToken 及 SaaS Control metadata/header/idempotency/readback 已绑定当前 active provision epoch；标签只能用于 readback，不能承担原子 compare-and-set。
+- 订单服务 `POST /api/saas/provision` 已在源码实现 control API v1.2 事务单调 epoch CAS、同 epoch 精确重放和旧 epoch/漂移拒绝；其他控制写接口仍未 fence，相关 SQL 和源码也未应用数据库或部署运行。
 - 默认 external ownership provider、Tenant DB/Secret/workload Adapter 和 standalone Worker root wiring 仍未配置，因此 Apply/Cleanup 保持 fail closed。
+
+### B5-F：ECS one-shot 与 generation-bound Secret 离线边界
+
+- 新增 `AtomicTenantExternalEpochAuthorityPort`：provider 必须以一次线性化条件写入比较 revision 和旧 record，再由已匹配记录派生并保存 predecessor；describe 后无条件写入不满足契约。默认 `DisabledAtomicTenantExternalEpochAuthority` 会在调用 provider 前拒绝，且没有内存版生产回退。CloudFormation Adapter 在这里仅作前后只读兼容性检查，不安装 epoch，也不是 authority。
+- 新增不构造 AWS SDK 客户端的注入式 ECS one-shot 边界。`RunTask`、按精确 `startedBy` 恢复、`DescribeTasks` 和 `StopTask` 均要求 `AbortSignal`；失租、轮询超时或回执失败时，已知任务必须先以独立有界 Signal 停止并观察到 `STOPPED`。若 `RunTask` 可能已被 AWS 接受但响应丢失，恢复器会在独立窗口内持续按稳定 `startedBy` 查询；发现任务后停止并确认，持续不可见则返回专用“结果未知”错误并 fail closed，绝不将一次空查询当成不存在任务的证明。
+- one-shot request 只允许代码内固定命令、当前 active epoch、generation、ownership marker、当前租户 Secret ARN，以及 baseline/迁移/验证阶段所需的独立批准 baseline digest。禁止传入 password、`DATABASE_URL`、连接 URL、Secret value、任意命令或 baseline S3 地址；回执使用 exact-key allowlist，并绑定 request/output/receipt hash 与当前 epoch。
+- 租户运行时 Secret 的逻辑 identity 仍以 `/runtime` 结尾，实际 Secrets Manager 名称按 generation 确定为 `/runtime/gN`。ARN 必须精确匹配租户、generation、AWS account 和 region；回读证据必须证明 JSON 恰好只有 `database_url`、`hmac_secret_key`、`jwt_secret_key`、`stripe_secret_key`、`stripe_webhook_secret` 五个键以及当前 provision generation/epoch。这样 g1 Secret 进入 pending deletion 时不会阻止 g2 reopen。
+- 当前只有离线 provider DTO、严格验证和 Mock 测试，没有真实 ECS/Secrets Manager SDK provider，没有 Worker root 注入，也没有批准 baseline。订单服务现有 baseline image 仍接收明文迁移环境变量，不能直接接入此 ARN-only 边界；其 ARN 原生 lifecycle helper 需后续单独实现和审查。
+- Secret 和数据库删除不会错误地把 cleanup epoch 当作原资源的 provision ownership。authority record 已能保留 exact predecessor，但该证据尚未进入 lifecycle Adapter 输入，因此 B5-F 的两个 destroy 方法都会以 non-retryable 专用错误在任何 provider 调用前 fail closed；`cleanupRuntimeReady` 必须继续为 `false`。
 
 ## 当前硬门禁
 
@@ -40,16 +50,16 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 
 1. `0005`、`0006`、`0007` 尚未应用到 Neon。
 2. 尚无独立批准的 PostgreSQL 16.14 空租户 baseline；旧业务数据 dump 禁止作为租户模板。
-3. 真实 ECS one-shot Tenant Database/Secret/workload Adapter 尚未完成并演练崩溃恢复。
-4. 离线 ownership coordinator 已完成，但尚无真实 provider 为 database、role、Secret 和 CloudFormation workload 安装并回读 external marker。
+3. ECS one-shot 与 exact-five-key Secret 已有 SDK-free 离线适配边界，但真实 ECS/Secrets Manager provider、ARN 原生 lifecycle helper、approved baseline、Worker root wiring 和崩溃演练尚未完成。
+4. 离线 ownership coordinator 和原子 authority 接口已完成，但没有真实 authority provider；CloudFormation 只读回读不是 CAS，不能安装或授权 external marker。
 5. Cell 外部证据尚未完整验证 ACM、精确 Trust Store、DNS、Route Table、TTL Schedule 和 Stack 所有权。
-6. 分阶段 cleanup coordinator 已离线实现，但 Cell Janitor/standalone Worker 尚未接入真实 destroy Adapter 与 provider-backed ownership proof。
+6. 分阶段 cleanup coordinator 已离线实现，但 authority record 的 exact provision predecessor 尚未接到 lifecycle Adapter；B5-F database/Secret destroy 因此明确 fail closed，Cell Janitor/standalone Worker 也尚未接入完整 destroy Adapter。
 7. 尚未进行真实 Cell TTL 删除演练和费用后核对。
-8. CloudFormation workload 与订单服务控制端尚未实现并演练 provider-side 单调 epoch CAS；`AbortSignal` 不能撤销服务端已经接受的写入。
+8. 没有真实 AWS authority/workload CAS；订单服务仅 `POST /api/saas/provision` 在未部署源码中实现单调 epoch CAS，其他控制写接口仍未 fence，也没有完成数据库迁移、部署或跨进程演练。`AbortSignal` 不能撤销服务端已经接受的写入。
 
 ## 费用与执行规则
 
-- 本阶段的源码、迁移文件、模板渲染和 Mock 测试不调用 AWS，也不应用 Neon 迁移。
+- 本阶段的源码、迁移文件、模板渲染和 Mock 测试不调用 AWS，不访问 Neon，也不应用迁移；`0005`–`0007` 继续只是仓库文件。
 - `$10` Budget 是延迟告警，不是实时费用硬停。
 - 创建 Lambda/Scheduler Bootstrap、ALB、Aurora 或运行 ECS/CodeBuild 都可能产生费用。当前 B5 Bootstrap 写模式已硬禁用；任何未来真实 Change Set 执行或 Worker Apply 都必须另行获得明确确认。
 - `infra/`、`.env.local`、证书、私钥、数据库密码和 AWS 长期凭据不得进入 Git。

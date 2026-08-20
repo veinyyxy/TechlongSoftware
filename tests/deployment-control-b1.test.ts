@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import https from "node:https";
 import {
+  createHash,
   createPublicKey,
   generateKeyPairSync,
   verify,
 } from "node:crypto";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { MtlsSaaSControlClient } from "../lib/deployments/execution/control-client.ts";
@@ -37,6 +39,42 @@ const templateVersionId = "tplver_restaurant_v2";
 const imageRevision = `sha256:${"a".repeat(64)}`;
 const desiredConfigurationHash = "b".repeat(64);
 const signal = () => new AbortController().signal;
+const CONTROL_CONTRACT_FIXTURE_SHA256 =
+  "deb010fd8ec6537cab502ce7261eed9b05e12447ebcc7340bc693815becbfb7f";
+
+interface ControlContractFixture {
+  fixture_version: number;
+  request: {
+    app_instance_id: string;
+    idempotency_seed: string;
+    idempotency_key: string;
+    headers: Record<string, string>;
+    metadata: Record<string, unknown>;
+  };
+  provision_first: {
+    http_status: number;
+    body: Record<string, unknown>;
+  };
+  provision_replay: {
+    http_status: number;
+    body: Record<string, unknown>;
+  };
+  control_get: {
+    http_status: number;
+    body: Record<string, unknown>;
+  };
+}
+
+function loadControlContractFixture(): ControlContractFixture {
+  const raw = readFileSync(
+    new URL("./fixtures/saas-control-1.2.json", import.meta.url),
+  );
+  assert.equal(
+    createHash("sha256").update(raw).digest("hex"),
+    CONTROL_CONTRACT_FIXTURE_SHA256,
+  );
+  return JSON.parse(raw.toString("utf8")) as ControlContractFixture;
+}
 
 function controlFence(epoch = 3): TenantExternalOperationFence {
   const stableIdentityHash = "8".repeat(64);
@@ -96,6 +134,149 @@ function executionContext(): DeploymentExecutionContext {
     tenantExternalOperation: externalFence,
   } as unknown as DeploymentExecutionContext;
 }
+
+test("shared SaaS Control 1.2 fixture is pinned and remains 1.1 compatible", async () => {
+  const fixture = loadControlContractFixture();
+  const headers = fixture.request.headers;
+  const metadata = fixture.request.metadata;
+  const stableIdentityHash =
+    "0123456789abcdef01234567" + "0".repeat(40);
+  const ownerDeploymentId = "dep_contract_fixture";
+  const fixtureFence: TenantExternalOperationFence = {
+    schemaVersion: 1,
+    resourceFence: {
+      schemaVersion: 1,
+      identity: {
+        schemaVersion: 1,
+        appInstanceId: fixture.request.app_instance_id,
+        workspaceId: "wsp_contract_fixture",
+        productId: "prd_contract_fixture",
+        environmentId: "env_contract_fixture",
+        cellKey: "cell-contract-1",
+        databaseName: "contract_fixture_db",
+        roleName: "contract_fixture_role",
+        secretName: "techlong/contract/fixture/runtime",
+        stableIdentityHash,
+      },
+      generation: 1,
+      ownerDeploymentId,
+      ownershipMarker: `tl_owner_${stableIdentityHash.slice(0, 32)}_g1`,
+    },
+    epoch: Number(headers["x-techlong-external-operation-epoch"]),
+    intent: "provision",
+    ownerDeploymentId,
+    operationHash: headers["x-techlong-external-operation-hash"],
+    marker: headers["x-techlong-external-operation-marker"],
+    state: "active",
+  };
+  assert.equal(fixture.fixture_version, 1);
+  assert.equal(fixture.provision_first.http_status, 201);
+  assert.equal(fixture.provision_replay.http_status, 200);
+  assert.equal(fixture.control_get.http_status, 200);
+  assert.equal(
+    metadata.external_operation_epoch,
+    fixtureFence.epoch,
+  );
+  assert.equal(metadata.external_operation_intent, fixtureFence.intent);
+  assert.equal(metadata.external_operation_marker, fixtureFence.marker);
+  assert.equal(metadata.external_operation_hash, fixtureFence.operationHash);
+  for (const response of [
+    fixture.provision_first.body,
+    fixture.provision_replay.body,
+  ]) {
+    assert.equal(response.external_operation_epoch, fixtureFence.epoch);
+    assert.equal(response.external_operation_intent, fixtureFence.intent);
+    assert.equal(response.external_operation_marker, fixtureFence.marker);
+    assert.equal(response.external_operation_hash, fixtureFence.operationHash);
+  }
+
+  let controlBody = fixture.control_get.body;
+  const requests: Array<{
+    method: string;
+    headers: Record<string, string>;
+    body?: string;
+  }> = [];
+  const client = new MtlsSaaSControlClient(
+    {
+      send: async (request) => {
+        requests.push(request);
+        if (request.method === "POST") {
+          return {
+            status: fixture.provision_first.http_status,
+            body: fixture.provision_first.body,
+          };
+        }
+        return {
+          status: fixture.control_get.http_status,
+          body: controlBody,
+        };
+      },
+    },
+    { issue: async () => "signed.jwt.value" },
+    { baseDomain: "sandbox.techlong.cloud" },
+  );
+  assert.deepEqual(
+    await client.provision({
+      appInstanceId: fixture.request.app_instance_id,
+      hostname: "contract-fixture.sandbox.techlong.cloud",
+      idempotencyKey: fixture.request.idempotency_seed,
+      compiledPayload: {
+        instance: {
+          external_instance_id: fixture.request.app_instance_id,
+          metadata: { ...metadata },
+        },
+        entitlements: {},
+        default_store: {},
+        first_owner: {
+          username: "fixture-owner",
+          password: "contract-test-only",
+        },
+      },
+      externalFence: fixtureFence,
+      signal: signal(),
+    }),
+    { accepted: true },
+  );
+  assert.equal(
+    requests[0]?.headers["idempotency-key"],
+    fixture.request.idempotency_key,
+  );
+  for (const [name, value] of Object.entries(headers)) {
+    assert.equal(requests[0]?.headers[name], value);
+  }
+
+  const observed12 = await client.readConfiguration({
+    appInstanceId: fixture.request.app_instance_id,
+    hostname: "contract-fixture.sandbox.techlong.cloud",
+    externalFence: fixtureFence,
+    signal: signal(),
+  });
+  assert.equal(observed12.ready, true);
+  assert.equal(
+    observed12.desiredConfigurationHash,
+    metadata.configuration_hash,
+  );
+  assert.equal(
+    observed12.imageRevision,
+    `sha256:${"e".repeat(64)}`,
+  );
+
+  const fixtureControl = (
+    fixture.control_get.body.control as Record<string, unknown>
+  );
+  assert.equal(fixtureControl.control_api_version, "1.2");
+  controlBody = {
+    ...fixture.control_get.body,
+    control: { ...fixtureControl, control_api_version: "1.1" },
+  };
+  const observed11 = await client.readConfiguration({
+    appInstanceId: fixture.request.app_instance_id,
+    hostname: "contract-fixture.sandbox.techlong.cloud",
+    externalFence: fixtureFence,
+    signal: signal(),
+  });
+  assert.equal(observed11.ready, true);
+});
 
 const schema: TemplateConfigurationSchema = {
   schemaVersion: 2,

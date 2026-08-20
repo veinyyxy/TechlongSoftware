@@ -58,15 +58,15 @@ const sandbox: DeploymentEnvironment = {
   },
 };
 
-function tenantRuntimeSecretRef(tenantToken: string): string {
+function tenantRuntimeSecretRef(tenantToken: string, generation = 1): string {
   return (
     `arn:aws:secretsmanager:${sandbox.region}:${sandbox.expectedAccountId}:secret:` +
-    `techlong/sandbox/tenant/${tenantToken}/runtime-abcdef`
+    `techlong/sandbox/tenant/${tenantToken}/runtime/g${generation}-abcdef`
   );
 }
 
-function tenantRuntimeSecretName(tenantToken: string): string {
-  return `techlong/sandbox/tenant/${tenantToken}/runtime`;
+function tenantRuntimeSecretName(tenantToken: string, generation = 1): string {
+  return `techlong/sandbox/tenant/${tenantToken}/runtime/g${generation}`;
 }
 
 function externalOperation(
@@ -512,6 +512,25 @@ test("binds each tenant stack to one exact account-and-region runtime Secret", (
   assert.throws(
     () => render(tenantTwo),
     /runtime Secret.*account and region/i,
+  );
+  assert.throws(
+    () =>
+      renderAwsSandboxTenantStack({
+        deploymentId: "dep_tenant_one",
+        resourceGeneration: 2,
+        externalOperation: externalOperation("dep_tenant_one", 2),
+        runtimeSecretRef: tenantRuntimeSecretRef("tenant_one_123", 1),
+        runtimeSecretName: tenantRuntimeSecretName("tenant_one_123", 1),
+        plan,
+        environment: sandbox,
+        imageUri: `402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:${"a".repeat(64)}`,
+        tenantHostname: "tenant-one.sandbox.techlong.cloud",
+        listenerPriority: 100,
+        activeCellCount: 1,
+        activeTenantCount: 0,
+        requestedAt: Date.UTC(2026, 7, 9),
+      }),
+    /current resource generation/i,
   );
   assert.throws(
     () =>

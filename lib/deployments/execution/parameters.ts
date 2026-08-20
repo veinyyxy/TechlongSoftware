@@ -199,7 +199,7 @@ export function finalizeTenantStackForApply(input: {
   rendered: CloudFormationTenantStackPlan;
   environment: DeploymentEnvironment;
   binding: DeploymentExecutionBinding;
-  /** Exact generation-bound Secret name from the durable tenant resource fence. */
+  /** Exact physical Secret name derived from the durable resource generation. */
   expectedRuntimeSecretName: string;
 }): ApplyReadyTenantStack {
   if (!input.rendered.safety.renderOnly || input.rendered.safety.applyReady) {

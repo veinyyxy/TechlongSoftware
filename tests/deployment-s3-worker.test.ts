@@ -25,6 +25,7 @@ import { assertSharedCellSecurityObservation } from "../lib/deployments/executio
 import {
   deriveTenantOwnershipMarker,
   deriveTenantResourceIdentity,
+  deriveTenantRuntimeSecretName,
 } from "../lib/deployments/execution/tenant-database.ts";
 import {
   runDeploymentWorkerOnce,
@@ -43,7 +44,7 @@ const workerRoleArn =
 const cloudFormationRoleArn =
   "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole";
 const tenantRuntimeSecretName =
-  "techlong/sandbox/tenant/apptenantone_04d32d8f09/runtime";
+  "techlong/sandbox/tenant/apptenantone_04d32d8f09/runtime/g1";
 const tenantRuntimeSecretRef =
   "arn:aws:secretsmanager:ca-central-1:402010193138:secret:" +
   `${tenantRuntimeSecretName}-abcdef`;
@@ -382,7 +383,7 @@ function tenantLifecycleOutput(
     resourceOwnerDeploymentId: fence.ownerDeploymentId,
     secretRef:
       `arn:aws:secretsmanager:${context.environment.region}:` +
-      `${context.environment.expectedAccountId}:secret:${fence.identity.secretName}-abcdef`,
+      `${context.environment.expectedAccountId}:secret:${deriveTenantRuntimeSecretName(fence)}-abcdef`,
     lifecycleState,
     baselineDigest: hasBaseline ? "b".repeat(64) : null,
     migrationContract: hasMigration ? "speedfeast-saas-control-v1" : null,
@@ -1052,7 +1053,7 @@ test("requires an exact, validated CloudFormation parameter set", async () => {
             ...rendered.parameters,
             TenantRuntimeSecretArn:
               "arn:aws:secretsmanager:ca-central-1:402010193138:secret:" +
-              "techlong/sandbox/tenant/tenant_two_123/runtime-abcdef",
+              "techlong/sandbox/tenant/tenant_two_123/runtime/g1-abcdef",
           },
         },
         environment,

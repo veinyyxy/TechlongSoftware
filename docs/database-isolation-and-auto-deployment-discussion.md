@@ -74,6 +74,9 @@ flowchart LR
 - CloudFormation AWS SDK Adapter。
 - SaaS 控制接口客户端。
 - 配置哈希、镜像摘要和幂等校验。
+- 原子 external epoch authority 接口和默认禁用实现；CloudFormation 只提供 readback，标签不是 CAS。
+- SDK-free 的 ECS one-shot `RunTask` / `ListTasks` / `DescribeTasks` / `StopTask` 注入边界，以及 generation-bound 五键 Secret 和租户数据库 lifecycle Adapter 边界。
+- 订单服务 `POST /api/saas/provision` 源码中的 control API v1.2 事务单调 epoch CAS。
 
 但真实部署仍然硬禁用：
 
@@ -82,7 +85,7 @@ applyRuntimeReady: false
 cleanupRuntimeReady: false
 ```
 
-当前还缺少真实 Tenant Database/Secret Adapter、外部 ownership epoch、完整可恢复清理流程，以及正式 Shared Cell 环境。因此即使修改 `AWS_APPLY_ENABLED`，当前入口也不会创建 AWS 资源。
+当前仍没有真实原子 authority、ECS/Secrets Manager/workload AWS SDK provider、ARN 原生 lifecycle 任务程序/镜像或 Worker root 接线；订单服务除 `POST /api/saas/provision` 外的控制写接口还没有 fence，新增 SQL/源码也未应用或部署。平台 `0005`–`0007` 迁移尚未应用到 Neon，authority predecessor 尚未传入 cleanup Adapter，Secret 和数据库删除继续 fail closed。因此即使修改 `AWS_APPLY_ENABLED`，当前入口也不会创建 AWS 资源。
 
 ## 3. 不同套餐能否采用不同数据库布局
 
@@ -387,11 +390,11 @@ Schema 本身不是天然的安全隔离。必须正确配置 `USAGE`、表权�
 4. Schema 多租户必须等待订单服务端移除显式 `public.*` 并完成连接池隔离。
 5. 计算规格和数据隔离策略应拆分建模。
 6. 大型客户的真正物理隔离应使用独立 Cluster，而不是仅创建独立逻辑 Database。
-7. 真实 AWS Apply 和 Cleanup 继续保持关闭，直到真实 Adapter、ownership epoch、完整清理和迁移演练完成。
+7. 真实 AWS Apply 和 Cleanup 继续保持关闭，直到真实原子 authority、AWS SDK provider、任务程序/镜像、Worker root wiring、完整 fenced cleanup 和迁移演练完成。
+8. CloudFormation 标签只用于 readback，不能代替 provider-side CAS；订单服务当前也只有 `POST /api/saas/provision` 源码具备 epoch fence。
 
 ## 10. 参考资料
 
 - [Amazon Aurora Pricing](https://aws.amazon.com/rds/aurora/pricing/)
 - [How Aurora Serverless v2 works](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.how-it-works.html)
 - [Performance and scaling for Amazon Aurora PostgreSQL](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.Managing.html)
-
