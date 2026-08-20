@@ -205,6 +205,55 @@ function ecsApi(sdk: AwsSdkEcsOneShotDependencies): AwsSdkEcsOneShotTaskApi {
   );
 }
 
+function ecsDestroyRequest(): EcsOneShotTaskRequest {
+  const request = ecsRequest();
+  request.container.command = [
+    "/usr/local/bin/node",
+    "db/tenant_lifecycle.js",
+    "destroy",
+  ];
+  request.container.environment.TENANT_DATABASE_OPERATION = "destroy";
+  request.container.environment.TENANT_EXTERNAL_OPERATION_EPOCH = "4";
+  request.container.environment.TENANT_EXTERNAL_OPERATION_MARKER =
+    `tl_epoch_${"8".repeat(24)}_g1_e4`;
+  request.container.environment.TENANT_EXTERNAL_OPERATION_HASH = "4".repeat(64);
+  request.container.environment.TENANT_PREDECESSOR_PROVISION_EPOCH = "2";
+  request.container.environment.TENANT_PREDECESSOR_PROVISION_MARKER =
+    `tl_epoch_${"8".repeat(24)}_g1_e2`;
+  request.container.environment.TENANT_PREDECESSOR_PROVISION_OPERATION_HASH =
+    "2".repeat(64);
+  request.tags.ExternalOperationEpoch = "4";
+  request.tags.ExternalOperationMarker =
+    request.container.environment.TENANT_EXTERNAL_OPERATION_MARKER;
+  request.tags.ExternalOperationHash = "4".repeat(64);
+  return request;
+}
+
+function ecsDestroyApi(
+  sdk: AwsSdkEcsOneShotDependencies,
+): AwsSdkEcsOneShotTaskApi {
+  return new AwsSdkEcsOneShotTaskApi(
+    {
+      expectedAccountId: accountId,
+      expectedRegion: region,
+      clusterArn,
+      receiptBucketArn,
+      allowedTaskDefinitionArns: [taskDefinitionArn],
+      allowedCommandByTaskDefinitionArn: {
+        [taskDefinitionArn]: [
+          "/usr/local/bin/node",
+          "db/tenant_lifecycle.js",
+          "destroy",
+        ],
+      },
+      expectedContainerName: "tenant-database-lifecycle",
+      allowedSubnetIds: ["subnet-0123456789abcdef0"],
+      allowedSecurityGroupIds: ["sg-0123456789abcdef0"],
+    },
+    sdk,
+  );
+}
+
 test("AWS ECS adapter sends an exact one-task Fargate request with the caller signal", async () => {
   const controller = new AbortController();
   const observedInputs: Record<string, unknown>[] = [];
@@ -236,6 +285,39 @@ test("AWS ECS adapter sends an exact one-task Fargate request with the caller si
       assignPublicIp: "DISABLED",
     },
   });
+});
+
+test("AWS ECS adapter accepts only an exact older provision predecessor for destroy", async () => {
+  let calls = 0;
+  const api = ecsDestroyApi(
+    ecsDependencies({
+      send: async () => {
+        calls += 1;
+        return { tasks: [{ taskArn }], failures: [] };
+      },
+    }),
+  );
+  await api.runTask({
+    request: ecsDestroyRequest(),
+    signal: new AbortController().signal,
+  });
+  assert.equal(calls, 1);
+
+  const drifting = ecsDestroyRequest();
+  drifting.container.environment.TENANT_PREDECESSOR_PROVISION_EPOCH = "4";
+  drifting.container.environment.TENANT_PREDECESSOR_PROVISION_MARKER =
+    `tl_epoch_${"8".repeat(24)}_g1_e4`;
+  await assert.rejects(
+    api.runTask({
+      request: drifting,
+      signal: new AbortController().signal,
+    }),
+    (error: unknown) =>
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "TENANT_ONE_SHOT_REQUEST_INVALID",
+  );
+  assert.equal(calls, 1);
 });
 
 test("AWS ECS adapter rejects task ARNs outside the exact configured cluster", async () => {
