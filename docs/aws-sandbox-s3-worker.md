@@ -6,7 +6,7 @@ S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格
 
 以下三项已有接口和严格单元实现，但独立 Worker 仍使用 fail-closed 默认依赖，属于真实启用前阻断项：
 
-- 租户数据库：类型化 lifecycle、approved baseline 门禁、active provision epoch 校验、脱敏 lifecycle evidence 持久化、ECS/Secret/S3 receipt SDK Adapter 源码、可信 raw receipt 边界和可恢复反向清理顺序已完成；订单服务也已有默认禁用的 ARN-native 六命令入口。receipt Bucket/authority table/最小 IAM 已通过受审 Bootstrap UPDATE 部署，仍缺生产 Secret material generator、PostgreSQL provider、已批准的 PostgreSQL 16.14 baseline、当前源码对应的任务镜像验证以及 Worker live root 注入。
+- 租户数据库：类型化 lifecycle、approved baseline 门禁、active provision epoch 校验、脱敏 lifecycle evidence 持久化、ECS/Secret/S3 receipt SDK Adapter 源码、可信 raw receipt 边界和可恢复反向清理顺序已完成；订单服务也已有默认禁用的 ARN-native 六命令入口。receipt Bucket/authority table/最小 IAM 已通过受审 Bootstrap UPDATE 部署，当前源码镜像也已构建、固定 digest 并通过 0-findings 扫描；仍缺生产 Secret material generator、PostgreSQL provider、已批准的 PostgreSQL 16.14 baseline、revision-pinned lifecycle TaskDefinition 以及 Worker live root 注入。
 - 共享 Cell 安全证明：可注入的 ECS/ELBv2/EC2/RDS/STS 只读收集器及严格校验已完成；render-only 模板已拆出零入站的 one-shot SG，只读 preflight 会核对其公共 task subnet、VPC/输出/所有权/TTL、TCP 443 公网出站、TCP 5432 到 exact DB SG 出站，以及 DB 只接受 app/one-shot 两个 SG 的 5432 入站。租户 ECS SDK 依赖已安装，但 Shared Cell 其余服务的真实 root 客户端和只读权限仍未接线。
 - 控制通道：固定 8443 的 mTLS transport、实例级 RS256 JWT 和不可变模板 v2 编译器已完成；订单服务 `POST /api/saas/provision` 源码已实现 control API v1.2 事务单调 epoch CAS，但其他控制写接口未 fence，SQL/源码也未应用或部署。仍缺真实证书/私钥来源、Neon immutable source、可在重试期间保持同值并在 GET 对账后有围栏删除的 Owner Secret source，以及 Worker runtime 接线。
 
@@ -114,6 +114,6 @@ npm run deployment:worker
 - S3-A Bootstrap 已创建受限角色/Boundary、TTL Janitor、Scheduler、不可变 ECR、私有源码 Bucket 和只能显式启动的 CodeBuild Project。
 - B5-I digest-bound Change Set `techlong-s3-b5-support-1fb78e3a91ede382` 已使 `techlong-s3-bootstrap` 达到 `UPDATE_COMPLETE`：receipt Bucket、authority table、LifecycleTaskRole 和最小 WorkerRole 均为 `CREATE_COMPLETE`，Janitor ownership 围栏及其 Scheduler 引用均为无替换更新。receipt prefix 当前 `KeyCount=0`；区域上下文 IAM 模拟允许 exact Shared Cell 读动作，`CreateVpc` 与 `CreateDBCluster` 保持 `implicitDeny`。
 - Janitor 已通过空扫描、伪造共享 Cell 拒绝、以及已过期临时租户 Stack 的真实删除测试；测试 Stack 和日志组均已清除。
-- 后端提交 `e3f4e1722686cdc9de4e46115332afaf6da7678d` 的 Build #2 全阶段成功；源码包 SHA-256 为 `2167157c9cd420c09d4e656c3cbc582c6caf6e7dd24d4b050e1f52078df2f23f`，最终镜像固定为 `sha256:7063a9ab2765f8fb565a581c810047b8fc2a4119fe5d288a685bd6c87b3eae78`。构建期已验证 uid/gid `65532:65532`、Node `24.18.0`、`bcrypt` 与 `pg`；ECR 扫描 `COMPLETE` 且 findings 为空。
+- 后端提交 `fb9b521df1b59b849b871059572667a9b86546ab` 的 Build #3（ID `techlong-sandbox-speedfeast-image:43178c1b-d852-4069-b7b0-92bb04e5c7ec`）全阶段成功；allowlist 源码包 SHA-256 为 `c957c297d893b4071f7ee5158b2449c7fbd66b4f4be7d6167c372d4345292001`，最终镜像固定为 `sha256:0c4cb3ebfb55a944a24d548ded716d93dd00bcc4d1796c8e9eb588ce385710ae`。构建期已验证 uid/gid `65532:65532`、Node `24.18.0`、`bcrypt` 与 `pg`；ECR 扫描 `COMPLETE` 且 findings 为 0。仓库保持 `IMMUTABLE`、scan-on-push 与 AES256。
 - 第一张 Node Bookworm 完整运行时镜像因 `3 Critical / 5 High / 6 Medium` 被门禁拒绝，未写入 execution binding，也未用于租户。最新零发现镜像同样尚未启用 Apply；镜像合格不代表其余 S3-B 门禁已经完成。
 - Worker 与租户 Apply 仍未启动；没有创建 Cell、ALB、ECS 租户服务、Aurora/RDS、VPC、Route 53 或正式租户 Stack。

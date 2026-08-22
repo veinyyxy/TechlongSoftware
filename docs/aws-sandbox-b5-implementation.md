@@ -85,7 +85,7 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 
 1. `0005`、`0006`、`0007` 尚未应用到 Neon。
 2. 尚无独立批准的 PostgreSQL 16.14 空租户 baseline；旧业务数据 dump 禁止作为租户模板。
-3. ECS one-shot、exact-five-key Secret、trusted S3 receipt reader/publisher 与订单服务 lifecycle 入口已离线完成，receipt Bucket/专用 LifecycleTaskRole 也已部署；生产 material generator、PostgreSQL provider、approved baseline、当前源码对应的 revision-pinned 任务镜像、Worker live root wiring 和真实崩溃演练仍未完成。
+3. ECS one-shot、exact-five-key Secret、trusted S3 receipt reader/publisher 与订单服务 lifecycle 入口已离线完成，receipt Bucket/专用 LifecycleTaskRole 也已部署；当前后端提交的镜像已构建并以 digest 固定、扫描为 0 findings，但尚未注册/批准对应的 revision-pinned lifecycle TaskDefinition。生产 material generator、PostgreSQL provider、approved baseline、Worker live root wiring 和真实崩溃演练仍未完成。
 4. 离线 ownership coordinator、原子 authority 接口和 DynamoDB 条件写 Adapter 源码已完成，authority table/WorkerRole 已部署并完成最小只读 IAM 模拟，但尚未注入 root，也未执行真实 AWS 条件写。CloudFormation 只读回读不是 CAS，不能安装或授权 external marker。
 5. Cell 外部证据尚未完整验证 ACM、精确 Trust Store、DNS、TTL Schedule 和 Stack 所有权；Route Table/attached IGW 的只读证据与 fail-closed 校验已离线实现，但尚未在真实 Cell 上回读。
 6. 分阶段 cleanup coordinator 与 exact provision predecessor 接线已离线实现，但 backend real lifecycle provider、Cell Janitor/standalone Worker 的 live destroy root wiring，以及真实 provider-side 删除演练仍未完成。

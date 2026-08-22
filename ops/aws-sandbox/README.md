@@ -269,7 +269,7 @@ Change Set 名由渲染后模板 SHA-256 自动生成，description 同时绑定
 5. Budget 通知邮箱已作为 CloudFormation 参数提供，个人邮箱没有硬编码进模板或仓库。
 6. S3-A 已由独立的 CloudFormation Execution Role 和 Permissions Boundary 部署；Boundary 本身不授予权限。
 7. Janitor 已在真实 AWS 中验证空扫描、伪造共享 Cell 拒绝路径和到期临时租户 Stack 删除路径；测试资源已完全清除。
-8. 第二次受控 CodeBuild 已从后端提交 `e3f4e1722686cdc9de4e46115332afaf6da7678d` 生成 Distroless 镜像 `sha256:7063a9ab2765f8fb565a581c810047b8fc2a4119fe5d288a685bd6c87b3eae78`；构建与 smoke test 全部成功，ECR 扫描 `COMPLETE` 且没有发现漏洞。第一张含 Perl 的镜像因 `3 Critical / 5 High / 6 Medium` 被明确拒绝。
+8. 第三次受控 CodeBuild 已从后端提交 `fb9b521df1b59b849b871059572667a9b86546ab` 生成 Distroless 镜像 `sha256:0c4cb3ebfb55a944a24d548ded716d93dd00bcc4d1796c8e9eb588ce385710ae`；Build #3 全阶段及 smoke test 成功，ECR 扫描 `COMPLETE` 且 findings 为 0。allowlist 源码包 SHA-256 为 `c957c297d893b4071f7ee5158b2449c7fbd66b4f4be7d6167c372d4345292001`，源码对象一天后过期。第一张含 Perl 的镜像因 `3 Critical / 5 High / 6 Medium` 被明确拒绝；此前 Build #2 的零发现镜像保留为历史不可变版本，但不再是当前候选。
 9. 合格镜像尚未写入 execution binding，Worker 和 Apply 仍关闭；镜像构建后再次确认没有活动的 tenant/Cell Stack。创建收费 Stack 前必须先建立一次性清理计划，创建失败时部署必须中止。
 10. B5 receipt Bucket、authority table、专用 LifecycleTaskRole 和最小 WorkerRole 已由受审 Change Set 部署；Bootstrap 为 `UPDATE_COMPLETE`，receipt prefix 与 authority table 均为空，未创建 Cell 或 tenant Stack。scoped rollback 脚本已通过静态审查，但它会永久删除 receipt/authority data，真实回退演练仍须在无租户状态下单独批准。
 
