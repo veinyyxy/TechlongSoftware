@@ -97,12 +97,6 @@ function externalFence(
 function runnerConfig(
   overrides: Partial<EcsOneShotTaskRunnerConfig> = {},
 ): EcsOneShotTaskRunnerConfig {
-  const taskDefinitions = Object.fromEntries(
-    Object.keys(approvedTenantDatabaseOneShotCommands).map((operation, index) => [
-      operation,
-      `arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-${index + 1}:1`,
-    ]),
-  ) as unknown as EcsOneShotTaskRunnerConfig["taskDefinitionArnByOperation"];
   return {
     environmentKind: "aws_sandbox",
     expectedAccountId: "402010193138",
@@ -111,7 +105,8 @@ function runnerConfig(
       "arn:aws:ecs:ca-central-1:402010193138:cluster/techlong-sandbox-cell-one",
     receiptBucketArn:
       "arn:aws:s3:::techlong-sandbox-402010193138-ca-central-1-tenant-receipts",
-    taskDefinitionArnByOperation: taskDefinitions,
+    taskDefinitionArn:
+      "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-lifecycle:7",
     containerName: "tenant-database-lifecycle",
     assignPublicIp: "ENABLED",
     subnetIds: ["subnet-0123456789abcdef0"],
@@ -181,6 +176,7 @@ test("runs an allowlisted one-shot task using only a Secret ARN and active epoch
   const fence = resourceFence();
   const external = externalFence(fence);
   const apiSignals: AbortSignal[] = [];
+  const expectedOperations: string[] = [];
   let request: EcsOneShotTaskRequest | null = null;
   const output = {
     state: "missing",
@@ -195,12 +191,14 @@ test("runs an allowlisted one-shot task using only a Secret ARN and active epoch
   const api: EcsOneShotTaskApi = {
     runTask: async (input) => {
       request = input.request;
+      expectedOperations.push(input.expectedOperation);
       apiSignals.push(input.signal);
       return { taskArn };
     },
     listTaskArnsByStartedBy: async () =>
       assert.fail("successful RunTask must not use recovery"),
     describeTask: async (input) => {
+      expectedOperations.push(input.expectedOperation);
       apiSignals.push(input.signal);
       return stoppedObservation(
         await successfulTaskReceipt({
@@ -230,6 +228,7 @@ test("runs an allowlisted one-shot task using only a Secret ARN and active epoch
   });
 
   assert.equal(receipt.outputHash, await sha256Hex(output));
+  assert.deepEqual(expectedOperations, ["inspect", "inspect"]);
   assert.equal(apiSignals.every((value) => value instanceof AbortSignal), true);
   assert.equal(request!.assignPublicIp, "ENABLED");
   assert.deepEqual(request!.subnetIds, ["subnet-0123456789abcdef0"]);
@@ -803,14 +802,23 @@ test("rejects cross-account task definitions and cross-generation Secret ARNs be
         api: {} as EcsOneShotTaskApi,
         waiter: { wait: async () => undefined },
         config: runnerConfig({
-          taskDefinitionArnByOperation: {
-            ...runnerConfig().taskDefinitionArnByOperation,
-            inspect:
-              "arn:aws:ecs:ca-central-1:999999999999:task-definition/tenant-inspect:1",
-          },
+          taskDefinitionArn:
+            "arn:aws:ecs:ca-central-1:402010193138:task-definition/another-family:7",
         }),
       }),
-    /one AWS account and region/i,
+    /exact tenant-lifecycle family/i,
+  );
+  assert.throws(
+    () =>
+      new EcsOneShotTaskRunner({
+        api: {} as EcsOneShotTaskApi,
+        waiter: { wait: async () => undefined },
+        config: runnerConfig({
+          taskDefinitionArn:
+            "arn:aws:ecs:ca-central-1:999999999999:task-definition/tenant-lifecycle:7",
+        }),
+      }),
+    /account and region/i,
   );
 
   let calls = 0;

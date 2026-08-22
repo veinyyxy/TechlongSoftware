@@ -51,8 +51,10 @@ export interface AwsSdkEcsOneShotConfig {
   expectedRegion: string;
   clusterArn: string;
   receiptBucketArn: string;
-  allowedTaskDefinitionArns: readonly string[];
-  allowedCommandByTaskDefinitionArn: Readonly<Record<string, readonly string[]>>;
+  allowedTaskDefinitionArn: string;
+  allowedCommandByOperation: Readonly<
+    Record<TenantDatabaseOneShotOperation, readonly string[]>
+  >;
   expectedContainerName: string;
   assignPublicIp: "ENABLED" | "DISABLED";
   allowedSubnetIds: readonly string[];
@@ -190,10 +192,15 @@ function assertTaskDefinitionArn(
   expected: { region: string; accountId: string },
 ): void {
   const match = taskDefinitionArnPattern.exec(value);
-  if (!match || match[1] !== expected.region || match[2] !== expected.accountId) {
+  if (
+    !match ||
+    match[1] !== expected.region ||
+    match[2] !== expected.accountId ||
+    match[3] !== "tenant-lifecycle"
+  ) {
     fail(
       "TENANT_ONE_SHOT_ARN_INVALID",
-      "ECS task definition must be a revision-pinned ARN in the configured account and region.",
+      "ECS task definition must be an exact revision-pinned tenant-lifecycle ARN in the configured account and region.",
     );
   }
 }
@@ -306,14 +313,20 @@ function assertTaskIdentity(
 function assertRequest(
   request: EcsOneShotTaskRequest,
   config: AwsSdkEcsOneShotConfig,
+  expectedOperation: TenantDatabaseOneShotOperation,
 ): void {
   const receiptBucket = tenantOneShotReceiptBucketName(config.receiptBucketArn);
   const operation = request.container.environment.TENANT_DATABASE_OPERATION;
   const requiredEnvironment: string[] = [...environmentKeys];
-  if (request.container.environment.APPROVED_TENANT_BASELINE_SHA256 !== undefined) {
+  const requiresApprovedBaseline = [
+    "restore_approved_baseline",
+    "migrate_saas",
+    "verify",
+  ].includes(expectedOperation);
+  if (requiresApprovedBaseline) {
     requiredEnvironment.push("APPROVED_TENANT_BASELINE_SHA256");
   }
-  if (operation === "destroy") {
+  if (expectedOperation === "destroy") {
     requiredEnvironment.push(...predecessorEnvironmentKeys);
   }
   if (
@@ -336,14 +349,16 @@ function assertRequest(
     !exactKeys(request.container, ["name", "command", "environment"]) ||
     !exactKeys(request.receipt, ["bucketArn", "key"]) ||
     request.clusterArn !== config.clusterArn ||
-    !config.allowedTaskDefinitionArns.includes(request.taskDefinitionArn) ||
+    request.taskDefinitionArn !== config.allowedTaskDefinitionArn ||
     request.launchType !== "FARGATE" ||
     request.platformVersion !== "1.4.0" ||
     request.assignPublicIp !== config.assignPublicIp ||
     request.container.name !== config.expectedContainerName ||
+    !operations.includes(expectedOperation) ||
+    operation !== expectedOperation ||
     !sameArray(
       request.container.command,
-      config.allowedCommandByTaskDefinitionArn[request.taskDefinitionArn] ?? [],
+      config.allowedCommandByOperation[expectedOperation] ?? [],
     ) ||
     !sameArray(request.subnetIds, config.allowedSubnetIds) ||
     !sameArray(request.securityGroupIds, config.allowedSecurityGroupIds) ||
@@ -399,7 +414,6 @@ function assertRequest(
     !Number.isSafeInteger(Number(generation)) ||
     !/^[1-9][0-9]*$/.test(epoch) ||
     !Number.isSafeInteger(Number(epoch)) ||
-    !operations.includes(operation) ||
     !ownerMatch ||
     Number(ownerMatch[2]) !== Number(generation) ||
     !receiptMatch ||
@@ -410,7 +424,7 @@ function assertRequest(
     request.container.environment.TENANT_RECEIPT_EXPECTED_BUCKET_OWNER !==
       config.expectedAccountId ||
     request.container.environment.TENANT_RECEIPT_KEY !== request.receipt.key ||
-    request.container.command[2] !== operation ||
+    request.container.command[2] !== expectedOperation ||
     !/^tl_owner_[a-f0-9]{32}_g[1-9][0-9]*$/.test(
       request.container.environment.TENANT_OWNERSHIP_MARKER,
     ) ||
@@ -424,7 +438,7 @@ function assertRequest(
       `_g${generation}_e${epoch}`,
     ) ||
     !digestPattern.test(request.container.environment.TENANT_EXTERNAL_OPERATION_HASH) ||
-    (operation === "destroy"
+    (expectedOperation === "destroy"
       ? !predecessorEpoch ||
         !/^[1-9][0-9]*$/.test(predecessorEpoch) ||
         !Number.isSafeInteger(Number(predecessorEpoch)) ||
@@ -438,9 +452,7 @@ function assertRequest(
       : predecessorEpoch !== undefined ||
         predecessorMarker !== undefined ||
         predecessorHash !== undefined) ||
-    (["restore_approved_baseline", "migrate_saas", "verify"].includes(
-      operation,
-    ) !==
+    (requiresApprovedBaseline !==
       (request.container.environment.APPROVED_TENANT_BASELINE_SHA256 !==
         undefined)) ||
     (request.container.environment.APPROVED_TENANT_BASELINE_SHA256 !== undefined &&
@@ -525,12 +537,9 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
         }) ||
       !config.expectedContainerName ||
       !/^[A-Za-z0-9][A-Za-z0-9_-]{0,126}$/.test(config.expectedContainerName) ||
-      config.allowedTaskDefinitionArns.length < 1 ||
-      config.allowedTaskDefinitionArns.length > 6 ||
-      !config.allowedCommandByTaskDefinitionArn ||
-      typeof config.allowedCommandByTaskDefinitionArn !== "object" ||
-      new Set(config.allowedTaskDefinitionArns).size !==
-        config.allowedTaskDefinitionArns.length ||
+      !config.allowedTaskDefinitionArn ||
+      !config.allowedCommandByOperation ||
+      typeof config.allowedCommandByOperation !== "object" ||
       config.allowedSubnetIds.length < 1 ||
       config.allowedSubnetIds.length > 6 ||
       config.allowedSecurityGroupIds.length !== 1 ||
@@ -556,29 +565,29 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
         "AWS ECS cluster must match the configured account and region.",
       );
     }
-    for (const arn of config.allowedTaskDefinitionArns) {
-      assertTaskDefinitionArn(arn, scope);
-      const command = config.allowedCommandByTaskDefinitionArn[arn];
+    assertTaskDefinitionArn(config.allowedTaskDefinitionArn, scope);
+    for (const operation of operations) {
+      const command = config.allowedCommandByOperation[operation];
       if (
         !Array.isArray(command) ||
         command.length !== 3 ||
         command[0] !== "/usr/local/bin/node" ||
         command[1] !== "db/tenant_lifecycle.js" ||
-        !operations.includes(command[2] as TenantDatabaseOneShotOperation)
+        command[2] !== operation
       ) {
         fail(
           "TENANT_ONE_SHOT_PROVIDER_CONFIG_INVALID",
-          "Every allowed task definition requires one unified lifecycle command.",
+          "Every lifecycle operation requires its exact code-owned unified command.",
         );
       }
     }
     if (
-      canonicalJson(Object.keys(config.allowedCommandByTaskDefinitionArn).sort()) !==
-      canonicalJson([...config.allowedTaskDefinitionArns].sort())
+      canonicalJson(Object.keys(config.allowedCommandByOperation).sort()) !==
+      canonicalJson([...operations].sort())
     ) {
       fail(
         "TENANT_ONE_SHOT_PROVIDER_CONFIG_INVALID",
-        "ECS command allowlist must exactly cover the allowed task definitions.",
+        "ECS command allowlist must exactly cover the six lifecycle operations.",
       );
     }
     this.sdk = sdk;
@@ -588,11 +597,12 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
 
   async runTask(input: {
     request: EcsOneShotTaskRequest;
+    expectedOperation: TenantDatabaseOneShotOperation;
     signal: AbortSignal;
   }): Promise<{ taskArn: string }> {
     try {
       input.signal.throwIfAborted();
-      assertRequest(input.request, this.config);
+      assertRequest(input.request, this.config, input.expectedOperation);
       const response = await this.sdk.client.send(
         new this.sdk.commands.runTask(runTaskInput(input.request)),
         { abortSignal: input.signal },
@@ -680,10 +690,15 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
     clusterArn: string;
     taskArn: string;
     expectedRequest: EcsOneShotTaskRequest;
+    expectedOperation: TenantDatabaseOneShotOperation;
     signal: AbortSignal;
   }): Promise<EcsOneShotTaskObservation> {
     input.signal.throwIfAborted();
-    assertRequest(input.expectedRequest, this.config);
+    assertRequest(
+      input.expectedRequest,
+      this.config,
+      input.expectedOperation,
+    );
     if (input.clusterArn !== this.config.clusterArn) {
       fail("TENANT_ONE_SHOT_TASK_OWNERSHIP_INVALID", "DescribeTasks cluster is not configured.");
     }

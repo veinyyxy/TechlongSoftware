@@ -17,6 +17,8 @@ import {
 const sha256Pattern = /^[a-f0-9]{64}$/;
 const arnPattern =
   /^arn:aws:ecs:([a-z]{2}(?:-gov)?-[a-z]+-\d):(\d{12}):(cluster|task-definition|task)\/[A-Za-z0-9][A-Za-z0-9_./:-]{0,254}$/;
+const lifecycleTaskDefinitionArnPattern =
+  /^arn:aws:ecs:([a-z]{2}(?:-gov)?-[a-z]+-\d):(\d{12}):task-definition\/tenant-lifecycle:([1-9][0-9]*)$/;
 const secretArnPattern =
   /^arn:aws:secretsmanager:[a-z]{2}(?:-gov)?-[a-z]+-\d:\d{12}:secret:techlong\/sandbox\/tenant\/[a-z0-9][a-z0-9_-]{2,63}\/runtime\/g[1-9][0-9]*-[A-Za-z0-9]{6}$/;
 const idempotencyKeyPattern = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,199}$/;
@@ -119,6 +121,7 @@ export interface EcsOneShotTaskRequest {
 export interface EcsOneShotTaskApi {
   runTask(input: {
     request: EcsOneShotTaskRequest;
+    expectedOperation: TenantDatabaseOneShotOperation;
     signal: AbortSignal;
   }): Promise<{ taskArn: string }>;
   listTaskArnsByStartedBy(input: {
@@ -130,6 +133,7 @@ export interface EcsOneShotTaskApi {
     clusterArn: string;
     taskArn: string;
     expectedRequest: EcsOneShotTaskRequest;
+    expectedOperation: TenantDatabaseOneShotOperation;
     signal: AbortSignal;
   }): Promise<EcsOneShotTaskObservation>;
   stopTask(input: {
@@ -153,9 +157,7 @@ export interface EcsOneShotTaskRunnerConfig {
   expectedRegion: string;
   clusterArn: string;
   receiptBucketArn: string;
-  taskDefinitionArnByOperation: Readonly<
-    Record<TenantDatabaseOneShotOperation, string>
-  >;
+  taskDefinitionArn: string;
   containerName: string;
   assignPublicIp: EcsOneShotAssignPublicIp;
   subnetIds: readonly string[];
@@ -256,6 +258,22 @@ function parseArn(
     );
   }
   return { region: match[1], accountId: match[2] };
+}
+
+function parseLifecycleTaskDefinitionArn(value: string): {
+  region: string;
+  accountId: string;
+  revision: number;
+} {
+  const match = lifecycleTaskDefinitionArnPattern.exec(value);
+  const revision = Number(match?.[3]);
+  if (!match || !Number.isSafeInteger(revision) || revision < 1) {
+    throw new TenantDatabaseLifecycleError(
+      "TENANT_ONE_SHOT_ARN_INVALID",
+      "Tenant lifecycle task definition ARN must use the exact tenant-lifecycle family and an explicit revision.",
+    );
+  }
+  return { region: match[1], accountId: match[2], revision };
 }
 
 function assertArn(value: string, expectedKind: "cluster" | "task-definition" | "task"): void {
@@ -377,15 +395,18 @@ function assertActiveExternalFence(
 
 function assertConfig(config: EcsOneShotTaskRunnerConfig): void {
   const cluster = parseArn(config.clusterArn, "cluster");
+  const taskDefinition = parseLifecycleTaskDefinitionArn(config.taskDefinitionArn);
   tenantOneShotReceiptBucketName(config.receiptBucketArn);
   if (
     config.expectedAccountId !== cluster.accountId ||
     config.expectedRegion !== cluster.region ||
+    taskDefinition.accountId !== cluster.accountId ||
+    taskDefinition.region !== cluster.region ||
     config.receiptBucketArn !== tenantOneShotExpectedReceiptBucketArn(cluster)
   ) {
     throw new TenantDatabaseLifecycleError(
       "TENANT_ONE_SHOT_CONFIG_INVALID",
-      "Tenant one-shot cluster and receipt bucket must match the configured AWS account and region.",
+      "Tenant one-shot cluster, task definition, and receipt bucket must match the configured AWS account and region.",
     );
   }
   if (
@@ -401,19 +422,6 @@ function assertConfig(config: EcsOneShotTaskRunnerConfig): void {
     );
   }
   for (const operation of tenantDatabaseOneShotOperations) {
-    const taskDefinition = parseArn(
-      config.taskDefinitionArnByOperation[operation],
-      "task-definition",
-    );
-    if (
-      taskDefinition.accountId !== cluster.accountId ||
-      taskDefinition.region !== cluster.region
-    ) {
-      throw new TenantDatabaseLifecycleError(
-        "TENANT_ONE_SHOT_CONFIG_INVALID",
-        "Tenant one-shot cluster and task definitions must share one AWS account and region.",
-      );
-    }
     const command = config.commandByOperation[operation];
     if (
       !Array.isArray(command) ||
@@ -675,13 +683,14 @@ export class EcsOneShotTaskRunner {
 
   async execute(input: TenantDatabaseOneShotInvocation): Promise<TenantDatabaseOneShotReceipt> {
     input.signal.throwIfAborted();
+    const expectedOperation = input.operation;
     assertTenantResourceFence(input.fence);
     const provisionPredecessor = assertActiveExternalFence(
       input.externalFence,
       input.fence,
-      input.operation === "destroy" ? "cleanup" : "provision",
+      expectedOperation === "destroy" ? "cleanup" : "provision",
     );
-    if (input.operation === "destroy") {
+    if (expectedOperation === "destroy") {
       assertTenantProvisionPredecessor(
         input.provisionPredecessor,
         input.fence,
@@ -718,7 +727,7 @@ export class EcsOneShotTaskRunner {
     }
     if (
       ["restore_approved_baseline", "migrate_saas", "verify"].includes(
-        input.operation,
+        expectedOperation,
       ) !== (input.approvedBaselineDigest !== null)
     ) {
       throw new TenantDatabaseLifecycleError(
@@ -747,7 +756,7 @@ export class EcsOneShotTaskRunner {
       `tenant-lifecycle/v1/${receiptOwner[1]}/g${input.fence.generation}/` +
       `${idempotencyHash}.json`;
     const environment: EcsOneShotTaskRequest["container"]["environment"] = {
-      TENANT_DATABASE_OPERATION: input.operation,
+      TENANT_DATABASE_OPERATION: expectedOperation,
       TENANT_RUNTIME_SECRET_ARN: input.runtimeSecretRef,
       TENANT_RESOURCE_GENERATION: String(input.fence.generation),
       TENANT_OWNERSHIP_MARKER: input.fence.ownershipMarker,
@@ -758,7 +767,7 @@ export class EcsOneShotTaskRunner {
       TENANT_RECEIPT_EXPECTED_BUCKET_OWNER: this.aws.accountId,
       TENANT_RECEIPT_KEY: receiptKey,
     };
-    if (input.operation === "destroy") {
+    if (expectedOperation === "destroy") {
       environment.TENANT_PREDECESSOR_PROVISION_EPOCH = String(
         input.provisionPredecessor.epoch,
       );
@@ -774,8 +783,7 @@ export class EcsOneShotTaskRunner {
     const draft: EcsOneShotTaskRequest = {
       schemaVersion: 1,
       clusterArn: this.config.clusterArn,
-      taskDefinitionArn:
-        this.config.taskDefinitionArnByOperation[input.operation],
+      taskDefinitionArn: this.config.taskDefinitionArn,
       launchType: "FARGATE",
       platformVersion: "1.4.0",
       assignPublicIp: this.config.assignPublicIp,
@@ -783,7 +791,7 @@ export class EcsOneShotTaskRunner {
       securityGroupIds: [...this.config.securityGroupIds],
       container: {
         name: this.config.containerName,
-        command: [...this.config.commandByOperation[input.operation]],
+        command: [...this.config.commandByOperation[expectedOperation]],
         environment,
       },
       receipt: {
@@ -836,6 +844,7 @@ export class EcsOneShotTaskRunner {
       );
       const launched = await this.api.runTask({
         request: draft,
+        expectedOperation,
         signal: launchSignal,
       });
       assertExactKeys(launched, ["taskArn"], "ECS RunTask result");
@@ -852,6 +861,7 @@ export class EcsOneShotTaskRunner {
           clusterArn: this.config.clusterArn,
           taskArn,
           expectedRequest: draft,
+          expectedOperation,
           signal: input.signal,
         });
         assertObservation(observation, taskArn);
@@ -870,7 +880,7 @@ export class EcsOneShotTaskRunner {
           }
           await assertReceipt(observation.receipt, {
             taskArn,
-            operation: input.operation,
+            operation: expectedOperation,
             fence: input.fence,
             externalFence: input.externalFence,
             requestHash,
@@ -902,6 +912,7 @@ export class EcsOneShotTaskRunner {
               recoveredTaskArn,
               "run_task_outcome_unknown",
               draft,
+              expectedOperation,
               true,
             ),
           ),
@@ -924,6 +935,7 @@ export class EcsOneShotTaskRunner {
         taskArn,
         input.signal.aborted ? "deployment_lease_lost" : "task_timeout",
         draft,
+        expectedOperation,
         false,
       );
       if (input.signal.aborted) throw abortError(input.signal);
@@ -1000,6 +1012,7 @@ export class EcsOneShotTaskRunner {
       | "task_timeout"
       | "run_task_outcome_unknown",
     expectedRequest: EcsOneShotTaskRequest,
+    expectedOperation: TenantDatabaseOneShotOperation,
     requireIdentityReadback: boolean,
   ): Promise<void> {
     const cleanupSignal = AbortSignal.timeout(this.config.abortCleanupTimeoutMs);
@@ -1012,6 +1025,7 @@ export class EcsOneShotTaskRunner {
           clusterArn: this.config.clusterArn,
           taskArn,
           expectedRequest,
+          expectedOperation,
           signal: cleanupSignal,
         });
         assertObservation(beforeStop, taskArn);
@@ -1032,6 +1046,7 @@ export class EcsOneShotTaskRunner {
           clusterArn: this.config.clusterArn,
           taskArn,
           expectedRequest,
+          expectedOperation,
           signal: cleanupSignal,
         });
         assertObservation(observation, taskArn);

@@ -7,6 +7,7 @@ import type { DeploymentWorkerDependencies } from "./worker.ts";
 export const DEFAULT_DISABLED_RUNTIME_BLOCKERS = Object.freeze([
   "live_runtime_enablement_not_implemented",
   "tenant_runtime_provider_root_wiring_missing",
+  "tenant_lifecycle_task_definition_live_readback_missing",
   "fenced_cleanup_provider_root_wiring_missing",
   "shared_cell_live_preflight_root_wiring_missing",
   "saas_control_credentials_root_wiring_missing",

@@ -79,13 +79,19 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - Distroless 镜像中的 `/app/images` 由 nonroot `65532:65532` 拥有，应用也只通过现有 `/images` 路径提供这些文件。但目录属于单个 Fargate task，不是持久卷：task 重启、替换、部署或 Stack 清理都会永久删除上传内容，数据库中的 media URL 可能因此失效。canary 禁止上传任何真实客户素材，不验证图片持久性，也不能作为 production-ready 证据；模板安全元数据固定 `sandboxEphemeralImageStorage=true`、`persistentImageStorageReady=false`。
 - 正式持久资产需要单独的 IAM 架构切片：account/region 固定的私有 assets Bucket；`tenant-assets/v1/<stable-identity-hash>/gN/` exact prefix；每租户、每 generation 独立 ECS TaskRole；只含该 prefix `PutObject`/`DeleteObject` 的 inline policy；独立 permissions boundary；以及 CloudFront OAC 或等价的私有读取路径。它需要给 tenant CloudFormation service role 增加受 boundary 约束的 IAM role lifecycle，并启用 `CAPABILITY_NAMED_IAM`，必须另行审查、模拟和批准，不能借本次 canary 偷渡。
 
+### B5-J1：单 revision lifecycle TaskDefinition 离线 binding
+
+- `tenant-lifecycle-task-binding.ts` 只接受 Sandbox 固定账号/区域、预期 `cell-sandbox-1` cluster、`tenant-lifecycle:<revision>` ARN、当前私有 ECR 仓库的 `@sha256` 镜像、预期 TaskExecutionRole/LifecycleTaskRole、receipt Bucket、两个候选 subnet id 和一个候选 one-shot SG id。tag-only 镜像、无 revision ARN、错误 family/role、非法候选网络格式或额外字段均 fail closed；通过这些离线校验不代表 subnet 已被证明为公共 Cell subnet，也不代表 SG 已通过 Shared Cell 证据验证。
+- ECS Runner 与 AWS SDK Adapter 已从 operation → 多 ARN 收敛为一个 exact revision ARN；六个 lifecycle operation 分别映射到代码内固定的 `/usr/local/bin/node db/tenant_lifecycle.js <operation>`。Runner 在任何异步边界前捕获原始 operation，并把它作为独立 `expectedOperation` 传入 RunTask/DescribeTask 校验；请求中的 operation 与 argv 必须同时匹配该独立值，不能通过同步篡改两者来触发其他数据库操作。
+- compiler 只生成深度冻结、尚未验证的 intent：image、TaskDefinition、cluster ARN、receipt Bucket、六条代码自有命令，以及带 `candidateSubnetIds`、`candidateOneShotSecurityGroupId`、`sharedCellEvidenceReady=false` 的 `networkIntent`。它不输出 Runner/API 运行时配置，并固定 `registrationReady=false`、`liveReadbackReady=false`。默认 Worker root 增加 `tenant_lifecycle_task_definition_live_readback_missing` blocker；未来 live readback verifier 必须同时核对独立 `DescribeTaskDefinition` 回读与 Shared Cell 网络证据，之后才可产出运行时配置。本切片没有注册 TaskDefinition、没有调用 AWS，也没有改变任何 runtime gate。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：
 
 1. `0005`、`0006`、`0007` 尚未应用到 Neon。
 2. 尚无独立批准的 PostgreSQL 16.14 空租户 baseline；旧业务数据 dump 禁止作为租户模板。
-3. ECS one-shot、exact-five-key Secret、trusted S3 receipt reader/publisher 与订单服务 lifecycle 入口已离线完成，receipt Bucket/专用 LifecycleTaskRole 也已部署；当前后端提交的镜像已构建并以 digest 固定、扫描为 0 findings，但尚未注册/批准对应的 revision-pinned lifecycle TaskDefinition。生产 material generator、PostgreSQL provider、approved baseline、Worker live root wiring 和真实崩溃演练仍未完成。
+3. ECS one-shot、exact-five-key Secret、trusted S3 receipt reader/publisher、订单服务 lifecycle 入口与单 revision TaskDefinition binding/compiler 已离线完成，receipt Bucket/专用 LifecycleTaskRole 也已部署；当前后端提交的镜像已构建并以 digest 固定、扫描为 0 findings，但尚未注册并独立 readback 对应的 revision-pinned lifecycle TaskDefinition。生产 material generator、PostgreSQL provider、approved baseline、Worker live root wiring 和真实崩溃演练仍未完成。
 4. 离线 ownership coordinator、原子 authority 接口和 DynamoDB 条件写 Adapter 源码已完成，authority table/WorkerRole 已部署并完成最小只读 IAM 模拟，但尚未注入 root，也未执行真实 AWS 条件写。CloudFormation 只读回读不是 CAS，不能安装或授权 external marker。
 5. Cell 外部证据尚未完整验证 ACM、精确 Trust Store、DNS、TTL Schedule 和 Stack 所有权；Route Table/attached IGW 的只读证据与 fail-closed 校验已离线实现，但尚未在真实 Cell 上回读。
 6. 分阶段 cleanup coordinator 与 exact provision predecessor 接线已离线实现，但 backend real lifecycle provider、Cell Janitor/standalone Worker 的 live destroy root wiring，以及真实 provider-side 删除演练仍未完成。

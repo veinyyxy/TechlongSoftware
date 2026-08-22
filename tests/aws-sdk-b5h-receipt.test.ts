@@ -11,6 +11,7 @@ import {
   type TenantDatabaseOneShotRawResult,
 } from "../lib/deployments/execution/aws-sdk-s3-one-shot-receipt-reader.ts";
 import {
+  approvedTenantDatabaseOneShotCommands,
   tenantOneShotReceiptHash,
   tenantOneShotRequestHash,
   type EcsOneShotTaskRequest,
@@ -383,10 +384,8 @@ test("ECS validates the described task before binding the exact task and request
       expectedRegion: region,
       clusterArn,
       receiptBucketArn,
-      allowedTaskDefinitionArns: [taskDefinitionArn],
-      allowedCommandByTaskDefinitionArn: {
-        [taskDefinitionArn]: expectedRequest.container.command,
-      },
+      allowedTaskDefinitionArn: taskDefinitionArn,
+      allowedCommandByOperation: approvedTenantDatabaseOneShotCommands,
       expectedContainerName: expectedRequest.container.name,
       assignPublicIp: "ENABLED",
       allowedSubnetIds: expectedRequest.subnetIds,
@@ -399,6 +398,7 @@ test("ECS validates the described task before binding the exact task and request
     clusterArn,
     taskArn,
     expectedRequest,
+    expectedOperation: "inspect",
     signal: new AbortController().signal,
   });
   assert.equal(readerInputs[0]?.taskArn, taskArn);

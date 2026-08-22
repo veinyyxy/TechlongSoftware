@@ -15,9 +15,10 @@ import type {
   TenantExternalEpochAuthorityCandidate,
   TenantExternalEpochAuthorityRecord,
 } from "../lib/deployments/execution/cloudformation-external-ownership.ts";
-import type {
-  EcsOneShotTaskRequest,
-  TenantDatabaseOneShotReceipt,
+import {
+  approvedTenantDatabaseOneShotCommands,
+  type EcsOneShotTaskRequest,
+  type TenantDatabaseOneShotReceipt,
 } from "../lib/deployments/execution/ecs-one-shot-task.ts";
 import { canonicalJson } from "../lib/deployments/execution/hash.ts";
 import {
@@ -189,14 +190,8 @@ function ecsApi(sdk: AwsSdkEcsOneShotDependencies): AwsSdkEcsOneShotTaskApi {
       expectedRegion: region,
       clusterArn,
       receiptBucketArn,
-      allowedTaskDefinitionArns: [taskDefinitionArn],
-      allowedCommandByTaskDefinitionArn: {
-        [taskDefinitionArn]: [
-          "/usr/local/bin/node",
-          "db/tenant_lifecycle.js",
-          "inspect",
-        ],
-      },
+      allowedTaskDefinitionArn: taskDefinitionArn,
+      allowedCommandByOperation: approvedTenantDatabaseOneShotCommands,
       expectedContainerName: "tenant-database-lifecycle",
       assignPublicIp: "ENABLED",
       allowedSubnetIds: ["subnet-0123456789abcdef0"],
@@ -241,14 +236,8 @@ function ecsDestroyApi(
       expectedRegion: region,
       clusterArn,
       receiptBucketArn,
-      allowedTaskDefinitionArns: [taskDefinitionArn],
-      allowedCommandByTaskDefinitionArn: {
-        [taskDefinitionArn]: [
-          "/usr/local/bin/node",
-          "db/tenant_lifecycle.js",
-          "destroy",
-        ],
-      },
+      allowedTaskDefinitionArn: taskDefinitionArn,
+      allowedCommandByOperation: approvedTenantDatabaseOneShotCommands,
       expectedContainerName: "tenant-database-lifecycle",
       assignPublicIp: "ENABLED",
       allowedSubnetIds: ["subnet-0123456789abcdef0"],
@@ -274,7 +263,11 @@ test("AWS ECS adapter sends an exact one-task Fargate request with the caller si
   );
 
   assert.deepEqual(
-    await api.runTask({ request: ecsRequest(), signal: controller.signal }),
+    await api.runTask({
+      request: ecsRequest(),
+      expectedOperation: "inspect",
+      signal: controller.signal,
+    }),
     { taskArn },
   );
   const observedInput = observedInputs[0];
@@ -298,14 +291,8 @@ test("AWS ECS adapter keeps sandbox public and production private networking fai
     expectedRegion: region,
     clusterArn,
     receiptBucketArn,
-    allowedTaskDefinitionArns: [taskDefinitionArn],
-    allowedCommandByTaskDefinitionArn: {
-      [taskDefinitionArn]: [
-        "/usr/local/bin/node",
-        "db/tenant_lifecycle.js",
-        "inspect",
-      ],
-    },
+    allowedTaskDefinitionArn: taskDefinitionArn,
+    allowedCommandByOperation: approvedTenantDatabaseOneShotCommands,
     expectedContainerName: "tenant-database-lifecycle",
     allowedSubnetIds: ["subnet-0123456789abcdef0"],
     allowedSecurityGroupIds: ["sg-0123456789abcdef0"],
@@ -375,6 +362,7 @@ test("AWS ECS adapter accepts only an exact older provision predecessor for dest
   );
   await api.runTask({
     request: ecsDestroyRequest(),
+    expectedOperation: "destroy",
     signal: new AbortController().signal,
   });
   assert.equal(calls, 1);
@@ -386,6 +374,7 @@ test("AWS ECS adapter accepts only an exact older provision predecessor for dest
   await assert.rejects(
     api.runTask({
       request: drifting,
+      expectedOperation: "destroy",
       signal: new AbortController().signal,
     }),
     (error: unknown) =>
@@ -405,7 +394,11 @@ test("AWS ECS adapter rejects task ARNs outside the exact configured cluster", a
     }),
   );
   await assert.rejects(
-    api.runTask({ request: ecsRequest(), signal: new AbortController().signal }),
+    api.runTask({
+      request: ecsRequest(),
+      expectedOperation: "inspect",
+      signal: new AbortController().signal,
+    }),
     (error: unknown) =>
       (error as { code?: string }).code ===
       "TENANT_ONE_SHOT_TASK_OWNERSHIP_INVALID",
@@ -431,6 +424,24 @@ test("AWS ECS adapter rejects command and Secret scope drift before the SDK call
   await assert.rejects(
     api.runTask({
       request: commandDrift,
+      expectedOperation: "inspect",
+      signal: new AbortController().signal,
+    }),
+    (error: unknown) =>
+      (error as { code?: string }).code === "TENANT_ONE_SHOT_REQUEST_INVALID",
+  );
+  const operationAndCommandDrift = ecsRequest();
+  operationAndCommandDrift.container.environment.TENANT_DATABASE_OPERATION =
+    "prepare_empty_database";
+  operationAndCommandDrift.container.command = [
+    "/usr/local/bin/node",
+    "db/tenant_lifecycle.js",
+    "prepare_empty_database",
+  ];
+  await assert.rejects(
+    api.runTask({
+      request: operationAndCommandDrift,
+      expectedOperation: "inspect",
       signal: new AbortController().signal,
     }),
     (error: unknown) =>
@@ -442,6 +453,7 @@ test("AWS ECS adapter rejects command and Secret scope drift before the SDK call
   await assert.rejects(
     api.runTask({
       request: secretDrift,
+      expectedOperation: "inspect",
       signal: new AbortController().signal,
     }),
     (error: unknown) =>
@@ -452,6 +464,7 @@ test("AWS ECS adapter rejects command and Secret scope drift before the SDK call
   await assert.rejects(
     api.runTask({
       request: networkDrift,
+      expectedOperation: "inspect",
       signal: new AbortController().signal,
     }),
     (error: unknown) =>
@@ -557,6 +570,7 @@ test("AWS ECS describe and stop forward signals and use only allowlisted stop re
       clusterArn,
       taskArn,
       expectedRequest: request,
+      expectedOperation: "inspect",
       signal: controller.signal,
     }))
       .receipt,
@@ -568,6 +582,7 @@ test("AWS ECS describe and stop forward signals and use only allowlisted stop re
       clusterArn,
       taskArn,
       expectedRequest: request,
+      expectedOperation: "inspect",
       signal: controller.signal,
     }))
       .receipt,
@@ -611,6 +626,7 @@ test("AWS ECS adapter rejects recovered task identity drift before it can be tru
       clusterArn,
       taskArn,
       expectedRequest: request,
+      expectedOperation: "inspect",
       signal: new AbortController().signal,
     }),
     (error: unknown) =>

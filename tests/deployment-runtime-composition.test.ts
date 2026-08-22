@@ -19,6 +19,12 @@ test("default Worker composition is immutable and exposes no live capability", (
   assert.equal(runtime.applyRuntimeReady, false);
   assert.equal(runtime.cleanupRuntimeReady, false);
   assert.deepEqual(runtime.blockers, DEFAULT_DISABLED_RUNTIME_BLOCKERS);
+  assert.equal(
+    runtime.blockers.includes(
+      "tenant_lifecycle_task_definition_live_readback_missing",
+    ),
+    true,
+  );
   assert.equal("tenantExternalOperationCoordinator" in runtime, false);
   assert.equal("tenantResourceCleanup" in runtime, false);
 });
