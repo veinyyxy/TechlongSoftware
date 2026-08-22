@@ -28,6 +28,9 @@ const exactRoleNames: Record<string, string> = {
 };
 
 const listenerParameters = new Set(["HttpsListenerArn", "ControlListenerArn"]);
+const sharedCellRuntimeOnlyParameters = new Set([
+  "OneShotTaskSecurityGroupId",
+]);
 
 function assertText(name: string, value: string | undefined, maximum = 2_048): string {
   const raw = value ?? "";
@@ -113,9 +116,12 @@ function validateExternalParameter(input: {
     }
     return;
   }
-  if (name === "TaskSecurityGroupId") {
+  if (
+    name === "TaskSecurityGroupId" ||
+    name === "OneShotTaskSecurityGroupId"
+  ) {
     if (!/^sg-[a-f0-9]{8,17}$/.test(value)) {
-      throw new Error("CloudFormation TaskSecurityGroupId is invalid.");
+      throw new Error(`CloudFormation ${name} is invalid.`);
     }
     return;
   }
@@ -182,14 +188,8 @@ function validateExternalParameter(input: {
     }
     return;
   }
-  if (name === "StripeSuccessUrl" || name === "StripeCancelUrl" || name === "ImagePublicBaseUrl") {
+  if (name === "StripeSuccessUrl" || name === "StripeCancelUrl") {
     parseHttpsUrl(name, value);
-    return;
-  }
-  if (name === "ImageS3Bucket") {
-    if (!/^(?!\d+\.\d+\.\d+\.\d+$)[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(value)) {
-      throw new Error("CloudFormation ImageS3Bucket is invalid.");
-    }
     return;
   }
   throw new Error(`CloudFormation parameter ${name} has no validator.`);
@@ -227,8 +227,18 @@ export function finalizeTenantStackForApply(input: {
     region: input.environment.region,
     expectedSecretName: input.expectedRuntimeSecretName,
   });
+  for (const name of sharedCellRuntimeOnlyParameters) {
+    validateExternalParameter({
+      name,
+      value: input.binding.tenantStackParameters[name],
+      environment: input.environment,
+    });
+  }
   const expected = new Set(input.rendered.requiredExternalParameters);
-  const actual = new Set(Object.keys(input.binding.tenantStackParameters));
+  const tenantStackParameterEntries = Object.entries(
+    input.binding.tenantStackParameters,
+  ).filter(([name]) => !sharedCellRuntimeOnlyParameters.has(name));
+  const actual = new Set(tenantStackParameterEntries.map(([name]) => name));
   const missing = [...expected].filter((name) => !actual.has(name));
   const extras = [...actual].filter((name) => !expected.has(name));
   if (missing.length || extras.length) {
@@ -263,7 +273,7 @@ export function finalizeTenantStackForApply(input: {
     throw new Error("Execution binding must use the exact Sandbox CloudFormation role.");
   }
   const parameters = {
-    ...input.binding.tenantStackParameters,
+    ...Object.fromEntries(tenantStackParameterEntries),
     ...input.rendered.parameters,
   };
   return {

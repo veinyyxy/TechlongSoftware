@@ -123,6 +123,7 @@ function externalParameters(): Record<string, string> {
     VpcId: "vpc-0123456789abcdef0",
     SubnetIds: "subnet-0123456789abcdef0,subnet-0123456789abcdef1",
     TaskSecurityGroupId: "sg-0123456789abcdef0",
+    OneShotTaskSecurityGroupId: "sg-0123456789abcdef3",
     HttpsListenerArn: `arn:aws:elasticloadbalancing:${region}:${account}:listener/app/techlong-sandbox-cell/0123456789abcdef/0123456789abcdef`,
     ControlListenerArn: `arn:aws:elasticloadbalancing:${region}:${account}:listener/app/techlong-sandbox-cell/0123456789abcdef/fedcba9876543210`,
     TaskExecutionRoleArn: `arn:aws:iam::${account}:role/TechlongSandboxTaskExecutionRole`,
@@ -133,8 +134,6 @@ function externalParameters(): Record<string, string> {
     StripePublishableKey: `pk_test_${"a".repeat(24)}`,
     StripeSuccessUrl: "https://console.techlong.cloud/dashboard/billing/success",
     StripeCancelUrl: "https://console.techlong.cloud/dashboard/billing/canceled",
-    ImageS3Bucket: "techlong-sandbox-images",
-    ImagePublicBaseUrl: "https://downloads.techlong.cloud",
     JanitorFunctionArn: `arn:aws:lambda:${region}:${account}:function:techlong-sandbox-janitor`,
     SchedulerInvokeRoleArn: `arn:aws:iam::${account}:role/TechlongSandboxSchedulerInvokeRole`,
     SchedulerGroupName: "techlong-sandbox",
@@ -990,6 +989,10 @@ test("renders the allowlisted stack prefix, ownership tag, and cleanup-before-se
   );
   assert.equal(stack.parameters.CleanupAt, "2026-08-09T02:00:00");
   assert.equal(stack.parameters.SchedulerGroupName, "techlong-sandbox");
+  assert.equal(
+    Object.hasOwn(stack.parameters, "OneShotTaskSecurityGroupId"),
+    false,
+  );
 });
 
 test("requires an exact, validated CloudFormation parameter set", async () => {
@@ -1111,6 +1114,22 @@ test("requires an exact, validated CloudFormation parameter set", async () => {
       }),
     /ClusterName is invalid/,
   );
+  assert.throws(
+    () =>
+      finalizeTenantStackForApply({
+        rendered,
+        environment,
+        expectedRuntimeSecretName: tenantRuntimeSecretName,
+        binding: {
+          ...context.binding!,
+          tenantStackParameters: {
+            ...context.binding!.tenantStackParameters,
+            OneShotTaskSecurityGroupId: "sg-public",
+          },
+        },
+      }),
+    /OneShotTaskSecurityGroupId is invalid/,
+  );
 });
 
 test("Shared Cell security proof rejects a non-mTLS listener and public task ingress", () => {
@@ -1123,10 +1142,15 @@ test("Shared Cell security proof rejects a non-mTLS listener and public task ing
   };
   const loadBalancerSecurityGroupId = "sg-0123456789abcdef1";
   const databaseSecurityGroupId = "sg-0123456789abcdef2";
+  const oneShotTaskSecurityGroupId =
+    binding.tenantStackParameters.OneShotTaskSecurityGroupId;
   const databaseSubnetIds = [
     "subnet-0123456789abcdef2",
     "subnet-0123456789abcdef3",
   ];
+  const internetGatewayId = "igw-0123456789abcdef0";
+  const publicRouteTableId = "rtb-0123456789abcdef0";
+  const mainRouteTableId = "rtb-0123456789abcdef1";
   const resourceTags = {
     Environment: "aws-sandbox",
     ManagedBy: "techlong-cell-operator",
@@ -1170,6 +1194,65 @@ test("Shared Cell security proof rejects a non-mTLS listener and public task ing
         tags: resourceTags,
       })),
     ],
+    routeTables: [
+      {
+        id: publicRouteTableId,
+        vpcId: binding.tenantStackParameters.VpcId,
+        associations: binding.tenantStackParameters.SubnetIds.split(",").map(
+          (subnetId, index) => ({
+            id: `rtbassoc-public-${index}`,
+            subnetId,
+            main: false,
+            state: "associated",
+          }),
+        ),
+        routes: [
+          {
+            destinationCidrIpv4: "10.88.0.0/16",
+            state: "active",
+            targetType: "local",
+            targetId: "local",
+          },
+          {
+            destinationCidrIpv4: "0.0.0.0/0",
+            state: "active",
+            targetType: "internet_gateway",
+            targetId: internetGatewayId,
+          },
+        ],
+        tags: resourceTags,
+      },
+      {
+        id: mainRouteTableId,
+        vpcId: binding.tenantStackParameters.VpcId,
+        associations: [
+          {
+            id: "rtbassoc-main",
+            main: true,
+            state: "associated",
+          },
+        ],
+        routes: [
+          {
+            destinationCidrIpv4: "10.88.0.0/16",
+            state: "active",
+            targetType: "local",
+            targetId: "local",
+          },
+        ],
+        tags: {},
+      },
+    ],
+    internetGateway: {
+      id: internetGatewayId,
+      attachments: [
+        {
+          vpcId: binding.tenantStackParameters.VpcId,
+          state: "available",
+        },
+      ],
+      tags: resourceTags,
+    },
     httpsListener: {
       arn: binding.tenantStackParameters.HttpsListenerArn,
       loadBalancerArn,
@@ -1212,6 +1295,7 @@ test("Shared Cell security proof rejects a non-mTLS listener and public task ing
           { protocol: "tcp", fromPort: 443, toPort: 443, cidrIpv4: "0.0.0.0/0" },
           { protocol: "tcp", fromPort: 8443, toPort: 8443, cidrIpv4: "0.0.0.0/0" },
         ],
+        egress: [],
         tags: resourceTags,
       },
     ],
@@ -1226,6 +1310,27 @@ test("Shared Cell security proof rejects a non-mTLS listener and public task ing
           sourceSecurityGroupId: loadBalancerSecurityGroupId,
         },
       ],
+      egress: [],
+      tags: resourceTags,
+    },
+    oneShotTaskSecurityGroup: {
+      id: oneShotTaskSecurityGroupId,
+      vpcId: binding.tenantStackParameters.VpcId,
+      ingress: [],
+      egress: [
+        {
+          protocol: "tcp",
+          fromPort: 443,
+          toPort: 443,
+          cidrIpv4: "0.0.0.0/0",
+        },
+        {
+          protocol: "tcp",
+          fromPort: 5432,
+          toPort: 5432,
+          destinationSecurityGroupId: databaseSecurityGroupId,
+        },
+      ],
       tags: resourceTags,
     },
     databaseSecurityGroup: {
@@ -1238,7 +1343,14 @@ test("Shared Cell security proof rejects a non-mTLS listener and public task ing
           toPort: 5432,
           sourceSecurityGroupId: binding.tenantStackParameters.TaskSecurityGroupId,
         },
+        {
+          protocol: "tcp",
+          fromPort: 5432,
+          toPort: 5432,
+          sourceSecurityGroupId: oneShotTaskSecurityGroupId,
+        },
       ],
+      egress: [],
       tags: resourceTags,
     },
     database: {
@@ -1310,6 +1422,71 @@ test("Shared Cell security proof rejects a non-mTLS listener and public task ing
         },
       }),
     /only from an observed ALB security group/,
+  );
+  assert.throws(
+    () =>
+      assertSharedCellSecurityObservation({
+        environment,
+        binding,
+        observation: {
+          ...observation,
+          oneShotTaskSecurityGroup: {
+            ...observation.oneShotTaskSecurityGroup,
+            ingress: [
+              {
+                protocol: "tcp",
+                fromPort: 22,
+                toPort: 22,
+                cidrIpv4: "0.0.0.0/0",
+              },
+            ],
+          },
+        },
+      }),
+    /zero ingress/,
+  );
+  assert.throws(
+    () =>
+      assertSharedCellSecurityObservation({
+        environment,
+        binding,
+        observation: {
+          ...observation,
+          routeTables: observation.routeTables.map((routeTable) =>
+            routeTable.id === mainRouteTableId
+              ? {
+                  ...routeTable,
+                  routes: [
+                    ...routeTable.routes,
+                    {
+                      destinationCidrIpv4: "0.0.0.0/0",
+                      state: "active",
+                      targetType: "nat_gateway",
+                      targetId: "nat-0123456789abcdef0",
+                    },
+                  ],
+                }
+              : routeTable,
+          ),
+        },
+      }),
+    /database subnet .* must not have a public default/,
+  );
+  assert.throws(
+    () =>
+      assertSharedCellSecurityObservation({
+        environment,
+        binding,
+        observation: {
+          ...observation,
+          subnets: observation.subnets.map((subnet) =>
+            observation.subnetIds.includes(subnet.id)
+              ? { ...subnet, mapPublicIpOnLaunch: false }
+              : subnet,
+          ),
+        },
+      }),
+    /must be public/,
   );
 });
 

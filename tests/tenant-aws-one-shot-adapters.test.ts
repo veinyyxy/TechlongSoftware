@@ -104,12 +104,16 @@ function runnerConfig(
     ]),
   ) as unknown as EcsOneShotTaskRunnerConfig["taskDefinitionArnByOperation"];
   return {
+    environmentKind: "aws_sandbox",
+    expectedAccountId: "402010193138",
+    expectedRegion: "ca-central-1",
     clusterArn:
       "arn:aws:ecs:ca-central-1:402010193138:cluster/techlong-sandbox-cell-one",
     receiptBucketArn:
       "arn:aws:s3:::techlong-sandbox-402010193138-ca-central-1-tenant-receipts",
     taskDefinitionArnByOperation: taskDefinitions,
     containerName: "tenant-database-lifecycle",
+    assignPublicIp: "ENABLED",
     subnetIds: ["subnet-0123456789abcdef0"],
     securityGroupIds: ["sg-0123456789abcdef0"],
     commandByOperation: approvedTenantDatabaseOneShotCommands,
@@ -227,6 +231,9 @@ test("runs an allowlisted one-shot task using only a Secret ARN and active epoch
 
   assert.equal(receipt.outputHash, await sha256Hex(output));
   assert.equal(apiSignals.every((value) => value instanceof AbortSignal), true);
+  assert.equal(request!.assignPublicIp, "ENABLED");
+  assert.deepEqual(request!.subnetIds, ["subnet-0123456789abcdef0"]);
+  assert.deepEqual(request!.securityGroupIds, ["sg-0123456789abcdef0"]);
   assert.deepEqual(Object.keys(request!.container.environment).sort(), [
     "TENANT_DATABASE_OPERATION",
     "TENANT_EXTERNAL_OPERATION_EPOCH",
@@ -245,6 +252,50 @@ test("runs an allowlisted one-shot task using only a Secret ARN and active epoch
   assert.equal(/password/i.test(encoded), false);
   assert.equal(/secret[_-]?value/i.test(encoded), false);
   assert.match(encoded, /runtime\/g1-ABC123/);
+});
+
+test("pins one-shot public IP policy to the environment kind and exact AWS scope", () => {
+  const api = {} as EcsOneShotTaskApi;
+  const waiter = { wait: async () => undefined };
+  assert.doesNotThrow(
+    () =>
+      new EcsOneShotTaskRunner({
+        api,
+        waiter,
+        config: runnerConfig({
+          environmentKind: "aws_production",
+          assignPublicIp: "DISABLED",
+        }),
+      }),
+  );
+  for (const config of [
+    runnerConfig({ assignPublicIp: "DISABLED" }),
+    runnerConfig({
+      environmentKind: "aws_production",
+      assignPublicIp: "ENABLED",
+    }),
+    runnerConfig({ expectedAccountId: "111111111111" }),
+    runnerConfig({ expectedRegion: "us-east-1" }),
+  ]) {
+    assert.throws(
+      () => new EcsOneShotTaskRunner({ api, waiter, config }),
+      /public IP|account and region/i,
+    );
+  }
+  assert.throws(
+    () =>
+      new EcsOneShotTaskRunner({
+        api,
+        waiter,
+        config: runnerConfig({
+          securityGroupIds: [
+            "sg-0123456789abcdef0",
+            "sg-0123456789abcdef1",
+          ],
+        }),
+      }),
+    /network or polling configuration/,
+  );
 });
 
 test("destroy runner hash-binds and independently describes the exact provision predecessor", async () => {

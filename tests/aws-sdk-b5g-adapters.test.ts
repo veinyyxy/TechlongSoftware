@@ -104,7 +104,7 @@ function ecsRequest(): EcsOneShotTaskRequest {
     taskDefinitionArn,
     launchType: "FARGATE",
     platformVersion: "1.4.0",
-    assignPublicIp: "DISABLED",
+    assignPublicIp: "ENABLED",
     subnetIds: ["subnet-0123456789abcdef0"],
     securityGroupIds: ["sg-0123456789abcdef0"],
     container: {
@@ -184,6 +184,7 @@ function ecsDependencies(input: {
 function ecsApi(sdk: AwsSdkEcsOneShotDependencies): AwsSdkEcsOneShotTaskApi {
   return new AwsSdkEcsOneShotTaskApi(
     {
+      environmentKind: "aws_sandbox",
       expectedAccountId: accountId,
       expectedRegion: region,
       clusterArn,
@@ -197,6 +198,7 @@ function ecsApi(sdk: AwsSdkEcsOneShotDependencies): AwsSdkEcsOneShotTaskApi {
         ],
       },
       expectedContainerName: "tenant-database-lifecycle",
+      assignPublicIp: "ENABLED",
       allowedSubnetIds: ["subnet-0123456789abcdef0"],
       allowedSecurityGroupIds: ["sg-0123456789abcdef0"],
       maximumListPages: 2,
@@ -234,6 +236,7 @@ function ecsDestroyApi(
 ): AwsSdkEcsOneShotTaskApi {
   return new AwsSdkEcsOneShotTaskApi(
     {
+      environmentKind: "aws_sandbox",
       expectedAccountId: accountId,
       expectedRegion: region,
       clusterArn,
@@ -247,6 +250,7 @@ function ecsDestroyApi(
         ],
       },
       expectedContainerName: "tenant-database-lifecycle",
+      assignPublicIp: "ENABLED",
       allowedSubnetIds: ["subnet-0123456789abcdef0"],
       allowedSecurityGroupIds: ["sg-0123456789abcdef0"],
     },
@@ -282,9 +286,81 @@ test("AWS ECS adapter sends an exact one-task Fargate request with the caller si
     awsvpcConfiguration: {
       subnets: ["subnet-0123456789abcdef0"],
       securityGroups: ["sg-0123456789abcdef0"],
-      assignPublicIp: "DISABLED",
+      assignPublicIp: "ENABLED",
     },
   });
+});
+
+test("AWS ECS adapter keeps sandbox public and production private networking fail closed", () => {
+  const sdk = ecsDependencies({ send: async () => ({}) });
+  const base = {
+    expectedAccountId: accountId,
+    expectedRegion: region,
+    clusterArn,
+    receiptBucketArn,
+    allowedTaskDefinitionArns: [taskDefinitionArn],
+    allowedCommandByTaskDefinitionArn: {
+      [taskDefinitionArn]: [
+        "/usr/local/bin/node",
+        "db/tenant_lifecycle.js",
+        "inspect",
+      ],
+    },
+    expectedContainerName: "tenant-database-lifecycle",
+    allowedSubnetIds: ["subnet-0123456789abcdef0"],
+    allowedSecurityGroupIds: ["sg-0123456789abcdef0"],
+  } as const;
+  assert.doesNotThrow(
+    () =>
+      new AwsSdkEcsOneShotTaskApi(
+        {
+          ...base,
+          environmentKind: "aws_production",
+          assignPublicIp: "DISABLED",
+        },
+        sdk,
+      ),
+  );
+  assert.throws(
+    () =>
+      new AwsSdkEcsOneShotTaskApi(
+        {
+          ...base,
+          environmentKind: "aws_sandbox",
+          assignPublicIp: "DISABLED",
+        },
+        sdk,
+      ),
+    /configuration is invalid/,
+  );
+  assert.throws(
+    () =>
+      new AwsSdkEcsOneShotTaskApi(
+        {
+          ...base,
+          environmentKind: "aws_production",
+          assignPublicIp: "ENABLED",
+        },
+        sdk,
+      ),
+    /configuration is invalid/,
+  );
+  assert.throws(
+    () =>
+      new AwsSdkEcsOneShotTaskApi(
+        {
+          ...base,
+          environmentKind: "aws_sandbox",
+          assignPublicIp: "ENABLED",
+          allowedSecurityGroupIds: [
+            "sg-0123456789abcdef0",
+            "sg-0123456789abcdef1",
+          ],
+        },
+        sdk,
+      ),
+    /configuration is invalid/,
+  );
 });
 
 test("AWS ECS adapter accepts only an exact older provision predecessor for destroy", async () => {
@@ -366,6 +442,16 @@ test("AWS ECS adapter rejects command and Secret scope drift before the SDK call
   await assert.rejects(
     api.runTask({
       request: secretDrift,
+      signal: new AbortController().signal,
+    }),
+    (error: unknown) =>
+      (error as { code?: string }).code === "TENANT_ONE_SHOT_REQUEST_INVALID",
+  );
+  const networkDrift = ecsRequest();
+  networkDrift.assignPublicIp = "DISABLED";
+  await assert.rejects(
+    api.runTask({
+      request: networkDrift,
       signal: new AbortController().signal,
     }),
     (error: unknown) =>

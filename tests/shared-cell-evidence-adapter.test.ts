@@ -15,6 +15,10 @@ const databaseSubnets = ["subnet-0123456789abcdef2", "subnet-0123456789abcdef3"]
 const albSg = "sg-0123456789abcdef1";
 const taskSg = "sg-0123456789abcdef0";
 const databaseSg = "sg-0123456789abcdef2";
+const oneShotTaskSg = "sg-0123456789abcdef3";
+const internetGatewayId = "igw-0123456789abcdef0";
+const publicRouteTableId = "rtb-0123456789abcdef0";
+const mainRouteTableId = "rtb-0123456789abcdef1";
 const loadBalancerArn = `arn:aws:elasticloadbalancing:${region}:${account}:loadbalancer/app/techlong-sandbox-cell/0123456789abcdef`;
 const httpsListenerArn = `arn:aws:elasticloadbalancing:${region}:${account}:listener/app/techlong-sandbox-cell/0123456789abcdef/0123456789abcdef`;
 const controlListenerArn = `arn:aws:elasticloadbalancing:${region}:${account}:listener/app/techlong-sandbox-cell/0123456789abcdef/fedcba9876543210`;
@@ -74,6 +78,7 @@ const binding = {
     VpcId: vpcId,
     SubnetIds: publicSubnets.join(","),
     TaskSecurityGroupId: taskSg,
+    OneShotTaskSecurityGroupId: oneShotTaskSg,
     HttpsListenerArn: httpsListenerArn,
     ControlListenerArn: controlListenerArn,
   },
@@ -93,6 +98,15 @@ function command(kind: string) {
 function dependencies(input: {
   accountId?: string;
   businessRulePriority?: string;
+  databaseForbiddenRouteTarget?: "default" | "igw" | "nat" | "eigw";
+  internetGatewayAttachmentState?: string;
+  omitPublicRouteAssociations?: boolean;
+  oneShotIngress?: boolean;
+  oneShotPublicEgressPort?: number;
+  paginatedRouteTables?: boolean;
+  publicRouteGatewayId?: string;
+  publicRouteState?: string;
+  publicRouteAssociationState?: string;
   calls: string[];
   signals?: AbortSignal[];
 }) {
@@ -253,7 +267,8 @@ function dependencies(input: {
                 FromPort: port,
                 ToPort: port,
                 IpRanges: [{ CidrIp: "0.0.0.0/0" }],
-              })),
+                })),
+              IpPermissionsEgress: [],
             },
             {
               GroupId: taskSg,
@@ -265,6 +280,36 @@ function dependencies(input: {
                   FromPort: 3000,
                   ToPort: 3000,
                   UserIdGroupPairs: [{ GroupId: albSg }],
+                },
+              ],
+              IpPermissionsEgress: [],
+            },
+            {
+              GroupId: oneShotTaskSg,
+              VpcId: vpcId,
+              Tags: resourceTags,
+              IpPermissions: input.oneShotIngress
+                ? [
+                    {
+                      IpProtocol: "tcp",
+                      FromPort: 22,
+                      ToPort: 22,
+                      IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+                    },
+                  ]
+                : [],
+              IpPermissionsEgress: [
+                {
+                  IpProtocol: "tcp",
+                  FromPort: input.oneShotPublicEgressPort ?? 443,
+                  ToPort: input.oneShotPublicEgressPort ?? 443,
+                  IpRanges: [{ CidrIp: "0.0.0.0/0" }],
+                },
+                {
+                  IpProtocol: "tcp",
+                  FromPort: 5432,
+                  ToPort: 5432,
+                  UserIdGroupPairs: [{ GroupId: databaseSg }],
                 },
               ],
             },
@@ -279,7 +324,113 @@ function dependencies(input: {
                   ToPort: 5432,
                   UserIdGroupPairs: [{ GroupId: taskSg }],
                 },
+                {
+                  IpProtocol: "tcp",
+                  FromPort: 5432,
+                  ToPort: 5432,
+                  UserIdGroupPairs: [{ GroupId: oneShotTaskSg }],
+                },
               ],
+              IpPermissionsEgress: [],
+            },
+          ],
+        };
+      case "DescribeRouteTables": {
+        const forbiddenDatabaseRoute = (() => {
+          switch (input.databaseForbiddenRouteTarget) {
+            case "default":
+              return {
+                DestinationCidrBlock: "0.0.0.0/0",
+                TransitGatewayId: "tgw-0123456789abcdef0",
+                State: "active",
+              };
+            case "igw":
+              return {
+                DestinationCidrBlock: "10.99.0.0/16",
+                GatewayId: internetGatewayId,
+                State: "active",
+              };
+            case "nat":
+              return {
+                DestinationCidrBlock: "10.99.0.0/16",
+                NatGatewayId: "nat-0123456789abcdef0",
+                State: "active",
+              };
+            case "eigw":
+              return {
+                DestinationIpv6CidrBlock: "2001:db8::/64",
+                EgressOnlyInternetGatewayId: "eigw-0123456789abcdef0",
+                State: "active",
+              };
+            default:
+              return null;
+          }
+        })();
+        return {
+          RouteTables: [
+            {
+              RouteTableId: publicRouteTableId,
+              VpcId: vpcId,
+              Associations: input.omitPublicRouteAssociations
+                ? []
+                : publicSubnets.map((SubnetId, index) => ({
+                    RouteTableAssociationId: `rtbassoc-public-${index}`,
+                    SubnetId,
+                    Main: false,
+                    AssociationState: {
+                      State: input.publicRouteAssociationState ?? "associated",
+                    },
+                  })),
+              Routes: [
+                {
+                  DestinationCidrBlock: "10.88.0.0/16",
+                  GatewayId: "local",
+                  State: "active",
+                },
+                {
+                  DestinationCidrBlock: "0.0.0.0/0",
+                  GatewayId: input.publicRouteGatewayId ?? internetGatewayId,
+                  State: input.publicRouteState ?? "active",
+                },
+              ],
+              Tags: resourceTags,
+            },
+            {
+              RouteTableId: mainRouteTableId,
+              VpcId: vpcId,
+              Associations: [
+                {
+                  RouteTableAssociationId: "rtbassoc-main",
+                  Main: true,
+                  AssociationState: { State: "associated" },
+                },
+              ],
+              Routes: [
+                {
+                  DestinationCidrBlock: "10.88.0.0/16",
+                  GatewayId: "local",
+                  State: "active",
+                },
+                ...(forbiddenDatabaseRoute ? [forbiddenDatabaseRoute] : []),
+              ],
+              Tags: [],
+            },
+          ],
+          ...(input.paginatedRouteTables ? { NextToken: "page-two" } : {}),
+        };
+      }
+      case "DescribeInternetGateways":
+        return {
+          InternetGateways: [
+            {
+              InternetGatewayId: internetGatewayId,
+              Attachments: [
+                {
+                  VpcId: vpcId,
+                  State: input.internetGatewayAttachmentState ?? "available",
+                },
+              ],
+              Tags: resourceTags,
             },
           ],
         };
@@ -309,6 +460,8 @@ function dependencies(input: {
       describeVpcs: command("DescribeVpcs"),
       describeSubnets: command("DescribeSubnets"),
       describeSecurityGroups: command("DescribeSecurityGroups"),
+      describeRouteTables: command("DescribeRouteTables"),
+      describeInternetGateways: command("DescribeInternetGateways"),
       describeDBClusters: command("DescribeDBClusters"),
       describeDBInstances: command("DescribeDBInstances"),
       describeDBSubnetGroups: command("DescribeDBSubnetGroups"),
@@ -334,6 +487,8 @@ test("injected Shared Cell adapter collects only read evidence and hashes it", a
   assert.match(result.evidenceHash, /^[a-f0-9]{64}$/);
   assert.ok(calls.includes("DescribeDBClusters"));
   assert.ok(calls.includes("DescribeSecurityGroups"));
+  assert.ok(calls.includes("DescribeRouteTables"));
+  assert.ok(calls.includes("DescribeInternetGateways"));
   assert.equal(calls.every((name) => /^(?:Get|Describe)/.test(name)), true);
   assert.equal(signals.length, calls.length);
   assert.equal(signals.every((item) => item === controller.signal), true);
@@ -373,6 +528,107 @@ test("a lower-priority business control deny rule is rejected", async () => {
   await assert.rejects(
     adapter.verify({ environment, binding, signal: new AbortController().signal }),
     /must reject \/api\/saas/,
+  );
+});
+
+test("one-shot task networking rejects inbound rules and non-HTTPS public egress", async (t) => {
+  for (const [name, overrides] of [
+    ["inbound", { oneShotIngress: true }],
+    ["public egress", { oneShotPublicEgressPort: 80 }],
+  ] as const) {
+    await t.test(name, async () => {
+      const adapter = new AwsSdkSharedCellEvidenceAdapter(
+        region,
+        dependencies({ calls: [], ...overrides }),
+      );
+      await assert.rejects(
+        adapter.verify({
+          environment,
+          binding,
+          signal: new AbortController().signal,
+        }),
+        /zero ingress.*public HTTPS.*exact database security group/,
+      );
+    });
+  }
+});
+
+test("public task subnets require an exact active association and default route to the attached IGW", async (t) => {
+  for (const [name, overrides, expected] of [
+    [
+      "implicit main association",
+      { omitPublicRouteAssociations: true },
+      /public subnet .* no active exact route table association/,
+    ],
+    [
+      "pending association",
+      { publicRouteAssociationState: "associating" },
+      /does not have one active exact route table association/,
+    ],
+    [
+      "blackhole default",
+      { publicRouteState: "blackhole" },
+      /active IPv4 default route.*exact attached VPC internet gateway/,
+    ],
+    [
+      "different gateway",
+      { publicRouteGatewayId: "igw-fedcba98765432100" },
+      /active IPv4 default route.*exact attached VPC internet gateway/,
+    ],
+    [
+      "detached gateway",
+      { internetGatewayAttachmentState: "detached" },
+      /exact available gateway attached to the reviewed VPC/,
+    ],
+  ] as const) {
+    await t.test(name, async () => {
+      const adapter = new AwsSdkSharedCellEvidenceAdapter(
+        region,
+        dependencies({ calls: [], ...overrides }),
+      );
+      await assert.rejects(
+        adapter.verify({
+          environment,
+          binding,
+          signal: new AbortController().signal,
+        }),
+        expected,
+      );
+    });
+  }
+});
+
+test("database subnets reject defaults and IGW/NAT/EIGW routes", async (t) => {
+  for (const target of ["default", "igw", "nat", "eigw"] as const) {
+    await t.test(target, async () => {
+      const adapter = new AwsSdkSharedCellEvidenceAdapter(
+        region,
+        dependencies({ calls: [], databaseForbiddenRouteTarget: target }),
+      );
+      await assert.rejects(
+        adapter.verify({
+          environment,
+          binding,
+          signal: new AbortController().signal,
+        }),
+        /database subnet .* must not have a public default.*NAT gateway.*egress-only internet gateway route/,
+      );
+    });
+  }
+});
+
+test("paginated route evidence fails closed", async () => {
+  const adapter = new AwsSdkSharedCellEvidenceAdapter(
+    region,
+    dependencies({ calls: [], paginatedRouteTables: true }),
+  );
+  await assert.rejects(
+    adapter.verify({
+      environment,
+      binding,
+      signal: new AbortController().signal,
+    }),
+    /route table or internet gateway evidence is paginated/,
   );
 });
 

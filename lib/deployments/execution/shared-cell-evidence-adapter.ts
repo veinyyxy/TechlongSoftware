@@ -7,9 +7,13 @@ import { sha256Hex } from "./hash.ts";
 import {
   assertSharedCellSecurityObservation,
   DisabledSharedCellSecurityPreflight,
+  type SharedCellEgressObservation,
   type SharedCellIngressObservation,
+  type SharedCellInternetGatewayObservation,
   type SharedCellListenerObservation,
   type SharedCellResourceTags,
+  type SharedCellRouteObservation,
+  type SharedCellRouteTableObservation,
   type SharedCellSecurityGroupObservation,
   type SharedCellSecurityObservation,
 } from "./shared-cell-preflight.ts";
@@ -44,6 +48,8 @@ export interface AwsSdkSharedCellEvidenceDependencies {
     describeVpcs: AwsReadOnlyCommandConstructor;
     describeSubnets: AwsReadOnlyCommandConstructor;
     describeSecurityGroups: AwsReadOnlyCommandConstructor;
+    describeRouteTables: AwsReadOnlyCommandConstructor;
+    describeInternetGateways: AwsReadOnlyCommandConstructor;
     describeDBClusters: AwsReadOnlyCommandConstructor;
     describeDBInstances: AwsReadOnlyCommandConstructor;
     describeDBSubnetGroups: AwsReadOnlyCommandConstructor;
@@ -144,6 +150,44 @@ function flattenIngress(value: unknown): SharedCellIngressObservation[] {
   return result;
 }
 
+function flattenEgress(value: unknown): SharedCellEgressObservation[] {
+  const result: SharedCellEgressObservation[] = [];
+  for (const permission of records(value)) {
+    const protocol = text(permission.IpProtocol) ?? "";
+    const fromPort = numberValue(permission.FromPort) ?? -1;
+    const toPort = numberValue(permission.ToPort) ?? -1;
+    const base = { protocol, fromPort, toPort };
+    for (const range of records(permission.IpRanges)) {
+      const cidrIpv4 = text(range.CidrIp);
+      result.push({ ...base, ...(cidrIpv4 ? { cidrIpv4 } : {}) });
+    }
+    for (const range of records(permission.Ipv6Ranges)) {
+      const cidrIpv6 = text(range.CidrIpv6);
+      result.push({ ...base, ...(cidrIpv6 ? { cidrIpv6 } : {}) });
+    }
+    for (const pair of records(permission.UserIdGroupPairs)) {
+      const destinationSecurityGroupId = text(pair.GroupId);
+      result.push({
+        ...base,
+        ...(destinationSecurityGroupId ? { destinationSecurityGroupId } : {}),
+      });
+    }
+    for (const prefix of records(permission.PrefixListIds)) {
+      const prefixListId = text(prefix.PrefixListId);
+      result.push({ ...base, ...(prefixListId ? { prefixListId } : {}) });
+    }
+    if (
+      !permission.IpRanges &&
+      !permission.Ipv6Ranges &&
+      !permission.UserIdGroupPairs &&
+      !permission.PrefixListIds
+    ) {
+      result.push(base);
+    }
+  }
+  return result;
+}
+
 function securityGroup(item: Record<string, unknown>): SharedCellSecurityGroupObservation {
   const id = text(item.GroupId);
   const vpcId = text(item.VpcId);
@@ -158,6 +202,128 @@ function securityGroup(item: Record<string, unknown>): SharedCellSecurityGroupOb
     id,
     vpcId,
     ingress: flattenIngress(item.IpPermissions),
+    egress: flattenEgress(item.IpPermissionsEgress),
+    tags: tags(item.Tags),
+  };
+}
+
+function routeTarget(item: Record<string, unknown>): {
+  targetType: string;
+  targetId: string;
+} {
+  const gatewayId = text(item.GatewayId);
+  const candidates = [
+    ...(gatewayId
+      ? [
+          {
+            targetType:
+              gatewayId === "local"
+                ? "local"
+                : gatewayId.startsWith("igw-")
+                  ? "internet_gateway"
+                  : gatewayId.startsWith("vgw-")
+                    ? "virtual_private_gateway"
+                    : "unknown",
+            targetId: gatewayId,
+          },
+        ]
+      : []),
+    ["NatGatewayId", "nat_gateway"],
+    ["EgressOnlyInternetGatewayId", "egress_only_internet_gateway"],
+    ["TransitGatewayId", "transit_gateway"],
+    ["VpcPeeringConnectionId", "vpc_peering_connection"],
+    ["NetworkInterfaceId", "network_interface"],
+    ["InstanceId", "instance"],
+    ["CarrierGatewayId", "carrier_gateway"],
+    ["LocalGatewayId", "local_gateway"],
+    ["CoreNetworkArn", "core_network"],
+  ].flatMap((entry) => {
+    if (!Array.isArray(entry)) return [entry];
+    const targetId = text(item[entry[0]]);
+    return targetId ? [{ targetType: entry[1], targetId }] : [];
+  });
+  if (candidates.length !== 1) {
+    throw new SharedCellEvidenceError(
+      "SHARED_CELL_EVIDENCE_INCOMPLETE",
+      "EC2 returned a route without exactly one reviewed target.",
+      false,
+    );
+  }
+  return candidates[0];
+}
+
+function route(item: Record<string, unknown>): SharedCellRouteObservation {
+  const destinationCidrIpv4 = text(item.DestinationCidrBlock);
+  const destinationCidrIpv6 = text(item.DestinationIpv6CidrBlock);
+  const destinationPrefixListId = text(item.DestinationPrefixListId);
+  const state = text(item.State);
+  const destinationCount = [
+    destinationCidrIpv4,
+    destinationCidrIpv6,
+    destinationPrefixListId,
+  ].filter(Boolean).length;
+  if (
+    !state ||
+    destinationCount !== 1
+  ) {
+    throw new SharedCellEvidenceError(
+      "SHARED_CELL_EVIDENCE_INCOMPLETE",
+      "EC2 returned an incomplete route.",
+      false,
+    );
+  }
+  return {
+    ...(destinationCidrIpv4 ? { destinationCidrIpv4 } : {}),
+    ...(destinationCidrIpv6 ? { destinationCidrIpv6 } : {}),
+    ...(destinationPrefixListId ? { destinationPrefixListId } : {}),
+    state,
+    ...routeTarget(item),
+  };
+}
+
+function routeTable(item: Record<string, unknown>): SharedCellRouteTableObservation {
+  const id = text(item.RouteTableId);
+  const vpcId = text(item.VpcId);
+  if (!id || !vpcId) {
+    throw new SharedCellEvidenceError(
+      "SHARED_CELL_EVIDENCE_INCOMPLETE",
+      "EC2 returned an incomplete route table.",
+      false,
+    );
+  }
+  return {
+    id,
+    vpcId,
+    associations: records(item.Associations).map((association) => ({
+      id: text(association.RouteTableAssociationId) ?? "",
+      ...(text(association.SubnetId)
+        ? { subnetId: text(association.SubnetId)! }
+        : {}),
+      main: association.Main === true,
+      state: text(record(association.AssociationState).State) ?? "",
+    })),
+    routes: records(item.Routes).map(route),
+    tags: tags(item.Tags),
+  };
+}
+
+function internetGateway(
+  item: Record<string, unknown>,
+): SharedCellInternetGatewayObservation {
+  const id = text(item.InternetGatewayId);
+  if (!id) {
+    throw new SharedCellEvidenceError(
+      "SHARED_CELL_EVIDENCE_INCOMPLETE",
+      "EC2 returned an incomplete internet gateway.",
+      false,
+    );
+  }
+  return {
+    id,
+    attachments: records(item.Attachments).map((attachment) => ({
+      vpcId: text(attachment.VpcId) ?? "",
+      state: text(attachment.State) ?? "",
+    })),
     tags: tags(item.Tags),
   };
 }
@@ -502,10 +668,17 @@ export class AwsSdkSharedCellEvidenceAdapter
       ...new Set([
         ...loadBalancerSecurityGroupIds,
         parameters.TaskSecurityGroupId,
+        parameters.OneShotTaskSecurityGroupId,
         ...databaseSecurityGroupIds,
       ]),
     ].filter(Boolean);
-    const [vpcsResponse, subnetsResponse, securityGroupsResponse] =
+    const [
+      vpcsResponse,
+      subnetsResponse,
+      securityGroupsResponse,
+      routeTablesResponse,
+      internetGatewaysResponse,
+    ] =
       await Promise.all([
         this.sdk.clients.ec2.send(
           new this.sdk.commands.describeVpcs({ VpcIds: [vpcId] }),
@@ -521,8 +694,30 @@ export class AwsSdkSharedCellEvidenceAdapter
           }),
           { abortSignal: input.signal },
         ),
+        this.sdk.clients.ec2.send(
+          new this.sdk.commands.describeRouteTables({
+            Filters: [{ Name: "vpc-id", Values: [vpcId] }],
+          }),
+          { abortSignal: input.signal },
+        ),
+        this.sdk.clients.ec2.send(
+          new this.sdk.commands.describeInternetGateways({
+            Filters: [{ Name: "attachment.vpc-id", Values: [vpcId] }],
+          }),
+          { abortSignal: input.signal },
+        ),
       ]);
     input.signal.throwIfAborted();
+    if (
+      text(routeTablesResponse.NextToken) ||
+      text(internetGatewaysResponse.NextToken)
+    ) {
+      throw new SharedCellEvidenceError(
+        "SHARED_CELL_EVIDENCE_INCOMPLETE",
+        "EC2 route table or internet gateway evidence is paginated.",
+        false,
+      );
+    }
     const vpc = one(
       vpcsResponse.Vpcs,
       (item) => text(item.VpcId) === vpcId,
@@ -552,6 +747,24 @@ export class AwsSdkSharedCellEvidenceAdapter
       (item) => text(item.ResourceArn) === loadBalancerArn,
       "load balancer tag description",
     );
+    const returnedInternetGateways = records(
+      internetGatewaysResponse.InternetGateways,
+    );
+    if (returnedInternetGateways.length !== 1) {
+      throw new SharedCellEvidenceError(
+        "SHARED_CELL_EVIDENCE_INCOMPLETE",
+        `Expected exactly one internet gateway response; observed ${returnedInternetGateways.length}.`,
+        false,
+      );
+    }
+    const attachedInternetGateway = one(
+      returnedInternetGateways,
+      (item) =>
+        records(item.Attachments).some(
+          (attachment) => text(attachment.VpcId) === vpcId,
+        ),
+      "internet gateway attached to the VPC",
+    );
     const scaling = record(database.ServerlessV2ScalingConfiguration);
     return {
       observedAt: this.now(),
@@ -574,6 +787,8 @@ export class AwsSdkSharedCellEvidenceAdapter
         mapPublicIpOnLaunch: subnet.MapPublicIpOnLaunch === true,
         tags: tags(subnet.Tags),
       })),
+      routeTables: records(routeTablesResponse.RouteTables).map(routeTable),
+      internetGateway: internetGateway(attachedInternetGateway),
       httpsListener: listener({
         item: httpsListenerItem,
         trustStoreStatus: null,
@@ -605,6 +820,10 @@ export class AwsSdkSharedCellEvidenceAdapter
       taskSecurityGroup: findSecurityGroup(
         parameters.TaskSecurityGroupId,
         "task security group",
+      ),
+      oneShotTaskSecurityGroup: findSecurityGroup(
+        parameters.OneShotTaskSecurityGroupId,
+        "one-shot task security group",
       ),
       databaseSecurityGroup: findSecurityGroup(
         databaseSecurityGroupIds[0],

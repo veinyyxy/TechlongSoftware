@@ -66,7 +66,7 @@ function request(): EcsOneShotTaskRequest {
     taskDefinitionArn,
     launchType: "FARGATE",
     platformVersion: "1.4.0",
-    assignPublicIp: "DISABLED",
+    assignPublicIp: "ENABLED",
     subnetIds: ["subnet-0123456789abcdef0"],
     securityGroupIds: ["sg-0123456789abcdef0"],
     container: {
@@ -378,6 +378,7 @@ test("ECS validates the described task before binding the exact task and request
   };
   const api = new AwsSdkEcsOneShotTaskApi(
     {
+      environmentKind: "aws_sandbox",
       expectedAccountId: accountId,
       expectedRegion: region,
       clusterArn,
@@ -387,6 +388,7 @@ test("ECS validates the described task before binding the exact task and request
         [taskDefinitionArn]: expectedRequest.container.command,
       },
       expectedContainerName: expectedRequest.container.name,
+      assignPublicIp: "ENABLED",
       allowedSubnetIds: expectedRequest.subnetIds,
       allowedSecurityGroupIds: expectedRequest.securityGroupIds,
     },

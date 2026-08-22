@@ -9,6 +9,7 @@ import {
 } from "./ecs-one-shot-task.ts";
 import { canonicalJson } from "./hash.ts";
 import { TenantDatabaseLifecycleError } from "./tenant-database.ts";
+import type { DeploymentEnvironmentKind } from "../environment.ts";
 
 interface AwsSdkClient {
   send(
@@ -45,6 +46,7 @@ export interface AwsSdkEcsOneShotDependencies {
 }
 
 export interface AwsSdkEcsOneShotConfig {
+  environmentKind: DeploymentEnvironmentKind;
   expectedAccountId: string;
   expectedRegion: string;
   clusterArn: string;
@@ -52,6 +54,7 @@ export interface AwsSdkEcsOneShotConfig {
   allowedTaskDefinitionArns: readonly string[];
   allowedCommandByTaskDefinitionArn: Readonly<Record<string, readonly string[]>>;
   expectedContainerName: string;
+  assignPublicIp: "ENABLED" | "DISABLED";
   allowedSubnetIds: readonly string[];
   allowedSecurityGroupIds: readonly string[];
   maximumListPages?: number;
@@ -336,7 +339,7 @@ function assertRequest(
     !config.allowedTaskDefinitionArns.includes(request.taskDefinitionArn) ||
     request.launchType !== "FARGATE" ||
     request.platformVersion !== "1.4.0" ||
-    request.assignPublicIp !== "DISABLED" ||
+    request.assignPublicIp !== config.assignPublicIp ||
     request.container.name !== config.expectedContainerName ||
     !sameArray(
       request.container.command,
@@ -509,6 +512,11 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
     if (
       !accountPattern.test(config.expectedAccountId) ||
       !regionPattern.test(config.expectedRegion) ||
+      !["aws_sandbox", "aws_production"].includes(config.environmentKind) ||
+      (config.environmentKind === "aws_sandbox" &&
+        config.assignPublicIp !== "ENABLED") ||
+      (config.environmentKind === "aws_production" &&
+        config.assignPublicIp !== "DISABLED") ||
       !receiptBucketValid ||
       config.receiptBucketArn !==
         tenantOneShotExpectedReceiptBucketArn({
@@ -525,8 +533,7 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
         config.allowedTaskDefinitionArns.length ||
       config.allowedSubnetIds.length < 1 ||
       config.allowedSubnetIds.length > 6 ||
-      config.allowedSecurityGroupIds.length < 1 ||
-      config.allowedSecurityGroupIds.length > 5 ||
+      config.allowedSecurityGroupIds.length !== 1 ||
       new Set(config.allowedSubnetIds).size !== config.allowedSubnetIds.length ||
       new Set(config.allowedSecurityGroupIds).size !==
         config.allowedSecurityGroupIds.length ||

@@ -1,6 +1,6 @@
 # AWS Sandbox S0–S3-B5 安全 Bootstrap 与离线 Cell 基础
 
-这个目录保存可审查的静态配置、CloudFormation 模板、IAM 边界、TTL Janitor、镜像构建基础和默认不执行的运维脚本。仓库中不包含 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。
+这个目录保存可审查的静态配置、CloudFormation 模板、IAM 边界、TTL Janitor、镜像构建基础、B5 低成本支撑资源和默认不执行的运维脚本。仓库中不包含 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。
 
 S3-A Bootstrap 脚本默认仅运行本地验证；只有显式选择 `CreateChangeSet` 或 `Apply`、确认账号、提供预算通知邮箱并确认 MFA 前置条件后，脚本才会产生 AWS 写操作。B5 又增加了一个独立的 Cell Bootstrap：它只准备 MFA Operator、独立 CloudFormation Execution Role、Cell Janitor 和 15 分钟兜底计划，不创建 VPC、ALB、ECS、Aurora 或 Shared Cell。它的默认模式同样只做本地验证，真实写入严格拆成“创建 Change Set”和“人工审查后执行 Change Set”两次命令。
 
@@ -44,12 +44,16 @@ ops/aws-sandbox/
 └─ scripts/
    ├─ render-bootstrap.mjs
    ├─ render-b5-cell-bootstrap.mjs
+   ├─ render-b5-support-rollback.mjs
    ├─ s3-b5-cell-bootstrap.ps1
+   ├─ s3-b5-support-bootstrap.ps1
    ├─ s3-bootstrap.ps1
    ├─ s3-build-image.ps1
    ├─ s3-rollback.ps1
    ├─ validate-cell.mjs
    ├─ validate-b5-cell-bootstrap.mjs
+   ├─ validate-b5-support.mjs
+   ├─ verify-change-set-template.mjs
    └─ validate.mjs
 ```
 
@@ -60,12 +64,15 @@ ops/aws-sandbox/
 `s3-bootstrap.template.json` 不创建 Cell、VPC、NAT、ALB、ECS Service、Aurora/RDS、Route 53 Hosted Zone 或租户资源。它只创建：
 
 - MFA 强制的 `TechlongSandboxProvisionerRole`，信任关系只接受现有 `techlong-sandbox-dev` IAM User；不修改该用户或 Administrators 组。
-- 有独立 Permissions Boundary 的 CloudFormation Execution Role、Janitor Role、Scheduler Invoke Role、CodeBuild Role、ECS Task Execution Role 和 Task Role。
+- 有独立 Permissions Boundary 的 CloudFormation Execution Role、Janitor Role、Scheduler Invoke Role、CodeBuild Role、ECS Task Execution Role、普通 tenant web Task Role 和专用 Lifecycle Task Role。
 - 全局 Janitor Lambda 与 `rate(15 minutes)` EventBridge Scheduler 安全扫描。
 - `techlong-sandbox` Scheduler Group，供每个租户先创建一次性 TTL 清理计划。
 - 标签不可覆盖、推送扫描、最多保留两个镜像的 `techlong-sandbox-speedfeast` ECR Repository。
 - 完全阻止公网访问、AES256 加密、`source/` 一天过期的专用 CodeBuild 源码 Bucket。
 - 默认构建必定失败、仅可显式 Source/Buildspec override 启动的 CodeBuild Project；固定 `aws/codebuild/standard:8.0`、最小 Compute、5 分钟超时、并发 1。
+- exact `techlong-sandbox-402010193138-ca-central-1-tenant-receipts` receipt Bucket：完全阻止公网访问、Bucket owner enforced、SSE-S3、只允许 `tenant-lifecycle/v1/`、强制 `If-None-Match: *`，receipt 一天后过期。
+- exact `techlong-sandbox-tenant-external-epoch-authority` DynamoDB 表：单一 `authority_key` 分区键、`PAY_PER_REQUEST`、最多约 `5 RRU/s` 与 `2 WRU/s` 的 best-effort on-demand ceiling，不启用 PITR、Stream、索引或收费的 KMS managed key。
+- 公网 tenant web service 使用的 `TechlongSandboxTaskRole` 已完全移除原有 `techlong-sandbox-*` S3 identity policy；它不能读写 receipt 或读取 runtime Secret。独立 `TechlongSandboxTenantLifecycleTaskRole` 只允许读取/conditional-write exact receipt，以及在 `ManagedBy`/`SecretSchema` 标签匹配时读取 generation-bound Secret。`TechlongSandboxDeploymentWorkerRole` 只允许 exact receipt read、`tenant:*` authority CAS、在 `cell-sandbox-1` 上运行 revision-pinned `task-definition/tenant-lifecycle:*` 并恢复/观察/停止自身标记的任务、Pass exact TaskExecutionRole/LifecycleTaskRole，以及管理 generation-bound `techlong/sandbox/tenant/*/runtime/g*` Secret；它没有 CloudFormation、ALB 或 RDS 写权限。
 
 Janitor 不设置 Lambda Reserved Concurrency：该账号当前 Lambda 并发额度较低，预留 1 会违反 AWS 至少保留 10 个未预留并发的账号规则。并发风险改由 Sandbox `maxTenants=1`、单个全局计划、每次最多删除一个栈、严格所有权标签和幂等 `DeleteStack` 控制。
 
@@ -79,7 +86,7 @@ Bootstrap 模板中的 Janitor 源码使用占位符，部署脚本会从 `lambd
 npm --prefix .\ops\aws-sandbox test
 ```
 
-该命令同时执行 S0–S3-A Bootstrap、S3-B Shared Cell 渲染，以及 B5 Cell Bootstrap/双阶段 Change Set 边界检查。单独运行 `validate.mjs` 只覆盖 S0–S3-A，不等价于完整验证。
+该命令同时执行 S0–S3-A Bootstrap、S3-B Shared Cell 渲染、B5 Cell Bootstrap，以及 B5 support resource/Change Set/rollback 边界检查。单独运行 `validate.mjs` 只覆盖基础 Bootstrap，不等价于完整验证。
 
 检查内容包括：
 
@@ -94,10 +101,11 @@ npm --prefix .\ops\aws-sandbox test
 - 文本中没有常见 AWS、Stripe、PostgreSQL URL 或 PEM 私钥特征。
 - Provisioner Role 信任关系强制 MFA，且模板中不存在 IAM User/Group 资源。
 - 租户 Janitor 对错误前缀、缺标签、错误标签、无效/未来 `ExpiresAt`、嵌套 Stack，以及不匹配的 DeploymentId、AppInstanceId、CellId 或 ResourceGeneration 均拒绝删除。
-- Shared Cell 模板固定为 render-only，TTL Schedule 先于收费资源，Cell Janitor 与 Operator 权限边界保持独立且尚未部署。
+- Shared Cell 模板固定为 render-only，TTL Schedule 先于收费资源，Cell Janitor 与 Operator 权限边界保持独立且尚未部署；独立 one-shot SG 零入站，只有公网 TCP 443 与 exact DB SG TCP 5432 出站，相关输出/VPC/TTL/所有权/SG 规则由只读 preflight exact 校验。
 - B5 Bootstrap 本身不含 VPC、ALB、ECS、Aurora、NAT、VPC Endpoint 或 Route 53 Hosted Zone；Operator 不能直接 `CreateStack`/`UpdateStack`，只能操作固定 Cell Stack 的 Change Set。
 - B5 Operator 强制 MFA 和精确 session name；Cell、Janitor 和 Scheduler 角色彼此分离，Cell Janitor 有独立的 15 分钟扫描兜底。
 - ECR、CodeBuild、源码 Bucket、Scheduler 和角色权限边界没有漂移。
+- receipt Bucket、authority table、专用 LifecycleTaskRole、WorkerRole 与 B5-H Adapter 的固定账号、区域、Cell、`tenant-lifecycle:*` family、角色和 generation-bound Secret namespace 一致；普通 TaskRole 无 receipt/Secret identity permission，唯一 `Resource: *` 的 Worker ECS 权限是按 exact region/cluster 收紧的 `ListTasks` 与只在 `ecs:CreateAction=RunTask`/exact request tags 下生效的 tag-on-create。rollback 模板删除五个新增资源、撤销两项既有 boundary 中的 B5 能力并保留普通 TaskRole 的 S3 通配权限移除硬化；它不删除原有 Bootstrap、ECR、Janitor 或预算。
 
 ## Bootstrap 操作模式
 
@@ -128,6 +136,77 @@ npm --prefix .\ops\aws-sandbox test
   -BudgetAlertEmail 'ops@example.com' `
   -ConfirmAccountId '402010193138' `
   -AcknowledgeMfaPrerequisite
+```
+
+## B5 低成本支撑资源：一次受控 Bootstrap Update
+
+这一步只更新既有 `techlong-s3-bootstrap`，不会另建 support/Cell Stack。由于当前 Provisioner 的 boundary 按设计不能更新它自己的 Bootstrap，首次更新必须在 source user 登录恢复后执行一次；脚本精确拒绝其他账号、区域、Stack 和 principal。更新完成后，source user 不参与运行态：MFA Provisioner 只能以固定 session name Assume 最小 WorkerRole。这个受控例外不等于允许长期使用 IAM User，也不会打开 `applyRuntimeReady` 或 `cleanupRuntimeReady`。
+
+所有在线模式都只接受 AWS CLI v2 `login_session` profile：`login_session` 必须精确为 `arn:aws:iam::402010193138:user/techlong-sandbox-dev`，`aws configure list` 的 access/secret key source 必须都是 `login`，终端不得设置 `AWS_ACCESS_KEY_ID`、`AWS_SECRET_ACCESS_KEY` 或 `AWS_SESSION_TOKEN`。任意 `AWS_ENDPOINT_URL`/service-specific endpoint 环境变量，以及当前、default 或递归 source profile 中的 `endpoint_url`/`services` 配置也会被拒绝；通过检查后，脚本仍会在进程内强制 AWS CLI 忽略 configured endpoints。脚本随后在线确认 caller identity，并要求该用户只绑定 `arn:aws:iam::402010193138:mfa/techlong-sandbox-dev`。先在本机浏览器完成 AWS CLI 登录；长期 access key、shared credentials、`credential_process` 和 AssumeRole profile 都会被这个一次性 Bootstrap 入口拒绝：
+
+```powershell
+aws login --profile 'techlong-sandbox-user'
+aws configure get login_session --profile 'techlong-sandbox-user'
+aws configure list --profile 'techlong-sandbox-user'
+```
+
+`AcknowledgeMfaSession` 只是补充人工确认，不替代上述机器门禁。如果 AWS CLI 无法把凭据来源报告为 `login`，禁止用布尔参数绕过，改用已经完成 MFA 登录的 AWS Console 人工创建、检查和执行完全相同的 Change Set。
+
+默认仅本地验证，不调用 AWS：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-support-bootstrap.ps1
+```
+
+真实更新严格分为创建、查看、执行同一个 digest-bound Change Set 三条命令：
+
+```powershell
+# 1. 创建但不执行
+.\ops\aws-sandbox\scripts\s3-b5-support-bootstrap.ps1 `
+  -Mode CreateChangeSet `
+  -Profile 'techlong-sandbox-user' `
+  -ConfirmAccountId '402010193138' `
+  -ConfirmRegion 'ca-central-1' `
+  -ConfirmBootstrapStackName 'techlong-s3-bootstrap' `
+  -AcknowledgeAwsWrite `
+  -AcknowledgeLowCostNotFree `
+  -AcknowledgeSourceUserBootstrapRisk `
+  -AcknowledgeMfaSession
+
+# 2. 只读查看完整资源差异
+.\ops\aws-sandbox\scripts\s3-b5-support-bootstrap.ps1 `
+  -Mode InspectChangeSet `
+  -Profile 'techlong-sandbox-user'
+
+# 3. 人工确认查看结果后执行同一个 Change Set
+.\ops\aws-sandbox\scripts\s3-b5-support-bootstrap.ps1 `
+  -Mode ExecuteChangeSet `
+  -Profile 'techlong-sandbox-user' `
+  -ConfirmAccountId '402010193138' `
+  -ConfirmRegion 'ca-central-1' `
+  -ConfirmBootstrapStackName 'techlong-s3-bootstrap' `
+  -ConfirmExecutionPhrase 'I_ACKNOWLEDGE_B5_SUPPORT_BOOTSTRAP_AWS_CHANGES' `
+  -AcknowledgeAwsWrite `
+  -AcknowledgeLowCostNotFree `
+  -AcknowledgeSourceUserBootstrapRisk `
+  -AcknowledgeMfaSession `
+  -AcknowledgeChangeSetReviewed
+```
+
+Change Set 名由渲染后模板 SHA-256 自动生成，description 同时绑定 raw 与 canonical SHA-256。Inspect 和 Execute 都会调用 Change Set `GetTemplate --template-stage Original`，兼容 CLI 返回 JSON object 或 JSON string 的 `TemplateBody`，规范化后与本地本次渲染模板做 exact structure/hash 比较；同名或伪造 description 不能绕过。两阶段还会拒绝参数、账号、区域、Stack、精确 Add/Modify/Remove 集合、replacement、Notification ARN 或 CloudFormation service RoleARN 漂移；既有 Bootstrap Stack 状态只接受 `CREATE_COMPLETE`、`UPDATE_COMPLETE` 或 `UPDATE_ROLLBACK_COMPLETE`。如果 Stack 已绑定 service role 或处于其他状态，脚本会 fail closed，必须先单独评审，不能静默继续。`OnlineValidate`、`InspectChangeSet` 只有 source identity/MFA、IAM 与 CloudFormation 只读调用；其他未显式选择的模式均不会产生写入。
+
+费用不能保证绝对为零：S3 只产生少量 Standard storage/request 费用且 receipt 一天后过期；DynamoDB 只按实际请求计费，并设置 best-effort `5 RRU/s`、`2 WRU/s` 上限；IAM Role 不单独计费。模板不创建 KMS customer key、PITR、Stream、GSI、CloudWatch 新运行时、VPC、NAT、ALB、ECS、RDS/Aurora 或 DNS 资源。现有 `$10` Budget 仍只是延迟告警，不是硬断路器。
+
+首次 B5 support 更新还会把已部署 Janitor 提升到当前仓库的 generation/AppInstance/Cell ownership 围栏版本；CloudFormation 会把 `JanitorFunction` 及引用其 ARN 的 `SchedulerInvokeRole`、`GlobalJanitorSchedule` 显示为无替换更新。三项都绑定在同一份 exact TemplateBody，并且不扩大 Janitor 的 tenant-only 删除前缀。
+
+2026-08-22 已按上述三阶段流程执行 Change Set `techlong-s3-b5-support-1fb78e3a91ede382`。raw SHA-256 为 `1fb78e3a91ede382702792f2521f935aa690670ead7e05dc89a57cec0d0b0145`，canonical SHA-256 为 `15d68976bf94a94f0be0d205194782e4700a89aa51a846457b38b8e2c8988b62`；11 项变更与 allowlist 完全匹配，5 项新增、6 项无替换修改，Bootstrap 最终为 `UPDATE_COMPLETE`。部署后只读核验确认 receipt prefix 为空、authority table 为空且 `ACTIVE`、普通 TaskRole 没有任何 inline/attached policy、专用 LifecycleTaskRole/WorkerRole 权限与 trust/boundary 匹配。带 `aws:RequestedRegion=ca-central-1` 上下文的 IAM 模拟允许 5 个 Shared Cell evidence 读取动作，`CreateVpc`/`CreateDBCluster` 仍为 `implicitDeny`。该更新没有创建 Cell、tenant Stack、VPC、ALB、ECS 或 RDS；两个 runtime gate 保持关闭。
+
+回退同样是 create / inspect / execute 三阶段，但执行会先清空 exact receipt prefix，然后通过 Bootstrap UPDATE 删除 receipt Bucket、Bucket Policy、authority table、LifecycleTaskRole 和 WorkerRole，并从 `ServiceRoleBoundary` 与 `ProvisionerBoundary` 撤销 B5 support、Worker Assume 与 Shared Cell 只读预检能力。只读预检权限仅包含 `ca-central-1` 的 ECS/ELBv2/EC2/RDS Describe 动作，从未包含这些服务的写权限。回退会永久删除所有 receipt 和 authority record；普通 TaskRole 的 S3 通配权限移除和已升级 Janitor 围栏会保留，现有 ECR、CodeBuild、普通 TaskRole、Provisioner、Budget 和任何 Cell/tenant Stack 均不在删除范围内：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-support-bootstrap.ps1 -Mode CreateRollbackChangeSet -Profile 'techlong-sandbox-user' -ConfirmAccountId '402010193138' -ConfirmRegion 'ca-central-1' -ConfirmBootstrapStackName 'techlong-s3-bootstrap' -AcknowledgeAwsWrite -AcknowledgeLowCostNotFree -AcknowledgeSourceUserBootstrapRisk -AcknowledgeMfaSession
+.\ops\aws-sandbox\scripts\s3-b5-support-bootstrap.ps1 -Mode InspectRollbackChangeSet -Profile 'techlong-sandbox-user'
+.\ops\aws-sandbox\scripts\s3-b5-support-bootstrap.ps1 -Mode ExecuteRollbackChangeSet -Profile 'techlong-sandbox-user' -ConfirmAccountId '402010193138' -ConfirmRegion 'ca-central-1' -ConfirmBootstrapStackName 'techlong-s3-bootstrap' -ConfirmExecutionPhrase 'I_ACKNOWLEDGE_B5_SUPPORT_ROLLBACK_DATA_DELETION' -AcknowledgeAwsWrite -AcknowledgeLowCostNotFree -AcknowledgeSourceUserBootstrapRisk -AcknowledgeMfaSession -AcknowledgeChangeSetReviewed -AcknowledgeDeleteAllReceipts -AcknowledgeDeleteAuthorityRecords
 ```
 
 ## B5 Cell Bootstrap（仍不创建 Shared Cell）
@@ -181,7 +260,7 @@ npm --prefix .\ops\aws-sandbox test
 
 ## 此前核验的云端状态与后续门禁
 
-以下条目来自 S3-A 阶段的历史在线核验；本次 S3-B 离线收口没有重新查询 AWS。
+以下条目包含 S3-A 历史核验与 2026-08-22 B5-I support update 的最新在线状态。
 
 1. AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`；当前终端 PATH 尚未刷新，可以先使用绝对路径。
 2. 已确认 `techlong-sandbox-dev` 绑定 MFA，并配置不含密钥的 `techlong-sandbox-provisioner` AssumeRole Profile。首次角色会话需要操作者在本地终端输入 MFA 一次性验证码；后续还应移除 IAM User 继承的长期 AdministratorAccess，只保留受控 AssumeRole 能力。
@@ -192,6 +271,7 @@ npm --prefix .\ops\aws-sandbox test
 7. Janitor 已在真实 AWS 中验证空扫描、伪造共享 Cell 拒绝路径和到期临时租户 Stack 删除路径；测试资源已完全清除。
 8. 第二次受控 CodeBuild 已从后端提交 `e3f4e1722686cdc9de4e46115332afaf6da7678d` 生成 Distroless 镜像 `sha256:7063a9ab2765f8fb565a581c810047b8fc2a4119fe5d288a685bd6c87b3eae78`；构建与 smoke test 全部成功，ECR 扫描 `COMPLETE` 且没有发现漏洞。第一张含 Perl 的镜像因 `3 Critical / 5 High / 6 Medium` 被明确拒绝。
 9. 合格镜像尚未写入 execution binding，Worker 和 Apply 仍关闭；镜像构建后再次确认没有活动的 tenant/Cell Stack。创建收费 Stack 前必须先建立一次性清理计划，创建失败时部署必须中止。
+10. B5 receipt Bucket、authority table、专用 LifecycleTaskRole 和最小 WorkerRole 已由受审 Change Set 部署；Bootstrap 为 `UPDATE_COMPLETE`，receipt prefix 与 authority table 均为空，未创建 Cell 或 tenant Stack。scoped rollback 脚本已通过静态审查，但它会永久删除 receipt/authority data，真实回退演练仍须在无租户状态下单独批准。
 
 B4 Cell 模板只允许 `aurora-postgresql-serverless-v2`，最多一个共享 Cell，固定 PostgreSQL `16.14`、关闭自动小版本升级，使用 `minAcu=0`、`maxAcu=1`、`secondsUntilAutoPause=300`，并禁止每租户独立 Cluster、额外 Reader、传统 Multi-AZ 实例、DB Proxy、Global Database、预留购买和快照恢复。Aurora Cluster 本身不能被策略绝对禁止，否则生产兼容的 Sandbox Cell 无法创建；真实 Apply 前还必须重新核对该 Region 支持的 Engine/自动暂停能力，并由受控模板、Execution Role 与部署前静态检查共同锁定。
 
@@ -222,7 +302,7 @@ ExpiresAt=<UTC timestamp>
 ## 策略示例的重要限制
 
 - `provisioner-permissions-boundary.example.json` 是最大权限边界，不是授予权限的 Identity Policy。
-- Provisioner 只被允许管理 `techlong-sandbox-tenant-*` CloudFormation Stack，并只可 Pass 指定的 Sandbox Execution Role；共享 Cell 和 Bootstrap 不在租户 Worker 权限内。
+- Provisioner 只被允许管理 `techlong-sandbox-tenant-*` CloudFormation Stack、Pass 指定的 Sandbox Execution Role，并以固定 session name Assume exact `TechlongSandboxDeploymentWorkerRole`；共享 Cell 和 Bootstrap 仍不在其 CloudFormation 权限内。
 - B5 Cell Operator 只能为精确的 `techlong-sandbox-cell-sandbox-1` 创建、读取和执行 Change Set；不能直接调用 `CreateStack` 或 `UpdateStack`。Cell Bootstrap 自身仍由现有 IAM User 通过独立双阶段脚本创建，因此移除该用户的长期 AdministratorAccess 仍是付费 Cell 前置条件。
 - B5 Cell Execution Boundary 既有明确 Allow 清单，也显式 Deny NAT、VPC Endpoint、EC2、RDS Proxy、Global Database、快照恢复和预留购买；但 IAM 条件键与 CloudFormation 实际调用必须在未来 OnlineValidate/IAM simulation 中再次核对，离线检查不构成 AWS 授权证明。
 - `sandbox-expensive-actions-deny.example.json` 是 Deny-only 示例。当前账号未使用 AWS Organizations，因此只能把它作为 IAM Policy 评审起点，不能假设 SCP 已生效。

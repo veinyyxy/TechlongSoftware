@@ -57,6 +57,8 @@ export interface CloudFormationTenantStackPlan {
     controlListenerMtlsRequired: true;
     cleanupScheduleFirst: true;
     fixedTaskCount: 1;
+    sandboxEphemeralImageStorage: true;
+    persistentImageStorageReady: false;
   };
 }
 
@@ -289,8 +291,6 @@ export function renderAwsSandboxTenantStack(
       StripePublishableKey: { Type: "String" },
       StripeSuccessUrl: { Type: "String" },
       StripeCancelUrl: { Type: "String" },
-      ImageS3Bucket: { Type: "String" },
-      ImagePublicBaseUrl: { Type: "String" },
       ImageUri: { Type: "String" },
       TenantHostname: { Type: "String" },
       AppInstanceId: { Type: "String" },
@@ -411,12 +411,12 @@ export function renderAwsSandboxTenantStack(
                 },
                 { Name: "STRIPE_SUCCESS_URL", Value: ref("StripeSuccessUrl") },
                 { Name: "STRIPE_CANCEL_URL", Value: ref("StripeCancelUrl") },
-                { Name: "IMAGE_STORAGE_PROVIDER", Value: "s3" },
-                { Name: "IMAGE_S3_BUCKET", Value: ref("ImageS3Bucket") },
                 {
-                  Name: "IMAGE_PUBLIC_BASE_URL",
-                  Value: ref("ImagePublicBaseUrl"),
+                  Name: "APP_RUNTIME_MODE",
+                  Value: "aws_sandbox_ephemeral_canary",
                 },
+                { Name: "ALLOW_EPHEMERAL_IMAGE_STORAGE", Value: "true" },
+                { Name: "IMAGE_STORAGE_PROVIDER", Value: "local" },
                 { Name: "AWS_REGION", Value: input.environment.region },
                 { Name: "PGSSLMODE", Value: "verify-full" },
                 { Name: "PGSSL_REJECT_UNAUTHORIZED", Value: "true" },
@@ -645,8 +645,6 @@ export function renderAwsSandboxTenantStack(
       "StripePublishableKey",
       "StripeSuccessUrl",
       "StripeCancelUrl",
-      "ImageS3Bucket",
-      "ImagePublicBaseUrl",
       "JanitorFunctionArn",
       "SchedulerInvokeRoleArn",
       "SchedulerGroupName",
@@ -663,6 +661,8 @@ export function renderAwsSandboxTenantStack(
       controlListenerMtlsRequired: true,
       cleanupScheduleFirst: true,
       fixedTaskCount: 1,
+      sandboxEphemeralImageStorage: true,
+      persistentImageStorageReady: false,
     },
   };
 }

@@ -40,6 +40,17 @@
     "queuedTimeoutMinutes": 5,
     "concurrentBuildLimit": 1
   },
+  "b5Support": {
+    "receiptBucketName": "techlong-sandbox-402010193138-ca-central-1-tenant-receipts",
+    "receiptPrefix": "tenant-lifecycle/v1/",
+    "receiptRetentionDays": 1,
+    "authorityTableName": "techlong-sandbox-tenant-external-epoch-authority",
+    "authorityBillingMode": "PAY_PER_REQUEST",
+    "authorityMaxReadRequestUnits": 5,
+    "authorityMaxWriteRequestUnits": 2,
+    "applyRuntimeReady": false,
+    "cleanupRuntimeReady": false
+  },
   "limits": {
     "maxConcurrentCells": 1,
     "maxConcurrentDeployments": 1,

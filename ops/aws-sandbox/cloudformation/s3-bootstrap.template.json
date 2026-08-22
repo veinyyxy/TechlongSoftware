@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "S3-A bootstrap for the Techlong AWS Sandbox: bounded roles, TTL janitor, immutable ECR and disabled-by-default CodeBuild foundation.",
+  "Description": "Techlong AWS Sandbox bootstrap: bounded roles, TTL janitor, immutable ECR, disabled-by-default CodeBuild, and low-cost B5 receipt/epoch support resources.",
   "Metadata": {
     "SafetyBoundary": {
       "ExpectedAccountId": "402010193138",
@@ -8,7 +8,12 @@
       "TenantStackPrefix": "techlong-sandbox-tenant-",
       "ModifiesExistingIamUserOrGroup": false,
       "RequiresMfaToAssumeProvisionerRole": true,
-      "CreatesVpcOrDatabaseResources": false
+      "CreatesVpcOrDatabaseResources": false,
+      "CreatesB5SupportResources": true,
+      "ApplyRuntimeReady": false,
+      "CleanupRuntimeReady": false,
+      "ReceiptRetentionDays": 1,
+      "AuthorityBillingMode": "PAY_PER_REQUEST"
     }
   },
   "Parameters": {
@@ -144,16 +149,83 @@
               "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/*"
             },
             {
-              "Sid": "AllowTaskSandboxObjects",
+              "Sid": "AllowExactTenantLifecycleReceipts",
               "Effect": "Allow",
-              "Action": ["s3:DeleteObject", "s3:GetObject", "s3:PutObject"],
-              "Resource": "arn:aws:s3:::techlong-sandbox-*/*"
+              "Action": ["s3:GetObject", "s3:PutObject"],
+              "Resource": "arn:aws:s3:::techlong-sandbox-402010193138-ca-central-1-tenant-receipts/tenant-lifecycle/v1/*"
             },
             {
-              "Sid": "AllowTaskSandboxBucketList",
+              "Sid": "AllowExactExternalEpochAuthority",
               "Effect": "Allow",
-              "Action": ["s3:ListBucket"],
-              "Resource": "arn:aws:s3:::techlong-sandbox-*"
+              "Action": ["dynamodb:GetItem", "dynamodb:PutItem"],
+              "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority"
+            },
+            {
+              "Sid": "AllowExactTenantLifecycleRunTask",
+              "Effect": "Allow",
+              "Action": "ecs:RunTask",
+              "Resource": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-lifecycle:*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" },
+                "ArnEquals": {
+                  "ecs:cluster": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1"
+                }
+              }
+            },
+            {
+              "Sid": "AllowExactCellOneShotTaskControl",
+              "Effect": "Allow",
+              "Action": ["ecs:DescribeTasks", "ecs:StopTask"],
+              "Resource": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/*"
+            },
+            {
+              "Sid": "AllowExactCellOneShotTaskRecovery",
+              "Effect": "Allow",
+              "Action": "ecs:ListTasks",
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" },
+                "ArnEquals": {
+                  "ecs:cluster": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1"
+                }
+              }
+            },
+            {
+              "Sid": "AllowRunTaskTagAuthorizationOnly",
+              "Effect": "Allow",
+              "Action": "ecs:TagResource",
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1",
+                  "ecs:CreateAction": "RunTask"
+                }
+              }
+            },
+            {
+              "Sid": "AllowPassOnlySandboxTaskRoles",
+              "Effect": "Allow",
+              "Action": "iam:PassRole",
+              "Resource": [
+                "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+                "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole"
+              ],
+              "Condition": {
+                "StringEquals": { "iam:PassedToService": "ecs-tasks.amazonaws.com" }
+              }
+            },
+            {
+              "Sid": "AllowGenerationOwnedRuntimeSecretLifecycle",
+              "Effect": "Allow",
+              "Action": [
+                "secretsmanager:CreateSecret",
+                "secretsmanager:DeleteSecret",
+                "secretsmanager:DescribeSecret",
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:PutSecretValue",
+                "secretsmanager:TagResource"
+              ],
+              "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/*/runtime/g*-??????"
             },
             {
               "Sid": "AllowCodeBuildSourceRead",
@@ -678,21 +750,76 @@
             }
           ]
         },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "tenant-runtime" }
+        ]
+      }
+    },
+    "TenantLifecycleTaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxTenantLifecycleTaskRole",
+        "Description": "Dedicated one-shot lifecycle task role; never assigned to the public tenant web service.",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "ServiceRoleBoundary" },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "ecs-tasks.amazonaws.com" },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": { "aws:SourceAccount": "402010193138" },
+                "ArnLike": {
+                  "aws:SourceArn": "arn:aws:ecs:ca-central-1:402010193138:*"
+                }
+              }
+            }
+          ]
+        },
         "Policies": [
           {
-            "PolicyName": "SandboxImageObjectsOnly",
+            "PolicyName": "ImmutableReceiptsAndGenerationSecretRead",
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [
                 {
+                  "Sid": "ReadExactReceiptForIdempotentReplay",
                   "Effect": "Allow",
-                  "Action": "s3:ListBucket",
-                  "Resource": "arn:aws:s3:::techlong-sandbox-*"
+                  "Action": "s3:GetObject",
+                  "Resource": "arn:aws:s3:::techlong-sandbox-402010193138-ca-central-1-tenant-receipts/tenant-lifecycle/v1/*"
                 },
                 {
+                  "Sid": "CreateExactImmutableReceipt",
                   "Effect": "Allow",
-                  "Action": ["s3:DeleteObject", "s3:GetObject", "s3:PutObject"],
-                  "Resource": "arn:aws:s3:::techlong-sandbox-*/*"
+                  "Action": "s3:PutObject",
+                  "Resource": "arn:aws:s3:::techlong-sandbox-402010193138-ca-central-1-tenant-receipts/tenant-lifecycle/v1/*",
+                  "Condition": {
+                    "StringEquals": {
+                      "s3:x-amz-server-side-encryption": "AES256",
+                      "s3:if-none-match": "*"
+                    }
+                  }
+                },
+                {
+                  "Sid": "ReadGenerationOwnedRuntimeSecret",
+                  "Effect": "Allow",
+                  "Action": [
+                    "secretsmanager:DescribeSecret",
+                    "secretsmanager:GetSecretValue"
+                  ],
+                  "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/*/runtime/g*-??????",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:RequestedRegion": "ca-central-1",
+                      "aws:ResourceTag/ManagedBy": "techlong-deployment-worker",
+                      "aws:ResourceTag/SecretSchema": "techlong-runtime-five-key-v1"
+                    }
+                  }
                 }
               ]
             }
@@ -701,7 +828,428 @@
         "Tags": [
           { "Key": "Environment", "Value": "aws-sandbox" },
           { "Key": "ManagedBy", "Value": "techlong-provisioner" },
-          { "Key": "Component", "Value": "tenant-runtime" }
+          { "Key": "Component", "Value": "tenant-lifecycle-one-shot" }
+        ]
+      }
+    },
+    "TenantLifecycleReceiptBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Condition": "IsExpectedTarget",
+      "DeletionPolicy": "Delete",
+      "UpdateReplacePolicy": "Delete",
+      "Properties": {
+        "BucketName": "techlong-sandbox-402010193138-ca-central-1-tenant-receipts",
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "Id": "ExpireTenantLifecycleReceiptsAfterOneDay",
+              "Prefix": "tenant-lifecycle/v1/",
+              "Status": "Enabled",
+              "ExpirationInDays": 1
+            }
+          ]
+        },
+        "OwnershipControls": {
+          "Rules": [{ "ObjectOwnership": "BucketOwnerEnforced" }]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "tenant-lifecycle-receipts" }
+        ]
+      }
+    },
+    "TenantLifecycleReceiptBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "Bucket": { "Ref": "TenantLifecycleReceiptBucket" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyInsecureTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                { "Fn::GetAtt": ["TenantLifecycleReceiptBucket", "Arn"] },
+                {
+                  "Fn::Sub": "${TenantLifecycleReceiptBucket.Arn}/*"
+                }
+              ],
+              "Condition": {
+                "Bool": { "aws:SecureTransport": "false" }
+              }
+            },
+            {
+              "Sid": "DenyReceiptWritesWithoutSseS3",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:PutObject",
+              "Resource": {
+                "Fn::Sub": "${TenantLifecycleReceiptBucket.Arn}/tenant-lifecycle/v1/*"
+              },
+              "Condition": {
+                "StringNotEquals": {
+                  "s3:x-amz-server-side-encryption": "AES256"
+                }
+              }
+            },
+            {
+              "Sid": "DenyReceiptWritesWithoutIfNoneMatch",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:PutObject",
+              "Resource": {
+                "Fn::Sub": "${TenantLifecycleReceiptBucket.Arn}/tenant-lifecycle/v1/*"
+              },
+              "Condition": {
+                "Null": { "s3:if-none-match": "true" }
+              }
+            },
+            {
+              "Sid": "DenyReceiptWritesWithWrongIfNoneMatch",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:PutObject",
+              "Resource": {
+                "Fn::Sub": "${TenantLifecycleReceiptBucket.Arn}/tenant-lifecycle/v1/*"
+              },
+              "Condition": {
+                "StringNotEquals": { "s3:if-none-match": "*" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "TenantExternalEpochAuthorityTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Condition": "IsExpectedTarget",
+      "DeletionPolicy": "Delete",
+      "UpdateReplacePolicy": "Delete",
+      "Properties": {
+        "TableName": "techlong-sandbox-tenant-external-epoch-authority",
+        "AttributeDefinitions": [
+          { "AttributeName": "authority_key", "AttributeType": "S" }
+        ],
+        "KeySchema": [
+          { "AttributeName": "authority_key", "KeyType": "HASH" }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "OnDemandThroughput": {
+          "MaxReadRequestUnits": 5,
+          "MaxWriteRequestUnits": 2
+        },
+        "DeletionProtectionEnabled": false,
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": false
+        },
+        "SSESpecification": { "SSEEnabled": false },
+        "TableClass": "STANDARD",
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "tenant-external-epoch-authority" }
+        ]
+      }
+    },
+    "DeploymentWorkerRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxDeploymentWorkerRole",
+        "Description": "Least-privilege B5 one-shot canary role; creating it does not enable the Worker runtime.",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "ServiceRoleBoundary" },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AllowSandboxEcsWorkerTask",
+              "Effect": "Allow",
+              "Principal": { "Service": "ecs-tasks.amazonaws.com" },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": { "aws:SourceAccount": "402010193138" },
+                "ArnLike": {
+                  "aws:SourceArn": "arn:aws:ecs:ca-central-1:402010193138:*"
+                }
+              }
+            },
+            {
+              "Sid": "AllowMfaProvisionerCanarySession",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": { "Fn::GetAtt": ["ProvisionerRole", "Arn"] }
+              },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": {
+                  "sts:RoleSessionName": "techlong-sandbox-worker-canary"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "TenantLifecycleOneShotCanary",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "ReadExactTenantLifecycleReceipts",
+                  "Effect": "Allow",
+                  "Action": "s3:GetObject",
+                  "Resource": "arn:aws:s3:::techlong-sandbox-402010193138-ca-central-1-tenant-receipts/tenant-lifecycle/v1/*"
+                },
+                {
+                  "Sid": "ReadWriteExactExternalEpochAuthority",
+                  "Effect": "Allow",
+                  "Action": ["dynamodb:GetItem", "dynamodb:PutItem"],
+                  "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+                  "Condition": {
+                    "ForAllValues:StringLike": {
+                      "dynamodb:LeadingKeys": ["tenant:*"]
+                    }
+                  }
+                },
+                {
+                  "Sid": "RunExactTenantLifecycleTask",
+                  "Effect": "Allow",
+                  "Action": "ecs:RunTask",
+                  "Resource": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-lifecycle:*",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:RequestedRegion": "ca-central-1",
+                      "aws:RequestTag/ManagedBy": "techlong-deployment-worker",
+                      "ecs:enable-execute-command": "false"
+                    },
+                    "ArnEquals": {
+                      "ecs:cluster": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1"
+                    },
+                    "Null": {
+                      "aws:RequestTag/ManagedBy": "false",
+                      "aws:RequestTag/ResourceGeneration": "false",
+                      "aws:RequestTag/OwnershipMarker": "false",
+                      "aws:RequestTag/ExternalOperationEpoch": "false",
+                      "aws:RequestTag/ExternalOperationMarker": "false",
+                      "aws:RequestTag/ExternalOperationHash": "false"
+                    },
+                    "ForAllValues:StringEquals": {
+                      "aws:TagKeys": [
+                        "ManagedBy",
+                        "ResourceGeneration",
+                        "OwnershipMarker",
+                        "ExternalOperationEpoch",
+                        "ExternalOperationMarker",
+                        "ExternalOperationHash"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Sid": "AuthorizeExactRunTaskTags",
+                  "Effect": "Allow",
+                  "Action": "ecs:TagResource",
+                  "Resource": "*",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:RequestedRegion": "ca-central-1",
+                      "aws:RequestTag/ManagedBy": "techlong-deployment-worker",
+                      "ecs:CreateAction": "RunTask"
+                    },
+                    "Null": {
+                      "aws:RequestTag/ManagedBy": "false",
+                      "aws:RequestTag/ResourceGeneration": "false",
+                      "aws:RequestTag/OwnershipMarker": "false",
+                      "aws:RequestTag/ExternalOperationEpoch": "false",
+                      "aws:RequestTag/ExternalOperationMarker": "false",
+                      "aws:RequestTag/ExternalOperationHash": "false"
+                    },
+                    "ForAllValues:StringEquals": {
+                      "aws:TagKeys": [
+                        "ManagedBy",
+                        "ResourceGeneration",
+                        "OwnershipMarker",
+                        "ExternalOperationEpoch",
+                        "ExternalOperationMarker",
+                        "ExternalOperationHash"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Sid": "RecoverOnlyExactCellTasks",
+                  "Effect": "Allow",
+                  "Action": "ecs:ListTasks",
+                  "Resource": "*",
+                  "Condition": {
+                    "StringEquals": { "aws:RequestedRegion": "ca-central-1" },
+                    "ArnEquals": {
+                      "ecs:cluster": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1"
+                    }
+                  }
+                },
+                {
+                  "Sid": "ObserveAndStopOwnedCellTasks",
+                  "Effect": "Allow",
+                  "Action": ["ecs:DescribeTasks", "ecs:StopTask"],
+                  "Resource": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/*",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:RequestedRegion": "ca-central-1",
+                      "aws:ResourceTag/ManagedBy": "techlong-deployment-worker"
+                    },
+                    "ArnEquals": {
+                      "ecs:cluster": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1"
+                    }
+                  }
+                },
+                {
+                  "Sid": "PassOnlySandboxTaskRolesToEcs",
+                  "Effect": "Allow",
+                  "Action": "iam:PassRole",
+                  "Resource": [
+                    "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+                    "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole"
+                  ],
+                  "Condition": {
+                    "StringEquals": {
+                      "iam:PassedToService": "ecs-tasks.amazonaws.com"
+                    }
+                  }
+                },
+                {
+                  "Sid": "CreateGenerationOwnedRuntimeSecret",
+                  "Effect": "Allow",
+                  "Action": "secretsmanager:CreateSecret",
+                  "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/*/runtime/g*-??????",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:RequestedRegion": "ca-central-1",
+                      "aws:RequestTag/ManagedBy": "techlong-deployment-worker",
+                      "aws:RequestTag/SecretSchema": "techlong-runtime-five-key-v1",
+                      "secretsmanager:Description": "Techlong generation-owned tenant runtime secret"
+                    },
+                    "StringLike": {
+                      "aws:RequestTag/ResourceGeneration": "*",
+                      "aws:RequestTag/OwnershipMarker": "tl_owner_*_g*",
+                      "secretsmanager:Name": "techlong/sandbox/tenant/*/runtime/g*"
+                    },
+                    "Null": {
+                      "aws:RequestTag/ManagedBy": "false",
+                      "aws:RequestTag/SecretSchema": "false",
+                      "aws:RequestTag/ResourceGeneration": "false",
+                      "aws:RequestTag/OwnershipMarker": "false",
+                      "secretsmanager:AddReplicaRegions": "true",
+                      "secretsmanager:KmsKeyId": "true"
+                    },
+                    "ForAllValues:StringEquals": {
+                      "aws:TagKeys": [
+                        "ManagedBy",
+                        "SecretSchema",
+                        "ResourceGeneration",
+                        "OwnershipMarker"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Sid": "TagGenerationOwnedRuntimeSecret",
+                  "Effect": "Allow",
+                  "Action": "secretsmanager:TagResource",
+                  "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/*/runtime/g*-??????",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:RequestedRegion": "ca-central-1",
+                      "aws:RequestTag/ManagedBy": "techlong-deployment-worker",
+                      "aws:RequestTag/SecretSchema": "techlong-runtime-five-key-v1"
+                    },
+                    "StringLike": {
+                      "aws:RequestTag/ResourceGeneration": "*",
+                      "aws:RequestTag/OwnershipMarker": "tl_owner_*_g*"
+                    },
+                    "Null": {
+                      "aws:RequestTag/ManagedBy": "false",
+                      "aws:RequestTag/SecretSchema": "false",
+                      "aws:RequestTag/ResourceGeneration": "false",
+                      "aws:RequestTag/OwnershipMarker": "false"
+                    },
+                    "ForAllValues:StringEquals": {
+                      "aws:TagKeys": [
+                        "ManagedBy",
+                        "SecretSchema",
+                        "ResourceGeneration",
+                        "OwnershipMarker"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Sid": "ReadAndVersionOwnedRuntimeSecrets",
+                  "Effect": "Allow",
+                  "Action": [
+                    "secretsmanager:DescribeSecret",
+                    "secretsmanager:GetSecretValue",
+                    "secretsmanager:PutSecretValue"
+                  ],
+                  "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/*/runtime/g*-??????",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:RequestedRegion": "ca-central-1",
+                      "aws:ResourceTag/ManagedBy": "techlong-deployment-worker",
+                      "aws:ResourceTag/SecretSchema": "techlong-runtime-five-key-v1"
+                    }
+                  }
+                },
+                {
+                  "Sid": "ScheduleOwnedRuntimeSecretDeletion",
+                  "Effect": "Allow",
+                  "Action": "secretsmanager:DeleteSecret",
+                  "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/*/runtime/g*-??????",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:RequestedRegion": "ca-central-1",
+                      "aws:ResourceTag/ManagedBy": "techlong-deployment-worker",
+                      "aws:ResourceTag/SecretSchema": "techlong-runtime-five-key-v1"
+                    },
+                    "BoolIfExists": {
+                      "secretsmanager:ForceDeleteWithoutRecovery": "false"
+                    },
+                    "NumericGreaterThanEquals": {
+                      "secretsmanager:RecoveryWindowInDays": 7
+                    },
+                    "NumericLessThanEquals": {
+                      "secretsmanager:RecoveryWindowInDays": 30
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "deployment-worker-support" }
         ]
       }
     },
@@ -924,6 +1472,30 @@
               "Resource": "*"
             },
             {
+              "Sid": "AllowSharedCellReadOnlyPreflight",
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInternetGateways",
+                "ec2:DescribeRouteTables",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeVpcs",
+                "ecs:DescribeClusters",
+                "elasticloadbalancing:DescribeListeners",
+                "elasticloadbalancing:DescribeLoadBalancers",
+                "elasticloadbalancing:DescribeRules",
+                "elasticloadbalancing:DescribeTags",
+                "elasticloadbalancing:DescribeTrustStores",
+                "rds:DescribeDBClusters",
+                "rds:DescribeDBInstances",
+                "rds:DescribeDBSubnetGroups"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
               "Sid": "AllowCreateOnlyTaggedSandboxStacks",
               "Effect": "Allow",
               "Action": "cloudformation:CreateStack",
@@ -968,6 +1540,12 @@
                   "iam:PassedToService": "cloudformation.amazonaws.com"
                 }
               }
+            },
+            {
+              "Sid": "AllowExactWorkerCanaryRole",
+              "Effect": "Allow",
+              "Action": "sts:AssumeRole",
+              "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxDeploymentWorkerRole"
             },
             {
               "Sid": "AllowExplicitImageBuild",
@@ -1052,6 +1630,30 @@
     "TaskRoleArn": {
       "Condition": "IsExpectedTarget",
       "Value": { "Fn::GetAtt": ["TaskRole", "Arn"] }
+    },
+    "TenantLifecycleTaskRoleArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["TenantLifecycleTaskRole", "Arn"] }
+    },
+    "TenantLifecycleReceiptBucketName": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Ref": "TenantLifecycleReceiptBucket" }
+    },
+    "TenantLifecycleReceiptBucketArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["TenantLifecycleReceiptBucket", "Arn"] }
+    },
+    "TenantExternalEpochAuthorityTableName": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Ref": "TenantExternalEpochAuthorityTable" }
+    },
+    "TenantExternalEpochAuthorityTableArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["TenantExternalEpochAuthorityTable", "Arn"] }
+    },
+    "DeploymentWorkerRoleArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["DeploymentWorkerRole", "Arn"] }
     },
     "JanitorFunctionArn": {
       "Condition": "IsExpectedTarget",

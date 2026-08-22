@@ -22,6 +22,16 @@ export interface SharedCellIngressObservation {
   prefixListId?: string;
 }
 
+export interface SharedCellEgressObservation {
+  protocol: "tcp" | string;
+  fromPort: number;
+  toPort: number;
+  destinationSecurityGroupId?: string;
+  cidrIpv4?: string;
+  cidrIpv6?: string;
+  prefixListId?: string;
+}
+
 export interface SharedCellListenerObservation {
   arn: string;
   loadBalancerArn: string;
@@ -38,6 +48,7 @@ export interface SharedCellSecurityGroupObservation {
   id: string;
   vpcId: string;
   ingress: SharedCellIngressObservation[];
+  egress: SharedCellEgressObservation[];
   tags: SharedCellResourceTags;
 }
 
@@ -47,6 +58,39 @@ export interface SharedCellSubnetObservation {
   availabilityZone: string;
   state: string;
   mapPublicIpOnLaunch: boolean;
+  tags: SharedCellResourceTags;
+}
+
+export interface SharedCellRouteObservation {
+  destinationCidrIpv4?: string;
+  destinationCidrIpv6?: string;
+  destinationPrefixListId?: string;
+  state: string;
+  targetType: string;
+  targetId: string;
+}
+
+export interface SharedCellRouteTableAssociationObservation {
+  id: string;
+  subnetId?: string;
+  main: boolean;
+  state: string;
+}
+
+export interface SharedCellRouteTableObservation {
+  id: string;
+  vpcId: string;
+  associations: SharedCellRouteTableAssociationObservation[];
+  routes: SharedCellRouteObservation[];
+  tags: SharedCellResourceTags;
+}
+
+export interface SharedCellInternetGatewayObservation {
+  id: string;
+  attachments: Array<{
+    vpcId: string;
+    state: string;
+  }>;
   tags: SharedCellResourceTags;
 }
 
@@ -90,6 +134,8 @@ export interface SharedCellSecurityObservation {
   vpcTags: SharedCellResourceTags;
   subnetIds: string[];
   subnets: SharedCellSubnetObservation[];
+  routeTables: SharedCellRouteTableObservation[];
+  internetGateway: SharedCellInternetGatewayObservation;
   httpsListener: SharedCellListenerObservation;
   controlListener: SharedCellListenerObservation;
   loadBalancer: {
@@ -105,6 +151,7 @@ export interface SharedCellSecurityObservation {
   };
   loadBalancerSecurityGroups: SharedCellSecurityGroupObservation[];
   taskSecurityGroup: SharedCellSecurityGroupObservation;
+  oneShotTaskSecurityGroup: SharedCellSecurityGroupObservation;
   databaseSecurityGroup: SharedCellSecurityGroupObservation;
   database: SharedCellDatabaseObservation;
 }
@@ -115,6 +162,54 @@ function sorted(values: string[]): string[] {
 
 function sameSet(left: string[], right: string[]): boolean {
   return sorted(left).join(",") === sorted(right).join(",");
+}
+
+function effectiveRouteTableForSubnet(input: {
+  routeTables: SharedCellRouteTableObservation[];
+  subnetId: string;
+  requireExplicitAssociation: boolean;
+}): SharedCellRouteTableObservation {
+  const explicit = input.routeTables.flatMap((routeTable) =>
+    routeTable.associations
+      .filter((association) => association.subnetId === input.subnetId)
+      .map((association) => ({ association, routeTable })),
+  );
+  if (explicit.length > 0) {
+    const match = explicit[0];
+    if (
+      explicit.length !== 1 ||
+      !match.association.id ||
+      match.association.main ||
+      match.association.state !== "associated"
+    ) {
+      throw new Error(
+        `Shared Cell subnet ${input.subnetId} does not have one active exact route table association.`,
+      );
+    }
+    return match.routeTable;
+  }
+  if (input.requireExplicitAssociation) {
+    throw new Error(
+      `Shared Cell public subnet ${input.subnetId} has no active exact route table association.`,
+    );
+  }
+  const main = input.routeTables.flatMap((routeTable) =>
+    routeTable.associations
+      .filter((association) => association.main)
+      .map((association) => ({ association, routeTable })),
+  );
+  const match = main[0];
+  if (
+    main.length !== 1 ||
+    !match.association.id ||
+    match.association.subnetId ||
+    match.association.state !== "associated"
+  ) {
+    throw new Error(
+      `Shared Cell subnet ${input.subnetId} has no unambiguous active effective route table.`,
+    );
+  }
+  return match.routeTable;
 }
 
 function assertArnScope(
@@ -196,6 +291,9 @@ export function assertSharedCellSecurityObservation(input: {
     observation.vpcId !== parameters.VpcId ||
     observation.taskSecurityGroup.id !== parameters.TaskSecurityGroupId ||
     observation.taskSecurityGroup.vpcId !== parameters.VpcId ||
+    observation.oneShotTaskSecurityGroup.id !==
+      parameters.OneShotTaskSecurityGroupId ||
+    observation.oneShotTaskSecurityGroup.vpcId !== parameters.VpcId ||
     !Number.isSafeInteger(observation.observedAt) ||
     observation.observedAt <= 0
   ) {
@@ -239,6 +337,17 @@ export function assertSharedCellSecurityObservation(input: {
   ) {
     throw new Error("Shared Cell ALB or database references an unobserved subnet.");
   }
+  const taskSubnets = observation.subnets.filter((subnet) =>
+    observation.subnetIds.includes(subnet.id),
+  );
+  if (
+    taskSubnets.length !== observation.subnetIds.length ||
+    taskSubnets.some((subnet) => !subnet.mapPublicIpOnLaunch)
+  ) {
+    throw new Error(
+      "Shared Cell Sandbox task subnets must be public for assigned public IPs.",
+    );
+  }
   const databaseSubnets = observation.subnets.filter((subnet) =>
     observation.database.subnetIds.includes(subnet.id),
   );
@@ -248,6 +357,112 @@ export function assertSharedCellSecurityObservation(input: {
     new Set(databaseSubnets.map((subnet) => subnet.availabilityZone)).size < 2
   ) {
     throw new Error("Shared Cell database subnets must be private and span two availability zones.");
+  }
+  const internetGateway = observation.internetGateway;
+  if (
+    !/^igw-[0-9a-f]{8,17}$/.test(internetGateway.id) ||
+    internetGateway.attachments.length !== 1 ||
+    internetGateway.attachments[0].vpcId !== observation.vpcId ||
+    internetGateway.attachments[0].state !== "available"
+  ) {
+    throw new Error(
+      "Shared Cell internet gateway must be the exact available gateway attached to the reviewed VPC.",
+    );
+  }
+  if (
+    observation.routeTables.length < 1 ||
+    observation.routeTables.some(
+      (routeTable) =>
+        !/^rtb-[0-9a-f]{8,17}$/.test(routeTable.id) ||
+        routeTable.vpcId !== observation.vpcId,
+    ) ||
+    new Set(observation.routeTables.map((routeTable) => routeTable.id)).size !==
+      observation.routeTables.length
+  ) {
+    throw new Error(
+      "Shared Cell route table evidence is incomplete or belongs to another VPC.",
+    );
+  }
+  const reviewedRouteTargetTypes = new Set([
+    "local",
+    "internet_gateway",
+    "virtual_private_gateway",
+    "nat_gateway",
+    "egress_only_internet_gateway",
+    "transit_gateway",
+    "vpc_peering_connection",
+    "network_interface",
+    "instance",
+    "carrier_gateway",
+    "local_gateway",
+    "core_network",
+  ]);
+  if (
+    observation.routeTables.some((routeTable) =>
+      routeTable.routes.some(
+        (route) => {
+          const destinationCount = [
+            route.destinationCidrIpv4,
+            route.destinationCidrIpv6,
+            route.destinationPrefixListId,
+          ].filter(Boolean).length;
+          return (
+            !route.state ||
+            !route.targetId ||
+            !reviewedRouteTargetTypes.has(route.targetType) ||
+            destinationCount !== 1
+          );
+        },
+      ),
+    )
+  ) {
+    throw new Error("Shared Cell route table contains incomplete route evidence.");
+  }
+  const publicRouteTableIds = new Set<string>();
+  for (const subnet of taskSubnets) {
+    const routeTable = effectiveRouteTableForSubnet({
+      routeTables: observation.routeTables,
+      subnetId: subnet.id,
+      requireExplicitAssociation: true,
+    });
+    const ipv4Defaults = routeTable.routes.filter(
+      (route) => route.destinationCidrIpv4 === "0.0.0.0/0",
+    );
+    if (
+      ipv4Defaults.length !== 1 ||
+      ipv4Defaults[0].state !== "active" ||
+      ipv4Defaults[0].targetType !== "internet_gateway" ||
+      ipv4Defaults[0].targetId !== internetGateway.id
+    ) {
+      throw new Error(
+        `Shared Cell public subnet ${subnet.id} must use one active IPv4 default route to the exact attached VPC internet gateway.`,
+      );
+    }
+    publicRouteTableIds.add(routeTable.id);
+  }
+  const forbiddenDatabaseTargets = new Set([
+    "internet_gateway",
+    "nat_gateway",
+    "egress_only_internet_gateway",
+  ]);
+  for (const subnet of databaseSubnets) {
+    const routeTable = effectiveRouteTableForSubnet({
+      routeTables: observation.routeTables,
+      subnetId: subnet.id,
+      requireExplicitAssociation: false,
+    });
+    if (
+      routeTable.routes.some(
+        (route) =>
+          route.destinationCidrIpv4 === "0.0.0.0/0" ||
+          route.destinationCidrIpv6 === "::/0" ||
+          forbiddenDatabaseTargets.has(route.targetType),
+      )
+    ) {
+      throw new Error(
+        `Shared Cell database subnet ${subnet.id} must not have a public default, internet gateway, NAT gateway, or egress-only internet gateway route.`,
+      );
+    }
   }
   if (
     observation.httpsListener.arn !== parameters.HttpsListenerArn ||
@@ -334,21 +549,63 @@ export function assertSharedCellSecurityObservation(input: {
       "Shared Cell task security group must allow port 3000 only from an observed ALB security group.",
     );
   }
+  const oneShotSecurityGroup = observation.oneShotTaskSecurityGroup;
+  const publicHttpsEgress = oneShotSecurityGroup.egress.filter(
+    (rule) =>
+      rule.protocol === "tcp" &&
+      rule.fromPort === 443 &&
+      rule.toPort === 443 &&
+      rule.cidrIpv4 === "0.0.0.0/0" &&
+      !rule.cidrIpv6 &&
+      !rule.prefixListId &&
+      !rule.destinationSecurityGroupId,
+  );
+  const databaseEgress = oneShotSecurityGroup.egress.filter(
+    (rule) =>
+      rule.protocol === "tcp" &&
+      rule.fromPort === 5432 &&
+      rule.toPort === 5432 &&
+      rule.destinationSecurityGroupId === observation.databaseSecurityGroup.id &&
+      !rule.cidrIpv4 &&
+      !rule.cidrIpv6 &&
+      !rule.prefixListId,
+  );
+  if (
+    oneShotSecurityGroup.ingress.length !== 0 ||
+    oneShotSecurityGroup.egress.length !== 2 ||
+    publicHttpsEgress.length !== 1 ||
+    databaseEgress.length !== 1
+  ) {
+    throw new Error(
+      "Shared Cell one-shot task security group must have zero ingress and allow only public HTTPS plus PostgreSQL to the exact database security group.",
+    );
+  }
+  const allowedDatabaseSources = new Set([
+    observation.taskSecurityGroup.id,
+    oneShotSecurityGroup.id,
+  ]);
   if (
     observation.databaseSecurityGroup.vpcId !== observation.vpcId ||
-    observation.databaseSecurityGroup.ingress.length < 1 ||
+    observation.databaseSecurityGroup.ingress.length !==
+      allowedDatabaseSources.size ||
     observation.databaseSecurityGroup.ingress.some(
       (rule) =>
         rule.protocol !== "tcp" ||
         rule.fromPort !== 5432 ||
         rule.toPort !== 5432 ||
-        rule.sourceSecurityGroupId !== observation.taskSecurityGroup.id ||
+        !rule.sourceSecurityGroupId ||
+        !allowedDatabaseSources.has(rule.sourceSecurityGroupId) ||
         Boolean(rule.cidrIpv4 || rule.cidrIpv6 || rule.prefixListId),
     ) ||
+    new Set(
+      observation.databaseSecurityGroup.ingress.map(
+        (rule) => rule.sourceSecurityGroupId,
+      ),
+    ).size !== allowedDatabaseSources.size ||
     !sameSet(observation.database.vpcSecurityGroupIds, [observation.databaseSecurityGroup.id])
   ) {
     throw new Error(
-      "Shared Cell database security group must allow PostgreSQL only from the tenant task security group.",
+      "Shared Cell database security group must allow PostgreSQL only from the tenant and one-shot task security groups.",
     );
   }
   const database = observation.database;
@@ -385,8 +642,10 @@ export function assertSharedCellSecurityObservation(input: {
   const ownedResources: Array<[string, SharedCellResourceTags]> = [
     ["ECS cluster", observation.clusterTags],
     ["VPC", observation.vpcTags],
+    ["internet gateway", observation.internetGateway.tags],
     ["load balancer", observation.loadBalancer.tags],
     ["task security group", observation.taskSecurityGroup.tags],
+    ["one-shot task security group", observation.oneShotTaskSecurityGroup.tags],
     ["database security group", observation.databaseSecurityGroup.tags],
     ["Aurora cluster", observation.database.tags],
     ...observation.subnets.map(
@@ -399,6 +658,14 @@ export function assertSharedCellSecurityObservation(input: {
       (group): [string, SharedCellResourceTags] => [
         `load balancer security group ${group.id}`,
         group.tags,
+      ],
+    ),
+    ...[...publicRouteTableIds].map(
+      (routeTableId): [string, SharedCellResourceTags] => [
+        `public route table ${routeTableId}`,
+        observation.routeTables.find(
+          (routeTable) => routeTable.id === routeTableId,
+        )!.tags,
       ],
     ),
   ];

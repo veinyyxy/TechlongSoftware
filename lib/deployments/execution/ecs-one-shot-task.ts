@@ -3,6 +3,7 @@ import type {
   TenantProvisionPredecessor,
   TenantResourceFence,
 } from "./contracts.ts";
+import type { DeploymentEnvironmentKind } from "../environment.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import {
   assertTenantResourceFence,
@@ -33,6 +34,8 @@ export type TenantDatabaseOneShotOperation =
   | "migrate_saas"
   | "verify"
   | "destroy";
+
+export type EcsOneShotAssignPublicIp = "ENABLED" | "DISABLED";
 
 export interface TenantDatabaseOneShotOutput {
   readonly [key: string]: unknown;
@@ -69,7 +72,7 @@ export interface EcsOneShotTaskRequest {
   taskDefinitionArn: string;
   launchType: "FARGATE";
   platformVersion: "1.4.0";
-  assignPublicIp: "DISABLED";
+  assignPublicIp: EcsOneShotAssignPublicIp;
   subnetIds: readonly string[];
   securityGroupIds: readonly string[];
   container: {
@@ -145,12 +148,16 @@ export interface AbortableWaitPort {
 }
 
 export interface EcsOneShotTaskRunnerConfig {
+  environmentKind: DeploymentEnvironmentKind;
+  expectedAccountId: string;
+  expectedRegion: string;
   clusterArn: string;
   receiptBucketArn: string;
   taskDefinitionArnByOperation: Readonly<
     Record<TenantDatabaseOneShotOperation, string>
   >;
   containerName: string;
+  assignPublicIp: EcsOneShotAssignPublicIp;
   subnetIds: readonly string[];
   securityGroupIds: readonly string[];
   commandByOperation: Readonly<
@@ -372,11 +379,25 @@ function assertConfig(config: EcsOneShotTaskRunnerConfig): void {
   const cluster = parseArn(config.clusterArn, "cluster");
   tenantOneShotReceiptBucketName(config.receiptBucketArn);
   if (
+    config.expectedAccountId !== cluster.accountId ||
+    config.expectedRegion !== cluster.region ||
     config.receiptBucketArn !== tenantOneShotExpectedReceiptBucketArn(cluster)
   ) {
     throw new TenantDatabaseLifecycleError(
       "TENANT_ONE_SHOT_CONFIG_INVALID",
-      "Tenant receipt bucket must encode the configured ECS account and region.",
+      "Tenant one-shot cluster and receipt bucket must match the configured AWS account and region.",
+    );
+  }
+  if (
+    !["aws_sandbox", "aws_production"].includes(config.environmentKind) ||
+    (config.environmentKind === "aws_sandbox" &&
+      config.assignPublicIp !== "ENABLED") ||
+    (config.environmentKind === "aws_production" &&
+      config.assignPublicIp !== "DISABLED")
+  ) {
+    throw new TenantDatabaseLifecycleError(
+      "TENANT_ONE_SHOT_CONFIG_INVALID",
+      "Sandbox one-shot tasks require a public IP; production one-shot tasks require private networking.",
     );
   }
   for (const operation of tenantDatabaseOneShotOperations) {
@@ -445,8 +466,7 @@ function assertConfig(config: EcsOneShotTaskRunnerConfig): void {
   if (
     config.subnetIds.length < 1 ||
     config.subnetIds.length > 6 ||
-    config.securityGroupIds.length < 1 ||
-    config.securityGroupIds.length > 5 ||
+    config.securityGroupIds.length !== 1 ||
     [...config.subnetIds, ...config.securityGroupIds].some(
       (value) => !networkIdPattern.test(value),
     ) ||
@@ -758,7 +778,7 @@ export class EcsOneShotTaskRunner {
         this.config.taskDefinitionArnByOperation[input.operation],
       launchType: "FARGATE",
       platformVersion: "1.4.0",
-      assignPublicIp: "DISABLED",
+      assignPublicIp: this.config.assignPublicIp,
       subnetIds: [...this.config.subnetIds],
       securityGroupIds: [...this.config.securityGroupIds],
       container: {

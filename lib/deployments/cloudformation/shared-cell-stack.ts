@@ -379,11 +379,39 @@ export function renderAwsSandboxSharedCellStack(
           Tags: [...tagList, { Key: "Name", Value: `${cellName}-tasks` }],
         },
       },
+      OneShotTaskSecurityGroup: {
+        Type: "AWS::EC2::SecurityGroup",
+        DependsOn: afterCleanup,
+        Properties: {
+          GroupDescription:
+            "Sandbox lifecycle one-shot tasks have no ingress and only reviewed egress",
+          VpcId: ref("CellVpc"),
+          SecurityGroupEgress: [
+            {
+              IpProtocol: "tcp",
+              FromPort: 443,
+              ToPort: 443,
+              CidrIp: "0.0.0.0/0",
+            },
+            {
+              IpProtocol: "tcp",
+              FromPort: 5432,
+              ToPort: 5432,
+              DestinationSecurityGroupId: ref("DatabaseSecurityGroup"),
+            },
+          ],
+          Tags: [
+            ...tagList,
+            { Key: "Name", Value: `${cellName}-one-shot-tasks` },
+          ],
+        },
+      },
       DatabaseSecurityGroup: {
         Type: "AWS::EC2::SecurityGroup",
         DependsOn: afterCleanup,
         Properties: {
-          GroupDescription: "Sandbox Aurora accepts PostgreSQL only from tenant tasks",
+          GroupDescription:
+            "Sandbox Aurora accepts PostgreSQL only from tenant and lifecycle tasks",
           VpcId: ref("CellVpc"),
           SecurityGroupIngress: [
             {
@@ -394,6 +422,17 @@ export function renderAwsSandboxSharedCellStack(
             },
           ],
           Tags: [...tagList, { Key: "Name", Value: `${cellName}-database` }],
+        },
+      },
+      DatabaseOneShotIngress: {
+        Type: "AWS::EC2::SecurityGroupIngress",
+        DependsOn: afterCleanup,
+        Properties: {
+          GroupId: ref("DatabaseSecurityGroup"),
+          IpProtocol: "tcp",
+          FromPort: 5432,
+          ToPort: 5432,
+          SourceSecurityGroupId: ref("OneShotTaskSecurityGroup"),
         },
       },
       CellCluster: {
@@ -579,6 +618,7 @@ export function renderAwsSandboxSharedCellStack(
         },
       },
       TaskSecurityGroupId: { Value: ref("TaskSecurityGroup") },
+      OneShotTaskSecurityGroupId: { Value: ref("OneShotTaskSecurityGroup") },
       HttpsListenerArn: { Value: ref("BusinessHttpsListener") },
       ControlListenerArn: { Value: ref("ControlMtlsListener") },
       DatabaseClusterIdentifier: { Value: ref("CellDatabaseCluster") },

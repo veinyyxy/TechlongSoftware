@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { renderAwsSandboxSharedCellStack } from "../lib/deployments/cloudformation/shared-cell-stack.ts";
 import { renderAwsSandboxTenantStack } from "../lib/deployments/cloudformation/tenant-stack.ts";
 import type { DeploymentEnvironment } from "../lib/deployments/environment.ts";
 import {
@@ -83,6 +84,60 @@ function externalOperation(
     state: "active" as const,
   };
 }
+
+test("renders a zero-ingress one-shot security group with only reviewed egress", () => {
+  const rendered = renderAwsSandboxSharedCellStack({
+    environment: sandbox,
+    requestedAt: Date.UTC(2026, 7, 9),
+    availabilityZones: ["ca-central-1a", "ca-central-1b"],
+    certificateArn:
+      "arn:aws:acm:ca-central-1:402010193138:certificate/01234567-89ab-cdef-0123-456789abcdef",
+    controlTrustStoreArn:
+      "arn:aws:elasticloadbalancing:ca-central-1:402010193138:truststore/techlong-sandbox-control/0123456789abcdef",
+    cellJanitorFunctionArn:
+      "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor",
+    cellSchedulerInvokeRoleArn:
+      "arn:aws:iam::402010193138:role/TechlongSandboxCellSchedulerInvokeRole",
+    cellSchedulerGroupName: "techlong-sandbox-cell",
+  });
+  const template = rendered.template as {
+    Resources: Record<
+      string,
+      { Type: string; Properties?: Record<string, unknown> }
+    >;
+    Outputs: Record<string, { Value: unknown }>;
+  };
+  const oneShot = template.Resources.OneShotTaskSecurityGroup;
+  assert.equal(oneShot.Type, "AWS::EC2::SecurityGroup");
+  assert.equal(
+    Object.hasOwn(oneShot.Properties ?? {}, "SecurityGroupIngress"),
+    false,
+  );
+  assert.deepEqual(oneShot.Properties?.SecurityGroupEgress, [
+    {
+      IpProtocol: "tcp",
+      FromPort: 443,
+      ToPort: 443,
+      CidrIp: "0.0.0.0/0",
+    },
+    {
+      IpProtocol: "tcp",
+      FromPort: 5432,
+      ToPort: 5432,
+      DestinationSecurityGroupId: { Ref: "DatabaseSecurityGroup" },
+    },
+  ]);
+  assert.deepEqual(template.Resources.DatabaseOneShotIngress.Properties, {
+    GroupId: { Ref: "DatabaseSecurityGroup" },
+    IpProtocol: "tcp",
+    FromPort: 5432,
+    ToPort: 5432,
+    SourceSecurityGroupId: { Ref: "OneShotTaskSecurityGroup" },
+  });
+  assert.deepEqual(template.Outputs.OneShotTaskSecurityGroupId.Value, {
+    Ref: "OneShotTaskSecurityGroup",
+  });
+});
 
 test("models the deployment checkpoints and rejects unsafe jumps", () => {
   assert.equal(canTransitionDeployment("preflight", "database_preparing"), true);
@@ -292,6 +347,8 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
   assert.equal(rendered.safety.createsDatabaseResources, false);
   assert.equal(rendered.safety.controlListenerMtlsRequired, true);
   assert.equal(rendered.safety.fixedTaskCount, 1);
+  assert.equal(rendered.safety.sandboxEphemeralImageStorage, true);
+  assert.equal(rendered.safety.persistentImageStorageReady, false);
   assert.match(serialized, /ControlListenerArn/);
   assert.match(serialized, /SAAS_REQUIRE_MTLS/);
   assert.match(serialized, /SAAS_TRUST_PROXY_MTLS_HEADER/);
@@ -312,9 +369,9 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
     "STRIPE_WEBHOOK_SECRET",
     "STRIPE_SUCCESS_URL",
     "STRIPE_CANCEL_URL",
+    "APP_RUNTIME_MODE",
+    "ALLOW_EPHEMERAL_IMAGE_STORAGE",
     "IMAGE_STORAGE_PROVIDER",
-    "IMAGE_S3_BUCKET",
-    "IMAGE_PUBLIC_BASE_URL",
     "AWS_REGION",
     "PGSSLMODE",
     "PGSSL_REJECT_UNAUTHORIZED",
@@ -347,6 +404,12 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
   assert.match(rendered.clientRequestToken, /-e1-9999999999999999$/);
   assert.equal(rendered.tags.ExpiresAt, "2026-08-09T02:00:00.000Z");
   assert.ok(rendered.requiredExternalParameters.includes("ControlListenerArn"));
+  assert.equal(rendered.requiredExternalParameters.includes("ImageS3Bucket"), false);
+  assert.equal(
+    rendered.requiredExternalParameters.includes("ImagePublicBaseUrl"),
+    false,
+  );
+  assert.doesNotMatch(serialized, /ImageS3Bucket|ImagePublicBaseUrl/);
   assert.equal(rendered.requiredExternalParameters.includes("DatabaseUrlValueFrom"), false);
   assert.equal(rendered.requiredExternalParameters.includes("HmacSecretKeyValueFrom"), false);
   assert.equal(rendered.requiredExternalParameters.includes("JwtSecretKeyValueFrom"), false);
@@ -364,6 +427,7 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
     >
   ).TenantTaskDefinition;
   const container = taskDefinition.Properties?.ContainerDefinitions?.[0] as {
+    Environment: Array<{ Name: string; Value: unknown }>;
     Secrets: Array<{
       Name: string;
       ValueFrom: { "Fn::Sub": string } | { Ref: string };
@@ -375,6 +439,24 @@ test("renders a secret-free fixed-size tenant stack with separate mTLS control r
     "/usr/local/bin/node",
     "-e",
   ]);
+  assert.deepEqual(
+    Object.fromEntries(
+      container.Environment
+        .filter(({ Name }) =>
+          [
+            "APP_RUNTIME_MODE",
+            "ALLOW_EPHEMERAL_IMAGE_STORAGE",
+            "IMAGE_STORAGE_PROVIDER",
+          ].includes(Name),
+        )
+        .map(({ Name, Value }) => [Name, Value]),
+    ),
+    {
+      APP_RUNTIME_MODE: "aws_sandbox_ephemeral_canary",
+      ALLOW_EPHEMERAL_IMAGE_STORAGE: "true",
+      IMAGE_STORAGE_PROVIDER: "local",
+    },
+  );
   assert.equal(container.HealthCheck.Command.includes("CMD-SHELL"), false);
   const runtimeSecretNames = new Set([
     "DATABASE_URL",
