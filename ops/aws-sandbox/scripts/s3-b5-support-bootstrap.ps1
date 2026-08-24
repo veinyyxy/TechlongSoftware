@@ -11,7 +11,7 @@ param(
     'ExecuteRollbackChangeSet'
   )]
   [string]$Mode = 'LocalValidate',
-  [ValidateSet('InitialB5Support', 'LifecycleReadback', 'LifecycleTaskRegistration')]
+  [ValidateSet('InitialB5Support', 'LifecycleReadback', 'LifecycleTaskRegistrationRevoke')]
   [string]$UpdateShape = 'InitialB5Support',
   [string]$Profile = 'techlong-sandbox-user',
   [string]$ConfirmAccountId = '',
@@ -44,8 +44,8 @@ $templateVerifier = Join-Path $root 'scripts\verify-change-set-template.mjs'
 $supportInfrastructureWriteReady = $true
 $reviewedUpdateShape = if ($UpdateShape -ieq 'LifecycleReadback') {
   'LifecycleReadback'
-} elseif ($UpdateShape -ieq 'LifecycleTaskRegistration') {
-  'LifecycleTaskRegistration'
+} elseif ($UpdateShape -ieq 'LifecycleTaskRegistrationRevoke') {
+  'LifecycleTaskRegistrationRevoke'
 } else {
   'InitialB5Support'
 }
@@ -351,7 +351,7 @@ function Assert-ReviewedChangeSet {
     [object]$ChangeSet,
     [string]$ExpectedName,
     [string]$ExpectedDescription,
-    [ValidateSet('InitialB5Support', 'LifecycleReadback', 'LifecycleTaskRegistration')]
+    [ValidateSet('InitialB5Support', 'LifecycleReadback', 'LifecycleTaskRegistrationRevoke')]
     [string]$UpdateShape,
     [bool]$Rollback
   )
@@ -449,11 +449,10 @@ function Assert-ReviewedChangeSet {
     TenantLifecycleTaskRole = @{ Type = 'AWS::IAM::Role'; Action = 'Modify' }
     DeploymentWorkerRole = @{ Type = 'AWS::IAM::Role'; Action = 'Modify' }
   }
-  $requiredLifecycleTaskRegistrationChanges = @{
+  $requiredLifecycleTaskRegistrationRevokeChanges = @{
     ExecutionRoleBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
   }
   $requiredRollbackChanges = @{
-    ExecutionRoleBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
     ServiceRoleBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
     ProvisionerBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
     TenantLifecycleReceiptBucket = @{ Type = 'AWS::S3::Bucket'; Action = 'Remove' }
@@ -467,8 +466,8 @@ function Assert-ReviewedChangeSet {
       throw 'Rollback Change Sets are only reviewed against the InitialB5Support shape.'
     }
     $requiredRollbackChanges
-  } elseif ($UpdateShape -eq 'LifecycleTaskRegistration') {
-    $requiredLifecycleTaskRegistrationChanges
+  } elseif ($UpdateShape -eq 'LifecycleTaskRegistrationRevoke') {
+    $requiredLifecycleTaskRegistrationRevokeChanges
   } elseif ($UpdateShape -eq 'LifecycleReadback') {
     $requiredLifecycleReadbackChanges
   } else {
@@ -556,8 +555,8 @@ try {
   $rollbackCanonicalHash = Get-CanonicalTemplateHash -TemplatePath $rollbackTemplate
   $updateShapeToken = if ($reviewedUpdateShape -eq 'LifecycleReadback') {
     'lifecycle-readback'
-  } elseif ($reviewedUpdateShape -eq 'LifecycleTaskRegistration') {
-    'lifecycle-task-registration'
+  } elseif ($reviewedUpdateShape -eq 'LifecycleTaskRegistrationRevoke') {
+    'lifecycle-task-registration-revoke'
   } else {
     'initial'
   }

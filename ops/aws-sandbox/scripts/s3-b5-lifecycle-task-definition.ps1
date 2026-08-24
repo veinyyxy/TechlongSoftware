@@ -48,6 +48,15 @@ function Invoke-AwsChecked {
   }
 }
 
+function ConvertFrom-ExactJson {
+  param([Parameter(Mandatory)][string]$Json)
+  $convertCommand = Get-Command ConvertFrom-Json
+  if ($convertCommand.Parameters.ContainsKey('DateKind')) {
+    return (ConvertFrom-Json -InputObject $Json -DateKind String)
+  }
+  return (ConvertFrom-Json -InputObject $Json)
+}
+
 function Invoke-AwsJson {
   param([string]$AwsCli, [string[]]$Arguments)
   $output = & $AwsCli @Arguments
@@ -58,7 +67,7 @@ function Invoke-AwsJson {
   if ([string]::IsNullOrWhiteSpace($json)) {
     throw 'AWS CLI returned an empty JSON response.'
   }
-  return ($json | ConvertFrom-Json)
+  return (ConvertFrom-ExactJson -Json $json)
 }
 
 function Invoke-AwsJsonFile {
@@ -229,7 +238,7 @@ function Get-StackOrNull {
     --stack-name $stackName `
     --output json 2>&1
   if ($LASTEXITCODE -eq 0) {
-    $parsed = (($response | Out-String).Trim() | ConvertFrom-Json)
+    $parsed = ConvertFrom-ExactJson -Json (($response | Out-String).Trim())
     if (@($parsed.Stacks).Count -ne 1) {
       throw 'CloudFormation did not return exactly one registration stack.'
     }
@@ -303,7 +312,7 @@ function Assert-ExactStackAndTaskDefinition {
   if ([bool]$stack.EnableTerminationProtection) {
     throw 'Registration stack may not enable termination protection.'
   }
-  if (@($stack.Parameters).Count -ne 0) {
+  if ($null -ne $stack.Parameters -and @($stack.Parameters).Count -ne 0) {
     throw 'Registration stack may not have parameters.'
   }
   Assert-StackTags -Stack $stack
@@ -368,7 +377,7 @@ function Assert-ExactStackAndTaskDefinition {
     '--include', 'TAGS',
     '--output', 'json'
   ) -OutputPath $readbackPath
-  $readback = Get-Content -Raw -LiteralPath $readbackPath | ConvertFrom-Json
+  $readback = ConvertFrom-ExactJson -Json (Get-Content -Raw -LiteralPath $readbackPath)
   $registeredAt = [DateTimeOffset]::Parse([string]$readback.taskDefinition.registeredAt)
   $stackCreatedAt = [DateTimeOffset]::Parse([string]$stack.CreationTime)
   if (
@@ -402,7 +411,7 @@ function Get-ExactDeletionTarget {
     [string]$stack.StackId -cnotmatch '^arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-b5j3/[a-f0-9-]{36}$' -or
     [string]$stack.RoleARN -cne $cloudFormationRoleArn -or
     [bool]$stack.EnableTerminationProtection -or
-    @($stack.Parameters).Count -ne 0
+    ($null -ne $stack.Parameters -and @($stack.Parameters).Count -ne 0)
   ) {
     throw 'Deletion target is not the exact reviewed registration stack.'
   }
@@ -576,7 +585,7 @@ try {
     --include TAGS `
     --output json 2>&1
   if ($LASTEXITCODE -eq 0) {
-    $inactive = (($inactiveResponse | Out-String).Trim() | ConvertFrom-Json)
+    $inactive = ConvertFrom-ExactJson -Json (($inactiveResponse | Out-String).Trim())
     if (
       [string]$inactive.taskDefinition.taskDefinitionArn -cne $taskDefinitionArn -or
       [string]$inactive.taskDefinition.status -cne 'INACTIVE'

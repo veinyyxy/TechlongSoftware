@@ -1451,8 +1451,7 @@
               "Action": "iam:PassRole",
               "Resource": [
                 "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
-                "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole",
-                "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole"
+                "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
               ],
               "Condition": {
                 "StringEquals": { "iam:PassedToService": "ecs-tasks.amazonaws.com" }

@@ -84,47 +84,6 @@ export async function renderB5SupportRollbackTemplate() {
       "AllowSharedCellReadOnlyPreflight",
     ]),
   );
-  const executionPassRole =
-    template.Resources?.ExecutionRoleBoundary?.Properties?.PolicyDocument?.Statement?.find(
-      (statement) => statement.Sid === "AllowPassOnlySandboxTaskRolesToEcs",
-    );
-  if (!Array.isArray(executionPassRole?.Resource)) {
-    throw new Error(
-      "B5 support rollback source is missing ExecutionRoleBoundary/AllowPassOnlySandboxTaskRolesToEcs",
-    );
-  }
-  const lifecycleTaskRoleArn =
-    "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole";
-  if (!executionPassRole.Resource.includes(lifecycleTaskRoleArn)) {
-    throw new Error(
-      "B5 support rollback source is missing the lifecycle TaskRole pass grant",
-    );
-  }
-  executionPassRole.Resource = executionPassRole.Resource.filter(
-    (resource) => resource !== lifecycleTaskRoleArn,
-  );
-  const executionTaskDefinitionCleanup =
-    template.Resources.ExecutionRoleBoundary.Properties.PolicyDocument.Statement.find(
-      (statement) => statement.Sid === "AllowTenantTaskDefinitionCleanup",
-    );
-  if (!executionTaskDefinitionCleanup) {
-    throw new Error(
-      "B5 support rollback source is missing ExecutionRoleBoundary/AllowTenantTaskDefinitionCleanup",
-    );
-  }
-  executionTaskDefinitionCleanup.Resource =
-    "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-*:*";
-  delete executionTaskDefinitionCleanup.Condition;
-  const executionTaskDefinitionRegistration =
-    template.Resources.ExecutionRoleBoundary.Properties.PolicyDocument.Statement.find(
-      (statement) => statement.Sid === "AllowTaggedTaskDefinitionRegistration",
-    );
-  if (!executionTaskDefinitionRegistration) {
-    throw new Error(
-      "B5 support rollback source is missing ExecutionRoleBoundary/AllowTaggedTaskDefinitionRegistration",
-    );
-  }
-  executionTaskDefinitionRegistration.Resource = "*";
   template.Description =
     "Techlong AWS Sandbox bootstrap with B5 support resources removed and their boundary permissions revoked.";
   template.Metadata.SafetyBoundary.CreatesB5SupportResources = false;

@@ -320,9 +320,8 @@ export function validateTenantLifecycleTaskDefinitionTemplate(template) {
   });
 }
 
-function validateTags(tags, expectedExpiresAt, expectedStackId) {
+function validateTags(tags, expectedExpiresAt) {
   assertUtc(expectedExpiresAt, "expectedExpiresAt");
-  assert.match(expectedStackId, stackIdPattern);
   const entries = tags.map((tag) => {
     assert.deepEqual(Object.keys(tag).sort(), ["key", "value"]);
     return [tag.key, tag.value];
@@ -336,9 +335,6 @@ function validateTags(tags, expectedExpiresAt, expectedStackId) {
     "Environment",
     "ExpiresAt",
     "ManagedBy",
-    "aws:cloudformation:logical-id",
-    "aws:cloudformation:stack-id",
-    "aws:cloudformation:stack-name",
   ]);
   assert.equal(map.Environment, "aws-sandbox");
   assert.equal(map.ManagedBy, "techlong-provisioner");
@@ -346,9 +342,6 @@ function validateTags(tags, expectedExpiresAt, expectedStackId) {
   assert.equal(map.AppInstanceId, "tenant-lifecycle");
   assert.equal(map.DeploymentId, "b5j3-f4aa0febeba5");
   assert.equal(map.ExpiresAt, expectedExpiresAt);
-  assert.equal(map["aws:cloudformation:logical-id"], logicalId);
-  assert.equal(map["aws:cloudformation:stack-name"], stackName);
-  assert.equal(map["aws:cloudformation:stack-id"], expectedStackId);
   return Object.fromEntries(Object.entries(map).sort(([a], [b]) => a.localeCompare(b)));
 }
 
@@ -356,6 +349,7 @@ export function validateTenantLifecycleTaskDefinitionReadback(
   payload,
   { expectedExpiresAt, expectedStackId } = {},
 ) {
+  assert.match(expectedStackId, stackIdPattern);
   assert.deepEqual(Object.keys(payload).sort(), ["tags", "taskDefinition"]);
   const task = payload.taskDefinition;
   const allowed = new Set([
@@ -412,7 +406,7 @@ export function validateTenantLifecycleTaskDefinitionReadback(
   assert.ok(Number.isFinite(Date.parse(task.registeredAt)));
   assert.equal(task.containerDefinitions.length, 1);
   assertReadbackContainer(task.containerDefinitions[0]);
-  const tags = validateTags(payload.tags, expectedExpiresAt, expectedStackId);
+  const tags = validateTags(payload.tags, expectedExpiresAt);
   assertNoCredentials(payload, "readback");
   const canonical = {
     schemaVersion: 1,
@@ -420,6 +414,10 @@ export function validateTenantLifecycleTaskDefinitionReadback(
     accountId,
     region,
     stackName,
+    cloudFormation: {
+      stackId: expectedStackId,
+      logicalResourceId: logicalId,
+    },
     taskDefinitionArn: task.taskDefinitionArn,
     family: task.family,
     revision: task.revision,

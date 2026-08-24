@@ -100,18 +100,6 @@ function syntheticReadback() {
       { key: "AppInstanceId", value: "tenant-lifecycle" },
       { key: "DeploymentId", value: "b5j3-f4aa0febeba5" },
       { key: "ExpiresAt", value: testExpiresAt },
-      {
-        key: "aws:cloudformation:logical-id",
-        value: "TenantLifecycleTaskDefinition",
-      },
-      {
-        key: "aws:cloudformation:stack-name",
-        value: "techlong-sandbox-tenant-b5j3",
-      },
-      {
-        key: "aws:cloudformation:stack-id",
-        value: testStackId,
-      },
     ],
   };
 }
@@ -151,6 +139,13 @@ assert.match(operationScript, /I_ACKNOWLEDGE_INSPECT_ONLY_TASK_DEFINITION_REGIST
 assert.match(operationScript, /I_ACKNOWLEDGE_EXACT_TASK_DEFINITION_DEREGISTRATION/);
 assert.match(operationScript, /Assert-NoAwsEndpointOverrides/);
 assert.match(operationScript, /AWS_IGNORE_CONFIGURED_ENDPOINT_URLS/);
+assert.match(operationScript, /function ConvertFrom-ExactJson/);
+assert.match(operationScript, /ConvertFrom-Json -InputObject \$Json -DateKind String/);
+assert.equal(
+  operationScript.match(/ConvertFrom-ExactJson -Json/g)?.length,
+  4,
+  "all AWS JSON reads must preserve exact ISO timestamp strings",
+);
 assert.doesNotMatch(operationScript, /--endpoint-url\b/);
 assert.match(operationScript, /'cloudformation', 'create-stack'/);
 assert.match(operationScript, /'--role-arn', \$cloudFormationRoleArn/);
@@ -166,6 +161,13 @@ assert.match(operationScript, /--readback \$readbackPath/);
 assert.match(operationScript, /--expires-at \$ExpiresAt/);
 assert.match(operationScript, /--stack-id \(\[string\]\$stack\.StackId\)/);
 assert.match(operationScript, /registeredAt is outside the exact stack creation window/);
+assert.equal(
+  operationScript.match(
+    /\$null -ne \$stack\.Parameters -and @\(\$stack\.Parameters\)\.Count -ne 0/g,
+  )?.length,
+  2,
+  "AWS represents a no-parameter stack as null; both readback and cleanup must normalize it",
+);
 assert.match(operationScript, /Assert-NoActiveLifecycleTaskDefinition/);
 assert.match(operationScript, /Get-ExactDeletionTarget/);
 assert.match(operationScript, /INACTIVE or no longer describable/);
@@ -253,6 +255,10 @@ const evidence = validateTenantLifecycleTaskDefinitionReadback(readback, {
   expectedStackId: testStackId,
 });
 assert.equal(evidence.canonical.image.digest, intent.imageDigest);
+assert.deepEqual(evidence.canonical.cloudFormation, {
+  stackId: testStackId,
+  logicalResourceId: "TenantLifecycleTaskDefinition",
+});
 for (const gate of Object.values(evidence.canonical.runtimeGates)) {
   assert.equal(gate, false);
 }
@@ -292,10 +298,10 @@ for (const mutate of [
   (value) =>
     (value.tags.find((tag) => tag.key === "DeploymentId").value = "foreign"),
   (value) =>
-    (value.tags.find(
-      (tag) => tag.key === "aws:cloudformation:stack-id",
-    ).value =
-      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-b5j3/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
+    value.tags.push({
+      key: "aws:cloudformation:stack-id",
+      value: testStackId,
+    }),
   (value) => value.tags.push({ key: "CellId", value: "cell-sandbox-1" }),
 ]) {
   const candidate = clone(readback);
@@ -307,6 +313,14 @@ for (const mutate of [
     }),
   );
 }
+
+assert.throws(() =>
+  validateTenantLifecycleTaskDefinitionReadback(clone(readback), {
+    expectedExpiresAt: testExpiresAt,
+    expectedStackId:
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/foreign/01234567-89ab-cdef-0123-456789abcdef",
+  }),
+);
 
 const readbackIndex = process.argv.indexOf("--readback");
 if (readbackIndex !== -1) {

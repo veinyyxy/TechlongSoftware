@@ -105,6 +105,8 @@ const clusterArn =
   "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1";
 const lifecycleTaskDefinitionArn =
   "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-lifecycle:*";
+const lifecycleTaskRoleArn =
+  "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole";
 const lifecycleTaskArn =
   "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/*";
 const generationSecretArn =
@@ -126,7 +128,6 @@ const sandboxTaskRoleArns = [
 const cloudFormationTaskRoleArns = [
   "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
   "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole",
-  "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole",
 ];
 const oneShotTagKeys = [
   "ManagedBy",
@@ -249,9 +250,26 @@ assert.equal(
   "rendered Janitor ZipFile must preserve the deployed B5-I source exactly",
 );
 
+// Reconstruct the exact deployed one-resource registration grant before the
+// final fail-closed PassRole revocation.
+const deployedLifecycleTaskRegistration = structuredClone(rendered);
+const deployedLifecycleRegistrationPassRole = statementBySid(
+  deployedLifecycleTaskRegistration.Resources.ExecutionRoleBoundary.Properties
+    .PolicyDocument,
+  "AllowPassOnlySandboxTaskRolesToEcs",
+);
+deployedLifecycleRegistrationPassRole.Resource.push(lifecycleTaskRoleArn);
+assert.equal(
+  canonicalTemplateSha256(deployedLifecycleTaskRegistration),
+  "826a968ecfdfff10d32e50a9689af079f9920892f605568e86bc80f6876ece72",
+  "the reconstructed LifecycleTaskRegistration template must match the executed Change Set",
+);
+
 // Reconstruct the exact deployed B5-J2 LifecycleReadback baseline before the
 // one-resource LifecycleTaskRegistration IAM increment.
-const deployedLifecycleReadback = structuredClone(rendered);
+const deployedLifecycleReadback = structuredClone(
+  deployedLifecycleTaskRegistration,
+);
 delete deployedLifecycleReadback.Metadata.SafetyBoundary.RegistrationReady;
 delete deployedLifecycleReadback.Metadata.SafetyBoundary.LiveReadbackReady;
 const deployedExecutionPassRole = statementBySid(
@@ -260,9 +278,7 @@ const deployedExecutionPassRole = statementBySid(
   "AllowPassOnlySandboxTaskRolesToEcs",
 );
 deployedExecutionPassRole.Resource = deployedExecutionPassRole.Resource.filter(
-  (resource) =>
-    resource !==
-    "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole",
+  (resource) => resource !== lifecycleTaskRoleArn,
 );
 const deployedExecutionCleanup = statementBySid(
   deployedLifecycleReadback.Resources.ExecutionRoleBoundary.Properties
@@ -353,9 +369,32 @@ assert.deepEqual(
   "LifecycleReadback must change exactly four IAM resources from deployed B5-I",
 );
 assert.deepEqual(
-  changedResourceIds(deployedLifecycleReadback.Resources, rendered.Resources),
+  changedResourceIds(
+    deployedLifecycleReadback.Resources,
+    deployedLifecycleTaskRegistration.Resources,
+  ),
   ["ExecutionRoleBoundary"],
   "LifecycleTaskRegistration must change only ExecutionRoleBoundary",
+);
+assert.deepEqual(
+  changedResourceIds(
+    deployedLifecycleTaskRegistration.Resources,
+    rendered.Resources,
+  ),
+  ["ExecutionRoleBoundary"],
+  "LifecycleTaskRegistrationRevoke must change only ExecutionRoleBoundary",
+);
+const expectedRevokedExecutionBoundary = structuredClone(
+  deployedLifecycleTaskRegistration.Resources.ExecutionRoleBoundary,
+);
+statementBySid(
+  expectedRevokedExecutionBoundary.Properties.PolicyDocument,
+  "AllowPassOnlySandboxTaskRolesToEcs",
+).Resource = cloudFormationTaskRoleArns;
+assert.deepEqual(
+  rendered.Resources.ExecutionRoleBoundary,
+  expectedRevokedExecutionBoundary,
+  "LifecycleTaskRegistrationRevoke may only remove the exact lifecycle PassRole ARN",
 );
 const rollbackResourceChanges = [
   "DeploymentWorkerRole",
@@ -368,18 +407,26 @@ const rollbackResourceChanges = [
 ];
 assert.deepEqual(
   changedResourceIds(deployedB5Initial.Resources, rollback.Resources),
-  rollbackResourceChanges,
-  "rollback must remain exactly seven resources from pre-LifecycleReadback B5-I",
+  ["ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
+  "historical B5-I to rollback must retain the later execution-boundary hardening",
 );
 assert.deepEqual(
   changedResourceIds(deployedLifecycleReadback.Resources, rollback.Resources),
-  rollbackResourceChanges,
-  "rollback must remain exactly seven resources after LifecycleReadback",
+  ["ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
+  "historical LifecycleReadback to rollback must retain the later execution-boundary hardening",
+);
+assert.deepEqual(
+  changedResourceIds(
+    deployedLifecycleTaskRegistration.Resources,
+    rollback.Resources,
+  ),
+  ["ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
+  "rollback from the temporary registration grant must also reflect its final revocation",
 );
 assert.deepEqual(
   changedResourceIds(rendered.Resources, rollback.Resources),
-  ["ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
-  "rollback must revoke the lifecycle TaskRole pass grant in addition to the seven B5 resources",
+  rollbackResourceChanges,
+  "rollback from the final revoked template must change exactly seven B5 resources",
 );
 
 assert.equal(template.Metadata.SafetyBoundary.CreatesB5SupportResources, true);
@@ -443,7 +490,6 @@ assert.equal(
   supportOutputs.length,
 );
 const intentionallyChangedRollbackResources = new Set([
-  "ExecutionRoleBoundary",
   "ServiceRoleBoundary",
   "ProvisionerBoundary",
 ]);
@@ -498,34 +544,10 @@ assert.deepEqual(
   expectedRollbackProvisionerBoundary,
   "rollback may only revoke the WorkerRole assume and Shared Cell read-only capabilities",
 );
-const expectedRollbackExecutionBoundary = structuredClone(
-  rendered.Resources.ExecutionRoleBoundary,
-);
-const expectedRollbackExecutionPassRole = statementBySid(
-  expectedRollbackExecutionBoundary.Properties.PolicyDocument,
-  "AllowPassOnlySandboxTaskRolesToEcs",
-);
-expectedRollbackExecutionPassRole.Resource =
-  expectedRollbackExecutionPassRole.Resource.filter(
-    (resource) =>
-      resource !==
-      "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole",
-  );
-const expectedRollbackExecutionCleanup = statementBySid(
-  expectedRollbackExecutionBoundary.Properties.PolicyDocument,
-  "AllowTenantTaskDefinitionCleanup",
-);
-expectedRollbackExecutionCleanup.Resource =
-  "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-*:*";
-delete expectedRollbackExecutionCleanup.Condition;
-statementBySid(
-  expectedRollbackExecutionBoundary.Properties.PolicyDocument,
-  "AllowTaggedTaskDefinitionRegistration",
-).Resource = "*";
 assert.deepEqual(
   rollback.Resources.ExecutionRoleBoundary,
-  expectedRollbackExecutionBoundary,
-  "rollback may only revoke the lifecycle TaskRole pass grant from the CloudFormation execution boundary",
+  rendered.Resources.ExecutionRoleBoundary,
+  "rollback must retain the final revoked and hardened CloudFormation execution boundary",
 );
 assert.equal(
   rollback.Resources.TaskRole.Properties.Policies,
@@ -1208,8 +1230,26 @@ assert.equal(renderedSource.includes("__JANITOR_INLINE_SOURCE__"), false);
 assert.equal(rollbackSource.includes("__JANITOR_INLINE_SOURCE__"), false);
 const renderedCanonicalHash = canonicalTemplateSha256(rendered);
 const rollbackCanonicalHash = canonicalTemplateSha256(rollback);
-assert.match(renderedCanonicalHash, /^[a-f0-9]{64}$/);
-assert.match(rollbackCanonicalHash, /^[a-f0-9]{64}$/);
+const renderedRawHash = createHash("sha256").update(renderedSource).digest("hex");
+const rollbackRawHash = createHash("sha256").update(rollbackSource).digest("hex");
+assert.equal(Buffer.byteLength(renderedSource, "utf8"), 49_215);
+assert.equal(
+  renderedRawHash,
+  "9d5c2626a9bf9c4257af066f422c13a4540ddf3bdf8f97dd9c90f79015ecc6c1",
+);
+assert.equal(
+  renderedCanonicalHash,
+  "112d1b47807962b2ae3e3d751c2b6d2d9cb48c1660f2aa75d24991ebf9cbdf14",
+);
+assert.equal(Buffer.byteLength(rollbackSource, "utf8"), 33_331);
+assert.equal(
+  rollbackRawHash,
+  "73ddaabf283626a080ab45433f1356647dd40141b927923982f4f12741570659",
+);
+assert.equal(
+  rollbackCanonicalHash,
+  "b40b79c79f9abdcd9e686e5e52e3de2695584c98cd06bacf1ce3fb6cb97d0d32",
+);
 assert.equal(canonicalTemplateSha256(renderedSource), renderedCanonicalHash);
 assert.equal(
   assertExactChangeSetTemplate(renderedSource, {
@@ -1391,7 +1431,7 @@ assert.deepEqual(parseReviewedChangeShape("requiredLifecycleReadbackChanges"), {
   DeploymentWorkerRole: { type: "AWS::IAM::Role", action: "Modify" },
 });
 assert.deepEqual(
-  parseReviewedChangeShape("requiredLifecycleTaskRegistrationChanges"),
+  parseReviewedChangeShape("requiredLifecycleTaskRegistrationRevokeChanges"),
   {
     ExecutionRoleBoundary: {
       type: "AWS::IAM::ManagedPolicy",
@@ -1400,10 +1440,6 @@ assert.deepEqual(
   },
 );
 assert.deepEqual(parseReviewedChangeShape("requiredRollbackChanges"), {
-  ExecutionRoleBoundary: {
-    type: "AWS::IAM::ManagedPolicy",
-    action: "Modify",
-  },
   ServiceRoleBoundary: { type: "AWS::IAM::ManagedPolicy", action: "Modify" },
   ProvisionerBoundary: { type: "AWS::IAM::ManagedPolicy", action: "Modify" },
   TenantLifecycleReceiptBucket: { type: "AWS::S3::Bucket", action: "Remove" },
@@ -1426,7 +1462,7 @@ assert.match(
 assert.match(operationScript, /\[string\]\$Mode = 'LocalValidate'/);
 assert.match(
   operationScript,
-  /\[ValidateSet\('InitialB5Support', 'LifecycleReadback', 'LifecycleTaskRegistration'\)\]\s*\[string\]\$UpdateShape = 'InitialB5Support'/,
+  /\[ValidateSet\('InitialB5Support', 'LifecycleReadback', 'LifecycleTaskRegistrationRevoke'\)\]\s*\[string\]\$UpdateShape = 'InitialB5Support'/,
 );
 assert.match(operationScript, /\[string\]\$Profile = 'techlong-sandbox-user'/);
 assert.match(operationScript, /\$supportInfrastructureWriteReady = \$true/);
@@ -1492,7 +1528,7 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /elseif \(\$UpdateShape -eq 'LifecycleTaskRegistration'\) \{\s*\$requiredLifecycleTaskRegistrationChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleReadback'\) \{\s*\$requiredLifecycleReadbackChanges\s*\} else \{\s*\$requiredInitialB5SupportChanges/,
+  /elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*\$requiredLifecycleTaskRegistrationRevokeChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleReadback'\) \{\s*\$requiredLifecycleReadbackChanges\s*\} else \{\s*\$requiredInitialB5SupportChanges/,
 );
 assert.match(
   operationScript,
@@ -1556,8 +1592,9 @@ assert.match(operationScript, /--get-template-response \$ResponsePath/);
 assert.match(operationScript, /canonical-sha256=/);
 assert.match(
   operationScript,
-  /\$updateShapeToken = if \(\$reviewedUpdateShape -eq 'LifecycleReadback'\) \{\s*'lifecycle-readback'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleTaskRegistration'\) \{\s*'lifecycle-task-registration'\s*\} else \{\s*'initial'\s*\}/,
+  /\$updateShapeToken = if \(\$reviewedUpdateShape -eq 'LifecycleReadback'\) \{\s*'lifecycle-readback'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*'lifecycle-task-registration-revoke'\s*\} else \{\s*'initial'\s*\}/,
 );
+assert.doesNotMatch(operationScript, /'LifecycleTaskRegistration'\)/);
 assert.match(
   operationScript,
   /\$changeSetName = "techlong-s3-b5-support-\$updateShapeToken-\$\(\$templateHash\.Substring\(0, 16\)\)"/,
