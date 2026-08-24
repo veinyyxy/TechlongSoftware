@@ -10,6 +10,8 @@
       "RequiresMfaToAssumeProvisionerRole": true,
       "CreatesVpcOrDatabaseResources": false,
       "CreatesB5SupportResources": true,
+      "RegistrationReady": false,
+      "LiveReadbackReady": false,
       "ApplyRuntimeReady": false,
       "CleanupRuntimeReady": false,
       "ReceiptRetentionDays": 1,
@@ -1307,7 +1309,7 @@
               "Sid": "AllowTaggedTaskDefinitionRegistration",
               "Effect": "Allow",
               "Action": "ecs:RegisterTaskDefinition",
-              "Resource": "*",
+              "Resource": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-*:*",
               "Condition": {
                 "StringEquals": {
                   "aws:RequestedRegion": "ca-central-1",
@@ -1320,7 +1322,10 @@
               "Sid": "AllowTenantTaskDefinitionCleanup",
               "Effect": "Allow",
               "Action": ["ecs:DeregisterTaskDefinition", "ecs:DescribeTaskDefinition"],
-              "Resource": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-*:*"
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
             },
             {
               "Sid": "AllowTenantEcsLifecycle",
@@ -1446,7 +1451,8 @@
               "Action": "iam:PassRole",
               "Resource": [
                 "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
-                "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+                "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole",
+                "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole"
               ],
               "Condition": {
                 "StringEquals": { "iam:PassedToService": "ecs-tasks.amazonaws.com" }

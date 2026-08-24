@@ -1,0 +1,104 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Exact Build #4 inspect-only tenant lifecycle TaskDefinition. Registration does not create a Cell or run an ECS task.",
+  "Metadata": {
+    "SafetyBoundary": {
+      "SchemaVersion": 1,
+      "ExpectedAccountId": "402010193138",
+      "ExpectedRegion": "ca-central-1",
+      "ApprovedStackName": "techlong-sandbox-tenant-b5j3",
+      "RegistersTaskDefinitionOnly": true,
+      "RunsTask": false,
+      "ContainsSecrets": false,
+      "CreatesSharedCell": false,
+      "RequiredLogGroupName": "/saas/cell-sandbox-1/tenant-lifecycle",
+      "LogGroupReady": false,
+      "RegistrationReady": false,
+      "LiveReadbackReady": false,
+      "ApplyRuntimeReady": false,
+      "CleanupRuntimeReady": false,
+      "ImageCommit": "f4aa0febeba526f737bac3b59d516e1ab5c24482",
+      "ImageDigest": "sha256:4815009949cd5219add56fedb183f1809b728081562f0280ede5229b567136f0"
+    }
+  },
+  "Conditions": {
+    "IsExpectedTarget": {
+      "Fn::And": [
+        { "Fn::Equals": [{ "Ref": "AWS::AccountId" }, "402010193138"] },
+        { "Fn::Equals": [{ "Ref": "AWS::Region" }, "ca-central-1"] }
+      ]
+    }
+  },
+  "Resources": {
+    "TenantLifecycleTaskDefinition": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Condition": "IsExpectedTarget",
+      "DeletionPolicy": "Delete",
+      "UpdateReplacePolicy": "Delete",
+      "Properties": {
+        "Family": "tenant-lifecycle",
+        "TaskRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole",
+        "ExecutionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+        "NetworkMode": "awsvpc",
+        "ContainerDefinitions": [
+          {
+            "Name": "tenant-database-lifecycle",
+            "Image": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:4815009949cd5219add56fedb183f1809b728081562f0280ede5229b567136f0",
+            "Essential": true,
+            "Command": [
+              "/usr/local/bin/node",
+              "db/tenant_lifecycle.js",
+              "inspect"
+            ],
+            "Environment": [
+              {
+                "Name": "APP_RUNTIME_MODE",
+                "Value": "aws_sandbox_tenant_lifecycle_inspect"
+              },
+              { "Name": "NODE_ENV", "Value": "production" }
+            ],
+            "LinuxParameters": {
+              "Capabilities": { "Drop": ["ALL"] },
+              "InitProcessEnabled": true
+            },
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": "/saas/cell-sandbox-1/tenant-lifecycle",
+                "awslogs-region": "ca-central-1",
+                "awslogs-stream-prefix": "inspect"
+              }
+            },
+            "Privileged": false,
+            "ReadonlyRootFilesystem": true,
+            "Interactive": false,
+            "PseudoTerminal": false,
+            "User": "65532:65532",
+            "WorkingDirectory": "/app",
+            "StopTimeout": 30
+          }
+        ],
+        "Volumes": [],
+        "RequiresCompatibilities": ["FARGATE"],
+        "Cpu": "256",
+        "Memory": "512",
+        "RuntimePlatform": {
+          "CpuArchitecture": "X86_64",
+          "OperatingSystemFamily": "LINUX"
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "tenant-lifecycle-one-shot" }
+        ],
+        "EnableFaultInjection": false
+      }
+    }
+  },
+  "Outputs": {
+    "TaskDefinitionArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Ref": "TenantLifecycleTaskDefinition" }
+    }
+  }
+}
