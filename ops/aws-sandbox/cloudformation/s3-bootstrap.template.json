@@ -149,6 +149,28 @@
               "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/*"
             },
             {
+              "Sid": "AllowLifecycleTaskDefinitionReadback",
+              "Effect": "Allow",
+              "Action": "ecs:DescribeTaskDefinition",
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowExactCellManagedMasterSecretRead",
+              "Effect": "Allow",
+              "Action": "secretsmanager:GetSecretValue",
+              "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:rds!cluster-*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1",
+                  "aws:ResourceTag/aws:secretsmanager:owningService": "rds",
+                  "aws:ResourceTag/aws:rds:primaryDBClusterArn": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-cell-sandbox-1"
+                }
+              }
+            },
+            {
               "Sid": "AllowExactTenantLifecycleReceipts",
               "Effect": "Allow",
               "Action": ["s3:GetObject", "s3:PutObject"],
@@ -808,16 +830,26 @@
                 {
                   "Sid": "ReadGenerationOwnedRuntimeSecret",
                   "Effect": "Allow",
-                  "Action": [
-                    "secretsmanager:DescribeSecret",
-                    "secretsmanager:GetSecretValue"
-                  ],
+                  "Action": "secretsmanager:GetSecretValue",
                   "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/*/runtime/g*-??????",
                   "Condition": {
                     "StringEquals": {
                       "aws:RequestedRegion": "ca-central-1",
                       "aws:ResourceTag/ManagedBy": "techlong-deployment-worker",
                       "aws:ResourceTag/SecretSchema": "techlong-runtime-five-key-v1"
+                    }
+                  }
+                },
+                {
+                  "Sid": "ReadExactCellManagedMasterSecret",
+                  "Effect": "Allow",
+                  "Action": "secretsmanager:GetSecretValue",
+                  "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:rds!cluster-*",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:RequestedRegion": "ca-central-1",
+                      "aws:ResourceTag/aws:secretsmanager:owningService": "rds",
+                      "aws:ResourceTag/aws:rds:primaryDBClusterArn": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-cell-sandbox-1"
                     }
                   }
                 }
@@ -1029,6 +1061,15 @@
                     "ForAllValues:StringLike": {
                       "dynamodb:LeadingKeys": ["tenant:*"]
                     }
+                  }
+                },
+                {
+                  "Sid": "ReadLifecycleTaskDefinition",
+                  "Effect": "Allow",
+                  "Action": "ecs:DescribeTaskDefinition",
+                  "Resource": "*",
+                  "Condition": {
+                    "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
                   }
                 },
                 {
@@ -1481,6 +1522,7 @@
                 "ec2:DescribeSubnets",
                 "ec2:DescribeVpcs",
                 "ecs:DescribeClusters",
+                "ecs:DescribeTaskDefinition",
                 "elasticloadbalancing:DescribeListeners",
                 "elasticloadbalancing:DescribeLoadBalancers",
                 "elasticloadbalancing:DescribeRules",

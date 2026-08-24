@@ -97,6 +97,11 @@ export interface SharedCellInternetGatewayObservation {
 export interface SharedCellDatabaseObservation {
   arn: string;
   identifier: string;
+  endpoint: string;
+  masterSecretArn: string;
+  masterSecretStatus: string;
+  masterUsername: string;
+  databaseName: string;
   status: string;
   engine: string;
   engineVersion: string;
@@ -154,6 +159,32 @@ export interface SharedCellSecurityObservation {
   oneShotTaskSecurityGroup: SharedCellSecurityGroupObservation;
   databaseSecurityGroup: SharedCellSecurityGroupObservation;
   database: SharedCellDatabaseObservation;
+}
+
+/**
+ * Sanitized, reference-only lifecycle evidence projected only after the full
+ * Shared Cell security observation has passed its live readback checks. It
+ * deliberately contains a Secret ARN, never Secret material or a connection
+ * URL.
+ */
+export interface VerifiedSharedCellLifecycleEvidence {
+  readonly schemaVersion: 1;
+  readonly verified: true;
+  readonly observedAt: number;
+  readonly accountId: string;
+  readonly region: string;
+  readonly cellId: string;
+  readonly clusterArn: string;
+  readonly taskSubnetIds: readonly string[];
+  readonly oneShotTaskSecurityGroupId: string;
+  readonly databaseClusterArn: string;
+  readonly databaseClusterIdentifier: string;
+  readonly managementEndpoint: string;
+  readonly managementPort: 5432;
+  readonly managementSecretArn: string;
+  readonly managementDatabase: "cell_admin";
+  readonly managementUsername: "cell_admin";
+  readonly sharedCellEvidenceHash: string;
 }
 
 function sorted(values: string[]): string[] {
@@ -609,8 +640,32 @@ export function assertSharedCellSecurityObservation(input: {
     );
   }
   const database = observation.database;
+  const expectedDatabaseIdentifier =
+    `techlong-sandbox-${environment.cellKey}`;
+  const expectedEndpointPrefix = `${expectedDatabaseIdentifier}.cluster-`;
+  const expectedEndpointSuffix = `.${environment.region}.rds.amazonaws.com`;
+  const endpointToken = database.endpoint.slice(
+    expectedEndpointPrefix.length,
+    database.endpoint.length - expectedEndpointSuffix.length,
+  );
+  const expectedMasterSecretPrefix =
+    `arn:aws:secretsmanager:${environment.region}:` +
+    `${environment.expectedAccountId}:secret:rds!cluster-`;
   if (
-    database.identifier !== `techlong-sandbox-${environment.cellKey}` ||
+    database.identifier !== expectedDatabaseIdentifier ||
+    !database.endpoint.startsWith(expectedEndpointPrefix) ||
+    !database.endpoint.endsWith(expectedEndpointSuffix) ||
+    !/^[a-z0-9-]{6,63}$/.test(endpointToken) ||
+    !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(
+      database.endpoint,
+    ) ||
+    !database.masterSecretArn.startsWith(expectedMasterSecretPrefix) ||
+    !/^arn:aws:secretsmanager:[a-z0-9-]+:\d{12}:secret:rds!cluster-[A-Za-z0-9/_+=.@!-]{7,512}$/.test(
+      database.masterSecretArn,
+    ) ||
+    database.masterSecretStatus !== "active" ||
+    database.masterUsername !== "cell_admin" ||
+    database.databaseName !== "cell_admin" ||
     database.status !== "available" ||
     database.engine !== "aurora-postgresql" ||
     database.engineVersion !== environment.policy.auroraPostgresEngineVersion ||
@@ -632,7 +687,7 @@ export function assertSharedCellSecurityObservation(input: {
     )
   ) {
     throw new Error(
-      "Shared Cell database must be an available, private, encrypted Aurora PostgreSQL Serverless v2 cluster with one writer.",
+      "Shared Cell database must expose the exact reference-only management target and be an available, private, encrypted Aurora PostgreSQL Serverless v2 cluster with one writer.",
     );
   }
   assertArnScope(database.arn, "rds", environment, "Aurora cluster ARN");

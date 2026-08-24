@@ -1357,6 +1357,16 @@ test("Shared Cell security proof rejects a non-mTLS listener and public task ing
       arn:
         `arn:aws:rds:${environment.region}:${environment.expectedAccountId}:cluster:techlong-sandbox-cell-sandbox-1`,
       identifier: "techlong-sandbox-cell-sandbox-1",
+      endpoint:
+        "techlong-sandbox-cell-sandbox-1.cluster-abcdefghijkl." +
+        "ca-central-1.rds.amazonaws.com",
+      masterSecretArn:
+        `arn:aws:secretsmanager:${environment.region}:` +
+        `${environment.expectedAccountId}:secret:` +
+        "rds!cluster-01234567-89ab-cdef-0123-456789abcdef-ABCDEF",
+      masterSecretStatus: "active",
+      masterUsername: "cell_admin",
+      databaseName: "cell_admin",
       status: "available",
       engine: "aurora-postgresql",
       engineVersion: "16.14",

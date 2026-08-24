@@ -19,6 +19,12 @@ const oneShotTaskSg = "sg-0123456789abcdef3";
 const internetGatewayId = "igw-0123456789abcdef0";
 const publicRouteTableId = "rtb-0123456789abcdef0";
 const mainRouteTableId = "rtb-0123456789abcdef1";
+const databaseEndpoint =
+  "techlong-sandbox-cell-sandbox-1.cluster-abcdefghijkl." +
+  "ca-central-1.rds.amazonaws.com";
+const managementSecretArn =
+  `arn:aws:secretsmanager:${region}:${account}:secret:` +
+  "rds!cluster-01234567-89ab-cdef-0123-456789abcdef-ABCDEF";
 const loadBalancerArn = `arn:aws:elasticloadbalancing:${region}:${account}:loadbalancer/app/techlong-sandbox-cell/0123456789abcdef`;
 const httpsListenerArn = `arn:aws:elasticloadbalancing:${region}:${account}:listener/app/techlong-sandbox-cell/0123456789abcdef/0123456789abcdef`;
 const controlListenerArn = `arn:aws:elasticloadbalancing:${region}:${account}:listener/app/techlong-sandbox-cell/0123456789abcdef/fedcba9876543210`;
@@ -95,9 +101,30 @@ function command(kind: string) {
   };
 }
 
+function reverseArrayOrder(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => reverseArrayOrder(item)).reverse();
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+        key,
+        reverseArrayOrder(item),
+      ]),
+    );
+  }
+  return value;
+}
+
 function dependencies(input: {
   accountId?: string;
   businessRulePriority?: string;
+  callerSessionName?: string;
+  databaseEndpoint?: string;
+  managementDatabase?: string;
+  managementSecretArn?: string;
+  managementSecretStatus?: string;
+  managementUsername?: string;
   databaseForbiddenRouteTarget?: "default" | "igw" | "nat" | "eigw";
   internetGatewayAttachmentState?: string;
   omitPublicRouteAssociations?: boolean;
@@ -107,6 +134,8 @@ function dependencies(input: {
   publicRouteGatewayId?: string;
   publicRouteState?: string;
   publicRouteAssociationState?: string;
+  observedAt?: number;
+  reverseResourceArrays?: boolean;
   calls: string[];
   signals?: AbortSignal[];
 }) {
@@ -116,7 +145,10 @@ function dependencies(input: {
       case "GetCallerIdentity":
         return {
           Account: input.accountId ?? account,
-          Arn: `arn:aws:sts::${input.accountId ?? account}:assumed-role/TechlongSandboxProvisionerRole/techlong-sandbox-provisioner`,
+          Arn:
+            `arn:aws:sts::${input.accountId ?? account}:assumed-role/` +
+            "TechlongSandboxProvisionerRole/" +
+            (input.callerSessionName ?? "techlong-sandbox-provisioner"),
         };
       case "DescribeClusters":
         return {
@@ -158,6 +190,13 @@ function dependencies(input: {
             {
               DBClusterIdentifier: "techlong-sandbox-cell-sandbox-1",
               DBClusterArn: `arn:aws:rds:${region}:${account}:cluster:techlong-sandbox-cell-sandbox-1`,
+              Endpoint: input.databaseEndpoint ?? databaseEndpoint,
+              MasterUserSecret: {
+                SecretArn: input.managementSecretArn ?? managementSecretArn,
+                SecretStatus: input.managementSecretStatus ?? "active",
+              },
+              MasterUsername: input.managementUsername ?? "cell_admin",
+              DatabaseName: input.managementDatabase ?? "cell_admin",
               Status: "available",
               Engine: "aurora-postgresql",
               EngineVersion: "16.14",
@@ -444,7 +483,10 @@ function dependencies(input: {
       options?: { abortSignal?: AbortSignal },
     ) => {
       if (options?.abortSignal) input.signals?.push(options.abortSignal);
-      return resolve((value as { kind: string }).kind);
+      const result = resolve((value as { kind: string }).kind);
+      return input.reverseResourceArrays
+        ? (reverseArrayOrder(result) as Record<string, unknown>)
+        : result;
     },
   };
   return {
@@ -466,7 +508,7 @@ function dependencies(input: {
       describeDBInstances: command("DescribeDBInstances"),
       describeDBSubnetGroups: command("DescribeDBSubnetGroups"),
     },
-    now: () => now,
+    now: () => input.observedAt ?? now,
   };
 }
 
@@ -478,6 +520,24 @@ test("injected Shared Cell adapter collects only read evidence and hashes it", a
     dependencies({ calls, signals }),
   );
   const controller = new AbortController();
+  const lifecycleEvidence = await adapter.readVerifiedLifecycleEvidence({
+    environment,
+    binding,
+    signal: controller.signal,
+  });
+  assert.equal(lifecycleEvidence.verified, true);
+  assert.equal(lifecycleEvidence.cellId, "cell-sandbox-1");
+  assert.equal(lifecycleEvidence.managementEndpoint, databaseEndpoint);
+  assert.equal(lifecycleEvidence.managementPort, 5432);
+  assert.equal(lifecycleEvidence.managementSecretArn, managementSecretArn);
+  assert.equal(lifecycleEvidence.managementDatabase, "cell_admin");
+  assert.equal(lifecycleEvidence.managementUsername, "cell_admin");
+  assert.deepEqual(lifecycleEvidence.taskSubnetIds, publicSubnets);
+  assert.equal(Object.isFrozen(lifecycleEvidence), true);
+  assert.equal(Object.isFrozen(lifecycleEvidence.taskSubnetIds), true);
+  assert.equal("secretValue" in lifecycleEvidence, false);
+  assert.equal("password" in lifecycleEvidence, false);
+  assert.equal("databaseUrl" in lifecycleEvidence, false);
   const result = await adapter.verify({
     environment,
     binding,
@@ -492,6 +552,94 @@ test("injected Shared Cell adapter collects only read evidence and hashes it", a
   assert.equal(calls.every((name) => /^(?:Get|Describe)/.test(name)), true);
   assert.equal(signals.length, calls.length);
   assert.equal(signals.every((item) => item === controller.signal), true);
+});
+
+test("lifecycle evidence rejects drifting or incomplete management references", async (t) => {
+  for (const [name, overrides] of [
+    ["endpoint", { databaseEndpoint: "another.cluster-id.us-east-1.rds.amazonaws.com" }],
+    [
+      "master Secret",
+      {
+        managementSecretArn:
+          "arn:aws:secretsmanager:ca-central-1:999999999999:" +
+          "secret:rds!cluster-01234567-89ab-cdef-0123-456789abcdef-ABCDEF",
+      },
+    ],
+    ["management database", { managementDatabase: "postgres" }],
+    ["master Secret status", { managementSecretStatus: "rotating" }],
+    ["management username", { managementUsername: "postgres" }],
+  ] as const) {
+    await t.test(name, async () => {
+      const adapter = new AwsSdkSharedCellEvidenceAdapter(
+        region,
+        dependencies({ calls: [], ...overrides }),
+      );
+      await assert.rejects(
+        adapter.readVerifiedLifecycleEvidence({
+          environment,
+          binding,
+          signal: new AbortController().signal,
+        }),
+        /exact reference-only management target/,
+      );
+    });
+  }
+});
+
+test("lifecycle evidence hash is stable across observation metadata and changes on resource drift", async () => {
+  const first = await new AwsSdkSharedCellEvidenceAdapter(
+    region,
+    dependencies({
+      calls: [],
+      callerSessionName: "readback-one",
+      observedAt: now,
+    }),
+  ).readVerifiedLifecycleEvidence({
+    environment,
+    binding,
+    signal: new AbortController().signal,
+  });
+  const repeated = await new AwsSdkSharedCellEvidenceAdapter(
+    region,
+    dependencies({
+      calls: [],
+      callerSessionName: "readback-two",
+      observedAt: now + 1_000,
+    }),
+  ).readVerifiedLifecycleEvidence({
+    environment,
+    binding,
+    signal: new AbortController().signal,
+  });
+  const reordered = await new AwsSdkSharedCellEvidenceAdapter(
+    region,
+    dependencies({
+      calls: [],
+      reverseResourceArrays: true,
+    }),
+  ).readVerifiedLifecycleEvidence({
+    environment,
+    binding,
+    signal: new AbortController().signal,
+  });
+  const drifted = await new AwsSdkSharedCellEvidenceAdapter(
+    region,
+    dependencies({
+      calls: [],
+      databaseEndpoint:
+        "techlong-sandbox-cell-sandbox-1.cluster-mnopqrstuvwxyz." +
+        "ca-central-1.rds.amazonaws.com",
+    }),
+  ).readVerifiedLifecycleEvidence({
+    environment,
+    binding,
+    signal: new AbortController().signal,
+  });
+
+  assert.notEqual(first.observedAt, repeated.observedAt);
+  assert.equal(first.sharedCellEvidenceHash, repeated.sharedCellEvidenceHash);
+  assert.equal(first.sharedCellEvidenceHash, reordered.sharedCellEvidenceHash);
+  assert.notEqual(first.sharedCellEvidenceHash, drifted.sharedCellEvidenceHash);
 });
 
 test("wrong STS account stops before any resource read", async () => {

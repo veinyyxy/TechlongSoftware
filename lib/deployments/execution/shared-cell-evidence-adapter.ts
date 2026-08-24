@@ -3,7 +3,7 @@ import type {
   SharedCellSecurityPreflightPort,
 } from "./contracts.ts";
 import type { DeploymentEnvironment } from "../environment.ts";
-import { sha256Hex } from "./hash.ts";
+import { canonicalJson, sha256Hex } from "./hash.ts";
 import {
   assertSharedCellSecurityObservation,
   DisabledSharedCellSecurityPreflight,
@@ -16,7 +16,10 @@ import {
   type SharedCellRouteTableObservation,
   type SharedCellSecurityGroupObservation,
   type SharedCellSecurityObservation,
+  type VerifiedSharedCellLifecycleEvidence,
 } from "./shared-cell-preflight.ts";
+
+const verifiedLifecycleEvidence = new WeakSet<object>();
 
 interface AwsReadOnlySdkClient {
   send(
@@ -404,6 +407,58 @@ export class SharedCellEvidenceError extends Error {
   }
 }
 
+/**
+ * Runtime provenance guard for lifecycle evidence. Structural typing is not a
+ * proof that an object was produced by the complete live adapter readback.
+ */
+export function assertVerifiedSharedCellLifecycleEvidence(
+  value: unknown,
+): asserts value is VerifiedSharedCellLifecycleEvidence {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !verifiedLifecycleEvidence.has(value)
+  ) {
+    throw new SharedCellEvidenceError(
+      "SHARED_CELL_LIFECYCLE_EVIDENCE_UNVERIFIED",
+      "Lifecycle evidence was not produced by a complete live Shared Cell readback.",
+      false,
+    );
+  }
+}
+
+function canonicalResourceState(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => canonicalResourceState(item))
+      .sort((left, right) => {
+        const leftJson = canonicalJson(left);
+        const rightJson = canonicalJson(right);
+        return leftJson < rightJson ? -1 : leftJson > rightJson ? 1 : 0;
+      });
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+        key,
+        canonicalResourceState(item),
+      ]),
+    );
+  }
+  return value;
+}
+
+function stableSharedCellResourceState(
+  observation: SharedCellSecurityObservation,
+): unknown {
+  const resourceState = Object.fromEntries(
+    Object.entries(observation).filter(
+      ([key]) => key !== "observedAt" && key !== "callerArn",
+    ),
+  );
+  return canonicalResourceState(resourceState);
+}
+
 function normalizeError(error: unknown): SharedCellEvidenceError {
   if (error instanceof SharedCellEvidenceError) return error;
   const item = record(error);
@@ -441,13 +496,53 @@ export class AwsSdkSharedCellEvidenceAdapter
     binding: DeploymentExecutionBinding;
     signal: AbortSignal;
   }): Promise<{ verified: true; evidenceHash: string }> {
+    const evidence = await this.readVerifiedLifecycleEvidence(input);
+    return {
+      verified: true,
+      evidenceHash: evidence.sharedCellEvidenceHash,
+    };
+  }
+
+  /**
+   * Performs the same complete live security preflight as verify(), then
+   * returns only the frozen references required to compile a lifecycle
+   * management target. No Secret value or database URL crosses this boundary.
+   */
+  async readVerifiedLifecycleEvidence(input: {
+    environment: DeploymentEnvironment;
+    binding: DeploymentExecutionBinding;
+    signal: AbortSignal;
+  }): Promise<VerifiedSharedCellLifecycleEvidence> {
     try {
       const observation = await this.collect(input);
       input.signal.throwIfAborted();
       assertSharedCellSecurityObservation({ ...input, observation });
-      const evidenceHash = await sha256Hex(observation);
+      const evidenceHash = await sha256Hex(
+        stableSharedCellResourceState(observation),
+      );
       input.signal.throwIfAborted();
-      return { verified: true, evidenceHash };
+      const lifecycleEvidence: VerifiedSharedCellLifecycleEvidence =
+        Object.freeze({
+          schemaVersion: 1 as const,
+          verified: true as const,
+          observedAt: observation.observedAt,
+          accountId: observation.accountId,
+          region: observation.region,
+          cellId: input.environment.cellKey,
+          clusterArn: observation.clusterArn,
+          taskSubnetIds: Object.freeze([...observation.subnetIds]),
+          oneShotTaskSecurityGroupId: observation.oneShotTaskSecurityGroup.id,
+          databaseClusterArn: observation.database.arn,
+          databaseClusterIdentifier: observation.database.identifier,
+          managementEndpoint: observation.database.endpoint,
+          managementPort: 5432 as const,
+          managementSecretArn: observation.database.masterSecretArn,
+          managementDatabase: "cell_admin" as const,
+          managementUsername: "cell_admin" as const,
+          sharedCellEvidenceHash: evidenceHash,
+        });
+      verifiedLifecycleEvidence.add(lifecycleEvidence);
+      return lifecycleEvidence;
     } catch (error) {
       if (input.signal.aborted) {
         throw input.signal.reason instanceof Error
@@ -832,6 +927,13 @@ export class AwsSdkSharedCellEvidenceAdapter
       database: {
         arn: text(database.DBClusterArn) ?? "",
         identifier: text(database.DBClusterIdentifier) ?? "",
+        endpoint: text(database.Endpoint) ?? "",
+        masterSecretArn:
+          text(record(database.MasterUserSecret).SecretArn) ?? "",
+        masterSecretStatus:
+          text(record(database.MasterUserSecret).SecretStatus) ?? "",
+        masterUsername: text(database.MasterUsername) ?? "",
+        databaseName: text(database.DatabaseName) ?? "",
         status: text(database.Status) ?? "",
         engine: text(database.Engine) ?? "",
         engineVersion: text(database.EngineVersion) ?? "",

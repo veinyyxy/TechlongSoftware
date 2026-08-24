@@ -11,6 +11,8 @@ param(
     'ExecuteRollbackChangeSet'
   )]
   [string]$Mode = 'LocalValidate',
+  [ValidateSet('InitialB5Support', 'LifecycleReadback')]
+  [string]$UpdateShape = 'InitialB5Support',
   [string]$Profile = 'techlong-sandbox-user',
   [string]$ConfirmAccountId = '',
   [string]$ConfirmRegion = '',
@@ -40,6 +42,19 @@ $renderer = Join-Path $root 'scripts\render-bootstrap.mjs'
 $rollbackRenderer = Join-Path $root 'scripts\render-b5-support-rollback.mjs'
 $templateVerifier = Join-Path $root 'scripts\verify-change-set-template.mjs'
 $supportInfrastructureWriteReady = $true
+$reviewedUpdateShape = if ($UpdateShape -ieq 'LifecycleReadback') {
+  'LifecycleReadback'
+} else {
+  'InitialB5Support'
+}
+$rollbackModes = @(
+  'CreateRollbackChangeSet',
+  'InspectRollbackChangeSet',
+  'ExecuteRollbackChangeSet'
+)
+if ($Mode -in $rollbackModes -and $reviewedUpdateShape -ne 'InitialB5Support') {
+  throw 'Rollback modes only support -UpdateShape InitialB5Support; LifecycleReadback is an incremental IAM update and has no standalone rollback shape.'
+}
 
 function Resolve-AwsCli {
   $command = Get-Command aws -ErrorAction SilentlyContinue
@@ -334,6 +349,8 @@ function Assert-ReviewedChangeSet {
     [object]$ChangeSet,
     [string]$ExpectedName,
     [string]$ExpectedDescription,
+    [ValidateSet('InitialB5Support', 'LifecycleReadback')]
+    [string]$UpdateShape,
     [bool]$Rollback
   )
   $metadataFailures = [System.Collections.Generic.List[string]]::new()
@@ -411,7 +428,7 @@ function Assert-ReviewedChangeSet {
     throw 'Change Set capabilities do not match the reviewed named-IAM update.'
   }
 
-  $requiredApplyChanges = @{
+  $requiredInitialB5SupportChanges = @{
     GlobalJanitorSchedule = @{ Type = 'AWS::Scheduler::Schedule'; Action = 'Modify' }
     JanitorFunction = @{ Type = 'AWS::Lambda::Function'; Action = 'Modify' }
     SchedulerInvokeRole = @{ Type = 'AWS::IAM::Role'; Action = 'Modify' }
@@ -424,6 +441,12 @@ function Assert-ReviewedChangeSet {
     TenantLifecycleTaskRole = @{ Type = 'AWS::IAM::Role'; Action = 'Add' }
     DeploymentWorkerRole = @{ Type = 'AWS::IAM::Role'; Action = 'Add' }
   }
+  $requiredLifecycleReadbackChanges = @{
+    ServiceRoleBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
+    ProvisionerBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
+    TenantLifecycleTaskRole = @{ Type = 'AWS::IAM::Role'; Action = 'Modify' }
+    DeploymentWorkerRole = @{ Type = 'AWS::IAM::Role'; Action = 'Modify' }
+  }
   $requiredRollbackChanges = @{
     ServiceRoleBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
     ProvisionerBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
@@ -433,7 +456,16 @@ function Assert-ReviewedChangeSet {
     TenantLifecycleTaskRole = @{ Type = 'AWS::IAM::Role'; Action = 'Remove' }
     DeploymentWorkerRole = @{ Type = 'AWS::IAM::Role'; Action = 'Remove' }
   }
-  $requiredChanges = if ($Rollback) { $requiredRollbackChanges } else { $requiredApplyChanges }
+  $requiredChanges = if ($Rollback) {
+    if ($UpdateShape -ne 'InitialB5Support') {
+      throw 'Rollback Change Sets are only reviewed against the InitialB5Support shape.'
+    }
+    $requiredRollbackChanges
+  } elseif ($UpdateShape -eq 'LifecycleReadback') {
+    $requiredLifecycleReadbackChanges
+  } else {
+    $requiredInitialB5SupportChanges
+  }
   $observed = @{}
   foreach ($change in @($ChangeSet.Changes)) {
     $resource = $change.ResourceChange
@@ -491,11 +523,11 @@ if ($Mode -eq 'ExecuteRollbackChangeSet') {
 
 $renderedTemplate = [System.IO.Path]::Combine(
   [System.IO.Path]::GetTempPath(),
-  "techlong-s3-b5-support-$([Guid]::NewGuid().ToString('N')).json"
+  "techlong-s3-b5-support-$([Guid]::NewGuid().ToString('N')).yaml"
 )
 $rollbackTemplate = [System.IO.Path]::Combine(
   [System.IO.Path]::GetTempPath(),
-  "techlong-s3-b5-support-rollback-$([Guid]::NewGuid().ToString('N')).json"
+  "techlong-s3-b5-support-rollback-$([Guid]::NewGuid().ToString('N')).yaml"
 )
 $changeSetTemplateResponse = [System.IO.Path]::Combine(
   [System.IO.Path]::GetTempPath(),
@@ -514,10 +546,11 @@ try {
   $rollbackHash = (Get-FileHash -LiteralPath $rollbackTemplate -Algorithm SHA256).Hash.ToLowerInvariant()
   $templateCanonicalHash = Get-CanonicalTemplateHash -TemplatePath $renderedTemplate
   $rollbackCanonicalHash = Get-CanonicalTemplateHash -TemplatePath $rollbackTemplate
-  $changeSetName = "techlong-s3-b5-support-$($templateHash.Substring(0, 16))"
-  $rollbackChangeSetName = "techlong-s3-b5-support-rollback-$($rollbackHash.Substring(0, 16))"
-  $changeSetDescription = "B5 support bootstrap update; template-sha256=$templateHash; canonical-sha256=$templateCanonicalHash"
-  $rollbackDescription = "B5 support rollback; template-sha256=$rollbackHash; canonical-sha256=$rollbackCanonicalHash; deletes receipts and authority records"
+  $updateShapeToken = if ($reviewedUpdateShape -eq 'LifecycleReadback') { 'lifecycle-readback' } else { 'initial' }
+  $changeSetName = "techlong-s3-b5-support-$updateShapeToken-$($templateHash.Substring(0, 16))"
+  $rollbackChangeSetName = "techlong-s3-b5-support-rollback-initial-$($rollbackHash.Substring(0, 16))"
+  $changeSetDescription = "B5 support update; update-shape=$reviewedUpdateShape; template-sha256=$templateHash; canonical-sha256=$templateCanonicalHash"
+  $rollbackDescription = "B5 support rollback; update-shape=InitialB5Support; template-sha256=$rollbackHash; canonical-sha256=$rollbackCanonicalHash; deletes receipts and authority records"
 
   Assert-NoAwsEndpointOverrides
   [Environment]::SetEnvironmentVariable(
@@ -627,6 +660,7 @@ try {
     -ChangeSet $changeSet `
     -ExpectedName $selectedName `
     -ExpectedDescription $selectedDescription `
+    -UpdateShape $reviewedUpdateShape `
     -Rollback $isRollback
 
   if ($Mode -eq 'InspectChangeSet' -or $Mode -eq 'InspectRollbackChangeSet') {

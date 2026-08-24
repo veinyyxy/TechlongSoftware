@@ -2,6 +2,10 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import {
+  parseCloudFormationTemplateDocument,
+  renderCloudFormationTemplateDocument,
+} from "./cloudformation-template-document.mjs";
 import { renderBootstrapTemplate } from "./render-bootstrap.mjs";
 
 const supportResourceNames = [
@@ -30,6 +34,8 @@ const serviceBoundarySupportStatements = new Set([
   "AllowRunTaskTagAuthorizationOnly",
   "AllowPassOnlySandboxTaskRoles",
   "AllowGenerationOwnedRuntimeSecretLifecycle",
+  "AllowLifecycleTaskDefinitionReadback",
+  "AllowExactCellManagedMasterSecretRead",
 ]);
 
 function removePolicyStatements(template, logicalId, sids) {
@@ -49,7 +55,10 @@ function removePolicyStatements(template, logicalId, sids) {
 }
 
 export async function renderB5SupportRollbackTemplate() {
-  const template = JSON.parse(await renderBootstrapTemplate());
+  const template = parseCloudFormationTemplateDocument(
+    await renderBootstrapTemplate(),
+    "Rendered B5 support template",
+  );
   for (const resourceName of supportResourceNames) {
     if (!template.Resources?.[resourceName]) {
       throw new Error(`B5 support rollback source is missing ${resourceName}`);
@@ -79,7 +88,13 @@ export async function renderB5SupportRollbackTemplate() {
     "Techlong AWS Sandbox bootstrap with B5 support resources removed and their boundary permissions revoked.";
   template.Metadata.SafetyBoundary.CreatesB5SupportResources = false;
   template.Metadata.SafetyBoundary.RevokesB5SupportIamCapabilities = true;
-  return `${JSON.stringify(template)}\n`;
+  const rendered = renderCloudFormationTemplateDocument(template);
+  if (Buffer.byteLength(rendered, "utf8") > 50_000) {
+    throw new Error(
+      "rendered B5 support rollback exceeds the reviewed direct-body limit",
+    );
+  }
+  return rendered;
 }
 
 async function main() {

@@ -3,16 +3,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { parseCloudFormationTemplateDocument } from "./cloudformation-template-document.mjs";
+
 function object(value) {
   return value && typeof value === "object" && !Array.isArray(value);
-}
-
-function parseJsonTemplate(value, label) {
-  const parsed = typeof value === "string" ? JSON.parse(value) : value;
-  if (!object(parsed)) {
-    throw new Error(`${label} must be one JSON template object.`);
-  }
-  return parsed;
 }
 
 export function canonicalJson(value) {
@@ -30,7 +24,12 @@ export function canonicalJson(value) {
 
 export function canonicalTemplateSha256(template) {
   return createHash("sha256")
-    .update(canonicalJson(parseJsonTemplate(template, "Template")), "utf8")
+    .update(
+      canonicalJson(
+        parseCloudFormationTemplateDocument(template, "Template"),
+      ),
+      "utf8",
+    )
     .digest("hex");
 }
 
@@ -38,8 +37,11 @@ export function assertExactChangeSetTemplate(expectedTemplate, getTemplateRespon
   if (!object(getTemplateResponse) || getTemplateResponse.TemplateBody === undefined) {
     throw new Error("CloudFormation GetTemplate response is missing TemplateBody.");
   }
-  const expected = parseJsonTemplate(expectedTemplate, "Expected template");
-  const actual = parseJsonTemplate(
+  const expected = parseCloudFormationTemplateDocument(
+    expectedTemplate,
+    "Expected template",
+  );
+  const actual = parseCloudFormationTemplateDocument(
     getTemplateResponse.TemplateBody,
     "CloudFormation Change Set TemplateBody",
   );
@@ -61,7 +63,7 @@ function argument(name) {
 async function main() {
   const hashPath = argument("--hash-template");
   if (hashPath) {
-    const template = JSON.parse(await readFile(path.resolve(hashPath), "utf8"));
+    const template = await readFile(path.resolve(hashPath), "utf8");
     console.log(canonicalTemplateSha256(template));
     return;
   }
@@ -74,7 +76,7 @@ async function main() {
     );
   }
   const [expectedTemplate, response] = await Promise.all([
-    readFile(path.resolve(expectedPath), "utf8").then(JSON.parse),
+    readFile(path.resolve(expectedPath), "utf8"),
     readFile(path.resolve(responsePath), "utf8").then(JSON.parse),
   ]);
   console.log(assertExactChangeSetTemplate(expectedTemplate, response));

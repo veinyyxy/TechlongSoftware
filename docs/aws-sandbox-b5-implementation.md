@@ -50,7 +50,7 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - 平台新增可注入的 AWS SDK v3 ECS one-shot Adapter，封装 `RunTask`、`ListTasks`、`DescribeTasks` 和 `StopTask`。`EcsOneShotTaskRunner` 与 Adapter 配置显式固定 environment kind、账号、区域、集群、revision-pinned Task Definition、subnet 列表、唯一 one-shot SG 和六条代码自有命令；`aws_sandbox` 只允许 `AssignPublicIp=ENABLED`，`aws_production` 只允许 `DISABLED`，请求或配置任一漂移都会在 SDK 调用前 fail closed。未知提交只按稳定 `startedBy` 在独立有界窗口恢复，无法证明结果时同样 fail closed。
 - Secrets Manager Adapter 只允许当前租户、generation、账号和区域下的 exact-five-key Secret。Secret value 由尚未实现的生产 material generator 在 provider 内生成；平台只接收 ARN、版本、标签和键集合证据，不接收明文值。
 - DynamoDB authority Adapter 使用强一致读取和条件 `PutItem`，同时比较 revision 与规范化旧记录；它只是可注入实现源码，尚未创建表、IAM 或 root wiring，也没有被 standalone Worker 使用。
-- 订单服务端新增默认禁用的 `db/tenant_lifecycle.js`，统一接受 `inspect`、`prepare_empty_database`、`restore_approved_baseline`、`migrate_saas`、`verify`、`destroy` 六条命令。Secret resolver 必须提供 exact-five-key JSON，但数据库 provider 只得到缩减后的 `database_url`；marker/epoch/ownership 状态机可在响应丢失后精确重放，旧 epoch、漂移和异主资源会被拒绝。
+- 订单服务 lifecycle service 保留 `inspect`、`prepare_empty_database`、`restore_approved_baseline`、`migrate_saas`、`verify`、`destroy` 六种类型化操作契约。B5-G 时 provider 默认禁用；当前 B5-J2 production `db/tenant_lifecycle.js` 已进一步收窄为只接受 exact `inspect`，其余操作继续禁用。marker/epoch/ownership 状态机仍会拒绝旧 epoch、漂移和异主资源。
 - 订单服务端另提供显式手动的 PostgreSQL 16.14 集成测试 runner：只接受 loopback admin URL，只创建随机命名的一次性数据库，并在 DROP 前二次核对 runner marker。默认 `npm test` 不会进入该目录；B5-G 没有运行真实 PostgreSQL 集成测试，也没有访问 AWS、Neon 或其他数据库。
 - B5-G 结束时仍缺生产 Secrets material generator、PostgreSQL lifecycle provider、DynamoDB 表/IAM、approved baseline、任务镜像验证和 Worker root 注入。订单服务 CLI 只输出确定性的非秘密业务结果，不能自证 ECS task ARN；下一切片需要把该结果与已独立验证的 DescribeTasks 身份和 exact request 绑定，再由平台构造最终哈希回执。
 
@@ -85,24 +85,33 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - ECS Runner 与 AWS SDK Adapter 已从 operation → 多 ARN 收敛为一个 exact revision ARN；六个 lifecycle operation 分别映射到代码内固定的 `/usr/local/bin/node db/tenant_lifecycle.js <operation>`。Runner 在任何异步边界前捕获原始 operation，并把它作为独立 `expectedOperation` 传入 RunTask/DescribeTask 校验；请求中的 operation 与 argv 必须同时匹配该独立值，不能通过同步篡改两者来触发其他数据库操作。
 - compiler 只生成深度冻结、尚未验证的 intent：image、TaskDefinition、cluster ARN、receipt Bucket、六条代码自有命令，以及带 `candidateSubnetIds`、`candidateOneShotSecurityGroupId`、`sharedCellEvidenceReady=false` 的 `networkIntent`。它不输出 Runner/API 运行时配置，并固定 `registrationReady=false`、`liveReadbackReady=false`。默认 Worker root 增加 `tenant_lifecycle_task_definition_live_readback_missing` blocker；未来 live readback verifier 必须同时核对独立 `DescribeTaskDefinition` 回读与 Shared Cell 网络证据，之后才可产出运行时配置。本切片没有注册 TaskDefinition、没有调用 AWS，也没有改变任何 runtime gate。
 
+### B5-J2：Shared Cell lifecycle 管理目标绑定
+
+- Shared Cell database observation 现在要求同一 `DescribeDBClusters` 结果提供 `DBClusterIdentifier=techlong-sandbox-cell-sandbox-1`、exact Aurora writer endpoint、RDS-managed `MasterUserSecret.SecretArn`、`MasterUserSecret.SecretStatus=active`、`MasterUsername=cell_admin` 与 `DatabaseName=cell_admin`。这些引用必须与 `cell-sandbox-1` ECS cluster、Sandbox account/region、Aurora cluster ARN/identifier及完整网络/所有权/TTL preflight 一起通过校验。原有 `verify()` 返回形状保持不变；新增的 lifecycle evidence read 只在完整校验后返回深冻结、reference-only projection，并继续透传调用方的 `AbortSignal`。
+- 只有同一次完整 collect → preflight → resource-hash 流程产出的 evidence 才会进入模块私有 `WeakSet`，并可被 management-target compiler 消费；复制对象、结构相同的伪造对象或跳过 preflight 的 evidence 都会 fail closed。资源哈希排除 `observedAt`、`callerArn` 等瞬态观察值，并对数组和对象键做稳定 canonicalization，使相同资源状态不会因观察顺序或调用身份改变哈希。
+- `tenant-lifecycle-management-target.ts` 把具有可信 runtime provenance 的 Shared Cell projection、B5-J1 offline intent 与当前 generation 的 `TenantResourceFence` 逐项对账。evidence 与被标记 target 的有效窗口固定为 5 分钟；compiler/projection 都拒绝未来时间、过期证据或时钟回退。tenant database/role 必须分别符合 `tenant_<stem>_db`、`tenant_<stem>_role` 且 stem 完全相同。compiler 输出固定的 schema/readiness 与 reference-only target；只有被 compiler 标记的 target 才能投影成 backend 使用的 canonical 11-key management target。输出禁止 Secret value、password、`DATABASE_URL`、额外字段或 Runner/API config，cluster、候选公共 subnet、one-shot SG、management reference、tenant database/role 任一漂移都会 fail closed。
+- 订单服务源码新增真实的 production inspect composition。它只在 exact `APP_RUNTIME_MODE=aws_sandbox_tenant_lifecycle_inspect` 下接受 canonical management target，从 exact RDS-managed Secret ARN 的 `AWSCURRENT` 版本读取严格限长的 username/password，再使用 AWS RDS CA、`rejectUnauthorized=true`、明确 host/port/database/user 和只读 session 连接 PostgreSQL；catalog/COMMENT 查询参数化并限制返回大小。结果通过既有 immutable S3 publisher 写入 exact receipt key。Secret material 只在 provider callback 内存在，不进入日志、management target 或业务返回；“inspect-only”指数据库操作只读，不表示 immutable receipt 写入不调用 S3。
+- 该 production 入口只允许命令 `inspect`；`destroy` 以及 `prepare_empty_database`、`restore_approved_baseline`、`migrate_saas`、`verify` 均未启用。CloudFormation 已在本地 staged 最小 `ecs:DescribeTaskDefinition` 与 exact RDS-managed Secret read 权限，并新增受限 `LifecycleReadback` 增量 Change Set create/inspect/execute 路径；这些 IAM 变更尚未部署或在线回读，当前 AWS CLI login 已失效。账号中仍没有 Cell、TaskDefinition 或 `RunTask` 证据，Build #3 也不包含当前源码，因此后续要先完成 IAM Change Set/readback，再构建并扫描 Build #4。`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 全部保持不变。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：
 
 1. `0005`、`0006`、`0007` 尚未应用到 Neon。
 2. 尚无独立批准的 PostgreSQL 16.14 空租户 baseline；旧业务数据 dump 禁止作为租户模板。
-3. ECS one-shot、exact-five-key Secret、trusted S3 receipt reader/publisher、订单服务 lifecycle 入口与单 revision TaskDefinition binding/compiler 已离线完成，receipt Bucket/专用 LifecycleTaskRole 也已部署；当前后端提交的镜像已构建并以 digest 固定、扫描为 0 findings，但尚未注册并独立 readback 对应的 revision-pinned lifecycle TaskDefinition。生产 material generator、PostgreSQL provider、approved baseline、Worker live root wiring 和真实崩溃演练仍未完成。
+3. ECS one-shot、exact-five-key Secret、trusted S3 receipt reader/publisher、订单服务 lifecycle 入口、单 revision TaskDefinition intent、runtime-provenance-checked management target compiler 与真实 inspect-only Secrets Manager/PostgreSQL/S3 provider 已在源码完成，receipt Bucket/专用 LifecycleTaskRole 也已部署；但包含当前源码的 Build #4 尚未构建，revision-pinned lifecycle TaskDefinition 也尚未注册或独立 readback。生产 material generator、PostgreSQL 变更/销毁 provider、approved baseline、Worker live root wiring 和真实崩溃演练仍未完成。
 4. 离线 ownership coordinator、原子 authority 接口和 DynamoDB 条件写 Adapter 源码已完成，authority table/WorkerRole 已部署并完成最小只读 IAM 模拟，但尚未注入 root，也未执行真实 AWS 条件写。CloudFormation 只读回读不是 CAS，不能安装或授权 external marker。
-5. Cell 外部证据尚未完整验证 ACM、精确 Trust Store、DNS、TTL Schedule 和 Stack 所有权；Route Table/attached IGW 的只读证据与 fail-closed 校验已离线实现，但尚未在真实 Cell 上回读。
-6. 分阶段 cleanup coordinator 与 exact provision predecessor 接线已离线实现，但 backend real lifecycle provider、Cell Janitor/standalone Worker 的 live destroy root wiring，以及真实 provider-side 删除演练仍未完成。
+5. Cell 外部证据尚未完整验证 ACM、精确 Trust Store、DNS、TTL Schedule 和 Stack 所有权；Route Table/attached IGW、`SecretStatus=active`、runtime provenance、稳定资源 hash 及 reference-only lifecycle management projection 的 fail-closed 校验已实现，但尚未在真实 Cell 上回读，因此还没有真实 B5-J2 target。
+6. 分阶段 cleanup coordinator 与 exact provision predecessor 接线已离线实现，backend 的真实 inspect-only provider 也已存在；但数据库变更/销毁 provider、Cell Janitor/standalone Worker 的 live destroy root wiring，以及真实 provider-side 删除演练仍未完成。
 7. 尚未进行真实 Cell TTL 删除演练和费用后核对。
 8. DynamoDB authority Adapter 和订单服务 `POST /api/saas/provision` 单调 epoch CAS 仅存在于未接线/未部署源码中；其他控制写接口仍未 fence，也没有完成数据库迁移、跨进程 CAS、AWS 条件写或 provider-side 删除演练。`AbortSignal` 不能撤销服务端已经接受的写入。
+9. B5-J2 的 CloudFormation IAM 与 `LifecycleReadback` 增量更新路径只在本地 staged；当前 AWS CLI login 失效，尚未执行 Change Set 或在线回读 policy。没有 Cell、TaskDefinition、`DescribeTaskDefinition` 正向结果或 `RunTask` 执行证据。
 
 ## 费用与执行规则
 
-- 源码、迁移文件、模板渲染和 Mock 测试本身不调用 AWS，不访问 Neon，也不应用迁移；本阶段唯一在线写入是上述受审 B5 support Bootstrap UPDATE。`0005`–`0007` 继续只是仓库文件，既没有应用到 Neon，也没有接入真实数据库。
+- 源码、迁移文件、模板渲染和本地测试本身不调用 AWS，不访问 Neon，也不应用迁移；截至当前，最近一次在线写入仍是上述已受审 B5-I support Bootstrap UPDATE。B5-J2 的 IAM/`LifecycleReadback` 变更尚未执行，`0005`–`0007` 也继续只是仓库文件。
 - `$10` Budget 是延迟告警，不是实时费用硬停。
-- 创建 Lambda/Scheduler Bootstrap、B5 support S3/DynamoDB、ALB、Aurora 或运行 ECS/CodeBuild 都可能产生费用。Cell Bootstrap 写模式仍硬禁用；B5 support 只开放 source-user 的三阶段受审 Bootstrap UPDATE，任何真实 Change Set 执行或 Worker Apply 都必须另行获得明确确认。
+- 创建 Lambda/Scheduler Bootstrap、B5 support S3/DynamoDB、ALB、Aurora 或运行 ECS/CodeBuild 都可能产生费用。Cell Bootstrap 写模式仍硬禁用；刷新 AWS CLI login 后，只允许先通过 source-user 的 `LifecycleReadback` 三阶段路径创建、检查并执行 exact 增量 Bootstrap UPDATE，再做独立 policy/stack 回读。IAM 回读通过后才构建 Build #4；TaskDefinition 注册/描述属于后续独立步骤，当前不运行 ECS task。任何 Worker Apply 仍必须另行获得明确确认。
 - `infra/`、`.env.local`、证书、私钥、数据库密码和 AWS 长期凭据不得进入 Git。
 
 ## 本地验证

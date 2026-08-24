@@ -1,7 +1,13 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { renderBootstrapTemplate } from "./render-bootstrap.mjs";
+import { isDeepStrictEqual } from "node:util";
+
+import { parseCloudFormationTemplateDocument } from "./cloudformation-template-document.mjs";
+import {
+  decodeDeployedJanitorSource,
+  renderBootstrapTemplate,
+} from "./render-bootstrap.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDirectory, "..");
@@ -66,6 +72,7 @@ const [
   boundaryResult,
   denyResult,
   janitorSource,
+  deployedJanitorFixtureSource,
   imageBuildspec,
 ] =
   await Promise.all([
@@ -75,6 +82,10 @@ const [
     readJson("policies/provisioner-permissions-boundary.example.json"),
     readJson("policies/sandbox-expensive-actions-deny.example.json"),
     readFile(path.join(root, "lambda", "janitor.cjs"), "utf8"),
+    readFile(
+      path.join(root, "lambda", "janitor.b5i-deployed.base64"),
+      "utf8",
+    ),
     readFile(path.join(root, "codebuild", "buildspec.aws-sandbox.yml"), "utf8"),
   ]);
 
@@ -505,16 +516,34 @@ if (bootstrap) {
   }
 }
 
+const inlineJanitorSource = decodeDeployedJanitorSource(
+  deployedJanitorFixtureSource,
+  janitorSource,
+);
+
 try {
   const renderedBootstrap = await renderBootstrapTemplate();
-  const rendered = JSON.parse(renderedBootstrap);
-  check(
-    rendered.Resources?.JanitorFunction?.Properties?.Code?.ZipFile === janitorSource,
-    "rendered bootstrap did not inject the reviewed Janitor source",
+  const rendered = parseCloudFormationTemplateDocument(
+    renderedBootstrap,
+    "Rendered bootstrap template",
   );
   check(
-    Buffer.byteLength(renderedBootstrap, "utf8") <= 51_200,
-    "rendered bootstrap exceeds CloudFormation direct body limit",
+    rendered.Resources?.JanitorFunction?.Properties?.Code?.ZipFile ===
+      inlineJanitorSource,
+    "rendered bootstrap did not inject the reviewed Janitor source",
+  );
+  if (bootstrap) {
+    const expectedResources = structuredClone(bootstrap.Resources);
+    expectedResources.JanitorFunction.Properties.Code.ZipFile =
+      inlineJanitorSource;
+    check(
+      isDeepStrictEqual(rendered.Resources, expectedResources),
+      "rendered bootstrap changed a resource other than exact Janitor source injection",
+    );
+  }
+  check(
+    Buffer.byteLength(renderedBootstrap, "utf8") <= 50_000,
+    "rendered bootstrap has less than 1,200 bytes of direct-body safety headroom",
   );
 } catch (error) {
   failures.push(`bootstrap render failed: ${error.message}`);
@@ -522,7 +551,7 @@ try {
 
 try {
   const loadedModule = { exports: {} };
-  const load = new Function("module", "exports", "require", janitorSource);
+  const load = new Function("module", "exports", "require", inlineJanitorSource);
   load(loadedModule, loadedModule.exports, () => {
     throw new Error("Janitor pure contract test must not load the AWS SDK");
   });

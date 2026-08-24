@@ -1,10 +1,19 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual, promisify } from "node:util";
 
-import { renderBootstrapTemplate } from "./render-bootstrap.mjs";
+import {
+  decodeDeployedJanitorSource,
+  normalizeJanitorSourceLineEndings,
+  renderBootstrapTemplate,
+} from "./render-bootstrap.mjs";
 import { renderB5SupportRollbackTemplate } from "./render-b5-support-rollback.mjs";
+import { parseCloudFormationTemplateDocument } from "./cloudformation-template-document.mjs";
 import {
   assertExactChangeSetTemplate,
   canonicalTemplateSha256,
@@ -13,6 +22,7 @@ import {
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDirectory, "..");
 const projectRoot = path.resolve(root, "..", "..");
+const execFileAsync = promisify(execFile);
 const templatePath = path.join(
   root,
   "cloudformation",
@@ -23,7 +33,20 @@ const operationScriptPath = path.join(
   "scripts",
   "s3-b5-support-bootstrap.ps1",
 );
+const templateVerifierPath = path.join(
+  root,
+  "scripts",
+  "verify-change-set-template.mjs",
+);
 const sandboxConfigPath = path.join(root, "sandbox.example.json");
+const janitorPath = path.join(root, "lambda", "janitor.cjs");
+const deployedJanitorFixturePath = path.join(
+  root,
+  "lambda",
+  "janitor.b5i-deployed.base64",
+);
+const packageJsonPath = path.join(projectRoot, "package.json");
+const packageLockPath = path.join(projectRoot, "package-lock.json");
 const oneShotContractPath = path.join(
   projectRoot,
   "lib",
@@ -37,6 +60,10 @@ const [
   operationScript,
   oneShotContract,
   sandboxConfigSource,
+  janitorSource,
+  deployedJanitorFixtureSource,
+  packageJsonSource,
+  packageLockSource,
   renderedSource,
   rollbackSource,
 ] =
@@ -45,14 +72,26 @@ const [
     readFile(operationScriptPath, "utf8"),
     readFile(oneShotContractPath, "utf8"),
     readFile(sandboxConfigPath, "utf8"),
+    readFile(janitorPath, "utf8"),
+    readFile(deployedJanitorFixturePath, "utf8"),
+    readFile(packageJsonPath, "utf8"),
+    readFile(packageLockPath, "utf8"),
     renderBootstrapTemplate(),
     renderB5SupportRollbackTemplate(),
   ]);
 
 const template = JSON.parse(templateSource);
-const rendered = JSON.parse(renderedSource);
-const rollback = JSON.parse(rollbackSource);
+const rendered = parseCloudFormationTemplateDocument(
+  renderedSource,
+  "Rendered B5 support template",
+);
+const rollback = parseCloudFormationTemplateDocument(
+  rollbackSource,
+  "Rendered B5 support rollback template",
+);
 const sandboxConfig = JSON.parse(sandboxConfigSource);
+const packageJson = JSON.parse(packageJsonSource);
+const packageLock = JSON.parse(packageLockSource);
 const resources = template.Resources;
 const receiptBucketName =
   "techlong-sandbox-402010193138-ca-central-1-tenant-receipts";
@@ -70,6 +109,16 @@ const lifecycleTaskArn =
   "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/*";
 const generationSecretArn =
   "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/*/runtime/g*-??????";
+const cellManagedMasterSecretArn =
+  "arn:aws:secretsmanager:ca-central-1:402010193138:secret:rds!cluster-*";
+const cellManagedMasterSecretCondition = {
+  StringEquals: {
+    "aws:RequestedRegion": "ca-central-1",
+    "aws:ResourceTag/aws:secretsmanager:owningService": "rds",
+    "aws:ResourceTag/aws:rds:primaryDBClusterArn":
+      "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-cell-sandbox-1",
+  },
+};
 const sandboxTaskRoleArns = [
   "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
   "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole",
@@ -112,6 +161,8 @@ const serviceBoundarySupportSids = [
   "AllowRunTaskTagAuthorizationOnly",
   "AllowPassOnlySandboxTaskRoles",
   "AllowGenerationOwnedRuntimeSecretLifecycle",
+  "AllowLifecycleTaskDefinitionReadback",
+  "AllowExactCellManagedMasterSecretRead",
 ];
 const provisionerBoundarySupportSids = [
   "AllowExactWorkerCanaryRole",
@@ -128,6 +179,156 @@ function actionList(statement) {
 function statementBySid(policy, sid) {
   return policy.Statement.find((statement) => statement.Sid === sid);
 }
+
+const deployedJanitorSource = decodeDeployedJanitorSource(
+  deployedJanitorFixtureSource,
+  janitorSource,
+);
+const deployedJanitorBytes = Buffer.from(deployedJanitorSource, "utf8");
+assert.equal(deployedJanitorBytes.byteLength, 8_478);
+assert.equal(
+  createHash("sha256").update(deployedJanitorBytes).digest("hex"),
+  "a5b6d0fd40c4bede585f89316853e0e274113d07f9f11647f7a2f54bf59d22f6",
+);
+const normalizedJanitorSource = normalizeJanitorSourceLineEndings(janitorSource);
+assert.equal(
+  normalizeJanitorSourceLineEndings(deployedJanitorSource),
+  normalizedJanitorSource,
+  "fixture and readable Janitor source must be identical after EOL normalization",
+);
+assert.equal(Buffer.byteLength(normalizedJanitorSource, "utf8"), 8_270);
+assert.equal(
+  createHash("sha256").update(normalizedJanitorSource, "utf8").digest("hex"),
+  "3174f9e9073c07455d66c295e050ddb0ef6f9b3c1382dcf9d38c997df64640d6",
+  "the LF-normalized readable Janitor source must remain Git-blob stable",
+);
+const allCrLfJanitorSource = normalizedJanitorSource.replace(/\n/g, "\r\n");
+assert.equal(
+  decodeDeployedJanitorSource(
+    deployedJanitorFixtureSource,
+    normalizedJanitorSource,
+  ),
+  deployedJanitorSource,
+  "LF checkout must reconstruct the deployed Janitor bytes",
+);
+assert.equal(
+  decodeDeployedJanitorSource(
+    deployedJanitorFixtureSource,
+    allCrLfJanitorSource,
+  ),
+  deployedJanitorSource,
+  "CRLF checkout must reconstruct the deployed Janitor bytes",
+);
+for (const executableSource of [
+  deployedJanitorSource,
+  normalizedJanitorSource,
+  allCrLfJanitorSource,
+]) {
+  assert.doesNotThrow(
+    () => new Function("module", "exports", "require", executableSource),
+    "deployed, LF, and CRLF Janitor forms must compile equivalently",
+  );
+}
+
+const expectedRendered = structuredClone(template);
+expectedRendered.Resources.JanitorFunction.Properties.Code.ZipFile =
+  deployedJanitorSource;
+assert.deepEqual(
+  rendered,
+  expectedRendered,
+  "YAML rendering may only replace the Janitor marker with exact source bytes",
+);
+assert.equal(
+  rendered.Resources.JanitorFunction.Properties.Code.ZipFile,
+  deployedJanitorSource,
+  "rendered Janitor ZipFile must preserve the deployed B5-I source exactly",
+);
+
+// The executed B5-I Change Set was produced by the former minified-JSON
+// renderer with this exact raw Janitor source. Rebuilding that historical
+// template protects both pre- and post-LifecycleReadback rollback baselines.
+const deployedB5Initial = structuredClone(rendered);
+deployedB5Initial.Resources.ServiceRoleBoundary.Properties.PolicyDocument.Statement =
+  deployedB5Initial.Resources.ServiceRoleBoundary.Properties.PolicyDocument.Statement.filter(
+    (statement) =>
+      ![
+        "AllowLifecycleTaskDefinitionReadback",
+        "AllowExactCellManagedMasterSecretRead",
+      ].includes(statement.Sid),
+  );
+deployedB5Initial.Resources.TenantLifecycleTaskRole.Properties.Policies[0].PolicyDocument.Statement =
+  deployedB5Initial.Resources.TenantLifecycleTaskRole.Properties.Policies[0].PolicyDocument.Statement.filter(
+    (statement) => statement.Sid !== "ReadExactCellManagedMasterSecret",
+  );
+statementBySid(
+  deployedB5Initial.Resources.TenantLifecycleTaskRole.Properties.Policies[0]
+    .PolicyDocument,
+  "ReadGenerationOwnedRuntimeSecret",
+).Action = [
+  "secretsmanager:DescribeSecret",
+  "secretsmanager:GetSecretValue",
+];
+deployedB5Initial.Resources.DeploymentWorkerRole.Properties.Policies[0].PolicyDocument.Statement =
+  deployedB5Initial.Resources.DeploymentWorkerRole.Properties.Policies[0].PolicyDocument.Statement.filter(
+    (statement) => statement.Sid !== "ReadLifecycleTaskDefinition",
+  );
+const deployedSharedCellRead = statementBySid(
+  deployedB5Initial.Resources.ProvisionerBoundary.Properties.PolicyDocument,
+  "AllowSharedCellReadOnlyPreflight",
+);
+deployedSharedCellRead.Action = actionList(deployedSharedCellRead).filter(
+  (action) => action !== "ecs:DescribeTaskDefinition",
+);
+const deployedB5InitialSource = `${JSON.stringify(deployedB5Initial)}\n`;
+assert.equal(Buffer.byteLength(deployedB5InitialSource, "utf8"), 49_837);
+const deployedB5InitialSha256 = createHash("sha256")
+  .update(deployedB5InitialSource, "utf8")
+  .digest("hex");
+assert.equal(
+  deployedB5InitialSha256,
+  "1fb78e3a91ede382702792f2521f935aa690670ead7e05dc89a57cec0d0b0145",
+  "the reconstructed raw-source B5-I template must match the executed Change Set",
+);
+assert.equal(
+  `techlong-s3-b5-support-${deployedB5InitialSha256.slice(0, 16)}`,
+  "techlong-s3-b5-support-1fb78e3a91ede382",
+);
+function changedResourceIds(before, after) {
+  return [...new Set([...Object.keys(before), ...Object.keys(after)])]
+    .filter((logicalId) => !isDeepStrictEqual(before[logicalId], after[logicalId]))
+    .sort();
+}
+
+const lifecycleReadbackResourceChanges = [
+  "DeploymentWorkerRole",
+  "ProvisionerBoundary",
+  "ServiceRoleBoundary",
+  "TenantLifecycleTaskRole",
+];
+assert.deepEqual(
+  changedResourceIds(deployedB5Initial.Resources, rendered.Resources),
+  lifecycleReadbackResourceChanges,
+  "LifecycleReadback must change exactly four IAM resources from deployed B5-I",
+);
+const rollbackResourceChanges = [
+  "DeploymentWorkerRole",
+  "ProvisionerBoundary",
+  "ServiceRoleBoundary",
+  "TenantExternalEpochAuthorityTable",
+  "TenantLifecycleReceiptBucket",
+  "TenantLifecycleReceiptBucketPolicy",
+  "TenantLifecycleTaskRole",
+];
+assert.deepEqual(
+  changedResourceIds(deployedB5Initial.Resources, rollback.Resources),
+  rollbackResourceChanges,
+  "rollback must remain exactly seven resources from pre-LifecycleReadback B5-I",
+);
+assert.deepEqual(
+  changedResourceIds(rendered.Resources, rollback.Resources),
+  rollbackResourceChanges,
+  "rollback must remain exactly seven resources after LifecycleReadback",
+);
 
 assert.equal(template.Metadata.SafetyBoundary.CreatesB5SupportResources, true);
 assert.equal(template.Metadata.SafetyBoundary.ApplyRuntimeReady, false);
@@ -154,6 +355,12 @@ assert.deepEqual(sandboxConfig.b5Support, {
   applyRuntimeReady: false,
   cleanupRuntimeReady: false,
 });
+assert.equal(packageJson.devDependencies["js-yaml"], "4.1.1");
+assert.equal(
+  packageLock.packages[""].devDependencies["js-yaml"],
+  "4.1.1",
+);
+assert.equal(packageLock.packages["node_modules/js-yaml"].version, "4.1.1");
 
 for (const [logicalId, resourceType] of supportResources) {
   assert.equal(resources[logicalId]?.Type, resourceType);
@@ -421,6 +628,29 @@ assert.deepEqual(actionList(boundarySecrets).sort(), [
   "secretsmanager:TagResource",
 ]);
 assert.equal(boundarySecrets.Resource, generationSecretArn);
+const boundaryTaskDefinitionRead = statementBySid(
+  serviceBoundary,
+  "AllowLifecycleTaskDefinitionReadback",
+);
+assert.deepEqual(actionList(boundaryTaskDefinitionRead), [
+  "ecs:DescribeTaskDefinition",
+]);
+assert.equal(boundaryTaskDefinitionRead.Resource, "*");
+assert.deepEqual(boundaryTaskDefinitionRead.Condition, {
+  StringEquals: { "aws:RequestedRegion": "ca-central-1" },
+});
+const boundaryCellManagedSecretRead = statementBySid(
+  serviceBoundary,
+  "AllowExactCellManagedMasterSecretRead",
+);
+assert.deepEqual(actionList(boundaryCellManagedSecretRead), [
+  "secretsmanager:GetSecretValue",
+]);
+assert.equal(boundaryCellManagedSecretRead.Resource, cellManagedMasterSecretArn);
+assert.deepEqual(
+  boundaryCellManagedSecretRead.Condition,
+  cellManagedMasterSecretCondition,
+);
 assert.equal(
   JSON.stringify(serviceBoundary).includes("arn:aws:s3:::techlong-sandbox-*"),
   false,
@@ -462,11 +692,11 @@ assert.equal(
   "ImmutableReceiptsAndGenerationSecretRead",
 );
 const lifecycleStatements = lifecyclePolicy.PolicyDocument.Statement;
-assert.equal(lifecycleStatements.length, 3);
+assert.equal(lifecycleStatements.length, 4);
 assert.deepEqual(lifecycleStatements.flatMap(actionList).sort(), [
   "s3:GetObject",
   "s3:PutObject",
-  "secretsmanager:DescribeSecret",
+  "secretsmanager:GetSecretValue",
   "secretsmanager:GetSecretValue",
 ]);
 const lifecycleReceiptStatements = lifecycleStatements.filter((statement) =>
@@ -485,15 +715,34 @@ assert.equal(
   "AES256",
 );
 assert.equal(taskPut.Condition.StringEquals["s3:if-none-match"], "*");
-const lifecycleSecretRead = lifecycleStatements.find((statement) =>
-  actionList(statement).includes("secretsmanager:GetSecretValue"),
+const lifecycleSecretRead = statementBySid(
+  lifecyclePolicy.PolicyDocument,
+  "ReadGenerationOwnedRuntimeSecret",
 );
+assert.deepEqual(actionList(lifecycleSecretRead), [
+  "secretsmanager:GetSecretValue",
+]);
 assert.equal(lifecycleSecretRead.Resource, generationSecretArn);
 assert.deepEqual(lifecycleSecretRead.Condition.StringEquals, {
   "aws:RequestedRegion": "ca-central-1",
   "aws:ResourceTag/ManagedBy": "techlong-deployment-worker",
   "aws:ResourceTag/SecretSchema": "techlong-runtime-five-key-v1",
 });
+const lifecycleCellManagedSecretRead = statementBySid(
+  lifecyclePolicy.PolicyDocument,
+  "ReadExactCellManagedMasterSecret",
+);
+assert.deepEqual(actionList(lifecycleCellManagedSecretRead), [
+  "secretsmanager:GetSecretValue",
+]);
+assert.equal(
+  lifecycleCellManagedSecretRead.Resource,
+  cellManagedMasterSecretArn,
+);
+assert.deepEqual(
+  lifecycleCellManagedSecretRead.Condition,
+  cellManagedMasterSecretCondition,
+);
 assert.ok(
   Buffer.byteLength(JSON.stringify(lifecyclePolicy.PolicyDocument), "utf8") <=
     10_240,
@@ -536,6 +785,7 @@ assert.deepEqual(
   [
     "dynamodb:GetItem",
     "dynamodb:PutItem",
+    "ecs:DescribeTaskDefinition",
     "ecs:DescribeTasks",
     "ecs:ListTasks",
     "ecs:RunTask",
@@ -573,6 +823,17 @@ const workerRunTask = statementBySid(
   workerRole.Policies[0].PolicyDocument,
   "RunExactTenantLifecycleTask",
 );
+const workerTaskDefinitionRead = statementBySid(
+  workerRole.Policies[0].PolicyDocument,
+  "ReadLifecycleTaskDefinition",
+);
+assert.deepEqual(actionList(workerTaskDefinitionRead), [
+  "ecs:DescribeTaskDefinition",
+]);
+assert.equal(workerTaskDefinitionRead.Resource, "*");
+assert.deepEqual(workerTaskDefinitionRead.Condition, {
+  StringEquals: { "aws:RequestedRegion": "ca-central-1" },
+});
 assert.equal(workerRunTask.Resource, lifecycleTaskDefinitionArn);
 assert.equal(workerRunTask.Condition.ArnEquals["ecs:cluster"], clusterArn);
 assert.equal(workerRunTask.Condition.StringEquals["ecs:enable-execute-command"], "false");
@@ -686,7 +947,11 @@ assert.deepEqual(
     .filter((statement) => statement.Resource === "*")
     .map((statement) => statement.Sid)
     .sort(),
-  ["AuthorizeExactRunTaskTags", "RecoverOnlyExactCellTasks"],
+  [
+    "AuthorizeExactRunTaskTags",
+    "ReadLifecycleTaskDefinition",
+    "RecoverOnlyExactCellTasks",
+  ],
 );
 assert.ok(
   workerStatements.every((statement) =>
@@ -736,6 +1001,7 @@ assert.deepEqual(
     "ec2:DescribeSubnets",
     "ec2:DescribeVpcs",
     "ecs:DescribeClusters",
+    "ecs:DescribeTaskDefinition",
     "elasticloadbalancing:DescribeListeners",
     "elasticloadbalancing:DescribeLoadBalancers",
     "elasticloadbalancing:DescribeRules",
@@ -750,6 +1016,16 @@ assert.equal(sharedCellRead.Resource, "*");
 assert.deepEqual(sharedCellRead.Condition, {
   StringEquals: { "aws:RequestedRegion": "ca-central-1" },
 });
+const provisionerRole = resources.ProvisionerRole.Properties;
+assert.deepEqual(provisionerRole.PermissionsBoundary, {
+  Ref: "ProvisionerBoundary",
+});
+assert.deepEqual(provisionerRole.ManagedPolicyArns, [
+  { Ref: "ProvisionerBoundary" },
+]);
+assert.ok(
+  Buffer.byteLength(JSON.stringify(provisionerBoundary), "utf8") <= 6_144,
+);
 
 assert.equal(
   template.Outputs.TenantLifecycleReceiptBucketName.Value.Ref,
@@ -776,12 +1052,26 @@ assert.match(
   oneShotContract,
   /techlong-sandbox-\$\{input\.accountId\}-\$\{input\.region\}-[\s\S]*?tenant-receipts/,
 );
-assert.ok(Buffer.byteLength(renderedSource, "utf8") <= 51_200);
-assert.ok(Buffer.byteLength(rollbackSource, "utf8") <= 51_200);
+assert.ok(Buffer.byteLength(renderedSource, "utf8") <= 50_000);
+assert.ok(Buffer.byteLength(rollbackSource, "utf8") <= 50_000);
+assert.match(
+  renderedSource,
+  /^\{AWSTemplateFormatVersion: '2010-09-09',/,
+  "YAML must quote the date-like CloudFormation format version",
+);
 assert.equal(renderedSource.includes("__JANITOR_INLINE_SOURCE__"), false);
 assert.equal(rollbackSource.includes("__JANITOR_INLINE_SOURCE__"), false);
 const renderedCanonicalHash = canonicalTemplateSha256(rendered);
+const rollbackCanonicalHash = canonicalTemplateSha256(rollback);
 assert.match(renderedCanonicalHash, /^[a-f0-9]{64}$/);
+assert.match(rollbackCanonicalHash, /^[a-f0-9]{64}$/);
+assert.equal(canonicalTemplateSha256(renderedSource), renderedCanonicalHash);
+assert.equal(
+  assertExactChangeSetTemplate(renderedSource, {
+    TemplateBody: renderedSource,
+  }),
+  renderedCanonicalHash,
+);
 assert.equal(
   assertExactChangeSetTemplate(rendered, { TemplateBody: rendered }),
   renderedCanonicalHash,
@@ -803,12 +1093,183 @@ assert.throws(
     }),
   /does not exactly match/,
 );
+const cliHashDirectory = await mkdtemp(
+  path.join(tmpdir(), "techlong-b5-yaml-hash-"),
+);
+try {
+  const forwardPath = path.join(cliHashDirectory, "forward.yaml");
+  const rollbackPath = path.join(cliHashDirectory, "rollback.yaml");
+  const forwardResponsePath = path.join(
+    cliHashDirectory,
+    "forward-get-template.json",
+  );
+  const rollbackResponsePath = path.join(
+    cliHashDirectory,
+    "rollback-get-template.json",
+  );
+  await Promise.all([
+    writeFile(forwardPath, renderedSource, "utf8"),
+    writeFile(rollbackPath, rollbackSource, "utf8"),
+    writeFile(
+      forwardResponsePath,
+      JSON.stringify({ TemplateBody: renderedSource }),
+      "utf8",
+    ),
+    writeFile(
+      rollbackResponsePath,
+      JSON.stringify({ TemplateBody: rollbackSource }),
+      "utf8",
+    ),
+  ]);
+  const [
+    forwardCliHash,
+    rollbackCliHash,
+    forwardCliVerification,
+    rollbackCliVerification,
+  ] = await Promise.all([
+    execFileAsync(
+      process.execPath,
+      [templateVerifierPath, "--hash-template", forwardPath],
+      { encoding: "utf8", windowsHide: true },
+    ),
+    execFileAsync(
+      process.execPath,
+      [templateVerifierPath, "--hash-template", rollbackPath],
+      { encoding: "utf8", windowsHide: true },
+    ),
+    execFileAsync(
+      process.execPath,
+      [
+        templateVerifierPath,
+        "--expected-template",
+        forwardPath,
+        "--get-template-response",
+        forwardResponsePath,
+      ],
+      { encoding: "utf8", windowsHide: true },
+    ),
+    execFileAsync(
+      process.execPath,
+      [
+        templateVerifierPath,
+        "--expected-template",
+        rollbackPath,
+        "--get-template-response",
+        rollbackResponsePath,
+      ],
+      { encoding: "utf8", windowsHide: true },
+    ),
+  ]);
+  assert.equal(forwardCliHash.stdout.trim(), renderedCanonicalHash);
+  assert.equal(rollbackCliHash.stdout.trim(), rollbackCanonicalHash);
+  assert.equal(forwardCliVerification.stdout.trim(), renderedCanonicalHash);
+  assert.equal(rollbackCliVerification.stdout.trim(), rollbackCanonicalHash);
+} finally {
+  await rm(cliHashDirectory, { recursive: true, force: true });
+}
+assert.throws(
+  () =>
+    parseCloudFormationTemplateDocument(
+      "{AWSTemplateFormatVersion: '2010-09-09', Resources: {}, Resources: {}}",
+      "Duplicate-key template",
+    ),
+  /strict JSON-or-YAML/,
+);
+assert.throws(
+  () =>
+    parseCloudFormationTemplateDocument(
+      "{Resources: &resources {}, Outputs: *resources}",
+      "Aliased template",
+    ),
+  /anchors or aliases/,
+);
+assert.throws(
+  () =>
+    parseCloudFormationTemplateDocument(
+      "{Metadata: {BuiltAt: !!timestamp 2026-08-24T00:00:00Z}, Resources: {}}",
+      "Extra-type template",
+    ),
+  /strict JSON-or-YAML/,
+);
+assert.throws(
+  () => parseCloudFormationTemplateDocument("[Resources, {}]", "Array template"),
+  /template object/,
+);
+
+function parseReviewedChangeShape(variableName) {
+  const blockMatch = operationScript.match(
+    new RegExp(`\\$${variableName} = @\\{\\r?\\n([\\s\\S]*?)\\r?\\n  \\}`),
+  );
+  assert.ok(blockMatch, `missing reviewed Change Set shape ${variableName}`);
+  const entryPattern =
+    /^    ([A-Za-z][A-Za-z0-9]*) = @\{ Type = '([^']+)'; Action = '(Add|Modify|Remove)' \}\r?$/gm;
+  const entries = [...blockMatch[1].matchAll(entryPattern)];
+  assert.equal(
+    blockMatch[1].replace(entryPattern, "").trim(),
+    "",
+    `${variableName} must contain only exact resource/type/action entries`,
+  );
+  const parsed = Object.fromEntries(
+    entries.map(([, logicalId, type, action]) => [logicalId, { type, action }]),
+  );
+  assert.equal(
+    Object.keys(parsed).length,
+    entries.length,
+    `${variableName} may not contain duplicate logical IDs`,
+  );
+  return parsed;
+}
+
+assert.deepEqual(parseReviewedChangeShape("requiredInitialB5SupportChanges"), {
+  GlobalJanitorSchedule: { type: "AWS::Scheduler::Schedule", action: "Modify" },
+  JanitorFunction: { type: "AWS::Lambda::Function", action: "Modify" },
+  SchedulerInvokeRole: { type: "AWS::IAM::Role", action: "Modify" },
+  ServiceRoleBoundary: { type: "AWS::IAM::ManagedPolicy", action: "Modify" },
+  TaskRole: { type: "AWS::IAM::Role", action: "Modify" },
+  ProvisionerBoundary: { type: "AWS::IAM::ManagedPolicy", action: "Modify" },
+  TenantLifecycleReceiptBucket: { type: "AWS::S3::Bucket", action: "Add" },
+  TenantLifecycleReceiptBucketPolicy: {
+    type: "AWS::S3::BucketPolicy",
+    action: "Add",
+  },
+  TenantExternalEpochAuthorityTable: {
+    type: "AWS::DynamoDB::Table",
+    action: "Add",
+  },
+  TenantLifecycleTaskRole: { type: "AWS::IAM::Role", action: "Add" },
+  DeploymentWorkerRole: { type: "AWS::IAM::Role", action: "Add" },
+});
+assert.deepEqual(parseReviewedChangeShape("requiredLifecycleReadbackChanges"), {
+  ServiceRoleBoundary: { type: "AWS::IAM::ManagedPolicy", action: "Modify" },
+  ProvisionerBoundary: { type: "AWS::IAM::ManagedPolicy", action: "Modify" },
+  TenantLifecycleTaskRole: { type: "AWS::IAM::Role", action: "Modify" },
+  DeploymentWorkerRole: { type: "AWS::IAM::Role", action: "Modify" },
+});
+assert.deepEqual(parseReviewedChangeShape("requiredRollbackChanges"), {
+  ServiceRoleBoundary: { type: "AWS::IAM::ManagedPolicy", action: "Modify" },
+  ProvisionerBoundary: { type: "AWS::IAM::ManagedPolicy", action: "Modify" },
+  TenantLifecycleReceiptBucket: { type: "AWS::S3::Bucket", action: "Remove" },
+  TenantLifecycleReceiptBucketPolicy: {
+    type: "AWS::S3::BucketPolicy",
+    action: "Remove",
+  },
+  TenantExternalEpochAuthorityTable: {
+    type: "AWS::DynamoDB::Table",
+    action: "Remove",
+  },
+  TenantLifecycleTaskRole: { type: "AWS::IAM::Role", action: "Remove" },
+  DeploymentWorkerRole: { type: "AWS::IAM::Role", action: "Remove" },
+});
 
 assert.match(
   operationScript,
   /\[ValidateSet\([\s\S]*?'CreateChangeSet'[\s\S]*?'InspectChangeSet'[\s\S]*?'ExecuteChangeSet'[\s\S]*?'CreateRollbackChangeSet'[\s\S]*?'InspectRollbackChangeSet'[\s\S]*?'ExecuteRollbackChangeSet'/,
 );
 assert.match(operationScript, /\[string\]\$Mode = 'LocalValidate'/);
+assert.match(
+  operationScript,
+  /\[ValidateSet\('InitialB5Support', 'LifecycleReadback'\)\]\s*\[string\]\$UpdateShape = 'InitialB5Support'/,
+);
 assert.match(operationScript, /\[string\]\$Profile = 'techlong-sandbox-user'/);
 assert.match(operationScript, /\$supportInfrastructureWriteReady = \$true/);
 assert.match(operationScript, /\$expectedAccountId = '402010193138'/);
@@ -822,6 +1283,11 @@ assert.match(
   /\$expectedMfaDeviceArn = 'arn:aws:iam::402010193138:mfa\/techlong-sandbox-dev'/,
 );
 assert.match(operationScript, /verify-change-set-template\.mjs/);
+assert.equal(
+  operationScript.match(/techlong-s3-b5-support[^"\r\n]*\.yaml/g)?.length,
+  2,
+  "forward and rollback Change Set templates must use explicit YAML files",
+);
 for (const acknowledgement of [
   "AcknowledgeAwsWrite",
   "AcknowledgeLowCostNotFree",
@@ -854,6 +1320,29 @@ assert.match(operationScript, /\$ChangeSet\.ImportExistingResources -eq \$true/)
 assert.match(operationScript, /\$ChangeSet\.DeploymentConfig\.Mode -ne 'STANDARD'/);
 assert.match(operationScript, /\$ChangeSet\.DeploymentConfig\.DisableRollback -ne \$false/);
 assert.match(operationScript, /Change Set tags do not match/);
+assert.match(
+  operationScript,
+  /if \(\$Mode -in \$rollbackModes -and \$reviewedUpdateShape -ne 'InitialB5Support'\)/,
+);
+assert.match(
+  operationScript,
+  /Rollback modes only support -UpdateShape InitialB5Support/,
+);
+assert.match(
+  operationScript,
+  /if \(\$UpdateShape -ne 'InitialB5Support'\)[\s\S]*?Rollback Change Sets are only reviewed against the InitialB5Support shape/,
+);
+assert.match(
+  operationScript,
+  /elseif \(\$UpdateShape -eq 'LifecycleReadback'\) \{\s*\$requiredLifecycleReadbackChanges\s*\} else \{\s*\$requiredInitialB5SupportChanges/,
+);
+assert.match(
+  operationScript,
+  /\$resource\.Replacement -in @\('True', 'Conditional'\)/,
+);
+assert.match(operationScript, /Change Set contains an unapproved resource change/);
+assert.match(operationScript, /Change Set contains a duplicate resource change/);
+assert.match(operationScript, /Change Set is missing the required/);
 for (const logicalId of [
   "GlobalJanitorSchedule",
   "JanitorFunction",
@@ -909,6 +1398,33 @@ assert.match(operationScript, /--get-template-response \$ResponsePath/);
 assert.match(operationScript, /canonical-sha256=/);
 assert.match(
   operationScript,
+  /\$updateShapeToken = if \(\$reviewedUpdateShape -eq 'LifecycleReadback'\) \{ 'lifecycle-readback' \} else \{ 'initial' \}/,
+);
+assert.match(
+  operationScript,
+  /\$changeSetName = "techlong-s3-b5-support-\$updateShapeToken-\$\(\$templateHash\.Substring\(0, 16\)\)"/,
+);
+assert.match(
+  operationScript,
+  /\$changeSetDescription = "B5 support update; update-shape=\$reviewedUpdateShape; template-sha256=\$templateHash; canonical-sha256=\$templateCanonicalHash"/,
+);
+assert.match(
+  operationScript,
+  /\$rollbackChangeSetName = "techlong-s3-b5-support-rollback-initial-/,
+);
+assert.match(
+  operationScript,
+  /\$rollbackDescription = "B5 support rollback; update-shape=InitialB5Support;/,
+);
+assert.equal(
+  operationScript.match(
+    /\$selectedName = if \(\$isRollback\) \{ \$rollbackChangeSetName \} else \{ \$changeSetName \}/g,
+  )?.length,
+  2,
+  "Create and Inspect/Execute must select the same shape-bound Change Set name",
+);
+assert.match(
+  operationScript,
   /TenantLifecycleTaskRole = @\{ Type = 'AWS::IAM::Role'; Action = '(?:Add|Remove)' \}/,
 );
 assert.match(
@@ -925,6 +1441,18 @@ assert.ok(
   operationScript.indexOf("if ($Mode -in $writeModes)") <
     operationScript.indexOf("$awsCli = Resolve-AwsCli"),
   "write acknowledgements must be checked before the first AWS API call",
+);
+const rollbackShapeGuardIndex = operationScript.indexOf(
+  "if ($Mode -in $rollbackModes",
+);
+const localValidationIndex = operationScript.indexOf(
+  "Write-Host 'Running local B5 support resource and deployment-entry validation...'",
+);
+assert.ok(
+  rollbackShapeGuardIndex !== -1 &&
+    rollbackShapeGuardIndex < localValidationIndex &&
+    localValidationIndex < operationScript.indexOf("$awsCli = Resolve-AwsCli"),
+  "rollback shape rejection and LocalValidate must happen before the first AWS API call",
 );
 assert.ok(
   operationScript.indexOf("Assert-NoAwsEndpointOverrides") <
@@ -947,6 +1475,10 @@ const reviewedChangeSetAssertionIndex = operationScript.indexOf(
 );
 const inspectBranchIndex = operationScript.indexOf(
   "if ($Mode -eq 'InspectChangeSet'",
+);
+assert.match(
+  operationScript.slice(reviewedChangeSetAssertionIndex, inspectBranchIndex),
+  /-UpdateShape \$reviewedUpdateShape/,
 );
 assert.ok(
   exactTemplateAssertionIndex !== -1 &&
