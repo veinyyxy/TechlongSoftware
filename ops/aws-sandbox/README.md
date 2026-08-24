@@ -105,7 +105,7 @@ npm --prefix .\ops\aws-sandbox test
 - B5 Bootstrap 本身不含 VPC、ALB、ECS、Aurora、NAT、VPC Endpoint 或 Route 53 Hosted Zone；Operator 不能直接 `CreateStack`/`UpdateStack`，只能操作固定 Cell Stack 的 Change Set。
 - B5 Operator 强制 MFA 和精确 session name；Cell、Janitor 和 Scheduler 角色彼此分离，Cell Janitor 有独立的 15 分钟扫描兜底。
 - ECR、CodeBuild、源码 Bucket、Scheduler 和角色权限边界没有漂移。
-- receipt Bucket、authority table、专用 LifecycleTaskRole、WorkerRole 与 B5-H Adapter 的固定账号、区域、Cell、`tenant-lifecycle:*` family、角色和 generation-bound Secret namespace 一致；普通 TaskRole 无 receipt/Secret identity permission，唯一 `Resource: *` 的 Worker ECS 权限是按 exact region/cluster 收紧的 `ListTasks` 与只在 `ecs:CreateAction=RunTask`/exact request tags 下生效的 tag-on-create。rollback 模板删除五个新增资源、撤销两项既有 boundary 中的 B5 能力并保留普通 TaskRole 的 S3 通配权限移除硬化；它不删除原有 Bootstrap、ECR、Janitor 或预算。
+- receipt Bucket、authority table、专用 LifecycleTaskRole、WorkerRole 与 B5-H Adapter 的固定账号、区域、Cell、`tenant-lifecycle:*` family、角色和 generation-bound Secret namespace 一致；普通 TaskRole 无 receipt/Secret identity permission。Worker ECS 的三个 `Resource: *` statement 精确限于按 region/cluster 收紧的 `ListTasks`、只在 `ecs:CreateAction=RunTask`/exact request tags 下生效的 tag-on-create，以及按 exact region 收紧的只读 `DescribeTaskDefinition`。rollback 模板删除五个新增资源、撤销两项既有 boundary 中的 B5 能力并保留普通 TaskRole 的 S3 通配权限移除硬化；它不删除原有 Bootstrap、ECR、Janitor 或预算。
 
 ## Bootstrap 操作模式
 
@@ -269,9 +269,9 @@ Change Set 名由渲染后模板 SHA-256 自动生成，description 同时绑定
 5. Budget 通知邮箱已作为 CloudFormation 参数提供，个人邮箱没有硬编码进模板或仓库。
 6. S3-A 已由独立的 CloudFormation Execution Role 和 Permissions Boundary 部署；Boundary 本身不授予权限。
 7. Janitor 已在真实 AWS 中验证空扫描、伪造共享 Cell 拒绝路径和到期临时租户 Stack 删除路径；测试资源已完全清除。
-8. 第三次受控 CodeBuild 已从后端提交 `fb9b521df1b59b849b871059572667a9b86546ab` 生成 Distroless 镜像 `sha256:0c4cb3ebfb55a944a24d548ded716d93dd00bcc4d1796c8e9eb588ce385710ae`；Build #3 全阶段及 smoke test 成功，ECR 扫描 `COMPLETE` 且 findings 为 0。allowlist 源码包 SHA-256 为 `c957c297d893b4071f7ee5158b2449c7fbd66b4f4be7d6167c372d4345292001`，源码对象一天后过期。第一张含 Perl 的镜像因 `3 Critical / 5 High / 6 Medium` 被明确拒绝；此前 Build #2 的零发现镜像保留为历史不可变版本，但不再是当前候选。
+8. 第三次受控 CodeBuild 从后端提交 `fb9b521df1b59b849b871059572667a9b86546ab` 生成的 Distroless 镜像 `sha256:0c4cb3ebfb55a944a24d548ded716d93dd00bcc4d1796c8e9eb588ce385710ae` 保留为历史零发现版本。当前候选 Build #4（ID `techlong-sandbox-speedfeast-image:24f9fd8f-da8b-49d3-8e87-ae9956e9c7af`）从后端提交 `f4aa0febeba526f737bac3b59d516e1ab5c24482` 构建；114 个 allowlist 文件的源码包 SHA-256 为 `214eeb68805abdb9796b5f23b7b95c8f20167ec2bbbbcd0f8e5e41fb3c93c31b`，最终不可变镜像为 `sha256:4815009949cd5219add56fedb183f1809b728081562f0280ede5229b567136f0`。全部 CodeBuild 阶段及 buildspec smoke gate 成功，ECR 扫描 `COMPLETE` 且 findings 为 0，仓库仍为 `IMMUTABLE`、scan-on-push、AES256；源码对象按一天生命周期过期。第一张含 Perl 的镜像因 `3 Critical / 5 High / 6 Medium` 被明确拒绝，Build #2/#3 仅保留为历史不可变版本。
 9. 合格镜像尚未写入 execution binding，Worker 和 Apply 仍关闭；镜像构建后再次确认没有活动的 tenant/Cell Stack。创建收费 Stack 前必须先建立一次性清理计划，创建失败时部署必须中止。
-10. B5 receipt Bucket、authority table、专用 LifecycleTaskRole 和最小 WorkerRole 已由受审 Change Set 部署；Bootstrap 为 `UPDATE_COMPLETE`，receipt prefix 与 authority table 均为空，未创建 Cell 或 tenant Stack。scoped rollback 脚本已通过静态审查，但它会永久删除 receipt/authority data，真实回退演练仍须在无租户状态下单独批准。
+10. B5 receipt Bucket、authority table、专用 LifecycleTaskRole 和最小 WorkerRole 已由受审 Change Set 部署。2026-08-24 的 `LifecycleReadback` Change Set `techlong-s3-b5-support-lifecycle-readback-60d854ad2664718e`（raw SHA-256 `60d854ad2664718eed88ec4731ff3a70cb84b34ba9dcaf439782dcba7a816113`，canonical SHA-256 `1fe4af4b94a198437511a147fe05685eefb768304e3ab487ca06722657c2223b`）只对 `ServiceRoleBoundary`、`ProvisionerBoundary`、`TenantLifecycleTaskRole`、`DeploymentWorkerRole` 执行四项无 replacement 修改；Bootstrap 为 `UPDATE_COMPLETE`，线上 policy/role 回读匹配模板。没有创建 Cell、TaskDefinition、tenant Stack 或执行 `RunTask`。scoped rollback 脚本已通过静态审查，但它会永久删除 receipt/authority data，真实回退演练仍须在无租户状态下单独批准。
 
 B4 Cell 模板只允许 `aurora-postgresql-serverless-v2`，最多一个共享 Cell，固定 PostgreSQL `16.14`、关闭自动小版本升级，使用 `minAcu=0`、`maxAcu=1`、`secondsUntilAutoPause=300`，并禁止每租户独立 Cluster、额外 Reader、传统 Multi-AZ 实例、DB Proxy、Global Database、预留购买和快照恢复。Aurora Cluster 本身不能被策略绝对禁止，否则生产兼容的 Sandbox Cell 无法创建；真实 Apply 前还必须重新核对该 Region 支持的 Engine/自动暂停能力，并由受控模板、Execution Role 与部署前静态检查共同锁定。
 
