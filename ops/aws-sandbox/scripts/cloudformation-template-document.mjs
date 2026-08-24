@@ -112,7 +112,10 @@ export function renderCloudFormationTemplateDocument(template) {
   const rendered = yaml.dump(reviewed, {
     schema: CLOUDFORMATION_DUMP_SCHEMA,
     noRefs: true,
-    flowLevel: 0,
+    // CloudFormation treats a document beginning with "{" as JSON before it
+    // considers YAML. Keep the root mapping in block form while compacting all
+    // nested collections in flow form.
+    flowLevel: 1,
     lineWidth: -1,
     sortKeys: false,
   });

@@ -1056,8 +1056,8 @@ assert.ok(Buffer.byteLength(renderedSource, "utf8") <= 50_000);
 assert.ok(Buffer.byteLength(rollbackSource, "utf8") <= 50_000);
 assert.match(
   renderedSource,
-  /^\{AWSTemplateFormatVersion: '2010-09-09',/,
-  "YAML must quote the date-like CloudFormation format version",
+  /^AWSTemplateFormatVersion: '2010-09-09'\r?\n/,
+  "YAML must use a block root and quote the date-like format version",
 );
 assert.equal(renderedSource.includes("__JANITOR_INLINE_SOURCE__"), false);
 assert.equal(rollbackSource.includes("__JANITOR_INLINE_SOURCE__"), false);
