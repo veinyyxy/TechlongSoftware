@@ -143,8 +143,8 @@ assert.match(operationScript, /function ConvertFrom-ExactJson/);
 assert.match(operationScript, /ConvertFrom-Json -InputObject \$Json -DateKind String/);
 assert.equal(
   operationScript.match(/ConvertFrom-ExactJson -Json/g)?.length,
-  4,
-  "all AWS JSON reads must preserve exact ISO timestamp strings",
+  5,
+  "all AWS JSON and canonical-evidence reads must preserve exact ISO timestamp strings",
 );
 assert.doesNotMatch(operationScript, /--endpoint-url\b/);
 assert.match(operationScript, /'cloudformation', 'create-stack'/);
@@ -160,6 +160,10 @@ assert.match(operationScript, /'--include', 'TAGS'/);
 assert.match(operationScript, /--readback \$readbackPath/);
 assert.match(operationScript, /--expires-at \$ExpiresAt/);
 assert.match(operationScript, /--stack-id \(\[string\]\$stack\.StackId\)/);
+assert.match(
+  operationScript,
+  /Verified TaskDefinition readback evidence canonical SHA-256: \$evidenceHash/,
+);
 assert.match(operationScript, /registeredAt is outside the exact stack creation window/);
 assert.equal(
   operationScript.match(

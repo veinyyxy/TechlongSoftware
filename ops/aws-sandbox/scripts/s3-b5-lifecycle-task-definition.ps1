@@ -393,8 +393,14 @@ function Assert-ExactStackAndTaskDefinition {
   if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($evidence)) {
     throw 'Exact revision TaskDefinition readback validation failed.'
   }
+  $evidenceDocument = ConvertFrom-ExactJson -Json $evidence
+  $evidenceHash = [string]$evidenceDocument.canonicalSha256
+  if ($evidenceHash -cnotmatch '^[a-f0-9]{64}$') {
+    throw 'Exact revision TaskDefinition readback did not produce a canonical evidence hash.'
+  }
   Write-Host "Verified deployed template canonical SHA-256: $verifiedTemplateHash"
   Write-Host "Verified exact ACTIVE TaskDefinition revision: $taskDefinitionArn"
+  Write-Host "Verified TaskDefinition readback evidence canonical SHA-256: $evidenceHash"
   Write-Host 'registrationReady=false; liveReadbackReady=false; applyRuntimeReady=false; cleanupRuntimeReady=false.'
   return $taskDefinitionArn
 }

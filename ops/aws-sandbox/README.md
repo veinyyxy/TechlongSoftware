@@ -1,6 +1,6 @@
 # AWS Sandbox S0–S3-B5 安全 Bootstrap 与离线 Cell 基础
 
-这个目录保存可审查的静态配置、CloudFormation 模板、IAM 边界、TTL Janitor、镜像构建基础、B5 低成本支撑资源和默认不执行的运维脚本。仓库中不包含 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。
+这个目录保存可审查的静态配置、CloudFormation 模板、IAM 边界、TTL Janitor、镜像构建基础、B5 低成本支撑资源、inspect-only lifecycle TaskDefinition 和默认不执行的运维脚本。仓库中不包含 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。
 
 S3-A Bootstrap 脚本默认仅运行本地验证；只有显式选择 `CreateChangeSet` 或 `Apply`、确认账号、提供预算通知邮箱并确认 MFA 前置条件后，脚本才会产生 AWS 写操作。B5 又增加了一个独立的 Cell Bootstrap：它只准备 MFA Operator、独立 CloudFormation Execution Role、Cell Janitor 和 15 分钟兜底计划，不创建 VPC、ALB、ECS、Aurora 或 Shared Cell。它的默认模式同样只做本地验证，真实写入严格拆成“创建 Change Set”和“人工审查后执行 Change Set”两次命令。
 
@@ -31,6 +31,7 @@ ops/aws-sandbox/
 ├─ cloudformation/
 │  ├─ guardrails.template.json
 │  ├─ s3-bootstrap.template.json
+│  ├─ s3-b5-lifecycle-task-definition.template.json
 │  └─ s3-b5-cell-bootstrap.template.json
 ├─ codebuild/
 │  └─ buildspec.aws-sandbox.yml
@@ -46,12 +47,14 @@ ops/aws-sandbox/
    ├─ render-b5-cell-bootstrap.mjs
    ├─ render-b5-support-rollback.mjs
    ├─ s3-b5-cell-bootstrap.ps1
+   ├─ s3-b5-lifecycle-task-definition.ps1
    ├─ s3-b5-support-bootstrap.ps1
    ├─ s3-bootstrap.ps1
    ├─ s3-build-image.ps1
    ├─ s3-rollback.ps1
    ├─ validate-cell.mjs
    ├─ validate-b5-cell-bootstrap.mjs
+   ├─ validate-b5-lifecycle-task-definition.mjs
    ├─ validate-b5-support.mjs
    ├─ verify-change-set-template.mjs
    └─ validate.mjs
@@ -105,7 +108,7 @@ npm --prefix .\ops\aws-sandbox test
 - B5 Bootstrap 本身不含 VPC、ALB、ECS、Aurora、NAT、VPC Endpoint 或 Route 53 Hosted Zone；Operator 不能直接 `CreateStack`/`UpdateStack`，只能操作固定 Cell Stack 的 Change Set。
 - B5 Operator 强制 MFA 和精确 session name；Cell、Janitor 和 Scheduler 角色彼此分离，Cell Janitor 有独立的 15 分钟扫描兜底。
 - ECR、CodeBuild、源码 Bucket、Scheduler 和角色权限边界没有漂移。
-- receipt Bucket、authority table、专用 LifecycleTaskRole、WorkerRole 与 B5-H Adapter 的固定账号、区域、Cell、`tenant-lifecycle:*` family、角色和 generation-bound Secret namespace 一致；普通 TaskRole 无 receipt/Secret identity permission。Worker ECS 的三个 `Resource: *` statement 精确限于按 region/cluster 收紧的 `ListTasks`、只在 `ecs:CreateAction=RunTask`/exact request tags 下生效的 tag-on-create，以及按 exact region 收紧的只读 `DescribeTaskDefinition`。rollback 模板删除五个新增资源、撤销两项既有 boundary 中的 B5 能力并保留普通 TaskRole 的 S3 通配权限移除硬化；它不删除原有 Bootstrap、ECR、Janitor 或预算。
+- receipt Bucket、authority table、专用 LifecycleTaskRole、WorkerRole 与 B5-H Adapter 的固定账号、区域、Cell、`tenant-lifecycle:*` family、角色和 generation-bound Secret namespace 一致；普通 TaskRole 无 receipt/Secret identity permission。Worker ECS 的三个 `Resource: *` statement 精确限于按 region/cluster 收紧的 `ListTasks`、只在 `ecs:CreateAction=RunTask`/exact request tags 下生效的 tag-on-create，以及按 exact region 收紧的只读 `DescribeTaskDefinition`。CloudFormation execution boundary 当前只可 Pass TaskExecutionRole/普通 TaskRole，不能再 Pass LifecycleTaskRole；rollback 模板删除五个新增资源、撤销两项既有 boundary 中的 B5 能力，并保留普通 TaskRole 的 S3 通配权限移除、TaskDefinition registration scope 和 cleanup 授权修正；它不删除原有 Bootstrap、ECR、Janitor 或预算。
 
 ## Bootstrap 操作模式
 
@@ -209,6 +212,23 @@ Change Set 名由渲染后模板 SHA-256 自动生成，description 同时绑定
 .\ops\aws-sandbox\scripts\s3-b5-support-bootstrap.ps1 -Mode ExecuteRollbackChangeSet -Profile 'techlong-sandbox-user' -ConfirmAccountId '402010193138' -ConfirmRegion 'ca-central-1' -ConfirmBootstrapStackName 'techlong-s3-bootstrap' -ConfirmExecutionPhrase 'I_ACKNOWLEDGE_B5_SUPPORT_ROLLBACK_DATA_DELETION' -AcknowledgeAwsWrite -AcknowledgeLowCostNotFree -AcknowledgeSourceUserBootstrapRisk -AcknowledgeMfaSession -AcknowledgeChangeSetReviewed -AcknowledgeDeleteAllReceipts -AcknowledgeDeleteAuthorityRecords
 ```
 
+## B5-J3 inspect-only lifecycle TaskDefinition
+
+`s3-b5-lifecycle-task-definition.template.json` 只含一个 `AWS::ECS::TaskDefinition`，不会创建 Cluster、Service、Task、日志组、Secret、网络或数据库。family 固定为 `tenant-lifecycle`，镜像固定为 Build #4 digest `sha256:4815009949cd5219add56fedb183f1809b728081562f0280ede5229b567136f0`，命令固定为 `/usr/local/bin/node db/tenant_lifecycle.js inspect`；Fargate 资源为 `256 CPU / 512 MiB`，容器使用 `65532:65532`、只读 root filesystem、drop ALL、零端口/卷/sidecar/Secret。日志目标预留为 `/saas/cell-sandbox-1/tenant-lifecycle`，但本阶段不创建它，`LogGroupReady=false`。
+
+脚本默认 `LocalValidate`；在线模式只接受精确的 `techlong-sandbox-provisioner` MFA AssumeRole 会话，并拒绝凭据环境变量和 endpoint override。`CreateStack` 需要显式账号、区域、Stack、当前 canonical template hash、未来 15 分钟至 24 小时内的 `ExpiresAt` 和三项风险确认；它通过固定 CloudFormation execution role 注册 TaskDefinition，但脚本中没有 `RunTask`/直接 Register/Deregister API。`Readback` 会把 StackId、单资源清单、原始模板、revision ARN、image/command/roles/hardening/tags 和注册时间精确对账：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-lifecycle-task-definition.ps1 -Mode LocalValidate
+.\ops\aws-sandbox\scripts\s3-b5-lifecycle-task-definition.ps1 -Mode Readback -Profile 'techlong-sandbox-provisioner' -ExpiresAt '<stack ExpiresAt>' -ConfirmTaskDefinitionArn 'arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-lifecycle:1'
+```
+
+2026-08-24 的实际结果为：Stack `techlong-sandbox-tenant-b5j3`=`CREATE_COMPLETE`；精确 revision `tenant-lifecycle:1`=`ACTIVE`；模板 canonical SHA-256 `f8d9993c47c0c332e79de6aeb845d4946464ebdf4e79719d3c5696ec380dc475`；readback evidence canonical SHA-256 `012c60f92b698f0c0c1e633b04a925b9544ff0cc91cbdc5004eca1e73617fbc8`。ECS 不返回该资源类型的 CloudFormation system tags，因此 ownership 由 exact StackId + `list-stack-resources` physical ID + 原始模板共同绑定，ECS 自身标签严格限于六个业务标签。
+
+该注册 Stack 刻意没有伪造 `CellId`/`ResourceGeneration`，所以不属于现有 tenant Janitor 的自动删除集合；`ExpiresAt` 是创建窗口与 ownership guard，不是自动 TTL 承诺。当前 revision 为后续只读 Cell 证据阶段保留；若决定放弃它，必须使用脚本的 `DeleteStack` 模式、exact revision ARN、当前模板 hash 和显式 deregistration 确认，不能依赖到期标签静默清理。
+
+注册前的临时 IAM grant Change Set 为 `techlong-s3-b5-support-lifecycle-task-registration-7c6a63636d2b175b`（raw/canonical `7c6a63636d2b175b73c7b23209a60576bc02125fb07cd3e549869ee33cbb6ddf` / `826a968ecfdfff10d32e50a9689af079f9920892f605568e86bc80f6876ece72`）；注册后立即执行的 revoke 为 `techlong-s3-b5-support-lifecycle-task-registration-revoke-9d5c2626a9bf9c42`（raw/canonical `9d5c2626a9bf9c4257af066f422c13a4540ddf3bdf8f97dd9c90f79015ecc6c1` / `112d1b47807962b2ae3e3d751c2b6d2d9cb48c1660f2aa75d24991ebf9cbdf14`）。两者都只修改 `ExecutionRoleBoundary`、`Replacement=False`。最终 IAM policy 默认版本 `v3` 的 PassRole 只剩 TaskExecutionRole 与普通 TaskRole；精确 `cell-sandbox-1` cluster 为 `MISSING`，未执行 `RunTask`，四个 readiness gate 全部保持 `false`。
+
 ## B5 Cell Bootstrap（仍不创建 Shared Cell）
 
 默认命令只渲染并检查本地文件，不需要 AWS CLI，也不会调用 AWS：
@@ -260,7 +280,7 @@ Change Set 名由渲染后模板 SHA-256 自动生成，description 同时绑定
 
 ## 此前核验的云端状态与后续门禁
 
-以下条目包含 S3-A 历史核验与 2026-08-22 B5-I support update 的最新在线状态。
+以下条目包含 S3-A 历史核验，以及 2026-08-22 B5-I、2026-08-24 B5-J2/B5-J3 的最新在线状态。
 
 1. AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`；当前终端 PATH 尚未刷新，可以先使用绝对路径。
 2. 已确认 `techlong-sandbox-dev` 绑定 MFA，并配置不含密钥的 `techlong-sandbox-provisioner` AssumeRole Profile。首次角色会话需要操作者在本地终端输入 MFA 一次性验证码；后续还应移除 IAM User 继承的长期 AdministratorAccess，只保留受控 AssumeRole 能力。
@@ -270,8 +290,9 @@ Change Set 名由渲染后模板 SHA-256 自动生成，description 同时绑定
 6. S3-A 已由独立的 CloudFormation Execution Role 和 Permissions Boundary 部署；Boundary 本身不授予权限。
 7. Janitor 已在真实 AWS 中验证空扫描、伪造共享 Cell 拒绝路径和到期临时租户 Stack 删除路径；测试资源已完全清除。
 8. 第三次受控 CodeBuild 从后端提交 `fb9b521df1b59b849b871059572667a9b86546ab` 生成的 Distroless 镜像 `sha256:0c4cb3ebfb55a944a24d548ded716d93dd00bcc4d1796c8e9eb588ce385710ae` 保留为历史零发现版本。当前候选 Build #4（ID `techlong-sandbox-speedfeast-image:24f9fd8f-da8b-49d3-8e87-ae9956e9c7af`）从后端提交 `f4aa0febeba526f737bac3b59d516e1ab5c24482` 构建；114 个 allowlist 文件的源码包 SHA-256 为 `214eeb68805abdb9796b5f23b7b95c8f20167ec2bbbbcd0f8e5e41fb3c93c31b`，最终不可变镜像为 `sha256:4815009949cd5219add56fedb183f1809b728081562f0280ede5229b567136f0`。全部 CodeBuild 阶段及 buildspec smoke gate 成功，ECR 扫描 `COMPLETE` 且 findings 为 0，仓库仍为 `IMMUTABLE`、scan-on-push、AES256；源码对象按一天生命周期过期。第一张含 Perl 的镜像因 `3 Critical / 5 High / 6 Medium` 被明确拒绝，Build #2/#3 仅保留为历史不可变版本。
-9. 合格镜像尚未写入 execution binding，Worker 和 Apply 仍关闭；镜像构建后再次确认没有活动的 tenant/Cell Stack。创建收费 Stack 前必须先建立一次性清理计划，创建失败时部署必须中止。
-10. B5 receipt Bucket、authority table、专用 LifecycleTaskRole 和最小 WorkerRole 已由受审 Change Set 部署。2026-08-24 的 `LifecycleReadback` Change Set `techlong-s3-b5-support-lifecycle-readback-60d854ad2664718e`（raw SHA-256 `60d854ad2664718eed88ec4731ff3a70cb84b34ba9dcaf439782dcba7a816113`，canonical SHA-256 `1fe4af4b94a198437511a147fe05685eefb768304e3ab487ca06722657c2223b`）只对 `ServiceRoleBoundary`、`ProvisionerBoundary`、`TenantLifecycleTaskRole`、`DeploymentWorkerRole` 执行四项无 replacement 修改；Bootstrap 为 `UPDATE_COMPLETE`，线上 policy/role 回读匹配模板。没有创建 Cell、TaskDefinition、tenant Stack 或执行 `RunTask`。scoped rollback 脚本已通过静态审查，但它会永久删除 receipt/authority data，真实回退演练仍须在无租户状态下单独批准。
+9. 合格镜像尚未写入 execution binding，Worker 和 Apply 仍关闭；B5-J3 只把它固定到 inspect-only TaskDefinition，不构成 runtime binding。创建收费 Stack 前必须先建立一次性清理计划，创建失败时部署必须中止。
+10. B5 receipt Bucket、authority table、专用 LifecycleTaskRole 和最小 WorkerRole 已由受审 Change Set 部署。2026-08-24 的 `LifecycleReadback` Change Set `techlong-s3-b5-support-lifecycle-readback-60d854ad2664718e`（raw SHA-256 `60d854ad2664718eed88ec4731ff3a70cb84b34ba9dcaf439782dcba7a816113`，canonical SHA-256 `1fe4af4b94a198437511a147fe05685eefb768304e3ab487ca06722657c2223b`）只对 `ServiceRoleBoundary`、`ProvisionerBoundary`、`TenantLifecycleTaskRole`、`DeploymentWorkerRole` 执行四项无 replacement 修改；Bootstrap 为 `UPDATE_COMPLETE`，线上 policy/role 回读匹配模板。scoped rollback 脚本已通过静态审查，但它会永久删除 receipt/authority data，真实回退演练仍须在无租户状态下单独批准。
+11. B5-J3 已注册并严格回读唯一的 `tenant-lifecycle:1`，随后撤销临时 LifecycleTaskRole PassRole。Bootstrap 仍为 `UPDATE_COMPLETE`，部署模板 canonical SHA-256 为 `112d1b47807962b2ae3e3d751c2b6d2d9cb48c1660f2aa75d24991ebf9cbdf14`；精确 Cell cluster 为 `MISSING`，没有 tenant service、Cell 或 `RunTask`。
 
 B4 Cell 模板只允许 `aurora-postgresql-serverless-v2`，最多一个共享 Cell，固定 PostgreSQL `16.14`、关闭自动小版本升级，使用 `minAcu=0`、`maxAcu=1`、`secondsUntilAutoPause=300`，并禁止每租户独立 Cluster、额外 Reader、传统 Multi-AZ 实例、DB Proxy、Global Database、预留购买和快照恢复。Aurora Cluster 本身不能被策略绝对禁止，否则生产兼容的 Sandbox Cell 无法创建；真实 Apply 前还必须重新核对该 Region 支持的 Engine/自动暂停能力，并由受控模板、Execution Role 与部署前静态检查共同锁定。
 

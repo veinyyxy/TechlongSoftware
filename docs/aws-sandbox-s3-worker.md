@@ -6,7 +6,7 @@ S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格
 
 以下三项已有严格边界；租户数据库路径已增加真实 inspect-only provider，其余变更操作及独立 Worker live root 仍使用 fail-closed 默认依赖，属于真实启用前阻断项：
 
-- 租户数据库：类型化 lifecycle、approved baseline 门禁、active provision epoch 校验、脱敏 lifecycle evidence 持久化、ECS/Secret/S3 receipt SDK Adapter 源码、可信 raw receipt 边界和可恢复反向清理顺序已完成。订单服务现在还有真实 ARN-native `inspect` production composition：从 exact RDS-managed Secret 取凭据，以 TLS 只读方式检查 PostgreSQL，并发布 immutable S3 receipt；它没有开启其他 lifecycle 命令。receipt Bucket/authority table/最小 IAM 已通过受审 Bootstrap UPDATE 部署，包含当前 B5-J2 源码的 Build #4 也已构建并通过零发现扫描；仍缺生产 Secret material generator、PostgreSQL 变更/销毁 provider、已批准的 PostgreSQL 16.14 baseline、revision-pinned lifecycle TaskDefinition 以及 Worker live root 注入。
+- 租户数据库：类型化 lifecycle、approved baseline 门禁、active provision epoch 校验、脱敏 lifecycle evidence 持久化、ECS/Secret/S3 receipt SDK Adapter 源码、可信 raw receipt 边界和可恢复反向清理顺序已完成。订单服务现在还有真实 ARN-native `inspect` production composition：从 exact RDS-managed Secret 取凭据，以 TLS 只读方式检查 PostgreSQL，并发布 immutable S3 receipt；它没有开启其他 lifecycle 命令。receipt Bucket/authority table/最小 IAM 已通过受审 Bootstrap UPDATE 部署，包含当前 B5-J2 源码的 Build #4 也已构建并通过零发现扫描，revision-pinned `tenant-lifecycle:1` 已在 B5-J3 注册并回读；仍缺生产 Secret material generator、PostgreSQL 变更/销毁 provider、已批准的 PostgreSQL 16.14 baseline 以及 Worker live root 注入。
 - 共享 Cell 安全证明：可注入的 ECS/ELBv2/EC2/RDS/STS 只读收集器及严格校验已完成；render-only 模板已拆出零入站的 one-shot SG，只读 preflight 会核对其公共 task subnet、VPC/输出/所有权/TTL、TCP 443 公网出站、TCP 5432 到 exact DB SG 出站，以及 DB 只接受 app/one-shot 两个 SG 的 5432 入站。lifecycle management evidence 另要求 RDS-managed Secret `active`、可信 runtime provenance 与稳定资源 hash。对应最小 `ecs:DescribeTaskDefinition`/RDS-managed Secret read IAM 已通过 `LifecycleReadback` 增量更新部署并在线回读，live root 仍未接线。
 - 控制通道：固定 8443 的 mTLS transport、实例级 RS256 JWT 和不可变模板 v2 编译器已完成；订单服务 `POST /api/saas/provision` 源码已实现 control API v1.2 事务单调 epoch CAS，但其他控制写接口未 fence，SQL/源码也未应用或部署。仍缺真实证书/私钥来源、Neon immutable source、可在重试期间保持同值并在 GET 对账后有围栏删除的 Owner Secret source，以及 Worker runtime 接线。
 
@@ -31,8 +31,9 @@ S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格
 - 为避免在首次单租户 canary 前扩大长期 CloudFormation/IAM 权限，tenant web 模板暂时使用三值锁定的 ephemeral local 图片模式：`APP_RUNTIME_MODE=aws_sandbox_ephemeral_canary`、`ALLOW_EPHEMERAL_IMAGE_STORAGE=true`、`IMAGE_STORAGE_PROVIDER=local`。普通 TaskRole 继续保持零 S3 identity permission，租户模板也不再接收未实现的 `ImageS3Bucket`/`ImagePublicBaseUrl` 外参。该目录只存在于单个 Fargate task：重启、替换、部署或清理会永久丢失文件并可能留下失效数据库 URL；禁止上传真实客户素材，canary 不覆盖图片持久性，且 `persistentImageStorageReady=false`。正式方案必须另行评审并部署每租户/每 generation 专用 TaskRole、exact S3 prefix、permission boundary 和私有 Bucket 的受控读取路径，绝不能恢复共享 S3 通配权限。
 - B5-J1 把 lifecycle one-shot 收敛为单一 exact `tenant-lifecycle:<revision>` ARN；Runner 独立传递原始 `expectedOperation`，Adapter 只有在请求 operation 与 argv 都与它一致时才接受六条 code-owned command。新增的离线 binding/compiler 只记录 Sandbox ECR `@sha256`、预期 Cell cluster、两条 IAM role、receipt Bucket、命令和候选网络 intent。`candidateSubnetIds` 与 `candidateOneShotSecurityGroupId` 只是未验证输入，`sharedCellEvidenceReady=false` 明确禁止把它们描述为已证明的公共 Cell subnet/one-shot SG。compiler 不输出 Runner/API 运行时配置，并保持 `registrationReady=false`、`liveReadbackReady=false`；未来 live readback verifier 必须结合 `DescribeTaskDefinition` 和 Shared Cell 网络证据后才能产出配置。默认 root 也新增 TaskDefinition live-readback blocker；本切片没有注册任务、创建 SDK client、调用 AWS 或打开 gate。
 - B5-J2 在既有 Shared Cell 只读 Adapter 上增加兼容的 lifecycle evidence read：完整 preflight 通过后，只投影 exact cluster、公共 task subnet、one-shot SG、Aurora cluster、writer endpoint、RDS-managed master Secret ARN、`SecretStatus=active`、`cell_admin` database/user 与证据哈希，且不返回 Secret value、password 或连接 URL。模块私有 `WeakSet` 只认可完整 collect/preflight/hash 流程产出的 evidence，克隆或伪造对象不能编译；稳定资源 hash 排除瞬态观察值并规范化集合顺序。management-target compiler 再把该投影与 B5-J1 intent、当前 `TenantResourceFence` 对账，强制 `tenant_<stem>_db`/`tenant_<stem>_role` 同 stem，并只允许 5 分钟新鲜度窗口内、时钟未回退的受标记 target 生成 canonical 11-key backend projection。任一账号、区域、Cell、cluster、network、management reference 或 tenant target 漂移都会 fail closed；它不输出 Runner/API config，两个 readiness flag 仍为 `false`。
-- B5-J2 后端已实现真实 inspect-only Secrets Manager + PostgreSQL + S3 receipt 组合，但没有运行它：生产入口要求 exact runtime mode、canonical management target、RDS-managed `AWSCURRENT` Secret、AWS RDS CA、TLS peer verification、只读 session、参数化且有界的 catalog/COMMENT 查询，以及 exact immutable receipt key。CloudFormation 的最小 `ecs:DescribeTaskDefinition`/RDS-managed Secret read IAM 已通过 `LifecycleReadback` 三阶段 Change Set 部署并在线回读；Build #4 也已由当前源码构建并完成零发现扫描。没有 Cell、TaskDefinition、`DescribeTaskDefinition` 正向证据或 `RunTask`。
-- 生产 material generator、PostgreSQL 变更/销毁 provider、approved baseline、live root wiring 和真实租户 AWS/数据库演练仍未完成；`0005`–`0007` 尚未应用到 Neon。因此 `registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 保持不变；B5-J2 IAM 更新与镜像构建没有创建 Cell、租户 Stack，也没有访问 Neon 或真实 PostgreSQL。
+- B5-J2 后端已实现真实 inspect-only Secrets Manager + PostgreSQL + S3 receipt 组合，但没有运行它：生产入口要求 exact runtime mode、canonical management target、RDS-managed `AWSCURRENT` Secret、AWS RDS CA、TLS peer verification、只读 session、参数化且有界的 catalog/COMMENT 查询，以及 exact immutable receipt key。CloudFormation 的最小 `ecs:DescribeTaskDefinition`/RDS-managed Secret read IAM 已通过 `LifecycleReadback` 三阶段 Change Set 部署并在线回读；Build #4 也已由当前源码构建并完成零发现扫描。该阶段结束时仍没有 TaskDefinition 或 `RunTask`。
+- B5-J3 已由单资源 CloudFormation Stack 注册并严格回读 `tenant-lifecycle:1`：镜像固定 Build #4 digest，命令只允许 `inspect`，roles/Fargate/容器 hardening/业务标签均 exact match。部署模板 canonical SHA-256 为 `f8d9993c47c0c332e79de6aeb845d4946464ebdf4e79719d3c5696ec380dc475`，readback evidence canonical SHA-256 为 `012c60f92b698f0c0c1e633b04a925b9544ff0cc91cbdc5004eca1e73617fbc8`。注册所需的临时 LifecycleTaskRole PassRole 随后由唯一 `ExecutionRoleBoundary Modify` 的 revoke Change Set 移除；最终 Bootstrap canonical SHA-256 为 `112d1b47807962b2ae3e3d751c2b6d2d9cb48c1660f2aa75d24991ebf9cbdf14`。精确 Cell cluster 为 `MISSING`；本阶段不创建日志组、Cell、租户 service，也未执行 `RunTask`。
+- 生产 material generator、PostgreSQL 变更/销毁 provider、approved baseline、live root wiring 和真实租户 AWS/数据库演练仍未完成；`0005`–`0007` 尚未应用到 Neon。因此 `registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 保持不变；B5-J3 注册/readback 没有创建 Cell、租户 Stack，也没有访问 Neon 或真实 PostgreSQL。
 
 ## 执行门禁
 
@@ -108,7 +109,7 @@ npm run deployment:worker
 
 ## 此前核验的数据库与 AWS 状态
 
-以下包含 S3-A、2026-08-22 B5-I support update，以及 2026-08-24 B5-J2 LifecycleReadback/Build #4 的在线核验；没有查询或修改 Neon，也没有访问真实 PostgreSQL。
+以下包含 S3-A、2026-08-22 B5-I support update，以及 2026-08-24 B5-J2 LifecycleReadback/Build #4/B5-J3 TaskDefinition 的在线核验；没有查询或修改 Neon，也没有访问真实 PostgreSQL。
 
 - `0004_aws_sandbox_worker.sql` 已应用到当前 Neon；核验结果为
   `apply_enabled=0`、execution binding 为 0，迁移本身没有开启 AWS Apply。
@@ -120,12 +121,13 @@ npm run deployment:worker
 - `LifecycleReadback` Change Set `techlong-s3-b5-support-lifecycle-readback-60d854ad2664718e` 的 raw/canonical SHA-256 分别为 `60d854ad2664718eed88ec4731ff3a70cb84b34ba9dcaf439782dcba7a816113` / `1fe4af4b94a198437511a147fe05685eefb768304e3ab487ca06722657c2223b`；它只修改 `ServiceRoleBoundary`、`ProvisionerBoundary`、`TenantLifecycleTaskRole`、`DeploymentWorkerRole`，全部无 replacement，`techlong-s3-bootstrap` 为 `UPDATE_COMPLETE`。实际 managed-policy 默认版本为 Service boundary `v3`、Provisioner boundary `v4`，两个角色的 boundary、trust、tags 和 exact inline policy 回读均匹配模板。
 - 后端提交 `fb9b521df1b59b849b871059572667a9b86546ab` 的 Build #3（ID `techlong-sandbox-speedfeast-image:43178c1b-d852-4069-b7b0-92bb04e5c7ec`）是此前零发现历史镜像，不包含 B5-J2 inspect-only provider。当前 Build #4（ID `techlong-sandbox-speedfeast-image:24f9fd8f-da8b-49d3-8e87-ae9956e9c7af`）从提交 `f4aa0febeba526f737bac3b59d516e1ab5c24482` 的 114 个 allowlist 文件构建，源码包 SHA-256 为 `214eeb68805abdb9796b5f23b7b95c8f20167ec2bbbbcd0f8e5e41fb3c93c31b`；全部 CodeBuild 阶段成功，最终不可变镜像为 `sha256:4815009949cd5219add56fedb183f1809b728081562f0280ede5229b567136f0`。ECR 保持 `IMMUTABLE`、scan-on-push、AES256，扫描 `COMPLETE` 且 findings 为 0。
 - 第一张 Node Bookworm 完整运行时镜像因 `3 Critical / 5 High / 6 Medium` 被门禁拒绝，未写入 execution binding，也未用于租户。最新零发现镜像同样尚未启用 Apply；镜像合格不代表其余 S3-B 门禁已经完成。
-- Worker 与租户 Apply 仍未启动；没有创建 Cell、ALB、ECS 租户服务、Aurora/RDS、VPC、Route 53、TaskDefinition 或正式租户 Stack，也没有执行 `RunTask`。
+- B5-J3 Stack `techlong-sandbox-tenant-b5j3` 为 `CREATE_COMPLETE`，唯一输出为 ACTIVE `tenant-lifecycle:1`。临时 registration grant 和 revoke 均只修改 `ExecutionRoleBoundary`、无 replacement；最终 policy `v3` 只可 Pass TaskExecutionRole/普通 TaskRole。精确 `cell-sandbox-1` cluster 返回 `MISSING`。
+- Worker 与租户 Apply 仍未启动；除上述单一 TaskDefinition 外，没有创建 Cell、ALB、ECS 租户服务、Aurora/RDS、VPC、Route 53 或正式租户 Stack，也没有执行 `RunTask`。
 
 ## 下一受控在线步骤
 
-1. 为 Build #4 的 exact digest 准备 revision-pinned lifecycle TaskDefinition；注册前单独审查 family、image、roles、只读 runtime mode、资源上限、日志和零秘密环境，并把注册作为新的受控 AWS 写步骤。
-2. 注册后只执行独立 `DescribeTaskDefinition` readback；注册不代表允许 `RunTask`。账号尚无 Cell，不能伪造 cluster、subnet、one-shot SG、RDS Secret 或正向 Shared Cell evidence，也不能产出 runtime config。
-3. Cell 创建、真实 Shared Cell preflight、数据库访问和 one-shot `RunTask` 都属于后续独立批准；在这些证据齐全前保持所有 readiness gate 关闭。
+1. B5-J3 的 TaskDefinition 注册、独立 `DescribeTaskDefinition` readback 和临时权限撤销已经完成；不要重新注册 revision，也不要把 `registrationReady` 当作事实状态手工改为 true。
+2. 下一切片先审查 Shared Cell Bootstrap、exact lifecycle 日志组与真实只读 Cell/network/RDS Secret evidence。账号当前没有 Cell，不能伪造 subnet、one-shot SG、RDS Secret 或 management target，也不能产出 runtime config。
+3. Cell 创建、数据库访问和首次 one-shot `RunTask` 都属于后续独立批准；在日志、TTL/cleanup、费用和 Shared Cell evidence 齐全前保持所有 readiness gate 关闭。
 
 以上步骤都不改变 `applyRuntimeReady=false` 或 `cleanupRuntimeReady=false`；Cell 创建和 Worker Apply 仍需后续独立批准。
