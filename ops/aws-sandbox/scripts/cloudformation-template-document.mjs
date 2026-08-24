@@ -8,8 +8,19 @@ const MAX_TEMPLATE_NODES = 100_000;
 // Inputs stay restricted to JSON values. Adding the timestamp resolver only to
 // dumping makes date-like strings (notably AWSTemplateFormatVersion) quoted for
 // CloudFormation's YAML parser; strict loading still uses JSON_SCHEMA alone.
+const cloudFormationFlowQuestionString = new yaml.Type(
+  "tag:yaml.org,2002:str",
+  {
+    kind: "scalar",
+    resolve: (value) =>
+      typeof value === "string" && value.includes("?"),
+  },
+);
 const CLOUDFORMATION_DUMP_SCHEMA = yaml.JSON_SCHEMA.extend({
-  implicit: [yaml.types.timestamp],
+  // CloudFormation's YAML parser rejects an unquoted question mark inside a
+  // flow scalar even though js-yaml accepts it. Treat those strings as an
+  // implicit type during dumping so their JSON value is preserved with quotes.
+  implicit: [yaml.types.timestamp, cloudFormationFlowQuestionString],
 });
 const FORBIDDEN_MAPPING_KEYS = new Set([
   "__proto__",

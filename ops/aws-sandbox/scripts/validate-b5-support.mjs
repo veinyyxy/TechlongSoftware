@@ -1059,6 +1059,12 @@ assert.match(
   /^AWSTemplateFormatVersion: '2010-09-09'\r?\n/,
   "YAML must use a block root and quote the date-like format version",
 );
+assert.ok(
+  renderedSource.includes(
+    "'arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/*/runtime/g*-??????'",
+  ),
+  "CloudFormation flow scalars containing question marks must be quoted",
+);
 assert.equal(renderedSource.includes("__JANITOR_INLINE_SOURCE__"), false);
 assert.equal(rollbackSource.includes("__JANITOR_INLINE_SOURCE__"), false);
 const renderedCanonicalHash = canonicalTemplateSha256(rendered);
