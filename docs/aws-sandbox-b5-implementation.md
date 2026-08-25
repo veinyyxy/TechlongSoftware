@@ -101,12 +101,12 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - 注册窗口使用的 `LifecycleTaskRegistration` IAM Change Set 只修改 `ExecutionRoleBoundary`、无 replacement；注册后，`LifecycleTaskRegistrationRevoke` Change Set `techlong-s3-b5-support-lifecycle-task-registration-revoke-9d5c2626a9bf9c42` 立即移除了 exact LifecycleTaskRole PassRole。最终 Bootstrap template canonical SHA-256 为 `112d1b47807962b2ae3e3d751c2b6d2d9cb48c1660f2aa75d24991ebf9cbdf14`，managed policy 默认版本 `v3` 只可 Pass TaskExecutionRole/普通 TaskRole，同时保留 `tenant-*:*` Register scope 和 region-scoped cleanup/readback 修正。
 - 本阶段不创建日志组；metadata 明确 `LogGroupReady=false`。精确 `cell-sandbox-1` cluster 回读为 `MISSING`，所以没有可运行目标，也没有执行 `RunTask`。`registrationReady=false` 表示 runtime registration contract 尚未可供 Worker 使用；`liveReadbackReady=false` 仍等待真实 Shared Cell/network/Secret evidence。`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 同样保持不变。
 
-### B5-J4a：独立 lifecycle LogGroup 支撑（仅完成离线实现）
+### B5-J4a：独立 lifecycle LogGroup 支撑
 
 - 新增的独立模板把初始 Stack 名固定为 `techlong-sandbox-tenant-b5j4logs`，且只包含一个 `AWS::Logs::LogGroup`：`/saas/cell-sandbox-1/tenant-lifecycle`。日志组固定为 `STANDARD`、`RetentionInDays=1`，不配置 KMS key，不创建 log stream、subscription filter、metric filter、ECS 计算或 Shared Cell。B5-J3 TaskDefinition Stack/模板不修改，其 `LogGroupReady=false` 仍是现状而不是可手工翻转的开关。
 - 操作契约为受限 Provisioner 通过 exact `TechlongSandboxCloudFormationExecutionRole` 创建单资源 Stack；CloudWatch Logs 直接只读回读使用现有 source user 的 AWS CLI `login_session` profile，不为 Provisioner/Worker 扩展 Logs IAM。创建前、精确回读和安全删除路径都要求 `cell-sandbox-1` 为 `MISSING`；回读还要求零 stream、零 stored bytes、零 metric filter 和 exact 标签。任何路径都不得调用 `RunTask`。
 - 该 Stack 故意不使用 `CellId`/`ResourceGeneration`，所以 `ExpiresAt` 只是创建窗口与 ownership tag，不会让现有 Janitor 自动删除它。废弃支撑 Stack 时必须走显式、无日志流/无存储数据的安全删除路径。
-- 2026-08-25 只完成了模板、fail-closed 操作脚本、独立 readback contract 与本地验证；尚未创建 AWS Stack 或日志组，也没有在仓库中写入任何在线成功证据。Cell Bootstrap 的 Change Set 写模式仍 hard-disabled。`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 全部保持不变。
+- 2026-08-25 已创建并两次严格回读 Stack `techlong-sandbox-tenant-b5j4logs`（StackId `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-b5j4logs/8fcccc70-a0be-11f1-ac7e-06f748bb68bd`，`ExpiresAt=2026-08-25T21:51:44Z`）。模板 raw/canonical SHA-256 为 `65c00d1c139991627a6f1801cc4887de53352b6e884064850df339cd6da0455c` / `4999c5fd89edd2aa9476cafc2a802871198b88bbdf103305dd442713281a90c2`，live evidence canonical SHA-256 为 `c2270d6344b1b93e80af9c41c47cfbfcec5ac45c14b5b93692aeb98f4f3086c6`。readback 确认唯一日志组为空、账号级 subscription policy 为空且 `cell-sandbox-1=MISSING`。Cell Bootstrap 的 Change Set 写模式仍 hard-disabled；`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 全部保持不变。
 
 ## 当前硬门禁
 
@@ -120,11 +120,11 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 6. 分阶段 cleanup coordinator 与 exact provision predecessor 接线已离线实现，backend 的真实 inspect-only provider 也已存在；但数据库变更/销毁 provider、Cell Janitor/standalone Worker 的 live destroy root wiring，以及真实 provider-side 删除演练仍未完成。
 7. 尚未进行真实 Cell TTL 删除演练和费用后核对。
 8. DynamoDB authority Adapter 和订单服务 `POST /api/saas/provision` 单调 epoch CAS 仅存在于未接线/未部署源码中；其他控制写接口仍未 fence，也没有完成数据库迁移、跨进程 CAS、AWS 条件写或 provider-side 删除演练。`AbortSignal` 不能撤销服务端已经接受的写入。
-9. B5-J2 的 CloudFormation IAM 已经由 `LifecycleReadback` 三阶段路径执行并在线回读；B5-J3 又完成 `tenant-lifecycle:1` 注册、正向 `DescribeTaskDefinition` exact readback 和临时注册权限撤销。B5-J4a 只完成 lifecycle LogGroup 支撑的离线 IaC/回读边界，尚未 AWS 部署；仍没有 Cell、已验证的日志支撑、runtime config 或 `RunTask` 执行证据。
+9. B5-J2 的 CloudFormation IAM 已经由 `LifecycleReadback` 三阶段路径执行并在线回读；B5-J3 又完成 `tenant-lifecycle:1` 注册、正向 `DescribeTaskDefinition` exact readback 和临时注册权限撤销；B5-J4a 已完成独立 lifecycle LogGroup Stack 创建与两次 strict readback。仍没有 Cell、runtime config 或 `RunTask` 执行证据。
 
 ## 费用与执行规则
 
-- 源码、迁移文件、模板渲染和本地测试本身不调用 AWS，不访问 Neon，也不应用迁移；最近的在线写入仍是 2026-08-24 已受审的 B5-J3 TaskDefinition 单资源 Stack，以及紧随其后的 Bootstrap 临时 PassRole 撤销。B5-J4a 仅为未部署的离线实现；`0005`–`0007` 继续只是仓库文件，没有访问 Neon 或真实 PostgreSQL。
+- 源码、迁移文件、模板渲染和本地测试本身不调用 AWS，不访问 Neon，也不应用迁移；最近的在线写入是 2026-08-25 已受审的 B5-J4a 单日志组 Stack。它没有创建或运行 ECS 资源；`0005`–`0007` 继续只是仓库文件，没有访问 Neon 或真实 PostgreSQL。
 - `$10` Budget 是延迟告警，不是实时费用硬停。
 - 创建 Lambda/Scheduler Bootstrap、B5 support S3/DynamoDB、ALB、Aurora 或运行 ECS/CodeBuild 都可能产生费用。Cell Bootstrap 写模式仍硬禁用；`LifecycleReadback` IAM 更新、Build #4 和 TaskDefinition 注册/readback 已完成。注册不授权 `RunTask`，临时 CloudFormation LifecycleTaskRole PassRole 也已撤销；当前不运行 ECS task。任何 Cell 创建、Worker Apply 或数据库写入仍必须另行获得明确确认。
 - `infra/`、`.env.local`、证书、私钥、数据库密码和 AWS 长期凭据不得进入 Git。

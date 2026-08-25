@@ -233,17 +233,17 @@ Change Set 名由渲染后模板 SHA-256 自动生成，description 同时绑定
 
 注册前的临时 IAM grant Change Set 为 `techlong-s3-b5-support-lifecycle-task-registration-7c6a63636d2b175b`（raw/canonical `7c6a63636d2b175b73c7b23209a60576bc02125fb07cd3e549869ee33cbb6ddf` / `826a968ecfdfff10d32e50a9689af079f9920892f605568e86bc80f6876ece72`）；注册后立即执行的 revoke 为 `techlong-s3-b5-support-lifecycle-task-registration-revoke-9d5c2626a9bf9c42`（raw/canonical `9d5c2626a9bf9c4257af066f422c13a4540ddf3bdf8f97dd9c90f79015ecc6c1` / `112d1b47807962b2ae3e3d751c2b6d2d9cb48c1660f2aa75d24991ebf9cbdf14`）。两者都只修改 `ExecutionRoleBoundary`、`Replacement=False`。最终 IAM policy 默认版本 `v3` 的 PassRole 只剩 TaskExecutionRole 与普通 TaskRole；精确 `cell-sandbox-1` cluster 为 `MISSING`，未执行 `RunTask`，四个 readiness gate 全部保持 `false`。
 
-## B5-J4a 独立 lifecycle LogGroup 支撑（未部署）
+## B5-J4a 独立 lifecycle LogGroup 支撑
 
 `s3-b5-lifecycle-log-support.template.json` 只含一个 `AWS::Logs::LogGroup`，初始 Stack 名固定为 `techlong-sandbox-tenant-b5j4logs`，日志组固定为 `/saas/cell-sandbox-1/tenant-lifecycle`。它只允许 `STANDARD`、`RetentionInDays=1`，无 KMS key、log stream、subscription filter、metric filter、ECS 或 Shared Cell。该模板不修改 B5-J3 TaskDefinition Stack/模板，J3 的 `LogGroupReady=false` 仍保持不变。
 
-`s3-b5-lifecycle-log-support.ps1` 默认只做 `LocalValidate`。未来经批准的 `Create` 由 exact `techlong-sandbox-provisioner` MFA 会话调用 CloudFormation，并固定使用 `TechlongSandboxCloudFormationExecutionRole`；CloudWatch Logs 直接只读回读由现有 `techlong-sandbox-user` AWS CLI `login_session` profile 完成，不扩展 Provisioner 或 Worker IAM。所有在线模式都拒绝静态凭据环境变量/endpoint override，并要求 exact 账号、区域、两个身份、MFA device、Stack/日志组和 template digest。`OnlineValidate`、`Create`、`Readback` 与 `Delete` 还会要求 `cell-sandbox-1=MISSING`；脚本不包含 `RunTask`。
+`s3-b5-lifecycle-log-support.ps1` 默认只做 `LocalValidate`。受控 `Create` 由 exact `techlong-sandbox-provisioner` MFA 会话调用 CloudFormation，并固定使用 `TechlongSandboxCloudFormationExecutionRole`；CloudWatch Logs 直接只读回读由现有 `techlong-sandbox-user` AWS CLI `login_session` profile 完成，不扩展 Provisioner 或 Worker IAM。所有在线模式都拒绝静态凭据环境变量/endpoint override，并要求 exact 账号、区域、两个身份、MFA device、Stack/日志组和 template digest。`OnlineValidate`、`Create`、`Readback` 与 `Delete` 还会要求 `cell-sandbox-1=MISSING`；脚本不包含 `RunTask`。
 
 ```powershell
 # 已执行的离线验证；不调用 AWS
 .\ops\aws-sandbox\scripts\s3-b5-lifecycle-log-support.ps1 -Mode LocalValidate
 
-# 以下只是未来的受控在线形状；本阶段尚未执行
+# 2026-08-25 已按以下受控形状执行；保留用于审计和未来重建
 .\ops\aws-sandbox\scripts\s3-b5-lifecycle-log-support.ps1 -Mode OnlineValidate -ExpiresAt '<15 分钟至 3 小时内的 UTC>'
 .\ops\aws-sandbox\scripts\s3-b5-lifecycle-log-support.ps1 -Mode Create -ExpiresAt '<exact UTC>' -ConfirmAccountId '402010193138' -ConfirmRegion 'ca-central-1' -ConfirmStackName 'techlong-sandbox-tenant-b5j4logs' -ConfirmLogGroupName '/saas/cell-sandbox-1/tenant-lifecycle' -ConfirmTemplateSha256 '<LocalValidate raw SHA-256>' -ConfirmTemplateCanonicalSha256 '<LocalValidate canonical SHA-256>' -ConfirmExecutionPhrase 'I_ACKNOWLEDGE_B5J4_EMPTY_LIFECYCLE_LOG_GROUP_CREATION' -AcknowledgeAwsWrite -AcknowledgeLowCostNotFree -AcknowledgeNoEcsCompute
 .\ops\aws-sandbox\scripts\s3-b5-lifecycle-log-support.ps1 -Mode Readback -ExpiresAt '<exact UTC>' -ConfirmStackId '<exact StackId>' -ConfirmLogGroupName '/saas/cell-sandbox-1/tenant-lifecycle'
@@ -251,7 +251,7 @@ Change Set 名由渲染后模板 SHA-256 自动生成，description 同时绑定
 
 Readback 必须同时对账 `CREATE_COMPLETE`、单资源 inventory、`GetTemplate(Original)` canonical exact match、模板标签与 Stack 传播标签合并后的六个业务标签、1 天保留、STANDARD、无 KMS/data-protection/bearer-token authentication、零 metric filter、零 log-group/account-level subscription policy、零 stream、零 stored bytes 和 cluster `MISSING`。`OnlineValidate`/`Create` 也会在写入前先证明账号没有 `SUBSCRIPTION_FILTER_POLICY`。`Delete` 只能在同样的精确空日志组证据通过后显式执行。该 Stack 不带 `CellId`/`ResourceGeneration`；`ExpiresAt` 只是创建窗口与 ownership tag，不会被现有 Janitor 自动清理。空日志组本身不代表绝对零费用；将来若写入日志，仍会产生 CloudWatch Logs ingestion/storage 等用量费用，1 天 retention 只负责压低保留量。
 
-2026-08-25 只完成了离线模板、操作/readback contract 和本地测试；尚未在 AWS 创建该 Stack/日志组，没有在线成功证据。`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 保持不变；Cell Bootstrap 写模式仍 hard-disabled。
+2026-08-25 已创建并两次严格回读 Stack `techlong-sandbox-tenant-b5j4logs`（StackId `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-b5j4logs/8fcccc70-a0be-11f1-ac7e-06f748bb68bd`，`ExpiresAt=2026-08-25T21:51:44Z`），状态为 `CREATE_COMPLETE`。模板 raw/canonical SHA-256 为 `65c00d1c139991627a6f1801cc4887de53352b6e884064850df339cd6da0455c` / `4999c5fd89edd2aa9476cafc2a802871198b88bbdf103305dd442713281a90c2`；live evidence canonical SHA-256 为 `c2270d6344b1b93e80af9c41c47cfbfcec5ac45c14b5b93692aeb98f4f3086c6`。两次 readback 都确认唯一日志组为 STANDARD、1 天保留、六个业务标签、零 stream/bytes/metric filter/log-group subscription/account subscription、无 KMS/data protection/bearer-token authentication，并再次确认 `cell-sandbox-1=MISSING`。没有创建或运行任何 ECS 资源；`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 保持不变，Cell Bootstrap 写模式仍 hard-disabled。
 
 ## B5 Cell Bootstrap（仍不创建 Shared Cell）
 

@@ -33,7 +33,7 @@ S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格
 - B5-J2 在既有 Shared Cell 只读 Adapter 上增加兼容的 lifecycle evidence read：完整 preflight 通过后，只投影 exact cluster、公共 task subnet、one-shot SG、Aurora cluster、writer endpoint、RDS-managed master Secret ARN、`SecretStatus=active`、`cell_admin` database/user 与证据哈希，且不返回 Secret value、password 或连接 URL。模块私有 `WeakSet` 只认可完整 collect/preflight/hash 流程产出的 evidence，克隆或伪造对象不能编译；稳定资源 hash 排除瞬态观察值并规范化集合顺序。management-target compiler 再把该投影与 B5-J1 intent、当前 `TenantResourceFence` 对账，强制 `tenant_<stem>_db`/`tenant_<stem>_role` 同 stem，并只允许 5 分钟新鲜度窗口内、时钟未回退的受标记 target 生成 canonical 11-key backend projection。任一账号、区域、Cell、cluster、network、management reference 或 tenant target 漂移都会 fail closed；它不输出 Runner/API config，两个 readiness flag 仍为 `false`。
 - B5-J2 后端已实现真实 inspect-only Secrets Manager + PostgreSQL + S3 receipt 组合，但没有运行它：生产入口要求 exact runtime mode、canonical management target、RDS-managed `AWSCURRENT` Secret、AWS RDS CA、TLS peer verification、只读 session、参数化且有界的 catalog/COMMENT 查询，以及 exact immutable receipt key。CloudFormation 的最小 `ecs:DescribeTaskDefinition`/RDS-managed Secret read IAM 已通过 `LifecycleReadback` 三阶段 Change Set 部署并在线回读；Build #4 也已由当前源码构建并完成零发现扫描。该阶段结束时仍没有 TaskDefinition 或 `RunTask`。
 - B5-J3 已由单资源 CloudFormation Stack 注册并严格回读 `tenant-lifecycle:1`：镜像固定 Build #4 digest，命令只允许 `inspect`，roles/Fargate/容器 hardening/业务标签均 exact match。部署模板 canonical SHA-256 为 `f8d9993c47c0c332e79de6aeb845d4946464ebdf4e79719d3c5696ec380dc475`，readback evidence canonical SHA-256 为 `012c60f92b698f0c0c1e633b04a925b9544ff0cc91cbdc5004eca1e73617fbc8`。注册所需的临时 LifecycleTaskRole PassRole 随后由唯一 `ExecutionRoleBoundary Modify` 的 revoke Change Set 移除；最终 Bootstrap canonical SHA-256 为 `112d1b47807962b2ae3e3d751c2b6d2d9cb48c1660f2aa75d24991ebf9cbdf14`。精确 Cell cluster 为 `MISSING`；本阶段不创建日志组、Cell、租户 service，也未执行 `RunTask`。
-- B5-J4a 已完成独立 lifecycle LogGroup 支撑的离线实现，但尚未部署到 AWS。固定 Stack `techlong-sandbox-tenant-b5j4logs` 只容许一个 `AWS::Logs::LogGroup`：`/saas/cell-sandbox-1/tenant-lifecycle`、`STANDARD`、1 天保留，无 KMS、stream、subscription/metric filter、ECS 或 Cell。Provisioner 只通过 exact CloudFormation execution role 创建 Stack，source `login_session` profile 只做 Logs 直接回读，不扩展 Provisioner/Worker IAM。脚本在创建、回读和删除路径都要求 exact cluster 为 `MISSING`，并且不包含 `RunTask`。
+- B5-J4a 已通过固定 Stack `techlong-sandbox-tenant-b5j4logs` 创建并两次严格回读唯一 `AWS::Logs::LogGroup`：`/saas/cell-sandbox-1/tenant-lifecycle`、`STANDARD`、1 天保留。模板 raw/canonical SHA-256 为 `65c00d1c139991627a6f1801cc4887de53352b6e884064850df339cd6da0455c` / `4999c5fd89edd2aa9476cafc2a802871198b88bbdf103305dd442713281a90c2`，live evidence canonical SHA-256 为 `c2270d6344b1b93e80af9c41c47cfbfcec5ac45c14b5b93692aeb98f4f3086c6`。Provisioner 只通过 exact CloudFormation execution role 创建 Stack，source `login_session` profile 只做 Logs 直接回读，没有扩展 Provisioner/Worker IAM。在线证据确认零 stream/bytes/metric filter/log-group subscription/account subscription、无 KMS/data protection/bearer-token authentication，exact cluster 仍为 `MISSING`，没有 `RunTask`。
 - 该支撑 Stack 没有 `CellId`/`ResourceGeneration`，其 `ExpiresAt` 不会被现有 Janitor 解释为自动 TTL；需要显式安全删除。B5-J3 模板未修改，Cell Bootstrap 写模式仍 hard-disabled。生产 material generator、PostgreSQL 变更/销毁 provider、approved baseline、live root wiring 和真实租户 AWS/数据库演练仍未完成；`0005`–`0007` 尚未应用到 Neon。因此 `registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 全部保持不变。
 
 ## 执行门禁
@@ -110,7 +110,7 @@ npm run deployment:worker
 
 ## 此前核验的数据库与 AWS 状态
 
-以下包含 S3-A、2026-08-22 B5-I support update，以及 2026-08-24 B5-J2 LifecycleReadback/Build #4/B5-J3 TaskDefinition 的在线核验；B5-J4a 只完成未部署的离线实现，不属于下列在线证据。本轮没有查询或修改 Neon，也没有访问真实 PostgreSQL。
+以下包含 S3-A、2026-08-22 B5-I support update、2026-08-24 B5-J2 LifecycleReadback/Build #4/B5-J3 TaskDefinition，以及 2026-08-25 B5-J4a lifecycle LogGroup 的在线核验。本轮没有查询或修改 Neon，也没有访问真实 PostgreSQL。
 
 - `0004_aws_sandbox_worker.sql` 已应用到当前 Neon；核验结果为
   `apply_enabled=0`、execution binding 为 0，迁移本身没有开启 AWS Apply。
@@ -128,8 +128,8 @@ npm run deployment:worker
 ## 下一受控在线步骤
 
 1. B5-J3 的 TaskDefinition 注册、独立 `DescribeTaskDefinition` readback 和临时权限撤销已经完成；不要重新注册 revision，也不要把 `registrationReady` 当作事实状态手工改为 true。
-2. 下一个受控在线动作是先刷新 source `login_session` 与 Provisioner MFA AssumeRole，再只创建/回读 B5-J4a 单资源 Stack `techlong-sandbox-tenant-b5j4logs`。执行前必须确认 `cell-sandbox-1=MISSING`；CloudFormation 资源清单、original template、Logs 属性/标签/零 stream 回读任一漂移就 fail closed。完成前不得宣称日志支撑已部署。
-3. B5-J4a 完成在线 exact readback 后，再单独审查仍 hard-disabled 的 Shared Cell Bootstrap 与真实只读 Cell/network/RDS Secret evidence。账号当前没有 Cell，不能伪造 subnet、one-shot SG、RDS Secret 或 management target，也不能产出 runtime config。
-4. Cell 创建、数据库访问和首次 one-shot `RunTask` 都属于后续独立批准；在日志、TTL/cleanup、费用和 Shared Cell evidence 齐全前保持所有 readiness gate 关闭。
+2. B5-J4a 单资源日志 Stack 已创建并两次 exact readback；不要修改 B5-J3 模板或手工翻转任何 readiness gate。
+3. 下一个受控切片先硬化仍 hard-disabled 的 Shared Cell Bootstrap：专用管理/回滚路径、默认关闭长期 Cell Create/Execute/PassRole、exact Change Set/digest/IAM simulation 和 Janitor 空扫描都必须先完成；该切片仍不得创建收费 Cell。账号当前没有 Cell，不能伪造 subnet、one-shot SG、RDS Secret 或 management target，也不能产出 runtime config。
+4. Cell 创建、数据库访问和首次 one-shot `RunTask` 都属于后续独立批准；在 TTL/cleanup、费用和 Shared Cell evidence 齐全前保持所有 readiness gate 关闭。
 
 以上步骤都不改变 `applyRuntimeReady=false` 或 `cleanupRuntimeReady=false`；Cell 创建和 Worker Apply 仍需后续独立批准。
