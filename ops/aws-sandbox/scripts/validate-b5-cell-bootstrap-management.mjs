@@ -544,6 +544,11 @@ assert.match(operationScript, /simulate-principal-policy/);
 assert.match(operationScript, /stack-delete-complete/);
 assert.doesNotMatch(operationScript, /cloudformation', 'deploy'/);
 assert.doesNotMatch(operationScript, /ecs', 'run-task'/);
+assert.doesNotMatch(
+  operationScript,
+  /\$changeSet\.ChangeSetType|\$ChangeSet\.ChangeSetType/,
+  "DescribeChangeSet does not return ChangeSetType; CREATE is instead fenced by OnStackFailure and exact resource additions",
+);
 
 const executeGrantPreflightBlocks = [
   ...operationScript.matchAll(

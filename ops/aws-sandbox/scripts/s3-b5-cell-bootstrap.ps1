@@ -649,7 +649,6 @@ function Assert-ReviewedChangeSet {
   if ([string]$changeSet.StackId -cnotmatch '^arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-bootstrap/[a-f0-9-]{36}$') { $metadataFailures.Add('stack_id') }
   if ([string]$changeSet.Status -cne 'CREATE_COMPLETE') { $metadataFailures.Add('status') }
   if ([string]$changeSet.ExecutionStatus -cne 'AVAILABLE') { $metadataFailures.Add('execution_status') }
-  if ([string]$changeSet.ChangeSetType -cne 'CREATE') { $metadataFailures.Add('change_set_type') }
   if ([string]$changeSet.Description -cne $ExpectedDescription) { $metadataFailures.Add('description') }
   if ([string]$changeSet.RoleARN -cne $bootstrapExecutionRoleArn) { $metadataFailures.Add('role_arn') }
   if (@($changeSet.NotificationARNs).Count -ne 0) { $metadataFailures.Add('notifications') }

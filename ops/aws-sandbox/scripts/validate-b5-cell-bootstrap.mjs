@@ -205,6 +205,11 @@ assert.doesNotMatch(operationScript, /'--capabilities', 'CAPABILITY_NAMED_IAM'/)
 assert.doesNotMatch(operationScript, /cloudformation', 'deploy'/);
 assert.doesNotMatch(operationScript, /cloudformation', '(?:create|update)-stack'/);
 assert.doesNotMatch(operationScript, /ecs', 'run-task'/);
+assert.doesNotMatch(
+  operationScript,
+  /\$changeSet\.ChangeSetType|\$ChangeSet\.ChangeSetType/,
+  "DescribeChangeSet does not return ChangeSetType; CREATE is instead fenced by OnStackFailure and exact resource additions",
+);
 const executionPreflightIndex = operationScript.indexOf(
   "Assert-BootstrapExecutionIdentity -AwsCli $awsCli",
 );

@@ -1574,11 +1574,10 @@ function Assert-ReviewedChangeSet {
     [string]$ChangeSet.StackId -cnotmatch $managementStackIdPattern -or
     [string]$ChangeSet.Status -cne 'CREATE_COMPLETE' -or
     [string]$ChangeSet.ExecutionStatus -cne 'AVAILABLE' -or
-    [string]$ChangeSet.ChangeSetType -cne [string]$Contract.ChangeSetType -or
     [string]$ChangeSet.Description -cne $ChangeSetContract.Description -or
     -not [string]::IsNullOrEmpty([string]$ChangeSet.RoleARN)
   ) {
-    throw 'Change Set identity, state, type, description, or source-user RoleARN contract drifted.'
+    throw 'Change Set identity, state, description, or source-user RoleARN contract drifted.'
   }
   if (
     @($ChangeSet.NotificationARNs).Count -ne 0 -or
@@ -1711,7 +1710,6 @@ function Assert-ExactApprovedChildChangeSet {
   if ([string]$changeSet.StackId -cnotmatch $bootstrapStackIdPattern) { $failures.Add('stack_id') }
   if ([string]$changeSet.Status -cne 'CREATE_COMPLETE') { $failures.Add('status') }
   if ([string]$changeSet.ExecutionStatus -cne 'AVAILABLE') { $failures.Add('execution_status') }
-  if ([string]$changeSet.ChangeSetType -cne 'CREATE') { $failures.Add('change_set_type') }
   if ([string]$changeSet.Description -cne $expectedDescription) { $failures.Add('description') }
   if ([string]$changeSet.RoleARN -cne $expectedExecutionRoleArn) { $failures.Add('role_arn') }
   if (-not [string]::IsNullOrEmpty([string]$changeSet.NextToken)) { $failures.Add('pagination') }
