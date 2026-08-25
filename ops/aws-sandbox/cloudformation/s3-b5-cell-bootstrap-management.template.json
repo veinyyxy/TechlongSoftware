@@ -1,0 +1,542 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "IAM-only root of trust for managing the low-cost B5 Shared Cell Bootstrap stack. This stack cannot create a Shared Cell.",
+  "Metadata": {
+    "SafetyBoundary": {
+      "CloudApplyEnabled": true,
+      "CreatesIamOnly": true,
+      "CreatesSharedCell": false,
+      "CreatesPaidCellResources": false,
+      "ManagerGrantState": "LOCKED",
+      "TemporaryAuthorGrantRequired": true,
+      "ApprovedManagedStackName": "techlong-s3-b5-cell-bootstrap",
+      "ApprovedCellStackName": "techlong-sandbox-cell-sandbox-1"
+    }
+  },
+  "Parameters": {
+    "ExpectedAccountId": {
+      "Type": "String",
+      "Default": "402010193138",
+      "AllowedValues": ["402010193138"]
+    },
+    "ExpectedRegion": {
+      "Type": "String",
+      "Default": "ca-central-1",
+      "AllowedValues": ["ca-central-1"]
+    },
+    "ManagementPrincipalArn": {
+      "Type": "String",
+      "Default": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+      "AllowedValues": [
+        "arn:aws:iam::402010193138:user/techlong-sandbox-dev"
+      ]
+    }
+  },
+  "Conditions": {
+    "IsExpectedAccount": {
+      "Fn::Equals": [{ "Ref": "AWS::AccountId" }, { "Ref": "ExpectedAccountId" }]
+    },
+    "IsExpectedRegion": {
+      "Fn::Equals": [{ "Ref": "AWS::Region" }, { "Ref": "ExpectedRegion" }]
+    },
+    "IsExpectedTarget": {
+      "Fn::And": [
+        { "Condition": "IsExpectedAccount" },
+        { "Condition": "IsExpectedRegion" }
+      ]
+    }
+  },
+  "Resources": {
+    "CellJanitorBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxCellJanitorBoundary",
+        "Description": "Externally anchored maximum permissions for the locked B5-J4b Shared Cell inventory Janitor.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyJanitorOutsideCanadaCentral",
+              "Effect": "Deny",
+              "NotAction": ["logs:CreateLogStream", "logs:PutLogEvents"],
+              "Resource": "*",
+              "Condition": {
+                "StringNotEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowCellJanitorInventoryOnly",
+              "Effect": "Allow",
+              "Action": "cloudformation:ListStacks",
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowCellJanitorLogs",
+              "Effect": "Allow",
+              "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+              "Resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/aws/lambda/techlong-sandbox-cell-janitor:*"
+            }
+          ]
+        }
+      }
+    },
+    "CellSchedulerInvokeBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxCellSchedulerInvokeBoundary",
+        "Description": "Externally anchored maximum permissions for Scheduler to invoke only the locked Sandbox Cell inventory probe.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AllowInvokeOnlySandboxCellJanitor",
+              "Effect": "Allow",
+              "Action": "lambda:InvokeFunction",
+              "Resource": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor"
+            }
+          ]
+        }
+      }
+    },
+    "CellJanitorExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxCellJanitorExecutionRole",
+        "Description": "Externally bounded locked B5-J4b Lambda role; it can inspect Shared Cell Stack names but cannot delete any Stack.",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "CellJanitorBoundary" },
+        "ManagedPolicyArns": [{ "Ref": "CellJanitorBoundary" }],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "lambda.amazonaws.com" },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-cell-bootstrap-manager" },
+          { "Key": "Component", "Value": "cell-janitor" }
+        ]
+      }
+    },
+    "CellSchedulerInvokeRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxCellSchedulerInvokeRole",
+        "Description": "Externally bounded Scheduler role restricted to the disabled B5-J4b Shared Cell inventory schedule.",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "CellSchedulerInvokeBoundary" },
+        "ManagedPolicyArns": [{ "Ref": "CellSchedulerInvokeBoundary" }],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "scheduler.amazonaws.com" },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": { "aws:SourceAccount": "402010193138" },
+                "ArnLike": {
+                  "aws:SourceArn": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/*"
+                }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-cell-bootstrap-manager" },
+          { "Key": "Component", "Value": "cell-scheduler" }
+        ]
+      }
+    },
+    "CellBootstrapManagerBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxCellBootstrapManagerBoundary",
+        "Description": "Maximum permissions for the MFA-gated manager of only the B5 Cell Bootstrap stack.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyManagerOutsideCanadaCentral",
+              "Effect": "Deny",
+              "NotAction": ["iam:*", "sts:GetCallerIdentity"],
+              "Resource": "*",
+              "Condition": {
+                "StringNotEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowManagerIdentityAndValidation",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:ListStacks",
+                "cloudformation:ValidateTemplate",
+                "sts:GetCallerIdentity"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "AllowExactBootstrapStackRead",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DescribeStackEvents",
+                "cloudformation:DescribeStackResources",
+                "cloudformation:DescribeStacks",
+                "cloudformation:GetTemplate",
+                "cloudformation:GetTemplateSummary",
+                "cloudformation:ListChangeSets",
+                "cloudformation:ListStackResources"
+              ],
+              "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-bootstrap/*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:ResourceTag/Environment": "aws-sandbox",
+                  "aws:ResourceTag/ManagedBy": "techlong-cell-bootstrap-manager",
+                  "aws:ResourceTag/Component": "b5-cell-bootstrap"
+                }
+              }
+            },
+            {
+              "Sid": "AllowReadReviewedBootstrapChangeSets",
+              "Effect": "Allow",
+              "Action": "cloudformation:DescribeChangeSet",
+              "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-s3-b5-cell-bootstrap-*/*"
+            },
+            {
+              "Sid": "AllowReadExactBootstrapPolicies",
+              "Effect": "Allow",
+              "Action": [
+                "iam:GetPolicy",
+                "iam:GetPolicyVersion",
+                "iam:ListEntitiesForPolicy",
+                "iam:ListPolicyVersions"
+              ],
+              "Resource": [
+                "arn:aws:iam::402010193138:policy/TechlongSandboxCellJanitorBoundary",
+                "arn:aws:iam::402010193138:policy/TechlongSandboxCellSchedulerInvokeBoundary"
+              ]
+            },
+            {
+              "Sid": "AllowReadAndSimulateExactBootstrapRoles",
+              "Effect": "Allow",
+              "Action": [
+                "iam:GetRole",
+                "iam:GetRolePolicy",
+                "iam:ListAttachedRolePolicies",
+                "iam:ListRolePolicies",
+                "iam:SimulatePrincipalPolicy"
+              ],
+              "Resource": [
+                "arn:aws:iam::402010193138:role/TechlongSandboxCellJanitorExecutionRole",
+                "arn:aws:iam::402010193138:role/TechlongSandboxCellSchedulerInvokeRole"
+              ]
+            },
+            {
+              "Sid": "AllowReadExactBootstrapLambda",
+              "Effect": "Allow",
+              "Action": [
+                "lambda:GetFunction",
+                "lambda:GetFunctionConfiguration",
+                "lambda:GetFunctionRecursionConfig",
+                "lambda:GetRuntimeManagementConfig"
+              ],
+              "Resource": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor"
+            },
+            {
+              "Sid": "AllowReadExactBootstrapLogs",
+              "Effect": "Allow",
+              "Action": [
+                "logs:DescribeAccountPolicies",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:DescribeMetricFilters",
+                "logs:DescribeSubscriptionFilters",
+                "logs:GetDataProtectionPolicy",
+                "logs:ListTagsForResource"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowReadExactBootstrapSchedules",
+              "Effect": "Allow",
+              "Action": [
+                "scheduler:GetSchedule",
+                "scheduler:GetScheduleGroup",
+                "scheduler:ListTagsForResource"
+              ],
+              "Resource": [
+                "arn:aws:scheduler:ca-central-1:402010193138:schedule-group/techlong-sandbox-cell",
+                "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/techlong-sandbox-cell-global-janitor"
+              ]
+            },
+            {
+              "Sid": "AllowReadPaidCellAbsenceEvidence",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:DescribeClusters",
+                "elasticloadbalancing:DescribeLoadBalancers",
+                "rds:DescribeDBClusters",
+                "rds:DescribeDBInstances"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CellBootstrapManagerRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxCellBootstrapManagerRole",
+        "Description": "Human-only MFA role for digest-bound management of the B5 Cell Bootstrap stack; it cannot manage the paid Cell stack.",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "CellBootstrapManagerBoundary" },
+        "ManagedPolicyArns": [{ "Ref": "CellBootstrapManagerBoundary" }],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "AWS": { "Ref": "ManagementPrincipalArn" } },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "Bool": { "aws:MultiFactorAuthPresent": "true" },
+                "StringEquals": { "sts:RoleSessionName": "techlong-sandbox-cell-bootstrap-manager" }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-cell-bootstrap-manager" },
+          { "Key": "Component", "Value": "cell-bootstrap-manager" }
+        ]
+      }
+    },
+    "CellBootstrapExecutionBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxCellBootstrapCloudFormationExecutionBoundary",
+        "Description": "Exact-resource CloudFormation permissions for only the B5 Cell Bootstrap stack; grants no paid Cell actions.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyBootstrapExecutionOutsideCanadaCentral",
+              "Effect": "Deny",
+              "NotAction": ["iam:*"],
+              "Resource": "*",
+              "Condition": {
+                "StringNotEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "DenyBootstrapExecutionPaidCellActions",
+              "Effect": "Deny",
+              "Action": [
+                "ec2:CreateInternetGateway",
+                "ec2:CreateRouteTable",
+                "ec2:CreateSecurityGroup",
+                "ec2:CreateSubnet",
+                "ec2:CreateVpc",
+                "ecs:CreateCluster",
+                "ecs:CreateService",
+                "ecs:RunTask",
+                "elasticloadbalancing:CreateLoadBalancer",
+                "rds:CreateDBCluster",
+                "rds:CreateDBInstance",
+                "rds:CreateDBSubnetGroup"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "DenyMutatingExternalRuntimeIdentities",
+              "Effect": "Deny",
+              "Action": [
+                "iam:AttachRolePolicy",
+                "iam:CreatePolicy",
+                "iam:CreatePolicyVersion",
+                "iam:CreateRole",
+                "iam:DeletePolicy",
+                "iam:DeletePolicyVersion",
+                "iam:DeleteRole",
+                "iam:SetDefaultPolicyVersion",
+                "iam:DeleteRolePolicy",
+                "iam:DeleteRolePermissionsBoundary",
+                "iam:DetachRolePolicy",
+                "iam:PutRolePermissionsBoundary",
+                "iam:PutRolePolicy",
+                "iam:TagRole",
+                "iam:UntagRole",
+                "iam:UpdateAssumeRolePolicy",
+                "iam:UpdateRole",
+                "iam:UpdateRoleDescription"
+              ],
+              "Resource": [
+                "arn:aws:iam::402010193138:policy/TechlongSandboxCellJanitorBoundary",
+                "arn:aws:iam::402010193138:policy/TechlongSandboxCellSchedulerInvokeBoundary",
+                "arn:aws:iam::402010193138:role/TechlongSandboxCellJanitorExecutionRole",
+                "arn:aws:iam::402010193138:role/TechlongSandboxCellSchedulerInvokeRole"
+              ]
+            },
+            {
+              "Sid": "AllowPassOnlyCellJanitorRoleToLambda",
+              "Effect": "Allow",
+              "Action": "iam:PassRole",
+              "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxCellJanitorExecutionRole",
+              "Condition": {
+                "StringEquals": { "iam:PassedToService": "lambda.amazonaws.com" }
+              }
+            },
+            {
+              "Sid": "AllowPassOnlyCellSchedulerRoleToScheduler",
+              "Effect": "Allow",
+              "Action": "iam:PassRole",
+              "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxCellSchedulerInvokeRole",
+              "Condition": {
+                "StringEquals": { "iam:PassedToService": "scheduler.amazonaws.com" }
+              }
+            },
+            {
+              "Sid": "AllowExactBootstrapLambdaLifecycle",
+              "Effect": "Allow",
+              "Action": [
+                "lambda:CreateFunction",
+                "lambda:DeleteFunctionConcurrency",
+                "lambda:DeleteFunction",
+                "lambda:GetFunction",
+                "lambda:GetFunctionCodeSigningConfig",
+                "lambda:GetFunctionConcurrency",
+                "lambda:GetFunctionConfiguration",
+                "lambda:GetFunctionRecursionConfig",
+                "lambda:GetRuntimeManagementConfig",
+                "lambda:PutFunctionConcurrency",
+                "lambda:TagResource"
+              ],
+              "Resource": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor"
+            },
+            {
+              "Sid": "AllowExactBootstrapLogLifecycle",
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:DeleteDataProtectionPolicy",
+                "logs:DeleteLogGroup",
+                "logs:DeleteRetentionPolicy",
+                "logs:DescribeLogGroups",
+                "logs:GetDataProtectionPolicy",
+                "logs:ListTagsForResource",
+                "logs:PutRetentionPolicy",
+                "logs:TagResource"
+              ],
+              "Resource": [
+                "arn:aws:logs:ca-central-1:402010193138:log-group:/aws/lambda/techlong-sandbox-cell-janitor",
+                "arn:aws:logs:ca-central-1:402010193138:log-group:/aws/lambda/techlong-sandbox-cell-janitor:*"
+              ]
+            },
+            {
+              "Sid": "AllowBootstrapLogDiscovery",
+              "Effect": "Allow",
+              "Action": "logs:DescribeLogGroups",
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowExactBootstrapScheduleGroupLifecycle",
+              "Effect": "Allow",
+              "Action": [
+                "scheduler:CreateScheduleGroup",
+                "scheduler:DeleteScheduleGroup",
+                "scheduler:GetScheduleGroup",
+                "scheduler:ListTagsForResource",
+                "scheduler:TagResource"
+              ],
+              "Resource": "arn:aws:scheduler:ca-central-1:402010193138:schedule-group/techlong-sandbox-cell"
+            },
+            {
+              "Sid": "AllowExactBootstrapScheduleLifecycle",
+              "Effect": "Allow",
+              "Action": [
+                "scheduler:CreateSchedule",
+                "scheduler:DeleteSchedule",
+                "scheduler:GetSchedule"
+              ],
+              "Resource": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/techlong-sandbox-cell-global-janitor"
+            }
+          ]
+        }
+      }
+    },
+    "CellBootstrapExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxCellBootstrapCloudFormationExecutionRole",
+        "Description": "CloudFormation service role that can manage only the exact B5 Cell Bootstrap IAM and low-cost janitor resources.",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "CellBootstrapExecutionBoundary" },
+        "ManagedPolicyArns": [{ "Ref": "CellBootstrapExecutionBoundary" }],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "cloudformation.amazonaws.com" },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": { "aws:SourceAccount": "402010193138" }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-cell-bootstrap-manager" },
+          { "Key": "Component", "Value": "cell-bootstrap-cloudformation-execution" }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "CellBootstrapManagerRoleArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["CellBootstrapManagerRole", "Arn"] }
+    },
+    "CellBootstrapExecutionRoleArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["CellBootstrapExecutionRole", "Arn"] }
+    },
+    "ApprovedManagedStackName": {
+      "Condition": "IsExpectedTarget",
+      "Value": "techlong-s3-b5-cell-bootstrap"
+    },
+    "SafetyState": {
+      "Condition": "IsExpectedTarget",
+      "Value": "BOOTSTRAP_MANAGEMENT_ONLY_NO_SHARED_CELL"
+    }
+  }
+}

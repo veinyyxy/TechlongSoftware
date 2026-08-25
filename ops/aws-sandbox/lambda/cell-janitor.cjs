@@ -6,6 +6,30 @@ const SAFE_TENANT_STACK_NAME_PATTERN = /^techlong-sandbox-tenant-[a-z0-9]{1,16}$
 const EXPECTED_ENVIRONMENT = "aws-sandbox";
 const EXPECTED_MANAGER = "techlong-cell-operator";
 const MAX_DELETIONS_PER_SCAN = 1;
+const EMPTY_INVENTORY_ACTION = "inspect_empty_shared_cell_inventory";
+
+function assertRuntimeEnvironment(environment) {
+  if (
+    !environment ||
+    environment.EXPECTED_ACCOUNT_ID !== "402010193138" ||
+    environment.EXPECTED_REGION !== "ca-central-1" ||
+    environment.EXPECTED_CELL_ID !== "cell-sandbox-1" ||
+    environment.AWS_REGION !== "ca-central-1" ||
+    !["true", "false"].includes(environment.CELL_MUTATION_ENABLED)
+  ) {
+    throw new Error("invalid Shared Cell Janitor runtime environment");
+  }
+}
+
+function assertRuntimeActionEnabled(event, environment) {
+  assertRuntimeEnvironment(environment);
+  if (
+    environment.CELL_MUTATION_ENABLED !== "true" &&
+    event?.action !== EMPTY_INVENTORY_ACTION
+  ) {
+    throw new Error("Shared Cell Janitor mutation actions are disabled");
+  }
+}
 
 function tagsToMap(tags) {
   if (!Array.isArray(tags)) return {};
@@ -98,15 +122,64 @@ function isMissingStackError(error) {
   );
 }
 
+function assertEmptyInventoryEvent(event) {
+  if (!event || typeof event !== "object" || Array.isArray(event)) {
+    throw new Error("invalid empty Shared Cell inventory request");
+  }
+  const keys = Object.keys(event).sort();
+  if (
+    keys.length !== 2 ||
+    keys[0] !== "action" ||
+    keys[1] !== "schemaVersion" ||
+    event.action !== EMPTY_INVENTORY_ACTION ||
+    event.schemaVersion !== 1
+  ) {
+    throw new Error("invalid empty Shared Cell inventory request");
+  }
+}
+
+async function inspectEmptySharedCellInventory(api, event) {
+  assertEmptyInventoryEvent(event);
+  const observedNames = await api.listStackNames();
+  if (!Array.isArray(observedNames)) {
+    throw new Error("Shared Cell inventory response must be an array");
+  }
+  const candidates = [];
+  const seen = new Set();
+  for (const name of observedNames) {
+    if (typeof name !== "string" || !name.startsWith(STACK_PREFIX)) {
+      throw new Error("Shared Cell inventory returned an unexpected stack name");
+    }
+    if (seen.has(name)) {
+      throw new Error("Shared Cell inventory returned a duplicate stack name");
+    }
+    seen.add(name);
+    candidates.push(name);
+  }
+  candidates.sort();
+  return {
+    schemaVersion: 1,
+    action: EMPTY_INVENTORY_ACTION,
+    empty: candidates.length === 0,
+    checked: candidates.length,
+    candidates,
+    deleted: [],
+  };
+}
+
 function createHandler(api, now = () => Date.now()) {
   if (!api || typeof api !== "object") throw new Error("api is required");
   return async function handle(event = {}) {
     const action = event?.action ?? "scan_expired_shared_cell_stacks";
     if (
       action !== "scan_expired_shared_cell_stacks" &&
-      action !== "delete_shared_cell_stack"
+      action !== "delete_shared_cell_stack" &&
+      action !== EMPTY_INVENTORY_ACTION
     ) {
       throw new Error("unsupported cell janitor action");
+    }
+    if (action === EMPTY_INVENTORY_ACTION) {
+      return inspectEmptySharedCellInventory(api, event);
     }
     if (action === "delete_shared_cell_stack") {
       if (
@@ -216,6 +289,7 @@ async function createAwsApi() {
 }
 
 exports.handler = async (event) => {
+  assertRuntimeActionEnabled(event, process.env);
   const result = await createHandler(await createAwsApi())(event);
   console.log("cell janitor result", JSON.stringify(result));
   return result;
@@ -224,3 +298,4 @@ exports.createHandler = createHandler;
 exports.isEligibleCellStack = isEligibleCellStack;
 exports.isOwnedTenantStackForCell = isOwnedTenantStackForCell;
 exports.parseExpiresAt = parseExpiresAt;
+exports.assertRuntimeActionEnabled = assertRuntimeActionEnabled;

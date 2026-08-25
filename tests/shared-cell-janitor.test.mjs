@@ -8,6 +8,7 @@ const {
   isEligibleCellStack,
   isOwnedTenantStackForCell,
   parseExpiresAt,
+  assertRuntimeActionEnabled,
 } = require("../ops/aws-sandbox/lambda/cell-janitor.cjs");
 
 const now = Date.UTC(2026, 7, 9, 2);
@@ -167,4 +168,161 @@ test("Cell Janitor malformed target performs zero deletes", async () => {
     /invalid targeted cell cleanup request/,
   );
   assert.equal(calls, 0);
+});
+
+test("Cell Janitor empty inventory inspection returns one strict read-only result", async () => {
+  const calls = [];
+  const handler = createHandler({
+    listStackNames: async () => {
+      calls.push("list");
+      return [];
+    },
+    listTenantStacks: async () => {
+      calls.push("list-tenants");
+      return [];
+    },
+    describeStack: async () => calls.push("describe"),
+    deleteTenantStack: async () => calls.push("delete-tenant"),
+    deleteStack: async () => calls.push("delete-cell"),
+  });
+  const result = await handler({
+    schemaVersion: 1,
+    action: "inspect_empty_shared_cell_inventory",
+  });
+  assert.deepEqual(result, {
+    schemaVersion: 1,
+    action: "inspect_empty_shared_cell_inventory",
+    empty: true,
+    checked: 0,
+    candidates: [],
+    deleted: [],
+  });
+  assert.deepEqual(calls, ["list"]);
+});
+
+test("Cell Janitor empty inventory inspection reports candidates without deleting", async () => {
+  const calls = [];
+  const handler = createHandler({
+    listStackNames: async () => {
+      calls.push("list");
+      return [
+        "techlong-sandbox-cell-z-last",
+        "techlong-sandbox-cell-sandbox-1",
+      ];
+    },
+    listTenantStacks: async () => {
+      calls.push("list-tenants");
+      return [];
+    },
+    describeStack: async () => calls.push("describe"),
+    deleteTenantStack: async () => calls.push("delete-tenant"),
+    deleteStack: async () => calls.push("delete-cell"),
+  });
+  const result = await handler({
+    schemaVersion: 1,
+    action: "inspect_empty_shared_cell_inventory",
+  });
+  assert.deepEqual(result, {
+    schemaVersion: 1,
+    action: "inspect_empty_shared_cell_inventory",
+    empty: false,
+    checked: 2,
+    candidates: [
+      "techlong-sandbox-cell-sandbox-1",
+      "techlong-sandbox-cell-z-last",
+    ],
+    deleted: [],
+  });
+  assert.deepEqual(calls, ["list"]);
+});
+
+test("Cell Janitor empty inventory inspection rejects invalid schema before inventory access", async () => {
+  let calls = 0;
+  const handler = createHandler({
+    listStackNames: async () => {
+      calls += 1;
+      return [];
+    },
+  });
+  for (const event of [
+    { action: "inspect_empty_shared_cell_inventory" },
+    { schemaVersion: "1", action: "inspect_empty_shared_cell_inventory" },
+    { schemaVersion: 2, action: "inspect_empty_shared_cell_inventory" },
+    {
+      schemaVersion: 1,
+      action: "inspect_empty_shared_cell_inventory",
+      stackName,
+    },
+  ]) {
+    await assert.rejects(
+      handler(event),
+      /invalid empty Shared Cell inventory request/,
+    );
+  }
+  assert.equal(calls, 0);
+});
+
+test("Cell Janitor empty inventory inspection is idempotent and never deletes", async () => {
+  let lists = 0;
+  let mutations = 0;
+  const handler = createHandler({
+    listStackNames: async () => {
+      lists += 1;
+      return [];
+    },
+    listTenantStacks: async () => {
+      mutations += 1;
+      return [];
+    },
+    describeStack: async () => {
+      mutations += 1;
+    },
+    deleteTenantStack: async () => {
+      mutations += 1;
+    },
+    deleteStack: async () => {
+      mutations += 1;
+    },
+  });
+  const event = {
+    schemaVersion: 1,
+    action: "inspect_empty_shared_cell_inventory",
+  };
+  const first = await handler(event);
+  const second = await handler(event);
+  assert.deepEqual(second, first);
+  assert.equal(lists, 2);
+  assert.equal(mutations, 0);
+});
+
+test("deployed J4b runtime permits only the read-only empty inventory action", () => {
+  const lockedEnvironment = {
+    EXPECTED_ACCOUNT_ID: "402010193138",
+    EXPECTED_REGION: "ca-central-1",
+    EXPECTED_CELL_ID: "cell-sandbox-1",
+    AWS_REGION: "ca-central-1",
+    CELL_MUTATION_ENABLED: "false",
+  };
+  assert.doesNotThrow(() =>
+    assertRuntimeActionEnabled(
+      { schemaVersion: 1, action: "inspect_empty_shared_cell_inventory" },
+      lockedEnvironment,
+    ),
+  );
+  assert.throws(
+    () =>
+      assertRuntimeActionEnabled(
+        { schemaVersion: 1, action: "scan_expired_shared_cell_stacks" },
+        lockedEnvironment,
+      ),
+    /mutation actions are disabled/,
+  );
+  assert.throws(
+    () =>
+      assertRuntimeActionEnabled(
+        { schemaVersion: 1, action: "inspect_empty_shared_cell_inventory" },
+        { ...lockedEnvironment, EXPECTED_ACCOUNT_ID: "000000000000" },
+      ),
+    /invalid Shared Cell Janitor runtime environment/,
+  );
 });

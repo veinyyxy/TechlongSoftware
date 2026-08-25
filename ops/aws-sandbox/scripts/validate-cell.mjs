@@ -6,12 +6,6 @@ import { renderAwsSandboxSharedCellStack } from "../../../lib/deployments/cloudf
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
-const policy = JSON.parse(
-  fs.readFileSync(
-    path.join(root, "policies", "cell-operator-permissions-boundary.example.json"),
-    "utf8",
-  ),
-);
 const janitorSource = fs.readFileSync(
   path.join(root, "lambda", "cell-janitor.cjs"),
   "utf8",
@@ -142,27 +136,11 @@ assert.equal(resources.CellDatabaseCluster.DeletionPolicy, "Delete");
 assert.equal(resources.CellDatabaseLogGroup.Properties.RetentionInDays, 1);
 assert.equal(resources.CellDatabaseLogGroup.DeletionPolicy, "Delete");
 
-const policyText = JSON.stringify(policy);
-assert.match(
-  policyText,
-  /stack\/techlong-sandbox-cell-sandbox-1\/\*/,
-);
-assert.doesNotMatch(policyText, /stack\/techlong-sandbox-cell-\*\/\*/);
-assert.doesNotMatch(policyText, /stack\/techlong-sandbox-tenant-/);
-assert.doesNotMatch(policyText, /"Action":"\*"/);
-assert.doesNotMatch(policyText, /cloudformation:CreateStack/);
-assert.doesNotMatch(policyText, /cloudformation:UpdateStack/);
-assert.match(policyText, /cloudformation:CreateChangeSet/);
-assert.match(policyText, /cloudformation:ExecuteChangeSet/);
-assert.match(
-  policyText,
-  /TechlongSandboxCellCloudFormationExecutionRole/,
-);
-assert.match(policyText, /aws:ResourceTag\/Environment/);
-assert.match(policyText, /aws:RequestTag\/ExpiresAt/);
-assert.match(policyText, /AllowCreateOnlyReviewedCellChangeSet/);
 assert.match(janitorSource, /listTenantStacks/);
 assert.match(janitorSource, /CELL_TENANT_DRAIN_IN_PROGRESS/);
 assert.match(janitorSource, /isOwnedTenantStackForCell/);
+assert.match(janitorSource, /inspect_empty_shared_cell_inventory/);
+assert.match(janitorSource, /CELL_MUTATION_ENABLED/);
+assert.match(janitorSource, /mutation actions are disabled/);
 
-console.log("Shared Cell render, TTL ordering and operator boundary validation passed.");
+console.log("Shared Cell render, TTL ordering and locked Janitor source validation passed.");
