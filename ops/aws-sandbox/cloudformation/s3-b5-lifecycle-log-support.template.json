@@ -1,0 +1,68 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "B5-J4a one-resource CloudWatch log support for the inspect-only tenant lifecycle task. This stack does not create or run ECS compute.",
+  "Metadata": {
+    "SafetyBoundary": {
+      "SchemaVersion": 1,
+      "ExpectedAccountId": "402010193138",
+      "ExpectedRegion": "ca-central-1",
+      "ApprovedStackName": "techlong-sandbox-tenant-b5j4logs",
+      "LogGroupName": "/saas/cell-sandbox-1/tenant-lifecycle",
+      "RetentionInDays": 1,
+      "CreatesLogGroupOnly": true,
+      "CreatesLogStreams": false,
+      "CreatesSubscriptionFilters": false,
+      "CreatesMetricFilters": false,
+      "UsesKms": false,
+      "RunsTask": false,
+      "CreatesSharedCell": false,
+      "RegistrationReady": false,
+      "LiveReadbackReady": false,
+      "ApplyRuntimeReady": false,
+      "CleanupRuntimeReady": false
+    }
+  },
+  "Parameters": {
+    "ExpiresAt": {
+      "Type": "String",
+      "Description": "Exact second-precision UTC expiry ownership tag; the operation script restricts initial creation to 15 minutes through 3 hours in the future.",
+      "AllowedPattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  },
+  "Conditions": {
+    "IsExpectedTarget": {
+      "Fn::And": [
+        { "Fn::Equals": [{ "Ref": "AWS::AccountId" }, "402010193138"] },
+        { "Fn::Equals": [{ "Ref": "AWS::Region" }, "ca-central-1"] }
+      ]
+    }
+  },
+  "Resources": {
+    "TenantLifecycleLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Condition": "IsExpectedTarget",
+      "DeletionPolicy": "Delete",
+      "UpdateReplacePolicy": "Delete",
+      "Properties": {
+        "LogGroupName": "/saas/cell-sandbox-1/tenant-lifecycle",
+        "LogGroupClass": "STANDARD",
+        "RetentionInDays": 1,
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-provisioner" },
+          { "Key": "Component", "Value": "tenant-lifecycle-logs" }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "LogGroupName": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Ref": "TenantLifecycleLogGroup" }
+    },
+    "LogGroupArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["TenantLifecycleLogGroup", "Arn"] }
+    }
+  }
+}
