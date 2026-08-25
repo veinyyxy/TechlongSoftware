@@ -1843,12 +1843,20 @@ function Assert-ExactIamSimulation {
   if ($rendererShape -notin @('Locked', 'AuthorGrant', 'ExecuteGrant', 'RollbackGrant')) {
     throw 'IAM simulation requires one exact reviewed management renderer shape.'
   }
+  $managerResourceTagContext = @(
+    'ContextKeyName=aws:ResourceTag/Environment,ContextKeyValues=aws-sandbox,ContextKeyType=string',
+    'ContextKeyName=aws:ResourceTag/ManagedBy,ContextKeyValues=techlong-cell-bootstrap-manager,ContextKeyType=string',
+    'ContextKeyName=aws:ResourceTag/Component,ContextKeyValues=b5-cell-bootstrap,ContextKeyType=string'
+  )
+  $managerRegionalReadContext = @(
+    'ContextKeyName=aws:RequestedRegion,ContextKeyValues=ca-central-1,ContextKeyType=string'
+  ) + $managerResourceTagContext
   Assert-SimulatedDecision `
     -AwsCli $AwsCli `
     -PolicySourceArn $expectedManagerRoleArn `
     -Action 'ecs:RunTask' `
     -ResourceArns @('*') `
-    -ContextEntries @('ContextKeyName=aws:RequestedRegion,ContextKeyValues=ca-central-1,ContextKeyType=string') `
+    -ContextEntries $managerRegionalReadContext `
     -ExpectedDecision 'implicitDeny'
   foreach ($action in @('ecs:RunTask', 'rds:CreateDBCluster', 'elasticloadbalancing:CreateLoadBalancer')) {
     Assert-SimulatedDecision `
@@ -1924,18 +1932,13 @@ function Assert-ExactIamSimulation {
     "ContextKeyName=cloudformation:ChangeSetName,ContextKeyValues=$expectedChildChangeSetName,ContextKeyType=string",
     "ContextKeyName=cloudformation:ResourceTypes,ContextKeyValues=$($childTemplateResourceTypes -join ','),ContextKeyType=stringList",
     $currentTime
-  )
-  $resourceTags = @(
-    'ContextKeyName=aws:RequestedRegion,ContextKeyValues=ca-central-1,ContextKeyType=string',
-    'ContextKeyName=aws:ResourceTag/Environment,ContextKeyValues=aws-sandbox,ContextKeyType=string',
-    'ContextKeyName=aws:ResourceTag/ManagedBy,ContextKeyValues=techlong-cell-bootstrap-manager,ContextKeyType=string',
-    'ContextKeyName=aws:ResourceTag/Component,ContextKeyValues=b5-cell-bootstrap,ContextKeyType=string',
-    $currentTime
-  )
+  ) + $managerResourceTagContext
+  $resourceTags = $managerRegionalReadContext + @($currentTime)
   $passContext = @(
     'ContextKeyName=iam:PassedToService,ContextKeyValues=cloudformation.amazonaws.com,ContextKeyType=string',
     $currentTime
-  )
+  ) + $managerRegionalReadContext
+  $executeContext = $managerRegionalReadContext + @($currentTime)
   $createDecision = if ($rendererShape -eq 'AuthorGrant') { $allowedIfActive } else { 'implicitDeny' }
   $executeDecision = if ($rendererShape -eq 'ExecuteGrant') { $allowedIfActive } else { 'implicitDeny' }
   $deleteDecision = if ($rendererShape -eq 'RollbackGrant') { $allowedIfActive } else { 'implicitDeny' }
@@ -1946,10 +1949,7 @@ function Assert-ExactIamSimulation {
     -ContextEntries $requestedTags -ExpectedDecision $createDecision
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'cloudformation:ExecuteChangeSet' -ResourceArns @($changeSetArn) `
-    -ContextEntries @(
-      'ContextKeyName=aws:RequestedRegion,ContextKeyValues=ca-central-1,ContextKeyType=string',
-      $currentTime
-    ) -ExpectedDecision $executeDecision
+    -ContextEntries $executeContext -ExpectedDecision $executeDecision
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'cloudformation:DeleteStack' -ResourceArns @($childStackArn) `
     -ContextEntries $resourceTags -ExpectedDecision $deleteDecision
@@ -1959,10 +1959,7 @@ function Assert-ExactIamSimulation {
   $approvedTemplateObjectArn = "arn:aws:s3:::$childTemplateBucketName/$(Get-ChildTemplateObjectKey -ChildSnapshot $ChildSnapshot)"
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 's3:GetObject' -ResourceArns @($approvedTemplateObjectArn) `
-    -ContextEntries @(
-      'ContextKeyName=aws:RequestedRegion,ContextKeyValues=ca-central-1,ContextKeyType=string',
-      $currentTime
-    ) -ExpectedDecision $templateReadDecision
+    -ContextEntries $executeContext -ExpectedDecision $templateReadDecision
 
   $foreignStackArn = 'arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/00000000-0000-0000-0000-000000000000'
   $foreignChangeSetArn = 'arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-sandbox-cell-sandbox-1-0000000000000000/00000000-0000-0000-0000-000000000000'
@@ -1971,10 +1968,7 @@ function Assert-ExactIamSimulation {
     -ContextEntries $requestedTags -ExpectedDecision 'implicitDeny'
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'cloudformation:ExecuteChangeSet' -ResourceArns @($foreignChangeSetArn) `
-    -ContextEntries @(
-      'ContextKeyName=aws:RequestedRegion,ContextKeyValues=ca-central-1,ContextKeyType=string',
-      $currentTime
-    ) -ExpectedDecision 'implicitDeny'
+    -ContextEntries $executeContext -ExpectedDecision 'implicitDeny'
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'cloudformation:DeleteStack' -ResourceArns @($foreignStackArn) `
     -ContextEntries $resourceTags -ExpectedDecision 'implicitDeny'
@@ -1986,10 +1980,7 @@ function Assert-ExactIamSimulation {
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 's3:GetObject' `
     -ResourceArns @("arn:aws:s3:::$childTemplateBucketName/b5-cell-bootstrap/templates/sha256/$('0' * 64).json") `
-    -ContextEntries @(
-      'ContextKeyName=aws:RequestedRegion,ContextKeyValues=ca-central-1,ContextKeyType=string',
-      $currentTime
-    ) `
+    -ContextEntries $executeContext `
     -ExpectedDecision 'implicitDeny'
 }
 
