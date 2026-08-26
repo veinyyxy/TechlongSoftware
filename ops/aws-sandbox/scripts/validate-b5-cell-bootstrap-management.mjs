@@ -544,6 +544,26 @@ assert.match(operationScript, /simulate-principal-policy/);
 assert.match(operationScript, /stack-delete-complete/);
 assert.doesNotMatch(operationScript, /cloudformation', 'deploy'/);
 assert.doesNotMatch(operationScript, /ecs', 'run-task'/);
+assert.match(
+  operationScript,
+  /\$versioningText = \(\(\$versioningOutput \| Out-String\)\.Trim\(\)\)[\s\S]*\[string\]::IsNullOrWhiteSpace\(\$versioningText\)[\s\S]*\[PSCustomObject\]@\{\}/,
+  "an empty successful GetBucketVersioning response must mean exact unconfigured versioning",
+);
+assert.match(
+  operationScript,
+  /\$managerSimulationContext = \$requestedTags \+ @\([\s\S]*iam:PassedToService,ContextKeyValues=cloudformation\.amazonaws\.com/,
+  "temporary-grant IAM simulations must provide the complete condition-key context",
+);
+assert.match(
+  operationScript,
+  /-Action 'cloudformation:CreateChangeSet' -ResourceArns @\(\$childStackArn\)/,
+  "CreateChangeSet simulation must use its supported stack resource while the Change Set name remains condition-bound",
+);
+assert.doesNotMatch(
+  operationScript,
+  /-Action 'cloudformation:CreateChangeSet' -ResourceArns @\(\$childStackArn, \$changeSetArn\)/,
+  "IAM Simulator cannot evaluate the not-yet-created Change Set ARN as a CreateChangeSet resource",
+);
 assert.doesNotMatch(
   operationScript,
   /\$changeSet\.ChangeSetType|\$ChangeSet\.ChangeSetType/,

@@ -869,11 +869,21 @@ function Assert-ExactBootstrapSourceBucket {
   ) {
     throw 'Child template bucket ownership controls drifted.'
   }
-  $versioning = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
-    's3api', 'get-bucket-versioning', '--profile', $Profile, '--region', $expectedRegion,
-    '--bucket', $childTemplateBucketName, '--expected-bucket-owner', $expectedAccountId,
-    '--output', 'json'
-  )
+  $versioningOutput = & $AwsCli s3api get-bucket-versioning `
+    --profile $Profile `
+    --region $expectedRegion `
+    --bucket $childTemplateBucketName `
+    --expected-bucket-owner $expectedAccountId `
+    --output json
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Unable to read child template bucket versioning.'
+  }
+  $versioningText = (($versioningOutput | Out-String).Trim())
+  $versioning = if ([string]::IsNullOrWhiteSpace($versioningText)) {
+    [PSCustomObject]@{}
+  } else {
+    $versioningText | ConvertFrom-Json
+  }
   if (
     -not [string]::IsNullOrEmpty([string]$versioning.Status) -or
     -not [string]::IsNullOrEmpty([string]$versioning.MFADelete)
@@ -1851,13 +1861,6 @@ function Assert-ExactIamSimulation {
   $managerRegionalReadContext = @(
     'ContextKeyName=aws:RequestedRegion,ContextKeyValues=ca-central-1,ContextKeyType=string'
   ) + $managerResourceTagContext
-  Assert-SimulatedDecision `
-    -AwsCli $AwsCli `
-    -PolicySourceArn $expectedManagerRoleArn `
-    -Action 'ecs:RunTask' `
-    -ResourceArns @('*') `
-    -ContextEntries $managerRegionalReadContext `
-    -ExpectedDecision 'implicitDeny'
   foreach ($action in @('ecs:RunTask', 'rds:CreateDBCluster', 'elasticloadbalancing:CreateLoadBalancer')) {
     Assert-SimulatedDecision `
       -AwsCli $AwsCli `
@@ -1933,54 +1936,58 @@ function Assert-ExactIamSimulation {
     "ContextKeyName=cloudformation:ResourceTypes,ContextKeyValues=$($childTemplateResourceTypes -join ','),ContextKeyType=stringList",
     $currentTime
   ) + $managerResourceTagContext
-  $resourceTags = $managerRegionalReadContext + @($currentTime)
-  $passContext = @(
-    'ContextKeyName=iam:PassedToService,ContextKeyValues=cloudformation.amazonaws.com,ContextKeyType=string',
-    $currentTime
-  ) + $managerRegionalReadContext
-  $executeContext = $managerRegionalReadContext + @($currentTime)
+  $managerSimulationContext = $requestedTags + @(
+    'ContextKeyName=iam:PassedToService,ContextKeyValues=cloudformation.amazonaws.com,ContextKeyType=string'
+  )
+  Assert-SimulatedDecision `
+    -AwsCli $AwsCli `
+    -PolicySourceArn $expectedManagerRoleArn `
+    -Action 'ecs:RunTask' `
+    -ResourceArns @('*') `
+    -ContextEntries $managerSimulationContext `
+    -ExpectedDecision 'implicitDeny'
   $createDecision = if ($rendererShape -eq 'AuthorGrant') { $allowedIfActive } else { 'implicitDeny' }
   $executeDecision = if ($rendererShape -eq 'ExecuteGrant') { $allowedIfActive } else { 'implicitDeny' }
   $deleteDecision = if ($rendererShape -eq 'RollbackGrant') { $allowedIfActive } else { 'implicitDeny' }
   $passDecision = if ($rendererShape -in @('AuthorGrant', 'RollbackGrant')) { $allowedIfActive } else { 'implicitDeny' }
   $templateReadDecision = if ($rendererShape -eq 'AuthorGrant') { $allowedIfActive } else { 'implicitDeny' }
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
-    -Action 'cloudformation:CreateChangeSet' -ResourceArns @($childStackArn, $changeSetArn) `
-    -ContextEntries $requestedTags -ExpectedDecision $createDecision
+    -Action 'cloudformation:CreateChangeSet' -ResourceArns @($childStackArn) `
+    -ContextEntries $managerSimulationContext -ExpectedDecision $createDecision
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'cloudformation:ExecuteChangeSet' -ResourceArns @($changeSetArn) `
-    -ContextEntries $executeContext -ExpectedDecision $executeDecision
+    -ContextEntries $managerSimulationContext -ExpectedDecision $executeDecision
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'cloudformation:DeleteStack' -ResourceArns @($childStackArn) `
-    -ContextEntries $resourceTags -ExpectedDecision $deleteDecision
+    -ContextEntries $managerSimulationContext -ExpectedDecision $deleteDecision
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'iam:PassRole' -ResourceArns @($expectedExecutionRoleArn) `
-    -ContextEntries $passContext -ExpectedDecision $passDecision
+    -ContextEntries $managerSimulationContext -ExpectedDecision $passDecision
   $approvedTemplateObjectArn = "arn:aws:s3:::$childTemplateBucketName/$(Get-ChildTemplateObjectKey -ChildSnapshot $ChildSnapshot)"
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 's3:GetObject' -ResourceArns @($approvedTemplateObjectArn) `
-    -ContextEntries $executeContext -ExpectedDecision $templateReadDecision
+    -ContextEntries $managerSimulationContext -ExpectedDecision $templateReadDecision
 
   $foreignStackArn = 'arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/00000000-0000-0000-0000-000000000000'
   $foreignChangeSetArn = 'arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-sandbox-cell-sandbox-1-0000000000000000/00000000-0000-0000-0000-000000000000'
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
-    -Action 'cloudformation:CreateChangeSet' -ResourceArns @($foreignStackArn, $foreignChangeSetArn) `
-    -ContextEntries $requestedTags -ExpectedDecision 'implicitDeny'
+    -Action 'cloudformation:CreateChangeSet' -ResourceArns @($foreignStackArn) `
+    -ContextEntries $managerSimulationContext -ExpectedDecision 'implicitDeny'
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'cloudformation:ExecuteChangeSet' -ResourceArns @($foreignChangeSetArn) `
-    -ContextEntries $executeContext -ExpectedDecision 'implicitDeny'
+    -ContextEntries $managerSimulationContext -ExpectedDecision 'implicitDeny'
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'cloudformation:DeleteStack' -ResourceArns @($foreignStackArn) `
-    -ContextEntries $resourceTags -ExpectedDecision 'implicitDeny'
+    -ContextEntries $managerSimulationContext -ExpectedDecision 'implicitDeny'
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'iam:PassRole' `
     -ResourceArns @('arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole') `
-    -ContextEntries $passContext `
+    -ContextEntries $managerSimulationContext `
     -ExpectedDecision 'implicitDeny'
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 's3:GetObject' `
     -ResourceArns @("arn:aws:s3:::$childTemplateBucketName/b5-cell-bootstrap/templates/sha256/$('0' * 64).json") `
-    -ContextEntries $executeContext `
+    -ContextEntries $managerSimulationContext `
     -ExpectedDecision 'implicitDeny'
 }
 
