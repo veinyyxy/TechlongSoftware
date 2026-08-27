@@ -1,8 +1,8 @@
-# AWS Sandbox S0–S3-B5 安全 Bootstrap 与离线 Cell 基础
+# AWS Sandbox S0–S3-B5 安全 Bootstrap 与受控 cleanup-only Cell 基础
 
 这个目录保存可审查的静态配置、CloudFormation 模板、IAM 边界、TTL Janitor、镜像构建基础、B5 低成本支撑资源、inspect-only lifecycle TaskDefinition 和默认不执行的运维脚本。仓库中不包含 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。
 
-S3-A Bootstrap 脚本默认仅运行本地验证；只有显式选择 `CreateChangeSet` 或 `Apply`、确认账号、提供预算通知邮箱并确认 MFA 前置条件后，脚本才会产生 AWS 写操作。B5-J4b 又增加了独立 IAM 管理根与 cleanup-only child Bootstrap 的离线实现：管理 Stack 持有四组 boundary + role 共 8 个 IAM 资源，child 只含 4 个非 IAM 清理/只读资源，不创建 VPC、ALB、ECS、Aurora 或 Shared Cell。J4b 尚未部署到 AWS，四个付费就绪门禁仍全部为 `false`。
+S3-A Bootstrap 脚本默认仅运行本地验证；只有显式选择 `CreateChangeSet` 或 `Apply`、确认账号、提供预算通知邮箱并确认 MFA 前置条件后，脚本才会产生 AWS 写操作。B5-J4b 又增加了独立 IAM 管理根与 cleanup-only child Bootstrap：管理 Stack 持有四组 boundary + role 共 8 个 IAM 资源，child 只含 4 个非 IAM 清理/只读资源，不创建 VPC、ALB、ECS、Aurora 或 Shared Cell。J4b 已于 2026-08-26 按短期授权窗口流程部署并完成严格回读与双次空 inventory 探测；管理根最终恢复 `LOCKED`，四个付费就绪门禁仍全部为 `false`。
 
 ## 固定安全边界
 
@@ -254,13 +254,13 @@ Change Set 名由渲染后模板 SHA-256 自动生成，description 同时绑定
 
 Readback 必须同时对账 `CREATE_COMPLETE`、单资源 inventory、`GetTemplate(Original)` canonical exact match、模板标签与 Stack 传播标签合并后的六个业务标签、1 天保留、STANDARD、无 KMS/data-protection/bearer-token authentication、零 metric filter、零 log-group/account-level subscription policy、零 stream、零 stored bytes 和 cluster `MISSING`。`OnlineValidate`/`Create` 也会在写入前先证明账号没有 `SUBSCRIPTION_FILTER_POLICY`。`Delete` 只能在同样的精确空日志组证据通过后显式执行。该 Stack 不带 `CellId`/`ResourceGeneration`；`ExpiresAt` 只是创建窗口与 ownership tag，不会被现有 Janitor 自动清理。空日志组本身不代表绝对零费用；将来若写入日志，仍会产生 CloudWatch Logs ingestion/storage 等用量费用，1 天 retention 只负责压低保留量。
 
-2026-08-25 已创建并两次严格回读 Stack `techlong-sandbox-tenant-b5j4logs`（StackId `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-b5j4logs/8fcccc70-a0be-11f1-ac7e-06f748bb68bd`，`ExpiresAt=2026-08-25T21:51:44Z`），状态为 `CREATE_COMPLETE`。模板 raw/canonical SHA-256 为 `65c00d1c139991627a6f1801cc4887de53352b6e884064850df339cd6da0455c` / `4999c5fd89edd2aa9476cafc2a802871198b88bbdf103305dd442713281a90c2`；live evidence canonical SHA-256 为 `c2270d6344b1b93e80af9c41c47cfbfcec5ac45c14b5b93692aeb98f4f3086c6`。两次 readback 都确认唯一日志组为 STANDARD、1 天保留、六个业务标签、零 stream/bytes/metric filter/log-group subscription/account subscription、无 KMS/data protection/bearer-token authentication，并再次确认 `cell-sandbox-1=MISSING`。没有创建或运行任何 ECS 资源；`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 保持不变。后续 B5-J4b 仅完成离线实现，尚未部署 AWS。
+2026-08-25 已创建并两次严格回读 Stack `techlong-sandbox-tenant-b5j4logs`（StackId `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-b5j4logs/8fcccc70-a0be-11f1-ac7e-06f748bb68bd`，`ExpiresAt=2026-08-25T21:51:44Z`），状态为 `CREATE_COMPLETE`。模板 raw/canonical SHA-256 为 `65c00d1c139991627a6f1801cc4887de53352b6e884064850df339cd6da0455c` / `4999c5fd89edd2aa9476cafc2a802871198b88bbdf103305dd442713281a90c2`；live evidence canonical SHA-256 为 `c2270d6344b1b93e80af9c41c47cfbfcec5ac45c14b5b93692aeb98f4f3086c6`。两次 readback 都确认唯一日志组为 STANDARD、1 天保留、六个业务标签、零 stream/bytes/metric filter/log-group subscription/account subscription、无 KMS/data protection/bearer-token authentication，并再次确认 `cell-sandbox-1=MISSING`。本次 J4a 未创建 ECS cluster/service 或运行 task，既有 inspect-only TaskDefinition 不变；`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 保持不变。后续 B5-J4b 已于 2026-08-26 完成受控在线部署，但仍未创建 Shared Cell、ECS cluster/service 或运行 task。
 
-## B5-J4b IAM 管理根与 cleanup-only Cell Bootstrap（离线完成，尚未部署 AWS）
+## B5-J4b IAM 管理根与 cleanup-only Cell Bootstrap（2026-08-26 已部署）
 
 本切片将 IAM lifecycle 与 child 运行资源拆成两个固定 Stack：
 
-- `techlong-s3-b5-cell-bootstrap-management` 只拥有 Manager、CloudFormation execution、Janitor、Scheduler 四组 permissions boundary + role，共 8 个 IAM 资源。初始状态为 `Locked`；创建这个管理根时不向 CloudFormation 传 service `RoleARN`，也不修改现有 IAM User 或 Administrators 组。
+- `techlong-s3-b5-cell-bootstrap-management` 只拥有 Manager、CloudFormation execution、Janitor、Scheduler 四组 permissions boundary + role，共 8 个 IAM 资源。常态为 `LOCKED`；创建这个管理根时不向 CloudFormation 传 service `RoleARN`，也不修改现有 IAM User 或 Administrators 组。
 - `techlong-s3-b5-cell-bootstrap` 只拥有 `CellJanitorLogGroup`、只读 inventory `CellJanitorFunction`、`CellSchedulerGroup`、状态为 `DISABLED` 的 `CellGlobalJanitorSchedule`，共 4 个非 IAM 资源。child 不创建或变更 IAM；外置 CloudFormation execution role 只能 `PassRole` 给管理根中的最小 Janitor/Scheduler 两个角色。
 - child 渲染模板以 raw SHA-256 内容寻址保存到私有 `techlong-sandbox-build-source-402010193138-ca-central-1` Bucket 的 `b5-cell-bootstrap/templates/sha256/<raw>.json`。该 key 不位于 Provisioner 可写的 `source/*`；管理路径只允许 exact `GetObject`，不授予该模板 prefix 的 Put/List。
 - Lambda 固定 mutation disabled，只检查精确 `cell-sandbox-1` 的空 inventory；它不能创建、更新或删除 Cell。显式 `ProbeJanitor` 必须执行两次低成本调用并得到一致的空 inventory 证据，后台 Schedule 保持关闭。
@@ -276,9 +276,15 @@ Readback 必须同时对账 `CREATE_COMPLETE`、单资源 inventory、`GetTempla
 
 正常 child 创建必须按 `Locked → AuthorGrant → Locked → ExecuteGrant → Locked` 分五个受审步骤完成：AuthorGrant 只允许从上述 exact TemplateUrl 为 exact child 创建 Change Set，随后立即 revoke；ExecuteGrant 只允许执行已经过精确预检的 exact Change Set，随后立即 revoke。删除 child 只能临时进入 `RollbackGrant`，并在 child 不存在或安全删除证据通过后回到 `Locked`；管理根只有在 child 已不存在且自身为 exact Locked 模板时才可删除。
 
-J4b 离线完成不代表 AWS 已部署，也不批准付费 Cell；当前 management/child Stack 和 digest-addressed S3 模板对象都尚未在线创建。模板对象很小，但若后续上传，S3 Standard 存储/请求以及 child 的 Lambda、CloudWatch Logs 和 Scheduler API/存储仍可能产生少量费用，不能保证绝对零费用；它不会创建 VPC、ALB、ECS、Aurora/RDS、DNS 或 Shared Cell。`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 全部保持不变。
+2026-08-26 已按上述五阶段授权序列完成受控在线部署，实际状态和审计证据如下：
 
-此前已确认 IAM User 绑定 MFA，并成功建立受限 Provisioner AssumeRole 会话；Provisioner Role 的信任策略仍会拒绝无 MFA 会话。既有 S3-A 与 J4b 模板都不修改现有 IAM User 或 Administrators 组，SaaS Worker Apply 继续保持关闭。
+- 管理 StackId 为 `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-bootstrap-management/e1bacdf0-a0ca-11f1-a27e-0e9a646108cf`，状态为 `UPDATE_COMPLETE`，最终 UpdateShape 为 `LOCKED`，inventory 精确为 8 个 IAM 资源。最终管理模板 raw/canonical SHA-256 分别为 `15ec52203f390d29858fb77e032c4d6bff83d5c3678397bf133bf60e6ab9d553` / `5d09bbc9010de13dfdba09b71c13c58711a9238cb09cd78eb767f509b29c07a1`。
+- child StackId 为 `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-bootstrap/2477b820-a174-11f1-aca9-0668f7a50fdf`，状态为 `CREATE_COMPLETE`，inventory 精确为 4 个非 IAM 资源。child 模板 raw/canonical SHA-256 分别为 `8eeef35a7936cdd1f4613434d8b7990630b192707e92ea4b5f21637f7cdaf15f` / `2bfe9ec02c7939abbab48fb07a9126e7dc7684472607c2d8787623720e88f389`。
+- 被审查并执行的 Change Set 名为 `techlong-s3-b5-cell-bootstrap-8eeef35a7936cdd1`，ID 为 `arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-s3-b5-cell-bootstrap-8eeef35a7936cdd1/ae46c8c2-5445-4590-b23d-cbfa36aa8489`。其 `TemplateURL` 精确为 `https://techlong-sandbox-build-source-402010193138-ca-central-1.s3.ca-central-1.amazonaws.com/b5-cell-bootstrap/templates/sha256/8eeef35a7936cdd1f4613434d8b7990630b192707e92ea4b5f21637f7cdaf15f.json`；在线执行实际遵循 `Locked → AuthorGrant → Locked → ExecuteGrant → Locked`，两个临时 grant 均已撤销。
+- 4 个 child 资源为日志组 `/aws/lambda/techlong-sandbox-cell-janitor`、Lambda `techlong-sandbox-cell-janitor`、Scheduler Group `techlong-sandbox-cell` 和 Schedule `techlong-sandbox-cell-global-janitor`。Schedule 保持 `DISABLED`、表达式为 `rate(15 minutes)`；Lambda 未设置 reserved concurrency。
+- 严格 readback evidence SHA-256 为 `b6e8083c3c04de9daccecfe3ca1e0c242ae2b27131f0c683ec2097f795ae97cc`。`ProbeJanitor` 的 evidence SHA-256 为 `d77199f776408f75d722176805ba09853caee51ee4639b87d879b013d4a967ca`；两次低成本调用均返回相同 empty inventory，未请求或执行任何删除。
+
+该部署只建立 cleanup-only/只读基础，不批准付费 Cell。未创建付费 Shared Cell，也未创建 VPC、ALB、ECS cluster/service 或运行中的 task、RDS/Aurora、Route 53 资源，且没有执行 `RunTask`；既有 inspect-only `tenant-lifecycle:1` TaskDefinition 不变。`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 全部保持不变。digest-addressed S3 对象、Lambda 调用、CloudWatch Logs 和 Scheduler 仍可能产生少量用量费用，因此只能称为低成本，不能保证绝对零费用。此前已确认 IAM User 绑定 MFA，并成功建立受限 AssumeRole 会话；既有 S3-A 与 J4b 模板都不修改现有 IAM User 或 Administrators 组，SaaS Worker Apply 继续保持关闭。
 
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 
@@ -317,7 +323,7 @@ J4b 离线完成不代表 AWS 已部署，也不批准付费 Cell；当前 manag
 
 ## 此前核验的云端状态与后续门禁
 
-以下条目包含 S3-A 历史核验，以及 2026-08-22 B5-I、2026-08-24 B5-J2/B5-J3 的最新在线状态。
+以下条目包含 S3-A 历史核验，以及 2026-08-22 B5-I、2026-08-24 B5-J2/B5-J3、2026-08-25 B5-J4a 和 2026-08-26 B5-J4b 的最新在线状态。
 
 1. AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`；当前终端 PATH 尚未刷新，可以先使用绝对路径。
 2. 已确认 `techlong-sandbox-dev` 绑定 MFA，并配置不含密钥的 `techlong-sandbox-provisioner` AssumeRole Profile。首次角色会话需要操作者在本地终端输入 MFA 一次性验证码；后续还应移除 IAM User 继承的长期 AdministratorAccess，只保留受控 AssumeRole 能力。
@@ -330,6 +336,7 @@ J4b 离线完成不代表 AWS 已部署，也不批准付费 Cell；当前 manag
 9. 合格镜像尚未写入 execution binding，Worker 和 Apply 仍关闭；B5-J3 只把它固定到 inspect-only TaskDefinition，不构成 runtime binding。创建收费 Stack 前必须先建立一次性清理计划，创建失败时部署必须中止。
 10. B5 receipt Bucket、authority table、专用 LifecycleTaskRole 和最小 WorkerRole 已由受审 Change Set 部署。2026-08-24 的 `LifecycleReadback` Change Set `techlong-s3-b5-support-lifecycle-readback-60d854ad2664718e`（raw SHA-256 `60d854ad2664718eed88ec4731ff3a70cb84b34ba9dcaf439782dcba7a816113`，canonical SHA-256 `1fe4af4b94a198437511a147fe05685eefb768304e3ab487ca06722657c2223b`）只对 `ServiceRoleBoundary`、`ProvisionerBoundary`、`TenantLifecycleTaskRole`、`DeploymentWorkerRole` 执行四项无 replacement 修改；Bootstrap 为 `UPDATE_COMPLETE`，线上 policy/role 回读匹配模板。scoped rollback 脚本已通过静态审查，但它会永久删除 receipt/authority data，真实回退演练仍须在无租户状态下单独批准。
 11. B5-J3 已注册并严格回读唯一的 `tenant-lifecycle:1`，随后撤销临时 LifecycleTaskRole PassRole。Bootstrap 仍为 `UPDATE_COMPLETE`，部署模板 canonical SHA-256 为 `112d1b47807962b2ae3e3d751c2b6d2d9cb48c1660f2aa75d24991ebf9cbdf14`；精确 Cell cluster 为 `MISSING`，没有 tenant service、Cell 或 `RunTask`。
+12. B5-J4b management/child 已分别达到 `UPDATE_COMPLETE`/`CREATE_COMPLETE`；管理根最终 `LOCKED`，child 只含 4 个 cleanup-only 资源。严格 readback 与两次 empty inventory probe 均通过，Schedule 保持 `DISABLED`，没有创建 Shared Cell 或运行 ECS Task，四个 readiness gate 仍全部为 `false`。
 
 B4 Cell 模板只允许 `aurora-postgresql-serverless-v2`，最多一个共享 Cell，固定 PostgreSQL `16.14`、关闭自动小版本升级，使用 `minAcu=0`、`maxAcu=1`、`secondsUntilAutoPause=300`，并禁止每租户独立 Cluster、额外 Reader、传统 Multi-AZ 实例、DB Proxy、Global Database、预留购买和快照恢复。Aurora Cluster 本身不能被策略绝对禁止，否则生产兼容的 Sandbox Cell 无法创建；真实 Apply 前还必须重新核对该 Region 支持的 Engine/自动暂停能力，并由受控模板、Execution Role 与部署前静态检查共同锁定。
 
@@ -349,7 +356,7 @@ ExpiresAt=<UTC timestamp>
 
 租户 Janitor 不直接逐项删除 AWS 资源，只调用 CloudFormation `DeleteStack`，让 Stack 按依赖关系回滚。它同时要求：Stack 名严格匹配 `techlong-sandbox-tenant-<1至16位小写字母或数字>`、是顶层 Stack、`Environment=aws-sandbox`、`ManagedBy=techlong-provisioner`、非空 `DeploymentId`/`AppInstanceId`/`CellId`、正整数 `ResourceGeneration`，以及格式严格且已经到期的 UTC `ExpiresAt`。`DELETE_IN_PROGRESS`、`DELETE_COMPLETE` 和 `REVIEW_IN_PROGRESS` 会跳过；`DELETE_FAILED` 会在全局扫描中重试。共享 Cell 即使误带租户标签也不能被租户 Janitor 删除。全局扫描每次最多删除一个 Stack，定向清理还必须同时匹配 payload 中的 `DeploymentId`、`AppInstanceId` 和 `ResourceGeneration`。
 
-`cell-janitor.cjs` 仍是离线审查来源；B5-J4b child 只把其中的精确单 Cell inventory 检查包装成 mutation-disabled Lambda，Schedule 也固定为 `DISABLED`，因此它当前不能删除 Cell。管理根/child 均尚未部署 AWS。完整 Cell Janitor 代码仍不能清理 CloudFormation Stack 外的租户 database、role 或 Secret；没有完整、有围栏的 cleanup coordinator 与真实 TTL 演练时，禁止 Cell Apply。
+`cell-janitor.cjs` 仍是审查来源；B5-J4b child 只把其中的精确单 Cell inventory 检查包装成 mutation-disabled Lambda，Schedule 也固定为 `DISABLED`，因此它当前不能删除 Cell。管理根/child 已在 AWS 部署并完成严格回读和双次 empty inventory probe，但这不构成完整 cleanup runtime。完整 Cell Janitor 代码仍不能清理 CloudFormation Stack 外的租户 database、role 或 Secret；没有完整、有围栏的 cleanup coordinator 与真实 TTL 演练时，禁止 Cell Apply。
 
 回退默认只显示计划。真实回退会先拒绝仍有租户 Stack 的环境，然后验证专用源码 Bucket 的三项安全标签、清空该 Bucket，并删除 Bootstrap；这也会清空并删除 Sandbox ECR 镜像。Budget 只有额外传入 `-DeleteBudgetGuardrail` 和准确 Stack 名时才删除。
 
@@ -362,7 +369,7 @@ ExpiresAt=<UTC timestamp>
 - `provisioner-permissions-boundary.example.json` 是最大权限边界，不是授予权限的 Identity Policy。
 - Provisioner 只被允许管理 `techlong-sandbox-tenant-*` CloudFormation Stack、Pass 指定的 Sandbox Execution Role，并以固定 session name Assume exact `TechlongSandboxDeploymentWorkerRole`；共享 Cell 和 Bootstrap 仍不在其 CloudFormation 权限内。
 - B5-J4b 管理根的 Manager role 只在短期 grant 窗口操作固定 child Bootstrap Change Set；长期 Locked 状态不允许 child Create/Execute/Delete。AuthorGrant 通过 exact digest-addressed S3 `TemplateUrl`、execution `RoleARN`、`ChangeSetName`、4 种 `ResourceTypes` 和 exact `GetObject` 收窄模板作者能力，ExecuteGrant 前必须完成 exact Change Set/原始模板预检，两个窗口都要立即撤销。CloudFormation execution role 不拥有 IAM lifecycle，只能 `PassRole` 给 exact Janitor/Scheduler 两个外部最小角色。
-- 管理根与 child 的 IAM 条件和 CloudFormation 调用仍必须在未来受控 `OnlineValidate`、Change Set 审查、IAM simulation 与 readback 中逐项核对；当前离线检查不构成 AWS 授权证明，也不允许付费 Cell。
+- 管理根与 child 已通过受控 `OnlineValidate`、Change Set 审查、IAM simulation、严格 readback 和双次 empty inventory probe；管理根最终回到 `LOCKED`。这些证据只证明当前 cleanup-only Bootstrap 边界，不允许付费 Cell，也不打开任何 readiness gate。
 - `sandbox-expensive-actions-deny.example.json` 是 Deny-only 示例。当前账号未使用 AWS Organizations，因此只能把它作为 IAM Policy 评审起点，不能假设 SCP 已生效。
 - 策略中的 Account、Region 和角色名称属于非敏感固定标识，但上线前仍必须与实际账号状态核对。
 

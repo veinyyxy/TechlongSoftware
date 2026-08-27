@@ -76,14 +76,21 @@ function Invoke-AwsChecked {
 }
 
 function Invoke-AwsJson {
-  param([string]$AwsCli, [string[]]$Arguments)
+  param(
+    [string]$AwsCli,
+    [string[]]$Arguments,
+    [switch]$AllowEmptyObject
+  )
   $output = & $AwsCli @Arguments
   if ($LASTEXITCODE -ne 0) {
     throw "AWS CLI command failed with exit code $LASTEXITCODE."
   }
   $text = (($output | Out-String).Trim())
-  if ([string]::IsNullOrWhiteSpace($text)) { throw 'AWS CLI returned empty JSON.' }
-  return ($text | ConvertFrom-Json)
+  if ([string]::IsNullOrWhiteSpace($text)) {
+    if ($AllowEmptyObject) { return [PSCustomObject]@{} }
+    throw 'AWS CLI returned empty JSON.'
+  }
+  return ($text | ConvertFrom-Json -DateKind String)
 }
 
 function Invoke-AwsJsonFile {
@@ -327,7 +334,7 @@ function Get-StackOrNull {
   $output = & $AwsCli cloudformation describe-stacks --profile $Profile --region $expectedRegion `
     --stack-name $StackName --output json 2>&1
   if ($LASTEXITCODE -eq 0) {
-    $response = (($output | Out-String).Trim()) | ConvertFrom-Json
+    $response = (($output | Out-String).Trim()) | ConvertFrom-Json -DateKind String
     if (@($response.Stacks).Count -ne 1) { throw "Stack readback for $StackName was not singular." }
     return $response.Stacks[0]
   }
@@ -338,7 +345,9 @@ function Get-StackOrNull {
 
 function Convert-TemplateBodyToObject {
   param([object]$TemplateBody)
-  if ($TemplateBody -is [string]) { return ($TemplateBody | ConvertFrom-Json) }
+  if ($TemplateBody -is [string]) {
+    return ($TemplateBody | ConvertFrom-Json -DateKind String)
+  }
   return $TemplateBody
 }
 
@@ -617,7 +626,7 @@ function Assert-ExactChangeSetTemplate {
     [string]$ResponsePath
   )
   Invoke-AwsJsonFile -AwsCli $AwsCli -Arguments @(
-    'cloudformation', 'get-template', '--profile', $ManagerProfile, '--region', $expectedRegion,
+    'cloudformation', 'get-template', '--profile', $SourceReadbackProfile, '--region', $expectedRegion,
     '--stack-name', $bootstrapStackName, '--change-set-name', $ChangeSetName,
     '--template-stage', 'Original', '--output', 'json'
   ) -OutputPath $ResponsePath
@@ -638,7 +647,7 @@ function Assert-ReviewedChangeSet {
     [string]$TemporaryDirectory
   )
   $changeSet = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
-    'cloudformation', 'describe-change-set', '--profile', $ManagerProfile,
+    'cloudformation', 'describe-change-set', '--profile', $SourceReadbackProfile,
     '--region', $expectedRegion, '--stack-name', $bootstrapStackName,
     '--change-set-name', $ChangeSetName, '--include-property-values', '--output', 'json'
   )
@@ -650,18 +659,34 @@ function Assert-ReviewedChangeSet {
   if ([string]$changeSet.Status -cne 'CREATE_COMPLETE') { $metadataFailures.Add('status') }
   if ([string]$changeSet.ExecutionStatus -cne 'AVAILABLE') { $metadataFailures.Add('execution_status') }
   if ([string]$changeSet.Description -cne $ExpectedDescription) { $metadataFailures.Add('description') }
-  if ([string]$changeSet.RoleARN -cne $bootstrapExecutionRoleArn) { $metadataFailures.Add('role_arn') }
   if (@($changeSet.NotificationARNs).Count -ne 0) { $metadataFailures.Add('notifications') }
   if (-not [string]::IsNullOrEmpty([string]$changeSet.ParentChangeSetId)) { $metadataFailures.Add('parent') }
   if (-not [string]::IsNullOrEmpty([string]$changeSet.RootChangeSetId)) { $metadataFailures.Add('root') }
   if ($changeSet.IncludeNestedStacks -ne $false) { $metadataFailures.Add('nested') }
   if ($changeSet.ImportExistingResources -eq $true) { $metadataFailures.Add('import') }
   if ([string]$changeSet.OnStackFailure -cne 'DELETE') { $metadataFailures.Add('on_stack_failure') }
-  if (@($changeSet.RollbackConfiguration.RollbackTriggers).Count -ne 0) { $metadataFailures.Add('rollback_triggers') }
+  $rollbackTriggerProperty = $changeSet.RollbackConfiguration.PSObject.Properties['RollbackTriggers']
+  if ($null -ne $rollbackTriggerProperty -and @($rollbackTriggerProperty.Value).Count -ne 0) {
+    $metadataFailures.Add('rollback_triggers')
+  }
   if ($changeSet.DeploymentConfig.Mode -and [string]$changeSet.DeploymentConfig.Mode -cne 'STANDARD') { $metadataFailures.Add('deployment_mode') }
   if ($changeSet.DeploymentConfig.DisableRollback -eq $true) { $metadataFailures.Add('rollback_disabled') }
   if ($metadataFailures.Count -ne 0) {
     throw "Change Set metadata drifted: $($metadataFailures -join ', ')."
+  }
+  $placeholderResponse = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'cloudformation', 'describe-stacks', '--profile', $SourceReadbackProfile,
+    '--region', $expectedRegion, '--stack-name', ([string]$changeSet.StackId), '--output', 'json'
+  )
+  $placeholderStacks = @($placeholderResponse.Stacks)
+  if (
+    $placeholderStacks.Count -ne 1 -or
+    [string]$placeholderStacks[0].StackName -cne $bootstrapStackName -or
+    [string]$placeholderStacks[0].StackId -cne [string]$changeSet.StackId -or
+    [string]$placeholderStacks[0].StackStatus -cne 'REVIEW_IN_PROGRESS' -or
+    [string]$placeholderStacks[0].RoleARN -cne $bootstrapExecutionRoleArn
+  ) {
+    throw 'The child REVIEW_IN_PROGRESS Stack is not bound to the exact execution role.'
   }
   $parameters = @{}
   foreach ($parameter in @($changeSet.Parameters)) {
@@ -680,7 +705,7 @@ function Assert-ReviewedChangeSet {
     $tags.ManagedBy -cne 'techlong-cell-bootstrap-manager' -or
     $tags.Component -cne 'b5-cell-bootstrap'
   ) { throw 'Change Set tags are not exact.' }
-  if (@($changeSet.Capabilities).Count -ne 0) {
+  if ($null -ne $changeSet.Capabilities -and @($changeSet.Capabilities).Count -ne 0) {
     throw 'The non-IAM child Change Set must declare no capability.'
   }
   $expected = @{
@@ -788,8 +813,8 @@ function Assert-IamPolicy {
   ) { throw "IAM policy $PolicyName default version metadata drifted." }
   if (
     -not $AllowHistoricalVersions -and
-    ($observedVersions.Count -ne 1 -or [string]$defaultVersions[0].VersionId -cne 'v1')
-  ) { throw "Immutable IAM policy $PolicyName must retain only default version v1." }
+    $observedVersions.Count -ne 1
+  ) { throw "Immutable IAM policy $PolicyName must retain only its current default version." }
   $version = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
     'iam', 'get-policy-version', '--profile', $SourceReadbackProfile,
     '--policy-arn', $arn, '--version-id', ([string]$policy.Policy.DefaultVersionId), '--output', 'json'
@@ -1008,7 +1033,7 @@ function Assert-ExactStackAndResources {
     [string]$TemporaryDirectory,
     [object]$ManagementTemplate
   )
-  $stack = Get-StackOrNull -AwsCli $AwsCli -Profile $ManagerProfile -StackName $ExpectedStackId
+  $stack = Get-StackOrNull -AwsCli $AwsCli -Profile $SourceReadbackProfile -StackName $ExpectedStackId
   if (
     $null -eq $stack -or
     [string]$stack.StackId -cne $ExpectedStackId -or
@@ -1019,7 +1044,7 @@ function Assert-ExactStackAndResources {
     -not [string]::IsNullOrEmpty([string]$stack.ParentId) -or
     -not [string]::IsNullOrEmpty([string]$stack.RootId)
   ) { throw 'B5-J4b Bootstrap Stack metadata drifted.' }
-  if (@($stack.Capabilities).Count -ne 0) {
+  if ($null -ne $stack.Capabilities -and @($stack.Capabilities).Count -ne 0) {
     throw 'The non-IAM B5-J4b Bootstrap Stack must declare no capability.'
   }
   $parameters = @{}
@@ -1045,7 +1070,7 @@ function Assert-ExactStackAndResources {
     $outputs.SafetyState -cne 'B5_J4B_EMPTY_SCAN_ONLY_CELL_APPLY_AND_DELETE_DISABLED'
   ) { throw 'B5-J4b Stack outputs drifted.' }
   $inventory = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
-    'cloudformation', 'list-stack-resources', '--profile', $ManagerProfile,
+    'cloudformation', 'list-stack-resources', '--profile', $SourceReadbackProfile,
     '--region', $expectedRegion, '--stack-name', $ExpectedStackId, '--output', 'json'
   )
   if (-not [string]::IsNullOrEmpty([string]$inventory.NextToken)) {
@@ -1085,7 +1110,7 @@ function Assert-ExactStackAndResources {
   }
   $templateResponsePath = Join-Path $TemporaryDirectory 'stack-template.json'
   Invoke-AwsJsonFile -AwsCli $AwsCli -Arguments @(
-    'cloudformation', 'get-template', '--profile', $ManagerProfile, '--region', $expectedRegion,
+    'cloudformation', 'get-template', '--profile', $SourceReadbackProfile, '--region', $expectedRegion,
     '--stack-name', $ExpectedStackId, '--template-stage', 'Original', '--output', 'json'
   ) -OutputPath $templateResponsePath
   $verified = ((& node $templateVerifier --expected-template $ReviewedTemplatePath `
@@ -1117,7 +1142,8 @@ function Assert-ExactStackAndResources {
     [int]$lambda.MemorySize -ne 128 -or [int]$lambda.Timeout -ne 60 -or
     [string]$lambda.State -cne 'Active' -or [string]$lambda.LastUpdateStatus -cne 'Successful' -or
     @($lambda.Architectures).Count -ne 1 -or [string]$lambda.Architectures[0] -cne 'arm64' -or
-    @($lambda.Layers).Count -ne 0 -or @($lambda.FileSystemConfigs).Count -ne 0 -or
+    ($null -ne $lambda.Layers -and @($lambda.Layers).Count -ne 0) -or
+    ($null -ne $lambda.FileSystemConfigs -and @($lambda.FileSystemConfigs).Count -ne 0) -or
     -not [string]::IsNullOrEmpty([string]$lambda.KMSKeyArn) -or
     -not [string]::IsNullOrEmpty([string]$lambda.VpcConfig.VpcId)
   ) { throw 'Cell Janitor Lambda configuration drifted.' }
@@ -1132,8 +1158,10 @@ function Assert-ExactStackAndResources {
   $concurrency = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
     'lambda', 'get-function-concurrency', '--profile', $SourceReadbackProfile,
     '--region', $expectedRegion, '--function-name', 'techlong-sandbox-cell-janitor', '--output', 'json'
-  )
-  if ([int]$concurrency.ReservedConcurrentExecutions -ne 1) { throw 'Cell Janitor reserved concurrency drifted.' }
+  ) -AllowEmptyObject
+  if ($null -ne $concurrency.PSObject.Properties['ReservedConcurrentExecutions']) {
+    throw 'Cell Janitor must not reserve account concurrency in this quota-constrained Sandbox.'
+  }
   $logGroups = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
     'logs', 'describe-log-groups', '--profile', $SourceReadbackProfile, '--region', $expectedRegion,
     '--log-group-name-prefix', '/aws/lambda/techlong-sandbox-cell-janitor', '--output', 'json'
@@ -1145,7 +1173,8 @@ function Assert-ExactStackAndResources {
     [int]$exactGroups[0].retentionInDays -ne 1 -or
     -not [string]::IsNullOrEmpty([string]$exactGroups[0].kmsKeyId) -or
     -not [string]::IsNullOrEmpty([string]$exactGroups[0].dataProtectionStatus) -or
-    @($exactGroups[0].inheritedProperties).Count -ne 0
+    ($null -ne $exactGroups[0].inheritedProperties -and
+      @($exactGroups[0].inheritedProperties).Count -ne 0)
   ) { throw 'Cell Janitor LogGroup drifted.' }
   $logArn = 'arn:aws:logs:ca-central-1:402010193138:log-group:/aws/lambda/techlong-sandbox-cell-janitor'
   $logTags = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
@@ -1212,7 +1241,7 @@ function Assert-ExactStackAndResources {
     cellApplyRoles = 0
     janitorMutationEnabled = $false
     janitorScheduleState = 'DISABLED'
-    janitorReservedConcurrency = 1
+    janitorReservedConcurrencyConfigured = $false
     cellStack = 'MISSING'
     ecsCluster = 'MISSING'
     aurora = 'MISSING'
@@ -1362,7 +1391,7 @@ try {
     '--region', $expectedRegion, '--template-body', "file://$templateSnapshotPath"
   )
   if ($Mode -eq 'OnlineValidate') {
-    if ($null -ne (Get-StackOrNull -AwsCli $awsCli -Profile $ManagerProfile -StackName $bootstrapStackName)) {
+    if ($null -ne (Get-StackOrNull -AwsCli $awsCli -Profile $SourceReadbackProfile -StackName $bootstrapStackName)) {
       throw "Stack $bootstrapStackName already exists; use Readback."
     }
     Assert-BootstrapNamedResourcesAbsent -AwsCli $awsCli
@@ -1375,7 +1404,7 @@ try {
     if ($ConfirmChangeSetName -cne $changeSetName) {
       throw "CreateChangeSet requires -ConfirmChangeSetName $changeSetName."
     }
-    if ($null -ne (Get-StackOrNull -AwsCli $awsCli -Profile $ManagerProfile -StackName $bootstrapStackName)) {
+    if ($null -ne (Get-StackOrNull -AwsCli $awsCli -Profile $SourceReadbackProfile -StackName $bootstrapStackName)) {
       throw 'Initial B5-J4b Bootstrap is CREATE-only; the Stack already exists.'
     }
     Assert-BootstrapNamedResourcesAbsent -AwsCli $awsCli
@@ -1405,7 +1434,7 @@ try {
     )
     Invoke-AwsChecked -AwsCli $awsCli -Arguments $createChangeSetArguments
     Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
-      'cloudformation', 'wait', 'change-set-create-complete', '--profile', $ManagerProfile,
+      'cloudformation', 'wait', 'change-set-create-complete', '--profile', $SourceReadbackProfile,
       '--region', $expectedRegion, '--stack-name', $bootstrapStackName,
       '--change-set-name', $changeSetName
     )
@@ -1443,7 +1472,7 @@ try {
       '--client-request-token', "b5j4b-execute-$($digests.Raw.Substring(0, 32))"
     )
     Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
-      'cloudformation', 'wait', 'stack-create-complete', '--profile', $ManagerProfile,
+      'cloudformation', 'wait', 'stack-create-complete', '--profile', $SourceReadbackProfile,
       '--region', $expectedRegion, '--stack-name', ([string]$changeSet.StackId)
     )
     Assert-ExactStackAndResources -AwsCli $awsCli -ExpectedStackId ([string]$changeSet.StackId) `

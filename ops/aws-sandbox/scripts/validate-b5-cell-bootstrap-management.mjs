@@ -252,6 +252,18 @@ assert.equal(
   schedulerRole.AssumeRolePolicyDocument.Statement[0].Principal.Service,
   "scheduler.amazonaws.com",
 );
+assert.deepEqual(schedulerRole.AssumeRolePolicyDocument.Statement[0], {
+  Effect: "Allow",
+  Principal: { Service: "scheduler.amazonaws.com" },
+  Action: "sts:AssumeRole",
+  Condition: {
+    StringEquals: {
+      "aws:SourceAccount": "402010193138",
+      "aws:SourceArn":
+        "arn:aws:scheduler:ca-central-1:402010193138:schedule-group/techlong-sandbox-cell",
+    },
+  },
+});
 
 const executionAllows = allowedActions(base, "CellBootstrapExecutionBoundary");
 for (const forbidden of [
@@ -273,6 +285,8 @@ for (const forbidden of [
   "iam:UpdateAssumeRolePolicy",
   "lambda:PutFunctionRecursionConfig",
   "lambda:PutRuntimeManagementConfig",
+  "lambda:PutFunctionConcurrency",
+  "lambda:DeleteFunctionConcurrency",
   "lambda:UntagResource",
   "lambda:UpdateFunctionCode",
   "lambda:UpdateFunctionConfiguration",
@@ -282,12 +296,33 @@ for (const forbidden of [
 ]) {
   assert.equal(executionAllows.has(forbidden), false, `execution role allows ${forbidden}`);
 }
-for (const required of [
-  "lambda:GetFunctionConcurrency",
-  "lambda:PutFunctionConcurrency",
-]) {
+for (const required of ["lambda:GetFunctionConcurrency"]) {
   assert.ok(executionAllows.has(required), `execution role lacks ${required}`);
 }
+const exactScheduleLifecycle = statementBySid(
+  base,
+  "CellBootstrapExecutionBoundary",
+  "AllowExactBootstrapScheduleLifecycle",
+);
+assert.deepEqual(exactScheduleLifecycle, {
+  Sid: "AllowExactBootstrapScheduleLifecycle",
+  Effect: "Allow",
+  Action: ["scheduler:CreateSchedule", "scheduler:GetSchedule"],
+  Resource:
+    "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/techlong-sandbox-cell-global-janitor",
+});
+const scheduleGroupCleanup = statementBySid(
+  base,
+  "CellBootstrapExecutionBoundary",
+  "AllowBootstrapScheduleGroupCleanup",
+);
+assert.deepEqual(scheduleGroupCleanup, {
+  Sid: "AllowBootstrapScheduleGroupCleanup",
+  Effect: "Allow",
+  Action: "scheduler:DeleteSchedule",
+  Resource:
+    "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/*",
+});
 const denied = new Set(
   base.Resources.CellBootstrapExecutionBoundary.Properties.PolicyDocument.Statement
     .filter((statement) => statement.Effect === "Deny")
@@ -425,6 +460,25 @@ assert.equal(executeActions.has("iam:PassRole"), false);
 assert.equal(executeActions.has("s3:GetObject"), false);
 assert.equal(executeActions.has("s3:ListBucket"), false);
 assert.equal(executeActions.has("s3:PutObject"), false);
+const executeExactChangeSet = statementBySid(
+  execute,
+  "CellBootstrapManagerBoundary",
+  "TemporaryAllowExecuteExactBootstrapChangeSet",
+);
+assert.deepEqual(executeExactChangeSet, {
+  Sid: "TemporaryAllowExecuteExactBootstrapChangeSet",
+  Effect: "Allow",
+  Action: "cloudformation:ExecuteChangeSet",
+  Resource:
+    "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-bootstrap/*",
+  Condition: {
+    StringEquals: {
+      "aws:RequestedRegion": "ca-central-1",
+      "cloudformation:ChangeSetName": exampleChangeSetName,
+    },
+    DateLessThan: { "aws:CurrentTime": exampleExpiry },
+  },
+});
 assert.equal(execute.Metadata.SafetyBoundary.ManagerGrantState, "EXECUTEGRANT");
 assert.equal(execute.Metadata.SafetyBoundary.ApprovedChangeSetName, exampleChangeSetName);
 assert.equal(execute.Metadata.SafetyBoundary.ApprovedTemplateSha256, exampleTemplateSha256);
@@ -543,6 +597,11 @@ assert.match(operationScript, /template-stage', 'Original'/);
 assert.match(operationScript, /simulate-principal-policy/);
 assert.match(operationScript, /stack-delete-complete/);
 assert.doesNotMatch(operationScript, /cloudformation', 'deploy'/);
+assert.match(
+  operationScript,
+  /\$null -ne \$changeSet\.Capabilities -and @\(\$changeSet\.Capabilities\)\.Count -ne 0/,
+  "management preflight must treat an omitted or null non-IAM child Capabilities field as empty",
+);
 assert.doesNotMatch(operationScript, /ecs', 'run-task'/);
 assert.match(
   operationScript,
@@ -564,10 +623,30 @@ assert.doesNotMatch(
   /-Action 'cloudformation:CreateChangeSet' -ResourceArns @\(\$childStackArn, \$changeSetArn\)/,
   "IAM Simulator cannot evaluate the not-yet-created Change Set ARN as a CreateChangeSet resource",
 );
+assert.match(
+  operationScript,
+  /-Action 'cloudformation:ExecuteChangeSet' -ResourceArns @\(\$childStackArn\)/,
+  "ExecuteChangeSet simulation must use the target Stack resource while the exact Change Set name remains condition-bound",
+);
+assert.doesNotMatch(
+  operationScript,
+  /-Action 'cloudformation:ExecuteChangeSet' -ResourceArns @\(\$changeSetArn\)/,
+  "ExecuteChangeSet is authorized against the target Stack resource, not the Change Set ARN",
+);
 assert.doesNotMatch(
   operationScript,
   /\$changeSet\.ChangeSetType|\$ChangeSet\.ChangeSetType/,
   "DescribeChangeSet does not return ChangeSetType; CREATE is instead fenced by OnStackFailure and exact resource additions",
+);
+assert.match(
+  operationScript,
+  /-not \$AllowHistoricalVersions -and\s*\$versions\.Count -ne 1/,
+  "immutable policies must retain exactly one current default version after CloudFormation updates",
+);
+assert.doesNotMatch(
+  operationScript,
+  /only default version v1/,
+  "the sole default IAM policy version may legitimately advance beyond v1",
 );
 
 const executeGrantPreflightBlocks = [

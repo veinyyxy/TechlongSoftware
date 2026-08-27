@@ -120,7 +120,7 @@ assert.deepEqual(lambda.Architectures, ["arm64"]);
 assert.equal(lambda.Handler, "index.handler");
 assert.equal(lambda.MemorySize, 128);
 assert.equal(lambda.Timeout, 60);
-assert.equal(lambda.ReservedConcurrentExecutions, 1);
+assert.equal(lambda.ReservedConcurrentExecutions, undefined);
 assert.equal(
   lambda.Role,
   "arn:aws:iam::402010193138:role/TechlongSandboxCellJanitorExecutionRole",
@@ -136,6 +136,7 @@ for (const forbiddenProperty of [
   "FileSystemConfigs",
   "KmsKeyArn",
   "Layers",
+  "ReservedConcurrentExecutions",
   "VpcConfig",
 ]) {
   assert.equal(lambda[forbiddenProperty], undefined);
@@ -202,13 +203,108 @@ for (const resourceType of Object.values(expectedResources)) {
 assert.match(operationScript, /resourceCount = 4/);
 assert.doesNotMatch(operationScript, /resourceCount = 8/);
 assert.doesNotMatch(operationScript, /'--capabilities', 'CAPABILITY_NAMED_IAM'/);
+assert.match(
+  operationScript,
+  /\$null -ne \$changeSet\.Capabilities -and @\(\$changeSet\.Capabilities\)\.Count -ne 0/,
+  "an omitted or null non-IAM Change Set Capabilities field must mean zero capabilities",
+);
+assert.match(
+  operationScript,
+  /\$null -ne \$stack\.Capabilities -and @\(\$stack\.Capabilities\)\.Count -ne 0/,
+  "an omitted or null non-IAM Stack Capabilities field must mean zero capabilities",
+);
 assert.doesNotMatch(operationScript, /cloudformation', 'deploy'/);
 assert.doesNotMatch(operationScript, /cloudformation', '(?:create|update)-stack'/);
 assert.doesNotMatch(operationScript, /ecs', 'run-task'/);
+assert.match(
+  operationScript,
+  /janitorReservedConcurrencyConfigured = \$false/,
+  "readback evidence must record that reserved concurrency is not configured",
+);
+assert.match(
+  operationScript,
+  /\$null -ne \$lambda\.Layers -and @\(\$lambda\.Layers\)\.Count -ne 0/,
+  "an omitted or null Lambda Layers field must mean no layers",
+);
+assert.match(
+  operationScript,
+  /\$null -ne \$lambda\.FileSystemConfigs -and @\(\$lambda\.FileSystemConfigs\)\.Count -ne 0/,
+  "an omitted or null Lambda FileSystemConfigs field must mean no file systems",
+);
+assert.match(
+  operationScript,
+  /'lambda', 'get-function-concurrency'[\s\S]*\) -AllowEmptyObject/,
+  "the one Lambda API that returns an empty body when concurrency is unset must opt in explicitly",
+);
+assert.match(
+  operationScript,
+  /\$null -ne \$exactGroups\[0\]\.inheritedProperties -and\s*@\(\$exactGroups\[0\]\.inheritedProperties\)\.Count -ne 0/,
+  "an omitted or null CloudWatch Logs inheritedProperties field must mean no inherited properties",
+);
+assert.doesNotMatch(
+  operationScript,
+  /janitorReservedConcurrency\s*=\s*1/,
+  "readback evidence must not retain the removed one-concurrency claim",
+);
+assert.match(
+  operationScript,
+  /Get-StackOrNull -AwsCli \$awsCli -Profile \$SourceReadbackProfile -StackName \$bootstrapStackName/,
+  "CREATE-only child absence must be established by the trusted source readback profile",
+);
+assert.doesNotMatch(
+  operationScript,
+  /Get-StackOrNull -AwsCli \$awsCli -Profile \$ManagerProfile -StackName \$bootstrapStackName/,
+  "the tag-scoped manager cannot prove absence of a not-yet-existing child Stack",
+);
+assert.match(
+  operationScript,
+  /Get-StackOrNull -AwsCli \$AwsCli -Profile \$SourceReadbackProfile -StackName \$ExpectedStackId/,
+  "exact deployed Stack readback must use the trusted source readback profile",
+);
+assert.match(
+  operationScript,
+  /'cloudformation', 'list-stack-resources', '--profile', \$SourceReadbackProfile/,
+  "deployed resource inventory must use the trusted source readback profile",
+);
+assert.match(
+  operationScript,
+  /'cloudformation', 'get-template', '--profile', \$SourceReadbackProfile/,
+  "Change Set and deployed template verification must use the trusted source readback profile",
+);
+assert.match(
+  operationScript,
+  /'cloudformation', 'describe-change-set', '--profile', \$SourceReadbackProfile/,
+  "Change Set inspection must not require temporary manager read privileges",
+);
+assert.match(
+  operationScript,
+  /'cloudformation', 'wait', 'stack-create-complete', '--profile', \$SourceReadbackProfile/,
+  "post-execution waiting must not require temporary manager read privileges",
+);
+assert.match(
+  operationScript,
+  /\[string\]\$placeholderStacks\[0\]\.StackStatus -cne 'REVIEW_IN_PROGRESS'[\s\S]*\[string\]\$placeholderStacks\[0\]\.RoleARN -cne \$bootstrapExecutionRoleArn/,
+  "the CREATE placeholder Stack must prove the exact CloudFormation execution role",
+);
+assert.match(
+  operationScript,
+  /ConvertFrom-Json -DateKind String/,
+  "management grant expiry must remain a canonical JSON string during child preflight",
+);
 assert.doesNotMatch(
   operationScript,
   /\$changeSet\.ChangeSetType|\$ChangeSet\.ChangeSetType/,
   "DescribeChangeSet does not return ChangeSetType; CREATE is instead fenced by OnStackFailure and exact resource additions",
+);
+assert.match(
+  operationScript,
+  /-not \$AllowHistoricalVersions -and\s*\$observedVersions\.Count -ne 1/,
+  "immutable policies must retain exactly one current default version after CloudFormation updates",
+);
+assert.doesNotMatch(
+  operationScript,
+  /only default version v1/,
+  "the sole default IAM policy version may legitimately advance beyond v1",
 );
 const executionPreflightIndex = operationScript.indexOf(
   "Assert-BootstrapExecutionIdentity -AwsCli $awsCli",

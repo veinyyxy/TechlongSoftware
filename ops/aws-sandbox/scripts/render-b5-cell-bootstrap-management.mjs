@@ -20,6 +20,8 @@ const approvedTemplateBucket =
 const approvedTemplatePrefix = "b5-cell-bootstrap/templates/sha256";
 const bootstrapExecutionRoleArn =
   "arn:aws:iam::402010193138:role/TechlongSandboxCellBootstrapCloudFormationExecutionRole";
+const bootstrapStackArn =
+  "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-bootstrap/*";
 const approvedResourceTypes = Object.freeze([
   "AWS::Logs::LogGroup",
   "AWS::Lambda::Function",
@@ -155,15 +157,19 @@ function authorStatements(
 }
 
 function executeStatements(approvedChangeSetName, grantExpiresAt) {
-  const changeSetArn =
-    `arn:aws:cloudformation:ca-central-1:402010193138:changeSet/${approvedChangeSetName}/*`;
   return [
     {
       Sid: "TemporaryAllowExecuteExactBootstrapChangeSet",
       Effect: "Allow",
-      Action: ["cloudformation:DescribeChangeSet", "cloudformation:ExecuteChangeSet"],
-      Resource: changeSetArn,
-      Condition: expiresBefore(grantExpiresAt),
+      Action: "cloudformation:ExecuteChangeSet",
+      Resource: bootstrapStackArn,
+      Condition: {
+        StringEquals: {
+          "aws:RequestedRegion": "ca-central-1",
+          "cloudformation:ChangeSetName": approvedChangeSetName,
+        },
+        ...expiresBefore(grantExpiresAt),
+      },
     },
   ];
 }

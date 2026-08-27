@@ -146,9 +146,9 @@
               "Principal": { "Service": "scheduler.amazonaws.com" },
               "Action": "sts:AssumeRole",
               "Condition": {
-                "StringEquals": { "aws:SourceAccount": "402010193138" },
-                "ArnLike": {
-                  "aws:SourceArn": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/*"
+                "StringEquals": {
+                  "aws:SourceAccount": "402010193138",
+                  "aws:SourceArn": "arn:aws:scheduler:ca-central-1:402010193138:schedule-group/techlong-sandbox-cell"
                 }
               }
             }
@@ -424,7 +424,6 @@
               "Effect": "Allow",
               "Action": [
                 "lambda:CreateFunction",
-                "lambda:DeleteFunctionConcurrency",
                 "lambda:DeleteFunction",
                 "lambda:GetFunction",
                 "lambda:GetFunctionCodeSigningConfig",
@@ -432,7 +431,6 @@
                 "lambda:GetFunctionConfiguration",
                 "lambda:GetFunctionRecursionConfig",
                 "lambda:GetRuntimeManagementConfig",
-                "lambda:PutFunctionConcurrency",
                 "lambda:TagResource"
               ],
               "Resource": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor"
@@ -482,10 +480,15 @@
               "Effect": "Allow",
               "Action": [
                 "scheduler:CreateSchedule",
-                "scheduler:DeleteSchedule",
                 "scheduler:GetSchedule"
               ],
               "Resource": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/techlong-sandbox-cell-global-janitor"
+            },
+            {
+              "Sid": "AllowBootstrapScheduleGroupCleanup",
+              "Effect": "Allow",
+              "Action": "scheduler:DeleteSchedule",
+              "Resource": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/*"
             }
           ]
         }

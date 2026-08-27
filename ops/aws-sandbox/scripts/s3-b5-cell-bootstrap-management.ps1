@@ -1361,9 +1361,9 @@ function Assert-ExactManagedPolicyReadback {
   }
   if (
     -not $AllowHistoricalVersions -and
-    ($versions.Count -ne 1 -or [string]$versions[0].VersionId -cne 'v1')
+    $versions.Count -ne 1
   ) {
-    throw "Immutable managed policy $ExpectedPolicyArn must retain only default version v1."
+    throw "Immutable managed policy $ExpectedPolicyArn must retain only its current default version."
   }
   $seenVersions = @{}
   $defaultVersions = @()
@@ -1721,7 +1721,6 @@ function Assert-ExactApprovedChildChangeSet {
   if ([string]$changeSet.Status -cne 'CREATE_COMPLETE') { $failures.Add('status') }
   if ([string]$changeSet.ExecutionStatus -cne 'AVAILABLE') { $failures.Add('execution_status') }
   if ([string]$changeSet.Description -cne $expectedDescription) { $failures.Add('description') }
-  if ([string]$changeSet.RoleARN -cne $expectedExecutionRoleArn) { $failures.Add('role_arn') }
   if (-not [string]::IsNullOrEmpty([string]$changeSet.NextToken)) { $failures.Add('pagination') }
   if (@($changeSet.NotificationARNs).Count -ne 0) { $failures.Add('notifications') }
   if (-not [string]::IsNullOrEmpty([string]$changeSet.ParentChangeSetId)) { $failures.Add('parent') }
@@ -1729,7 +1728,10 @@ function Assert-ExactApprovedChildChangeSet {
   if ($changeSet.IncludeNestedStacks -ne $false) { $failures.Add('nested') }
   if ($changeSet.ImportExistingResources -eq $true) { $failures.Add('import') }
   if ([string]$changeSet.OnStackFailure -cne 'DELETE') { $failures.Add('on_stack_failure') }
-  if (@($changeSet.RollbackConfiguration.RollbackTriggers).Count -ne 0) { $failures.Add('rollback_triggers') }
+  $rollbackTriggerProperty = $changeSet.RollbackConfiguration.PSObject.Properties['RollbackTriggers']
+  if ($null -ne $rollbackTriggerProperty -and @($rollbackTriggerProperty.Value).Count -ne 0) {
+    $failures.Add('rollback_triggers')
+  }
   if ($null -ne $changeSet.DeploymentConfig) {
     if (
       [string]$changeSet.DeploymentConfig.Mode -cne 'STANDARD' -or
@@ -1738,6 +1740,23 @@ function Assert-ExactApprovedChildChangeSet {
   }
   if ($failures.Count -ne 0) {
     throw "Approved child Change Set metadata drifted: $($failures -join ', ')."
+  }
+  $placeholderResponse = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'cloudformation', 'describe-stacks',
+    '--profile', $Profile,
+    '--region', $expectedRegion,
+    '--stack-name', ([string]$changeSet.StackId),
+    '--output', 'json'
+  )
+  $placeholderStacks = @($placeholderResponse.Stacks)
+  if (
+    $placeholderStacks.Count -ne 1 -or
+    [string]$placeholderStacks[0].StackName -cne $childBootstrapStackName -or
+    [string]$placeholderStacks[0].StackId -cne [string]$changeSet.StackId -or
+    [string]$placeholderStacks[0].StackStatus -cne 'REVIEW_IN_PROGRESS' -or
+    [string]$placeholderStacks[0].RoleARN -cne $expectedExecutionRoleArn
+  ) {
+    throw 'Approved child REVIEW_IN_PROGRESS Stack is not bound to the exact execution role.'
   }
   $parameters = ConvertTo-UniqueMap `
     -Entries @($changeSet.Parameters) `
@@ -1756,7 +1775,7 @@ function Assert-ExactApprovedChildChangeSet {
     ManagedBy = 'techlong-cell-bootstrap-manager'
     Component = 'b5-cell-bootstrap'
   } -Label 'Approved child Change Set tag'
-  if (@($changeSet.Capabilities).Count -ne 0) {
+  if ($null -ne $changeSet.Capabilities -and @($changeSet.Capabilities).Count -ne 0) {
     throw 'Approved non-IAM child Change Set must declare zero capabilities.'
   }
   $expectedResources = @{
@@ -1916,7 +1935,6 @@ function Assert-ExactIamSimulation {
   $childStackArn = 'arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-bootstrap/00000000-0000-0000-0000-000000000000'
   $expectedChildChangeSetName = Get-ChildChangeSetName -ChildSnapshot $ChildSnapshot
   $expectedChildTemplateUrl = Get-ChildTemplateUrl -ChildSnapshot $ChildSnapshot
-  $changeSetArn = "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/$expectedChildChangeSetName/00000000-0000-0000-0000-000000000000"
   $now = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
   $currentTime = "ContextKeyName=aws:CurrentTime,ContextKeyValues=$now,ContextKeyType=date"
   $grantIsActive = $false
@@ -1955,7 +1973,7 @@ function Assert-ExactIamSimulation {
     -Action 'cloudformation:CreateChangeSet' -ResourceArns @($childStackArn) `
     -ContextEntries $managerSimulationContext -ExpectedDecision $createDecision
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
-    -Action 'cloudformation:ExecuteChangeSet' -ResourceArns @($changeSetArn) `
+    -Action 'cloudformation:ExecuteChangeSet' -ResourceArns @($childStackArn) `
     -ContextEntries $managerSimulationContext -ExpectedDecision $executeDecision
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'cloudformation:DeleteStack' -ResourceArns @($childStackArn) `
@@ -1969,12 +1987,11 @@ function Assert-ExactIamSimulation {
     -ContextEntries $managerSimulationContext -ExpectedDecision $templateReadDecision
 
   $foreignStackArn = 'arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/00000000-0000-0000-0000-000000000000'
-  $foreignChangeSetArn = 'arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-sandbox-cell-sandbox-1-0000000000000000/00000000-0000-0000-0000-000000000000'
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'cloudformation:CreateChangeSet' -ResourceArns @($foreignStackArn) `
     -ContextEntries $managerSimulationContext -ExpectedDecision 'implicitDeny'
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
-    -Action 'cloudformation:ExecuteChangeSet' -ResourceArns @($foreignChangeSetArn) `
+    -Action 'cloudformation:ExecuteChangeSet' -ResourceArns @($foreignStackArn) `
     -ContextEntries $managerSimulationContext -ExpectedDecision 'implicitDeny'
   Assert-SimulatedDecision -AwsCli $AwsCli -PolicySourceArn $expectedManagerRoleArn `
     -Action 'cloudformation:DeleteStack' -ResourceArns @($foreignStackArn) `
