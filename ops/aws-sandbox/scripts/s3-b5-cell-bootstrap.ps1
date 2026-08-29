@@ -2,6 +2,8 @@
 param(
   [ValidateSet('LocalValidate', 'OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet', 'Readback', 'ProbeJanitor', 'Delete')]
   [string]$Mode = 'LocalValidate',
+  [ValidateSet('InitialCreate', 'PlannerUpdate')]
+  [string]$DeploymentShape = 'InitialCreate',
   [string]$ManagerProfile = 'techlong-sandbox-cell-bootstrap-manager',
   [string]$SourceReadbackProfile = 'techlong-sandbox-user',
   [string]$ConfirmAccountId = '',
@@ -50,10 +52,17 @@ $approvedResourceTypes = @(
   'AWS::Scheduler::ScheduleGroup',
   'AWS::Scheduler::Schedule'
 )
-$createPhrase = 'I_ACKNOWLEDGE_B5_J4B_CLEANUP_ONLY_BOOTSTRAP_CREATION'
-$deletePhrase = 'I_ACKNOWLEDGE_B5_J4B_CLEANUP_ONLY_BOOTSTRAP_DELETION'
+$initialCreatePhrase = 'I_ACKNOWLEDGE_B5_J4C_PLAN_ONLY_BOOTSTRAP_CREATION'
+$plannerUpdatePhrase = 'I_ACKNOWLEDGE_B5_J4C_PLAN_ONLY_BOOTSTRAP_UPDATE'
+$executePhrase = if ($DeploymentShape -eq 'PlannerUpdate') {
+  $plannerUpdatePhrase
+} else {
+  $initialCreatePhrase
+}
+$deletePhrase = 'I_ACKNOWLEDGE_B5_J4C_PLAN_ONLY_BOOTSTRAP_DELETION'
 $root = Split-Path -Parent $PSScriptRoot
 $renderer = Join-Path $root 'scripts\render-b5-cell-bootstrap.mjs'
+$legacyRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j4b-legacy.mjs'
 $managementRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-management.mjs'
 $validator = Join-Path $root 'scripts\validate-b5-cell-bootstrap.mjs'
 $templateVerifier = Join-Path $root 'scripts\verify-change-set-template.mjs'
@@ -190,14 +199,31 @@ function Assert-ExactTemplateObject {
 function New-ReadOnlyTemplateSnapshot {
   param([string]$DestinationPath)
   $renderOutput = ((& node $renderer --output $DestinationPath) | Out-String).Trim()
-  if ($LASTEXITCODE -ne 0) { throw 'Unable to render the B5-J4b cleanup-only Bootstrap.' }
+  if ($LASTEXITCODE -ne 0) { throw 'Unable to render the B5-J4c plan-only Bootstrap.' }
   if ([string]::IsNullOrWhiteSpace($renderOutput)) {
-    throw 'The B5-J4b renderer returned no confirmation.'
+    throw 'The B5-J4c renderer returned no confirmation.'
   }
   $item = Get-Item -LiteralPath $DestinationPath
   if ($item.Length -le 0 -or $item.Length -gt 51200) { throw 'Rendered template size is invalid.' }
   $item.IsReadOnly = $true
   return Get-TemplateDigests -TemplatePath $DestinationPath
+}
+
+function New-LegacyJ4bReadOnlyTemplateSnapshot {
+  param([string]$DestinationPath)
+  $renderOutput = ((& node $legacyRenderer --output $DestinationPath) | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0) { throw 'Unable to reconstruct the fixed legacy B5-J4b child snapshot.' }
+  $item = Get-Item -LiteralPath $DestinationPath
+  if ($item.Length -le 0 -or $item.Length -gt 51200) {
+    throw 'Reconstructed legacy B5-J4b child snapshot size is invalid.'
+  }
+  $digests = Get-TemplateDigests -TemplatePath $DestinationPath
+  if (
+    $digests.Raw -cne '8eeef35a7936cdd1f4613434d8b7990630b192707e92ea4b5f21637f7cdaf15f' -or
+    $digests.Canonical -cne '2bfe9ec02c7939abbab48fb07a9126e7dc7684472607c2d8787623720e88f389'
+  ) { throw 'Reconstructed legacy B5-J4b child snapshot failed its fixed digests.' }
+  $item.IsReadOnly = $true
+  return $digests
 }
 
 function Assert-SnapshotUnchanged {
@@ -365,7 +391,7 @@ function Assert-ManagementState {
     [string]$stack.StackName -cne $managementStackName -or
     [string]$stack.StackStatus -notin @('CREATE_COMPLETE', 'UPDATE_COMPLETE') -or
     -not [string]::IsNullOrEmpty([string]$stack.RoleARN)
-  ) { throw 'The exact source-controlled B5-J4b management Stack is unavailable.' }
+  ) { throw 'The exact source-controlled B5-J4c management Stack is unavailable.' }
   $tags = @{}
   foreach ($tag in @($stack.Tags)) { $tags[[string]$tag.Key] = [string]$tag.Value }
   if (
@@ -508,15 +534,15 @@ function Assert-WriteAcknowledgements {
     if (-not $AcknowledgeChangeSetReviewed) {
       throw 'ExecuteChangeSet requires -AcknowledgeChangeSetReviewed.'
     }
-    if ($ConfirmExecutionPhrase -cne $createPhrase) {
-      throw "ExecuteChangeSet requires -ConfirmExecutionPhrase $createPhrase."
+    if ($ConfirmExecutionPhrase -cne $executePhrase) {
+      throw "ExecuteChangeSet for $DeploymentShape requires -ConfirmExecutionPhrase $executePhrase."
     }
   }
 }
 
 function Assert-ConfirmedStackId {
   if ($ConfirmStackId -cnotmatch '^arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-bootstrap/[a-f0-9-]{36}$') {
-    throw 'The exact B5-J4b -ConfirmStackId is required.'
+    throw 'The exact B5-J4c -ConfirmStackId is required.'
   }
 }
 
@@ -612,9 +638,136 @@ function Assert-PaidCellAndTenantResourcesAbsent {
     $tags = @{}
     foreach ($tag in @($tenantStack.Tags)) { $tags[[string]$tag.Key] = [string]$tag.Value }
     if ($tags.CellId -ceq 'cell-sandbox-1') {
-      throw "Owned tenant Stack $name must be removed before B5-J4b management."
+      throw "Owned tenant Stack $name must be removed before B5-J4c management."
     }
   }
+}
+
+function Assert-ExactLegacyJ4bChildStack {
+  param(
+    [string]$AwsCli,
+    [string]$LegacyTemplatePath,
+    [hashtable]$LegacyDigests,
+    [string]$TemporaryDirectory
+  )
+  $stack = Get-StackOrNull -AwsCli $AwsCli -Profile $SourceReadbackProfile -StackName $bootstrapStackName
+  if (
+    $null -eq $stack -or
+    [string]$stack.StackId -cnotmatch '^arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-bootstrap/[a-f0-9-]{36}$' -or
+    [string]$stack.StackName -cne $bootstrapStackName -or
+    [string]$stack.StackStatus -notin @('CREATE_COMPLETE', 'UPDATE_COMPLETE') -or
+    [string]$stack.RoleARN -cne $bootstrapExecutionRoleArn -or
+    $stack.EnableTerminationProtection -eq $true -or
+    -not [string]::IsNullOrEmpty([string]$stack.ParentId) -or
+    -not [string]::IsNullOrEmpty([string]$stack.RootId)
+  ) { throw 'The exact legacy B5-J4b child Stack is unavailable for PlannerUpdate.' }
+  if ($null -ne $stack.Capabilities -and @($stack.Capabilities).Count -ne 0) {
+    throw 'The legacy non-IAM B5-J4b child Stack must declare zero capabilities.'
+  }
+  $parameters = @{}
+  foreach ($parameter in @($stack.Parameters)) {
+    $parameters[[string]$parameter.ParameterKey] = [string]$parameter.ParameterValue
+  }
+  if (
+    $parameters.Count -ne 2 -or
+    $parameters.ExpectedAccountId -cne $expectedAccountId -or
+    $parameters.ExpectedRegion -cne $expectedRegion
+  ) { throw 'Legacy B5-J4b child Stack parameters drifted.' }
+  Assert-BusinessTags -Tags @($stack.Tags) -Component 'b5-cell-bootstrap'
+  $outputs = @{}
+  foreach ($output in @($stack.Outputs)) {
+    $outputs[[string]$output.OutputKey] = [string]$output.OutputValue
+  }
+  if (
+    $outputs.Count -ne 5 -or
+    $outputs.CellJanitorFunctionArn -cne 'arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor' -or
+    $outputs.CellSchedulerInvokeRoleArn -cne $schedulerRoleArn -or
+    $outputs.CellSchedulerGroupName -cne 'techlong-sandbox-cell' -or
+    $outputs.ApprovedCellStackName -cne $approvedCellStackName -or
+    $outputs.SafetyState -cne 'B5_J4B_EMPTY_SCAN_ONLY_CELL_APPLY_AND_DELETE_DISABLED'
+  ) { throw 'Legacy B5-J4b child Stack outputs drifted.' }
+
+  $inventory = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'cloudformation', 'list-stack-resources', '--profile', $SourceReadbackProfile,
+    '--region', $expectedRegion, '--stack-name', ([string]$stack.StackId), '--output', 'json'
+  )
+  if (-not [string]::IsNullOrEmpty([string]$inventory.NextToken)) {
+    throw 'Legacy B5-J4b child resource inventory unexpectedly paginated.'
+  }
+  $expectedResources = @{
+    CellJanitorLogGroup = @('AWS::Logs::LogGroup', '/aws/lambda/techlong-sandbox-cell-janitor')
+    CellJanitorFunction = @('AWS::Lambda::Function', 'techlong-sandbox-cell-janitor')
+    CellSchedulerGroup = @('AWS::Scheduler::ScheduleGroup', 'techlong-sandbox-cell')
+    CellGlobalJanitorSchedule = @('AWS::Scheduler::Schedule', '')
+  }
+  $seen = @{}
+  foreach ($resource in @($inventory.StackResourceSummaries)) {
+    $logicalId = [string]$resource.LogicalResourceId
+    if (-not $expectedResources.ContainsKey($logicalId) -or $seen.ContainsKey($logicalId)) {
+      throw "Legacy B5-J4b child contains unexpected or duplicate resource $logicalId."
+    }
+    if (
+      [string]$resource.ResourceType -cne $expectedResources[$logicalId][0] -or
+      [string]$resource.ResourceStatus -cne 'CREATE_COMPLETE' -or
+      [string]::IsNullOrWhiteSpace([string]$resource.PhysicalResourceId)
+    ) { throw "Legacy B5-J4b child resource $logicalId drifted." }
+    if (
+      -not [string]::IsNullOrEmpty($expectedResources[$logicalId][1]) -and
+      [string]$resource.PhysicalResourceId -cne $expectedResources[$logicalId][1]
+    ) { throw "Legacy B5-J4b child physical resource $logicalId drifted." }
+    if (
+      $logicalId -eq 'CellGlobalJanitorSchedule' -and
+      [string]$resource.PhysicalResourceId -cnotmatch '^(?:arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/)?techlong-sandbox-cell-global-janitor$'
+    ) { throw 'Legacy B5-J4b child Schedule physical ID drifted.' }
+    $seen[$logicalId] = $true
+  }
+  if ($seen.Count -ne $expectedResources.Count) {
+    throw 'Legacy B5-J4b child resource inventory is incomplete.'
+  }
+
+  $templateResponsePath = Join-Path $TemporaryDirectory 'legacy-j4b-stack-template.json'
+  Invoke-AwsJsonFile -AwsCli $AwsCli -Arguments @(
+    'cloudformation', 'get-template', '--profile', $SourceReadbackProfile,
+    '--region', $expectedRegion, '--stack-name', ([string]$stack.StackId),
+    '--template-stage', 'Original', '--output', 'json'
+  ) -OutputPath $templateResponsePath
+  $verified = ((& node $templateVerifier --expected-template $LegacyTemplatePath `
+    --get-template-response $templateResponsePath) | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0 -or $verified -cne $LegacyDigests.Canonical) {
+    throw 'Deployed child template is not the fixed legacy B5-J4b snapshot.'
+  }
+  Assert-SnapshotUnchanged -TemplatePath $LegacyTemplatePath -ExpectedDigests $LegacyDigests
+
+  $lambda = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'lambda', 'get-function-configuration', '--profile', $SourceReadbackProfile,
+    '--region', $expectedRegion, '--function-name', 'techlong-sandbox-cell-janitor', '--output', 'json'
+  )
+  $legacyEnvironment = @{
+    EXPECTED_ACCOUNT_ID = $expectedAccountId
+    EXPECTED_REGION = $expectedRegion
+    EXPECTED_CELL_ID = 'cell-sandbox-1'
+    CELL_MUTATION_ENABLED = 'false'
+  }
+  Assert-JsonEqualObjects -Expected $legacyEnvironment -Actual $lambda.Environment.Variables `
+    -Label 'legacy B5-J4b Janitor environment' -TemporaryDirectory $TemporaryDirectory | Out-Null
+  if (
+    [string]$lambda.Role -cne $janitorRoleArn -or
+    [string]$lambda.State -cne 'Active' -or
+    [string]$lambda.LastUpdateStatus -cne 'Successful'
+  ) { throw 'Legacy B5-J4b Janitor runtime is not stable and exact.' }
+
+  $schedule = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'scheduler', 'get-schedule', '--profile', $SourceReadbackProfile,
+    '--region', $expectedRegion, '--group-name', 'techlong-sandbox-cell',
+    '--name', 'techlong-sandbox-cell-global-janitor', '--output', 'json'
+  )
+  if (
+    [string]$schedule.State -cne 'DISABLED' -or
+    [string]$schedule.Target.Input -cne '{"schemaVersion":1,"action":"inspect_empty_shared_cell_inventory"}' -or
+    [string]$schedule.Target.Arn -cne 'arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor' -or
+    [string]$schedule.Target.RoleArn -cne $schedulerRoleArn
+  ) { throw 'Legacy B5-J4b disabled Schedule drifted.' }
+  return $stack
 }
 
 function Assert-ExactChangeSetTemplate {
@@ -664,7 +817,10 @@ function Assert-ReviewedChangeSet {
   if (-not [string]::IsNullOrEmpty([string]$changeSet.RootChangeSetId)) { $metadataFailures.Add('root') }
   if ($changeSet.IncludeNestedStacks -ne $false) { $metadataFailures.Add('nested') }
   if ($changeSet.ImportExistingResources -eq $true) { $metadataFailures.Add('import') }
-  if ([string]$changeSet.OnStackFailure -cne 'DELETE') { $metadataFailures.Add('on_stack_failure') }
+  if (
+    ($DeploymentShape -eq 'InitialCreate' -and [string]$changeSet.OnStackFailure -cne 'DELETE') -or
+    ($DeploymentShape -eq 'PlannerUpdate' -and -not [string]::IsNullOrEmpty([string]$changeSet.OnStackFailure))
+  ) { $metadataFailures.Add('on_stack_failure') }
   $rollbackTriggerProperty = $changeSet.RollbackConfiguration.PSObject.Properties['RollbackTriggers']
   if ($null -ne $rollbackTriggerProperty -and @($rollbackTriggerProperty.Value).Count -ne 0) {
     $metadataFailures.Add('rollback_triggers')
@@ -674,19 +830,24 @@ function Assert-ReviewedChangeSet {
   if ($metadataFailures.Count -ne 0) {
     throw "Change Set metadata drifted: $($metadataFailures -join ', ')."
   }
-  $placeholderResponse = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+  $stackResponse = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
     'cloudformation', 'describe-stacks', '--profile', $SourceReadbackProfile,
     '--region', $expectedRegion, '--stack-name', ([string]$changeSet.StackId), '--output', 'json'
   )
-  $placeholderStacks = @($placeholderResponse.Stacks)
+  $stacks = @($stackResponse.Stacks)
+  $expectedStackStatus = if ($DeploymentShape -eq 'InitialCreate') {
+    'REVIEW_IN_PROGRESS'
+  } else {
+    'CREATE_COMPLETE'
+  }
   if (
-    $placeholderStacks.Count -ne 1 -or
-    [string]$placeholderStacks[0].StackName -cne $bootstrapStackName -or
-    [string]$placeholderStacks[0].StackId -cne [string]$changeSet.StackId -or
-    [string]$placeholderStacks[0].StackStatus -cne 'REVIEW_IN_PROGRESS' -or
-    [string]$placeholderStacks[0].RoleARN -cne $bootstrapExecutionRoleArn
+    $stacks.Count -ne 1 -or
+    [string]$stacks[0].StackName -cne $bootstrapStackName -or
+    [string]$stacks[0].StackId -cne [string]$changeSet.StackId -or
+    [string]$stacks[0].StackStatus -cne $expectedStackStatus -or
+    [string]$stacks[0].RoleARN -cne $bootstrapExecutionRoleArn
   ) {
-    throw 'The child REVIEW_IN_PROGRESS Stack is not bound to the exact execution role.'
+    throw "The child $DeploymentShape Change Set is not bound to the exact stable Stack and execution role."
   }
   $parameters = @{}
   foreach ($parameter in @($changeSet.Parameters)) {
@@ -708,11 +869,18 @@ function Assert-ReviewedChangeSet {
   if ($null -ne $changeSet.Capabilities -and @($changeSet.Capabilities).Count -ne 0) {
     throw 'The non-IAM child Change Set must declare no capability.'
   }
-  $expected = @{
-    CellJanitorLogGroup = 'AWS::Logs::LogGroup'
-    CellJanitorFunction = 'AWS::Lambda::Function'
-    CellSchedulerGroup = 'AWS::Scheduler::ScheduleGroup'
-    CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'
+  $expected = if ($DeploymentShape -eq 'InitialCreate') {
+    @{
+      CellJanitorLogGroup = 'AWS::Logs::LogGroup'
+      CellJanitorFunction = 'AWS::Lambda::Function'
+      CellSchedulerGroup = 'AWS::Scheduler::ScheduleGroup'
+      CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'
+    }
+  } else {
+    @{
+      CellJanitorFunction = 'AWS::Lambda::Function'
+      CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'
+    }
   }
   $observed = @{}
   foreach ($change in @($changeSet.Changes)) {
@@ -722,11 +890,32 @@ function Assert-ReviewedChangeSet {
       throw "Unapproved Change Set resource: $logicalId ($($resource.ResourceType))."
     }
     if ($observed.ContainsKey($logicalId)) { throw "Duplicate Change Set resource $logicalId." }
-    if ([string]$resource.Action -cne 'Add') { throw "Change Set must only Add $logicalId." }
-    if ([string]$resource.Replacement -in @('True', 'Conditional')) { throw "Change Set may not replace $logicalId." }
+    if ($DeploymentShape -eq 'InitialCreate') {
+      if ([string]$resource.Action -cne 'Add') { throw "InitialCreate must only Add $logicalId." }
+      if ([string]$resource.Replacement -notin @('', 'False')) {
+        throw "InitialCreate may not replace $logicalId."
+      }
+      if (@($resource.Scope).Count -ne 0) { throw "InitialCreate Scope drifted for $logicalId." }
+    } else {
+      if (
+        [string]$resource.Action -cne 'Modify' -or
+        [string]$resource.Replacement -cne 'False' -or
+        @($resource.Scope).Count -ne 1 -or
+        [string]$resource.Scope[0] -cne 'Properties' -or
+        -not [string]::IsNullOrEmpty([string]$resource.PolicyAction)
+      ) { throw "PlannerUpdate resource shape drifted for $logicalId." }
+      if (
+        $logicalId -eq 'CellJanitorFunction' -and
+        [string]$resource.PhysicalResourceId -cne 'techlong-sandbox-cell-janitor'
+      ) { throw 'PlannerUpdate Lambda physical resource drifted.' }
+      if (
+        $logicalId -eq 'CellGlobalJanitorSchedule' -and
+        [string]$resource.PhysicalResourceId -cnotmatch '^(?:arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/)?techlong-sandbox-cell-global-janitor$'
+      ) { throw 'PlannerUpdate Schedule physical resource drifted.' }
+    }
     $observed[$logicalId] = $true
   }
-  if ($observed.Count -ne $expected.Count) { throw 'Change Set is missing a required cleanup-only resource.' }
+  if ($observed.Count -ne $expected.Count) { throw "Change Set is missing a required $DeploymentShape resource." }
   Assert-ExactChangeSetTemplate -AwsCli $AwsCli -ChangeSetName $ChangeSetName `
     -ReviewedTemplatePath $ReviewedTemplatePath -ExpectedCanonicalHash $Digests.Canonical `
     -ResponsePath (Join-Path $TemporaryDirectory 'change-set-template.json')
@@ -963,18 +1152,22 @@ function Assert-SimulationDecision {
     [string]$Action,
     [string]$Resource,
     [ValidateSet('allowed', 'implicitDeny', 'explicitDeny')][string]$ExpectedDecision,
-    [switch]$IncludeRegion
+    [switch]$IncludeRegion,
+    [string[]]$AdditionalContextEntries = @()
   )
   $arguments = @(
     'iam', 'simulate-principal-policy', '--profile', $SourceReadbackProfile,
     '--policy-source-arn', $RoleArn, '--action-names', $Action,
     '--resource-arns', $Resource
   )
+  $contextEntries = @()
   if ($IncludeRegion) {
-    $arguments += @(
-      '--context-entries',
-      'ContextKeyName=aws:RequestedRegion,ContextKeyValues=ca-central-1,ContextKeyType=string'
-    )
+    $contextEntries += 'ContextKeyName=aws:RequestedRegion,ContextKeyValues=ca-central-1,ContextKeyType=string'
+  }
+  $contextEntries += $AdditionalContextEntries
+  if ($contextEntries.Count -gt 0) {
+    $arguments += '--context-entries'
+    $arguments += $contextEntries
   }
   $arguments += @('--output', 'json')
   $response = Invoke-AwsJson -AwsCli $AwsCli -Arguments $arguments
@@ -995,7 +1188,32 @@ function Assert-IamSimulations {
   Assert-SimulationDecision -AwsCli $AwsCli -RoleArn $janitorRoleArn `
     -Action 'cloudformation:DeleteStack' `
     -Resource 'arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/*' `
-    -ExpectedDecision 'implicitDeny' -IncludeRegion
+    -ExpectedDecision 'explicitDeny' -IncludeRegion
+  foreach ($action in @(
+    'cloudformation:DescribeStacks',
+    'cloudformation:GetTemplate',
+    'cloudformation:ListStackResources'
+  )) {
+    Assert-SimulationDecision -AwsCli $AwsCli -RoleArn $janitorRoleArn `
+      -Action $action `
+      -Resource 'arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/00000000-0000-0000-0000-000000000000' `
+      -ExpectedDecision 'allowed' -IncludeRegion
+  }
+  Assert-SimulationDecision -AwsCli $AwsCli -RoleArn $janitorRoleArn `
+    -Action 'cloudformation:DescribeStacks' `
+    -Resource 'arn:aws:cloudformation:ca-central-1:402010193138:stack/not-approved/00000000-0000-0000-0000-000000000000' `
+    -ExpectedDecision 'implicitDeny' -IncludeRegion `
+    -AdditionalContextEntries 'ContextKeyName=dynamodb:LeadingKeys,ContextKeyValues=cell:cell-sandbox-1,ContextKeyType=stringList'
+  $authorityTableArn = 'arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority'
+  Assert-SimulationDecision -AwsCli $AwsCli -RoleArn $janitorRoleArn `
+    -Action 'dynamodb:GetItem' -Resource $authorityTableArn -ExpectedDecision 'allowed' -IncludeRegion `
+    -AdditionalContextEntries 'ContextKeyName=dynamodb:LeadingKeys,ContextKeyValues=cell:cell-sandbox-1,ContextKeyType=stringList'
+  Assert-SimulationDecision -AwsCli $AwsCli -RoleArn $janitorRoleArn `
+    -Action 'dynamodb:GetItem' -Resource $authorityTableArn -ExpectedDecision 'implicitDeny' -IncludeRegion `
+    -AdditionalContextEntries 'ContextKeyName=dynamodb:LeadingKeys,ContextKeyValues=cell:not-approved,ContextKeyType=stringList'
+  Assert-SimulationDecision -AwsCli $AwsCli -RoleArn $janitorRoleArn `
+    -Action 'dynamodb:UpdateItem' -Resource $authorityTableArn -ExpectedDecision 'explicitDeny' -IncludeRegion `
+    -AdditionalContextEntries 'ContextKeyName=dynamodb:LeadingKeys,ContextKeyValues=cell:cell-sandbox-1,ContextKeyType=stringList'
   Assert-SimulationDecision -AwsCli $AwsCli -RoleArn $schedulerRoleArn `
     -Action 'lambda:InvokeFunction' `
     -Resource 'arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor' `
@@ -1004,6 +1222,14 @@ function Assert-IamSimulations {
     -Action 'lambda:InvokeFunction' `
     -Resource 'arn:aws:lambda:ca-central-1:402010193138:function:not-approved' `
     -ExpectedDecision 'implicitDeny'
+  foreach ($check in @(
+    @{ Action = 'lambda:UpdateFunctionCode'; Resource = 'arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor' },
+    @{ Action = 'lambda:UpdateFunctionConfiguration'; Resource = 'arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor' },
+    @{ Action = 'scheduler:UpdateSchedule'; Resource = 'arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/techlong-sandbox-cell-global-janitor' }
+  )) {
+    Assert-SimulationDecision -AwsCli $AwsCli -RoleArn $bootstrapExecutionRoleArn `
+      -Action $check.Action -Resource $check.Resource -ExpectedDecision 'allowed' -IncludeRegion
+  }
   foreach ($action in @(
     'ec2:CreateVpc', 'ecs:CreateCluster', 'ecs:RunTask',
     'elasticloadbalancing:CreateLoadBalancer', 'rds:CreateDBCluster'
@@ -1038,14 +1264,14 @@ function Assert-ExactStackAndResources {
     $null -eq $stack -or
     [string]$stack.StackId -cne $ExpectedStackId -or
     [string]$stack.StackName -cne $bootstrapStackName -or
-    [string]$stack.StackStatus -cne 'CREATE_COMPLETE' -or
+    [string]$stack.StackStatus -notin @('CREATE_COMPLETE', 'UPDATE_COMPLETE') -or
     [string]$stack.RoleARN -cne $bootstrapExecutionRoleArn -or
     $stack.EnableTerminationProtection -eq $true -or
     -not [string]::IsNullOrEmpty([string]$stack.ParentId) -or
     -not [string]::IsNullOrEmpty([string]$stack.RootId)
-  ) { throw 'B5-J4b Bootstrap Stack metadata drifted.' }
+  ) { throw 'B5-J4c Bootstrap Stack metadata drifted.' }
   if ($null -ne $stack.Capabilities -and @($stack.Capabilities).Count -ne 0) {
-    throw 'The non-IAM B5-J4b Bootstrap Stack must declare no capability.'
+    throw 'The non-IAM B5-J4c Bootstrap Stack must declare no capability.'
   }
   $parameters = @{}
   foreach ($parameter in @($stack.Parameters)) {
@@ -1055,7 +1281,7 @@ function Assert-ExactStackAndResources {
     $parameters.Count -ne 2 -or
     $parameters.ExpectedAccountId -cne $expectedAccountId -or
     $parameters.ExpectedRegion -cne $expectedRegion
-  ) { throw 'B5-J4b Stack parameters drifted.' }
+  ) { throw 'B5-J4c Stack parameters drifted.' }
   Assert-BusinessTags -Tags @($stack.Tags) -Component 'b5-cell-bootstrap'
   $outputs = @{}
   foreach ($output in @($stack.Outputs)) {
@@ -1067,14 +1293,14 @@ function Assert-ExactStackAndResources {
     $outputs.CellSchedulerInvokeRoleArn -cne 'arn:aws:iam::402010193138:role/TechlongSandboxCellSchedulerInvokeRole' -or
     $outputs.CellSchedulerGroupName -cne 'techlong-sandbox-cell' -or
     $outputs.ApprovedCellStackName -cne $approvedCellStackName -or
-    $outputs.SafetyState -cne 'B5_J4B_EMPTY_SCAN_ONLY_CELL_APPLY_AND_DELETE_DISABLED'
-  ) { throw 'B5-J4b Stack outputs drifted.' }
+    $outputs.SafetyState -cne 'B5_J4C_OWNERSHIP_FENCED_PLAN_ONLY_ALL_MUTATIONS_DISABLED'
+  ) { throw 'B5-J4c Stack outputs drifted.' }
   $inventory = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
     'cloudformation', 'list-stack-resources', '--profile', $SourceReadbackProfile,
     '--region', $expectedRegion, '--stack-name', $ExpectedStackId, '--output', 'json'
   )
   if (-not [string]::IsNullOrEmpty([string]$inventory.NextToken)) {
-    throw 'Unexpected pagination in the four-resource B5-J4b Stack inventory.'
+    throw 'Unexpected pagination in the four-resource B5-J4c Stack inventory.'
   }
   $expectedTypes = @{
     CellJanitorLogGroup = 'AWS::Logs::LogGroup'
@@ -1085,16 +1311,20 @@ function Assert-ExactStackAndResources {
   $observed = @{}
   foreach ($resource in @($inventory.StackResourceSummaries)) {
     $logicalId = [string]$resource.LogicalResourceId
+    $expectedResourceStatus = if (
+      [string]$stack.StackStatus -ceq 'UPDATE_COMPLETE' -and
+      $logicalId -in @('CellJanitorFunction', 'CellGlobalJanitorSchedule')
+    ) { 'UPDATE_COMPLETE' } else { 'CREATE_COMPLETE' }
     if (
       -not $expectedTypes.ContainsKey($logicalId) -or
       [string]$resource.ResourceType -cne $expectedTypes[$logicalId] -or
-      [string]$resource.ResourceStatus -cne 'CREATE_COMPLETE' -or
+      [string]$resource.ResourceStatus -cne $expectedResourceStatus -or
       [string]::IsNullOrWhiteSpace([string]$resource.PhysicalResourceId)
-    ) { throw "B5-J4b Stack resource $logicalId drifted." }
+    ) { throw "B5-J4c Stack resource $logicalId drifted." }
     if ($observed.ContainsKey($logicalId)) { throw "Duplicate Stack resource $logicalId." }
     $observed[$logicalId] = [string]$resource.PhysicalResourceId
   }
-  if ($observed.Count -ne $expectedTypes.Count) { throw 'B5-J4b Stack resource inventory is incomplete.' }
+  if ($observed.Count -ne $expectedTypes.Count) { throw 'B5-J4c Stack resource inventory is incomplete.' }
   $expectedPhysical = @{
     CellJanitorLogGroup = '/aws/lambda/techlong-sandbox-cell-janitor'
     CellJanitorFunction = 'techlong-sandbox-cell-janitor'
@@ -1116,7 +1346,7 @@ function Assert-ExactStackAndResources {
   $verified = ((& node $templateVerifier --expected-template $ReviewedTemplatePath `
     --get-template-response $templateResponsePath) | Out-String).Trim()
   if ($LASTEXITCODE -ne 0 -or $verified -cne $Digests.Canonical) {
-    throw 'Deployed B5-J4b Stack template drifted.'
+    throw 'Deployed B5-J4c Stack template drifted.'
   }
   Assert-ExternalRuntimeIdentities -AwsCli $AwsCli `
     -ManagementTemplate $ManagementTemplate -TemporaryDirectory $TemporaryDirectory
@@ -1151,7 +1381,9 @@ function Assert-ExactStackAndResources {
     EXPECTED_ACCOUNT_ID = '402010193138'
     EXPECTED_REGION = 'ca-central-1'
     EXPECTED_CELL_ID = 'cell-sandbox-1'
-    CELL_MUTATION_ENABLED = 'false'
+    CELL_CLEANUP_AUTHORITY_KEY = 'cell:cell-sandbox-1'
+    CELL_CLEANUP_AUTHORITY_TABLE_ARN = 'arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority'
+    CELL_CLEANUP_COORDINATOR_MODE = 'PLAN_ONLY'
   }
   Assert-JsonEqualObjects -Expected $expectedEnvironment -Actual $lambda.Environment.Variables `
     -Label 'Cell Janitor environment' -TemporaryDirectory $TemporaryDirectory | Out-Null
@@ -1226,8 +1458,8 @@ function Assert-ExactStackAndResources {
     [string]$schedule.Target.RoleArn -cne 'arn:aws:iam::402010193138:role/TechlongSandboxCellSchedulerInvokeRole' -or
     [int]$schedule.Target.RetryPolicy.MaximumRetryAttempts -ne 0 -or
     [int]$schedule.Target.RetryPolicy.MaximumEventAgeInSeconds -ne 3600 -or
-    [string]$schedule.Target.Input -cne '{"schemaVersion":1,"action":"inspect_empty_shared_cell_inventory"}'
-  ) { throw 'Cell inventory Schedule drifted.' }
+    [string]$schedule.Target.Input -cne '{"schemaVersion":1,"action":"inspect_cell_cleanup_plan"}'
+  ) { throw 'Cell cleanup planner Schedule drifted.' }
   Assert-IamSimulations -AwsCli $AwsCli
   Assert-PaidCellAndTenantResourcesAbsent -AwsCli $AwsCli
   Assert-SnapshotUnchanged -TemplatePath $ReviewedTemplatePath -ExpectedDigests $Digests
@@ -1239,6 +1471,9 @@ function Assert-ExactStackAndResources {
     managerRole = $managerSessionArn
     cloudFormationRole = $bootstrapExecutionRoleArn
     cellApplyRoles = 0
+    coordinatorMode = 'PLAN_ONLY'
+    authorityReadOnly = $true
+    mutationPerformed = $false
     janitorMutationEnabled = $false
     janitorScheduleState = 'DISABLED'
     janitorReservedConcurrencyConfigured = $false
@@ -1257,24 +1492,33 @@ function Assert-ExactStackAndResources {
   Write-JsonFile -Value $evidence -Path $evidencePath
   $evidenceHash = ((& node $jsonVerifier --hash $evidencePath) | Out-String).Trim()
   if ($LASTEXITCODE -ne 0 -or $evidenceHash -cnotmatch '^[a-f0-9]{64}$') {
-    throw 'Unable to hash B5-J4b readback evidence.'
+    throw 'Unable to hash B5-J4c readback evidence.'
   }
-  Write-Host "B5-J4b readback evidence canonical SHA-256: $evidenceHash"
+  Write-Host "B5-J4c readback evidence canonical SHA-256: $evidenceHash"
   Write-Host 'registrationReady=false; liveReadbackReady=false; applyRuntimeReady=false; cleanupRuntimeReady=false.'
   return $evidenceHash
 }
 
-function Invoke-EmptyJanitorProbeTwice {
+function Invoke-PlanOnlyJanitorProbeTwice {
   param([string]$AwsCli, [string]$TemporaryDirectory)
   Assert-PaidCellAndTenantResourcesAbsent -AwsCli $AwsCli
-  $payloadPath = Join-Path $TemporaryDirectory 'empty-probe-request.json'
+  $payloadPath = Join-Path $TemporaryDirectory 'plan-only-probe-request.json'
   Write-JsonFile -Value ([ordered]@{
     schemaVersion = 1
-    action = 'inspect_empty_shared_cell_inventory'
+    action = 'inspect_cell_cleanup_plan'
   }) -Path $payloadPath
+  $expectedPayload = [ordered]@{
+    schemaVersion = 1
+    action = 'inspect_cell_cleanup_plan'
+    coordinatorMode = 'PLAN_ONLY'
+    decision = 'ABSENT_SAFE'
+    mutationPerformed = $false
+    cellStack = 'MISSING'
+    tenantStacks = @()
+  }
   $results = @()
   foreach ($index in 1..2) {
-    $outputPath = Join-Path $TemporaryDirectory "empty-probe-response-$index.json"
+    $outputPath = Join-Path $TemporaryDirectory "plan-only-probe-response-$index.json"
     $metadata = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
       'lambda', 'invoke', '--profile', $SourceReadbackProfile, '--region', $expectedRegion,
       '--function-name', 'techlong-sandbox-cell-janitor', '--invocation-type', 'RequestResponse',
@@ -1284,47 +1528,54 @@ function Invoke-EmptyJanitorProbeTwice {
     if (
       [int]$metadata.StatusCode -ne 200 -or
       -not [string]::IsNullOrEmpty([string]$metadata.FunctionError)
-    ) { throw "Janitor empty probe $index failed." }
+    ) { throw "Janitor plan-only probe $index failed." }
     $payload = (Get-Content -Raw -LiteralPath $outputPath) | ConvertFrom-Json
-    if (
-      [int]$payload.schemaVersion -ne 1 -or
-      [string]$payload.action -cne 'inspect_empty_shared_cell_inventory' -or
-      $payload.empty -ne $true -or [int]$payload.checked -ne 0 -or
-      @($payload.candidates).Count -ne 0 -or @($payload.deleted).Count -ne 0
-    ) { throw "Janitor empty probe $index did not prove an exact empty inventory." }
+    Assert-JsonEqualObjects -Expected $expectedPayload -Actual $payload `
+      -Label "Janitor plan-only probe $index" -TemporaryDirectory $TemporaryDirectory | Out-Null
     $results += $payload
   }
+  Assert-JsonEqualObjects -Expected $results[0] -Actual $results[1] `
+    -Label 'two Janitor plan-only probes' -TemporaryDirectory $TemporaryDirectory | Out-Null
   Assert-PaidCellAndTenantResourcesAbsent -AwsCli $AwsCli
-  $evidencePath = Join-Path $TemporaryDirectory 'empty-probe-evidence.json'
+  $evidencePath = Join-Path $TemporaryDirectory 'plan-only-probe-evidence.json'
   Write-JsonFile -Value $results -Path $evidencePath
   $hash = ((& node $jsonVerifier --hash $evidencePath) | Out-String).Trim()
   if ($LASTEXITCODE -ne 0 -or $hash -cnotmatch '^[a-f0-9]{64}$') {
-    throw 'Unable to hash Janitor empty-probe evidence.'
+    throw 'Unable to hash Janitor plan-only probe evidence.'
   }
-  Write-Host "Two exact Janitor empty probes passed. Evidence canonical SHA-256: $hash"
+  Write-Host "Two exact, identical Janitor ABSENT_SAFE plans passed. Evidence canonical SHA-256: $hash"
   return $hash
 }
 
-Write-Host 'Running local B5-J4b cleanup-only Bootstrap validation...'
+Write-Host 'Running local B5-J4c ownership-fenced plan-only Bootstrap validation...'
 & node $validator
-if ($LASTEXITCODE -ne 0) { throw 'Local B5-J4b Bootstrap validation failed.' }
+if ($LASTEXITCODE -ne 0) { throw 'Local B5-J4c Bootstrap validation failed.' }
 if ($Mode -eq 'LocalValidate') {
   $localSnapshotPath = [System.IO.Path]::Combine(
     [System.IO.Path]::GetTempPath(),
-    "techlong-b5j4b-local-$([Guid]::NewGuid().ToString('N')).json"
+    "techlong-b5j4c-local-$([Guid]::NewGuid().ToString('N')).json"
+  )
+  $localLegacySnapshotPath = [System.IO.Path]::Combine(
+    [System.IO.Path]::GetTempPath(),
+    "techlong-b5j4b-legacy-$([Guid]::NewGuid().ToString('N')).json"
   )
   try {
     $localDigests = New-ReadOnlyTemplateSnapshot -DestinationPath $localSnapshotPath
+    $localLegacyDigests = New-LegacyJ4bReadOnlyTemplateSnapshot -DestinationPath $localLegacySnapshotPath
     & node $validator --template $localSnapshotPath
-    if ($LASTEXITCODE -ne 0) { throw 'Rendered local B5-J4b snapshot validation failed.' }
+    if ($LASTEXITCODE -ne 0) { throw 'Rendered local B5-J4c snapshot validation failed.' }
     Write-Host "Template SHA-256: $($localDigests.Raw)"
     Write-Host "Template canonical SHA-256: $($localDigests.Canonical)"
+    Write-Host "Fixed legacy J4b raw SHA-256: $($localLegacyDigests.Raw)"
+    Write-Host "Fixed legacy J4b canonical SHA-256: $($localLegacyDigests.Canonical)"
     Write-Host 'Local validation complete. No AWS API was called and no resource was changed.'
     exit 0
   } finally {
-    if (Test-Path -LiteralPath $localSnapshotPath) {
-      (Get-Item -LiteralPath $localSnapshotPath).IsReadOnly = $false
-      Remove-Item -LiteralPath $localSnapshotPath -Force
+    foreach ($path in @($localSnapshotPath, $localLegacySnapshotPath)) {
+      if (Test-Path -LiteralPath $path) {
+        (Get-Item -LiteralPath $path).IsReadOnly = $false
+        Remove-Item -LiteralPath $path -Force
+      }
     }
   }
 }
@@ -1343,15 +1594,19 @@ if ($Mode -eq 'ProbeJanitor' -and -not $AcknowledgeTwoLowCostLambdaInvocations) 
 }
 
 $temporaryDirectory = Join-Path ([System.IO.Path]::GetTempPath()) `
-  "techlong-b5j4b-bootstrap-$([Guid]::NewGuid().ToString('N'))"
+  "techlong-b5j4c-bootstrap-$([Guid]::NewGuid().ToString('N'))"
 [System.IO.Directory]::CreateDirectory($temporaryDirectory) | Out-Null
 $templateSnapshotPath = Join-Path $temporaryDirectory 'reviewed-template.json'
+$legacyTemplateSnapshotPath = Join-Path $temporaryDirectory 'legacy-j4b-template.json'
 try {
   $digests = New-ReadOnlyTemplateSnapshot -DestinationPath $templateSnapshotPath
   & node $validator --template $templateSnapshotPath
-  if ($LASTEXITCODE -ne 0) { throw 'Rendered B5-J4b snapshot validation failed.' }
+  if ($LASTEXITCODE -ne 0) { throw 'Rendered B5-J4c snapshot validation failed.' }
+  $legacyDigests = if ($DeploymentShape -eq 'PlannerUpdate') {
+    New-LegacyJ4bReadOnlyTemplateSnapshot -DestinationPath $legacyTemplateSnapshotPath
+  } else { $null }
   $changeSetName = "techlong-s3-b5-cell-bootstrap-$($digests.Raw.Substring(0, 16))"
-  $description = "B5-J4b cleanup-only bootstrap raw=$($digests.Raw) canonical=$($digests.Canonical)"
+  $description = "B5-J4c plan-only cleanup planner raw=$($digests.Raw) canonical=$($digests.Canonical)"
   $templateObject = Get-TemplateObjectContract -Digests $digests
   Write-Host "Template SHA-256: $($digests.Raw)"
   Write-Host "Template canonical SHA-256: $($digests.Canonical)"
@@ -1390,12 +1645,24 @@ try {
     'cloudformation', 'validate-template', '--profile', $ManagerProfile,
     '--region', $expectedRegion, '--template-body', "file://$templateSnapshotPath"
   )
+  $legacyStack = if (
+    $DeploymentShape -eq 'PlannerUpdate' -and
+    $Mode -in @('OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet')
+  ) {
+    Assert-ExactLegacyJ4bChildStack -AwsCli $awsCli `
+      -LegacyTemplatePath $legacyTemplateSnapshotPath -LegacyDigests $legacyDigests `
+      -TemporaryDirectory $temporaryDirectory
+  } else { $null }
   if ($Mode -eq 'OnlineValidate') {
-    if ($null -ne (Get-StackOrNull -AwsCli $awsCli -Profile $SourceReadbackProfile -StackName $bootstrapStackName)) {
-      throw "Stack $bootstrapStackName already exists; use Readback."
+    if ($DeploymentShape -eq 'InitialCreate') {
+      if ($null -ne (Get-StackOrNull -AwsCli $awsCli -Profile $SourceReadbackProfile -StackName $bootstrapStackName)) {
+        throw "Stack $bootstrapStackName already exists; use PlannerUpdate or Readback."
+      }
+      Assert-BootstrapNamedResourcesAbsent -AwsCli $awsCli
+    } elseif ($null -eq $legacyStack) {
+      throw 'PlannerUpdate requires the exact fixed legacy B5-J4b child Stack.'
     }
-    Assert-BootstrapNamedResourcesAbsent -AwsCli $awsCli
-    Write-Host 'Online validation passed under locked management. No AWS resource was changed.'
+    Write-Host "Online validation for $DeploymentShape passed under locked management. No AWS resource was changed."
     exit 0
   }
 
@@ -1404,10 +1671,14 @@ try {
     if ($ConfirmChangeSetName -cne $changeSetName) {
       throw "CreateChangeSet requires -ConfirmChangeSetName $changeSetName."
     }
-    if ($null -ne (Get-StackOrNull -AwsCli $awsCli -Profile $SourceReadbackProfile -StackName $bootstrapStackName)) {
-      throw 'Initial B5-J4b Bootstrap is CREATE-only; the Stack already exists.'
+    if ($DeploymentShape -eq 'InitialCreate') {
+      if ($null -ne (Get-StackOrNull -AwsCli $awsCli -Profile $SourceReadbackProfile -StackName $bootstrapStackName)) {
+        throw 'Initial B5-J4c Bootstrap is CREATE-only; the Stack already exists.'
+      }
+      Assert-BootstrapNamedResourcesAbsent -AwsCli $awsCli
+    } elseif ($null -eq $legacyStack) {
+      throw 'PlannerUpdate requires the exact fixed legacy B5-J4b child Stack.'
     }
-    Assert-BootstrapNamedResourcesAbsent -AwsCli $awsCli
     Assert-SnapshotUnchanged -TemplatePath $templateSnapshotPath -ExpectedDigests $digests
     $observedTemplateObject = Assert-ExactTemplateObject -AwsCli $awsCli `
       -ReviewedTemplatePath $templateSnapshotPath -Digests $digests `
@@ -1415,10 +1686,11 @@ try {
     if ($observedTemplateObject.Url -cne $templateObject.Url) {
       throw 'Digest-addressed child template URL drifted.'
     }
+    $changeSetType = if ($DeploymentShape -eq 'PlannerUpdate') { 'UPDATE' } else { 'CREATE' }
     $createChangeSetArguments = @(
       'cloudformation', 'create-change-set', '--profile', $ManagerProfile,
       '--region', $expectedRegion, '--stack-name', $bootstrapStackName,
-      '--change-set-name', $changeSetName, '--change-set-type', 'CREATE',
+      '--change-set-name', $changeSetName, '--change-set-type', $changeSetType,
       '--description', $description, '--template-url', $templateObject.Url,
       '--role-arn', $bootstrapExecutionRoleArn,
       '--resource-types'
@@ -1429,18 +1701,24 @@ try {
       'Key=ManagedBy,Value=techlong-cell-bootstrap-manager',
       'Key=Component,Value=b5-cell-bootstrap',
       '--no-include-nested-stacks',
-      '--on-stack-failure', 'DELETE',
-      '--client-token', "b5j4b-author-$($digests.Raw.Substring(0, 32))"
+      '--client-token', "b5j4c-$($DeploymentShape.ToLowerInvariant())-author-$($digests.Raw.Substring(0, 32))"
     )
+    if ($DeploymentShape -eq 'InitialCreate') {
+      $createChangeSetArguments += @('--on-stack-failure', 'DELETE')
+    }
     Invoke-AwsChecked -AwsCli $awsCli -Arguments $createChangeSetArguments
     Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
       'cloudformation', 'wait', 'change-set-create-complete', '--profile', $SourceReadbackProfile,
       '--region', $expectedRegion, '--stack-name', $bootstrapStackName,
       '--change-set-name', $changeSetName
     )
-    Assert-ReviewedChangeSet -AwsCli $awsCli -ChangeSetName $changeSetName `
+    $reviewedChangeSet = Assert-ReviewedChangeSet -AwsCli $awsCli -ChangeSetName $changeSetName `
       -ExpectedDescription $description -ReviewedTemplatePath $templateSnapshotPath `
-      -Digests $digests -TemporaryDirectory $temporaryDirectory | Out-Null
+      -Digests $digests -TemporaryDirectory $temporaryDirectory
+    if (
+      $DeploymentShape -eq 'PlannerUpdate' -and
+      [string]$reviewedChangeSet.StackId -cne [string]$legacyStack.StackId
+    ) { throw 'Created PlannerUpdate Change Set is not bound to the verified legacy child StackId.' }
     Write-Host "Created and verified Change Set $changeSetName; it was NOT executed."
     Write-Host 'Immediately revoke BootstrapAuthorGrant, inspect again while Locked, then grant only Execute for this exact Change Set.'
     exit 0
@@ -1459,6 +1737,10 @@ try {
     $changeSet = Assert-ReviewedChangeSet -AwsCli $awsCli -ChangeSetName $changeSetName `
       -ExpectedDescription $description -ReviewedTemplatePath $templateSnapshotPath `
       -Digests $digests -TemporaryDirectory $temporaryDirectory
+    if (
+      $DeploymentShape -eq 'PlannerUpdate' -and
+      [string]$changeSet.StackId -cne [string]$legacyStack.StackId
+    ) { throw 'PlannerUpdate Change Set StackId is not the exact verified legacy child StackId.' }
     if ($Mode -eq 'InspectChangeSet') {
       Write-Host "Change Set $changeSetName is exact, available, and NOT executed."
       exit 0
@@ -1469,16 +1751,22 @@ try {
       'cloudformation', 'execute-change-set', '--profile', $ManagerProfile,
       '--region', $expectedRegion, '--stack-name', $bootstrapStackName,
       '--change-set-name', $changeSetName,
-      '--client-request-token', "b5j4b-execute-$($digests.Raw.Substring(0, 32))"
+      '--client-request-token', "b5j4c-$($DeploymentShape.ToLowerInvariant())-execute-$($digests.Raw.Substring(0, 32))"
     )
+    $waiter = if ($DeploymentShape -eq 'PlannerUpdate') {
+      'stack-update-complete'
+    } else {
+      'stack-create-complete'
+    }
     Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
-      'cloudformation', 'wait', 'stack-create-complete', '--profile', $SourceReadbackProfile,
+      'cloudformation', 'wait', $waiter, '--profile', $SourceReadbackProfile,
       '--region', $expectedRegion, '--stack-name', ([string]$changeSet.StackId)
     )
     Assert-ExactStackAndResources -AwsCli $awsCli -ExpectedStackId ([string]$changeSet.StackId) `
       -ReviewedTemplatePath $templateSnapshotPath -Digests $digests `
       -TemporaryDirectory $temporaryDirectory -ManagementTemplate $managementTemplate | Out-Null
-    Write-Host "Created exact cleanup-only B5-J4b Bootstrap Stack: $($changeSet.StackId)"
+    $verb = if ($DeploymentShape -eq 'PlannerUpdate') { 'Updated' } else { 'Created' }
+    Write-Host "$verb exact B5-J4c plan-only Bootstrap Stack: $($changeSet.StackId)"
     Write-Host 'Immediately revoke BootstrapExecuteGrant. No Cell, VPC, ALB, ECS, Aurora, tenant Stack, or RunTask was created.'
     exit 0
   }
@@ -1487,43 +1775,45 @@ try {
     -ReviewedTemplatePath $templateSnapshotPath -Digests $digests `
     -TemporaryDirectory $temporaryDirectory -ManagementTemplate $managementTemplate | Out-Null
   if ($Mode -eq 'Readback') {
-    Write-Host 'Exact locked B5-J4b cleanup-only Bootstrap readback passed.'
+    Write-Host 'Exact locked B5-J4c plan-only Bootstrap readback passed.'
     exit 0
   }
   if ($Mode -eq 'ProbeJanitor') {
-    Invoke-EmptyJanitorProbeTwice -AwsCli $awsCli -TemporaryDirectory $temporaryDirectory | Out-Null
+    Invoke-PlanOnlyJanitorProbeTwice -AwsCli $awsCli -TemporaryDirectory $temporaryDirectory | Out-Null
     Write-Host 'Janitor remained read-only; the disabled Schedule was not enabled.'
     exit 0
   }
 
   Assert-ConfirmedTemplateDigests -Digests $digests
   Assert-SnapshotUnchanged -TemplatePath $templateSnapshotPath -ExpectedDigests $digests
-  Invoke-EmptyJanitorProbeTwice -AwsCli $awsCli -TemporaryDirectory $temporaryDirectory | Out-Null
+  Invoke-PlanOnlyJanitorProbeTwice -AwsCli $awsCli -TemporaryDirectory $temporaryDirectory | Out-Null
   Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
     'cloudformation', 'delete-stack', '--profile', $ManagerProfile, '--region', $expectedRegion,
     '--stack-name', $ConfirmStackId, '--role-arn', $bootstrapExecutionRoleArn,
-    '--client-request-token', "b5j4b-delete-$($digests.Raw.Substring(0, 32))"
+    '--client-request-token', "b5j4c-delete-$($digests.Raw.Substring(0, 32))"
   )
   Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
     'cloudformation', 'wait', 'stack-delete-complete', '--profile', $ManagerProfile,
     '--region', $expectedRegion, '--stack-name', $ConfirmStackId
   )
   if ($null -ne (Get-StackOrNull -AwsCli $awsCli -Profile $SourceReadbackProfile -StackName $bootstrapStackName)) {
-    throw 'B5-J4b Bootstrap Stack still exists after Delete.'
+    throw 'B5-J4c Bootstrap Stack still exists after Delete.'
   }
   Assert-BootstrapNamedResourcesAbsent -AwsCli $awsCli
   Assert-PaidCellAndTenantResourcesAbsent -AwsCli $awsCli
-  Write-Host "Deleted exact cleanup-only B5-J4b Bootstrap Stack: $ConfirmStackId"
+  Write-Host "Deleted exact plan-only B5-J4c Bootstrap Stack: $ConfirmStackId"
   Write-Host 'Immediately revoke BootstrapRollbackGrant.'
 } finally {
-  if (Test-Path -LiteralPath $templateSnapshotPath) {
-    (Get-Item -LiteralPath $templateSnapshotPath).IsReadOnly = $false
+  foreach ($path in @($templateSnapshotPath, $legacyTemplateSnapshotPath)) {
+    if (Test-Path -LiteralPath $path) {
+      (Get-Item -LiteralPath $path).IsReadOnly = $false
+    }
   }
   $resolvedTemp = [System.IO.Path]::GetFullPath($temporaryDirectory)
   $expectedTempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
   if (
     $resolvedTemp.StartsWith($expectedTempRoot, [StringComparison]::OrdinalIgnoreCase) -and
-    (Split-Path -Leaf $resolvedTemp) -match '^techlong-b5j4b-bootstrap-[a-f0-9]{32}$' -and
+    (Split-Path -Leaf $resolvedTemp) -match '^techlong-b5j4c-bootstrap-[a-f0-9]{32}$' -and
     (Test-Path -LiteralPath $resolvedTemp)
   ) {
     Remove-Item -LiteralPath $resolvedTemp -Recurse -Force

@@ -1,12 +1,14 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "IAM-only root of trust for managing the low-cost B5 Shared Cell Bootstrap stack. This stack cannot create a Shared Cell.",
+  "Description": "IAM-only root of trust for the low-cost B5-J4c plan-only Shared Cell cleanup coordinator. This stack cannot create or delete a Shared Cell.",
   "Metadata": {
     "SafetyBoundary": {
       "CloudApplyEnabled": true,
       "CreatesIamOnly": true,
       "CreatesSharedCell": false,
       "CreatesPaidCellResources": false,
+      "CoordinatorMode": "PLAN_ONLY",
+      "AuthorityReadOnly": true,
       "ManagerGrantState": "LOCKED",
       "TemporaryAuthorGrantRequired": true,
       "ApprovedManagedStackName": "techlong-s3-b5-cell-bootstrap",
@@ -66,12 +68,62 @@
               }
             },
             {
+              "Sid": "DenyPlanOnlyCoordinatorMutations",
+              "Effect": "Deny",
+              "Action": [
+                "cloudformation:ContinueUpdateRollback",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:CreateStack",
+                "cloudformation:DeleteChangeSet",
+                "cloudformation:DeleteStack",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:SetStackPolicy",
+                "cloudformation:UpdateStack",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:PutItem",
+                "dynamodb:TransactWriteItems",
+                "dynamodb:UpdateItem",
+                "ecs:RunTask",
+                "iam:PassRole"
+              ],
+              "Resource": "*"
+            },
+            {
               "Sid": "AllowCellJanitorInventoryOnly",
               "Effect": "Allow",
               "Action": "cloudformation:ListStacks",
               "Resource": "*",
               "Condition": {
                 "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowExactCellCleanupEvidenceRead",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DescribeStacks",
+                "cloudformation:GetTemplate",
+                "cloudformation:ListStackResources"
+              ],
+              "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowExactCellCleanupAuthorityRead",
+              "Effect": "Allow",
+              "Action": "dynamodb:GetItem",
+              "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" },
+              "ForAllValues:StringEquals": {
+                "dynamodb:LeadingKeys": ["cell:cell-sandbox-1"]
+              },
+              "Null": {
+                "dynamodb:LeadingKeys": "false"
+              }
               }
             },
             {
@@ -432,6 +484,8 @@
                 "lambda:GetFunctionRecursionConfig",
                 "lambda:GetRuntimeManagementConfig",
                 "lambda:TagResource"
+                ,"lambda:UpdateFunctionCode"
+                ,"lambda:UpdateFunctionConfiguration"
               ],
               "Resource": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor"
             },
@@ -480,7 +534,8 @@
               "Effect": "Allow",
               "Action": [
                 "scheduler:CreateSchedule",
-                "scheduler:GetSchedule"
+                "scheduler:GetSchedule",
+                "scheduler:UpdateSchedule"
               ],
               "Resource": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/techlong-sandbox-cell-global-janitor"
             },

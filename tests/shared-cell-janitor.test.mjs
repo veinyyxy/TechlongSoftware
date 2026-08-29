@@ -1,328 +1,326 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createRequire } from "node:module";
+import { readFile } from "node:fs/promises";
 
 const require = createRequire(import.meta.url);
 const {
+  assertRuntimeEnvironment,
+  canonicalJson,
   createHandler,
-  isEligibleCellStack,
-  isOwnedTenantStackForCell,
-  parseExpiresAt,
-  assertRuntimeActionEnabled,
+  decodeAuthorityItem,
+  resourceInventoryHash,
+  sha256Canonical,
+  validateAuthorityItem,
 } = require("../ops/aws-sandbox/lambda/cell-janitor.cjs");
 
-const now = Date.UTC(2026, 7, 9, 2);
+const now = Date.UTC(2026, 7, 27, 6, 0, 0);
+const cellExpiresAt = new Date(now - 60_000).toISOString();
+const authorizationExpiresAt = new Date(now + 15 * 60_000).toISOString();
 const stackName = "techlong-sandbox-cell-sandbox-1";
+const stackId =
+  "arn:aws:cloudformation:ca-central-1:402010193138:stack/" +
+  `${stackName}/12345678-1234-1234-1234-123456789012`;
+const template = {
+  AWSTemplateFormatVersion: "2010-09-09",
+  Resources: { Cluster: { Type: "AWS::ECS::Cluster" } },
+};
+const resources = [
+  {
+    LogicalResourceId: "Cluster",
+    PhysicalResourceId: "cell-sandbox-1",
+    ResourceStatus: "CREATE_COMPLETE",
+    ResourceType: "AWS::ECS::Cluster",
+  },
+];
 
-function cellStack(overrides = {}) {
+function stack(overrides = {}) {
   return {
     StackName: stackName,
+    StackId: stackId,
     StackStatus: "CREATE_COMPLETE",
     Tags: [
       { Key: "Environment", Value: "aws-sandbox" },
       { Key: "ManagedBy", Value: "techlong-cell-operator" },
       { Key: "CellId", Value: "cell-sandbox-1" },
-      { Key: "ExpiresAt", Value: new Date(now - 1).toISOString() },
+      { Key: "ExpiresAt", Value: cellExpiresAt },
     ],
     ...overrides,
   };
 }
 
-function tenantStack(overrides = {}) {
-  return {
-    StackName: "techlong-sandbox-tenant-one",
-    StackStatus: "CREATE_COMPLETE",
-    Tags: [
-      { Key: "Environment", Value: "aws-sandbox" },
-      { Key: "ManagedBy", Value: "techlong-provisioner" },
-      { Key: "CellId", Value: "cell-sandbox-1" },
-    ],
-    ...overrides,
-  };
-}
-
-test("Cell Janitor parses only canonical UTC expiry timestamps", () => {
-  assert.equal(parseExpiresAt("2026-08-09T02:00:00.000Z"), now);
-  assert.equal(parseExpiresAt("2026-08-09T02:00:00Z"), null);
-  assert.equal(parseExpiresAt("2026-02-30T02:00:00.000Z"), null);
-});
-
-test("Cell Janitor refuses tenant, shared-manager and future stacks", () => {
-  assert.equal(
-    isEligibleCellStack({ ...cellStack(), StackName: "techlong-sandbox-tenant-one" }, now),
-    false,
-  );
-  assert.equal(
-    isEligibleCellStack({
-      ...cellStack(),
-      Tags: cellStack().Tags.map((tag) =>
-        tag.Key === "ManagedBy" ? { ...tag, Value: "techlong-provisioner" } : tag,
-      ),
-    }, now),
-    false,
-  );
-  assert.equal(
-    isEligibleCellStack({
-      ...cellStack(),
-      Tags: cellStack().Tags.map((tag) =>
-        tag.Key === "ExpiresAt"
-          ? { ...tag, Value: new Date(now + 60_000).toISOString() }
-          : tag,
-      ),
-    }, now),
-    false,
-  );
-});
-
-test("Cell Janitor targeted cleanup deletes exactly one owned expired Cell", async () => {
-  const deleted = [];
-  const handler = createHandler(
-    {
-      listStackNames: async () => {
-        throw new Error("targeted cleanup must not scan");
-      },
-      describeStack: async (name) => {
-        assert.equal(name, stackName);
-        return cellStack();
-      },
-      listTenantStacks: async () => [],
-      deleteTenantStack: async () => {
-        throw new Error("no tenant should be deleted");
-      },
-      deleteStack: async (name) => deleted.push(name),
-    },
-    () => now,
-  );
-  const result = await handler({
+function authorityRecord(overrides = {}) {
+  const unsigned = {
     schemaVersion: 1,
-    action: "delete_shared_cell_stack",
-    stackName,
+    accountId: "402010193138",
+    region: "ca-central-1",
     cellId: "cell-sandbox-1",
-  });
-  assert.deepEqual(result, { checked: 1, deleted: [stackName], skipped: [] });
-  assert.deepEqual(deleted, [stackName]);
-});
+    stackName,
+    stackId,
+    stackStatus: "CREATE_COMPLETE",
+    cellExpiresAt,
+    templateCanonicalSha256: sha256Canonical(template),
+    resourceInventorySha256: resourceInventoryHash(resources),
+    ownerDeploymentId: "deployment_cell_owner_1",
+    generation: 1,
+    provisionEpoch: 1,
+    provisionMarker: "tl_cell_epoch_cell-sandbox-1_g1_e1",
+    provisionOperationHash: "a".repeat(64),
+    cleanupEpoch: 2,
+    cleanupMarker: "tl_cell_epoch_cell-sandbox-1_g1_e2",
+    cleanupOperationHash: "b".repeat(64),
+    revision: 7,
+    expiresAt: authorizationExpiresAt,
+    state: "cleanup_authorized",
+    ...overrides,
+  };
+  return { ...unsigned, recordHash: sha256Canonical(unsigned) };
+}
 
-test("Cell Janitor drains an exactly owned tenant before deleting its Cell", async () => {
-  const deletedTenants = [];
-  let deletedCell = false;
-  assert.equal(isOwnedTenantStackForCell(tenantStack(), "cell-sandbox-1"), true);
-  assert.equal(
-    isOwnedTenantStackForCell(
-      tenantStack({
-        Tags: tenantStack().Tags.map((tag) =>
-          tag.Key === "CellId" ? { ...tag, Value: "cell-other" } : tag,
-        ),
-      }),
-      "cell-sandbox-1",
-    ),
-    false,
-  );
-  const handler = createHandler(
-    {
-      listStackNames: async () => [],
-      describeStack: async () => cellStack(),
-      listTenantStacks: async () => [tenantStack()],
-      deleteTenantStack: async (name) => deletedTenants.push(name),
-      deleteStack: async () => {
-        deletedCell = true;
+function authorityItem(overrides = {}) {
+  const record = authorityRecord(overrides);
+  return {
+    authority_key: "cell:cell-sandbox-1",
+    schema_version: 1,
+    revision: record.revision,
+    record_json: canonicalJson(record),
+  };
+}
+
+function api(overrides = {}) {
+  const calls = [];
+  return {
+    calls,
+    value: {
+      listStackNames: async () => {
+        calls.push("listStackNames");
+        return [stackName];
       },
+      describeStack: async () => {
+        calls.push("describeStack");
+        return stack();
+      },
+      getTemplate: async () => {
+        calls.push("getTemplate");
+        return template;
+      },
+      listStackResources: async () => {
+        calls.push("listStackResources");
+        return resources;
+      },
+      getAuthorityItem: async () => {
+        calls.push("getAuthorityItem");
+        return authorityItem();
+      },
+      ...overrides,
     },
-    () => now,
-  );
-  await assert.rejects(
-    handler({
-      schemaVersion: 1,
-      action: "delete_shared_cell_stack",
-      stackName,
-      cellId: "cell-sandbox-1",
-    }),
-    /tenant cleanup must finish/,
-  );
-  assert.deepEqual(deletedTenants, ["techlong-sandbox-tenant-one"]);
-  assert.equal(deletedCell, false);
-});
+  };
+}
 
-test("Cell Janitor malformed target performs zero deletes", async () => {
-  let calls = 0;
-  const handler = createHandler({
-    listStackNames: async () => [],
-    listTenantStacks: async () => [],
-    deleteTenantStack: async () => {
-      calls += 1;
-    },
-    describeStack: async () => {
-      calls += 1;
-      return cellStack();
-    },
-    deleteStack: async () => {
-      calls += 1;
-    },
-  });
-  await assert.rejects(
-    handler({
-      action: "delete_shared_cell_stack",
-      stackName: "techlong-sandbox-tenant-one",
-      cellId: "cell-sandbox-1",
-    }),
-    /invalid targeted cell cleanup request/,
-  );
-  assert.equal(calls, 0);
-});
+const request = { schemaVersion: 1, action: "inspect_cell_cleanup_plan" };
+const tenantPrefixSupportStacks = [
+  "techlong-sandbox-tenant-b5j3",
+  "techlong-sandbox-tenant-b5j4logs",
+];
 
-test("Cell Janitor empty inventory inspection returns one strict read-only result", async () => {
-  const calls = [];
-  const handler = createHandler({
-    listStackNames: async () => {
-      calls.push("list");
-      return [];
-    },
-    listTenantStacks: async () => {
-      calls.push("list-tenants");
-      return [];
-    },
-    describeStack: async () => calls.push("describe"),
-    deleteTenantStack: async () => calls.push("delete-tenant"),
-    deleteStack: async () => calls.push("delete-cell"),
-  });
-  const result = await handler({
-    schemaVersion: 1,
-    action: "inspect_empty_shared_cell_inventory",
-  });
+test("plan-only coordinator returns ABSENT_SAFE without authority or mutation calls", async () => {
+  const fixture = api({ listStackNames: async () => [] });
+  const result = await createHandler(fixture.value, () => now)(request);
   assert.deepEqual(result, {
     schemaVersion: 1,
-    action: "inspect_empty_shared_cell_inventory",
-    empty: true,
-    checked: 0,
-    candidates: [],
-    deleted: [],
+    action: "inspect_cell_cleanup_plan",
+    coordinatorMode: "PLAN_ONLY",
+    decision: "ABSENT_SAFE",
+    mutationPerformed: false,
+    cellStack: "MISSING",
+    tenantStacks: [],
   });
-  assert.deepEqual(calls, ["list"]);
+  assert.deepEqual(fixture.calls, []);
 });
 
-test("Cell Janitor empty inventory inspection reports candidates without deleting", async () => {
-  const calls = [];
-  const handler = createHandler({
-    listStackNames: async () => {
-      calls.push("list");
-      return [
-        "techlong-sandbox-cell-z-last",
-        "techlong-sandbox-cell-sandbox-1",
-      ];
-    },
-    listTenantStacks: async () => {
-      calls.push("list-tenants");
-      return [];
-    },
-    describeStack: async () => calls.push("describe"),
-    deleteTenantStack: async () => calls.push("delete-tenant"),
-    deleteStack: async () => calls.push("delete-cell"),
-  });
-  const result = await handler({
-    schemaVersion: 1,
-    action: "inspect_empty_shared_cell_inventory",
-  });
-  assert.deepEqual(result, {
-    schemaVersion: 1,
-    action: "inspect_empty_shared_cell_inventory",
-    empty: false,
-    checked: 2,
-    candidates: [
-      "techlong-sandbox-cell-sandbox-1",
-      "techlong-sandbox-cell-z-last",
+test("plan-only coordinator excludes only the two exact tenant-prefixed support Stacks", async () => {
+  const fixture = api({ listStackNames: async () => tenantPrefixSupportStacks });
+  const result = await createHandler(fixture.value, () => now)(request);
+  assert.equal(result.decision, "ABSENT_SAFE");
+  assert.deepEqual(result.tenantStacks, []);
+  assert.deepEqual(fixture.calls, []);
+});
+
+test("support Stack exclusions never hide a real or similarly named tenant Stack", async () => {
+  const fixture = api({
+    listStackNames: async () => [
+      ...tenantPrefixSupportStacks,
+      "techlong-sandbox-tenant-app-one",
+      "techlong-sandbox-tenant-b5j3-copy",
+      "techlong-sandbox-tenant-b5j4logs-extra",
     ],
-    deleted: [],
   });
-  assert.deepEqual(calls, ["list"]);
+  const result = await createHandler(fixture.value, () => now)(request);
+  assert.equal(result.decision, "BLOCKED_TENANT_STACKS");
+  assert.deepEqual(result.tenantStacks, [
+    "techlong-sandbox-tenant-app-one",
+    "techlong-sandbox-tenant-b5j3-copy",
+    "techlong-sandbox-tenant-b5j4logs-extra",
+  ]);
+  assert.deepEqual(fixture.calls, []);
 });
 
-test("Cell Janitor empty inventory inspection rejects invalid schema before inventory access", async () => {
-  let calls = 0;
-  const handler = createHandler({
-    listStackNames: async () => {
-      calls += 1;
-      return [];
-    },
-  });
-  for (const event of [
-    { action: "inspect_empty_shared_cell_inventory" },
-    { schemaVersion: "1", action: "inspect_empty_shared_cell_inventory" },
-    { schemaVersion: 2, action: "inspect_empty_shared_cell_inventory" },
-    {
-      schemaVersion: 1,
-      action: "inspect_empty_shared_cell_inventory",
+test("plan-only coordinator blocks every tenant Stack before Cell evidence reads", async () => {
+  const fixture = api({
+    listStackNames: async () => [
       stackName,
+      "techlong-sandbox-tenant-app-one",
+      "techlong-sandbox-tenant-app-two",
+    ],
+  });
+  const result = await createHandler(fixture.value, () => now)(request);
+  assert.equal(result.decision, "BLOCKED_TENANT_STACKS");
+  assert.deepEqual(result.tenantStacks, [
+    "techlong-sandbox-tenant-app-one",
+    "techlong-sandbox-tenant-app-two",
+  ]);
+  assert.equal(result.mutationPerformed, false);
+  assert.deepEqual(fixture.calls, []);
+});
+
+test("plan-only coordinator blocks unexpected Cell names", async () => {
+  const fixture = api({
+    listStackNames: async () => [stackName, "techlong-sandbox-cell-foreign"],
+  });
+  const result = await createHandler(fixture.value, () => now)(request);
+  assert.equal(result.decision, "BLOCKED_UNEXPECTED_CELL_STACKS");
+  assert.deepEqual(result.unexpectedCellStacks, ["techlong-sandbox-cell-foreign"]);
+  assert.equal(result.mutationPerformed, false);
+});
+
+test("plan-only coordinator binds exact Stack, template, inventory and authority", async () => {
+  const fixture = api();
+  const result = await createHandler(fixture.value, () => now)(request);
+  assert.deepEqual(result, {
+    schemaVersion: 1,
+    action: "inspect_cell_cleanup_plan",
+    coordinatorMode: "PLAN_ONLY",
+    decision: "PLAN_READY_MUTATION_DISABLED",
+    mutationPerformed: false,
+    cellStack: stackId,
+    authorityRevision: 7,
+    authorityRecordHash: authorityRecord().recordHash,
+    generation: 1,
+    provisionEpoch: 1,
+    cleanupEpoch: 2,
+    templateCanonicalSha256: sha256Canonical(template),
+    resourceInventorySha256: resourceInventoryHash(resources),
+    tenantStacks: [],
+  });
+  assert.deepEqual(new Set(fixture.calls), new Set([
+    "listStackNames",
+    "describeStack",
+    "getTemplate",
+    "listStackResources",
+    "getAuthorityItem",
+  ]));
+});
+
+test("authority record rejects missing, expired, noncanonical and drifted evidence", async () => {
+  const cases = [
+    { item: null, code: "CELL_CLEANUP_AUTHORITY_MISSING" },
+    {
+      item: authorityItem({ expiresAt: new Date(now - 1).toISOString() }),
+      code: "CELL_CLEANUP_AUTHORITY_EXPIRED",
     },
-  ]) {
+    {
+      item: { ...authorityItem(), record_json: JSON.stringify(authorityRecord()) },
+      code: "CELL_CLEANUP_AUTHORITY_INVALID",
+    },
+    {
+      item: authorityItem({ stackId: stackId.replace(/12345678/, "87654321") }),
+      code: "CELL_CLEANUP_AUTHORITY_DRIFT",
+    },
+    {
+      item: authorityItem({ templateCanonicalSha256: "c".repeat(64) }),
+      code: "CELL_CLEANUP_AUTHORITY_DRIFT",
+    },
+  ];
+  for (const entry of cases) {
+    const fixture = api({ getAuthorityItem: async () => entry.item });
     await assert.rejects(
-      handler(event),
-      /invalid empty Shared Cell inventory request/,
+      createHandler(fixture.value, () => now)(request),
+      (error) => {
+        assert.equal(error.code, entry.code);
+        return true;
+      },
     );
   }
-  assert.equal(calls, 0);
 });
 
-test("Cell Janitor empty inventory inspection is idempotent and never deletes", async () => {
-  let lists = 0;
-  let mutations = 0;
-  const handler = createHandler({
-    listStackNames: async () => {
-      lists += 1;
-      return [];
-    },
-    listTenantStacks: async () => {
-      mutations += 1;
-      return [];
-    },
-    describeStack: async () => {
-      mutations += 1;
-    },
-    deleteTenantStack: async () => {
-      mutations += 1;
-    },
-    deleteStack: async () => {
-      mutations += 1;
-    },
-  });
-  const event = {
-    schemaVersion: 1,
-    action: "inspect_empty_shared_cell_inventory",
-  };
-  const first = await handler(event);
-  const second = await handler(event);
-  assert.deepEqual(second, first);
-  assert.equal(lists, 2);
-  assert.equal(mutations, 0);
+test("authority hash and epoch marker drift fail closed", () => {
+  const item = authorityItem();
+  const record = JSON.parse(item.record_json);
+  assert.throws(
+    () => validateAuthorityItem({ ...item, record_json: canonicalJson({ ...record, recordHash: "f".repeat(64) }) }, now),
+    (error) => error.code === "CELL_CLEANUP_AUTHORITY_HASH_MISMATCH",
+  );
+  const markerDrift = authorityRecord({ cleanupMarker: "tl_cell_epoch_cell-sandbox-1_g1_e9" });
+  assert.throws(
+    () => validateAuthorityItem({ ...item, record_json: canonicalJson(markerDrift) }, now),
+    (error) => error.code === "CELL_CLEANUP_AUTHORITY_INVALID",
+  );
 });
 
-test("deployed J4b runtime permits only the read-only empty inventory action", () => {
-  const lockedEnvironment = {
+test("DynamoDB item decoder accepts only the four exact projected attributes", () => {
+  const item = authorityItem();
+  assert.deepEqual(decodeAuthorityItem({
+    authority_key: { S: item.authority_key },
+    schema_version: { N: String(item.schema_version) },
+    revision: { N: String(item.revision) },
+    record_json: { S: item.record_json },
+  }), item);
+  assert.throws(
+    () => decodeAuthorityItem({
+      authority_key: { S: item.authority_key },
+      schema_version: { N: "1" },
+      revision: { N: "7" },
+      record_json: { S: item.record_json },
+      foreign: { S: "no" },
+    }),
+    (error) => error.code === "CELL_CLEANUP_AUTHORITY_INVALID",
+  );
+});
+
+test("request and runtime configuration are exact and planner source has no delete command", async () => {
+  const fixture = api();
+  for (const event of [
+    {},
+    { schemaVersion: "1", action: "inspect_cell_cleanup_plan" },
+    { schemaVersion: 1, action: "delete_shared_cell_stack" },
+    { schemaVersion: 1, action: "inspect_cell_cleanup_plan", stackName },
+  ]) {
+    await assert.rejects(
+      createHandler(fixture.value, () => now)(event),
+      (error) => error.code === "CELL_CLEANUP_REQUEST_INVALID",
+    );
+  }
+  const environment = {
     EXPECTED_ACCOUNT_ID: "402010193138",
     EXPECTED_REGION: "ca-central-1",
     EXPECTED_CELL_ID: "cell-sandbox-1",
+    CELL_CLEANUP_AUTHORITY_KEY: "cell:cell-sandbox-1",
+    CELL_CLEANUP_AUTHORITY_TABLE_ARN:
+      "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+    CELL_CLEANUP_COORDINATOR_MODE: "PLAN_ONLY",
     AWS_REGION: "ca-central-1",
-    CELL_MUTATION_ENABLED: "false",
   };
-  assert.doesNotThrow(() =>
-    assertRuntimeActionEnabled(
-      { schemaVersion: 1, action: "inspect_empty_shared_cell_inventory" },
-      lockedEnvironment,
-    ),
-  );
+  assert.doesNotThrow(() => assertRuntimeEnvironment(environment));
   assert.throws(
-    () =>
-      assertRuntimeActionEnabled(
-        { schemaVersion: 1, action: "scan_expired_shared_cell_stacks" },
-        lockedEnvironment,
-      ),
-    /mutation actions are disabled/,
+    () => assertRuntimeEnvironment({ ...environment, CELL_CLEANUP_COORDINATOR_MODE: "MUTATE" }),
+    (error) => error.code === "CELL_CLEANUP_RUNTIME_INVALID",
   );
-  assert.throws(
-    () =>
-      assertRuntimeActionEnabled(
-        { schemaVersion: 1, action: "inspect_empty_shared_cell_inventory" },
-        { ...lockedEnvironment, EXPECTED_ACCOUNT_ID: "000000000000" },
-      ),
-    /invalid Shared Cell Janitor runtime environment/,
+  const source = await readFile(
+    new URL("../ops/aws-sandbox/lambda/cell-janitor.cjs", import.meta.url),
+    "utf8",
   );
+  assert.doesNotMatch(source, /DeleteStackCommand|UpdateStackCommand|CreateChangeSetCommand/);
+  assert.doesNotMatch(source, /delete_shared_cell_stack|scan_expired_shared_cell_stacks/);
+  assert.match(source, /ConsistentRead:\s*true/);
+  assert.match(source, /mutationPerformed:\s*false/);
 });

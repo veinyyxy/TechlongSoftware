@@ -4,6 +4,7 @@ param(
   [string]$Mode = 'LocalValidate',
   [ValidateSet(
     'InitialLocked',
+    'LockedPolicyRefresh',
     'BootstrapAuthorGrant',
     'BootstrapAuthorRevoke',
     'BootstrapExecuteGrant',
@@ -63,6 +64,7 @@ $writePhrase = 'I_ACKNOWLEDGE_B5_CELL_BOOTSTRAP_MANAGEMENT_IAM_CHANGES'
 $deletePhrase = 'I_ACKNOWLEDGE_B5_CELL_BOOTSTRAP_MANAGEMENT_DELETE'
 $root = Split-Path -Parent $PSScriptRoot
 $renderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-management.mjs'
+$legacyRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-management-j4b-legacy.mjs'
 $childRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap.mjs'
 $childValidator = Join-Path $root 'scripts\validate-b5-cell-bootstrap.mjs'
 $validator = Join-Path $root 'scripts\validate-b5-cell-bootstrap-management.mjs'
@@ -151,6 +153,16 @@ function Get-ShapeContract {
         ChangeSetType = 'CREATE'
         ShapeToken = 'initial-locked'
         ExpectedAction = 'Add'
+        TargetLocked = $true
+      }
+    }
+    'LockedPolicyRefresh' {
+      return [PSCustomObject]@{
+        TargetRendererShape = 'Locked'
+        PreviousRendererShape = 'LegacyJ4bLocked'
+        ChangeSetType = 'UPDATE'
+        ShapeToken = 'j4c-locked-policy-refresh'
+        ExpectedAction = 'Modify'
         TargetLocked = $true
       }
     }
@@ -245,7 +257,7 @@ function Assert-ShapeInputs {
     'BootstrapExecuteGrant',
     'BootstrapExecuteRevoke'
   )
-  $requiresExpiry = $UpdateShape -ne 'InitialLocked'
+  $requiresExpiry = $UpdateShape -notin @('InitialLocked', 'LockedPolicyRefresh')
   if ($requiresApprovedName) {
     $expectedName = "techlong-s3-b5-cell-bootstrap-$($ChildSnapshot.RawSha256.Substring(0, 16))"
     if (
@@ -271,7 +283,7 @@ function Assert-ShapeInputs {
       }
     }
   } elseif (-not [string]::IsNullOrEmpty($GrantExpiresAt)) {
-    throw 'InitialLocked does not accept -GrantExpiresAt.'
+    throw "$UpdateShape does not accept -GrantExpiresAt."
   }
   if ($Mode -eq 'Delete' -and -not $Contract.TargetLocked) {
     throw 'Delete requires -UpdateShape InitialLocked and an exact deployed Locked template.'
@@ -369,6 +381,30 @@ function New-ReadOnlyTemplateSnapshot {
     RawSha256 = $rawHash
     CanonicalSha256 = $canonicalHash
     RendererShape = $RendererShape
+  }
+}
+
+function New-LegacyJ4bLockedSnapshot {
+  $path = [System.IO.Path]::Combine(
+    [System.IO.Path]::GetTempPath(),
+    "techlong-s3-b5-cell-bootstrap-management-j4b-$([Guid]::NewGuid().ToString('N')).json"
+  )
+  $renderOutput = ((& node $legacyRenderer --output $path) | Out-String).Trim()
+  if (
+    $LASTEXITCODE -ne 0 -or
+    [string]::IsNullOrWhiteSpace($renderOutput) -or
+    -not (Test-Path -LiteralPath $path -PathType Leaf)
+  ) {
+    throw 'Unable to reconstruct the fixed-hash legacy J4b Locked management snapshot.'
+  }
+  $item = Get-Item -LiteralPath $path
+  $item.IsReadOnly = $true
+  $canonicalHash = Get-CanonicalTemplateHash -TemplatePath $path
+  return [PSCustomObject]@{
+    Path = $path
+    RawSha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    CanonicalSha256 = $canonicalHash
+    RendererShape = 'LegacyJ4bLocked'
   }
 }
 
@@ -1123,6 +1159,9 @@ function Assert-ExactGetTemplateResponse {
 function New-PreviousShapeSnapshot {
   param([object]$Contract, [object]$ChildSnapshot)
   if ($Contract.PreviousRendererShape -eq 'Missing') { return $null }
+  if ($Contract.PreviousRendererShape -eq 'LegacyJ4bLocked') {
+    return New-LegacyJ4bLockedSnapshot
+  }
   $useGrantInputs = $Contract.PreviousRendererShape -ne 'Locked'
   return New-ReadOnlyTemplateSnapshot `
     -RendererShape $Contract.PreviousRendererShape `
@@ -1147,7 +1186,11 @@ function Assert-ExactPreviousState {
     return
   }
   $previousContract = [PSCustomObject]@{
-    TargetRendererShape = $Contract.PreviousRendererShape
+    TargetRendererShape = if ($Contract.PreviousRendererShape -eq 'LegacyJ4bLocked') {
+      'Locked'
+    } else {
+      $Contract.PreviousRendererShape
+    }
   }
   Assert-ExactStackReadback `
     -AwsCli $AwsCli `
@@ -1562,11 +1605,11 @@ function Get-ChangeSetContract {
   $binding = "$UpdateShape|$ApprovedChangeSetName|$GrantExpiresAt|$($Snapshot.RawSha256)|$($Snapshot.CanonicalSha256)"
   $bindingHash = Get-Sha256Text -Value $binding
   $name = "techlong-s3-b5-cell-bootstrap-management-$($Contract.ShapeToken)-$($bindingHash.Substring(0, 16))"
-  $description = "B5-J4b management; update-shape=$UpdateShape; raw-sha256=$($Snapshot.RawSha256); canonical-sha256=$($Snapshot.CanonicalSha256)"
+  $description = "B5-J4c management; update-shape=$UpdateShape; raw-sha256=$($Snapshot.RawSha256); canonical-sha256=$($Snapshot.CanonicalSha256)"
   return [PSCustomObject]@{
     Name = $name
     Description = $description
-    ClientToken = "b5j4b-management-$($bindingHash.Substring(0, 32))"
+    ClientToken = "b5j4c-management-$($bindingHash.Substring(0, 32))"
   }
 }
 
@@ -1636,6 +1679,11 @@ function Assert-ReviewedChangeSet {
       CellBootstrapExecutionBoundary = 'AWS::IAM::ManagedPolicy'
       CellBootstrapExecutionRole = 'AWS::IAM::Role'
     }
+  } elseif ($UpdateShape -eq 'LockedPolicyRefresh') {
+    @{
+      CellJanitorBoundary = 'AWS::IAM::ManagedPolicy'
+      CellBootstrapExecutionBoundary = 'AWS::IAM::ManagedPolicy'
+    }
   } else {
     @{ CellBootstrapManagerBoundary = 'AWS::IAM::ManagedPolicy' }
   }
@@ -1662,7 +1710,7 @@ function Assert-ReviewedChangeSet {
     if ($Contract.ChangeSetType -eq 'CREATE') {
       if ($scope.Count -ne 0) { throw "$logicalId Add unexpectedly contains a modification scope." }
     } elseif ($scope.Count -ne 1 -or [string]$scope[0] -cne 'Properties') {
-      throw 'The one reviewed manager-boundary update must modify Properties only.'
+      throw 'Every reviewed management policy update must modify Properties only.'
     }
   }
 }
@@ -1703,7 +1751,7 @@ function Assert-ExactApprovedChildChangeSet {
   if ($ApprovedChangeSetName -cne $expectedName) {
     throw "ExecuteGrant must target the exact child Change Set $expectedName."
   }
-  $expectedDescription = "B5-J4b cleanup-only bootstrap raw=$($ChildSnapshot.RawSha256) canonical=$($ChildSnapshot.CanonicalSha256)"
+  $expectedDescription = "B5-J4c plan-only cleanup planner raw=$($ChildSnapshot.RawSha256) canonical=$($ChildSnapshot.CanonicalSha256)"
   $changeSet = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
     'cloudformation', 'describe-change-set',
     '--profile', $Profile,
@@ -1727,7 +1775,10 @@ function Assert-ExactApprovedChildChangeSet {
   if (-not [string]::IsNullOrEmpty([string]$changeSet.RootChangeSetId)) { $failures.Add('root') }
   if ($changeSet.IncludeNestedStacks -ne $false) { $failures.Add('nested') }
   if ($changeSet.ImportExistingResources -eq $true) { $failures.Add('import') }
-  if ([string]$changeSet.OnStackFailure -cne 'DELETE') { $failures.Add('on_stack_failure') }
+  $isInitialCreate = [string]$changeSet.OnStackFailure -ceq 'DELETE'
+  if (-not $isInitialCreate -and -not [string]::IsNullOrEmpty([string]$changeSet.OnStackFailure)) {
+    $failures.Add('on_stack_failure')
+  }
   $rollbackTriggerProperty = $changeSet.RollbackConfiguration.PSObject.Properties['RollbackTriggers']
   if ($null -ne $rollbackTriggerProperty -and @($rollbackTriggerProperty.Value).Count -ne 0) {
     $failures.Add('rollback_triggers')
@@ -1741,22 +1792,23 @@ function Assert-ExactApprovedChildChangeSet {
   if ($failures.Count -ne 0) {
     throw "Approved child Change Set metadata drifted: $($failures -join ', ')."
   }
-  $placeholderResponse = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+  $stackResponse = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
     'cloudformation', 'describe-stacks',
     '--profile', $Profile,
     '--region', $expectedRegion,
     '--stack-name', ([string]$changeSet.StackId),
     '--output', 'json'
   )
-  $placeholderStacks = @($placeholderResponse.Stacks)
+  $stacks = @($stackResponse.Stacks)
+  $expectedStackStatus = if ($isInitialCreate) { 'REVIEW_IN_PROGRESS' } else { 'CREATE_COMPLETE' }
   if (
-    $placeholderStacks.Count -ne 1 -or
-    [string]$placeholderStacks[0].StackName -cne $childBootstrapStackName -or
-    [string]$placeholderStacks[0].StackId -cne [string]$changeSet.StackId -or
-    [string]$placeholderStacks[0].StackStatus -cne 'REVIEW_IN_PROGRESS' -or
-    [string]$placeholderStacks[0].RoleARN -cne $expectedExecutionRoleArn
+    $stacks.Count -ne 1 -or
+    [string]$stacks[0].StackName -cne $childBootstrapStackName -or
+    [string]$stacks[0].StackId -cne [string]$changeSet.StackId -or
+    [string]$stacks[0].StackStatus -cne $expectedStackStatus -or
+    [string]$stacks[0].RoleARN -cne $expectedExecutionRoleArn
   ) {
-    throw 'Approved child REVIEW_IN_PROGRESS Stack is not bound to the exact execution role.'
+    throw 'Approved child Change Set is not bound to the exact stable Stack and execution role.'
   }
   $parameters = ConvertTo-UniqueMap `
     -Entries @($changeSet.Parameters) `
@@ -1778,15 +1830,22 @@ function Assert-ExactApprovedChildChangeSet {
   if ($null -ne $changeSet.Capabilities -and @($changeSet.Capabilities).Count -ne 0) {
     throw 'Approved non-IAM child Change Set must declare zero capabilities.'
   }
-  $expectedResources = @{
-    CellJanitorLogGroup = 'AWS::Logs::LogGroup'
-    CellJanitorFunction = 'AWS::Lambda::Function'
-    CellSchedulerGroup = 'AWS::Scheduler::ScheduleGroup'
-    CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'
+  $expectedResources = if ($isInitialCreate) {
+    @{
+      CellJanitorLogGroup = 'AWS::Logs::LogGroup'
+      CellJanitorFunction = 'AWS::Lambda::Function'
+      CellSchedulerGroup = 'AWS::Scheduler::ScheduleGroup'
+      CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'
+    }
+  } else {
+    @{
+      CellJanitorFunction = 'AWS::Lambda::Function'
+      CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'
+    }
   }
   $changes = @($changeSet.Changes)
   if ($changes.Count -ne $expectedResources.Count) {
-    throw 'Approved child Change Set must contain exactly four resource additions.'
+    throw 'Approved child Change Set resource count drifted for its CREATE or UPDATE shape.'
   }
   $seen = @{}
   foreach ($entry in $changes) {
@@ -1796,15 +1855,33 @@ function Assert-ExactApprovedChildChangeSet {
       throw "Approved child Change Set contains unexpected or duplicate resource $logicalId."
     }
     $seen[$logicalId] = $true
-    if (
-      [string]$resource.Action -cne 'Add' -or
-      [string]$resource.ResourceType -cne $expectedResources[$logicalId] -or
-      [string]$resource.Replacement -notin @('', 'False') -or
-      @($resource.Scope).Count -ne 0 -or
-      -not [string]::IsNullOrEmpty([string]$resource.PhysicalResourceId) -or
-      -not [string]::IsNullOrEmpty([string]$resource.PolicyAction)
-    ) {
-      throw "Approved child Change Set resource shape drifted for $logicalId."
+    if ([string]$resource.ResourceType -cne $expectedResources[$logicalId]) {
+      throw "Approved child Change Set resource type drifted for $logicalId."
+    }
+    if ($isInitialCreate) {
+      if (
+        [string]$resource.Action -cne 'Add' -or
+        [string]$resource.Replacement -notin @('', 'False') -or
+        @($resource.Scope).Count -ne 0 -or
+        -not [string]::IsNullOrEmpty([string]$resource.PhysicalResourceId) -or
+        -not [string]::IsNullOrEmpty([string]$resource.PolicyAction)
+      ) { throw "Approved child CREATE resource shape drifted for $logicalId." }
+    } else {
+      if (
+        [string]$resource.Action -cne 'Modify' -or
+        [string]$resource.Replacement -cne 'False' -or
+        @($resource.Scope).Count -ne 1 -or
+        [string]$resource.Scope[0] -cne 'Properties' -or
+        -not [string]::IsNullOrEmpty([string]$resource.PolicyAction)
+      ) { throw "Approved child PlannerUpdate resource shape drifted for $logicalId." }
+      if (
+        $logicalId -eq 'CellJanitorFunction' -and
+        [string]$resource.PhysicalResourceId -cne 'techlong-sandbox-cell-janitor'
+      ) { throw 'Approved child PlannerUpdate Lambda physical ID drifted.' }
+      if (
+        $logicalId -eq 'CellGlobalJanitorSchedule' -and
+        [string]$resource.PhysicalResourceId -cnotmatch '^(?:arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/)?techlong-sandbox-cell-global-janitor$'
+      ) { throw 'Approved child PlannerUpdate Schedule physical ID drifted.' }
     }
   }
   Invoke-AwsJsonFile -AwsCli $AwsCli -Arguments @(
@@ -2102,9 +2179,9 @@ function Assert-ExactStackReadback {
   return $stack
 }
 
-Write-Host 'Running local B5-J4b Cell Bootstrap management validation...'
+Write-Host 'Running local B5-J4c Cell cleanup planner management validation...'
 & node $validator
-if ($LASTEXITCODE -ne 0) { throw 'Local B5-J4b management validation failed.' }
+if ($LASTEXITCODE -ne 0) { throw 'Local B5-J4c management validation failed.' }
 
 $contract = Get-ShapeContract
 $targetUsesGrantInputs = $contract.TargetRendererShape -ne 'Locked'

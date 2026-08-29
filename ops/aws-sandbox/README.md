@@ -272,7 +272,7 @@ Readback 必须同时对账 `CREATE_COMPLETE`、单资源 inventory、`GetTempla
 .\ops\aws-sandbox\scripts\s3-b5-cell-bootstrap.ps1 -Mode LocalValidate
 ```
 
-管理脚本提供 `LocalValidate`、`OnlineValidate`、`CreateChangeSet`、`InspectChangeSet`、`ExecuteChangeSet`、`Readback`、`Delete`，并只接受 `InitialLocked`、`BootstrapAuthorGrant/Revoke`、`BootstrapExecuteGrant/Revoke`、`BootstrapRollbackGrant/Revoke` 七种 UpdateShape。child 脚本另提供 `ProbeJanitor`。所有在线路径都拒绝静态凭据与 endpoint override，要求 exact AWS CLI `login_session` source user/MFA、随机只读 snapshot、raw + canonical 双哈希确认、deterministic Change Set、严格 `GetTemplate(Original)`/参数/tag/resource diff/readback 和 IAM simulation。AuthorGrant 还精确绑定 digest-addressed `TemplateUrl`、child execution `RoleARN`、`ChangeSetName` 与 `AWS::Logs::LogGroup`、`AWS::Lambda::Function`、`AWS::Scheduler::ScheduleGroup`、`AWS::Scheduler::Schedule` 四种 `ResourceTypes`，并且只可读取 exact 模板对象；ExecuteGrant 创建前必须先对账既有 child Change Set 和 `GetTemplate(Original)`。
+管理脚本提供 `LocalValidate`、`OnlineValidate`、`CreateChangeSet`、`InspectChangeSet`、`ExecuteChangeSet`、`Readback`、`Delete`，并只接受 `InitialLocked`、`LockedPolicyRefresh`、`BootstrapAuthorGrant/Revoke`、`BootstrapExecuteGrant/Revoke`、`BootstrapRollbackGrant/Revoke` 八种 UpdateShape。child 脚本另提供 `ProbeJanitor`。所有在线路径都拒绝静态凭据与 endpoint override，要求 exact AWS CLI `login_session` source user/MFA、随机只读 snapshot、raw + canonical 双哈希确认、deterministic Change Set、严格 `GetTemplate(Original)`/参数/tag/resource diff/readback 和 IAM simulation。AuthorGrant 还精确绑定 digest-addressed `TemplateUrl`、child execution `RoleARN`、`ChangeSetName` 与 `AWS::Logs::LogGroup`、`AWS::Lambda::Function`、`AWS::Scheduler::ScheduleGroup`、`AWS::Scheduler::Schedule` 四种 `ResourceTypes`，并且只可读取 exact 模板对象；ExecuteGrant 创建前必须先对账既有 child Change Set 和 `GetTemplate(Original)`。
 
 正常 child 创建必须按 `Locked → AuthorGrant → Locked → ExecuteGrant → Locked` 分五个受审步骤完成：AuthorGrant 只允许从上述 exact TemplateUrl 为 exact child 创建 Change Set，随后立即 revoke；ExecuteGrant 只允许执行已经过精确预检的 exact Change Set，随后立即 revoke。删除 child 只能临时进入 `RollbackGrant`，并在 child 不存在或安全删除证据通过后回到 `Locked`；管理根只有在 child 已不存在且自身为 exact Locked 模板时才可删除。
 
@@ -285,6 +285,16 @@ Readback 必须同时对账 `CREATE_COMPLETE`、单资源 inventory、`GetTempla
 - 严格 readback evidence SHA-256 为 `b6e8083c3c04de9daccecfe3ca1e0c242ae2b27131f0c683ec2097f795ae97cc`。`ProbeJanitor` 的 evidence SHA-256 为 `d77199f776408f75d722176805ba09853caee51ee4639b87d879b013d4a967ca`；两次低成本调用均返回相同 empty inventory，未请求或执行任何删除。
 
 该部署只建立 cleanup-only/只读基础，不批准付费 Cell。未创建付费 Shared Cell，也未创建 VPC、ALB、ECS cluster/service 或运行中的 task、RDS/Aurora、Route 53 资源，且没有执行 `RunTask`；既有 inspect-only `tenant-lifecycle:1` TaskDefinition 不变。`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 全部保持不变。digest-addressed S3 对象、Lambda 调用、CloudWatch Logs 和 Scheduler 仍可能产生少量用量费用，因此只能称为低成本，不能保证绝对零费用。此前已确认 IAM User 绑定 MFA，并成功建立受限 AssumeRole 会话；既有 S3-A 与 J4b 模板都不修改现有 IAM User 或 Administrators 组，SaaS Worker Apply 继续保持关闭。
+
+### B5-J4c PlannerUpdate（2026-08-28 已部署）
+
+J4c 已将既有 J4b child 原地更新为 ownership-fenced、authority-bound 的 plan-only cleanup planner。management `LockedPolicyRefresh` 只修改 `CellJanitorBoundary` 与 `CellBootstrapExecutionBoundary` 两个 ManagedPolicy，均为 `Replacement=False`；执行授权仍经过 `Locked → AuthorGrant → Locked → ExecuteGrant → Locked`，最终 management 已恢复 exact `LOCKED`。
+
+- management 最终 Locked 模板 raw/canonical SHA-256 为 `93f37b585812b49f540a317bfdbdd45a374705347288a2c998c229d31231f9ec` / `1be6a039a759acbf9c8d3211981400122c549bff0be6073e3df008c51b08ae12`。
+- child PlannerUpdate Change Set 为 `techlong-s3-b5-cell-bootstrap-a14e9898ed7af636`（ID `arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-s3-b5-cell-bootstrap-a14e9898ed7af636/9b883194-0385-4b7d-ae0a-474be55225f4`），TemplateURL 为 `https://techlong-sandbox-build-source-402010193138-ca-central-1.s3.ca-central-1.amazonaws.com/b5-cell-bootstrap/templates/sha256/a14e9898ed7af636dfdb7f5c509d93b317b604a591aadb4a67d0f956e7a9d986.json`。
+- child 模板 raw/canonical SHA-256 为 `a14e9898ed7af636dfdb7f5c509d93b317b604a591aadb4a67d0f956e7a9d986` / `74379232124d94b1d2ffb4322edaecd0bdb0534444b8961295175ecadc06c09c`。既有 child Stack 完成 `UPDATE_COMPLETE`，严格 readback evidence canonical SHA-256 为 `bb74dbdd8000d94f5a68d5b69d5d3e982f4dbc0738af0c784b04d1819136a258`。
+- `ProbeJanitor` 的两次调用均返回 `ABSENT_SAFE` 和相同空 inventory；probe evidence canonical SHA-256 为 `ef7699c9c005eed98077f2e43ebfae8caa78069fff269b5b7db6a645875f3835`，没有请求或执行 mutation。
+- Schedule 继续为 `DISABLED`；`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false`。本次更新没有创建付费 Shared Cell、VPC、ALB、ECS cluster/service/task、Aurora/RDS 或 Route 53 资源，也没有执行 `RunTask`。
 
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 

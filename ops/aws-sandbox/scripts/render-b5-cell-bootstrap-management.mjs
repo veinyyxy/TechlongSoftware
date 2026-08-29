@@ -268,7 +268,7 @@ export async function renderB5CellBootstrapManagementTemplate({
     statements.push(...rollbackStatements(grantExpiresAt));
   }
   template.Description =
-    `B5-J4b IAM-only Cell Bootstrap management root (${shape}); it cannot create a Shared Cell.`;
+    `B5-J4c IAM-only plan-only Cell cleanup management root (${shape}); it cannot create or delete a Shared Cell.`;
   const rendered = `${JSON.stringify(template)}\n`;
   if (Buffer.byteLength(rendered, "utf8") > maximumDirectTemplateBytes) {
     throw new Error("rendered B5 Cell Bootstrap management template exceeds the direct-body limit");

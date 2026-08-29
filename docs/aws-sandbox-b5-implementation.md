@@ -20,10 +20,10 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 
 ### B5-C：独立 Shared Cell Bootstrap
 
-- 2026-08-26，B5-J4b 已部署并完成严格回读。固定管理 Stack `techlong-s3-b5-cell-bootstrap-management` 与租户 Worker 权限分离，持有 Manager、CloudFormation execution、Janitor、Scheduler 四组 boundary + role，共 8 个 IAM 资源，最终权限形状为 `LOCKED`。
-- 实际部署授权完整经过 `Locked → AuthorGrant → Locked → ExecuteGrant → Locked`，两个临时 grant 均在对应操作后立即撤销。后续删除 child Bootstrap 时仍只允许使用 `RollbackGrant → Locked`；每个临时 grant 都必须由独立、可审查的 deterministic Change Set 打开并立即撤销。
-- 固定 child Stack `techlong-s3-b5-cell-bootstrap` 已达到 `CREATE_COMPLETE`，只含 LogGroup、只读 inventory Lambda、ScheduleGroup 和状态为 `DISABLED`、表达式为 `rate(15 minutes)` 的 Schedule，共 4 个非 IAM 资源。child 模板不拥有 IAM lifecycle；外置 CloudFormation execution role 只能 `PassRole` 给外置的最小 Janitor Role 与 Scheduler Role。
-- child 仅提供 cleanup/read-only inventory 基础，不创建、更新或删除 Shared Cell；两次显式 probe 均返回一致的空 inventory，且没有执行删除。它不是可变更或完整删除协调器。`registrationReady`、`liveReadbackReady`、`applyRuntimeReady`、`cleanupRuntimeReady` 全部固定为 `false`，J4b 部署完成不构成付费 Cell 批准。
+- 2026-08-28，B5-J4c ownership-fenced plan-only cleanup planner 已通过 PlannerUpdate 部署并完成严格回读。固定管理 Stack `techlong-s3-b5-cell-bootstrap-management` 继续与租户 Worker 权限分离，持有 Manager、CloudFormation execution、Janitor、Scheduler 四组 boundary + role，共 8 个 IAM 资源，最终权限形状恢复为 `LOCKED`。
+- J4c 更新授权完整经过 `Locked → AuthorGrant → Locked → ExecuteGrant → Locked`，两个临时 grant 均在对应操作后撤销；management locked refresh 只原地修改 `CellJanitorBoundary` 与 `CellBootstrapExecutionBoundary`，没有 replacement 或额外 Role 修改。后续删除 child Bootstrap 时仍只允许使用 `RollbackGrant → Locked`。
+- 固定 child Stack `techlong-s3-b5-cell-bootstrap` 已达到 `UPDATE_COMPLETE`，继续只含 LogGroup、plan-only Janitor Lambda、ScheduleGroup 和状态为 `DISABLED`、表达式为 `rate(15 minutes)` 的 Schedule，共 4 个非 IAM 资源。child 模板不拥有 IAM lifecycle；外置 CloudFormation execution role 只能 `PassRole` 给外置的最小 Janitor Role 与 Scheduler Role。
+- child 仅提供 ownership-fenced、authority-bound 的 plan-only cleanup 基础，不创建、更新或删除 Shared Cell；两次显式 probe 均返回 `ABSENT_SAFE` 和一致的空 inventory，且没有执行 mutation。`registrationReady`、`liveReadbackReady`、`applyRuntimeReady`、`cleanupRuntimeReady` 全部固定为 `false`，J4c 部署完成不构成付费 Cell 批准。
 - render-only Cell 模板现包含独立 `OneShotTaskSecurityGroup` 及 `OneShotTaskSecurityGroupId` 输出。该 SG 零入站，出站仅允许 TCP 443 到 `0.0.0.0/0` 和 TCP 5432 到 exact DB SG；DB SG 的 5432 入站也只接受 tenant app SG 与 one-shot SG。只读 preflight 会验证公共 task subnet、输出绑定的 one-shot SG/VPC/所有权/TTL、零入站、两条 exact 出站和 DB 的两个 exact 来源；同时通过注入式 `DescribeRouteTables`/`DescribeInternetGateways` 证明每个 app/one-shot 公共子网有 active exact association 和唯一 `0.0.0.0/0 -> attached VPC IGW`，并拒绝 DB 子网的 IPv4/IPv6 default、IGW、NAT 或 EIGW 路由。普通 app task SG 仍只接受 ALB:3000。
 - NAT Gateway、VPC Endpoint、传统 EC2、RDS Proxy、Global Database、快照恢复、Reserved Purchase 和第二个 Cell 均保持拒绝。
 
@@ -60,6 +60,7 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - 平台新增可注入的 AWS SDK v3 S3 receipt reader，专门读取 account-owned、region-pinned、tenant/generation scoped 的固定 object key：`tenant-lifecycle/v1/<tenant-hash>/gN/<idempotency-hash>.json`。Reader 在 `GetObject` 前先校验 exact task/request/location 绑定，要求 `ExpectedBucketOwner`、`ChecksumMode=ENABLED`、`ServerSideEncryption=AES256`、`ChecksumType=FULL_OBJECT`、canonical UTF-8 JSON 和 full-object SHA-256，然后才把 raw envelope 与独立验证过的 ECS task ARN、exact request 组装成最终 receipt hash。任务程序本身不能写入 `taskArn`、`requestHash` 或最终 `receiptHash`。
 - 订单服务端新增默认禁用的 immutable raw receipt publisher：只向 reviewed sandbox bucket 写入 canonical flat envelope `schemaVersion / operation / resourceGeneration / ownershipMarker / externalEpoch / externalMarker / externalOperationHash / output / outputHash`。首次写入使用条件 `If-None-Match: *`、`ExpectedBucketOwner`、AES256 和 SHA-256 checksum；遇到 412 或响应不确定时，只能通过重新读取同一 key 且逐字节匹配 canonical bytes 才能视为幂等成功。
 - authority-derived exact provision predecessor 现已贯穿 cleanup contracts、ownership proof、Tenant DB/Secret adapter 和 workload one-shot destroy 路径。cleanup 只允许删除“当前 cleanup epoch 的 authority record 所保存的那个上一条 provision predecessor”；缺失 predecessor、跨 generation、cleanup/foreign predecessor 或任意 marker/hash 漂移，都会在 provider 调用前 non-retryable fail closed。
+- 平台现有独立的 CloudFormation workload 删除 Adapter 源码，但仍未接入默认 Worker root。它只接受 Account `402010193138`、配置的 exact Region 和 `TechlongSandboxCloudFormationExecutionRole`，并在每次 Stack readback 及 `DeleteStack` 前重新确认 caller 为 exact `TechlongSandboxProvisionerRole` assumed-role session；待删 Stack 必须携带 authority-derived provision predecessor 的 generation、deployment 和 external-operation tags。SDK factory 只构造一个显式 default credential provider 并把同一实例交给 STS 与 CloudFormation；destructive provider boundary 的 caller verifier 为必填且紧邻 `DeleteStack`。成功但空、多项或缺少 StackId/StackStatus 的 `DescribeStacks` 会 hard fail，只有 `name=ValidationError` 且消息精确绑定本次 Stack name 时才能成为 authoritative `missing`。删除使用由 idempotency key、resource fence、cleanup epoch 与 predecessor 共同派生的稳定 ClientRequestToken，并以有界独立 readback 证明 Stack 严格 `missing` 后才返回成功；`DELETE_FAILED`、响应丢失后仍存在、caller 漂移或 lease abort 都 fail closed。该源码和测试不会调用 AWS，也没有改变任何 readiness gate。
 - standalone Worker root 现在统一通过默认 `offline_only` composition 构造依赖：只暴露 disabled shared-cell preflight、tenant database、control compiler/client，且同时保持 `applyRuntimeReady=false`、`cleanupRuntimeReady=false`。即使仓库中已经存在 SDK adapters、receipt reader 或 cleanup path 源码，root 也不会创建 live AWS/Neon/runtime provider，更不会 claim 任何 apply/reconcile/cleanup job。
 - B5-H 切片完成时尚未创建真实 S3 receipt bucket/IAM/task role；后续 B5-I support update 已部署这些低成本支撑资源，但仍没有接线 backend real Secret/PG lifecycle provider、approved baseline 或 Worker live root。`0005`–`0007` 仍未应用到 Neon。因此 B5-H 的源码边界和 fail-closed 证明仍不代表可以启用 Apply/Cleanup 或运行真实 ECS canary。
 
@@ -119,6 +120,15 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - 已部署的是只读 inventory Janitor 基础，不是可变更或完整删除协调器。本切片没有创建 Shared Cell、VPC、ALB、ECS cluster/service 或运行中的 task、Aurora/RDS、Route 53 资源，也没有执行 `RunTask`；既有 inspect-only `tenant-lifecycle:1` TaskDefinition 不变。Lambda、Scheduler 及 S3 模板对象会产生少量请求、日志或存储用量，低成本不等于绝对零费用；`$10` Budget 也不是实时硬停。
 - 四个付费就绪门禁仍精确为 `registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false`。任何 Cell 创建、数据库访问、可变更/完整删除协调器接线或 ECS `RunTask` 仍需后续独立批准。
 
+### B5-J4c：ownership-fenced plan-only cleanup planner（2026-08-28 已部署）
+
+- J4c 已把 J4b inventory Lambda 原地更新为只读、authority-bound 的 cleanup planner，并继续保持 Schedule `DISABLED`、无任何 CloudFormation mutating command。management 的 locked refresh 只修改 `CellJanitorBoundary` 与 `CellBootstrapExecutionBoundary` 两个 `PolicyDocument`，两项均为 `Replacement=False`；没有修改 Role，也没有替换 ManagedPolicy。
+- Janitor inventory 只精确排除两个 tenant-prefix 支撑 Stack：`techlong-sandbox-tenant-b5j3` 与 `techlong-sandbox-tenant-b5j4logs`。任意真实租户 Stack、相似拼写或加后缀的名称仍返回 `BLOCKED_TENANT_STACKS`；没有 Cell 且只有这两个支撑 Stack 时返回 `ABSENT_SAFE`。
+- management Stack 最终恢复 exact `LOCKED`，模板 raw/canonical SHA-256 为 `93f37b585812b49f540a317bfdbdd45a374705347288a2c998c229d31231f9ec` / `1be6a039a759acbf9c8d3211981400122c549bff0be6073e3df008c51b08ae12`。
+- 执行的 child PlannerUpdate Change Set 为 `techlong-s3-b5-cell-bootstrap-a14e9898ed7af636`（ID `arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-s3-b5-cell-bootstrap-a14e9898ed7af636/9b883194-0385-4b7d-ae0a-474be55225f4`）。child 模板 raw/canonical SHA-256 为 `a14e9898ed7af636dfdb7f5c509d93b317b604a591aadb4a67d0f956e7a9d986` / `74379232124d94b1d2ffb4322edaecd0bdb0534444b8961295175ecadc06c09c`。
+- child Stack `techlong-s3-b5-cell-bootstrap`（StackId `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-bootstrap/2477b820-a174-11f1-aca9-0668f7a50fdf`）完成 `UPDATE_COMPLETE` 严格回读；readback evidence canonical SHA-256 为 `bb74dbdd8000d94f5a68d5b69d5d3e982f4dbc0738af0c784b04d1819136a258`。
+- 随后的双 probe 均返回 `ABSENT_SAFE` 和相同空 inventory；probe evidence canonical SHA-256 为 `ef7699c9c005eed98077f2e43ebfae8caa78069fff269b5b7db6a645875f3835`，没有请求或执行删除及其他 mutation。Schedule 保持 `DISABLED`，四个 readiness gate 全部为 `false`，且没有创建付费 Shared Cell、VPC、ALB、ECS、Aurora/RDS 或 Route 53 资源。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：
@@ -132,13 +142,13 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 7. 尚未进行真实 Cell TTL 删除演练和费用后核对。
 8. DynamoDB authority Adapter 和订单服务 `POST /api/saas/provision` 单调 epoch CAS 仅存在于未接线/未部署源码中；其他控制写接口仍未 fence，也没有完成数据库迁移、跨进程 CAS、AWS 条件写或 provider-side 删除演练。`AbortSignal` 不能撤销服务端已经接受的写入。
 9. B5-J2 的 CloudFormation IAM 已经由 `LifecycleReadback` 三阶段路径执行并在线回读；B5-J3 又完成 `tenant-lifecycle:1` 注册、正向 `DescribeTaskDefinition` exact readback 和临时注册权限撤销；B5-J4a 已完成独立 lifecycle LogGroup Stack 创建与两次 strict readback。仍没有 Cell、runtime config 或 `RunTask` 执行证据。
-10. B5-J4b 的 8-IAM-resource 管理根与 4-non-IAM-resource cleanup-only child 已部署并严格回读，临时 grant 已撤销，Schedule 保持 `DISABLED`，两次 probe 均为空且未删除资源；但它只有 read-only inventory 能力，不是完整 cleanup coordinator，不能据此打开任何 readiness gate。
+10. B5-J4c ownership-fenced plan-only child 已通过 PlannerUpdate 部署并严格回读，management 临时 grant 已撤销并恢复 exact `LOCKED`，Schedule 保持 `DISABLED`，双 probe 均返回 `ABSENT_SAFE` 且没有 mutation；但它仍不是完整 cleanup coordinator，不能据此打开任何 readiness gate。
 
 ## 费用与执行规则
 
-- 源码、迁移文件、模板渲染和本地测试本身不调用 AWS，不访问 Neon，也不应用迁移；最近的在线写入是 2026-08-26 已受审的 B5-J4b management/child Bootstrap。它没有创建或运行 ECS、Shared Cell、VPC、ALB、Aurora/RDS 或 Route 53 资源，也没有执行 `RunTask`；`0005`–`0007` 继续只是仓库文件，没有访问 Neon 或真实 PostgreSQL。
+- 源码、迁移文件、模板渲染和本地测试本身不调用 AWS，不访问 Neon，也不应用迁移；最近的在线写入是 2026-08-28 已受审的 B5-J4c PlannerUpdate。它没有创建或运行 ECS、Shared Cell、VPC、ALB、Aurora/RDS 或 Route 53 资源，也没有执行 `RunTask`；`0005`–`0007` 继续只是仓库文件，没有访问 Neon 或真实 PostgreSQL。
 - `$10` Budget 是延迟告警，不是实时费用硬停。
-- 创建 Lambda/Scheduler Bootstrap、B5 support S3/DynamoDB、ALB、Aurora 或运行 ECS/CodeBuild 都可能产生费用。B5-J4b management/child Stack 已部署，Schedule 保持 `DISABLED`，但 Lambda、Scheduler、CloudWatch Logs 与 S3 对象仍可能产生少量费用，不能保证绝对为零；`LifecycleReadback` IAM 更新、Build #4 和 TaskDefinition 注册/readback 也已完成。注册不授权 `RunTask`，临时 CloudFormation LifecycleTaskRole PassRole 也已撤销；当前不运行 ECS task。任何 Cell 创建、Worker Apply 或数据库写入仍必须另行获得明确确认。
+- 创建 Lambda/Scheduler Bootstrap、B5 support S3/DynamoDB、ALB、Aurora 或运行 ECS/CodeBuild 都可能产生费用。B5-J4c management/child PlannerUpdate 已部署并恢复 `LOCKED`，Schedule 保持 `DISABLED`，但 Lambda、Scheduler、CloudWatch Logs 与 S3 对象仍可能产生少量费用，不能保证绝对为零；`LifecycleReadback` IAM 更新、Build #4 和 TaskDefinition 注册/readback 也已完成。注册不授权 `RunTask`，临时 CloudFormation LifecycleTaskRole PassRole 也已撤销；当前不运行 ECS task。任何 Cell 创建、Worker Apply 或数据库写入仍必须另行获得明确确认。
 - `infra/`、`.env.local`、证书、私钥、数据库密码和 AWS 长期凭据不得进入 Git。
 
 ## 本地验证

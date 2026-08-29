@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   AwsSdkDeploymentAdapter,
   createAwsSdkDeploymentAdapter,
+  createAwsSdkDeploymentAdapterFromModules,
 } from "../lib/deployments/execution/aws-sdk-adapter.ts";
 import { EmbeddedCloudFormationCleanupSchedule } from "../lib/deployments/execution/cleanup.ts";
 import { MtlsSaaSControlClient } from "../lib/deployments/execution/control-client.ts";
@@ -1624,7 +1625,10 @@ test("CloudFormation adapter creates once and treats a repeated no-update reques
       if (options?.abortSignal) observedSignals.push(options.abortSignal);
       if (command instanceof DescribeStacksCommand) {
         if (!exists) {
-          throw Object.assign(new Error("Stack does not exist"), { name: "ValidationError" });
+          throw Object.assign(
+            new Error(`Stack with id ${stack.stackName} does not exist`),
+            { name: "ValidationError" },
+          );
         }
         return {
           Stacks: [
@@ -1803,6 +1807,7 @@ test("a different deployment cannot update or delete the durable app stack", asy
         clientRequestToken: "delete-current-deployment",
         expectedTags: stack.tags,
         cloudFormationRoleArn: stack.cloudFormationRoleArn,
+        verifyCaller: async () => {},
         signal: signal(),
       }),
     (error: unknown) =>
@@ -1878,6 +1883,60 @@ test("declared AWS SDK runtime packages construct the adapter without making a r
   assert.equal(adapter.region, environment.region);
 });
 
+test("AWS SDK adapter factory gives STS and CloudFormation one shared credential provider", () => {
+  class TestCommand {
+    readonly input: Record<string, unknown>;
+    constructor(input: Record<string, unknown>) {
+      this.input = input;
+    }
+  }
+  let providerCalls = 0;
+  const sharedCredentials = async () => ({ accessKeyId: "test", secretAccessKey: "test" });
+  const clientConfigurations: Record<string, Record<string, unknown>> = {};
+  class STSClient {
+    constructor(configuration: Record<string, unknown>) {
+      clientConfigurations.sts = configuration;
+    }
+    async send(): Promise<Record<string, unknown>> {
+      return {};
+    }
+  }
+  class CloudFormationClient {
+    constructor(configuration: Record<string, unknown>) {
+      clientConfigurations.cloudFormation = configuration;
+    }
+    async send(): Promise<Record<string, unknown>> {
+      return {};
+    }
+  }
+
+  const adapter = createAwsSdkDeploymentAdapterFromModules(
+    environment.region,
+    {
+      STSClient,
+      GetCallerIdentityCommand: TestCommand,
+    },
+    {
+      CloudFormationClient,
+      DescribeStacksCommand: TestCommand,
+      CreateStackCommand: TestCommand,
+      UpdateStackCommand: TestCommand,
+      DeleteStackCommand: TestCommand,
+    },
+    {
+      defaultProvider: () => {
+        providerCalls += 1;
+        return sharedCredentials;
+      },
+    },
+  );
+
+  assert.equal(adapter.region, environment.region);
+  assert.equal(providerCalls, 1);
+  assert.equal(clientConfigurations.sts.credentials, sharedCredentials);
+  assert.equal(clientConfigurations.cloudFormation.credentials, sharedCredentials);
+});
+
 test("CloudFormation adapter resumes owned creates and treats delete-in-progress as idempotent", async () => {
   const { stack } = await executionFixture();
   class TestCommand {
@@ -1943,6 +2002,7 @@ test("CloudFormation adapter resumes owned creates and treats delete-in-progress
         clientRequestToken: `delete-${stack.clientRequestToken}`.slice(0, 128),
         expectedTags: stack.tags,
         cloudFormationRoleArn: stack.cloudFormationRoleArn,
+        verifyCaller: async () => {},
         signal: signal(),
       })
     ).operation,
@@ -1958,6 +2018,7 @@ test("CloudFormation adapter resumes owned creates and treats delete-in-progress
         clientRequestToken: `delete-${stack.clientRequestToken}`.slice(0, 128),
         expectedTags: stack.tags,
         cloudFormationRoleArn: stack.cloudFormationRoleArn,
+        verifyCaller: async () => {},
         signal: signal(),
       })
     ).operation,

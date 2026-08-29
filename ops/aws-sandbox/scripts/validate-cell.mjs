@@ -136,11 +136,15 @@ assert.equal(resources.CellDatabaseCluster.DeletionPolicy, "Delete");
 assert.equal(resources.CellDatabaseLogGroup.Properties.RetentionInDays, 1);
 assert.equal(resources.CellDatabaseLogGroup.DeletionPolicy, "Delete");
 
-assert.match(janitorSource, /listTenantStacks/);
-assert.match(janitorSource, /CELL_TENANT_DRAIN_IN_PROGRESS/);
-assert.match(janitorSource, /isOwnedTenantStackForCell/);
-assert.match(janitorSource, /inspect_empty_shared_cell_inventory/);
-assert.match(janitorSource, /CELL_MUTATION_ENABLED/);
-assert.match(janitorSource, /mutation actions are disabled/);
+assert.match(janitorSource, /listStackNames/);
+assert.match(janitorSource, /inspect_cell_cleanup_plan/);
+assert.match(janitorSource, /PLAN_ONLY/);
+assert.match(janitorSource, /ConsistentRead:\s*true/);
+assert.match(janitorSource, /techlong-sandbox-tenant-b5j3/);
+assert.match(janitorSource, /techlong-sandbox-tenant-b5j4logs/);
+assert.doesNotMatch(
+  janitorSource,
+  /DeleteStackCommand|UpdateStackCommand|CreateChangeSetCommand/,
+);
 
-console.log("Shared Cell render, TTL ordering and locked Janitor source validation passed.");
+console.log("Shared Cell render, TTL ordering and plan-only Janitor source validation passed.");

@@ -23,6 +23,7 @@ type AwsSdkClientConstructor = new (
 type AwsSdkCommandConstructor = new (
   input: Record<string, unknown>,
 ) => unknown;
+type AwsCredentialProvider = () => Promise<Record<string, unknown>>;
 
 export interface AwsSdkAdapterDependencies {
   stsClient: AwsSdkClient;
@@ -69,11 +70,11 @@ function rethrowAbort(signal: AbortSignal): void {
       });
 }
 
-function isStackMissing(error: unknown): boolean {
+function isStackMissing(error: unknown, stackName: string): boolean {
   const record = errorRecord(error);
   return (
-    (record.name === "ValidationError" || record.Code === "ValidationError") &&
-    /does not exist/i.test(errorMessage(error))
+    record.name === "ValidationError" &&
+    errorMessage(error).trim() === `Stack with id ${stackName} does not exist`
   );
 }
 
@@ -111,8 +112,7 @@ function normalizeAwsError(error: unknown, fallbackCode: string): AwsDeploymentA
   );
 }
 
-function stackState(status: string | null): CloudFormationStackObservation["state"] {
-  if (!status) return "missing";
+function stackState(status: string): CloudFormationStackObservation["state"] {
   if (status === "DELETE_IN_PROGRESS") return "delete_in_progress";
   if (/_IN_PROGRESS$/.test(status) || status.endsWith("_CLEANUP_IN_PROGRESS")) {
     return "in_progress";
@@ -187,21 +187,39 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
         { abortSignal: input.signal },
       );
       input.signal.throwIfAborted();
-      const stack = objectArray(response.Stacks)[0];
-      if (!stack) {
-        return { state: "missing", rawStatus: null, stackId: null, outputs: {}, tags: {} };
+      if (
+        !Array.isArray(response.Stacks) ||
+        response.Stacks.length !== 1 ||
+        !response.Stacks[0] ||
+        typeof response.Stacks[0] !== "object" ||
+        Array.isArray(response.Stacks[0])
+      ) {
+        throw new AwsDeploymentApiError(
+          "CLOUDFORMATION_DESCRIBE_INVALID",
+          "DescribeStacks did not return exactly one stack.",
+          false,
+        );
       }
+      const stack = response.Stacks[0] as Record<string, unknown>;
       const rawStatus = textField(stack.StackStatus);
+      const stackId = textField(stack.StackId);
+      if (!rawStatus || !stackId) {
+        throw new AwsDeploymentApiError(
+          "CLOUDFORMATION_DESCRIBE_INVALID",
+          "DescribeStacks returned an incomplete stack identity.",
+          false,
+        );
+      }
       return {
         state: stackState(rawStatus),
         rawStatus,
-        stackId: textField(stack.StackId),
+        stackId,
         outputs: toStringMap(stack.Outputs, "OutputKey", "OutputValue"),
         tags: toStringMap(stack.Tags, "Key", "Value"),
       };
     } catch (error) {
       rethrowAbort(input.signal);
-      if (isStackMissing(error)) {
+      if (isStackMissing(error, stackName)) {
         return { state: "missing", rawStatus: null, stackId: null, outputs: {}, tags: {} };
       }
       throw normalizeAwsError(error, "CLOUDFORMATION_DESCRIBE_FAILED");
@@ -345,9 +363,17 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
     clientRequestToken: string;
     expectedTags: Record<string, string>;
     cloudFormationRoleArn: string;
+    verifyCaller: (signal: AbortSignal) => Promise<void>;
     signal: AbortSignal;
   }): Promise<{ operation: "delete" | "delete_in_progress" | "already_deleted" }> {
     input.signal.throwIfAborted();
+    if (typeof input.verifyCaller !== "function") {
+      throw new AwsDeploymentApiError(
+        "AWS_CALLER_VERIFIER_REQUIRED",
+        "DeleteStack requires a caller-identity verifier.",
+        false,
+      );
+    }
     const observed = await this.describeTenantStack(input.stackName, input);
     if (observed.state === "missing") return { operation: "already_deleted" };
     for (const key of [
@@ -366,21 +392,23 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
     if (observed.state === "delete_in_progress") {
       return { operation: "delete_in_progress" };
     }
+    const deleteCommand = new this.sdk.commands.deleteStack({
+      StackName: input.stackName,
+      ClientRequestToken: input.clientRequestToken,
+      RoleARN: input.cloudFormationRoleArn,
+      DeletionMode: "STANDARD",
+    });
+    input.signal.throwIfAborted();
+    await input.verifyCaller(input.signal);
     try {
-      input.signal.throwIfAborted();
       await this.sdk.cloudFormationClient.send(
-        new this.sdk.commands.deleteStack({
-          StackName: input.stackName,
-          ClientRequestToken: input.clientRequestToken,
-          RoleARN: input.cloudFormationRoleArn,
-          DeletionMode: "STANDARD",
-        }),
+        deleteCommand,
         { abortSignal: input.signal },
       );
       return { operation: "delete" };
     } catch (error) {
       rethrowAbort(input.signal);
-      if (isStackMissing(error)) return { operation: "already_deleted" };
+      if (isStackMissing(error, input.stackName)) return { operation: "already_deleted" };
       throw normalizeAwsError(error, "CLOUDFORMATION_DELETE_FAILED");
     }
   }
@@ -411,18 +439,47 @@ export async function createAwsSdkDeploymentAdapter(
   // Node-only AWS SDK. The independent worker installs these runtime packages.
   const stsPackage = "@aws-sdk/client-sts";
   const cloudFormationPackage = "@aws-sdk/client-cloudformation";
-  const [stsModule, cloudFormationModule] = (await Promise.all([
+  const credentialProviderPackage = "@aws-sdk/credential-provider-node";
+  const [stsModule, cloudFormationModule, credentialProviderModule] = (await Promise.all([
     import(stsPackage),
     import(cloudFormationPackage),
-  ])) as [Record<string, unknown>, Record<string, unknown>];
+    import(credentialProviderPackage),
+  ])) as [
+    Record<string, unknown>,
+    Record<string, unknown>,
+    Record<string, unknown>,
+  ];
+  return createAwsSdkDeploymentAdapterFromModules(
+    region,
+    stsModule,
+    cloudFormationModule,
+    credentialProviderModule,
+  );
+}
+
+/** @internal Pure construction boundary used to verify credential-provider sharing. */
+export function createAwsSdkDeploymentAdapterFromModules(
+  region: string,
+  stsModule: Record<string, unknown>,
+  cloudFormationModule: Record<string, unknown>,
+  credentialProviderModule: Record<string, unknown>,
+): AwsSdkDeploymentAdapter {
   const STSClient = clientConstructor(stsModule, "STSClient");
   const CloudFormationClient = clientConstructor(
     cloudFormationModule,
     "CloudFormationClient",
   );
+  const defaultProvider = credentialProviderModule.defaultProvider;
+  if (typeof defaultProvider !== "function") {
+    throw new Error("AWS SDK export defaultProvider is missing.");
+  }
+  const credentials = (defaultProvider as () => AwsCredentialProvider)();
+  if (typeof credentials !== "function") {
+    throw new Error("AWS SDK default credential provider is invalid.");
+  }
   return new AwsSdkDeploymentAdapter(region, {
-    stsClient: new STSClient({ region }),
-    cloudFormationClient: new CloudFormationClient({ region }),
+    stsClient: new STSClient({ region, credentials }),
+    cloudFormationClient: new CloudFormationClient({ region, credentials }),
     commands: {
       getCallerIdentity: commandConstructor(stsModule, "GetCallerIdentityCommand"),
       describeStacks: commandConstructor(

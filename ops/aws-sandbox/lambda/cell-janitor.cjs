@@ -1,301 +1,491 @@
 "use strict";
 
-const STACK_PREFIX = "techlong-sandbox-cell-";
-const SAFE_STACK_NAME_PATTERN = /^techlong-sandbox-cell-[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$/;
-const SAFE_TENANT_STACK_NAME_PATTERN = /^techlong-sandbox-tenant-[a-z0-9]{1,16}$/;
-const EXPECTED_ENVIRONMENT = "aws-sandbox";
-const EXPECTED_MANAGER = "techlong-cell-operator";
-const MAX_DELETIONS_PER_SCAN = 1;
-const EMPTY_INVENTORY_ACTION = "inspect_empty_shared_cell_inventory";
+const { createHash } = require("node:crypto");
+
+const EXPECTED_ACCOUNT_ID = "402010193138";
+const EXPECTED_REGION = "ca-central-1";
+const EXPECTED_CELL_ID = "cell-sandbox-1";
+const EXPECTED_CELL_STACK_NAME = "techlong-sandbox-cell-sandbox-1";
+const CELL_STACK_PREFIX = "techlong-sandbox-cell-";
+const TENANT_STACK_PREFIX = "techlong-sandbox-tenant-";
+const TENANT_PREFIX_SUPPORT_STACK_NAMES = Object.freeze(new Set([
+  "techlong-sandbox-tenant-b5j3",
+  "techlong-sandbox-tenant-b5j4logs",
+]));
+const AUTHORITY_KEY = "cell:cell-sandbox-1";
+const AUTHORITY_TABLE_NAME = "techlong-sandbox-tenant-external-epoch-authority";
+const AUTHORITY_TABLE_ARN =
+  "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority";
+const PLAN_ACTION = "inspect_cell_cleanup_plan";
+const PLAN_ONLY_MODE = "PLAN_ONLY";
+const MAX_AUTHORITY_LIFETIME_MS = 60 * 60 * 1000;
+const DIGEST_PATTERN = /^[a-f0-9]{64}$/;
+const UTC_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const STACK_ID_PATTERN =
+  /^arn:aws:cloudformation:ca-central-1:402010193138:stack\/techlong-sandbox-cell-sandbox-1\/[0-9a-f-]{36}$/;
+const OWNER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/;
+const AUTHORITY_ITEM_KEYS = Object.freeze([
+  "authority_key",
+  "record_json",
+  "revision",
+  "schema_version",
+]);
+const AUTHORITY_RECORD_KEYS = Object.freeze([
+  "accountId",
+  "cellId",
+  "cellExpiresAt",
+  "cleanupEpoch",
+  "cleanupMarker",
+  "cleanupOperationHash",
+  "expiresAt",
+  "generation",
+  "ownerDeploymentId",
+  "provisionEpoch",
+  "provisionMarker",
+  "provisionOperationHash",
+  "recordHash",
+  "region",
+  "resourceInventorySha256",
+  "revision",
+  "schemaVersion",
+  "stackId",
+  "stackName",
+  "stackStatus",
+  "state",
+  "templateCanonicalSha256",
+]);
+
+function fail(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  throw error;
+}
+
+function exactKeys(value, expected) {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...expected].sort())
+  );
+}
+
+function canonicalJson(value) {
+  if (value === null || typeof value === "boolean" || typeof value === "string") {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) fail("CELL_CLEANUP_CANONICAL_INVALID", "Non-finite JSON number.");
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    const entries = Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`);
+    return `{${entries.join(",")}}`;
+  }
+  fail("CELL_CLEANUP_CANONICAL_INVALID", "Unsupported canonical JSON value.");
+}
+
+function sha256Text(value) {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+function sha256Canonical(value) {
+  return sha256Text(canonicalJson(value));
+}
+
+function parseUtc(value, label) {
+  if (typeof value !== "string" || !UTC_PATTERN.test(value)) {
+    fail("CELL_CLEANUP_AUTHORITY_INVALID", `${label} is not canonical UTC.`);
+  }
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp) || new Date(timestamp).toISOString() !== value) {
+    fail("CELL_CLEANUP_AUTHORITY_INVALID", `${label} is not a real UTC instant.`);
+  }
+  return timestamp;
+}
+
+function assertPositiveInteger(value, label) {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    fail("CELL_CLEANUP_AUTHORITY_INVALID", `${label} must be a positive integer.`);
+  }
+}
 
 function assertRuntimeEnvironment(environment) {
   if (
     !environment ||
-    environment.EXPECTED_ACCOUNT_ID !== "402010193138" ||
-    environment.EXPECTED_REGION !== "ca-central-1" ||
-    environment.EXPECTED_CELL_ID !== "cell-sandbox-1" ||
-    environment.AWS_REGION !== "ca-central-1" ||
-    !["true", "false"].includes(environment.CELL_MUTATION_ENABLED)
+    environment.EXPECTED_ACCOUNT_ID !== EXPECTED_ACCOUNT_ID ||
+    environment.EXPECTED_REGION !== EXPECTED_REGION ||
+    environment.EXPECTED_CELL_ID !== EXPECTED_CELL_ID ||
+    environment.CELL_CLEANUP_AUTHORITY_KEY !== AUTHORITY_KEY ||
+    environment.CELL_CLEANUP_AUTHORITY_TABLE_ARN !== AUTHORITY_TABLE_ARN ||
+    environment.CELL_CLEANUP_COORDINATOR_MODE !== PLAN_ONLY_MODE ||
+    environment.AWS_REGION !== EXPECTED_REGION
   ) {
-    throw new Error("invalid Shared Cell Janitor runtime environment");
+    fail("CELL_CLEANUP_RUNTIME_INVALID", "Invalid plan-only Cell cleanup runtime environment.");
   }
 }
 
-function assertRuntimeActionEnabled(event, environment) {
-  assertRuntimeEnvironment(environment);
+function assertPlanEvent(event) {
   if (
-    environment.CELL_MUTATION_ENABLED !== "true" &&
-    event?.action !== EMPTY_INVENTORY_ACTION
+    !exactKeys(event, ["action", "schemaVersion"]) ||
+    event.schemaVersion !== 1 ||
+    event.action !== PLAN_ACTION
   ) {
-    throw new Error("Shared Cell Janitor mutation actions are disabled");
+    fail("CELL_CLEANUP_REQUEST_INVALID", "Invalid plan-only Cell cleanup request.");
   }
 }
 
-function tagsToMap(tags) {
-  if (!Array.isArray(tags)) return {};
-  return Object.fromEntries(
-    tags
-      .filter((tag) => tag && typeof tag.Key === "string" && typeof tag.Value === "string")
-      .map((tag) => [tag.Key, tag.Value]),
-  );
+function decodeStringAttribute(attribute, label) {
+  if (!exactKeys(attribute, ["S"]) || typeof attribute.S !== "string") {
+    fail("CELL_CLEANUP_AUTHORITY_INVALID", `${label} is not an exact DynamoDB string.`);
+  }
+  return attribute.S;
 }
 
-function parseExpiresAt(value) {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) {
-    return null;
+function decodeIntegerAttribute(attribute, label) {
+  if (!exactKeys(attribute, ["N"]) || typeof attribute.N !== "string" || !/^[1-9][0-9]*$/.test(attribute.N)) {
+    fail("CELL_CLEANUP_AUTHORITY_INVALID", `${label} is not an exact DynamoDB integer.`);
   }
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value
-    ? timestamp
-    : null;
+  const value = Number(attribute.N);
+  assertPositiveInteger(value, label);
+  return value;
 }
 
-function isEligibleCellStack(stack, nowMs, expectedCellId) {
-  if (!stack || typeof stack !== "object") return false;
-  if (
-    typeof stack.StackName !== "string" ||
-    !stack.StackName.startsWith(STACK_PREFIX) ||
-    !SAFE_STACK_NAME_PATTERN.test(stack.StackName) ||
-    stack.ParentId ||
-    stack.RootId ||
-    typeof stack.StackStatus !== "string" ||
-    ["REVIEW_IN_PROGRESS", "DELETE_IN_PROGRESS", "DELETE_COMPLETE"].includes(stack.StackStatus)
-  ) {
-    return false;
+function decodeAuthorityItem(item) {
+  if (item === undefined) return null;
+  if (!exactKeys(item, AUTHORITY_ITEM_KEYS)) {
+    fail("CELL_CLEANUP_AUTHORITY_INVALID", "Authority item keys drifted.");
   }
-  const tags = tagsToMap(stack.Tags);
-  if (
-    tags.Environment !== EXPECTED_ENVIRONMENT ||
-    tags.ManagedBy !== EXPECTED_MANAGER ||
-    tags.CellId !== "cell-sandbox-1" ||
-    (expectedCellId !== undefined && tags.CellId !== expectedCellId)
-  ) {
-    return false;
-  }
-  const expiresAt = parseExpiresAt(tags.ExpiresAt);
-  return expiresAt !== null && expiresAt <= nowMs;
-}
-
-function isOwnedTenantStackForCell(stack, expectedCellId) {
-  if (
-    !stack ||
-    typeof stack !== "object" ||
-    typeof stack.StackName !== "string" ||
-    !SAFE_TENANT_STACK_NAME_PATTERN.test(stack.StackName) ||
-    stack.ParentId ||
-    stack.RootId ||
-    typeof stack.StackStatus !== "string" ||
-    stack.StackStatus === "DELETE_COMPLETE"
-  ) {
-    return false;
-  }
-  const tags = tagsToMap(stack.Tags);
-  return (
-    tags.Environment === EXPECTED_ENVIRONMENT &&
-    tags.ManagedBy === "techlong-provisioner" &&
-    tags.CellId === expectedCellId
-  );
-}
-
-async function drainOwnedTenantStacks(api, cellId) {
-  const tenants = (await api.listTenantStacks(cellId)).filter((stack) =>
-    isOwnedTenantStackForCell(stack, cellId),
-  );
-  if (tenants.length === 0) return false;
-  for (const tenant of tenants.slice(0, 1)) {
-    if (tenant.StackStatus !== "DELETE_IN_PROGRESS") {
-      await api.deleteTenantStack(tenant.StackName);
-    }
-  }
-  const error = new Error(
-    "owned tenant cleanup must finish before Shared Cell deletion",
-  );
-  error.code = "CELL_TENANT_DRAIN_IN_PROGRESS";
-  throw error;
-}
-
-function isMissingStackError(error) {
-  return (
-    error &&
-    (error.name === "ValidationError" || error.Code === "ValidationError") &&
-    /does not exist/i.test(String(error.message ?? ""))
-  );
-}
-
-function assertEmptyInventoryEvent(event) {
-  if (!event || typeof event !== "object" || Array.isArray(event)) {
-    throw new Error("invalid empty Shared Cell inventory request");
-  }
-  const keys = Object.keys(event).sort();
-  if (
-    keys.length !== 2 ||
-    keys[0] !== "action" ||
-    keys[1] !== "schemaVersion" ||
-    event.action !== EMPTY_INVENTORY_ACTION ||
-    event.schemaVersion !== 1
-  ) {
-    throw new Error("invalid empty Shared Cell inventory request");
-  }
-}
-
-async function inspectEmptySharedCellInventory(api, event) {
-  assertEmptyInventoryEvent(event);
-  const observedNames = await api.listStackNames();
-  if (!Array.isArray(observedNames)) {
-    throw new Error("Shared Cell inventory response must be an array");
-  }
-  const candidates = [];
-  const seen = new Set();
-  for (const name of observedNames) {
-    if (typeof name !== "string" || !name.startsWith(STACK_PREFIX)) {
-      throw new Error("Shared Cell inventory returned an unexpected stack name");
-    }
-    if (seen.has(name)) {
-      throw new Error("Shared Cell inventory returned a duplicate stack name");
-    }
-    seen.add(name);
-    candidates.push(name);
-  }
-  candidates.sort();
   return {
-    schemaVersion: 1,
-    action: EMPTY_INVENTORY_ACTION,
-    empty: candidates.length === 0,
-    checked: candidates.length,
-    candidates,
-    deleted: [],
+    authority_key: decodeStringAttribute(item.authority_key, "authority_key"),
+    schema_version: decodeIntegerAttribute(item.schema_version, "schema_version"),
+    revision: decodeIntegerAttribute(item.revision, "revision"),
+    record_json: decodeStringAttribute(item.record_json, "record_json"),
   };
 }
 
-function createHandler(api, now = () => Date.now()) {
-  if (!api || typeof api !== "object") throw new Error("api is required");
-  return async function handle(event = {}) {
-    const action = event?.action ?? "scan_expired_shared_cell_stacks";
+function validateAuthorityItem(item, nowMs) {
+  if (item === null || item === undefined) {
+    fail("CELL_CLEANUP_AUTHORITY_MISSING", "Cell cleanup authority record is missing.");
+  }
+  if (
+    !exactKeys(item, AUTHORITY_ITEM_KEYS) ||
+    item.authority_key !== AUTHORITY_KEY ||
+    item.schema_version !== 1 ||
+    !Number.isSafeInteger(item.revision) ||
+    item.revision < 1 ||
+    typeof item.record_json !== "string" ||
+    item.record_json.length > 16_384
+  ) {
+    fail("CELL_CLEANUP_AUTHORITY_INVALID", "Cell cleanup authority item is invalid.");
+  }
+  let record;
+  try {
+    record = JSON.parse(item.record_json);
+  } catch {
+    fail("CELL_CLEANUP_AUTHORITY_INVALID", "Cell cleanup authority JSON is invalid.");
+  }
+  if (!exactKeys(record, AUTHORITY_RECORD_KEYS)) {
+    fail("CELL_CLEANUP_AUTHORITY_INVALID", "Cell cleanup authority record keys drifted.");
+  }
+  if (canonicalJson(record) !== item.record_json) {
+    fail("CELL_CLEANUP_AUTHORITY_INVALID", "Cell cleanup authority record is not canonical JSON.");
+  }
+  for (const [value, label] of [
+    [record.generation, "generation"],
+    [record.provisionEpoch, "provisionEpoch"],
+    [record.cleanupEpoch, "cleanupEpoch"],
+    [record.revision, "revision"],
+  ]) assertPositiveInteger(value, label);
+  if (
+    record.schemaVersion !== 1 ||
+    record.accountId !== EXPECTED_ACCOUNT_ID ||
+    record.region !== EXPECTED_REGION ||
+    record.cellId !== EXPECTED_CELL_ID ||
+    record.stackName !== EXPECTED_CELL_STACK_NAME ||
+    !STACK_ID_PATTERN.test(record.stackId) ||
+    !DIGEST_PATTERN.test(record.templateCanonicalSha256) ||
+    !DIGEST_PATTERN.test(record.resourceInventorySha256) ||
+    !OWNER_PATTERN.test(record.ownerDeploymentId) ||
+    record.cleanupEpoch <= record.provisionEpoch ||
+    record.provisionMarker !==
+      `tl_cell_epoch_${EXPECTED_CELL_ID}_g${record.generation}_e${record.provisionEpoch}` ||
+    record.cleanupMarker !==
+      `tl_cell_epoch_${EXPECTED_CELL_ID}_g${record.generation}_e${record.cleanupEpoch}` ||
+    !DIGEST_PATTERN.test(record.provisionOperationHash) ||
+    !DIGEST_PATTERN.test(record.cleanupOperationHash) ||
+    record.revision !== item.revision ||
+    !["CREATE_COMPLETE", "UPDATE_COMPLETE"].includes(record.stackStatus) ||
+    record.state !== "cleanup_authorized" ||
+    !DIGEST_PATTERN.test(record.recordHash)
+  ) {
+    fail("CELL_CLEANUP_AUTHORITY_INVALID", "Cell cleanup authority fields are invalid.");
+  }
+  const expiresAt = parseUtc(record.expiresAt, "expiresAt");
+  const cellExpiresAt = parseUtc(record.cellExpiresAt, "cellExpiresAt");
+  if (expiresAt <= nowMs || expiresAt - nowMs > MAX_AUTHORITY_LIFETIME_MS) {
+    fail("CELL_CLEANUP_AUTHORITY_EXPIRED", "Cell cleanup authority is expired or too long-lived.");
+  }
+  if (cellExpiresAt > nowMs) {
+    fail("CELL_CLEANUP_CELL_NOT_EXPIRED", "Authority does not bind an expired Shared Cell.");
+  }
+  const unsigned = Object.fromEntries(
+    AUTHORITY_RECORD_KEYS.filter((key) => key !== "recordHash").map((key) => [key, record[key]]),
+  );
+  if (sha256Canonical(unsigned) !== record.recordHash) {
+    fail("CELL_CLEANUP_AUTHORITY_HASH_MISMATCH", "Cell cleanup authority hash drifted.");
+  }
+  return record;
+}
+
+function tagsToMap(tags) {
+  if (!Array.isArray(tags)) fail("CELL_CLEANUP_CELL_INVALID", "Cell tags are missing.");
+  const result = {};
+  for (const tag of tags) {
+    if (!tag || typeof tag.Key !== "string" || typeof tag.Value !== "string" || Object.hasOwn(result, tag.Key)) {
+      fail("CELL_CLEANUP_CELL_INVALID", "Cell tags are malformed or duplicated.");
+    }
+    result[tag.Key] = tag.Value;
+  }
+  return result;
+}
+
+function validateCellStack(stack, nowMs) {
+  if (
+    !stack ||
+    typeof stack !== "object" ||
+    stack.StackName !== EXPECTED_CELL_STACK_NAME ||
+    !STACK_ID_PATTERN.test(stack.StackId ?? "") ||
+    stack.ParentId ||
+    stack.RootId ||
+    typeof stack.StackStatus !== "string" ||
+    !["CREATE_COMPLETE", "UPDATE_COMPLETE"].includes(stack.StackStatus)
+  ) {
+    fail("CELL_CLEANUP_CELL_INVALID", "Exact Shared Cell Stack evidence is invalid.");
+  }
+  const tags = tagsToMap(stack.Tags);
+  if (
+    tags.Environment !== "aws-sandbox" ||
+    tags.ManagedBy !== "techlong-cell-operator" ||
+    tags.CellId !== EXPECTED_CELL_ID
+  ) {
+    fail("CELL_CLEANUP_CELL_OWNERSHIP_MISMATCH", "Shared Cell ownership tags drifted.");
+  }
+  if (parseUtc(tags.ExpiresAt, "Cell ExpiresAt") > nowMs) {
+    fail("CELL_CLEANUP_CELL_NOT_EXPIRED", "Shared Cell has not expired.");
+  }
+  return stack;
+}
+
+function canonicalTemplateBody(templateBody) {
+  let parsed = templateBody;
+  if (typeof templateBody === "string") {
+    try {
+      parsed = JSON.parse(templateBody);
+    } catch {
+      fail("CELL_CLEANUP_TEMPLATE_INVALID", "Shared Cell template is not JSON.");
+    }
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    fail("CELL_CLEANUP_TEMPLATE_INVALID", "Shared Cell template is invalid.");
+  }
+  return sha256Canonical(parsed);
+}
+
+function resourceInventoryHash(resources) {
+  if (!Array.isArray(resources) || resources.length === 0) {
+    fail("CELL_CLEANUP_INVENTORY_INVALID", "Shared Cell resource inventory is empty.");
+  }
+  const seen = new Set();
+  const projection = resources.map((resource) => {
+    const projected = {
+      logicalResourceId: resource?.LogicalResourceId,
+      physicalResourceId: resource?.PhysicalResourceId,
+      resourceStatus: resource?.ResourceStatus,
+      resourceType: resource?.ResourceType,
+    };
     if (
-      action !== "scan_expired_shared_cell_stacks" &&
-      action !== "delete_shared_cell_stack" &&
-      action !== EMPTY_INVENTORY_ACTION
+      Object.values(projected).some((value) => typeof value !== "string" || value.length === 0) ||
+      seen.has(projected.logicalResourceId)
     ) {
-      throw new Error("unsupported cell janitor action");
+      fail("CELL_CLEANUP_INVENTORY_INVALID", "Shared Cell resource inventory drifted.");
     }
-    if (action === EMPTY_INVENTORY_ACTION) {
-      return inspectEmptySharedCellInventory(api, event);
+    seen.add(projected.logicalResourceId);
+    return projected;
+  });
+  projection.sort((left, right) => left.logicalResourceId.localeCompare(right.logicalResourceId));
+  return sha256Canonical(projection);
+}
+
+function planResult(decision, details = {}) {
+  return {
+    schemaVersion: 1,
+    action: PLAN_ACTION,
+    coordinatorMode: PLAN_ONLY_MODE,
+    decision,
+    mutationPerformed: false,
+    ...details,
+  };
+}
+
+function validateStackNames(names) {
+  if (!Array.isArray(names)) fail("CELL_CLEANUP_INVENTORY_INVALID", "Stack inventory is not an array.");
+  const seen = new Set();
+  for (const name of names) {
+    if (typeof name !== "string" || name.length === 0 || seen.has(name)) {
+      fail("CELL_CLEANUP_INVENTORY_INVALID", "Stack inventory is malformed or duplicated.");
     }
-    if (action === "delete_shared_cell_stack") {
-      if (
-        typeof event.stackName !== "string" ||
-        !SAFE_STACK_NAME_PATTERN.test(event.stackName) ||
-        event.cellId !== "cell-sandbox-1"
-      ) {
-        throw new Error("invalid targeted cell cleanup request");
-      }
-      let stack;
-      try {
-        stack = await api.describeStack(event.stackName);
-      } catch (error) {
-        if (isMissingStackError(error)) {
-          return { checked: 1, deleted: [], skipped: [event.stackName] };
-        }
-        throw error;
-      }
-      if (!isEligibleCellStack(stack, now(), event.cellId)) {
-        return { checked: 1, deleted: [], skipped: [event.stackName] };
-      }
-      await drainOwnedTenantStacks(api, event.cellId);
-      await api.deleteStack(event.stackName);
-      return { checked: 1, deleted: [event.stackName], skipped: [] };
+    seen.add(name);
+  }
+  return [...seen].sort();
+}
+
+function createHandler(api, now = () => Date.now()) {
+  if (!api || typeof api !== "object") fail("CELL_CLEANUP_API_INVALID", "api is required.");
+  return async function handle(event) {
+    assertPlanEvent(event);
+    const names = validateStackNames(await api.listStackNames());
+    const tenantStacks = names.filter(
+      (name) =>
+        name.startsWith(TENANT_STACK_PREFIX) &&
+        !TENANT_PREFIX_SUPPORT_STACK_NAMES.has(name),
+    );
+    if (tenantStacks.length > 0) {
+      return planResult("BLOCKED_TENANT_STACKS", { tenantStacks });
     }
-    const deleted = [];
-    const skipped = [];
-    let checked = 0;
-    for (const stackName of await api.listStackNames()) {
-      if (deleted.length >= MAX_DELETIONS_PER_SCAN) break;
-      if (typeof stackName !== "string" || !SAFE_STACK_NAME_PATTERN.test(stackName)) continue;
-      checked += 1;
-      try {
-        const stack = await api.describeStack(stackName);
-        if (!isEligibleCellStack(stack, now())) {
-          skipped.push(stackName);
-          continue;
-        }
-        await drainOwnedTenantStacks(api, "cell-sandbox-1");
-        await api.deleteStack(stackName);
-        deleted.push(stackName);
-      } catch (error) {
-        if (!isMissingStackError(error)) skipped.push(stackName);
-      }
+    const unexpectedCellStacks = names.filter(
+      (name) => name.startsWith(CELL_STACK_PREFIX) && name !== EXPECTED_CELL_STACK_NAME,
+    );
+    if (unexpectedCellStacks.length > 0) {
+      return planResult("BLOCKED_UNEXPECTED_CELL_STACKS", { unexpectedCellStacks });
     }
-    return { checked, deleted, skipped };
+    if (!names.includes(EXPECTED_CELL_STACK_NAME)) {
+      return planResult("ABSENT_SAFE", { cellStack: "MISSING", tenantStacks: [] });
+    }
+
+    const observedAt = now();
+    const stack = validateCellStack(await api.describeStack(), observedAt);
+    const [templateBody, resources, authorityItem] = await Promise.all([
+      api.getTemplate(),
+      api.listStackResources(),
+      api.getAuthorityItem(),
+    ]);
+    const templateCanonicalSha256 = canonicalTemplateBody(templateBody);
+    const resourceInventorySha256 = resourceInventoryHash(resources);
+    const authority = validateAuthorityItem(authorityItem, observedAt);
+    if (
+      authority.stackId !== stack.StackId ||
+      authority.stackStatus !== stack.StackStatus ||
+      authority.cellExpiresAt !== tagsToMap(stack.Tags).ExpiresAt ||
+      authority.templateCanonicalSha256 !== templateCanonicalSha256 ||
+      authority.resourceInventorySha256 !== resourceInventorySha256
+    ) {
+      fail("CELL_CLEANUP_AUTHORITY_DRIFT", "Authority does not bind the observed Shared Cell.");
+    }
+    return planResult("PLAN_READY_MUTATION_DISABLED", {
+      cellStack: stack.StackId,
+      authorityRevision: authority.revision,
+      authorityRecordHash: authority.recordHash,
+      generation: authority.generation,
+      provisionEpoch: authority.provisionEpoch,
+      cleanupEpoch: authority.cleanupEpoch,
+      templateCanonicalSha256,
+      resourceInventorySha256,
+      tenantStacks: [],
+    });
   };
 }
 
 async function createAwsApi() {
-  // Lambda Node.js runtimes provide SDK v3. Lazy loading keeps the eligibility
-  // contract locally testable and guarantees no AWS call merely by importing it.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const sdk = require("@aws-sdk/client-cloudformation");
-  const client = new sdk.CloudFormationClient({ region: process.env.AWS_REGION });
+  // The deployed coordinator deliberately imports no mutating AWS command.
+  const cloudFormation = require("@aws-sdk/client-cloudformation");
+  const dynamoDb = require("@aws-sdk/client-dynamodb");
+  const cloudFormationClient = new cloudFormation.CloudFormationClient({ region: EXPECTED_REGION });
+  const dynamoDbClient = new dynamoDb.DynamoDBClient({ region: EXPECTED_REGION });
   return {
     async listStackNames() {
       const names = [];
       let NextToken;
       do {
-        const response = await client.send(new sdk.ListStacksCommand({ NextToken }));
-        for (const stack of response.StackSummaries ?? []) {
+        const response = await cloudFormationClient.send(
+          new cloudFormation.ListStacksCommand({ NextToken }),
+        );
+        for (const summary of response.StackSummaries ?? []) {
           if (
-            typeof stack.StackName === "string" &&
-            stack.StackName.startsWith(STACK_PREFIX) &&
-            !["DELETE_IN_PROGRESS", "DELETE_COMPLETE"].includes(stack.StackStatus)
-          ) names.push(stack.StackName);
+            typeof summary.StackName === "string" &&
+            summary.StackStatus !== "DELETE_COMPLETE" &&
+            (summary.StackName.startsWith(CELL_STACK_PREFIX) ||
+              summary.StackName.startsWith(TENANT_STACK_PREFIX))
+          ) names.push(summary.StackName);
         }
         NextToken = response.NextToken;
       } while (NextToken);
       return names;
     },
-    async describeStack(stackName) {
-      const response = await client.send(new sdk.DescribeStacksCommand({ StackName: stackName }));
-      if (!response.Stacks?.[0]) throw new Error("cell stack description was empty");
+    async describeStack() {
+      const response = await cloudFormationClient.send(
+        new cloudFormation.DescribeStacksCommand({ StackName: EXPECTED_CELL_STACK_NAME }),
+      );
+      if (!response.Stacks?.[0]) fail("CELL_CLEANUP_CELL_INVALID", "Cell Stack description is empty.");
       return response.Stacks[0];
     },
-    async listTenantStacks(cellId) {
-      const stacks = [];
+    async getTemplate() {
+      const response = await cloudFormationClient.send(
+        new cloudFormation.GetTemplateCommand({
+          StackName: EXPECTED_CELL_STACK_NAME,
+          TemplateStage: "Original",
+        }),
+      );
+      return response.TemplateBody;
+    },
+    async listStackResources() {
+      const resources = [];
       let NextToken;
       do {
-        const response = await client.send(new sdk.ListStacksCommand({ NextToken }));
-        for (const summary of response.StackSummaries ?? []) {
-          if (
-            typeof summary.StackName === "string" &&
-            SAFE_TENANT_STACK_NAME_PATTERN.test(summary.StackName) &&
-            summary.StackStatus !== "DELETE_COMPLETE"
-          ) {
-            const described = await client.send(
-              new sdk.DescribeStacksCommand({ StackName: summary.StackName }),
-            );
-            const stack = described.Stacks?.[0];
-            if (stack && isOwnedTenantStackForCell(stack, cellId)) stacks.push(stack);
-          }
-        }
+        const response = await cloudFormationClient.send(
+          new cloudFormation.ListStackResourcesCommand({
+            StackName: EXPECTED_CELL_STACK_NAME,
+            NextToken,
+          }),
+        );
+        resources.push(...(response.StackResourceSummaries ?? []));
         NextToken = response.NextToken;
       } while (NextToken);
-      return stacks;
+      return resources;
     },
-    async deleteTenantStack(stackName) {
-      await client.send(new sdk.DeleteStackCommand({ StackName: stackName }));
-    },
-    async deleteStack(stackName) {
-      await client.send(new sdk.DeleteStackCommand({ StackName: stackName }));
+    async getAuthorityItem() {
+      const response = await dynamoDbClient.send(
+        new dynamoDb.GetItemCommand({
+          TableName: AUTHORITY_TABLE_NAME,
+          Key: { authority_key: { S: AUTHORITY_KEY } },
+          ConsistentRead: true,
+          ProjectionExpression: "#key, #schema, #revision, #record",
+          ExpressionAttributeNames: {
+            "#key": "authority_key",
+            "#schema": "schema_version",
+            "#revision": "revision",
+            "#record": "record_json",
+          },
+        }),
+      );
+      return decodeAuthorityItem(response.Item);
     },
   };
 }
 
 exports.handler = async (event) => {
-  assertRuntimeActionEnabled(event, process.env);
+  assertRuntimeEnvironment(process.env);
   const result = await createHandler(await createAwsApi())(event);
-  console.log("cell janitor result", JSON.stringify(result));
+  console.log("cell cleanup plan", JSON.stringify(result));
   return result;
 };
 exports.createHandler = createHandler;
-exports.isEligibleCellStack = isEligibleCellStack;
-exports.isOwnedTenantStackForCell = isOwnedTenantStackForCell;
-exports.parseExpiresAt = parseExpiresAt;
-exports.assertRuntimeActionEnabled = assertRuntimeActionEnabled;
+exports.canonicalJson = canonicalJson;
+exports.sha256Canonical = sha256Canonical;
+exports.validateAuthorityItem = validateAuthorityItem;
+exports.decodeAuthorityItem = decodeAuthorityItem;
+exports.resourceInventoryHash = resourceInventoryHash;
+exports.assertRuntimeEnvironment = assertRuntimeEnvironment;

@@ -348,6 +348,7 @@ export interface AwsDeploymentPort {
     clientRequestToken: string;
     expectedTags: Record<string, string>;
     cloudFormationRoleArn: string;
+    verifyCaller: (signal: AbortSignal) => Promise<void>;
     signal: AbortSignal;
   }): Promise<{ operation: "delete" | "delete_in_progress" | "already_deleted" }>;
 }

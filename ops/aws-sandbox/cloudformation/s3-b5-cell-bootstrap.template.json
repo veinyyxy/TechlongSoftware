@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "B5-J4b cleanup-only Shared Cell inventory bootstrap. It creates no Cell apply role and cannot create or delete a Shared Cell.",
+  "Description": "B5-J4c plan-only ownership-fenced Shared Cell cleanup coordinator. It cannot create, update, or delete a Shared Cell.",
   "Metadata": {
     "SafetyBoundary": {
       "CloudApplyEnabled": true,
@@ -13,6 +13,9 @@
       "CellExecuteChangeSetAllowed": false,
       "CellExecutionPassRoleAllowed": false,
       "CellDeletionAllowed": false,
+      "CoordinatorMode": "PLAN_ONLY",
+      "AuthorityReadOnly": true,
+      "AuthorityKey": "cell:cell-sandbox-1",
       "JanitorScheduleEnabled": false,
       "RequiresDedicatedManagementStack": true,
       "ApprovedManagementStackName": "techlong-s3-b5-cell-bootstrap-management",
@@ -68,7 +71,7 @@
       "DependsOn": ["CellJanitorLogGroup"],
       "Properties": {
         "FunctionName": "techlong-sandbox-cell-janitor",
-        "Description": "Locked B5-J4b read-only inventory probe for the approved Sandbox Shared Cell name.",
+        "Description": "Locked B5-J4c ownership-fenced cleanup planner for the exact Sandbox Shared Cell; no mutation commands are deployed.",
         "Runtime": "nodejs22.x",
         "Architectures": ["arm64"],
         "Handler": "index.handler",
@@ -81,7 +84,9 @@
             "EXPECTED_ACCOUNT_ID": "402010193138",
             "EXPECTED_REGION": "ca-central-1",
             "EXPECTED_CELL_ID": "cell-sandbox-1",
-            "CELL_MUTATION_ENABLED": "false"
+            "CELL_CLEANUP_AUTHORITY_KEY": "cell:cell-sandbox-1",
+            "CELL_CLEANUP_AUTHORITY_TABLE_ARN": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+            "CELL_CLEANUP_COORDINATOR_MODE": "PLAN_ONLY"
           }
         },
         "Tags": [
@@ -110,7 +115,7 @@
       "Properties": {
         "Name": "techlong-sandbox-cell-global-janitor",
         "GroupName": { "Ref": "CellSchedulerGroup" },
-        "Description": "Disabled B5-J4b read-only inventory probe; Cell cleanup is not armed.",
+        "Description": "Disabled B5-J4c ownership-fenced cleanup planner; Cell cleanup is not armed.",
         "FlexibleTimeWindow": { "Mode": "OFF" },
         "ScheduleExpression": "rate(15 minutes)",
         "State": "DISABLED",
@@ -121,7 +126,7 @@
             "MaximumEventAgeInSeconds": 3600,
             "MaximumRetryAttempts": 0
           },
-          "Input": "{\"schemaVersion\":1,\"action\":\"inspect_empty_shared_cell_inventory\"}"
+          "Input": "{\"schemaVersion\":1,\"action\":\"inspect_cell_cleanup_plan\"}"
         }
       }
     }
@@ -145,7 +150,7 @@
     },
     "SafetyState": {
       "Condition": "IsExpectedTarget",
-      "Value": "B5_J4B_EMPTY_SCAN_ONLY_CELL_APPLY_AND_DELETE_DISABLED"
+      "Value": "B5_J4C_OWNERSHIP_FENCED_PLAN_ONLY_ALL_MUTATIONS_DISABLED"
     }
   }
 }

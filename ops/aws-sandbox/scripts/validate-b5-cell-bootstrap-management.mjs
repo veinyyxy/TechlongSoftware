@@ -7,6 +7,12 @@ import {
   managementShapes,
   renderB5CellBootstrapManagementTemplate,
 } from "./render-b5-cell-bootstrap-management.mjs";
+import {
+  legacyJ4bLockedCanonicalSha256,
+  legacyJ4bLockedRawSha256,
+  renderLegacyJ4bLockedManagementTemplate,
+} from "./render-b5-cell-bootstrap-management-j4b-legacy.mjs";
+import { createHash } from "node:crypto";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDirectory, "..");
@@ -35,7 +41,7 @@ const approvedBootstrapResourceTypes = [
   "AWS::Scheduler::Schedule",
 ];
 
-const [source, operationScript, lockedSource, authorSource, executeSource, rollbackSource] =
+const [source, operationScript, lockedSource, authorSource, executeSource, rollbackSource, legacySource] =
   await Promise.all([
     readFile(templatePath, "utf8"),
     readFile(operationScriptPath, "utf8"),
@@ -56,12 +62,14 @@ const [source, operationScript, lockedSource, authorSource, executeSource, rollb
       shape: "RollbackGrant",
       grantExpiresAt: exampleExpiry,
     }),
+    renderLegacyJ4bLockedManagementTemplate(),
   ]);
 const base = JSON.parse(source);
 const locked = JSON.parse(lockedSource);
 const author = JSON.parse(authorSource);
 const execute = JSON.parse(executeSource);
 const rollback = JSON.parse(rollbackSource);
+const legacy = JSON.parse(legacySource);
 
 assert.deepEqual(managementShapes, [
   "Locked",
@@ -72,13 +80,40 @@ assert.deepEqual(managementShapes, [
 assert.deepEqual(locked, {
   ...base,
   Description:
-    "B5-J4b IAM-only Cell Bootstrap management root (Locked); it cannot create a Shared Cell.",
+    "B5-J4c IAM-only plan-only Cell cleanup management root (Locked); it cannot create or delete a Shared Cell.",
 });
+assert.equal(createHash("sha256").update(legacySource, "utf8").digest("hex"), legacyJ4bLockedRawSha256);
+assert.equal(
+  createHash("sha256").update(canonicalJson(JSON.parse(legacySource)), "utf8").digest("hex"),
+  legacyJ4bLockedCanonicalSha256,
+);
+const lockedPolicyRefreshResources = Object.keys(locked.Resources)
+  .filter(
+    (name) =>
+      JSON.stringify(legacy.Resources[name]) !== JSON.stringify(locked.Resources[name]),
+  )
+  .sort();
+assert.deepEqual(lockedPolicyRefreshResources, [
+  "CellBootstrapExecutionBoundary",
+  "CellJanitorBoundary",
+]);
+for (const logicalId of lockedPolicyRefreshResources) {
+  assert.deepEqual(
+    exactChangedPropertyNames(
+      legacy.Resources[logicalId].Properties,
+      locked.Resources[logicalId].Properties,
+    ),
+    ["PolicyDocument"],
+    `${logicalId} must remain an in-place policy-only refresh`,
+  );
+}
 assert.ok(Buffer.byteLength(lockedSource, "utf8") <= 51_200);
 assert.equal(base.Metadata.SafetyBoundary.CloudApplyEnabled, true);
 assert.equal(base.Metadata.SafetyBoundary.CreatesIamOnly, true);
 assert.equal(base.Metadata.SafetyBoundary.CreatesSharedCell, false);
 assert.equal(base.Metadata.SafetyBoundary.CreatesPaidCellResources, false);
+assert.equal(base.Metadata.SafetyBoundary.CoordinatorMode, "PLAN_ONLY");
+assert.equal(base.Metadata.SafetyBoundary.AuthorityReadOnly, true);
 assert.equal(base.Metadata.SafetyBoundary.ManagerGrantState, "LOCKED");
 assert.equal(base.Metadata.SafetyBoundary.TemporaryAuthorGrantRequired, true);
 assert.equal(
@@ -114,6 +149,20 @@ for (const resource of Object.values(base.Resources)) {
 function actions(statement) {
   if (statement.Action === undefined) return [];
   return Array.isArray(statement.Action) ? statement.Action : [statement.Action];
+}
+
+function canonicalJson(value) {
+  if (value === null || ["boolean", "number", "string"].includes(typeof value)) {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+}
+
+function exactChangedPropertyNames(previous, target) {
+  return [...new Set([...Object.keys(previous), ...Object.keys(target)])]
+    .filter((name) => JSON.stringify(previous[name]) !== JSON.stringify(target[name]))
+    .sort();
 }
 
 function allows(template, logicalId) {
@@ -226,8 +275,43 @@ const schedulerRoleArn =
 
 assert.deepEqual(
   [...allowedActions(base, "CellJanitorBoundary")].sort(),
-  ["cloudformation:ListStacks", "logs:CreateLogStream", "logs:PutLogEvents"],
+  [
+    "cloudformation:DescribeStacks",
+    "cloudformation:GetTemplate",
+    "cloudformation:ListStackResources",
+    "cloudformation:ListStacks",
+    "dynamodb:GetItem",
+    "logs:CreateLogStream",
+    "logs:PutLogEvents",
+  ],
 );
+assert.deepEqual(statementBySid(base, "CellJanitorBoundary", "AllowExactCellCleanupAuthorityRead"), {
+  Sid: "AllowExactCellCleanupAuthorityRead",
+  Effect: "Allow",
+  Action: "dynamodb:GetItem",
+  Resource:
+    "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+  Condition: {
+    StringEquals: { "aws:RequestedRegion": "ca-central-1" },
+    "ForAllValues:StringEquals": {
+      "dynamodb:LeadingKeys": ["cell:cell-sandbox-1"],
+    },
+    Null: { "dynamodb:LeadingKeys": "false" },
+  },
+});
+const janitorDenied = new Set(
+  base.Resources.CellJanitorBoundary.Properties.PolicyDocument.Statement
+    .filter((statement) => statement.Effect === "Deny")
+    .flatMap(actions),
+);
+for (const action of [
+  "cloudformation:DeleteStack",
+  "cloudformation:UpdateStack",
+  "dynamodb:PutItem",
+  "dynamodb:UpdateItem",
+  "ecs:RunTask",
+  "iam:PassRole",
+]) assert.ok(janitorDenied.has(action), `plan-only Janitor lacks explicit deny ${action}`);
 assert.deepEqual(
   [...allowedActions(base, "CellSchedulerInvokeBoundary")],
   ["lambda:InvokeFunction"],
@@ -288,15 +372,17 @@ for (const forbidden of [
   "lambda:PutFunctionConcurrency",
   "lambda:DeleteFunctionConcurrency",
   "lambda:UntagResource",
-  "lambda:UpdateFunctionCode",
-  "lambda:UpdateFunctionConfiguration",
   "logs:UntagResource",
   "scheduler:UntagResource",
-  "scheduler:UpdateSchedule",
 ]) {
   assert.equal(executionAllows.has(forbidden), false, `execution role allows ${forbidden}`);
 }
-for (const required of ["lambda:GetFunctionConcurrency"]) {
+for (const required of [
+  "lambda:GetFunctionConcurrency",
+  "lambda:UpdateFunctionCode",
+  "lambda:UpdateFunctionConfiguration",
+  "scheduler:UpdateSchedule",
+]) {
   assert.ok(executionAllows.has(required), `execution role lacks ${required}`);
 }
 const exactScheduleLifecycle = statementBySid(
@@ -307,7 +393,7 @@ const exactScheduleLifecycle = statementBySid(
 assert.deepEqual(exactScheduleLifecycle, {
   Sid: "AllowExactBootstrapScheduleLifecycle",
   Effect: "Allow",
-  Action: ["scheduler:CreateSchedule", "scheduler:GetSchedule"],
+  Action: ["scheduler:CreateSchedule", "scheduler:GetSchedule", "scheduler:UpdateSchedule"],
   Resource:
     "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/techlong-sandbox-cell-global-janitor",
 });
@@ -581,6 +667,7 @@ assert.match(
   /\[ValidateSet\('LocalValidate', 'OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet', 'Readback', 'Delete'\)\]/,
 );
 assert.match(operationScript, /InitialLocked/);
+assert.match(operationScript, /LockedPolicyRefresh/);
 assert.match(operationScript, /BootstrapAuthorGrant/);
 assert.match(operationScript, /BootstrapAuthorRevoke/);
 assert.match(operationScript, /BootstrapExecuteGrant/);
@@ -602,6 +689,16 @@ assert.match(
   /\$null -ne \$changeSet\.Capabilities -and @\(\$changeSet\.Capabilities\)\.Count -ne 0/,
   "management preflight must treat an omitted or null non-IAM child Capabilities field as empty",
 );
+assert.match(operationScript, /B5-J4c plan-only cleanup planner raw=/);
+assert.match(operationScript, /\$isInitialCreate = \[string\]\$changeSet\.OnStackFailure -ceq 'DELETE'/);
+assert.match(operationScript, /\$expectedStackStatus = if \(\$isInitialCreate\) \{ 'REVIEW_IN_PROGRESS' \} else \{ 'CREATE_COMPLETE' \}/);
+assert.match(operationScript, /CellJanitorFunction = 'AWS::Lambda::Function'[\s\S]*CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'/);
+assert.match(operationScript, /Approved child PlannerUpdate resource shape drifted/);
+assert.match(operationScript, /\[string\]\$resource\.Action -cne 'Modify'/);
+assert.match(operationScript, /\[string\]\$resource\.Replacement -cne 'False'/);
+assert.match(operationScript, /\[string\]\$resource\.Scope\[0\] -cne 'Properties'/);
+assert.match(operationScript, /PlannerUpdate Lambda physical ID drifted/);
+assert.match(operationScript, /PlannerUpdate Schedule physical ID drifted/);
 assert.doesNotMatch(operationScript, /ecs', 'run-task'/);
 assert.match(
   operationScript,
@@ -636,7 +733,7 @@ assert.doesNotMatch(
 assert.doesNotMatch(
   operationScript,
   /\$changeSet\.ChangeSetType|\$ChangeSet\.ChangeSetType/,
-  "DescribeChangeSet does not return ChangeSetType; CREATE is instead fenced by OnStackFailure and exact resource additions",
+  "DescribeChangeSet does not return ChangeSetType; child CREATE or UPDATE is fenced by metadata and exact resource changes",
 );
 assert.match(
   operationScript,
@@ -674,5 +771,5 @@ assert.match(
 );
 
 console.log(
-  "B5-J4b locked management root, split temporary grants and paid-resource deny validation passed.",
+  "B5-J4c locked plan-only management root, fixed J4b predecessor, split temporary grants and paid-resource deny validation passed.",
 );

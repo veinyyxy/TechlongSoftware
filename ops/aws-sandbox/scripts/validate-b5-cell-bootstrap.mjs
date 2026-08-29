@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { renderB5CellBootstrapTemplate } from "./render-b5-cell-bootstrap.mjs";
+import {
+  legacyJ4bChildCanonicalSha256,
+  legacyJ4bChildRawSha256,
+  renderLegacyJ4bChildTemplate,
+} from "./render-b5-cell-bootstrap-j4b-legacy.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDirectory, "..");
@@ -25,7 +31,7 @@ function argument(name) {
 }
 
 const snapshotPath = argument("--template");
-const [templateSource, operationScript, janitorSource, renderedSource] =
+const [templateSource, operationScript, janitorSource, renderedSource, legacyRenderedSource] =
   await Promise.all([
     readFile(templatePath, "utf8"),
     readFile(operationScriptPath, "utf8"),
@@ -33,11 +39,56 @@ const [templateSource, operationScript, janitorSource, renderedSource] =
     snapshotPath
       ? readFile(path.resolve(snapshotPath), "utf8")
       : renderB5CellBootstrapTemplate(),
+    renderLegacyJ4bChildTemplate(),
   ]);
 const sourceTemplate = JSON.parse(templateSource);
 const template = JSON.parse(renderedSource);
 const resources = template.Resources ?? {};
 const boundary = template.Metadata?.SafetyBoundary ?? {};
+const legacyTemplate = JSON.parse(legacyRenderedSource);
+
+assert.equal(
+  createHash("sha256").update(legacyRenderedSource, "utf8").digest("hex"),
+  legacyJ4bChildRawSha256,
+);
+assert.equal(legacyJ4bChildRawSha256,
+  "8eeef35a7936cdd1f4613434d8b7990630b192707e92ea4b5f21637f7cdaf15f");
+assert.equal(legacyJ4bChildCanonicalSha256,
+  "2bfe9ec02c7939abbab48fb07a9126e7dc7684472607c2d8787623720e88f389");
+
+function exactChangedPropertyNames(previous, target) {
+  return [...new Set([...Object.keys(previous), ...Object.keys(target)])]
+    .filter((name) => JSON.stringify(previous[name]) !== JSON.stringify(target[name]))
+    .sort();
+}
+
+assert.deepEqual(Object.keys(legacyTemplate.Resources).sort(), Object.keys(resources).sort());
+const changedResources = Object.keys(resources)
+  .filter((name) => JSON.stringify(legacyTemplate.Resources[name]) !== JSON.stringify(resources[name]))
+  .sort();
+assert.deepEqual(changedResources, ["CellGlobalJanitorSchedule", "CellJanitorFunction"]);
+assert.deepEqual(
+  exactChangedPropertyNames(
+    legacyTemplate.Resources.CellJanitorFunction.Properties,
+    resources.CellJanitorFunction.Properties,
+  ),
+  ["Code", "Description", "Environment"],
+);
+assert.deepEqual(
+  exactChangedPropertyNames(
+    legacyTemplate.Resources.CellGlobalJanitorSchedule.Properties,
+    resources.CellGlobalJanitorSchedule.Properties,
+  ),
+  ["Description", "Target"],
+);
+assert.deepEqual(
+  legacyTemplate.Resources.CellJanitorLogGroup,
+  resources.CellJanitorLogGroup,
+);
+assert.deepEqual(
+  legacyTemplate.Resources.CellSchedulerGroup,
+  resources.CellSchedulerGroup,
+);
 
 assert.equal(sourceTemplate.Resources.CellJanitorFunction.Properties.Code.ZipFile,
   "__CELL_JANITOR_INLINE_SOURCE__");
@@ -53,6 +104,9 @@ assert.equal(boundary.CellCreateChangeSetAllowed, false);
 assert.equal(boundary.CellExecuteChangeSetAllowed, false);
 assert.equal(boundary.CellExecutionPassRoleAllowed, false);
 assert.equal(boundary.CellDeletionAllowed, false);
+assert.equal(boundary.CoordinatorMode, "PLAN_ONLY");
+assert.equal(boundary.AuthorityReadOnly, true);
+assert.equal(boundary.AuthorityKey, "cell:cell-sandbox-1");
 assert.equal(boundary.JanitorScheduleEnabled, false);
 assert.equal(boundary.RequiresDedicatedManagementStack, true);
 assert.equal(
@@ -94,7 +148,7 @@ for (const forbidden of [
   "CellExecutionBoundary",
   "CellCloudFormationExecutionRole",
 ]) {
-  assert.equal(resources[forbidden], undefined, `${forbidden} must not exist in J4b`);
+  assert.equal(resources[forbidden], undefined, `${forbidden} must not exist in J4c`);
 }
 assert.equal(template.Outputs?.CellOperatorRoleArn, undefined);
 assert.equal(template.Outputs?.CellCloudFormationExecutionRoleArn, undefined);
@@ -129,7 +183,10 @@ assert.deepEqual(lambda.Environment.Variables, {
   EXPECTED_ACCOUNT_ID: "402010193138",
   EXPECTED_REGION: "ca-central-1",
   EXPECTED_CELL_ID: "cell-sandbox-1",
-  CELL_MUTATION_ENABLED: "false",
+  CELL_CLEANUP_AUTHORITY_KEY: "cell:cell-sandbox-1",
+  CELL_CLEANUP_AUTHORITY_TABLE_ARN:
+    "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+  CELL_CLEANUP_COORDINATOR_MODE: "PLAN_ONLY",
 });
 for (const forbiddenProperty of [
   "DeadLetterConfig",
@@ -141,9 +198,22 @@ for (const forbiddenProperty of [
 ]) {
   assert.equal(lambda[forbiddenProperty], undefined);
 }
-assert.match(lambda.Code.ZipFile, /inspect_empty_shared_cell_inventory/);
-assert.match(lambda.Code.ZipFile, /CELL_MUTATION_ENABLED/);
-assert.match(lambda.Code.ZipFile, /mutation actions are disabled/);
+assert.match(lambda.Code.ZipFile, /inspect_cell_cleanup_plan/);
+assert.match(lambda.Code.ZipFile, /ConsistentRead:\s*true/);
+assert.match(lambda.Code.ZipFile, /mutationPerformed:\s*false/);
+assert.doesNotMatch(lambda.Code.ZipFile, /DeleteStackCommand/);
+assert.doesNotMatch(lambda.Code.ZipFile, /delete_shared_cell_stack/);
+const deployedCommands = [...janitorSource.matchAll(/new\s+(?:cloudFormation|dynamoDb)\.([A-Za-z0-9]+Command)\s*\(/g)]
+  .map((match) => match[1])
+  .sort();
+assert.deepEqual(deployedCommands, [
+  "DescribeStacksCommand",
+  "GetItemCommand",
+  "GetTemplateCommand",
+  "ListStackResourcesCommand",
+  "ListStacksCommand",
+]);
+assert.equal(deployedCommands.some((name) => /(?:Create|Delete|Execute|Put|Run|Update|Write)/.test(name)), false);
 
 assert.equal(resources.CellSchedulerGroup.Properties.Name, "techlong-sandbox-cell");
 const schedule = resources.CellGlobalJanitorSchedule.Properties;
@@ -158,7 +228,7 @@ assert.equal(
 );
 assert.deepEqual(JSON.parse(schedule.Target.Input), {
   schemaVersion: 1,
-  action: "inspect_empty_shared_cell_inventory",
+  action: "inspect_cell_cleanup_plan",
 });
 
 assert.deepEqual(Object.keys(template.Outputs).sort(), [
@@ -170,7 +240,7 @@ assert.deepEqual(Object.keys(template.Outputs).sort(), [
 ]);
 assert.equal(
   template.Outputs.SafetyState.Value,
-  "B5_J4B_EMPTY_SCAN_ONLY_CELL_APPLY_AND_DELETE_DISABLED",
+  "B5_J4C_OWNERSHIP_FENCED_PLAN_ONLY_ALL_MUTATIONS_DISABLED",
 );
 
 assert.match(
@@ -178,18 +248,35 @@ assert.match(
   /\[ValidateSet\('LocalValidate', 'OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet', 'Readback', 'ProbeJanitor', 'Delete'\)\]/,
 );
 assert.match(operationScript, /\[string\]\$Mode = 'LocalValidate'/);
+assert.match(operationScript, /\[ValidateSet\('InitialCreate', 'PlannerUpdate'\)\]/);
+assert.match(operationScript, /\[string\]\$DeploymentShape = 'InitialCreate'/);
 assert.match(operationScript, /TechlongSandboxCellBootstrapManagerRole/);
 assert.match(operationScript, /TechlongSandboxCellBootstrapCloudFormationExecutionRole/);
 assert.match(operationScript, /ConfirmTemplateSha256/);
 assert.match(operationScript, /ConfirmTemplateCanonicalSha256/);
 assert.match(operationScript, /New-ReadOnlyTemplateSnapshot/);
+assert.match(operationScript, /New-LegacyJ4bReadOnlyTemplateSnapshot/);
+assert.match(operationScript, /render-b5-cell-bootstrap-j4b-legacy\.mjs/);
+assert.match(operationScript, /8eeef35a7936cdd1f4613434d8b7990630b192707e92ea4b5f21637f7cdaf15f/);
+assert.match(operationScript, /2bfe9ec02c7939abbab48fb07a9126e7dc7684472607c2d8787623720e88f389/);
 assert.match(operationScript, /\$renderOutput = \(\(& node \$renderer --output \$DestinationPath\)/);
 assert.match(operationScript, /get-template/);
 assert.match(operationScript, /template-stage', 'Original'/);
 assert.match(operationScript, /simulate-principal-policy/);
-assert.match(operationScript, /inspect_empty_shared_cell_inventory/);
+assert.match(
+  operationScript,
+  /stack\/not-approved\/[0-9-]+'[\s\S]*ContextKeyName=dynamodb:LeadingKeys,ContextKeyValues=cell:cell-sandbox-1,ContextKeyType=stringList/,
+  "foreign Stack simulation must supply the unrelated DynamoDB condition key so implicit deny has no missing context",
+);
+assert.match(operationScript, /inspect_cell_cleanup_plan/);
 assert.match(operationScript, /stack-create-complete/);
+assert.match(operationScript, /stack-update-complete/);
 assert.match(operationScript, /stack-delete-complete/);
+assert.match(
+  operationScript,
+  /\[string\]\$stack\.StackStatus -notin @\('CREATE_COMPLETE', 'UPDATE_COMPLETE'\)/,
+  "deployed child readback must accept the exact terminal state for CREATE and UPDATE",
+);
 assert.match(operationScript, /ApprovedTemplateSha256/);
 assert.match(operationScript, /Assert-ExactTemplateObject/);
 assert.match(operationScript, /Assert-BootstrapExecutionIdentity/);
@@ -197,6 +284,11 @@ assert.match(operationScript, /techlong-sandbox-build-source-402010193138-ca-cen
 assert.match(operationScript, /b5-cell-bootstrap\/templates\/sha256/);
 assert.match(operationScript, /'--template-url', \$templateObject\.Url/);
 assert.match(operationScript, /'--resource-types'/);
+assert.match(operationScript, /\$changeSetType = if \(\$DeploymentShape -eq 'PlannerUpdate'\) \{ 'UPDATE' \} else \{ 'CREATE' \}/);
+assert.match(operationScript, /\$DeploymentShape -eq 'InitialCreate'[\s\S]*'--on-stack-failure', 'DELETE'/);
+assert.match(operationScript, /\[string\]\$resource\.Action -cne 'Modify'/);
+assert.match(operationScript, /\[string\]\$resource\.Scope\[0\] -cne 'Properties'/);
+assert.match(operationScript, /PlannerUpdate Change Set StackId is not the exact verified legacy child StackId/);
 for (const resourceType of Object.values(expectedResources)) {
   assert.match(operationScript, new RegExp(resourceType.replaceAll("::", "\\:\\:")));
 }
@@ -278,13 +370,13 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /'cloudformation', 'wait', 'stack-create-complete', '--profile', \$SourceReadbackProfile/,
+  /'cloudformation', 'wait', \$waiter, '--profile', \$SourceReadbackProfile/,
   "post-execution waiting must not require temporary manager read privileges",
 );
 assert.match(
   operationScript,
-  /\[string\]\$placeholderStacks\[0\]\.StackStatus -cne 'REVIEW_IN_PROGRESS'[\s\S]*\[string\]\$placeholderStacks\[0\]\.RoleARN -cne \$bootstrapExecutionRoleArn/,
-  "the CREATE placeholder Stack must prove the exact CloudFormation execution role",
+  /\$expectedStackStatus = if \(\$DeploymentShape -eq 'InitialCreate'\)[\s\S]*'REVIEW_IN_PROGRESS'[\s\S]*\[string\]\$stacks\[0\]\.RoleARN -cne \$bootstrapExecutionRoleArn/,
+  "CREATE and UPDATE Change Sets must prove the exact stable Stack and CloudFormation execution role",
 );
 assert.match(
   operationScript,
@@ -294,7 +386,7 @@ assert.match(
 assert.doesNotMatch(
   operationScript,
   /\$changeSet\.ChangeSetType|\$ChangeSet\.ChangeSetType/,
-  "DescribeChangeSet does not return ChangeSetType; CREATE is instead fenced by OnStackFailure and exact resource additions",
+  "DescribeChangeSet does not return ChangeSetType; each shape is fenced by metadata and exact resource changes",
 );
 assert.match(
   operationScript,
@@ -331,5 +423,5 @@ for (const forbidden of [
 }
 
 console.log(
-  "B5-J4b cleanup-only Bootstrap, locked Janitor, disabled schedule and exact operation contract validation passed.",
+  "B5-J4c plan-only cleanup planner, locked authority reads, disabled schedule and exact operation contract validation passed.",
 );
