@@ -74,6 +74,7 @@ const [
   janitorSource,
   deployedJanitorFixtureSource,
   imageBuildspec,
+  imageBuildScript,
 ] =
   await Promise.all([
     readJson("sandbox.example.json"),
@@ -87,7 +88,15 @@ const [
       "utf8",
     ),
     readFile(path.join(root, "codebuild", "buildspec.aws-sandbox.yml"), "utf8"),
+    readFile(path.join(root, "scripts", "s3-build-image.ps1"), "utf8"),
   ]);
+
+const entrypointInspectionLines = imageBuildspec
+  .split(/\r?\n/)
+  .filter((line) => line.includes("{{len .Config.Entrypoint}}"));
+const dockerPushLines = imageBuildspec
+  .split(/\r?\n/)
+  .filter((line) => line.includes('docker push "$ECR_REPOSITORY_URI:$IMAGE_TAG"'));
 
 check(
   imageBuildspec.includes("docker image inspect --format '{{.Config.User}}'") &&
@@ -106,11 +115,44 @@ check(
 check(
   imageBuildspec.includes("{{.Architecture}}") &&
     imageBuildspec.includes('= "amd64"') &&
-    imageBuildspec.includes("{{json .Config.Entrypoint}}") &&
+    entrypointInspectionLines.length === 1 &&
+    entrypointInspectionLines[0].includes('= "0"') &&
+    !imageBuildspec.includes("{{json .Config.Entrypoint}}") &&
     imageBuildspec.includes("{{json .Config.Cmd}}") &&
     imageBuildspec.includes('[\"/usr/local/bin/node\",\"./bin/www\"]') &&
     imageBuildspec.includes("http://127.0.0.1:3000/ready"),
   "image build must verify architecture and the unchanged web-only runtime defaults",
+);
+check(
+  imageBuildspec.includes("touch /tmp/techlong-image-smoke-passed") &&
+    dockerPushLines.length === 1 &&
+    dockerPushLines[0].includes(
+      "test -f /tmp/techlong-image-smoke-passed && if",
+    ) &&
+    dockerPushLines[0].includes(
+      'else docker push "$ECR_REPOSITORY_URI:$IMAGE_TAG" &&',
+    ) &&
+    dockerPushLines[0].includes(
+      '&& IMAGE_DIGEST=$(aws ecr describe-images',
+    ) &&
+    dockerPushLines[0].includes(
+      "&& echo \"$IMAGE_DIGEST\" | grep -Eq '^sha256:[0-9a-f]{64}$' &&",
+    ),
+  "image push must be guarded by a smoke-completion sentinel",
+);
+check(
+  imageBuildspec.includes('docker pull "$ECR_REPOSITORY_URI@$EXPECTED_IMAGE_DIGEST"') &&
+    imageBuildspec.includes(
+      '&& test "$ACTUAL_IMAGE_DIGEST" = "$EXPECTED_IMAGE_DIGEST" &&',
+    ) &&
+    imageBuildspec.includes(
+      'docker pull "$ECR_REPOSITORY_URI@$EXPECTED_IMAGE_DIGEST" && docker tag',
+    ) &&
+    imageBuildspec.includes('if [ "$VERIFY_EXISTING_IMAGE" = "true" ]') &&
+    imageBuildScript.includes("'VerifyImage'") &&
+    imageBuildScript.includes('"name=VERIFY_EXISTING_IMAGE,value=$verifyExistingImage,type=PLAINTEXT"') &&
+    imageBuildScript.includes('"name=EXPECTED_IMAGE_DIGEST,value=$expectedImageDigest,type=PLAINTEXT"'),
+  "existing immutable image verification must be digest-pinned and push-free",
 );
 for (const lifecycleRuntimeRequirement of [
   "db/tenant_lifecycle.js",

@@ -7,20 +7,22 @@ phases:
       - test "$AWS_DEFAULT_REGION" = "ca-central-1"
       - echo "$IMAGE_TAG" | grep -Eq '^git-[0-9a-f]{40}$'
       - echo "$ECR_REPOSITORY_URI" | grep -Eq '^402010193138\.dkr\.ecr\.ca-central-1\.amazonaws\.com/techlong-sandbox-speedfeast$'
+      - test "$VERIFY_EXISTING_IMAGE" = "true" -o "$VERIFY_EXISTING_IMAGE" = "false"
+      - if [ "$VERIFY_EXISTING_IMAGE" = "true" ]; then echo "$EXPECTED_IMAGE_DIGEST" | grep -Eq '^sha256:[0-9a-f]{64}$'; else test "$EXPECTED_IMAGE_DIGEST" = "not-applicable"; fi
       - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "402010193138.dkr.ecr.ca-central-1.amazonaws.com"
   build:
     commands:
-      - docker build --pull --tag "$ECR_REPOSITORY_URI:$IMAGE_TAG" .
+      - if [ "$VERIFY_EXISTING_IMAGE" = "true" ]; then ACTUAL_IMAGE_DIGEST=$(aws ecr describe-images --repository-name techlong-sandbox-speedfeast --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text) && test "$ACTUAL_IMAGE_DIGEST" = "$EXPECTED_IMAGE_DIGEST" && docker pull "$ECR_REPOSITORY_URI@$EXPECTED_IMAGE_DIGEST" && docker tag "$ECR_REPOSITORY_URI@$EXPECTED_IMAGE_DIGEST" "$ECR_REPOSITORY_URI:$IMAGE_TAG"; else docker build --pull --tag "$ECR_REPOSITORY_URI:$IMAGE_TAG" .; fi
       - test "$(docker image inspect --format '{{.Config.User}}' "$ECR_REPOSITORY_URI:$IMAGE_TAG")" = "65532:65532"
       - test "$(docker image inspect --format '{{.Architecture}}' "$ECR_REPOSITORY_URI:$IMAGE_TAG")" = "amd64"
-      - test "$(docker image inspect --format '{{json .Config.Entrypoint}}' "$ECR_REPOSITORY_URI:$IMAGE_TAG")" = "[]"
+      - test "$(docker image inspect --format '{{len .Config.Entrypoint}}' "$ECR_REPOSITORY_URI:$IMAGE_TAG")" = "0"
       - test "$(docker image inspect --format '{{json .Config.Cmd}}' "$ECR_REPOSITORY_URI:$IMAGE_TAG")" = '["/usr/local/bin/node","./bin/www"]'
       - docker image inspect --format '{{json .Config.Healthcheck.Test}}' "$ECR_REPOSITORY_URI:$IMAGE_TAG" | grep -Fq 'http://127.0.0.1:3000/ready'
       - docker run --rm --entrypoint /usr/local/bin/node "$ECR_REPOSITORY_URI:$IMAGE_TAG" --version | grep -Fx 'v24.18.0'
       - docker run --rm --entrypoint /usr/local/bin/node "$ECR_REPOSITORY_URI:$IMAGE_TAG" -e "require('bcrypt'); require('pg'); process.stdout.write('runtime-dependencies-ok\\n')"
       - docker run --rm --entrypoint /usr/local/bin/node "$ECR_REPOSITORY_URI:$IMAGE_TAG" -e "const fs=require('node:fs'); const crypto=require('node:crypto'); for (const file of ['db/tenant_lifecycle.js','services/saas/tenant_lifecycle_service.js','services/saas/tenant_lifecycle_production.js','services/saas/tenant_lifecycle_receipt_publisher.js']) fs.accessSync(file,fs.constants.R_OK); require('./db/tenant_lifecycle.js'); require('./services/saas/tenant_lifecycle_service.js'); require('./services/saas/tenant_lifecycle_production.js'); require('./services/saas/tenant_lifecycle_receipt_publisher.js'); require('@aws-sdk/client-s3'); require('@aws-sdk/client-secrets-manager'); const ca=fs.readFileSync('/usr/local/share/ca-certificates/aws-rds-global-bundle.pem'); if(crypto.createHash('sha256').update(ca).digest('hex')!=='e5bb2084ccf45087bda1c9bffdea0eb15ee67f0b91646106e466714f9de3c7e3') throw new Error('RDS CA digest mismatch'); process.stdout.write('tenant-lifecycle-runtime-ok\\n')"
+      - touch /tmp/techlong-image-smoke-passed
   post_build:
     commands:
-      - docker push "$ECR_REPOSITORY_URI:$IMAGE_TAG"
-      - IMAGE_DIGEST=$(aws ecr describe-images --repository-name techlong-sandbox-speedfeast --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)
-      - echo "Immutable image published as $ECR_REPOSITORY_URI@$IMAGE_DIGEST"
+      - test -f /tmp/techlong-image-smoke-passed
+      - test -f /tmp/techlong-image-smoke-passed && if [ "$VERIFY_EXISTING_IMAGE" = "true" ]; then ACTUAL_IMAGE_DIGEST=$(aws ecr describe-images --repository-name techlong-sandbox-speedfeast --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text) && test "$ACTUAL_IMAGE_DIGEST" = "$EXPECTED_IMAGE_DIGEST" && echo "Existing immutable image verified as $ECR_REPOSITORY_URI@$ACTUAL_IMAGE_DIGEST"; else docker push "$ECR_REPOSITORY_URI:$IMAGE_TAG" && IMAGE_DIGEST=$(aws ecr describe-images --repository-name techlong-sandbox-speedfeast --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text) && echo "$IMAGE_DIGEST" | grep -Eq '^sha256:[0-9a-f]{64}$' && echo "Immutable image published as $ECR_REPOSITORY_URI@$IMAGE_DIGEST"; fi

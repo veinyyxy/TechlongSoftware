@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-  [ValidateSet('Plan', 'Package', 'Upload', 'StartBuild')]
+  [ValidateSet('Plan', 'Package', 'Upload', 'StartBuild', 'VerifyImage')]
   [string]$Mode = 'Plan',
   [string]$SourceRoot = 'E:\NodejsProject\SpeedFeast_Backend_main',
   [string]$OutputPath = '',
@@ -144,10 +144,10 @@ try {
   }
 
   if ($ConfirmAccountId -ne $expectedAccountId) {
-    throw "Upload/StartBuild requires -ConfirmAccountId $expectedAccountId."
+    throw "Upload/StartBuild/VerifyImage requires -ConfirmAccountId $expectedAccountId."
   }
-  if ($Mode -eq 'StartBuild' -and -not $AcknowledgeBuildMayIncurCost) {
-    throw 'StartBuild requires -AcknowledgeBuildMayIncurCost.'
+  if ($Mode -in @('StartBuild', 'VerifyImage') -and -not $AcknowledgeBuildMayIncurCost) {
+    throw "$Mode requires -AcknowledgeBuildMayIncurCost."
   }
   $awsCli = Resolve-AwsCli
   $identityJson = & $awsCli sts get-caller-identity --profile $Profile --output json
@@ -170,13 +170,25 @@ try {
     --query "imageIds[?imageTag=='$imageTag'].imageDigest | [0]" `
     --output text).Trim()
   if ($LASTEXITCODE -ne 0) { throw 'Unable to check the immutable ECR image tag.' }
-  if ($existingDigest -match '^sha256:[0-9a-f]{64}$') {
+  $existingImageFound = $existingDigest -match '^sha256:[0-9a-f]{64}$'
+  $existingImageAbsent = $existingDigest -in @('', 'None', 'null')
+  if (-not $existingImageFound -and -not $existingImageAbsent) {
+    throw 'ECR returned an unexpected digest value; refusing to build or verify.'
+  }
+
+  $verifyExistingImage = 'false'
+  $expectedImageDigest = 'not-applicable'
+  if ($Mode -eq 'VerifyImage') {
+    if (-not $existingImageFound) {
+      throw 'VerifyImage requires the exact immutable image tag to exist.'
+    }
+    $verifyExistingImage = 'true'
+    $expectedImageDigest = $existingDigest
+    Write-Host "Preparing smoke-only verification for existing immutable image $existingDigest."
+  } elseif ($existingImageFound) {
     Write-Host "Reusing existing immutable image 402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@$existingDigest."
     Write-Host 'No source was uploaded and no CodeBuild build was started.'
     exit 0
-  }
-  if ($existingDigest -notin @('', 'None', 'null')) {
-    throw 'ECR returned an unexpected digest value; refusing to build.'
   }
 
   $objectKey = "source/speedfeast-$commit.zip"
@@ -203,9 +215,16 @@ try {
     --source-type-override S3 `
     --source-location-override "$sourceBucket/$objectKey" `
     --buildspec-override buildspec.aws-sandbox.yml `
-    --environment-variables-override "name=IMAGE_TAG,value=$imageTag,type=PLAINTEXT"
+    --environment-variables-override `
+      "name=IMAGE_TAG,value=$imageTag,type=PLAINTEXT" `
+      "name=VERIFY_EXISTING_IMAGE,value=$verifyExistingImage,type=PLAINTEXT" `
+      "name=EXPECTED_IMAGE_DIGEST,value=$expectedImageDigest,type=PLAINTEXT"
   if ($LASTEXITCODE -ne 0) { throw 'CodeBuild failed to start.' }
-  Write-Host 'A single bounded CodeBuild build was started; inspect its status before provisioning.'
+  if ($Mode -eq 'VerifyImage') {
+    Write-Host 'A single bounded smoke-only CodeBuild verification was started; the reviewed verification path performs no push.'
+  } else {
+    Write-Host 'A single bounded CodeBuild build was started; inspect its status before provisioning.'
+  }
 } finally {
   if (Test-Path -LiteralPath $staging) {
     Remove-Item -LiteralPath $staging -Recurse -Force
