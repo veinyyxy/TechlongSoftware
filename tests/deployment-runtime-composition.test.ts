@@ -25,6 +25,19 @@ test("default Worker composition is immutable and exposes no live capability", (
     ),
     true,
   );
+  assert.equal(
+    runtime.blockers.includes(
+      "shared_cell_provision_authority_predecessor_missing",
+    ),
+    true,
+  );
+  assert.equal(
+    runtime.blockers.includes(
+      "shared_cell_cleanup_authority_writer_missing",
+    ),
+    true,
+  );
+  assert.equal("sharedCellCleanupAuthority" in runtime, false);
   assert.equal("tenantExternalOperationCoordinator" in runtime, false);
   assert.equal("tenantResourceCleanup" in runtime, false);
 });

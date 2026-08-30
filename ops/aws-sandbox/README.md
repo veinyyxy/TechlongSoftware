@@ -296,6 +296,14 @@ J4c 已将既有 J4b child 原地更新为 ownership-fenced、authority-bound �
 - `ProbeJanitor` 的两次调用均返回 `ABSENT_SAFE` 和相同空 inventory；probe evidence canonical SHA-256 为 `ef7699c9c005eed98077f2e43ebfae8caa78069fff269b5b7db6a645875f3835`，没有请求或执行 mutation。
 - Schedule 继续为 `DISABLED`；`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false`。本次更新没有创建付费 Shared Cell、VPC、ALB、ECS cluster/service/task、Aurora/RDS 或 Route 53 资源，也没有执行 `RunTask`。
 
+### B5-J5a Shared Cell cleanup authority（仅本地契约）
+
+J5a 为 J4c 的 `cell:cell-sandbox-1` authority 消费 schema 增加 SDK-free 本地候选契约：compiler 只校验调用方 Stack DTO 的严格形状，不采集或认证 live evidence；它生成 exact 4-field item 与 canonical 22-field record，内部从 exact intent 派生 cleanup operation hash，并绑定 marker、revision、Cell 到期时间和最长一小时 authorization。产物通过仓库内 J4c validator 与 DynamoDB AttributeValue decoder 的本地跨契约测试；没有调用已部署 Lambda 或 AWS。
+
+atomic advance 协调逻辑拒绝空 snapshot，只允许已有 exact predecessor 在同 owner/generation/provision/Stack lineage 内严格增加 cleanup epoch；exact 重试不写入，CAS、独立回读、intent hash或时间窗任一漂移都 fail closed。这里只存在接口、Mock 和显式 disabled 实现，没有真实条件写 provider；default root 不暴露该 capability，现有 `tenant:<64hex>` adapter 仍拒绝 `cell:*`。
+
+首条可信 provision authority/bootstrap、live evidence provenance、AWS SDK/DynamoDB writer/IAM 和 root 接线仍缺失，因此新增 `shared_cell_provision_authority_predecessor_missing` 与 `shared_cell_cleanup_authority_writer_missing` 两个 blocker。`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false`。本切片没有 AWS、IAM、CloudFormation 或部署步骤，不能授权 J4c mutation，也不能创建或删除 Shared Cell。
+
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 
 ## 安全镜像源码包

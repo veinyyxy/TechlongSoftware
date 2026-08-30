@@ -9,6 +9,8 @@ export const DEFAULT_DISABLED_RUNTIME_BLOCKERS = Object.freeze([
   "tenant_runtime_provider_root_wiring_missing",
   "tenant_lifecycle_task_definition_live_readback_missing",
   "fenced_cleanup_provider_root_wiring_missing",
+  "shared_cell_provision_authority_predecessor_missing",
+  "shared_cell_cleanup_authority_writer_missing",
   "shared_cell_live_preflight_root_wiring_missing",
   "saas_control_credentials_root_wiring_missing",
 ] as const);
