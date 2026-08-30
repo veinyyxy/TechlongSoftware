@@ -24,12 +24,12 @@ $expectedPrincipalArn = 'arn:aws:sts::402010193138:assumed-role/TechlongSandboxP
 $stackName = 'techlong-sandbox-tenant-b5j3'
 $cloudFormationRoleArn = 'arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole'
 $expectedAppInstanceId = 'tenant-lifecycle'
-$expectedDeploymentId = 'b5j3-f4aa0febeba5'
+$expectedDeploymentId = 'b5j3-201187cddb1a'
 $root = Split-Path -Parent $PSScriptRoot
 $templatePath = Join-Path $root 'cloudformation\s3-b5-lifecycle-task-definition.template.json'
 $validator = Join-Path $root 'scripts\validate-b5-lifecycle-task-definition.mjs'
 $templateVerifier = Join-Path $root 'scripts\verify-change-set-template.mjs'
-$createPhrase = 'I_ACKNOWLEDGE_INSPECT_ONLY_TASK_DEFINITION_REGISTRATION'
+$createPhrase = 'I_ACKNOWLEDGE_DESTROY_CAPABLE_IMAGE_INSPECT_DEFAULT_TASK_DEFINITION_REGISTRATION'
 $deletePhrase = 'I_ACKNOWLEDGE_EXACT_TASK_DEFINITION_DEREGISTRATION'
 
 function Resolve-AwsCli {
@@ -561,7 +561,7 @@ try {
       '--stack-name', $stackName
     )
     Assert-ExactStackAndTaskDefinition -AwsCli $awsCli -TemporaryDirectory $temporaryDirectory | Out-Null
-    Write-Host 'Inspect-only TaskDefinition registration completed. No ECS task was started.'
+    Write-Host 'Destroy-capable-image, inspect-default TaskDefinition registration completed. No ECS task was started.'
     exit 0
   }
 

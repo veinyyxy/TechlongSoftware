@@ -10,15 +10,17 @@ export const tenantLifecycleTaskDefinitionSafety = Object.freeze({
   RunsTask: false,
   ContainsSecrets: false,
   CreatesSharedCell: false,
+  ImageDestroyCapable: true,
+  DefaultCommandInspectOnly: true,
   RequiredLogGroupName: "/saas/cell-sandbox-1/tenant-lifecycle",
   LogGroupReady: false,
   RegistrationReady: false,
   LiveReadbackReady: false,
   ApplyRuntimeReady: false,
   CleanupRuntimeReady: false,
-  ImageCommit: "f4aa0febeba526f737bac3b59d516e1ab5c24482",
+  ImageCommit: "201187cddb1a77690c0df2c7779d354af6009e7c",
   ImageDigest:
-    "sha256:4815009949cd5219add56fedb183f1809b728081562f0280ede5229b567136f0",
+    "sha256:6001bde1cc05058ae3df83fbdb084e8cd53b64325ecb6663b43a5fccc8ef22be",
 });
 
 export const expectedTenantLifecycleTaskDefinitionProperties = Object.freeze({
@@ -32,7 +34,7 @@ export const expectedTenantLifecycleTaskDefinitionProperties = Object.freeze({
     Object.freeze({
       Name: "tenant-database-lifecycle",
       Image:
-        "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:4815009949cd5219add56fedb183f1809b728081562f0280ede5229b567136f0",
+        "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:6001bde1cc05058ae3df83fbdb084e8cd53b64325ecb6663b43a5fccc8ef22be",
       Essential: true,
       Command: Object.freeze([
         "/usr/local/bin/node",
@@ -340,7 +342,7 @@ function validateTags(tags, expectedExpiresAt) {
   assert.equal(map.ManagedBy, "techlong-provisioner");
   assert.equal(map.Component, "tenant-lifecycle-one-shot");
   assert.equal(map.AppInstanceId, "tenant-lifecycle");
-  assert.equal(map.DeploymentId, "b5j3-f4aa0febeba5");
+  assert.equal(map.DeploymentId, "b5j3-201187cddb1a");
   assert.equal(map.ExpiresAt, expectedExpiresAt);
   return Object.fromEntries(Object.entries(map).sort(([a], [b]) => a.localeCompare(b)));
 }

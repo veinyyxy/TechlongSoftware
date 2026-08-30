@@ -98,7 +98,7 @@ function syntheticReadback() {
       { key: "ManagedBy", value: "techlong-provisioner" },
       { key: "Component", value: "tenant-lifecycle-one-shot" },
       { key: "AppInstanceId", value: "tenant-lifecycle" },
-      { key: "DeploymentId", value: "b5j3-f4aa0febeba5" },
+      { key: "DeploymentId", value: "b5j3-201187cddb1a" },
       { key: "ExpiresAt", value: testExpiresAt },
     ],
   };
@@ -131,11 +131,19 @@ assert.match(
   /\$expectedPrincipalArn = 'arn:aws:sts::402010193138:assumed-role\/TechlongSandboxProvisionerRole\/techlong-sandbox-provisioner'/,
 );
 assert.match(operationScript, /\$stackName = 'techlong-sandbox-tenant-b5j3'/);
+assert.match(operationScript, /\$expectedDeploymentId = 'b5j3-201187cddb1a'/);
 assert.match(
   operationScript,
   /\$cloudFormationRoleArn = 'arn:aws:iam::402010193138:role\/TechlongSandboxCloudFormationExecutionRole'/,
 );
-assert.match(operationScript, /I_ACKNOWLEDGE_INSPECT_ONLY_TASK_DEFINITION_REGISTRATION/);
+assert.match(
+  operationScript,
+  /I_ACKNOWLEDGE_DESTROY_CAPABLE_IMAGE_INSPECT_DEFAULT_TASK_DEFINITION_REGISTRATION/,
+);
+assert.doesNotMatch(
+  operationScript,
+  /I_ACKNOWLEDGE_INSPECT_ONLY_TASK_DEFINITION_REGISTRATION/,
+);
 assert.match(operationScript, /I_ACKNOWLEDGE_EXACT_TASK_DEFINITION_DEREGISTRATION/);
 assert.match(operationScript, /Assert-NoAwsEndpointOverrides/);
 assert.match(operationScript, /AWS_IGNORE_CONFIGURED_ENDPOINT_URLS/);

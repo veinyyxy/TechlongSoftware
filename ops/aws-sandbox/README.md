@@ -219,9 +219,9 @@ Change Set 名由渲染后模板 SHA-256 自动生成，description 同时绑定
 .\ops\aws-sandbox\scripts\s3-b5-support-bootstrap.ps1 -Mode ExecuteRollbackChangeSet -Profile 'techlong-sandbox-user' -ConfirmAccountId '402010193138' -ConfirmRegion 'ca-central-1' -ConfirmBootstrapStackName 'techlong-s3-bootstrap' -ConfirmExecutionPhrase 'I_ACKNOWLEDGE_B5_SUPPORT_ROLLBACK_DATA_DELETION' -AcknowledgeAwsWrite -AcknowledgeLowCostNotFree -AcknowledgeSourceUserBootstrapRisk -AcknowledgeMfaSession -AcknowledgeChangeSetReviewed -AcknowledgeDeleteAllReceipts -AcknowledgeDeleteAuthorityRecords
 ```
 
-## B5-J3 inspect-only lifecycle TaskDefinition
+## B5-J3 destroy-capable-image, inspect-default lifecycle TaskDefinition
 
-`s3-b5-lifecycle-task-definition.template.json` 只含一个 `AWS::ECS::TaskDefinition`，不会创建 Cluster、Service、Task、日志组、Secret、网络或数据库。family 固定为 `tenant-lifecycle`，镜像固定为 Build #4 digest `sha256:4815009949cd5219add56fedb183f1809b728081562f0280ede5229b567136f0`，命令固定为 `/usr/local/bin/node db/tenant_lifecycle.js inspect`；Fargate 资源为 `256 CPU / 512 MiB`，容器使用 `65532:65532`、只读 root filesystem、drop ALL、零端口/卷/sidecar/Secret。日志目标预留为 `/saas/cell-sandbox-1/tenant-lifecycle`，但本阶段不创建它，`LogGroupReady=false`。
+`s3-b5-lifecycle-task-definition.template.json` 只含一个 `AWS::ECS::TaskDefinition`，不会创建 Cluster、Service、Task、日志组、Secret、网络或数据库。镜像 artifact 已包含受审 destroy runtime，并固定为完成独立 smoke 与零发现扫描的 Build #7 digest `sha256:6001bde1cc05058ae3df83fbdb084e8cd53b64325ecb6663b43a5fccc8ef22be`（Backend commit `201187cddb1a77690c0df2c7779d354af6009e7c`）；但该 TaskDefinition 的默认命令仍严格固定为 `/usr/local/bin/node db/tenant_lifecycle.js inspect`，注册过程也不运行它。Fargate 资源为 `256 CPU / 512 MiB`，容器使用 `65532:65532`、只读 root filesystem、drop ALL、零端口/卷/sidecar/Secret。日志目标预留为 `/saas/cell-sandbox-1/tenant-lifecycle`，但本阶段不创建它，`LogGroupReady=false`。
 
 脚本默认 `LocalValidate`；在线模式只接受精确的 `techlong-sandbox-provisioner` MFA AssumeRole 会话，并拒绝凭据环境变量和 endpoint override。`CreateStack` 需要显式账号、区域、Stack、当前 canonical template hash、未来 15 分钟至 24 小时内的 `ExpiresAt` 和三项风险确认；它通过固定 CloudFormation execution role 注册 TaskDefinition，但脚本中没有 `RunTask`/直接 Register/Deregister API。`Readback` 会把 StackId、单资源清单、原始模板、revision ARN、image/command/roles/hardening/tags 和注册时间精确对账：
 
