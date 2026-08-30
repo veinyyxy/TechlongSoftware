@@ -65,6 +65,7 @@ const [
   packageJsonSource,
   packageLockSource,
   renderedSource,
+  registrationGrantSource,
   rollbackSource,
 ] =
   await Promise.all([
@@ -77,6 +78,7 @@ const [
     readFile(packageJsonPath, "utf8"),
     readFile(packageLockPath, "utf8"),
     renderBootstrapTemplate(),
+    renderBootstrapTemplate({ lifecycleTaskRegistrationGrant: true }),
     renderB5SupportRollbackTemplate(),
   ]);
 
@@ -84,6 +86,10 @@ const template = JSON.parse(templateSource);
 const rendered = parseCloudFormationTemplateDocument(
   renderedSource,
   "Rendered B5 support template",
+);
+const registrationGrant = parseCloudFormationTemplateDocument(
+  registrationGrantSource,
+  "Rendered lifecycle TaskDefinition registration grant template",
 );
 const rollback = parseCloudFormationTemplateDocument(
   rollbackSource,
@@ -259,6 +265,11 @@ const deployedLifecycleRegistrationPassRole = statementBySid(
   "AllowPassOnlySandboxTaskRolesToEcs",
 );
 deployedLifecycleRegistrationPassRole.Resource.push(lifecycleTaskRoleArn);
+assert.deepEqual(
+  registrationGrant,
+  deployedLifecycleTaskRegistration,
+  "registration grant renderer may only add the exact lifecycle PassRole ARN",
+);
 assert.equal(
   canonicalTemplateSha256(deployedLifecycleTaskRegistration),
   "826a968ecfdfff10d32e50a9689af079f9920892f605568e86bc80f6876ece72",
@@ -1431,6 +1442,15 @@ assert.deepEqual(parseReviewedChangeShape("requiredLifecycleReadbackChanges"), {
   DeploymentWorkerRole: { type: "AWS::IAM::Role", action: "Modify" },
 });
 assert.deepEqual(
+  parseReviewedChangeShape("requiredLifecycleTaskRegistrationGrantChanges"),
+  {
+    ExecutionRoleBoundary: {
+      type: "AWS::IAM::ManagedPolicy",
+      action: "Modify",
+    },
+  },
+);
+assert.deepEqual(
   parseReviewedChangeShape("requiredLifecycleTaskRegistrationRevokeChanges"),
   {
     ExecutionRoleBoundary: {
@@ -1462,7 +1482,7 @@ assert.match(
 assert.match(operationScript, /\[string\]\$Mode = 'LocalValidate'/);
 assert.match(
   operationScript,
-  /\[ValidateSet\('InitialB5Support', 'LifecycleReadback', 'LifecycleTaskRegistrationRevoke'\)\]\s*\[string\]\$UpdateShape = 'InitialB5Support'/,
+  /\[ValidateSet\([\s\S]*?'InitialB5Support'[\s\S]*?'LifecycleReadback'[\s\S]*?'LifecycleTaskRegistrationGrant'[\s\S]*?'LifecycleTaskRegistrationRevoke'[\s\S]*?\)\]\s*\[string\]\$UpdateShape = 'InitialB5Support'/,
 );
 assert.match(operationScript, /\[string\]\$Profile = 'techlong-sandbox-user'/);
 assert.match(operationScript, /\$supportInfrastructureWriteReady = \$true/);
@@ -1528,7 +1548,7 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*\$requiredLifecycleTaskRegistrationRevokeChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleReadback'\) \{\s*\$requiredLifecycleReadbackChanges\s*\} else \{\s*\$requiredInitialB5SupportChanges/,
+  /elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationGrant'\) \{\s*\$requiredLifecycleTaskRegistrationGrantChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*\$requiredLifecycleTaskRegistrationRevokeChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleReadback'\) \{\s*\$requiredLifecycleReadbackChanges\s*\} else \{\s*\$requiredInitialB5SupportChanges/,
 );
 assert.match(
   operationScript,
@@ -1590,11 +1610,11 @@ assert.match(operationScript, /'--template-stage', 'Original'/);
 assert.match(operationScript, /--expected-template \$ExpectedTemplatePath/);
 assert.match(operationScript, /--get-template-response \$ResponsePath/);
 assert.match(operationScript, /canonical-sha256=/);
+assert.match(operationScript, /--lifecycle-task-registration-grant/);
 assert.match(
   operationScript,
-  /\$updateShapeToken = if \(\$reviewedUpdateShape -eq 'LifecycleReadback'\) \{\s*'lifecycle-readback'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*'lifecycle-task-registration-revoke'\s*\} else \{\s*'initial'\s*\}/,
+  /\$updateShapeToken = if \(\$reviewedUpdateShape -eq 'LifecycleReadback'\) \{\s*'lifecycle-readback'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleTaskRegistrationGrant'\) \{\s*'lifecycle-task-registration-grant'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*'lifecycle-task-registration-revoke'\s*\} else \{\s*'initial'\s*\}/,
 );
-assert.doesNotMatch(operationScript, /'LifecycleTaskRegistration'\)/);
 assert.match(
   operationScript,
   /\$changeSetName = "techlong-s3-b5-support-\$updateShapeToken-\$\(\$templateHash\.Substring\(0, 16\)\)"/,

@@ -12,8 +12,13 @@ phases:
     commands:
       - docker build --pull --tag "$ECR_REPOSITORY_URI:$IMAGE_TAG" .
       - test "$(docker image inspect --format '{{.Config.User}}' "$ECR_REPOSITORY_URI:$IMAGE_TAG")" = "65532:65532"
+      - test "$(docker image inspect --format '{{.Architecture}}' "$ECR_REPOSITORY_URI:$IMAGE_TAG")" = "amd64"
+      - test "$(docker image inspect --format '{{json .Config.Entrypoint}}' "$ECR_REPOSITORY_URI:$IMAGE_TAG")" = "[]"
+      - test "$(docker image inspect --format '{{json .Config.Cmd}}' "$ECR_REPOSITORY_URI:$IMAGE_TAG")" = '["/usr/local/bin/node","./bin/www"]'
+      - docker image inspect --format '{{json .Config.Healthcheck.Test}}' "$ECR_REPOSITORY_URI:$IMAGE_TAG" | grep -Fq 'http://127.0.0.1:3000/ready'
       - docker run --rm --entrypoint /usr/local/bin/node "$ECR_REPOSITORY_URI:$IMAGE_TAG" --version | grep -Fx 'v24.18.0'
       - docker run --rm --entrypoint /usr/local/bin/node "$ECR_REPOSITORY_URI:$IMAGE_TAG" -e "require('bcrypt'); require('pg'); process.stdout.write('runtime-dependencies-ok\\n')"
+      - docker run --rm --entrypoint /usr/local/bin/node "$ECR_REPOSITORY_URI:$IMAGE_TAG" -e "const fs=require('node:fs'); const crypto=require('node:crypto'); for (const file of ['db/tenant_lifecycle.js','services/saas/tenant_lifecycle_service.js','services/saas/tenant_lifecycle_production.js','services/saas/tenant_lifecycle_receipt_publisher.js']) fs.accessSync(file,fs.constants.R_OK); require('./db/tenant_lifecycle.js'); require('./services/saas/tenant_lifecycle_service.js'); require('./services/saas/tenant_lifecycle_production.js'); require('./services/saas/tenant_lifecycle_receipt_publisher.js'); require('@aws-sdk/client-s3'); require('@aws-sdk/client-secrets-manager'); const ca=fs.readFileSync('/usr/local/share/ca-certificates/aws-rds-global-bundle.pem'); if(crypto.createHash('sha256').update(ca).digest('hex')!=='e5bb2084ccf45087bda1c9bffdea0eb15ee67f0b91646106e466714f9de3c7e3') throw new Error('RDS CA digest mismatch'); process.stdout.write('tenant-lifecycle-runtime-ok\\n')"
   post_build:
     commands:
       - docker push "$ECR_REPOSITORY_URI:$IMAGE_TAG"

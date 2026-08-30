@@ -103,6 +103,30 @@ check(
   imageBuildspec.includes("require('bcrypt'); require('pg');"),
   "image build must load native and database runtime dependencies before push",
 );
+check(
+  imageBuildspec.includes("{{.Architecture}}") &&
+    imageBuildspec.includes('= "amd64"') &&
+    imageBuildspec.includes("{{json .Config.Entrypoint}}") &&
+    imageBuildspec.includes("{{json .Config.Cmd}}") &&
+    imageBuildspec.includes('[\"/usr/local/bin/node\",\"./bin/www\"]') &&
+    imageBuildspec.includes("http://127.0.0.1:3000/ready"),
+  "image build must verify architecture and the unchanged web-only runtime defaults",
+);
+for (const lifecycleRuntimeRequirement of [
+  "db/tenant_lifecycle.js",
+  "services/saas/tenant_lifecycle_service.js",
+  "services/saas/tenant_lifecycle_production.js",
+  "services/saas/tenant_lifecycle_receipt_publisher.js",
+  "require('@aws-sdk/client-s3')",
+  "require('@aws-sdk/client-secrets-manager')",
+  "e5bb2084ccf45087bda1c9bffdea0eb15ee67f0b91646106e466714f9de3c7e3",
+  "tenant-lifecycle-runtime-ok",
+]) {
+  check(
+    imageBuildspec.includes(lifecycleRuntimeRequirement),
+    `image build is missing lifecycle runtime smoke: ${lifecycleRuntimeRequirement}`,
+  );
+}
 
 const config = configResult.value;
 if (config) {

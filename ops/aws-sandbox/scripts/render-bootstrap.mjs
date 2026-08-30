@@ -19,6 +19,8 @@ const deployedJanitorFixturePath = path.join(
   "janitor.b5i-deployed.base64",
 );
 const sourceMarker = "__JANITOR_INLINE_SOURCE__";
+const lifecycleTaskRoleArn =
+  "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole";
 const deployedJanitorBytes = 8_478;
 const deployedJanitorSha256 =
   "a5b6d0fd40c4bede585f89316853e0e274113d07f9f11647f7a2f54bf59d22f6";
@@ -60,7 +62,9 @@ export function decodeDeployedJanitorSource(fixtureSource, reviewedSource) {
   return deployedSource;
 }
 
-export async function renderBootstrapTemplate() {
+export async function renderBootstrapTemplate({
+  lifecycleTaskRegistrationGrant = false,
+} = {}) {
   const [templateSource, janitorSource, deployedJanitorFixture] =
     await Promise.all([
       readFile(templatePath, "utf8"),
@@ -79,6 +83,32 @@ export async function renderBootstrapTemplate() {
   // lifecycle-shape review.
   template.Resources.JanitorFunction.Properties.Code.ZipFile =
     decodeDeployedJanitorSource(deployedJanitorFixture, janitorSource);
+  if (lifecycleTaskRegistrationGrant) {
+    const statements =
+      template.Resources?.ExecutionRoleBoundary?.Properties?.PolicyDocument
+        ?.Statement;
+    if (!Array.isArray(statements)) {
+      throw new Error("execution boundary statements are missing");
+    }
+    const passRoleStatements = statements.filter(
+      (statement) => statement?.Sid === "AllowPassOnlySandboxTaskRolesToEcs",
+    );
+    if (passRoleStatements.length !== 1) {
+      throw new Error("exact ECS PassRole statement is missing");
+    }
+    const resources = passRoleStatements[0].Resource;
+    if (
+      !Array.isArray(resources) ||
+      resources.length !== 2 ||
+      resources[0] !==
+        "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole" ||
+      resources[1] !==
+        "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+    ) {
+      throw new Error("locked ECS PassRole resources drifted");
+    }
+    resources.push(lifecycleTaskRoleArn);
+  }
   const rendered = renderCloudFormationTemplateDocument(template);
   // Keep direct TemplateBody below both the 51,200-byte API limit and the
   // stricter reviewed 50,000-byte headroom gate without changing resources.
@@ -98,7 +128,11 @@ async function main() {
     );
   }
   const outputPath = path.resolve(process.cwd(), process.argv[outputIndex + 1]);
-  const rendered = await renderBootstrapTemplate();
+  const rendered = await renderBootstrapTemplate({
+    lifecycleTaskRegistrationGrant: process.argv.includes(
+      "--lifecycle-task-registration-grant",
+    ),
+  });
   await writeFile(outputPath, rendered, { encoding: "utf8", flag: "w" });
   console.log(`Rendered S3 bootstrap template: ${outputPath}`);
 }
