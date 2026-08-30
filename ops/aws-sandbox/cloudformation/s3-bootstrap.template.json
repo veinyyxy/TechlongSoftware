@@ -589,10 +589,12 @@
                   "Effect": "Allow",
                   "Action": [
                     "ecr:BatchCheckLayerAvailability",
+                    "ecr:BatchGetImage",
                     "ecr:CompleteLayerUpload",
+                    "ecr:DescribeImages",
+                    "ecr:GetDownloadUrlForLayer",
                     "ecr:InitiateLayerUpload",
                     "ecr:PutImage",
-                    "ecr:DescribeImages",
                     "ecr:UploadLayerPart"
                   ],
                   "Resource": { "Fn::GetAtt": ["SandboxEcrRepository", "Arn"] }

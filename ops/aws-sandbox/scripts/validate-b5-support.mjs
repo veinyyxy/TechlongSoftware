@@ -135,6 +135,28 @@ const cloudFormationTaskRoleArns = [
   "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
   "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole",
 ];
+const codeBuildImagePullActions = [
+  "ecr:BatchGetImage",
+  "ecr:GetDownloadUrlForLayer",
+];
+const codeBuildImageRepositoryActions = [
+  "ecr:BatchCheckLayerAvailability",
+  "ecr:BatchGetImage",
+  "ecr:CompleteLayerUpload",
+  "ecr:DescribeImages",
+  "ecr:GetDownloadUrlForLayer",
+  "ecr:InitiateLayerUpload",
+  "ecr:PutImage",
+  "ecr:UploadLayerPart",
+];
+const historicalCodeBuildImageRepositoryActions = [
+  "ecr:BatchCheckLayerAvailability",
+  "ecr:CompleteLayerUpload",
+  "ecr:InitiateLayerUpload",
+  "ecr:PutImage",
+  "ecr:DescribeImages",
+  "ecr:UploadLayerPart",
+];
 const oneShotTagKeys = [
   "ManagedBy",
   "ResourceGeneration",
@@ -190,6 +212,24 @@ function actionList(statement) {
 
 function statementBySid(policy, sid) {
   return policy.Statement.find((statement) => statement.Sid === sid);
+}
+
+function codeBuildImageRepositoryStatement(templateDocument) {
+  const policy = templateDocument.Resources.CodeBuildRole.Properties.Policies.find(
+    (candidate) => candidate.PolicyName === "BuildAndPushSandboxImageOnly",
+  );
+  assert.ok(policy, "exact CodeBuild image policy is missing");
+  const statements = policy.PolicyDocument.Statement.filter((statement) =>
+    isDeepStrictEqual(statement.Resource, {
+      "Fn::GetAtt": ["SandboxEcrRepository", "Arn"],
+    }),
+  );
+  assert.equal(
+    statements.length,
+    1,
+    "CodeBuild must have one exact ECR repository statement",
+  );
+  return statements[0];
 }
 
 const deployedJanitorSource = decodeDeployedJanitorSource(
@@ -255,21 +295,54 @@ assert.equal(
   deployedJanitorSource,
   "rendered Janitor ZipFile must preserve the deployed B5-I source exactly",
 );
+assert.deepEqual(
+  actionList(codeBuildImageRepositoryStatement(rendered)),
+  codeBuildImageRepositoryActions,
+  "CodeBuild exact repository policy must include the reviewed build/push/pull actions",
+);
 
-// Reconstruct the exact deployed one-resource registration grant before the
-// final fail-closed PassRole revocation.
-const deployedLifecycleTaskRegistration = structuredClone(rendered);
+// The next registration window is based on the current template and may only
+// add the exact lifecycle PassRole ARN.
+const expectedRegistrationGrant = structuredClone(rendered);
+const expectedRegistrationPassRole = statementBySid(
+  expectedRegistrationGrant.Resources.ExecutionRoleBoundary.Properties
+    .PolicyDocument,
+  "AllowPassOnlySandboxTaskRolesToEcs",
+);
+expectedRegistrationPassRole.Resource.push(lifecycleTaskRoleArn);
+assert.deepEqual(
+  registrationGrant,
+  expectedRegistrationGrant,
+  "registration grant renderer may only add the exact lifecycle PassRole ARN",
+);
+
+// Reconstruct the exact deployed final revoke before the CodeBuild image-pull
+// increment, then the historical one-resource registration grant before it.
+const deployedLifecycleRegistrationRevoke = structuredClone(rendered);
+const deployedCodeBuildRepository = codeBuildImageRepositoryStatement(
+  deployedLifecycleRegistrationRevoke,
+);
+assert.deepEqual(
+  actionList(deployedCodeBuildRepository).filter((action) =>
+    codeBuildImagePullActions.includes(action),
+  ),
+  codeBuildImagePullActions,
+);
+deployedCodeBuildRepository.Action = historicalCodeBuildImageRepositoryActions;
+assert.equal(
+  canonicalTemplateSha256(deployedLifecycleRegistrationRevoke),
+  "112d1b47807962b2ae3e3d751c2b6d2d9cb48c1660f2aa75d24991ebf9cbdf14",
+  "the reconstructed final registration revoke must match the executed Change Set",
+);
+const deployedLifecycleTaskRegistration = structuredClone(
+  deployedLifecycleRegistrationRevoke,
+);
 const deployedLifecycleRegistrationPassRole = statementBySid(
   deployedLifecycleTaskRegistration.Resources.ExecutionRoleBoundary.Properties
     .PolicyDocument,
   "AllowPassOnlySandboxTaskRolesToEcs",
 );
 deployedLifecycleRegistrationPassRole.Resource.push(lifecycleTaskRoleArn);
-assert.deepEqual(
-  registrationGrant,
-  deployedLifecycleTaskRegistration,
-  "registration grant renderer may only add the exact lifecycle PassRole ARN",
-);
 assert.equal(
   canonicalTemplateSha256(deployedLifecycleTaskRegistration),
   "826a968ecfdfff10d32e50a9689af079f9920892f605568e86bc80f6876ece72",
@@ -390,10 +463,23 @@ assert.deepEqual(
 assert.deepEqual(
   changedResourceIds(
     deployedLifecycleTaskRegistration.Resources,
-    rendered.Resources,
+    deployedLifecycleRegistrationRevoke.Resources,
   ),
   ["ExecutionRoleBoundary"],
   "LifecycleTaskRegistrationRevoke must change only ExecutionRoleBoundary",
+);
+assert.deepEqual(
+  changedResourceIds(
+    deployedLifecycleRegistrationRevoke.Resources,
+    rendered.Resources,
+  ),
+  ["CodeBuildRole"],
+  "CodeBuildImagePull must change only CodeBuildRole",
+);
+assert.deepEqual(
+  changedResourceIds(rendered.Resources, registrationGrant.Resources),
+  ["ExecutionRoleBoundary"],
+  "the next registration grant must change only ExecutionRoleBoundary",
 );
 const expectedRevokedExecutionBoundary = structuredClone(
   deployedLifecycleTaskRegistration.Resources.ExecutionRoleBoundary,
@@ -403,7 +489,7 @@ statementBySid(
   "AllowPassOnlySandboxTaskRolesToEcs",
 ).Resource = cloudFormationTaskRoleArns;
 assert.deepEqual(
-  rendered.Resources.ExecutionRoleBoundary,
+  deployedLifecycleRegistrationRevoke.Resources.ExecutionRoleBoundary,
   expectedRevokedExecutionBoundary,
   "LifecycleTaskRegistrationRevoke may only remove the exact lifecycle PassRole ARN",
 );
@@ -418,12 +504,12 @@ const rollbackResourceChanges = [
 ];
 assert.deepEqual(
   changedResourceIds(deployedB5Initial.Resources, rollback.Resources),
-  ["ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
+  ["CodeBuildRole", "ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
   "historical B5-I to rollback must retain the later execution-boundary hardening",
 );
 assert.deepEqual(
   changedResourceIds(deployedLifecycleReadback.Resources, rollback.Resources),
-  ["ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
+  ["CodeBuildRole", "ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
   "historical LifecycleReadback to rollback must retain the later execution-boundary hardening",
 );
 assert.deepEqual(
@@ -431,8 +517,16 @@ assert.deepEqual(
     deployedLifecycleTaskRegistration.Resources,
     rollback.Resources,
   ),
-  ["ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
+  ["CodeBuildRole", "ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
   "rollback from the temporary registration grant must also reflect its final revocation",
+);
+assert.deepEqual(
+  changedResourceIds(
+    deployedLifecycleRegistrationRevoke.Resources,
+    rollback.Resources,
+  ),
+  ["CodeBuildRole", ...rollbackResourceChanges].sort(),
+  "rollback from the historical final revoke must retain CodeBuild image-pull readback",
 );
 assert.deepEqual(
   changedResourceIds(rendered.Resources, rollback.Resources),
@@ -1225,6 +1319,7 @@ assert.match(
   /techlong-sandbox-\$\{input\.accountId\}-\$\{input\.region\}-[\s\S]*?tenant-receipts/,
 );
 assert.ok(Buffer.byteLength(renderedSource, "utf8") <= 50_000);
+assert.ok(Buffer.byteLength(registrationGrantSource, "utf8") <= 50_000);
 assert.ok(Buffer.byteLength(rollbackSource, "utf8") <= 50_000);
 assert.match(
   renderedSource,
@@ -1240,26 +1335,40 @@ assert.ok(
 assert.equal(renderedSource.includes("__JANITOR_INLINE_SOURCE__"), false);
 assert.equal(rollbackSource.includes("__JANITOR_INLINE_SOURCE__"), false);
 const renderedCanonicalHash = canonicalTemplateSha256(rendered);
+const registrationGrantCanonicalHash =
+  canonicalTemplateSha256(registrationGrant);
 const rollbackCanonicalHash = canonicalTemplateSha256(rollback);
 const renderedRawHash = createHash("sha256").update(renderedSource).digest("hex");
+const registrationGrantRawHash = createHash("sha256")
+  .update(registrationGrantSource)
+  .digest("hex");
 const rollbackRawHash = createHash("sha256").update(rollbackSource).digest("hex");
-assert.equal(Buffer.byteLength(renderedSource, "utf8"), 49_215);
+assert.equal(Buffer.byteLength(renderedSource, "utf8"), 49_262);
 assert.equal(
   renderedRawHash,
-  "9d5c2626a9bf9c4257af066f422c13a4540ddf3bdf8f97dd9c90f79015ecc6c1",
+  "68a34349f703dd5269058a2447bd3d7b4bcc1453225c00b8aca1f8cd8a51bf69",
 );
 assert.equal(
   renderedCanonicalHash,
-  "112d1b47807962b2ae3e3d751c2b6d2d9cb48c1660f2aa75d24991ebf9cbdf14",
+  "211e46d35a957aff766b2240284012500d5afee14cd1c4c55c9c9be3a0dcc2ee",
 );
-assert.equal(Buffer.byteLength(rollbackSource, "utf8"), 33_331);
+assert.equal(Buffer.byteLength(registrationGrantSource, "utf8"), 49_333);
+assert.equal(
+  registrationGrantRawHash,
+  "a24567a02879a2be3194d6be00db8bb8627beded207553a79c245f851518bc22",
+);
+assert.equal(
+  registrationGrantCanonicalHash,
+  "a61c6c3f7b870199d4020a732c613c7c43ca72d84e3a1eec58d3194b8e6d67b8",
+);
+assert.equal(Buffer.byteLength(rollbackSource, "utf8"), 33_378);
 assert.equal(
   rollbackRawHash,
-  "73ddaabf283626a080ab45433f1356647dd40141b927923982f4f12741570659",
+  "b3a47f4a2a90b68e4cc5da7e7d188197ef1aeb04d877abe8a9e6a52fdd1cd8d9",
 );
 assert.equal(
   rollbackCanonicalHash,
-  "b40b79c79f9abdcd9e686e5e52e3de2695584c98cd06bacf1ce3fb6cb97d0d32",
+  "11229dd7d17b081cdd5b2755bb86d7d7b27ba0809fe61b465ad8529718d4888b",
 );
 assert.equal(canonicalTemplateSha256(renderedSource), renderedCanonicalHash);
 assert.equal(
@@ -1441,6 +1550,9 @@ assert.deepEqual(parseReviewedChangeShape("requiredLifecycleReadbackChanges"), {
   TenantLifecycleTaskRole: { type: "AWS::IAM::Role", action: "Modify" },
   DeploymentWorkerRole: { type: "AWS::IAM::Role", action: "Modify" },
 });
+assert.deepEqual(parseReviewedChangeShape("requiredCodeBuildImagePullChanges"), {
+  CodeBuildRole: { type: "AWS::IAM::Role", action: "Modify" },
+});
 assert.deepEqual(
   parseReviewedChangeShape("requiredLifecycleTaskRegistrationGrantChanges"),
   {
@@ -1482,7 +1594,11 @@ assert.match(
 assert.match(operationScript, /\[string\]\$Mode = 'LocalValidate'/);
 assert.match(
   operationScript,
-  /\[ValidateSet\([\s\S]*?'InitialB5Support'[\s\S]*?'LifecycleReadback'[\s\S]*?'LifecycleTaskRegistrationGrant'[\s\S]*?'LifecycleTaskRegistrationRevoke'[\s\S]*?\)\]\s*\[string\]\$UpdateShape = 'InitialB5Support'/,
+  /\[ValidateSet\([\s\S]*?'InitialB5Support'[\s\S]*?'CodeBuildImagePull'[\s\S]*?'LifecycleReadback'[\s\S]*?'LifecycleTaskRegistrationGrant'[\s\S]*?'LifecycleTaskRegistrationRevoke'[\s\S]*?\)\]\s*\[string\]\$UpdateShape = 'InitialB5Support'/,
+);
+assert.match(
+  operationScript,
+  /\$reviewedUpdateShape = if \(\$UpdateShape -ieq 'CodeBuildImagePull'\) \{\s*'CodeBuildImagePull'/,
 );
 assert.match(operationScript, /\[string\]\$Profile = 'techlong-sandbox-user'/);
 assert.match(operationScript, /\$supportInfrastructureWriteReady = \$true/);
@@ -1548,7 +1664,7 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationGrant'\) \{\s*\$requiredLifecycleTaskRegistrationGrantChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*\$requiredLifecycleTaskRegistrationRevokeChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleReadback'\) \{\s*\$requiredLifecycleReadbackChanges\s*\} else \{\s*\$requiredInitialB5SupportChanges/,
+  /elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationGrant'\) \{\s*\$requiredLifecycleTaskRegistrationGrantChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*\$requiredLifecycleTaskRegistrationRevokeChanges\s*\} elseif \(\$UpdateShape -eq 'CodeBuildImagePull'\) \{\s*\$requiredCodeBuildImagePullChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleReadback'\) \{\s*\$requiredLifecycleReadbackChanges\s*\} else \{\s*\$requiredInitialB5SupportChanges/,
 );
 assert.match(
   operationScript,
@@ -1613,7 +1729,7 @@ assert.match(operationScript, /canonical-sha256=/);
 assert.match(operationScript, /--lifecycle-task-registration-grant/);
 assert.match(
   operationScript,
-  /\$updateShapeToken = if \(\$reviewedUpdateShape -eq 'LifecycleReadback'\) \{\s*'lifecycle-readback'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleTaskRegistrationGrant'\) \{\s*'lifecycle-task-registration-grant'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*'lifecycle-task-registration-revoke'\s*\} else \{\s*'initial'\s*\}/,
+  /\$updateShapeToken = if \(\$reviewedUpdateShape -eq 'CodeBuildImagePull'\) \{\s*'codebuild-image-pull'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleReadback'\) \{\s*'lifecycle-readback'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleTaskRegistrationGrant'\) \{\s*'lifecycle-task-registration-grant'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*'lifecycle-task-registration-revoke'\s*\} else \{\s*'initial'\s*\}/,
 );
 assert.match(
   operationScript,

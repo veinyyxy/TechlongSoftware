@@ -13,6 +13,7 @@ param(
   [string]$Mode = 'LocalValidate',
   [ValidateSet(
     'InitialB5Support',
+    'CodeBuildImagePull',
     'LifecycleReadback',
     'LifecycleTaskRegistrationGrant',
     'LifecycleTaskRegistrationRevoke'
@@ -47,7 +48,9 @@ $renderer = Join-Path $root 'scripts\render-bootstrap.mjs'
 $rollbackRenderer = Join-Path $root 'scripts\render-b5-support-rollback.mjs'
 $templateVerifier = Join-Path $root 'scripts\verify-change-set-template.mjs'
 $supportInfrastructureWriteReady = $true
-$reviewedUpdateShape = if ($UpdateShape -ieq 'LifecycleReadback') {
+$reviewedUpdateShape = if ($UpdateShape -ieq 'CodeBuildImagePull') {
+  'CodeBuildImagePull'
+} elseif ($UpdateShape -ieq 'LifecycleReadback') {
   'LifecycleReadback'
 } elseif ($UpdateShape -ieq 'LifecycleTaskRegistrationGrant') {
   'LifecycleTaskRegistrationGrant'
@@ -360,6 +363,7 @@ function Assert-ReviewedChangeSet {
     [string]$ExpectedDescription,
     [ValidateSet(
       'InitialB5Support',
+      'CodeBuildImagePull',
       'LifecycleReadback',
       'LifecycleTaskRegistrationGrant',
       'LifecycleTaskRegistrationRevoke'
@@ -461,6 +465,9 @@ function Assert-ReviewedChangeSet {
     TenantLifecycleTaskRole = @{ Type = 'AWS::IAM::Role'; Action = 'Modify' }
     DeploymentWorkerRole = @{ Type = 'AWS::IAM::Role'; Action = 'Modify' }
   }
+  $requiredCodeBuildImagePullChanges = @{
+    CodeBuildRole = @{ Type = 'AWS::IAM::Role'; Action = 'Modify' }
+  }
   $requiredLifecycleTaskRegistrationRevokeChanges = @{
     ExecutionRoleBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
   }
@@ -485,6 +492,8 @@ function Assert-ReviewedChangeSet {
     $requiredLifecycleTaskRegistrationGrantChanges
   } elseif ($UpdateShape -eq 'LifecycleTaskRegistrationRevoke') {
     $requiredLifecycleTaskRegistrationRevokeChanges
+  } elseif ($UpdateShape -eq 'CodeBuildImagePull') {
+    $requiredCodeBuildImagePullChanges
   } elseif ($UpdateShape -eq 'LifecycleReadback') {
     $requiredLifecycleReadbackChanges
   } else {
@@ -574,7 +583,9 @@ try {
   $rollbackHash = (Get-FileHash -LiteralPath $rollbackTemplate -Algorithm SHA256).Hash.ToLowerInvariant()
   $templateCanonicalHash = Get-CanonicalTemplateHash -TemplatePath $renderedTemplate
   $rollbackCanonicalHash = Get-CanonicalTemplateHash -TemplatePath $rollbackTemplate
-  $updateShapeToken = if ($reviewedUpdateShape -eq 'LifecycleReadback') {
+  $updateShapeToken = if ($reviewedUpdateShape -eq 'CodeBuildImagePull') {
+    'codebuild-image-pull'
+  } elseif ($reviewedUpdateShape -eq 'LifecycleReadback') {
     'lifecycle-readback'
   } elseif ($reviewedUpdateShape -eq 'LifecycleTaskRegistrationGrant') {
     'lifecycle-task-registration-grant'

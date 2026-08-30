@@ -408,9 +408,49 @@ if (bootstrap) {
 
   const serviceBoundary = resources.ServiceRoleBoundary?.Properties?.PolicyDocument;
   const serviceBoundaryActions = actionsFrom(serviceBoundary, "Allow");
+  const expectedCodeBuildRepositoryActions = [
+    "ecr:BatchCheckLayerAvailability",
+    "ecr:BatchGetImage",
+    "ecr:CompleteLayerUpload",
+    "ecr:DescribeImages",
+    "ecr:GetDownloadUrlForLayer",
+    "ecr:InitiateLayerUpload",
+    "ecr:PutImage",
+    "ecr:UploadLayerPart",
+  ];
   check(
     serviceBoundaryActions.includes("ecr:DescribeImages"),
     "CodeBuild ecr:DescribeImages is blocked by the service role boundary",
+  );
+  const serviceBoundaryImageRepository = serviceBoundary?.Statement?.find(
+    (statement) => statement.Sid === "AllowSandboxImageRepository",
+  );
+  check(
+    isDeepStrictEqual(
+      asArray(serviceBoundaryImageRepository?.Action),
+      expectedCodeBuildRepositoryActions,
+    ) &&
+      serviceBoundaryImageRepository?.Resource ===
+        "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast",
+    "CodeBuild image repository boundary must allow only the exact build/push/pull actions",
+  );
+  const codeBuildPolicies = resources.CodeBuildRole?.Properties?.Policies ?? [];
+  const codeBuildImageRepositoryStatements = codeBuildPolicies
+    .filter((policy) => policy.PolicyName === "BuildAndPushSandboxImageOnly")
+    .flatMap((policy) => policy.PolicyDocument?.Statement ?? [])
+    .filter((statement) =>
+      isDeepStrictEqual(statement.Resource, {
+        "Fn::GetAtt": ["SandboxEcrRepository", "Arn"],
+      }),
+    );
+  check(
+    codeBuildPolicies.length === 1 &&
+      codeBuildImageRepositoryStatements.length === 1 &&
+      isDeepStrictEqual(
+        asArray(codeBuildImageRepositoryStatements[0]?.Action),
+        expectedCodeBuildRepositoryActions,
+      ),
+    "CodeBuild role must use one exact-repository build/push/pull statement",
   );
   const tenantStackResource =
     "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-*/*";
