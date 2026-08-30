@@ -1552,6 +1552,10 @@ assert.deepEqual(parseReviewedChangeShape("requiredLifecycleReadbackChanges"), {
 });
 assert.deepEqual(parseReviewedChangeShape("requiredCodeBuildImagePullChanges"), {
   CodeBuildRole: { type: "AWS::IAM::Role", action: "Modify" },
+  SandboxCodeBuildProject: {
+    type: "AWS::CodeBuild::Project",
+    action: "Modify",
+  },
 });
 assert.deepEqual(
   parseReviewedChangeShape("requiredLifecycleTaskRegistrationGrantChanges"),
@@ -1669,6 +1673,30 @@ assert.match(
 assert.match(
   operationScript,
   /\$resource\.Replacement -in @\('True', 'Conditional'\)/,
+);
+assert.match(
+  operationScript,
+  /function Assert-ExactCodeBuildImagePullResourceChange/,
+);
+for (const exactDependentChangeToken of [
+  "TechlongSandboxCodeBuildRole",
+  "techlong-sandbox-speedfeast-image",
+  "CodeBuildRole.Arn",
+  "DirectModification",
+  "ResourceAttribute",
+  "RequiresRecreation -cne 'Never'",
+  "RequiresRecreation -cne 'Conditionally'",
+  "Replacement -cne 'False'",
+  "Replacement -cne 'Conditional'",
+]) {
+  assert.ok(
+    operationScript.includes(exactDependentChangeToken),
+    `CodeBuildImagePull guard is missing ${exactDependentChangeToken}`,
+  );
+}
+assert.match(
+  operationScript,
+  /if \(\$UpdateShape -eq 'CodeBuildImagePull'\) \{\s*Assert-ExactCodeBuildImagePullResourceChange -Resource \$resource\s*\} elseif \(\$resource\.Replacement -in/,
 );
 assert.match(operationScript, /Change Set contains an unapproved resource change/);
 assert.match(operationScript, /Change Set contains a duplicate resource change/);

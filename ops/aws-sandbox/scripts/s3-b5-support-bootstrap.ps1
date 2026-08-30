@@ -356,6 +356,49 @@ function Assert-ExactBootstrapStack {
   }
 }
 
+function Assert-ExactCodeBuildImagePullResourceChange {
+  param([object]$Resource)
+
+  $scope = @($Resource.Scope)
+  $details = @($Resource.Details)
+  if ($scope.Count -ne 1 -or $scope[0] -cne 'Properties' -or $details.Count -ne 1) {
+    throw "CodeBuildImagePull change details drifted for $($Resource.LogicalResourceId)."
+  }
+  $detail = $details[0]
+  $target = $detail.Target
+  if ($Resource.LogicalResourceId -ceq 'CodeBuildRole') {
+    if (
+      $Resource.PhysicalResourceId -cne 'TechlongSandboxCodeBuildRole' -or
+      $Resource.Replacement -cne 'False' -or
+      $target.Attribute -cne 'Properties' -or
+      $target.Name -cne 'Policies' -or
+      $target.RequiresRecreation -cne 'Never' -or
+      $detail.Evaluation -cne 'Static' -or
+      $detail.ChangeSource -cne 'DirectModification' -or
+      -not [string]::IsNullOrEmpty([string]$detail.CausingEntity)
+    ) {
+      throw 'CodeBuildImagePull may only modify the existing CodeBuild Role inline policy without replacement.'
+    }
+    return
+  }
+  if ($Resource.LogicalResourceId -ceq 'SandboxCodeBuildProject') {
+    if (
+      $Resource.PhysicalResourceId -cne 'techlong-sandbox-speedfeast-image' -or
+      $Resource.Replacement -cne 'Conditional' -or
+      $target.Attribute -cne 'Properties' -or
+      $target.Name -cne 'ServiceRole' -or
+      $target.RequiresRecreation -cne 'Conditionally' -or
+      $detail.Evaluation -cne 'Dynamic' -or
+      $detail.ChangeSource -cne 'ResourceAttribute' -or
+      $detail.CausingEntity -cne 'CodeBuildRole.Arn'
+    ) {
+      throw 'CodeBuildImagePull may only accept the exact dynamic CodeBuild Role ARN dependency on the existing Project.'
+    }
+    return
+  }
+  throw "CodeBuildImagePull contains an unexpected resource: $($Resource.LogicalResourceId)."
+}
+
 function Assert-ReviewedChangeSet {
   param(
     [object]$ChangeSet,
@@ -467,6 +510,7 @@ function Assert-ReviewedChangeSet {
   }
   $requiredCodeBuildImagePullChanges = @{
     CodeBuildRole = @{ Type = 'AWS::IAM::Role'; Action = 'Modify' }
+    SandboxCodeBuildProject = @{ Type = 'AWS::CodeBuild::Project'; Action = 'Modify' }
   }
   $requiredLifecycleTaskRegistrationRevokeChanges = @{
     ExecutionRoleBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
@@ -513,7 +557,9 @@ function Assert-ReviewedChangeSet {
     if ($resource.Action -ne $expected.Action) {
       throw "Change Set must $($expected.Action) the exact reviewed resource $logicalId."
     }
-    if ($resource.Replacement -in @('True', 'Conditional')) {
+    if ($UpdateShape -eq 'CodeBuildImagePull') {
+      Assert-ExactCodeBuildImagePullResourceChange -Resource $resource
+    } elseif ($resource.Replacement -in @('True', 'Conditional')) {
       throw "Change Set may not replace $logicalId."
     }
     $observed[$logicalId] = [string]$resource.Action

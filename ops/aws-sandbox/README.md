@@ -339,7 +339,7 @@ atomic advance 协调逻辑拒绝空 snapshot，只允许已有 exact predecesso
 
 上传对象键为 `source/speedfeast-<40位Git提交>.zip`，镜像标签为不可覆盖的 `git-<40位Git提交>`。CodeBuild Project 没有 Webhook、定时触发、VPC/NAT 或默认可工作的 Source；只有显式调用 `StartBuild` 才会产生构建费用。
 
-脚本在上传源码前先查询该 Git 标签。若 ECR 已存在 `git-<commit>`，普通 `StartBuild` 返回现有 Digest，并跳过 S3 上传和 CodeBuild，从而避免不可变标签冲突和重复构建费用。只有显式 `VerifyImage` 才会把标签再次绑定到 exact digest，上传当前受审 buildspec，并启动一次 smoke-only CodeBuild；该路径按 digest pull、本地 tag、完整 smoke 和最终 digest readback，不执行 `docker push`。CodeBuild Role 的 exact-repository policy 因此必须包含 `ecr:BatchGetImage` 与 `ecr:GetDownloadUrlForLayer`；旧 Bootstrap 只允许通过 `CodeBuildImagePull` update shape 的单资源 Change Set 补齐这两项只读权限。
+脚本在上传源码前先查询该 Git 标签。若 ECR 已存在 `git-<commit>`，普通 `StartBuild` 返回现有 Digest，并跳过 S3 上传和 CodeBuild，从而避免不可变标签冲突和重复构建费用。只有显式 `VerifyImage` 才会把标签再次绑定到 exact digest，上传当前受审 buildspec，并启动一次 smoke-only CodeBuild；该路径按 digest pull、本地 tag、完整 smoke 和最终 digest readback，不执行 `docker push`。CodeBuild Role 的 exact-repository policy 因此必须包含 `ecr:BatchGetImage` 与 `ecr:GetDownloadUrlForLayer`；旧 Bootstrap 只允许通过 `CodeBuildImagePull` update shape 补齐这两项只读权限。唯一直接修改必须是 `CodeBuildRole/Policies`、`Replacement=False`；CloudFormation 还会报告现有 `SandboxCodeBuildProject/ServiceRole` 对 `CodeBuildRole.Arn` 的 dynamic dependency，脚本只接受该 exact `Modify / Replacement=Conditional` 记录，拒绝任何其他 Project 属性、依赖来源或 replacement 形态。
 
 `StartBuild` 返回只表示构建已排队。必须继续确认 CodeBuild 为 `SUCCEEDED`、不可变标签解析到固定 Digest，并使用受限 Provisioner Role 读取 ECR scan findings。扫描未完成或存在尚未评审的高危/严重发现时，不得把镜像写入部署环境绑定或启动租户 Apply。
 
