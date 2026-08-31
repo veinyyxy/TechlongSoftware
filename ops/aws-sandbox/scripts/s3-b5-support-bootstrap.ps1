@@ -743,9 +743,21 @@ try {
     '--output', 'json'
   )
 
+  $changeSetId = [string]$changeSet.ChangeSetId
+  $changeSetIdPattern =
+    '\Aarn:aws:cloudformation:ca-central-1:402010193138:changeSet/' +
+    [regex]::Escape($selectedName) +
+    '/(?<Uuid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\z'
+  $changeSetIdMatch = [regex]::Match($changeSetId, $changeSetIdPattern)
+  if (-not $changeSetIdMatch.Success) {
+    throw 'Change Set ARN is not the exact reviewed account, region, name, and UUID.'
+  }
+  $changeSetUuid = $changeSetIdMatch.Groups['Uuid'].Value
+  $executeClientRequestToken = "b5-support-execute-$changeSetUuid"
+
   Assert-ExactChangeSetTemplate `
     -AwsCli $awsCli `
-    -ChangeSetName $selectedName `
+    -ChangeSetName $changeSetId `
     -ExpectedTemplatePath $selectedTemplate `
     -ExpectedCanonicalHash $selectedCanonicalHash `
     -ResponsePath $changeSetTemplateResponse
@@ -837,8 +849,8 @@ try {
     '--profile', $Profile,
     '--region', $expectedRegion,
     '--stack-name', $bootstrapStackName,
-    '--change-set-name', $selectedName,
-    '--client-request-token', "b5-support-execute-$selectedName"
+    '--change-set-name', $changeSetId,
+    '--client-request-token', $executeClientRequestToken
   )
   Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
     'cloudformation', 'wait', 'stack-update-complete',

@@ -1784,6 +1784,69 @@ assert.equal(
 );
 assert.match(
   operationScript,
+  /\$changeSetIdPattern =\s*'\\Aarn:aws:cloudformation:ca-central-1:402010193138:changeSet\/' \+\s*\[regex\]::Escape\(\$selectedName\) \+\s*'\/\(\?<Uuid>\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{12\}\)\\z'/,
+);
+assert.match(
+  operationScript,
+  /\$changeSetIdMatch = \[regex\]::Match\(\$changeSetId, \$changeSetIdPattern\)/,
+);
+assert.match(
+  operationScript,
+  /\$changeSetId = \[string\]\$changeSet\.ChangeSetId[\s\S]*?Assert-ExactChangeSetTemplate[\s\S]*?-ChangeSetName \$changeSetId/,
+);
+assert.match(
+  operationScript,
+  /\$executeClientRequestToken = "b5-support-execute-\$changeSetUuid"/,
+);
+assert.match(
+  operationScript,
+  /'--change-set-name', \$changeSetId,\s*'--client-request-token', \$executeClientRequestToken/,
+);
+assert.doesNotMatch(
+  operationScript,
+  /--client-request-token', "b5-support-execute-\$selectedName"/,
+);
+function executionTokenForChangeSet(selectedName, changeSetId) {
+  const escapedName = selectedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = new RegExp(
+    `^arn:aws:cloudformation:ca-central-1:402010193138:changeSet/${escapedName}/(?<uuid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$`,
+  ).exec(changeSetId);
+  assert.ok(
+    match && match[0] === changeSetId,
+    "execution token source must be the exact reviewed Change Set ARN",
+  );
+  return `b5-support-execute-${match.groups.uuid}`;
+}
+const tokenTestName =
+  "techlong-s3-b5-support-lifecycle-task-registration-revoke-112d1b47807962b2";
+const tokenTestIdA = `arn:aws:cloudformation:ca-central-1:402010193138:changeSet/${tokenTestName}/11111111-1111-4111-8111-111111111111`;
+const tokenTestIdB = `arn:aws:cloudformation:ca-central-1:402010193138:changeSet/${tokenTestName}/22222222-2222-4222-8222-222222222222`;
+const tokenA = executionTokenForChangeSet(tokenTestName, tokenTestIdA);
+assert.equal(tokenA, executionTokenForChangeSet(tokenTestName, tokenTestIdA));
+assert.notEqual(tokenA, executionTokenForChangeSet(tokenTestName, tokenTestIdB));
+assert.match(tokenA, /^[A-Za-z][-A-Za-z0-9]{0,127}$/);
+assert.throws(
+  () => executionTokenForChangeSet(tokenTestName, tokenTestIdA.replace("402010193138", "000000000000")),
+  /exact reviewed Change Set ARN/,
+);
+assert.throws(
+  () => executionTokenForChangeSet(tokenTestName, tokenTestIdA.replace("ca-central-1", "us-east-1")),
+  /exact reviewed Change Set ARN/,
+);
+assert.throws(
+  () => executionTokenForChangeSet(`${tokenTestName}-other`, tokenTestIdA),
+  /exact reviewed Change Set ARN/,
+);
+assert.throws(
+  () => executionTokenForChangeSet(tokenTestName, `${tokenTestIdA}\n`),
+  /exact reviewed Change Set ARN/,
+);
+assert.throws(
+  () => executionTokenForChangeSet(tokenTestName, tokenTestIdA.toUpperCase()),
+  /exact reviewed Change Set ARN/,
+);
+assert.match(
+  operationScript,
   /TenantLifecycleTaskRole = @\{ Type = 'AWS::IAM::Role'; Action = '(?:Add|Remove)' \}/,
 );
 assert.match(

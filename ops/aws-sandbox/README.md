@@ -1,6 +1,6 @@
 # AWS Sandbox S0–S3-B5 安全 Bootstrap 与受控 cleanup-only Cell 基础
 
-这个目录保存可审查的静态配置、CloudFormation 模板、IAM 边界、TTL Janitor、镜像构建基础、B5 低成本支撑资源、inspect-only lifecycle TaskDefinition 和默认不执行的运维脚本。仓库中不包含 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。
+这个目录保存可审查的静态配置、CloudFormation 模板、IAM 边界、TTL Janitor、镜像构建基础、B5 低成本支撑资源、destroy-capable Build #7 镜像对应的 inspect-default lifecycle TaskDefinition（尚未执行），以及默认不执行的运维脚本。仓库中不包含 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。
 
 S3-A Bootstrap 脚本默认仅运行本地验证；只有显式选择 `CreateChangeSet` 或 `Apply`、确认账号、提供预算通知邮箱并确认 MFA 前置条件后，脚本才会产生 AWS 写操作。B5-J4b 又增加了独立 IAM 管理根与 cleanup-only child Bootstrap：管理 Stack 持有四组 boundary + role 共 8 个 IAM 资源，child 只含 4 个非 IAM 清理/只读资源，不创建 VPC、ALB、ECS、Aurora 或 Shared Cell。J4b 已于 2026-08-26 按短期授权窗口流程部署并完成严格回读与双次空 inventory 探测；管理根最终恢复 `LOCKED`，四个付费就绪门禁仍全部为 `false`。
 
@@ -227,14 +227,14 @@ Change Set 名由渲染后模板 SHA-256 自动生成，description 同时绑定
 
 ```powershell
 .\ops\aws-sandbox\scripts\s3-b5-lifecycle-task-definition.ps1 -Mode LocalValidate
-.\ops\aws-sandbox\scripts\s3-b5-lifecycle-task-definition.ps1 -Mode Readback -Profile 'techlong-sandbox-provisioner' -ExpiresAt '<stack ExpiresAt>' -ConfirmTaskDefinitionArn 'arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-lifecycle:1'
+.\ops\aws-sandbox\scripts\s3-b5-lifecycle-task-definition.ps1 -Mode Readback -Profile 'techlong-sandbox-provisioner' -ExpiresAt '<stack ExpiresAt>' -ConfirmTaskDefinitionArn 'arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-lifecycle:2'
 ```
 
-2026-08-24 的实际结果为：Stack `techlong-sandbox-tenant-b5j3`=`CREATE_COMPLETE`；精确 revision `tenant-lifecycle:1`=`ACTIVE`；模板 canonical SHA-256 `f8d9993c47c0c332e79de6aeb845d4946464ebdf4e79719d3c5696ec380dc475`；readback evidence canonical SHA-256 `012c60f92b698f0c0c1e633b04a925b9544ff0cc91cbdc5004eca1e73617fbc8`。ECS 不返回该资源类型的 CloudFormation system tags，因此 ownership 由 exact StackId + `list-stack-resources` physical ID + 原始模板共同绑定，ECS 自身标签严格限于六个业务标签。
+2026-08-30 的当前权威结果为：Stack `techlong-sandbox-tenant-b5j3`（StackId `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-b5j3/5e145df0-a4f2-11f1-b674-0e76530b9cdf`）=`CREATE_COMPLETE`；精确 revision `tenant-lifecycle:2`=`ACTIVE`，旧 revision 1 已为 `INACTIVE`；模板 raw/canonical SHA-256 为 `68af0afca7b18827ab50fe493137b299a884b701773b025546d1ecdf2e14af11` / `127b4bf5cf634c84737df5fd7cba2eac94424a42e7974166b607036b42df1962`，TaskDefinition properties canonical SHA-256 为 `f580ece0458b701091802dc3ca2789dccc2e5d85732c5932d65400eb87453850`，readback evidence canonical SHA-256 为 `f3b8fb0d9eeb2386658f49e51fe4687da8a7e345c443934a98171f7e512b51cb`。ECS 不返回该资源类型的 CloudFormation system tags，因此 ownership 由 exact StackId + `list-stack-resources` physical ID + 原始模板共同绑定，ECS 自身标签严格限于六个业务标签。
 
 该注册 Stack 刻意没有伪造 `CellId`/`ResourceGeneration`，所以不属于现有 tenant Janitor 的自动删除集合；`ExpiresAt` 是创建窗口与 ownership guard，不是自动 TTL 承诺。当前 revision 为后续只读 Cell 证据阶段保留；若决定放弃它，必须使用脚本的 `DeleteStack` 模式、exact revision ARN、当前模板 hash 和显式 deregistration 确认，不能依赖到期标签静默清理。
 
-注册前的临时 IAM grant Change Set 为 `techlong-s3-b5-support-lifecycle-task-registration-7c6a63636d2b175b`（raw/canonical `7c6a63636d2b175b73c7b23209a60576bc02125fb07cd3e549869ee33cbb6ddf` / `826a968ecfdfff10d32e50a9689af079f9920892f605568e86bc80f6876ece72`）；注册后立即执行的 revoke 为 `techlong-s3-b5-support-lifecycle-task-registration-revoke-9d5c2626a9bf9c42`（raw/canonical `9d5c2626a9bf9c4257af066f422c13a4540ddf3bdf8f97dd9c90f79015ecc6c1` / `112d1b47807962b2ae3e3d751c2b6d2d9cb48c1660f2aa75d24991ebf9cbdf14`）。两者都只修改 `ExecutionRoleBoundary`、`Replacement=False`。最终 IAM policy 默认版本 `v3` 的 PassRole 只剩 TaskExecutionRole 与普通 TaskRole；精确 `cell-sandbox-1` cluster 为 `MISSING`，未执行 `RunTask`，四个 readiness gate 全部保持 `false`。
+本轮注册前的临时 IAM grant Change Set 为 `techlong-s3-b5-support-lifecycle-task-registration-grant-a24567a02879a2be`（UUID `f4ae26bb-b5c6-4537-8b82-10a1414479fc`；raw/canonical `a24567a02879a2be3194d6be00db8bb8627beded207553a79c245f851518bc22` / `a61c6c3f7b870199d4020a732c613c7c43ca72d84e3a1eec58d3194b8e6d67b8`）；注册后立即执行的 revoke 为 `techlong-s3-b5-support-lifecycle-task-registration-revoke-68a34349f703dd52`（UUID `f703d78e-f368-41f5-8d08-45dea15c8310`；raw/canonical `68a34349f703dd5269058a2447bd3d7b4bcc1453225c00b8aca1f8cd8a51bf69` / `211e46d35a957aff766b2240284012500d5afee14cd1c4c55c9c9be3a0dcc2ee`）。两者都只修改 `ExecutionRoleBoundary`、`Replacement=False`。grant boundary `v6` 临时包含三个 exact PassRole；最终 `v7` 为 `LOCKED`，只剩 TaskExecutionRole 与普通 TaskRole 两个 baseline PassRole。精确 `cell-sandbox-1` cluster 为 `MISSING`，未执行 `RunTask`，四个 readiness gate 全部保持 `false`。
 
 ## B5-J4a 独立 lifecycle LogGroup 支撑
 
@@ -254,7 +254,7 @@ Change Set 名由渲染后模板 SHA-256 自动生成，description 同时绑定
 
 Readback 必须同时对账 `CREATE_COMPLETE`、单资源 inventory、`GetTemplate(Original)` canonical exact match、模板标签与 Stack 传播标签合并后的六个业务标签、1 天保留、STANDARD、无 KMS/data-protection/bearer-token authentication、零 metric filter、零 log-group/account-level subscription policy、零 stream、零 stored bytes 和 cluster `MISSING`。`OnlineValidate`/`Create` 也会在写入前先证明账号没有 `SUBSCRIPTION_FILTER_POLICY`。`Delete` 只能在同样的精确空日志组证据通过后显式执行。该 Stack 不带 `CellId`/`ResourceGeneration`；`ExpiresAt` 只是创建窗口与 ownership tag，不会被现有 Janitor 自动清理。空日志组本身不代表绝对零费用；将来若写入日志，仍会产生 CloudWatch Logs ingestion/storage 等用量费用，1 天 retention 只负责压低保留量。
 
-2026-08-25 已创建并两次严格回读 Stack `techlong-sandbox-tenant-b5j4logs`（StackId `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-b5j4logs/8fcccc70-a0be-11f1-ac7e-06f748bb68bd`，`ExpiresAt=2026-08-25T21:51:44Z`），状态为 `CREATE_COMPLETE`。模板 raw/canonical SHA-256 为 `65c00d1c139991627a6f1801cc4887de53352b6e884064850df339cd6da0455c` / `4999c5fd89edd2aa9476cafc2a802871198b88bbdf103305dd442713281a90c2`；live evidence canonical SHA-256 为 `c2270d6344b1b93e80af9c41c47cfbfcec5ac45c14b5b93692aeb98f4f3086c6`。两次 readback 都确认唯一日志组为 STANDARD、1 天保留、六个业务标签、零 stream/bytes/metric filter/log-group subscription/account subscription、无 KMS/data protection/bearer-token authentication，并再次确认 `cell-sandbox-1=MISSING`。本次 J4a 未创建 ECS cluster/service 或运行 task，既有 inspect-only TaskDefinition 不变；`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 保持不变。后续 B5-J4b 已于 2026-08-26 完成受控在线部署，但仍未创建 Shared Cell、ECS cluster/service 或运行 task。
+2026-08-25 已创建并两次严格回读 Stack `techlong-sandbox-tenant-b5j4logs`（StackId `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-b5j4logs/8fcccc70-a0be-11f1-ac7e-06f748bb68bd`，`ExpiresAt=2026-08-25T21:51:44Z`），状态为 `CREATE_COMPLETE`。模板 raw/canonical SHA-256 为 `65c00d1c139991627a6f1801cc4887de53352b6e884064850df339cd6da0455c` / `4999c5fd89edd2aa9476cafc2a802871198b88bbdf103305dd442713281a90c2`；live evidence canonical SHA-256 为 `c2270d6344b1b93e80af9c41c47cfbfcec5ac45c14b5b93692aeb98f4f3086c6`。两次 readback 都确认唯一日志组为 STANDARD、1 天保留、六个业务标签、零 stream/bytes/metric filter/log-group subscription/account subscription、无 KMS/data protection/bearer-token authentication，并再次确认 `cell-sandbox-1=MISSING`。本次 J4a 未创建 ECS cluster/service 或运行 task；当时既有 inspect-only revision 1 未变，其后已由 Build #7/revision 2 取代，revision 1 现为 `INACTIVE`。`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 保持不变。后续 B5-J4b 已于 2026-08-26 完成受控在线部署，但仍未创建 Shared Cell、ECS cluster/service 或运行 task。
 
 ## B5-J4b IAM 管理根与 cleanup-only Cell Bootstrap（2026-08-26 已部署）
 
@@ -284,7 +284,7 @@ Readback 必须同时对账 `CREATE_COMPLETE`、单资源 inventory、`GetTempla
 - 4 个 child 资源为日志组 `/aws/lambda/techlong-sandbox-cell-janitor`、Lambda `techlong-sandbox-cell-janitor`、Scheduler Group `techlong-sandbox-cell` 和 Schedule `techlong-sandbox-cell-global-janitor`。Schedule 保持 `DISABLED`、表达式为 `rate(15 minutes)`；Lambda 未设置 reserved concurrency。
 - 严格 readback evidence SHA-256 为 `b6e8083c3c04de9daccecfe3ca1e0c242ae2b27131f0c683ec2097f795ae97cc`。`ProbeJanitor` 的 evidence SHA-256 为 `d77199f776408f75d722176805ba09853caee51ee4639b87d879b013d4a967ca`；两次低成本调用均返回相同 empty inventory，未请求或执行任何删除。
 
-该部署只建立 cleanup-only/只读基础，不批准付费 Cell。未创建付费 Shared Cell，也未创建 VPC、ALB、ECS cluster/service 或运行中的 task、RDS/Aurora、Route 53 资源，且没有执行 `RunTask`；既有 inspect-only `tenant-lifecycle:1` TaskDefinition 不变。`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 全部保持不变。digest-addressed S3 对象、Lambda 调用、CloudWatch Logs 和 Scheduler 仍可能产生少量用量费用，因此只能称为低成本，不能保证绝对零费用。此前已确认 IAM User 绑定 MFA，并成功建立受限 AssumeRole 会话；既有 S3-A 与 J4b 模板都不修改现有 IAM User 或 Administrators 组，SaaS Worker Apply 继续保持关闭。
+该部署只建立 cleanup-only/只读基础，不批准付费 Cell。未创建付费 Shared Cell，也未创建 VPC、ALB、ECS cluster/service 或运行中的 task、RDS/Aurora、Route 53 资源，且没有执行 `RunTask`；J4b 当时既有 inspect-only `tenant-lifecycle:1` 未变，后续已由 Build #7 的 inspect-default `tenant-lifecycle:2` 取代，revision 1 现为 `INACTIVE`。`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 全部保持不变。digest-addressed S3 对象、Lambda 调用、CloudWatch Logs 和 Scheduler 仍可能产生少量用量费用，因此只能称为低成本，不能保证绝对零费用。此前已确认 IAM User 绑定 MFA，并成功建立受限 AssumeRole 会话；既有 S3-A 与 J4b 模板都不修改现有 IAM User 或 Administrators 组，SaaS Worker Apply 继续保持关闭。
 
 ### B5-J4c PlannerUpdate（2026-08-28 已部署）
 
@@ -347,7 +347,7 @@ atomic advance 协调逻辑拒绝空 snapshot，只允许已有 exact predecesso
 
 ## 此前核验的云端状态与后续门禁
 
-以下条目包含 S3-A 历史核验，以及 2026-08-22 B5-I、2026-08-24 B5-J2/B5-J3、2026-08-25 B5-J4a 和 2026-08-26 B5-J4b 的最新在线状态。
+以下条目包含 S3-A 历史核验，以及 2026-08-22 B5-I、2026-08-24 B5-J2/B5-J3、2026-08-25 B5-J4a、2026-08-26 B5-J4b 和 2026-08-30 Build #7/B5-J3 revision 2 的在线状态。
 
 1. AWS CLI v2 已位于 `D:\Amazon\AWSCLIV2\aws.exe`；当前终端 PATH 尚未刷新，可以先使用绝对路径。
 2. 已确认 `techlong-sandbox-dev` 绑定 MFA，并配置不含密钥的 `techlong-sandbox-provisioner` AssumeRole Profile。首次角色会话需要操作者在本地终端输入 MFA 一次性验证码；后续还应移除 IAM User 继承的长期 AdministratorAccess，只保留受控 AssumeRole 能力。
@@ -356,10 +356,10 @@ atomic advance 协调逻辑拒绝空 snapshot，只允许已有 exact predecesso
 5. Budget 通知邮箱已作为 CloudFormation 参数提供，个人邮箱没有硬编码进模板或仓库。
 6. S3-A 已由独立的 CloudFormation Execution Role 和 Permissions Boundary 部署；Boundary 本身不授予权限。
 7. Janitor 已在真实 AWS 中验证空扫描、伪造共享 Cell 拒绝路径和到期临时租户 Stack 删除路径；测试资源已完全清除。
-8. 第三次受控 CodeBuild 从后端提交 `fb9b521df1b59b849b871059572667a9b86546ab` 生成的 Distroless 镜像 `sha256:0c4cb3ebfb55a944a24d548ded716d93dd00bcc4d1796c8e9eb588ce385710ae` 保留为历史零发现版本。当前候选 Build #4（ID `techlong-sandbox-speedfeast-image:24f9fd8f-da8b-49d3-8e87-ae9956e9c7af`）从后端提交 `f4aa0febeba526f737bac3b59d516e1ab5c24482` 构建；114 个 allowlist 文件的源码包 SHA-256 为 `214eeb68805abdb9796b5f23b7b95c8f20167ec2bbbbcd0f8e5e41fb3c93c31b`，最终不可变镜像为 `sha256:4815009949cd5219add56fedb183f1809b728081562f0280ede5229b567136f0`。全部 CodeBuild 阶段及 buildspec smoke gate 成功，ECR 扫描 `COMPLETE` 且 findings 为 0，仓库仍为 `IMMUTABLE`、scan-on-push、AES256；源码对象按一天生命周期过期。第一张含 Perl 的镜像因 `3 Critical / 5 High / 6 Medium` 被明确拒绝，Build #2/#3 仅保留为历史不可变版本。
-9. 合格镜像尚未写入 execution binding，Worker 和 Apply 仍关闭；B5-J3 只把它固定到 inspect-only TaskDefinition，不构成 runtime binding。创建收费 Stack 前必须先建立一次性清理计划，创建失败时部署必须中止。
+8. Build #4 及更早镜像保留为历史不可变版本。当前权威 Build #7（CodeBuild ID `techlong-sandbox-speedfeast-image:0a33f1c9-8e43-408d-b91d-fe39d6c61ac7`）从后端提交 `201187cddb1a77690c0df2c7779d354af6009e7c` 构建；源码存档 SHA-256 为 `e00ca7f2865a81ab0500a505ec37c812c0e7e827293239d329cf00f9bcfcf29e`，最终不可变镜像为 `sha256:6001bde1cc05058ae3df83fbdb084e8cd53b64325ecb6663b43a5fccc8ef22be`。全部阶段成功，ECR 扫描 `COMPLETE` 且 findings 为 0，仓库仍为 `IMMUTABLE`、scan-on-push、AES256。
+9. Build #7 已固定到 inspect-default `tenant-lifecycle:2`，但尚未写入 execution binding，Worker 和 Apply 仍关闭；TaskDefinition 注册不构成 runtime binding。创建收费 Stack 前必须先建立一次性清理计划，创建失败时部署必须中止。
 10. B5 receipt Bucket、authority table、专用 LifecycleTaskRole 和最小 WorkerRole 已由受审 Change Set 部署。2026-08-24 的 `LifecycleReadback` Change Set `techlong-s3-b5-support-lifecycle-readback-60d854ad2664718e`（raw SHA-256 `60d854ad2664718eed88ec4731ff3a70cb84b34ba9dcaf439782dcba7a816113`，canonical SHA-256 `1fe4af4b94a198437511a147fe05685eefb768304e3ab487ca06722657c2223b`）只对 `ServiceRoleBoundary`、`ProvisionerBoundary`、`TenantLifecycleTaskRole`、`DeploymentWorkerRole` 执行四项无 replacement 修改；Bootstrap 为 `UPDATE_COMPLETE`，线上 policy/role 回读匹配模板。scoped rollback 脚本已通过静态审查，但它会永久删除 receipt/authority data，真实回退演练仍须在无租户状态下单独批准。
-11. B5-J3 已注册并严格回读唯一的 `tenant-lifecycle:1`，随后撤销临时 LifecycleTaskRole PassRole。Bootstrap 仍为 `UPDATE_COMPLETE`，部署模板 canonical SHA-256 为 `112d1b47807962b2ae3e3d751c2b6d2d9cb48c1660f2aa75d24991ebf9cbdf14`；精确 Cell cluster 为 `MISSING`，没有 tenant service、Cell 或 `RunTask`。
+11. B5-J3 已注册并严格回读 ACTIVE `tenant-lifecycle:2`，旧 revision 1 为 `INACTIVE`；随后撤销临时 LifecycleTaskRole PassRole，最终 boundary `v7` 为 `LOCKED`。部署模板 canonical SHA-256 为 `127b4bf5cf634c84737df5fd7cba2eac94424a42e7974166b607036b42df1962`，readback evidence 为 `f3b8fb0d9eeb2386658f49e51fe4687da8a7e345c443934a98171f7e512b51cb`；精确 Cell cluster 为 `MISSING`，没有 tenant service、Cell 或 `RunTask`。
 12. B5-J4b management/child 已分别达到 `UPDATE_COMPLETE`/`CREATE_COMPLETE`；管理根最终 `LOCKED`，child 只含 4 个 cleanup-only 资源。严格 readback 与两次 empty inventory probe 均通过，Schedule 保持 `DISABLED`，没有创建 Shared Cell 或运行 ECS Task，四个 readiness gate 仍全部为 `false`。
 
 B4 Cell 模板只允许 `aurora-postgresql-serverless-v2`，最多一个共享 Cell，固定 PostgreSQL `16.14`、关闭自动小版本升级，使用 `minAcu=0`、`maxAcu=1`、`secondsUntilAutoPause=300`，并禁止每租户独立 Cluster、额外 Reader、传统 Multi-AZ 实例、DB Proxy、Global Database、预留购买和快照恢复。Aurora Cluster 本身不能被策略绝对禁止，否则生产兼容的 Sandbox Cell 无法创建；真实 Apply 前还必须重新核对该 Region 支持的 Engine/自动暂停能力，并由受控模板、Execution Role 与部署前静态检查共同锁定。
