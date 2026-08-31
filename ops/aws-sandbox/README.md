@@ -304,6 +304,14 @@ atomic advance 协调逻辑拒绝空 snapshot，只允许已有 exact predecesso
 
 首条可信 provision authority/bootstrap、live evidence provenance、AWS SDK/DynamoDB writer/IAM 和 root 接线仍缺失，因此新增 `shared_cell_provision_authority_predecessor_missing` 与 `shared_cell_cleanup_authority_writer_missing` 两个 blocker。`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false`。本切片没有 AWS、IAM、CloudFormation 或部署步骤，不能授权 J4c mutation，也不能创建或删除 Shared Cell。
 
+### B5-J5b Shared Cell cleanup authority（dormant production DynamoDB CAS adapter）
+
+J5b 增加 production DynamoDB adapter 源码，但 default runtime 不构造或暴露它。adapter 只接受 exact table ARN `arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority` 与 fixed key `cell:cell-sandbox-1`；observe 使用 full consistent `GetItem`，只读取 exact 4-field item。字段集合、schema、revision、canonical `record_json`、operation/record hash、账号、区域、Cell 或 Stack lineage 任一漂移都会 fail closed。
+
+cleanup authority 不能从空 snapshot bootstrap；后续必须先由独立受审流程安装带可信 live provenance 的 provision predecessor。已有 predecessor 的 advance 使用 schema + revision + 完整 canonical predecessor `record_json` 约束 conditional `PutItem`，并在写后重新 full consistent readback exact candidate。exact replay 不写入；conditional conflict 只返回 fresh winner snapshot。abort、provider 错误或不确定结果、CAS 伪成功、缺失/漂移 readback、时钟回拨、授权在写入前或写入后过期，均不得报告成功。
+
+本切片只新增 dormant adapter 与注入 fake commands/client 的本地测试，没有修改 runtime、IAM、CloudFormation、J4c Lambda 或 Schedule，没有调用 AWS、连接 Neon/PostgreSQL、执行 `RunTask` 或创建/删除资源。`shared_cell_provision_authority_predecessor_missing` 和 `shared_cell_cleanup_authority_writer_missing` 两个 blocker与四个 readiness gate 全部保持不变；下一依赖是可信 provision predecessor、live Stack evidence provenance 和它们的独立安装授权，不能跳过这些边界直接启用 cleanup mutation。
+
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 
 ## 安全镜像源码包

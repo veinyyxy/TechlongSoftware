@@ -136,6 +136,12 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - atomic advance 协调逻辑拒绝空 snapshot，因而不能从裸 DTO bootstrap 首条 cleanup authority；它只允许已有 exact predecessor 的同 owner/generation/provision/Stack lineage 严格增加 cleanup epoch，相同 intent 精确重放不写入。注入 port 必须报告 conditional CAS，并接受独立 exact readback；CAS 冲突、伪成功、非 canonical predecessor、revision/hash/intent drift、时钟回拨或 CAS 期间过期都不能返回成功。
 - J5a 只提供接口、Mock 与显式 disabled 实现；default root 不接线也不暴露该 capability。它新增 `shared_cell_provision_authority_predecessor_missing` 和 `shared_cell_cleanup_authority_writer_missing` 两个 blocker；真实 provision bootstrap、live evidence provenance、DynamoDB writer/IAM、root 接线和 provider-side CAS 演练仍不存在。`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false`；本阶段没有修改 J4c Lambda/CloudFormation/IAM/Schedule，没有调用 AWS/Neon，也没有创建或删除资源。
 
+### B5-J5b：dormant production DynamoDB CAS adapter
+
+- 新增的 production adapter 只接受 exact authority table ARN `arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority` 和 fixed key `cell:cell-sandbox-1`。每次 observe 使用不带 `ProjectionExpression` 的 full strongly-consistent `GetItem`，并要求返回值恰为 `authority_key`、`schema_version`、`revision`、`record_json` 四个字段；任何表、key、字段集合、schema、revision、canonical JSON 或 hash 漂移都会在返回 snapshot 前 fail closed。
+- adapter 明确不允许从空 snapshot bootstrap cleanup authority；首条可信 provision predecessor 必须由后续独立的 provision authority 流程安装。已有 predecessor 的 advance 只允许以 schema + revision + 完整 canonical predecessor `record_json` 为条件执行单次 `PutItem`，随后必须再次 full consistent readback 并与候选逐字节一致。exact replay 只回读、不写入；conditional conflict 返回 fresh winner snapshot，伪成功、缺失或漂移 readback、provider 不确定结果、abort、时钟回拨以及写入前后过期都不能报告成功。
+- J5b 只加入可注入 fake client/command 的 dormant adapter 源码和本地测试；default runtime 没有构造或暴露它，也没有修改 IAM、CloudFormation、J4c Lambda 或 Schedule，更没有调用 AWS、Neon/PostgreSQL 或执行 `RunTask`。`shared_cell_provision_authority_predecessor_missing` 与 `shared_cell_cleanup_authority_writer_missing` 两个 blocker，以及 `registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 四个 gate 全部保持不变。下一依赖仍是可信 provision predecessor、live Stack evidence provenance 及其独立批准的安装边界，而不是直接接线 cleanup mutation。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：

@@ -480,6 +480,109 @@ async function assertItemExact(
   return record;
 }
 
+export interface ValidatedSharedCellCleanupAuthorityItem {
+  item: Readonly<SharedCellCleanupAuthorityItem>;
+  record: Readonly<SharedCellCleanupAuthorityRecord>;
+}
+
+/**
+ * Validates the complete persisted representation, including canonical JSON,
+ * the record hash and the cleanup operation hash. AWS adapters use this one
+ * decoder so the storage boundary cannot drift from the pure authority model.
+ */
+export async function validateSharedCellCleanupAuthorityItem(
+  value: unknown,
+): Promise<Readonly<ValidatedSharedCellCleanupAuthorityItem>> {
+  const item = value as SharedCellCleanupAuthorityItem;
+  const record = await assertItemExact(item);
+  return Object.freeze({
+    item: Object.freeze({
+      authority_key: item.authority_key,
+      schema_version: item.schema_version,
+      revision: item.revision,
+      record_json: item.record_json,
+    }),
+    record: Object.freeze({ ...record }),
+  });
+}
+
+export function assertSharedCellCleanupAuthorityActive(
+  record: Pick<
+    SharedCellCleanupAuthorityRecord,
+    "cellExpiresAt" | "expiresAt"
+  >,
+  now: number,
+  afterWrite = false,
+): void {
+  assertAuthorityWindow(
+    record,
+    now,
+    afterWrite
+      ? "SHARED_CELL_CLEANUP_AUTHORITY_EXPIRED_AFTER_WRITE"
+      : "SHARED_CELL_CLEANUP_AUTHORITY_EXPIRED",
+  );
+}
+
+const recordLineageKeys = [
+  "accountId",
+  "cellExpiresAt",
+  "cellId",
+  "generation",
+  "ownerDeploymentId",
+  "provisionEpoch",
+  "provisionMarker",
+  "provisionOperationHash",
+  "region",
+  "resourceInventorySha256",
+  "schemaVersion",
+  "stackId",
+  "stackName",
+  "stackStatus",
+  "templateCanonicalSha256",
+] as const satisfies readonly (keyof SharedCellCleanupAuthorityRecord)[];
+
+function recordLineage(record: SharedCellCleanupAuthorityRecord) {
+  return Object.fromEntries(
+    recordLineageKeys.map((key) => [key, record[key]]),
+  );
+}
+
+export interface ValidatedSharedCellCleanupAuthorityTransition {
+  kind: "advance" | "replay";
+  expected: Readonly<ValidatedSharedCellCleanupAuthorityItem>;
+  next: Readonly<ValidatedSharedCellCleanupAuthorityItem>;
+}
+
+/**
+ * Validates the low-level CAS transition independently of its caller. Empty
+ * bootstrap is intentionally outside this function: cleanup authority may
+ * advance only from a trusted, already persisted provision lineage.
+ */
+export async function validateSharedCellCleanupAuthorityTransition(input: {
+  expected: unknown;
+  next: unknown;
+}): Promise<Readonly<ValidatedSharedCellCleanupAuthorityTransition>> {
+  const expected = await validateSharedCellCleanupAuthorityItem(input.expected);
+  const next = await validateSharedCellCleanupAuthorityItem(input.next);
+  if (canonicalJson(expected.item) === canonicalJson(next.item)) {
+    return Object.freeze({ kind: "replay", expected, next });
+  }
+  if (
+    next.item.revision !== expected.item.revision + 1 ||
+    !Number.isSafeInteger(next.item.revision) ||
+    canonicalJson(recordLineage(expected.record)) !==
+      canonicalJson(recordLineage(next.record)) ||
+    sameCleanupIntent(expected.record, next.record) ||
+    next.record.cleanupEpoch <= expected.record.cleanupEpoch
+  ) {
+    fail(
+      "SHARED_CELL_CLEANUP_AUTHORITY_TRANSITION_INVALID",
+      "Shared Cell cleanup CAS must advance one revision and a newer cleanup epoch within the exact provision lineage.",
+    );
+  }
+  return Object.freeze({ kind: "advance", expected, next });
+}
+
 export interface SharedCellCleanupAuthoritySnapshot {
   authorityKey: typeof SHARED_CELL_CLEANUP_AUTHORITY_KEY;
   revision: number;
