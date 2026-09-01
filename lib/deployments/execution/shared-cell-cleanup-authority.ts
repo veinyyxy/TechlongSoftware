@@ -37,7 +37,27 @@ const itemKeys = [
   "revision",
   "schema_version",
 ] as const;
-const recordKeys = [
+const provisionRecordKeys = [
+  "accountId",
+  "cellExpiresAt",
+  "cellId",
+  "generation",
+  "ownerDeploymentId",
+  "provisionEpoch",
+  "provisionMarker",
+  "provisionOperationHash",
+  "recordHash",
+  "region",
+  "resourceInventorySha256",
+  "revision",
+  "schemaVersion",
+  "stackId",
+  "stackName",
+  "stackStatus",
+  "state",
+  "templateCanonicalSha256",
+] as const;
+const cleanupRecordKeys = [
   "accountId",
   "cellExpiresAt",
   "cellId",
@@ -138,6 +158,27 @@ export interface SharedCellCleanupAuthorization {
   expiresAt: string;
 }
 
+export interface SharedCellProvisionAuthorityRecord {
+  schemaVersion: 1;
+  accountId: typeof expectedAccountId;
+  region: typeof expectedRegion;
+  cellId: typeof expectedCellId;
+  stackName: typeof expectedStackName;
+  stackId: string;
+  stackStatus: "CREATE_COMPLETE" | "UPDATE_COMPLETE";
+  cellExpiresAt: string;
+  templateCanonicalSha256: string;
+  resourceInventorySha256: string;
+  ownerDeploymentId: string;
+  generation: number;
+  provisionEpoch: number;
+  provisionMarker: string;
+  provisionOperationHash: string;
+  revision: number;
+  state: "provision_verified";
+  recordHash: string;
+}
+
 export interface SharedCellCleanupAuthorityRecord {
   schemaVersion: 1;
   accountId: typeof expectedAccountId;
@@ -163,12 +204,59 @@ export interface SharedCellCleanupAuthorityRecord {
   recordHash: string;
 }
 
-export interface SharedCellCleanupAuthorityItem {
+export type SharedCellAuthorityRecord =
+  | SharedCellProvisionAuthorityRecord
+  | SharedCellCleanupAuthorityRecord;
+
+export type SharedCellProvisionOperationSource = Pick<
+  SharedCellProvisionAuthorityRecord,
+  | "schemaVersion"
+  | "accountId"
+  | "region"
+  | "cellId"
+  | "stackName"
+  | "stackId"
+  | "stackStatus"
+  | "cellExpiresAt"
+  | "templateCanonicalSha256"
+  | "resourceInventorySha256"
+  | "ownerDeploymentId"
+  | "generation"
+  | "provisionEpoch"
+  | "provisionMarker"
+>;
+
+/** Canonical intent shared by the provision installer and every decoder. */
+export function sharedCellProvisionOperationIntent(
+  source: SharedCellProvisionOperationSource,
+) {
+  return {
+    schemaVersion: 1 as const,
+    intent: "provision_shared_cell" as const,
+    accountId: source.accountId,
+    region: source.region,
+    cellId: source.cellId,
+    stackName: source.stackName,
+    stackId: source.stackId,
+    stackStatus: source.stackStatus,
+    cellExpiresAt: source.cellExpiresAt,
+    templateCanonicalSha256: source.templateCanonicalSha256,
+    resourceInventorySha256: source.resourceInventorySha256,
+    ownerDeploymentId: source.ownerDeploymentId,
+    generation: source.generation,
+    provisionEpoch: source.provisionEpoch,
+    provisionMarker: source.provisionMarker,
+  };
+}
+
+export interface SharedCellAuthorityItem {
   authority_key: typeof SHARED_CELL_CLEANUP_AUTHORITY_KEY;
   schema_version: 1;
   revision: number;
   record_json: string;
 }
+
+export type SharedCellCleanupAuthorityItem = SharedCellAuthorityItem;
 
 export interface CompileSharedCellCleanupAuthorityInput {
   cell: SharedCellCleanupStackEvidence;
@@ -341,6 +429,15 @@ export async function compileSharedCellCleanupAuthorityCandidateItem(
     }),
     expiresAt: input.cleanup.expiresAt,
   };
+  if (
+    (await sha256Hex(sharedCellProvisionOperationIntent(operationSource))) !==
+    operationSource.provisionOperationHash
+  ) {
+    fail(
+      "SHARED_CELL_CLEANUP_AUTHORITY_OPERATION_HASH_MISMATCH",
+      "Provision operation hash is not bound to the exact Shared Cell lineage.",
+    );
+  }
   const cleanupOperationHash = await sha256Hex(
     cleanupOperationIntent(operationSource),
   );
@@ -368,11 +465,11 @@ export async function compileSharedCellCleanupAuthorityCandidateItem(
   });
 }
 
-function parseRecord(
-  item: SharedCellCleanupAuthorityItem,
+function parseAuthorityRecord(
+  item: SharedCellAuthorityItem,
 ): {
-  record: SharedCellCleanupAuthorityRecord;
-  unsigned: Omit<SharedCellCleanupAuthorityRecord, "recordHash">;
+  record: SharedCellAuthorityRecord;
+  unsigned: Record<string, unknown>;
 } {
   if (
     !exactKeys(item, itemKeys) ||
@@ -397,8 +494,16 @@ function parseRecord(
       "Shared Cell cleanup authority record is not JSON.",
     );
   }
+  const state = (parsed as { state?: unknown } | null)?.state;
+  const expectedRecordKeys =
+    state === "provision_verified"
+      ? provisionRecordKeys
+      : state === "cleanup_authorized"
+        ? cleanupRecordKeys
+        : null;
   if (
-    !exactKeys(parsed, recordKeys) ||
+    expectedRecordKeys === null ||
+    !exactKeys(parsed, expectedRecordKeys) ||
     canonicalJson(parsed) !== item.record_json
   ) {
     fail(
@@ -406,21 +511,13 @@ function parseRecord(
       "Shared Cell cleanup authority record is not exact canonical JSON.",
     );
   }
-  const record = parsed as SharedCellCleanupAuthorityRecord;
+  const record = parsed as SharedCellAuthorityRecord;
   positiveInteger(record.generation, "generation");
   positiveInteger(record.provisionEpoch, "provision epoch");
-  positiveInteger(record.cleanupEpoch, "cleanup epoch");
   positiveInteger(record.revision, "revision");
   canonicalUtc(record.cellExpiresAt, "cellExpiresAt");
-  canonicalUtc(record.expiresAt, "expiresAt");
-  const unsignedRecord = {
-    ...record,
-  } as Partial<SharedCellCleanupAuthorityRecord>;
+  const unsignedRecord: Record<string, unknown> = { ...record };
   delete unsignedRecord.recordHash;
-  const unsigned = unsignedRecord as Omit<
-    SharedCellCleanupAuthorityRecord,
-    "recordHash"
-  >;
   if (
     record.schemaVersion !== 1 ||
     record.accountId !== expectedAccountId ||
@@ -432,21 +529,13 @@ function parseRecord(
     !digestPattern.test(record.templateCanonicalSha256) ||
     !digestPattern.test(record.resourceInventorySha256) ||
     !ownerPattern.test(record.ownerDeploymentId) ||
-    record.cleanupEpoch <= record.provisionEpoch ||
     record.provisionMarker !==
       sharedCellAuthorityMarker({
         generation: record.generation,
         epoch: record.provisionEpoch,
       }) ||
-    record.cleanupMarker !==
-      sharedCellAuthorityMarker({
-        generation: record.generation,
-        epoch: record.cleanupEpoch,
-      }) ||
     !digestPattern.test(record.provisionOperationHash) ||
-    !digestPattern.test(record.cleanupOperationHash) ||
     record.revision !== item.revision ||
-    record.state !== "cleanup_authorized" ||
     !digestPattern.test(record.recordHash)
   ) {
     fail(
@@ -454,13 +543,31 @@ function parseRecord(
       "Shared Cell cleanup authority record fields drifted.",
     );
   }
-  return { record, unsigned };
+  if (record.state === "cleanup_authorized") {
+    positiveInteger(record.cleanupEpoch, "cleanup epoch");
+    canonicalUtc(record.expiresAt, "expiresAt");
+    if (
+      record.cleanupEpoch <= record.provisionEpoch ||
+      record.cleanupMarker !==
+        sharedCellAuthorityMarker({
+          generation: record.generation,
+          epoch: record.cleanupEpoch,
+        }) ||
+      !digestPattern.test(record.cleanupOperationHash)
+    ) {
+      fail(
+        "SHARED_CELL_CLEANUP_AUTHORITY_INVALID",
+        "Shared Cell cleanup authority record fields drifted.",
+      );
+    }
+  }
+  return { record, unsigned: unsignedRecord };
 }
 
-async function assertItemExact(
-  item: SharedCellCleanupAuthorityItem,
-): Promise<SharedCellCleanupAuthorityRecord> {
-  const { record, unsigned } = parseRecord(item);
+async function assertAuthorityItemExact(
+  item: SharedCellAuthorityItem,
+): Promise<SharedCellAuthorityRecord> {
+  const { record, unsigned } = parseAuthorityRecord(item);
   if ((await sha256Hex(unsigned)) !== record.recordHash) {
     fail(
       "SHARED_CELL_CLEANUP_AUTHORITY_HASH_MISMATCH",
@@ -468,16 +575,69 @@ async function assertItemExact(
     );
   }
   if (
+    (await sha256Hex(sharedCellProvisionOperationIntent(record))) !==
+    record.provisionOperationHash
+  ) {
+    fail(
+      "SHARED_CELL_CLEANUP_AUTHORITY_OPERATION_HASH_MISMATCH",
+      "Shared Cell provision operation hash is not bound to the exact lineage.",
+    );
+  }
+  if (
+    record.state === "cleanup_authorized" &&
     (await sha256Hex(cleanupOperationIntent(record))) !==
-      record.cleanupOperationHash ||
-    record.cleanupOperationHash === record.provisionOperationHash
+      record.cleanupOperationHash
   ) {
     fail(
       "SHARED_CELL_CLEANUP_AUTHORITY_OPERATION_HASH_MISMATCH",
       "Shared Cell cleanup operation hash is not bound to the exact intent.",
     );
   }
+  if (
+    record.state === "cleanup_authorized" &&
+    record.cleanupOperationHash === record.provisionOperationHash
+  ) {
+    fail(
+      "SHARED_CELL_CLEANUP_AUTHORITY_OPERATION_HASH_MISMATCH",
+      "Shared Cell provision and cleanup operation hashes collide.",
+    );
+  }
   return record;
+}
+
+async function assertItemExact(
+  item: SharedCellCleanupAuthorityItem,
+): Promise<SharedCellCleanupAuthorityRecord> {
+  const record = await assertAuthorityItemExact(item);
+  if (record.state !== "cleanup_authorized") {
+    fail(
+      "SHARED_CELL_CLEANUP_AUTHORITY_STATE_INVALID",
+      "Shared Cell authority is not cleanup-authorized.",
+    );
+  }
+  return record;
+}
+
+export interface ValidatedSharedCellAuthorityItem {
+  item: Readonly<SharedCellAuthorityItem>;
+  record: Readonly<SharedCellAuthorityRecord>;
+}
+
+/** Validates either exact persisted Shared Cell authority state. */
+export async function validateSharedCellAuthorityItem(
+  value: unknown,
+): Promise<Readonly<ValidatedSharedCellAuthorityItem>> {
+  const item = value as SharedCellAuthorityItem;
+  const record = await assertAuthorityItemExact(item);
+  return Object.freeze({
+    item: Object.freeze({
+      authority_key: item.authority_key,
+      schema_version: item.schema_version,
+      revision: item.revision,
+      record_json: item.record_json,
+    }),
+    record: Object.freeze({ ...record }),
+  });
 }
 
 export interface ValidatedSharedCellCleanupAuthorityItem {
@@ -493,16 +653,16 @@ export interface ValidatedSharedCellCleanupAuthorityItem {
 export async function validateSharedCellCleanupAuthorityItem(
   value: unknown,
 ): Promise<Readonly<ValidatedSharedCellCleanupAuthorityItem>> {
-  const item = value as SharedCellCleanupAuthorityItem;
-  const record = await assertItemExact(item);
+  const validated = await validateSharedCellAuthorityItem(value);
+  if (validated.record.state !== "cleanup_authorized") {
+    fail(
+      "SHARED_CELL_CLEANUP_AUTHORITY_STATE_INVALID",
+      "Shared Cell authority is not cleanup-authorized.",
+    );
+  }
   return Object.freeze({
-    item: Object.freeze({
-      authority_key: item.authority_key,
-      schema_version: item.schema_version,
-      revision: item.revision,
-      record_json: item.record_json,
-    }),
-    record: Object.freeze({ ...record }),
+    item: validated.item,
+    record: validated.record,
   });
 }
 
@@ -539,9 +699,9 @@ const recordLineageKeys = [
   "stackName",
   "stackStatus",
   "templateCanonicalSha256",
-] as const satisfies readonly (keyof SharedCellCleanupAuthorityRecord)[];
+] as const satisfies readonly (keyof SharedCellAuthorityRecord)[];
 
-function recordLineage(record: SharedCellCleanupAuthorityRecord) {
+function recordLineage(record: SharedCellAuthorityRecord) {
   return Object.fromEntries(
     recordLineageKeys.map((key) => [key, record[key]]),
   );
@@ -549,7 +709,7 @@ function recordLineage(record: SharedCellCleanupAuthorityRecord) {
 
 export interface ValidatedSharedCellCleanupAuthorityTransition {
   kind: "advance" | "replay";
-  expected: Readonly<ValidatedSharedCellCleanupAuthorityItem>;
+  expected: Readonly<ValidatedSharedCellAuthorityItem>;
   next: Readonly<ValidatedSharedCellCleanupAuthorityItem>;
 }
 
@@ -562,22 +722,26 @@ export async function validateSharedCellCleanupAuthorityTransition(input: {
   expected: unknown;
   next: unknown;
 }): Promise<Readonly<ValidatedSharedCellCleanupAuthorityTransition>> {
-  const expected = await validateSharedCellCleanupAuthorityItem(input.expected);
+  const expected = await validateSharedCellAuthorityItem(input.expected);
   const next = await validateSharedCellCleanupAuthorityItem(input.next);
   if (canonicalJson(expected.item) === canonicalJson(next.item)) {
     return Object.freeze({ kind: "replay", expected, next });
   }
+  const invalidCleanupAdvance =
+    expected.record.state === "cleanup_authorized" &&
+    (sameCleanupIntent(expected.record, next.record) ||
+      next.record.cleanupEpoch <= expected.record.cleanupEpoch);
   if (
     next.item.revision !== expected.item.revision + 1 ||
     !Number.isSafeInteger(next.item.revision) ||
     canonicalJson(recordLineage(expected.record)) !==
       canonicalJson(recordLineage(next.record)) ||
-    sameCleanupIntent(expected.record, next.record) ||
-    next.record.cleanupEpoch <= expected.record.cleanupEpoch
+    next.record.cleanupEpoch <= expected.record.provisionEpoch ||
+    invalidCleanupAdvance
   ) {
     fail(
       "SHARED_CELL_CLEANUP_AUTHORITY_TRANSITION_INVALID",
-      "Shared Cell cleanup CAS must advance one revision and a newer cleanup epoch within the exact provision lineage.",
+      "Shared Cell cleanup CAS must advance one revision from the exact provision lineage and use a newer cleanup epoch.",
     );
   }
   return Object.freeze({ kind: "advance", expected, next });
@@ -586,7 +750,7 @@ export async function validateSharedCellCleanupAuthorityTransition(input: {
 export interface SharedCellCleanupAuthoritySnapshot {
   authorityKey: typeof SHARED_CELL_CLEANUP_AUTHORITY_KEY;
   revision: number;
-  item: SharedCellCleanupAuthorityItem | null;
+  item: SharedCellAuthorityItem | null;
 }
 
 export interface AtomicSharedCellCleanupAuthorityPort {
@@ -629,14 +793,14 @@ function assertSnapshotShape(snapshot: SharedCellCleanupAuthoritySnapshot): void
 }
 
 function sameItem(
-  left: SharedCellCleanupAuthorityItem | null,
+  left: SharedCellAuthorityItem | null,
   right: SharedCellCleanupAuthorityItem,
 ): boolean {
   return left !== null && canonicalJson(left) === canonicalJson(right);
 }
 
 function sameLineage(
-  record: SharedCellCleanupAuthorityRecord,
+  record: SharedCellAuthorityRecord,
   input: {
     cell: SharedCellCleanupStackEvidence;
     provision: SharedCellProvisionAuthorityCoordinate;
@@ -712,7 +876,13 @@ export async function advanceSharedCellCleanupAuthority(input: {
       "A trusted Shared Cell provision authority must exist before cleanup can advance.",
     );
   }
-  const beforeRecord = await assertItemExact(before.item);
+  const beforeRecord = await assertAuthorityItemExact(before.item);
+  if (!sameLineage(beforeRecord, input)) {
+    fail(
+      "SHARED_CELL_CLEANUP_AUTHORITY_TRANSITION_INVALID",
+      "Shared Cell cleanup cannot change its verified provision lineage.",
+    );
+  }
   const revision = before.revision + 1;
   positiveInteger(revision, "next revision");
   const clock = input.now ?? Date.now;
@@ -726,18 +896,18 @@ export async function advanceSharedCellCleanupAuthority(input: {
   });
   requireNotAborted(input.signal);
   const nextRecord = await assertItemExact(next);
-  if (!sameLineage(beforeRecord, input)) {
-    fail(
-      "SHARED_CELL_CLEANUP_AUTHORITY_TRANSITION_INVALID",
-      "Shared Cell cleanup cannot change its verified provision lineage.",
-    );
-  }
-  if (sameCleanupIntent(beforeRecord, nextRecord)) {
+  if (
+    beforeRecord.state === "cleanup_authorized" &&
+    sameCleanupIntent(beforeRecord, nextRecord)
+  ) {
     const replayNow = readClock(clock, compileNow);
     assertAuthorityWindow(beforeRecord, replayNow);
     return before.item;
   }
-  if (nextRecord.cleanupEpoch <= beforeRecord.cleanupEpoch) {
+  if (
+    beforeRecord.state === "cleanup_authorized" &&
+    nextRecord.cleanupEpoch <= beforeRecord.cleanupEpoch
+  ) {
     fail(
       "SHARED_CELL_CLEANUP_AUTHORITY_TRANSITION_INVALID",
       "Shared Cell cleanup epoch must advance strictly within one provision lineage.",

@@ -9,8 +9,11 @@ import {
 import {
   compileSharedCellCleanupAuthorityCandidateItem,
   SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+  type SharedCellAuthorityItem,
   type SharedCellCleanupAuthorityItem,
+  type SharedCellProvisionAuthorityRecord,
 } from "../lib/deployments/execution/shared-cell-cleanup-authority.ts";
+import { canonicalJson, sha256Hex } from "../lib/deployments/execution/hash.ts";
 
 class GetCommand {
   readonly kind = "get-item";
@@ -62,7 +65,8 @@ async function item(revision: number, cleanupEpoch: number) {
       ownerDeploymentId: "deployment-one",
       generation: 1,
       epoch: 1,
-      operationHash: "c".repeat(64),
+      operationHash:
+        "7f3668eb9ce1a2043a61000423326bef605e0a54cc1b224480e459ae385da360",
     },
     cleanup: {
       epoch: cleanupEpoch,
@@ -70,6 +74,42 @@ async function item(revision: number, cleanupEpoch: number) {
     },
     revision,
     now,
+  });
+}
+
+async function provisionItem(
+  revision = 1,
+): Promise<Readonly<SharedCellAuthorityItem>> {
+  const unsigned: Omit<SharedCellProvisionAuthorityRecord, "recordHash"> = {
+    schemaVersion: 1,
+    accountId: "402010193138",
+    region: "ca-central-1",
+    cellId: "cell-sandbox-1",
+    stackName: "techlong-sandbox-cell-sandbox-1",
+    stackId:
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/11111111-2222-3333-4444-555555555555",
+    stackStatus: "CREATE_COMPLETE",
+    cellExpiresAt: "2026-08-30T19:00:00.000Z",
+    templateCanonicalSha256: "a".repeat(64),
+    resourceInventorySha256: "b".repeat(64),
+    ownerDeploymentId: "deployment-one",
+    generation: 1,
+    provisionEpoch: 1,
+    provisionMarker: "tl_cell_epoch_cell-sandbox-1_g1_e1",
+    provisionOperationHash:
+      "7f3668eb9ce1a2043a61000423326bef605e0a54cc1b224480e459ae385da360",
+    revision,
+    state: "provision_verified",
+  };
+  const record: SharedCellProvisionAuthorityRecord = {
+    ...unsigned,
+    recordHash: await sha256Hex(unsigned),
+  };
+  return Object.freeze({
+    authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+    schema_version: 1,
+    revision,
+    record_json: canonicalJson(record),
   });
 }
 
@@ -94,8 +134,8 @@ test("requires the exact sandbox authority table ARN", () => {
   assert.equal(sends, 0);
 });
 
-test("observe uses one full strongly consistent Get and the caller signal", async () => {
-  const stored = await item(1, 2);
+test("observe accepts a provision predecessor through one full strongly consistent Get", async () => {
+  const stored = await provisionItem();
   const controller = new AbortController();
   let input: Record<string, unknown> | undefined;
   const adapter = authority(async (command, options) => {
@@ -194,15 +234,15 @@ test("observe rejects malformed, foreign and non-canonical stored items", async 
   }
 });
 
-test("CAS writes the exact four-field item under revision and canonical predecessor conditions", async () => {
-  const previous = await item(1, 2);
+test("CAS writes provision to cleanup under the complete canonical predecessor condition", async () => {
+  const previous = await provisionItem();
   const next = await item(2, 3);
-  let stored: SharedCellCleanupAuthorityItem = previous;
+  let stored: SharedCellAuthorityItem = previous;
   let put: Record<string, unknown> | undefined;
   const adapter = authority(async (command) => {
     if ((command as GetCommand).kind === "get-item") return { Item: stored };
     put = (command as PutCommand).input;
-    stored = put.Item as SharedCellCleanupAuthorityItem;
+    stored = put.Item as SharedCellAuthorityItem;
     return {};
   });
   const result = await adapter.compareAndSet({

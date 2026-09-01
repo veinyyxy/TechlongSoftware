@@ -4,8 +4,10 @@ import {
   SHARED_CELL_CLEANUP_AUTHORITY_KEY,
   SharedCellCleanupAuthorityError,
   type AtomicSharedCellCleanupAuthorityPort,
+  type SharedCellAuthorityItem,
   type SharedCellCleanupAuthorityItem,
   type SharedCellCleanupAuthoritySnapshot,
+  validateSharedCellAuthorityItem,
   validateSharedCellCleanupAuthorityItem,
   validateSharedCellCleanupAuthorityTransition,
 } from "./shared-cell-cleanup-authority.ts";
@@ -184,7 +186,7 @@ function requireClockValueAfterWrite(now: () => number): number {
 }
 
 function sameItem(
-  left: SharedCellCleanupAuthorityItem | null,
+  left: SharedCellAuthorityItem | null,
   right: SharedCellCleanupAuthorityItem,
 ): boolean {
   return left !== null && canonicalJson(left) === canonicalJson(right);
@@ -200,7 +202,7 @@ async function snapshotFromItem(
       item: null,
     });
   }
-  const validated = await validateSharedCellCleanupAuthorityItem(item);
+  const validated = await validateSharedCellAuthorityItem(item);
   return Object.freeze({
     authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
     revision: validated.item.revision,
@@ -210,7 +212,7 @@ async function snapshotFromItem(
 
 function assertExpectedSnapshot(
   expected: SharedCellCleanupAuthoritySnapshot,
-): SharedCellCleanupAuthorityItem {
+): SharedCellAuthorityItem {
   if (
     !exactKeys(expected, snapshotKeys) ||
     expected.authorityKey !== SHARED_CELL_CLEANUP_AUTHORITY_KEY ||

@@ -142,6 +142,13 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - adapter 明确不允许从空 snapshot bootstrap cleanup authority；首条可信 provision predecessor 必须由后续独立的 provision authority 流程安装。已有 predecessor 的 advance 只允许以 schema + revision + 完整 canonical predecessor `record_json` 为条件执行单次 `PutItem`，随后必须再次 full consistent readback 并与候选逐字节一致。exact replay 只回读、不写入；conditional conflict 返回 fresh winner snapshot，伪成功、缺失或漂移 readback、provider 不确定结果、abort、时钟回拨以及写入前后过期都不能报告成功。
 - J5b 只加入可注入 fake client/command 的 dormant adapter 源码和本地测试；default runtime 没有构造或暴露它，也没有修改 IAM、CloudFormation、J4c Lambda 或 Schedule，更没有调用 AWS、Neon/PostgreSQL 或执行 `RunTask`。`shared_cell_provision_authority_predecessor_missing` 与 `shared_cell_cleanup_authority_writer_missing` 两个 blocker，以及 `registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 四个 gate 全部保持不变。下一依赖仍是可信 provision predecessor、live Stack evidence provenance 及其独立批准的安装边界，而不是直接接线 cleanup mutation。
 
+### B5-J5c：可信 provision predecessor 与 dormant 安装边界
+
+- 同一 fixed key 的 `record_json` 现在是严格判别 union：18 字段 `provision_verified` 或保持字节兼容的 22 字段 `cleanup_authorized`。provision operation hash 与 record hash 都由 canonical exact intent 重算；cleanup 只能从同 Stack/owner/generation/provision lineage 原子推进，空表仍不能由 cleanup adapter bootstrap。
+- 新的只读 provenance adapter 固定账号、区域、Provisioner STS caller、root Stack、execution role、tags、parameters、11 个 outputs、`GetTemplate(Original)` canonical hash 和完整分页 resource inventory；采集前后两次 Stack snapshot 必须一致。只有该 adapter 产生的冻结 branded evidence 才能编译首条 generation 1 / epoch 1 predecessor。
+- 独立 installer port 只表达 provider-side `absent → provision_verified` conditional install、exact replay 和独立 readback；证据到写入的窗口限制为 30 秒。提交后的 provider error、Abort、非法返回、缺失/漂移 readback 或时钟异常全部按 retryable write-uncertain fail closed。注入 SDK dependency 是受信 composition seam，不向不可信调用者提供 capability；未来 J4c 仍会独立重读 Stack/template/inventory，因此跨 CloudFormation/DynamoDB 的非原子窗口不能直接授权 mutation。
+- 本阶段仍未提供 DynamoDB provision writer、IAM 或 root wiring，也没有写入线上 authority、调用 AWS、创建 Cell 或执行 `RunTask`。J4c、Schedule、management Stack 和 runtime composition 均未修改；两个 blocker与四个 readiness gate 原样保留。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：

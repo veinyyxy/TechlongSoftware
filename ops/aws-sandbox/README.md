@@ -312,6 +312,14 @@ cleanup authority 不能从空 snapshot bootstrap；后续必须先由独立受�
 
 本切片只新增 dormant adapter 与注入 fake commands/client 的本地测试，没有修改 runtime、IAM、CloudFormation、J4c Lambda 或 Schedule，没有调用 AWS、连接 Neon/PostgreSQL、执行 `RunTask` 或创建/删除资源。`shared_cell_provision_authority_predecessor_missing` 和 `shared_cell_cleanup_authority_writer_missing` 两个 blocker与四个 readiness gate 全部保持不变；下一依赖是可信 provision predecessor、live Stack evidence provenance 和它们的独立安装授权，不能跳过这些边界直接启用 cleanup mutation。
 
+### B5-J5c Shared Cell provision predecessor（dormant）
+
+J5c 在同一个 `cell:cell-sandbox-1` key 上增加严格 18 字段 `provision_verified` predecessor；现有 4 字段 envelope 与 22 字段 `cleanup_authorized` 消费契约不变。provision/cleanup operation hash 和 record hash 均绑定 canonical exact intent，唯一允许的首跳是同 lineage、revision + 1 且 cleanup epoch 更大的 `provision_verified → cleanup_authorized`；cleanup adapter 继续拒绝空表 bootstrap。
+
+只读 Stack evidence adapter 核对 exact STS caller、root Stack/role/status/tags/parameters/outputs、Original template hash、完整分页 resource inventory及采集前后稳定性。独立 SDK-free installer 只允许 generation 1 / epoch 1 的 fresh branded evidence 在 30 秒窗口内执行 absent-only conditional install，并要求独立 exact readback；提交后的任何不确定结果均不报告成功。
+
+本切片没有 provision DynamoDB writer、IAM、root wiring 或线上 authority 写入，也没有修改 J4c、Schedule、management/child Stack 或 runtime gates，没有调用 AWS、创建付费 Cell 或运行 ECS task。可注入 clients 只属于受信 composition/test seam；真正上线前仍需受审生产构造、最小 IAM 与在线安装批准。
+
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 
 ## 安全镜像源码包

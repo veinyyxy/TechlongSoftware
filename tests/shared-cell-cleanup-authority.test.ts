@@ -4,15 +4,21 @@ import { createRequire } from "node:module";
 import { AwsSdkDynamoDbEpochAuthority } from "../lib/deployments/execution/aws-sdk-dynamodb-epoch-authority.ts";
 import {
   advanceSharedCellCleanupAuthority,
-  compileSharedCellCleanupAuthorityCandidateItem,
+  compileSharedCellCleanupAuthorityCandidateItem as compileRawSharedCellCleanupAuthorityCandidateItem,
   DisabledAtomicSharedCellCleanupAuthority,
   SHARED_CELL_CLEANUP_AUTHORITY_KEY,
   type AtomicSharedCellCleanupAuthorityPort,
   type CompileSharedCellCleanupAuthorityInput,
+  type SharedCellAuthorityItem,
   type SharedCellCleanupAuthorityItem,
   type SharedCellCleanupAuthoritySnapshot,
+  type SharedCellProvisionAuthorityRecord,
+  sharedCellProvisionOperationIntent,
+  validateSharedCellAuthorityItem,
+  validateSharedCellCleanupAuthorityItem,
+  validateSharedCellCleanupAuthorityTransition,
 } from "../lib/deployments/execution/shared-cell-cleanup-authority.ts";
-import { canonicalJson } from "../lib/deployments/execution/hash.ts";
+import { canonicalJson, sha256Hex } from "../lib/deployments/execution/hash.ts";
 
 const require = createRequire(import.meta.url);
 const { decodeAuthorityItem, validateAuthorityItem } = require(
@@ -44,7 +50,8 @@ function compileInput(
       ownerDeploymentId: "deployment_cell_owner_1",
       generation: 3,
       epoch: 8,
-      operationHash: "c".repeat(64),
+      operationHash:
+        "bc2dbf0d90da77e539caaa16bb71f78e7d5da61eeacaefe5c4c6a1563dc467c4",
     },
     cleanup: {
       epoch: 9,
@@ -56,15 +63,91 @@ function compileInput(
   };
 }
 
+async function compileSharedCellCleanupAuthorityCandidateItem(
+  input: CompileSharedCellCleanupAuthorityInput,
+) {
+  const provisionMarker =
+    `tl_cell_epoch_cell-sandbox-1_g${input.provision.generation}` +
+    `_e${input.provision.epoch}`;
+  const operationHash = await sha256Hex(
+    sharedCellProvisionOperationIntent({
+      schemaVersion: 1,
+      accountId: "402010193138",
+      region: "ca-central-1",
+      cellId: "cell-sandbox-1",
+      stackName,
+      stackId: input.cell.stackId,
+      stackStatus: input.cell.stackStatus,
+      cellExpiresAt: input.cell.cellExpiresAt,
+      templateCanonicalSha256: input.cell.templateCanonicalSha256,
+      resourceInventorySha256: input.cell.resourceInventorySha256,
+      ownerDeploymentId: input.provision.ownerDeploymentId,
+      generation: input.provision.generation,
+      provisionEpoch: input.provision.epoch,
+      provisionMarker,
+    }),
+  );
+  return compileRawSharedCellCleanupAuthorityCandidateItem({
+    ...input,
+    provision: { ...input.provision, operationHash },
+  });
+}
+
 function snapshot(
   revision = 0,
-  item: SharedCellCleanupAuthorityItem | null = null,
+  item: SharedCellAuthorityItem | null = null,
 ): SharedCellCleanupAuthoritySnapshot {
   return {
     authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
     revision,
     item,
   };
+}
+
+async function provisionItem(
+  revision = 6,
+  overrides: Partial<Omit<SharedCellProvisionAuthorityRecord, "recordHash">> = {},
+): Promise<Readonly<SharedCellAuthorityItem>> {
+  const seed: Omit<
+    SharedCellProvisionAuthorityRecord,
+    "provisionOperationHash" | "recordHash"
+  > = {
+    schemaVersion: 1,
+    accountId: "402010193138",
+    region: "ca-central-1",
+    cellId: "cell-sandbox-1",
+    stackName,
+    stackId,
+    stackStatus: "UPDATE_COMPLETE",
+    cellExpiresAt: new Date(now - 60_000).toISOString(),
+    templateCanonicalSha256: "a".repeat(64),
+    resourceInventorySha256: "b".repeat(64),
+    ownerDeploymentId: "deployment_cell_owner_1",
+    generation: 3,
+    provisionEpoch: 8,
+    provisionMarker: "tl_cell_epoch_cell-sandbox-1_g3_e8",
+    revision,
+    state: "provision_verified",
+    ...overrides,
+  };
+  const derivedOperationHash = await sha256Hex(
+    sharedCellProvisionOperationIntent(seed),
+  );
+  const unsigned: Omit<SharedCellProvisionAuthorityRecord, "recordHash"> = {
+    ...seed,
+    provisionOperationHash:
+      overrides.provisionOperationHash ?? derivedOperationHash,
+  };
+  const record: SharedCellProvisionAuthorityRecord = {
+    ...unsigned,
+    recordHash: await sha256Hex(unsigned),
+  };
+  return Object.freeze({
+    authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+    schema_version: 1,
+    revision: unsigned.revision,
+    record_json: canonicalJson(record),
+  });
 }
 
 function errorCode(code: string): (error: unknown) => boolean {
@@ -106,6 +189,69 @@ test("compiler emits the exact J4c four-field item and twenty-two-field record",
   const consumed = validateAuthorityItem(item, now);
   assert.equal(consumed.recordHash, record.recordHash);
   assert.equal(consumed.stackId, stackId);
+});
+
+test("generic validator accepts only the exact eighteen-field provision record", async () => {
+  const item = await provisionItem();
+  const validated = await validateSharedCellAuthorityItem(item);
+  assert.equal(Object.keys(validated.record).length, 18);
+  assert.equal(validated.record.state, "provision_verified");
+  assert.equal(validated.record.revision, item.revision);
+  await assert.rejects(
+    validateSharedCellCleanupAuthorityItem(item),
+    errorCode("SHARED_CELL_CLEANUP_AUTHORITY_STATE_INVALID"),
+  );
+  assert.throws(() => validateAuthorityItem(item, now));
+
+  const record = JSON.parse(item.record_json) as Record<string, unknown>;
+  for (const invalid of [
+    { ...item, record_json: canonicalJson({ ...record, unexpected: true }) },
+    { ...item, record_json: canonicalJson({ ...record, state: "provisioned" }) },
+    { ...item, record_json: canonicalJson({ ...record, recordHash: "f".repeat(64) }) },
+  ]) {
+    await assert.rejects(
+      validateSharedCellAuthorityItem(invalid),
+      (error: unknown) =>
+        String((error as { code?: string }).code).startsWith(
+          "SHARED_CELL_CLEANUP_AUTHORITY_",
+        ),
+    );
+  }
+});
+
+test("transition accepts provision to cleanup and rejects any lineage drift", async () => {
+  const expected = await provisionItem();
+  const next = await compileSharedCellCleanupAuthorityCandidateItem(compileInput());
+  const transition = await validateSharedCellCleanupAuthorityTransition({
+    expected,
+    next,
+  });
+  assert.equal(transition.kind, "advance");
+  assert.equal(transition.expected.record.state, "provision_verified");
+  assert.equal(transition.next.record.state, "cleanup_authorized");
+
+  for (const drift of [
+    { ownerDeploymentId: "foreign_owner" },
+    { resourceInventorySha256: "e".repeat(64) },
+    { stackId: stackId.replace("12345678", "22345678") },
+  ]) {
+    await assert.rejects(
+      validateSharedCellCleanupAuthorityTransition({
+        expected: await provisionItem(6, drift),
+        next,
+      }),
+      errorCode("SHARED_CELL_CLEANUP_AUTHORITY_TRANSITION_INVALID"),
+    );
+  }
+  await assert.rejects(
+    validateSharedCellCleanupAuthorityTransition({
+      expected: await provisionItem(6, {
+        provisionOperationHash: "e".repeat(64),
+      }),
+      next,
+    }),
+    errorCode("SHARED_CELL_CLEANUP_AUTHORITY_OPERATION_HASH_MISMATCH"),
+  );
 });
 
 test("cleanup operation hash is deterministic and bound to the exact intent", async () => {
@@ -239,7 +385,7 @@ test("an empty authority cannot bootstrap cleanup", async () => {
 
 test("an existing lineage advances through conditional CAS and exact re-observe", async () => {
   const base = compileInput();
-  const predecessor = await compileSharedCellCleanupAuthorityCandidateItem(base);
+  const predecessor = await provisionItem();
   let stored = snapshot(predecessor.revision, predecessor);
   const calls: string[] = [];
   const port: AtomicSharedCellCleanupAuthorityPort = {
