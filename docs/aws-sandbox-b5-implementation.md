@@ -149,6 +149,14 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - 独立 installer port 只表达 provider-side `absent → provision_verified` conditional install、exact replay 和独立 readback；证据到写入的窗口限制为 30 秒。提交后的 provider error、Abort、非法返回、缺失/漂移 readback 或时钟异常全部按 retryable write-uncertain fail closed。注入 SDK dependency 是受信 composition seam，不向不可信调用者提供 capability；未来 J4c 仍会独立重读 Stack/template/inventory，因此跨 CloudFormation/DynamoDB 的非原子窗口不能直接授权 mutation。
 - 本阶段仍未提供 DynamoDB provision writer、IAM 或 root wiring，也没有写入线上 authority、调用 AWS、创建 Cell 或执行 `RunTask`。J4c、Schedule、management Stack 和 runtime composition 均未修改；两个 blocker与四个 readiness gate 原样保留。
 
+### B5-J5d：dormant production provision installer
+
+- 新增 production DynamoDB installer 源码，但只允许 exact table ARN `arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority` 与 fixed key `cell:cell-sandbox-1`。它仅接受 compiler 私有 `WeakMap` provenance 保留的 generation 1 / provision epoch 1 / revision 1 `provision_verified` 原对象；复制、重建、过期、时钟回拨或任意字段漂移都在写入前 fail closed。
+- 首次安装只执行一条 `attribute_not_exists(authority_key)` 条件 `PutItem`，绝不覆盖既有 lineage。observe、conditional conflict 与写后确认均使用不带 projection 的 full strongly-consistent `GetItem`；成功必须独立读回 exact 4-field candidate。提交后的 provider failure、Abort、时钟异常、缺失或漂移 readback 全部按 retryable write-uncertain 处理，不能报告成功。
+- 新的 dormant production construction bundle 只构造 evidence adapter 与 installer；它固定 `techlong-sandbox-provisioner` profile、exact MFA device，并要求受审入口注入一次性 MFA callback。STS、CloudFormation、DynamoDB 三个 client 显式共享同一次 `defaultProvider()` 返回的 refreshing credential provider，且业务 client 与内部 STS 均忽略环境/profile configured endpoint override，避免身份分裂或伪 endpoint。构造过程不解析凭据、不调用 AWS，也不接入 Worker/J4c root；public module injection 只是受信测试 seam，不是抵抗同进程恶意 JavaScript 的安全边界。默认 `offline_only` runtime 测试明确断言不暴露 provision evidence/authority capability。
+- 当前 IAM 不能在线闭环：Provisioner 没有 exact Cell root Stack 只读与 authority Get/Put；Worker 的 DynamoDB `LeadingKeys` 仅允许 `tenant:*`；Janitor 只有 exact cell key Get 且 boundary 显式拒绝 mutation；Manager 也没有 DynamoDB writer。source IAM User 可能继承广泛权限，但不是批准的 authority 安装路径，禁止据此直接写表。本阶段没有调用 AWS、修改 IAM/CloudFormation/J4c/Schedule、创建付费 Cell、执行 `RunTask` 或写入线上 authority。
+- 后续在线工作必须分别批准：短时 exact install IAM grant、付费 Shared Cell 创建、live evidence + absent pre-read + exact candidate 摘要审阅后的一次条件写/readback/revoke、现有 cleanup CAS adapter 的短时 IAM/online enablement/root wiring，以及 J4c mutation/Schedule enable。不能把这些批准合并，也不能放宽长期 Worker 的 `tenant:*` 权限；两个 blocker和四个 readiness gate继续保持不变。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：
@@ -163,7 +171,7 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 8. DynamoDB authority Adapter 和订单服务 `POST /api/saas/provision` 单调 epoch CAS 仅存在于未接线/未部署源码中；其他控制写接口仍未 fence，也没有完成数据库迁移、跨进程 CAS、AWS 条件写或 provider-side 删除演练。`AbortSignal` 不能撤销服务端已经接受的写入。
 9. B5-J2 的 CloudFormation IAM 已经由 `LifecycleReadback` 三阶段路径执行并在线回读；B5-J3 又完成 ACTIVE `tenant-lifecycle:2` 注册、正向 `DescribeTaskDefinition` exact readback 和临时注册权限撤销，最终 boundary `v7` 为 `LOCKED`；B5-J4a 已完成独立 lifecycle LogGroup Stack 创建与两次 strict readback。仍没有 Cell、runtime config 或 `RunTask` 执行证据。
 10. B5-J4c ownership-fenced plan-only child 已通过 PlannerUpdate 部署并严格回读，management 临时 grant 已撤销并恢复 exact `LOCKED`，Schedule 保持 `DISABLED`，双 probe 均返回 `ABSENT_SAFE` 且没有 mutation；但它仍不是完整 cleanup coordinator，不能据此打开任何 readiness gate。
-11. B5-J5a 只补齐 Shared Cell cleanup authority candidate compiler、同 lineage atomic advance 接口和显式 disabled 实现；首条可信 provision authority/bootstrap、真实 DynamoDB writer/IAM、live root 接线及 provider-side CAS 演练仍不存在，因此 J4c 继续保持 plan-only。
+11. B5-J5a–J5d 已补齐 Shared Cell cleanup candidate、同 lineage CAS adapter、可信 live provision evidence compiler、absent-only production installer 与共享身份构造源码；但 production IAM/install grant、真实 Cell live evidence、线上首项写入、cleanup adapter 的 IAM/online enablement/root wiring 及 provider-side 演练仍不存在，因此两个 blocker不变，J4c 继续保持 plan-only。
 
 ## 费用与执行规则
 

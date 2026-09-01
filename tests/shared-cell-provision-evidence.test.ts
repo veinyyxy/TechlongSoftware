@@ -4,6 +4,15 @@ import type { DeploymentEnvironment } from "../lib/deployments/environment.ts";
 import type { DeploymentExecutionBinding } from "../lib/deployments/execution/contracts.ts";
 import { sha256Hex } from "../lib/deployments/execution/hash.ts";
 import {
+  AwsSdkSharedCellProvisionAuthority,
+  type AwsSdkSharedCellProvisionAuthorityDependencies,
+} from "../lib/deployments/execution/aws-sdk-shared-cell-provision-authority.ts";
+import {
+  createAwsSdkSharedCellProvisionRuntime,
+  createAwsSdkSharedCellProvisionRuntimeFromModules,
+} from "../lib/deployments/execution/aws-sdk-shared-cell-provision-runtime.ts";
+import { SHARED_CELL_CLEANUP_AUTHORITY_TABLE_ARN } from "../lib/deployments/execution/aws-sdk-shared-cell-cleanup-authority.ts";
+import {
   compileSharedCellCleanupAuthorityCandidateItem,
   SHARED_CELL_CLEANUP_AUTHORITY_KEY,
   validateSharedCellAuthorityItem,
@@ -706,6 +715,41 @@ test("initial provision installer is absent-only, exact-readback and replay safe
   );
 });
 
+test("initial provision replay rejects every non-genesis revision", async () => {
+  const evidence = await liveEvidence();
+  const coordinate = {
+    ownerDeploymentId: "deployment_cell_owner_1",
+    generation: 1,
+    epoch: 1,
+  };
+  const revisionTwo = await compileSharedCellProvisionAuthorityCandidateItem({
+    evidence,
+    coordinate,
+    revision: 2,
+    now,
+  });
+  const port = new MemoryProvisionAuthority();
+  port.snapshot = {
+    authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+    revision: 2,
+    item: revisionTwo,
+  };
+
+  await assert.rejects(
+    installInitialSharedCellProvisionAuthority({
+      port,
+      evidence,
+      coordinate,
+      signal: new AbortController().signal,
+      now: () => now,
+    }),
+    (error: unknown) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_PROVISION_AUTHORITY_ALREADY_EXISTS",
+  );
+  assert.equal(port.installCalls, 0);
+});
+
 test("provision installer rejects forged evidence, conflicts, readback drift and post-submit abort", async (t) => {
   const evidence = await liveEvidence();
   const coordinate = {
@@ -792,6 +836,65 @@ test("provision installer rejects forged evidence, conflicts, readback drift and
     );
   });
 
+  await t.test("abort during final readback validation is uncertain", async () => {
+    const controller = new AbortController();
+    let stored: SharedCellAuthorityItem | null = null;
+    const port: AtomicSharedCellProvisionAuthorityPort = {
+      async observe() {
+        if (!stored) {
+          return {
+            authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+            revision: 0,
+            item: null,
+          };
+        }
+        const item = stored;
+        const delayed = {
+          authority_key: item.authority_key,
+          schema_version: item.schema_version,
+          revision: item.revision,
+        } as SharedCellAuthorityItem;
+        Object.defineProperty(delayed, "record_json", {
+          enumerable: true,
+          get() {
+            queueMicrotask(() => controller.abort(new Error("lease lost")));
+            return item.record_json;
+          },
+        });
+        return {
+          authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+          revision: item.revision,
+          item: delayed,
+        };
+      },
+      async installIfAbsent(input) {
+        stored = input.next;
+        return {
+          applied: true,
+          snapshot: {
+            authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+            revision: input.next.revision,
+            item: input.next,
+          },
+        };
+      },
+    };
+
+    await assert.rejects(
+      installInitialSharedCellProvisionAuthority({
+        port,
+        evidence,
+        coordinate,
+        signal: controller.signal,
+        now: () => now,
+      }),
+      (error: unknown) =>
+        (error as { code?: string; retryable?: boolean }).code ===
+          "SHARED_CELL_PROVISION_AUTHORITY_ABORTED_AFTER_WRITE" &&
+        (error as { retryable?: boolean }).retryable === true,
+    );
+  });
+
   for (const scenario of [
     {
       name: "provider exception after submission",
@@ -843,4 +946,618 @@ test("provision installer rejects forged evidence, conflicts, readback drift and
       (error as { code?: string }).code ===
       "SHARED_CELL_PROVISION_AUTHORITY_INSTALLER_DISABLED",
   );
+});
+
+class AuthorityGetCommand {
+  readonly kind = "get-item";
+  readonly input: Record<string, unknown>;
+  constructor(input: Record<string, unknown>) {
+    this.input = input;
+  }
+}
+
+class AuthorityPutCommand {
+  readonly kind = "put-item";
+  readonly input: Record<string, unknown>;
+  constructor(input: Record<string, unknown>) {
+    this.input = input;
+  }
+}
+
+function dynamoProvisionAuthority(
+  send: AwsSdkSharedCellProvisionAuthorityDependencies["client"]["send"],
+  clock: () => number = () => now,
+) {
+  return new AwsSdkSharedCellProvisionAuthority(
+    { tableArn: SHARED_CELL_CLEANUP_AUTHORITY_TABLE_ARN },
+    {
+      client: { send },
+      commands: { get: AuthorityGetCommand, put: AuthorityPutCommand },
+      now: clock,
+    },
+  );
+}
+
+async function genesisCandidate(ownerDeploymentId = "deployment_cell_owner_1") {
+  const evidence = await liveEvidence();
+  return compileSharedCellProvisionAuthorityCandidateItem({
+    evidence,
+    coordinate: { ownerDeploymentId, generation: 1, epoch: 1 },
+    revision: 1,
+    now,
+  });
+}
+
+async function genesisCandidateAt(candidateNow: number) {
+  const setup = fixture(stackInput(candidateNow - 60_000), {
+    clock: [candidateNow, candidateNow],
+  });
+  const evidence = await setup.adapter.readVerifiedProvisionEvidence({
+    environment,
+    binding,
+    stackInput: setup.input,
+    signal: new AbortController().signal,
+  });
+  return compileSharedCellProvisionAuthorityCandidateItem({
+    evidence,
+    coordinate: {
+      ownerDeploymentId: "deployment_cell_owner_1",
+      generation: 1,
+      epoch: 1,
+    },
+    revision: 1,
+    now: candidateNow,
+  });
+}
+
+test("DynamoDB provision adapter performs one absent-only Put and full consistent readbacks", async () => {
+  const evidence = await liveEvidence();
+  let stored: SharedCellAuthorityItem | null = null;
+  const calls: Array<{
+    kind: string;
+    input: Record<string, unknown>;
+    signal: AbortSignal | undefined;
+  }> = [];
+  const controller = new AbortController();
+  const adapter = dynamoProvisionAuthority(async (command, options) => {
+    const value = command as {
+      kind: string;
+      input: Record<string, unknown>;
+    };
+    calls.push({ kind: value.kind, input: value.input, signal: options?.abortSignal });
+    if (value.kind === "put-item") {
+      stored = value.input.Item as SharedCellAuthorityItem;
+      return {};
+    }
+    return stored ? { Item: stored } : {};
+  });
+
+  const installed = await installInitialSharedCellProvisionAuthority({
+    port: adapter,
+    evidence,
+    coordinate: {
+      ownerDeploymentId: "deployment_cell_owner_1",
+      generation: 1,
+      epoch: 1,
+    },
+    signal: controller.signal,
+    now: () => now,
+  });
+  assert.deepEqual(
+    calls.map((call) => call.kind),
+    ["get-item", "put-item", "get-item", "get-item"],
+  );
+  assert.equal(calls.every((call) => call.signal === controller.signal), true);
+  assert.deepEqual(calls[0].input, {
+    TableName: SHARED_CELL_CLEANUP_AUTHORITY_TABLE_ARN,
+    Key: { authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY },
+    ConsistentRead: true,
+  });
+  assert.deepEqual(calls[1].input, {
+    TableName: SHARED_CELL_CLEANUP_AUTHORITY_TABLE_ARN,
+    Item: stored,
+    ConditionExpression: "attribute_not_exists(#authorityKey)",
+    ExpressionAttributeNames: { "#authorityKey": "authority_key" },
+    ReturnValuesOnConditionCheckFailure: "NONE",
+  });
+  assert.deepEqual(stored, installed);
+  assert.deepEqual(Object.keys(stored as object).sort(), [
+    "authority_key",
+    "record_json",
+    "revision",
+    "schema_version",
+  ]);
+});
+
+test("DynamoDB provision adapter rejects invalid capability use before Put", async () => {
+  let sends = 0;
+  assert.throws(
+    () =>
+      new AwsSdkSharedCellProvisionAuthority(
+        {
+          tableArn:
+            "arn:aws:dynamodb:ca-central-1:402010193138:table/foreign",
+        },
+        {
+          client: {
+            send: async () => {
+              sends += 1;
+              return {};
+            },
+          },
+          commands: { get: AuthorityGetCommand, put: AuthorityPutCommand },
+        },
+      ),
+    (error: unknown) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_PROVISION_AUTHORITY_CONFIG_INVALID",
+  );
+
+  const candidate = await genesisCandidate();
+  await assert.rejects(
+    dynamoProvisionAuthority(async () => {
+      sends += 1;
+      return {};
+    }).installIfAbsent({
+      authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+      next: { ...candidate },
+      signal: new AbortController().signal,
+    }),
+    (error: unknown) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_PROVISION_AUTHORITY_CANDIDATE_UNVERIFIED",
+  );
+  assert.equal(sends, 0);
+});
+
+test("DynamoDB provision adapter pins one candidate across asynchronous validation", async () => {
+  const stale = await genesisCandidateAt(now);
+  const freshNow = now + 30_001;
+  const fresh = await genesisCandidateAt(freshNow);
+  let sends = 0;
+  const mutableInput = {
+    authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+    next: stale as SharedCellAuthorityItem,
+    signal: new AbortController().signal,
+  };
+  const installing = dynamoProvisionAuthority(async () => {
+    sends += 1;
+    return {};
+  }, () => freshNow).installIfAbsent(mutableInput);
+  mutableInput.next = fresh;
+
+  await assert.rejects(
+    installing,
+    (error: unknown) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_PROVISION_AUTHORITY_EVIDENCE_STALE",
+  );
+  assert.equal(sends, 0);
+});
+
+test("DynamoDB provision adapter rejects a clock behind candidate compilation", async () => {
+  const evidence = await liveEvidence();
+  const candidate = await compileSharedCellProvisionAuthorityCandidateItem({
+    evidence,
+    coordinate: {
+      ownerDeploymentId: "deployment_cell_owner_1",
+      generation: 1,
+      epoch: 1,
+    },
+    revision: 1,
+    now: now + 1_000,
+  });
+  let sends = 0;
+  await assert.rejects(
+    dynamoProvisionAuthority(async () => {
+      sends += 1;
+      return {};
+    }, () => now + 500).installIfAbsent({
+      authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+      next: candidate,
+      signal: new AbortController().signal,
+    }),
+    (error: unknown) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_PROVISION_AUTHORITY_CLOCK_REGRESSED",
+  );
+  assert.equal(sends, 0);
+});
+
+test("DynamoDB provision adapter returns a fresh winner and never overwrites on conflict", async () => {
+  const candidate = await genesisCandidate();
+  const winner = await genesisCandidate("another_owner");
+  let gets = 0;
+  let puts = 0;
+  const adapter = dynamoProvisionAuthority(async (command) => {
+    if ((command as AuthorityPutCommand).kind === "put-item") {
+      puts += 1;
+      throw Object.assign(new Error("occupied"), {
+        name: "ConditionalCheckFailedException",
+      });
+    }
+    gets += 1;
+    return { Item: winner };
+  });
+  const result = await adapter.installIfAbsent({
+    authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+    next: candidate,
+    signal: new AbortController().signal,
+  });
+  assert.equal(result.applied, false);
+  assert.deepEqual(result.snapshot.item, winner);
+  assert.equal(puts, 1);
+  assert.equal(gets, 1);
+});
+
+test("DynamoDB provision adapter treats every post-submit uncertainty as retryable", async (t) => {
+  await t.test("provider failure is sanitized", async () => {
+    const candidate = await genesisCandidate();
+    await assert.rejects(
+      dynamoProvisionAuthority(async () => {
+        throw Object.assign(new Error("secret provider payload"), {
+          name: "Timeout Exception!",
+        });
+      }).installIfAbsent({
+        authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+        next: candidate,
+        signal: new AbortController().signal,
+      }),
+      (error: unknown) => {
+        const value = error as {
+          cause?: unknown;
+          code?: string;
+          retryable?: boolean;
+          message?: string;
+        };
+        return (
+          value.code === "SHARED_CELL_PROVISION_AUTHORITY_WRITE_UNCERTAIN" &&
+          value.retryable === true &&
+          value.cause === undefined &&
+          !String(value.message).includes("secret provider payload")
+        );
+      },
+    );
+  });
+
+  await t.test("successful Put with missing readback", async () => {
+    const candidate = await genesisCandidate();
+    await assert.rejects(
+      dynamoProvisionAuthority(async (command) =>
+        (command as AuthorityPutCommand).kind === "put-item" ? {} : {},
+      ).installIfAbsent({
+        authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+        next: candidate,
+        signal: new AbortController().signal,
+      }),
+      (error: unknown) =>
+        (error as { code?: string; retryable?: boolean }).code ===
+          "SHARED_CELL_PROVISION_AUTHORITY_READBACK_MISMATCH" &&
+        (error as { retryable?: boolean }).retryable === true,
+    );
+  });
+
+  await t.test("successful Put with failed readback", async () => {
+    const candidate = await genesisCandidate();
+    await assert.rejects(
+      dynamoProvisionAuthority(async (command) => {
+        if ((command as AuthorityPutCommand).kind === "put-item") return {};
+        throw new Error("read unavailable");
+      }).installIfAbsent({
+        authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+        next: candidate,
+        signal: new AbortController().signal,
+      }),
+      (error: unknown) =>
+        (error as { code?: string; retryable?: boolean }).code ===
+          "SHARED_CELL_PROVISION_AUTHORITY_READBACK_FAILED_AFTER_WRITE" &&
+        (error as { retryable?: boolean }).retryable === true,
+    );
+  });
+
+  await t.test("successful Put with a different valid readback", async () => {
+    const candidate = await genesisCandidate();
+    const winner = await genesisCandidate("another_owner");
+    await assert.rejects(
+      dynamoProvisionAuthority(async (command) =>
+        (command as AuthorityPutCommand).kind === "put-item"
+          ? {}
+          : { Item: winner },
+      ).installIfAbsent({
+        authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+        next: candidate,
+        signal: new AbortController().signal,
+      }),
+      (error: unknown) =>
+        (error as { code?: string; retryable?: boolean }).code ===
+          "SHARED_CELL_PROVISION_AUTHORITY_READBACK_MISMATCH" &&
+        (error as { retryable?: boolean }).retryable === true,
+    );
+  });
+
+  for (const item of [
+    {
+      name: "clock failure after exact readback",
+      clock() {
+        let calls = 0;
+        return () => {
+          calls += 1;
+          if (calls === 1) return now;
+          throw new Error("clock unavailable");
+        };
+      },
+      code: "SHARED_CELL_PROVISION_AUTHORITY_CLOCK_INVALID_AFTER_WRITE",
+    },
+    {
+      name: "clock regression after exact readback",
+      clock() {
+        const values = [now, now - 1];
+        return () => values.shift() as number;
+      },
+      code: "SHARED_CELL_PROVISION_AUTHORITY_CLOCK_REGRESSED_AFTER_WRITE",
+    },
+    {
+      name: "evidence expiry after exact readback",
+      clock() {
+        const values = [now, now + 30_001];
+        return () => values.shift() as number;
+      },
+      code: "SHARED_CELL_PROVISION_AUTHORITY_EVIDENCE_STALE_AFTER_WRITE",
+    },
+  ]) {
+    await t.test(item.name, async () => {
+      const candidate = await genesisCandidate();
+      let stored: SharedCellAuthorityItem | null = null;
+      await assert.rejects(
+        dynamoProvisionAuthority(async (command) => {
+          const value = command as AuthorityPutCommand;
+          if (value.kind === "put-item") {
+            stored = value.input.Item as SharedCellAuthorityItem;
+            return {};
+          }
+          return { Item: stored };
+        }, item.clock()).installIfAbsent({
+          authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+          next: candidate,
+          signal: new AbortController().signal,
+        }),
+        (error: unknown) =>
+          (error as { code?: string; retryable?: boolean }).code === item.code &&
+          (error as { retryable?: boolean }).retryable === true,
+      );
+    });
+  }
+
+  await t.test("abort during strong readback", async () => {
+    const candidate = await genesisCandidate();
+    const controller = new AbortController();
+    let stored: SharedCellAuthorityItem | null = null;
+    await assert.rejects(
+      dynamoProvisionAuthority(async (command) => {
+        const value = command as AuthorityPutCommand;
+        if (value.kind === "put-item") {
+          stored = value.input.Item as SharedCellAuthorityItem;
+          return {};
+        }
+        controller.abort(new Error("lease lost"));
+        return { Item: stored };
+      }).installIfAbsent({
+        authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+        next: candidate,
+        signal: controller.signal,
+      }),
+      (error: unknown) =>
+        (error as { code?: string; retryable?: boolean }).code ===
+          "SHARED_CELL_PROVISION_AUTHORITY_ABORTED_AFTER_WRITE" &&
+        (error as { retryable?: boolean }).retryable === true,
+    );
+  });
+
+  await t.test("abort after Put starts", async () => {
+    const candidate = await genesisCandidate();
+    const controller = new AbortController();
+    await assert.rejects(
+      dynamoProvisionAuthority(async (command) => {
+        if ((command as AuthorityPutCommand).kind === "put-item") {
+          controller.abort(new Error("lease lost"));
+        }
+        return {};
+      }).installIfAbsent({
+        authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+        next: candidate,
+        signal: controller.signal,
+      }),
+      (error: unknown) =>
+        (error as { code?: string; retryable?: boolean }).code ===
+          "SHARED_CELL_PROVISION_AUTHORITY_ABORTED_AFTER_WRITE" &&
+        (error as { retryable?: boolean }).retryable === true,
+    );
+  });
+});
+
+test("production provision construction shares one lazy identity and performs no AWS call", async () => {
+  const configurations: Array<{
+    name: string;
+    value: Record<string, unknown>;
+  }> = [];
+  const sends: string[] = [];
+  const documentCalls: Array<{
+    client: unknown;
+    options: Record<string, unknown> | undefined;
+  }> = [];
+  let providerCalls = 0;
+  let credentialOptions: Record<string, unknown> | undefined;
+  let mfaPrompts = 0;
+  let mfaCode = "123456";
+  const credentials = async () => ({
+    accessKeyId: "test-only",
+    secretAccessKey: "test-only",
+  });
+
+  function client(name: string) {
+    return class {
+      readonly name = name;
+      constructor(value: Record<string, unknown>) {
+        configurations.push({ name, value });
+      }
+      async send(): Promise<Record<string, unknown>> {
+        sends.push(name);
+        return {};
+      }
+    };
+  }
+  class FakeCommand {
+    readonly input: Record<string, unknown>;
+    constructor(input: Record<string, unknown>) {
+      this.input = input;
+    }
+  }
+  const STSClient = client("sts");
+  const CloudFormationClient = client("cloudformation");
+  const DynamoDBClient = client("dynamodb");
+  const documentClient = {
+    async send(): Promise<Record<string, unknown>> {
+      sends.push("document");
+      return {};
+    },
+  };
+
+  const runtime = createAwsSdkSharedCellProvisionRuntimeFromModules({
+    sts: {
+      STSClient,
+      GetCallerIdentityCommand: FakeCommand,
+    },
+    cloudFormation: {
+      CloudFormationClient,
+      DescribeStacksCommand: FakeCommand,
+      GetTemplateCommand: FakeCommand,
+      ListStackResourcesCommand: FakeCommand,
+    },
+    dynamo: { DynamoDBClient },
+    document: {
+      DynamoDBDocumentClient: {
+        from(clientValue: unknown, options?: Record<string, unknown>) {
+          documentCalls.push({ client: clientValue, options });
+          return documentClient;
+        },
+      },
+      GetCommand: FakeCommand,
+      PutCommand: FakeCommand,
+    },
+    credentialProvider: {
+      defaultProvider(options: Record<string, unknown>) {
+        providerCalls += 1;
+        credentialOptions = options;
+        return credentials;
+      },
+    },
+  }, {
+    mfaCodeProvider: async (serial) => {
+      mfaPrompts += 1;
+      assert.equal(
+        serial,
+        "arn:aws:iam::402010193138:mfa/techlong-sandbox-dev",
+      );
+      return mfaCode;
+    },
+  });
+
+  assert.equal(Object.isFrozen(runtime), true);
+  assert.equal(providerCalls, 1);
+  assert.equal(sends.length, 0);
+  assert.deepEqual(
+    configurations.map(({ name }) => name),
+    ["sts", "cloudformation", "dynamodb"],
+  );
+  for (const { value } of configurations) {
+    assert.deepEqual(value, {
+      region: "ca-central-1",
+      credentials,
+      ignoreConfiguredEndpointUrls: true,
+    });
+  }
+  assert.equal(credentialOptions?.profile, "techlong-sandbox-provisioner");
+  assert.deepEqual(credentialOptions?.clientConfig, {
+    region: "ca-central-1",
+    ignoreConfiguredEndpointUrls: true,
+  });
+  assert.equal(typeof credentialOptions?.mfaCodeProvider, "function");
+  assert.equal(mfaPrompts, 0);
+  const checkedMfaCodeProvider = credentialOptions?.mfaCodeProvider as (
+    serial: string,
+  ) => Promise<string>;
+  assert.equal(
+    await checkedMfaCodeProvider(
+      "arn:aws:iam::402010193138:mfa/techlong-sandbox-dev",
+    ),
+    "123456",
+  );
+  assert.equal(mfaPrompts, 1);
+  mfaCode = "12A456";
+  await assert.rejects(
+    checkedMfaCodeProvider(
+      "arn:aws:iam::402010193138:mfa/techlong-sandbox-dev",
+    ),
+    /MFA code is invalid/,
+  );
+  assert.equal(mfaPrompts, 2);
+  await assert.rejects(
+    checkedMfaCodeProvider(
+      "arn:aws:iam::402010193138:mfa/not-the-reviewed-device",
+    ),
+    /outside the allowlist/,
+  );
+  assert.equal(mfaPrompts, 2);
+  assert.equal(documentCalls.length, 1);
+  assert.equal(documentCalls[0].client instanceof DynamoDBClient, true);
+  assert.deepEqual(documentCalls[0].options, {
+    marshallOptions: {
+      removeUndefinedValues: false,
+      convertClassInstanceToMap: false,
+    },
+  });
+  assert.ok(runtime.evidence instanceof AwsSdkSharedCellProvisionEvidenceAdapter);
+  assert.ok(runtime.authority instanceof AwsSdkSharedCellProvisionAuthority);
+  assert.deepEqual(Object.getOwnPropertyNames(runtime.authority), []);
+});
+
+test("production provision construction rejects malformed MFA input before provider use", () => {
+  let providerCalls = 0;
+  assert.throws(
+    () =>
+      createAwsSdkSharedCellProvisionRuntimeFromModules(
+        {
+          sts: {},
+          cloudFormation: {},
+          dynamo: {},
+          document: {},
+          credentialProvider: {
+            defaultProvider() {
+              providerCalls += 1;
+              return async () => ({});
+            },
+          },
+        },
+        {
+          mfaCodeProvider: async () => "123456",
+          unexpected: true,
+        } as unknown as { mfaCodeProvider: () => Promise<string> },
+      ),
+    /MFA provider input is invalid/,
+  );
+  assert.equal(providerCalls, 0);
+});
+
+test("installed AWS SDK modules construct the dormant provision bundle", async () => {
+  let mfaPrompts = 0;
+  const runtime = await createAwsSdkSharedCellProvisionRuntime({
+    mfaCodeProvider: async () => {
+      mfaPrompts += 1;
+      return "123456";
+    },
+  });
+  assert.equal(Object.isFrozen(runtime), true);
+  assert.equal(mfaPrompts, 0);
+  assert.ok(runtime.evidence instanceof AwsSdkSharedCellProvisionEvidenceAdapter);
+  assert.ok(runtime.authority instanceof AwsSdkSharedCellProvisionAuthority);
 });

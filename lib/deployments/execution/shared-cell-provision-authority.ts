@@ -44,7 +44,12 @@ const evidenceKeys = [
 
 const compiledProvisionCandidates = new WeakMap<
   object,
-  Readonly<{ observedAt: number; validThrough: number; cellExpiresAt: number }>
+  Readonly<{
+    compiledAt: number;
+    observedAt: number;
+    validThrough: number;
+    cellExpiresAt: number;
+  }>
 >();
 
 export interface SharedCellProvisionAuthorityCoordinateInput {
@@ -304,7 +309,10 @@ export async function compileSharedCellProvisionAuthorityCandidateItem(
     revision: input.revision,
     record_json: canonicalJson(record),
   });
-  compiledProvisionCandidates.set(item, validity);
+  compiledProvisionCandidates.set(
+    item,
+    Object.freeze({ ...validity, compiledAt: input.now }),
+  );
   return item;
 }
 
@@ -339,14 +347,48 @@ function sameItem(
   return left !== null && canonicalJson(left) === canonicalJson(right);
 }
 
+function assertNotAbortedAfterWrite(
+  signal: AbortSignal,
+  message: string,
+): void {
+  if (signal.aborted) {
+    fail(
+      "SHARED_CELL_PROVISION_AUTHORITY_ABORTED_AFTER_WRITE",
+      message,
+      true,
+    );
+  }
+}
+
 function assertCandidateFresh(
   item: SharedCellAuthorityItem,
   now: number,
   afterWrite = false,
 ): void {
   const validity = compiledProvisionCandidates.get(item);
+  if (!validity) {
+    fail(
+      afterWrite
+        ? "SHARED_CELL_PROVISION_AUTHORITY_CANDIDATE_UNVERIFIED_AFTER_WRITE"
+        : "SHARED_CELL_PROVISION_AUTHORITY_CANDIDATE_UNVERIFIED",
+      afterWrite
+        ? "Provision authority candidate provenance was lost after install; the write may already be committed."
+        : "Provision authority requires the exact candidate produced by its reviewed compiler.",
+      afterWrite,
+    );
+  }
+  if (now < validity.compiledAt) {
+    fail(
+      afterWrite
+        ? "SHARED_CELL_PROVISION_AUTHORITY_CLOCK_REGRESSED_AFTER_WRITE"
+        : "SHARED_CELL_PROVISION_AUTHORITY_CLOCK_REGRESSED",
+      afterWrite
+        ? "Provision authority clock regressed behind candidate compilation after install; the write may already be committed."
+        : "Provision authority clock regressed behind candidate compilation before install.",
+      afterWrite,
+    );
+  }
   if (
-    !validity ||
     now < validity.observedAt ||
     now > validity.validThrough ||
     now >= validity.cellExpiresAt
@@ -361,6 +403,22 @@ function assertCandidateFresh(
       afterWrite,
     );
   }
+}
+
+/**
+ * Low-level provider adapters use the same private compiler provenance and
+ * freshness fence as the high-level absent-only installer.
+ */
+export function assertCompiledSharedCellProvisionAuthorityCandidate(
+  item: SharedCellAuthorityItem,
+  now: number,
+  afterWrite = false,
+): void {
+  assertCandidateFresh(
+    item,
+    clockValue(now, "Provision authority clock", afterWrite),
+    afterWrite,
+  );
 }
 
 export async function installInitialSharedCellProvisionAuthority(input: {
@@ -391,11 +449,10 @@ export async function installInitialSharedCellProvisionAuthority(input: {
   await validateSnapshot(before);
   input.signal.throwIfAborted();
 
-  const revision = before.item ? before.revision : 1;
   const candidate = await compileSharedCellProvisionAuthorityCandidateItem({
     evidence: input.evidence,
     coordinate: input.coordinate,
-    revision,
+    revision: 1,
     now: initialNow,
   });
   input.signal.throwIfAborted();
@@ -434,13 +491,11 @@ export async function installInitialSharedCellProvisionAuthority(input: {
     });
   } catch (error) {
     if (input.signal.aborted) {
-      const uncertain = new SharedCellProvisionAuthorityError(
-        "SHARED_CELL_PROVISION_AUTHORITY_ABORTED_AFTER_WRITE",
+      assertNotAbortedAfterWrite(
+        input.signal,
         "Provision authority install was aborted after submission; the result is uncertain.",
-        true,
       );
-      Object.defineProperty(uncertain, "cause", { value: error });
-      throw uncertain;
+      throw error;
     }
     const uncertain = new SharedCellProvisionAuthorityError(
       "SHARED_CELL_PROVISION_AUTHORITY_WRITE_UNCERTAIN",
@@ -450,15 +505,10 @@ export async function installInitialSharedCellProvisionAuthority(input: {
     Object.defineProperty(uncertain, "cause", { value: error });
     throw uncertain;
   }
-  if (input.signal.aborted) {
-    const uncertain = new SharedCellProvisionAuthorityError(
-      "SHARED_CELL_PROVISION_AUTHORITY_ABORTED_AFTER_WRITE",
-      "Provision authority install was aborted after submission; the result is uncertain.",
-      true,
-    );
-    Object.defineProperty(uncertain, "cause", { value: input.signal.reason });
-    throw uncertain;
-  }
+  assertNotAbortedAfterWrite(
+    input.signal,
+    "Provision authority install was aborted after submission; the result is uncertain.",
+  );
   if (
     !exactKeys(result, ["applied", "snapshot"]) ||
     typeof result.applied !== "boolean"
@@ -472,6 +522,10 @@ export async function installInitialSharedCellProvisionAuthority(input: {
   try {
     await validateSnapshot(result.snapshot);
   } catch (error) {
+    assertNotAbortedAfterWrite(
+      input.signal,
+      "Provision authority result validation was aborted after submission; the result is uncertain.",
+    );
     const uncertain = new SharedCellProvisionAuthorityError(
       "SHARED_CELL_PROVISION_AUTHORITY_INSTALL_RESULT_INVALID",
       "Provision authority installer returned an invalid snapshot after submission; the result is uncertain.",
@@ -480,6 +534,10 @@ export async function installInitialSharedCellProvisionAuthority(input: {
     Object.defineProperty(uncertain, "cause", { value: error });
     throw uncertain;
   }
+  assertNotAbortedAfterWrite(
+    input.signal,
+    "Provision authority result validation was aborted after submission; the result is uncertain.",
+  );
   if (
     !result.applied ||
     result.snapshot.revision !== 1 ||
@@ -499,22 +557,27 @@ export async function installInitialSharedCellProvisionAuthority(input: {
       signal: input.signal,
     });
   } catch {
+    assertNotAbortedAfterWrite(
+      input.signal,
+      "Provision authority readback was aborted; the install result is uncertain.",
+    );
     return fail(
       "SHARED_CELL_PROVISION_AUTHORITY_READBACK_FAILED_AFTER_WRITE",
       "Provision authority readback failed after install; the result is uncertain.",
       true,
     );
   }
-  if (input.signal.aborted) {
-    fail(
-      "SHARED_CELL_PROVISION_AUTHORITY_ABORTED_AFTER_WRITE",
-      "Provision authority readback was aborted; the install result is uncertain.",
-      true,
-    );
-  }
+  assertNotAbortedAfterWrite(
+    input.signal,
+    "Provision authority readback was aborted; the install result is uncertain.",
+  );
   try {
     await validateSnapshot(observed);
   } catch (error) {
+    assertNotAbortedAfterWrite(
+      input.signal,
+      "Provision authority readback validation was aborted; the install result is uncertain.",
+    );
     const uncertain = new SharedCellProvisionAuthorityError(
       "SHARED_CELL_PROVISION_AUTHORITY_READBACK_INVALID_AFTER_WRITE",
       "Provision authority readback was malformed after install; the result is uncertain.",
@@ -523,6 +586,10 @@ export async function installInitialSharedCellProvisionAuthority(input: {
     Object.defineProperty(uncertain, "cause", { value: error });
     throw uncertain;
   }
+  assertNotAbortedAfterWrite(
+    input.signal,
+    "Provision authority readback validation was aborted; the install result is uncertain.",
+  );
   if (observed.revision !== 1 || !sameItem(observed.item, candidate)) {
     fail(
       "SHARED_CELL_PROVISION_AUTHORITY_READBACK_MISMATCH",

@@ -320,6 +320,14 @@ J5c 在同一个 `cell:cell-sandbox-1` key 上增加严格 18 字段 `provision_
 
 本切片没有 provision DynamoDB writer、IAM、root wiring 或线上 authority 写入，也没有修改 J4c、Schedule、management/child Stack 或 runtime gates，没有调用 AWS、创建付费 Cell 或运行 ECS task。可注入 clients 只属于受信 composition/test seam；真正上线前仍需受审生产构造、最小 IAM 与在线安装批准。
 
+### B5-J5d Shared Cell provision installer（dormant production adapter）
+
+J5d 增加 exact-table/exact-key 的 production DynamoDB installer 源码。它只接受 J5c compiler 私有 provenance 保留的 generation 1 / provision epoch 1 / revision 1 `provision_verified` 原对象；首次安装使用 `attribute_not_exists(authority_key)` 的单条条件 `PutItem`，不能覆盖任何既有 lineage。所有 observe、冲突 winner 和写后确认均为 full strongly-consistent `GetItem`，成功还必须独立 exact readback；提交后的 Abort、provider/clock 错误及缺失或漂移 readback一律按 retryable uncertain fail closed。
+
+dormant production bundle 固定 `techlong-sandbox-provisioner` profile 与 exact MFA device，要求未来受审入口注入 MFA callback；同一次 `defaultProvider()` 返回值显式构造 STS、CloudFormation 和 DynamoDB client，并令业务 client 与内部 STS 忽略 configured endpoint override。bundle 构造本身不解析凭据、不发 AWS 请求，不接入 default Worker、J4c Lambda、CLI 或 Schedule；注入 module/client 只是受信测试 seam。默认 runtime 测试继续断言没有 provision evidence/authority capability，两个 blocker和四个 readiness gate未改变。
+
+当前 Provisioner 没有 exact Cell root Stack read 与 authority Get/Put，Worker 的 `LeadingKeys` 只允许 `tenant:*`，Janitor 只有 cell key Get 且显式 Deny mutation，Manager 也没有 DynamoDB writer；source IAM User 的广泛权限不是批准的安装路径。本切片没有 AWS/IAM/CloudFormation mutation、线上 authority 写入、付费 Cell 或 `RunTask`。后续必须把短时 exact IAM grant、付费 Cell 创建、live evidence/absent pre-read/candidate 审阅后的单次 install + readback + revoke、现有 cleanup CAS adapter 的 IAM/online enablement/root wiring、J4c mutation/Schedule enable 分开批准，不能直接放宽长期 Worker 权限。
+
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 
 ## 安全镜像源码包
