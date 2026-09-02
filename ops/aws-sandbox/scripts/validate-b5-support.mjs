@@ -38,6 +38,11 @@ const templateVerifierPath = path.join(
   "scripts",
   "verify-change-set-template.mjs",
 );
+const managedPolicyVerifierPath = path.join(
+  root,
+  "scripts",
+  "verify-managed-policy-document.mjs",
+);
 const sandboxConfigPath = path.join(root, "sandbox.example.json");
 const janitorPath = path.join(root, "lambda", "janitor.cjs");
 const deployedJanitorFixturePath = path.join(
@@ -64,8 +69,10 @@ const [
   deployedJanitorFixtureSource,
   packageJsonSource,
   packageLockSource,
+  managedPolicyVerifierSource,
   renderedSource,
   registrationGrantSource,
+  provisionAuthorityGrantSource,
   rollbackSource,
 ] =
   await Promise.all([
@@ -77,8 +84,13 @@ const [
     readFile(deployedJanitorFixturePath, "utf8"),
     readFile(packageJsonPath, "utf8"),
     readFile(packageLockPath, "utf8"),
+    readFile(managedPolicyVerifierPath, "utf8"),
     renderBootstrapTemplate(),
     renderBootstrapTemplate({ lifecycleTaskRegistrationGrant: true }),
+    renderBootstrapTemplate({
+      sharedCellProvisionAuthorityGrantExpiresAt:
+        "2026-09-01T23:59:59.000Z",
+    }),
     renderB5SupportRollbackTemplate(),
   ]);
 
@@ -90,6 +102,10 @@ const rendered = parseCloudFormationTemplateDocument(
 const registrationGrant = parseCloudFormationTemplateDocument(
   registrationGrantSource,
   "Rendered lifecycle TaskDefinition registration grant template",
+);
+const provisionAuthorityGrant = parseCloudFormationTemplateDocument(
+  provisionAuthorityGrantSource,
+  "Rendered Shared Cell provision authority install grant template",
 );
 const rollback = parseCloudFormationTemplateDocument(
   rollbackSource,
@@ -201,7 +217,10 @@ const serviceBoundarySupportSids = [
 const provisionerBoundarySupportSids = [
   "AllowExactWorkerCanaryRole",
   "AllowSharedCellReadOnlyPreflight",
+  "CellStackRead",
+  "CellAuthorityRead",
 ];
+const j5eStableProvisionerReadSids = ["CellStackRead", "CellAuthorityRead"];
 
 function actionList(statement) {
   if (!statement?.Action) return [];
@@ -316,9 +335,66 @@ assert.deepEqual(
   "registration grant renderer may only add the exact lifecycle PassRole ARN",
 );
 
-// Reconstruct the exact deployed final revoke before the CodeBuild image-pull
-// increment, then the historical one-resource registration grant before it.
-const deployedLifecycleRegistrationRevoke = structuredClone(rendered);
+const provisionAuthorityGrantExpiry = "2026-09-01T23:59:59.000Z";
+const expectedProvisionAuthorityGrant = structuredClone(rendered);
+expectedProvisionAuthorityGrant.Resources.ProvisionerBoundary.Properties.PolicyDocument.Statement.push(
+  {
+    Sid: "TemporaryInstallCellAuthority",
+    Effect: "Allow",
+    Action: "dynamodb:PutItem",
+    Resource: authorityTableArn,
+    Condition: {
+      StringEquals: { "aws:RequestedRegion": "ca-central-1" },
+      "ForAllValues:StringEquals": {
+        "dynamodb:LeadingKeys": ["cell:cell-sandbox-1"],
+        "dynamodb:Attributes": [
+          "authority_key",
+          "schema_version",
+          "revision",
+          "record_json",
+        ],
+      },
+      Null: {
+        "dynamodb:LeadingKeys": "false",
+        "dynamodb:Attributes": "false",
+      },
+      DateLessThan: { "aws:CurrentTime": provisionAuthorityGrantExpiry },
+    },
+  },
+);
+assert.deepEqual(
+  provisionAuthorityGrant,
+  expectedProvisionAuthorityGrant,
+  "provision-authority grant renderer may only add the exact expiring PutItem statement",
+);
+await assert.rejects(
+  renderBootstrapTemplate({
+    sharedCellProvisionAuthorityGrantExpiresAt: "2026-09-01T23:59:59Z",
+  }),
+  /canonical UTC with milliseconds/,
+);
+await assert.rejects(
+  renderBootstrapTemplate({
+    sharedCellProvisionAuthorityGrantExpiresAt: "2026-02-30T00:00:00.000Z",
+  }),
+  /canonical UTC instant/,
+);
+await assert.rejects(
+  renderBootstrapTemplate({
+    lifecycleTaskRegistrationGrant: true,
+    sharedCellProvisionAuthorityGrantExpiresAt: provisionAuthorityGrantExpiry,
+  }),
+  /mutually exclusive/,
+);
+
+// Reconstruct the exact J5d locked template currently deployed before the J5e
+// stable read increment, then the historical registration/CodeBuild states.
+const deployedJ5dLocked = structuredClone(rendered);
+deployedJ5dLocked.Resources.ProvisionerBoundary.Properties.PolicyDocument.Statement =
+  deployedJ5dLocked.Resources.ProvisionerBoundary.Properties.PolicyDocument.Statement.filter(
+    (statement) => !j5eStableProvisionerReadSids.includes(statement.Sid),
+  );
+const deployedLifecycleRegistrationRevoke = structuredClone(deployedJ5dLocked);
 const deployedCodeBuildRepository = codeBuildImageRepositoryStatement(
   deployedLifecycleRegistrationRevoke,
 );
@@ -471,10 +547,20 @@ assert.deepEqual(
 assert.deepEqual(
   changedResourceIds(
     deployedLifecycleRegistrationRevoke.Resources,
-    rendered.Resources,
+    deployedJ5dLocked.Resources,
   ),
   ["CodeBuildRole"],
   "CodeBuildImagePull must change only CodeBuildRole",
+);
+assert.deepEqual(
+  changedResourceIds(deployedJ5dLocked.Resources, rendered.Resources),
+  ["ProvisionerBoundary"],
+  "J5e stable read increment must change only ProvisionerBoundary",
+);
+assert.deepEqual(
+  changedResourceIds(rendered.Resources, provisionAuthorityGrant.Resources),
+  ["ProvisionerBoundary"],
+  "J5e temporary install grant must change only ProvisionerBoundary",
 );
 assert.deepEqual(
   changedResourceIds(rendered.Resources, registrationGrant.Resources),
@@ -1282,6 +1368,85 @@ assert.equal(sharedCellRead.Resource, "*");
 assert.deepEqual(sharedCellRead.Condition, {
   StringEquals: { "aws:RequestedRegion": "ca-central-1" },
 });
+assert.deepEqual(statementBySid(provisionerBoundary, "CellStackRead"), {
+  Sid: "CellStackRead",
+  Effect: "Allow",
+  Action: [
+    "cloudformation:DescribeStacks",
+    "cloudformation:GetTemplate",
+    "cloudformation:ListStackResources",
+  ],
+  Resource:
+    "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/*",
+  Condition: {
+    StringEquals: { "aws:RequestedRegion": "ca-central-1" },
+  },
+});
+assert.deepEqual(statementBySid(provisionerBoundary, "CellAuthorityRead"), {
+  Sid: "CellAuthorityRead",
+  Effect: "Allow",
+  Action: "dynamodb:GetItem",
+  Resource: authorityTableArn,
+  Condition: {
+    StringEquals: { "aws:RequestedRegion": "ca-central-1" },
+    "ForAllValues:StringEquals": {
+      "dynamodb:LeadingKeys": ["cell:cell-sandbox-1"],
+    },
+    Null: { "dynamodb:LeadingKeys": "false" },
+  },
+});
+assert.equal(
+  statementBySid(provisionerBoundary, "TemporaryInstallCellAuthority"),
+  undefined,
+  "the locked/revoke baseline must contain no authority PutItem grant",
+);
+const provisionAuthorityGrantBoundary =
+  provisionAuthorityGrant.Resources.ProvisionerBoundary.Properties.PolicyDocument;
+assert.deepEqual(
+  statementBySid(
+    provisionAuthorityGrantBoundary,
+    "TemporaryInstallCellAuthority",
+  ),
+  expectedProvisionAuthorityGrant.Resources.ProvisionerBoundary.Properties
+    .PolicyDocument.Statement.at(-1),
+);
+assert.equal(
+  provisionAuthorityGrantBoundary.Statement.filter((statement) =>
+    actionList(statement).includes("dynamodb:PutItem"),
+  ).length,
+  1,
+);
+const j5eProvisionerStatements = provisionAuthorityGrantBoundary.Statement.filter(
+  (statement) =>
+    [
+      "CellStackRead",
+      "CellAuthorityRead",
+      "TemporaryInstallCellAuthority",
+    ].includes(statement.Sid),
+);
+for (const forbiddenAction of [
+  "dynamodb:BatchWriteItem",
+  "dynamodb:DeleteItem",
+  "dynamodb:TransactWriteItems",
+  "dynamodb:UpdateItem",
+  "cloudformation:CreateStack",
+  "cloudformation:DeleteStack",
+  "cloudformation:UpdateStack",
+]) {
+  assert.equal(
+    j5eProvisionerStatements.flatMap(actionList).includes(forbiddenAction),
+    false,
+    `J5e grant must not include ${forbiddenAction}`,
+  );
+}
+for (const gate of [
+  "RegistrationReady",
+  "LiveReadbackReady",
+  "ApplyRuntimeReady",
+  "CleanupRuntimeReady",
+]) {
+  assert.equal(provisionAuthorityGrant.Metadata.SafetyBoundary[gate], false);
+}
 const provisionerRole = resources.ProvisionerRole.Properties;
 assert.deepEqual(provisionerRole.PermissionsBoundary, {
   Ref: "ProvisionerBoundary",
@@ -1291,6 +1456,20 @@ assert.deepEqual(provisionerRole.ManagedPolicyArns, [
 ]);
 assert.ok(
   Buffer.byteLength(JSON.stringify(provisionerBoundary), "utf8") <= 6_144,
+);
+assert.equal(
+  Buffer.byteLength(JSON.stringify(provisionerBoundary), "utf8"),
+  3_699,
+);
+assert.equal(
+  Buffer.byteLength(JSON.stringify(provisionAuthorityGrantBoundary), "utf8"),
+  4_254,
+);
+assert.ok(
+  Buffer.byteLength(
+    JSON.stringify(provisionAuthorityGrantBoundary),
+    "utf8",
+  ) <= 6_144,
 );
 
 assert.equal(
@@ -1320,6 +1499,8 @@ assert.match(
 );
 assert.ok(Buffer.byteLength(renderedSource, "utf8") <= 50_000);
 assert.ok(Buffer.byteLength(registrationGrantSource, "utf8") <= 50_000);
+assert.ok(Buffer.byteLength(provisionAuthorityGrantSource, "utf8") <= 50_500);
+assert.ok(Buffer.byteLength(provisionAuthorityGrantSource, "utf8") < 51_200);
 assert.ok(Buffer.byteLength(rollbackSource, "utf8") <= 50_000);
 assert.match(
   renderedSource,
@@ -1337,29 +1518,44 @@ assert.equal(rollbackSource.includes("__JANITOR_INLINE_SOURCE__"), false);
 const renderedCanonicalHash = canonicalTemplateSha256(rendered);
 const registrationGrantCanonicalHash =
   canonicalTemplateSha256(registrationGrant);
+const provisionAuthorityGrantCanonicalHash = canonicalTemplateSha256(
+  provisionAuthorityGrant,
+);
 const rollbackCanonicalHash = canonicalTemplateSha256(rollback);
 const renderedRawHash = createHash("sha256").update(renderedSource).digest("hex");
 const registrationGrantRawHash = createHash("sha256")
   .update(registrationGrantSource)
   .digest("hex");
+const provisionAuthorityGrantRawHash = createHash("sha256")
+  .update(provisionAuthorityGrantSource)
+  .digest("hex");
 const rollbackRawHash = createHash("sha256").update(rollbackSource).digest("hex");
-assert.equal(Buffer.byteLength(renderedSource, "utf8"), 49_262);
+assert.equal(Buffer.byteLength(renderedSource, "utf8"), 49_922);
 assert.equal(
   renderedRawHash,
-  "68a34349f703dd5269058a2447bd3d7b4bcc1453225c00b8aca1f8cd8a51bf69",
+  "5854019ecacde5554b756e538556cf69f330cce79901ac7950317f2f5bbd73cc",
 );
 assert.equal(
   renderedCanonicalHash,
-  "211e46d35a957aff766b2240284012500d5afee14cd1c4c55c9c9be3a0dcc2ee",
+  "8231ff876b99b3f5374d1ee2978736f8ba3a48f1260f3d85382e67e9a453caf9",
 );
-assert.equal(Buffer.byteLength(registrationGrantSource, "utf8"), 49_333);
+assert.equal(Buffer.byteLength(registrationGrantSource, "utf8"), 49_993);
 assert.equal(
   registrationGrantRawHash,
-  "a24567a02879a2be3194d6be00db8bb8627beded207553a79c245f851518bc22",
+  "2613f51472d1ccab01d318743d7b04d1b000a65f1a676ef0ed1e0fb3b737ba9a",
 );
 assert.equal(
   registrationGrantCanonicalHash,
-  "a61c6c3f7b870199d4020a732c613c7c43ca72d84e3a1eec58d3194b8e6d67b8",
+  "954e95be16be343c2bbc99fde8727e79434123bc2bee1d619af03c57f7d80f2a",
+);
+assert.equal(Buffer.byteLength(provisionAuthorityGrantSource, "utf8"), 50_457);
+assert.equal(
+  provisionAuthorityGrantRawHash,
+  "58fb4977a0bbec0e62b4a746d8f59d50a0c1a3015ee90ee473d7201e10c079c3",
+);
+assert.equal(
+  provisionAuthorityGrantCanonicalHash,
+  "eae66c741b96a47cbd9b311ce10980e17efec2e919e0b6ff7e1b88e88f7c247c",
 );
 assert.equal(Buffer.byteLength(rollbackSource, "utf8"), 33_378);
 assert.equal(
@@ -1412,6 +1608,22 @@ try {
     cliHashDirectory,
     "rollback-get-template.json",
   );
+  const provisionGrantPath = path.join(cliHashDirectory, "provision-grant.yaml");
+  const policyVersionResponsePath = path.join(
+    cliHashDirectory,
+    "get-policy-version.json",
+  );
+  const nonDefaultPolicyVersionResponsePath = path.join(
+    cliHashDirectory,
+    "get-policy-version-non-default.json",
+  );
+  const driftedPolicyVersionResponsePath = path.join(
+    cliHashDirectory,
+    "get-policy-version-drifted.json",
+  );
+  const expectedProvisionerPolicy =
+    provisionAuthorityGrant.Resources.ProvisionerBoundary.Properties
+      .PolicyDocument;
   await Promise.all([
     writeFile(forwardPath, renderedSource, "utf8"),
     writeFile(rollbackPath, rollbackSource, "utf8"),
@@ -1423,6 +1635,43 @@ try {
     writeFile(
       rollbackResponsePath,
       JSON.stringify({ TemplateBody: rollbackSource }),
+      "utf8",
+    ),
+    writeFile(provisionGrantPath, provisionAuthorityGrantSource, "utf8"),
+    writeFile(
+      policyVersionResponsePath,
+      JSON.stringify({
+        PolicyVersion: {
+          Document: expectedProvisionerPolicy,
+          VersionId: "v9",
+          IsDefaultVersion: true,
+        },
+      }),
+      "utf8",
+    ),
+    writeFile(
+      nonDefaultPolicyVersionResponsePath,
+      JSON.stringify({
+        PolicyVersion: {
+          Document: expectedProvisionerPolicy,
+          VersionId: "v9",
+          IsDefaultVersion: false,
+        },
+      }),
+      "utf8",
+    ),
+    writeFile(
+      driftedPolicyVersionResponsePath,
+      JSON.stringify({
+        PolicyVersion: {
+          Document: {
+            ...expectedProvisionerPolicy,
+            Version: "2008-10-17",
+          },
+          VersionId: "v9",
+          IsDefaultVersion: true,
+        },
+      }),
       "utf8",
     ),
   ]);
@@ -1469,6 +1718,36 @@ try {
   assert.equal(rollbackCliHash.stdout.trim(), rollbackCanonicalHash);
   assert.equal(forwardCliVerification.stdout.trim(), renderedCanonicalHash);
   assert.equal(rollbackCliVerification.stdout.trim(), rollbackCanonicalHash);
+  const policyVerification = await execFileAsync(
+    process.execPath,
+    [
+      managedPolicyVerifierPath,
+      "--expected-template",
+      provisionGrantPath,
+      "--get-policy-version-response",
+      policyVersionResponsePath,
+    ],
+    { encoding: "utf8", windowsHide: true },
+  );
+  assert.match(policyVerification.stdout.trim(), /^[a-f0-9]{64}$/);
+  for (const invalidResponsePath of [
+    nonDefaultPolicyVersionResponsePath,
+    driftedPolicyVersionResponsePath,
+  ]) {
+    await assert.rejects(
+      execFileAsync(
+        process.execPath,
+        [
+          managedPolicyVerifierPath,
+          "--expected-template",
+          provisionGrantPath,
+          "--get-policy-version-response",
+          invalidResponsePath,
+        ],
+        { encoding: "utf8", windowsHide: true },
+      ),
+    );
+  }
 } finally {
   await rm(cliHashDirectory, { recursive: true, force: true });
 }
@@ -1575,6 +1854,17 @@ assert.deepEqual(
     },
   },
 );
+for (const shapeName of [
+  "requiredSharedCellProvisionAuthorityInstallGrantChanges",
+  "requiredSharedCellProvisionAuthorityInstallRevokeChanges",
+]) {
+  assert.deepEqual(parseReviewedChangeShape(shapeName), {
+    ProvisionerBoundary: {
+      type: "AWS::IAM::ManagedPolicy",
+      action: "Modify",
+    },
+  });
+}
 assert.deepEqual(parseReviewedChangeShape("requiredRollbackChanges"), {
   ServiceRoleBoundary: { type: "AWS::IAM::ManagedPolicy", action: "Modify" },
   ProvisionerBoundary: { type: "AWS::IAM::ManagedPolicy", action: "Modify" },
@@ -1598,13 +1888,17 @@ assert.match(
 assert.match(operationScript, /\[string\]\$Mode = 'LocalValidate'/);
 assert.match(
   operationScript,
-  /\[ValidateSet\([\s\S]*?'InitialB5Support'[\s\S]*?'CodeBuildImagePull'[\s\S]*?'LifecycleReadback'[\s\S]*?'LifecycleTaskRegistrationGrant'[\s\S]*?'LifecycleTaskRegistrationRevoke'[\s\S]*?\)\]\s*\[string\]\$UpdateShape = 'InitialB5Support'/,
+  /\[ValidateSet\([\s\S]*?'InitialB5Support'[\s\S]*?'CodeBuildImagePull'[\s\S]*?'LifecycleReadback'[\s\S]*?'LifecycleTaskRegistrationGrant'[\s\S]*?'LifecycleTaskRegistrationRevoke'[\s\S]*?'SharedCellProvisionAuthorityInstallGrant'[\s\S]*?'SharedCellProvisionAuthorityInstallRevoke'[\s\S]*?\)\]\s*\[string\]\$UpdateShape = 'InitialB5Support'/,
 );
 assert.match(
   operationScript,
   /\$reviewedUpdateShape = if \(\$UpdateShape -ieq 'CodeBuildImagePull'\) \{\s*'CodeBuildImagePull'/,
 );
 assert.match(operationScript, /\[string\]\$Profile = 'techlong-sandbox-user'/);
+assert.match(operationScript, /\[string\]\$GrantExpiresAt = ''/);
+assert.match(operationScript, /yyyy-MM-ddTHH:mm:ss\.fffZ/);
+assert.match(operationScript, /more than \$minimumMinutes and no more than 60 minutes/);
+assert.match(operationScript, /\$minimumMinutes = if \(\$Mode -eq 'ExecuteChangeSet'\) \{ 10 \} else \{ 15 \}/);
 assert.match(operationScript, /\$supportInfrastructureWriteReady = \$true/);
 assert.match(operationScript, /\$expectedAccountId = '402010193138'/);
 assert.match(operationScript, /\$expectedRegion = 'ca-central-1'/);
@@ -1617,6 +1911,10 @@ assert.match(
   /\$expectedMfaDeviceArn = 'arn:aws:iam::402010193138:mfa\/techlong-sandbox-dev'/,
 );
 assert.match(operationScript, /verify-change-set-template\.mjs/);
+assert.match(operationScript, /verify-managed-policy-document\.mjs/);
+assert.match(managedPolicyVerifierSource, /ProvisionerBoundary/);
+assert.match(managedPolicyVerifierSource, /PolicyVersion\.IsDefaultVersion/);
+assert.match(managedPolicyVerifierSource, /assert\.deepEqual\(/);
 assert.equal(
   operationScript.match(/techlong-s3-b5-support[^"\r\n]*\.yaml/g)?.length,
   2,
@@ -1668,7 +1966,7 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationGrant'\) \{\s*\$requiredLifecycleTaskRegistrationGrantChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*\$requiredLifecycleTaskRegistrationRevokeChanges\s*\} elseif \(\$UpdateShape -eq 'CodeBuildImagePull'\) \{\s*\$requiredCodeBuildImagePullChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleReadback'\) \{\s*\$requiredLifecycleReadbackChanges\s*\} else \{\s*\$requiredInitialB5SupportChanges/,
+  /elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationGrant'\) \{\s*\$requiredLifecycleTaskRegistrationGrantChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*\$requiredLifecycleTaskRegistrationRevokeChanges\s*\} elseif \(\$UpdateShape -eq 'SharedCellProvisionAuthorityInstallGrant'\) \{\s*\$requiredSharedCellProvisionAuthorityInstallGrantChanges\s*\} elseif \(\$UpdateShape -eq 'SharedCellProvisionAuthorityInstallRevoke'\) \{\s*\$requiredSharedCellProvisionAuthorityInstallRevokeChanges\s*\} elseif \(\$UpdateShape -eq 'CodeBuildImagePull'\) \{\s*\$requiredCodeBuildImagePullChanges/,
 );
 assert.match(
   operationScript,
@@ -1696,8 +1994,21 @@ for (const exactDependentChangeToken of [
 }
 assert.match(
   operationScript,
-  /if \(\$UpdateShape -eq 'CodeBuildImagePull'\) \{\s*Assert-ExactCodeBuildImagePullResourceChange -Resource \$resource\s*\} elseif \(\$resource\.Replacement -in/,
+  /if \(\$UpdateShape -eq 'CodeBuildImagePull'\) \{\s*Assert-ExactCodeBuildImagePullResourceChange -Resource \$resource\s*\} elseif \(\$UpdateShape -in @[\s\S]*?Assert-ExactProvisionAuthorityBoundaryResourceChange -Resource \$resource\s*\} elseif \(\$resource\.Replacement -in/,
 );
+assert.match(operationScript, /function Assert-ExactProvisionAuthorityBoundaryResourceChange/);
+assert.match(operationScript, /\[string\]\$Resource\.Replacement -cne 'False'/);
+assert.match(operationScript, /\[string\]\$Resource\.PhysicalResourceId -cne \$provisionerBoundaryArn/);
+for (const detailToken of [
+  "$details.Count -ne 1",
+  "Target.Name -cne 'PolicyDocument'",
+  "Target.RequiresRecreation -cne 'Never'",
+  "Evaluation -cne 'Static'",
+  "ChangeSource -cne 'DirectModification'",
+  "IsNullOrEmpty([string]$detail.CausingEntity)",
+]) {
+  assert.ok(operationScript.includes(detailToken));
+}
 assert.match(operationScript, /Change Set contains an unapproved resource change/);
 assert.match(operationScript, /Change Set contains a duplicate resource change/);
 assert.match(operationScript, /Change Set is missing the required/);
@@ -1757,7 +2068,11 @@ assert.match(operationScript, /canonical-sha256=/);
 assert.match(operationScript, /--lifecycle-task-registration-grant/);
 assert.match(
   operationScript,
-  /\$updateShapeToken = if \(\$reviewedUpdateShape -eq 'CodeBuildImagePull'\) \{\s*'codebuild-image-pull'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleReadback'\) \{\s*'lifecycle-readback'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleTaskRegistrationGrant'\) \{\s*'lifecycle-task-registration-grant'\s*\} elseif \(\$reviewedUpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*'lifecycle-task-registration-revoke'\s*\} else \{\s*'initial'\s*\}/,
+  /--shared-cell-provision-authority-grant-expires-at',[\s\S]*?\$GrantExpiresAt/,
+);
+assert.match(
+  operationScript,
+  /\$updateShapeToken = if \(\$reviewedUpdateShape -eq 'CodeBuildImagePull'\)[\s\S]*?'shared-cell-provision-authority-install-grant'[\s\S]*?'shared-cell-provision-authority-install-revoke'[\s\S]*?else \{\s*'initial'\s*\}/,
 );
 assert.match(
   operationScript,
@@ -1766,6 +2081,70 @@ assert.match(
 assert.match(
   operationScript,
   /\$changeSetDescription = "B5 support update; update-shape=\$reviewedUpdateShape; template-sha256=\$templateHash; canonical-sha256=\$templateCanonicalHash"/,
+);
+for (const readbackToken of [
+  "'iam', 'get-policy'",
+  "'iam', 'get-policy-version'",
+  "'iam', 'get-role'",
+  "'iam', 'list-attached-role-policies'",
+  "'iam', 'list-role-policies'",
+  "'iam', 'simulate-principal-policy'",
+  "cell:not-approved",
+  "table/not-approved",
+  "ContextKeyValues=us-east-1",
+  "ContextKeyValues=authority_key,schema_version,revision,record_json,unexpected",
+  "AddMilliseconds(1)",
+]) {
+  assert.ok(
+    operationScript.includes(readbackToken),
+    `J5e IAM readback/simulation is missing ${readbackToken}`,
+  );
+}
+const stackWaitIndex = operationScript.indexOf(
+  "'cloudformation', 'wait', 'stack-update-complete'",
+);
+const firstPolicyReadbackIndex = operationScript.indexOf(
+  "Assert-ExactProvisionerBoundaryReadback `",
+  stackWaitIndex,
+);
+const iamSimulationIndex = operationScript.indexOf(
+  "Assert-ExactProvisionAuthorityIamSimulation `",
+  firstPolicyReadbackIndex,
+);
+const secondPolicyReadbackIndex = operationScript.indexOf(
+  "Assert-ExactProvisionerBoundaryReadback `",
+  firstPolicyReadbackIndex + 1,
+);
+assert.ok(
+  stackWaitIndex !== -1 &&
+    stackWaitIndex < firstPolicyReadbackIndex &&
+    firstPolicyReadbackIndex < iamSimulationIndex &&
+    iamSimulationIndex < secondPolicyReadbackIndex,
+  "J5e execute must wait, exact-read policy, simulate, then exact-read policy again",
+);
+assert.match(
+  operationScript.slice(firstPolicyReadbackIndex, secondPolicyReadbackIndex),
+  /-GrantExpected \(\$reviewedUpdateShape -eq 'SharedCellProvisionAuthorityInstallGrant'\)/,
+);
+assert.match(operationScript, /for \(\$iamAttempt = 1; \$iamAttempt -le 3;/);
+assert.match(operationScript, /Start-Sleep -Seconds 2/);
+assert.match(
+  operationScript,
+  /\$ExpectedDecision -ceq 'allowed' -and\s*@\(\$evaluations\[0\]\.MissingContextValues\)\.Count -ne 0/,
+  "only an allowed IAM simulation may require zero missing context values",
+);
+assert.match(
+  operationScript,
+  /\$ExpectedDecision -ceq 'implicitDeny' -and\s*@\(\$evaluations\[0\]\.MatchedStatements\)\.Count -ne 0/,
+  "implicit deny simulations must not contain matched statements",
+);
+const executeCallIndex = operationScript.indexOf(
+  "'cloudformation', 'execute-change-set'",
+);
+assert.ok(
+  operationScript.indexOf('10 minutes or less remaining immediately before execution') <
+    executeCallIndex,
+  "grant expiry must be rechecked immediately before Change Set execution",
 );
 assert.match(
   operationScript,

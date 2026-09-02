@@ -53,6 +53,7 @@ ops/aws-sandbox/
    ├─ s3-b5-cell-bootstrap.ps1
    ├─ s3-b5-lifecycle-log-support.ps1
    ├─ s3-b5-lifecycle-task-definition.ps1
+   ├─ s3-b5-shared-cell-provision-authority-preflight.ps1
    ├─ s3-b5-support-bootstrap.ps1
    ├─ s3-bootstrap.ps1
    ├─ s3-build-image.ps1
@@ -62,7 +63,9 @@ ops/aws-sandbox/
    ├─ validate-b5-cell-bootstrap.mjs
    ├─ validate-b5-lifecycle-log-support.mjs
    ├─ validate-b5-lifecycle-task-definition.mjs
+   ├─ validate-b5-shared-cell-provision-authority-preflight.mjs
    ├─ validate-b5-support.mjs
+   ├─ verify-managed-policy-document.mjs
    ├─ verify-change-set-template.mjs
    └─ validate.mjs
 ```
@@ -327,6 +330,16 @@ J5d 增加 exact-table/exact-key 的 production DynamoDB installer 源码。它�
 dormant production bundle 固定 `techlong-sandbox-provisioner` profile 与 exact MFA device，要求未来受审入口注入 MFA callback；同一次 `defaultProvider()` 返回值显式构造 STS、CloudFormation 和 DynamoDB client，并令业务 client 与内部 STS 忽略 configured endpoint override。bundle 构造本身不解析凭据、不发 AWS 请求，不接入 default Worker、J4c Lambda、CLI 或 Schedule；注入 module/client 只是受信测试 seam。默认 runtime 测试继续断言没有 provision evidence/authority capability，两个 blocker和四个 readiness gate未改变。
 
 当前 Provisioner 没有 exact Cell root Stack read 与 authority Get/Put，Worker 的 `LeadingKeys` 只允许 `tenant:*`，Janitor 只有 cell key Get 且显式 Deny mutation，Manager 也没有 DynamoDB writer；source IAM User 的广泛权限不是批准的安装路径。本切片没有 AWS/IAM/CloudFormation mutation、线上 authority 写入、付费 Cell 或 `RunTask`。后续必须把短时 exact IAM grant、付费 Cell 创建、live evidence/absent pre-read/candidate 审阅后的单次 install + readback + revoke、现有 cleanup CAS adapter 的 IAM/online enablement/root wiring、J4c mutation/Schedule enable 分开批准，不能直接放宽长期 Worker 权限。
+
+### B5-J5e Shared Cell provision-authority IAM channel
+
+J5e 为 `TechlongSandboxProvisionerRole` 定义下一稳定 locked baseline：只增加 exact root Stack 的 `DescribeStacks/GetTemplate/ListStackResources` 和 exact authority table/key 的 `GetItem`；不修改 Worker 的 `tenant:*` `LeadingKeys`、Janitor、Manager、J4c 或任何 readiness gate。单次安装窗口另由 `SharedCellProvisionAuthorityInstallGrant` 向同一 `ProvisionerBoundary` 增加唯一 `PutItem` statement，绑定 `ca-central-1`、exact table、`cell:cell-sandbox-1`、四字段 attribute allowlist 和 canonical UTC `DateLessThan`。`SharedCellProvisionAuthorityInstallRevoke` 只撤销该临时 Put，保留 exact read 用于不确定结果恢复与独立 readback。
+
+`s3-b5-support-bootstrap.ps1` 对 grant/revoke 继续使用 source IAM User 的 exact login session/MFA，仅允许既有 `ProvisionerBoundary` 无 replacement 修改；Change Set 名称绑定 raw template digest，Inspect/Execute 前核对 `GetTemplate(Original)`。Execute grant 要求窗口入口剩余 15–60 分钟且实际执行前仍大于 10 分钟；Stack 完成后对 managed-policy default version、Role boundary/attachment/inline policy做 exact readback，执行 exact/wrong-key/wrong-region/wrong-table/extra-attribute/expired IAM simulation，再复读一次默认 policy 关闭并发漂移窗口。`EvidencePreflight` 只用 exact Provisioner AssumeRole 读取 root Stack MISSING 与 authority key ABSENT；它不调用 `PutItem`，临时写权限由前述 policy readback/simulation证明。
+
+J5e 已完成线上 IAM channel drill，但没有执行 installer。Grant Change Set `techlong-s3-b5-support-shared-cell-provision-authority-install-grant-89b3fc2b651162a6` 的 raw/canonical SHA-256 分别为 `89b3fc2b651162a6f99268470eec4f8cd3516f5e86a7243112083c5327cd5a10` / `81ff00ba9a077c0e5e5c66ae2fc80a215a3c13c02afc4ffd0dcddd7e676b70c7`，执行后 exact policy readback SHA-256 为 `f4788818fab5e7731e5fed8a5095b590225b1abf5c59a2b0e059005c20aece97`。事后验证曾因 IAM Simulator 对 deny 结果汇总无关 `MissingContextValues` 而 fail closed；门禁现要求 allowed 结果零 missing context、implicit deny 精确匹配且零 matched statement。临时 grant 于 `2026-09-01T18:19:28.077Z` 自动失效，期间没有调用 `PutItem`。
+
+Revoke Change Set `techlong-s3-b5-support-shared-cell-provision-authority-install-revoke-5854019ecacde555` 的 raw/canonical SHA-256 分别为 `5854019ecacde5554b756e538556cf69f330cce79901ac7950317f2f5bbd73cc` / `8231ff876b99b3f5374d1ee2978736f8ba3a48f1260f3d85382e67e9a453caf9`；执行后的 readback → 全部正反向 IAM simulation → readback 均通过，两次稳定 policy SHA-256 都是 `cebda5b97adbacd877e2d52459541ef9bbba4c7e028cb3657f101862e9cd574d`。随后 `EvidencePreflight` 证明 root Stack 为 `MISSING`、authority key 为 `ABSENT`。线上临时写权限已显式撤销；本阶段没有创建付费 Shared Cell、写 authority 或执行 `RunTask`，四个 readiness gate 与两个 blocker保持不变。未来 candidate/install 仍必须重新走独立 Grant → Inspect → Execute → install/readback → Revoke 批准链。
 
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 

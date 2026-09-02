@@ -1545,6 +1545,32 @@
               }
             },
             {
+              "Sid": "CellStackRead",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DescribeStacks",
+                "cloudformation:GetTemplate",
+                "cloudformation:ListStackResources"
+              ],
+              "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "CellAuthorityRead",
+              "Effect": "Allow",
+              "Action": "dynamodb:GetItem",
+              "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" },
+                "ForAllValues:StringEquals": {
+                  "dynamodb:LeadingKeys": ["cell:cell-sandbox-1"]
+                },
+                "Null": { "dynamodb:LeadingKeys": "false" }
+              }
+            },
+            {
               "Sid": "AllowCreateOnlyTaggedSandboxStacks",
               "Effect": "Allow",
               "Action": "cloudformation:CreateStack",

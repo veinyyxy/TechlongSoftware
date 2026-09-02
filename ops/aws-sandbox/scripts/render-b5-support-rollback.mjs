@@ -82,6 +82,8 @@ export async function renderB5SupportRollbackTemplate() {
     new Set([
       "AllowExactWorkerCanaryRole",
       "AllowSharedCellReadOnlyPreflight",
+      "CellStackRead",
+      "CellAuthorityRead",
     ]),
   );
   template.Description =

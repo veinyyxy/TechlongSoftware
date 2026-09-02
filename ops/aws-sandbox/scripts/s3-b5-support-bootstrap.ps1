@@ -16,10 +16,13 @@ param(
     'CodeBuildImagePull',
     'LifecycleReadback',
     'LifecycleTaskRegistrationGrant',
-    'LifecycleTaskRegistrationRevoke'
+    'LifecycleTaskRegistrationRevoke',
+    'SharedCellProvisionAuthorityInstallGrant',
+    'SharedCellProvisionAuthorityInstallRevoke'
   )]
   [string]$UpdateShape = 'InitialB5Support',
   [string]$Profile = 'techlong-sandbox-user',
+  [string]$GrantExpiresAt = '',
   [string]$ConfirmAccountId = '',
   [string]$ConfirmRegion = '',
   [string]$ConfirmBootstrapStackName = '',
@@ -42,11 +45,18 @@ $expectedMfaDeviceArn = 'arn:aws:iam::402010193138:mfa/techlong-sandbox-dev'
 $bootstrapStackName = 'techlong-s3-bootstrap'
 $receiptBucketName = 'techlong-sandbox-402010193138-ca-central-1-tenant-receipts'
 $authorityTableName = 'techlong-sandbox-tenant-external-epoch-authority'
+$authorityTableArn = "arn:aws:dynamodb:${expectedRegion}:${expectedAccountId}:table/$authorityTableName"
+$provisionerRoleArn = "arn:aws:iam::${expectedAccountId}:role/TechlongSandboxProvisionerRole"
+$provisionerBoundaryArn = "arn:aws:iam::${expectedAccountId}:policy/TechlongSandboxProvisionerBoundary"
+$sharedCellRootStackArn = "arn:aws:cloudformation:${expectedRegion}:${expectedAccountId}:stack/techlong-sandbox-cell-sandbox-1/*"
+$sharedCellAuthorityKey = 'cell:cell-sandbox-1'
+$grantExpiryPattern = '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'
 $root = Split-Path -Parent $PSScriptRoot
 $validator = Join-Path $root 'scripts\validate-b5-support.mjs'
 $renderer = Join-Path $root 'scripts\render-bootstrap.mjs'
 $rollbackRenderer = Join-Path $root 'scripts\render-b5-support-rollback.mjs'
 $templateVerifier = Join-Path $root 'scripts\verify-change-set-template.mjs'
+$managedPolicyVerifier = Join-Path $root 'scripts\verify-managed-policy-document.mjs'
 $supportInfrastructureWriteReady = $true
 $reviewedUpdateShape = if ($UpdateShape -ieq 'CodeBuildImagePull') {
   'CodeBuildImagePull'
@@ -56,6 +66,10 @@ $reviewedUpdateShape = if ($UpdateShape -ieq 'CodeBuildImagePull') {
   'LifecycleTaskRegistrationGrant'
 } elseif ($UpdateShape -ieq 'LifecycleTaskRegistrationRevoke') {
   'LifecycleTaskRegistrationRevoke'
+} elseif ($UpdateShape -ieq 'SharedCellProvisionAuthorityInstallGrant') {
+  'SharedCellProvisionAuthorityInstallGrant'
+} elseif ($UpdateShape -ieq 'SharedCellProvisionAuthorityInstallRevoke') {
+  'SharedCellProvisionAuthorityInstallRevoke'
 } else {
   'InitialB5Support'
 }
@@ -67,6 +81,48 @@ $rollbackModes = @(
 if ($Mode -in $rollbackModes -and $reviewedUpdateShape -ne 'InitialB5Support') {
   throw 'Rollback modes only support -UpdateShape InitialB5Support; incremental IAM update shapes have no standalone rollback shape.'
 }
+
+function ConvertFrom-CanonicalGrantExpiry {
+  param([string]$Value)
+  if ($Value -cnotmatch $grantExpiryPattern) {
+    throw '-GrantExpiresAt must be canonical UTC with milliseconds.'
+  }
+  $styles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor
+    [System.Globalization.DateTimeStyles]::AdjustToUniversal
+  $parsed = [DateTime]::ParseExact(
+    $Value,
+    'yyyy-MM-ddTHH:mm:ss.fffZ',
+    [System.Globalization.CultureInfo]::InvariantCulture,
+    $styles
+  )
+  if ($parsed.ToString('yyyy-MM-ddTHH:mm:ss.fffZ') -cne $Value) {
+    throw '-GrantExpiresAt is not a canonical UTC instant.'
+  }
+  return $parsed
+}
+
+function Assert-SharedCellProvisionAuthorityShapeInputs {
+  $isGrant = $reviewedUpdateShape -ceq 'SharedCellProvisionAuthorityInstallGrant'
+  $isRevoke = $reviewedUpdateShape -ceq 'SharedCellProvisionAuthorityInstallRevoke'
+  if ($isGrant) {
+    $expiry = ConvertFrom-CanonicalGrantExpiry -Value $GrantExpiresAt
+    if ($Mode -ne 'LocalValidate') {
+      $remaining = $expiry - [DateTime]::UtcNow
+      $minimumMinutes = if ($Mode -eq 'ExecuteChangeSet') { 10 } else { 15 }
+      if ($remaining.TotalMinutes -le $minimumMinutes -or $remaining.TotalMinutes -gt 60) {
+        throw "The temporary install grant must have more than $minimumMinutes and no more than 60 minutes remaining."
+      }
+    }
+  } elseif ($isRevoke) {
+    if (-not [string]::IsNullOrEmpty($GrantExpiresAt)) {
+      throw 'SharedCellProvisionAuthorityInstallRevoke does not accept -GrantExpiresAt.'
+    }
+  } elseif (-not [string]::IsNullOrEmpty($GrantExpiresAt)) {
+    throw "$reviewedUpdateShape does not accept -GrantExpiresAt."
+  }
+}
+
+Assert-SharedCellProvisionAuthorityShapeInputs
 
 function Resolve-AwsCli {
   $command = Get-Command aws -ErrorAction SilentlyContinue
@@ -399,6 +455,286 @@ function Assert-ExactCodeBuildImagePullResourceChange {
   throw "CodeBuildImagePull contains an unexpected resource: $($Resource.LogicalResourceId)."
 }
 
+function Assert-ExactProvisionAuthorityBoundaryResourceChange {
+  param([object]$Resource)
+  if (
+    [string]$Resource.LogicalResourceId -cne 'ProvisionerBoundary' -or
+    [string]$Resource.ResourceType -cne 'AWS::IAM::ManagedPolicy' -or
+    [string]$Resource.PhysicalResourceId -cne $provisionerBoundaryArn -or
+    [string]$Resource.Replacement -cne 'False'
+  ) {
+    throw 'Shared Cell provision-authority grant/revoke may only modify the exact existing ProvisionerBoundary without replacement.'
+  }
+  $scope = @($Resource.Scope)
+  if ($scope.Count -ne 1 -or [string]$scope[0] -cne 'Properties') {
+    throw 'Shared Cell provision-authority grant/revoke may only change ProvisionerBoundary properties.'
+  }
+  $details = @($Resource.Details)
+  if ($details.Count -ne 1) {
+    throw 'Shared Cell provision-authority grant/revoke must contain one exact policy-document detail.'
+  }
+  $detail = $details[0]
+  if (
+    [string]$detail.Target.Attribute -cne 'Properties' -or
+    [string]$detail.Target.Name -cne 'PolicyDocument' -or
+    [string]$detail.Target.RequiresRecreation -cne 'Never' -or
+    [string]$detail.Evaluation -cne 'Static' -or
+    [string]$detail.ChangeSource -cne 'DirectModification' -or
+    -not [string]::IsNullOrEmpty([string]$detail.CausingEntity)
+  ) {
+    throw 'Shared Cell provision-authority grant/revoke detail is not the exact direct PolicyDocument modification.'
+  }
+}
+
+function Assert-ExactProvisionerBoundaryReadback {
+  param(
+    [string]$AwsCli,
+    [string]$ExpectedTemplatePath,
+    [string]$PolicyVersionResponsePath
+  )
+  $policyResponse = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'iam', 'get-policy',
+    '--profile', $Profile,
+    '--policy-arn', $provisionerBoundaryArn,
+    '--output', 'json'
+  )
+  $policy = $policyResponse.Policy
+  if (
+    [string]$policy.Arn -cne $provisionerBoundaryArn -or
+    [string]$policy.PolicyName -cne 'TechlongSandboxProvisionerBoundary' -or
+    [string]$policy.Path -cne '/' -or
+    [string]$policy.DefaultVersionId -cnotmatch '^v[1-9][0-9]*$' -or
+    $policy.IsAttachable -ne $true -or
+    [int]$policy.AttachmentCount -ne 1 -or
+    [int]$policy.PermissionsBoundaryUsageCount -ne 1
+  ) {
+    throw 'ProvisionerBoundary managed-policy identity, default version, or usage drifted.'
+  }
+
+  Invoke-AwsJsonFile -AwsCli $AwsCli -Arguments @(
+    'iam', 'get-policy-version',
+    '--profile', $Profile,
+    '--policy-arn', $provisionerBoundaryArn,
+    '--version-id', [string]$policy.DefaultVersionId,
+    '--output', 'json'
+  ) -OutputPath $PolicyVersionResponsePath
+  $policyHash = ((& node $managedPolicyVerifier `
+    --expected-template $ExpectedTemplatePath `
+    --get-policy-version-response $PolicyVersionResponsePath) | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0 -or $policyHash -cnotmatch '^[a-f0-9]{64}$') {
+    throw 'ProvisionerBoundary default policy document does not match the exact rendered template.'
+  }
+
+  $roleResponse = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'iam', 'get-role',
+    '--profile', $Profile,
+    '--role-name', 'TechlongSandboxProvisionerRole',
+    '--output', 'json'
+  )
+  $role = $roleResponse.Role
+  if (
+    [string]$role.Arn -cne $provisionerRoleArn -or
+    [string]$role.RoleName -cne 'TechlongSandboxProvisionerRole' -or
+    [int]$role.MaxSessionDuration -ne 3600 -or
+    [string]$role.PermissionsBoundary.PermissionsBoundaryArn -cne $provisionerBoundaryArn -or
+    [string]$role.PermissionsBoundary.PermissionsBoundaryType -cne 'Policy'
+  ) {
+    throw 'Provisioner Role identity, session duration, or permissions boundary drifted.'
+  }
+  $tags = @{}
+  foreach ($tag in @($role.Tags)) { $tags[[string]$tag.Key] = [string]$tag.Value }
+  if (
+    $tags.Count -ne 3 -or
+    $tags.Environment -cne 'aws-sandbox' -or
+    $tags.ManagedBy -cne 'techlong-provisioner' -or
+    $tags.Component -cne 'provisioner'
+  ) {
+    throw 'Provisioner Role ownership tags drifted.'
+  }
+
+  $attached = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'iam', 'list-attached-role-policies',
+    '--profile', $Profile,
+    '--role-name', 'TechlongSandboxProvisionerRole',
+    '--no-paginate',
+    '--output', 'json'
+  )
+  $attachedPolicies = @($attached.AttachedPolicies)
+  if (
+    $attached.IsTruncated -eq $true -or
+    $attachedPolicies.Count -ne 1 -or
+    [string]$attachedPolicies[0].PolicyArn -cne $provisionerBoundaryArn -or
+    [string]$attachedPolicies[0].PolicyName -cne 'TechlongSandboxProvisionerBoundary'
+  ) {
+    throw 'Provisioner Role attached managed policies drifted.'
+  }
+  $inline = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'iam', 'list-role-policies',
+    '--profile', $Profile,
+    '--role-name', 'TechlongSandboxProvisionerRole',
+    '--no-paginate',
+    '--output', 'json'
+  )
+  if ($inline.IsTruncated -eq $true -or @($inline.PolicyNames).Count -ne 0) {
+    throw 'Provisioner Role must retain zero inline policies.'
+  }
+  Write-Host "Verified exact ProvisionerBoundary policy document SHA-256: $policyHash"
+}
+
+function Assert-ProvisionerSimulationDecision {
+  param(
+    [string]$AwsCli,
+    [string]$Action,
+    [string]$Resource,
+    [string[]]$ContextEntries,
+    [ValidateSet('allowed', 'implicitDeny', 'explicitDeny')]
+    [string]$ExpectedDecision
+  )
+  $arguments = @(
+    'iam', 'simulate-principal-policy',
+    '--profile', $Profile,
+    '--policy-source-arn', $provisionerRoleArn,
+    '--action-names', $Action,
+    '--resource-arns', $Resource
+  )
+  if (@($ContextEntries).Count -gt 0) {
+    $arguments += '--context-entries'
+    $arguments += $ContextEntries
+  }
+  $arguments += @('--output', 'json')
+  $response = Invoke-AwsJson -AwsCli $AwsCli -Arguments $arguments
+  $evaluations = @($response.EvaluationResults)
+  if (
+    $response.IsTruncated -eq $true -or
+    $evaluations.Count -ne 1 -or
+    [string]$evaluations[0].EvalActionName -cne $Action -or
+    [string]$evaluations[0].EvalResourceName -cne $Resource -or
+    [string]$evaluations[0].EvalDecision -cne $ExpectedDecision -or
+    (
+      $ExpectedDecision -ceq 'implicitDeny' -and
+      @($evaluations[0].MatchedStatements).Count -ne 0
+    ) -or
+    (
+      $ExpectedDecision -ceq 'allowed' -and
+      @($evaluations[0].MissingContextValues).Count -ne 0
+    )
+  ) {
+    throw "Provisioner IAM simulation for $Action did not return exact decision $ExpectedDecision."
+  }
+}
+
+function Assert-ExactProvisionAuthorityIamSimulation {
+  param([string]$AwsCli, [bool]$GrantExpected)
+  $regionContext =
+    'ContextKeyName=aws:RequestedRegion,ContextKeyValues=ca-central-1,ContextKeyType=string'
+  $exactKeyContext =
+    "ContextKeyName=dynamodb:LeadingKeys,ContextKeyValues=$sharedCellAuthorityKey,ContextKeyType=stringList"
+  $exactAttributesContext =
+    'ContextKeyName=dynamodb:Attributes,ContextKeyValues=authority_key,schema_version,revision,record_json,ContextKeyType=stringList'
+  $now = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+  $currentTimeContext =
+    "ContextKeyName=aws:CurrentTime,ContextKeyValues=$now,ContextKeyType=date"
+  $exactStackArn = $sharedCellRootStackArn.Replace(
+    '*',
+    '00000000-0000-0000-0000-000000000000'
+  )
+
+  foreach ($action in @(
+    'cloudformation:DescribeStacks',
+    'cloudformation:GetTemplate',
+    'cloudformation:ListStackResources'
+  )) {
+    Assert-ProvisionerSimulationDecision -AwsCli $AwsCli `
+      -Action $action -Resource $exactStackArn `
+      -ContextEntries @($regionContext) -ExpectedDecision 'allowed'
+  }
+  Assert-ProvisionerSimulationDecision -AwsCli $AwsCli `
+    -Action 'cloudformation:DescribeStacks' `
+    -Resource 'arn:aws:cloudformation:ca-central-1:402010193138:stack/not-approved/00000000-0000-0000-0000-000000000000' `
+    -ContextEntries @($regionContext) -ExpectedDecision 'implicitDeny'
+  foreach ($action in @(
+    'cloudformation:CreateStack',
+    'cloudformation:DeleteStack',
+    'cloudformation:UpdateStack'
+  )) {
+    Assert-ProvisionerSimulationDecision -AwsCli $AwsCli `
+      -Action $action -Resource $exactStackArn `
+      -ContextEntries @($regionContext) -ExpectedDecision 'implicitDeny'
+  }
+
+  Assert-ProvisionerSimulationDecision -AwsCli $AwsCli `
+    -Action 'dynamodb:GetItem' -Resource $authorityTableArn `
+    -ContextEntries @($regionContext, $exactKeyContext) -ExpectedDecision 'allowed'
+  Assert-ProvisionerSimulationDecision -AwsCli $AwsCli `
+    -Action 'dynamodb:GetItem' -Resource $authorityTableArn `
+    -ContextEntries @(
+      $regionContext,
+      'ContextKeyName=dynamodb:LeadingKeys,ContextKeyValues=cell:not-approved,ContextKeyType=stringList'
+    ) -ExpectedDecision 'implicitDeny'
+  Assert-ProvisionerSimulationDecision -AwsCli $AwsCli `
+    -Action 'dynamodb:GetItem' -Resource $authorityTableArn `
+    -ContextEntries @(
+      'ContextKeyName=aws:RequestedRegion,ContextKeyValues=us-east-1,ContextKeyType=string',
+      $exactKeyContext
+    ) -ExpectedDecision 'implicitDeny'
+
+  $putDecision = if ($GrantExpected) { 'allowed' } else { 'implicitDeny' }
+  $putContext = @(
+    $regionContext,
+    $exactKeyContext,
+    $exactAttributesContext,
+    $currentTimeContext
+  )
+  Assert-ProvisionerSimulationDecision -AwsCli $AwsCli `
+    -Action 'dynamodb:PutItem' -Resource $authorityTableArn `
+    -ContextEntries $putContext -ExpectedDecision $putDecision
+  Assert-ProvisionerSimulationDecision -AwsCli $AwsCli `
+    -Action 'dynamodb:PutItem' -Resource $authorityTableArn `
+    -ContextEntries @(
+      $regionContext,
+      'ContextKeyName=dynamodb:LeadingKeys,ContextKeyValues=cell:not-approved,ContextKeyType=stringList',
+      $exactAttributesContext,
+      $currentTimeContext
+    ) -ExpectedDecision 'implicitDeny'
+  Assert-ProvisionerSimulationDecision -AwsCli $AwsCli `
+    -Action 'dynamodb:PutItem' `
+    -Resource 'arn:aws:dynamodb:ca-central-1:402010193138:table/not-approved' `
+    -ContextEntries $putContext -ExpectedDecision 'implicitDeny'
+  Assert-ProvisionerSimulationDecision -AwsCli $AwsCli `
+    -Action 'dynamodb:PutItem' -Resource $authorityTableArn `
+    -ContextEntries @(
+      $regionContext,
+      $exactKeyContext,
+      'ContextKeyName=dynamodb:Attributes,ContextKeyValues=authority_key,schema_version,revision,record_json,unexpected,ContextKeyType=stringList',
+      $currentTimeContext
+    ) -ExpectedDecision 'implicitDeny'
+  foreach ($action in @(
+    'dynamodb:BatchWriteItem',
+    'dynamodb:DeleteItem',
+    'dynamodb:TransactWriteItems',
+    'dynamodb:UpdateItem'
+  )) {
+    Assert-ProvisionerSimulationDecision -AwsCli $AwsCli `
+      -Action $action -Resource $authorityTableArn `
+      -ContextEntries $putContext -ExpectedDecision 'implicitDeny'
+  }
+  if ($GrantExpected) {
+    $expired = (ConvertFrom-CanonicalGrantExpiry -Value $GrantExpiresAt).AddMilliseconds(1).ToString(
+      'yyyy-MM-ddTHH:mm:ss.fffZ'
+    )
+    $expiredContext = @(
+      $regionContext,
+      $exactKeyContext,
+      $exactAttributesContext,
+      "ContextKeyName=aws:CurrentTime,ContextKeyValues=$expired,ContextKeyType=date"
+    )
+    Assert-ProvisionerSimulationDecision -AwsCli $AwsCli `
+      -Action 'dynamodb:PutItem' -Resource $authorityTableArn `
+      -ContextEntries $expiredContext -ExpectedDecision 'implicitDeny'
+  }
+  Write-Host 'Verified exact Provisioner IAM simulation decisions.'
+}
+
 function Assert-ReviewedChangeSet {
   param(
     [object]$ChangeSet,
@@ -409,7 +745,9 @@ function Assert-ReviewedChangeSet {
       'CodeBuildImagePull',
       'LifecycleReadback',
       'LifecycleTaskRegistrationGrant',
-      'LifecycleTaskRegistrationRevoke'
+      'LifecycleTaskRegistrationRevoke',
+      'SharedCellProvisionAuthorityInstallGrant',
+      'SharedCellProvisionAuthorityInstallRevoke'
     )]
     [string]$UpdateShape,
     [bool]$Rollback
@@ -518,6 +856,12 @@ function Assert-ReviewedChangeSet {
   $requiredLifecycleTaskRegistrationGrantChanges = @{
     ExecutionRoleBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
   }
+  $requiredSharedCellProvisionAuthorityInstallGrantChanges = @{
+    ProvisionerBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
+  }
+  $requiredSharedCellProvisionAuthorityInstallRevokeChanges = @{
+    ProvisionerBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
+  }
   $requiredRollbackChanges = @{
     ServiceRoleBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
     ProvisionerBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
@@ -536,6 +880,10 @@ function Assert-ReviewedChangeSet {
     $requiredLifecycleTaskRegistrationGrantChanges
   } elseif ($UpdateShape -eq 'LifecycleTaskRegistrationRevoke') {
     $requiredLifecycleTaskRegistrationRevokeChanges
+  } elseif ($UpdateShape -eq 'SharedCellProvisionAuthorityInstallGrant') {
+    $requiredSharedCellProvisionAuthorityInstallGrantChanges
+  } elseif ($UpdateShape -eq 'SharedCellProvisionAuthorityInstallRevoke') {
+    $requiredSharedCellProvisionAuthorityInstallRevokeChanges
   } elseif ($UpdateShape -eq 'CodeBuildImagePull') {
     $requiredCodeBuildImagePullChanges
   } elseif ($UpdateShape -eq 'LifecycleReadback') {
@@ -559,6 +907,11 @@ function Assert-ReviewedChangeSet {
     }
     if ($UpdateShape -eq 'CodeBuildImagePull') {
       Assert-ExactCodeBuildImagePullResourceChange -Resource $resource
+    } elseif ($UpdateShape -in @(
+      'SharedCellProvisionAuthorityInstallGrant',
+      'SharedCellProvisionAuthorityInstallRevoke'
+    )) {
+      Assert-ExactProvisionAuthorityBoundaryResourceChange -Resource $resource
     } elseif ($resource.Replacement -in @('True', 'Conditional')) {
       throw "Change Set may not replace $logicalId."
     }
@@ -612,6 +965,10 @@ $changeSetTemplateResponse = [System.IO.Path]::Combine(
   [System.IO.Path]::GetTempPath(),
   "techlong-s3-b5-support-change-set-template-$([Guid]::NewGuid().ToString('N')).json"
 )
+$policyVersionResponse = [System.IO.Path]::Combine(
+  [System.IO.Path]::GetTempPath(),
+  "techlong-s3-b5-support-provisioner-policy-$([Guid]::NewGuid().ToString('N')).json"
+)
 $previousIgnoreConfiguredEndpointUrls =
   [Environment]::GetEnvironmentVariable('AWS_IGNORE_CONFIGURED_ENDPOINT_URLS')
 
@@ -619,6 +976,11 @@ try {
   $renderArguments = @('--output', $renderedTemplate)
   if ($reviewedUpdateShape -eq 'LifecycleTaskRegistrationGrant') {
     $renderArguments += '--lifecycle-task-registration-grant'
+  } elseif ($reviewedUpdateShape -eq 'SharedCellProvisionAuthorityInstallGrant') {
+    $renderArguments += @(
+      '--shared-cell-provision-authority-grant-expires-at',
+      $GrantExpiresAt
+    )
   }
   & node $renderer @renderArguments
   if ($LASTEXITCODE -ne 0) { throw 'Unable to render the reviewed bootstrap template.' }
@@ -637,6 +999,10 @@ try {
     'lifecycle-task-registration-grant'
   } elseif ($reviewedUpdateShape -eq 'LifecycleTaskRegistrationRevoke') {
     'lifecycle-task-registration-revoke'
+  } elseif ($reviewedUpdateShape -eq 'SharedCellProvisionAuthorityInstallGrant') {
+    'shared-cell-provision-authority-install-grant'
+  } elseif ($reviewedUpdateShape -eq 'SharedCellProvisionAuthorityInstallRevoke') {
+    'shared-cell-provision-authority-install-revoke'
   } else {
     'initial'
   }
@@ -844,6 +1210,14 @@ try {
     Write-Warning "Executing rollback will delete DynamoDB table $authorityTableName and every authority record in it."
   }
 
+  if ($reviewedUpdateShape -eq 'SharedCellProvisionAuthorityInstallGrant') {
+    $remainingAtExecute =
+      (ConvertFrom-CanonicalGrantExpiry -Value $GrantExpiresAt) - [DateTime]::UtcNow
+    if ($remainingAtExecute.TotalMinutes -le 10) {
+      throw 'The temporary install grant has 10 minutes or less remaining immediately before execution; create a fresh Change Set instead.'
+    }
+  }
+
   Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
     'cloudformation', 'execute-change-set',
     '--profile', $Profile,
@@ -858,6 +1232,36 @@ try {
     '--region', $expectedRegion,
     '--stack-name', $bootstrapStackName
   )
+  if ($reviewedUpdateShape -in @(
+    'SharedCellProvisionAuthorityInstallGrant',
+    'SharedCellProvisionAuthorityInstallRevoke'
+  )) {
+    $iamVerificationComplete = $false
+    for ($iamAttempt = 1; $iamAttempt -le 3; $iamAttempt += 1) {
+      try {
+        Assert-ExactProvisionerBoundaryReadback `
+          -AwsCli $awsCli `
+          -ExpectedTemplatePath $renderedTemplate `
+          -PolicyVersionResponsePath $policyVersionResponse
+        Assert-ExactProvisionAuthorityIamSimulation `
+          -AwsCli $awsCli `
+          -GrantExpected ($reviewedUpdateShape -eq 'SharedCellProvisionAuthorityInstallGrant')
+        Assert-ExactProvisionerBoundaryReadback `
+          -AwsCli $awsCli `
+          -ExpectedTemplatePath $renderedTemplate `
+          -PolicyVersionResponsePath $policyVersionResponse
+        $iamVerificationComplete = $true
+        break
+      } catch {
+        if ($iamAttempt -eq 3) { throw }
+        Write-Warning "IAM readback/simulation has not converged (attempt $iamAttempt of 3); retrying after 2 seconds."
+        Start-Sleep -Seconds 2
+      }
+    }
+    if (-not $iamVerificationComplete) {
+      throw 'Exact Provisioner IAM verification did not complete.'
+    }
+  }
   if ($isRollback) {
     Write-Host 'Reviewed B5 support rollback completed. Existing Sandbox bootstrap resources were retained.'
   } else {
@@ -873,7 +1277,8 @@ try {
   foreach ($temporaryPath in @(
     $renderedTemplate,
     $rollbackTemplate,
-    $changeSetTemplateResponse
+    $changeSetTemplateResponse,
+    $policyVersionResponse
   )) {
     if (Test-Path -LiteralPath $temporaryPath) {
       Remove-Item -LiteralPath $temporaryPath -Force

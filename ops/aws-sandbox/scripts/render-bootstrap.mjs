@@ -21,6 +21,14 @@ const deployedJanitorFixturePath = path.join(
 const sourceMarker = "__JANITOR_INLINE_SOURCE__";
 const lifecycleTaskRoleArn =
   "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole";
+const authorityTableArn =
+  "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority";
+const sharedCellAuthorityKey = "cell:cell-sandbox-1";
+const grantExpiryPattern =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const reviewedDirectTemplateBodyLimit = 50_000;
+const reviewedGrantTemplateBodyLimit = 50_500;
+const cloudFormationDirectTemplateBodyLimit = 51_200;
 const deployedJanitorBytes = 8_478;
 const deployedJanitorSha256 =
   "a5b6d0fd40c4bede585f89316853e0e274113d07f9f11647f7a2f54bf59d22f6";
@@ -62,9 +70,70 @@ export function decodeDeployedJanitorSource(fixtureSource, reviewedSource) {
   return deployedSource;
 }
 
+function assertCanonicalGrantExpiry(value) {
+  if (typeof value !== "string" || !grantExpiryPattern.test(value)) {
+    throw new Error(
+      "Shared Cell provision authority grant expiry must be canonical UTC with milliseconds",
+    );
+  }
+  const timestamp = Date.parse(value);
+  if (
+    !Number.isFinite(timestamp) ||
+    new Date(timestamp).toISOString() !== value
+  ) {
+    throw new Error(
+      "Shared Cell provision authority grant expiry is not a canonical UTC instant",
+    );
+  }
+}
+
+function appendSharedCellProvisionAuthorityGrant(template, grantExpiresAt) {
+  assertCanonicalGrantExpiry(grantExpiresAt);
+  const statements =
+    template.Resources?.ProvisionerBoundary?.Properties?.PolicyDocument
+      ?.Statement;
+  if (!Array.isArray(statements)) {
+    throw new Error("provisioner boundary statements are missing");
+  }
+  const temporarySid = "TemporaryInstallCellAuthority";
+  if (statements.some((statement) => statement?.Sid === temporarySid)) {
+    throw new Error(`provisioner boundary already contains ${temporarySid}`);
+  }
+  statements.push({
+    Sid: temporarySid,
+    Effect: "Allow",
+    Action: "dynamodb:PutItem",
+    Resource: authorityTableArn,
+    Condition: {
+      StringEquals: { "aws:RequestedRegion": "ca-central-1" },
+      "ForAllValues:StringEquals": {
+        "dynamodb:LeadingKeys": [sharedCellAuthorityKey],
+        "dynamodb:Attributes": [
+          "authority_key",
+          "schema_version",
+          "revision",
+          "record_json",
+        ],
+      },
+      Null: {
+        "dynamodb:LeadingKeys": "false",
+        "dynamodb:Attributes": "false",
+      },
+      DateLessThan: { "aws:CurrentTime": grantExpiresAt },
+    },
+  });
+}
+
 export async function renderBootstrapTemplate({
   lifecycleTaskRegistrationGrant = false,
+  sharedCellProvisionAuthorityGrantExpiresAt = "",
 } = {}) {
+  if (
+    lifecycleTaskRegistrationGrant &&
+    sharedCellProvisionAuthorityGrantExpiresAt
+  ) {
+    throw new Error("bootstrap grant render shapes are mutually exclusive");
+  }
   const [templateSource, janitorSource, deployedJanitorFixture] =
     await Promise.all([
       readFile(templatePath, "utf8"),
@@ -109,12 +178,27 @@ export async function renderBootstrapTemplate({
     }
     resources.push(lifecycleTaskRoleArn);
   }
+  if (sharedCellProvisionAuthorityGrantExpiresAt) {
+    appendSharedCellProvisionAuthorityGrant(
+      template,
+      sharedCellProvisionAuthorityGrantExpiresAt,
+    );
+  }
   const rendered = renderCloudFormationTemplateDocument(template);
-  // Keep direct TemplateBody below both the 51,200-byte API limit and the
-  // stricter reviewed 50,000-byte headroom gate without changing resources.
-  if (Buffer.byteLength(rendered, "utf8") > 50_000) {
+  const renderedBytes = Buffer.byteLength(rendered, "utf8");
+  const reviewedLimit = sharedCellProvisionAuthorityGrantExpiresAt
+    ? reviewedGrantTemplateBodyLimit
+    : reviewedDirectTemplateBodyLimit;
+  // Preserve the original 50,000-byte gate for every locked/non-install
+  // shape. Only the exact temporary PutItem grant may use the reviewed
+  // 50,500-byte ceiling, and every shape must remain below AWS's 51,200-byte
+  // direct TemplateBody limit.
+  if (
+    renderedBytes > reviewedLimit ||
+    renderedBytes >= cloudFormationDirectTemplateBodyLimit
+  ) {
     throw new Error(
-      "rendered bootstrap template exceeds the reviewed direct-body limit",
+      `rendered bootstrap template exceeds its reviewed direct-body limit (${renderedBytes} bytes; reviewed ${reviewedLimit} bytes)`,
     );
   }
   return rendered;
@@ -124,14 +208,32 @@ async function main() {
   const outputIndex = process.argv.indexOf("--output");
   if (outputIndex === -1 || !process.argv[outputIndex + 1]) {
     throw new Error(
-      "usage: node render-bootstrap.mjs --output <absolute-or-relative-path>",
+      "usage: node render-bootstrap.mjs --output <absolute-or-relative-path> [--lifecycle-task-registration-grant] [--shared-cell-provision-authority-grant-expires-at <canonical UTC .fffZ>]",
     );
   }
   const outputPath = path.resolve(process.cwd(), process.argv[outputIndex + 1]);
+  const grantExpiryOption =
+    "--shared-cell-provision-authority-grant-expires-at";
+  const grantExpiryIndexes = process.argv.flatMap((value, index) =>
+    value === grantExpiryOption ? [index] : [],
+  );
+  if (grantExpiryIndexes.length > 1) {
+    throw new Error(`${grantExpiryOption} may only be provided once`);
+  }
+  const grantExpiryIndex = grantExpiryIndexes[0] ?? -1;
+  if (
+    grantExpiryIndex !== -1 &&
+    (!process.argv[grantExpiryIndex + 1] ||
+      process.argv[grantExpiryIndex + 1].startsWith("--"))
+  ) {
+    throw new Error(`${grantExpiryOption} requires a value`);
+  }
   const rendered = await renderBootstrapTemplate({
     lifecycleTaskRegistrationGrant: process.argv.includes(
       "--lifecycle-task-registration-grant",
     ),
+    sharedCellProvisionAuthorityGrantExpiresAt:
+      grantExpiryIndex === -1 ? "" : process.argv[grantExpiryIndex + 1],
   });
   await writeFile(outputPath, rendered, { encoding: "utf8", flag: "w" });
   console.log(`Rendered S3 bootstrap template: ${outputPath}`);
