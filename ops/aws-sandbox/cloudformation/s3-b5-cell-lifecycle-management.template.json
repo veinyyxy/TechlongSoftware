@@ -1,0 +1,321 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Local-only J5g-a IAM contract for a future, separately approved Shared Cell lifecycle channel. This template is not apply-ready and creates no Shared Cell.",
+  "Metadata": {
+    "SafetyBoundary": {
+      "CloudApplyEnabled": false,
+      "LocalValidateOnly": true,
+      "ApplyReady": false,
+      "CleanupReady": false,
+      "PaidCellExecutionApproved": false,
+      "PreOnlineReviewRequired": true,
+      "RdsManagedSecretPermissionsReady": false,
+      "ExecutionBoundaryExactResourceMaximumReady": false,
+      "GrantWindowRuntimeValidationReady": false,
+      "ImmutableTemplatePublicationReady": false,
+      "CreatesIamOnly": true,
+      "CreatesSharedCell": false,
+      "CreatesPaidCellResources": false,
+      "OperatorGrantState": "LOCKED",
+      "ApprovedManagedStackName": "techlong-sandbox-cell-sandbox-1",
+      "ApprovedCellId": "cell-sandbox-1",
+      "JanitorPlanOnly": true,
+      "CurrentTtlDeleteEventCompatible": false,
+      "CreateFailureRollbackOperatorPresent": false,
+      "RollbackGrantPurpose": "MANUAL_FAILED_CREATE_RECOVERY_ONLY_NOT_TTL",
+      "SourceArnUnverified": true,
+      "CloudFormationServiceRoleTrust": "SERVICE_PRINCIPAL_ONLY",
+      "ServiceLinkedRolesPreexistingRequired": true,
+      "ApprovedResourceTypes": [
+        "AWS::Scheduler::Schedule",
+        "AWS::EC2::VPC",
+        "AWS::EC2::InternetGateway",
+        "AWS::EC2::VPCGatewayAttachment",
+        "AWS::EC2::Subnet",
+        "AWS::EC2::RouteTable",
+        "AWS::EC2::Route",
+        "AWS::EC2::SubnetRouteTableAssociation",
+        "AWS::EC2::SecurityGroup",
+        "AWS::EC2::SecurityGroupIngress",
+        "AWS::ECS::Cluster",
+        "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "AWS::ElasticLoadBalancingV2::Listener",
+        "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "AWS::RDS::DBSubnetGroup",
+        "AWS::Logs::LogGroup",
+        "AWS::RDS::DBCluster",
+        "AWS::RDS::DBInstance"
+      ]
+    }
+  },
+  "Parameters": {
+    "ExpectedAccountId": {
+      "Type": "String",
+      "Default": "402010193138",
+      "AllowedValues": ["402010193138"]
+    },
+    "ExpectedRegion": {
+      "Type": "String",
+      "Default": "ca-central-1",
+      "AllowedValues": ["ca-central-1"]
+    },
+    "ManagementPrincipalArn": {
+      "Type": "String",
+      "Default": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+      "AllowedValues": [
+        "arn:aws:iam::402010193138:user/techlong-sandbox-dev"
+      ]
+    }
+  },
+  "Conditions": {
+    "IsExpectedAccount": {
+      "Fn::Equals": [{ "Ref": "AWS::AccountId" }, { "Ref": "ExpectedAccountId" }]
+    },
+    "IsExpectedRegion": {
+      "Fn::Equals": [{ "Ref": "AWS::Region" }, { "Ref": "ExpectedRegion" }]
+    },
+    "IsExpectedTarget": {
+      "Fn::And": [
+        { "Condition": "IsExpectedAccount" },
+        { "Condition": "IsExpectedRegion" }
+      ]
+    }
+  },
+  "Resources": {
+    "CellOperatorBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxCellOperatorBoundary",
+        "Description": "Locked maximum permissions for the MFA-gated operator of only the single reviewed Sandbox Shared Cell stack.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyCellOperatorOutsideCanadaCentral",
+              "Effect": "Deny",
+              "NotAction": ["iam:*", "sts:GetCallerIdentity"],
+              "Resource": "*",
+              "Condition": {
+                "StringNotEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowCellOperatorIdentityRead",
+              "Effect": "Allow",
+              "Action": "sts:GetCallerIdentity",
+              "Resource": "*"
+            },
+            {
+              "Sid": "AllowReadExactCellStack",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DescribeStacks",
+                "cloudformation:GetTemplate",
+                "cloudformation:GetTemplateSummary",
+                "cloudformation:ListChangeSets",
+                "cloudformation:ListStackResources"
+              ],
+              "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowReadReviewedCellChangeSets",
+              "Effect": "Allow",
+              "Action": "cloudformation:DescribeChangeSet",
+              "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" },
+                "StringLike": {
+                  "cloudformation:ChangeSetName": "techlong-sandbox-cell-sandbox-1-*"
+                }
+              }
+            },
+            {
+              "Sid": "AllowReadExactCellPolicies",
+              "Effect": "Allow",
+              "Action": [
+                "iam:GetPolicy",
+                "iam:GetPolicyVersion",
+                "iam:ListEntitiesForPolicy",
+                "iam:ListPolicyVersions"
+              ],
+              "Resource": [
+                "arn:aws:iam::402010193138:policy/TechlongSandboxCellOperatorBoundary",
+                "arn:aws:iam::402010193138:policy/TechlongSandboxCellCloudFormationExecutionBoundary"
+              ]
+            },
+            {
+              "Sid": "AllowReadAndSimulateExactCellRoles",
+              "Effect": "Allow",
+              "Action": [
+                "iam:GetRole",
+                "iam:ListAttachedRolePolicies",
+                "iam:ListRolePolicies",
+                "iam:SimulatePrincipalPolicy"
+              ],
+              "Resource": [
+                "arn:aws:iam::402010193138:role/TechlongSandboxCellOperatorRole",
+                "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CellOperatorRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxCellOperatorRole",
+        "Description": "Human-only MFA role for digest-bound Shared Cell author, execute, and failed-create rollback grants; locked by default.",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "CellOperatorBoundary" },
+        "ManagedPolicyArns": [{ "Ref": "CellOperatorBoundary" }],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "AWS": { "Ref": "ManagementPrincipalArn" } },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "Bool": { "aws:MultiFactorAuthPresent": "true" },
+                "StringEquals": { "sts:RoleSessionName": "techlong-sandbox-cell-operator" }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-cell-lifecycle-manager" },
+          { "Key": "Component", "Value": "shared-cell-operator" }
+        ]
+      }
+    },
+    "CellCloudFormationExecutionBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxCellCloudFormationExecutionBoundary",
+        "Description": "Local pre-online maximum permissions for a future single Sandbox Shared Cell execution path; exact-resource boundary hardening remains required.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyCellExecutionOutsideCanadaCentral",
+              "Effect": "Deny",
+              "NotAction": ["iam:PassRole"],
+              "Resource": "*",
+              "Condition": {
+                "StringNotEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "DenyOutOfScopeAndEscalationActions",
+              "Effect": "Deny",
+              "Action": [
+                "ec2:AllocateAddress",
+                "ec2:AssociateAddress",
+                "ec2:CreateEgressOnlyInternetGateway",
+                "ec2:CreateNatGateway",
+                "ec2:CreateVpcEndpoint",
+                "ec2:CreateVpcEndpointServiceConfiguration",
+                "ec2:DeleteEgressOnlyInternetGateway",
+                "ec2:DeleteNatGateway",
+                "ec2:DeleteVpcEndpoints",
+                "ec2:ModifyVpcEndpoint",
+                "ec2:ReleaseAddress",
+                "ecs:CreateService",
+                "ecs:RunTask",
+                "ecs:StartTask",
+                "ecs:UpdateService",
+                "route53:ChangeResourceRecordSets",
+                "route53:CreateHostedZone",
+                "route53:DeleteHostedZone",
+                "secretsmanager:CreateSecret",
+                "secretsmanager:DeleteSecret",
+                "secretsmanager:PutSecretValue",
+                "secretsmanager:ReplicateSecretToRegions",
+                "secretsmanager:RestoreSecret",
+                "secretsmanager:RotateSecret",
+                "secretsmanager:UpdateSecret"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "DenyIamIdentityMutation",
+              "Effect": "Deny",
+              "Action": [
+                "iam:AttachRolePolicy",
+                "iam:CreatePolicy",
+                "iam:CreatePolicyVersion",
+                "iam:CreateRole",
+                "iam:DeletePolicy",
+                "iam:DeletePolicyVersion",
+                "iam:DeleteRole",
+                "iam:DeleteRolePermissionsBoundary",
+                "iam:DeleteRolePolicy",
+                "iam:DetachRolePolicy",
+                "iam:PutRolePermissionsBoundary",
+                "iam:PutRolePolicy",
+                "iam:SetDefaultPolicyVersion",
+                "iam:TagRole",
+                "iam:UntagRole",
+                "iam:UpdateAssumeRolePolicy",
+                "iam:UpdateRole",
+                "iam:UpdateRoleDescription"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      }
+    },
+    "CellCloudFormationExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "RoleName": "TechlongSandboxCellCloudFormationExecutionRole",
+        "Description": "Dedicated CloudFormation service role bounded to the one reviewed Shared Cell resource family; local contract only.",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "CellCloudFormationExecutionBoundary" },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "cloudformation.amazonaws.com" },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "aws-sandbox" },
+          { "Key": "ManagedBy", "Value": "techlong-cell-lifecycle-manager" },
+          { "Key": "Component", "Value": "shared-cell-cloudformation-execution" }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "CellOperatorRoleArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["CellOperatorRole", "Arn"] }
+    },
+    "CellCloudFormationExecutionRoleArn": {
+      "Condition": "IsExpectedTarget",
+      "Value": { "Fn::GetAtt": ["CellCloudFormationExecutionRole", "Arn"] }
+    },
+    "ApprovedManagedStackName": {
+      "Condition": "IsExpectedTarget",
+      "Value": "techlong-sandbox-cell-sandbox-1"
+    },
+    "SafetyState": {
+      "Condition": "IsExpectedTarget",
+      "Value": "LOCAL_ONLY_LOCKED_NOT_APPLY_READY_NO_PAID_CELL_APPROVAL"
+    }
+  }
+}

@@ -34,6 +34,7 @@ ops/aws-sandbox/
 │  ├─ s3-b5-lifecycle-log-support.template.json
 │  ├─ s3-b5-lifecycle-task-definition.template.json
 │  ├─ s3-b5-cell-bootstrap-management.template.json
+│  ├─ s3-b5-cell-lifecycle-management.template.json
 │  └─ s3-b5-cell-bootstrap.template.json
 ├─ codebuild/
 │  └─ buildspec.aws-sandbox.yml
@@ -46,10 +47,12 @@ ops/aws-sandbox/
 └─ scripts/
    ├─ render-bootstrap.mjs
    ├─ render-b5-cell-bootstrap-management.mjs
+   ├─ render-b5-cell-lifecycle-management.mjs
    ├─ render-b5-cell-bootstrap.mjs
    ├─ render-b5-support-rollback.mjs
    ├─ lifecycle-log-support-contract.mjs
    ├─ s3-b5-cell-bootstrap-management.ps1
+   ├─ s3-b5-cell-lifecycle-management.ps1
    ├─ s3-b5-cell-bootstrap.ps1
    ├─ s3-b5-lifecycle-log-support.ps1
    ├─ s3-b5-lifecycle-task-definition.ps1
@@ -61,6 +64,7 @@ ops/aws-sandbox/
    ├─ s3-rollback.ps1
    ├─ validate-cell.mjs
    ├─ validate-b5-cell-bootstrap-management.mjs
+   ├─ validate-b5-cell-lifecycle-management.mjs
    ├─ validate-b5-cell-bootstrap.mjs
    ├─ validate-b5-lifecycle-log-support.mjs
    ├─ validate-b5-lifecycle-task-definition.mjs
@@ -359,6 +363,24 @@ J5f 只补齐 dormant production evidence/installer 与未来受审运维入口�
 
 CLI 在线路径仍须在真实运行前单独审查 account/region/profile/MFA/endpoint、freshness、超时和确认摘要门禁；实际安装只能在真实付费 Cell 已由另一项明确批准创建、exact live evidence 可得、J5e 短时 `PutItem` grant 重新完成 Create → Inspect → Execute 后，再通过独立批准执行。无论成功、冲突或结果不确定，都必须完成 exact readback，并立即按独立 Revoke → Inspect → Execute 撤销临时写权限。J5f 本轮的 `LocalValidate` 不构成上述任一在线批准。
 
+### B5-J5g-a Shared Cell lifecycle IAM channel（仅离线渲染与 LocalValidate）
+
+J5g-a 为真实 Shared Cell 的 CloudFormation author/execute/失败创建回滚路径建立了独立 IAM 管理契约，不复用 Provisioner、J4c Manager、租户 Worker 或普通 Bootstrap execution role。`s3-b5-cell-lifecycle-management.template.json` 固定只包含四个 IAM 资源：`TechlongSandboxCellOperatorBoundary`、`TechlongSandboxCellOperatorRole`、`TechlongSandboxCellCloudFormationExecutionBoundary` 与 `TechlongSandboxCellCloudFormationExecutionRole`。Operator role只信任 exact source IAM User并要求 MFA；Cell CloudFormation execution role只信任 `cloudformation.amazonaws.com` service principal。普通 Stack 场景下使用 trust policy 的 `aws:SourceArn` / `aws:SourceAccount` 是否稳定可用尚未在线验证，因此本切片不把未经证明的 context key写成可部署保证。
+
+renderer 只生成 `Locked`（默认）、`AuthorGrant`、`ExecuteGrant`、`RollbackGrant` 四种离线可审权限形状。后三种都绑定 exact digest-derived Change Set name、raw template SHA-256、canonical UTC grant expiry；author/execute/rollback 能力互斥并受 expiry限制，`RollbackGrant` 只表达失败创建后的 exact root Stack 回滚窗口，不是 TTL 删除授权。未来隔离边界必须组合 exact `iam:PassRole`、CloudFormation `RoleARN`、digest-addressed `TemplateUrl`、固定 18 种 `ResourceTypes`、exact Stack/Change Set name、exact tags 与 action allowlist；发布端还必须用不可覆盖写入和执行前 hash readback证明 URL 内容不可变。当前 effective execution权限由临时 boundary 与 exact inline policy取交集，并显式禁止 IAM lifecycle、ECS `RunTask` / service lifecycle、NAT/EIP/VPC endpoint、Route 53和手工 Secrets lifecycle；但 boundary自身对 EC2 dependency仍含区域级 `Resource="*"`，尚不能单独证明不会触及第二条 Cell lineage。
+
+受控入口 `s3-b5-cell-lifecycle-management.ps1` 当前只接受：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-cell-lifecycle-management.ps1 -Mode LocalValidate
+```
+
+本切片没有 `CreateChangeSet`、`Inspect`、`Execute`、`Rollback` 或其他 online 模式；四种形状可离线渲染不代表其可部署。模板 metadata、renderer 与 validator 均固定 `ApplyReady=false`、`CleanupReady=false`、`PaidCellExecutionApproved=false`，并记录普通 Stack service-role source context尚未验证、Janitor仍为 `PLAN_ONLY`。本轮没有调用 AWS、修改 IAM/CloudFormation、创建或删除 Cell，也没有创建 VPC、ALB、ECS、Aurora/RDS、Route 53 资源或执行 `RunTask`。
+
+当前 Cell 模板会先创建状态为 `ENABLED` 的一次性 TTL Schedule，并发送 `action=delete_shared_cell_stack`；已部署的 J4c `cell-janitor.cjs` 只接受 `inspect_cell_cleanup_plan` 且固定 `PLAN_ONLY`，两者不兼容，不能据此保证到期删除。cleanup authority 的授权时序、创建失败时的可恢复回滚、RDS-managed master Secret 所需的受限 Secrets/KMS权限、execution boundary 的 EC2资源上界、运行时最小剩余 grant窗口，以及真正删除前对 live Stack 与 strongly-consistent authority 的双读/围栏仍是 P1 blocker。`shared_cell_provision_authority_predecessor_missing`、`shared_cell_cleanup_authority_writer_missing` 与 `registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 全部保持不变；严禁把 J5g-a 描述为付费创建 ready 或 cleanup ready。
+
+下一小阶段 J5g-b 应实现 reviewed cleanup-authority operator 与 mutation-capable Cell deletion contract，复用 J5b 已有的同 lineage conditional CAS adapter，不重写另一套 CAS。它仍须把 authority advance、Janitor mutation授权、失败创建回滚、TTL 调度和删除前双读拆成可审步骤；在这些边界和线上演练完成前，不得启用 Cell Apply、Schedule mutation或付费创建。
+
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 
 ## 安全镜像源码包
@@ -448,6 +470,7 @@ ExpiresAt=<UTC timestamp>
 - `provisioner-permissions-boundary.example.json` 是最大权限边界，不是授予权限的 Identity Policy。
 - Provisioner 只被允许管理 `techlong-sandbox-tenant-*` CloudFormation Stack、Pass 指定的 Sandbox Execution Role，并以固定 session name Assume exact `TechlongSandboxDeploymentWorkerRole`；共享 Cell 和 Bootstrap 仍不在其 CloudFormation 权限内。
 - B5-J4b 管理根的 Manager role 只在短期 grant 窗口操作固定 child Bootstrap Change Set；长期 Locked 状态不允许 child Create/Execute/Delete。AuthorGrant 通过 exact digest-addressed S3 `TemplateUrl`、execution `RoleARN`、`ChangeSetName`、4 种 `ResourceTypes` 和 exact `GetObject` 收窄模板作者能力，ExecuteGrant 前必须完成 exact Change Set/原始模板预检，两个窗口都要立即撤销。CloudFormation execution role 不拥有 IAM lifecycle，只能 `PassRole` 给 exact Janitor/Scheduler 两个外部最小角色。
+- J5g-a 的 Cell lifecycle IAM 模板与 J4c cleanup-only 管理根彼此独立。它当前只能本地渲染 `Locked/AuthorGrant/ExecuteGrant/RollbackGrant` 并执行 `LocalValidate`；PassRole、RoleARN、digest URL、18 种 ResourceTypes、tags、name、action与 expiry只是组合契约，发布不可覆盖性、execution boundary EC2上界、RDS-managed Secret权限和运行时 grant窗口仍未闭合。普通 Stack service-role trust 的 SourceArn/SourceAccount约束尚未验证，且 rollback grant不承担 TTL cleanup，因此禁止部署或据此创建收费 Cell。
 - 管理根与 child 已通过受控 `OnlineValidate`、Change Set 审查、IAM simulation、严格 readback 和双次 empty inventory probe；管理根最终回到 `LOCKED`。这些证据只证明当前 cleanup-only Bootstrap 边界，不允许付费 Cell，也不打开任何 readiness gate。
 - `sandbox-expensive-actions-deny.example.json` 是 Deny-only 示例。当前账号未使用 AWS Organizations，因此只能把它作为 IAM Policy 评审起点，不能假设 SCP 已生效。
 - 策略中的 Account、Region 和角色名称属于非敏感固定标识，但上线前仍必须与实际账号状态核对。
