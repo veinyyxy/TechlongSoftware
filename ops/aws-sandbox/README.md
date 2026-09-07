@@ -53,6 +53,7 @@ ops/aws-sandbox/
    ├─ s3-b5-cell-bootstrap.ps1
    ├─ s3-b5-lifecycle-log-support.ps1
    ├─ s3-b5-lifecycle-task-definition.ps1
+   ├─ s3-b5-shared-cell-provision-authority-operator.ps1
    ├─ s3-b5-shared-cell-provision-authority-preflight.ps1
    ├─ s3-b5-support-bootstrap.ps1
    ├─ s3-bootstrap.ps1
@@ -63,6 +64,7 @@ ops/aws-sandbox/
    ├─ validate-b5-cell-bootstrap.mjs
    ├─ validate-b5-lifecycle-log-support.mjs
    ├─ validate-b5-lifecycle-task-definition.mjs
+   ├─ validate-b5-shared-cell-provision-authority-operator.mjs
    ├─ validate-b5-shared-cell-provision-authority-preflight.mjs
    ├─ validate-b5-support.mjs
    ├─ verify-managed-policy-document.mjs
@@ -329,7 +331,7 @@ J5d 增加 exact-table/exact-key 的 production DynamoDB installer 源码。它�
 
 dormant production bundle 固定 `techlong-sandbox-provisioner` profile 与 exact MFA device，要求未来受审入口注入 MFA callback；同一次 `defaultProvider()` 返回值显式构造 STS、CloudFormation 和 DynamoDB client，并令业务 client 与内部 STS 忽略 configured endpoint override。bundle 构造本身不解析凭据、不发 AWS 请求，不接入 default Worker、J4c Lambda、CLI 或 Schedule；注入 module/client 只是受信测试 seam。默认 runtime 测试继续断言没有 provision evidence/authority capability，两个 blocker和四个 readiness gate未改变。
 
-当前 Provisioner 没有 exact Cell root Stack read 与 authority Get/Put，Worker 的 `LeadingKeys` 只允许 `tenant:*`，Janitor 只有 cell key Get 且显式 Deny mutation，Manager 也没有 DynamoDB writer；source IAM User 的广泛权限不是批准的安装路径。本切片没有 AWS/IAM/CloudFormation mutation、线上 authority 写入、付费 Cell 或 `RunTask`。后续必须把短时 exact IAM grant、付费 Cell 创建、live evidence/absent pre-read/candidate 审阅后的单次 install + readback + revoke、现有 cleanup CAS adapter 的 IAM/online enablement/root wiring、J4c mutation/Schedule enable 分开批准，不能直接放宽长期 Worker 权限。
+J5d 结束时 Provisioner 还没有 exact Cell root Stack read 与 authority Get/Put；后续 J5e 已部署 exact Stack/GetItem 稳定只读并完成短时 Put grant/revoke channel drill，但没有写入 authority。Worker 的 `LeadingKeys` 仍只允许 `tenant:*`，Janitor 只有 cell key Get 且显式 Deny mutation，Manager 也没有 DynamoDB writer；source IAM User 的广泛权限不是批准的安装路径。本切片没有 AWS/IAM/CloudFormation mutation、线上 authority 写入、付费 Cell 或 `RunTask`。后续仍必须把付费 Cell 创建、live evidence/absent pre-read/candidate 审阅后的单次 install + readback + revoke、现有 cleanup CAS adapter 的 IAM/online enablement/root wiring、J4c mutation/Schedule enable 分开批准，不能直接放宽长期 Worker 权限。
 
 ### B5-J5e Shared Cell provision-authority IAM channel
 
@@ -340,6 +342,22 @@ J5e 为 `TechlongSandboxProvisionerRole` 定义下一稳定 locked baseline：�
 J5e 已完成线上 IAM channel drill，但没有执行 installer。Grant Change Set `techlong-s3-b5-support-shared-cell-provision-authority-install-grant-89b3fc2b651162a6` 的 raw/canonical SHA-256 分别为 `89b3fc2b651162a6f99268470eec4f8cd3516f5e86a7243112083c5327cd5a10` / `81ff00ba9a077c0e5e5c66ae2fc80a215a3c13c02afc4ffd0dcddd7e676b70c7`，执行后 exact policy readback SHA-256 为 `f4788818fab5e7731e5fed8a5095b590225b1abf5c59a2b0e059005c20aece97`。事后验证曾因 IAM Simulator 对 deny 结果汇总无关 `MissingContextValues` 而 fail closed；门禁现要求 allowed 结果零 missing context、implicit deny 精确匹配且零 matched statement。临时 grant 于 `2026-09-01T18:19:28.077Z` 自动失效，期间没有调用 `PutItem`。
 
 Revoke Change Set `techlong-s3-b5-support-shared-cell-provision-authority-install-revoke-5854019ecacde555` 的 raw/canonical SHA-256 分别为 `5854019ecacde5554b756e538556cf69f330cce79901ac7950317f2f5bbd73cc` / `8231ff876b99b3f5374d1ee2978736f8ba3a48f1260f3d85382e67e9a453caf9`；执行后的 readback → 全部正反向 IAM simulation → readback 均通过，两次稳定 policy SHA-256 都是 `cebda5b97adbacd877e2d52459541ef9bbba4c7e028cb3657f101862e9cd574d`。随后 `EvidencePreflight` 证明 root Stack 为 `MISSING`、authority key 为 `ABSENT`。线上临时写权限已显式撤销；本阶段没有创建付费 Shared Cell、写 authority 或执行 `RunTask`，四个 readiness gate 与两个 blocker保持不变。未来 candidate/install 仍必须重新走独立 Grant → Inspect → Execute → install/readback → Revoke 批准链。
+
+### B5-J5f Shared Cell provision-authority reviewed operator（本轮仅 LocalValidate）
+
+J5f 只补齐 dormant production evidence/installer 与未来受审运维入口之间的 operator 协议。`inspectSharedCellProvisionAuthorityCandidate` 必须用同一个受约束 runtime 采集 fresh branded live Stack evidence，并在候选编译前后分别执行 strongly-consistent authority read；只有 fixed key 持续为 `ABSENT` 时，才返回不含原始 item 的可审摘要和 `candidateItemSha256`。`executeReviewedSharedCellProvisionAuthorityInstall` 必须重新采集 fresh evidence、重新编译 generation 1 / epoch 1 / revision 1 candidate，并把新摘要与人工确认的 digest exact-match 后，才可调用 J5d 的 absent-only conditional installer并再次核对结果摘要。`recoverReviewedSharedCellProvisionAuthorityInstall` 仅执行 strongly-consistent authority read，并校验 exact item、approved digest、owner、generation 1、epoch 1 和 revision 1；它固定 `evidenceObservedAt=null`，不读取 Stack、不重编译 candidate，也绝不调用 `PutItem`。
+
+受控入口为 `scripts/run-shared-cell-provision-authority-operator.ts`，PowerShell 门禁包装为 `ops/aws-sandbox/scripts/s3-b5-shared-cell-provision-authority-operator.ps1`，静态/本地验证器为 `validate-b5-shared-cell-provision-authority-operator.mjs`。包装脚本只接受 `LocalValidate`、`InspectCandidate`、`ExecuteInstall`、`Recover` 四个模式；本轮仅执行：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-shared-cell-provision-authority-operator.ps1 -Mode LocalValidate
+```
+
+未来三个在线模式都要求 raw-SHA-256 固定的 reviewed JSON manifest和 exact Provisioner MFA identity。PowerShell 的 STS identity read固定 `10` 秒 connect / `20` 秒 read timeout；root CLI 的 MFA 等待及全部 evidence/authority SDK 请求共用一个 `120` 秒 `AbortSignal`，但 SDK 凭据提供器内部 login/AssumeRole 网络解析是否严格响应该取消信号仍须在启用线上模式前验证。首次 AssumeRole 的六位 MFA 只允许从交互式 TTY 以 raw mode隐藏读取，prompt只写 stderr，验证码不经 argv、环境变量或 stdout。`ExecuteInstall` 还要求 approved candidate digest、剩余大于 2 分钟且不超过 60 分钟的 canonical grant expiry、账号/区域/Stack/table/key 五项 exact confirmation、五项风险确认及固定执行短语；PowerShell 和 root CLI 各自独立校验这些 Execute 确认，grant window还会在实际 `installIfAbsent` delegate前立即复检。`Recover` 拒绝 grant expiry，不需要写确认且只向 root CLI 传递只读参数。当前禁止执行这三个在线模式。
+
+本切片提供 operator 源码与受控未来在线 CLI，但本轮只运行 `LocalValidate`，没有调用 AWS。J5e 的旧 grant 已到期并显式撤销；当前 root Stack 仍为 `MISSING`、authority key 仍为 `ABSENT`，所以本轮不得执行 Inspect/Execute/Recover 线上操作，不会生成可执行的 live candidate或写入线上 authority。它不创建、更新或删除 Shared Cell，不接入默认 Worker/J4c/Schedule，不执行 ECS `RunTask`，也不访问 Neon、PostgreSQL、DNS、ACM 或 Trust Store。`shared_cell_provision_authority_predecessor_missing`、`shared_cell_cleanup_authority_writer_missing` 与 `registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 全部保持不变。
+
+CLI 在线路径仍须在真实运行前单独审查 account/region/profile/MFA/endpoint、freshness、超时和确认摘要门禁；实际安装只能在真实付费 Cell 已由另一项明确批准创建、exact live evidence 可得、J5e 短时 `PutItem` grant 重新完成 Create → Inspect → Execute 后，再通过独立批准执行。无论成功、冲突或结果不确定，都必须完成 exact readback，并立即按独立 Revoke → Inspect → Execute 撤销临时写权限。J5f 本轮的 `LocalValidate` 不构成上述任一在线批准。
 
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 
