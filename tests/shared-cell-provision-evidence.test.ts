@@ -43,8 +43,10 @@ const stackName = "techlong-sandbox-cell-sandbox-1";
 const stackId =
   `arn:aws:cloudformation:${region}:${accountId}:stack/${stackName}/` +
   "12345678-1234-1234-1234-123456789012";
-const cloudFormationRoleArn =
+const tenantCloudFormationRoleArn =
   `arn:aws:iam::${accountId}:role/TechlongSandboxCloudFormationExecutionRole`;
+const cellCloudFormationRoleArn =
+  `arn:aws:iam::${accountId}:role/TechlongSandboxCellCloudFormationExecutionRole`;
 const databaseEndpoint =
   `${stackName}.cluster-abcdefghijkl.${region}.rds.amazonaws.com`;
 const databaseSecretArn =
@@ -93,7 +95,7 @@ const binding: DeploymentExecutionBinding = {
   environmentId: environment.id,
   workerRoleArn:
     `arn:aws:iam::${accountId}:role/TechlongSandboxProvisionerRole`,
-  cloudFormationRoleArn,
+  cloudFormationRoleArn: tenantCloudFormationRoleArn,
   tenantStackParameters: {
     ClusterName: "cell-sandbox-1",
     VpcId: "vpc-0123456789abcdef0",
@@ -181,7 +183,7 @@ function fixture(
     StackId: stackId,
     StackName: stackName,
     StackStatus: "CREATE_COMPLETE",
-    RoleARN: cloudFormationRoleArn,
+    RoleARN: cellCloudFormationRoleArn,
     EnableTerminationProtection: false,
     CreationTime: new Date(input.requestedAt + 1_000),
     Tags: Object.entries(plan.tags).map(([Key, Value]) => ({ Key, Value })),
@@ -341,6 +343,11 @@ test("caller, Stack, template and complete inventory drift fail closed", async (
     {
       name: "nested Stack",
       overrides: { firstStack: { ParentId: stackId } },
+      code: "SHARED_CELL_PROVISION_EVIDENCE_STACK_INVALID",
+    },
+    {
+      name: "legacy generic CloudFormation execution role",
+      overrides: { firstStack: { RoleARN: tenantCloudFormationRoleArn } },
       code: "SHARED_CELL_PROVISION_EVIDENCE_STACK_INVALID",
     },
     {

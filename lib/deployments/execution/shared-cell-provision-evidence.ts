@@ -8,8 +8,10 @@ const accountId = "402010193138";
 const region = "ca-central-1";
 const cellId = "cell-sandbox-1";
 const stackName = "techlong-sandbox-cell-sandbox-1";
-const cloudFormationRoleArn =
+const tenantCloudFormationRoleArn =
   "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole";
+const cellCloudFormationRoleArn =
+  "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole";
 const maximumEvidenceAgeMs = 5 * 60_000;
 const stackIdPattern =
   /^arn:aws:cloudformation:ca-central-1:402010193138:stack\/techlong-sandbox-cell-sandbox-1\/[0-9a-f-]{36}$/;
@@ -233,7 +235,7 @@ function normalizeStack(value: Record<string, unknown>): StableStackSnapshot {
     !["CREATE_COMPLETE", "UPDATE_COMPLETE"].includes(status ?? "") ||
     text(value.ParentId) !== null ||
     text(value.RootId) !== null ||
-    roleArn !== cloudFormationRoleArn ||
+    roleArn !== cellCloudFormationRoleArn ||
     value.EnableTerminationProtection !== false
   ) {
     fail(
@@ -286,7 +288,7 @@ function assertBinding(input: ReadSharedCellProvisionEvidenceInput): void {
     input.binding.status !== "active" ||
     input.binding.workerRoleArn !==
       "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole" ||
-    input.binding.cloudFormationRoleArn !== cloudFormationRoleArn ||
+    input.binding.cloudFormationRoleArn !== tenantCloudFormationRoleArn ||
     !exactKeys(input.binding.tenantStackParameters, bindingKeys)
   ) {
     fail(

@@ -28,8 +28,10 @@ const accountId = "402010193138";
 const region = "ca-central-1";
 const stackName = "techlong-sandbox-cell-sandbox-1";
 const stackUuid = "12345678-1234-1234-1234-123456789012";
-const cloudFormationRoleArn =
+const tenantCloudFormationRoleArn =
   "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole";
+const cellCloudFormationRoleArn =
+  "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole";
 
 const environment: DeploymentEnvironment = {
   id: "env_aws_sandbox_ca_central_1",
@@ -73,7 +75,7 @@ const binding: DeploymentExecutionBinding = {
   environmentId: environment.id,
   workerRoleArn:
     "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole",
-  cloudFormationRoleArn,
+  cloudFormationRoleArn: tenantCloudFormationRoleArn,
   tenantStackParameters: {
     ClusterName: "cell-sandbox-1",
     VpcId: "vpc-0123456789abcdef0",
@@ -164,7 +166,7 @@ function liveEvidence(input: {
     StackId: selectedStackId,
     StackName: stackName,
     StackStatus: "CREATE_COMPLETE",
-    RoleARN: cloudFormationRoleArn,
+    RoleARN: cellCloudFormationRoleArn,
     EnableTerminationProtection: false,
     CreationTime: new Date(stack.requestedAt + 1_000),
     Tags: Object.entries(plan.tags).map(([Key, Value]) => ({ Key, Value })),

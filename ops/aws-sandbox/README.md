@@ -56,6 +56,7 @@ ops/aws-sandbox/
    ├─ s3-b5-cell-bootstrap.ps1
    ├─ s3-b5-lifecycle-log-support.ps1
    ├─ s3-b5-lifecycle-task-definition.ps1
+   ├─ s3-b5-shared-cell-cleanup-control.ps1
    ├─ s3-b5-shared-cell-provision-authority-operator.ps1
    ├─ s3-b5-shared-cell-provision-authority-preflight.ps1
    ├─ s3-b5-support-bootstrap.ps1
@@ -68,6 +69,7 @@ ops/aws-sandbox/
    ├─ validate-b5-cell-bootstrap.mjs
    ├─ validate-b5-lifecycle-log-support.mjs
    ├─ validate-b5-lifecycle-task-definition.mjs
+   ├─ validate-b5-shared-cell-cleanup-control.mjs
    ├─ validate-b5-shared-cell-provision-authority-operator.mjs
    ├─ validate-b5-shared-cell-provision-authority-preflight.mjs
    ├─ validate-b5-support.mjs
@@ -379,7 +381,23 @@ renderer 只生成 `Locked`（默认）、`AuthorGrant`、`ExecuteGrant`、`Roll
 
 当前 Cell 模板会先创建状态为 `ENABLED` 的一次性 TTL Schedule，并发送 `action=delete_shared_cell_stack`；已部署的 J4c `cell-janitor.cjs` 只接受 `inspect_cell_cleanup_plan` 且固定 `PLAN_ONLY`，两者不兼容，不能据此保证到期删除。cleanup authority 的授权时序、创建失败时的可恢复回滚、RDS-managed master Secret 所需的受限 Secrets/KMS权限、execution boundary 的 EC2资源上界、运行时最小剩余 grant窗口，以及真正删除前对 live Stack 与 strongly-consistent authority 的双读/围栏仍是 P1 blocker。`shared_cell_provision_authority_predecessor_missing`、`shared_cell_cleanup_authority_writer_missing` 与 `registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false` 全部保持不变；严禁把 J5g-a 描述为付费创建 ready 或 cleanup ready。
 
-下一小阶段 J5g-b 应实现 reviewed cleanup-authority operator 与 mutation-capable Cell deletion contract，复用 J5b 已有的同 lineage conditional CAS adapter，不重写另一套 CAS。它仍须把 authority advance、Janitor mutation授权、失败创建回滚、TTL 调度和删除前双读拆成可审步骤；在这些边界和线上演练完成前，不得启用 Cell Apply、Schedule mutation或付费创建。
+J5g-a之后的 J5g-b 必须复用 J5b 已有的同 lineage conditional CAS adapter，不重写另一套 CAS，并把 authority advance、Janitor mutation授权、失败创建回滚、TTL调度和删除前双读拆成可审步骤。下节只实现其中的 dormant生产契约；在 provider、权限与线上演练完成前，不得启用 Cell Apply、Schedule mutation或付费创建。
+
+### B5-J5g-b Shared Cell cleanup authority/deletion control（dormant、仅 LocalValidate）
+
+J5g-b 新增两个彼此分权的本地生产契约，但没有接入真实 provider。`shared-cell-cleanup-authority-operator.ts` 的 inspect/execute/recover 流程要求受保护 collector生成带私有 provenance的 Stack evidence与五项全零 ownership evidence；普通结构对象不能伪造这些 evidence。Stack evidence固定账号、区域、Cell、root Stack和 `TechlongSandboxCellCloudFormationExecutionRole`，必须证明 Cell已经到期，并与 strongly-consistent `provision_verified` predecessor的 StackId、状态、TTL、模板摘要和完整资源 inventory摘要一致；Stack与 ownership两份 evidence必须都在 Cell expiry当时或之后采集，并落在同一个 30 秒 freshness窗口。inspect在收集 evidence前后读取同一 predecessor，execute重新采集并重编 exact candidate，再使用独立注入、绑定 predecessor/candidate/expiry的短时 CAS capability调用 J5b既有 `advanceSharedCellCleanupAuthority`；它只允许 `provision_verified → cleanup_authorized`，写后还要独立强读 exact item。recover只读并确认已发生的 authority结果，不采集 evidence、不写 CAS，即使授权窗口已经到期也可用于判定 outcome；所有摘要固定 `deletionPerformed=false`。
+
+`shared-cell-cleanup-deletion.ts` 使用另一组窄端口：完整 CloudFormation evidence读、strong cleanup-authority只读和唯一 `DeleteStack` delegate。inspect/execute/recover均固定 caller为 `TechlongSandboxCellJanitorExecutionRole` assumed-role session，拒绝把人工 Cell Operator或 Provisioner当成 TTL deleter。执行计划要求完整分页的 Stack列表没有租户/意外 Cell，authority在证据采集前后两次 strong read完全一致，并两次读取不得早于 Cell expiry的 fresh zero-tenant ownership snapshot；snapshot不仅要求五项计数为零，还要求五个 source ID数组为空且 canonical source hash匹配。其间连续两次完整读取 exact root Stack、Original template和全部 terminal resource inventory，并核对 termination protection、四个 exact tags、已过期 `ExpiresAt`、专用 Cell `RoleARN`以及 active `cleanup_authorized` lineage的模板/inventory/operation hashes。execute须用 fresh evidence重现人工批准的 `deletionPlanSha256`，在唯一一次 `DeleteStack` 紧前再次以 zero-tenant before/after夹住 Stack和 authority复核，随后最后核对 caller，使用由 exact plan派生的稳定 ClientRequestToken，并在有界窗口内以 name-bound missing + 完整 Stack inventory共同证明删除。响应丢失或畸形不重发删除，只进入只读恢复；`DELETE_FAILED` / rollback failure、StackId replacement、矛盾 missing或 readback超时均 fail closed。recover不持有 delete capability。
+
+本阶段受控入口仍只有：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-shared-cell-cleanup-control.ps1 -Mode LocalValidate
+```
+
+validator只核对上述静态契约、两组定向测试、默认 `offline_only` runtime，以及当前 J4c child/Lambda仍为 `PLAN_ONLY`、Schedule仍为 `DISABLED`。wrapper没有 online模式、AWS profile或写入确认参数；本切片也没有 production Stack/ownership collector、AWS deletion adapter、CLI、default Worker/Janitor wiring或 IAM grant。已部署的 `cell-janitor.cjs` 未修改，仍只接受 `inspect_cell_cleanup_plan`，不接受 Cell模板发出的 `delete_shared_cell_stack`，也没有 `DeleteStack` 或 authority mutation命令。
+
+因此 J5g-b 只是 dormant contract，不是 cleanup ready。线上前仍缺 production collectors及有界 SDK runtime、cleanup CAS和 Janitor `DeleteStack` 的相互独立短时 grant/readback/revoke、Schedule在 Cell TTL到点后才授权 cleanup的可靠时序，以及失败创建时尚未满足“Cell已到期 + 完整 provision predecessor”的独立 rollback路径。账号当前没有 Cell或既有 Cell lineage；future provision live evidence与 deletion fresh read虽已要求专用 Cell `RoleARN`，但 authority record schema没有持久化 RoleARN，不能仅凭 predecessor自身证明 role lineage，仍须另行闭合 schema/collector/wiring并在线验证。本轮没有调用 AWS，没有修改 IAM、Schedule、Lambda或 CloudFormation Stack，没有创建/删除 Cell或执行 `RunTask`；`shared_cell_provision_authority_predecessor_missing`、`shared_cell_cleanup_authority_writer_missing`和四个 readiness gate全部保持不变。
 
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 
