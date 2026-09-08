@@ -153,6 +153,14 @@ test("observe accepts a provision predecessor through one full strongly consiste
     TableName: SHARED_CELL_CLEANUP_AUTHORITY_TABLE_ARN,
     Key: { authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY },
     ConsistentRead: true,
+    ProjectionExpression:
+      "#authorityKey, #schemaVersion, #revision, #recordJson",
+    ExpressionAttributeNames: {
+      "#authorityKey": "authority_key",
+      "#schemaVersion": "schema_version",
+      "#revision": "revision",
+      "#recordJson": "record_json",
+    },
   });
 });
 
@@ -270,6 +278,8 @@ test("CAS writes provision to cleanup under the complete canonical predecessor c
     ":expectedRevision": 1,
     ":expectedRecordJson": previous.record_json,
   });
+  assert.equal(put?.ReturnValues, "NONE");
+  assert.equal(put?.ReturnValuesOnConditionCheckFailure, "NONE");
 });
 
 test("CAS cannot bootstrap an empty authority and performs no SDK call", async () => {

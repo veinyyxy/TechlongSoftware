@@ -1059,6 +1059,14 @@ test("DynamoDB provision adapter performs one absent-only Put and full consisten
     TableName: SHARED_CELL_CLEANUP_AUTHORITY_TABLE_ARN,
     Key: { authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY },
     ConsistentRead: true,
+    ProjectionExpression:
+      "#authorityKey, #schemaVersion, #revision, #recordJson",
+    ExpressionAttributeNames: {
+      "#authorityKey": "authority_key",
+      "#schemaVersion": "schema_version",
+      "#revision": "revision",
+      "#recordJson": "record_json",
+    },
   });
   assert.deepEqual(calls[1].input, {
     TableName: SHARED_CELL_CLEANUP_AUTHORITY_TABLE_ARN,

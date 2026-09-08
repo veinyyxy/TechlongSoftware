@@ -6,6 +6,8 @@
     "test:b5-cell-bootstrap": "node ./scripts/validate-b5-cell-bootstrap-management.mjs && node ./scripts/validate-b5-cell-bootstrap.mjs",
     "test:b5-cell-lifecycle-management": "node ./scripts/validate-b5-cell-lifecycle-management.mjs",
     "test:b5-shared-cell-cleanup-control": "node ./scripts/validate-b5-shared-cell-cleanup-control.mjs",
-    "test": "node ./scripts/validate.mjs && node --experimental-strip-types ./scripts/validate-cell.mjs && npm run test:b5-cell-bootstrap && npm run test:b5-cell-lifecycle-management && npm run test:b5-shared-cell-cleanup-control && node ./scripts/validate-b5-support.mjs && node ./scripts/validate-b5-shared-cell-provision-authority-preflight.mjs && node ./scripts/validate-b5-shared-cell-provision-authority-operator.mjs && node ./scripts/validate-b5-lifecycle-task-definition.mjs && node ./scripts/validate-b5-lifecycle-log-support.mjs"
+    "test:b5-shared-cell-cleanup-production-adapters": "node ./scripts/validate-b5-shared-cell-cleanup-production-adapters.mjs",
+    "test:b5-shared-cell-cleanup-grants": "node ./scripts/validate-b5-shared-cell-cleanup-grants.mjs",
+    "test": "node ./scripts/validate.mjs && node --experimental-strip-types ./scripts/validate-cell.mjs && npm run test:b5-cell-bootstrap && npm run test:b5-cell-lifecycle-management && npm run test:b5-shared-cell-cleanup-control && npm run test:b5-shared-cell-cleanup-production-adapters && npm run test:b5-shared-cell-cleanup-grants && node ./scripts/validate-b5-support.mjs && node ./scripts/validate-b5-shared-cell-provision-authority-preflight.mjs && node ./scripts/validate-b5-shared-cell-provision-authority-operator.mjs && node ./scripts/validate-b5-lifecycle-task-definition.mjs && node ./scripts/validate-b5-lifecycle-log-support.mjs"
   }
 }

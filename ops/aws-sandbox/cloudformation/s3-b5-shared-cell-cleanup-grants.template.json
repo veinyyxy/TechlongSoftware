@@ -1,0 +1,261 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Local-only J5g-c candidate boundaries for two separately reviewed Shared Cell cleanup grants. This template is deliberately unattached and not apply-ready.",
+  "Metadata": {
+    "SafetyBoundary": {
+      "CloudApplyEnabled": false,
+      "LocalValidateOnly": true,
+      "ApplyReady": false,
+      "CleanupReady": false,
+      "CreatesIamOnly": true,
+      "CreatesSharedCell": false,
+      "CreatesPaidCellResources": false,
+      "CandidatePoliciesUnattached": true,
+      "ExistingRolesModified": false,
+      "ExistingLambdaModified": false,
+      "ExistingScheduleModified": false,
+      "CurrentJanitorMode": "PLAN_ONLY",
+      "CurrentJanitorBoundaryReplacementReady": false,
+      "AuthorityWriterRuntimeWiringReady": false,
+      "JanitorMutationRuntimeWiringReady": false,
+      "PreOnlineReviewRequired": true,
+      "WriterAndDeleterSeparated": true,
+      "GrantsMutuallyExclusive": true,
+      "StrongCleanupAuthorityReadRequired": true,
+      "ZeroTenantEvidenceRequired": true,
+      "StandardDeletionModeRequired": true,
+      "StableClientRequestTokenRequired": true,
+      "ExactStackIdRequired": true,
+      "DeleteRoleArnConditionRequired": true,
+      "NoReturnedAuthorityValuesRequired": true,
+      "GrantState": "LOCKED",
+      "AuthorityWriterTargetRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole",
+      "JanitorTargetRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCellJanitorExecutionRole",
+      "CellCloudFormationExecutionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole",
+      "AuthorityTableArn": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+      "AuthorityKey": "cell:cell-sandbox-1",
+      "CellStackName": "techlong-sandbox-cell-sandbox-1",
+      "MaximumGrantSeconds": 900
+    }
+  },
+  "Parameters": {
+    "ExpectedAccountId": {
+      "Type": "String",
+      "Default": "402010193138",
+      "AllowedValues": ["402010193138"]
+    },
+    "ExpectedRegion": {
+      "Type": "String",
+      "Default": "ca-central-1",
+      "AllowedValues": ["ca-central-1"]
+    }
+  },
+  "Conditions": {
+    "IsExpectedAccount": {
+      "Fn::Equals": [{ "Ref": "AWS::AccountId" }, { "Ref": "ExpectedAccountId" }]
+    },
+    "IsExpectedRegion": {
+      "Fn::Equals": [{ "Ref": "AWS::Region" }, { "Ref": "ExpectedRegion" }]
+    },
+    "IsExpectedTarget": {
+      "Fn::And": [
+        { "Condition": "IsExpectedAccount" },
+        { "Condition": "IsExpectedRegion" }
+      ]
+    }
+  },
+  "Resources": {
+    "CleanupAuthorityWriterBoundaryCandidate": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxCleanupAuthorityWriterBoundaryCandidate",
+        "Description": "Unattached J5g-c candidate maximum for a separately reviewed cleanup-authority CAS writer; locked by default.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyAuthorityWriterOutsideCanadaCentral",
+              "Effect": "Deny",
+              "NotAction": "sts:GetCallerIdentity",
+              "Resource": "*",
+              "Condition": {
+                "StringNotEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "DenyAuthorityWriterNonCasMutations",
+              "Effect": "Deny",
+              "Action": [
+                "dynamodb:BatchWriteItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:TransactWriteItems",
+                "dynamodb:UpdateItem"
+              ],
+              "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority"
+            },
+            {
+              "Sid": "DenyAuthorityWriterInfrastructureMutation",
+              "Effect": "Deny",
+              "Action": [
+                "cloudformation:CreateChangeSet",
+                "cloudformation:CreateStack",
+                "cloudformation:DeleteStack",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:UpdateStack",
+                "ec2:CreateNatGateway",
+                "ec2:CreateVpc",
+                "ecs:CreateCluster",
+                "ecs:CreateService",
+                "ecs:RunTask",
+                "elasticloadbalancing:CreateLoadBalancer",
+                "lambda:UpdateFunctionCode",
+                "lambda:UpdateFunctionConfiguration",
+                "rds:CreateDBCluster",
+                "rds:CreateDBInstance",
+                "scheduler:CreateSchedule",
+                "scheduler:UpdateSchedule"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "AllowAuthorityWriterIdentityRead",
+              "Effect": "Allow",
+              "Action": "sts:GetCallerIdentity",
+              "Resource": "*"
+            },
+            {
+              "Sid": "AllowExactCleanupAuthorityStrongRead",
+              "Effect": "Allow",
+              "Action": "dynamodb:GetItem",
+              "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" },
+                "ForAllValues:StringEquals": {
+                  "dynamodb:LeadingKeys": ["cell:cell-sandbox-1"],
+                  "dynamodb:Attributes": [
+                    "authority_key",
+                    "schema_version",
+                    "revision",
+                    "record_json"
+                  ]
+                },
+                "Null": {
+                  "dynamodb:LeadingKeys": "false",
+                  "dynamodb:Attributes": "false"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CellJanitorMutationBoundaryCandidate": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Condition": "IsExpectedTarget",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxCellJanitorMutationBoundaryCandidate",
+        "Description": "Unattached J5g-c candidate maximum for the Cell Janitor evidence reader and one reviewed root Stack deletion; locked by default.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyJanitorOutsideCanadaCentral",
+              "Effect": "Deny",
+              "NotAction": ["iam:*", "sts:GetCallerIdentity"],
+              "Resource": "*",
+              "Condition": {
+                "StringNotEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "DenyJanitorAuthorityMutation",
+              "Effect": "Deny",
+              "Action": [
+                "dynamodb:BatchWriteItem",
+                "dynamodb:DeleteItem",
+                "dynamodb:PutItem",
+                "dynamodb:TransactWriteItems",
+                "dynamodb:UpdateItem"
+              ],
+              "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority"
+            },
+            {
+              "Sid": "DenyJanitorOutOfScopeMutation",
+              "Effect": "Deny",
+              "Action": [
+                "cloudformation:ContinueUpdateRollback",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:CreateStack",
+                "cloudformation:DeleteChangeSet",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:SetStackPolicy",
+                "cloudformation:UpdateStack",
+                "ec2:CreateNatGateway",
+                "ec2:CreateVpc",
+                "ecs:CreateCluster",
+                "ecs:CreateService",
+                "ecs:RunTask",
+                "elasticloadbalancing:CreateLoadBalancer",
+                "lambda:UpdateFunctionCode",
+                "lambda:UpdateFunctionConfiguration",
+                "rds:CreateDBCluster",
+                "rds:CreateDBInstance",
+                "scheduler:CreateSchedule",
+                "scheduler:UpdateSchedule"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "AllowJanitorIdentityRead",
+              "Effect": "Allow",
+              "Action": "sts:GetCallerIdentity",
+              "Resource": "*"
+            },
+            {
+              "Sid": "AllowJanitorCompleteStackInventory",
+              "Effect": "Allow",
+              "Action": "cloudformation:ListStacks",
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowJanitorExactCellEvidenceRead",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DescribeStacks",
+                "cloudformation:GetTemplate",
+                "cloudformation:ListStackResources"
+              ],
+              "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/*",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" }
+              }
+            },
+            {
+              "Sid": "AllowJanitorExactCleanupAuthorityRead",
+              "Effect": "Allow",
+              "Action": "dynamodb:GetItem",
+              "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+              "Condition": {
+                "StringEquals": { "aws:RequestedRegion": "ca-central-1" },
+                "ForAllValues:StringEquals": {
+                  "dynamodb:LeadingKeys": ["cell:cell-sandbox-1"]
+                },
+                "Null": { "dynamodb:LeadingKeys": "false" }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ContractState": {
+      "Description": "This output is documentary only because the template has no online apply path.",
+      "Value": "LOCKED_UNATTACHED_LOCAL_VALIDATE_ONLY"
+    }
+  }
+}
