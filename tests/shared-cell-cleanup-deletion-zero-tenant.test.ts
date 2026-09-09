@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { sha256Hex } from "../lib/deployments/execution/hash.ts";
-import { SerializableSharedCellCleanupDeletionZeroTenantAdapter } from "../lib/deployments/execution/shared-cell-cleanup-deletion-zero-tenant.ts";
+import {
+  SerializableSharedCellCleanupDeletionZeroTenantAdapter,
+  SharedCellCleanupDeletionZeroTenantError,
+} from "../lib/deployments/execution/shared-cell-cleanup-deletion-zero-tenant.ts";
 import type { SerializableSharedCellOwnershipSnapshotSource } from "../lib/deployments/execution/shared-cell-zero-tenant-evidence.ts";
 
 const now = Date.parse("2026-09-07T20:00:00.000Z");
@@ -23,7 +26,7 @@ function source(
       reads += 1;
       received = input;
       return {
-        schemaVersion: 1,
+        schemaVersion: 2,
         isolationLevel: "Serializable",
         readOnly: true,
         deferrable: true,
@@ -32,6 +35,17 @@ function source(
         cellId: "cell-sandbox-1",
         environmentId: "env_aws_sandbox_ca_central_1",
         dbObservedAt: now,
+        admissionState: "draining",
+        admissionEpoch: 1,
+        admissionFenceSha256: "a".repeat(64),
+        admissionProvisionOperationHash: "b".repeat(64),
+        admissionStackId:
+          "arn:aws:cloudformation:ca-central-1:402010193138:stack/" +
+          "techlong-sandbox-cell-sandbox-1/" +
+          "12345678-1234-1234-1234-123456789012",
+        admissionCellExpiresAt: now - 60_000,
+        admissionChangedAt: now - 30_000,
+        databaseCellExpired: true,
         activeTenantIds: lists.activeTenantIds ?? [],
         activeCapacityReservationIds:
           lists.activeCapacityReservationIds ?? [],
@@ -56,6 +70,18 @@ test("projects one serializable snapshot into exact deletion evidence", async ()
     signal,
   })) as Record<string, unknown>;
   const expectedSource = {
+    admissionFence: {
+      admissionState: "draining",
+      admissionEpoch: 1,
+      admissionFenceSha256: "a".repeat(64),
+      admissionProvisionOperationHash: "b".repeat(64),
+      admissionStackId:
+        "arn:aws:cloudformation:ca-central-1:402010193138:stack/" +
+        "techlong-sandbox-cell-sandbox-1/" +
+        "12345678-1234-1234-1234-123456789012",
+      admissionCellExpiresAt: now - 60_000,
+      admissionChangedAt: now - 30_000,
+    },
     activeTenantIds: [],
     activeCapacityReservationIds: [],
     nonterminalDeploymentIds: [],
@@ -114,7 +140,7 @@ test("foreign or non-serializable snapshots are rejected", async () => {
   const malformed: SerializableSharedCellOwnershipSnapshotSource = {
     async readSerializableReadOnlySnapshot() {
       return {
-        schemaVersion: 1,
+        schemaVersion: 2,
         isolationLevel: "ReadCommitted" as never,
         readOnly: true,
         deferrable: true,
@@ -123,6 +149,17 @@ test("foreign or non-serializable snapshots are rejected", async () => {
         cellId: "cell-sandbox-1",
         environmentId: "env_aws_sandbox_ca_central_1",
         dbObservedAt: now,
+        admissionState: "draining",
+        admissionEpoch: 1,
+        admissionFenceSha256: "a".repeat(64),
+        admissionProvisionOperationHash: "b".repeat(64),
+        admissionStackId:
+          "arn:aws:cloudformation:ca-central-1:402010193138:stack/" +
+          "techlong-sandbox-cell-sandbox-1/" +
+          "12345678-1234-1234-1234-123456789012",
+        admissionCellExpiresAt: now - 60_000,
+        admissionChangedAt: now - 30_000,
+        databaseCellExpired: true,
         activeTenantIds: [],
         activeCapacityReservationIds: [],
         nonterminalDeploymentIds: [],
@@ -168,7 +205,7 @@ test("source failures are sanitized and pre-abort makes no source call", async (
         retryable?: boolean;
       };
       return (
-        value.code === "Serialization_Failure_" &&
+        value.code === "SHARED_CELL_DELETE_ZERO_TENANT_READ_FAILED" &&
         value.retryable === true &&
         !String(value.message).includes("secret")
       );
@@ -184,4 +221,105 @@ test("source failures are sanitized and pre-abort makes no source call", async (
     (error) => error === reason,
   );
   assert.equal(reads, 1);
+});
+
+test("source error identifiers cannot carry arbitrary secret material", async () => {
+  const failing: SerializableSharedCellOwnershipSnapshotSource = {
+    async readSerializableReadOnlySnapshot() {
+      throw Object.assign(new Error("message-secret"), {
+        name: "postgres://name-secret@host/db",
+        code: "40KEY",
+      });
+    },
+  };
+  await assert.rejects(
+    new SerializableSharedCellCleanupDeletionZeroTenantAdapter(failing, {
+      now: () => now,
+    }).readStrongZeroTenantOwnershipSnapshot({
+      signal: new AbortController().signal,
+    }),
+    (error) => {
+      const value = error as {
+        code?: string;
+        message?: string;
+        stack?: string;
+      };
+      const exposed = [value.code, value.message, value.stack].join(" ");
+      return (
+        value.code === "SHARED_CELL_DELETE_ZERO_TENANT_READ_FAILED" &&
+        !exposed.includes("message-secret") &&
+        !exposed.includes("name-secret") &&
+        !exposed.includes("40KEY")
+      );
+    },
+  );
+
+  const throwingGetter: SerializableSharedCellOwnershipSnapshotSource = {
+    async readSerializableReadOnlySnapshot() {
+      throw Object.defineProperties(new Error("message-secret"), {
+        name: {
+          get() {
+            throw new Error("getter-name-secret");
+          },
+        },
+        code: {
+          get() {
+            throw new Error("getter-code-secret");
+          },
+        },
+        retryable: {
+          get() {
+            throw new Error("getter-retryable-secret");
+          },
+        },
+      });
+    },
+  };
+  await assert.rejects(
+    new SerializableSharedCellCleanupDeletionZeroTenantAdapter(throwingGetter, {
+      now: () => now,
+    }).readStrongZeroTenantOwnershipSnapshot({
+      signal: new AbortController().signal,
+    }),
+    (error) => {
+      const value = error as { code?: string; message?: string; stack?: string };
+      const exposed = [value.code, value.message, value.stack].join(" ");
+      return (
+        value.code === "SHARED_CELL_DELETE_ZERO_TENANT_READ_FAILED" &&
+        !exposed.includes("getter-")
+      );
+    },
+  );
+
+  const domainError: SerializableSharedCellOwnershipSnapshotSource = {
+    async readSerializableReadOnlySnapshot() {
+      throw new SharedCellCleanupDeletionZeroTenantError(
+        "40KEY",
+        "domain-message-secret",
+        true,
+      );
+    },
+  };
+  await assert.rejects(
+    new SerializableSharedCellCleanupDeletionZeroTenantAdapter(domainError, {
+      now: () => now,
+    }).readStrongZeroTenantOwnershipSnapshot({
+      signal: new AbortController().signal,
+    }),
+    (error) => {
+      const value = error as {
+        code?: string;
+        message?: string;
+        retryable?: boolean;
+        stack?: string;
+      };
+      const exposed = [value.code, value.message, value.stack].join(" ");
+      return (
+        value.code === "SHARED_CELL_DELETE_ZERO_TENANT_READ_FAILED" &&
+        value.retryable === true &&
+        !exposed.includes("40KEY") &&
+        !exposed.includes("domain-message-secret")
+      );
+    },
+  );
 });

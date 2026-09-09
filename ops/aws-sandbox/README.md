@@ -57,6 +57,7 @@ ops/aws-sandbox/
    ├─ s3-b5-lifecycle-log-support.ps1
    ├─ s3-b5-lifecycle-task-definition.ps1
    ├─ s3-b5-shared-cell-cleanup-control.ps1
+   ├─ s3-b5-shared-cell-admission-fence.ps1
    ├─ s3-b5-shared-cell-provision-authority-operator.ps1
    ├─ s3-b5-shared-cell-provision-authority-preflight.ps1
    ├─ s3-b5-support-bootstrap.ps1
@@ -70,6 +71,7 @@ ops/aws-sandbox/
    ├─ validate-b5-lifecycle-log-support.mjs
    ├─ validate-b5-lifecycle-task-definition.mjs
    ├─ validate-b5-shared-cell-cleanup-control.mjs
+   ├─ validate-b5-shared-cell-admission-fence.mjs
    ├─ validate-b5-shared-cell-provision-authority-operator.mjs
    ├─ validate-b5-shared-cell-provision-authority-preflight.mjs
    ├─ validate-b5-support.mjs
@@ -403,7 +405,7 @@ validator只核对上述静态契约、两组定向测试、默认 `offline_only
 
 J5g-c 把 J5g-b 的抽象端口落实为真实 provider 形状，但没有把它们接入默认 Worker 或已部署 Janitor。`aws-sdk-shared-cell-cleanup-stack-evidence.ts` 固定由 exact `TechlongSandboxCellOperatorRole/techlong-sandbox-cell-operator` MFA session读取到期后的 root Cell Stack；它执行 STS identity、Stack前后稳定读、`GetTemplate(Original)`与完整分页 `ListStackResources`，并复核专用 Cell CloudFormation role、四个 exact tag、StackId/状态/TTL以及 predecessor中的模板和 inventory摘要后，才可调用受保护的 `markVerified()`。dormant factory还固定 `techlong-sandbox-cell-operator` profile、MFA device、`ca-central-1`及禁用 endpoint override，并让 STS/CloudFormation共享同一个 lazy credential provider；构造阶段不解析凭据、不发 AWS请求。人工 evidence身份继续与 Provisioner及具有删除能力的 Janitor分离。
 
-零租户证据不再依赖五次松散查询。`neon-shared-cell-zero-tenant-source.ts` 使用一个 Neon HTTP `Serializable + READ ONLY + DEFERRABLE` transaction，在同一数据库 snapshot内核对 fixed environment和数据库时钟，并读取 active tenant、capacity reservation、nonterminal deployment、live tenant resource及 nonterminal cleanup schedule五组完整排序 ID。`shared-cell-zero-tenant-evidence.ts` 只在这五组都为空时生成 cleanup-authority所需的 branded evidence；`shared-cell-cleanup-deletion-zero-tenant.ts` 则把同一 source contract投影为删除核心要求的五项计数、五个 source数组和 canonical SHA-256。代码构造不会访问 Neon，默认 root也没有注入 `DATABASE_URL` 或调用该 source；数据库侧 `0005`–`0007` 尚未实际应用，因此这仍不是 live evidence。
+零租户证据不再依赖五次松散查询。`neon-shared-cell-zero-tenant-source.ts` 使用一个 Neon HTTP `Serializable + READ ONLY + DEFERRABLE` transaction，在同一数据库 snapshot内核对 fixed environment和数据库时钟，并读取 active tenant、capacity reservation、nonterminal deployment、live tenant resource及 nonterminal cleanup schedule五组完整排序 ID。`shared-cell-zero-tenant-evidence.ts` 只在这五组都为空时生成 cleanup-authority所需的 branded evidence；`shared-cell-cleanup-deletion-zero-tenant.ts` 则把同一 source contract投影为删除核心要求的五项计数、五个 source数组和 canonical SHA-256。J5g-c切片当时的代码构造不会访问 Neon，默认 root也没有注入 `DATABASE_URL` 或调用该 source；截至该阶段数据库侧 `0005`–`0007`尚未实际应用，随后 J5g-d增加的 `0008`也仍未应用，因此当前依然不是 live evidence。
 
 `aws-sdk-shared-cell-cleanup-deletion.ts` 提供 Janitor侧的 STS/CloudFormation窄读和唯一 `DeleteStack` capability。`ListStacks` 显式传入除 `DELETE_COMPLETE` 外的 active状态集合，避免把 CloudFormation保留的历史删除记录误判为存活 Stack；missing只接受 exact Stack name对应的精确 `ValidationError`，StackId请求的错误不能翻译成 missing。模板固定 `Original`，资源读取保留完整分页；删除请求只接受 exact StackId、专用 `RoleARN`、计划派生 token和 `STANDARD` mode，不包含 `RetainResources`。provider错误会脱敏并保留 retryability/abort语义。dormant runtime只围绕一个 lazy ambient Janitor credential provider构造 STS/CloudFormation clients，不发请求，也未接到 Lambda handler。
 
@@ -419,6 +421,24 @@ J5g-c 把 J5g-b 的抽象端口落实为真实 provider 形状，但没有把它
 ```
 
 J5g-c 没有调用 AWS 或 Neon，没有创建/更新/删除 IAM、CloudFormation、Lambda或 Schedule资源，没有创建付费 Cell，也没有执行 ECS `RunTask`。已部署 J4c Lambda仍只接受 `inspect_cell_cleanup_plan`并固定 `PLAN_ONLY`，Schedule仍为 `DISABLED`；默认 runtime仍为 `offline_only`。后续仍需：受控 online CLI/root组合、两种身份的真实凭据接线、已应用迁移上的 live transaction及数据库/运行主机时钟校准、独立 IAM grant/readback/revoke、cleanup-authority推进与新租户准入互斥时序、J4c handler/Schedule更新、失败创建 rollback、RoleARN lineage持久化及真实 TTL删除/费用演练。因此两个 blocker和四个 readiness gate保持不变，J5g-c 仍不能称为 cleanup ready。
+
+### B5-J5g-d durable Shared Cell admission fence（默认关闭、仅 LocalValidate）
+
+J5g-d 关闭了 J5g-c 零租户 snapshot 与后续新增 ownership之间的代码级 TOCTOU 缺口。`0008_shared_cell_admission_fence.sql` 在 `deployment_environments` 上持久化 `open/draining`、单调 epoch、exact provision-operation/Stack/Cell-expiry绑定和 canonical fence SHA-256；新环境只能以 `open`、epoch 0和空 fence metadata开始。`NeonSharedCellAdmissionFenceWriter` 在任何 SQL提交前重新计算 predecessor `recordHash`与 provision-operation hash并核对 generation/epoch marker，拒绝 lineage内部不自洽的输入；随后只在 PostgreSQL `transaction_timestamp()` 已达到 predecessor 的 Cell expiry后，锁定与容量预留相同的 fixed environment row并执行 `open → draining`。transition trigger要求 epoch精确加一，tombstone trigger禁止删除或改写已 draining环境行，因而不能通过改 ID或删除后重建默认 `open` 行绕过围栏。同 lineage重试保持同一 epoch/时间，任何不同 lineage、提前执行或缺失环境都返回空结果并 fail closed。请求一旦开始提交，abort或 transport loss可能发生在数据库已 commit之后，因此统一返回可重试的 `NEON_SHARED_CELL_ADMISSION_DRAIN_UNCERTAIN`，只允许以同一 predecessor幂等重试/readback；恢复准入则必须由后续独立审查的新 Cell lineage协议完成。
+
+Repository与数据库 triggers构成双层围栏。`reserveEnvironmentCapacity`在同一环境行锁内要求 `admission_state='open'`，并用数据库时钟写入 `reserved_at`；Repository也约束 tenant-resource claim/reopen与 cleanup-schedule写入。deployment的 app-instance/environment以及 reservation和 cleanup schedule的 deployment/environment ownership坐标不可变且必须匹配 owning deployment；migration会在持有四张 ownership表的 `SHARE ROW EXCLUSIVE`锁时拒绝既存 reservation/resource/schedule错配，因此记录不能从 draining Cell移到 open环境后逃离零快照。数据库 trigger还 fence真正新增的 deployment、terminal deployment reopen、tenant-resource新增/换 owner或 generation/`destroyed → live`、cleanup-schedule新增，以及实例从非活跃状态进入 `pending/active`。真正 INSERT使用 AFTER ROW trigger，使 `ON CONFLICT ... DO NOTHING`重试保持幂等。draining期间 deployment、tenant-resource与 cleanup-schedule行都是不可删除的 ownership tombstone，不能靠直接 `DELETE`或 deployment级联擦除零快照信号；cleanup通过 terminal状态推进并显式删除 reservation。drain前已经持有同环境 exact reservation的在途 deployment仍可落 tenant resource或为既有 nonterminal deployment建立 cleanup schedule。零快照要求 reservation也为零，且 draining后无法创建新 reservation，因此快照后不能重新长出这些 ownership。cleanup schedule的 `succeeded/canceled`由 Repository状态谓词与 trigger共同保持为全局不可复活的 terminal状态。
+
+显式 drain writer与 cleanup-authority零租户 adapter是两个独立边界：Inspect/evidence adapter不会隐式执行 `beginAdmissionDrain` 或任何 mutation，只读取 `Serializable + READ ONLY + DEFERRABLE` snapshot并验证事先已持久化的 exact lineage fence。snapshot schema v2强制回读同一 epoch/fence/Stack/provision hash，并由数据库显式返回 `databaseCellExpired=true`；本地主机时钟只限制该 evidence调用耗时，不再被当作数据库 expiry证明。但上层 authority/deletion freshness判断仍将数据库 `observedAt` 与本地 `now`比较，上线前的数据库/运行主机时钟校准仍是 blocker。删除侧的每次 ownership read同样拒绝 `open`、未到期或围栏字段畸形的 snapshot。
+
+删除执行会在最终零租户 snapshot之后再次 exact读取 live Stack，再复核 caller、strong authority、授权有效期与 freshness，以收窄 `DeleteStack` 前窗口。但 CloudFormation、STS、DynamoDB与 DeleteStack不能组成单一原子事务；真正启用 cleanup前，所有 Stack mutator仍必须共享 durable deletion claim/lease或等价 IAM排他窗口。当前默认关闭，因此不能把本切片称为已绝对消除最终删除 TOCTOU。
+
+本阶段仍只有本地入口：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-shared-cell-admission-fence.ps1 -Mode LocalValidate
+```
+
+该入口只检查源码和运行 mock 定向测试；没有 online模式，不读取 `DATABASE_URL`，不应用 `0008`，不调用 AWS/Neon。显式 drain还没有接入线上批准/执行工作流；默认 runtime依旧 `offline_only`，J4c Janitor仍为 `PLAN_ONLY`，Schedule仍为 `DISABLED`。因此线上迁移、数据库/运行主机时钟校准、受控 root接线、短时 IAM grant、authority推进、Janitor handler/Schedule、失败创建 rollback、RoleARN lineage和真实删除/费用演练仍未完成，四个 readiness gate继续为 `false`。
 
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 

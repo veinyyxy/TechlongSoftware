@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  createNeonSerializableSharedCellOwnershipSnapshotSource,
   NeonSerializableSharedCellOwnershipSnapshotSource,
   type NeonSerializableSnapshotSqlClient,
 } from "../lib/deployments/execution/neon-shared-cell-zero-tenant-source.ts";
@@ -18,17 +19,31 @@ function result(rows: Record<string, unknown>[]) {
   return { rows };
 }
 
+function environmentRow(override: Record<string, unknown> = {}) {
+  return {
+    environment_id: "env_aws_sandbox_ca_central_1",
+    account_id: "402010193138",
+    region: "ca-central-1",
+    cell_key: "cell-sandbox-1",
+    db_observed_at: "1788811200000",
+    admission_state: "draining",
+    admission_epoch: "1",
+    admission_fence_sha256: "a".repeat(64),
+    admission_provision_operation_hash: "b".repeat(64),
+    admission_stack_id:
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/" +
+      "techlong-sandbox-cell-sandbox-1/" +
+      "12345678-1234-1234-1234-123456789012",
+    admission_cell_expires_at: "1788811100000",
+    admission_changed_at: "1788811150000",
+    database_cell_expired: true,
+    ...override,
+  };
+}
+
 function client(
   response: unknown[] = [
-    result([
-      {
-        environment_id: "env_aws_sandbox_ca_central_1",
-        account_id: "402010193138",
-        region: "ca-central-1",
-        cell_key: "cell-sandbox-1",
-        db_observed_at: "1788811200000",
-      },
-    ]),
+    result([environmentRow()]),
     result([]),
     result([]),
     result([]),
@@ -78,13 +93,15 @@ test("reads all ownership sources in one serializable read-only transaction", as
   });
   assert.equal(fake.calls.length, 6);
   assert.match(fake.calls[0].statement, /transaction_timestamp\(\)/);
+  assert.match(fake.calls[0].statement, /admission_state = 'draining'/);
+  assert.match(fake.calls[0].statement, /database_cell_expired/);
   assert.match(fake.calls[1].statement, /instance\.status IN \('pending', 'active'\)/);
   assert.match(fake.calls[2].statement, /deployment_environment_capacity_reservations/);
   assert.match(fake.calls[3].statement, /NOT IN \('rolled_back', 'canceled'\)/);
   assert.match(fake.calls[4].statement, /lifecycle_status <> 'destroyed'/);
   assert.match(fake.calls[5].statement, /NOT IN \('succeeded', 'canceled'\)/);
   assert.deepEqual(snapshot, {
-    schemaVersion: 1,
+    schemaVersion: 2,
     isolationLevel: "Serializable",
     readOnly: true,
     deferrable: true,
@@ -93,6 +110,17 @@ test("reads all ownership sources in one serializable read-only transaction", as
     cellId: "cell-sandbox-1",
     environmentId: "env_aws_sandbox_ca_central_1",
     dbObservedAt: 1788811200000,
+    admissionState: "draining",
+    admissionEpoch: 1,
+    admissionFenceSha256: "a".repeat(64),
+    admissionProvisionOperationHash: "b".repeat(64),
+    admissionStackId:
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/" +
+      "techlong-sandbox-cell-sandbox-1/" +
+      "12345678-1234-1234-1234-123456789012",
+    admissionCellExpiresAt: 1788811100000,
+    admissionChangedAt: 1788811150000,
+    databaseCellExpired: true,
     activeTenantIds: [],
     activeCapacityReservationIds: [],
     nonterminalDeploymentIds: [],
@@ -111,6 +139,17 @@ test("returns complete ordered IDs for fail-closed nonzero evidence", async () =
         region: "ca-central-1",
         cell_key: "cell-sandbox-1",
         db_observed_at: 1788811200000,
+        admission_state: "draining",
+        admission_epoch: 1,
+        admission_fence_sha256: "a".repeat(64),
+        admission_provision_operation_hash: "b".repeat(64),
+        admission_stack_id:
+          "arn:aws:cloudformation:ca-central-1:402010193138:stack/" +
+          "techlong-sandbox-cell-sandbox-1/" +
+          "12345678-1234-1234-1234-123456789012",
+        admission_cell_expires_at: 1788811100000,
+        admission_changed_at: 1788811150000,
+        database_cell_expired: true,
       },
     ]),
     result([{ id: "instance-a" }]),
@@ -158,6 +197,30 @@ test("foreign input and malformed environment fail closed", async () => {
   );
 });
 
+test("an open or database-unexpired environment cannot become zero-tenant evidence", async () => {
+  for (const override of [
+    { admission_state: "open" },
+    { database_cell_expired: false },
+  ]) {
+    const malformed = client([
+      result([environmentRow(override)]),
+      result([]),
+      result([]),
+      result([]),
+      result([]),
+      result([]),
+    ]);
+    await assert.rejects(
+      new NeonSerializableSharedCellOwnershipSnapshotSource(
+        malformed.sql,
+      ).readSerializableReadOnlySnapshot(fixedInput()),
+      (error) =>
+        (error as { code?: string }).code ===
+        "NEON_SHARED_CELL_SNAPSHOT_RESULT_INVALID",
+    );
+  }
+});
+
 test("provider failures are sanitized and abort reason is preserved", async () => {
   const failing: NeonSerializableSnapshotSqlClient = {
     async transaction() {
@@ -176,9 +239,34 @@ test("provider failures are sanitized and abort reason is preserved", async () =
         retryable?: boolean;
       };
       return (
-        value.code === "Connection_Timeout_" &&
+        value.code === "NEON_SHARED_CELL_SNAPSHOT_READ_FAILED" &&
         value.retryable === true &&
         !String(value.message).includes("secret")
+      );
+    },
+  );
+  const serializationConflict: NeonSerializableSnapshotSqlClient = {
+    async transaction() {
+      throw Object.assign(new Error("unsafe provider detail"), {
+        name: "NeonDbError",
+        code: "40001",
+      });
+    },
+  };
+  await assert.rejects(
+    new NeonSerializableSharedCellOwnershipSnapshotSource(
+      serializationConflict,
+    ).readSerializableReadOnlySnapshot(fixedInput()),
+    (error) => {
+      const value = error as {
+        code?: string;
+        message?: string;
+        retryable?: boolean;
+      };
+      return (
+        value.code === "40001" &&
+        value.retryable === true &&
+        !String(value.message).includes("unsafe")
       );
     },
   );
@@ -193,4 +281,71 @@ test("provider failures are sanitized and abort reason is preserved", async () =
     (error) => error === reason,
   );
   assert.equal(inert.state().transactions, 0);
+});
+
+test("provider identifiers and malformed database URLs cannot expose secrets", async () => {
+  const failures = [
+    Object.assign(new Error("message-secret"), {
+        name: "postgres://name-secret@host/db",
+        code: "40KEY",
+      }),
+    Object.defineProperties(new Error("message-secret"), {
+      name: {
+        get() {
+          throw new Error("getter-name-secret");
+        },
+      },
+      code: {
+        get() {
+          throw new Error("getter-code-secret");
+        },
+      },
+      cause: {
+        get() {
+          throw new Error("getter-cause-secret");
+        },
+      },
+    }),
+  ];
+  for (const failure of failures) {
+    const secretBearing: NeonSerializableSnapshotSqlClient = {
+      async transaction() {
+        throw failure;
+      },
+    };
+    await assert.rejects(
+      new NeonSerializableSharedCellOwnershipSnapshotSource(
+        secretBearing,
+      ).readSerializableReadOnlySnapshot(fixedInput()),
+      (error) => {
+        const value = error as {
+          code?: string;
+          message?: string;
+          stack?: string;
+        };
+        const exposed = [value.code, value.message, value.stack].join(" ");
+        return (
+          value.code === "NEON_SHARED_CELL_SNAPSHOT_READ_FAILED" &&
+          !exposed.includes("message-secret") &&
+          !exposed.includes("name-secret") &&
+          !exposed.includes("40KEY") &&
+          !exposed.includes("getter-")
+        );
+      },
+    );
+  }
+  assert.throws(
+    () =>
+      createNeonSerializableSharedCellOwnershipSnapshotSource(
+        "postgres://user:database-secret@[invalid",
+      ),
+    (error) => {
+      const value = error as { code?: string; message?: string; stack?: string };
+      const exposed = [value.code, value.message, value.stack].join(" ");
+      return (
+        value.code === "NEON_SHARED_CELL_SNAPSHOT_DATABASE_URL_INVALID" &&
+        !exposed.includes("database-secret")
+      );
+    },
+  );
 });

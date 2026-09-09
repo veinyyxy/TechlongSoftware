@@ -665,7 +665,7 @@ export class NeonDeploymentExecutionRepository
         FROM dead_cleanup_job, db_clock
         WHERE schedule.deployment_id = dead_cleanup_job.deployment_id
           AND dead_cleanup_job.job_type IN ('cleanup', 'rollback')
-          AND schedule.status <> 'succeeded'
+          AND schedule.status IN ('pending', 'confirmed', 'running', 'failed')
         RETURNING schedule.id
       ), candidate AS (
         SELECT candidate_job.id
@@ -930,18 +930,19 @@ export class NeonDeploymentExecutionRepository
         SELECT job.id
         FROM deployment_jobs AS job
         CROSS JOIN db_clock
-        WHERE job.id = $5 AND job.deployment_id = $1
+        WHERE job.id = $4 AND job.deployment_id = $1
           AND job.status = 'running'
-          AND job.lease_owner = $6 AND job.lease_token = $7
-          AND job.attempts = $8
+          AND job.lease_owner = $5 AND job.lease_token = $6
+          AND job.attempts = $7
           AND job.lease_expires_at > db_clock.now_ms
         FOR UPDATE OF job
       ), locked_environment AS MATERIALIZED (
-        SELECT id
-        FROM deployment_environments
-        WHERE id = $2 AND kind = 'aws_sandbox'
+        SELECT environment.id,
+          environment.admission_state = 'open' AS admission_open
+        FROM deployment_environments AS environment
+        WHERE environment.id = $2 AND environment.kind = 'aws_sandbox'
           AND EXISTS (SELECT 1 FROM owned_job)
-        FOR UPDATE
+        FOR UPDATE OF environment
       ), existing AS MATERIALIZED (
         SELECT reservation.deployment_id
         FROM deployment_environment_capacity_reservations reservation
@@ -950,23 +951,26 @@ export class NeonDeploymentExecutionRepository
         INNER JOIN owned_job ON true
         WHERE reservation.deployment_id = $1
           AND reservation.slot <= $3
+        FOR UPDATE OF reservation
       ), next_slot AS MATERIALIZED (
         SELECT candidate.slot
         FROM locked_environment environment
         CROSS JOIN LATERAL generate_series(1, $3) AS candidate(slot)
-        WHERE NOT EXISTS (
-          SELECT 1
-          FROM deployment_environment_capacity_reservations occupied
-          WHERE occupied.environment_id = environment.id
-            AND occupied.slot = candidate.slot
-        )
+        WHERE environment.admission_open
+          AND NOT EXISTS (
+            SELECT 1
+            FROM deployment_environment_capacity_reservations occupied
+            WHERE occupied.environment_id = environment.id
+              AND occupied.slot = candidate.slot
+          )
         ORDER BY candidate.slot
         LIMIT 1
       ), inserted AS (
         INSERT INTO deployment_environment_capacity_reservations (
           deployment_id, environment_id, slot, reserved_at
         )
-        SELECT deployment.id, environment.id, next_slot.slot, $4
+        SELECT deployment.id, environment.id, next_slot.slot,
+          (SELECT now_ms FROM db_clock)
         FROM app_instance_deployments deployment
         INNER JOIN owned_job ON true
         INNER JOIN locked_environment environment
@@ -990,7 +994,6 @@ export class NeonDeploymentExecutionRepository
         input.lease.deploymentId,
         input.environmentId,
         input.maxTenants,
-        input.now,
         input.lease.jobId,
         input.lease.workerId,
         input.lease.leaseToken,
@@ -1024,12 +1027,45 @@ export class NeonDeploymentExecutionRepository
           AND job.attempts = $12
           AND job.lease_expires_at > db_clock.now_ms
         FOR UPDATE OF job
+      ), locked_environment AS MATERIALIZED (
+        SELECT environment.id,
+          environment.admission_state = 'open' AS admission_open
+        FROM deployment_environments AS environment
+        INNER JOIN owned_job ON true
+        WHERE environment.id = $3
+          AND environment.kind = 'aws_sandbox'
+        FOR UPDATE OF environment
+      ), existing_schedule AS MATERIALIZED (
+        SELECT schedule.id
+        FROM deployment_cleanup_schedules AS schedule
+        INNER JOIN locked_environment environment
+          ON environment.id = schedule.environment_id
+        WHERE schedule.deployment_id = $2
+          AND schedule.stack_name = $4
+          AND schedule.expires_at = $5
+          AND schedule.status IN ('pending', 'confirmed', 'failed')
+        FOR UPDATE OF schedule
+      ), existing_reservation AS MATERIALIZED (
+        SELECT reservation.deployment_id
+        FROM deployment_environment_capacity_reservations AS reservation
+        INNER JOIN locked_environment environment
+          ON environment.id = reservation.environment_id
+        WHERE reservation.deployment_id = $2
+        FOR UPDATE OF reservation
+      ), admitted_environment AS MATERIALIZED (
+        SELECT environment.id
+        FROM locked_environment AS environment
+        WHERE environment.admission_open
+          OR EXISTS (SELECT 1 FROM existing_schedule)
+          OR EXISTS (SELECT 1 FROM existing_reservation)
       )
       INSERT INTO deployment_cleanup_schedules (
         id, deployment_id, environment_id, stack_name, status, expires_at,
         provider_schedule_ref, confirmed_at, last_error, created_at, updated_at
-      ) SELECT $1, $2, $3, $4, 'confirmed', $5, $6, $7, NULL, $8, $8
+      ) SELECT $1, $2, environment.id, $4, 'confirmed', $5, $6, $7,
+          NULL, $8, $8
         FROM owned_job
+        INNER JOIN admitted_environment AS environment ON true
       ON CONFLICT (deployment_id) DO UPDATE
       SET status = 'confirmed', provider_schedule_ref = EXCLUDED.provider_schedule_ref,
           confirmed_at = EXCLUDED.confirmed_at, updated_at = EXCLUDED.updated_at,
@@ -1488,7 +1524,7 @@ export class NeonDeploymentExecutionRepository
           AND schedule.deployment_id = updated_job.deployment_id
           AND updated_job.status = 'dead_letter'
           AND updated_job.job_type IN ('cleanup', 'rollback')
-          AND schedule.status <> 'succeeded'
+          AND schedule.status IN ('pending', 'confirmed', 'running', 'failed')
         RETURNING schedule.id
       )
       SELECT status, (SELECT count(*) FROM failed_cleanup) AS cleanup_failed
@@ -1677,6 +1713,14 @@ export class NeonDeploymentExecutionRepository
            END
        FROM owned_job
        WHERE schedule.id = $3 AND schedule.deployment_id = $5
+         AND (
+           ($1 = 'running'
+             AND schedule.status IN ('confirmed', 'running', 'failed'))
+           OR ($1 = 'succeeded'
+             AND schedule.status IN ('confirmed', 'running', 'succeeded', 'failed'))
+           OR ($1 = 'failed'
+             AND schedule.status IN ('pending', 'confirmed', 'running', 'failed'))
+         )
        RETURNING schedule.id`,
       [
         input.status,
@@ -1862,7 +1906,8 @@ export class NeonDeploymentExecutionRepository
         SELECT deployment.id AS deployment_id,
           deployment.app_instance_id, deployment.environment_id,
           deployment.created_at AS candidate_created_at,
-          instance.workspace_id, instance.product_id, environment.cell_key
+          instance.workspace_id, instance.product_id, environment.cell_key,
+          environment.admission_state
         FROM app_instance_deployments deployment
         INNER JOIN app_instances instance
           ON instance.id = deployment.app_instance_id
@@ -1873,9 +1918,17 @@ export class NeonDeploymentExecutionRepository
         CROSS JOIN db_clock
         WHERE deployment.id = $1
           AND job.status = 'running' AND job.lease_owner = $3
+          AND job.job_type IN ('apply', 'reconcile')
           AND job.lease_token = $14 AND job.attempts = $15
           AND job.lease_expires_at > db_clock.now_ms
         FOR UPDATE OF deployment, instance, environment, job
+      ), capacity_reservation AS MATERIALIZED (
+        SELECT reservation.deployment_id
+        FROM deployment_environment_capacity_reservations AS reservation
+        INNER JOIN candidate
+          ON candidate.deployment_id = reservation.deployment_id
+          AND candidate.environment_id = reservation.environment_id
+        FOR UPDATE OF reservation
       ), existing AS MATERIALIZED (
         SELECT resource.*, owner.created_at AS owner_created_at,
           EXISTS (
@@ -1916,6 +1969,8 @@ export class NeonDeploymentExecutionRepository
               )
             ) AS identity_matches,
           existing.owner_deployment_id = candidate.deployment_id AS same_owner,
+          EXISTS (SELECT 1 FROM capacity_reservation)
+            AS has_capacity_reservation,
           existing.app_instance_id IS NULL OR (
             candidate.candidate_created_at > existing.owner_created_at
             OR (
@@ -1955,9 +2010,14 @@ export class NeonDeploymentExecutionRepository
         FROM decision
         WHERE identity_matches
           AND (
-            existing_app_instance_id IS NULL
+            (
+              (admission_state = 'open' OR has_capacity_reservation)
+              AND existing_app_instance_id IS NULL
+            )
             OR same_owner
             OR (
+              (admission_state = 'open' OR has_capacity_reservation)
+              AND
               previous_status = 'destroyed'
               AND candidate_is_newer
               AND NOT owner_has_live_job
@@ -2099,7 +2159,9 @@ export class NeonDeploymentExecutionRepository
         END AS previous_owner_deployment_id,
         (SELECT count(*) FROM event_insert) AS inserted_event_count,
         decision.identity_matches, decision.candidate_is_newer,
-        decision.owner_has_live_job, decision.previous_status
+        decision.owner_has_live_job, decision.previous_status,
+        decision.admission_state, decision.same_owner,
+        decision.has_capacity_reservation
       FROM decision
       LEFT JOIN claim_result result ON true`,
       [
@@ -2133,6 +2195,21 @@ export class NeonDeploymentExecutionRepository
         throw Object.assign(
           new Error("Persisted tenant resource identity cannot be changed."),
           { code: "TENANT_RESOURCE_IDENTITY_MISMATCH", retryable: false },
+        );
+      }
+      if (
+        nullableText(row.admission_state) === "draining" &&
+        !flag(row.same_owner) &&
+        !flag(row.has_capacity_reservation)
+      ) {
+        throw Object.assign(
+          new Error(
+            "The Shared Cell is draining and this deployment has no existing capacity admission.",
+          ),
+          {
+            code: "TENANT_RESOURCE_ADMISSION_DRAINING",
+            retryable: false,
+          },
         );
       }
       if (flag(row.owner_has_live_job)) {

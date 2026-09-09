@@ -10,6 +10,9 @@ import {
 } from "../lib/deployments/execution/aws-sdk-shared-cell-cleanup-stack-evidence.ts";
 import { sha256Hex } from "../lib/deployments/execution/hash.ts";
 import {
+  compileSharedCellAdmissionDrainIntent,
+} from "../lib/deployments/execution/shared-cell-admission-fence.ts";
+import {
   sharedCellAuthorityMarker,
   sharedCellProvisionOperationIntent,
   type SharedCellProvisionAuthorityRecord,
@@ -17,6 +20,7 @@ import {
 import {
   SHARED_CELL_ZERO_TENANT_SOURCE_WIRING_BLOCKER,
   SerializableSharedCellZeroTenantEvidenceAdapter,
+  SharedCellZeroTenantEvidenceError,
   type ReadSerializableSharedCellOwnershipSnapshotInput,
   type SerializableSharedCellOwnershipSnapshot,
   type SerializableSharedCellOwnershipSnapshotSource,
@@ -92,6 +96,9 @@ async function predecessor(
     recordHash: await sha256Hex(unsigned),
   } as SharedCellProvisionAuthorityRecord;
 }
+
+const defaultLineage = await predecessor();
+const defaultDrain = await compileSharedCellAdmissionDrainIntent(defaultLineage);
 
 function command(kind: string) {
   return class {
@@ -661,7 +668,7 @@ function ownershipSnapshot(
   override: Partial<SerializableSharedCellOwnershipSnapshot> = {},
 ): SerializableSharedCellOwnershipSnapshot {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     isolationLevel: "Serializable",
     readOnly: true,
     deferrable: true,
@@ -670,6 +677,14 @@ function ownershipSnapshot(
     cellId: "cell-sandbox-1",
     environmentId: "env_aws_sandbox_ca_central_1",
     dbObservedAt: now + 500,
+    admissionState: "draining",
+    admissionEpoch: 1,
+    admissionFenceSha256: defaultDrain.fenceSha256,
+    admissionProvisionOperationHash: defaultLineage.provisionOperationHash,
+    admissionStackId: defaultLineage.stackId,
+    admissionCellExpiresAt: defaultDrain.cellExpiresAt,
+    admissionChangedAt: now,
+    databaseCellExpired: true,
     activeTenantIds: [],
     activeCapacityReservationIds: [],
     nonterminalDeploymentIds: [],
@@ -711,6 +726,15 @@ test("zero-tenant adapter requires one fresh serializable DB snapshot and comput
     signal: controller.signal,
   });
   const sourceIds = {
+    admissionFence: {
+      admissionState: "draining",
+      admissionEpoch: 1,
+      admissionFenceSha256: defaultDrain.fenceSha256,
+      admissionProvisionOperationHash: defaultLineage.provisionOperationHash,
+      admissionStackId: defaultLineage.stackId,
+      admissionCellExpiresAt: defaultDrain.cellExpiresAt,
+      admissionChangedAt: now,
+    },
     activeTenantIds: [],
     activeCapacityReservationIds: [],
     nonterminalDeploymentIds: [],
@@ -825,6 +849,104 @@ test("zero-tenant adapter requires the source and preserves retry/abort semantic
       (error as { retryable?: boolean }).retryable === true,
   );
 
+  const secretSource = new OwnershipSource();
+  secretSource.error = Object.assign(new Error("message-secret"), {
+    name: "postgres://name-secret@host/db",
+    code: "40KEY",
+  });
+  await assert.rejects(
+    new SerializableSharedCellZeroTenantEvidenceAdapter(secretSource, {
+      now: () => now,
+    }).readVerifiedZeroTenantEvidence({
+      predecessor: lineage,
+      signal: new AbortController().signal,
+    }),
+    (error: unknown) => {
+      const value = error as {
+        code?: string;
+        message?: string;
+        stack?: string;
+      };
+      const exposed = [value.code, value.message, value.stack].join(" ");
+      return (
+        value.code === "SHARED_CELL_ZERO_TENANT_READ_FAILED" &&
+        !exposed.includes("message-secret") &&
+        !exposed.includes("name-secret") &&
+        !exposed.includes("40KEY")
+      );
+    },
+  );
+
+  const getterSource = new OwnershipSource();
+  getterSource.error = Object.defineProperties(new Error("message-secret"), {
+    name: {
+      get() {
+        throw new Error("getter-name-secret");
+      },
+    },
+    code: {
+      get() {
+        throw new Error("getter-code-secret");
+      },
+    },
+    retryable: {
+      get() {
+        throw new Error("getter-retryable-secret");
+      },
+    },
+  });
+  await assert.rejects(
+    new SerializableSharedCellZeroTenantEvidenceAdapter(getterSource, {
+      now: () => now,
+    }).readVerifiedZeroTenantEvidence({
+      predecessor: lineage,
+      signal: new AbortController().signal,
+    }),
+    (error: unknown) => {
+      const value = error as {
+        code?: string;
+        message?: string;
+        retryable?: boolean;
+        stack?: string;
+      };
+      const exposed = [value.code, value.message, value.stack].join(" ");
+      return (
+        value.code === "SHARED_CELL_ZERO_TENANT_READ_FAILED" &&
+        !exposed.includes("getter-")
+      );
+    },
+  );
+
+  const domainErrorSource = new OwnershipSource();
+  domainErrorSource.error = new SharedCellZeroTenantEvidenceError(
+    "40KEY",
+    "domain-message-secret",
+    true,
+  );
+  await assert.rejects(
+    new SerializableSharedCellZeroTenantEvidenceAdapter(domainErrorSource, {
+      now: () => now,
+    }).readVerifiedZeroTenantEvidence({
+      predecessor: lineage,
+      signal: new AbortController().signal,
+    }),
+    (error: unknown) => {
+      const value = error as {
+        code?: string;
+        message?: string;
+        retryable?: boolean;
+        stack?: string;
+      };
+      const exposed = [value.code, value.message, value.stack].join(" ");
+      return (
+        value.code === "SHARED_CELL_ZERO_TENANT_READ_FAILED" &&
+        value.retryable === true &&
+        !exposed.includes("40KEY") &&
+        !exposed.includes("domain-message-secret")
+      );
+    },
+  );
+
   const controller = new AbortController();
   controller.abort(new Error("snapshot cancelled"));
   const abortedSource = new OwnershipSource();
@@ -840,4 +962,19 @@ test("zero-tenant adapter requires the source and preserves retry/abort semantic
     /snapshot cancelled/,
   );
   assert.equal(abortedSource.calls.length, 0);
+});
+
+test("database expiry proof does not depend on local/database clock alignment", async () => {
+  const lineage = await predecessor();
+  const source = new OwnershipSource();
+  const localNow = now - 24 * 60 * 60 * 1_000;
+  const clock = [localNow, localNow + 1_000];
+  const evidence =
+    await new SerializableSharedCellZeroTenantEvidenceAdapter(source, {
+      now: () => clock.shift() ?? 0,
+    }).readVerifiedZeroTenantEvidence({
+      predecessor: lineage,
+      signal: new AbortController().signal,
+    });
+  assert.equal(evidence.observedAt, now + 500);
 });

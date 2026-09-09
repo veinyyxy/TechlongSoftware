@@ -14,8 +14,10 @@ import {
   SHARED_CELL_CLEANUP_AUTHORITY_KEY,
   sharedCellAuthorityMarker,
   sharedCellProvisionOperationIntent,
+  validateSharedCellCleanupAuthorityItem,
   type SharedCellCleanupAuthorityItem,
 } from "../lib/deployments/execution/shared-cell-cleanup-authority.ts";
+import { sharedCellAdmissionDrainIntent } from "../lib/deployments/execution/shared-cell-admission-fence.ts";
 import { sha256Hex } from "../lib/deployments/execution/hash.ts";
 
 const now = Date.UTC(2026, 8, 7, 12, 0, 0);
@@ -50,7 +52,10 @@ const inventory = [
   },
 ];
 
-async function authorityItem(): Promise<Readonly<SharedCellCleanupAuthorityItem>> {
+async function authorityItem(input: {
+  cleanupEpoch?: number;
+  revision?: number;
+} = {}): Promise<Readonly<SharedCellCleanupAuthorityItem>> {
   const templateCanonicalSha256 = await sha256Hex(template);
   const resourceInventorySha256 = await sha256Hex(inventory);
   const provision = {
@@ -87,8 +92,11 @@ async function authorityItem(): Promise<Readonly<SharedCellCleanupAuthorityItem>
       epoch: 1,
       operationHash,
     },
-    cleanup: { epoch: 2, expiresAt: authorityExpiresAt },
-    revision: 2,
+    cleanup: {
+      epoch: input.cleanupEpoch ?? 2,
+      expiresAt: authorityExpiresAt,
+    },
+    revision: input.revision ?? 2,
     now,
   });
 }
@@ -110,6 +118,9 @@ async function fixture(input: {
   nonzeroOwnershipAt?: number;
   zeroTenantObservedAt?: number;
   malformedAuthorityAt?: number;
+  authorityDriftAt?: number;
+  admissionFenceSha256?: string;
+  admissionFenceDriftAt?: number;
   behavior?: DeleteBehavior;
   authority?: SharedCellCleanupAuthorityItem;
 } = {}) {
@@ -125,14 +136,30 @@ async function fixture(input: {
   const deleteInputs: Parameters<SharedCellCleanupDeleteStackPort["deleteStack"]>[0][] = [];
   const fixedNames = input.stackNames;
   const item = input.authority ?? (await authorityItem());
+  const driftItem = input.authorityDriftAt
+    ? await authorityItem({ cleanupEpoch: 3, revision: 3 })
+    : null;
+  const authorityRecord = (await validateSharedCellCleanupAuthorityItem(item))
+    .record;
+  const admissionFenceSha256 =
+    input.admissionFenceSha256 ??
+    (await sha256Hex(sharedCellAdmissionDrainIntent(authorityRecord)));
   const ownershipSource = {
+    admissionFence: {
+      admissionState: "draining" as const,
+      admissionEpoch: 1,
+      admissionFenceSha256,
+      admissionProvisionOperationHash: authorityRecord.provisionOperationHash,
+      admissionStackId: authorityRecord.stackId,
+      admissionCellExpiresAt: Date.parse(authorityRecord.cellExpiresAt),
+      admissionChangedAt: now - 30_000,
+    },
     activeTenantIds: [],
     activeCapacityReservationIds: [],
     nonterminalDeploymentIds: [],
     liveTenantResourceIds: [],
     nonterminalTenantCleanupScheduleIds: [],
   };
-  const ownershipSourceHash = await sha256Hex(ownershipSource);
 
   const stack = () => ({
     state: "present",
@@ -193,6 +220,10 @@ async function fixture(input: {
     },
     async readStrongZeroTenantOwnershipSnapshot() {
       zeroTenantReads += 1;
+      const currentOwnershipSource = structuredClone(ownershipSource);
+      if (input.admissionFenceDriftAt === zeroTenantReads) {
+        currentOwnershipSource.admissionFence.admissionEpoch += 1;
+      }
       return {
         schemaVersion: 1,
         accountId: "402010193138",
@@ -206,8 +237,8 @@ async function fixture(input: {
         nonterminalDeploymentCount: 0,
         liveTenantResourceCount: 0,
         nonterminalTenantCleanupScheduleCount: 0,
-        sourceSnapshot: structuredClone(ownershipSource),
-        sourceSnapshotSha256: ownershipSourceHash,
+        sourceSnapshot: currentOwnershipSource,
+        sourceSnapshotSha256: await sha256Hex(currentOwnershipSource),
       };
     },
   };
@@ -217,13 +248,17 @@ async function fixture(input: {
   } = {
     async readStrong() {
       authorityReads += 1;
+      const currentItem =
+        input.authorityDriftAt === authorityReads && driftItem
+          ? driftItem
+          : item;
       return {
         authorityKey: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
         revision:
           input.malformedAuthorityAt === authorityReads
-            ? item.revision + 1
-            : item.revision,
-        item,
+            ? currentItem.revision + 1
+            : currentItem.revision,
+        item: currentItem,
       };
     },
     async compareAndSet() {
@@ -441,6 +476,111 @@ test("zero-tenant ownership collected before Cell expiry is rejected", async () 
   assert.equal(subject.deleteInputs.length, 0);
 });
 
+test("zero-tenant freshness uses the post-read local clock", async () => {
+  const subject = await fixture();
+  let clockReads = 0;
+  const inspected = await inspectSharedCellCleanupDeletion({
+    evidence: subject.evidence,
+    authority: subject.authority,
+    signal: signal(),
+    now: () => {
+      clockReads += 1;
+      return clockReads === 1 ? now - 1 : now;
+    },
+  });
+  assert.equal(inspected.phase, "INSPECTED");
+  assert.equal(inspected.mutationPerformed, false);
+  assert.equal(subject.deleteInputs.length, 0);
+});
+
+test("zero-tenant evidence still rejects a database clock ahead of post-read time", async () => {
+  const subject = await fixture({ zeroTenantObservedAt: now + 1 });
+  await assert.rejects(
+    inspectSharedCellCleanupDeletion({
+      evidence: subject.evidence,
+      authority: subject.authority,
+      signal: signal(),
+      now: () => now,
+    }),
+    (error) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_DELETE_ZERO_TENANT_INVALID",
+  );
+  assert.equal(subject.deleteInputs.length, 0);
+});
+
+test("zero-tenant evidence is bound to the cleanup-authorized admission fence", async () => {
+  const subject = await fixture({ admissionFenceSha256: "0".repeat(64) });
+  await assert.rejects(
+    inspectSharedCellCleanupDeletion({
+      evidence: subject.evidence,
+      authority: subject.authority,
+      signal: signal(),
+      now: () => now,
+    }),
+    (error) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_DELETE_ADMISSION_FENCE_MISMATCH",
+  );
+  assert.equal(subject.deleteInputs.length, 0);
+  assert.equal(subject.calls().authorityWrites, 0);
+});
+
+test("admission-fence drift across the immediate boundary blocks DeleteStack", async () => {
+  const subject = await fixture({ admissionFenceDriftAt: 6 });
+  const inspected = await inspectSharedCellCleanupDeletion({
+    evidence: subject.evidence,
+    authority: subject.authority,
+    signal: signal(),
+    now: () => now,
+  });
+  await assert.rejects(
+    executeReviewedSharedCellCleanupDeletion({
+      evidence: subject.evidence,
+      authority: subject.authority,
+      deleter: subject.deleter,
+      approvedDeletionPlanSha256: inspected.deletionPlanSha256,
+      signal: signal(),
+      now: () => now,
+      readbackDelayMs: 0,
+    }),
+    (error) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_DELETE_PREDELETE_DRIFT",
+  );
+  assert.equal(subject.calls().zeroTenantReads, 6);
+  assert.equal(subject.deleteInputs.length, 0);
+  assert.equal(subject.calls().authorityWrites, 0);
+});
+
+test("live Stack drift after the final zero-tenant snapshot blocks DeleteStack", async () => {
+  const subject = await fixture({ mutateTemplateAt: 6 });
+  const inspected = await inspectSharedCellCleanupDeletion({
+    evidence: subject.evidence,
+    authority: subject.authority,
+    signal: signal(),
+    now: () => now,
+  });
+  await assert.rejects(
+    executeReviewedSharedCellCleanupDeletion({
+      evidence: subject.evidence,
+      authority: subject.authority,
+      deleter: subject.deleter,
+      approvedDeletionPlanSha256: inspected.deletionPlanSha256,
+      signal: signal(),
+      now: () => now,
+      readbackDelayMs: 0,
+    }),
+    (error) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_DELETE_PREDELETE_DRIFT",
+  );
+  assert.equal(subject.calls().zeroTenantReads, 6);
+  assert.equal(subject.calls().templateCalls, 6);
+  assert.equal(subject.deleteInputs.length, 0);
+  assert.equal(subject.calls().authorityWrites, 0);
+});
+
 test("execute recompiles, rechecks at the boundary and sends one exact STANDARD DeleteStack", async () => {
   const subject = await fixture();
   const inspected = await inspectSharedCellCleanupDeletion({
@@ -502,6 +642,85 @@ test("caller drift in the final pre-DeleteStack check prevents mutation", async 
       (error as { code?: string }).code === "SHARED_CELL_DELETE_CALLER_INVALID",
   );
   assert.equal(executeSubject.deleteInputs.length, 0);
+});
+
+test("authority expiry during the final caller check prevents DeleteStack", async () => {
+  const subject = await fixture();
+  const inspected = await inspectSharedCellCleanupDeletion({
+    evidence: subject.evidence,
+    authority: subject.authority,
+    signal: signal(),
+    now: () => now,
+  });
+  await assert.rejects(
+    executeReviewedSharedCellCleanupDeletion({
+      evidence: subject.evidence,
+      authority: subject.authority,
+      deleter: subject.deleter,
+      approvedDeletionPlanSha256: inspected.deletionPlanSha256,
+      signal: signal(),
+      now: () =>
+        subject.calls().callerCalls >= 6
+          ? Date.parse(authorityExpiresAt)
+          : now,
+      readbackDelayMs: 0,
+    }),
+    (error) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_CLEANUP_AUTHORITY_EXPIRED",
+  );
+  assert.equal(subject.deleteInputs.length, 0);
+});
+
+test("a slow final caller check cannot outlive zero-tenant evidence", async () => {
+  const subject = await fixture();
+  const inspected = await inspectSharedCellCleanupDeletion({
+    evidence: subject.evidence,
+    authority: subject.authority,
+    signal: signal(),
+    now: () => now,
+  });
+  await assert.rejects(
+    executeReviewedSharedCellCleanupDeletion({
+      evidence: subject.evidence,
+      authority: subject.authority,
+      deleter: subject.deleter,
+      approvedDeletionPlanSha256: inspected.deletionPlanSha256,
+      signal: signal(),
+      now: () =>
+        subject.calls().callerCalls >= 6 ? now + 6 * 60_000 : now,
+      readbackDelayMs: 0,
+    }),
+    (error) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_DELETE_PREDELETE_DRIFT",
+  );
+  assert.equal(subject.deleteInputs.length, 0);
+});
+
+test("authority drift during the final caller check prevents DeleteStack", async () => {
+  const subject = await fixture({ authorityDriftAt: 7 });
+  const inspected = await inspectSharedCellCleanupDeletion({
+    evidence: subject.evidence,
+    authority: subject.authority,
+    signal: signal(),
+    now: () => now,
+  });
+  await assert.rejects(
+    executeReviewedSharedCellCleanupDeletion({
+      evidence: subject.evidence,
+      authority: subject.authority,
+      deleter: subject.deleter,
+      approvedDeletionPlanSha256: inspected.deletionPlanSha256,
+      signal: signal(),
+      now: () => now,
+      readbackDelayMs: 0,
+    }),
+    (error) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_DELETE_PREDELETE_DRIFT",
+  );
+  assert.equal(subject.deleteInputs.length, 0);
 });
 
 test("a lost DeleteStack response is recovered only by authoritative missing readback", async () => {

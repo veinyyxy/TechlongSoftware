@@ -9,6 +9,16 @@ async function read(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
+function postgresFunction(source, name) {
+  const marker = `CREATE OR REPLACE FUNCTION ${name}()`;
+  const start = source.indexOf(marker);
+  assert.notEqual(start, -1, `missing PostgreSQL function ${name}`);
+  const terminator = "$$ LANGUAGE plpgsql;";
+  const end = source.indexOf(terminator, start);
+  assert.notEqual(end, -1, `unterminated PostgreSQL function ${name}`);
+  return source.slice(start, end + terminator.length);
+}
+
 test("PostgreSQL migration checksums are stable across Windows line endings", () => {
   const lf = "CREATE TABLE example (id text);\nSELECT 1;\n";
   const crlf = lf.replaceAll("\n", "\r\n");
@@ -407,6 +417,275 @@ test("B5-E migration persists external ownership epochs and resumable cleanup ph
   assert.match(
     repository,
     /finalizeTenantResourceCleanup[\s\S]*?phase_evidence\.phase_count = 3[\s\S]*?destroyed_resource AS[\s\S]*?completed_run AS[\s\S]*?completed_schedule AS[\s\S]*?rolled_back AS[\s\S]*?suspended AS[\s\S]*?released AS/,
+  );
+});
+
+test("J5g-d migration persists a one-way DB-clock drain and fences every ownership source", async () => {
+  const [migration, schema, drizzleSchema, repository, ownershipSource] =
+    await Promise.all([
+      read("db/postgres-migrations/0008_shared_cell_admission_fence.sql"),
+      read("db/postgres-schema.sql"),
+      read("db/postgres-schema.ts"),
+      read("lib/deployments/execution/neon-repository.ts"),
+      read("lib/deployments/execution/neon-shared-cell-zero-tenant-source.ts"),
+    ]);
+
+  for (const source of [migration, schema]) {
+    const admissionInitialState = postgresFunction(
+      source,
+      "enforce_deployment_environment_admission_initial_state",
+    );
+    const environmentTombstone = postgresFunction(
+      source,
+      "enforce_draining_deployment_environment_tombstone",
+    );
+    const ownershipTombstone = postgresFunction(
+      source,
+      "enforce_draining_environment_ownership_tombstone",
+    );
+    const capacityAdmission = postgresFunction(
+      source,
+      "enforce_deployment_environment_admission_fence",
+    );
+    const deploymentAdmission = postgresFunction(
+      source,
+      "enforce_app_instance_deployment_admission",
+    );
+    const tenantResourceAdmission = postgresFunction(
+      source,
+      "enforce_deployment_tenant_resource_admission",
+    );
+    const cleanupScheduleAdmission = postgresFunction(
+      source,
+      "enforce_deployment_cleanup_schedule_admission",
+    );
+    const cleanupScheduleTerminal = postgresFunction(
+      source,
+      "enforce_deployment_cleanup_schedule_terminal_status",
+    );
+    const appInstanceActivation = postgresFunction(
+      source,
+      "enforce_app_instance_activation_admission",
+    );
+
+    assert.match(source, /admission_state text NOT NULL DEFAULT 'open'/);
+    assert.match(source, /admission_epoch bigint NOT NULL DEFAULT 0/);
+    assert.match(source, /admission_fence_sha256/);
+    assert.match(source, /admission_provision_operation_hash/);
+    assert.match(source, /admission_cell_expires_at/);
+    assert.match(
+      source,
+      /admission_changed_at bigint(?: NOT NULL)?[\s\S]*?(?:ALTER COLUMN admission_changed_at SET NOT NULL|created_at bigint)/,
+    );
+    assert.match(
+      source,
+      /admission_state = 'open'[\s\S]*?admission_epoch >= 0[\s\S]*?admission_state = 'draining'[\s\S]*?admission_epoch > 0/,
+    );
+    assert.match(
+      source,
+      /CREATE OR REPLACE FUNCTION enforce_deployment_environment_admission_transition\(\)[\s\S]*?transaction_timestamp\(\)[\s\S]*?OLD\.admission_state = 'draining'[\s\S]*?admission fence is immutable[\s\S]*?NEW\.admission_epoch <> OLD\.admission_epoch \+ 1[\s\S]*?NEW\.admission_changed_at <> database_now[\s\S]*?NEW\.admission_cell_expires_at > database_now/,
+    );
+    assert.match(
+      admissionInitialState,
+      /NEW\.admission_state IS DISTINCT FROM 'open'[\s\S]*?NEW\.admission_epoch IS DISTINCT FROM 0[\s\S]*?NEW\.admission_fence_sha256 IS NOT NULL[\s\S]*?NEW\.admission_provision_operation_hash IS NOT NULL[\s\S]*?NEW\.admission_stack_id IS NOT NULL[\s\S]*?NEW\.admission_cell_expires_at IS NOT NULL[\s\S]*?new deployment environment admission must start open/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER deployment_environments_admission_initial_state\s+BEFORE INSERT ON deployment_environments/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER deployment_environments_admission_transition[\s\S]*?BEFORE UPDATE OF[\s\S]*?admission_state[\s\S]*?ON deployment_environments/,
+    );
+    assert.match(
+      environmentTombstone,
+      /TG_OP = 'DELETE'[\s\S]*?OLD\.admission_state = 'draining'[\s\S]*?RETURN OLD[\s\S]*?OLD\.admission_state = 'draining' AND NEW IS DISTINCT FROM OLD/,
+    );
+    assert.match(
+      environmentTombstone,
+      /NEW\.admission_state = 'draining' AND ROW\([\s\S]*?NEW\.id[\s\S]*?NEW\.expected_account_id[\s\S]*?NEW\.cell_key[\s\S]*?NEW\.status[\s\S]*?IS DISTINCT FROM ROW\([\s\S]*?OLD\.id[\s\S]*?deployment environment identity cannot change while entering drain/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER deployment_environments_draining_tombstone\s+BEFORE UPDATE OR DELETE ON deployment_environments/,
+    );
+    assert.match(
+      ownershipTombstone,
+      /WHERE environment\.id = OLD\.environment_id[\s\S]*?FOR UPDATE[\s\S]*?current_admission_state IS DISTINCT FROM 'open'[\s\S]*?RETURN OLD/,
+    );
+    for (const table of [
+      "app_instance_deployments",
+      "deployment_tenant_resources",
+      "deployment_cleanup_schedules",
+    ]) {
+      assert.match(
+        source,
+        new RegExp(
+          `CREATE TRIGGER ${table}_draining_tombstone\\s+BEFORE DELETE ON ${table}\\s+FOR EACH ROW\\s+EXECUTE FUNCTION enforce_draining_environment_ownership_tombstone\\(\\)`,
+        ),
+      );
+    }
+    assert.doesNotMatch(
+      source,
+      /CREATE TRIGGER deployment_environment_capacity_reservations_draining_tombstone/,
+    );
+    assert.match(
+      capacityAdmission,
+      /ROW\([\s\S]*?NEW\.deployment_id[\s\S]*?NEW\.environment_id[\s\S]*?NEW\.slot[\s\S]*?NEW\.reserved_at[\s\S]*?IS DISTINCT FROM ROW\([\s\S]*?OLD\.deployment_id[\s\S]*?capacity reservation is immutable/,
+    );
+    assert.match(
+      capacityAdmission,
+      /SELECT deployment\.environment_id[\s\S]*?deployment\.id = NEW\.deployment_id[\s\S]*?FOR UPDATE[\s\S]*?owning_deployment_environment_id IS DISTINCT FROM NEW\.environment_id[\s\S]*?current_admission_state IS DISTINCT FROM 'open'/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER deployment_environment_capacity_admission_fence[\s\S]*?BEFORE INSERT OR UPDATE\s+ON deployment_environment_capacity_reservations/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER app_instance_deployments_admission_insert_fence\s+AFTER INSERT ON app_instance_deployments/,
+    );
+    assert.doesNotMatch(
+      source,
+      /CREATE TRIGGER app_instance_deployments_admission_insert_fence\s+BEFORE INSERT/,
+    );
+    assert.match(
+      deploymentAdmission,
+      /enforce_app_instance_deployment_admission\(\)[\s\S]*?NEW\.app_instance_id IS DISTINCT FROM OLD\.app_instance_id[\s\S]*?NEW\.environment_id IS DISTINCT FROM OLD\.environment_id[\s\S]*?deployment application instance and environment are immutable[\s\S]*?OLD\.status IN \('rolled_back', 'canceled'\)[\s\S]*?NEW\.status NOT IN \('rolled_back', 'canceled'\)/,
+    );
+    assert.match(
+      deploymentAdmission,
+      /SELECT environment\.id, environment\.admission_state[\s\S]*?WHERE environment\.id = NEW\.environment_id[\s\S]*?FOR UPDATE[\s\S]*?admission_state IS DISTINCT FROM 'open'[\s\S]*?new or reopened deployment ownership is not admitted by the environment/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER app_instance_deployments_admission_reopen_fence\s+AFTER UPDATE OF app_instance_id, environment_id, status\s+ON app_instance_deployments/,
+    );
+    assert.match(
+      tenantResourceAdmission,
+      /enforce_deployment_tenant_resource_admission\(\)[\s\S]*?NEW\.app_instance_id IS DISTINCT FROM OLD\.app_instance_id[\s\S]*?NEW\.environment_id IS DISTINCT FROM OLD\.environment_id[\s\S]*?tenant resource application instance and environment are immutable[\s\S]*?OLD\.lifecycle_status = 'destroyed'[\s\S]*?NEW\.lifecycle_status <> 'destroyed'[\s\S]*?deployment_environment_capacity_reservations[\s\S]*?reservation\.deployment_id = NEW\.owner_deployment_id[\s\S]*?FOR UPDATE/,
+    );
+    assert.match(
+      tenantResourceAdmission,
+      /NEW\.environment_id IS NOT DISTINCT FROM OLD\.environment_id[\s\S]*?NEW\.owner_deployment_id IS NOT DISTINCT FROM OLD\.owner_deployment_id[\s\S]*?NEW\.generation IS NOT DISTINCT FROM OLD\.generation[\s\S]*?RETURN NEW/,
+    );
+    assert.match(
+      tenantResourceAdmission,
+      /reservation\.deployment_id = NEW\.owner_deployment_id[\s\S]*?reservation\.environment_id = NEW\.environment_id/,
+    );
+    assert.match(
+      tenantResourceAdmission,
+      /SELECT deployment\.environment_id, deployment\.app_instance_id[\s\S]*?deployment\.id = NEW\.owner_deployment_id[\s\S]*?FOR UPDATE[\s\S]*?owning_deployment_environment_id IS DISTINCT FROM NEW\.environment_id[\s\S]*?owning_deployment_app_instance_id IS DISTINCT FROM NEW\.app_instance_id[\s\S]*?tenant resource ownership does not match its deployment/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER deployment_tenant_resources_admission_insert_fence\s+AFTER INSERT ON deployment_tenant_resources/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER deployment_tenant_resources_admission_reopen_fence\s+AFTER UPDATE OF\s+app_instance_id,\s+environment_id,\s+owner_deployment_id,\s+generation,\s+lifecycle_status\s+ON deployment_tenant_resources/,
+    );
+    assert.doesNotMatch(
+      source,
+      /CREATE TRIGGER deployment_tenant_resources_admission_insert_fence\s+BEFORE INSERT/,
+    );
+    assert.match(
+      cleanupScheduleAdmission,
+      /enforce_deployment_cleanup_schedule_admission\(\)[\s\S]*?owning_deployment_status IN \('rolled_back', 'canceled'\)[\s\S]*?reservation\.deployment_id = NEW\.deployment_id[\s\S]*?reservation\.environment_id = NEW\.environment_id/,
+    );
+    assert.match(
+      cleanupScheduleAdmission,
+      /TG_OP = 'UPDATE'[\s\S]*?NEW\.environment_id IS DISTINCT FROM OLD\.environment_id[\s\S]*?NEW\.deployment_id IS DISTINCT FROM OLD\.deployment_id[\s\S]*?cleanup schedule deployment and environment are immutable[\s\S]*?RETURN NEW/,
+    );
+    assert.match(
+      cleanupScheduleAdmission,
+      /SELECT deployment\.environment_id, deployment\.status[\s\S]*?owning_deployment_environment_id IS DISTINCT FROM NEW\.environment_id[\s\S]*?SELECT environment\.admission_state[\s\S]*?current_admission_state = 'open'[\s\S]*?RETURN NEW/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER deployment_cleanup_schedules_admission_insert_fence\s+AFTER INSERT ON deployment_cleanup_schedules/,
+    );
+    assert.doesNotMatch(
+      source,
+      /CREATE TRIGGER deployment_cleanup_schedules_admission_insert_fence\s+BEFORE INSERT/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER deployment_cleanup_schedules_admission_move_fence\s+AFTER UPDATE OF environment_id, deployment_id ON deployment_cleanup_schedules/,
+    );
+    assert.match(
+      cleanupScheduleTerminal,
+      /enforce_deployment_cleanup_schedule_terminal_status\(\)[\s\S]*?OLD\.status IN \('succeeded', 'canceled'\)[\s\S]*?NEW\.status IS DISTINCT FROM OLD\.status[\s\S]*?terminal cleanup schedule status is immutable/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER deployment_cleanup_schedules_terminal_status_fence\s+BEFORE UPDATE OF status ON deployment_cleanup_schedules/,
+    );
+    assert.match(
+      appInstanceActivation,
+      /enforce_app_instance_activation_admission\(\)[\s\S]*?OLD\.status IN \('pending', 'active'\)[\s\S]*?NEW\.status NOT IN \('pending', 'active'\)[\s\S]*?deployment\.app_instance_id = NEW\.id[\s\S]*?ORDER BY environment\.id[\s\S]*?FOR UPDATE OF environment[\s\S]*?admission_state IS DISTINCT FROM 'open'/,
+    );
+    assert.match(
+      source,
+      /CREATE TRIGGER app_instances_activation_admission_fence\s+AFTER UPDATE OF status ON app_instances/,
+    );
+    assert.match(
+      source,
+      /deployment_environments_admission_provision_hash_check/,
+    );
+    assert.match(
+      source,
+      /LOCK TABLE\s+app_instance_deployments,\s+deployment_tenant_resources,\s+deployment_environment_capacity_reservations,\s+deployment_cleanup_schedules\s+IN SHARE ROW EXCLUSIVE MODE/,
+    );
+    assert.match(
+      source,
+      /DO \$admission_relationships\$[\s\S]*?reservation\.environment_id IS DISTINCT FROM deployment\.environment_id[\s\S]*?resource\.environment_id IS DISTINCT FROM deployment\.environment_id[\s\S]*?resource\.app_instance_id IS DISTINCT FROM deployment\.app_instance_id[\s\S]*?schedule\.environment_id IS DISTINCT FROM deployment\.environment_id/,
+    );
+  }
+  for (const name of [
+    "enforce_deployment_environment_admission_initial_state",
+    "enforce_deployment_environment_admission_transition",
+    "enforce_draining_deployment_environment_tombstone",
+    "enforce_draining_environment_ownership_tombstone",
+    "enforce_deployment_environment_admission_fence",
+    "enforce_app_instance_deployment_admission",
+    "enforce_deployment_tenant_resource_admission",
+    "enforce_deployment_cleanup_schedule_admission",
+    "enforce_deployment_cleanup_schedule_terminal_status",
+    "enforce_app_instance_activation_admission",
+  ]) {
+    assert.equal(postgresFunction(migration, name), postgresFunction(schema, name));
+  }
+  for (const field of [
+    "admissionState",
+    "admissionEpoch",
+    "admissionFenceSha256",
+    "admissionProvisionOperationHash",
+    "admissionStackId",
+    "admissionCellExpiresAt",
+    "admissionChangedAt",
+  ]) {
+    assert.match(drizzleSchema, new RegExp(field));
+  }
+  assert.match(
+    drizzleSchema,
+    /deployment_environments_admission_epoch_check[\s\S]*?admission_epoch >= 0/,
+  );
+  assert.match(
+    drizzleSchema,
+    /deployment_environments_admission_provision_hash_check/,
+  );
+  assert.match(
+    repository,
+    /reserveEnvironmentCapacity[\s\S]*?environment\.admission_state = 'open'[\s\S]*?FOR UPDATE OF environment/,
+  );
+  assert.match(
+    repository,
+    /INSERT INTO deployment_environment_capacity_reservations[\s\S]*?SELECT now_ms FROM db_clock/,
+  );
+  assert.match(
+    ownershipSource,
+    /database_cell_expired[\s\S]*?environment\.admission_state = 'draining'/,
   );
 });
 

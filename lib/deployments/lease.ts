@@ -146,7 +146,7 @@ export function buildDeploymentClaimStatement(input: {
       FROM dead_cleanup_job, db_clock
       WHERE schedule.deployment_id = dead_cleanup_job.deployment_id
         AND dead_cleanup_job.job_type IN ('cleanup', 'rollback')
-        AND schedule.status <> 'succeeded'
+        AND schedule.status IN ('pending', 'confirmed', 'running', 'failed')
       RETURNING schedule.id
     ), candidate AS (
       SELECT candidate_job.id

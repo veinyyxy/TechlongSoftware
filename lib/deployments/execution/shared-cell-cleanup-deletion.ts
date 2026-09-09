@@ -1,4 +1,5 @@
 import { canonicalJson, sha256Hex } from "./hash.ts";
+import { sharedCellAdmissionDrainIntent } from "./shared-cell-admission-fence.ts";
 import {
   assertSharedCellCleanupAuthorityActive,
   SHARED_CELL_CLEANUP_AUTHORITY_KEY,
@@ -186,6 +187,15 @@ interface EvidenceSnapshot {
 }
 
 interface ZeroTenantOwnershipSource {
+  admissionFence: {
+    admissionState: "draining";
+    admissionEpoch: number;
+    admissionFenceSha256: string;
+    admissionProvisionOperationHash: string;
+    admissionStackId: string;
+    admissionCellExpiresAt: number;
+    admissionChangedAt: number;
+  };
   activeTenantIds: [];
   activeCapacityReservationIds: [];
   nonterminalDeploymentIds: [];
@@ -718,16 +728,25 @@ async function readPresentEvidence(
 async function readZeroTenantOwnership(
   evidence: SharedCellCleanupDeletionEvidenceReadPort,
   signal: AbortSignal,
-  now: number,
-  cellExpiresAt: string,
+  startedAt: number,
+  now: () => number,
+  authority: Readonly<SharedCellCleanupAuthorityRecord>,
 ): Promise<Readonly<ZeroTenantOwnershipSnapshot>> {
   requireNotAborted(signal);
   const cellExpiry = canonicalUtc(
-    cellExpiresAt,
+    authority.cellExpiresAt,
     "Zero-tenant ownership cellExpiresAt",
   );
   const raw = await evidence.readStrongZeroTenantOwnershipSnapshot({ signal });
   requireNotAborted(signal);
+  const completedAt = readClock(now);
+  if (completedAt < startedAt) {
+    fail(
+      "SHARED_CELL_DELETE_CLOCK_REGRESSED",
+      "The Shared Cell deletion clock regressed while reading zero-tenant ownership.",
+      true,
+    );
+  }
   if (
     !exactKeys(raw, [
       "accountId",
@@ -757,8 +776,9 @@ async function readZeroTenantOwnership(
     !Number.isSafeInteger(record(raw).observedAt) ||
     Number(record(raw).observedAt) <= 0 ||
     Number(record(raw).observedAt) < cellExpiry ||
-    Number(record(raw).observedAt) > now ||
-    now - Number(record(raw).observedAt) > maximumEvidenceAgeMs ||
+    completedAt - startedAt > maximumEvidenceAgeMs ||
+    Number(record(raw).observedAt) > completedAt ||
+    completedAt - Number(record(raw).observedAt) > maximumEvidenceAgeMs ||
     typeof record(raw).sourceSnapshotSha256 !== "string" ||
     !digestPattern.test(record(raw).sourceSnapshotSha256 as string)
   ) {
@@ -769,6 +789,7 @@ async function readZeroTenantOwnership(
   }
   const source = record(raw).sourceSnapshot;
   const sourceRecord = record(source);
+  const admissionFence = record(sourceRecord.admissionFence);
   const sourceLists = [
     sourceRecord.activeTenantIds,
     sourceRecord.activeCapacityReservationIds,
@@ -778,12 +799,34 @@ async function readZeroTenantOwnership(
   ];
   if (
     !exactKeys(source, [
+      "admissionFence",
       "activeCapacityReservationIds",
       "activeTenantIds",
       "liveTenantResourceIds",
       "nonterminalDeploymentIds",
       "nonterminalTenantCleanupScheduleIds",
     ]) ||
+    !exactKeys(admissionFence, [
+      "admissionCellExpiresAt",
+      "admissionChangedAt",
+      "admissionEpoch",
+      "admissionFenceSha256",
+      "admissionProvisionOperationHash",
+      "admissionStackId",
+      "admissionState",
+    ]) ||
+    admissionFence.admissionState !== "draining" ||
+    !Number.isSafeInteger(admissionFence.admissionEpoch) ||
+    Number(admissionFence.admissionEpoch) < 1 ||
+    typeof admissionFence.admissionFenceSha256 !== "string" ||
+    !digestPattern.test(admissionFence.admissionFenceSha256) ||
+    admissionFence.admissionProvisionOperationHash !==
+      authority.provisionOperationHash ||
+    admissionFence.admissionStackId !== authority.stackId ||
+    admissionFence.admissionCellExpiresAt !== cellExpiry ||
+    !Number.isSafeInteger(admissionFence.admissionChangedAt) ||
+    Number(admissionFence.admissionChangedAt) < cellExpiry ||
+    Number(admissionFence.admissionChangedAt) > Number(record(raw).observedAt) ||
     sourceLists.some((value) => !Array.isArray(value) || value.length !== 0)
   ) {
     fail(
@@ -795,6 +838,15 @@ async function readZeroTenantOwnership(
     fail(
       "SHARED_CELL_DELETE_ZERO_TENANT_HASH_MISMATCH",
       "The strong zero-tenant ownership source hash does not match its canonical snapshot.",
+    );
+  }
+  const expectedFenceSha256 = await sha256Hex(
+    sharedCellAdmissionDrainIntent(authority),
+  );
+  if (admissionFence.admissionFenceSha256 !== expectedFenceSha256) {
+    fail(
+      "SHARED_CELL_DELETE_ADMISSION_FENCE_MISMATCH",
+      "The durable admission fence does not match the cleanup-authorized provision lineage.",
     );
   }
   return Object.freeze(
@@ -875,7 +927,8 @@ async function collectVerifiedCycle(input: {
     input.evidence,
     input.signal,
     beforeNow,
-    authorityBefore.cellExpiresAt,
+    input.now,
+    authorityBefore,
   );
   const firstNames = await collectStackNames(input.evidence, input.signal);
   assertNoDependentsOrUnexpectedCells(firstNames);
@@ -917,13 +970,21 @@ async function collectVerifiedCycle(input: {
     input.evidence,
     input.signal,
     afterNow,
-    authorityBefore.cellExpiresAt,
+    input.now,
+    authorityBefore,
   );
   const authorityAfter = await readStrongAuthority(
     input.authority,
     input.signal,
   );
-  assertSharedCellCleanupAuthorityActive(authorityAfter, afterNow);
+  const completedNow = readClock(input.now);
+  if (completedNow < afterNow) {
+    fail(
+      "SHARED_CELL_DELETE_CLOCK_REGRESSED",
+      "The Shared Cell deletion clock regressed during evidence collection.",
+    );
+  }
+  assertSharedCellCleanupAuthorityActive(authorityAfter, completedNow);
   await assertCaller(input.evidence, input.signal);
   if (canonicalJson(authorityBefore) !== canonicalJson(authorityAfter)) {
     fail(
@@ -1039,7 +1100,13 @@ async function immediateRecheck(input: {
   approved: Awaited<ReturnType<typeof planned>>;
   signal: AbortSignal;
   now: () => number;
-}): Promise<void> {
+}): Promise<
+  Readonly<{
+    checkedAt: number;
+    zeroTenantObservedAt: number;
+    authority: Readonly<SharedCellCleanupAuthorityRecord>;
+  }>
+> {
   await assertCaller(input.evidence, input.signal);
   const beforeNow = readClock(input.now);
   const authorityBefore = await readStrongAuthority(
@@ -1051,7 +1118,8 @@ async function immediateRecheck(input: {
     input.evidence,
     input.signal,
     beforeNow,
-    authorityBefore.cellExpiresAt,
+    input.now,
+    authorityBefore,
   );
   const names = await collectStackNames(input.evidence, input.signal);
   assertNoDependentsOrUnexpectedCells(names);
@@ -1083,8 +1151,18 @@ async function immediateRecheck(input: {
     input.evidence,
     input.signal,
     afterNow,
-    authorityAfter.cellExpiresAt,
+    input.now,
+    authorityAfter,
   );
+  const boundaryNow = readClock(input.now);
+  if (boundaryNow < afterNow) {
+    fail(
+      "SHARED_CELL_DELETE_PREDELETE_DRIFT",
+      "The Shared Cell deletion clock regressed across the immediate destructive boundary.",
+      true,
+    );
+  }
+  assertSharedCellCleanupAuthorityActive(authorityAfter, boundaryNow);
   if (
     canonicalJson(stableZeroTenant(zeroTenantBefore)) !==
     canonicalJson(stableZeroTenant(zeroTenantAfter))
@@ -1113,8 +1191,50 @@ async function immediateRecheck(input: {
       "Caller-adjacent live evidence or strong authority no longer matches the approved deletion plan.",
     );
   }
+  const evidenceAtDelegate = await readPresentEvidence(
+    input.evidence,
+    input.signal,
+  );
+  if (canonicalJson(evidence) !== canonicalJson(evidenceAtDelegate)) {
+    fail(
+      "SHARED_CELL_DELETE_PREDELETE_DRIFT",
+      "Live Shared Cell evidence changed after the final zero-tenant snapshot.",
+      true,
+    );
+  }
+  assertEvidenceMatchesAuthority(evidenceAtDelegate, authorityAfter);
   await assertCaller(input.evidence, input.signal);
   requireNotAborted(input.signal);
+  const authorityAtDelegate = await readStrongAuthority(
+    input.authority,
+    input.signal,
+  );
+  if (canonicalJson(authorityAfter) !== canonicalJson(authorityAtDelegate)) {
+    fail(
+      "SHARED_CELL_DELETE_PREDELETE_DRIFT",
+      "Strong cleanup authority changed during the final caller check.",
+      true,
+    );
+  }
+  const delegateNow = readClock(input.now);
+  assertSharedCellCleanupAuthorityActive(authorityAtDelegate, delegateNow);
+  if (
+    delegateNow < boundaryNow ||
+    delegateNow - beforeNow > maximumEvidenceAgeMs ||
+    zeroTenantAfter.observedAt > delegateNow ||
+    delegateNow - zeroTenantAfter.observedAt > maximumEvidenceAgeMs
+  ) {
+    fail(
+      "SHARED_CELL_DELETE_PREDELETE_DRIFT",
+      "The destructive boundary regressed or outlived its zero-tenant evidence.",
+      true,
+    );
+  }
+  return Object.freeze({
+    checkedAt: delegateNow,
+    zeroTenantObservedAt: zeroTenantAfter.observedAt,
+    authority: authorityAtDelegate,
+  });
 }
 
 async function defaultWait(delayMs: number, signal: AbortSignal): Promise<void> {
@@ -1275,13 +1395,32 @@ export async function executeReviewedSharedCellCleanupDeletion(
       "Fresh double-read evidence does not reproduce the approved deletion plan.",
     );
   }
-  await immediateRecheck({
+  const destructiveBoundary = await immediateRecheck({
     evidence,
     authority,
     approved: plan,
     signal: input.signal,
     now,
   });
+  const delegateNow = readClock(now);
+  if (
+    delegateNow < destructiveBoundary.checkedAt ||
+    delegateNow - destructiveBoundary.checkedAt > maximumEvidenceAgeMs ||
+    destructiveBoundary.zeroTenantObservedAt > delegateNow ||
+    delegateNow - destructiveBoundary.zeroTenantObservedAt >
+      maximumEvidenceAgeMs
+  ) {
+    fail(
+      "SHARED_CELL_DELETE_PREDELETE_DRIFT",
+      "The Shared Cell destructive boundary regressed or became stale before delegation.",
+      true,
+    );
+  }
+  assertSharedCellCleanupAuthorityActive(
+    destructiveBoundary.authority,
+    delegateNow,
+  );
+  requireNotAborted(input.signal);
 
   let responseLost = false;
   try {
@@ -1345,13 +1484,16 @@ export async function recoverReviewedSharedCellCleanupDeletion(
   const evidence = pinEvidence(input.evidence);
   const authorityPort = pinAuthority(input.authority);
   const readback = readbackSettings(input);
+  const now = input.now ?? Date.now;
   await assertCaller(evidence, input.signal);
   const authority = await readStrongAuthority(authorityPort, input.signal);
+  const startedAt = readClock(now);
   const zeroTenant = await readZeroTenantOwnership(
     evidence,
     input.signal,
-    readClock(input.now ?? Date.now),
-    authority.cellExpiresAt,
+    startedAt,
+    now,
+    authority,
   );
   const syntheticEvidence: EvidenceSnapshot = Object.freeze({
     stack: Object.freeze({

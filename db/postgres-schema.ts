@@ -518,6 +518,13 @@ export const deploymentEnvironments = pgTable("deployment_environments", {
 	applyEnabled: integer("apply_enabled").default(0).notNull(),
 	policy: text().notNull(),
 	status: text().default('active').notNull(),
+	admissionState: text("admission_state").default('open').notNull(),
+	admissionEpoch: bigint("admission_epoch", { mode: "number" }).default(0).notNull(),
+	admissionFenceSha256: text("admission_fence_sha256"),
+	admissionProvisionOperationHash: text("admission_provision_operation_hash"),
+	admissionStackId: text("admission_stack_id"),
+	admissionCellExpiresAt: bigint("admission_cell_expires_at", { mode: "number" }),
+	admissionChangedAt: bigint("admission_changed_at", { mode: "number" }).notNull(),
 	createdAt: bigint("created_at", { mode: "number" }).notNull(),
 	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
 }, (table) => [
@@ -529,6 +536,11 @@ export const deploymentEnvironments = pgTable("deployment_environments", {
 	check("deployment_environments_apply_check", sql`apply_enabled = ANY (ARRAY[0, 1])`),
 	check("deployment_environments_policy_check", sql`jsonb_typeof((policy)::jsonb) = 'object'::text AND octet_length(policy) <= 16384`),
 	check("deployment_environments_status_check", sql`status = ANY (ARRAY['active'::text, 'inactive'::text])`),
+	check("deployment_environments_admission_state_check", sql`admission_state = ANY (ARRAY['open'::text, 'draining'::text])`),
+	check("deployment_environments_admission_epoch_check", sql`admission_epoch >= 0`),
+	check("deployment_environments_admission_fence_sha256_check", sql`admission_fence_sha256 IS NULL OR admission_fence_sha256 ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_environments_admission_provision_hash_check", sql`admission_provision_operation_hash IS NULL OR admission_provision_operation_hash ~ '^[a-f0-9]{64}$'::text`),
+	check("deployment_environments_admission_consistency_check", sql`(admission_state = 'open'::text AND admission_epoch >= 0 AND admission_fence_sha256 IS NULL AND admission_provision_operation_hash IS NULL AND admission_stack_id IS NULL AND admission_cell_expires_at IS NULL) OR (admission_state = 'draining'::text AND admission_epoch > 0 AND admission_fence_sha256 IS NOT NULL AND admission_provision_operation_hash IS NOT NULL AND admission_stack_id IS NOT NULL AND admission_cell_expires_at IS NOT NULL AND admission_cell_expires_at > 0 AND admission_changed_at >= admission_cell_expires_at)`),
 ]);
 
 export const deploymentEnvironmentBindings = pgTable("deployment_environment_bindings", {

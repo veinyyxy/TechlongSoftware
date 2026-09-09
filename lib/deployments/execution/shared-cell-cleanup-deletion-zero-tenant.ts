@@ -10,6 +10,64 @@ const region = "ca-central-1";
 const cellId = "cell-sandbox-1";
 const environmentId = "env_aws_sandbox_ca_central_1";
 const maximumReadDurationMs = 30_000;
+const safeSourceErrorCodes = new Set([
+  "NEON_SHARED_CELL_ENVIRONMENT_INVALID",
+  "NEON_SHARED_CELL_SNAPSHOT_CLIENT_INVALID",
+  "NEON_SHARED_CELL_SNAPSHOT_DATABASE_URL_INVALID",
+  "NEON_SHARED_CELL_SNAPSHOT_INPUT_INVALID",
+  "NEON_SHARED_CELL_SNAPSHOT_READ_FAILED",
+  "NEON_SHARED_CELL_SNAPSHOT_RESULT_INVALID",
+  "SHARED_CELL_DELETE_ZERO_TENANT_CLOCK_INVALID",
+  "SHARED_CELL_DELETE_ZERO_TENANT_INPUT_INVALID",
+  "SHARED_CELL_DELETE_ZERO_TENANT_OPTIONS_INVALID",
+  "SHARED_CELL_DELETE_ZERO_TENANT_READ_FAILED",
+  "SHARED_CELL_DELETE_ZERO_TENANT_SNAPSHOT_INVALID",
+  "SHARED_CELL_DELETE_ZERO_TENANT_SOURCE_INVALID",
+  "08000",
+  "08001",
+  "08003",
+  "08004",
+  "08006",
+  "08007",
+  "08P01",
+  "40001",
+  "40003",
+  "40P01",
+  "55P03",
+  "57P01",
+  "57P02",
+  "57P03",
+  "EAI_AGAIN",
+  "ECONNABORTED",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EHOSTUNREACH",
+  "ENETDOWN",
+  "ENETRESET",
+  "ENETUNREACH",
+  "EPIPE",
+  "ETIMEDOUT",
+  "UND_ERR_ABORTED",
+  "UND_ERR_BODY_TIMEOUT",
+  "UND_ERR_CLOSED",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_DESTROYED",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
+const safeSourceErrorNames = new Set([
+  "AbortError",
+  "ConnectionError",
+  "Error",
+  "FetchError",
+  "NeonDbError",
+  "NetworkError",
+  "SerializationError",
+  "SerializationFailure",
+  "TimeoutError",
+  "TransactionError",
+  "TypeError",
+]);
 
 type DeletionZeroTenantReadPort = Pick<
   SharedCellCleanupDeletionEvidenceReadPort,
@@ -32,9 +90,21 @@ function fail(code: string, message: string, retryable = false): never {
 }
 
 function record(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+  try {
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function member(value: Record<string, unknown>, key: string): unknown {
+  try {
+    return value[key];
+  } catch {
+    return undefined;
+  }
 }
 
 function exactKeys(value: unknown, expected: readonly string[]): boolean {
@@ -124,6 +194,15 @@ function validateSnapshot(
 ): {
   observedAt: number;
   sourceSnapshot: {
+    admissionFence: {
+      admissionState: "draining";
+      admissionEpoch: number;
+      admissionFenceSha256: string;
+      admissionProvisionOperationHash: string;
+      admissionStackId: string;
+      admissionCellExpiresAt: number;
+      admissionChangedAt: number;
+    };
     activeTenantIds: string[];
     activeCapacityReservationIds: string[];
     nonterminalDeploymentIds: string[];
@@ -134,10 +213,18 @@ function validateSnapshot(
   if (
     !exactKeys(value, [
       "accountId",
+      "admissionCellExpiresAt",
+      "admissionChangedAt",
+      "admissionEpoch",
+      "admissionFenceSha256",
+      "admissionProvisionOperationHash",
+      "admissionStackId",
+      "admissionState",
       "activeCapacityReservationIds",
       "activeTenantIds",
       "cellId",
       "dbObservedAt",
+      "databaseCellExpired",
       "deferrable",
       "environmentId",
       "isolationLevel",
@@ -156,7 +243,7 @@ function validateSnapshot(
   }
   const snapshot = value as SerializableSharedCellOwnershipSnapshot;
   if (
-    snapshot.schemaVersion !== 1 ||
+    snapshot.schemaVersion !== 2 ||
     snapshot.isolationLevel !== "Serializable" ||
     snapshot.readOnly !== true ||
     snapshot.deferrable !== true ||
@@ -165,8 +252,21 @@ function validateSnapshot(
     snapshot.cellId !== cellId ||
     snapshot.environmentId !== environmentId ||
     !Number.isSafeInteger(snapshot.dbObservedAt) ||
-    snapshot.dbObservedAt < startedAt ||
-    snapshot.dbObservedAt > completedAt ||
+    snapshot.dbObservedAt <= 0 ||
+    snapshot.admissionState !== "draining" ||
+    !Number.isSafeInteger(snapshot.admissionEpoch) ||
+    snapshot.admissionEpoch < 1 ||
+    !/^[a-f0-9]{64}$/.test(snapshot.admissionFenceSha256) ||
+    !/^[a-f0-9]{64}$/.test(snapshot.admissionProvisionOperationHash) ||
+    !/^arn:aws:cloudformation:ca-central-1:402010193138:stack\/techlong-sandbox-cell-sandbox-1\/[0-9a-f-]{36}$/.test(
+      snapshot.admissionStackId,
+    ) ||
+    !Number.isSafeInteger(snapshot.admissionCellExpiresAt) ||
+    snapshot.admissionCellExpiresAt <= 0 ||
+    !Number.isSafeInteger(snapshot.admissionChangedAt) ||
+    snapshot.admissionChangedAt < snapshot.admissionCellExpiresAt ||
+    snapshot.dbObservedAt < snapshot.admissionChangedAt ||
+    snapshot.databaseCellExpired !== true ||
     completedAt < startedAt ||
     completedAt - startedAt > maximumReadDurationMs
   ) {
@@ -178,6 +278,16 @@ function validateSnapshot(
   return {
     observedAt: snapshot.dbObservedAt,
     sourceSnapshot: {
+      admissionFence: {
+        admissionState: snapshot.admissionState,
+        admissionEpoch: snapshot.admissionEpoch,
+        admissionFenceSha256: snapshot.admissionFenceSha256,
+        admissionProvisionOperationHash:
+          snapshot.admissionProvisionOperationHash,
+        admissionStackId: snapshot.admissionStackId,
+        admissionCellExpiresAt: snapshot.admissionCellExpiresAt,
+        admissionChangedAt: snapshot.admissionChangedAt,
+      },
       activeTenantIds: sortedUniqueIds(
         snapshot.activeTenantIds,
         "activeTenantIds",
@@ -203,16 +313,24 @@ function validateSnapshot(
 }
 
 function normalizeSourceError(error: unknown): Error {
-  if (error instanceof SharedCellCleanupDeletionZeroTenantError) return error;
   const value = record(error);
-  const name =
-    typeof value.name === "string" && value.name.length > 0
-      ? value.name
-      : "SHARED_CELL_DELETE_ZERO_TENANT_READ_FAILED";
+  const codeValue = member(value, "code");
+  const nameValue = member(value, "name");
+  const rawCode = typeof codeValue === "string" ? codeValue : "";
+  const rawName = typeof nameValue === "string" ? nameValue : "";
+  const code =
+    (safeSourceErrorCodes.has(rawCode) ? rawCode : undefined) ??
+    (rawCode.length === 0 && safeSourceErrorNames.has(rawName)
+      ? rawName
+      : undefined) ??
+    "SHARED_CELL_DELETE_ZERO_TENANT_READ_FAILED";
   return new SharedCellCleanupDeletionZeroTenantError(
-    name.replace(/[^A-Za-z0-9_.-]/g, "_").slice(0, 100),
+    code,
     "The deletion zero-tenant ownership read failed.",
-    /Serialization|Transaction|Timeout|Unavailable|Connection|Fetch/i.test(name),
+    member(value, "retryable") === true ||
+      /Serialization|Deadlock|Transaction|Timeout|Unavailable|Connection|Fetch/i.test(
+        `${rawName} ${rawCode}`,
+      ),
   );
 }
 
@@ -292,6 +410,9 @@ export class SerializableSharedCellCleanupDeletionZeroTenantAdapter
         nonterminalTenantCleanupScheduleCount:
           snapshot.sourceSnapshot.nonterminalTenantCleanupScheduleIds.length,
         sourceSnapshot: Object.freeze({
+          admissionFence: Object.freeze({
+            ...snapshot.sourceSnapshot.admissionFence,
+          }),
           activeTenantIds: Object.freeze(
             snapshot.sourceSnapshot.activeTenantIds,
           ),

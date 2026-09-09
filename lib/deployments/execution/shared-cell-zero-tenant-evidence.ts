@@ -4,6 +4,9 @@ import {
   type ReadSharedCellCleanupEvidenceInput,
   type VerifiedSharedCellZeroTenantEvidence,
 } from "./shared-cell-cleanup-authority-operator.ts";
+import {
+  compileSharedCellAdmissionDrainIntent,
+} from "./shared-cell-admission-fence.ts";
 
 const accountId = "402010193138";
 const region = "ca-central-1";
@@ -12,6 +15,67 @@ const environmentId = "env_aws_sandbox_ca_central_1";
 const maximumEvidenceAgeMs = 30_000;
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9:_-]{0,255}$/;
 const utcPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const safeSourceErrorCodes = new Set([
+  "NEON_SHARED_CELL_ENVIRONMENT_INVALID",
+  "NEON_SHARED_CELL_SNAPSHOT_CLIENT_INVALID",
+  "NEON_SHARED_CELL_SNAPSHOT_DATABASE_URL_INVALID",
+  "NEON_SHARED_CELL_SNAPSHOT_INPUT_INVALID",
+  "NEON_SHARED_CELL_SNAPSHOT_READ_FAILED",
+  "NEON_SHARED_CELL_SNAPSHOT_RESULT_INVALID",
+  "SHARED_CELL_ADMISSION_PREDECESSOR_INVALID",
+  "SHARED_CELL_ZERO_TENANT_CLOCK_INVALID",
+  "SHARED_CELL_ZERO_TENANT_EVIDENCE_STALE",
+  "SHARED_CELL_ZERO_TENANT_NOT_ZERO",
+  "SHARED_CELL_ZERO_TENANT_OPTIONS_INVALID",
+  "SHARED_CELL_ZERO_TENANT_PREDECESSOR_INVALID",
+  "SHARED_CELL_ZERO_TENANT_READ_FAILED",
+  "SHARED_CELL_ZERO_TENANT_SNAPSHOT_INVALID",
+  "SHARED_CELL_ZERO_TENANT_SOURCE_MISSING",
+  "08000",
+  "08001",
+  "08003",
+  "08004",
+  "08006",
+  "08007",
+  "08P01",
+  "40001",
+  "40003",
+  "40P01",
+  "55P03",
+  "57P01",
+  "57P02",
+  "57P03",
+  "EAI_AGAIN",
+  "ECONNABORTED",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EHOSTUNREACH",
+  "ENETDOWN",
+  "ENETRESET",
+  "ENETUNREACH",
+  "EPIPE",
+  "ETIMEDOUT",
+  "UND_ERR_ABORTED",
+  "UND_ERR_BODY_TIMEOUT",
+  "UND_ERR_CLOSED",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_DESTROYED",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
+const safeSourceErrorNames = new Set([
+  "AbortError",
+  "ConnectionError",
+  "Error",
+  "FetchError",
+  "NeonDbError",
+  "NetworkError",
+  "SerializationError",
+  "SerializationFailure",
+  "TimeoutError",
+  "TransactionError",
+  "TypeError",
+]);
 
 /**
  * Current integration blocker, not a permanent limitation: the default Worker
@@ -37,7 +101,7 @@ export interface ReadSerializableSharedCellOwnershipSnapshotInput {
  * database clock for dbObservedAt. Every ID list must be unique and sorted.
  */
 export interface SerializableSharedCellOwnershipSnapshot {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly isolationLevel: "Serializable";
   readonly readOnly: true;
   readonly deferrable: true;
@@ -46,6 +110,14 @@ export interface SerializableSharedCellOwnershipSnapshot {
   readonly cellId: typeof cellId;
   readonly environmentId: typeof environmentId;
   readonly dbObservedAt: number;
+  readonly admissionState: "draining";
+  readonly admissionEpoch: number;
+  readonly admissionFenceSha256: string;
+  readonly admissionProvisionOperationHash: string;
+  readonly admissionStackId: string;
+  readonly admissionCellExpiresAt: number;
+  readonly admissionChangedAt: number;
+  readonly databaseCellExpired: true;
   readonly activeTenantIds: readonly string[];
   readonly activeCapacityReservationIds: readonly string[];
   readonly nonterminalDeploymentIds: readonly string[];
@@ -75,9 +147,21 @@ function fail(code: string, message: string, retryable = false): never {
 }
 
 function record(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+  try {
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function member(value: Record<string, unknown>, key: string): unknown {
+  try {
+    return value[key];
+  } catch {
+    return undefined;
+  }
 }
 
 function exactKeys(value: unknown, expected: readonly string[]): boolean {
@@ -176,6 +260,15 @@ function pinSource(
 }
 
 interface SourceIdSnapshot {
+  admissionFence: {
+    admissionState: "draining";
+    admissionEpoch: number;
+    admissionFenceSha256: string;
+    admissionProvisionOperationHash: string;
+    admissionStackId: string;
+    admissionCellExpiresAt: number;
+    admissionChangedAt: number;
+  };
   activeTenantIds: string[];
   activeCapacityReservationIds: string[];
   nonterminalDeploymentIds: string[];
@@ -186,8 +279,8 @@ interface SourceIdSnapshot {
 function validateSnapshot(
   value: unknown,
   cellExpiresAt: number,
-  startedAt: number,
-  completedAt: number,
+  expectedFenceSha256: string,
+  predecessor: ReadSharedCellCleanupEvidenceInput["predecessor"],
 ): {
   observedAt: number;
   source: SourceIdSnapshot;
@@ -195,10 +288,18 @@ function validateSnapshot(
   if (
     !exactKeys(value, [
       "accountId",
+      "admissionCellExpiresAt",
+      "admissionChangedAt",
+      "admissionEpoch",
+      "admissionFenceSha256",
+      "admissionProvisionOperationHash",
+      "admissionStackId",
+      "admissionState",
       "activeCapacityReservationIds",
       "activeTenantIds",
       "cellId",
       "dbObservedAt",
+      "databaseCellExpired",
       "deferrable",
       "environmentId",
       "isolationLevel",
@@ -217,7 +318,7 @@ function validateSnapshot(
   }
   const snapshot = value as SerializableSharedCellOwnershipSnapshot;
   if (
-    snapshot.schemaVersion !== 1 ||
+    snapshot.schemaVersion !== 2 ||
     snapshot.isolationLevel !== "Serializable" ||
     snapshot.readOnly !== true ||
     snapshot.deferrable !== true ||
@@ -227,10 +328,18 @@ function validateSnapshot(
     snapshot.environmentId !== environmentId ||
     !Number.isSafeInteger(snapshot.dbObservedAt) ||
     snapshot.dbObservedAt <= 0 ||
-    snapshot.dbObservedAt < startedAt ||
-    snapshot.dbObservedAt > completedAt ||
-    snapshot.dbObservedAt < cellExpiresAt ||
-    completedAt - snapshot.dbObservedAt > maximumEvidenceAgeMs
+    snapshot.admissionState !== "draining" ||
+    !Number.isSafeInteger(snapshot.admissionEpoch) ||
+    snapshot.admissionEpoch < 1 ||
+    snapshot.admissionFenceSha256 !== expectedFenceSha256 ||
+    snapshot.admissionProvisionOperationHash !==
+      predecessor.provisionOperationHash ||
+    snapshot.admissionStackId !== predecessor.stackId ||
+    snapshot.admissionCellExpiresAt !== cellExpiresAt ||
+    !Number.isSafeInteger(snapshot.admissionChangedAt) ||
+    snapshot.admissionChangedAt < cellExpiresAt ||
+    snapshot.dbObservedAt < snapshot.admissionChangedAt ||
+    snapshot.databaseCellExpired !== true
   ) {
     fail(
       "SHARED_CELL_ZERO_TENANT_SNAPSHOT_INVALID",
@@ -238,6 +347,16 @@ function validateSnapshot(
     );
   }
   const source: SourceIdSnapshot = {
+    admissionFence: {
+      admissionState: snapshot.admissionState,
+      admissionEpoch: snapshot.admissionEpoch,
+      admissionFenceSha256: snapshot.admissionFenceSha256,
+      admissionProvisionOperationHash:
+        snapshot.admissionProvisionOperationHash,
+      admissionStackId: snapshot.admissionStackId,
+      admissionCellExpiresAt: snapshot.admissionCellExpiresAt,
+      admissionChangedAt: snapshot.admissionChangedAt,
+    },
     activeTenantIds: assertSortedUniqueIds(
       snapshot.activeTenantIds,
       "activeTenantIds",
@@ -259,7 +378,15 @@ function validateSnapshot(
       "nonterminalTenantCleanupScheduleIds",
     ),
   };
-  if (Object.values(source).some((ids) => ids.length !== 0)) {
+  if (
+    [
+      source.activeTenantIds,
+      source.activeCapacityReservationIds,
+      source.nonterminalDeploymentIds,
+      source.liveTenantResourceIds,
+      source.nonterminalTenantCleanupScheduleIds,
+    ].some((ids) => ids.length !== 0)
+  ) {
     fail(
       "SHARED_CELL_ZERO_TENANT_NOT_ZERO",
       "At least one tenant, reservation, deployment, resource or cleanup schedule still owns the Shared Cell.",
@@ -269,16 +396,24 @@ function validateSnapshot(
 }
 
 function normalizeSourceError(error: unknown): SharedCellZeroTenantEvidenceError {
-  if (error instanceof SharedCellZeroTenantEvidenceError) return error;
   const value = record(error);
-  const name =
-    typeof value.name === "string" && value.name.length > 0
-      ? value.name
-      : "SHARED_CELL_ZERO_TENANT_READ_FAILED";
+  const codeValue = member(value, "code");
+  const nameValue = member(value, "name");
+  const rawCode = typeof codeValue === "string" ? codeValue : "";
+  const rawName = typeof nameValue === "string" ? nameValue : "";
+  const code =
+    (safeSourceErrorCodes.has(rawCode) ? rawCode : undefined) ??
+    (rawCode.length === 0 && safeSourceErrorNames.has(rawName)
+      ? rawName
+      : undefined) ??
+    "SHARED_CELL_ZERO_TENANT_READ_FAILED";
   return new SharedCellZeroTenantEvidenceError(
-    name.replace(/[^A-Za-z0-9_.-]/g, "_").slice(0, 100),
-    "The serializable zero-tenant ownership snapshot read failed.",
-    /Serialization|Transaction|Timeout|Unavailable|Connection/i.test(name),
+    code,
+    "The durable admission drain or serializable ownership read failed closed.",
+    member(value, "retryable") === true ||
+      /Serialization|Deadlock|Transaction|Timeout|Unavailable|Connection|Fetch/i.test(
+        `${rawName} ${rawCode}`,
+      ),
   );
 }
 
@@ -334,12 +469,10 @@ export class SerializableSharedCellZeroTenantEvidenceAdapter extends SharedCellZ
         "Predecessor cellExpiresAt",
       );
       const startedAt = clockValue(this.now, "Evidence start clock");
-      if (expiresAt > startedAt) {
-        fail(
-          "SHARED_CELL_ZERO_TENANT_CELL_NOT_EXPIRED",
-          "Zero-tenant cleanup evidence cannot be collected before Cell expiry.",
-        );
-      }
+      const compiled = await compileSharedCellAdmissionDrainIntent(
+        input.predecessor,
+      );
+      requireNotAborted(input.signal);
       const raw = await this.source.readSerializableReadOnlySnapshot({
         accountId,
         region,
@@ -361,8 +494,8 @@ export class SerializableSharedCellZeroTenantEvidenceAdapter extends SharedCellZ
       const snapshot = validateSnapshot(
         raw,
         expiresAt,
-        startedAt,
-        completedAt,
+        compiled.fenceSha256,
+        input.predecessor,
       );
       const sourceSnapshotSha256 = await sha256Hex(snapshot.source);
       requireNotAborted(input.signal);

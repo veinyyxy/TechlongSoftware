@@ -1497,6 +1497,138 @@ test("Neon ownership SQL fences lifecycle and job intent before epoch mutation",
   );
 });
 
+test("Neon Shared Cell admission preserves existing work but fences new ownership", async () => {
+  const source = await readFile(
+    new URL("../lib/deployments/execution/neon-repository.ts", import.meta.url),
+    "utf8",
+  );
+  const reserve = source.slice(
+    source.indexOf("async reserveEnvironmentCapacity"),
+    source.indexOf("async confirmCleanupSchedule"),
+  );
+  const claimNext = source.slice(
+    source.indexOf("async claimNext"),
+    source.indexOf("async loadContext"),
+  );
+  const confirmSchedule = source.slice(
+    source.indexOf("async confirmCleanupSchedule"),
+    source.indexOf("async heartbeat"),
+  );
+  const claim = source.slice(
+    source.indexOf("async claimTenantResourceGeneration"),
+    source.indexOf("async prepareTenantExternalOperation"),
+  );
+  const markCleanup = source.slice(
+    source.indexOf("async markCleanupStatus"),
+    source.indexOf("async recordTenantResourceLifecycle"),
+  );
+  const retryJob = source.slice(
+    source.indexOf("async retryJob"),
+    source.indexOf("async markReady"),
+  );
+
+  assert.match(
+    reserve,
+    /environment\.admission_state = 'open' AS admission_open[\s\S]*?FOR UPDATE OF environment/,
+  );
+  assert.match(
+    reserve,
+    /existing AS MATERIALIZED[\s\S]*?FOR UPDATE OF reservation[\s\S]*?next_slot AS MATERIALIZED[\s\S]*?WHERE environment\.admission_open/,
+  );
+  assert.match(
+    reserve,
+    /SELECT deployment_id FROM existing[\s\S]*?UNION ALL[\s\S]*?SELECT deployment_id FROM inserted/,
+  );
+
+  assert.match(
+    confirmSchedule,
+    /locked_environment AS MATERIALIZED[\s\S]*?FOR UPDATE OF environment/,
+  );
+  assert.match(
+    confirmSchedule,
+    /existing_schedule AS MATERIALIZED[\s\S]*?FOR UPDATE OF schedule/,
+  );
+  assert.match(
+    confirmSchedule,
+    /existing_reservation AS MATERIALIZED[\s\S]*?FOR UPDATE OF reservation/,
+  );
+  assert.match(
+    confirmSchedule,
+    /WHERE environment\.admission_open[\s\S]*?OR EXISTS \(SELECT 1 FROM existing_schedule\)[\s\S]*?OR EXISTS \(SELECT 1 FROM existing_reservation\)/,
+  );
+  assert.match(
+    claimNext,
+    /schedule\.status IN \('pending', 'confirmed', 'running', 'failed'\)/,
+  );
+  assert.match(
+    retryJob,
+    /schedule\.status IN \('pending', 'confirmed', 'running', 'failed'\)/,
+  );
+  assert.match(
+    markCleanup,
+    /\$1 = 'running'[\s\S]*?schedule\.status IN \('confirmed', 'running', 'failed'\)[\s\S]*?\$1 = 'succeeded'[\s\S]*?schedule\.status IN \('confirmed', 'running', 'succeeded', 'failed'\)[\s\S]*?\$1 = 'failed'[\s\S]*?schedule\.status IN \('pending', 'confirmed', 'running', 'failed'\)/,
+  );
+
+  assert.match(
+    claim,
+    /environment\.admission_state[\s\S]*?job\.job_type IN \('apply', 'reconcile'\)[\s\S]*?FOR UPDATE OF deployment, instance, environment, job/,
+  );
+  assert.match(
+    claim,
+    /capacity_reservation AS MATERIALIZED[\s\S]*?FOR UPDATE OF reservation/,
+  );
+  assert.match(
+    claim,
+    /\(admission_state = 'open' OR has_capacity_reservation\)[\s\S]*?existing_app_instance_id IS NULL[\s\S]*?OR same_owner/,
+  );
+  assert.match(claim, /TENANT_RESOURCE_ADMISSION_DRAINING/);
+});
+
+test("Neon tenant resource claim reports a durable draining admission rejection", async () => {
+  const selectedContext = context();
+  const identity = await deriveTenantResourceIdentity(selectedContext);
+  const repository = new NeonDeploymentExecutionRepository(
+    "postgresql://offline:offline@offline.invalid/never_contacted?sslmode=require",
+  );
+  (
+    repository as unknown as {
+      sql: { query: () => Promise<{ rows: Record<string, unknown>[] }> };
+    }
+  ).sql = {
+    query: async () => ({
+      rows: [
+        {
+          identity_matches: true,
+          candidate_is_newer: true,
+          owner_has_live_job: false,
+          previous_status: null,
+          admission_state: "draining",
+          same_owner: false,
+          has_capacity_reservation: false,
+        },
+      ],
+    }),
+  };
+
+  await assert.rejects(
+    repository.claimTenantResourceGeneration({
+      lease: {
+        jobId: selectedContext.job.id,
+        deploymentId: selectedContext.deployment.id,
+        workerId: "worker_one",
+        attempt: selectedContext.job.attempt,
+        leaseToken: selectedContext.job.leaseToken,
+      },
+      identity,
+      now,
+    }),
+    (error: unknown) =>
+      (error as { code?: string; retryable?: boolean }).code ===
+        "TENANT_RESOURCE_ADMISSION_DRAINING" &&
+      (error as { retryable?: boolean }).retryable === false,
+  );
+});
+
 test("a reclaimed active cleanup fence reloads its predecessor from persisted authority evidence", async () => {
   const selectedContext = context();
   const resourceFence = fence(
