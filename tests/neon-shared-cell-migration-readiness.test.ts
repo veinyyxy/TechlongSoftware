@@ -61,17 +61,21 @@ function input(): CompileSharedCellPostgresCutoverReviewInput {
       tenantResourceTablePresent: false,
       externalOperationTablePresent: false,
       cleanupRunTablePresent: false,
+      legacyStepRunAttemptIndexPresent: true,
       leaseTokenColumnPresent: false,
       externalEpochColumnPresent: false,
       admissionStateColumnPresent: false,
     },
     counts: {
+      environmentCount: 1,
       sandboxEnvironmentCount: 1,
       applyEnabledEnvironmentCount: 0,
       runningJobCount: 0,
       queuedJobCount: 0,
       runningStepCount: 0,
       nonterminalCleanupScheduleCount: 0,
+      staleNonrunningLeaseCount: 0,
+      leaseExhaustedCleanupRewriteCount: 0,
       capacityReservationCount: 0,
       nonterminalDeploymentCount: 1,
       reservationCoordinateMismatchCount: 0,
@@ -179,6 +183,13 @@ test("rejects a missing base object or any partial 0005-0008 schema object", asy
     errorCode("NEON_SHARED_CELL_BASE_SCHEMA_MISSING"),
   );
 
+  const legacyIndex = input();
+  legacyIndex.schema.legacyStepRunAttemptIndexPresent = false;
+  await assert.rejects(
+    compileSharedCellPostgresCutoverReview(legacyIndex),
+    errorCode("NEON_SHARED_CELL_BASE_SCHEMA_MISSING"),
+  );
+
   for (const key of [
     "transactionReadOnly",
     "transactionSerializable",
@@ -223,6 +234,8 @@ test("requires the fixed disabled environment and a quiescent worker database", 
     "queuedJobCount",
     "runningStepCount",
     "nonterminalCleanupScheduleCount",
+    "staleNonrunningLeaseCount",
+    "leaseExhaustedCleanupRewriteCount",
     "capacityReservationCount",
   ] as const) {
     const active = input();

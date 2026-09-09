@@ -158,18 +158,22 @@ export interface SharedCellPostgresCutoverSchemaState {
   tenantResourceTablePresent: boolean;
   externalOperationTablePresent: boolean;
   cleanupRunTablePresent: boolean;
+  legacyStepRunAttemptIndexPresent: boolean;
   leaseTokenColumnPresent: boolean;
   externalEpochColumnPresent: boolean;
   admissionStateColumnPresent: boolean;
 }
 
 export interface SharedCellPostgresCutoverCounts {
+  environmentCount: number;
   sandboxEnvironmentCount: number;
   applyEnabledEnvironmentCount: number;
   runningJobCount: number;
   queuedJobCount: number;
   runningStepCount: number;
   nonterminalCleanupScheduleCount: number;
+  staleNonrunningLeaseCount: number;
+  leaseExhaustedCleanupRewriteCount: number;
   capacityReservationCount: number;
   nonterminalDeploymentCount: number;
   reservationCoordinateMismatchCount: number;
@@ -227,6 +231,7 @@ const schemaKeys = [
   "cleanupRunTablePresent",
   "externalEpochColumnPresent",
   "externalOperationTablePresent",
+  "legacyStepRunAttemptIndexPresent",
   "leaseTokenColumnPresent",
   "schemaMigrationsPresent",
   "tenantResourceTablePresent",
@@ -237,6 +242,8 @@ const schemaKeys = [
 const countKeys = [
   "applyEnabledEnvironmentCount",
   "capacityReservationCount",
+  "environmentCount",
+  "leaseExhaustedCleanupRewriteCount",
   "nonterminalCleanupScheduleCount",
   "nonterminalDeploymentCount",
   "queuedJobCount",
@@ -245,6 +252,7 @@ const countKeys = [
   "runningStepCount",
   "sandboxEnvironmentCount",
   "scheduleCoordinateMismatchCount",
+  "staleNonrunningLeaseCount",
 ] as const;
 
 function validatedMigrations(
@@ -337,7 +345,8 @@ function validatedSchema(
     !schema.schemaMigrationsPresent ||
     !schema.baseEnvironmentTablePresent ||
     !schema.baseJobsTablePresent ||
-    !schema.baseCleanupScheduleTablePresent
+    !schema.baseCleanupScheduleTablePresent ||
+    !schema.legacyStepRunAttemptIndexPresent
   ) {
     fail(
       "NEON_SHARED_CELL_BASE_SCHEMA_MISSING",
@@ -372,7 +381,7 @@ function validatedCounts(
   const counts = Object.fromEntries(
     countKeys.map((key) => [key, safeInteger(value[key], key)]),
   ) as unknown as SharedCellPostgresCutoverCounts;
-  if (counts.sandboxEnvironmentCount !== 1) {
+  if (counts.environmentCount < 1 || counts.sandboxEnvironmentCount !== 1) {
     fail(
       "NEON_SHARED_CELL_ENVIRONMENT_DRIFT",
       "Neon must contain exactly one fixed AWS Sandbox environment.",
@@ -384,6 +393,8 @@ function validatedCounts(
     counts.queuedJobCount !== 0 ||
     counts.runningStepCount !== 0 ||
     counts.nonterminalCleanupScheduleCount !== 0 ||
+    counts.staleNonrunningLeaseCount !== 0 ||
+    counts.leaseExhaustedCleanupRewriteCount !== 0 ||
     counts.capacityReservationCount !== 0
   ) {
     fail(

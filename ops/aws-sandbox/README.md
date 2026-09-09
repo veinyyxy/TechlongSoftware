@@ -405,7 +405,7 @@ validator只核对上述静态契约、两组定向测试、默认 `offline_only
 
 J5g-c 把 J5g-b 的抽象端口落实为真实 provider 形状，但没有把它们接入默认 Worker 或已部署 Janitor。`aws-sdk-shared-cell-cleanup-stack-evidence.ts` 固定由 exact `TechlongSandboxCellOperatorRole/techlong-sandbox-cell-operator` MFA session读取到期后的 root Cell Stack；它执行 STS identity、Stack前后稳定读、`GetTemplate(Original)`与完整分页 `ListStackResources`，并复核专用 Cell CloudFormation role、四个 exact tag、StackId/状态/TTL以及 predecessor中的模板和 inventory摘要后，才可调用受保护的 `markVerified()`。dormant factory还固定 `techlong-sandbox-cell-operator` profile、MFA device、`ca-central-1`及禁用 endpoint override，并让 STS/CloudFormation共享同一个 lazy credential provider；构造阶段不解析凭据、不发 AWS请求。人工 evidence身份继续与 Provisioner及具有删除能力的 Janitor分离。
 
-零租户证据不再依赖五次松散查询。`neon-shared-cell-zero-tenant-source.ts` 使用一个 Neon HTTP `Serializable + READ ONLY + DEFERRABLE` transaction，在同一数据库 snapshot内核对 fixed environment和数据库时钟，并读取 active tenant、capacity reservation、nonterminal deployment、live tenant resource及 nonterminal cleanup schedule五组完整排序 ID。`shared-cell-zero-tenant-evidence.ts` 只在这五组都为空时生成 cleanup-authority所需的 branded evidence；`shared-cell-cleanup-deletion-zero-tenant.ts` 则把同一 source contract投影为删除核心要求的五项计数、五个 source数组和 canonical SHA-256。J5g-c切片当时的代码构造不会访问 Neon，默认 root也没有注入 `DATABASE_URL` 或调用该 source；截至该阶段数据库侧 `0005`–`0007`尚未实际应用，随后 J5g-d增加的 `0008`也仍未应用，因此当前依然不是 live evidence。
+零租户证据不再依赖五次松散查询。`neon-shared-cell-zero-tenant-source.ts` 使用一个 Neon HTTP `Serializable + READ ONLY + DEFERRABLE` transaction，在同一数据库 snapshot内核对 fixed environment和数据库时钟，并读取 active tenant、capacity reservation、nonterminal deployment、live tenant resource及 nonterminal cleanup schedule五组完整排序 ID。`shared-cell-zero-tenant-evidence.ts` 只在这五组都为空时生成 cleanup-authority所需的 branded evidence；`shared-cell-cleanup-deletion-zero-tenant.ts` 则把同一 source contract投影为删除核心要求的五项计数、五个 source数组和 canonical SHA-256。J5g-c切片当时的代码构造不会访问 Neon，默认 root也没有注入 `DATABASE_URL` 或调用该 source；截至该阶段数据库侧 `0005`–`0008`尚未应用，后续J5g-e2虽已完成migration，默认root仍未注入或调用该source，因此当前依然不是live evidence。
 
 `aws-sdk-shared-cell-cleanup-deletion.ts` 提供 Janitor侧的 STS/CloudFormation窄读和唯一 `DeleteStack` capability。`ListStacks` 显式传入除 `DELETE_COMPLETE` 外的 active状态集合，避免把 CloudFormation保留的历史删除记录误判为存活 Stack；missing只接受 exact Stack name对应的精确 `ValidationError`，StackId请求的错误不能翻译成 missing。模板固定 `Original`，资源读取保留完整分页；删除请求只接受 exact StackId、专用 `RoleARN`、计划派生 token和 `STANDARD` mode，不包含 `RetainResources`。provider错误会脱敏并保留 retryability/abort语义。dormant runtime只围绕一个 lazy ambient Janitor credential provider构造 STS/CloudFormation clients，不发请求，也未接到 Lambda handler。
 
@@ -438,7 +438,7 @@ Repository与数据库 triggers构成双层围栏。`reserveEnvironmentCapacity`
 .\ops\aws-sandbox\scripts\s3-b5-shared-cell-admission-fence.ps1 -Mode LocalValidate
 ```
 
-该入口只检查源码和运行 mock 定向测试；没有 online模式，不读取 `DATABASE_URL`，不应用 `0008`，不调用 AWS/Neon。显式 drain还没有接入线上批准/执行工作流；默认 runtime依旧 `offline_only`，J4c Janitor仍为 `PLAN_ONLY`，Schedule仍为 `DISABLED`。因此线上迁移、数据库/运行主机时钟校准、受控 root接线、短时 IAM grant、authority推进、Janitor handler/Schedule、失败创建 rollback、RoleARN lineage和真实删除/费用演练仍未完成，四个 readiness gate继续为 `false`。
+该J5g-d入口只检查源码和运行mock定向测试；没有online模式，不读取 `DATABASE_URL`，不调用AWS/Neon。后续J5g-e2已独立应用 `0008`及其同批 `0005`–`0007`，但显式drain还没有接入线上批准/执行工作流；默认runtime依旧 `offline_only`，J4c Janitor仍为 `PLAN_ONLY`，Schedule仍为 `DISABLED`。持续数据库/运行主机时钟校准、受控root接线、短时IAM grant、authority推进、Janitor handler/Schedule、失败创建rollback、RoleARN lineage和真实删除/费用演练仍未完成，四个readiness gate继续为 `false`。
 
 ### B5-J5g-e1 Shared Cell PostgreSQL cutover OnlineInspect（真实只读）
 
@@ -463,6 +463,42 @@ PowerShell入口默认只做本地校验：
 在线入口只开启 `SERIALIZABLE READ ONLY DEFERRABLE`事务，设置10秒statement timeout、1秒lock timeout及15秒idle timeout，结束时显式 `ROLLBACK`；没有Apply模式。2026-09-09实际检查确认PostgreSQL `server_version_num=180006`、事务回读确为read-only/serializable/deferrable、已应用 `0001`–`0004` checksum全部匹配、唯一pending为 `0005`–`0008`，running/queued job、running step、非terminal cleanup schedule、capacity reservation和坐标错配均为0；时钟RTT 70ms、偏差1848ms。最终仓库外manifest SHA-256为 `e161549a32f2bd19a407d02d83fbddd81bc7b5fc09585a6cc0f4c3531a3c48f7`，`mutationPerformed=false`。
 
 J5g-e1不授权数据库写入。后续Apply阶段必须重新验证未过期的exact manifest，在一个受控事务内重查quiescence、取得固定advisory/table lock、只执行 `0005`–`0008`并提交后独立回读。默认runtime、J4c Janitor与Schedule保持 `offline_only` / `PLAN_ONLY` / `DISABLED`；本阶段没有调用AWS、应用migration、创建Cell、推进authority、执行admission drain、`DeleteStack`或`RunTask`。
+
+### B5-J5g-e2 reviewed Neon migration apply（已执行，runtime仍默认关闭）
+
+J5g-e2使用独立执行器，绝不调用会逐文件提交的通用 `apply-postgres-migrations.mjs`。它要求 fresh J5g-e1 manifest及其exact SHA与当前Neon target匹配；写路径使用一个 `SERIALIZABLE READ WRITE NOT DEFERRABLE`事务、固定 `public,pg_catalog` search path、transaction advisory lock、`schema_migrations`独占锁和execution/ownership表写互斥锁。锁后会重新核对exact `0001`–`0004`、全部activity/ownership计数、两个可能触发 `0006` 历史数据归一化的计数、`0003`旧定义到`0005`新定义的同名step-run索引、schema与时钟，再按checksum固定顺序将 `0005`–`0008`及四条migration记录一次提交。任何部分前缀或漂移都拒绝；提交后换新连接强回读exact 8条记录、正确的 `external_operation_epoch`、新表、23个已启用trigger、20个index、23个已验证constraint、空cutover数据和fixed environment默认admission状态。`COMMIT`回包不明时只能只读reconcile，不会盲目重试。
+
+默认入口只做本地验证，不读取数据库：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-shared-cell-postgres-migration-apply.ps1 `
+  -Mode LocalValidate
+```
+
+只有取得明确数据库写入批准并重新生成尚未过期的J5g-e1 manifest后，才可运行：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-shared-cell-postgres-migration-apply.ps1 `
+  -Mode ApplyReviewedMigrations `
+  -ReviewPath 'C:\temp\techlong-j5ge1-fresh-review.json' `
+  -ReviewSha256 '<fresh-manifest-sha256>' `
+  -OutputPath 'C:\temp\techlong-j5ge2-migration-receipt.json' `
+  -ConfirmApplyPhrase 'I_CONFIRM_J5GE2_APPLY_NEON_MIGRATIONS_0005_TO_0008' `
+  -AcknowledgeNeonDatabaseWrite `
+  -AcknowledgeAtomicDdlNoAutomaticDownMigration
+```
+
+提交结果不明时，`RecoverAppliedState`只做read-only exact post-state判定，并拒绝所有apply确认参数：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-shared-cell-postgres-migration-apply.ps1 `
+  -Mode RecoverAppliedState `
+  -ReviewPath 'C:\temp\techlong-j5ge1-fresh-review.json' `
+  -ReviewSha256 '<fresh-manifest-sha256>' `
+  -OutputPath 'C:\temp\techlong-j5ge2-recovery-receipt.json'
+```
+
+2026-09-09首次fresh apply在DDL前因工具把 `0003`已存在、`0005`将同名替换的step-run索引误判为提前出现而失败关闭，事务回滚且 `mutationPerformed=false`；没有手工删除或修复数据库对象。修正为精确旧/新索引定义后，新manifest SHA-256为 `4bd20b41a185462c5d8951d36f57c463cc1fe13cf7ed54fdbcafc7262a0a72da`。受审执行已原子应用 `0005`–`0008`，apply回执为 `outcome=applied`、`mutationPerformed=true`、SHA-256 `9edb120a7cf4b89e197f5ab2f1bdbf1093327b4b1d8969bc7aeef6433f1dd392`；独立只读recovery回执SHA-256 `5a8ac632c925fe7950a018f8dd1d12c1d5ac49ea7d82c2d0c3eac97d32936d06`再次确认exact完整后态。所有runtime gate、Janitor和Schedule状态不变；本次没有涉及AWS调用或付费资源变更。
 
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 

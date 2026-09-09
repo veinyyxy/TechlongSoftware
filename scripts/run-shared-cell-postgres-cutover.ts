@@ -100,10 +100,17 @@ async function databaseTargetFingerprint(databaseUrl: string): Promise<string> {
       "The cutover inspector requires a valid Neon PostgreSQL DATABASE_URL.",
     );
   }
+  const allowedParameters = new Set(["channel_binding", "sslmode"]);
+  const parameterNames = [...new Set(parsed.searchParams.keys())];
   if (
     !["postgres:", "postgresql:"].includes(parsed.protocol) ||
     !parsed.hostname.toLowerCase().endsWith(".neon.tech") ||
+    parsed.searchParams.getAll("sslmode").length !== 1 ||
     parsed.searchParams.get("sslmode") !== "require" ||
+    parsed.searchParams.getAll("channel_binding").length > 1 ||
+    (parsed.searchParams.has("channel_binding") &&
+      parsed.searchParams.get("channel_binding") !== "require") ||
+    parameterNames.some((name) => !allowedParameters.has(name)) ||
     parsed.username.length === 0 ||
     parsed.password.length === 0 ||
     parsed.pathname.length <= 1 ||
@@ -165,6 +172,10 @@ function schemaState(row: Record<string, unknown>): SharedCellPostgresCutoverSch
       row.cleanup_run_table_present,
       "deployment_tenant_cleanup_runs state",
     ),
+    legacyStepRunAttemptIndexPresent: boolean(
+      row.legacy_step_run_attempt_index_present,
+      "legacy deployment_step_runs_attempt_unique state",
+    ),
     leaseTokenColumnPresent: boolean(
       row.lease_token_column_present,
       "lease_token state",
@@ -182,6 +193,7 @@ function schemaState(row: Record<string, unknown>): SharedCellPostgresCutoverSch
 
 function conflictCounts(row: Record<string, unknown>): SharedCellPostgresCutoverCounts {
   return {
+    environmentCount: count(row.environment_count, "environment count"),
     sandboxEnvironmentCount: count(
       row.sandbox_environment_count,
       "sandbox environment count",
@@ -196,6 +208,14 @@ function conflictCounts(row: Record<string, unknown>): SharedCellPostgresCutover
     nonterminalCleanupScheduleCount: count(
       row.nonterminal_cleanup_schedule_count,
       "nonterminal cleanup-schedule count",
+    ),
+    staleNonrunningLeaseCount: count(
+      row.stale_nonrunning_lease_count,
+      "stale non-running lease count",
+    ),
+    leaseExhaustedCleanupRewriteCount: count(
+      row.lease_exhausted_cleanup_rewrite_count,
+      "lease-exhausted cleanup rewrite count",
     ),
     capacityReservationCount: count(
       row.capacity_reservation_count,
@@ -230,6 +250,7 @@ async function inspectDatabase(
     await client.query("SET LOCAL statement_timeout = '10000ms'");
     await client.query("SET LOCAL lock_timeout = '1000ms'");
     await client.query("SET LOCAL idle_in_transaction_session_timeout = '15000ms'");
+    await client.query("SET LOCAL search_path = public, pg_catalog");
 
     const catalogResult = await client.query(`
       SELECT
@@ -254,6 +275,17 @@ async function inspectDatabase(
         to_regclass('public.deployment_tenant_cleanup_runs') IS NOT NULL
           AS cleanup_run_table_present,
         EXISTS (
+          SELECT 1
+          FROM pg_catalog.pg_class AS index_relation
+          INNER JOIN pg_catalog.pg_namespace AS namespace
+            ON namespace.oid = index_relation.relnamespace
+          WHERE namespace.nspname = 'public'
+            AND index_relation.relkind = 'i'
+            AND index_relation.relname = 'deployment_step_runs_attempt_unique'
+            AND pg_catalog.pg_get_indexdef(index_relation.oid) =
+              'CREATE UNIQUE INDEX deployment_step_runs_attempt_unique ON public.deployment_step_runs USING btree (deployment_id, step_key, input_hash, attempt)'
+        ) AS legacy_step_run_attempt_index_present,
+        EXISTS (
           SELECT 1 FROM information_schema.columns
           WHERE table_schema = 'public'
             AND table_name = 'deployment_jobs'
@@ -263,7 +295,7 @@ async function inspectDatabase(
           SELECT 1 FROM information_schema.columns
           WHERE table_schema = 'public'
             AND table_name = 'deployment_tenant_resources'
-            AND column_name = 'external_epoch'
+            AND column_name = 'external_operation_epoch'
         ) AS external_epoch_column_present,
         EXISTS (
           SELECT 1 FROM information_schema.columns
@@ -290,6 +322,8 @@ async function inspectDatabase(
 
     const countsResult = await client.query(
       `SELECT
+        (SELECT count(*)::integer FROM deployment_environments)
+          AS environment_count,
         (SELECT count(*)::integer
          FROM deployment_environments
          WHERE id = $1
@@ -316,11 +350,25 @@ async function inspectDatabase(
          WHERE status NOT IN ('succeeded', 'canceled'))
           AS nonterminal_cleanup_schedule_count,
         (SELECT count(*)::integer
+         FROM deployment_jobs
+         WHERE status <> 'running'
+           AND (lease_owner IS NOT NULL OR lease_expires_at IS NOT NULL))
+          AS stale_nonrunning_lease_count,
+        (SELECT count(*)::integer
+         FROM deployment_cleanup_schedules AS schedule
+         INNER JOIN deployment_jobs AS job
+           ON job.deployment_id = schedule.deployment_id
+         WHERE job.job_type IN ('cleanup', 'rollback')
+           AND job.status = 'dead_letter'
+           AND job.last_error_code = 'LEASE_EXHAUSTED'
+           AND schedule.status <> 'succeeded')
+          AS lease_exhausted_cleanup_rewrite_count,
+        (SELECT count(*)::integer
          FROM deployment_environment_capacity_reservations)
           AS capacity_reservation_count,
         (SELECT count(*)::integer
          FROM app_instance_deployments
-         WHERE status NOT IN ('destroyed', 'failed', 'canceled'))
+         WHERE status NOT IN ('rolled_back', 'canceled'))
           AS nonterminal_deployment_count,
         (SELECT count(*)::integer
          FROM deployment_environment_capacity_reservations AS reservation
