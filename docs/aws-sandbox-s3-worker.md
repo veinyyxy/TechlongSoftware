@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格参数校验、数据库租约/检查点、原子环境容量占位、两小时租户 TTL 清理计划、共享 Cell 安全预检边界和 mTLS 控制接口边界。S3-B B0–B4 进一步实现了离线可测试的类型化租户资源生命周期、不可变模板编译、RS256/mTLS 客户端、AWS 只读证据收集器、独立 Shared Cell 渲染模板和 Cell Janitor。B5 当前完成 lease-token/持续续租、租户 JSON Secret 注入、原子 external epoch authority 契约、可恢复分阶段 cleanup、ECS/S3/Secrets Manager/DynamoDB SDK 适配器源码、可信 raw receipt publisher/reader、持久化 Shared Cell admission drain契约，以及默认 `offline_only` Worker root composition。B5-J4b 的独立 IAM 管理根与 cleanup-only child Bootstrap 已于 2026-08-26 部署并严格回读，但只提供 read-only inventory Janitor 基础；J5g-d admission fence仍未应用到Neon或接入root，可变更/完整删除协调器尚未部署。所有执行开关默认关闭，本版本不会因启动网站或运行普通测试而调用 AWS、Neon 或真实数据库。
+S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格参数校验、数据库租约/检查点、原子环境容量占位、两小时租户 TTL 清理计划、共享 Cell 安全预检边界和 mTLS 控制接口边界。S3-B B0–B4 进一步实现了离线可测试的类型化租户资源生命周期、不可变模板编译、RS256/mTLS 客户端、AWS 只读证据收集器、独立 Shared Cell 渲染模板和 Cell Janitor。B5 当前完成 lease-token/持续续租、租户 JSON Secret 注入、原子 external epoch authority 契约、可恢复分阶段 cleanup、ECS/S3/Secrets Manager/DynamoDB SDK 适配器源码、可信 raw receipt publisher/reader、持久化 Shared Cell admission drain契约，以及默认 `offline_only` Worker root composition。B5-J4b 的独立 IAM 管理根与 cleanup-only child Bootstrap 已于 2026-08-26 部署并严格回读，但只提供 read-only inventory Janitor 基础；J5g-e1已对真实Neon执行只读cutover检查，确认 `0005`–`0008` 是唯一pending suffix，但尚未应用这些migration或接入root，可变更/完整删除协调器也尚未部署。所有执行开关默认关闭，本版本不会因启动网站或运行普通测试而调用 AWS、Neon 或真实数据库。
 
 以下三项已有严格边界；租户数据库路径已增加真实 inspect-only provider，其余变更操作及独立 Worker live root 仍使用 fail-closed 默认依赖，属于真实启用前阻断项：
 
@@ -112,11 +112,11 @@ npm run deployment:worker
 
 ## 此前核验的数据库与 AWS 状态
 
-以下包含 S3-A、2026-08-22 B5-I support update、2026-08-24 B5-J2 LifecycleReadback/历史 Build #4/B5-J3、2026-08-25 B5-J4a lifecycle LogGroup、2026-08-26 B5-J4b management/child Bootstrap，以及 2026-08-30 Build #7/ACTIVE `tenant-lifecycle:2` 的在线核验。本轮没有查询或修改 Neon，也没有访问真实 PostgreSQL。
+以下包含 S3-A、2026-08-22 B5-I support update、2026-08-24 B5-J2 LifecycleReadback/历史 Build #4/B5-J3、2026-08-25 B5-J4a lifecycle LogGroup、2026-08-26 B5-J4b management/child Bootstrap、2026-08-30 Build #7/ACTIVE `tenant-lifecycle:2`，以及 2026-09-09 J5g-e1 Neon只读cutover检查。J5g-e1访问了真实PostgreSQL，但事务固定为 `SERIALIZABLE READ ONLY DEFERRABLE`并最终 `ROLLBACK`，没有数据库mutation。
 
 - `0004_aws_sandbox_worker.sql` 已应用到当前 Neon；核验结果为
   `apply_enabled=0`、execution binding 为 0，迁移本身没有开启 AWS Apply。
-- `0005_tenant_resource_lifecycle.sql`、`0006_deployment_lease_fencing.sql`、`0007_external_ownership_epoch_cleanup_phases.sql` 与 `0008_shared_cell_admission_fence.sql` 已加入仓库迁移文件，均尚未应用到 Neon。
+- `0001`–`0004` 的线上记录与本地checksum精确一致；`0005_tenant_resource_lifecycle.sql`、`0006_deployment_lease_fencing.sql`、`0007_external_ownership_epoch_cleanup_phases.sql` 与 `0008_shared_cell_admission_fence.sql` 是唯一pending suffix，均尚未应用到 Neon。J5g-e1检查时PostgreSQL为18.6（`server_version_num=180006`），事务回读确为read-only/serializable/deferrable，running/queued job、running step、非terminal cleanup schedule、capacity reservation及ownership坐标错配均为0；时钟RTT 70ms、偏差1848ms，最终manifest SHA-256为 `e161549a32f2bd19a407d02d83fbddd81bc7b5fc09585a6cc0f4c3531a3c48f7`且 `mutationPerformed=false`。
 - 没有修改数据库里的 `apply_enabled` 或创建 execution binding。
 - S3-A Bootstrap 已创建受限角色/Boundary、TTL Janitor、Scheduler、不可变 ECR、私有源码 Bucket 和只能显式启动的 CodeBuild Project。
 - B5-I digest-bound Change Set `techlong-s3-b5-support-1fb78e3a91ede382` 已使 `techlong-s3-bootstrap` 达到 `UPDATE_COMPLETE`：receipt Bucket、authority table、LifecycleTaskRole 和最小 WorkerRole 均为 `CREATE_COMPLETE`，Janitor ownership 围栏及其 Scheduler 引用均为无替换更新。receipt prefix 当前 `KeyCount=0`；区域上下文 IAM 模拟允许 exact Shared Cell 读动作，`CreateVpc` 与 `CreateDBCluster` 保持 `implicitDeny`。

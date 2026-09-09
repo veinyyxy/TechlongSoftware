@@ -440,6 +440,30 @@ Repository与数据库 triggers构成双层围栏。`reserveEnvironmentCapacity`
 
 该入口只检查源码和运行 mock 定向测试；没有 online模式，不读取 `DATABASE_URL`，不应用 `0008`，不调用 AWS/Neon。显式 drain还没有接入线上批准/执行工作流；默认 runtime依旧 `offline_only`，J4c Janitor仍为 `PLAN_ONLY`，Schedule仍为 `DISABLED`。因此线上迁移、数据库/运行主机时钟校准、受控 root接线、短时 IAM grant、authority推进、Janitor handler/Schedule、失败创建 rollback、RoleARN lineage和真实删除/费用演练仍未完成，四个 readiness gate继续为 `false`。
 
+### B5-J5g-e1 Shared Cell PostgreSQL cutover OnlineInspect（真实只读）
+
+J5g-e1把下一次 Neon schema写入拆成先审后执行。`neon-shared-cell-migration-readiness.ts`只接受仓库 exact `0001`–`0008` catalog、Neon exact `0001`–`0004` applied prefix以及唯一 `0005`–`0008` pending suffix；任意 checksum漂移、未知/部分 migration、无记录的目标schema对象、固定环境漂移、开启apply、运行或排队任务、运行step、非terminal cleanup schedule、capacity reservation或ownership坐标错配都会拒绝。数据库目标只进入不含host/user/password的fingerprint SHA-256。时钟采样要求10秒以内RTT与5秒以内数据库/运行主机偏差，review manifest最长有效15分钟且绑定canonical SHA-256。
+
+PowerShell入口默认只做本地校验：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-shared-cell-postgres-cutover.ps1 -Mode LocalValidate
+```
+
+真实检查必须从未被Git跟踪的 `.env.local`读取 `DATABASE_URL`，拒绝进程环境覆盖，并把全新manifest写到仓库外：
+
+```powershell
+.\ops\aws-sandbox\scripts\s3-b5-shared-cell-postgres-cutover.ps1 `
+  -Mode OnlineInspect `
+  -OutputPath 'C:\temp\techlong-j5ge1-neon-cutover-review.json' `
+  -ConfirmReadOnlyPhrase 'I_ACKNOWLEDGE_NEON_READ_ONLY_INSPECTION' `
+  -AcknowledgeReadOnlyNeonAccess
+```
+
+在线入口只开启 `SERIALIZABLE READ ONLY DEFERRABLE`事务，设置10秒statement timeout、1秒lock timeout及15秒idle timeout，结束时显式 `ROLLBACK`；没有Apply模式。2026-09-09实际检查确认PostgreSQL `server_version_num=180006`、事务回读确为read-only/serializable/deferrable、已应用 `0001`–`0004` checksum全部匹配、唯一pending为 `0005`–`0008`，running/queued job、running step、非terminal cleanup schedule、capacity reservation和坐标错配均为0；时钟RTT 70ms、偏差1848ms。最终仓库外manifest SHA-256为 `e161549a32f2bd19a407d02d83fbddd81bc7b5fc09585a6cc0f4c3531a3c48f7`，`mutationPerformed=false`。
+
+J5g-e1不授权数据库写入。后续Apply阶段必须重新验证未过期的exact manifest，在一个受控事务内重查quiescence、取得固定advisory/table lock、只执行 `0005`–`0008`并提交后独立回读。默认runtime、J4c Janitor与Schedule保持 `offline_only` / `PLAN_ONLY` / `DISABLED`；本阶段没有调用AWS、应用migration、创建Cell、推进authority、执行admission drain、`DeleteStack`或`RunTask`。
+
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 
 ## 安全镜像源码包
