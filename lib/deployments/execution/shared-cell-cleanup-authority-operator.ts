@@ -3,6 +3,7 @@ import {
   advanceSharedCellCleanupAuthority,
   assertSharedCellCleanupAuthorityActive,
   compileSharedCellCleanupAuthorityCandidateItem,
+  SHARED_CELL_CLOUD_FORMATION_ROLE_ARN as cellCloudFormationRoleArn,
   SHARED_CELL_CLEANUP_AUTHORITY_KEY,
   validateSharedCellAuthorityItem,
   validateSharedCellCleanupAuthorityItem,
@@ -22,8 +23,6 @@ const region = "ca-central-1";
 const cellId = "cell-sandbox-1";
 const environmentId = "env_aws_sandbox_ca_central_1";
 const stackName = "techlong-sandbox-cell-sandbox-1";
-const cellCloudFormationRoleArn =
-  "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole";
 const maximumEvidenceAgeMs = 30_000;
 const digestPattern = /^[a-f0-9]{64}$/;
 const ownerPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/;
@@ -365,6 +364,8 @@ function assertBrandedFreshEvidence(input: {
     input.stack.stackId !== input.predecessor.stackId ||
     input.stack.stackStatus !== input.predecessor.stackStatus ||
     input.stack.cellExpiresAt !== input.predecessor.cellExpiresAt ||
+    input.stack.cloudFormationRoleArn !==
+      input.predecessor.cloudFormationRoleArn ||
     input.stack.templateCanonicalSha256 !==
       input.predecessor.templateCanonicalSha256 ||
     input.stack.resourceInventorySha256 !==
@@ -703,6 +704,7 @@ async function compileFreshCandidate(input: {
     stackId: stackEvidence.stackId,
     stackStatus: stackEvidence.stackStatus,
     cellExpiresAt: stackEvidence.cellExpiresAt,
+    cloudFormationRoleArn: stackEvidence.cloudFormationRoleArn,
     templateCanonicalSha256: stackEvidence.templateCanonicalSha256,
     resourceInventorySha256: stackEvidence.resourceInventorySha256,
   };
@@ -754,7 +756,7 @@ export type SharedCellCleanupAuthorityOperatorPhase =
   | "RECOVERED";
 
 export interface SharedCellCleanupAuthorityOperatorSummary {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly phase: SharedCellCleanupAuthorityOperatorPhase;
   readonly mutationPerformed: boolean;
   readonly deletionPerformed: false;
@@ -762,6 +764,7 @@ export interface SharedCellCleanupAuthorityOperatorSummary {
   readonly region: typeof region;
   readonly cellId: typeof cellId;
   readonly stackName: typeof stackName;
+  readonly cloudFormationRoleArn: typeof cellCloudFormationRoleArn;
   readonly generation: number;
   readonly provisionEpoch: number;
   readonly cleanupEpoch: number;
@@ -792,7 +795,7 @@ async function summary(
   },
 ): Promise<Readonly<SharedCellCleanupAuthorityOperatorSummary>> {
   return Object.freeze({
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     phase,
     mutationPerformed,
     deletionPerformed: false as const,
@@ -800,6 +803,7 @@ async function summary(
     region: candidate.record.region,
     cellId: candidate.record.cellId,
     stackName: candidate.record.stackName,
+    cloudFormationRoleArn: candidate.record.cloudFormationRoleArn,
     generation: candidate.record.generation,
     provisionEpoch: candidate.record.provisionEpoch,
     cleanupEpoch: candidate.record.cleanupEpoch,
@@ -986,6 +990,8 @@ export async function executeReviewedSharedCellCleanupAuthorityAdvance(
         stackId: candidate.stackEvidence.stackId,
         stackStatus: candidate.stackEvidence.stackStatus,
         cellExpiresAt: candidate.stackEvidence.cellExpiresAt,
+        cloudFormationRoleArn:
+          candidate.stackEvidence.cloudFormationRoleArn,
         templateCanonicalSha256:
           candidate.stackEvidence.templateCanonicalSha256,
         resourceInventorySha256:
@@ -1161,6 +1167,7 @@ export async function recoverReviewedSharedCellCleanupAuthorityAdvance(
     stackId: predecessorRecord.stackId,
     stackStatus: predecessorRecord.stackStatus,
     cellExpiresAt: predecessorRecord.cellExpiresAt,
+    cloudFormationRoleArn: predecessorRecord.cloudFormationRoleArn,
     templateCanonicalSha256: predecessorRecord.templateCanonicalSha256,
     resourceInventorySha256: predecessorRecord.resourceInventorySha256,
     ownerDeploymentId: predecessorRecord.ownerDeploymentId,
@@ -1173,7 +1180,7 @@ export async function recoverReviewedSharedCellCleanupAuthorityAdvance(
   };
   const predecessorItem: SharedCellAuthorityItem = {
     authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
-    schema_version: 1,
+    schema_version: 2,
     revision: predecessorRecord.revision - 1,
     record_json: canonicalJson({
       ...predecessorUnsigned,

@@ -284,6 +284,8 @@ test("live provision evidence binds the exact template, full paginated inventory
 
   assert.equal(Object.isFrozen(evidence), true);
   assert.equal(evidence.verified, true);
+  assert.equal(evidence.schemaVersion, 2);
+  assert.equal(evidence.cloudFormationRoleArn, cellCloudFormationRoleArn);
   assert.equal(evidence.stackId, stackId);
   assert.equal(evidence.cellExpiresAt, setup.plan.tags.ExpiresAt);
   assert.equal(
@@ -626,7 +628,12 @@ test("provision compiler emits a branded-evidence-bound exact predecessor and cl
   });
   const validated = await validateSharedCellAuthorityItem(candidate);
   assert.equal(validated.record.state, "provision_verified");
-  assert.equal(Object.keys(validated.record).length, 18);
+  assert.equal(Object.keys(validated.record).length, 19);
+  assert.equal(validated.record.schemaVersion, 2);
+  assert.equal(
+    validated.record.cloudFormationRoleArn,
+    cellCloudFormationRoleArn,
+  );
   assert.match(validated.record.provisionOperationHash, /^[a-f0-9]{64}$/);
 
   await assert.rejects(
@@ -652,6 +659,7 @@ test("provision compiler emits a branded-evidence-bound exact predecessor and cl
       stackId: evidence.stackId,
       stackStatus: evidence.stackStatus,
       cellExpiresAt: evidence.cellExpiresAt,
+      cloudFormationRoleArn: evidence.cloudFormationRoleArn,
       templateCanonicalSha256: evidence.templateCanonicalSha256,
       resourceInventorySha256: evidence.resourceInventorySha256,
     },
@@ -1059,14 +1067,6 @@ test("DynamoDB provision adapter performs one absent-only Put and full consisten
     TableName: SHARED_CELL_CLEANUP_AUTHORITY_TABLE_ARN,
     Key: { authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY },
     ConsistentRead: true,
-    ProjectionExpression:
-      "#authorityKey, #schemaVersion, #revision, #recordJson",
-    ExpressionAttributeNames: {
-      "#authorityKey": "authority_key",
-      "#schemaVersion": "schema_version",
-      "#revision": "revision",
-      "#recordJson": "record_json",
-    },
   });
   assert.deepEqual(calls[1].input, {
     TableName: SHARED_CELL_CLEANUP_AUTHORITY_TABLE_ARN,

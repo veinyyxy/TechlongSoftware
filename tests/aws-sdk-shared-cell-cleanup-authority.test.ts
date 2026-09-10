@@ -9,8 +9,10 @@ import {
 import {
   compileSharedCellCleanupAuthorityCandidateItem,
   SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+  sharedCellProvisionOperationIntent,
   type SharedCellAuthorityItem,
   type SharedCellCleanupAuthorityItem,
+  type SharedCellProvisionOperationSource,
   type SharedCellProvisionAuthorityRecord,
 } from "../lib/deployments/execution/shared-cell-cleanup-authority.ts";
 import { canonicalJson, sha256Hex } from "../lib/deployments/execution/hash.ts";
@@ -51,23 +53,38 @@ function authority(
 }
 
 async function item(revision: number, cleanupEpoch: number) {
+  const cell = {
+    stackName: "techlong-sandbox-cell-sandbox-1" as const,
+    stackId:
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/11111111-2222-3333-4444-555555555555",
+    stackStatus: "CREATE_COMPLETE" as const,
+    cellExpiresAt: "2026-08-30T19:00:00.000Z",
+    cloudFormationRoleArn:
+      "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole" as const,
+    templateCanonicalSha256: "a".repeat(64),
+    resourceInventorySha256: "b".repeat(64),
+  };
+  const provision = {
+    ownerDeploymentId: "deployment-one",
+    generation: 1,
+    epoch: 1,
+    operationHash: await sha256Hex(
+      sharedCellProvisionOperationIntent({
+        schemaVersion: 2,
+        accountId: "402010193138",
+        region: "ca-central-1",
+        cellId: "cell-sandbox-1",
+        ...cell,
+        generation: 1,
+        provisionEpoch: 1,
+        provisionMarker: "tl_cell_epoch_cell-sandbox-1_g1_e1",
+        ownerDeploymentId: "deployment-one",
+      }),
+    ),
+  };
   return compileSharedCellCleanupAuthorityCandidateItem({
-    cell: {
-      stackName: "techlong-sandbox-cell-sandbox-1",
-      stackId:
-        "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/11111111-2222-3333-4444-555555555555",
-      stackStatus: "CREATE_COMPLETE",
-      cellExpiresAt: "2026-08-30T19:00:00.000Z",
-      templateCanonicalSha256: "a".repeat(64),
-      resourceInventorySha256: "b".repeat(64),
-    },
-    provision: {
-      ownerDeploymentId: "deployment-one",
-      generation: 1,
-      epoch: 1,
-      operationHash:
-        "7f3668eb9ce1a2043a61000423326bef605e0a54cc1b224480e459ae385da360",
-    },
+    cell,
+    provision,
     cleanup: {
       epoch: cleanupEpoch,
       expiresAt: "2026-08-30T20:30:00.000Z",
@@ -80,8 +97,8 @@ async function item(revision: number, cleanupEpoch: number) {
 async function provisionItem(
   revision = 1,
 ): Promise<Readonly<SharedCellAuthorityItem>> {
-  const unsigned: Omit<SharedCellProvisionAuthorityRecord, "recordHash"> = {
-    schemaVersion: 1,
+  const source: SharedCellProvisionOperationSource = {
+    schemaVersion: 2,
     accountId: "402010193138",
     region: "ca-central-1",
     cellId: "cell-sandbox-1",
@@ -90,14 +107,20 @@ async function provisionItem(
       "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/11111111-2222-3333-4444-555555555555",
     stackStatus: "CREATE_COMPLETE",
     cellExpiresAt: "2026-08-30T19:00:00.000Z",
+    cloudFormationRoleArn:
+      "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole",
     templateCanonicalSha256: "a".repeat(64),
     resourceInventorySha256: "b".repeat(64),
     ownerDeploymentId: "deployment-one",
     generation: 1,
     provisionEpoch: 1,
     provisionMarker: "tl_cell_epoch_cell-sandbox-1_g1_e1",
-    provisionOperationHash:
-      "7f3668eb9ce1a2043a61000423326bef605e0a54cc1b224480e459ae385da360",
+  };
+  const unsigned: Omit<SharedCellProvisionAuthorityRecord, "recordHash"> = {
+    ...source,
+    provisionOperationHash: await sha256Hex(
+      sharedCellProvisionOperationIntent(source),
+    ),
     revision,
     state: "provision_verified",
   };
@@ -107,7 +130,7 @@ async function provisionItem(
   };
   return Object.freeze({
     authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
-    schema_version: 1,
+    schema_version: 2,
     revision,
     record_json: canonicalJson(record),
   });
@@ -153,14 +176,6 @@ test("observe accepts a provision predecessor through one full strongly consiste
     TableName: SHARED_CELL_CLEANUP_AUTHORITY_TABLE_ARN,
     Key: { authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY },
     ConsistentRead: true,
-    ProjectionExpression:
-      "#authorityKey, #schemaVersion, #revision, #recordJson",
-    ExpressionAttributeNames: {
-      "#authorityKey": "authority_key",
-      "#schemaVersion": "schema_version",
-      "#revision": "revision",
-      "#recordJson": "record_json",
-    },
   });
 });
 
@@ -222,7 +237,7 @@ test("observe rejects malformed, foreign and non-canonical stored items", async 
   const invalidItems = [
     { ...valid, unexpected: true },
     { ...valid, authority_key: "tenant:" + "a".repeat(64) },
-    { ...valid, schema_version: 2 },
+    { ...valid, schema_version: 1 },
     { ...valid, revision: 2 },
     { ...valid, record_json: "{" },
     { ...valid, record_json: `${valid.record_json} ` },
@@ -274,7 +289,7 @@ test("CAS writes provision to cleanup under the complete canonical predecessor c
     "#recordJson": "record_json",
   });
   assert.deepEqual(put?.ExpressionAttributeValues, {
-    ":expectedSchemaVersion": 1,
+    ":expectedSchemaVersion": 2,
     ":expectedRevision": 1,
     ":expectedRecordJson": previous.record_json,
   });

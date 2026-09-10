@@ -1,5 +1,6 @@
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import {
+  SHARED_CELL_CLOUD_FORMATION_ROLE_ARN,
   sharedCellAuthorityMarker,
   sharedCellProvisionOperationIntent,
   type SharedCellProvisionAuthorityRecord,
@@ -17,7 +18,7 @@ const stackIdPattern =
 const utcPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 export interface SharedCellAdmissionDrainIntent {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly action: "drain_shared_cell_admissions";
   readonly environmentId: typeof environmentId;
   readonly provisionLineage: Readonly<SharedCellAdmissionFenceLineage>;
@@ -32,6 +33,7 @@ export type SharedCellAdmissionFenceLineage = Pick<
   | "stackId"
   | "stackStatus"
   | "cellExpiresAt"
+  | "cloudFormationRoleArn"
   | "templateCanonicalSha256"
   | "resourceInventorySha256"
   | "ownerDeploymentId"
@@ -119,6 +121,7 @@ async function assertPredecessor(
       "accountId",
       "cellExpiresAt",
       "cellId",
+      "cloudFormationRoleArn",
       "generation",
       "ownerDeploymentId",
       "provisionEpoch",
@@ -135,11 +138,12 @@ async function assertPredecessor(
       "state",
       "templateCanonicalSha256",
     ]) ||
-    value.schemaVersion !== 1 ||
+    value.schemaVersion !== 2 ||
     value.accountId !== accountId ||
     value.region !== region ||
     value.cellId !== cellId ||
     value.stackName !== stackName ||
+    value.cloudFormationRoleArn !== SHARED_CELL_CLOUD_FORMATION_ROLE_ARN ||
     value.state !== "provision_verified" ||
     !stackIdPattern.test(value.stackId) ||
     !["CREATE_COMPLETE", "UPDATE_COMPLETE"].includes(value.stackStatus) ||
@@ -230,6 +234,7 @@ export function sharedCellAdmissionDrainIntent(
     stackId: source.stackId,
     stackStatus: source.stackStatus,
     cellExpiresAt: source.cellExpiresAt,
+    cloudFormationRoleArn: source.cloudFormationRoleArn,
     templateCanonicalSha256: source.templateCanonicalSha256,
     resourceInventorySha256: source.resourceInventorySha256,
     ownerDeploymentId: source.ownerDeploymentId,
@@ -239,7 +244,7 @@ export function sharedCellAdmissionDrainIntent(
     provisionOperationHash: source.provisionOperationHash,
   });
   return Object.freeze({
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     action: "drain_shared_cell_admissions" as const,
     environmentId,
     provisionLineage,

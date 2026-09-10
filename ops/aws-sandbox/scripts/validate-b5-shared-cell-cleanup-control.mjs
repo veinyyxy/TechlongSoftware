@@ -84,7 +84,7 @@ assertIncludesAll(
     "export async function inspectSharedCellCleanupAuthorityCandidate",
     "export async function executeReviewedSharedCellCleanupAuthorityAdvance",
     "export async function recoverReviewedSharedCellCleanupAuthorityAdvance",
-    "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole",
+    "SHARED_CELL_CLOUD_FORMATION_ROLE_ARN as cellCloudFormationRoleArn",
     'fromState: "provision_verified"',
     'toState: "cleanup_authorized"',
     "deletionPerformed: false as const",
@@ -218,7 +218,7 @@ assert.match(
 );
 assert.match(
   deletion,
-  /RoleARN: SHARED_CELL_CLEANUP_DELETION_ROLE_ARN/,
+  /RoleARN: plan\.intent\.roleArn/,
 );
 assert.match(
   deletion,

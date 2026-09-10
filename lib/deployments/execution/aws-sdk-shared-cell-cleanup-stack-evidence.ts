@@ -263,6 +263,7 @@ async function snapshotPredecessor(
       "accountId",
       "cellExpiresAt",
       "cellId",
+      "cloudFormationRoleArn",
       "generation",
       "ownerDeploymentId",
       "provisionEpoch",
@@ -279,11 +280,12 @@ async function snapshotPredecessor(
       "state",
       "templateCanonicalSha256",
     ]) ||
-    snapshot.schemaVersion !== 1 ||
+    snapshot.schemaVersion !== 2 ||
     snapshot.accountId !== accountId ||
     snapshot.region !== region ||
     snapshot.cellId !== cellId ||
     snapshot.stackName !== stackName ||
+    snapshot.cloudFormationRoleArn !== cloudFormationRoleArn ||
     !stackIdPattern.test(snapshot.stackId) ||
     !["CREATE_COMPLETE", "UPDATE_COMPLETE"].includes(snapshot.stackStatus) ||
     snapshot.state !== "provision_verified" ||
@@ -381,7 +383,7 @@ function normalizeStack(
     !stackIdPattern.test(observedStackId) ||
     observedStackName !== stackName ||
     observedStatus !== predecessor.stackStatus ||
-    observedRoleArn !== cloudFormationRoleArn ||
+    observedRoleArn !== predecessor.cloudFormationRoleArn ||
     value.EnableTerminationProtection !== false ||
     text(value.ParentId) !== null ||
     text(value.RootId) !== null ||

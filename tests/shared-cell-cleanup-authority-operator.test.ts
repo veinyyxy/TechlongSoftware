@@ -33,13 +33,15 @@ const stackId =
 const templateCanonicalSha256 = "1".repeat(64);
 const resourceInventorySha256 = "2".repeat(64);
 const ownerDeploymentId = "deployment_cell_owner_1";
+const cloudFormationRoleArn =
+  "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole" as const;
 
 async function provisionItem(
   revision = 1,
   selectedCellExpiresAt = cellExpiresAt,
 ): Promise<SharedCellAuthorityItem> {
   const operationSource = {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     accountId: "402010193138" as const,
     region: "ca-central-1" as const,
     cellId: "cell-sandbox-1" as const,
@@ -47,6 +49,7 @@ async function provisionItem(
     stackId,
     stackStatus: "CREATE_COMPLETE" as const,
     cellExpiresAt: selectedCellExpiresAt,
+    cloudFormationRoleArn,
     templateCanonicalSha256,
     resourceInventorySha256,
     ownerDeploymentId,
@@ -69,7 +72,7 @@ async function provisionItem(
   };
   return {
     authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
-    schema_version: 1,
+    schema_version: 2,
     revision,
     record_json: canonicalJson(record),
   };
@@ -283,6 +286,8 @@ test("J5g-b Inspect uses two exact strong reads and emits only reviewed digests"
 
   assert.equal(Object.isFrozen(inspected), true);
   assert.equal(inspected.phase, "INSPECTED");
+  assert.equal(inspected.schemaVersion, 2);
+  assert.equal(inspected.cloudFormationRoleArn, cloudFormationRoleArn);
   assert.equal(inspected.mutationPerformed, false);
   assert.equal(inspected.deletionPerformed, false);
   assert.equal(inspected.revision, 2);
@@ -804,6 +809,7 @@ test("J5g-b Recover rejects owner, digest, and impossible predecessor revision d
       stackId: predecessorRecord.stackId,
       stackStatus: predecessorRecord.stackStatus,
       cellExpiresAt: predecessorRecord.cellExpiresAt,
+      cloudFormationRoleArn: predecessorRecord.cloudFormationRoleArn,
       templateCanonicalSha256: predecessorRecord.templateCanonicalSha256,
       resourceInventorySha256: predecessorRecord.resourceInventorySha256,
     },

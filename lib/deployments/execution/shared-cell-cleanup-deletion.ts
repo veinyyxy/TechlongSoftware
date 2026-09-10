@@ -899,6 +899,7 @@ function assertEvidenceMatchesAuthority(
   if (
     evidence.stack.stackId !== authority.stackId ||
     evidence.stack.stackStatus !== authority.stackStatus ||
+    evidence.stack.roleArn !== authority.cloudFormationRoleArn ||
     evidence.stack.tags.ExpiresAt !== authority.cellExpiresAt ||
     evidence.templateCanonicalSha256 !== authority.templateCanonicalSha256 ||
     evidence.resourceInventorySha256 !== authority.resourceInventorySha256
@@ -1034,7 +1035,7 @@ function deleteIntent(cycle: VerifiedCycle): DeleteIntent {
     cellId: "cell-sandbox-1" as const,
     stackName: SHARED_CELL_CLEANUP_DELETION_STACK_NAME,
     stackId: authority.stackId,
-    roleArn: SHARED_CELL_CLEANUP_DELETION_ROLE_ARN,
+    roleArn: cycle.authority.cloudFormationRoleArn,
     cellExpiresAt: authority.cellExpiresAt,
     templateCanonicalSha256: authority.templateCanonicalSha256,
     resourceInventorySha256: authority.resourceInventorySha256,
@@ -1427,7 +1428,7 @@ export async function executeReviewedSharedCellCleanupDeletion(
     const result = await deleter.deleteStack({
       request: {
         StackName: plan.intent.stackId,
-        RoleARN: SHARED_CELL_CLEANUP_DELETION_ROLE_ARN,
+        RoleARN: plan.intent.roleArn,
         ClientRequestToken: plan.clientRequestToken,
         DeletionMode: "STANDARD",
       },

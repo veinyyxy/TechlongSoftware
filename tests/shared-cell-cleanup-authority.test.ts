@@ -33,6 +33,8 @@ const stackName = "techlong-sandbox-cell-sandbox-1" as const;
 const stackId =
   "arn:aws:cloudformation:ca-central-1:402010193138:stack/" +
   `${stackName}/12345678-1234-1234-1234-123456789012`;
+const cloudFormationRoleArn =
+  "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole" as const;
 
 function compileInput(
   overrides: Partial<CompileSharedCellCleanupAuthorityInput> = {},
@@ -43,6 +45,7 @@ function compileInput(
       stackId,
       stackStatus: "UPDATE_COMPLETE",
       cellExpiresAt: new Date(now - 60_000).toISOString(),
+      cloudFormationRoleArn,
       templateCanonicalSha256: "a".repeat(64),
       resourceInventorySha256: "b".repeat(64),
     },
@@ -51,7 +54,7 @@ function compileInput(
       generation: 3,
       epoch: 8,
       operationHash:
-        "bc2dbf0d90da77e539caaa16bb71f78e7d5da61eeacaefe5c4c6a1563dc467c4",
+        "b5a0303b568e0f5884f4bac9cf155e686c3ca6d408de8e04ae0ffcffbbcfc237",
     },
     cleanup: {
       epoch: 9,
@@ -71,7 +74,7 @@ async function compileSharedCellCleanupAuthorityCandidateItem(
     `_e${input.provision.epoch}`;
   const operationHash = await sha256Hex(
     sharedCellProvisionOperationIntent({
-      schemaVersion: 1,
+      schemaVersion: 2,
       accountId: "402010193138",
       region: "ca-central-1",
       cellId: "cell-sandbox-1",
@@ -79,6 +82,7 @@ async function compileSharedCellCleanupAuthorityCandidateItem(
       stackId: input.cell.stackId,
       stackStatus: input.cell.stackStatus,
       cellExpiresAt: input.cell.cellExpiresAt,
+      cloudFormationRoleArn: input.cell.cloudFormationRoleArn,
       templateCanonicalSha256: input.cell.templateCanonicalSha256,
       resourceInventorySha256: input.cell.resourceInventorySha256,
       ownerDeploymentId: input.provision.ownerDeploymentId,
@@ -112,7 +116,7 @@ async function provisionItem(
     SharedCellProvisionAuthorityRecord,
     "provisionOperationHash" | "recordHash"
   > = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     accountId: "402010193138",
     region: "ca-central-1",
     cellId: "cell-sandbox-1",
@@ -120,6 +124,7 @@ async function provisionItem(
     stackId,
     stackStatus: "UPDATE_COMPLETE",
     cellExpiresAt: new Date(now - 60_000).toISOString(),
+    cloudFormationRoleArn,
     templateCanonicalSha256: "a".repeat(64),
     resourceInventorySha256: "b".repeat(64),
     ownerDeploymentId: "deployment_cell_owner_1",
@@ -144,7 +149,7 @@ async function provisionItem(
   };
   return Object.freeze({
     authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
-    schema_version: 1,
+    schema_version: 2,
     revision: unsigned.revision,
     record_json: canonicalJson(record),
   });
@@ -157,7 +162,7 @@ function errorCode(code: string): (error: unknown) => boolean {
     (error as { code?: unknown }).code === code;
 }
 
-test("compiler emits the exact J4c four-field item and twenty-two-field record", async () => {
+test("compiler emits the exact v2 four-field item and twenty-three-field record", async () => {
   const item = await compileSharedCellCleanupAuthorityCandidateItem(compileInput());
   const record = JSON.parse(item.record_json) as Record<string, unknown>;
 
@@ -168,9 +173,10 @@ test("compiler emits the exact J4c four-field item and twenty-two-field record",
     "revision",
     "schema_version",
   ]);
-  assert.equal(Object.keys(record).length, 22);
+  assert.equal(Object.keys(record).length, 23);
   assert.equal(item.authority_key, "cell:cell-sandbox-1");
-  assert.equal(item.schema_version, 1);
+  assert.equal(item.schema_version, 2);
+  assert.equal(record.cloudFormationRoleArn, cloudFormationRoleArn);
   assert.equal(item.revision, 7);
   assert.equal(record.provisionMarker, "tl_cell_epoch_cell-sandbox-1_g3_e8");
   assert.equal(record.cleanupMarker, "tl_cell_epoch_cell-sandbox-1_g3_e9");
@@ -191,10 +197,10 @@ test("compiler emits the exact J4c four-field item and twenty-two-field record",
   assert.equal(consumed.stackId, stackId);
 });
 
-test("generic validator accepts only the exact eighteen-field provision record", async () => {
+test("generic validator accepts only the exact v2 nineteen-field provision record", async () => {
   const item = await provisionItem();
   const validated = await validateSharedCellAuthorityItem(item);
-  assert.equal(Object.keys(validated.record).length, 18);
+  assert.equal(Object.keys(validated.record).length, 19);
   assert.equal(validated.record.state, "provision_verified");
   assert.equal(validated.record.revision, item.revision);
   await assert.rejects(

@@ -1,6 +1,7 @@
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import {
   SHARED_CELL_CLEANUP_AUTHORITY_KEY,
+  SHARED_CELL_CLOUD_FORMATION_ROLE_ARN,
   sharedCellAuthorityMarker,
   sharedCellProvisionOperationIntent,
   type SharedCellAuthorityItem,
@@ -31,6 +32,7 @@ const evidenceKeys = [
   "accountId",
   "cellExpiresAt",
   "cellId",
+  "cloudFormationRoleArn",
   "observedAt",
   "region",
   "resourceInventorySha256",
@@ -205,12 +207,13 @@ function validateEvidence(
   }
   if (
     !exactKeys(evidence, evidenceKeys) ||
-    evidence.schemaVersion !== 1 ||
+    evidence.schemaVersion !== 2 ||
     evidence.verified !== true ||
     evidence.accountId !== accountId ||
     evidence.region !== region ||
     evidence.cellId !== cellId ||
     evidence.stackName !== stackName ||
+    evidence.cloudFormationRoleArn !== SHARED_CELL_CLOUD_FORMATION_ROLE_ARN ||
     !stackIdPattern.test(evidence.stackId) ||
     !["CREATE_COMPLETE", "UPDATE_COMPLETE"].includes(evidence.stackStatus) ||
     !Number.isSafeInteger(evidence.observedAt) ||
@@ -272,7 +275,7 @@ export async function compileSharedCellProvisionAuthorityCandidateItem(
     );
   }
   const operationSource: SharedCellProvisionOperationSource = {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     accountId,
     region,
     cellId,
@@ -280,6 +283,7 @@ export async function compileSharedCellProvisionAuthorityCandidateItem(
     stackId: input.evidence.stackId,
     stackStatus: input.evidence.stackStatus,
     cellExpiresAt: input.evidence.cellExpiresAt,
+    cloudFormationRoleArn: input.evidence.cloudFormationRoleArn,
     templateCanonicalSha256: input.evidence.templateCanonicalSha256,
     resourceInventorySha256: input.evidence.resourceInventorySha256,
     ownerDeploymentId: input.coordinate.ownerDeploymentId,
@@ -305,7 +309,7 @@ export async function compileSharedCellProvisionAuthorityCandidateItem(
   });
   const item: Readonly<SharedCellAuthorityItem> = Object.freeze({
     authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
-    schema_version: 1 as const,
+    schema_version: 2 as const,
     revision: input.revision,
     record_json: canonicalJson(record),
   });

@@ -63,7 +63,7 @@ export interface ReadSharedCellProvisionEvidenceInput {
  * lookalikes are rejected by assertVerifiedSharedCellProvisionEvidence().
  */
 export interface VerifiedSharedCellProvisionEvidence {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly verified: true;
   readonly observedAt: number;
   readonly accountId: typeof accountId;
@@ -73,6 +73,7 @@ export interface VerifiedSharedCellProvisionEvidence {
   readonly stackId: string;
   readonly stackStatus: "CREATE_COMPLETE" | "UPDATE_COMPLETE";
   readonly cellExpiresAt: string;
+  readonly cloudFormationRoleArn: typeof cellCloudFormationRoleArn;
   readonly templateCanonicalSha256: string;
   readonly resourceInventorySha256: string;
 }
@@ -204,7 +205,7 @@ interface StableStackSnapshot {
   stackId: string;
   stackName: string;
   stackStatus: "CREATE_COMPLETE" | "UPDATE_COMPLETE";
-  roleArn: string;
+  roleArn: typeof cellCloudFormationRoleArn;
   terminationProtection: false;
   creationTime: string;
   lastUpdatedTime: string | null;
@@ -247,7 +248,7 @@ function normalizeStack(value: Record<string, unknown>): StableStackSnapshot {
     stackId,
     stackName: observedStackName,
     stackStatus: status as StableStackSnapshot["stackStatus"],
-    roleArn,
+    roleArn: cellCloudFormationRoleArn,
     terminationProtection: false,
     creationTime: instant(value.CreationTime, "Stack CreationTime"),
     lastUpdatedTime:
@@ -607,7 +608,7 @@ export class AwsSdkSharedCellProvisionEvidenceAdapter {
         );
       }
       const evidence: VerifiedSharedCellProvisionEvidence = Object.freeze({
-        schemaVersion: 1 as const,
+        schemaVersion: 2 as const,
         verified: true as const,
         observedAt,
         accountId,
@@ -617,6 +618,7 @@ export class AwsSdkSharedCellProvisionEvidenceAdapter {
         stackId: final.stackId,
         stackStatus: final.stackStatus,
         cellExpiresAt: plan.tags.ExpiresAt,
+        cloudFormationRoleArn: final.roleArn,
         templateCanonicalSha256: expectedTemplateHash,
         resourceInventorySha256: inventoryHash,
       });

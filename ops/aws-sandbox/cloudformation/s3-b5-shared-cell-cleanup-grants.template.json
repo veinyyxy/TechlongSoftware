@@ -132,17 +132,10 @@
               "Condition": {
                 "StringEquals": { "aws:RequestedRegion": "ca-central-1" },
                 "ForAllValues:StringEquals": {
-                  "dynamodb:LeadingKeys": ["cell:cell-sandbox-1"],
-                  "dynamodb:Attributes": [
-                    "authority_key",
-                    "schema_version",
-                    "revision",
-                    "record_json"
-                  ]
+                  "dynamodb:LeadingKeys": ["cell:cell-sandbox-1"]
                 },
                 "Null": {
-                  "dynamodb:LeadingKeys": "false",
-                  "dynamodb:Attributes": "false"
+                  "dynamodb:LeadingKeys": "false"
                 }
               }
             }

@@ -183,6 +183,26 @@ assert.deepEqual(
   [...allowedActions(locked, writerLogicalId)].sort(),
   ["dynamodb:GetItem", "sts:GetCallerIdentity"],
 );
+for (const template of [base, locked, writerGrant, writerRevoke, janitorGrant, janitorRevoke]) {
+  assert.deepEqual(
+    statementsByAction(template, writerLogicalId, "dynamodb:GetItem"),
+    [
+      {
+        Sid: "AllowExactCleanupAuthorityStrongRead",
+        Effect: "Allow",
+        Action: "dynamodb:GetItem",
+        Resource: authorityTableArn,
+        Condition: {
+          StringEquals: { "aws:RequestedRegion": "ca-central-1" },
+          "ForAllValues:StringEquals": {
+            "dynamodb:LeadingKeys": ["cell:cell-sandbox-1"],
+          },
+          Null: { "dynamodb:LeadingKeys": "false" },
+        },
+      },
+    ],
+  );
+}
 assert.deepEqual(
   [...allowedActions(locked, janitorLogicalId)].sort(),
   [

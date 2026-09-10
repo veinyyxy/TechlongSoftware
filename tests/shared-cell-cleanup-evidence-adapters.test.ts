@@ -34,8 +34,7 @@ const stackId =
   `arn:aws:cloudformation:${region}:${accountId}:stack/${stackName}/` +
   "12345678-1234-1234-1234-123456789012";
 const cellRoleArn =
-  `arn:aws:iam::${accountId}:role/` +
-  "TechlongSandboxCellCloudFormationExecutionRole";
+  "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole" as const;
 const operatorArn =
   `arn:aws:sts::${accountId}:assumed-role/` +
   "TechlongSandboxCellOperatorRole/techlong-sandbox-cell-operator";
@@ -66,7 +65,7 @@ async function predecessor(
   override: Partial<SharedCellProvisionAuthorityRecord> = {},
 ): Promise<SharedCellProvisionAuthorityRecord> {
   const operationSource = {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     accountId,
     region,
     cellId: "cell-sandbox-1" as const,
@@ -74,6 +73,7 @@ async function predecessor(
     stackId,
     stackStatus: "CREATE_COMPLETE" as const,
     cellExpiresAt: expiresAt,
+    cloudFormationRoleArn: cellRoleArn,
     templateCanonicalSha256: await sha256Hex(template),
     resourceInventorySha256: await sha256Hex(inventory),
     ownerDeploymentId: "deployment_cell_owner_1",

@@ -21,6 +21,8 @@ const stackName = "techlong-sandbox-cell-sandbox-1";
 const stackId =
   "arn:aws:cloudformation:ca-central-1:402010193138:stack/" +
   `${stackName}/12345678-1234-1234-1234-123456789012`;
+const cloudFormationRoleArn =
+  "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole";
 const template = {
   AWSTemplateFormatVersion: "2010-09-09",
   Resources: { Cluster: { Type: "AWS::ECS::Cluster" } },
@@ -39,6 +41,7 @@ function stack(overrides = {}) {
     StackName: stackName,
     StackId: stackId,
     StackStatus: "CREATE_COMPLETE",
+    RoleARN: cloudFormationRoleArn,
     Tags: [
       { Key: "Environment", Value: "aws-sandbox" },
       { Key: "ManagedBy", Value: "techlong-cell-operator" },
@@ -49,9 +52,56 @@ function stack(overrides = {}) {
   };
 }
 
+function provisionOperationIntent(source) {
+  return {
+    schemaVersion: 2,
+    intent: "provision_shared_cell",
+    accountId: source.accountId,
+    region: source.region,
+    cellId: source.cellId,
+    stackName: source.stackName,
+    stackId: source.stackId,
+    stackStatus: source.stackStatus,
+    cellExpiresAt: source.cellExpiresAt,
+    cloudFormationRoleArn: source.cloudFormationRoleArn,
+    templateCanonicalSha256: source.templateCanonicalSha256,
+    resourceInventorySha256: source.resourceInventorySha256,
+    ownerDeploymentId: source.ownerDeploymentId,
+    generation: source.generation,
+    provisionEpoch: source.provisionEpoch,
+    provisionMarker: source.provisionMarker,
+  };
+}
+
+function cleanupOperationIntent(source) {
+  return {
+    schemaVersion: 2,
+    intent: "cleanup_shared_cell",
+    accountId: source.accountId,
+    region: source.region,
+    cellId: source.cellId,
+    stackName: source.stackName,
+    stackId: source.stackId,
+    stackStatus: source.stackStatus,
+    cellExpiresAt: source.cellExpiresAt,
+    cloudFormationRoleArn: source.cloudFormationRoleArn,
+    templateCanonicalSha256: source.templateCanonicalSha256,
+    resourceInventorySha256: source.resourceInventorySha256,
+    ownerDeploymentId: source.ownerDeploymentId,
+    generation: source.generation,
+    provisionEpoch: source.provisionEpoch,
+    provisionMarker: source.provisionMarker,
+    provisionOperationHash: source.provisionOperationHash,
+    cleanupEpoch: source.cleanupEpoch,
+    cleanupMarker: source.cleanupMarker,
+    expiresAt: source.expiresAt,
+  };
+}
+
 function authorityRecord(overrides = {}) {
+  const { recordHash: overriddenRecordHash, ...fieldOverrides } = overrides;
   const unsigned = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     accountId: "402010193138",
     region: "ca-central-1",
     cellId: "cell-sandbox-1",
@@ -59,29 +109,41 @@ function authorityRecord(overrides = {}) {
     stackId,
     stackStatus: "CREATE_COMPLETE",
     cellExpiresAt,
+    cloudFormationRoleArn,
     templateCanonicalSha256: sha256Canonical(template),
     resourceInventorySha256: resourceInventoryHash(resources),
     ownerDeploymentId: "deployment_cell_owner_1",
     generation: 1,
     provisionEpoch: 1,
     provisionMarker: "tl_cell_epoch_cell-sandbox-1_g1_e1",
-    provisionOperationHash: "a".repeat(64),
+    provisionOperationHash: "",
     cleanupEpoch: 2,
     cleanupMarker: "tl_cell_epoch_cell-sandbox-1_g1_e2",
-    cleanupOperationHash: "b".repeat(64),
+    cleanupOperationHash: "",
     revision: 7,
     expiresAt: authorizationExpiresAt,
     state: "cleanup_authorized",
-    ...overrides,
+    ...fieldOverrides,
   };
-  return { ...unsigned, recordHash: sha256Canonical(unsigned) };
+  if (!Object.hasOwn(fieldOverrides, "provisionOperationHash")) {
+    unsigned.provisionOperationHash = sha256Canonical(provisionOperationIntent(unsigned));
+  }
+  if (!Object.hasOwn(fieldOverrides, "cleanupOperationHash")) {
+    unsigned.cleanupOperationHash = sha256Canonical(cleanupOperationIntent(unsigned));
+  }
+  return {
+    ...unsigned,
+    recordHash: Object.hasOwn(overrides, "recordHash")
+      ? overriddenRecordHash
+      : sha256Canonical(unsigned),
+  };
 }
 
 function authorityItem(overrides = {}) {
   const record = authorityRecord(overrides);
   return {
     authority_key: "cell:cell-sandbox-1",
-    schema_version: 1,
+    schema_version: 2,
     revision: record.revision,
     record_json: canonicalJson(record),
   };
@@ -205,6 +267,7 @@ test("plan-only coordinator binds exact Stack, template, inventory and authority
     cellStack: stackId,
     authorityRevision: 7,
     authorityRecordHash: authorityRecord().recordHash,
+    cloudFormationRoleArn,
     generation: 1,
     provisionEpoch: 1,
     cleanupEpoch: 2,
@@ -219,6 +282,19 @@ test("plan-only coordinator binds exact Stack, template, inventory and authority
     "listStackResources",
     "getAuthorityItem",
   ]));
+});
+
+test("plan-only coordinator requires the exact live Cell CloudFormation RoleARN", async () => {
+  for (const RoleARN of [
+    undefined,
+    "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+  ]) {
+    const fixture = api({ describeStack: async () => stack({ RoleARN }) });
+    await assert.rejects(
+      createHandler(fixture.value, () => now)(request),
+      (error) => error.code === "CELL_CLEANUP_CELL_INVALID",
+    );
+  }
 });
 
 test("authority record rejects missing, expired, noncanonical and drifted evidence", async () => {
@@ -267,7 +343,57 @@ test("authority hash and epoch marker drift fail closed", () => {
   );
 });
 
-test("DynamoDB item decoder accepts only the four exact projected attributes", () => {
+test("authority v2 requires exact RoleARN lineage in keys and operation intents", () => {
+  const valid = authorityItem();
+  assert.doesNotThrow(() => validateAuthorityItem(valid, now));
+
+  const missingRoleRecord = authorityRecord();
+  delete missingRoleRecord.cloudFormationRoleArn;
+  assert.throws(
+    () => validateAuthorityItem({
+      ...valid,
+      record_json: canonicalJson(missingRoleRecord),
+    }, now),
+    (error) => error.code === "CELL_CLEANUP_AUTHORITY_INVALID",
+  );
+  assert.throws(
+    () => validateAuthorityItem(authorityItem({
+      cloudFormationRoleArn:
+        "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+    }), now),
+    (error) => error.code === "CELL_CLEANUP_AUTHORITY_INVALID",
+  );
+
+  const unsignedRecordWithoutRole = { ...authorityRecord() };
+  delete unsignedRecordWithoutRole.recordHash;
+  delete unsignedRecordWithoutRole.cloudFormationRoleArn;
+  assert.throws(
+    () => validateAuthorityItem(authorityItem({
+      recordHash: sha256Canonical(unsignedRecordWithoutRole),
+    }), now),
+    (error) => error.code === "CELL_CLEANUP_AUTHORITY_HASH_MISMATCH",
+  );
+
+  const provisionIntentWithoutRole = provisionOperationIntent(authorityRecord());
+  delete provisionIntentWithoutRole.cloudFormationRoleArn;
+  assert.throws(
+    () => validateAuthorityItem(authorityItem({
+      provisionOperationHash: sha256Canonical(provisionIntentWithoutRole),
+    }), now),
+    (error) => error.code === "CELL_CLEANUP_AUTHORITY_OPERATION_HASH_MISMATCH",
+  );
+
+  const cleanupIntentWithoutRole = cleanupOperationIntent(authorityRecord());
+  delete cleanupIntentWithoutRole.cloudFormationRoleArn;
+  assert.throws(
+    () => validateAuthorityItem(authorityItem({
+      cleanupOperationHash: sha256Canonical(cleanupIntentWithoutRole),
+    }), now),
+    (error) => error.code === "CELL_CLEANUP_AUTHORITY_OPERATION_HASH_MISMATCH",
+  );
+});
+
+test("DynamoDB item decoder accepts only schema v2 and four exact full-item attributes", () => {
   const item = authorityItem();
   assert.deepEqual(decodeAuthorityItem({
     authority_key: { S: item.authority_key },
@@ -281,8 +407,28 @@ test("DynamoDB item decoder accepts only the four exact projected attributes", (
       schema_version: { N: "1" },
       revision: { N: "7" },
       record_json: { S: item.record_json },
+    }),
+    (error) => error.code === "CELL_CLEANUP_AUTHORITY_INVALID",
+  );
+  assert.throws(
+    () => decodeAuthorityItem({
+      authority_key: { S: item.authority_key },
+      schema_version: { N: "2" },
+      revision: { N: "7" },
+      record_json: { S: item.record_json },
       foreign: { S: "no" },
     }),
+    (error) => error.code === "CELL_CLEANUP_AUTHORITY_INVALID",
+  );
+});
+
+test("authority validator rejects legacy item and record schema v1", () => {
+  assert.throws(
+    () => validateAuthorityItem({ ...authorityItem(), schema_version: 1 }, now),
+    (error) => error.code === "CELL_CLEANUP_AUTHORITY_INVALID",
+  );
+  assert.throws(
+    () => validateAuthorityItem(authorityItem({ schemaVersion: 1 }), now),
     (error) => error.code === "CELL_CLEANUP_AUTHORITY_INVALID",
   );
 });
@@ -292,6 +438,7 @@ test("request and runtime configuration are exact and planner source has no dele
   for (const event of [
     {},
     { schemaVersion: "1", action: "inspect_cell_cleanup_plan" },
+    { schemaVersion: 2, action: "inspect_cell_cleanup_plan" },
     { schemaVersion: 1, action: "delete_shared_cell_stack" },
     { schemaVersion: 1, action: "inspect_cell_cleanup_plan", stackName },
   ]) {
@@ -321,6 +468,7 @@ test("request and runtime configuration are exact and planner source has no dele
   );
   assert.doesNotMatch(source, /DeleteStackCommand|UpdateStackCommand|CreateChangeSetCommand/);
   assert.doesNotMatch(source, /delete_shared_cell_stack|scan_expired_shared_cell_stacks/);
+  assert.doesNotMatch(source, /ProjectionExpression/);
   assert.match(source, /ConsistentRead:\s*true/);
   assert.match(source, /mutationPerformed:\s*false/);
 });

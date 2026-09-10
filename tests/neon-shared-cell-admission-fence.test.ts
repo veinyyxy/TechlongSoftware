@@ -23,7 +23,7 @@ const stackId =
 
 async function predecessor(): Promise<SharedCellProvisionAuthorityRecord> {
   const operation = {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     accountId: "402010193138" as const,
     region: "ca-central-1" as const,
     cellId: "cell-sandbox-1" as const,
@@ -31,6 +31,8 @@ async function predecessor(): Promise<SharedCellProvisionAuthorityRecord> {
     stackId,
     stackStatus: "CREATE_COMPLETE" as const,
     cellExpiresAt: expiresAt,
+    cloudFormationRoleArn:
+      "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole" as const,
     templateCanonicalSha256: "a".repeat(64),
     resourceInventorySha256: "b".repeat(64),
     ownerDeploymentId: "deployment_cell_owner_1",
@@ -150,18 +152,28 @@ test("early, missing or lineage-drifted drains fail closed on an empty DB result
 test("tampered provision lineage is rejected before the database write", async () => {
   const fake = client();
   const lineage = await predecessor();
-  await assert.rejects(
-    new NeonSharedCellAdmissionFenceWriter(fake.sql).beginAdmissionDrain({
-      predecessor: {
-        ...lineage,
-        cellExpiresAt: "2020-01-01T00:00:00.000Z",
-      },
-      signal: new AbortController().signal,
-    }),
-    (error) =>
-      (error as { code?: string }).code ===
-      "SHARED_CELL_ADMISSION_PREDECESSOR_INVALID",
-  );
+  for (const tampered of [
+    {
+      ...lineage,
+      cellExpiresAt: "2020-01-01T00:00:00.000Z",
+    },
+    {
+      ...lineage,
+      cloudFormationRoleArn:
+        "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+    },
+    { ...lineage, schemaVersion: 1 },
+  ]) {
+    await assert.rejects(
+      new NeonSharedCellAdmissionFenceWriter(fake.sql).beginAdmissionDrain({
+        predecessor: tampered as unknown as SharedCellProvisionAuthorityRecord,
+        signal: new AbortController().signal,
+      }),
+      (error) =>
+        (error as { code?: string }).code ===
+        "SHARED_CELL_ADMISSION_PREDECESSOR_INVALID",
+    );
+  }
   assert.equal(fake.calls.length, 0);
 });
 

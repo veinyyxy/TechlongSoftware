@@ -292,6 +292,8 @@ test("J5f inspect is read-only, absent-only and emits a stable canonical candida
   });
   assert.equal(Object.isFrozen(first), true);
   assert.equal(first.phase, "INSPECTED");
+  assert.equal(first.schemaVersion, 2);
+  assert.equal(first.cloudFormationRoleArn, cellCloudFormationRoleArn);
   assert.equal(first.mutationPerformed, false);
   assert.equal(first.generation, 1);
   assert.equal(first.provisionEpoch, 1);

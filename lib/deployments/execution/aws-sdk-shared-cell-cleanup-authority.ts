@@ -285,14 +285,6 @@ export class AwsSdkSharedCellCleanupAuthority
           TableName: this.tableArn,
           Key: { authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY },
           ConsistentRead: true,
-          ProjectionExpression:
-            "#authorityKey, #schemaVersion, #revision, #recordJson",
-          ExpressionAttributeNames: {
-            "#authorityKey": "authority_key",
-            "#schemaVersion": "schema_version",
-            "#revision": "revision",
-            "#recordJson": "record_json",
-          },
         }),
         { abortSignal: input.signal },
       );

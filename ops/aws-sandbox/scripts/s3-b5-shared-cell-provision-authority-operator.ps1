@@ -32,6 +32,8 @@ $expectedSourcePrincipalArn = 'arn:aws:iam::402010193138:user/techlong-sandbox-d
 $expectedMfaDeviceArn = 'arn:aws:iam::402010193138:mfa/techlong-sandbox-dev'
 $expectedSessionName = 'techlong-sandbox-provisioner'
 $expectedStackName = 'techlong-sandbox-cell-sandbox-1'
+$expectedCellCloudFormationRoleArn =
+  'arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole'
 $expectedAuthorityTableArn =
   'arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority'
 $expectedAuthorityKey = 'cell:cell-sandbox-1'
@@ -423,7 +425,8 @@ try {
     'RECOVERED'
   }
   if (
-    [int]$summary.schemaVersion -ne 1 -or
+    [int]$summary.schemaVersion -ne 2 -or
+    [string]$summary.cloudFormationRoleArn -cne $expectedCellCloudFormationRoleArn -or
     [string]$summary.phase -cne $expectedPhase -or
     [bool]$summary.mutationPerformed -ne ($Mode -eq 'ExecuteInstall') -or
     [string]$summary.candidateItemSha256 -cnotmatch '^[a-f0-9]{64}$'

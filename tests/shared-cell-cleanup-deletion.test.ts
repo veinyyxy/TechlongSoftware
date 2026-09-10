@@ -59,7 +59,7 @@ async function authorityItem(input: {
   const templateCanonicalSha256 = await sha256Hex(template);
   const resourceInventorySha256 = await sha256Hex(inventory);
   const provision = {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     accountId: "402010193138" as const,
     region: "ca-central-1" as const,
     cellId: "cell-sandbox-1" as const,
@@ -67,6 +67,7 @@ async function authorityItem(input: {
     stackId,
     stackStatus: "CREATE_COMPLETE" as const,
     cellExpiresAt,
+    cloudFormationRoleArn: SHARED_CELL_CLEANUP_DELETION_ROLE_ARN,
     templateCanonicalSha256,
     resourceInventorySha256,
     ownerDeploymentId: "deployment_cell_owner_1",
@@ -83,6 +84,7 @@ async function authorityItem(input: {
       stackId,
       stackStatus: "CREATE_COMPLETE",
       cellExpiresAt,
+      cloudFormationRoleArn: SHARED_CELL_CLEANUP_DELETION_ROLE_ARN,
       templateCanonicalSha256,
       resourceInventorySha256,
     },

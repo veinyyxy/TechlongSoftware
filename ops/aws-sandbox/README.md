@@ -311,7 +311,7 @@ J4c 已将既有 J4b child 原地更新为 ownership-fenced、authority-bound �
 
 ### B5-J5a Shared Cell cleanup authority（仅本地契约）
 
-J5a 为 J4c 的 `cell:cell-sandbox-1` authority 消费 schema 增加 SDK-free 本地候选契约：compiler 只校验调用方 Stack DTO 的严格形状，不采集或认证 live evidence；它生成 exact 4-field item 与 canonical 22-field record，内部从 exact intent 派生 cleanup operation hash，并绑定 marker、revision、Cell 到期时间和最长一小时 authorization。产物通过仓库内 J4c validator 与 DynamoDB AttributeValue decoder 的本地跨契约测试；没有调用已部署 Lambda 或 AWS。
+J5a 当时为 J4c 的 `cell:cell-sandbox-1` authority v1消费schema增加 SDK-free本地候选契约：compiler只校验调用方Stack DTO的严格形状，不采集或认证live evidence；它生成exact 4-field item与canonical 22-field cleanup record，内部从exact intent派生cleanup operation hash，并绑定marker、revision、Cell到期时间和最长一小时authorization。产物通过仓库内当时的J4c validator与DynamoDB AttributeValue decoder本地跨契约测试；没有调用已部署Lambda或AWS。后续J5g-f已把当前contract升级为仍为4字段item、但包含`cloudFormationRoleArn`的23字段v2 cleanup record，旧v1不再被当前consumer接受。
 
 atomic advance 协调逻辑拒绝空 snapshot，只允许已有 exact predecessor 在同 owner/generation/provision/Stack lineage 内严格增加 cleanup epoch；exact 重试不写入，CAS、独立回读、intent hash或时间窗任一漂移都 fail closed。这里只存在接口、Mock 和显式 disabled 实现，没有真实条件写 provider；default root 不暴露该 capability，现有 `tenant:<64hex>` adapter 仍拒绝 `cell:*`。
 
@@ -327,7 +327,7 @@ cleanup authority 不能从空 snapshot bootstrap；后续必须先由独立受�
 
 ### B5-J5c Shared Cell provision predecessor（dormant）
 
-J5c 在同一个 `cell:cell-sandbox-1` key 上增加严格 18 字段 `provision_verified` predecessor；现有 4 字段 envelope 与 22 字段 `cleanup_authorized` 消费契约不变。provision/cleanup operation hash 和 record hash 均绑定 canonical exact intent，唯一允许的首跳是同 lineage、revision + 1 且 cleanup epoch 更大的 `provision_verified → cleanup_authorized`；cleanup adapter 继续拒绝空表 bootstrap。
+J5c 阶段在同一个 `cell:cell-sandbox-1` key上增加严格18字段v1 `provision_verified` predecessor；当时既有4字段item envelope与22字段v1 `cleanup_authorized`消费契约不变。后续J5g-f已把当前记录升级为分别包含`cloudFormationRoleArn`的19/23字段v2 union，旧v1不再兼容且不会自动迁移。provision/cleanup operation hash和record hash均绑定各自schema的canonical exact intent，唯一允许的首跳是同Stack/owner/generation/provision/RoleARN lineage、revision + 1且cleanup epoch更大的`provision_verified → cleanup_authorized`；cleanup adapter继续拒绝空表bootstrap。
 
 只读 Stack evidence adapter 核对 exact STS caller、root Stack/role/status/tags/parameters/outputs、Original template hash、完整分页 resource inventory及采集前后稳定性。独立 SDK-free installer 只允许 generation 1 / epoch 1 的 fresh branded evidence 在 30 秒窗口内执行 absent-only conditional install，并要求独立 exact readback；提交后的任何不确定结果均不报告成功。
 
@@ -397,9 +397,9 @@ J5g-b 新增两个彼此分权的本地生产契约，但没有接入真实 prov
 .\ops\aws-sandbox\scripts\s3-b5-shared-cell-cleanup-control.ps1 -Mode LocalValidate
 ```
 
-validator只核对上述静态契约、两组定向测试、默认 `offline_only` runtime，以及当前 J4c child/Lambda仍为 `PLAN_ONLY`、Schedule仍为 `DISABLED`。wrapper没有 online模式、AWS profile或写入确认参数；本切片也没有 production Stack/ownership collector、AWS deletion adapter、CLI、default Worker/Janitor wiring或 IAM grant。已部署的 `cell-janitor.cjs` 未修改，仍只接受 `inspect_cell_cleanup_plan`，不接受 Cell模板发出的 `delete_shared_cell_stack`，也没有 `DeleteStack` 或 authority mutation命令。
+validator只核对上述静态契约、两组定向测试、默认 `offline_only` runtime，以及当前 J4c child/Lambda仍为 `PLAN_ONLY`、Schedule仍为 `DISABLED`。wrapper没有 online模式、AWS profile或写入确认参数；本切片也没有 production Stack/ownership collector、AWS deletion adapter、CLI、default Worker/Janitor wiring或 IAM grant。J5g-b阶段的 `cell-janitor.cjs` 未修改，仍只接受 `inspect_cell_cleanup_plan`；后续J5g-f只离线升级其v2 authority解码与plan projection，仍不接受 Cell模板发出的 `delete_shared_cell_stack`，也没有 `DeleteStack` 或 authority mutation命令。
 
-因此 J5g-b 只是 dormant contract，不是 cleanup ready。线上前仍缺 production collectors及有界 SDK runtime、cleanup CAS和 Janitor `DeleteStack` 的相互独立短时 grant/readback/revoke、Schedule在 Cell TTL到点后才授权 cleanup的可靠时序，以及失败创建时尚未满足“Cell已到期 + 完整 provision predecessor”的独立 rollback路径。账号当前没有 Cell或既有 Cell lineage；future provision live evidence与 deletion fresh read虽已要求专用 Cell `RoleARN`，但 authority record schema没有持久化 RoleARN，不能仅凭 predecessor自身证明 role lineage，仍须另行闭合 schema/collector/wiring并在线验证。本轮没有调用 AWS，没有修改 IAM、Schedule、Lambda或 CloudFormation Stack，没有创建/删除 Cell或执行 `RunTask`；`shared_cell_provision_authority_predecessor_missing`、`shared_cell_cleanup_authority_writer_missing`和四个 readiness gate全部保持不变。
+因此 J5g-b 只是 dormant contract，不是 cleanup ready。线上前仍缺 production collectors及有界 SDK runtime、cleanup CAS和 Janitor `DeleteStack` 的相互独立短时 grant/readback/revoke、Schedule在 Cell TTL到点后才授权 cleanup的可靠时序，以及失败创建时尚未满足“Cell已到期 + 完整 provision predecessor”的独立 rollback路径。J5g-b 当时的 authority record尚未持久化 future provision live evidence与 deletion fresh read都要求的专用 Cell `RoleARN`；后续J5g-f已在离线 schema v2契约中补上这一记录级 lineage，但production collector/root接线与线上验证仍未完成。账号当前没有 Cell或既有 Cell lineage；本轮没有调用 AWS，没有修改 IAM、Schedule、Lambda或 CloudFormation Stack，没有创建/删除 Cell或执行 `RunTask`；`shared_cell_provision_authority_predecessor_missing`、`shared_cell_cleanup_authority_writer_missing`和四个 readiness gate全部保持不变。
 
 ### B5-J5g-c production cleanup adapters 与独立临时 grant 契约（默认关闭、仅 LocalValidate）
 
@@ -409,7 +409,7 @@ J5g-c 把 J5g-b 的抽象端口落实为真实 provider 形状，但没有把它
 
 `aws-sdk-shared-cell-cleanup-deletion.ts` 提供 Janitor侧的 STS/CloudFormation窄读和唯一 `DeleteStack` capability。`ListStacks` 显式传入除 `DELETE_COMPLETE` 外的 active状态集合，避免把 CloudFormation保留的历史删除记录误判为存活 Stack；missing只接受 exact Stack name对应的精确 `ValidationError`，StackId请求的错误不能翻译成 missing。模板固定 `Original`，资源读取保留完整分页；删除请求只接受 exact StackId、专用 `RoleARN`、计划派生 token和 `STANDARD` mode，不包含 `RetainResources`。provider错误会脱敏并保留 retryability/abort语义。dormant runtime只围绕一个 lazy ambient Janitor credential provider构造 STS/CloudFormation clients，不发请求，也未接到 Lambda handler。
 
-`aws-sdk-shared-cell-cleanup-authority-grant.ts` 在既有 DynamoDB conditional CAS外再加最终 capability boundary：先复制不可被调用方随后篡改的 predecessor/candidate JSON快照，再让两者 SHA-256和 grant expiry在 provider提交前完全匹配；另一个 read-only view同时满足 operator和deleter的强读接口，但不暴露 `compareAndSet`。DynamoDB请求固定四字段 Projection且普通/条件失败返回值均为 `NONE`。这层是应用侧 digest fence，不能被误述成 IAM能够检查 DynamoDB item正文。
+`aws-sdk-shared-cell-cleanup-authority-grant.ts` 在既有 DynamoDB conditional CAS外再加最终 capability boundary：先复制不可被调用方随后篡改的 predecessor/candidate JSON快照，再让两者 SHA-256和 grant expiry在 provider提交前完全匹配；另一个 read-only view同时满足 operator和deleter的强读接口，但不暴露 `compareAndSet`。DynamoDB强读不使用 Projection，完整 Item 必须通过四字段 exact decoder，因此未知顶层属性不能被请求层隐藏；普通/条件失败写入返回值均固定为 `NONE`。只读 IAM仍只允许 exact table/key，四字段 allowlist只约束 `PutItem`。这层是应用侧 digest fence，不能被误述成 IAM能够检查 DynamoDB item正文。
 
 独立 IAM候选契约位于 `s3-b5-shared-cell-cleanup-grants.template.json` 与 renderer。它只离线生成五个互斥形状：`Locked`、`AuthorityWriterGrant/Revoke`、`JanitorDeleteGrant/Revoke`。Writer目标固定为 Provisioner role，只描述 exact table/key/四字段且 `ReturnValues=NONE` 的 `PutItem`最长 15 分钟窗口；Janitor目标固定为 Cell Janitor role，只描述人工批准的完整 StackId（不接受同名 Stack通配符）、exact expired tags及专用 `cloudformation:RoleArn` 条件下的 `DeleteStack`，并单独限定同一角色的 `PassRole`。两份 managed policy均未挂载到任何 role，模板没有 online apply路径，因而当前不会授予任何权限；IAM也不能把 approved candidate/deletion-plan digest直接绑定到请求正文或 `ClientRequestToken`。现有 Janitor permissions boundary中的 mutation deny及其 identity policy尚未通过受审替换，必须在未来独立 Grant → readback/simulation → operation → Revoke流程中闭合，不能直接部署本候选模板后宣称可删除。
 
@@ -420,7 +420,7 @@ J5g-c 把 J5g-b 的抽象端口落实为真实 provider 形状，但没有把它
 .\ops\aws-sandbox\scripts\s3-b5-shared-cell-cleanup-grants.ps1 -Mode LocalValidate
 ```
 
-J5g-c 没有调用 AWS 或 Neon，没有创建/更新/删除 IAM、CloudFormation、Lambda或 Schedule资源，没有创建付费 Cell，也没有执行 ECS `RunTask`。已部署 J4c Lambda仍只接受 `inspect_cell_cleanup_plan`并固定 `PLAN_ONLY`，Schedule仍为 `DISABLED`；默认 runtime仍为 `offline_only`。后续仍需：受控 online CLI/root组合、两种身份的真实凭据接线、已应用迁移上的 live transaction及数据库/运行主机时钟校准、独立 IAM grant/readback/revoke、cleanup-authority推进与新租户准入互斥时序、J4c handler/Schedule更新、失败创建 rollback、RoleARN lineage持久化及真实 TTL删除/费用演练。因此两个 blocker和四个 readiness gate保持不变，J5g-c 仍不能称为 cleanup ready。
+J5g-c 没有调用 AWS 或 Neon，没有创建/更新/删除 IAM、CloudFormation、Lambda或 Schedule资源，没有创建付费 Cell，也没有执行 ECS `RunTask`。已部署 J4c Lambda仍只接受 `inspect_cell_cleanup_plan`并固定 `PLAN_ONLY`，Schedule仍为 `DISABLED`；默认 runtime仍为 `offline_only`。后续J5g-f已补齐RoleARN lineage的schema v2持久化；仍需受控 online CLI/root组合、两种身份的真实凭据接线、已应用迁移上的 live transaction及数据库/运行主机时钟校准、独立 IAM grant/readback/revoke、cleanup-authority推进与新租户准入互斥时序、J4c handler/Schedule更新、失败创建 rollback、schema v2线上验证及真实 TTL删除/费用演练。因此两个 blocker和四个 readiness gate保持不变，J5g-c 仍不能称为 cleanup ready。
 
 ### B5-J5g-d durable Shared Cell admission fence（默认关闭、仅 LocalValidate）
 
@@ -438,7 +438,7 @@ Repository与数据库 triggers构成双层围栏。`reserveEnvironmentCapacity`
 .\ops\aws-sandbox\scripts\s3-b5-shared-cell-admission-fence.ps1 -Mode LocalValidate
 ```
 
-该J5g-d入口只检查源码和运行mock定向测试；没有online模式，不读取 `DATABASE_URL`，不调用AWS/Neon。后续J5g-e2已独立应用 `0008`及其同批 `0005`–`0007`，但显式drain还没有接入线上批准/执行工作流；默认runtime依旧 `offline_only`，J4c Janitor仍为 `PLAN_ONLY`，Schedule仍为 `DISABLED`。持续数据库/运行主机时钟校准、受控root接线、短时IAM grant、authority推进、Janitor handler/Schedule、失败创建rollback、RoleARN lineage和真实删除/费用演练仍未完成，四个readiness gate继续为 `false`。
+该J5g-d入口只检查源码和运行mock定向测试；没有online模式，不读取 `DATABASE_URL`，不调用AWS/Neon。后续J5g-e2已独立应用 `0008`及其同批 `0005`–`0007`，J5g-f又在离线authority schema v2中闭合记录级RoleARN lineage；但显式drain和新schema都还没有接入线上批准/执行工作流。默认runtime依旧 `offline_only`，J4c Janitor仍为 `PLAN_ONLY`，Schedule仍为 `DISABLED`。持续数据库/运行主机时钟校准、受控root接线、短时IAM grant、authority推进、Janitor handler/Schedule、失败创建rollback、schema v2线上验证和真实删除/费用演练仍未完成，四个readiness gate继续为 `false`。
 
 ### B5-J5g-e1 Shared Cell PostgreSQL cutover OnlineInspect（真实只读）
 
@@ -499,6 +499,16 @@ J5g-e2使用独立执行器，绝不调用会逐文件提交的通用 `apply-pos
 ```
 
 2026-09-09首次fresh apply在DDL前因工具把 `0003`已存在、`0005`将同名替换的step-run索引误判为提前出现而失败关闭，事务回滚且 `mutationPerformed=false`；没有手工删除或修复数据库对象。修正为精确旧/新索引定义后，新manifest SHA-256为 `4bd20b41a185462c5d8951d36f57c463cc1fe13cf7ed54fdbcafc7262a0a72da`。受审执行已原子应用 `0005`–`0008`，apply回执为 `outcome=applied`、`mutationPerformed=true`、SHA-256 `9edb120a7cf4b89e197f5ab2f1bdbf1093327b4b1d8969bc7aeef6433f1dd392`；独立只读recovery回执SHA-256 `5a8ac632c925fe7950a018f8dd1d12c1d5ac49ea7d82c2d0c3eac97d32936d06`再次确认exact完整后态。所有runtime gate、Janitor和Schedule状态不变；本次没有涉及AWS调用或付费资源变更。
+
+### B5-J5g-f Shared Cell authority RoleARN lineage schema v2（默认关闭、仅离线验证）
+
+J5g-f把authority item与其canonical记录统一升级为显式v2：DynamoDB四字段item只接受`schema_version=2`，`record_json`中的`provision_verified`和`cleanup_authorized`只接受`schemaVersion=2`，并都持久化exact `cloudFormationRoleArn=arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole`。该字段属于canonical exact-key集合，进入provision/cleanup operation hash、record hash、同lineage比较和admission-drain lineage；cleanup advance必须从v2 predecessor原样继承它，其他RoleARN、缺字段、额外字段以及item/record schema漂移都会fail closed。
+
+live provision evidence也升级为schema v2，并从前后稳定CloudFormation Stack readback的`RoleARN`携带该值进入absent-only compiler；online provision/cleanup operator summary同样升级为v2并显式携带该字段。plan-only `cell-janitor.cjs`固定同一RoleARN，只接受v2 authority，并在仍为v1的`PLAN_READY_MUTATION_DISABLED` result中显式投影`cloudFormationRoleArn`；authority其他reader/writer也只接受v2，旧v1记录不会被兼容读取、自动迁移或静默改写。本轮涉及的入口边界中，LocalValidate envelope与Schedule event继续保持schema v1，其他独立协议版本也未随authority自动改变；它们与DynamoDB authority schema是不同边界，不能用来降级authority校验。
+
+本切片没有新增online CLI、DynamoDB migration或default Worker/Janitor root wiring，只执行离线源码与定向测试，不调用AWS或Neon。账号仍没有Shared Cell，authority key仍为`ABSENT`，因而线上没有v1 item被迁移或v2 item被安装；J4c Lambda仍只接受`inspect_cell_cleanup_plan`并固定`PLAN_ONLY`，Schedule仍为`DISABLED`，默认runtime仍为`offline_only`，两个blocker与四个readiness gate均不变。
+
+下一步仍须独立批准付费Cell与J5g-a IAM线上边界，完成production collector/root、数据库/运行主机时钟校准、live drain/snapshot、两条短时grant/readback/revoke、v2 predecessor install/cleanup advance、失败创建rollback、J4c handler/Schedule以及provider-side真实删除和费用演练。在安装任何v2 authority item或启用Schedule之前，必须先以独立受审部署把线上J4c consumer升级为v2并完成严格回读，顺序不可颠倒。首次authority install必须从持续`ABSENT` strong read出发，使用fresh schema v2 evidence、exact `cloudFormationRoleArn`和人工批准的candidate digest；若任何环境观察到v1 item，应停止并人工调查，不能由运行时自动升级。
 
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 

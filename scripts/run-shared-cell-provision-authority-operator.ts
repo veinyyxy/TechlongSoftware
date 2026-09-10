@@ -48,6 +48,8 @@ const expectedProfile = "techlong-sandbox-provisioner";
 const expectedMfaDeviceArn =
   "arn:aws:iam::402010193138:mfa/techlong-sandbox-dev";
 const expectedStackName = "techlong-sandbox-cell-sandbox-1";
+const expectedCellCloudFormationRoleArn =
+  "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole";
 const expectedAuthorityTableArn =
   "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority";
 const expectedAuthorityKey = "cell:cell-sandbox-1";
@@ -468,6 +470,7 @@ function assertSafeSummary(
     "candidateItemSha256",
     "cellExpiresAt",
     "cellId",
+    "cloudFormationRoleArn",
     "evidenceObservedAt",
     "generation",
     "mutationPerformed",
@@ -487,7 +490,8 @@ function assertSafeSummary(
   ];
   if (
     !exactKeys(summary, expectedKeys) ||
-    summary.schemaVersion !== 1 ||
+    summary.schemaVersion !== 2 ||
+    summary.cloudFormationRoleArn !== expectedCellCloudFormationRoleArn ||
     summary.phase !== phase ||
     summary.mutationPerformed !== (phase === "INSTALLED") ||
     !digestPattern.test(String(summary.candidateItemSha256 ?? "")) ||

@@ -20,7 +20,7 @@ const now = Date.parse("2026-09-07T20:00:00.000Z");
 
 async function predecessor(): Promise<SharedCellAuthorityItem> {
   const partial = {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     accountId: "402010193138" as const,
     region: "ca-central-1" as const,
     cellId: "cell-sandbox-1" as const,
@@ -29,6 +29,8 @@ async function predecessor(): Promise<SharedCellAuthorityItem> {
       "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/12345678-1234-1234-1234-123456789012",
     stackStatus: "CREATE_COMPLETE" as const,
     cellExpiresAt: "2026-09-07T19:00:00.000Z",
+    cloudFormationRoleArn:
+      "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole" as const,
     templateCanonicalSha256: "a".repeat(64),
     resourceInventorySha256: "b".repeat(64),
     ownerDeploymentId: "deployment_cell_owner_1",
@@ -50,7 +52,7 @@ async function predecessor(): Promise<SharedCellAuthorityItem> {
   };
   return {
     authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
-    schema_version: 1,
+    schema_version: 2,
     revision: 1,
     record_json: JSON.stringify(record),
   };
@@ -65,6 +67,8 @@ async function fixture(expiry = now + 60_000) {
         "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/12345678-1234-1234-1234-123456789012",
       stackStatus: "CREATE_COMPLETE",
       cellExpiresAt: "2026-09-07T19:00:00.000Z",
+      cloudFormationRoleArn:
+        "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole",
       templateCanonicalSha256: "a".repeat(64),
       resourceInventorySha256: "b".repeat(64),
     },

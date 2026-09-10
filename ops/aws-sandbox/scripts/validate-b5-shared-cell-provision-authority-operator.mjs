@@ -242,7 +242,13 @@ assert.doesNotMatch(rootCli, /installInitialSharedCellProvisionAuthority/);
 assert.doesNotMatch(rootCli, /@aws-sdk\/client-/);
 assert.doesNotMatch(rootCli, /PutCommand|UpdateCommand|DeleteCommand/);
 assert.match(rootCli, /summary\.mutationPerformed !== \(phase === "INSTALLED"\)/);
+assert.match(rootCli, /summary\.cloudFormationRoleArn !== expectedCellCloudFormationRoleArn/);
+assert.match(rootCli, /summary\.schemaVersion !== 2/);
 assert.match(rootCli, /summary\.candidateItemSha256 !== approvedCandidateItemSha256/);
+assert.match(
+  operation,
+  /\[string\]\$summary\.cloudFormationRoleArn -cne \$expectedCellCloudFormationRoleArn/,
+);
 assert.match(rootCli, /onlineOperationTimeoutMs = 120_000/);
 assert.match(rootCli, /setTimeout\([\s\S]*?onlineOperationTimeoutMs/);
 assert.match(rootCli, /timeout\.unref\(\)/);

@@ -6,6 +6,8 @@ const EXPECTED_ACCOUNT_ID = "402010193138";
 const EXPECTED_REGION = "ca-central-1";
 const EXPECTED_CELL_ID = "cell-sandbox-1";
 const EXPECTED_CELL_STACK_NAME = "techlong-sandbox-cell-sandbox-1";
+const EXPECTED_CELL_CLOUD_FORMATION_ROLE_ARN =
+  "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole";
 const CELL_STACK_PREFIX = "techlong-sandbox-cell-";
 const TENANT_STACK_PREFIX = "techlong-sandbox-tenant-";
 const TENANT_PREFIX_SUPPORT_STACK_NAMES = Object.freeze(new Set([
@@ -34,6 +36,7 @@ const AUTHORITY_RECORD_KEYS = Object.freeze([
   "accountId",
   "cellId",
   "cellExpiresAt",
+  "cloudFormationRoleArn",
   "cleanupEpoch",
   "cleanupMarker",
   "cleanupOperationHash",
@@ -94,6 +97,52 @@ function sha256Text(value) {
 
 function sha256Canonical(value) {
   return sha256Text(canonicalJson(value));
+}
+
+function provisionOperationIntent(source) {
+  return {
+    schemaVersion: 2,
+    intent: "provision_shared_cell",
+    accountId: source.accountId,
+    region: source.region,
+    cellId: source.cellId,
+    stackName: source.stackName,
+    stackId: source.stackId,
+    stackStatus: source.stackStatus,
+    cellExpiresAt: source.cellExpiresAt,
+    cloudFormationRoleArn: source.cloudFormationRoleArn,
+    templateCanonicalSha256: source.templateCanonicalSha256,
+    resourceInventorySha256: source.resourceInventorySha256,
+    ownerDeploymentId: source.ownerDeploymentId,
+    generation: source.generation,
+    provisionEpoch: source.provisionEpoch,
+    provisionMarker: source.provisionMarker,
+  };
+}
+
+function cleanupOperationIntent(source) {
+  return {
+    schemaVersion: 2,
+    intent: "cleanup_shared_cell",
+    accountId: source.accountId,
+    region: source.region,
+    cellId: source.cellId,
+    stackName: source.stackName,
+    stackId: source.stackId,
+    stackStatus: source.stackStatus,
+    cellExpiresAt: source.cellExpiresAt,
+    cloudFormationRoleArn: source.cloudFormationRoleArn,
+    templateCanonicalSha256: source.templateCanonicalSha256,
+    resourceInventorySha256: source.resourceInventorySha256,
+    ownerDeploymentId: source.ownerDeploymentId,
+    generation: source.generation,
+    provisionEpoch: source.provisionEpoch,
+    provisionMarker: source.provisionMarker,
+    provisionOperationHash: source.provisionOperationHash,
+    cleanupEpoch: source.cleanupEpoch,
+    cleanupMarker: source.cleanupMarker,
+    expiresAt: source.expiresAt,
+  };
 }
 
 function parseUtc(value, label) {
@@ -159,9 +208,13 @@ function decodeAuthorityItem(item) {
   if (!exactKeys(item, AUTHORITY_ITEM_KEYS)) {
     fail("CELL_CLEANUP_AUTHORITY_INVALID", "Authority item keys drifted.");
   }
+  const schemaVersion = decodeIntegerAttribute(item.schema_version, "schema_version");
+  if (schemaVersion !== 2) {
+    fail("CELL_CLEANUP_AUTHORITY_INVALID", "Authority item schema version is invalid.");
+  }
   return {
     authority_key: decodeStringAttribute(item.authority_key, "authority_key"),
-    schema_version: decodeIntegerAttribute(item.schema_version, "schema_version"),
+    schema_version: schemaVersion,
     revision: decodeIntegerAttribute(item.revision, "revision"),
     record_json: decodeStringAttribute(item.record_json, "record_json"),
   };
@@ -174,7 +227,7 @@ function validateAuthorityItem(item, nowMs) {
   if (
     !exactKeys(item, AUTHORITY_ITEM_KEYS) ||
     item.authority_key !== AUTHORITY_KEY ||
-    item.schema_version !== 1 ||
+    item.schema_version !== 2 ||
     !Number.isSafeInteger(item.revision) ||
     item.revision < 1 ||
     typeof item.record_json !== "string" ||
@@ -201,11 +254,12 @@ function validateAuthorityItem(item, nowMs) {
     [record.revision, "revision"],
   ]) assertPositiveInteger(value, label);
   if (
-    record.schemaVersion !== 1 ||
+    record.schemaVersion !== 2 ||
     record.accountId !== EXPECTED_ACCOUNT_ID ||
     record.region !== EXPECTED_REGION ||
     record.cellId !== EXPECTED_CELL_ID ||
     record.stackName !== EXPECTED_CELL_STACK_NAME ||
+    record.cloudFormationRoleArn !== EXPECTED_CELL_CLOUD_FORMATION_ROLE_ARN ||
     !STACK_ID_PATTERN.test(record.stackId) ||
     !DIGEST_PATTERN.test(record.templateCanonicalSha256) ||
     !DIGEST_PATTERN.test(record.resourceInventorySha256) ||
@@ -238,6 +292,16 @@ function validateAuthorityItem(item, nowMs) {
   if (sha256Canonical(unsigned) !== record.recordHash) {
     fail("CELL_CLEANUP_AUTHORITY_HASH_MISMATCH", "Cell cleanup authority hash drifted.");
   }
+  if (
+    sha256Canonical(provisionOperationIntent(record)) !== record.provisionOperationHash ||
+    sha256Canonical(cleanupOperationIntent(record)) !== record.cleanupOperationHash ||
+    record.provisionOperationHash === record.cleanupOperationHash
+  ) {
+    fail(
+      "CELL_CLEANUP_AUTHORITY_OPERATION_HASH_MISMATCH",
+      "Cell cleanup authority operation hash drifted.",
+    );
+  }
   return record;
 }
 
@@ -259,6 +323,7 @@ function validateCellStack(stack, nowMs) {
     typeof stack !== "object" ||
     stack.StackName !== EXPECTED_CELL_STACK_NAME ||
     !STACK_ID_PATTERN.test(stack.StackId ?? "") ||
+    stack.RoleARN !== EXPECTED_CELL_CLOUD_FORMATION_ROLE_ARN ||
     stack.ParentId ||
     stack.RootId ||
     typeof stack.StackStatus !== "string" ||
@@ -380,6 +445,7 @@ function createHandler(api, now = () => Date.now()) {
       authority.stackId !== stack.StackId ||
       authority.stackStatus !== stack.StackStatus ||
       authority.cellExpiresAt !== tagsToMap(stack.Tags).ExpiresAt ||
+      authority.cloudFormationRoleArn !== stack.RoleARN ||
       authority.templateCanonicalSha256 !== templateCanonicalSha256 ||
       authority.resourceInventorySha256 !== resourceInventorySha256
     ) {
@@ -389,6 +455,7 @@ function createHandler(api, now = () => Date.now()) {
       cellStack: stack.StackId,
       authorityRevision: authority.revision,
       authorityRecordHash: authority.recordHash,
+      cloudFormationRoleArn: authority.cloudFormationRoleArn,
       generation: authority.generation,
       provisionEpoch: authority.provisionEpoch,
       cleanupEpoch: authority.cleanupEpoch,
@@ -462,13 +529,6 @@ async function createAwsApi() {
           TableName: AUTHORITY_TABLE_NAME,
           Key: { authority_key: { S: AUTHORITY_KEY } },
           ConsistentRead: true,
-          ProjectionExpression: "#key, #schema, #revision, #record",
-          ExpressionAttributeNames: {
-            "#key": "authority_key",
-            "#schema": "schema_version",
-            "#revision": "revision",
-            "#record": "record_json",
-          },
         }),
       );
       return decodeAuthorityItem(response.Item);

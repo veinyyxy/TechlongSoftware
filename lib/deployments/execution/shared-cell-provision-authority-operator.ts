@@ -48,7 +48,7 @@ export type SharedCellProvisionAuthorityOperatorPhase =
   | "RECOVERED";
 
 export interface SharedCellProvisionAuthorityOperatorSummary {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly phase: SharedCellProvisionAuthorityOperatorPhase;
   readonly mutationPerformed: boolean;
   readonly evidenceObservedAt: number | null;
@@ -56,6 +56,7 @@ export interface SharedCellProvisionAuthorityOperatorSummary {
   readonly region: "ca-central-1";
   readonly cellId: "cell-sandbox-1";
   readonly stackName: "techlong-sandbox-cell-sandbox-1";
+  readonly cloudFormationRoleArn: "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole";
   readonly stackId: string;
   readonly stackStatus: "CREATE_COMPLETE" | "UPDATE_COMPLETE";
   readonly cellExpiresAt: string;
@@ -345,7 +346,7 @@ function summary(
 ): Readonly<SharedCellProvisionAuthorityOperatorSummary> {
   const record = candidate.record;
   return Object.freeze({
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     phase,
     mutationPerformed,
     evidenceObservedAt: candidate.evidenceObservedAt,
@@ -353,6 +354,7 @@ function summary(
     region: record.region,
     cellId: record.cellId,
     stackName: record.stackName,
+    cloudFormationRoleArn: record.cloudFormationRoleArn,
     stackId: record.stackId,
     stackStatus: record.stackStatus,
     cellExpiresAt: record.cellExpiresAt,

@@ -2,6 +2,8 @@ import { canonicalJson, sha256Hex } from "./hash.ts";
 
 export const SHARED_CELL_CLEANUP_AUTHORITY_KEY =
   "cell:cell-sandbox-1" as const;
+export const SHARED_CELL_CLOUD_FORMATION_ROLE_ARN =
+  "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole" as const;
 export const SHARED_CELL_CLEANUP_AUTHORITY_MAX_LIFETIME_MS =
   60 * 60 * 1000;
 
@@ -18,6 +20,7 @@ const stackIdPattern =
 const inputKeys = ["cell", "cleanup", "now", "provision", "revision"] as const;
 const cellKeys = [
   "cellExpiresAt",
+  "cloudFormationRoleArn",
   "resourceInventorySha256",
   "stackId",
   "stackName",
@@ -41,6 +44,7 @@ const provisionRecordKeys = [
   "accountId",
   "cellExpiresAt",
   "cellId",
+  "cloudFormationRoleArn",
   "generation",
   "ownerDeploymentId",
   "provisionEpoch",
@@ -61,6 +65,7 @@ const cleanupRecordKeys = [
   "accountId",
   "cellExpiresAt",
   "cellId",
+  "cloudFormationRoleArn",
   "cleanupEpoch",
   "cleanupMarker",
   "cleanupOperationHash",
@@ -142,6 +147,7 @@ export interface SharedCellCleanupStackEvidence {
   stackId: string;
   stackStatus: "CREATE_COMPLETE" | "UPDATE_COMPLETE";
   cellExpiresAt: string;
+  cloudFormationRoleArn: typeof SHARED_CELL_CLOUD_FORMATION_ROLE_ARN;
   templateCanonicalSha256: string;
   resourceInventorySha256: string;
 }
@@ -159,7 +165,7 @@ export interface SharedCellCleanupAuthorization {
 }
 
 export interface SharedCellProvisionAuthorityRecord {
-  schemaVersion: 1;
+  schemaVersion: 2;
   accountId: typeof expectedAccountId;
   region: typeof expectedRegion;
   cellId: typeof expectedCellId;
@@ -167,6 +173,7 @@ export interface SharedCellProvisionAuthorityRecord {
   stackId: string;
   stackStatus: "CREATE_COMPLETE" | "UPDATE_COMPLETE";
   cellExpiresAt: string;
+  cloudFormationRoleArn: typeof SHARED_CELL_CLOUD_FORMATION_ROLE_ARN;
   templateCanonicalSha256: string;
   resourceInventorySha256: string;
   ownerDeploymentId: string;
@@ -180,7 +187,7 @@ export interface SharedCellProvisionAuthorityRecord {
 }
 
 export interface SharedCellCleanupAuthorityRecord {
-  schemaVersion: 1;
+  schemaVersion: 2;
   accountId: typeof expectedAccountId;
   region: typeof expectedRegion;
   cellId: typeof expectedCellId;
@@ -188,6 +195,7 @@ export interface SharedCellCleanupAuthorityRecord {
   stackId: string;
   stackStatus: "CREATE_COMPLETE" | "UPDATE_COMPLETE";
   cellExpiresAt: string;
+  cloudFormationRoleArn: typeof SHARED_CELL_CLOUD_FORMATION_ROLE_ARN;
   templateCanonicalSha256: string;
   resourceInventorySha256: string;
   ownerDeploymentId: string;
@@ -218,6 +226,7 @@ export type SharedCellProvisionOperationSource = Pick<
   | "stackId"
   | "stackStatus"
   | "cellExpiresAt"
+  | "cloudFormationRoleArn"
   | "templateCanonicalSha256"
   | "resourceInventorySha256"
   | "ownerDeploymentId"
@@ -231,7 +240,7 @@ export function sharedCellProvisionOperationIntent(
   source: SharedCellProvisionOperationSource,
 ) {
   return {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     intent: "provision_shared_cell" as const,
     accountId: source.accountId,
     region: source.region,
@@ -240,6 +249,7 @@ export function sharedCellProvisionOperationIntent(
     stackId: source.stackId,
     stackStatus: source.stackStatus,
     cellExpiresAt: source.cellExpiresAt,
+    cloudFormationRoleArn: source.cloudFormationRoleArn,
     templateCanonicalSha256: source.templateCanonicalSha256,
     resourceInventorySha256: source.resourceInventorySha256,
     ownerDeploymentId: source.ownerDeploymentId,
@@ -251,7 +261,7 @@ export function sharedCellProvisionOperationIntent(
 
 export interface SharedCellAuthorityItem {
   authority_key: typeof SHARED_CELL_CLEANUP_AUTHORITY_KEY;
-  schema_version: 1;
+  schema_version: 2;
   revision: number;
   record_json: string;
 }
@@ -276,6 +286,7 @@ type SharedCellCleanupOperationSource = Pick<
   | "stackId"
   | "stackStatus"
   | "cellExpiresAt"
+  | "cloudFormationRoleArn"
   | "templateCanonicalSha256"
   | "resourceInventorySha256"
   | "ownerDeploymentId"
@@ -290,7 +301,7 @@ type SharedCellCleanupOperationSource = Pick<
 
 function cleanupOperationIntent(source: SharedCellCleanupOperationSource) {
   return {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     intent: "cleanup_shared_cell" as const,
     accountId: source.accountId,
     region: source.region,
@@ -299,6 +310,7 @@ function cleanupOperationIntent(source: SharedCellCleanupOperationSource) {
     stackId: source.stackId,
     stackStatus: source.stackStatus,
     cellExpiresAt: source.cellExpiresAt,
+    cloudFormationRoleArn: source.cloudFormationRoleArn,
     templateCanonicalSha256: source.templateCanonicalSha256,
     resourceInventorySha256: source.resourceInventorySha256,
     ownerDeploymentId: source.ownerDeploymentId,
@@ -379,6 +391,8 @@ function assertCompileInput(
     input.cell.stackName !== expectedStackName ||
     !stackIdPattern.test(input.cell.stackId) ||
     !["CREATE_COMPLETE", "UPDATE_COMPLETE"].includes(input.cell.stackStatus) ||
+    input.cell.cloudFormationRoleArn !==
+      SHARED_CELL_CLOUD_FORMATION_ROLE_ARN ||
     !digestPattern.test(input.cell.templateCanonicalSha256) ||
     !digestPattern.test(input.cell.resourceInventorySha256) ||
     !ownerPattern.test(input.provision.ownerDeploymentId) ||
@@ -404,7 +418,7 @@ export async function compileSharedCellCleanupAuthorityCandidateItem(
 ): Promise<Readonly<SharedCellCleanupAuthorityItem>> {
   assertCompileInput(input);
   const operationSource: SharedCellCleanupOperationSource = {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     accountId: expectedAccountId,
     region: expectedRegion,
     cellId: expectedCellId,
@@ -412,6 +426,7 @@ export async function compileSharedCellCleanupAuthorityCandidateItem(
     stackId: input.cell.stackId,
     stackStatus: input.cell.stackStatus,
     cellExpiresAt: input.cell.cellExpiresAt,
+    cloudFormationRoleArn: input.cell.cloudFormationRoleArn,
     templateCanonicalSha256: input.cell.templateCanonicalSha256,
     resourceInventorySha256: input.cell.resourceInventorySha256,
     ownerDeploymentId: input.provision.ownerDeploymentId,
@@ -459,7 +474,7 @@ export async function compileSharedCellCleanupAuthorityCandidateItem(
   });
   return Object.freeze({
     authority_key: SHARED_CELL_CLEANUP_AUTHORITY_KEY,
-    schema_version: 1 as const,
+    schema_version: 2 as const,
     revision: input.revision,
     record_json: canonicalJson(record),
   });
@@ -474,7 +489,7 @@ function parseAuthorityRecord(
   if (
     !exactKeys(item, itemKeys) ||
     item.authority_key !== SHARED_CELL_CLEANUP_AUTHORITY_KEY ||
-    item.schema_version !== 1 ||
+    item.schema_version !== 2 ||
     !Number.isSafeInteger(item.revision) ||
     item.revision < 1 ||
     typeof item.record_json !== "string" ||
@@ -519,11 +534,13 @@ function parseAuthorityRecord(
   const unsignedRecord: Record<string, unknown> = { ...record };
   delete unsignedRecord.recordHash;
   if (
-    record.schemaVersion !== 1 ||
+    record.schemaVersion !== 2 ||
     record.accountId !== expectedAccountId ||
     record.region !== expectedRegion ||
     record.cellId !== expectedCellId ||
     record.stackName !== expectedStackName ||
+    record.cloudFormationRoleArn !==
+      SHARED_CELL_CLOUD_FORMATION_ROLE_ARN ||
     !stackIdPattern.test(record.stackId) ||
     !["CREATE_COMPLETE", "UPDATE_COMPLETE"].includes(record.stackStatus) ||
     !digestPattern.test(record.templateCanonicalSha256) ||
@@ -687,6 +704,7 @@ const recordLineageKeys = [
   "accountId",
   "cellExpiresAt",
   "cellId",
+  "cloudFormationRoleArn",
   "generation",
   "ownerDeploymentId",
   "provisionEpoch",
@@ -811,6 +829,7 @@ function sameLineage(
     record.stackId === input.cell.stackId &&
     record.stackStatus === input.cell.stackStatus &&
     record.cellExpiresAt === input.cell.cellExpiresAt &&
+    record.cloudFormationRoleArn === input.cell.cloudFormationRoleArn &&
     record.templateCanonicalSha256 ===
       input.cell.templateCanonicalSha256 &&
     record.resourceInventorySha256 ===
