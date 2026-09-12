@@ -29,6 +29,8 @@ const operationScriptPath = path.join(
 const exampleTemplateSha256 = "0123456789abcdef".repeat(4);
 const exampleChangeSetName =
   `techlong-s3-b5-cell-bootstrap-${exampleTemplateSha256.slice(0, 16)}`;
+const exampleReverseChangeSetName =
+  `techlong-s3-b5-cell-bootstrap-rollback-${exampleTemplateSha256.slice(0, 16)}`;
 const exampleExpiry = "2026-08-25T23:59:59.000Z";
 const exampleTemplateUrl =
   `https://techlong-sandbox-build-source-402010193138-ca-central-1.s3.ca-central-1.amazonaws.com/b5-cell-bootstrap/templates/sha256/${exampleTemplateSha256}.json`;
@@ -70,6 +72,14 @@ const author = JSON.parse(authorSource);
 const execute = JSON.parse(executeSource);
 const rollback = JSON.parse(rollbackSource);
 const legacy = JSON.parse(legacySource);
+const reverseAuthor = JSON.parse(
+  await renderB5CellBootstrapManagementTemplate({
+    shape: "AuthorGrant",
+    approvedChangeSetName: exampleReverseChangeSetName,
+    approvedTemplateSha256: exampleTemplateSha256,
+    grantExpiresAt: exampleExpiry,
+  }),
+);
 
 assert.deepEqual(managementShapes, [
   "Locked",
@@ -77,6 +87,17 @@ assert.deepEqual(managementShapes, [
   "ExecuteGrant",
   "RollbackGrant",
 ]);
+assert.equal(
+  reverseAuthor.Metadata.SafetyBoundary.ApprovedChangeSetName,
+  exampleReverseChangeSetName,
+);
+assert.equal(
+  reverseAuthor.Resources.CellBootstrapManagerBoundary.Properties.PolicyDocument.Statement
+    .some((statement) =>
+      JSON.stringify(statement).includes(exampleReverseChangeSetName)),
+  true,
+  "the dormant reverse Change Set name must be bound exactly into the temporary author grant",
+);
 assert.deepEqual(locked, {
   ...base,
   Description:
@@ -612,6 +633,16 @@ await assert.rejects(
 );
 await assert.rejects(
   renderB5CellBootstrapManagementTemplate({
+    shape: "AuthorGrant",
+    approvedChangeSetName:
+      "techlong-s3-b5-cell-bootstrap-rollback-ffffffffffffffff",
+    approvedTemplateSha256: exampleTemplateSha256,
+    grantExpiresAt: exampleExpiry,
+  }),
+  /must match the approved raw template SHA-256/,
+);
+await assert.rejects(
+  renderB5CellBootstrapManagementTemplate({
     shape: "ExecuteGrant",
     approvedChangeSetName: exampleChangeSetName,
     approvedTemplateSha256: exampleTemplateSha256,
@@ -667,6 +698,20 @@ assert.match(
   /\[ValidateSet\('LocalValidate', 'OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet', 'Readback', 'Delete'\)\]/,
 );
 assert.match(operationScript, /InitialLocked/);
+assert.match(
+  operationScript,
+  /\[ValidateSet\('AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback'\)\]/,
+);
+assert.match(operationScript, /\[string\]\$ChildDeploymentShape = 'AuthorityV2ConsumerUpdate'/);
+assert.match(operationScript, /render-b5-cell-bootstrap-j4c-deployed\.mjs/);
+assert.match(
+  operationScript,
+  /\$ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback'[\s\S]*techlong-s3-b5-cell-bootstrap-rollback-/,
+);
+assert.match(
+  operationScript,
+  /\$selectedChildRenderer = if \(\$ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback'\)[\s\S]*\$deployedJ4cChildRenderer/,
+);
 assert.match(operationScript, /LockedPolicyRefresh/);
 assert.match(operationScript, /BootstrapAuthorGrant/);
 assert.match(operationScript, /BootstrapAuthorRevoke/);
@@ -690,15 +735,33 @@ assert.match(
   "management preflight must treat an omitted or null non-IAM child Capabilities field as empty",
 );
 assert.match(operationScript, /B5-J4c plan-only cleanup planner raw=/);
+assert.match(operationScript, /B5-J5g-g plan-only authority-v2 consumer rollback raw=/);
 assert.match(operationScript, /\$isInitialCreate = \[string\]\$changeSet\.OnStackFailure -ceq 'DELETE'/);
-assert.match(operationScript, /\$expectedStackStatus = if \(\$isInitialCreate\) \{ 'REVIEW_IN_PROGRESS' \} else \{ 'CREATE_COMPLETE' \}/);
-assert.match(operationScript, /CellJanitorFunction = 'AWS::Lambda::Function'[\s\S]*CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'/);
+assert.match(operationScript, /\$expectedStackStatus = if \(\$isInitialCreate\) \{ 'REVIEW_IN_PROGRESS' \} else \{ 'UPDATE_COMPLETE' \}/);
+assert.match(
+  operationScript,
+  /\$expectedResources = if \(\$isInitialCreate\) \{[\s\S]*CellJanitorLogGroup = 'AWS::Logs::LogGroup'[\s\S]*CellJanitorFunction = 'AWS::Lambda::Function'[\s\S]*CellSchedulerGroup = 'AWS::Scheduler::ScheduleGroup'[\s\S]*CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'[\s\S]*\} else \{\s*@\{\s*CellJanitorFunction = 'AWS::Lambda::Function'\s*\}\s*\}/,
+  "approved child CREATE must retain four resources while UPDATE permits only the Janitor Lambda",
+);
 assert.match(operationScript, /Approved child PlannerUpdate resource shape drifted/);
 assert.match(operationScript, /\[string\]\$resource\.Action -cne 'Modify'/);
 assert.match(operationScript, /\[string\]\$resource\.Replacement -cne 'False'/);
 assert.match(operationScript, /\[string\]\$resource\.Scope\[0\] -cne 'Properties'/);
+assert.match(
+  operationScript,
+  /-not \[string\]::IsNullOrEmpty\(\[string\]\$resource\.PolicyAction\)/,
+);
 assert.match(operationScript, /PlannerUpdate Lambda physical ID drifted/);
-assert.match(operationScript, /PlannerUpdate Schedule physical ID drifted/);
+assert.doesNotMatch(operationScript, /PlannerUpdate Schedule physical ID drifted/);
+assert.match(operationScript, /\$details = @\(\$resource\.Details\)/);
+assert.match(operationScript, /\$details\.Count -lt 1/);
+assert.match(operationScript, /\[string\]\$detail\.ChangeSource -cne 'DirectModification'/);
+assert.match(operationScript, /\[string\]\$detail\.Evaluation -cne 'Static'/);
+assert.match(operationScript, /\[string\]\$target\.Attribute -cne 'Properties'/);
+assert.match(operationScript, /\[string\]\$target\.Name -cne 'Code'/);
+assert.match(operationScript, /\[string\]\$target\.RequiresRecreation -cne 'Never'/);
+assert.match(operationScript, /\[string\]\$target\.AttributeChangeType -cne 'Modify'/);
+assert.match(operationScript, /\[string\]\$target\.Path -cnotmatch '\^\/Properties\/Code\(\?:\/ZipFile\)\?\$'/);
 assert.doesNotMatch(operationScript, /ecs', 'run-task'/);
 assert.match(
   operationScript,

@@ -11,7 +11,7 @@ const templatePath = path.join(
 );
 const maximumDirectTemplateBytes = 51_200;
 const changeSetNamePattern =
-  /^techlong-s3-b5-cell-bootstrap-[a-f0-9]{16}$/;
+  /^techlong-s3-b5-cell-bootstrap-(?:rollback-)?[a-f0-9]{16}$/;
 const templateSha256Pattern = /^[a-f0-9]{64}$/;
 const grantExpiryPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -75,9 +75,12 @@ function exactGrantInputs(
         "temporary author/execute grant requires the exact lowercase raw template SHA-256",
       );
     }
-    const expectedChangeSetName =
-      `techlong-s3-b5-cell-bootstrap-${approvedTemplateSha256.slice(0, 16)}`;
-    if (approvedChangeSetName !== expectedChangeSetName) {
+    const digestSuffix = approvedTemplateSha256.slice(0, 16);
+    const expectedChangeSetNames = new Set([
+      `techlong-s3-b5-cell-bootstrap-${digestSuffix}`,
+      `techlong-s3-b5-cell-bootstrap-rollback-${digestSuffix}`,
+    ]);
+    if (!expectedChangeSetNames.has(approvedChangeSetName)) {
       throw new Error(
         "digest-bound Change Set name must match the approved raw template SHA-256",
       );

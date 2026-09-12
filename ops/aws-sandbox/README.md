@@ -49,6 +49,8 @@ ops/aws-sandbox/
    ├─ render-b5-cell-bootstrap-management.mjs
    ├─ render-b5-cell-lifecycle-management.mjs
    ├─ render-b5-cell-bootstrap.mjs
+   ├─ render-b5-cell-bootstrap-j4c-deployed.mjs
+   ├─ render-b5-cell-bootstrap-j5gg-v2.mjs
    ├─ render-b5-support-rollback.mjs
    ├─ lifecycle-log-support-contract.mjs
    ├─ s3-b5-cell-bootstrap-management.ps1
@@ -127,6 +129,7 @@ npm --prefix .\ops\aws-sandbox test
 - Shared Cell 模板固定为 render-only；独立 one-shot SG 零入站，只有公网 TCP 443 与 exact DB SG TCP 5432 出站，相关输出/VPC/TTL/所有权/SG 规则由只读 preflight exact 校验。
 - B5-J4b management 模板只含 Manager、CloudFormation execution、Janitor、Scheduler 四组 boundary + role，共 8 个 IAM 资源；child 模板只含 LogGroup、只读 inventory Lambda、ScheduleGroup 与 `DISABLED` Schedule，共 4 个非 IAM 资源，不含 VPC、ALB、ECS、Aurora、NAT、VPC Endpoint 或 Route 53 Hosted Zone。
 - child 不拥有 IAM lifecycle；外置 CloudFormation execution role 只能 `PassRole` 给外置最小 Janitor/Scheduler 两个角色。child template 以 raw SHA-256 内容寻址存入私有 build-source Bucket 的 `b5-cell-bootstrap/templates/sha256/<raw>.json`，明确避开 Provisioner 可写的 `source/*`。AuthorGrant 只允许该 exact object 的 `GetObject`，并锁定 `TemplateUrl`、`RoleARN`、deterministic `ChangeSetName` 与 4 种 `ResourceTypes`；ExecuteGrant 打开前必须精确预检 child Change Set/原始模板。正常授权序列固定为 `Locked → AuthorGrant → Locked → ExecuteGrant → Locked`，每个短窗后立即撤销，child 删除只使用 `RollbackGrant → Locked`，空 inventory probe 必须精确执行两次。
+- J5g-g 的 `AuthorityV2ConsumerUpdate` 固定重建已部署 J4c-v1 前态，只接受 `UPDATE_COMPLETE` Stack 上唯一 `CellJanitorFunction` 的 `Modify / Replacement=False / Scope=Properties`；Schedule 不允许出现在 Change Set 中。休眠的 `AuthorityV2ConsumerRollback` 反向固定同一单 Lambda 形状和独立 Change Set 名称，不能复用会删除整个 child Stack 的 `BootstrapRollbackGrant`。严格回读还会下载 AWS 返回的 Lambda ZIP，以无重定向、双超时、压缩包/解压长度上界核对唯一 `index.js` 的逐字节内容、ZIP `CodeSha256` 与稳定 `RevisionId`。
 - ECR、CodeBuild、源码 Bucket、Scheduler 和角色权限边界没有漂移。
 - receipt Bucket、authority table、专用 LifecycleTaskRole、WorkerRole 与 B5-H Adapter 的固定账号、区域、Cell、`tenant-lifecycle:*` family、角色和 generation-bound Secret namespace 一致；普通 TaskRole 无 receipt/Secret identity permission。Worker ECS 的三个 `Resource: *` statement 精确限于按 region/cluster 收紧的 `ListTasks`、只在 `ecs:CreateAction=RunTask`/exact request tags 下生效的 tag-on-create，以及按 exact region 收紧的只读 `DescribeTaskDefinition`。CloudFormation execution boundary 当前只可 Pass TaskExecutionRole/普通 TaskRole，不能再 Pass LifecycleTaskRole；rollback 模板删除五个新增资源、撤销两项既有 boundary 中的 B5 能力，并保留普通 TaskRole 的 S3 通配权限移除、TaskDefinition registration scope 和 cleanup 授权修正；它不删除原有 Bootstrap、ECR、Janitor 或预算。
 
@@ -509,6 +512,12 @@ live provision evidence也升级为schema v2，并从前后稳定CloudFormation 
 本切片没有新增online CLI、DynamoDB migration或default Worker/Janitor root wiring，只执行离线源码与定向测试，不调用AWS或Neon。账号仍没有Shared Cell，authority key仍为`ABSENT`，因而线上没有v1 item被迁移或v2 item被安装；J4c Lambda仍只接受`inspect_cell_cleanup_plan`并固定`PLAN_ONLY`，Schedule仍为`DISABLED`，默认runtime仍为`offline_only`，两个blocker与四个readiness gate均不变。
 
 下一步仍须独立批准付费Cell与J5g-a IAM线上边界，完成production collector/root、数据库/运行主机时钟校准、live drain/snapshot、两条短时grant/readback/revoke、v2 predecessor install/cleanup advance、失败创建rollback、J4c handler/Schedule以及provider-side真实删除和费用演练。在安装任何v2 authority item或启用Schedule之前，必须先以独立受审部署把线上J4c consumer升级为v2并完成严格回读，顺序不可颠倒。首次authority install必须从持续`ABSENT` strong read出发，使用fresh schema v2 evidence、exact `cloudFormationRoleArn`和人工批准的candidate digest；若任何环境观察到v1 item，应停止并人工调查，不能由运行时自动升级。
+
+### B5-J5g-g J4c authority-v2 plan-only consumer rollout（门禁已完成，线上待执行）
+
+J5g-g 固定以 commit `ae71dac5d4c1e5c05912a630e2696c4645ac2836` 重建当前线上 J4c-v1 child：raw/canonical SHA-256 为 `a14e9898ed7af636dfdb7f5c509d93b317b604a591aadb4a67d0f956e7a9d986` / `74379232124d94b1d2ffb4322edaecd0bdb0534444b8961295175ecadc06c09c`。v2 目标固定为 `a768753c50de3fd3e13a1366ac5493768f794a0635c54274438c9606c1ad11e6` / `4f42f95d7e0b43b309d87acf2fb4795b136a1b40643d433e84606849d46d4673`，正向 Change Set 名称为 `techlong-s3-b5-cell-bootstrap-a768753c50de3fd3`；全模板比较证明唯一差异是 `CellJanitorFunction.Properties.Code.ZipFile`。反向休眠目标名称为 `techlong-s3-b5-cell-bootstrap-rollback-a14e9898ed7af636`，也只允许同一 Lambda Code 原地修改。
+
+正向与反向均复用 digest-addressed S3 object 和 `Locked → AuthorGrant → Locked → ExecuteGrant → Locked`，但使用各自 exact name/digest和执行确认短语。它们不修改 management IAM、Janitor/Scheduler role、Schedule、authority item、Cell 或 readiness gate。Schedule event与 plan result仍是独立 schema v1，Lambda仍固定 `PLAN_ONLY`；v2仅指 authority item/record decoder。本地 validators、两种 child/management `LocalValidate`、Janitor定向测试及完整 ops测试已通过。2026-09-12 首次 `OnlineValidate` 在 source AWS CLI login session过期处 fail closed，未进入云端状态读取，也没有创建S3 object、Change Set或IAM更新；刷新 source与Manager身份后才可继续只读预检，任何写入仍需独立确认。
 
 启用 MFA 后，应创建一个本地 `techlong-sandbox-provisioner` AWS CLI Profile：`role_arn` 固定为 `arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole`，`source_profile` 指向现有 IAM User Profile，`mfa_serial` 指向该用户的真实 MFA Device ARN，`role_session_name` 必须是 `techlong-sandbox-provisioner`。构建脚本会对 STS ARN 做精确匹配，拒绝直接使用长期 IAM User 凭据。
 

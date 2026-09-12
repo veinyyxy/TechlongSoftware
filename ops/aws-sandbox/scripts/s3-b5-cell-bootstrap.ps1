@@ -2,7 +2,7 @@
 param(
   [ValidateSet('LocalValidate', 'OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet', 'Readback', 'ProbeJanitor', 'Delete')]
   [string]$Mode = 'LocalValidate',
-  [ValidateSet('InitialCreate', 'PlannerUpdate')]
+  [ValidateSet('InitialCreate', 'PlannerUpdate', 'AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback')]
   [string]$DeploymentShape = 'InitialCreate',
   [string]$ManagerProfile = 'techlong-sandbox-cell-bootstrap-manager',
   [string]$SourceReadbackProfile = 'techlong-sandbox-user',
@@ -54,15 +54,20 @@ $approvedResourceTypes = @(
 )
 $initialCreatePhrase = 'I_ACKNOWLEDGE_B5_J4C_PLAN_ONLY_BOOTSTRAP_CREATION'
 $plannerUpdatePhrase = 'I_ACKNOWLEDGE_B5_J4C_PLAN_ONLY_BOOTSTRAP_UPDATE'
-$executePhrase = if ($DeploymentShape -eq 'PlannerUpdate') {
-  $plannerUpdatePhrase
-} else {
-  $initialCreatePhrase
+$authorityV2ConsumerUpdatePhrase = 'I_ACKNOWLEDGE_B5_J5G_G_PLAN_ONLY_AUTHORITY_V2_CONSUMER_UPDATE'
+$authorityV2ConsumerRollbackPhrase = 'I_ACKNOWLEDGE_B5_J5G_G_PLAN_ONLY_AUTHORITY_V2_CONSUMER_ROLLBACK'
+$executePhrase = switch ($DeploymentShape) {
+  'PlannerUpdate' { $plannerUpdatePhrase }
+  'AuthorityV2ConsumerUpdate' { $authorityV2ConsumerUpdatePhrase }
+  'AuthorityV2ConsumerRollback' { $authorityV2ConsumerRollbackPhrase }
+  default { $initialCreatePhrase }
 }
 $deletePhrase = 'I_ACKNOWLEDGE_B5_J4C_PLAN_ONLY_BOOTSTRAP_DELETION'
 $root = Split-Path -Parent $PSScriptRoot
 $renderer = Join-Path $root 'scripts\render-b5-cell-bootstrap.mjs'
 $legacyRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j4b-legacy.mjs'
+$deployedJ4cRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j4c-deployed.mjs'
+$authorityV2Renderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j5gg-v2.mjs'
 $managementRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-management.mjs'
 $validator = Join-Path $root 'scripts\validate-b5-cell-bootstrap.mjs'
 $templateVerifier = Join-Path $root 'scripts\verify-change-set-template.mjs'
@@ -222,6 +227,40 @@ function New-LegacyJ4bReadOnlyTemplateSnapshot {
     $digests.Raw -cne '8eeef35a7936cdd1f4613434d8b7990630b192707e92ea4b5f21637f7cdaf15f' -or
     $digests.Canonical -cne '2bfe9ec02c7939abbab48fb07a9126e7dc7684472607c2d8787623720e88f389'
   ) { throw 'Reconstructed legacy B5-J4b child snapshot failed its fixed digests.' }
+  $item.IsReadOnly = $true
+  return $digests
+}
+
+function New-DeployedJ4cReadOnlyTemplateSnapshot {
+  param([string]$DestinationPath)
+  $renderOutput = ((& node $deployedJ4cRenderer --output $DestinationPath) | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0) { throw 'Unable to reconstruct the fixed deployed B5-J4c child snapshot.' }
+  $item = Get-Item -LiteralPath $DestinationPath
+  if ($item.Length -le 0 -or $item.Length -gt 51200) {
+    throw 'Reconstructed deployed B5-J4c child snapshot size is invalid.'
+  }
+  $digests = Get-TemplateDigests -TemplatePath $DestinationPath
+  if (
+    $digests.Raw -cne 'a14e9898ed7af636dfdb7f5c509d93b317b604a591aadb4a67d0f956e7a9d986' -or
+    $digests.Canonical -cne '74379232124d94b1d2ffb4322edaecd0bdb0534444b8961295175ecadc06c09c'
+  ) { throw 'Reconstructed deployed B5-J4c child snapshot failed its fixed digests.' }
+  $item.IsReadOnly = $true
+  return $digests
+}
+
+function New-AuthorityV2ReadOnlyTemplateSnapshot {
+  param([string]$DestinationPath)
+  $renderOutput = ((& node $authorityV2Renderer --output $DestinationPath) | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0) { throw 'Unable to reconstruct the fixed J5g-g authority-v2 child snapshot.' }
+  $item = Get-Item -LiteralPath $DestinationPath
+  if ($item.Length -le 0 -or $item.Length -gt 51200) {
+    throw 'Reconstructed J5g-g authority-v2 child snapshot size is invalid.'
+  }
+  $digests = Get-TemplateDigests -TemplatePath $DestinationPath
+  if (
+    $digests.Raw -cne 'a768753c50de3fd3e13a1366ac5493768f794a0635c54274438c9606c1ad11e6' -or
+    $digests.Canonical -cne '4f42f95d7e0b43b309d87acf2fb4795b136a1b40643d433e84606849d46d4673'
+  ) { throw 'Reconstructed J5g-g authority-v2 child snapshot failed its fixed digests.' }
   $item.IsReadOnly = $true
   return $digests
 }
@@ -643,6 +682,148 @@ function Assert-PaidCellAndTenantResourcesAbsent {
   }
 }
 
+function Get-ExactLambdaConfigurationAndVerifyInlineCode {
+  param(
+    [string]$AwsCli,
+    [string]$ReviewedTemplatePath,
+    [string]$TemporaryDirectory,
+    [string]$ExpectedStackId
+  )
+  $before = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'lambda', 'get-function', '--profile', $SourceReadbackProfile,
+    '--region', $expectedRegion, '--function-name', 'techlong-sandbox-cell-janitor', '--output', 'json'
+  )
+  $configuration = $before.Configuration
+  $codeLocation = [string]$before.Code.Location
+  [Uri]$codeUri = $null
+  if (-not [Uri]::TryCreate($codeLocation, [UriKind]::Absolute, [ref]$codeUri)) {
+    throw 'Cell Janitor Lambda code location is not an absolute URI.'
+  }
+  if (
+    $codeUri.Scheme -cne 'https' -or
+    -not $codeUri.DnsSafeHost.EndsWith('.amazonaws.com', [StringComparison]::OrdinalIgnoreCase)
+  ) { throw 'Cell Janitor Lambda code location is outside the exact AWS HTTPS boundary.' }
+  if (
+    [string]$before.Code.RepositoryType -cne 'S3' -or
+    -not [string]::IsNullOrEmpty([string]$before.CodeSigningConfigArn)
+  ) { throw 'Cell Janitor Lambda code repository or signing configuration drifted.' }
+  $requiredBusinessTags = [System.Collections.Generic.Dictionary[string,string]]::new(
+    [StringComparer]::Ordinal
+  )
+  $requiredBusinessTags.Add('Environment', 'aws-sandbox')
+  $requiredBusinessTags.Add('ManagedBy', 'techlong-cell-bootstrap-manager')
+  $requiredBusinessTags.Add('Component', 'cell-janitor')
+  $allowedCloudFormationTags = [System.Collections.Generic.Dictionary[string,string]]::new(
+    [StringComparer]::Ordinal
+  )
+  $allowedCloudFormationTags.Add('aws:cloudformation:logical-id', 'CellJanitorFunction')
+  $allowedCloudFormationTags.Add('aws:cloudformation:stack-id', $ExpectedStackId)
+  $allowedCloudFormationTags.Add('aws:cloudformation:stack-name', $bootstrapStackName)
+  $observedLambdaTags = [System.Collections.Generic.Dictionary[string,string]]::new(
+    [StringComparer]::Ordinal
+  )
+  foreach ($property in @($before.Tags.PSObject.Properties)) {
+    $key = [string]$property.Name
+    if ($observedLambdaTags.ContainsKey($key)) {
+      throw "Duplicate Cell Janitor Lambda tag $key."
+    }
+    $observedLambdaTags[$key] = [string]$property.Value
+  }
+  foreach ($key in $requiredBusinessTags.Keys) {
+    if (
+      -not $observedLambdaTags.ContainsKey($key) -or
+      $observedLambdaTags[$key] -cne $requiredBusinessTags[$key]
+    ) { throw "Required Cell Janitor Lambda business tag $key drifted." }
+  }
+  foreach ($key in $observedLambdaTags.Keys) {
+    if ($requiredBusinessTags.ContainsKey($key)) { continue }
+    if (
+      -not $allowedCloudFormationTags.ContainsKey($key) -or
+      $observedLambdaTags[$key] -cne $allowedCloudFormationTags[$key]
+    ) { throw "Unexpected or drifted Cell Janitor Lambda tag $key." }
+  }
+
+  $reviewedTemplate = Get-Content -Raw -LiteralPath $ReviewedTemplatePath | ConvertFrom-Json -Depth 100
+  $expectedSource = [string]$reviewedTemplate.Resources.CellJanitorFunction.Properties.Code.ZipFile
+  if ([string]::IsNullOrEmpty($expectedSource)) {
+    throw 'Reviewed Cell Janitor inline source is missing.'
+  }
+  $expectedSourceBytes = [System.Text.UTF8Encoding]::new($false).GetBytes($expectedSource)
+  if ($expectedSourceBytes.Length -gt 51200) {
+    throw 'Reviewed Cell Janitor inline source exceeds the direct-body boundary.'
+  }
+  $zipPath = Join-Path $TemporaryDirectory "lambda-code-$([Guid]::NewGuid().ToString('N')).zip"
+  try {
+    Invoke-WebRequest -Uri $codeUri -OutFile $zipPath -MaximumRedirection 0 `
+      -ConnectionTimeoutSeconds 20 -OperationTimeoutSeconds 20
+  } catch {
+    throw 'Unable to download the exact Cell Janitor Lambda code artifact.'
+  }
+  $zipItem = Get-Item -LiteralPath $zipPath
+  if ($zipItem.Length -le 0 -or $zipItem.Length -gt 1048576) {
+    throw 'Downloaded Cell Janitor Lambda ZIP size is outside the reviewed boundary.'
+  }
+  if ([long]$configuration.CodeSize -ne [long]$zipItem.Length) {
+    throw 'Downloaded Cell Janitor Lambda ZIP size drifted from AWS configuration.'
+  }
+  $zipBytes = [System.IO.File]::ReadAllBytes($zipPath)
+  $observedCodeSha256 = [Convert]::ToBase64String(
+    [System.Security.Cryptography.SHA256]::HashData($zipBytes)
+  )
+  if ($observedCodeSha256 -cne [string]$configuration.CodeSha256) {
+    throw 'Downloaded Cell Janitor Lambda ZIP SHA-256 drifted from AWS configuration.'
+  }
+
+  $archive = $null
+  try {
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+    $entries = @($archive.Entries)
+    if ($entries.Count -ne 1 -or [string]$entries[0].FullName -cne 'index.js') {
+      throw 'Cell Janitor Lambda ZIP must contain exactly the reviewed index.js entry.'
+    }
+    if (
+      [long]$entries[0].Length -ne [long]$expectedSourceBytes.Length -or
+      [long]$entries[0].Length -gt 51200
+    ) { throw 'Cell Janitor Lambda index.js uncompressed length drifted.' }
+    $stream = $entries[0].Open()
+    try {
+      $observedSourceBytes = [byte[]]::new($expectedSourceBytes.Length)
+      $offset = 0
+      while ($offset -lt $observedSourceBytes.Length) {
+        $read = $stream.Read(
+          $observedSourceBytes,
+          $offset,
+          $observedSourceBytes.Length - $offset
+        )
+        if ($read -eq 0) { break }
+        $offset += $read
+      }
+      if ($offset -ne $observedSourceBytes.Length -or $stream.ReadByte() -ne -1) {
+        throw 'Cell Janitor Lambda index.js exceeded or did not fill its exact byte boundary.'
+      }
+    } finally {
+      $stream.Dispose()
+    }
+    if (
+      $observedSourceBytes.Length -ne $expectedSourceBytes.Length -or
+      [Convert]::ToBase64String($observedSourceBytes) -cne [Convert]::ToBase64String($expectedSourceBytes)
+    ) { throw 'Deployed Cell Janitor index.js bytes are not the exact reviewed inline source.' }
+  } finally {
+    if ($null -ne $archive) { $archive.Dispose() }
+  }
+
+  $after = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'lambda', 'get-function-configuration', '--profile', $SourceReadbackProfile,
+    '--region', $expectedRegion, '--function-name', 'techlong-sandbox-cell-janitor', '--output', 'json'
+  )
+  if (
+    [string]$configuration.RevisionId -cne [string]$after.RevisionId -or
+    [string]$configuration.CodeSha256 -cne [string]$after.CodeSha256
+  ) { throw 'Cell Janitor Lambda changed during exact code readback.' }
+  Write-Host "Exact deployed Lambda ZIP and index.js bytes passed: $observedCodeSha256"
+  return $after
+}
+
 function Assert-ExactLegacyJ4bChildStack {
   param(
     [string]$AwsCli,
@@ -738,10 +919,9 @@ function Assert-ExactLegacyJ4bChildStack {
   }
   Assert-SnapshotUnchanged -TemplatePath $LegacyTemplatePath -ExpectedDigests $LegacyDigests
 
-  $lambda = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
-    'lambda', 'get-function-configuration', '--profile', $SourceReadbackProfile,
-    '--region', $expectedRegion, '--function-name', 'techlong-sandbox-cell-janitor', '--output', 'json'
-  )
+  $lambda = Get-ExactLambdaConfigurationAndVerifyInlineCode -AwsCli $AwsCli `
+    -ReviewedTemplatePath $LegacyTemplatePath -TemporaryDirectory $TemporaryDirectory `
+    -ExpectedStackId ([string]$stack.StackId)
   $legacyEnvironment = @{
     EXPECTED_ACCOUNT_ID = $expectedAccountId
     EXPECTED_REGION = $expectedRegion
@@ -767,6 +947,50 @@ function Assert-ExactLegacyJ4bChildStack {
     [string]$schedule.Target.Arn -cne 'arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor' -or
     [string]$schedule.Target.RoleArn -cne $schedulerRoleArn
   ) { throw 'Legacy B5-J4b disabled Schedule drifted.' }
+  return $stack
+}
+
+function Assert-ExactDeployedJ4cChildStack {
+  param(
+    [string]$AwsCli,
+    [string]$DeployedTemplatePath,
+    [hashtable]$DeployedDigests,
+    [string]$TemporaryDirectory,
+    [object]$ManagementTemplate
+  )
+  $stack = Get-StackOrNull -AwsCli $AwsCli -Profile $SourceReadbackProfile -StackName $bootstrapStackName
+  if (
+    $null -eq $stack -or
+    [string]$stack.StackStatus -cne 'UPDATE_COMPLETE'
+  ) {
+    throw 'The exact deployed B5-J4c child Stack is unavailable for AuthorityV2ConsumerUpdate.'
+  }
+  Assert-ExactStackAndResources -AwsCli $AwsCli -ExpectedStackId ([string]$stack.StackId) `
+    -ReviewedTemplatePath $DeployedTemplatePath -Digests $DeployedDigests `
+    -TemporaryDirectory $TemporaryDirectory -ManagementTemplate $ManagementTemplate | Out-Null
+  Assert-SnapshotUnchanged -TemplatePath $DeployedTemplatePath -ExpectedDigests $DeployedDigests
+  return $stack
+}
+
+function Assert-ExactAuthorityV2ConsumerChildStack {
+  param(
+    [string]$AwsCli,
+    [string]$AuthorityV2TemplatePath,
+    [hashtable]$AuthorityV2Digests,
+    [string]$TemporaryDirectory,
+    [object]$ManagementTemplate
+  )
+  $stack = Get-StackOrNull -AwsCli $AwsCli -Profile $SourceReadbackProfile -StackName $bootstrapStackName
+  if (
+    $null -eq $stack -or
+    [string]$stack.StackStatus -cne 'UPDATE_COMPLETE'
+  ) {
+    throw 'The exact authority-v2 consumer child Stack is unavailable for AuthorityV2ConsumerRollback.'
+  }
+  Assert-ExactStackAndResources -AwsCli $AwsCli -ExpectedStackId ([string]$stack.StackId) `
+    -ReviewedTemplatePath $AuthorityV2TemplatePath -Digests $AuthorityV2Digests `
+    -TemporaryDirectory $TemporaryDirectory -ManagementTemplate $ManagementTemplate | Out-Null
+  Assert-SnapshotUnchanged -TemplatePath $AuthorityV2TemplatePath -ExpectedDigests $AuthorityV2Digests
   return $stack
 }
 
@@ -819,7 +1043,7 @@ function Assert-ReviewedChangeSet {
   if ($changeSet.ImportExistingResources -eq $true) { $metadataFailures.Add('import') }
   if (
     ($DeploymentShape -eq 'InitialCreate' -and [string]$changeSet.OnStackFailure -cne 'DELETE') -or
-    ($DeploymentShape -eq 'PlannerUpdate' -and -not [string]::IsNullOrEmpty([string]$changeSet.OnStackFailure))
+    ($DeploymentShape -ne 'InitialCreate' -and -not [string]::IsNullOrEmpty([string]$changeSet.OnStackFailure))
   ) { $metadataFailures.Add('on_stack_failure') }
   $rollbackTriggerProperty = $changeSet.RollbackConfiguration.PSObject.Properties['RollbackTriggers']
   if ($null -ne $rollbackTriggerProperty -and @($rollbackTriggerProperty.Value).Count -ne 0) {
@@ -835,10 +1059,12 @@ function Assert-ReviewedChangeSet {
     '--region', $expectedRegion, '--stack-name', ([string]$changeSet.StackId), '--output', 'json'
   )
   $stacks = @($stackResponse.Stacks)
-  $expectedStackStatus = if ($DeploymentShape -eq 'InitialCreate') {
-    'REVIEW_IN_PROGRESS'
-  } else {
-    'CREATE_COMPLETE'
+  $expectedStackStatus = switch ($DeploymentShape) {
+    'InitialCreate' { 'REVIEW_IN_PROGRESS' }
+    'PlannerUpdate' { 'CREATE_COMPLETE' }
+    'AuthorityV2ConsumerUpdate' { 'UPDATE_COMPLETE' }
+    'AuthorityV2ConsumerRollback' { 'UPDATE_COMPLETE' }
+    default { throw "Unhandled deployment shape $DeploymentShape." }
   }
   if (
     $stacks.Count -ne 1 -or
@@ -869,18 +1095,28 @@ function Assert-ReviewedChangeSet {
   if ($null -ne $changeSet.Capabilities -and @($changeSet.Capabilities).Count -ne 0) {
     throw 'The non-IAM child Change Set must declare no capability.'
   }
-  $expected = if ($DeploymentShape -eq 'InitialCreate') {
-    @{
-      CellJanitorLogGroup = 'AWS::Logs::LogGroup'
-      CellJanitorFunction = 'AWS::Lambda::Function'
-      CellSchedulerGroup = 'AWS::Scheduler::ScheduleGroup'
-      CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'
+  $expected = switch ($DeploymentShape) {
+    'InitialCreate' {
+      @{
+        CellJanitorLogGroup = 'AWS::Logs::LogGroup'
+        CellJanitorFunction = 'AWS::Lambda::Function'
+        CellSchedulerGroup = 'AWS::Scheduler::ScheduleGroup'
+        CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'
+      }
     }
-  } else {
-    @{
-      CellJanitorFunction = 'AWS::Lambda::Function'
-      CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'
+    'PlannerUpdate' {
+      @{
+        CellJanitorFunction = 'AWS::Lambda::Function'
+        CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'
+      }
     }
+    'AuthorityV2ConsumerUpdate' {
+      @{ CellJanitorFunction = 'AWS::Lambda::Function' }
+    }
+    'AuthorityV2ConsumerRollback' {
+      @{ CellJanitorFunction = 'AWS::Lambda::Function' }
+    }
+    default { throw "Unhandled deployment shape $DeploymentShape." }
   }
   $observed = @{}
   foreach ($change in @($changeSet.Changes)) {
@@ -903,15 +1139,34 @@ function Assert-ReviewedChangeSet {
         @($resource.Scope).Count -ne 1 -or
         [string]$resource.Scope[0] -cne 'Properties' -or
         -not [string]::IsNullOrEmpty([string]$resource.PolicyAction)
-      ) { throw "PlannerUpdate resource shape drifted for $logicalId." }
+      ) { throw "$DeploymentShape resource shape drifted for $logicalId." }
       if (
         $logicalId -eq 'CellJanitorFunction' -and
         [string]$resource.PhysicalResourceId -cne 'techlong-sandbox-cell-janitor'
-      ) { throw 'PlannerUpdate Lambda physical resource drifted.' }
+      ) { throw "$DeploymentShape Lambda physical resource drifted." }
       if (
         $logicalId -eq 'CellGlobalJanitorSchedule' -and
         [string]$resource.PhysicalResourceId -cnotmatch '^(?:arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/)?techlong-sandbox-cell-global-janitor$'
       ) { throw 'PlannerUpdate Schedule physical resource drifted.' }
+      if ($DeploymentShape -in @('AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback')) {
+        $details = @($resource.Details)
+        if ($details.Count -lt 1) {
+          throw "$DeploymentShape must expose at least one exact Lambda Code property detail."
+        }
+        foreach ($detail in $details) {
+          $target = $detail.Target
+          if (
+            [string]$detail.ChangeSource -cne 'DirectModification' -or
+            [string]$detail.Evaluation -cne 'Static' -or
+            -not [string]::IsNullOrEmpty([string]$detail.CausingEntity) -or
+            [string]$target.Attribute -cne 'Properties' -or
+            [string]$target.Name -cne 'Code' -or
+            [string]$target.RequiresRecreation -cne 'Never' -or
+            [string]$target.AttributeChangeType -cne 'Modify' -or
+            [string]$target.Path -cnotmatch '^/Properties/Code(?:/ZipFile)?$'
+          ) { throw "$DeploymentShape contains a non-Code Lambda property detail." }
+        }
+      }
     }
     $observed[$logicalId] = $true
   }
@@ -1359,23 +1614,32 @@ function Assert-ExactStackAndResources {
       '--role-name', $forbiddenRole, '--output', 'json'
     ) -MissingPattern 'NoSuchEntity' -Label "forbidden IAM role $forbiddenRole"
   }
-  $lambda = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
-    'lambda', 'get-function-configuration', '--profile', $SourceReadbackProfile,
-    '--region', $expectedRegion, '--function-name', 'techlong-sandbox-cell-janitor', '--output', 'json'
-  )
+  $lambda = Get-ExactLambdaConfigurationAndVerifyInlineCode -AwsCli $AwsCli `
+    -ReviewedTemplatePath $ReviewedTemplatePath -TemporaryDirectory $TemporaryDirectory `
+    -ExpectedStackId $ExpectedStackId
   if (
     [string]$lambda.FunctionName -cne 'techlong-sandbox-cell-janitor' -or
     [string]$lambda.FunctionArn -cne 'arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor' -or
     [string]$lambda.Runtime -cne 'nodejs22.x' -or
     [string]$lambda.Handler -cne 'index.handler' -or
+    [string]$lambda.Description -cne 'Locked B5-J4c ownership-fenced cleanup planner for the exact Sandbox Shared Cell; no mutation commands are deployed.' -or
+    [string]$lambda.PackageType -cne 'Zip' -or
+    [string]$lambda.Version -cne '$LATEST' -or
     [string]$lambda.Role -cne 'arn:aws:iam::402010193138:role/TechlongSandboxCellJanitorExecutionRole' -or
     [int]$lambda.MemorySize -ne 128 -or [int]$lambda.Timeout -ne 60 -or
     [string]$lambda.State -cne 'Active' -or [string]$lambda.LastUpdateStatus -cne 'Successful' -or
     @($lambda.Architectures).Count -ne 1 -or [string]$lambda.Architectures[0] -cne 'arm64' -or
     ($null -ne $lambda.Layers -and @($lambda.Layers).Count -ne 0) -or
     ($null -ne $lambda.FileSystemConfigs -and @($lambda.FileSystemConfigs).Count -ne 0) -or
+    -not [string]::IsNullOrEmpty([string]$lambda.DeadLetterConfig.TargetArn) -or
     -not [string]::IsNullOrEmpty([string]$lambda.KMSKeyArn) -or
-    -not [string]::IsNullOrEmpty([string]$lambda.VpcConfig.VpcId)
+    -not [string]::IsNullOrEmpty([string]$lambda.VpcConfig.VpcId) -or
+    [string]$lambda.TracingConfig.Mode -cne 'PassThrough' -or
+    [int]$lambda.EphemeralStorage.Size -ne 512 -or
+    [string]$lambda.LoggingConfig.LogFormat -cne 'Text' -or
+    [string]$lambda.LoggingConfig.LogGroup -cne '/aws/lambda/techlong-sandbox-cell-janitor' -or
+    [string]$lambda.RevisionId -cnotmatch '^[0-9a-f-]{36}$' -or
+    [string]$lambda.CodeSha256 -cnotmatch '^[A-Za-z0-9+/]{43}=$'
   ) { throw 'Cell Janitor Lambda configuration drifted.' }
   $expectedEnvironment = @{
     EXPECTED_ACCOUNT_ID = '402010193138'
@@ -1475,6 +1739,7 @@ function Assert-ExactStackAndResources {
     authorityReadOnly = $true
     mutationPerformed = $false
     janitorMutationEnabled = $false
+    janitorCodeSha256 = [string]$lambda.CodeSha256
     janitorScheduleState = 'DISABLED'
     janitorReservedConcurrencyConfigured = $false
     cellStack = 'MISSING'
@@ -1559,19 +1824,41 @@ if ($Mode -eq 'LocalValidate') {
     [System.IO.Path]::GetTempPath(),
     "techlong-b5j4b-legacy-$([Guid]::NewGuid().ToString('N')).json"
   )
+  $localDeployedJ4cSnapshotPath = [System.IO.Path]::Combine(
+    [System.IO.Path]::GetTempPath(),
+    "techlong-b5j4c-deployed-$([Guid]::NewGuid().ToString('N')).json"
+  )
+  $localAuthorityV2SnapshotPath = [System.IO.Path]::Combine(
+    [System.IO.Path]::GetTempPath(),
+    "techlong-b5j5gg-authority-v2-$([Guid]::NewGuid().ToString('N')).json"
+  )
   try {
     $localDigests = New-ReadOnlyTemplateSnapshot -DestinationPath $localSnapshotPath
     $localLegacyDigests = New-LegacyJ4bReadOnlyTemplateSnapshot -DestinationPath $localLegacySnapshotPath
+    $localDeployedJ4cDigests = New-DeployedJ4cReadOnlyTemplateSnapshot `
+      -DestinationPath $localDeployedJ4cSnapshotPath
+    $localAuthorityV2Digests = New-AuthorityV2ReadOnlyTemplateSnapshot `
+      -DestinationPath $localAuthorityV2SnapshotPath
     & node $validator --template $localSnapshotPath
     if ($LASTEXITCODE -ne 0) { throw 'Rendered local B5-J4c snapshot validation failed.' }
     Write-Host "Template SHA-256: $($localDigests.Raw)"
     Write-Host "Template canonical SHA-256: $($localDigests.Canonical)"
     Write-Host "Fixed legacy J4b raw SHA-256: $($localLegacyDigests.Raw)"
     Write-Host "Fixed legacy J4b canonical SHA-256: $($localLegacyDigests.Canonical)"
+    Write-Host "Fixed deployed J4c raw SHA-256: $($localDeployedJ4cDigests.Raw)"
+    Write-Host "Fixed deployed J4c canonical SHA-256: $($localDeployedJ4cDigests.Canonical)"
+    Write-Host "Fixed J5g-g authority-v2 raw SHA-256: $($localAuthorityV2Digests.Raw)"
+    Write-Host "Fixed J5g-g authority-v2 canonical SHA-256: $($localAuthorityV2Digests.Canonical)"
+    Write-Host "Dormant rollback Change Set name: techlong-s3-b5-cell-bootstrap-rollback-$($localDeployedJ4cDigests.Raw.Substring(0, 16))"
     Write-Host 'Local validation complete. No AWS API was called and no resource was changed.'
     exit 0
   } finally {
-    foreach ($path in @($localSnapshotPath, $localLegacySnapshotPath)) {
+    foreach ($path in @(
+      $localSnapshotPath,
+      $localLegacySnapshotPath,
+      $localDeployedJ4cSnapshotPath,
+      $localAuthorityV2SnapshotPath
+    )) {
       if (Test-Path -LiteralPath $path) {
         (Get-Item -LiteralPath $path).IsReadOnly = $false
         Remove-Item -LiteralPath $path -Force
@@ -1598,15 +1885,37 @@ $temporaryDirectory = Join-Path ([System.IO.Path]::GetTempPath()) `
 [System.IO.Directory]::CreateDirectory($temporaryDirectory) | Out-Null
 $templateSnapshotPath = Join-Path $temporaryDirectory 'reviewed-template.json'
 $legacyTemplateSnapshotPath = Join-Path $temporaryDirectory 'legacy-j4b-template.json'
+$deployedJ4cTemplateSnapshotPath = Join-Path $temporaryDirectory 'deployed-j4c-template.json'
+$authorityV2TemplateSnapshotPath = Join-Path $temporaryDirectory 'authority-v2-template.json'
 try {
-  $digests = New-ReadOnlyTemplateSnapshot -DestinationPath $templateSnapshotPath
-  & node $validator --template $templateSnapshotPath
-  if ($LASTEXITCODE -ne 0) { throw 'Rendered B5-J4c snapshot validation failed.' }
+  $digests = if ($DeploymentShape -eq 'AuthorityV2ConsumerRollback') {
+    New-DeployedJ4cReadOnlyTemplateSnapshot -DestinationPath $templateSnapshotPath
+  } else {
+    New-ReadOnlyTemplateSnapshot -DestinationPath $templateSnapshotPath
+  }
+  if ($DeploymentShape -ne 'AuthorityV2ConsumerRollback') {
+    & node $validator --template $templateSnapshotPath
+    if ($LASTEXITCODE -ne 0) { throw 'Rendered B5-J4c snapshot validation failed.' }
+  }
   $legacyDigests = if ($DeploymentShape -eq 'PlannerUpdate') {
     New-LegacyJ4bReadOnlyTemplateSnapshot -DestinationPath $legacyTemplateSnapshotPath
   } else { $null }
-  $changeSetName = "techlong-s3-b5-cell-bootstrap-$($digests.Raw.Substring(0, 16))"
-  $description = "B5-J4c plan-only cleanup planner raw=$($digests.Raw) canonical=$($digests.Canonical)"
+  $deployedJ4cDigests = if ($DeploymentShape -eq 'AuthorityV2ConsumerUpdate') {
+    New-DeployedJ4cReadOnlyTemplateSnapshot -DestinationPath $deployedJ4cTemplateSnapshotPath
+  } else { $null }
+  $authorityV2Digests = if ($DeploymentShape -eq 'AuthorityV2ConsumerRollback') {
+    New-AuthorityV2ReadOnlyTemplateSnapshot -DestinationPath $authorityV2TemplateSnapshotPath
+  } else { $null }
+  $changeSetName = if ($DeploymentShape -eq 'AuthorityV2ConsumerRollback') {
+    "techlong-s3-b5-cell-bootstrap-rollback-$($digests.Raw.Substring(0, 16))"
+  } else {
+    "techlong-s3-b5-cell-bootstrap-$($digests.Raw.Substring(0, 16))"
+  }
+  $description = if ($DeploymentShape -eq 'AuthorityV2ConsumerRollback') {
+    "B5-J5g-g plan-only authority-v2 consumer rollback raw=$($digests.Raw) canonical=$($digests.Canonical)"
+  } else {
+    "B5-J4c plan-only cleanup planner raw=$($digests.Raw) canonical=$($digests.Canonical)"
+  }
   $templateObject = Get-TemplateObjectContract -Digests $digests
   Write-Host "Template SHA-256: $($digests.Raw)"
   Write-Host "Template canonical SHA-256: $($digests.Canonical)"
@@ -1645,13 +1954,27 @@ try {
     'cloudformation', 'validate-template', '--profile', $ManagerProfile,
     '--region', $expectedRegion, '--template-body', "file://$templateSnapshotPath"
   )
-  $legacyStack = if (
-    $DeploymentShape -eq 'PlannerUpdate' -and
-    $Mode -in @('OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet')
-  ) {
-    Assert-ExactLegacyJ4bChildStack -AwsCli $awsCli `
-      -LegacyTemplatePath $legacyTemplateSnapshotPath -LegacyDigests $legacyDigests `
-      -TemporaryDirectory $temporaryDirectory
+  $predecessorStack = if ($Mode -in @('OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet')) {
+    switch ($DeploymentShape) {
+      'PlannerUpdate' {
+        Assert-ExactLegacyJ4bChildStack -AwsCli $awsCli `
+          -LegacyTemplatePath $legacyTemplateSnapshotPath -LegacyDigests $legacyDigests `
+          -TemporaryDirectory $temporaryDirectory
+      }
+      'AuthorityV2ConsumerUpdate' {
+        Assert-ExactDeployedJ4cChildStack -AwsCli $awsCli `
+          -DeployedTemplatePath $deployedJ4cTemplateSnapshotPath `
+          -DeployedDigests $deployedJ4cDigests -TemporaryDirectory $temporaryDirectory `
+          -ManagementTemplate $managementTemplate
+      }
+      'AuthorityV2ConsumerRollback' {
+        Assert-ExactAuthorityV2ConsumerChildStack -AwsCli $awsCli `
+          -AuthorityV2TemplatePath $authorityV2TemplateSnapshotPath `
+          -AuthorityV2Digests $authorityV2Digests -TemporaryDirectory $temporaryDirectory `
+          -ManagementTemplate $managementTemplate
+      }
+      default { $null }
+    }
   } else { $null }
   if ($Mode -eq 'OnlineValidate') {
     if ($DeploymentShape -eq 'InitialCreate') {
@@ -1659,8 +1982,8 @@ try {
         throw "Stack $bootstrapStackName already exists; use PlannerUpdate or Readback."
       }
       Assert-BootstrapNamedResourcesAbsent -AwsCli $awsCli
-    } elseif ($null -eq $legacyStack) {
-      throw 'PlannerUpdate requires the exact fixed legacy B5-J4b child Stack.'
+    } elseif ($null -eq $predecessorStack) {
+      throw "$DeploymentShape requires its exact fixed predecessor child Stack."
     }
     Write-Host "Online validation for $DeploymentShape passed under locked management. No AWS resource was changed."
     exit 0
@@ -1676,8 +1999,8 @@ try {
         throw 'Initial B5-J4c Bootstrap is CREATE-only; the Stack already exists.'
       }
       Assert-BootstrapNamedResourcesAbsent -AwsCli $awsCli
-    } elseif ($null -eq $legacyStack) {
-      throw 'PlannerUpdate requires the exact fixed legacy B5-J4b child Stack.'
+    } elseif ($null -eq $predecessorStack) {
+      throw "$DeploymentShape requires its exact fixed predecessor child Stack."
     }
     Assert-SnapshotUnchanged -TemplatePath $templateSnapshotPath -ExpectedDigests $digests
     $observedTemplateObject = Assert-ExactTemplateObject -AwsCli $awsCli `
@@ -1686,7 +2009,7 @@ try {
     if ($observedTemplateObject.Url -cne $templateObject.Url) {
       throw 'Digest-addressed child template URL drifted.'
     }
-    $changeSetType = if ($DeploymentShape -eq 'PlannerUpdate') { 'UPDATE' } else { 'CREATE' }
+    $changeSetType = if ($DeploymentShape -eq 'InitialCreate') { 'CREATE' } else { 'UPDATE' }
     $createChangeSetArguments = @(
       'cloudformation', 'create-change-set', '--profile', $ManagerProfile,
       '--region', $expectedRegion, '--stack-name', $bootstrapStackName,
@@ -1716,9 +2039,9 @@ try {
       -ExpectedDescription $description -ReviewedTemplatePath $templateSnapshotPath `
       -Digests $digests -TemporaryDirectory $temporaryDirectory
     if (
-      $DeploymentShape -eq 'PlannerUpdate' -and
-      [string]$reviewedChangeSet.StackId -cne [string]$legacyStack.StackId
-    ) { throw 'Created PlannerUpdate Change Set is not bound to the verified legacy child StackId.' }
+      $DeploymentShape -ne 'InitialCreate' -and
+      [string]$reviewedChangeSet.StackId -cne [string]$predecessorStack.StackId
+    ) { throw "Created $DeploymentShape Change Set is not bound to the verified predecessor child StackId." }
     Write-Host "Created and verified Change Set $changeSetName; it was NOT executed."
     Write-Host 'Immediately revoke BootstrapAuthorGrant, inspect again while Locked, then grant only Execute for this exact Change Set.'
     exit 0
@@ -1738,9 +2061,9 @@ try {
       -ExpectedDescription $description -ReviewedTemplatePath $templateSnapshotPath `
       -Digests $digests -TemporaryDirectory $temporaryDirectory
     if (
-      $DeploymentShape -eq 'PlannerUpdate' -and
-      [string]$changeSet.StackId -cne [string]$legacyStack.StackId
-    ) { throw 'PlannerUpdate Change Set StackId is not the exact verified legacy child StackId.' }
+      $DeploymentShape -ne 'InitialCreate' -and
+      [string]$changeSet.StackId -cne [string]$predecessorStack.StackId
+    ) { throw "$DeploymentShape Change Set StackId is not the exact verified predecessor child StackId." }
     if ($Mode -eq 'InspectChangeSet') {
       Write-Host "Change Set $changeSetName is exact, available, and NOT executed."
       exit 0
@@ -1753,11 +2076,9 @@ try {
       '--change-set-name', $changeSetName,
       '--client-request-token', "b5j4c-$($DeploymentShape.ToLowerInvariant())-execute-$($digests.Raw.Substring(0, 32))"
     )
-    $waiter = if ($DeploymentShape -eq 'PlannerUpdate') {
-      'stack-update-complete'
-    } else {
+    $waiter = if ($DeploymentShape -eq 'InitialCreate') {
       'stack-create-complete'
-    }
+    } else { 'stack-update-complete' }
     Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
       'cloudformation', 'wait', $waiter, '--profile', $SourceReadbackProfile,
       '--region', $expectedRegion, '--stack-name', ([string]$changeSet.StackId)
@@ -1765,7 +2086,7 @@ try {
     Assert-ExactStackAndResources -AwsCli $awsCli -ExpectedStackId ([string]$changeSet.StackId) `
       -ReviewedTemplatePath $templateSnapshotPath -Digests $digests `
       -TemporaryDirectory $temporaryDirectory -ManagementTemplate $managementTemplate | Out-Null
-    $verb = if ($DeploymentShape -eq 'PlannerUpdate') { 'Updated' } else { 'Created' }
+    $verb = if ($DeploymentShape -eq 'InitialCreate') { 'Created' } else { 'Updated' }
     Write-Host "$verb exact B5-J4c plan-only Bootstrap Stack: $($changeSet.StackId)"
     Write-Host 'Immediately revoke BootstrapExecuteGrant. No Cell, VPC, ALB, ECS, Aurora, tenant Stack, or RunTask was created.'
     exit 0
@@ -1804,7 +2125,12 @@ try {
   Write-Host "Deleted exact plan-only B5-J4c Bootstrap Stack: $ConfirmStackId"
   Write-Host 'Immediately revoke BootstrapRollbackGrant.'
 } finally {
-  foreach ($path in @($templateSnapshotPath, $legacyTemplateSnapshotPath)) {
+  foreach ($path in @(
+    $templateSnapshotPath,
+    $legacyTemplateSnapshotPath,
+    $deployedJ4cTemplateSnapshotPath,
+    $authorityV2TemplateSnapshotPath
+  )) {
     if (Test-Path -LiteralPath $path) {
       (Get-Item -LiteralPath $path).IsReadOnly = $false
     }

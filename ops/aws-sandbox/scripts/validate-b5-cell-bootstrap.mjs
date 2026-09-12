@@ -10,6 +10,16 @@ import {
   legacyJ4bChildRawSha256,
   renderLegacyJ4bChildTemplate,
 } from "./render-b5-cell-bootstrap-j4b-legacy.mjs";
+import {
+  deployedJ4cChildCanonicalSha256,
+  deployedJ4cChildRawSha256,
+  renderDeployedJ4cChildTemplate,
+} from "./render-b5-cell-bootstrap-j4c-deployed.mjs";
+import {
+  j5ggAuthorityV2ChildCanonicalSha256,
+  j5ggAuthorityV2ChildRawSha256,
+  renderJ5ggAuthorityV2ChildTemplate,
+} from "./render-b5-cell-bootstrap-j5gg-v2.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDirectory, "..");
@@ -31,7 +41,15 @@ function argument(name) {
 }
 
 const snapshotPath = argument("--template");
-const [templateSource, operationScript, janitorSource, renderedSource, legacyRenderedSource] =
+const [
+  templateSource,
+  operationScript,
+  janitorSource,
+  renderedSource,
+  legacyRenderedSource,
+  deployedJ4cRenderedSource,
+  pinnedAuthorityV2RenderedSource,
+] =
   await Promise.all([
     readFile(templatePath, "utf8"),
     readFile(operationScriptPath, "utf8"),
@@ -40,12 +58,41 @@ const [templateSource, operationScript, janitorSource, renderedSource, legacyRen
       ? readFile(path.resolve(snapshotPath), "utf8")
       : renderB5CellBootstrapTemplate(),
     renderLegacyJ4bChildTemplate(),
+    renderDeployedJ4cChildTemplate(),
+    renderJ5ggAuthorityV2ChildTemplate(),
   ]);
 const sourceTemplate = JSON.parse(templateSource);
 const template = JSON.parse(renderedSource);
 const resources = template.Resources ?? {};
 const boundary = template.Metadata?.SafetyBoundary ?? {};
 const legacyTemplate = JSON.parse(legacyRenderedSource);
+const deployedJ4cTemplate = JSON.parse(deployedJ4cRenderedSource);
+
+function canonicalJson(value) {
+  if (value === null || ["boolean", "number", "string"].includes(typeof value)) {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+}
+
+assert.equal(
+  createHash("sha256").update(renderedSource, "utf8").digest("hex"),
+  j5ggAuthorityV2ChildRawSha256,
+);
+assert.equal(
+  createHash("sha256").update(canonicalJson(template), "utf8").digest("hex"),
+  j5ggAuthorityV2ChildCanonicalSha256,
+);
+assert.equal(renderedSource, pinnedAuthorityV2RenderedSource);
+assert.equal(
+  j5ggAuthorityV2ChildRawSha256,
+  "a768753c50de3fd3e13a1366ac5493768f794a0635c54274438c9606c1ad11e6",
+);
+assert.equal(
+  j5ggAuthorityV2ChildCanonicalSha256,
+  "4f42f95d7e0b43b309d87acf2fb4795b136a1b40643d433e84606849d46d4673",
+);
 
 assert.equal(
   createHash("sha256").update(legacyRenderedSource, "utf8").digest("hex"),
@@ -55,6 +102,18 @@ assert.equal(legacyJ4bChildRawSha256,
   "8eeef35a7936cdd1f4613434d8b7990630b192707e92ea4b5f21637f7cdaf15f");
 assert.equal(legacyJ4bChildCanonicalSha256,
   "2bfe9ec02c7939abbab48fb07a9126e7dc7684472607c2d8787623720e88f389");
+assert.equal(
+  createHash("sha256").update(deployedJ4cRenderedSource, "utf8").digest("hex"),
+  deployedJ4cChildRawSha256,
+);
+assert.equal(
+  deployedJ4cChildRawSha256,
+  "a14e9898ed7af636dfdb7f5c509d93b317b604a591aadb4a67d0f956e7a9d986",
+);
+assert.equal(
+  deployedJ4cChildCanonicalSha256,
+  "74379232124d94b1d2ffb4322edaecd0bdb0534444b8961295175ecadc06c09c",
+);
 
 function exactChangedPropertyNames(previous, target) {
   return [...new Set([...Object.keys(previous), ...Object.keys(target)])]
@@ -89,6 +148,58 @@ assert.deepEqual(
   legacyTemplate.Resources.CellSchedulerGroup,
   resources.CellSchedulerGroup,
 );
+
+assert.deepEqual(
+  Object.keys(deployedJ4cTemplate.Resources).sort(),
+  Object.keys(resources).sort(),
+);
+const authorityV2ConsumerChangedResources = Object.keys(resources)
+  .filter(
+    (name) =>
+      JSON.stringify(deployedJ4cTemplate.Resources[name]) !==
+      JSON.stringify(resources[name]),
+  )
+  .sort();
+assert.deepEqual(authorityV2ConsumerChangedResources, ["CellJanitorFunction"]);
+assert.deepEqual(
+  exactChangedPropertyNames(
+    deployedJ4cTemplate.Resources.CellJanitorFunction.Properties,
+    resources.CellJanitorFunction.Properties,
+  ),
+  ["Code"],
+);
+assert.deepEqual(
+  Object.keys(
+    deployedJ4cTemplate.Resources.CellJanitorFunction.Properties.Code,
+  ).sort(),
+  ["ZipFile"],
+);
+assert.deepEqual(
+  Object.keys(resources.CellJanitorFunction.Properties.Code).sort(),
+  ["ZipFile"],
+);
+assert.notEqual(
+  deployedJ4cTemplate.Resources.CellJanitorFunction.Properties.Code.ZipFile,
+  resources.CellJanitorFunction.Properties.Code.ZipFile,
+);
+const deployedJ4cWithAuthorityV2ConsumerCode = structuredClone(
+  deployedJ4cTemplate,
+);
+deployedJ4cWithAuthorityV2ConsumerCode.Resources.CellJanitorFunction.Properties.Code.ZipFile =
+  resources.CellJanitorFunction.Properties.Code.ZipFile;
+assert.deepEqual(
+  template,
+  deployedJ4cWithAuthorityV2ConsumerCode,
+  "the authority-v2 consumer update may change only CellJanitorFunction.Properties.Code.ZipFile",
+);
+for (const logicalId of Object.keys(resources)) {
+  if (logicalId === "CellJanitorFunction") continue;
+  assert.deepEqual(
+    deployedJ4cTemplate.Resources[logicalId],
+    resources[logicalId],
+    `${logicalId} must remain byte-equivalent across the authority-v2 consumer update`,
+  );
+}
 
 assert.equal(sourceTemplate.Resources.CellJanitorFunction.Properties.Code.ZipFile,
   "__CELL_JANITOR_INLINE_SOURCE__");
@@ -168,6 +279,7 @@ assert.equal(logGroup.Properties.RetentionInDays, 1);
 assert.equal(logGroup.Properties.KmsKeyId, undefined);
 
 const lambda = resources.CellJanitorFunction.Properties;
+assert.equal(lambda.Code.ZipFile, janitorSource);
 assert.equal(lambda.FunctionName, "techlong-sandbox-cell-janitor");
 assert.equal(lambda.Runtime, "nodejs22.x");
 assert.deepEqual(lambda.Architectures, ["arm64"]);
@@ -248,8 +360,24 @@ assert.match(
   /\[ValidateSet\('LocalValidate', 'OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet', 'Readback', 'ProbeJanitor', 'Delete'\)\]/,
 );
 assert.match(operationScript, /\[string\]\$Mode = 'LocalValidate'/);
-assert.match(operationScript, /\[ValidateSet\('InitialCreate', 'PlannerUpdate'\)\]/);
+assert.match(
+  operationScript,
+  /\[ValidateSet\('InitialCreate', 'PlannerUpdate', 'AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback'\)\]/,
+);
 assert.match(operationScript, /\[string\]\$DeploymentShape = 'InitialCreate'/);
+assert.match(
+  operationScript,
+  /I_ACKNOWLEDGE_B5_J5G_G_PLAN_ONLY_AUTHORITY_V2_CONSUMER_UPDATE/,
+);
+assert.match(
+  operationScript,
+  /I_ACKNOWLEDGE_B5_J5G_G_PLAN_ONLY_AUTHORITY_V2_CONSUMER_ROLLBACK/,
+);
+assert.match(
+  operationScript,
+  /'AuthorityV2ConsumerUpdate' \{ \$authorityV2ConsumerUpdatePhrase \}[\s\S]*'AuthorityV2ConsumerRollback' \{ \$authorityV2ConsumerRollbackPhrase \}/,
+);
+assert.match(operationScript, /\$ConfirmExecutionPhrase -cne \$executePhrase/);
 assert.match(operationScript, /TechlongSandboxCellBootstrapManagerRole/);
 assert.match(operationScript, /TechlongSandboxCellBootstrapCloudFormationExecutionRole/);
 assert.match(operationScript, /ConfirmTemplateSha256/);
@@ -259,6 +387,29 @@ assert.match(operationScript, /New-LegacyJ4bReadOnlyTemplateSnapshot/);
 assert.match(operationScript, /render-b5-cell-bootstrap-j4b-legacy\.mjs/);
 assert.match(operationScript, /8eeef35a7936cdd1f4613434d8b7990630b192707e92ea4b5f21637f7cdaf15f/);
 assert.match(operationScript, /2bfe9ec02c7939abbab48fb07a9126e7dc7684472607c2d8787623720e88f389/);
+assert.match(operationScript, /New-DeployedJ4cReadOnlyTemplateSnapshot/);
+assert.match(operationScript, /render-b5-cell-bootstrap-j4c-deployed\.mjs/);
+assert.match(operationScript, /New-AuthorityV2ReadOnlyTemplateSnapshot/);
+assert.match(operationScript, /render-b5-cell-bootstrap-j5gg-v2\.mjs/);
+assert.match(operationScript, /a14e9898ed7af636dfdb7f5c509d93b317b604a591aadb4a67d0f956e7a9d986/);
+assert.match(operationScript, /74379232124d94b1d2ffb4322edaecd0bdb0534444b8961295175ecadc06c09c/);
+assert.match(operationScript, /Assert-ExactLegacyJ4bChildStack/);
+assert.match(operationScript, /Assert-ExactDeployedJ4cChildStack/);
+assert.match(
+  operationScript,
+  /\$DeploymentShape -eq 'PlannerUpdate'[\s\S]*New-LegacyJ4bReadOnlyTemplateSnapshot/,
+  "the historical PlannerUpdate path must remain pinned to the exact J4b predecessor",
+);
+assert.match(
+  operationScript,
+  /\$DeploymentShape -eq 'AuthorityV2ConsumerUpdate'[\s\S]*New-DeployedJ4cReadOnlyTemplateSnapshot/,
+  "the authority-v2 consumer update must use the exact deployed J4c predecessor",
+);
+assert.match(
+  operationScript,
+  /\$DeploymentShape -eq 'AuthorityV2ConsumerRollback'[\s\S]*New-DeployedJ4cReadOnlyTemplateSnapshot -DestinationPath \$templateSnapshotPath[\s\S]*New-AuthorityV2ReadOnlyTemplateSnapshot -DestinationPath \$authorityV2TemplateSnapshotPath/,
+  "the dormant rollback must target exact J4c-v1 and pin the authority-v2 predecessor",
+);
 assert.match(operationScript, /\$renderOutput = \(\(& node \$renderer --output \$DestinationPath\)/);
 assert.match(operationScript, /get-template/);
 assert.match(operationScript, /template-stage', 'Original'/);
@@ -284,11 +435,47 @@ assert.match(operationScript, /techlong-sandbox-build-source-402010193138-ca-cen
 assert.match(operationScript, /b5-cell-bootstrap\/templates\/sha256/);
 assert.match(operationScript, /'--template-url', \$templateObject\.Url/);
 assert.match(operationScript, /'--resource-types'/);
-assert.match(operationScript, /\$changeSetType = if \(\$DeploymentShape -eq 'PlannerUpdate'\) \{ 'UPDATE' \} else \{ 'CREATE' \}/);
+assert.match(
+  operationScript,
+  /\$changeSetType = if \(\$DeploymentShape -eq 'InitialCreate'\) \{ 'CREATE' \} else \{ 'UPDATE' \}/,
+);
 assert.match(operationScript, /\$DeploymentShape -eq 'InitialCreate'[\s\S]*'--on-stack-failure', 'DELETE'/);
 assert.match(operationScript, /\[string\]\$resource\.Action -cne 'Modify'/);
 assert.match(operationScript, /\[string\]\$resource\.Scope\[0\] -cne 'Properties'/);
-assert.match(operationScript, /PlannerUpdate Change Set StackId is not the exact verified legacy child StackId/);
+assert.match(
+  operationScript,
+  /'PlannerUpdate'\s*\{[\s\S]*CellJanitorFunction = 'AWS::Lambda::Function'[\s\S]*CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'[\s\S]*\}\s*'AuthorityV2ConsumerUpdate'/,
+  "the historical PlannerUpdate must retain its exact two-resource change contract",
+);
+assert.match(
+  operationScript,
+  /'AuthorityV2ConsumerUpdate'\s*\{\s*@\{ CellJanitorFunction = 'AWS::Lambda::Function' \}\s*\}/,
+  "the authority-v2 consumer update must accept exactly one Lambda modification",
+);
+assert.match(
+  operationScript,
+  /'AuthorityV2ConsumerRollback'\s*\{\s*@\{ CellJanitorFunction = 'AWS::Lambda::Function' \}\s*\}/,
+  "the authority-v2 consumer rollback must accept exactly one Lambda modification",
+);
+assert.match(operationScript, /\[string\]\$resource\.Replacement -cne 'False'/);
+assert.match(operationScript, /-not \[string\]::IsNullOrEmpty\(\[string\]\$resource\.PolicyAction\)/);
+assert.match(operationScript, /\[string\]\$resource\.PhysicalResourceId -cne 'techlong-sandbox-cell-janitor'/);
+assert.match(operationScript, /Duplicate Change Set resource \$logicalId/);
+assert.match(operationScript, /\$observed\.Count -ne \$expected\.Count/);
+assert.match(operationScript, /\$details = @\(\$resource\.Details\)/);
+assert.match(operationScript, /\$details\.Count -lt 1/);
+assert.match(operationScript, /\[string\]\$detail\.ChangeSource -cne 'DirectModification'/);
+assert.match(operationScript, /\[string\]\$detail\.Evaluation -cne 'Static'/);
+assert.match(operationScript, /\[string\]\$target\.Attribute -cne 'Properties'/);
+assert.match(operationScript, /\[string\]\$target\.Name -cne 'Code'/);
+assert.match(operationScript, /\[string\]\$target\.RequiresRecreation -cne 'Never'/);
+assert.match(operationScript, /\[string\]\$target\.AttributeChangeType -cne 'Modify'/);
+assert.match(operationScript, /\[string\]\$target\.Path -cnotmatch '\^\/Properties\/Code\(\?:\/ZipFile\)\?\$'/);
+assert.match(
+  operationScript,
+  /\$DeploymentShape -ne 'InitialCreate'[\s\S]*\$predecessorStack\.StackId/,
+  "every UPDATE Change Set must remain bound to its separately verified predecessor StackId",
+);
 for (const resourceType of Object.values(expectedResources)) {
   assert.match(operationScript, new RegExp(resourceType.replaceAll("::", "\\:\\:")));
 }
@@ -375,8 +562,55 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /\$expectedStackStatus = if \(\$DeploymentShape -eq 'InitialCreate'\)[\s\S]*'REVIEW_IN_PROGRESS'[\s\S]*\[string\]\$stacks\[0\]\.RoleARN -cne \$bootstrapExecutionRoleArn/,
+  /\$expectedStackStatus = switch \(\$DeploymentShape\) \{[\s\S]*'InitialCreate' \{ 'REVIEW_IN_PROGRESS' \}[\s\S]*'PlannerUpdate' \{ 'CREATE_COMPLETE' \}[\s\S]*'AuthorityV2ConsumerUpdate' \{ 'UPDATE_COMPLETE' \}[\s\S]*'AuthorityV2ConsumerRollback' \{ 'UPDATE_COMPLETE' \}[\s\S]*\[string\]\$stacks\[0\]\.RoleARN -cne \$bootstrapExecutionRoleArn/,
   "CREATE and UPDATE Change Sets must prove the exact stable Stack and CloudFormation execution role",
+);
+assert.match(operationScript, /Get-ExactLambdaConfigurationAndVerifyInlineCode/);
+assert.match(operationScript, /'lambda', 'get-function'/);
+assert.match(operationScript, /'--profile', \$SourceReadbackProfile/);
+assert.match(operationScript, /\$ReviewedTemplatePath[\s\S]*Properties\.Code\.ZipFile/);
+assert.match(operationScript, /\.EndsWith\('\.amazonaws\.com'/);
+assert.match(operationScript, /\$codeUri\.Scheme -cne 'https'/);
+assert.match(
+  operationScript,
+  /-MaximumRedirection 0\s*`\s*-ConnectionTimeoutSeconds 20 -OperationTimeoutSeconds 20/,
+);
+assert.match(operationScript, /\$zipItem\.Length -le 0 -or \$zipItem\.Length -gt 1048576/);
+assert.match(operationScript, /\[System\.IO\.Compression\.ZipFile\]::OpenRead/);
+assert.match(operationScript, /\$entries\.Count -ne 1/);
+assert.match(operationScript, /\[string\]\$entries\[0\]\.FullName -cne 'index\.js'/);
+assert.match(operationScript, /\[long\]\$entries\[0\]\.Length -ne \[long\]\$expectedSourceBytes\.Length/);
+assert.match(operationScript, /\$observedSourceBytes = \[byte\[\]\]::new\(\$expectedSourceBytes\.Length\)/);
+assert.match(operationScript, /while \(\$offset -lt \$observedSourceBytes\.Length\)/);
+assert.match(operationScript, /\$stream\.ReadByte\(\) -ne -1/);
+assert.doesNotMatch(operationScript, /\.CopyTo\(\$memory\)/);
+assert.match(operationScript, /\[Convert\]::ToBase64String\(\$observedSourceBytes\) -cne \[Convert\]::ToBase64String\(\$expectedSourceBytes\)/);
+assert.match(operationScript, /\[System\.Security\.Cryptography\.SHA256\]::HashData/);
+assert.match(operationScript, /\$observedCodeSha256 -cne \[string\]\$configuration\.CodeSha256/);
+assert.match(operationScript, /\[long\]\$configuration\.CodeSize -ne \[long\]\$zipItem\.Length/);
+assert.match(operationScript, /\[string\]\$before\.Code\.RepositoryType -cne 'S3'/);
+assert.match(operationScript, /\$requiredBusinessTags = \[System\.Collections\.Generic\.Dictionary\[string,string\]\]::new\(/);
+assert.match(operationScript, /\$requiredBusinessTags\.Add\('Environment', 'aws-sandbox'\)/);
+assert.match(operationScript, /\$requiredBusinessTags\.Add\('ManagedBy', 'techlong-cell-bootstrap-manager'\)/);
+assert.match(operationScript, /\$requiredBusinessTags\.Add\('Component', 'cell-janitor'\)/);
+assert.match(operationScript, /\$allowedCloudFormationTags\.Add\('aws:cloudformation:logical-id', 'CellJanitorFunction'\)/);
+assert.match(operationScript, /\$allowedCloudFormationTags\.Add\('aws:cloudformation:stack-id', \$ExpectedStackId\)/);
+assert.match(operationScript, /\$allowedCloudFormationTags\.Add\('aws:cloudformation:stack-name', \$bootstrapStackName\)/);
+assert.match(operationScript, /\[StringComparer\]::Ordinal/);
+assert.match(operationScript, /Unexpected or drifted Cell Janitor Lambda tag/);
+assert.match(operationScript, /-ExpectedStackId \(\[string\]\$stack\.StackId\)/);
+assert.match(operationScript, /-ExpectedStackId \$ExpectedStackId/);
+assert.match(operationScript, /\[string\]\$lambda\.PackageType -cne 'Zip'/);
+assert.match(operationScript, /\[string\]\$lambda\.TracingConfig\.Mode -cne 'PassThrough'/);
+assert.match(operationScript, /\[int\]\$lambda\.EphemeralStorage\.Size -ne 512/);
+assert.match(operationScript, /\[string\]\$lambda\.LoggingConfig\.LogFormat -cne 'Text'/);
+assert.match(operationScript, /\[string\]\$configuration\.CodeSha256 -cne \[string\]\$after\.CodeSha256/);
+assert.match(operationScript, /\[string\]\$configuration\.RevisionId -cne \[string\]\$after\.RevisionId/);
+assert.match(operationScript, /janitorCodeSha256 = \[string\]\$lambda\.CodeSha256/);
+assert.equal(
+  operationScript.match(/= Get-ExactLambdaConfigurationAndVerifyInlineCode -AwsCli/g)?.length,
+  2,
+  "both the historical predecessor and exact deployed readback must verify physical Lambda bytes",
 );
 assert.match(
   operationScript,

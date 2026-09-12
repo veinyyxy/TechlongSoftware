@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格参数校验、数据库租约/检查点、原子环境容量占位、两小时租户 TTL 清理计划、共享 Cell 安全预检边界和 mTLS 控制接口边界。S3-B B0–B4 进一步实现了离线可测试的类型化租户资源生命周期、不可变模板编译、RS256/mTLS 客户端、AWS 只读证据收集器、独立 Shared Cell 渲染模板和 Cell Janitor。B5 当前完成 lease-token/持续续租、租户 JSON Secret 注入、原子 external epoch authority 契约、可恢复分阶段 cleanup、ECS/S3/Secrets Manager/DynamoDB SDK 适配器源码、可信 raw receipt publisher/reader、持久化 Shared Cell admission drain契约，以及默认 `offline_only` Worker root composition。B5-J4b 的独立 IAM 管理根与 cleanup-only child Bootstrap 已于 2026-08-26 部署并严格回读，但只提供 read-only inventory Janitor 基础；J5g-e1/e2又已在真实Neon完成先审后写的 `0005`–`0008` 单事务迁移及独立只读回读。迁移已应用，但仍未接入root，可变更/完整删除协调器也尚未部署。所有执行开关默认关闭，本版本不会因启动网站或运行普通测试而调用 AWS、Neon 或真实数据库。
+S3 已加入独立 Node.js Worker、STS/CloudFormation SDK 适配边界、严格参数校验、数据库租约/检查点、原子环境容量占位、两小时租户 TTL 清理计划、共享 Cell 安全预检边界和 mTLS 控制接口边界。S3-B B0–B4 进一步实现了离线可测试的类型化租户资源生命周期、不可变模板编译、RS256/mTLS 客户端、AWS 只读证据收集器、独立 Shared Cell 渲染模板和 Cell Janitor。B5 当前完成 lease-token/持续续租、租户 JSON Secret 注入、schema-v2 external epoch authority 契约、可恢复分阶段 cleanup、ECS/S3/Secrets Manager/DynamoDB SDK 适配器源码、可信 raw receipt publisher/reader、持久化 Shared Cell admission drain契约，以及默认 `offline_only` Worker root composition。B5-J4c 的独立 IAM 管理根与 plan-only child Bootstrap 已部署并严格回读；J5g-g现已准备好只允许单 Lambda Code更新的v2 consumer正向与休眠反向门禁，但因source AWS CLI login过期尚未执行线上更新。J5g-e1/e2已在真实Neon完成先审后写的 `0005`–`0008` 单事务迁移及独立只读回读。迁移已应用但仍未接入root，可变更/完整删除协调器也尚未部署。所有执行开关默认关闭，本版本不会因启动网站或运行普通测试而调用 AWS、Neon 或真实数据库。
 
 以下三项已有严格边界；租户数据库路径已增加真实 inspect-only provider，其余变更操作及独立 Worker live root 仍使用 fail-closed 默认依赖，属于真实启用前阻断项：
 
@@ -134,7 +134,7 @@ npm run deployment:worker
 
 1. B5-J3 的 TaskDefinition 注册、独立 `DescribeTaskDefinition` readback 和临时权限撤销已经完成；不要重新注册 revision，也不要把 `registrationReady` 当作事实状态手工改为 true。
 2. B5-J4a 单资源日志 Stack 已创建并两次 exact readback；不要修改 B5-J3 模板或手工翻转任何 readiness gate。
-3. B5-J4b management 与 cleanup-only child 已完成，无需重复创建。维持 management `LOCKED`、Schedule `DISABLED`；后续任何 child 更新仍必须重新经过 digest-bound `Locked → AuthorGrant → Locked → ExecuteGrant → Locked`，安全删除则使用 `RollbackGrant → Locked`。
-4. 下一独立里程碑是评审并实现有 ownership fencing 的可变更/完整删除协调器；当前已部署的 Lambda 只能读取空 inventory，不能作为真实 cleanup 成功证据。Shared Cell、数据库访问和首次 one-shot `RunTask` 仍属于后续独立批准，且不得伪造 subnet、one-shot SG、RDS Secret 或 management target。
+3. B5-J4c management 与 plan-only child 已完成，无需重复创建。J5g-g的v2 consumer上线门禁已离线通过；刷新source与Manager身份后先在management `LOCKED`下执行只读`AuthorityV2ConsumerUpdate`预检，再分别批准grant、Change Set创建和执行。正向目标只允许`CellJanitorFunction.Code`修改，Schedule必须保持`DISABLED`；休眠反向Change Set只在更新成功后严格回读或探针失败时另行批准，不能用会删除整个child的`BootstrapRollbackGrant`替代。
+4. 即使v2 consumer随后成功上线，它仍只接受inspect事件并固定`PLAN_ONLY`，不拥有`DeleteStack`或authority mutation能力；`ABSENT_SAFE`双探针也只能证明authority缺失时fail closed，不能证明完整v2 authority链路。Shared Cell、数据库访问和首次 one-shot `RunTask` 仍属于后续独立批准，且不得伪造 subnet、one-shot SG、RDS Secret 或 management target。
 
 以上状态不改变 `registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false` 或 `cleanupRuntimeReady=false`；没有部署 Shared Cell、VPC、ALB、ECS 服务、Aurora/RDS、Route 53，也没有执行 `RunTask`。Cell 创建和 Worker Apply 仍需后续独立批准。

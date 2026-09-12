@@ -13,6 +13,8 @@ param(
     'BootstrapRollbackRevoke'
   )]
   [string]$UpdateShape = 'InitialLocked',
+  [ValidateSet('AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback')]
+  [string]$ChildDeploymentShape = 'AuthorityV2ConsumerUpdate',
   [string]$Profile = 'techlong-sandbox-user',
   [string]$ApprovedChangeSetName = '',
   [string]$GrantExpiresAt = '',
@@ -58,7 +60,7 @@ $childTemplateResourceTypes = @(
 )
 $managementStackIdPattern = '^arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-bootstrap-management/[0-9a-f-]{36}$'
 $bootstrapStackIdPattern = '^arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-bootstrap/[0-9a-f-]{36}$'
-$childChangeSetNamePattern = '^techlong-s3-b5-cell-bootstrap-[a-f0-9]{16}$'
+$childChangeSetNamePattern = '^techlong-s3-b5-cell-bootstrap-(?:rollback-)?[a-f0-9]{16}$'
 $grantExpiryPattern = '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'
 $writePhrase = 'I_ACKNOWLEDGE_B5_CELL_BOOTSTRAP_MANAGEMENT_IAM_CHANGES'
 $deletePhrase = 'I_ACKNOWLEDGE_B5_CELL_BOOTSTRAP_MANAGEMENT_DELETE'
@@ -66,6 +68,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $renderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-management.mjs'
 $legacyRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-management-j4b-legacy.mjs'
 $childRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap.mjs'
+$deployedJ4cChildRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j4c-deployed.mjs'
 $childValidator = Join-Path $root 'scripts\validate-b5-cell-bootstrap.mjs'
 $validator = Join-Path $root 'scripts\validate-b5-cell-bootstrap-management.mjs'
 $templateVerifier = Join-Path $root 'scripts\verify-change-set-template.mjs'
@@ -259,7 +262,7 @@ function Assert-ShapeInputs {
   )
   $requiresExpiry = $UpdateShape -notin @('InitialLocked', 'LockedPolicyRefresh')
   if ($requiresApprovedName) {
-    $expectedName = "techlong-s3-b5-cell-bootstrap-$($ChildSnapshot.RawSha256.Substring(0, 16))"
+    $expectedName = Get-ChildChangeSetName -ChildSnapshot $ChildSnapshot
     if (
       $ApprovedChangeSetName -cnotmatch $childChangeSetNamePattern -or
       $ApprovedChangeSetName -cne $expectedName
@@ -303,7 +306,18 @@ function Get-ChildTemplateUrl {
 
 function Get-ChildChangeSetName {
   param([object]$ChildSnapshot)
+  if ($ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback') {
+    return "techlong-s3-b5-cell-bootstrap-rollback-$($ChildSnapshot.RawSha256.Substring(0, 16))"
+  }
   return "techlong-s3-b5-cell-bootstrap-$($ChildSnapshot.RawSha256.Substring(0, 16))"
+}
+
+function Get-ChildChangeSetDescription {
+  param([object]$ChildSnapshot)
+  if ($ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback') {
+    return "B5-J5g-g plan-only authority-v2 consumer rollback raw=$($ChildSnapshot.RawSha256) canonical=$($ChildSnapshot.CanonicalSha256)"
+  }
+  return "B5-J4c plan-only cleanup planner raw=$($ChildSnapshot.RawSha256) canonical=$($ChildSnapshot.CanonicalSha256)"
 }
 
 function New-ReadOnlyChildTemplateSnapshot {
@@ -311,7 +325,10 @@ function New-ReadOnlyChildTemplateSnapshot {
     [System.IO.Path]::GetTempPath(),
     "techlong-s3-b5-cell-bootstrap-$([Guid]::NewGuid().ToString('N')).json"
   )
-  $renderOutput = ((& node $childRenderer --output $path) | Out-String).Trim()
+  $selectedChildRenderer = if ($ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback') {
+    $deployedJ4cChildRenderer
+  } else { $childRenderer }
+  $renderOutput = ((& node $selectedChildRenderer --output $path) | Out-String).Trim()
   if (
     $LASTEXITCODE -ne 0 -or
     [string]::IsNullOrWhiteSpace($renderOutput) -or
@@ -319,7 +336,11 @@ function New-ReadOnlyChildTemplateSnapshot {
   ) {
     throw 'Unable to render the child B5 Cell Bootstrap template snapshot.'
   }
-  $validationOutput = ((& node $childValidator --template $path) | Out-String).Trim()
+  $validationOutput = if ($ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback') {
+    ((& node $childValidator) | Out-String).Trim()
+  } else {
+    ((& node $childValidator --template $path) | Out-String).Trim()
+  }
   if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($validationOutput)) {
     throw 'Rendered child B5 Cell Bootstrap template validation failed.'
   }
@@ -334,6 +355,7 @@ function New-ReadOnlyChildTemplateSnapshot {
     RawSha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
     CanonicalSha256 = $canonicalHash
     Size = [long]$item.Length
+    DeploymentShape = $ChildDeploymentShape
   }
 }
 
@@ -1751,7 +1773,7 @@ function Assert-ExactApprovedChildChangeSet {
   if ($ApprovedChangeSetName -cne $expectedName) {
     throw "ExecuteGrant must target the exact child Change Set $expectedName."
   }
-  $expectedDescription = "B5-J4c plan-only cleanup planner raw=$($ChildSnapshot.RawSha256) canonical=$($ChildSnapshot.CanonicalSha256)"
+  $expectedDescription = Get-ChildChangeSetDescription -ChildSnapshot $ChildSnapshot
   $changeSet = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
     'cloudformation', 'describe-change-set',
     '--profile', $Profile,
@@ -1800,7 +1822,7 @@ function Assert-ExactApprovedChildChangeSet {
     '--output', 'json'
   )
   $stacks = @($stackResponse.Stacks)
-  $expectedStackStatus = if ($isInitialCreate) { 'REVIEW_IN_PROGRESS' } else { 'CREATE_COMPLETE' }
+  $expectedStackStatus = if ($isInitialCreate) { 'REVIEW_IN_PROGRESS' } else { 'UPDATE_COMPLETE' }
   if (
     $stacks.Count -ne 1 -or
     [string]$stacks[0].StackName -cne $childBootstrapStackName -or
@@ -1840,7 +1862,6 @@ function Assert-ExactApprovedChildChangeSet {
   } else {
     @{
       CellJanitorFunction = 'AWS::Lambda::Function'
-      CellGlobalJanitorSchedule = 'AWS::Scheduler::Schedule'
     }
   }
   $changes = @($changeSet.Changes)
@@ -1878,10 +1899,23 @@ function Assert-ExactApprovedChildChangeSet {
         $logicalId -eq 'CellJanitorFunction' -and
         [string]$resource.PhysicalResourceId -cne 'techlong-sandbox-cell-janitor'
       ) { throw 'Approved child PlannerUpdate Lambda physical ID drifted.' }
-      if (
-        $logicalId -eq 'CellGlobalJanitorSchedule' -and
-        [string]$resource.PhysicalResourceId -cnotmatch '^(?:arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/)?techlong-sandbox-cell-global-janitor$'
-      ) { throw 'Approved child PlannerUpdate Schedule physical ID drifted.' }
+      $details = @($resource.Details)
+      if ($details.Count -lt 1) {
+        throw 'Approved child authority-v2 update must expose at least one exact Lambda Code property detail.'
+      }
+      foreach ($detail in $details) {
+        $target = $detail.Target
+        if (
+          [string]$detail.ChangeSource -cne 'DirectModification' -or
+          [string]$detail.Evaluation -cne 'Static' -or
+          -not [string]::IsNullOrEmpty([string]$detail.CausingEntity) -or
+          [string]$target.Attribute -cne 'Properties' -or
+          [string]$target.Name -cne 'Code' -or
+          [string]$target.RequiresRecreation -cne 'Never' -or
+          [string]$target.AttributeChangeType -cne 'Modify' -or
+          [string]$target.Path -cnotmatch '^/Properties/Code(?:/ZipFile)?$'
+        ) { throw 'Approved child Change Set contains a non-Code Lambda property detail.' }
+      }
     }
   }
   Invoke-AwsJsonFile -AwsCli $AwsCli -Arguments @(
@@ -2211,6 +2245,7 @@ try {
     -UseGrantInputs $targetUsesGrantInputs `
     -ApprovedTemplateSha256 $childSnapshot.RawSha256
   Write-Host "Update shape: $UpdateShape"
+  Write-Host "Child deployment shape: $ChildDeploymentShape"
   Write-Host "Rendered target shape: $($contract.TargetRendererShape)"
   Write-Host "Template raw SHA-256: $($targetSnapshot.RawSha256)"
   Write-Host "Template canonical SHA-256: $($targetSnapshot.CanonicalSha256)"

@@ -230,6 +230,13 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - J5g-f没有新增online CLI、DynamoDB migration、AWS/Neon调用或default Worker/Janitor root wiring，只执行离线源码与定向测试。账号仍没有Shared Cell，线上authority key仍为`ABSENT`，所以本轮没有待迁移item；J4c Lambda仍固定`PLAN_ONLY`，Schedule仍为`DISABLED`。`shared_cell_provision_authority_predecessor_missing`、`shared_cell_cleanup_authority_writer_missing`与`registrationReady=false`、`liveReadbackReady=false`、`applyRuntimeReady=false`、`cleanupRuntimeReady=false`全部保持不变。
 - 下一步须在付费Cell创建获独立批准后，先通过独立受审部署把线上J4c consumer升级为v2并完成严格回读；在此之前禁止安装任何v2 authority item或启用Schedule，顺序不可颠倒。随后才可用fresh schema v2 live evidence、持续`ABSENT` strong read、exact candidate digest和J5e短时grant安装首条v2 predecessor，再立即revoke并独立回读；同时仍须完成production collector/root、cleanup/Janitor短时授权闭环、失败创建rollback、TTL handler/Schedule与provider-side删除/费用演练。任何v1 item都必须人工调查并fail closed，不能由运行时静默升级。
 
+### B5-J5g-g：J4c authority-v2 plan-only consumer 受控上线单元（线上待执行）
+
+- 已部署前态由 commit `ae71dac5d4c1e5c05912a630e2696c4645ac2836` 固定重建，raw/canonical SHA-256 为 `a14e9898ed7af636dfdb7f5c509d93b317b604a591aadb4a67d0f956e7a9d986` / `74379232124d94b1d2ffb4322edaecd0bdb0534444b8961295175ecadc06c09c`；正向 v2 目标为 `a768753c50de3fd3e13a1366ac5493768f794a0635c54274438c9606c1ad11e6` / `4f42f95d7e0b43b309d87acf2fb4795b136a1b40643d433e84606849d46d4673`。全模板比较只允许 `CellJanitorFunction.Properties.Code.ZipFile` 改变，Change Set必须恰有一个 Lambda `Modify`、`Replacement=False`、`Scope=Properties`且无`PolicyAction`；Schedule不能出现在变化集合中。
+- `AuthorityV2ConsumerUpdate` 使用 `techlong-s3-b5-cell-bootstrap-a768753c50de3fd3`。为覆盖“Stack已成功但严格回读/探针失败”的场景，另提供默认休眠的 `AuthorityV2ConsumerRollback`，以当前v2为exact前态、固定J4c-v1为目标，名称为 `techlong-s3-b5-cell-bootstrap-rollback-a14e9898ed7af636`，同样只允许单 Lambda Code原地修改并要求独立确认。现有 `BootstrapRollbackGrant` 会删除整个child Stack，不得当作代码降级入口。
+- 两个方向都必须经过 digest-bound `Locked → AuthorGrant → Locked → ExecuteGrant → Locked`。严格readback除Original TemplateBody、StackId/RoleARN、四资源、IAM simulation与`DISABLED` Schedule外，还会下载Lambda ZIP并核对唯一`index.js`的exact UTF-8 bytes、ZIP `CodeSha256`及两次稳定`RevisionId`。本地validators、正反两种child/management `LocalValidate`、Janitor定向测试和完整ops测试已通过。
+- 2026-09-12首次正向`OnlineValidate`在`techlong-sandbox-user` AWS CLI login session过期处立即fail closed，尚未获得线上前态新证据，也没有S3、CloudFormation、IAM、Lambda、Schedule、DynamoDB或付费资源写入。刷新source与Manager身份后才可重跑只读预检；创建临时management grant、发布模板object或创建/执行Change Set仍需后续独立批准。当前Lambda仍是已部署J4c-v1，Schedule仍应视为`DISABLED`，所有readiness gate继续为`false`。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：
