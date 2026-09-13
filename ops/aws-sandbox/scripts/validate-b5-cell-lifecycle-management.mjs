@@ -539,7 +539,9 @@ assert.match(
 assert.match(operation, /'CAPABILITY_NAMED_IAM'/);
 assert.match(operation, /'--on-stack-failure', 'DELETE'/);
 assert.match(operation, /Assert-ReviewedChangeSet/);
-assert.match(operation, /RollbackConfiguration\.RollbackTriggers/);
+assert.match(operation, /\$ChangeSet\.PSObject\.Properties/);
+assert.match(operation, /RollbackConfiguration must be present as the exact empty object/);
+assert.match(operation, /Expected \(\[PSCustomObject\]@\{\}\)/);
 assert.match(operation, /Assert-ExactGetTemplateResponse/);
 assert.match(operation, /Assert-ExactManagementIamReadback/);
 assert.match(operation, /Assert-ExactIamSimulation/);

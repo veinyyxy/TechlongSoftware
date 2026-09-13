@@ -546,14 +546,17 @@ function Assert-ReviewedChangeSet {
   ) {
     throw 'Change Set nested/import/notification/capability/on-failure metadata drifted.'
   }
-  if ($null -ne $ChangeSet.RollbackConfiguration) {
-    if (
-      @($ChangeSet.RollbackConfiguration.RollbackTriggers).Count -ne 0 -or
-      [int]$ChangeSet.RollbackConfiguration.MonitoringTimeInMinutes -ne 0
-    ) {
-      throw 'Change Set rollback trigger configuration drifted.'
-    }
+  $rollbackProperties = @(
+    $ChangeSet.PSObject.Properties |
+      Where-Object { [string]$_.Name -ceq 'RollbackConfiguration' }
+  )
+  if ($rollbackProperties.Count -ne 1 -or $null -eq $rollbackProperties[0].Value) {
+    throw 'Change Set RollbackConfiguration must be present as the exact empty object.'
   }
+  Assert-ExactJsonObject `
+    -Actual $rollbackProperties[0].Value `
+    -Expected ([PSCustomObject]@{}) `
+    -Label 'Change Set RollbackConfiguration'
   if ($null -ne $ChangeSet.DeploymentConfig) {
     if (
       [string]$ChangeSet.DeploymentConfig.Mode -cne 'STANDARD' -or
