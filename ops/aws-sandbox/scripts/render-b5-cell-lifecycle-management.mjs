@@ -15,6 +15,7 @@ const maximumManagedPolicyCharacters = 6_144;
 const maximumRoleInlinePolicyCharacters = 10_240;
 const accountId = "402010193138";
 const region = "ca-central-1";
+const managementStackName = "techlong-s3-b5-cell-lifecycle-management";
 const stackName = "techlong-sandbox-cell-sandbox-1";
 const cellId = "cell-sandbox-1";
 const changeSetNamePattern =
@@ -632,6 +633,15 @@ export async function renderB5CellLifecycleManagementTemplate({
   }
 
   const boundary = template.Metadata.SafetyBoundary;
+  const isLocked = shape === "Locked";
+  boundary.CloudApplyEnabled = isLocked;
+  boundary.LocalValidateOnly = !isLocked;
+  boundary.ManagementRootApplyEnabled = isLocked;
+  boundary.ManagementRootExecutionApproved = false;
+  boundary.TemporaryGrantApplyEnabled = false;
+  boundary.PaidCellApplyReady = false;
+  boundary.ApprovedManagementStackName = managementStackName;
+  boundary.ApprovedCellStackName = stackName;
   boundary.OperatorGrantState = shape.toUpperCase();
   if (shape !== "Locked") {
     const templateLocation = approvedTemplateLocation(approvedTemplateSha256);
@@ -681,8 +691,12 @@ export async function renderB5CellLifecycleManagementTemplate({
     ];
   }
 
-  template.Description =
-    `Local-only J5g-a Shared Cell lifecycle IAM contract (${shape}); no AWS apply, paid Cell, or TTL deletion is approved.`;
+  template.Description = isLocked
+    ? "Locked IAM-only J5g-a Shared Cell lifecycle management root; cloud apply is enabled for this exact shape but execution still requires separate approval, and no paid Cell or TTL deletion is approved."
+    : `Offline-only J5g-a Shared Cell lifecycle IAM contract (${shape}); cloud apply, paid Cell, and TTL deletion are disabled.`;
+  template.Outputs.SafetyState.Value = isLocked
+    ? "LOCKED_IAM_MANAGEMENT_ROOT_APPLY_ENABLED_EXECUTION_NOT_APPROVED_NO_PAID_CELL"
+    : `OFFLINE_ONLY_${shape.toUpperCase()}_NOT_APPLY_ENABLED_NO_PAID_CELL_APPROVAL`;
   assertPolicySizes(template);
   const rendered = `${JSON.stringify(template)}\n`;
   if (Buffer.byteLength(rendered, "utf8") > maximumDirectTemplateBytes) {

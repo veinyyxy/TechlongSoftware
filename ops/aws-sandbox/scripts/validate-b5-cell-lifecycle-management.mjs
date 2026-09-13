@@ -98,7 +98,9 @@ assert.equal(new Set(approvedSharedCellResourceTypes).size, 18);
 
 const safety = base.Metadata.SafetyBoundary;
 for (const key of [
-  "CloudApplyEnabled",
+  "ManagementRootExecutionApproved",
+  "TemporaryGrantApplyEnabled",
+  "PaidCellApplyReady",
   "ApplyReady",
   "CleanupReady",
   "PaidCellExecutionApproved",
@@ -112,15 +114,21 @@ for (const key of [
   "ImmutableTemplatePublicationReady",
 ]) assert.equal(safety[key], false, `${key} must stay false`);
 for (const key of [
-  "LocalValidateOnly",
+  "CloudApplyEnabled",
+  "ManagementRootApplyEnabled",
   "CreatesIamOnly",
   "JanitorPlanOnly",
   "PreOnlineReviewRequired",
   "SourceArnUnverified",
   "ServiceLinkedRolesPreexistingRequired",
 ]) assert.equal(safety[key], true, `${key} must stay true`);
+assert.equal(safety.LocalValidateOnly, false);
 assert.equal(safety.OperatorGrantState, "LOCKED");
-assert.equal(safety.ApprovedManagedStackName, "techlong-sandbox-cell-sandbox-1");
+assert.equal(
+  safety.ApprovedManagementStackName,
+  "techlong-s3-b5-cell-lifecycle-management",
+);
+assert.equal(safety.ApprovedCellStackName, "techlong-sandbox-cell-sandbox-1");
 assert.equal(safety.ApprovedCellId, "cell-sandbox-1");
 assert.equal(safety.CloudFormationServiceRoleTrust, "SERVICE_PRINCIPAL_ONLY");
 assert.equal(
@@ -149,6 +157,19 @@ assert.equal(
 );
 assert.equal(base.Resources.CellCloudFormationExecutionRole.Properties.RoleName,
   "TechlongSandboxCellCloudFormationExecutionRole");
+assert.deepEqual(locked.Resources, base.Resources);
+assert.equal(
+  locked.Outputs.ApprovedManagementStackName.Value,
+  "techlong-s3-b5-cell-lifecycle-management",
+);
+assert.equal(
+  locked.Outputs.ApprovedCellStackName.Value,
+  "techlong-sandbox-cell-sandbox-1",
+);
+assert.equal(
+  locked.Outputs.SafetyState.Value,
+  "LOCKED_IAM_MANAGEMENT_ROOT_APPLY_ENABLED_EXECUTION_NOT_APPROVED_NO_PAID_CELL",
+);
 
 const operatorRole = base.Resources.CellOperatorRole.Properties;
 assert.deepEqual(operatorRole.PermissionsBoundary, { Ref: "CellOperatorBoundary" });
@@ -246,6 +267,24 @@ for (const template of [author, execute, rollback]) {
   assert.equal(template.Metadata.SafetyBoundary.GrantExpiresAt, grantExpiresAt);
   assert.equal(template.Metadata.SafetyBoundary.ApplyReady, false);
   assert.equal(template.Metadata.SafetyBoundary.PaidCellExecutionApproved, false);
+  assert.equal(template.Metadata.SafetyBoundary.CloudApplyEnabled, false);
+  assert.equal(template.Metadata.SafetyBoundary.LocalValidateOnly, true);
+  assert.equal(template.Metadata.SafetyBoundary.ManagementRootApplyEnabled, false);
+  assert.equal(template.Metadata.SafetyBoundary.ManagementRootExecutionApproved, false);
+  assert.equal(template.Metadata.SafetyBoundary.TemporaryGrantApplyEnabled, false);
+  assert.equal(template.Metadata.SafetyBoundary.PaidCellApplyReady, false);
+  assert.equal(
+    template.Metadata.SafetyBoundary.ApprovedManagementStackName,
+    "techlong-s3-b5-cell-lifecycle-management",
+  );
+  assert.equal(
+    template.Metadata.SafetyBoundary.ApprovedCellStackName,
+    "techlong-sandbox-cell-sandbox-1",
+  );
+  assert.equal(
+    template.Outputs.SafetyState.Value,
+    `OFFLINE_ONLY_${template.Metadata.SafetyBoundary.OperatorGrantState}_NOT_APPLY_ENABLED_NO_PAID_CELL_APPROVAL`,
+  );
 }
 
 const authorActions = allowedActions(author, "CellOperatorBoundary");
@@ -430,13 +469,93 @@ await assert.rejects(
   /canonical UTC with milliseconds/,
 );
 
-assert.match(operation, /\[ValidateSet\('LocalValidate'\)\]/);
+assert.match(
+  operation,
+  /\[ValidateSet\('LocalValidate', 'OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet', 'Readback'\)\]/,
+);
 assert.match(operation, /\[string\]\$Mode = 'LocalValidate'/);
+assert.match(operation, /\[ValidateSet\('InitialLocked'\)\]/);
+assert.match(operation, /\[string\]\$UpdateShape = 'InitialLocked'/);
 assert.match(operation, /validate-b5-cell-lifecycle-management\.mjs/);
-assert.match(operation, /LOCAL_ONLY_LOCKED_NOT_APPLY_READY_NO_PAID_CELL_APPROVAL/);
-assert.doesNotMatch(operation, /\baws(?:\.exe)?\b/i);
-assert.doesNotMatch(operation, /CreateChangeSet|ExecuteChangeSet|DeleteStack/);
+assert.match(
+  operation,
+  /\$managementStackName = 'techlong-s3-b5-cell-lifecycle-management'/,
+);
+assert.match(operation, /\$cellStackName = 'techlong-sandbox-cell-sandbox-1'/);
+assert.match(operation, /\$expectedProfile = 'techlong-sandbox-user'/);
+assert.match(operation, /arn:aws:iam::402010193138:user\/techlong-sandbox-dev/);
+assert.match(operation, /arn:aws:iam::402010193138:mfa\/techlong-sandbox-dev/);
+assert.match(operation, /Assert-ExactSourceLoginSession/);
+for (const override of [
+  "AWS_ROLE_ARN",
+  "AWS_ROLE_SESSION_NAME",
+  "AWS_CONTAINER_AUTHORIZATION_TOKEN",
+  "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE",
+  "AWS_SHARED_CREDENTIALS_FILE",
+  "AWS_PROFILE",
+  "AWS_DEFAULT_PROFILE",
+  "AWS_REGION",
+  "AWS_DEFAULT_REGION",
+]) assert.match(operation, new RegExp(`'${override}'`));
+assert.match(operation, /Assert-NoAwsEndpointOverrides/);
+assert.match(operation, /Assert-ExactSourceIdentity/);
+assert.match(operation, /when calling the DescribeStacks operation/);
+assert.match(operation, /'GetTemplate'/);
+assert.match(operation, /'ListStackResources'/);
+assert.match(operation, /denial is never accepted as MISSING/);
+assert.match(operation, /--consistent-read/);
+assert.match(operation, /'--query', '\{Item:Item\}'/);
+assert.match(operation, /Assert-AuthorityAbsent/);
+assert.match(operation, /Assert-ManagementIamNamesMissing/);
+assert.match(operation, /--shape Locked --output \$path/);
+assert.match(operation, /\$binding = "\$UpdateShape\|\$\(\$Snapshot\.RawSha256\)\|\$\(\$Snapshot\.CanonicalSha256\)"/);
+assert.match(operation, /I_ACKNOWLEDGE_J5GA_INITIAL_LOCKED_CHANGE_SET_CREATE/);
+assert.match(operation, /I_ACKNOWLEDGE_J5GA_INITIAL_LOCKED_IAM_ROOT_EXECUTE/);
+for (const acknowledgement of [
+  "AcknowledgeAwsWrite",
+  "AcknowledgeCreatesNamedIam",
+  "AcknowledgeSourceUserBootstrapRisk",
+  "AcknowledgeMfaSession",
+  "AcknowledgeLockedIamOnly",
+  "AcknowledgeChangeSetReviewed",
+]) assert.match(operation, new RegExp(`\\[switch\\]\\$${acknowledgement}`));
+for (const confirmation of [
+  "ConfirmAccountId",
+  "ConfirmRegion",
+  "ConfirmManagementStackName",
+  "ConfirmTemplateSha256",
+  "ConfirmTemplateCanonicalSha256",
+  "ConfirmChangeSetName",
+  "ConfirmChangeSetArn",
+  "ConfirmStackId",
+]) assert.match(operation, new RegExp(`\\[string\\]\\$${confirmation}`));
+assert.match(operation, /'cloudformation', 'create-change-set'/);
+assert.match(operation, /'cloudformation', 'describe-change-set'/);
+assert.match(operation, /'cloudformation', 'execute-change-set'/);
+assert.match(
+  operation,
+  /'--change-set-name', \(\[string\]\$changeSet\.ChangeSetId\)/,
+);
+assert.match(operation, /'CAPABILITY_NAMED_IAM'/);
+assert.match(operation, /'--on-stack-failure', 'DELETE'/);
+assert.match(operation, /Assert-ReviewedChangeSet/);
+assert.match(operation, /RollbackConfiguration\.RollbackTriggers/);
+assert.match(operation, /Assert-ExactGetTemplateResponse/);
+assert.match(operation, /Assert-ExactManagementIamReadback/);
+assert.match(operation, /Assert-ExactIamSimulation/);
+assert.match(operation, /EvalResourceName -cne \$ResourceArn/);
+assert.match(operation, /MissingContextValues\)\.Count -ne 0/);
+assert.match(operation, /cluster\/\$cellId/);
+assert.match(operation, /techlong-sandbox-cell\/\$\{cellStackName\}-ttl/);
+assert.match(operation, /log-group:\/aws\/rds\/cluster\/\$cellStackName\/postgresql/);
+assert.match(
+  operation,
+  /LOCKED_IAM_MANAGEMENT_ROOT_APPLY_ENABLED_EXECUTION_NOT_APPROVED_NO_PAID_CELL/,
+);
+assert.doesNotMatch(operation, /ValidateSet\([^)]*Delete/);
+assert.doesNotMatch(operation, /--shape (?:AuthorGrant|ExecuteGrant|RollbackGrant)/);
+assert.doesNotMatch(operation, /'cloudformation',\s*'delete-stack'/i);
 
 console.log(
-  "B5-J5g-a Shared Cell lifecycle IAM local contract validated (4 resources, 4 mutually exclusive shapes, 18 resource types, policy quotas enforced, no AWS apply).",
+  "B5-J5g-a Shared Cell lifecycle IAM contract validated (InitialLocked online gates, 3 offline-only grant shapes, 4 resources, 18 resource types, policy quotas enforced; validator made no AWS call).",
 );

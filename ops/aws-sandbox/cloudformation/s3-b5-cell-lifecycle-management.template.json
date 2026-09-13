@@ -1,10 +1,14 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Local-only J5g-a IAM contract for a future, separately approved Shared Cell lifecycle channel. This template is not apply-ready and creates no Shared Cell.",
+  "Description": "Locked IAM-only J5g-a management root for a future, separately approved Shared Cell lifecycle channel. Only the Locked management-root shape is cloud-apply capable; this template creates no Shared Cell.",
   "Metadata": {
     "SafetyBoundary": {
-      "CloudApplyEnabled": false,
-      "LocalValidateOnly": true,
+      "CloudApplyEnabled": true,
+      "LocalValidateOnly": false,
+      "ManagementRootApplyEnabled": true,
+      "ManagementRootExecutionApproved": false,
+      "TemporaryGrantApplyEnabled": false,
+      "PaidCellApplyReady": false,
       "ApplyReady": false,
       "CleanupReady": false,
       "PaidCellExecutionApproved": false,
@@ -17,7 +21,8 @@
       "CreatesSharedCell": false,
       "CreatesPaidCellResources": false,
       "OperatorGrantState": "LOCKED",
-      "ApprovedManagedStackName": "techlong-sandbox-cell-sandbox-1",
+      "ApprovedManagementStackName": "techlong-s3-b5-cell-lifecycle-management",
+      "ApprovedCellStackName": "techlong-sandbox-cell-sandbox-1",
       "ApprovedCellId": "cell-sandbox-1",
       "JanitorPlanOnly": true,
       "CurrentTtlDeleteEventCompatible": false,
@@ -200,7 +205,7 @@
       "Condition": "IsExpectedTarget",
       "Properties": {
         "ManagedPolicyName": "TechlongSandboxCellCloudFormationExecutionBoundary",
-        "Description": "Local pre-online maximum permissions for a future single Sandbox Shared Cell execution path; exact-resource boundary hardening remains required.",
+        "Description": "Locked maximum permissions boundary for the dedicated Sandbox Shared Cell CloudFormation role; temporary grants remain offline-only pending exact-resource hardening.",
         "PolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
@@ -279,7 +284,7 @@
       "Condition": "IsExpectedTarget",
       "Properties": {
         "RoleName": "TechlongSandboxCellCloudFormationExecutionRole",
-        "Description": "Dedicated CloudFormation service role bounded to the one reviewed Shared Cell resource family; local contract only.",
+        "Description": "Locked dedicated CloudFormation service role for the one reviewed Shared Cell resource family; no identity permissions are attached by default.",
         "MaxSessionDuration": 3600,
         "PermissionsBoundary": { "Ref": "CellCloudFormationExecutionBoundary" },
         "AssumeRolePolicyDocument": {
@@ -309,13 +314,17 @@
       "Condition": "IsExpectedTarget",
       "Value": { "Fn::GetAtt": ["CellCloudFormationExecutionRole", "Arn"] }
     },
-    "ApprovedManagedStackName": {
+    "ApprovedManagementStackName": {
+      "Condition": "IsExpectedTarget",
+      "Value": "techlong-s3-b5-cell-lifecycle-management"
+    },
+    "ApprovedCellStackName": {
       "Condition": "IsExpectedTarget",
       "Value": "techlong-sandbox-cell-sandbox-1"
     },
     "SafetyState": {
       "Condition": "IsExpectedTarget",
-      "Value": "LOCAL_ONLY_LOCKED_NOT_APPLY_READY_NO_PAID_CELL_APPROVAL"
+      "Value": "LOCKED_IAM_MANAGEMENT_ROOT_APPLY_ENABLED_EXECUTION_NOT_APPROVED_NO_PAID_CELL"
     }
   }
 }
