@@ -1029,15 +1029,20 @@ function Assert-ExactDeniedSimulation {
     [string]$AwsCli,
     [string]$RoleArn,
     [string]$Action,
-    [string]$ResourceArn
+    [string]$ResourceArn,
+    [string[]]$AdditionalContextEntries = @()
   )
+  $contextEntries = @(
+    "ContextKeyName=aws:RequestedRegion,ContextKeyValues=$expectedRegion,ContextKeyType=string"
+  ) + @($AdditionalContextEntries)
   $arguments = @(
     'iam', 'simulate-principal-policy',
     '--profile', $Profile,
     '--policy-source-arn', $RoleArn,
     '--action-names', $Action,
     '--resource-arns', $ResourceArn,
-    '--context-entries', "ContextKeyName=aws:RequestedRegion,ContextKeyValues=$expectedRegion,ContextKeyType=string",
+    '--context-entries'
+  ) + $contextEntries + @(
     '--no-paginate',
     '--output', 'json'
   )
@@ -1048,8 +1053,10 @@ function Assert-ExactDeniedSimulation {
     $results.Count -ne 1 -or
     [string]$results[0].EvalActionName -cne $Action -or
     [string]$results[0].EvalResourceName -cne $ResourceArn -or
-    [string]$results[0].EvalDecision -notin @('implicitDeny', 'explicitDeny') -or
-    @($results[0].MissingContextValues).Count -ne 0
+    [string]$results[0].EvalDecision -cne 'implicitDeny' -or
+    @($results[0].MissingContextValues).Count -ne 0 -or
+    $null -eq $results[0].PermissionsBoundaryDecisionDetail -or
+    $results[0].PermissionsBoundaryDecisionDetail.AllowedByPermissionsBoundary -ne $false
   ) {
     throw "$RoleArn unexpectedly allows or cannot fully evaluate $Action on $ResourceArn."
   }
@@ -1059,6 +1066,9 @@ function Assert-ExactIamSimulation {
   param([string]$AwsCli)
   $simulatedCellStackArn =
     "arn:aws:cloudformation:$expectedRegion`:$expectedAccountId`:stack/$cellStackName/00000000-0000-0000-0000-000000000000"
+  $operatorContextEntries = @(
+    "ContextKeyName=cloudformation:ChangeSetName,ContextKeyValues=${cellStackName}-simulation,ContextKeyType=string"
+  )
   foreach ($entry in @(
     @('cloudformation:CreateChangeSet', $simulatedCellStackArn),
     @('cloudformation:ExecuteChangeSet', $simulatedCellStackArn),
@@ -1066,7 +1076,11 @@ function Assert-ExactIamSimulation {
     @('iam:PassRole', $executionRoleArn)
   )) {
     Assert-ExactDeniedSimulation `
-      -AwsCli $AwsCli -RoleArn $operatorRoleArn -Action $entry[0] -ResourceArn $entry[1]
+      -AwsCli $AwsCli `
+      -RoleArn $operatorRoleArn `
+      -Action $entry[0] `
+      -ResourceArn $entry[1] `
+      -AdditionalContextEntries $operatorContextEntries
   }
   foreach ($entry in @(
     @('ec2:CreateVpc', '*'),
