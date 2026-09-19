@@ -2,9 +2,15 @@
 param(
   [ValidateSet('LocalValidate', 'OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet', 'Readback')]
   [string]$Mode = 'LocalValidate',
-  [ValidateSet('InitialLocked')]
+  [ValidateSet('InitialLocked', 'AuthorGrant', 'AuthorRevoke')]
   [string]$UpdateShape = 'InitialLocked',
   [string]$Profile = 'techlong-sandbox-user',
+  [string]$ApprovedChangeSetName = '',
+  [string]$ApprovedTemplateSha256 = '',
+  [string]$ApprovedTemplateCanonicalSha256 = '',
+  [string]$ApprovedCellExpiresAt = '',
+  [string]$GrantReviewedAt = '',
+  [string]$GrantExpiresAt = '',
   [string]$ConfirmAccountId = '',
   [string]$ConfirmRegion = '',
   [string]$ConfirmManagementStackName = '',
@@ -19,6 +25,7 @@ param(
   [switch]$AcknowledgeSourceUserBootstrapRisk,
   [switch]$AcknowledgeMfaSession,
   [switch]$AcknowledgeLockedIamOnly,
+  [switch]$AcknowledgeTemporaryAuthorGrant,
   [switch]$AcknowledgeChangeSetReviewed
 )
 
@@ -42,13 +49,129 @@ $operatorBoundaryArn = "arn:aws:iam::$expectedAccountId`:policy/$operatorBoundar
 $operatorRoleArn = "arn:aws:iam::$expectedAccountId`:role/$operatorRoleName"
 $executionBoundaryArn = "arn:aws:iam::$expectedAccountId`:policy/$executionBoundaryName"
 $executionRoleArn = "arn:aws:iam::$expectedAccountId`:role/$executionRoleName"
+$expectedManagementStackId = 'arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-lifecycle-management/fb742b50-afb2-11f1-85b7-02588681429d'
 $managementStackIdPattern = '^arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-lifecycle-management/[0-9a-f-]{36}$'
-$createPhrase = 'I_ACKNOWLEDGE_J5GA_INITIAL_LOCKED_CHANGE_SET_CREATE'
-$executePhrase = 'I_ACKNOWLEDGE_J5GA_INITIAL_LOCKED_IAM_ROOT_EXECUTE'
+$cellChangeSetNamePattern = '^techlong-sandbox-cell-sandbox-1-[a-f0-9]{16}$'
+$templateSha256Pattern = '^[a-f0-9]{64}$'
+$canonicalTimestampPattern = '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$'
 $root = Split-Path -Parent $PSScriptRoot
 $renderer = Join-Path $root 'scripts\render-b5-cell-lifecycle-management.mjs'
 $validator = Join-Path $root 'scripts\validate-b5-cell-lifecycle-management.mjs'
 $templateVerifier = Join-Path $root 'scripts\verify-change-set-template.mjs'
+
+function Get-ShapeContract {
+  switch ($UpdateShape) {
+    'InitialLocked' {
+      return [PSCustomObject]@{
+        TargetRendererShape = 'Locked'
+        PreviousRendererShape = 'Missing'
+        ChangeSetType = 'CREATE'
+        ShapeToken = 'initial-locked'
+        ExpectedAction = 'Add'
+        CreatePhrase = 'I_ACKNOWLEDGE_J5GA_INITIAL_LOCKED_CHANGE_SET_CREATE'
+        ExecutePhrase = 'I_ACKNOWLEDGE_J5GA_INITIAL_LOCKED_IAM_ROOT_EXECUTE'
+      }
+    }
+    'AuthorGrant' {
+      return [PSCustomObject]@{
+        TargetRendererShape = 'AuthorGrant'
+        PreviousRendererShape = 'Locked'
+        ChangeSetType = 'UPDATE'
+        ShapeToken = 'author-grant'
+        ExpectedAction = 'Modify'
+        CreatePhrase = 'I_ACKNOWLEDGE_J5GA_AUTHOR_GRANT_CHANGE_SET_CREATE'
+        ExecutePhrase = 'I_ACKNOWLEDGE_J5GA_AUTHOR_GRANT_EXECUTE'
+      }
+    }
+    'AuthorRevoke' {
+      return [PSCustomObject]@{
+        TargetRendererShape = 'Locked'
+        PreviousRendererShape = 'AuthorGrant'
+        ChangeSetType = 'UPDATE'
+        ShapeToken = 'author-revoke'
+        ExpectedAction = 'Modify'
+        CreatePhrase = 'I_ACKNOWLEDGE_J5GA_AUTHOR_REVOKE_CHANGE_SET_CREATE'
+        ExecutePhrase = 'I_ACKNOWLEDGE_J5GA_AUTHOR_REVOKE_EXECUTE'
+      }
+    }
+    default { throw "Unsupported lifecycle management UpdateShape $UpdateShape." }
+  }
+}
+
+function ConvertFrom-CanonicalTimestamp {
+  param([string]$Value, [string]$Label)
+  if ($Value -cnotmatch $canonicalTimestampPattern) {
+    throw "-$Label must be canonical UTC with milliseconds."
+  }
+  $styles = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor
+    [System.Globalization.DateTimeStyles]::AdjustToUniversal
+  $parsed = [DateTime]::ParseExact(
+    $Value,
+    'yyyy-MM-ddTHH:mm:ss.fffZ',
+    [System.Globalization.CultureInfo]::InvariantCulture,
+    $styles
+  )
+  if ($parsed.ToString('yyyy-MM-ddTHH:mm:ss.fffZ') -cne $Value) {
+    throw "-$Label is not a canonical UTC instant."
+  }
+  return $parsed
+}
+
+function Assert-ShapeInputs {
+  param([object]$Contract)
+  $grantValues = @(
+    $ApprovedChangeSetName,
+    $ApprovedTemplateSha256,
+    $ApprovedTemplateCanonicalSha256,
+    $ApprovedCellExpiresAt,
+    $GrantReviewedAt,
+    $GrantExpiresAt
+  )
+  if ($UpdateShape -eq 'InitialLocked') {
+    if (@($grantValues | Where-Object { -not [string]::IsNullOrEmpty([string]$_) }).Count -ne 0) {
+      throw 'InitialLocked accepts no temporary grant inputs.'
+    }
+    return
+  }
+  if (
+    $ApprovedTemplateSha256 -cnotmatch $templateSha256Pattern -or
+    $ApprovedTemplateCanonicalSha256 -cnotmatch $templateSha256Pattern
+  ) {
+    throw 'Author grant transitions require exact lowercase raw and canonical template SHA-256 values.'
+  }
+  $expectedName = "$cellStackName-$($ApprovedTemplateSha256.Substring(0, 16))"
+  if (
+    $ApprovedChangeSetName -cnotmatch $cellChangeSetNamePattern -or
+    $ApprovedChangeSetName -cne $expectedName
+  ) {
+    throw "-ApprovedChangeSetName must be the exact raw-digest-bound name $expectedName."
+  }
+  $reviewedAt = ConvertFrom-CanonicalTimestamp -Value $GrantReviewedAt -Label 'GrantReviewedAt'
+  $grantExpiry = ConvertFrom-CanonicalTimestamp -Value $GrantExpiresAt -Label 'GrantExpiresAt'
+  $cellExpiry = ConvertFrom-CanonicalTimestamp -Value $ApprovedCellExpiresAt -Label 'ApprovedCellExpiresAt'
+  $reviewWindow = $grantExpiry - $reviewedAt
+  if ($reviewWindow.TotalSeconds -le 0 -or $reviewWindow.TotalMinutes -gt 60) {
+    throw 'The canonical grant window must be greater than zero and no more than 60 minutes.'
+  }
+  if (($cellExpiry - $grantExpiry).TotalMinutes -lt 15) {
+    throw 'The temporary Author grant must expire at least 15 minutes before the approved Shared Cell TTL.'
+  }
+}
+
+function Assert-GrantWindow {
+  param([double]$MinimumRemainingMinutes, [string]$Stage)
+  if ($UpdateShape -ne 'AuthorGrant') { return }
+  $reviewedAt = ConvertFrom-CanonicalTimestamp -Value $GrantReviewedAt -Label 'GrantReviewedAt'
+  $grantExpiry = ConvertFrom-CanonicalTimestamp -Value $GrantExpiresAt -Label 'GrantExpiresAt'
+  $now = [DateTime]::UtcNow
+  if ($reviewedAt -gt $now) {
+    throw "AuthorGrant $Stage refuses a GrantReviewedAt value in the future."
+  }
+  $remaining = $grantExpiry - $now
+  if ($remaining.TotalMinutes -le $MinimumRemainingMinutes) {
+    throw "AuthorGrant $Stage requires more than $MinimumRemainingMinutes minutes remaining before GrantExpiresAt."
+  }
+}
 
 function Resolve-AwsCli {
   $command = Get-Command aws -ErrorAction SilentlyContinue
@@ -129,17 +252,32 @@ function Get-CanonicalTemplateHash {
 }
 
 function New-ReadOnlyTemplateSnapshot {
+  param(
+    [string]$RendererShape,
+    [bool]$UseGrantInputs
+  )
   $path = [System.IO.Path]::Combine(
     [System.IO.Path]::GetTempPath(),
     "techlong-s3-b5-cell-lifecycle-management-$([Guid]::NewGuid().ToString('N')).json"
   )
-  $output = ((& node $renderer --shape Locked --output $path) | Out-String).Trim()
+  $arguments = @($renderer, '--shape', $RendererShape, '--output', $path)
+  if ($UseGrantInputs) {
+    $arguments += @(
+      '--approved-change-set-name', $ApprovedChangeSetName,
+      '--approved-template-sha256', $ApprovedTemplateSha256,
+      '--approved-template-canonical-sha256', $ApprovedTemplateCanonicalSha256,
+      '--approved-cell-expires-at', $ApprovedCellExpiresAt,
+      '--grant-reviewed-at', $GrantReviewedAt,
+      '--grant-expires-at', $GrantExpiresAt
+    )
+  }
+  $output = ((& node @arguments) | Out-String).Trim()
   if (
     $LASTEXITCODE -ne 0 -or
     [string]::IsNullOrWhiteSpace($output) -or
     -not (Test-Path -LiteralPath $path -PathType Leaf)
   ) {
-    throw 'Unable to render the Locked lifecycle management template snapshot.'
+    throw "Unable to render the $RendererShape lifecycle management template snapshot."
   }
   $item = Get-Item -LiteralPath $path
   if ($item.Length -le 0 -or $item.Length -gt 51200) {
@@ -151,6 +289,7 @@ function New-ReadOnlyTemplateSnapshot {
     RawSha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
     CanonicalSha256 = Get-CanonicalTemplateHash -TemplatePath $path
     Size = [long]$item.Length
+    RendererShape = $RendererShape
   }
 }
 
@@ -176,12 +315,23 @@ function Assert-SnapshotUnchanged {
 }
 
 function Get-ChangeSetContract {
-  param([object]$Snapshot)
-  $binding = "$UpdateShape|$($Snapshot.RawSha256)|$($Snapshot.CanonicalSha256)"
+  param([object]$Snapshot, [object]$ShapeContract)
+  $binding = @(
+    $UpdateShape,
+    $expectedManagementStackId,
+    $ApprovedChangeSetName,
+    $ApprovedTemplateSha256,
+    $ApprovedTemplateCanonicalSha256,
+    $ApprovedCellExpiresAt,
+    $GrantReviewedAt,
+    $GrantExpiresAt,
+    $Snapshot.RawSha256,
+    $Snapshot.CanonicalSha256
+  ) -join '|'
   $bindingHash = Get-Sha256Text -Value $binding
   return [PSCustomObject]@{
-    Name = "$managementStackName-initial-locked-$($bindingHash.Substring(0, 16))"
-    Description = "B5-J5g-a InitialLocked IAM management root; raw-sha256=$($Snapshot.RawSha256); canonical-sha256=$($Snapshot.CanonicalSha256)"
+    Name = "$managementStackName-$($ShapeContract.ShapeToken)-$($bindingHash.Substring(0, 16))"
+    Description = "B5-J5g-a $UpdateShape IAM management transition; raw-sha256=$($Snapshot.RawSha256); canonical-sha256=$($Snapshot.CanonicalSha256)"
     ClientToken = "b5j5ga-management-$($bindingHash.Substring(0, 32))"
   }
 }
@@ -514,19 +664,29 @@ function Assert-ExactGetTemplateResponse {
     --expected-template $Snapshot.Path `
     --get-template-response $ResponsePath) | Out-String).Trim()
   if ($LASTEXITCODE -ne 0 -or $verifiedHash -cne $Snapshot.CanonicalSha256) {
-    throw 'CloudFormation TemplateBody is not the exact reviewed Locked management template.'
+    throw "CloudFormation TemplateBody is not the exact reviewed $($Snapshot.RendererShape) management template."
   }
 }
 
 function Assert-ReviewedChangeSet {
-  param([object]$ChangeSet, [object]$Snapshot, [object]$Contract)
+  param(
+    [object]$ChangeSet,
+    [object]$Snapshot,
+    [object]$Contract,
+    [object]$ShapeContract
+  )
+  $expectedNamePattern = '^arn:aws:cloudformation:ca-central-1:402010193138:changeSet/' +
+    [regex]::Escape($Contract.Name) + '/[0-9a-f-]{36}$'
   if (
     [string]$ChangeSet.StackName -cne $managementStackName -or
     [string]$ChangeSet.ChangeSetName -cne $Contract.Name -or
-    [string]$ChangeSet.ChangeSetId -cnotmatch '^arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-s3-b5-cell-lifecycle-management-initial-locked-[a-f0-9]{16}/[0-9a-f-]{36}$' -or
-    [string]$ChangeSet.StackId -cnotmatch $managementStackIdPattern -or
+    [string]$ChangeSet.ChangeSetId -cnotmatch $expectedNamePattern -or
+    ($ShapeContract.ChangeSetType -ceq 'UPDATE' -and
+      [string]$ChangeSet.StackId -cne $expectedManagementStackId) -or
+    ($ShapeContract.ChangeSetType -ceq 'CREATE' -and
+      [string]$ChangeSet.StackId -cnotmatch $managementStackIdPattern) -or
     (-not [string]::IsNullOrEmpty([string]$ChangeSet.ChangeSetType) -and
-      [string]$ChangeSet.ChangeSetType -cne 'CREATE') -or
+      [string]$ChangeSet.ChangeSetType -cne [string]$ShapeContract.ChangeSetType) -or
     [string]$ChangeSet.Status -cne 'CREATE_COMPLETE' -or
     [string]$ChangeSet.ExecutionStatus -cne 'AVAILABLE' -or
     [string]$ChangeSet.Description -cne $Contract.Description -or
@@ -541,10 +701,15 @@ function Assert-ReviewedChangeSet {
     $ChangeSet.IncludeNestedStacks -eq $true -or
     $ChangeSet.ImportExistingResources -eq $true -or
     @($ChangeSet.Capabilities).Count -ne 1 -or
-    [string]@($ChangeSet.Capabilities)[0] -cne 'CAPABILITY_NAMED_IAM' -or
-    [string]$ChangeSet.OnStackFailure -cne 'DELETE'
+    [string]@($ChangeSet.Capabilities)[0] -cne 'CAPABILITY_NAMED_IAM'
   ) {
-    throw 'Change Set nested/import/notification/capability/on-failure metadata drifted.'
+    throw 'Change Set nested/import/notification/capability metadata drifted.'
+  }
+  if (
+    ($ShapeContract.ChangeSetType -ceq 'CREATE' -and [string]$ChangeSet.OnStackFailure -cne 'DELETE') -or
+    ($ShapeContract.ChangeSetType -ceq 'UPDATE' -and -not [string]::IsNullOrEmpty([string]$ChangeSet.OnStackFailure))
+  ) {
+    throw 'Change Set on-stack-failure contract drifted.'
   }
   $rollbackProperties = @(
     $ChangeSet.PSObject.Properties |
@@ -577,11 +742,15 @@ function Assert-ReviewedChangeSet {
     -ValueProperty 'Value' `
     -Label 'Change Set tag'
   Assert-ExactMap -Actual $tags -Expected (Get-ExpectedStackTags) -Label 'Change Set tag'
-  $expectedResources = @{
-    CellOperatorBoundary = 'AWS::IAM::ManagedPolicy'
-    CellOperatorRole = 'AWS::IAM::Role'
-    CellCloudFormationExecutionBoundary = 'AWS::IAM::ManagedPolicy'
-    CellCloudFormationExecutionRole = 'AWS::IAM::Role'
+  $expectedResources = if ($ShapeContract.ChangeSetType -ceq 'CREATE') {
+    @{
+      CellOperatorBoundary = 'AWS::IAM::ManagedPolicy'
+      CellOperatorRole = 'AWS::IAM::Role'
+      CellCloudFormationExecutionBoundary = 'AWS::IAM::ManagedPolicy'
+      CellCloudFormationExecutionRole = 'AWS::IAM::Role'
+    }
+  } else {
+    @{ CellOperatorBoundary = 'AWS::IAM::ManagedPolicy' }
   }
   $changes = @($ChangeSet.Changes)
   if ($changes.Count -ne $expectedResources.Count) {
@@ -596,13 +765,23 @@ function Assert-ReviewedChangeSet {
     }
     $seen[$logicalId] = $true
     if (
-      [string]$change.Action -cne 'Add' -or
+      [string]$change.Action -cne [string]$ShapeContract.ExpectedAction -or
       [string]$change.ResourceType -cne $expectedResources[$logicalId] -or
-      [string]$change.Replacement -notin @('', 'False') -or
-      @($change.Scope).Count -ne 0 -or
-      @($change.Details).Count -ne 0
+      [string]$change.Replacement -notin @('', 'False')
     ) {
       throw "Change Set resource contract drifted for $logicalId."
+    }
+    if ($ShapeContract.ChangeSetType -ceq 'CREATE') {
+      if (@($change.Scope).Count -ne 0 -or @($change.Details).Count -ne 0) {
+        throw "CREATE Change Set detail contract drifted for $logicalId."
+      }
+    } else {
+      $scope = @($change.Scope)
+      if (
+        $scope.Count -ne 1 -or [string]$scope[0] -cne 'Properties'
+      ) {
+        throw 'UPDATE Change Set must contain only the exact CellOperatorBoundary Properties modification.'
+      }
     }
   }
 }
@@ -612,6 +791,7 @@ function Get-ReviewedChangeSet {
     [string]$AwsCli,
     [object]$Snapshot,
     [object]$Contract,
+    [object]$ShapeContract,
     [string]$TemplateResponsePath
   )
   $changeSet = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
@@ -622,7 +802,8 @@ function Get-ReviewedChangeSet {
     '--change-set-name', $Contract.Name,
     '--output', 'json'
   )
-  Assert-ReviewedChangeSet -ChangeSet $changeSet -Snapshot $Snapshot -Contract $Contract
+  Assert-ReviewedChangeSet `
+    -ChangeSet $changeSet -Snapshot $Snapshot -Contract $Contract -ShapeContract $ShapeContract
   Assert-ExactGetTemplateResponse `
     -AwsCli $AwsCli `
     -Snapshot $Snapshot `
@@ -632,12 +813,28 @@ function Get-ReviewedChangeSet {
 }
 
 function Assert-PreExecutionState {
-  param([string]$AwsCli)
+  param(
+    [string]$AwsCli,
+    [object]$ShapeContract,
+    [object]$PreviousSnapshot,
+    [string]$TemplateResponsePath
+  )
+  if ($ShapeContract.ChangeSetType -ceq 'UPDATE') {
+    if ($null -eq $PreviousSnapshot) {
+      throw "$UpdateShape requires an exact previous management template snapshot."
+    }
+    return Assert-ExactStackReadback `
+      -AwsCli $AwsCli `
+      -Snapshot $PreviousSnapshot `
+      -TemplateResponsePath $TemplateResponsePath `
+      -ExpectedRendererShape ([string]$ShapeContract.PreviousRendererShape) `
+      -AllowedStackStatuses @('CREATE_COMPLETE', 'UPDATE_COMPLETE')
+  }
   $stack = Get-ExactStackOrNull -AwsCli $AwsCli -StackName $managementStackName
   if (
     $null -eq $stack -or
     [string]$stack.StackName -cne $managementStackName -or
-    [string]$stack.StackId -cnotmatch $managementStackIdPattern -or
+    [string]$stack.StackId -cne $expectedManagementStackId -or
     [string]$stack.StackStatus -cne 'REVIEW_IN_PROGRESS' -or
     -not [string]::IsNullOrEmpty([string]$stack.RoleARN) -or
     $stack.EnableTerminationProtection -eq $true -or
@@ -656,6 +853,7 @@ function Assert-WriteAcknowledgements {
   param(
     [object]$Snapshot,
     [object]$Contract,
+    [object]$ShapeContract,
     [bool]$Executing,
     [object]$ChangeSet = $null
   )
@@ -677,16 +875,25 @@ function Assert-WriteAcknowledgements {
   if ($ConfirmChangeSetName -cne $Contract.Name) {
     throw "AWS write requires -ConfirmChangeSetName $($Contract.Name)."
   }
-  foreach ($required in @(
+  $requiredAcknowledgements = @(
     @{ Value = $AcknowledgeAwsWrite; Name = 'AcknowledgeAwsWrite' },
-    @{ Value = $AcknowledgeCreatesNamedIam; Name = 'AcknowledgeCreatesNamedIam' },
     @{ Value = $AcknowledgeSourceUserBootstrapRisk; Name = 'AcknowledgeSourceUserBootstrapRisk' },
-    @{ Value = $AcknowledgeMfaSession; Name = 'AcknowledgeMfaSession' },
-    @{ Value = $AcknowledgeLockedIamOnly; Name = 'AcknowledgeLockedIamOnly' }
-  )) {
+    @{ Value = $AcknowledgeMfaSession; Name = 'AcknowledgeMfaSession' }
+  )
+  if ($UpdateShape -eq 'InitialLocked') {
+    $requiredAcknowledgements += @(
+      @{ Value = $AcknowledgeCreatesNamedIam; Name = 'AcknowledgeCreatesNamedIam' },
+      @{ Value = $AcknowledgeLockedIamOnly; Name = 'AcknowledgeLockedIamOnly' }
+    )
+  } elseif ($UpdateShape -eq 'AuthorGrant') {
+    $requiredAcknowledgements += @(
+      @{ Value = $AcknowledgeTemporaryAuthorGrant; Name = 'AcknowledgeTemporaryAuthorGrant' }
+    )
+  }
+  foreach ($required in $requiredAcknowledgements) {
     if (-not $required.Value) { throw "AWS write requires -$($required.Name)." }
   }
-  $expectedPhrase = if ($Executing) { $executePhrase } else { $createPhrase }
+  $expectedPhrase = if ($Executing) { $ShapeContract.ExecutePhrase } else { $ShapeContract.CreatePhrase }
   if ($ConfirmExecutionPhrase -cne $expectedPhrase) {
     throw "AWS write requires -ConfirmExecutionPhrase $expectedPhrase."
   }
@@ -830,7 +1037,8 @@ function Assert-ExactManagedPolicyReadback {
     [object]$ExpectedResource,
     [string]$ExpectedPolicyArn,
     [string]$ExpectedRoleName,
-    [bool]$AttachedAsIdentityPolicy
+    [bool]$AttachedAsIdentityPolicy,
+    [bool]$AllowHistoricalVersions
   )
   $expected = $ExpectedResource.Properties
   $response = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
@@ -845,7 +1053,7 @@ function Assert-ExactManagedPolicyReadback {
     [string]$policy.PolicyName -cne [string]$expected.ManagedPolicyName -or
     [string]$policy.Arn -cne $ExpectedPolicyArn -or
     [string]$policy.Path -cne '/' -or
-    [string]$policy.DefaultVersionId -cne 'v1' -or
+    [string]$policy.DefaultVersionId -cnotmatch '^v[1-9][0-9]*$' -or
     $policy.IsAttachable -ne $true -or
     [int]$policy.AttachmentCount -ne $expectedAttachmentCount -or
     [int]$policy.PermissionsBoundaryUsageCount -ne 1 -or
@@ -862,33 +1070,59 @@ function Assert-ExactManagedPolicyReadback {
   )
   Assert-IamResponseNotTruncated -Response $versionsResponse -Label "$ExpectedPolicyArn versions"
   $versions = @($versionsResponse.Versions)
-  if (
-    $versions.Count -ne 1 -or
-    [string]$versions[0].VersionId -cne 'v1' -or
-    $versions[0].IsDefaultVersion -ne $true
-  ) {
-    throw "Managed policy $ExpectedPolicyArn must have exactly its initial v1 version."
+  if ($versions.Count -lt 1 -or $versions.Count -gt 5) {
+    throw "Managed policy $ExpectedPolicyArn returned an invalid version count."
   }
-  $version = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
-    'iam', 'get-policy-version',
-    '--profile', $Profile,
-    '--policy-arn', $ExpectedPolicyArn,
-    '--version-id', 'v1',
-    '--output', 'json'
-  )
-  if (
-    [string]$version.PolicyVersion.VersionId -cne 'v1' -or
-    $version.PolicyVersion.IsDefaultVersion -ne $true
-  ) {
-    throw "Managed policy $ExpectedPolicyArn v1 metadata drifted."
+  if (-not $AllowHistoricalVersions -and $versions.Count -ne 1) {
+    throw "Immutable managed policy $ExpectedPolicyArn must retain only its current default version."
   }
-  $document = ConvertFrom-ExactIamDocument `
-    -Document $version.PolicyVersion.Document `
-    -Label "$ExpectedPolicyArn v1"
-  Assert-ExactJsonObject `
-    -Actual $document `
-    -Expected $expected.PolicyDocument `
-    -Label "$ExpectedPolicyArn default policy"
+  $seenVersions = @{}
+  $defaultVersions = @()
+  foreach ($versionSummary in $versions) {
+    $versionId = [string]$versionSummary.VersionId
+    if ($versionId -cnotmatch '^v[1-9][0-9]*$' -or $seenVersions.ContainsKey($versionId)) {
+      throw "Managed policy $ExpectedPolicyArn returned an invalid or duplicate version."
+    }
+    $seenVersions[$versionId] = $true
+    if ($versionSummary.IsDefaultVersion -eq $true) { $defaultVersions += $versionId }
+  }
+  if (
+    $defaultVersions.Count -ne 1 -or
+    [string]$defaultVersions[0] -cne [string]$policy.DefaultVersionId
+  ) {
+    throw "Managed policy $ExpectedPolicyArn default-version metadata drifted."
+  }
+  foreach ($versionSummary in $versions) {
+    $version = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+      'iam', 'get-policy-version',
+      '--profile', $Profile,
+      '--policy-arn', $ExpectedPolicyArn,
+      '--version-id', ([string]$versionSummary.VersionId),
+      '--output', 'json'
+    )
+    if (
+      [string]$version.PolicyVersion.VersionId -cne [string]$versionSummary.VersionId -or
+      $version.PolicyVersion.IsDefaultVersion -ne $versionSummary.IsDefaultVersion
+    ) {
+      throw "Managed policy $ExpectedPolicyArn version readback drifted."
+    }
+    $document = ConvertFrom-ExactIamDocument `
+      -Document $version.PolicyVersion.Document `
+      -Label "$ExpectedPolicyArn version $($versionSummary.VersionId)"
+    if ($versionSummary.IsDefaultVersion -eq $true) {
+      Assert-ExactJsonObject `
+        -Actual $document `
+        -Expected $expected.PolicyDocument `
+        -Label "$ExpectedPolicyArn default policy"
+    } else {
+      $inactiveHash = Get-CanonicalObjectHash `
+        -Value $document `
+        -Label "$ExpectedPolicyArn inactive version $($versionSummary.VersionId)"
+      if ($inactiveHash -cnotmatch '^[a-f0-9]{64}$') {
+        throw "Managed policy $ExpectedPolicyArn inactive version is not canonical JSON."
+      }
+    }
+  }
   Assert-ExactPolicyEntities `
     -AwsCli $AwsCli `
     -PolicyArn $ExpectedPolicyArn `
@@ -1011,7 +1245,8 @@ function Assert-ExactManagementIamReadback {
       -ExpectedResource $policyResource `
       -ExpectedPolicyArn $entry.PolicyArn `
       -ExpectedRoleName ([string]$roleResource.Properties.RoleName) `
-      -AttachedAsIdentityPolicy ([bool]$entry.AttachedAsIdentityPolicy)
+      -AttachedAsIdentityPolicy ([bool]$entry.AttachedAsIdentityPolicy) `
+      -AllowHistoricalVersions ($entry.PolicyLogicalId -ceq 'CellOperatorBoundary')
     Assert-ExactRoleReadback `
       -AwsCli $AwsCli `
       -ExpectedResource $roleResource `
@@ -1062,25 +1297,168 @@ function Assert-ExactDeniedSimulation {
   }
 }
 
+function Assert-ExactAllowedSimulation {
+  param(
+    [string]$AwsCli,
+    [string]$RoleArn,
+    [string]$Action,
+    [string]$ResourceArn,
+    [string[]]$ContextEntries
+  )
+  $arguments = @(
+    'iam', 'simulate-principal-policy',
+    '--profile', $Profile,
+    '--policy-source-arn', $RoleArn,
+    '--action-names', $Action,
+    '--resource-arns', $ResourceArn,
+    '--context-entries'
+  ) + @($ContextEntries) + @(
+    '--no-paginate',
+    '--output', 'json'
+  )
+  $response = Invoke-AwsJson -AwsCli $AwsCli -Arguments $arguments
+  Assert-IamResponseNotTruncated -Response $response -Label "$RoleArn simulation"
+  $results = @($response.EvaluationResults)
+  if (
+    $results.Count -ne 1 -or
+    [string]$results[0].EvalActionName -cne $Action -or
+    [string]$results[0].EvalResourceName -cne $ResourceArn -or
+    [string]$results[0].EvalDecision -cne 'allowed' -or
+    @($results[0].MissingContextValues).Count -ne 0 -or
+    $null -eq $results[0].PermissionsBoundaryDecisionDetail -or
+    $results[0].PermissionsBoundaryDecisionDetail.AllowedByPermissionsBoundary -ne $true
+  ) {
+    throw "$RoleArn does not exactly allow $Action on $ResourceArn under the reviewed AuthorGrant context."
+  }
+}
+
 function Assert-ExactIamSimulation {
-  param([string]$AwsCli)
+  param([string]$AwsCli, [string]$ExpectedRendererShape)
   $simulatedCellStackArn =
     "arn:aws:cloudformation:$expectedRegion`:$expectedAccountId`:stack/$cellStackName/00000000-0000-0000-0000-000000000000"
-  $operatorContextEntries = @(
-    "ContextKeyName=cloudformation:ChangeSetName,ContextKeyValues=${cellStackName}-simulation,ContextKeyType=string"
-  )
-  foreach ($entry in @(
-    @('cloudformation:CreateChangeSet', $simulatedCellStackArn),
-    @('cloudformation:ExecuteChangeSet', $simulatedCellStackArn),
-    @('cloudformation:DeleteStack', $simulatedCellStackArn),
-    @('iam:PassRole', $executionRoleArn)
-  )) {
-    Assert-ExactDeniedSimulation `
-      -AwsCli $AwsCli `
-      -RoleArn $operatorRoleArn `
-      -Action $entry[0] `
-      -ResourceArn $entry[1] `
-      -AdditionalContextEntries $operatorContextEntries
+  if ($ExpectedRendererShape -ceq 'AuthorGrant') {
+    $now = [DateTime]::UtcNow.ToString(
+      'yyyy-MM-ddTHH:mm:ss.fffZ',
+      [System.Globalization.CultureInfo]::InvariantCulture
+    )
+    $templateKey = "b5-shared-cell/templates/sha256/$ApprovedTemplateSha256.json"
+    $templateArn = "arn:aws:s3:::techlong-sandbox-build-source-$expectedAccountId-$expectedRegion/$templateKey"
+    $templateUrl = "https://techlong-sandbox-build-source-$expectedAccountId-$expectedRegion.s3.$expectedRegion.amazonaws.com/$templateKey"
+    $changeSetArn =
+      "arn:aws:cloudformation:$expectedRegion`:$expectedAccountId`:changeSet/$ApprovedChangeSetName/00000000-0000-0000-0000-000000000000"
+    $authorContext = @(
+      "ContextKeyName=aws:RequestedRegion,ContextKeyValues=$expectedRegion,ContextKeyType=string",
+      "ContextKeyName=aws:CurrentTime,ContextKeyValues=$now,ContextKeyType=date",
+      'ContextKeyName=aws:RequestTag/Environment,ContextKeyValues=aws-sandbox,ContextKeyType=string',
+      'ContextKeyName=aws:RequestTag/ManagedBy,ContextKeyValues=techlong-cell-operator,ContextKeyType=string',
+      "ContextKeyName=aws:RequestTag/CellId,ContextKeyValues=$cellId,ContextKeyType=string",
+      "ContextKeyName=aws:RequestTag/ExpiresAt,ContextKeyValues=$ApprovedCellExpiresAt,ContextKeyType=string",
+      'ContextKeyName=aws:TagKeys,ContextKeyValues=Environment,ManagedBy,CellId,ExpiresAt,ContextKeyType=stringList',
+      "ContextKeyName=cloudformation:TemplateUrl,ContextKeyValues=$templateUrl,ContextKeyType=string",
+      "ContextKeyName=cloudformation:RoleARN,ContextKeyValues=$executionRoleArn,ContextKeyType=string",
+      "ContextKeyName=cloudformation:ChangeSetName,ContextKeyValues=$ApprovedChangeSetName,ContextKeyType=string",
+      "ContextKeyName=cloudformation:ResourceTypes,ContextKeyValues=$((@(
+        'AWS::Scheduler::Schedule',
+        'AWS::EC2::VPC',
+        'AWS::EC2::InternetGateway',
+        'AWS::EC2::VPCGatewayAttachment',
+        'AWS::EC2::Subnet',
+        'AWS::EC2::RouteTable',
+        'AWS::EC2::Route',
+        'AWS::EC2::SubnetRouteTableAssociation',
+        'AWS::EC2::SecurityGroup',
+        'AWS::EC2::SecurityGroupIngress',
+        'AWS::ECS::Cluster',
+        'AWS::ElasticLoadBalancingV2::LoadBalancer',
+        'AWS::ElasticLoadBalancingV2::Listener',
+        'AWS::ElasticLoadBalancingV2::ListenerRule',
+        'AWS::RDS::DBSubnetGroup',
+        'AWS::Logs::LogGroup',
+        'AWS::RDS::DBCluster',
+        'AWS::RDS::DBInstance'
+      ) -join ',')),ContextKeyType=stringList"
+    )
+    $readContext = @(
+      "ContextKeyName=aws:RequestedRegion,ContextKeyValues=$expectedRegion,ContextKeyType=string",
+      "ContextKeyName=aws:CurrentTime,ContextKeyValues=$now,ContextKeyType=date",
+      "ContextKeyName=cloudformation:ChangeSetName,ContextKeyValues=$ApprovedChangeSetName,ContextKeyType=string"
+    )
+    $passContext = @(
+      "ContextKeyName=aws:RequestedRegion,ContextKeyValues=$expectedRegion,ContextKeyType=string",
+      "ContextKeyName=aws:CurrentTime,ContextKeyValues=$now,ContextKeyType=date",
+      'ContextKeyName=iam:PassedToService,ContextKeyValues=cloudformation.amazonaws.com,ContextKeyType=string'
+    )
+    $currentTimeContext = @(
+      "ContextKeyName=aws:CurrentTime,ContextKeyValues=$now,ContextKeyType=date"
+    )
+    $grantActive = (ConvertFrom-CanonicalTimestamp `
+      -Value $GrantExpiresAt -Label 'GrantExpiresAt') -gt [DateTime]::UtcNow
+    if ($grantActive) {
+      foreach ($resourceArn in @($simulatedCellStackArn, $changeSetArn)) {
+        Assert-ExactAllowedSimulation `
+          -AwsCli $AwsCli -RoleArn $operatorRoleArn `
+          -Action 'cloudformation:CreateChangeSet' -ResourceArn $resourceArn `
+          -ContextEntries $authorContext
+      }
+      Assert-ExactAllowedSimulation `
+        -AwsCli $AwsCli -RoleArn $operatorRoleArn `
+        -Action 's3:GetObject' -ResourceArn $templateArn -ContextEntries $currentTimeContext
+      Assert-ExactAllowedSimulation `
+        -AwsCli $AwsCli -RoleArn $operatorRoleArn `
+        -Action 'iam:PassRole' -ResourceArn $executionRoleArn -ContextEntries $passContext
+      foreach ($action in @('cloudformation:DescribeChangeSet', 'cloudformation:DeleteChangeSet')) {
+        Assert-ExactAllowedSimulation `
+          -AwsCli $AwsCli -RoleArn $operatorRoleArn `
+          -Action $action -ResourceArn $simulatedCellStackArn -ContextEntries $readContext
+      }
+    } else {
+      foreach ($resourceArn in @($simulatedCellStackArn, $changeSetArn)) {
+        Assert-ExactDeniedSimulation `
+          -AwsCli $AwsCli -RoleArn $operatorRoleArn `
+          -Action 'cloudformation:CreateChangeSet' -ResourceArn $resourceArn `
+          -AdditionalContextEntries @($authorContext | Select-Object -Skip 1)
+      }
+      Assert-ExactDeniedSimulation `
+        -AwsCli $AwsCli -RoleArn $operatorRoleArn `
+        -Action 's3:GetObject' -ResourceArn $templateArn `
+        -AdditionalContextEntries $currentTimeContext
+      Assert-ExactDeniedSimulation `
+        -AwsCli $AwsCli -RoleArn $operatorRoleArn `
+        -Action 'iam:PassRole' -ResourceArn $executionRoleArn `
+        -AdditionalContextEntries @($passContext | Select-Object -Skip 1)
+      foreach ($action in @('cloudformation:DescribeChangeSet', 'cloudformation:DeleteChangeSet')) {
+        Assert-ExactDeniedSimulation `
+          -AwsCli $AwsCli -RoleArn $operatorRoleArn `
+          -Action $action -ResourceArn $simulatedCellStackArn `
+          -AdditionalContextEntries @($readContext | Select-Object -Skip 1)
+      }
+    }
+    foreach ($action in @('cloudformation:ExecuteChangeSet', 'cloudformation:DeleteStack')) {
+      Assert-ExactDeniedSimulation `
+        -AwsCli $AwsCli -RoleArn $operatorRoleArn -Action $action `
+        -ResourceArn $simulatedCellStackArn `
+        -AdditionalContextEntries @(
+          "ContextKeyName=aws:CurrentTime,ContextKeyValues=$now,ContextKeyType=date",
+          "ContextKeyName=cloudformation:ChangeSetName,ContextKeyValues=$ApprovedChangeSetName,ContextKeyType=string"
+        )
+    }
+  } else {
+    $operatorContextEntries = @(
+      "ContextKeyName=cloudformation:ChangeSetName,ContextKeyValues=${cellStackName}-simulation,ContextKeyType=string"
+    )
+    foreach ($entry in @(
+      @('cloudformation:CreateChangeSet', $simulatedCellStackArn),
+      @('cloudformation:ExecuteChangeSet', $simulatedCellStackArn),
+      @('cloudformation:DeleteStack', $simulatedCellStackArn),
+      @('iam:PassRole', $executionRoleArn)
+    )) {
+      Assert-ExactDeniedSimulation `
+        -AwsCli $AwsCli `
+        -RoleArn $operatorRoleArn `
+        -Action $entry[0] `
+        -ResourceArn $entry[1] `
+        -AdditionalContextEntries $operatorContextEntries
+    }
   }
   foreach ($entry in @(
     @('ec2:CreateVpc', '*'),
@@ -1096,13 +1474,22 @@ function Assert-ExactIamSimulation {
 }
 
 function Assert-ExactStackReadback {
-  param([string]$AwsCli, [object]$Snapshot, [string]$TemplateResponsePath)
+  param(
+    [string]$AwsCli,
+    [object]$Snapshot,
+    [string]$TemplateResponsePath,
+    [string]$ExpectedRendererShape,
+    [string[]]$AllowedStackStatuses
+  )
+  if ($ExpectedRendererShape -notin @('Locked', 'AuthorGrant')) {
+    throw "Unsupported strict readback renderer shape $ExpectedRendererShape."
+  }
   $stack = Get-ExactStackOrNull -AwsCli $AwsCli -StackName $managementStackName
   if (
     $null -eq $stack -or
     [string]$stack.StackName -cne $managementStackName -or
-    [string]$stack.StackId -cnotmatch $managementStackIdPattern -or
-    [string]$stack.StackStatus -cne 'CREATE_COMPLETE' -or
+    [string]$stack.StackId -cne $expectedManagementStackId -or
+    [string]$stack.StackStatus -notin $AllowedStackStatuses -or
     -not [string]::IsNullOrEmpty([string]$stack.RoleARN) -or
     $stack.EnableTerminationProtection -ne $false -or
     -not [string]::IsNullOrEmpty([string]$stack.ParentId) -or
@@ -1118,12 +1505,17 @@ function Assert-ExactStackReadback {
   Assert-ExactMap -Actual $tags -Expected (Get-ExpectedStackTags) -Label 'Stack tag'
   $outputs = ConvertTo-UniqueMap `
     -Entries @($stack.Outputs) -KeyProperty 'OutputKey' -ValueProperty 'OutputValue' -Label 'Stack output'
+  $renderedTemplate = (Get-Content -LiteralPath $Snapshot.Path -Raw) | ConvertFrom-Json -Depth 100
+  $expectedSafetyState = [string]$renderedTemplate.Outputs.SafetyState.Value
+  if ([string]::IsNullOrEmpty($expectedSafetyState)) {
+    throw 'Reviewed lifecycle management template is missing its exact SafetyState output.'
+  }
   Assert-ExactMap -Actual $outputs -Expected @{
     CellOperatorRoleArn = $operatorRoleArn
     CellCloudFormationExecutionRoleArn = $executionRoleArn
     ApprovedManagementStackName = $managementStackName
     ApprovedCellStackName = $cellStackName
-    SafetyState = 'LOCKED_IAM_MANAGEMENT_ROOT_APPLY_ENABLED_EXECUTION_NOT_APPROVED_NO_PAID_CELL'
+    SafetyState = $expectedSafetyState
   } -Label 'Stack output'
   if (
     @($stack.Capabilities).Count -ne 1 -or
@@ -1161,7 +1553,7 @@ function Assert-ExactStackReadback {
     if (
       [string]$resource.ResourceType -cne $expectedResources[$logicalId][0] -or
       [string]$resource.PhysicalResourceId -cne $expectedResources[$logicalId][1] -or
-      [string]$resource.ResourceStatus -cne 'CREATE_COMPLETE'
+      [string]$resource.ResourceStatus -notin @('CREATE_COMPLETE', 'UPDATE_COMPLETE')
     ) {
       throw "Management Stack live resource $logicalId drifted."
     }
@@ -1170,10 +1562,10 @@ function Assert-ExactStackReadback {
     -AwsCli $AwsCli -Snapshot $Snapshot -ResponsePath $TemplateResponsePath
   Assert-ExactManagementIamReadback `
     -AwsCli $AwsCli -Snapshot $Snapshot -ExpectedStackId ([string]$stack.StackId)
-  Assert-ExactIamSimulation -AwsCli $AwsCli
+  Assert-ExactIamSimulation -AwsCli $AwsCli -ExpectedRendererShape $ExpectedRendererShape
   Assert-StackMissing -AwsCli $AwsCli -StackName $cellStackName
   Assert-AuthorityAbsent -AwsCli $AwsCli
-  Write-Host "Strict Locked management Stack readback passed: $($stack.StackId)"
+  Write-Host "Strict $ExpectedRendererShape management Stack readback passed: $($stack.StackId)"
   return $stack
 }
 
@@ -1192,6 +1584,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $snapshot = $null
+$previousSnapshot = $null
 $templateResponsePath = [System.IO.Path]::Combine(
   [System.IO.Path]::GetTempPath(),
   "techlong-s3-b5-cell-lifecycle-template-$([Guid]::NewGuid().ToString('N')).json"
@@ -1204,10 +1597,19 @@ $previousEnvironment = @{
 }
 
 try {
-  $snapshot = New-ReadOnlyTemplateSnapshot
-  $contract = Get-ChangeSetContract -Snapshot $snapshot
+  $shapeContract = Get-ShapeContract
+  Assert-ShapeInputs -Contract $shapeContract
+  $snapshot = New-ReadOnlyTemplateSnapshot `
+    -RendererShape ([string]$shapeContract.TargetRendererShape) `
+    -UseGrantInputs ($shapeContract.TargetRendererShape -ceq 'AuthorGrant')
+  if ($shapeContract.PreviousRendererShape -cne 'Missing') {
+    $previousSnapshot = New-ReadOnlyTemplateSnapshot `
+      -RendererShape ([string]$shapeContract.PreviousRendererShape) `
+      -UseGrantInputs ($shapeContract.PreviousRendererShape -ceq 'AuthorGrant')
+  }
+  $contract = Get-ChangeSetContract -Snapshot $snapshot -ShapeContract $shapeContract
   Write-Host "Update shape: $UpdateShape"
-  Write-Host 'Rendered shape: Locked'
+  Write-Host "Rendered shape: $($shapeContract.TargetRendererShape)"
   Write-Host "Management Stack: $managementStackName"
   Write-Host "Template raw SHA-256: $($snapshot.RawSha256)"
   Write-Host "Template canonical SHA-256: $($snapshot.CanonicalSha256)"
@@ -1239,16 +1641,31 @@ try {
   ) | Out-Null
 
   if ($Mode -eq 'OnlineValidate') {
-    Assert-InitialMissingState -AwsCli $awsCli
-    Write-Host 'Online validation passed: management root MISSING, four IAM names MISSING, Cell MISSING, authority ABSENT.'
+    if ($shapeContract.ChangeSetType -ceq 'CREATE') {
+      Assert-InitialMissingState -AwsCli $awsCli
+      Write-Host 'Online validation passed: management root MISSING, four IAM names MISSING, Cell MISSING, authority ABSENT.'
+    } else {
+      Assert-GrantWindow -MinimumRemainingMinutes 15 -Stage 'online validation'
+      Assert-PreExecutionState `
+        -AwsCli $awsCli -ShapeContract $shapeContract -PreviousSnapshot $previousSnapshot `
+        -TemplateResponsePath $templateResponsePath | Out-Null
+      Write-Host "Online validation passed: exact $($shapeContract.PreviousRendererShape) predecessor, Cell MISSING, authority ABSENT."
+    }
     Write-Host 'No Change Set, Stack, IAM resource, Shared Cell, or authority item was changed.'
     exit 0
   }
 
   if ($Mode -eq 'CreateChangeSet') {
-    Assert-InitialMissingState -AwsCli $awsCli
+    if ($shapeContract.ChangeSetType -ceq 'CREATE') {
+      Assert-InitialMissingState -AwsCli $awsCli
+    } else {
+      Assert-GrantWindow -MinimumRemainingMinutes 15 -Stage 'Change Set creation'
+      Assert-PreExecutionState `
+        -AwsCli $awsCli -ShapeContract $shapeContract -PreviousSnapshot $previousSnapshot `
+        -TemplateResponsePath $templateResponsePath | Out-Null
+    }
     Assert-WriteAcknowledgements `
-      -Snapshot $snapshot -Contract $contract -Executing $false
+      -Snapshot $snapshot -Contract $contract -ShapeContract $shapeContract -Executing $false
     Assert-SnapshotUnchanged -Snapshot $snapshot
     $parameters = @(
       "ParameterKey=ExpectedAccountId,ParameterValue=$expectedAccountId",
@@ -1261,7 +1678,7 @@ try {
       '--region', $expectedRegion,
       '--stack-name', $managementStackName,
       '--change-set-name', $contract.Name,
-      '--change-set-type', 'CREATE',
+      '--change-set-type', ([string]$shapeContract.ChangeSetType),
       '--description', $contract.Description,
       '--template-body', "file://$($snapshot.Path)",
       '--capabilities', 'CAPABILITY_NAMED_IAM',
@@ -1272,10 +1689,16 @@ try {
       'Key=ManagedBy,Value=techlong-cell-lifecycle-manager',
       'Key=Component,Value=b5-cell-lifecycle-management',
       '--no-include-nested-stacks',
-      '--on-stack-failure', 'DELETE',
       '--client-token', $contract.ClientToken,
       '--output', 'json'
     )
+    if ($shapeContract.ChangeSetType -ceq 'CREATE') {
+      $outputIndex = [Array]::IndexOf($arguments, '--output')
+      $head = @($arguments[0..($outputIndex - 1)])
+      $tail = @($arguments[$outputIndex..($arguments.Count - 1)])
+      $arguments = $head + @('--on-stack-failure', 'DELETE') + $tail
+    }
+    Assert-GrantWindow -MinimumRemainingMinutes 15 -Stage 'Change Set creation'
     Invoke-AwsJson -AwsCli $awsCli -Arguments $arguments | Out-Null
     Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
       'cloudformation', 'wait', 'change-set-create-complete',
@@ -1285,21 +1708,29 @@ try {
       '--change-set-name', $contract.Name
     )
     $changeSet = Get-ReviewedChangeSet `
-      -AwsCli $awsCli -Snapshot $snapshot -Contract $contract -TemplateResponsePath $templateResponsePath
+      -AwsCli $awsCli -Snapshot $snapshot -Contract $contract `
+      -ShapeContract $shapeContract -TemplateResponsePath $templateResponsePath
     Write-Host "Created and exact-checked Change Set $($changeSet.ChangeSetId), but did NOT execute it."
-    Write-Host "REVIEW_IN_PROGRESS StackId: $($changeSet.StackId)"
+    Write-Host "Management StackId: $($changeSet.StackId)"
     Write-Host 'Run InspectChangeSet separately before requesting ExecuteChangeSet approval.'
     exit 0
   }
 
   if ($Mode -in @('InspectChangeSet', 'ExecuteChangeSet')) {
-    $placeholder = Assert-PreExecutionState -AwsCli $awsCli
+    if ($Mode -eq 'InspectChangeSet') {
+      Assert-GrantWindow -MinimumRemainingMinutes 15 -Stage 'Change Set inspection'
+    }
+    $predecessor = Assert-PreExecutionState `
+      -AwsCli $awsCli -ShapeContract $shapeContract -PreviousSnapshot $previousSnapshot `
+      -TemplateResponsePath $templateResponsePath
     $changeSet = Get-ReviewedChangeSet `
-      -AwsCli $awsCli -Snapshot $snapshot -Contract $contract -TemplateResponsePath $templateResponsePath
-    if ([string]$changeSet.StackId -cne [string]$placeholder.StackId) {
-      throw 'Change Set StackId does not match the exact REVIEW_IN_PROGRESS placeholder.'
+      -AwsCli $awsCli -Snapshot $snapshot -Contract $contract `
+      -ShapeContract $shapeContract -TemplateResponsePath $templateResponsePath
+    if ([string]$changeSet.StackId -cne [string]$predecessor.StackId) {
+      throw 'Change Set StackId does not match the exact predecessor management Stack.'
     }
     if ($Mode -eq 'InspectChangeSet') {
+      Assert-GrantWindow -MinimumRemainingMinutes 15 -Stage 'Change Set inspection'
       Write-Host "Change Set ARN: $($changeSet.ChangeSetId)"
       Write-Host "StackId: $($changeSet.StackId)"
       @($changeSet.Changes) | ForEach-Object {
@@ -1313,9 +1744,11 @@ try {
       Write-Host 'Inspection passed and was read-only. No Change Set was executed.'
       exit 0
     }
+    Assert-GrantWindow -MinimumRemainingMinutes 10 -Stage 'management Change Set execution'
     Assert-WriteAcknowledgements `
       -Snapshot $snapshot `
       -Contract $contract `
+      -ShapeContract $shapeContract `
       -Executing $true `
       -ChangeSet $changeSet
     Assert-SnapshotUnchanged -Snapshot $snapshot
@@ -1327,29 +1760,39 @@ try {
       '--change-set-name', ([string]$changeSet.ChangeSetId),
       '--client-request-token', "execute-$($contract.ClientToken)"
     )
+    $waiter = if ($shapeContract.ChangeSetType -ceq 'CREATE') {
+      'stack-create-complete'
+    } else { 'stack-update-complete' }
     Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
-      'cloudformation', 'wait', 'stack-create-complete',
+      'cloudformation', 'wait', $waiter,
       '--profile', $Profile,
       '--region', $expectedRegion,
       '--stack-name', $managementStackName
     )
     Assert-ExactStackReadback `
-      -AwsCli $awsCli -Snapshot $snapshot -TemplateResponsePath $templateResponsePath | Out-Null
-    Write-Host 'Executed InitialLocked and strictly read back exactly four Locked IAM resources.'
+      -AwsCli $awsCli -Snapshot $snapshot -TemplateResponsePath $templateResponsePath `
+      -ExpectedRendererShape ([string]$shapeContract.TargetRendererShape) `
+      -AllowedStackStatuses @($(if ($shapeContract.ChangeSetType -ceq 'CREATE') { 'CREATE_COMPLETE' } else { 'UPDATE_COMPLETE' })) | Out-Null
+    Assert-GrantWindow -MinimumRemainingMinutes 5 -Stage 'post-execution strict readback'
+    Write-Host "Executed $UpdateShape and strictly read back the exact $($shapeContract.TargetRendererShape) IAM management root."
     Write-Host 'No Shared Cell, VPC, ALB, ECS, RDS/Aurora, Route53, Schedule, or authority item was created.'
     exit 0
   }
 
   if ($Mode -eq 'Readback') {
     Assert-ExactStackReadback `
-      -AwsCli $awsCli -Snapshot $snapshot -TemplateResponsePath $templateResponsePath | Out-Null
-    Write-Host 'Readback passed for exact InitialLocked IAM management root.'
+      -AwsCli $awsCli -Snapshot $snapshot -TemplateResponsePath $templateResponsePath `
+      -ExpectedRendererShape ([string]$shapeContract.TargetRendererShape) `
+      -AllowedStackStatuses @('CREATE_COMPLETE', 'UPDATE_COMPLETE') | Out-Null
+    Assert-GrantWindow -MinimumRemainingMinutes 5 -Stage 'strict readback completion'
+    Write-Host "Readback passed for exact $UpdateShape IAM management root."
     exit 0
   }
 
   throw "Unsupported mode $Mode."
 } finally {
   Remove-TemplateSnapshot -Snapshot $snapshot
+  Remove-TemplateSnapshot -Snapshot $previousSnapshot
   if (Test-Path -LiteralPath $templateResponsePath) {
     Remove-Item -LiteralPath $templateResponsePath -Force
   }

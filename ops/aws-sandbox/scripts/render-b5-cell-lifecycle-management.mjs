@@ -23,6 +23,8 @@ const changeSetNamePattern =
 const templateSha256Pattern = /^[a-f0-9]{64}$/;
 const canonicalTimestampPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const maximumGrantWindowMilliseconds = 60 * 60 * 1_000;
+const minimumCellCleanupBufferMilliseconds = 15 * 60 * 1_000;
 const approvedTemplateBucket =
   "techlong-sandbox-build-source-402010193138-ca-central-1";
 const approvedTemplatePrefix = "b5-shared-cell/templates/sha256";
@@ -82,14 +84,18 @@ function assertExactGrantInputs({
   shape,
   approvedChangeSetName,
   approvedTemplateSha256,
+  approvedTemplateCanonicalSha256,
   approvedCellExpiresAt,
+  grantReviewedAt,
   grantExpiresAt,
 }) {
   if (shape === "Locked") {
     if (
       approvedChangeSetName ||
       approvedTemplateSha256 ||
+      approvedTemplateCanonicalSha256 ||
       approvedCellExpiresAt ||
+      grantReviewedAt ||
       grantExpiresAt
     ) {
       throw new Error("Locked lifecycle management shape accepts no grant inputs");
@@ -98,6 +104,11 @@ function assertExactGrantInputs({
   }
   if (!templateSha256Pattern.test(approvedTemplateSha256 ?? "")) {
     throw new Error("temporary lifecycle grant requires an exact lowercase raw template SHA-256");
+  }
+  if (!templateSha256Pattern.test(approvedTemplateCanonicalSha256 ?? "")) {
+    throw new Error(
+      "temporary lifecycle grant requires an exact lowercase canonical template SHA-256",
+    );
   }
   if (!changeSetNamePattern.test(approvedChangeSetName ?? "")) {
     throw new Error("temporary lifecycle grant requires an exact digest-bound Change Set name");
@@ -111,9 +122,18 @@ function assertExactGrantInputs({
     approvedCellExpiresAt,
     "ApprovedCellExpiresAt",
   );
+  const reviewedAt = assertCanonicalTimestamp(grantReviewedAt, "GrantReviewedAt");
   const grantExpiry = assertCanonicalTimestamp(grantExpiresAt, "GrantExpiresAt");
-  if (grantExpiry >= cellExpiry) {
-    throw new Error("temporary lifecycle grant must expire before the Shared Cell TTL");
+  if (grantExpiry <= reviewedAt) {
+    throw new Error("temporary lifecycle grant must expire after its reviewed-at time");
+  }
+  if (grantExpiry - reviewedAt > maximumGrantWindowMilliseconds) {
+    throw new Error("temporary lifecycle grant window must not exceed 60 minutes");
+  }
+  if (cellExpiry - grantExpiry < minimumCellCleanupBufferMilliseconds) {
+    throw new Error(
+      "temporary lifecycle grant must expire at least 15 minutes before the Shared Cell TTL",
+    );
   }
 }
 
@@ -590,7 +610,9 @@ export async function renderB5CellLifecycleManagementTemplate({
   shape = "Locked",
   approvedChangeSetName = "",
   approvedTemplateSha256 = "",
+  approvedTemplateCanonicalSha256 = "",
   approvedCellExpiresAt = "",
+  grantReviewedAt = "",
   grantExpiresAt = "",
 } = {}) {
   if (!lifecycleManagementShapes.includes(shape)) {
@@ -600,7 +622,9 @@ export async function renderB5CellLifecycleManagementTemplate({
     shape,
     approvedChangeSetName,
     approvedTemplateSha256,
+    approvedTemplateCanonicalSha256,
     approvedCellExpiresAt,
+    grantReviewedAt,
     grantExpiresAt,
   });
   const template = JSON.parse(await readFile(templatePath, "utf8"));
@@ -634,11 +658,13 @@ export async function renderB5CellLifecycleManagementTemplate({
 
   const boundary = template.Metadata.SafetyBoundary;
   const isLocked = shape === "Locked";
-  boundary.CloudApplyEnabled = isLocked;
-  boundary.LocalValidateOnly = !isLocked;
-  boundary.ManagementRootApplyEnabled = isLocked;
+  const isAuthorGrant = shape === "AuthorGrant";
+  const managementApplyEnabled = isLocked || isAuthorGrant;
+  boundary.CloudApplyEnabled = managementApplyEnabled;
+  boundary.LocalValidateOnly = !managementApplyEnabled;
+  boundary.ManagementRootApplyEnabled = managementApplyEnabled;
   boundary.ManagementRootExecutionApproved = false;
-  boundary.TemporaryGrantApplyEnabled = false;
+  boundary.TemporaryGrantApplyEnabled = isAuthorGrant;
   boundary.PaidCellApplyReady = false;
   boundary.ApprovedManagementStackName = managementStackName;
   boundary.ApprovedCellStackName = stackName;
@@ -647,8 +673,10 @@ export async function renderB5CellLifecycleManagementTemplate({
     const templateLocation = approvedTemplateLocation(approvedTemplateSha256);
     boundary.ApprovedChangeSetName = approvedChangeSetName;
     boundary.ApprovedTemplateSha256 = approvedTemplateSha256;
+    boundary.ApprovedTemplateCanonicalSha256 = approvedTemplateCanonicalSha256;
     boundary.ApprovedTemplateUrl = templateLocation.url;
     boundary.ApprovedCellExpiresAt = approvedCellExpiresAt;
+    boundary.GrantReviewedAt = grantReviewedAt;
     boundary.GrantExpiresAt = grantExpiresAt;
   }
 
@@ -693,10 +721,14 @@ export async function renderB5CellLifecycleManagementTemplate({
 
   template.Description = isLocked
     ? "Locked IAM-only J5g-a Shared Cell lifecycle management root; cloud apply is enabled for this exact shape but execution still requires separate approval, and no paid Cell or TTL deletion is approved."
-    : `Offline-only J5g-a Shared Cell lifecycle IAM contract (${shape}); cloud apply, paid Cell, and TTL deletion are disabled.`;
+    : isAuthorGrant
+      ? "Author-only J5g-a Shared Cell lifecycle management grant; only the exact digest-bound child Change Set may be authored, paid Cell execution and TTL deletion remain disabled."
+      : `Offline-only J5g-a Shared Cell lifecycle IAM contract (${shape}); cloud apply, paid Cell, and TTL deletion are disabled.`;
   template.Outputs.SafetyState.Value = isLocked
     ? "LOCKED_IAM_MANAGEMENT_ROOT_APPLY_ENABLED_EXECUTION_NOT_APPROVED_NO_PAID_CELL"
-    : `OFFLINE_ONLY_${shape.toUpperCase()}_NOT_APPLY_ENABLED_NO_PAID_CELL_APPROVAL`;
+    : isAuthorGrant
+      ? "AUTHOR_GRANT_MANAGEMENT_ROOT_APPLY_ENABLED_CHILD_EXECUTION_NOT_APPROVED_NO_PAID_CELL"
+      : `OFFLINE_ONLY_${shape.toUpperCase()}_NOT_APPLY_ENABLED_NO_PAID_CELL_APPROVAL`;
   assertPolicySizes(template);
   const rendered = `${JSON.stringify(template)}\n`;
   if (Buffer.byteLength(rendered, "utf8") > maximumDirectTemplateBytes) {
@@ -714,7 +746,7 @@ async function main() {
   const output = argument("--output");
   if (!output) {
     throw new Error(
-      "usage: node render-b5-cell-lifecycle-management.mjs --shape <shape> --output <path> [--approved-change-set-name <name> --approved-template-sha256 <raw-sha256> --approved-cell-expires-at <UTC> --grant-expires-at <UTC>]",
+      "usage: node render-b5-cell-lifecycle-management.mjs --shape <shape> --output <path> [--approved-change-set-name <name> --approved-template-sha256 <raw-sha256> --approved-template-canonical-sha256 <canonical-sha256> --approved-cell-expires-at <UTC> --grant-reviewed-at <UTC> --grant-expires-at <UTC>]",
     );
   }
   const shape = argument("--shape") || "Locked";
@@ -722,7 +754,11 @@ async function main() {
     shape,
     approvedChangeSetName: argument("--approved-change-set-name"),
     approvedTemplateSha256: argument("--approved-template-sha256"),
+    approvedTemplateCanonicalSha256: argument(
+      "--approved-template-canonical-sha256",
+    ),
     approvedCellExpiresAt: argument("--approved-cell-expires-at"),
+    grantReviewedAt: argument("--grant-reviewed-at"),
     grantExpiresAt: argument("--grant-expires-at"),
   });
   const outputPath = path.resolve(process.cwd(), output);

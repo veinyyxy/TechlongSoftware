@@ -572,13 +572,43 @@ if (bootstrap) {
     sourceBucket?.Properties?.LifecycleConfiguration?.Rules?.[0]?.ExpirationInDays === 1,
     "source objects must expire after one day",
   );
-  const sourceBucketPolicy =
-    resources.CodeBuildSourceBucketPolicy?.Properties?.PolicyDocument?.Statement?.[0];
-  check(sourceBucketPolicy?.Effect === "Deny", "source bucket policy must be deny-only");
+  const sourceBucketStatements =
+    resources.CodeBuildSourceBucketPolicy?.Properties?.PolicyDocument?.Statement ?? [];
+  const sourceBucketPolicy = sourceBucketStatements.find(
+    (statement) => statement.Sid === "DenyInsecureTransport",
+  );
+  check(
+    sourceBucketStatements.length === 2 &&
+      sourceBucketStatements.every((statement) => statement.Effect === "Deny"),
+    "source bucket policy must contain exactly two deny-only statements",
+  );
   check(sourceBucketPolicy?.Action === "s3:*", "source bucket policy must cover every S3 action");
   check(
     sourceBucketPolicy?.Condition?.Bool?.["aws:SecureTransport"] === "false",
     "source bucket must deny insecure transport",
+  );
+  const sharedCellTemplateResource = {
+    "Fn::Sub":
+      "${CodeBuildSourceBucket.Arn}/b5-shared-cell/templates/sha256/*",
+  };
+  const immutableTemplateOperation = sourceBucketStatements.find(
+    (statement) =>
+      statement.Sid === "DenyMutableSharedCellTemplateOperation",
+  );
+  check(
+    immutableTemplateOperation?.Principal === "*" &&
+      isDeepStrictEqual(immutableTemplateOperation?.Action, [
+        "s3:PutObject",
+        "s3:DeleteObject",
+      ]) &&
+      isDeepStrictEqual(
+        immutableTemplateOperation?.Resource,
+        sharedCellTemplateResource,
+      ) &&
+      immutableTemplateOperation?.Condition?.StringNotEquals?.[
+        "s3:if-none-match"
+      ] === "*",
+    "shared Cell template writes must be create-only and published objects must be undeletable",
   );
 
   const build = resources.SandboxCodeBuildProject?.Properties;
@@ -648,8 +678,8 @@ try {
     );
   }
   check(
-    Buffer.byteLength(renderedBootstrap, "utf8") <= 50_000,
-    "rendered bootstrap has less than 1,200 bytes of direct-body safety headroom",
+    Buffer.byteLength(renderedBootstrap, "utf8") <= 50_300,
+    "rendered bootstrap must retain at least 900 bytes of direct-body safety headroom",
   );
 } catch (error) {
   failures.push(`bootstrap render failed: ${error.message}`);

@@ -394,6 +394,10 @@ deployedJ5dLocked.Resources.ProvisionerBoundary.Properties.PolicyDocument.Statem
   deployedJ5dLocked.Resources.ProvisionerBoundary.Properties.PolicyDocument.Statement.filter(
     (statement) => !j5eStableProvisionerReadSids.includes(statement.Sid),
   );
+deployedJ5dLocked.Resources.CodeBuildSourceBucketPolicy.Properties.PolicyDocument.Statement =
+  deployedJ5dLocked.Resources.CodeBuildSourceBucketPolicy.Properties.PolicyDocument.Statement.filter(
+    (statement) => statement.Sid !== "DenyMutableSharedCellTemplateOperation",
+  );
 const deployedLifecycleRegistrationRevoke = structuredClone(deployedJ5dLocked);
 const deployedCodeBuildRepository = codeBuildImageRepositoryStatement(
   deployedLifecycleRegistrationRevoke,
@@ -514,6 +518,12 @@ function changedResourceIds(before, after) {
     .sort();
 }
 
+const renderedBeforeSharedCellTemplatePolicy = structuredClone(rendered);
+renderedBeforeSharedCellTemplatePolicy.Resources.CodeBuildSourceBucketPolicy.Properties.PolicyDocument.Statement =
+  renderedBeforeSharedCellTemplatePolicy.Resources.CodeBuildSourceBucketPolicy.Properties.PolicyDocument.Statement.filter(
+    (statement) => statement.Sid !== "DenyMutableSharedCellTemplateOperation",
+  );
+
 const lifecycleReadbackResourceChanges = [
   "DeploymentWorkerRole",
   "ProvisionerBoundary",
@@ -553,9 +563,20 @@ assert.deepEqual(
   "CodeBuildImagePull must change only CodeBuildRole",
 );
 assert.deepEqual(
-  changedResourceIds(deployedJ5dLocked.Resources, rendered.Resources),
+  changedResourceIds(
+    deployedJ5dLocked.Resources,
+    renderedBeforeSharedCellTemplatePolicy.Resources,
+  ),
   ["ProvisionerBoundary"],
   "J5e stable read increment must change only ProvisionerBoundary",
+);
+assert.deepEqual(
+  changedResourceIds(
+    renderedBeforeSharedCellTemplatePolicy.Resources,
+    rendered.Resources,
+  ),
+  ["CodeBuildSourceBucketPolicy"],
+  "J5g-a authoring preflight must add only the immutable Shared Cell template policy",
 );
 assert.deepEqual(
   changedResourceIds(rendered.Resources, provisionAuthorityGrant.Resources),
@@ -590,12 +611,22 @@ const rollbackResourceChanges = [
 ];
 assert.deepEqual(
   changedResourceIds(deployedB5Initial.Resources, rollback.Resources),
-  ["CodeBuildRole", "ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
+  [
+    "CodeBuildRole",
+    "CodeBuildSourceBucketPolicy",
+    "ExecutionRoleBoundary",
+    ...rollbackResourceChanges,
+  ].sort(),
   "historical B5-I to rollback must retain the later execution-boundary hardening",
 );
 assert.deepEqual(
   changedResourceIds(deployedLifecycleReadback.Resources, rollback.Resources),
-  ["CodeBuildRole", "ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
+  [
+    "CodeBuildRole",
+    "CodeBuildSourceBucketPolicy",
+    "ExecutionRoleBoundary",
+    ...rollbackResourceChanges,
+  ].sort(),
   "historical LifecycleReadback to rollback must retain the later execution-boundary hardening",
 );
 assert.deepEqual(
@@ -603,7 +634,12 @@ assert.deepEqual(
     deployedLifecycleTaskRegistration.Resources,
     rollback.Resources,
   ),
-  ["CodeBuildRole", "ExecutionRoleBoundary", ...rollbackResourceChanges].sort(),
+  [
+    "CodeBuildRole",
+    "CodeBuildSourceBucketPolicy",
+    "ExecutionRoleBoundary",
+    ...rollbackResourceChanges,
+  ].sort(),
   "rollback from the temporary registration grant must also reflect its final revocation",
 );
 assert.deepEqual(
@@ -611,7 +647,7 @@ assert.deepEqual(
     deployedLifecycleRegistrationRevoke.Resources,
     rollback.Resources,
   ),
-  ["CodeBuildRole", ...rollbackResourceChanges].sort(),
+  ["CodeBuildRole", "CodeBuildSourceBucketPolicy", ...rollbackResourceChanges].sort(),
   "rollback from the historical final revoke must retain CodeBuild image-pull readback",
 );
 assert.deepEqual(
@@ -1497,9 +1533,9 @@ assert.match(
   oneShotContract,
   /techlong-sandbox-\$\{input\.accountId\}-\$\{input\.region\}-[\s\S]*?tenant-receipts/,
 );
-assert.ok(Buffer.byteLength(renderedSource, "utf8") <= 50_000);
-assert.ok(Buffer.byteLength(registrationGrantSource, "utf8") <= 50_000);
-assert.ok(Buffer.byteLength(provisionAuthorityGrantSource, "utf8") <= 50_500);
+assert.ok(Buffer.byteLength(renderedSource, "utf8") <= 50_300);
+assert.ok(Buffer.byteLength(registrationGrantSource, "utf8") <= 50_300);
+assert.ok(Buffer.byteLength(provisionAuthorityGrantSource, "utf8") <= 50_750);
 assert.ok(Buffer.byteLength(provisionAuthorityGrantSource, "utf8") < 51_200);
 assert.ok(Buffer.byteLength(rollbackSource, "utf8") <= 50_000);
 assert.match(
@@ -1530,41 +1566,41 @@ const provisionAuthorityGrantRawHash = createHash("sha256")
   .update(provisionAuthorityGrantSource)
   .digest("hex");
 const rollbackRawHash = createHash("sha256").update(rollbackSource).digest("hex");
-assert.equal(Buffer.byteLength(renderedSource, "utf8"), 49_922);
+assert.equal(Buffer.byteLength(renderedSource, "utf8"), 50_182);
 assert.equal(
   renderedRawHash,
-  "5854019ecacde5554b756e538556cf69f330cce79901ac7950317f2f5bbd73cc",
+  "1a5616cf633d8bb08bdd34b841c965118d7ff5b96b03c9f3d87b3cf66be02cb3",
 );
 assert.equal(
   renderedCanonicalHash,
-  "8231ff876b99b3f5374d1ee2978736f8ba3a48f1260f3d85382e67e9a453caf9",
+  "bcecf7e736b20d51633b7f2a2273f24d072fa1d5d687fb64604e93faf74a817e",
 );
-assert.equal(Buffer.byteLength(registrationGrantSource, "utf8"), 49_993);
+assert.equal(Buffer.byteLength(registrationGrantSource, "utf8"), 50_253);
 assert.equal(
   registrationGrantRawHash,
-  "2613f51472d1ccab01d318743d7b04d1b000a65f1a676ef0ed1e0fb3b737ba9a",
+  "1b8a6019046d12470dc788186d5c9f90c365afdc9bf4e98801f8914fe10b3d3c",
 );
 assert.equal(
   registrationGrantCanonicalHash,
-  "954e95be16be343c2bbc99fde8727e79434123bc2bee1d619af03c57f7d80f2a",
+  "9ff76b22fb553772c7d6c64c193bbced8cbec0621806148688ee94bb8a163530",
 );
-assert.equal(Buffer.byteLength(provisionAuthorityGrantSource, "utf8"), 50_457);
+assert.equal(Buffer.byteLength(provisionAuthorityGrantSource, "utf8"), 50_717);
 assert.equal(
   provisionAuthorityGrantRawHash,
-  "58fb4977a0bbec0e62b4a746d8f59d50a0c1a3015ee90ee473d7201e10c079c3",
+  "f32e623f4e12e7fd01769010a63648e0b90f913daf1e330e77229654eb2b3d51",
 );
 assert.equal(
   provisionAuthorityGrantCanonicalHash,
-  "eae66c741b96a47cbd9b311ce10980e17efec2e919e0b6ff7e1b88e88f7c247c",
+  "3ef4e05f81e3f82e049348a4295e84115a8887664e9f159d9b16ff742f4f9e90",
 );
-assert.equal(Buffer.byteLength(rollbackSource, "utf8"), 33_378);
+assert.equal(Buffer.byteLength(rollbackSource, "utf8"), 33_638);
 assert.equal(
   rollbackRawHash,
-  "b3a47f4a2a90b68e4cc5da7e7d188197ef1aeb04d877abe8a9e6a52fdd1cd8d9",
+  "b1e16cf6380dbf6bb3a5b702a2d97c4eb327103ab3895d5af279ac476ce2fbf3",
 );
 assert.equal(
   rollbackCanonicalHash,
-  "11229dd7d17b081cdd5b2755bb86d7d7b27ba0809fe61b465ad8529718d4888b",
+  "c53d07c34f48e80940f9f6572f9fcc86f923106d309094365a4e863f6cfca17b",
 );
 assert.equal(canonicalTemplateSha256(renderedSource), renderedCanonicalHash);
 assert.equal(

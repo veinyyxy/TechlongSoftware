@@ -5,12 +5,14 @@
   "scripts": {
     "test:b5-cell-bootstrap": "node ./scripts/validate-b5-cell-bootstrap-management.mjs && node ./scripts/validate-b5-cell-bootstrap.mjs",
     "test:b5-cell-lifecycle-management": "node ./scripts/validate-b5-cell-lifecycle-management.mjs",
+    "test:b5-shared-cell-author-candidate": "node --experimental-strip-types ./scripts/validate-b5-shared-cell-author-candidate.mjs",
+    "test:b5-shared-cell-prerequisite-preflight": "node ./scripts/validate-b5-shared-cell-prerequisite-preflight.mjs",
     "test:b5-shared-cell-cleanup-control": "node ./scripts/validate-b5-shared-cell-cleanup-control.mjs",
     "test:b5-shared-cell-cleanup-production-adapters": "node ./scripts/validate-b5-shared-cell-cleanup-production-adapters.mjs",
     "test:b5-shared-cell-cleanup-grants": "node ./scripts/validate-b5-shared-cell-cleanup-grants.mjs",
     "test:b5-shared-cell-admission-fence": "node ./scripts/validate-b5-shared-cell-admission-fence.mjs",
     "test:b5-shared-cell-postgres-cutover": "node ./scripts/validate-b5-shared-cell-postgres-cutover.mjs",
     "test:b5-shared-cell-postgres-migration-apply": "node ./scripts/validate-b5-shared-cell-postgres-migration-apply.mjs",
-    "test": "node ./scripts/validate.mjs && node --experimental-strip-types ./scripts/validate-cell.mjs && npm run test:b5-cell-bootstrap && npm run test:b5-cell-lifecycle-management && npm run test:b5-shared-cell-cleanup-control && npm run test:b5-shared-cell-cleanup-production-adapters && npm run test:b5-shared-cell-cleanup-grants && npm run test:b5-shared-cell-admission-fence && npm run test:b5-shared-cell-postgres-cutover && npm run test:b5-shared-cell-postgres-migration-apply && node ./scripts/validate-b5-support.mjs && node ./scripts/validate-b5-shared-cell-provision-authority-preflight.mjs && node ./scripts/validate-b5-shared-cell-provision-authority-operator.mjs && node ./scripts/validate-b5-lifecycle-task-definition.mjs && node ./scripts/validate-b5-lifecycle-log-support.mjs"
+    "test": "node ./scripts/validate.mjs && node --experimental-strip-types ./scripts/validate-cell.mjs && npm run test:b5-cell-bootstrap && npm run test:b5-cell-lifecycle-management && npm run test:b5-shared-cell-author-candidate && npm run test:b5-shared-cell-prerequisite-preflight && npm run test:b5-shared-cell-cleanup-control && npm run test:b5-shared-cell-cleanup-production-adapters && npm run test:b5-shared-cell-cleanup-grants && npm run test:b5-shared-cell-admission-fence && npm run test:b5-shared-cell-postgres-cutover && npm run test:b5-shared-cell-postgres-migration-apply && node ./scripts/validate-b5-support.mjs && node ./scripts/validate-b5-shared-cell-provision-authority-preflight.mjs && node ./scripts/validate-b5-shared-cell-provision-authority-operator.mjs && node ./scripts/validate-b5-lifecycle-task-definition.mjs && node ./scripts/validate-b5-lifecycle-log-support.mjs"
   }
 }

@@ -21,8 +21,10 @@ const operationPath = path.join(
   "s3-b5-cell-lifecycle-management.ps1",
 );
 const sha256 = "0123456789abcdef".repeat(4);
+const canonicalSha256 = "fedcba9876543210".repeat(4);
 const changeSetName = `techlong-sandbox-cell-sandbox-1-${sha256.slice(0, 16)}`;
 const cellExpiresAt = "2026-09-08T12:00:00.000Z";
+const grantReviewedAt = "2026-09-07T11:30:00.000Z";
 const grantExpiresAt = "2026-09-07T12:00:00.000Z";
 const templateUrl =
   `https://techlong-sandbox-build-source-402010193138-ca-central-1.s3.ca-central-1.amazonaws.com/b5-shared-cell/templates/sha256/${sha256}.json`;
@@ -65,7 +67,9 @@ function assertTemporaryStatementsExpire(statements, label) {
 const grantInput = {
   approvedChangeSetName: changeSetName,
   approvedTemplateSha256: sha256,
+  approvedTemplateCanonicalSha256: canonicalSha256,
   approvedCellExpiresAt: cellExpiresAt,
+  grantReviewedAt,
   grantExpiresAt,
 };
 const [source, operation, lockedSource, authorSource, executeSource, rollbackSource] =
@@ -262,16 +266,17 @@ for (const template of [locked, author, execute, rollback]) {
 for (const template of [author, execute, rollback]) {
   assert.equal(template.Metadata.SafetyBoundary.ApprovedChangeSetName, changeSetName);
   assert.equal(template.Metadata.SafetyBoundary.ApprovedTemplateSha256, sha256);
+  assert.equal(
+    template.Metadata.SafetyBoundary.ApprovedTemplateCanonicalSha256,
+    canonicalSha256,
+  );
   assert.equal(template.Metadata.SafetyBoundary.ApprovedTemplateUrl, templateUrl);
   assert.equal(template.Metadata.SafetyBoundary.ApprovedCellExpiresAt, cellExpiresAt);
+  assert.equal(template.Metadata.SafetyBoundary.GrantReviewedAt, grantReviewedAt);
   assert.equal(template.Metadata.SafetyBoundary.GrantExpiresAt, grantExpiresAt);
   assert.equal(template.Metadata.SafetyBoundary.ApplyReady, false);
   assert.equal(template.Metadata.SafetyBoundary.PaidCellExecutionApproved, false);
-  assert.equal(template.Metadata.SafetyBoundary.CloudApplyEnabled, false);
-  assert.equal(template.Metadata.SafetyBoundary.LocalValidateOnly, true);
-  assert.equal(template.Metadata.SafetyBoundary.ManagementRootApplyEnabled, false);
   assert.equal(template.Metadata.SafetyBoundary.ManagementRootExecutionApproved, false);
-  assert.equal(template.Metadata.SafetyBoundary.TemporaryGrantApplyEnabled, false);
   assert.equal(template.Metadata.SafetyBoundary.PaidCellApplyReady, false);
   assert.equal(
     template.Metadata.SafetyBoundary.ApprovedManagementStackName,
@@ -281,6 +286,21 @@ for (const template of [author, execute, rollback]) {
     template.Metadata.SafetyBoundary.ApprovedCellStackName,
     "techlong-sandbox-cell-sandbox-1",
   );
+}
+
+assert.equal(author.Metadata.SafetyBoundary.CloudApplyEnabled, true);
+assert.equal(author.Metadata.SafetyBoundary.LocalValidateOnly, false);
+assert.equal(author.Metadata.SafetyBoundary.ManagementRootApplyEnabled, true);
+assert.equal(author.Metadata.SafetyBoundary.TemporaryGrantApplyEnabled, true);
+assert.equal(
+  author.Outputs.SafetyState.Value,
+  "AUTHOR_GRANT_MANAGEMENT_ROOT_APPLY_ENABLED_CHILD_EXECUTION_NOT_APPROVED_NO_PAID_CELL",
+);
+for (const template of [execute, rollback]) {
+  assert.equal(template.Metadata.SafetyBoundary.CloudApplyEnabled, false);
+  assert.equal(template.Metadata.SafetyBoundary.LocalValidateOnly, true);
+  assert.equal(template.Metadata.SafetyBoundary.ManagementRootApplyEnabled, false);
+  assert.equal(template.Metadata.SafetyBoundary.TemporaryGrantApplyEnabled, false);
   assert.equal(
     template.Outputs.SafetyState.Value,
     `OFFLINE_ONLY_${template.Metadata.SafetyBoundary.OperatorGrantState}_NOT_APPLY_ENABLED_NO_PAID_CELL_APPROVAL`,
@@ -456,9 +476,26 @@ await assert.rejects(
   renderB5CellLifecycleManagementTemplate({
     shape: "ExecuteGrant",
     ...grantInput,
+    grantReviewedAt: "2026-09-08T11:30:00.000Z",
     grantExpiresAt: cellExpiresAt,
   }),
-  /must expire before the Shared Cell TTL/,
+  /must expire at least 15 minutes before the Shared Cell TTL/,
+);
+await assert.rejects(
+  renderB5CellLifecycleManagementTemplate({
+    shape: "AuthorGrant",
+    ...grantInput,
+    grantReviewedAt: "2026-09-07T10:59:59.999Z",
+  }),
+  /must not exceed 60 minutes/,
+);
+await assert.rejects(
+  renderB5CellLifecycleManagementTemplate({
+    shape: "AuthorGrant",
+    ...grantInput,
+    approvedTemplateCanonicalSha256: "",
+  }),
+  /canonical template SHA-256/,
 );
 await assert.rejects(
   renderB5CellLifecycleManagementTemplate({
@@ -474,7 +511,10 @@ assert.match(
   /\[ValidateSet\('LocalValidate', 'OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet', 'Readback'\)\]/,
 );
 assert.match(operation, /\[string\]\$Mode = 'LocalValidate'/);
-assert.match(operation, /\[ValidateSet\('InitialLocked'\)\]/);
+assert.match(
+  operation,
+  /\[ValidateSet\('InitialLocked', 'AuthorGrant', 'AuthorRevoke'\)\]/,
+);
 assert.match(operation, /\[string\]\$UpdateShape = 'InitialLocked'/);
 assert.match(operation, /validate-b5-cell-lifecycle-management\.mjs/);
 assert.match(
@@ -507,16 +547,42 @@ assert.match(operation, /--consistent-read/);
 assert.match(operation, /'--query', '\{Item:Item\}'/);
 assert.match(operation, /Assert-AuthorityAbsent/);
 assert.match(operation, /Assert-ManagementIamNamesMissing/);
-assert.match(operation, /--shape Locked --output \$path/);
-assert.match(operation, /\$binding = "\$UpdateShape\|\$\(\$Snapshot\.RawSha256\)\|\$\(\$Snapshot\.CanonicalSha256\)"/);
-assert.match(operation, /I_ACKNOWLEDGE_J5GA_INITIAL_LOCKED_CHANGE_SET_CREATE/);
-assert.match(operation, /I_ACKNOWLEDGE_J5GA_INITIAL_LOCKED_IAM_ROOT_EXECUTE/);
+assert.match(
+  operation,
+  /@\(\$renderer, '--shape', \$RendererShape, '--output', \$path\)/,
+);
+assert.match(operation, /\$binding = @\(/);
+for (const bindingField of [
+  "$UpdateShape",
+  "$expectedManagementStackId",
+  "$ApprovedChangeSetName",
+  "$ApprovedTemplateSha256",
+  "$ApprovedTemplateCanonicalSha256",
+  "$ApprovedCellExpiresAt",
+  "$GrantReviewedAt",
+  "$GrantExpiresAt",
+  "$Snapshot.RawSha256",
+  "$Snapshot.CanonicalSha256",
+]) assert.ok(operation.includes(bindingField), `missing binding field ${bindingField}`);
+assert.match(
+  operation,
+  /\$expectedManagementStackId = 'arn:aws:cloudformation:ca-central-1:402010193138:stack\/techlong-s3-b5-cell-lifecycle-management\/fb742b50-afb2-11f1-85b7-02588681429d'/,
+);
+for (const phrase of [
+  "I_ACKNOWLEDGE_J5GA_INITIAL_LOCKED_CHANGE_SET_CREATE",
+  "I_ACKNOWLEDGE_J5GA_INITIAL_LOCKED_IAM_ROOT_EXECUTE",
+  "I_ACKNOWLEDGE_J5GA_AUTHOR_GRANT_CHANGE_SET_CREATE",
+  "I_ACKNOWLEDGE_J5GA_AUTHOR_GRANT_EXECUTE",
+  "I_ACKNOWLEDGE_J5GA_AUTHOR_REVOKE_CHANGE_SET_CREATE",
+  "I_ACKNOWLEDGE_J5GA_AUTHOR_REVOKE_EXECUTE",
+]) assert.ok(operation.includes(phrase), `missing transition phrase ${phrase}`);
 for (const acknowledgement of [
   "AcknowledgeAwsWrite",
   "AcknowledgeCreatesNamedIam",
   "AcknowledgeSourceUserBootstrapRisk",
   "AcknowledgeMfaSession",
   "AcknowledgeLockedIamOnly",
+  "AcknowledgeTemporaryAuthorGrant",
   "AcknowledgeChangeSetReviewed",
 ]) assert.match(operation, new RegExp(`\\[switch\\]\\$${acknowledgement}`));
 for (const confirmation of [
@@ -528,6 +594,12 @@ for (const confirmation of [
   "ConfirmChangeSetName",
   "ConfirmChangeSetArn",
   "ConfirmStackId",
+  "ApprovedChangeSetName",
+  "ApprovedTemplateSha256",
+  "ApprovedTemplateCanonicalSha256",
+  "ApprovedCellExpiresAt",
+  "GrantReviewedAt",
+  "GrantExpiresAt",
 ]) assert.match(operation, new RegExp(`\\[string\\]\\$${confirmation}`));
 assert.match(operation, /'cloudformation', 'create-change-set'/);
 assert.match(operation, /'cloudformation', 'describe-change-set'/);
@@ -536,6 +608,8 @@ assert.match(
   operation,
   /'--change-set-name', \(\[string\]\$changeSet\.ChangeSetId\)/,
 );
+assert.match(operation, /\$ConfirmChangeSetArn -cne \[string\]\$ChangeSet\.ChangeSetId/);
+assert.match(operation, /\$ConfirmStackId -cne \[string\]\$ChangeSet\.StackId/);
 assert.match(operation, /'CAPABILITY_NAMED_IAM'/);
 assert.match(operation, /'--on-stack-failure', 'DELETE'/);
 assert.match(operation, /Assert-ReviewedChangeSet/);
@@ -554,14 +628,18 @@ assert.match(operation, /ContextKeyValues=\$\{cellStackName\}-simulation/);
 assert.match(operation, /cluster\/\$cellId/);
 assert.match(operation, /techlong-sandbox-cell\/\$\{cellStackName\}-ttl/);
 assert.match(operation, /log-group:\/aws\/rds\/cluster\/\$cellStackName\/postgresql/);
-assert.match(
-  operation,
-  /LOCKED_IAM_MANAGEMENT_ROOT_APPLY_ENABLED_EXECUTION_NOT_APPROVED_NO_PAID_CELL/,
-);
+assert.match(operation, /ExpectedAction = 'Modify'/);
+assert.match(operation, /UPDATE Change Set must contain only the exact CellOperatorBoundary Properties modification/);
+assert.match(operation, /Assert-GrantWindow -MinimumRemainingMinutes 15/);
+assert.match(operation, /Assert-GrantWindow -MinimumRemainingMinutes 10/);
+assert.match(operation, /Assert-GrantWindow -MinimumRemainingMinutes 5/);
 assert.doesNotMatch(operation, /ValidateSet\([^)]*Delete/);
-assert.doesNotMatch(operation, /--shape (?:AuthorGrant|ExecuteGrant|RollbackGrant)/);
+assert.doesNotMatch(
+  operation,
+  /\[ValidateSet\([^)]*(?:ExecuteGrant|RollbackGrant)/,
+);
 assert.doesNotMatch(operation, /'cloudformation',\s*'delete-stack'/i);
 
 console.log(
-  "B5-J5g-a Shared Cell lifecycle IAM contract validated (InitialLocked online gates, 3 offline-only grant shapes, 4 resources, 18 resource types, policy quotas enforced; validator made no AWS call).",
+  "B5-J5g-a Shared Cell lifecycle IAM contract validated (Locked plus Author-only management gates, Execute/Rollback offline-only, 4 resources, 18 resource types, policy quotas enforced; validator made no AWS call).",
 );

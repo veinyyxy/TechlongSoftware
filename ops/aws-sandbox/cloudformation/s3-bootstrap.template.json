@@ -530,6 +530,18 @@
               "Condition": {
                 "Bool": { "aws:SecureTransport": "false" }
               }
+            },
+            {
+              "Sid": "DenyMutableSharedCellTemplateOperation",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": ["s3:PutObject", "s3:DeleteObject"],
+              "Resource": {
+                "Fn::Sub": "${CodeBuildSourceBucket.Arn}/b5-shared-cell/templates/sha256/*"
+              },
+              "Condition": {
+                "StringNotEquals": { "s3:if-none-match": "*" }
+              }
             }
           ]
         }

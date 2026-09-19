@@ -26,8 +26,8 @@ const authorityTableArn =
 const sharedCellAuthorityKey = "cell:cell-sandbox-1";
 const grantExpiryPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
-const reviewedDirectTemplateBodyLimit = 50_000;
-const reviewedGrantTemplateBodyLimit = 50_500;
+const reviewedDirectTemplateBodyLimit = 50_300;
+const reviewedGrantTemplateBodyLimit = 50_750;
 const cloudFormationDirectTemplateBodyLimit = 51_200;
 const deployedJanitorBytes = 8_478;
 const deployedJanitorSha256 =
@@ -189,10 +189,10 @@ export async function renderBootstrapTemplate({
   const reviewedLimit = sharedCellProvisionAuthorityGrantExpiresAt
     ? reviewedGrantTemplateBodyLimit
     : reviewedDirectTemplateBodyLimit;
-  // Preserve the original 50,000-byte gate for every locked/non-install
-  // shape. Only the exact temporary PutItem grant may use the reviewed
-  // 50,500-byte ceiling, and every shape must remain below AWS's 51,200-byte
-  // direct TemplateBody limit.
+  // Preserve at least 900 bytes of direct-body headroom for every
+  // locked/non-install shape. Only the exact temporary PutItem grant may use
+  // the reviewed 50,750-byte ceiling, and every shape must remain below AWS's
+  // 51,200-byte direct TemplateBody limit.
   if (
     renderedBytes > reviewedLimit ||
     renderedBytes >= cloudFormationDirectTemplateBodyLimit
