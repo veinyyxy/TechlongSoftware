@@ -270,7 +270,13 @@ function Assert-AuthorityAbsent {
     '--table-name', $authorityTableName, '--key', $keyDocument,
     '--consistent-read', '--return-consumed-capacity', 'NONE'
   ) -AllowEmptyObject
-  $properties = @($response.PSObject.Properties.Name)
+  # Enumerate PSPropertyInfo objects through the pipeline. PowerShell member
+  # enumeration turns an empty collection's `.Name` into a single `$null`,
+  # which would incorrectly classify DynamoDB's exact `{}` response as drift.
+  $properties = @(
+    $response.PSObject.Properties |
+      ForEach-Object { [string]$_.Name }
+  )
   if ($properties -contains 'Item') {
     throw "Authority key $authorityKey is PRESENT; its value was not displayed."
   }

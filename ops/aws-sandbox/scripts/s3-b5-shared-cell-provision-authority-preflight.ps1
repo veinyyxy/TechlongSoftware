@@ -278,7 +278,12 @@ function Assert-AuthorityKeyAbsent {
     Write-Host 'Shared Cell authority key state: ABSENT'
     return
   }
-  $responseProperties = @($response.PSObject.Properties.Name)
+  # Keep DynamoDB's exact `{}` result as a true zero-property response.
+  # Direct member enumeration produces a one-element `$null` array here.
+  $responseProperties = @(
+    $response.PSObject.Properties |
+      ForEach-Object { [string]$_.Name }
+  )
   if ($responseProperties -contains 'Item') {
     Write-Host 'Shared Cell authority key state: PRESENT_BLOCKED'
     throw 'The Shared Cell authority key already exists; its contents were not displayed.'

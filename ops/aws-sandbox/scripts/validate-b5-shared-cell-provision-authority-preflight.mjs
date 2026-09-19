@@ -115,6 +115,14 @@ assert.match(
 assert.match(operationScript, /\$responseProperties\.Count -ne 0/);
 assert.match(
   operationScript,
+  /\$responseProperties = @\(\s*\$response\.PSObject\.Properties\s*\|\s*ForEach-Object \{ \[string\]\$_\.Name \}\s*\)/,
+);
+assert.doesNotMatch(
+  operationScript,
+  /\$responseProperties = @\(\$response\.PSObject\.Properties\.Name\)/,
+);
+assert.match(
+  operationScript,
   /\$keyDocument = '\{"authority_key":\{"S":"cell:cell-sandbox-1"\}\}'/,
 );
 assert.match(operationScript, /Shared Cell authority key state: PRESENT_BLOCKED/);

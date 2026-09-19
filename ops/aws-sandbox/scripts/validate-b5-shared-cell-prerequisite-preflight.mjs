@@ -56,6 +56,14 @@ assert.match(
 );
 assert.match(operation, /\$expectedEngineVersion = '16\.14'/);
 assert.match(operation, /\$expectedDbInstanceClass = 'db\.serverless'/);
+assert.match(
+  operation,
+  /\$properties = @\(\s*\$response\.PSObject\.Properties\s*\|\s*ForEach-Object \{ \[string\]\$_\.Name \}\s*\)/,
+);
+assert.doesNotMatch(
+  operation,
+  /\$properties = @\(\$response\.PSObject\.Properties\.Name\)/,
+);
 
 for (const setting of ["login_session", "region"]) {
   assert.ok(
