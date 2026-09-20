@@ -880,22 +880,97 @@ function Assert-ExactSharedCellTemplateImmutabilityResourceChange {
   if ($scope.Count -ne 1 -or [string]$scope[0] -cne 'Properties') {
     throw 'Shared Cell template immutability may only change Bucket Policy properties.'
   }
-  $details = @($Resource.Details)
-  if ($details.Count -ne 1) {
-    throw 'Shared Cell template immutability must contain one exact PolicyDocument detail.'
+
+  try {
+    $beforeContext = ([string]$Resource.BeforeContext) | ConvertFrom-Json -Depth 100
+    $afterContext = ([string]$Resource.AfterContext) | ConvertFrom-Json -Depth 100
+  } catch {
+    throw 'Shared Cell template immutability property contexts are not exact JSON.'
   }
-  $detail = $details[0]
-  if (
-    [string]$detail.Target.Attribute -cne 'Properties' -or
-    [string]$detail.Target.Name -cne 'PolicyDocument' -or
-    [string]$detail.Target.RequiresRecreation -cne 'Never' -or
-    [string]$detail.Target.AttributeChangeType -cne 'Modify' -or
-    [string]$detail.Target.Path -cne '/Properties/PolicyDocument' -or
-    [string]$detail.Evaluation -cne 'Static' -or
-    [string]$detail.ChangeSource -cne 'DirectModification' -or
-    -not [string]::IsNullOrEmpty([string]$detail.CausingEntity)
-  ) {
-    throw 'Shared Cell template immutability detail is not the exact direct PolicyDocument modification.'
+  $expectedBeforeContext = [PSCustomObject][ordered]@{
+    Properties = [PSCustomObject][ordered]@{
+      Bucket = $buildSourceBucketName
+      PolicyDocument =
+        (Get-ExpectedBuildSourceBucketPolicy -ImmutableExpected $false)
+    }
+  }
+  $expectedAfterPolicy =
+    Get-ExpectedBuildSourceBucketPolicy -ImmutableExpected $true
+  $expectedAfterContext = [PSCustomObject][ordered]@{
+    Properties = [PSCustomObject][ordered]@{
+      Bucket = $buildSourceBucketName
+      PolicyDocument = $expectedAfterPolicy
+    }
+  }
+  Assert-ExactJsonObject `
+    -Actual $beforeContext `
+    -Expected $expectedBeforeContext `
+    -Label 'Shared Cell template immutability Change Set before context'
+  Assert-ExactJsonObject `
+    -Actual $afterContext `
+    -Expected $expectedAfterContext `
+    -Label 'Shared Cell template immutability Change Set after context'
+
+  $details = @($Resource.Details)
+  if ($details.Count -ne 4) {
+    throw 'Shared Cell template immutability must contain the four exact AWS-expanded PolicyDocument statement details.'
+  }
+  $expectedDetailValues =
+    [System.Collections.Generic.Dictionary[string, object]]::new(
+      [System.StringComparer]::Ordinal
+    )
+  $expectedDetailValues.Add(
+    '/Properties/PolicyDocument/Statement/0',
+    $expectedAfterPolicy.Statement[2]
+  )
+  $expectedDetailValues.Add(
+    '/Properties/PolicyDocument/Statement/1',
+    $expectedAfterPolicy.Statement[1]
+  )
+  $expectedDetailValues.Add(
+    '/Properties/PolicyDocument/Statement/2',
+    $expectedAfterPolicy.Statement[1]
+  )
+  $expectedDetailValues.Add(
+    '/Properties/PolicyDocument/Statement/3',
+    $expectedAfterPolicy.Statement[3]
+  )
+  $observedDetailPaths =
+    [System.Collections.Generic.HashSet[string]]::new(
+      [System.StringComparer]::Ordinal
+    )
+  foreach ($detail in $details) {
+    $path = [string]$detail.Target.Path
+    if (
+      -not $expectedDetailValues.ContainsKey($path) -or
+      $observedDetailPaths.Contains($path) -or
+      [string]$detail.Target.Attribute -cne 'Properties' -or
+      [string]$detail.Target.Name -cne 'PolicyDocument' -or
+      [string]$detail.Target.RequiresRecreation -cne 'Never' -or
+      [string]$detail.Target.AttributeChangeType -cne 'Add' -or
+      -not [string]::IsNullOrEmpty([string]$detail.Target.BeforeValue) -or
+      [string]$detail.Evaluation -cne 'Static' -or
+      [string]$detail.ChangeSource -cne 'DirectModification' -or
+      -not [string]::IsNullOrEmpty([string]$detail.CausingEntity)
+    ) {
+      throw 'Shared Cell template immutability detail is not an exact static AWS-expanded PolicyDocument statement addition.'
+    }
+    try {
+      $afterValue = ([string]$detail.Target.AfterValue) |
+        ConvertFrom-Json -Depth 100
+    } catch {
+      throw 'Shared Cell template immutability detail AfterValue is not exact JSON.'
+    }
+    Assert-ExactJsonObject `
+      -Actual $afterValue `
+      -Expected $expectedDetailValues[$path] `
+      -Label "Shared Cell template immutability Change Set detail $path"
+    if (-not $observedDetailPaths.Add($path)) {
+      throw 'Shared Cell template immutability Change Set contains a duplicate statement detail path.'
+    }
+  }
+  if ($observedDetailPaths.Count -ne $expectedDetailValues.Count) {
+    throw 'Shared Cell template immutability Change Set statement detail paths drifted.'
   }
 }
 
