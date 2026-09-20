@@ -768,6 +768,29 @@ assert.match(
   /\$versioningText = \(\(\$versioningOutput \| Out-String\)\.Trim\(\)\)[\s\S]*\[string\]::IsNullOrWhiteSpace\(\$versioningText\)[\s\S]*\[PSCustomObject\]@\{\}/,
   "an empty successful GetBucketVersioning response must mean exact unconfigured versioning",
 );
+for (const immutableBucketToken of [
+  "DenyMutableSharedCellTemplateOperation",
+  "DenySharedCellTemplateDeletion",
+  "DenyBuildSourceLifecycleMutation",
+  "$sharedCellTemplateObjectKeyPrefix/*",
+  "$childTemplateObjectKeyPrefix/*",
+  "s3:DeleteObjectVersion",
+  "s3:PutLifecycleConfiguration",
+  "get-bucket-lifecycle-configuration",
+  "ExpireBuildSourcesAfterOneDay",
+  "all_storage_classes_128K",
+]) {
+  assert.ok(
+    operationScript.includes(immutableBucketToken),
+    `source-bucket immutability readback is missing ${immutableBucketToken}`,
+  );
+}
+assert.doesNotMatch(operationScript, /'s3api', 'delete-object'/);
+assert.doesNotMatch(operationScript, /function Remove-ExactChildTemplateObject/);
+assert.match(
+  operationScript,
+  /preserved the exact digest-addressed child template object as immutable evidence/,
+);
 assert.match(
   operationScript,
   /\$managerSimulationContext = \$requestedTags \+ @\([\s\S]*iam:PassedToService,ContextKeyValues=cloudformation\.amazonaws\.com/,

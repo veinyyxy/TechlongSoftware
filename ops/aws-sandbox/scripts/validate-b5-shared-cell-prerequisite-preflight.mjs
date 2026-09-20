@@ -48,6 +48,10 @@ assert.match(
 assert.match(operation, /\$templatePrefix = 'b5-shared-cell\/templates\/sha256'/);
 assert.match(
   operation,
+  /\$childBootstrapTemplatePrefix = 'b5-cell-bootstrap\/templates\/sha256'/,
+);
+assert.match(
+  operation,
   /\$immutableTemplatePolicySid = 'DenyMutableSharedCellTemplateOperation'/,
 );
 assert.match(
@@ -223,12 +227,30 @@ assert.match(
   operation,
   /'s3api', 'get-bucket-policy',[\s\S]*?'--expected-bucket-owner', \$expectedAccountId/,
 );
-assert.match(operation, /\$actions -cnotcontains 's3:PutObject'/);
-assert.match(operation, /\$actions -cnotcontains 's3:DeleteObject'/);
+assert.match(operation, /\$statements\.Count -ne 4/);
+assert.match(operation, /\$transportResources -cnotcontains "arn:aws:s3:::\$templateBucketName"/);
+assert.match(operation, /\$transportConditionKeys\[0\] -cne 'aws:SecureTransport'/);
+assert.match(operation, /\[string\]\$writeDeny\.Action -cne 's3:PutObject'/);
+assert.match(operation, /\$writeResources\.Count -ne 2/);
+assert.match(
+  operation,
+  /\$writeResources -cnotcontains "arn:aws:s3:::\$templateBucketName\/\$childBootstrapTemplatePrefix\/\*"/,
+);
+assert.match(operation, /\$deleteActions -cnotcontains 's3:DeleteObject'/);
+assert.match(operation, /\$deleteActions -cnotcontains 's3:DeleteObjectVersion'/);
+assert.match(operation, /\$deleteResources\.Count -ne 2/);
+assert.match(
+  operation,
+  /\$deleteResources -cnotcontains "arn:aws:s3:::\$templateBucketName\/\$childBootstrapTemplatePrefix\/\*"/,
+);
+assert.match(
+  operation,
+  /\[string\]\$lifecycleDeny\.Action -cne 's3:PutLifecycleConfiguration'/,
+);
 assert.match(operation, /\$conditionKeys\[0\] -cne 's3:if-none-match'/);
 assert.match(
   operation,
-  /\$deny\.Condition\.StringNotEquals\.'s3:if-none-match' -cne '\*'/,
+  /\$writeDeny\.Condition\.StringNotEquals\.'s3:if-none-match' -cne '\*'/,
 );
 assert.match(operation, /PLAN_ONLY_JANITOR_EVENT_INCOMPATIBLE/);
 assert.match(operation, /delete_shared_cell_stack/);

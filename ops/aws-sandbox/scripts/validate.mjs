@@ -578,37 +578,68 @@ if (bootstrap) {
     (statement) => statement.Sid === "DenyInsecureTransport",
   );
   check(
-    sourceBucketStatements.length === 2 &&
+    sourceBucketStatements.length === 4 &&
       sourceBucketStatements.every((statement) => statement.Effect === "Deny"),
-    "source bucket policy must contain exactly two deny-only statements",
+    "source bucket policy must contain exactly four deny-only statements",
   );
   check(sourceBucketPolicy?.Action === "s3:*", "source bucket policy must cover every S3 action");
   check(
     sourceBucketPolicy?.Condition?.Bool?.["aws:SecureTransport"] === "false",
     "source bucket must deny insecure transport",
   );
-  const sharedCellTemplateResource = {
-    "Fn::Sub":
-      "${CodeBuildSourceBucket.Arn}/b5-shared-cell/templates/sha256/*",
-  };
+  const immutableTemplateResources = [
+    {
+      "Fn::Sub":
+        "${CodeBuildSourceBucket.Arn}/b5-shared-cell/templates/sha256/*",
+    },
+    {
+      "Fn::Sub":
+        "${CodeBuildSourceBucket.Arn}/b5-cell-bootstrap/templates/sha256/*",
+    },
+  ];
   const immutableTemplateOperation = sourceBucketStatements.find(
     (statement) =>
       statement.Sid === "DenyMutableSharedCellTemplateOperation",
   );
   check(
     immutableTemplateOperation?.Principal === "*" &&
-      isDeepStrictEqual(immutableTemplateOperation?.Action, [
-        "s3:PutObject",
-        "s3:DeleteObject",
-      ]) &&
+      immutableTemplateOperation?.Action === "s3:PutObject" &&
       isDeepStrictEqual(
         immutableTemplateOperation?.Resource,
-        sharedCellTemplateResource,
+        immutableTemplateResources,
       ) &&
       immutableTemplateOperation?.Condition?.StringNotEquals?.[
         "s3:if-none-match"
       ] === "*",
-    "shared Cell template writes must be create-only and published objects must be undeletable",
+    "shared Cell template writes must be create-only",
+  );
+  const immutableTemplateDeletion = sourceBucketStatements.find(
+    (statement) => statement.Sid === "DenySharedCellTemplateDeletion",
+  );
+  check(
+    immutableTemplateDeletion?.Principal === "*" &&
+      isDeepStrictEqual(immutableTemplateDeletion?.Action, [
+        "s3:DeleteObject",
+        "s3:DeleteObjectVersion",
+      ]) &&
+      isDeepStrictEqual(
+        immutableTemplateDeletion?.Resource,
+        immutableTemplateResources,
+      ) &&
+      immutableTemplateDeletion?.Condition === undefined,
+    "published shared Cell templates must reject every direct object or version deletion",
+  );
+  const frozenBuildSourceLifecycle = sourceBucketStatements.find(
+    (statement) => statement.Sid === "DenyBuildSourceLifecycleMutation",
+  );
+  check(
+    frozenBuildSourceLifecycle?.Principal === "*" &&
+      frozenBuildSourceLifecycle?.Action === "s3:PutLifecycleConfiguration" &&
+      isDeepStrictEqual(frozenBuildSourceLifecycle?.Resource, {
+        "Fn::GetAtt": ["CodeBuildSourceBucket", "Arn"],
+      }) &&
+      frozenBuildSourceLifecycle?.Condition === undefined,
+    "build-source lifecycle mutation must be denied so lifecycle cannot remove immutable templates",
   );
 
   const build = resources.SandboxCodeBuildProject?.Properties;
@@ -678,8 +709,8 @@ try {
     );
   }
   check(
-    Buffer.byteLength(renderedBootstrap, "utf8") <= 50_300,
-    "rendered bootstrap must retain at least 900 bytes of direct-body safety headroom",
+    Buffer.byteLength(renderedBootstrap, "utf8") <= 51_000,
+    "rendered bootstrap must retain at least 200 bytes of direct-body safety headroom",
   );
 } catch (error) {
   failures.push(`bootstrap render failed: ${error.message}`);

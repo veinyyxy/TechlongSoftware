@@ -29,6 +29,7 @@ $cellSchedulerGroupName = 'techlong-sandbox-cell'
 $cellGlobalJanitorScheduleName = 'techlong-sandbox-cell-global-janitor'
 $templateBucketName = 'techlong-sandbox-build-source-402010193138-ca-central-1'
 $templatePrefix = 'b5-shared-cell/templates/sha256'
+$childBootstrapTemplatePrefix = 'b5-cell-bootstrap/templates/sha256'
 $immutableTemplatePolicySid = 'DenyMutableSharedCellTemplateOperation'
 $expectedAvailabilityZones = @('ca-central-1a', 'ca-central-1b')
 $expectedEngine = 'aurora-postgresql'
@@ -565,30 +566,105 @@ function Assert-ImmutableTemplateBucketPolicy {
   if ([string]$policy.Version -cne '2012-10-17') {
     throw 'Build-source Bucket Policy version drifted.'
   }
-  $matches = @($policy.Statement | Where-Object {
+  $statements = @($policy.Statement)
+  if ($statements.Count -ne 4) {
+    throw 'Build-source Bucket Policy must contain the exact four reviewed deny statements.'
+  }
+  $transportMatches = @($statements | Where-Object {
+    [string]$_.Sid -ceq 'DenyInsecureTransport'
+  })
+  $writeMatches = @($statements | Where-Object {
     [string]$_.Sid -ceq $immutableTemplatePolicySid
   })
-  if ($matches.Count -ne 1) {
-    throw "Build-source Bucket Policy must contain exactly one $immutableTemplatePolicySid statement."
-  }
-  $deny = $matches[0]
-  $actions = @($deny.Action)
-  $conditionOperators = @($deny.Condition.PSObject.Properties.Name)
-  $conditionKeys = @($deny.Condition.StringNotEquals.PSObject.Properties.Name)
+  $deleteMatches = @($statements | Where-Object {
+    [string]$_.Sid -ceq 'DenySharedCellTemplateDeletion'
+  })
+  $lifecycleMatches = @($statements | Where-Object {
+    [string]$_.Sid -ceq 'DenyBuildSourceLifecycleMutation'
+  })
   if (
-    [string]$deny.Effect -cne 'Deny' -or
-    [string]$deny.Principal -cne '*' -or
-    $actions.Count -ne 2 -or
-    $actions -cnotcontains 's3:PutObject' -or
-    $actions -cnotcontains 's3:DeleteObject' -or
-    [string]$deny.Resource -cne "arn:aws:s3:::$templateBucketName/$templatePrefix/*" -or
+    $transportMatches.Count -ne 1 -or
+    $writeMatches.Count -ne 1 -or
+    $deleteMatches.Count -ne 1 -or
+    $lifecycleMatches.Count -ne 1
+  ) {
+    throw 'Build-source Bucket Policy immutable-template deny statements drifted.'
+  }
+  $transportDeny = $transportMatches[0]
+  $transportResources = @($transportDeny.Resource)
+  $transportConditionOperators = @(
+    $transportDeny.Condition.PSObject.Properties |
+      ForEach-Object { [string]$_.Name }
+  )
+  $transportConditionKeys = @(
+    $transportDeny.Condition.Bool.PSObject.Properties |
+      ForEach-Object { [string]$_.Name }
+  )
+  if (
+    [string]$transportDeny.Effect -cne 'Deny' -or
+    [string]$transportDeny.Principal -cne '*' -or
+    [string]$transportDeny.Action -cne 's3:*' -or
+    $transportResources.Count -ne 2 -or
+    $transportResources -cnotcontains "arn:aws:s3:::$templateBucketName" -or
+    $transportResources -cnotcontains "arn:aws:s3:::$templateBucketName/*" -or
+    $transportConditionOperators.Count -ne 1 -or
+    [string]$transportConditionOperators[0] -cne 'Bool' -or
+    $transportConditionKeys.Count -ne 1 -or
+    [string]$transportConditionKeys[0] -cne 'aws:SecureTransport' -or
+    [string]$transportDeny.Condition.Bool.'aws:SecureTransport' -cne 'false'
+  ) {
+    throw 'DenyInsecureTransport is not the exact reviewed full-bucket TLS deny.'
+  }
+  $writeDeny = $writeMatches[0]
+  $writeResources = @($writeDeny.Resource)
+  $conditionOperators = @(
+    $writeDeny.Condition.PSObject.Properties |
+      ForEach-Object { [string]$_.Name }
+  )
+  $conditionKeys = @(
+    $writeDeny.Condition.StringNotEquals.PSObject.Properties |
+      ForEach-Object { [string]$_.Name }
+  )
+  if (
+    [string]$writeDeny.Effect -cne 'Deny' -or
+    [string]$writeDeny.Principal -cne '*' -or
+    [string]$writeDeny.Action -cne 's3:PutObject' -or
+    $writeResources.Count -ne 2 -or
+    $writeResources -cnotcontains "arn:aws:s3:::$templateBucketName/$templatePrefix/*" -or
+    $writeResources -cnotcontains "arn:aws:s3:::$templateBucketName/$childBootstrapTemplatePrefix/*" -or
     $conditionOperators.Count -ne 1 -or
     [string]$conditionOperators[0] -cne 'StringNotEquals' -or
     $conditionKeys.Count -ne 1 -or
     [string]$conditionKeys[0] -cne 's3:if-none-match' -or
-    [string]$deny.Condition.StringNotEquals.'s3:if-none-match' -cne '*'
+    [string]$writeDeny.Condition.StringNotEquals.'s3:if-none-match' -cne '*'
   ) {
-    throw "$immutableTemplatePolicySid is not the exact create-if-absent/write-and-delete deny."
+    throw "$immutableTemplatePolicySid is not the exact create-if-absent write deny."
+  }
+  $deleteDeny = $deleteMatches[0]
+  $deleteActions = @($deleteDeny.Action)
+  $deleteResources = @($deleteDeny.Resource)
+  if (
+    [string]$deleteDeny.Effect -cne 'Deny' -or
+    [string]$deleteDeny.Principal -cne '*' -or
+    $deleteActions.Count -ne 2 -or
+    $deleteActions -cnotcontains 's3:DeleteObject' -or
+    $deleteActions -cnotcontains 's3:DeleteObjectVersion' -or
+    $deleteResources.Count -ne 2 -or
+    $deleteResources -cnotcontains "arn:aws:s3:::$templateBucketName/$templatePrefix/*" -or
+    $deleteResources -cnotcontains "arn:aws:s3:::$templateBucketName/$childBootstrapTemplatePrefix/*" -or
+    @($deleteDeny.PSObject.Properties | Where-Object { $_.Name -ceq 'Condition' }).Count -ne 0
+  ) {
+    throw 'DenySharedCellTemplateDeletion is not the exact unconditional object/version delete deny.'
+  }
+  $lifecycleDeny = $lifecycleMatches[0]
+  if (
+    [string]$lifecycleDeny.Effect -cne 'Deny' -or
+    [string]$lifecycleDeny.Principal -cne '*' -or
+    [string]$lifecycleDeny.Action -cne 's3:PutLifecycleConfiguration' -or
+    [string]$lifecycleDeny.Resource -cne "arn:aws:s3:::$templateBucketName" -or
+    @($lifecycleDeny.PSObject.Properties | Where-Object { $_.Name -ceq 'Condition' }).Count -ne 0
+  ) {
+    throw 'DenyBuildSourceLifecycleMutation is not the exact unconditional lifecycle-mutation deny.'
   }
 }
 

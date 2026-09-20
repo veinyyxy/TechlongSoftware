@@ -6,6 +6,7 @@ param(
     'CreateChangeSet',
     'InspectChangeSet',
     'ExecuteChangeSet',
+    'Readback',
     'CreateRollbackChangeSet',
     'InspectRollbackChangeSet',
     'ExecuteRollbackChangeSet'
@@ -18,7 +19,8 @@ param(
     'LifecycleTaskRegistrationGrant',
     'LifecycleTaskRegistrationRevoke',
     'SharedCellProvisionAuthorityInstallGrant',
-    'SharedCellProvisionAuthorityInstallRevoke'
+    'SharedCellProvisionAuthorityInstallRevoke',
+    'SharedCellTemplateImmutability'
   )]
   [string]$UpdateShape = 'InitialB5Support',
   [string]$Profile = 'techlong-sandbox-user',
@@ -43,6 +45,14 @@ $expectedPrincipalArn = 'arn:aws:iam::402010193138:user/techlong-sandbox-dev'
 $expectedUserName = 'techlong-sandbox-dev'
 $expectedMfaDeviceArn = 'arn:aws:iam::402010193138:mfa/techlong-sandbox-dev'
 $bootstrapStackName = 'techlong-s3-bootstrap'
+$bootstrapStackId =
+  'arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917'
+$buildSourceBucketName = 'techlong-sandbox-build-source-402010193138-ca-central-1'
+$buildSourceBucketPolicyLogicalId = 'CodeBuildSourceBucketPolicy'
+$sharedCellTemplateObjectPrefix = 'b5-shared-cell/templates/sha256'
+$childBootstrapTemplateObjectPrefix = 'b5-cell-bootstrap/templates/sha256'
+$deployedTemplateBeforeSharedCellImmutabilityCanonicalSha256 =
+  '8231ff876b99b3f5374d1ee2978736f8ba3a48f1260f3d85382e67e9a453caf9'
 $receiptBucketName = 'techlong-sandbox-402010193138-ca-central-1-tenant-receipts'
 $authorityTableName = 'techlong-sandbox-tenant-external-epoch-authority'
 $authorityTableArn = "arn:aws:dynamodb:${expectedRegion}:${expectedAccountId}:table/$authorityTableName"
@@ -70,6 +80,8 @@ $reviewedUpdateShape = if ($UpdateShape -ieq 'CodeBuildImagePull') {
   'SharedCellProvisionAuthorityInstallGrant'
 } elseif ($UpdateShape -ieq 'SharedCellProvisionAuthorityInstallRevoke') {
   'SharedCellProvisionAuthorityInstallRevoke'
+} elseif ($UpdateShape -ieq 'SharedCellTemplateImmutability') {
+  'SharedCellTemplateImmutability'
 } else {
   'InitialB5Support'
 }
@@ -79,7 +91,10 @@ $rollbackModes = @(
   'ExecuteRollbackChangeSet'
 )
 if ($Mode -in $rollbackModes -and $reviewedUpdateShape -ne 'InitialB5Support') {
-  throw 'Rollback modes only support -UpdateShape InitialB5Support; incremental IAM update shapes have no standalone rollback shape.'
+  throw 'Rollback modes only support -UpdateShape InitialB5Support; incremental update shapes have no standalone rollback shape.'
+}
+if ($Mode -eq 'Readback' -and $reviewedUpdateShape -ne 'SharedCellTemplateImmutability') {
+  throw 'Readback currently supports only -UpdateShape SharedCellTemplateImmutability.'
 }
 
 function ConvertFrom-CanonicalGrantExpiry {
@@ -181,6 +196,110 @@ function Get-CanonicalTemplateHash {
     throw 'The local canonical template digest is invalid.'
   }
   return $hash
+}
+
+function Get-CanonicalObjectHash {
+  param([object]$Value, [string]$Label)
+  if ($null -eq $Value) { throw "$Label is missing." }
+  $path = [System.IO.Path]::Combine(
+    [System.IO.Path]::GetTempPath(),
+    "techlong-b5-support-object-$([Guid]::NewGuid().ToString('N')).json"
+  )
+  try {
+    $json = ConvertTo-Json -InputObject $Value -Compress -Depth 100
+    [System.IO.File]::WriteAllText(
+      $path,
+      $json,
+      [System.Text.UTF8Encoding]::new($false)
+    )
+    return Get-CanonicalTemplateHash -TemplatePath $path
+  } finally {
+    if (Test-Path -LiteralPath $path) {
+      Remove-Item -LiteralPath $path -Force
+    }
+  }
+}
+
+function Assert-ExactJsonObject {
+  param([object]$Actual, [object]$Expected, [string]$Label)
+  $actualHash = Get-CanonicalObjectHash -Value $Actual -Label "$Label actual"
+  $expectedHash = Get-CanonicalObjectHash -Value $Expected -Label "$Label expected"
+  if ($actualHash -cne $expectedHash) {
+    throw "$Label canonical document drifted."
+  }
+}
+
+function Get-StackTemplateCanonicalHash {
+  param(
+    [string]$AwsCli,
+    [string]$TemplateBodyPath
+  )
+  $response = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'cloudformation', 'get-template',
+    '--profile', $Profile,
+    '--region', $expectedRegion,
+    '--stack-name', $bootstrapStackName,
+    '--template-stage', 'Original',
+    '--output', 'json'
+  )
+  if ($null -eq $response.TemplateBody) {
+    throw 'Bootstrap Stack Original template body is missing.'
+  }
+  $templateSource = if ($response.TemplateBody -is [string]) {
+    [string]$response.TemplateBody
+  } else {
+    ConvertTo-Json -InputObject $response.TemplateBody -Compress -Depth 100
+  }
+  [System.IO.File]::WriteAllText(
+    $TemplateBodyPath,
+    $templateSource,
+    [System.Text.UTF8Encoding]::new($false)
+  )
+  return Get-CanonicalTemplateHash -TemplatePath $TemplateBodyPath
+}
+
+function Wait-ForExactStackUpdateStart {
+  param(
+    [string]$AwsCli,
+    [string]$ExpectedStackId,
+    [string]$ExecuteClientRequestToken
+  )
+  for ($attempt = 1; $attempt -le 30; $attempt += 1) {
+    $response = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+      'cloudformation', 'describe-stack-events',
+      '--profile', $Profile,
+      '--region', $expectedRegion,
+      '--stack-name', $ExpectedStackId,
+      '--no-paginate',
+      '--output', 'json'
+    )
+    $tokenEvents = @(
+      $response.StackEvents |
+        Where-Object {
+          [string]$_.ClientRequestToken -ceq $ExecuteClientRequestToken
+        }
+    )
+    $startEvents = @(
+      $tokenEvents |
+        Where-Object {
+          [string]$_.StackId -ceq $ExpectedStackId -and
+          [string]$_.StackName -ceq $bootstrapStackName -and
+          [string]$_.LogicalResourceId -ceq $bootstrapStackName -and
+          [string]$_.PhysicalResourceId -ceq $ExpectedStackId -and
+          [string]$_.ResourceType -ceq 'AWS::CloudFormation::Stack' -and
+          [string]$_.ResourceStatus -ceq 'UPDATE_IN_PROGRESS'
+        }
+    )
+    if ($startEvents.Count -eq 1) {
+      Write-Host "Observed exact Stack UPDATE_IN_PROGRESS event for execute token $ExecuteClientRequestToken."
+      return
+    }
+    if ($startEvents.Count -gt 1) {
+      throw 'Execute token produced duplicate root Stack UPDATE_IN_PROGRESS events; do not retry Execute and use Readback to reconcile.'
+    }
+    if ($attempt -lt 30) { Start-Sleep -Seconds 2 }
+  }
+  throw 'The Change Set execute call returned but its exact start event was not observed; do not retry Execute and use Readback to reconcile.'
 }
 
 function Assert-ExactSourceLoginSession {
@@ -401,8 +520,17 @@ function Assert-ExactBootstrapStack {
   ) {
     throw 'The exact stable Sandbox bootstrap Stack is unavailable for a source-user reviewed update, or it retains a CloudFormation service RoleARN that must be reviewed separately.'
   }
+  $tagEntries = @($Stack.Tags)
+  if ($tagEntries.Count -ne 3) {
+    throw 'The bootstrap Stack must retain exactly three reviewed ownership tags.'
+  }
   $tags = @{}
-  foreach ($tag in @($Stack.Tags)) { $tags[$tag.Key] = $tag.Value }
+  foreach ($tag in $tagEntries) {
+    if ($tags.ContainsKey([string]$tag.Key)) {
+      throw 'The bootstrap Stack contains a duplicate ownership tag key.'
+    }
+    $tags[[string]$tag.Key] = [string]$tag.Value
+  }
   if (
     $tags.Environment -ne 'aws-sandbox' -or
     $tags.ManagedBy -ne 'techlong-provisioner' -or
@@ -410,6 +538,258 @@ function Assert-ExactBootstrapStack {
   ) {
     throw 'The bootstrap Stack ownership tags do not match the reviewed Sandbox contract.'
   }
+}
+
+function Get-ExpectedBuildSourceBucketPolicy {
+  param([bool]$ImmutableExpected)
+  $statements = @(
+    [ordered]@{
+      Sid = 'DenyInsecureTransport'
+      Effect = 'Deny'
+      Principal = '*'
+      Action = 's3:*'
+      Resource = @(
+        "arn:aws:s3:::$buildSourceBucketName",
+        "arn:aws:s3:::$buildSourceBucketName/*"
+      )
+      Condition = [ordered]@{
+        Bool = [ordered]@{ 'aws:SecureTransport' = 'false' }
+      }
+    }
+  )
+  if ($ImmutableExpected) {
+    $statements += [ordered]@{
+      Sid = 'DenyMutableSharedCellTemplateOperation'
+      Effect = 'Deny'
+      Principal = '*'
+      Action = 's3:PutObject'
+      Resource = @(
+        "arn:aws:s3:::$buildSourceBucketName/$sharedCellTemplateObjectPrefix/*",
+        "arn:aws:s3:::$buildSourceBucketName/$childBootstrapTemplateObjectPrefix/*"
+      )
+      Condition = [ordered]@{
+        StringNotEquals = [ordered]@{ 's3:if-none-match' = '*' }
+      }
+    }
+    $statements += [ordered]@{
+      Sid = 'DenySharedCellTemplateDeletion'
+      Effect = 'Deny'
+      Principal = '*'
+      Action = @('s3:DeleteObject', 's3:DeleteObjectVersion')
+      Resource = @(
+        "arn:aws:s3:::$buildSourceBucketName/$sharedCellTemplateObjectPrefix/*",
+        "arn:aws:s3:::$buildSourceBucketName/$childBootstrapTemplateObjectPrefix/*"
+      )
+    }
+    $statements += [ordered]@{
+      Sid = 'DenyBuildSourceLifecycleMutation'
+      Effect = 'Deny'
+      Principal = '*'
+      Action = 's3:PutLifecycleConfiguration'
+      Resource = "arn:aws:s3:::$buildSourceBucketName"
+    }
+  }
+  return [PSCustomObject][ordered]@{
+    Version = '2012-10-17'
+    Statement = @($statements)
+  }
+}
+
+function Assert-ExactBuildSourceBucketPolicyReadback {
+  param(
+    [string]$AwsCli,
+    [string]$ExpectedStackId,
+    [bool]$ImmutableExpected,
+    [string[]]$AllowedResourceStatuses
+  )
+  $resourceResponse = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    'cloudformation', 'describe-stack-resource',
+    '--profile', $Profile,
+    '--region', $expectedRegion,
+    '--stack-name', $bootstrapStackName,
+    '--logical-resource-id', $buildSourceBucketPolicyLogicalId,
+    '--output', 'json'
+  )
+  $resource = $resourceResponse.StackResourceDetail
+  if (
+    [string]$resource.StackId -cne $ExpectedStackId -or
+    [string]$resource.StackName -cne $bootstrapStackName -or
+    [string]$resource.LogicalResourceId -cne $buildSourceBucketPolicyLogicalId -or
+    [string]$resource.PhysicalResourceId -cne $buildSourceBucketName -or
+    [string]$resource.ResourceType -cne 'AWS::S3::BucketPolicy' -or
+    [string]$resource.ResourceStatus -notin $AllowedResourceStatuses
+  ) {
+    throw 'Build-source Bucket Policy CloudFormation ownership or status drifted.'
+  }
+
+  $location = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    's3api', 'get-bucket-location',
+    '--profile', $Profile,
+    '--region', $expectedRegion,
+    '--bucket', $buildSourceBucketName,
+    '--expected-bucket-owner', $expectedAccountId,
+    '--output', 'json'
+  )
+  if ([string]$location.LocationConstraint -cne $expectedRegion) {
+    throw 'Build-source Bucket region drifted.'
+  }
+  $publicAccess = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    's3api', 'get-public-access-block',
+    '--profile', $Profile,
+    '--region', $expectedRegion,
+    '--bucket', $buildSourceBucketName,
+    '--expected-bucket-owner', $expectedAccountId,
+    '--output', 'json'
+  )
+  $public = $publicAccess.PublicAccessBlockConfiguration
+  if (
+    $public.BlockPublicAcls -ne $true -or
+    $public.BlockPublicPolicy -ne $true -or
+    $public.IgnorePublicAcls -ne $true -or
+    $public.RestrictPublicBuckets -ne $true
+  ) {
+    throw 'Build-source Bucket public-access block drifted.'
+  }
+  $ownership = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    's3api', 'get-bucket-ownership-controls',
+    '--profile', $Profile,
+    '--region', $expectedRegion,
+    '--bucket', $buildSourceBucketName,
+    '--expected-bucket-owner', $expectedAccountId,
+    '--output', 'json'
+  )
+  $ownershipRules = @($ownership.OwnershipControls.Rules)
+  if (
+    $ownershipRules.Count -ne 1 -or
+    [string]$ownershipRules[0].ObjectOwnership -cne 'BucketOwnerEnforced'
+  ) {
+    throw 'Build-source Bucket ownership controls drifted.'
+  }
+  $versioning = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    's3api', 'get-bucket-versioning',
+    '--profile', $Profile,
+    '--region', $expectedRegion,
+    '--bucket', $buildSourceBucketName,
+    '--expected-bucket-owner', $expectedAccountId,
+    '--output', 'json'
+  )
+  if ($null -ne $versioning) {
+    $versioningProperties = @(
+      $versioning.PSObject.Properties |
+        ForEach-Object { [string]$_.Name }
+    )
+    if ($versioningProperties.Count -ne 0) {
+      throw 'Build-source Bucket versioning must remain never configured.'
+    }
+  }
+  $lifecycle = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    's3api', 'get-bucket-lifecycle-configuration',
+    '--profile', $Profile,
+    '--region', $expectedRegion,
+    '--bucket', $buildSourceBucketName,
+    '--expected-bucket-owner', $expectedAccountId,
+    '--output', 'json'
+  )
+  $expectedLifecycle = [PSCustomObject][ordered]@{
+    TransitionDefaultMinimumObjectSize = 'all_storage_classes_128K'
+    Rules = @(
+      [PSCustomObject][ordered]@{
+        Expiration = [PSCustomObject][ordered]@{ Days = 1 }
+        ID = 'ExpireBuildSourcesAfterOneDay'
+        Filter = [PSCustomObject][ordered]@{ Prefix = 'source/' }
+        Status = 'Enabled'
+        AbortIncompleteMultipartUpload =
+          [PSCustomObject][ordered]@{ DaysAfterInitiation = 1 }
+      }
+    )
+  }
+  Assert-ExactJsonObject `
+    -Actual $lifecycle `
+    -Expected $expectedLifecycle `
+    -Label 'Build-source Bucket lifecycle configuration'
+  $policyStatus = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    's3api', 'get-bucket-policy-status',
+    '--profile', $Profile,
+    '--region', $expectedRegion,
+    '--bucket', $buildSourceBucketName,
+    '--expected-bucket-owner', $expectedAccountId,
+    '--output', 'json'
+  )
+  if ($policyStatus.PolicyStatus.IsPublic -ne $false) {
+    throw 'Build-source Bucket Policy is public or its private status is unavailable.'
+  }
+  $policyResponse = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    's3api', 'get-bucket-policy',
+    '--profile', $Profile,
+    '--region', $expectedRegion,
+    '--bucket', $buildSourceBucketName,
+    '--expected-bucket-owner', $expectedAccountId,
+    '--output', 'json'
+  )
+  try {
+    $actualPolicy = ([string]$policyResponse.Policy) | ConvertFrom-Json -Depth 100
+  } catch {
+    throw 'Build-source Bucket Policy is not exact JSON.'
+  }
+  $expectedPolicy = Get-ExpectedBuildSourceBucketPolicy -ImmutableExpected $ImmutableExpected
+  Assert-ExactJsonObject `
+    -Actual $actualPolicy `
+    -Expected $expectedPolicy `
+    -Label 'Build-source Bucket Policy'
+}
+
+function Assert-SharedCellTemplateImmutabilityBaseline {
+  param(
+    [string]$AwsCli,
+    [object]$Stack,
+    [string]$TemplateBodyPath
+  )
+  if (
+    [string]$Stack.StackId -cne $bootstrapStackId -or
+    [string]$Stack.StackStatus -cne 'UPDATE_COMPLETE'
+  ) {
+    throw 'Pre-immutability Bootstrap Stack identity or UPDATE_COMPLETE state drifted.'
+  }
+  $canonicalHash = Get-StackTemplateCanonicalHash `
+    -AwsCli $AwsCli `
+    -TemplateBodyPath $TemplateBodyPath
+  if ($canonicalHash -cne $deployedTemplateBeforeSharedCellImmutabilityCanonicalSha256) {
+    throw 'Bootstrap Stack Original template is not the exact reviewed pre-immutability baseline.'
+  }
+  Assert-ExactBuildSourceBucketPolicyReadback `
+    -AwsCli $AwsCli `
+    -ExpectedStackId ([string]$Stack.StackId) `
+    -ImmutableExpected $false `
+    -AllowedResourceStatuses @('CREATE_COMPLETE', 'UPDATE_COMPLETE')
+  Write-Host "Verified pre-immutability Stack canonical SHA-256: $canonicalHash"
+}
+
+function Assert-SharedCellTemplateImmutabilityReadback {
+  param(
+    [string]$AwsCli,
+    [object]$Stack,
+    [string]$ExpectedCanonicalHash,
+    [string]$TemplateBodyPath
+  )
+  if (
+    [string]$Stack.StackId -cne $bootstrapStackId -or
+    [string]$Stack.StackStatus -cne 'UPDATE_COMPLETE'
+  ) {
+    throw 'Immutability Bootstrap Stack identity or UPDATE_COMPLETE state drifted.'
+  }
+  $canonicalHash = Get-StackTemplateCanonicalHash `
+    -AwsCli $AwsCli `
+    -TemplateBodyPath $TemplateBodyPath
+  if ($canonicalHash -cne $ExpectedCanonicalHash) {
+    throw 'Bootstrap Stack Original template is not the exact reviewed immutability target.'
+  }
+  Assert-ExactBuildSourceBucketPolicyReadback `
+    -AwsCli $AwsCli `
+    -ExpectedStackId ([string]$Stack.StackId) `
+    -ImmutableExpected $true `
+    -AllowedResourceStatuses @('UPDATE_COMPLETE')
+  Write-Host "Verified deployed immutability Stack canonical SHA-256: $canonicalHash"
+  Write-Host 'Strict Shared Cell template immutability readback passed.'
 }
 
 function Assert-ExactCodeBuildImagePullResourceChange {
@@ -483,6 +863,39 @@ function Assert-ExactProvisionAuthorityBoundaryResourceChange {
     -not [string]::IsNullOrEmpty([string]$detail.CausingEntity)
   ) {
     throw 'Shared Cell provision-authority grant/revoke detail is not the exact direct PolicyDocument modification.'
+  }
+}
+
+function Assert-ExactSharedCellTemplateImmutabilityResourceChange {
+  param([object]$Resource)
+  if (
+    [string]$Resource.LogicalResourceId -cne $buildSourceBucketPolicyLogicalId -or
+    [string]$Resource.ResourceType -cne 'AWS::S3::BucketPolicy' -or
+    [string]$Resource.PhysicalResourceId -cne $buildSourceBucketName -or
+    [string]$Resource.Replacement -cne 'False'
+  ) {
+    throw 'Shared Cell template immutability may only modify the exact existing build-source Bucket Policy without replacement.'
+  }
+  $scope = @($Resource.Scope)
+  if ($scope.Count -ne 1 -or [string]$scope[0] -cne 'Properties') {
+    throw 'Shared Cell template immutability may only change Bucket Policy properties.'
+  }
+  $details = @($Resource.Details)
+  if ($details.Count -ne 1) {
+    throw 'Shared Cell template immutability must contain one exact PolicyDocument detail.'
+  }
+  $detail = $details[0]
+  if (
+    [string]$detail.Target.Attribute -cne 'Properties' -or
+    [string]$detail.Target.Name -cne 'PolicyDocument' -or
+    [string]$detail.Target.RequiresRecreation -cne 'Never' -or
+    [string]$detail.Target.AttributeChangeType -cne 'Modify' -or
+    [string]$detail.Target.Path -cne '/Properties/PolicyDocument' -or
+    [string]$detail.Evaluation -cne 'Static' -or
+    [string]$detail.ChangeSource -cne 'DirectModification' -or
+    -not [string]::IsNullOrEmpty([string]$detail.CausingEntity)
+  ) {
+    throw 'Shared Cell template immutability detail is not the exact direct PolicyDocument modification.'
   }
 }
 
@@ -747,13 +1160,15 @@ function Assert-ReviewedChangeSet {
       'LifecycleTaskRegistrationGrant',
       'LifecycleTaskRegistrationRevoke',
       'SharedCellProvisionAuthorityInstallGrant',
-      'SharedCellProvisionAuthorityInstallRevoke'
+      'SharedCellProvisionAuthorityInstallRevoke',
+      'SharedCellTemplateImmutability'
     )]
     [string]$UpdateShape,
     [bool]$Rollback
   )
   $metadataFailures = [System.Collections.Generic.List[string]]::new()
   if ($ChangeSet.StackName -ne $bootstrapStackName) { $metadataFailures.Add('stack_name') }
+  if ([string]$ChangeSet.StackId -cne $bootstrapStackId) { $metadataFailures.Add('stack_id') }
   if ($ChangeSet.ChangeSetName -ne $ExpectedName) { $metadataFailures.Add('change_set_name') }
   if ($ChangeSet.Status -ne 'CREATE_COMPLETE') { $metadataFailures.Add('status') }
   if ($ChangeSet.ExecutionStatus -ne 'AVAILABLE') { $metadataFailures.Add('execution_status') }
@@ -862,6 +1277,9 @@ function Assert-ReviewedChangeSet {
   $requiredSharedCellProvisionAuthorityInstallRevokeChanges = @{
     ProvisionerBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
   }
+  $requiredSharedCellTemplateImmutabilityChanges = @{
+    CodeBuildSourceBucketPolicy = @{ Type = 'AWS::S3::BucketPolicy'; Action = 'Modify' }
+  }
   $requiredRollbackChanges = @{
     ServiceRoleBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
     ProvisionerBoundary = @{ Type = 'AWS::IAM::ManagedPolicy'; Action = 'Modify' }
@@ -884,6 +1302,8 @@ function Assert-ReviewedChangeSet {
     $requiredSharedCellProvisionAuthorityInstallGrantChanges
   } elseif ($UpdateShape -eq 'SharedCellProvisionAuthorityInstallRevoke') {
     $requiredSharedCellProvisionAuthorityInstallRevokeChanges
+  } elseif ($UpdateShape -eq 'SharedCellTemplateImmutability') {
+    $requiredSharedCellTemplateImmutabilityChanges
   } elseif ($UpdateShape -eq 'CodeBuildImagePull') {
     $requiredCodeBuildImagePullChanges
   } elseif ($UpdateShape -eq 'LifecycleReadback') {
@@ -907,6 +1327,8 @@ function Assert-ReviewedChangeSet {
     }
     if ($UpdateShape -eq 'CodeBuildImagePull') {
       Assert-ExactCodeBuildImagePullResourceChange -Resource $resource
+    } elseif ($UpdateShape -eq 'SharedCellTemplateImmutability') {
+      Assert-ExactSharedCellTemplateImmutabilityResourceChange -Resource $resource
     } elseif ($UpdateShape -in @(
       'SharedCellProvisionAuthorityInstallGrant',
       'SharedCellProvisionAuthorityInstallRevoke'
@@ -924,9 +1346,80 @@ function Assert-ReviewedChangeSet {
   }
 }
 
+function Assert-ReviewedChangeSetShapeBindingContract {
+  $expectedShapes = @(
+    'InitialB5Support',
+    'CodeBuildImagePull',
+    'LifecycleReadback',
+    'LifecycleTaskRegistrationGrant',
+    'LifecycleTaskRegistrationRevoke',
+    'SharedCellProvisionAuthorityInstallGrant',
+    'SharedCellProvisionAuthorityInstallRevoke',
+    'SharedCellTemplateImmutability'
+  )
+  $command = Get-Command Assert-ReviewedChangeSet -CommandType Function
+  $attributes = @(
+    $command.Parameters['UpdateShape'].Attributes |
+      Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] }
+  )
+  if ($attributes.Count -ne 1) {
+    throw 'Assert-ReviewedChangeSet UpdateShape must have one exact ValidateSet contract.'
+  }
+  $actualShapes = @($attributes[0].ValidValues)
+  if (
+    $actualShapes.Count -ne $expectedShapes.Count -or
+    @($actualShapes | Where-Object { $_ -cnotin $expectedShapes }).Count -ne 0 -or
+    @($expectedShapes | Where-Object { $_ -cnotin $actualShapes }).Count -ne 0
+  ) {
+    throw 'Assert-ReviewedChangeSet UpdateShape ValidateSet drifted.'
+  }
+}
+
+function Assert-ReviewedChangeSetShapeParameterBindingProbe {
+  $invalidChangeSet = [PSCustomObject]@{
+    StackName = ''
+    ChangeSetName = ''
+    Status = ''
+    ExecutionStatus = ''
+    Description = ''
+    RoleARN = ''
+    NotificationARNs = @()
+    ParentChangeSetId = ''
+    RootChangeSetId = ''
+    IncludeNestedStacks = $false
+    ImportExistingResources = $false
+    OnStackFailure = ''
+    RollbackConfiguration = [PSCustomObject]@{ RollbackTriggers = @() }
+    DeploymentConfig = [PSCustomObject]@{
+      Mode = ''
+      DisableRollback = $false
+    }
+  }
+  try {
+    Assert-ReviewedChangeSet `
+      -ChangeSet $invalidChangeSet `
+      -ExpectedName 'shape-binding-probe' `
+      -ExpectedDescription 'shape-binding-probe' `
+      -UpdateShape 'SharedCellTemplateImmutability' `
+      -Rollback $false
+    throw 'Assert-ReviewedChangeSet shape-binding probe unexpectedly passed.'
+  } catch [System.Management.Automation.ParameterBindingException] {
+    throw 'Assert-ReviewedChangeSet does not accept SharedCellTemplateImmutability at runtime.'
+  } catch {
+    if (
+      $_.Exception.Message -cnotmatch
+        '^The Change Set metadata is not the exact reviewed B5 support update:'
+    ) {
+      throw
+    }
+  }
+}
+
 Write-Host 'Running local B5 support resource and deployment-entry validation...'
 & node $validator
 if ($LASTEXITCODE -ne 0) { throw 'Local B5 support validation failed.' }
+Assert-ReviewedChangeSetShapeBindingContract
+Assert-ReviewedChangeSetShapeParameterBindingProbe
 
 if ($Mode -eq 'LocalValidate') {
   Write-Host 'Local validation complete. No AWS API was called and no resource was changed.'
@@ -969,6 +1462,10 @@ $policyVersionResponse = [System.IO.Path]::Combine(
   [System.IO.Path]::GetTempPath(),
   "techlong-s3-b5-support-provisioner-policy-$([Guid]::NewGuid().ToString('N')).json"
 )
+$stackTemplateBody = [System.IO.Path]::Combine(
+  [System.IO.Path]::GetTempPath(),
+  "techlong-s3-b5-support-stack-template-$([Guid]::NewGuid().ToString('N')).json"
+)
 $previousIgnoreConfiguredEndpointUrls =
   [Environment]::GetEnvironmentVariable('AWS_IGNORE_CONFIGURED_ENDPOINT_URLS')
 
@@ -1003,6 +1500,8 @@ try {
     'shared-cell-provision-authority-install-grant'
   } elseif ($reviewedUpdateShape -eq 'SharedCellProvisionAuthorityInstallRevoke') {
     'shared-cell-provision-authority-install-revoke'
+  } elseif ($reviewedUpdateShape -eq 'SharedCellTemplateImmutability') {
+    'shared-cell-template-immutability'
   } else {
     'initial'
   }
@@ -1037,7 +1536,10 @@ try {
     '--region', $expectedRegion,
     '--template-body', "file://$renderedTemplate"
   )
-  if ($Mode -eq 'OnlineValidate') {
+  if (
+    $Mode -eq 'OnlineValidate' -and
+    $reviewedUpdateShape -cne 'SharedCellTemplateImmutability'
+  ) {
     Write-Host 'Online template validation complete. No Stack or resource was changed.'
     exit 0
   }
@@ -1051,6 +1553,27 @@ try {
   )
   $stack = @($stackResponse.Stacks)[0]
   Assert-ExactBootstrapStack -Stack $stack
+
+  if ($reviewedUpdateShape -ceq 'SharedCellTemplateImmutability') {
+    if ($Mode -eq 'Readback') {
+      Assert-SharedCellTemplateImmutabilityReadback `
+        -AwsCli $awsCli `
+        -Stack $stack `
+        -ExpectedCanonicalHash $templateCanonicalHash `
+        -TemplateBodyPath $stackTemplateBody
+      Write-Host 'Readback is read-only. No Stack, Bucket Policy, or object was changed.'
+      exit 0
+    }
+    Assert-SharedCellTemplateImmutabilityBaseline `
+      -AwsCli $awsCli `
+      -Stack $stack `
+      -TemplateBodyPath $stackTemplateBody
+    if ($Mode -eq 'OnlineValidate') {
+      Write-Host 'Online template and exact pre-immutability baseline validation complete.'
+      Write-Host 'No Change Set, Stack, Bucket Policy, or object was changed.'
+      exit 0
+    }
+  }
 
   $parameters = @(
     'ParameterKey=ExpectedAccountId,ParameterValue=402010193138',
@@ -1106,6 +1629,7 @@ try {
     '--region', $expectedRegion,
     '--stack-name', $bootstrapStackName,
     '--change-set-name', $selectedName,
+    '--include-property-values',
     '--output', 'json'
   )
 
@@ -1218,6 +1742,22 @@ try {
     }
   }
 
+  if ($reviewedUpdateShape -eq 'SharedCellTemplateImmutability') {
+    $baselineStackResponse = Invoke-AwsJson -AwsCli $awsCli -Arguments @(
+      'cloudformation', 'describe-stacks',
+      '--profile', $Profile,
+      '--region', $expectedRegion,
+      '--stack-name', $bootstrapStackName,
+      '--output', 'json'
+    )
+    $baselineStack = @($baselineStackResponse.Stacks)[0]
+    Assert-ExactBootstrapStack -Stack $baselineStack
+    Assert-SharedCellTemplateImmutabilityBaseline `
+      -AwsCli $awsCli `
+      -Stack $baselineStack `
+      -TemplateBodyPath $stackTemplateBody
+  }
+
   Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
     'cloudformation', 'execute-change-set',
     '--profile', $Profile,
@@ -1226,12 +1766,34 @@ try {
     '--change-set-name', $changeSetId,
     '--client-request-token', $executeClientRequestToken
   )
+  if ($reviewedUpdateShape -eq 'SharedCellTemplateImmutability') {
+    Wait-ForExactStackUpdateStart `
+      -AwsCli $awsCli `
+      -ExpectedStackId $bootstrapStackId `
+      -ExecuteClientRequestToken $executeClientRequestToken
+  }
   Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
     'cloudformation', 'wait', 'stack-update-complete',
     '--profile', $Profile,
     '--region', $expectedRegion,
     '--stack-name', $bootstrapStackName
   )
+  if ($reviewedUpdateShape -eq 'SharedCellTemplateImmutability') {
+    $readbackStackResponse = Invoke-AwsJson -AwsCli $awsCli -Arguments @(
+      'cloudformation', 'describe-stacks',
+      '--profile', $Profile,
+      '--region', $expectedRegion,
+      '--stack-name', $bootstrapStackName,
+      '--output', 'json'
+    )
+    $readbackStack = @($readbackStackResponse.Stacks)[0]
+    Assert-ExactBootstrapStack -Stack $readbackStack
+    Assert-SharedCellTemplateImmutabilityReadback `
+      -AwsCli $awsCli `
+      -Stack $readbackStack `
+      -ExpectedCanonicalHash $templateCanonicalHash `
+      -TemplateBodyPath $stackTemplateBody
+  }
   if ($reviewedUpdateShape -in @(
     'SharedCellProvisionAuthorityInstallGrant',
     'SharedCellProvisionAuthorityInstallRevoke'
@@ -1278,7 +1840,8 @@ try {
     $renderedTemplate,
     $rollbackTemplate,
     $changeSetTemplateResponse,
-    $policyVersionResponse
+    $policyVersionResponse,
+    $stackTemplateBody
   )) {
     if (Test-Path -LiteralPath $temporaryPath) {
       Remove-Item -LiteralPath $temporaryPath -Force

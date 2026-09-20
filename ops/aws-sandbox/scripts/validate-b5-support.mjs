@@ -389,14 +389,21 @@ await assert.rejects(
 
 // Reconstruct the exact J5d locked template currently deployed before the J5e
 // stable read increment, then the historical registration/CodeBuild states.
+const sharedCellTemplateImmutabilitySids = [
+  "DenyMutableSharedCellTemplateOperation",
+  "DenySharedCellTemplateDeletion",
+  "DenyBuildSourceLifecycleMutation",
+];
 const deployedJ5dLocked = structuredClone(rendered);
+deployedJ5dLocked.Description =
+  "Techlong AWS Sandbox bootstrap: bounded roles, TTL janitor, immutable ECR, disabled-by-default CodeBuild, and low-cost B5 receipt/epoch support resources.";
 deployedJ5dLocked.Resources.ProvisionerBoundary.Properties.PolicyDocument.Statement =
   deployedJ5dLocked.Resources.ProvisionerBoundary.Properties.PolicyDocument.Statement.filter(
     (statement) => !j5eStableProvisionerReadSids.includes(statement.Sid),
   );
 deployedJ5dLocked.Resources.CodeBuildSourceBucketPolicy.Properties.PolicyDocument.Statement =
   deployedJ5dLocked.Resources.CodeBuildSourceBucketPolicy.Properties.PolicyDocument.Statement.filter(
-    (statement) => statement.Sid !== "DenyMutableSharedCellTemplateOperation",
+    (statement) => !sharedCellTemplateImmutabilitySids.includes(statement.Sid),
   );
 const deployedLifecycleRegistrationRevoke = structuredClone(deployedJ5dLocked);
 const deployedCodeBuildRepository = codeBuildImageRepositoryStatement(
@@ -521,7 +528,7 @@ function changedResourceIds(before, after) {
 const renderedBeforeSharedCellTemplatePolicy = structuredClone(rendered);
 renderedBeforeSharedCellTemplatePolicy.Resources.CodeBuildSourceBucketPolicy.Properties.PolicyDocument.Statement =
   renderedBeforeSharedCellTemplatePolicy.Resources.CodeBuildSourceBucketPolicy.Properties.PolicyDocument.Statement.filter(
-    (statement) => statement.Sid !== "DenyMutableSharedCellTemplateOperation",
+    (statement) => !sharedCellTemplateImmutabilitySids.includes(statement.Sid),
   );
 
 const lifecycleReadbackResourceChanges = [
@@ -1533,9 +1540,9 @@ assert.match(
   oneShotContract,
   /techlong-sandbox-\$\{input\.accountId\}-\$\{input\.region\}-[\s\S]*?tenant-receipts/,
 );
-assert.ok(Buffer.byteLength(renderedSource, "utf8") <= 50_300);
-assert.ok(Buffer.byteLength(registrationGrantSource, "utf8") <= 50_300);
-assert.ok(Buffer.byteLength(provisionAuthorityGrantSource, "utf8") <= 50_750);
+assert.ok(Buffer.byteLength(renderedSource, "utf8") <= 51_000);
+assert.ok(Buffer.byteLength(registrationGrantSource, "utf8") <= 51_000);
+assert.ok(Buffer.byteLength(provisionAuthorityGrantSource, "utf8") <= 51_100);
 assert.ok(Buffer.byteLength(provisionAuthorityGrantSource, "utf8") < 51_200);
 assert.ok(Buffer.byteLength(rollbackSource, "utf8") <= 50_000);
 assert.match(
@@ -1566,41 +1573,41 @@ const provisionAuthorityGrantRawHash = createHash("sha256")
   .update(provisionAuthorityGrantSource)
   .digest("hex");
 const rollbackRawHash = createHash("sha256").update(rollbackSource).digest("hex");
-assert.equal(Buffer.byteLength(renderedSource, "utf8"), 50_182);
+assert.equal(Buffer.byteLength(renderedSource, "utf8"), 50_562);
 assert.equal(
   renderedRawHash,
-  "1a5616cf633d8bb08bdd34b841c965118d7ff5b96b03c9f3d87b3cf66be02cb3",
+  "13d4bcb5cc799fc54610a4398aa2cbaf13a410354eb83e720db4116ad3d71435",
 );
 assert.equal(
   renderedCanonicalHash,
-  "bcecf7e736b20d51633b7f2a2273f24d072fa1d5d687fb64604e93faf74a817e",
+  "ccf14717e1fa8ec1ccfe453b2d96211022e0df4bf060105b7f4c3a6b98cd745a",
 );
-assert.equal(Buffer.byteLength(registrationGrantSource, "utf8"), 50_253);
+assert.equal(Buffer.byteLength(registrationGrantSource, "utf8"), 50_633);
 assert.equal(
   registrationGrantRawHash,
-  "1b8a6019046d12470dc788186d5c9f90c365afdc9bf4e98801f8914fe10b3d3c",
+  "092e280ee02a0412bc9eb79cf9b9dacd4cb5653e2c1f3873f7b211ff39dd763e",
 );
 assert.equal(
   registrationGrantCanonicalHash,
-  "9ff76b22fb553772c7d6c64c193bbced8cbec0621806148688ee94bb8a163530",
+  "81f7764b3d0f89d6bffb2e00201d75458b51e62074af68812fa3063a0699a15c",
 );
-assert.equal(Buffer.byteLength(provisionAuthorityGrantSource, "utf8"), 50_717);
+assert.equal(Buffer.byteLength(provisionAuthorityGrantSource, "utf8"), 51_097);
 assert.equal(
   provisionAuthorityGrantRawHash,
-  "f32e623f4e12e7fd01769010a63648e0b90f913daf1e330e77229654eb2b3d51",
+  "669ab58bbb3ea6ca3c6adb6ccfb6304b41a3353d1548379772b96cbde4fa51ec",
 );
 assert.equal(
   provisionAuthorityGrantCanonicalHash,
-  "3ef4e05f81e3f82e049348a4295e84115a8887664e9f159d9b16ff742f4f9e90",
+  "21519f6e5effeb31af4aa62cfe0ee461bccae214d49a1b23aab48f06ea31a276",
 );
-assert.equal(Buffer.byteLength(rollbackSource, "utf8"), 33_638);
+assert.equal(Buffer.byteLength(rollbackSource, "utf8"), 34_153);
 assert.equal(
   rollbackRawHash,
-  "b1e16cf6380dbf6bb3a5b702a2d97c4eb327103ab3895d5af279ac476ce2fbf3",
+  "3c0e382d821750496d8cff7fc665158b64c1134a1122b6437314f7bcc05fb9f8",
 );
 assert.equal(
   rollbackCanonicalHash,
-  "c53d07c34f48e80940f9f6572f9fcc86f923106d309094365a4e863f6cfca17b",
+  "f877d15556b2c907eca20bf74d0ef9339f1fe8e2cb04373c950bc64668d0d7ff",
 );
 assert.equal(canonicalTemplateSha256(renderedSource), renderedCanonicalHash);
 assert.equal(
@@ -1901,6 +1908,15 @@ for (const shapeName of [
     },
   });
 }
+assert.deepEqual(
+  parseReviewedChangeShape("requiredSharedCellTemplateImmutabilityChanges"),
+  {
+    CodeBuildSourceBucketPolicy: {
+      type: "AWS::S3::BucketPolicy",
+      action: "Modify",
+    },
+  },
+);
 assert.deepEqual(parseReviewedChangeShape("requiredRollbackChanges"), {
   ServiceRoleBoundary: { type: "AWS::IAM::ManagedPolicy", action: "Modify" },
   ProvisionerBoundary: { type: "AWS::IAM::ManagedPolicy", action: "Modify" },
@@ -1919,12 +1935,12 @@ assert.deepEqual(parseReviewedChangeShape("requiredRollbackChanges"), {
 
 assert.match(
   operationScript,
-  /\[ValidateSet\([\s\S]*?'CreateChangeSet'[\s\S]*?'InspectChangeSet'[\s\S]*?'ExecuteChangeSet'[\s\S]*?'CreateRollbackChangeSet'[\s\S]*?'InspectRollbackChangeSet'[\s\S]*?'ExecuteRollbackChangeSet'/,
+  /\[ValidateSet\([\s\S]*?'CreateChangeSet'[\s\S]*?'InspectChangeSet'[\s\S]*?'ExecuteChangeSet'[\s\S]*?'Readback'[\s\S]*?'CreateRollbackChangeSet'[\s\S]*?'InspectRollbackChangeSet'[\s\S]*?'ExecuteRollbackChangeSet'/,
 );
 assert.match(operationScript, /\[string\]\$Mode = 'LocalValidate'/);
 assert.match(
   operationScript,
-  /\[ValidateSet\([\s\S]*?'InitialB5Support'[\s\S]*?'CodeBuildImagePull'[\s\S]*?'LifecycleReadback'[\s\S]*?'LifecycleTaskRegistrationGrant'[\s\S]*?'LifecycleTaskRegistrationRevoke'[\s\S]*?'SharedCellProvisionAuthorityInstallGrant'[\s\S]*?'SharedCellProvisionAuthorityInstallRevoke'[\s\S]*?\)\]\s*\[string\]\$UpdateShape = 'InitialB5Support'/,
+  /\[ValidateSet\([\s\S]*?'InitialB5Support'[\s\S]*?'CodeBuildImagePull'[\s\S]*?'LifecycleReadback'[\s\S]*?'LifecycleTaskRegistrationGrant'[\s\S]*?'LifecycleTaskRegistrationRevoke'[\s\S]*?'SharedCellProvisionAuthorityInstallGrant'[\s\S]*?'SharedCellProvisionAuthorityInstallRevoke'[\s\S]*?'SharedCellTemplateImmutability'[\s\S]*?\)\]\s*\[string\]\$UpdateShape = 'InitialB5Support'/,
 );
 assert.match(
   operationScript,
@@ -1980,7 +1996,10 @@ assert.match(
   /I_ACKNOWLEDGE_B5_SUPPORT_ROLLBACK_DATA_DELETION/,
 );
 assert.match(operationScript, /\$ChangeSet\.RoleARN/);
+assert.match(operationScript, /\$ChangeSet\.StackId -cne \$bootstrapStackId/);
 assert.match(operationScript, /\$Stack\.RoleARN/);
+assert.match(operationScript, /\$tagEntries\.Count -ne 3/);
+assert.match(operationScript, /\$tags\.ContainsKey\(\[string\]\$tag\.Key\)/);
 assert.match(operationScript, /\$ChangeSet\.Capabilities/);
 assert.doesNotMatch(operationScript, /\$ChangeSet\.ChangeSetType/);
 assert.match(operationScript, /\$ChangeSet\.IncludeNestedStacks -ne \$false/);
@@ -1994,7 +2013,7 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /Rollback modes only support -UpdateShape InitialB5Support; incremental IAM update shapes have no standalone rollback shape/,
+  /Rollback modes only support -UpdateShape InitialB5Support; incremental update shapes have no standalone rollback shape/,
 );
 assert.match(
   operationScript,
@@ -2002,7 +2021,7 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationGrant'\) \{\s*\$requiredLifecycleTaskRegistrationGrantChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*\$requiredLifecycleTaskRegistrationRevokeChanges\s*\} elseif \(\$UpdateShape -eq 'SharedCellProvisionAuthorityInstallGrant'\) \{\s*\$requiredSharedCellProvisionAuthorityInstallGrantChanges\s*\} elseif \(\$UpdateShape -eq 'SharedCellProvisionAuthorityInstallRevoke'\) \{\s*\$requiredSharedCellProvisionAuthorityInstallRevokeChanges\s*\} elseif \(\$UpdateShape -eq 'CodeBuildImagePull'\) \{\s*\$requiredCodeBuildImagePullChanges/,
+  /elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationGrant'\) \{\s*\$requiredLifecycleTaskRegistrationGrantChanges\s*\} elseif \(\$UpdateShape -eq 'LifecycleTaskRegistrationRevoke'\) \{\s*\$requiredLifecycleTaskRegistrationRevokeChanges\s*\} elseif \(\$UpdateShape -eq 'SharedCellProvisionAuthorityInstallGrant'\) \{\s*\$requiredSharedCellProvisionAuthorityInstallGrantChanges\s*\} elseif \(\$UpdateShape -eq 'SharedCellProvisionAuthorityInstallRevoke'\) \{\s*\$requiredSharedCellProvisionAuthorityInstallRevokeChanges\s*\} elseif \(\$UpdateShape -eq 'SharedCellTemplateImmutability'\) \{\s*\$requiredSharedCellTemplateImmutabilityChanges\s*\} elseif \(\$UpdateShape -eq 'CodeBuildImagePull'\) \{\s*\$requiredCodeBuildImagePullChanges/,
 );
 assert.match(
   operationScript,
@@ -2030,7 +2049,7 @@ for (const exactDependentChangeToken of [
 }
 assert.match(
   operationScript,
-  /if \(\$UpdateShape -eq 'CodeBuildImagePull'\) \{\s*Assert-ExactCodeBuildImagePullResourceChange -Resource \$resource\s*\} elseif \(\$UpdateShape -in @[\s\S]*?Assert-ExactProvisionAuthorityBoundaryResourceChange -Resource \$resource\s*\} elseif \(\$resource\.Replacement -in/,
+  /if \(\$UpdateShape -eq 'CodeBuildImagePull'\) \{\s*Assert-ExactCodeBuildImagePullResourceChange -Resource \$resource\s*\} elseif \(\$UpdateShape -eq 'SharedCellTemplateImmutability'\) \{\s*Assert-ExactSharedCellTemplateImmutabilityResourceChange -Resource \$resource\s*\} elseif \(\$UpdateShape -in @[\s\S]*?Assert-ExactProvisionAuthorityBoundaryResourceChange -Resource \$resource\s*\} elseif \(\$resource\.Replacement -in/,
 );
 assert.match(operationScript, /function Assert-ExactProvisionAuthorityBoundaryResourceChange/);
 assert.match(operationScript, /\[string\]\$Resource\.Replacement -cne 'False'/);
@@ -2045,6 +2064,116 @@ for (const detailToken of [
 ]) {
   assert.ok(operationScript.includes(detailToken));
 }
+assert.match(
+  operationScript,
+  /function Assert-ExactSharedCellTemplateImmutabilityResourceChange/,
+);
+const immutabilityGuardStart = operationScript.indexOf(
+  "function Assert-ExactSharedCellTemplateImmutabilityResourceChange",
+);
+const immutabilityGuardEnd = operationScript.indexOf(
+  "\nfunction ",
+  immutabilityGuardStart + 1,
+);
+assert.ok(
+  immutabilityGuardStart >= 0 && immutabilityGuardEnd > immutabilityGuardStart,
+  "SharedCellTemplateImmutability guard function boundaries are missing",
+);
+const immutabilityGuardSource = operationScript.slice(
+  immutabilityGuardStart,
+  immutabilityGuardEnd,
+);
+for (const immutabilityChangeToken of [
+  "$buildSourceBucketPolicyLogicalId",
+  "AWS::S3::BucketPolicy",
+  "PhysicalResourceId -cne $buildSourceBucketName",
+  "Replacement -cne 'False'",
+  "$details.Count -ne 1",
+  "Target.Name -cne 'PolicyDocument'",
+  "Target.RequiresRecreation -cne 'Never'",
+  "Target.AttributeChangeType -cne 'Modify'",
+  "Target.Path -cne '/Properties/PolicyDocument'",
+  "Evaluation -cne 'Static'",
+  "ChangeSource -cne 'DirectModification'",
+]) {
+  assert.ok(
+    immutabilityGuardSource.includes(immutabilityChangeToken),
+    `SharedCellTemplateImmutability guard is missing ${immutabilityChangeToken}`,
+  );
+}
+assert.match(
+  operationScript,
+  /\$deployedTemplateBeforeSharedCellImmutabilityCanonicalSha256 =\s*'8231ff876b99b3f5374d1ee2978736f8ba3a48f1260f3d85382e67e9a453caf9'/,
+);
+assert.match(
+  operationScript,
+  /\$bootstrapStackId =\s*'arn:aws:cloudformation:ca-central-1:402010193138:stack\/techlong-s3-bootstrap\/8afbe1e0-9425-11f1-b06a-02ff648cb917'/,
+);
+assert.match(
+  operationScript,
+  /Pre-immutability Bootstrap Stack identity or UPDATE_COMPLETE state drifted/,
+);
+for (const readbackToken of [
+  "function Assert-SharedCellTemplateImmutabilityBaseline",
+  "function Assert-SharedCellTemplateImmutabilityReadback",
+  "function Assert-ExactBuildSourceBucketPolicyReadback",
+  "function Get-ExpectedBuildSourceBucketPolicy",
+  "DenyInsecureTransport",
+  "DenyMutableSharedCellTemplateOperation",
+  "DenySharedCellTemplateDeletion",
+  "DenyBuildSourceLifecycleMutation",
+  "s3:if-none-match",
+  "s3:DeleteObjectVersion",
+  "s3:PutLifecycleConfiguration",
+  "BucketOwnerEnforced",
+  "get-bucket-location",
+  "get-public-access-block",
+  "get-bucket-ownership-controls",
+  "get-bucket-versioning",
+  "get-bucket-lifecycle-configuration",
+  "get-bucket-policy-status",
+  "get-bucket-policy",
+  "--template-stage', 'Original'",
+  "Strict Shared Cell template immutability readback passed.",
+]) {
+  assert.ok(
+    operationScript.includes(readbackToken),
+    `SharedCellTemplateImmutability readback is missing ${readbackToken}`,
+  );
+}
+assert.match(
+  operationScript,
+  /if \(\$Mode -eq 'Readback' -and \$reviewedUpdateShape -ne 'SharedCellTemplateImmutability'\)/,
+);
+assert.match(
+  operationScript,
+  /function Assert-ReviewedChangeSet[\s\S]*?\[ValidateSet\([\s\S]*?'SharedCellTemplateImmutability'[\s\S]*?\)\]\s*\[string\]\$UpdateShape/,
+);
+assert.match(
+  operationScript,
+  /function Assert-ReviewedChangeSetShapeBindingContract[\s\S]*?ValidateSetAttribute[\s\S]*?Assert-ReviewedChangeSet UpdateShape ValidateSet drifted/,
+);
+assert.ok(
+  operationScript.lastIndexOf("Assert-ReviewedChangeSetShapeBindingContract") <
+    operationScript.indexOf("$awsCli = Resolve-AwsCli"),
+  "the runtime Change Set shape-binding contract must run before AWS access",
+);
+assert.match(
+  operationScript,
+  /function Assert-ReviewedChangeSetShapeParameterBindingProbe[\s\S]*?-UpdateShape 'SharedCellTemplateImmutability'[\s\S]*?ParameterBindingException[\s\S]*?The Change Set metadata is not the exact reviewed B5 support update/,
+);
+assert.ok(
+  operationScript.lastIndexOf(
+    "Assert-ReviewedChangeSetShapeParameterBindingProbe",
+  ) < operationScript.indexOf("$awsCli = Resolve-AwsCli"),
+  "the actual SharedCellTemplateImmutability parameter-binding probe must run before AWS access",
+);
+assert.doesNotMatch(operationScript, /'s3api', 'put-object'/);
+assert.doesNotMatch(operationScript, /'s3api', 'delete-object'/);
+assert.match(
+  operationScript,
+  /'cloudformation', 'describe-change-set',[\s\S]*?'--include-property-values'/,
+);
 assert.match(operationScript, /Change Set contains an unapproved resource change/);
 assert.match(operationScript, /Change Set contains a duplicate resource change/);
 assert.match(operationScript, /Change Set is missing the required/);
@@ -2112,6 +2241,10 @@ assert.match(
 );
 assert.match(
   operationScript,
+  /elseif \(\$reviewedUpdateShape -eq 'SharedCellTemplateImmutability'\) \{\s*'shared-cell-template-immutability'/,
+);
+assert.match(
+  operationScript,
   /\$changeSetName = "techlong-s3-b5-support-\$updateShapeToken-\$\(\$templateHash\.Substring\(0, 16\)\)"/,
 );
 assert.match(
@@ -2138,6 +2271,60 @@ for (const readbackToken of [
 }
 const stackWaitIndex = operationScript.indexOf(
   "'cloudformation', 'wait', 'stack-update-complete'",
+);
+const executeChangeSetIndex = operationScript.indexOf(
+  "'cloudformation', 'execute-change-set'",
+);
+const exactUpdateStartIndex = operationScript.indexOf(
+  "Wait-ForExactStackUpdateStart `",
+  executeChangeSetIndex,
+);
+assert.ok(
+  executeChangeSetIndex < exactUpdateStartIndex &&
+    exactUpdateStartIndex < stackWaitIndex,
+  "execute must observe its exact token-bound UPDATE_IN_PROGRESS event before the completion waiter",
+);
+for (const updateStartToken of [
+  "function Wait-ForExactStackUpdateStart",
+  "'cloudformation', 'describe-stack-events'",
+  "ClientRequestToken -ceq $ExecuteClientRequestToken",
+  "ResourceStatus -ceq 'UPDATE_IN_PROGRESS'",
+  "ResourceType -ceq 'AWS::CloudFormation::Stack'",
+  "Start-Sleep -Seconds 2",
+  "do not retry Execute and use Readback to reconcile",
+]) {
+  assert.ok(
+    operationScript.includes(updateStartToken),
+    `token-bound update-start gate is missing ${updateStartToken}`,
+  );
+}
+const immutabilityBaselineCallIndexes = [
+  ...operationScript.matchAll(
+    /Assert-SharedCellTemplateImmutabilityBaseline\s*`/g,
+  ),
+].map((match) => match.index);
+assert.equal(
+  immutabilityBaselineCallIndexes.length,
+  2,
+  "immutability must verify the deployed baseline once on entry and again immediately before execution",
+);
+assert.ok(
+  immutabilityBaselineCallIndexes[1] < executeChangeSetIndex,
+  "the second immutability baseline check must precede execute-change-set",
+);
+const immutabilityReadbackCallIndexes = [
+  ...operationScript.matchAll(
+    /Assert-SharedCellTemplateImmutabilityReadback\s*`/g,
+  ),
+].map((match) => match.index);
+assert.equal(
+  immutabilityReadbackCallIndexes.length,
+  2,
+  "immutability must support independent Readback and automatic post-execute readback",
+);
+assert.ok(
+  stackWaitIndex < immutabilityReadbackCallIndexes.at(-1),
+  "automatic immutability readback must follow stack-update-complete",
 );
 const firstPolicyReadbackIndex = operationScript.indexOf(
   "Assert-ExactProvisionerBoundaryReadback `",

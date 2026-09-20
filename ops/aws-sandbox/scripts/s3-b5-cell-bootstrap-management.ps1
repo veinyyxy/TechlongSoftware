@@ -52,6 +52,7 @@ $expectedJanitorRoleArn = 'arn:aws:iam::402010193138:role/TechlongSandboxCellJan
 $expectedSchedulerRoleArn = 'arn:aws:iam::402010193138:role/TechlongSandboxCellSchedulerInvokeRole'
 $childTemplateBucketName = 'techlong-sandbox-build-source-402010193138-ca-central-1'
 $childTemplateObjectKeyPrefix = 'b5-cell-bootstrap/templates/sha256'
+$sharedCellTemplateObjectKeyPrefix = 'b5-shared-cell/templates/sha256'
 $childTemplateResourceTypes = @(
   'AWS::Logs::LogGroup',
   'AWS::Lambda::Function',
@@ -881,6 +882,36 @@ function Assert-ExactBootstrapSourceBucket {
         Condition = [ordered]@{
           Bool = [ordered]@{ 'aws:SecureTransport' = 'false' }
         }
+      },
+      [ordered]@{
+        Sid = 'DenyMutableSharedCellTemplateOperation'
+        Effect = 'Deny'
+        Principal = '*'
+        Action = 's3:PutObject'
+        Resource = @(
+          "arn:aws:s3:::$childTemplateBucketName/$sharedCellTemplateObjectKeyPrefix/*",
+          "arn:aws:s3:::$childTemplateBucketName/$childTemplateObjectKeyPrefix/*"
+        )
+        Condition = [ordered]@{
+          StringNotEquals = [ordered]@{ 's3:if-none-match' = '*' }
+        }
+      },
+      [ordered]@{
+        Sid = 'DenySharedCellTemplateDeletion'
+        Effect = 'Deny'
+        Principal = '*'
+        Action = @('s3:DeleteObject', 's3:DeleteObjectVersion')
+        Resource = @(
+          "arn:aws:s3:::$childTemplateBucketName/$sharedCellTemplateObjectKeyPrefix/*",
+          "arn:aws:s3:::$childTemplateBucketName/$childTemplateObjectKeyPrefix/*"
+        )
+      },
+      [ordered]@{
+        Sid = 'DenyBuildSourceLifecycleMutation'
+        Effect = 'Deny'
+        Principal = '*'
+        Action = 's3:PutLifecycleConfiguration'
+        Resource = "arn:aws:s3:::$childTemplateBucketName"
       }
     )
   }) -Label 'Child template bucket policy'
@@ -948,6 +979,23 @@ function Assert-ExactBootstrapSourceBucket {
   ) {
     throw 'Child template bucket versioning must remain unconfigured for one exact immutable object.'
   }
+  $lifecycle = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
+    's3api', 'get-bucket-lifecycle-configuration', '--profile', $Profile,
+    '--region', $expectedRegion, '--bucket', $childTemplateBucketName,
+    '--expected-bucket-owner', $expectedAccountId, '--output', 'json'
+  )
+  Assert-ExactJsonObject -Actual $lifecycle -Expected ([ordered]@{
+    TransitionDefaultMinimumObjectSize = 'all_storage_classes_128K'
+    Rules = @(
+      [ordered]@{
+        Expiration = [ordered]@{ Days = 1 }
+        ID = 'ExpireBuildSourcesAfterOneDay'
+        Filter = [ordered]@{ Prefix = 'source/' }
+        Status = 'Enabled'
+        AbortIncompleteMultipartUpload = [ordered]@{ DaysAfterInitiation = 1 }
+      }
+    )
+  }) -Label 'Child template bucket lifecycle configuration'
   $tagging = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
     's3api', 'get-bucket-tagging', '--profile', $Profile, '--region', $expectedRegion,
     '--bucket', $childTemplateBucketName, '--expected-bucket-owner', $expectedAccountId,
@@ -1117,38 +1165,6 @@ function Publish-ExactChildTemplateObject {
   Assert-ExactChildTemplateObject -AwsCli $AwsCli -ChildSnapshot $ChildSnapshot
   Assert-ChildSnapshotUnchanged -ChildSnapshot $ChildSnapshot
   Write-Host "Exact immutable child template object is ready: $(Get-ChildTemplateUrl -ChildSnapshot $ChildSnapshot)"
-}
-
-function Remove-ExactChildTemplateObject {
-  param([string]$AwsCli, [object]$ChildSnapshot)
-  Assert-ChildSnapshotUnchanged -ChildSnapshot $ChildSnapshot
-  Assert-ExactBootstrapSourceBucket -AwsCli $AwsCli | Out-Null
-  $objectKey = Get-ChildTemplateObjectKey -ChildSnapshot $ChildSnapshot
-  $head = Get-ChildTemplateObjectHeadOrNull -AwsCli $AwsCli -ObjectKey $objectKey
-  if ($null -eq $head) {
-    Write-Host "Immutable child template object is already absent: s3://$childTemplateBucketName/$objectKey"
-    return
-  }
-  Assert-ExactChildTemplateObject -AwsCli $AwsCli -ChildSnapshot $ChildSnapshot
-  if ([string]$head.ETag -cnotmatch '^"[a-f0-9]{32}"$') {
-    throw 'Exact child template object ETag is unavailable for conditional deletion.'
-  }
-  $deleted = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
-    's3api', 'delete-object', '--profile', $Profile, '--region', $expectedRegion,
-    '--bucket', $childTemplateBucketName, '--key', $objectKey,
-    '--expected-bucket-owner', $expectedAccountId,
-    '--if-match', ([string]$head.ETag), '--output', 'json'
-  )
-  if (
-    $deleted.DeleteMarker -eq $true -or
-    -not [string]::IsNullOrEmpty([string]$deleted.VersionId)
-  ) {
-    throw 'Conditional child template deletion unexpectedly created a versioned delete marker.'
-  }
-  if ($null -ne (Get-ChildTemplateObjectHeadOrNull -AwsCli $AwsCli -ObjectKey $objectKey)) {
-    throw 'Exact child template object still exists after conditional deletion.'
-  }
-  Write-Host "Conditionally deleted exact child template object: s3://$childTemplateBucketName/$objectKey"
 }
 
 function Assert-ExactGetTemplateResponse {
@@ -2473,7 +2489,8 @@ try {
     Assert-StackMissing -AwsCli $awsCli -StackName $childBootstrapStackName
     Assert-LegacyCellIamNamesMissing -AwsCli $awsCli
     Assert-ChildBootstrapRuntimeNamesMissing -AwsCli $awsCli
-    Remove-ExactChildTemplateObject -AwsCli $awsCli -ChildSnapshot $childSnapshot
+    Assert-ExactBootstrapSourceBucket -AwsCli $awsCli | Out-Null
+    Assert-ExactChildTemplateObject -AwsCli $awsCli -ChildSnapshot $childSnapshot
     Assert-SnapshotUnchanged -Snapshot $targetSnapshot
     Invoke-AwsChecked -AwsCli $awsCli -Arguments @(
       'cloudformation', 'delete-stack',
@@ -2492,7 +2509,9 @@ try {
     Assert-ManagementIamNamesMissing -AwsCli $awsCli
     Assert-LegacyCellIamNamesMissing -AwsCli $awsCli
     Assert-ChildBootstrapRuntimeNamesMissing -AwsCli $awsCli
-    Write-Host 'Deleted the exact locked B5-J4b management root after proving the child Bootstrap Stack was absent.'
+    Assert-ExactBootstrapSourceBucket -AwsCli $awsCli | Out-Null
+    Assert-ExactChildTemplateObject -AwsCli $awsCli -ChildSnapshot $childSnapshot
+    Write-Host 'Deleted the exact locked B5-J4b management root after proving the child Bootstrap Stack was absent; preserved the exact digest-addressed child template object as immutable evidence.'
     exit 0
   }
 

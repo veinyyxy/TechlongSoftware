@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Techlong AWS Sandbox bootstrap: bounded roles, TTL janitor, immutable ECR, disabled-by-default CodeBuild, and low-cost B5 receipt/epoch support resources.",
+  "Description": "Techlong AWS Sandbox.",
   "Metadata": {
     "SafetyBoundary": {
       "ExpectedAccountId": "402010193138",
@@ -535,13 +535,39 @@
               "Sid": "DenyMutableSharedCellTemplateOperation",
               "Effect": "Deny",
               "Principal": "*",
-              "Action": ["s3:PutObject", "s3:DeleteObject"],
-              "Resource": {
-                "Fn::Sub": "${CodeBuildSourceBucket.Arn}/b5-shared-cell/templates/sha256/*"
-              },
+              "Action": "s3:PutObject",
+              "Resource": [
+                {
+                  "Fn::Sub": "${CodeBuildSourceBucket.Arn}/b5-shared-cell/templates/sha256/*"
+                },
+                {
+                  "Fn::Sub": "${CodeBuildSourceBucket.Arn}/b5-cell-bootstrap/templates/sha256/*"
+                }
+              ],
               "Condition": {
                 "StringNotEquals": { "s3:if-none-match": "*" }
               }
+            },
+            {
+              "Sid": "DenySharedCellTemplateDeletion",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": ["s3:DeleteObject", "s3:DeleteObjectVersion"],
+              "Resource": [
+                {
+                  "Fn::Sub": "${CodeBuildSourceBucket.Arn}/b5-shared-cell/templates/sha256/*"
+                },
+                {
+                  "Fn::Sub": "${CodeBuildSourceBucket.Arn}/b5-cell-bootstrap/templates/sha256/*"
+                }
+              ]
+            },
+            {
+              "Sid": "DenyBuildSourceLifecycleMutation",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:PutLifecycleConfiguration",
+              "Resource": { "Fn::GetAtt": ["CodeBuildSourceBucket", "Arn"] }
             }
           ]
         }
