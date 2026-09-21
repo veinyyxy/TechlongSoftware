@@ -180,6 +180,12 @@ function api(overrides = {}) {
 }
 
 const request = { schemaVersion: 1, action: "inspect_cell_cleanup_plan" };
+const deleteIntentRequest = {
+  schemaVersion: 1,
+  action: "delete_shared_cell_stack",
+  stackName,
+  cellId: "cell-sandbox-1",
+};
 const tenantPrefixSupportStacks = [
   "techlong-sandbox-tenant-b5j3",
   "techlong-sandbox-tenant-b5j4logs",
@@ -188,6 +194,21 @@ const tenantPrefixSupportStacks = [
 test("plan-only coordinator returns ABSENT_SAFE without authority or mutation calls", async () => {
   const fixture = api({ listStackNames: async () => [] });
   const result = await createHandler(fixture.value, () => now)(request);
+  assert.deepEqual(result, {
+    schemaVersion: 1,
+    action: "inspect_cell_cleanup_plan",
+    coordinatorMode: "PLAN_ONLY",
+    decision: "ABSENT_SAFE",
+    mutationPerformed: false,
+    cellStack: "MISSING",
+    tenantStacks: [],
+  });
+  assert.deepEqual(fixture.calls, []);
+});
+
+test("exact delete intent is normalized to the same read-only ABSENT_SAFE plan", async () => {
+  const fixture = api({ listStackNames: async () => [] });
+  const result = await createHandler(fixture.value, () => now)(deleteIntentRequest);
   assert.deepEqual(result, {
     schemaVersion: 1,
     action: "inspect_cell_cleanup_plan",
@@ -282,6 +303,17 @@ test("plan-only coordinator binds exact Stack, template, inventory and authority
     "listStackResources",
     "getAuthorityItem",
   ]));
+});
+
+test("exact delete intent can only produce a mutation-disabled bound plan", async () => {
+  const fixture = api();
+  const result = await createHandler(fixture.value, () => now)(deleteIntentRequest);
+  assert.equal(result.action, "inspect_cell_cleanup_plan");
+  assert.equal(result.coordinatorMode, "PLAN_ONLY");
+  assert.equal(result.decision, "PLAN_READY_MUTATION_DISABLED");
+  assert.equal(result.mutationPerformed, false);
+  assert.equal(result.cellStack, stackId);
+  assert.equal(result.authorityRecordHash, authorityRecord().recordHash);
 });
 
 test("plan-only coordinator requires the exact live Cell CloudFormation RoleARN", async () => {
@@ -436,11 +468,23 @@ test("authority validator rejects legacy item and record schema v1", () => {
 test("request and runtime configuration are exact and planner source has no delete command", async () => {
   const fixture = api();
   for (const event of [
+    null,
+    [],
     {},
     { schemaVersion: "1", action: "inspect_cell_cleanup_plan" },
     { schemaVersion: 2, action: "inspect_cell_cleanup_plan" },
+    { schemaVersion: 1, action: "Inspect_cell_cleanup_plan" },
     { schemaVersion: 1, action: "delete_shared_cell_stack" },
     { schemaVersion: 1, action: "inspect_cell_cleanup_plan", stackName },
+    { ...deleteIntentRequest, schemaVersion: 2 },
+    { ...deleteIntentRequest, action: "delete_shared_cell_stack " },
+    { ...deleteIntentRequest, action: "DELETE_SHARED_CELL_STACK" },
+    { ...deleteIntentRequest, stackName: "techlong-sandbox-cell-foreign" },
+    { ...deleteIntentRequest, stackName: `${stackName}-copy` },
+    { ...deleteIntentRequest, stackName: null },
+    { ...deleteIntentRequest, cellId: "cell-foreign" },
+    { ...deleteIntentRequest, cellId: null },
+    { ...deleteIntentRequest, unexpected: true },
   ]) {
     await assert.rejects(
       createHandler(fixture.value, () => now)(event),
@@ -467,7 +511,8 @@ test("request and runtime configuration are exact and planner source has no dele
     "utf8",
   );
   assert.doesNotMatch(source, /DeleteStackCommand|UpdateStackCommand|CreateChangeSetCommand/);
-  assert.doesNotMatch(source, /delete_shared_cell_stack|scan_expired_shared_cell_stacks/);
+  assert.match(source, /const DELETE_INTENT_ACTION = "delete_shared_cell_stack"/);
+  assert.doesNotMatch(source, /scan_expired_shared_cell_stacks/);
   assert.doesNotMatch(source, /ProjectionExpression/);
   assert.match(source, /ConsistentRead:\s*true/);
   assert.match(source, /mutationPerformed:\s*false/);

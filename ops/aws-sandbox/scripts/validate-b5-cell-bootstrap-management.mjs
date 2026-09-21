@@ -700,17 +700,18 @@ assert.match(
 assert.match(operationScript, /InitialLocked/);
 assert.match(
   operationScript,
-  /\[ValidateSet\('AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback'\)\]/,
+  /\[ValidateSet\('AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback', 'DeleteIntentCompatibilityUpdate'\)\]/,
 );
-assert.match(operationScript, /\[string\]\$ChildDeploymentShape = 'AuthorityV2ConsumerUpdate'/);
+assert.match(operationScript, /\[string\]\$ChildDeploymentShape = 'DeleteIntentCompatibilityUpdate'/);
 assert.match(operationScript, /render-b5-cell-bootstrap-j4c-deployed\.mjs/);
+assert.match(operationScript, /render-b5-cell-bootstrap-j5gg-v2\.mjs/);
 assert.match(
   operationScript,
   /\$ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback'[\s\S]*techlong-s3-b5-cell-bootstrap-rollback-/,
 );
 assert.match(
   operationScript,
-  /\$selectedChildRenderer = if \(\$ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback'\)[\s\S]*\$deployedJ4cChildRenderer/,
+  /\$selectedChildRenderer = switch \(\$ChildDeploymentShape\)[\s\S]*'AuthorityV2ConsumerUpdate' \{ \$authorityV2ChildRenderer \}[\s\S]*'AuthorityV2ConsumerRollback' \{ \$deployedJ4cChildRenderer \}[\s\S]*'DeleteIntentCompatibilityUpdate' \{ \$childRenderer \}/,
 );
 assert.match(operationScript, /LockedPolicyRefresh/);
 assert.match(operationScript, /BootstrapAuthorGrant/);
@@ -736,6 +737,18 @@ assert.match(
 );
 assert.match(operationScript, /B5-J4c plan-only cleanup planner raw=/);
 assert.match(operationScript, /B5-J5g-g plan-only authority-v2 consumer rollback raw=/);
+assert.match(operationScript, /B5-J5g-h plan-only delete-intent compatibility update raw=/);
+assert.match(
+  operationScript,
+  /\$binding = "\$UpdateShape\|\$ChildDeploymentShape\|\$ApprovedChangeSetName\|\$GrantExpiresAt\|\$\(\$Snapshot\.RawSha256\)\|\$\(\$Snapshot\.CanonicalSha256\)\|\$\(\$ChildSnapshot\.RawSha256\)\|\$\(\$ChildSnapshot\.CanonicalSha256\)"/,
+);
+assert.match(operationScript, /child-shape=\$ChildDeploymentShape/);
+assert.match(operationScript, /child-raw-sha256=\$\(\$ChildSnapshot\.RawSha256\)/);
+assert.match(operationScript, /child-canonical-sha256=\$\(\$ChildSnapshot\.CanonicalSha256\)/);
+assert.match(
+  operationScript,
+  /Get-ChangeSetContract\s*`[\s\S]*-Snapshot \$targetSnapshot\s*`[\s\S]*-Contract \$contract\s*`[\s\S]*-ChildSnapshot \$childSnapshot/,
+);
 assert.match(operationScript, /\$isInitialCreate = \[string\]\$changeSet\.OnStackFailure -ceq 'DELETE'/);
 assert.match(operationScript, /\$expectedStackStatus = if \(\$isInitialCreate\) \{ 'REVIEW_IN_PROGRESS' \} else \{ 'UPDATE_COMPLETE' \}/);
 assert.match(

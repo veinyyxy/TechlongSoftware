@@ -152,7 +152,19 @@ assert.doesNotMatch(
   runtime,
   /aws-sdk-shared-cell-cleanup|neon-shared-cell-zero-tenant/,
 );
-includesAll(janitor, ['const PLAN_ACTION = "inspect_cell_cleanup_plan"', 'const PLAN_ONLY_MODE = "PLAN_ONLY"'], "deployed Janitor source");
+includesAll(
+  janitor,
+  [
+    'const PLAN_ACTION = "inspect_cell_cleanup_plan"',
+    'const DELETE_INTENT_ACTION = "delete_shared_cell_stack"',
+    'const PLAN_ONLY_MODE = "PLAN_ONLY"',
+  ],
+  "reviewed Janitor target",
+);
+assert.match(
+  janitor,
+  /exactKeys\(event, \["action", "cellId", "schemaVersion", "stackName"\]\)/,
+);
 assert.doesNotMatch(janitor, /DeleteStackCommand|PutCommand|UpdateCommand/);
 const child = JSON.parse(childTemplateSource);
 assert.equal(child.Metadata.SafetyBoundary.CoordinatorMode, "PLAN_ONLY");
@@ -189,5 +201,5 @@ assert.equal(
 );
 
 console.log(
-  "B5-J5g-c production cleanup adapters validated locally (real SDK/Neon shapes, default-off, PLAN_ONLY Janitor unchanged, no provider call).",
+  "B5-J5g-c production cleanup adapters validated locally (real SDK/Neon shapes, default-off, delete-intent-compatible PLAN_ONLY target, no provider call).",
 );

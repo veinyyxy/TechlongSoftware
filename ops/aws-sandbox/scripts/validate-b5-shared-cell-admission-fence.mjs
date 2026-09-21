@@ -365,8 +365,16 @@ assert.doesNotMatch(
 );
 includesAll(
   janitor,
-  ['const PLAN_ACTION = "inspect_cell_cleanup_plan"', 'const PLAN_ONLY_MODE = "PLAN_ONLY"'],
-  "deployed Janitor source",
+  [
+    'const PLAN_ACTION = "inspect_cell_cleanup_plan"',
+    'const DELETE_INTENT_ACTION = "delete_shared_cell_stack"',
+    'const PLAN_ONLY_MODE = "PLAN_ONLY"',
+  ],
+  "reviewed Janitor target",
+);
+assert.match(
+  janitor,
+  /exactKeys\(event, \["action", "cellId", "schemaVersion", "stackName"\]\)/,
 );
 assert.doesNotMatch(janitor, /DeleteStackCommand|PutCommand|UpdateCommand/);
 

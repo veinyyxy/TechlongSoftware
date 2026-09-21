@@ -19,6 +19,7 @@ const AUTHORITY_TABLE_NAME = "techlong-sandbox-tenant-external-epoch-authority";
 const AUTHORITY_TABLE_ARN =
   "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority";
 const PLAN_ACTION = "inspect_cell_cleanup_plan";
+const DELETE_INTENT_ACTION = "delete_shared_cell_stack";
 const PLAN_ONLY_MODE = "PLAN_ONLY";
 const MAX_AUTHORITY_LIFETIME_MS = 60 * 60 * 1000;
 const DIGEST_PATTERN = /^[a-f0-9]{64}$/;
@@ -178,11 +179,17 @@ function assertRuntimeEnvironment(environment) {
 }
 
 function assertPlanEvent(event) {
-  if (
-    !exactKeys(event, ["action", "schemaVersion"]) ||
-    event.schemaVersion !== 1 ||
-    event.action !== PLAN_ACTION
-  ) {
+  const isExactPlanRequest =
+    exactKeys(event, ["action", "schemaVersion"]) &&
+    event.schemaVersion === 1 &&
+    event.action === PLAN_ACTION;
+  const isExactDeleteIntentRequest =
+    exactKeys(event, ["action", "cellId", "schemaVersion", "stackName"]) &&
+    event.schemaVersion === 1 &&
+    event.action === DELETE_INTENT_ACTION &&
+    event.stackName === EXPECTED_CELL_STACK_NAME &&
+    event.cellId === EXPECTED_CELL_ID;
+  if (!isExactPlanRequest && !isExactDeleteIntentRequest) {
     fail("CELL_CLEANUP_REQUEST_INVALID", "Invalid plan-only Cell cleanup request.");
   }
 }

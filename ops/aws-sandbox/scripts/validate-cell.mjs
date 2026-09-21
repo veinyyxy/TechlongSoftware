@@ -138,6 +138,11 @@ assert.equal(resources.CellDatabaseLogGroup.DeletionPolicy, "Delete");
 
 assert.match(janitorSource, /listStackNames/);
 assert.match(janitorSource, /inspect_cell_cleanup_plan/);
+assert.match(janitorSource, /const DELETE_INTENT_ACTION = "delete_shared_cell_stack"/);
+assert.match(
+  janitorSource,
+  /exactKeys\(event, \["action", "cellId", "schemaVersion", "stackName"\]\)/,
+);
 assert.match(janitorSource, /PLAN_ONLY/);
 assert.match(janitorSource, /ConsistentRead:\s*true/);
 assert.match(janitorSource, /techlong-sandbox-tenant-b5j3/);
@@ -147,4 +152,4 @@ assert.doesNotMatch(
   /DeleteStackCommand|UpdateStackCommand|CreateChangeSetCommand/,
 );
 
-console.log("Shared Cell render, TTL ordering and plan-only Janitor source validation passed.");
+console.log("Shared Cell render, TTL ordering and delete-intent-compatible plan-only Janitor target validation passed.");

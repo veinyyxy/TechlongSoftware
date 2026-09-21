@@ -2,7 +2,7 @@
 param(
   [ValidateSet('LocalValidate', 'OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet', 'Readback', 'ProbeJanitor', 'Delete')]
   [string]$Mode = 'LocalValidate',
-  [ValidateSet('InitialCreate', 'PlannerUpdate', 'AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback')]
+  [ValidateSet('InitialCreate', 'PlannerUpdate', 'AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback', 'DeleteIntentCompatibilityUpdate')]
   [string]$DeploymentShape = 'InitialCreate',
   [string]$ManagerProfile = 'techlong-sandbox-cell-bootstrap-manager',
   [string]$SourceReadbackProfile = 'techlong-sandbox-user',
@@ -56,10 +56,12 @@ $initialCreatePhrase = 'I_ACKNOWLEDGE_B5_J4C_PLAN_ONLY_BOOTSTRAP_CREATION'
 $plannerUpdatePhrase = 'I_ACKNOWLEDGE_B5_J4C_PLAN_ONLY_BOOTSTRAP_UPDATE'
 $authorityV2ConsumerUpdatePhrase = 'I_ACKNOWLEDGE_B5_J5G_G_PLAN_ONLY_AUTHORITY_V2_CONSUMER_UPDATE'
 $authorityV2ConsumerRollbackPhrase = 'I_ACKNOWLEDGE_B5_J5G_G_PLAN_ONLY_AUTHORITY_V2_CONSUMER_ROLLBACK'
+$deleteIntentCompatibilityUpdatePhrase = 'I_ACKNOWLEDGE_B5_J5G_H_PLAN_ONLY_DELETE_INTENT_COMPATIBILITY_UPDATE'
 $executePhrase = switch ($DeploymentShape) {
   'PlannerUpdate' { $plannerUpdatePhrase }
   'AuthorityV2ConsumerUpdate' { $authorityV2ConsumerUpdatePhrase }
   'AuthorityV2ConsumerRollback' { $authorityV2ConsumerRollbackPhrase }
+  'DeleteIntentCompatibilityUpdate' { $deleteIntentCompatibilityUpdatePhrase }
   default { $initialCreatePhrase }
 }
 $deletePhrase = 'I_ACKNOWLEDGE_B5_J4C_PLAN_ONLY_BOOTSTRAP_DELETION'
@@ -985,7 +987,7 @@ function Assert-ExactAuthorityV2ConsumerChildStack {
     $null -eq $stack -or
     [string]$stack.StackStatus -cne 'UPDATE_COMPLETE'
   ) {
-    throw 'The exact authority-v2 consumer child Stack is unavailable for AuthorityV2ConsumerRollback.'
+    throw 'The exact authority-v2 consumer child Stack is unavailable as the fixed predecessor.'
   }
   Assert-ExactStackAndResources -AwsCli $AwsCli -ExpectedStackId ([string]$stack.StackId) `
     -ReviewedTemplatePath $AuthorityV2TemplatePath -Digests $AuthorityV2Digests `
@@ -1064,6 +1066,7 @@ function Assert-ReviewedChangeSet {
     'PlannerUpdate' { 'CREATE_COMPLETE' }
     'AuthorityV2ConsumerUpdate' { 'UPDATE_COMPLETE' }
     'AuthorityV2ConsumerRollback' { 'UPDATE_COMPLETE' }
+    'DeleteIntentCompatibilityUpdate' { 'UPDATE_COMPLETE' }
     default { throw "Unhandled deployment shape $DeploymentShape." }
   }
   if (
@@ -1116,6 +1119,9 @@ function Assert-ReviewedChangeSet {
     'AuthorityV2ConsumerRollback' {
       @{ CellJanitorFunction = 'AWS::Lambda::Function' }
     }
+    'DeleteIntentCompatibilityUpdate' {
+      @{ CellJanitorFunction = 'AWS::Lambda::Function' }
+    }
     default { throw "Unhandled deployment shape $DeploymentShape." }
   }
   $observed = @{}
@@ -1148,7 +1154,11 @@ function Assert-ReviewedChangeSet {
         $logicalId -eq 'CellGlobalJanitorSchedule' -and
         [string]$resource.PhysicalResourceId -cnotmatch '^(?:arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox-cell/)?techlong-sandbox-cell-global-janitor$'
       ) { throw 'PlannerUpdate Schedule physical resource drifted.' }
-      if ($DeploymentShape -in @('AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback')) {
+      if ($DeploymentShape -in @(
+        'AuthorityV2ConsumerUpdate',
+        'AuthorityV2ConsumerRollback',
+        'DeleteIntentCompatibilityUpdate'
+      )) {
         $details = @($resource.Details)
         if ($details.Count -lt 1) {
           throw "$DeploymentShape must expose at least one exact Lambda Code property detail."
@@ -1903,7 +1913,10 @@ try {
   $deployedJ4cDigests = if ($DeploymentShape -eq 'AuthorityV2ConsumerUpdate') {
     New-DeployedJ4cReadOnlyTemplateSnapshot -DestinationPath $deployedJ4cTemplateSnapshotPath
   } else { $null }
-  $authorityV2Digests = if ($DeploymentShape -eq 'AuthorityV2ConsumerRollback') {
+  $authorityV2Digests = if ($DeploymentShape -in @(
+    'AuthorityV2ConsumerRollback',
+    'DeleteIntentCompatibilityUpdate'
+  )) {
     New-AuthorityV2ReadOnlyTemplateSnapshot -DestinationPath $authorityV2TemplateSnapshotPath
   } else { $null }
   $changeSetName = if ($DeploymentShape -eq 'AuthorityV2ConsumerRollback') {
@@ -1911,10 +1924,16 @@ try {
   } else {
     "techlong-s3-b5-cell-bootstrap-$($digests.Raw.Substring(0, 16))"
   }
-  $description = if ($DeploymentShape -eq 'AuthorityV2ConsumerRollback') {
-    "B5-J5g-g plan-only authority-v2 consumer rollback raw=$($digests.Raw) canonical=$($digests.Canonical)"
-  } else {
-    "B5-J4c plan-only cleanup planner raw=$($digests.Raw) canonical=$($digests.Canonical)"
+  $description = switch ($DeploymentShape) {
+    'AuthorityV2ConsumerRollback' {
+      "B5-J5g-g plan-only authority-v2 consumer rollback raw=$($digests.Raw) canonical=$($digests.Canonical)"
+    }
+    'DeleteIntentCompatibilityUpdate' {
+      "B5-J5g-h plan-only delete-intent compatibility update raw=$($digests.Raw) canonical=$($digests.Canonical)"
+    }
+    default {
+      "B5-J4c plan-only cleanup planner raw=$($digests.Raw) canonical=$($digests.Canonical)"
+    }
   }
   $templateObject = Get-TemplateObjectContract -Digests $digests
   Write-Host "Template SHA-256: $($digests.Raw)"
@@ -1968,6 +1987,12 @@ try {
           -ManagementTemplate $managementTemplate
       }
       'AuthorityV2ConsumerRollback' {
+        Assert-ExactAuthorityV2ConsumerChildStack -AwsCli $awsCli `
+          -AuthorityV2TemplatePath $authorityV2TemplateSnapshotPath `
+          -AuthorityV2Digests $authorityV2Digests -TemporaryDirectory $temporaryDirectory `
+          -ManagementTemplate $managementTemplate
+      }
+      'DeleteIntentCompatibilityUpdate' {
         Assert-ExactAuthorityV2ConsumerChildStack -AwsCli $awsCli `
           -AuthorityV2TemplatePath $authorityV2TemplateSnapshotPath `
           -AuthorityV2Digests $authorityV2Digests -TemporaryDirectory $temporaryDirectory `

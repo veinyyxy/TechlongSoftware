@@ -37,7 +37,7 @@ assert.throws(
       ...fixture,
       allowPlanOnlyAuthoring: false,
     }),
-  /delete_shared_cell_stack is incompatible with the deployed PLAN_ONLY Janitor/,
+  /delete_shared_cell_stack is event-compatible, but the PLAN_ONLY Janitor cannot perform deletion/,
 );
 assert.throws(
   () =>
@@ -188,13 +188,26 @@ assert.deepEqual(manifest.cleanupSchedule.event, {
 assert.equal(manifest.cleanupSchedule.expression, "at(2026-08-09T03:00:00)");
 assert.equal(manifest.cleanupSchedule.state, "ENABLED");
 assert.equal(manifest.compatibility.compatible, false);
-assert.equal(manifest.compatibility.currentJanitorMode, "PLAN_ONLY");
-assert.deepEqual(manifest.compatibility.currentJanitorAcceptedEvent, {
-  schemaVersion: 1,
-  action: "inspect_cell_cleanup_plan",
-});
+assert.equal(manifest.compatibility.reviewedTargetCompatible, true);
+assert.equal(manifest.compatibility.deployedCompatibilityVerified, false);
+assert.equal(manifest.compatibility.reviewedTargetJanitorMode, "PLAN_ONLY");
+assert.deepEqual(manifest.compatibility.reviewedTargetJanitorAcceptedEvents, [
+  {
+    schemaVersion: 1,
+    action: "inspect_cell_cleanup_plan",
+  },
+  {
+    schemaVersion: 1,
+    action: "delete_shared_cell_stack",
+    stackName: "techlong-sandbox-cell-sandbox-1",
+    cellId: "cell-sandbox-1",
+  },
+]);
 assert.deepEqual(manifest.compatibility.blockers.map(({ code }) => code), [
-  "PLAN_ONLY_JANITOR_EVENT_INCOMPATIBLE",
+  "DEPLOYED_JANITOR_EVENT_COMPATIBILITY_NOT_VERIFIED",
+]);
+assert.deepEqual(manifest.compatibility.executionBlockers.map(({ code }) => code), [
+  "PLAN_ONLY_JANITOR_MUTATION_DISABLED",
 ]);
 assert.deepEqual(manifest.readiness, {
   localCandidateValidated: true,
@@ -253,8 +266,15 @@ const janitorSource = readFileSync(
   "utf8",
 );
 assert.match(janitorSource, /const PLAN_ACTION = "inspect_cell_cleanup_plan"/);
+assert.match(janitorSource, /const DELETE_INTENT_ACTION = "delete_shared_cell_stack"/);
 assert.match(janitorSource, /const PLAN_ONLY_MODE = "PLAN_ONLY"/);
-assert.match(janitorSource, /event\.action !== PLAN_ACTION/);
+assert.match(janitorSource, /event\.action === DELETE_INTENT_ACTION/);
+assert.match(
+  janitorSource,
+  /exactKeys\(event, \["action", "cellId", "schemaVersion", "stackName"\]\)/,
+);
+assert.match(janitorSource, /event\.stackName === EXPECTED_CELL_STACK_NAME/);
+assert.match(janitorSource, /event\.cellId === EXPECTED_CELL_ID/);
 assert.doesNotMatch(janitorSource, /DeleteStackCommand|ExecuteChangeSetCommand/);
 
 const compilerSource = readFileSync(
@@ -267,5 +287,5 @@ assert.doesNotMatch(
 );
 
 console.log(
-  "B5 Shared Cell deterministic author candidate validated locally (18 resource types, exact TTL/tags/hashes, PLAN_ONLY execution blocked, no AWS calls).",
+  "B5 Shared Cell deterministic author candidate validated locally (18 resource types, exact TTL/tags/hashes, delete intent event-compatible, PLAN_ONLY execution blocked, no AWS calls).",
 );

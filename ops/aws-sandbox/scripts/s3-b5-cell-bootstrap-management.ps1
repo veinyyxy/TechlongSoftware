@@ -13,8 +13,8 @@ param(
     'BootstrapRollbackRevoke'
   )]
   [string]$UpdateShape = 'InitialLocked',
-  [ValidateSet('AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback')]
-  [string]$ChildDeploymentShape = 'AuthorityV2ConsumerUpdate',
+  [ValidateSet('AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback', 'DeleteIntentCompatibilityUpdate')]
+  [string]$ChildDeploymentShape = 'DeleteIntentCompatibilityUpdate',
   [string]$Profile = 'techlong-sandbox-user',
   [string]$ApprovedChangeSetName = '',
   [string]$GrantExpiresAt = '',
@@ -70,6 +70,7 @@ $renderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-management.mjs'
 $legacyRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-management-j4b-legacy.mjs'
 $childRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap.mjs'
 $deployedJ4cChildRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j4c-deployed.mjs'
+$authorityV2ChildRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j5gg-v2.mjs'
 $childValidator = Join-Path $root 'scripts\validate-b5-cell-bootstrap.mjs'
 $validator = Join-Path $root 'scripts\validate-b5-cell-bootstrap-management.mjs'
 $templateVerifier = Join-Path $root 'scripts\verify-change-set-template.mjs'
@@ -315,8 +316,13 @@ function Get-ChildChangeSetName {
 
 function Get-ChildChangeSetDescription {
   param([object]$ChildSnapshot)
-  if ($ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback') {
-    return "B5-J5g-g plan-only authority-v2 consumer rollback raw=$($ChildSnapshot.RawSha256) canonical=$($ChildSnapshot.CanonicalSha256)"
+  switch ($ChildDeploymentShape) {
+    'AuthorityV2ConsumerRollback' {
+      return "B5-J5g-g plan-only authority-v2 consumer rollback raw=$($ChildSnapshot.RawSha256) canonical=$($ChildSnapshot.CanonicalSha256)"
+    }
+    'DeleteIntentCompatibilityUpdate' {
+      return "B5-J5g-h plan-only delete-intent compatibility update raw=$($ChildSnapshot.RawSha256) canonical=$($ChildSnapshot.CanonicalSha256)"
+    }
   }
   return "B5-J4c plan-only cleanup planner raw=$($ChildSnapshot.RawSha256) canonical=$($ChildSnapshot.CanonicalSha256)"
 }
@@ -326,9 +332,12 @@ function New-ReadOnlyChildTemplateSnapshot {
     [System.IO.Path]::GetTempPath(),
     "techlong-s3-b5-cell-bootstrap-$([Guid]::NewGuid().ToString('N')).json"
   )
-  $selectedChildRenderer = if ($ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback') {
-    $deployedJ4cChildRenderer
-  } else { $childRenderer }
+  $selectedChildRenderer = switch ($ChildDeploymentShape) {
+    'AuthorityV2ConsumerUpdate' { $authorityV2ChildRenderer }
+    'AuthorityV2ConsumerRollback' { $deployedJ4cChildRenderer }
+    'DeleteIntentCompatibilityUpdate' { $childRenderer }
+    default { throw "Unhandled child deployment shape $ChildDeploymentShape." }
+  }
   $renderOutput = ((& node $selectedChildRenderer --output $path) | Out-String).Trim()
   if (
     $LASTEXITCODE -ne 0 -or
@@ -337,7 +346,10 @@ function New-ReadOnlyChildTemplateSnapshot {
   ) {
     throw 'Unable to render the child B5 Cell Bootstrap template snapshot.'
   }
-  $validationOutput = if ($ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback') {
+  $validationOutput = if ($ChildDeploymentShape -in @(
+    'AuthorityV2ConsumerUpdate',
+    'AuthorityV2ConsumerRollback'
+  )) {
     ((& node $childValidator) | Out-String).Trim()
   } else {
     ((& node $childValidator --template $path) | Out-String).Trim()
@@ -1639,11 +1651,11 @@ function Assert-ExactManagementIamReadback {
 }
 
 function Get-ChangeSetContract {
-  param([object]$Snapshot, [object]$Contract)
-  $binding = "$UpdateShape|$ApprovedChangeSetName|$GrantExpiresAt|$($Snapshot.RawSha256)|$($Snapshot.CanonicalSha256)"
+  param([object]$Snapshot, [object]$Contract, [object]$ChildSnapshot)
+  $binding = "$UpdateShape|$ChildDeploymentShape|$ApprovedChangeSetName|$GrantExpiresAt|$($Snapshot.RawSha256)|$($Snapshot.CanonicalSha256)|$($ChildSnapshot.RawSha256)|$($ChildSnapshot.CanonicalSha256)"
   $bindingHash = Get-Sha256Text -Value $binding
   $name = "techlong-s3-b5-cell-bootstrap-management-$($Contract.ShapeToken)-$($bindingHash.Substring(0, 16))"
-  $description = "B5-J4c management; update-shape=$UpdateShape; raw-sha256=$($Snapshot.RawSha256); canonical-sha256=$($Snapshot.CanonicalSha256)"
+  $description = "B5-J4c management; update-shape=$UpdateShape; child-shape=$ChildDeploymentShape; raw-sha256=$($Snapshot.RawSha256); canonical-sha256=$($Snapshot.CanonicalSha256); child-raw-sha256=$($ChildSnapshot.RawSha256); child-canonical-sha256=$($ChildSnapshot.CanonicalSha256)"
   return [PSCustomObject]@{
     Name = $name
     Description = $description
@@ -2308,7 +2320,10 @@ try {
     exit 0
   }
 
-  $changeSetContract = Get-ChangeSetContract -Snapshot $targetSnapshot -Contract $contract
+  $changeSetContract = Get-ChangeSetContract `
+    -Snapshot $targetSnapshot `
+    -Contract $contract `
+    -ChildSnapshot $childSnapshot
   if ($Mode -in @('CreateChangeSet', 'ExecuteChangeSet', 'Delete')) {
     Assert-WriteAcknowledgements -Snapshot $targetSnapshot -Deleting ($Mode -eq 'Delete')
     Assert-SnapshotUnchanged -Snapshot $targetSnapshot

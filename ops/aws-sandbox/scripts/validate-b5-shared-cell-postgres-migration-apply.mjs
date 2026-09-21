@@ -195,6 +195,7 @@ for (const value of [
 }
 assert.doesNotMatch(runtime, /postgres-migration-apply|postgres-cutover/);
 assert.match(janitor, /const PLAN_ONLY_MODE = "PLAN_ONLY"/);
+assert.match(janitor, /const DELETE_INTENT_ACTION = "delete_shared_cell_stack"/);
 assert.doesNotMatch(janitor, /DeleteStackCommand|PutCommand|UpdateCommand/);
 
 const tests = spawnSync(

@@ -246,7 +246,12 @@ assert.equal(
   "inspect_cell_cleanup_plan",
 );
 assert.match(janitor, /const PLAN_ACTION = "inspect_cell_cleanup_plan"/);
+assert.match(janitor, /const DELETE_INTENT_ACTION = "delete_shared_cell_stack"/);
 assert.match(janitor, /const PLAN_ONLY_MODE = "PLAN_ONLY"/);
+assert.match(
+  janitor,
+  /exactKeys\(event, \["action", "cellId", "schemaVersion", "stackName"\]\)/,
+);
 assert.doesNotMatch(janitor, /DeleteStackCommand|PutCommand|UpdateCommand/);
 
 assertIncludesAll(
@@ -306,5 +311,5 @@ assert.equal(
 );
 
 console.log(
-  "B5-J5g-b Shared Cell cleanup authority/deletion contracts validated locally (dormant production ports, existing CAS reuse, PLAN_ONLY Janitor unchanged, no AWS wiring).",
+  "B5-J5g-b Shared Cell cleanup authority/deletion contracts validated locally (dormant production ports, existing CAS reuse, delete-intent-compatible PLAN_ONLY target, no AWS wiring).",
 );

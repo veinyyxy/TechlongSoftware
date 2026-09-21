@@ -14,8 +14,8 @@ const executionRoleArn =
 const templateBucket =
   "techlong-sandbox-build-source-402010193138-ca-central-1";
 const templatePrefix = "b5-shared-cell/templates/sha256";
-const currentJanitorMode = "PLAN_ONLY";
-const currentJanitorAcceptedAction = "inspect_cell_cleanup_plan";
+const reviewedTargetJanitorMode = "PLAN_ONLY";
+const reviewedTargetJanitorPlanAction = "inspect_cell_cleanup_plan";
 const scheduledCleanupAction = "delete_shared_cell_stack";
 const canonicalTimestampPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -314,19 +314,25 @@ export function compileB5SharedCellAuthorCandidate(input) {
   const rendered = assertRenderedPlan(plan, requestedAt, input);
   const acceptedPlanEvent = {
     schemaVersion: 1,
-    action: currentJanitorAcceptedAction,
+    action: reviewedTargetJanitorPlanAction,
   };
-  const janitorCompatible =
-    currentJanitorMode !== "PLAN_ONLY" ||
-    canonicalJson(rendered.cleanupEvent) === canonicalJson(acceptedPlanEvent);
-  if (janitorCompatible) {
+  const acceptedDeleteIntentEvent = {
+    schemaVersion: 1,
+    action: scheduledCleanupAction,
+    stackName,
+    cellId,
+  };
+  if (
+    reviewedTargetJanitorMode !== "PLAN_ONLY" ||
+    canonicalJson(rendered.cleanupEvent) !== canonicalJson(acceptedDeleteIntentEvent)
+  ) {
     throw new Error(
-      "Expected the deployed PLAN_ONLY Janitor incompatibility, but the cleanup event contract changed.",
+      "The Shared Cell cleanup event no longer matches the exact PLAN_ONLY Janitor delete-intent contract.",
     );
   }
   if (!input.allowPlanOnlyAuthoring) {
     throw new Error(
-      "Shared Cell author candidate rejected: delete_shared_cell_stack is incompatible with the deployed PLAN_ONLY Janitor; pass --allow-plan-only-authoring only to compile a non-executable local candidate.",
+      "Shared Cell author candidate rejected: delete_shared_cell_stack is event-compatible, but the PLAN_ONLY Janitor cannot perform deletion; pass --allow-plan-only-authoring only to compile a non-executable local candidate.",
     );
   }
 
@@ -383,14 +389,23 @@ export function compileB5SharedCellAuthorCandidate(input) {
     },
     compatibility: {
       compatible: false,
-      currentJanitorMode,
-      currentJanitorAcceptedEvent: acceptedPlanEvent,
+      reviewedTargetCompatible: true,
+      deployedCompatibilityVerified: false,
+      reviewedTargetJanitorMode,
+      reviewedTargetJanitorAcceptedEvents: [acceptedPlanEvent, acceptedDeleteIntentEvent],
       scheduledCleanupEvent: rendered.cleanupEvent,
       blockers: [
         {
-          code: "PLAN_ONLY_JANITOR_EVENT_INCOMPATIBLE",
+          code: "DEPLOYED_JANITOR_EVENT_COMPATIBILITY_NOT_VERIFIED",
           message:
-            "The deployed PLAN_ONLY Janitor accepts only inspect_cell_cleanup_plan, not delete_shared_cell_stack.",
+            "The reviewed target accepts the exact delete intent, but the deployed Lambda must be updated and independently read back before live compatibility is claimed.",
+        },
+      ],
+      executionBlockers: [
+        {
+          code: "PLAN_ONLY_JANITOR_MUTATION_DISABLED",
+          message:
+            "The reviewed PLAN_ONLY target accepts the exact delete intent only to build a read-only plan; it has no deletion command or grant.",
         },
       ],
     },

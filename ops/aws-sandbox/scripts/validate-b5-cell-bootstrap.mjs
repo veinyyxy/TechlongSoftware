@@ -67,6 +67,7 @@ const resources = template.Resources ?? {};
 const boundary = template.Metadata?.SafetyBoundary ?? {};
 const legacyTemplate = JSON.parse(legacyRenderedSource);
 const deployedJ4cTemplate = JSON.parse(deployedJ4cRenderedSource);
+const authorityV2Template = JSON.parse(pinnedAuthorityV2RenderedSource);
 
 function canonicalJson(value) {
   if (value === null || ["boolean", "number", "string"].includes(typeof value)) {
@@ -78,13 +79,21 @@ function canonicalJson(value) {
 
 assert.equal(
   createHash("sha256").update(renderedSource, "utf8").digest("hex"),
-  j5ggAuthorityV2ChildRawSha256,
+  "77a57afeaafc2f26b14ad5d1374c816196395a55720de7ab68dea68ac8c802d7",
 );
 assert.equal(
   createHash("sha256").update(canonicalJson(template), "utf8").digest("hex"),
+  "d22612f92f46ba9c060166455cd3e3fc9aa2a12fbb2093e892bfbcf9dc39f142",
+);
+assert.notEqual(renderedSource, pinnedAuthorityV2RenderedSource);
+assert.equal(
+  createHash("sha256").update(pinnedAuthorityV2RenderedSource, "utf8").digest("hex"),
+  j5ggAuthorityV2ChildRawSha256,
+);
+assert.equal(
+  createHash("sha256").update(canonicalJson(authorityV2Template), "utf8").digest("hex"),
   j5ggAuthorityV2ChildCanonicalSha256,
 );
-assert.equal(renderedSource, pinnedAuthorityV2RenderedSource);
 assert.equal(
   j5ggAuthorityV2ChildRawSha256,
   "a768753c50de3fd3e13a1366ac5493768f794a0635c54274438c9606c1ad11e6",
@@ -153,18 +162,18 @@ assert.deepEqual(
   Object.keys(deployedJ4cTemplate.Resources).sort(),
   Object.keys(resources).sort(),
 );
-const authorityV2ConsumerChangedResources = Object.keys(resources)
+const authorityV2ConsumerChangedResources = Object.keys(authorityV2Template.Resources)
   .filter(
     (name) =>
       JSON.stringify(deployedJ4cTemplate.Resources[name]) !==
-      JSON.stringify(resources[name]),
+      JSON.stringify(authorityV2Template.Resources[name]),
   )
   .sort();
 assert.deepEqual(authorityV2ConsumerChangedResources, ["CellJanitorFunction"]);
 assert.deepEqual(
   exactChangedPropertyNames(
     deployedJ4cTemplate.Resources.CellJanitorFunction.Properties,
-    resources.CellJanitorFunction.Properties,
+    authorityV2Template.Resources.CellJanitorFunction.Properties,
   ),
   ["Code"],
 );
@@ -175,29 +184,65 @@ assert.deepEqual(
   ["ZipFile"],
 );
 assert.deepEqual(
-  Object.keys(resources.CellJanitorFunction.Properties.Code).sort(),
+  Object.keys(authorityV2Template.Resources.CellJanitorFunction.Properties.Code).sort(),
   ["ZipFile"],
 );
 assert.notEqual(
   deployedJ4cTemplate.Resources.CellJanitorFunction.Properties.Code.ZipFile,
-  resources.CellJanitorFunction.Properties.Code.ZipFile,
+  authorityV2Template.Resources.CellJanitorFunction.Properties.Code.ZipFile,
 );
 const deployedJ4cWithAuthorityV2ConsumerCode = structuredClone(
   deployedJ4cTemplate,
 );
 deployedJ4cWithAuthorityV2ConsumerCode.Resources.CellJanitorFunction.Properties.Code.ZipFile =
+  authorityV2Template.Resources.CellJanitorFunction.Properties.Code.ZipFile;
+assert.deepEqual(
+  authorityV2Template,
+  deployedJ4cWithAuthorityV2ConsumerCode,
+  "the authority-v2 consumer update may change only CellJanitorFunction.Properties.Code.ZipFile",
+);
+for (const logicalId of Object.keys(authorityV2Template.Resources)) {
+  if (logicalId === "CellJanitorFunction") continue;
+  assert.deepEqual(
+    deployedJ4cTemplate.Resources[logicalId],
+    authorityV2Template.Resources[logicalId],
+    `${logicalId} must remain byte-equivalent across the authority-v2 consumer update`,
+  );
+}
+
+assert.deepEqual(
+  Object.keys(authorityV2Template.Resources).sort(),
+  Object.keys(resources).sort(),
+);
+const deleteIntentCompatibilityChangedResources = Object.keys(resources)
+  .filter(
+    (name) =>
+      JSON.stringify(authorityV2Template.Resources[name]) !==
+      JSON.stringify(resources[name]),
+  )
+  .sort();
+assert.deepEqual(deleteIntentCompatibilityChangedResources, ["CellJanitorFunction"]);
+assert.deepEqual(
+  exactChangedPropertyNames(
+    authorityV2Template.Resources.CellJanitorFunction.Properties,
+    resources.CellJanitorFunction.Properties,
+  ),
+  ["Code"],
+);
+const authorityV2WithDeleteIntentCompatibleCode = structuredClone(authorityV2Template);
+authorityV2WithDeleteIntentCompatibleCode.Resources.CellJanitorFunction.Properties.Code.ZipFile =
   resources.CellJanitorFunction.Properties.Code.ZipFile;
 assert.deepEqual(
   template,
-  deployedJ4cWithAuthorityV2ConsumerCode,
-  "the authority-v2 consumer update may change only CellJanitorFunction.Properties.Code.ZipFile",
+  authorityV2WithDeleteIntentCompatibleCode,
+  "the delete-intent compatibility update may change only CellJanitorFunction.Properties.Code.ZipFile",
 );
 for (const logicalId of Object.keys(resources)) {
   if (logicalId === "CellJanitorFunction") continue;
   assert.deepEqual(
-    deployedJ4cTemplate.Resources[logicalId],
+    authorityV2Template.Resources[logicalId],
     resources[logicalId],
-    `${logicalId} must remain byte-equivalent across the authority-v2 consumer update`,
+    `${logicalId} must remain byte-equivalent across the delete-intent compatibility update`,
   );
 }
 
@@ -311,10 +356,16 @@ for (const forbiddenProperty of [
   assert.equal(lambda[forbiddenProperty], undefined);
 }
 assert.match(lambda.Code.ZipFile, /inspect_cell_cleanup_plan/);
+assert.match(lambda.Code.ZipFile, /delete_shared_cell_stack/);
+assert.match(
+  lambda.Code.ZipFile,
+  /exactKeys\(event, \["action", "cellId", "schemaVersion", "stackName"\]\)/,
+);
+assert.match(lambda.Code.ZipFile, /event\.stackName === EXPECTED_CELL_STACK_NAME/);
+assert.match(lambda.Code.ZipFile, /event\.cellId === EXPECTED_CELL_ID/);
 assert.match(lambda.Code.ZipFile, /ConsistentRead:\s*true/);
 assert.match(lambda.Code.ZipFile, /mutationPerformed:\s*false/);
 assert.doesNotMatch(lambda.Code.ZipFile, /DeleteStackCommand/);
-assert.doesNotMatch(lambda.Code.ZipFile, /delete_shared_cell_stack/);
 const deployedCommands = [...janitorSource.matchAll(/new\s+(?:cloudFormation|dynamoDb)\.([A-Za-z0-9]+Command)\s*\(/g)]
   .map((match) => match[1])
   .sort();
@@ -362,7 +413,7 @@ assert.match(
 assert.match(operationScript, /\[string\]\$Mode = 'LocalValidate'/);
 assert.match(
   operationScript,
-  /\[ValidateSet\('InitialCreate', 'PlannerUpdate', 'AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback'\)\]/,
+  /\[ValidateSet\('InitialCreate', 'PlannerUpdate', 'AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback', 'DeleteIntentCompatibilityUpdate'\)\]/,
 );
 assert.match(operationScript, /\[string\]\$DeploymentShape = 'InitialCreate'/);
 assert.match(
@@ -375,7 +426,11 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /'AuthorityV2ConsumerUpdate' \{ \$authorityV2ConsumerUpdatePhrase \}[\s\S]*'AuthorityV2ConsumerRollback' \{ \$authorityV2ConsumerRollbackPhrase \}/,
+  /I_ACKNOWLEDGE_B5_J5G_H_PLAN_ONLY_DELETE_INTENT_COMPATIBILITY_UPDATE/,
+);
+assert.match(
+  operationScript,
+  /'AuthorityV2ConsumerUpdate' \{ \$authorityV2ConsumerUpdatePhrase \}[\s\S]*'AuthorityV2ConsumerRollback' \{ \$authorityV2ConsumerRollbackPhrase \}[\s\S]*'DeleteIntentCompatibilityUpdate' \{ \$deleteIntentCompatibilityUpdatePhrase \}/,
 );
 assert.match(operationScript, /\$ConfirmExecutionPhrase -cne \$executePhrase/);
 assert.match(operationScript, /TechlongSandboxCellBootstrapManagerRole/);
@@ -409,6 +464,11 @@ assert.match(
   operationScript,
   /\$DeploymentShape -eq 'AuthorityV2ConsumerRollback'[\s\S]*New-DeployedJ4cReadOnlyTemplateSnapshot -DestinationPath \$templateSnapshotPath[\s\S]*New-AuthorityV2ReadOnlyTemplateSnapshot -DestinationPath \$authorityV2TemplateSnapshotPath/,
   "the dormant rollback must target exact J4c-v1 and pin the authority-v2 predecessor",
+);
+assert.match(
+  operationScript,
+  /'DeleteIntentCompatibilityUpdate'[\s\S]*New-AuthorityV2ReadOnlyTemplateSnapshot -DestinationPath \$authorityV2TemplateSnapshotPath/,
+  "the delete-intent compatibility update must pin the authority-v2 predecessor",
 );
 assert.match(operationScript, /\$renderOutput = \(\(& node \$renderer --output \$DestinationPath\)/);
 assert.match(operationScript, /get-template/);
@@ -456,6 +516,11 @@ assert.match(
   operationScript,
   /'AuthorityV2ConsumerRollback'\s*\{\s*@\{ CellJanitorFunction = 'AWS::Lambda::Function' \}\s*\}/,
   "the authority-v2 consumer rollback must accept exactly one Lambda modification",
+);
+assert.match(
+  operationScript,
+  /'DeleteIntentCompatibilityUpdate'\s*\{\s*@\{ CellJanitorFunction = 'AWS::Lambda::Function' \}\s*\}/,
+  "the delete-intent compatibility update must accept exactly one Lambda modification",
 );
 assert.match(operationScript, /\[string\]\$resource\.Replacement -cne 'False'/);
 assert.match(operationScript, /-not \[string\]::IsNullOrEmpty\(\[string\]\$resource\.PolicyAction\)/);
@@ -562,7 +627,7 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /\$expectedStackStatus = switch \(\$DeploymentShape\) \{[\s\S]*'InitialCreate' \{ 'REVIEW_IN_PROGRESS' \}[\s\S]*'PlannerUpdate' \{ 'CREATE_COMPLETE' \}[\s\S]*'AuthorityV2ConsumerUpdate' \{ 'UPDATE_COMPLETE' \}[\s\S]*'AuthorityV2ConsumerRollback' \{ 'UPDATE_COMPLETE' \}[\s\S]*\[string\]\$stacks\[0\]\.RoleARN -cne \$bootstrapExecutionRoleArn/,
+  /\$expectedStackStatus = switch \(\$DeploymentShape\) \{[\s\S]*'InitialCreate' \{ 'REVIEW_IN_PROGRESS' \}[\s\S]*'PlannerUpdate' \{ 'CREATE_COMPLETE' \}[\s\S]*'AuthorityV2ConsumerUpdate' \{ 'UPDATE_COMPLETE' \}[\s\S]*'AuthorityV2ConsumerRollback' \{ 'UPDATE_COMPLETE' \}[\s\S]*'DeleteIntentCompatibilityUpdate' \{ 'UPDATE_COMPLETE' \}[\s\S]*\[string\]\$stacks\[0\]\.RoleARN -cne \$bootstrapExecutionRoleArn/,
   "CREATE and UPDATE Change Sets must prove the exact stable Stack and CloudFormation execution role",
 );
 assert.match(operationScript, /Get-ExactLambdaConfigurationAndVerifyInlineCode/);
