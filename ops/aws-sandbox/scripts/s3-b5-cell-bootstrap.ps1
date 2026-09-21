@@ -74,6 +74,7 @@ $deployedJ4cRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j4c-dep
 $authorityV2Renderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j5gg-v2.mjs'
 $deleteIntentRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j5gh-delete-intent.mjs'
 $managementRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-management.mjs'
+$lifecycleController = Join-Path $root 'scripts\s3-b5-cell-lifecycle-management.ps1'
 $validator = Join-Path $root 'scripts\validate-b5-cell-bootstrap.mjs'
 $templateVerifier = Join-Path $root 'scripts\verify-change-set-template.mjs'
 $jsonVerifier = Join-Path $root 'scripts\verify-json-equality.mjs'
@@ -84,6 +85,12 @@ function Resolve-AwsCli {
   $knownPath = 'D:\Amazon\AWSCLIV2\aws.exe'
   if (Test-Path -LiteralPath $knownPath) { return $knownPath }
   throw 'AWS CLI v2 was not found.'
+}
+
+function Resolve-PowerShell {
+  $command = Get-Command pwsh -ErrorAction SilentlyContinue
+  if ($command) { return $command.Source }
+  throw 'PowerShell 7 (pwsh) was not found.'
 }
 
 function Invoke-AwsChecked {
@@ -616,25 +623,33 @@ function Assert-NamedResourceAbsent {
   }
 }
 
+function Invoke-LockedLifecycleManagementReadback {
+  param([string]$PowerShell)
+  if (-not (Test-Path -LiteralPath $lifecycleController -PathType Leaf)) {
+    throw "Lifecycle management controller was not found at $lifecycleController."
+  }
+  $output = & $PowerShell `
+    -NoLogo -NoProfile -NonInteractive `
+    -File $lifecycleController `
+    -Mode Readback `
+    -UpdateShape InitialLocked `
+    -Profile $SourceReadbackProfile 2>&1
+  $exitCode = $LASTEXITCODE
+  $text = (($output | Out-String).Trim())
+  if ($exitCode -ne 0) {
+    throw "Exact Locked lifecycle management-root readback failed with exit code ${exitCode}: $text"
+  }
+  if (
+    $text -cnotmatch 'Strict Locked management Stack readback passed:' -or
+    $text -cnotmatch 'Readback passed for exact InitialLocked IAM management root\.'
+  ) {
+    throw 'Lifecycle controller did not emit its exact InitialLocked readback attestations.'
+  }
+  Write-Host 'Exact InitialLocked J5g-a lifecycle IAM management root readback passed.'
+}
+
 function Assert-BootstrapNamedResourcesAbsent {
   param([string]$AwsCli)
-  foreach ($roleName in @(
-    'TechlongSandboxCellOperatorRole',
-    'TechlongSandboxCellCloudFormationExecutionRole'
-  )) {
-    Assert-NamedResourceAbsent -AwsCli $AwsCli -Arguments @(
-      'iam', 'get-role', '--profile', $SourceReadbackProfile, '--role-name', $roleName, '--output', 'json'
-    ) -MissingPattern 'NoSuchEntity' -Label "IAM role $roleName"
-  }
-  foreach ($policyName in @(
-    'TechlongSandboxCellOperatorBoundary',
-    'TechlongSandboxCellCloudFormationExecutionBoundary'
-  )) {
-    $arn = "arn:aws:iam::$expectedAccountId`:policy/$policyName"
-    Assert-NamedResourceAbsent -AwsCli $AwsCli -Arguments @(
-      'iam', 'get-policy', '--profile', $SourceReadbackProfile, '--policy-arn', $arn, '--output', 'json'
-    ) -MissingPattern 'NoSuchEntity' -Label "IAM policy $policyName"
-  }
   Assert-NamedResourceAbsent -AwsCli $AwsCli -Arguments @(
     'lambda', 'get-function', '--profile', $SourceReadbackProfile, '--region', $expectedRegion,
     '--function-name', 'techlong-sandbox-cell-janitor', '--output', 'json'
@@ -1662,15 +1677,6 @@ function Assert-ExactStackAndResources {
   }
   Assert-ExternalRuntimeIdentities -AwsCli $AwsCli `
     -ManagementTemplate $ManagementTemplate -TemporaryDirectory $TemporaryDirectory
-  foreach ($forbiddenRole in @(
-    'TechlongSandboxCellOperatorRole',
-    'TechlongSandboxCellCloudFormationExecutionRole'
-  )) {
-    Assert-NamedResourceAbsent -AwsCli $AwsCli -Arguments @(
-      'iam', 'get-role', '--profile', $SourceReadbackProfile,
-      '--role-name', $forbiddenRole, '--output', 'json'
-    ) -MissingPattern 'NoSuchEntity' -Label "forbidden IAM role $forbiddenRole"
-  }
   $lambda = Get-ExactLambdaConfigurationAndVerifyInlineCode -AwsCli $AwsCli `
     -ReviewedTemplatePath $ReviewedTemplatePath -TemporaryDirectory $TemporaryDirectory `
     -ExpectedStackId $ExpectedStackId
@@ -2042,6 +2048,7 @@ try {
   Assert-NoCredentialOrEndpointOverrides
   Assert-ExactSourceSession -AwsCli $awsCli
   Assert-ExactManagerSession -AwsCli $awsCli
+  Invoke-LockedLifecycleManagementReadback -PowerShell (Resolve-PowerShell)
 
   $allowedManagementStates = if ($Mode -eq 'CreateChangeSet') {
     @('AUTHORGRANT')

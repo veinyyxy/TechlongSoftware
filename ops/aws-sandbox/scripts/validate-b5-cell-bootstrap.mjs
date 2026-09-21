@@ -319,7 +319,7 @@ for (const forbidden of [
   "CellSchedulerInvokeRole",
   "CellOperatorBoundary",
   "CellOperatorRole",
-  "CellExecutionBoundary",
+  "CellCloudFormationExecutionBoundary",
   "CellCloudFormationExecutionRole",
 ]) {
   assert.equal(resources[forbidden], undefined, `${forbidden} must not exist in J4c`);
@@ -470,6 +470,26 @@ assert.match(operationScript, /New-AuthorityV2ReadOnlyTemplateSnapshot/);
 assert.match(operationScript, /render-b5-cell-bootstrap-j5gg-v2\.mjs/);
 assert.match(operationScript, /New-DeleteIntentCompatibleReadOnlyTemplateSnapshot/);
 assert.match(operationScript, /render-b5-cell-bootstrap-j5gh-delete-intent\.mjs/);
+assert.match(
+  operationScript,
+  /\$lifecycleController = Join-Path \$root 'scripts\\s3-b5-cell-lifecycle-management\.ps1'/,
+);
+assert.match(operationScript, /function Resolve-PowerShell/);
+assert.match(
+  operationScript,
+  /function Invoke-LockedLifecycleManagementReadback[\s\S]*-File \$lifecycleController[\s\S]*-Mode Readback[\s\S]*-UpdateShape InitialLocked[\s\S]*-Profile \$SourceReadbackProfile/,
+  "the child controller must independently verify the exact Locked J5g-a IAM root",
+);
+assert.match(
+  operationScript,
+  /Strict Locked management Stack readback passed:[\s\S]*Readback passed for exact InitialLocked IAM management root\\\./,
+  "the lifecycle subprocess must emit both exact readback attestations",
+);
+assert.match(
+  operationScript,
+  /Assert-ExactSourceSession -AwsCli \$awsCli\s+Assert-ExactManagerSession -AwsCli \$awsCli\s+Invoke-LockedLifecycleManagementReadback -PowerShell \(Resolve-PowerShell\)/,
+  "every online mode must prove both identities and the exact Locked lifecycle IAM root before continuing",
+);
 assert.match(operationScript, /a14e9898ed7af636dfdb7f5c509d93b317b604a591aadb4a67d0f956e7a9d986/);
 assert.match(operationScript, /74379232124d94b1d2ffb4322edaecd0bdb0534444b8961295175ecadc06c09c/);
 assert.match(operationScript, /Assert-ExactLegacyJ4bChildStack/);
@@ -499,6 +519,58 @@ assert.match(
   /'DeleteIntentCompatibilityRollback'[\s\S]*New-AuthorityV2ReadOnlyTemplateSnapshot -DestinationPath \$templateSnapshotPath[\s\S]*New-DeleteIntentCompatibleReadOnlyTemplateSnapshot -DestinationPath \$deleteIntentTemplateSnapshotPath/,
   "the delete-intent compatibility rollback must target authority-v2 and pin the delete-intent predecessor",
 );
+const exactStackReadbackStart = operationScript.indexOf(
+  "function Assert-ExactStackAndResources",
+);
+const exactStackReadbackEnd = operationScript.indexOf(
+  "function Invoke-PlanOnlyJanitorProbeTwice",
+  exactStackReadbackStart,
+);
+assert.ok(
+  exactStackReadbackStart >= 0 && exactStackReadbackEnd > exactStackReadbackStart,
+);
+const exactStackReadback = operationScript.slice(
+  exactStackReadbackStart,
+  exactStackReadbackEnd,
+);
+assert.doesNotMatch(
+  exactStackReadback,
+  /forbidden IAM role|\$forbiddenRole/,
+  "deployed J5g-a roles must be accepted only through exact Locked-root readback, not blanket absence",
+);
+const bootstrapAbsenceStart = operationScript.indexOf(
+  "function Assert-BootstrapNamedResourcesAbsent",
+);
+const bootstrapAbsenceEnd = operationScript.indexOf(
+  "function Assert-PaidCellAndTenantResourcesAbsent",
+  bootstrapAbsenceStart,
+);
+assert.ok(
+  bootstrapAbsenceStart >= 0 && bootstrapAbsenceEnd > bootstrapAbsenceStart,
+);
+const bootstrapAbsence = operationScript.slice(
+  bootstrapAbsenceStart,
+  bootstrapAbsenceEnd,
+);
+for (const lifecycleIamName of [
+  "TechlongSandboxCellOperatorRole",
+  "TechlongSandboxCellCloudFormationExecutionRole",
+  "TechlongSandboxCellOperatorBoundary",
+  "TechlongSandboxCellCloudFormationExecutionBoundary",
+]) {
+  assert.equal(
+    bootstrapAbsence.includes(lifecycleIamName),
+    false,
+    `${lifecycleIamName} belongs to the separately verified J5g-a Locked root`,
+  );
+}
+for (const childRuntimeName of [
+  "techlong-sandbox-cell-janitor",
+  "/aws/lambda/techlong-sandbox-cell-janitor",
+  "techlong-sandbox-cell",
+]) {
+  assert.ok(bootstrapAbsence.includes(childRuntimeName));
+}
 assert.match(operationScript, /\$renderOutput = \(\(& node \$renderer --output \$DestinationPath\)/);
 assert.match(operationScript, /get-template/);
 assert.match(operationScript, /template-stage', 'Original'/);
