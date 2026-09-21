@@ -2,7 +2,7 @@
 param(
   [ValidateSet('LocalValidate', 'OnlineValidate', 'CreateChangeSet', 'InspectChangeSet', 'ExecuteChangeSet', 'Readback', 'ProbeJanitor', 'Delete')]
   [string]$Mode = 'LocalValidate',
-  [ValidateSet('InitialCreate', 'PlannerUpdate', 'AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback', 'DeleteIntentCompatibilityUpdate')]
+  [ValidateSet('InitialCreate', 'PlannerUpdate', 'AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback', 'DeleteIntentCompatibilityUpdate', 'DeleteIntentCompatibilityRollback')]
   [string]$DeploymentShape = 'InitialCreate',
   [string]$ManagerProfile = 'techlong-sandbox-cell-bootstrap-manager',
   [string]$SourceReadbackProfile = 'techlong-sandbox-user',
@@ -57,11 +57,13 @@ $plannerUpdatePhrase = 'I_ACKNOWLEDGE_B5_J4C_PLAN_ONLY_BOOTSTRAP_UPDATE'
 $authorityV2ConsumerUpdatePhrase = 'I_ACKNOWLEDGE_B5_J5G_G_PLAN_ONLY_AUTHORITY_V2_CONSUMER_UPDATE'
 $authorityV2ConsumerRollbackPhrase = 'I_ACKNOWLEDGE_B5_J5G_G_PLAN_ONLY_AUTHORITY_V2_CONSUMER_ROLLBACK'
 $deleteIntentCompatibilityUpdatePhrase = 'I_ACKNOWLEDGE_B5_J5G_H_PLAN_ONLY_DELETE_INTENT_COMPATIBILITY_UPDATE'
+$deleteIntentCompatibilityRollbackPhrase = 'I_ACKNOWLEDGE_B5_J5G_H_PLAN_ONLY_DELETE_INTENT_COMPATIBILITY_ROLLBACK'
 $executePhrase = switch ($DeploymentShape) {
   'PlannerUpdate' { $plannerUpdatePhrase }
   'AuthorityV2ConsumerUpdate' { $authorityV2ConsumerUpdatePhrase }
   'AuthorityV2ConsumerRollback' { $authorityV2ConsumerRollbackPhrase }
   'DeleteIntentCompatibilityUpdate' { $deleteIntentCompatibilityUpdatePhrase }
+  'DeleteIntentCompatibilityRollback' { $deleteIntentCompatibilityRollbackPhrase }
   default { $initialCreatePhrase }
 }
 $deletePhrase = 'I_ACKNOWLEDGE_B5_J4C_PLAN_ONLY_BOOTSTRAP_DELETION'
@@ -70,6 +72,7 @@ $renderer = Join-Path $root 'scripts\render-b5-cell-bootstrap.mjs'
 $legacyRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j4b-legacy.mjs'
 $deployedJ4cRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j4c-deployed.mjs'
 $authorityV2Renderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j5gg-v2.mjs'
+$deleteIntentRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-j5gh-delete-intent.mjs'
 $managementRenderer = Join-Path $root 'scripts\render-b5-cell-bootstrap-management.mjs'
 $validator = Join-Path $root 'scripts\validate-b5-cell-bootstrap.mjs'
 $templateVerifier = Join-Path $root 'scripts\verify-change-set-template.mjs'
@@ -263,6 +266,23 @@ function New-AuthorityV2ReadOnlyTemplateSnapshot {
     $digests.Raw -cne 'a768753c50de3fd3e13a1366ac5493768f794a0635c54274438c9606c1ad11e6' -or
     $digests.Canonical -cne '4f42f95d7e0b43b309d87acf2fb4795b136a1b40643d433e84606849d46d4673'
   ) { throw 'Reconstructed J5g-g authority-v2 child snapshot failed its fixed digests.' }
+  $item.IsReadOnly = $true
+  return $digests
+}
+
+function New-DeleteIntentCompatibleReadOnlyTemplateSnapshot {
+  param([string]$DestinationPath)
+  $renderOutput = ((& node $deleteIntentRenderer --output $DestinationPath) | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0) { throw 'Unable to reconstruct the fixed J5g-h delete-intent child snapshot.' }
+  $item = Get-Item -LiteralPath $DestinationPath
+  if ($item.Length -le 0 -or $item.Length -gt 51200) {
+    throw 'Reconstructed J5g-h delete-intent child snapshot size is invalid.'
+  }
+  $digests = Get-TemplateDigests -TemplatePath $DestinationPath
+  if (
+    $digests.Raw -cne '77a57afeaafc2f26b14ad5d1374c816196395a55720de7ab68dea68ac8c802d7' -or
+    $digests.Canonical -cne 'd22612f92f46ba9c060166455cd3e3fc9aa2a12fbb2093e892bfbcf9dc39f142'
+  ) { throw 'Reconstructed J5g-h delete-intent child snapshot failed its fixed digests.' }
   $item.IsReadOnly = $true
   return $digests
 }
@@ -996,6 +1016,28 @@ function Assert-ExactAuthorityV2ConsumerChildStack {
   return $stack
 }
 
+function Assert-ExactDeleteIntentCompatibleChildStack {
+  param(
+    [string]$AwsCli,
+    [string]$DeleteIntentTemplatePath,
+    [hashtable]$DeleteIntentDigests,
+    [string]$TemporaryDirectory,
+    [object]$ManagementTemplate
+  )
+  $stack = Get-StackOrNull -AwsCli $AwsCli -Profile $SourceReadbackProfile -StackName $bootstrapStackName
+  if (
+    $null -eq $stack -or
+    [string]$stack.StackStatus -cne 'UPDATE_COMPLETE'
+  ) {
+    throw 'The exact J5g-h delete-intent-compatible child Stack is unavailable as the fixed predecessor.'
+  }
+  Assert-ExactStackAndResources -AwsCli $AwsCli -ExpectedStackId ([string]$stack.StackId) `
+    -ReviewedTemplatePath $DeleteIntentTemplatePath -Digests $DeleteIntentDigests `
+    -TemporaryDirectory $TemporaryDirectory -ManagementTemplate $ManagementTemplate | Out-Null
+  Assert-SnapshotUnchanged -TemplatePath $DeleteIntentTemplatePath -ExpectedDigests $DeleteIntentDigests
+  return $stack
+}
+
 function Assert-ExactChangeSetTemplate {
   param(
     [string]$AwsCli,
@@ -1067,6 +1109,7 @@ function Assert-ReviewedChangeSet {
     'AuthorityV2ConsumerUpdate' { 'UPDATE_COMPLETE' }
     'AuthorityV2ConsumerRollback' { 'UPDATE_COMPLETE' }
     'DeleteIntentCompatibilityUpdate' { 'UPDATE_COMPLETE' }
+    'DeleteIntentCompatibilityRollback' { 'UPDATE_COMPLETE' }
     default { throw "Unhandled deployment shape $DeploymentShape." }
   }
   if (
@@ -1122,6 +1165,9 @@ function Assert-ReviewedChangeSet {
     'DeleteIntentCompatibilityUpdate' {
       @{ CellJanitorFunction = 'AWS::Lambda::Function' }
     }
+    'DeleteIntentCompatibilityRollback' {
+      @{ CellJanitorFunction = 'AWS::Lambda::Function' }
+    }
     default { throw "Unhandled deployment shape $DeploymentShape." }
   }
   $observed = @{}
@@ -1157,7 +1203,8 @@ function Assert-ReviewedChangeSet {
       if ($DeploymentShape -in @(
         'AuthorityV2ConsumerUpdate',
         'AuthorityV2ConsumerRollback',
-        'DeleteIntentCompatibilityUpdate'
+        'DeleteIntentCompatibilityUpdate',
+        'DeleteIntentCompatibilityRollback'
       )) {
         $details = @($resource.Details)
         if ($details.Count -lt 1) {
@@ -1777,11 +1824,24 @@ function Assert-ExactStackAndResources {
 function Invoke-PlanOnlyJanitorProbeTwice {
   param([string]$AwsCli, [string]$TemporaryDirectory)
   Assert-PaidCellAndTenantResourcesAbsent -AwsCli $AwsCli
-  $payloadPath = Join-Path $TemporaryDirectory 'plan-only-probe-request.json'
-  Write-JsonFile -Value ([ordered]@{
-    schemaVersion = 1
-    action = 'inspect_cell_cleanup_plan'
-  }) -Path $payloadPath
+  $probes = @(
+    [ordered]@{
+      Label = 'inspect event'
+      Request = [ordered]@{
+        schemaVersion = 1
+        action = 'inspect_cell_cleanup_plan'
+      }
+    },
+    [ordered]@{
+      Label = 'delete-intent event'
+      Request = [ordered]@{
+        schemaVersion = 1
+        action = 'delete_shared_cell_stack'
+        stackName = 'techlong-sandbox-cell-sandbox-1'
+        cellId = 'cell-sandbox-1'
+      }
+    }
+  )
   $expectedPayload = [ordered]@{
     schemaVersion = 1
     action = 'inspect_cell_cleanup_plan'
@@ -1792,8 +1852,13 @@ function Invoke-PlanOnlyJanitorProbeTwice {
     tenantStacks = @()
   }
   $results = @()
-  foreach ($index in 1..2) {
+  $evidence = @()
+  for ($offset = 0; $offset -lt $probes.Count; $offset++) {
+    $index = $offset + 1
+    $probe = $probes[$offset]
+    $payloadPath = Join-Path $TemporaryDirectory "plan-only-probe-request-$index.json"
     $outputPath = Join-Path $TemporaryDirectory "plan-only-probe-response-$index.json"
+    Write-JsonFile -Value $probe.Request -Path $payloadPath
     $metadata = Invoke-AwsJson -AwsCli $AwsCli -Arguments @(
       'lambda', 'invoke', '--profile', $SourceReadbackProfile, '--region', $expectedRegion,
       '--function-name', 'techlong-sandbox-cell-janitor', '--invocation-type', 'RequestResponse',
@@ -1803,22 +1868,26 @@ function Invoke-PlanOnlyJanitorProbeTwice {
     if (
       [int]$metadata.StatusCode -ne 200 -or
       -not [string]::IsNullOrEmpty([string]$metadata.FunctionError)
-    ) { throw "Janitor plan-only probe $index failed." }
+    ) { throw "Janitor plan-only $($probe.Label) probe failed." }
     $payload = (Get-Content -Raw -LiteralPath $outputPath) | ConvertFrom-Json
     Assert-JsonEqualObjects -Expected $expectedPayload -Actual $payload `
-      -Label "Janitor plan-only probe $index" -TemporaryDirectory $TemporaryDirectory | Out-Null
+      -Label "Janitor plan-only $($probe.Label) probe" -TemporaryDirectory $TemporaryDirectory | Out-Null
     $results += $payload
+    $evidence += [ordered]@{
+      request = $probe.Request
+      response = $payload
+    }
   }
   Assert-JsonEqualObjects -Expected $results[0] -Actual $results[1] `
-    -Label 'two Janitor plan-only probes' -TemporaryDirectory $TemporaryDirectory | Out-Null
+    -Label 'Janitor inspect and delete-intent probe responses' -TemporaryDirectory $TemporaryDirectory | Out-Null
   Assert-PaidCellAndTenantResourcesAbsent -AwsCli $AwsCli
   $evidencePath = Join-Path $TemporaryDirectory 'plan-only-probe-evidence.json'
-  Write-JsonFile -Value $results -Path $evidencePath
+  Write-JsonFile -Value $evidence -Path $evidencePath
   $hash = ((& node $jsonVerifier --hash $evidencePath) | Out-String).Trim()
   if ($LASTEXITCODE -ne 0 -or $hash -cnotmatch '^[a-f0-9]{64}$') {
     throw 'Unable to hash Janitor plan-only probe evidence.'
   }
-  Write-Host "Two exact, identical Janitor ABSENT_SAFE plans passed. Evidence canonical SHA-256: $hash"
+  Write-Host "Exact inspect and delete-intent probes returned identical Janitor ABSENT_SAFE plans. Evidence canonical SHA-256: $hash"
   return $hash
 }
 
@@ -1842,6 +1911,10 @@ if ($Mode -eq 'LocalValidate') {
     [System.IO.Path]::GetTempPath(),
     "techlong-b5j5gg-authority-v2-$([Guid]::NewGuid().ToString('N')).json"
   )
+  $localDeleteIntentSnapshotPath = [System.IO.Path]::Combine(
+    [System.IO.Path]::GetTempPath(),
+    "techlong-b5j5gh-delete-intent-$([Guid]::NewGuid().ToString('N')).json"
+  )
   try {
     $localDigests = New-ReadOnlyTemplateSnapshot -DestinationPath $localSnapshotPath
     $localLegacyDigests = New-LegacyJ4bReadOnlyTemplateSnapshot -DestinationPath $localLegacySnapshotPath
@@ -1849,6 +1922,8 @@ if ($Mode -eq 'LocalValidate') {
       -DestinationPath $localDeployedJ4cSnapshotPath
     $localAuthorityV2Digests = New-AuthorityV2ReadOnlyTemplateSnapshot `
       -DestinationPath $localAuthorityV2SnapshotPath
+    $localDeleteIntentDigests = New-DeleteIntentCompatibleReadOnlyTemplateSnapshot `
+      -DestinationPath $localDeleteIntentSnapshotPath
     & node $validator --template $localSnapshotPath
     if ($LASTEXITCODE -ne 0) { throw 'Rendered local B5-J4c snapshot validation failed.' }
     Write-Host "Template SHA-256: $($localDigests.Raw)"
@@ -1859,7 +1934,10 @@ if ($Mode -eq 'LocalValidate') {
     Write-Host "Fixed deployed J4c canonical SHA-256: $($localDeployedJ4cDigests.Canonical)"
     Write-Host "Fixed J5g-g authority-v2 raw SHA-256: $($localAuthorityV2Digests.Raw)"
     Write-Host "Fixed J5g-g authority-v2 canonical SHA-256: $($localAuthorityV2Digests.Canonical)"
-    Write-Host "Dormant rollback Change Set name: techlong-s3-b5-cell-bootstrap-rollback-$($localDeployedJ4cDigests.Raw.Substring(0, 16))"
+    Write-Host "Fixed J5g-h delete-intent raw SHA-256: $($localDeleteIntentDigests.Raw)"
+    Write-Host "Fixed J5g-h delete-intent canonical SHA-256: $($localDeleteIntentDigests.Canonical)"
+    Write-Host "Dormant authority-v2 rollback Change Set name: techlong-s3-b5-cell-bootstrap-rollback-$($localDeployedJ4cDigests.Raw.Substring(0, 16))"
+    Write-Host "Dormant delete-intent rollback Change Set name: techlong-s3-b5-cell-bootstrap-rollback-$($localAuthorityV2Digests.Raw.Substring(0, 16))"
     Write-Host 'Local validation complete. No AWS API was called and no resource was changed.'
     exit 0
   } finally {
@@ -1867,7 +1945,8 @@ if ($Mode -eq 'LocalValidate') {
       $localSnapshotPath,
       $localLegacySnapshotPath,
       $localDeployedJ4cSnapshotPath,
-      $localAuthorityV2SnapshotPath
+      $localAuthorityV2SnapshotPath,
+      $localDeleteIntentSnapshotPath
     )) {
       if (Test-Path -LiteralPath $path) {
         (Get-Item -LiteralPath $path).IsReadOnly = $false
@@ -1897,13 +1976,23 @@ $templateSnapshotPath = Join-Path $temporaryDirectory 'reviewed-template.json'
 $legacyTemplateSnapshotPath = Join-Path $temporaryDirectory 'legacy-j4b-template.json'
 $deployedJ4cTemplateSnapshotPath = Join-Path $temporaryDirectory 'deployed-j4c-template.json'
 $authorityV2TemplateSnapshotPath = Join-Path $temporaryDirectory 'authority-v2-template.json'
+$deleteIntentTemplateSnapshotPath = Join-Path $temporaryDirectory 'delete-intent-template.json'
 try {
-  $digests = if ($DeploymentShape -eq 'AuthorityV2ConsumerRollback') {
-    New-DeployedJ4cReadOnlyTemplateSnapshot -DestinationPath $templateSnapshotPath
-  } else {
-    New-ReadOnlyTemplateSnapshot -DestinationPath $templateSnapshotPath
+  $digests = switch ($DeploymentShape) {
+    'AuthorityV2ConsumerRollback' {
+      New-DeployedJ4cReadOnlyTemplateSnapshot -DestinationPath $templateSnapshotPath
+    }
+    'DeleteIntentCompatibilityRollback' {
+      New-AuthorityV2ReadOnlyTemplateSnapshot -DestinationPath $templateSnapshotPath
+    }
+    default {
+      New-ReadOnlyTemplateSnapshot -DestinationPath $templateSnapshotPath
+    }
   }
-  if ($DeploymentShape -ne 'AuthorityV2ConsumerRollback') {
+  if ($DeploymentShape -notin @(
+    'AuthorityV2ConsumerRollback',
+    'DeleteIntentCompatibilityRollback'
+  )) {
     & node $validator --template $templateSnapshotPath
     if ($LASTEXITCODE -ne 0) { throw 'Rendered B5-J4c snapshot validation failed.' }
   }
@@ -1919,7 +2008,13 @@ try {
   )) {
     New-AuthorityV2ReadOnlyTemplateSnapshot -DestinationPath $authorityV2TemplateSnapshotPath
   } else { $null }
-  $changeSetName = if ($DeploymentShape -eq 'AuthorityV2ConsumerRollback') {
+  $deleteIntentDigests = if ($DeploymentShape -eq 'DeleteIntentCompatibilityRollback') {
+    New-DeleteIntentCompatibleReadOnlyTemplateSnapshot -DestinationPath $deleteIntentTemplateSnapshotPath
+  } else { $null }
+  $changeSetName = if ($DeploymentShape -in @(
+    'AuthorityV2ConsumerRollback',
+    'DeleteIntentCompatibilityRollback'
+  )) {
     "techlong-s3-b5-cell-bootstrap-rollback-$($digests.Raw.Substring(0, 16))"
   } else {
     "techlong-s3-b5-cell-bootstrap-$($digests.Raw.Substring(0, 16))"
@@ -1930,6 +2025,9 @@ try {
     }
     'DeleteIntentCompatibilityUpdate' {
       "B5-J5g-h plan-only delete-intent compatibility update raw=$($digests.Raw) canonical=$($digests.Canonical)"
+    }
+    'DeleteIntentCompatibilityRollback' {
+      "B5-J5g-h plan-only delete-intent compatibility rollback raw=$($digests.Raw) canonical=$($digests.Canonical)"
     }
     default {
       "B5-J4c plan-only cleanup planner raw=$($digests.Raw) canonical=$($digests.Canonical)"
@@ -1996,6 +2094,12 @@ try {
         Assert-ExactAuthorityV2ConsumerChildStack -AwsCli $awsCli `
           -AuthorityV2TemplatePath $authorityV2TemplateSnapshotPath `
           -AuthorityV2Digests $authorityV2Digests -TemporaryDirectory $temporaryDirectory `
+          -ManagementTemplate $managementTemplate
+      }
+      'DeleteIntentCompatibilityRollback' {
+        Assert-ExactDeleteIntentCompatibleChildStack -AwsCli $awsCli `
+          -DeleteIntentTemplatePath $deleteIntentTemplateSnapshotPath `
+          -DeleteIntentDigests $deleteIntentDigests -TemporaryDirectory $temporaryDirectory `
           -ManagementTemplate $managementTemplate
       }
       default { $null }
@@ -2154,7 +2258,8 @@ try {
     $templateSnapshotPath,
     $legacyTemplateSnapshotPath,
     $deployedJ4cTemplateSnapshotPath,
-    $authorityV2TemplateSnapshotPath
+    $authorityV2TemplateSnapshotPath,
+    $deleteIntentTemplateSnapshotPath
   )) {
     if (Test-Path -LiteralPath $path) {
       (Get-Item -LiteralPath $path).IsReadOnly = $false

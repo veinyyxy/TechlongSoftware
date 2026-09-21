@@ -13,7 +13,7 @@ param(
     'BootstrapRollbackRevoke'
   )]
   [string]$UpdateShape = 'InitialLocked',
-  [ValidateSet('AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback', 'DeleteIntentCompatibilityUpdate')]
+  [ValidateSet('AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback', 'DeleteIntentCompatibilityUpdate', 'DeleteIntentCompatibilityRollback')]
   [string]$ChildDeploymentShape = 'DeleteIntentCompatibilityUpdate',
   [string]$Profile = 'techlong-sandbox-user',
   [string]$ApprovedChangeSetName = '',
@@ -308,7 +308,10 @@ function Get-ChildTemplateUrl {
 
 function Get-ChildChangeSetName {
   param([object]$ChildSnapshot)
-  if ($ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback') {
+  if ($ChildDeploymentShape -in @(
+    'AuthorityV2ConsumerRollback',
+    'DeleteIntentCompatibilityRollback'
+  )) {
     return "techlong-s3-b5-cell-bootstrap-rollback-$($ChildSnapshot.RawSha256.Substring(0, 16))"
   }
   return "techlong-s3-b5-cell-bootstrap-$($ChildSnapshot.RawSha256.Substring(0, 16))"
@@ -323,6 +326,9 @@ function Get-ChildChangeSetDescription {
     'DeleteIntentCompatibilityUpdate' {
       return "B5-J5g-h plan-only delete-intent compatibility update raw=$($ChildSnapshot.RawSha256) canonical=$($ChildSnapshot.CanonicalSha256)"
     }
+    'DeleteIntentCompatibilityRollback' {
+      return "B5-J5g-h plan-only delete-intent compatibility rollback raw=$($ChildSnapshot.RawSha256) canonical=$($ChildSnapshot.CanonicalSha256)"
+    }
   }
   return "B5-J4c plan-only cleanup planner raw=$($ChildSnapshot.RawSha256) canonical=$($ChildSnapshot.CanonicalSha256)"
 }
@@ -336,6 +342,7 @@ function New-ReadOnlyChildTemplateSnapshot {
     'AuthorityV2ConsumerUpdate' { $authorityV2ChildRenderer }
     'AuthorityV2ConsumerRollback' { $deployedJ4cChildRenderer }
     'DeleteIntentCompatibilityUpdate' { $childRenderer }
+    'DeleteIntentCompatibilityRollback' { $authorityV2ChildRenderer }
     default { throw "Unhandled child deployment shape $ChildDeploymentShape." }
   }
   $renderOutput = ((& node $selectedChildRenderer --output $path) | Out-String).Trim()
@@ -348,7 +355,8 @@ function New-ReadOnlyChildTemplateSnapshot {
   }
   $validationOutput = if ($ChildDeploymentShape -in @(
     'AuthorityV2ConsumerUpdate',
-    'AuthorityV2ConsumerRollback'
+    'AuthorityV2ConsumerRollback',
+    'DeleteIntentCompatibilityRollback'
   )) {
     ((& node $childValidator) | Out-String).Trim()
   } else {

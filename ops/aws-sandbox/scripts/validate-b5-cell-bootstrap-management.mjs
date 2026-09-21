@@ -700,18 +700,22 @@ assert.match(
 assert.match(operationScript, /InitialLocked/);
 assert.match(
   operationScript,
-  /\[ValidateSet\('AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback', 'DeleteIntentCompatibilityUpdate'\)\]/,
+  /\[ValidateSet\('AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback', 'DeleteIntentCompatibilityUpdate', 'DeleteIntentCompatibilityRollback'\)\]/,
 );
 assert.match(operationScript, /\[string\]\$ChildDeploymentShape = 'DeleteIntentCompatibilityUpdate'/);
 assert.match(operationScript, /render-b5-cell-bootstrap-j4c-deployed\.mjs/);
 assert.match(operationScript, /render-b5-cell-bootstrap-j5gg-v2\.mjs/);
 assert.match(
   operationScript,
-  /\$ChildDeploymentShape -eq 'AuthorityV2ConsumerRollback'[\s\S]*techlong-s3-b5-cell-bootstrap-rollback-/,
+  /\$ChildDeploymentShape -in @\([\s\S]*'AuthorityV2ConsumerRollback',[\s\S]*'DeleteIntentCompatibilityRollback'[\s\S]*techlong-s3-b5-cell-bootstrap-rollback-/,
 );
 assert.match(
   operationScript,
   /\$selectedChildRenderer = switch \(\$ChildDeploymentShape\)[\s\S]*'AuthorityV2ConsumerUpdate' \{ \$authorityV2ChildRenderer \}[\s\S]*'AuthorityV2ConsumerRollback' \{ \$deployedJ4cChildRenderer \}[\s\S]*'DeleteIntentCompatibilityUpdate' \{ \$childRenderer \}/,
+);
+assert.match(
+  operationScript,
+  /'DeleteIntentCompatibilityRollback' \{ \$authorityV2ChildRenderer \}/,
 );
 assert.match(operationScript, /LockedPolicyRefresh/);
 assert.match(operationScript, /BootstrapAuthorGrant/);
@@ -738,6 +742,7 @@ assert.match(
 assert.match(operationScript, /B5-J4c plan-only cleanup planner raw=/);
 assert.match(operationScript, /B5-J5g-g plan-only authority-v2 consumer rollback raw=/);
 assert.match(operationScript, /B5-J5g-h plan-only delete-intent compatibility update raw=/);
+assert.match(operationScript, /B5-J5g-h plan-only delete-intent compatibility rollback raw=/);
 assert.match(
   operationScript,
   /\$binding = "\$UpdateShape\|\$ChildDeploymentShape\|\$ApprovedChangeSetName\|\$GrantExpiresAt\|\$\(\$Snapshot\.RawSha256\)\|\$\(\$Snapshot\.CanonicalSha256\)\|\$\(\$ChildSnapshot\.RawSha256\)\|\$\(\$ChildSnapshot\.CanonicalSha256\)"/,

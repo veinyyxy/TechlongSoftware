@@ -20,6 +20,11 @@ import {
   j5ggAuthorityV2ChildRawSha256,
   renderJ5ggAuthorityV2ChildTemplate,
 } from "./render-b5-cell-bootstrap-j5gg-v2.mjs";
+import {
+  j5ghDeleteIntentChildCanonicalSha256,
+  j5ghDeleteIntentChildRawSha256,
+  renderJ5ghDeleteIntentChildTemplate,
+} from "./render-b5-cell-bootstrap-j5gh-delete-intent.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDirectory, "..");
@@ -49,6 +54,7 @@ const [
   legacyRenderedSource,
   deployedJ4cRenderedSource,
   pinnedAuthorityV2RenderedSource,
+  pinnedDeleteIntentRenderedSource,
 ] =
   await Promise.all([
     readFile(templatePath, "utf8"),
@@ -60,6 +66,7 @@ const [
     renderLegacyJ4bChildTemplate(),
     renderDeployedJ4cChildTemplate(),
     renderJ5ggAuthorityV2ChildTemplate(),
+    renderJ5ghDeleteIntentChildTemplate(),
   ]);
 const sourceTemplate = JSON.parse(templateSource);
 const template = JSON.parse(renderedSource);
@@ -68,6 +75,7 @@ const boundary = template.Metadata?.SafetyBoundary ?? {};
 const legacyTemplate = JSON.parse(legacyRenderedSource);
 const deployedJ4cTemplate = JSON.parse(deployedJ4cRenderedSource);
 const authorityV2Template = JSON.parse(pinnedAuthorityV2RenderedSource);
+const deleteIntentTemplate = JSON.parse(pinnedDeleteIntentRenderedSource);
 
 function canonicalJson(value) {
   if (value === null || ["boolean", "number", "string"].includes(typeof value)) {
@@ -79,10 +87,20 @@ function canonicalJson(value) {
 
 assert.equal(
   createHash("sha256").update(renderedSource, "utf8").digest("hex"),
-  "77a57afeaafc2f26b14ad5d1374c816196395a55720de7ab68dea68ac8c802d7",
+  j5ghDeleteIntentChildRawSha256,
 );
 assert.equal(
   createHash("sha256").update(canonicalJson(template), "utf8").digest("hex"),
+  j5ghDeleteIntentChildCanonicalSha256,
+);
+assert.equal(renderedSource, pinnedDeleteIntentRenderedSource);
+assert.deepEqual(template, deleteIntentTemplate);
+assert.equal(
+  j5ghDeleteIntentChildRawSha256,
+  "77a57afeaafc2f26b14ad5d1374c816196395a55720de7ab68dea68ac8c802d7",
+);
+assert.equal(
+  j5ghDeleteIntentChildCanonicalSha256,
   "d22612f92f46ba9c060166455cd3e3fc9aa2a12fbb2093e892bfbcf9dc39f142",
 );
 assert.notEqual(renderedSource, pinnedAuthorityV2RenderedSource);
@@ -413,7 +431,7 @@ assert.match(
 assert.match(operationScript, /\[string\]\$Mode = 'LocalValidate'/);
 assert.match(
   operationScript,
-  /\[ValidateSet\('InitialCreate', 'PlannerUpdate', 'AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback', 'DeleteIntentCompatibilityUpdate'\)\]/,
+  /\[ValidateSet\('InitialCreate', 'PlannerUpdate', 'AuthorityV2ConsumerUpdate', 'AuthorityV2ConsumerRollback', 'DeleteIntentCompatibilityUpdate', 'DeleteIntentCompatibilityRollback'\)\]/,
 );
 assert.match(operationScript, /\[string\]\$DeploymentShape = 'InitialCreate'/);
 assert.match(
@@ -430,7 +448,11 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /'AuthorityV2ConsumerUpdate' \{ \$authorityV2ConsumerUpdatePhrase \}[\s\S]*'AuthorityV2ConsumerRollback' \{ \$authorityV2ConsumerRollbackPhrase \}[\s\S]*'DeleteIntentCompatibilityUpdate' \{ \$deleteIntentCompatibilityUpdatePhrase \}/,
+  /I_ACKNOWLEDGE_B5_J5G_H_PLAN_ONLY_DELETE_INTENT_COMPATIBILITY_ROLLBACK/,
+);
+assert.match(
+  operationScript,
+  /'AuthorityV2ConsumerUpdate' \{ \$authorityV2ConsumerUpdatePhrase \}[\s\S]*'AuthorityV2ConsumerRollback' \{ \$authorityV2ConsumerRollbackPhrase \}[\s\S]*'DeleteIntentCompatibilityUpdate' \{ \$deleteIntentCompatibilityUpdatePhrase \}[\s\S]*'DeleteIntentCompatibilityRollback' \{ \$deleteIntentCompatibilityRollbackPhrase \}/,
 );
 assert.match(operationScript, /\$ConfirmExecutionPhrase -cne \$executePhrase/);
 assert.match(operationScript, /TechlongSandboxCellBootstrapManagerRole/);
@@ -446,6 +468,8 @@ assert.match(operationScript, /New-DeployedJ4cReadOnlyTemplateSnapshot/);
 assert.match(operationScript, /render-b5-cell-bootstrap-j4c-deployed\.mjs/);
 assert.match(operationScript, /New-AuthorityV2ReadOnlyTemplateSnapshot/);
 assert.match(operationScript, /render-b5-cell-bootstrap-j5gg-v2\.mjs/);
+assert.match(operationScript, /New-DeleteIntentCompatibleReadOnlyTemplateSnapshot/);
+assert.match(operationScript, /render-b5-cell-bootstrap-j5gh-delete-intent\.mjs/);
 assert.match(operationScript, /a14e9898ed7af636dfdb7f5c509d93b317b604a591aadb4a67d0f956e7a9d986/);
 assert.match(operationScript, /74379232124d94b1d2ffb4322edaecd0bdb0534444b8961295175ecadc06c09c/);
 assert.match(operationScript, /Assert-ExactLegacyJ4bChildStack/);
@@ -462,13 +486,18 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /\$DeploymentShape -eq 'AuthorityV2ConsumerRollback'[\s\S]*New-DeployedJ4cReadOnlyTemplateSnapshot -DestinationPath \$templateSnapshotPath[\s\S]*New-AuthorityV2ReadOnlyTemplateSnapshot -DestinationPath \$authorityV2TemplateSnapshotPath/,
+  /'AuthorityV2ConsumerRollback'\s*\{[\s\S]*New-DeployedJ4cReadOnlyTemplateSnapshot -DestinationPath \$templateSnapshotPath[\s\S]*'AuthorityV2ConsumerRollback',[\s\S]*New-AuthorityV2ReadOnlyTemplateSnapshot -DestinationPath \$authorityV2TemplateSnapshotPath/,
   "the dormant rollback must target exact J4c-v1 and pin the authority-v2 predecessor",
 );
 assert.match(
   operationScript,
   /'DeleteIntentCompatibilityUpdate'[\s\S]*New-AuthorityV2ReadOnlyTemplateSnapshot -DestinationPath \$authorityV2TemplateSnapshotPath/,
   "the delete-intent compatibility update must pin the authority-v2 predecessor",
+);
+assert.match(
+  operationScript,
+  /'DeleteIntentCompatibilityRollback'[\s\S]*New-AuthorityV2ReadOnlyTemplateSnapshot -DestinationPath \$templateSnapshotPath[\s\S]*New-DeleteIntentCompatibleReadOnlyTemplateSnapshot -DestinationPath \$deleteIntentTemplateSnapshotPath/,
+  "the delete-intent compatibility rollback must target authority-v2 and pin the delete-intent predecessor",
 );
 assert.match(operationScript, /\$renderOutput = \(\(& node \$renderer --output \$DestinationPath\)/);
 assert.match(operationScript, /get-template/);
@@ -480,6 +509,71 @@ assert.match(
   "foreign Stack simulation must supply the unrelated DynamoDB condition key so implicit deny has no missing context",
 );
 assert.match(operationScript, /inspect_cell_cleanup_plan/);
+const probeFunctionStart = operationScript.indexOf(
+  "function Invoke-PlanOnlyJanitorProbeTwice",
+);
+const probeFunctionEnd = operationScript.indexOf(
+  "\nWrite-Host 'Running local B5-J4c",
+  probeFunctionStart,
+);
+assert.ok(probeFunctionStart >= 0 && probeFunctionEnd > probeFunctionStart);
+const probeFunction = operationScript.slice(probeFunctionStart, probeFunctionEnd);
+const probeDefinitionsStart = probeFunction.indexOf("$probes = @(");
+const probeDefinitionsEnd = probeFunction.indexOf(
+  "\n  $expectedPayload",
+  probeDefinitionsStart,
+);
+assert.ok(
+  probeDefinitionsStart >= 0 && probeDefinitionsEnd > probeDefinitionsStart,
+);
+const probeDefinitions = probeFunction.slice(
+  probeDefinitionsStart,
+  probeDefinitionsEnd,
+);
+assert.equal(
+  probeDefinitions.match(/^\s*Label = /gm)?.length,
+  2,
+  "the compatibility proof must make exactly two low-cost probes",
+);
+assert.equal(
+  probeDefinitions.match(/^\s*Request = \[ordered\]@\{/gm)?.length,
+  2,
+  "each low-cost probe must own one exact request",
+);
+assert.equal(probeDefinitions.match(/^\s*schemaVersion = /gm)?.length, 2);
+assert.equal(probeDefinitions.match(/^\s*action = /gm)?.length, 2);
+assert.equal(probeDefinitions.match(/^\s*stackName = /gm)?.length, 1);
+assert.equal(probeDefinitions.match(/^\s*cellId = /gm)?.length, 1);
+assert.match(
+  probeFunction,
+  /Label = 'inspect event'[\s\S]*schemaVersion = 1[\s\S]*action = 'inspect_cell_cleanup_plan'/,
+  "the first low-cost probe must retain the exact read-only inspect event",
+);
+assert.match(
+  probeFunction,
+  /Label = 'delete-intent event'[\s\S]*schemaVersion = 1[\s\S]*action = 'delete_shared_cell_stack'[\s\S]*stackName = 'techlong-sandbox-cell-sandbox-1'[\s\S]*cellId = 'cell-sandbox-1'/,
+  "the second low-cost probe must use the exact shared-cell delete intent",
+);
+assert.match(
+  probeFunction,
+  /action = 'inspect_cell_cleanup_plan'[\s\S]*coordinatorMode = 'PLAN_ONLY'[\s\S]*decision = 'ABSENT_SAFE'[\s\S]*mutationPerformed = \$false[\s\S]*cellStack = 'MISSING'[\s\S]*tenantStacks = @\(\)/,
+  "both event forms must normalize to the same mutation-disabled ABSENT_SAFE plan",
+);
+assert.match(
+  probeFunction,
+  /for \(\$offset = 0; \$offset -lt \$probes\.Count; \$offset\+\+\)[\s\S]*Write-JsonFile -Value \$probe\.Request -Path \$payloadPath[\s\S]*'lambda', 'invoke'[\s\S]*'--payload', "fileb:\/\/\$payloadPath"[\s\S]*request = \$probe\.Request[\s\S]*response = \$payload/,
+  "the two exact requests and their normalized responses must be retained as evidence",
+);
+assert.match(
+  probeFunction,
+  /Assert-JsonEqualObjects -Expected \$expectedPayload -Actual \$payload[\s\S]*\$results \+= \$payload/,
+  "each response must match the single reviewed mutation-disabled result",
+);
+assert.match(
+  probeFunction,
+  /Assert-JsonEqualObjects -Expected \$results\[0\] -Actual \$results\[1\]/,
+  "the inspect and delete-intent responses must be byte-shape equivalent after normalization",
+);
 assert.match(operationScript, /stack-create-complete/);
 assert.match(operationScript, /stack-update-complete/);
 assert.match(operationScript, /stack-delete-complete/);
@@ -521,6 +615,11 @@ assert.match(
   operationScript,
   /'DeleteIntentCompatibilityUpdate'\s*\{\s*@\{ CellJanitorFunction = 'AWS::Lambda::Function' \}\s*\}/,
   "the delete-intent compatibility update must accept exactly one Lambda modification",
+);
+assert.match(
+  operationScript,
+  /'DeleteIntentCompatibilityRollback'\s*\{\s*@\{ CellJanitorFunction = 'AWS::Lambda::Function' \}\s*\}/,
+  "the delete-intent compatibility rollback must accept exactly one Lambda modification",
 );
 assert.match(operationScript, /\[string\]\$resource\.Replacement -cne 'False'/);
 assert.match(operationScript, /-not \[string\]::IsNullOrEmpty\(\[string\]\$resource\.PolicyAction\)/);
@@ -627,7 +726,7 @@ assert.match(
 );
 assert.match(
   operationScript,
-  /\$expectedStackStatus = switch \(\$DeploymentShape\) \{[\s\S]*'InitialCreate' \{ 'REVIEW_IN_PROGRESS' \}[\s\S]*'PlannerUpdate' \{ 'CREATE_COMPLETE' \}[\s\S]*'AuthorityV2ConsumerUpdate' \{ 'UPDATE_COMPLETE' \}[\s\S]*'AuthorityV2ConsumerRollback' \{ 'UPDATE_COMPLETE' \}[\s\S]*'DeleteIntentCompatibilityUpdate' \{ 'UPDATE_COMPLETE' \}[\s\S]*\[string\]\$stacks\[0\]\.RoleARN -cne \$bootstrapExecutionRoleArn/,
+  /\$expectedStackStatus = switch \(\$DeploymentShape\) \{[\s\S]*'InitialCreate' \{ 'REVIEW_IN_PROGRESS' \}[\s\S]*'PlannerUpdate' \{ 'CREATE_COMPLETE' \}[\s\S]*'AuthorityV2ConsumerUpdate' \{ 'UPDATE_COMPLETE' \}[\s\S]*'AuthorityV2ConsumerRollback' \{ 'UPDATE_COMPLETE' \}[\s\S]*'DeleteIntentCompatibilityUpdate' \{ 'UPDATE_COMPLETE' \}[\s\S]*'DeleteIntentCompatibilityRollback' \{ 'UPDATE_COMPLETE' \}[\s\S]*\[string\]\$stacks\[0\]\.RoleARN -cne \$bootstrapExecutionRoleArn/,
   "CREATE and UPDATE Change Sets must prove the exact stable Stack and CloudFormation execution role",
 );
 assert.match(operationScript, /Get-ExactLambdaConfigurationAndVerifyInlineCode/);
