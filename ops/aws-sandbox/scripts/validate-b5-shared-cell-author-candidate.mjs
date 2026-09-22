@@ -189,7 +189,11 @@ assert.equal(manifest.cleanupSchedule.expression, "at(2026-08-09T03:00:00)");
 assert.equal(manifest.cleanupSchedule.state, "ENABLED");
 assert.equal(manifest.compatibility.compatible, false);
 assert.equal(manifest.compatibility.reviewedTargetCompatible, true);
-assert.equal(manifest.compatibility.deployedCompatibilityVerified, false);
+assert.equal(manifest.compatibility.deployedCompatibilityVerified, true);
+assert.equal(
+  manifest.compatibility.probeEvidenceCanonicalSha256,
+  "f98e7468920b42403aa04c8323b1f7dd46b85121a1354933083a6158f2a7ea47",
+);
 assert.equal(manifest.compatibility.reviewedTargetJanitorMode, "PLAN_ONLY");
 assert.deepEqual(manifest.compatibility.reviewedTargetJanitorAcceptedEvents, [
   {
@@ -203,9 +207,7 @@ assert.deepEqual(manifest.compatibility.reviewedTargetJanitorAcceptedEvents, [
     cellId: "cell-sandbox-1",
   },
 ]);
-assert.deepEqual(manifest.compatibility.blockers.map(({ code }) => code), [
-  "DEPLOYED_JANITOR_EVENT_COMPATIBILITY_NOT_VERIFIED",
-]);
+assert.deepEqual(manifest.compatibility.blockers, []);
 assert.deepEqual(manifest.compatibility.executionBlockers.map(({ code }) => code), [
   "PLAN_ONLY_JANITOR_MUTATION_DISABLED",
 ]);

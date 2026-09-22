@@ -17,6 +17,8 @@ const templatePrefix = "b5-shared-cell/templates/sha256";
 const reviewedTargetJanitorMode = "PLAN_ONLY";
 const reviewedTargetJanitorPlanAction = "inspect_cell_cleanup_plan";
 const scheduledCleanupAction = "delete_shared_cell_stack";
+const deployedCompatibilityProbeEvidenceCanonicalSha256 =
+  "f98e7468920b42403aa04c8323b1f7dd46b85121a1354933083a6158f2a7ea47";
 const canonicalTimestampPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const expectedTagKeys = Object.freeze([
@@ -390,17 +392,13 @@ export function compileB5SharedCellAuthorCandidate(input) {
     compatibility: {
       compatible: false,
       reviewedTargetCompatible: true,
-      deployedCompatibilityVerified: false,
+      deployedCompatibilityVerified: true,
+      probeEvidenceCanonicalSha256:
+        deployedCompatibilityProbeEvidenceCanonicalSha256,
       reviewedTargetJanitorMode,
       reviewedTargetJanitorAcceptedEvents: [acceptedPlanEvent, acceptedDeleteIntentEvent],
       scheduledCleanupEvent: rendered.cleanupEvent,
-      blockers: [
-        {
-          code: "DEPLOYED_JANITOR_EVENT_COMPATIBILITY_NOT_VERIFIED",
-          message:
-            "The reviewed target accepts the exact delete intent, but the deployed Lambda must be updated and independently read back before live compatibility is claimed.",
-        },
-      ],
+      blockers: [],
       executionBlockers: [
         {
           code: "PLAN_ONLY_JANITOR_MUTATION_DISABLED",
