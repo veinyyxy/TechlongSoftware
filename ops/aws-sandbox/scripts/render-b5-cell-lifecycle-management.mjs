@@ -20,10 +20,16 @@ const stackName = "techlong-sandbox-cell-sandbox-1";
 const cellId = "cell-sandbox-1";
 const changeSetNamePattern =
   /^techlong-sandbox-cell-sandbox-1-[a-f0-9]{16}$/;
+const stackIdPattern =
+  /^arn:aws:cloudformation:ca-central-1:402010193138:stack\/techlong-sandbox-cell-sandbox-1\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const changeSetArnPattern =
+  /^arn:aws:cloudformation:ca-central-1:402010193138:changeSet\/(techlong-sandbox-cell-sandbox-1-[a-f0-9]{16})\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const templateSha256Pattern = /^[a-f0-9]{64}$/;
 const canonicalTimestampPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const maximumGrantWindowMilliseconds = 60 * 60 * 1_000;
+const compensationDeleteChangeSetMarginMilliseconds = 10 * 60 * 1_000;
+const compensationDeleteStackMarginMilliseconds = 5 * 60 * 1_000;
 const minimumCellCleanupBufferMilliseconds = 15 * 60 * 1_000;
 const approvedTemplateBucket =
   "techlong-sandbox-build-source-402010193138-ca-central-1";
@@ -36,6 +42,7 @@ const executionRoleArn =
 export const lifecycleManagementShapes = Object.freeze([
   "Locked",
   "AuthorGrant",
+  "AuthorCompensationGrant",
   "ExecuteGrant",
   "RollbackGrant",
 ]);
@@ -88,6 +95,11 @@ function assertExactGrantInputs({
   approvedCellExpiresAt,
   grantReviewedAt,
   grantExpiresAt,
+  approvedStackId,
+  approvedChangeSetArn,
+  approvedCompensationPlanSha256,
+  compensationReviewedAt,
+  compensationExpiresAt,
 }) {
   if (shape === "Locked") {
     if (
@@ -96,7 +108,12 @@ function assertExactGrantInputs({
       approvedTemplateCanonicalSha256 ||
       approvedCellExpiresAt ||
       grantReviewedAt ||
-      grantExpiresAt
+      grantExpiresAt ||
+      approvedStackId ||
+      approvedChangeSetArn ||
+      approvedCompensationPlanSha256 ||
+      compensationReviewedAt ||
+      compensationExpiresAt
     ) {
       throw new Error("Locked lifecycle management shape accepts no grant inputs");
     }
@@ -135,12 +152,88 @@ function assertExactGrantInputs({
       "temporary lifecycle grant must expire at least 15 minutes before the Shared Cell TTL",
     );
   }
+  const isCompensation = shape === "AuthorCompensationGrant";
+  if (!isCompensation) {
+    if (
+      approvedStackId ||
+      approvedChangeSetArn ||
+      approvedCompensationPlanSha256 ||
+      compensationReviewedAt ||
+      compensationExpiresAt
+    ) {
+      throw new Error(
+        `${shape} lifecycle management shape accepts no compensation inputs`,
+      );
+    }
+    return;
+  }
+  if (!stackIdPattern.test(approvedStackId ?? "")) {
+    throw new Error(
+      "AuthorCompensationGrant requires the exact REVIEW_IN_PROGRESS StackId",
+    );
+  }
+  const changeSetArnMatch = (approvedChangeSetArn ?? "").match(
+    changeSetArnPattern,
+  );
+  if (!changeSetArnMatch || changeSetArnMatch[1] !== approvedChangeSetName) {
+    throw new Error(
+      "AuthorCompensationGrant requires the exact approved Change Set ARN",
+    );
+  }
+  if (!templateSha256Pattern.test(approvedCompensationPlanSha256 ?? "")) {
+    throw new Error(
+      "AuthorCompensationGrant requires the exact approved compensation plan SHA-256",
+    );
+  }
+  const compensationReviewed = assertCanonicalTimestamp(
+    compensationReviewedAt,
+    "CompensationReviewedAt",
+  );
+  const compensationExpiry = assertCanonicalTimestamp(
+    compensationExpiresAt,
+    "CompensationExpiresAt",
+  );
+  if (compensationReviewed < reviewedAt) {
+    throw new Error(
+      "author compensation review must not predate the original author review",
+    );
+  }
+  if (compensationExpiry <= compensationReviewed) {
+    throw new Error(
+      "author compensation grant must expire after its reviewed-at time",
+    );
+  }
+  if (compensationExpiry - compensationReviewed > maximumGrantWindowMilliseconds) {
+    throw new Error(
+      "author compensation grant window must not exceed 60 minutes",
+    );
+  }
+  if (
+    compensationExpiry - compensationReviewed <=
+    compensationDeleteChangeSetMarginMilliseconds
+  ) {
+    throw new Error(
+      "author compensation grant window must exceed the 10-minute DeleteChangeSet safety margin",
+    );
+  }
 }
 
 function temporaryCondition(grantExpiresAt, condition = {}) {
   return {
     ...condition,
     DateLessThan: { "aws:CurrentTime": grantExpiresAt },
+  };
+}
+
+function authorCompensationCondition(
+  compensationReviewedAt,
+  actionCutoff,
+  condition = {},
+) {
+  return {
+    ...condition,
+    DateGreaterThanEquals: { "aws:CurrentTime": compensationReviewedAt },
+    DateLessThan: { "aws:CurrentTime": actionCutoff },
   };
 }
 
@@ -221,6 +314,60 @@ function operatorExecuteStatements(approvedChangeSetName, grantExpiresAt) {
           "cloudformation:ChangeSetName": approvedChangeSetName,
         },
       }),
+    },
+  ];
+}
+
+function operatorAuthorCompensationStatements(
+  approvedChangeSetName,
+  approvedStackId,
+  approvedCellExpiresAt,
+  compensationReviewedAt,
+  compensationExpiresAt,
+) {
+  const compensationExpiry = Date.parse(compensationExpiresAt);
+  const deleteChangeSetCutoff = new Date(
+    compensationExpiry - compensationDeleteChangeSetMarginMilliseconds,
+  ).toISOString();
+  const deleteStackCutoff = new Date(
+    compensationExpiry - compensationDeleteStackMarginMilliseconds,
+  ).toISOString();
+  return [
+    {
+      Sid: "TemporaryAllowDiscardExactReviewedAuthorChangeSet",
+      Effect: "Allow",
+      Action: "cloudformation:DeleteChangeSet",
+      Resource: approvedStackId,
+      Condition: authorCompensationCondition(
+        compensationReviewedAt,
+        deleteChangeSetCutoff,
+        {
+          StringEquals: {
+            "aws:RequestedRegion": region,
+            "cloudformation:ChangeSetName": approvedChangeSetName,
+          },
+        },
+      ),
+    },
+    {
+      Sid: "TemporaryAllowDeleteExactControllerReviewedStack",
+      Effect: "Allow",
+      Action: "cloudformation:DeleteStack",
+      Resource: approvedStackId,
+      Condition: authorCompensationCondition(
+        compensationReviewedAt,
+        deleteStackCutoff,
+        {
+          StringEquals: {
+            "aws:RequestedRegion": region,
+            "aws:ResourceTag/Environment": "aws-sandbox",
+            "aws:ResourceTag/ManagedBy": "techlong-cell-operator",
+            "aws:ResourceTag/CellId": cellId,
+            "aws:ResourceTag/ExpiresAt": approvedCellExpiresAt,
+          },
+          Null: { "cloudformation:RoleArn": "true" },
+        },
+      ),
     },
   ];
 }
@@ -614,6 +761,11 @@ export async function renderB5CellLifecycleManagementTemplate({
   approvedCellExpiresAt = "",
   grantReviewedAt = "",
   grantExpiresAt = "",
+  approvedStackId = "",
+  approvedChangeSetArn = "",
+  approvedCompensationPlanSha256 = "",
+  compensationReviewedAt = "",
+  compensationExpiresAt = "",
 } = {}) {
   if (!lifecycleManagementShapes.includes(shape)) {
     throw new Error(`unsupported B5 Shared Cell lifecycle management shape: ${shape}`);
@@ -626,6 +778,11 @@ export async function renderB5CellLifecycleManagementTemplate({
     approvedCellExpiresAt,
     grantReviewedAt,
     grantExpiresAt,
+    approvedStackId,
+    approvedChangeSetArn,
+    approvedCompensationPlanSha256,
+    compensationReviewedAt,
+    compensationExpiresAt,
   });
   const template = JSON.parse(await readFile(templatePath, "utf8"));
   const operatorStatements =
@@ -637,6 +794,7 @@ export async function renderB5CellLifecycleManagementTemplate({
   }
   for (const forbidden of [
     "cloudformation:CreateChangeSet",
+    "cloudformation:DeleteChangeSet",
     "cloudformation:ExecuteChangeSet",
     "cloudformation:DeleteStack",
     "ec2:CreateVpc",
@@ -679,6 +837,20 @@ export async function renderB5CellLifecycleManagementTemplate({
     boundary.GrantReviewedAt = grantReviewedAt;
     boundary.GrantExpiresAt = grantExpiresAt;
   }
+  if (shape === "AuthorCompensationGrant") {
+    boundary.ApprovedStackId = approvedStackId;
+    boundary.ApprovedChangeSetArn = approvedChangeSetArn;
+    boundary.ApprovedCompensationPlanSha256 = approvedCompensationPlanSha256;
+    boundary.CompensationReviewedAt = compensationReviewedAt;
+    boundary.CompensationExpiresAt = compensationExpiresAt;
+    boundary.CompensationPlanDigestRecorded = true;
+    boundary.CompensationPlanDigestVerified = false;
+    boundary.CompensationUsesExactStackId = true;
+    boundary.CompensationControllerRequiresEmptyReviewStack = true;
+    boundary.CompensationStateAndOrderIamEnforced = false;
+    boundary.CompensationGrantSplitRequired = true;
+    boundary.CompensationSafeToAuthorRevoke = false;
+  }
 
   if (shape === "AuthorGrant") {
     operatorStatements.push(
@@ -687,6 +859,16 @@ export async function renderB5CellLifecycleManagementTemplate({
         approvedTemplateSha256,
         approvedCellExpiresAt,
         grantExpiresAt,
+      ),
+    );
+  } else if (shape === "AuthorCompensationGrant") {
+    operatorStatements.push(
+      ...operatorAuthorCompensationStatements(
+        approvedChangeSetName,
+        approvedStackId,
+        approvedCellExpiresAt,
+        compensationReviewedAt,
+        compensationExpiresAt,
       ),
     );
   } else if (shape === "ExecuteGrant") {
@@ -723,6 +905,8 @@ export async function renderB5CellLifecycleManagementTemplate({
     ? "Locked IAM-only J5g-a Shared Cell lifecycle management root; cloud apply is enabled for this exact shape but execution still requires separate approval, and no paid Cell or TTL deletion is approved."
     : isAuthorGrant
       ? "Author-only J5g-a Shared Cell lifecycle management grant; only the exact digest-bound child Change Set may be authored, paid Cell execution and TTL deletion remain disabled."
+      : shape === "AuthorCompensationGrant"
+        ? "Offline-only J5g-i Shared Cell author compensation candidate; the controller must verify the exact Change Set and zero-resource REVIEW_IN_PROGRESS StackId, IAM state/order enforcement is not claimed, and paid Cell execution remains disabled."
       : `Offline-only J5g-a Shared Cell lifecycle IAM contract (${shape}); cloud apply, paid Cell, and TTL deletion are disabled.`;
   template.Outputs.SafetyState.Value = isLocked
     ? "LOCKED_IAM_MANAGEMENT_ROOT_APPLY_ENABLED_EXECUTION_NOT_APPROVED_NO_PAID_CELL"
@@ -746,7 +930,7 @@ async function main() {
   const output = argument("--output");
   if (!output) {
     throw new Error(
-      "usage: node render-b5-cell-lifecycle-management.mjs --shape <shape> --output <path> [--approved-change-set-name <name> --approved-template-sha256 <raw-sha256> --approved-template-canonical-sha256 <canonical-sha256> --approved-cell-expires-at <UTC> --grant-reviewed-at <UTC> --grant-expires-at <UTC>]",
+      "usage: node render-b5-cell-lifecycle-management.mjs --shape <shape> --output <path> [--approved-change-set-name <name> --approved-template-sha256 <raw-sha256> --approved-template-canonical-sha256 <canonical-sha256> --approved-cell-expires-at <UTC> --grant-reviewed-at <UTC> --grant-expires-at <UTC> --approved-stack-id <ARN> --approved-change-set-arn <ARN> --approved-compensation-plan-sha256 <sha256> --compensation-reviewed-at <UTC> --compensation-expires-at <UTC>]",
     );
   }
   const shape = argument("--shape") || "Locked";
@@ -760,6 +944,13 @@ async function main() {
     approvedCellExpiresAt: argument("--approved-cell-expires-at"),
     grantReviewedAt: argument("--grant-reviewed-at"),
     grantExpiresAt: argument("--grant-expires-at"),
+    approvedStackId: argument("--approved-stack-id"),
+    approvedChangeSetArn: argument("--approved-change-set-arn"),
+    approvedCompensationPlanSha256: argument(
+      "--approved-compensation-plan-sha256",
+    ),
+    compensationReviewedAt: argument("--compensation-reviewed-at"),
+    compensationExpiresAt: argument("--compensation-expires-at"),
   });
   const outputPath = path.resolve(process.cwd(), output);
   await writeFile(outputPath, rendered, { encoding: "utf8", flag: "w" });
