@@ -43,8 +43,16 @@ export const lifecycleManagementShapes = Object.freeze([
   "Locked",
   "AuthorGrant",
   "AuthorCompensationGrant",
+  "AuthorCompensationDeleteChangeSetGrant",
+  "AuthorCompensationDeleteStackGrant",
   "ExecuteGrant",
   "RollbackGrant",
+]);
+
+const authorCompensationShapes = Object.freeze([
+  "AuthorCompensationGrant",
+  "AuthorCompensationDeleteChangeSetGrant",
+  "AuthorCompensationDeleteStackGrant",
 ]);
 
 export const approvedSharedCellResourceTypes = Object.freeze([
@@ -152,7 +160,7 @@ function assertExactGrantInputs({
       "temporary lifecycle grant must expire at least 15 minutes before the Shared Cell TTL",
     );
   }
-  const isCompensation = shape === "AuthorCompensationGrant";
+  const isCompensation = authorCompensationShapes.includes(shape);
   if (!isCompensation) {
     if (
       approvedStackId ||
@@ -208,12 +216,17 @@ function assertExactGrantInputs({
       "author compensation grant window must not exceed 60 minutes",
     );
   }
-  if (
-    compensationExpiry - compensationReviewed <=
-    compensationDeleteChangeSetMarginMilliseconds
-  ) {
+  const minimumActionMargin =
+    shape === "AuthorCompensationDeleteStackGrant"
+      ? compensationDeleteStackMarginMilliseconds
+      : compensationDeleteChangeSetMarginMilliseconds;
+  const actionName =
+    shape === "AuthorCompensationDeleteStackGrant"
+      ? "DeleteStack"
+      : "DeleteChangeSet";
+  if (compensationExpiry - compensationReviewed <= minimumActionMargin) {
     throw new Error(
-      "author compensation grant window must exceed the 10-minute DeleteChangeSet safety margin",
+      `author compensation grant window must exceed the ${minimumActionMargin / 60_000}-minute ${actionName} safety margin`,
     );
   }
 }
@@ -318,10 +331,9 @@ function operatorExecuteStatements(approvedChangeSetName, grantExpiresAt) {
   ];
 }
 
-function operatorAuthorCompensationStatements(
+function operatorAuthorCompensationDeleteChangeSetStatement(
   approvedChangeSetName,
   approvedStackId,
-  approvedCellExpiresAt,
   compensationReviewedAt,
   compensationExpiresAt,
 ) {
@@ -329,47 +341,83 @@ function operatorAuthorCompensationStatements(
   const deleteChangeSetCutoff = new Date(
     compensationExpiry - compensationDeleteChangeSetMarginMilliseconds,
   ).toISOString();
+  return {
+    Sid: "TemporaryAllowDiscardExactReviewedAuthorChangeSet",
+    Effect: "Allow",
+    Action: "cloudformation:DeleteChangeSet",
+    Resource: approvedStackId,
+    Condition: authorCompensationCondition(
+      compensationReviewedAt,
+      deleteChangeSetCutoff,
+      {
+        StringEquals: {
+          "aws:RequestedRegion": region,
+          "cloudformation:ChangeSetName": approvedChangeSetName,
+        },
+      },
+    ),
+  };
+}
+
+function operatorAuthorCompensationDeleteStackStatement(
+  approvedStackId,
+  approvedCellExpiresAt,
+  compensationReviewedAt,
+  compensationExpiresAt,
+) {
+  const compensationExpiry = Date.parse(compensationExpiresAt);
   const deleteStackCutoff = new Date(
     compensationExpiry - compensationDeleteStackMarginMilliseconds,
   ).toISOString();
-  return [
-    {
-      Sid: "TemporaryAllowDiscardExactReviewedAuthorChangeSet",
-      Effect: "Allow",
-      Action: "cloudformation:DeleteChangeSet",
-      Resource: approvedStackId,
-      Condition: authorCompensationCondition(
-        compensationReviewedAt,
-        deleteChangeSetCutoff,
-        {
-          StringEquals: {
-            "aws:RequestedRegion": region,
-            "cloudformation:ChangeSetName": approvedChangeSetName,
-          },
+  return {
+    Sid: "TemporaryAllowDeleteExactControllerReviewedStack",
+    Effect: "Allow",
+    Action: "cloudformation:DeleteStack",
+    Resource: approvedStackId,
+    Condition: authorCompensationCondition(
+      compensationReviewedAt,
+      deleteStackCutoff,
+      {
+        StringEquals: {
+          "aws:RequestedRegion": region,
+          "aws:ResourceTag/Environment": "aws-sandbox",
+          "aws:ResourceTag/ManagedBy": "techlong-cell-operator",
+          "aws:ResourceTag/CellId": cellId,
+          "aws:ResourceTag/ExpiresAt": approvedCellExpiresAt,
         },
-      ),
-    },
-    {
-      Sid: "TemporaryAllowDeleteExactControllerReviewedStack",
-      Effect: "Allow",
-      Action: "cloudformation:DeleteStack",
-      Resource: approvedStackId,
-      Condition: authorCompensationCondition(
-        compensationReviewedAt,
-        deleteStackCutoff,
-        {
-          StringEquals: {
-            "aws:RequestedRegion": region,
-            "aws:ResourceTag/Environment": "aws-sandbox",
-            "aws:ResourceTag/ManagedBy": "techlong-cell-operator",
-            "aws:ResourceTag/CellId": cellId,
-            "aws:ResourceTag/ExpiresAt": approvedCellExpiresAt,
-          },
-          Null: { "cloudformation:RoleArn": "true" },
-        },
-      ),
-    },
-  ];
+        Null: { "cloudformation:RoleArn": "true" },
+      },
+    ),
+  };
+}
+
+function operatorAuthorCompensationStatements(
+  shape,
+  approvedChangeSetName,
+  approvedStackId,
+  approvedCellExpiresAt,
+  compensationReviewedAt,
+  compensationExpiresAt,
+) {
+  const deleteChangeSet = operatorAuthorCompensationDeleteChangeSetStatement(
+    approvedChangeSetName,
+    approvedStackId,
+    compensationReviewedAt,
+    compensationExpiresAt,
+  );
+  const deleteStack = operatorAuthorCompensationDeleteStackStatement(
+    approvedStackId,
+    approvedCellExpiresAt,
+    compensationReviewedAt,
+    compensationExpiresAt,
+  );
+  if (shape === "AuthorCompensationDeleteChangeSetGrant") {
+    return [deleteChangeSet];
+  }
+  if (shape === "AuthorCompensationDeleteStackGrant") {
+    return [deleteStack];
+  }
+  return [deleteChangeSet, deleteStack];
 }
 
 function operatorRollbackStatements(approvedCellExpiresAt, grantExpiresAt) {
@@ -817,6 +865,11 @@ export async function renderB5CellLifecycleManagementTemplate({
   const boundary = template.Metadata.SafetyBoundary;
   const isLocked = shape === "Locked";
   const isAuthorGrant = shape === "AuthorGrant";
+  const isAuthorCompensation = authorCompensationShapes.includes(shape);
+  const isLegacyAuthorCompensation = shape === "AuthorCompensationGrant";
+  const isSplitAuthorCompensation =
+    shape === "AuthorCompensationDeleteChangeSetGrant" ||
+    shape === "AuthorCompensationDeleteStackGrant";
   const managementApplyEnabled = isLocked || isAuthorGrant;
   boundary.CloudApplyEnabled = managementApplyEnabled;
   boundary.LocalValidateOnly = !managementApplyEnabled;
@@ -837,18 +890,40 @@ export async function renderB5CellLifecycleManagementTemplate({
     boundary.GrantReviewedAt = grantReviewedAt;
     boundary.GrantExpiresAt = grantExpiresAt;
   }
-  if (shape === "AuthorCompensationGrant") {
+  if (isAuthorCompensation) {
+    const compensationPhase =
+      shape === "AuthorCompensationDeleteChangeSetGrant"
+        ? "DELETE_CHANGE_SET"
+        : shape === "AuthorCompensationDeleteStackGrant"
+          ? "DELETE_STACK"
+          : "LEGACY_COMBINED";
+    const approvedActions =
+      compensationPhase === "DELETE_CHANGE_SET"
+        ? ["cloudformation:DeleteChangeSet"]
+        : compensationPhase === "DELETE_STACK"
+          ? ["cloudformation:DeleteStack"]
+          : ["cloudformation:DeleteChangeSet", "cloudformation:DeleteStack"];
     boundary.ApprovedStackId = approvedStackId;
     boundary.ApprovedChangeSetArn = approvedChangeSetArn;
     boundary.ApprovedCompensationPlanSha256 = approvedCompensationPlanSha256;
     boundary.CompensationReviewedAt = compensationReviewedAt;
     boundary.CompensationExpiresAt = compensationExpiresAt;
+    boundary.CompensationPhase = compensationPhase;
+    boundary.CompensationApprovedWriteActions = approvedActions;
     boundary.CompensationPlanDigestRecorded = true;
     boundary.CompensationPlanDigestVerified = false;
+    boundary.CompensationControllerPlanRecomputeRequired = true;
+    boundary.CompensationPersistentClaimRequired = true;
+    boundary.CompensationChangeSetArnRequestIamConditionCompatibilityVerified =
+      false;
     boundary.CompensationUsesExactStackId = true;
     boundary.CompensationControllerRequiresEmptyReviewStack = true;
     boundary.CompensationStateAndOrderIamEnforced = false;
-    boundary.CompensationGrantSplitRequired = true;
+    boundary.CompensationActionSeparationIamEnforced =
+      isSplitAuthorCompensation;
+    boundary.CompensationGrantSplit = isSplitAuthorCompensation;
+    boundary.CompensationGrantSplitRequired = isLegacyAuthorCompensation;
+    boundary.CompensationLegacyCombinedGrant = isLegacyAuthorCompensation;
     boundary.CompensationSafeToAuthorRevoke = false;
   }
 
@@ -861,9 +936,10 @@ export async function renderB5CellLifecycleManagementTemplate({
         grantExpiresAt,
       ),
     );
-  } else if (shape === "AuthorCompensationGrant") {
+  } else if (isAuthorCompensation) {
     operatorStatements.push(
       ...operatorAuthorCompensationStatements(
+        shape,
         approvedChangeSetName,
         approvedStackId,
         approvedCellExpiresAt,
@@ -906,7 +982,11 @@ export async function renderB5CellLifecycleManagementTemplate({
     : isAuthorGrant
       ? "Author-only J5g-a Shared Cell lifecycle management grant; only the exact digest-bound child Change Set may be authored, paid Cell execution and TTL deletion remain disabled."
       : shape === "AuthorCompensationGrant"
-        ? "Offline-only J5g-i Shared Cell author compensation candidate; the controller must verify the exact Change Set and zero-resource REVIEW_IN_PROGRESS StackId, IAM state/order enforcement is not claimed, and paid Cell execution remains disabled."
+        ? "Legacy offline-only J5g-i combined Shared Cell author compensation candidate; the supported online path does not apply it, the controller must recompute the full plan, and split action grants are required before any online use."
+      : shape === "AuthorCompensationDeleteChangeSetGrant"
+        ? "Offline-only J5g-j1 DeleteChangeSet compensation grant candidate; it contains only the exact reviewed Change Set deletion action and still requires controller plan recomputation plus a persistent claim before online wiring."
+      : shape === "AuthorCompensationDeleteStackGrant"
+        ? "Offline-only J5g-j1 DeleteStack compensation grant candidate; it contains only the exact reviewed placeholder Stack deletion action and still requires controller plan recomputation plus a persistent claim before online wiring."
       : `Offline-only J5g-a Shared Cell lifecycle IAM contract (${shape}); cloud apply, paid Cell, and TTL deletion are disabled.`;
   template.Outputs.SafetyState.Value = isLocked
     ? "LOCKED_IAM_MANAGEMENT_ROOT_APPLY_ENABLED_EXECUTION_NOT_APPROVED_NO_PAID_CELL"

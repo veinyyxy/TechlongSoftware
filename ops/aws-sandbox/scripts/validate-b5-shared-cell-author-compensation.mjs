@@ -15,6 +15,14 @@ const paths = {
     repositoryRoot,
     "tests/shared-cell-author-compensation.test.ts",
   ),
+  adapter: path.join(
+    repositoryRoot,
+    "lib/deployments/execution/aws-sdk-shared-cell-author-compensation.ts",
+  ),
+  adapterTest: path.join(
+    repositoryRoot,
+    "tests/aws-sdk-shared-cell-author-compensation.test.ts",
+  ),
   wrapper: path.join(
     scriptDirectory,
     "s3-b5-shared-cell-author-compensation.ps1",
@@ -25,7 +33,7 @@ const paths = {
   ),
 };
 
-const [core, testSource, wrapper, runtime] = await Promise.all(
+const [core, testSource, adapter, adapterTestSource, wrapper, runtime] = await Promise.all(
   Object.values(paths).map((value) => readFile(value, "utf8")),
 );
 
@@ -55,7 +63,12 @@ assertIncludesAll(
     "SharedCellAuthorCompensationReadPort",
     "StrongSharedCellAuthorAuthorityReadPort",
     "SharedCellAuthorCompensationMutationPort",
+    "SharedCellAuthorDeleteChangeSetMutationPort",
+    "SharedCellAuthorDeleteStackMutationPort",
+    "compileSharedCellAuthorCompensationPlan",
     "inspectSharedCellAuthorCompensation",
+    "executeReviewedSharedCellAuthorDeleteChangeSet",
+    "executeReviewedSharedCellAuthorDeleteStack",
     "executeReviewedSharedCellAuthorCompensation",
     "recoverSharedCellAuthorCompensation",
     '"REVIEW_IN_PROGRESS"',
@@ -71,12 +84,15 @@ assertIncludesAll(
     'DeletionMode: "STANDARD"',
     "deleteChangeSet",
     "deleteStack",
+    "getChangeSetTemplate",
+    "operationSha256",
+    "phasePlanSha256",
   ],
   "author compensation core",
 );
 assert.match(core, /DescribeStacks[\s\S]*GetTemplate\(Original\)[\s\S]*ListStackResources/);
 assert.match(core, /DescribeChangeSet\(exact ARN\)/);
-assert.match(core, /stableDeleteStackTokenHash/);
+assert.match(core, /b5-author-comp-\$\{operationSha256\.slice\(0, 32\)\}/);
 assert.match(core, /CREATE_COMPLETE/);
 assert.match(core, /AVAILABLE/);
 assert.match(core, /authority[\s\S]*ABSENT/i);
@@ -86,11 +102,36 @@ assert.doesNotMatch(core, /from\s+["']@aws-sdk|node:child_process/);
 assert.doesNotMatch(core, /ExecuteChangeSet|CreateChangeSet|PutItem|compareAndSet/);
 
 assertIncludesAll(
+  adapter,
+  [
+    "AwsSdkSharedCellAuthorCompensationEvidenceAdapter",
+    "AwsSdkSharedCellAuthorDeleteChangeSetAdapter",
+    "AwsSdkSharedCellAuthorDeleteStackAdapter",
+    "createAwsSdkSharedCellAuthorCompensationRuntimeFromModules",
+    "createAwsSdkSharedCellAuthorCompensationRuntime",
+    'profile = "techlong-sandbox-cell-operator"',
+    'mfaDeviceArn =',
+    '"arn:aws:iam::402010193138:mfa/techlong-sandbox-dev"',
+    "IncludePropertyValues: true",
+    "TemplateStage: \"Original\"",
+    'value.name === "ChangeSetNotFoundException"',
+    "ARN_BOUND_CHANGE_SET_NOT_FOUND",
+    "maxAttempts: 1",
+    "ignoreConfiguredEndpointUrls: true",
+  ],
+  "author compensation AWS adapter",
+);
+assert.doesNotMatch(adapter, /process\.env|node:child_process/);
+
+assertIncludesAll(
   testSource,
   [
     "inspectSharedCellAuthorCompensation",
     "executeReviewedSharedCellAuthorCompensation",
     "recoverSharedCellAuthorCompensation",
+    "compileSharedCellAuthorCompensationPlan",
+    "executeReviewedSharedCellAuthorDeleteChangeSet",
+    "executeReviewedSharedCellAuthorDeleteStack",
     "safeToAuthorRevoke",
     "AccessDenied",
     "REVIEW_IN_PROGRESS",
@@ -99,6 +140,17 @@ assertIncludesAll(
     "Inspect can renew an exact CS-missing rollover window",
   ],
   "author compensation tests",
+);
+assertIncludesAll(
+  adapterTestSource,
+  [
+    "DescribeChangeSet reads every page",
+    "only exact target-bound provider errors prove missing",
+    "narrow mutation adapters send only their exact reviewed envelopes",
+    "dormant runtime shares one lazy MFA provider",
+    "installed dormant runtime construction performs no AWS request",
+  ],
+  "author compensation AWS adapter tests",
 );
 assert.doesNotMatch(
   runtime,
@@ -113,6 +165,7 @@ const tests = spawnSync(
     "./tests/cloudflare-loader.mjs",
     "--test",
     "tests/shared-cell-author-compensation.test.ts",
+    "tests/aws-sdk-shared-cell-author-compensation.test.ts",
   ],
   {
     cwd: repositoryRoot,
@@ -127,5 +180,5 @@ assert.equal(
 );
 
 console.log(
-  "B5 Shared Cell author compensation validated locally (phase-aware exact placeholder closure, completed-step resume without duplicate mutation, STANDARD DeleteStack asynchronous readback, grant-window-bound plan, stable four-way MISSING proof, separate AuthorRevoke, no AWS wiring).",
+  "B5 Shared Cell author compensation validated locally (provider-observable evidence, split DeleteChangeSet/DeleteStack phase capabilities, stable operation identity, dormant exact-envelope AWS SDK adapters, stable four-way MISSING proof, separate revoke, no default runtime wiring or AWS call).",
 );

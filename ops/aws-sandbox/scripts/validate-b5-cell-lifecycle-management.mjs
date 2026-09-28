@@ -52,6 +52,24 @@ function allowedActions(template, logicalId) {
   );
 }
 
+const expectedLockedOperatorAllowedActions = [
+  "cloudformation:DescribeChangeSet",
+  "cloudformation:DescribeStacks",
+  "cloudformation:GetTemplate",
+  "cloudformation:GetTemplateSummary",
+  "cloudformation:ListChangeSets",
+  "cloudformation:ListStackResources",
+  "iam:GetPolicy",
+  "iam:GetPolicyVersion",
+  "iam:GetRole",
+  "iam:ListAttachedRolePolicies",
+  "iam:ListEntitiesForPolicy",
+  "iam:ListPolicyVersions",
+  "iam:ListRolePolicies",
+  "iam:SimulatePrincipalPolicy",
+  "sts:GetCallerIdentity",
+];
+
 function statementBySid(template, logicalId, sid) {
   const statement = template.Resources[logicalId].Properties.PolicyDocument.Statement
     .find((candidate) => candidate.Sid === sid);
@@ -99,6 +117,8 @@ const [
   lockedSource,
   authorSource,
   compensationSource,
+  compensationDeleteChangeSetSource,
+  compensationDeleteStackSource,
   executeSource,
   rollbackSource,
 ] =
@@ -111,6 +131,14 @@ const [
       shape: "AuthorCompensationGrant",
       ...compensationInput,
     }),
+    renderB5CellLifecycleManagementTemplate({
+      shape: "AuthorCompensationDeleteChangeSetGrant",
+      ...compensationInput,
+    }),
+    renderB5CellLifecycleManagementTemplate({
+      shape: "AuthorCompensationDeleteStackGrant",
+      ...compensationInput,
+    }),
     renderB5CellLifecycleManagementTemplate({ shape: "ExecuteGrant", ...grantInput }),
     renderB5CellLifecycleManagementTemplate({ shape: "RollbackGrant", ...grantInput }),
   ]);
@@ -118,13 +146,31 @@ const base = JSON.parse(source);
 const locked = JSON.parse(lockedSource);
 const author = JSON.parse(authorSource);
 const compensation = JSON.parse(compensationSource);
+const compensationDeleteChangeSet = JSON.parse(
+  compensationDeleteChangeSetSource,
+);
+const compensationDeleteStack = JSON.parse(compensationDeleteStackSource);
 const execute = JSON.parse(executeSource);
 const rollback = JSON.parse(rollbackSource);
+const compensationTemplates = [
+  compensation,
+  compensationDeleteChangeSet,
+  compensationDeleteStack,
+];
+const renderedTemplates = [
+  locked,
+  author,
+  ...compensationTemplates,
+  execute,
+  rollback,
+];
 
 assert.deepEqual(lifecycleManagementShapes, [
   "Locked",
   "AuthorGrant",
   "AuthorCompensationGrant",
+  "AuthorCompensationDeleteChangeSetGrant",
+  "AuthorCompensationDeleteStackGrant",
   "ExecuteGrant",
   "RollbackGrant",
 ]);
@@ -276,7 +322,7 @@ for (const action of [
   );
 }
 
-for (const template of [locked, author, compensation, execute, rollback]) {
+for (const template of renderedTemplates) {
   assert.ok(Buffer.byteLength(JSON.stringify(template), "utf8") <= 51_200);
   for (const logicalId of [
     "CellOperatorBoundary",
@@ -298,7 +344,7 @@ for (const template of [locked, author, compensation, execute, rollback]) {
   );
 }
 
-for (const template of [author, compensation, execute, rollback]) {
+for (const template of [author, ...compensationTemplates, execute, rollback]) {
   assert.equal(template.Metadata.SafetyBoundary.ApprovedChangeSetName, changeSetName);
   assert.equal(template.Metadata.SafetyBoundary.ApprovedTemplateSha256, sha256);
   assert.equal(
@@ -342,78 +388,94 @@ for (const template of [execute, rollback]) {
   );
 }
 
-assert.equal(compensation.Metadata.SafetyBoundary.CloudApplyEnabled, false);
-assert.equal(compensation.Metadata.SafetyBoundary.LocalValidateOnly, true);
-assert.equal(compensation.Metadata.SafetyBoundary.ManagementRootApplyEnabled, false);
-assert.equal(compensation.Metadata.SafetyBoundary.TemporaryGrantApplyEnabled, false);
-assert.equal(compensation.Metadata.SafetyBoundary.ApprovedStackId, approvedStackId);
-assert.equal(
-  compensation.Metadata.SafetyBoundary.ApprovedChangeSetArn,
-  approvedChangeSetArn,
+for (const template of compensationTemplates) {
+  const boundary = template.Metadata.SafetyBoundary;
+  assert.equal(boundary.CloudApplyEnabled, false);
+  assert.equal(boundary.LocalValidateOnly, true);
+  assert.equal(boundary.ManagementRootApplyEnabled, false);
+  assert.equal(boundary.TemporaryGrantApplyEnabled, false);
+  assert.equal(boundary.ApprovedStackId, approvedStackId);
+  assert.equal(boundary.ApprovedChangeSetArn, approvedChangeSetArn);
+  assert.equal(
+    boundary.ApprovedCompensationPlanSha256,
+    approvedCompensationPlanSha256,
+  );
+  assert.equal(boundary.CompensationReviewedAt, compensationReviewedAt);
+  assert.equal(boundary.CompensationExpiresAt, compensationExpiresAt);
+  assert.equal(boundary.CompensationPlanDigestRecorded, true);
+  assert.equal(boundary.CompensationPlanDigestVerified, false);
+  assert.equal(boundary.CompensationControllerPlanRecomputeRequired, true);
+  assert.equal(boundary.CompensationPersistentClaimRequired, true);
+  assert.equal(
+    boundary.CompensationChangeSetArnRequestIamConditionCompatibilityVerified,
+    false,
+  );
+  assert.equal(boundary.CompensationUsesExactStackId, true);
+  assert.equal(boundary.CompensationControllerRequiresEmptyReviewStack, true);
+  assert.equal(boundary.CompensationStateAndOrderIamEnforced, false);
+  assert.equal(boundary.CompensationSafeToAuthorRevoke, false);
+  assert.equal(
+    Object.hasOwn(boundary, "CompensationRequiresEmptyReviewStack"),
+    false,
+  );
+  assert.equal(Object.hasOwn(boundary, "CompensationPlanDigestBound"), false);
+  assert.equal(
+    template.Resources.CellCloudFormationExecutionRole.Properties.Policies,
+    undefined,
+  );
+  assert.deepEqual(
+    template.Resources.CellCloudFormationExecutionBoundary,
+    locked.Resources.CellCloudFormationExecutionBoundary,
+  );
+  assert.equal(
+    template.Outputs.SafetyState.Value,
+    `OFFLINE_ONLY_${boundary.OperatorGrantState}_NOT_APPLY_ENABLED_NO_PAID_CELL_APPROVAL`,
+  );
+}
+
+assert.deepEqual(
+  compensation.Metadata.SafetyBoundary.CompensationApprovedWriteActions,
+  ["cloudformation:DeleteChangeSet", "cloudformation:DeleteStack"],
 );
 assert.equal(
-  compensation.Metadata.SafetyBoundary.ApprovedCompensationPlanSha256,
-  approvedCompensationPlanSha256,
+  compensation.Metadata.SafetyBoundary.CompensationPhase,
+  "LEGACY_COMBINED",
 );
 assert.equal(
-  compensation.Metadata.SafetyBoundary.CompensationReviewedAt,
-  compensationReviewedAt,
-);
-assert.equal(
-  compensation.Metadata.SafetyBoundary.CompensationExpiresAt,
-  compensationExpiresAt,
-);
-assert.equal(
-  compensation.Metadata.SafetyBoundary.CompensationPlanDigestRecorded,
-  true,
-);
-assert.equal(
-  compensation.Metadata.SafetyBoundary.CompensationPlanDigestVerified,
+  compensation.Metadata.SafetyBoundary.CompensationActionSeparationIamEnforced,
   false,
 );
-assert.equal(
-  compensation.Metadata.SafetyBoundary.CompensationUsesExactStackId,
-  true,
-);
-assert.equal(
-  compensation.Metadata.SafetyBoundary.CompensationControllerRequiresEmptyReviewStack,
-  true,
-);
-assert.equal(
-  Object.hasOwn(
-    compensation.Metadata.SafetyBoundary,
-    "CompensationRequiresEmptyReviewStack",
-  ),
-  false,
-);
-assert.equal(
-  Object.hasOwn(
-    compensation.Metadata.SafetyBoundary,
-    "CompensationPlanDigestBound",
-  ),
-  false,
-);
-assert.equal(
-  compensation.Metadata.SafetyBoundary.CompensationStateAndOrderIamEnforced,
-  false,
-);
+assert.equal(compensation.Metadata.SafetyBoundary.CompensationGrantSplit, false);
 assert.equal(
   compensation.Metadata.SafetyBoundary.CompensationGrantSplitRequired,
   true,
 );
 assert.equal(
-  compensation.Metadata.SafetyBoundary.CompensationSafeToAuthorRevoke,
-  false,
+  compensation.Metadata.SafetyBoundary.CompensationLegacyCombinedGrant,
+  true,
 );
-assert.equal(
-  compensation.Outputs.SafetyState.Value,
-  "OFFLINE_ONLY_AUTHORCOMPENSATIONGRANT_NOT_APPLY_ENABLED_NO_PAID_CELL_APPROVAL",
-);
+assert.match(compensation.Description, /Legacy offline-only/);
+assert.match(compensation.Description, /supported online path does not apply it/);
+assert.doesNotMatch(compensation.Description, /non-deployable/);
 
-const compensationActions = allowedActions(
-  compensation,
-  "CellOperatorBoundary",
-);
+for (const [template, phase, action] of [
+  [
+    compensationDeleteChangeSet,
+    "DELETE_CHANGE_SET",
+    "cloudformation:DeleteChangeSet",
+  ],
+  [compensationDeleteStack, "DELETE_STACK", "cloudformation:DeleteStack"],
+]) {
+  const boundary = template.Metadata.SafetyBoundary;
+  assert.equal(boundary.CompensationPhase, phase);
+  assert.deepEqual(boundary.CompensationApprovedWriteActions, [action]);
+  assert.equal(boundary.CompensationActionSeparationIamEnforced, true);
+  assert.equal(boundary.CompensationGrantSplit, true);
+  assert.equal(boundary.CompensationGrantSplitRequired, false);
+  assert.equal(boundary.CompensationLegacyCombinedGrant, false);
+}
+
+const compensationActions = allowedActions(compensation, "CellOperatorBoundary");
 for (const required of [
   "cloudformation:DeleteChangeSet",
   "cloudformation:DeleteStack",
@@ -428,58 +490,57 @@ for (const forbidden of [
   false,
   `compensation allows ${forbidden}`,
 );
-assert.equal(
-  compensation.Resources.CellCloudFormationExecutionRole.Properties.Policies,
-  undefined,
-);
-assert.deepEqual(
-  compensation.Resources.CellCloudFormationExecutionBoundary,
-  locked.Resources.CellCloudFormationExecutionBoundary,
-);
-const compensationDeleteChangeSet = statementBySid(
+const legacyDeleteChangeSetStatement = statementBySid(
   compensation,
   "CellOperatorBoundary",
   "TemporaryAllowDiscardExactReviewedAuthorChangeSet",
 );
-assert.equal(compensationDeleteChangeSet.Resource, approvedStackId);
-assert.equal(compensationDeleteChangeSet.Effect, "Allow");
-assert.equal(compensationDeleteChangeSet.Action, "cloudformation:DeleteChangeSet");
-assert.deepEqual(compensationDeleteChangeSet.Condition.StringEquals, {
+assert.equal(legacyDeleteChangeSetStatement.Resource, approvedStackId);
+assert.equal(legacyDeleteChangeSetStatement.Effect, "Allow");
+assert.equal(
+  legacyDeleteChangeSetStatement.Action,
+  "cloudformation:DeleteChangeSet",
+);
+assert.deepEqual(legacyDeleteChangeSetStatement.Condition.StringEquals, {
   "aws:RequestedRegion": "ca-central-1",
   "cloudformation:ChangeSetName": changeSetName,
 });
-assert.deepEqual(compensationDeleteChangeSet.Condition.DateGreaterThanEquals, {
+assert.deepEqual(legacyDeleteChangeSetStatement.Condition.DateGreaterThanEquals, {
   "aws:CurrentTime": compensationReviewedAt,
 });
-assert.deepEqual(compensationDeleteChangeSet.Condition.DateLessThan, {
+assert.deepEqual(legacyDeleteChangeSetStatement.Condition.DateLessThan, {
   "aws:CurrentTime": compensationDeleteChangeSetCutoff,
 });
-const compensationDeleteStack = statementBySid(
+const legacyDeleteStackStatement = statementBySid(
   compensation,
   "CellOperatorBoundary",
   "TemporaryAllowDeleteExactControllerReviewedStack",
 );
-assert.equal(compensationDeleteStack.Resource, approvedStackId);
-assert.equal(compensationDeleteStack.Effect, "Allow");
-assert.equal(compensationDeleteStack.Action, "cloudformation:DeleteStack");
-assert.deepEqual(compensationDeleteStack.Condition.StringEquals, {
+assert.equal(legacyDeleteStackStatement.Resource, approvedStackId);
+assert.equal(legacyDeleteStackStatement.Effect, "Allow");
+assert.equal(legacyDeleteStackStatement.Action, "cloudformation:DeleteStack");
+assert.deepEqual(legacyDeleteStackStatement.Condition.StringEquals, {
   "aws:RequestedRegion": "ca-central-1",
   "aws:ResourceTag/Environment": "aws-sandbox",
   "aws:ResourceTag/ManagedBy": "techlong-cell-operator",
   "aws:ResourceTag/CellId": "cell-sandbox-1",
   "aws:ResourceTag/ExpiresAt": cellExpiresAt,
 });
-assert.deepEqual(compensationDeleteStack.Condition.Null, {
+assert.deepEqual(legacyDeleteStackStatement.Condition.Null, {
   "cloudformation:RoleArn": "true",
 });
-assert.deepEqual(compensationDeleteStack.Condition.DateGreaterThanEquals, {
+assert.deepEqual(legacyDeleteStackStatement.Condition.DateGreaterThanEquals, {
   "aws:CurrentTime": compensationReviewedAt,
 });
-assert.deepEqual(compensationDeleteStack.Condition.DateLessThan, {
+assert.deepEqual(legacyDeleteStackStatement.Condition.DateLessThan, {
   "aws:CurrentTime": compensationDeleteStackCutoff,
 });
 const lockedOperatorStatements =
   locked.Resources.CellOperatorBoundary.Properties.PolicyDocument.Statement;
+assert.deepEqual(
+  [...allowedActions(locked, "CellOperatorBoundary")].sort(),
+  expectedLockedOperatorAllowedActions,
+);
 const compensationOperatorStatements =
   compensation.Resources.CellOperatorBoundary.Properties.PolicyDocument.Statement;
 assert.equal(
@@ -492,8 +553,74 @@ assert.deepEqual(
 );
 assert.deepEqual(
   compensationOperatorStatements.slice(lockedOperatorStatements.length),
-  [compensationDeleteChangeSet, compensationDeleteStack],
+  [legacyDeleteChangeSetStatement, legacyDeleteStackStatement],
 );
+
+const splitDeleteChangeSetStatements =
+  compensationDeleteChangeSet.Resources.CellOperatorBoundary.Properties
+    .PolicyDocument.Statement;
+const splitDeleteStackStatements =
+  compensationDeleteStack.Resources.CellOperatorBoundary.Properties.PolicyDocument
+    .Statement;
+for (const statements of [
+  splitDeleteChangeSetStatements,
+  splitDeleteStackStatements,
+]) {
+  assert.equal(statements.length, lockedOperatorStatements.length + 1);
+  assert.deepEqual(
+    statements.slice(0, lockedOperatorStatements.length),
+    lockedOperatorStatements,
+  );
+}
+assert.deepEqual(
+  splitDeleteChangeSetStatements.slice(lockedOperatorStatements.length),
+  [legacyDeleteChangeSetStatement],
+);
+assert.deepEqual(
+  splitDeleteStackStatements.slice(lockedOperatorStatements.length),
+  [legacyDeleteStackStatement],
+);
+const splitDeleteChangeSetActions = allowedActions(
+  compensationDeleteChangeSet,
+  "CellOperatorBoundary",
+);
+const splitDeleteStackActions = allowedActions(
+  compensationDeleteStack,
+  "CellOperatorBoundary",
+);
+assert.equal(
+  splitDeleteChangeSetActions.has("cloudformation:DeleteChangeSet"),
+  true,
+);
+assert.equal(
+  splitDeleteChangeSetActions.has("cloudformation:DeleteStack"),
+  false,
+);
+assert.equal(
+  splitDeleteStackActions.has("cloudformation:DeleteStack"),
+  true,
+);
+assert.equal(
+  splitDeleteStackActions.has("cloudformation:DeleteChangeSet"),
+  false,
+);
+assert.deepEqual(
+  [...splitDeleteChangeSetActions].sort(),
+  [...expectedLockedOperatorAllowedActions, "cloudformation:DeleteChangeSet"].sort(),
+);
+assert.deepEqual(
+  [...splitDeleteStackActions].sort(),
+  [...expectedLockedOperatorAllowedActions, "cloudformation:DeleteStack"].sort(),
+);
+for (const template of [compensationDeleteChangeSet, compensationDeleteStack]) {
+  const splitActions = allowedActions(template, "CellOperatorBoundary");
+  for (const forbidden of [
+    "cloudformation:CreateChangeSet",
+    "cloudformation:ExecuteChangeSet",
+    "iam:PassRole",
+    "s3:GetObject",
+  ]) assert.equal(splitActions.has(forbidden), false, `${template.Metadata.SafetyBoundary.CompensationPhase} allows ${forbidden}`);
+}
 
 const authorActions = allowedActions(author, "CellOperatorBoundary");
 assert.ok(authorActions.has("cloudformation:CreateChangeSet"));
@@ -630,7 +757,7 @@ assert.equal(
   "rollback named-service boundary resources must remain exact",
 );
 
-for (const template of [locked, author, compensation, execute, rollback]) {
+for (const template of renderedTemplates) {
   const denied = new Set(
     template.Resources.CellCloudFormationExecutionBoundary.Properties.PolicyDocument.Statement
       .filter((statement) => statement.Effect === "Deny")
@@ -701,6 +828,61 @@ await assert.rejects(
   }),
   /must exceed the 10-minute DeleteChangeSet safety margin/,
 );
+await assert.rejects(
+  renderB5CellLifecycleManagementTemplate({
+    shape: "AuthorCompensationDeleteChangeSetGrant",
+    ...compensationInput,
+    compensationExpiresAt: "2026-09-07T13:10:00.000Z",
+  }),
+  /must exceed the 10-minute DeleteChangeSet safety margin/,
+);
+await assert.rejects(
+  renderB5CellLifecycleManagementTemplate({
+    shape: "AuthorCompensationDeleteStackGrant",
+    ...compensationInput,
+    compensationExpiresAt: "2026-09-07T13:05:00.000Z",
+  }),
+  /must exceed the 5-minute DeleteStack safety margin/,
+);
+await assert.doesNotReject(
+  renderB5CellLifecycleManagementTemplate({
+    shape: "AuthorCompensationDeleteChangeSetGrant",
+    ...compensationInput,
+    compensationExpiresAt: "2026-09-07T13:10:00.001Z",
+  }),
+);
+await assert.doesNotReject(
+  renderB5CellLifecycleManagementTemplate({
+    shape: "AuthorCompensationDeleteStackGrant",
+    ...compensationInput,
+    compensationExpiresAt: "2026-09-07T13:05:00.001Z",
+  }),
+);
+for (const shape of [
+  "AuthorCompensationDeleteChangeSetGrant",
+  "AuthorCompensationDeleteStackGrant",
+]) {
+  await assert.rejects(
+    renderB5CellLifecycleManagementTemplate({
+      shape,
+      ...compensationInput,
+      approvedStackId:
+        "arn:aws:cloudformation:ca-central-1:402010193138:stack/other/12345678-1234-1234-1234-123456789abc",
+    }),
+    /exact REVIEW_IN_PROGRESS StackId/,
+  );
+  await assert.rejects(
+    renderB5CellLifecycleManagementTemplate({
+      shape,
+      ...compensationInput,
+      approvedChangeSetArn: approvedChangeSetArn.replace(
+        changeSetName,
+        `${changeSetName}0`,
+      ),
+    }),
+    /exact approved Change Set ARN/,
+  );
+}
 await assert.rejects(
   renderB5CellLifecycleManagementTemplate({
     shape: "AuthorGrant",
@@ -894,5 +1076,5 @@ assert.doesNotMatch(
 assert.doesNotMatch(operation, /'cloudformation',\s*'delete-stack'/i);
 
 console.log(
-  "B5-J5g-a Shared Cell lifecycle IAM contract validated (Locked plus Author-only management gates; exact-StackId AuthorCompensation and Execute/Rollback remain offline-only; 4 resources, 18 resource types, policy quotas enforced; validator made no AWS call).",
+  "B5-J5g-j1 Shared Cell lifecycle IAM contract validated (DeleteChangeSet/DeleteStack compensation grants are action-separated, exact-target, cutoff-bound, controller-recompute/persistent-claim required, and offline-only; the legacy combined compensation shape remains outside the supported online path; validator made no AWS call).",
 );

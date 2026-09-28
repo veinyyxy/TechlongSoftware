@@ -195,6 +195,11 @@ export interface SharedCellAuthorCompensationReadPort {
     stackNameOrId: string;
     signal: AbortSignal;
   }): Promise<unknown>;
+  getChangeSetTemplate(input: {
+    changeSetNameOrArn: string;
+    stackNameOrId: string;
+    signal: AbortSignal;
+  }): Promise<unknown>;
 }
 
 /** This port deliberately has no Put/Delete operation. */
@@ -223,6 +228,49 @@ export interface SharedCellAuthorCompensationMutationPort {
     };
     signal: AbortSignal;
   }): Promise<unknown>;
+}
+
+/** Narrow phase port: it is intentionally incapable of deleting a Stack. */
+export interface SharedCellAuthorDeleteChangeSetMutationPort {
+  readonly region: string;
+  getCallerIdentity(input: { signal: AbortSignal; }): Promise<unknown>;
+  deleteChangeSet(input: {
+    request: {
+      ChangeSetName: string;
+      StackName: string;
+    };
+    signal: AbortSignal;
+  }): Promise<unknown>;
+  readonly deleteStack?: never;
+}
+
+/** Narrow phase port: it is intentionally incapable of deleting a Change Set. */
+export interface SharedCellAuthorDeleteStackMutationPort {
+  readonly region: string;
+  getCallerIdentity(input: { signal: AbortSignal; }): Promise<unknown>;
+  deleteStack(input: {
+    request: {
+      StackName: string;
+      DeletionMode: "STANDARD";
+      ClientRequestToken: string;
+    };
+    signal: AbortSignal;
+  }): Promise<unknown>;
+  readonly deleteChangeSet?: never;
+}
+
+export type SharedCellAuthorCompensationPhase =
+  | "DELETE_CHANGE_SET"
+  | "DELETE_STACK";
+
+export interface SharedCellAuthorCompensationCompiledPlan {
+  readonly schemaVersion: 1;
+  readonly operationSha256: string;
+  readonly compensationPlanSha256: string;
+  readonly phasePlanSha256: Readonly<
+    Record<SharedCellAuthorCompensationPhase, string>
+  >;
+  readonly deleteStackClientRequestToken: string;
 }
 
 export interface SharedCellAuthorCompensationSummary {
@@ -260,6 +308,24 @@ interface ExecuteSettings extends BaseSettings {
   wait?: (delayMs: number, signal: AbortSignal) => Promise<void>;
 }
 
+interface DeleteChangeSetExecuteSettings extends BaseSettings {
+  mutations: SharedCellAuthorDeleteChangeSetMutationPort;
+  approvedCompensationPlanSha256: string;
+  approvedPhasePlanSha256: string;
+  readbackAttempts?: number;
+  readbackDelayMs?: number;
+  wait?: (delayMs: number, signal: AbortSignal) => Promise<void>;
+}
+
+interface DeleteStackExecuteSettings extends BaseSettings {
+  mutations: SharedCellAuthorDeleteStackMutationPort;
+  approvedCompensationPlanSha256: string;
+  approvedPhasePlanSha256: string;
+  readbackAttempts?: number;
+  readbackDelayMs?: number;
+  wait?: (delayMs: number, signal: AbortSignal) => Promise<void>;
+}
+
 interface RecoverSettings extends BaseSettings {
   approvedCompensationPlanSha256: string;
   readbackAttempts?: number;
@@ -281,6 +347,37 @@ type ExecutionObservation =
   | "REVIEW_CHANGE_SET_MISSING"
   | "DELETE_IN_PROGRESS"
   | "MISSING";
+
+export interface SharedCellAuthorDeleteChangeSetSummary {
+  readonly schemaVersion: 1;
+  readonly action: "delete_shared_cell_author_change_set";
+  readonly phase: "DELETE_CHANGE_SET";
+  readonly observedState: Observation;
+  readonly operationSha256: string;
+  readonly compensationPlanSha256: string;
+  readonly phasePlanSha256: string;
+  readonly deleteStackClientRequestToken: string;
+  readonly stackId: string;
+  readonly changeSetArn: string;
+  readonly mutationPerformed: boolean;
+  readonly readyForDeleteStackReview: boolean;
+  readonly safeToAuthorRevoke: boolean;
+}
+
+export interface SharedCellAuthorDeleteStackSummary {
+  readonly schemaVersion: 1;
+  readonly action: "delete_shared_cell_author_stack";
+  readonly phase: "DELETE_STACK";
+  readonly observedState: Observation;
+  readonly operationSha256: string;
+  readonly compensationPlanSha256: string;
+  readonly phasePlanSha256: string;
+  readonly deleteStackClientRequestToken: string;
+  readonly stackId: string;
+  readonly changeSetArn: string;
+  readonly mutationPerformed: boolean;
+  readonly safeToAuthorRevoke: boolean;
+}
 
 function assertExactInput(
   value: unknown,
@@ -515,7 +612,8 @@ function pinEvidence(
     typeof value.describeStack !== "function" ||
     typeof value.getOriginalTemplate !== "function" ||
     typeof value.listStackResourcesPage !== "function" ||
-    typeof value.describeChangeSet !== "function"
+    typeof value.describeChangeSet !== "function" ||
+    typeof value.getChangeSetTemplate !== "function"
   ) {
     fail(
       "SHARED_CELL_AUTHOR_COMPENSATION_PORT_INVALID",
@@ -530,6 +628,8 @@ function pinEvidence(
     listStackResourcesPage: (input) =>
       value.listStackResourcesPage.call(value, input),
     describeChangeSet: (input) => value.describeChangeSet.call(value, input),
+    getChangeSetTemplate: (input) =>
+      value.getChangeSetTemplate.call(value, input),
   };
   return Object.freeze(pinned);
 }
@@ -569,6 +669,54 @@ function pinMutations(
     region: value.region,
     getCallerIdentity: (input) => value.getCallerIdentity.call(value, input),
     deleteChangeSet: (input) => value.deleteChangeSet.call(value, input),
+    deleteStack: (input) => value.deleteStack.call(value, input),
+  };
+  return Object.freeze(pinned);
+}
+
+function pinDeleteChangeSetMutations(
+  value: SharedCellAuthorDeleteChangeSetMutationPort,
+): SharedCellAuthorDeleteChangeSetMutationPort {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    value.region !== SHARED_CELL_AUTHOR_COMPENSATION_REGION ||
+    typeof value.getCallerIdentity !== "function" ||
+    typeof value.deleteChangeSet !== "function" ||
+    typeof (value as { deleteStack?: unknown }).deleteStack !== "undefined"
+  ) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_PORT_INVALID",
+      "The DeleteChangeSet phase requires an exact narrow mutation port.",
+    );
+  }
+  const pinned: SharedCellAuthorDeleteChangeSetMutationPort = {
+    region: value.region,
+    getCallerIdentity: (input) => value.getCallerIdentity.call(value, input),
+    deleteChangeSet: (input) => value.deleteChangeSet.call(value, input),
+  };
+  return Object.freeze(pinned);
+}
+
+function pinDeleteStackMutations(
+  value: SharedCellAuthorDeleteStackMutationPort,
+): SharedCellAuthorDeleteStackMutationPort {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    value.region !== SHARED_CELL_AUTHOR_COMPENSATION_REGION ||
+    typeof value.getCallerIdentity !== "function" ||
+    typeof value.deleteStack !== "function" ||
+    typeof (value as { deleteChangeSet?: unknown }).deleteChangeSet !== "undefined"
+  ) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_PORT_INVALID",
+      "The DeleteStack phase requires an exact narrow mutation port.",
+    );
+  }
+  const pinned: SharedCellAuthorDeleteStackMutationPort = {
+    region: value.region,
+    getCallerIdentity: (input) => value.getCallerIdentity.call(value, input),
     deleteStack: (input) => value.deleteStack.call(value, input),
   };
   return Object.freeze(pinned);
@@ -615,7 +763,9 @@ async function assertCaller(
 }
 
 async function assertMutationCaller(
-  mutations: SharedCellAuthorCompensationMutationPort,
+  mutations: {
+    getCallerIdentity(input: { signal: AbortSignal; }): Promise<unknown>;
+  },
   signal: AbortSignal,
 ): Promise<void> {
   const identity = await callRead(signal, "mutation GetCallerIdentity", () =>
@@ -697,7 +847,9 @@ function isMissing(
   value: unknown,
   targetKey: "stackName" | "stackNameOrId" | "changeSetArn",
   targetValue: string,
-  proof: "NAME_BOUND_VALIDATION_ERROR" | "ARN_BOUND_VALIDATION_ERROR",
+  proof:
+    | "NAME_BOUND_VALIDATION_ERROR"
+    | "ARN_BOUND_CHANGE_SET_NOT_FOUND",
 ): boolean {
   return (
     exactKeys(value, [targetKey, "proof", "state"]) &&
@@ -780,7 +932,17 @@ function assertZeroResources(value: unknown): void {
   }
 }
 
-function assertChangeSet(value: unknown, candidate: NormalizedCandidate): void {
+interface ObservedChangeSetResourceChange {
+  type: "Resource";
+  action: "Add";
+  logicalResourceId: string;
+  resourceType: string;
+}
+
+function assertChangeSet(
+  value: unknown,
+  candidate: NormalizedCandidate,
+): readonly ObservedChangeSetResourceChange[] {
   if (!exactKeys(value, ["changeSet", "state"]) || record(value).state !== "present") {
     fail(
       "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_DRIFT",
@@ -788,31 +950,188 @@ function assertChangeSet(value: unknown, candidate: NormalizedCandidate): void {
     );
   }
   const actual = record(record(value).changeSet);
-  const expected = {
-    changeSetName: candidate.changeSet.name,
-    changeSetArn: candidate.changeSet.arn,
-    stackName: candidate.stackName,
-    stackId: candidate.stackId,
-    changeSetType: "CREATE",
-    status: "CREATE_COMPLETE",
-    executionStatus: "AVAILABLE",
-    roleArn: candidate.changeSet.roleArn,
-    templateUrl: candidate.immutableTemplate.url,
-    templateRawSha256: candidate.immutableTemplate.rawSha256,
-    templateCanonicalSha256: candidate.immutableTemplate.canonicalSha256,
-    capabilities: [],
-    includeNestedStacks: false,
-    resourceTypes: candidate.changeSet.resourceTypes,
-    parameters: candidate.changeSet.parameters,
-    tags: candidate.changeSet.tags,
-  };
   if (
-    !exactKeys(actual, Object.keys(expected)) ||
-    canonicalJson(actual) !== canonicalJson(expected)
+    !exactKeys(actual, [
+      "capabilities",
+      "changeSetArn",
+      "changeSetName",
+      "changes",
+      "description",
+      "executionStatus",
+      "importExistingResources",
+      "includeNestedStacks",
+      "notificationArns",
+      "onStackFailure",
+      "parameters",
+      "parentChangeSetId",
+      "rootChangeSetId",
+      "stackId",
+      "stackName",
+      "status",
+      "tags",
+    ]) ||
+    actual.changeSetName !== candidate.changeSet.name ||
+    actual.changeSetArn !== candidate.changeSet.arn ||
+    actual.stackName !== candidate.stackName ||
+    actual.stackId !== candidate.stackId ||
+    (actual.description !== null && typeof actual.description !== "string") ||
+    actual.status !== "CREATE_COMPLETE" ||
+    actual.executionStatus !== "AVAILABLE" ||
+    canonicalJson(actual.capabilities) !== canonicalJson([]) ||
+    actual.includeNestedStacks !== false ||
+    canonicalJson(actual.parameters) !==
+      canonicalJson(candidate.changeSet.parameters) ||
+    canonicalJson(actual.tags) !== canonicalJson(candidate.changeSet.tags) ||
+    canonicalJson(actual.notificationArns) !== canonicalJson([]) ||
+    actual.parentChangeSetId !== null ||
+    actual.rootChangeSetId !== null ||
+    actual.onStackFailure !== "DELETE" ||
+    actual.importExistingResources !== false
   ) {
     fail(
       "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_DRIFT",
-      "The CREATE Change Set drifted from its exact immutable candidate.",
+      "The provider-observed Change Set drifted from its exact safe constants.",
+    );
+  }
+
+  const changes = actual.changes;
+  if (
+    !Array.isArray(changes) ||
+    changes.length === 0 ||
+    canonicalJson(Object.keys(changes).sort()) !==
+      canonicalJson(changes.map((_, index) => String(index)).sort())
+  ) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_DRIFT",
+      "The provider-observed Change Set changes are missing or sparse.",
+    );
+  }
+  const logicalIds = new Set<string>();
+  const observed: ObservedChangeSetResourceChange[] = [];
+  for (const change of changes) {
+    const entry = record(change);
+    if (
+      !exactKeys(entry, [
+        "action",
+        "logicalResourceId",
+        "resourceType",
+        "type",
+      ]) ||
+      entry.type !== "Resource" ||
+      entry.action !== "Add" ||
+      typeof entry.logicalResourceId !== "string" ||
+      !/^[A-Za-z][A-Za-z0-9]{0,254}$/.test(entry.logicalResourceId) ||
+      logicalIds.has(entry.logicalResourceId) ||
+      typeof entry.resourceType !== "string" ||
+      !candidate.changeSet.resourceTypes.includes(entry.resourceType)
+    ) {
+      fail(
+        "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_DRIFT",
+        "Every provider-observed Change must be one unique approved Resource Add.",
+      );
+    }
+    logicalIds.add(entry.logicalResourceId);
+    observed.push({
+      type: "Resource",
+      action: "Add",
+      logicalResourceId: entry.logicalResourceId,
+      resourceType: entry.resourceType,
+    });
+  }
+  const observedTypes = [...new Set(observed.map((change) => change.resourceType))]
+    .sort();
+  if (
+    canonicalJson(observedTypes) !==
+    canonicalJson([...candidate.changeSet.resourceTypes].sort())
+  ) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_DRIFT",
+      "The Change Set does not cover all 18 exact approved resource types.",
+    );
+  }
+  return Object.freeze(observed.map((change) => Object.freeze(change)));
+}
+
+async function assertChangeSetTemplate(
+  value: unknown,
+  candidate: NormalizedCandidate,
+  changes: readonly ObservedChangeSetResourceChange[],
+): Promise<void> {
+  if (
+    !exactKeys(value, ["changeSetArn", "stackId", "state", "templateBody"]) ||
+    record(value).state !== "present" ||
+    record(value).changeSetArn !== candidate.changeSet.arn ||
+    record(value).stackId !== candidate.stackId
+  ) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_TEMPLATE_DRIFT",
+      "GetTemplate did not return the exact Change Set and Stack binding.",
+    );
+  }
+  const templateBody = record(value).templateBody;
+  if (
+    !templateBody ||
+    typeof templateBody !== "object" ||
+    Array.isArray(templateBody)
+  ) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_TEMPLATE_DRIFT",
+      "The Change Set template body is not parsed canonical JSON.",
+    );
+  }
+  let canonicalSha256: string;
+  try {
+    canonicalSha256 = await sha256Hex(canonicalJson(templateBody));
+  } catch {
+    return fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_TEMPLATE_DRIFT",
+      "The Change Set template body cannot be canonicalized.",
+    );
+  }
+  if (canonicalSha256 !== candidate.immutableTemplate.canonicalSha256) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_TEMPLATE_DRIFT",
+      "The Change Set template canonical SHA-256 drifted from review.",
+    );
+  }
+
+  const resources = record(templateBody).Resources;
+  if (!resources || typeof resources !== "object" || Array.isArray(resources)) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_TEMPLATE_DRIFT",
+      "The canonical Change Set template has no exact Resources object.",
+    );
+  }
+  const expected = Object.entries(resources as Record<string, unknown>).map(
+    ([logicalResourceId, resource]) => {
+      const resourceType = record(resource).Type;
+      if (
+        !/^[A-Za-z][A-Za-z0-9]{0,254}$/.test(logicalResourceId) ||
+        typeof resourceType !== "string" ||
+        !candidate.changeSet.resourceTypes.includes(resourceType)
+      ) {
+        fail(
+          "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_TEMPLATE_DRIFT",
+          "The canonical template contains an unapproved resource change.",
+        );
+      }
+      return { logicalResourceId, resourceType };
+    },
+  );
+  const normalize = (
+    entries: readonly { logicalResourceId: string; resourceType: string; }[],
+  ) => entries.map((entry) => ({
+    logicalResourceId: entry.logicalResourceId,
+    resourceType: entry.resourceType,
+  })).sort((left, right) =>
+    left.logicalResourceId.localeCompare(right.logicalResourceId));
+  if (
+    canonicalJson(normalize(expected)) !==
+    canonicalJson(normalize(changes))
+  ) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_DRIFT",
+      "DescribeChangeSet Resource Adds do not exactly match the canonical template.",
     );
   }
 }
@@ -865,6 +1184,31 @@ async function readChangeSet(
   );
 }
 
+async function readChangeSetTemplate(
+  evidence: SharedCellAuthorCompensationReadPort,
+  candidate: NormalizedCandidate,
+  signal: AbortSignal,
+): Promise<unknown> {
+  return callRead(signal, "GetTemplate(ChangeSet)", () =>
+    evidence.getChangeSetTemplate({
+      changeSetNameOrArn: candidate.changeSet.arn,
+      stackNameOrId: candidate.stackId,
+      signal,
+    }),
+  );
+}
+
+async function assertPresentChangeSetEvidence(
+  evidence: SharedCellAuthorCompensationReadPort,
+  value: unknown,
+  candidate: NormalizedCandidate,
+  signal: AbortSignal,
+): Promise<void> {
+  const changes = assertChangeSet(value, candidate);
+  const template = await readChangeSetTemplate(evidence, candidate, signal);
+  await assertChangeSetTemplate(template, candidate, changes);
+}
+
 function isStackMissing(value: unknown, candidate: NormalizedCandidate): boolean {
   return isMissing(
     value,
@@ -897,7 +1241,7 @@ function isChangeSetMissing(value: unknown, candidate: NormalizedCandidate): boo
     value,
     "changeSetArn",
     candidate.changeSet.arn,
-    "ARN_BOUND_VALIDATION_ERROR",
+    "ARN_BOUND_CHANGE_SET_NOT_FOUND",
   );
 }
 
@@ -1027,7 +1371,12 @@ async function observeCompensationState(
     await assertAuthorityAbsent(authority, signal);
     return "REVIEW_CHANGE_SET_MISSING";
   } else {
-    assertChangeSet(changeSet, candidate);
+    await assertPresentChangeSetEvidence(
+      evidence,
+      changeSet,
+      candidate,
+      signal,
+    );
   }
   await assertAuthorityAbsent(authority, signal);
   return "REVIEW_CHANGE_SET_PRESENT";
@@ -1048,10 +1397,9 @@ async function observeChangeSetMissingCycle(
   return false;
 }
 
-async function planIntent(candidate: NormalizedCandidate): Promise<{
-  hash: string;
-  clientToken: string;
-}> {
+async function compileNormalizedCompensationPlan(
+  candidate: NormalizedCandidate,
+): Promise<Readonly<SharedCellAuthorCompensationCompiledPlan>> {
   const intent = {
     schemaVersion: 1,
     action: "compensate_shared_cell_author_create_placeholder",
@@ -1077,12 +1425,13 @@ async function planIntent(candidate: NormalizedCandidate): Promise<{
         "GetTemplate(Original)",
         "ListStackResources",
         "DescribeChangeSet(exact ARN)",
+        "GetTemplate(ChangeSet canonical)",
       ],
       authorRevokeIsSeparate: true,
     },
   };
-  const hash = await sha256Hex(intent);
-  const stableDeleteStackTokenHash = await sha256Hex({
+  const compensationPlanSha256 = await sha256Hex(intent);
+  const operationSha256 = await sha256Hex({
     schemaVersion: 1,
     action: "delete_shared_cell_author_create_placeholder",
     accountId: candidate.accountId,
@@ -1096,9 +1445,60 @@ async function planIntent(candidate: NormalizedCandidate): Promise<{
     forceDeleteStack: false,
     roleArn: null,
   });
+  const phasePlanSha256 = {
+    DELETE_CHANGE_SET: await sha256Hex({
+      schemaVersion: 1,
+      action: "execute_shared_cell_author_compensation_phase",
+      operationSha256,
+      compensationPlanSha256,
+      phase: "DELETE_CHANGE_SET",
+      exactTarget: candidate.changeSet.arn,
+    }),
+    DELETE_STACK: await sha256Hex({
+      schemaVersion: 1,
+      action: "execute_shared_cell_author_compensation_phase",
+      operationSha256,
+      compensationPlanSha256,
+      phase: "DELETE_STACK",
+      exactTarget: candidate.stackId,
+      deletionMode: "STANDARD",
+    }),
+  } satisfies Record<SharedCellAuthorCompensationPhase, string>;
+  const compiled = immutableClone(
+    {
+      schemaVersion: 1 as const,
+      operationSha256,
+      compensationPlanSha256,
+      phasePlanSha256,
+      deleteStackClientRequestToken:
+        `b5-author-comp-${operationSha256.slice(0, 32)}`,
+    },
+    "SHARED_CELL_AUTHOR_COMPENSATION_RESULT_INVALID",
+  );
+  Object.freeze(compiled.phasePlanSha256);
+  return compiled;
+}
+
+/**
+ * Pure compiler for persistence/controllers. It performs strict candidate
+ * normalization but no clock, AWS, authority, database, or mutation read.
+ */
+export async function compileSharedCellAuthorCompensationPlan(
+  candidate: SharedCellAuthorCompensationCandidate,
+): Promise<Readonly<SharedCellAuthorCompensationCompiledPlan>> {
+  return compileNormalizedCompensationPlan(normalizeCandidate(candidate));
+}
+
+async function planIntent(candidate: NormalizedCandidate): Promise<{
+  hash: string;
+  clientToken: string;
+  compiled: Readonly<SharedCellAuthorCompensationCompiledPlan>;
+}> {
+  const compiled = await compileNormalizedCompensationPlan(candidate);
   return {
-    hash,
-    clientToken: `b5-author-comp-${stableDeleteStackTokenHash.slice(0, 32)}`,
+    hash: compiled.compensationPlanSha256,
+    clientToken: compiled.deleteStackClientRequestToken,
+    compiled,
   };
 }
 
@@ -1125,6 +1525,57 @@ function summary(
       templateCanonicalSha256: candidate.immutableTemplate.canonicalSha256,
       compensationPlanSha256: plan.hash,
       deleteStackClientRequestToken: plan.clientToken,
+      mutationPerformed,
+      safeToAuthorRevoke: observedState === "MISSING",
+    },
+    "SHARED_CELL_AUTHOR_COMPENSATION_RESULT_INVALID",
+  );
+}
+
+function deleteChangeSetSummary(
+  candidate: NormalizedCandidate,
+  plan: Readonly<SharedCellAuthorCompensationCompiledPlan>,
+  observedState: Observation,
+  mutationPerformed: boolean,
+): Readonly<SharedCellAuthorDeleteChangeSetSummary> {
+  return immutableClone(
+    {
+      schemaVersion: 1,
+      action: "delete_shared_cell_author_change_set",
+      phase: "DELETE_CHANGE_SET",
+      observedState,
+      operationSha256: plan.operationSha256,
+      compensationPlanSha256: plan.compensationPlanSha256,
+      phasePlanSha256: plan.phasePlanSha256.DELETE_CHANGE_SET,
+      deleteStackClientRequestToken: plan.deleteStackClientRequestToken,
+      stackId: candidate.stackId,
+      changeSetArn: candidate.changeSet.arn,
+      mutationPerformed,
+      readyForDeleteStackReview: observedState === "REVIEW_IN_PROGRESS",
+      safeToAuthorRevoke: observedState === "MISSING",
+    },
+    "SHARED_CELL_AUTHOR_COMPENSATION_RESULT_INVALID",
+  );
+}
+
+function deleteStackSummary(
+  candidate: NormalizedCandidate,
+  plan: Readonly<SharedCellAuthorCompensationCompiledPlan>,
+  observedState: Observation,
+  mutationPerformed: boolean,
+): Readonly<SharedCellAuthorDeleteStackSummary> {
+  return immutableClone(
+    {
+      schemaVersion: 1,
+      action: "delete_shared_cell_author_stack",
+      phase: "DELETE_STACK",
+      observedState,
+      operationSha256: plan.operationSha256,
+      compensationPlanSha256: plan.compensationPlanSha256,
+      phasePlanSha256: plan.phasePlanSha256.DELETE_STACK,
+      deleteStackClientRequestToken: plan.deleteStackClientRequestToken,
+      stackId: candidate.stackId,
+      changeSetArn: candidate.changeSet.arn,
       mutationPerformed,
       safeToAuthorRevoke: observedState === "MISSING",
     },
@@ -1199,7 +1650,12 @@ async function waitForChangeSetMissing(
     const observed = await readChangeSet(evidence, candidate, signal);
     await assertAuthorityAbsent(authority, signal);
     if (isChangeSetMissing(observed, candidate)) return;
-    assertChangeSet(observed, candidate);
+    await assertPresentChangeSetEvidence(
+      evidence,
+      observed,
+      candidate,
+      signal,
+    );
     if (attempt + 1 < settings.attempts) {
       await settings.wait(settings.delayMs, signal);
       requireNotAborted(signal);
@@ -1285,6 +1741,336 @@ export async function inspectSharedCellAuthorCompensation(
     state === "MISSING" ? "MISSING" : "REVIEW_IN_PROGRESS",
     false,
   );
+}
+
+function assertApprovedPhasePlan(
+  plan: Readonly<SharedCellAuthorCompensationCompiledPlan>,
+  phase: SharedCellAuthorCompensationPhase,
+  approvedCompensationPlanSha256: string,
+  approvedPhasePlanSha256: string,
+): void {
+  if (plan.compensationPlanSha256 !== approvedCompensationPlanSha256) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_PLAN_MISMATCH",
+      "Fresh compensation intent does not match the approved base plan digest.",
+    );
+  }
+  if (plan.phasePlanSha256[phase] !== approvedPhasePlanSha256) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_PHASE_PLAN_MISMATCH",
+      `Fresh ${phase} intent does not match the approved phase plan digest.`,
+    );
+  }
+}
+
+/**
+ * Executes only the exact DeleteChangeSet phase. It never owns a DeleteStack
+ * capability and stops after ARN-bound Change Set absence is proven.
+ */
+export async function executeReviewedSharedCellAuthorDeleteChangeSet(
+  input: DeleteChangeSetExecuteSettings,
+): Promise<Readonly<SharedCellAuthorDeleteChangeSetSummary>> {
+  assertExactInput(
+    input,
+    [
+      "approvedCompensationPlanSha256",
+      "approvedPhasePlanSha256",
+      "authority",
+      "candidate",
+      "evidence",
+      "mutations",
+      "signal",
+    ],
+    ["now", "readbackAttempts", "readbackDelayMs", "wait"],
+  );
+  assertDigest(input.approvedCompensationPlanSha256);
+  assertDigest(input.approvedPhasePlanSha256);
+  const candidate = normalizeCandidate(input.candidate);
+  assertGrantWindow(
+    candidate,
+    input.now,
+    deleteChangeSetMinimumRemainingMs,
+    "DeleteChangeSet",
+  );
+  const evidence = pinEvidence(input.evidence);
+  const authority = pinAuthority(input.authority);
+  const mutations = pinDeleteChangeSetMutations(input.mutations);
+  const bounded = readbackSettings(input);
+  const plan = await compileNormalizedCompensationPlan(candidate);
+  assertApprovedPhasePlan(
+    plan,
+    "DELETE_CHANGE_SET",
+    input.approvedCompensationPlanSha256,
+    input.approvedPhasePlanSha256,
+  );
+
+  let submitted = false;
+  try {
+    let state = await observeCompensationState(
+      evidence,
+      authority,
+      candidate,
+      input.signal,
+      true,
+      true,
+    );
+    if (state === "MISSING") {
+      return deleteChangeSetSummary(candidate, plan, "MISSING", false);
+    }
+    if (state === "DELETE_IN_PROGRESS") {
+      await waitForStableStackMissing(
+        evidence,
+        authority,
+        candidate,
+        input.signal,
+        bounded,
+      );
+      return deleteChangeSetSummary(candidate, plan, "MISSING", false);
+    }
+    if (state === "REVIEW_CHANGE_SET_MISSING") {
+      return deleteChangeSetSummary(
+        candidate,
+        plan,
+        "REVIEW_IN_PROGRESS",
+        false,
+      );
+    }
+
+    // Re-read the complete placeholder/Change Set/template evidence at the
+    // last possible point before this phase's sole mutation.
+    state = await observeCompensationState(
+      evidence,
+      authority,
+      candidate,
+      input.signal,
+      true,
+      true,
+    );
+    if (state === "MISSING") {
+      return deleteChangeSetSummary(candidate, plan, "MISSING", false);
+    }
+    if (state === "DELETE_IN_PROGRESS") {
+      await waitForStableStackMissing(
+        evidence,
+        authority,
+        candidate,
+        input.signal,
+        bounded,
+      );
+      return deleteChangeSetSummary(candidate, plan, "MISSING", false);
+    }
+    if (state === "REVIEW_CHANGE_SET_MISSING") {
+      return deleteChangeSetSummary(
+        candidate,
+        plan,
+        "REVIEW_IN_PROGRESS",
+        false,
+      );
+    }
+
+    await assertMutationCaller(mutations, input.signal);
+    await assertAuthorityAbsent(authority, input.signal);
+    assertGrantWindow(
+      candidate,
+      input.now,
+      deleteChangeSetMinimumRemainingMs,
+      "DeleteChangeSet",
+    );
+    requireNotAborted(input.signal);
+    submitted = true;
+    try {
+      await mutations.deleteChangeSet({
+        request: {
+          ChangeSetName: candidate.changeSet.arn,
+          StackName: candidate.stackId,
+        },
+        signal: input.signal,
+      });
+      requireNotAborted(input.signal);
+    } catch {
+      if (input.signal.aborted) {
+        fail(
+          "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_POST_SUBMIT_UNCERTAIN",
+          "DeleteChangeSet may have been submitted before cancellation; use read-only recovery or a freshly inspected resume plan and never replay blindly.",
+          true,
+        );
+      }
+      // A lost response is reconciled below. This phase never resubmits.
+    }
+    await waitForChangeSetMissing(
+      evidence,
+      authority,
+      candidate,
+      input.signal,
+      bounded,
+    );
+    return deleteChangeSetSummary(
+      candidate,
+      plan,
+      "REVIEW_IN_PROGRESS",
+      true,
+    );
+  } catch (error) {
+    if (input.signal.aborted && submitted) {
+      fail(
+        "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_POST_SUBMIT_UNCERTAIN",
+        "DeleteChangeSet may have been submitted before cancellation; use read-only recovery or a freshly inspected resume plan and never replay blindly.",
+        true,
+      );
+    }
+    throw error;
+  }
+}
+
+/**
+ * Executes only the exact DeleteStack phase. A fresh ARN-bound Change Set
+ * NotFound proof is mandatory; this port cannot delete a Change Set.
+ */
+export async function executeReviewedSharedCellAuthorDeleteStack(
+  input: DeleteStackExecuteSettings,
+): Promise<Readonly<SharedCellAuthorDeleteStackSummary>> {
+  assertExactInput(
+    input,
+    [
+      "approvedCompensationPlanSha256",
+      "approvedPhasePlanSha256",
+      "authority",
+      "candidate",
+      "evidence",
+      "mutations",
+      "signal",
+    ],
+    ["now", "readbackAttempts", "readbackDelayMs", "wait"],
+  );
+  assertDigest(input.approvedCompensationPlanSha256);
+  assertDigest(input.approvedPhasePlanSha256);
+  const candidate = normalizeCandidate(input.candidate);
+  assertGrantWindow(
+    candidate,
+    input.now,
+    deleteStackMinimumRemainingMs,
+    "DeleteStack",
+  );
+  const evidence = pinEvidence(input.evidence);
+  const authority = pinAuthority(input.authority);
+  const mutations = pinDeleteStackMutations(input.mutations);
+  const bounded = readbackSettings(input);
+  const plan = await compileNormalizedCompensationPlan(candidate);
+  assertApprovedPhasePlan(
+    plan,
+    "DELETE_STACK",
+    input.approvedCompensationPlanSha256,
+    input.approvedPhasePlanSha256,
+  );
+
+  let submitted = false;
+  try {
+    let state = await observeCompensationState(
+      evidence,
+      authority,
+      candidate,
+      input.signal,
+      true,
+      true,
+    );
+    if (state === "MISSING") {
+      return deleteStackSummary(candidate, plan, "MISSING", false);
+    }
+    if (state === "DELETE_IN_PROGRESS") {
+      await waitForStableStackMissing(
+        evidence,
+        authority,
+        candidate,
+        input.signal,
+        bounded,
+      );
+      return deleteStackSummary(candidate, plan, "MISSING", false);
+    }
+    if (state !== "REVIEW_CHANGE_SET_MISSING") {
+      fail(
+        "SHARED_CELL_AUTHOR_COMPENSATION_DELETE_STACK_REQUIRES_CHANGE_SET_MISSING",
+        "DeleteStack requires a fresh exact Change Set NotFound proof.",
+      );
+    }
+
+    // Re-read immediately before this phase's sole mutation. A reappearing
+    // Change Set fails closed; this narrow port cannot remove it.
+    state = await observeCompensationState(
+      evidence,
+      authority,
+      candidate,
+      input.signal,
+      true,
+      true,
+    );
+    if (state === "MISSING") {
+      return deleteStackSummary(candidate, plan, "MISSING", false);
+    }
+    if (state === "DELETE_IN_PROGRESS") {
+      await waitForStableStackMissing(
+        evidence,
+        authority,
+        candidate,
+        input.signal,
+        bounded,
+      );
+      return deleteStackSummary(candidate, plan, "MISSING", false);
+    }
+    if (state !== "REVIEW_CHANGE_SET_MISSING") {
+      fail(
+        "SHARED_CELL_AUTHOR_COMPENSATION_DELETE_STACK_REQUIRES_CHANGE_SET_MISSING",
+        "DeleteStack requires a fresh exact Change Set NotFound proof.",
+      );
+    }
+
+    await assertMutationCaller(mutations, input.signal);
+    await assertAuthorityAbsent(authority, input.signal);
+    assertGrantWindow(
+      candidate,
+      input.now,
+      deleteStackMinimumRemainingMs,
+      "DeleteStack",
+    );
+    requireNotAborted(input.signal);
+    submitted = true;
+    try {
+      await mutations.deleteStack({
+        request: {
+          StackName: candidate.stackId,
+          DeletionMode: "STANDARD",
+          ClientRequestToken: plan.deleteStackClientRequestToken,
+        },
+        signal: input.signal,
+      });
+      requireNotAborted(input.signal);
+    } catch {
+      if (input.signal.aborted) {
+        fail(
+          "SHARED_CELL_AUTHOR_COMPENSATION_STACK_POST_SUBMIT_UNCERTAIN",
+          "DeleteStack may have been submitted before cancellation; use read-only Recover and never replay blindly.",
+          true,
+        );
+      }
+      // A lost response is reconciled below. This phase never resubmits.
+    }
+    await waitForStableStackMissing(
+      evidence,
+      authority,
+      candidate,
+      input.signal,
+      bounded,
+    );
+    return deleteStackSummary(candidate, plan, "MISSING", true);
+  } catch (error) {
+    if (input.signal.aborted && submitted) {
+      fail(
+        "SHARED_CELL_AUTHOR_COMPENSATION_STACK_POST_SUBMIT_UNCERTAIN",
+        "DeleteStack may have been submitted before cancellation; use read-only Recover and never replay blindly.",
+        true,
+      );
+    }
+    throw error;
+  }
 }
 
 export async function executeReviewedSharedCellAuthorCompensation(

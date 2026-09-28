@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import {
+  compileSharedCellAuthorCompensationPlan,
   executeReviewedSharedCellAuthorCompensation,
+  executeReviewedSharedCellAuthorDeleteChangeSet,
+  executeReviewedSharedCellAuthorDeleteStack,
   inspectSharedCellAuthorCompensation,
   recoverSharedCellAuthorCompensation,
   SHARED_CELL_AUTHOR_COMPENSATION_CALLER_ARN,
@@ -10,15 +14,29 @@ import {
   type SharedCellAuthorCompensationCandidate,
   type SharedCellAuthorCompensationMutationPort,
   type SharedCellAuthorCompensationReadPort,
+  type SharedCellAuthorDeleteChangeSetMutationPort,
+  type SharedCellAuthorDeleteStackMutationPort,
   type StrongSharedCellAuthorAuthorityReadPort,
 } from "../lib/deployments/execution/shared-cell-author-compensation.ts";
+import { canonicalJson } from "../lib/deployments/execution/hash.ts";
 
 const stackName = "techlong-sandbox-cell-sandbox-1";
 const stackId =
   "arn:aws:cloudformation:ca-central-1:402010193138:stack/" +
   `${stackName}/12345678-1234-4234-8234-123456789012`;
 const rawSha256 = "1".repeat(64);
-const canonicalSha256 = "2".repeat(64);
+const changeSetTemplateBody = {
+  AWSTemplateFormatVersion: "2010-09-09",
+  Resources: Object.fromEntries(
+    SHARED_CELL_AUTHOR_COMPENSATION_RESOURCE_TYPES.map((resourceType, index) => [
+      `ReviewedResource${String(index + 1).padStart(2, "0")}`,
+      { Type: resourceType, Properties: {} },
+    ]),
+  ),
+};
+const canonicalSha256 = createHash("sha256")
+  .update(canonicalJson(changeSetTemplateBody), "utf8")
+  .digest("hex");
 const changeSetName = `${stackName}-${rawSha256.slice(0, 16)}`;
 const changeSetArn =
   "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/" +
@@ -104,18 +122,26 @@ function changeSetEvidence(source = candidate()) {
       changeSetArn: source.changeSet.arn,
       stackName: source.stackName,
       stackId: source.stackId,
-      changeSetType: "CREATE",
+      description: "Reviewed B5 Shared Cell author candidate",
       status: "CREATE_COMPLETE",
       executionStatus: "AVAILABLE",
-      roleArn: source.changeSet.roleArn,
-      templateUrl: source.immutableTemplate.url,
-      templateRawSha256: source.immutableTemplate.rawSha256,
-      templateCanonicalSha256: source.immutableTemplate.canonicalSha256,
       capabilities: [],
       includeNestedStacks: false,
-      resourceTypes: [...source.changeSet.resourceTypes],
       parameters: structuredClone(source.changeSet.parameters),
       tags: structuredClone(source.changeSet.tags),
+      notificationArns: [],
+      parentChangeSetId: null,
+      rootChangeSetId: null,
+      onStackFailure: "DELETE",
+      importExistingResources: false,
+      changes: Object.entries(changeSetTemplateBody.Resources).map(
+        ([logicalResourceId, resource]) => ({
+          type: "Resource",
+          action: "Add",
+          logicalResourceId,
+          resourceType: resource.Type,
+        }),
+      ),
     },
   };
 }
@@ -134,8 +160,19 @@ function fixture(input: {
   resources?: unknown[];
   authorityPresent?: boolean;
   callerArn?: string;
-  denyAt?: "describeStack" | "getTemplate" | "listResources" | "describeChangeSet";
+  denyAt?:
+    | "describeStack"
+    | "getTemplate"
+    | "listResources"
+    | "describeChangeSet"
+    | "getChangeSetTemplate";
   changeSetDrift?: (value: ReturnType<typeof changeSetEvidence>) => void;
+  changeSetTemplateDrift?: (value: {
+    state: string;
+    changeSetArn: string;
+    stackId: string;
+    templateBody: typeof changeSetTemplateBody;
+  }) => void;
   deleteChangeSetBehavior?: DeleteBehavior;
   deleteStackBehavior?: DeleteBehavior;
   deleteChangeSetRemovesStack?: boolean;
@@ -166,6 +203,10 @@ function fixture(input: {
   const describeTargets: string[] = [];
   const templateTargets: string[] = [];
   const resourceTargets: string[] = [];
+  const changeSetTemplateTargets: Array<{
+    changeSetNameOrArn: string;
+    stackNameOrId: string;
+  }> = [];
   const resources = input.resources ?? [];
 
   function denied(label: typeof input.denyAt): void {
@@ -267,12 +308,28 @@ function fixture(input: {
         return {
           state: "missing",
           changeSetArn,
-          proof: "ARN_BOUND_VALIDATION_ERROR",
+          proof: "ARN_BOUND_CHANGE_SET_NOT_FOUND",
         };
       }
       const value = changeSetEvidence();
       input.changeSetDrift?.(value);
       return value;
+    },
+    async getChangeSetTemplate(value) {
+      calls.push("get-change-set-template");
+      denied("getChangeSetTemplate");
+      changeSetTemplateTargets.push({
+        changeSetNameOrArn: value.changeSetNameOrArn,
+        stackNameOrId: value.stackNameOrId,
+      });
+      const observed = {
+        state: "present",
+        changeSetArn,
+        stackId,
+        templateBody: structuredClone(changeSetTemplateBody),
+      };
+      input.changeSetTemplateDrift?.(observed);
+      return observed;
     },
   };
 
@@ -360,9 +417,32 @@ function fixture(input: {
     describeTargets,
     templateTargets,
     resourceTargets,
+    changeSetTemplateTargets,
     setMissing: () => {
       state = "missing";
     },
+  };
+}
+
+function deleteChangeSetPort(
+  selected: ReturnType<typeof fixture>,
+): SharedCellAuthorDeleteChangeSetMutationPort {
+  return {
+    region: selected.mutations.region,
+    getCallerIdentity: (input) =>
+      selected.mutations.getCallerIdentity(input),
+    deleteChangeSet: (input) => selected.mutations.deleteChangeSet(input),
+  };
+}
+
+function deleteStackPort(
+  selected: ReturnType<typeof fixture>,
+): SharedCellAuthorDeleteStackMutationPort {
+  return {
+    region: selected.mutations.region,
+    getCallerIdentity: (input) =>
+      selected.mutations.getCallerIdentity(input),
+    deleteStack: (input) => selected.mutations.deleteStack(input),
   };
 }
 
@@ -410,6 +490,332 @@ test("J5g compensation inspect is read-only and emits a stable immutable plan", 
   assert.equal(Object.isFrozen(first), true);
   assert.deepEqual(firstFixture.deleteChangeSetRequests, []);
   assert.deepEqual(firstFixture.deleteStackRequests, []);
+});
+
+test("J5g compensation pure compiler binds base and phase plans while keeping one stable operation", async () => {
+  const original = await compileSharedCellAuthorCompensationPlan(candidate());
+  const rolloverCandidate = candidate({
+    reviewedAt: new Date(testNow + 60_000).toISOString(),
+    expiresAt: new Date(testNow + 60 * 60_000).toISOString(),
+  });
+  const rollover = await compileSharedCellAuthorCompensationPlan(
+    rolloverCandidate,
+  );
+  const repeated = await compileSharedCellAuthorCompensationPlan(candidate());
+
+  assert.deepEqual(repeated, original);
+  assert.equal(Object.isFrozen(original), true);
+  assert.equal(Object.isFrozen(original.phasePlanSha256), true);
+  assert.match(original.operationSha256, /^[a-f0-9]{64}$/);
+  assert.match(original.compensationPlanSha256, /^[a-f0-9]{64}$/);
+  assert.match(
+    original.phasePlanSha256.DELETE_CHANGE_SET,
+    /^[a-f0-9]{64}$/,
+  );
+  assert.match(original.phasePlanSha256.DELETE_STACK, /^[a-f0-9]{64}$/);
+  assert.notEqual(
+    original.phasePlanSha256.DELETE_CHANGE_SET,
+    original.phasePlanSha256.DELETE_STACK,
+  );
+  assert.equal(
+    original.deleteStackClientRequestToken,
+    `b5-author-comp-${original.operationSha256.slice(0, 32)}`,
+  );
+  assert.equal(rollover.operationSha256, original.operationSha256);
+  assert.equal(
+    rollover.deleteStackClientRequestToken,
+    original.deleteStackClientRequestToken,
+  );
+  assert.notEqual(
+    rollover.compensationPlanSha256,
+    original.compensationPlanSha256,
+  );
+  assert.notEqual(
+    rollover.phasePlanSha256.DELETE_CHANGE_SET,
+    original.phasePlanSha256.DELETE_CHANGE_SET,
+  );
+  assert.notEqual(
+    rollover.phasePlanSha256.DELETE_STACK,
+    original.phasePlanSha256.DELETE_STACK,
+  );
+});
+
+test("J5g compensation validates only provider-observable Change Set evidence", async (t) => {
+  const live = fixture();
+  await inspectPlan(live);
+  assert.deepEqual(live.changeSetTemplateTargets, [
+    { changeSetNameOrArn: changeSetArn, stackNameOrId: stackId },
+  ]);
+  const observed = changeSetEvidence().changeSet as Record<string, unknown>;
+  for (const impossible of [
+    "roleArn",
+    "templateUrl",
+    "templateRawSha256",
+    "templateCanonicalSha256",
+    "changeSetType",
+    "resourceTypes",
+  ]) {
+    assert.equal(Object.hasOwn(observed, impossible), false);
+  }
+
+  const cases: Array<{
+    name: string;
+    selected: ReturnType<typeof fixture>;
+    code: string;
+  }> = [
+    {
+      name: "OnStackFailure must be DELETE",
+      selected: fixture({
+        changeSetDrift(value) {
+          (value.changeSet as { onStackFailure: string | null }).onStackFailure =
+            null;
+        },
+      }),
+      code: "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_DRIFT",
+    },
+    {
+      name: "every change must be Add",
+      selected: fixture({
+        changeSetDrift(value) {
+          (value.changeSet.changes[0] as { action: string }).action = "Modify";
+        },
+      }),
+      code: "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_DRIFT",
+    },
+    {
+      name: "Describe changes must match canonical template",
+      selected: fixture({
+        changeSetDrift(value) {
+          (value.changeSet.changes[0] as { logicalResourceId: string })
+            .logicalResourceId = "DifferentLogicalId";
+        },
+      }),
+      code: "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_DRIFT",
+    },
+    {
+      name: "GetTemplate canonical hash is exact",
+      selected: fixture({
+        changeSetTemplateDrift(value) {
+          (value.templateBody.Resources.ReviewedResource01 as { Type: string }).Type =
+            "AWS::S3::Bucket";
+        },
+      }),
+      code: "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_TEMPLATE_DRIFT",
+    },
+  ];
+  for (const selected of cases) {
+    await t.test(selected.name, async () => {
+      await assert.rejects(
+        inspectSharedCellAuthorCompensation({
+          evidence: selected.selected.evidence,
+          authority: selected.selected.authority,
+          candidate: candidate(),
+          signal: signal(),
+          now: () => testNow,
+        }),
+        (error: unknown) =>
+          (error as { code?: string }).code === selected.code,
+      );
+      assert.deepEqual(selected.selected.deleteChangeSetRequests, []);
+      assert.deepEqual(selected.selected.deleteStackRequests, []);
+    });
+  }
+});
+
+test("J5g phase-specific execution separates Change Set and Stack authority", async () => {
+  const approvedCandidate = candidate();
+  const plan = await compileSharedCellAuthorCompensationPlan(approvedCandidate);
+  const live = fixture();
+  const changeSetResult =
+    await executeReviewedSharedCellAuthorDeleteChangeSet({
+      evidence: live.evidence,
+      authority: live.authority,
+      mutations: deleteChangeSetPort(live),
+      candidate: approvedCandidate,
+      approvedCompensationPlanSha256: plan.compensationPlanSha256,
+      approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_CHANGE_SET,
+      signal: signal(),
+      now: () => testNow,
+      readbackAttempts: 4,
+      readbackDelayMs: 0,
+      wait: noWait,
+    });
+
+  assert.equal(changeSetResult.phase, "DELETE_CHANGE_SET");
+  assert.equal(changeSetResult.observedState, "REVIEW_IN_PROGRESS");
+  assert.equal(changeSetResult.readyForDeleteStackReview, true);
+  assert.equal(changeSetResult.safeToAuthorRevoke, false);
+  assert.equal(changeSetResult.mutationPerformed, true);
+  assert.equal(changeSetResult.operationSha256, plan.operationSha256);
+  assert.equal(
+    changeSetResult.phasePlanSha256,
+    plan.phasePlanSha256.DELETE_CHANGE_SET,
+  );
+  assert.equal(live.deleteChangeSetRequests.length, 1);
+  assert.equal(live.deleteStackRequests.length, 0);
+
+  const stackResult = await executeReviewedSharedCellAuthorDeleteStack({
+    evidence: live.evidence,
+    authority: live.authority,
+    mutations: deleteStackPort(live),
+    candidate: approvedCandidate,
+    approvedCompensationPlanSha256: plan.compensationPlanSha256,
+    approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_STACK,
+    signal: signal(),
+    now: () => testNow,
+    readbackAttempts: 4,
+    readbackDelayMs: 0,
+    wait: noWait,
+  });
+  assert.equal(stackResult.phase, "DELETE_STACK");
+  assert.equal(stackResult.observedState, "MISSING");
+  assert.equal(stackResult.safeToAuthorRevoke, true);
+  assert.equal(stackResult.mutationPerformed, true);
+  assert.equal(stackResult.operationSha256, plan.operationSha256);
+  assert.equal(stackResult.phasePlanSha256, plan.phasePlanSha256.DELETE_STACK);
+  assert.equal(live.deleteChangeSetRequests.length, 1);
+  assert.equal(live.deleteStackRequests.length, 1);
+});
+
+test("J5g phase-specific execution fails closed on capability and approval crossover", async (t) => {
+  const approvedCandidate = candidate();
+  const plan = await compileSharedCellAuthorCompensationPlan(approvedCandidate);
+
+  await t.test("DeleteStack phase cannot remove a present Change Set", async () => {
+    const live = fixture();
+    await assert.rejects(
+      executeReviewedSharedCellAuthorDeleteStack({
+        evidence: live.evidence,
+        authority: live.authority,
+        mutations: deleteStackPort(live),
+        candidate: approvedCandidate,
+        approvedCompensationPlanSha256: plan.compensationPlanSha256,
+        approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_STACK,
+        signal: signal(),
+        now: () => testNow,
+      }),
+      (error: unknown) =>
+        (error as { code?: string }).code ===
+        "SHARED_CELL_AUTHOR_COMPENSATION_DELETE_STACK_REQUIRES_CHANGE_SET_MISSING",
+    );
+    assert.deepEqual(live.deleteChangeSetRequests, []);
+    assert.deepEqual(live.deleteStackRequests, []);
+  });
+
+  await t.test("phase digest cannot authorize its sibling phase", async () => {
+    const live = fixture();
+    await assert.rejects(
+      executeReviewedSharedCellAuthorDeleteChangeSet({
+        evidence: live.evidence,
+        authority: live.authority,
+        mutations: deleteChangeSetPort(live),
+        candidate: approvedCandidate,
+        approvedCompensationPlanSha256: plan.compensationPlanSha256,
+        approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_STACK,
+        signal: signal(),
+        now: () => testNow,
+      }),
+      (error: unknown) =>
+        (error as { code?: string }).code ===
+        "SHARED_CELL_AUTHOR_COMPENSATION_PHASE_PLAN_MISMATCH",
+    );
+    assert.deepEqual(live.calls, []);
+  });
+
+  await t.test("phase approval never substitutes for base approval", async () => {
+    const live = fixture();
+    await assert.rejects(
+      executeReviewedSharedCellAuthorDeleteChangeSet({
+        evidence: live.evidence,
+        authority: live.authority,
+        mutations: deleteChangeSetPort(live),
+        candidate: approvedCandidate,
+        approvedCompensationPlanSha256: "f".repeat(64),
+        approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_CHANGE_SET,
+        signal: signal(),
+        now: () => testNow,
+      }),
+      (error: unknown) =>
+        (error as { code?: string }).code ===
+        "SHARED_CELL_AUTHOR_COMPENSATION_PLAN_MISMATCH",
+    );
+    assert.deepEqual(live.calls, []);
+  });
+
+  await t.test("narrow phase rejects a combined mutation capability", async () => {
+    const live = fixture();
+    await assert.rejects(
+      executeReviewedSharedCellAuthorDeleteChangeSet({
+        evidence: live.evidence,
+        authority: live.authority,
+        mutations:
+          live.mutations as unknown as SharedCellAuthorDeleteChangeSetMutationPort,
+        candidate: approvedCandidate,
+        approvedCompensationPlanSha256: plan.compensationPlanSha256,
+        approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_CHANGE_SET,
+        signal: signal(),
+        now: () => testNow,
+      }),
+      (error: unknown) =>
+        (error as { code?: string }).code ===
+        "SHARED_CELL_AUTHOR_COMPENSATION_PORT_INVALID",
+    );
+    assert.deepEqual(live.calls, []);
+  });
+});
+
+test("J5g phase-specific post-submit aborts are uncertain and never cross phases", async (t) => {
+  const approvedCandidate = candidate();
+  const plan = await compileSharedCellAuthorCompensationPlan(approvedCandidate);
+
+  await t.test("DeleteChangeSet abort never reaches DeleteStack", async () => {
+    const controller = new AbortController();
+    const live = fixture({ afterDeleteChangeSet: () => controller.abort() });
+    await assert.rejects(
+      executeReviewedSharedCellAuthorDeleteChangeSet({
+        evidence: live.evidence,
+        authority: live.authority,
+        mutations: deleteChangeSetPort(live),
+        candidate: approvedCandidate,
+        approvedCompensationPlanSha256: plan.compensationPlanSha256,
+        approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_CHANGE_SET,
+        signal: controller.signal,
+        now: () => testNow,
+      }),
+      (error: unknown) =>
+        (error as { code?: string; retryable?: boolean }).code ===
+          "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_POST_SUBMIT_UNCERTAIN" &&
+        (error as { retryable?: boolean }).retryable === true,
+    );
+    assert.equal(live.deleteChangeSetRequests.length, 1);
+    assert.equal(live.deleteStackRequests.length, 0);
+  });
+
+  await t.test("DeleteStack abort cannot call DeleteChangeSet", async () => {
+    const controller = new AbortController();
+    const live = fixture({
+      changeSetPresent: false,
+      afterDeleteStack: () => controller.abort(),
+    });
+    await assert.rejects(
+      executeReviewedSharedCellAuthorDeleteStack({
+        evidence: live.evidence,
+        authority: live.authority,
+        mutations: deleteStackPort(live),
+        candidate: approvedCandidate,
+        approvedCompensationPlanSha256: plan.compensationPlanSha256,
+        approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_STACK,
+        signal: controller.signal,
+        now: () => testNow,
+      }),
+      (error: unknown) =>
+        (error as { code?: string; retryable?: boolean }).code ===
+          "SHARED_CELL_AUTHOR_COMPENSATION_STACK_POST_SUBMIT_UNCERTAIN" &&
+        (error as { retryable?: boolean }).retryable === true,
+    );
+    assert.equal(live.deleteChangeSetRequests.length, 0);
+    assert.equal(live.deleteStackRequests.length, 1);
+  });
 });
 
 test("J5g compensation Inspect can renew an exact CS-missing rollover window", async (t) => {
@@ -1031,11 +1437,12 @@ test("J5g compensation rejects drift, resources, active state, and present autho
     [
       "Change Set template binding drift",
       fixture({
-        changeSetDrift(value) {
-          value.changeSet.templateUrl = "https://example.invalid/drift";
+        changeSetTemplateDrift(value) {
+          (value.templateBody.Resources.ReviewedResource01 as { Type: string }).Type =
+            "AWS::S3::Bucket";
         },
       }),
-      "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_DRIFT",
+      "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_TEMPLATE_DRIFT",
     ],
     [
       "Stack ownership tag drift",
@@ -1313,6 +1720,7 @@ test("J5g compensation never interprets any denied evidence read as absence", as
     "getTemplate",
     "listResources",
     "describeChangeSet",
+    "getChangeSetTemplate",
   ] as const;
   for (const denyAt of deniedReads) {
     await t.test(denyAt, async () => {
