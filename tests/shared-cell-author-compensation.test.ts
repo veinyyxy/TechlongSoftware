@@ -7,6 +7,10 @@ import {
   executeReviewedSharedCellAuthorDeleteChangeSet,
   executeReviewedSharedCellAuthorDeleteStack,
   inspectSharedCellAuthorCompensation,
+  inspectSharedCellAuthorDeleteChangeSet,
+  inspectSharedCellAuthorDeleteStack,
+  recoverReviewedSharedCellAuthorDeleteChangeSet,
+  recoverReviewedSharedCellAuthorDeleteStack,
   recoverSharedCellAuthorCompensation,
   SHARED_CELL_AUTHOR_COMPENSATION_CALLER_ARN,
   SHARED_CELL_AUTHOR_COMPENSATION_RESOURCE_TYPES,
@@ -622,6 +626,95 @@ test("J5g compensation validates only provider-observable Change Set evidence", 
   }
 });
 
+test("J5g phase inspections expose exact split plans without a mutation capability", async (t) => {
+  const approvedCandidate = candidate();
+  const plan = await compileSharedCellAuthorCompensationPlan(approvedCandidate);
+
+  await t.test("DeleteChangeSet distinguishes present from missing", async () => {
+    const presentLive = fixture();
+    const present = await inspectSharedCellAuthorDeleteChangeSet({
+      evidence: presentLive.evidence,
+      authority: presentLive.authority,
+      candidate: approvedCandidate,
+      signal: signal(),
+      now: () => testNow,
+    });
+    assert.equal(present.action, "inspect_shared_cell_author_delete_change_set");
+    assert.equal(present.changeSetState, "PRESENT");
+    assert.equal(present.readyForPhase, true);
+    assert.equal(present.readyForDeleteStackReview, false);
+    assert.equal(present.operationSha256, plan.operationSha256);
+    assert.equal(
+      present.compensationPlanSha256,
+      plan.compensationPlanSha256,
+    );
+    assert.equal(
+      present.phasePlanSha256,
+      plan.phasePlanSha256.DELETE_CHANGE_SET,
+    );
+    assert.equal(present.mutationPerformed, false);
+    assert.deepEqual(presentLive.deleteChangeSetRequests, []);
+    assert.deepEqual(presentLive.deleteStackRequests, []);
+
+    const missingLive = fixture({ changeSetPresent: false });
+    const missing = await inspectSharedCellAuthorDeleteChangeSet({
+      evidence: missingLive.evidence,
+      authority: missingLive.authority,
+      candidate: approvedCandidate,
+      signal: signal(),
+      now: () => testNow,
+    });
+    assert.equal(missing.changeSetState, "MISSING");
+    assert.equal(missing.readyForPhase, false);
+    assert.equal(missing.readyForDeleteStackReview, true);
+    assert.equal(missing.safeToAuthorRevoke, false);
+    assert.deepEqual(missingLive.deleteChangeSetRequests, []);
+    assert.deepEqual(missingLive.deleteStackRequests, []);
+  });
+
+  await t.test("DeleteStack requires a fresh exact Change Set missing proof", async () => {
+    const presentLive = fixture();
+    await assert.rejects(
+      inspectSharedCellAuthorDeleteStack({
+        evidence: presentLive.evidence,
+        authority: presentLive.authority,
+        candidate: approvedCandidate,
+        signal: signal(),
+        now: () => testNow,
+      }),
+      (error: unknown) =>
+        (error as { code?: string }).code ===
+        "SHARED_CELL_AUTHOR_COMPENSATION_DELETE_STACK_REQUIRES_CHANGE_SET_MISSING",
+    );
+    assert.deepEqual(presentLive.deleteChangeSetRequests, []);
+    assert.deepEqual(presentLive.deleteStackRequests, []);
+
+    const missingLive = fixture({ changeSetPresent: false });
+    const inspected = await inspectSharedCellAuthorDeleteStack({
+      evidence: missingLive.evidence,
+      authority: missingLive.authority,
+      candidate: approvedCandidate,
+      signal: signal(),
+      now: () => testNow,
+    });
+    assert.equal(inspected.action, "inspect_shared_cell_author_delete_stack");
+    assert.equal(inspected.changeSetState, "MISSING");
+    assert.equal(inspected.readyForPhase, true);
+    assert.equal(inspected.operationSha256, plan.operationSha256);
+    assert.equal(
+      inspected.compensationPlanSha256,
+      plan.compensationPlanSha256,
+    );
+    assert.equal(
+      inspected.phasePlanSha256,
+      plan.phasePlanSha256.DELETE_STACK,
+    );
+    assert.equal(inspected.mutationPerformed, false);
+    assert.deepEqual(missingLive.deleteChangeSetRequests, []);
+    assert.deepEqual(missingLive.deleteStackRequests, []);
+  });
+});
+
 test("J5g phase-specific execution separates Change Set and Stack authority", async () => {
   const approvedCandidate = candidate();
   const plan = await compileSharedCellAuthorCompensationPlan(approvedCandidate);
@@ -644,6 +737,7 @@ test("J5g phase-specific execution separates Change Set and Stack authority", as
   assert.equal(changeSetResult.phase, "DELETE_CHANGE_SET");
   assert.equal(changeSetResult.observedState, "REVIEW_IN_PROGRESS");
   assert.equal(changeSetResult.readyForDeleteStackReview, true);
+  assert.equal(changeSetResult.safeToRevokePhaseGrant, true);
   assert.equal(changeSetResult.safeToAuthorRevoke, false);
   assert.equal(changeSetResult.mutationPerformed, true);
   assert.equal(changeSetResult.operationSha256, plan.operationSha256);
@@ -669,12 +763,146 @@ test("J5g phase-specific execution separates Change Set and Stack authority", as
   });
   assert.equal(stackResult.phase, "DELETE_STACK");
   assert.equal(stackResult.observedState, "MISSING");
+  assert.equal(stackResult.safeToRevokePhaseGrant, true);
   assert.equal(stackResult.safeToAuthorRevoke, true);
   assert.equal(stackResult.mutationPerformed, true);
   assert.equal(stackResult.operationSha256, plan.operationSha256);
   assert.equal(stackResult.phasePlanSha256, plan.phasePlanSha256.DELETE_STACK);
   assert.equal(live.deleteChangeSetRequests.length, 1);
   assert.equal(live.deleteStackRequests.length, 1);
+});
+
+test("J5g phase recovery is digest-bound, strictly read-only and never replays", async (t) => {
+  const approvedCandidate = candidate();
+  const plan = await compileSharedCellAuthorCompensationPlan(approvedCandidate);
+
+  await t.test("rejects a mutation port and a sibling phase digest before reads", async () => {
+    const extraPort = fixture({ changeSetPresent: false });
+    await assert.rejects(
+      recoverReviewedSharedCellAuthorDeleteChangeSet({
+        evidence: extraPort.evidence,
+        authority: extraPort.authority,
+        candidate: approvedCandidate,
+        approvedCompensationPlanSha256: plan.compensationPlanSha256,
+        approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_CHANGE_SET,
+        mutations: deleteChangeSetPort(extraPort),
+        signal: signal(),
+      } as unknown as Parameters<
+        typeof recoverReviewedSharedCellAuthorDeleteChangeSet
+      >[0]),
+      (error: unknown) =>
+        (error as { code?: string }).code ===
+        "SHARED_CELL_AUTHOR_COMPENSATION_INPUT_INVALID",
+    );
+    assert.deepEqual(extraPort.calls, []);
+
+    const wrongDigest = fixture({ changeSetPresent: false });
+    await assert.rejects(
+      recoverReviewedSharedCellAuthorDeleteChangeSet({
+        evidence: wrongDigest.evidence,
+        authority: wrongDigest.authority,
+        candidate: approvedCandidate,
+        approvedCompensationPlanSha256: plan.compensationPlanSha256,
+        approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_STACK,
+        signal: signal(),
+      }),
+      (error: unknown) =>
+        (error as { code?: string }).code ===
+        "SHARED_CELL_AUTHOR_COMPENSATION_PHASE_PLAN_MISMATCH",
+    );
+    assert.deepEqual(wrongDigest.calls, []);
+  });
+
+  await t.test("DeleteChangeSet recovery blocks while present", async () => {
+    const live = fixture();
+    await assert.rejects(
+      recoverReviewedSharedCellAuthorDeleteChangeSet({
+        evidence: live.evidence,
+        authority: live.authority,
+        candidate: approvedCandidate,
+        approvedCompensationPlanSha256: plan.compensationPlanSha256,
+        approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_CHANGE_SET,
+        signal: signal(),
+      }),
+      (error: unknown) =>
+        (error as { code?: string; retryable?: boolean }).code ===
+          "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_RECOVERY_BLOCKED" &&
+        (error as { retryable?: boolean }).retryable === true,
+    );
+    assert.deepEqual(live.deleteChangeSetRequests, []);
+    assert.deepEqual(live.deleteStackRequests, []);
+  });
+
+  await t.test("DeleteChangeSet recovery advances only on exact ARN absence", async () => {
+    const live = fixture({ changeSetPresent: false });
+    const recovered = await recoverReviewedSharedCellAuthorDeleteChangeSet({
+      evidence: live.evidence,
+      authority: live.authority,
+      candidate: approvedCandidate,
+      approvedCompensationPlanSha256: plan.compensationPlanSha256,
+      approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_CHANGE_SET,
+      signal: signal(),
+    });
+    assert.equal(
+      recovered.action,
+      "recover_shared_cell_author_delete_change_set",
+    );
+    assert.equal(recovered.observedState, "REVIEW_IN_PROGRESS");
+    assert.equal(recovered.readyForDeleteStackReview, true);
+    assert.equal(recovered.safeToRevokePhaseGrant, true);
+    assert.equal(recovered.safeToAuthorRevoke, false);
+    assert.equal(recovered.mutationPerformed, false);
+    assert.deepEqual(live.deleteChangeSetRequests, []);
+    assert.deepEqual(live.deleteStackRequests, []);
+  });
+
+  await t.test("DeleteStack recovery blocks every present Stack state", async () => {
+    const live = fixture({ changeSetPresent: false });
+    await assert.rejects(
+      recoverReviewedSharedCellAuthorDeleteStack({
+        evidence: live.evidence,
+        authority: live.authority,
+        candidate: approvedCandidate,
+        approvedCompensationPlanSha256: plan.compensationPlanSha256,
+        approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_STACK,
+        signal: signal(),
+      }),
+      (error: unknown) =>
+        (error as { code?: string; retryable?: boolean }).code ===
+          "SHARED_CELL_AUTHOR_COMPENSATION_STACK_RECOVERY_BLOCKED" &&
+        (error as { retryable?: boolean }).retryable === true,
+    );
+    assert.deepEqual(live.deleteChangeSetRequests, []);
+    assert.deepEqual(live.deleteStackRequests, []);
+  });
+
+  await t.test("DeleteStack recovery requires stable full absence", async () => {
+    const live = fixture({
+      initialState: "missing",
+      changeSetPresent: false,
+    });
+    const recovered = await recoverReviewedSharedCellAuthorDeleteStack({
+      evidence: live.evidence,
+      authority: live.authority,
+      candidate: approvedCandidate,
+      approvedCompensationPlanSha256: plan.compensationPlanSha256,
+      approvedPhasePlanSha256: plan.phasePlanSha256.DELETE_STACK,
+      signal: signal(),
+      readbackAttempts: 4,
+      readbackDelayMs: 0,
+      wait: noWait,
+    });
+    assert.equal(recovered.action, "recover_shared_cell_author_delete_stack");
+    assert.equal(recovered.observedState, "MISSING");
+    assert.equal(recovered.safeToRevokePhaseGrant, true);
+    assert.equal(recovered.safeToAuthorRevoke, true);
+    assert.equal(recovered.mutationPerformed, false);
+    assert.ok(
+      live.calls.filter((call) => call === "describe-stack").length >= 2,
+    );
+    assert.deepEqual(live.deleteChangeSetRequests, []);
+    assert.deepEqual(live.deleteStackRequests, []);
+  });
 });
 
 test("J5g phase-specific execution fails closed on capability and approval crossover", async (t) => {

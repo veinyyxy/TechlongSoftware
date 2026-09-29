@@ -845,3 +845,87 @@ test("purchase-order queries avoid PostgreSQL reserved aliases", async () => {
   assert.match(purchases, /creator\.name AS created_by_name/);
   assert.doesNotMatch(purchases, /INNER JOIN users user\b/);
 });
+
+test("J5g-j2 persists fail-closed Shared Cell author compensation operations", async () => {
+  const [migration, schema, drizzleSchema, drizzleRelations, store, adapter] =
+    await Promise.all([
+      read("db/postgres-migrations/0009_shared_cell_author_compensation_persistence.sql"),
+      read("db/postgres-schema.sql"),
+      read("db/postgres-schema.ts"),
+      read("db/postgres-relations.ts"),
+      read("lib/deployments/execution/shared-cell-author-compensation-operation-store.ts"),
+      read("lib/deployments/execution/neon-shared-cell-author-compensation-operation-store.ts"),
+    ]);
+  const canonicalStart = schema.indexOf(
+    "-- J5g-j2 durable Shared Cell author compensation persistence.",
+  );
+  assert.notEqual(canonicalStart, -1);
+  const canonicalJ5gJ2 = schema.slice(canonicalStart);
+  for (const table of [
+    "shared_cell_author_compensation_operations",
+    "shared_cell_author_compensation_review_windows",
+    "shared_cell_author_compensation_phase_attempts",
+    "shared_cell_author_compensation_events",
+  ]) {
+    for (const source of [migration, canonicalJ5gJ2]) {
+      assert.match(source, new RegExp(`CREATE TABLE ${table}\\b`));
+    }
+    assert.match(drizzleSchema, new RegExp(table));
+  }
+  for (const source of [migration, canonicalJ5gJ2]) {
+    assert.match(source, /operation_sha256 text PRIMARY KEY[\s\S]*?\^\[a-f0-9\]\{64\}\$/);
+    assert.match(source, /controller_contract_sha256 text NOT NULL/);
+    assert.match(source, /'delete_change_set_recover_only'/);
+    assert.match(source, /'delete_stack_recover_only'/);
+    assert.match(source, /'delete_change_set_revoke_required'/);
+    assert.match(source, /'delete_stack_revoke_required'/);
+    assert.match(source, /shared_cell_author_compensation_windows_append_only/);
+    assert.match(source, /shared_cell_author_compensation_events_append_only/);
+    assert.match(source, /ON DELETE RESTRICT/g);
+    assert.doesNotMatch(source, /ON DELETE CASCADE/i);
+  }
+  for (const name of [
+    "enforce_scac_operation_transition",
+    "enforce_scac_attempt_transition",
+    "prevent_scac_append_only_mutation",
+    "enforce_scac_operation_event",
+  ]) {
+    assert.equal(postgresFunction(migration, name), postgresFunction(schema, name));
+  }
+  assert.match(store, /controllerContractSha256: string/);
+  assert.match(store, /beginSubmission\(input:/);
+  assert.match(adapter, /clock_timestamp\(\)/);
+  assert.match(
+    adapter,
+    /controller_contract_sha256 = \$10[\s\S]*?review_window\.expires_at - db_clock\.now_ms > \$11/,
+  );
+  assert.match(
+    adapter,
+    /operation\.lease_owner = \$2 AND operation\.claim_token = \$3[\s\S]*?operation\.lease_attempt = \$4 AND operation\.state_revision = \$5[\s\S]*?operation\.lease_expires_at = \$6[\s\S]*?operation\.lease_expires_at > db_clock\.now_ms/,
+  );
+  assert.match(adapter, /status = 'completed'[\s\S]*?completion_receipt_sha256 = \$14/);
+  assert.match(
+    adapter,
+    /completion_receipt::jsonb #>> '\{observedState\}'[\s\S]*?SET state = eligible\.next_state[\s\S]*?eligible\.next_state = 'missing_proven_locked'/,
+  );
+  assert.match(drizzleSchema, /sharedCellAuthorCompensationOperations/);
+  assert.match(drizzleSchema, /sharedCellAuthorCompensationReviewWindows/);
+  assert.match(drizzleSchema, /sharedCellAuthorCompensationPhaseAttempts/);
+  assert.match(drizzleSchema, /sharedCellAuthorCompensationEvents/);
+  assert.match(
+    drizzleSchema,
+    /shared_cell_author_compensation_operations_last_error_code_check/,
+  );
+  assert.match(
+    drizzleSchema,
+    /shared_cell_author_compensation_operations_last_error_sha256_check/,
+  );
+  assert.match(
+    drizzleSchema,
+    /shared_cell_author_compensation_phase_attempts_completion_receipt_sha256_check/,
+  );
+  assert.match(drizzleRelations, /sharedCellAuthorCompensationOperationsRelations/);
+  assert.match(drizzleRelations, /sharedCellAuthorCompensationReviewWindowsRelations/);
+  assert.match(drizzleRelations, /sharedCellAuthorCompensationPhaseAttemptsRelations/);
+  assert.match(drizzleRelations, /sharedCellAuthorCompensationEventsRelations/);
+});

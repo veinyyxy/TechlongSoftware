@@ -326,6 +326,14 @@ interface DeleteStackExecuteSettings extends BaseSettings {
   wait?: (delayMs: number, signal: AbortSignal) => Promise<void>;
 }
 
+interface PhaseRecoverSettings extends BaseSettings {
+  approvedCompensationPlanSha256: string;
+  approvedPhasePlanSha256: string;
+  readbackAttempts?: number;
+  readbackDelayMs?: number;
+  wait?: (delayMs: number, signal: AbortSignal) => Promise<void>;
+}
+
 interface RecoverSettings extends BaseSettings {
   approvedCompensationPlanSha256: string;
   readbackAttempts?: number;
@@ -361,6 +369,8 @@ export interface SharedCellAuthorDeleteChangeSetSummary {
   readonly changeSetArn: string;
   readonly mutationPerformed: boolean;
   readonly readyForDeleteStackReview: boolean;
+  /** The temporary DeleteChangeSet grant can and must now be revoked. */
+  readonly safeToRevokePhaseGrant: true;
   readonly safeToAuthorRevoke: boolean;
 }
 
@@ -376,7 +386,77 @@ export interface SharedCellAuthorDeleteStackSummary {
   readonly stackId: string;
   readonly changeSetArn: string;
   readonly mutationPerformed: boolean;
+  /** The temporary DeleteStack grant can and must now be revoked. */
+  readonly safeToRevokePhaseGrant: true;
   readonly safeToAuthorRevoke: boolean;
+}
+
+export interface SharedCellAuthorDeleteChangeSetInspectionSummary {
+  readonly schemaVersion: 1;
+  readonly action: "inspect_shared_cell_author_delete_change_set";
+  readonly phase: "DELETE_CHANGE_SET";
+  readonly observedState: Observation;
+  readonly changeSetState: "PRESENT" | "MISSING";
+  readonly operationSha256: string;
+  readonly compensationPlanSha256: string;
+  readonly phasePlanSha256: string;
+  readonly deleteStackClientRequestToken: string;
+  readonly stackId: string;
+  readonly changeSetArn: string;
+  readonly mutationPerformed: false;
+  readonly readyForPhase: boolean;
+  readonly readyForDeleteStackReview: boolean;
+  readonly safeToAuthorRevoke: boolean;
+}
+
+export interface SharedCellAuthorDeleteStackInspectionSummary {
+  readonly schemaVersion: 1;
+  readonly action: "inspect_shared_cell_author_delete_stack";
+  readonly phase: "DELETE_STACK";
+  readonly observedState: Observation;
+  readonly changeSetState: "MISSING";
+  readonly operationSha256: string;
+  readonly compensationPlanSha256: string;
+  readonly phasePlanSha256: string;
+  readonly deleteStackClientRequestToken: string;
+  readonly stackId: string;
+  readonly changeSetArn: string;
+  readonly mutationPerformed: false;
+  readonly readyForPhase: boolean;
+  readonly safeToAuthorRevoke: boolean;
+}
+
+export interface SharedCellAuthorDeleteChangeSetRecoverySummary {
+  readonly schemaVersion: 1;
+  readonly action: "recover_shared_cell_author_delete_change_set";
+  readonly phase: "DELETE_CHANGE_SET";
+  readonly observedState: Observation;
+  readonly operationSha256: string;
+  readonly compensationPlanSha256: string;
+  readonly phasePlanSha256: string;
+  readonly deleteStackClientRequestToken: string;
+  readonly stackId: string;
+  readonly changeSetArn: string;
+  readonly mutationPerformed: false;
+  readonly readyForDeleteStackReview: boolean;
+  readonly safeToRevokePhaseGrant: true;
+  readonly safeToAuthorRevoke: boolean;
+}
+
+export interface SharedCellAuthorDeleteStackRecoverySummary {
+  readonly schemaVersion: 1;
+  readonly action: "recover_shared_cell_author_delete_stack";
+  readonly phase: "DELETE_STACK";
+  readonly observedState: "MISSING";
+  readonly operationSha256: string;
+  readonly compensationPlanSha256: string;
+  readonly phasePlanSha256: string;
+  readonly deleteStackClientRequestToken: string;
+  readonly stackId: string;
+  readonly changeSetArn: string;
+  readonly mutationPerformed: false;
+  readonly safeToRevokePhaseGrant: true;
+  readonly safeToAuthorRevoke: true;
 }
 
 function assertExactInput(
@@ -1552,6 +1632,7 @@ function deleteChangeSetSummary(
       changeSetArn: candidate.changeSet.arn,
       mutationPerformed,
       readyForDeleteStackReview: observedState === "REVIEW_IN_PROGRESS",
+      safeToRevokePhaseGrant: true as const,
       safeToAuthorRevoke: observedState === "MISSING",
     },
     "SHARED_CELL_AUTHOR_COMPENSATION_RESULT_INVALID",
@@ -1577,7 +1658,114 @@ function deleteStackSummary(
       stackId: candidate.stackId,
       changeSetArn: candidate.changeSet.arn,
       mutationPerformed,
+      safeToRevokePhaseGrant: true as const,
       safeToAuthorRevoke: observedState === "MISSING",
+    },
+    "SHARED_CELL_AUTHOR_COMPENSATION_RESULT_INVALID",
+  );
+}
+
+function deleteChangeSetInspectionSummary(
+  candidate: NormalizedCandidate,
+  plan: Readonly<SharedCellAuthorCompensationCompiledPlan>,
+  observedState: Observation,
+  changeSetState: "PRESENT" | "MISSING",
+): Readonly<SharedCellAuthorDeleteChangeSetInspectionSummary> {
+  return immutableClone(
+    {
+      schemaVersion: 1,
+      action: "inspect_shared_cell_author_delete_change_set",
+      phase: "DELETE_CHANGE_SET",
+      observedState,
+      changeSetState,
+      operationSha256: plan.operationSha256,
+      compensationPlanSha256: plan.compensationPlanSha256,
+      phasePlanSha256: plan.phasePlanSha256.DELETE_CHANGE_SET,
+      deleteStackClientRequestToken: plan.deleteStackClientRequestToken,
+      stackId: candidate.stackId,
+      changeSetArn: candidate.changeSet.arn,
+      mutationPerformed: false as const,
+      readyForPhase:
+        observedState === "REVIEW_IN_PROGRESS" && changeSetState === "PRESENT",
+      readyForDeleteStackReview:
+        observedState === "REVIEW_IN_PROGRESS" && changeSetState === "MISSING",
+      safeToAuthorRevoke: observedState === "MISSING",
+    },
+    "SHARED_CELL_AUTHOR_COMPENSATION_RESULT_INVALID",
+  );
+}
+
+function deleteStackInspectionSummary(
+  candidate: NormalizedCandidate,
+  plan: Readonly<SharedCellAuthorCompensationCompiledPlan>,
+  observedState: Observation,
+): Readonly<SharedCellAuthorDeleteStackInspectionSummary> {
+  return immutableClone(
+    {
+      schemaVersion: 1,
+      action: "inspect_shared_cell_author_delete_stack",
+      phase: "DELETE_STACK",
+      observedState,
+      changeSetState: "MISSING" as const,
+      operationSha256: plan.operationSha256,
+      compensationPlanSha256: plan.compensationPlanSha256,
+      phasePlanSha256: plan.phasePlanSha256.DELETE_STACK,
+      deleteStackClientRequestToken: plan.deleteStackClientRequestToken,
+      stackId: candidate.stackId,
+      changeSetArn: candidate.changeSet.arn,
+      mutationPerformed: false as const,
+      readyForPhase: observedState === "REVIEW_IN_PROGRESS",
+      safeToAuthorRevoke: observedState === "MISSING",
+    },
+    "SHARED_CELL_AUTHOR_COMPENSATION_RESULT_INVALID",
+  );
+}
+
+function deleteChangeSetRecoverySummary(
+  candidate: NormalizedCandidate,
+  plan: Readonly<SharedCellAuthorCompensationCompiledPlan>,
+  observedState: Observation,
+): Readonly<SharedCellAuthorDeleteChangeSetRecoverySummary> {
+  return immutableClone(
+    {
+      schemaVersion: 1,
+      action: "recover_shared_cell_author_delete_change_set",
+      phase: "DELETE_CHANGE_SET",
+      observedState,
+      operationSha256: plan.operationSha256,
+      compensationPlanSha256: plan.compensationPlanSha256,
+      phasePlanSha256: plan.phasePlanSha256.DELETE_CHANGE_SET,
+      deleteStackClientRequestToken: plan.deleteStackClientRequestToken,
+      stackId: candidate.stackId,
+      changeSetArn: candidate.changeSet.arn,
+      mutationPerformed: false as const,
+      readyForDeleteStackReview: observedState === "REVIEW_IN_PROGRESS",
+      safeToRevokePhaseGrant: true as const,
+      safeToAuthorRevoke: observedState === "MISSING",
+    },
+    "SHARED_CELL_AUTHOR_COMPENSATION_RESULT_INVALID",
+  );
+}
+
+function deleteStackRecoverySummary(
+  candidate: NormalizedCandidate,
+  plan: Readonly<SharedCellAuthorCompensationCompiledPlan>,
+): Readonly<SharedCellAuthorDeleteStackRecoverySummary> {
+  return immutableClone(
+    {
+      schemaVersion: 1,
+      action: "recover_shared_cell_author_delete_stack",
+      phase: "DELETE_STACK",
+      observedState: "MISSING" as const,
+      operationSha256: plan.operationSha256,
+      compensationPlanSha256: plan.compensationPlanSha256,
+      phasePlanSha256: plan.phasePlanSha256.DELETE_STACK,
+      deleteStackClientRequestToken: plan.deleteStackClientRequestToken,
+      stackId: candidate.stackId,
+      changeSetArn: candidate.changeSet.arn,
+      mutationPerformed: false as const,
+      safeToRevokePhaseGrant: true as const,
+      safeToAuthorRevoke: true as const,
     },
     "SHARED_CELL_AUTHOR_COMPENSATION_RESULT_INVALID",
   );
@@ -1761,6 +1949,116 @@ function assertApprovedPhasePlan(
       `Fresh ${phase} intent does not match the approved phase plan digest.`,
     );
   }
+}
+
+/**
+ * Reads the exact placeholder and distinguishes whether the reviewed Change
+ * Set still exists. The returned phase digest is evidence for a later,
+ * separately granted DeleteChangeSet operation; this function has no mutation
+ * capability.
+ */
+export async function inspectSharedCellAuthorDeleteChangeSet(
+  input: BaseSettings,
+): Promise<Readonly<SharedCellAuthorDeleteChangeSetInspectionSummary>> {
+  assertExactInput(
+    input,
+    ["authority", "candidate", "evidence", "signal"],
+    ["now"],
+  );
+  const candidate = normalizeCandidate(input.candidate);
+  assertGrantWindow(
+    candidate,
+    input.now,
+    deleteChangeSetMinimumRemainingMs,
+    "DeleteChangeSet inspect",
+  );
+  const evidence = pinEvidence(input.evidence);
+  const authority = pinAuthority(input.authority);
+  const plan = await compileNormalizedCompensationPlan(candidate);
+  const observed = await observeCompensationState(
+    evidence,
+    authority,
+    candidate,
+    input.signal,
+    false,
+    true,
+  );
+  if (observed === "MISSING") {
+    return deleteChangeSetInspectionSummary(
+      candidate,
+      plan,
+      "MISSING",
+      "MISSING",
+    );
+  }
+  if (observed === "REVIEW_CHANGE_SET_PRESENT") {
+    return deleteChangeSetInspectionSummary(
+      candidate,
+      plan,
+      "REVIEW_IN_PROGRESS",
+      "PRESENT",
+    );
+  }
+  if (observed === "REVIEW_CHANGE_SET_MISSING") {
+    return deleteChangeSetInspectionSummary(
+      candidate,
+      plan,
+      "REVIEW_IN_PROGRESS",
+      "MISSING",
+    );
+  }
+  return fail(
+    "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_INSPECTION_BLOCKED",
+    "DeleteChangeSet inspection cannot authorize a mutation while Stack deletion is already in progress.",
+    true,
+  );
+}
+
+/**
+ * Authorizes review of the DeleteStack phase only after a fresh exact-ARN
+ * Change Set missing proof. A present Change Set is never collapsed into a
+ * generic REVIEW_IN_PROGRESS result.
+ */
+export async function inspectSharedCellAuthorDeleteStack(
+  input: BaseSettings,
+): Promise<Readonly<SharedCellAuthorDeleteStackInspectionSummary>> {
+  assertExactInput(
+    input,
+    ["authority", "candidate", "evidence", "signal"],
+    ["now"],
+  );
+  const candidate = normalizeCandidate(input.candidate);
+  assertGrantWindow(
+    candidate,
+    input.now,
+    deleteStackMinimumRemainingMs,
+    "DeleteStack inspect",
+  );
+  const evidence = pinEvidence(input.evidence);
+  const authority = pinAuthority(input.authority);
+  const plan = await compileNormalizedCompensationPlan(candidate);
+  const observed = await observeCompensationState(
+    evidence,
+    authority,
+    candidate,
+    input.signal,
+    false,
+    true,
+  );
+  if (observed === "MISSING") {
+    return deleteStackInspectionSummary(candidate, plan, "MISSING");
+  }
+  if (observed === "REVIEW_CHANGE_SET_MISSING") {
+    return deleteStackInspectionSummary(
+      candidate,
+      plan,
+      "REVIEW_IN_PROGRESS",
+    );
+  }
+  fail(
+    "SHARED_CELL_AUTHOR_COMPENSATION_DELETE_STACK_REQUIRES_CHANGE_SET_MISSING",
+    "DeleteStack inspection requires a fresh exact Change Set NotFound proof.",
+  );
 }
 
 /**
@@ -2071,6 +2369,137 @@ export async function executeReviewedSharedCellAuthorDeleteStack(
     }
     throw error;
   }
+}
+
+/**
+ * Reconciles a possibly submitted DeleteChangeSet without accepting any
+ * mutation capability. Exact Change Set absence while the reviewed placeholder
+ * remains is a completed first phase and requires a separately reviewed
+ * DeleteStack phase after the temporary grant is revoked.
+ */
+export async function recoverReviewedSharedCellAuthorDeleteChangeSet(
+  input: PhaseRecoverSettings,
+): Promise<Readonly<SharedCellAuthorDeleteChangeSetRecoverySummary>> {
+  assertExactInput(
+    input,
+    [
+      "approvedCompensationPlanSha256",
+      "approvedPhasePlanSha256",
+      "authority",
+      "candidate",
+      "evidence",
+      "signal",
+    ],
+    ["now", "readbackAttempts", "readbackDelayMs", "wait"],
+  );
+  assertDigest(input.approvedCompensationPlanSha256);
+  assertDigest(input.approvedPhasePlanSha256);
+  const candidate = normalizeCandidate(input.candidate);
+  if (input.now !== undefined) readClock(input.now);
+  const evidence = pinEvidence(input.evidence);
+  const authority = pinAuthority(input.authority);
+  const bounded = readbackSettings(input);
+  const plan = await compileNormalizedCompensationPlan(candidate);
+  assertApprovedPhasePlan(
+    plan,
+    "DELETE_CHANGE_SET",
+    input.approvedCompensationPlanSha256,
+    input.approvedPhasePlanSha256,
+  );
+  const observed = await observeCompensationState(
+    evidence,
+    authority,
+    candidate,
+    input.signal,
+    true,
+    true,
+  );
+  if (observed === "MISSING") {
+    return deleteChangeSetRecoverySummary(candidate, plan, "MISSING");
+  }
+  if (observed === "DELETE_IN_PROGRESS") {
+    await waitForStableStackMissing(
+      evidence,
+      authority,
+      candidate,
+      input.signal,
+      bounded,
+    );
+    return deleteChangeSetRecoverySummary(candidate, plan, "MISSING");
+  }
+  if (observed === "REVIEW_CHANGE_SET_MISSING") {
+    return deleteChangeSetRecoverySummary(
+      candidate,
+      plan,
+      "REVIEW_IN_PROGRESS",
+    );
+  }
+  fail(
+    "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_RECOVERY_BLOCKED",
+    "The exact Change Set is still present. DeleteChangeSet recovery is read-only and will never resubmit it.",
+    true,
+  );
+}
+
+/**
+ * Reconciles a possibly submitted DeleteStack without accepting any mutation
+ * capability. Only stable full absence is a successful recovery outcome.
+ */
+export async function recoverReviewedSharedCellAuthorDeleteStack(
+  input: PhaseRecoverSettings,
+): Promise<Readonly<SharedCellAuthorDeleteStackRecoverySummary>> {
+  assertExactInput(
+    input,
+    [
+      "approvedCompensationPlanSha256",
+      "approvedPhasePlanSha256",
+      "authority",
+      "candidate",
+      "evidence",
+      "signal",
+    ],
+    ["now", "readbackAttempts", "readbackDelayMs", "wait"],
+  );
+  assertDigest(input.approvedCompensationPlanSha256);
+  assertDigest(input.approvedPhasePlanSha256);
+  const candidate = normalizeCandidate(input.candidate);
+  if (input.now !== undefined) readClock(input.now);
+  const evidence = pinEvidence(input.evidence);
+  const authority = pinAuthority(input.authority);
+  const bounded = readbackSettings(input);
+  const plan = await compileNormalizedCompensationPlan(candidate);
+  assertApprovedPhasePlan(
+    plan,
+    "DELETE_STACK",
+    input.approvedCompensationPlanSha256,
+    input.approvedPhasePlanSha256,
+  );
+  const observed = await observeCompensationState(
+    evidence,
+    authority,
+    candidate,
+    input.signal,
+    true,
+    true,
+  );
+  if (observed === "DELETE_IN_PROGRESS") {
+    await waitForStableStackMissing(
+      evidence,
+      authority,
+      candidate,
+      input.signal,
+      bounded,
+    );
+    return deleteStackRecoverySummary(candidate, plan);
+  }
+  if (observed === "MISSING") {
+    return deleteStackRecoverySummary(candidate, plan);
+  }
+  fail(
+    "SHARED_CELL_AUTHOR_COMPENSATION_STACK_RECOVERY_BLOCKED",
+    "The exact Stack is still present. DeleteStack recovery is read-only and will never resubmit it.",
+    true,
+  );
 }
 
 export async function executeReviewedSharedCellAuthorCompensation(

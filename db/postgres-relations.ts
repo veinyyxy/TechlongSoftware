@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, deploymentEnvironments, deploymentEnvironmentBindings, appInstanceDeployments, deploymentTenantResources, deploymentTenantResourceEvents, deploymentCleanupSchedules, deploymentEnvironmentCapacityReservations, deploymentJobs, deploymentStepRuns, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements, deploymentTenantExternalOperations, deploymentTenantExternalOperationEvents, deploymentTenantCleanupRuns, deploymentTenantCleanupPhases, deploymentTenantCleanupEvents } from "./postgres-schema";
+import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, deploymentEnvironments, deploymentEnvironmentBindings, appInstanceDeployments, deploymentTenantResources, deploymentTenantResourceEvents, deploymentCleanupSchedules, deploymentEnvironmentCapacityReservations, deploymentJobs, deploymentStepRuns, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements, deploymentTenantExternalOperations, deploymentTenantExternalOperationEvents, deploymentTenantCleanupRuns, deploymentTenantCleanupPhases, deploymentTenantCleanupEvents, sharedCellAuthorCompensationOperations, sharedCellAuthorCompensationReviewWindows, sharedCellAuthorCompensationPhaseAttempts, sharedCellAuthorCompensationEvents } from "./postgres-schema";
 
 export const appInstanceTemplatesRelations = relations(appInstanceTemplates, ({one, many}) => ({
 	product: one(products, {
@@ -190,6 +190,7 @@ export const deploymentEnvironmentsRelations = relations(deploymentEnvironments,
 	deploymentCleanupSchedules: many(deploymentCleanupSchedules),
 	deploymentEnvironmentCapacityReservations: many(deploymentEnvironmentCapacityReservations),
 	deploymentTenantResources: many(deploymentTenantResources),
+	sharedCellAuthorCompensationOperations: many(sharedCellAuthorCompensationOperations),
 }));
 
 export const deploymentEnvironmentBindingsRelations = relations(deploymentEnvironmentBindings, ({one}) => ({
@@ -488,5 +489,36 @@ export const workspaceProductEntitlementsRelations = relations(workspaceProductE
 	appInstance: one(appInstances, {
 		fields: [workspaceProductEntitlements.appInstanceId],
 		references: [appInstances.id]
+	}),
+}));
+
+export const sharedCellAuthorCompensationOperationsRelations = relations(sharedCellAuthorCompensationOperations, ({one, many}) => ({
+	deploymentEnvironment: one(deploymentEnvironments, {
+		fields: [sharedCellAuthorCompensationOperations.environmentId],
+		references: [deploymentEnvironments.id]
+	}),
+	reviewWindows: many(sharedCellAuthorCompensationReviewWindows),
+	events: many(sharedCellAuthorCompensationEvents),
+}));
+
+export const sharedCellAuthorCompensationReviewWindowsRelations = relations(sharedCellAuthorCompensationReviewWindows, ({one, many}) => ({
+	operation: one(sharedCellAuthorCompensationOperations, {
+		fields: [sharedCellAuthorCompensationReviewWindows.operationSha256],
+		references: [sharedCellAuthorCompensationOperations.operationSha256]
+	}),
+	phaseAttempts: many(sharedCellAuthorCompensationPhaseAttempts),
+}));
+
+export const sharedCellAuthorCompensationPhaseAttemptsRelations = relations(sharedCellAuthorCompensationPhaseAttempts, ({one}) => ({
+	reviewWindow: one(sharedCellAuthorCompensationReviewWindows, {
+		fields: [sharedCellAuthorCompensationPhaseAttempts.operationSha256, sharedCellAuthorCompensationPhaseAttempts.phase, sharedCellAuthorCompensationPhaseAttempts.windowNumber],
+		references: [sharedCellAuthorCompensationReviewWindows.operationSha256, sharedCellAuthorCompensationReviewWindows.phase, sharedCellAuthorCompensationReviewWindows.windowNumber]
+	}),
+}));
+
+export const sharedCellAuthorCompensationEventsRelations = relations(sharedCellAuthorCompensationEvents, ({one}) => ({
+	operation: one(sharedCellAuthorCompensationOperations, {
+		fields: [sharedCellAuthorCompensationEvents.operationSha256],
+		references: [sharedCellAuthorCompensationOperations.operationSha256]
 	}),
 }));
