@@ -1152,6 +1152,7 @@ export const sharedCellAuthorCompensationOperations = pgTable("shared_cell_autho
 	check("shared_cell_author_compensation_operations_last_error_code_check", sql`last_error_code IS NULL OR octet_length(last_error_code) <= 200`),
 	check("shared_cell_author_compensation_operations_last_error_sha256_check", sql`last_error_sha256 IS NULL OR last_error_sha256 ~ '^[a-f0-9]{64}$'::text`),
 	check("scac_operation_state_shape_check", sql`(state = 'awaiting_delete_change_set_review'::text AND current_phase = 'DELETE_CHANGE_SET'::text AND current_window_number IS NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NULL) OR (state = 'delete_change_set_prepared'::text AND current_phase = 'DELETE_CHANGE_SET'::text AND current_window_number IS NOT NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NULL) OR (state = 'delete_change_set_ready'::text AND current_phase = 'DELETE_CHANGE_SET'::text AND current_window_number IS NOT NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NOT NULL) OR (state = ANY (ARRAY['delete_change_set_recover_only'::text, 'delete_change_set_revoke_required'::text]) AND current_phase = 'DELETE_CHANGE_SET'::text AND current_window_number IS NOT NULL AND current_attempt_number IS NOT NULL AND current_grant_receipt_sha256 IS NOT NULL) OR (state = 'awaiting_delete_stack_review'::text AND current_phase = 'DELETE_STACK'::text AND current_window_number IS NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NULL) OR (state = 'delete_stack_prepared'::text AND current_phase = 'DELETE_STACK'::text AND current_window_number IS NOT NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NULL) OR (state = 'delete_stack_ready'::text AND current_phase = 'DELETE_STACK'::text AND current_window_number IS NOT NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NOT NULL) OR (state = ANY (ARRAY['delete_stack_recover_only'::text, 'delete_stack_revoke_required'::text]) AND current_phase = 'DELETE_STACK'::text AND current_window_number IS NOT NULL AND current_attempt_number IS NOT NULL AND current_grant_receipt_sha256 IS NOT NULL) OR (state = 'missing_proven_locked'::text AND current_phase IS NULL AND current_window_number IS NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NULL)`),
+	check("scac_operation_state_shape_strict_check", sql`((state = 'awaiting_delete_change_set_review'::text AND current_phase = 'DELETE_CHANGE_SET'::text AND current_window_number IS NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NULL) OR (state = 'delete_change_set_prepared'::text AND current_phase = 'DELETE_CHANGE_SET'::text AND current_window_number IS NOT NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NULL) OR (state = 'delete_change_set_ready'::text AND current_phase = 'DELETE_CHANGE_SET'::text AND current_window_number IS NOT NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NOT NULL) OR (state = ANY (ARRAY['delete_change_set_recover_only'::text, 'delete_change_set_revoke_required'::text]) AND current_phase = 'DELETE_CHANGE_SET'::text AND current_window_number IS NOT NULL AND current_attempt_number IS NOT NULL AND current_grant_receipt_sha256 IS NOT NULL) OR (state = 'awaiting_delete_stack_review'::text AND current_phase = 'DELETE_STACK'::text AND current_window_number IS NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NULL) OR (state = 'delete_stack_prepared'::text AND current_phase = 'DELETE_STACK'::text AND current_window_number IS NOT NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NULL) OR (state = 'delete_stack_ready'::text AND current_phase = 'DELETE_STACK'::text AND current_window_number IS NOT NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NOT NULL) OR (state = ANY (ARRAY['delete_stack_recover_only'::text, 'delete_stack_revoke_required'::text]) AND current_phase = 'DELETE_STACK'::text AND current_window_number IS NOT NULL AND current_attempt_number IS NOT NULL AND current_grant_receipt_sha256 IS NOT NULL) OR (state = 'missing_proven_locked'::text AND current_phase IS NULL AND current_window_number IS NULL AND current_attempt_number IS NULL AND current_grant_receipt_sha256 IS NULL)) IS TRUE`),
 	check("scac_operation_lease_shape_check", sql`(lease_owner IS NULL AND claim_token IS NULL AND lease_expires_at IS NULL) OR (lease_owner IS NOT NULL AND claim_token IS NOT NULL AND lease_expires_at IS NOT NULL AND state = ANY (ARRAY['delete_change_set_prepared'::text, 'delete_change_set_ready'::text, 'delete_change_set_recover_only'::text, 'delete_change_set_revoke_required'::text, 'delete_stack_prepared'::text, 'delete_stack_ready'::text, 'delete_stack_recover_only'::text, 'delete_stack_revoke_required'::text]))`),
 	check("scac_operation_error_shape_check", sql`(last_error_code IS NULL) = (last_error_sha256 IS NULL)`),
 	check("scac_operation_timestamp_check", sql`updated_at >= created_at AND ((state = 'missing_proven_locked'::text AND completed_at IS NOT NULL AND completed_at >= created_at) OR (state <> 'missing_proven_locked'::text AND completed_at IS NULL))`),
@@ -1212,8 +1213,105 @@ export const sharedCellAuthorCompensationPhaseAttempts = pgTable("shared_cell_au
 	check("shared_cell_author_compensation_phase_attempts_completion_receipt_check", sql`jsonb_typeof((completion_receipt)::jsonb) = 'object'::text AND octet_length(completion_receipt) <= 16384`),
 	check("shared_cell_author_compensation_phase_attempts_completion_receipt_sha256_check", sql`completion_receipt_sha256 IS NULL OR completion_receipt_sha256 ~ '^[a-f0-9]{64}$'::text`),
 	check("scac_attempt_request_shape_check", sql`(phase = 'DELETE_CHANGE_SET'::text AND client_request_token IS NULL) OR (phase = 'DELETE_STACK'::text AND client_request_token = 'b5-author-comp-'::text || substring(operation_sha256, 1, 32))`),
+	check("scac_attempt_request_shape_strict_check", sql`((phase = 'DELETE_CHANGE_SET'::text AND client_request_token IS NULL) OR (phase = 'DELETE_STACK'::text AND client_request_token = 'b5-author-comp-'::text || substring(operation_sha256, 1, 32))) IS TRUE`),
 	check("scac_attempt_receipt_shape_check", sql`(status = 'recover_only'::text AND (completion_receipt)::jsonb = '{}'::jsonb AND completion_receipt_sha256 IS NULL AND completed_at IS NULL) OR (status = 'completed'::text AND (completion_receipt)::jsonb <> '{}'::jsonb AND completion_receipt_sha256 IS NOT NULL AND completed_at IS NOT NULL)`),
 	check("scac_attempt_timestamp_check", sql`updated_at >= started_at AND (completed_at IS NULL OR completed_at >= started_at)`),
+]);
+
+export const sharedCellAuthorCompensationLifecycleActions = pgTable("shared_cell_author_compensation_lifecycle_actions", {
+	operationSha256: text("operation_sha256").notNull(),
+	phase: text().notNull(),
+	windowNumber: integer("window_number").notNull(),
+	actionNumber: integer("action_number").notNull(),
+	actionKind: text("action_kind").notNull(),
+	revokeReason: text("revoke_reason"),
+	status: text().default('recover_only').notNull(),
+	request: text().notNull(),
+	requestSha256: text("request_sha256").notNull(),
+	leaseAttempt: integer("lease_attempt").notNull(),
+	preparedRevision: bigint("prepared_revision", { mode: "number" }).notNull(),
+	completionReceipt: text("completion_receipt").default('{}').notNull(),
+	completionReceiptSha256: text("completion_receipt_sha256"),
+	startedAt: bigint("started_at", { mode: "number" }).notNull(),
+	updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+	completedAt: bigint("completed_at", { mode: "number" }),
+}, (table) => [
+	primaryKey({ columns: [table.operationSha256, table.phase, table.windowNumber, table.actionNumber], name: "shared_cell_author_compensation_lifecycle_actions_pkey" }),
+	uniqueIndex("scac_lifecycle_window_kind_unique").using("btree", table.operationSha256.asc().nullsLast().op("text_ops"), table.phase.asc().nullsLast().op("text_ops"), table.windowNumber.asc().nullsLast().op("int4_ops"), table.actionKind.asc().nullsLast().op("text_ops")),
+	uniqueIndex("scac_lifecycle_one_recover_only_per_operation").using("btree", table.operationSha256.asc().nullsLast().op("text_ops")).where(sql`status = 'recover_only'::text`),
+	index("scac_lifecycle_recovery_idx").using("btree", table.status.asc().nullsLast().op("text_ops"), table.updatedAt.asc().nullsLast().op("int8_ops")).where(sql`status = 'recover_only'::text`),
+	foreignKey({ columns: [table.operationSha256, table.phase, table.windowNumber], foreignColumns: [sharedCellAuthorCompensationReviewWindows.operationSha256, sharedCellAuthorCompensationReviewWindows.phase, sharedCellAuthorCompensationReviewWindows.windowNumber], name: "scac_lifecycle_window_fkey" }).onDelete("restrict"),
+	check("shared_cell_author_compensation_lifecycle_actions_phase_check", sql`phase = ANY (ARRAY['DELETE_CHANGE_SET'::text, 'DELETE_STACK'::text])`),
+	check("shared_cell_author_compensation_lifecycle_actions_window_number_check", sql`window_number > 0`),
+	check("shared_cell_author_compensation_lifecycle_actions_action_number_check", sql`action_number = ANY (ARRAY[1, 2])`),
+	check("shared_cell_author_compensation_lifecycle_actions_action_kind_check", sql`action_kind = ANY (ARRAY['GRANT'::text, 'REVOKE'::text])`),
+	check("shared_cell_author_compensation_lifecycle_actions_revoke_reason_check", sql`revoke_reason IS NULL OR revoke_reason = ANY (ARRAY['PHASE_COMPLETED'::text, 'WINDOW_EXPIRED'::text])`),
+	check("shared_cell_author_compensation_lifecycle_actions_status_check", sql`status = ANY (ARRAY['recover_only'::text, 'completed'::text])`),
+	check("shared_cell_author_compensation_lifecycle_actions_request_check", sql`jsonb_typeof((request)::jsonb) = 'object'::text AND octet_length(request) <= 16384`),
+	check("shared_cell_author_compensation_lifecycle_actions_request_sha256_check", sql`request_sha256 ~ '^[a-f0-9]{64}$'::text`),
+	check("shared_cell_author_compensation_lifecycle_actions_lease_attempt_check", sql`lease_attempt > 0`),
+	check("shared_cell_author_compensation_lifecycle_actions_prepared_revision_check", sql`prepared_revision > 0`),
+	check("shared_cell_author_compensation_lifecycle_actions_completion_receipt_check", sql`jsonb_typeof((completion_receipt)::jsonb) = 'object'::text AND octet_length(completion_receipt) <= 16384`),
+	check("shared_cell_author_compensation_lifecycle_actions_completion_receipt_sha256_check", sql`completion_receipt_sha256 IS NULL OR completion_receipt_sha256 ~ '^[a-f0-9]{64}$'::text`),
+	check("scac_lifecycle_kind_shape_check", sql`((action_kind = 'GRANT'::text AND action_number = 1 AND revoke_reason IS NULL) OR (action_kind = 'REVOKE'::text AND action_number = 2 AND revoke_reason = ANY (ARRAY['PHASE_COMPLETED'::text, 'WINDOW_EXPIRED'::text]))) IS TRUE`),
+	check("scac_lifecycle_request_shape_check", sql`
+		((request::jsonb #>> '{schemaVersion}') = '1'
+		AND (request::jsonb #>> '{operationSha256}') = operation_sha256
+		AND (request::jsonb #>> '{phase}') = phase
+		AND (request::jsonb #>> '{windowNumber}') = window_number::text
+		AND (request::jsonb #>> '{kind}') = action_kind
+		AND (request::jsonb #>> '{lifecycleContractSha256}') ~ '^[a-f0-9]{64}$'
+		AND (request::jsonb #>> '{targetTemplateRawSha256}') ~ '^[a-f0-9]{64}$'
+		AND (request::jsonb #>> '{targetTemplateCanonicalSha256}') ~ '^[a-f0-9]{64}$'
+		AND (request::jsonb #>> '{managementStackName}') = 'techlong-s3-b5-cell-lifecycle-management'
+		AND (request::jsonb #>> '{managementStackId}') = 'arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-lifecycle-management/fb742b50-afb2-11f1-85b7-02588681429d'
+		AND (request::jsonb #>> '{managementChangeSetName}') =
+			'techlong-j5gj3-' || lower(action_kind) || '-' ||
+			substring((request::jsonb #>> '{lifecycleContractSha256}') FROM 1 FOR 16)
+		AND (
+			(action_kind = 'GRANT'
+				AND (request::jsonb #>> '{action}') = 'shared_cell_author_compensation_grant'
+				AND (request::jsonb #>> '{compensationPlanSha256}') ~ '^[a-f0-9]{64}$'
+				AND (request::jsonb #>> '{phasePlanSha256}') ~ '^[a-f0-9]{64}$'
+				AND (request::jsonb #>> '{controllerContractSha256}') ~ '^[a-f0-9]{64}$'
+				AND (request::jsonb #>> '{targetRendererShape}') = CASE phase
+					WHEN 'DELETE_CHANGE_SET' THEN 'AuthorCompensationDeleteChangeSetGrant'
+					WHEN 'DELETE_STACK' THEN 'AuthorCompensationDeleteStackGrant'
+				END)
+			OR (action_kind = 'REVOKE'
+				AND (request::jsonb #>> '{action}') = 'shared_cell_author_compensation_revoke'
+				AND (request::jsonb #>> '{reason}') = revoke_reason
+				AND (request::jsonb #>> '{grantReceiptSha256}') ~ '^[a-f0-9]{64}$'
+				AND (request::jsonb #>> '{targetRendererShape}') = 'Locked'
+				AND ((revoke_reason = 'PHASE_COMPLETED'
+						AND (request::jsonb #>> '{completionReceiptSha256}') ~ '^[a-f0-9]{64}$')
+					OR (revoke_reason = 'WINDOW_EXPIRED'
+						AND NOT (request::jsonb ? 'completionReceiptSha256'))))
+		) IS TRUE`),
+	check("scac_lifecycle_receipt_shape_check", sql`
+		((status = 'recover_only' AND completion_receipt::jsonb = '{}'::jsonb
+			AND completion_receipt_sha256 IS NULL AND completed_at IS NULL)
+		OR (status = 'completed' AND completion_receipt::jsonb <> '{}'::jsonb
+			AND completion_receipt_sha256 IS NOT NULL AND completed_at IS NOT NULL
+			AND (completion_receipt::jsonb #>> '{schemaVersion}') = '1'
+			AND (completion_receipt::jsonb #>> '{operationSha256}') = operation_sha256
+			AND (completion_receipt::jsonb #>> '{phase}') = phase
+			AND (
+				(action_kind = 'GRANT'
+					AND (completion_receipt::jsonb #>> '{action}') = 'shared_cell_author_compensation_phase_grant_verified'
+					AND (completion_receipt::jsonb #>> '{disposition}') IN ('PHASE_EXECUTION_ALLOWED', 'REVOKE_ONLY')
+					AND (completion_receipt::jsonb #>> '{compensationPlanSha256}') = (request::jsonb #>> '{compensationPlanSha256}')
+					AND (completion_receipt::jsonb #>> '{phasePlanSha256}') = (request::jsonb #>> '{phasePlanSha256}')
+					AND (completion_receipt::jsonb #>> '{controllerContractSha256}') = (request::jsonb #>> '{controllerContractSha256}'))
+				OR (action_kind = 'REVOKE' AND revoke_reason = 'PHASE_COMPLETED'
+					AND (completion_receipt::jsonb #>> '{action}') = 'shared_cell_author_compensation_locked_verified'
+					AND (completion_receipt::jsonb #>> '{completionReceiptSha256}') = (request::jsonb #>> '{completionReceiptSha256}'))
+				OR (action_kind = 'REVOKE' AND revoke_reason = 'WINDOW_EXPIRED'
+					AND (completion_receipt::jsonb #>> '{action}') = 'shared_cell_author_compensation_window_expired_locked_verified'
+					AND (completion_receipt::jsonb #>> '{grantReceiptSha256}') = (request::jsonb #>> '{grantReceiptSha256}'))
+			)
+		) IS TRUE`),
+	check("scac_lifecycle_timestamp_check", sql`updated_at >= started_at AND (completed_at IS NULL OR completed_at >= started_at)`),
 ]);
 
 export const sharedCellAuthorCompensationEvents = pgTable("shared_cell_author_compensation_events", {
@@ -1236,7 +1334,7 @@ export const sharedCellAuthorCompensationEvents = pgTable("shared_cell_author_co
 	check("shared_cell_author_compensation_events_phase_check", sql`phase IS NULL OR phase = ANY (ARRAY['DELETE_CHANGE_SET'::text, 'DELETE_STACK'::text])`),
 	check("shared_cell_author_compensation_events_window_number_check", sql`window_number > 0`),
 	check("shared_cell_author_compensation_events_attempt_number_check", sql`attempt_number > 0`),
-	check("shared_cell_author_compensation_events_event_type_check", sql`event_type = ANY (ARRAY['operation_created'::text, 'window_reviewed'::text, 'claim_acquired'::text, 'claim_taken_over'::text, 'phase_prepared'::text, 'submission_started'::text, 'phase_completed'::text, 'locked_proven'::text, 'claim_released'::text, 'recovery_observed'::text, 'error_recorded'::text])`),
+	check("shared_cell_author_compensation_events_event_type_check", sql`event_type = ANY (ARRAY['operation_created'::text, 'window_reviewed'::text, 'claim_acquired'::text, 'claim_taken_over'::text, 'phase_prepared'::text, 'submission_started'::text, 'phase_completed'::text, 'locked_proven'::text, 'claim_released'::text, 'recovery_observed'::text, 'error_recorded'::text, 'lifecycle_action_started'::text, 'lifecycle_action_completed'::text])`),
 	check("shared_cell_author_compensation_events_evidence_sha256_check", sql`evidence_sha256 IS NULL OR evidence_sha256 ~ '^[a-f0-9]{64}$'::text`),
 	check("shared_cell_author_compensation_events_evidence_check", sql`jsonb_typeof((evidence)::jsonb) = 'object'::text AND octet_length(evidence) <= 16384`),
 	check("scac_event_initial_shape_check", sql`(event_type = 'operation_created'::text AND from_state IS NULL AND state_revision = 1) OR (event_type <> 'operation_created'::text AND from_state IS NOT NULL)`),

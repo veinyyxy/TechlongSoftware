@@ -5,15 +5,21 @@ import {
   SharedCellAuthorCompensationStoreError,
   assertSharedCellAuthorCompensationClaimHandle,
   assertSharedCellAuthorCompensationDigest,
+  assertSharedCellAuthorCompensationLifecycleActionRequest,
   assertSharedCellAuthorCompensationLockedReceipt,
   assertSharedCellAuthorCompensationPhaseCompletionReceipt,
   assertSharedCellAuthorCompensationPhaseGrantReceipt,
   assertSharedCellAuthorCompensationReviewWindow,
+  assertSharedCellAuthorCompensationWindowExpiredLockedReceipt,
   compileSharedCellAuthorCompensationMutationRequest,
   compileSharedCellAuthorCompensationStoredIntent,
   sharedCellAuthorCompensationReceiptSha256,
+  sharedCellAuthorCompensationLifecycleActionRequestSha256,
   type SharedCellAuthorCompensationClaim,
   type SharedCellAuthorCompensationClaimHandle,
+  type SharedCellAuthorCompensationLifecycleAction,
+  type SharedCellAuthorCompensationLifecycleActionKind,
+  type SharedCellAuthorCompensationLifecycleActionRequest,
   type SharedCellAuthorCompensationMutationRequest,
   type SharedCellAuthorCompensationOperation,
   type SharedCellAuthorCompensationOperationSnapshot,
@@ -65,7 +71,20 @@ const snapshotProjection = `
   CASE WHEN review_window.operation_sha256 IS NULL
     THEN NULL ELSE row_to_json(review_window)::text END AS window_record,
   CASE WHEN phase_attempt.operation_sha256 IS NULL
-    THEN NULL ELSE row_to_json(phase_attempt)::text END AS attempt_record`;
+    THEN NULL ELSE row_to_json(phase_attempt)::text END AS attempt_record,
+  CASE WHEN lifecycle_action.operation_sha256 IS NULL
+    THEN NULL ELSE row_to_json(lifecycle_action)::text END AS lifecycle_action_record`;
+
+const currentLifecycleActionJoin = `
+  LEFT JOIN LATERAL (
+    SELECT action.*
+    FROM shared_cell_author_compensation_lifecycle_actions action
+    WHERE action.operation_sha256 = operation_row.operation_sha256
+      AND action.phase = operation_row.current_phase
+      AND action.window_number = operation_row.current_window_number
+    ORDER BY action.action_number DESC
+    LIMIT 1
+  ) lifecycle_action ON true`;
 
 function record(value: unknown): Record<string, unknown> {
   try {
@@ -256,13 +275,158 @@ function attemptFromRow(row: Record<string, unknown>): SharedCellAuthorCompensat
   });
 }
 
+function lifecycleActionFromRow(
+  row: Record<string, unknown>,
+): SharedCellAuthorCompensationLifecycleAction {
+  const phase = text(row.phase, "lifecycle action phase") as SharedCellAuthorCompensationPhase;
+  if (!phaseValues.has(phase)) invalidRow("lifecycle action phase");
+  const kind = text(
+    row.action_kind,
+    "lifecycle action kind",
+  ) as SharedCellAuthorCompensationLifecycleActionKind;
+  if (kind !== "GRANT" && kind !== "REVOKE") {
+    invalidRow("lifecycle action kind");
+  }
+  const status = text(row.status, "lifecycle action status");
+  if (status !== "recover_only" && status !== "completed") {
+    invalidRow("lifecycle action status");
+  }
+  const request = parseRecord(row.request, "lifecycle action request");
+  assertSharedCellAuthorCompensationLifecycleActionRequest(request);
+  const requestReason = request.kind === "REVOKE" ? request.reason : null;
+  const revokeReason = nullableText(
+    row.revoke_reason,
+    "lifecycle revoke reason",
+  ) as "PHASE_COMPLETED" | "WINDOW_EXPIRED" | null;
+  if (
+    request.kind !== kind ||
+    request.phase !== phase ||
+    (kind === "GRANT" && revokeReason !== null) ||
+    (kind === "REVOKE" &&
+      (revokeReason !== requestReason ||
+        (revokeReason !== "PHASE_COMPLETED" &&
+          revokeReason !== "WINDOW_EXPIRED")))
+  ) {
+    invalidRow("lifecycle action request linkage");
+  }
+  const receiptValue = nullableRecord(
+    row.completion_receipt,
+    "lifecycle completion receipt",
+    true,
+  );
+  const receipt =
+    receiptValue && Object.keys(receiptValue).length > 0 ? receiptValue : null;
+  if (receipt) {
+    if (kind === "GRANT") {
+      assertSharedCellAuthorCompensationPhaseGrantReceipt(receipt);
+    } else if (request.kind === "REVOKE" && request.reason === "PHASE_COMPLETED") {
+      assertSharedCellAuthorCompensationLockedReceipt(receipt);
+    } else {
+      assertSharedCellAuthorCompensationWindowExpiredLockedReceipt(receipt);
+    }
+  }
+  const operationSha256 = text(
+    row.operation_sha256,
+    "lifecycle action operation digest",
+  );
+  const windowNumber = integer(
+    row.window_number,
+    "lifecycle action window number",
+  );
+  const actionNumber = integer(row.action_number, "lifecycle action number");
+  if (
+    request.operationSha256 !== operationSha256 ||
+    request.windowNumber !== windowNumber ||
+    actionNumber !== (kind === "GRANT" ? 1 : 2)
+  ) {
+    invalidRow("lifecycle action request linkage");
+  }
+  const requestSha256 = text(row.request_sha256, "lifecycle request digest");
+  assertSharedCellAuthorCompensationDigest(
+    operationSha256,
+    "stored lifecycle operationSha256",
+  );
+  assertSharedCellAuthorCompensationDigest(
+    requestSha256,
+    "stored lifecycle requestSha256",
+  );
+  const receiptSha256 = nullableText(
+    row.completion_receipt_sha256,
+    "lifecycle completion receipt digest",
+  );
+  if (receiptSha256 !== null) {
+    assertSharedCellAuthorCompensationDigest(
+      receiptSha256,
+      "stored lifecycle completion receiptSha256",
+    );
+  }
+  const completedAt = nullableInteger(
+    row.completed_at,
+    "lifecycle action completed time",
+  );
+  if (
+    (status === "recover_only" &&
+      (receipt !== null || receiptSha256 !== null || completedAt !== null)) ||
+    (status === "completed" &&
+      (receipt === null || receiptSha256 === null || completedAt === null)) ||
+    (receipt !== null &&
+      (receipt.operationSha256 !== operationSha256 ||
+        receipt.phase !== phase)) ||
+    (receipt?.action === "shared_cell_author_compensation_phase_grant_verified" &&
+      (request.kind !== "GRANT" ||
+        receipt.compensationPlanSha256 !== request.compensationPlanSha256 ||
+        receipt.phasePlanSha256 !== request.phasePlanSha256 ||
+        receipt.controllerContractSha256 !== request.controllerContractSha256)) ||
+    (receipt?.action === "shared_cell_author_compensation_locked_verified" &&
+      (request.kind !== "REVOKE" ||
+        request.reason !== "PHASE_COMPLETED" ||
+        receipt.completionReceiptSha256 !== request.completionReceiptSha256)) ||
+    (receipt?.action ===
+      "shared_cell_author_compensation_window_expired_locked_verified" &&
+      (request.kind !== "REVOKE" ||
+        request.reason !== "WINDOW_EXPIRED" ||
+        receipt.grantReceiptSha256 !== request.grantReceiptSha256))
+  ) {
+    invalidRow("lifecycle action receipt linkage");
+  }
+  return Object.freeze({
+    operationSha256,
+    phase,
+    windowNumber,
+    actionNumber,
+    kind,
+    revokeReason,
+    status,
+    request: Object.freeze(request) as unknown as SharedCellAuthorCompensationLifecycleActionRequest,
+    requestSha256,
+    leaseAttempt: integer(row.lease_attempt, "lifecycle action lease number"),
+    preparedRevision: integer(
+      row.prepared_revision,
+      "lifecycle action prepared revision",
+    ),
+    completionReceipt:
+      receipt as SharedCellAuthorCompensationLifecycleAction["completionReceipt"],
+    completionReceiptSha256: receiptSha256,
+    startedAt: integer(row.started_at, "lifecycle action started time"),
+    updatedAt: integer(row.updated_at, "lifecycle action updated time"),
+    completedAt,
+  });
+}
+
 function snapshotFromResultRow(value: unknown): SharedCellAuthorCompensationOperationSnapshot {
   const row = record(value);
   const operation = operationFromRow(parseRecord(row.operation_record, "operation"));
   const windowRow = nullableRecord(row.window_record, "review window");
   const attemptRow = nullableRecord(row.attempt_record, "phase attempt");
+  const lifecycleActionRow = nullableRecord(
+    row.lifecycle_action_record,
+    "lifecycle action",
+  );
   const currentWindow = windowRow ? reviewWindowFromRow(windowRow) : null;
   const currentAttempt = attemptRow ? attemptFromRow(attemptRow) : null;
+  const currentLifecycleAction = lifecycleActionRow
+    ? lifecycleActionFromRow(lifecycleActionRow)
+    : null;
   if (
     (operation.currentWindowNumber === null) !== (currentWindow === null) ||
     (operation.currentAttemptNumber === null) !== (currentAttempt === null) ||
@@ -273,9 +437,19 @@ function snapshotFromResultRow(value: unknown): SharedCellAuthorCompensationOper
     (currentAttempt !== null &&
       (currentAttempt.operationSha256 !== operation.operationSha256 ||
         currentAttempt.phase !== operation.currentPhase ||
-        currentAttempt.attemptNumber !== operation.currentAttemptNumber))
+        currentAttempt.windowNumber !== operation.currentWindowNumber ||
+        currentAttempt.attemptNumber !== operation.currentAttemptNumber)) ||
+    (currentLifecycleAction !== null &&
+      (currentLifecycleAction.operationSha256 !== operation.operationSha256 ||
+        currentLifecycleAction.phase !== operation.currentPhase ||
+        currentLifecycleAction.windowNumber !== operation.currentWindowNumber))
   ) invalidRow("snapshot linkage");
-  return Object.freeze({ operation, currentWindow, currentAttempt });
+  return Object.freeze({
+    operation,
+    currentWindow,
+    currentAttempt,
+    currentLifecycleAction,
+  });
 }
 
 function singleSnapshot(value: unknown): SharedCellAuthorCompensationOperationSnapshot | null {
@@ -304,7 +478,9 @@ function handleFromSnapshot(snapshot: SharedCellAuthorCompensationOperationSnaps
 }
 
 function claimFromSnapshot(snapshot: SharedCellAuthorCompensationOperationSnapshot): SharedCellAuthorCompensationClaim {
-  const recoverOnly = /_(?:recover_only|revoke_required)$/.test(snapshot.operation.state);
+  const recoverOnly =
+    snapshot.currentLifecycleAction?.status === "recover_only" ||
+    /_(?:recover_only|revoke_required)$/.test(snapshot.operation.state);
   return Object.freeze({
     mode: recoverOnly ? "RECOVER_ONLY" : "PREPARE",
     handle: handleFromSnapshot(snapshot),
@@ -461,7 +637,9 @@ implements SharedCellAuthorCompensationOperationStore {
        LEFT JOIN shared_cell_author_compensation_phase_attempts phase_attempt
          ON phase_attempt.operation_sha256 = operation_row.operation_sha256
         AND phase_attempt.phase = operation_row.current_phase
-        AND phase_attempt.attempt_number = operation_row.current_attempt_number`,
+        AND phase_attempt.window_number = operation_row.current_window_number
+        AND phase_attempt.attempt_number = operation_row.current_attempt_number
+       ${currentLifecycleActionJoin}`,
       [
         compiled.plan.operationSha256,
         input.environmentId,
@@ -548,6 +726,13 @@ implements SharedCellAuthorCompensationOperationStore {
                 AND operation.current_grant_receipt_sha256 IS NULL
                 AND current_window.operation_sha256 IS NOT NULL
                 AND current_window.expires_at - db_clock.now_ms <= $12
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM shared_cell_author_compensation_lifecycle_actions action
+                  WHERE action.operation_sha256 = operation.operation_sha256
+                    AND action.phase = operation.current_phase
+                    AND action.window_number = operation.current_window_number
+                )
               )
             )
             AND operation.current_phase = $3
@@ -592,7 +777,8 @@ implements SharedCellAuthorCompensationOperationStore {
        )
        SELECT row_to_json(operation_row)::text AS operation_record,
          row_to_json(review_window)::text AS window_record,
-         NULL::text AS attempt_record
+         NULL::text AS attempt_record,
+         NULL::text AS lifecycle_action_record
        FROM updated operation_row
        JOIN window_insert review_window
          ON review_window.operation_sha256 = operation_row.operation_sha256
@@ -694,13 +880,459 @@ implements SharedCellAuthorCompensationOperationStore {
         LEFT JOIN shared_cell_author_compensation_phase_attempts phase_attempt
           ON phase_attempt.operation_sha256 = operation_row.operation_sha256
          AND phase_attempt.phase = operation_row.current_phase
-         AND phase_attempt.attempt_number = operation_row.current_attempt_number`,
+         AND phase_attempt.window_number = operation_row.current_window_number
+         AND phase_attempt.attempt_number = operation_row.current_attempt_number
+        ${currentLifecycleActionJoin}`,
       [input.operationSha256, input.workerId, claimToken, input.leaseDurationMs],
       input.signal,
       true,
     );
     const snapshot = singleSnapshot(raw);
     return snapshot ? claimFromSnapshot(snapshot) : null;
+  }
+
+  async beginLifecycleAction(
+    input: Parameters<SharedCellAuthorCompensationOperationStore["beginLifecycleAction"]>[0],
+  ): Promise<Readonly<SharedCellAuthorCompensationClaim> | null> {
+    assertSharedCellAuthorCompensationClaimHandle(input.handle);
+    if (!Number.isSafeInteger(input.windowNumber) || input.windowNumber < 1) {
+      invalidRow("lifecycle window number");
+    }
+    assertSharedCellAuthorCompensationLifecycleActionRequest(input.request);
+    if (
+      input.request.operationSha256 !== input.handle.operationSha256 ||
+      input.request.windowNumber !== input.windowNumber
+    ) {
+      throw new SharedCellAuthorCompensationStoreError(
+        "SHARED_CELL_AUTHOR_COMPENSATION_STORE_LIFECYCLE_REQUEST_MISMATCH",
+        "The lifecycle request is not bound to the exact claimed operation and review window.",
+      );
+    }
+    const requestSha256 =
+      await sharedCellAuthorCompensationLifecycleActionRequestSha256(
+        input.request,
+      );
+    const phase = input.request.phase;
+    const kind = input.request.kind;
+    const reason = kind === "REVOKE" ? input.request.reason : null;
+    const expectedState =
+      kind === "GRANT"
+        ? sqlState(phase, "prepared")
+        : reason === "WINDOW_EXPIRED"
+          ? sqlState(phase, "ready")
+          : sqlState(phase, "revoke_required");
+    const actionNumber = kind === "GRANT" ? 1 : 2;
+    const grantReceiptSha256 =
+      kind === "REVOKE" ? input.request.grantReceiptSha256 : null;
+    const predecessorReceiptSha256 =
+      kind === "REVOKE" &&
+      reason === "PHASE_COMPLETED" &&
+      "completionReceiptSha256" in input.request
+        ? input.request.completionReceiptSha256
+        : null;
+    const compensationPlanSha256 =
+      kind === "GRANT" ? input.request.compensationPlanSha256 : null;
+    const phasePlanSha256 =
+      kind === "GRANT" ? input.request.phasePlanSha256 : null;
+    const controllerContractSha256 =
+      kind === "GRANT" ? input.request.controllerContractSha256 : null;
+    const raw = await this.query(
+      `WITH db_clock AS (
+         SELECT floor(extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), eligible AS (
+         SELECT operation.*, review_window.reviewed_at,
+           review_window.expires_at, db_clock.now_ms
+         FROM shared_cell_author_compensation_operations operation
+         JOIN shared_cell_author_compensation_review_windows review_window
+           ON review_window.operation_sha256 = operation.operation_sha256
+          AND review_window.phase = operation.current_phase
+          AND review_window.window_number = operation.current_window_number
+         LEFT JOIN shared_cell_author_compensation_phase_attempts attempt
+           ON attempt.operation_sha256 = operation.operation_sha256
+          AND attempt.phase = operation.current_phase
+          AND attempt.window_number = operation.current_window_number
+          AND attempt.attempt_number = operation.current_attempt_number
+         LEFT JOIN shared_cell_author_compensation_lifecycle_actions grant_action
+           ON grant_action.operation_sha256 = operation.operation_sha256
+          AND grant_action.phase = operation.current_phase
+          AND grant_action.window_number = operation.current_window_number
+          AND grant_action.action_kind = 'GRANT'
+         CROSS JOIN db_clock
+         WHERE operation.operation_sha256 = $1
+           AND operation.lease_owner = $2 AND operation.claim_token = $3
+           AND operation.lease_attempt = $4 AND operation.state_revision = $5
+           AND operation.lease_expires_at = $6
+           AND operation.lease_expires_at > db_clock.now_ms
+           AND operation.current_phase = $7
+           AND operation.current_window_number = $8
+           AND operation.state = $11
+           AND NOT EXISTS (
+             SELECT 1
+             FROM shared_cell_author_compensation_lifecycle_actions uncertain
+             WHERE uncertain.operation_sha256 = operation.operation_sha256
+               AND uncertain.status = 'recover_only'
+           )
+           AND (
+             ($9 = 'GRANT'
+               AND operation.current_attempt_number IS NULL
+               AND operation.current_grant_receipt_sha256 IS NULL
+               AND review_window.compensation_plan_sha256 = $18
+               AND review_window.phase_plan_sha256 = $19
+               AND review_window.controller_contract_sha256 = $20
+               AND db_clock.now_ms >= review_window.reviewed_at
+               AND review_window.expires_at - db_clock.now_ms > $14)
+             OR
+             ($9 = 'REVOKE'
+               AND operation.current_grant_receipt_sha256 = $16
+               AND grant_action.status = 'completed'
+               AND grant_action.completion_receipt_sha256 = $16
+               AND (
+                 ($10 = 'PHASE_COMPLETED'
+                   AND attempt.status = 'completed'
+                   AND attempt.completion_receipt_sha256 = $17)
+                 OR
+                 ($10 = 'WINDOW_EXPIRED'
+                   AND operation.current_attempt_number IS NULL
+                   AND review_window.expires_at - db_clock.now_ms <= $14)
+               ))
+           )
+         FOR UPDATE OF operation
+       ), action_insert AS (
+         INSERT INTO shared_cell_author_compensation_lifecycle_actions (
+           operation_sha256, phase, window_number, action_number,
+           action_kind, revoke_reason, status, request, request_sha256,
+           lease_attempt, prepared_revision, started_at, updated_at
+         )
+         SELECT eligible.operation_sha256, $7, $8, $15, $9, $10,
+           'recover_only', $12, $13, eligible.lease_attempt,
+           eligible.state_revision + 1, eligible.now_ms, eligible.now_ms
+         FROM eligible
+         RETURNING *
+       ), updated AS (
+         UPDATE shared_cell_author_compensation_operations operation
+         SET state_revision = operation.state_revision + 1,
+           updated_at = eligible.now_ms
+         FROM eligible, action_insert
+         WHERE operation.operation_sha256 = eligible.operation_sha256
+           AND operation.state_revision = $5
+         RETURNING operation.*
+       ), event_insert AS (
+         INSERT INTO shared_cell_author_compensation_events (
+           operation_sha256, state_revision, phase, window_number,
+           event_type, from_state, to_state, evidence_sha256, evidence, created_at
+         )
+         SELECT updated.operation_sha256, updated.state_revision, $7, $8,
+           'lifecycle_action_started', $11, $11, $13,
+           jsonb_build_object(
+             'actionNumber', $15,
+             'kind', $9,
+             'requestSha256', $13
+           )::text, updated.updated_at
+         FROM updated
+         RETURNING operation_sha256
+       )
+       SELECT row_to_json(operation_row)::text AS operation_record,
+         row_to_json(review_window)::text AS window_record,
+         CASE WHEN phase_attempt.operation_sha256 IS NULL
+           THEN NULL ELSE row_to_json(phase_attempt)::text END AS attempt_record,
+         row_to_json(lifecycle_action)::text AS lifecycle_action_record
+       FROM updated operation_row
+       JOIN shared_cell_author_compensation_review_windows review_window
+         ON review_window.operation_sha256 = operation_row.operation_sha256
+        AND review_window.phase = operation_row.current_phase
+        AND review_window.window_number = operation_row.current_window_number
+       LEFT JOIN shared_cell_author_compensation_phase_attempts phase_attempt
+         ON phase_attempt.operation_sha256 = operation_row.operation_sha256
+        AND phase_attempt.phase = operation_row.current_phase
+        AND phase_attempt.window_number = operation_row.current_window_number
+        AND phase_attempt.attempt_number = operation_row.current_attempt_number
+       JOIN action_insert lifecycle_action
+         ON lifecycle_action.operation_sha256 = operation_row.operation_sha256
+        AND lifecycle_action.phase = operation_row.current_phase
+        AND lifecycle_action.window_number = operation_row.current_window_number`,
+      [
+        input.handle.operationSha256,
+        input.handle.workerId,
+        input.handle.claimToken,
+        input.handle.leaseAttempt,
+        input.handle.stateRevision,
+        input.handle.leaseExpiresAt,
+        phase,
+        input.windowNumber,
+        kind,
+        reason,
+        expectedState,
+        canonicalJson(input.request),
+        requestSha256,
+        SHARED_CELL_AUTHOR_COMPENSATION_PHASE_MARGIN_MS[phase],
+        actionNumber,
+        grantReceiptSha256,
+        predecessorReceiptSha256,
+        compensationPlanSha256,
+        phasePlanSha256,
+        controllerContractSha256,
+      ],
+      input.signal,
+      true,
+    );
+    const snapshot = singleSnapshot(raw);
+    return snapshot ? claimFromSnapshot(snapshot) : null;
+  }
+
+  async completeLifecycleAction(
+    input: Parameters<SharedCellAuthorCompensationOperationStore["completeLifecycleAction"]>[0],
+  ): Promise<Readonly<{
+    claim: Readonly<SharedCellAuthorCompensationClaim> | null;
+    snapshot: Readonly<SharedCellAuthorCompensationOperationSnapshot>;
+  }> | null> {
+    assertSharedCellAuthorCompensationClaimHandle(input.handle);
+    if (!Number.isSafeInteger(input.actionNumber) || input.actionNumber < 1) {
+      invalidRow("lifecycle action number");
+    }
+    const receipt = input.receipt;
+    let kind: SharedCellAuthorCompensationLifecycleActionKind;
+    let reason: "PHASE_COMPLETED" | "WINDOW_EXPIRED" | null;
+    if (receipt.action === "shared_cell_author_compensation_phase_grant_verified") {
+      assertSharedCellAuthorCompensationPhaseGrantReceipt(receipt);
+      kind = "GRANT";
+      reason = null;
+    } else if (receipt.action === "shared_cell_author_compensation_locked_verified") {
+      assertSharedCellAuthorCompensationLockedReceipt(receipt);
+      kind = "REVOKE";
+      reason = "PHASE_COMPLETED";
+    } else {
+      assertSharedCellAuthorCompensationWindowExpiredLockedReceipt(receipt);
+      kind = "REVOKE";
+      reason = "WINDOW_EXPIRED";
+    }
+    if (
+      receipt.operationSha256 !== input.handle.operationSha256 ||
+      input.actionNumber !== (kind === "GRANT" ? 1 : 2)
+    ) {
+      throw new SharedCellAuthorCompensationStoreError(
+        "SHARED_CELL_AUTHOR_COMPENSATION_STORE_LIFECYCLE_RECEIPT_MISMATCH",
+        "The lifecycle completion receipt is not bound to the exact durable action.",
+      );
+    }
+    const phase = receipt.phase;
+    const receiptSha256 = await sharedCellAuthorCompensationReceiptSha256(
+      receipt,
+    );
+    const receiptObservedAt = Date.parse(receipt.observedAt);
+    const preparedState = sqlState(phase, "prepared");
+    const readyState = sqlState(phase, "ready");
+    const revokeRequiredState = sqlState(phase, "revoke_required");
+    const awaitingReviewState = `awaiting_${sqlState(phase, "review")}`;
+    const grantReceiptSha256 =
+      receipt.action ===
+      "shared_cell_author_compensation_window_expired_locked_verified"
+        ? receipt.grantReceiptSha256
+        : null;
+    const completionReceiptSha256 =
+      receipt.action === "shared_cell_author_compensation_locked_verified"
+        ? receipt.completionReceiptSha256
+        : null;
+    const grantCompensationPlanSha256 =
+      receipt.action === "shared_cell_author_compensation_phase_grant_verified"
+        ? receipt.compensationPlanSha256
+        : null;
+    const grantPhasePlanSha256 =
+      receipt.action === "shared_cell_author_compensation_phase_grant_verified"
+        ? receipt.phasePlanSha256
+        : null;
+    const grantControllerContractSha256 =
+      receipt.action === "shared_cell_author_compensation_phase_grant_verified"
+        ? receipt.controllerContractSha256
+        : null;
+    const raw = await this.query(
+      `WITH db_clock AS (
+         SELECT floor(extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+       ), eligible AS (
+         SELECT operation.*, review_window.reviewed_at,
+           review_window.expires_at, action.request,
+           action.request_sha256, db_clock.now_ms,
+           CASE
+             WHEN $9 = 'GRANT' THEN $15
+             WHEN $10 = 'WINDOW_EXPIRED' THEN $17
+             WHEN (attempt.completion_receipt::jsonb #>> '{observedState}') = 'MISSING'
+               THEN 'missing_proven_locked'
+             ELSE 'awaiting_delete_stack_review'
+           END AS next_state
+         FROM shared_cell_author_compensation_operations operation
+         JOIN shared_cell_author_compensation_review_windows review_window
+           ON review_window.operation_sha256 = operation.operation_sha256
+          AND review_window.phase = operation.current_phase
+          AND review_window.window_number = operation.current_window_number
+         JOIN shared_cell_author_compensation_lifecycle_actions action
+           ON action.operation_sha256 = operation.operation_sha256
+          AND action.phase = operation.current_phase
+          AND action.window_number = operation.current_window_number
+          AND action.action_number = $7
+         LEFT JOIN shared_cell_author_compensation_phase_attempts attempt
+           ON attempt.operation_sha256 = operation.operation_sha256
+          AND attempt.phase = operation.current_phase
+          AND attempt.window_number = operation.current_window_number
+          AND attempt.attempt_number = operation.current_attempt_number
+         CROSS JOIN db_clock
+         WHERE operation.operation_sha256 = $1
+           AND operation.lease_owner = $2 AND operation.claim_token = $3
+           AND operation.lease_attempt = $4 AND operation.state_revision = $5
+           AND operation.lease_expires_at = $6
+           AND operation.lease_expires_at > db_clock.now_ms
+           AND operation.current_phase = $8
+           AND action.action_kind = $9
+           AND action.revoke_reason IS NOT DISTINCT FROM $10
+           AND action.status = 'recover_only'
+           AND (action.request::jsonb #>> '{operationSha256}') = operation.operation_sha256
+           AND (action.request::jsonb #>> '{phase}') = operation.current_phase
+           AND (action.request::jsonb #>> '{windowNumber}')::integer = operation.current_window_number
+           AND (action.request::jsonb #>> '{kind}') = action.action_kind
+           AND $13 >= action.started_at
+           AND $13 <= db_clock.now_ms
+           AND (
+             ($9 = 'GRANT'
+               AND operation.state = $14
+               AND operation.current_attempt_number IS NULL
+               AND operation.current_grant_receipt_sha256 IS NULL
+               AND review_window.compensation_plan_sha256 = $21
+               AND review_window.phase_plan_sha256 = $22
+               AND review_window.controller_contract_sha256 = $23
+               AND (action.request::jsonb #>> '{compensationPlanSha256}') = $21
+               AND (action.request::jsonb #>> '{phasePlanSha256}') = $22
+                AND (action.request::jsonb #>> '{controllerContractSha256}') = $23
+                AND $13 >= review_window.reviewed_at
+                AND review_window.expires_at - action.started_at > $18
+                AND (
+                  (($11::jsonb #>> '{disposition}') = 'PHASE_EXECUTION_ALLOWED'
+                    AND review_window.expires_at - $13 > $18
+                    AND review_window.expires_at - db_clock.now_ms > $18)
+                  OR
+                  (($11::jsonb #>> '{disposition}') = 'REVOKE_ONLY'
+                    AND review_window.expires_at - $13 <= $18)
+                ))
+             OR
+             ($10 = 'PHASE_COMPLETED'
+               AND operation.state = $16
+               AND operation.current_grant_receipt_sha256 =
+                 (action.request::jsonb #>> '{grantReceiptSha256}')
+               AND attempt.status = 'completed'
+               AND attempt.completion_receipt_sha256 = $20
+               AND (action.request::jsonb #>> '{completionReceiptSha256}') = $20)
+             OR
+             ($10 = 'WINDOW_EXPIRED'
+               AND operation.state = $15
+               AND operation.current_attempt_number IS NULL
+               AND operation.current_grant_receipt_sha256 = $19
+               AND (action.request::jsonb #>> '{grantReceiptSha256}') = $19
+               AND review_window.expires_at - db_clock.now_ms <= $18
+               AND review_window.expires_at - $13 <= $18)
+           )
+         FOR UPDATE OF operation, action
+       ), action_complete AS (
+         UPDATE shared_cell_author_compensation_lifecycle_actions action
+         SET status = 'completed', completion_receipt = $11,
+           completion_receipt_sha256 = $12,
+           updated_at = eligible.now_ms, completed_at = eligible.now_ms
+         FROM eligible
+         WHERE action.operation_sha256 = eligible.operation_sha256
+           AND action.phase = $8
+           AND action.window_number = eligible.current_window_number
+           AND action.action_number = $7
+           AND action.status = 'recover_only'
+         RETURNING action.*
+       ), updated AS (
+         UPDATE shared_cell_author_compensation_operations operation
+         SET state = eligible.next_state,
+           current_phase = CASE
+             WHEN $9 = 'GRANT' THEN operation.current_phase
+             WHEN eligible.next_state = 'awaiting_delete_stack_review'
+               THEN 'DELETE_STACK'
+             WHEN eligible.next_state IN (
+               'awaiting_delete_change_set_review', 'awaiting_delete_stack_review'
+             ) THEN operation.current_phase
+             ELSE NULL
+           END,
+           current_window_number = CASE WHEN $9 = 'GRANT'
+             THEN operation.current_window_number ELSE NULL END,
+           current_attempt_number = CASE WHEN $9 = 'GRANT'
+             THEN operation.current_attempt_number ELSE NULL END,
+           current_grant_receipt_sha256 = CASE WHEN $9 = 'GRANT'
+             THEN $12 ELSE NULL END,
+           lease_owner = CASE WHEN $9 = 'GRANT' THEN operation.lease_owner ELSE NULL END,
+           claim_token = CASE WHEN $9 = 'GRANT' THEN operation.claim_token ELSE NULL END,
+           lease_expires_at = CASE WHEN $9 = 'GRANT' THEN operation.lease_expires_at ELSE NULL END,
+           state_revision = operation.state_revision + 1,
+           updated_at = eligible.now_ms,
+           completed_at = CASE WHEN eligible.next_state = 'missing_proven_locked'
+             THEN eligible.now_ms ELSE NULL END
+         FROM eligible, action_complete
+         WHERE operation.operation_sha256 = eligible.operation_sha256
+           AND operation.state_revision = $5
+         RETURNING operation.*
+       ), event_insert AS (
+         INSERT INTO shared_cell_author_compensation_events (
+           operation_sha256, state_revision, phase, window_number, attempt_number,
+           event_type, from_state, to_state, evidence_sha256, evidence, created_at
+         )
+         SELECT updated.operation_sha256, updated.state_revision, $8,
+           eligible.current_window_number, eligible.current_attempt_number,
+           'lifecycle_action_completed', eligible.state, eligible.next_state,
+           $12, $11, updated.updated_at
+         FROM updated, eligible
+         RETURNING operation_sha256
+       )
+       SELECT row_to_json(operation_row)::text AS operation_record,
+         CASE WHEN $9 = 'GRANT' THEN row_to_json(review_window)::text
+           ELSE NULL::text END AS window_record,
+         CASE WHEN $9 = 'GRANT' AND phase_attempt.operation_sha256 IS NOT NULL
+           THEN row_to_json(phase_attempt)::text ELSE NULL::text END AS attempt_record,
+         CASE WHEN $9 = 'GRANT' THEN row_to_json(lifecycle_action)::text
+           ELSE NULL::text END AS lifecycle_action_record
+       FROM updated operation_row
+       LEFT JOIN shared_cell_author_compensation_review_windows review_window
+         ON review_window.operation_sha256 = operation_row.operation_sha256
+        AND review_window.phase = operation_row.current_phase
+        AND review_window.window_number = operation_row.current_window_number
+       LEFT JOIN shared_cell_author_compensation_phase_attempts phase_attempt
+         ON phase_attempt.operation_sha256 = operation_row.operation_sha256
+        AND phase_attempt.phase = operation_row.current_phase
+        AND phase_attempt.window_number = operation_row.current_window_number
+        AND phase_attempt.attempt_number = operation_row.current_attempt_number
+       LEFT JOIN action_complete lifecycle_action ON $9 = 'GRANT'`,
+      [
+        input.handle.operationSha256,
+        input.handle.workerId,
+        input.handle.claimToken,
+        input.handle.leaseAttempt,
+        input.handle.stateRevision,
+        input.handle.leaseExpiresAt,
+        input.actionNumber,
+        phase,
+        kind,
+        reason,
+        canonicalJson(receipt),
+        receiptSha256,
+        receiptObservedAt,
+        preparedState,
+        readyState,
+        revokeRequiredState,
+        awaitingReviewState,
+        SHARED_CELL_AUTHOR_COMPENSATION_PHASE_MARGIN_MS[phase],
+        grantReceiptSha256,
+        completionReceiptSha256,
+        grantCompensationPlanSha256,
+        grantPhasePlanSha256,
+        grantControllerContractSha256,
+      ],
+      input.signal,
+      true,
+    );
+    const snapshot = singleSnapshot(raw);
+    if (!snapshot) return null;
+    return Object.freeze({
+      claim: kind === "GRANT" ? claimFromSnapshot(snapshot) : null,
+      snapshot,
+    });
   }
 
   async preparePhase(input: Parameters<SharedCellAuthorCompensationOperationStore["preparePhase"]>[0]): Promise<Readonly<SharedCellAuthorCompensationClaim> | null> {
@@ -773,7 +1405,9 @@ implements SharedCellAuthorCompensationOperationStore {
         LEFT JOIN shared_cell_author_compensation_phase_attempts phase_attempt
           ON phase_attempt.operation_sha256 = operation_row.operation_sha256
          AND phase_attempt.phase = operation_row.current_phase
-         AND phase_attempt.attempt_number = operation_row.current_attempt_number`,
+         AND phase_attempt.window_number = operation_row.current_window_number
+         AND phase_attempt.attempt_number = operation_row.current_attempt_number
+        ${currentLifecycleActionJoin}`,
       [
         input.handle.operationSha256,
         input.handle.workerId,
@@ -893,7 +1527,8 @@ implements SharedCellAuthorCompensationOperationStore {
        JOIN attempt_insert phase_attempt
          ON phase_attempt.operation_sha256 = operation_row.operation_sha256
         AND phase_attempt.phase = operation_row.current_phase
-        AND phase_attempt.attempt_number = operation_row.current_attempt_number`,
+        AND phase_attempt.attempt_number = operation_row.current_attempt_number
+       ${currentLifecycleActionJoin}`,
       [
         input.handle.operationSha256,
         input.handle.workerId,
@@ -951,6 +1586,7 @@ implements SharedCellAuthorCompensationOperationStore {
          JOIN shared_cell_author_compensation_phase_attempts attempt
            ON attempt.operation_sha256 = operation.operation_sha256
           AND attempt.phase = operation.current_phase
+          AND attempt.window_number = operation.current_window_number
           AND attempt.attempt_number = operation.current_attempt_number
          CROSS JOIN db_clock
          WHERE operation.operation_sha256 = $1
@@ -1005,7 +1641,8 @@ implements SharedCellAuthorCompensationOperationStore {
        JOIN attempt_complete phase_attempt
          ON phase_attempt.operation_sha256 = operation_row.operation_sha256
         AND phase_attempt.phase = operation_row.current_phase
-        AND phase_attempt.attempt_number = operation_row.current_attempt_number`,
+        AND phase_attempt.attempt_number = operation_row.current_attempt_number
+       ${currentLifecycleActionJoin}`,
       [
         input.handle.operationSha256,
         input.handle.workerId,
@@ -1057,6 +1694,7 @@ implements SharedCellAuthorCompensationOperationStore {
          JOIN shared_cell_author_compensation_phase_attempts attempt
            ON attempt.operation_sha256 = operation.operation_sha256
           AND attempt.phase = operation.current_phase
+          AND attempt.window_number = operation.current_window_number
           AND attempt.attempt_number = operation.current_attempt_number
          CROSS JOIN db_clock
          WHERE operation.operation_sha256 = $1
@@ -1111,7 +1749,8 @@ implements SharedCellAuthorCompensationOperationStore {
          RETURNING operation_sha256
        )
        SELECT row_to_json(operation_row)::text AS operation_record,
-         NULL::text AS window_record, NULL::text AS attempt_record
+         NULL::text AS window_record, NULL::text AS attempt_record,
+         NULL::text AS lifecycle_action_record
        FROM updated operation_row`,
       [
         input.handle.operationSha256,
@@ -1161,7 +1800,9 @@ implements SharedCellAuthorCompensationOperationStore {
        LEFT JOIN shared_cell_author_compensation_phase_attempts phase_attempt
          ON phase_attempt.operation_sha256 = operation_row.operation_sha256
         AND phase_attempt.phase = operation_row.current_phase
-        AND phase_attempt.attempt_number = operation_row.current_attempt_number`,
+        AND phase_attempt.window_number = operation_row.current_window_number
+        AND phase_attempt.attempt_number = operation_row.current_attempt_number
+       ${currentLifecycleActionJoin}`,
       [
         input.handle.operationSha256,
         input.handle.workerId,
@@ -1225,7 +1866,9 @@ implements SharedCellAuthorCompensationOperationStore {
        LEFT JOIN shared_cell_author_compensation_phase_attempts phase_attempt
          ON phase_attempt.operation_sha256 = operation_row.operation_sha256
         AND phase_attempt.phase = operation_row.current_phase
-        AND phase_attempt.attempt_number = operation_row.current_attempt_number`,
+        AND phase_attempt.window_number = operation_row.current_window_number
+        AND phase_attempt.attempt_number = operation_row.current_attempt_number
+       ${currentLifecycleActionJoin}`,
       [
         input.handle.operationSha256,
         input.handle.workerId,
@@ -1252,7 +1895,9 @@ implements SharedCellAuthorCompensationOperationStore {
        LEFT JOIN shared_cell_author_compensation_phase_attempts phase_attempt
          ON phase_attempt.operation_sha256 = operation_row.operation_sha256
         AND phase_attempt.phase = operation_row.current_phase
+        AND phase_attempt.window_number = operation_row.current_window_number
         AND phase_attempt.attempt_number = operation_row.current_attempt_number
+       ${currentLifecycleActionJoin}
        WHERE operation_row.operation_sha256 = $1`,
       [input.operationSha256],
       input.signal,

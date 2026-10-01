@@ -23,6 +23,8 @@ import {
 import type {
   SharedCellAuthorCompensationClaim,
   SharedCellAuthorCompensationClaimHandle,
+  SharedCellAuthorCompensationLifecycleActionCompletionReceipt,
+  SharedCellAuthorCompensationLifecycleActionRequest,
   SharedCellAuthorCompensationMutationRequest,
   SharedCellAuthorCompensationOperation,
   SharedCellAuthorCompensationOperationSnapshot,
@@ -263,11 +265,11 @@ type Contract = Awaited<
 
 class FakeStore implements SharedCellAuthorCompensationOperationStore {
   readonly calls: string[] = [];
-  readonly preparedHandles: SharedCellAuthorCompensationClaimHandle[] = [];
+  readonly beginSignals: AbortSignal[] = [];
   readonly releasedHandles: SharedCellAuthorCompensationClaimHandle[] = [];
   readonly releaseSignalsAborted: boolean[] = [];
+  abortAfterBegin: AbortController | null = null;
   rejectBegin = false;
-  corruptPreparedSnapshot = false;
   snapshot: SharedCellAuthorCompensationOperationSnapshot;
   private contract: Contract;
   private candidate: SharedCellAuthorCompensationCandidate;
@@ -279,6 +281,41 @@ class FakeStore implements SharedCellAuthorCompensationOperationStore {
   ) {
     this.candidate = structuredClone(source);
     this.contract = contract;
+    const persistedGrantReceipt = reviewed ? grantReceipt(contract) : null;
+    const persistedGrantReceiptSha256 = persistedGrantReceipt
+      ? createHash("sha256")
+          .update(canonicalJson(persistedGrantReceipt), "utf8")
+          .digest("hex")
+      : null;
+    const lifecycleRequest = reviewed
+      ? ({
+          schemaVersion: 1,
+          action: "shared_cell_author_compensation_grant",
+          kind: "GRANT",
+          operationSha256: contract.operationSha256,
+          phase: contract.phase,
+          windowNumber: 1,
+          compensationPlanSha256: contract.compensationPlanSha256,
+          phasePlanSha256: contract.phasePlanSha256,
+          controllerContractSha256: contract.controllerContractSha256,
+          lifecycleContractSha256: "f".repeat(64),
+          targetRendererShape:
+            contract.phase === "DELETE_CHANGE_SET"
+              ? "AuthorCompensationDeleteChangeSetGrant"
+              : "AuthorCompensationDeleteStackGrant",
+          targetTemplateRawSha256: rawSha256,
+          targetTemplateCanonicalSha256: canonicalSha256,
+          managementStackName: "techlong-s3-b5-cell-lifecycle-management",
+          managementStackId:
+            "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-lifecycle-management/fb742b50-afb2-11f1-85b7-02588681429d",
+          managementChangeSetName: `techlong-j5gj3-grant-${"f".repeat(16)}`,
+        } as const satisfies SharedCellAuthorCompensationLifecycleActionRequest)
+      : null;
+    const lifecycleRequestSha256 = lifecycleRequest
+      ? createHash("sha256")
+          .update(canonicalJson(lifecycleRequest), "utf8")
+          .digest("hex")
+      : null;
     const operation: SharedCellAuthorCompensationOperation = {
       schemaVersion: 1,
       operationSha256: contract.operationSha256,
@@ -295,14 +332,14 @@ class FakeStore implements SharedCellAuthorCompensationOperationStore {
           : `b5-author-comp-${contract.operationSha256.slice(0, 32)}`,
       state: reviewed
         ? contract.phase === "DELETE_CHANGE_SET"
-          ? "delete_change_set_prepared"
-          : "delete_stack_prepared"
+          ? "delete_change_set_ready"
+          : "delete_stack_ready"
         : "awaiting_delete_change_set_review",
       currentPhase: reviewed ? contract.phase : null,
       currentWindowNumber: reviewed ? 1 : null,
       currentAttemptNumber: null,
-      currentGrantReceiptSha256: null,
-      stateRevision: reviewed ? 2 : 1,
+      currentGrantReceiptSha256: persistedGrantReceiptSha256,
+      stateRevision: reviewed ? 3 : 1,
       leaseOwner: null,
       claimToken: null,
       leaseAttempt: 0,
@@ -317,6 +354,31 @@ class FakeStore implements SharedCellAuthorCompensationOperationStore {
       operation,
       currentWindow: reviewed ? this.window(1) : null,
       currentAttempt: null,
+      currentLifecycleAction:
+        reviewed &&
+        persistedGrantReceipt &&
+        persistedGrantReceiptSha256 &&
+        lifecycleRequest &&
+        lifecycleRequestSha256
+          ? {
+              operationSha256: contract.operationSha256,
+              phase: contract.phase,
+              windowNumber: 1,
+              actionNumber: 1,
+              kind: "GRANT",
+              revokeReason: null,
+              status: "completed",
+              request: lifecycleRequest,
+              requestSha256: lifecycleRequestSha256,
+              leaseAttempt: 1,
+              preparedRevision: 2,
+              completionReceipt: persistedGrantReceipt,
+              completionReceiptSha256: persistedGrantReceiptSha256,
+              startedAt: testNow,
+              updatedAt: testNow,
+              completedAt: testNow,
+            }
+          : null,
     };
   }
 
@@ -378,6 +440,7 @@ class FakeStore implements SharedCellAuthorCompensationOperationStore {
       }),
       currentWindow: this.window(1),
       currentAttempt: null,
+      currentLifecycleAction: null,
     };
     return this.snapshot;
   }
@@ -410,37 +473,17 @@ class FakeStore implements SharedCellAuthorCompensationOperationStore {
     grantReceipt: SharedCellAuthorCompensationPhaseGrantReceipt;
   }): Promise<Readonly<SharedCellAuthorCompensationClaim> | null> {
     this.calls.push("prepare");
-    const revision = this.snapshot.operation.stateRevision + 1;
-    this.snapshot = {
-      ...this.snapshot,
-      operation: this.operation({
-        state:
-          this.corruptPreparedSnapshot
-            ? this.contract.phase === "DELETE_CHANGE_SET"
-              ? "delete_change_set_prepared"
-              : "delete_stack_prepared"
-            : this.contract.phase === "DELETE_CHANGE_SET"
-            ? "delete_change_set_ready"
-            : "delete_stack_ready",
-        currentGrantReceiptSha256:
-          await sharedCellAuthorCompensationReceiptSha256(input.grantReceipt),
-        stateRevision: revision,
-      }),
-    };
-    const handle = { ...input.handle, stateRevision: revision };
-    this.preparedHandles.push(structuredClone(handle));
-    return {
-      mode: "PREPARE",
-      handle,
-      snapshot: this.snapshot,
-    };
+    void input;
+    assert.fail("the J5g-j3 phase controller must not call legacy preparePhase");
   }
 
   async beginSubmission(input: {
     handle: SharedCellAuthorCompensationClaimHandle;
     mutation: SharedCellAuthorCompensationMutationRequest;
+    signal: AbortSignal;
   }): Promise<Readonly<SharedCellAuthorCompensationSubmissionReceipt> | null> {
     this.calls.push("begin-submission");
+    this.beginSignals.push(input.signal);
     if (this.rejectBegin) return null;
     const revision = this.snapshot.operation.stateRevision + 1;
     const attemptNumber = 1;
@@ -478,8 +521,11 @@ class FakeStore implements SharedCellAuthorCompensationOperationStore {
       }),
       currentWindow: this.snapshot.currentWindow,
       currentAttempt: attempt,
+      currentLifecycleAction: this.snapshot.currentLifecycleAction,
     };
     const handle = { ...input.handle, stateRevision: revision };
+    this.abortAfterBegin?.abort();
+    input.signal.throwIfAborted();
     return { handle, attemptNumber, requestSha256, snapshot: this.snapshot };
   }
 
@@ -509,6 +555,7 @@ class FakeStore implements SharedCellAuthorCompensationOperationStore {
         completionReceiptSha256,
         completedAt: testNow,
       },
+      currentLifecycleAction: this.snapshot.currentLifecycleAction,
     };
     return {
       mode: "RECOVER_ONLY",
@@ -520,6 +567,29 @@ class FakeStore implements SharedCellAuthorCompensationOperationStore {
   async recordLockedAndAdvance(): Promise<Readonly<SharedCellAuthorCompensationOperationSnapshot> | null> {
     this.calls.push("locked");
     return this.snapshot;
+  }
+
+  async beginLifecycleAction(input: {
+    handle: SharedCellAuthorCompensationClaimHandle;
+    windowNumber: number;
+    request: SharedCellAuthorCompensationLifecycleActionRequest;
+    signal: AbortSignal;
+  }): Promise<Readonly<SharedCellAuthorCompensationClaim> | null> {
+    void input;
+    assert.fail("the phase controller must not own grant lifecycle actions");
+  }
+
+  async completeLifecycleAction(input: {
+    handle: SharedCellAuthorCompensationClaimHandle;
+    actionNumber: number;
+    receipt: SharedCellAuthorCompensationLifecycleActionCompletionReceipt;
+    signal: AbortSignal;
+  }): Promise<Readonly<{
+    claim: Readonly<SharedCellAuthorCompensationClaim> | null;
+    snapshot: Readonly<SharedCellAuthorCompensationOperationSnapshot>;
+  }> | null> {
+    void input;
+    assert.fail("the phase controller must not own grant lifecycle actions");
   }
 
   async heartbeat(input: {
@@ -553,10 +623,15 @@ class FakeStore implements SharedCellAuthorCompensationOperationStore {
   }
 }
 
-function grantReceipt(contract: Contract): SharedCellAuthorCompensationPhaseGrantReceipt {
+function grantReceipt(
+  contract: Contract,
+  disposition: SharedCellAuthorCompensationPhaseGrantReceipt["disposition"] =
+    "PHASE_EXECUTION_ALLOWED",
+): SharedCellAuthorCompensationPhaseGrantReceipt {
   return {
     schemaVersion: 1,
     action: "shared_cell_author_compensation_phase_grant_verified",
+    disposition,
     operationSha256: contract.operationSha256,
     phase: contract.phase,
     compensationPlanSha256: contract.compensationPlanSha256,
@@ -668,7 +743,7 @@ test("read-only review distinguishes Change Set presence and requires exact abse
   assert.equal(deleteStackReview.inspection.readyForPhase, true);
 });
 
-test("write-ahead CAS precedes the sole AWS mutation and completion stops at revoke handoff", async () => {
+test("write-ahead CAS precedes the sole AWS mutation and completion returns a live revoke claim", async () => {
   const source = candidate();
   const contract = await compileSharedCellAuthorCompensationControllerContract(source, "DELETE_CHANGE_SET");
   const store = new FakeStore(source, contract);
@@ -708,6 +783,12 @@ test("write-ahead CAS precedes the sole AWS mutation and completion stops at rev
   assert.ok(order.indexOf("begin-submission") < order.indexOf("aws-delete-change-set"));
   assert.equal(result.summary.mutationPerformed, true);
   assert.equal(result.snapshot.operation.state, "delete_change_set_revoke_required");
+  assert.equal(result.claim.mode, "RECOVER_ONLY");
+  assert.deepEqual(result.claim.snapshot, result.snapshot);
+  assert.equal(
+    result.claim.handle.stateRevision,
+    result.snapshot.operation.stateRevision,
+  );
   assert.equal(result.revokeHandoff.previousRendererShape, "AuthorCompensationDeleteChangeSetGrant");
   assert.equal(result.revokeHandoff.targetRendererShape, "Locked");
   assert.equal(result.revokeHandoff.nextAfterLocked, "DELETE_STACK_REVIEW");
@@ -761,6 +842,115 @@ test("takeover resumes a grant-ready phase without replaying prepare", async () 
   });
   assert.equal(store.calls.includes("prepare"), false);
   assert.equal(store.calls.filter((call) => call === "begin-submission").length, 1);
+});
+
+test("a just-completed Grant can hand its live claim directly to the phase controller", async () => {
+  const source = candidate();
+  const contract = await compileSharedCellAuthorCompensationControllerContract(
+    source,
+    "DELETE_CHANGE_SET",
+  );
+  const store = new FakeStore(source, contract);
+  const claim = await store.claimExactOperation({ workerId: "handoff-test" });
+  assert.ok(claim);
+  store.calls.splice(0);
+  const fixture = evidenceFixture(source);
+
+  await executeClaimedSharedCellAuthorCompensationPhase({
+    store,
+    claim,
+    workerId: "handoff-test",
+    leaseDurationMs: 60_000,
+    windowNumber: 1,
+    phase: "DELETE_CHANGE_SET",
+    candidate: source,
+    approvedControllerContractSha256: contract.controllerContractSha256,
+    grantReceipt: grantReceipt(contract),
+    completionObservedAt: () => observedAt,
+    evidence: fixture.evidence,
+    authority: fixture.authority,
+    mutations: {
+      region: "ca-central-1",
+      async getCallerIdentity() {
+        return {
+          accountId: source.accountId,
+          arn: SHARED_CELL_AUTHOR_COMPENSATION_CALLER_ARN,
+        };
+      },
+      async deleteChangeSet() {
+        fixture.setChangeSetPresent(false);
+      },
+    },
+    signal: new AbortController().signal,
+    now: () => testNow,
+    readbackAttempts: 2,
+    readbackDelayMs: 0,
+    wait: async () => {},
+  });
+
+  assert.equal(store.calls.includes("claim"), false);
+  assert.equal(store.calls.filter((call) => call === "begin-submission").length, 1);
+});
+
+test("a grant-ready phase with a mismatched lifecycle request digest fails closed", async () => {
+  const source = candidate();
+  const contract = await compileSharedCellAuthorCompensationControllerContract(
+    source,
+    "DELETE_CHANGE_SET",
+  );
+  const store = new FakeStore(source, contract);
+  const action = store.snapshot.currentLifecycleAction;
+  assert.ok(action);
+  store.snapshot = {
+    ...store.snapshot,
+    currentLifecycleAction: {
+      ...action,
+      requestSha256: "0".repeat(64),
+    },
+  };
+  const fixture = evidenceFixture(source);
+  let mutations = 0;
+
+  await assert.rejects(
+    executeClaimedSharedCellAuthorCompensationPhase({
+      store,
+      workerId: "corrupt-grant-controller-test",
+      leaseDurationMs: 60_000,
+      windowNumber: 1,
+      phase: "DELETE_CHANGE_SET",
+      candidate: source,
+      approvedControllerContractSha256: contract.controllerContractSha256,
+      grantReceipt: grantReceipt(contract),
+      completionObservedAt: () => observedAt,
+      evidence: fixture.evidence,
+      authority: fixture.authority,
+      mutations: {
+        region: "ca-central-1",
+        async getCallerIdentity() {
+          return {
+            accountId: source.accountId,
+            arn: SHARED_CELL_AUTHOR_COMPENSATION_CALLER_ARN,
+          };
+        },
+        async deleteChangeSet() {
+          mutations += 1;
+        },
+      },
+      signal: new AbortController().signal,
+      now: () => testNow,
+      readbackAttempts: 2,
+      readbackDelayMs: 0,
+      wait: async () => {},
+    }),
+    (error) =>
+      error instanceof SharedCellAuthorCompensationControllerError &&
+      error.code ===
+        "SHARED_CELL_AUTHOR_COMPENSATION_CONTROLLER_GRANT_LIFECYCLE_REQUIRED",
+  );
+
+  assert.equal(mutations, 0);
+  assert.equal(store.calls.includes("begin-submission"), false);
+  assert.equal(store.calls.at(-1), "release");
 });
 
 test("grant-ready takeover past the phase cutoff releases without submission or AWS mutation", async () => {
@@ -831,7 +1021,57 @@ test("grant-ready takeover past the phase cutoff releases without submission or 
   assert.equal(store.calls.at(-1), "release");
 });
 
-test("a pre-boundary abort releases the claim with an independent live cleanup signal", async () => {
+test("a revoke-only reconciled grant is rejected before claim or phase mutation", async () => {
+  const source = candidate();
+  const contract = await compileSharedCellAuthorCompensationControllerContract(
+    source,
+    "DELETE_CHANGE_SET",
+  );
+  const store = new FakeStore(source, contract);
+  let awsCalls = 0;
+
+  await assert.rejects(
+    executeClaimedSharedCellAuthorCompensationPhase({
+      store,
+      workerId: "revoke-only-grant-test",
+      leaseDurationMs: 60_000,
+      windowNumber: 1,
+      phase: "DELETE_CHANGE_SET",
+      candidate: source,
+      approvedControllerContractSha256: contract.controllerContractSha256,
+      grantReceipt: grantReceipt(contract, "REVOKE_ONLY"),
+      completionObservedAt: () => observedAt,
+      evidence: evidenceFixture(source).evidence,
+      authority: evidenceFixture(source).authority,
+      mutations: {
+        region: "ca-central-1",
+        async getCallerIdentity() {
+          awsCalls += 1;
+          return {
+            accountId: source.accountId,
+            arn: SHARED_CELL_AUTHOR_COMPENSATION_CALLER_ARN,
+          };
+        },
+        async deleteChangeSet() {
+          awsCalls += 1;
+        },
+      },
+      signal: new AbortController().signal,
+      now: () => testNow,
+      readbackAttempts: 2,
+      readbackDelayMs: 0,
+      wait: async () => {},
+    }),
+    (error) =>
+      error instanceof SharedCellAuthorCompensationControllerError &&
+      error.code === "SHARED_CELL_AUTHOR_COMPENSATION_CONTROLLER_GRANT_MISMATCH",
+  );
+
+  assert.equal(awsCalls, 0);
+  assert.deepEqual(store.calls, []);
+});
+
+test("a pre-claim abort performs no durable or AWS operation", async () => {
   const source = candidate();
   const contract = await compileSharedCellAuthorCompensationControllerContract(
     source,
@@ -877,20 +1117,148 @@ test("a pre-boundary abort releases the claim with an independent live cleanup s
   );
 
   assert.equal(controller.signal.aborted, true);
-  assert.deepEqual(store.releaseSignalsAborted, [false]);
-  assert.equal(store.releasedHandles.length, 1);
-  assert.equal(store.calls.includes("begin-submission"), false);
-  assert.equal(store.calls.at(-1), "release");
+  assert.deepEqual(store.releaseSignalsAborted, []);
+  assert.equal(store.releasedHandles.length, 0);
+  assert.deepEqual(store.calls, []);
 });
 
-test("an invalid prepared snapshot releases with the returned advanced handle", async () => {
+test("a caller abort after phase write-ahead cannot suppress the sole AWS delegate", async () => {
   const source = candidate();
   const contract = await compileSharedCellAuthorCompensationControllerContract(
     source,
     "DELETE_CHANGE_SET",
   );
   const store = new FakeStore(source, contract);
-  store.corruptPreparedSnapshot = true;
+  const fixture = evidenceFixture(source);
+  const caller = new AbortController();
+  store.abortAfterBegin = caller;
+  let awsMutations = 0;
+
+  await assert.rejects(
+    executeClaimedSharedCellAuthorCompensationPhase({
+      store,
+      workerId: "post-write-ahead-abort-test",
+      leaseDurationMs: 60_000,
+      windowNumber: 1,
+      phase: "DELETE_CHANGE_SET",
+      candidate: source,
+      approvedControllerContractSha256: contract.controllerContractSha256,
+      grantReceipt: grantReceipt(contract),
+      completionObservedAt: () => observedAt,
+      evidence: fixture.evidence,
+      authority: fixture.authority,
+      mutations: {
+        region: "ca-central-1",
+        async getCallerIdentity() {
+          return {
+            accountId: source.accountId,
+            arn: SHARED_CELL_AUTHOR_COMPENSATION_CALLER_ARN,
+          };
+        },
+        async deleteChangeSet({ signal }) {
+          assert.notEqual(signal, caller.signal);
+          assert.equal(signal.aborted, false);
+          awsMutations += 1;
+        },
+      },
+      signal: caller.signal,
+      now: () => testNow,
+      readbackAttempts: 2,
+      readbackDelayMs: 0,
+      wait: async () => {},
+    }),
+    (error) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_AUTHOR_COMPENSATION_CHANGE_SET_POST_SUBMIT_UNCERTAIN",
+  );
+
+  assert.equal(caller.signal.aborted, true);
+  assert.equal(awsMutations, 1);
+  assert.notEqual(store.beginSignals[0], caller.signal);
+  assert.equal(store.beginSignals[0]?.aborted, false);
+  assert.equal(
+    store.snapshot.operation.state,
+    "delete_change_set_recover_only",
+  );
+  assert.equal(store.calls.includes("complete"), false);
+  assert.equal(store.calls.includes("release"), false);
+});
+
+test("a caller abort after DeleteStack write-ahead cannot suppress its sole AWS delegate", async () => {
+  const source = candidate();
+  const contract = await compileSharedCellAuthorCompensationControllerContract(
+    source,
+    "DELETE_STACK",
+  );
+  const store = new FakeStore(source, contract);
+  const fixture = evidenceFixture(source, { changeSetPresent: false });
+  const caller = new AbortController();
+  store.abortAfterBegin = caller;
+  let awsMutations = 0;
+
+  await assert.rejects(
+    executeClaimedSharedCellAuthorCompensationPhase({
+      store,
+      workerId: "post-stack-write-ahead-abort-test",
+      leaseDurationMs: 60_000,
+      windowNumber: 1,
+      phase: "DELETE_STACK",
+      candidate: source,
+      approvedControllerContractSha256: contract.controllerContractSha256,
+      grantReceipt: grantReceipt(contract),
+      completionObservedAt: () => observedAt,
+      evidence: fixture.evidence,
+      authority: fixture.authority,
+      mutations: {
+        region: "ca-central-1",
+        async getCallerIdentity() {
+          return {
+            accountId: source.accountId,
+            arn: SHARED_CELL_AUTHOR_COMPENSATION_CALLER_ARN,
+          };
+        },
+        async deleteStack({ signal }) {
+          assert.notEqual(signal, caller.signal);
+          assert.equal(signal.aborted, false);
+          awsMutations += 1;
+        },
+      },
+      signal: caller.signal,
+      now: () => testNow,
+      readbackAttempts: 2,
+      readbackDelayMs: 0,
+      wait: async () => {},
+    }),
+    (error) =>
+      (error as { code?: string }).code ===
+      "SHARED_CELL_AUTHOR_COMPENSATION_STACK_POST_SUBMIT_UNCERTAIN",
+  );
+
+  assert.equal(caller.signal.aborted, true);
+  assert.equal(awsMutations, 1);
+  assert.notEqual(store.beginSignals[0], caller.signal);
+  assert.equal(store.beginSignals[0]?.aborted, false);
+  assert.equal(store.snapshot.operation.state, "delete_stack_recover_only");
+  assert.equal(store.calls.includes("complete"), false);
+  assert.equal(store.calls.includes("release"), false);
+});
+
+test("a prepared phase without a completed durable grant fails closed and releases", async () => {
+  const source = candidate();
+  const contract = await compileSharedCellAuthorCompensationControllerContract(
+    source,
+    "DELETE_CHANGE_SET",
+  );
+  const store = new FakeStore(source, contract);
+  store.snapshot = {
+    ...store.snapshot,
+    operation: {
+      ...store.snapshot.operation,
+      state: "delete_change_set_prepared",
+      currentGrantReceiptSha256: null,
+    },
+    currentLifecycleAction: null,
+  };
   const fixture = evidenceFixture(source);
 
   await assert.rejects(
@@ -915,7 +1283,7 @@ test("an invalid prepared snapshot releases with the returned advanced handle", 
           };
         },
         async deleteChangeSet() {
-          assert.fail("an invalid prepared snapshot must not mutate AWS");
+          assert.fail("a phase without a durable grant must not mutate AWS");
         },
       },
       signal: new AbortController().signal,
@@ -927,17 +1295,16 @@ test("an invalid prepared snapshot releases with the returned advanced handle", 
     (error) =>
       error instanceof SharedCellAuthorCompensationControllerError &&
       error.code ===
-        "SHARED_CELL_AUTHOR_COMPENSATION_CONTROLLER_PREPARE_CAS_REJECTED",
+        "SHARED_CELL_AUTHOR_COMPENSATION_CONTROLLER_GRANT_LIFECYCLE_REQUIRED",
   );
 
-  assert.equal(store.preparedHandles.length, 1);
   assert.equal(store.releasedHandles.length, 1);
-  assert.deepEqual(store.releasedHandles[0], store.preparedHandles[0]);
   assert.equal(
     store.releasedHandles[0]?.stateRevision,
     store.snapshot.operation.stateRevision,
   );
   assert.deepEqual(store.releaseSignalsAborted, [false]);
+  assert.equal(store.calls.includes("prepare"), false);
   assert.equal(store.calls.includes("begin-submission"), false);
   assert.equal(store.calls.at(-1), "release");
 });

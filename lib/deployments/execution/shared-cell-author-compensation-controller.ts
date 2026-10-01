@@ -26,7 +26,9 @@ import { SHARED_CELL_CLEANUP_AUTHORITY_KEY } from "./shared-cell-cleanup-authori
 import {
   assertSharedCellAuthorCompensationPhaseGrantReceipt,
   SHARED_CELL_AUTHOR_COMPENSATION_PHASE_MARGIN_MS,
+  sharedCellAuthorCompensationLifecycleActionRequestSha256,
   sharedCellAuthorCompensationReceiptSha256,
+  type SharedCellAuthorCompensationClaim,
   type SharedCellAuthorCompensationClaimHandle,
   type SharedCellAuthorCompensationMutationRequest,
   type SharedCellAuthorCompensationOperationSnapshot,
@@ -61,11 +63,6 @@ const phaseRevokeState = Object.freeze({
   DELETE_STACK: "delete_stack_revoke_required",
 } as const);
 
-const phasePreparedState = Object.freeze({
-  DELETE_CHANGE_SET: "delete_change_set_prepared",
-  DELETE_STACK: "delete_stack_prepared",
-} as const);
-
 const phaseReadyState = Object.freeze({
   DELETE_CHANGE_SET: "delete_change_set_ready",
   DELETE_STACK: "delete_stack_ready",
@@ -78,6 +75,22 @@ const phaseRecoverOnlyState = Object.freeze({
 
 const digestPattern = /^[a-f0-9]{64}$/;
 const claimReleaseTimeoutMs = 5_000;
+const durableMutationTimeoutMs = 30_000;
+
+async function runIndependentDurableBoundary<T>(
+  operation: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  const dispatch = new AbortController();
+  const timeout = setTimeout(
+    () => dispatch.abort(),
+    durableMutationTimeoutMs,
+  );
+  try {
+    return await operation(dispatch.signal);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 export class SharedCellAuthorCompensationControllerError extends Error {
   readonly code: string;
@@ -407,6 +420,8 @@ export async function inspectAndReviewSharedCellAuthorCompensationPhase(
 
 interface ExecuteBaseInput {
   store: SharedCellAuthorCompensationOperationStore;
+  /** Live claim returned by a just-completed durable Grant action. */
+  claim?: Readonly<SharedCellAuthorCompensationClaim>;
   workerId: string;
   leaseDurationMs: number;
   windowNumber: number;
@@ -459,6 +474,7 @@ export interface SharedCellAuthorCompensationControlledResult {
   readonly completionReceipt: Readonly<SharedCellAuthorCompensationPhaseCompletionReceipt>;
   readonly completionReceiptSha256: string;
   readonly revokeHandoff: Readonly<SharedCellAuthorCompensationRevokeHandoff>;
+  readonly claim: Readonly<SharedCellAuthorCompensationClaim>;
   readonly snapshot: Readonly<SharedCellAuthorCompensationOperationSnapshot>;
 }
 
@@ -483,6 +499,7 @@ function assertGrantReceipt(
   if (
     receipt.operationSha256 !== contract.operationSha256 ||
     receipt.phase !== contract.phase ||
+    receipt.disposition !== "PHASE_EXECUTION_ALLOWED" ||
     receipt.compensationPlanSha256 !== contract.compensationPlanSha256 ||
     receipt.phasePlanSha256 !== contract.phasePlanSha256 ||
     receipt.controllerContractSha256 !== contract.controllerContractSha256
@@ -587,6 +604,7 @@ async function finishControlledPhase(
   });
   if (
     !completed ||
+    completed.mode !== "RECOVER_ONLY" ||
     completed.snapshot.operation.state !== phaseRevokeState[contract.phase] ||
     !completed.snapshot.currentAttempt ||
     completed.snapshot.currentAttempt.status !== "completed" ||
@@ -630,6 +648,7 @@ async function finishControlledPhase(
     completionReceipt,
     completionReceiptSha256,
     revokeHandoff,
+    claim: completed,
     snapshot: completed.snapshot,
   });
 }
@@ -660,7 +679,7 @@ export async function executeClaimedSharedCellAuthorCompensationPhase(
       "windowNumber",
       "workerId",
     ],
-    ["now", "readbackAttempts", "readbackDelayMs", "wait"],
+    ["claim", "now", "readbackAttempts", "readbackDelayMs", "wait"],
   );
   assertPhase(input.phase);
   assertPositiveInteger(input.leaseDurationMs, "leaseDurationMs");
@@ -681,12 +700,15 @@ export async function executeClaimedSharedCellAuthorCompensationPhase(
   const grantReceiptSha256 =
     await sharedCellAuthorCompensationReceiptSha256(input.grantReceipt);
 
-  const claimed = await input.store.claimExactOperation({
-    operationSha256: contract.operationSha256,
-    workerId: input.workerId,
-    leaseDurationMs: input.leaseDurationMs,
-    signal: input.signal,
-  });
+  input.signal.throwIfAborted();
+  const claimed =
+    input.claim ??
+    (await input.store.claimExactOperation({
+      operationSha256: contract.operationSha256,
+      workerId: input.workerId,
+      leaseDurationMs: input.leaseDurationMs,
+      signal: input.signal,
+    }));
   if (!claimed) {
     fail(
       "SHARED_CELL_AUTHOR_COMPENSATION_CONTROLLER_CLAIM_REJECTED",
@@ -694,8 +716,24 @@ export async function executeClaimedSharedCellAuthorCompensationPhase(
       true,
     );
   }
-  let resumePreparedGrant = false;
   try {
+    if (
+      claimed.handle.operationSha256 !== contract.operationSha256 ||
+      claimed.handle.workerId !== input.workerId ||
+      claimed.handle.stateRevision !==
+        claimed.snapshot.operation.stateRevision ||
+      claimed.snapshot.operation.leaseOwner !== input.workerId ||
+      claimed.snapshot.operation.claimToken !== claimed.handle.claimToken ||
+      claimed.snapshot.operation.leaseAttempt !== claimed.handle.leaseAttempt ||
+      claimed.snapshot.operation.leaseExpiresAt !==
+        claimed.handle.leaseExpiresAt
+    ) {
+      fail(
+        "SHARED_CELL_AUTHOR_COMPENSATION_CONTROLLER_CLAIM_REJECTED",
+        "The supplied live grant claim does not match the exact durable operation fence.",
+        true,
+      );
+    }
     assertClaimWindow(claimed.snapshot, contract, input.windowNumber);
     if (claimed.mode !== "PREPARE") {
       fail(
@@ -704,22 +742,39 @@ export async function executeClaimedSharedCellAuthorCompensationPhase(
         true,
       );
     }
-    const state = claimed.snapshot.operation.state;
-    if (state === phaseReadyState[input.phase]) {
-      if (
-        claimed.snapshot.operation.currentGrantReceiptSha256 !==
-        grantReceiptSha256
-      ) {
-        fail(
-          "SHARED_CELL_AUTHOR_COMPENSATION_CONTROLLER_GRANT_MISMATCH",
-          "The already prepared phase is not bound to the exact verified grant receipt.",
-        );
-      }
-      resumePreparedGrant = true;
-    } else if (state !== phasePreparedState[input.phase]) {
+    const lifecycleAction = claimed.snapshot.currentLifecycleAction;
+    const lifecycleRequestSha256 =
+      lifecycleAction?.request.kind === "GRANT"
+        ? await sharedCellAuthorCompensationLifecycleActionRequestSha256(
+            lifecycleAction.request,
+          )
+        : null;
+    if (
+      claimed.snapshot.operation.state !== phaseReadyState[input.phase] ||
+      claimed.snapshot.operation.currentGrantReceiptSha256 !==
+        grantReceiptSha256 ||
+      !lifecycleAction ||
+      lifecycleAction.kind !== "GRANT" ||
+      lifecycleAction.status !== "completed" ||
+      lifecycleAction.phase !== input.phase ||
+      lifecycleAction.windowNumber !== input.windowNumber ||
+      lifecycleAction.request.kind !== "GRANT" ||
+      lifecycleAction.request.operationSha256 !== contract.operationSha256 ||
+      lifecycleAction.request.phase !== input.phase ||
+      lifecycleAction.request.windowNumber !== input.windowNumber ||
+      lifecycleAction.request.compensationPlanSha256 !==
+        contract.compensationPlanSha256 ||
+      lifecycleAction.request.phasePlanSha256 !== contract.phasePlanSha256 ||
+      lifecycleAction.request.controllerContractSha256 !==
+        contract.controllerContractSha256 ||
+      lifecycleAction.requestSha256 !== lifecycleRequestSha256 ||
+      lifecycleAction.completionReceiptSha256 !== grantReceiptSha256 ||
+      !lifecycleAction.completionReceipt ||
+      !exactJson(lifecycleAction.completionReceipt, input.grantReceipt)
+    ) {
       fail(
-        "SHARED_CELL_AUTHOR_COMPENSATION_CONTROLLER_STATE_MISMATCH",
-        "The claimed phase is neither awaiting its grant receipt nor safely resumable after that receipt.",
+        "SHARED_CELL_AUTHOR_COMPENSATION_CONTROLLER_GRANT_LIFECYCLE_REQUIRED",
+        "The phase mutation requires a completed durable grant lifecycle action and its exact verified receipt.",
       );
     }
   } catch (error) {
@@ -733,34 +788,6 @@ export async function executeClaimedSharedCellAuthorCompensationPhase(
     null;
   let writeAheadFailure: unknown = null;
   try {
-    if (!resumePreparedGrant) {
-      const prepared = await input.store.preparePhase({
-        handle: activeHandle,
-        windowNumber: input.windowNumber,
-        grantReceipt: input.grantReceipt,
-        signal: input.signal,
-      });
-      if (prepared) activeHandle = prepared.handle;
-      if (!prepared || prepared.mode !== "PREPARE") {
-        fail(
-          "SHARED_CELL_AUTHOR_COMPENSATION_CONTROLLER_PREPARE_CAS_REJECTED",
-          "The exact reviewed phase could not be prepared at the durable claim fence.",
-          true,
-        );
-      }
-      if (
-        prepared.snapshot.operation.state !== phaseReadyState[input.phase] ||
-        prepared.snapshot.operation.currentGrantReceiptSha256 !==
-          grantReceiptSha256
-      ) {
-        fail(
-          "SHARED_CELL_AUTHOR_COMPENSATION_CONTROLLER_PREPARE_CAS_REJECTED",
-          "The prepared durable phase did not preserve the exact verified grant receipt.",
-          true,
-        );
-      }
-    }
-
     const beginSubmission = async (
       mutation: SharedCellAuthorCompensationMutationRequest,
       signal: AbortSignal,
@@ -777,15 +804,19 @@ export async function executeClaimedSharedCellAuthorCompensationPhase(
           "The core mutation request drifted from the exact controller contract.",
         );
       }
+      signal.throwIfAborted();
       submissionBoundaryEntered = true;
       try {
-        const receipt = await input.store.beginSubmission({
-          handle: activeHandle,
-          windowNumber: input.windowNumber,
-          controllerContractSha256: contract.controllerContractSha256,
-          mutation,
-          signal,
-        });
+        const receipt = await runIndependentDurableBoundary(
+          (boundarySignal) =>
+            input.store.beginSubmission({
+              handle: activeHandle,
+              windowNumber: input.windowNumber,
+              controllerContractSha256: contract.controllerContractSha256,
+              mutation,
+              signal: boundarySignal,
+            }),
+        );
         if (!receipt) {
           fail(
             "SHARED_CELL_AUTHOR_COMPENSATION_CONTROLLER_SUBMISSION_CAS_REJECTED",
@@ -830,8 +861,9 @@ export async function executeClaimedSharedCellAuthorCompensationPhase(
             { phase: "DELETE_CHANGE_SET", request: value.request },
             value.signal,
           );
-          value.signal.throwIfAborted();
-          return delegate.deleteChangeSet(value);
+          return runIndependentDurableBoundary((signal) =>
+            delegate.deleteChangeSet({ ...value, signal }),
+          );
         },
       };
       summary = await executeReviewedSharedCellAuthorDeleteChangeSet({
@@ -861,8 +893,9 @@ export async function executeClaimedSharedCellAuthorCompensationPhase(
             { phase: "DELETE_STACK", request: value.request },
             value.signal,
           );
-          value.signal.throwIfAborted();
-          return delegate.deleteStack(value);
+          return runIndependentDurableBoundary((signal) =>
+            delegate.deleteStack({ ...value, signal }),
+          );
         },
       };
       summary = await executeReviewedSharedCellAuthorDeleteStack({

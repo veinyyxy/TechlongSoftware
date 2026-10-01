@@ -57,6 +57,126 @@ test("0009 defines independent append-only durable compensation state", async ()
   assert.doesNotMatch(migration, /deployment_jobs|deployment_tenant_cleanup_phases/);
 });
 
+test("0010 durably fences every grant and revoke lifecycle transition", async () => {
+  const [migration, schema, drizzleSchema, drizzleRelations] =
+    await Promise.all([
+      readFile(
+        new URL(
+          "../db/postgres-migrations/0010_shared_cell_author_compensation_grant_lifecycle.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+      readFile(new URL("../db/postgres-schema.sql", import.meta.url), "utf8"),
+      readFile(new URL("../db/postgres-schema.ts", import.meta.url), "utf8"),
+      readFile(new URL("../db/postgres-relations.ts", import.meta.url), "utf8"),
+    ]);
+  const normalizedMigration = migration.replace(/\r\n/g, "\n").trim();
+  const normalizedSchema = schema.replace(/\r\n/g, "\n");
+
+  assert.ok(
+    normalizedSchema.includes(normalizedMigration),
+    "the desired PostgreSQL schema must contain the exact 0010 migration",
+  );
+  assert.match(
+    migration,
+    /CREATE TABLE shared_cell_author_compensation_lifecycle_actions/,
+  );
+  assert.match(
+    migration,
+    /action_kind = 'GRANT' AND action_number = 1[\s\S]*?action_kind = 'REVOKE' AND action_number = 2/,
+  );
+  assert.match(
+    migration,
+    /CREATE UNIQUE INDEX scac_lifecycle_one_recover_only_per_operation[\s\S]*?WHERE status = 'recover_only'/,
+  );
+  assert.match(
+    migration,
+    /A compensation lifecycle action must start recover-only without a receipt/,
+  );
+  assert.match(
+    migration,
+    /Completed Shared Cell author compensation lifecycle action is immutable/,
+  );
+  assert.match(
+    migration,
+    /CREATE TRIGGER shared_cell_author_compensation_lifecycle_actions_transition\s+BEFORE INSERT OR UPDATE OR DELETE\s+ON shared_cell_author_compensation_lifecycle_actions\s+FOR EACH ROW EXECUTE FUNCTION enforce_scac_lifecycle_action_transition\(\)/,
+  );
+  for (const constraint of [
+    "scac_lifecycle_kind_shape_check",
+    "scac_lifecycle_request_shape_check",
+    "scac_lifecycle_receipt_shape_check",
+    "scac_operation_state_shape_strict_check",
+    "scac_attempt_request_shape_strict_check",
+  ]) {
+    assert.match(
+      migration,
+      new RegExp(`${constraint}[\\s\\S]*?\\) IS TRUE`),
+      `${constraint} must reject SQL UNKNOWN rather than accepting it`,
+    );
+  }
+  assert.match(
+    migration,
+    /NEW\.current_phase IS DISTINCT FROM 'DELETE_CHANGE_SET'/,
+  );
+  assert.match(
+    migration,
+    /NOT EXISTS \([\s\S]*?shared_cell_author_compensation_lifecycle_actions lifecycle_action[\s\S]*?lifecycle_action\.window_number = OLD\.current_window_number/,
+  );
+  assert.match(
+    migration,
+    /A completed durable GRANT action is required before ready/,
+  );
+  assert.match(
+    migration,
+    /completion_receipt::jsonb #>> '\{disposition\}'[\s\S]*?'PHASE_EXECUTION_ALLOWED'[\s\S]*?'REVOKE_ONLY'/,
+  );
+  assert.match(
+    migration,
+    /JOIN shared_cell_author_compensation_review_windows review_window[\s\S]*?action\.request::jsonb #>> '\{compensationPlanSha256\}'[\s\S]*?review_window\.controller_contract_sha256/,
+  );
+  assert.match(
+    migration,
+    /A completed WINDOW_EXPIRED REVOKE action is required before review reset/,
+  );
+  assert.match(
+    migration,
+    /attempt\.attempt_number = OLD\.current_attempt_number[\s\S]*?action\.request::jsonb #>> '\{grantReceiptSha256\}'[\s\S]*?OLD\.current_grant_receipt_sha256[\s\S]*?NEW\.state = 'missing_proven_locked'[\s\S]*?observedState[\s\S]*?'MISSING'[\s\S]*?NEW\.state = 'awaiting_delete_stack_review'[\s\S]*?OLD\.current_phase = 'DELETE_CHANGE_SET'[\s\S]*?'REVIEW_IN_PROGRESS'[\s\S]*?A completed PHASE_COMPLETED REVOKE action is required before Locked advancement/,
+  );
+  assert.match(
+    migration,
+    /CREATE CONSTRAINT TRIGGER shared_cell_author_compensation_lifecycle_operation_proof[\s\S]*?DEFERRABLE INITIALLY IMMEDIATE/,
+  );
+  assert.doesNotMatch(migration, /ON DELETE CASCADE/i);
+  assert.match(drizzleSchema, /sharedCellAuthorCompensationLifecycleActions/);
+  assert.match(drizzleSchema, /scac_lifecycle_request_shape_check/);
+  assert.match(
+    drizzleSchema,
+    /shared_cell_author_compensation_window_expired_locked_verified/,
+  );
+  assert.match(
+    drizzleRelations,
+    /sharedCellAuthorCompensationLifecycleActionsRelations/,
+  );
+  assert.match(
+    drizzleRelations,
+    /sharedCellAuthorCompensationReviewWindowsRelations[\s\S]*?lifecycleActions: many\(sharedCellAuthorCompensationLifecycleActions\)/,
+  );
+  assert.match(
+    drizzleRelations,
+    /sharedCellAuthorCompensationLifecycleActionsRelations[\s\S]*?fields: \[sharedCellAuthorCompensationLifecycleActions\.operationSha256, sharedCellAuthorCompensationLifecycleActions\.phase, sharedCellAuthorCompensationLifecycleActions\.windowNumber\][\s\S]*?references: \[sharedCellAuthorCompensationReviewWindows\.operationSha256, sharedCellAuthorCompensationReviewWindows\.phase, sharedCellAuthorCompensationReviewWindows\.windowNumber\]/,
+  );
+  const operationRelations = drizzleRelations.slice(
+    drizzleRelations.indexOf(
+      "sharedCellAuthorCompensationOperationsRelations",
+    ),
+    drizzleRelations.indexOf(
+      "sharedCellAuthorCompensationReviewWindowsRelations",
+    ),
+  );
+  assert.doesNotMatch(operationRelations, /lifecycleActions:/);
+});
+
 test("prepared review windows roll forward only after the DB cutoff and before any grant or attempt", async () => {
   const migration = await readFile(
     new URL("../db/postgres-migrations/0009_shared_cell_author_compensation_persistence.sql", import.meta.url),
@@ -128,9 +248,57 @@ test("Neon write CTEs hydrate new rows from RETURNING and keep rollover narrowly
   assert.match(append, /FOR UPDATE OF operation/);
   assert.match(append, /FROM updated operation_row[\s\S]*?JOIN window_insert review_window/);
 
-  const claim = method("claimExactOperation", "preparePhase");
+  const claim = method("claimExactOperation", "beginLifecycleAction");
   assert.match(claim, /LEFT JOIN shared_cell_author_compensation_phase_attempts phase_attempt/);
   assert.doesNotMatch(claim, /JOIN attempt_insert phase_attempt/);
+
+  const beginLifecycle = method(
+    "beginLifecycleAction",
+    "completeLifecycleAction",
+  );
+  assert.match(
+    beginLifecycle,
+    /INSERT INTO shared_cell_author_compensation_lifecycle_actions/,
+  );
+  assert.match(beginLifecycle, /'recover_only'/);
+  assert.match(
+    beginLifecycle,
+    /NOT EXISTS \([\s\S]*?uncertain\.status = 'recover_only'/,
+  );
+  assert.match(
+    beginLifecycle,
+    /LEFT JOIN shared_cell_author_compensation_phase_attempts attempt[\s\S]*?attempt\.phase = operation\.current_phase[\s\S]*?attempt\.window_number = operation\.current_window_number[\s\S]*?attempt\.attempt_number = operation\.current_attempt_number/,
+  );
+
+  const completeLifecycle = method("completeLifecycleAction", "preparePhase");
+  assert.match(
+    completeLifecycle,
+    /UPDATE shared_cell_author_compensation_lifecycle_actions action[\s\S]*?SET status = 'completed'/,
+  );
+  assert.match(
+    completeLifecycle,
+    /FROM updated operation_row[\s\S]*?action_complete lifecycle_action/,
+  );
+  assert.match(
+    completeLifecycle,
+    /review_window\.expires_at - action\.started_at > \$18/,
+  );
+  assert.match(
+    completeLifecycle,
+    /PHASE_EXECUTION_ALLOWED'[\s\S]*?review_window\.expires_at - \$13 > \$18[\s\S]*?review_window\.expires_at - db_clock\.now_ms > \$18/,
+  );
+  assert.match(
+    completeLifecycle,
+    /REVOKE_ONLY'[\s\S]*?review_window\.expires_at - \$13 <= \$18/,
+  );
+  assert.match(
+    completeLifecycle,
+    /LEFT JOIN shared_cell_author_compensation_phase_attempts attempt[\s\S]*?attempt\.phase = operation\.current_phase[\s\S]*?attempt\.window_number = operation\.current_window_number[\s\S]*?attempt\.attempt_number = operation\.current_attempt_number/,
+  );
+  assert.match(
+    completeLifecycle,
+    /attempt\.completion_receipt::jsonb #>> '\{observedState\}'[\s\S]*?AS next_state/,
+  );
 
   const prepare = method("preparePhase", "beginSubmission");
   assert.match(prepare, /LEFT JOIN shared_cell_author_compensation_phase_attempts phase_attempt/);
@@ -144,6 +312,10 @@ test("Neon write CTEs hydrate new rows from RETURNING and keep rollover narrowly
     complete,
     /FROM updated operation_row[\s\S]*?JOIN attempt_complete phase_attempt/,
   );
+  assert.match(
+    complete,
+    /JOIN shared_cell_author_compensation_phase_attempts attempt[\s\S]*?attempt\.window_number = operation\.current_window_number/,
+  );
 
   const locked = method("recordLockedAndAdvance", "heartbeat");
   assert.match(
@@ -155,6 +327,10 @@ test("Neon write CTEs hydrate new rows from RETURNING and keep rollover narrowly
     /attempt\.completion_receipt::jsonb #>> '\{observedState\}'/,
   );
   assert.match(locked, /SET state = eligible\.next_state/);
+  assert.match(
+    locked,
+    /JOIN shared_cell_author_compensation_phase_attempts attempt[\s\S]*?attempt\.window_number = operation\.current_window_number/,
+  );
   assert.match(
     locked,
     /eligible\.next_state = 'missing_proven_locked'[\s\S]*?THEN eligible\.now_ms/,

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, deploymentEnvironments, deploymentEnvironmentBindings, appInstanceDeployments, deploymentTenantResources, deploymentTenantResourceEvents, deploymentCleanupSchedules, deploymentEnvironmentCapacityReservations, deploymentJobs, deploymentStepRuns, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements, deploymentTenantExternalOperations, deploymentTenantExternalOperationEvents, deploymentTenantCleanupRuns, deploymentTenantCleanupPhases, deploymentTenantCleanupEvents, sharedCellAuthorCompensationOperations, sharedCellAuthorCompensationReviewWindows, sharedCellAuthorCompensationPhaseAttempts, sharedCellAuthorCompensationEvents } from "./postgres-schema";
+import { products, appInstanceTemplates, appInstanceTemplateVersions, plans, users, userCredentials, authSessions, authInvitations, workspaces, subscriptions, paymentRecords, paymentCheckoutSessions, appInstances, subscriptionPurchaseOrders, deploymentEnvironments, deploymentEnvironmentBindings, appInstanceDeployments, deploymentTenantResources, deploymentTenantResourceEvents, deploymentCleanupSchedules, deploymentEnvironmentCapacityReservations, deploymentJobs, deploymentStepRuns, paymentWebhookEvents, workspaceMembers, workspaceProductEntitlements, deploymentTenantExternalOperations, deploymentTenantExternalOperationEvents, deploymentTenantCleanupRuns, deploymentTenantCleanupPhases, deploymentTenantCleanupEvents, sharedCellAuthorCompensationOperations, sharedCellAuthorCompensationReviewWindows, sharedCellAuthorCompensationPhaseAttempts, sharedCellAuthorCompensationLifecycleActions, sharedCellAuthorCompensationEvents } from "./postgres-schema";
 
 export const appInstanceTemplatesRelations = relations(appInstanceTemplates, ({one, many}) => ({
 	product: one(products, {
@@ -507,11 +507,19 @@ export const sharedCellAuthorCompensationReviewWindowsRelations = relations(shar
 		references: [sharedCellAuthorCompensationOperations.operationSha256]
 	}),
 	phaseAttempts: many(sharedCellAuthorCompensationPhaseAttempts),
+	lifecycleActions: many(sharedCellAuthorCompensationLifecycleActions),
 }));
 
 export const sharedCellAuthorCompensationPhaseAttemptsRelations = relations(sharedCellAuthorCompensationPhaseAttempts, ({one}) => ({
 	reviewWindow: one(sharedCellAuthorCompensationReviewWindows, {
 		fields: [sharedCellAuthorCompensationPhaseAttempts.operationSha256, sharedCellAuthorCompensationPhaseAttempts.phase, sharedCellAuthorCompensationPhaseAttempts.windowNumber],
+		references: [sharedCellAuthorCompensationReviewWindows.operationSha256, sharedCellAuthorCompensationReviewWindows.phase, sharedCellAuthorCompensationReviewWindows.windowNumber]
+	}),
+}));
+
+export const sharedCellAuthorCompensationLifecycleActionsRelations = relations(sharedCellAuthorCompensationLifecycleActions, ({one}) => ({
+	reviewWindow: one(sharedCellAuthorCompensationReviewWindows, {
+		fields: [sharedCellAuthorCompensationLifecycleActions.operationSha256, sharedCellAuthorCompensationLifecycleActions.phase, sharedCellAuthorCompensationLifecycleActions.windowNumber],
 		references: [sharedCellAuthorCompensationReviewWindows.operationSha256, sharedCellAuthorCompensationReviewWindows.phase, sharedCellAuthorCompensationReviewWindows.windowNumber]
 	}),
 }));

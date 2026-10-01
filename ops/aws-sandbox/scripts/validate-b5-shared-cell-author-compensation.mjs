@@ -47,9 +47,29 @@ const paths = {
     repositoryRoot,
     "tests/shared-cell-author-compensation-controller.test.ts",
   ),
+  grantLifecycle: path.join(
+    repositoryRoot,
+    "lib/deployments/execution/shared-cell-author-compensation-grant-lifecycle.ts",
+  ),
+  grantLifecycleTest: path.join(
+    repositoryRoot,
+    "tests/shared-cell-author-compensation-grant-lifecycle.test.ts",
+  ),
+  grantController: path.join(
+    repositoryRoot,
+    "lib/deployments/execution/shared-cell-author-compensation-grant-controller.ts",
+  ),
+  grantControllerTest: path.join(
+    repositoryRoot,
+    "tests/shared-cell-author-compensation-grant-controller.test.ts",
+  ),
   persistenceMigration: path.join(
     repositoryRoot,
     "db/postgres-migrations/0009_shared_cell_author_compensation_persistence.sql",
+  ),
+  lifecycleMigration: path.join(
+    repositoryRoot,
+    "db/postgres-migrations/0010_shared_cell_author_compensation_grant_lifecycle.sql",
   ),
   postgresSchema: path.join(repositoryRoot, "db/postgres-schema.sql"),
   postgresSchemaTypes: path.join(repositoryRoot, "db/postgres-schema.ts"),
@@ -78,7 +98,12 @@ const [
   neonOperationStoreTestSource,
   controller,
   controllerTestSource,
+  grantLifecycle,
+  grantLifecycleTestSource,
+  grantController,
+  grantControllerTestSource,
   persistenceMigration,
+  lifecycleMigration,
   postgresSchema,
   postgresSchemaTypes,
   sealedMigrationCatalog,
@@ -191,6 +216,8 @@ assertIncludesAll(
     "SharedCellAuthorCompensationOperationStore",
     "claimExactOperation",
     "appendReviewedWindow",
+    "beginLifecycleAction",
+    "completeLifecycleAction",
     "beginSubmission",
     "recordLockedAndAdvance",
     "controllerContractSha256",
@@ -199,6 +226,7 @@ assertIncludesAll(
     "delete_change_set_revoke_required",
     "delete_stack_revoke_required",
     "missing_proven_locked",
+    "SharedCellAuthorCompensationWindowExpiredLockedReceipt",
   ],
   "author compensation durable operation contract",
 );
@@ -211,11 +239,14 @@ assertIncludesAll(
     "clock_timestamp()",
     "claimExactOperation",
     "appendReviewedWindow",
+    "beginLifecycleAction",
+    "completeLifecycleAction",
     "beginSubmission",
     "recordLockedAndAdvance",
     "shared_cell_author_compensation_operations",
     "shared_cell_author_compensation_review_windows",
     "shared_cell_author_compensation_phase_attempts",
+    "shared_cell_author_compensation_lifecycle_actions",
     "shared_cell_author_compensation_events",
   ],
   "Neon author compensation operation store",
@@ -247,6 +278,32 @@ assert.match(appendWindowSource, /FOR UPDATE OF operation/);
 assert.match(
   appendWindowSource,
   /FROM updated operation_row[\s\S]*?JOIN window_insert review_window/,
+);
+const beginLifecycleSource = methodSource(
+  neonOperationStore,
+  "beginLifecycleAction",
+  "completeLifecycleAction",
+);
+assert.match(
+  beginLifecycleSource,
+  /INSERT INTO shared_cell_author_compensation_lifecycle_actions/,
+);
+assert.match(
+  beginLifecycleSource,
+  /NOT EXISTS \([\s\S]*?uncertain\.status = 'recover_only'/,
+);
+const completeLifecycleSource = methodSource(
+  neonOperationStore,
+  "completeLifecycleAction",
+  "preparePhase",
+);
+assert.match(
+  completeLifecycleSource,
+  /UPDATE shared_cell_author_compensation_lifecycle_actions action[\s\S]*?SET status = 'completed'/,
+);
+assert.match(
+  completeLifecycleSource,
+  /operation\.lease_owner = \$2 AND operation\.claim_token = \$3[\s\S]*?operation\.lease_attempt = \$4 AND operation\.state_revision = \$5/,
 );
 assert.match(
   methodSource(neonOperationStore, "beginSubmission", "completePhase"),
@@ -289,15 +346,42 @@ assert.doesNotMatch(
   /\bexecuteReviewedSharedCellAuthorCompensation\b/,
   "the controller must not import or call the legacy combined executor",
 );
+assert.doesNotMatch(
+  controller.slice(
+    controller.indexOf(
+      "export async function executeClaimedSharedCellAuthorCompensationPhase",
+    ),
+    controller.indexOf(
+      "export async function recoverClaimedSharedCellAuthorCompensationPhase",
+    ),
+  ),
+  /\.preparePhase\(/,
+  "the phase controller must require a completed durable grant lifecycle action",
+);
 assert.match(
   controller,
-  /async deleteChangeSet\(value\)\s*\{[\s\S]*?await beginSubmission\([\s\S]*?\);\s*return delegate\.deleteChangeSet\(value\);/,
+  /async deleteChangeSet\(value\)\s*\{[\s\S]*?await beginSubmission\([\s\S]*?\);\s*return runIndependentDurableBoundary\(\(signal\) =>\s*delegate\.deleteChangeSet\(\{ \.\.\.value, signal \}\)/,
   "DeleteChangeSet must cross the durable write-ahead CAS before delegation",
 );
 assert.match(
   controller,
-  /async deleteStack\(value\)\s*\{[\s\S]*?await beginSubmission\([\s\S]*?\);\s*return delegate\.deleteStack\(value\);/,
+  /async deleteStack\(value\)\s*\{[\s\S]*?await beginSubmission\([\s\S]*?\);\s*return runIndependentDurableBoundary\(\(signal\) =>\s*delegate\.deleteStack\(\{ \.\.\.value, signal \}\)/,
   "DeleteStack must cross the durable write-ahead CAS before delegation",
+);
+assert.match(
+  controller,
+  /const durableMutationTimeoutMs = 30_000;[\s\S]*?new AbortController\(\)[\s\S]*?setTimeout\([\s\S]*?dispatch\.abort\(\)[\s\S]*?clearTimeout\(timeout\)/,
+  "post-write-ahead delegation must use an independent bounded signal",
+);
+assert.match(
+  controller,
+  /signal\.throwIfAborted\(\);[\s\S]*?submissionBoundaryEntered = true;[\s\S]*?runIndependentDurableBoundary\([\s\S]*?input\.store\.beginSubmission\([\s\S]*?signal: boundarySignal/,
+  "the durable phase CAS must cross an independent boundary after the final caller abort check",
+);
+assert.match(
+  grantController,
+  /input\.signal\.throwIfAborted\(\);[\s\S]*?runIndependentDurableBoundary\(\(boundarySignal\) =>[\s\S]*?input\.store\.beginLifecycleAction\([\s\S]*?signal: boundarySignal/,
+  "the durable Grant/Revoke CAS must cross an independent boundary after the final caller abort check",
 );
 const recoverControllerSource = controller.slice(
   controller.indexOf("interface RecoverInput"),
@@ -318,6 +402,58 @@ assertIncludesAll(
   "mutation-free author compensation recovery",
 );
 
+assertIncludesAll(
+  grantLifecycle,
+  [
+    "SHARED_CELL_AUTHOR_COMPENSATION_GRANT_LIFECYCLE_DEFAULT_ENABLED",
+    "false as const",
+    "SharedCellAuthorCompensationLifecycleReceiptProducer",
+    "compileSharedCellAuthorCompensationLifecycleContract",
+    "SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_STACK_ID",
+    "readManagementObservation",
+    "maximumObservationSpanMs",
+    "createPhaseGrantReceipt",
+    "createPhaseCompletedLockedReceipt",
+    "createWindowExpiredLockedReceipt",
+    "shared_cell_author_compensation_window_expired_locked_verified",
+  ],
+  "trusted grant lifecycle receipt producer",
+);
+assert.doesNotMatch(grantLifecycle, /from\s+["']@aws-sdk|process\.env|Date\.now\(/);
+
+assertIncludesAll(
+  grantController,
+  [
+    "SHARED_CELL_AUTHOR_COMPENSATION_GRANT_CONTROLLER_DEFAULT_ENABLED",
+    "false as const",
+    "compileSharedCellAuthorCompensationGrantActionRequest",
+    "compileSharedCellAuthorCompensationRevokeActionRequest",
+    "executeClaimedSharedCellAuthorCompensationPhaseGrant",
+    "recoverClaimedSharedCellAuthorCompensationPhaseGrant",
+    "executeClaimedSharedCellAuthorCompensationPhaseRevoke",
+    "recoverClaimedSharedCellAuthorCompensationPhaseRevoke",
+    "beginLifecycleAction",
+    "completeLifecycleAction",
+    "POST_SUBMIT_UNCERTAIN",
+  ],
+  "durable grant/revoke lifecycle controller",
+);
+const grantRecoverySource = grantController.slice(
+  grantController.indexOf(
+    "export async function recoverClaimedSharedCellAuthorCompensationPhaseGrant",
+  ),
+  grantController.indexOf("interface RevokeInput"),
+);
+const revokeRecoverySource = grantController.slice(
+  grantController.indexOf(
+    "export async function recoverClaimedSharedCellAuthorCompensationPhaseRevoke",
+  ),
+);
+assert.doesNotMatch(grantRecoverySource, /\bmutations\s*:/);
+assert.doesNotMatch(revokeRecoverySource, /\bmutations\s*:/);
+assert.doesNotMatch(grantRecoverySource, /\.installPhaseGrant\(/);
+assert.doesNotMatch(revokeRecoverySource, /\.revokePhaseGrant\(/);
+
 const persistenceTables = [
   "shared_cell_author_compensation_operations",
   "shared_cell_author_compensation_review_windows",
@@ -329,12 +465,28 @@ for (const table of persistenceTables) {
   assert.ok(postgresSchema.includes(table), `PostgreSQL desired schema is missing ${table}`);
   assert.ok(postgresSchemaTypes.includes(table), `PostgreSQL schema types are missing ${table}`);
 }
+assert.match(
+  lifecycleMigration,
+  /CREATE TABLE shared_cell_author_compensation_lifecycle_actions\s*\(/,
+);
+assert.ok(
+  postgresSchema
+    .replace(/\r\n/g, "\n")
+    .includes(lifecycleMigration.replace(/\r\n/g, "\n").trim()),
+  "PostgreSQL desired schema must contain the exact 0010 lifecycle migration",
+);
+assert.ok(
+  postgresSchemaTypes.includes("shared_cell_author_compensation_lifecycle_actions"),
+  "PostgreSQL schema types are missing lifecycle actions",
+);
 assertIncludesAll(
   postgresSchemaTypes,
   [
     "shared_cell_author_compensation_operations_last_error_code_check",
     "shared_cell_author_compensation_operations_last_error_sha256_check",
     "shared_cell_author_compensation_phase_attempts_completion_receipt_sha256_check",
+    "scac_lifecycle_request_shape_check",
+    "scac_lifecycle_receipt_shape_check",
   ],
   "Drizzle author compensation constraints",
 );
@@ -362,6 +514,31 @@ assert.match(
   persistenceMigration,
   /NEW\.state IN \('delete_change_set_prepared', 'delete_stack_prepared'\)/,
 );
+assertIncludesAll(
+  lifecycleMigration,
+  [
+    "J5g-j3 durable grant/revoke lifecycle",
+    "shared_cell_author_compensation_lifecycle_actions",
+    "scac_lifecycle_one_recover_only_per_operation",
+    "lifecycle_action_started",
+    "lifecycle_action_completed",
+    "A completed durable GRANT action is required before ready",
+    "A completed WINDOW_EXPIRED REVOKE action is required before review reset",
+    "A completed PHASE_COMPLETED REVOKE action is required before Locked advancement",
+    "attempt.attempt_number = OLD.current_attempt_number",
+    "DEFERRABLE INITIALLY IMMEDIATE",
+  ],
+  "0010 grant/revoke lifecycle migration",
+);
+assert.match(
+  lifecycleMigration,
+  /CREATE TRIGGER shared_cell_author_compensation_lifecycle_actions_transition\s+BEFORE INSERT OR UPDATE OR DELETE\s+ON shared_cell_author_compensation_lifecycle_actions\s+FOR EACH ROW EXECUTE FUNCTION enforce_scac_lifecycle_action_transition\(\)/,
+);
+assert.match(
+  lifecycleMigration,
+  /NEW\.state = 'missing_proven_locked'[\s\S]*?observedState[\s\S]*?'MISSING'[\s\S]*?NEW\.state = 'awaiting_delete_stack_review'[\s\S]*?OLD\.current_phase = 'DELETE_CHANGE_SET'[\s\S]*?'REVIEW_IN_PROGRESS'/,
+);
+assert.doesNotMatch(lifecycleMigration, /ON DELETE CASCADE/i);
 assert.match(
   persistenceMigration,
   /NEW\.current_window_number = OLD\.current_window_number \+ 1/,
@@ -409,7 +586,7 @@ for (const [filename, checksum] of sealedCatalogEntries) {
   previousCatalogPosition = filenamePosition;
 }
 assert.equal((sealedCatalogBlock.match(/filename:/g) ?? []).length, 8);
-assert.doesNotMatch(sealedCatalogBlock, /0009_/);
+assert.doesNotMatch(sealedCatalogBlock, /0009_|0010_/);
 
 assertIncludesAll(
   testSource,
@@ -448,6 +625,7 @@ assertIncludesAll(
   persistenceTestSource,
   [
     "0009 defines independent append-only durable compensation state",
+    "0010 durably fences every grant and revoke lifecycle transition",
     "every submitted phase permanently recover-only until revoke",
     "write-ahead mutation requests are exact-target",
     "completion and Locked receipts are closed",
@@ -460,7 +638,14 @@ assertIncludesAll(
   neonOperationStoreTestSource,
   [
     "constructor is I/O-free",
+    "readOperation rejects a phase attempt from a different review window",
     "expired ready takeover uses DB clock",
+    "a lifecycle write-ahead action forces recover-only claim mode",
+    "beginLifecycleAction persists exact GRANT intent",
+    "completeLifecycleAction atomically completes GRANT",
+    "completeLifecycleAction preserves a late GRANT as revoke-only reconciliation",
+    "beginLifecycleAction binds a completed-phase REVOKE to both durable predecessor receipts",
+    "completeLifecycleAction closes an expired ready grant to fresh review and clears the claim",
     "beginSubmission rechecks controller digest",
     "Locked advancement derives direct completion from the persisted missing receipt",
     "heartbeat matches the full live handle",
@@ -471,15 +656,45 @@ assertIncludesAll(
 assertIncludesAll(
   controllerTestSource,
   [
-    "write-ahead CAS precedes the sole AWS mutation",
-    "a pre-boundary abort releases the claim with an independent live cleanup signal",
-    "an invalid prepared snapshot releases with the returned advanced handle",
+    "write-ahead CAS precedes the sole AWS mutation and completion returns a live revoke claim",
+    "a just-completed Grant can hand its live claim directly to the phase controller",
+    "a grant-ready phase with a mismatched lifecycle request digest fails closed",
+    "a revoke-only reconciled grant is rejected before claim or phase mutation",
+    "a pre-claim abort performs no durable or AWS operation",
+    "a caller abort after phase write-ahead cannot suppress the sole AWS delegate",
+    "a prepared phase without a completed durable grant fails closed and releases",
     "a Change Set phase that proves the Stack missing hands Locked directly to completion",
     "a rejected write-ahead CAS delegates zero AWS mutations",
     "mutation-free recover completes",
     "phase isolation rejects a sibling-only mutation port before write-ahead",
   ],
   "durable author compensation controller tests",
+);
+assertIncludesAll(
+  grantLifecycleTestSource,
+  [
+    "constructor-only, and brands stable exact evidence",
+    "distinct hash-bound Locked receipts",
+    "management readback fails closed",
+    "late grant reconciliation is revoke-only",
+  ],
+  "grant lifecycle receipt tests",
+);
+assertIncludesAll(
+  grantControllerTestSource,
+  [
+    "requests bind the exact management Stack",
+    "persists recover-only intent before the sole delegate",
+    "a rejected grant write-ahead delegates zero mutation",
+    "a mismatched durable lifecycle request digest delegates zero mutation",
+    "a caller abort after lifecycle write-ahead cannot suppress the sole Grant or Revoke delegate",
+    "recovery never receives a mutation port",
+    "late grant reconciliation hands its live claim directly to revoke-only cleanup",
+    "completed-phase revoke accepts the live phase claim without waiting or reclaiming",
+    "ready grant after cutoff revokes to Locked",
+    "reconciled read-only without a second delegate",
+  ],
+  "grant/revoke lifecycle controller tests",
 );
 assert.doesNotMatch(
   runtime,
@@ -498,6 +713,8 @@ const tests = spawnSync(
     "tests/shared-cell-author-compensation-persistence.test.ts",
     "tests/neon-shared-cell-author-compensation-operation-store.test.ts",
     "tests/shared-cell-author-compensation-controller.test.ts",
+    "tests/shared-cell-author-compensation-grant-lifecycle.test.ts",
+    "tests/shared-cell-author-compensation-grant-controller.test.ts",
   ],
   {
     cwd: repositoryRoot,
@@ -512,5 +729,5 @@ assert.equal(
 );
 
 console.log(
-  "B5 Shared Cell author compensation validated locally (phase-specific inspect/recover, durable DB-clock claims, append-only 0009 persistence, write-ahead CAS before each narrow delegate, mutation-free recovery, separate revoke handoff, sealed 0001-0008 catalog, default-off controller, no runtime wiring or AWS/Neon call).",
+  "B5 Shared Cell author compensation validated locally (phase-specific inspect/recover, durable DB-clock claims, append-only 0009 persistence, immutable 0010 grant/revoke lifecycle actions, trusted two-read receipts, write-ahead CAS before every narrow mutation, mutation-free recovery, sealed 0001-0008 catalog, default-off controllers, no runtime wiring or AWS/Neon call).",
 );

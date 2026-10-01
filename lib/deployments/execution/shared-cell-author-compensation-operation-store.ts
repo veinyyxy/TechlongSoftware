@@ -117,11 +117,13 @@ export interface SharedCellAuthorCompensationOperationSnapshot {
   readonly operation: Readonly<SharedCellAuthorCompensationOperation>;
   readonly currentWindow: Readonly<SharedCellAuthorCompensationReviewWindow> | null;
   readonly currentAttempt: Readonly<SharedCellAuthorCompensationPhaseAttempt> | null;
+  readonly currentLifecycleAction: Readonly<SharedCellAuthorCompensationLifecycleAction> | null;
 }
 
 export interface SharedCellAuthorCompensationPhaseGrantReceipt {
   readonly schemaVersion: 1;
   readonly action: "shared_cell_author_compensation_phase_grant_verified";
+  readonly disposition: "PHASE_EXECUTION_ALLOWED" | "REVOKE_ONLY";
   readonly operationSha256: string;
   readonly phase: SharedCellAuthorCompensationPhase;
   readonly compensationPlanSha256: string;
@@ -153,6 +155,101 @@ export interface SharedCellAuthorCompensationLockedReceipt {
   readonly completionReceiptSha256: string;
   readonly lockedEvidenceSha256: string;
   readonly observedAt: string;
+}
+
+export type SharedCellAuthorCompensationLifecycleActionKind =
+  | "GRANT"
+  | "REVOKE";
+
+export type SharedCellAuthorCompensationLifecycleActionRequest =
+  | Readonly<{
+      schemaVersion: 1;
+      action: "shared_cell_author_compensation_grant";
+      kind: "GRANT";
+      operationSha256: string;
+      phase: SharedCellAuthorCompensationPhase;
+      windowNumber: number;
+      compensationPlanSha256: string;
+      phasePlanSha256: string;
+      controllerContractSha256: string;
+      lifecycleContractSha256: string;
+      targetRendererShape:
+        | "AuthorCompensationDeleteChangeSetGrant"
+        | "AuthorCompensationDeleteStackGrant";
+      targetTemplateRawSha256: string;
+      targetTemplateCanonicalSha256: string;
+      managementStackName: "techlong-s3-b5-cell-lifecycle-management";
+      managementStackId: "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-lifecycle-management/fb742b50-afb2-11f1-85b7-02588681429d";
+      managementChangeSetName: string;
+    }>
+  | Readonly<{
+      schemaVersion: 1;
+      action: "shared_cell_author_compensation_revoke";
+      kind: "REVOKE";
+      reason: "PHASE_COMPLETED";
+      operationSha256: string;
+      phase: SharedCellAuthorCompensationPhase;
+      windowNumber: number;
+      grantReceiptSha256: string;
+      completionReceiptSha256: string;
+      lifecycleContractSha256: string;
+      targetRendererShape: "Locked";
+      targetTemplateRawSha256: string;
+      targetTemplateCanonicalSha256: string;
+      managementStackName: "techlong-s3-b5-cell-lifecycle-management";
+      managementStackId: "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-lifecycle-management/fb742b50-afb2-11f1-85b7-02588681429d";
+      managementChangeSetName: string;
+    }>
+  | Readonly<{
+      schemaVersion: 1;
+      action: "shared_cell_author_compensation_revoke";
+      kind: "REVOKE";
+      reason: "WINDOW_EXPIRED";
+      operationSha256: string;
+      phase: SharedCellAuthorCompensationPhase;
+      windowNumber: number;
+      grantReceiptSha256: string;
+      lifecycleContractSha256: string;
+      targetRendererShape: "Locked";
+      targetTemplateRawSha256: string;
+      targetTemplateCanonicalSha256: string;
+      managementStackName: "techlong-s3-b5-cell-lifecycle-management";
+      managementStackId: "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-lifecycle-management/fb742b50-afb2-11f1-85b7-02588681429d";
+      managementChangeSetName: string;
+    }>;
+
+export interface SharedCellAuthorCompensationWindowExpiredLockedReceipt {
+  readonly schemaVersion: 1;
+  readonly action: "shared_cell_author_compensation_window_expired_locked_verified";
+  readonly operationSha256: string;
+  readonly phase: SharedCellAuthorCompensationPhase;
+  readonly grantReceiptSha256: string;
+  readonly lockedEvidenceSha256: string;
+  readonly observedAt: string;
+}
+
+export type SharedCellAuthorCompensationLifecycleActionCompletionReceipt =
+  | SharedCellAuthorCompensationPhaseGrantReceipt
+  | SharedCellAuthorCompensationLockedReceipt
+  | SharedCellAuthorCompensationWindowExpiredLockedReceipt;
+
+export interface SharedCellAuthorCompensationLifecycleAction {
+  readonly operationSha256: string;
+  readonly phase: SharedCellAuthorCompensationPhase;
+  readonly windowNumber: number;
+  readonly actionNumber: number;
+  readonly kind: SharedCellAuthorCompensationLifecycleActionKind;
+  readonly revokeReason: "PHASE_COMPLETED" | "WINDOW_EXPIRED" | null;
+  readonly status: "recover_only" | "completed";
+  readonly request: Readonly<SharedCellAuthorCompensationLifecycleActionRequest>;
+  readonly requestSha256: string;
+  readonly leaseAttempt: number;
+  readonly preparedRevision: number;
+  readonly completionReceipt: Readonly<SharedCellAuthorCompensationLifecycleActionCompletionReceipt> | null;
+  readonly completionReceiptSha256: string | null;
+  readonly startedAt: number;
+  readonly updatedAt: number;
+  readonly completedAt: number | null;
 }
 
 export type SharedCellAuthorCompensationMutationRequest =
@@ -226,6 +323,21 @@ export interface SharedCellAuthorCompensationOperationStore {
     completionReceipt: SharedCellAuthorCompensationPhaseCompletionReceipt;
     signal: AbortSignal;
   }): Promise<Readonly<SharedCellAuthorCompensationClaim> | null>;
+  beginLifecycleAction(input: {
+    handle: SharedCellAuthorCompensationClaimHandle;
+    windowNumber: number;
+    request: SharedCellAuthorCompensationLifecycleActionRequest;
+    signal: AbortSignal;
+  }): Promise<Readonly<SharedCellAuthorCompensationClaim> | null>;
+  completeLifecycleAction(input: {
+    handle: SharedCellAuthorCompensationClaimHandle;
+    actionNumber: number;
+    receipt: SharedCellAuthorCompensationLifecycleActionCompletionReceipt;
+    signal: AbortSignal;
+  }): Promise<Readonly<{
+    claim: Readonly<SharedCellAuthorCompensationClaim> | null;
+    snapshot: Readonly<SharedCellAuthorCompensationOperationSnapshot>;
+  }> | null>;
   recordLockedAndAdvance(input: {
     handle: SharedCellAuthorCompensationClaimHandle;
     lockedReceipt: SharedCellAuthorCompensationLockedReceipt;
@@ -337,6 +449,7 @@ export function assertSharedCellAuthorCompensationPhaseGrantReceipt(
     "action",
     "compensationPlanSha256",
     "controllerContractSha256",
+    "disposition",
     "grantEvidenceSha256",
     "observedAt",
     "operationSha256",
@@ -346,6 +459,15 @@ export function assertSharedCellAuthorCompensationPhaseGrantReceipt(
   ];
   if (!exactKeys(source, keys)) fail("SHARED_CELL_AUTHOR_COMPENSATION_STORE_RECEIPT_INVALID", "The phase grant receipt has unknown or missing fields.");
   assertReceiptBase(source, "shared_cell_author_compensation_phase_grant_verified");
+  if (
+    source.disposition !== "PHASE_EXECUTION_ALLOWED" &&
+    source.disposition !== "REVOKE_ONLY"
+  ) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_STORE_RECEIPT_INVALID",
+      "The phase grant receipt disposition is invalid.",
+    );
+  }
   for (const [field, label] of [
     ["compensationPlanSha256", "grant compensation plan"],
     ["phasePlanSha256", "grant phase plan"],
@@ -407,6 +529,203 @@ export function assertSharedCellAuthorCompensationLockedReceipt(
   assertReceiptBase(source, "shared_cell_author_compensation_locked_verified");
   assertSharedCellAuthorCompensationDigest(source.completionReceiptSha256, "completion receipt");
   assertSharedCellAuthorCompensationDigest(source.lockedEvidenceSha256, "Locked evidence");
+}
+
+export function assertSharedCellAuthorCompensationWindowExpiredLockedReceipt(
+  value: unknown,
+): asserts value is SharedCellAuthorCompensationWindowExpiredLockedReceipt {
+  const source = record(value);
+  const keys = [
+    "action",
+    "grantReceiptSha256",
+    "lockedEvidenceSha256",
+    "observedAt",
+    "operationSha256",
+    "phase",
+    "schemaVersion",
+  ];
+  if (!exactKeys(source, keys)) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_STORE_RECEIPT_INVALID",
+      "The window-expired Locked receipt has unknown or missing fields.",
+    );
+  }
+  assertReceiptBase(
+    source,
+    "shared_cell_author_compensation_window_expired_locked_verified",
+  );
+  assertSharedCellAuthorCompensationDigest(
+    source.grantReceiptSha256,
+    "window-expired grant receipt",
+  );
+  assertSharedCellAuthorCompensationDigest(
+    source.lockedEvidenceSha256,
+    "window-expired Locked evidence",
+  );
+}
+
+export function assertSharedCellAuthorCompensationLifecycleActionRequest(
+  value: unknown,
+): asserts value is SharedCellAuthorCompensationLifecycleActionRequest {
+  const source = record(value);
+  const commonKeys = [
+    "action",
+    "kind",
+    "operationSha256",
+    "phase",
+    "schemaVersion",
+    "windowNumber",
+  ];
+  if (
+    source.schemaVersion !== 1 ||
+    (source.phase !== "DELETE_CHANGE_SET" && source.phase !== "DELETE_STACK") ||
+    !Number.isSafeInteger(source.windowNumber) ||
+    (source.windowNumber as number) < 1
+  ) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_STORE_LIFECYCLE_REQUEST_INVALID",
+      "The durable grant lifecycle request has an invalid contract.",
+    );
+  }
+  assertSharedCellAuthorCompensationDigest(
+    source.operationSha256,
+    "lifecycle operationSha256",
+  );
+  if (source.kind === "GRANT") {
+    if (
+      source.action !== "shared_cell_author_compensation_grant" ||
+      !exactKeys(source, [
+        ...commonKeys,
+        "compensationPlanSha256",
+        "controllerContractSha256",
+        "lifecycleContractSha256",
+        "managementChangeSetName",
+        "managementStackId",
+        "managementStackName",
+        "phasePlanSha256",
+        "targetRendererShape",
+        "targetTemplateCanonicalSha256",
+        "targetTemplateRawSha256",
+      ])
+    ) {
+      fail(
+        "SHARED_CELL_AUTHOR_COMPENSATION_STORE_LIFECYCLE_REQUEST_INVALID",
+        "The grant lifecycle request has unknown or missing fields.",
+      );
+    }
+    for (const [field, label] of [
+      ["compensationPlanSha256", "lifecycle compensation plan"],
+      ["phasePlanSha256", "lifecycle phase plan"],
+      ["controllerContractSha256", "lifecycle controller contract"],
+      ["lifecycleContractSha256", "grant lifecycle contract"],
+      ["targetTemplateRawSha256", "grant target template raw"],
+      ["targetTemplateCanonicalSha256", "grant target template canonical"],
+    ] as const) {
+      assertSharedCellAuthorCompensationDigest(source[field], label);
+    }
+    const expectedShape =
+      source.phase === "DELETE_CHANGE_SET"
+        ? "AuthorCompensationDeleteChangeSetGrant"
+        : "AuthorCompensationDeleteStackGrant";
+    if (source.targetRendererShape !== expectedShape) {
+      fail(
+        "SHARED_CELL_AUTHOR_COMPENSATION_STORE_LIFECYCLE_REQUEST_INVALID",
+        "The grant lifecycle request is not bound to the exact phase renderer shape.",
+      );
+    }
+    if (
+      source.managementStackName !==
+        "techlong-s3-b5-cell-lifecycle-management" ||
+      source.managementStackId !==
+        "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-lifecycle-management/fb742b50-afb2-11f1-85b7-02588681429d" ||
+      source.managementChangeSetName !==
+        `techlong-j5gj3-grant-${String(source.lifecycleContractSha256).slice(0, 16)}`
+    ) {
+      fail(
+        "SHARED_CELL_AUTHOR_COMPENSATION_STORE_LIFECYCLE_REQUEST_INVALID",
+        "The lifecycle request is not bound to the exact management Stack and deterministic Change Set.",
+      );
+    }
+    return;
+  }
+  if (
+    source.kind !== "REVOKE" ||
+    source.action !== "shared_cell_author_compensation_revoke" ||
+    (source.reason !== "PHASE_COMPLETED" &&
+      source.reason !== "WINDOW_EXPIRED")
+  ) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_STORE_LIFECYCLE_REQUEST_INVALID",
+      "The revoke lifecycle request has an invalid contract.",
+    );
+  }
+  const reasonKeys =
+    source.reason === "PHASE_COMPLETED"
+      ? ["completionReceiptSha256"]
+      : [];
+  if (
+    !exactKeys(source, [
+      ...commonKeys,
+      "grantReceiptSha256",
+      "lifecycleContractSha256",
+      "managementChangeSetName",
+      "managementStackId",
+      "managementStackName",
+      "reason",
+      "targetRendererShape",
+      "targetTemplateCanonicalSha256",
+      "targetTemplateRawSha256",
+      ...reasonKeys,
+    ])
+  ) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_STORE_LIFECYCLE_REQUEST_INVALID",
+      "The revoke lifecycle request has unknown or missing fields.",
+    );
+  }
+  assertSharedCellAuthorCompensationDigest(
+    source.grantReceiptSha256,
+    "lifecycle grant receipt",
+  );
+  for (const [field, label] of [
+    ["lifecycleContractSha256", "revoke lifecycle contract"],
+    ["targetTemplateRawSha256", "revoke target template raw"],
+    ["targetTemplateCanonicalSha256", "revoke target template canonical"],
+  ] as const) {
+    assertSharedCellAuthorCompensationDigest(source[field], label);
+  }
+  if (source.targetRendererShape !== "Locked") {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_STORE_LIFECYCLE_REQUEST_INVALID",
+      "The revoke lifecycle request target must be the exact Locked renderer shape.",
+    );
+  }
+  if (
+    source.managementStackName !==
+      "techlong-s3-b5-cell-lifecycle-management" ||
+    source.managementStackId !==
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-lifecycle-management/fb742b50-afb2-11f1-85b7-02588681429d" ||
+    source.managementChangeSetName !==
+      `techlong-j5gj3-${String(source.kind).toLowerCase()}-${String(source.lifecycleContractSha256).slice(0, 16)}`
+  ) {
+    fail(
+      "SHARED_CELL_AUTHOR_COMPENSATION_STORE_LIFECYCLE_REQUEST_INVALID",
+      "The lifecycle request is not bound to the exact management Stack and deterministic Change Set.",
+    );
+  }
+  if (source.reason === "PHASE_COMPLETED") {
+    assertSharedCellAuthorCompensationDigest(
+      source.completionReceiptSha256,
+      "lifecycle completion receipt",
+    );
+  }
+}
+
+export async function sharedCellAuthorCompensationLifecycleActionRequestSha256(
+  request: SharedCellAuthorCompensationLifecycleActionRequest,
+): Promise<string> {
+  assertSharedCellAuthorCompensationLifecycleActionRequest(request);
+  return sha256Hex(JSON.parse(canonicalJson(request)) as Record<string, unknown>);
 }
 
 export async function compileSharedCellAuthorCompensationStoredIntent(
@@ -493,14 +812,17 @@ export async function sharedCellAuthorCompensationReceiptSha256(
   receipt:
     | SharedCellAuthorCompensationPhaseGrantReceipt
     | SharedCellAuthorCompensationPhaseCompletionReceipt
-    | SharedCellAuthorCompensationLockedReceipt,
+    | SharedCellAuthorCompensationLockedReceipt
+    | SharedCellAuthorCompensationWindowExpiredLockedReceipt,
 ): Promise<string> {
   if (receipt.action === "shared_cell_author_compensation_phase_grant_verified") {
     assertSharedCellAuthorCompensationPhaseGrantReceipt(receipt);
   } else if (receipt.action === "shared_cell_author_compensation_phase_completed") {
     assertSharedCellAuthorCompensationPhaseCompletionReceipt(receipt);
-  } else {
+  } else if (receipt.action === "shared_cell_author_compensation_locked_verified") {
     assertSharedCellAuthorCompensationLockedReceipt(receipt);
+  } else {
+    assertSharedCellAuthorCompensationWindowExpiredLockedReceipt(receipt);
   }
   return sha256Hex(JSON.parse(canonicalJson(receipt)) as Record<string, unknown>);
 }
