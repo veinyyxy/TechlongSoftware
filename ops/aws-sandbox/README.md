@@ -715,6 +715,12 @@ node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-workflow
 
 `2026-10-03T18:15:31.547Z` 真实 Inspect 为 LOCKED_VERIFIED、Cell MISSING、authority ABSENT、探针 READY_UNEXECUTED/resourceCount 0；receipt SHA `d3636bdd70cb4fd70af1f2d594a551c402bd6fc904a552832bec65f85a16ab84`。刷新 J10 创建审阅 SHA `44ec7b9fd85cbeed8d31b7aedf2078e61eb95ff46da033db3111d515906116c5`，创建批准截至 `19:02:34.487Z`（Winnipeg `14:02:34`）；Grant仍 MISSING，J11 Review只返回 PREPARE_GRANT_REQUIRED、manifest null、executionReady false（SHA `655865112059ac77e0a4d8e5e3713e7fadadb0a022454f30e440145ee17fc274`）。所有保存摘要独立重算通过；没有 AWS write/AssumeRole/Neon 调用，production compatibility/readiness/runtime gate均false。实际 Grant/删除/Revoke分支尚无线上证据。下一动作先单独批准 fresh J10“创建不执行”，创建并回读后再请求真实 J11 manifest的三项执行批准，过期则只读刷新。详细证据及恢复约束见 B5 实施文档 J11。
 
+### B5-J5g-j10-online-1：Grant已创建但未执行
+
+已按用户批准推送 `5a755e1658aef37fec98d63ac0a4a2d8c08b44d4` 并核对 github/main；随后在有效清单 `44ec7b9fd85cbeed8d31b7aedf2078e61eb95ff46da033db3111d515906116c5` 下仅提交一次 Grant Create。实际 ARN `arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-j5gj10-probe-grant-a60d73fe5d89a0a0/8aaa6f14-fd22-4dcd-9273-754022a9f01a`。独立 Recover证明 READY_UNEXECUTED、exact候选Original模板、唯一boundary Modify/Replacement False；管理IAM仍Locked、业务Cell MISSING、authority ABSENT、探针资源0且未执行。Create/Recover receipt SHA分别为 `78f2fdb6a7f00bcf30570c02f07ad20e61676fbb284884a4c921d41c1a36c5cb` / `827eafc95601d7056759e7d712979ca16831ce81ff29a986a6b09b674dde7a10`，保存摘要及durable intent已独立验证，禁止重建或清除fence。
+
+J11首次真实只读Review已生成绑定上述ARN的执行候选；五分钟候选不是授权，过期只读刷新同一Grant，不重建。Grant Execute、Operator单次精确ARN删除、Source立即Revoke仍需新的三项明确批准及MFA准备；本轮未执行这些动作、未AssumeRole、未改变权限/compatibility/readiness/runtime gates。零资源Stack清理不在此次批准内。完整原件、时间和SHA见实施文档J10-online-1。
+
 ### B5-J5g-j9：独立占位栈 Create / Recover 入口
 
 固定 fixture 为 `techlong-sandbox-arn-compatibility-probe`，只审阅一个未执行的 `WaitConditionHandle` Add；不复用业务 Cell，不执行 child，不挂载 grant。entry 默认离线 Plan，所有输出 create-only。唯一写能力是获批后一次 CreateChangeSet；先持久化 repo-local `.aws-sandbox/j5gj9-arn-probe/create-intent.json` 并 fsync，SDK `maxAttempts=1`，响应不确定仅 Recover，intent 不自动删除或复位。
