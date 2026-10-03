@@ -800,6 +800,21 @@ slot现在保留claim及run/grant-execute/revoke-create/revoke-execute四份绑�
 
 取证SHA `2a07492d7b2415030b78a7fe709de72bd9564d832e41eeb666af68be8245e222`、独立摘要/时间窗及旧archive/固定slot复算通过。无IAM模拟、AWS写入、新Grant、删除或槽位重置，执行代码不变；runtime gates仍false。本轮新实读不替代上一轮Cell/authority/fixture完整Inspect。下一步先准备未部署的独立只读对照候选和审阅方案，不自动放宽Delete、不复用已消费slot，任何新generation/窗口另行准确批准。详见[只读诊断报告](../../docs/aws-sandbox-j5gj15-describe-diagnostic.md)。
 
+### B5-J5g-j16：未部署只读对照 Prepare / Source Review
+
+仅支持下面两个模式，无Create/Execute/Delete/AssumeRole/MFA或IAM模拟。两候选都从Locked生成，仅增加读Allow，完整ARN/精确名称条件互斥；四个未来读请求仍必须校验原完整返回身份。输出不是J10/J11/J14可执行清单，不提议新generation，不安装权限或变更旧删除规则。
+
+```powershell
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-read-comparison.ts `
+  --mode Prepare --evidence '<absolute-evidence-paths.json>' --output '<absolute-new-preparation.json>' --acknowledge-read-only
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-read-comparison.ts `
+  --mode Review --evidence '<absolute-evidence-paths.json>' --output '<absolute-new-review.json>' --acknowledge-read-only
+```
+
+evidence路径JSON必须准确提供七个绝对路径：legacyManifest、legacyRunReceipt、creationReview、workflowReview、runReceipt、independentInspect、diagnosticReceipt。当前本机清单为 `F:\ChatGPT_workshop\techlong-j5gj16-read-comparison-evidence-paths.json`；loader锚定已独立验证的J14/J11/J15摘要，并从仓库准确旧目录/唯一generation1 slot只读核验五个文件（claim及四份intent）。未知目录/文件、缺失、链接、损坏全部阻断，不修复、不为缺少probe-delete intent创建新槽位；output禁止写入 `.aws-sandbox`，create-only且fsync。
+
+实际Source于 `2026-10-03T22:23:14.818Z` 仍准确Locked/v5/Cell MISSING/authority ABSENT，两次完整管理清单空，原probe未执行资源0，前后磁盘锚点稳定。Review SHA `aebf0799583df1d91e867d974ab563a6e13d186d9091f487403d209f406cc980`、新11项+相关回归64/64和独立复算通过；无AWS写入/Operator对照，compatibility/runtime gates仍false。后续先审阅和实现独立fence/creation-only入口，再另行准确批准新的云动作；本Review不能用于创建或安装权限。见[完整方案](../../docs/aws-sandbox-j5gj16-read-comparison.md)。
+
 ### B5-J5g-j9：独立占位栈 Create / Recover 入口
 
 固定 fixture 为 `techlong-sandbox-arn-compatibility-probe`，只审阅一个未执行的 `WaitConditionHandle` Add；不复用业务 Cell，不执行 child，不挂载 grant。entry 默认离线 Plan，所有输出 create-only。唯一写能力是获批后一次 CreateChangeSet；先持久化 repo-local `.aws-sandbox/j5gj9-arn-probe/create-intent.json` 并 fsync，SDK `maxAttempts=1`，响应不确定仅 Recover，intent 不自动删除或复位。

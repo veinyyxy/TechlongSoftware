@@ -459,6 +459,12 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - `2026-10-03T21:43:24.311Z`（Winnipeg16:43:24）取证receipt SHA `2a07492d7b2415030b78a7fe709de72bd9564d832e41eeb666af68be8245e222`，原件 `F:\ChatGPT_workshop\techlong-j5gj11-describe-diagnostic-202610032144.json`。独立复算取证/plan policy/statement/requestId/时间窗及原archive、claim、四步journal通过；probe-delete intent仍无，不代表允许重跑。没有IAM模拟、AWS/Neon写入或runtime改变；仅本机只读脚本及状态文档，不重复799/799离线云模拟。
 - 完整Cell MISSING/authority ABSENT/probe资源0证据仍引用上一轮21:27:33的独立Inspect，不冒充新全量Inspect；新实读只确认管理模板和Operator v5 Locked。下一步仅准备未部署的独立只读对照候选及审阅方案；删除全ARN规则不自动放宽，任何新generation/窗口单独审阅批准，旧slot不可复用。详细证据、AWS来源和不确定性见[DescribeChangeSet只读诊断](./aws-sandbox-j5gj15-describe-diagnostic.md)。
 
+### B5-J5g-j16：独立只读候选及 Source-only 审阅实现
+
+- 新 `arn-compatibility-probe-read-comparison.ts` 编译两个互斥只读候选，仅增加精确fixture读权限，IAM文档只差ChangeSetName完整ARN/精确名称条件值；四个提议Describe请求都要求原完整返回身份。无删除Allow、无AWS写request/执行短语，generationProposal=null，fence/Operator执行未实现；原Delete编译器、固定slot、执行/撤权规则不改变。
+- 本机Prepare receipt SHA `ad8e317d541231db37c1d3c55dad777936be25db3dd190aa0566fdb47a8c00ad`；真实Source Review SHA `aebf0799583df1d91e867d974ab563a6e13d186d9091f487403d209f406cc980`、candidate plan SHA `8cf8ae7c64ff0bc8aebaf5bf4d5c864cca081b3683e61e85a6590c4874506614`。末Source `2026-10-03T22:23:14.818Z`（Winnipeg17:23:14）仍Locked/operator默认v5/execution boundary v1/Cell MISSING/authority ABSENT；前后IAM、模板、Role稳定，两次管理清单均完整且空，原fixture末读READY_UNEXECUTED资源0，旧archive/claim/四步journal一致。新evidence loader无ledger写能力；无AWS/Neon写入、新grant、slot或Operator session。
+- 独立验证器严格重编译plan/Review、复算模板/政策/证据/磁盘前驱摘要通过；11项新测试加原grant/workflow共64/64、typecheck/变更文件eslint/management模板验证通过。新测试接入npm test，不为此重复全量离线云模拟，无IAM simulation。所有readiness/compatibility/runtime gates继续false；Review只为Source-only准备，不授权部署，Operator对照仍待分别审阅批准。详细方案和下一阶段独立fence边界见[只读对照候选](./aws-sandbox-j5gj16-read-comparison.md)。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：
