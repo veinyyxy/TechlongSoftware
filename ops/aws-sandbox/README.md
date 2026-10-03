@@ -517,7 +517,7 @@ live provision evidence也升级为schema v2，并从前后稳定CloudFormation 
 
 本切片没有新增online CLI、DynamoDB migration或default Worker/Janitor root wiring，只执行离线源码与定向测试，不调用AWS或Neon。账号仍没有Shared Cell，authority key仍为`ABSENT`，因而线上没有v1 item被迁移或v2 item被安装；J4c Lambda仍只接受`inspect_cell_cleanup_plan`并固定`PLAN_ONLY`，Schedule仍为`DISABLED`，默认runtime仍为`offline_only`，两个blocker与四个readiness gate均不变。
 
-J5g-a-online-1 已完成四资源 Locked IAM root部署与严格 Readback；J5g-a-online-2已在本地补齐`AuthorGrant → AuthorRevoke` controller、双哈希/固定StackId/短窗口门禁、确定性candidate和只读preflight。build-source双digest前缀不可变策略也已部署并完成自动及独立严格回读。J5g-h reviewed target已通过受控`Locked → ExecuteGrant → Locked`窗口更新到AWS，child严格回读为目标delete-intent-compatible模板，management立即撤权并恢复exact `LOCKED`。刷新Manager后的inspect/delete-intent双探针逐字一致返回`ABSENT_SAFE`且`mutationPerformed=false`，canonical evidence SHA-256为`f98e7468920b42403aa04c8323b1f7dd46b85121a1354933083a6158f2a7ea47`；`deployedCompatibilityVerified=true`，只关闭event-deployment blocker。`compatible=false`、mutation blocker与四个readiness gate保持不变，Schedule继续`DISABLED`，没有创建付费Cell或其他付费基础设施。J5g-i-offline-1 已实现并测试`REVIEW_IN_PROGRESS → DELETE_IN_PROGRESS → MISSING`补偿核心；J5g-j1补入真实SDK adapter、稳定operation/phase plans和split grants，J5g-j2补入数据库时钟claim、phase write-ahead和只读Recover，J5g-j3再补入Grant/Revoke durable lifecycle、可信双读回执及数据库级legacy旁路封锁。`0009`/`0010`已在J5g-j7-online-1明确批准下原子应用并通过独立Recover，controller仍default-off且未接runtime；J5g-j4真实management adapter与入口已离线完成，J5g-j5已在代码层闭合candidate-bound零资源占位栈回执；J5g-j6完成真实Neon只读migration review，J5g-j7-online-1随后完成明确批准的Apply与独立只读Recover；补偿schema安装门禁已闭合，但exact ARN请求与短name IAM condition的AWS-backed兼容性证明、grant部署、真实占位栈演练及其后的独立Revoke仍未实现或批准。之后仍须单独实现并批准付费Cell、production collector/root、数据库/运行主机时钟校准、live drain/snapshot、v2 predecessor install/cleanup advance、provider-side真实删除和费用演练。这不批准安装authority item或启用Schedule；首次authority install仍必须从持续`ABSENT` strong read出发，使用fresh schema v2 evidence、exact `cloudFormationRoleArn`和人工批准的candidate digest，任何v1 item都必须停止并人工调查。
+J5g-a-online-1 已完成四资源 Locked IAM root部署与严格 Readback；J5g-a-online-2已在本地补齐`AuthorGrant → AuthorRevoke` controller、双哈希/固定StackId/短窗口门禁、确定性candidate和只读preflight。build-source双digest前缀不可变策略也已部署并完成自动及独立严格回读。J5g-h reviewed target已通过受控`Locked → ExecuteGrant → Locked`窗口更新到AWS，child严格回读为目标delete-intent-compatible模板，management立即撤权并恢复exact `LOCKED`。刷新Manager后的inspect/delete-intent双探针逐字一致返回`ABSENT_SAFE`且`mutationPerformed=false`，canonical evidence SHA-256为`f98e7468920b42403aa04c8323b1f7dd46b85121a1354933083a6158f2a7ea47`；`deployedCompatibilityVerified=true`，只关闭event-deployment blocker。`compatible=false`、mutation blocker与四个readiness gate保持不变，Schedule继续`DISABLED`，没有创建付费Cell或其他付费基础设施。J5g-i-offline-1 已实现并测试`REVIEW_IN_PROGRESS → DELETE_IN_PROGRESS → MISSING`补偿核心；J5g-j1补入真实SDK adapter、稳定operation/phase plans和split grants，J5g-j2补入数据库时钟claim、phase write-ahead和只读Recover，J5g-j3再补入Grant/Revoke durable lifecycle、可信双读回执及数据库级legacy旁路封锁。`0009`/`0010`已在J5g-j7-online-1明确批准下原子应用并通过独立Recover，controller仍default-off且未接runtime；J5g-j4真实management adapter与入口已离线完成，J5g-j5已在代码层闭合candidate-bound零资源占位栈回执；J5g-j6完成真实Neon只读migration review，J5g-j7-online-1随后完成明确批准的Apply与独立只读Recover；补偿schema安装门禁已闭合，J5g-j8已将split候选收紧到exact ARN condition并完成13项AWS只读synthetic-context检查；真实provider-context兼容性门禁仍未闭合，grant部署、占位栈探针/演练及独立Revoke仍未批准。之后仍须单独实现并批准付费Cell、production collector/root、数据库/运行主机时钟校准、live drain/snapshot、v2 predecessor install/cleanup advance、provider-side真实删除和费用演练。这不批准安装authority item或启用Schedule；首次authority install仍必须从持续`ABSENT` strong read出发，使用fresh schema v2 evidence、exact `cloudFormationRoleArn`和人工批准的candidate digest，任何v1 item都必须停止并人工调查。
 
 ### B5-J5g-g J4c authority-v2 plan-only consumer rollout（线上已完成）
 
@@ -666,6 +666,25 @@ B4 Cell 模板只允许 `aurora-postgresql-serverless-v2`，最多一个共享 C
 - 单独进程的只读 `RecoverState` 随后在 Winnipeg `08:43:22` 返回 `RECOVERED_APPLIED` / `mutationPerformed=false` / `databaseMutationPresent=true`，receipt SHA-256 `1099061d4bd34fb86849088c6302813448d30dbc17bdab5e3d30976f334fa09c`。两份外部原件为 `F:\ChatGPT_workshop\techlong-j5gj7-neon-apply-20261003-134202.json` / `techlong-j5gj7-neon-postcheck-20261003-134202.json`，保存后独立重算通过。
 - 当前 PostgreSQL `180006`、exact migration catalog 0001–0010；新增结构完整匹配固定 canonical schema SHA-256 `d31d72e398658677bc483fbbd261de9d5ae59d0b89f31f8e436bf448921a3631`，5 张补偿表零行、旧 cutover 表零行，quiet counters、critical schema 与 admission defaults 未变。没有修改封存旧 receipt/catalog，也没有重试写入或 down migration。
 - 这是数据库 schema 安装完成，不是 AWS Apply：controller/runtime 仍 default-off、split grants CloudApplyEnabled=false、四个 readiness gate 未变。本次没有 AWS 调用或 IAM/authority/Schedule/Cell mutation；后续复验使用 J5g-j7 read-only Recover，前态 J5g-j6 OnlineInspect应拒绝已应用状态，禁止重新 Apply 同一 suffix。下一阶段准备独立的 AWS ARN/IAM compatibility 证明，任何 grant 安装或 phase mutation 仍须另行批准。
+
+### B5-J5g-j8：exact ARN 候选 / AWS read-only IAM review
+
+Split compensation 候选现在将 DeleteChangeSet 的 `cloudformation:ChangeSetName` 精确绑定完整 ARN，并在两段中增加 exact StackId/ARN、review/expiry 受限的 DescribeChangeSet 只读权限；不改 deployed Locked/AuthorGrant/legacy 模板，不安装策略，cloud-apply 与 provider-context compatibility gate 仍关闭。
+
+```powershell
+# 默认只在本地重现候选并生成不可覆盖的 review
+node --experimental-strip-types ops/aws-sandbox/scripts/review-b5-author-compensation-iam.ts `
+  --template '<split-delete-change-set-candidate.json>' --output '<new-review.json>'
+
+# 可选：只调用 Source STS / AWS IAM custom-policy simulator，不挂载策略
+node --experimental-strip-types ops/aws-sandbox/scripts/review-b5-author-compensation-iam.ts `
+  --template '<split-delete-change-set-candidate.json>' --output '<new-simulation-evidence.json>' `
+  --online-simulate --acknowledge-read-only
+```
+
+`2026-10-03T14:16:25.935Z` 的实际 AWS 13 项 synthetic-context 检查全部符合预期；review / receipt SHA 为 `b457a473ed95a4a83078ad3764477ba74eed788d0e5f17f6a8359c84c3185f92` / `228e9b6027515539b0941ce6078901489162cbf4032e60d6b9d11fd0c2b2a497`，原件 `F:\ChatGPT_workshop\techlong-j5gj8-aws-iam-review-20261003-1415.json`，独立重算通过。它不证明目标存在或 CloudFormation 的真实 IAM context；两个证明字段始终 false。Source strict Locked readback、Cell MISSING 和 strong authority ABSENT 也通过。typecheck/lint/validator 和全量 733/733 测试通过，无 AWS mutation / Neon 调用 / 付费 Cell。
+
+下一步是单独实现并审阅真实 provider-context 探针入口及 fresh manifest；零资源占位栈创建、短时 grant、实际 DeleteChangeSet 探针、Revoke/Locked 与清理均继续独立审批，child 永不执行。详情见 J5g-j8 实施记录。
 
 ## TTL / Janitor 契约
 

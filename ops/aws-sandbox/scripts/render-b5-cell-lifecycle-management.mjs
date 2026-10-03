@@ -394,13 +394,14 @@ function operatorAuthorCompensationDeleteStackStatement(
 function operatorAuthorCompensationStatements(
   shape,
   approvedChangeSetName,
+  approvedChangeSetArn,
   approvedStackId,
   approvedCellExpiresAt,
   compensationReviewedAt,
   compensationExpiresAt,
 ) {
   const deleteChangeSet = operatorAuthorCompensationDeleteChangeSetStatement(
-    approvedChangeSetName,
+    shape === "AuthorCompensationGrant" ? approvedChangeSetName : approvedChangeSetArn,
     approvedStackId,
     compensationReviewedAt,
     compensationExpiresAt,
@@ -411,11 +412,26 @@ function operatorAuthorCompensationStatements(
     compensationReviewedAt,
     compensationExpiresAt,
   );
+  // The SDK uses the exact ARN for reads and writes. Do not assume that the
+  // service normalizes an ARN request to a short-name IAM context value.
+  // Keep the deployed Locked/Author/legacy contracts byte-for-byte unchanged.
+  const exactArnRead = {
+    Sid: "TemporaryAllowReadExactCompensationChangeSetArn",
+    Effect: "Allow",
+    Action: "cloudformation:DescribeChangeSet",
+    Resource: approvedStackId,
+    Condition: authorCompensationCondition(compensationReviewedAt, compensationExpiresAt, {
+      StringEquals: {
+        "aws:RequestedRegion": region,
+        "cloudformation:ChangeSetName": approvedChangeSetArn,
+      },
+    }),
+  };
   if (shape === "AuthorCompensationDeleteChangeSetGrant") {
-    return [deleteChangeSet];
+    return [exactArnRead, deleteChangeSet];
   }
   if (shape === "AuthorCompensationDeleteStackGrant") {
-    return [deleteStack];
+    return [exactArnRead, deleteStack];
   }
   return [deleteChangeSet, deleteStack];
 }
@@ -916,6 +932,10 @@ export async function renderB5CellLifecycleManagementTemplate({
     boundary.CompensationPersistentClaimRequired = true;
     boundary.CompensationChangeSetArnRequestIamConditionCompatibilityVerified =
       false;
+    if (isSplitAuthorCompensation) {
+      boundary.CompensationChangeSetConditionValue = approvedChangeSetArn;
+      boundary.CompensationExactArnReadAllowed = true;
+    }
     boundary.CompensationUsesExactStackId = true;
     boundary.CompensationControllerRequiresEmptyReviewStack = true;
     boundary.CompensationStateAndOrderIamEnforced = false;
@@ -941,6 +961,7 @@ export async function renderB5CellLifecycleManagementTemplate({
       ...operatorAuthorCompensationStatements(
         shape,
         approvedChangeSetName,
+        approvedChangeSetArn,
         approvedStackId,
         approvedCellExpiresAt,
         compensationReviewedAt,

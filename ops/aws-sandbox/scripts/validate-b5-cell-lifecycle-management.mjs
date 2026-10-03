@@ -566,20 +566,38 @@ for (const statements of [
   splitDeleteChangeSetStatements,
   splitDeleteStackStatements,
 ]) {
-  assert.equal(statements.length, lockedOperatorStatements.length + 1);
+  assert.equal(statements.length, lockedOperatorStatements.length + 2);
   assert.deepEqual(
     statements.slice(0, lockedOperatorStatements.length),
     lockedOperatorStatements,
   );
 }
 assert.deepEqual(
-  splitDeleteChangeSetStatements.slice(lockedOperatorStatements.length),
-  [legacyDeleteChangeSetStatement],
+  splitDeleteChangeSetStatements.slice(lockedOperatorStatements.length + 1),
+  [{ ...legacyDeleteChangeSetStatement, Condition: {
+    ...legacyDeleteChangeSetStatement.Condition,
+    StringEquals: { "aws:RequestedRegion": "ca-central-1", "cloudformation:ChangeSetName": approvedChangeSetArn },
+  } }],
 );
 assert.deepEqual(
-  splitDeleteStackStatements.slice(lockedOperatorStatements.length),
+  splitDeleteStackStatements.slice(lockedOperatorStatements.length + 1),
   [legacyDeleteStackStatement],
 );
+for (const template of [compensationDeleteChangeSet, compensationDeleteStack]) {
+  assert.equal(template.Metadata.SafetyBoundary.CompensationChangeSetConditionValue, approvedChangeSetArn);
+  assert.equal(template.Metadata.SafetyBoundary.CompensationExactArnReadAllowed, true);
+  assert.deepEqual(statementBySid(template, "CellOperatorBoundary", "TemporaryAllowReadExactCompensationChangeSetArn"), {
+    Sid: "TemporaryAllowReadExactCompensationChangeSetArn",
+    Effect: "Allow",
+    Action: "cloudformation:DescribeChangeSet",
+    Resource: approvedStackId,
+    Condition: {
+      StringEquals: { "aws:RequestedRegion": "ca-central-1", "cloudformation:ChangeSetName": approvedChangeSetArn },
+      DateGreaterThanEquals: { "aws:CurrentTime": compensationReviewedAt },
+      DateLessThan: { "aws:CurrentTime": compensationExpiresAt },
+    },
+  });
+}
 const splitDeleteChangeSetActions = allowedActions(
   compensationDeleteChangeSet,
   "CellOperatorBoundary",
