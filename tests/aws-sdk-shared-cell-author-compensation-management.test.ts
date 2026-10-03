@@ -31,6 +31,8 @@ import {
 } from "../lib/deployments/execution/shared-cell-author-compensation-grant-controller.ts";
 import { reviewSharedCellAuthorCompensationManagementAction, createSharedCellAuthorCompensationManagementEntry } from "../lib/deployments/execution/shared-cell-author-compensation-management-entry.ts";
 import { renderB5CellLifecycleManagementTemplate } from "../ops/aws-sandbox/scripts/render-b5-cell-lifecycle-management.mjs";
+import { compileArnProbeFixturePlan, ARN_PROBE_FIXTURE_STACK } from "../lib/deployments/execution/arn-compatibility-probe-fixture.ts";
+import { compileArnProbeGrantPlan } from "../lib/deployments/execution/arn-compatibility-probe-grant.ts";
 import type { SharedCellAuthorCompensationOperationStore } from "../lib/deployments/execution/shared-cell-author-compensation-operation-store.ts";
 import { compileSharedCellAuthorCompensationControllerContract } from "../lib/deployments/execution/shared-cell-author-compensation-controller.ts";
 import {
@@ -166,6 +168,28 @@ function mutation(fixtureValue: ReturnType<typeof fixture>, materialValue: Await
   const port = createPreparedSharedCellAuthorCompensationManagementMutation({ prepared: materialValue.prepared, approvedPreparedActionSha256: materialValue.prepared.preparedActionSha256, reads: fixtureValue.reads, sdk: { executeChangeSet: Execute, client: { async send(command) { writes.push((command as Execute).input); if (fail) throw new Error("https://secret-user:secret-password@hidden.example"); return {}; } } } });
   return { port, writes };
 }
+
+test("dedicated ARN probe reader proves exact candidate IAM without accepting it as a production lifecycle shape", async () => {
+  const data = await material();
+  const fixturePlan = await compileArnProbeFixturePlan({ nonce: "a".repeat(32), reviewedAt: "2026-10-02T11:00:00.000Z", expiresAt: "2026-10-02T12:00:00.000Z" });
+  const plan = await compileArnProbeGrantPlan({ fixturePlan, fixtureStackId: `arn:aws:cloudformation:${region}:${accountId}:stack/${ARN_PROBE_FIXTURE_STACK}/11111111-2222-4333-8444-555555555555`,
+    fixtureChangeSetArn: `arn:aws:cloudformation:${region}:${accountId}:changeSet/${fixturePlan.request.ChangeSetName}/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee`,
+    nonce: "b".repeat(32), reviewedAt: "2026-10-02T12:00:00.000Z", expiresAt: "2026-10-02T13:00:00.000Z" });
+  const grant = fixture(data, plan.request.TemplateBody);
+  const result = await grant.reads.readArnProbeManagementObservation({ plan, signal: abort() });
+  assert.equal(result.rendererShape, "ArnProbeDeleteChangeSetGrant"); assert.equal(result.policies.length, 2); assert.equal(result.roles.length, 2);
+  assert.equal(result.stack.templateRawSha256, plan.grantTemplateRawSha256); assert.equal(result.cellStackState, "MISSING"); assert.equal(result.authorityState, "ABSENT");
+  await assert.rejects(grant.reads.readLockedPreflightObservation({ signal: abort() }));
+  const rollback = fixture(data, plan.revokeTarget.templateBody, (name, input, response) => {
+    if (name === "describeStacks" && input.StackName === stackId) (response.Stacks as Array<Record<string, unknown>>)[0].StackStatus = "UPDATE_ROLLBACK_COMPLETE";
+  });
+  assert.equal((await rollback.reads.readArnProbeManagementObservation({ plan, signal: abort() })).rendererShape, "Locked");
+  await assert.rejects(rollback.reads.readLockedPreflightObservation({ signal: abort() }));
+  const drift = fixture(data, plan.request.TemplateBody, (name, input, response) => {
+    if (name === "getPolicyVersion" && input.PolicyArn === policyArn(names[0])) (response.PolicyVersion as Record<string, unknown>).Document = JSON.stringify({ Version: "2012-10-17", Statement: [{ Effect: "Allow", Action: "*", Resource: "*" }] });
+  });
+  await assert.rejects(drift.reads.readArnProbeManagementObservation({ plan, signal: abort() }));
+});
 
 test("management read collects real IAM evidence and brackets exact absence with strong authority reads", async () => {
   const data = await material();

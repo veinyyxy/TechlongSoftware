@@ -29,6 +29,7 @@ import type {
   SharedCellAuthorCompensationPhaseGrantMutationPort,
   SharedCellAuthorCompensationPhaseRevokeMutationPort,
 } from "./shared-cell-author-compensation-grant-controller.ts";
+import type { ArnProbeGrantPlan } from "./arn-compatibility-probe-grant.ts";
 
 export const SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_DEFAULT_ENABLED = false;
 export const SHARED_CELL_AUTHOR_COMPENSATION_SOURCE_PROFILE = "techlong-sandbox-user";
@@ -143,6 +144,14 @@ interface Client { send(command: unknown, options: { abortSignal: AbortSignal })
 export type CollectedManagementObservation = Omit<SharedCellAuthorCompensationManagementObservation, "stack"> & {
   stack: Omit<SharedCellAuthorCompensationManagementObservation["stack"], "status"> & { status: "CREATE_COMPLETE" | "UPDATE_COMPLETE" };
 };
+export type ArnProbeManagementObservation = Omit<CollectedManagementObservation, "rendererShape" | "stack"> & {
+  rendererShape: "Locked" | "ArnProbeDeleteChangeSetGrant";
+  stack: Omit<CollectedManagementObservation["stack"], "status"> & { status: "CREATE_COMPLETE" | "UPDATE_COMPLETE" | "UPDATE_ROLLBACK_COMPLETE" };
+};
+type AnyManagementObservation = Omit<CollectedManagementObservation, "rendererShape" | "stack"> & {
+  rendererShape: CollectedManagementObservation["rendererShape"] | "ArnProbeDeleteChangeSetGrant";
+  stack: ArnProbeManagementObservation["stack"];
+};
 export interface SharedCellAuthorCompensationManagementReadDependencies {
   clients: { sts: Client; cloudFormation: Client; iam: Client; dynamoDb: Client };
   commands: Record<
@@ -224,13 +233,13 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
         return { authorityKey, item: null, revision: 0 };
       } }, signal: abort });
   }
-  private async stack(abort: AbortSignal, allowCreatedLocked = false): Promise<Record<string, unknown>> {
+  private async stack(abort: AbortSignal, allowCreatedLocked = false, allowRollbackComplete = false): Promise<Record<string, unknown>> {
     const response = await this.send(this.sdk.clients.cloudFormation, this.sdk.commands.describeStacks, { StackName: stackId }, abort);
     unpaginated(response);
     const entries = array(response.Stacks);
     if (entries.length !== 1) invalid("Management Stack read is not singular.");
     const stack = record(entries[0]);
-    if (stack.StackName !== stackName || stack.StackId !== stackId || (stack.StackStatus !== "UPDATE_COMPLETE" && !(allowCreatedLocked && stack.StackStatus === "CREATE_COMPLETE")) || !optionalEmpty(stack.RoleARN) || !optionalEmpty(stack.ParentId) || !optionalEmpty(stack.RootId) || stack.EnableTerminationProtection !== false) invalid("Management Stack identity or completed state drifted.");
+    if (stack.StackName !== stackName || stack.StackId !== stackId || (stack.StackStatus !== "UPDATE_COMPLETE" && !(allowCreatedLocked && stack.StackStatus === "CREATE_COMPLETE") && !(allowRollbackComplete && stack.StackStatus === "UPDATE_ROLLBACK_COMPLETE")) || !optionalEmpty(stack.RoleARN) || !optionalEmpty(stack.ParentId) || !optionalEmpty(stack.RootId) || stack.EnableTerminationProtection !== false) invalid("Management Stack identity or completed state drifted.");
     same(array(stack.Parameters).map((entry) => { const item = record(entry); return [item.ParameterKey, item.ParameterValue]; }).sort(), [["ExpectedAccountId", accountId], ["ExpectedRegion", region], ["ManagementPrincipalArn", sourceArn]].sort(), "Management parameters");
     return stack;
   }
@@ -293,17 +302,26 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
     same(array(inline.PolicyNames), [], "Role inline policies");
     return { logicalId: logicalId as "CellOperatorRole" | "CellCloudFormationExecutionRole", arn, name, permissionsBoundaryArn: boundaryArn, attachedPolicyArns: attachments.map((entry) => String(entry.PolicyArn)), inlinePolicyNames: [], trustPolicySha256: await sha256Hex(canonicalJson(trust)) };
   }
-  private async collectObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }, allowCreatedLocked = false): Promise<Readonly<CollectedManagementObservation>> {
+  private async collectObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }, allowCreatedLocked?: boolean): Promise<Readonly<CollectedManagementObservation>>;
+  private async collectObservation(input: { signal: AbortSignal }, allowCreatedLocked: boolean, probePlan: ArnProbeGrantPlan): Promise<Readonly<ArnProbeManagementObservation>>;
+  private async collectObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }, allowCreatedLocked = false, probePlan?: ArnProbeGrantPlan): Promise<Readonly<AnyManagementObservation>> {
     exact(input, ["signal", ...(Object.hasOwn(input, "cellSafety") ? ["cellSafety"] : [])]); signal(input.signal);
     if (Object.hasOwn(input, "cellSafety") && !input.cellSafety) invalid("An explicit Cell safety binding cannot be empty.");
     const binding = input.cellSafety ? immutable(input.cellSafety) : undefined;
     const startedAt = this.now();
     await this.identity(input.signal);
     const firstCell = await this.cellSafety(binding, input.signal);
-    const firstStack = await this.stack(input.signal, allowCreatedLocked);
+    const firstStack = await this.stack(input.signal, allowCreatedLocked, !!probePlan);
     const original = await this.send(this.sdk.clients.cloudFormation, this.sdk.commands.getTemplate, { StackName: stackId, TemplateStage: "Original" }, input.signal);
     const body = template(original.TemplateBody);
-    if (firstStack.StackStatus === "CREATE_COMPLETE" && shape(body) !== "Locked") invalid("Only a Locked predecessor may be CREATE_COMPLETE.");
+    let rendererShape: AnyManagementObservation["rendererShape"];
+    if (probePlan) {
+      const rawSha = await sha256Hex(String(original.TemplateBody)), canonicalSha = await sha256Hex(canonicalJson(body));
+      if (rawSha === probePlan.revokeTarget.templateRawSha256 && canonicalSha === probePlan.revokeTarget.templateCanonicalSha256) rendererShape = "Locked";
+      else if (rawSha === probePlan.grantTemplateRawSha256 && canonicalSha === probePlan.grantTemplateCanonicalSha256) rendererShape = "ArnProbeDeleteChangeSetGrant";
+      else invalid("Probe management template is neither the exact grant nor its exact Locked target.");
+    } else rendererShape = shape(body);
+    if (firstStack.StackStatus === "CREATE_COMPLETE" && rendererShape !== "Locked") invalid("Only a Locked predecessor may be CREATE_COMPLETE.");
     const inventory = await this.send(this.sdk.clients.cloudFormation, this.sdk.commands.listStackResources, { StackName: stackId }, input.signal);
     unpaginated(inventory);
     const observedResources = array(inventory.StackResourceSummaries).map(record);
@@ -318,7 +336,7 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
     const roles = [await this.role(body, 1, input.signal), await this.role(body, 3, input.signal)];
     const lastCell = await this.cellSafety(binding, input.signal);
     same(lastCell ?? null, firstCell ?? null, "Cell safety while collecting management evidence");
-    const lastStack = await this.stack(input.signal, allowCreatedLocked);
+    const lastStack = await this.stack(input.signal, allowCreatedLocked, !!probePlan);
     same(lastStack, firstStack, "Management Stack while collecting IAM evidence");
     const observedAt = this.now();
     if (!Number.isSafeInteger(startedAt) || !Number.isSafeInteger(observedAt) || observedAt < startedAt || observedAt - startedAt > maximumObservationMs) invalid("Management evidence exceeded its collection bound.");
@@ -326,7 +344,14 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
     const outputs = array(lastStack.Outputs).map(record);
     if (outputs.filter((output) => output.OutputKey === "SafetyState").length !== 1 || outputs.find((output) => output.OutputKey === "SafetyState")?.OutputValue !== safetyState || typeof safetyState !== "string") invalid("Management SafetyState output drifted.");
     signal(input.signal);
-    return immutable({ schemaVersion: 1, accountId, region, callerArn: sourceArn, rendererShape: shape(body), stack: { name: stackName, id: stackId, status: lastStack.StackStatus as "CREATE_COMPLETE" | "UPDATE_COMPLETE", roleArn: null, parentId: null, rootId: null, terminationProtection: false, templateRawSha256: await sha256Hex(String(original.TemplateBody)), templateCanonicalSha256: await sha256Hex(canonicalJson(body)), safetyState, resources: normalizedResources }, policies, roles, cellStackState: lastCell && lastCell.state !== "MISSING" ? "REVIEW_IN_PROGRESS" : "MISSING", ...(lastCell ? { cellSafety: lastCell } : {}), authorityState: "ABSENT", observedAt: new Date(observedAt).toISOString() });
+    return immutable({ schemaVersion: 1, accountId, region, callerArn: sourceArn, rendererShape, stack: { name: stackName, id: stackId, status: lastStack.StackStatus as AnyManagementObservation["stack"]["status"], roleArn: null, parentId: null, rootId: null, terminationProtection: false, templateRawSha256: await sha256Hex(String(original.TemplateBody)), templateCanonicalSha256: await sha256Hex(canonicalJson(body)), safetyState, resources: normalizedResources }, policies, roles, cellStackState: lastCell && lastCell.state !== "MISSING" ? "REVIEW_IN_PROGRESS" : "MISSING", ...(lastCell ? { cellSafety: lastCell } : {}), authorityState: "ABSENT", observedAt: new Date(observedAt).toISOString() });
+  }
+  /** Probe-only full IAM readback, never a production lifecycle receipt. */
+  async readArnProbeManagementObservation(input: { plan: ArnProbeGrantPlan; signal: AbortSignal }): Promise<Readonly<ArnProbeManagementObservation>> {
+    exact(input, ["plan", "signal"]);
+    const { assertArnProbeGrantPlan } = await import("./arn-compatibility-probe-grant.ts");
+    await assertArnProbeGrantPlan(input.plan);
+    return this.collectObservation({ signal: input.signal }, true, input.plan);
   }
   async readManagementObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }): Promise<Readonly<SharedCellAuthorCompensationManagementObservation>> {
     const observed = await this.collectObservation(input);

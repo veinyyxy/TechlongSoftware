@@ -702,6 +702,19 @@ node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-grant.ts
 
 实际 `2026-10-03T16:03:15.991Z` 只读 review SHA `a1f8e11f8c50825005a791fae14ed7f0f6a6719405acb413de1e15dc8de98a28`；plan SHA `de0bc7d5bd12fa955d9bd9a103acc7c2c39093e24cba343dc2560d63001ca17c`。原件 `F:\ChatGPT_workshop\techlong-j5gj10-probe-grant-plan-202610031603.json` / `F:\ChatGPT_workshop\techlong-j5gj10-probe-grant-review-202610031603.json`，创建批准 expiry `16:48:04.932Z`（Winnipeg `11:48:04`）；候选删除 cutoff `16:53:04.932Z`、grant expiry `17:03:04.932Z`。独立 Recover `16:04:42.552Z` 仍是 Grant MISSING、fixture READY_UNEXECUTED/resourceCount 0、management Locked/Cell MISSING/authority ABSENT；回执 `F:\ChatGPT_workshop\techlong-j5gj10-probe-grant-recover-202610031605.json`、SHA `ba2a2f783ff128f4ec647db599c30281493b377b906f4f0ec292ba2e037c7d65`。计划/审阅/恢复保存摘要重算通过；typecheck/lint与752/752测试通过。未创建Grant Change Set，intent未生成，没有激活权限。下一小阶段先完成 Grant Execute / exact-ARN probe / immediate independent Revoke 与 readonly恢复入口，再刷新短窗口清单请求各阶段明确批准，避免提前创建会过期的Grant候选。生产 cloud apply、provider compatibility 与全部 runtime gate仍false。
 
+### B5-J5g-j11：隔离探针执行和立即撤权入口（尚未执行）
+
+新 `s3-b5-arn-probe-workflow.ts` 已实现 Source Grant Execute → 固定 MFA Operator 单次精确 ARN DeleteChangeSet → 立即 Source exact Locked Revoke 的受控路径，写前分别绑定三项 action SHA 与总 manifest SHA；J10 creation-only 批准不覆盖这些动作。`RunReviewed` 尚未获批/执行，不执行 child、不给 execution role写权限、没有 DeleteStack 或付费 Cell 模式。独立 `Inspect` 只读；`RecoverRevoke` 需另行批准，仅恢复 Locked，过期 manifest 也不能重放 Grant/探针。每个 mutation create-only + fsync journal、SDK single-submit/no retry；调用取消和响应丢失不会跳过已提交 Grant 的撤权，但凭据/网络/磁盘失败仍可能需要人工恢复，不能保证绝对按时销毁。
+
+```powershell
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-workflow.ts --mode Inspect --plan <j10-plan.json> --acknowledge-read-only --output <new-inspect.json>
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-workflow.ts --mode Review --plan <j10-plan.json> --acknowledge-read-only --output <new-execution-review.json>
+# 只有真实 Grant CS 已创建且 Review 输出 executionReady=true，才可送审其中的 manifest/action SHA。
+# 未获分别批准之前，不运行 RunReviewed 或 RecoverRevoke；两者都属于 AWS write mode。
+```
+
+`2026-10-03T18:15:31.547Z` 真实 Inspect 为 LOCKED_VERIFIED、Cell MISSING、authority ABSENT、探针 READY_UNEXECUTED/resourceCount 0；receipt SHA `d3636bdd70cb4fd70af1f2d594a551c402bd6fc904a552832bec65f85a16ab84`。刷新 J10 创建审阅 SHA `44ec7b9fd85cbeed8d31b7aedf2078e61eb95ff46da033db3111d515906116c5`，创建批准截至 `19:02:34.487Z`（Winnipeg `14:02:34`）；Grant仍 MISSING，J11 Review只返回 PREPARE_GRANT_REQUIRED、manifest null、executionReady false（SHA `655865112059ac77e0a4d8e5e3713e7fadadb0a022454f30e440145ee17fc274`）。所有保存摘要独立重算通过；没有 AWS write/AssumeRole/Neon 调用，production compatibility/readiness/runtime gate均false。实际 Grant/删除/Revoke分支尚无线上证据。下一动作先单独批准 fresh J10“创建不执行”，创建并回读后再请求真实 J11 manifest的三项执行批准，过期则只读刷新。详细证据及恢复约束见 B5 实施文档 J11。
+
 ### B5-J5g-j9：独立占位栈 Create / Recover 入口
 
 固定 fixture 为 `techlong-sandbox-arn-compatibility-probe`，只审阅一个未执行的 `WaitConditionHandle` Add；不复用业务 Cell，不执行 child，不挂载 grant。entry 默认离线 Plan，所有输出 create-only。唯一写能力是获批后一次 CreateChangeSet；先持久化 repo-local `.aws-sandbox/j5gj9-arn-probe/create-intent.json` 并 fsync，SDK `maxAttempts=1`，响应不确定仅 Recover，intent 不自动删除或复位。
