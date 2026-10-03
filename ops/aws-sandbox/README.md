@@ -784,6 +784,16 @@ node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-fenced-c
 
 固定slot现已永久占用，claim SHA `8e94cd97fde90f32bc3ae1f3911a139697f0c9615c4a61ef8abaef8cc926f8c0`，slot中只有claim、五步workflow intent尚未写入。原J10和J11六份记录全部保留、archive摘要仍一致。另起进程复算review/Create/嵌套Recover/claim摘要及准确ARN、状态、模板、时序均通过。本轮仅部署状态文档改变，沿用代码准备轮799/799测试结果，不重跑离线云模拟。不能用新的nonce/清单/目录再次创建，也不自动清理已占用slot；原J13首次adoption入口现在应被registry阻断。下一步是以原已claim的plan做fresh J11只读Review并另行准确审批Grant Execute/单次精确探针/立即Source Revoke，不能把本次创建批准作为执行批准。
 
+### B5-J5g-j11-fenced-online-1：真实 Operator gate 拒绝、未删除、已撤权
+
+旧清单 `6c2d97e8…` 过期退出且slot中没有workflow intent，随后按用户要求保留原Grant和slot，只读刷新为 manifest `1969abf2c05311c40fd93ded0bd195c994bd654b17a73abaa8104539d719630b`（review SHA `e9f58490adf2743b160cbc1e8f5bdad5d76125f394d9784b1b73cd8bcf9c7304`），五分钟窗口 `2026-10-03T21:18:12.934Z–21:23:12.934Z`。用户准确批准Grant Execute/一次精确ARN探针/立即Revoke，并在本机终端输入MFA；全程共用原J14 generation1 slot，原计划窗口不延长。
+
+Grant唯一执行请求获接收（requestId `5f150f76-c77d-45fc-8102-690ca7091275`）。固定Operator identity验证通过，但针对原probe完整ARN的真实 `DescribeChangeSet` 于 `21:22:52.452Z`、`21:22:54.942Z`、`21:22:57.416Z` 连续三轮返回403/AccessDenied；两次完整成功要求未满足，`READ_NOT_READY`。没有提交DeleteChangeSet，`probeAttempted=false`、`probeRequestId=null`，没有probe-delete intent；不得将三次只读重查误报成三次删除重试或缺失证明。
+
+Source随后立即创建/严格审查/执行准确Locked Revoke，并以双Source读证实恢复；Run outcome `LOCKED_PROBE_NOT_PROVED`，receipt SHA `2cc942bea9e0c7655fac8b3f1db6b23feb806a8e595854e15c3d3b6955e918e6`，原件 `F:\ChatGPT_workshop\techlong-j5gj11-fenced-run-1969abf2.json`。独立只读Inspect于 `2026-10-03T21:27:33.208Z`（Winnipeg16:27:33）再次LOCKED_VERIFIED/operator默认v5、execution boundary v1、Cell MISSING、authority ABSENT、原probe READY_UNEXECUTED且资源0；receipt SHA `7859a669a4ed5b464bba86145daeebf21463874779ac6ed6841dd534db10eb88`，原件 `F:\ChatGPT_workshop\techlong-j5gj11-fenced-independent-inspect-202610032126.json`。
+
+slot现在保留claim及run/grant-execute/revoke-create/revoke-execute四份绑定intent，已执行journal SHA `5928f40e8148127269e9acb315c91d86d505375b0127493829e156592e238d59`。旧六份记录archive和claim摘要未变，独立复算manifest/Run/Inspect/intent摘要与准确模板/ARN/时序通过。不得刷新manifest绕过run绑定、清空slot或重建Grant；全部compatibility/runtime gates仍false。本轮没有agent新增AWS写入，没有child Execute/DeleteStack/付费Cell/Neon写入；状态文档更新沿用此前799/799代码验证基线。下一阶段应先只读定位DescribeChangeSet拒绝的真实授权评估原因，不据此自动放宽权限或安装新Grant。
+
 ### B5-J5g-j9：独立占位栈 Create / Recover 入口
 
 固定 fixture 为 `techlong-sandbox-arn-compatibility-probe`，只审阅一个未执行的 `WaitConditionHandle` Add；不复用业务 Cell，不执行 child，不挂载 grant。entry 默认离线 Plan，所有输出 create-only。唯一写能力是获批后一次 CreateChangeSet；先持久化 repo-local `.aws-sandbox/j5gj9-arn-probe/create-intent.json` 并 fsync，SDK `maxAttempts=1`，响应不确定仅 Recover，intent 不自动删除或复位。
