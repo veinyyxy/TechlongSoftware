@@ -359,6 +359,21 @@ test("management read rejects IAM truncation, unsafe trust, foreign resources an
   }
 });
 
+test("initial Locked preflight supports CREATE_COMPLETE without forging a lifecycle receipt", async () => {
+  const data = await material();
+  const fake = fixture(data, data.predecessor, (name, _input, response) => {
+    if (name === "describeStacks") (response.Stacks as Record<string, unknown>[])[0].StackStatus = "CREATE_COMPLETE";
+  });
+  const observed = await fake.reads.readLockedPreflightObservation({ signal: abort() });
+  assert.equal(observed.rendererShape, "Locked");
+  assert.equal(observed.stack.status, "CREATE_COMPLETE");
+  await assert.rejects(fake.reads.readManagementObservation({ signal: abort() }));
+  const altered = JSON.parse(data.predecessor);
+  altered.Metadata.SafetyBoundary.ExtraUnreviewed = true;
+  const drift = fixture(data, JSON.stringify(altered));
+  await assert.rejects(drift.reads.readLockedPreflightObservation({ signal: abort() }), /exact deployed Locked/);
+});
+
 test("only exact name-bound Cell absence is accepted and provider secrets are redacted", async () => {
   const data = await material();
   const fake = fixture(data);

@@ -517,7 +517,7 @@ live provision evidence也升级为schema v2，并从前后稳定CloudFormation 
 
 本切片没有新增online CLI、DynamoDB migration或default Worker/Janitor root wiring，只执行离线源码与定向测试，不调用AWS或Neon。账号仍没有Shared Cell，authority key仍为`ABSENT`，因而线上没有v1 item被迁移或v2 item被安装；J4c Lambda仍只接受`inspect_cell_cleanup_plan`并固定`PLAN_ONLY`，Schedule仍为`DISABLED`，默认runtime仍为`offline_only`，两个blocker与四个readiness gate均不变。
 
-J5g-a-online-1 已完成四资源 Locked IAM root部署与严格 Readback；J5g-a-online-2已在本地补齐`AuthorGrant → AuthorRevoke` controller、双哈希/固定StackId/短窗口门禁、确定性candidate和只读preflight。build-source双digest前缀不可变策略也已部署并完成自动及独立严格回读。J5g-h reviewed target已通过受控`Locked → ExecuteGrant → Locked`窗口更新到AWS，child严格回读为目标delete-intent-compatible模板，management立即撤权并恢复exact `LOCKED`。刷新Manager后的inspect/delete-intent双探针逐字一致返回`ABSENT_SAFE`且`mutationPerformed=false`，canonical evidence SHA-256为`f98e7468920b42403aa04c8323b1f7dd46b85121a1354933083a6158f2a7ea47`；`deployedCompatibilityVerified=true`，只关闭event-deployment blocker。`compatible=false`、mutation blocker与四个readiness gate保持不变，Schedule继续`DISABLED`，没有创建付费Cell或其他付费基础设施。J5g-i-offline-1 已实现并测试`REVIEW_IN_PROGRESS → DELETE_IN_PROGRESS → MISSING`补偿核心；J5g-j1补入真实SDK adapter、稳定operation/phase plans和split grants，J5g-j2补入数据库时钟claim、phase write-ahead和只读Recover，J5g-j3再补入Grant/Revoke durable lifecycle、可信双读回执及数据库级legacy旁路封锁。`0009`/`0010`已在J5g-j7-online-1明确批准下原子应用并通过独立Recover，controller仍default-off且未接runtime；J5g-j4真实management adapter与入口已离线完成，J5g-j5已在代码层闭合candidate-bound零资源占位栈回执；J5g-j6完成真实Neon只读migration review，J5g-j7-online-1随后完成明确批准的Apply与独立只读Recover；补偿schema安装门禁已闭合，J5g-j8已将split候选收紧到exact ARN condition并完成13项AWS只读synthetic-context检查；真实provider-context兼容性门禁仍未闭合，grant部署、占位栈探针/演练及独立Revoke仍未批准。之后仍须单独实现并批准付费Cell、production collector/root、数据库/运行主机时钟校准、live drain/snapshot、v2 predecessor install/cleanup advance、provider-side真实删除和费用演练。这不批准安装authority item或启用Schedule；首次authority install仍必须从持续`ABSENT` strong read出发，使用fresh schema v2 evidence、exact `cloudFormationRoleArn`和人工批准的candidate digest，任何v1 item都必须停止并人工调查。
+J5g-a-online-1 已完成四资源 Locked IAM root部署与严格 Readback；J5g-a-online-2已在本地补齐`AuthorGrant → AuthorRevoke` controller、双哈希/固定StackId/短窗口门禁、确定性candidate和只读preflight。build-source双digest前缀不可变策略也已部署并完成自动及独立严格回读。J5g-h reviewed target已通过受控`Locked → ExecuteGrant → Locked`窗口更新到AWS，child严格回读为目标delete-intent-compatible模板，management立即撤权并恢复exact `LOCKED`。刷新Manager后的inspect/delete-intent双探针逐字一致返回`ABSENT_SAFE`且`mutationPerformed=false`，canonical evidence SHA-256为`f98e7468920b42403aa04c8323b1f7dd46b85121a1354933083a6158f2a7ea47`；`deployedCompatibilityVerified=true`，只关闭event-deployment blocker。`compatible=false`、mutation blocker与四个readiness gate保持不变，Schedule继续`DISABLED`，没有创建付费Cell或其他付费基础设施。J5g-i-offline-1 已实现并测试`REVIEW_IN_PROGRESS → DELETE_IN_PROGRESS → MISSING`补偿核心；J5g-j1补入真实SDK adapter、稳定operation/phase plans和split grants，J5g-j2补入数据库时钟claim、phase write-ahead和只读Recover，J5g-j3再补入Grant/Revoke durable lifecycle、可信双读回执及数据库级legacy旁路封锁。`0009`/`0010`已在J5g-j7-online-1明确批准下原子应用并通过独立Recover，controller仍default-off且未接runtime；J5g-j4真实management adapter与入口已离线完成，J5g-j5已在代码层闭合candidate-bound零资源占位栈回执；J5g-j6完成真实Neon只读migration review，J5g-j7-online-1随后完成明确批准的Apply与独立只读Recover；补偿schema安装门禁已闭合，J5g-j8已将split候选收紧到exact ARN condition并完成13项AWS只读synthetic-context检查；J5g-j9已实现独立fixture Create/Recover入口并取得真实只读review；fixture尚未创建，真实provider-context门禁仍未闭合，grant部署、删除探针/演练及独立Revoke仍未批准。之后仍须单独实现并批准付费Cell、production collector/root、数据库/运行主机时钟校准、live drain/snapshot、v2 predecessor install/cleanup advance、provider-side真实删除和费用演练。这不批准安装authority item或启用Schedule；首次authority install仍必须从持续`ABSENT` strong read出发，使用fresh schema v2 evidence、exact `cloudFormationRoleArn`和人工批准的candidate digest，任何v1 item都必须停止并人工调查。
 
 ### B5-J5g-g J4c authority-v2 plan-only consumer rollout（线上已完成）
 
@@ -685,6 +685,29 @@ node --experimental-strip-types ops/aws-sandbox/scripts/review-b5-author-compens
 `2026-10-03T14:16:25.935Z` 的实际 AWS 13 项 synthetic-context 检查全部符合预期；review / receipt SHA 为 `b457a473ed95a4a83078ad3764477ba74eed788d0e5f17f6a8359c84c3185f92` / `228e9b6027515539b0941ce6078901489162cbf4032e60d6b9d11fd0c2b2a497`，原件 `F:\ChatGPT_workshop\techlong-j5gj8-aws-iam-review-20261003-1415.json`，独立重算通过。它不证明目标存在或 CloudFormation 的真实 IAM context；两个证明字段始终 false。Source strict Locked readback、Cell MISSING 和 strong authority ABSENT 也通过。typecheck/lint/validator 和全量 733/733 测试通过，无 AWS mutation / Neon 调用 / 付费 Cell。
 
 下一步是单独实现并审阅真实 provider-context 探针入口及 fresh manifest；零资源占位栈创建、短时 grant、实际 DeleteChangeSet 探针、Revoke/Locked 与清理均继续独立审批，child 永不执行。详情见 J5g-j8 实施记录。
+
+### B5-J5g-j9：独立占位栈 Create / Recover 入口（真实创建待批准）
+
+固定 fixture 为 `techlong-sandbox-arn-compatibility-probe`，只审阅一个未执行的 `WaitConditionHandle` Add；不复用业务 Cell，不执行 child，不挂载 grant。entry 默认离线 Plan，所有输出 create-only。唯一写能力是获批后一次 CreateChangeSet；先持久化 repo-local `.aws-sandbox/j5gj9-arn-probe/create-intent.json` 并 fsync，SDK `maxAttempts=1`，响应不确定仅 Recover，intent 不自动删除或复位。
+
+```powershell
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-compatibility-fixture.ts `
+  --mode LocalPlan --output '<new-plan.json>'
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-compatibility-fixture.ts `
+  --mode ReviewCreate --plan '<new-plan.json>' --output '<new-review.json>' --acknowledge-read-only
+
+# 仅在取得同一未过期 review SHA 的明确创建授权后；不执行 child
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-compatibility-fixture.ts `
+  --mode CreateReviewed --review '<review.json>' --approved-review-sha '<approved-review-sha>' `
+  --execution-phrase 'I_CONFIRM_J5GJ9_CREATE_UNEXECUTED_ARN_PROBE_ONLY' `
+  --acknowledge-aws-write --acknowledge-unexecuted-only --acknowledge-low-cost-not-free --output '<new-create-receipt.json>'
+
+# 独立只读 Recover 可使用历史 plan；MISSING 不等于批准重试/清理 intent
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-compatibility-fixture.ts `
+  --mode RecoverState --plan '<plan.json>' --output '<new-recovery.json>' --acknowledge-read-only
+```
+
+`2026-10-03T14:59:44.393Z` 真实只读 review SHA `51e39e51ed81eb415b955851d076e4b5d74213d52e01f4b4ca5da3878f8ffc06`，到期 `2026-10-03T15:59:32.448Z`（Winnipeg `10:59:32`）；plan 为 `F:\ChatGPT_workshop\techlong-j5gj9-fixture-plan-20261003145929.json`，review 为 `F:\ChatGPT_workshop\techlong-j5gj9-create-review-20261003145929.json`。独立 Recover 于 `15:03:14.418Z` 再次确认 fixture MISSING，receipt SHA `1061aa6eb179c997a59f4658d8526beba63cb70b000e7a245b6077137903354c`。保存后摘要重算、typecheck/lint 与744/744测试通过。没有执行 Create；短时 grant、真实 ARN deletion probe、撤权和清理仍未实现/批准，provider compatibility 与 runtime gates仍关闭。fixture expiry 标签不提供自动删除，实际占位栈创建需单独批准。
 
 ## TTL / Janitor 契约
 

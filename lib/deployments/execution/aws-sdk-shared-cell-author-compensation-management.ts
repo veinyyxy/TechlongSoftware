@@ -140,7 +140,7 @@ function optionalEmpty(value: unknown): boolean { return value === undefined || 
 
 type Command = new (input: Record<string, unknown>) => unknown;
 interface Client { send(command: unknown, options: { abortSignal: AbortSignal }): Promise<Record<string, unknown>>; }
-type CollectedManagementObservation = Omit<SharedCellAuthorCompensationManagementObservation, "stack"> & {
+export type CollectedManagementObservation = Omit<SharedCellAuthorCompensationManagementObservation, "stack"> & {
   stack: Omit<SharedCellAuthorCompensationManagementObservation["stack"], "status"> & { status: "CREATE_COMPLETE" | "UPDATE_COMPLETE" };
 };
 export interface SharedCellAuthorCompensationManagementReadDependencies {
@@ -333,6 +333,17 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
     if (observed.stack.status !== "UPDATE_COMPLETE") invalid("Lifecycle receipts require an UPDATE_COMPLETE management Stack.");
     return immutable({ ...observed, stack: { ...observed.stack, status: "UPDATE_COMPLETE" as const } });
   }
+  /** Initial Locked preflight only; this is NOT a lifecycle Grant/Locked receipt. */
+  async readLockedPreflightObservation(input: { signal: AbortSignal }): Promise<Readonly<CollectedManagementObservation>> {
+    exact(input, ["signal"]);
+    const observed = await this.collectObservation(input, true);
+    const { renderB5CellLifecycleManagementTemplate } = await import("../../../ops/aws-sandbox/scripts/render-b5-cell-lifecycle-management.mjs");
+    const expected = await renderB5CellLifecycleManagementTemplate({ shape: "Locked" });
+    if (observed.rendererShape !== "Locked" || observed.cellStackState !== "MISSING" || observed.authorityState !== "ABSENT" ||
+        observed.stack.templateRawSha256 !== await sha256Hex(expected) ||
+        observed.stack.templateCanonicalSha256 !== await sha256Hex(canonicalJson(JSON.parse(expected)))) invalid("Preflight requires the exact deployed Locked template, Cell MISSING and authority ABSENT.");
+    return observed;
+  }
   /** No write capability is exposed by this preflight. */
   async inspectPreparedChangeSet(prepared: PreparedSharedCellAuthorCompensationManagementAction, abort: AbortSignal): Promise<void> {
     await assertPrepared(prepared);
@@ -511,8 +522,8 @@ function exported<T>(module: Record<string, unknown>, name: string): T {
   if (typeof module?.[name] !== "function") invalid(`Installed SDK export ${name} is unavailable.`);
   return module[name] as T;
 }
-/** Construction is I/O-free; login/config are inspected only when AWS asks for credentials. */
-export function createAwsSdkSharedCellAuthorCompensationManagementRuntimeFromModules(modules: SharedCellAuthorCompensationManagementRuntimeModules) {
+/** Shared Source login guard; construction is I/O-free, with no fallback provider. */
+export function createSharedCellAuthorCompensationSourceCredentialProvider(modules: Pick<SharedCellAuthorCompensationManagementRuntimeModules, "login" | "config">) {
   const loginFactory = exported<(options: Record<string, unknown>) => () => Promise<unknown>>(modules.login, "fromLoginCredentials");
   const loadConfig = exported<(options: Record<string, unknown>) => Promise<{ configFile: Record<string, Record<string, unknown>>; credentialsFile: Record<string, Record<string, unknown>> }>>(modules.config, "loadSharedConfigFiles");
   const login = loginFactory({ profile: SHARED_CELL_AUTHOR_COMPENSATION_SOURCE_PROFILE, ignoreCache: true, clientConfig: { region, ignoreConfiguredEndpointUrls: true } });
@@ -535,6 +546,11 @@ export function createAwsSdkSharedCellAuthorCompensationManagementRuntimeFromMod
       throw new SharedCellAuthorCompensationManagementAdapterError("SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_LOGIN_INVALID", "The exact Source login session is unavailable or invalid; refresh it before an approved online operation.");
     }
   };
+  return credentials;
+}
+/** Construction is I/O-free; login/config are inspected only when AWS asks for credentials. */
+export function createAwsSdkSharedCellAuthorCompensationManagementRuntimeFromModules(modules: SharedCellAuthorCompensationManagementRuntimeModules) {
+  const credentials = createSharedCellAuthorCompensationSourceCredentialProvider(modules);
   const config = { region, credentials, ignoreConfiguredEndpointUrls: true };
   const client = (module: Record<string, unknown>, name: string, mutation = false) => new (exported<Constructor>(module, name))({ ...config, ...(mutation ? { maxAttempts: 1 } : {}) });
   const clients = { sts: client(modules.sts, "STSClient"), cloudFormation: client(modules.cloudFormation, "CloudFormationClient"), iam: client(modules.iam, "IAMClient"), dynamoDb: client(modules.dynamoDb, "DynamoDBClient") };
