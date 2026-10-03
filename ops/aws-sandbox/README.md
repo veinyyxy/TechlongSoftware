@@ -721,6 +721,12 @@ node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-workflow
 
 J11首次真实只读Review已生成绑定上述ARN的执行候选；五分钟候选不是授权，过期只读刷新同一Grant，不重建。Grant Execute、Operator单次精确ARN删除、Source立即Revoke仍需新的三项明确批准及MFA准备；本轮未执行这些动作、未AssumeRole、未改变权限/compatibility/readiness/runtime gates。零资源Stack清理不在此次批准内。完整原件、时间和SHA见实施文档J10-online-1。
 
+### B5-J5g-j11-online-1：已执行并撤权，删除探针被拒绝
+
+本地明确确认fresh manifest `7e007a6ffbf01622d78e880f1ce121613c7fbfaed48d1f0dc9171b553e8f55a4` 和MFA后，Source Grant于 `18:59:57.586Z` 完成，固定Operator单次DeleteChangeSet在 `19:00:01Z` 被AWS `AccessDenied`拒绝。CloudTrail确认这是identity-policy授权拒绝，发生在 `19:00:16.983Z` 的manifest expiry前；不代表没有发送请求，也不能单独定因为ARN上下文或IAM传播。Source随后立即Create/Execute exact Locked Revoke，管理栈于 `19:00:34.244Z`完成，双次严格Locked回读通过。Run receipt SHA `93ce40211ed45b1a81b28274809fea0f94316524ac28ac01d5b864f56715eeb6`，outcome LOCKED_PROBE_NOT_PROVED，原件 `F:\ChatGPT_workshop\techlong-j5gj11-run-7e007a6f.json`。
+
+独立只读Inspect `19:03:19.107Z` 再验LOCKED_VERIFIED / operator默认v3、execution boundary v1、Cell MISSING、authority ABSENT，probe仍未执行且资源0；receipt SHA `d4132f981e70cc0d679c05e928b7293a87bfb2f7b3566cab9edb512baf0ad336`，原件 `F:\ChatGPT_workshop\techlong-j5gj11-independent-inspect-202610031902.json`。管理Change Set完整inventory为空，五步intent与原J10 Create fence保留，禁止重放。兼容性/readiness/runtime仍false，没有child执行、DeleteStack、付费Cell或agent新增AWS write。详细事件/审计SHA见实施文档；下一动作先明确授权补齐脱敏失败诊断和Operator只读就绪检查，再重新审批新的受控探针轮次，不直接重跑现有脚本。
+
 ### B5-J5g-j9：独立占位栈 Create / Recover 入口
 
 固定 fixture 为 `techlong-sandbox-arn-compatibility-probe`，只审阅一个未执行的 `WaitConditionHandle` Add；不复用业务 Cell，不执行 child，不挂载 grant。entry 默认离线 Plan，所有输出 create-only。唯一写能力是获批后一次 CreateChangeSet；先持久化 repo-local `.aws-sandbox/j5gj9-arn-probe/create-intent.json` 并 fsync，SDK `maxAttempts=1`，响应不确定仅 Recover，intent 不自动删除或复位。
