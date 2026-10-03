@@ -9,6 +9,8 @@ import { compileArnProbeWorkflowManifest, assertArnProbeWorkflowManifest, review
   type ProbeStep, type ArnProbeWorkflowApproval, type ArnProbeOperatorReadPort, type ArnProbeOperatorReadiness } from "../lib/deployments/execution/arn-compatibility-probe-workflow.ts";
 import { AwsSdkArnProbeWorkflowReadAdapter, AwsSdkArnProbeOperatorReadAdapter, AwsSdkArnProbeWorkflowWriteAdapter, createArnProbeOperatorSession } from "../lib/deployments/execution/aws-sdk-arn-compatibility-probe-workflow.ts";
 import { sanitizeArnProbeFailure } from "../lib/deployments/execution/arn-compatibility-probe-diagnostics.ts";
+import { reviewArnProbeRenewal, type ArnProbeLegacyArchive, type ArnProbeRenewalReads } from "../lib/deployments/execution/arn-compatibility-probe-renewal-review.ts";
+import { canonicalJson, sha256Hex } from "../lib/deployments/execution/hash.ts";
 import type { ArnProbeManagementObservation } from "../lib/deployments/execution/aws-sdk-shared-cell-author-compensation-management.ts";
 
 const time = Date.parse("2026-10-03T17:00:00.000Z"), now = () => time, observedAt = new Date(time).toISOString();
@@ -412,5 +414,88 @@ test("J12 cancellation or review expiry during readiness skips Delete and cannot
     f.operatorReads.checkReadiness = async (...args) => { const ready = await prepare(...args); if (expiry) { current += 300_000; f.setTime(new Date(current).toISOString()); } else cancel.abort(); return ready; };
     const result = await runArnProbeWorkflow({ manifest: m, approval: approval(m), ...f, signal: cancel.signal, now: () => current });
     assert.equal(result.probeAttempted, false); assert.ok(result.cleanup); assert.equal(result.outcome, "LOCKED_PROBE_NOT_PROVED");
+  }
+});
+
+async function renewalMaterial() {
+  const { manifest: m } = await material(), f = fake(m);
+  f.writes.deleteProbe = async () => { throw Object.assign(new Error("denied"), { name: "AccessDenied" }); };
+  const runReceipt = await runArnProbeWorkflow({ manifest: m, approval: approval(m), ...f, signal: signal(), now });
+  const createReviewSha256 = "c".repeat(64), createIntent = { stage: "B5-J5g-j10", action: "CREATE_PROBE_GRANT_CHANGE_SET",
+    operationSha256: m.input.plan.operationSha256, approvedReviewSha256: createReviewSha256,
+    requestSha256: await sha256Hex(canonicalJson(m.input.plan.request)), reservedAt: observedAt };
+  const archive: ArnProbeLegacyArchive = { manifest: m, runReceipt, createIntent, journal: Object.fromEntries(f.intents) as ArnProbeLegacyArchive["journal"] };
+  const trustedAnchors = { manifestSha256: m.manifestSha256, runReceiptSha256: runReceipt.receiptSha256, createReviewSha256,
+    revokeExecuteRequestSha256: String(f.intents.get("revoke-execute")!.requestSha256) };
+  const later = time + 7_200_000, at = new Date(later).toISOString();
+  const reads: ArnProbeRenewalReads = {
+    readManagement: async () => full(m.input.plan, false, at),
+    readEmptyManagementInventory: async () => ({ stackId: m.input.plan.managementStackId, state: "EMPTY", changeSetCount: 0, providerEvidenceSha256: "d".repeat(64), observedAt: at }),
+    readFixture: async () => ({ state: "READY_UNEXECUTED", stackId: m.input.plan.input.fixtureStackId, changeSetArn: m.input.plan.input.fixtureChangeSetArn,
+      resourceCount: 0, templateCanonicalSha256: m.input.plan.input.fixturePlan.templateCanonicalSha256, observedAt: at }),
+  };
+  return { archive, trustedAnchors, reads, readArchive: async () => archive, nonce: "d".repeat(32), signal: signal(), now: () => later };
+}
+test("J13 successor review closes exact history and proposes one target-bound slot independent of nonce/time", async () => {
+  const input = await renewalMaterial(), first = await reviewArnProbeRenewal(input);
+  const second = await reviewArnProbeRenewal({ ...input, nonce: "e".repeat(32), now: () => input.now() + 1_000 });
+  assert.equal(first.proposal.targetFenceKey, second.proposal.targetFenceKey); assert.equal(first.proposal.slotRelativePath, second.proposal.slotRelativePath);
+  assert.notEqual(first.proposal.nextGrantPlan.operationSha256, second.proposal.nextGrantPlan.operationSha256);
+  assert.equal(first.proposal.generation, 1); assert.equal(first.proposal.persistenceImplemented, false); assert.equal(first.predecessor.replayAllowed, false);
+  assert.equal(first.grantCreationAuthorized, false); assert.equal(first.grantExecutionAuthorized, false); assert.equal(first.probeDeletionAuthorized, false);
+  assert.deepEqual(first.allowedWriteActions, []); assert.equal(first.mutationPerformed, false); assert.equal(first.runtimeEnabled, false);
+  const { reviewSha256, ...body } = first; assert.equal(reviewSha256, await sha256Hex(canonicalJson(body)));
+  assert.deepEqual(first.proposal.nextGrantPlan.futureProbeRequest, input.archive.manifest.input.plan.futureProbeRequest);
+});
+test("J13 default production anchors reject fabricated history before any provider read", async () => {
+  const input = await renewalMaterial(); let reads = 0;
+  await assert.rejects(reviewArnProbeRenewal({ ...input, trustedAnchors: undefined, reads: { ...input.reads, readManagement: async () => { reads++; throw new Error("must not read"); } } }));
+  assert.equal(reads, 0);
+  await assert.rejects(reviewArnProbeRenewal({ ...input, now: () => time, reads: { ...input.reads, readManagement: async () => { reads++; throw new Error("must not read"); } } })); assert.equal(reads, 0);
+});
+test("J13 missing, retargeted or corrupted legacy intents and changed receipt block review", async () => {
+  const input = await renewalMaterial();
+  for (const modify of [
+    (archive: ArnProbeLegacyArchive) => { delete (archive.journal as Record<string, unknown>)["probe-delete"]; },
+    (archive: ArnProbeLegacyArchive) => { (archive.journal["grant-execute"] as Record<string, unknown>).requestSha256 = "f".repeat(64); },
+    (archive: ArnProbeLegacyArchive) => { (archive.journal["revoke-execute"] as Record<string, unknown>).operationSha256 = "f".repeat(64); },
+    (archive: ArnProbeLegacyArchive) => { (archive.journal["revoke-create"] as Record<string, unknown>).reservedAt = "2026-10-03T16:00:00.000Z"; },
+    (archive: ArnProbeLegacyArchive) => { (archive.createIntent as Record<string, unknown>).approvedReviewSha256 = "f".repeat(64); },
+    (archive: ArnProbeLegacyArchive) => { (archive.runReceipt as Record<string, unknown>).outcome = "ISOLATED_PROBE_SUCCEEDED_LOCKED"; },
+  ]) {
+    const archive = JSON.parse(canonicalJson(input.archive)) as ArnProbeLegacyArchive; modify(archive);
+    await assert.rejects(reviewArnProbeRenewal({ ...input, readArchive: async () => archive }));
+  }
+});
+test("J13 renewed candidate needs fresh stable Locked, empty inventories, exact zero-resource fixture and unchanged local archive", async () => {
+  const input = await renewalMaterial();
+  for (const patch of [
+    { readManagement: async () => full(input.archive.manifest.input.plan, true, new Date(input.now()).toISOString()) },
+    { readManagement: async () => full(input.archive.manifest.input.plan, false, new Date(input.now() - 60_001).toISOString()) },
+    { readEmptyManagementInventory: async () => { throw new Error("pending competing Change Set"); } },
+    { readFixture: async () => ({ ...(await input.reads.readFixture(input.archive.manifest.input.plan, signal())), resourceCount: 1 }) },
+  ]) await assert.rejects(reviewArnProbeRenewal({ ...input, reads: { ...input.reads, ...patch } as ArnProbeRenewalReads }));
+  let reads = 0;
+  await assert.rejects(reviewArnProbeRenewal({ ...input, readArchive: async () => {
+    reads++; if (reads === 1) return input.archive;
+    const archive = JSON.parse(canonicalJson(input.archive)); archive.journal["revoke-create"].requestSha256 = "f".repeat(64); return archive;
+  } }));
+  assert.equal(reads, 2);
+});
+test("J13 SDK requires genuinely empty unpaginated inventory and only queries the exact management Stack ID", async () => {
+  const { manifest: m } = await material();
+  for (const response of [{ Summaries: [{}] }, { Summaries: [], NextToken: "next" }, {}]) {
+    const reads = sdkReads(m, async (command) => { assert.equal((command as Describe).input.StackName, m.input.plan.managementStackId); return response; });
+    await assert.rejects(reads.readEmptyManagementInventory(m.input.plan, signal()));
+  }
+  const reads = sdkReads(m, async () => ({ Summaries: [] }));
+  assert.equal((await reads.readEmptyManagementInventory(m.input.plan, signal())).state, "EMPTY");
+});
+test("J13 CLI is read-only and rejects old approval/write options without creating a journal", async () => {
+  const cli = await readFile(new URL("../ops/aws-sandbox/scripts/s3-b5-arn-probe-renewal-review.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(cli, /CreateChangeSetCommand|ExecuteChangeSetCommand|DeleteChangeSetCommand|DeleteStackCommand|AssumeRoleCommand|mkdir\(|unlink\(|reserve\(/);
+  assert.match(cli, /await exactEntries/); assert.match(cli, /isSymbolicLink/); assert.match(cli, /"wx"/);
+  for (const args of [["--acknowledge-aws-write"], ["--mode", "CreateGrantReviewed"], ["--execution-phrase", "I_CONFIRM_J5GJ10_CREATE_PROBE_GRANT_CHANGE_SET_ONLY"]]) {
+    const result = spawnSync(process.execPath, ["--experimental-strip-types", "ops/aws-sandbox/scripts/s3-b5-arn-probe-renewal-review.ts", ...args], { encoding: "utf8" }); assert.notEqual(result.status, 0);
   }
 });

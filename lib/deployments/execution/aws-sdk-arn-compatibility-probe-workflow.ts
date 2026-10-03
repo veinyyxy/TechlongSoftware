@@ -6,6 +6,7 @@ import { assertArnProbeWorkflowManifest, probeObject as object, probeSame as sam
   ARN_PROBE_OPERATOR_ROLE, ARN_PROBE_OPERATOR_SESSION, ARN_PROBE_OPERATOR_CALLER, ARN_PROBE_MFA,
   type ArnProbeOperatorReadPort, type ArnProbeOperatorReadiness } from "./arn-compatibility-probe-workflow.ts";
 import { sanitizeArnProbeFailure } from "./arn-compatibility-probe-diagnostics.ts";
+import type { ArnProbeEmptyManagementInventory } from "./arn-compatibility-probe-renewal-review.ts";
 import type { AwsSdkSharedCellAuthorCompensationManagementReadAdapter } from "./aws-sdk-shared-cell-author-compensation-management.ts";
 import type { AwsSdkArnProbeFixtureReadAdapter } from "./aws-sdk-arn-compatibility-probe-fixture.ts";
 import type { AwsSdkArnProbeGrantReadAdapter } from "./aws-sdk-arn-compatibility-probe-grant.ts";
@@ -127,6 +128,13 @@ export class AwsSdkArnProbeWorkflowReadAdapter implements ArnProbeWorkflowReads 
   readManagement(plan: ArnProbeGrantPlan, signal: AbortSignal) { return this.sdk.management.readArnProbeManagementObservation({ plan, signal }); }
   readFixture(plan: ArnProbeGrantPlan, signal: AbortSignal) { return this.sdk.fixture.readFixture(plan.input.fixturePlan, signal); }
   readGrant(plan: ArnProbeGrantPlan, signal: AbortSignal) { return this.sdk.grant.readGrantChangeSet(plan, signal); }
+  async readEmptyManagementInventory(plan: ArnProbeGrantPlan, signal: AbortSignal): Promise<ArnProbeEmptyManagementInventory> {
+    await assertArnProbeGrantPlan(plan);
+    const reply = await this.send(this.sdk.commands.listChangeSets, { StackName: plan.managementStackId }, signal);
+    if (!empty(reply.NextToken) || array(reply.Summaries).length !== 0) throw new Error("Renewal inventory must be complete and empty; do not clear competing Change Sets.");
+    return Object.freeze({ stackId: plan.managementStackId, state: "EMPTY", changeSetCount: 0,
+      providerEvidenceSha256: await sha256Hex(canonicalJson(reply)), observedAt: new Date(this.now()).toISOString() });
+  }
   async waitGrantSettlement(manifest: ArnProbeWorkflowManifest, signal: AbortSignal) {
     await assertArnProbeWorkflowManifest(manifest);
     const plan = manifest.input.plan;

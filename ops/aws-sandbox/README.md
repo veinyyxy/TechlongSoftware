@@ -733,6 +733,21 @@ RunReviewed现要求独立固定MFA Operator只读port：Grant settlement后，�
 
 本阶段没有新Create/Execute/Delete/AssumeRole或IAM修改，旧journal不清除/复位，新Grant/window/fence仍需单独审阅批准。Source真实独立Inspect于 `2026-10-03T19:35:38.999Z` 再次LOCKED_VERIFIED / Cell MISSING / authority ABSENT / probe READY_UNEXECUTED资源0；原件 `F:\ChatGPT_workshop\techlong-j5gj12-independent-inspect-202610031936.json`，receipt SHA `685a89769fd5fe26fa65ac9da1c62a596118d92d5a585543b20fa6c49fe9bf3e`。这不是新Operator gate的在线正向验证。workflow30/30、全量783/783、typecheck/lint/sandbox validators通过。下一阶段不能直接重跑旧脚本，也不能用新的operation目录绕过旧防重放记录。
 
+### B5-J5g-j13：只读续轮审阅，未开放新创建入口
+
+新增入口只复验原始旧轮次撤权证据和当前Source状态，提出新的时间窗/固定target generation1槽位；不修改现有J10/J11 journal、不创建新slot，不调用Create/Execute/Delete/AssumeRole。
+
+```powershell
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-renewal-review.ts `
+  --legacy-manifest F:/ChatGPT_workshop/techlong-j5gj11-execution-review-202610031854.json `
+  --legacy-run F:/ChatGPT_workshop/techlong-j5gj11-run-7e007a6f.json `
+  --acknowledge-read-only --output F:/ChatGPT_workshop/<new-unique-review-file>.json
+```
+
+历史锚点固定，原六个intent必须齐全且不可漂移/缺失，未知operation目录/文件/软链接/已存在新registry均拒绝，不自动清理。两次full Locked/Cell MISSING/authority ABSENT、两次完整空管理Change Set inventory及exact未执行零资源探针经真实Source回读，再复验本地原件稳定才给候选。候选 `allowedWriteActions=[]`、所有write/runtime/production gates=false、`persistenceImplemented=false`；不是Create授权。固定targetKey/generation槽位不随fresh manifest时间或nonce变化，拟议Create和J11全部步骤未来必须共享同一槽位，旧global fence仍保留；其持久化/写入口尚待下一阶段实现和审查。
+
+实际审阅 `2026-10-03T20:06:07.076Z`，原件 `F:\ChatGPT_workshop\techlong-j5gj13-renewal-review-202610032006.json`，review SHA `d988258abfb3074dd3c023e8b514567d5bcb0b17a1053aa0c828924ee5b9454a`，五分钟expiry `20:11:07.076Z`；Locked、两次空清单、未执行probe资源0均实证通过，新进程摘要/plan/targetKey核对通过。仅审阅已完成，未采用/安装新grant/window/fence。workflow36/36、全量789/789、typecheck/lint/sandbox校验通过；后续不能把过期候选用于Create，需先实现固定槽位持久化、重新只读审阅和准确审批。
+
 ### B5-J5g-j9：独立占位栈 Create / Recover 入口
 
 固定 fixture 为 `techlong-sandbox-arn-compatibility-probe`，只审阅一个未执行的 `WaitConditionHandle` Add；不复用业务 Cell，不执行 child，不挂载 grant。entry 默认离线 Plan，所有输出 create-only。唯一写能力是获批后一次 CreateChangeSet；先持久化 repo-local `.aws-sandbox/j5gj9-arn-probe/create-intent.json` 并 fsync，SDK `maxAttempts=1`，响应不确定仅 Recover，intent 不自动删除或复位。
