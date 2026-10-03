@@ -748,7 +748,7 @@ node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-renewal-
 
 实际审阅 `2026-10-03T20:06:07.076Z`，原件 `F:\ChatGPT_workshop\techlong-j5gj13-renewal-review-202610032006.json`，review SHA `d988258abfb3074dd3c023e8b514567d5bcb0b17a1053aa0c828924ee5b9454a`，五分钟expiry `20:11:07.076Z`；Locked、两次空清单、未执行probe资源0均实证通过，新进程摘要/plan/targetKey核对通过。仅审阅已完成，未采用/安装新grant/window/fence。workflow36/36、全量789/789、typecheck/lint/sandbox校验通过；后续不能把过期候选用于Create，需先实现固定槽位持久化、重新只读审阅和准确审批。
 
-### B5-J5g-j14：固定槽位与仅创建受审入口（尚未执行创建）
+### B5-J5g-j14：固定槽位与仅创建受审入口（创建已独立批准完成）
 
 `s3-b5-arn-probe-fenced-create.ts` 只有 `ReviewCreate`（默认只读）、`CreateReviewed`（准确获批后一次创建未执行Grant Change Set）和 `RecoverCreate`（只读）。不存在Execute/Delete/AssumeRole模式。固定Source login-only，拒绝ambient credential/config/endpoint覆盖，SDK maxAttempts=1。
 
@@ -760,7 +760,7 @@ node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-fenced-c
   --legacy-run F:/ChatGPT_workshop/techlong-j5gj11-run-7e007a6f.json `
   --acknowledge-read-only --output '<unique-j14-review.json>'
 
-# 仅在人工准确批准同一未过期J14 review SHA后；本阶段没有执行此命令
+# 仅在人工准确批准同一未过期J14 review SHA后；已完成的创建不可重放
 node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-fenced-create.ts `
   --mode CreateReviewed --review '<approved-j14-review.json>' --approved-review-sha '<full-approved-review-sha>' `
   --legacy-manifest F:/ChatGPT_workshop/techlong-j5gj11-execution-review-202610031854.json `
@@ -778,7 +778,11 @@ node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-fenced-c
 
 后续 J11 `RunReviewed` / `RecoverRevoke` 对任何非原始封存manifest必须传 `--fenced-create-review '<original-j14-review.json>'`，在SDK/MFA前核对相同plan和durable claim；五个intent共用该slot，不再按新operation创建目录。创建审阅过期不阻断之后的只读Recover或另行准确批准的Revoke，但不能再授权Create；Run仍受自身准确审批、五分钟窗口、Operator真实只读gate和立即Source Revoke约束。原J10 global fence及原J11 journal不删除/复位，旧入口不能创建新一轮。
 
-该防重放契约仅限同一受控本地仓库/可信单主机文件系统，不是跨checkout/主机/网络盘CAS，不对管理员篡改/删除本地记录或硬件故障提供绝对保证。本阶段真实registry仍不存在，没有占用新槽位或调用Create/Execute/Delete/IAM/Neon写入。真实Review于 `2026-10-03T20:42:34.765Z` 生成，SHA `a672e89f55344950b88bcd3b2723419e355574136dc380ca3faf5cd78798feb6`，expiry `20:47:05.649Z`，原件 `F:\ChatGPT_workshop\techlong-j5gj14-fenced-create-review-202610032042.json`；它是未批准审计证据，后续动作前需要fresh审阅。独立Inspect于 `20:43:25.848Z` 再证Locked/Cell MISSING/authority ABSENT/未执行fixture资源0，receipt SHA `71f93e101d006537d1c60c56318103203650a8703b039f69f16fbbabacce54fd`，原件 `F:\ChatGPT_workshop\techlong-j5gj14-independent-inspect-202610032043.json`。workflow46/46、全量799/799、typecheck/lint/sandbox通过；不宣称新Operator gate已在线正向验证，所有production/runtime gates保持false。
+该防重放契约仅限同一受控本地仓库/可信单主机文件系统，不是跨checkout/主机/网络盘CAS，不对管理员篡改/删除本地记录或硬件故障提供绝对保证。代码准备轮当时真实registry仍不存在，没有占用新槽位或调用Create/Execute/Delete/IAM/Neon写入。真实Review于 `2026-10-03T20:42:34.765Z` 生成，SHA `a672e89f55344950b88bcd3b2723419e355574136dc380ca3faf5cd78798feb6`，expiry `20:47:05.649Z`，原件 `F:\ChatGPT_workshop\techlong-j5gj14-fenced-create-review-202610032042.json`；它是未批准审计证据，后续动作前需要fresh审阅。独立Inspect于 `20:43:25.848Z` 再证Locked/Cell MISSING/authority ABSENT/未执行fixture资源0，receipt SHA `71f93e101d006537d1c60c56318103203650a8703b039f69f16fbbabacce54fd`，原件 `F:\ChatGPT_workshop\techlong-j5gj14-independent-inspect-202610032043.json`。workflow46/46、全量799/799、typecheck/lint/sandbox通过；不宣称新Operator gate已在线正向验证，所有production/runtime gates保持false。
+
+后续 `J5g-j14-online-1` 已准确获批并执行：清单 `0c6ac6f6641bd446b052d76968157acec7d062ce1b84a9ed52120735d0a36a77` 在 `20:59:10.050Z` 前仍有效，claim于 `20:59:08.544Z` 持久化，唯一Create于 `2026-10-03T20:59:08.792Z` 返回 `CREATE_SUBMITTED`；receipt SHA `8e94e33e56c7b2b8376dfa07c10c89f886e9ff0ed1b1ff72ed954d8b284d9485`，原件 `F:\ChatGPT_workshop\techlong-j5gj14-create-0c6ac6f6-202610032058.json`。新Grant ARN为 `arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-j5gj10-probe-grant-884e662f065a34bd/a6e15c06-02c3-4546-b5d6-c7e94bc890d2`。独立Recover在 `20:59:31.843Z` 完成，receipt SHA `6f95db67844db0421c3cdf35a1f01ed3624cee3cc6ed005665ae7b543fadf0da`，原件 `F:\ChatGPT_workshop\techlong-j5gj14-recover-0c6ac6f6-202610032059.json`；新Grant READY_UNEXECUTED、权限仍Locked/Cell MISSING/authority ABSENT、原probe未执行资源0。没有Execute/Delete/AssumeRole或Neon写入，provider compatibility仍未证明。
+
+固定slot现已永久占用，claim SHA `8e94cd97fde90f32bc3ae1f3911a139697f0c9615c4a61ef8abaef8cc926f8c0`，slot中只有claim、五步workflow intent尚未写入。原J10和J11六份记录全部保留、archive摘要仍一致。另起进程复算review/Create/嵌套Recover/claim摘要及准确ARN、状态、模板、时序均通过。本轮仅部署状态文档改变，沿用代码准备轮799/799测试结果，不重跑离线云模拟。不能用新的nonce/清单/目录再次创建，也不自动清理已占用slot；原J13首次adoption入口现在应被registry阻断。下一步是以原已claim的plan做fresh J11只读Review并另行准确审批Grant Execute/单次精确探针/立即Source Revoke，不能把本次创建批准作为执行批准。
 
 ### B5-J5g-j9：独立占位栈 Create / Recover 入口
 
