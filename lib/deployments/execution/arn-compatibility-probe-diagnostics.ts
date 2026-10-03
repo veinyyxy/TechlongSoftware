@@ -9,7 +9,7 @@ const codes = {
   AbortError: "CANCELLED", TimeoutError: "TIMEOUT_UNCERTAIN", RequestTimeout: "TIMEOUT_UNCERTAIN",
   ETIMEDOUT: "TRANSPORT_UNCERTAIN", ECONNRESET: "TRANSPORT_UNCERTAIN", ENOTFOUND: "TRANSPORT_UNCERTAIN",
 } as const;
-export type ArnProbeFailurePhase = "ENTRY" | "GRANT_EXECUTE" | "GRANT_SETTLEMENT" | "SOURCE_FIXTURE" | "OPERATOR_IDENTITY" |
+export type ArnProbeFailurePhase = "ENTRY" | "GRANT_CREATE" | "GRANT_EXECUTE" | "GRANT_SETTLEMENT" | "SOURCE_FIXTURE" | "OPERATOR_IDENTITY" |
   "OPERATOR_READINESS" | "PROBE_DELETE" | "REVOKE_CREATE" | "REVOKE_EXECUTE" | "REVOKE_VERIFY" | "POST_PROBE_READ";
 function field(value: unknown, key: string): unknown {
   try { return value && (typeof value === "object" || typeof value === "function") ? Reflect.get(value, key) : undefined; }

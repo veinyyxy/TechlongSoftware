@@ -4,13 +4,16 @@ import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline/promises";
 import { canonicalJson, sha256Hex } from "../../../lib/deployments/execution/hash.ts";
 import { sanitizeArnProbeFailure } from "../../../lib/deployments/execution/arn-compatibility-probe-diagnostics.ts";
+import { arnProbeSlotScope } from "../../../lib/deployments/execution/arn-compatibility-probe-fenced-create.ts";
+import { createArnProbeFsFixedSlot } from "../../../lib/deployments/execution/arn-compatibility-probe-slot-store.ts";
+import { ARN_PROBE_LEGACY_ANCHORS } from "../../../lib/deployments/execution/arn-compatibility-probe-renewal-review.ts";
 import { assertArnProbeGrantPlan, type ArnProbeGrantPlan } from "../../../lib/deployments/execution/arn-compatibility-probe-grant.ts";
 import { assertArnProbeWorkflowManifest, reviewArnProbeWorkflow, inspectArnProbeWorkflow, runArnProbeWorkflow, recoverArnProbeWorkflowRevoke,
   type ArnProbeWorkflowManifest, type ArnProbeWorkflowApproval, type ArnProbeWorkflowJournal, ARN_PROBE_MFA } from "../../../lib/deployments/execution/arn-compatibility-probe-workflow.ts";
 
 const values = new Map<string, string>(), flags = new Set<string>(), args = process.argv.slice(2);
 const flagNames = ["--acknowledge-read-only", "--acknowledge-aws-write", "--acknowledge-low-cost-not-zero"];
-const valueNames = ["--mode", "--output", "--plan", "--manifest", "--approved-manifest-sha", "--approved-grant-sha", "--approved-probe-sha", "--approved-revoke-sha", "--execution-phrase"];
+const valueNames = ["--mode", "--output", "--plan", "--manifest", "--approved-manifest-sha", "--approved-grant-sha", "--approved-probe-sha", "--approved-revoke-sha", "--execution-phrase", "--fenced-create-review"];
 for (let index = 0; index < args.length; index++) {
   const key = args[index];
   if (values.has(key) || flags.has(key)) throw new Error("Duplicate probe workflow option.");
@@ -22,14 +25,14 @@ for (let index = 0; index < args.length; index++) {
 }
 const mode = values.get("--mode") ?? "Review", output = values.get("--output");
 const commonWrite = ["--mode", "--output", "--manifest", "--approved-manifest-sha", "--approved-revoke-sha", "--execution-phrase"];
-const contracts: Record<string, { values: string[]; flags: string[] }> = {
+const contracts: Record<string, { values: string[]; flags: string[]; optional?: string[] }> = {
   Review: { values: ["--mode", "--output", "--plan"], flags: ["--acknowledge-read-only"] },
   Inspect: { values: ["--mode", "--output", "--plan"], flags: ["--acknowledge-read-only"] },
-  RunReviewed: { values: [...commonWrite, "--approved-grant-sha", "--approved-probe-sha"], flags: ["--acknowledge-aws-write", "--acknowledge-low-cost-not-zero"] },
-  RecoverRevoke: { values: commonWrite, flags: ["--acknowledge-aws-write", "--acknowledge-low-cost-not-zero"] },
+  RunReviewed: { values: [...commonWrite, "--approved-grant-sha", "--approved-probe-sha"], optional: ["--fenced-create-review"], flags: ["--acknowledge-aws-write", "--acknowledge-low-cost-not-zero"] },
+  RecoverRevoke: { values: commonWrite, optional: ["--fenced-create-review"], flags: ["--acknowledge-aws-write", "--acknowledge-low-cost-not-zero"] },
 };
 const contract = contracts[mode];
-if (!contract || !output || [...values.keys()].some((key) => !contract.values.includes(key)) || [...flags].some((key) => !contract.flags.includes(key)) ||
+if (!contract || !output || [...values.keys()].some((key) => ![...contract.values, ...(contract.optional ?? [])].includes(key)) || [...flags].some((key) => !contract.flags.includes(key)) ||
     contract.values.filter((key) => key !== "--mode").some((key) => !values.has(key)) || contract.flags.some((key) => !flags.has(key))) throw new Error("Invalid workflow mode or acknowledgements.");
 async function json(file: string) {
   if ((await stat(file)).size > 600_000) throw new Error("Probe workflow evidence exceeds its size bound.");
@@ -45,6 +48,17 @@ if (writeMode) {
 }
 const plan: ArnProbeGrantPlan = manifest ? manifest.input.plan : await json(values.get("--plan")!);
 await assertArnProbeGrantPlan(plan);
+// Bind successor workflows before SDK setup/MFA. Fresh nonce/time/operation cannot
+// select a fresh journal directory and bypass the one consumed fixed slot.
+let fencedJournal: ArnProbeWorkflowJournal | undefined;
+if (writeMode) {
+  const fencedReviewPath = values.get("--fenced-create-review");
+  if (fencedReviewPath) {
+    const repository = await realpath(fileURLToPath(new URL("../../../", import.meta.url)));
+    const slot = await createArnProbeFsFixedSlot(repository, await arnProbeSlotScope(await json(fencedReviewPath)));
+    fencedJournal = await slot.workflowJournal(manifest!);
+  } else if (manifest!.manifestSha256 !== ARN_PROBE_LEGACY_ANCHORS.manifestSha256) throw new Error("Every successor workflow requires its exact fenced-create review and durable fixed-slot claim.");
+}
 const destination = await open(output, "wx"), clients: Array<{ destroy(): void }> = [];
 const cancel = new AbortController();
 const stop = () => cancel.abort(); process.on("SIGINT", stop); process.on("SIGTERM", stop);
@@ -116,7 +130,7 @@ try {
       if (current !== await realpath(directory)) throw new Error("Journal path changed.");
       return current;
     };
-    const journal: ArnProbeWorkflowJournal = {
+    const journal: ArnProbeWorkflowJournal = fencedJournal ?? {
       load: async (step) => {
         const resolved = await directoryInsideRepo(), file = path.join(resolved, `${step}-intent.json`);
         try { return await json(file); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }

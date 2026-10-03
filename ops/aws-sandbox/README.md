@@ -748,6 +748,38 @@ node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-renewal-
 
 实际审阅 `2026-10-03T20:06:07.076Z`，原件 `F:\ChatGPT_workshop\techlong-j5gj13-renewal-review-202610032006.json`，review SHA `d988258abfb3074dd3c023e8b514567d5bcb0b17a1053aa0c828924ee5b9454a`，五分钟expiry `20:11:07.076Z`；Locked、两次空清单、未执行probe资源0均实证通过，新进程摘要/plan/targetKey核对通过。仅审阅已完成，未采用/安装新grant/window/fence。workflow36/36、全量789/789、typecheck/lint/sandbox校验通过；后续不能把过期候选用于Create，需先实现固定槽位持久化、重新只读审阅和准确审批。
 
+### B5-J5g-j14：固定槽位与仅创建受审入口（尚未执行创建）
+
+`s3-b5-arn-probe-fenced-create.ts` 只有 `ReviewCreate`（默认只读）、`CreateReviewed`（准确获批后一次创建未执行Grant Change Set）和 `RecoverCreate`（只读）。不存在Execute/Delete/AssumeRole模式。固定Source login-only，拒绝ambient credential/config/endpoint覆盖，SDK maxAttempts=1。
+
+```powershell
+# 先用上方J13只读入口生成fresh draft，再执行本入口只读审阅
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-fenced-create.ts `
+  --mode ReviewCreate --draft '<fresh-j13-draft.json>' `
+  --legacy-manifest F:/ChatGPT_workshop/techlong-j5gj11-execution-review-202610031854.json `
+  --legacy-run F:/ChatGPT_workshop/techlong-j5gj11-run-7e007a6f.json `
+  --acknowledge-read-only --output '<unique-j14-review.json>'
+
+# 仅在人工准确批准同一未过期J14 review SHA后；本阶段没有执行此命令
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-fenced-create.ts `
+  --mode CreateReviewed --review '<approved-j14-review.json>' --approved-review-sha '<full-approved-review-sha>' `
+  --legacy-manifest F:/ChatGPT_workshop/techlong-j5gj11-execution-review-202610031854.json `
+  --legacy-run F:/ChatGPT_workshop/techlong-j5gj11-run-7e007a6f.json `
+  --execution-phrase I_CONFIRM_J5GJ14_CREATE_FENCED_PROBE_GRANT_ONLY `
+  --acknowledge-aws-write --acknowledge-named-iam-change-set-only --acknowledge-low-cost-not-zero `
+  --acknowledge-preserves-legacy-and-consumes-slot --output '<unique-create-receipt.json>'
+
+# 响应不确定只能独立只读核对；MISSING也不允许重试或清除槽位
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-fenced-create.ts `
+  --mode RecoverCreate --review '<original-j14-review.json>' --acknowledge-read-only --output '<unique-recovery.json>'
+```
+
+创建前再次复验固定历史锚点、旧六份intent、fresh双Locked/两次完整空inventory及同一零资源fixture，且审批/取消仍有效。排他 `mkdir(slot-000001)` 后以 `wx` 写入并fsync claim，再委派一次准确Create；目录已存在但claim缺失/部分/损坏也视为已消耗，不自动修复/换代/换nonce重试。取消或过期发生在claim之后可以不提交AWS，但槽位仍保留。registry/target/generation/claim/intent未知内容或路径链接均拒绝。
+
+后续 J11 `RunReviewed` / `RecoverRevoke` 对任何非原始封存manifest必须传 `--fenced-create-review '<original-j14-review.json>'`，在SDK/MFA前核对相同plan和durable claim；五个intent共用该slot，不再按新operation创建目录。创建审阅过期不阻断之后的只读Recover或另行准确批准的Revoke，但不能再授权Create；Run仍受自身准确审批、五分钟窗口、Operator真实只读gate和立即Source Revoke约束。原J10 global fence及原J11 journal不删除/复位，旧入口不能创建新一轮。
+
+该防重放契约仅限同一受控本地仓库/可信单主机文件系统，不是跨checkout/主机/网络盘CAS，不对管理员篡改/删除本地记录或硬件故障提供绝对保证。本阶段真实registry仍不存在，没有占用新槽位或调用Create/Execute/Delete/IAM/Neon写入。真实Review于 `2026-10-03T20:42:34.765Z` 生成，SHA `a672e89f55344950b88bcd3b2723419e355574136dc380ca3faf5cd78798feb6`，expiry `20:47:05.649Z`，原件 `F:\ChatGPT_workshop\techlong-j5gj14-fenced-create-review-202610032042.json`；它是未批准审计证据，后续动作前需要fresh审阅。独立Inspect于 `20:43:25.848Z` 再证Locked/Cell MISSING/authority ABSENT/未执行fixture资源0，receipt SHA `71f93e101d006537d1c60c56318103203650a8703b039f69f16fbbabacce54fd`，原件 `F:\ChatGPT_workshop\techlong-j5gj14-independent-inspect-202610032043.json`。workflow46/46、全量799/799、typecheck/lint/sandbox通过；不宣称新Operator gate已在线正向验证，所有production/runtime gates保持false。
+
 ### B5-J5g-j9：独立占位栈 Create / Recover 入口
 
 固定 fixture 为 `techlong-sandbox-arn-compatibility-probe`，只审阅一个未执行的 `WaitConditionHandle` Add；不复用业务 Cell，不执行 child，不挂载 grant。entry 默认离线 Plan，所有输出 create-only。唯一写能力是获批后一次 CreateChangeSet；先持久化 repo-local `.aws-sandbox/j5gj9-arn-probe/create-intent.json` 并 fsync，SDK `maxAttempts=1`，响应不确定仅 Recover，intent 不自动删除或复位。

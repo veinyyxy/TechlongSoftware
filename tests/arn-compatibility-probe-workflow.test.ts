@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFile } from "node:fs/promises";
+import { readFile, mkdtemp, realpath, rm, lstat, mkdir, writeFile, symlink } from "node:fs/promises";
+import path from "node:path";
+import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { compileArnProbeFixturePlan, ARN_PROBE_FIXTURE_STACK } from "../lib/deployments/execution/arn-compatibility-probe-fixture.ts";
 import { compileArnProbeGrantPlan, type ArnProbeGrantPlan } from "../lib/deployments/execution/arn-compatibility-probe-grant.ts";
@@ -10,6 +12,9 @@ import { compileArnProbeWorkflowManifest, assertArnProbeWorkflowManifest, review
 import { AwsSdkArnProbeWorkflowReadAdapter, AwsSdkArnProbeOperatorReadAdapter, AwsSdkArnProbeWorkflowWriteAdapter, createArnProbeOperatorSession } from "../lib/deployments/execution/aws-sdk-arn-compatibility-probe-workflow.ts";
 import { sanitizeArnProbeFailure } from "../lib/deployments/execution/arn-compatibility-probe-diagnostics.ts";
 import { reviewArnProbeRenewal, type ArnProbeLegacyArchive, type ArnProbeRenewalReads } from "../lib/deployments/execution/arn-compatibility-probe-renewal-review.ts";
+import { reviewArnProbeFencedCreate, arnProbeSlotScope, createArnProbeFencedGrant, recoverArnProbeFencedCreate, assertArnProbeFencedCreateReview,
+  type ArnProbeFencedCreateReview } from "../lib/deployments/execution/arn-compatibility-probe-fenced-create.ts";
+import { createArnProbeFsFixedSlot } from "../lib/deployments/execution/arn-compatibility-probe-slot-store.ts";
 import { canonicalJson, sha256Hex } from "../lib/deployments/execution/hash.ts";
 import type { ArnProbeManagementObservation } from "../lib/deployments/execution/aws-sdk-shared-cell-author-compensation-management.ts";
 
@@ -498,4 +503,161 @@ test("J13 CLI is read-only and rejects old approval/write options without creati
   for (const args of [["--acknowledge-aws-write"], ["--mode", "CreateGrantReviewed"], ["--execution-phrase", "I_CONFIRM_J5GJ10_CREATE_PROBE_GRANT_CHANGE_SET_ONLY"]]) {
     const result = spawnSync(process.execPath, ["--experimental-strip-types", "ops/aws-sandbox/scripts/s3-b5-arn-probe-renewal-review.ts", ...args], { encoding: "utf8" }); assert.notEqual(result.status, 0);
   }
+});
+
+async function withSlotTemp(run: (folder: string) => Promise<void>) {
+  const parent = await realpath(tmpdir()), folder = await mkdtemp(path.join(parent, "techlong-j14-"));
+  try { await run(folder); } finally {
+    const resolved = await realpath(folder);
+    assert.equal(path.dirname(resolved), parent); assert.match(path.basename(resolved), /^techlong-j14-/);
+    await rm(resolved, { recursive: true, force: true });
+  }
+}
+async function fencedMaterial() {
+  const input = await renewalMaterial(), draft = await reviewArnProbeRenewal(input), review = await reviewArnProbeFencedCreate({ ...input, draft });
+  const plan = review.draft.proposal.nextGrantPlan, grantChangeSetArn = `arn:aws:cloudformation:ca-central-1:402010193138:changeSet/${plan.request.ChangeSetName}/aaaaaaaa-2222-4333-8444-bbbbbbbbbbbb`;
+  const create = async () => ({ StackId: plan.managementStackId, Id: grantChangeSetArn, $metadata: { requestId: providerRequestId } });
+  return { input, review, plan, grantChangeSetArn, create, approvedReviewSha256: review.reviewSha256, executionPhrase: review.requiredPhrase,
+    acknowledgeAwsWrite: true, acknowledgeNamedIamChangeSetOnly: true, acknowledgeLowCostNotZero: true, acknowledgePreservesLegacyAndConsumesSlot: true };
+}
+
+test("J14 creation review binds the successor, exact request and permanent slot without authorizing Execute/Delete", async () => {
+  const { review } = await fencedMaterial(); await assertArnProbeFencedCreateReview(review);
+  assert.deepEqual(review.allowedWriteActions, ["cloudformation:CreateChangeSet"]); assert.equal(review.creationApproved, false);
+  assert.equal(review.persistenceImplemented, true); assert.equal(review.grantExecutionAuthorized, false); assert.equal(review.probeDeletionAuthorized, false);
+  assert.equal(review.cleanupAuthorized, false); assert.equal(review.runtimeEnabled, false);
+  await assert.rejects(assertArnProbeFencedCreateReview({ ...review, grantExecutionAuthorized: true } as ArnProbeFencedCreateReview));
+  const { input } = await fencedMaterial();
+  await assert.rejects(reviewArnProbeFencedCreate({ ...input, draft: review.draft, now: () => input.now() + 300_000 }));
+});
+
+test("J14 actual filesystem read-only inspection creates no directory; one durable claim submits exactly one Create", async () => {
+  const f = await fencedMaterial(); await withSlotTemp(async (folder) => {
+    const slot = await createArnProbeFsFixedSlot(folder, await arnProbeSlotScope(f.review));
+    assert.equal(await slot.readClaim(), null); await assert.rejects(lstat(path.join(folder, ".aws-sandbox")), { code: "ENOENT" });
+    let calls = 0; const result = await createArnProbeFencedGrant({ ...f.input, ...f, slot, create: async (request) => { calls++; assert.deepEqual(request, f.plan.request); assert.ok(await slot.readClaim()); return f.create(); } });
+    assert.equal(result.outcome, "CREATE_SUBMITTED"); assert.equal(calls, 1); assert.equal(result.grantInstalled, false); assert.equal(result.probeDeleted, false);
+    const before = await readFile(path.join(folder, slot.scope.slotRelativePath, "claim.json"), "utf8");
+    await assert.rejects(createArnProbeFencedGrant({ ...f.input, ...f, slot }));
+    assert.equal(await readFile(path.join(folder, slot.scope.slotRelativePath, "claim.json"), "utf8"), before);
+  });
+});
+
+test("J14 concurrent different reviews/nonces compete for one fixed directory: only one Create can be submitted", async () => {
+  const a = await fencedMaterial(), draft = await reviewArnProbeRenewal({ ...a.input, nonce: "e".repeat(32) });
+  const review = await reviewArnProbeFencedCreate({ ...a.input, draft });
+  await withSlotTemp(async (folder) => {
+    const first = await createArnProbeFsFixedSlot(folder, await arnProbeSlotScope(a.review)), second = await createArnProbeFsFixedSlot(folder, await arnProbeSlotScope(review));
+    assert.equal(first.scope.slotRelativePath, second.scope.slotRelativePath); let calls = 0;
+    const make = (r: ArnProbeFencedCreateReview) => async () => { calls++; return { StackId: r.draft.proposal.nextGrantPlan.managementStackId,
+      Id: `arn:aws:cloudformation:ca-central-1:402010193138:changeSet/${r.draft.proposal.nextGrantPlan.request.ChangeSetName}/aaaaaaaa-2222-4333-8444-bbbbbbbbbbbb`, $metadata: { requestId: providerRequestId } }; };
+    const outcomes = await Promise.allSettled([
+      createArnProbeFencedGrant({ ...a.input, ...a, slot: first, create: make(a.review) }),
+      createArnProbeFencedGrant({ ...a.input, ...a, review, approvedReviewSha256: review.reviewSha256, slot: second, create: make(review) }),
+    ]);
+    assert.equal(outcomes.filter((v) => v.status === "fulfilled").length, 1); assert.equal(calls, 1);
+    const claim = JSON.parse(await readFile(path.join(folder, first.scope.slotRelativePath, "claim.json"), "utf8"));
+    assert.ok([a.review.reviewSha256, review.reviewSha256].includes(claim.scope.creationReviewSha256));
+  });
+});
+
+test("J14 incomplete/corrupt/unknown slots remain consumed and cannot be automatically repaired", async () => {
+  const f = await fencedMaterial(), scope = await arnProbeSlotScope(f.review);
+  for (const content of [null, "{partial", "{}", "unknown-file"]) await withSlotTemp(async (folder) => {
+    const target = path.join(folder, scope.slotRelativePath); await mkdir(target, { recursive: true });
+    if (content !== null) await writeFile(path.join(target, content === "unknown-file" ? "foreign.json" : "claim.json"), content);
+    const slot = await createArnProbeFsFixedSlot(folder, scope); await assert.rejects(slot.readClaim()); await assert.rejects(slot.reserve("a".repeat(64), new Date(f.input.now()).toISOString()));
+    await assert.rejects(createArnProbeFencedGrant({ ...f.input, ...f, slot, create: async () => assert.fail("consumed slot must not create") }));
+  });
+});
+
+test("J14 rejects unknown targets/generations, path traversal and junction escape before submission", async () => {
+  const f = await fencedMaterial(), scope = await arnProbeSlotScope(f.review);
+  await withSlotTemp(async (folder) => {
+    await assert.rejects(createArnProbeFsFixedSlot(folder, { ...scope, slotRelativePath: "../escape" }));
+    await assert.rejects(createArnProbeFsFixedSlot(folder, { ...scope, generation: 2 }));
+    await mkdir(path.join(folder, ".aws-sandbox", "j5gj13-arn-probe", "foreign"), { recursive: true });
+    const slot = await createArnProbeFsFixedSlot(folder, scope); await assert.rejects(slot.readClaim()); await assert.rejects(slot.reserve("a".repeat(64), new Date(f.input.now()).toISOString()));
+  });
+  await withSlotTemp(async (folder) => {
+    const outside = path.join(folder, "outside"); await mkdir(outside); await symlink(outside, path.join(folder, ".aws-sandbox"), "junction");
+    const slot = await createArnProbeFsFixedSlot(folder, scope); await assert.rejects(slot.readClaim()); await assert.rejects(slot.reserve("a".repeat(64), new Date(f.input.now()).toISOString()));
+  });
+});
+
+test("J14 missing acknowledgements, expiry/cancellation and fresh preflight drift consume no slot and submit nothing", async () => {
+  const f = await fencedMaterial(); await withSlotTemp(async (folder) => {
+    const slot = await createArnProbeFsFixedSlot(folder, await arnProbeSlotScope(f.review));
+    const common = { ...f.input, ...f, slot, create: async () => assert.fail("rejected preflight must not create") };
+    for (const patch of [{ approvedReviewSha256: "0".repeat(64) }, { acknowledgeAwsWrite: false }, { acknowledgeNamedIamChangeSetOnly: false },
+      { acknowledgeLowCostNotZero: false }, { acknowledgePreservesLegacyAndConsumesSlot: false }, { executionPhrase: "OLD_PHRASE" },
+      { now: () => f.input.now() + 300_000 }, { signal: AbortSignal.abort() },
+      { reads: { ...f.input.reads, readEmptyManagementInventory: async () => { throw new Error("foreign pending change"); } } }]) await assert.rejects(createArnProbeFencedGrant({ ...common, ...patch }));
+    assert.equal(await slot.readClaim(), null); await assert.rejects(lstat(path.join(folder, ".aws-sandbox")), { code: "ENOENT" });
+  });
+});
+
+test("J14 cancellation/expiry immediately after durable claim keeps it consumed with zero AWS submissions", async () => {
+  const f = await fencedMaterial(); for (const expiry of [false, true]) await withSlotTemp(async (folder) => {
+    const slot = await createArnProbeFsFixedSlot(folder, await arnProbeSlotScope(f.review)), cancel = new AbortController(); let current = f.input.now();
+    const result = await createArnProbeFencedGrant({ ...f.input, ...f, signal: cancel.signal, now: () => current,
+      slot: { ...slot, reserve: async (...args) => { const claim = await slot.reserve(...args); if (expiry) current += 300_000; else cancel.abort(); return claim; } },
+      create: async () => assert.fail("cancelled consumed slot cannot submit") });
+    assert.equal(result.outcome, "NO_CREATE_SUBMITTED_SLOT_CONSUMED"); assert.equal(result.creationAttempted, false); assert.ok(await slot.readClaim());
+  });
+});
+
+test("J14 lost or malformed Create response is uncertain, single-submit, and only read-only Recover is allowed", async () => {
+  const f = await fencedMaterial(); for (const malformed of [false, true]) await withSlotTemp(async (folder) => {
+    const slot = await createArnProbeFsFixedSlot(folder, await arnProbeSlotScope(f.review)); let calls = 0;
+    const result = await createArnProbeFencedGrant({ ...f.input, ...f, slot, create: async () => { calls++; if (malformed) return { Id: "foreign" }; throw Object.assign(new Error("SECRET"), { name: "TimeoutError" }); } });
+    assert.equal(result.outcome, "CREATE_UNCERTAIN"); assert.equal(result.retryAuthorized, false); assert.equal(calls, 1); assert.doesNotMatch(JSON.stringify(result), /SECRET/);
+    let readCalls = 0; const old = f.input.archive.manifest.input.plan;
+    const recovered = await recoverArnProbeFencedCreate({ review: f.review, slot, signal: signal(), now: f.input.now, reads: {
+      readLockedPreflight: async () => { const locked = full(old, false, new Date(f.input.now()).toISOString());
+        return { ...locked, rendererShape: "Locked" as const, stack: { ...locked.stack, status: "UPDATE_COMPLETE" as const } }; },
+      readFixture: async () => f.input.reads.readFixture(old, signal()),
+      readGrantChangeSet: async () => { readCalls++; return { state: "MISSING", proof: "COMPLETE_MANAGEMENT_CHANGE_SET_INVENTORY", observedAt: new Date(f.input.now()).toISOString() }; },
+    } });
+    assert.equal(recovered.mutationPerformed, false); assert.equal(recovered.retryAuthorized, false); assert.equal(readCalls, 1);
+  });
+});
+
+test("J14 shared filesystem journal binds all five intents; fresh workflow manifests cannot replay under a new operation", async () => {
+  const f = await fencedMaterial(); await withSlotTemp(async (folder) => {
+    const slot = await createArnProbeFsFixedSlot(folder, await arnProbeSlotScope(f.review)); await createArnProbeFencedGrant({ ...f.input, ...f, slot });
+    const at = new Date(f.input.now()).toISOString(), m = await compileArnProbeWorkflowManifest({ plan: f.plan, grantChangeSetArn: f.grantChangeSetArn, reviewedAt: at, expiresAt: new Date(f.input.now() + 300_000).toISOString() });
+    const ports = fake(m); ports.setTime(at); ports.writes.prepareOperator = async () => ({ callerArn: ARN_PROBE_OPERATOR_CALLER, account: "402010193138", expiresAt: new Date(f.input.now() + 900_000).toISOString() });
+    const journal = await slot.workflowJournal(m), result = await runArnProbeWorkflow({ ...ports, journal, manifest: m, approval: approval(m), signal: signal(), now: f.input.now });
+    assert.equal(result.outcome, "ISOLATED_PROBE_SUCCEEDED_LOCKED");
+    for (const step of ["run", "grant-execute", "probe-delete", "revoke-create", "revoke-execute"] as ProbeStep[]) assert.ok(await journal.load(step));
+    const renewed = await compileArnProbeWorkflowManifest({ ...m.input, reviewedAt: new Date(f.input.now() + 1_000).toISOString(), expiresAt: new Date(f.input.now() + 301_000).toISOString() });
+    assert.notEqual(renewed.operationSha256, m.operationSha256); const other = fake(renewed); other.setTime(at);
+    await assert.rejects(runArnProbeWorkflow({ ...other, journal: await slot.workflowJournal(renewed), manifest: renewed, approval: approval(renewed), signal: signal(), now: () => f.input.now() + 1_000 }));
+    assert.equal(other.events.includes("grant"), false); assert.equal(other.events.includes("probe"), false);
+    await assert.rejects(slot.workflowJournal(f.input.archive.manifest));
+  });
+});
+
+test("J14 CLI has strict creation-only modes and successor workflow entry requires fixed-slot binding before SDK/MFA", async () => {
+  const cli = await readFile(new URL("../ops/aws-sandbox/scripts/s3-b5-arn-probe-fenced-create.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(cli, /ExecuteChangeSetCommand|DeleteChangeSetCommand|DeleteStackCommand|AssumeRoleCommand|unlink\(/);
+  assert.match(cli, /if \(mode === "ReviewCreate"\)/); assert.match(cli, /if \(mode === "RecoverCreate"\)/); assert.match(cli, /maxAttempts: 1/);
+  for (const args of [["--mode", "ReviewCreate", "--acknowledge-aws-write"], ["--mode", "CreateReviewed", "--acknowledge-read-only"], ["--mode", "RecoverCreate", "--approved-review-sha", "0".repeat(64)], ["--mode", "ExecuteGrant"]]) {
+    const result = spawnSync(process.execPath, ["--experimental-strip-types", "ops/aws-sandbox/scripts/s3-b5-arn-probe-fenced-create.ts", ...args], { encoding: "utf8" }); assert.notEqual(result.status, 0);
+  }
+  const workflow = await readFile(new URL("../ops/aws-sandbox/scripts/s3-b5-arn-probe-workflow.ts", import.meta.url), "utf8");
+  assert.match(workflow, /manifest!\.manifestSha256 !== ARN_PROBE_LEGACY_ANCHORS\.manifestSha256/); assert.match(workflow, /fencedJournal \?\?/);
+  assert.ok(workflow.indexOf("slot.workflowJournal(manifest!)") < workflow.indexOf('import("@aws-sdk/client-sts")'));
+  const { manifest: m } = await material();
+  await withSlotTemp(async (folder) => {
+    const manifestFile = path.join(folder, "manifest.json"), output = path.join(folder, "output.json"); await writeFile(manifestFile, JSON.stringify(m));
+    for (const mode of ["RunReviewed", "RecoverRevoke"]) {
+      const args = ["--mode", mode, "--manifest", manifestFile, "--output", output, "--approved-manifest-sha", m.manifestSha256, "--approved-revoke-sha", m.actionSha256.revoke,
+        "--execution-phrase", approval(m, mode === "RecoverRevoke").executionPhrase, "--acknowledge-aws-write", "--acknowledge-low-cost-not-zero"];
+      if (mode === "RunReviewed") args.push("--approved-grant-sha", m.actionSha256.grantExecute, "--approved-probe-sha", m.actionSha256.probeDelete);
+      const result = spawnSync(process.execPath, ["--experimental-strip-types", "ops/aws-sandbox/scripts/s3-b5-arn-probe-workflow.ts", ...args], { encoding: "utf8" });
+      assert.notEqual(result.status, 0); assert.match(result.stderr, /Every successor workflow requires/); await assert.rejects(lstat(output), { code: "ENOENT" });
+    }
+  });
 });

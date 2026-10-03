@@ -1,5 +1,5 @@
 import { canonicalJson, sha256Hex } from "./hash.ts";
-import { compileArnProbeGrantPlan } from "./arn-compatibility-probe-grant.ts";
+import { compileArnProbeGrantPlan, assertArnProbeGrantPlan } from "./arn-compatibility-probe-grant.ts";
 import { assertArnProbeWorkflowManifest, probeObject, probeSame, probeInstant,
   type ArnProbeWorkflowManifest, type ArnProbeWorkflowReads, type ProbeStep } from "./arn-compatibility-probe-workflow.ts";
 import { ARN_PROBE_ACCOUNT, ARN_PROBE_REGION, ARN_PROBE_SOURCE } from "./arn-compatibility-probe-fixture.ts";
@@ -71,12 +71,10 @@ export async function arnProbeTargetFenceKey(plan: ArnProbeWorkflowManifest["inp
   return sha256Hex(canonicalJson({ accountId: ARN_PROBE_ACCOUNT, region: ARN_PROBE_REGION, managementStackId: plan.managementStackId,
     fixtureStackId: plan.input.fixtureStackId, fixtureChangeSetArn: plan.input.fixtureChangeSetArn }));
 }
-/** Read-only preparation. No reserve/Create/Execute/Delete/AssumeRole ports. */
-export async function reviewArnProbeRenewal(input: { readArchive: () => Promise<ArnProbeLegacyArchive>; reads: ArnProbeRenewalReads;
-  nonce: string; signal: AbortSignal; now?: () => number;
+export async function readArnProbeRenewalPreflight(input: { readArchive: () => Promise<ArnProbeLegacyArchive>; reads: ArnProbeRenewalReads;
+  signal: AbortSignal; now?: () => number;
   trustedAnchors?: Readonly<Record<keyof typeof ARN_PROBE_LEGACY_ANCHORS, string>> }) {
   const now = input.now ?? Date.now, start = now(); input.signal.throwIfAborted();
-  if (!/^[a-f0-9]{32}$/.test(input.nonce)) throw new Error("Renewal nonce must be a bounded hexadecimal value.");
   const archive = await input.readArchive(), predecessor = await legacy(archive, input.trustedAnchors ?? ARN_PROBE_LEGACY_ANCHORS), p = archive.manifest.input.plan;
   if (start < probeInstant(p.input.expiresAt)) throw new Error("Legacy Grant window must expire before proposing a successor.");
   const before = await input.reads.readManagement(p, input.signal);
@@ -101,12 +99,20 @@ export async function reviewArnProbeRenewal(input: { readArchive: () => Promise<
   if (fixture.state !== "READY_UNEXECUTED" || fixture.stackId !== p.input.fixtureStackId || fixture.changeSetArn !== p.input.fixtureChangeSetArn ||
       fixture.resourceCount !== 0 || fixture.templateCanonicalSha256 !== p.input.fixturePlan.templateCanonicalSha256) throw new Error("Only the unchanged zero-resource legacy fixture may be proposed.");
   const lastArchive = await input.readArchive(); probeSame(await legacy(lastArchive, input.trustedAnchors ?? ARN_PROBE_LEGACY_ANCHORS), predecessor, "Legacy archive stability");
+  return { archive, predecessor, observation: { management: after, inventoryBefore, inventoryAfter, fixture } };
+}
+/** Read-only preparation. No reserve/Create/Execute/Delete/AssumeRole ports. */
+export async function reviewArnProbeRenewal(input: { readArchive: () => Promise<ArnProbeLegacyArchive>; reads: ArnProbeRenewalReads;
+  nonce: string; signal: AbortSignal; now?: () => number;
+  trustedAnchors?: Readonly<Record<keyof typeof ARN_PROBE_LEGACY_ANCHORS, string>> }) {
+  if (!/^[a-f0-9]{32}$/.test(input.nonce)) throw new Error("Renewal nonce must be a bounded hexadecimal value.");
+  const now = input.now ?? Date.now, { archive, predecessor, observation } = await readArnProbeRenewalPreflight(input), p = archive.manifest.input.plan;
   const issued = now(), nextGrantPlan = await compileArnProbeGrantPlan({ ...p.input, nonce: input.nonce,
     reviewedAt: new Date(issued).toISOString(), expiresAt: new Date(issued + 3_600_000).toISOString() });
   probeSame(nextGrantPlan.futureProbeRequest, p.futureProbeRequest, "Successor exact target"); probeSame(nextGrantPlan.revokeTarget, p.revokeTarget, "Successor Locked target");
   const targetFenceKey = await arnProbeTargetFenceKey(p);
   const body = { schemaVersion: 1, stage: "B5-J5g-j13", action: "REVIEW_TARGET_BOUND_RENEWAL_ONLY", predecessor,
-    observation: { management: after, inventoryBefore, inventoryAfter, fixture },
+    observation,
     proposal: { nextGrantPlan, targetFenceKey, generation: 1, priorGeneration: 0,
       slotRelativePath: `.aws-sandbox/j5gj13-arn-probe/${targetFenceKey}/slot-000001`,
       slotIndependentOfNonceAndReviewTime: true, createOnlyFsyncBeforeAnyMutationRequired: true,
@@ -116,4 +122,20 @@ export async function reviewArnProbeRenewal(input: { readArchive: () => Promise<
     mutationPerformed: false, allowedWriteActions: [], grantCreationAuthorized: false, grantExecutionAuthorized: false,
     probeDeletionAuthorized: false, cleanupAuthorized: false, retryAuthorized: false, productionCompatibilityVerified: false, runtimeEnabled: false };
   return immutable({ ...body, reviewSha256: await sha256Hex(canonicalJson(body)) });
+}
+export type ArnProbeRenewalReview = Awaited<ReturnType<typeof reviewArnProbeRenewal>>;
+export async function assertArnProbeRenewalReview(review: ArnProbeRenewalReview) {
+  const { reviewSha256, ...body } = review;
+  if (reviewSha256 !== await sha256Hex(canonicalJson(body)) || body.schemaVersion !== 1 || body.stage !== "B5-J5g-j13" ||
+      body.action !== "REVIEW_TARGET_BOUND_RENEWAL_ONLY" || canonicalJson(body.allowedWriteActions) !== "[]" ||
+      [body.mutationPerformed, body.grantCreationAuthorized, body.grantExecutionAuthorized, body.probeDeletionAuthorized,
+        body.cleanupAuthorized, body.retryAuthorized, body.productionCompatibilityVerified, body.runtimeEnabled].some((value) => value !== false)) throw new Error("Renewal review scope drifted.");
+  const plan = body.proposal.nextGrantPlan; await assertArnProbeGrantPlan(plan);
+  const targetFenceKey = await arnProbeTargetFenceKey(plan), issued = probeInstant(body.issuedAt);
+  if (body.expiresAt !== new Date(issued + 300_000).toISOString() || plan.input.reviewedAt !== body.issuedAt ||
+      plan.input.expiresAt !== new Date(issued + 3_600_000).toISOString()) throw new Error("Renewal review window drifted.");
+  probeSame(body.proposal, { nextGrantPlan: plan, targetFenceKey, generation: 1, priorGeneration: 0,
+    slotRelativePath: `.aws-sandbox/j5gj13-arn-probe/${targetFenceKey}/slot-000001`, slotIndependentOfNonceAndReviewTime: true,
+    createOnlyFsyncBeforeAnyMutationRequired: true, sameSlotForCreateAndAllWorkflowIntentsRequired: true,
+    oldJournalsMustBePreserved: true, predecessorReadbackAndExclusiveSlotClaimRequired: true, persistenceImplemented: false }, "Renewal slot proposal");
 }
