@@ -23,12 +23,12 @@ function reads(value: ArnProbeFixturePlan) {
 }
 function evidence(value: ArnProbeFixturePlan) {
   const stack = { StackName: ARN_PROBE_FIXTURE_STACK, StackId: stackId, StackStatus: "REVIEW_IN_PROGRESS", RoleARN: ARN_PROBE_EXECUTION_ROLE,
-    EnableTerminationProtection: false, Tags: value.request.Tags };
+    EnableTerminationProtection: false, Tags: [] as Array<{ Key: string; Value: string }> };
   const changeSet = { StackName: ARN_PROBE_FIXTURE_STACK, StackId: stackId, ChangeSetName: value.request.ChangeSetName, ChangeSetId: arn(value), Description: value.request.Description,
     Status: "CREATE_COMPLETE", ExecutionStatus: "AVAILABLE", IncludeNestedStacks: false, ImportExistingResources: false, OnStackFailure: "DELETE", Tags: value.request.Tags,
     Changes: [{ Type: "Resource", ResourceChange: { Action: "Add", LogicalResourceId: "ProbeHandle", ResourceType: "AWS::CloudFormation::WaitConditionHandle" } }] };
   return { stackBefore: { Stacks: [stack], $metadata: { requestId: "stack-1" } }, stackAfter: { Stacks: [structuredClone(stack)], $metadata: { requestId: "stack-2" } },
-    resources: { StackResourceSummaries: [] }, originalTemplateAbsence: { name: "ValidationError", httpStatusCode: 400, message: `Stack with id ${stackId} does not exist` },
+    resources: { StackResourceSummaries: [] }, originalTemplateProof: { kind: "EMPTY_ORIGINAL_TEMPLATE", stackId, templateBody: "", httpStatusCode: 200, requestId: "empty-original" },
     changeSetBefore: { ...changeSet, $metadata: { requestId: "cs-1" } }, changeSetAfter: { ...structuredClone(changeSet), $metadata: { requestId: "cs-2" } },
     changeSetTemplate: { TemplateBody: value.request.TemplateBody }, observedAt: timestamp };
 }
@@ -94,11 +94,29 @@ test("fixture proof binds exact ARN/template/tags, zero resources, no nesting an
     (input) => { input.stackBefore.Stacks[0].RoleARN = "other"; }, (input) => { input.stackBefore.Stacks[0].StackStatus = "CREATE_COMPLETE"; },
     (input) => { input.changeSetBefore.IncludeNestedStacks = true; }, (input) => { input.changeSetBefore.ChangeSetId = "arn:foreign"; },
     (input) => { input.changeSetBefore.Changes[0].ResourceChange.ResourceType = "AWS::EC2::VPC"; }, (input) => { input.changeSetTemplate.TemplateBody = "{}"; },
-    (input) => { input.originalTemplateAbsence.message = "Stack with id other does not exist"; },
+    (input) => { input.originalTemplateProof.stackId = "other"; },
+    (input) => { input.originalTemplateProof.templateBody = "{}"; },
+    (input) => { input.originalTemplateProof.httpStatusCode = 403; },
+    (input) => { input.originalTemplateProof.requestId = ""; },
   ];
   for (const mutate of mutations) { const input = structuredClone(valid); mutate(input); assert.throws(() => validateArnProbeFixtureEvidence(value, input)); }
   assert.throws(() => validateArnProbeFixtureEvidence(value, { ...valid, resources: { StackResourceSummaries: [{ ResourceType: "AWS::EC2::VPC" }] } }));
   assert.throws(() => validateArnProbeFixtureEvidence(value, { ...valid, resources: { StackResourceSummaries: [], NextToken: "truncated" } }));
+});
+
+test("unexecuted provider proof requires empty Stack tags, proposed Change Set tags and explicit empty or exact-missing Original", async () => {
+  const value = await plan(), valid = evidence(value);
+  const tagged = structuredClone(valid);
+  tagged.stackBefore.Stacks[0].Tags = [...value.request.Tags]; tagged.stackAfter.Stacks[0].Tags = [...value.request.Tags];
+  assert.throws(() => validateArnProbeFixtureEvidence(value, tagged), /Stack tags/);
+  const wrongTags = structuredClone(valid);
+  wrongTags.changeSetBefore.Tags = []; wrongTags.changeSetAfter.Tags = [];
+  assert.throws(() => validateArnProbeFixtureEvidence(value, wrongTags), /Change Set tags/);
+  assert.throws(() => validateArnProbeFixtureEvidence(value, { ...valid, originalTemplateProof: { kind: "EMPTY_ORIGINAL_TEMPLATE", stackId, httpStatusCode: 200, requestId: "empty-original" } }));
+  assert.equal(validateArnProbeFixtureEvidence(value, { ...valid, originalTemplateProof: {
+    name: "ValidationError", httpStatusCode: 400, message: `Stack with id ${stackId} does not exist` } }).state, "READY_UNEXECUTED");
+  assert.throws(() => validateArnProbeFixtureEvidence(value, { ...valid, originalTemplateProof: {
+    name: "ValidationError", httpStatusCode: 400, message: "Stack with id other does not exist" } }));
 });
 test("SDK Recover discovers only the planned name, then binds exact ARN; foreign absence is rejected", async () => {
   const value = await plan(), valid = evidence(value), calls: Record<string, unknown>[] = [];
@@ -112,7 +130,7 @@ test("SDK Recover discovers only the planned name, then binds exact ARN; foreign
     if (command instanceof Resources) return valid.resources;
     if (command instanceof ChangeSet) return valid.changeSetBefore;
     if (item.input.ChangeSetName) return valid.changeSetTemplate;
-    throw Object.assign(new Error(`Stack with id ${stackId} does not exist`), { name: "ValidationError", $metadata: { httpStatusCode: 400 } });
+    return { TemplateBody: "", $metadata: { httpStatusCode: 200, requestId: "empty-original" } };
   } };
   const management = { readLockedPreflightObservation: async () => locked(value) };
   const adapter = new AwsSdkArnProbeFixtureReadAdapter({ client, management, commands: { describeStacks: Describe, listStackResources: Resources, getTemplate: Template, describeChangeSet: ChangeSet }, now });

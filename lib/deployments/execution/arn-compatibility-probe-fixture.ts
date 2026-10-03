@@ -170,7 +170,7 @@ export async function createReviewedArnProbeFixture(input: {
 
 /** Provider evidence validator; requires full zero-resource, unexecuted CREATE state. */
 export function validateArnProbeFixtureEvidence(plan: ArnProbeFixturePlan, evidence: {
-  stackBefore: unknown; stackAfter: unknown; resources: unknown; originalTemplateAbsence: unknown;
+  stackBefore: unknown; stackAfter: unknown; resources: unknown; originalTemplateProof: unknown;
   changeSetBefore: unknown; changeSetAfter: unknown; changeSetTemplate: unknown; observedAt: string;
 }): ArnProbeFixtureState {
   const first = object(evidence.stackBefore), last = object(evidence.stackAfter);
@@ -180,11 +180,18 @@ export function validateArnProbeFixtureEvidence(plan: ArnProbeFixturePlan, evide
       stack.StackStatus !== "REVIEW_IN_PROGRESS" || stack.RoleARN !== ARN_PROBE_EXECUTION_ROLE || stack.EnableTerminationProtection !== false ||
       !empty(stack.ParentId) || !empty(stack.RootId)) throw new Error("Fixture must be the exact top-level unexecuted REVIEW_IN_PROGRESS Stack.");
   const tagOrder = (value: unknown) => entries(value).map(object).sort((a, b) => String(a.Key).localeCompare(String(b.Key)));
-  same(tagOrder(stack.Tags), tagOrder(plan.request.Tags), "Fixture tags");
+  // CREATE review Stacks are unmaterialized: AWS retains proposed tags on the
+  // Change Set, but returns an explicit empty tag list on the placeholder Stack.
+  same(tagOrder(stack.Tags), [], "Unexecuted fixture Stack tags");
   const inventory = object(evidence.resources);
   if (!empty(inventory.NextToken) || entries(inventory.StackResourceSummaries).length !== 0) throw new Error("Fixture resource inventory must be complete and empty.");
-  const absent = object(evidence.originalTemplateAbsence);
-  if (absent.name !== "ValidationError" || absent.httpStatusCode !== 400 || absent.message !== `Stack with id ${stack.StackId} does not exist`) throw new Error("Fixture Original template absence is not exact-ID-bound.");
+  const originalProof = object(evidence.originalTemplateProof);
+  if (originalProof.kind === "EMPTY_ORIGINAL_TEMPLATE") {
+    same(Object.keys(originalProof).sort(), ["httpStatusCode", "kind", "requestId", "stackId", "templateBody"], "Empty Original template proof fields");
+    if (originalProof.stackId !== stack.StackId || originalProof.httpStatusCode !== 200 || originalProof.templateBody !== "" ||
+        typeof originalProof.requestId !== "string" || !originalProof.requestId) throw new Error("Fixture empty Original template is not exact-ID-bound.");
+  } else if (originalProof.name !== "ValidationError" || originalProof.httpStatusCode !== 400 ||
+      originalProof.message !== `Stack with id ${stack.StackId} does not exist`) throw new Error("Fixture Original template absence is not exact-ID-bound.");
   const before = object(evidence.changeSetBefore), after = object(evidence.changeSetAfter);
   const stable = (value: Record<string, unknown>) => Object.fromEntries(Object.entries(value).filter(([key]) => key !== "$metadata"));
   same(stable(before), stable(after), "Fixture Change Set while reading");

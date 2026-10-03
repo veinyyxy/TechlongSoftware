@@ -52,11 +52,17 @@ export class AwsSdkArnProbeFixtureReadAdapter implements ArnProbeFixtureReadPort
     const id = stack.StackId;
     if (typeof id !== "string" || !/^arn:aws:cloudformation:ca-central-1:402010193138:stack\/techlong-sandbox-arn-compatibility-probe\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id) || stack.StackName !== ARN_PROBE_FIXTURE_STACK || stack.StackStatus !== "REVIEW_IN_PROGRESS") throw new Error("Probe is not the exact unexecuted review Stack.");
     const resources = await this.send(this.sdk.commands.listStackResources, { StackName: id }, signal);
-    let originalTemplateAbsence: unknown;
+    let originalTemplateProof: unknown;
+    let original: Record<string, unknown> | undefined;
     try {
-      await this.send(this.sdk.commands.getTemplate, { StackName: id, TemplateStage: "Original" }, signal);
-    } catch (error) { signal.throwIfAborted(); originalTemplateAbsence = absence(error, id); }
-    if (!originalTemplateAbsence) throw new Error("Probe Stack has an Original template and cannot be treated as unexecuted.");
+      original = await this.send(this.sdk.commands.getTemplate, { StackName: id, TemplateStage: "Original" }, signal);
+    } catch (error) { signal.throwIfAborted(); originalTemplateProof = absence(error, id); }
+    if (original) {
+      const metadata = object(original.$metadata);
+      if (original.TemplateBody !== "" || metadata.httpStatusCode !== 200 || typeof metadata.requestId !== "string" || !metadata.requestId) throw new Error("Probe Stack must have an explicitly empty Original template response.");
+      originalTemplateProof = { kind: "EMPTY_ORIGINAL_TEMPLATE", stackId: id, templateBody: "", httpStatusCode: 200, requestId: metadata.requestId };
+    }
+    if (!originalTemplateProof) throw new Error("Probe Stack Original template state is incomplete.");
     // Short name is used ONLY to discover the provider-issued ARN after a lost
     // Create reply. All subsequent evidence queries bind that exact ARN.
     const changeSetBefore = await this.send(this.sdk.commands.describeChangeSet, { StackName: id, ChangeSetName: plan.request.ChangeSetName }, signal);
@@ -67,7 +73,7 @@ export class AwsSdkArnProbeFixtureReadAdapter implements ArnProbeFixtureReadPort
     const stackAfter = await this.send(this.sdk.commands.describeStacks, { StackName: ARN_PROBE_FIXTURE_STACK }, signal);
     const ended = this.now();
     if (!Number.isSafeInteger(started) || !Number.isSafeInteger(ended) || ended < started || ended - started > 30_000) throw new Error("Probe evidence collection exceeded its bound.");
-    return validateArnProbeFixtureEvidence(plan, { stackBefore: first, stackAfter, resources, originalTemplateAbsence,
+    return validateArnProbeFixtureEvidence(plan, { stackBefore: first, stackAfter, resources, originalTemplateProof,
       changeSetBefore, changeSetAfter, changeSetTemplate, observedAt: new Date(ended).toISOString() });
   }
 }
