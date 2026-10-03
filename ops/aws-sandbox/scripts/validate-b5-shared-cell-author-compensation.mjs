@@ -713,10 +713,11 @@ assertIncludesAll(managementAdapter, [
   "SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_DEFAULT_ENABLED = false",
   "ConsistentRead: true", "fromLoginCredentials", "maxAttempts: 1",
   "compilePreparedSharedCellAuthorCompensationManagementAction", "this.submitted = true",
+  "readSharedCellAuthorCompensationCellSafety", "Cell safety while collecting management evidence",
 ], "dormant management adapter");
 assertIncludesAll(managementEntry, [
   "SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_ENTRY_DEFAULT_ENABLED = false",
-  "LIFECYCLE_RECEIPT_REQUIRES_CELL_MISSING", "MIGRATIONS_0009_0010_NOT_APPLIED",
+  "COMPENSATION_CELL_SAFETY_BINDING_REQUIRED", "MIGRATIONS_0009_0010_NOT_APPLIED",
   "executeClaimedSharedCellAuthorCompensationPhaseGrant", "recoverClaimedSharedCellAuthorCompensationPhaseRevoke",
 ], "dormant management entry");
 assertIncludesAll(managementTestSource, [
@@ -724,6 +725,9 @@ assertIncludesAll(managementTestSource, [
   "lost ExecuteChangeSet responses never cause a second submission",
   "successful durable write-ahead before any provider mutation",
   "login-only lazy shared credentials",
+  "Source double-read certifies zero-resource placeholders", "reproduce all plan digests",
+  "Locked receipts bind the actual post-phase Cell state", "any Cell regression delegates zero writes",
+  "bound late Grant and expired Locked reconciliation",
 ], "management adapter tests");
 assert.doesNotMatch(managementReviewer, /createAwsSdk|createNeon|DATABASE_URL|dotenv/);
 
@@ -755,5 +759,5 @@ assert.equal(
 );
 
 console.log(
-  "B5 Shared Cell author compensation validated locally (durable 0009/0010 lifecycle, trusted two-read receipts, exact prepared management ExecuteChangeSet adapter, login-only dormant SDK construction, local review entry, write-ahead CAS before mutation, read-only recovery, sealed 0001-0008 catalog, default-off, no AWS/Neon call).",
+  "B5 Shared Cell author compensation validated locally (durable 0009/0010 lifecycle, candidate-bound zero-resource placeholder or exact MISSING receipts, exact prepared management ExecuteChangeSet adapter, login-only dormant SDK construction, local review entry, write-ahead CAS before mutation, read-only recovery, sealed 0001-0008 catalog, default-off, no AWS/Neon call).",
 );

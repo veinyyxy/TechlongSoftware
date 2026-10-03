@@ -210,6 +210,29 @@ export interface StrongSharedCellAuthorAuthorityReadPort {
   }): Promise<unknown>;
 }
 
+/** Read-only safety collection; the enclosing management adapter checks Source identity. */
+export type SharedCellAuthorCompensationSafetyReadPort = Omit<
+  SharedCellAuthorCompensationReadPort, "getCallerIdentity"
+>;
+
+export type SharedCellAuthorCompensationCellSafetyState =
+  | "REVIEW_CHANGE_SET_PRESENT"
+  | "REVIEW_CHANGE_SET_MISSING"
+  | "MISSING";
+
+export interface SharedCellAuthorCompensationCellSafetyBinding {
+  readonly candidate: SharedCellAuthorCompensationCandidate;
+  readonly expectedState: SharedCellAuthorCompensationCellSafetyState;
+}
+
+export interface SharedCellAuthorCompensationCellSafetyObservation {
+  readonly state: SharedCellAuthorCompensationCellSafetyState;
+  readonly stackId: string;
+  readonly changeSetArn: string;
+  readonly operationSha256: string;
+  readonly compensationPlanSha256: string;
+}
+
 export interface SharedCellAuthorCompensationMutationPort {
   readonly region: string;
   getCallerIdentity(input: { signal: AbortSignal; }): Promise<unknown>;
@@ -1217,7 +1240,7 @@ async function assertChangeSetTemplate(
 }
 
 async function readStack(
-  evidence: SharedCellAuthorCompensationReadPort,
+  evidence: SharedCellAuthorCompensationSafetyReadPort,
   candidate: NormalizedCandidate,
   signal: AbortSignal,
 ): Promise<unknown> {
@@ -1227,7 +1250,7 @@ async function readStack(
 }
 
 async function readTemplate(
-  evidence: SharedCellAuthorCompensationReadPort,
+  evidence: SharedCellAuthorCompensationSafetyReadPort,
   stackNameOrId: string,
   signal: AbortSignal,
 ): Promise<unknown> {
@@ -1237,7 +1260,7 @@ async function readTemplate(
 }
 
 async function readResources(
-  evidence: SharedCellAuthorCompensationReadPort,
+  evidence: SharedCellAuthorCompensationSafetyReadPort,
   stackNameOrId: string,
   signal: AbortSignal,
 ): Promise<unknown> {
@@ -1251,7 +1274,7 @@ async function readResources(
 }
 
 async function readChangeSet(
-  evidence: SharedCellAuthorCompensationReadPort,
+  evidence: SharedCellAuthorCompensationSafetyReadPort,
   candidate: NormalizedCandidate,
   signal: AbortSignal,
 ): Promise<unknown> {
@@ -1265,7 +1288,7 @@ async function readChangeSet(
 }
 
 async function readChangeSetTemplate(
-  evidence: SharedCellAuthorCompensationReadPort,
+  evidence: SharedCellAuthorCompensationSafetyReadPort,
   candidate: NormalizedCandidate,
   signal: AbortSignal,
 ): Promise<unknown> {
@@ -1279,7 +1302,7 @@ async function readChangeSetTemplate(
 }
 
 async function assertPresentChangeSetEvidence(
-  evidence: SharedCellAuthorCompensationReadPort,
+  evidence: SharedCellAuthorCompensationSafetyReadPort,
   value: unknown,
   candidate: NormalizedCandidate,
   signal: AbortSignal,
@@ -1333,6 +1356,16 @@ async function observeOneStackCycle(
   allowDeleting: boolean,
 ): Promise<Observation> {
   await assertCaller(evidence, signal);
+  return observeOneStackSafetyCycle(evidence, authority, candidate, signal, allowDeleting);
+}
+
+async function observeOneStackSafetyCycle(
+  evidence: SharedCellAuthorCompensationSafetyReadPort,
+  authority: StrongSharedCellAuthorAuthorityReadPort,
+  candidate: NormalizedCandidate,
+  signal: AbortSignal,
+  allowDeleting: boolean,
+): Promise<Observation> {
   await assertAuthorityAbsent(authority, signal);
   const stack = await readStack(evidence, candidate, signal);
   const stackMissing = isStackMissing(stack, candidate);
@@ -1567,6 +1600,43 @@ export async function compileSharedCellAuthorCompensationPlan(
   candidate: SharedCellAuthorCompensationCandidate,
 ): Promise<Readonly<SharedCellAuthorCompensationCompiledPlan>> {
   return compileNormalizedCompensationPlan(normalizeCandidate(candidate));
+}
+
+/**
+ * One strictly read-only Cell safety cycle, shared with the deletion core.
+ * No synthetic Operator identity: Source authentication belongs to the enclosing
+ * management adapter. This proof cannot authorize or submit a Cell mutation.
+ */
+export async function readSharedCellAuthorCompensationCellSafety(input: {
+  binding: SharedCellAuthorCompensationCellSafetyBinding;
+  evidence: SharedCellAuthorCompensationSafetyReadPort;
+  authority: StrongSharedCellAuthorAuthorityReadPort;
+  signal: AbortSignal;
+}): Promise<Readonly<SharedCellAuthorCompensationCellSafetyObservation>> {
+  if (!exactKeys(input, ["binding", "evidence", "authority", "signal"]) ||
+      !exactKeys(input.binding, ["candidate", "expectedState"]) ||
+      !["REVIEW_CHANGE_SET_PRESENT", "REVIEW_CHANGE_SET_MISSING", "MISSING"].includes(input.binding.expectedState) ||
+      input.evidence.region !== SHARED_CELL_AUTHOR_COMPENSATION_REGION) {
+    fail("SHARED_CELL_AUTHOR_COMPENSATION_CELL_SAFETY_INVALID", "Cell safety input is not an exact read-only binding.");
+  }
+  requireNotAborted(input.signal);
+  const candidate = normalizeCandidate(input.binding.candidate);
+  const observed = await observeOneStackSafetyCycle(input.evidence, input.authority, candidate, input.signal, false);
+  const changeSet = await readChangeSet(input.evidence, candidate, input.signal);
+  const missing = isChangeSetMissing(changeSet, candidate);
+  if (!missing) await assertPresentChangeSetEvidence(input.evidence, changeSet, candidate, input.signal);
+  await assertAuthorityAbsent(input.authority, input.signal);
+  const state = observed === "MISSING" && missing ? "MISSING"
+    : observed === "REVIEW_IN_PROGRESS" ? (missing ? "REVIEW_CHANGE_SET_MISSING" : "REVIEW_CHANGE_SET_PRESENT")
+    : null;
+  if (state !== input.binding.expectedState) {
+    fail("SHARED_CELL_AUTHOR_COMPENSATION_CELL_SAFETY_DRIFT", "The exact Cell/Change Set state does not match the approved lifecycle safety binding.");
+  }
+  const plan = await compileNormalizedCompensationPlan(candidate);
+  requireNotAborted(input.signal);
+  return immutableClone({ state, stackId: candidate.stackId, changeSetArn: candidate.changeSet.arn,
+    operationSha256: plan.operationSha256, compensationPlanSha256: plan.compensationPlanSha256 },
+  "SHARED_CELL_AUTHOR_COMPENSATION_RESULT_INVALID");
 }
 
 async function planIntent(candidate: NormalizedCandidate): Promise<{

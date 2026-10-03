@@ -3,7 +3,11 @@ import {
   SHARED_CELL_AUTHOR_COMPENSATION_ACCOUNT_ID as accountId,
   SHARED_CELL_AUTHOR_COMPENSATION_REGION as region,
   SHARED_CELL_AUTHOR_COMPENSATION_STACK_NAME as cellStackName,
+  readSharedCellAuthorCompensationCellSafety,
+  type SharedCellAuthorCompensationCellSafetyBinding,
+  type SharedCellAuthorCompensationCellSafetyObservation,
 } from "./shared-cell-author-compensation.ts";
+import { AwsSdkSharedCellAuthorCompensationEvidenceAdapter } from "./aws-sdk-shared-cell-author-compensation.ts";
 import {
   SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_STACK_ID as stackId,
   SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_STACK_NAME as stackName,
@@ -175,11 +179,15 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
     const value = await this.send(this.sdk.clients.sts, this.sdk.commands.getCallerIdentity, {}, abort);
     if (value.Account !== accountId || value.Arn !== sourceArn || typeof value.UserId !== "string" || !value.UserId.startsWith("AIDA")) invalid("Expected the exact Source IAM User identity.");
   }
+  private async authorityAbsent(abort: AbortSignal): Promise<void> {
+    const authority = await this.send(this.sdk.clients.dynamoDb, this.sdk.commands.getItem, { TableName: authorityTable, Key: { authority_key: { S: authorityKey } }, ConsistentRead: true }, abort);
+    if (authority.Item !== undefined) invalid("The exact Cell authority item is not ABSENT.");
+  }
   private async absent(abort: AbortSignal): Promise<void> {
     signal(abort);
     try {
       await this.sdk.clients.cloudFormation.send(new this.sdk.commands.describeStacks({ StackName: cellStackName }), { abortSignal: abort });
-      invalid("The Cell must be MISSING for the current lifecycle receipt contract.");
+      invalid("The Cell must be MISSING for a legacy lifecycle receipt without explicit safety binding.");
     } catch (error) {
       signal(abort);
       const source = error as { name?: unknown; message?: unknown; $metadata?: { httpStatusCode?: number } };
@@ -188,8 +196,33 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
         throw new SharedCellAuthorCompensationManagementAdapterError("SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_CELL_NOT_PROVEN_MISSING", "Cell absence was not proved by an exact name-bound provider error.", true);
       }
     }
-    const authority = await this.send(this.sdk.clients.dynamoDb, this.sdk.commands.getItem, { TableName: authorityTable, Key: { authority_key: { S: authorityKey } }, ConsistentRead: true }, abort);
-    if (authority.Item !== undefined) invalid("The exact Cell authority item is not ABSENT.");
+    await this.authorityAbsent(abort);
+  }
+  private async cellSafety(binding: SharedCellAuthorCompensationCellSafetyBinding | undefined, abort: AbortSignal): Promise<Readonly<SharedCellAuthorCompensationCellSafetyObservation> | undefined> {
+    if (!binding) { await this.absent(abort); return undefined; }
+    // Keep the Source adapter's stricter HTTP-bound absence rule when reusing
+    // the existing normalized read adapter; do not weaken the legacy fence.
+    const cellReads: Client = { send: async (command, options) => {
+      try {
+        const response = await this.sdk.clients.cloudFormation.send(command, options);
+        if (command instanceof this.sdk.commands.describeStacks) unpaginated(response);
+        return response;
+      } catch (error) {
+        signal(options.abortSignal);
+        const provider = error as { name?: unknown; $metadata?: { httpStatusCode?: number } };
+        if (provider.name === "ValidationError" && provider.$metadata?.httpStatusCode !== 400) invalid("Cell absence lacks the exact HTTP-bound provider proof.");
+        throw error;
+      }
+    } };
+    const evidence = new AwsSdkSharedCellAuthorCompensationEvidenceAdapter(region, {
+      clients: { sts: this.sdk.clients.sts, cloudFormation: cellReads },
+      commands: this.sdk.commands,
+    });
+    return readSharedCellAuthorCompensationCellSafety({ binding, evidence,
+      authority: { readStrong: async ({ signal: abort }) => {
+        await this.authorityAbsent(abort);
+        return { authorityKey, item: null, revision: 0 };
+      } }, signal: abort });
   }
   private async stack(abort: AbortSignal, allowCreatedLocked = false): Promise<Record<string, unknown>> {
     const response = await this.send(this.sdk.clients.cloudFormation, this.sdk.commands.describeStacks, { StackName: stackId }, abort);
@@ -260,11 +293,13 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
     same(array(inline.PolicyNames), [], "Role inline policies");
     return { logicalId: logicalId as "CellOperatorRole" | "CellCloudFormationExecutionRole", arn, name, permissionsBoundaryArn: boundaryArn, attachedPolicyArns: attachments.map((entry) => String(entry.PolicyArn)), inlinePolicyNames: [], trustPolicySha256: await sha256Hex(canonicalJson(trust)) };
   }
-  private async collectObservation(input: { signal: AbortSignal }, allowCreatedLocked = false): Promise<Readonly<CollectedManagementObservation>> {
-    exact(input, ["signal"]); signal(input.signal);
+  private async collectObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }, allowCreatedLocked = false): Promise<Readonly<CollectedManagementObservation>> {
+    exact(input, ["signal", ...(Object.hasOwn(input, "cellSafety") ? ["cellSafety"] : [])]); signal(input.signal);
+    if (Object.hasOwn(input, "cellSafety") && !input.cellSafety) invalid("An explicit Cell safety binding cannot be empty.");
+    const binding = input.cellSafety ? immutable(input.cellSafety) : undefined;
     const startedAt = this.now();
     await this.identity(input.signal);
-    await this.absent(input.signal);
+    const firstCell = await this.cellSafety(binding, input.signal);
     const firstStack = await this.stack(input.signal, allowCreatedLocked);
     const original = await this.send(this.sdk.clients.cloudFormation, this.sdk.commands.getTemplate, { StackName: stackId, TemplateStage: "Original" }, input.signal);
     const body = template(original.TemplateBody);
@@ -281,7 +316,8 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
     });
     const policies = [await this.policy(body, 0, input.signal), await this.policy(body, 2, input.signal)];
     const roles = [await this.role(body, 1, input.signal), await this.role(body, 3, input.signal)];
-    await this.absent(input.signal);
+    const lastCell = await this.cellSafety(binding, input.signal);
+    same(lastCell ?? null, firstCell ?? null, "Cell safety while collecting management evidence");
     const lastStack = await this.stack(input.signal, allowCreatedLocked);
     same(lastStack, firstStack, "Management Stack while collecting IAM evidence");
     const observedAt = this.now();
@@ -290,9 +326,9 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
     const outputs = array(lastStack.Outputs).map(record);
     if (outputs.filter((output) => output.OutputKey === "SafetyState").length !== 1 || outputs.find((output) => output.OutputKey === "SafetyState")?.OutputValue !== safetyState || typeof safetyState !== "string") invalid("Management SafetyState output drifted.");
     signal(input.signal);
-    return immutable({ schemaVersion: 1, accountId, region, callerArn: sourceArn, rendererShape: shape(body), stack: { name: stackName, id: stackId, status: lastStack.StackStatus as "CREATE_COMPLETE" | "UPDATE_COMPLETE", roleArn: null, parentId: null, rootId: null, terminationProtection: false, templateRawSha256: await sha256Hex(String(original.TemplateBody)), templateCanonicalSha256: await sha256Hex(canonicalJson(body)), safetyState, resources: normalizedResources }, policies, roles, cellStackState: "MISSING", authorityState: "ABSENT", observedAt: new Date(observedAt).toISOString() });
+    return immutable({ schemaVersion: 1, accountId, region, callerArn: sourceArn, rendererShape: shape(body), stack: { name: stackName, id: stackId, status: lastStack.StackStatus as "CREATE_COMPLETE" | "UPDATE_COMPLETE", roleArn: null, parentId: null, rootId: null, terminationProtection: false, templateRawSha256: await sha256Hex(String(original.TemplateBody)), templateCanonicalSha256: await sha256Hex(canonicalJson(body)), safetyState, resources: normalizedResources }, policies, roles, cellStackState: lastCell && lastCell.state !== "MISSING" ? "REVIEW_IN_PROGRESS" : "MISSING", ...(lastCell ? { cellSafety: lastCell } : {}), authorityState: "ABSENT", observedAt: new Date(observedAt).toISOString() });
   }
-  async readManagementObservation(input: { signal: AbortSignal }): Promise<Readonly<SharedCellAuthorCompensationManagementObservation>> {
+  async readManagementObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }): Promise<Readonly<SharedCellAuthorCompensationManagementObservation>> {
     const observed = await this.collectObservation(input);
     if (observed.stack.status !== "UPDATE_COMPLETE") invalid("Lifecycle receipts require an UPDATE_COMPLETE management Stack.");
     return immutable({ ...observed, stack: { ...observed.stack, status: "UPDATE_COMPLETE" as const } });
@@ -300,7 +336,8 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
   /** No write capability is exposed by this preflight. */
   async inspectPreparedChangeSet(prepared: PreparedSharedCellAuthorCompensationManagementAction, abort: AbortSignal): Promise<void> {
     await assertPrepared(prepared);
-    const observation = await this.collectObservation({ signal: abort }, true);
+    const observation = await this.collectObservation({ signal: abort,
+      ...(prepared.contract.cellSafety ? { cellSafety: prepared.contract.cellSafety } : {}) }, true);
     if (observation.stack.templateRawSha256 !== prepared.predecessorTemplateRawSha256 || observation.stack.templateCanonicalSha256 !== prepared.predecessorTemplateCanonicalSha256 || observation.rendererShape !== prepared.predecessorRendererShape) invalid("Prepared Change Set predecessor drifted.");
     const observed = await this.send(this.sdk.clients.cloudFormation, this.sdk.commands.describeChangeSet, { StackName: stackId, ChangeSetName: prepared.changeSetArn, IncludePropertyValues: true }, abort);
     unpaginated(observed);
@@ -394,6 +431,13 @@ export async function compilePreparedSharedCellAuthorCompensationManagementActio
     });
     same(candidate, JSON.parse(rendered), "Deterministic management renderer output");
     if (rendererShape !== "Locked" && (metadata.ApprovedCompensationPlanSha256 !== contract.compensationPlanSha256 || metadata.CompensationReviewedAt !== contract.reviewedAt || metadata.CompensationExpiresAt !== contract.expiresAt)) invalid("Renderer grant window or plan binding drifted from the lifecycle contract.");
+    if (rendererShape !== "Locked" && contract.cellSafety) {
+      const candidate = contract.cellSafety.candidate;
+      const expiresAt = candidate.changeSet.tags.find((tag) => tag.Key === "ExpiresAt")?.Value;
+      if (metadata.ApprovedStackId !== candidate.stackId || metadata.ApprovedChangeSetArn !== candidate.changeSet.arn ||
+          metadata.ApprovedChangeSetName !== candidate.changeSet.name || metadata.ApprovedTemplateSha256 !== candidate.immutableTemplate.rawSha256 ||
+          metadata.ApprovedTemplateCanonicalSha256 !== candidate.immutableTemplate.canonicalSha256 || metadata.ApprovedCellExpiresAt !== expiresAt) invalid("Renderer exact Cell identities and immutable template are not bound to the compensation candidate.");
+    }
   }
   for (const [observed, expected] of [
     [properties(target, resources[0][0]).PolicyDocument, contract.operatorBoundaryDocumentSha256],

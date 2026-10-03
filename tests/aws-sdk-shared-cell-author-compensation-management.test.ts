@@ -32,6 +32,14 @@ import {
 import { reviewSharedCellAuthorCompensationManagementAction, createSharedCellAuthorCompensationManagementEntry } from "../lib/deployments/execution/shared-cell-author-compensation-management-entry.ts";
 import { renderB5CellLifecycleManagementTemplate } from "../ops/aws-sandbox/scripts/render-b5-cell-lifecycle-management.mjs";
 import type { SharedCellAuthorCompensationOperationStore } from "../lib/deployments/execution/shared-cell-author-compensation-operation-store.ts";
+import { compileSharedCellAuthorCompensationControllerContract } from "../lib/deployments/execution/shared-cell-author-compensation-controller.ts";
+import {
+  SHARED_CELL_AUTHOR_COMPENSATION_RESOURCE_TYPES,
+  SHARED_CELL_AUTHOR_COMPENSATION_ROLE_ARN,
+  type SharedCellAuthorCompensationCandidate,
+  type SharedCellAuthorCompensationPhase,
+  type SharedCellAuthorCompensationCellSafetyState,
+} from "../lib/deployments/execution/shared-cell-author-compensation.ts";
 
 const accountId = "402010193138";
 const region = "ca-central-1";
@@ -48,25 +56,54 @@ const policyArn = (name: string) => `arn:aws:iam::${accountId}:policy/${name}`;
 const roleArn = (name: string) => `arn:aws:iam::${accountId}:role/${name}`;
 const abort = () => new AbortController().signal;
 
-async function material(kind: "GRANT" | "REVOKE" = "GRANT") {
+const cellTemplate = { AWSTemplateFormatVersion: "2010-09-09", Resources: Object.fromEntries(
+  SHARED_CELL_AUTHOR_COMPENSATION_RESOURCE_TYPES.map((Type, index) => [`Resource${index}`, { Type, Properties: {} }]),
+) };
+async function boundCandidate(): Promise<SharedCellAuthorCompensationCandidate> {
+  return { schemaVersion: 1, accountId, region, stackName: cellName, stackId: cellStackId,
+    compensationGrant: { reviewedAt: "2026-10-02T12:00:00.000Z", expiresAt: "2026-10-02T13:00:00.000Z" },
+    immutableTemplate: { url: `https://techlong-sandbox-build-source-${accountId}-${region}.s3.${region}.amazonaws.com/b5-shared-cell/templates/sha256/${cellRaw}.json`, rawSha256: cellRaw, canonicalSha256: await sha256Hex(canonicalJson(cellTemplate)) },
+    changeSet: { name: cellChangeSet, arn: cellChangeSetArn, type: "CREATE", roleArn: SHARED_CELL_AUTHOR_COMPENSATION_ROLE_ARN,
+      capabilities: [], includeNestedStacks: false, resourceTypes: [...SHARED_CELL_AUTHOR_COMPENSATION_RESOURCE_TYPES],
+      parameters: [
+        { ParameterKey: "AvailabilityZoneA", ParameterValue: "ca-central-1a" },
+        { ParameterKey: "AvailabilityZoneB", ParameterValue: "ca-central-1b" },
+        { ParameterKey: "CertificateArn", ParameterValue: `arn:aws:acm:${region}:${accountId}:certificate/12345678-1234-4234-8234-123456789012` },
+        { ParameterKey: "ControlTrustStoreArn", ParameterValue: `arn:aws:elasticloadbalancing:${region}:${accountId}:truststore/control/0123456789abcdef` },
+        { ParameterKey: "CellJanitorFunctionArn", ParameterValue: `arn:aws:lambda:${region}:${accountId}:function:techlong-sandbox-cell-janitor` },
+        { ParameterKey: "CellSchedulerInvokeRoleArn", ParameterValue: `arn:aws:iam::${accountId}:role/TechlongSandboxCellSchedulerInvokeRole` },
+        { ParameterKey: "CellSchedulerGroupName", ParameterValue: "techlong-sandbox-cell" },
+        { ParameterKey: "CleanupAt", ParameterValue: "2026-10-02T15:00:00" },
+      ], tags: [{ Key: "Environment", Value: "aws-sandbox" }, { Key: "ManagedBy", Value: "techlong-cell-operator" },
+        { Key: "CellId", Value: "cell-sandbox-1" }, { Key: "ExpiresAt", Value: "2026-10-02T15:00:00.000Z" }] } };
+}
+
+async function material(kind: "GRANT" | "REVOKE" = "GRANT", bound?: { phase: SharedCellAuthorCompensationPhase; state: SharedCellAuthorCompensationCellSafetyState }) {
+  const candidate = bound ? await boundCandidate() : undefined;
+  const core = candidate && bound ? await compileSharedCellAuthorCompensationControllerContract(candidate, bound.phase) : undefined;
+  const digests = { operationSha256: core?.operationSha256 ?? op, compensationPlanSha256: core?.compensationPlanSha256 ?? base,
+    phasePlanSha256: core?.phasePlanSha256 ?? phase, controllerContractSha256: core?.controllerContractSha256 ?? controller };
+  const phaseName = bound?.phase ?? "DELETE_CHANGE_SET";
+  const grantShape = phaseName === "DELETE_CHANGE_SET" ? "AuthorCompensationDeleteChangeSetGrant" : "AuthorCompensationDeleteStackGrant";
   const locked = await renderB5CellLifecycleManagementTemplate();
-  const grant = await renderB5CellLifecycleManagementTemplate({ shape: "AuthorCompensationDeleteChangeSetGrant", approvedChangeSetName: cellChangeSet, approvedTemplateSha256: cellRaw, approvedTemplateCanonicalSha256: "2".repeat(64), approvedCellExpiresAt: "2026-10-02T15:00:00.000Z", grantReviewedAt: "2026-10-02T12:00:00.000Z", grantExpiresAt: "2026-10-02T13:00:00.000Z", approvedStackId: cellStackId, approvedChangeSetArn: cellChangeSetArn, approvedCompensationPlanSha256: base, compensationReviewedAt: "2026-10-02T12:00:00.000Z", compensationExpiresAt: "2026-10-02T13:00:00.000Z" });
+  const grant = await renderB5CellLifecycleManagementTemplate({ shape: grantShape, approvedChangeSetName: cellChangeSet, approvedTemplateSha256: cellRaw, approvedTemplateCanonicalSha256: candidate?.immutableTemplate.canonicalSha256 ?? "2".repeat(64), approvedCellExpiresAt: "2026-10-02T15:00:00.000Z", grantReviewedAt: "2026-10-02T12:00:00.000Z", grantExpiresAt: "2026-10-02T13:00:00.000Z", approvedStackId: cellStackId, approvedChangeSetArn: cellChangeSetArn, approvedCompensationPlanSha256: digests.compensationPlanSha256, compensationReviewedAt: "2026-10-02T12:00:00.000Z", compensationExpiresAt: "2026-10-02T13:00:00.000Z" });
   const target = kind === "GRANT" ? grant : locked;
   const predecessor = kind === "GRANT" ? locked : grant;
   const parsed = JSON.parse(target);
   const operatorTrust = structuredClone(parsed.Resources.CellOperatorRole.Properties.AssumeRolePolicyDocument);
   operatorTrust.Statement[0].Principal.AWS = sourceArn;
-  const contract = await compileSharedCellAuthorCompensationLifecycleContract({ schemaVersion: 1, operationSha256: op, phase: "DELETE_CHANGE_SET", windowNumber: 1, compensationPlanSha256: base, phasePlanSha256: phase, controllerContractSha256: controller, reviewedAt: "2026-10-02T12:00:00.000Z", expiresAt: "2026-10-02T13:00:00.000Z", rendererShape: kind === "GRANT" ? "AuthorCompensationDeleteChangeSetGrant" : "Locked", templateRawSha256: await sha256Hex(target), templateCanonicalSha256: await sha256Hex(canonicalJson(parsed)), operatorBoundaryDocumentSha256: await sha256Hex(canonicalJson(parsed.Resources.CellOperatorBoundary.Properties.PolicyDocument)), executionBoundaryDocumentSha256: await sha256Hex(canonicalJson(parsed.Resources.CellCloudFormationExecutionBoundary.Properties.PolicyDocument)), operatorTrustPolicySha256: await sha256Hex(canonicalJson(operatorTrust)), executionTrustPolicySha256: await sha256Hex(canonicalJson(parsed.Resources.CellCloudFormationExecutionRole.Properties.AssumeRolePolicyDocument)) });
-  const grantReceipt = { schemaVersion: 1 as const, action: "shared_cell_author_compensation_phase_grant_verified" as const, disposition: "PHASE_EXECUTION_ALLOWED" as const, operationSha256: op, phase: "DELETE_CHANGE_SET" as const, compensationPlanSha256: base, phasePlanSha256: phase, controllerContractSha256: controller, grantEvidenceSha256: "5".repeat(64), observedAt: "2026-10-02T12:01:00.000Z" };
+  const contract = await compileSharedCellAuthorCompensationLifecycleContract({ schemaVersion: 1, ...digests, phase: phaseName, windowNumber: 1, reviewedAt: "2026-10-02T12:00:00.000Z", expiresAt: "2026-10-02T13:00:00.000Z", rendererShape: kind === "GRANT" ? grantShape : "Locked", templateRawSha256: await sha256Hex(target), templateCanonicalSha256: await sha256Hex(canonicalJson(parsed)), operatorBoundaryDocumentSha256: await sha256Hex(canonicalJson(parsed.Resources.CellOperatorBoundary.Properties.PolicyDocument)), executionBoundaryDocumentSha256: await sha256Hex(canonicalJson(parsed.Resources.CellCloudFormationExecutionBoundary.Properties.PolicyDocument)), operatorTrustPolicySha256: await sha256Hex(canonicalJson(operatorTrust)), executionTrustPolicySha256: await sha256Hex(canonicalJson(parsed.Resources.CellCloudFormationExecutionRole.Properties.AssumeRolePolicyDocument)), ...(candidate && bound ? { cellSafety: { candidate, expectedState: bound.state } } : {}) });
+  const grantReceipt = { schemaVersion: 1 as const, action: "shared_cell_author_compensation_phase_grant_verified" as const, disposition: "PHASE_EXECUTION_ALLOWED" as const, ...digests, phase: phaseName, grantEvidenceSha256: "5".repeat(64), observedAt: "2026-10-02T12:01:00.000Z" };
   const request = kind === "GRANT" ? await compileSharedCellAuthorCompensationGrantActionRequest(contract) : await compileSharedCellAuthorCompensationRevokeActionRequest({ contract, reason: "WINDOW_EXPIRED", grantReceipt });
   const changeSetArn = `arn:aws:cloudformation:${region}:${accountId}:changeSet/${request.managementChangeSetName}/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee`;
   const input = { request, contract, changeSetArn, predecessorTemplateBody: predecessor, targetTemplateBody: target };
   const prepared = await compilePreparedSharedCellAuthorCompensationManagementAction(input);
-  return { prepared, predecessor, target, input };
+  return { prepared, predecessor, target, input, grantReceipt };
 }
 
 function fixture(materialValue: Awaited<ReturnType<typeof material>>, currentBody = materialValue.predecessor, mutate?: (name: string, input: Record<string, unknown>, response: Record<string, unknown>) => void) {
   const body = JSON.parse(currentBody);
+  const binding = materialValue.prepared.contract.cellSafety;
   const calls: Array<{ name: string; input: Record<string, unknown>; signal: AbortSignal }> = [];
   let ticks = 0;
   const response = (name: string, input: Record<string, unknown>): Record<string, unknown> => {
@@ -75,10 +112,19 @@ function fixture(materialValue: Awaited<ReturnType<typeof material>>, currentBod
     switch (name) {
       case "getCallerIdentity": return { Account: accountId, Arn: sourceArn, UserId: "AIDATESTUSER" };
       case "describeStacks":
-        if (input.StackName === cellName) throw Object.assign(new Error(`Stack with id ${cellName} does not exist`), { name: "ValidationError", $metadata: { httpStatusCode: 400 } });
+        if (input.StackName === cellName) {
+          if (binding && binding.expectedState !== "MISSING") return { Stacks: [{ StackName: cellName, StackId: cellStackId, StackStatus: "REVIEW_IN_PROGRESS", RoleARN: SHARED_CELL_AUTHOR_COMPENSATION_ROLE_ARN, EnableTerminationProtection: false, Tags: binding.candidate.changeSet.tags }] };
+          throw Object.assign(new Error(`Stack with id ${cellName} does not exist`), { name: "ValidationError", $metadata: { httpStatusCode: 400 } });
+        }
         return { Stacks: [{ StackId: stackId, StackName: stackName, StackStatus: "UPDATE_COMPLETE", EnableTerminationProtection: false, Parameters: [{ ParameterKey: "ExpectedAccountId", ParameterValue: accountId }, { ParameterKey: "ExpectedRegion", ParameterValue: region }, { ParameterKey: "ManagementPrincipalArn", ParameterValue: sourceArn }], Outputs: [{ OutputKey: "SafetyState", OutputValue: body.Outputs.SafetyState.Value }] }] };
-      case "getTemplate": return { TemplateBody: input.ChangeSetName ? materialValue.target : currentBody };
-      case "listStackResources": return { StackResourceSummaries: ids.map((id, index) => ({ LogicalResourceId: id, ResourceType: index % 2 ? "AWS::IAM::Role" : "AWS::IAM::ManagedPolicy", PhysicalResourceId: index % 2 ? names[index] : policyArn(names[index]), ResourceStatus: "UPDATE_COMPLETE" })) };
+      case "getTemplate":
+        if (input.ChangeSetName === cellChangeSetArn) return { TemplateBody: JSON.stringify(cellTemplate), StagesAvailable: ["Original"] };
+        if (input.StackName === cellName || input.StackName === cellStackId) throw Object.assign(new Error(`Stack with id ${input.StackName} does not exist`), { name: "ValidationError", $metadata: { httpStatusCode: 400 } });
+        return { TemplateBody: input.ChangeSetName ? materialValue.target : currentBody };
+      case "listStackResources":
+        if (input.StackName === cellStackId) return { StackResourceSummaries: [] };
+        if (input.StackName === cellName) throw Object.assign(new Error(`Stack with id ${cellName} does not exist`), { name: "ValidationError", $metadata: { httpStatusCode: 400 } });
+        return { StackResourceSummaries: ids.map((id, index) => ({ LogicalResourceId: id, ResourceType: index % 2 ? "AWS::IAM::Role" : "AWS::IAM::ManagedPolicy", PhysicalResourceId: index % 2 ? names[index] : policyArn(names[index]), ResourceStatus: "UPDATE_COMPLETE" })) };
       case "getItem": return {};
       case "getPolicy": return { Policy: { PolicyName: names[resourceIndex], Arn: input.PolicyArn, Path: "/", DefaultVersionId: "v1", IsAttachable: true, Description: properties.Description, AttachmentCount: resourceIndex === 0 ? 1 : 0, PermissionsBoundaryUsageCount: 1 } };
       case "listPolicyVersions": return { IsTruncated: false, Versions: [{ VersionId: "v1", IsDefaultVersion: true }] };
@@ -91,7 +137,13 @@ function fixture(materialValue: Awaited<ReturnType<typeof material>>, currentBod
       }
       case "listAttachedRolePolicies": return { IsTruncated: false, AttachedPolicies: resourceIndex === 1 ? [{ PolicyArn: policyArn(names[0]), PolicyName: names[0] }] : [] };
       case "listRolePolicies": return { IsTruncated: false, PolicyNames: [] };
-      case "describeChangeSet": return { $metadata: { requestId: String(calls.length) }, ChangeSetId: materialValue.prepared.changeSetArn, ChangeSetName: materialValue.prepared.request.managementChangeSetName, StackId: stackId, StackName: stackName, Status: "CREATE_COMPLETE", ExecutionStatus: "AVAILABLE", IncludeNestedStacks: false, ImportExistingResources: false, Capabilities: ["CAPABILITY_NAMED_IAM"], Changes: [{ Type: "Resource", ResourceChange: { LogicalResourceId: ids[0], ResourceType: "AWS::IAM::ManagedPolicy", PhysicalResourceId: policyArn(names[0]), Action: "Modify", Replacement: "False", Scope: ["Properties"] } }] };
+      case "describeChangeSet":
+        if (input.ChangeSetName === cellChangeSetArn) {
+          if (!binding || binding.expectedState !== "REVIEW_CHANGE_SET_PRESENT") throw Object.assign(new Error(`ChangeSet [${cellChangeSetArn}] does not exist`), { name: "ChangeSetNotFoundException", $metadata: { httpStatusCode: 404 } });
+          return { ChangeSetId: cellChangeSetArn, ChangeSetName: cellChangeSet, StackId: cellStackId, StackName: cellName, Status: "CREATE_COMPLETE", ExecutionStatus: "AVAILABLE", Capabilities: [], IncludeNestedStacks: false, ImportExistingResources: false, OnStackFailure: "DELETE", Parameters: binding.candidate.changeSet.parameters, Tags: binding.candidate.changeSet.tags,
+            Changes: Object.entries(cellTemplate.Resources).map(([LogicalResourceId, resource]) => ({ Type: "Resource", ResourceChange: { Action: "Add", LogicalResourceId, ResourceType: resource.Type } })) };
+        }
+        return { $metadata: { requestId: String(calls.length) }, ChangeSetId: materialValue.prepared.changeSetArn, ChangeSetName: materialValue.prepared.request.managementChangeSetName, StackId: stackId, StackName: stackName, Status: "CREATE_COMPLETE", ExecutionStatus: "AVAILABLE", IncludeNestedStacks: false, ImportExistingResources: false, Capabilities: ["CAPABILITY_NAMED_IAM"], Changes: [{ Type: "Resource", ResourceChange: { LogicalResourceId: ids[0], ResourceType: "AWS::IAM::ManagedPolicy", PhysicalResourceId: policyArn(names[0]), Action: "Modify", Replacement: "False", Scope: ["Properties"] } }] };
       default: throw new Error(`Unexpected command ${name}`);
     }
   };
@@ -129,6 +181,169 @@ test("management read collects real IAM evidence and brackets exact absence with
   assert.ok(fake.calls.every((call) => call.signal instanceof AbortSignal));
 });
 
+test("bound Cell lifecycle contracts reproduce all plan digests and remain deeply immutable", async () => {
+  const data = await material("GRANT", { phase: "DELETE_CHANGE_SET", state: "REVIEW_CHANGE_SET_PRESENT" });
+  const { lifecycleContractSha256: _digest, ...body } = data.prepared.contract;
+  assert.match(_digest, /^[a-f0-9]{64}$/);
+  assert.ok(body.cellSafety);
+  assert.ok(Object.isFrozen(body.cellSafety.candidate.changeSet.tags));
+  for (const key of ["operationSha256", "compensationPlanSha256", "phasePlanSha256", "controllerContractSha256"] as const) {
+    await assert.rejects(compileSharedCellAuthorCompensationLifecycleContract({ ...body, [key]: "f".repeat(64) }), /does not reproduce/);
+  }
+  await assert.rejects(compileSharedCellAuthorCompensationLifecycleContract({ ...body, cellSafety: undefined }));
+  const changed = structuredClone(body);
+  changed.cellSafety!.candidate.compensationGrant.expiresAt = "2026-10-02T12:59:00.000Z";
+  await assert.rejects(compileSharedCellAuthorCompensationLifecycleContract(changed), /does not reproduce/);
+  await assert.rejects(material("GRANT", { phase: "DELETE_CHANGE_SET", state: "REVIEW_CHANGE_SET_MISSING" }), /not valid/);
+  await assert.rejects(material("GRANT", { phase: "DELETE_STACK", state: "REVIEW_CHANGE_SET_PRESENT" }), /not valid/);
+  await assert.rejects(material("GRANT", { phase: "DELETE_STACK", state: "MISSING" }), /not valid/);
+});
+
+test("Source double-read certifies zero-resource placeholders for both split grants without pretending to be Operator", async () => {
+  for (const phase of ["DELETE_CHANGE_SET", "DELETE_STACK"] as const) {
+    const data = await material("GRANT", { phase, state: phase === "DELETE_CHANGE_SET" ? "REVIEW_CHANGE_SET_PRESENT" : "REVIEW_CHANGE_SET_MISSING" });
+    const fake = fixture(data, data.target);
+    const producer = new SharedCellAuthorCompensationLifecycleReceiptProducer(fake.reads);
+    const evidence = await producer.reviewTarget({ contract: data.prepared.contract, signal: abort() });
+    const receipt = await producer.createPhaseGrantReceipt({ contract: data.prepared.contract, evidence });
+    assert.equal(receipt.disposition, "PHASE_EXECUTION_ALLOWED");
+    assert.equal(receipt.operationSha256, data.prepared.contract.operationSha256);
+    assert.equal(fake.calls.filter((call) => call.name === "getCallerIdentity").length, 2);
+    assert.ok(fake.calls.filter((call) => call.name === "describeStacks" && call.input.StackName === cellName).length === 4);
+    assert.equal(fake.calls.filter((call) => call.name === "getTemplate" && call.input.StackName === cellStackId && !call.input.ChangeSetName).length, 4);
+    assert.equal(fake.calls.filter((call) => call.name === "getItem").length, 12);
+    for (const call of fake.calls.filter((call) => call.name === "describeChangeSet")) assert.equal(call.input.ChangeSetName, cellChangeSetArn);
+    const review = await reviewSharedCellAuthorCompensationManagementAction(data.input);
+    assert.equal(review.blockers.includes("COMPENSATION_CELL_SAFETY_BINDING_REQUIRED"), false);
+    assert.equal(review.onlineExecutionReady, false);
+    // Calling the same provider without the explicit binding keeps the legacy fence.
+    await assert.rejects(fake.reads.readManagementObservation({ signal: abort() }), /Cell must be MISSING/);
+  }
+});
+
+test("placeholder safety rejects resources, pagination, identities, active/deleting states, authority and template drift", async () => {
+  const data = await material("GRANT", { phase: "DELETE_CHANGE_SET", state: "REVIEW_CHANGE_SET_PRESENT" });
+  const drifts: Array<(name: string, input: Record<string, unknown>, response: Record<string, unknown>) => void> = [
+    (name, input, response) => { if (name === "describeStacks" && input.StackName === cellName) (response.Stacks as Array<Record<string, unknown>>)[0].StackId = cellStackId.replace("123456789012", "123456789013"); },
+    (name, input, response) => { if (name === "describeStacks" && input.StackName === cellName) (response.Stacks as Array<Record<string, unknown>>)[0].StackStatus = "CREATE_COMPLETE"; },
+    (name, input, response) => { if (name === "describeStacks" && input.StackName === cellName) (response.Stacks as Array<Record<string, unknown>>)[0].StackStatus = "DELETE_IN_PROGRESS"; },
+    (name, input, response) => { if (name === "describeStacks" && input.StackName === cellName) (response.Stacks as Array<Record<string, unknown>>)[0].RoleARN = sourceArn; },
+    (name, input, response) => { if (name === "describeStacks" && input.StackName === cellName) (response.Stacks as Array<Record<string, unknown>>)[0].ParentId = stackId; },
+    (name, input, response) => { if (name === "listStackResources" && input.StackName === cellStackId) response.StackResourceSummaries = [{ LogicalResourceId: "PaidCell", PhysicalResourceId: "vpc-123", ResourceType: "AWS::EC2::VPC", ResourceStatus: "CREATE_COMPLETE" }]; },
+    (name, input, response) => { if (name === "listStackResources" && input.StackName === cellStackId) response.NextToken = "another-page"; },
+    (name, _input, response) => { if (name === "getItem") response.Item = {}; },
+    (name, input, response) => { if (name === "getTemplate" && input.ChangeSetName === cellChangeSetArn) response.TemplateBody = JSON.stringify({ Resources: {} }); },
+    (name, input, response) => { if (name === "describeChangeSet" && input.ChangeSetName === cellChangeSetArn) response.ExecutionStatus = "EXECUTE_IN_PROGRESS"; },
+  ];
+  for (const drift of drifts) {
+    const fake = fixture(data, data.target, drift);
+    await assert.rejects(new SharedCellAuthorCompensationLifecycleReceiptProducer(fake.reads).reviewTarget({ contract: data.prepared.contract, signal: abort() }));
+  }
+  const withTemplate = fixture(data, data.target);
+  const original = withTemplate.dependencies.clients.cloudFormation.send;
+  withTemplate.dependencies.clients.cloudFormation.send = async (command, options) => {
+    const typed = command as { name: string; input: Record<string, unknown> };
+    if (typed.name === "getTemplate" && typed.input.StackName === cellStackId && !typed.input.ChangeSetName) return { TemplateBody: JSON.stringify(cellTemplate) };
+    return original(command, options);
+  };
+  await assert.rejects(withTemplate.reads.readManagementObservation({ cellSafety: data.prepared.contract.cellSafety, signal: abort() }), /Original template/);
+});
+
+test("DeleteStack grant requires exact Change Set absence and grants cannot use partial MISSING evidence", async () => {
+  const data = await material("GRANT", { phase: "DELETE_STACK", state: "REVIEW_CHANGE_SET_MISSING" });
+  const wrongMissing = fixture(data, data.target);
+  const send = wrongMissing.dependencies.clients.cloudFormation.send;
+  wrongMissing.dependencies.clients.cloudFormation.send = async (command, options) => {
+    const typed = command as { name: string; input: Record<string, unknown> };
+    if (typed.name === "describeChangeSet" && typed.input.ChangeSetName === cellChangeSetArn) throw Object.assign(new Error("ChangeSet [other] does not exist https://secret.example"), { name: "ChangeSetNotFoundException", $metadata: { httpStatusCode: 404 } });
+    return send(command, options);
+  };
+  await assert.rejects(wrongMissing.reads.readManagementObservation({ cellSafety: data.prepared.contract.cellSafety, signal: abort() }), (error: Error) => {
+    assert.doesNotMatch(error.message, /secret\.example/); return true;
+  });
+  const missing = await material("REVOKE", { phase: "DELETE_STACK", state: "MISSING" });
+  const partial = fixture(missing, missing.target);
+  const partialSend = partial.dependencies.clients.cloudFormation.send;
+  partial.dependencies.clients.cloudFormation.send = async (command, options) => {
+    const typed = command as { name: string; input: Record<string, unknown> };
+    if (typed.name === "listStackResources" && typed.input.StackName === cellName) return { StackResourceSummaries: [] };
+    return partialSend(command, options);
+  };
+  await assert.rejects(partial.reads.readManagementObservation({ cellSafety: missing.prepared.contract.cellSafety, signal: abort() }), /did not agree/);
+  const invalidHttp = fixture(missing, missing.target);
+  const httpSend = invalidHttp.dependencies.clients.cloudFormation.send;
+  invalidHttp.dependencies.clients.cloudFormation.send = async (command, options) => {
+    try { return await httpSend(command, options); }
+    catch (error) {
+      const provider = error as { name: string; $metadata: { httpStatusCode: number } };
+      if (provider.name === "ValidationError") provider.$metadata.httpStatusCode = 403;
+      throw error;
+    }
+  };
+  await assert.rejects(invalidHttp.reads.readManagementObservation({ cellSafety: missing.prepared.contract.cellSafety, signal: abort() }), /provider errors never prove absence/);
+});
+
+test("Locked receipts bind the actual post-phase Cell state rather than equating revocation with deletion", async () => {
+  for (const phase of ["DELETE_CHANGE_SET", "DELETE_STACK"] as const) {
+    const state = phase === "DELETE_CHANGE_SET" ? "REVIEW_CHANGE_SET_MISSING" : "MISSING";
+    const data = await material("REVOKE", { phase, state });
+    const producer = new SharedCellAuthorCompensationLifecycleReceiptProducer(fixture(data, data.target).reads);
+    const evidence = await producer.reviewTarget({ contract: data.prepared.contract, signal: abort() });
+    const contract = data.prepared.contract;
+    const completion = { schemaVersion: 1 as const, action: "shared_cell_author_compensation_phase_completed" as const,
+      operationSha256: contract.operationSha256, phase, compensationPlanSha256: contract.compensationPlanSha256,
+      phasePlanSha256: contract.phasePlanSha256, controllerContractSha256: contract.controllerContractSha256,
+      observedState: phase === "DELETE_CHANGE_SET" ? "REVIEW_IN_PROGRESS" as const : "MISSING" as const,
+      mutationPerformed: true, evidenceSha256: "8".repeat(64), observedAt: "2026-10-02T12:01:30.000Z" };
+    const receipt = await producer.createPhaseCompletedLockedReceipt({ contract, evidence, completionReceipt: completion });
+    assert.equal(receipt.lockedEvidenceSha256, evidence.evidenceSha256);
+    await compileSharedCellAuthorCompensationRevokeActionRequest({ contract, reason: "PHASE_COMPLETED", grantReceipt: data.grantReceipt, completionReceipt: completion });
+    if (phase === "DELETE_CHANGE_SET") {
+      const wrong = { ...completion, observedState: "MISSING" as const };
+      await assert.rejects(producer.createPhaseCompletedLockedReceipt({ contract, evidence, completionReceipt: wrong }), /agree with/);
+      await assert.rejects(compileSharedCellAuthorCompensationRevokeActionRequest({ contract, reason: "PHASE_COMPLETED", grantReceipt: data.grantReceipt, completionReceipt: wrong }), /persisted completion state/);
+    }
+    const forged = structuredClone(contract);
+    forged.cellSafety!.candidate.stackId = stackId;
+    await assert.rejects(producer.createPhaseCompletedLockedReceipt({ contract: forged, evidence, completionReceipt: completion }), /not produced by this verifier/);
+  }
+});
+
+test("bound late Grant and expired Locked reconciliation preserve revoke-only windows on placeholders", async () => {
+  const grant = await material("GRANT", { phase: "DELETE_CHANGE_SET", state: "REVIEW_CHANGE_SET_PRESENT" });
+  const locked = await material("REVOKE", { phase: "DELETE_CHANGE_SET", state: "REVIEW_CHANGE_SET_PRESENT" });
+  let tick = 0;
+  const late = Date.parse("2026-10-02T12:51:00.000Z");
+  const grantFixture = fixture(grant, grant.target);
+  const grantProducer = new SharedCellAuthorCompensationLifecycleReceiptProducer(new AwsSdkSharedCellAuthorCompensationManagementReadAdapter({ ...grantFixture.dependencies, now: () => late + tick++ }));
+  const evidence = await grantProducer.reviewTarget({ contract: grant.prepared.contract, signal: abort() });
+  const receipt = await grantProducer.createPhaseGrantReceipt({ contract: grant.prepared.contract, evidence });
+  assert.equal(receipt.disposition, "REVOKE_ONLY");
+  const lockedFixture = fixture(locked, locked.target);
+  const lockedProducer = new SharedCellAuthorCompensationLifecycleReceiptProducer(new AwsSdkSharedCellAuthorCompensationManagementReadAdapter({ ...lockedFixture.dependencies, now: () => late + tick++ }));
+  const lockedEvidence = await lockedProducer.reviewTarget({ contract: locked.prepared.contract, signal: abort() });
+  const expired = await lockedProducer.createWindowExpiredLockedReceipt({ contract: locked.prepared.contract, evidence: lockedEvidence, grantReceipt: receipt });
+  assert.equal(expired.lockedEvidenceSha256, lockedEvidence.evidenceSha256);
+});
+
+test("bound preflight executes only the reviewed management ARN and any Cell regression delegates zero writes", async () => {
+  const data = await material("GRANT", { phase: "DELETE_CHANGE_SET", state: "REVIEW_CHANGE_SET_PRESENT" });
+  const safe = fixture(data);
+  const one = mutation(safe, data);
+  assert.ok("installPhaseGrant" in one.port);
+  await one.port.installPhaseGrant({ request: data.prepared.request as Parameters<SharedCellAuthorCompensationPhaseGrantMutationPort["installPhaseGrant"]>[0]["request"], signal: abort() });
+  assert.equal(one.writes.length, 1);
+  assert.equal(one.writes[0].ChangeSetName, data.prepared.changeSetArn);
+  let cycles = 0;
+  const drifted = fixture(data, data.predecessor, (name, input, response) => {
+    if (name === "describeStacks" && input.StackName === cellName && ++cycles === 2) (response.Stacks as Array<Record<string, unknown>>)[0].StackStatus = "DELETE_IN_PROGRESS";
+  });
+  const zero = mutation(drifted, data);
+  assert.ok("installPhaseGrant" in zero.port);
+  await assert.rejects(zero.port.installPhaseGrant({ request: data.prepared.request as Parameters<SharedCellAuthorCompensationPhaseGrantMutationPort["installPhaseGrant"]>[0]["request"], signal: abort() }));
+  assert.equal(zero.writes.length, 0);
+});
+
 test("management read rejects IAM truncation, unsafe trust, foreign resources and authority presence", async () => {
   const data = await material();
   const drifts: Array<[string, (response: Record<string, unknown>) => void]> = [
@@ -164,7 +379,7 @@ test("local prepared review binds template hashes and rejects execution-role cha
   const data = await material();
   const review = await reviewSharedCellAuthorCompensationManagementAction(data.input);
   assert.equal(review.onlineExecutionReady, false);
-  assert.ok(review.blockers.includes("LIFECYCLE_RECEIPT_REQUIRES_CELL_MISSING"));
+  assert.ok(review.blockers.includes("COMPENSATION_CELL_SAFETY_BINDING_REQUIRED"));
   assert.equal(review.prepared.preparedActionSha256, data.prepared.preparedActionSha256);
   await assert.rejects(compilePreparedSharedCellAuthorCompensationManagementAction({ ...data.input, changeSetArn: cellChangeSetArn }));
   const modified = JSON.parse(data.target);

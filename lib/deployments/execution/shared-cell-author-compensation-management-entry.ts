@@ -22,7 +22,6 @@ export const SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_ONLINE_BLOCKERS = Object
   "MIGRATIONS_0009_0010_NOT_APPLIED",
   "SPLIT_GRANT_CLOUD_APPLY_DISABLED",
   "EXACT_ARN_IAM_COMPATIBILITY_NOT_VERIFIED",
-  "LIFECYCLE_RECEIPT_REQUIRES_CELL_MISSING",
   "ONLINE_GRANT_MUTATION_REVOKE_DRILL_NOT_APPROVED",
 ]);
 
@@ -33,10 +32,11 @@ export async function reviewSharedCellAuthorCompensationManagementAction(
   const prepared = await compilePreparedSharedCellAuthorCompensationManagementAction(input);
   return Object.freeze({
     schemaVersion: 1 as const,
-    stage: "B5-J5g-j4" as const,
+    stage: "B5-J5g-j5" as const,
     mode: "LOCAL_REVIEW" as const,
     onlineExecutionReady: false as const,
-    blockers: SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_ONLINE_BLOCKERS,
+    blockers: Object.freeze([...SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_ONLINE_BLOCKERS,
+      ...(prepared.contract.cellSafety ? [] : ["COMPENSATION_CELL_SAFETY_BINDING_REQUIRED"])]),
     prepared,
   });
 }

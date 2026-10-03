@@ -3,7 +3,10 @@ import {
   SHARED_CELL_AUTHOR_COMPENSATION_ACCOUNT_ID,
   SHARED_CELL_AUTHOR_COMPENSATION_REGION,
   type SharedCellAuthorCompensationPhase,
+  type SharedCellAuthorCompensationCellSafetyBinding,
+  type SharedCellAuthorCompensationCellSafetyObservation,
 } from "./shared-cell-author-compensation.ts";
+import { compileSharedCellAuthorCompensationControllerContract } from "./shared-cell-author-compensation-controller.ts";
 import {
   SHARED_CELL_AUTHOR_COMPENSATION_PHASE_MARGIN_MS,
   assertSharedCellAuthorCompensationDigest,
@@ -126,7 +129,15 @@ function exactKeys(value: unknown, keys: readonly string[]): boolean {
 }
 
 function immutable<T>(value: T): Readonly<T> {
-  return Object.freeze(JSON.parse(canonicalJson(value)) as T);
+  const clone = JSON.parse(canonicalJson(value)) as T;
+  function freeze(item: unknown): void {
+    if (item && typeof item === "object") {
+      Object.values(item).forEach(freeze);
+      Object.freeze(item);
+    }
+  }
+  freeze(clone);
+  return clone;
 }
 
 function canonicalInstant(value: unknown, label: string): number {
@@ -222,7 +233,8 @@ export interface SharedCellAuthorCompensationManagementObservation {
   }>;
   readonly policies: readonly SharedCellAuthorCompensationManagementPolicyObservation[];
   readonly roles: readonly SharedCellAuthorCompensationManagementRoleObservation[];
-  readonly cellStackState: "MISSING";
+  readonly cellStackState: "MISSING" | "REVIEW_IN_PROGRESS";
+  readonly cellSafety?: SharedCellAuthorCompensationCellSafetyObservation;
   readonly authorityState: "ABSENT";
   readonly observedAt: string;
 }
@@ -230,6 +242,7 @@ export interface SharedCellAuthorCompensationManagementObservation {
 export interface SharedCellAuthorCompensationManagementReadPort {
   readManagementObservation(input: {
     signal: AbortSignal;
+    cellSafety?: SharedCellAuthorCompensationCellSafetyBinding;
   }): Promise<unknown>;
 }
 
@@ -250,6 +263,8 @@ export interface SharedCellAuthorCompensationLifecycleContractInput {
   readonly executionBoundaryDocumentSha256: string;
   readonly operatorTrustPolicySha256: string;
   readonly executionTrustPolicySha256: string;
+  /** Omission preserves the legacy MISSING-only contract; it never permits a placeholder. */
+  readonly cellSafety?: SharedCellAuthorCompensationCellSafetyBinding;
 }
 
 export interface SharedCellAuthorCompensationLifecycleContract
@@ -278,8 +293,10 @@ function assertLifecycleContractInput(
       "templateCanonicalSha256",
       "templateRawSha256",
       "windowNumber",
+      ...(Object.hasOwn(input, "cellSafety") ? ["cellSafety"] : []),
     ]) ||
     input.schemaVersion !== 1 ||
+    (Object.hasOwn(input, "cellSafety") && !input.cellSafety) ||
     !Number.isSafeInteger(input.windowNumber) ||
     input.windowNumber < 1
   ) {
@@ -327,6 +344,25 @@ export async function compileSharedCellAuthorCompensationLifecycleContract(
 ): Promise<Readonly<SharedCellAuthorCompensationLifecycleContract>> {
   assertLifecycleContractInput(input);
   const body = immutable(input);
+  if (Object.hasOwn(body, "cellSafety")) {
+    const binding = body.cellSafety;
+    if (!exactKeys(binding, ["candidate", "expectedState"]) || !binding ||
+        !["REVIEW_CHANGE_SET_PRESENT", "REVIEW_CHANGE_SET_MISSING", "MISSING"].includes(binding.expectedState) ||
+        (binding.expectedState === "REVIEW_CHANGE_SET_PRESENT" && body.phase !== "DELETE_CHANGE_SET") ||
+        (body.rendererShape !== "Locked" && binding.expectedState !==
+          (body.phase === "DELETE_CHANGE_SET" ? "REVIEW_CHANGE_SET_PRESENT" : "REVIEW_CHANGE_SET_MISSING"))) {
+      fail("SHARED_CELL_AUTHOR_COMPENSATION_GRANT_LIFECYCLE_CELL_BINDING_INVALID", "The exact Cell safety state is not valid for this lifecycle phase and shape.");
+    }
+    const controller = await compileSharedCellAuthorCompensationControllerContract(binding.candidate, body.phase);
+    if (controller.operationSha256 !== body.operationSha256 ||
+        controller.compensationPlanSha256 !== body.compensationPlanSha256 ||
+        controller.phasePlanSha256 !== body.phasePlanSha256 ||
+        controller.controllerContractSha256 !== body.controllerContractSha256 ||
+        binding.candidate.compensationGrant.reviewedAt !== body.reviewedAt ||
+        binding.candidate.compensationGrant.expiresAt !== body.expiresAt) {
+      fail("SHARED_CELL_AUTHOR_COMPENSATION_GRANT_LIFECYCLE_CELL_BINDING_INVALID", "The Cell candidate does not reproduce the lifecycle operation, phase, controller and review window.");
+    }
+  }
   return immutable({
     ...body,
     lifecycleContractSha256: await sha256Hex(canonicalJson(body)),
@@ -543,13 +579,14 @@ function validateObservation(
       "roles",
       "schemaVersion",
       "stack",
+      ...(contract.cellSafety ? ["cellSafety"] : []),
     ]) ||
     source.schemaVersion !== 1 ||
     source.accountId !== SHARED_CELL_AUTHOR_COMPENSATION_ACCOUNT_ID ||
     source.region !== SHARED_CELL_AUTHOR_COMPENSATION_REGION ||
     source.callerArn !== SHARED_CELL_AUTHOR_COMPENSATION_SOURCE_CALLER_ARN ||
     source.rendererShape !== contract.rendererShape ||
-    source.cellStackState !== "MISSING" ||
+    source.cellStackState !== (contract.cellSafety && contract.cellSafety.expectedState !== "MISSING" ? "REVIEW_IN_PROGRESS" : "MISSING") ||
     source.authorityState !== "ABSENT"
   ) {
     fail(
@@ -558,6 +595,14 @@ function validateObservation(
     );
   }
   canonicalInstant(source.observedAt, "observation observedAt");
+  if (contract.cellSafety) {
+    const expected = { state: contract.cellSafety.expectedState,
+      stackId: contract.cellSafety.candidate.stackId, changeSetArn: contract.cellSafety.candidate.changeSet.arn,
+      operationSha256: contract.operationSha256, compensationPlanSha256: contract.compensationPlanSha256 };
+    if (canonicalJson(source.cellSafety) !== canonicalJson(expected)) {
+      fail("SHARED_CELL_AUTHOR_COMPENSATION_GRANT_LIFECYCLE_EVIDENCE_INVALID", "The Cell safety evidence drifted from the approved lifecycle candidate.");
+    }
+  }
   const stack = record(source.stack);
   if (
     !exactKeys(stack, [
@@ -604,7 +649,7 @@ export interface VerifiedSharedCellAuthorCompensationLifecycleEvidence {
   readonly evidenceSha256: string;
 }
 
-const verifiedEvidence = new WeakSet<object>();
+const verifiedEvidence = new WeakMap<object, string>();
 
 function withoutObservedAt(
   value: SharedCellAuthorCompensationManagementObservation,
@@ -619,7 +664,7 @@ function assertVerifiedEvidence(
   contract: SharedCellAuthorCompensationLifecycleContract,
 ): void {
   if (
-    !verifiedEvidence.has(evidence as object) ||
+    verifiedEvidence.get(evidence as object) !== canonicalJson(contract) ||
     !exactKeys(evidence, [
       "evidenceSha256",
       "firstObservedAt",
@@ -673,10 +718,8 @@ export class SharedCellAuthorCompensationLifecycleReceiptProducer {
         ([key]) => key !== "lifecycleContractSha256",
       ),
     ) as unknown as SharedCellAuthorCompensationLifecycleContractInput;
-    assertLifecycleContractInput(contractBody);
-    const expectedContractSha256 = await sha256Hex(
-      canonicalJson(contractBody),
-    );
+    const freshContract = await compileSharedCellAuthorCompensationLifecycleContract(contractBody);
+    const expectedContractSha256 = freshContract.lifecycleContractSha256;
     if (
       !exactKeys(input.contract, [
         "compensationPlanSha256",
@@ -696,6 +739,7 @@ export class SharedCellAuthorCompensationLifecycleReceiptProducer {
         "templateCanonicalSha256",
         "templateRawSha256",
         "windowNumber",
+        ...(Object.hasOwn(input.contract, "cellSafety") ? ["cellSafety"] : []),
       ]) ||
       input.contract.lifecycleContractSha256 !== expectedContractSha256
     ) {
@@ -705,13 +749,15 @@ export class SharedCellAuthorCompensationLifecycleReceiptProducer {
       );
     }
     const first = validateObservation(
-      await this.readPort.readManagementObservation({ signal: input.signal }),
-      input.contract,
+      await this.readPort.readManagementObservation({ signal: input.signal,
+        ...(freshContract.cellSafety ? { cellSafety: freshContract.cellSafety } : {}) }),
+      freshContract,
     );
     input.signal.throwIfAborted();
     const second = validateObservation(
-      await this.readPort.readManagementObservation({ signal: input.signal }),
-      input.contract,
+      await this.readPort.readManagementObservation({ signal: input.signal,
+        ...(freshContract.cellSafety ? { cellSafety: freshContract.cellSafety } : {}) }),
+      freshContract,
     );
     const firstAt = canonicalInstant(first.observedAt, "first observedAt");
     const secondAt = canonicalInstant(second.observedAt, "second observedAt");
@@ -729,21 +775,21 @@ export class SharedCellAuthorCompensationLifecycleReceiptProducer {
     }
     const body = {
       schemaVersion: 1 as const,
-      lifecycleContractSha256: input.contract.lifecycleContractSha256,
-      rendererShape: input.contract.rendererShape,
+      lifecycleContractSha256: freshContract.lifecycleContractSha256,
+      rendererShape: freshContract.rendererShape,
       firstObservedAt: first.observedAt,
       observedAt: second.observedAt,
       observations: [first, second],
     };
     const evidence = immutable({
       schemaVersion: 1 as const,
-      lifecycleContractSha256: input.contract.lifecycleContractSha256,
-      rendererShape: input.contract.rendererShape,
+      lifecycleContractSha256: freshContract.lifecycleContractSha256,
+      rendererShape: freshContract.rendererShape,
       firstObservedAt: first.observedAt,
       observedAt: second.observedAt,
       evidenceSha256: await sha256Hex(canonicalJson(body)),
     });
-    verifiedEvidence.add(evidence as object);
+    verifiedEvidence.set(evidence as object, canonicalJson(freshContract));
     return evidence;
   }
 
@@ -818,6 +864,10 @@ export class SharedCellAuthorCompensationLifecycleReceiptProducer {
     assertSharedCellAuthorCompensationPhaseCompletionReceipt(
       input.completionReceipt,
     );
+    if (input.contract.cellSafety && input.contract.cellSafety.expectedState !==
+        (input.completionReceipt.observedState === "MISSING" ? "MISSING" : "REVIEW_CHANGE_SET_MISSING")) {
+      fail("SHARED_CELL_AUTHOR_COMPENSATION_GRANT_LIFECYCLE_RECEIPT_MISMATCH", "Locked Cell safety must agree with the exact phase completion state, not merely prove IAM revocation.");
+    }
     if (
       input.completionReceipt.operationSha256 !== input.contract.operationSha256 ||
       input.completionReceipt.phase !== input.contract.phase ||

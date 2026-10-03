@@ -216,6 +216,10 @@ export async function compileSharedCellAuthorCompensationRevokeActionRequest(inp
     assertSharedCellAuthorCompensationPhaseCompletionReceipt(
       input.completionReceipt,
     );
+    if (input.contract.cellSafety && input.contract.cellSafety.expectedState !==
+        (input.completionReceipt.observedState === "MISSING" ? "MISSING" : "REVIEW_CHANGE_SET_MISSING")) {
+      fail("SHARED_CELL_AUTHOR_COMPENSATION_GRANT_CONTROLLER_RECEIPT_MISMATCH", "The Locked Cell safety contract must match the persisted completion state before any Revoke action.");
+    }
     if (
       input.completionReceipt.operationSha256 !== input.contract.operationSha256 ||
       input.completionReceipt.phase !== input.contract.phase ||
