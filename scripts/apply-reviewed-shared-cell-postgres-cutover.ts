@@ -9,6 +9,7 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 
 import { Pool, neonConfig } from "@neondatabase/serverless";
 
@@ -1387,7 +1388,15 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
+// Read-only collector reuse must not invoke the historic J5g-e2 apply CLI.
+export {
+  beginReadOnly as beginSealedSharedCellPostgresReadOnly,
+  snapshot as readSealedSharedCellPostgresSnapshot,
+  postState as readSealedSharedCellPostgresPostState,
+  databaseTargetFingerprint as sealedSharedCellPostgresTargetFingerprint,
+};
+
+if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) main().catch((error) => {
   const normalized =
     error instanceof MigrationApplyExecutionError
       ? error
