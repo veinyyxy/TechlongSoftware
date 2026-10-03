@@ -794,6 +794,12 @@ Source随后立即创建/严格审查/执行准确Locked Revoke，并以双Sourc
 
 slot现在保留claim及run/grant-execute/revoke-create/revoke-execute四份绑定intent，已执行journal SHA `5928f40e8148127269e9acb315c91d86d505375b0127493829e156592e238d59`。旧六份记录archive和claim摘要未变，独立复算manifest/Run/Inspect/intent摘要与准确模板/ARN/时序通过。不得刷新manifest绕过run绑定、清空slot或重建Grant；全部compatibility/runtime gates仍false。本轮没有agent新增AWS写入，没有child Execute/DeleteStack/付费Cell/Neon写入；状态文档更新沿用此前799/799代码验证基线。下一阶段应先只读定位DescribeChangeSet拒绝的真实授权评估原因，不据此自动放宽权限或安装新Grant。
 
+### B5-J5g-j15：只读诊断完成，不自动修复授权
+
+实际Source取证于 `2026-10-03T21:43:24.311Z` 完成：保留Grant v4全政策严格匹配原claim plan；Operator identity attachment/boundary仍同一policy、无inline，当前默认v5与管理模板仍准确Locked。三次DescribeChangeSet拒绝均有准确requestId匹配的CloudTrail记录，明确为exact Stack上没有匹配的identity-based Allow。服务授权表列出stack资源及ChangeSetName条件键；完整ARN条件是优先待验证假设，日志未报告参数/授权上下文不能证明键缺失或短名称转换。
+
+取证SHA `2a07492d7b2415030b78a7fe709de72bd9564d832e41eeb666af68be8245e222`、独立摘要/时间窗及旧archive/固定slot复算通过。无IAM模拟、AWS写入、新Grant、删除或槽位重置，执行代码不变；runtime gates仍false。本轮新实读不替代上一轮Cell/authority/fixture完整Inspect。下一步先准备未部署的独立只读对照候选和审阅方案，不自动放宽Delete、不复用已消费slot，任何新generation/窗口另行准确批准。详见[只读诊断报告](../../docs/aws-sandbox-j5gj15-describe-diagnostic.md)。
+
 ### B5-J5g-j9：独立占位栈 Create / Recover 入口
 
 固定 fixture 为 `techlong-sandbox-arn-compatibility-probe`，只审阅一个未执行的 `WaitConditionHandle` Add；不复用业务 Cell，不执行 child，不挂载 grant。entry 默认离线 Plan，所有输出 create-only。唯一写能力是获批后一次 CreateChangeSet；先持久化 repo-local `.aws-sandbox/j5gj9-arn-probe/create-intent.json` 并 fsync，SDK `maxAttempts=1`，响应不确定仅 Recover，intent 不自动删除或复位。

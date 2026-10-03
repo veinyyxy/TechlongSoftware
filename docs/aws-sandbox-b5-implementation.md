@@ -452,6 +452,13 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - 固定slot保留原claim SHA `8e94cd97fde90f32bc3ae1f3911a139697f0c9615c4a61ef8abaef8cc926f8c0` 和run/grant-execute/revoke-create/revoke-execute四份绑定intent，journal汇总SHA `5928f40e8148127269e9acb315c91d86d505375b0127493829e156592e238d59`；probe-delete intent缺失是正确阻断结果，不是可以重跑的空槽位。原六份记录archive仍为 `c394afcd50d963af258b93ed2f8b3bc071582f67f4d08ea08bfaf0c597b4f916`，新旧文件不改写/清除。核对磁盘claim、manifest/Run/Inspect摘要、journal字段/已知请求hash/时序、准确模板/ARN均通过。禁止以fresh manifest、nonce、operation目录绕过已绑定run。
 - 此轮证明真实失败路径的read-before-delete和立即撤权保护工作，但没有正向Operator就绪、真实Delete或provider ARN兼容性证明；全部isolated/production compatibility及readiness/runtime gates保持false。没有child Execute、DeleteStack、付费Cell、Neon写入；Agent新增动作只有独立只读核验和状态文档，本轮没有改执行代码，沿用已验证799/799基线，不重跑离线云模拟。下一阶段应先只读定位DescribeChangeSet拒绝的真实授权评估原因，再审阅必要候选；不得自动放宽权限、安装新Grant、重建fixture、清空slot或重放旧请求。
 
+### B5-J5g-j15：真实 IAM / CloudTrail 只读诊断
+
+- 已按用户明确授权将 `309c92afe37e7369909166be59351a57a32bd672` 推送 github/main，独立远端SHA一致；立即进入只读取证，不修改执行器或旧槽位。
+- Source实读保留Grant v4全政策与claim plan严格一致；当前唯一identity attachment和boundary仍为同一Operator policy，无inline，默认v5及管理栈Original模板准确Locked。CloudTrail完整查询匹配三次Run requestId，均报告exact fixture Stack上没有identity-based Allow。三条日志不提供授权上下文，普通StringEquals的完整ARN条件不匹配是待验证假设而不是已确认的短名称转换；`rootCauseProven=false`。
+- `2026-10-03T21:43:24.311Z`（Winnipeg16:43:24）取证receipt SHA `2a07492d7b2415030b78a7fe709de72bd9564d832e41eeb666af68be8245e222`，原件 `F:\ChatGPT_workshop\techlong-j5gj11-describe-diagnostic-202610032144.json`。独立复算取证/plan policy/statement/requestId/时间窗及原archive、claim、四步journal通过；probe-delete intent仍无，不代表允许重跑。没有IAM模拟、AWS/Neon写入或runtime改变；仅本机只读脚本及状态文档，不重复799/799离线云模拟。
+- 完整Cell MISSING/authority ABSENT/probe资源0证据仍引用上一轮21:27:33的独立Inspect，不冒充新全量Inspect；新实读只确认管理模板和Operator v5 Locked。下一步仅准备未部署的独立只读对照候选及审阅方案；删除全ARN规则不自动放宽，任何新generation/窗口单独审阅批准，旧slot不可复用。详细证据、AWS来源和不确定性见[DescribeChangeSet只读诊断](./aws-sandbox-j5gj15-describe-diagnostic.md)。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：
