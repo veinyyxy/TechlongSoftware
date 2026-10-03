@@ -815,6 +815,30 @@ evidence路径JSON必须准确提供七个绝对路径：legacyManifest、legacy
 
 实际Source于 `2026-10-03T22:23:14.818Z` 仍准确Locked/v5/Cell MISSING/authority ABSENT，两次完整管理清单空，原probe未执行资源0，前后磁盘锚点稳定。Review SHA `aebf0799583df1d91e867d974ab563a6e13d186d9091f487403d209f406cc980`、新11项+相关回归64/64和独立复算通过；无AWS写入/Operator对照，compatibility/runtime gates仍false。后续先审阅和实现独立fence/creation-only入口，再另行准确批准新的云动作；本Review不能用于创建或安装权限。见[完整方案](../../docs/aws-sandbox-j5gj16-read-comparison.md)。
 
+### B5-J5g-j17：固定 generation2 / creation-only 入口
+
+默认 ReviewCreate 仅 Source 只读，选精确名称条件候选，不占新槽位：
+
+```powershell
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-read-comparison-create.ts `
+  --mode ReviewCreate --variant EXACT_NAME_CONDITION `
+  --evidence '<absolute-evidence-paths.json>' --output '<absolute-new-review.json>' --acknowledge-read-only
+```
+
+CreateReviewed 不是本阶段已批准动作。未来仅在准确批准fresh清单后，可传 `--review`、`--approved-review-sha256`、`--execution-phrase`（准确 `I_CONFIRM_J5GJ17_CREATE_GENERATION2_READ_COMPARISON_GRANT_ONLY`），以及四个ack：`--acknowledge-aws-write`、`--acknowledge-named-iam-change-set-only`、`--acknowledge-low-cost-not-zero`、`--acknowledge-preserves-predecessor-and-consumes-generation2`。它只允许一次准确CreateChangeSet，不执行、安装、删除或Operator登录。读/write flags不能跨模式；variant不能覆盖已审阅清单。
+
+RecoverCreate 只读、永不补写或重新创建，即使审阅已过期仍可复核完整claim：
+
+```powershell
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-read-comparison-create.ts `
+  --mode RecoverCreate --review '<absolute-exact-review.json>' `
+  --evidence '<absolute-evidence-paths.json>' --output '<absolute-new-recovery.json>' --acknowledge-read-only
+```
+
+fixed targetKey下所有review/window/candidate仅共享 `j5gj17-read-comparison/.../slot-000002`，显式保留原J14/J11已消费前驱，不在旧namespace加文件。claim前Source再读Locked/空管理清单/原probe/完整旧ledger，持久化wx+fsync+readback后唯一Create；partial/corrupt/unknown/linked/occupied全部阻断。响应丢失、claim后过期/取消、Recover MISSING都永久消费，不自动reset或删除。Source-only/read runtime固定profile、无credential/endpoint/TLS旁路，maxAttempts=1。
+
+真实Review `f39fca883cfc475c8c94e966686fb867723c61eeaf367c69d93f738064740a7a` 未批准、到期23:25:19.599Z；独立Source末读23:21:56.088Z仍Locked/v5/Cell MISSING/authority ABSENT、清单空/原probe资源0未执行，新registry/claim不存在。18项新测试及相关回归82/82。先完成后续安装/Operator只读/立即Revoke控制器再fresh创建审阅，避免提前消费固定slot；本轮未调用CreateReviewed/RecoverCreate云动作，compatibility/runtime gates仍false。见[阶段报告](../../docs/aws-sandbox-j5gj17-read-comparison-fence.md)。
+
 ### B5-J5g-j9：独立占位栈 Create / Recover 入口
 
 固定 fixture 为 `techlong-sandbox-arn-compatibility-probe`，只审阅一个未执行的 `WaitConditionHandle` Add；不复用业务 Cell，不执行 child，不挂载 grant。entry 默认离线 Plan，所有输出 create-only。唯一写能力是获批后一次 CreateChangeSet；先持久化 repo-local `.aws-sandbox/j5gj9-arn-probe/create-intent.json` 并 fsync，SDK `maxAttempts=1`，响应不确定仅 Recover，intent 不自动删除或复位。

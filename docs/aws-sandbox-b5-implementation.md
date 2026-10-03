@@ -465,6 +465,13 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - 本机Prepare receipt SHA `ad8e317d541231db37c1d3c55dad777936be25db3dd190aa0566fdb47a8c00ad`；真实Source Review SHA `aebf0799583df1d91e867d974ab563a6e13d186d9091f487403d209f406cc980`、candidate plan SHA `8cf8ae7c64ff0bc8aebaf5bf4d5c864cca081b3683e61e85a6590c4874506614`。末Source `2026-10-03T22:23:14.818Z`（Winnipeg17:23:14）仍Locked/operator默认v5/execution boundary v1/Cell MISSING/authority ABSENT；前后IAM、模板、Role稳定，两次管理清单均完整且空，原fixture末读READY_UNEXECUTED资源0，旧archive/claim/四步journal一致。新evidence loader无ledger写能力；无AWS/Neon写入、新grant、slot或Operator session。
 - 独立验证器严格重编译plan/Review、复算模板/政策/证据/磁盘前驱摘要通过；11项新测试加原grant/workflow共64/64、typecheck/变更文件eslint/management模板验证通过。新测试接入npm test，不为此重复全量离线云模拟，无IAM simulation。所有readiness/compatibility/runtime gates继续false；Review只为Source-only准备，不授权部署，Operator对照仍待分别审阅批准。详细方案和下一阶段独立fence边界见[只读对照候选](./aws-sandbox-j5gj16-read-comparison.md)。
 
+### B5-J5g-j17：独立 generation2 fence 和 creation-only 受审入口
+
+- 新固定 `.aws-sandbox/j5gj17-read-comparison/<原targetKey>/slot-000002` 显式继承已消费前驱，不修改原slot/archive；所有候选/时间窗/清单竞争同一槽位，无自动generation3/reset/repair。获批Create前必须Source fresh预检、exclusive mkdir、wx/fsync/readback claim；一旦占用永久消费，取消/过期/丢失响应都不能自动重试。
+- ReviewCreate/CreateReviewed/RecoverCreate 分离；唯一写能力为一次精确UPDATE CreateChangeSet，仅一个读候选，不执行/安装权限/Operator/删除。只读Recover对完整清单、full ARN、双Describe/Original template和唯一非替换Operator policy Modify严格核对；MISSING也保留消费槽位。
+- 真实Source Review SHA `f39fca883cfc475c8c94e966686fb867723c61eeaf367c69d93f738064740a7a`；独立Source只读验证 receipt SHA `3d5b022a15764d1b3dbaa470bddae21abefa2dbded839137229f4be149641e12`，末读 `2026-10-03T23:21:56.088Z` 仍Locked/v5/Cell MISSING/authority ABSENT，完整管理清单空，原probe资源0未执行；新registry/claim不存在，旧前驱不变。无AWS/Neon写入，审阅未批准，不能作为以后创建授权。
+- 新18项与相关回归82/82、typecheck/定向lint/management验证通过，不重复全量离线模拟。下一阶段先实现受审安装/固定MFA只读对照/立即Revoke控制器，再fresh审阅批准云创建；所有runtime gates继续false。见[固定围栏与证据](./aws-sandbox-j5gj17-read-comparison-fence.md)。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：
