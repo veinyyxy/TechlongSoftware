@@ -1,9 +1,11 @@
 import { canonicalJson, sha256Hex } from "./hash.ts";
-import { ARN_PROBE_ACCOUNT, ARN_PROBE_REGION, ARN_PROBE_SOURCE, ARN_PROBE_FIXTURE_STACK, ARN_PROBE_EXECUTION_ROLE } from "./arn-compatibility-probe-fixture.ts";
+import { ARN_PROBE_ACCOUNT, ARN_PROBE_REGION, ARN_PROBE_SOURCE, ARN_PROBE_FIXTURE_STACK, ARN_PROBE_EXECUTION_ROLE, validateArnProbeFixtureEvidence } from "./arn-compatibility-probe-fixture.ts";
 import { assertArnProbeGrantPlan, type ArnProbeGrantPlan } from "./arn-compatibility-probe-grant.ts";
-import { assertArnProbeWorkflowManifest, probeObject as object, probeSame as same,
+import { assertArnProbeWorkflowManifest, probeObject as object, probeSame as same, probeInstant,
   type ArnProbeWorkflowManifest, type ArnProbeWorkflowReads, type ArnProbeWorkflowWrites, type ProbeAfterState, type ProbeRevokeState,
-  ARN_PROBE_OPERATOR_ROLE, ARN_PROBE_OPERATOR_SESSION, ARN_PROBE_OPERATOR_CALLER, ARN_PROBE_MFA } from "./arn-compatibility-probe-workflow.ts";
+  ARN_PROBE_OPERATOR_ROLE, ARN_PROBE_OPERATOR_SESSION, ARN_PROBE_OPERATOR_CALLER, ARN_PROBE_MFA,
+  type ArnProbeOperatorReadPort, type ArnProbeOperatorReadiness } from "./arn-compatibility-probe-workflow.ts";
+import { sanitizeArnProbeFailure } from "./arn-compatibility-probe-diagnostics.ts";
 import type { AwsSdkSharedCellAuthorCompensationManagementReadAdapter } from "./aws-sdk-shared-cell-author-compensation-management.ts";
 import type { AwsSdkArnProbeFixtureReadAdapter } from "./aws-sdk-arn-compatibility-probe-fixture.ts";
 import type { AwsSdkArnProbeGrantReadAdapter } from "./aws-sdk-arn-compatibility-probe-grant.ts";
@@ -30,6 +32,84 @@ async function pause(signal: AbortSignal) {
     const aborted = () => { clearTimeout(timer); reject(new Error("Probe read wait cancelled.")); };
     signal.addEventListener("abort", aborted, { once: true });
   });
+}
+/** Read-only capability using ONLY the existing fixed MFA Operator session.
+ * Two consecutive complete exact-ARN fixture reads, at most three attempts.
+ * This observes read access, never infers Delete access or retries a mutation.
+ */
+export class AwsSdkArnProbeOperatorReadAdapter implements ArnProbeOperatorReadPort {
+  private readonly sdk: { operator: ArnProbeSdkClient; commands: Omit<ReadCommands, "listChangeSets">;
+    verifyIdentity: (signal: AbortSignal) => ReturnType<ArnProbeWorkflowWrites["prepareOperator"]>; pause?: (signal: AbortSignal) => Promise<void> };
+  private readonly now: () => number;
+  constructor(sdk: AwsSdkArnProbeOperatorReadAdapter["sdk"], now = Date.now) {
+    if (typeof sdk.operator?.send !== "function" || typeof sdk.verifyIdentity !== "function" ||
+        ["describeStacks", "listStackResources", "getTemplate", "describeChangeSet"].some((key) => typeof sdk.commands?.[key as keyof typeof sdk.commands] !== "function")) throw new Error("Fixed Operator read dependencies are incomplete.");
+    this.sdk = sdk; this.now = now;
+  }
+  async checkReadiness(manifest: ArnProbeWorkflowManifest, signal: AbortSignal): Promise<ArnProbeOperatorReadiness> {
+    await assertArnProbeWorkflowManifest(manifest);
+    const plan = manifest.input.plan, started = this.now(), bounded = AbortSignal.any([signal, AbortSignal.timeout(30_000)]);
+    const failures: ArnProbeOperatorReadiness["failures"][number][] = [];
+    let attempts = 0, consecutive = 0, identityVerified = false, previous: string | null = null;
+    const proofs: string[] = [];
+    const live = () => {
+      bounded.throwIfAborted(); const current = this.now();
+      if (current < started || current - started >= 30_000 || current < Date.parse(manifest.input.reviewedAt) ||
+          current >= Date.parse(manifest.input.expiresAt) || current >= Date.parse(plan.deleteCutoff)) throw new Error("Operator read approval expired or exceeded its bound.");
+    };
+    let readOperation: ArnProbeOperatorReadiness["failures"][number]["readOperation"] = "GetCallerIdentity";
+    const send = async (operation: typeof readOperation, command: ArnProbeSdkCommand, input: Record<string, unknown>) => {
+      readOperation = operation; live();
+      const reply = object(JSON.parse(JSON.stringify(await this.sdk.operator.send(new command(input), { abortSignal: bounded }))));
+      live(); return reply;
+    };
+    while (attempts < 3 && consecutive < 2) {
+      attempts++;
+      try {
+        readOperation = "GetCallerIdentity"; live(); identityVerified = false;
+        const caller = await this.sdk.verifyIdentity(bounded); live();
+        if (caller.account !== ARN_PROBE_ACCOUNT || caller.callerArn !== ARN_PROBE_OPERATOR_CALLER || probeInstant(caller.expiresAt) <= this.now() + 60_000) throw new Error("Fixed Operator identity drifted or expired.");
+        identityVerified = true;
+        const stackInput = { StackName: plan.input.fixtureStackId }, changeInput = { ...plan.futureProbeRequest };
+        const first = await send("DescribeStacks", this.sdk.commands.describeStacks, stackInput);
+        const stack = array(first.Stacks)[0];
+        if (array(first.Stacks).length !== 1 || stack.StackId !== stackInput.StackName || stack.StackName !== ARN_PROBE_FIXTURE_STACK || stack.StackStatus !== "REVIEW_IN_PROGRESS") throw new Error("Exact unexecuted Operator Stack is required.");
+        const resources = await send("ListStackResources", this.sdk.commands.listStackResources, stackInput);
+        const original = await send("GetTemplate", this.sdk.commands.getTemplate, { ...stackInput, TemplateStage: "Original" });
+        const before = await send("DescribeChangeSet", this.sdk.commands.describeChangeSet, changeInput);
+        if (before.StackId !== stackInput.StackName || before.ChangeSetId !== changeInput.ChangeSetName || before.RoleARN !== plan.input.fixturePlan.request.RoleARN) throw new Error("Exact full ARN Operator Change Set drifted.");
+        const template = await send("GetTemplate", this.sdk.commands.getTemplate, { ...changeInput, TemplateStage: "Original" });
+        const after = await send("DescribeChangeSet", this.sdk.commands.describeChangeSet, changeInput);
+        const last = await send("DescribeStacks", this.sdk.commands.describeStacks, stackInput);
+        const verified = await validateArnProbeFixtureEvidence(plan.input.fixturePlan, { stackBefore: first, stackAfter: last, resources,
+          originalTemplateProof: { kind: "EMPTY_ORIGINAL_TEMPLATE", stackId: stackInput.StackName, templateBody: original.TemplateBody,
+            httpStatusCode: object(original.$metadata).httpStatusCode, requestId: object(original.$metadata).requestId },
+          changeSetBefore: before, changeSetAfter: after, changeSetTemplate: template, observedAt: new Date(this.now()).toISOString() });
+        if (verified.state !== "READY_UNEXECUTED" || verified.stackId !== stackInput.StackName || verified.changeSetArn !== changeInput.ChangeSetName) throw new Error("Operator fixture proof scope drifted.");
+        const proof = await sha256Hex(canonicalJson({ first: stable(first), last: stable(last), resources: stable(resources), original: stable(original),
+          before: stable(before), after: stable(after), template: stable(template) }));
+        if (previous && proof !== previous) throw new Error("Operator fixture changed between readiness rounds.");
+        live(); previous = proof; proofs.push(proof); consecutive++;
+      } catch (error) {
+        const diagnostic = sanitizeArnProbeFailure(error, "OPERATOR_READINESS", this.now);
+        failures.push(Object.freeze({ ...diagnostic, readOperation, attempt: attempts })); consecutive = 0; previous = null; proofs.length = 0;
+        // Retry only read calls for bounded authorization/propagation, throttle
+        // or transport observations. Missing/drift/unknown is never readiness.
+        if (!["AUTHORIZATION_DENIED", "THROTTLED", "TRANSPORT_UNCERTAIN", "TIMEOUT_UNCERTAIN"].includes(diagnostic.classification) || bounded.aborted) break;
+      }
+      if (attempts < 3 && consecutive < 2) {
+        try { live(); await (this.sdk.pause ?? pause)(bounded); live(); }
+        catch (error) { failures.push(Object.freeze({ ...sanitizeArnProbeFailure(error, "OPERATOR_READINESS", this.now), readOperation, attempt: attempts })); consecutive = 0; break; }
+      }
+    }
+    const ready = consecutive === 2;
+    return Object.freeze({ schemaVersion: 1, manifestSha256: manifest.manifestSha256, callerArn: ARN_PROBE_OPERATOR_CALLER, account: ARN_PROBE_ACCOUNT,
+      region: ARN_PROBE_REGION, stackId: plan.input.fixtureStackId, changeSetArn: plan.input.fixtureChangeSetArn,
+      outcome: ready ? "READ_READY" : "READ_NOT_READY", attempts, consecutiveSuccessfulReads: consecutive, operatorIdentityVerified: identityVerified,
+      evidenceSha256: ready ? await sha256Hex(canonicalJson({ manifestSha256: manifest.manifestSha256, callerArn: ARN_PROBE_OPERATOR_CALLER,
+        request: plan.futureProbeRequest, proofs })) : null, failures: Object.freeze(failures), observedAt: new Date(this.now()).toISOString(),
+      deleteAuthorizationVerified: false, productionCompatibilityVerified: false, mutationPerformed: false, retryAuthorized: false });
+  }
 }
 export class AwsSdkArnProbeWorkflowReadAdapter implements ArnProbeWorkflowReads {
   private readonly sdk: { client: ArnProbeSdkClient; commands: ReadCommands;

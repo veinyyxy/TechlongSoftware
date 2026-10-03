@@ -6,8 +6,9 @@ import { compileArnProbeFixturePlan, ARN_PROBE_FIXTURE_STACK } from "../lib/depl
 import { compileArnProbeGrantPlan, type ArnProbeGrantPlan } from "../lib/deployments/execution/arn-compatibility-probe-grant.ts";
 import { compileArnProbeWorkflowManifest, assertArnProbeWorkflowManifest, reviewArnProbeWorkflow, inspectArnProbeWorkflow, runArnProbeWorkflow, recoverArnProbeWorkflowRevoke,
   ARN_PROBE_OPERATOR_CALLER, type ArnProbeWorkflowManifest, type ArnProbeWorkflowReads, type ArnProbeWorkflowWrites, type ArnProbeWorkflowJournal,
-  type ProbeStep, type ArnProbeWorkflowApproval } from "../lib/deployments/execution/arn-compatibility-probe-workflow.ts";
-import { AwsSdkArnProbeWorkflowReadAdapter, AwsSdkArnProbeWorkflowWriteAdapter, createArnProbeOperatorSession } from "../lib/deployments/execution/aws-sdk-arn-compatibility-probe-workflow.ts";
+  type ProbeStep, type ArnProbeWorkflowApproval, type ArnProbeOperatorReadPort, type ArnProbeOperatorReadiness } from "../lib/deployments/execution/arn-compatibility-probe-workflow.ts";
+import { AwsSdkArnProbeWorkflowReadAdapter, AwsSdkArnProbeOperatorReadAdapter, AwsSdkArnProbeWorkflowWriteAdapter, createArnProbeOperatorSession } from "../lib/deployments/execution/aws-sdk-arn-compatibility-probe-workflow.ts";
+import { sanitizeArnProbeFailure } from "../lib/deployments/execution/arn-compatibility-probe-diagnostics.ts";
 import type { ArnProbeManagementObservation } from "../lib/deployments/execution/aws-sdk-shared-cell-author-compensation-management.ts";
 
 const time = Date.parse("2026-10-03T17:00:00.000Z"), now = () => time, observedAt = new Date(time).toISOString();
@@ -50,7 +51,13 @@ function fake(m: ArnProbeWorkflowManifest) {
     readRevoke: async () => revokeCreated ? { state: "READY_UNEXECUTED", stackId: plan.managementStackId, changeSetArn: revokeArn, providerEvidenceSha256: "f".repeat(64), observedAt: at } : { state: "MISSING", observedAt: at },
     waitRevoke: async (_manifest, s) => reads.readRevoke(m, s),
   };
-  const reply = { $metadata: { requestId: "unit-only" } };
+  const reply = { $metadata: { requestId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee" } };
+  const operatorReads: ArnProbeOperatorReadPort = { checkReadiness: async () => {
+    events.push("operator-readiness"); return { schemaVersion: 1, manifestSha256: m.manifestSha256, callerArn: ARN_PROBE_OPERATOR_CALLER,
+      account: "402010193138", region: "ca-central-1", stackId: plan.input.fixtureStackId, changeSetArn: plan.input.fixtureChangeSetArn,
+      outcome: "READ_READY", attempts: 2, consecutiveSuccessfulReads: 2, evidenceSha256: "c".repeat(64), operatorIdentityVerified: true,
+      failures: [], observedAt: at, deleteAuthorizationVerified: false, productionCompatibilityVerified: false, mutationPerformed: false, retryAuthorized: false };
+  } };
   const writes: ArnProbeWorkflowWrites = {
     prepareOperator: async () => ({ callerArn: ARN_PROBE_OPERATOR_CALLER, account: "402010193138", expiresAt: "2026-10-03T17:15:00.000Z" }),
     executeGrant: async (request) => { events.push("grant"); assert.deepEqual(request, m.actions.grantExecute.request); granted = true; return reply; },
@@ -60,7 +67,7 @@ function fake(m: ArnProbeWorkflowManifest) {
   };
   const journal: ArnProbeWorkflowJournal = { load: async (step) => intents.get(step) ?? null,
     reserve: async (step, intent) => { if (intents.has(step)) throw new Error("Intent exists"); intents.set(step, intent); events.push(`intent:${step}`); } };
-  return { reads, writes, journal, events, intents, setGranted: (value: boolean) => { granted = value; }, setTime: (value: string) => { at = value; } };
+  return { reads, writes, operatorReads, journal, events, intents, setGranted: (value: boolean) => { granted = value; }, setTime: (value: string) => { at = value; } };
 }
 test("J11 manifests separately bind all three exact approval scopes and never enable production gates", async () => {
   const { manifest: m } = await material(); await assertArnProbeWorkflowManifest(m);
@@ -91,7 +98,7 @@ test("J11 normal order is one Grant, one exact probe, immediate revoke, then ind
   const { manifest: m } = await material(), f = fake(m);
   const receipt = await runArnProbeWorkflow({ manifest: m, approval: approval(m), ...f, signal: signal(), now });
   assert.equal(receipt.outcome, "ISOLATED_PROBE_SUCCEEDED_LOCKED"); assert.equal(receipt.productionCompatibilityVerified, false);
-  assert.deepEqual(f.events.filter((item) => ["grant", "probe", "revoke-create", "revoke-execute", "post-read"].includes(item)), ["grant", "probe", "revoke-create", "revoke-execute", "post-read"]);
+  assert.deepEqual(f.events.filter((item) => ["grant", "operator-readiness", "probe", "revoke-create", "revoke-execute", "post-read"].includes(item)), ["grant", "operator-readiness", "probe", "revoke-create", "revoke-execute", "post-read"]);
   assert.equal(f.intents.size, 5); assert.ok(receipt.cleanup?.evidence.first); assert.ok(receipt.cleanup?.evidence.last);
   await assert.rejects(runArnProbeWorkflow({ manifest: m, approval: approval(m), ...f, signal: signal(), now })); assert.equal(f.events.filter((item) => item === "grant").length, 1);
 });
@@ -261,5 +268,149 @@ test("J11 CLI accepts only explicit mode contracts, has no DeleteStack and reser
   assert.match(cli, /await handle\.sync\(\)/); assert.match(cli, /"wx"/); assert.match(cli, /mode === "RunReviewed"/);
   for (const args of [["--mode", "DeleteStack"], ["--mode", "RunReviewed", "--acknowledge-read-only"], ["--mode", "Review", "--mode", "Inspect"]]) {
     const result = spawnSync(process.execPath, ["--experimental-strip-types", "ops/aws-sandbox/scripts/s3-b5-arn-probe-workflow.ts", ...args], { encoding: "utf8" }); assert.notEqual(result.status, 0);
+  }
+});
+
+const providerRequestId = "8fd5ccaa-73e6-4728-a71e-4386096872dc";
+function operatorSdk(m: ArnProbeWorkflowManifest, hook?: (command: Describe, index: number, reply: Record<string, unknown>) => Record<string, unknown>, clock = now) {
+  const calls: Describe[] = [], p = m.input.plan, fixture = p.input.fixturePlan;
+  const stack = { StackId: p.input.fixtureStackId, StackName: ARN_PROBE_FIXTURE_STACK, StackStatus: "REVIEW_IN_PROGRESS",
+    RoleARN: fixture.request.RoleARN, EnableTerminationProtection: false, Tags: [] };
+  const change = { StackId: p.input.fixtureStackId, StackName: ARN_PROBE_FIXTURE_STACK, ChangeSetId: p.input.fixtureChangeSetArn,
+    ChangeSetName: fixture.request.ChangeSetName, Status: "CREATE_COMPLETE", ExecutionStatus: "AVAILABLE", Description: fixture.request.Description,
+    RoleARN: fixture.request.RoleARN, OnStackFailure: "DELETE", Tags: fixture.request.Tags, Capabilities: [], Parameters: [], NotificationARNs: [],
+    Changes: [{ Type: "Resource", ResourceChange: { Action: "Add", LogicalResourceId: "ProbeHandle", ResourceType: "AWS::CloudFormation::WaitConditionHandle" } }] };
+  const adapter = new AwsSdkArnProbeOperatorReadAdapter({ operator: { send: async (command) => {
+    const typed = command as Describe; calls.push(typed);
+    const reply = typed instanceof Changes ? { ...change } : typed instanceof Resources ? { StackResourceSummaries: [] } : typed instanceof Template ?
+      { TemplateBody: typed.input.ChangeSetName ? fixture.request.TemplateBody : "" } : { Stacks: [{ ...stack }] };
+    return { ...(hook ? hook(typed, calls.length, reply) : reply), $metadata: { httpStatusCode: 200, requestId: providerRequestId } };
+  } }, commands: { describeStacks: Describe, listStackResources: Resources, getTemplate: Template, describeChangeSet: Changes },
+    verifyIdentity: fake(m).writes.prepareOperator, pause: async (abort) => { abort.throwIfAborted(); } }, clock);
+  return { adapter, calls };
+}
+test("J12 diagnostics allowlist scalars, reject credential-shaped fields and survive hostile errors", () => {
+  const raw = Object.assign(new Error("SECRET_MFA_654321 SECRET_TOKEN"), { name: "AccessDenied", stack: "SECRET_STACK", $metadata:
+    { requestId: providerRequestId, httpStatusCode: 403, secretAccessKey: "SECRET_KEY" }, response: { token: "SECRET_TOKEN" } });
+  const safe = sanitizeArnProbeFailure(raw, "PROBE_DELETE", now);
+  assert.equal(safe.classification, "AUTHORIZATION_DENIED"); assert.equal(safe.code, "AccessDenied"); assert.equal(safe.requestId, providerRequestId);
+  assert.equal(safe.httpStatusCode, 403); assert.equal(safe.retryAuthorized, false); assert.equal(safe.authorizationContextObserved, false);
+  assert.doesNotMatch(JSON.stringify(safe), /SECRET|654321/);
+  const unknown = sanitizeArnProbeFailure({ name: "SECRET_NAME", $metadata: { requestId: "SECRET_TOKEN", httpStatusCode: "SECRET_STATUS" } }, "ENTRY", now);
+  assert.equal(unknown.code, null); assert.equal(unknown.requestId, null); assert.equal(unknown.httpStatusCode, null);
+  assert.doesNotMatch(JSON.stringify(unknown), /SECRET/);
+  const hostile = new Proxy({}, { get() { throw new Error("SECRET_GETTER"); } });
+  assert.equal(sanitizeArnProbeFailure(hostile, "ENTRY", now).classification, "UNKNOWN_UNCERTAIN");
+  for (const [name, classification] of [["ExpiredToken", "AUTHENTICATION_FAILED"], ["ThrottlingException", "THROTTLED"], ["AbortError", "CANCELLED"], ["TimeoutError", "TIMEOUT_UNCERTAIN"], ["ChangeSetNotFoundException", "NOT_FOUND"]]) {
+    assert.equal(sanitizeArnProbeFailure({ name }, "OPERATOR_READINESS", now).classification, classification);
+  }
+});
+test("J12 Operator gate requires two complete real-read rounds using only exact ARNs; it never proves Delete", async () => {
+  const { manifest: m } = await material(), { adapter, calls } = operatorSdk(m);
+  const result = await adapter.checkReadiness(m, signal());
+  assert.equal(result.outcome, "READ_READY"); assert.equal(result.attempts, 2); assert.equal(result.consecutiveSuccessfulReads, 2);
+  assert.equal(result.operatorIdentityVerified, true); assert.match(result.evidenceSha256!, /^[a-f0-9]{64}$/);
+  assert.equal(result.deleteAuthorizationVerified, false); assert.equal(result.productionCompatibilityVerified, false); assert.equal(result.mutationPerformed, false);
+  assert.equal(calls.length, 14);
+  assert.ok(calls.every((item) => item.input.StackName === m.input.plan.input.fixtureStackId && (!item.input.ChangeSetName || item.input.ChangeSetName === m.input.plan.input.fixtureChangeSetArn)));
+});
+test("J12 only bounded read retries may overcome a denial; persistent denial is recorded and never absence", async () => {
+  const { manifest: m } = await material();
+  for (const transient of [false, true]) {
+    const { adapter, calls } = operatorSdk(m, (_command, index, reply) => {
+      if (!transient || index === 1) throw Object.assign(new Error("SECRET provider denial"), { name: "AccessDenied", $metadata: { requestId: providerRequestId, httpStatusCode: 403 } });
+      return reply;
+    });
+    const result = await adapter.checkReadiness(m, signal()); assert.equal(result.attempts, 3);
+    assert.equal(result.outcome, transient ? "READ_READY" : "READ_NOT_READY"); assert.equal(result.failures.length, transient ? 1 : 3);
+    assert.equal(result.failures[0].readOperation, "DescribeStacks"); assert.equal(result.failures[0].requestId, providerRequestId);
+    assert.equal(result.failures[0].classification, "AUTHORIZATION_DENIED"); assert.doesNotMatch(JSON.stringify(result), /SECRET/);
+    if (!transient) { assert.equal(result.evidenceSha256, null); assert.equal(calls.length, 3); }
+  }
+  const interrupted = operatorSdk(m, (_command, index, reply) => {
+    if (index === 8) throw Object.assign(new Error("denied second round"), { name: "AccessDenied" });
+    return reply;
+  });
+  const result = await interrupted.adapter.checkReadiness(m, signal());
+  assert.equal(result.outcome, "READ_NOT_READY"); assert.equal(result.consecutiveSuccessfulReads, 1); assert.equal(result.evidenceSha256, null);
+});
+test("J12 Operator readiness fails closed on fixture drift, missing, pagination, or unknown errors without read replay", async () => {
+  const { manifest: m } = await material();
+  const patches = [
+    (command: Describe, reply: Record<string, unknown>) => command instanceof Changes ? { ...reply, ChangeSetId: "foreign" } : reply,
+    (command: Describe, reply: Record<string, unknown>) => command instanceof Changes ? { ...reply, NextToken: "page" } : reply,
+    (command: Describe, reply: Record<string, unknown>) => command instanceof Changes ? { ...reply, IncludeNestedStacks: true } : reply,
+    (command: Describe, reply: Record<string, unknown>) => command instanceof Changes ? { ...reply, RoleARN: "foreign" } : reply,
+    (command: Describe, reply: Record<string, unknown>) => command instanceof Resources ? { ...reply, StackResourceSummaries: [{ LogicalResourceId: "materialized" }] } : reply,
+    (command: Describe, reply: Record<string, unknown>) => command instanceof Template && command.input.ChangeSetName ? { ...reply, TemplateBody: "{}" } : reply,
+  ];
+  for (const patch of patches) {
+    const port = operatorSdk(m, (command, _index, reply) => patch(command, reply));
+    const result = await port.adapter.checkReadiness(m, signal()); assert.equal(result.outcome, "READ_NOT_READY"); assert.equal(result.attempts, 1);
+  }
+  for (const name of ["ChangeSetNotFoundException", "ValidationError", "UnrecognizedClientException", "Unknown_SECRET"]) {
+    const port = operatorSdk(m, () => { throw Object.assign(new Error("SECRET"), { name }); });
+    const result = await port.adapter.checkReadiness(m, signal()); assert.equal(result.outcome, "READ_NOT_READY"); assert.equal(port.calls.length, 1);
+    assert.doesNotMatch(JSON.stringify(result), /SECRET/);
+  }
+});
+test("J12 cancelled, expired or wrong-identity Operator gate makes no CFN calls", async () => {
+  const { manifest: m } = await material();
+  for (const [clock, abort] of [[now, AbortSignal.abort()], [() => time + 300_000, signal()]] as const) {
+    const port = operatorSdk(m, undefined, clock); assert.equal((await port.adapter.checkReadiness(m, abort)).outcome, "READ_NOT_READY"); assert.equal(port.calls.length, 0);
+  }
+  for (const caller of [{ account: "foreign", callerArn: "foreign", expiresAt: "2026-10-03T17:15:00.000Z" },
+    { account: "402010193138", callerArn: ARN_PROBE_OPERATOR_CALLER, expiresAt: "invalid" }]) {
+    const port = new AwsSdkArnProbeOperatorReadAdapter({ operator: { send: async () => { assert.fail("invalid caller must not query"); } },
+      commands: { describeStacks: Describe, listStackResources: Resources, getTemplate: Template, describeChangeSet: Changes },
+      verifyIdentity: async () => caller }, now);
+    assert.equal((await port.checkReadiness(m, signal())).outcome, "READ_NOT_READY");
+  }
+});
+test("J12 a failed Operator gate preserves its sanitized evidence, skips Delete intent and immediately revokes", async () => {
+  const { manifest: m } = await material(), f = fake(m), ready = await f.operatorReads.checkReadiness(m, signal());
+  const denied = sanitizeArnProbeFailure({ name: "AccessDenied", message: "SECRET", $metadata: { requestId: providerRequestId, httpStatusCode: 403 } }, "OPERATOR_READINESS", now);
+  f.operatorReads.checkReadiness = async () => ({ ...ready, outcome: "READ_NOT_READY", attempts: 3, consecutiveSuccessfulReads: 0, evidenceSha256: null,
+    failures: [{ ...denied, readOperation: "DescribeChangeSet", attempt: 1 }] });
+  const result = await runArnProbeWorkflow({ manifest: m, approval: approval(m), ...f, signal: signal(), now });
+  assert.equal(result.outcome, "LOCKED_PROBE_NOT_PROVED"); assert.equal(result.probeAttempted, false); assert.equal(result.probeRequestId, null);
+  assert.equal(f.intents.has("probe-delete"), false); assert.equal(f.events.includes("probe"), false); assert.equal(f.events.includes("revoke-execute"), true);
+  assert.equal(result.operatorReadiness?.failures[0].requestId, providerRequestId); assert.equal(result.operatorReadiness?.outcome, "READ_NOT_READY");
+  assert.doesNotMatch(JSON.stringify(result), /SECRET/);
+});
+test("J12 readiness scope/age/success-proof drift cannot bypass the gate; receipts omit arbitrary port fields", async () => {
+  const { manifest: m } = await material();
+  const missing = fake(m);
+  await assert.rejects(runArnProbeWorkflow({ manifest: m, approval: approval(m), ...missing, operatorReads: undefined as unknown as ArnProbeOperatorReadPort, signal: signal(), now }));
+  assert.equal(missing.intents.size, 0); assert.equal(missing.events.includes("grant"), false);
+  for (const patch of [{ stackId: "foreign" }, { changeSetArn: "foreign" }, { callerArn: "foreign" }, { evidenceSha256: null },
+    { consecutiveSuccessfulReads: 1 }, { operatorIdentityVerified: false }, { observedAt: new Date(time - 60_001).toISOString() }, { deleteAuthorizationVerified: true },
+    { failures: [{ ...sanitizeArnProbeFailure({ name: "AccessDenied" }, "OPERATOR_READINESS", now), readOperation: "DescribeChangeSet", attempt: 2 }] }]) {
+    const f = fake(m), ready = await f.operatorReads.checkReadiness(m, signal());
+    f.operatorReads.checkReadiness = async () => ({ ...ready, ...patch }) as ArnProbeOperatorReadiness;
+    const result = await runArnProbeWorkflow({ manifest: m, approval: approval(m), ...f, signal: signal(), now });
+    assert.ok(result.cleanup); assert.equal(f.events.includes("probe"), false);
+  }
+  const f = fake(m), ready = await f.operatorReads.checkReadiness(m, signal());
+  f.operatorReads.checkReadiness = async () => ({ ...ready, secretAccessKey: "SECRET_PORT" });
+  const result = await runArnProbeWorkflow({ manifest: m, approval: approval(m), ...f, signal: signal(), now });
+  assert.equal(result.isolatedProbeCompatibilityObserved, true); assert.doesNotMatch(JSON.stringify(result), /SECRET_PORT/);
+});
+test("J12 Delete AccessDenied records one rejected attempt and request ID, then revokes without retry", async () => {
+  const { manifest: m } = await material(), f = fake(m);
+  f.writes.deleteProbe = async () => { f.events.push("probe"); throw Object.assign(new Error("SECRET"), { name: "AccessDenied", $metadata: { requestId: providerRequestId, httpStatusCode: 403 } }); };
+  const result = await runArnProbeWorkflow({ manifest: m, approval: approval(m), ...f, signal: signal(), now });
+  assert.equal(result.probeAttempted, true); assert.equal(result.probeRequestId, null); assert.equal(result.post?.state, "READY_UNEXECUTED");
+  const failure = result.failures.find((item) => item.phase === "PROBE_DELETE"); assert.equal(failure?.classification, "AUTHORIZATION_DENIED"); assert.equal(failure?.requestId, providerRequestId);
+  assert.equal(f.events.filter((item) => item === "probe").length, 1); assert.ok(result.cleanup); assert.equal(result.retryAuthorized, false);
+  assert.doesNotMatch(JSON.stringify(result), /SECRET/);
+});
+test("J12 cancellation or review expiry during readiness skips Delete and cannot cancel Source Revoke", async () => {
+  const { manifest: m } = await material();
+  for (const expiry of [false, true]) {
+    const f = fake(m), cancel = new AbortController(), prepare = f.operatorReads.checkReadiness; let current = time;
+    f.operatorReads.checkReadiness = async (...args) => { const ready = await prepare(...args); if (expiry) { current += 300_000; f.setTime(new Date(current).toISOString()); } else cancel.abort(); return ready; };
+    const result = await runArnProbeWorkflow({ manifest: m, approval: approval(m), ...f, signal: cancel.signal, now: () => current });
+    assert.equal(result.probeAttempted, false); assert.ok(result.cleanup); assert.equal(result.outcome, "LOCKED_PROBE_NOT_PROVED");
   }
 });

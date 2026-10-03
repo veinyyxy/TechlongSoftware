@@ -2,6 +2,7 @@ import { canonicalJson, sha256Hex } from "./hash.ts";
 import { ARN_PROBE_ACCOUNT, ARN_PROBE_REGION, ARN_PROBE_SOURCE, type ArnProbeFixtureState } from "./arn-compatibility-probe-fixture.ts";
 import { assertArnProbeGrantPlan, type ArnProbeGrantPlan, type ArnProbeGrantChangeSetState } from "./arn-compatibility-probe-grant.ts";
 import type { ArnProbeManagementObservation } from "./aws-sdk-shared-cell-author-compensation-management.ts";
+import { arnProbeSafeRequestId, sanitizeArnProbeFailure, type ArnProbeFailure, type ArnProbeFailurePhase } from "./arn-compatibility-probe-diagnostics.ts";
 
 export const ARN_PROBE_OPERATOR_ROLE = `arn:aws:iam::${ARN_PROBE_ACCOUNT}:role/TechlongSandboxCellOperatorRole`;
 export const ARN_PROBE_OPERATOR_SESSION = "techlong-sandbox-cell-operator";
@@ -88,6 +89,50 @@ export async function compileArnProbeWorkflowManifest(input: { plan: ArnProbeGra
 }
 export type ArnProbeWorkflowManifest = Awaited<ReturnType<typeof compileArnProbeWorkflowManifest>>;
 export async function assertArnProbeWorkflowManifest(manifest: ArnProbeWorkflowManifest) { probeSame(manifest, await compileArnProbeWorkflowManifest(manifest.input), "Workflow manifest"); }
+export type ArnProbeOperatorReadiness = Readonly<{ schemaVersion: 1; manifestSha256: string; callerArn: string; account: string; region: string;
+  stackId: string; changeSetArn: string; outcome: "READ_READY" | "READ_NOT_READY"; attempts: number; consecutiveSuccessfulReads: number;
+  evidenceSha256: string | null; operatorIdentityVerified: boolean;
+  failures: readonly (ArnProbeFailure & { readOperation: "GetCallerIdentity" | "DescribeStacks" | "ListStackResources" | "GetTemplate" | "DescribeChangeSet"; attempt: number })[]; observedAt: string;
+  deleteAuthorizationVerified: false; productionCompatibilityVerified: false; mutationPerformed: false; retryAuthorized: false }>;
+export interface ArnProbeOperatorReadPort {
+  checkReadiness(manifest: ArnProbeWorkflowManifest, signal: AbortSignal): Promise<ArnProbeOperatorReadiness>;
+}
+function readinessObservation(manifest: ArnProbeWorkflowManifest, value: ArnProbeOperatorReadiness, now: number): ArnProbeOperatorReadiness {
+  fresh(value, now);
+  if (value.schemaVersion !== 1 || value.manifestSha256 !== manifest.manifestSha256 || value.callerArn !== ARN_PROBE_OPERATOR_CALLER ||
+      value.account !== ARN_PROBE_ACCOUNT || value.region !== ARN_PROBE_REGION || value.stackId !== manifest.input.plan.input.fixtureStackId ||
+      value.changeSetArn !== manifest.input.plan.input.fixtureChangeSetArn || !["READ_READY", "READ_NOT_READY"].includes(value.outcome) ||
+      !Number.isInteger(value.attempts) || value.attempts < 1 || value.attempts > 3 || !Number.isInteger(value.consecutiveSuccessfulReads) ||
+      value.consecutiveSuccessfulReads < 0 || value.consecutiveSuccessfulReads > 2 || value.consecutiveSuccessfulReads > value.attempts || typeof value.operatorIdentityVerified !== "boolean" ||
+      (value.evidenceSha256 !== null && (typeof value.evidenceSha256 !== "string" || !/^[a-f0-9]{64}$/.test(value.evidenceSha256))) ||
+      (value.outcome === "READ_NOT_READY" && (value.evidenceSha256 !== null || value.consecutiveSuccessfulReads === 2)) || !Array.isArray(value.failures) || value.failures.length > 3 ||
+      value.deleteAuthorizationVerified !== false || value.productionCompatibilityVerified !== false || value.mutationPerformed !== false || value.retryAuthorized !== false) throw new Error("Operator readiness scope drifted.");
+  const failures = value.failures.map((item) => {
+    if (item.phase !== "OPERATOR_READINESS" || !["GetCallerIdentity", "DescribeStacks", "ListStackResources", "GetTemplate", "DescribeChangeSet"].includes(item.readOperation) ||
+        !Number.isInteger(item.attempt) || item.attempt < 1 || item.attempt > value.attempts || item.authorizationContextObserved !== false || item.retryAuthorized !== false) throw new Error("Operator diagnostic scope drifted.");
+    fresh(item, now);
+    const safe = sanitizeArnProbeFailure({ name: item.code, $metadata: { requestId: item.requestId, httpStatusCode: item.httpStatusCode } }, "OPERATOR_READINESS", () => probeInstant(item.observedAt));
+    if (safe.classification !== item.classification || safe.code !== item.code || safe.requestId !== item.requestId || safe.httpStatusCode !== item.httpStatusCode) throw new Error("Operator diagnostic is not allowlisted.");
+    return { ...safe, readOperation: item.readOperation, attempt: item.attempt };
+  });
+  // Select explicit fields, including for failed readiness. Never copy arbitrary
+  // port/provider fields (messages, credentials, error objects) into receipts.
+  return immutable({ schemaVersion: 1, manifestSha256: manifest.manifestSha256, callerArn: ARN_PROBE_OPERATOR_CALLER, account: ARN_PROBE_ACCOUNT,
+    region: ARN_PROBE_REGION, stackId: manifest.input.plan.input.fixtureStackId, changeSetArn: manifest.input.plan.input.fixtureChangeSetArn,
+    outcome: value.outcome, attempts: value.attempts, consecutiveSuccessfulReads: value.consecutiveSuccessfulReads,
+    evidenceSha256: value.evidenceSha256, operatorIdentityVerified: value.operatorIdentityVerified, failures, observedAt: value.observedAt,
+    deleteAuthorizationVerified: false, productionCompatibilityVerified: false, mutationPerformed: false, retryAuthorized: false });
+}
+function operatorReady(manifest: ArnProbeWorkflowManifest, value: ArnProbeOperatorReadiness, now: number) {
+  fresh(value, now);
+  if (value.schemaVersion !== 1 || value.manifestSha256 !== manifest.manifestSha256 || value.callerArn !== ARN_PROBE_OPERATOR_CALLER ||
+      value.account !== ARN_PROBE_ACCOUNT || value.region !== ARN_PROBE_REGION || value.stackId !== manifest.input.plan.input.fixtureStackId ||
+      value.changeSetArn !== manifest.input.plan.input.fixtureChangeSetArn || value.outcome !== "READ_READY" ||
+      !Number.isInteger(value.attempts) || value.attempts < 2 || value.attempts > 3 || value.consecutiveSuccessfulReads !== 2 ||
+      value.failures.some((item) => item.attempt > value.attempts - 2) ||
+      value.operatorIdentityVerified !== true || typeof value.evidenceSha256 !== "string" || !/^[a-f0-9]{64}$/.test(value.evidenceSha256) || value.deleteAuthorizationVerified !== false ||
+      value.productionCompatibilityVerified !== false || value.mutationPerformed !== false || value.retryAuthorized !== false) throw new Error("Fixed Operator real-read readiness is not proved; do not delete.");
+}
 function live(manifest: ArnProbeWorkflowManifest, now: number) {
   if (now < probeInstant(manifest.input.reviewedAt) || now >= probeInstant(manifest.input.expiresAt)) throw new Error("Workflow approval expired; only explicitly approved revoke-only recovery is available.");
 }
@@ -148,8 +193,8 @@ async function loaded(manifest: ArnProbeWorkflowManifest, journal: ArnProbeWorkf
   return value;
 }
 function requestId(response: unknown) {
-  const id = probeObject(probeObject(response).$metadata).requestId;
-  if (typeof id !== "string" || !id) throw new Error("Provider request identity is missing.");
+  const id = arnProbeSafeRequestId(probeObject(probeObject(response).$metadata).requestId);
+  if (!id) throw new Error("Provider request identity is missing.");
   return id;
 }
 async function verifyLocked(manifest: ArnProbeWorkflowManifest, reads: ArnProbeWorkflowReads, signal: AbortSignal, now: () => number) {
@@ -162,7 +207,7 @@ async function verifyLocked(manifest: ArnProbeWorkflowManifest, reads: ArnProbeW
   return { first, last };
 }
 async function revoke(manifest: ArnProbeWorkflowManifest, reads: ArnProbeWorkflowReads, writes: Pick<ArnProbeWorkflowWrites, "createRevoke" | "executeRevoke">,
-  journal: ArnProbeWorkflowJournal, now: () => number) {
+  journal: ArnProbeWorkflowJournal, now: () => number, failure: (error: unknown, phase: ArnProbeFailurePhase) => void) {
   // Never use the caller's cancelled/expired signal for mandatory cleanup.
   const signal = AbortSignal.timeout(240_000), plan = manifest.input.plan;
   const createRequest = manifest.actions.revoke.createRequest;
@@ -180,7 +225,7 @@ async function revoke(manifest: ArnProbeWorkflowManifest, reads: ArnProbeWorkflo
       const reply = probeObject(await writes.createRevoke(createRequest, AbortSignal.timeout(30_000)));
       if (reply.StackId !== plan.managementStackId || typeof reply.Id !== "string" || !new RegExp(`^arn:aws:cloudformation:${ARN_PROBE_REGION}:${ARN_PROBE_ACCOUNT}:changeSet/${createRequest.ChangeSetName}/${uuid}$`).test(reply.Id)) throw new Error("Revoke creation identity drifted.");
       requestId(reply);
-    } catch { /* reconcile only through independent exact inventory; no mutation retry */ }
+    } catch (error) { failure(error, "REVOKE_CREATE"); /* reconcile only; no mutation retry */ }
     prepared = await reads.waitRevoke(manifest, signal);
   } else if (!createIntent) throw new Error("Existing revoke lacks its durable scope-bound intent.");
   if (prepared.state !== "READY_UNEXECUTED" || prepared.stackId !== plan.managementStackId ||
@@ -191,7 +236,7 @@ async function revoke(manifest: ArnProbeWorkflowManifest, reads: ArnProbeWorkflo
     const before = await reads.readManagement(plan, signal);
     if (management(plan, before, now())) return { outcome: "LOCKED_VERIFIED" as const, evidence: await verifyLocked(manifest, reads, signal, now) };
     await intent(manifest, journal, "revoke-execute", request, now);
-    try { requestId(await writes.executeRevoke(request, AbortSignal.timeout(30_000))); } catch { /* never replay an uncertain Execute */ }
+    try { requestId(await writes.executeRevoke(request, AbortSignal.timeout(30_000))); } catch (error) { failure(error, "REVOKE_EXECUTE"); /* never replay an uncertain Execute */ }
   }
   return { outcome: "LOCKED_VERIFIED" as const, evidence: await verifyLocked(manifest, reads, signal, now) };
 }
@@ -200,16 +245,19 @@ export async function recoverArnProbeWorkflowRevoke(input: { manifest: ArnProbeW
   await assertArnProbeWorkflowManifest(input.manifest); approve(input.manifest, input.approval, true);
   // Expired review may restore only the exact Locked target, never Grant or Probe.
   let cleanup: Awaited<ReturnType<typeof revoke>> | null = null;
-  try { cleanup = await revoke(input.manifest, input.reads, input.writes, input.journal, input.now ?? Date.now); } catch { /* preserve intents and report required action */ }
+  const now = input.now ?? Date.now, failures: ArnProbeFailure[] = [];
+  const failure = (error: unknown, phase: ArnProbeFailurePhase) => { failures.push(sanitizeArnProbeFailure(error, phase, now)); };
+  try { cleanup = await revoke(input.manifest, input.reads, input.writes, input.journal, now, failure); } catch (error) { failure(error, "REVOKE_VERIFY"); }
   const body = { stage: "B5-J5g-j11", mode: "REVOKE_ONLY_RECOVERY", manifestSha256: input.manifest.manifestSha256,
-    outcome: cleanup ? "LOCKED_VERIFIED" : "REVOKE_REQUIRED", cleanup, grantReplayed: false, probeReplayed: false, retryAuthorized: false,
+    outcome: cleanup ? "LOCKED_VERIFIED" : "REVOKE_REQUIRED", cleanup, diagnosticsVersion: 1, failures, grantReplayed: false, probeReplayed: false, retryAuthorized: false,
     productionCompatibilityVerified: false, observedAt: new Date((input.now ?? Date.now)()).toISOString() };
   return immutable({ ...body, receiptSha256: await sha256Hex(canonicalJson(body)) });
 }
 export async function runArnProbeWorkflow(input: { manifest: ArnProbeWorkflowManifest; approval: ArnProbeWorkflowApproval; reads: ArnProbeWorkflowReads;
-  writes: ArnProbeWorkflowWrites; journal: ArnProbeWorkflowJournal; signal: AbortSignal; now?: () => number }) {
+  writes: ArnProbeWorkflowWrites; operatorReads: ArnProbeOperatorReadPort; journal: ArnProbeWorkflowJournal; signal: AbortSignal; now?: () => number }) {
   const { manifest, reads, writes, journal } = input, plan = manifest.input.plan, now = input.now ?? Date.now;
   await assertArnProbeWorkflowManifest(manifest); approve(manifest, input.approval); live(manifest, now()); input.signal.throwIfAborted();
+  if (typeof input.operatorReads?.checkReadiness !== "function") throw new Error("A separate real Operator read port is required before Grant.");
   const observation = await preflight(plan, reads, input.signal, now);
   if (observation.grant.state !== "READY_UNEXECUTED" || observation.grant.changeSetArn !== manifest.input.grantChangeSetArn || observation.grant.templateCanonicalSha256 !== plan.grantTemplateCanonicalSha256 || !/^[a-f0-9]{64}$/.test(observation.grant.providerEvidenceSha256)) throw new Error("Approved full Grant ARN is not ready.");
   const operator = await writes.prepareOperator(input.signal);
@@ -223,34 +271,49 @@ export async function runArnProbeWorkflow(input: { manifest: ArnProbeWorkflowMan
   await intent(manifest, journal, "run", manifest.actions, now);
   let grantAttempted = false, grantRequestId: string | null = null, probeRequestId: string | null = null;
   let cleanup: Awaited<ReturnType<typeof revoke>> | null = null, post: ProbeAfterState | null = null;
+  let readiness: ArnProbeOperatorReadiness | null = null, probeAttempted = false, phase: ArnProbeFailurePhase = "GRANT_EXECUTE";
+  const failures: ArnProbeFailure[] = [], failure = (error: unknown, step: ArnProbeFailurePhase) => { failures.push(sanitizeArnProbeFailure(error, step, now)); };
   try {
     await intent(manifest, journal, "grant-execute", manifest.actions.grantExecute.request, now);
     live(manifest, now()); input.signal.throwIfAborted();
     grantAttempted = true;
-    try { grantRequestId = requestId(await writes.executeGrant(manifest.actions.grantExecute.request, AbortSignal.timeout(30_000))); } catch { /* reconcile exact live IAM below */ }
+    try { grantRequestId = requestId(await writes.executeGrant(manifest.actions.grantExecute.request, AbortSignal.timeout(30_000))); } catch (error) { failure(error, "GRANT_EXECUTE"); }
+    phase = "GRANT_SETTLEMENT";
     const granted = await reads.waitGrantSettlement(manifest, AbortSignal.timeout(120_000));
     if (management(plan, granted, now())) throw new Error("Grant is not installed; do not probe.");
     live(manifest, now()); input.signal.throwIfAborted();
+    phase = "SOURCE_FIXTURE";
     const exactFixture = await reads.readFixture(plan, input.signal); fixture(plan, exactFixture, now());
+    phase = "OPERATOR_IDENTITY";
     const caller = await writes.prepareOperator(input.signal);
     if (caller.callerArn !== ARN_PROBE_OPERATOR_CALLER || caller.account !== ARN_PROBE_ACCOUNT || probeInstant(caller.expiresAt) <= now() + 60_000) throw new Error("Operator identity expired before probe.");
     live(manifest, now()); input.signal.throwIfAborted();
+    phase = "OPERATOR_READINESS";
+    const observed = await input.operatorReads.checkReadiness(manifest, AbortSignal.any([input.signal, AbortSignal.timeout(30_000)]));
+    readiness = readinessObservation(manifest, observed, now()); operatorReady(manifest, readiness, now());
+    // A real read barrier is not proof of Delete authorization. Recheck Source
+    // and the approval after the bounded read wait; never relax ARN conditions.
+    phase = "GRANT_SETTLEMENT";
+    if (management(plan, await reads.readManagement(plan, input.signal), now())) throw new Error("Grant changed during Operator readiness.");
+    live(manifest, now()); input.signal.throwIfAborted();
+    phase = "PROBE_DELETE";
     await intent(manifest, journal, "probe-delete", manifest.actions.probeDelete.request, now);
     live(manifest, now()); input.signal.throwIfAborted();
     // One full-ARN request under Operator. A lost reply is not retried.
-    try { probeRequestId = requestId(await writes.deleteProbe(manifest.actions.probeDelete.request, AbortSignal.timeout(30_000))); } catch { /* mandatory revoke comes first */ }
-  } catch { /* caller cancellation and every Grant/Probe failure still enter cleanup */ }
+    probeAttempted = true;
+    try { probeRequestId = requestId(await writes.deleteProbe(manifest.actions.probeDelete.request, AbortSignal.timeout(30_000))); } catch (error) { failure(error, "PROBE_DELETE"); }
+  } catch (error) { failure(error, phase); /* every failure still enters cleanup */ }
   finally {
-    if (grantAttempted) try { cleanup = await revoke(manifest, reads, writes, journal, now); } catch { /* explicit revoke-only recovery required */ }
+    if (grantAttempted) try { cleanup = await revoke(manifest, reads, writes, journal, now, failure); } catch (error) { failure(error, "REVOKE_VERIFY"); }
   }
   if (cleanup) try {
     post = await reads.readProbeAfter(plan, AbortSignal.timeout(60_000)); fresh(post, now());
     if (post.stackId !== plan.input.fixtureStackId || post.changeSetArn !== plan.input.fixtureChangeSetArn || post.resourceCount !== 0 || !/^[a-f0-9]{64}$/.test(post.providerEvidenceSha256)) throw new Error("Post-probe proof drifted.");
-  } catch { post = null; }
+  } catch (error) { failure(error, "POST_PROBE_READ"); post = null; }
   const isolatedProbeCompatibilityObserved = !!(cleanup && probeRequestId && post?.state === "CHANGE_SET_ABSENT");
   const body = { stage: "B5-J5g-j11", manifestSha256: manifest.manifestSha256,
     outcome: cleanup ? (isolatedProbeCompatibilityObserved ? "ISOLATED_PROBE_SUCCEEDED_LOCKED" : "LOCKED_PROBE_NOT_PROVED") : (grantAttempted ? "REVOKE_REQUIRED" : "NO_GRANT_SUBMITTED"),
-    grantAttempted, grantRequestId, probeRequestId, cleanup, post, isolatedProbeCompatibilityObserved,
+    grantAttempted, grantRequestId, probeAttempted, probeRequestId, cleanup, post, diagnosticsVersion: 1, failures, operatorReadiness: readiness, isolatedProbeCompatibilityObserved,
     productionCompatibilityVerified: false, childExecuted: false, deleteStackPerformed: false, runtimeEnabled: false,
     retryAuthorized: false, observedAt: new Date(now()).toISOString() };
   return immutable({ ...body, receiptSha256: await sha256Hex(canonicalJson(body)) });

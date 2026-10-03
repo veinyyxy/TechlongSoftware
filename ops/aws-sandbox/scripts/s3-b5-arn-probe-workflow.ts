@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline/promises";
 import { canonicalJson, sha256Hex } from "../../../lib/deployments/execution/hash.ts";
+import { sanitizeArnProbeFailure } from "../../../lib/deployments/execution/arn-compatibility-probe-diagnostics.ts";
 import { assertArnProbeGrantPlan, type ArnProbeGrantPlan } from "../../../lib/deployments/execution/arn-compatibility-probe-grant.ts";
 import { assertArnProbeWorkflowManifest, reviewArnProbeWorkflow, inspectArnProbeWorkflow, runArnProbeWorkflow, recoverArnProbeWorkflowRevoke,
   type ArnProbeWorkflowManifest, type ArnProbeWorkflowApproval, type ArnProbeWorkflowJournal, ARN_PROBE_MFA } from "../../../lib/deployments/execution/arn-compatibility-probe-workflow.ts";
@@ -55,7 +56,7 @@ try {
   const { createSharedCellAuthorCompensationSourceCredentialProvider, createAwsSdkSharedCellAuthorCompensationManagementRuntimeFromModules } = await import("../../../lib/deployments/execution/aws-sdk-shared-cell-author-compensation-management.ts");
   const { AwsSdkArnProbeFixtureReadAdapter } = await import("../../../lib/deployments/execution/aws-sdk-arn-compatibility-probe-fixture.ts");
   const { AwsSdkArnProbeGrantReadAdapter } = await import("../../../lib/deployments/execution/aws-sdk-arn-compatibility-probe-grant.ts");
-  const { AwsSdkArnProbeWorkflowReadAdapter, AwsSdkArnProbeWorkflowWriteAdapter, createArnProbeOperatorSession } = await import("../../../lib/deployments/execution/aws-sdk-arn-compatibility-probe-workflow.ts");
+  const { AwsSdkArnProbeWorkflowReadAdapter, AwsSdkArnProbeOperatorReadAdapter, AwsSdkArnProbeWorkflowWriteAdapter, createArnProbeOperatorSession } = await import("../../../lib/deployments/execution/aws-sdk-arn-compatibility-probe-workflow.ts");
   const [sts, cloudFormation, iam, dynamoDb, login, config] = await Promise.all([
     import("@aws-sdk/client-sts"), import("@aws-sdk/client-cloudformation"), import("@aws-sdk/client-iam"),
     import("@aws-sdk/client-dynamodb"), import("@aws-sdk/credential-provider-login"), import("@smithy/core/config"),
@@ -125,7 +126,9 @@ try {
         try { await handle.writeFile(`${JSON.stringify(intent, null, 2)}\n`, "utf8"); await handle.sync(); } finally { await handle.close(); }
       },
     };
-    result = mode === "RunReviewed" ? await runArnProbeWorkflow({ manifest: manifest!, approval, reads, writes, journal, signal }) :
+    const operatorReads = mode === "RunReviewed" ? new AwsSdkArnProbeOperatorReadAdapter({ operator: wrap(operatorClient!), commands,
+      verifyIdentity: operatorSession!.prepare }) : undefined;
+    result = mode === "RunReviewed" ? await runArnProbeWorkflow({ manifest: manifest!, approval, reads, writes, operatorReads: operatorReads!, journal, signal }) :
       await recoverArnProbeWorkflowRevoke({ manifest: manifest!, approval, reads, writes: { createRevoke: (request, delegated) => writes.createRevoke(request, delegated), executeRevoke: (request, delegated) => writes.executeRevoke(request, delegated) }, journal });
   }
   await destination.writeFile(`${JSON.stringify(result, null, 2)}\n`, "utf8"); await destination.sync();
@@ -133,10 +136,11 @@ try {
   console.log(JSON.stringify({ mode, output, outcome: receipt.outcome, reviewSha256: receipt.reviewSha256, receiptSha256: receipt.receiptSha256,
     executionReady: receipt.executionReady, isolatedProbeCompatibilityObserved: receipt.isolatedProbeCompatibilityObserved, productionCompatibilityVerified: false }, null, 2));
   if (receipt.outcome === "REVOKE_REQUIRED") process.exitCode = 2;
-} catch {
+} catch (error) {
   const body = { stage: "B5-J5g-j11", mode, outcome: "CONTROLLED_ENTRY_FAILED", planSha256: plan.planSha256,
-    manifestSha256: manifest?.manifestSha256 ?? null, mutationPerformed: writeMode ? null : false, retryAuthorized: false, productionCompatibilityVerified: false };
+    manifestSha256: manifest?.manifestSha256 ?? null, mutationPerformed: writeMode ? null : false, diagnosticsVersion: 1,
+    failures: [sanitizeArnProbeFailure(error, "ENTRY")], retryAuthorized: false, productionCompatibilityVerified: false };
   await destination.writeFile(`${JSON.stringify({ ...body, receiptSha256: await sha256Hex(canonicalJson(body)) }, null, 2)}\n`, "utf8"); await destination.sync();
-  console.error("J5g-j11 failed closed. Do not replay Grant/Probe. Inspect read-only; if not Locked, use separately approved exact revoke-only recovery. Provider errors/MFA/credentials are not logged.");
+  console.error("J5g-j11 failed closed. Do not replay Grant/Probe. Inspect read-only; if not Locked, use separately approved exact revoke-only recovery. Only allowlisted failure metadata is saved; raw errors/MFA/credentials are not logged.");
   process.exitCode = 1;
 } finally { process.off("SIGINT", stop); process.off("SIGTERM", stop); clients.forEach((client) => client.destroy()); await destination.close(); }

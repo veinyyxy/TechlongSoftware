@@ -727,6 +727,12 @@ J11首次真实只读Review已生成绑定上述ARN的执行候选；五分钟�
 
 独立只读Inspect `19:03:19.107Z` 再验LOCKED_VERIFIED / operator默认v3、execution boundary v1、Cell MISSING、authority ABSENT，probe仍未执行且资源0；receipt SHA `d4132f981e70cc0d679c05e928b7293a87bfb2f7b3566cab9edb512baf0ad336`，原件 `F:\ChatGPT_workshop\techlong-j5gj11-independent-inspect-202610031902.json`。管理Change Set完整inventory为空，五步intent与原J10 Create fence保留，禁止重放。兼容性/readiness/runtime仍false，没有child执行、DeleteStack、付费Cell或agent新增AWS write。详细事件/审计SHA见实施文档；下一动作先明确授权补齐脱敏失败诊断和Operator只读就绪检查，再重新审批新的受控探针轮次，不直接重跑现有脚本。
 
+### B5-J5g-j12：诊断和 Operator 只读就绪实现（未开启新 Grant）
+
+RunReviewed现要求独立固定MFA Operator只读port：Grant settlement后，用同一session对精确StackId/full Change Set ARN做完整只读复验，两个连续成功、最多三轮/30秒/2秒间隔。失败保留phase/code/classification/标准UUID requestId/HTTP status/readOperation/attempt，不保存raw错误或凭据；`probeAttempted`与accepted requestId区分。只有就绪后再次Source读回exact Grant、确认审批/取消仍有效，才能进入原有单次已批准Delete；失败/过期/取消仍立即独立Revoke和双Locked核验。只读重查不扩大写权限，`deleteAuthorizationVerified=false`，不会把只读成功作为Delete或production compatibility证明。
+
+本阶段没有新Create/Execute/Delete/AssumeRole或IAM修改，旧journal不清除/复位，新Grant/window/fence仍需单独审阅批准。Source真实独立Inspect于 `2026-10-03T19:35:38.999Z` 再次LOCKED_VERIFIED / Cell MISSING / authority ABSENT / probe READY_UNEXECUTED资源0；原件 `F:\ChatGPT_workshop\techlong-j5gj12-independent-inspect-202610031936.json`，receipt SHA `685a89769fd5fe26fa65ac9da1c62a596118d92d5a585543b20fa6c49fe9bf3e`。这不是新Operator gate的在线正向验证。workflow30/30、全量783/783、typecheck/lint/sandbox validators通过。下一阶段不能直接重跑旧脚本，也不能用新的operation目录绕过旧防重放记录。
+
 ### B5-J5g-j9：独立占位栈 Create / Recover 入口
 
 固定 fixture 为 `techlong-sandbox-arn-compatibility-probe`，只审阅一个未执行的 `WaitConditionHandle` Add；不复用业务 Cell，不执行 child，不挂载 grant。entry 默认离线 Plan，所有输出 create-only。唯一写能力是获批后一次 CreateChangeSet；先持久化 repo-local `.aws-sandbox/j5gj9-arn-probe/create-intent.json` 并 fsync，SDK `maxAttempts=1`，响应不确定仅 Recover，intent 不自动删除或复位。
