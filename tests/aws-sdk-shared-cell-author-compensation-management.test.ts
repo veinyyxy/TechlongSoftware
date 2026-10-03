@@ -1,0 +1,324 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { mkdtemp, writeFile, unlink, rmdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
+import {
+  AwsSdkSharedCellAuthorCompensationManagementReadAdapter,
+  SharedCellAuthorCompensationManagementAdapterError,
+  compilePreparedSharedCellAuthorCompensationManagementAction,
+  createPreparedSharedCellAuthorCompensationManagementMutation,
+  createAwsSdkSharedCellAuthorCompensationManagementRuntime,
+  createAwsSdkSharedCellAuthorCompensationManagementRuntimeFromModules,
+  type SharedCellAuthorCompensationManagementReadDependencies,
+  type SharedCellAuthorCompensationManagementRuntimeModules,
+} from "../lib/deployments/execution/aws-sdk-shared-cell-author-compensation-management.ts";
+import { canonicalJson, sha256Hex } from "../lib/deployments/execution/hash.ts";
+import {
+  SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_STACK_ID as stackId,
+  SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_STACK_NAME as stackName,
+  SHARED_CELL_AUTHOR_COMPENSATION_SOURCE_CALLER_ARN as sourceArn,
+  SharedCellAuthorCompensationLifecycleReceiptProducer,
+  compileSharedCellAuthorCompensationLifecycleContract,
+} from "../lib/deployments/execution/shared-cell-author-compensation-grant-lifecycle.ts";
+import {
+  compileSharedCellAuthorCompensationGrantActionRequest,
+  compileSharedCellAuthorCompensationRevokeActionRequest,
+  type SharedCellAuthorCompensationPhaseGrantMutationPort,
+  type SharedCellAuthorCompensationPhaseRevokeMutationPort,
+} from "../lib/deployments/execution/shared-cell-author-compensation-grant-controller.ts";
+import { reviewSharedCellAuthorCompensationManagementAction, createSharedCellAuthorCompensationManagementEntry } from "../lib/deployments/execution/shared-cell-author-compensation-management-entry.ts";
+import { renderB5CellLifecycleManagementTemplate } from "../ops/aws-sandbox/scripts/render-b5-cell-lifecycle-management.mjs";
+import type { SharedCellAuthorCompensationOperationStore } from "../lib/deployments/execution/shared-cell-author-compensation-operation-store.ts";
+
+const accountId = "402010193138";
+const region = "ca-central-1";
+const now = Date.parse("2026-10-02T12:02:00.000Z");
+const cellName = "techlong-sandbox-cell-sandbox-1";
+const cellStackId = `arn:aws:cloudformation:${region}:${accountId}:stack/${cellName}/12345678-1234-4234-8234-123456789012`;
+const op = "a".repeat(64), base = "b".repeat(64), phase = "c".repeat(64), controller = "d".repeat(64);
+const cellRaw = "1".repeat(64);
+const cellChangeSet = `${cellName}-${cellRaw.slice(0, 16)}`;
+const cellChangeSetArn = `arn:aws:cloudformation:${region}:${accountId}:changeSet/${cellChangeSet}/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee`;
+const names = ["TechlongSandboxCellOperatorBoundary", "TechlongSandboxCellOperatorRole", "TechlongSandboxCellCloudFormationExecutionBoundary", "TechlongSandboxCellCloudFormationExecutionRole"];
+const ids = ["CellOperatorBoundary", "CellOperatorRole", "CellCloudFormationExecutionBoundary", "CellCloudFormationExecutionRole"];
+const policyArn = (name: string) => `arn:aws:iam::${accountId}:policy/${name}`;
+const roleArn = (name: string) => `arn:aws:iam::${accountId}:role/${name}`;
+const abort = () => new AbortController().signal;
+
+async function material(kind: "GRANT" | "REVOKE" = "GRANT") {
+  const locked = await renderB5CellLifecycleManagementTemplate();
+  const grant = await renderB5CellLifecycleManagementTemplate({ shape: "AuthorCompensationDeleteChangeSetGrant", approvedChangeSetName: cellChangeSet, approvedTemplateSha256: cellRaw, approvedTemplateCanonicalSha256: "2".repeat(64), approvedCellExpiresAt: "2026-10-02T15:00:00.000Z", grantReviewedAt: "2026-10-02T12:00:00.000Z", grantExpiresAt: "2026-10-02T13:00:00.000Z", approvedStackId: cellStackId, approvedChangeSetArn: cellChangeSetArn, approvedCompensationPlanSha256: base, compensationReviewedAt: "2026-10-02T12:00:00.000Z", compensationExpiresAt: "2026-10-02T13:00:00.000Z" });
+  const target = kind === "GRANT" ? grant : locked;
+  const predecessor = kind === "GRANT" ? locked : grant;
+  const parsed = JSON.parse(target);
+  const operatorTrust = structuredClone(parsed.Resources.CellOperatorRole.Properties.AssumeRolePolicyDocument);
+  operatorTrust.Statement[0].Principal.AWS = sourceArn;
+  const contract = await compileSharedCellAuthorCompensationLifecycleContract({ schemaVersion: 1, operationSha256: op, phase: "DELETE_CHANGE_SET", windowNumber: 1, compensationPlanSha256: base, phasePlanSha256: phase, controllerContractSha256: controller, reviewedAt: "2026-10-02T12:00:00.000Z", expiresAt: "2026-10-02T13:00:00.000Z", rendererShape: kind === "GRANT" ? "AuthorCompensationDeleteChangeSetGrant" : "Locked", templateRawSha256: await sha256Hex(target), templateCanonicalSha256: await sha256Hex(canonicalJson(parsed)), operatorBoundaryDocumentSha256: await sha256Hex(canonicalJson(parsed.Resources.CellOperatorBoundary.Properties.PolicyDocument)), executionBoundaryDocumentSha256: await sha256Hex(canonicalJson(parsed.Resources.CellCloudFormationExecutionBoundary.Properties.PolicyDocument)), operatorTrustPolicySha256: await sha256Hex(canonicalJson(operatorTrust)), executionTrustPolicySha256: await sha256Hex(canonicalJson(parsed.Resources.CellCloudFormationExecutionRole.Properties.AssumeRolePolicyDocument)) });
+  const grantReceipt = { schemaVersion: 1 as const, action: "shared_cell_author_compensation_phase_grant_verified" as const, disposition: "PHASE_EXECUTION_ALLOWED" as const, operationSha256: op, phase: "DELETE_CHANGE_SET" as const, compensationPlanSha256: base, phasePlanSha256: phase, controllerContractSha256: controller, grantEvidenceSha256: "5".repeat(64), observedAt: "2026-10-02T12:01:00.000Z" };
+  const request = kind === "GRANT" ? await compileSharedCellAuthorCompensationGrantActionRequest(contract) : await compileSharedCellAuthorCompensationRevokeActionRequest({ contract, reason: "WINDOW_EXPIRED", grantReceipt });
+  const changeSetArn = `arn:aws:cloudformation:${region}:${accountId}:changeSet/${request.managementChangeSetName}/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee`;
+  const input = { request, contract, changeSetArn, predecessorTemplateBody: predecessor, targetTemplateBody: target };
+  const prepared = await compilePreparedSharedCellAuthorCompensationManagementAction(input);
+  return { prepared, predecessor, target, input };
+}
+
+function fixture(materialValue: Awaited<ReturnType<typeof material>>, currentBody = materialValue.predecessor, mutate?: (name: string, input: Record<string, unknown>, response: Record<string, unknown>) => void) {
+  const body = JSON.parse(currentBody);
+  const calls: Array<{ name: string; input: Record<string, unknown>; signal: AbortSignal }> = [];
+  let ticks = 0;
+  const response = (name: string, input: Record<string, unknown>): Record<string, unknown> => {
+    const resourceIndex = names.findIndex((name) => input.PolicyArn === policyArn(name) || input.RoleName === name);
+    const properties = resourceIndex >= 0 ? body.Resources[ids[resourceIndex]].Properties : {};
+    switch (name) {
+      case "getCallerIdentity": return { Account: accountId, Arn: sourceArn, UserId: "AIDATESTUSER" };
+      case "describeStacks":
+        if (input.StackName === cellName) throw Object.assign(new Error(`Stack with id ${cellName} does not exist`), { name: "ValidationError", $metadata: { httpStatusCode: 400 } });
+        return { Stacks: [{ StackId: stackId, StackName: stackName, StackStatus: "UPDATE_COMPLETE", EnableTerminationProtection: false, Parameters: [{ ParameterKey: "ExpectedAccountId", ParameterValue: accountId }, { ParameterKey: "ExpectedRegion", ParameterValue: region }, { ParameterKey: "ManagementPrincipalArn", ParameterValue: sourceArn }], Outputs: [{ OutputKey: "SafetyState", OutputValue: body.Outputs.SafetyState.Value }] }] };
+      case "getTemplate": return { TemplateBody: input.ChangeSetName ? materialValue.target : currentBody };
+      case "listStackResources": return { StackResourceSummaries: ids.map((id, index) => ({ LogicalResourceId: id, ResourceType: index % 2 ? "AWS::IAM::Role" : "AWS::IAM::ManagedPolicy", PhysicalResourceId: index % 2 ? names[index] : policyArn(names[index]), ResourceStatus: "UPDATE_COMPLETE" })) };
+      case "getItem": return {};
+      case "getPolicy": return { Policy: { PolicyName: names[resourceIndex], Arn: input.PolicyArn, Path: "/", DefaultVersionId: "v1", IsAttachable: true, Description: properties.Description, AttachmentCount: resourceIndex === 0 ? 1 : 0, PermissionsBoundaryUsageCount: 1 } };
+      case "listPolicyVersions": return { IsTruncated: false, Versions: [{ VersionId: "v1", IsDefaultVersion: true }] };
+      case "getPolicyVersion": return { PolicyVersion: { VersionId: "v1", IsDefaultVersion: true, Document: encodeURIComponent(JSON.stringify(properties.PolicyDocument)) } };
+      case "listEntitiesForPolicy": return { IsTruncated: false, PolicyGroups: [], PolicyUsers: [], PolicyRoles: input.PolicyUsageFilter === "PermissionsBoundary" || resourceIndex === 0 ? [{ RoleName: names[resourceIndex + 1], RoleId: `AROA${resourceIndex}` }] : [] };
+      case "getRole": {
+        const trust = structuredClone(properties.AssumeRolePolicyDocument);
+        if (resourceIndex === 1) trust.Statement[0].Principal.AWS = sourceArn;
+        return { Role: { RoleName: names[resourceIndex], Arn: roleArn(names[resourceIndex]), Path: "/", Description: properties.Description, MaxSessionDuration: properties.MaxSessionDuration, PermissionsBoundary: { PermissionsBoundaryArn: policyArn(names[resourceIndex - 1]), PermissionsBoundaryType: "Policy" }, AssumeRolePolicyDocument: JSON.stringify(trust), Tags: properties.Tags } };
+      }
+      case "listAttachedRolePolicies": return { IsTruncated: false, AttachedPolicies: resourceIndex === 1 ? [{ PolicyArn: policyArn(names[0]), PolicyName: names[0] }] : [] };
+      case "listRolePolicies": return { IsTruncated: false, PolicyNames: [] };
+      case "describeChangeSet": return { $metadata: { requestId: String(calls.length) }, ChangeSetId: materialValue.prepared.changeSetArn, ChangeSetName: materialValue.prepared.request.managementChangeSetName, StackId: stackId, StackName: stackName, Status: "CREATE_COMPLETE", ExecutionStatus: "AVAILABLE", IncludeNestedStacks: false, ImportExistingResources: false, Capabilities: ["CAPABILITY_NAMED_IAM"], Changes: [{ Type: "Resource", ResourceChange: { LogicalResourceId: ids[0], ResourceType: "AWS::IAM::ManagedPolicy", PhysicalResourceId: policyArn(names[0]), Action: "Modify", Replacement: "False", Scope: ["Properties"] } }] };
+      default: throw new Error(`Unexpected command ${name}`);
+    }
+  };
+  const commandNames = ["getCallerIdentity", "describeStacks", "getTemplate", "listStackResources", "getPolicy", "getPolicyVersion", "listPolicyVersions", "listEntitiesForPolicy", "getRole", "listAttachedRolePolicies", "listRolePolicies", "getItem", "describeChangeSet"];
+  const commands = Object.fromEntries(commandNames.map((name) => [name, class { name = name; input: Record<string, unknown>; constructor(input: Record<string, unknown>) { this.input = input; } }])) as SharedCellAuthorCompensationManagementReadDependencies["commands"];
+  const client = { async send(command: unknown, options: { abortSignal: AbortSignal }) {
+    const { name, input } = command as { name: string; input: Record<string, unknown> };
+    calls.push({ name, input, signal: options.abortSignal });
+    const value = structuredClone(response(name, input));
+    mutate?.(name, input, value);
+    return value;
+  } };
+  const dependencies = { clients: { sts: { ...client }, cloudFormation: { ...client }, iam: { ...client }, dynamoDb: { ...client } }, commands, now: () => now + ticks++ };
+  return { reads: new AwsSdkSharedCellAuthorCompensationManagementReadAdapter(dependencies), calls, dependencies };
+}
+
+function mutation(fixtureValue: ReturnType<typeof fixture>, materialValue: Awaited<ReturnType<typeof material>>, fail = false) {
+  const writes: Array<Record<string, unknown>> = [];
+  class Execute { input: Record<string, unknown>; constructor(input: Record<string, unknown>) { this.input = input; } }
+  const port = createPreparedSharedCellAuthorCompensationManagementMutation({ prepared: materialValue.prepared, approvedPreparedActionSha256: materialValue.prepared.preparedActionSha256, reads: fixtureValue.reads, sdk: { executeChangeSet: Execute, client: { async send(command) { writes.push((command as Execute).input); if (fail) throw new Error("https://secret-user:secret-password@hidden.example"); return {}; } } } });
+  return { port, writes };
+}
+
+test("management read collects real IAM evidence and brackets exact absence with strong authority reads", async () => {
+  const data = await material();
+  const fake = fixture(data, data.target);
+  assert.equal(fake.calls.length, 0);
+  const producer = new SharedCellAuthorCompensationLifecycleReceiptProducer(fake.reads);
+  const evidence = await producer.reviewTarget({ contract: data.prepared.contract, signal: abort() });
+  const receipt = await producer.createPhaseGrantReceipt({ contract: data.prepared.contract, evidence });
+  assert.equal(receipt.disposition, "PHASE_EXECUTION_ALLOWED");
+  const authorityCalls = fake.calls.filter((call) => call.name === "getItem");
+  assert.equal(authorityCalls.length, 4);
+  for (const call of authorityCalls) assert.deepEqual(call.input, { TableName: "techlong-sandbox-tenant-external-epoch-authority", Key: { authority_key: { S: "cell:cell-sandbox-1" } }, ConsistentRead: true });
+  assert.ok(fake.calls.every((call) => call.signal instanceof AbortSignal));
+});
+
+test("management read rejects IAM truncation, unsafe trust, foreign resources and authority presence", async () => {
+  const data = await material();
+  const drifts: Array<[string, (response: Record<string, unknown>) => void]> = [
+    ["listPolicyVersions", (response) => { response.IsTruncated = true; }],
+    ["listRolePolicies", (response) => { response.IsTruncated = undefined; }],
+    ["getRole", (response) => { (response.Role as Record<string, unknown>).AssumeRolePolicyDocument = { Version: "2012-10-17", Statement: [{ Effect: "Allow", Principal: "*", Action: "sts:AssumeRole" }] }; }],
+    ["listStackResources", (response) => { (response.StackResourceSummaries as unknown[]).push({ LogicalResourceId: "PaidCell", ResourceType: "AWS::EC2::VPC" }); }],
+    ["getItem", (response) => { response.Item = {}; }],
+  ];
+  for (const [name, mutate] of drifts) {
+    const fake = fixture(data, data.target, (command, _input, response) => { if (command === name) mutate(response); });
+    await assert.rejects(fake.reads.readManagementObservation({ signal: abort() }), SharedCellAuthorCompensationManagementAdapterError);
+  }
+});
+
+test("only exact name-bound Cell absence is accepted and provider secrets are redacted", async () => {
+  const data = await material();
+  const fake = fixture(data);
+  fake.dependencies.clients.cloudFormation.send = async () => { throw Object.assign(new Error("Stack with id other-cell does not exist https://secret.example"), { name: "ValidationError", $metadata: { httpStatusCode: 400 } }); };
+  await assert.rejects(fake.reads.readManagementObservation({ signal: abort() }), (error) => {
+    assert.ok(error instanceof SharedCellAuthorCompensationManagementAdapterError);
+    assert.equal(error.code, "SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_CELL_NOT_PROVEN_MISSING");
+    assert.doesNotMatch(error.message, /secret\.example/);
+    return true;
+  });
+  const canceled = new AbortController(); canceled.abort();
+  const untouched = fixture(data);
+  await assert.rejects(untouched.reads.readManagementObservation({ signal: canceled.signal }));
+  assert.equal(untouched.calls.length, 0);
+});
+
+test("local prepared review binds template hashes and rejects execution-role changes", async () => {
+  const data = await material();
+  const review = await reviewSharedCellAuthorCompensationManagementAction(data.input);
+  assert.equal(review.onlineExecutionReady, false);
+  assert.ok(review.blockers.includes("LIFECYCLE_RECEIPT_REQUIRES_CELL_MISSING"));
+  assert.equal(review.prepared.preparedActionSha256, data.prepared.preparedActionSha256);
+  await assert.rejects(compilePreparedSharedCellAuthorCompensationManagementAction({ ...data.input, changeSetArn: cellChangeSetArn }));
+  const modified = JSON.parse(data.target);
+  modified.Resources.CellCloudFormationExecutionRole.Properties.MaxSessionDuration = 7200;
+  const changedTarget = JSON.stringify(modified);
+  const changedContract = await compileSharedCellAuthorCompensationLifecycleContract({ ...Object.fromEntries(Object.entries(data.prepared.contract).filter(([key]) => key !== "lifecycleContractSha256")), templateRawSha256: await sha256Hex(changedTarget), templateCanonicalSha256: await sha256Hex(canonicalJson(modified)) } as Parameters<typeof compileSharedCellAuthorCompensationLifecycleContract>[0]);
+  const changedRequest = await compileSharedCellAuthorCompensationGrantActionRequest(changedContract);
+  await assert.rejects(compilePreparedSharedCellAuthorCompensationManagementAction({ ...data.input, request: changedRequest, contract: changedContract, changeSetArn: `arn:aws:cloudformation:${region}:${accountId}:changeSet/${changedRequest.managementChangeSetName}/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee`, targetTemplateBody: changedTarget }), /outside the operator policy/);
+});
+
+test("management mutation sends one exact ExecuteChangeSet and concurrent reuse cannot submit twice", async () => {
+  const data = await material();
+  const fake = fixture(data);
+  const { port, writes } = mutation(fake, data);
+  assert.ok("installPhaseGrant" in port);
+  assert.equal("revokePhaseGrant" in port, false);
+  const request = data.prepared.request as Parameters<SharedCellAuthorCompensationPhaseGrantMutationPort["installPhaseGrant"]>[0]["request"];
+  const results = await Promise.allSettled([port.installPhaseGrant({ request, signal: abort() }), port.installPhaseGrant({ request, signal: abort() })]);
+  assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
+  assert.equal(writes.length, 1);
+  assert.deepEqual(Object.keys(writes[0]).sort(), ["StackName", "ChangeSetName", "ClientRequestToken", "DisableRollback"].sort());
+  assert.equal(writes[0].StackName, stackId);
+  assert.equal(writes[0].ChangeSetName, data.prepared.changeSetArn);
+  assert.equal(writes[0].DisableRollback, false);
+  assert.match(String(writes[0].ClientRequestToken), /^j5gj4-[a-f0-9]{64}$/);
+  const preflights = fake.calls.filter((call) => call.name === "describeChangeSet");
+  assert.equal(preflights.length, 2);
+});
+
+test("unsafe Change Sets and lost ExecuteChangeSet responses never cause a second submission", async () => {
+  const data = await material();
+  const unsafe = fixture(data, data.predecessor, (name, _input, response) => { if (name === "describeChangeSet") (response.Changes as Array<{ ResourceChange: Record<string, unknown> }>)[0].ResourceChange.Replacement = "True"; });
+  const first = mutation(unsafe, data);
+  assert.ok("installPhaseGrant" in first.port);
+  const request = data.prepared.request as Parameters<SharedCellAuthorCompensationPhaseGrantMutationPort["installPhaseGrant"]>[0]["request"];
+  await assert.rejects(first.port.installPhaseGrant({ request, signal: abort() }));
+  assert.equal(first.writes.length, 0);
+  const lost = mutation(fixture(data), data, true);
+  assert.ok("installPhaseGrant" in lost.port);
+  await assert.rejects(lost.port.installPhaseGrant({ request, signal: abort() }), (error) => {
+    assert.ok(error instanceof SharedCellAuthorCompensationManagementAdapterError);
+    assert.equal(error.code, "SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_SUBMIT_UNCERTAIN");
+    assert.doesNotMatch(error.message, /secret-user|password|hidden\.example/);
+    return true;
+  });
+  await assert.rejects(lost.port.installPhaseGrant({ request, signal: abort() }));
+  assert.equal(lost.writes.length, 1);
+});
+
+test("initial CREATE_COMPLETE Locked predecessor can execute but cannot certify a lifecycle receipt", async () => {
+  const data = await material();
+  const fake = fixture(data, data.predecessor, (name, _input, response) => {
+    if (name === "describeStacks") (response.Stacks as Array<Record<string, unknown>>)[0].StackStatus = "CREATE_COMPLETE";
+  });
+  const { port, writes } = mutation(fake, data);
+  assert.ok("installPhaseGrant" in port);
+  await port.installPhaseGrant({ request: data.prepared.request as Parameters<SharedCellAuthorCompensationPhaseGrantMutationPort["installPhaseGrant"]>[0]["request"], signal: abort() });
+  assert.equal(writes.length, 1);
+  await assert.rejects(fake.reads.readManagementObservation({ signal: abort() }), /completed state drifted/);
+  const unsafe = fixture(data, data.target, (name, _input, response) => {
+    if (name === "describeStacks") (response.Stacks as Array<Record<string, unknown>>)[0].StackStatus = "CREATE_COMPLETE";
+  });
+  await assert.rejects(unsafe.reads.inspectPreparedChangeSet(data.prepared, abort()), /Only a Locked predecessor/);
+});
+
+test("revoke capability remains isolated and recovery entry never constructs a mutation capability", async () => {
+  const data = await material("REVOKE");
+  const fake = fixture(data);
+  const { port, writes } = mutation(fake, data);
+  assert.ok("revokePhaseGrant" in port);
+  assert.equal("installPhaseGrant" in port, false);
+  await port.revokePhaseGrant({ request: data.prepared.request as Parameters<SharedCellAuthorCompensationPhaseRevokeMutationPort["revokePhaseGrant"]>[0]["request"], signal: abort() });
+  assert.equal(writes.length, 1);
+  const entry = createSharedCellAuthorCompensationManagementEntry({ reads: fake.reads, createMutation() { throw new Error("Recovery must not ask for a mutation capability"); } });
+  const grant = await material();
+  let claims = 0;
+  const store = {
+    async claimExactOperation() { claims++; return null; },
+    async beginLifecycleAction() { throw new Error("Recovery must not write an action"); },
+    async completeLifecycleAction() { throw new Error("No action was claimed"); },
+    async releaseClaim() { return null; },
+  } as unknown as SharedCellAuthorCompensationOperationStore;
+  await assert.rejects(entry.recoverGrant(grant.prepared, grant.prepared.preparedActionSha256, { store, workerId: "test-manager", leaseDurationMs: 120_000, approvedLifecycleContractSha256: grant.prepared.contract.lifecycleContractSha256, signal: abort() }), /could not be claimed/);
+  assert.equal(claims, 1);
+});
+
+test("management entry requires action approval and a successful durable write-ahead before any provider mutation", async () => {
+  const data = await material();
+  const fake = fixture(data);
+  const { port, writes } = mutation(fake, data);
+  const events: string[] = [];
+  const workerId = "test-manager";
+  const handle = { operationSha256: op, workerId, stateRevision: 1, claimToken: `scac_${"1".repeat(32)}`, leaseAttempt: 1, leaseExpiresAt: now + 120_000 };
+  const store = {
+    async claimExactOperation() {
+      events.push("claim");
+      return { mode: "PREPARE", handle, snapshot: { operation: { operationSha256: op, state: "delete_change_set_prepared", currentPhase: "DELETE_CHANGE_SET", currentWindowNumber: 1, stateRevision: 1, leaseOwner: workerId, claimToken: handle.claimToken, leaseAttempt: 1, leaseExpiresAt: handle.leaseExpiresAt }, currentWindow: { windowNumber: 1, phase: "DELETE_CHANGE_SET", compensationPlanSha256: base, phasePlanSha256: phase, controllerContractSha256: controller, reviewedAt: Date.parse(data.prepared.contract.reviewedAt), expiresAt: Date.parse(data.prepared.contract.expiresAt) }, currentLifecycleAction: null } };
+    },
+    async beginLifecycleAction() { events.push("write-ahead-rejected"); return null; },
+    async completeLifecycleAction() { throw new Error("Completion must not run"); },
+    async releaseClaim() { events.push("release"); return null; },
+  } as unknown as SharedCellAuthorCompensationOperationStore;
+  const entry = createSharedCellAuthorCompensationManagementEntry({ reads: fake.reads, createMutation() { events.push("capability"); return port; } });
+  const input = { store, workerId, leaseDurationMs: 120_000, approvedLifecycleContractSha256: data.prepared.contract.lifecycleContractSha256, signal: abort() };
+  await assert.rejects(entry.executeGrant(data.prepared, "0".repeat(64), input), /explicitly approved digest/);
+  assert.deepEqual(events, []);
+  await assert.rejects(entry.executeGrant(data.prepared, data.prepared.preparedActionSha256, input), /no mutation was delegated/);
+  assert.deepEqual(events, ["capability", "claim", "write-ahead-rejected", "release"]);
+  assert.equal(writes.length, 0);
+  assert.equal(fake.calls.length, 0);
+});
+
+test("installed management SDK construction is dormant and uses login-only lazy shared credentials", async () => {
+  const configs: Record<string, unknown>[] = [];
+  let configReads = 0, loginReads = 0;
+  class Client { constructor(config: Record<string, unknown>) { configs.push(config); } async send(): Promise<Record<string, unknown>> { throw new Error("No network expected"); } }
+  class Command {}
+  const sdkModule = Object.fromEntries(["STSClient", "CloudFormationClient", "IAMClient", "DynamoDBClient", "GetCallerIdentityCommand", "DescribeStacksCommand", "GetTemplateCommand", "ListStackResourcesCommand", "DescribeChangeSetCommand", "GetPolicyCommand", "GetPolicyVersionCommand", "ListPolicyVersionsCommand", "ListEntitiesForPolicyCommand", "GetRoleCommand", "ListAttachedRolePoliciesCommand", "ListRolePoliciesCommand", "GetItemCommand", "ExecuteChangeSetCommand"].map((name) => [name, name.endsWith("Client") ? Client : Command]));
+  const modules: SharedCellAuthorCompensationManagementRuntimeModules = { sts: sdkModule, cloudFormation: sdkModule, iam: sdkModule, dynamoDb: sdkModule, login: { fromLoginCredentials(options: Record<string, unknown>) { assert.equal(options.profile, "techlong-sandbox-user"); return async () => { loginReads++; return { accessKeyId: "TEST", secretAccessKey: "TEST", sessionToken: "TEMPORARY", expiration: new Date(Date.now() + 60_000) }; }; } }, config: { async loadSharedConfigFiles() { configReads++; return { configFile: { "techlong-sandbox-user": { login_session: sourceArn, region } }, credentialsFile: {} }; } } };
+  createAwsSdkSharedCellAuthorCompensationManagementRuntimeFromModules(modules);
+  assert.equal(configReads, 0); assert.equal(loginReads, 0);
+  assert.equal(configs.length, 5);
+  assert.equal(configs[4].maxAttempts, 1);
+  assert.ok(configs.every((config) => config.region === region && config.ignoreConfiguredEndpointUrls === true && config.credentials === configs[0].credentials));
+  const provider = configs[0].credentials as () => Promise<unknown>;
+  await provider();
+  assert.equal(configReads, 1); assert.equal(loginReads, 1);
+  modules.config.loadSharedConfigFiles = async () => ({ configFile: { "techlong-sandbox-user": { login_session: "arn:aws:iam::000000000000:user/foreign", region } }, credentialsFile: {} });
+  configs.length = 0;
+  createAwsSdkSharedCellAuthorCompensationManagementRuntimeFromModules(modules);
+  await assert.rejects((configs[0].credentials as () => Promise<unknown>)(), /Source login session/);
+  assert.equal(loginReads, 1);
+  const installed = await createAwsSdkSharedCellAuthorCompensationManagementRuntime();
+  assert.ok(installed.reads instanceof AwsSdkSharedCellAuthorCompensationManagementReadAdapter);
+});
+
+test("local management review CLI runs with Node type stripping and exposes no online mode", async () => {
+  const data = await material();
+  const directory = await mkdtemp(path.join(tmpdir(), "techlong-management-review-"));
+  const file = path.join(directory, "review.json");
+  const script = fileURLToPath(new URL("../ops/aws-sandbox/scripts/review-b5-shared-cell-author-compensation-management.ts", import.meta.url));
+  try {
+    await writeFile(file, JSON.stringify(data.input), "utf8");
+    const review = spawnSync(process.execPath, ["--experimental-strip-types", script, "--input", file], { encoding: "utf8", timeout: 10_000 });
+    assert.equal(review.status, 0, review.stderr);
+    const result = JSON.parse(review.stdout);
+    assert.equal(result.mode, "LOCAL_REVIEW");
+    assert.equal(result.onlineExecutionReady, false);
+    assert.equal(result.prepared.preparedActionSha256, data.prepared.preparedActionSha256);
+    const online = spawnSync(process.execPath, ["--experimental-strip-types", script, "--execute", file], { encoding: "utf8", timeout: 10_000 });
+    assert.notEqual(online.status, 0);
+    assert.match(online.stderr, /Usage:/);
+  } finally {
+    await unlink(file);
+    await rmdir(directory);
+  }
+});

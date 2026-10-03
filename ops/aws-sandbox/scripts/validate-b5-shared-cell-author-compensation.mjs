@@ -63,6 +63,10 @@ const paths = {
     repositoryRoot,
     "tests/shared-cell-author-compensation-grant-controller.test.ts",
   ),
+  managementAdapter: path.join(repositoryRoot, "lib/deployments/execution/aws-sdk-shared-cell-author-compensation-management.ts"),
+  managementEntry: path.join(repositoryRoot, "lib/deployments/execution/shared-cell-author-compensation-management-entry.ts"),
+  managementTest: path.join(repositoryRoot, "tests/aws-sdk-shared-cell-author-compensation-management.test.ts"),
+  managementReviewer: path.join(scriptDirectory, "review-b5-shared-cell-author-compensation-management.ts"),
   persistenceMigration: path.join(
     repositoryRoot,
     "db/postgres-migrations/0009_shared_cell_author_compensation_persistence.sql",
@@ -102,6 +106,10 @@ const [
   grantLifecycleTestSource,
   grantController,
   grantControllerTestSource,
+  managementAdapter,
+  managementEntry,
+  managementTestSource,
+  managementReviewer,
   persistenceMigration,
   lifecycleMigration,
   postgresSchema,
@@ -125,7 +133,7 @@ function methodSource(source, start, end) {
   return source.slice(startIndex, endIndex);
 }
 
-assert.match(wrapper, /\[ValidateSet\('LocalValidate'\)\]/);
+assert.match(wrapper, /\[ValidateSet\('LocalValidate', 'ReviewManagement'\)\]/);
 assert.match(wrapper, /\[string\]\$Mode = 'LocalValidate'/);
 assert.match(wrapper, /validate-b5-shared-cell-author-compensation\.mjs/);
 assert.match(wrapper, /LOCAL_ONLY_REVIEW_IN_PROGRESS_COMPENSATION_NOT_CLOUD_WIRED/);
@@ -701,6 +709,23 @@ assert.doesNotMatch(
   /shared-cell-author-compensation/,
   "offline compensation must remain absent from the runtime root",
 );
+assertIncludesAll(managementAdapter, [
+  "SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_DEFAULT_ENABLED = false",
+  "ConsistentRead: true", "fromLoginCredentials", "maxAttempts: 1",
+  "compilePreparedSharedCellAuthorCompensationManagementAction", "this.submitted = true",
+], "dormant management adapter");
+assertIncludesAll(managementEntry, [
+  "SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_ENTRY_DEFAULT_ENABLED = false",
+  "LIFECYCLE_RECEIPT_REQUIRES_CELL_MISSING", "MIGRATIONS_0009_0010_NOT_APPLIED",
+  "executeClaimedSharedCellAuthorCompensationPhaseGrant", "recoverClaimedSharedCellAuthorCompensationPhaseRevoke",
+], "dormant management entry");
+assertIncludesAll(managementTestSource, [
+  "brackets exact absence with strong authority reads", "concurrent reuse cannot submit twice",
+  "lost ExecuteChangeSet responses never cause a second submission",
+  "successful durable write-ahead before any provider mutation",
+  "login-only lazy shared credentials",
+], "management adapter tests");
+assert.doesNotMatch(managementReviewer, /createAwsSdk|createNeon|DATABASE_URL|dotenv/);
 
 const tests = spawnSync(
   process.execPath,
@@ -715,6 +740,7 @@ const tests = spawnSync(
     "tests/shared-cell-author-compensation-controller.test.ts",
     "tests/shared-cell-author-compensation-grant-lifecycle.test.ts",
     "tests/shared-cell-author-compensation-grant-controller.test.ts",
+    "tests/aws-sdk-shared-cell-author-compensation-management.test.ts",
   ],
   {
     cwd: repositoryRoot,
@@ -729,5 +755,5 @@ assert.equal(
 );
 
 console.log(
-  "B5 Shared Cell author compensation validated locally (phase-specific inspect/recover, durable DB-clock claims, append-only 0009 persistence, immutable 0010 grant/revoke lifecycle actions, trusted two-read receipts, write-ahead CAS before every narrow mutation, mutation-free recovery, sealed 0001-0008 catalog, default-off controllers, no runtime wiring or AWS/Neon call).",
+  "B5 Shared Cell author compensation validated locally (durable 0009/0010 lifecycle, trusted two-read receipts, exact prepared management ExecuteChangeSet adapter, login-only dormant SDK construction, local review entry, write-ahead CAS before mutation, read-only recovery, sealed 0001-0008 catalog, default-off, no AWS/Neon call).",
 );
