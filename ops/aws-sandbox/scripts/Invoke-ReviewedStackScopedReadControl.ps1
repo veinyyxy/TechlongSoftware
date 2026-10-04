@@ -19,14 +19,14 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot 'ReadComparisonApprovalWindow.psm1') -Scope Local -Force -DisableNameChecking
-function Read-OrdinaryJson([string]$Path) {
+function Read-OrdinaryJson([string]$Path, [long]$MaxBytes = 600000) {
     if (-not [IO.Path]::IsPathRooted($Path)) { throw 'Every input must be absolute.' }
     $item = Get-Item -LiteralPath $Path
-    if ($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $item.Length -gt 600000) { throw 'Bounded ordinary input required.' }
+    if ($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -or $item.Length -gt $MaxBytes) { throw 'Bounded ordinary input required.' }
     return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
 }
 $null = Read-OrdinaryJson $Evidence
-$creation = Read-OrdinaryJson $CreationReview
+$creation = Read-OrdinaryJson $CreationReview 2000000
 if ($creation.stage -cne 'B5-J5g-j22' -or $creation.action -cne 'REVIEW_GENERATION5_STACK_SCOPED_GRANT_CREATE') { throw 'J22 requires its own exact creation review. No client/MFA/write.' }
 if (-not [IO.Path]::IsPathRooted($Output)) { throw 'Output must be absolute.' }
 $recoverOutput = [IO.Path]::ChangeExtension($Output, '.recover.json')
@@ -63,7 +63,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Create') {
     # Display only: execution requires the human to separately supply all SHAs.
     Write-Host 'After separate review/approval, use Execute parameter set with explicit Manifest/Grant/Reads/Revoke SHA values. This wrapper does not install automatically.'
 } else {
-    $review = Read-OrdinaryJson $ExecutionReview
+    $review = Read-OrdinaryJson $ExecutionReview 2000000
     $manifest = $review.manifest
     if ($null -eq $manifest -or $manifest.stage -cne 'B5-J5g-j22' -or $manifest.action -cne 'REVIEW_STACK_SCOPED_READ_WORKFLOW' -or $manifest.manifestSha256 -cne $ApprovedManifestSha -or $manifest.actionSha256.revoke -cne $ApprovedRevokeSha) { throw 'New exact J22 manifest/Revoke approval required. No AWS write.' }
     $arguments = $common + @('--creation-review', $CreationReview, '--manifest', $ExecutionReview, '--output', $Output, '--approved-manifest-sha', $ApprovedManifestSha, '--approved-revoke-sha', $ApprovedRevokeSha, '--acknowledge-aws-write', '--acknowledge-low-cost-not-zero')

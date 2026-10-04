@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+最新 J5g-j22D 已完成实际 Source-only 在线核验：完整 Locked/v7、四个 IAM 资源、Cell MISSING/authority ABSENT、原零资源 fixture 与完整清单通过，管理 Change Set 完整清单为空，旧账本未变、新 registry absent。真实新清单约916KB，已修复 J22 专用有界读取入口（旧证据/账本仍保持600KB限制），4项直接相关测试、类型检查和lint通过；随后生成 fresh 创建审阅，创建尚未批准或提交，无 Operator/MFA/云写入。创建与安装仍各按 fresh SHA 单独批准。见[在线证据、入口修复与创建批准边界](./docs/aws-sandbox-j5gj22d-online-creation-review.md)。以下记录按其当时状态保留。
+
 最新 J5g-j22C 已接通准确 Stack-only Grant 安装、固定 MFA Operator 至多两种 Describe、异常路径立即 Source Revoke、独立 Locked Inspect 与 revoke-only 恢复工具。23项定向测试/相关回归经修正夹具后全部通过，类型检查、lint 和真实原件/账本的独立本地复算通过；旧记录未变，新 registry 仍 absent，本轮无 AWS/Neon 调用、真实新窗口或云写入。下一阶段转回 fresh Source-only admission/创建审阅，实际创建和安装仍分别按 fresh SHA 批准；不执行 child、不删除资源、不创建付费 Cell、不打开 runtime。见[完整受审执行工具、核验与在线下一步](./docs/aws-sandbox-j5gj22c-reviewed-stack-read-workflow.md)。以下记录按其当时状态保留。
 
 最新 J5g-j22B 已接入独立 generation5 固定磁盘 claim/六步 journal、准确 Stack-only Grant 的受审创建及独立 Source 只读恢复工具。30项定向测试/回归、类型检查、lint 与真实原件/旧账本的独立本地复算通过；新 registry 仍 absent，无 AWS/Neon 调用、真实新窗口或云写入。创建工具不等于安装工具：Grant/固定 MFA Operator 两次 Describe/立即 Revoke/独立 Locked 执行链尚未接线，下一 J22C 继续代码实现、不部署；实际创建和安装仍各按 fresh SHA 单独批准。见[固定账本、受审创建与后续接线](./docs/aws-sandbox-j5gj22b-fixed-storage-reviewed-creation.md)。以下记录按其当时状态保留。

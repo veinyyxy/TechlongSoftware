@@ -6,6 +6,7 @@ import { canonicalJson, sha256Hex } from "../../../lib/deployments/execution/has
 import { probeSame, probeInstant, ARN_PROBE_MFA } from "../../../lib/deployments/execution/arn-compatibility-probe-workflow.ts";
 import { sanitizeArnProbeFailure } from "../../../lib/deployments/execution/arn-compatibility-probe-diagnostics.ts";
 import { readArnProbeReadComparisonJson } from "../../../lib/deployments/execution/arn-compatibility-probe-read-comparison-evidence.ts";
+import { readStackControlReviewJson } from "../../../lib/deployments/execution/arn-probe-stack-scoped-read-control-json.ts";
 import { loadClosedStackScopedReadControlEvidence, type StackScopedReadControlFiles } from "../../../lib/deployments/execution/arn-probe-stack-scoped-read-control-evidence.ts";
 import { assertStackControlCreateReview, type StackControlCreateReview, type StackControlSourceReads } from "../../../lib/deployments/execution/arn-probe-stack-scoped-read-control-create.ts";
 import { createStackControlFsSlot } from "../../../lib/deployments/execution/arn-probe-stack-scoped-read-control-slot.ts";
@@ -34,14 +35,14 @@ const destination = await open(target, "wx"), destroyers: Array<() => void> = []
 process.on("SIGINT", stop); process.on("SIGTERM", stop); const writeMode = mode === "RunReviewed" || mode === "RecoverRevoke";
 try {
   const files = await readArnProbeReadComparisonJson(values.get("--evidence")!) as StackScopedReadControlFiles, first = await loadClosedStackScopedReadControlEvidence(repository, files);
-  const review = await readArnProbeReadComparisonJson(values.get("--creation-review")!) as StackControlCreateReview; await assertStackControlCreateReview(review);
+  const review = await readStackControlReviewJson(values.get("--creation-review")!) as StackControlCreateReview; await assertStackControlCreateReview(review);
   probeSame(review.plan.input.candidate.input.predecessor, first.predecessor, "J22 genuine closed predecessor before SDK");
   const slot = await createStackControlFsSlot(repository, first.fence, first.predecessor), claim = await slot.readClaim();
   if (!claim) throw new Error("J22 actual approved creation claim required before Source or Operator clients.");
   const readPredecessor = async () => { const value = await loadClosedStackScopedReadControlEvidence(repository, files); probeSame(value, first, "J22 real closed archive/journal stable"); return value.predecessor; };
   let manifest: StackControlWorkflowManifest | undefined, approval: StackControlWorkflowApproval | undefined;
   if (mode !== "Review") {
-    const value = await readArnProbeReadComparisonJson(values.get("--manifest")!); manifest = value.manifest ?? value;
+    const value = await readStackControlReviewJson(values.get("--manifest")!); manifest = value.manifest ?? value;
     await assertStackControlWorkflow(manifest!); probeSame(manifest!.input.creationReview, review, "J22 exact reviewed creation"); probeSame(manifest!.input.claim, claim, "J22 actual fixed claim");
     if (writeMode) {
       approval = { approvedManifestSha256: values.get("--approved-manifest-sha")!, approvedGrantSha256: values.get("--approved-grant-sha") ?? "",

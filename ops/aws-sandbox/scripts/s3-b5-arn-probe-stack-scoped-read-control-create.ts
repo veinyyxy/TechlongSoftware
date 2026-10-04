@@ -5,6 +5,7 @@ import { canonicalJson, sha256Hex } from "../../../lib/deployments/execution/has
 import { probeSame, probeInstant } from "../../../lib/deployments/execution/arn-compatibility-probe-workflow.ts";
 import { sanitizeArnProbeFailure } from "../../../lib/deployments/execution/arn-compatibility-probe-diagnostics.ts";
 import { readArnProbeReadComparisonJson } from "../../../lib/deployments/execution/arn-compatibility-probe-read-comparison-evidence.ts";
+import { readStackControlReviewJson } from "../../../lib/deployments/execution/arn-probe-stack-scoped-read-control-json.ts";
 import { loadClosedStackScopedReadControlEvidence, type StackScopedReadControlFiles } from "../../../lib/deployments/execution/arn-probe-stack-scoped-read-control-evidence.ts";
 import { reviewStackControlCreate, assertStackControlCreateReview, createReviewedStackControl, recoverStackControlCreate,
   type StackControlCreateReview } from "../../../lib/deployments/execution/arn-probe-stack-scoped-read-control-create.ts";
@@ -37,7 +38,7 @@ try {
   const slot = await createStackControlFsSlot(repository, archived.fence, archived.predecessor);
   let review: StackControlCreateReview | undefined;
   if (mode !== "ReviewCreate") {
-    review = await readArnProbeReadComparisonJson(reviewFile!) as StackControlCreateReview; await assertStackControlCreateReview(review);
+    review = await readStackControlReviewJson(reviewFile!) as StackControlCreateReview; await assertStackControlCreateReview(review);
     probeSame(review.plan.input.candidate.input.predecessor, archived.predecessor, "J22 live entry exact closed predecessor");
     if (mode === "CreateReviewed" && (values.get("--approved-review-sha256") !== review.reviewSha256 || values.get("--execution-phrase") !== review.requiredPhrase ||
       Date.now() < probeInstant(review.issuedAt) || Date.now() >= probeInstant(review.expiresAt))) throw new Error("J22 approval mismatch/expired; no AWS write.");
