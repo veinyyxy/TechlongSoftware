@@ -1,6 +1,8 @@
 # J5g-j20：generation3 严格退役入口与独立 generation4 围栏
 
-用户已明确同意：推送已审阅提交 `0749e8eae3a32567780d456968cd8e8b4e7d1e54`，并仅实现 generation3 严格退役入口、独立 generation4 围栏和本地批准命令。旧提交已准确、非强制推送到 `github/main`，随后独立远端回读确认相同 SHA。本阶段新增代码仍须按其准确提交 SHA 另行批准推送。
+用户已明确同意：推送已审阅提交 `0749e8eae3a32567780d456968cd8e8b4e7d1e54`，并仅实现 generation3 严格退役入口、独立 generation4 围栏和本地批准命令。旧提交已准确、非强制推送到 `github/main`，随后独立远端回读确认相同 SHA。
+
+2026-10-04 用户追加持续授权：本任务范围内 TechlongSoftware 与服务端仓库的代码、测试和文档提交，以及非强制推送到各自 `github/main`，默认同意，不再按提交 SHA 逐次询问；这包括既有 AWS Account ID、ARN、部署状态和只读证据。仍须检查并排除凭据、私钥及数据库连接密文，保留用户无关修改，不新建分支、不改写历史。该 Git 授权不扩展云操作范围：真实删除、创建和权限安装仍各按 fresh SHA 单独批准。
 
 本阶段没有 AWS 写入、Operator 登录、IAM 安装、资源删除/创建、Neon 写入或付费 Cell。没有生成真实删除/创建/安装执行清单，没有开启新的批准或候选 policy 窗口。所有 compatibility、readiness、live Worker/runtime gates 仍关闭。以下代码完成不代表整个 generation4 云端流程已可运行。
 
