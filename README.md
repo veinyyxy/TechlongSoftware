@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+最新 J5g-j20 已按两项独立 fresh 批准完成 generation4 创建与安装/两次读取/立即撤权。两次固定 MFA Operator Describe（full ARN、exact name）均收到 AccessDenied，compatibility 仍未证明；wrapper 与后续独立 Source Inspect、真实账本复算确认 Locked/v7、execution boundary v1、原零资源 fixture 稳定，Cell MISSING、authority ABSENT。固定 claim/六步 intent 永久消费，旧记录保留、不重放或自动下一代；下一步先只读诊断拒绝原因，不扩大权限。见[generation4 执行、拒绝证据与独立 Locked 收尾](./docs/aws-sandbox-j5gj20-generation4-execution.md)。以下记录按其当时状态保留。
+
 最新 J5g-j20 已由用户按准确 fresh SHA 在本地退役唯一旧未执行 generation3 Grant，并经 wrapper Inspect、后续独立 Source Inspect 与真实账本复算证明 RETIRED_LOCKED_VERIFIED：完整管理 Change Set 清单空、Locked/v5 和原 fixture 未变。旧三代记录/claim 保留，退役 intent 永久消费；generation4 只读 admission 通过，但新 registry/claim 仍 absent，没有创建或安装权限。下一步仅生成新 generation4 创建审阅清单，创建与安装仍分别批准。见[准确退役、独立证据与下一步](./docs/aws-sandbox-j5gj20-generation3-retirement-execution.md)。以下记录按其当时状态保留。
 
 最新 J5g-j20 已补齐 generation4 受审创建、独立回读、安装审阅、固定 MFA Operator 两种准确 Describe 和立即撤权工具，85项定向测试/回归、类型检查、lint 与 Source-only 准备核验通过。旧 generation3 Grant/claim、Locked/v5 和原 fixture 未变，两个新 registry 仍 absent；本轮无云写入、无新执行窗口。代码工具已接线不等于 Worker/readiness 开启；真实退役、创建、安装仍各按 fresh SHA 单独批准，代码提交/推送则按持续授权直接执行。见[接线边界、证据与下一步](./docs/aws-sandbox-j5gj20-generation4-reviewed-tools.md)。以下记录按其当时状态保留。
