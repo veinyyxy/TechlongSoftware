@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+最新 J5g-j19 已按独立准确批准退役唯一旧未执行 generation2 管理 Grant，并另起 Source-only Inspect 证明对象缺失、完整管理清单空、Locked/v5 与原 fixture 未变；旧记录保留，退役 intent 永久消费，generation3 registry 仍 absent。已修复本地 PowerShell JSON DateTime 的 UTC 窗口误判，云创建/安装仍须各自 fresh SHA 单独批准。见[退役执行证据及下一步](./docs/aws-sandbox-j5gj19-retirement-execution.md)。以下实施段落按当时状态保留。
+
 最新 J5g-j19 已按代码-only批准实现旧未执行 Grant 的严格退役入口、保留两代前驱的独立 generation3 固定围栏及本地完整 SHA 批准命令。真实 Source 只读和独立复算通过；旧 Grant/claim 未变，新两个 registry 均 absent，本轮无云写入/Operator 登录。删除、创建、安装各需 fresh SHA 单独批准；所有门禁仍 false。见[退役、generation3 与本地批准顺序](./docs/aws-sandbox-j5gj19-retirement-generation3.md)。下文各历史段落按其当时状态保留。
 
 面向企业客户的 SaaS 平台，逐步实现用户、企业工作区、套餐、收费和餐饮订单系统实例管理。

@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { mkdtemp, realpath, readdir, rm, mkdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { canonicalJson, sha256Hex } from "../lib/deployments/execution/hash.ts";
 import { READ_COMPARISON_RETIREMENT as r, compileReadComparisonRetirement, assertReadComparisonRetirement, assertRetirementObservation,
   retireReviewedReadComparison, inspectReadComparisonRetirement, makeRetirementIntent, assertReadComparisonRetirementProof,
@@ -150,6 +152,11 @@ test("local approval wrapper requires full SHA parameters and does not prompt fo
   assert.doesNotMatch(source.replace(/^#.*$/gm, ""), /Read-Host|Get-Credential/);
   assert.match(source, /--mode RecoverCreate/); assert.match(source, /--mode Inspect/);
   assert.match(source, /Display a command; never invoke it/);
+});
+test("PowerShell JSON DateTime approval preserves UTC and milliseconds and rejects expired/future/zone-less windows", { skip: process.platform !== "win32" }, () => {
+  const child = spawnSync("pwsh", ["-NoProfile", "-NonInteractive", "-File", fileURLToPath(new URL("./fixtures/arn-probe-approval-window.ps1", import.meta.url))], { encoding: "utf8", timeout: 15_000, windowsHide: true });
+  assert.equal(child.status, 0, `${child.stdout}\n${child.stderr}`);
+  assert.match(child.stdout, /Approval UTC regression passed/);
 });
 test("generation3 creation settlement reads only the singleton target and refuses missing, competing or nested adoption", async () => {
   const f = await comparisonWorkflowFixture(), plan = f.review.plan, requests: Record<string, unknown>[] = [];

@@ -1,5 +1,7 @@
 # AWS Sandbox S0–S3-B5 安全 Bootstrap 与受控 cleanup-only Cell 基础
 
+J5g-j19 退役已按 manifest `ddf23728…` 的独立批准唯一执行，另起 Source-only Inspect 为 RETIRED_LOCKED_VERIFIED；retirement slot 已消费，不可再次 Delete/reset，generation3 slot 未创建。旧记录、原 fixture 和 Locked/v5 未变。新的无云能力 UTC guard 修复 PowerShell JSON DateTime 重解析错误，所有云创建/安装仍需各自 fresh SHA 批准。见[执行原件与下一步](../../docs/aws-sandbox-j5gj19-retirement-execution.md)。
+
 最新 J5g-j19 仅完成代码与只读核验：严格 singleton 旧 Grant 退役、独立 generation3 固定 slot、本地 `Invoke-ReviewedReadComparison.ps1` 三个独立批准参数集。真实新 registry 不存在；实际 Delete/Create/Grant Execute 各需 fresh SHA 另批，不继承旧批准、不 reset/replay。创建命令只串联后续只读回读/执行审阅，不自动安装权限；MFA 仅在另行批准的执行命令中本地输入。见[完整顺序及证据](../../docs/aws-sandbox-j5gj19-retirement-generation3.md)。
 
 这个目录保存可审查的静态配置、CloudFormation 模板、IAM 边界、TTL Janitor、镜像构建基础、B5 低成本支撑资源、destroy-capable Build #7 镜像对应的 inspect-default lifecycle TaskDefinition（尚未执行），以及默认不执行的运维脚本。仓库中不包含 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。

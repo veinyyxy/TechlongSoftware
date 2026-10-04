@@ -16,6 +16,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+Import-Module (Join-Path $PSScriptRoot 'ReadComparisonApprovalWindow.psm1') -Scope Local -Force -DisableNameChecking
 function Read-OrdinaryJson([string]$Path) {
     if (-not [IO.Path]::IsPathRooted($Path)) { throw 'Every input path must be absolute.' }
     $item = Get-Item -LiteralPath $Path
@@ -23,12 +24,6 @@ function Read-OrdinaryJson([string]$Path) {
         throw 'Input must be a bounded ordinary file.'
     }
     return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
-}
-function Assert-Window($Start, $End) {
-    $current = [DateTimeOffset]::UtcNow
-    if ($current -lt [DateTimeOffset]::Parse($Start) -or $current -ge [DateTimeOffset]::Parse($End)) {
-        throw 'Approval window expired/not started. No AWS write. Never auto-refresh or reuse approval.'
-    }
 }
 if (-not [IO.Path]::IsPathRooted($Output) -or (Test-Path -LiteralPath $Output)) { throw 'Output must be a new absolute file.' }
 $null = Read-OrdinaryJson $Evidence
@@ -39,7 +34,7 @@ switch ($PSCmdlet.ParameterSetName) {
     'Retire' {
         $manifest = Read-OrdinaryJson $RetirementManifest
         if ($manifest.manifestSha256 -cne $ApprovedRetirementManifestSha) { throw 'Exact new retirement approval not supplied. No AWS write.' }
-        Assert-Window $manifest.input.reviewedAt $manifest.input.expiresAt
+        Assert-ReadComparisonApprovalWindow $manifest.input.reviewedAt $manifest.input.expiresAt
         $entry = Join-Path $PSScriptRoot 's3-b5-arn-probe-read-comparison-retirement.ts'
         $arguments += @('--mode', 'RetireReviewed', '--manifest', $RetirementManifest,
             '--approved-manifest-sha', $ApprovedRetirementManifestSha, '--execution-phrase', $manifest.requiredPhrase,
@@ -49,7 +44,7 @@ switch ($PSCmdlet.ParameterSetName) {
         $review = Read-OrdinaryJson $CreationReview
         $null = Read-OrdinaryJson $RetirementProof
         if ($review.reviewSha256 -cne $ApprovedCreationReviewSha) { throw 'Exact new creation approval not supplied. No AWS write.' }
-        Assert-Window $review.issuedAt $review.expiresAt
+        Assert-ReadComparisonApprovalWindow $review.issuedAt $review.expiresAt
         $entry = Join-Path $PSScriptRoot 's3-b5-arn-probe-read-comparison-generation3-create.ts'
         $arguments += @('--mode', 'CreateReviewed', '--review', $CreationReview, '--retirement-proof', $RetirementProof,
             '--approved-review-sha256', $ApprovedCreationReviewSha, '--execution-phrase', $review.requiredPhrase,
@@ -62,7 +57,7 @@ switch ($PSCmdlet.ParameterSetName) {
         $null = Read-OrdinaryJson $RetirementProof
         $manifest = $review.manifest
         if ($null -eq $manifest -or $manifest.manifestSha256 -cne $ApprovedManifestSha) { throw 'Exact new execution approval not supplied. No AWS write.' }
-        Assert-Window $manifest.input.reviewedAt $manifest.input.expiresAt
+        Assert-ReadComparisonApprovalWindow $manifest.input.reviewedAt $manifest.input.expiresAt
         $entry = Join-Path $PSScriptRoot 's3-b5-arn-probe-read-comparison-generation3-workflow.ts'
         # These action digests are inside the human-approved manifest; the CLI
         # independently recompiles all three. No manifest SHA is filled for users.
