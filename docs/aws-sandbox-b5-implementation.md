@@ -1,5 +1,7 @@
 # AWS Sandbox B5 实施边界
 
+最新 J5g-j19 按用户代码-only批准实现严格退役、独立 generation3 固定围栏和本地准确 SHA 命令。旧 claim/Grant 保留，真实 Source 只读核验及独立复算通过，新退役/generation3 registry 均 absent。实际删除、创建和安装权限尚未批准；本轮无云写入、Operator 登录或新占槽。新执行器保持短窗口、write-ahead、两次唯一只读请求和独立立即撤权；所有 readiness/runtime gates 仍 false。详见[J5g-j19](./aws-sandbox-j5gj19-retirement-generation3.md)。
+
 B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapter 的状态，而不是直接创建收费资源。平台、租户运行时和 Shared Cell 必须分别通过安全门禁；只打开一个环境变量不能启用部署。
 
 ## 本阶段切片

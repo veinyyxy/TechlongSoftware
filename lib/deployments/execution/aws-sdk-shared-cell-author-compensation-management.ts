@@ -374,6 +374,17 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
       grantTemplateRawSha256: input.plan.templateRawSha256, grantTemplateCanonicalSha256: input.plan.templateCanonicalSha256,
       grantRendererShape: "ArnProbeReadComparisonGrant" });
   }
+  /** Independent generation3 channel. The old J18 reader still rejects these
+   * plans; a retirement-proven plan is not a general production Grant. */
+  async readArnProbeGeneration3Observation(input: { plan: import("./arn-probe-read-comparison-generation3-create.ts").ArnProbeComparisonCreatePlan;
+    signal: AbortSignal }): Promise<Readonly<ArnProbeReadComparisonManagementObservation>> {
+    exact(input, ["plan", "signal"]);
+    const { assertArnProbeComparisonCreatePlan } = await import("./arn-probe-read-comparison-generation3-create.ts");
+    await assertArnProbeComparisonCreatePlan(input.plan);
+    return this.collectObservation({ signal: input.signal }, true, { revokeTarget: input.plan.revokeTarget,
+      grantTemplateRawSha256: input.plan.templateRawSha256, grantTemplateCanonicalSha256: input.plan.templateCanonicalSha256,
+      grantRendererShape: "ArnProbeReadComparisonGrant" });
+  }
   async readManagementObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }): Promise<Readonly<SharedCellAuthorCompensationManagementObservation>> {
     const observed = await this.collectObservation(input);
     if (observed.stack.status !== "UPDATE_COMPLETE") invalid("Lifecycle receipts require an UPDATE_COMPLETE management Stack.");

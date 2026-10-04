@@ -1,0 +1,280 @@
+{
+  "claim": {
+    "action": "CLAIM_GENERATION2_BEFORE_CREATE",
+    "binding": {
+      "creationReviewSha256": "5fe8ada96f680dd0e50c249f1caa274c2a76ea155123a50ba77faef473675b69",
+      "planSha256": "d63f0ebce61f518b8ac493357f93bc08e49531947008c14f2d6fcaaad0278087",
+      "policyExpiresAt": "2026-10-04T04:46:25.991Z",
+      "requestSha256": "a4ec882ee50f01e84b6a41214b3b27b476abc0f6f0d3255cc78bc2e6b0e3d9a3",
+      "reviewExpiresAt": "2026-10-04T04:21:25.991Z",
+      "reviewIssuedAt": "2026-10-04T04:16:26.022Z",
+      "variant": "EXACT_NAME_CONDITION"
+    },
+    "claimSha256": "3f06d253646d29d77d7a9045cdb1a28098b442b1cc58ee9ca65c130b2186a71a",
+    "fence": {
+      "generation": 2,
+      "predecessorSnapshotSha256": "913c8c9c119e1c3384bc96ecb0b75b5d0b3109f1dfdfa2286a752756eaacbeb3",
+      "priorGeneration": 1,
+      "priorSlotRelativePath": ".aws-sandbox/j5gj13-arn-probe/9e6c381d768f09bb9f7d8498237512284ba992e8e411b58bae6432d73f53892d/slot-000001",
+      "slotRelativePath": ".aws-sandbox/j5gj17-read-comparison/9e6c381d768f09bb9f7d8498237512284ba992e8e411b58bae6432d73f53892d/slot-000002",
+      "stage": "B5-J5g-j17",
+      "targetFenceKey": "9e6c381d768f09bb9f7d8498237512284ba992e8e411b58bae6432d73f53892d"
+    },
+    "preflightEvidenceSha256": "c71dd68780ebdbb7e2e09ec27ab4a6994747d0a33fbecdead2e7ad69a2458839",
+    "reservedAt": "2026-10-04T04:20:22.938Z",
+    "schemaVersion": 1
+  },
+  "grantExecutionAuthorized": false,
+  "mode": "READ_ONLY_RECOVER",
+  "mutationPerformed": false,
+  "observation": {
+    "fixtureAfter": {
+      "changeSetArn": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-sandbox-arn-compatibility-probe-08b7955eb7029b3a/ffac6957-44d4-4485-9d08-d018a0be3f11",
+      "observedAt": "2026-10-04T04:41:24.993Z",
+      "resourceCount": 0,
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-arn-compatibility-probe/e5fcb450-bf3d-11f1-8f15-02cdaaa60ec7",
+      "state": "READY_UNEXECUTED",
+      "templateCanonicalSha256": "00bba9b57a32c6b777a2afb1079f8303821e550162fc720af69099c6d301ba75"
+    },
+    "fixtureBefore": {
+      "changeSetArn": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-sandbox-arn-compatibility-probe-08b7955eb7029b3a/ffac6957-44d4-4485-9d08-d018a0be3f11",
+      "observedAt": "2026-10-04T04:41:23.892Z",
+      "resourceCount": 0,
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-arn-compatibility-probe/e5fcb450-bf3d-11f1-8f15-02cdaaa60ec7",
+      "state": "READY_UNEXECUTED",
+      "templateCanonicalSha256": "00bba9b57a32c6b777a2afb1079f8303821e550162fc720af69099c6d301ba75"
+    },
+    "grant": {
+      "changeSetArn": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-j5gj17-read-grant-ab42ba50c3d9f4b6/84265223-0571-4770-a293-61fd4b732bdc",
+      "observedAt": "2026-10-04T04:41:24.449Z",
+      "providerEvidenceSha256": "eeb530d573338bb6837635aca1a2e79ba125c7ee28608dd3f818f13cc7dce330",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-lifecycle-management/fb742b50-afb2-11f1-85b7-02588681429d",
+      "state": "READY_UNEXECUTED",
+      "templateCanonicalSha256": "8352b93986b84cbd11f46acb8e7e8aec33b6958c339a65b34d25de5cb5a3bdb2"
+    },
+    "managementAfter": {
+      "accountId": "402010193138",
+      "authorityState": "ABSENT",
+      "callerArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+      "cellStackState": "MISSING",
+      "observedAt": "2026-10-04T04:41:27.191Z",
+      "policies": [
+        {
+          "arn": "arn:aws:iam::402010193138:policy/TechlongSandboxCellOperatorBoundary",
+          "attachmentCount": 1,
+          "boundaryRoleArns": [
+            "arn:aws:iam::402010193138:role/TechlongSandboxCellOperatorRole"
+          ],
+          "defaultDocumentSha256": "2d0664ef47efebdbc9e06038562d116bc2307a8b940f0042d0942a1b18d75938",
+          "defaultVersionId": "v5",
+          "identityRoleArns": [
+            "arn:aws:iam::402010193138:role/TechlongSandboxCellOperatorRole"
+          ],
+          "logicalId": "CellOperatorBoundary",
+          "name": "TechlongSandboxCellOperatorBoundary",
+          "permissionsBoundaryUsageCount": 1,
+          "versionIds": [
+            "v4",
+            "v5"
+          ]
+        },
+        {
+          "arn": "arn:aws:iam::402010193138:policy/TechlongSandboxCellCloudFormationExecutionBoundary",
+          "attachmentCount": 0,
+          "boundaryRoleArns": [
+            "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole"
+          ],
+          "defaultDocumentSha256": "6693c48a9826ccd3259730d37ec47d31711679e428179120b28d1aa034e787e8",
+          "defaultVersionId": "v1",
+          "identityRoleArns": [],
+          "logicalId": "CellCloudFormationExecutionBoundary",
+          "name": "TechlongSandboxCellCloudFormationExecutionBoundary",
+          "permissionsBoundaryUsageCount": 1,
+          "versionIds": [
+            "v1"
+          ]
+        }
+      ],
+      "region": "ca-central-1",
+      "rendererShape": "Locked",
+      "roles": [
+        {
+          "arn": "arn:aws:iam::402010193138:role/TechlongSandboxCellOperatorRole",
+          "attachedPolicyArns": [
+            "arn:aws:iam::402010193138:policy/TechlongSandboxCellOperatorBoundary"
+          ],
+          "inlinePolicyNames": [],
+          "logicalId": "CellOperatorRole",
+          "name": "TechlongSandboxCellOperatorRole",
+          "permissionsBoundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCellOperatorBoundary",
+          "trustPolicySha256": "50ae144b92892fa96d3f60b710bdec378a5d277f09c811473245e3ed1c90b754"
+        },
+        {
+          "arn": "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole",
+          "attachedPolicyArns": [],
+          "inlinePolicyNames": [],
+          "logicalId": "CellCloudFormationExecutionRole",
+          "name": "TechlongSandboxCellCloudFormationExecutionRole",
+          "permissionsBoundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCellCloudFormationExecutionBoundary",
+          "trustPolicySha256": "9807ebf5cf955270cb96973d9512cfefa44bf1d342556d22f16700959955df18"
+        }
+      ],
+      "schemaVersion": 1,
+      "stack": {
+        "id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-lifecycle-management/fb742b50-afb2-11f1-85b7-02588681429d",
+        "name": "techlong-s3-b5-cell-lifecycle-management",
+        "parentId": null,
+        "resources": [
+          {
+            "logicalId": "CellOperatorBoundary",
+            "physicalResourceId": "arn:aws:iam::402010193138:policy/TechlongSandboxCellOperatorBoundary",
+            "resourceStatus": "UPDATE_COMPLETE",
+            "resourceType": "AWS::IAM::ManagedPolicy"
+          },
+          {
+            "logicalId": "CellOperatorRole",
+            "physicalResourceId": "TechlongSandboxCellOperatorRole",
+            "resourceStatus": "CREATE_COMPLETE",
+            "resourceType": "AWS::IAM::Role"
+          },
+          {
+            "logicalId": "CellCloudFormationExecutionBoundary",
+            "physicalResourceId": "arn:aws:iam::402010193138:policy/TechlongSandboxCellCloudFormationExecutionBoundary",
+            "resourceStatus": "CREATE_COMPLETE",
+            "resourceType": "AWS::IAM::ManagedPolicy"
+          },
+          {
+            "logicalId": "CellCloudFormationExecutionRole",
+            "physicalResourceId": "TechlongSandboxCellCloudFormationExecutionRole",
+            "resourceStatus": "CREATE_COMPLETE",
+            "resourceType": "AWS::IAM::Role"
+          }
+        ],
+        "roleArn": null,
+        "rootId": null,
+        "safetyState": "LOCKED_IAM_MANAGEMENT_ROOT_APPLY_ENABLED_EXECUTION_NOT_APPROVED_NO_PAID_CELL",
+        "status": "UPDATE_COMPLETE",
+        "templateCanonicalSha256": "803f28a0741f411493852dbaa2282fba2aa109b4f64b4986ee85d97e39eccda5",
+        "templateRawSha256": "acaa2b5e65361b84ed8fd3fb55d5a512b64bbf51b9fd855837d0adeef2f06bc1",
+        "terminationProtection": false
+      }
+    },
+    "managementBefore": {
+      "accountId": "402010193138",
+      "authorityState": "ABSENT",
+      "callerArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+      "cellStackState": "MISSING",
+      "observedAt": "2026-10-04T04:41:23.357Z",
+      "policies": [
+        {
+          "arn": "arn:aws:iam::402010193138:policy/TechlongSandboxCellOperatorBoundary",
+          "attachmentCount": 1,
+          "boundaryRoleArns": [
+            "arn:aws:iam::402010193138:role/TechlongSandboxCellOperatorRole"
+          ],
+          "defaultDocumentSha256": "2d0664ef47efebdbc9e06038562d116bc2307a8b940f0042d0942a1b18d75938",
+          "defaultVersionId": "v5",
+          "identityRoleArns": [
+            "arn:aws:iam::402010193138:role/TechlongSandboxCellOperatorRole"
+          ],
+          "logicalId": "CellOperatorBoundary",
+          "name": "TechlongSandboxCellOperatorBoundary",
+          "permissionsBoundaryUsageCount": 1,
+          "versionIds": [
+            "v4",
+            "v5"
+          ]
+        },
+        {
+          "arn": "arn:aws:iam::402010193138:policy/TechlongSandboxCellCloudFormationExecutionBoundary",
+          "attachmentCount": 0,
+          "boundaryRoleArns": [
+            "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole"
+          ],
+          "defaultDocumentSha256": "6693c48a9826ccd3259730d37ec47d31711679e428179120b28d1aa034e787e8",
+          "defaultVersionId": "v1",
+          "identityRoleArns": [],
+          "logicalId": "CellCloudFormationExecutionBoundary",
+          "name": "TechlongSandboxCellCloudFormationExecutionBoundary",
+          "permissionsBoundaryUsageCount": 1,
+          "versionIds": [
+            "v1"
+          ]
+        }
+      ],
+      "region": "ca-central-1",
+      "rendererShape": "Locked",
+      "roles": [
+        {
+          "arn": "arn:aws:iam::402010193138:role/TechlongSandboxCellOperatorRole",
+          "attachedPolicyArns": [
+            "arn:aws:iam::402010193138:policy/TechlongSandboxCellOperatorBoundary"
+          ],
+          "inlinePolicyNames": [],
+          "logicalId": "CellOperatorRole",
+          "name": "TechlongSandboxCellOperatorRole",
+          "permissionsBoundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCellOperatorBoundary",
+          "trustPolicySha256": "50ae144b92892fa96d3f60b710bdec378a5d277f09c811473245e3ed1c90b754"
+        },
+        {
+          "arn": "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole",
+          "attachedPolicyArns": [],
+          "inlinePolicyNames": [],
+          "logicalId": "CellCloudFormationExecutionRole",
+          "name": "TechlongSandboxCellCloudFormationExecutionRole",
+          "permissionsBoundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCellCloudFormationExecutionBoundary",
+          "trustPolicySha256": "9807ebf5cf955270cb96973d9512cfefa44bf1d342556d22f16700959955df18"
+        }
+      ],
+      "schemaVersion": 1,
+      "stack": {
+        "id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-b5-cell-lifecycle-management/fb742b50-afb2-11f1-85b7-02588681429d",
+        "name": "techlong-s3-b5-cell-lifecycle-management",
+        "parentId": null,
+        "resources": [
+          {
+            "logicalId": "CellOperatorBoundary",
+            "physicalResourceId": "arn:aws:iam::402010193138:policy/TechlongSandboxCellOperatorBoundary",
+            "resourceStatus": "UPDATE_COMPLETE",
+            "resourceType": "AWS::IAM::ManagedPolicy"
+          },
+          {
+            "logicalId": "CellOperatorRole",
+            "physicalResourceId": "TechlongSandboxCellOperatorRole",
+            "resourceStatus": "CREATE_COMPLETE",
+            "resourceType": "AWS::IAM::Role"
+          },
+          {
+            "logicalId": "CellCloudFormationExecutionBoundary",
+            "physicalResourceId": "arn:aws:iam::402010193138:policy/TechlongSandboxCellCloudFormationExecutionBoundary",
+            "resourceStatus": "CREATE_COMPLETE",
+            "resourceType": "AWS::IAM::ManagedPolicy"
+          },
+          {
+            "logicalId": "CellCloudFormationExecutionRole",
+            "physicalResourceId": "TechlongSandboxCellCloudFormationExecutionRole",
+            "resourceStatus": "CREATE_COMPLETE",
+            "resourceType": "AWS::IAM::Role"
+          }
+        ],
+        "roleArn": null,
+        "rootId": null,
+        "safetyState": "LOCKED_IAM_MANAGEMENT_ROOT_APPLY_ENABLED_EXECUTION_NOT_APPROVED_NO_PAID_CELL",
+        "status": "UPDATE_COMPLETE",
+        "templateCanonicalSha256": "803f28a0741f411493852dbaa2282fba2aa109b4f64b4986ee85d97e39eccda5",
+        "templateRawSha256": "acaa2b5e65361b84ed8fd3fb55d5a512b64bbf51b9fd855837d0adeef2f06bc1",
+        "terminationProtection": false
+      }
+    }
+  },
+  "observedAt": "2026-10-04T04:41:27.194Z",
+  "operatorReadAuthorized": false,
+  "outcome": "READY_UNEXECUTED",
+  "probeDeletionAuthorized": false,
+  "productionCompatibilityVerified": false,
+  "receiptSha256": "828fb18e57a6e8f3615a41e444f704f227596cfb931945284cd79204ab18de9a",
+  "retryAuthorized": false,
+  "reviewSha256": "5fe8ada96f680dd0e50c249f1caa274c2a76ea155123a50ba77faef473675b69",
+  "runtimeEnabled": false,
+  "stage": "B5-J5g-j17"
+}

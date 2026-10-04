@@ -1,5 +1,7 @@
 # AWS Sandbox S0–S3-B5 安全 Bootstrap 与受控 cleanup-only Cell 基础
 
+最新 J5g-j19 仅完成代码与只读核验：严格 singleton 旧 Grant 退役、独立 generation3 固定 slot、本地 `Invoke-ReviewedReadComparison.ps1` 三个独立批准参数集。真实新 registry 不存在；实际 Delete/Create/Grant Execute 各需 fresh SHA 另批，不继承旧批准、不 reset/replay。创建命令只串联后续只读回读/执行审阅，不自动安装权限；MFA 仅在另行批准的执行命令中本地输入。见[完整顺序及证据](../../docs/aws-sandbox-j5gj19-retirement-generation3.md)。
+
 这个目录保存可审查的静态配置、CloudFormation 模板、IAM 边界、TTL Janitor、镜像构建基础、B5 低成本支撑资源、destroy-capable Build #7 镜像对应的 inspect-default lifecycle TaskDefinition（尚未执行），以及默认不执行的运维脚本。仓库中不包含 Access Key、Secret Access Key、Stripe 密钥、数据库密码或私钥。
 
 S3-A Bootstrap 脚本默认仅运行本地验证；只有显式选择 `CreateChangeSet` 或 `Apply`、确认账号、提供预算通知邮箱并确认 MFA 前置条件后，脚本才会产生 AWS 写操作。B5-J4b 又增加了独立 IAM 管理根与 cleanup-only child Bootstrap：管理 Stack 持有四组 boundary + role 共 8 个 IAM 资源，child 只含 4 个非 IAM 清理/只读资源，不创建 VPC、ALB、ECS、Aurora 或 Shared Cell。J4b 已于 2026-08-26 按短期授权窗口流程部署并完成严格回读与双次空 inventory 探测；管理根最终恢复 `LOCKED`，四个付费就绪门禁仍全部为 `false`。
