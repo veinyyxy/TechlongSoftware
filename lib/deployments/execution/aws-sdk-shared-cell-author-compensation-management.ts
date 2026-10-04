@@ -30,6 +30,7 @@ import type {
   SharedCellAuthorCompensationPhaseRevokeMutationPort,
 } from "./shared-cell-author-compensation-grant-controller.ts";
 import type { ArnProbeGrantPlan } from "./arn-compatibility-probe-grant.ts";
+import type { ArnProbeComparisonCreatePlan } from "./arn-probe-read-comparison-create.ts";
 
 export const SHARED_CELL_AUTHOR_COMPENSATION_MANAGEMENT_DEFAULT_ENABLED = false;
 export const SHARED_CELL_AUTHOR_COMPENSATION_SOURCE_PROFILE = "techlong-sandbox-user";
@@ -148,8 +149,15 @@ export type ArnProbeManagementObservation = Omit<CollectedManagementObservation,
   rendererShape: "Locked" | "ArnProbeDeleteChangeSetGrant";
   stack: Omit<CollectedManagementObservation["stack"], "status"> & { status: "CREATE_COMPLETE" | "UPDATE_COMPLETE" | "UPDATE_ROLLBACK_COMPLETE" };
 };
+export type ArnProbeReadComparisonManagementObservation = Omit<ArnProbeManagementObservation, "rendererShape"> & {
+  rendererShape: "Locked" | "ArnProbeReadComparisonGrant";
+};
+type ProbeTemplateBinding = {
+  revokeTarget: ArnProbeGrantPlan["revokeTarget"]; grantTemplateRawSha256: string; grantTemplateCanonicalSha256: string;
+  grantRendererShape: "ArnProbeDeleteChangeSetGrant" | "ArnProbeReadComparisonGrant";
+};
 type AnyManagementObservation = Omit<CollectedManagementObservation, "rendererShape" | "stack"> & {
-  rendererShape: CollectedManagementObservation["rendererShape"] | "ArnProbeDeleteChangeSetGrant";
+  rendererShape: CollectedManagementObservation["rendererShape"] | ProbeTemplateBinding["grantRendererShape"];
   stack: ArnProbeManagementObservation["stack"];
 };
 export interface SharedCellAuthorCompensationManagementReadDependencies {
@@ -303,8 +311,9 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
     return { logicalId: logicalId as "CellOperatorRole" | "CellCloudFormationExecutionRole", arn, name, permissionsBoundaryArn: boundaryArn, attachedPolicyArns: attachments.map((entry) => String(entry.PolicyArn)), inlinePolicyNames: [], trustPolicySha256: await sha256Hex(canonicalJson(trust)) };
   }
   private async collectObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }, allowCreatedLocked?: boolean): Promise<Readonly<CollectedManagementObservation>>;
-  private async collectObservation(input: { signal: AbortSignal }, allowCreatedLocked: boolean, probePlan: ArnProbeGrantPlan): Promise<Readonly<ArnProbeManagementObservation>>;
-  private async collectObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }, allowCreatedLocked = false, probePlan?: ArnProbeGrantPlan): Promise<Readonly<AnyManagementObservation>> {
+  private async collectObservation(input: { signal: AbortSignal }, allowCreatedLocked: boolean, probePlan: ProbeTemplateBinding & { grantRendererShape: "ArnProbeDeleteChangeSetGrant" }): Promise<Readonly<ArnProbeManagementObservation>>;
+  private async collectObservation(input: { signal: AbortSignal }, allowCreatedLocked: boolean, probePlan: ProbeTemplateBinding & { grantRendererShape: "ArnProbeReadComparisonGrant" }): Promise<Readonly<ArnProbeReadComparisonManagementObservation>>;
+  private async collectObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }, allowCreatedLocked = false, probePlan?: ProbeTemplateBinding): Promise<Readonly<AnyManagementObservation>> {
     exact(input, ["signal", ...(Object.hasOwn(input, "cellSafety") ? ["cellSafety"] : [])]); signal(input.signal);
     if (Object.hasOwn(input, "cellSafety") && !input.cellSafety) invalid("An explicit Cell safety binding cannot be empty.");
     const binding = input.cellSafety ? immutable(input.cellSafety) : undefined;
@@ -318,7 +327,7 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
     if (probePlan) {
       const rawSha = await sha256Hex(String(original.TemplateBody)), canonicalSha = await sha256Hex(canonicalJson(body));
       if (rawSha === probePlan.revokeTarget.templateRawSha256 && canonicalSha === probePlan.revokeTarget.templateCanonicalSha256) rendererShape = "Locked";
-      else if (rawSha === probePlan.grantTemplateRawSha256 && canonicalSha === probePlan.grantTemplateCanonicalSha256) rendererShape = "ArnProbeDeleteChangeSetGrant";
+      else if (rawSha === probePlan.grantTemplateRawSha256 && canonicalSha === probePlan.grantTemplateCanonicalSha256) rendererShape = probePlan.grantRendererShape;
       else invalid("Probe management template is neither the exact grant nor its exact Locked target.");
     } else rendererShape = shape(body);
     if (firstStack.StackStatus === "CREATE_COMPLETE" && rendererShape !== "Locked") invalid("Only a Locked predecessor may be CREATE_COMPLETE.");
@@ -351,7 +360,19 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
     exact(input, ["plan", "signal"]);
     const { assertArnProbeGrantPlan } = await import("./arn-compatibility-probe-grant.ts");
     await assertArnProbeGrantPlan(input.plan);
-    return this.collectObservation({ signal: input.signal }, true, input.plan);
+    return this.collectObservation({ signal: input.signal }, true, { revokeTarget: input.plan.revokeTarget,
+      grantTemplateRawSha256: input.plan.grantTemplateRawSha256, grantTemplateCanonicalSha256: input.plan.grantTemplateCanonicalSha256,
+      grantRendererShape: "ArnProbeDeleteChangeSetGrant" });
+  }
+  /** Separate J18 read-only comparison channel; never accepted by J11 or the
+   * production compensation lifecycle. Exact compiler hashes plus full IAM reads. */
+  async readArnProbeReadComparisonObservation(input: { plan: ArnProbeComparisonCreatePlan; signal: AbortSignal }): Promise<Readonly<ArnProbeReadComparisonManagementObservation>> {
+    exact(input, ["plan", "signal"]);
+    const { assertArnProbeComparisonCreatePlan } = await import("./arn-probe-read-comparison-create.ts");
+    await assertArnProbeComparisonCreatePlan(input.plan);
+    return this.collectObservation({ signal: input.signal }, true, { revokeTarget: input.plan.revokeTarget,
+      grantTemplateRawSha256: input.plan.templateRawSha256, grantTemplateCanonicalSha256: input.plan.templateCanonicalSha256,
+      grantRendererShape: "ArnProbeReadComparisonGrant" });
   }
   async readManagementObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }): Promise<Readonly<SharedCellAuthorCompensationManagementObservation>> {
     const observed = await this.collectObservation(input);

@@ -11,9 +11,14 @@ function list(v: unknown): unknown[] { if (!Array.isArray(v)) throw new Error("C
 const stable = (v: Record<string, unknown>) => Object.fromEntries(Object.entries(v).filter(([k]) => k !== "$metadata"));
 export async function validateArnProbeComparisonGrant(plan: ArnProbeComparisonCreatePlan, before: unknown, after: unknown, original: unknown, observedAt: string): Promise<ArnProbeComparisonGrantState> {
   await assertArnProbeComparisonCreatePlan(plan);
+  return validateArnProbeComparisonManagementChangeSet(plan, before, after, original, observedAt);
+}
+/** Shared provider validator. The caller must first strictly recompile the
+ * containing Grant or Revoke manifest; this function never authorizes a write. */
+export async function validateArnProbeComparisonManagementChangeSet(plan: { request: ArnProbeComparisonCreatePlan["request"]; templateCanonicalSha256: string }, before: unknown, after: unknown, original: unknown, observedAt: string): Promise<ArnProbeComparisonGrantState> {
   const first = probeObject(before), last = probeObject(after); probeSame(stable(first), stable(last), "Comparison Grant stability");
   if (first.StackId !== plan.request.StackName || first.StackName !== "techlong-s3-b5-cell-lifecycle-management" ||
-    first.ChangeSetName !== plan.request.ChangeSetName || typeof first.ChangeSetId !== "string" || !comparisonGrantArn(plan, first.ChangeSetId) ||
+    first.ChangeSetName !== plan.request.ChangeSetName || typeof first.ChangeSetId !== "string" || !comparisonGrantArn({ request: plan.request }, first.ChangeSetId) ||
     first.Status !== "CREATE_COMPLETE" || first.ExecutionStatus !== "AVAILABLE" || first.Description !== plan.request.Description ||
     !empty(first.NextToken) || !empty(first.RoleARN) || !empty(first.OnStackFailure) || first.IncludeNestedStacks === true || first.ImportExistingResources === true ||
     !empty(first.ParentChangeSetId) || !empty(first.RootChangeSetId) || !empty(first.DeploymentMode)) throw new Error("Comparison Grant identity/state drifted.");

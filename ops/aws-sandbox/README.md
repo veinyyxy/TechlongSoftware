@@ -815,6 +815,25 @@ evidence路径JSON必须准确提供七个绝对路径：legacyManifest、legacy
 
 实际Source于 `2026-10-03T22:23:14.818Z` 仍准确Locked/v5/Cell MISSING/authority ABSENT，两次完整管理清单空，原probe未执行资源0，前后磁盘锚点稳定。Review SHA `aebf0799583df1d91e867d974ab563a6e13d186d9091f487403d209f406cc980`、新11项+相关回归64/64和独立复算通过；无AWS写入/Operator对照，compatibility/runtime gates仍false。后续先审阅和实现独立fence/creation-only入口，再另行准确批准新的云动作；本Review不能用于创建或安装权限。见[完整方案](../../docs/aws-sandbox-j5gj16-read-comparison.md)。
 
+### B5-J5g-j18：受审安装、两次只读对照与立即 Revoke
+
+独立入口 `s3-b5-arn-probe-read-comparison-workflow.ts` 仅支持 Review/Inspect/RunReviewed/RecoverRevoke。默认 Review 和 Inspect 均只用固定 Source read runtime，不构造 Operator/写 capability，也不占槽：
+
+```powershell
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-read-comparison-workflow.ts `
+  --mode Review --creation-review '<absolute-exact-j17-creation-review.json>' `
+  --evidence '<absolute-evidence-paths.json>' --output '<absolute-new-j18-review.json>' --acknowledge-read-only
+node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-read-comparison-workflow.ts `
+  --mode Inspect --creation-review '<absolute-exact-j17-creation-review.json>' `
+  --evidence '<absolute-evidence-paths.json>' --output '<absolute-new-j18-inspect.json>' --acknowledge-read-only
+```
+
+本轮 Review SHA `0ac1ceeb0d433b4c2a8cbeb3c7625bd882a93ecb6661c65a02620a76a117c6f0` 为 PREPARE_FENCED_GRANT_REQUIRED、manifest/claim=null；独立 Inspect SHA `c0f75d6fff4ab3ee92424f5391cf5d27aeb512c264f7ba6f3c6cd102a50c5ca1` 为 LOCKED_VERIFIED。末 Source管理读 `2026-10-04T00:16:01.062Z` 仍Locked/v5/Cell MISSING/authority ABSENT、原probe未执行资源0，计划Grant MISSING/newregistry ABSENT。旧 J17 review 已过期，仅作为历史只读锚点；不能用 null manifest 运行或旧 SHA 批准创建。本轮没有云写入/Operator登录/槽位消费。
+
+未来 RunReviewed 必须先按 fresh J17 创建清单另行批准仅创建，并独立核验 READY_UNEXECUTED，再生成 fresh J18 manifest。写模式共同要求 `--manifest`、`--approved-manifest-sha`、`--approved-revoke-sha`、`--execution-phrase`、`--acknowledge-aws-write`、`--acknowledge-low-cost-not-zero`，以及准确 creation-review/evidence/output 绝对路径。RunReviewed 还要求 `--approved-grant-sha`、`--approved-reads-sha` 和短语 `I_CONFIRM_J5GJ18_READ_GRANT_TWO_READS_AND_IMMEDIATE_REVOKE`；RecoverRevoke 不接受 Grant/read SHA，只接受短语 `I_CONFIRM_J5GJ18_REVOKE_ONLY`，须有原 durable run/Grant intent，过期后也只可撤权、不能重放安装或读请求。未知/重复/cross-mode flags 全部拒绝。
+
+固定 MFA 准备后再次 fresh Source 核验；选定候选最多一次 full-ARN 和一次 exact-name Describe，没有权限传播重试。每步先 wx/fsync/readback intent，绑定同一 `slot-000002` 的 claim/manifest/准确请求；新 journal 六步不向旧 namespace 写文件。Grant 响应丢失先协调 provider终态，成功/失败/取消/过期均独立尝试立即 Revoke、双完整 Locked 回读；无法证明撤权则明确 REVOKE_REQUIRED，不能声称自动必定成功。SDK仅精确管理栈 Source CF写，Operator只有Describe，没有 child/删除/IAM直接写/Neon能力，所有runtime gates仍false。23项新增与相关回归125/125，独立证据/旧ledger复算通过；详见[阶段报告](../../docs/aws-sandbox-j5gj18-read-comparison-workflow.md)。
+
 ### B5-J5g-j17：固定 generation2 / creation-only 入口
 
 默认 ReviewCreate 仅 Source 只读，选精确名称条件候选，不占新槽位：

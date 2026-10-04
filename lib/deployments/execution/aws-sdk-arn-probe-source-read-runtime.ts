@@ -38,5 +38,6 @@ export async function createArnProbeSourceReadRuntime() {
   const fixture = new AwsSdkArnProbeFixtureReadAdapter({ client: cfClient, management, commands });
   const grant = new AwsSdkArnProbeGrantReadAdapter(fixture, cfClient, commands);
   return { reads: new AwsSdkArnProbeWorkflowReadAdapter({ client: cfClient, management, fixture, grant, commands }), credentials,
+    readComparisonManagement: (plan: Parameters<typeof management.readArnProbeReadComparisonObservation>[0]["plan"], signal: AbortSignal) => management.readArnProbeReadComparisonObservation({ plan, signal }),
     destroy: () => [sourceSts, sourceCf, sourceIam, sourceDynamo].forEach((client) => client.destroy()) };
 }

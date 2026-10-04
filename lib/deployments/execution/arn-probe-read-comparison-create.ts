@@ -150,7 +150,7 @@ export async function createReviewedArnProbeComparison(input: Preflight & { revi
     productionCompatibilityVerified: false, runtimeEnabled: false, observedAt: new Date(now()).toISOString() };
   return immutable({ ...body, receiptSha256: await sha256Hex(canonicalJson(body)) });
 }
-export function comparisonGrantArn(plan: ArnProbeComparisonCreatePlan, arn: string) {
+export function comparisonGrantArn(plan: { request: { ChangeSetName: string } }, arn: string) {
   return new RegExp(`^arn:aws:cloudformation:ca-central-1:402010193138:changeSet/${plan.request.ChangeSetName}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`).test(arn);
 }
 export type ArnProbeComparisonGrantState = Readonly<

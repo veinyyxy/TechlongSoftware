@@ -33,6 +33,8 @@ import { reviewSharedCellAuthorCompensationManagementAction, createSharedCellAut
 import { renderB5CellLifecycleManagementTemplate } from "../ops/aws-sandbox/scripts/render-b5-cell-lifecycle-management.mjs";
 import { compileArnProbeFixturePlan, ARN_PROBE_FIXTURE_STACK } from "../lib/deployments/execution/arn-compatibility-probe-fixture.ts";
 import { compileArnProbeGrantPlan } from "../lib/deployments/execution/arn-compatibility-probe-grant.ts";
+import { compileArnProbeReadComparisonPlan } from "../lib/deployments/execution/arn-compatibility-probe-read-comparison.ts";
+import { compileArnProbeComparisonCreatePlan } from "../lib/deployments/execution/arn-probe-read-comparison-create.ts";
 import type { SharedCellAuthorCompensationOperationStore } from "../lib/deployments/execution/shared-cell-author-compensation-operation-store.ts";
 import { compileSharedCellAuthorCompensationControllerContract } from "../lib/deployments/execution/shared-cell-author-compensation-controller.ts";
 import {
@@ -529,6 +531,27 @@ test("management entry requires action approval and a successful durable write-a
   assert.deepEqual(events, ["capability", "claim", "write-ahead-rejected", "release"]);
   assert.equal(writes.length, 0);
   assert.equal(fake.calls.length, 0);
+});
+
+test("J18 exact comparison IAM channel is separate from J11 Delete and production lifecycle receipts", async () => {
+  const fixturePlan = await compileArnProbeFixturePlan({ nonce: "a".repeat(32), reviewedAt: "2026-10-02T11:00:00.000Z", expiresAt: "2026-10-02T12:00:00.000Z" });
+  const prior = await compileArnProbeGrantPlan({ fixturePlan, fixtureStackId: `arn:aws:cloudformation:${region}:${accountId}:stack/${ARN_PROBE_FIXTURE_STACK}/11111111-2222-4333-8444-555555555555`,
+    fixtureChangeSetArn: `arn:aws:cloudformation:${region}:${accountId}:changeSet/${fixturePlan.request.ChangeSetName}/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee`, nonce: "b".repeat(32), reviewedAt: "2026-10-02T12:00:00.000Z", expiresAt: "2026-10-02T13:00:00.000Z" });
+  const comparisonPlan = await compileArnProbeReadComparisonPlan({ priorPlan: prior, reviewedAt: "2026-10-02T14:00:00.000Z", expiresAt: "2026-10-02T14:30:00.000Z" });
+  const plan = await compileArnProbeComparisonCreatePlan({ comparisonPlan, variant: "EXACT_NAME_CONDITION" }), data = await material();
+  const candidate = fixture(data, plan.request.TemplateBody);
+  const result = await candidate.reads.readArnProbeReadComparisonObservation({ plan, signal: abort() });
+  assert.equal(result.rendererShape, "ArnProbeReadComparisonGrant"); assert.equal(result.policies.length, 2); assert.equal(result.roles.length, 2);
+  await assert.rejects(candidate.reads.readArnProbeManagementObservation({ plan: prior, signal: abort() }));
+  await assert.rejects(candidate.reads.readManagementObservation({ signal: abort() }));
+  const locked = fixture(data, plan.revokeTarget.templateBody);
+  assert.equal((await locked.reads.readArnProbeReadComparisonObservation({ plan, signal: abort() })).rendererShape, "Locked");
+  const foreign = fixture(data, prior.request.TemplateBody);
+  await assert.rejects(foreign.reads.readArnProbeReadComparisonObservation({ plan, signal: abort() }));
+  const drift = fixture(data, plan.request.TemplateBody, (name, _input, response) => { if (name === "getPolicyVersion") {
+    const policy = response.PolicyVersion as { Document: string }; const value = JSON.parse(decodeURIComponent(policy.Document)); value.Statement.push({ Effect: "Allow", Action: "*", Resource: "*" }); policy.Document = JSON.stringify(value);
+  } });
+  await assert.rejects(drift.reads.readArnProbeReadComparisonObservation({ plan, signal: abort() }));
 });
 
 test("installed management SDK construction is dormant and uses login-only lazy shared credentials", async () => {

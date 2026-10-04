@@ -472,6 +472,13 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - 真实Source Review SHA `f39fca883cfc475c8c94e966686fb867723c61eeaf367c69d93f738064740a7a`；独立Source只读验证 receipt SHA `3d5b022a15764d1b3dbaa470bddae21abefa2dbded839137229f4be149641e12`，末读 `2026-10-03T23:21:56.088Z` 仍Locked/v5/Cell MISSING/authority ABSENT，完整管理清单空，原probe资源0未执行；新registry/claim不存在，旧前驱不变。无AWS/Neon写入，审阅未批准，不能作为以后创建授权。
 - 新18项与相关回归82/82、typecheck/定向lint/management验证通过，不重复全量离线模拟。下一阶段先实现受审安装/固定MFA只读对照/立即Revoke控制器，再fresh审阅批准云创建；所有runtime gates继续false。见[固定围栏与证据](./aws-sandbox-j5gj17-read-comparison-fence.md)。
 
+### B5-J5g-j18：受审安装 / 固定 MFA 两次读 / 独立立即 Revoke
+
+- 新 workflow 严格绑定 J17 review/claim/full Grant ARN 与五分钟 manifest、三项 action SHA；固定 MFA 后再做 Source fresh 预检，持久化六步准确请求 intent 后才提交，Grant 必须协调到 provider 终态并完整核验新隔离 IAM 形态。选定候选仅一次完整ARN与一次精确名称 Describe；无授权传播重试，拒绝不证明根因或删除兼容性，原 J11/production API 不接受新只读候选。
+- 成功/失败/取消/窗口到期后立即进入独立有界 Revoke；丢失响应只协调，不重放。Revoke-only recovery 独立批准且无 Grant/Operator 能力，撤权失败保守报告 REVOKE_REQUIRED。真实 generation2 不曾创建，原 generation1/legacy archive 不变；无 reset/自动新窗口或 generation3。
+- 真实 Source Review SHA `0ac1ceeb0d433b4c2a8cbeb3c7625bd882a93ecb6661c65a02620a76a117c6f0` 为 PREPARE_FENCED_GRANT_REQUIRED、manifest/claim=null；独立 Inspect receipt SHA `c0f75d6fff4ab3ee92424f5391cf5d27aeb512c264f7ba6f3c6cd102a50c5ca1`，末管理读 `2026-10-04T00:16:01.062Z` 仍准确 Locked/v5/Cell MISSING/authority ABSENT、原probe未执行资源0。计划 Grant MISSING、new registry ABSENT；独立 artifact/磁盘验证 SHA `bf70f6b460ec549ae93a6aa18112d50eba4d74f5a873e16ab576e4b46ababaed`。无 AWS/Neon write、Operator MFA/AssumeRole 或付费 Cell。
+- 新增23项及相关回归125/125、typecheck/定向lint/management验证通过，不重复全量离线模拟。下一在线小步骤为推送后 fresh J17 creation Review → 准确单独批准 Create → 独立 READY_UNEXECUTED 核验 → fresh J18 execution Review 与单独批准 → 两次读后立即 Revoke/独立 Inspect；当前历史 review 和 null manifest 均不授权写入。全部 runtime gates 继续false。见[控制器、命令边界与证据](./aws-sandbox-j5gj18-read-comparison-workflow.md)。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：
