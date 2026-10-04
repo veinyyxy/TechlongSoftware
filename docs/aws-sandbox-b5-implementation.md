@@ -479,6 +479,12 @@ B5 的目标是把 S3-B 的离线模型推进到可安全接入真实 AWS Adapte
 - 真实 Source Review SHA `0ac1ceeb0d433b4c2a8cbeb3c7625bd882a93ecb6661c65a02620a76a117c6f0` 为 PREPARE_FENCED_GRANT_REQUIRED、manifest/claim=null；独立 Inspect receipt SHA `c0f75d6fff4ab3ee92424f5391cf5d27aeb512c264f7ba6f3c6cd102a50c5ca1`，末管理读 `2026-10-04T00:16:01.062Z` 仍准确 Locked/v5/Cell MISSING/authority ABSENT、原probe未执行资源0。计划 Grant MISSING、new registry ABSENT；独立 artifact/磁盘验证 SHA `bf70f6b460ec549ae93a6aa18112d50eba4d74f5a873e16ab576e4b46ababaed`。无 AWS/Neon write、Operator MFA/AssumeRole 或付费 Cell。
 - 新增23项及相关回归125/125、typecheck/定向lint/management验证通过，不重复全量离线模拟。下一在线小步骤为推送后 fresh J17 creation Review → 准确单独批准 Create → 独立 READY_UNEXECUTED 核验 → fresh J18 execution Review 与单独批准 → 两次读后立即 Revoke/独立 Inspect；当前历史 review 和 null manifest 均不授权写入。全部 runtime gates 继续false。见[控制器、命令边界与证据](./aws-sandbox-j5gj18-read-comparison-workflow.md)。
 
+### J17 generation2 在线创建及 J18 未执行窗口收尾
+
+- 用户准确批准创建 review `5fe8ada96f680dd0e50c249f1caa274c2a76ea155123a50ba77faef473675b69`；CREATE_SUBMITTED receipt `2463973b6670bb1ac1d5f3c164131e41e26903b95628f50786a14345a12aad0c`，永久 claim `3f06d253646d29d77d7a9045cdb1a28098b442b1cc58ee9ca65c130b2186a71a`。准确full Grant ARN独立 READY_UNEXECUTED，只有claim、workflow intent数0，旧前驱不变。原历史“registry不存在”是在线创建前状态，不代表当前状态。
+- 首份 execution manifest `0719dd3e...` 在准备本地MFA入口时过期；刷新 manifest `8fba163c...` 的本地SHA确认未通过，未调用SDK或MFA。末独立Source receipt `828fb18e57a6e8f3615a41e444f704f227596cfb931945284cd79204ab18de9a`、`2026-10-04T04:41:27.194Z`仍Locked/v5/Cell MISSING/authority ABSENT、原fixture未执行资源0，旧Grant READY_UNEXECUTED。policy固定到期04:46:25.991Z，最后安装批准截止04:36:25.991Z；两者不随Review刷新延长。无Grant Execute、Operator调用、child/删除或付费Cell，runtime gates仍false。
+- 现有generation2已消费且管理清单不为空，不能仅刷新/改nonce复用。下一轮仅准备严格精确未执行Grant退役、独立generation3围栏和两个本地准确批准命令的方案；涉及云Change Set删除或新generation需要新的明确选择和各步fresh SHA批准。本阶段未实现这些能力、未删除/延期/重建或写真实ledger。详见[窗口收尾、AWS副作用与下一轮方案](./aws-sandbox-j5gj18-window-closure-and-renewal-review.md)。
+
 ## 当前硬门禁
 
 以下任一项未完成时，`applyRuntimeReady` 和 `cleanupRuntimeReady` 必须保持 `false`：

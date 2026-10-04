@@ -834,6 +834,14 @@ node --experimental-strip-types ops/aws-sandbox/scripts/s3-b5-arn-probe-read-com
 
 固定 MFA 准备后再次 fresh Source 核验；选定候选最多一次 full-ARN 和一次 exact-name Describe，没有权限传播重试。每步先 wx/fsync/readback intent，绑定同一 `slot-000002` 的 claim/manifest/准确请求；新 journal 六步不向旧 namespace 写文件。Grant 响应丢失先协调 provider终态，成功/失败/取消/过期均独立尝试立即 Revoke、双完整 Locked 回读；无法证明撤权则明确 REVOKE_REQUIRED，不能声称自动必定成功。SDK仅精确管理栈 Source CF写，Operator只有Describe，没有 child/删除/IAM直接写/Neon能力，所有runtime gates仍false。23项新增与相关回归125/125，独立证据/旧ledger复算通过；详见[阶段报告](../../docs/aws-sandbox-j5gj18-read-comparison-workflow.md)。
 
+#### J17 在线创建后的窗口状态（历史命令不可重跑）
+
+准确批准创建清单 `5fe8ada96f680dd0e50c249f1caa274c2a76ea155123a50ba77faef473675b69` 已唯一 CREATE_SUBMITTED，并独立证明 READY_UNEXECUTED。generation2只有永久claim `3f06d253646d29d77d7a9045cdb1a28098b442b1cc58ee9ca65c130b2186a71a`、无六步workflow intent；现已占用，不能再次 CreateReviewed。J18 `0719dd3e...`批准过期，`8fba163c...`本地SHA确认失败且未调用SDK/MFA；原件/wrapper/旧ledger保留，不编辑成可重跑入口。
+
+最新Source receipt `828fb18e57a6e8f3615a41e444f704f227596cfb931945284cd79204ab18de9a`（UTC04:41:27.194，Winnipeg10月3日23:41:27）仍Locked/v5/Cell MISSING/authority ABSENT、原fixture未执行资源0。安装批准截止UTC04:36:25.991已经关闭，policy固定UTC04:46:25.991到期；只读刷新不能改变。无Grant安装或Operator调用。
+
+未来精确旧Grant退役/generation3/本地批准参数入口目前仅为方案，未实现、未获云写批准；不提供手工Delete/改窗口/清槽命令。先明确同意实现范围，再逐步fresh审阅实际云操作，不延長30分钟policy、5分钟批准与10分钟撤权余量。见[方案与准确目标](../../docs/aws-sandbox-j5gj18-window-closure-and-renewal-review.md)。
+
 ### B5-J5g-j17：固定 generation2 / creation-only 入口
 
 默认 ReviewCreate 仅 Source 只读，选精确名称条件候选，不占新槽位：
