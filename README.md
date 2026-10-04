@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+最新 J5g-j19 已完成 generation3 安装截止后的 Source-only 窗口收尾：准确 Grant 仍 READY_UNEXECUTED、完整 Locked/v5 和原 fixture 未变，真实固定槽位只含 claim，没有 workflow/Operator intent；旧三代记录保留。本轮无云写入，旧窗口不能刷新身份后继续安装，也不复位或重建。后续严格 generation3 退役/独立 generation4 与准备前置方案仅供审阅，尚未实现或授权。见[窗口收尾及下一轮方案](./docs/aws-sandbox-j5gj19-generation3-window-closure.md)。以下记录按其当时状态保留。
+
 最新 J5g-j19 已按准确创建清单唯一创建 generation3 只读对照 Grant，并经独立 Source RecoverCreate 证明 READY_UNEXECUTED、Locked/v5 和原 fixture 未变；新固定槽位永久占用且仅含 claim，没有安装权限或 Operator 登录。旧两代与退役记录保留；未来安装仍需 fresh execution manifest 和三项 action SHA 单独批准，窗口不延长、不复位或重放。另修复本地 wrapper 多 Node 路径选择问题。见[generation3 创建证据及下一步](./docs/aws-sandbox-j5gj19-generation3-creation.md)。以下记录按其当时状态保留。
 
 最新 J5g-j19 已按独立准确批准退役唯一旧未执行 generation2 管理 Grant，并另起 Source-only Inspect 证明对象缺失、完整管理清单空、Locked/v5 与原 fixture 未变；旧记录保留，退役 intent 永久消费，generation3 registry 仍 absent。已修复本地 PowerShell JSON DateTime 的 UTC 窗口误判，云创建/安装仍须各自 fresh SHA 单独批准。见[退役执行证据及下一步](./docs/aws-sandbox-j5gj19-retirement-execution.md)。以下实施段落按当时状态保留。
