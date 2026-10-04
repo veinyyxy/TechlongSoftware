@@ -72,10 +72,10 @@ export function assertStackControlInventory(plan: StackControlCreatePlan, value:
       templateCanonicalSha256: plan.templateCanonicalSha256, providerEvidenceSha256: target.providerEvidenceSha256, observedAt: target.observedAt }, "J22 exact unexecuted target");
   }
 }
-type Observation = { managementBefore: Readonly<ArnProbeReadComparisonManagementObservation>; managementAfter: Readonly<ArnProbeReadComparisonManagementObservation>;
+export type StackControlCreationObservation = { managementBefore: Readonly<ArnProbeReadComparisonManagementObservation>; managementAfter: Readonly<ArnProbeReadComparisonManagementObservation>;
   fixtureBefore: ArnProbeFixtureState; fixtureAfter: ArnProbeFixtureState; fixtureInventoryBefore: StackControlFixtureInventory;
   fixtureInventoryAfter: StackControlFixtureInventory; inventory: StackControlInventory };
-function assertObservation(plan: StackControlCreatePlan, value: Observation, at: number) {
+export function assertStackControlCreationObservation(plan: StackControlCreatePlan, value: StackControlCreationObservation, at: number) {
   probeSame(Object.keys(value).sort(), ["fixtureAfter", "fixtureBefore", "fixtureInventoryAfter", "fixtureInventoryBefore", "inventory", "managementAfter", "managementBefore"], "J22 Source observation fields");
   const predecessor = plan.input.candidate.input.predecessor, baseline = predecessor.input.inspect, prior = predecessor.input.creationReview.plan.input.comparisonPlan.input.priorPlan;
   for (const item of [value.managementBefore, value.managementAfter]) { stackControlFresh(item, at); probeSame(normalized(item), normalized(baseline.management), "J22 complete exact Locked/v7 baseline"); }
@@ -101,7 +101,7 @@ async function collect(plan: StackControlCreatePlan, ports: Local) {
   const managementAfter = await ports.reads.readManagement(p, ports.signal), end = now();
   if (end < start || end - start > 90_000) throw new Error("J22 Source collection exceeded its bound.");
   const observation = { managementBefore, fixtureBefore, fixtureInventoryBefore, inventory, fixtureInventoryAfter, fixtureAfter, managementAfter };
-  assertObservation(plan, observation, end); probeSame(await ports.readPredecessor(), p, "J22 real predecessor after reads"); ports.signal.throwIfAborted(); return observation;
+  assertStackControlCreationObservation(plan, observation, end); probeSame(await ports.readPredecessor(), p, "J22 real predecessor after reads"); ports.signal.throwIfAborted(); return observation;
 }
 export interface StackControlSlot {
   fence: StackControlFence; readClaim(): Promise<StackControlClaim | null>;
@@ -126,7 +126,7 @@ export type StackControlCreateReview = Awaited<ReturnType<typeof reviewStackCont
 export async function assertStackControlCreateReview(review: StackControlCreateReview) {
   await assertStackControlCreatePlan(review.plan);
   const { reviewSha256, ...body } = review, start = probeInstant(body.issuedAt), end = probeInstant(body.expiresAt), policy = body.plan.input.candidate.input;
-  probeSame(body.fence, body.plan.fence, "J22 review fence"); assertObservation(body.plan, body.observation, start);
+  probeSame(body.fence, body.plan.fence, "J22 review fence"); assertStackControlCreationObservation(body.plan, body.observation, start);
   if (start < probeInstant(policy.reviewedAt) || start - probeInstant(policy.reviewedAt) > 90_000 || end <= start || end - start > 300_000 ||
     probeInstant(policy.expiresAt) - end < 900_000 || reviewSha256 !== await sha256Hex(canonicalJson(body))) throw new Error("J22 creation approval window/digest drifted.");
   probeSame(body, { schemaVersion: 1, stage: "B5-J5g-j22", action: "REVIEW_GENERATION5_STACK_SCOPED_GRANT_CREATE", plan: body.plan, fence: body.fence, observation: body.observation,

@@ -152,9 +152,12 @@ export type ArnProbeManagementObservation = Omit<CollectedManagementObservation,
 export type ArnProbeReadComparisonManagementObservation = Omit<ArnProbeManagementObservation, "rendererShape"> & {
   rendererShape: "Locked" | "ArnProbeReadComparisonGrant";
 };
+export type StackControlManagementObservation = Omit<ArnProbeManagementObservation, "rendererShape"> & {
+  rendererShape: "Locked" | "StackScopedReadControlGrant";
+};
 type ProbeTemplateBinding = {
   revokeTarget: ArnProbeGrantPlan["revokeTarget"]; grantTemplateRawSha256: string; grantTemplateCanonicalSha256: string;
-  grantRendererShape: "ArnProbeDeleteChangeSetGrant" | "ArnProbeReadComparisonGrant";
+  grantRendererShape: "ArnProbeDeleteChangeSetGrant" | "ArnProbeReadComparisonGrant" | "StackScopedReadControlGrant";
 };
 type AnyManagementObservation = Omit<CollectedManagementObservation, "rendererShape" | "stack"> & {
   rendererShape: CollectedManagementObservation["rendererShape"] | ProbeTemplateBinding["grantRendererShape"];
@@ -313,6 +316,7 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
   private async collectObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }, allowCreatedLocked?: boolean): Promise<Readonly<CollectedManagementObservation>>;
   private async collectObservation(input: { signal: AbortSignal }, allowCreatedLocked: boolean, probePlan: ProbeTemplateBinding & { grantRendererShape: "ArnProbeDeleteChangeSetGrant" }): Promise<Readonly<ArnProbeManagementObservation>>;
   private async collectObservation(input: { signal: AbortSignal }, allowCreatedLocked: boolean, probePlan: ProbeTemplateBinding & { grantRendererShape: "ArnProbeReadComparisonGrant" }): Promise<Readonly<ArnProbeReadComparisonManagementObservation>>;
+  private async collectObservation(input: { signal: AbortSignal }, allowCreatedLocked: boolean, probePlan: ProbeTemplateBinding & { grantRendererShape: "StackScopedReadControlGrant" }): Promise<Readonly<StackControlManagementObservation>>;
   private async collectObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }, allowCreatedLocked = false, probePlan?: ProbeTemplateBinding): Promise<Readonly<AnyManagementObservation>> {
     exact(input, ["signal", ...(Object.hasOwn(input, "cellSafety") ? ["cellSafety"] : [])]); signal(input.signal);
     if (Object.hasOwn(input, "cellSafety") && !input.cellSafety) invalid("An explicit Cell safety binding cannot be empty.");
@@ -395,6 +399,17 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
     return this.collectObservation({ signal: input.signal }, true, { revokeTarget: input.plan.revokeTarget,
       grantTemplateRawSha256: input.plan.templateRawSha256, grantTemplateCanonicalSha256: input.plan.templateCanonicalSha256,
       grantRendererShape: "ArnProbeReadComparisonGrant" });
+  }
+  /** Independent J22 channel, with its own exact compiler. This does not
+   * broaden any older probe reader or the production renderer. */
+  async readArnProbeStackControlObservation(input: { plan: import("./arn-probe-stack-scoped-read-control-create.ts").StackControlCreatePlan;
+    signal: AbortSignal }): Promise<Readonly<StackControlManagementObservation>> {
+    exact(input, ["plan", "signal"]);
+    const { assertStackControlCreatePlan } = await import("./arn-probe-stack-scoped-read-control-create.ts");
+    await assertStackControlCreatePlan(input.plan);
+    return this.collectObservation({ signal: input.signal }, true, { revokeTarget: input.plan.revokeTarget,
+      grantTemplateRawSha256: input.plan.templateRawSha256, grantTemplateCanonicalSha256: input.plan.templateCanonicalSha256,
+      grantRendererShape: "StackScopedReadControlGrant" });
   }
   async readManagementObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }): Promise<Readonly<SharedCellAuthorCompensationManagementObservation>> {
     const observed = await this.collectObservation(input);

@@ -35,6 +35,7 @@ import { compileArnProbeFixturePlan, ARN_PROBE_FIXTURE_STACK } from "../lib/depl
 import { compileArnProbeGrantPlan } from "../lib/deployments/execution/arn-compatibility-probe-grant.ts";
 import { compileArnProbeReadComparisonPlan } from "../lib/deployments/execution/arn-compatibility-probe-read-comparison.ts";
 import { compileArnProbeComparisonCreatePlan } from "../lib/deployments/execution/arn-probe-read-comparison-create.ts";
+import { stackControlWorkflowFixture } from "./fixtures/arn-probe-stack-scoped-read-control-workflow.ts";
 import type { SharedCellAuthorCompensationOperationStore } from "../lib/deployments/execution/shared-cell-author-compensation-operation-store.ts";
 import { compileSharedCellAuthorCompensationControllerContract } from "../lib/deployments/execution/shared-cell-author-compensation-controller.ts";
 import {
@@ -552,6 +553,24 @@ test("J18 exact comparison IAM channel is separate from J11 Delete and productio
     const policy = response.PolicyVersion as { Document: string }; const value = JSON.parse(decodeURIComponent(policy.Document)); value.Statement.push({ Effect: "Allow", Action: "*", Resource: "*" }); policy.Document = JSON.stringify(value);
   } });
   await assert.rejects(drift.reads.readArnProbeReadComparisonObservation({ plan, signal: abort() }));
+});
+
+test("J22 exact Stack control channel stays separate from all older and production IAM shapes", async () => {
+  const f = await stackControlWorkflowFixture(), plan = f.creationReview.plan, data = await material(), candidate = fixture(data, plan.request.TemplateBody);
+  const result = await candidate.reads.readArnProbeStackControlObservation({ plan, signal: abort() });
+  assert.equal(result.rendererShape, "StackScopedReadControlGrant"); assert.equal(result.roles.length, 2); assert.equal(result.policies.length, 2);
+  assert.equal(result.stack.templateRawSha256, plan.templateRawSha256);
+  const old = f.predecessor.input.creationReview.plan.input.comparisonPlan.input.priorPlan;
+  await assert.rejects(candidate.reads.readArnProbeManagementObservation({ plan: old, signal: abort() }));
+  await assert.rejects(candidate.reads.readArnProbeGeneration4Observation({ plan: f.predecessor.input.creationReview.plan, signal: abort() }));
+  await assert.rejects(candidate.reads.readManagementObservation({ signal: abort() }));
+  const locked = fixture(data, plan.revokeTarget.templateBody);
+  assert.equal((await locked.reads.readArnProbeStackControlObservation({ plan, signal: abort() })).rendererShape, "Locked");
+  const drift = fixture(data, plan.request.TemplateBody, (name, _input, response) => { if (name === "getPolicyVersion") {
+    const policy = response.PolicyVersion as { Document: string }, value = JSON.parse(decodeURIComponent(policy.Document));
+    value.Statement.push({ Effect: "Allow", Action: "*", Resource: "*" }); policy.Document = JSON.stringify(value);
+  } });
+  await assert.rejects(drift.reads.readArnProbeStackControlObservation({ plan, signal: abort() }));
 });
 
 test("installed management SDK construction is dormant and uses login-only lazy shared credentials", async () => {

@@ -7,13 +7,15 @@ import { assertStackControlClaim, stackControlClaimBinding, stackControlCopy,
   type StackControlFence, type StackControlClaim, type StackControlSlot } from "./arn-probe-stack-scoped-read-control-create.ts";
 import { STACK_CONTROL_STEPS, assertStackControlActions, stackControlStepRequest,
   type StackControlStep, type StackControlActions, type StackControlJournal } from "./arn-probe-stack-scoped-read-control-actions.ts";
+import { assertStackControlWorkflow, type StackControlWorkflowManifest } from "./arn-probe-stack-scoped-read-control-workflow.ts";
 
 function inside(root: string, file: string) { const relative = path.relative(root, file); if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("J22 fixed slot escapes repository."); }
 async function missing(file: string) { try { await lstat(file); return false; } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return true; throw error; } }
 /** No state created by construction or reads. Only one mkdir winner before
  * one Create; all partial/corrupt/unknown state fails closed and stays consumed. */
 export async function createStackControlFsSlot(repository: string, input: StackControlFence, predecessor: StackScopedReadControlPredecessor): Promise<StackControlSlot & {
-  workflowJournal(manifest: StackControlActions): Promise<StackControlJournal>;
+  workflowJournal(manifest: StackControlActions | StackControlWorkflowManifest): Promise<StackControlJournal>;
+  workflowIntentsPresent(): Promise<boolean>;
 }> {
   const root = await realpath(repository), fence = stackControlCopy(input);
   if (/^(?:\\\\|\/\/)/.test(root) || !(await lstat(root)).isDirectory()) throw new Error("J22 requires local repository.");
@@ -61,7 +63,9 @@ export async function createStackControlFsSlot(repository: string, input: StackC
     const handle = await open(file, "wx");
     try { await handle.writeFile(`${JSON.stringify(value, null, 2)}\n`, "utf8"); await handle.sync(); } finally { await handle.close(); }
   }
-  return { fence, readClaim, reserve: async (review, preflightEvidenceSha256, reservedAt) => {
+  return { fence, readClaim, workflowIntentsPresent: async () => {
+    await readClaim(); const slot = await existing(); return !!slot && (await readdir(slot)).some(name => name !== "claim.json");
+  }, reserve: async (review, preflightEvidenceSha256, reservedAt) => {
     const binding = await stackControlClaimBinding(review); probeSame(review.fence, fence, "J22 reservation fence");
     const body = { schemaVersion: 1 as const, action: "CLAIM_GENERATION5_STACK_CONTROL_BEFORE_CREATE" as const, fence, binding, preflightEvidenceSha256, reservedAt };
     const claim = { ...body, claimSha256: await sha256Hex(canonicalJson(body)) }; await assertStackControlClaim(claim, fence);
@@ -69,7 +73,9 @@ export async function createStackControlFsSlot(repository: string, input: StackC
     await mkdir(slot); // Exclusive winner; crash here permanently consumes slot.
     await durable(path.join(slot, "claim.json"), claim); probeSame(await readClaim(), claim, "J22 durable exact claim readback"); return stackControlCopy(claim);
   }, workflowJournal: async manifest => {
-    await assertStackControlActions(manifest); probeSame(manifest.input.creationReview.fence, fence, "J22 action fence");
+    if (manifest.action === "REVIEW_STACK_SCOPED_READ_WORKFLOW") await assertStackControlWorkflow(manifest as StackControlWorkflowManifest);
+    else await assertStackControlActions(manifest as StackControlActions);
+    probeSame(manifest.input.creationReview.fence, fence, "J22 action fence");
     probeSame(await readClaim(), manifest.input.claim, "J22 durable claim for future journal");
     async function validate(step: StackControlStep, value: Record<string, unknown>) {
       const request = stackControlStepRequest(manifest, step, value.request), at = probeInstant(String(value.reservedAt));

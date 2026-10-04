@@ -38,7 +38,7 @@ export async function compileStackControlActions(input: { creationReview: StackC
 }
 export type StackControlActions = Awaited<ReturnType<typeof compileStackControlActions>>;
 export async function assertStackControlActions(manifest: StackControlActions) { probeSame(manifest, await compileStackControlActions(manifest.input), "J22 future action bindings"); }
-export function stackControlStepRequest(m: StackControlActions, step: StackControlStep, supplied?: unknown) {
+export function stackControlStepRequest(m: Pick<StackControlActions, "actions" | "input">, step: StackControlStep, supplied?: unknown) {
   if (step === "run") return m.actions;
   if (step === "grant-execute") return m.actions.grantExecute.request;
   if (step === "revoke-create") return m.actions.revoke.createRequest;
