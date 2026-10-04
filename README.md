@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+最新 J5g-j21 已完成 generation4 两次 DescribeChangeSet 拒绝的 Source-only 诊断：CloudTrail 准确匹配两条 request ID，MFA 均 true，AWS 均报告准确 fixture Stack 上无匹配 identity-based Allow；实读保留 v6 与原批准一致，当前完整 Locked/v7、execution boundary v1 和真实 claim/六步 journal 未变。实际条件上下文未报告，根因仍未证明；无新窗口、云写入或 Operator 重试。下一对照建议仅供审阅：准确零资源 Stack 限定的 Describe 只读 Allow，不附加 ChangeSetName 条件；此权限范围变化须用户明确同意，尚未实现/部署或自动下一代。见[只读诊断、证据限制与后续范围](./docs/aws-sandbox-j5gj21-generation4-describe-diagnostic.md)。以下记录按其当时状态保留。
+
 最新 J5g-j20 已按两项独立 fresh 批准完成 generation4 创建与安装/两次读取/立即撤权。两次固定 MFA Operator Describe（full ARN、exact name）均收到 AccessDenied，compatibility 仍未证明；wrapper 与后续独立 Source Inspect、真实账本复算确认 Locked/v7、execution boundary v1、原零资源 fixture 稳定，Cell MISSING、authority ABSENT。固定 claim/六步 intent 永久消费，旧记录保留、不重放或自动下一代；下一步先只读诊断拒绝原因，不扩大权限。见[generation4 执行、拒绝证据与独立 Locked 收尾](./docs/aws-sandbox-j5gj20-generation4-execution.md)。以下记录按其当时状态保留。
 
 最新 J5g-j20 已由用户按准确 fresh SHA 在本地退役唯一旧未执行 generation3 Grant，并经 wrapper Inspect、后续独立 Source Inspect 与真实账本复算证明 RETIRED_LOCKED_VERIFIED：完整管理 Change Set 清单空、Locked/v5 和原 fixture 未变。旧三代记录/claim 保留，退役 intent 永久消费；generation4 只读 admission 通过，但新 registry/claim 仍 absent，没有创建或安装权限。下一步仅生成新 generation4 创建审阅清单，创建与安装仍分别批准。见[准确退役、独立证据与下一步](./docs/aws-sandbox-j5gj20-generation3-retirement-execution.md)。以下记录按其当时状态保留。
