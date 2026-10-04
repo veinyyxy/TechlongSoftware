@@ -385,6 +385,17 @@ export class AwsSdkSharedCellAuthorCompensationManagementReadAdapter implements 
       grantTemplateRawSha256: input.plan.templateRawSha256, grantTemplateCanonicalSha256: input.plan.templateCanonicalSha256,
       grantRendererShape: "ArnProbeReadComparisonGrant" });
   }
+  /** Independent generation4 channel. Other generation readers retain their
+   * strict compilers; no production lifecycle or readiness gate is enabled. */
+  async readArnProbeGeneration4Observation(input: { plan: import("./arn-probe-read-comparison-generation4-create.ts").ArnProbeComparisonCreatePlan;
+    signal: AbortSignal }): Promise<Readonly<ArnProbeReadComparisonManagementObservation>> {
+    exact(input, ["plan", "signal"]);
+    const { assertArnProbeComparisonCreatePlan } = await import("./arn-probe-read-comparison-generation4-create.ts");
+    await assertArnProbeComparisonCreatePlan(input.plan);
+    return this.collectObservation({ signal: input.signal }, true, { revokeTarget: input.plan.revokeTarget,
+      grantTemplateRawSha256: input.plan.templateRawSha256, grantTemplateCanonicalSha256: input.plan.templateCanonicalSha256,
+      grantRendererShape: "ArnProbeReadComparisonGrant" });
+  }
   async readManagementObservation(input: { signal: AbortSignal; cellSafety?: SharedCellAuthorCompensationCellSafetyBinding }): Promise<Readonly<SharedCellAuthorCompensationManagementObservation>> {
     const observed = await this.collectObservation(input);
     if (observed.stack.status !== "UPDATE_COMPLETE") invalid("Lifecycle receipts require an UPDATE_COMPLETE management Stack.");

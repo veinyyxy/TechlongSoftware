@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+最新 J5g-j20 已补齐 generation4 受审创建、独立回读、安装审阅、固定 MFA Operator 两种准确 Describe 和立即撤权工具，85项定向测试/回归、类型检查、lint 与 Source-only 准备核验通过。旧 generation3 Grant/claim、Locked/v5 和原 fixture 未变，两个新 registry 仍 absent；本轮无云写入、无新执行窗口。代码工具已接线不等于 Worker/readiness 开启；真实退役、创建、安装仍各按 fresh SHA 单独批准，代码提交/推送则按持续授权直接执行。见[接线边界、证据与下一步](./docs/aws-sandbox-j5gj20-generation4-reviewed-tools.md)。以下记录按其当时状态保留。
+
 最新 J5g-j20 已按代码-only批准实现 generation3 严格退役入口、完整 SHA 本地批准命令及独立 generation4 compiler/围栏/固定槽位；78项定向测试、类型检查与 Source-only 准备核验通过。旧三代记录、准确未执行 Grant、Locked/v5 和原 fixture 保持不变，两个新 registry 均 absent；本轮无云写入、无新批准或 policy 窗口。generation4 的真实创建/回读/安装/撤权执行链仍未接线，下一代码阶段完成后，真实删除、创建和安装才可各按 fresh SHA 单独批准。见[本阶段实现、证据与下一步](./docs/aws-sandbox-j5gj20-generation3-retirement-generation4.md)。以下记录按其当时状态保留。
 
 最新 J5g-j19 已完成 generation3 安装截止后的 Source-only 窗口收尾：准确 Grant 仍 READY_UNEXECUTED、完整 Locked/v5 和原 fixture 未变，真实固定槽位只含 claim，没有 workflow/Operator intent；旧三代记录保留。本轮无云写入，旧窗口不能刷新身份后继续安装，也不复位或重建。后续严格 generation3 退役/独立 generation4 与准备前置方案仅供审阅，尚未实现或授权。见[窗口收尾及下一轮方案](./docs/aws-sandbox-j5gj19-generation3-window-closure.md)。以下记录按其当时状态保留。

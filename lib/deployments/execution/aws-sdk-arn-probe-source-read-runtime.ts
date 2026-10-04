@@ -40,5 +40,6 @@ export async function createArnProbeSourceReadRuntime() {
   return { reads: new AwsSdkArnProbeWorkflowReadAdapter({ client: cfClient, management, fixture, grant, commands }), credentials,
     readComparisonManagement: (plan: Parameters<typeof management.readArnProbeReadComparisonObservation>[0]["plan"], signal: AbortSignal) => management.readArnProbeReadComparisonObservation({ plan, signal }),
     readGeneration3Management: (plan: Parameters<typeof management.readArnProbeGeneration3Observation>[0]["plan"], signal: AbortSignal) => management.readArnProbeGeneration3Observation({ plan, signal }),
+    readGeneration4Management: (plan: Parameters<typeof management.readArnProbeGeneration4Observation>[0]["plan"], signal: AbortSignal) => management.readArnProbeGeneration4Observation({ plan, signal }),
     destroy: () => [sourceSts, sourceCf, sourceIam, sourceDynamo].forEach((client) => client.destroy()) };
 }

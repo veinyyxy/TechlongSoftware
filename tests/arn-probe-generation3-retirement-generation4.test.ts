@@ -139,11 +139,11 @@ test("generation4 fence binds all three preserved generations and only independe
   assert.match(fence.slotRelativePath, /j5gj20-read-comparison\/.+\/slot-000004$/);
   await assert.rejects(arnProbeComparisonFence(generation1, await retiredGeneration2() as unknown as typeof proof));
 });
-test("generation4 compilation is isolated, exact-name only and keeps 30/5/10 boundaries without live capability", async () => {
+test("generation4 compilation is isolated, exact-name only and keeps 30/5/10 boundaries without execution authorization", async () => {
   const f = await generation4Fixture(), old = await generation3Fixture(); await assertArnProbeComparisonCreatePlan(f.review.plan); await assertArnProbeComparisonCreateReview(f.review);
   assert.match(f.review.plan.request.ChangeSetName, /^techlong-j5gj20-read-grant-/); assert.equal(f.review.plan.request.ChangeSetType, "UPDATE");
   assert.equal(f.review.plan.candidatePolicyDurationMs, 1800000); assert.equal(f.review.plan.maximumApprovalDurationMs, 300000); assert.equal(f.review.plan.minimumRevokeMarginMs, 600000);
-  assert.equal(f.review.grantExecutionAuthorized, false); assert.equal(GENERATION4_LIVE_EXECUTION_IMPLEMENTED, false);
+  assert.equal(f.review.grantExecutionAuthorized, false); assert.equal(GENERATION4_LIVE_EXECUTION_IMPLEMENTED, true);
   assert.ok(Buffer.byteLength(canonicalJson(f.review), "utf8") < 600000);
   await assert.rejects(compileArnProbeComparisonCreatePlan({ ...f.review.plan.input, variant: "FULL_ARN_CONDITION" }));
   await assert.rejects(assertArnProbeComparisonCreatePlan(old.review.plan as unknown as typeof f.review.plan));

@@ -1,8 +1,10 @@
 import { assertReadComparisonRetirementProof, type ReadComparisonRetirementProof } from "./arn-probe-read-comparison-generation3-retirement.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
-import { probeSame, probeInstant } from "./arn-compatibility-probe-workflow.ts";
+import { probeSame, probeInstant, probeObject } from "./arn-compatibility-probe-workflow.ts";
+import { arnProbeSafeRequestId, sanitizeArnProbeFailure } from "./arn-compatibility-probe-diagnostics.ts";
+import type { ArnProbeRenewalReads } from "./arn-compatibility-probe-renewal-review.ts";
 import { ARN_PROBE_READ_COMPARISON_ANCHORS as anchors, assertArnProbeReadComparisonPlan,
-  assertArnProbeReadComparisonPredecessor, assertArnProbeReadComparisonReview,
+  assertArnProbeReadComparisonPredecessor, assertArnProbeReadComparisonReview, reviewArnProbeReadComparison,
   type ArnProbeReadComparisonPlan, type ArnProbeReadComparisonReview, type ArnProbeReadComparisonPredecessor } from "./arn-compatibility-probe-read-comparison.ts";
 
 export type ArnProbeComparisonVariant = "FULL_ARN_CONDITION" | "EXACT_NAME_CONDITION";
@@ -130,6 +132,87 @@ export async function assertArnProbeComparisonClaim(claim: ArnProbeComparisonCla
   probeSame(body, { schemaVersion: 1, action: "CLAIM_GENERATION4_BEFORE_CREATE", fence, binding,
     preflightEvidenceSha256: body.preflightEvidenceSha256, reservedAt: body.reservedAt }, "Generation4 claim fields");
 }
-/** This phase exposes no cloud Create/Execute or Operator controller. The next
- * code phase must wire and verify those before opening any real policy window. */
-export const GENERATION4_LIVE_EXECUTION_IMPLEMENTED = false as const;
+/** Reviewed tools are wired; this is not authorization or live Worker readiness.
+ * Cloud deletion, creation and installation each still need separate fresh SHA. */
+export const GENERATION4_LIVE_EXECUTION_IMPLEMENTED = true as const;
+
+type Preflight = { reads: ArnProbeRenewalReads; readPredecessor: () => Promise<ArnProbeReadComparisonPredecessor>; signal: AbortSignal; now?: () => number };
+export async function createReviewedArnProbeComparison(input: Preflight & { review: ArnProbeComparisonCreateReview;
+  slot: ArnProbeComparisonSlot; approvedReviewSha256: string; executionPhrase: string;
+  acknowledgeAwsWrite: boolean; acknowledgeNamedIamChangeSetOnly: boolean; acknowledgeLowCostNotZero: boolean;
+  acknowledgePreservesPredecessorAndConsumesGeneration4: boolean;
+  create: (request: ArnProbeComparisonCreatePlan["request"], signal: AbortSignal) => Promise<unknown> }) {
+  const review = input.review, now = input.now ?? Date.now;
+  await assertArnProbeComparisonCreateReview(review); probeSame(input.slot.fence, review.fence, "Generation4 capability fence");
+  if (input.approvedReviewSha256 !== review.reviewSha256 || input.executionPhrase !== review.requiredPhrase || input.acknowledgeAwsWrite !== true ||
+      input.acknowledgeNamedIamChangeSetOnly !== true || input.acknowledgeLowCostNotZero !== true || input.acknowledgePreservesPredecessorAndConsumesGeneration4 !== true) throw new Error("Exact creation-only approval and permanent generation4 acknowledgement required.");
+  const live = () => { const at = now(); if (at < probeInstant(review.issuedAt) || at >= probeInstant(review.expiresAt)) throw new Error("Generation4 creation review expired before AWS write."); };
+  live(); input.signal.throwIfAborted();
+  if (await input.slot.readClaim()) throw new Error("Generation4 is already consumed; no automatic replay.");
+  const preflight = await reviewArnProbeReadComparison({ priorPlan: review.sourceReview.plan.input.priorPlan,
+    readPredecessor: input.readPredecessor, reads: input.reads, signal: input.signal, now });
+  probeSame(preflight.predecessor, review.sourceReview.predecessor, "Generation4 predecessor before claim");
+  probeSame({ ...preflight.observation.managementAfter, observedAt: null }, { ...review.sourceReview.observation.managementAfter, observedAt: null }, "Generation4 reviewed Locked evidence");
+  probeSame({ ...preflight.observation.fixtureAfter, observedAt: null }, { ...review.sourceReview.observation.fixtureAfter, observedAt: null }, "Generation4 reviewed fixture evidence");
+  // A fresh Source review changes its hypothetical window; never substitute its
+  // newly compiled candidate for the exact request the human approved.
+  live(); input.signal.throwIfAborted();
+  const claim = await input.slot.reserve(review, await sha256Hex(canonicalJson(preflight)), new Date(now()).toISOString());
+  await assertArnProbeComparisonClaim(claim, review.fence);
+  probeSame(claim.binding, await arnProbeComparisonClaimBinding(review), "Generation4 durable request binding");
+  let creationAttempted = false, target: { stackId: string; changeSetArn: string; requestId: string } | null = null;
+  const failures: ReturnType<typeof sanitizeArnProbeFailure>[] = [];
+  try {
+    live(); input.signal.throwIfAborted(); creationAttempted = true;
+    const response = probeObject(await input.create(review.plan.request, AbortSignal.any([input.signal, AbortSignal.timeout(30_000)])));
+    const requestId = arnProbeSafeRequestId(probeObject(response.$metadata).requestId);
+    if (!requestId || response.StackId !== review.plan.request.StackName || typeof response.Id !== "string" || !comparisonGrantArn(review.plan, response.Id)) throw new Error("Generation4 Create response identity drifted.");
+    target = { stackId: response.StackId as string, changeSetArn: response.Id, requestId };
+  } catch (error) { failures.push(sanitizeArnProbeFailure(error, "GRANT_CREATE", now)); }
+  const body = { stage: "B5-J5g-j20", mode: "CREATE_REVIEWED", reviewSha256: review.reviewSha256, claim, target, creationAttempted, failures,
+    outcome: target ? "CREATE_SUBMITTED" : creationAttempted ? "CREATE_UNCERTAIN" : "NO_CREATE_SUBMITTED_SLOT_CONSUMED",
+    mutationPerformed: target ? true : creationAttempted ? null : false, grantInstalled: false, grantExecutionAuthorized: false,
+    operatorReadAuthorized: false, probeDeleted: false, childExecuted: false, retryAuthorized: false,
+    productionCompatibilityVerified: false, runtimeEnabled: false, observedAt: new Date(now()).toISOString() };
+  return immutable({ ...body, receiptSha256: await sha256Hex(canonicalJson(body)) });
+}
+export function comparisonGrantArn(plan: { request: { ChangeSetName: string } }, arn: string) {
+  return new RegExp(`^arn:aws:cloudformation:ca-central-1:402010193138:changeSet/${plan.request.ChangeSetName}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`).test(arn);
+}
+export type ArnProbeComparisonGrantState = Readonly<
+  { state: "MISSING"; proof: "COMPLETE_MANAGEMENT_CHANGE_SET_INVENTORY"; observedAt: string } |
+  { state: "READY_UNEXECUTED"; stackId: string; changeSetArn: string; templateCanonicalSha256: string; providerEvidenceSha256: string; observedAt: string }>;
+export async function recoverArnProbeComparisonCreate(input: Omit<Preflight, "reads"> & { review: ArnProbeComparisonCreateReview;
+  slot: ArnProbeComparisonSlot; reads: Pick<ArnProbeRenewalReads, "readManagement" | "readFixture">;
+  readGrant: (plan: ArnProbeComparisonCreatePlan, signal: AbortSignal) => Promise<ArnProbeComparisonGrantState> }) {
+  const now = input.now ?? Date.now, started = now(), review = input.review;
+  await assertArnProbeComparisonCreateReview(review); input.signal.throwIfAborted();
+  probeSame(input.slot.fence, review.fence, "Recovery fence");
+  const claim = await input.slot.readClaim(); if (!claim) throw new Error("Recovery requires a durable claim; never reconstruct it.");
+  await assertArnProbeComparisonClaim(claim, review.fence); probeSame(claim.binding, await arnProbeComparisonClaimBinding(review), "Recovery exact claim binding");
+  const predecessor = await input.readPredecessor(); probeSame(predecessor, review.sourceReview.predecessor, "Recovery predecessor");
+  const prior = review.sourceReview.plan.input.priorPlan;
+  const managementBefore = await input.reads.readManagement(prior, input.signal), fixtureBefore = await input.reads.readFixture(prior, input.signal);
+  const grant = await input.readGrant(review.plan, input.signal);
+  const fixtureAfter = await input.reads.readFixture(prior, input.signal), managementAfter = await input.reads.readManagement(prior, input.signal);
+  const ended = now(); input.signal.throwIfAborted();
+  if (ended < started || ended - started > 90_000) throw new Error("Recovery read exceeded its bound.");
+  for (const value of [managementBefore, managementAfter, fixtureBefore, fixtureAfter, grant]) {
+    const age = ended - probeInstant(value.observedAt); if (age < 0 || age > 60_000) throw new Error("Recovery evidence is stale.");
+  }
+  // Exact original Locked management and unchanged fixture, including policy and
+  // role evidence. Exclude timestamps only, never create synthetic empty inventory.
+  for (const value of [managementBefore, managementAfter]) probeSame({ ...value, observedAt: null }, { ...review.sourceReview.observation.managementAfter, observedAt: null }, "Recovery exact Locked management");
+  for (const value of [fixtureBefore, fixtureAfter]) probeSame({ ...value, observedAt: null }, { ...review.sourceReview.observation.fixtureAfter, observedAt: null }, "Recovery unchanged fixture");
+  if (grant.state === "MISSING") {
+    if (grant.proof !== "COMPLETE_MANAGEMENT_CHANGE_SET_INVENTORY") throw new Error("Recovery absence lacks inventory proof.");
+  } else if (grant.state !== "READY_UNEXECUTED" || grant.stackId !== review.plan.request.StackName || !comparisonGrantArn(review.plan, grant.changeSetArn) ||
+    grant.templateCanonicalSha256 !== review.plan.templateCanonicalSha256 || !/^[a-f0-9]{64}$/.test(grant.providerEvidenceSha256)) throw new Error("Recovery Grant identity drifted.");
+  probeSame(await input.slot.readClaim(), claim, "Recovery claim stability"); probeSame(await input.readPredecessor(), predecessor, "Recovery archive stability");
+  const body = { stage: "B5-J5g-j20", mode: "READ_ONLY_RECOVER", reviewSha256: review.reviewSha256, claim,
+    observation: { managementBefore, fixtureBefore, grant, fixtureAfter, managementAfter },
+    outcome: grant.state === "MISSING" ? "MISSING_SLOT_CONSUMED" : "READY_UNEXECUTED", mutationPerformed: false,
+    retryAuthorized: false, grantExecutionAuthorized: false, operatorReadAuthorized: false, probeDeletionAuthorized: false,
+    productionCompatibilityVerified: false, runtimeEnabled: false, observedAt: new Date(ended).toISOString() };
+  return immutable({ ...body, receiptSha256: await sha256Hex(canonicalJson(body)) });
+}
