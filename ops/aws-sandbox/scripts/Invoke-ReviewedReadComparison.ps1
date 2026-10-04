@@ -27,7 +27,8 @@ function Read-OrdinaryJson([string]$Path) {
 }
 if (-not [IO.Path]::IsPathRooted($Output) -or (Test-Path -LiteralPath $Output)) { throw 'Output must be a new absolute file.' }
 $null = Read-OrdinaryJson $Evidence
-$nodeBinary = (Get-Command node -CommandType Application -ErrorAction Stop).Source
+# Match normal PATH precedence; multiple installed Node applications are not one executable.
+$nodeBinary = (Get-Command node -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $entry = $null
 $arguments = @('--evidence', $Evidence, '--output', $Output)
 switch ($PSCmdlet.ParameterSetName) {

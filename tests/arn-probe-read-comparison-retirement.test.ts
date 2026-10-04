@@ -158,6 +158,11 @@ test("PowerShell JSON DateTime approval preserves UTC and milliseconds and rejec
   assert.equal(child.status, 0, `${child.stdout}\n${child.stderr}`);
   assert.match(child.stdout, /Approval UTC regression passed/);
 });
+test("PowerShell approval wrapper selects one Node application in PATH order, including multiple installations", { skip: process.platform !== "win32" }, () => {
+  const child = spawnSync("pwsh", ["-NoProfile", "-NonInteractive", "-File", fileURLToPath(new URL("./fixtures/arn-probe-node-discovery.ps1", import.meta.url))], { encoding: "utf8", timeout: 15_000, windowsHide: true });
+  assert.equal(child.status, 0, `${child.stdout}\n${child.stderr}`);
+  assert.match(child.stdout, /Node binary discovery regression passed/);
+});
 test("generation3 creation settlement reads only the singleton target and refuses missing, competing or nested adoption", async () => {
   const f = await comparisonWorkflowFixture(), plan = f.review.plan, requests: Record<string, unknown>[] = [];
   const summary = { StackId: r.stackId, ChangeSetName: plan.request.ChangeSetName, ChangeSetId: f.grantArn, Status: "CREATE_COMPLETE", ExecutionStatus: "AVAILABLE" };
