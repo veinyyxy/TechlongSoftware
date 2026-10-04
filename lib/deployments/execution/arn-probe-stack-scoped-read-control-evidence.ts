@@ -27,7 +27,7 @@ async function anchored(value: Record<string, unknown>, key: string, expected: s
 }
 /** Existing records and actual generation4 journal only. No mkdir, reserve,
  * repair, retirement, successor fallback, AWS client or credential provider. */
-export async function loadStackScopedReadControlEvidence(repository: string, files: StackScopedReadControlFiles) {
+export async function loadClosedStackScopedReadControlEvidence(repository: string, files: StackScopedReadControlFiles) {
   probeSame(Object.keys(files).sort(), ["retirementEvidence", "retirementProof", "creationReview", "executionReview", "runReceipt", "lockedInspect", "diagnosticReceipt"].sort(), "J22 exact evidence paths");
   if (Object.values(files).some(v => typeof v !== "string" || !path.isAbsolute(v))) throw new Error("J22 requires explicit absolute evidence paths.");
   const root = await realpath(repository);
@@ -57,8 +57,15 @@ export async function loadStackScopedReadControlEvidence(repository: string, fil
   }
   const predecessor = await closeGeneration4ForStackScopedReadControl({ creationReview, manifest, run, inspect, diagnostic, intents });
   const fence = await stackScopedReadControlFence(predecessor);
+  return { predecessor, fence, actualJournalVerified: true } as const;
+}
+/** Timeless J22A preparation additionally demands an absent new registry.
+ * Reviewed J22B tools use the closed archive loader above, then independently
+ * validate any actual new slot; neither path repairs or consumes old records. */
+export async function loadStackScopedReadControlEvidence(repository: string, files: StackScopedReadControlFiles) {
+  const loaded = await loadClosedStackScopedReadControlEvidence(repository, files), root = await realpath(repository);
   const registry = path.join(root, ".aws-sandbox", "j5gj22-stack-scoped-read-control");
   try { await lstat(registry); throw new Error("J22 registry is already present; manual reconciliation, never reset or replay."); }
   catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
-  return { predecessor, fence, actualJournalVerified: true, newRegistryAbsent: true } as const;
+  return { ...loaded, newRegistryAbsent: true } as const;
 }

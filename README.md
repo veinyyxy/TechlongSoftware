@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+最新 J5g-j22B 已接入独立 generation5 固定磁盘 claim/六步 journal、准确 Stack-only Grant 的受审创建及独立 Source 只读恢复工具。30项定向测试/回归、类型检查、lint 与真实原件/旧账本的独立本地复算通过；新 registry 仍 absent，无 AWS/Neon 调用、真实新窗口或云写入。创建工具不等于安装工具：Grant/固定 MFA Operator 两次 Describe/立即 Revoke/独立 Locked 执行链尚未接线，下一 J22C 继续代码实现、不部署；实际创建和安装仍各按 fresh SHA 单独批准。见[固定账本、受审创建与后续接线](./docs/aws-sandbox-j5gj22b-fixed-storage-reviewed-creation.md)。以下记录按其当时状态保留。
+
 最新 J5g-j22A 已按用户同意的新只读范围实现 generation4 严格关闭前驱、独立新围栏描述、准确 Stack 限定的未部署 DescribeChangeSet 候选，以及仅本地 CheckPreparation 入口；只新增一条不含 ChangeSetName 的只读 Allow，旧删除/执行条件、资源和 compiler 不变。37项定向测试/回归、类型检查、lint 及真实原件/账本独立复算通过；无 AWS/Neon 调用、真实新 registry、候选窗口或批准。持久化和创建/安装/Operator/撤权云工具尚未接线；下一小阶段继续代码接线、不部署，实际云操作仍各按 fresh SHA 单独批准。见[受审准备入口、验证与后续接线](./docs/aws-sandbox-j5gj22-stack-scoped-read-control-preparation.md)。以下记录按其当时状态保留。
 
 最新 J5g-j21 已完成 generation4 两次 DescribeChangeSet 拒绝的 Source-only 诊断：CloudTrail 准确匹配两条 request ID，MFA 均 true，AWS 均报告准确 fixture Stack 上无匹配 identity-based Allow；实读保留 v6 与原批准一致，当前完整 Locked/v7、execution boundary v1 和真实 claim/六步 journal 未变。实际条件上下文未报告，根因仍未证明；无新窗口、云写入或 Operator 重试。下一对照建议仅供审阅：准确零资源 Stack 限定的 Describe 只读 Allow，不附加 ChangeSetName 条件；此权限范围变化须用户明确同意，尚未实现/部署或自动下一代。见[只读诊断、证据限制与后续范围](./docs/aws-sandbox-j5gj21-generation4-describe-diagnostic.md)。以下记录按其当时状态保留。
