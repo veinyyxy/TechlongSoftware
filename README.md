@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+最新 J5g-j22 generation5 已完成窗口关闭后的独立只读收尾：Source 刷新后，完整 Inspect 与本地原件/实际账本复算证明准确 Grant 仍 READY_UNEXECUTED、完整 Locked/v7 与原零资源 fixture 未变，固定槽位仅含 claim、没有执行 intent。安装及原 policy 截止均已关闭，Source-only 安装审阅从未获得执行批准；本轮无云写入、Operator 登录、删除或下一代创建。失败记录保留，不延长窗口或复位；后续严格本代退役/独立下一代仍须另行审阅及各自 fresh 云批准。见[窗口关闭、独立证据与后续边界](./docs/aws-sandbox-j5gj22-generation5-window-closure.md)。以下记录按其当时状态保留。
+
 最新 J5g-j22 已按准确 fresh 创建 SHA 单次创建 generation5 Stack-only Describe Grant，并由独立 Source RecoverCreate 证明 READY_UNEXECUTED、完整 Locked/v7 与原零资源 fixture 未变。真实固定槽位只有永久 claim，旧账本稳定；未执行 Grant/child、安装权限或登录 Operator/MFA，也未删除资源或创建付费 Cell。独立本地原件/账本复算通过，wrapper 文件限额收尾及3项相关回归/lint通过；下一步仅生成 fresh 安装 manifest/三项 action SHA，仍须单独批准且不能延长原窗口。见[generation5 创建、独立证据与截止边界](./docs/aws-sandbox-j5gj22-generation5-creation.md)。以下记录按其当时状态保留。
 
 最新 J5g-j22D 已完成实际 Source-only 在线核验：完整 Locked/v7、四个 IAM 资源、Cell MISSING/authority ABSENT、原零资源 fixture 与完整清单通过，管理 Change Set 完整清单为空，旧账本未变、新 registry absent。真实新清单约916KB，已修复 J22 专用有界读取入口（旧证据/账本仍保持600KB限制），4项直接相关测试、类型检查和lint通过；随后生成 fresh 创建审阅，创建尚未批准或提交，无 Operator/MFA/云写入。创建与安装仍各按 fresh SHA 单独批准。见[在线证据、入口修复与创建批准边界](./docs/aws-sandbox-j5gj22d-online-creation-review.md)。以下记录按其当时状态保留。
