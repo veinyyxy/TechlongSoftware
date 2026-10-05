@@ -53,7 +53,7 @@ if ($PSCmdlet.ParameterSetName -eq 'Create') {
     if ($recovered.outcome -cne 'READY_UNEXECUTED') { throw 'Ready Grant unproved. No installation review or retry.' }
     & $taskNodeBinary --experimental-strip-types $workflowEntry @common --mode Review --creation-review $CreationReview --output $executionOutput --acknowledge-read-only
     if ($LASTEXITCODE -ne 0) { throw 'Source-only execution review blocked. Grant was not installed by this wrapper.' }
-    $review = Read-OrdinaryJson $executionOutput
+    $review = Read-OrdinaryJson $executionOutput 2000000
     Write-Host "Execution review (not approved): $executionOutput"
     Write-Host "Manifest SHA: $($review.manifest.manifestSha256)"
     Write-Host "Grant action SHA: $($review.manifest.actionSha256.grantExecute)"

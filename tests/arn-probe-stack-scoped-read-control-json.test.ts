@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, realpath, rm, writeFile, link } from "node:fs/promises";
+import { mkdtemp, realpath, rm, writeFile, link, readFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { spawnSync } from "node:child_process";
@@ -29,6 +29,10 @@ test("J22 review reader rejects overlimit, relative/remote, directory, malformed
 });
 test("J22 wrapper parses cleanly and only explicit new review inputs get the larger bound", async () => {
   const wrapper = fileURLToPath(new URL("../ops/aws-sandbox/scripts/Invoke-ReviewedStackScopedReadControl.ps1", import.meta.url));
+  const source = await readFile(wrapper, "utf8");
+  assert.match(source, /\$review = Read-OrdinaryJson \$executionOutput 2000000/);
+  assert.match(source, /\$review = Read-OrdinaryJson \$ExecutionReview 2000000/);
+  assert.match(source, /\$null = Read-OrdinaryJson \$Evidence\r?\n/);
   await temp(async root => { const file = path.join(root, "large.json"); await writeFile(file, JSON.stringify({ padding: "x".repeat(920_000) }));
     const command = "$taskTokens=$null; $taskErrors=$null; $taskAst=[System.Management.Automation.Language.Parser]::ParseFile($args[0],[ref]$taskTokens,[ref]$taskErrors); if($taskErrors.Count){throw 'Parse failed'}; $taskFunction=$taskAst.Find({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Read-OrdinaryJson'},$true); . ([scriptblock]::Create($taskFunction.Extent.Text)); $taskValue=Read-OrdinaryJson $args[1] 2000000; if($taskValue.padding.Length -ne 920000){throw 'Wrong data'}; try { Read-OrdinaryJson $args[1]; throw 'Old bound unexpectedly accepted' } catch { if($_.Exception.Message -notlike '*Bounded ordinary*'){throw} }; 'BOUNDARY_VERIFIED'";
     const child = spawnSync("C:/Program Files/PowerShell/7/pwsh.exe", ["-NoProfile", "-Command", `& { ${command} } '${wrapper.replaceAll("'", "''")}' '${file.replaceAll("'", "''")}'`], { encoding: "utf8", timeout: 30_000 });
