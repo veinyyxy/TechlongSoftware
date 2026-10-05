@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+最新 J5g-j23 已按仅代码范围实现 generation5 严格一次退役入口、独立只读 Inspect、完整 SHA 本地批准脚本和 generation6 围栏/admission。15项定向测试/相关回归、类型检查、lint及两个独立进程的真实本地归档/账本核验通过；旧 claim/记录未变，退役 intent absent、generation6 registry absent。本轮无 AWS/Neon 调用或新批准窗口，没有实际删除、创建或安装；generation6 候选/云执行链尚未接线，真实退役、后继创建和安装仍各按 fresh SHA 单独批准。见[严格退役工具、独立围栏与执行边界](./docs/aws-sandbox-j5gj23-generation5-retirement-generation6.md)。以下记录按其当时状态保留。
+
 最新 J5g-j22 generation5 已完成窗口关闭后的独立只读收尾：Source 刷新后，完整 Inspect 与本地原件/实际账本复算证明准确 Grant 仍 READY_UNEXECUTED、完整 Locked/v7 与原零资源 fixture 未变，固定槽位仅含 claim、没有执行 intent。安装及原 policy 截止均已关闭，Source-only 安装审阅从未获得执行批准；本轮无云写入、Operator 登录、删除或下一代创建。失败记录保留，不延长窗口或复位；后续严格本代退役/独立下一代仍须另行审阅及各自 fresh 云批准。见[窗口关闭、独立证据与后续边界](./docs/aws-sandbox-j5gj22-generation5-window-closure.md)。以下记录按其当时状态保留。
 
 最新 J5g-j22 已按准确 fresh 创建 SHA 单次创建 generation5 Stack-only Describe Grant，并由独立 Source RecoverCreate 证明 READY_UNEXECUTED、完整 Locked/v7 与原零资源 fixture 未变。真实固定槽位只有永久 claim，旧账本稳定；未执行 Grant/child、安装权限或登录 Operator/MFA，也未删除资源或创建付费 Cell。独立本地原件/账本复算通过，wrapper 文件限额收尾及3项相关回归/lint通过；下一步仅生成 fresh 安装 manifest/三项 action SHA，仍须单独批准且不能延长原窗口。见[generation5 创建、独立证据与截止边界](./docs/aws-sandbox-j5gj22-generation5-creation.md)。以下记录按其当时状态保留。
