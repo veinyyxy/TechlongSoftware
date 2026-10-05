@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+最新 J5g-j23A 已接入 generation6 紧凑候选编译、独立固定永久 claim、单次受批创建、精确 Source 只读回读及完整 SHA 本地批准入口。28项定向测试/必要回归、类型检查、lint与两个独立进程的真实本地归档/账本核验通过；旧记录未变，generation6 registry 仍 absent，本轮无 AWS/Neon 调用、真实候选窗口或云写入。安装/固定 MFA Operator/立即撤权链尚未接线，下一小阶段先完成这些代码工具；真实创建与安装仍各按 fresh SHA 单独批准，不在二者之间插入代码/Git工作。见[独立候选、固定持久化与受审创建工具](./docs/aws-sandbox-j5gj23a-generation6-reviewed-creation.md)。以下记录按其当时状态保留。
+
 最新 J5g-j23 已按准确 fresh SHA 单次退役旧未执行 generation5 管理 Grant，并由另起 Source Inspect 证明 RETIRED_LOCKED_VERIFIED：完整管理 Change Set 清单为空、完整 Locked/v7 与原零资源 fixture 未变。旧云对象不可恢复，历史记录/claim 全部保留，永久 delete intent 不复位或重试；两个独立本地进程复算通过，generation6 registry 仍 absent，没有创建后继、安装权限或登录 Operator。下一步仅继续 generation6 候选/持久化/受审工具代码接线，真实创建与安装仍各按 fresh SHA 单独批准。见[准确退役、独立证据与后续边界](./docs/aws-sandbox-j5gj23-generation5-retirement-execution.md)。以下记录按其当时状态保留。
 
 最新 J5g-j23 已按仅代码范围实现 generation5 严格一次退役入口、独立只读 Inspect、完整 SHA 本地批准脚本和 generation6 围栏/admission。15项定向测试/相关回归、类型检查、lint及两个独立进程的真实本地归档/账本核验通过；旧 claim/记录未变，退役 intent absent、generation6 registry absent。本轮无 AWS/Neon 调用或新批准窗口，没有实际删除、创建或安装；generation6 候选/云执行链尚未接线，真实退役、后继创建和安装仍各按 fresh SHA 单独批准。见[严格退役工具、独立围栏与执行边界](./docs/aws-sandbox-j5gj23-generation5-retirement-generation6.md)。以下记录按其当时状态保留。
