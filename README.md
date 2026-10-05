@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+最新 J5g-j23B 已接通 generation6 独立安装审阅、固定 MFA Operator 至多两种准确 Describe、异常路径立即 Source Revoke、独立 Locked Inspect 与单独批准的 revoke-only 恢复；真实固定六步 journal 不复位或重放。38项定向测试/必要共享通道回归、类型检查、lint及两个独立进程的真实本地归档/账本核验通过；旧记录未变，generation6 registry 仍 absent，本轮无 AWS/Neon 调用、真实批准窗口或云写入。完整工具先于在线创建准备完毕，下一步仅 fresh Source-only 创建审阅；真实创建和安装仍各按 fresh SHA 单独批准，不在二者之间插入代码/Git工作。见[完整受审执行工具及在线下一步](./docs/aws-sandbox-j5gj23b-generation6-reviewed-workflow.md)。以下记录按其当时状态保留。
+
 最新 J5g-j23A 已接入 generation6 紧凑候选编译、独立固定永久 claim、单次受批创建、精确 Source 只读回读及完整 SHA 本地批准入口。28项定向测试/必要回归、类型检查、lint与两个独立进程的真实本地归档/账本核验通过；旧记录未变，generation6 registry 仍 absent，本轮无 AWS/Neon 调用、真实候选窗口或云写入。安装/固定 MFA Operator/立即撤权链尚未接线，下一小阶段先完成这些代码工具；真实创建与安装仍各按 fresh SHA 单独批准，不在二者之间插入代码/Git工作。见[独立候选、固定持久化与受审创建工具](./docs/aws-sandbox-j5gj23a-generation6-reviewed-creation.md)。以下记录按其当时状态保留。
 
 最新 J5g-j23 已按准确 fresh SHA 单次退役旧未执行 generation5 管理 Grant，并由另起 Source Inspect 证明 RETIRED_LOCKED_VERIFIED：完整管理 Change Set 清单为空、完整 Locked/v7 与原零资源 fixture 未变。旧云对象不可恢复，历史记录/claim 全部保留，永久 delete intent 不复位或重试；两个独立本地进程复算通过，generation6 registry 仍 absent，没有创建后继、安装权限或登录 Operator。下一步仅继续 generation6 候选/持久化/受审工具代码接线，真实创建与安装仍各按 fresh SHA 单独批准。见[准确退役、独立证据与后续边界](./docs/aws-sandbox-j5gj23-generation5-retirement-execution.md)。以下记录按其当时状态保留。

@@ -1,4 +1,5 @@
-# One exact fresh generation6 Create only; no installer or Operator/MFA.
+# One exact fresh generation6 Create, recovery, then Source-only install review.
+# No installer or Operator/MFA is invoked; display is never action approval.
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Evidence,
@@ -24,7 +25,13 @@ if ($review.stage -cne 'B5-J5g-j23' -or $review.action -cne 'REVIEW_GENERATION6_
     $review.requiredPhrase -cne 'I_CONFIRM_J5GJ23_CREATE_GENERATION6_STACK_READ_GRANT_ONLY') { throw 'Separate full generation6 create approval not supplied. No AWS write.' }
 Assert-ReadComparisonApprovalWindow $review.issuedAt $review.expiresAt
 $recoveryOutput = [IO.Path]::ChangeExtension($Output, '.recover.json')
-if (-not [IO.Path]::IsPathRooted($Output) -or (Test-Path -LiteralPath $Output) -or (Test-Path -LiteralPath $recoveryOutput)) { throw 'New absolute generation6 outputs required.' }
+$executionOutput = [IO.Path]::ChangeExtension($Output, '.execution-review.json')
+if (-not [IO.Path]::IsPathRooted($Output) -or $Output -ceq $recoveryOutput -or $Output -ceq $executionOutput) { throw 'Distinct absolute generation6 outputs required.' }
+foreach ($taskPath in @($Output, $recoveryOutput, $executionOutput)) {
+    if (Test-Path -LiteralPath $taskPath) { throw 'New absolute generation6 outputs required.' }
+    if ($taskPath.StartsWith('\\') -or $taskPath.StartsWith('//')) { throw 'Local outputs required.' }
+    foreach ($part in ($taskPath -split '[\\/]')) { if ($part -in @('.git', '.aws', '.codex', '.agents', '.aws-sandbox')) { throw 'Output cannot be a protected record.' } }
+}
 $taskNodeBinary = (Get-Command node -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $entry = Join-Path $PSScriptRoot 's3-b5-arn-probe-stack-control-generation6-create.ts'
 $creationExit = -1
@@ -41,4 +48,14 @@ $recovered = Read-Generation6OrdinaryJson $recoveryOutput
 if ($recovered.outcome -cne 'READY_UNEXECUTED') { throw 'Generation6 creation unproved; no installation or retry.' }
 if ($creationExit -ne 0) { Write-Warning 'Create entry failed; independent read-only recovery is the evidence, never retry Create.' }
 Write-Host "Independent unexecuted Grant evidence: $recoveryOutput"
-Write-Host 'No Grant/child execution or Operator login authorized; installation needs a separate fresh approval.'
+$workflowEntry = Join-Path $PSScriptRoot 's3-b5-arn-probe-stack-control-generation6-workflow.ts'
+& $taskNodeBinary --experimental-strip-types $workflowEntry --mode Review --evidence $Evidence --retirement-proof $RetirementProof --creation-review $CreateReview --output $executionOutput --acknowledge-read-only
+if ($LASTEXITCODE -ne 0) { throw 'Source-only installation review blocked. Grant remains unexecuted; no automatic install/retry.' }
+$executionReview = Read-Generation6OrdinaryJson $executionOutput
+Write-Host "Execution review (not approved): $executionOutput"
+Write-Host "Manifest SHA: $($executionReview.manifest.manifestSha256)"
+Write-Host "Grant action SHA: $($executionReview.manifest.actionSha256.grantExecute)"
+Write-Host "Reads action SHA: $($executionReview.manifest.actionSha256.operatorReads)"
+Write-Host "Revoke action SHA: $($executionReview.manifest.actionSha256.revoke)"
+Write-Host "Expires (UTC): $($executionReview.manifest.input.expiresAt)"
+Write-Host 'No Grant/child execution or Operator login authorized; use the separate read-control wrapper only after fresh explicit four-SHA approval.'
