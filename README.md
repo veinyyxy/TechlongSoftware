@@ -1,5 +1,9 @@
 # 餐饮 SaaS 平台
 
+最新 J5g-j23 generation6 已按准确 fresh 创建 SHA 单次创建未执行 Grant，独立 RecoverCreate 证明 READY_UNEXECUTED。安装入口返回非零并在正式执行意图之前被拦截；wrapper Inspect 与新的独立 Source Inspect 均证明完整 Locked/v7、execution boundary v1、准确 Grant AVAILABLE、原零资源 fixture 未变，真实槽位仅有永久 claim，没有 run/Grant/reads/Revoke intent。MFA 提示出现过，但不能据此证明登录成功；失败时已晚于安装批准截止，具体内部原因未被脱敏收据保留，不能将其断言为 MFA 或 AWS 权限错误。旧批准与原计划安装审阅余量均已关闭，不重放、不延长 policy、不复位或自动下一代。下一步建议先改进前置校验耗时和安全诊断（需用户确认代码范围），之后才另行审阅严格退役/后续轮次；云删除/创建/安装仍各按 fresh SHA 批准。见[创建、安装前拦截与独立安全收尾](./docs/aws-sandbox-j5gj23-generation6-creation-entry-blocked.md)。以下记录按其当时状态保留。
+
+最新 J5g-j23 generation6 已按准确 fresh 创建 SHA 单次创建未执行 Grant，独立 RecoverCreate 证明 READY_UNEXECUTED。安装入口返回非零并在正式执行意图之前被拦截；wrapper Inspect 与新的独立 Source Inspect 均证明完整 Locked/v7、execution boundary v1、准确 Grant AVAILABLE、原零资源 fixture 未变，真实槽位仅有永久 claim，没有 run/Grant/reads/Revoke intent。MFA 提示出现过，但不能据此证明登录成功；失败时已晚于安装批准截止，具体内部原因未被脱敏收据保留，不能将其断言为 MFA 或 AWS 权限错误。旧批准与原计划安装审阅余量均已关闭，不重放、不延长 policy、不复位或自动下一代。下一步建议先改进前置校验耗时和安全诊断（需用户确认代码范围），之后才另行审阅严格退役/后续轮次；云删除/创建/安装仍各按 fresh SHA 批准。见[创建、安装前拦截与独立安全收尾](./docs/aws-sandbox-j5gj23-generation6-creation-entry-blocked.md)。以下记录按其当时状态保留。
+
 最新 J5g-j23B 已接通 generation6 独立安装审阅、固定 MFA Operator 至多两种准确 Describe、异常路径立即 Source Revoke、独立 Locked Inspect 与单独批准的 revoke-only 恢复；真实固定六步 journal 不复位或重放。38项定向测试/必要共享通道回归、类型检查、lint及两个独立进程的真实本地归档/账本核验通过；旧记录未变，generation6 registry 仍 absent，本轮无 AWS/Neon 调用、真实批准窗口或云写入。完整工具先于在线创建准备完毕，下一步仅 fresh Source-only 创建审阅；真实创建和安装仍各按 fresh SHA 单独批准，不在二者之间插入代码/Git工作。见[完整受审执行工具及在线下一步](./docs/aws-sandbox-j5gj23b-generation6-reviewed-workflow.md)。以下记录按其当时状态保留。
 
 最新 J5g-j23A 已接入 generation6 紧凑候选编译、独立固定永久 claim、单次受批创建、精确 Source 只读回读及完整 SHA 本地批准入口。28项定向测试/必要回归、类型检查、lint与两个独立进程的真实本地归档/账本核验通过；旧记录未变，generation6 registry 仍 absent，本轮无 AWS/Neon 调用、真实候选窗口或云写入。安装/固定 MFA Operator/立即撤权链尚未接线，下一小阶段先完成这些代码工具；真实创建与安装仍各按 fresh SHA 单独批准，不在二者之间插入代码/Git工作。见[独立候选、固定持久化与受审创建工具](./docs/aws-sandbox-j5gj23a-generation6-reviewed-creation.md)。以下记录按其当时状态保留。
