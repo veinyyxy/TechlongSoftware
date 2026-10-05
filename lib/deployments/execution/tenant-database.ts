@@ -544,7 +544,7 @@ function assertMutationReceipt(
   }
 }
 
-function validateApprovedBaseline(
+export function validateApprovedBaseline(
   baseline: TenantApprovedBaseline | null,
 ): TenantApprovedBaseline {
   if (!baseline) {

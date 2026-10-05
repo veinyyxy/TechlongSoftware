@@ -4,6 +4,9 @@ import { DisabledSharedCellSecurityPreflight } from "./shared-cell-preflight.ts"
 import { DisabledTenantDatabasePort } from "./tenant-database.ts";
 import type { DeploymentWorkerDependencies } from "./worker.ts";
 
+export { createPreparedDeploymentWorkerRuntime } from "./prepared-runtime-composition.ts";
+export type { PreparedWorkerRuntime, PreparedWorkerRuntimeInput } from "./prepared-runtime-composition.ts";
+
 export const DEFAULT_DISABLED_RUNTIME_BLOCKERS = Object.freeze([
   "live_runtime_enablement_not_implemented",
   "tenant_runtime_provider_root_wiring_missing",

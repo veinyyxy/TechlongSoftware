@@ -6,6 +6,11 @@ import {
 export type DeploymentEnvironmentKind = "aws_sandbox" | "aws_production";
 export type DeploymentEnvironmentStatus = "active" | "inactive";
 
+/** Delivery-first monthly target approved on 2026-10-05; not a billing hard cap. */
+export const AWS_SANDBOX_MONTHLY_BUDGET_CENTS = 5_000;
+/** Archived plans must still validate without rewriting their reviewed policy. */
+export const AWS_SANDBOX_LEGACY_MONTHLY_BUDGET_CENTS = 1_000;
+
 export interface DeploymentEnvironmentPolicy {
   budgetLimitCents: number;
   ttlSeconds: number;
@@ -153,7 +158,10 @@ export function validateDeploymentEnvironment(
     if (environment.baseDomain !== "sandbox.techlong.cloud") {
       errors.push("sandbox_base_domain_invalid");
     }
-    if (environment.policy.budgetLimitCents !== 1_000) {
+    if (
+      environment.policy.budgetLimitCents !== AWS_SANDBOX_MONTHLY_BUDGET_CENTS &&
+      environment.policy.budgetLimitCents !== AWS_SANDBOX_LEGACY_MONTHLY_BUDGET_CENTS
+    ) {
       errors.push("sandbox_budget_invalid");
     }
     if (environment.policy.maxCells !== 1) errors.push("sandbox_cell_limit_invalid");

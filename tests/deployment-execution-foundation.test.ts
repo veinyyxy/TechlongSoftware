@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderAwsSandboxSharedCellStack } from "../lib/deployments/cloudformation/shared-cell-stack.ts";
 import { renderAwsSandboxTenantStack } from "../lib/deployments/cloudformation/tenant-stack.ts";
-import type { DeploymentEnvironment } from "../lib/deployments/environment.ts";
+import { AWS_SANDBOX_MONTHLY_BUDGET_CENTS, validateDeploymentEnvironment, type DeploymentEnvironment } from "../lib/deployments/environment.ts";
 import {
   evaluateAwsSandboxPreflight,
 } from "../lib/deployments/preflight.ts";
@@ -58,6 +58,19 @@ const sandbox: DeploymentEnvironment = {
     logRetentionDays: 1,
   },
 };
+
+test("delivery-first budget accepts approved USD50 and immutable legacy USD10 only", () => {
+  assert.equal(AWS_SANDBOX_MONTHLY_BUDGET_CENTS, 5_000);
+  for (const budgetLimitCents of [1_000, 5_000]) {
+    const environment = { ...sandbox, policy: { ...sandbox.policy, budgetLimitCents } };
+    assert.deepEqual(validateDeploymentEnvironment(environment), []);
+  }
+  for (const budgetLimitCents of [0, 1_001, 10_000]) {
+    const environment = { ...sandbox, policy: { ...sandbox.policy, budgetLimitCents } };
+    assert.ok(validateDeploymentEnvironment(environment).includes("sandbox_budget_invalid"));
+  }
+  assert.equal(sandbox.policy.budgetLimitCents, 1_000);
+});
 
 function tenantRuntimeSecretRef(tenantToken: string, generation = 1): string {
   return (

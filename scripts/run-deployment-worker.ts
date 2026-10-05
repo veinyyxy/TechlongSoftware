@@ -1,5 +1,6 @@
 import { hostname } from "node:os";
 import { randomUUID } from "node:crypto";
+import { AWS_SANDBOX_MONTHLY_BUDGET_CENTS } from "../lib/deployments/environment.ts";
 import { createAwsSdkDeploymentAdapter } from "../lib/deployments/execution/aws-sdk-adapter.ts";
 import { EmbeddedCloudFormationCleanupSchedule } from "../lib/deployments/execution/cleanup.ts";
 import {
@@ -16,6 +17,18 @@ if (nodeVersion[0] < 22 || (nodeVersion[0] === 22 && nodeVersion[1] < 13)) {
 }
 
 const config = loadDeploymentWorkerRuntimeConfig(process.env);
+const runtime = createDefaultDisabledWorkerRuntime();
+if (process.argv.includes("--check-runtime")) {
+  process.stdout.write(`${JSON.stringify({
+    status: "disabled",
+    mode: runtime.mode,
+    blockers: runtime.blockers,
+    monthlyBudgetTargetUsd: AWS_SANDBOX_MONTHLY_BUDGET_CENTS / 100,
+    cloudMutationPerformed: false,
+    databaseAccessPerformed: false,
+  })}\n`);
+  process.exit(0);
+}
 const workerGate = evaluateWorkerRuntimeGate(config);
 if (!workerGate.ok) {
   process.stdout.write(
@@ -24,11 +37,17 @@ if (!workerGate.ok) {
   process.exit(0);
 }
 
+// Do not open Neon or construct an AWS adapter while the standalone root is
+// unactivated. A configured environment variable is not a capability proof.
+if (!runtime.applyRuntimeReady && !runtime.cleanupRuntimeReady) {
+  process.stdout.write(`${JSON.stringify({ status: "disabled", blockers: runtime.blockers })}\n`);
+  process.exit(0);
+}
+
 const databaseUrl = process.env.DATABASE_URL?.trim();
 if (!databaseUrl) throw new Error("Deployment worker requires DATABASE_URL.");
 
 const workerId = `worker:${hostname().replace(/[^A-Za-z0-9._-]/g, "-")}:${randomUUID().slice(0, 8)}`;
-const runtime = createDefaultDisabledWorkerRuntime();
 const dependencies = {
   repository: new NeonDeploymentExecutionRepository(databaseUrl),
   ...runtime,

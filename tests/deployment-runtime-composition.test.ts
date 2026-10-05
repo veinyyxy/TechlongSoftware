@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 import {
   createDefaultDisabledWorkerRuntime,
   DEFAULT_DISABLED_RUNTIME_BLOCKERS,
@@ -9,6 +10,21 @@ import type {
 } from "../lib/deployments/execution/contracts.ts";
 import type { DeploymentJobType } from "../lib/deployments/state-machine.ts";
 import { runDeploymentWorkerOnce } from "../lib/deployments/execution/worker.ts";
+
+test("standalone runtime check lists blockers and USD50 without loading a database", () => {
+  const result = spawnSync(process.execPath, ["--experimental-strip-types", "scripts/run-deployment-worker.ts", "--check-runtime"], {
+    cwd: new URL("..", import.meta.url),
+    env: { ...process.env, DATABASE_URL: "not-a-database-url" },
+    encoding: "utf8", timeout: 10_000,
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const output = JSON.parse(result.stdout);
+  assert.equal(output.status, "disabled");
+  assert.equal(output.monthlyBudgetTargetUsd, 50);
+  assert.deepEqual(output.blockers, DEFAULT_DISABLED_RUNTIME_BLOCKERS);
+  assert.equal(output.databaseAccessPerformed, false);
+  assert.equal(output.cloudMutationPerformed, false);
+});
 
 test("default Worker composition is immutable and exposes no live capability", () => {
   const runtime = createDefaultDisabledWorkerRuntime();
