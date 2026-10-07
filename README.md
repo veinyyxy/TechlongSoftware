@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-07 F2f5登录前置检查已修正：旧c9fa清单虽获批准，但一小时临时凭据门禁误判AWS Login的15分钟自动刷新机制，未执行任何云写入或占槽。Source真实调用仍有效；改为准确login provider/身份与当前凭据120秒检查，Grant/Revoke前复验，17项定向测试、完整在线Backend CI和真实ReviewOnly/独立Inspect通过，IAM仍Locked/v2、新tag absent。新清单保持IAM/镜像/date边界不变，需新SHA确认；旧批准/模板/镜像/记录保留，50USD目标不变。见 [修正与新的准确批准](./docs/aws-auto-deployment-fast-track-f2f5-login-preflight-fix.md)。以下为历史状态。
+
 2026-10-07 F2f 第五批发布审阅完成：新schema2清单绑定第四批两份修复镜像的准确ZIP/receipt/config/前置scan和执行器；原始ZIP及全部成员checksum实际校验通过，16项相邻测试、完整在线Backend CI、AWS只读模板校验和新控制器ReviewOnly通过。独立Inspect/完整云模板比较再次确认发布IAM仍Locked/v2，两新immutable tag未占用；原已消费清单/模板/镜像/记录保留。尚未AWS写入或新ECR发布，下一步按fresh SHA确认仅更新现有两IAM资源→Actions单次发布→独立ECR门禁→成功或失败立即Source Revoke；不包含ECS/Cell、baseline或数据库写入。见 [准确新清单、窗口和确认范围](./docs/aws-auto-deployment-fast-track-f2f5-republish-review.md)。以下记录保留历史状态。
 
 2026-10-07 F2f 第四批完成：lifecycle改为非root最小distroless运行层，保留Node24.18/PG16.14，使用实际修补的Python3.14.8并移除无用GUI/交互/nativeUUID依赖；app同步修复旧OpenSSL层。新增Actions发布前OS扫描与准确包metadata/DB/image校验，最新双镜像真实构建、隔离compiler自检、Trivy HIGH/CRITICAL均0及完整Backend CI通过。没有本地Docker安装、AWS写入或新ECR发布，发布IAM只读确认仍Locked/v2。下一步为修复候选准备新的IAM更新/发布清单，再按新SHA确认；ECR独立扫描门禁不降低。见 [最小运行层与真实云端扫描证据](./docs/aws-auto-deployment-fast-track-f2f4-minimal-runtime.md)。以下记录保留历史状态。

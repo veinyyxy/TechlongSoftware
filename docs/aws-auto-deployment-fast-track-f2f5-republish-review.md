@@ -1,5 +1,7 @@
 # F2f 第五批：修复镜像 ECR 发布审阅
 
+后续说明：本页c9fa清单获用户批准，但实际写入前发现“一小时临时凭据”检查误判AWS Login，尚未执行或占槽。已修正并形成另一个新SHA，IAM/镜像/date边界不变；本页为原审阅历史，不再执行旧SHA。最新认证条款与确认见 [登录前置检查修正](./aws-auto-deployment-fast-track-f2f5-login-preflight-fix.md)。
+
 2026-10-07，本阶段完成代码、真实产物校验和 AWS 只读审阅，**尚未更新 IAM 或发布镜像**。沿用每月50 USD目标、Actions云端构建、不装本地Docker、旧记录保留和实际云变更按fresh SHA确认的边界。
 
 ## 本次准确清单
