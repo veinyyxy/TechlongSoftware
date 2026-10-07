@@ -22,7 +22,7 @@
 | 批次 | 实施范围 | 验收标准 | 当前状态 |
 | --- | --- | --- | --- |
 | F1 真实运行时组合 | 真实 Secret material generator、租户上下文绑定、数据库/ownership/清理/mTLS adapter 接线、50 USD 预算兼容 | 组合不调用云；独立凭据不串租；同一 Secret/lifecycle 实例用于部署和清理；不能靠环境变量打开 runtime | 代码及定向验证完成，未云启用 |
-| F2 数据库可执行闭环 | PostgreSQL 16.14 空 baseline 候选；backend prepare/restore/migrate/verify production provider；镜像构建与严格 readback | 业务数据为空；只允许批准 seed；真实任务回执和崩溃恢复；旧 inspect/destroy 入口不被放宽 | F2d prepared service/部分恢复/NoLOGIN 正常清理与 generation 释放已真实验证；应用授权/退役、RDS/CLI/receipt/镜像/发布待完成 |
+| F2 数据库可执行闭环 | PostgreSQL 16.14 空 baseline 候选；backend prepare/restore/migrate/verify production provider；镜像构建与严格 readback | 业务数据为空；只允许批准 seed；真实任务回执和崩溃恢复；旧 inspect/destroy 入口不被放宽 | F2e 应用最小授权/实际 TLS 登录/安全退役与 generation 释放已真实验证；RDS/CLI/receipt/镜像/发布待完成 |
 | F3 在线门禁集中验收 | 单次只读取证收敛 IAM；authority/root；ACM/DNS/mTLS；空 inventory；TTL/回滚；费用估算；bootstrap Change Set | 使用真实 provider 证据；审批/执行在同一本地流程及时完成；成功或失败均独立撤权；可证明清理 | 尚未执行 |
 | F4 单租户端到端 | 已批准 Cell 和镜像上运行真实 Worker；一个部署任务到 ready；失败/TTL 验收 | 真实健康端点、配置与地址回写；无孤儿租户资源；费用与资源 inventory 核对 | 尚未执行 |
 
@@ -66,7 +66,9 @@ F2a 已在服务端加入 `build-empty-tenant-baseline.js` 和复用既有严格
 
 2026-10-07 F2d 已完成 prepared SQL service、准确部分恢复、独立 normal cleanup journal 和显式 prepare-v2 release gate；实际证实旧 cleanup registry 的 parsed prefix 约束不匹配，旧表/旧默认 CLI 保留不自动迁移。真实 service 四阶段→删除响应/COMMIT 响应丢失恢复→同命名空间新 generation→旧 cleanup replay 不触碰新 OID，独立只读回读通过。70 项 Node、28 项 Python 回归与 backend typecheck 通过，四个新实例停止，无源库/云写入。见 [prepared service 与正常清理证据](./aws-auto-deployment-fast-track-f2d-prepared-cleanup.md)。
 
-继续 F2 后续：应用权限/LOGIN/真实登录及运行账户安全清理策略、固定 RDS owned-session factory、生产 CLI/receipt 和镜像接线。当前 cleanup 仅 NoLOGIN SQL 状态；prepared composition 还不是已启用的生产 root，所有 runtime 门禁 false，baseline 未批准/发布。本地通过不替代 Aurora/Worker/运行账户登录在线验收。F2 完成后再准备 F3 在线资源/费用/权限清单，用户批准具体 SHA 后执行；不自动开始新的 Grant generation。
+2026-10-07 F2e 已完成：单独 prepared 应用最小授权和实际 TLS 数据库登录，准确 policy 原子提交/只读恢复，其他数据库 CONNECT prerequisite 拒绝；对应 cleanup 先永久 claim，再 NOLOGIN/撤销 CONNECT/关闭准确数据库新连接，活跃旧会话不强制终止，关闭后准确删除并释放下一代。75 项 Node、28 项 Python 和 backend typecheck 通过；最终应用闭环及原 NoLOGIN 清理/响应丢失真实回归通过，五实例停止。见 [应用授权、真实登录与安全退役证据](./aws-auto-deployment-fast-track-f2e-application-access.md)。
+
+继续 F2f：固定 RDS owned-session factory/应用登录 source、生产 CLI 的 SQL verify/activation 与幂等恢复、扩展 receipt 和镜像接线。prepared composition 不是已启用生产 root，所有 runtime 门禁 false，baseline 未批准/发布。SQL verified、databaseLoginVerified 与 HTTP/tenant ready 必须区分；Cell 所有其他 connectable DB 的 PUBLIC CONNECT 硬化需要 fresh 审阅，不能由 tenant activation 自动 revoke。本地通过不替代 Aurora/Worker 在线验收。F2 完成后再准备 F3 在线资源/费用/权限清单，用户批准具体 SHA 后执行；不自动开始新的 Grant generation。
 
 本批次平台 129 项定向测试、typecheck、lint、production build 通过；服务端 39 项 Node 相邻回归、28 项 Python baseline/legacy/profile 测试及 typecheck 通过。独立进程复验候选并重新生成验证 SQL，逐字节一致。当前没有 AWS/Neon 写入或付费资源，所有 runtime 门禁仍 false。
 
