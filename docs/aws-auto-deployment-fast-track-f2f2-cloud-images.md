@@ -1,5 +1,7 @@
 # F2f 第二批：GitHub Actions 真实镜像构建与受审 ECR 发布准备
 
+后续：2026-10-07 原清单已获批准并单次实际执行，两镜像均已进入ECR，但lifecycle扫描有HIGH/CRITICAL，整体门禁失败；Source已立即撤权并独立证明Locked。见 [实际执行与安全收尾](./aws-auto-deployment-fast-track-f2f3-ecr-scan-blocked.md)。下文保留批准前状态，不再作为新的创建/发布授权或重试入口。
+
 2026-10-07：按用户选择，不安装本地 Docker Desktop/WSL，改用 GitHub Actions 标准云端 runner。应用与 lifecycle 的 linux/amd64 镜像均已真实构建、自检成功；ECR 发布工具与精确清单准备完毕，**尚未安装 AWS 权限、推送 ECR 或运行 ECS**。
 
 ## 实际通过的运行

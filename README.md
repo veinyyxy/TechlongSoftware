@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-07 F2f 第三批实际执行完成并安全收尾：按批准清单创建专用两项 IAM 资源，单次 Actions 校验原始镜像并 OIDC 发布两镜像至现有 immutable ECR；app BASIC扫描空结果，lifecycle报6项CRITICAL/19项HIGH，严格门禁阻断部署。Source立即Revoke，栈UPDATE_COMPLETE、boundary v2/inline DenyAll和trust Deny独立核验，原资源/镜像/记录保留，不重试。没有ECS/Cell或数据库写入；下一步先修复lifecycle系统依赖、Actions重建，新发布另按fresh清单批准。见 [实际ECR证据、扫描阻断与Locked收尾](./docs/aws-auto-deployment-fast-track-f2f3-ecr-scan-blocked.md)。以下记录保留历史状态。
+
 2026-10-07 F2f 第二批完成：不安装本地 Docker，GitHub Actions 实际构建并隔离自检 app/lifecycle linux/amd64 镜像，完整 Backend CI 通过；精确镜像产物和手动 ECR promotion/短时最小权限 Grant＋Locked Revoke 清单已准备，尚未批准或执行云发布。只读确认现有 immutable sandbox ECR/OIDC、专用 publisher absent、sandbox Cell MISSING。代码与记录按默认授权提交推送；新增 IAM/实际发布仍需准确清单确认，ECS/生产 baseline 与 CLI 写 root 未启用，50 USD/月目标不变。见 [真实镜像证据与 ECR 确认范围](./docs/aws-auto-deployment-fast-track-f2f2-cloud-images.md)。以下记录保留历史状态。
 
 2026-10-07 F2f 第一批完成：固定 RDS owned-session/Secret 工厂、prepared task 的 SQL verify＋真实 app 数据库登录、严格 v2 回执与平台 proof 传播；实际本地 PG16 验证 receipt 重放不调用 providers、业务修改后 active verify 不覆盖、取消/cleanup 与独立回读。97 项 backend Node、28 项 Python、64 项平台测试、类型/定向 lint 通过，四实例停止。公开 RDS 根 CA 包已独立审阅并更新候选 pin。镜像候选已写，但本机无 Docker/WSL，尚未构建；生产 CLI 写 root、实际 RDS/ECS 验收仍未启用，无源库/AWS/Neon 写入。见 [RDS 工厂、任务与 v2 回执证据及下一批](./docs/aws-auto-deployment-fast-track-f2f-rds-task.md)。以下记录保留历史状态。
