@@ -22,7 +22,7 @@
 | 批次 | 实施范围 | 验收标准 | 当前状态 |
 | --- | --- | --- | --- |
 | F1 真实运行时组合 | 真实 Secret material generator、租户上下文绑定、数据库/ownership/清理/mTLS adapter 接线、50 USD 预算兼容 | 组合不调用云；独立凭据不串租；同一 Secret/lifecycle 实例用于部署和清理；不能靠环境变量打开 runtime | 代码及定向验证完成，未云启用 |
-| F2 数据库可执行闭环 | PostgreSQL 16.14 空 baseline 候选；backend prepare/restore/migrate/verify production provider；镜像构建与严格 readback | 业务数据为空；只允许批准 seed；真实任务回执和崩溃恢复；旧 inspect/destroy 入口不被放宽 | F2c 第一批 migrate/verify SQL provider 与真实 TLS 事务验证完成；prepare/restore/发布待完成 |
+| F2 数据库可执行闭环 | PostgreSQL 16.14 空 baseline 候选；backend prepare/restore/migrate/verify production provider；镜像构建与严格 readback | 业务数据为空；只允许批准 seed；真实任务回执和崩溃恢复；旧 inspect/destroy 入口不被放宽 | F2c migrate/verify、prepare/失败补偿 SQL capability 已完成真实 TLS 验证；restore/完整接线/发布待完成 |
 | F3 在线门禁集中验收 | 单次只读取证收敛 IAM；authority/root；ACM/DNS/mTLS；空 inventory；TTL/回滚；费用估算；bootstrap Change Set | 使用真实 provider 证据；审批/执行在同一本地流程及时完成；成功或失败均独立撤权；可证明清理 | 尚未执行 |
 | F4 单租户端到端 | 已批准 Cell 和镜像上运行真实 Worker；一个部署任务到 ready；失败/TTL 验收 | 真实健康端点、配置与地址回写；无孤儿租户资源；费用与资源 inventory 核对 | 尚未执行 |
 
@@ -60,7 +60,9 @@ F2a 已在服务端加入 `build-empty-tenant-baseline.js` 和复用既有严格
 
 2026-10-07 F2c 第一批已完成 `migrate_saas/verify` SQL transaction provider，在全新 PG16.14 TLS、非 superuser cell_admin 上实际验证回滚、同任务重放、COMMIT 响应丢失恢复、管理会话丢失中止和旧 epoch 拒绝。独立只读进程核验 1 条 singleton、8 条默认 entitlement，其余业务表零行；空 Stores 使主题 seed 为 0 行，非此前简化的无条件两行。所有临时实例已停止，Source/AWS/Neon 未变。见 [真实事务 provider、证据与继续位置](./aws-auto-deployment-fast-track-f2c-saas-transactions.md)。
 
-继续 F2c 后续：prepare 非事务创建/准确 ownership/崩溃恢复/失败清理，restore 的 immutable artifact 校验/原子 marker，以及 RDS session/生产 CLI/receipt 和镜像接线。新 SQL 模块还不是完整生产 provider；所有 runtime 门禁 false，baseline 未批准/发布。本地通过不替代 Aurora/Worker/运行账户登录在线验收。F2 完成后再准备 F3 在线资源/费用/权限清单，用户批准具体 SHA 后执行；不自动开始新的 Grant generation。
+2026-10-07 F2c 第二批已完成真实 prepare/失败补偿 SQL capability：永久 journal、专属 NOLOGIN guard、禁止连接 quarantine、准确 role/database OID、原子 ownership promotion 和补偿 tombstone；真实 PG16.14 非 superuser TLS 验证三类创建/提交响应丢失恢复及清理响应丢失恢复，拒绝外来同名/重建 OID/旧 epoch，独立只读回读通过，临时实例全部停止。45 项相邻 Node 回归及 backend typecheck 通过。数据库模块只接收 URL，不接触其他 Secret 键。见 [prepare 真实证据与继续位置](./aws-auto-deployment-fast-track-f2c-prepare.md)。
+
+继续 F2c 后续：restore 的 immutable artifact 校验/原子 marker，然后完成 prepare partial-state recovery 门禁适配、正常 cleanup/journal/generation 释放、RDS session/生产 CLI/receipt 和镜像接线。新 SQL 模块还不是完整生产 provider；所有 runtime 门禁 false，baseline 未批准/发布。本地通过不替代 Aurora/Worker/运行账户登录在线验收。F2 完成后再准备 F3 在线资源/费用/权限清单，用户批准具体 SHA 后执行；不自动开始新的 Grant generation。
 
 本批次平台 129 项定向测试、typecheck、lint、production build 通过；服务端 39 项 Node 相邻回归、28 项 Python baseline/legacy/profile 测试及 typecheck 通过。独立进程复验候选并重新生成验证 SQL，逐字节一致。当前没有 AWS/Neon 写入或付费资源，所有 runtime 门禁仍 false。
 
