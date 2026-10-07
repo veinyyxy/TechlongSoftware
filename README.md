@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-07 F2d 完成：prepared SQL service 已接通准确部分 prepare 恢复、四阶段实际校验、正常 cleanup tombstone 和后继 generation 释放；PG16.14 非 superuser TLS 实测两类删除/提交响应丢失恢复及旧 cleanup 不删除第二代。旧 registry parsed prefix mismatch 已实际确认，新方案使用独立 cleanup journal 和显式 prepare-v2 升级，旧记录不删除、云端未迁移。70 项 Node、28 项 Python 回归及 backend typecheck 通过，本轮四实例停止。应用账户仍 NOLOGIN，下一步权限/真实登录、安全退役及 RDS/CLI/receipt/镜像接线；runtime/生产 baseline 批准仍 false，无源库或云写入。见 [prepared service 与正常清理证据](./docs/aws-auto-deployment-fast-track-f2d-prepared-cleanup.md)。以下记录保留历史状态。
+
 2026-10-07 F2c 第三批完成：原子 baseline restore 在真实 PG16.14 TLS、非 superuser cell_admin 上通过 DDL/marker 回滚、管理连接丢失、提交响应丢失恢复、零行/profile/catalog 独立只读核验及额外列漂移拒绝；prepare→restore→migrate→verify SQL 链路跑通。62 项 Node、28 项 Python 相邻校验及 backend typecheck 通过，本轮四个实例停止，无源库/AWS/Neon 写入。应用账户仍 NOLOGIN，runtime 和生产 baseline 批准仍 false；下一步生产组合、正常清理和 RDS/CLI/receipt/镜像接线。见 [原子恢复证据与继续位置](./docs/aws-auto-deployment-fast-track-f2c-atomic-restore.md)。以下记录保留历史状态。
 
 2026-10-07 F2c 第二批完成：真实 prepare/失败补偿 SQL capability 在隔离 PG16.14 TLS、非 superuser cell_admin 上验证准确 OID 创建、三类响应丢失恢复、失败回滚和补偿恢复；永久 journal、同名对象/旧 epoch/不同 OID 拒绝及独立只读回读通过。45 项相邻 Node 回归和 backend typecheck 通过，所有临时实例停止，源库/AWS/Neon 未写入。下一步是受批 baseline restore，再接 recovery/正常 cleanup/RDS/CLI/镜像；runtime 和生产 baseline 批准仍 false。见 [prepare 验收与继续位置](./docs/aws-auto-deployment-fast-track-f2c-prepare.md)。以下记录保留历史状态。
