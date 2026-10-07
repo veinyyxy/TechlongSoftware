@@ -1,5 +1,7 @@
 # F2f5：AWS Login 前置检查修正与新批准
 
+后续：用户准确确认新15d30e5e清单后已完成单次ECR发布与立即Revoke，独立Locked/v4及扫描/digest回读通过。清单/槽位已消费，不再执行；实际完成和CloudFormation策略版本清理副作用见 [F2f6](./aws-auto-deployment-fast-track-f2f6-ecr-published.md)。以下保留批准前历史状态。
+
 2026-10-07。**尚未执行AWS资源写入**，旧 `c9fa6086...` 执行槽位不存在，IAM仍Locked/v2，两新ECR tag仍未占用。Source在额度中断后仍能真实只读调用，不需要因为当前临时凭据期限而反复登录。
 
 ## 原因与修正

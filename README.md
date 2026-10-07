@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-07 F2f6实际完成：按fresh 15d30e5e清单唯一更新现有publisher IAM并Actions单次发布两份修复镜像，独立registry/config/COMPLETE扫描读回均通过，无报告HIGH/CRITICAL。Source立即Revoke，独立完整Locked/v4、模板与原两资源核验通过；旧镜像/策略原文/本地记录保留。但CloudFormation内部清理了旧IAM版本v1/v2，已用准确CloudTrail证明并显式记录，不能声称所有AWS历史版本仍在。没有ECS/Cell/数据库或baseline写入、Worker/root启用；下一步为production admission/CLI接线，实际付费部署另行批准。见 [实际发布、完整收尾与继续位置](./docs/aws-auto-deployment-fast-track-f2f6-ecr-published.md)。以下为历史状态。
+
 2026-10-07 F2f5登录前置检查已修正：旧c9fa清单虽获批准，但一小时临时凭据门禁误判AWS Login的15分钟自动刷新机制，未执行任何云写入或占槽。Source真实调用仍有效；改为准确login provider/身份与当前凭据120秒检查，Grant/Revoke前复验，17项定向测试、完整在线Backend CI和真实ReviewOnly/独立Inspect通过，IAM仍Locked/v2、新tag absent。新清单保持IAM/镜像/date边界不变，需新SHA确认；旧批准/模板/镜像/记录保留，50USD目标不变。见 [修正与新的准确批准](./docs/aws-auto-deployment-fast-track-f2f5-login-preflight-fix.md)。以下为历史状态。
 
 2026-10-07 F2f 第五批发布审阅完成：新schema2清单绑定第四批两份修复镜像的准确ZIP/receipt/config/前置scan和执行器；原始ZIP及全部成员checksum实际校验通过，16项相邻测试、完整在线Backend CI、AWS只读模板校验和新控制器ReviewOnly通过。独立Inspect/完整云模板比较再次确认发布IAM仍Locked/v2，两新immutable tag未占用；原已消费清单/模板/镜像/记录保留。尚未AWS写入或新ECR发布，下一步按fresh SHA确认仅更新现有两IAM资源→Actions单次发布→独立ECR门禁→成功或失败立即Source Revoke；不包含ECS/Cell、baseline或数据库写入。见 [准确新清单、窗口和确认范围](./docs/aws-auto-deployment-fast-track-f2f5-republish-review.md)。以下记录保留历史状态。
