@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-07 F2g1完成代码切片：生产admission/CLI root绑定实际TaskRole/Fargate/TaskDefinition/image、完整平台identity/owner与强一致runtime/epoch记录，准确S3 baseline loader、opaque capability、SQL/receipt前后围栏和deadline接通；平台新单参数CMD材料编译保持旧协议独立。41项backend/6项平台定向验证、真实隔离PG16全链路与完整CI/双镜像Actions自检、OS HIGH/CRITICAL均0通过。AWS admission/S3仍是local test seam，新候选未发布，runtime record/权限未安装，Source只读仍Locked/v4；没有ECS/Cell、云或源库写入、Worker启用。下一步显式runner/SDK v2接线与受审部署材料，云变更另按fresh范围确认。见 [代码、真实证据与继续位置](./docs/aws-auto-deployment-fast-track-f2g1-admitted-root.md)。以下保留历史状态。
+
 2026-10-07 F2f6实际完成：按fresh 15d30e5e清单唯一更新现有publisher IAM并Actions单次发布两份修复镜像，独立registry/config/COMPLETE扫描读回均通过，无报告HIGH/CRITICAL。Source立即Revoke，独立完整Locked/v4、模板与原两资源核验通过；旧镜像/策略原文/本地记录保留。但CloudFormation内部清理了旧IAM版本v1/v2，已用准确CloudTrail证明并显式记录，不能声称所有AWS历史版本仍在。没有ECS/Cell/数据库或baseline写入、Worker/root启用；下一步为production admission/CLI接线，实际付费部署另行批准。见 [实际发布、完整收尾与继续位置](./docs/aws-auto-deployment-fast-track-f2f6-ecr-published.md)。以下为历史状态。
 
 2026-10-07 F2f5登录前置检查已修正：旧c9fa清单虽获批准，但一小时临时凭据门禁误判AWS Login的15分钟自动刷新机制，未执行任何云写入或占槽。Source真实调用仍有效；改为准确login provider/身份与当前凭据120秒检查，Grant/Revoke前复验，17项定向测试、完整在线Backend CI和真实ReviewOnly/独立Inspect通过，IAM仍Locked/v2、新tag absent。新清单保持IAM/镜像/date边界不变，需新SHA确认；旧批准/模板/镜像/记录保留，50USD目标不变。见 [修正与新的准确批准](./docs/aws-auto-deployment-fast-track-f2f5-login-preflight-fix.md)。以下为历史状态。
