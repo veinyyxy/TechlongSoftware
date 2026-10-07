@@ -1,5 +1,7 @@
 # F2f 第三批：受批 ECR 发布、扫描阻断与 Locked 收尾
 
+后续：F2f第四批已完成最小运行层修复，新的两镜像在Actions构建/自检/前置Trivy HIGH-CRITICAL门禁通过，但尚未再次发布到ECR，IAM保持原Locked/v2。见 [修复与新候选证据](./aws-auto-deployment-fast-track-f2f4-minimal-runtime.md)。下文保留本轮实际执行历史，不作为重试批准。
+
 2026-10-07 用户明确批准清单 `ce32e46450cd18f382d67de843eeaf208be9421beed80dc7cb94ed6d335abc10`。本批实际创建专用 IAM 资源并发布两份原始 checked 镜像，lifecycle 的 BASIC 扫描有 HIGH/CRITICAL，故整体发布门禁失败；**没有部署 ECS**。Source 已立即撤权，独立只读核验完整 Locked。
 
 ## 一次性执行事实

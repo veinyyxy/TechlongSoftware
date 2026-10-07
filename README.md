@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-07 F2f 第四批完成：lifecycle改为非root最小distroless运行层，保留Node24.18/PG16.14，使用实际修补的Python3.14.8并移除无用GUI/交互/nativeUUID依赖；app同步修复旧OpenSSL层。新增Actions发布前OS扫描与准确包metadata/DB/image校验，最新双镜像真实构建、隔离compiler自检、Trivy HIGH/CRITICAL均0及完整Backend CI通过。没有本地Docker安装、AWS写入或新ECR发布，发布IAM只读确认仍Locked/v2。下一步为修复候选准备新的IAM更新/发布清单，再按新SHA确认；ECR独立扫描门禁不降低。见 [最小运行层与真实云端扫描证据](./docs/aws-auto-deployment-fast-track-f2f4-minimal-runtime.md)。以下记录保留历史状态。
+
 2026-10-07 F2f 第三批实际执行完成并安全收尾：按批准清单创建专用两项 IAM 资源，单次 Actions 校验原始镜像并 OIDC 发布两镜像至现有 immutable ECR；app BASIC扫描空结果，lifecycle报6项CRITICAL/19项HIGH，严格门禁阻断部署。Source立即Revoke，栈UPDATE_COMPLETE、boundary v2/inline DenyAll和trust Deny独立核验，原资源/镜像/记录保留，不重试。没有ECS/Cell或数据库写入；下一步先修复lifecycle系统依赖、Actions重建，新发布另按fresh清单批准。见 [实际ECR证据、扫描阻断与Locked收尾](./docs/aws-auto-deployment-fast-track-f2f3-ecr-scan-blocked.md)。以下记录保留历史状态。
 
 2026-10-07 F2f 第二批完成：不安装本地 Docker，GitHub Actions 实际构建并隔离自检 app/lifecycle linux/amd64 镜像，完整 Backend CI 通过；精确镜像产物和手动 ECR promotion/短时最小权限 Grant＋Locked Revoke 清单已准备，尚未批准或执行云发布。只读确认现有 immutable sandbox ECR/OIDC、专用 publisher absent、sandbox Cell MISSING。代码与记录按默认授权提交推送；新增 IAM/实际发布仍需准确清单确认，ECS/生产 baseline 与 CLI 写 root 未启用，50 USD/月目标不变。见 [真实镜像证据与 ECR 确认范围](./docs/aws-auto-deployment-fast-track-f2f2-cloud-images.md)。以下记录保留历史状态。
