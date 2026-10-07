@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-07 F2c 第三批完成：原子 baseline restore 在真实 PG16.14 TLS、非 superuser cell_admin 上通过 DDL/marker 回滚、管理连接丢失、提交响应丢失恢复、零行/profile/catalog 独立只读核验及额外列漂移拒绝；prepare→restore→migrate→verify SQL 链路跑通。62 项 Node、28 项 Python 相邻校验及 backend typecheck 通过，本轮四个实例停止，无源库/AWS/Neon 写入。应用账户仍 NOLOGIN，runtime 和生产 baseline 批准仍 false；下一步生产组合、正常清理和 RDS/CLI/receipt/镜像接线。见 [原子恢复证据与继续位置](./docs/aws-auto-deployment-fast-track-f2c-atomic-restore.md)。以下记录保留历史状态。
+
 2026-10-07 F2c 第二批完成：真实 prepare/失败补偿 SQL capability 在隔离 PG16.14 TLS、非 superuser cell_admin 上验证准确 OID 创建、三类响应丢失恢复、失败回滚和补偿恢复；永久 journal、同名对象/旧 epoch/不同 OID 拒绝及独立只读回读通过。45 项相邻 Node 回归和 backend typecheck 通过，所有临时实例停止，源库/AWS/Neon 未写入。下一步是受批 baseline restore，再接 recovery/正常 cleanup/RDS/CLI/镜像；runtime 和生产 baseline 批准仍 false。见 [prepare 验收与继续位置](./docs/aws-auto-deployment-fast-track-f2c-prepare.md)。以下记录保留历史状态。
 
 2026-10-07 F2c 第一批完成：真实 `migrate_saas/verify` SQL provider 在隔离 PG16.14 TLS、非 superuser 管理账户上通过事务回滚、重放、COMMIT 响应丢失恢复、管理会话丢失中止和旧 epoch 拒绝；独立只读回读 1+8 条初始化行、其余业务表零行，临时实例已停止。prepare/restore、RDS/CLI/镜像接线尚未完成，runtime 和 baseline 批准仍 false；本轮无 AWS/Neon/源库写入。见 [真实 SQL provider 与继续位置](./docs/aws-auto-deployment-fast-track-f2c-saas-transactions.md)。以下记录按历史状态保留。
