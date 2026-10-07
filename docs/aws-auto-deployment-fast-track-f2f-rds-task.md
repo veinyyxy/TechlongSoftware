@@ -1,5 +1,7 @@
 # F2f 第一批：固定 RDS 会话源、任务 verify 与 v2 回执
 
+2026-10-07 后续更新：用户已选择 GitHub Actions，F2f 第二批两类镜像真实构建/容器自检通过，手动 ECR 发布清单待确认；不安装本地 Docker。见 [云端镜像证据与下一步授权](./aws-auto-deployment-fast-track-f2f2-cloud-images.md)。以下为第一批当时记录。
+
 2026-10-07 完成代码与真实本地 PG16 验证。F2f 尚未全部完成：镜像没有构建/运行，独立生产 admission/authority/CLI 写入口与实际 RDS/ECS readback 未启用。本机没有 Docker，WSL 未安装；不因这一阻断擅自安装系统组件或转为付费构建。
 
 ## 已实现
