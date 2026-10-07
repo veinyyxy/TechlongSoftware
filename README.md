@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-07 F2f 第五批发布审阅完成：新schema2清单绑定第四批两份修复镜像的准确ZIP/receipt/config/前置scan和执行器；原始ZIP及全部成员checksum实际校验通过，16项相邻测试、完整在线Backend CI、AWS只读模板校验和新控制器ReviewOnly通过。独立Inspect/完整云模板比较再次确认发布IAM仍Locked/v2，两新immutable tag未占用；原已消费清单/模板/镜像/记录保留。尚未AWS写入或新ECR发布，下一步按fresh SHA确认仅更新现有两IAM资源→Actions单次发布→独立ECR门禁→成功或失败立即Source Revoke；不包含ECS/Cell、baseline或数据库写入。见 [准确新清单、窗口和确认范围](./docs/aws-auto-deployment-fast-track-f2f5-republish-review.md)。以下记录保留历史状态。
+
 2026-10-07 F2f 第四批完成：lifecycle改为非root最小distroless运行层，保留Node24.18/PG16.14，使用实际修补的Python3.14.8并移除无用GUI/交互/nativeUUID依赖；app同步修复旧OpenSSL层。新增Actions发布前OS扫描与准确包metadata/DB/image校验，最新双镜像真实构建、隔离compiler自检、Trivy HIGH/CRITICAL均0及完整Backend CI通过。没有本地Docker安装、AWS写入或新ECR发布，发布IAM只读确认仍Locked/v2。下一步为修复候选准备新的IAM更新/发布清单，再按新SHA确认；ECR独立扫描门禁不降低。见 [最小运行层与真实云端扫描证据](./docs/aws-auto-deployment-fast-track-f2f4-minimal-runtime.md)。以下记录保留历史状态。
 
 2026-10-07 F2f 第三批实际执行完成并安全收尾：按批准清单创建专用两项 IAM 资源，单次 Actions 校验原始镜像并 OIDC 发布两镜像至现有 immutable ECR；app BASIC扫描空结果，lifecycle报6项CRITICAL/19项HIGH，严格门禁阻断部署。Source立即Revoke，栈UPDATE_COMPLETE、boundary v2/inline DenyAll和trust Deny独立核验，原资源/镜像/记录保留，不重试。没有ECS/Cell或数据库写入；下一步先修复lifecycle系统依赖、Actions重建，新发布另按fresh清单批准。见 [实际ECR证据、扫描阻断与Locked收尾](./docs/aws-auto-deployment-fast-track-f2f3-ecr-scan-blocked.md)。以下记录保留历史状态。

@@ -1,5 +1,7 @@
 # F2f 第四批：最小运行层修复与发布前 OS 扫描
 
+后续2026-10-07 F2f5已完成这批候选的真实ZIP/成员校验和现有Locked/v2栈只读审阅，新的更新/发布清单仍待准确SHA批准；没有新ECR发布。见 [F2f5准确范围与继续位置](./aws-auto-deployment-fast-track-f2f5-republish-review.md)。以下保留第四批完成时的记录。
+
 2026-10-07 完成真实 GitHub Actions 验证：app 和 lifecycle 均成功构建、隔离自检，并通过新增 Trivy OS HIGH/CRITICAL 门禁；完整 Backend CI success。**这批候选没有发布到 ECR**，发布 IAM 仍为原 Locked/v2，不能把前置 Trivy 结果等同 ECR BASIC 扫描或 ECS ready。
 
 ## 修复范围
