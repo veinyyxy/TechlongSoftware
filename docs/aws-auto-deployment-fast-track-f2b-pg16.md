@@ -41,6 +41,6 @@
 
 F2c 实现真实 `prepare_empty_database / restore_approved_baseline / migrate_saas / verify` provider。现有 production 入口仍仅 inspect/cleanup-only destroy；新 provider 需复用准确 management target、ownership/epoch、session advisory lock 和 durable receipt/崩溃恢复，而非调用会读源 `.env` 的开发迁移脚本。
 
-`saas_control.sql` 会创建租户 singleton/entitlement，`theme_config.sql` 会创建两项配置 seed；因此“baseline 73 张表全空”验收与“迁移后允许哪些初始化行”要分开，不能对迁移后的库仍宣称全表零行。发布前另行审阅 baseline 批准/immutable artifact 清单和 SaaS 迁移内容；本次验收不授权任何云发布或数据库上线写入。
+2026-10-07 实读 SQL/真实事务验证补充：`saas_control.sql` 在空库产生 1 条 singleton、8 条默认 entitlement；`theme_config.sql` 是两类主题 × 每 store × 四环境，Stores 为空时为 0 行，而不是无条件两行。因此 baseline 全空与迁移后初始化行验收必须分开。后续进度见 [F2c 真实事务 provider](./aws-auto-deployment-fast-track-f2c-saas-transactions.md)。F2b 的原件/收据和无生产发布授权边界不变。
 
 官方依据：[Windows 便携二进制](https://www.postgresql.org/download/windows/)、[pg_dump 跨版本说明](https://www.postgresql.org/docs/16/app-pgdump.html)、[PostgreSQL 16 迁移兼容注意事项](https://www.postgresql.org/docs/16/release-16.html)、[inet 的文本与 host 表达](https://www.postgresql.org/docs/16/functions-net.html)。

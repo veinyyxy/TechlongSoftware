@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-07 F2c 第一批完成：真实 `migrate_saas/verify` SQL provider 在隔离 PG16.14 TLS、非 superuser 管理账户上通过事务回滚、重放、COMMIT 响应丢失恢复、管理会话丢失中止和旧 epoch 拒绝；独立只读回读 1+8 条初始化行、其余业务表零行，临时实例已停止。prepare/restore、RDS/CLI/镜像接线尚未完成，runtime 和 baseline 批准仍 false；本轮无 AWS/Neon/源库写入。见 [真实 SQL provider 与继续位置](./docs/aws-auto-deployment-fast-track-f2c-saas-transactions.md)。以下记录按历史状态保留。
+
 2026-10-06 F2b 真实验收已完成：上一批次 PG15 schema-only 候选在独立 PostgreSQL 16.14 上恢复成功，73 张表全零行、扩展/5个函数/4个触发器独立只读核验通过，临时实例已停止。源 PG15/原件未变，无 AWS/Neon 调用、付费资源或 runtime 启用；baseline 尚未批准/发布。下一步 F2c 是真实 prepare/restore/migrate/verify provider，随后再审阅云发布和单租户上线。见 [PG16 真实验收与继续边界](./docs/aws-auto-deployment-fast-track-f2b-pg16.md)。以下记录保留历史状态。
 
 2026-10-05 已按用户要求切换到“单租户 AWS 自动部署最快交付”主线，预算目标改为 50 USD/月，最低费用优先不再主导方案。F1 已完成租户独立运行凭据生成和真实 Worker prepared composition；部署/清理使用同一组 Secret/lifecycle/ownership adapter，未开启 runtime。用户启动本地 PostgreSQL 后，F2a 真实 schema-only 候选已导出：73 张表、无业务行，固定 profile 核验所需扩展/5个函数/4个触发器的完整定义通过；失败记录保留。候选尚未 approved，也未恢复数据库。下一步是独立 PostgreSQL 16.14 恢复验收并补齐 production provision provider；不自动进入新的 Grant generation。当前没有 AWS/Neon 写入或付费资源。见[最快交付方案与继续位置](./docs/aws-auto-deployment-fast-track.md)。以下历史记录按其当时状态保留。
