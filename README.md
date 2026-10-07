@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-07 F2f 第一批完成：固定 RDS owned-session/Secret 工厂、prepared task 的 SQL verify＋真实 app 数据库登录、严格 v2 回执与平台 proof 传播；实际本地 PG16 验证 receipt 重放不调用 providers、业务修改后 active verify 不覆盖、取消/cleanup 与独立回读。97 项 backend Node、28 项 Python、64 项平台测试、类型/定向 lint 通过，四实例停止。公开 RDS 根 CA 包已独立审阅并更新候选 pin。镜像候选已写，但本机无 Docker/WSL，尚未构建；生产 CLI 写 root、实际 RDS/ECS 验收仍未启用，无源库/AWS/Neon 写入。见 [RDS 工厂、任务与 v2 回执证据及下一批](./docs/aws-auto-deployment-fast-track-f2f-rds-task.md)。以下记录保留历史状态。
+
 2026-10-07 F2e 完成：prepared 应用数据库最小授权、原子 LOGIN、实际 TLS 登录与精确 ACL 回读恢复；安全退役先永久 claim/关闭新连接，有旧会话则不强制删除，关闭后准确 cleanup 和后继 generation 释放。75 项 Node、28 项 Python 与 backend typecheck 通过；应用闭环和原 NoLOGIN/响应丢失路径在独立真实 PG16.14 实例通过，五实例停止。无源 PG15/AWS/Neon 写入，Worker/默认 CLI 和生产 baseline 批准仍 false。下一步 RDS owned-session factory、CLI/receipt/镜像接线；数据库登录不是 HTTP/tenant ready。见 [应用授权、实际登录和退役证据](./docs/aws-auto-deployment-fast-track-f2e-application-access.md)。以下记录保留历史状态。
 
 2026-10-07 F2d 完成：prepared SQL service 已接通准确部分 prepare 恢复、四阶段实际校验、正常 cleanup tombstone 和后继 generation 释放；PG16.14 非 superuser TLS 实测两类删除/提交响应丢失恢复及旧 cleanup 不删除第二代。旧 registry parsed prefix mismatch 已实际确认，新方案使用独立 cleanup journal 和显式 prepare-v2 升级，旧记录不删除、云端未迁移。70 项 Node、28 项 Python 回归及 backend typecheck 通过，本轮四实例停止。应用账户仍 NOLOGIN，下一步权限/真实登录、安全退役及 RDS/CLI/receipt/镜像接线；runtime/生产 baseline 批准仍 false，无源库或云写入。见 [prepared service 与正常清理证据](./docs/aws-auto-deployment-fast-track-f2d-prepared-cleanup.md)。以下记录保留历史状态。

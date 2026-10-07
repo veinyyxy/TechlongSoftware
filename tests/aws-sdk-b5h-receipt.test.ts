@@ -154,6 +154,7 @@ function reader(input: {
     expectedRegion: string;
     receiptBucketArn: string;
     maximumReceiptBytes: number;
+    receiptSchemaVersion: 1 | 2;
   }>;
 }): AwsSdkS3OneShotReceiptReader {
   return new AwsSdkS3OneShotReceiptReader(
@@ -212,6 +213,31 @@ test("S3 raw result constructs all trusted receipt bindings inside the platform"
   assert.equal(JSON.stringify(raw).includes("taskArn"), false);
   assert.equal(JSON.stringify(raw).includes("requestHash"), false);
   assert.equal(JSON.stringify(raw).includes("receiptHash"), false);
+});
+
+test("prepared v2 verifies actual application-login evidence and legacy/v2 never silently cross-read", async () => {
+  const expectedRequest = request();
+  expectedRequest.container.environment.TENANT_DATABASE_OPERATION = "verify";
+  expectedRequest.container.command = [...approvedTenantDatabaseOneShotCommands.verify];
+  const raw = await rawResult();
+  raw.schemaVersion = 2;
+  raw.operation = "verify";
+  raw.output = { outcome: "applied", resultingState: "verified", evidenceHash: "a".repeat(64),
+    applicationAccess: { policy: "speedfeast-application-access/v1", databaseLoginVerified: true, evidenceHash: "b".repeat(64) } };
+  raw.outputHash = await sha256Hex(raw.output);
+  const readInput = { clusterArn, taskArn, expectedRequest, signal: new AbortController().signal };
+  const result = await reader({ config: { receiptSchemaVersion: 2 }, send: async () => s3Response(raw) }).read(readInput);
+  assert.ok(result);
+  assert.deepEqual(result.output.applicationAccess, raw.output.applicationAccess);
+  await assert.rejects(() => reader({ send: async () => s3Response(raw) }).read(readInput), (e: unknown) => code(e) === "TENANT_ONE_SHOT_RECEIPT_INVALID");
+  for (const applicationAccess of [undefined, { policy: "speedfeast-application-access/v1", databaseLoginVerified: false, evidenceHash: "b".repeat(64) }]) {
+    const changed = { ...raw, output: { ...raw.output, applicationAccess } };
+    changed.outputHash = await sha256Hex(changed.output);
+    await assert.rejects(() => reader({ config: { receiptSchemaVersion: 2 }, send: async () => s3Response(changed) }).read(readInput), (e: unknown) => code(e) === "TENANT_APPLICATION_PROOF_INVALID");
+  }
+  const v1 = { ...raw, schemaVersion: 1 as const };
+  await assert.rejects(() => reader({ send: async () => s3Response(v1) }).read(readInput), (e: unknown) => code(e) === "TENANT_ONE_SHOT_RECEIPT_INVALID");
+  await assert.rejects(() => reader({ config: { receiptSchemaVersion: 2 }, send: async () => s3Response(v1) }).read(readInput), (e: unknown) => code(e) === "TENANT_ONE_SHOT_RECEIPT_INVALID");
 });
 
 test("S3 receipt location rejects wrong account and tenant generation before GetObject", async () => {

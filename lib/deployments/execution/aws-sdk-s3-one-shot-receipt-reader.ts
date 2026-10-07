@@ -11,6 +11,7 @@ import {
 } from "./ecs-one-shot-task.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import { TenantDatabaseLifecycleError } from "./tenant-database.ts";
+import { assertPreparedTenantVerifyOutput } from "./tenant-application-access-proof.ts";
 
 interface AwsSdkClient {
   send(
@@ -38,10 +39,11 @@ export interface AwsSdkS3OneShotReceiptReaderConfig {
   expectedRegion: string;
   receiptBucketArn: string;
   maximumReceiptBytes?: number;
+  receiptSchemaVersion?: 1 | 2;
 }
 
 export interface TenantDatabaseOneShotRawResult {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   operation: TenantDatabaseOneShotOperation;
   resourceGeneration: number;
   ownershipMarker: string;
@@ -300,13 +302,20 @@ async function finalReceipt(input: {
   taskArn: string;
   expectedRequest: EcsOneShotTaskRequest;
   raw: TenantDatabaseOneShotRawResult;
+  receiptSchemaVersion: 1 | 2;
 }): Promise<TenantDatabaseOneShotReceipt> {
   const environment = input.expectedRequest.container.environment;
   assertSafeOutput(input.raw.output);
+  if (input.receiptSchemaVersion === 1 && Object.hasOwn(input.raw.output, "applicationAccess")) {
+    fail("TENANT_ONE_SHOT_RECEIPT_INVALID", "Application login evidence requires the explicit v2 raw protocol.");
+  }
+  if (input.receiptSchemaVersion === 2 && input.raw.operation === "verify") {
+    assertPreparedTenantVerifyOutput(input.raw.output);
+  }
   const outputHash = await sha256Hex(input.raw.output);
   if (
     !exactKeys(input.raw, rawResultKeys) ||
-    input.raw.schemaVersion !== 1 ||
+    input.raw.schemaVersion !== input.receiptSchemaVersion ||
     !operations.includes(input.raw.operation) ||
     input.raw.operation !== environment.TENANT_DATABASE_OPERATION ||
     !Number.isSafeInteger(input.raw.resourceGeneration) ||
@@ -373,6 +382,7 @@ export class AwsSdkS3OneShotReceiptReader implements EcsOneShotReceiptReader {
     }
     const maximumReceiptBytes =
       config.maximumReceiptBytes ?? MAX_TENANT_ONE_SHOT_RAW_RECEIPT_BYTES;
+    const receiptSchemaVersion = config.receiptSchemaVersion ?? 1;
     if (
       !accountPattern.test(config.expectedBucketOwner) ||
       !regionPattern.test(config.expectedRegion) ||
@@ -382,6 +392,7 @@ export class AwsSdkS3OneShotReceiptReader implements EcsOneShotReceiptReader {
           region: config.expectedRegion,
         }) ||
       maximumReceiptBytes !== MAX_TENANT_ONE_SHOT_RAW_RECEIPT_BYTES ||
+      ![1, 2].includes(receiptSchemaVersion) ||
       !sdk.client ||
       typeof sdk.client.send !== "function" ||
       typeof sdk.commands.getObject !== "function"
@@ -392,7 +403,7 @@ export class AwsSdkS3OneShotReceiptReader implements EcsOneShotReceiptReader {
       );
     }
     this.bucketName = bucketName;
-    this.config = { ...config, maximumReceiptBytes };
+    this.config = { ...config, maximumReceiptBytes, receiptSchemaVersion };
     this.sdk = sdk;
   }
 
@@ -498,6 +509,7 @@ export class AwsSdkS3OneShotReceiptReader implements EcsOneShotReceiptReader {
         taskArn: input.taskArn,
         expectedRequest: input.expectedRequest,
         raw: raw as unknown as TenantDatabaseOneShotRawResult,
+        receiptSchemaVersion: this.config.receiptSchemaVersion,
       });
     } catch (error) {
       rethrowAbort(input.signal);

@@ -423,6 +423,16 @@ test("prepares, restores, migrates and verifies with one exact generation fence"
     "verify",
     "inspect:verified:g1",
   ]);
+  const applicationAccess = { policy: "speedfeast-application-access/v1" as const, databaseLoginVerified: true as const, evidenceHash };
+  const sqlVerify = lifecycle.verify;
+  lifecycle.verify = async (input) => ({ ...await sqlVerify(input), applicationAccess });
+  const withLogin = await guarded.migrateTenantDatabase({ context: claimed, externalFence: claimed.tenantExternalOperation!,
+    idempotencyKey: "dep_one:migration:login-proof", signal: signal() });
+  assert.deepEqual(withLogin.applicationAccess, applicationAccess);
+  assertSafeDeploymentOutput(withLogin);
+  lifecycle.verify = async (input) => ({ ...await sqlVerify(input), applicationAccess: { ...applicationAccess, databaseLoginVerified: false as true } });
+  await assert.rejects(() => guarded.migrateTenantDatabase({ context: claimed, externalFence: claimed.tenantExternalOperation!,
+    idempotencyKey: "dep_one:migration:bad-login-proof", signal: signal() }), { code: "TENANT_APPLICATION_PROOF_INVALID" });
 });
 
 test("makes zero adapter calls until the stable resource generation is claimed", async () => {

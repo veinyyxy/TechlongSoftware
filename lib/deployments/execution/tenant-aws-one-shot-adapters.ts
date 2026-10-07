@@ -21,6 +21,7 @@ import type {
 } from "./ecs-one-shot-task.ts";
 import { assertTenantRuntimeSecretArn } from "./ecs-one-shot-task.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
+import { assertTenantApplicationAccessProof } from "./tenant-application-access-proof.ts";
 import {
   assertTenantProvisionPredecessor,
   requireActiveCleanupProvisionPredecessor,
@@ -673,7 +674,13 @@ function mutationFromReceipt(
   operation: Exclude<TenantDatabaseOneShotOperation, "inspect" | "destroy">,
 ): TenantDatabaseMutationReceipt {
   const output = receipt.output;
-  assertDatabaseOutputKeys(output, ["outcome", "resultingState", "evidenceHash"]);
+  const applicationAccess = output.applicationAccess;
+  assertDatabaseOutputKeys(output, applicationAccess === undefined ? ["outcome", "resultingState", "evidenceHash"] :
+    ["outcome", "resultingState", "evidenceHash", "applicationAccess"]);
+  if (applicationAccess !== undefined) {
+    if (operation !== "verify") throw new TenantDatabaseLifecycleError("TENANT_APPLICATION_PROOF_INVALID", "Application proof is only valid for verify.");
+    assertTenantApplicationAccessProof(applicationAccess);
+  }
   const expectedState: Record<
     Exclude<TenantDatabaseOneShotOperation, "inspect" | "destroy">,
     TenantDatabaseMutationReceipt["resultingState"]
@@ -700,6 +707,7 @@ function mutationFromReceipt(
     outcome: output.outcome as "applied" | "already_applied",
     resultingState: output.resultingState as TenantDatabaseMutationReceipt["resultingState"],
     evidenceHash: output.evidenceHash,
+    ...(applicationAccess === undefined ? {} : { applicationAccess }),
   };
 }
 

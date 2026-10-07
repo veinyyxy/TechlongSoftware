@@ -14,6 +14,7 @@ import type {
   TenantSecretStorePort,
 } from "./contracts.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
+import { assertTenantApplicationAccessProof } from "./tenant-application-access-proof.ts";
 
 const postgresIdentifierPattern = /^[a-z][a-z0-9_]{0,62}$/;
 const sha256Pattern = /^[a-f0-9]{64}$/;
@@ -522,6 +523,7 @@ function assertMutationReceipt(
       "outcome",
       "resultingState",
       "evidenceHash",
+      ...(receipt.applicationAccess === undefined ? [] : ["applicationAccess"]),
     ],
     "Tenant database mutation receipt",
   );
@@ -532,6 +534,10 @@ function assertMutationReceipt(
     expected.fence,
   );
   assertEvidenceHash(receipt.evidenceHash);
+  if (receipt.applicationAccess !== undefined) {
+    if (expected.operation !== "verify") throw new TenantDatabaseLifecycleError("TENANT_APPLICATION_PROOF_INVALID", "Application login proof is only valid for verify.");
+    assertTenantApplicationAccessProof(receipt.applicationAccess);
+  }
   if (
     receipt.operation !== expected.operation ||
     !["applied", "already_applied"].includes(receipt.outcome) ||
@@ -581,10 +587,11 @@ function safeOutput(input: {
   baselineDigest: string | null;
   migrationContract: string | null;
   evidenceHash: string;
+  applicationAccess?: TenantDatabaseMutationReceipt["applicationAccess"];
 }): Record<string, unknown> {
   return {
     // Checkpoint output is persisted and inspected by the generic safety
-    // scanner. Keep only non-secret scalar proof here; the complete fence has
+    // scanner. Keep only non-secret scalar/strict login proof here; the complete fence has
     // already been validated against every in-memory provider receipt.
     externalEpoch: input.externalFence.epoch,
     externalMarker: input.externalFence.marker,
@@ -599,6 +606,7 @@ function safeOutput(input: {
     baselineDigest: input.baselineDigest,
     migrationContract: input.migrationContract,
     evidenceHash: input.evidenceHash,
+    ...(input.applicationAccess === undefined ? {} : { applicationAccess: input.applicationAccess }),
   };
 }
 
@@ -930,6 +938,7 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
       baselineDigest: database.baselineDigest,
       migrationContract: database.migrationContract,
       evidenceHash: database.evidenceHash,
+      ...(verified.applicationAccess === undefined ? {} : { applicationAccess: verified.applicationAccess }),
     });
   }
 }

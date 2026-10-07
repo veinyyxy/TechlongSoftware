@@ -576,6 +576,7 @@ export interface TenantDatabaseMutationReceipt {
   outcome: "applied" | "already_applied";
   resultingState: Exclude<TenantDatabaseLifecycleState, "missing" | "partial">;
   evidenceHash: string;
+  applicationAccess?: import("./tenant-application-access-proof.ts").TenantApplicationAccessProof;
 }
 
 export interface TenantDatabaseDestroyReceipt {
