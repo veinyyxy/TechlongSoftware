@@ -50,6 +50,8 @@ material 只能在 guarded Secret store 的 generation/epoch 上下文内生成�
 
 ## 继续位置
 
+最新继续位置（2026-10-08 Winnipeg）：F3b3 v3 freshness/admission/authority/deletion证据与完整候选/计划绑定完成；真实PG18 run37809750133/head e4a615b attempt1 success、16组证明，完整artifact/数据库drop/容器stop独立核对，25+173项定向及相邻回归/type/lint/AST/build通过。新证据保留完整证书/raw witness、严格时钟/fence/二次状态对照，不降级schema2、不开放caller override。仅prepared候选与plan，未持久authority/CAS/journal/root安装或可执行删除；旧1/1门禁/runtime关闭保持。下一小阶段生产密封安装/登记审批入口与Neon准确schema/owner/min-role只读preflight；v3持久authority/独立executor接线及各云安装仍待完成/具体批准。见 [F3b3 v3证据与继续位置](./aws-auto-deployment-fast-track-f3b3-evidence-v3.md)。以下保留历史。
+
 最新继续位置（2026-10-08 Winnipeg）：F3b3 PG18.6云端真实证明与独立只读source-v3完成，两GHA run attempt1 success、11/14组证明和精确artifact/cleanup独立核对；152项回归/type/lint/build通过。完整证书、原行/planbytes、永久fence及inline catalog校验，raw与分类集合都入新hash，不执行mutable helper、不降级schema2。未Neon安装/登记或新删除入口接线，旧规划门禁和runtime关闭保持。下一小阶段v3 freshness/admission/authority/deletion适配，再fresh审阅Neon schema/角色与各项安装/登记权限。见 [F3b3 PG18/source-v3](./aws-auto-deployment-fast-track-f3b3-pg18-ownership-v3.md)。以下保留历史。
 
 最新继续位置（2026-10-08 Winnipeg）：F3b3准确旧计划密封登记/永久引用guard的未注册SQL候选完成，覆盖九表十列、两内部表/八函数/十六Always触发器；完整表结构/catalog/fence版本校验、真实PG16并发与业务连续性11组证明通过，server已停。Neon只读schema匹配/新槽位0，但实际PG18.6尚未运行验证；9项定向检查/type/lint通过，没有Neon/AWS写或source/Worker改动。下一小阶段PG18隔离验证及独立版本化ownership proof接线，新schema/准确登记仍fresh单批批准。见 [F3b3密封候选与继续位置](./aws-auto-deployment-fast-track-f3b3-sealed-schema-candidate.md)。以下保留历史。
