@@ -13,6 +13,8 @@ import {
   assertTenantProvisionPredecessor,
   requireActiveCleanupProvisionPredecessor,
 } from "./external-ownership.ts";
+import { assertLifecycleProtocol, compilePreparedLifecycleAuthorityEnvironment,
+  preparedLifecycleCommands, preparedBaselinePins, type TenantLifecycleProtocol } from "./tenant-lifecycle-prepared-contract.ts";
 
 const sha256Pattern = /^[a-f0-9]{64}$/;
 const arnPattern =
@@ -88,6 +90,11 @@ export interface EcsOneShotTaskRequest {
       TENANT_EXTERNAL_OPERATION_EPOCH: string;
       TENANT_EXTERNAL_OPERATION_MARKER: string;
       TENANT_EXTERNAL_OPERATION_HASH: string;
+      TENANT_EXTERNAL_AUTHORITY_KEY?: string;
+      TENANT_RESOURCE_IDENTITY_JSON?: string;
+      TENANT_OWNER_DEPLOYMENT_ID?: string;
+      TENANT_DATABASE_NAME?: string;
+      TENANT_DATABASE_ROLE_NAME?: string;
       TENANT_PREDECESSOR_PROVISION_EPOCH?: string;
       TENANT_PREDECESSOR_PROVISION_MARKER?: string;
       TENANT_PREDECESSOR_PROVISION_OPERATION_HASH?: string;
@@ -152,6 +159,8 @@ export interface AbortableWaitPort {
 }
 
 export interface EcsOneShotTaskRunnerConfig {
+  lifecycleProtocol?: TenantLifecycleProtocol;
+  receiptSchemaVersion?: 1 | 2;
   environmentKind: DeploymentEnvironmentKind;
   expectedAccountId: string;
   expectedRegion: string;
@@ -394,10 +403,14 @@ function assertActiveExternalFence(
 }
 
 function assertConfig(config: EcsOneShotTaskRunnerConfig): void {
+  const protocol = assertLifecycleProtocol(config.lifecycleProtocol, config.receiptSchemaVersion);
   const cluster = parseArn(config.clusterArn, "cluster");
   const taskDefinition = parseLifecycleTaskDefinitionArn(config.taskDefinitionArn);
   tenantOneShotReceiptBucketName(config.receiptBucketArn);
   if (
+    (protocol === "prepared_v2" && (config.environmentKind !== "aws_sandbox" ||
+      config.clusterArn !== "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1" ||
+      config.containerName !== "tenant-database-lifecycle")) ||
     config.expectedAccountId !== cluster.accountId ||
     config.expectedRegion !== cluster.region ||
     taskDefinition.accountId !== cluster.accountId ||
@@ -442,7 +455,7 @@ function assertConfig(config: EcsOneShotTaskRunnerConfig): void {
     }
     if (
       canonicalJson(command) !==
-      canonicalJson(approvedTenantDatabaseOneShotCommands[operation])
+      canonicalJson(protocol === "prepared_v2" ? preparedLifecycleCommands[operation] : approvedTenantDatabaseOneShotCommands[operation])
     ) {
       throw new TenantDatabaseLifecycleError(
         "TENANT_ONE_SHOT_COMMAND_INVALID",
@@ -450,21 +463,7 @@ function assertConfig(config: EcsOneShotTaskRunnerConfig): void {
       );
     }
   }
-  for (const operation of tenantDatabaseOneShotOperations) {
-    if (
-      canonicalJson(config.commandByOperation[operation]) !==
-      canonicalJson([
-        "/usr/local/bin/node",
-        "db/tenant_lifecycle.js",
-        operation,
-      ])
-    ) {
-      throw new TenantDatabaseLifecycleError(
-        "TENANT_ONE_SHOT_COMMAND_INVALID",
-        "Every database lifecycle operation must use the reviewed unified SpeedFeast task entrypoint.",
-      );
-    }
-  }
+  assertExactKeys(config.commandByOperation, tenantDatabaseOneShotOperations, "Lifecycle commands");
   if (!containerNamePattern.test(config.containerName)) {
     throw new TenantDatabaseLifecycleError(
       "TENANT_ONE_SHOT_CONFIG_INVALID",
@@ -507,9 +506,8 @@ export const tenantDatabaseOneShotOperations = [
 ] as const satisfies readonly TenantDatabaseOneShotOperation[];
 
 /**
- * Command vectors are code-owned, not deployment input. The lifecycle helper
- * image is intentionally not wired yet. All operations share one reviewed
- * SpeedFeast entrypoint so task definitions cannot substitute ad-hoc scripts.
+ * Legacy command vectors are code-owned, not deployment input. Prepared-v2
+ * uses a separately selected allowlist; defaults never migrate implicitly.
  */
 export const approvedTenantDatabaseOneShotCommands = {
   inspect: ["/usr/local/bin/node", "db/tenant_lifecycle.js", "inspect"],
@@ -677,7 +675,7 @@ export class EcsOneShotTaskRunner {
     assertConfig(input.config);
     this.api = input.api;
     this.waiter = input.waiter;
-    this.config = input.config;
+    this.config = structuredClone(input.config);
     this.aws = parseArn(input.config.clusterArn, "cluster");
   }
 
@@ -718,7 +716,8 @@ export class EcsOneShotTaskRunner {
     }
     if (
       input.approvedBaselineDigest !== null &&
-      !sha256Pattern.test(input.approvedBaselineDigest)
+      (!sha256Pattern.test(input.approvedBaselineDigest) ||
+        (this.config.lifecycleProtocol === "prepared_v2" && input.approvedBaselineDigest !== preparedBaselinePins.archiveSha256))
     ) {
       throw new TenantDatabaseLifecycleError(
         "TENANT_BASELINE_INVALID",
@@ -767,6 +766,9 @@ export class EcsOneShotTaskRunner {
       TENANT_RECEIPT_EXPECTED_BUCKET_OWNER: this.aws.accountId,
       TENANT_RECEIPT_KEY: receiptKey,
     };
+    if (this.config.lifecycleProtocol === "prepared_v2") {
+      Object.assign(environment, await compilePreparedLifecycleAuthorityEnvironment(input.fence));
+    }
     if (expectedOperation === "destroy") {
       environment.TENANT_PREDECESSOR_PROVISION_EPOCH = String(
         input.provisionPredecessor.epoch,

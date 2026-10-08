@@ -428,5 +428,6 @@ test("ECS validates the described task before binding the exact task and request
     signal: new AbortController().signal,
   });
   assert.equal(readerInputs[0]?.taskArn, taskArn);
-  assert.equal(readerInputs[0]?.expectedRequest, expectedRequest);
+  assert.deepEqual(readerInputs[0]?.expectedRequest, expectedRequest);
+  assert.notEqual(readerInputs[0]?.expectedRequest, expectedRequest); // SDK isolates the mutable caller DTO.
 });

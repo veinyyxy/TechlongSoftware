@@ -363,6 +363,7 @@ async function finalReceipt(input: {
  * This adapter is deliberately not wired into the deployment Worker root.
  */
 export class AwsSdkS3OneShotReceiptReader implements EcsOneShotReceiptReader {
+  readonly receiptSchemaVersion: 1 | 2;
   private readonly config: Required<AwsSdkS3OneShotReceiptReaderConfig>;
   private readonly bucketName: string;
   private readonly sdk: AwsSdkS3OneShotReceiptReaderDependencies;
@@ -403,6 +404,7 @@ export class AwsSdkS3OneShotReceiptReader implements EcsOneShotReceiptReader {
       );
     }
     this.bucketName = bucketName;
+    this.receiptSchemaVersion = receiptSchemaVersion;
     this.config = { ...config, maximumReceiptBytes, receiptSchemaVersion };
     this.sdk = sdk;
   }

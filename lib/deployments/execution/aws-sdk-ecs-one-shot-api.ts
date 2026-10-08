@@ -1,6 +1,7 @@
 import {
   tenantOneShotExpectedReceiptBucketArn,
   tenantOneShotReceiptBucketName,
+  tenantOneShotRequestHash,
   type EcsOneShotTaskApi,
   type EcsOneShotTaskObservation,
   type EcsOneShotTaskRequest,
@@ -10,6 +11,8 @@ import {
 import { canonicalJson } from "./hash.ts";
 import { TenantDatabaseLifecycleError } from "./tenant-database.ts";
 import type { DeploymentEnvironmentKind } from "../environment.ts";
+import { assertLifecycleProtocol, assertPreparedLifecycleRequestIdentity, preparedAuthorityEnvironmentKeys,
+  preparedLifecycleCommands, preparedBaselinePins, type TenantLifecycleProtocol } from "./tenant-lifecycle-prepared-contract.ts";
 
 interface AwsSdkClient {
   send(
@@ -26,6 +29,7 @@ type AwsSdkCommandConstructor = new (
 ) => unknown;
 
 export interface EcsOneShotReceiptReader {
+  readonly receiptSchemaVersion?: 1 | 2;
   read(input: {
     clusterArn: string;
     taskArn: string;
@@ -46,6 +50,8 @@ export interface AwsSdkEcsOneShotDependencies {
 }
 
 export interface AwsSdkEcsOneShotConfig {
+  lifecycleProtocol?: TenantLifecycleProtocol;
+  receiptSchemaVersion?: 1 | 2;
   environmentKind: DeploymentEnvironmentKind;
   expectedAccountId: string;
   expectedRegion: string;
@@ -292,6 +298,7 @@ function assertTaskIdentity(
     text(task.launchType) !== request.launchType ||
     text(task.platformVersion) !== request.platformVersion ||
     task.enableExecuteCommand !== false ||
+    (request.container.command.length === 1 && (overrides.taskRoleArn || overrides.executionRoleArn)) ||
     containerOverrides.length !== 1 ||
     expectedOverride.length !== 1 ||
     !Array.isArray(command) ||
@@ -310,14 +317,16 @@ function assertTaskIdentity(
   }
 }
 
-function assertRequest(
+async function assertRequest(
   request: EcsOneShotTaskRequest,
   config: AwsSdkEcsOneShotConfig,
   expectedOperation: TenantDatabaseOneShotOperation,
-): void {
+): Promise<void> {
   const receiptBucket = tenantOneShotReceiptBucketName(config.receiptBucketArn);
   const operation = request.container.environment.TENANT_DATABASE_OPERATION;
   const requiredEnvironment: string[] = [...environmentKeys];
+  const prepared = config.lifecycleProtocol === "prepared_v2";
+  if (prepared) requiredEnvironment.push(...preparedAuthorityEnvironmentKeys);
   const requiresApprovedBaseline = [
     "restore_approved_baseline",
     "migrate_saas",
@@ -424,7 +433,7 @@ function assertRequest(
     request.container.environment.TENANT_RECEIPT_EXPECTED_BUCKET_OWNER !==
       config.expectedAccountId ||
     request.container.environment.TENANT_RECEIPT_KEY !== request.receipt.key ||
-    request.container.command[2] !== expectedOperation ||
+    request.container.command[prepared ? 0 : 2] !== expectedOperation ||
     !/^tl_owner_[a-f0-9]{32}_g[1-9][0-9]*$/.test(
       request.container.environment.TENANT_OWNERSHIP_MARKER,
     ) ||
@@ -456,14 +465,19 @@ function assertRequest(
       (request.container.environment.APPROVED_TENANT_BASELINE_SHA256 !==
         undefined)) ||
     (request.container.environment.APPROVED_TENANT_BASELINE_SHA256 !== undefined &&
-      !digestPattern.test(
-        request.container.environment.APPROVED_TENANT_BASELINE_SHA256,
-      ))
+      (!digestPattern.test(request.container.environment.APPROVED_TENANT_BASELINE_SHA256) ||
+        (prepared && request.container.environment.APPROVED_TENANT_BASELINE_SHA256 !== preparedBaselinePins.archiveSha256)))
   ) {
     fail(
       "TENANT_ONE_SHOT_REQUEST_INVALID",
       "ECS one-shot environment contains an invalid Secret ARN or digest.",
     );
+  }
+  if (prepared) {
+    await assertPreparedLifecycleRequestIdentity(request);
+    if (request.startedBy !== `tl-${request.clientToken.slice(0, 12)}-${(await tenantOneShotRequestHash(request)).slice(0, 16)}`) {
+      fail("TENANT_ONE_SHOT_REQUEST_INVALID", "Prepared startedBy must bind the full immutable request hash.");
+    }
   }
 }
 
@@ -515,6 +529,13 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
   private readonly scope: { region: string; accountId: string; clusterName: string };
 
   constructor(config: AwsSdkEcsOneShotConfig, sdk: AwsSdkEcsOneShotDependencies) {
+    const protocol = assertLifecycleProtocol(config.lifecycleProtocol, config.receiptSchemaVersion);
+    if ((sdk.receiptReader.receiptSchemaVersion ?? 1) !== (config.receiptSchemaVersion ?? 1) ||
+      (protocol === "prepared_v2" && (config.environmentKind !== "aws_sandbox" ||
+        config.clusterArn !== "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1" ||
+        config.expectedContainerName !== "tenant-database-lifecycle"))) {
+      fail("TENANT_ONE_SHOT_PROTOCOL_INVALID", "ECS protocol, receipt reader, and prepared Sandbox scope must agree.");
+    }
     let receiptBucketValid = true;
     try {
       tenantOneShotReceiptBucketName(config.receiptBucketArn);
@@ -570,10 +591,8 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
       const command = config.allowedCommandByOperation[operation];
       if (
         !Array.isArray(command) ||
-        command.length !== 3 ||
-        command[0] !== "/usr/local/bin/node" ||
-        command[1] !== "db/tenant_lifecycle.js" ||
-        command[2] !== operation
+        !sameArray(command, protocol === "prepared_v2" ? preparedLifecycleCommands[operation] :
+          ["/usr/local/bin/node", "db/tenant_lifecycle.js", operation])
       ) {
         fail(
           "TENANT_ONE_SHOT_PROVIDER_CONFIG_INVALID",
@@ -592,7 +611,8 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
     }
     this.sdk = sdk;
     this.scope = scope;
-    this.config = { ...config, maximumListPages: config.maximumListPages ?? 5 };
+    this.config = structuredClone({ ...config, lifecycleProtocol: protocol,
+      receiptSchemaVersion: config.receiptSchemaVersion ?? 1, maximumListPages: config.maximumListPages ?? 5 });
   }
 
   async runTask(input: {
@@ -602,9 +622,11 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
   }): Promise<{ taskArn: string }> {
     try {
       input.signal.throwIfAborted();
-      assertRequest(input.request, this.config, input.expectedOperation);
+      const request = structuredClone(input.request);
+      await assertRequest(request, this.config, input.expectedOperation);
+      input.signal.throwIfAborted();
       const response = await this.sdk.client.send(
-        new this.sdk.commands.runTask(runTaskInput(input.request)),
+        new this.sdk.commands.runTask(runTaskInput(request)),
         { abortSignal: input.signal },
       );
       input.signal.throwIfAborted();
@@ -694,7 +716,8 @@ export class AwsSdkEcsOneShotTaskApi implements EcsOneShotTaskApi {
     signal: AbortSignal;
   }): Promise<EcsOneShotTaskObservation> {
     input.signal.throwIfAborted();
-    assertRequest(
+    input = { ...input, expectedRequest: structuredClone(input.expectedRequest) };
+    await assertRequest(
       input.expectedRequest,
       this.config,
       input.expectedOperation,

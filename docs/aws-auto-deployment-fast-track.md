@@ -22,7 +22,7 @@
 | 批次 | 实施范围 | 验收标准 | 当前状态 |
 | --- | --- | --- | --- |
 | F1 真实运行时组合 | 真实 Secret material generator、租户上下文绑定、数据库/ownership/清理/mTLS adapter 接线、50 USD 预算兼容 | 组合不调用云；独立凭据不串租；同一 Secret/lifecycle 实例用于部署和清理；不能靠环境变量打开 runtime | 代码及定向验证完成，未云启用 |
-| F2 数据库可执行闭环 | PostgreSQL 16.14 空 baseline 候选；backend prepare/restore/migrate/verify production provider；镜像构建与严格 readback | 业务数据为空；只允许批准 seed；真实任务回执和崩溃恢复；旧 inspect/destroy 入口不被放宽 | F2g1受审后端admission/CLI root代码、隔离PG16与云端新镜像候选验证通过；平台v2材料compiler已加入但runner/SDK仍待显式接线；新镜像/authority/baseline未部署，Source仍Locked/v4，旧ECR镜像保留 |
+| F2 数据库可执行闭环 | PostgreSQL 16.14 空 baseline 候选；backend prepare/restore/migrate/verify production provider；镜像构建与严格 readback | 业务数据为空；只允许批准 seed；真实任务回执和崩溃恢复；旧 inspect/destroy 入口不被放宽 | F2g2已接通显式prepared-v2 runner/SDK/收据并加入未安装TaskDefinition/activation/单租户权限草案；65项协议+129项主链、跨仓wire/type/lint/build通过；新镜像/baseline/权限/authority仍未部署，Source只读Locked/v4 |
 | F3 在线门禁集中验收 | 单次只读取证收敛 IAM；authority/root；ACM/DNS/mTLS；空 inventory；TTL/回滚；费用估算；bootstrap Change Set | 使用真实 provider 证据；审批/执行在同一本地流程及时完成；成功或失败均独立撤权；可证明清理 | 尚未执行 |
 | F4 单租户端到端 | 已批准 Cell 和镜像上运行真实 Worker；一个部署任务到 ready；失败/TTL 验收 | 真实健康端点、配置与地址回写；无孤儿租户资源；费用与资源 inventory 核对 | 尚未执行 |
 
@@ -49,6 +49,8 @@ material 只能在 guarded Secret store 的 generation/epoch 上下文内生成�
 这仍是 **prepared_not_activated**：原 standalone Worker 默认入口保持关闭，prepared root 的 apply/cleanup readiness 也固定为 false。原因是当前已部署 lifecycle 镜像只证明 inspect/destroy，不包含已经在线验证的 prepare/restore/migrate/verify provider；当前 Cell 仍缺失，authority 尚未安装。不能伪称自动部署已经可用。
 
 ## 继续位置
+
+最新继续位置（2026-10-07 Winnipeg）：F2g2平台显式prepared-v2接线和未安装部署材料已完成。下一阶段F3集中只读preflight、实际Aurora PG版本/资源/费用核验与fresh云批准材料；默认Worker仍关闭，无安装或付费执行授权。见 [F2g2实现、验证与边界](./aws-auto-deployment-fast-track-f2g2-prepared-runner.md)。以下记录保留历史。
 
 F2a 已在服务端加入 `build-empty-tenant-baseline.js` 和复用既有严格 TOC validator 的候选编译器。仅允许本地 PGHOST、read-only PGOPTIONS、schema-only dump；子进程离线 TOC/SQL 不继承 PG 环境，不输出凭据/provider 原始错误；输出目录新建且实际父路径必须在 artifact workspace 内。不会把数据 archive 标成空库。
 
