@@ -50,6 +50,8 @@ material 只能在 guarded Secret store 的 generation/epoch 上下文内生成�
 
 ## 继续位置
 
+最新继续位置（2026-10-08 Winnipeg）：F3b3准确旧计划密封登记/永久引用guard的未注册SQL候选完成，覆盖九表十列、两内部表/八函数/十六Always触发器；完整表结构/catalog/fence版本校验、真实PG16并发与业务连续性11组证明通过，server已停。Neon只读schema匹配/新槽位0，但实际PG18.6尚未运行验证；9项定向检查/type/lint通过，没有Neon/AWS写或source/Worker改动。下一小阶段PG18隔离验证及独立版本化ownership proof接线，新schema/准确登记仍fresh单批批准。见 [F3b3密封候选与继续位置](./aws-auto-deployment-fast-track-f3b3-sealed-schema-candidate.md)。以下保留历史。
+
 最新继续位置（2026-10-08 Winnipeg）：F3b3独立Executor v2的core/root/SDK journal/Secret入口和未安装Lambda包完成，旧Janitor协议不放宽、删除计划SHA按准确新身份分域；143项相邻回归/type/lint/build/包自检通过，Source只读确认新role ABSENT。密封隔离契约已具体化但无DDL/新adapter，当前门禁仍1/1，未安装任何IAM/数据库/云runtime。下一小阶段准备未注册的密封schema/永久引用guard与版本化ownership证明，再整理具体安装范围供fresh批准。见 [F3b3 v2产物与继续位置](./aws-auto-deployment-fast-track-f3b3-dedicated-executor-v2.md)。以下保留历史。
 
 最新继续位置（2026-10-08 Winnipeg）：F3b3旧计划/immutable trigger及Source刷新后的控制面只读审阅完成，保留实例/订阅/原件，密封隔离登记尚为设计，零租户门禁仍1/1。真实Janitor boundary v2同时附加为身份策略且显式Deny变更，仅换boundary不能启用executor；提出保留旧IAM/PLAN_ONLY的独立executor身份修订，须版本化精确入口、新artifact和新role只读核验。原F3b2复用role草案与产物保留而不安装；尚无可执行安装SHA，F3b3未整体完成。见 [F3b3审阅、证据和继续位置](./aws-auto-deployment-fast-track-f3b3-isolation-review.md)。以下保留历史。

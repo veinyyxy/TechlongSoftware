@@ -1,5 +1,7 @@
 # F3b3：独立 Executor v2 代码与候选包完成，未安装
 
+后续密封schema候选已完成未注册DDL与真实隔离PG16验证，并只读发现Neon为18.6；最新继续位置见 [密封候选、证据和下一小阶段](./aws-auto-deployment-fast-track-f3b3-sealed-schema-candidate.md)。以下保留本切片当时的状态与原件。
+
 2026-10-08 Winnipeg。本切片针对前次真实 IAM 核验发现的 Janitor 双重附加 Deny，完成独立执行身份的代码接线、真实候选 ZIP 构建及新角色只读存在性核验。没有更改旧 Janitor role/boundary/attached policy/PLAN_ONLY函数、安装权限、写数据库、上传或调用 Lambda、创建付费 Cell。F3b3/F3 整体仍未完成。
 
 ## 已完成的精确接线

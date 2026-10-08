@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-08 F3b3密封schema切片完成：未注册候选含两内部表/八函数/十六Always guards，覆盖九类表的十个引用列、永久原件保留与版本化fence；真实隔离PG16.14通过11组保护/并发证明且server已停，9项定向检查/type/lint通过。Neon实际只读确认十个FK/空新槽位、旧记录保留，但其版本为18.6，不能将PG16证明视为线上兼容。未安装schema/登记/新ownership source，旧严格查询和业务状态不改。下一步PG18隔离验证与独立版本化ownership接线。见 [候选、真实证据与边界](./docs/aws-auto-deployment-fast-track-f3b3-sealed-schema-candidate.md)。以下保留历史。
+
 2026-10-08 F3b3独立Executor v2切片完成：旧Janitor身份/协议保持不变，新入口固定专属role，schema2计划SHA绑定协议/完整role ARN，持久化intent/receipt隔离旧版本，单次删除与只读恢复约束保留。143项相邻回归/type/lint/build及新ZIP自检通过；AWS只读确认新role ABSENT，没有创建。旧规划密封隔离协议仍为候选，无DDL/新source接线，严格零租户门禁仍1/1。未安装IAM/Secret/函数或启用Worker。见 [新产物、证据与下一小阶段](./docs/aws-auto-deployment-fast-track-f3b3-dedicated-executor-v2.md)。以下保留历史。
 
 2026-10-08 F3b3只读审阅切片完成：旧pending实例/active订阅及原行保留，live trigger禁止直接迁移environment_id，隔离登记仅为设计，零租户门禁仍1/1。Source刷新后真实AWS核验确认旧Janitor仍PLAN_ONLY；其boundary v2同时作为身份策略附加且显式Deny变更，仅换boundary不能复用。准备独立executor身份修订，当前Janitor绑定产物不能直接改role安装；新候选role存在性仍需单独读取。6项审阅器/类型/lint/AST通过。无云/数据库写或Worker启用，F3b3未整体完成、无可执行安装SHA。见 [准确证据与继续位置](./docs/aws-auto-deployment-fast-track-f3b3-isolation-review.md)。以下保留历史。
