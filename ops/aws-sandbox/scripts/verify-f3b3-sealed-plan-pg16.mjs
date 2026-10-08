@@ -158,6 +158,46 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
  AND NOT EXISTS(SELECT 1 FROM deployment_plan_only_isolations r WHERE r.deployment_id=d.id)`)).rows[0];
  assert.equal(membership.active,1);assert.equal((await c.query("SELECT to_jsonb(d)::text AS row FROM app_instance_deployments d WHERE id=$1",[target])).rows[0].row,before.row);
  prove("restrictedWriterCannotRegisterAndBusinessStatusNewDeploymentRemainAllowed");
+ if(githubPg18){
+  receipt.phase="CERTIFIED_SOURCE_V3";
+  const {NeonSealedCellOwnershipSourceV3}=await import("../../../lib/deployments/execution/neon-sealed-cell-ownership-source-v3.ts");
+  await c.query(`CREATE ROLE techlong_cell_cleanup_reader NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+    GRANT techlong_cell_cleanup_reader TO cell_admin WITH SET TRUE;
+    GRANT USAGE ON SCHEMA public TO techlong_cell_cleanup_reader;
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO techlong_cell_cleanup_reader;`);
+  const registered=(await c.query("SELECT * FROM deployment_plan_only_isolations WHERE deployment_id=$1",[target])).rows[0];
+  registered.sealed_at=Number(registered.sealed_at);
+  await c.query(`UPDATE deployment_environments SET admission_state='draining',admission_epoch=1,admission_fence_sha256=repeat('1',64),
+    admission_provision_operation_hash=repeat('2',64),admission_stack_id='arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/12345678-1234-1234-1234-123456789012',
+    admission_cell_expires_at=(extract(epoch FROM transaction_timestamp())*1000)::bigint-60000,
+    admission_changed_at=(extract(epoch FROM transaction_timestamp())*1000)::bigint WHERE id='env_aws_sandbox_ca_central_1'`);
+  const sql={async transaction(build,settings){
+    assert.equal(settings.readOnly,true);assert.equal(settings.isolationLevel,"Serializable");assert.equal(settings.deferrable,true);
+    const client=await context.connect();try{
+      await client.query("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY DEFERRABLE");await client.query("SET LOCAL ROLE techlong_cell_cleanup_reader");
+      const queries=build({query:(statement,values)=>({statement,values})}),results=[];
+      for(const q of queries)results.push(await client.query(q.statement,q.values));
+      await client.query("COMMIT");return results;
+    }catch(error){await client.query("ROLLBACK");throw error;}finally{await client.end();}
+  }};
+  const source=new NeonSealedCellOwnershipSourceV3(sql,registered);
+  const certifiedRead=()=>source.readCertifiedSerializableSnapshot({accountId:"402010193138",region:"ca-central-1",cellId:"cell-sandbox-1",
+    environmentId:"env_aws_sandbox_ca_central_1",signal:AbortSignal.timeout(30000)});
+  const visible=await certifiedRead();assert.deepEqual(visible.activeTenantIds,[instance]);
+  assert.deepEqual(visible.nonterminalDeploymentIds,["dep_seal_future_live"]);assert.equal(visible.runtimeActivationAuthorized,false);
+  assert.equal(typeof source.readSerializableReadOnlySnapshot,"undefined");
+  prove("certifiedSourceV3KeepsFutureUnsealedDeploymentVisibleAsRestrictedReader");
+  const savedFunction=(await c.query("SELECT pg_get_functiondef('public.sealed_plan_protection_hash_v1()'::regprocedure) AS definition")).rows[0].definition;
+  await c.query(`CREATE OR REPLACE FUNCTION public.sealed_plan_protection_hash_v1() RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog
+    AS $$BEGIN RAISE EXCEPTION 'CI_TRAP_MUTABLE_HELPER_EXECUTED';END;$$`);
+  await assert.rejects(certifiedRead(),error=>error.code==="SEALED_SOURCE_CERTIFICATE_OR_PROTECTION_MISMATCH");
+  await c.query(savedFunction);
+  prove("certifiedSourceV3RejectsSubstitutedFingerprintHelperWithoutExecutingIt");
+  await c.query("UPDATE app_instance_deployments SET status='canceled' WHERE id='dep_seal_future_live';UPDATE app_instances SET status='suspended' WHERE id='"+instance+"'");
+  const zero=await certifiedRead();assert.deepEqual(zero.activeTenantIds,[]);assert.deepEqual(zero.nonterminalDeploymentIds,[]);
+  assert.deepEqual(zero.rawOwnershipWitness.nonterminalDeploymentIds,[target]);
+  prove("certifiedSourceV3BindsRawAndClassifiedOwnershipWithoutErasingOriginalRow");
+ }
  receipt.phase="COMPLETE";
  const version=Number((await c.query("SELECT current_setting('server_version_num') AS version")).rows[0].version);
  assert.equal(version,githubPg18?180006:160014);

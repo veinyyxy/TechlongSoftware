@@ -37,7 +37,7 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run real PostgreSQL 18.6 proof in an owned disposable database
-        run: node ops/aws-sandbox/scripts/verify-f3b3-sealed-plan-pg16.mjs --github-pg18 --out artifacts/sealed-pg18
+        run: node --experimental-strip-types ops/aws-sandbox/scripts/verify-f3b3-sealed-plan-pg16.mjs --github-pg18 --out artifacts/sealed-pg18
         env:
           SEALED_PLAN_PG_PORT: ${{ job.services.postgres.ports[5432] }}
           SEALED_PLAN_CI_PASSWORD: sealed-ci-only-bootstrap
