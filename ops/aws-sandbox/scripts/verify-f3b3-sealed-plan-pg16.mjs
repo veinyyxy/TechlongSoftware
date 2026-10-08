@@ -8,11 +8,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const args=process.argv.slice(2);
-if(args.length!==6||args[0]!=="--out"||args[2]!=="--pg-bin"||args[4]!=="--python"||
-  !/^techlong-f3b3-sealed-pg16-[a-z0-9-]+$/.test(path.basename(args[1]))) throw new Error("FRESH_LOCAL_ISOLATION_FIXTURE_ARGUMENTS_REQUIRED");
+const githubPg18=args.length===3&&args[0]==="--github-pg18"&&args[1]==="--out";
+if(!githubPg18&&(args.length!==6||args[0]!=="--out"||args[2]!=="--pg-bin"||args[4]!=="--python"||
+  !/^techlong-f3b3-sealed-pg16-[a-z0-9-]+$/.test(path.basename(args[1])))) throw new Error("FRESH_LOCAL_ISOLATION_FIXTURE_ARGUMENTS_REQUIRED");
 const root=fileURLToPath(new URL("../../../",import.meta.url));
 const require=createRequire(import.meta.url);
-const {withIsolatedPg16}=require("E:/NodejsProject/SpeedFeast_Backend_main/scripts/lib/isolated-pg16-fixture.js");
+const withFixture=githubPg18?(await import("./lib/github-pg18-fixture.mjs")).withGithubPg18Fixture:
+ require("E:/NodejsProject/SpeedFeast_Backend_main/scripts/lib/isolated-pg16-fixture.js").withIsolatedPg16;
 const hash=value=>createHash("sha256").update(value).digest("hex");
 const candidate=(await readFile(path.join(root,"ops/aws-sandbox/sql-candidates/f3b3-sealed-plan-isolation.sql"),"utf8")).replace(/\r\n/g,"\n");
 const base=(await readFile(path.join(root,"db/postgres-schema.sql"),"utf8")).replace(/\r\n/g,"\n");
@@ -47,7 +49,7 @@ async function waitForLock(observer,pid){
  throw Object.assign(new Error("Expected real row-lock contention"),{code:"ISOLATION_RACE_NOT_OBSERVED"});
 }
 
-await withIsolatedPg16({output:args[1],bin:args[3],python:args[5],receiptKind:"sessions"},async context=>{
+await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],receiptKind:"sessions"},async context=>{
  const c=context.managementClient, receipt=context.receipt;
  const proofs=[];const prove=label=>proofs.push(label);
  receipt.phase="BASE_SCHEMA";
@@ -157,9 +159,11 @@ await withIsolatedPg16({output:args[1],bin:args[3],python:args[5],receiptKind:"s
  assert.equal(membership.active,1);assert.equal((await c.query("SELECT to_jsonb(d)::text AS row FROM app_instance_deployments d WHERE id=$1",[target])).rows[0].row,before.row);
  prove("restrictedWriterCannotRegisterAndBusinessStatusNewDeploymentRemainAllowed");
  receipt.phase="COMPLETE";
- const result={schemaVersion:1,outcome:"SEALED_PLAN_CANDIDATE_REAL_PG16_VERIFIED_NOT_INSTALLED",candidateTextSha256:hash(candidate.replace(/\r\n/g,"\n")),
+ const version=Number((await c.query("SELECT current_setting('server_version_num') AS version")).rows[0].version);
+ assert.equal(version,githubPg18?180006:160014);
+ const result={schemaVersion:1,outcome:githubPg18?"SEALED_PLAN_CANDIDATE_REAL_PG18_VERIFIED_NOT_INSTALLED":"SEALED_PLAN_CANDIDATE_REAL_PG16_VERIFIED_NOT_INSTALLED",candidateTextSha256:hash(candidate.replace(/\r\n/g,"\n")),
   baseSchemaTextSha256:hash(base.replace(/\r\n/g,"\n")),protectionCatalogSha256:receipt.protectionCatalogSha256,proofs,
-  postgresVersion:160014,fixtureDataOnly:true,neonMutationPerformed:false,sourceMutationPerformed:false,cloudMutationPerformed:false,
+  postgresVersion:version,fixtureDataOnly:true,neonMutationPerformed:false,sourceMutationPerformed:false,cloudMutationPerformed:false,
   migrationRegistered:false,productionRegistrationPerformed:false,ownershipSourceActivated:false,installationAuthorized:false,runtimeEnabled:false};
  await writeFile(path.join(context.output,"sealed-plan-verification.json"),JSON.stringify(result,null,2)+"\n",{flag:"wx"});
  return {outcome:result.outcome,receipt:{...result}};
