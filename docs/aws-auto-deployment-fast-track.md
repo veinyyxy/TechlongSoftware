@@ -50,6 +50,8 @@ material 只能在 guarded Secret store 的 generation/epoch 上下文内生成�
 
 ## 继续位置
 
+最新继续位置（2026-10-08 Winnipeg）：F3b3 Neon精确管理入口完成；实际TLS/Serializable只读确认PG18.6、13表owner neondb_owner、十个引用闭包、新对象与拟议角色0，原业务pending/active保留。32项定向/type/lint/语法/AST/build及真实PG18 run37813739467/head554b125/19组证明通过，两CI自有数据库drop/容器stop独立核对，覆盖安装、登记及提交响应丢失后的只读恢复。最终仅安装清单SHA ce844c9096de5c71cf3d3447916143260d336292180dbf2193f3b256d67fb36b，过期2026-10-08 18:07:22UTC，尚未批准/执行；固定install/register槽位均空。下一操作需具体确认仅安装（两表/八函数/十六Always触发器/未密封fence，不登记/授权/改业务或AWS）；过期仅刷新只读再批准。见 [F3b3 Neon管理与审批边界](./aws-auto-deployment-fast-track-f3b3-neon-management.md)。以下保留历史。
+
 最新继续位置（2026-10-08 Winnipeg）：F3b3 v3 freshness/admission/authority/deletion证据与完整候选/计划绑定完成；真实PG18 run37809750133/head e4a615b attempt1 success、16组证明，完整artifact/数据库drop/容器stop独立核对，25+173项定向及相邻回归/type/lint/AST/build通过。新证据保留完整证书/raw witness、严格时钟/fence/二次状态对照，不降级schema2、不开放caller override。仅prepared候选与plan，未持久authority/CAS/journal/root安装或可执行删除；旧1/1门禁/runtime关闭保持。下一小阶段生产密封安装/登记审批入口与Neon准确schema/owner/min-role只读preflight；v3持久authority/独立executor接线及各云安装仍待完成/具体批准。见 [F3b3 v3证据与继续位置](./aws-auto-deployment-fast-track-f3b3-evidence-v3.md)。以下保留历史。
 
 最新继续位置（2026-10-08 Winnipeg）：F3b3 PG18.6云端真实证明与独立只读source-v3完成，两GHA run attempt1 success、11/14组证明和精确artifact/cleanup独立核对；152项回归/type/lint/build通过。完整证书、原行/planbytes、永久fence及inline catalog校验，raw与分类集合都入新hash，不执行mutable helper、不降级schema2。未Neon安装/登记或新删除入口接线，旧规划门禁和runtime关闭保持。下一小阶段v3 freshness/admission/authority/deletion适配，再fresh审阅Neon schema/角色与各项安装/登记权限。见 [F3b3 PG18/source-v3](./aws-auto-deployment-fast-track-f3b3-pg18-ownership-v3.md)。以下保留历史。
