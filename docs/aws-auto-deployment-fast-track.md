@@ -50,6 +50,8 @@ material 只能在 guarded Secret store 的 generation/epoch 上下文内生成�
 
 ## 继续位置
 
+最新继续位置（2026-10-08 Winnipeg）：用户明确批准1fba989登记清单后，准确旧计划单行证书INSERT/内部fence finalize已单次COMMIT成功；新连接独立回读与另一次VerifyRegistration通过，两份完整证书canonical SHA dc093614188a8f0a086b4fc6a7e251c43312495a60db2efffc654cf3d48b066f一致。registry1/fence sealed=true revision2，原行/plan/实例pending/订阅active/旧trigger/角色不变，AWS/runtime未动。两个DB固定槽位均永久占用，禁止RunInstall/RunRegistration、down或复位；完整expected证书pin从私有独立receipt提取，不能用event/任意DB行替换。下一阶段v3持久authority/CAS/永久journal/独立executor root与新版包，以及最小DB角色/Secrets精确审批范围；当前未授予新权限、source v3/默认Worker仍未启用，各云安装仍单独确认。见 [F3b3准确密封登记与继续位置](./aws-auto-deployment-fast-track-f3b3-neon-plan-sealed.md)。以下保留历史。
+
 最新继续位置（2026-10-08 Winnipeg）：用户明确批准ce844安装清单后，Neon原C088保护SQL单次COMMIT成功，新连接独立回读及另一次VerifyInstall均通过；实际两表/八函数/十六Always trigger/一条未密封内部fence，registry0、fence revision0、原行/业务/旧trigger/角色未变，AWS/runtime未动。install固定槽位永久占用，不再RunInstall或down。已仅只读生成后继准确单行永久登记清单SHA 1fba989e681c6e7bb0c71178adfde6686f618359ad9e422db549b7b038aab333，过期2026-10-08 18:21:21UTC，尚未批准/执行，register槽位空。下一步必须新SHA具体批准登记；过期只读刷新后再确认；登记之后才推进最小角色/Secrets与v3持久执行接线，各云资源另批。见 [F3b3真实安装与登记边界](./aws-auto-deployment-fast-track-f3b3-neon-schema-installed.md)。以下保留历史。
 
 最新继续位置（2026-10-08 Winnipeg）：F3b3 Neon精确管理入口完成；实际TLS/Serializable只读确认PG18.6、13表owner neondb_owner、十个引用闭包、新对象与拟议角色0，原业务pending/active保留。32项定向/type/lint/语法/AST/build及真实PG18 run37813739467/head554b125/19组证明通过，两CI自有数据库drop/容器stop独立核对，覆盖安装、登记及提交响应丢失后的只读恢复。最终仅安装清单SHA ce844c9096de5c71cf3d3447916143260d336292180dbf2193f3b256d67fb36b，过期2026-10-08 18:07:22UTC，尚未批准/执行；固定install/register槽位均空。下一操作需具体确认仅安装（两表/八函数/十六Always触发器/未密封fence，不登记/授权/改业务或AWS）；过期仅刷新只读再批准。见 [F3b3 Neon管理与审批边界](./aws-auto-deployment-fast-track-f3b3-neon-management.md)。以下保留历史。
