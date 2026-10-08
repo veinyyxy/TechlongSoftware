@@ -1575,6 +1575,47 @@ async function recoverBoundDeletion(
 
 // Profiles are selected only by separate code entry points, never by event,
 // caller-provided role ARN, environment variable or a rewritten STS response.
+export type SealedCellStackReadPortV3 = Omit<SharedCellCleanupDeletionEvidenceReadPort, "readStrongZeroTenantOwnershipSnapshot">;
+
+function pinSealedStackReadPortV3(value: SealedCellStackReadPortV3) {
+  return pinEvidence({ region: value.region,
+    getCallerIdentity: value.getCallerIdentity.bind(value), listStackNamesPage: value.listStackNamesPage.bind(value),
+    describeCellStack: value.describeCellStack.bind(value), getOriginalTemplate: value.getOriginalTemplate.bind(value),
+    listStackResourcesPage: value.listStackResourcesPage.bind(value),
+    readStrongZeroTenantOwnershipSnapshot: async () => fail("SEALED_V3_LEGACY_OWNERSHIP_FORBIDDEN", "No legacy ownership projection."),
+  });
+}
+
+/** AWS-only exact-role validator reuse; no authority, ownership projection or deletion capability. */
+export async function collectSealedCellStackEvidenceV3(input: {
+  evidence: SealedCellStackReadPortV3; signal: AbortSignal; now: () => number;
+}) {
+  const evidence = pinSealedStackReadPortV3(input.evidence), startedAt = readClock(input.now);
+  await assertCaller(evidence, input.signal, DEDICATED_CELL_TTL_IDENTITY_PROTOCOL);
+  const firstNames = await collectStackNames(evidence, input.signal);
+  assertNoDependentsOrUnexpectedCells(firstNames);
+  if (!firstNames.has(SHARED_CELL_CLEANUP_DELETION_STACK_NAME)) fail("SHARED_CELL_DELETE_STACK_MISSING", "Use read-only recovery.");
+  const first = await readPresentEvidence(evidence, input.signal), second = await readPresentEvidence(evidence, input.signal);
+  const lastNames = await collectStackNames(evidence, input.signal);
+  assertNoDependentsOrUnexpectedCells(lastNames);
+  await assertCaller(evidence, input.signal, DEDICATED_CELL_TTL_IDENTITY_PROTOCOL);
+  const completedAt = readClock(input.now);
+  if (completedAt < startedAt || completedAt - startedAt > 30_000 || canonicalJson(first) !== canonicalJson(second) ||
+    canonicalJson([...firstNames].sort()) !== canonicalJson([...lastNames].sort()))
+    fail("SEALED_V3_STACK_EVIDENCE_DRIFT", "Exact Stack evidence changed or became stale.");
+  return Object.freeze({ ...second, checkedAt: completedAt });
+}
+
+/** Read-only name/StackId-bound recovery, never DeleteStack. */
+export async function confirmSealedCellStackMissingV3(input: {
+  evidence: SealedCellStackReadPortV3; expectedStackId: string; signal: AbortSignal;
+  readbackAttempts?: number; readbackDelayMs?: number; wait?: (delayMs: number, signal: AbortSignal) => Promise<void>;
+}) {
+  if (!stackIdPattern.test(input.expectedStackId)) fail("SEALED_V3_STACK_ID_INVALID", "Exact StackId required.");
+  await confirmAuthoritativeMissing({ evidence: pinSealedStackReadPortV3(input.evidence), expectedStackId: input.expectedStackId,
+    signal: input.signal, identity: DEDICATED_CELL_TTL_IDENTITY_PROTOCOL, ...readbackSettings(input) });
+}
+
 function legacySummary(value: Readonly<BoundDeletionSummary>) {
   if (value.schemaVersion !== 1) fail("SHARED_CELL_DELETE_PROTOCOL_INVALID", "Legacy protocol mismatch.");
   return value;

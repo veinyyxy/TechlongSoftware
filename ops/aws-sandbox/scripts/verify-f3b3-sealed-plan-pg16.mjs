@@ -216,11 +216,13 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
   const {SealedCellAuthorityOwnershipEvidenceAdapterV3,SealedCellDeletionOwnershipEvidenceAdapterV3,
     compileSealedCellCleanupAuthorityCandidateV3}=await import("../../../lib/deployments/execution/sealed-cell-cleanup-evidence-v3.ts");
   const cellExpiry=Date.now()-60000;
+  const ciTemplate={AWSTemplateFormatVersion:"2010-09-09",Resources:{CellLogGroup:{Type:"AWS::Logs::LogGroup"}}};
+  const ciInventory=[{logicalResourceId:"CellLogGroup",physicalResourceId:"/aws/techlong/cell-sandbox-1",resourceStatus:"CREATE_COMPLETE",resourceType:"AWS::Logs::LogGroup"}];
   const provision={schemaVersion:2,accountId:"402010193138",region:"ca-central-1",cellId:"cell-sandbox-1",
     stackName:"techlong-sandbox-cell-sandbox-1",stackId:"arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/12345678-1234-1234-1234-123456789012",
     stackStatus:"CREATE_COMPLETE",cellExpiresAt:new Date(cellExpiry).toISOString(),
     cloudFormationRoleArn:"arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole",
-    templateCanonicalSha256:"1".repeat(64),resourceInventorySha256:"2".repeat(64),ownerDeploymentId:"deployment_ci_fixture_owner",
+    templateCanonicalSha256:await sha256Hex(ciTemplate),resourceInventorySha256:await sha256Hex(ciInventory),ownerDeploymentId:"deployment_ci_fixture_owner",
     generation:1,provisionEpoch:1,provisionMarker:sharedCellAuthorityMarker({generation:1,epoch:1})};
   const unsignedPredecessor={...provision,provisionOperationHash:await sha256Hex(sharedCellProvisionOperationIntent(provision)),revision:1,state:"provision_verified"};
   const predecessor={...unsignedPredecessor,recordHash:await sha256Hex(unsignedPredecessor)};
@@ -279,6 +281,33 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
   assert.deepEqual(deletion.plan.ownershipState.rawOwnershipWitness.nonterminalDeploymentIds,[target]);
   assert.equal(deletion.mutationAuthorized,false);assert.equal(deletion.runtimeActivationAuthorized,false);
   prove("v3FreshAdmissionEvidenceAndPreparedPlanBindFullCertificateAndRawWitnessAsActualRestrictedReader");
+  await c.query("UPDATE app_instances SET status='active' WHERE id=$1",[instance]);
+  await c.query("ALTER TABLE app_instances ENABLE ROW LEVEL SECURITY;CREATE POLICY ci_hide_app ON app_instances USING(false)");
+  await assert.rejects(certifiedRead(),error=>error.code==="SEALED_SOURCE_READ_FAILED");
+  await c.query("DROP POLICY ci_hide_app ON app_instances;ALTER TABLE app_instances DISABLE ROW LEVEL SECURITY");
+  await c.query("UPDATE app_instances SET status='suspended' WHERE id=$1",[instance]);
+  prove("sealedV3RowSecurityCannotHideActiveFutureAssociationAndManufactureZero");
+  const {authorizeSealedCellAuthorityRecordV3,decodeSealedCellAuthorityRecordV3}=await import("../../../lib/deployments/execution/sealed-cell-cleanup-authority-v3.ts");
+  const {createPreparedSealedCellTtlExecutorV3}=await import("../../../lib/deployments/execution/prepared-sealed-cell-ttl-executor-v3.ts");
+  const certificateSha256=await sha256Hex(registered);
+  const durable=await authorizeSealedCellAuthorityRecordV3({candidate:authorityCandidate,approvedCandidateSha256:authorityCandidate.recordSha256,certificateSha256,now:Date.now()});
+  assert.deepEqual(await decodeSealedCellAuthorityRecordV3(JSON.parse(JSON.stringify(durable)),certificateSha256),durable);
+  let missing=false,deleteCalls=0,intent=null,receiptRecord=null;
+  const stackRead={region:"ca-central-1",async getCallerIdentity(){return {accountId:"402010193138",arn:"arn:aws:sts::402010193138:assumed-role/TechlongSandboxCellTtlExecutorRole/ci-synthetic-session"};},
+    async listStackNamesPage(){return {nextToken:null,stackNames:missing?[]:[provision.stackName]};},
+    async describeCellStack(){return missing?{state:"missing",proof:"NAME_BOUND_VALIDATION_ERROR",stackName:provision.stackName}:
+      {state:"present",stack:{stackName:provision.stackName,stackId:provision.stackId,stackStatus:provision.stackStatus,roleArn:provision.cloudFormationRoleArn,
+      terminationProtection:false,parentId:null,rootId:null,tags:{Environment:"aws-sandbox",ManagedBy:"techlong-cell-operator",CellId:"cell-sandbox-1",ExpiresAt:provision.cellExpiresAt}}};},
+    async getOriginalTemplate(){return ciTemplate;},async listStackResourcesPage(){return {nextToken:null,resources:ciInventory};}};
+  const root=createPreparedSealedCellTtlExecutorV3({source,certificateSha256,stack:stackRead,authority:{async readStrong(){return durable;}},
+    journal:{async readStrong(){return {intent,receipt:receiptRecord};},async claimIntent(input){if(intent)return false;intent=input.intent;return true;},
+      async publishReceipt(input){if(!receiptRecord)receiptRecord=input.receipt;}},
+    deleter:{async deleteStack(){deleteCalls++;missing=true;return {operation:"delete_submitted"};}},readbackAttempts:1,readbackDelayMs:0});
+  const runtimeIntent=await root.inspect(AbortSignal.timeout(30000));
+  const event={schemaVersion:3,action:"execute_reviewed_sealed_cell_ttl_cleanup",approvedDeletionPlanSha256:runtimeIntent.planSha256};
+  const runtimeResult=await root.run(event,AbortSignal.timeout(30000));assert.equal(runtimeResult.receipt.outcome,"DELETED");
+  await root.run(event,AbortSignal.timeout(30000));assert.equal(deleteCalls,1);assert.equal(runtimeResult.cloudRuntimeInstalled,false);
+  prove("sealedV3DurableRootRunsOneMockActuatorWithActualRestrictedPostgresEvidence");
  }
  receipt.phase="COMPLETE";
  const version=Number((await c.query("SELECT current_setting('server_version_num') AS version")).rows[0].version);

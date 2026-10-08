@@ -12,7 +12,7 @@ const cert:SealedPlanCertificateV1={deployment_id:target,environment_id:environm
 const bodySha="16e82ac1c8b9589a332cd64dbd93f4b197c5062a9c655c7b0f5d88b1302d8e66";
 const input=()=>({accountId:"402010193138" as const,region:"ca-central-1" as const,cellId:"cell-sandbox-1" as const,environmentId:environment as "env_aws_sandbox_ca_central_1",signal:new AbortController().signal});
 function fixture(change?:(results:{rows:Record<string,unknown>[]}[])=>void){
- const results=[{rows:[{search_path:"pg_catalog"}]},{rows:[{environment_id:environment,account_id:"402010193138",region:"ca-central-1",cell_key:"cell-sandbox-1",
+ const results=[{rows:[{search_path:"pg_catalog",row_security:"off"}]},{rows:[{environment_id:environment,account_id:"402010193138",region:"ca-central-1",cell_key:"cell-sandbox-1",
   admission_state:"draining",admission_epoch:"1",admission_fence_sha256:"1".repeat(64),admission_provision_operation_hash:"2".repeat(64),
   admission_stack_id:"arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/12345678-1234-1234-1234-123456789012",
   admission_cell_expires_at:"2000",admission_changed_at:"2001",observed_at:"3000",reader_role:"techlong_cell_cleanup_reader",limited_reader:true,no_owner_or_table_write:true}]},

@@ -162,6 +162,11 @@ export async function compileSealedCellCleanupAuthorityCandidateV3(input: Prepar
 }
 export type PreparedSealedCellCleanupAuthorityV3 = Awaited<ReturnType<typeof compileSealedCellCleanupAuthorityCandidateV3>>;
 
+/** Installer admission only; JSON cannot manufacture a live candidate. */
+export function isPreparedSealedCellCleanupAuthorityV3(value: unknown): value is PreparedSealedCellCleanupAuthorityV3 {
+  return value !== null && typeof value === "object" && authorityCandidates.has(value);
+}
+
 /** Fresh second read, full-state comparison, and separate plan/hash; no DeleteStack method. */
 export class SealedCellDeletionOwnershipEvidenceAdapterV3 {
   private readonly evidence: SealedCellAuthorityOwnershipEvidenceAdapterV3;

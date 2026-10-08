@@ -80,7 +80,7 @@ const certSql=`SELECT r.deployment_id,r.environment_id,r.app_instance_id,r.origi
  JOIN pg_catalog.pg_proc p ON p.oid='public.sealed_plan_protection_hash_v1()'::pg_catalog.regprocedure
  JOIN pg_catalog.pg_language l ON l.oid=p.prolang CROSS JOIN (${SEALED_PLAN_CATALOG_READ_V1}) catalog WHERE r.environment_id=$1`;
 export const SEALED_CELL_OWNERSHIP_SQL_V3=Object.freeze({
- searchPath:`SELECT pg_catalog.set_config('search_path','pg_catalog',true) AS search_path`,
+ searchPath:`SELECT pg_catalog.set_config('search_path','pg_catalog',true) AS search_path,pg_catalog.set_config('row_security','off',true) AS row_security`,
  environment:envSql,certificate:certSql,
  active:`SELECT DISTINCT i.id FROM public.app_instances i JOIN public.app_instance_deployments d ON d.app_instance_id=i.id WHERE d.environment_id=$1 AND i.status IN ('pending','active') ORDER BY i.id`,
  associations:`SELECT i.id AS instance_id,d.id AS deployment_id FROM public.app_instances i JOIN public.app_instance_deployments d ON d.app_instance_id=i.id WHERE d.environment_id=$1 AND i.status IN ('pending','active') ORDER BY i.id,d.id`,
@@ -106,7 +106,7 @@ export class NeonSealedCellOwnershipSourceV3 {
    {isolationLevel:"Serializable",readOnly:true,deferrable:true,fullResults:true,fetchOptions:{signal:input.signal}});
   }catch{input.signal.throwIfAborted();return fail("SEALED_SOURCE_READ_FAILED");}
   input.signal.throwIfAborted();if(!Array.isArray(results)||results.length!==9)fail("SEALED_SOURCE_RESULTS_INVALID");
-  const settings=rows(results[0]);if(settings.length!==1||!keys(settings[0],["search_path"])||settings[0].search_path!=="pg_catalog")fail("SEALED_SOURCE_SEARCH_PATH_INVALID");
+  const settings=rows(results[0]);if(settings.length!==1||!keys(settings[0],["search_path","row_security"])||settings[0].search_path!=="pg_catalog"||settings[0].row_security!=="off")fail("SEALED_SOURCE_SEARCH_PATH_INVALID");
   results=results.slice(1);
   const environments=rows(results[0]),certificates=rows(results[1]);
   if(environments.length!==1||certificates.length!==1)fail("SEALED_SOURCE_CERTIFICATE_OR_ENVIRONMENT_MISSING");

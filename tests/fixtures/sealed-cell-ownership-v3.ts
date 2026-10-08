@@ -6,14 +6,14 @@ import { sharedCellAuthorityMarker, sharedCellProvisionOperationIntent } from ".
 import { SharedCellCleanupStackEvidencePort, type VerifiedSharedCellCleanupStackEvidence } from "../../lib/deployments/execution/shared-cell-cleanup-authority-operator.ts";
 
 export const now = Date.parse("2026-10-08T19:00:00.000Z");
-export async function sealedEvidenceFixture(overrides: Partial<SealedPlanCertificateV1> = {}) {
+export async function sealedEvidenceFixture(overrides: Partial<SealedPlanCertificateV1> = {}, hashes: { templateCanonicalSha256?: string; resourceInventorySha256?: string } = {}) {
   const operation = {
     schemaVersion: 2 as const, accountId: "402010193138" as const, region: "ca-central-1" as const,
     cellId: "cell-sandbox-1" as const, stackName: "techlong-sandbox-cell-sandbox-1" as const,
     stackId: "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/12345678-1234-1234-1234-123456789012",
     stackStatus: "CREATE_COMPLETE" as const, cellExpiresAt: new Date(now - 60_000).toISOString(),
     cloudFormationRoleArn: "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole" as const,
-    templateCanonicalSha256: "1".repeat(64), resourceInventorySha256: "2".repeat(64), ownerDeploymentId: "deployment_fixture_owner",
+    templateCanonicalSha256: hashes.templateCanonicalSha256 ?? "1".repeat(64), resourceInventorySha256: hashes.resourceInventorySha256 ?? "2".repeat(64), ownerDeploymentId: "deployment_fixture_owner",
     generation: 1, provisionEpoch: 1, provisionMarker: sharedCellAuthorityMarker({ generation: 1, epoch: 1 }),
   };
   const unsigned = { ...operation, provisionOperationHash: await sha256Hex(sharedCellProvisionOperationIntent(operation)),
@@ -27,7 +27,7 @@ export async function sealedEvidenceFixture(overrides: Partial<SealedPlanCertifi
     protection_schema_sha256: "f".repeat(64), sealed_at: now - 120_000, ...overrides,
   };
   const results: { rows: Record<string, unknown>[] }[] = [
-    { rows: [{ search_path: "pg_catalog" }] },
+    { rows: [{ search_path: "pg_catalog", row_security: "off" }] },
     { rows: [{ environment_id: cert.environment_id, account_id: operation.accountId, region: operation.region, cell_key: operation.cellId,
       admission_state: "draining", admission_epoch: 1, admission_fence_sha256: drain.fenceSha256,
       admission_provision_operation_hash: predecessor.provisionOperationHash, admission_stack_id: predecessor.stackId,
