@@ -140,16 +140,19 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
     assert.equal(roleSubmission.outcome,"ROLE_COMMIT_OUTCOME_UNKNOWN_READONLY_RECOVERY_ONLY",JSON.stringify(roleSubmission));
     assert.equal(roleWrites,1);assert.equal(roleClaims,1);
     const roleAfter=await roleRead();
+    receipt.phase="CONTROL_ROLE_INDEPENDENT_READBACK";
     assert.equal((await verifyControlRolePoststateV1(roleAfter,roleReview)).runtimeEnabled,false);
     prove("reviewedControlRolesLostCommitIndependentlyRecoverExactNoLoginGrantsAndPreservedSeal");
     const roleRetry=await runReviewedControlRolesV1(roleInput);assert.equal(roleRetry.sqlSubmitted,false);assert.equal(roleWrites,1);assert.equal(roleClaims,1);
     prove("reviewedControlRolesWrongApprovalAndOccupiedStateNeverSubmitAgain");
-    await client.query("BEGIN ISOLATION LEVEL SERIALIZABLE;GRANT UPDATE(status) ON public.app_instance_deployments TO techlong_cell_drain");
+    receipt.phase="CONTROL_ROLE_EXCESS_PRIVILEGE_NEGATIVE_FIXTURE";
+    await client.query("BEGIN ISOLATION LEVEL SERIALIZABLE;SET LOCAL search_path=pg_catalog;GRANT UPDATE(status) ON public.app_instance_deployments TO techlong_cell_drain");
     const broadened=await readSealedControlRoleStateV1(client);await assert.rejects(verifyControlRolePoststateV1(broadened,roleReview),/CONTROL_ROLE_EXACT_PRIVILEGES_UNPROVED/);
     await client.query("ROLLBACK");
     prove("reviewedControlRolesRejectUnexpectedEffectiveColumnPrivilege");
     // Fixture-owned cluster only: remove these test roles before the main database's existing role proofs.
     // These cleanup statements do not exist in the production installer.
+    receipt.phase="CONTROL_ROLE_OWNED_FIXTURE_TEARDOWN";
     await client.query("GRANT techlong_cell_cleanup_reader,techlong_cell_drain TO cell_admin WITH SET TRUE;");
     await client.query("DROP OWNED BY techlong_cell_cleanup_reader,techlong_cell_drain;");
     await client.query("DROP ROLE techlong_cell_cleanup_reader,techlong_cell_drain;");

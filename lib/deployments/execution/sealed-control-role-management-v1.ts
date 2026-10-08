@@ -144,7 +144,7 @@ export const CONTROL_ROLE_SCOPE_V1 = freeze({
   columnGrantsAreNotRowFilters: true,
   creatorAutomaticMembership: { admin: true, inherit: false, set: false },
   generatesPasswords: false, activatesLogin: false, createsSecret: false, changesBusinessRows: false,
-  changesExistingRolesOrPublicPrivileges: false, changesAws: false, registersMigration: false, runtimeEnabled: false,
+  altersExistingRoleAttributesOrPublicPrivileges: false, changesAws: false, registersMigration: false, runtimeEnabled: false,
   automaticDownOrWriteRetry: false, permanentLocalSlot: "techlong-f3b3-control-roles-v1-consumed",
 });
 export interface ControlRoleReviewV1 {
