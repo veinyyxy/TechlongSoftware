@@ -12,6 +12,18 @@ const digest=/^[a-f0-9]{64}$/;
 const id=/^[A-Za-z0-9][A-Za-z0-9:_-]{0,255}$/;
 const certificateKeys=["deployment_id","environment_id","app_instance_id","original_row_sha256","original_plan_bytes_sha256",
  "original_plan_hash","business_state_sha256","approved_registration_sha256","protection_schema_sha256","sealed_at"] as const;
+const certifiedSnapshots = new WeakSet<object>();
+
+export type CertifiedSealedCellOwnershipSnapshotV3 = Awaited<
+ ReturnType<NeonSealedCellOwnershipSourceV3["readCertifiedSerializableSnapshot"]>
+>;
+
+/** JSON receipts and object copies cannot manufacture live source provenance. */
+export function isCertifiedSealedCellOwnershipSnapshotV3(
+ value: unknown,
+): value is CertifiedSealedCellOwnershipSnapshotV3 {
+ return value !== null && typeof value === "object" && certifiedSnapshots.has(value);
+}
 
 export interface SealedPlanCertificateV1 {
  deployment_id: typeof deploymentId;
@@ -132,8 +144,10 @@ export class NeonSealedCellOwnershipSourceV3 {
    sealedCertificates:[actual],fingerprintFunctionBodySha256:functionBodySha256,activeTenantIds:active,activeCapacityReservationIds:capacity,
    nonterminalDeploymentIds:rawDeployments.filter(d=>d!==deploymentId),liveTenantResourceIds:resources,nonterminalTenantCleanupScheduleIds:schedules,rawOwnershipWitness};
   const ownershipStateSha256=await sha256Hex(state);input.signal.throwIfAborted();
-  return freeze({...state,isolationLevel:"Serializable" as const,readOnly:true as const,deferrable:true as const,dbObservedAt:observed,
+  const snapshot=freeze({...state,isolationLevel:"Serializable" as const,readOnly:true as const,deferrable:true as const,dbObservedAt:observed,
    ownershipStateSha256,runtimeActivationAuthorized:false as const});
+  certifiedSnapshots.add(snapshot);
+  return snapshot;
  }
 }
 export function createNeonSealedCellOwnershipSourceV3(databaseUrl:string,expected:SealedPlanCertificateV1){

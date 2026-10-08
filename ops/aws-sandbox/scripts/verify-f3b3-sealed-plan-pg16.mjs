@@ -167,10 +167,26 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
     GRANT SELECT ON ALL TABLES IN SCHEMA public TO techlong_cell_cleanup_reader;`);
   const registered=(await c.query("SELECT * FROM deployment_plan_only_isolations WHERE deployment_id=$1",[target])).rows[0];
   registered.sealed_at=Number(registered.sealed_at);
-  await c.query(`UPDATE deployment_environments SET admission_state='draining',admission_epoch=1,admission_fence_sha256=repeat('1',64),
-    admission_provision_operation_hash=repeat('2',64),admission_stack_id='arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/12345678-1234-1234-1234-123456789012',
-    admission_cell_expires_at=(extract(epoch FROM transaction_timestamp())*1000)::bigint-60000,
-    admission_changed_at=(extract(epoch FROM transaction_timestamp())*1000)::bigint WHERE id='env_aws_sandbox_ca_central_1'`);
+  const {sha256Hex}=await import("../../../lib/deployments/execution/hash.ts");
+  const {sharedCellAuthorityMarker,sharedCellProvisionOperationIntent}=await import("../../../lib/deployments/execution/shared-cell-cleanup-authority.ts");
+  const {compileSharedCellAdmissionDrainIntent}=await import("../../../lib/deployments/execution/shared-cell-admission-fence.ts");
+  const {SharedCellCleanupStackEvidencePort}=await import("../../../lib/deployments/execution/shared-cell-cleanup-authority-operator.ts");
+  const {SealedCellAuthorityOwnershipEvidenceAdapterV3,SealedCellDeletionOwnershipEvidenceAdapterV3,
+    compileSealedCellCleanupAuthorityCandidateV3}=await import("../../../lib/deployments/execution/sealed-cell-cleanup-evidence-v3.ts");
+  const cellExpiry=Date.now()-60000;
+  const provision={schemaVersion:2,accountId:"402010193138",region:"ca-central-1",cellId:"cell-sandbox-1",
+    stackName:"techlong-sandbox-cell-sandbox-1",stackId:"arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/12345678-1234-1234-1234-123456789012",
+    stackStatus:"CREATE_COMPLETE",cellExpiresAt:new Date(cellExpiry).toISOString(),
+    cloudFormationRoleArn:"arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole",
+    templateCanonicalSha256:"1".repeat(64),resourceInventorySha256:"2".repeat(64),ownerDeploymentId:"deployment_ci_fixture_owner",
+    generation:1,provisionEpoch:1,provisionMarker:sharedCellAuthorityMarker({generation:1,epoch:1})};
+  const unsignedPredecessor={...provision,provisionOperationHash:await sha256Hex(sharedCellProvisionOperationIntent(provision)),revision:1,state:"provision_verified"};
+  const predecessor={...unsignedPredecessor,recordHash:await sha256Hex(unsignedPredecessor)};
+  const drain=await compileSharedCellAdmissionDrainIntent(predecessor);
+  await c.query(`UPDATE deployment_environments SET admission_state='draining',admission_epoch=1,admission_fence_sha256=$1,
+    admission_provision_operation_hash=$2,admission_stack_id=$3,admission_cell_expires_at=$4,
+    admission_changed_at=(extract(epoch FROM transaction_timestamp())*1000)::bigint WHERE id='env_aws_sandbox_ca_central_1'`,
+    [drain.fenceSha256,predecessor.provisionOperationHash,predecessor.stackId,cellExpiry]);
   const sql={async transaction(build,settings){
     assert.equal(settings.readOnly,true);assert.equal(settings.isolationLevel,"Serializable");assert.equal(settings.deferrable,true);
     const client=await context.connect();try{
@@ -187,6 +203,10 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
   assert.deepEqual(visible.nonterminalDeploymentIds,["dep_seal_future_live"]);assert.equal(visible.runtimeActivationAuthorized,false);
   assert.equal(typeof source.readSerializableReadOnlySnapshot,"undefined");
   prove("certifiedSourceV3KeepsFutureUnsealedDeploymentVisibleAsRestrictedReader");
+  const evidenceAdapter=new SealedCellAuthorityOwnershipEvidenceAdapterV3(source);
+  const readZero=()=>evidenceAdapter.readFreshZeroOwnershipEvidence({predecessor,signal:AbortSignal.timeout(30000)});
+  await assert.rejects(readZero(),error=>error.code==="SEALED_V3_NOT_ZERO");
+  prove("v3AuthorityEvidenceRejectsActualFutureDeploymentBeforeCandidateCompilation");
   const savedFunction=(await c.query("SELECT pg_get_functiondef('public.sealed_plan_protection_hash_v1()'::regprocedure) AS definition")).rows[0].definition;
   await c.query(`CREATE OR REPLACE FUNCTION public.sealed_plan_protection_hash_v1() RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog
     AS $$BEGIN RAISE EXCEPTION 'CI_TRAP_MUTABLE_HELPER_EXECUTED';END;$$`);
@@ -197,6 +217,26 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
   const zero=await certifiedRead();assert.deepEqual(zero.activeTenantIds,[]);assert.deepEqual(zero.nonterminalDeploymentIds,[]);
   assert.deepEqual(zero.rawOwnershipWitness.nonterminalDeploymentIds,[target]);
   prove("certifiedSourceV3BindsRawAndClassifiedOwnershipWithoutErasingOriginalRow");
+  const ownership=await readZero();
+  // Stack evidence is synthetic, not a claim that AWS Stack collection was exercised here.
+  class CiFixtureStack extends SharedCellCleanupStackEvidencePort {
+    constructor(){super();}
+    async readVerifiedCleanupStackEvidence(){return this.markVerified({schemaVersion:1,verified:true,observedAt:Date.now(),
+      accountId:provision.accountId,region:provision.region,cellId:provision.cellId,stackName:provision.stackName,
+      stackId:provision.stackId,stackStatus:provision.stackStatus,cellExpiresAt:provision.cellExpiresAt,
+      cloudFormationRoleArn:provision.cloudFormationRoleArn,templateCanonicalSha256:provision.templateCanonicalSha256,
+      resourceInventorySha256:provision.resourceInventorySha256});}
+  }
+  const stack=await new CiFixtureStack().readVerifiedCleanupStackEvidence();
+  const reviewNow=Date.now();
+  const authorityCandidate=await compileSealedCellCleanupAuthorityCandidateV3({predecessor,stack,ownership,cleanupEpoch:2,
+    now:reviewNow,expiresAt:reviewNow+60000});
+  const deletion=await new SealedCellDeletionOwnershipEvidenceAdapterV3(source).prepareFreshDeletionPlan({candidate:authorityCandidate,signal:AbortSignal.timeout(30000)});
+  assert.equal(deletion.planSha256,await sha256Hex(deletion.plan));
+  assert.deepEqual(deletion.plan.ownershipState.sealedCertificates,[registered]);
+  assert.deepEqual(deletion.plan.ownershipState.rawOwnershipWitness.nonterminalDeploymentIds,[target]);
+  assert.equal(deletion.mutationAuthorized,false);assert.equal(deletion.runtimeActivationAuthorized,false);
+  prove("v3FreshAdmissionEvidenceAndPreparedPlanBindFullCertificateAndRawWitnessAsActualRestrictedReader");
  }
  receipt.phase="COMPLETE";
  const version=Number((await c.query("SELECT current_setting('server_version_num') AS version")).rows[0].version);

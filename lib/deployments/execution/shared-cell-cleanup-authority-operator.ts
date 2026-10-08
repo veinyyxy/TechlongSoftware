@@ -185,6 +185,13 @@ export interface ReadSharedCellCleanupEvidenceInput {
   signal: AbortSignal;
 }
 
+/** Read-only provenance check shared by the independent sealed v3 compiler. */
+export function isVerifiedSharedCellCleanupStackEvidence(
+  value: unknown,
+): value is VerifiedSharedCellCleanupStackEvidence {
+  return value !== null && typeof value === "object" && verifiedStackEvidence.has(value);
+}
+
 /**
  * A production implementation must complete a fresh live Stack/template/
  * inventory readback before it calls markVerified(). No production collector
