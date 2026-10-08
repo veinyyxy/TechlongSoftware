@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "mode": "READ_ONLY_COMPATIBILITY_REVIEW_NOT_AN_EXECUTABLE_MANIFEST",
+  "outcome": "EXISTING_ROLE_REUSE_BLOCKED_DEDICATED_IDENTITY_PROPOSED",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "monthlyBudgetTargetUsd": 50,
+  "inventoryObservedAt": "2026-10-08T13:29:09.9437605+00:00",
+  "inventoryFileSha256": "f0c8fd4ccf68171dc24a2872bb71d648173fdc2bfa45979cda95797a89c484d0",
+  "supersededProposal": {
+    "file": "ops/aws-sandbox/reviews/f3b2-cell-cleanup-installation.prepared.json",
+    "field": "proposedControlResources.executorExistingRoleName",
+    "historicalProposalRetained": true,
+    "existingArtifactsInstallableUnderProposedNewIdentity": false
+  },
+  "legacyIdentityPreservation": {
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCellJanitorExecutionRole",
+    "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCellJanitorBoundary",
+    "defaultPolicyVersion": "v2",
+    "samePolicyAlsoAttachedAsIdentityPolicy": true,
+    "inlinePolicyCount": 0,
+    "functionArn": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor",
+    "functionMode": "PLAN_ONLY",
+    "functionCodeSha256Base64": "3cC05X0dGdj6RZpQLW9n5jwJ6Ln9oLfWqCNaZPQdO3k=",
+    "canonicalPinAlgorithm": "canonicalJson from lib/deployments/execution/hash.ts, then SHA-256 UTF-8",
+    "boundaryDocumentSha256": "b97541b8bc8b88e9766dfb54f4e1af3aef3c099563a7c66ce7a6350508528739",
+    "trustDocumentSha256": "f3502e8666443cacc9bec965f5cc2886f9ed0e884c87714821fdc6872835efd0",
+    "attachedPolicyListSha256": "0582e7adde9b55d1367d508d5160628f96b77e596c3e608da8bc31d42a5a07e5",
+    "selectedFunctionConfigurationSha256": "636999a48568d17587f2914ee830b84172ef521ab95d31cbf529c74c385cf2ce",
+    "modificationAllowed": false,
+    "policyDetachAllowed": false,
+    "policyVersionCleanupAllowed": false
+  },
+  "blockingEvidence": {
+    "statementSid": "DenyPlanOnlyCoordinatorMutations",
+    "effect": "Deny",
+    "resource": "*",
+    "condition": null,
+    "blockedRequiredActions": ["cloudformation:DeleteStack", "dynamodb:PutItem", "iam:PassRole"],
+    "boundaryReplacementAloneRemovesIdentityPolicyDeny": false,
+    "reason": "The same managed policy is an attached identity policy. Its unconditional explicit Deny remains applicable even if the permissions boundary pointer changes."
+  },
+  "proposedDedicatedExecutorIdentity": {
+    "roleName": "TechlongSandboxCellTtlExecutorRole",
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCellTtlExecutorRole",
+    "roleExistence": "NOT_READ_IN_THIS_INVENTORY_REQUIRES_FRESH_READ",
+    "dedicatedBoundaryName": "TechlongSandboxCellTtlExecutorBoundary",
+    "functionName": "techlong-sandbox-cell-ttl-executor",
+    "legacyRoleAndFunctionRemainUnchanged": true,
+    "sharedServiceRoleBoundaryModificationAllowed": false,
+    "requiresExplicitVersionedIdentityBinding": true,
+    "existingJanitorBoundArtifactMustNotBeReusedAsNewIdentity": true,
+    "callerArnSpoofingOrGenericRoleEnvironmentOverrideAllowed": false,
+    "initialScheduleEnabled": false,
+    "installationAuthorized": false
+  },
+  "remainingPreparation": [
+    "Freshly read the proposed new executor role and exact IAM ownership scope before any installation manifest; absence has not been assumed.",
+    "Implement a separately versioned exact executor identity binding in deletion core, SDK entry and readonly Secret admission; preserve the existing Janitor-bound protocol.",
+    "Build and independently inspect superseding executor artifact bytes; F3b2 a5 executor artifact is not compatible with the proposed dedicated identity.",
+    "Review exact new role/trust/identity policy/dedicated boundary, logs and Secret ARNs, database roles, invocation and bounded schedules; install only against a fresh separately approved scope.",
+    "Review sealed legacy-plan registration schema and versioned ownership proof separately; current strict zero-tenant counts remain activeTenant=1/nonterminalDeployment=1.",
+    "Prove authority writer, exact live Cell and runtime deletion plan independently; no fabricated deletion SHA while Cell/authority are missing."
+  ],
+  "installationAuthorized": false,
+  "databaseMutationAuthorized": false,
+  "cloudMutationPerformed": false,
+  "secretValueRead": false,
+  "runtimeEnabled": false
+}

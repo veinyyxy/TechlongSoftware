@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "mode": "DESIGN_REVIEW_ONLY_NO_EXECUTOR",
+  "userDirection": "Preserve instance and subscription; research isolation of historical planning record.",
+  "targetDeploymentId": "dep_d00144511731f1c20991aa56",
+  "targetEnvironmentId": "env_aws_sandbox_ca_central_1",
+  "snapshotReviewSha256": "113f62e2dd5ee643466818d6ea100ff4539e12745c421d646724d214218112f6",
+  "executionAuthorized": false,
+  "directEnvironmentMoveRejectedByLiveTrigger": true,
+  "originalRowDeletionAllowed": false,
+  "customerInstanceMutationAllowed": false,
+  "subscriptionMutationAllowed": false,
+  "triggerBypassAllowed": false,
+  "currentZeroTenantProtocolUnchanged": true,
+  "proposedSealedRegistry": {
+    "namespace": "deployment_plan_only_isolations",
+    "recordPreservation": "Retain the original row/environment_id/plan bytes/hash plus complete independently pinned preimage.",
+    "registration": "One fresh approved record snapshot; require no jobs, resources, reservations, schedules or steps and no execution attempts.",
+    "permanentSealing": "Prevent original row update/delete and every new execution reference, including jobs, created/owned resources, capacity, schedules and steps.",
+    "businessContinuity": "Do not freeze or change the customer instance/subscription; future live deployment must use a new deployment record and remain visible to all ownership fences.",
+    "snapshotProtocol": "Separate versioned certificate-bearing protocol, only exact sealed records can be classified non-owning; never a generic mode=plan_only or cell_key filter.",
+    "legacyProtocol": "Existing schema2 adapter must continue to fail closed until the new migration and protocol are independently approved and proved."
+  },
+  "newScopeRequiredBeforeImplementationActivation": [
+    "New append-only registration schema and permanent reference-sealing protections; not a replacement of immutable environment trigger.",
+    "Versioned ownership snapshot/admission/authority/deletion proof integration and regression against future new tenant deployments.",
+    "Fresh independent registration approval and readback for the exact record; no dynamic SHA self-authorization."
+  ]
+}

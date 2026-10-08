@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-08 F3b3只读审阅切片完成：旧pending实例/active订阅及原行保留，live trigger禁止直接迁移environment_id，隔离登记仅为设计，零租户门禁仍1/1。Source刷新后真实AWS核验确认旧Janitor仍PLAN_ONLY；其boundary v2同时作为身份策略附加且显式Deny变更，仅换boundary不能复用。准备独立executor身份修订，当前Janitor绑定产物不能直接改role安装；新候选role存在性仍需单独读取。6项审阅器/类型/lint/AST通过。无云/数据库写或Worker启用，F3b3未整体完成、无可执行安装SHA。见 [准确证据与继续位置](./docs/aws-auto-deployment-fast-track-f3b3-isolation-review.md)。以下保留历史。
+
 2026-10-07 F3b2代码切片完成：接通真实Neon draining→owned cleanup/rollback幂等入队→独立serializable零租户快照，构建独立drain/executor自包含Lambda候选，读写DB角色/Secret不混用。131项清理相邻测试、type/lint/build及无凭据包自检通过；Neon实际READ ONLY EXPLAIN通过，无写入。发现旧planned/plan_only记录1条（资源/作业0），保留并作为零租户门禁；专属DB角色未创建。未安装IAM/函数/调度或启用Worker，完整自动TTL尚未完成。下一步F3b3准备旧记录处置和准确安装审批。见 [F3b2产物、在线只读证据与边界](./docs/aws-auto-deployment-fast-track-f3b2-drain-coordinator.md)。以下保留历史。
 
 2026-10-07 F3b1代码切片完成：复用既有准确Cell删除core，新增永久一次性intent槽位、独立缺失回读及不可变receipt的TTL执行入口和实际SDK组合；不确定/重启/并发只能读恢复，不重复删除。102项相邻清理、129项租户TTL/rollback主链、类型/定向lint/build通过。未安装新权限或Janitor、未启用Scheduler/Worker、未做云/数据库写入；自动drain/事件生产和云端TTL仍未完成。下一步F3b2接生产协调入口与受审artifact/权限材料。见 [F3b1实现、边界与继续位置](./docs/aws-auto-deployment-fast-track-f3b1-cell-ttl-execution.md)。以下保留历史状态。
