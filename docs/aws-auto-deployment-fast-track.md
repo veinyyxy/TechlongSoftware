@@ -22,8 +22,8 @@
 | 批次 | 实施范围 | 验收标准 | 当前状态 |
 | --- | --- | --- | --- |
 | F1 真实运行时组合 | 真实 Secret material generator、租户上下文绑定、数据库/ownership/清理/mTLS adapter 接线、50 USD 预算兼容 | 组合不调用云；独立凭据不串租；同一 Secret/lifecycle 实例用于部署和清理；不能靠环境变量打开 runtime | 代码及定向验证完成，未云启用 |
-| F2 数据库可执行闭环 | PostgreSQL 16.14 空 baseline 候选；backend prepare/restore/migrate/verify production provider；镜像构建与严格 readback | 业务数据为空；只允许批准 seed；真实任务回执和崩溃恢复；旧 inspect/destroy 入口不被放宽 | F2g2已接通显式prepared-v2 runner/SDK/收据并加入未安装TaskDefinition/activation/单租户权限草案；65项协议+129项主链、跨仓wire/type/lint/build通过；新镜像/baseline/权限/authority仍未部署，Source只读Locked/v4 |
-| F3 在线门禁集中验收 | 单次只读取证收敛 IAM；authority/root；ACM/DNS/mTLS；空 inventory；TTL/回滚；费用估算；bootstrap Change Set | 使用真实 provider 证据；审批/执行在同一本地流程及时完成；成功或失败均独立撤权；可证明清理 | F3a实际只读53-read/原始ZIP收据/区域报价已完成；PG16.14可用、Cell缺失、publisher Locked/v4；TTL/mTLS/DNS/专属IAM/baseline/读cap/Budget仍阻止付费执行；新的仅镜像发布清单已ReviewOnly，待fresh确认，F3整体未完成 |
+| F2 数据库可执行闭环 | PostgreSQL 16.14 空 baseline 候选；backend prepare/restore/migrate/verify production provider；镜像构建与严格 readback | 业务数据为空；只允许批准 seed；真实任务回执和崩溃恢复；旧 inspect/destroy 入口不被放宽 | F2g2显式prepared-v2接线及定向验证完成；F3a2新root双镜像已ECR发布/独立字节与扫描核验。baseline/TaskDefinition/activation/单租户权限仍未安装，真实AWS数据库闭环未完成 |
+| F3 在线门禁集中验收 | 单次只读取证收敛 IAM；authority/root；ACM/DNS/mTLS；空 inventory；TTL/回滚；费用估算；bootstrap Change Set | 使用真实 provider 证据；审批/执行在同一本地流程及时完成；成功或失败均独立撤权；可证明清理 | F3a只读取证完成，F3a2实际双镜像发布成功并立即Revoke/独立Locked/v6，旧镜像保留；PG16.14可用、Cell缺失。TTL/mTLS/DNS/专属IAM/baseline/读cap/Budget仍阻止付费执行，F3整体未完成 |
 | F4 单租户端到端 | 已批准 Cell 和镜像上运行真实 Worker；一个部署任务到 ready；失败/TTL 验收 | 真实健康端点、配置与地址回写；无孤儿租户资源；费用与资源 inventory 核对 | 尚未执行 |
 
 F1/F2 的代码准备不等待 IAM 探针完成；付费执行仍必须满足 F3。任何批次不能把本地模拟通过当作云端验收通过。
@@ -49,6 +49,8 @@ material 只能在 guarded Secret store 的 generation/epoch 上下文内生成�
 这仍是 **prepared_not_activated**：原 standalone Worker 默认入口保持关闭，prepared root 的 apply/cleanup readiness 也固定为 false。原因是当前已部署 lifecycle 镜像只证明 inspect/destroy，不包含已经在线验证的 prepare/restore/migrate/verify provider；当前 Cell 仍缺失，authority 尚未安装。不能伪称自动部署已经可用。
 
 ## 继续位置
+
+最新继续位置（2026-10-07 Winnipeg）：F3a2唯一发布成功、原云回执与独立ECR字节/扫描一致、立即Revoke后Locked/v6；六份旧镜像保留，实际policy v3/v4被CloudFormation清理且写前内容备份。slot已消费且窗口过期，不重跑。下一代码切片实现owned-resource可执行TTL/失败清理，再准备专属IAM/baseline/容量/Budget与DNS/mTLS范围，付费Cell最后另批；Worker仍disabled。见 [F3a2证据与继续位置](./aws-auto-deployment-fast-track-f3a2-ecr-published.md)。F3未完成，以下保留历史。
 
 最新继续位置（2026-10-07 Winnipeg）：F3a集中只读、原始镜像候选保存和准确区域费用核验已完成，未做任何云部署/安装/数据库写。新的仅两份source19cc候选发布清单待人确认；随后优先实现可执行owned-resource TTL/失败清理，再准备准确IAM/baseline/容量/Budget与DNS/mTLS基础范围，Cell最后批准。见 [F3a结果与新的窄审批](./aws-auto-deployment-fast-track-f3a-readonly-preflight.md)。F3未完成，以下保留历史。
 

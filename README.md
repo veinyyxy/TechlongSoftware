@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-07 F3a2实际完成新prepared root两镜像ECR发布：Actions唯一run37714817734 success，原始云回执与Source独立manifest/config bytes及COMPLETE扫描一致，无报告HIGH/CRITICAL。Source立即Revoke后独立Locked/v6；CloudFormation实际清理旧policy v3/v4，写前原文备份保留但云version ID不可恢复。六份旧镜像保留、当前共八份，Cell仍MISSING；未部署ECS/上传baseline/启用Worker。新批准slot已消费、窗口过期，不重跑。下一代码切片为owned-resource可执行TTL/失败清理，其他权限和付费资源另按fresh范围批准。见 [F3a2发布、撤权及独立证据](./docs/aws-auto-deployment-fast-track-f3a2-ecr-published.md)。以下保留历史状态。
+
 2026-10-07 F3a完成集中在线只读核验和原始候选ZIP/收据保存，Aurora16.14/db.serverless可用，Cell缺失、publisher仍Locked/v4；自动清理/证书mTLS/DNS/专属IAM/baseline/读cap/线上50USD预算等仍有缺口，付费部署未放行。官方区域4h核心验收估算约0.84USD但不含额外费用，不是上限；常驻明显超过50USD目标。新的仅两镜像发布fresh清单已ReviewOnly，不安装Grant/不dispatch，实际执行另确认。9项publisher/3项F3/65项协议、类型/lint/UTC语法验证通过。见 [F3a真实结果、范围与继续位置](./docs/aws-auto-deployment-fast-track-f3a-readonly-preflight.md)。以下保留历史状态。
 
 2026-10-07 F2g2完成：平台 runner/真实 SDK adapter 显式选择 prepared-v2 与 raw receipt schema2，严格绑定完整身份/owner/本次数据库与角色/请求 hash；旧协议默认不变。65项协议/收据测试、129项主链回归、跨仓六操作 wire 校验、typecheck/lint/production build通过；SDK transport为测试替身，不是线上验收。数据型 TaskDefinition/activation/单租户最小权限草案已加入，无installer，所有readiness/安装授权false。Source实际只读仍Locked/v4；未发布候选/上传baseline/注册ECS/安装权限/创建Cell/启动Worker。下一阶段F3集中只读preflight、PG版本/费用与fresh云清单，仍按50USD/月目标和具体批准边界。见 [F2g2记录与继续位置](./docs/aws-auto-deployment-fast-track-f2g2-prepared-runner.md)。以下保留历史状态。

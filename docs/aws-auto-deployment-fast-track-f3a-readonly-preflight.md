@@ -1,6 +1,6 @@
 # F3a：集中在线只读核验完成，付费部署仍被门禁阻止
 
-最新2026-10-07 Winnipeg：已批准808发布尝试被GitHub日期类型比较阻止，尚未AWS写入或创建slot；独立仍Locked/v4。raw JSON String解析修复后新SHA `1ab97e7b380947662e54920a3150e4c314fd8d8f8a29c320a74f7abe46b51c6a` 待确认，资源/镜像/原窗口不变，不自动重跑。见 [准确原因、修复与新批准](./aws-auto-deployment-fast-track-f3a1-timestamp-preflight-fix.md)。以下保留原F3a记录。
+最新2026-10-07 Winnipeg：新1ab清单已实际唯一执行成功，双镜像发布/独立字节与扫描核验完成，Source立即Revoke并独立Locked/v6；旧六镜像保留、Cell仍MISSING。CloudFormation实际清理旧policy v3/v4，写前内容已备份，云version ID不可恢复。slot已消费、窗口过期，不重跑。见 [F3a2实际发布和独立证据](./aws-auto-deployment-fast-track-f3a2-ecr-published.md)。F3整体及付费部署仍未完成；以下保留原F3a只读历史，v4/未发布/待批准不是当前状态。
 
 2026-10-07 Winnipeg / 2026-10-08 UTC。完成53项集中AWS读取及补充只读回读、两份候选原始ZIP/收据验证、官方区域价格快照和新的仅镜像发布清单。**没有AWS资源写入、角色登录/AssumeRole、Lambda调用、Neon/源PG连接、baseline上传、ECS/Cell或Worker启动。** 读取API和现有存储不保证绝对零费用。
 

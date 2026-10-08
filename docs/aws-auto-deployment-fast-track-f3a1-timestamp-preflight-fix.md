@@ -1,5 +1,7 @@
 # F3a1：已批准发布在写入前停止，GitHub日期解析已修复
 
+最新状态：新1ab清单已获批准且唯一执行成功，双镜像发布/扫描与独立原始回执一致，Source立即Revoke并独立Locked/v6；该slot已消费、窗口已过期，不得重放。见 [F3a2实际发布结果](./aws-auto-deployment-fast-track-f3a2-ecr-published.md)。以下保留修复前后的F3a1历史状态，待确认/slot不存在并非当前状态。
+
 2026-10-07 Winnipeg / 10-08 UTC。用户批准 `8081815c08436a219d1701867bcaf9f16d19bfb0437c66270bee52822163a8c2` 后，唯一RunReviewed尝试在line155候选元数据检查处退出。**没有创建永久slot、提交Grant/任何AWS写入或dispatch workflow，因此没有需要撤销的临时权限。** Source-only独立Inspect确认UPDATE_COMPLETE、Deny-all、两资源精确inventory、Locked/v4。
 
 独立逐字段GET验证：两candidate均未过期，artifact id/digest/name/source/run全部一致；失败仅为expires_at比较。`Invoke-RestMethod`自动把API ISO文本转为`System.DateTime`，manifest按安全UTC规则保留String；显示都是2026-10-08T23:31:29Z/23:31:33Z，但PowerShell `-cne`判不等。
