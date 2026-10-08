@@ -14,6 +14,8 @@ Neon 官方角色管理文档要求 SQL 密码参数使用原密码、不支持�
 
 本地事务与 Neon 控制平面同步不能保证跨系统原子性，失败可能留外部密码状态/LOGIN 角色；不自动 down、NOLOGIN、撤权、删除或再次写入。COMMIT 未确认时不以 ROLLBACK 作为“撤销外部结果”的证明；独立新连接回读完整权限与准确 Secret 版本，只有两角色真实只读认证均通过才 credentialReady。异常只保留 SQLSTATE、有限 HTTP 状态和安全分类，不存服务端错误文本/detail/stack/query；原失败错误无法事后补回。
 
+“不重试”约束的是本入口应用/SDK，不保证提供者内部不重试：官方 hook 的传输失败路径可在内部重复 HTTP 调用。不会关闭该 hook 来规避这一托管边界，也不能凭本地事务失败保证外部无副作用。
+
 ## 本轮真实只读观察与待批清单
 
 Source 使用同一份凭据 STS 核对准确 IAM User，再对准确 Secret ARN 读取 Describe/无resource policy/包括deprecated的完整版本枚举/Get准确UUID+AWSCURRENT，禁止名字回退和SDK重试。两 Secret 元数据/版本/严格载荷/256bit随机密码形态与原证书全部匹配，未尝试 NOLOGIN 角色认证，未变更AWS/Neon。
@@ -31,7 +33,9 @@ Source 使用同一份凭据 STS 核对准确 IAM User，再对准确 Secret ARN
 
 ## 验证与执行门禁
 
-8项新 recovery 定向 +10项原 bootstrap 相邻测试通过；typecheck/lint/JS与PS语法通过。GHA PG18.6 当前新增3组真实原密码 ALTER/认证/错误密码/失COMMIT只读恢复证明，共32组；AWS Secret 和 Neon forward_ddl hook 明确 mock，不能宣称真实托管提交已通过。云端验证结果完成后更新本段，不安装本地Docker或触碰生产。
+8项新 recovery 定向 +10项原 bootstrap 相邻测试通过；typecheck/lint/JS与PS语法通过。[GHA run37860578505](https://github.com/veinyyxy/TechlongSoftware/actions/runs/37860578505)，准确head `df18beeb120b3b1d265ce896322876463aba31ed`/attempt1 success，PG18.6新增3组真实原密码 ALTER/认证/错误密码/失COMMIT只读恢复证明，共32组；AWS Secret 和 Neon forward_ddl hook 明确 mock，不能宣称真实托管提交已通过。两自有DB drop、固定digest容器stop、artifact digest/32组唯一证明和exact head由独立读回脚本验证，不安装本地Docker或触碰生产。
+
+私有artifact `F:/ChatGPT_workshop/techlong-f3b3-pg18-ci-20261008-r1`：ZIP SHA `6f39d85abab3b4d237e4a27e1b55eef7d6dff5cc2da7db5a3f9572efe42e0de2`，report SHA `7106446bb0e251083f9612e53b5ee9a3faae8573070972e9472a0cf7b0cbec4f`，receipt SHA `cf13e2a35e70831ce6428f988519e7c3667d2affd4f9a52249e2702d9862bde9`，独立verification文件 SHA `43bc365bddca6821b41103976abeee34341792ddda8d4a7d0f75d5ea0aa70511`。提供者hook配置明确mock，失COMMIT响应为注入，不是模拟成功即云端成功。
 
 只读 Review：
 
