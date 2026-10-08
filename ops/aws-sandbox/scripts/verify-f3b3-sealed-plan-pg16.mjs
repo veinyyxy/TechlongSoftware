@@ -110,6 +110,45 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
       assert.equal(phase==="install"?installClaims:registerClaims,1);
     }
     prove("reviewedManagementWrongApprovalAndOccupiedCloudSlotsCannotWriteOrRetry");
+    // Separate role installer; fixture pin is synthetic, never the production certificate.
+    const {readSealedControlRoleStateV1,compileControlRoleReviewV1,runReviewedControlRolesV1,
+      verifyControlRolePoststateV1}=await import("../../../lib/deployments/execution/sealed-control-role-management-v1.ts");
+    const {sha256Hex}=await import("../../../lib/deployments/execution/hash.ts");
+    const roleRead=async()=>{
+      const observer=await connect();try{
+        await observer.query("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY DEFERRABLE");await observer.query("SET LOCAL search_path=pg_catalog");
+        const result=await readSealedControlRoleStateV1(observer);await observer.query("COMMIT");return result;
+      }finally{await observer.end();}
+    };
+    receipt.phase="REVIEWED_NOLOGIN_CONTROL_ROLE_INSTALLER_IN_OWNED_DATABASE";
+    const roleStart=Date.now(),roleBefore=await roleRead();
+    const cert=roleBefore.state.preserved.sealed.certificates[0];
+    const roleBinding={targetFingerprintSha256:"c".repeat(64),codeSha256:"d".repeat(64),certificateSha256:await sha256Hex({...cert,sealed_at:Number(cert.sealed_at)})};
+    const roleReview=await compileControlRoleReviewV1({readback:roleBefore,binding:roleBinding,sql:controlRoles,startedAt:roleStart,now:Date.now()});
+    let roleClaims=0,roleWrites=0;
+    const roleClient={async query(statement,values){if(statement===controlRoles)roleWrites++;
+      const result=await client.query(statement,values);if(statement==="COMMIT")throw new Error("CI_LOST_ROLE_COMMIT_RESPONSE");return result;}};
+    const roleInput={client:roleClient,review:roleReview,approvedSha:roleReview.manifestSha256,binding:roleBinding,sql:controlRoles,now:Date.now,
+      claimPermanentSlot:async()=>{assert.equal(roleClaims++,0);},persistConsumedReview:async()=>undefined};
+    await assert.rejects(runReviewedControlRolesV1({...roleInput,approvedSha:"0".repeat(64)}));
+    assert.equal(roleWrites,0);assert.equal(roleClaims,0);
+    const roleSubmission=await runReviewedControlRolesV1(roleInput);
+    assert.equal(roleSubmission.outcome,"ROLE_COMMIT_OUTCOME_UNKNOWN_READONLY_RECOVERY_ONLY",JSON.stringify(roleSubmission));
+    assert.equal(roleWrites,1);assert.equal(roleClaims,1);
+    const roleAfter=await roleRead();
+    assert.equal((await verifyControlRolePoststateV1(roleAfter,roleReview)).runtimeEnabled,false);
+    prove("reviewedControlRolesLostCommitIndependentlyRecoverExactNoLoginGrantsAndPreservedSeal");
+    const roleRetry=await runReviewedControlRolesV1(roleInput);assert.equal(roleRetry.sqlSubmitted,false);assert.equal(roleWrites,1);assert.equal(roleClaims,1);
+    prove("reviewedControlRolesWrongApprovalAndOccupiedStateNeverSubmitAgain");
+    await client.query("BEGIN;GRANT UPDATE(status) ON public.app_instance_deployments TO techlong_cell_drain");
+    const broadened=await readSealedControlRoleStateV1(client);await assert.rejects(verifyControlRolePoststateV1(broadened,roleReview));
+    await client.query("ROLLBACK");
+    prove("reviewedControlRolesRejectUnexpectedEffectiveColumnPrivilege");
+    // Fixture-owned cluster only: remove these test roles before the main database's existing role proofs.
+    // These cleanup statements do not exist in the production installer.
+    await client.query("GRANT techlong_cell_cleanup_reader,techlong_cell_drain TO cell_admin WITH SET TRUE;");
+    await client.query("DROP OWNED BY techlong_cell_cleanup_reader,techlong_cell_drain;");
+    await client.query("DROP ROLE techlong_cell_cleanup_reader,techlong_cell_drain;");
   });
  }
  const originalTrigger=(await c.query("SELECT pg_get_functiondef(t.tgfoid) AS definition FROM pg_trigger t WHERE tgname='app_instance_deployments_admission_reopen_fence'")).rows[0].definition;
