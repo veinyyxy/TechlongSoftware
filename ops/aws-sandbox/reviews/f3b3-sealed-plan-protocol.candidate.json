@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "mode": "PROTOCOL_CONTRACT_CANDIDATE_NO_DDL_OR_RUNTIME_ADAPTER",
+  "targetDeploymentId": "dep_d00144511731f1c20991aa56",
+  "targetEnvironmentId": "env_aws_sandbox_ca_central_1",
+  "targetAppInstanceId": "app_fb1962e93a9a4cc2acf046170593d9e3",
+  "designReviewSha256": "113f62e2dd5ee643466818d6ea100ff4539e12745c421d646724d214218112f6",
+  "registryContract": {
+    "tableName": "deployment_plan_only_isolations",
+    "primaryKey": "deployment_id",
+    "registrationFields": ["deployment_id", "environment_id", "app_instance_id", "original_row_sha256", "original_plan_bytes_sha256", "original_plan_hash", "approved_registration_sha256", "protection_schema_sha256", "sealed_at"],
+    "preserveOriginalDeploymentAndPlanBytes": true,
+    "preserveInstanceAndSubscription": true,
+    "appendOnlyNoUpdateDeleteOrUnseal": true,
+    "registrationPreconditions": [
+      "Exact fresh original row and business preimage; planned/plan_only/attempts0 and all nonexecuting safety flags.",
+      "Zero job/resource/capacity/schedule/step references under one transaction with the deployment locked; serialize with every future reference writer.",
+      "Permanent row and reference guards are installed and independently inspected before registration can commit.",
+      "A separate fresh single-row registration approval binds complete original bytes, approved schema guards and exact target; no design hash is execution permission."
+    ]
+  },
+  "permanentGuardTargets": {
+    "app_instance_deployments": "Reject UPDATE/DELETE of a sealed original deployment; do not change or replace the existing immutable environment/instance trigger.",
+    "deployment_jobs": "Reject INSERT/UPDATE targeting the sealed deployment_id.",
+    "deployment_tenant_resources": "Reject INSERT/UPDATE when either owner_deployment_id or created_by_deployment_id references a sealed deployment.",
+    "deployment_environment_capacity_reservations": "Reject INSERT/UPDATE targeting the sealed deployment_id.",
+    "deployment_cleanup_schedules": "Reject INSERT/UPDATE targeting the sealed deployment_id.",
+    "deployment_step_runs": "Reject INSERT/UPDATE targeting the sealed deployment_id.",
+    "deployment_plan_only_isolations": "Reject UPDATE/DELETE/TRUNCATE; registration is separate, scope-bound and not available to the Worker."
+  },
+  "ownershipSnapshotContract": {
+    "proposedSourceSchemaVersion": 3,
+    "transaction": "READ ONLY SERIALIZABLE DEFERRABLE",
+    "requiredCertificateFields": ["deployment_id", "environment_id", "app_instance_id", "original_row_sha256", "original_plan_bytes_sha256", "original_plan_hash", "approved_registration_sha256", "protection_schema_sha256", "sealed_at"],
+    "missingMalformedChangedOrUnprovedCertificate": "FAIL_CLOSED_NOT_ZERO",
+    "nonterminalDeploymentSet": "Only the exact permanently sealed deployment can be classified non-owning after original bytes and installed guard proof match. No generic mode/cell_key/status filter.",
+    "activeTenantSet": "Retain every pending/active instance with any unsealed deployment in the target environment. A sole valid sealed legacy record may be classified non-owning; a future new deployment on the same instance must restore membership.",
+    "capacityResourceAndScheduleSets": "Existing complete ownership queries remain unchanged; a certificate must never hide a live reservation, created/owned resource or nonterminal schedule.",
+    "snapshotHash": "Include all sealed certificates, guard/schema proof, admission fence and every ownership set in the new versioned source hash.",
+    "authorityAndDeletionIntegration": "Separately versioned proof adapters must bind the full new source hash before a Cell cleanup plan can be approved. An empty filtered array is not evidence."
+  },
+  "negativeProofsRequiredBeforeActivation": [
+    "Concurrency: reference writer racing registration must either remain visible and block registration or fail after sealing; no unlocked check-then-insert.",
+    "New live deployment on the retained instance remains visible to admission and zero-tenant gates.",
+    "Changed/deleted original row, changed plan bytes, missing/disabled/bypassed guards or an unknown schema checksum fail closed.",
+    "Any live resource/reservation/nonterminal schedule still blocks cleanup, even with a valid sealed certificate.",
+    "Old schema2 source and both existing deletion roots reject the candidate schema3 envelope until explicit versioned integration is implemented."
+  ],
+  "newMigrationRegistered": false,
+  "ddlImplemented": false,
+  "registryInstalled": false,
+  "registrationPerformed": false,
+  "ownershipAdapterImplemented": false,
+  "currentZeroTenantQueryUnchanged": true,
+  "currentObservedCounts": { "activeTenantCount": 1, "nonterminalDeploymentCount": 1 },
+  "databaseMutationAuthorized": false,
+  "runtimeActivationAuthorized": false
+}

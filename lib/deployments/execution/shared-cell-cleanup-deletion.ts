@@ -16,6 +16,10 @@ export const SHARED_CELL_CLEANUP_DELETION_ROLE_ARN =
   "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole" as const;
 export const SHARED_CELL_CLEANUP_DELETION_CALLER_ROLE =
   "TechlongSandboxCellJanitorExecutionRole" as const;
+export const DEDICATED_CELL_TTL_EXECUTOR_ROLE_ARN =
+  "arn:aws:iam::402010193138:role/TechlongSandboxCellTtlExecutorRole" as const;
+export const DEDICATED_CELL_TTL_IDENTITY_PROTOCOL = "dedicated-cell-ttl-v2" as const;
+type IdentityProtocol = "legacy-janitor-v1" | typeof DEDICATED_CELL_TTL_IDENTITY_PROTOCOL;
 
 const cellId = "cell-sandbox-1";
 const environmentId = "env_aws_sandbox_ca_central_1";
@@ -25,6 +29,8 @@ const stackIdPattern =
   /^arn:aws:cloudformation:ca-central-1:402010193138:stack\/techlong-sandbox-cell-sandbox-1\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const callerArnPattern =
   /^arn:aws:sts::402010193138:assumed-role\/TechlongSandboxCellJanitorExecutionRole\/[A-Za-z0-9+=,.@_-]{2,64}$/;
+const dedicatedCallerArnPattern =
+  /^arn:aws:sts::402010193138:assumed-role\/TechlongSandboxCellTtlExecutorRole\/[A-Za-z0-9+=,.@_-]{2,64}$/;
 const sessionPattern = /^[A-Za-z0-9+=,.@_-]{2,64}$/;
 const canonicalUtcPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -264,6 +270,19 @@ export interface SharedCellCleanupDeletionSummary extends DeleteIntent {
   deletionPlanSha256: string;
   clientRequestToken: string;
 }
+interface DedicatedDeleteIntent extends Omit<DeleteIntent, "schemaVersion"> {
+  schemaVersion: 2;
+  executorIdentityProtocol: typeof DEDICATED_CELL_TTL_IDENTITY_PROTOCOL;
+  executorRoleArn: typeof DEDICATED_CELL_TTL_EXECUTOR_ROLE_ARN;
+}
+export interface DedicatedCellTtlDeletionSummary extends DedicatedDeleteIntent {
+  phase: SharedCellCleanupDeletionPhase;
+  mutationPerformed: boolean;
+  deletionPlanSha256: string;
+  clientRequestToken: string;
+}
+type BoundDeleteIntent = DeleteIntent | DedicatedDeleteIntent;
+type BoundDeletionSummary = SharedCellCleanupDeletionSummary | DedicatedCellTtlDeletionSummary;
 
 interface ReadSettings {
   evidence: SharedCellCleanupDeletionEvidenceReadPort;
@@ -373,6 +392,7 @@ function pinDeleter(
 async function assertCaller(
   evidence: SharedCellCleanupDeletionEvidenceReadPort,
   signal: AbortSignal,
+  identity: IdentityProtocol,
 ): Promise<void> {
   requireNotAborted(signal);
   const value = await evidence.getCallerIdentity({ signal });
@@ -381,12 +401,12 @@ async function assertCaller(
     !exactKeys(value, ["accountId", "arn"]) ||
     record(value).accountId !== SHARED_CELL_CLEANUP_DELETION_ACCOUNT_ID ||
     typeof record(value).arn !== "string" ||
-    !callerArnPattern.test(record(value).arn as string) ||
+    !(identity === "legacy-janitor-v1" ? callerArnPattern : dedicatedCallerArnPattern).test(record(value).arn as string) ||
     !sessionPattern.test((record(value).arn as string).split("/").at(-1) ?? "")
   ) {
     fail(
       "SHARED_CELL_DELETE_CALLER_INVALID",
-      "Shared Cell TTL deletion requires the exact Cell Janitor execution-role session.",
+      "Shared Cell TTL deletion requires the exact protocol-bound execution-role session.",
     );
   }
 }
@@ -916,8 +936,9 @@ async function collectVerifiedCycle(input: {
   authority: StrongSharedCellCleanupAuthorityReadPort;
   signal: AbortSignal;
   now: () => number;
+  identity: IdentityProtocol;
 }): Promise<Readonly<VerifiedCycle>> {
-  await assertCaller(input.evidence, input.signal);
+  await assertCaller(input.evidence, input.signal, input.identity);
   const authorityBefore = await readStrongAuthority(
     input.authority,
     input.signal,
@@ -986,7 +1007,7 @@ async function collectVerifiedCycle(input: {
     );
   }
   assertSharedCellCleanupAuthorityActive(authorityAfter, completedNow);
-  await assertCaller(input.evidence, input.signal);
+  await assertCaller(input.evidence, input.signal, input.identity);
   if (canonicalJson(authorityBefore) !== canonicalJson(authorityAfter)) {
     fail(
       "SHARED_CELL_DELETE_AUTHORITY_CHANGED",
@@ -1024,10 +1045,10 @@ function assertVerifiedCycle(value: unknown): asserts value is VerifiedCycle {
   }
 }
 
-function deleteIntent(cycle: VerifiedCycle): DeleteIntent {
+function deleteIntent(cycle: VerifiedCycle, identity: IdentityProtocol): BoundDeleteIntent {
   assertVerifiedCycle(cycle);
   const authority = cycle.authority;
-  return Object.freeze({
+  const legacy: DeleteIntent = Object.freeze({
     schemaVersion: 1 as const,
     action: "delete_shared_cell_stack" as const,
     accountId: SHARED_CELL_CLEANUP_DELETION_ACCOUNT_ID,
@@ -1053,14 +1074,19 @@ function deleteIntent(cycle: VerifiedCycle): DeleteIntent {
     zeroTenantSourceSnapshotSha256:
       cycle.zeroTenant.sourceSnapshotSha256,
   });
+  return identity === "legacy-janitor-v1" ? legacy : Object.freeze({
+    ...legacy, schemaVersion: 2 as const,
+    executorIdentityProtocol: DEDICATED_CELL_TTL_IDENTITY_PROTOCOL,
+    executorRoleArn: DEDICATED_CELL_TTL_EXECUTOR_ROLE_ARN,
+  });
 }
 
-async function planned(cycle: VerifiedCycle): Promise<{
-  intent: DeleteIntent;
+async function planned(cycle: VerifiedCycle, identity: IdentityProtocol): Promise<{
+  intent: BoundDeleteIntent;
   deletionPlanSha256: string;
   clientRequestToken: string;
 }> {
-  const intent = deleteIntent(cycle);
+  const intent = deleteIntent(cycle, identity);
   const deletionPlanSha256 = await sha256Hex(intent);
   if (!digestPattern.test(deletionPlanSha256)) {
     fail("SHARED_CELL_DELETE_PLAN_INVALID", "The deletion-plan digest is invalid.");
@@ -1085,7 +1111,7 @@ function summary(
   phase: SharedCellCleanupDeletionPhase,
   mutationPerformed: boolean,
   plan: Awaited<ReturnType<typeof planned>>,
-): Readonly<SharedCellCleanupDeletionSummary> {
+): Readonly<BoundDeletionSummary> {
   return Object.freeze({
     ...plan.intent,
     phase,
@@ -1101,6 +1127,7 @@ async function immediateRecheck(input: {
   approved: Awaited<ReturnType<typeof planned>>;
   signal: AbortSignal;
   now: () => number;
+  identity: IdentityProtocol;
 }): Promise<
   Readonly<{
     checkedAt: number;
@@ -1108,7 +1135,7 @@ async function immediateRecheck(input: {
     authority: Readonly<SharedCellCleanupAuthorityRecord>;
   }>
 > {
-  await assertCaller(input.evidence, input.signal);
+  await assertCaller(input.evidence, input.signal, input.identity);
   const beforeNow = readClock(input.now);
   const authorityBefore = await readStrongAuthority(
     input.authority,
@@ -1181,7 +1208,7 @@ async function immediateRecheck(input: {
     zeroTenant: zeroTenantAfter,
   });
   verifiedCycles.add(cycle);
-  const current = await planned(cycle);
+  const current = await planned(cycle, input.identity);
   requireNotAborted(input.signal);
   if (
     current.deletionPlanSha256 !== input.approved.deletionPlanSha256 ||
@@ -1204,7 +1231,7 @@ async function immediateRecheck(input: {
     );
   }
   assertEvidenceMatchesAuthority(evidenceAtDelegate, authorityAfter);
-  await assertCaller(input.evidence, input.signal);
+  await assertCaller(input.evidence, input.signal, input.identity);
   requireNotAborted(input.signal);
   const authorityAtDelegate = await readStrongAuthority(
     input.authority,
@@ -1291,14 +1318,15 @@ async function confirmAuthoritativeMissing(input: {
   attempts: number;
   delayMs: number;
   wait: (delayMs: number, signal: AbortSignal) => Promise<void>;
+  identity: IdentityProtocol;
 }): Promise<void> {
   let lastStatus: string | null = null;
   for (let attempt = 0; attempt < input.attempts; attempt += 1) {
     if (attempt > 0) await input.wait(input.delayMs, input.signal);
-    await assertCaller(input.evidence, input.signal);
+    await assertCaller(input.evidence, input.signal, input.identity);
     const names = await collectStackNames(input.evidence, input.signal);
     assertNoDependentsOrUnexpectedCells(names);
-    await assertCaller(input.evidence, input.signal);
+    await assertCaller(input.evidence, input.signal, input.identity);
     const observed = await input.evidence.describeCellStack({
       stackNameOrId: SHARED_CELL_CLEANUP_DELETION_STACK_NAME,
       signal: input.signal,
@@ -1348,9 +1376,10 @@ async function confirmAuthoritativeMissing(input: {
   );
 }
 
-export async function inspectSharedCellCleanupDeletion(
+async function inspectBoundDeletion(
   input: ReadSettings,
-): Promise<Readonly<SharedCellCleanupDeletionSummary>> {
+  identity: IdentityProtocol,
+): Promise<Readonly<BoundDeletionSummary>> {
   assertInput(input, ["authority", "evidence", "signal"], ["now"]);
   const evidence = pinEvidence(input.evidence);
   const authority = pinAuthority(input.authority);
@@ -1359,13 +1388,15 @@ export async function inspectSharedCellCleanupDeletion(
     authority,
     signal: input.signal,
     now: input.now ?? Date.now,
+    identity,
   });
-  return summary("INSPECTED", false, await planned(cycle));
+  return summary("INSPECTED", false, await planned(cycle, identity));
 }
 
-export async function executeReviewedSharedCellCleanupDeletion(
+async function executeBoundDeletion(
   input: ExecuteSettings,
-): Promise<Readonly<SharedCellCleanupDeletionSummary>> {
+  identity: IdentityProtocol,
+): Promise<Readonly<BoundDeletionSummary>> {
   assertInput(
     input,
     [
@@ -1388,8 +1419,9 @@ export async function executeReviewedSharedCellCleanupDeletion(
     authority,
     signal: input.signal,
     now,
+    identity,
   });
-  const plan = await planned(cycle);
+  const plan = await planned(cycle, identity);
   if (plan.deletionPlanSha256 !== input.approvedDeletionPlanSha256) {
     fail(
       "SHARED_CELL_DELETE_PLAN_MISMATCH",
@@ -1402,6 +1434,7 @@ export async function executeReviewedSharedCellCleanupDeletion(
     approved: plan,
     signal: input.signal,
     now,
+    identity,
   });
   const delegateNow = readClock(now);
   if (
@@ -1455,6 +1488,7 @@ export async function executeReviewedSharedCellCleanupDeletion(
       evidence,
       expectedStackId: plan.intent.stackId,
       signal: input.signal,
+      identity,
       ...readback,
     });
   } catch (error) {
@@ -1473,9 +1507,10 @@ export async function executeReviewedSharedCellCleanupDeletion(
   return summary(responseLost ? "RECOVERED" : "DELETED", true, plan);
 }
 
-export async function recoverReviewedSharedCellCleanupDeletion(
+async function recoverBoundDeletion(
   input: RecoverSettings,
-): Promise<Readonly<SharedCellCleanupDeletionSummary>> {
+  identity: IdentityProtocol,
+): Promise<Readonly<BoundDeletionSummary>> {
   assertInput(
     input,
     ["approvedDeletionPlanSha256", "authority", "evidence", "signal"],
@@ -1486,7 +1521,7 @@ export async function recoverReviewedSharedCellCleanupDeletion(
   const authorityPort = pinAuthority(input.authority);
   const readback = readbackSettings(input);
   const now = input.now ?? Date.now;
-  await assertCaller(evidence, input.signal);
+  await assertCaller(evidence, input.signal, identity);
   const authority = await readStrongAuthority(authorityPort, input.signal);
   const startedAt = readClock(now);
   const zeroTenant = await readZeroTenantOwnership(
@@ -1521,7 +1556,7 @@ export async function recoverReviewedSharedCellCleanupDeletion(
     zeroTenant,
   });
   verifiedCycles.add(cycle);
-  const plan = await planned(cycle);
+  const plan = await planned(cycle, identity);
   if (plan.deletionPlanSha256 !== input.approvedDeletionPlanSha256) {
     fail(
       "SHARED_CELL_DELETE_RECOVERY_PLAN_MISMATCH",
@@ -1532,7 +1567,36 @@ export async function recoverReviewedSharedCellCleanupDeletion(
     evidence,
     expectedStackId: plan.intent.stackId,
     signal: input.signal,
+    identity,
     ...readback,
   });
   return summary("RECOVERED", false, plan);
+}
+
+// Profiles are selected only by separate code entry points, never by event,
+// caller-provided role ARN, environment variable or a rewritten STS response.
+function legacySummary(value: Readonly<BoundDeletionSummary>) {
+  if (value.schemaVersion !== 1) fail("SHARED_CELL_DELETE_PROTOCOL_INVALID", "Legacy protocol mismatch.");
+  return value;
+}
+function dedicatedSummary(value: Readonly<BoundDeletionSummary>) {
+  if (value.schemaVersion !== 2) fail("SHARED_CELL_DELETE_PROTOCOL_INVALID", "Dedicated protocol mismatch.");
+  return value;
+}
+export async function inspectSharedCellCleanupDeletion(input: ReadSettings) {
+  return legacySummary(await inspectBoundDeletion(input, "legacy-janitor-v1"));
+}
+export async function executeReviewedSharedCellCleanupDeletion(input: ExecuteSettings) {
+  return legacySummary(await executeBoundDeletion(input, "legacy-janitor-v1"));
+}
+export async function recoverReviewedSharedCellCleanupDeletion(input: RecoverSettings) {
+  return legacySummary(await recoverBoundDeletion(input, "legacy-janitor-v1"));
+}
+/** Exact dedicated v2 capability; does not install or authorize permissions. */
+export function createDedicatedCellTtlDeletionProtocolV2() {
+  return Object.freeze({
+    inspect: async (input: ReadSettings) => dedicatedSummary(await inspectBoundDeletion(input, DEDICATED_CELL_TTL_IDENTITY_PROTOCOL)),
+    execute: async (input: ExecuteSettings) => dedicatedSummary(await executeBoundDeletion(input, DEDICATED_CELL_TTL_IDENTITY_PROTOCOL)),
+    recover: async (input: RecoverSettings) => dedicatedSummary(await recoverBoundDeletion(input, DEDICATED_CELL_TTL_IDENTITY_PROTOCOL)),
+  });
 }

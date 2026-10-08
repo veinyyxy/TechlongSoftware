@@ -1,0 +1,18 @@
+import { createAwsSdkPreparedDedicatedCellTtlExecutorV2 } from "../../../lib/deployments/execution/aws-sdk-prepared-cell-ttl-janitor.ts";
+import { createNeonSerializableSharedCellOwnershipSnapshotSource } from "../../../lib/deployments/execution/neon-shared-cell-zero-tenant-source.ts";
+import { SerializableSharedCellCleanupDeletionZeroTenantAdapter } from "../../../lib/deployments/execution/shared-cell-cleanup-deletion-zero-tenant.ts";
+import { cellCleanupInvocationSignal, loadDedicatedCellTtlDatabaseUrlV2 } from "../../../lib/deployments/execution/cell-cleanup-lambda-context.ts";
+
+/** Uninstalled dedicated v2 root. Strict schema2 ownership source is unchanged. */
+export async function handler(event: unknown, context: unknown) {
+  const value = event as Record<string, unknown> | null;
+  if (!value || JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(["action", "approvedDeletionPlanSha256", "schemaVersion"]) ||
+    value.schemaVersion !== 2 || value.action !== "execute_reviewed_dedicated_cell_ttl_cleanup" || typeof value.approvedDeletionPlanSha256 !== "string" ||
+    !/^[a-f0-9]{64}$/.test(value.approvedDeletionPlanSha256)) throw new Error("CELL_TTL_EVENT_INVALID");
+  const reviewed = { schemaVersion: 2, action: "execute_reviewed_dedicated_cell_ttl_cleanup", approvedDeletionPlanSha256: value.approvedDeletionPlanSha256 };
+  const signal = cellCleanupInvocationSignal(context, "techlong-sandbox-cell-ttl-executor");
+  const databaseUrl = await loadDedicatedCellTtlDatabaseUrlV2(signal);
+  const source = createNeonSerializableSharedCellOwnershipSnapshotSource(databaseUrl);
+  const root = await createAwsSdkPreparedDedicatedCellTtlExecutorV2({ zeroTenantOwnership: new SerializableSharedCellCleanupDeletionZeroTenantAdapter(source) });
+  return root.run(reviewed, signal);
+}

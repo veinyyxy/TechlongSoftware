@@ -6,6 +6,10 @@ import {
   inspectSharedCellCleanupDeletion,
   recoverReviewedSharedCellCleanupDeletion,
   SHARED_CELL_CLEANUP_DELETION_ROLE_ARN,
+  createDedicatedCellTtlDeletionProtocolV2,
+  DEDICATED_CELL_TTL_EXECUTOR_ROLE_ARN,
+  type DedicatedCellTtlDeletionSummary,
+  type SharedCellCleanupDeletionSummary,
   type SharedCellCleanupDeleteStackPort,
   type SharedCellCleanupDeletionEvidenceReadPort,
   type StrongSharedCellCleanupAuthorityReadPort,
@@ -22,6 +26,9 @@ import { sharedCellAdmissionDrainIntent } from "../lib/deployments/execution/sha
 import { sha256Hex } from "../lib/deployments/execution/hash.ts";
 import {
   createPreparedCellTtlJanitor,
+  createPreparedDedicatedCellTtlExecutorV2,
+  validateDedicatedCellCleanupIntentV2,
+  validatePreparedCellCleanupIntent,
   type PreparedCellCleanupJournal,
   type PreparedCellCleanupIntent,
   type PreparedCellCleanupReceipt,
@@ -29,7 +36,11 @@ import {
 import {
   AwsSdkPreparedCellCleanupJournal,
   createAwsSdkPreparedCellTtlJanitor,
+  createAwsSdkPreparedDedicatedCellTtlExecutorV2,
+  AwsSdkDedicatedCellCleanupJournalV2,
 } from "../lib/deployments/execution/aws-sdk-prepared-cell-ttl-janitor.ts";
+import { handler as dedicatedHandler } from "../ops/aws-sandbox/lambda/cell-ttl-executor-v2.ts";
+import { loadCellCleanupDatabaseUrl } from "../lib/deployments/execution/cell-cleanup-lambda-context.ts";
 
 const now = Date.UTC(2026, 8, 7, 12, 0, 0);
 const cellExpiresAt = new Date(now - 60_000).toISOString();
@@ -872,10 +883,10 @@ test("recover is pure read and accepts only exact name-bound missing proof", asy
   assert.equal(subject.calls().authorityWrites, 0);
 });
 
-function durableJournal(options: { lostIntentResponse?: boolean; lostReceiptResponse?: boolean; onClaim?: () => void } = {}) {
-  const state: { intent: Readonly<PreparedCellCleanupIntent> | null; receipt: Readonly<PreparedCellCleanupReceipt> | null; claims: number; publications: number } =
+function durableJournal<T extends SharedCellCleanupDeletionSummary | DedicatedCellTtlDeletionSummary = SharedCellCleanupDeletionSummary>(options: { lostIntentResponse?: boolean; lostReceiptResponse?: boolean; onClaim?: () => void } = {}) {
+  const state: { intent: Readonly<PreparedCellCleanupIntent<T>> | null; receipt: Readonly<PreparedCellCleanupReceipt<T>> | null; claims: number; publications: number } =
     { intent: null, receipt: null, claims: 0, publications: 0 };
-  const journal: PreparedCellCleanupJournal = {
+  const journal: PreparedCellCleanupJournal<T> = {
     async readStrong() { return structuredClone({ intent: state.intent, receipt: state.receipt }); },
     async claimIntent({ intent }) {
       state.claims += 1;
@@ -1043,4 +1054,99 @@ test("actual AWS SDK prepared TTL assembly remains dormant and does not call the
     async readStrongZeroTenantOwnershipSnapshot() { reads += 1; throw new Error("construction must not read"); },
   } });
   assert.equal(root.mode, "prepared_not_installed"); assert.equal(root.cloudRuntimeInstalled, false); assert.equal(reads, 0);
+});
+
+const dedicatedCaller = "arn:aws:sts::402010193138:assumed-role/TechlongSandboxCellTtlExecutorRole/cell-ttl-v2";
+const dedicatedProtocol = createDedicatedCellTtlDeletionProtocolV2();
+const dedicatedRead = (subject: Awaited<ReturnType<typeof fixture>>) => ({ evidence: subject.evidence, authority: subject.authority, signal: signal(), now: () => now });
+async function dedicatedEvent(subject: Awaited<ReturnType<typeof fixture>>) {
+  const plan = await dedicatedProtocol.inspect(dedicatedRead(subject));
+  return { schemaVersion: 2, action: "execute_reviewed_dedicated_cell_ttl_cleanup", approvedDeletionPlanSha256: plan.deletionPlanSha256 };
+}
+function dedicatedRoot(subject: Awaited<ReturnType<typeof fixture>>, journal: PreparedCellCleanupJournal<DedicatedCellTtlDeletionSummary>) {
+  return createPreparedDedicatedCellTtlExecutorV2({ evidence: subject.evidence, authority: subject.authority, now: () => now,
+    deleter: subject.deleter, journal, readbackAttempts: 1, readbackDelayMs: 0 });
+}
+
+test("dedicated v2 binds the exact role into a distinct approval hash without widening legacy v1", async () => {
+  const legacy = await fixture(); const subject = await fixture({ callerArn: dedicatedCaller });
+  const old = await inspectSharedCellCleanupDeletion(dedicatedRead(legacy));
+  const plan = await dedicatedProtocol.inspect(dedicatedRead(subject));
+  assert.equal(plan.schemaVersion, 2); assert.equal(plan.executorIdentityProtocol, "dedicated-cell-ttl-v2");
+  assert.equal(plan.executorRoleArn, DEDICATED_CELL_TTL_EXECUTOR_ROLE_ARN); assert.notEqual(plan.deletionPlanSha256, old.deletionPlanSha256);
+  await assert.rejects(inspectSharedCellCleanupDeletion(dedicatedRead(subject)), (e: { code: string }) => e.code === "SHARED_CELL_DELETE_CALLER_INVALID");
+  await assert.rejects(dedicatedProtocol.inspect(dedicatedRead(legacy)), (e: { code: string }) => e.code === "SHARED_CELL_DELETE_CALLER_INVALID");
+  await assert.rejects(dedicatedProtocol.execute({ ...dedicatedRead(subject), deleter: subject.deleter, approvedDeletionPlanSha256: old.deletionPlanSha256 }),
+    (e: { code: string }) => e.code === "SHARED_CELL_DELETE_PLAN_MISMATCH");
+  await assert.rejects(dedicatedProtocol.inspect({ ...dedicatedRead(subject), identity: "legacy-janitor-v1" } as Parameters<typeof dedicatedProtocol.inspect>[0]));
+  assert.equal(subject.deleteInputs.length, 0);
+});
+
+test("dedicated v2 rejects caller drift and real nonzero ownership before deletion", async () => {
+  for (const options of [{ callerAt: (n: number) => n <= 1 ? dedicatedCaller : janitorCaller }, { callerArn: dedicatedCaller, nonzeroOwnershipAt: 1 }]) {
+    const subject = await fixture(options);
+    await assert.rejects(dedicatedProtocol.inspect(dedicatedRead(subject)));
+    assert.equal(subject.deleteInputs.length, 0);
+  }
+  for (const callerArn of [dedicatedCaller + "/foreign", dedicatedCaller.replace("402010193138", "111111111111"), dedicatedCaller.replace("ExecutorRole/", "ExecutorRoleExtra/")]) {
+    const subject = await fixture({ callerArn }); await assert.rejects(dedicatedProtocol.inspect(dedicatedRead(subject)));
+  }
+});
+
+test("dedicated v2 durable root retains CAS, exact one delete, immutable replay and event separation", async () => {
+  const subject = await fixture({ callerArn: dedicatedCaller }); const durable = durableJournal<DedicatedCellTtlDeletionSummary>();
+  const root = dedicatedRoot(subject, durable.journal); const event = await dedicatedEvent(subject);
+  await assert.rejects(root.run({ ...event, schemaVersion: 1, action: "execute_reviewed_cell_ttl_cleanup" }, signal()));
+  assert.equal(durable.state.claims, 0);
+  const result = await root.run(event, signal()); const replay = await root.run(event, signal());
+  assert.equal(result.schemaVersion, 2); assert.equal(result.receipt.schemaVersion, 2); assert.equal(result.receipt.result.executorRoleArn, DEDICATED_CELL_TTL_EXECUTOR_ROLE_ARN);
+  assert.equal(replay.outcome, "IMMUTABLE_RECEIPT_REPLAYED"); assert.equal(replay.deleteStackAttempted, false);
+  assert.equal(subject.deleteInputs.length, 1); assert.equal(durable.state.claims, 1); assert.equal(subject.calls().authorityWrites, 0);
+  assert.equal(subject.deleteInputs[0].request.StackName, stackId); assert.equal(subject.deleteInputs[0].request.RoleARN, SHARED_CELL_CLEANUP_DELETION_ROLE_ARN);
+  await assert.rejects(validatePreparedCellCleanupIntent(durable.state.intent, event.approvedDeletionPlanSha256));
+  await assert.rejects(validateDedicatedCellCleanupIntentV2({ ...durable.state.intent, schemaVersion: 1 }, event.approvedDeletionPlanSha256));
+});
+
+test("dedicated v2 lost intent/delete responses remain recovery-only across restart", async () => {
+  for (const lostIntent of [true, false]) {
+    const subject = await fixture({ callerArn: dedicatedCaller, behavior: "lost_still_present" });
+    const durable = durableJournal<DedicatedCellTtlDeletionSummary>({ lostIntentResponse: lostIntent });
+    const event = await dedicatedEvent(subject);
+    await assert.rejects(dedicatedRoot(subject, durable.journal).run(event, signal()));
+    await assert.rejects(dedicatedRoot(subject, durable.journal).run(event, signal()));
+    assert.equal(subject.deleteInputs.length, lostIntent ? 0 : 1); assert.equal(durable.state.claims, 1);
+    subject.setMissing(); const recovered = await dedicatedRoot(subject, durable.journal).run(event, signal());
+    assert.equal(recovered.deleteStackAttempted, false); assert.equal(recovered.receipt.result.phase, "RECOVERED");
+  }
+});
+
+test("dedicated v2 journal uses schema2 permanent keys and rejects cross-version rows", async () => {
+  const subject = await fixture({ callerArn: dedicatedCaller }); const plan = await dedicatedProtocol.inspect(dedicatedRead(subject));
+  const rows = new Map<string, Record<string, unknown>>();
+  const sdk = { commands: { get: GetCommand as unknown as new (input: Record<string, unknown>) => unknown, put: PutCommand as unknown as new (input: Record<string, unknown>) => unknown },
+    client: { async send(value: unknown) {
+      const input = (value as { input: Record<string, unknown> }).input;
+      if (value instanceof GetCommand) { assert.equal(input.ConsistentRead, true); return { Item: rows.get((input.Key as { authority_key: string }).authority_key) }; }
+      assert(value instanceof PutCommand); assert.equal(input.ConditionExpression, "attribute_not_exists(#key)");
+      const item = input.Item as Record<string, unknown>; assert.equal(item.schema_version, 2);
+      if (rows.has(item.authority_key as string)) throw Object.assign(new Error("exists"), { name: "ConditionalCheckFailedException" });
+      rows.set(item.authority_key as string, structuredClone(item)); return {};
+    } } };
+  const journal = new AwsSdkDedicatedCellCleanupJournalV2(sdk);
+  assert.equal(await journal.claimIntent({ intent: { schemaVersion: 2, plan }, signal: signal() }), true);
+  assert.equal(await journal.claimIntent({ intent: { schemaVersion: 2, plan }, signal: signal() }), false);
+  assert.ok((await journal.readStrong({ planSha256: plan.deletionPlanSha256, signal: signal() })).intent);
+  await assert.rejects(new AwsSdkPreparedCellCleanupJournal(sdk).readStrong({ planSha256: plan.deletionPlanSha256, signal: signal() }));
+  const item = rows.get(`cell-cleanup-intent:${plan.deletionPlanSha256}`)!; item.schema_version = 1;
+  await assert.rejects(journal.readStrong({ planSha256: plan.deletionPlanSha256, signal: signal() }));
+});
+
+test("dedicated v2 SDK assembly/handler are dormant; a cast role cannot broaden the legacy Secret loader", async () => {
+  let reads = 0; const root = await createAwsSdkPreparedDedicatedCellTtlExecutorV2({ zeroTenantOwnership: {
+    async readStrongZeroTenantOwnershipSnapshot() { reads++; throw new Error("not during assembly"); },
+  } });
+  assert.equal(root.cloudRuntimeInstalled, false); assert.equal(reads, 0);
+  await assert.rejects(dedicatedHandler({}, {}), /CELL_TTL_EVENT_INVALID/);
+  await assert.rejects(dedicatedHandler({ schemaVersion: 2, action: "execute_reviewed_dedicated_cell_ttl_cleanup", approvedDeletionPlanSha256: "a".repeat(64) }, {}), /CELL_CLEANUP_LAMBDA_CONTEXT_INVALID/);
+  assert.throws(() => loadCellCleanupDatabaseUrl("TechlongSandboxCellTtlExecutorRole" as Parameters<typeof loadCellCleanupDatabaseUrl>[0], signal()), /CELL_CLEANUP_IDENTITY_OR_SECRET_REJECTED/);
 });

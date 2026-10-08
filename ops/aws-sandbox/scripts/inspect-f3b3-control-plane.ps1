@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$OutputDirectory)
+param([Parameter(Mandatory)][string]$OutputDirectory,[switch]$DedicatedExecutorRoleOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $target=[IO.Path]::GetFullPath($OutputDirectory)
@@ -18,6 +18,16 @@ function Read-Aws([string[]]$Arguments){
 $identity=Read-Aws @('sts','get-caller-identity')
 if($identity.Account -cne '402010193138' -or $identity.Arn -cne 'arn:aws:iam::402010193138:user/techlong-sandbox-dev'){throw 'Exact Source identity mismatch.'}
 New-Item -ItemType Directory -Path $target | Out-Null
+if($DedicatedExecutorRoleOnly){
+  $executor=Read-Aws @('iam','get-role','--role-name','TechlongSandboxCellTtlExecutorRole')
+  $executorReport=[ordered]@{schemaVersion=1;stage='F3b3';outcome='DEDICATED_EXECUTOR_ROLE_READ_ONLY';at=[DateTimeOffset]::UtcNow.ToString('o');source=$identity
+    roleName='TechlongSandboxCellTtlExecutorRole';observed=$executor;installationAuthorized=$false;cloudMutationPerformed=$false;secretValueRead=$false}
+  $executorBytes=[Text.UTF8Encoding]::new($false).GetBytes(($executorReport | ConvertTo-Json -Depth 80)+[char]10)
+  $executorFile=Join-Path $target 'executor-role-inventory.json';$executorStream=[IO.File]::Open($executorFile,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write)
+  try{$executorStream.Write($executorBytes)}finally{$executorStream.Dispose()}
+  [ordered]@{outcome=$executorReport.outcome;output=$executorFile;reportSha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($executorBytes)).ToLowerInvariant();observed=$executor;installationAuthorized=$false;cloudMutationPerformed=$false} | ConvertTo-Json -Depth 80
+  return
+}
 $role=Read-Aws @('iam','get-role','--role-name','TechlongSandboxCellJanitorExecutionRole')
 if($role.PSObject.Properties.Name -notcontains 'Role'){throw 'Existing Janitor role not verified.'}
 $boundary=$role.Role.PermissionsBoundary.PermissionsBoundaryArn

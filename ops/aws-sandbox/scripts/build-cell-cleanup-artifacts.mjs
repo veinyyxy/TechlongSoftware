@@ -9,10 +9,11 @@ import { spawnSync } from "node:child_process";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const args = process.argv.slice(2);
-if (args.length !== 2 || args[0] !== "--out") throw new Error("Use --out with a fresh direct F:/ChatGPT_workshop/techlong-f3b2-* directory.");
+const dedicatedV2 = args.length === 3 && args[2] === "--dedicated-executor-v2";
+if ((!dedicatedV2 && args.length !== 2) || args[0] !== "--out") throw new Error("Use --out with a fresh private directory; optional --dedicated-executor-v2 builds only the separate v2 candidate.");
 const out = path.resolve(args[1]);
 if (path.resolve(path.dirname(out)).toLowerCase() !== path.resolve("F:/ChatGPT_workshop").toLowerCase() ||
-  !/^techlong-f3b2-[a-z0-9-]+$/.test(path.basename(out))) throw new Error("Artifact output outside exact private workspace.");
+  !(dedicatedV2 ? /^techlong-f3b3-[a-z0-9-]+$/ : /^techlong-f3b2-[a-z0-9-]+$/).test(path.basename(out))) throw new Error("Artifact output outside exact private workspace.");
 await mkdir(out); // no overwrite/reuse/reset
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
 const lockBytes = await readFile(path.join(root, "package-lock.json"));
@@ -22,7 +23,8 @@ if (esbuildVersion !== "0.28.0" || lock.packages["node_modules/esbuild"].version
   JSON.parse(await readFile(path.join(root, "node_modules/fflate/package.json"), "utf8")).version !== "0.7.4") throw new Error("Builder version differs from reviewed lock.");
 const builtins = new Set(builtinModules.flatMap(name => [name, `node:${name}`]));
 const artifacts = [];
-for (const [kind, entry] of [["drain-coordinator", "cell-drain-coordinator.ts"], ["ttl-executor", "cell-ttl-executor.ts"]]) {
+const entries = dedicatedV2 ? [["ttl-executor-v2", "cell-ttl-executor-v2.ts"]] : [["drain-coordinator", "cell-drain-coordinator.ts"], ["ttl-executor", "cell-ttl-executor.ts"]];
+for (const [kind, entry] of entries) {
   const options = { absWorkingDir: root, entryPoints: [`ops/aws-sandbox/lambda/${entry}`], outfile: "index.js", platform: "node",
     target: "node22", format: "cjs", bundle: true, write: false, metafile: true, sourcemap: false, legalComments: "eof", logLevel: "silent" };
   const first = await build(options); const second = await build(options);
@@ -48,12 +50,14 @@ for (const [kind, entry] of [["drain-coordinator", "cell-drain-coordinator.ts"],
     bundleSha256: sha(bytes), zipBytes: archive.length, zipSha256: sha(archive), reproducibleBuildVerified: true,
     dependencyFreeStartupVerified: true, invalidEventRejectedWithoutCredentials: true });
 }
-const sourcePaths = [...new Set(artifacts.flatMap(artifact => artifact.kind === "drain-coordinator" ?
+const sourcePaths = dedicatedV2 ? ["ops/aws-sandbox/lambda/cell-ttl-executor-v2.ts", "lib/deployments/execution/shared-cell-cleanup-deletion.ts",
+  "lib/deployments/execution/prepared-cell-ttl-janitor.ts", "lib/deployments/execution/aws-sdk-prepared-cell-ttl-janitor.ts", "lib/deployments/execution/cell-cleanup-lambda-context.ts"] : [...new Set(artifacts.flatMap(artifact => artifact.kind === "drain-coordinator" ?
   ["ops/aws-sandbox/lambda/cell-drain-coordinator.ts", "lib/deployments/execution/prepared-cell-drain-coordinator.ts", "lib/deployments/execution/neon-cell-ttl-cleanup-jobs.ts"] :
   ["ops/aws-sandbox/lambda/cell-ttl-executor.ts", "lib/deployments/execution/prepared-cell-ttl-janitor.ts"]))];
 const sourcePins = [];
 for (const file of sourcePaths) sourcePins.push({ path: file, textSha256: sha(Buffer.from((await readFile(path.join(root, file), "utf8")).replace(/\r\n/g, "\n"))) });
-const report = { schemaVersion: 1, outcome: "CELL_CLEANUP_ARTIFACTS_BUILT_NOT_INSTALLED", esbuildVersion, zipBuilderVersion: "0.7.4",
+const report = { schemaVersion: dedicatedV2 ? 2 : 1, outcome: "CELL_CLEANUP_ARTIFACTS_BUILT_NOT_INSTALLED", esbuildVersion, zipBuilderVersion: "0.7.4",
+  ...(dedicatedV2 ? { executorIdentityProtocol: "dedicated-cell-ttl-v2", executorRoleArn: "arn:aws:iam::402010193138:role/TechlongSandboxCellTtlExecutorRole" } : {}),
   packageLockSha256: sha(lockBytes), sourcePins, artifacts, cloudMutationPerformed: false, databaseMutationPerformed: false,
   installationAuthorized: false, authorityCasCapabilityExposed: false, workerEnabled: false };
 const reportBytes = Buffer.from(JSON.stringify(report, null, 2) + "\n");

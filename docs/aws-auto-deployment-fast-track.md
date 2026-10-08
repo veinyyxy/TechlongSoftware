@@ -50,6 +50,8 @@ material 只能在 guarded Secret store 的 generation/epoch 上下文内生成�
 
 ## 继续位置
 
+最新继续位置（2026-10-08 Winnipeg）：F3b3独立Executor v2的core/root/SDK journal/Secret入口和未安装Lambda包完成，旧Janitor协议不放宽、删除计划SHA按准确新身份分域；143项相邻回归/type/lint/build/包自检通过，Source只读确认新role ABSENT。密封隔离契约已具体化但无DDL/新adapter，当前门禁仍1/1，未安装任何IAM/数据库/云runtime。下一小阶段准备未注册的密封schema/永久引用guard与版本化ownership证明，再整理具体安装范围供fresh批准。见 [F3b3 v2产物与继续位置](./aws-auto-deployment-fast-track-f3b3-dedicated-executor-v2.md)。以下保留历史。
+
 最新继续位置（2026-10-08 Winnipeg）：F3b3旧计划/immutable trigger及Source刷新后的控制面只读审阅完成，保留实例/订阅/原件，密封隔离登记尚为设计，零租户门禁仍1/1。真实Janitor boundary v2同时附加为身份策略且显式Deny变更，仅换boundary不能启用executor；提出保留旧IAM/PLAN_ONLY的独立executor身份修订，须版本化精确入口、新artifact和新role只读核验。原F3b2复用role草案与产物保留而不安装；尚无可执行安装SHA，F3b3未整体完成。见 [F3b3审阅、证据和继续位置](./aws-auto-deployment-fast-track-f3b3-isolation-review.md)。以下保留历史。
 
 最新继续位置（2026-10-07 Winnipeg）：F3b2真实Neon draining/owned cleanup与rollback入队/serializable source协调代码、两个独立Lambda候选和未授权资源草案完成；131项相邻测试/type/lint/build/本地包自检与Neon READ ONLY EXPLAIN通过，无云/数据库写。旧planned plan_only记录1条仍挡严格零租户，保留；专属角色/Secret未创建。下一F3b3准备保留原件的旧计划处置审阅及准确控制面安装清单；authority writer/调度/端到端proof仍未完成，不将hash当授权。见 [F3b2记录与继续位置](./aws-auto-deployment-fast-track-f3b2-drain-coordinator.md)。以下保留历史。

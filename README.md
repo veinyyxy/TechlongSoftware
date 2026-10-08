@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-08 F3b3独立Executor v2切片完成：旧Janitor身份/协议保持不变，新入口固定专属role，schema2计划SHA绑定协议/完整role ARN，持久化intent/receipt隔离旧版本，单次删除与只读恢复约束保留。143项相邻回归/type/lint/build及新ZIP自检通过；AWS只读确认新role ABSENT，没有创建。旧规划密封隔离协议仍为候选，无DDL/新source接线，严格零租户门禁仍1/1。未安装IAM/Secret/函数或启用Worker。见 [新产物、证据与下一小阶段](./docs/aws-auto-deployment-fast-track-f3b3-dedicated-executor-v2.md)。以下保留历史。
+
 2026-10-08 F3b3只读审阅切片完成：旧pending实例/active订阅及原行保留，live trigger禁止直接迁移environment_id，隔离登记仅为设计，零租户门禁仍1/1。Source刷新后真实AWS核验确认旧Janitor仍PLAN_ONLY；其boundary v2同时作为身份策略附加且显式Deny变更，仅换boundary不能复用。准备独立executor身份修订，当前Janitor绑定产物不能直接改role安装；新候选role存在性仍需单独读取。6项审阅器/类型/lint/AST通过。无云/数据库写或Worker启用，F3b3未整体完成、无可执行安装SHA。见 [准确证据与继续位置](./docs/aws-auto-deployment-fast-track-f3b3-isolation-review.md)。以下保留历史。
 
 2026-10-07 F3b2代码切片完成：接通真实Neon draining→owned cleanup/rollback幂等入队→独立serializable零租户快照，构建独立drain/executor自包含Lambda候选，读写DB角色/Secret不混用。131项清理相邻测试、type/lint/build及无凭据包自检通过；Neon实际READ ONLY EXPLAIN通过，无写入。发现旧planned/plan_only记录1条（资源/作业0），保留并作为零租户门禁；专属DB角色未创建。未安装IAM/函数/调度或启用Worker，完整自动TTL尚未完成。下一步F3b3准备旧记录处置和准确安装审批。见 [F3b2产物、在线只读证据与边界](./docs/aws-auto-deployment-fast-track-f3b2-drain-coordinator.md)。以下保留历史。
