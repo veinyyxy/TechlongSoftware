@@ -1,5 +1,5 @@
 import { canonicalJson, sha256Hex } from "./hash.ts";
-import { readSealedPlanManagementStateV1, type SealedPlanManagementSqlClientV1 } from "./sealed-plan-management-v1.ts";
+import { readSealedPlanManagementStateV1, SealedPlanManagementErrorV1, type SealedPlanManagementSqlClientV1 } from "./sealed-plan-management-v1.ts";
 
 // Deliberately separate from the consumed schema/registration entries and their bytes.
 export const CONTROL_ROLE_SQL_SHA256_V1 = "7fc82e392d1745b4e7031a1449d094cd2b327cfaccb459f768e917a4754df016";
@@ -226,6 +226,7 @@ export async function runReviewedControlRolesV1(input: { client: SealedPlanManag
   const review = freeze(JSON.parse(canonicalJson(input.review)) as ControlRoleReviewV1);
   await validateControlRoleApprovalV1(review, input.approvedSha, input.binding, input.sql, input.now());
   let transaction = false, slotConsumed = false, commitAttempted = false, sqlSubmitted = false;
+  let stage = "BEGIN";
   try {
     await input.client.query("BEGIN ISOLATION LEVEL SERIALIZABLE"); transaction = true;
     await input.client.query("SET LOCAL search_path=pg_catalog");
@@ -234,6 +235,7 @@ export async function runReviewedControlRolesV1(input: { client: SealedPlanManag
     // No catalog table write/lock bypass. CREATE ROLE's uniqueness is the concurrent-creator fence.
     const tables = lockedTables.map(name => `public.${name}`).sort();
     await input.client.query(`LOCK TABLE ${tables.join(",")} IN SHARE ROW EXCLUSIVE MODE`);
+    stage = "PRESTATE_READ";
     const start = input.now(), before = await readSealedControlRoleStateV1(input.client);
     fresh(before.observedAt, start, input.now()); await assertSeal(before, input.binding);
     if (before.stateSha256 !== review.prestateSha256) fail("CONTROL_ROLE_PRESTATE_DRIFT_NO_WRITE");
@@ -241,18 +243,23 @@ export async function runReviewedControlRolesV1(input: { client: SealedPlanManag
     await input.claimPermanentSlot(); slotConsumed = true; await input.persistConsumedReview();
     fresh(before.observedAt, start, input.now());
     await validateControlRoleApprovalV1(review, input.approvedSha, input.binding, input.sql, input.now());
-    sqlSubmitted = true; await input.client.query(input.sql);
+    stage = "ROLE_SQL_SUBMISSION"; sqlSubmitted = true; await input.client.query(input.sql);
+    stage = "POSTSTATE_READ";
     const after = await readSealedControlRoleStateV1(input.client);
+    stage = "POSTSTATE_VERIFY";
     await verifyControlRolePoststateV1(after, review); fresh(after.observedAt, start, input.now());
     await validateControlRoleApprovalV1(review, input.approvedSha, input.binding, input.sql, input.now());
-    commitAttempted = true; await input.client.query("COMMIT"); transaction = false;
+    stage = "COMMIT"; commitAttempted = true; await input.client.query("COMMIT"); transaction = false;
     return freeze({ outcome: "ROLE_COMMIT_CONFIRMED_REQUIRES_INDEPENDENT_READBACK", slotConsumed, sqlSubmitted,
       commitConfirmed: true, failureCode: null, retryAuthorized: false, runtimeEnabled: false });
   } catch (error) {
     if (transaction && !commitAttempted) await input.client.query("ROLLBACK").catch(() => undefined);
     return freeze({ outcome: commitAttempted ? "ROLE_COMMIT_OUTCOME_UNKNOWN_READONLY_RECOVERY_ONLY" : "ROLE_STOPPED_NO_COMMIT_READONLY_INSPECT",
       slotConsumed, sqlSubmitted, commitConfirmed: false,
-      failureCode: error instanceof ControlRoleManagementErrorV1 ? error.code : "CONTROL_ROLE_SUBMISSION_NOT_VERIFIED",
+      failureStage: stage,
+      failureCode: error instanceof ControlRoleManagementErrorV1 || error instanceof SealedPlanManagementErrorV1 ? error.code :
+        typeof (error as { code?: unknown })?.code === "string" && /^[0-9A-Z]{5}$/.test((error as { code: string }).code) ?
+          `SQLSTATE_${(error as { code: string }).code}` : "CONTROL_ROLE_SUBMISSION_NOT_VERIFIED",
       retryAuthorized: false, runtimeEnabled: false });
   }
 }
