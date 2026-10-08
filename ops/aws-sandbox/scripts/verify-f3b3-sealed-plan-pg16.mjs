@@ -55,7 +55,7 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
  receipt.phase="BASE_SCHEMA";
  await c.query(base);
  receipt.phase="SYNTHETIC_BUSINESS_FIXTURE";
- await c.query(`INSERT INTO users(id,email,name,created_at,updated_at) VALUES ('seal_user','seal-fixture@example.invalid','fixture',1,1);
+ const syntheticBusinessSql=`INSERT INTO users(id,email,name,created_at,updated_at) VALUES ('seal_user','seal-fixture@example.invalid','fixture',1,1);
  INSERT INTO products(id,name,slug,created_at,updated_at) VALUES ('seal_product','fixture','seal-product',1,1);
  INSERT INTO app_instance_templates(id,product_id,name,created_at,updated_at) VALUES ('seal_template','seal_product','fixture',1,1);
  INSERT INTO app_instance_template_versions(id,template_id,version,status,created_at,updated_at) VALUES ('seal_version','seal_template',1,'published',1,1);
@@ -68,7 +68,49 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
  VALUES ('${instance}','seal_workspace','seal_product','seal_subscription','seal_version','fixture','seal-fixture','https://example.invalid','seal-fixture','seal_user',1,1);
  INSERT INTO app_instance_deployments(id,app_instance_id,subscription_id,driver,workflow_version,cell_key,deployment_profile_key,mode,status,desired_plan,plan_hash,idempotency_key,created_at,updated_at,environment_id)
  VALUES ('${target}','${instance}','seal_subscription','aws_ecs_cell','v1','cell-demo-1','standard-v1','plan_only','planned',
- '{"safety":{"applyEnabled":false,"createsAwsResources":false,"storesSecretValues":false}}',repeat('b',64),'seal-old',1,1,'env_aws_sandbox_ca_central_1');`);
+ '{"safety":{"applyEnabled":false,"createsAwsResources":false,"storesSecretValues":false}}',repeat('b',64),'seal-old',1,1,'env_aws_sandbox_ca_central_1');`;
+ await c.query(syntheticBusinessSql);
+ if(githubPg18){
+  receipt.phase="MANAGEMENT_ENTRY_POINTS_IN_SECOND_OWNED_DATABASE";
+  const {readSealedPlanManagementStateV1,compileSealedPlanManagementReviewV1,runReviewedSealedPlanMutationV1,
+    verifySealedPlanManagementPoststateV1}=await import("../../../lib/deployments/execution/sealed-plan-management-v1.ts");
+  await context.withOwnedDatabase(async({client,connect})=>{
+    await client.query(base);await client.query(syntheticBusinessSql);
+    const binding={targetFingerprintSha256:"a".repeat(64),managementCodeSha256:"b".repeat(64)};
+    const readonly=async()=>{
+      const observer=await connect();
+      try{await observer.query("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY DEFERRABLE");await observer.query("SET LOCAL search_path=pg_catalog");
+        const readback=await readSealedPlanManagementStateV1(observer);await observer.query("COMMIT");return readback;
+      }finally{await observer.end();}
+    };
+    let installClaims=0,registerClaims=0;
+    for(const phase of ["install","register"]){
+      const startedAt=Date.now(),pre=await readonly();
+      const review=await compileSealedPlanManagementReviewV1({phase,binding,readback:pre,candidateSql:candidate,startedAt,now:Date.now()});
+      const input={client,review,approvedSha256:review.manifestSha256,binding,candidateSql:candidate,now:Date.now,
+        claimPermanentSlot:async()=>{if(phase==="install"){assert.equal(installClaims++,0);}else{assert.equal(registerClaims++,0);}},persistConsumedReview:async()=>undefined};
+      await assert.rejects(runReviewedSealedPlanMutationV1({...input,approvedSha256:"0".repeat(64)}));
+      const lostCommitClient={async query(statement,values){const result=await client.query(statement,values);
+        if(statement==="COMMIT")throw new Error("CI_TEST_LOST_COMMIT_RESPONSE");return result;}};
+      const submitted=await runReviewedSealedPlanMutationV1(phase==="register"?{...input,client:lostCommitClient}:input);
+      assert.equal(submitted.commitConfirmed,phase==="install",JSON.stringify(submitted));
+      if(phase==="register")assert.equal(submitted.outcome,"COMMIT_OUTCOME_UNKNOWN_READONLY_RECOVERY_ONLY");
+      const post=await readonly(),verified=await verifySealedPlanManagementPoststateV1(post,review,candidate);
+      assert.equal(verified.runtimeActivationAuthorized,false);
+      if(phase==="install"){
+        assert.equal(post.state.certificates.length,0);assert.equal(post.state.fence.sealed,false);
+        prove("reviewedManagementInstallCommitsOnlyUnregisteredGuardsAndIndependentReadbackPreservesBusiness");
+      }else{
+        assert.equal(verified.certificate.approved_registration_sha256,review.manifestSha256);
+        assert.equal(verified.certificate.original_row_sha256,pre.state.evidence.originalRowSha256);
+        prove("reviewedManagementRegistrationLostCommitResponseRecoversExactCertificateIndependently");
+      }
+      const retry=await runReviewedSealedPlanMutationV1(input);assert.equal(retry.commitConfirmed,false);
+      assert.equal(phase==="install"?installClaims:registerClaims,1);
+    }
+    prove("reviewedManagementWrongApprovalAndOccupiedCloudSlotsCannotWriteOrRetry");
+  });
+ }
  const originalTrigger=(await c.query("SELECT pg_get_functiondef(t.tgfoid) AS definition FROM pg_trigger t WHERE tgname='app_instance_deployments_admission_reopen_fence'")).rows[0].definition;
  receipt.phase="INSTALL_CANDIDATE_ONLY_IN_OWNED_FIXTURE";
  await c.query("BEGIN");await c.query(candidate);await c.query("COMMIT");

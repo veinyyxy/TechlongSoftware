@@ -22,27 +22,40 @@ export async function withGithubPg18Fixture({ output },body){
    statement_timeout:30000,query_timeout:35000});
   client.on("error",()=>undefined);await client.connect();clients.add(client);return client;
  };
- let admin,created=false,result,failure;
+ let admin,result,failure;
+ const ownedDatabases=new Set();
  try{
   admin=await connectAs("postgres","postgres");
   const identity=(await admin.query("SELECT current_setting('server_version_num')::int AS version,current_database() AS db,current_user AS role")).rows[0];
   if(identity.version!==180006||identity.db!=="postgres"||identity.role!=="postgres")throw new Error("EXACT_CI_PG18_IDENTITY_MISMATCH");
   const testPassword=randomBytes(32).toString("hex");
   await admin.query(`CREATE ROLE cell_admin LOGIN CREATEDB CREATEROLE NOSUPERUSER PASSWORD '${testPassword}'`);
-  await admin.query(`CREATE DATABASE "${database}" OWNER cell_admin TEMPLATE template0`);created=true;
-  const connect=async()=>{
-   const client=new Client({host:"127.0.0.1",port,user:"cell_admin",password:testPassword,database,ssl:false,
+  await admin.query(`CREATE DATABASE "${database}" OWNER cell_admin TEMPLATE template0`);ownedDatabases.add(database);
+  const connectDatabase=async(databaseName)=>{
+   if(!ownedDatabases.has(databaseName))throw new Error("OWNED_CI_DATABASE_REQUIRED");
+   const client=new Client({host:"127.0.0.1",port,user:"cell_admin",password:testPassword,database:databaseName,ssl:false,
     connectionTimeoutMillis:5000,statement_timeout:30000,query_timeout:35000});
    client.on("error",()=>undefined);await client.connect();clients.add(client);return client;
   };
+  const connect=()=>connectDatabase(database);
   const managementClient=await connect();
   const tables=(await managementClient.query("SELECT count(*)::int AS n FROM pg_tables WHERE schemaname='public'")).rows[0];
   if(tables.n!==0)throw new Error("OWNED_CI_DATABASE_NOT_EMPTY");
-  result=await body({managementClient,connect,receipt,output:target});
+  const withOwnedDatabase=async(proof)=>{
+   const sibling=`sealed_ci_${randomBytes(12).toString("hex")}`;
+   await admin.query(`CREATE DATABASE "${sibling}" OWNER cell_admin TEMPLATE template0`);ownedDatabases.add(sibling);
+   const client=await connectDatabase(sibling);
+   try{return await proof({client,connect:()=>connectDatabase(sibling)});}finally{await client.end();clients.delete(client);}
+  };
+  result=await body({managementClient,connect,withOwnedDatabase,receipt,output:target});
  }catch(error){failure=error;receipt.failureCode=/^[A-Z0-9_]{5,100}$/.test(error.code??"")?error.code:"CI_PG18_PROOF_FAILED";}
  finally{
   for(const client of clients)if(client!==admin)await client.end().catch(()=>undefined);
-  if(created&&admin){try{await admin.query(`DROP DATABASE "${database}"`);receipt.ownedCiDatabaseDropped=true;}catch{failure??=new Error("CI_DATABASE_TEARDOWN_UNVERIFIED");}}
+  if(ownedDatabases.size>0&&admin){
+   let dropped=0;
+   for(const owned of ownedDatabases){try{await admin.query(`DROP DATABASE "${owned}"`);dropped++;}catch{failure??=new Error("CI_DATABASE_TEARDOWN_UNVERIFIED");}}
+   receipt.ownedCiDatabaseDropped=dropped===ownedDatabases.size;receipt.ownedCiDatabaseCountDropped=dropped;
+  }
   await admin?.end().catch(()=>undefined);
   const final={...result?.receipt,...receipt,outcome:failure?"SEALED_PG18_PROOF_FAILED":result?.outcome,finishedAt:new Date().toISOString()};
   await writeFile(path.join(target,"ci-receipt.json"),JSON.stringify(final,null,2)+"\n",{flag:"wx"});

@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][UInt64]$RunId,[Parameter(Mandatory)][ValidatePattern('^[a-f0-9]{40}$')][string]$ExpectedHeadSha,[Parameter(Mandatory)][string]$OutputDirectory,[switch]$RequireV3EvidencePlanProof)
+param([Parameter(Mandatory)][UInt64]$RunId,[Parameter(Mandatory)][ValidatePattern('^[a-f0-9]{40}$')][string]$ExpectedHeadSha,[Parameter(Mandatory)][string]$OutputDirectory,[switch]$RequireV3EvidencePlanProof,[switch]$RequireManagementProof)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 $proofDirectory=[IO.Path]::GetFullPath($OutputDirectory)
 if([IO.Path]::GetDirectoryName($proofDirectory).TrimEnd('\','/') -ine [IO.Path]::GetFullPath('F:/ChatGPT_workshop').TrimEnd('\','/') -or
@@ -45,16 +45,24 @@ if($report.postgresVersion -ne 180006 -or $receipt.githubHeadSha -cne $ExpectedH
 if($RequireV3EvidencePlanProof){
  $requiredProofs=@('v3AuthorityEvidenceRejectsActualFutureDeploymentBeforeCandidateCompilation',
   'v3FreshAdmissionEvidenceAndPreparedPlanBindFullCertificateAndRawWitnessAsActualRestrictedReader')
- if($report.proofs.Count -ne 16 -or @($report.proofs | Select-Object -Unique).Count -ne 16 -or
+ $expectedProofCount=if($RequireManagementProof){19}else{16}
+ if($report.proofs.Count -ne $expectedProofCount -or @($report.proofs | Select-Object -Unique).Count -ne $expectedProofCount -or
   @($requiredProofs | Where-Object{$_ -cnotin $report.proofs}).Count -ne 0 -or
   $report.candidateTextSha256 -cne 'c088d1a8c75705c88d3f2bfc38cc6070c731de4cac6cd891c91af821a4e3a57a' -or
   $report.sourceMutationPerformed -or $report.cloudMutationPerformed -or $report.migrationRegistered -or
   $report.productionRegistrationPerformed -or $report.ownershipSourceActivated){throw 'Exact v3 evidence/plan proof or uninstalled boundary failed'}
 }
+if($RequireManagementProof){
+ $managementProofs=@('reviewedManagementInstallCommitsOnlyUnregisteredGuardsAndIndependentReadbackPreservesBusiness',
+  'reviewedManagementRegistrationLostCommitResponseRecoversExactCertificateIndependently',
+  'reviewedManagementWrongApprovalAndOccupiedCloudSlotsCannotWriteOrRetry')
+ if(-not $RequireV3EvidencePlanProof -or $receipt.ownedCiDatabaseCountDropped -ne 2 -or
+  @($managementProofs | Where-Object{$_ -cnotin $report.proofs}).Count -ne 0){throw 'Exact management install/registration/recovery proof or two-database teardown failed'}
+}
 $proofSummary=[ordered]@{schemaVersion=1;outcome='EXACT_PG18_CI_ARTIFACT_AND_TEARDOWN_VERIFIED';runId=$RunId;headSha=$ExpectedHeadSha;url=$run.html_url
  artifactId=$artifacts[0].id;archiveSha256=$zipSha;reportSha256=(Get-FileHash -LiteralPath (Join-Path $proofDirectory 'sealed-plan-verification.json') -Algorithm SHA256).Hash.ToLowerInvariant()
  receiptSha256=(Get-FileHash -LiteralPath (Join-Path $proofDirectory 'ci-receipt.json') -Algorithm SHA256).Hash.ToLowerInvariant();proofGroups=$report.proofs.Count
- candidateTextSha256=$report.candidateTextSha256;postgresVersion=$report.postgresVersion;ownedDatabaseDropped=$true;ownedContainerStopped=$true;neonMutationPerformed=$false;installationAuthorized=$false;v3EvidencePlanProofRequired=[bool]$RequireV3EvidencePlanProof}
+ candidateTextSha256=$report.candidateTextSha256;postgresVersion=$report.postgresVersion;ownedDatabaseDropped=$true;ownedContainerStopped=$true;neonMutationPerformed=$false;installationAuthorized=$false;v3EvidencePlanProofRequired=[bool]$RequireV3EvidencePlanProof;managementProofRequired=[bool]$RequireManagementProof}
 $bytes=[Text.UTF8Encoding]::new($false).GetBytes(($proofSummary | ConvertTo-Json -Depth 10)+[char]10)
 $summaryPath=Join-Path $proofDirectory 'independent-verification.json';$stream=[IO.File]::Open($summaryPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write)
 try{$stream.Write($bytes)}finally{$stream.Dispose()}
