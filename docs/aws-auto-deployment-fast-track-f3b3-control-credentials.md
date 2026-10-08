@@ -1,4 +1,6 @@
-# F3b3：Secret-first 控制凭据与 LOGIN 审批入口完成，未执行
+# F3b3：Secret-first 控制凭据与 LOGIN 审批入口（准备阶段记录）
+
+更新：用户已批准85b500...，两个Secret已一次创建/读回，数据库COMMIT未确认，两次独立Inspect仍NOLOGIN/credentialReady=false，新slot永久消费。下文未批准/未执行状态是历史准备记录，不是当前指令；禁止重跑Run或刷新重放。[部分状态、真实证据与恢复边界](./aws-auto-deployment-fast-track-f3b3-control-credentials-partial.md)。
 
 2026-10-08 Winnipeg。接续已安装的两个NOLOGIN角色，完成独立凭据启动入口、只读审批/只读恢复、真实PG18 SCRAM认证证明。本阶段只准备代码和fresh清单；**没有生成生产密码、读取生产SecretString、设置Neon密码/LOGIN、创建AWS Secret或启用运行时。** 旧schema/登记/角色安装代码、SQL和永久slot保持不变。
 
