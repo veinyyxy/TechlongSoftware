@@ -74,7 +74,7 @@ try{
   const name=CONTROL_CREDENTIAL_SECRET_NAMES_V1[index],client=await sourceClients(),d=await describe(client,name);if(!d)return null;
   const expectedTags=[{Key:"ApprovalSha256",Value:m.manifestSha256},{Key:"Environment",Value:"sandbox"},{Key:"Project",Value:"Techlong"},{Key:"Purpose",Value:"control-credential-bootstrap-v1"}];
   if(d.Name!==name||!new RegExp(`^arn:aws:secretsmanager:ca-central-1:402010193138:secret:${name}-[A-Za-z0-9]{6}$`).test(d.ARN??"")||d.DeletedDate||
-   d.RotationEnabled||d.RotationLambdaARN||d.RotationRules||d.ReplicationStatus?.length||d.PrimaryRegion||d.KmsKeyId||d.OwningService||d.Type||
+   d.RotationEnabled||d.RotationLambdaARN||d.RotationRules||d.ReplicationStatus?.length||(d.PrimaryRegion&&d.PrimaryRegion!=="ca-central-1")||d.KmsKeyId||d.OwningService||d.Type||
    d.ExternalSecretRotationRoleArn||d.ExternalSecretRotationMetadata?.length||
    canonicalJson(d.VersionIdsToStages)!==canonicalJson({[m.secretVersionIds[index]]:["AWSCURRENT"]})||
    canonicalJson([...(d.Tags??[])].sort((a,b)=>a.Key.localeCompare(b.Key)))!==canonicalJson(expectedTags))throw new Error("CREDENTIAL_OWN_METADATA_MISMATCH_NO_VALUE_READ");

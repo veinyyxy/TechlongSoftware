@@ -85,5 +85,6 @@ test("CLI is source-profile pinned, TLS/maxAttempts1, no Delete/PutSecretValue/r
   const cli = readFileSync(new URL("../ops/aws-sandbox/scripts/review-f3b3-control-credentials.mjs", import.meta.url), "utf8");
   assert.match(cli, /profile:"techlong-sandbox-user"/); assert.match(cli, /ignoreConfiguredEndpointUrls:true,maxAttempts:1/); assert.match(cli, /rejectUnauthorized:true/);
   assert.doesNotMatch(cli, /DeleteSecretCommand|PutSecretValueCommand|UpdateSecretCommand|CreateRoleCommand|DeleteStackCommand/);
+  assert.match(cli, /IncludeDeprecated:true/); assert.match(cli, /d\.PrimaryRegion&&d\.PrimaryRegion!==\"ca-central-1\"/);
   assert.match(cli, /mode===\"Review\"/); assert.match(cli, /passwordsGenerated:false,secretValuesRead:false/);
 });
