@@ -45,7 +45,7 @@ if($report.postgresVersion -ne 180006 -or $receipt.githubHeadSha -cne $ExpectedH
 if($RequireV3EvidencePlanProof){
  $requiredProofs=@('v3AuthorityEvidenceRejectsActualFutureDeploymentBeforeCandidateCompilation',
   'v3FreshAdmissionEvidenceAndPreparedPlanBindFullCertificateAndRawWitnessAsActualRestrictedReader')
- $expectedProofCount=if($RequireV3RuntimeProof){22}elseif($RequireManagementProof){19}else{16}
+ $expectedProofCount=if($RequireV3RuntimeProof){23}elseif($RequireManagementProof){19}else{16}
  if($report.proofs.Count -ne $expectedProofCount -or @($report.proofs | Select-Object -Unique).Count -ne $expectedProofCount -or
   @($requiredProofs | Where-Object{$_ -cnotin $report.proofs}).Count -ne 0 -or
   $report.candidateTextSha256 -cne 'c088d1a8c75705c88d3f2bfc38cc6070c731de4cac6cd891c91af821a4e3a57a' -or
@@ -54,6 +54,7 @@ if($RequireV3EvidencePlanProof){
 }
 if($RequireV3RuntimeProof){
  $runtimeProofs=@('sealedV3RowSecurityCannotHideActiveFutureAssociationAndManufactureZero','sealedV3ReaderRejectsColumnWritesAndNontriggerSecurityDefinerExecution',
+  'minimalControlRoleGrantsPermitRequiredRowLockButRejectStatusAndSealedOriginalWrites',
   'sealedV3DurableRootRunsOneMockActuatorWithActualRestrictedPostgresEvidence')
  if(-not $RequireManagementProof -or @($runtimeProofs | Where-Object{$_ -cnotin $report.proofs}).Count -ne 0){throw 'Exact v3 runtime/RLS proof missing'}
 }

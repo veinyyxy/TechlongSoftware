@@ -18,6 +18,7 @@ const withFixture=githubPg18?(await import("./lib/github-pg18-fixture.mjs")).wit
 const hash=value=>createHash("sha256").update(value).digest("hex");
 const candidate=(await readFile(path.join(root,"ops/aws-sandbox/sql-candidates/f3b3-sealed-plan-isolation.sql"),"utf8")).replace(/\r\n/g,"\n");
 const base=(await readFile(path.join(root,"db/postgres-schema.sql"),"utf8")).replace(/\r\n/g,"\n");
+const controlRoles=githubPg18?(await readFile(path.join(root,"ops/aws-sandbox/sql-candidates/f3b3-control-db-role-grants.sql"),"utf8")).replace(/\r\n/g,"\n"):null;
 const target="dep_d00144511731f1c20991aa56", instance="app_fb1962e93a9a4cc2acf046170593d9e3";
 const sealSql=`INSERT INTO public.deployment_plan_only_isolations
  (deployment_id,environment_id,app_instance_id,original_row_sha256,original_plan_bytes_sha256,original_plan_hash,
@@ -203,10 +204,14 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
  if(githubPg18){
   receipt.phase="CERTIFIED_SOURCE_V3";
   const {NeonSealedCellOwnershipSourceV3}=await import("../../../lib/deployments/execution/neon-sealed-cell-ownership-source-v3.ts");
-  await c.query(`CREATE ROLE techlong_cell_cleanup_reader NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
-    GRANT techlong_cell_cleanup_reader TO cell_admin WITH SET TRUE;
-    GRANT USAGE ON SCHEMA public TO techlong_cell_cleanup_reader;
-    GRANT SELECT ON ALL TABLES IN SCHEMA public TO techlong_cell_cleanup_reader;`);
+  await c.query(controlRoles);
+  await c.query(`GRANT techlong_cell_cleanup_reader,techlong_cell_drain TO cell_admin WITH SET TRUE;`);
+  await c.query("BEGIN;SET LOCAL ROLE techlong_cell_drain");
+  await c.query("SELECT id FROM app_instance_deployments WHERE id=$1 FOR UPDATE",[target]);
+  await expectFailure(c,"UPDATE app_instance_deployments SET status='ready' WHERE id=$1",[target],"42501",false);
+  await expectFailure(c,"UPDATE app_instance_deployments SET updated_at=updated_at+1 WHERE id=$1",[target]);
+  await c.query("ROLLBACK");
+  prove("minimalControlRoleGrantsPermitRequiredRowLockButRejectStatusAndSealedOriginalWrites");
   const registered=(await c.query("SELECT * FROM deployment_plan_only_isolations WHERE deployment_id=$1",[target])).rows[0];
   registered.sealed_at=Number(registered.sealed_at);
   const {sha256Hex}=await import("../../../lib/deployments/execution/hash.ts");
@@ -323,7 +328,7 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
  const version=Number((await c.query("SELECT current_setting('server_version_num') AS version")).rows[0].version);
  assert.equal(version,githubPg18?180006:160014);
  const result={schemaVersion:1,outcome:githubPg18?"SEALED_PLAN_CANDIDATE_REAL_PG18_VERIFIED_NOT_INSTALLED":"SEALED_PLAN_CANDIDATE_REAL_PG16_VERIFIED_NOT_INSTALLED",candidateTextSha256:hash(candidate.replace(/\r\n/g,"\n")),
-  baseSchemaTextSha256:hash(base.replace(/\r\n/g,"\n")),protectionCatalogSha256:receipt.protectionCatalogSha256,proofs,
+  baseSchemaTextSha256:hash(base.replace(/\r\n/g,"\n")),...(controlRoles?{controlRoleSqlSha256:hash(controlRoles)}:{}),protectionCatalogSha256:receipt.protectionCatalogSha256,proofs,
   postgresVersion:version,fixtureDataOnly:true,neonMutationPerformed:false,sourceMutationPerformed:false,cloudMutationPerformed:false,
   migrationRegistered:false,productionRegistrationPerformed:false,ownershipSourceActivated:false,installationAuthorized:false,runtimeEnabled:false};
  await writeFile(path.join(context.output,"sealed-plan-verification.json"),JSON.stringify(result,null,2)+"\n",{flag:"wx"});
