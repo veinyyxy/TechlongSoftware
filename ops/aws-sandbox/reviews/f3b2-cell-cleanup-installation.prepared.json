@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "mode": "PREPARED_RESOURCE_SCOPE_NOT_AN_EXECUTABLE_MANIFEST",
+  "installationAuthorized": false,
+  "cloudMutationPerformed": false,
+  "databaseMutationPerformed": false,
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "monthlyBudgetTargetUsd": 50,
+  "sharedServiceRoleBoundaryModificationAllowed": false,
+  "legacyPlanOnlyFunctionReplacementAllowed": false,
+  "artifactReviewSha256": "3e7ee33443b69a3e50aa5c49501e44f9e0a759e2bce26b5f02629ce9a0841615",
+  "drainArtifactZipSha256": "5e9e7253e2666793fd7c981444255d8bec368049b7057bc039732fed4f6a5160",
+  "executorArtifactZipSha256": "c08cd0618fa9116f97031bb9ed49fb726ebed1698eff4a82a470dc8b39cf2fd3",
+  "proposedControlResources": {
+    "drainFunctionName": "techlong-sandbox-cell-drain-coordinator",
+    "drainRoleName": "TechlongSandboxCellDrainCoordinatorRole",
+    "drainDedicatedBoundaryName": "TechlongSandboxCellDrainCoordinatorBoundary",
+    "executorFunctionName": "techlong-sandbox-cell-ttl-executor",
+    "executorExistingRoleName": "TechlongSandboxCellJanitorExecutionRole",
+    "executorDedicatedBoundaryName": "TechlongSandboxCellTtlExecutorBoundary",
+    "drainSecretName": "techlong/sandbox/cell-drain-control",
+    "readonlySecretName": "techlong/sandbox/cell-cleanup-readonly",
+    "drainDatabaseRole": "techlong_cell_drain",
+    "readonlyDatabaseRole": "techlong_cell_cleanup_reader",
+    "schedulesInitiallyEnabled": false
+  },
+  "drainAwsScope": {
+    "readOnlyAuthorityKeys": ["cell:cell-sandbox-1"],
+    "deleteStackAllowed": false,
+    "authorityWriteAllowed": false,
+    "journalWriteAllowed": false,
+    "databaseScope": "Exact environment draining update plus bounded INSERT-only cleanup/rollback job producer; SELECT for independent ownership snapshot; no job reset or tenant resource deletion."
+  },
+  "executorAwsScope": {
+    "readOnlyAuthorityKeys": ["cell:cell-sandbox-1"],
+    "appendOnlyJournalKeyTemplates": ["cell-cleanup-intent:<fresh-approved-deletion-plan-sha256>", "cell-cleanup-receipt:<fresh-approved-deletion-plan-sha256>"],
+    "deleteStackRequiresExactLiveArn": true,
+    "cloudFormationExecutionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCellCloudFormationExecutionRole",
+    "newPermissionsRequireLambdaSourceFunctionArn": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-ttl-executor",
+    "authorityWriteAllowed": false,
+    "databaseScope": "Separate SELECT-only role/secret, never the drain credential."
+  },
+  "freshReviewStillRequired": [
+    "Preserve and separately review the planned plan_only legacy deployment dep_d00144511731f1c20991aa56; it currently blocks the strict zero-tenant snapshot and is not automatically canceled/deleted/ignored.",
+    "Exact live stack/predecessor/cleanup plan and separately grant-bound authority writer; current Cell does not exist.",
+    "Exact new Secret ARNs and provisioned minimum database roles/privileges; no owner credential reuse.",
+    "Exact existing Janitor role/boundary/inline-policy readback and preservation of old PLAN_ONLY function access.",
+    "Final artifact SHA, Lambda settings/log retention, invocation policy and event bindings; no flag-only activation.",
+    "Explicit bounded schedule/TTL/failure behavior, control-plane fees and independent cleanup proof.",
+    "Concrete IAM/Neon installation and irreversible cloud deletion scope with a fresh human-approved SHA."
+  ]
+}

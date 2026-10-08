@@ -50,6 +50,8 @@ material 只能在 guarded Secret store 的 generation/epoch 上下文内生成�
 
 ## 继续位置
 
+最新继续位置（2026-10-07 Winnipeg）：F3b2真实Neon draining/owned cleanup与rollback入队/serializable source协调代码、两个独立Lambda候选和未授权资源草案完成；131项相邻测试/type/lint/build/本地包自检与Neon READ ONLY EXPLAIN通过，无云/数据库写。旧planned plan_only记录1条仍挡严格零租户，保留；专属角色/Secret未创建。下一F3b3准备保留原件的旧计划处置审阅及准确控制面安装清单；authority writer/调度/端到端proof仍未完成，不将hash当授权。见 [F3b2记录与继续位置](./aws-auto-deployment-fast-track-f3b2-drain-coordinator.md)。以下保留历史。
+
 最新继续位置（2026-10-07 Winnipeg）：F3b1已实现prepared Cell TTL一次性持久化执行入口，实际SDK共用懒凭据/单次请求，102项清理与129项租户主链、type/lint/build通过；旧PLAN_ONLY/Scheduler/Worker未改变，没有新云/数据库执行。下一步F3b2补自动drain/租户清理→零租户→authority/plan的生产协调、可部署artifact与准确权限材料，实际安装/删除仍另批。见 [F3b1代码与未完成门禁](./aws-auto-deployment-fast-track-f3b1-cell-ttl-execution.md)。以下保留历史。
 
 最新继续位置（2026-10-07 Winnipeg）：F3a2唯一发布成功、原云回执与独立ECR字节/扫描一致、立即Revoke后Locked/v6；六份旧镜像保留，实际policy v3/v4被CloudFormation清理且写前内容备份。slot已消费且窗口过期，不重跑。下一代码切片实现owned-resource可执行TTL/失败清理，再准备专属IAM/baseline/容量/Budget与DNS/mTLS范围，付费Cell最后另批；Worker仍disabled。见 [F3a2证据与继续位置](./aws-auto-deployment-fast-track-f3a2-ecr-published.md)。F3未完成，以下保留历史。
