@@ -1,6 +1,6 @@
 // Standalone reviewed NOLOGIN role installation, not a migration or credential provisioner.
 import { Client } from "pg";
-import { readFile, mkdir, writeFile } from "node:fs/promises";
+import { readFile, mkdir, writeFile, lstat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { canonicalJson, sha256Hex } from "../../../lib/deployments/execution/hash.ts";
@@ -28,6 +28,11 @@ try{
  const sql=(await readFile(path.join(root,"ops/aws-sandbox/sql-candidates/f3b3-control-db-role-grants.sql"),"utf8")).replace(/\r\n/g,"\n");
  const binding={targetFingerprintSha256:await sha256Hex({protocol:"neon-sealed-management-target-v1",host:url.hostname,port:5432,database,user}),
   codeSha256:await sha256Hex(codeHashes),certificateSha256:"dc093614188a8f0a086b4fc6a7e251c43312495a60db2efffc654cf3d48b066f"};
+ const slot=path.join(privateRoot,"techlong-f3b3-control-roles-v1-consumed");
+ if(mode!=="Verify"){
+  let occupied=true;try{await lstat(slot);}catch(error){if(error.code==="ENOENT")occupied=false;else throw new Error("CONTROL_ROLE_SLOT_NOT_VERIFIED");}
+  if(occupied)throw new Error("CONTROL_ROLE_SLOT_OCCUPIED_VERIFY_ONLY");
+ }
  const connect=async()=>{const client=new Client({host:url.hostname,port:5432,user,password:decodeURIComponent(url.password),database,
   ssl:{rejectUnauthorized:true,servername:url.hostname},enableChannelBinding:true,connectionTimeoutMillis:10000,statement_timeout:30000,query_timeout:35000,
   application_name:"techlong-control-roles-v1"});client.on("error",()=>undefined);await client.connect();return client;};
@@ -51,7 +56,6 @@ try{
   const review=JSON.parse(await readFile(manifest,"utf8"));await validateControlRoleReviewV1(review,binding,sql);
   if(mode==="Run"){
    await validateControlRoleApprovalV1(review,options["--approved-sha"],binding,sql,Date.now());active=await connect();
-   const slot=path.join(privateRoot,"techlong-f3b3-control-roles-v1-consumed");
    const result=await runReviewedControlRolesV1({client:active,review,approvedSha:options["--approved-sha"],binding,sql,now:Date.now,
     claimPermanentSlot:async()=>{await mkdir(slot);},persistConsumedReview:async()=>{await writeFile(path.join(slot,"approved-manifest.json"),JSON.stringify(review,null,2)+"\n",{flag:"wx"});}});
    await active.end().catch(()=>undefined);active=null;await save("submission-receipt.json",result);console.log(JSON.stringify({mode,output,...result}));

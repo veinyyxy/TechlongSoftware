@@ -152,6 +152,7 @@ export interface ControlRoleReviewV1 {
   reviewedState: ControlRoleReadbackV1["state"]; scope: typeof CONTROL_ROLE_SCOPE_V1; manifestSha256: string;
 }
 export async function compileControlRoleReviewV1(input: { readback: ControlRoleReadbackV1; binding: ControlRoleBindingV1; sql: string; startedAt: number; now: number }) {
+  input = { ...input, readback: freeze(structuredClone(input.readback)), binding: freeze(structuredClone(input.binding)) };
   checkBinding(input.binding); fresh(input.readback.observedAt, input.startedAt, input.now);
   if (await sha256Hex(input.sql) !== CONTROL_ROLE_SQL_SHA256_V1 || input.readback.transaction.readOnly !== "on" ||
     input.readback.transaction.deferrable !== "on" || input.readback.state.roles.length !== 0 ||

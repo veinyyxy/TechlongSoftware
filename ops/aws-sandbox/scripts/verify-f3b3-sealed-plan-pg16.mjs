@@ -133,6 +133,8 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
     await assert.rejects(runReviewedControlRolesV1({...roleInput,approvedSha:"0".repeat(64)}));
     assert.equal(roleWrites,0);assert.equal(roleClaims,0);
     const roleSubmission=await runReviewedControlRolesV1(roleInput);
+    receipt.controlRoleSubmission=roleSubmission;
+    receipt.controlRoleObservedRoles=(await roleRead()).state.roles;
     assert.equal(roleSubmission.outcome,"ROLE_COMMIT_OUTCOME_UNKNOWN_READONLY_RECOVERY_ONLY",JSON.stringify(roleSubmission));
     assert.equal(roleWrites,1);assert.equal(roleClaims,1);
     const roleAfter=await roleRead();
@@ -140,8 +142,8 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
     prove("reviewedControlRolesLostCommitIndependentlyRecoverExactNoLoginGrantsAndPreservedSeal");
     const roleRetry=await runReviewedControlRolesV1(roleInput);assert.equal(roleRetry.sqlSubmitted,false);assert.equal(roleWrites,1);assert.equal(roleClaims,1);
     prove("reviewedControlRolesWrongApprovalAndOccupiedStateNeverSubmitAgain");
-    await client.query("BEGIN;GRANT UPDATE(status) ON public.app_instance_deployments TO techlong_cell_drain");
-    const broadened=await readSealedControlRoleStateV1(client);await assert.rejects(verifyControlRolePoststateV1(broadened,roleReview));
+    await client.query("BEGIN ISOLATION LEVEL SERIALIZABLE;GRANT UPDATE(status) ON public.app_instance_deployments TO techlong_cell_drain");
+    const broadened=await readSealedControlRoleStateV1(client);await assert.rejects(verifyControlRolePoststateV1(broadened,roleReview),/CONTROL_ROLE_EXACT_PRIVILEGES_UNPROVED/);
     await client.query("ROLLBACK");
     prove("reviewedControlRolesRejectUnexpectedEffectiveColumnPrivilege");
     // Fixture-owned cluster only: remove these test roles before the main database's existing role proofs.
