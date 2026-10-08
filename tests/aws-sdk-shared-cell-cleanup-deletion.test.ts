@@ -560,6 +560,7 @@ test("dormant production construction shares one lazy provider and makes no AWS 
     clientConfig: {
       region,
       ignoreConfiguredEndpointUrls: true,
+      maxAttempts: 1,
     },
   });
   assert.deepEqual(
@@ -570,6 +571,7 @@ test("dormant production construction shares one lazy provider and makes no AWS 
     assert.deepEqual(value, {
       region,
       ignoreConfiguredEndpointUrls: true,
+      maxAttempts: 1,
       credentials,
     });
   }

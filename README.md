@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-07 F3b1代码切片完成：复用既有准确Cell删除core，新增永久一次性intent槽位、独立缺失回读及不可变receipt的TTL执行入口和实际SDK组合；不确定/重启/并发只能读恢复，不重复删除。102项相邻清理、129项租户TTL/rollback主链、类型/定向lint/build通过。未安装新权限或Janitor、未启用Scheduler/Worker、未做云/数据库写入；自动drain/事件生产和云端TTL仍未完成。下一步F3b2接生产协调入口与受审artifact/权限材料。见 [F3b1实现、边界与继续位置](./docs/aws-auto-deployment-fast-track-f3b1-cell-ttl-execution.md)。以下保留历史状态。
+
 2026-10-07 F3a2实际完成新prepared root两镜像ECR发布：Actions唯一run37714817734 success，原始云回执与Source独立manifest/config bytes及COMPLETE扫描一致，无报告HIGH/CRITICAL。Source立即Revoke后独立Locked/v6；CloudFormation实际清理旧policy v3/v4，写前原文备份保留但云version ID不可恢复。六份旧镜像保留、当前共八份，Cell仍MISSING；未部署ECS/上传baseline/启用Worker。新批准slot已消费、窗口过期，不重跑。下一代码切片为owned-resource可执行TTL/失败清理，其他权限和付费资源另按fresh范围批准。见 [F3a2发布、撤权及独立证据](./docs/aws-auto-deployment-fast-track-f3a2-ecr-published.md)。以下保留历史状态。
 
 2026-10-07 F3a完成集中在线只读核验和原始候选ZIP/收据保存，Aurora16.14/db.serverless可用，Cell缺失、publisher仍Locked/v4；自动清理/证书mTLS/DNS/专属IAM/baseline/读cap/线上50USD预算等仍有缺口，付费部署未放行。官方区域4h核心验收估算约0.84USD但不含额外费用，不是上限；常驻明显超过50USD目标。新的仅两镜像发布fresh清单已ReviewOnly，不安装Grant/不dispatch，实际执行另确认。9项publisher/3项F3/65项协议、类型/lint/UTC语法验证通过。见 [F3a真实结果、范围与继续位置](./docs/aws-auto-deployment-fast-track-f3a-readonly-preflight.md)。以下保留历史状态。

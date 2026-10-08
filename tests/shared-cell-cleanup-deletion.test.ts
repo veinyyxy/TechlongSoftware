@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import {
   executeReviewedSharedCellCleanupDeletion,
   inspectSharedCellCleanupDeletion,
@@ -19,6 +20,16 @@ import {
 } from "../lib/deployments/execution/shared-cell-cleanup-authority.ts";
 import { sharedCellAdmissionDrainIntent } from "../lib/deployments/execution/shared-cell-admission-fence.ts";
 import { sha256Hex } from "../lib/deployments/execution/hash.ts";
+import {
+  createPreparedCellTtlJanitor,
+  type PreparedCellCleanupJournal,
+  type PreparedCellCleanupIntent,
+  type PreparedCellCleanupReceipt,
+} from "../lib/deployments/execution/prepared-cell-ttl-janitor.ts";
+import {
+  AwsSdkPreparedCellCleanupJournal,
+  createAwsSdkPreparedCellTtlJanitor,
+} from "../lib/deployments/execution/aws-sdk-prepared-cell-ttl-janitor.ts";
 
 const now = Date.UTC(2026, 8, 7, 12, 0, 0);
 const cellExpiresAt = new Date(now - 60_000).toISOString();
@@ -859,4 +870,177 @@ test("recover is pure read and accepts only exact name-bound missing proof", asy
   assert.equal(recovered.mutationPerformed, false);
   assert.equal(subject.deleteInputs.length, 0);
   assert.equal(subject.calls().authorityWrites, 0);
+});
+
+function durableJournal(options: { lostIntentResponse?: boolean; lostReceiptResponse?: boolean; onClaim?: () => void } = {}) {
+  const state: { intent: Readonly<PreparedCellCleanupIntent> | null; receipt: Readonly<PreparedCellCleanupReceipt> | null; claims: number; publications: number } =
+    { intent: null, receipt: null, claims: 0, publications: 0 };
+  const journal: PreparedCellCleanupJournal = {
+    async readStrong() { return structuredClone({ intent: state.intent, receipt: state.receipt }); },
+    async claimIntent({ intent }) {
+      state.claims += 1;
+      if (state.intent) return false;
+      state.intent = structuredClone(intent);
+      options.onClaim?.();
+      if (options.lostIntentResponse) throw new Error("private provider diagnostic must not escape");
+      return true;
+    },
+    async publishReceipt({ receipt }) {
+      state.publications += 1;
+      state.receipt ??= structuredClone(receipt);
+      if (options.lostReceiptResponse) throw new Error("receipt response lost");
+    },
+  };
+  return { state, journal };
+}
+async function ttlEvent(subject: Awaited<ReturnType<typeof fixture>>) {
+  const plan = await inspectSharedCellCleanupDeletion({ evidence: subject.evidence, authority: subject.authority, signal: signal(), now: () => now });
+  return { schemaVersion: 1, action: "execute_reviewed_cell_ttl_cleanup", approvedDeletionPlanSha256: plan.deletionPlanSha256 };
+}
+function ttlRoot(subject: Awaited<ReturnType<typeof fixture>>, journal: PreparedCellCleanupJournal, clock = () => now) {
+  return createPreparedCellTtlJanitor({ evidence: subject.evidence, authority: subject.authority, deleter: subject.deleter,
+    journal, now: clock, readbackAttempts: 1, readbackDelayMs: 0 });
+}
+
+test("prepared TTL root persists one slot, invokes the real core and replays only its immutable receipt", async () => {
+  const subject = await fixture(); const durable = durableJournal();
+  const root = ttlRoot(subject, durable.journal); const event = await ttlEvent(subject);
+  assert.equal(root.cloudRuntimeInstalled, false); assert.equal(subject.deleteInputs.length, 0);
+  const first = await root.run(event, signal());
+  assert.equal(first.outcome, "DELETION_INDEPENDENTLY_VERIFIED");
+  assert.equal(first.deleteStackAttempted, true); assert.equal(first.receipt.result.phase, "DELETED");
+  assert.equal(durable.state.claims, 1); assert.equal(durable.state.publications, 1);
+  assert.ok(durable.state.intent); assert.ok(durable.state.receipt);
+  const calls = subject.calls();
+  const replay = await root.run(event, signal());
+  assert.equal(replay.outcome, "IMMUTABLE_RECEIPT_REPLAYED"); assert.equal(replay.deleteStackAttempted, false);
+  assert.deepEqual(replay.receipt, first.receipt); assert.deepEqual(subject.calls(), calls);
+  assert.equal(subject.deleteInputs.length, 1); assert.equal(subject.calls().authorityWrites, 0);
+});
+
+test("prepared TTL root rejects plan/extra event fields before any permanent slot or deletion", async () => {
+  const subject = await fixture(); const durable = durableJournal(); const root = ttlRoot(subject, durable.journal);
+  const event = await ttlEvent(subject);
+  for (const invalid of [{ ...event, enabled: true }, { ...event, action: "delete_shared_cell_stack" }, { ...event, stackId }]) {
+    await assert.rejects(root.run(invalid, signal()), (e: { code: string }) => e.code === "CELL_TTL_EVENT_INVALID");
+  }
+  await assert.rejects(root.run({ ...event, approvedDeletionPlanSha256: "a".repeat(64) }, signal()),
+    (e: { code: string }) => e.code === "CELL_TTL_APPROVAL_MISMATCH");
+  assert.equal(durable.state.claims, 0); assert.equal(subject.deleteInputs.length, 0);
+});
+
+test("lost durable slot response consumes the slot and never delegates DeleteStack on later invocations", async () => {
+  const subject = await fixture(); const durable = durableJournal({ lostIntentResponse: true });
+  const root = ttlRoot(subject, durable.journal); const event = await ttlEvent(subject);
+  await assert.rejects(root.run(event, signal()), (e: { code: string; message: string }) =>
+    e.code === "CELL_TTL_SLOT_WRITE_UNCERTAIN_RECOVER_ONLY" && !e.message.includes("private"));
+  assert.ok(durable.state.intent); assert.equal(subject.deleteInputs.length, 0);
+  await assert.rejects(root.run(event, signal())); // present Stack is not recovery success
+  assert.equal(durable.state.claims, 1); assert.equal(subject.deleteInputs.length, 0);
+  subject.setMissing();
+  const recovered = await root.run(event, signal());
+  assert.equal(recovered.deleteStackAttempted, false); assert.equal(recovered.receipt.result.phase, "RECOVERED");
+});
+
+test("lost DeleteStack response stays recovery-only across invocations and restart", async () => {
+  const subject = await fixture({ behavior: "lost_still_present" }); const durable = durableJournal();
+  const event = await ttlEvent(subject);
+  await assert.rejects(ttlRoot(subject, durable.journal).run(event, signal()));
+  await assert.rejects(ttlRoot(subject, durable.journal).run(event, signal()));
+  assert.equal(subject.deleteInputs.length, 1); assert.equal(durable.state.claims, 1); assert.equal(durable.state.receipt, null);
+  subject.setMissing();
+  const result = await ttlRoot(subject, durable.journal).run(event, signal());
+  assert.equal(result.deleteStackAttempted, false); assert.equal(result.receipt.result.mutationPerformed, false);
+  assert.equal(subject.deleteInputs.length, 1);
+});
+
+test("lost immutable receipt response is resolved by strong readback, not another deletion or receipt write", async () => {
+  const subject = await fixture(); const durable = durableJournal({ lostReceiptResponse: true });
+  const root = ttlRoot(subject, durable.journal); const event = await ttlEvent(subject);
+  const result = await root.run(event, signal());
+  assert.equal(result.outcome, "DELETION_INDEPENDENTLY_VERIFIED"); assert.equal(subject.deleteInputs.length, 1);
+  await root.run(event, signal()); assert.equal(durable.state.publications, 1); assert.equal(subject.deleteInputs.length, 1);
+});
+
+test("slow durable slot write cannot outlive the authority or final live fences", async () => {
+  const subject = await fixture(); let current = now;
+  const durable = durableJournal({ onClaim: () => { current = Date.parse(authorityExpiresAt) + 1; } });
+  const root = ttlRoot(subject, durable.journal, () => current); const event = await ttlEvent(subject);
+  await assert.rejects(root.run(event, signal()));
+  assert.ok(durable.state.intent); assert.equal(subject.deleteInputs.length, 0);
+  assert.equal(durable.state.receipt, null);
+});
+
+test("zero-tenant admission is re-read after slot persistence and blocks a newly visible tenant", async () => {
+  const subject = await fixture(); let tenantAppeared = false;
+  const read = subject.evidence.readStrongZeroTenantOwnershipSnapshot.bind(subject.evidence);
+  subject.evidence.readStrongZeroTenantOwnershipSnapshot = async request => {
+    const snapshot = await read(request) as Record<string, unknown>;
+    return { ...snapshot, activeTenantCount: tenantAppeared ? 1 : 0 };
+  };
+  const durable = durableJournal({ onClaim: () => { tenantAppeared = true; } });
+  const root = ttlRoot(subject, durable.journal); const event = await ttlEvent(subject);
+  await assert.rejects(root.run(event, signal()));
+  assert.ok(durable.state.intent); assert.equal(subject.deleteInputs.length, 0); assert.equal(durable.state.receipt, null);
+});
+
+test("an aborted TTL invocation never claims a durable slot or deletes", async () => {
+  const subject = await fixture(); const durable = durableJournal(); const event = await ttlEvent(subject);
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(ttlRoot(subject, durable.journal).run(event, controller.signal));
+  assert.equal(durable.state.claims, 0); assert.equal(subject.deleteInputs.length, 0);
+});
+
+test("concurrent prepared roots sharing the durable slot cannot submit two deletes", async () => {
+  const subject = await fixture(); const durable = durableJournal(); const event = await ttlEvent(subject);
+  const results = await Promise.allSettled([ttlRoot(subject, durable.journal).run(event, signal()), ttlRoot(subject, durable.journal).run(event, signal())]);
+  assert.ok(results.some(result => result.status === "fulfilled"));
+  assert.equal(subject.deleteInputs.length, 1); assert.ok(durable.state.intent); assert.ok(durable.state.receipt);
+});
+
+test("tampered or orphan historical receipt never authorizes a deletion", async () => {
+  const subject = await fixture(); const durable = durableJournal(); const root = ttlRoot(subject, durable.journal);
+  const event = await ttlEvent(subject); await root.run(event, signal());
+  const valid = structuredClone(durable.state.receipt!);
+  durable.state.intent = null;
+  await assert.rejects(root.run(event, signal()), (e: { code: string }) => e.code === "CELL_TTL_RECEIPT_WITHOUT_INTENT");
+  durable.state.intent = { schemaVersion: 1, plan: { ...valid.result, phase: "INSPECTED", mutationPerformed: false } };
+  durable.state.receipt = { schemaVersion: 1, result: { ...valid.result, stackId: stackId.replace("12345678", "87654321") } };
+  await assert.rejects(root.run(event, signal()), (e: { code: string }) => e.code === "CELL_TTL_JOURNAL_PLAN_MISMATCH");
+  assert.equal(subject.deleteInputs.length, 1);
+});
+
+test("DynamoDB journal uses exact keys, conditional append-only writes and strongly consistent actual SDK commands", async () => {
+  const subject = await fixture(); const plan = await inspectSharedCellCleanupDeletion({ evidence: subject.evidence, authority: subject.authority, signal: signal(), now: () => now });
+  const rows = new Map<string, unknown>(); const calls: { name: string; input: Record<string, unknown> }[] = [];
+  const Get = GetCommand as unknown as new (input: Record<string, unknown>) => { input: Record<string, unknown> };
+  const Put = PutCommand as unknown as new (input: Record<string, unknown>) => { input: Record<string, unknown> };
+  const store = new AwsSdkPreparedCellCleanupJournal({ commands: { get: Get, put: Put }, client: { async send(value, options) {
+    assert.ok(options?.abortSignal);
+    const command = value as { input: Record<string, unknown> }; calls.push({ name: command.constructor.name, input: command.input });
+    assert.equal(command.input.TableName, "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority");
+    if (value instanceof Get) { assert.equal(command.input.ConsistentRead, true); const key = (command.input.Key as { authority_key: string }).authority_key;
+      return rows.has(key) ? { Item: rows.get(key) } : {}; }
+    assert.equal(command.input.ConditionExpression, "attribute_not_exists(#key)");
+    const item = command.input.Item as { authority_key: string };
+    if (rows.has(item.authority_key)) throw Object.assign(new Error("private diagnostic"), { name: "ConditionalCheckFailedException" });
+    rows.set(item.authority_key, structuredClone(item)); return {};
+  } } });
+  const intent = { schemaVersion: 1 as const, plan }; const sig = signal();
+  assert.deepEqual(await store.readStrong({ planSha256: plan.deletionPlanSha256, signal: sig }), { intent: null, receipt: null });
+  assert.equal(await store.claimIntent({ intent, signal: sig }), true);
+  assert.equal(await store.claimIntent({ intent, signal: sig }), false);
+  await store.publishReceipt({ receipt: { schemaVersion: 1, result: { ...plan, phase: "RECOVERED", mutationPerformed: false } }, signal: sig });
+  const snapshot = await store.readStrong({ planSha256: plan.deletionPlanSha256, signal: sig });
+  assert.ok(snapshot.intent); assert.ok(snapshot.receipt); assert.equal(rows.size, 2);
+  assert.deepEqual([...rows.keys()].sort(), [`cell-cleanup-intent:${plan.deletionPlanSha256}`, `cell-cleanup-receipt:${plan.deletionPlanSha256}`]);
+  assert.ok(calls.every(call => ["GetCommand", "PutCommand"].includes(call.name)));
+});
+
+test("actual AWS SDK prepared TTL assembly remains dormant and does not call the ownership source", async () => {
+  let reads = 0;
+  const root = await createAwsSdkPreparedCellTtlJanitor({ zeroTenantOwnership: {
+    async readStrongZeroTenantOwnershipSnapshot() { reads += 1; throw new Error("construction must not read"); },
+  } });
+  assert.equal(root.mode, "prepared_not_installed"); assert.equal(root.cloudRuntimeInstalled, false); assert.equal(reads, 0);
 });

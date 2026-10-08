@@ -733,6 +733,8 @@ export function createAwsSdkSharedCellCleanupDeletionRuntimeFromModules(
   const clientConfig = {
     region: SHARED_CELL_CLEANUP_DELETION_REGION,
     ignoreConfiguredEndpointUrls: true,
+    // A timed-out DeleteStack response is recovered by reads, not SDK retries.
+    maxAttempts: 1,
   };
   const credentials = (
     defaultProvider as (
