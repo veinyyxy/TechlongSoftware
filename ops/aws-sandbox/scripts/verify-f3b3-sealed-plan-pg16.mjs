@@ -199,6 +199,47 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
       assert(!JSON.stringify(markers).includes(password));assert(!JSON.stringify(credentialSubmission).includes(password));assert(!JSON.stringify(inspected).includes(password));
     }
     prove("credentialBootstrapRejectsWrongPasswordAndNeverPersistsMaterialInReceipts");
+    receipt.phase="NEON_RECOVERY_PLAINTEXT_SQL_IN_OWNED_CI_DATABASE";
+    const {compileNeonCredentialRecoveryV1,runNeonCredentialRecoveryV1}=await import("../../../lib/deployments/execution/control-credential-neon-recovery-v1.ts");
+    // Fixture-owned cluster ONLY. This is not an authorized rollback/reset in Neon.
+    await client.query("ALTER ROLE techlong_cell_cleanup_reader NOLOGIN;ALTER ROLE techlong_cell_drain NOLOGIN");
+    const recoveryBinding={...credentialBinding,codeSha256:"a".repeat(64)},priorSubmissionFileSha256="b".repeat(64);
+    const providerFixture=async()=>({forwardDdl:"on",passwordEncryption:"scram-sha-256",postgresVersion:180006,observedAt:Date.now()});
+    const existingSecrets=async()=>({secrets:[...secretStore.values()],observedAt:Date.now()});
+    const recoveryStart=Date.now(),recoveryPre=await roleRead();
+    const recoveryValidation={binding:recoveryBinding,bootstrapBinding:credentialBinding,roleSql:controlRoles,endpoint,priorSubmissionFileSha256};
+    const recoveryManifest=await compileNeonCredentialRecoveryV1({...recoveryValidation,bootstrap:credentialManifest,read:recoveryPre,
+      provider:await providerFixture(),secrets:await existingSecrets(),startedAt:recoveryStart,now:Date.now()});
+    let recoveryClaims=0,recoveryWrites=0;
+    const recoveryClient={async query(statement,values){
+      if(statement.startsWith("ALTER ROLE ")){
+        const value=[...secretStore.values()][recoveryWrites++],pw=new URL(JSON.parse(value.secretString).databaseUrl).password;
+        assert.equal(statement,`ALTER ROLE ${credentialManifest.scope.roles[recoveryWrites-1]} WITH LOGIN PASSWORD '${pw}'`);
+      }
+      const result=await client.query(statement,values);
+      if(statement==="COMMIT")throw Object.assign(new Error("CI_LOST_RECOVERY_COMMIT_RESPONSE"),{code:"08006"});return result;
+    },async end(){return undefined;}};
+    const recoveryInput={...recoveryValidation,manifest:recoveryManifest,approvedSha:recoveryManifest.manifestSha256,ports:{
+      now:Date.now,readDb:roleRead,readProvider:providerFixture,readExistingSecrets:existingSecrets,openDb:async()=>recoveryClient,
+      verifyProviderInTransaction:providerFixture,claimSlot:async()=>{assert.equal(recoveryClaims++,0);},
+      saveMarker:async(name,value)=>{markers.push({name,value});}}};
+    const recoverySubmission=await runNeonCredentialRecoveryV1(recoveryInput);receipt.controlCredentialRecoverySubmission=recoverySubmission;
+    assert.equal(recoverySubmission.outcome,"NEON_RECOVERY_COMMIT_UNKNOWN_INSPECT_ONLY",JSON.stringify(recoverySubmission));
+    assert.equal(recoverySubmission.failure.sqlstate,"08006");assert.equal(recoveryWrites,2);assert.equal(recoveryClaims,1);assert.equal(secretCreates,2);
+    const recoveryInspected=await inspectControlCredentialBootstrapV1({manifest:credentialManifest,binding:credentialBinding,roleSql:controlRoles,
+      endpoint,now:Date.now,readDb:roleRead,readOwnSecret:async i=>[...secretStore.values()][i],authenticate});
+    assert.equal(recoveryInspected.credentialReady,true,JSON.stringify(recoveryInspected));
+    await assert.rejects(connectRole("techlong_cell_cleanup_reader","wrong-fixture-password"),{code:"28P01"});
+    prove("neonRecoveryReusesTwoMockSecretVersionsForRealPlaintextSqlAndPasswordAuthentication");
+    const recoveryReplay=await runNeonCredentialRecoveryV1(recoveryInput);assert.equal(recoveryReplay.slotConsumed,false);
+    assert.equal(recoveryWrites,2);assert.equal(recoveryClaims,1);assert.equal(secretCreates,2);
+    prove("neonRecoveryLostCommitUsesIndependentInspectWithoutReplayOrSecretWrites");
+    for(const value of secretStore.values()){
+      const password=new URL(JSON.parse(value.secretString).databaseUrl).password;
+      for(const record of [markers,recoveryManifest,recoverySubmission,recoveryInspected])assert(!JSON.stringify(record).includes(password));
+    }
+    receipt.neonProviderHookMocked=true;receipt.controlSecretAwsMocked=true;receipt.realPlaintextSqlAuthenticationVerified=true;
+    prove("neonRecoveryRetainsOnlySafeSqlstateAndNoPasswordSqlOrSecretMaterialInReceipts");
     // Fixture-owned cluster only: remove these test roles before the main database's existing role proofs.
     // These cleanup statements do not exist in the production installer.
     receipt.phase="CONTROL_ROLE_OWNED_FIXTURE_TEARDOWN";

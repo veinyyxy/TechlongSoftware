@@ -1,5 +1,7 @@
 # F3b3：两个 AWS Secret 已创建，Neon LOGIN 未证明提交
 
+后续只读准备已发现Neon官方不支持预哈希密码，独立的新恢复入口/准确Secret复用与新批准清单见 [托管兼容恢复阶段](./aws-auto-deployment-fast-track-f3b3-neon-credential-recovery.md)。本页保留原执行和异常证据，不回填未知根因或改变旧授权。
+
 2026-10-08 Winnipeg。用户批准清单 `85b500511452328329159ebe0ce13ea5aeeaa36dd9cb6aef64bd19f103d27a54` 后，仅一次Run。两个准确Secret及标签/初始版本创建并独立读值核验成功；两角色的SCRAM/LOGIN语句在事务中已提交执行、事务内角色回读通过，但**COMMIT抛出异常，未得到提交确认**。随后两次独立只读Inspect都看到原NOLOGIN状态，`credentialReady=false`。**这是部分状态，不是凭据安装成功或自动部署上线。**
 
 ## 已证明的状态
