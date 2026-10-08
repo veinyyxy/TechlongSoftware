@@ -75,7 +75,7 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
   receipt.phase="MANAGEMENT_ENTRY_POINTS_IN_SECOND_OWNED_DATABASE";
   const {readSealedPlanManagementStateV1,compileSealedPlanManagementReviewV1,runReviewedSealedPlanMutationV1,
     verifySealedPlanManagementPoststateV1}=await import("../../../lib/deployments/execution/sealed-plan-management-v1.ts");
-  await context.withOwnedDatabase(async({client,connect})=>{
+  await context.withOwnedDatabase(async({client,connect,connectRole})=>{
     await client.query(base);await client.query(syntheticBusinessSql);
     const binding={targetFingerprintSha256:"a".repeat(64),managementCodeSha256:"b".repeat(64)};
     const readonly=async()=>{
@@ -150,6 +150,55 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
     const broadened=await readSealedControlRoleStateV1(client);await assert.rejects(verifyControlRolePoststateV1(broadened,roleReview),/CONTROL_ROLE_EXACT_PRIVILEGES_UNPROVED/);
     await client.query("ROLLBACK");
     prove("reviewedControlRolesRejectUnexpectedEffectiveColumnPrivilege");
+    receipt.phase="CONTROL_CREDENTIAL_ATOMIC_SCRAM_LOGIN_AND_REAL_AUTHENTICATION";
+    const {randomUUID}=await import("node:crypto");
+    const {compileControlCredentialReviewV1,runControlCredentialBootstrapV1,inspectControlCredentialBootstrapV1}=await import("../../../lib/deployments/execution/control-credential-bootstrap-v1.ts");
+    const endpoint={host:"fixture.neon.tech",database:"fixture",port:5432};
+    const credentialBinding={...roleBinding,codeSha256:"e".repeat(64)};
+    const credentialStart=Date.now(),credentialPre=await roleRead();
+    const awsRead=()=>({account:"402010193138",arn:"arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+      secrets:[{name:"techlong/sandbox/cell-cleanup-readonly-v3",state:"ABSENT"},{name:"techlong/sandbox/cell-drain-control",state:"ABSENT"}],observedAt:Date.now()});
+    const credentialManifest=await compileControlCredentialReviewV1({binding:credentialBinding,roleReview,roleSql:controlRoles,read:credentialPre,aws:awsRead(),endpoint,
+      secretVersionIds:[randomUUID(),randomUUID()],price:{region:"ca-central-1",currency:"USD",perSecretMonthUsd:0.4,perApiCallUsd:0.000005,publicFeedSha256:"f".repeat(64)},
+      startedAt:credentialStart,now:Date.now()});
+    const secretStore=new Map(),markers=[];let credentialClaims=0,secretCreates=0,loginWrites=0;
+    const credentialClient={async query(statement,values){if(statement.startsWith("ALTER ROLE ")){
+      loginWrites++;for(const value of secretStore.values())assert(!statement.includes(new URL(JSON.parse(value.secretString).databaseUrl).password));
+      assert.equal(secretCreates,2);assert(statement.includes("SCRAM-SHA-256$4096:"));}
+      const result=await client.query(statement,values);if(statement==="COMMIT")throw new Error("CI_LOST_CREDENTIAL_COMMIT_RESPONSE");return result;},async end(){return undefined;}};
+    const credentialInput={manifest:credentialManifest,approvedSha:credentialManifest.manifestSha256,binding:credentialBinding,roleSql:controlRoles,endpoint,
+      ports:{now:Date.now,readDb:roleRead,readAwsAbsent:async()=>awsRead(),
+        createSecret:async request=>{
+          const before=await roleRead();assert(before.state.roles.every(r=>r.rolcanlogin===false));secretCreates++;
+          const arn=`arn:aws:secretsmanager:ca-central-1:402010193138:secret:${request.Name}-${secretCreates===1?"Ab1Cd2":"Ef3Gh4"}`;
+          secretStore.set(request.Name,{name:request.Name,arn,versionId:request.ClientRequestToken,stages:["AWSCURRENT"],tags:request.Tags,
+            onlyInitialVersion:true,rotationDisabled:true,noReplicaOrResourcePolicy:true,secretString:request.SecretString});return {ARN:arn,Name:request.Name,VersionId:request.ClientRequestToken};},
+        readSecret:async i=>[...secretStore.values()][i],openDb:async()=>credentialClient,
+        claimSlot:async()=>{assert.equal(credentialClaims++,0);},saveMarker:async(name,value)=>{markers.push({name,value});}}};
+    await assert.rejects(runControlCredentialBootstrapV1({...credentialInput,approvedSha:"0".repeat(64)}));assert.equal(secretCreates,0);
+    const credentialSubmission=await runControlCredentialBootstrapV1(credentialInput);receipt.controlCredentialSubmission=credentialSubmission;
+    assert.equal(credentialSubmission.outcome,"CREDENTIAL_COMMIT_UNKNOWN_INSPECT_ONLY",JSON.stringify(credentialSubmission));
+    assert.equal(secretCreates,2);assert.equal(loginWrites,2);assert.equal(credentialClaims,1);
+    const authenticate=async(role,databaseUrl)=>{
+      const secretUrl=new URL(databaseUrl),restricted=await connectRole(role,decodeURIComponent(secretUrl.password));
+      try{await restricted.query("BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY DEFERRABLE");
+        const r=(await restricted.query("SELECT current_user AS role,session_user AS session_role,current_setting('default_transaction_read_only') AS readonly")).rows[0];
+        assert.equal(r.role,role);assert.equal(r.session_role,role);assert.equal(r.readonly,role.endsWith("reader")?"on":"off");await restricted.query("COMMIT");
+      }finally{await restricted.end();}
+    };
+    const inspected=await inspectControlCredentialBootstrapV1({manifest:credentialManifest,binding:credentialBinding,roleSql:controlRoles,endpoint,now:Date.now,readDb:roleRead,
+      readOwnSecret:async i=>[...secretStore.values()][i],authenticate});
+    assert.equal(inspected.credentialReady,true,JSON.stringify(inspected));
+    prove("credentialBootstrapStoresTwoMockSecretsBeforeAtomicScramLoginAndRealPasswordAuthentication");
+    const credentialRetry=await runControlCredentialBootstrapV1(credentialInput);assert.equal(credentialRetry.slotConsumed,false);
+    assert.equal(secretCreates,2);assert.equal(loginWrites,2);assert.equal(credentialClaims,1);
+    prove("credentialBootstrapLostCommitRecoversReadOnlyWithoutRepeatingWrites");
+    await assert.rejects(connectRole("techlong_cell_cleanup_reader","wrong-fixture-password"),{code:"28P01"});
+    for(const value of secretStore.values()){
+      const password=decodeURIComponent(new URL(JSON.parse(value.secretString).databaseUrl).password);
+      assert(!JSON.stringify(markers).includes(password));assert(!JSON.stringify(credentialSubmission).includes(password));assert(!JSON.stringify(inspected).includes(password));
+    }
+    prove("credentialBootstrapRejectsWrongPasswordAndNeverPersistsMaterialInReceipts");
     // Fixture-owned cluster only: remove these test roles before the main database's existing role proofs.
     // These cleanup statements do not exist in the production installer.
     receipt.phase="CONTROL_ROLE_OWNED_FIXTURE_TEARDOWN";

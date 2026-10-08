@@ -45,7 +45,13 @@ export async function withGithubPg18Fixture({ output },body){
    const sibling=`sealed_ci_${randomBytes(12).toString("hex")}`;
    await admin.query(`CREATE DATABASE "${sibling}" OWNER cell_admin TEMPLATE template0`);ownedDatabases.add(sibling);
    const client=await connectDatabase(sibling);
-   try{return await proof({client,connect:()=>connectDatabase(sibling)});}finally{await client.end();clients.delete(client);}
+   const connectRole=async(user,rolePassword)=>{
+    if(!['techlong_cell_cleanup_reader','techlong_cell_drain'].includes(user)||!ownedDatabases.has(sibling)||typeof rolePassword!=="string")throw new Error("OWNED_CONTROL_ROLE_REQUIRED");
+    const restricted=new Client({host:"127.0.0.1",port,user,password:rolePassword,database:sibling,ssl:false,connectionTimeoutMillis:5000,
+      statement_timeout:30000,query_timeout:35000});restricted.on("error",()=>undefined);
+    try{await restricted.connect();clients.add(restricted);return restricted;}catch(error){await restricted.end().catch(()=>undefined);throw error;}
+   };
+   try{return await proof({client,connect:()=>connectDatabase(sibling),connectRole});}finally{await client.end();clients.delete(client);}
   };
   result=await body({managementClient,connect,withOwnedDatabase,receipt,output:target});
  }catch(error){failure=error;receipt.failureCode=/^[A-Z0-9_]{5,100}$/.test(error.code??"")?error.code:"CI_PG18_PROOF_FAILED";}
