@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "mode": "PREPARED_DURABLE_V3_EXECUTOR_AND_MINIMUM_CONTROL_SCOPE_NOT_INSTALLATION_MANIFEST",
+  "implementationHead": "0dd96ba816bef50d93ff6f369dcf705f3f86b852",
+  "verifiedHead": "34778181b4018f544b29abffad3a285d4cbf3873",
+  "registeredCertificateCanonicalSha256": "dc093614188a8f0a086b4fc6a7e251c43312495a60db2efffc654cf3d48b066f",
+  "authority": {
+    "protocol": "sealed-cell-durable-authority-v3",
+    "key": "sealed-cell-ttl-v3:cell:cell-sandbox-1",
+    "predecessorKey": "cell:cell-sandbox-1",
+    "atomicTransactReadWithExactProvisionPredecessor": true,
+    "installerOperation": "one TransactWrite: exact predecessor ConditionCheck plus absent-only v3 Put",
+    "replacementResetRenewalOrOldRecordMutationAllowed": false,
+    "installerExposedToDeleter": false,
+    "wholeCertificateAndRawWitnessPreserved": true
+  },
+  "journal": {
+    "schemaVersion": 3,
+    "intentPrefix": "sealed-cell-ttl-v3:intent:",
+    "receiptPrefix": "sealed-cell-ttl-v3:receipt:",
+    "strongRead": true,
+    "permanentAttributeNotExists": true,
+    "ttlUpdateDeleteResetAllowed": false,
+    "uncertainSlotOrRestartCanDelete": false
+  },
+  "root": {
+    "path": "ops/aws-sandbox/lambda/cell-ttl-executor-v3.ts",
+    "functionName": "techlong-sandbox-cell-ttl-executor-v3",
+    "executorRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCellTtlExecutorRole",
+    "identityProtocol": "dedicated-cell-ttl-v3",
+    "eventAction": "execute_reviewed_sealed_cell_ttl_cleanup",
+    "freshDestructiveBoundaryAfterJournalCas": true,
+    "maximumEvidenceAgeAndCollectionMs": 30000,
+    "legacyOwnershipProjectionPerformed": false,
+    "rowSecurityFilteringFailsInsteadOfManufacturingZero": true,
+    "readerColumnWritesAndNontriggerDefinerExecutionRejected": true,
+    "defaultWorkerOrEnvironmentActivationSwitch": false
+  },
+  "artifact": {
+    "directory": "F:/ChatGPT_workshop/techlong-f3b3-executor-v3-20261008-a2",
+    "zipSha256": "921046b3bddf8cb5c399b4ebad5c1f99957215b412d94fd13366b24f466d8bb7",
+    "bundleSha256": "1fa8f9b63388facad9ff9b38ae9b1f8674da8263a540d000308e4f1dd260ef0e",
+    "reviewSha256": "86597e1dcd5f25e4c90b35e6c5a98306ff742d892da17696dc209270aecebb64",
+    "uploaded": false,
+    "installed": false,
+    "linuxLambdaRuntimeVerified": false
+  },
+  "dbCandidate": {
+    "path": "ops/aws-sandbox/sql-candidates/f3b3-control-db-role-grants.sql",
+    "sqlSha256": "7fc82e392d1745b4e7031a1449d094cd2b327cfaccb459f768e917a4754df016",
+    "roles": ["techlong_cell_cleanup_reader", "techlong_cell_drain"],
+    "initialNoLoginNoInheritanceNoOwnerMembership": true,
+    "readerSelectTables": 8,
+    "writerSelectTables": 4,
+    "writerAdmissionUpdateColumns": 7,
+    "writerJobInsertColumns": 11,
+    "writerRowLockUpdateTimestampColumns": ["app_instance_deployments.updated_at", "deployment_tenant_resources.updated_at"],
+    "columnGrantsAreNotRowFiltersOrPureReadPermission": true,
+    "deleteTruncateDdlOrRegistryWriteGranted": false,
+    "roleCreationOrGrantPerformed": false
+  },
+  "secretsCandidate": {
+    "readonlyName": "techlong/sandbox/cell-cleanup-readonly-v3",
+    "readonlyPayloadFields": ["schemaVersion", "protocol", "databaseUrl", "certificateSha256", "expectedRegisteredCertificate"],
+    "drainName": "techlong/sandbox/cell-drain-control",
+    "drainPayloadFields": ["databaseUrl"],
+    "credentialLoginActivationAndSecretCreationStillRequireFreshScope": true,
+    "secretValuesReadOrWritten": false
+  },
+  "onlineReadOnlyEvidence": {
+    "neonCapabilitiesSha256": "107f1758022541a0b0584a954cac8d88e4e0dd4b8b90dc95021eb2cac5dde749",
+    "dbRolesAndHistoricalDraftAliasesPresent": 0,
+    "managementCanCreateRole": true,
+    "publicExecutableNontriggerSecurityDefiners": 0,
+    "awsInventorySha256": "b5ca5f323bc728e6411669491054e2beafc36584f4e05c8f1a0c18831eba4634",
+    "sourceIdentityVerified": true,
+    "executorAndDrainIamRoles": "ABSENT",
+    "readonlyV3AndDrainSecrets": "ABSENT",
+    "executorV3Lambda": "ABSENT",
+    "authorityTableStatus": "ACTIVE",
+    "authorityTableBillingMode": "PAY_PER_REQUEST"
+  },
+  "validation": {
+    "focusedChecksPassed": 45,
+    "adjacentChecksPassedWithOverlap": 137,
+    "typecheckLintSyntaxBuildPassed": true,
+    "postgresRunId": 37829262726,
+    "runAttempt": 1,
+    "conclusion": "success",
+    "proofGroups": 23,
+    "independentVerificationSha256": "655fdd4e59078d75953b040ff8d8e893c05dc63d47e54915a0841488142a7f4b",
+    "ownedCiDatabasesDropped": 2,
+    "ownedCiContainerStopped": true,
+    "awsDdbAndDeletionOnlyMockedNotCloudVerified": true,
+    "firstFailedRunPreserved": 37827222821
+  },
+  "installationAuthorized": false,
+  "newPermissionAuthorized": false,
+  "neonMutationPerformed": false,
+  "awsMutationPerformed": false,
+  "runtimeEnabled": false
+}
