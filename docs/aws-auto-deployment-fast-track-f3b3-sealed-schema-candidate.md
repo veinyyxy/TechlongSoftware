@@ -1,5 +1,7 @@
 # F3b3：密封登记与永久引用围栏候选完成，未安装
 
+后续已完成固定PG18.6云端验证与独立source-v3代码，Neon仍未安装/登记；最新继续位置见 [PG18/source-v3真实证据](./aws-auto-deployment-fast-track-f3b3-pg18-ownership-v3.md)。以下保留本切片当时的状态。
+
 2026-10-08 Winnipeg。本切片实现准确旧计划的未注册 SQL 候选，并用真实隔离 PostgreSQL 16.14 验证保护与并发；随后对 Neon 做一次 READ ONLY/SERIALIZABLE/deferrable 结构核对。没有 Neon/AWS 写入、安装 schema、实际登记、修改业务状态、替换原trigger或启用 Worker。**Neon 实际为 PostgreSQL 18.6；PG16 结果不冒充 PG18 在线运行证明。**
 
 ## 候选实现与范围

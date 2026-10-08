@@ -50,6 +50,8 @@ material 只能在 guarded Secret store 的 generation/epoch 上下文内生成�
 
 ## 继续位置
 
+最新继续位置（2026-10-08 Winnipeg）：F3b3 PG18.6云端真实证明与独立只读source-v3完成，两GHA run attempt1 success、11/14组证明和精确artifact/cleanup独立核对；152项回归/type/lint/build通过。完整证书、原行/planbytes、永久fence及inline catalog校验，raw与分类集合都入新hash，不执行mutable helper、不降级schema2。未Neon安装/登记或新删除入口接线，旧规划门禁和runtime关闭保持。下一小阶段v3 freshness/admission/authority/deletion适配，再fresh审阅Neon schema/角色与各项安装/登记权限。见 [F3b3 PG18/source-v3](./aws-auto-deployment-fast-track-f3b3-pg18-ownership-v3.md)。以下保留历史。
+
 最新继续位置（2026-10-08 Winnipeg）：F3b3准确旧计划密封登记/永久引用guard的未注册SQL候选完成，覆盖九表十列、两内部表/八函数/十六Always触发器；完整表结构/catalog/fence版本校验、真实PG16并发与业务连续性11组证明通过，server已停。Neon只读schema匹配/新槽位0，但实际PG18.6尚未运行验证；9项定向检查/type/lint通过，没有Neon/AWS写或source/Worker改动。下一小阶段PG18隔离验证及独立版本化ownership proof接线，新schema/准确登记仍fresh单批批准。见 [F3b3密封候选与继续位置](./aws-auto-deployment-fast-track-f3b3-sealed-schema-candidate.md)。以下保留历史。
 
 最新继续位置（2026-10-08 Winnipeg）：F3b3独立Executor v2的core/root/SDK journal/Secret入口和未安装Lambda包完成，旧Janitor协议不放宽、删除计划SHA按准确新身份分域；143项相邻回归/type/lint/build/包自检通过，Source只读确认新role ABSENT。密封隔离契约已具体化但无DDL/新adapter，当前门禁仍1/1，未安装任何IAM/数据库/云runtime。下一小阶段准备未注册的密封schema/永久引用guard与版本化ownership证明，再整理具体安装范围供fresh批准。见 [F3b3 v2产物与继续位置](./aws-auto-deployment-fast-track-f3b3-dedicated-executor-v2.md)。以下保留历史。

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "mode": "PREPARED_READONLY_SOURCE_V3_WITH_PG18_PROOF_NOT_AN_INSTALLATION_MANIFEST",
+  "supersedesPg18ValidationBlocker": "ops/aws-sandbox/reviews/f3b3-sealed-plan-schema.prepared.json",
+  "candidateSqlTextSha256": "c088d1a8c75705c88d3f2bfc38cc6070c731de4cac6cd891c91af821a4e3a57a",
+  "postgresImage": "postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873",
+  "schemaOnlyPg18Run": {
+    "runId": 37800779231,
+    "headSha": "9a31c7aef5b56af5a5ae48a3cd235123ebb5b916",
+    "proofGroups": 11,
+    "independentVerificationSha256": "6a06d78ff34f8c20376e56a1df7615dbfeb4a41f6cf559c975a7182923301af9"
+  },
+  "sourceV3Pg18Run": {
+    "runId": 37804488475,
+    "headSha": "f83d1fb0e3a0f3bfcf4d99c06db1f05e3556e367",
+    "proofGroups": 14,
+    "artifactArchiveSha256": "281089c59d1a896ad5a1e5995613d4ca89518aa25f8cf92eb915a230bc8d763d",
+    "reportSha256": "9e391e58b612d9bd4720c8c43d6239bddb10f9ce0aef4433acb93386086ded38",
+    "receiptSha256": "cc08bdc09aa88fb9e33180fd85cbdee8ce7420e42a06dc7140d8b72a1c4fbe41",
+    "independentVerificationSha256": "f28fbe6d3a9707e547f84b3f7be7dbefe0b6ea5ad4f23db2725a93f8f8391340",
+    "ownedCiDatabaseDropped": true,
+    "ownedCiContainerStopped": true
+  },
+  "readonlySource": {
+    "path": "lib/deployments/execution/neon-sealed-cell-ownership-source-v3.ts",
+    "protocol": "sealed-cell-ownership-v3",
+    "snapshotSchemaVersion": 3,
+    "method": "readCertifiedSerializableSnapshot",
+    "readerRole": "techlong_cell_cleanup_reader",
+    "transaction": "Serializable/readOnly/deferrable; transaction-local pg_catalog search_path",
+    "requiresCompleteExpectedRegisteredCertificatePin": true,
+    "fingerprintFunctionBodySha256": "16e82ac1c8b9589a332cd64dbd93f4b197c5062a9c655c7b0f5d88b1302d8e66",
+    "fingerprintHelperExecutedByReader": false,
+    "independentInlineCatalogVerification": true,
+    "rawOwnershipWitnessIncludedInStateHash": true,
+    "classifiedOnlyExactSealedHistoricalDeployment": true,
+    "resourcesCapacityAndSchedulesFiltered": false,
+    "futureUnsealedDeploymentRemainsVisible": true,
+    "compatibleWithOldSchema2Adapter": false,
+    "runtimeActivationAuthorized": false
+  },
+  "remainingWork": [
+    "Freshness/admission/authority/deletion evidence adapters for schema3; no downcast to schema2 and no new caller identity override.",
+    "Exact Neon schema/owner/minimum-role/permissions preflight and fresh separately approved schema installation; PG18 Docker proof is not deployed Neon proof.",
+    "Separate exact single-row approved registration and independent post-commit certificate readback; derive the source's expected pin from that reviewed receipt, not a caller event or arbitrary SQL row.",
+    "New control-plane IAM/Secret/Lambda/authority/schedule and actual Cell scope remain separately approved; preserve old PLAN_ONLY/IAM/records and existing image/artifact bytes."
+  ],
+  "neonSchemaInstalled": false,
+  "productionRegistrationPerformed": false,
+  "schema3AuthorityOrDeletionAdapterInstalled": false,
+  "installationAuthorized": false,
+  "neonMutationPerformed": false,
+  "awsMutationPerformed": false,
+  "runtimeEnabled": false
+}
