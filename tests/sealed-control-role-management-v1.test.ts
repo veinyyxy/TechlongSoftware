@@ -75,6 +75,14 @@ test("wrong approval, expiry, code/target/certificate/SQL drift and outer fields
     await assert.rejects(runReviewedControlRolesV1({ ...input, ...change }));
   assert.equal(claims, 0); assert.equal(f.calls.length, 0);
 });
+test("review snapshots caller inputs before awaiting hashes and does not freeze or mutate the caller", async () => {
+  const f = await fixture(), readback = structuredClone(f.readback), binding = structuredClone(f.binding);
+  const pending = compileControlRoleReviewV1({ readback, binding, sql, startedAt: now, now });
+  binding.codeSha256 = "0".repeat(64); readback.state.preserved.sealed.certificates[0].original_row_sha256 = "0".repeat(64);
+  const review = await pending;
+  assert.equal(review.binding.codeSha256, f.binding.codeSha256); assert.equal(review.prestateSha256, f.readback.stateSha256);
+  assert.equal(Object.isFrozen(binding), false); await validateControlRoleReviewV1(review, f.binding, sql);
+});
 test("live seal, business, catalog, identity and management drift never consume slot or submit SQL", async () => {
   for (const kind of ["business", "catalog", "identity", "management", "cert"] as const) {
     const f = await fixture(); let claims = 0;
@@ -130,6 +138,20 @@ test("SQL submission failure rolls back and suppresses raw connection diagnostic
   const client = { async query(statement: string, values?: readonly unknown[]) { if (statement === sql) { writes++; throw new Error("postgres://private-marker"); } return f.client.query(statement, values); } };
   const result = await runReviewedControlRolesV1({ ...f.input, client }); assert.equal(result.slotConsumed, true); assert.equal(writes, 1);
   assert.equal(result.commitConfirmed, false); assert.equal(f.calls.at(-1), "ROLLBACK"); assert.doesNotMatch(JSON.stringify(result), /private-marker/);
+});
+test("post-submission SQL errors retain only bounded stage and SQLSTATE, without messages or automatic retry", async () => {
+  const f = await fixture(); let submitted = false;
+  const client = { async query(statement: string, values?: readonly unknown[]) {
+    if (statement === sql) submitted = true;
+    if (submitted && statement === CONTROL_ROLE_READ_SQL_V1.roles) throw Object.assign(new Error("postgres://private-marker"), { code: "42809" });
+    return f.client.query(statement, values);
+  } };
+  const result = await runReviewedControlRolesV1({ ...f.input, client });
+  assert("failureStage" in result); assert.equal(result.failureStage, "POSTSTATE_READ"); assert.equal(result.failureCode, "SQLSTATE_42809");
+  assert.equal(result.retryAuthorized, false); assert.equal(f.calls.at(-1), "ROLLBACK"); assert.doesNotMatch(JSON.stringify(result), /private-marker/);
+});
+test("type-specific sequence privilege function is CASE-guarded against optimizer predicate reordering", () => {
+  assert.match(CONTROL_ROLE_READ_SQL_V1.roles, /CASE WHEN c\.relkind='S'\s+THEN pg_catalog\.has_sequence_privilege/);
 });
 test("CLI fixes TLS, production certificate, bounded private files and new permanent slot, without password or AWS writes", () => {
   const cli = readFileSync(new URL("../ops/aws-sandbox/scripts/review-f3b3-control-roles.mjs", import.meta.url), "utf8");

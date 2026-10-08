@@ -63,7 +63,8 @@ export const CONTROL_ROLE_READ_SQL_V1 = Object.freeze({
     EXISTS(SELECT 1 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
       WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND pg_catalog.pg_has_role(r.oid,c.relowner,'MEMBER')) AS owner_member,
     EXISTS(SELECT 1 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
-      WHERE c.relkind='S' AND n.nspname !~ '^pg_' AND pg_catalog.has_sequence_privilege(r.oid,c.oid,'USAGE,SELECT,UPDATE')) AS sequence_access,
+      WHERE c.relkind='S' AND n.nspname !~ '^pg_' AND CASE WHEN c.relkind='S'
+        THEN pg_catalog.has_sequence_privilege(r.oid,c.oid,'USAGE,SELECT,UPDATE') ELSE false END) AS sequence_access,
     EXISTS(SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
       WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND p.prosecdef AND p.prorettype<>'pg_catalog.trigger'::pg_catalog.regtype
       AND pg_catalog.has_function_privilege(r.oid,p.oid,'EXECUTE')) AS nontrigger_definer_access,

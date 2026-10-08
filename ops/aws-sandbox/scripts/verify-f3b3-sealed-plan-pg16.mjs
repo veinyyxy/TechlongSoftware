@@ -111,7 +111,7 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
     }
     prove("reviewedManagementWrongApprovalAndOccupiedCloudSlotsCannotWriteOrRetry");
     // Separate role installer; fixture pin is synthetic, never the production certificate.
-    const {readSealedControlRoleStateV1,compileControlRoleReviewV1,runReviewedControlRolesV1,
+    const {CONTROL_ROLE_READ_SQL_V1,readSealedControlRoleStateV1,compileControlRoleReviewV1,runReviewedControlRolesV1,
       verifyControlRolePoststateV1}=await import("../../../lib/deployments/execution/sealed-control-role-management-v1.ts");
     const {sha256Hex}=await import("../../../lib/deployments/execution/hash.ts");
     const roleRead=async()=>{
@@ -127,7 +127,9 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
     const roleReview=await compileControlRoleReviewV1({readback:roleBefore,binding:roleBinding,sql:controlRoles,startedAt:roleStart,now:Date.now()});
     let roleClaims=0,roleWrites=0;
     const roleClient={async query(statement,values){if(statement===controlRoles)roleWrites++;
-      const result=await client.query(statement,values);if(statement==="COMMIT")throw new Error("CI_LOST_ROLE_COMMIT_RESPONSE");return result;}};
+      const result=await client.query(statement,values);
+      if(statement===CONTROL_ROLE_READ_SQL_V1.roles&&result.rows.length>0)receipt.controlRoleInTransactionRoles=result.rows;
+      if(statement==="COMMIT")throw new Error("CI_LOST_ROLE_COMMIT_RESPONSE");return result;}};
     const roleInput={client:roleClient,review:roleReview,approvedSha:roleReview.manifestSha256,binding:roleBinding,sql:controlRoles,now:Date.now,
       claimPermanentSlot:async()=>{assert.equal(roleClaims++,0);},persistConsumedReview:async()=>undefined};
     await assert.rejects(runReviewedControlRolesV1({...roleInput,approvedSha:"0".repeat(64)}));
