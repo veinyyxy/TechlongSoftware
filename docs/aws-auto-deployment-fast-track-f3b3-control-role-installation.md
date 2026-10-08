@@ -1,4 +1,6 @@
-# F3b3：独立 NOLOGIN 控制角色安装入口
+# F3b3：独立 NOLOGIN 控制角色安装入口（准备阶段记录）
+
+更新：用户已批准原SHA 4ef39a...；两NOLOGIN角色/GRANT单次提交及两次独立只读回读完成，role-install slot已永久消费，禁止再Run/刷新重放。下文保留准备时的清单和未批准状态作为历史，不是当前执行指令。[实际安装证据与下一阶段](./aws-auto-deployment-fast-track-f3b3-neon-control-roles-installed.md)。
 
 2026-10-08 Winnipeg。接续已完成的密封登记与 v3 durable executor；本小阶段先交付数据库角色/GRANT 的可执行审阅入口，密码、LOGIN、两个 Secret、IAM、Lambda 和 authority 保持后续独立批次。**本阶段尚未获准安装，Neon/AWS 写入与默认运行时启用均未执行。**
 

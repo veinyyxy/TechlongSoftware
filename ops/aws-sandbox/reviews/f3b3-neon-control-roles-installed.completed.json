@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "mode": "NEON_TWO_EXACT_NOLOGIN_CONTROL_ROLES_COMMITTED_AND_INDEPENDENTLY_VERIFIED",
+  "approvedManifestSha256": "4ef39a5995c8a0d394e1cbb72b2c3e51d8588bd86e8b75e3d6287ba138171cac",
+  "approvedManifestFileSha256": "551c2c95e1d762ff9a0f73d4c28590c8d1b4dbb7106f20eac89c265db5688a1b",
+  "executedAtMain": "24862fe06eb93b6bbafbc6937e71b63a0817c45d",
+  "verifiedCodeHead": "8c5080e2e8d9c7ba56afabd0e17b8e07fd90977e",
+  "binding": {
+    "targetFingerprintSha256": "06e1188c19fe0c8552bd398f192d7489ccae48498216fcd532344d07720cadab",
+    "codeSha256": "03a91abcef1d08dd23fb174130962f4489a98a9625fbec87608654825b8ed93f",
+    "certificateSha256": "dc093614188a8f0a086b4fc6a7e251c43312495a60db2efffc654cf3d48b066f"
+  },
+  "sqlSha256": "7fc82e392d1745b4e7031a1449d094cd2b327cfaccb459f768e917a4754df016",
+  "prestateSha256": "88976909aabd2fad28bc0a749179074395867d3a469524cefc8df202cf6aa55b",
+  "poststateSha256": "1528e1e2888bb191200d8bc2224318512cfa63f5aaa138eb324870674f3fe0ef",
+  "preservedSha256": "993506a66f586d9ad447b77769769cbf372dee9be9a30cc556af9d9de00426fa",
+  "roles": [
+    { "name": "techlong_cell_cleanup_reader", "login": false, "inherit": false, "administrativeAttributes": false, "defaultReadOnly": true, "selectTables": 8, "columnWritePrivileges": 0 },
+    { "name": "techlong_cell_drain", "login": false, "inherit": false, "administrativeAttributes": false, "selectTables": 4, "columnWritePrivileges": 20 }
+  ],
+  "creatorMembership": { "name": "neondb_owner", "admin": true, "inherit": false, "set": false },
+  "originalSealBusinessAndOtherPrivilegesPreserved": true,
+  "commitConfirmed": true,
+  "submissionReceiptSha256": "229e15ec8e7ddf045dbb767a156429beaa5930549a930f231e5bdf72a6f60ab7",
+  "independentReadbacks": [
+    {
+      "directory": "F:/ChatGPT_workshop/techlong-f3b3-control-roles-20261008-b5-run",
+      "observedAt": "2026-10-08T21:27:03.106Z",
+      "observationSha256": "faffd1328e48bbc1cd6777eb2ab10deb7c461a5a5537ed897ac28bf10e72f286",
+      "readbackSha256": "e995627f19eb029c88ec0b474cdaaed240264ff22d3507c89aed329f9830757f",
+      "outcome": "TWO_EXACT_NOLOGIN_CONTROL_ROLES_INDEPENDENTLY_VERIFIED"
+    },
+    {
+      "directory": "F:/ChatGPT_workshop/techlong-f3b3-control-roles-20261008-b5-verify",
+      "observedAt": "2026-10-08T21:27:38.185Z",
+      "observationSha256": "8525297ad55418853293b1966f0a3e7660027a5780a35f396f6ad8f0e27459d6",
+      "readbackSha256": "e995627f19eb029c88ec0b474cdaaed240264ff22d3507c89aed329f9830757f",
+      "outcome": "TWO_EXACT_NOLOGIN_CONTROL_ROLES_INDEPENDENTLY_VERIFIED"
+    }
+  ],
+  "permanentRoleSlot": "F:/ChatGPT_workshop/techlong-f3b3-control-roles-v1-consumed",
+  "roleSlotConsumed": true,
+  "oldSchemaAndRegistrationSlotsPreserved": true,
+  "writeRetrySlotResetAutomaticDownOrRoleDeletionAllowed": false,
+  "neonRoleAndGrantMutationPerformed": true,
+  "businessRowMutationPerformed": false,
+  "passwordSetOrLoginActivated": false,
+  "secretCreated": false,
+  "awsCalledOrMutated": false,
+  "runtimeEnabled": false,
+  "automaticDeploymentLive": false,
+  "monthlyBudgetTargetUsd": 50,
+  "nextPhase": "prepare independently approved role LOGIN credentials and exact two Secret scope; do not replay this installer"
+}
