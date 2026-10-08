@@ -257,6 +257,13 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
   await assert.rejects(certifiedRead(),error=>error.code==="SEALED_SOURCE_CERTIFICATE_OR_PROTECTION_MISMATCH");
   await c.query(savedFunction);
   prove("certifiedSourceV3RejectsSubstitutedFingerprintHelperWithoutExecutingIt");
+  receipt.phase="SEALED_V3_RLS_PROOF";
+  // Keep the already-active instance; reactivating after draining is correctly prohibited.
+  await c.query("UPDATE app_instance_deployments SET status='canceled' WHERE id='dep_seal_future_live'");
+  await c.query("ALTER TABLE app_instances ENABLE ROW LEVEL SECURITY;CREATE POLICY ci_hide_app ON app_instances USING(false)");
+  await assert.rejects(certifiedRead(),error=>error.code==="SEALED_SOURCE_READ_FAILED");
+  await c.query("DROP POLICY ci_hide_app ON app_instances;ALTER TABLE app_instances DISABLE ROW LEVEL SECURITY");
+  prove("sealedV3RowSecurityCannotHideActiveFutureAssociationAndManufactureZero");
   await c.query("UPDATE app_instance_deployments SET status='canceled' WHERE id='dep_seal_future_live';UPDATE app_instances SET status='suspended' WHERE id='"+instance+"'");
   const zero=await certifiedRead();assert.deepEqual(zero.activeTenantIds,[]);assert.deepEqual(zero.nonterminalDeploymentIds,[]);
   assert.deepEqual(zero.rawOwnershipWitness.nonterminalDeploymentIds,[target]);
@@ -281,12 +288,15 @@ await withFixture({output:githubPg18?args[2]:args[1],bin:args[3],python:args[5],
   assert.deepEqual(deletion.plan.ownershipState.rawOwnershipWitness.nonterminalDeploymentIds,[target]);
   assert.equal(deletion.mutationAuthorized,false);assert.equal(deletion.runtimeActivationAuthorized,false);
   prove("v3FreshAdmissionEvidenceAndPreparedPlanBindFullCertificateAndRawWitnessAsActualRestrictedReader");
-  await c.query("UPDATE app_instances SET status='active' WHERE id=$1",[instance]);
-  await c.query("ALTER TABLE app_instances ENABLE ROW LEVEL SECURITY;CREATE POLICY ci_hide_app ON app_instances USING(false)");
-  await assert.rejects(certifiedRead(),error=>error.code==="SEALED_SOURCE_READ_FAILED");
-  await c.query("DROP POLICY ci_hide_app ON app_instances;ALTER TABLE app_instances DISABLE ROW LEVEL SECURITY");
-  await c.query("UPDATE app_instances SET status='suspended' WHERE id=$1",[instance]);
-  prove("sealedV3RowSecurityCannotHideActiveFutureAssociationAndManufactureZero");
+  receipt.phase="SEALED_V3_READER_PRIVILEGE_PROOF";
+  await c.query("GRANT UPDATE(updated_at) ON app_instances TO techlong_cell_cleanup_reader");
+  await assert.rejects(certifiedRead(),error=>error.code==="SEALED_SOURCE_ENVIRONMENT_OR_READER_INVALID");
+  await c.query("REVOKE UPDATE(updated_at) ON app_instances FROM techlong_cell_cleanup_reader");
+  await c.query("GRANT EXECUTE ON FUNCTION sealed_plan_protection_hash_v1() TO techlong_cell_cleanup_reader");
+  await assert.rejects(certifiedRead(),error=>error.code==="SEALED_SOURCE_ENVIRONMENT_OR_READER_INVALID");
+  await c.query("REVOKE EXECUTE ON FUNCTION sealed_plan_protection_hash_v1() FROM techlong_cell_cleanup_reader");
+  prove("sealedV3ReaderRejectsColumnWritesAndNontriggerSecurityDefinerExecution");
+  receipt.phase="SEALED_V3_DURABLE_ROOT_PROOF";
   const {authorizeSealedCellAuthorityRecordV3,decodeSealedCellAuthorityRecordV3}=await import("../../../lib/deployments/execution/sealed-cell-cleanup-authority-v3.ts");
   const {createPreparedSealedCellTtlExecutorV3}=await import("../../../lib/deployments/execution/prepared-sealed-cell-ttl-executor-v3.ts");
   const certificateSha256=await sha256Hex(registered);

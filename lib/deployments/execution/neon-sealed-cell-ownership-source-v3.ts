@@ -64,7 +64,11 @@ const envSql=`SELECT e.id AS environment_id,e.expected_account_id AS account_id,
  current_user AS reader_role,(SELECT NOT (r.rolsuper OR r.rolcreatedb OR r.rolcreaterole OR r.rolbypassrls) FROM pg_catalog.pg_roles r WHERE r.rolname=current_user) AS limited_reader,
  (NOT pg_catalog.has_schema_privilege(current_user,'public','CREATE') AND NOT EXISTS(
  SELECT 1 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r'
- AND (pg_catalog.pg_has_role(current_user,c.relowner,'MEMBER') OR pg_catalog.has_table_privilege(current_user,c.oid,'INSERT,UPDATE,DELETE,TRUNCATE')))) AS no_owner_or_table_write
+ AND (pg_catalog.pg_has_role(current_user,c.relowner,'MEMBER') OR pg_catalog.has_table_privilege(current_user,c.oid,'INSERT,UPDATE,DELETE,TRUNCATE')
+ OR pg_catalog.has_any_column_privilege(current_user,c.oid,'INSERT,UPDATE')))
+ AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
+ WHERE n.nspname='public' AND p.prosecdef AND p.prorettype<>'pg_catalog.trigger'::pg_catalog.regtype
+ AND pg_catalog.has_function_privilege(current_user,p.oid,'EXECUTE'))) AS no_owner_or_table_write
  FROM public.deployment_environments e WHERE e.id=$1 AND e.kind='aws_sandbox' AND e.driver='aws_ecs_cell' AND e.status='active'`;
 const certSql=`SELECT r.deployment_id,r.environment_id,r.app_instance_id,r.original_row_sha256,r.original_plan_bytes_sha256,r.original_plan_hash,
  r.business_state_sha256,r.approved_registration_sha256,r.protection_schema_sha256,r.sealed_at,
