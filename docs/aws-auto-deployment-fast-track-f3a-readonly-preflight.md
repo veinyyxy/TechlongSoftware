@@ -57,7 +57,7 @@ DNS最快的自动化方向建议：只将 `sandbox.techlong.cloud` 委派到一
 
 ## 验证与继续位置
 
-9项publisher边界/历史保留/时钟测试、3项F3诊断/价格测试、65项prepared-v2相邻回归、两仓typecheck、定向lint和PowerShell AST/实际UTC解析通过；真实在线核验不以这些测试代替。新的fresh publisher源码将通过main的完整Backend CI，但本阶段不运行会写ECR的manual workflow。
+9项publisher边界/历史保留/时钟测试、3项F3诊断/价格测试、65项prepared-v2相邻回归、两仓typecheck、定向lint和PowerShell AST/实际UTC解析通过；真实在线核验不以这些测试代替。新publisher源码 `9b949585f4ad1c76c5472c3d2c505f5d3dca4155` 的[完整Backend CI37711547220](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/37711547220)已实际success；本阶段未运行会写ECR的manual workflow。
 
 AWS原始53-read证据SHA `4c86ce0f1ddb53092c17f399a981b80226f1420b7e21948dff09d7013f26710c` 保留：首版输出有字面换行trailer、空数组被PowerShell枚举为null的格式问题，collector已修正。独立normalized副本和RDS空列表重读/SLR补充都保留；不覆盖原件。最终只读reconciled评估SHA `0cf5b2ccf55c41bfb7c6438b183a8f1b4eeba32578ecf69f41ee3114c653a167`，`deploymentAuthorized=false`。缺失Cell/baseline bucket不是读取成功门禁；角色不存在和资源缺失已补充精确只读检查。
 
