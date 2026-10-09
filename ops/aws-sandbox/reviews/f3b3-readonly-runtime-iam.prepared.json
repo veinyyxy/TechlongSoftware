@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "phase": "F3b3_READONLY_RUNTIME_IAM_FOUNDATION",
+  "status": "PREPARED_IAM_RESOURCE_INSTALL_ONLY_NOT_APPROVED_RUNTIME_PERMISSION_UNPROVED",
+  "manifestSha256": "748999ae1ebb298670243d1dae36cf29accb75046daaab981f136534f77764aa",
+  "manifestFileSha256": "9c77ac5c1da3df18a7d4f912fb5f457ef6e1ac1781b1862e1edbacaf53ec8cb3",
+  "codeSha256": "91a6dd3fa15abd018838ad5a3777cb436716eaa842c761a454574c29fb6e93c8",
+  "expiresAt": "2026-10-09T01:51:52.106Z",
+  "prerequisitesSha256": "191a3784ff04d436c94ee165ffc1b1e2816db7d2c974236ed1ad8e8c6b8d1802",
+  "inventoryFileSha256": "171ff862a7fb8d26d59c5b9545fc28fe142ac8eab348bfabfddfbaf8b92f56f6",
+  "policySimulationFileSha256": "282592a5683549b4ba6deb0e2b1f4b200b0f1dcc2849f9084e2e3e425cb860cf",
+  "credentialInspectFileSha256": "9537b004ce68a4751d16ad93df570e0e02281cffe8623dc7d5a7d90df56c021f",
+  "objects": {
+    "roles": ["TechlongSandboxCellTtlExecutorRole", "TechlongSandboxCellDrainCoordinatorRole"],
+    "boundaries": ["TechlongSandboxCellTtlExecutorBoundaryV3", "TechlongSandboxCellDrainCoordinatorBoundaryV1"],
+    "inlinePolicies": ["RuntimeReadOnlyV3", "RuntimeReadOnlyV1"],
+    "currentState": "ALL_ABSENT", "maximumIamWriteApiCalls": 6
+  },
+  "maximumRuntimeScope": "exact source function + region: AWS read only and exact existing log stream writes",
+  "validation": {
+    "targetedTests": 8, "typecheckLintSyntaxPassed": true,
+    "onlinePolicyCases": 32, "expectedDenialsObserved": 24, "expectedAllowCasesNotVerified": 8,
+    "sourceCreationPermissionCasesAllowed": 10,
+    "sourceFunctionGuardPreserved": true, "liveRuntimeReadProofVerified": false,
+    "simulatorMismatchRootCauseProved": false, "roleIdChecksAreNotServerSideCas": true
+  },
+  "cellStack": "ABSENT",
+  "provisionV2AuthorityKey": "ABSENT",
+  "sealedV3AuthorityKey": "ABSENT",
+  "authorityInstallManifestAvailable": false,
+  "newFunctionStates": "ABSENT",
+  "secretValuesRead": false,
+  "neonReadOrMutationPerformedThisStage": false,
+  "awsWrites": 0,
+  "iamInstallationAuthorized": false,
+  "lambdaInstallationOrInvocationAuthorized": false,
+  "authorityWriteOrDeletionAuthorized": false,
+  "permanentSlotConsumed": false,
+  "applicationSdkWriteRetryAuthorized": false,
+  "runtimeEnabled": false,
+  "monthlyBudgetTargetUsd": 50
+}
