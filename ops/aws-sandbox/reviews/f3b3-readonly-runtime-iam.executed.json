@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "phase": "F3b3_READONLY_RUNTIME_IAM_FOUNDATION",
+  "status": "INSTALLED_AND_INDEPENDENTLY_VERIFIED_RUNTIME_PERMISSION_UNPROVED",
+  "manifestSha256": "748999ae1ebb298670243d1dae36cf29accb75046daaab981f136534f77764aa",
+  "manifestFileSha256": "9c77ac5c1da3df18a7d4f912fb5f457ef6e1ac1781b1862e1edbacaf53ec8cb3",
+  "codeSha256": "91a6dd3fa15abd018838ad5a3777cb436716eaa842c761a454574c29fb6e93c8",
+  "submissionReceiptFileSha256": "03be3aa61ab85588a089305c6a045a66f77f038f908189acc20d12ee94c36d6f",
+  "submissionOutcome": "READONLY_IAM_SUBMITTED_REQUIRES_INDEPENDENT_INSPECT",
+  "iamWriteCalls": 6,
+  "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "objects": [
+    {
+      "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCellTtlExecutorRole",
+      "roleId": "AROAV3GNMXTZLB4NZQLZY",
+      "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCellTtlExecutorBoundaryV3",
+      "boundaryVersion": "v1",
+      "inlinePolicy": "RuntimeReadOnlyV3"
+    },
+    {
+      "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCellDrainCoordinatorRole",
+      "roleId": "AROAV3GNMXTZPRETOTXTS",
+      "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCellDrainCoordinatorBoundaryV1",
+      "boundaryVersion": "v1",
+      "inlinePolicy": "RuntimeReadOnlyV1"
+    }
+  ],
+  "independentInspections": [
+    {
+      "observedAt": "2026-10-09T01:17:32.615Z",
+      "fileSha256": "3d6f57198f69b5f32fe058d7342c36c90dfa1f299945161ba4dbfb5088fe3a3c",
+      "inventoryFileSha256": "ea9a0f4b5fa9b6b27533751e083af641da0c1f2196b1211bd559bb24077f7b8a",
+      "outcome": "FOUR_READONLY_IAM_RESOURCES_AND_INLINE_POLICIES_VERIFIED"
+    },
+    {
+      "observedAt": "2026-10-09T01:17:47.584Z",
+      "fileSha256": "f75357bdac331b97ff7ab319603e5c8bf61a82a5ccae559b2283372a651580bb",
+      "inventoryFileSha256": "fb5f96c0314d7a71109d4c64d3e9aa30393bbcb98f0441cdc6ecac831f2a7cfd",
+      "outcome": "FOUR_READONLY_IAM_RESOURCES_AND_INLINE_POLICIES_VERIFIED",
+      "separateProcess": true
+    }
+  ],
+  "prerequisitesSha256": "191a3784ff04d436c94ee165ffc1b1e2816db7d2c974236ed1ad8e8c6b8d1802",
+  "credentialInspectFileSha256": "9537b004ce68a4751d16ad93df570e0e02281cffe8623dc7d5a7d90df56c021f",
+  "iamFoundationReady": true,
+  "roleIdChecksAreNotServerSideCas": true,
+  "sourceFunctionGuardPreserved": true,
+  "liveRuntimeReadProofVerified": false,
+  "cellStack": "ABSENT",
+  "provisionV2AuthorityKey": "ABSENT",
+  "sealedV3AuthorityKey": "ABSENT",
+  "newFunctionStates": "ABSENT",
+  "permanentSlotConsumed": true,
+  "retryAuthorized": false,
+  "automaticCompensationPerformed": false,
+  "secretValuesReadThisStage": false,
+  "neonConnectionPerformedThisStage": false,
+  "lambdaDeploymentsOrInvocations": 0,
+  "secretNeonAuthorityWrites": 0,
+  "paidCellsCreated": 0,
+  "runtimeEnabled": false,
+  "monthlyBudgetTargetUsd": 50
+}
