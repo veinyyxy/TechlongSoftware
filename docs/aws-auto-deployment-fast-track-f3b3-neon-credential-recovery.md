@@ -1,5 +1,7 @@
 # F3b3：复用现有 Secret 的 Neon 兼容恢复入口（尚未批准/执行）
 
+本页为批准前准备记录，原内容保留。用户随后批准3610895c...，已一次COMMIT确认并两次独立只读认证核验；当前继续位置见 [实际控制凭据就绪](./aws-auto-deployment-fast-track-f3b3-neon-credentials-ready.md)。不能再Run本页清单。
+
 2026-10-08 Winnipeg。当前仍为两个收费 Secret 已创建、两控制角色 NOLOGIN、runtime 关闭。原85b500...批准和永久槽位已消费，不能重放；[原失败及独立观察](./aws-auto-deployment-fast-track-f3b3-control-credentials-partial.md)保留。
 
 ## 兼容性结论与修正
