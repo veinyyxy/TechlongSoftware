@@ -24,12 +24,24 @@ if(!["Review","Run","Inspect"].includes(mode)||!/^techlong-f3b3-readonly-lambda-
 const slot=path.join(privateRoot,scope.permanentSlot), execute=promisify(execFile), sourceArn="arn:aws:iam::402010193138:user/techlong-sandbox-dev";
 const iamApproval="748999ae1ebb298670243d1dae36cf29accb75046daaab981f136534f77764aa";
 const config={region:"ca-central-1",ignoreConfiguredEndpointUrls:true,maxAttempts:1}, login=fromLoginCredentials({profile:"techlong-sandbox-user",ignoreCache:true,clientConfig:config});
-const equal=(a,b)=>canonicalJson(a)===canonicalJson(b), parse=v=>typeof v==="object"?v:JSON.parse(v.startsWith("{")?v:decodeURIComponent(v));
+const equal=(a,b)=>canonicalJson(a)===canonicalJson(b), parse=v=>{
+  if(v&&typeof v==="object")return v;
+  if(typeof v!=="string")throw new Error("PROBE_IAM_DOCUMENT_MISSING");
+  try{return JSON.parse(v.startsWith("{")?v:decodeURIComponent(v));}catch{throw new Error("PROBE_IAM_DOCUMENT_INVALID");}
+};
 const shaBytes=bytes=>createHash("sha256").update(bytes).digest("hex");
 const sortedTags=tags=>[...(tags??[])].sort((a,b)=>a.Key.localeCompare(b.Key));
 const tags=approval=>({ApprovalSha256:approval,Environment:"sandbox",Project:"Techlong",Purpose:"readonly-lambda-probe-v1"});
-const call=(client,command)=>client.send(command,{abortSignal:AbortSignal.timeout(15000)});
-let stage="LOCAL_BINDING",slotConsumed=false,manifest,targets;
+// IAM simulations and metadata share a paced queue; maxAttempts remains one (no SDK retry).
+let iamQueue=Promise.resolve(),nextIamCallAt=0;
+const call=async(client,command)=>{
+  const send=async()=>{try{return await client.send(command,{abortSignal:AbortSignal.timeout(15000)});}catch(error){error.probeOperation=command.constructor.name;throw error;}};
+  if(!(client instanceof IAMClient))return send();
+  const request=iamQueue.then(async()=>{const delay=nextIamCallAt-Date.now();if(delay>0)await new Promise(resolve=>setTimeout(resolve,delay));
+    nextIamCallAt=Date.now()+600;return send();});
+  iamQueue=request.then(()=>undefined,()=>undefined);return request;
+};
+let stage="LOCAL_BINDING",slotConsumed=false,sourceIdentityVerified=false,manifest,targets;
 await mkdir(out);const save=async(name,value)=>{const bytes=JSON.stringify(value,null,2)+"\n";await writeFile(path.join(out,name),bytes,{flag:"wx"});return sha256Hex(bytes);};
 try {
   let occupied=true;try{await lstat(slot);}catch(e){if(e.code==="ENOENT")occupied=false;else throw e;}
@@ -59,7 +71,7 @@ try {
   if(manifest&&(!equal(manifest.targets,targets)||manifest.artifactReportFileSha256!==reportSha))throw new Error("PROBE_ARTIFACT_MANIFEST_DRIFT");
   const clients=async()=>{
     const credentials=await login(),sts=new STSClient({...config,credentials});try{const identity=await call(sts,new GetCallerIdentityCommand({}));
-      if(identity.Account!=="402010193138"||identity.Arn!==sourceArn)throw new Error("PROBE_EXACT_SOURCE_REQUIRED");}finally{sts.destroy();}
+      if(identity.Account!=="402010193138"||identity.Arn!==sourceArn)throw new Error("PROBE_EXACT_SOURCE_REQUIRED");sourceIdentityVerified=true;}finally{sts.destroy();}
     return {credentials,iam:new IAMClient({...config,credentials})};
   };
   const cli=async(c,args,input)=>{
@@ -70,7 +82,9 @@ try {
           AWS_SESSION_TOKEN:c.credentials.sessionToken,AWS_REGION:"ca-central-1",AWS_DEFAULT_REGION:"ca-central-1",AWS_IGNORE_CONFIGURED_ENDPOINT_URLS:"true",AWS_MAX_ATTEMPTS:"1",AWS_PAGER:"",AWS_CLI_AUTO_PROMPT:"off"}});
       return r.stdout.trim()?JSON.parse(r.stdout):{};
     }catch(error){const match=/\((ResourceNotFoundException|AccessDeniedException|AccessDenied|ResourceConflictException|InvalidParameterValueException|InvalidParameterException|ThrottlingException)\)/.exec(error.stderr??"");
-      const safe=new Error("PROBE_AWS_CLI_UNVERIFIED");safe.name=match?.[1]??"Error";throw safe;}
+      const safe=new Error("PROBE_AWS_CLI_UNVERIFIED");safe.name=match?.[1]??"Error";safe.probeOperation=`${args[0]}:${args[1]}`;
+      safe.processExitCode=Number.isInteger(error.code)?error.code:null;safe.nodeErrorCode=["ENOENT","ETIMEDOUT","EACCES","EPERM"].includes(error.code)?error.code:null;
+      safe.cliParserError=/Unknown options:|Invalid choice:|usage: aws/i.test(error.stderr??"");safe.cliJsonError=error instanceof SyntaxError;throw safe;}
   };
   const absent=async fn=>{try{return await fn();}catch(e){if(e.name==="ResourceNotFoundException")return null;throw e;}};
   const foundation=async c=>{
@@ -161,7 +175,9 @@ try {
       approvalRequired:true,installationWrites:0,lambdaInvocations:0,runtimeEnabled:false}));
   }else{
     if(mode==="Run"){
-      const write=async(fn)=>{const c=await clients();try{await foundation(c);return await fn(c);}finally{c.iam.destroy();}};
+      const write=async(fn)=>{const c=await clients();try{await foundation(c);
+        if(Date.now()<manifest.reviewedAt||Date.now()+5000>=manifest.expiresAt)throw new Error("PROBE_FRESH_APPROVAL_REQUIRED");
+        return await fn(c);}finally{c.iam.destroy();}};
       const result=await runReadonlyLambdaInstallV1({manifest,approvedSha:opts["--approved-sha"],codeSha256,ports:{now:Date.now,inventory,
         claimSlot:()=>mkdir(slot),marker:(name,value)=>writeFile(path.join(slot,name),JSON.stringify(value,null,2)+"\n",{flag:"wx"}),
         createLog:(i,approval)=>write(c=>cli(c,["logs","create-log-group"],{logGroupName:targets[i].logGroup,logGroupClass:"STANDARD",tags:tags(approval)})),
@@ -190,6 +206,9 @@ try {
     }
     const result=await inspect();if(!result.liveReadProofVerified)process.exitCode=1;
   }
-}catch(error){console.error(JSON.stringify({outcome:"READONLY_LAMBDA_REVIEW_OR_EXECUTION_NOT_VERIFIED",stage,slotConsumed,
-  failureCode:/^PROBE_[A-Z_]+$/.test(error.message??"")?error.message:"PROBE_OPERATION_UNVERIFIED",serviceErrorName:["AccessDeniedException","AccessDenied","ResourceNotFoundException","ExpiredTokenException","CredentialsProviderError"].includes(error.name)?error.name:null,
-  rawDiagnosticsWithheld:true,noWriteRetry:true,runtimeEnabled:false}));process.exitCode=1;}
+}catch(error){const diagnostic={outcome:"READONLY_LAMBDA_REVIEW_OR_EXECUTION_NOT_VERIFIED",stage,slotConsumed,sourceIdentityVerified,
+  failureCode:/^PROBE_[A-Z_]+$/.test(error.message??"")?error.message:"PROBE_OPERATION_UNVERIFIED",serviceErrorName:["AccessDeniedException","AccessDenied","ResourceNotFoundException","ExpiredToken","ExpiredTokenException","CredentialsProviderError","NoSuchEntity","NoSuchEntityException","InvalidInput","InvalidInputException","Throttling","ThrottlingException","ServiceFailure","ValidationError","TypeError","SyntaxError","Error"].includes(error.name)?error.name:null,
+  operation:/^(?:[A-Za-z]+Command|(?:lambda|logs):[a-z-]+)$/.test(error.probeOperation??"")?error.probeOperation:null,
+  httpStatus:Number.isInteger(error.$metadata?.httpStatusCode)?error.$metadata.httpStatusCode:null,processExitCode:error.processExitCode??null,nodeErrorCode:error.nodeErrorCode??null,
+  cliParserError:error.cliParserError??false,cliJsonError:error.cliJsonError??false,rawDiagnosticsWithheld:true,noWriteRetry:true,runtimeEnabled:false};
+  await save("failure-diagnostic.json",diagnostic);console.error(JSON.stringify(diagnostic));process.exitCode=1;}
