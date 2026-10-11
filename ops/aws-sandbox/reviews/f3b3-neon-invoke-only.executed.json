@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "phase": "F3b3_NEON_SEALED_INVOKE_ONLY",
+  "status": "NEON_INVOKE_READONLY_PREFLIGHT_AND_LOG_VERIFIED",
+  "approvedManifestSha256": "76cadd00835f523d4cd63e2052ccd08badfe25af299dff7bb77b62b7bab76b1f",
+  "codeSha256": "c120e4c6ac87ee80289088fba9f98316eae0641ff003ba55eb4cd6414beff7e3",
+  "submissionReceiptFileSha256": "2b21e9481396b30898fdd559049cfc6a400669844de1fb67939744f2e74e6b65",
+  "codeUpdates": 0,
+  "invocationAttempts": 1,
+  "synchronousInvocationConfirmed": true,
+  "requestId": "a0617cd0-2321-44cc-8b40-ad23c0fcde09",
+  "responseSha256": "c0c3be88233ffb56398e7e78bb0ec113837926277a3455252fc9e1d9d41f1e55",
+  "sourceGate": "ADMISSION_NOT_DRAINING",
+  "tlsReadVerified": true,
+  "transactionSettingsVerified": true,
+  "limitedReaderVerified": true,
+  "sealedCertificateVerified": true,
+  "queryCount": 10,
+  "rawCounts": {
+    "rawActiveTenants": 1,
+    "rawNonterminalDeployments": 1,
+    "capacityReservations": 0,
+    "liveResources": 0,
+    "cleanupSchedules": 0
+  },
+  "independentInspections": [
+    {
+      "observedAt": "2026-10-11T16:38:10.823Z",
+      "fileSha256": "72bac98fa3ef8e9154ff1b2f137849dbd88bb9fc1298bfb183071e9cc25a86fc",
+      "newProcess": false,
+      "readProofVerified": true,
+      "logMarkerVerified": true,
+      "logPagesRead": 3
+    },
+    {
+      "observedAt": "2026-10-11T16:39:18.221Z",
+      "fileSha256": "2c6c2f25bf6df4eeb88b77c39a247290db2a978a88ac2d1f75be3e8b2b8d86ef",
+      "newProcess": true,
+      "readProofVerified": true,
+      "logMarkerVerified": true,
+      "logPagesRead": 3
+    }
+  ],
+  "fullAnchorSha256": "33a5f0257d699b689fa0ec4aa4d852ca5f67aba1e19fdc130d5d893fc3280301",
+  "stableAnchorSha256": "3d373a6602d2bbcc111b8879ffa37385ef5a7ce74d9bbad1f7390dbe18d5689a",
+  "completedRevisionId": "80270648-9f62-488b-a99c-4d6a86558302",
+  "installedZipSha256": "0f2330afbef3e801faf3645f96610d293349705743ae0748de22198391a25533",
+  "permanentSlot": "techlong-f3b3-readonly-neon-sealed-invoke-v1-consumed",
+  "slotConsumed": true,
+  "failureStage": null,
+  "sourceSecretValuesRead": false,
+  "lambdaSecretValidatedInMemoryOnly": true,
+  "neonHttpsReadonlyBatchExecuted": true,
+  "mutationPerformed": false,
+  "certifiedV3OwnershipSnapshotProved": false,
+  "productionDrainBusinessCompatibilityProved": false,
+  "authorityWriteAuthorized": false,
+  "deletionAuthorized": false,
+  "automaticRollbackOrInvocationRetryAuthorized": false,
+  "runtimeEnabled": false,
+  "endToEndDeploymentVerified": false,
+  "monthlyBudgetTargetUsd": 50
+}

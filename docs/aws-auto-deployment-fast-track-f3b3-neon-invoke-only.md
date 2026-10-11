@@ -1,5 +1,7 @@
 # F3b3：已安装 Neon 只读探针的单次调用清单，未执行
 
+> 本文保留准备时状态。2026-10-11 批准后已一次调用，真实 Neon 只读/保护预检与两次独立日志核验通过；sourceGate=ADMISSION_NOT_DRAINING、业务 runtime 仍关闭。新 slot 已消费，禁止重放。当前结果见[实际只读验收与下一阶段](./aws-auto-deployment-fast-track-f3b3-neon-readonly-verified.md)。以下不是新的执行授权。
+
 2026-10-11 Winnipeg。上次一次代码更新后，候选已就绪，但更新响应 RevisionId 与完成态不同，旧协议停止且未 Invoke。本阶段独立 invoke-only core/入口复用现有候选和读回工具，**不改旧 17 文件 binding、旧门禁、已消费槽位或 Lambda 代码**。当前仅本地实现、定向验证和 AWS 只读 Review，调用=0、Secret 值读取=0、Neon 连接=0。
 
 ## 唯一拟执行动作
