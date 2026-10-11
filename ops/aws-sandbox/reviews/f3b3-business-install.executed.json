@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "phase": "F3b3_SEALED_BUSINESS_CANDIDATE_INSTALL",
+  "status": "BUSINESS_CANDIDATE_INSTALLATION_METADATA_VERIFIED",
+  "approvedManifestSha256": "93bc4518c7003fcaa352355c66559b00b40d3b09d1d6ed4def4f9679177dad05",
+  "codeSha256": "adf38fb1307bbdfbe9ef2c28918fff6e3e17c9ef542bb124b88c6017851ce98f",
+  "submissionReceiptFileSha256": "6673463bc2158fb1b2bea7877afc55bab096171438b4805513b3e3fe97eee102",
+  "iamWrites": 2,
+  "codeUpdates": 2,
+  "lambdaInvocations": 0,
+  "drainBoundaryDefaultVersion": "v3",
+  "originalV1V2PolicyVersionsRetained": true,
+  "drainInlineCandidateInstalled": true,
+  "ttlIamUnchanged": true,
+  "installedFunctions": [
+    {
+      "functionArn": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-ttl-executor-v3",
+      "zipSha256": "621a8cd5f45cceedc6e1904e55afed445ca23900cef1b81e268e902e026a1bb5",
+      "zipBytes": 362628,
+      "responseRevisionId": "bae1485e-c613-453f-b203-68a3c20f51c4",
+      "completedRevisionId": "281d13a3-8258-417b-b915-a50b41ab5a78",
+      "identicalReadyObservations": 2
+    },
+    {
+      "functionArn": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-drain-coordinator",
+      "zipSha256": "20554427b6eaf7cba6f8cf7bd3a78e4aefd8947f2499addd1dd9ecf5d16985c0",
+      "zipBytes": 328034,
+      "responseRevisionId": "fc30728f-264a-445c-bf3c-c35ebdd9fb97",
+      "completedRevisionId": "333d8639-b023-4837-ab00-7bea4617ac85",
+      "identicalReadyObservations": 2
+    }
+  ],
+  "independentInspections": [
+    {
+      "observedAt": "2026-10-11T17:49:39.576Z",
+      "fileSha256": "aa85e0193f29671645f0098332d005ee434316dc32685a4fe26609e7cfb19aa1",
+      "newProcess": false,
+      "installationVerified": true
+    },
+    {
+      "observedAt": "2026-10-11T17:49:54.383Z",
+      "fileSha256": "1769be4629818725d1d55872e81c5aca9f9f20bc8500c58020a8969b4a986823",
+      "newProcess": true,
+      "installationVerified": true
+    }
+  ],
+  "stableAnchorSha256": "b08b5a4882ebe415df3d4f7f9fecea1d76142a0bc7ee996f205a59209e3b1a64",
+  "secretKeyAndStableConfigurationUnchanged": true,
+  "exactCellStackAbsent": true,
+  "provisionAndSealedCleanupAuthorityAbsent": true,
+  "permanentSlot": "techlong-f3b3-sealed-business-install-v1-consumed",
+  "slotConsumed": true,
+  "failureStage": null,
+  "sourceSecretValuesRead": false,
+  "databaseConnected": false,
+  "businessDatabaseWrites": 0,
+  "authorityWrites": 0,
+  "paidCellCreated": false,
+  "businessCandidatesInstalled": true,
+  "businessInvocationAuthorized": false,
+  "drainCrossReaderSecretLiveReadProved": false,
+  "ttlDeletionGrantInstalled": false,
+  "saasWorkerActivated": false,
+  "endToEndDeploymentVerified": false,
+  "automaticRollbackOrRetryAuthorized": false,
+  "oldRecordsBindingsAndSlotsPreserved": true,
+  "monthlyBudgetTargetUsd": 50
+}

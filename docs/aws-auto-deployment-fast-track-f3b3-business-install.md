@@ -1,5 +1,7 @@
 # F3b3：业务候选安装清单（未执行）
 
+状态更新：用户确认后已实际完成四写/零调用，两次独立 Inspect 通过；槽位永久消费，**本页是历史审批清单，不得再次 Run**。见[实际安装结果与继续位置](./aws-auto-deployment-fast-track-f3b3-business-installed.md)。以下保留原清单。
+
 2026-10-11 Winnipeg。独立 Review / 一次 Run / Inspect 入口已实现，12 新 + 14 相邻测试共 26/26、typecheck、定向 lint、两脚本语法检查通过。复用上一阶段两个候选 ZIP，不重建、不另派发镜像构建。旧 20 文件 binding `c120e4c6...`、所有旧失败证据/槽位和业务 SQL 保持。
 
 ## Fresh 清单
