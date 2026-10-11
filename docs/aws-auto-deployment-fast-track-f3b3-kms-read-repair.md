@@ -1,5 +1,7 @@
 # F3b3：最小 KMS 读取修正清单，未执行
 
+> 本文件保留准备时状态。2026-10-11 用户批准后已一次执行，4 次 IAM 写和两次实机只读探针及两次独立核验通过；新槽位已消费，禁止重放。当前继续位置见[实际修正与核验结果](./aws-auto-deployment-fast-track-f3b3-kms-read-repair-verified.md)。以下不是新的可执行授权。
+
 2026-10-11 Winnipeg。上次两只读函数安装完成，但Secrets Manager读取在KMS解密阶段被拒绝；旧安装槽位已消费。本阶段新增独立修正module/SDK+CLI入口，不改旧代码binding、p2 ZIP、函数配置或旧记录。**当前仅代码与只读Review，IAM写=0、新探针调用=0、Secret值读取=0、Neon连接=0。** Source已刷新，新槽位为空。
 
 ## 拟更新四项现有IAM权限，随后两次新只读探针

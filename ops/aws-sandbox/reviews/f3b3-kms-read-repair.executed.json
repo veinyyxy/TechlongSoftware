@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "phase": "F3b3_MINIMAL_KMS_READ_REPAIR",
+  "status": "KMS_REPAIR_SECRET_READS_AND_LOGS_VERIFIED",
+  "approvedManifestSha256": "5d1485cf6d9a36bee3da8546124c2d02cf99339c02dfe47aa0e9ceefc47baca6",
+  "manifestFileSha256": "255b827d7c9e684d320bfa9c7b8b02520f6a3d09cae4ea95873517d466faaef7",
+  "codeSha256": "f382bda1dd4e7401f485e95941cbae64a0956220de1d2e5d30a5cdf1e3be2222",
+  "originalLambdaInstallCodeSha256": "064119b9576e1dd5beb73900ec1290f7bed28204905f989ea03be30bf83b7d7d",
+  "anchorSha256": "139ed0f461a676de2ff450f1bd2311a53997d960488b7ca97f0e0708a47a6dd5",
+  "submissionReceiptFileSha256": "90987b5460a21dea2affba831078b856e9874d67fa286f77d2d17c329cf0325c",
+  "independentInspections": [
+    {
+      "observedAt": "2026-10-11T15:07:59.154Z",
+      "fileSha256": "13d7b6ba59885f187c28c79d1c9084a78de1620d5ad1fef17dcc61fb18b521e2",
+      "newProcess": false,
+      "iamRepairVerified": true,
+      "liveReadProofVerified": true
+    },
+    {
+      "observedAt": "2026-10-11T15:08:29.999Z",
+      "fileSha256": "7a7ac97a3f6fbd69dee36e24d8e2f9c6947fe4b1132b126284c9002f31e888dd",
+      "newProcess": true,
+      "iamRepairVerified": true,
+      "liveReadProofVerified": true
+    }
+  ],
+  "iamWrites": 4,
+  "lambdaInvocations": 2,
+  "boundaryStates": ["OWN_V2", "OWN_V2"],
+  "inlineStates": ["OWN_REPAIRED", "OWN_REPAIRED"],
+  "originalV1VersionsRetainedAndUnchanged": true,
+  "kmsKeyArn": "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570",
+  "kmsKeyPolicySha256": "7c8b6b20a7a9a74535e08954eb2cf5435f71cd442a39596e1ea60e43dd631b51",
+  "probes": [
+    {
+      "index": 0,
+      "requestId": "b9fca63c-1d0d-4576-a8f2-43414efa59b4",
+      "outcome": "READONLY_PROBE_READS_VERIFIED",
+      "ownFixedSecretReadVerified": true,
+      "responseSha256": "db92125951bd1c9e78d0263395be2a47fc127b7abdbd6b370535367b31ae1817",
+      "logMarkerVerifiedInBothInspections": true,
+      "logPagesRead": 3
+    },
+    {
+      "index": 1,
+      "requestId": "d9d6e128-7985-400c-9770-3ce048663913",
+      "outcome": "READONLY_PROBE_READS_VERIFIED",
+      "ownFixedSecretReadVerified": true,
+      "responseSha256": "0ba3a321b4188ad3de614de9771a481bf38e5a6ecad0bfcb0fe1ec1f6e503036",
+      "logMarkerVerifiedInBothInspections": true,
+      "logPagesRead": 3
+    }
+  ],
+  "permanentSlot": "techlong-f3b3-readonly-kms-read-repair-v1-consumed",
+  "slotConsumed": true,
+  "failureStage": null,
+  "sourceSecretValuesRead": false,
+  "lambdaSecretValuesValidatedInMemoryOnly": true,
+  "functionCodeOrConfigurationChanged": false,
+  "keyOrSecretChanged": false,
+  "databaseConnected": false,
+  "authorityWritten": false,
+  "paidCellCreated": false,
+  "productionCfExistingResourceReadProved": false,
+  "drainSealedV3BusinessCompatibilityProved": false,
+  "mutationGrantAuthorized": false,
+  "automaticRevokePerformed": false,
+  "writeInvocationRetryAuthorized": false,
+  "runtimeEnabled": false,
+  "endToEndDeploymentVerified": false,
+  "monthlyBudgetTargetUsd": 50
+}
