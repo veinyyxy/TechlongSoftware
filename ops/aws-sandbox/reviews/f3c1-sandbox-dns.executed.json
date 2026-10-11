@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "phase": "F3c1_SANDBOX_DNS_FOUNDATION",
+  "status": "FOUNDATION_METADATA_VERIFIED_PARENT_DELEGATION_PENDING",
+  "manifestSha256": "f9cec821f3195925d5d644644f5ba8ad752afa7471b5015986e1f20a77ad52d7",
+  "manifestFileSha256": "8c0f730e8c9f60ca1752ac8afc9c5cd1f58aa125dab95643789cd4d47f26238b",
+  "codeSha256": "f391e9b9494464675270205c578562f654d28ee7435741aff72c4de67acdbc2f",
+  "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "outcome": "SANDBOX_DNS_SUBMITTED_REQUIRES_INSPECT_AND_PARENT_DELEGATION",
+  "writeAttempts": 4,
+  "failureStage": null,
+  "failureCode": null,
+  "slotConsumed": true,
+  "permanentSlot": "techlong-f3c1-sandbox-dns-foundation-v1-consumed",
+  "permanentSlotMarkerCount": 10,
+  "retryAuthorized": false,
+  "noAutomaticDeleteRollbackFillOrReset": true,
+  "zone": {
+    "id": "Z01473621BTTHKXBGOOEJ",
+    "name": "sandbox.techlong.cloud.",
+    "callerReference": "techlong-f3c1-f9cec821f3195925d5d644644f5ba8ad752afa7471b5015986e1f20a77ad52d7",
+    "nameServers": [
+      "ns-864.awsdns-44.net",
+      "ns-1693.awsdns-19.co.uk",
+      "ns-169.awsdns-21.com",
+      "ns-1215.awsdns-23.org"
+    ]
+  },
+  "certificateArn": "arn:aws:acm:ca-central-1:402010193138:certificate/6d1f2880-9f83-449c-930a-6b17516ef49d",
+  "certificateDomains": ["sandbox.techlong.cloud", "*.sandbox.techlong.cloud"],
+  "certificateExport": "DISABLED",
+  "certificateStatus": "PENDING_VALIDATION",
+  "certificateIssued": false,
+  "validationRecord": {
+    "name": "_dfa3d858414d5d117b4d54b67af84425.sandbox.techlong.cloud.",
+    "type": "CNAME",
+    "ttl": 300,
+    "value": "_8e0883463be77a4348bfb3618775181a.wzccmgtwzk.acm-validations.aws."
+  },
+  "recordChange": {
+    "id": "/change/C0756670SPATV5Q4C29D",
+    "submittedAt": "2026-10-11T20:21:17.924Z",
+    "status": "INSYNC",
+    "readOnlyObservedAtUtcSecond": "2026-10-11T20:22:29Z"
+  },
+  "submissionReceiptFileSha256": "c29fb1621161bce2663d3200e8d9c9bdbe0bf2c2418a6ac1df798a6d4c55ce85",
+  "independentInspects": [
+    {
+      "observedAt": "2026-10-11T20:21:20.357Z",
+      "fileSha256": "92041e386be240cf8a2c45cce5d64fe0e9af036e7dad165d934ad3bd075ceef7",
+      "foundationMetadataVerified": true,
+      "writes": 0
+    },
+    {
+      "observedAt": "2026-10-11T20:21:23.262Z",
+      "fileSha256": "05e9a31212d1ec5a9307e4cda173ccf02c039d16f4023bbddc0bda1570094a48",
+      "newProcess": true,
+      "foundationMetadataVerified": true,
+      "writes": 0
+    }
+  ],
+  "parentNs": ["dns1.registrar-servers.com", "dns2.registrar-servers.com"],
+  "parentDelegationVerified": false,
+  "parentDelegationAuthorized": false,
+  "parentDelegationPerformed": false,
+  "parentAndExistingApiDnsUnchanged": true,
+  "iamChanges": 0,
+  "lambdaInvocations": 0,
+  "secretOrDatabaseOrAuthorityChanges": 0,
+  "budgetOrReadCapChanges": 0,
+  "oldRecordsBindingsAndSlotsPreserved": true,
+  "newImageBuildOrScanPerformed": false,
+  "monthlyBudgetTargetUsd": 50,
+  "hostedZoneBaseUsdPerMonth": 0.5,
+  "queriesAndOtherCostsExcluded": true,
+  "estimateIsHardCap": false,
+  "paidCellCreated": false,
+  "paidDeploymentAuthorized": false,
+  "runtimeEnabled": false,
+  "nextAction": "USER_REVIEW_EXISTING_SANDBOX_SUBTREE_AND_SEPARATELY_APPROVE_MANUAL_CHILD_NS_DELEGATION_THEN_READONLY_VERIFY"
+}
