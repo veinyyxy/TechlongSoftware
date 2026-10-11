@@ -1,5 +1,7 @@
 # F3b3：Neon 只读探针代码已更新，RevisionId 门禁停止，未调用
 
+> 后继 invoke-only 入口已准备，当前仍无新的云调用批准。新清单/槽位绑定完成态，不重放本文失败入口，见[仅调用待批范围](./aws-auto-deployment-fast-track-f3b3-neon-invoke-only.md)。以下保留实际安装记录。
+
 2026-10-11 Winnipeg。用户确认清单 `c3635097594bdd1443fe4cf814507da14a33ab4723c668ab7a068b5e1cd756f1` 后，在有效期内一次 Run 提交了 **1 次现有 TTL UpdateFunctionCode**。后续检查返回 `NEON_UPDATE_POSTSTATE_DRIFT`，阶段 `READONLY_WAIT`；**同步 Invoke=0，未读取 Secret 值、未连接 Neon、未执行十 SELECT 批次，不能称只读数据源验收通过。**
 
 Run 已停止，没有重试、补调、补齐、回滚或重新更新代码。新永久槽位已消费；本次批准不能转移到另一入口或复位槽位。
