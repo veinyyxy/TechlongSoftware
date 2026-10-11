@@ -1,4 +1,14 @@
-# F3c1：sandbox DNS/证书基础已创建，等待子域委派
+# F3c1：sandbox DNS/证书实际执行与子域委派核验
+
+## 最新只读结果：子域委派、公开 CNAME 和 ACM 签发已验证
+
+最后一次有限只读核验于 **2026-10-11 20:45:12.238 UTC / Winnipeg15:45:12.238** 返回准确证书 **ISSUED**、certificateIssued=true、foundationMetadataVerified=true、parentDelegationVerified=true。新进程证据 `F:/ChatGPT_workshop/techlong-f3c1-dns-20261011-delegation-r3/independent-inspect.json`，文件SHA `5ca3b2fc8ff970cd7f7fb8630d6e88c3d398fd805919e87d0e68d0ad352c4950`。此前两次pending结果保留，未因pending改DNS或重申请；本轮全部AWS操作只读。DNS/ACM前置阶段已完成，无需再添加NS/CNAME。
+
+2026-10-11 用户报告“sandbox NS 已添加”后，助手没有改 Namecheap 或进行任何 AWS 写入。20:42:38.296 UTC 分别向1.1.1.1及8.8.8.8读取父 NS、sandbox NS、准确验证 CNAME，两处均返回准确4个 Route53 NS和准确 token；父 NS仍为原Namecheap两项。公开查询摘要保存于 `F:/ChatGPT_workshop/techlong-f3c1-dns-20261011-delegation-r1/public-dns-readback.json`，文件SHA `d9d82dc07587b0fcdbba180d40dd501dbf0737b24eb85095f304a6b753c655fb`。
+
+两新进程 Inspect：20:42:39.052 UTC，`F:/ChatGPT_workshop/techlong-f3c1-dns-20261011-delegation-r1/independent-inspect.json`，SHA `85e388d7d0838cc30e93969f4ba5949b54067ed4fcc4a9a5b76a1bd4a498db6b`；20:43:20.359 UTC，r2同名文件，SHA `7de14471f61d88017eee030bcfadbbe1eb267aa38cd56f6aca4604afc229eeae`。均foundationMetadataVerified=true、parentDelegationVerified=true，准确证书仍 **PENDING_VALIDATION**、certificateIssued=false。原6文件binding/10marker/创建证据保持，Run禁止重放；本次仅只读，无IAM/Secret/Neon/authority/函数调用/付费Cell修改。机器摘要为 `ops/aws-sandbox/reviews/f3c1-sandbox-dns.delegation-verified.json`。
+
+DNS委派及准确ACM签发门禁均已通过，但不等于真实Cell就绪。短暂pending与AWS记录建立后可能仍显示Pending至30分钟的说明相符，不保证未来所有证书都在同一时间完成；没有自动补写/重申请/删除/复位。[AWS DNS验证说明](https://docs.aws.amazon.com/acm/latest/userguide/dns-validation.html)。下一阶段沿原顺序准备baseline/mTLS foundation、专属IAM/readcap/Budget及v3清理兼容模板；实际新资源/权限仍fresh SHA另批。50USD/月目标不变，不提前drain或假authority，不重复Lambda微探针/镜像重建。下方为创建及人工操作前历史，**不要再次添加NS或重放创建**。
 
 2026-10-11。用户确认清单 `f9cec821f3195925d5d644644f5ba8ad752afa7471b5015986e1f20a77ad52d7` 后，原有效窗口内一次 Run 完成全部4次批准写入；同进程及新进程两次独立只读 Inspect 均通过。父域没有改动，证书尚未签发，付费 Cell 未批准或创建。
 
