@@ -4,19 +4,21 @@
 
 ## 当前实际结果与权限不确定性
 
-22:13:39.823 UTC只读回读：准确Source UserId `AIDAV3GNMXTZEO7SHLC2X`、ARN `arn:aws:iam::402010193138:user/techlong-sandbox-dev`；DNS准确4NS、证书 `6d1f2880-9f83-449c-930a-6b17516ef49d` 为ISSUED；baseline桶、目标Trust Store、ELB服务关联角色和新临时inline policy均缺失。17项当前Source权限模拟中16项管理/上传/读取allowed，**`elasticloadbalancing:AddTags`为implicitDeny**。补齐实际标签/CreateAction上下文仍未证明允许；附加最小策略、独立策略及CLI交叉模拟也没有证明允许，不能宣称原因已被充分解释或新策略已生效。
+23:33:05.897 UTC只读回读：准确Source UserId `AIDAV3GNMXTZEO7SHLC2X`、ARN `arn:aws:iam::402010193138:user/techlong-sandbox-dev`；DNS准确4NS、证书 `6d1f2880-9f83-449c-930a-6b17516ef49d` 为ISSUED；baseline桶、目标Trust Store、ELB服务关联角色和新临时inline policy均缺失。17项当前Source权限模拟中16项管理/上传/读取allowed，**`elasticloadbalancing:AddTags`为implicitDeny**。补齐实际标签/CreateAction上下文仍未证明允许；附加最小策略、独立策略及CLI交叉模拟也没有证明允许，不能宣称原因已被充分解释或新策略已生效。
 
 **本清单是需要单独接受风险的受控实际尝试，不是“全部权限模拟通过”的安装。** r1/r2阻止安装的原记录保留，没有把结果改报allowed。新协议明确绑定上述缺口：一次安装准确、限时的最小Source策略并精确回读；这不证明有效权限或传播完成。随后只尝试一次准确带标签CreateTrustStore，由AWS实际鉴权，拒绝/失响应即停止，不创建替代名称/无标签对象、不扩大权限、不重试。失败可能已创建服务角色、桶、配置和三对象；这些前置资源不自动回滚。标签依赖与创建限定语义参考[AWS创建时标签权限](https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/tagging-resources-during-creation.html)、[ELB V2授权表](https://docs.aws.amazon.com/service-authorization/latest/reference/list_elbv2.html)；[IAM模拟不等于实际操作](https://docs.aws.amazon.com/IAM/latest/APIReference/API_SimulatePrincipalPolicy.html)。
 
 ## 需要确认的 fresh SHA
 
-- Manifest：`de586cd95bddba22fb6125008923cd2c96cf7c8a04fd97beb41976772657af74`。
-- 文件SHA：`d02f8c4d85227ca6fd552bf6af75112082d0478a170b364bbd87a2717b22214a`。
+旧r4清单 `de586cd95bddba22fb6125008923cd2c96cf7c8a04fd97beb41976772657af74` 已于2026-10-11 Winnipeg18:13:55.383过期；用户在过期后表示确认，本次没有沿用该确认执行。r5仅重新只读Review，原材料、7文件代码、资源范围及风险、anchor均保持，旧目录与辅助入口保留，新槽位仍空；下列新SHA须重新明确确认，旧确认不自动转移。
+
+- Manifest：`6b47167066caf637608833497dcd30aa85855f265129c5a15e756b14c517afab`。
+- 文件SHA：`a7fd3b640ebba8ca03ec80961c31c9fde4e43e55858855fb184423de044bac97`。
 - 7文件代码绑定：`b6c884c9b5e4e4cc6ddff9556a04ad40876cbaeae9a439bcdbaca32f2b8220d7`。
-- Review `2026-10-11T22:13:55.383Z`；截止 **2026-10-11 23:13:55.383 UTC / Winnipeg18:13:55.383**。
-- 私有目录：`F:/ChatGPT_workshop/techlong-f3c2-foundation-20261011-r4`。
-- 库存文件SHA `90541abab6a481eedf2684d369f9a7732ddd157b5aedfcdbd268bf7610709851`，anchor `3817ce517efe1b40a71720971d23c5c656af30106a3ea97d1f8b59b5cd00ddcf`。
-- 精确临时策略文件SHA `add8eab5ede45ec94269e9ffa8fbdd053c1a8ad8237795577a1148d57262fb33`；canonical SHA `bd3048adbff84397bdd41281eb3fb1eb6479703bc3974118943456917b45a47a`。其模拟证据文件SHA `0af56e8000829cc444a75695e7333550cdc2e0a8e950a1a18e704249d50dddb0`，decision仍implicitDeny、effectiveAllowProved=false。
+- Review `2026-10-11T23:33:21.359Z`；截止 **2026-10-12 00:33:21.359 UTC / Winnipeg 2026-10-11 19:33:21.359**。
+- 私有目录：`F:/ChatGPT_workshop/techlong-f3c2-foundation-20261011-r5`。
+- 库存文件SHA `fa407cb32cd9d7747560dcce3a8fd59743c1fdaca7b74f232ad38a56303be044`，anchor `3817ce517efe1b40a71720971d23c5c656af30106a3ea97d1f8b59b5cd00ddcf`。
+- 精确临时策略文件SHA `f43274c8de35c8288b68fbb64908ef1abea6d79bd5833c2638905a343d6da08f`；canonical SHA `b89c13e43017a6854f12e21d14f51aa62a1b9acc9e5389de6d9251f9fb60acc7`。其模拟证据文件SHA `25ad5f41a8759df0cc2b1c8d23f3ccd2441ecebf5d185c48f11d123016d264ec`，decision仍implicitDeny、effectiveAllowProved=false。
 
 ## 最多12次直接写调用，成功或失败立即撤回临时策略
 
@@ -59,6 +61,6 @@
 
 ## 执行入口与继续
 
-目前cloudWrites=0，新执行slot空，runtime=false；Git按默认授权两main提交推送，私有key/archive/原始材料不入Git。确认本页SHA、12调用范围及上述风险后，助手可运行一次 `F:/ChatGPT_workshop/Run-ReviewedMaterialFoundation-de586cd9.ps1` 加准确 `-ApprovedManifestSha`，它会一次Run及新的独立Inspect；**尚未确认，不能现在运行**。过期只能新只读Review并确认新SHA，不沿用旧批准或重放r1/r2。
+目前cloudWrites=0，新执行slot空，runtime=false；Git按默认授权两main提交推送，私有key/archive/原始材料不入Git。确认本页SHA、12调用范围及上述风险后，助手可运行一次 `F:/ChatGPT_workshop/Run-ReviewedMaterialFoundation-6b471670.ps1` 加准确 `-ApprovedManifestSha`，它会一次Run及新的独立Inspect；**尚未确认，不能现在运行**。过期只能新只读Review并确认新SHA，不沿用旧批准或重放r1/r2。
 
 完成后仍未证明TLS实机、Aurora恢复/迁移、租户ready或清理闭环；下一阶段准备专属任务IAM/readcap/Budget与v3准确清理兼容模板/短TTL Cell评审，实际部署另批，不提前drain或假authority。
