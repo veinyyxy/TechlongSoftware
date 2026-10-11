@@ -1,5 +1,7 @@
 # F3c2：空 baseline / mTLS 基础受控在线安装清单（未执行）
 
+此页保留批准前历史；新r5清单已获用户确认并于2026-10-11 23:40UTC完成12写、立即撤回临时策略及两独立Inspect。固定槽位已消费，不能重新运行本页入口；当前状态以[实际执行证据与继续位置](./aws-auto-deployment-fast-track-f3c2-material-foundation-executed.md)为准。
+
 2026-10-11 Winnipeg。复用已验收的空 PG16.14 baseline、已发布两镜像与已签发 sandbox ACM；没有重新导出、连接数据库、构建镜像或执行云安装。新本地 sandbox CA/客户端材料及一次 Review/Run/独立 Inspect 入口完成，14新+14相邻共28测试、typecheck、定向lint通过。50 USD/月仍为目标，不是硬上限。
 
 ## 当前实际结果与权限不确定性
