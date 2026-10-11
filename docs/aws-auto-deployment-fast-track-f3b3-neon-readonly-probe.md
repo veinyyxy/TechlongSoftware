@@ -1,5 +1,7 @@
 # F3b3：Neon TLS / 密封 v3 只读探针已准备，未执行
 
+> 本文保留准备时清单。2026-10-11 批准后已一次更新代码，但 RevisionId 后置门禁停止，未调用；候选代码经两次独立回读确认就绪，新槽位已消费，禁止重放或补调。当前状态见[实际安装、差异和下一步](./aws-auto-deployment-fast-track-f3b3-neon-readonly-installed.md)。以下不是新的执行授权。
+
 2026-10-11 Winnipeg。上一阶段 KMS 修正已通过实机 Secret 读取和独立日志核验。本阶段新增独立的只读探针/构建/Review-一次 Run-Inspect 入口，**没有更新或调用 Lambda、读取 Secret 值、连接 Neon 或写 AWS/数据库**；旧 p2 包、KMS/安装代码 binding、所有已消费槽位及记录保持。
 
 ## 本次拟执行的准确范围
