@@ -11,7 +11,7 @@
 
 最多两个直接写请求，顺序固定：
 
-1. `budgets:UpdateBudget`，AccountId402010193138，准确预算 `techlong-sandbox-402010193138-ca-central-1`，仅金额10→50 USD。NewBudget发送BudgetName、BudgetLimit、BudgetType、TimeUnit、CostFilters、CostTypes、TimePeriod七项可写配置，除金额外都按批准前实值保留。时间段固定 **2026-10-01T00:00:00Z至2087-06-15T00:00:00Z**，CLI请求以Unix秒表示；不恢复历史Aug1，不迁移过滤器格式，不发送CalculatedSpend/HealthStatus/LastUpdatedTime，不调用通知、订阅、标签或Budget action变更API。
+1. Budgets API `UpdateBudget`（对应IAM权限为`budgets:ModifyBudget`），AccountId402010193138，准确预算 `techlong-sandbox-402010193138-ca-central-1`，仅金额10→50 USD。NewBudget发送BudgetName、BudgetLimit、BudgetType、TimeUnit、CostFilters、CostTypes、TimePeriod七项可写配置，除金额外都按批准前实值保留。时间段固定 **2026-10-01T00:00:00Z至2087-06-15T00:00:00Z**，CLI请求以Unix秒表示；不恢复历史Aug1，不迁移过滤器格式，不发送CalculatedSpend/HealthStatus/LastUpdatedTime，不调用通知、订阅、标签或Budget action变更API。
 2. 预算50及其余完整绑定配置核验通过后，`dynamodb:UpdateTable`，准确表 `techlong-sandbox-tenant-external-epoch-authority`，OnDemandThroughput MaxReadRequestUnits **5→100**，MaxWriteRequestUnits **2不变**。TableId固定 `58c851f4-5b8e-45ce-8933-05c33b17fb21`，写前/响应/回读均检查准确ARN与ID；不改表数据、计费模式、索引、流、加密、标签等绑定设置。
 
 预算API位于us-east-1；表和成本栈位于ca-central-1。预算ARN为 `arn:aws:budgets::402010193138:budget/techlong-sandbox-402010193138-ca-central-1`；表ARN为 `arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority`。
