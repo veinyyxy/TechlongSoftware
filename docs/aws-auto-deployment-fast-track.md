@@ -23,7 +23,7 @@
 | --- | --- | --- | --- |
 | F1 真实运行时组合 | 真实 Secret material generator、租户上下文绑定、数据库/ownership/清理/mTLS adapter 接线、50 USD 预算兼容 | 组合不调用云；独立凭据不串租；同一 Secret/lifecycle 实例用于部署和清理；不能靠环境变量打开 runtime | 代码及定向验证完成，未云启用 |
 | F2 数据库可执行闭环 | PostgreSQL 16.14 空 baseline 候选；backend prepare/restore/migrate/verify production provider；镜像构建与严格 readback | 业务数据为空；只允许批准 seed；真实任务回执和崩溃恢复；旧 inspect/destroy 入口不被放宽 | F2g2显式prepared-v2接线及定向验证完成；F3a2新root双镜像已ECR发布/独立字节与扫描核验。baseline/TaskDefinition/activation/单租户权限仍未安装，真实AWS数据库闭环未完成 |
-| F3 在线门禁集中验收 | 单次只读取证收敛 IAM；authority/root；ACM/DNS/mTLS；空 inventory；TTL/回滚；费用估算；bootstrap Change Set | 使用真实 provider 证据；审批/执行在同一本地流程及时完成；成功或失败均独立撤权；可证明清理 | F3a只读取证完成，F3a2实际双镜像发布成功并立即Revoke/独立Locked/v6，旧镜像保留；PG16.14可用、Cell缺失。TTL/mTLS/DNS/专属IAM/baseline/读cap/Budget仍阻止付费执行，F3整体未完成 |
+| F3 在线门禁集中验收 | 单次只读取证收敛 IAM；authority/root；ACM/DNS/mTLS；空 inventory；TTL/回滚；费用估算；bootstrap Change Set | 使用真实 provider 证据；审批/执行在同一本地流程及时完成；成功或失败均独立撤权；可证明清理 | F3a2双镜像已发布并立即Revoke/独立Locked；F3c1 DNS/ACM、F3c2 baseline/mTLS材料前置已安装，F3c3d实际Budget50/read100-write2独立核验通过（明确CFN10金额覆盖）。覆盖readiness接线、专属任务IAM、v3TTL清理兼容Cell模板及真实数据库/清理闭环仍未完成；Cell缺失、runtime关闭，F3整体未完成 |
 | F4 单租户端到端 | 已批准 Cell 和镜像上运行真实 Worker；一个部署任务到 ready；失败/TTL 验收 | 真实健康端点、配置与地址回写；无孤儿租户资源；费用与资源 inventory 核对 | 尚未执行 |
 
 F1/F2 的代码准备不等待 IAM 探针完成；付费执行仍必须满足 F3。任何批次不能把本地模拟通过当作云端验收通过。
@@ -49,6 +49,8 @@ material 只能在 guarded Secret store 的 generation/epoch 上下文内生成�
 这仍是 **prepared_not_activated**：原 standalone Worker 默认入口保持关闭，prepared root 的 apply/cleanup readiness 也固定为 false。原因是当前已部署 lifecycle 镜像只证明 inspect/destroy，不包含已经在线验证的 prepare/restore/migrate/verify provider；当前 Cell 仍缺失，authority 尚未安装。不能伪称自动部署已经可用。
 
 ## 继续位置
+
+最新继续位置（2026-10-12 Winnipeg）：用户确认b9193bbd...及上一条完整风险后，F3c3d一次helper有效窗口仅两写Budget API10→50、完整预算核验后原表read5→100/write2保持；回执01c8d5de.../failure null，新slot永久消费七marker/explicit-override，禁止重跑helper/reset/自动补齐删除回滚或写重试。15:19:27.527/15:19:33.868UTC（Winnipeg10:19，第二次独立新进程）两Inspect均targetVerified=true，除时间外一致stable e9d8779e...，actual settings575a194a...与批准期望完全一致：实际Budget50/固定Oct1-End2087June15/原TableId ACTIVE read100-write2，其余绑定配置及通知订阅d453801f...保持。CFN栈仍UPDATE_ROLLBACK_COMPLETE/原模板81fbf96d.../参数10/原恢复事件，所有权标签保留，CFN10/实际50明确批准金额漂移，不称整栈无漂移，旧apply操作规程封存但未技术撤权；三旧CS仍可读不重放。Review/Run/新进程Inspect十六代码b8672d4a...及原七十十三/历史槽位记录保持，23测试不重做；没有IAM/CFN/Secret/Neon/authority/Item/Lambda/Cell/runtime变更。当前仅费用配置及覆盖证据完成，不是F3整体/自动部署验收或运行时激活证书；下一阶段集中准备实际Budget50+明确CFN覆盖证据readiness接线、专属任务IAM、v3TTL清理兼容Cell模板及真实清理路径，旧CFN10检查不静默放宽，实际权限/付费部署fresh准确清单另批。50USD仍非硬cap。见[完成证据与继续边界](./aws-auto-deployment-fast-track-f3c3d-direct-cost-controls-executed.md)。以下保留历史。
 
 最新继续位置（2026-10-12 Winnipeg）：F3c3d独立直接费用控制入口完成，8新+15相邻共23测试/typecheck/定向lint/syntax通过。15:08:51.610UTC / Winnipeg10:08:51.610只读Review Source准确身份、预算ModifyBudget/表UpdateTable模拟allowed，恢复状态settings f04b6809...保持：栈UPDATE_ROLLBACK_COMPLETE/参数模板10，实际Budget10/Oct1-End2087June15、原表ACTIVE/read5-write2及三旧CS状态保持。新SHA b9193bbd7959159400e659f14179943a236eadd8f1ff68f13d385a5713155026，截止16:08:51.610UTC / Winnipeg11:08:51.610；十六文件b8672d4a...，原七/十/十三绑定与三个已消费槽位不改，新slot空/helper只解析未Run/云写0。拟最多两直接写：Budget API10→50，完整核验后准确表read5→100/write2不变，再独立新进程Inspect；保留CFN10所有权/标签，接受实际50金额漂移，旧apply封存但未技术撤权。整预算非CAS覆盖/无幂等令牌、CalculatedSpend暂时归零不代表零账单、并发/刷新失效/异步/部分遗留/非零费用与永久槽位不自动回滚删除补齐复位或写重试必须本次fresh SHA完整风险确认；不借仅恢复授权，不改IAM/Secret/Neon/CFN，不部署Cell/runtime。50USD仍非硬cap。见[准确两写清单与完整风险](./aws-auto-deployment-fast-track-f3c3d-direct-cost-controls-review.md)。以下保留历史。
 

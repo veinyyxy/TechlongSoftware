@@ -1,5 +1,7 @@
 # F3c3d：直接费用控制更新清单，未执行
 
+历史批准前清单。用户随后确认该SHA及完整风险，有效窗口一次helper完成两写，实际Budget50/原表ACTIVE read100-write2，两个Inspect（第二次独立新进程）均targetVerified=true。新slot已永久消费七marker，不得重跑下方命令；CFN10/实际50漂移按批准保留。见[实际执行证据与下一阶段](./aws-auto-deployment-fast-track-f3c3d-direct-cost-controls-executed.md)。下方原范围、风险和准备时状态保留。
+
 2026-10-12 Winnipeg。F3c3c已恢复准确成本栈；本轮只实现独立入口、测试及真实只读Review，AWS写入0。当前仍是Budget **10 USD**、表 **read5/write2**，不是50 USD费用门禁完成。
 
 ## 本次待批准范围
