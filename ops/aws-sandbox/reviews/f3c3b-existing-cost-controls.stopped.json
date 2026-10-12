@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "phase": "F3c3b",
+  "outcome": "EXECUTE_SUBMITTED_STACK_UPDATE_FAILED_TABLE_NOT_UPDATED",
+  "executionClientDate": "2026-10-11",
+  "clientTimezone": "America/Winnipeg",
+  "approvedManifestSha256": "b28a77533adcedb7d897112441a1fa5fb235995cef94f2716076e28a8580ad48",
+  "codeSha256": "41dfdf85b2b3e01d29737aac8dccd3846229a23cbedc5b2e871d5abedd67bf9c",
+  "originalCodeSha256": "389e66ad5eab75416009e316b70ab86bd52ca45ac69e0b5c6ca43ae10f85dccc",
+  "allBoundCodeUnchanged": true,
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "sourceUserId": "AIDAV3GNMXTZEO7SHLC2X",
+  "sourceIdentityVerified": true,
+  "sourceExpiredNotObserved": true,
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-cost-guardrails/b91bb3d0-9424-11f1-8b02-02a8988b0b23",
+  "stackStatus": "UPDATE_FAILED",
+  "disableRollback": true,
+  "stackMonthlyBudgetParameter": 50,
+  "stackTemplateSha256": "cd7e99100d90225f7ba88538f8888a006f446f6b1a873e5da655ee9e815f496b",
+  "changeSetArn": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-f3c3a-cost50-d662dab65100299ee922/f9ff4310-233f-4c83-bf81-19f8146895a3",
+  "changeSetStatus": "CREATE_COMPLETE",
+  "changeSetExecutionStatus": "EXECUTE_FAILED",
+  "changeSetDirectDescribeSucceeded": true,
+  "changeSetListSummaryAbsent": true,
+  "writeAttempts": 1,
+  "executeRequestConfirmed": true,
+  "updateTableCalls": 0,
+  "createChangeSetCalls": 0,
+  "iamWrites": 0,
+  "applicationRollbackCalls": 0,
+  "applicationDeleteCalls": 0,
+  "failureStage": "EXECUTE_EXISTING_CHANGESET",
+  "failureCode": "EXISTING_COST_BUDGET_UPDATE_UNVERIFIED",
+  "cloudFormationFailureReason": "CloudFormation is unable to provision/access this resource type",
+  "uniqueRootCauseNotEstablished": true,
+  "registryObservation": {
+    "capturedAt": "2026-10-12T04:55:28.406Z",
+    "region": "ca-central-1",
+    "typeName": "AWS::Budgets::Budget",
+    "arn": "arn:aws:cloudformation:ca-central-1::type/resource/AWS-Budgets-Budget",
+    "provisioningType": "NON_PROVISIONABLE",
+    "visibility": "PUBLIC",
+    "deprecatedStatus": "LIVE",
+    "handlersPresent": false,
+    "createOnlyProperties": [
+      "/properties/NotificationsWithSubscribers"
+    ],
+    "primaryIdentifier": [
+      "/properties/Id"
+    ],
+    "doesNotProveAllCloudFormationRegionsOrLegacyHandlersUnsupported": true
+  },
+  "serviceFailedResourceRollbackObserved": true,
+  "noStackWideRollbackRequestMade": true,
+  "actualBudgetUsd": 10,
+  "budgetHealth": "HEALTHY",
+  "budgetStartBefore": "2026-08-01T00:00:00.000Z",
+  "budgetStartAfter": "2026-10-01T00:00:00.000Z",
+  "budgetEndUnchanged": "2087-06-15T00:00:00.000Z",
+  "budgetEntireBoundConfigUnchanged": false,
+  "budgetTimePeriodChangeAccompaniedFailedResourceRollback": true,
+  "externalConcurrencyNotExcluded": true,
+  "actualReadUnits": 5,
+  "actualWriteUnits": 2,
+  "tableId": "58c851f4-5b8e-45ce-8933-05c33b17fb21",
+  "tableStatus": "ACTIVE",
+  "allBoundTableConfigUnchanged": true,
+  "notificationsAndSubscribersUnchanged": true,
+  "notificationsAndSubscribersSha256": "d453801fe2a4c092747c76a7a85b0817caa245b8bd790bbd8b11ac7e87c54060",
+  "changedPaths": [
+    "/stack/parameters/MonthlyBudgetUsd",
+    "/stack/templateSha256",
+    "/budget/config/TimePeriod/Start"
+  ],
+  "currentSettingsSha256": "ac7dfa38adaf09cdf29c7e1aab358a5753f2787e73a2f2540658cd592386baa2",
+  "oldChangeSets": [
+    {
+      "arn": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/awscli-cloudformation-package-deploy-1786302438/652e5dd5-e04b-4d8f-b7ee-04af0b2c52d9",
+      "absent": false,
+      "status": "FAILED",
+      "executionStatus": "OBSOLETE"
+    },
+    {
+      "arn": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/awscli-cloudformation-package-deploy-1786306192/f3adc3b8-2caa-4280-b697-aec9c934ed2e",
+      "absent": false,
+      "status": "FAILED",
+      "executionStatus": "OBSOLETE"
+    }
+  ],
+  "oldChangeSetDeletionNotProved": true,
+  "listAbsenceIsNotDeletionProof": true,
+  "receiptFileSha256": "ca39ab0a5ead43ad975a4fc33de6820f1376c5ffa9b108083c77d975b6c05d60",
+  "independentInspects": [
+    {
+      "observedAt": "2026-10-12T04:53:17.840Z",
+      "stackStatus": "UPDATE_IN_PROGRESS",
+      "fileSha256": "5bb7d058a7fe263521fff1841cc65238fc07248aa43aff0d62c6e88aad1c590e"
+    },
+    {
+      "observedAt": "2026-10-12T04:53:23.580Z",
+      "stackStatus": "UPDATE_FAILED",
+      "fileSha256": "b59ba932d50f75c8e2954d4d72dff34d9ee62172d10b732abe80c8b84b926d0b"
+    },
+    {
+      "observedAt": "2026-10-12T04:57:34.117Z",
+      "stackStatus": "UPDATE_FAILED",
+      "fileSha256": "9bbac3754c28babdc1442fc120de5f7e239fd8408d9d4fc67715c8e0d82302c1"
+    }
+  ],
+  "lastTwoInspectsStableExceptTimestamp": true,
+  "lastTwoStableSha256": "773ca0857c1f53348b892794f2c9fd04c8339851a33a308f2b1b8506a7c70f3b",
+  "privateDiagnosticPath": "F:/ChatGPT_workshop/techlong-f3c3b-existing-cost-controls-20261012-r2-diagnostics.json",
+  "privateDiagnosticFileSha256": "ca745c83ade9471970e01c661e10fe59f2f1fd079798522826fe9529e60a01f1",
+  "newSlotConsumed": true,
+  "newSlotMarkers": [
+    "approved-manifest.json",
+    "execute-attempt.json",
+    "execute-confirmed.json"
+  ],
+  "budgetVerifiedMarkerAbsent": true,
+  "readLimitAttemptMarkerAbsent": true,
+  "originalConsumedSlotPreserved": true,
+  "noAutomaticRollbackDeleteFillResetOrWriteRetry": true,
+  "helperMustNotBeRerun": true,
+  "targetCostControlsVerified": false,
+  "runtimeEnabled": false,
+  "paidCellCreated": false,
+  "proposedNextDirectionNotAuthorized": "Review failure-stack recovery and separate exact Budgets API/table cost controls, including ownership/drift and actual time period; no write without new scope and fresh SHA.",
+  "prior25TestsPreservedNotCloudAcceptance": true,
+  "publicSubscriberAndContextValuesWithheld": true
+}

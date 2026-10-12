@@ -1,5 +1,7 @@
 # F3c3b：复用现有 Conditional Change Set，专项评审完成，未执行
 
+历史批准前清单。用户随后确认该SHA并一次Run，Execute提交后成本栈UPDATE_FAILED、实际Budget仍10/read5/write2、预算Start发生变化；新槽位已消费，不能重跑本页命令。两旧CS直接Describe为OBSOLETE而非已证明删除，原清单及风险文字保留，不作为实际状态证明。见[实际执行与停止证据](./aws-auto-deployment-fast-track-f3c3b-existing-cost-controls-stopped.md)。
+
 2026-10-11 Winnipeg。用户“同意这个方向”只授权准备现有准确 Change Set 的独立评审和新清单。已实现独立 Review / 一次 Run / Inspect、本地批准命令及新的永久槽位；**本轮 AWS 写入为0，没有执行预算或表变更，也没有重建 Change Set。实际仍是 Budget10 USD / read5 / write2。**
 
 ## 新清单与准确资源
