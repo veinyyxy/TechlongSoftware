@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "phase": "F3c3a_COST_CONTROLS",
+  "status": "CREATED_UNEXECUTED_CONDITIONAL_SCOPE_REVIEW_STOPPED",
+  "approvedManifestSha256": "d662dab65100299ee922b84a88cc0a8c42db2f16bfbeb6597827b01dbf8903fe",
+  "approvedManifestFileSha256": "4dfbffe855d1ac91cf887288dbe375aac3a6867081023641a5a24845fa56abb2",
+  "codeSha256": "389e66ad5eab75416009e316b70ab86bd52ca45ac69e0b5c6ca43ae10f85dccc",
+  "approvalSupplied": true,
+  "cloudDirectWriteAttempts": 1,
+  "completed": [
+    "CREATE_CHANGESET"
+  ],
+  "failureStage": "REVIEW_CREATED_CHANGESET",
+  "failureCode": "COST_CONTROL_CHANGESET_SCOPE_UNREVIEWED",
+  "createSubmittedAndConfirmed": true,
+  "changeSetArn": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-f3c3a-cost50-d662dab65100299ee922/f9ff4310-233f-4c83-bf81-19f8146895a3",
+  "changeSetStatus": "CREATE_COMPLETE",
+  "changeSetExecutionStatus": "AVAILABLE",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-cost-guardrails/b91bb3d0-9424-11f1-8b02-02a8988b0b23",
+  "logicalResourceId": "SandboxMonthlyCostBudget",
+  "physicalResourceId": "techlong-sandbox-402010193138-ca-central-1",
+  "resourceType": "AWS::Budgets::Budget",
+  "resourceAction": "Modify",
+  "actualReplacement": "Conditional",
+  "requiredApprovedReplacement": "False",
+  "actualRequiresRecreation": [
+    "Conditionally",
+    "Conditionally",
+    "Conditionally"
+  ],
+  "requiredApprovedRequiresRecreation": "Never",
+  "resourceChanges": 1,
+  "scope": [
+    "Properties"
+  ],
+  "distinctChangedPropertyPaths": [
+    "/Properties/Budget/BudgetLimit/Amount",
+    "/Properties/Budget/TimePeriod"
+  ],
+  "beforeContextSha256": "057d3c1eb05ed22a0aa291484998c8dc320e1f17c723ce158c8e13d7295e3d10",
+  "afterContextSha256": "c007fb993a12e33ac64293e3789e1ea3f36dd128a6f1ef4080f5b38e61da7da5",
+  "contextOtherPropertiesUnchanged": true,
+  "providerUnderlyingReasonFullyEstablished": false,
+  "scopeAuditCapturedAt": "2026-10-12 04:17:29 UTC",
+  "scopeAuditFileSha256": "cad29da41c7a7be10e8269404bec73c76cacd6c6948deb2801baa3a0907a179c",
+  "submissionReceiptFileSha256": "068bc6e413640924256e24271a53ea78631512e01cb5a974fccf0a1cdaddc333",
+  "firstInspect": {
+    "observedAt": "2026-10-12T04:10:32.255Z",
+    "fileSha256": "e1bb0a65cfb2dee58dfd07718fbdf9fafde38c939366cbf29351185a2c81c88f"
+  },
+  "independentNewProcessInspect": {
+    "observedAt": "2026-10-12T04:10:37.205Z",
+    "fileSha256": "ba0bf7a43bccf545636eb6cbd3cfa0e50eb29aa50336f7fa9a4b72ffafd03f4c"
+  },
+  "stableInspectSha256": "0a8de1c55962323c08389241ddbf6f2f96627f91d510788a5ad5f812a6b75ee5",
+  "beforeSettingsSha256": "a6433291649fe7ab0fe2d0693d0424835ad3f681789fc059e6eb0f0ed0513d2d",
+  "beforeBoundConfigurationUnchangedVerified": true,
+  "costControlsApplied": false,
+  "rawInspectCompletionFlagRemainsFalse": true,
+  "budgetUsd": 10,
+  "maxReadUnits": 5,
+  "maxWriteUnits": 2,
+  "tableId": "58c851f4-5b8e-45ce-8933-05c33b17fb21",
+  "stackStatus": "CREATE_COMPLETE",
+  "tableStatus": "ACTIVE",
+  "oldFailedChangeSetsRemaining": [
+    "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/awscli-cloudformation-package-deploy-1786302438/652e5dd5-e04b-4d8f-b7ee-04af0b2c52d9",
+    "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/awscli-cloudformation-package-deploy-1786306192/f3adc3b8-2caa-4280-b697-aec9c934ed2e"
+  ],
+  "oldCloudChangeSetsDeletionTriggered": false,
+  "budgetUpdateExecutionSubmitted": false,
+  "tableUpdateSubmitted": false,
+  "permanentSlot": "techlong-f3c3a-sandbox-cost-controls-v1-consumed",
+  "slotConsumed": true,
+  "durableMarkerCount": 3,
+  "retryAuthorized": false,
+  "originalApprovedCodeModified": false,
+  "originalRecordsAndSlotsPreserved": true,
+  "resourceDeletionRollbackFillOrSlotResetPerformed": false,
+  "iamChanges": 0,
+  "tableItemReadsOrWrites": 0,
+  "databaseConnected": false,
+  "lambdaInvocations": 0,
+  "paidCellCreated": false,
+  "runtimeEnabled": false,
+  "proposedNextStep": "PREPARE_NEW_REVIEW_OF_EXACT_EXISTING_CONDITIONAL_CHANGESET_ONLY_AFTER_USER_DIRECTION",
+  "newReviewMustNotReuseConsumedOriginalSlot": true,
+  "conditionalExecutionRequiresNewExplicitScopeAndFreshShaApproval": true
+}

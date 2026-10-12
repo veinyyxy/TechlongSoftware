@@ -1,5 +1,7 @@
 # F3c3a：Source 刷新后的新执行清单（未执行）
 
+本页SHA已获明确确认并一次运行：仅创建CS后因实际Replacement=Conditional而被False/Never检查拒绝，未Execute或更新表。原slot已消费、辅助脚本不可重放；当前实际状态及新评审方向见[范围停止证据](./aws-auto-deployment-fast-track-f3c3a-cost-controls-scope-stopped.md)。以下保留批准前原文。
+
 2026-10-11 Winnipeg。用户报告Source已刷新后，CLI只读核验准确UserId `AIDAV3GNMXTZEO7SHLC2X`、账户402010193138、ARN `arn:aws:iam::402010193138:user/techlong-sandbox-dev` 成功；随后只运行一次新的Review，不重放r1失败辅助脚本。
 
 2026-10-12T04:03:15.406Z / Winnipeg10月11日23:03:15.406的集中实际回读：原成本栈CREATE_COMPLETE，预算仍10USD，准确TableId `58c851f4-5b8e-45ce-8933-05c33b17fb21` 的表ACTIVE/read5/write2；准确两条旧FAILED/UNAVAILABLE Change Set未变，完整只读原件再次保存。四项Source权限模拟均allowed，尚不保证实际执行成功。新永久槽位仍未消费，**本轮AWS写0，尚未创建新CS、更新预算/表或删除旧CS**。
