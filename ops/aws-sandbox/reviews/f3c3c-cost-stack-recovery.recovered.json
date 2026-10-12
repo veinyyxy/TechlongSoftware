@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "phase": "F3c3c",
+  "outcome": "COST_STACK_RESTORATION_VERIFIED_NO_COST_LIMIT_UPDATE",
+  "approvedManifestSha256": "22fe4989d099196e75c14c148da19a90c3ff860bebed733cd2db354904ce9c36",
+  "codeSha256": "8a3a02add2954fff7c2e7577d72564817ed04ffb3f6b5356e017016cb7ceaafc",
+  "codeBindingFileCount": 13,
+  "allBoundCodeUnchanged": true,
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "sourceUserId": "AIDAV3GNMXTZEO7SHLC2X",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-cost-guardrails/b91bb3d0-9424-11f1-8b02-02a8988b0b23",
+  "stackStatus": "UPDATE_ROLLBACK_COMPLETE",
+  "disableRollback": true,
+  "restorationVerified": true,
+  "operationId": "f68993c6-f7b9-4f06-a16e-e399f18943f9",
+  "completedEvent": {
+    "id": "d0ad64a0-c64a-11f1-a7c2-026a0543e9bf",
+    "at": "2026-10-12T14:40:05.592Z",
+    "status": "UPDATE_ROLLBACK_COMPLETE",
+    "token": "f3c3c-recover-22fe4989d099196e75c14c148da19a90c3ff860bebed733cd2db354904ce9c36"
+  },
+  "clientTimezone": "America/Winnipeg",
+  "clientCompletedAt": "2026-10-12 09:40:05.592",
+  "restoredTemplateSha256": "81fbf96d996ee84f5b1ac2337442f0b931815b24a24995b5c73d952097728cdf",
+  "restoredMonthlyBudgetParameter": 10,
+  "budgetUsd": 10,
+  "budgetTimePeriod": {
+    "Start": "2026-10-01T00:00:00.000Z",
+    "End": "2087-06-15T00:00:00.000Z"
+  },
+  "historicalAugustStartNotRestored": true,
+  "maxReadUnits": 5,
+  "maxWriteUnits": 2,
+  "tableId": "58c851f4-5b8e-45ce-8933-05c33b17fb21",
+  "tableStatus": "ACTIVE",
+  "settingsSha256": "f04b68099b0e4566c21e817fc3e4a96723145d2bdb21cddaec0ef610cc0ba291",
+  "allApprovedRestorationSettingsMatched": true,
+  "restorationNotMerelyCompleteStatusCheck": true,
+  "trackedChangeSets": [
+    {
+      "id": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/awscli-cloudformation-package-deploy-1786302438/652e5dd5-e04b-4d8f-b7ee-04af0b2c52d9",
+      "present": true,
+      "status": "FAILED",
+      "executionStatus": "OBSOLETE"
+    },
+    {
+      "id": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/awscli-cloudformation-package-deploy-1786306192/f3adc3b8-2caa-4280-b697-aec9c934ed2e",
+      "present": true,
+      "status": "FAILED",
+      "executionStatus": "OBSOLETE"
+    },
+    {
+      "id": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-f3c3a-cost50-d662dab65100299ee922/f9ff4310-233f-4c83-bf81-19f8146895a3",
+      "present": true,
+      "status": "CREATE_COMPLETE",
+      "executionStatus": "EXECUTE_FAILED"
+    }
+  ],
+  "writeAttempts": 1,
+  "rollbackStackSubmissionConfirmed": true,
+  "failureCode": null,
+  "receiptFileSha256": "2b212a16f08092fdeb488a4caf10d152567691f01227a542ed0e806e64f3f12f",
+  "independentInspects": [
+    {
+      "observedAt": "2026-10-12T14:40:16.443Z",
+      "restorationVerified": true,
+      "fileSha256": "89d3ddf99076380c00849b37ca1fea326fab532d7e7ed73f08d029238f6a176c"
+    },
+    {
+      "observedAt": "2026-10-12T14:40:21.998Z",
+      "restorationVerified": true,
+      "fileSha256": "722051e3486d71d164d1d5e3f463f8d8d326cfdb61269246a4d56c3ff86bfb9b"
+    }
+  ],
+  "secondInspectNewProcess": true,
+  "inspectsEqualExceptTimestamp": true,
+  "stableInspectSha256": "95596cd4e67670aa2ca1d4814ce45aaa6fa1147a25da1c96b7f30c7e650ad75a",
+  "privateRunDirectory": "F:/ChatGPT_workshop/techlong-f3c3c-cost-stack-recovery-20261012-r1-run",
+  "privateVerifyDirectory": "F:/ChatGPT_workshop/techlong-f3c3c-cost-stack-recovery-20261012-r1-verify",
+  "permanentSlot": "techlong-f3c3c-cost-stack-recovery-v1-consumed",
+  "slotConsumed": true,
+  "markerCount": 4,
+  "markers": [
+    "approved-manifest.json",
+    "rollback-attempt.json",
+    "rollback-confirmed.json",
+    "restoration-verified.json"
+  ],
+  "oldConsumedSlotsAndRecordsPreserved": true,
+  "helperMustNotBeRerun": true,
+  "noAutomaticAdditionalRollbackDeleteFillResetOrWriteRetry": true,
+  "directBudgetUpdateCalls": 0,
+  "tableUpdateCalls": 0,
+  "newIamWrites": 0,
+  "applicationDeleteCalls": 0,
+  "directBudgetUpdateAuthorized": false,
+  "tableUpdateAuthorized": false,
+  "retryAuthorized": false,
+  "target50Read100Verified": false,
+  "paidCellCreated": false,
+  "runtimeEnabled": false,
+  "previous28TestsPreservedNotCloudAcceptance": true,
+  "publicSubscriberAndContextValuesWithheld": true,
+  "nextPreparation": "Fresh review of exact Budgets API limit50 and table read100/write2 from recovered state, preserve observed Oct1 period and explicitly document retained CFN ownership/amount drift; actual writes require separate fresh SHA."
+}

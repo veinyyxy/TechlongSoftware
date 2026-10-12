@@ -1,5 +1,7 @@
 # F3c3c：失败成本栈恢复与直接费用控制分离评审，未执行
 
+历史批准前清单。用户随后确认该SHA并一次运行，准确成本栈已UPDATE_ROLLBACK_COMPLETE、两次独立Inspect恢复通过；新slot永久消费四marker，不能重跑本页命令。预算仍10/read5-write2、时间段仍Oct1，直接费用更新未授权。原范围/风险与批准记录保留，见[实际恢复完成证据](./aws-auto-deployment-fast-track-f3c3c-cost-recovered.md)。
+
 2026-10-12 Winnipeg。用户同意“失败成本栈恢复 + 直接Budgets API费用控制”的准备方向；本轮仅代码、候选数据和真实只读核验，AWS写入0。实际仍为成本栈UPDATE_FAILED、预算10 USD、表read5/write2，不能称50 USD费用门禁或自动部署已完成。
 
 ## 两步顺序与所有权决策
