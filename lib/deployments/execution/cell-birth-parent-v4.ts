@@ -6,13 +6,18 @@ import { CELL_BIRTH_COORDINATOR_ROLE_V3 } from "./cell-birth-registration-v3.ts"
 import { FAILED_BIRTH_DDB_KEYS_V1 } from "./failed-cell-birth-ddb-v1.ts";
 import { SHARED_CELL_CLEANUP_AUTHORITY_TABLE_ARN } from "./aws-sdk-shared-cell-cleanup-authority.ts";
 import { assertCellParentInstallationV4, type CellParentInstallationV4 } from "./aws-sdk-cell-birth-parent-installation-v4.ts";
+import { READONLY_RUNTIME_IAM_TARGETS_V1 as controls } from "./readonly-runtime-iam-v1.ts";
+import { READONLY_KMS_KEY_ARN_V1 } from "./readonly-kms-read-repair-v1.ts";
 
 export const CELL_PARENT_KEY_V4 = "cell-birth-v4:parent:cell:cell-sandbox-1";
 export const CELL_PARENT_BOUNDARY_V4 = "arn:aws:iam::402010193138:policy/TechlongSandboxCellLifecycleCoordinatorBoundaryV4";
 export const CELL_PARENT_INLINE_V4 = "CellBirthParentV4";
 export const CELL_PARENT_TABLE_ID_V4 = "58c851f4-5b8e-45ce-8933-05c33b17fb21";
+export const CELL_PARENT_WORKFLOW_KEYS_V4 = Object.freeze({ dbIntent: "cell-birth-v4:db-intent:cell:cell-sandbox-1", dbReceipt: "cell-birth-v4:db-receipt:cell:cell-sandbox-1",
+  authority: "cell-birth-v4:delete-authority:cell:cell-sandbox-1", deleteIntent: "cell-birth-v4:delete-intent:cell:cell-sandbox-1", deleteReceipt: "cell-birth-v4:delete-receipt:cell:cell-sandbox-1",
+  issuanceIntent: "cell-birth-v4:issuance-intent:cell:cell-sandbox-1" });
 export const CELL_PARENT_SCOPE_V4 = Object.freeze({ publishProvisionOnce: true, beginAdmissionDrainOnce: true, issueTtlAuthorityOnce: true,
-  invokeTtlExecutorOnce: true, fenceFailedBirthOnce: true, deleteFailedBirthOnce: true,
+  executeInlineTtlOnce: true, cleanupCompleteUnpublishedBirthOnce: true, enqueueOwnedTtlCleanupOnce: true, fenceFailedBirthOnce: true, deleteFailedBirthOnce: true,
   publishActivation: false, enableTenantRuntime: false, createOrUpdateCellStack: false, resetReplaceOrRetry: false });
 export interface CellParentRuntimeBindingV4 {
   functionArn: typeof CELL_LIFECYCLE_COORDINATOR_V3; functionVersion: "$LATEST"; revisionId: string;
@@ -52,14 +57,13 @@ export function cellParentTableFreezePolicyV4(sourceWindowClosesAt: number) {
 export function cellParentIamDocumentsV4(stackId: string) {
   if (!/^arn:aws:cloudformation:ca-central-1:402010193138:stack\/techlong-sandbox-cell-sandbox-1\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(stackId)) cellV3Fail("CELL_PARENT_EXACT_STACK_ARN_REQUIRED");
   const table = SHARED_CELL_CLEANUP_AUTHORITY_TABLE_ARN, fn = CELL_LIFECYCLE_COORDINATOR_V3;
-  const read = [CELL_PARENT_KEY_V4, ...Object.values(FAILED_BIRTH_DDB_KEYS_V1), "sealed-cell-ttl-v3:cell:cell-sandbox-1"];
-  const writes = [FAILED_BIRTH_DDB_KEYS_V1.provision, FAILED_BIRTH_DDB_KEYS_V1.marker, FAILED_BIRTH_DDB_KEYS_V1.intent, FAILED_BIRTH_DDB_KEYS_V1.receipt,
-    "cell-birth-v4:drain-intent:cell:cell-sandbox-1", "cell-birth-v4:drain-receipt:cell:cell-sandbox-1", "sealed-cell-ttl-v3:cell:cell-sandbox-1"];
+  const writes = [FAILED_BIRTH_DDB_KEYS_V1.provision, FAILED_BIRTH_DDB_KEYS_V1.marker, ...Object.values(CELL_PARENT_WORKFLOW_KEYS_V4)];
+  const read = [CELL_PARENT_KEY_V4, ...Object.values(FAILED_BIRTH_DDB_KEYS_V1), ...Object.values(CELL_PARENT_WORKFLOW_KEYS_V4)];
   const cf = ["cloudformation:DescribeStacks", "cloudformation:DescribeStackEvents", "cloudformation:GetTemplate", "cloudformation:ListStackResources", "cloudformation:DeleteStack"];
   const iamRead = ["iam:GetRole", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies", "iam:GetRolePolicy", "iam:GetPolicy", "iam:GetPolicyVersion"];
   const actions = ["sts:GetCallerIdentity", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:ConditionCheckItem", "dynamodb:DescribeTable", "dynamodb:GetResourcePolicy",
     "lambda:GetFunctionConfiguration", ...iamRead,
-    "cloudformation:ListStacks", ...cf, "iam:PassRole", "logs:CreateLogStream", "logs:PutLogEvents"];
+    "cloudformation:ListStacks", ...cf, "iam:PassRole", "secretsmanager:GetSecretValue", "kms:Decrypt", "logs:CreateLogStream", "logs:PutLogEvents"];
   const statement = [
     { Sid: "DenyOtherActions", Effect: "Deny", NotAction: actions, Resource: "*" },
     { Sid: "DenyOtherOrMissingSource", Effect: "Deny", Action: "*", Resource: "*", Condition: { ArnNotEquals: { "lambda:SourceFunctionArn": fn } } },
@@ -76,21 +80,23 @@ export function cellParentIamDocumentsV4(stackId: string) {
     { Sid: "ReadAllStackNames", Effect: "Allow", Action: "cloudformation:ListStacks", Resource: "*" },
     { Sid: "ExactCellStack", Effect: "Allow", Action: cf, Resource: stackId },
     { Sid: "PassExactCfnRole", Effect: "Allow", Action: "iam:PassRole", Resource: CELL_V3_CFN_ROLE, Condition: { StringEquals: { "iam:PassedToService": "cloudformation.amazonaws.com" } } },
-    { Sid: "ReadExactAuthorityKeys", Effect: "Allow", Action: "dynamodb:GetItem", Resource: table,
-      Condition: { "ForAllValues:StringEquals": { "dynamodb:LeadingKeys": read }, Null: { "dynamodb:LeadingKeys": "false" } } },
-    { Sid: "CheckExactTransactionKeys", Effect: "Allow", Action: "dynamodb:ConditionCheckItem", Resource: table,
-      Condition: { StringEquals: { "dynamodb:EnclosingOperation": "TransactWriteItems" },
-        "ForAllValues:StringEquals": { "dynamodb:LeadingKeys": [...read, ...writes] }, Null: { "dynamodb:LeadingKeys": "false" } } },
+    { Sid: "ReadAndCheckTransactionKeys", Effect: "Allow", Action: ["dynamodb:GetItem", "dynamodb:ConditionCheckItem"], Resource: table,
+      Condition: { StringEquals: { "dynamodb:EnclosingOperation": ["TransactGetItems", "TransactWriteItems"] },
+        "ForAllValues:StringEquals": { "dynamodb:LeadingKeys": read }, Null: { "dynamodb:LeadingKeys": "false" } } },
     { Sid: "PutExactTransactionKeys", Effect: "Allow", Action: "dynamodb:PutItem", Resource: table,
       Condition: { StringEquals: { "dynamodb:EnclosingOperation": "TransactWriteItems" },
         "ForAllValues:StringEquals": { "dynamodb:LeadingKeys": writes }, Null: { "dynamodb:LeadingKeys": "false" } } },
     { Sid: "ExistingFunctionLogStreams", Effect: "Allow", Action: ["logs:CreateLogStream", "logs:PutLogEvents"],
       Resource: `arn:aws:logs:ca-central-1:402010193138:log-group:/aws/lambda/techlong-sandbox-cell-lifecycle-coordinator-v3:log-stream:*` },
+    ...controls.map(t => ({ Sid: `Control${t === controls[0] ? "Reader" : "Writer"}`, Effect: "Allow", Action: "secretsmanager:GetSecretValue", Resource: t.secretArn,
+      Condition: { StringEquals: { "secretsmanager:VersionId": t.secretVersionId, "secretsmanager:VersionStage": "AWSCURRENT" } } })),
+    { Sid: "ControlKms", Effect: "Allow", Action: "kms:Decrypt", Resource: READONLY_KMS_KEY_ARN_V1,
+      Condition: { StringEquals: { "kms:ViaService": "secretsmanager.ca-central-1.amazonaws.com", "kms:CallerAccount": "402010193138", "kms:EncryptionContext:SecretARN": controls.map(t => t.secretArn) } } },
   ];
   const policy = { Version: "2012-10-17", Statement: statement };
   if (Buffer.byteLength(canonicalJson(policy)) > 6144) cellV3Fail("CELL_PARENT_IAM_POLICY_SIZE_INVALID");
   return cellV3Freeze({ trust: CELL_PARENT_TRUST_V4, boundary: policy, inline: structuredClone(policy),
-    downstreamSecretAndInvokePermissionsNotIncluded: true, installationAuthorized: false, runtimeEnabled: false });
+    fixedControlSecretReadIncluded: true, childInvokePermissionIncluded: false, installationAuthorized: false, runtimeEnabled: false });
 }
 export function validateCellParentBindingV4(v: CellParentRuntimeBindingV4) {
   if (!cellV3Exact(v, ["functionArn", "functionVersion", "revisionId", "zipCodeSha256Base64", "bundleSha256", "roleId", "boundaryVersionId", "tablePolicyRevisionId", "tablePolicySha256", "sourceWindowClosesAt"]) ||
