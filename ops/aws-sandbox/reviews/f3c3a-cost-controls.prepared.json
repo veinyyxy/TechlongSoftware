@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "phase": "F3c3a_COST_CONTROLS",
+  "status": "FRESH_REVIEW_READY_AWAITING_EXPLICIT_APPROVAL",
+  "manifestSha256": "c43a9aea8323ab22fab9e510db83b18beecfe90de4852df3d23cdc599f4e58e7",
+  "manifestFileSha256": "69442fd39c0a92897c0d6de1892e307ab34a8629fa4e76a305dcd75236e7dbef",
+  "codeSha256": "389e66ad5eab75416009e316b70ab86bd52ca45ac69e0b5c6ca43ae10f85dccc",
+  "candidateTemplateSha256": "cd7e99100d90225f7ba88538f8888a006f446f6b1a873e5da655ee9e815f496b",
+  "candidateTemplateFileSha256": "3a693ce58300fd18d257b14ffc169d993c4c7505ee11a03885044c5d3bb8459b",
+  "inventoryFileSha256": "10c493638658feabfc726deac01bc0e3a44e0b5fae67693a976a4cd402d102b0",
+  "reviewedAt": "2026-10-12T00:00:46.364Z",
+  "expiresAt": "2026-10-12T01:00:46.364Z",
+  "inventoryObservedAt": "2026-10-12T00:00:41.289Z",
+  "beforeSettingsSha256": "a6433291649fe7ab0fe2d0693d0424835ad3f681789fc059e6eb0f0ed0513d2d",
+  "notificationsAndSubscribersSha256": "d453801fe2a4c092747c76a7a85b0817caa245b8bd790bbd8b11ac7e87c54060",
+  "beforePeriod": {
+    "Start": "2026-08-01T00:00:00.000Z",
+    "End": "2087-06-15T00:00:00.000Z"
+  },
+  "oldChangeSetIds": [
+    "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/awscli-cloudformation-package-deploy-1786302438/652e5dd5-e04b-4d8f-b7ee-04af0b2c52d9",
+    "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/awscli-cloudformation-package-deploy-1786306192/f3adc3b8-2caa-4280-b697-aec9c934ed2e"
+  ],
+  "oldRecordCount": 2,
+  "permissionChecks": [
+    {
+      "action": "cloudformation:CreateChangeSet",
+      "resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-cost-guardrails/b91bb3d0-9424-11f1-8b02-02a8988b0b23",
+      "decision": "allowed"
+    },
+    {
+      "action": "cloudformation:ExecuteChangeSet",
+      "resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-cost-guardrails/b91bb3d0-9424-11f1-8b02-02a8988b0b23",
+      "decision": "allowed"
+    },
+    {
+      "action": "budgets:ModifyBudget",
+      "resource": "arn:aws:budgets::402010193138:budget/techlong-sandbox-402010193138-ca-central-1",
+      "decision": "allowed"
+    },
+    {
+      "action": "dynamodb:UpdateTable",
+      "resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+      "decision": "allowed"
+    }
+  ],
+  "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "sourceUserId": "AIDAV3GNMXTZEO7SHLC2X",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-cost-guardrails/b91bb3d0-9424-11f1-8b02-02a8988b0b23",
+  "budgetName": "techlong-sandbox-402010193138-ca-central-1",
+  "budgetFromUsd": 10,
+  "budgetToUsd": 50,
+  "budgetOwnerRemainsCloudFormation": true,
+  "budgetAlertOnlyNotHardCap": true,
+  "existingPercentThresholds": [
+    10,
+    30,
+    50,
+    80,
+    100
+  ],
+  "desiredAlertUsd": [
+    5,
+    15,
+    25,
+    40,
+    50
+  ],
+  "subscribersNotChanged": true,
+  "alertAddressesNotPublished": true,
+  "budgetPeriodPinnedToExisting": true,
+  "cloudFormationRollbackDisabledProposed": true,
+  "cloudFormationMayDeleteExactTwoOldFailedChangeSets": true,
+  "oldCloudChangeSetsNotRecoverableAfterServiceDeletion": true,
+  "localOldRecordsPreserved": true,
+  "tableArn": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+  "tableId": "58c851f4-5b8e-45ce-8933-05c33b17fb21",
+  "readUnitsFrom": 5,
+  "readUnitsTo": 100,
+  "writeUnitsPreserved": 2,
+  "billingModePreserved": "PAY_PER_REQUEST",
+  "readCapBestEffortNotGuaranteedCeiling": true,
+  "maximumDirectWriteAttemptsAfterApproval": 3,
+  "sourcePermissionSimulationsAllowed": 4,
+  "newTestsPassed": 13,
+  "adjacentTestsPassed": 4,
+  "typecheckPassed": true,
+  "targetedLintAndSyntaxPassed": true,
+  "existingF3c2BindingsAndSlotsPreserved": true,
+  "cloudWrites": 0,
+  "iamChanges": 0,
+  "tableItemReadsOrWrites": 0,
+  "databaseConnected": false,
+  "lambdaInvocations": 0,
+  "paidCellCreated": false,
+  "runtimeEnabled": false,
+  "permanentSlot": "techlong-f3c3a-sandbox-cost-controls-v1-consumed",
+  "slotConsumed": false,
+  "retryAuthorized": false,
+  "oldGuardrailsTemplateModified": false,
+  "privateOutput": "F:/ChatGPT_workshop/techlong-f3c3a-cost-controls-20261012-r1"
+}
