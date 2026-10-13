@@ -2,6 +2,10 @@
 
 决策日期：2026-10-05。用户明确要求执行最快实现方案，移除优先省钱策略，并给出新预算 `50 USD`；按此前月预算语境落实为 **50 USD/月目标**。
 
+## 当前主线变更：D001（2026-10-13 Winnipeg）
+
+用户明确同意停止继续扩展F3c9，保留材料以便以后重启，改为管理员触发一个准确sandbox租户任务、自动完成部署到ready。当前导航：[单租户首轮执行计划](./aws-auto-deployment-single-tenant-acceptance.md)；[F3c9封存与重启条件](./aws-auto-deployment-f3c9-deferred.md)。后置通用无人值守Cell生命周期，不删除既有控制面/数据库保护或复位槽；原云写/权限/付费/DB/删除仍按具体范围fresh批准。M1独立基础设施候选完成，复用25资源且不安装旧或F3c9调度，13项定向/相邻测试及真实AWS ValidateTemplate通过；仅模板验证，无部署或运行时启用。M1剩余集中权限/准确清理和单次租户接线范围尚待收敛。**下面F3c9各段“下一步”已封存，不再作为当前执行指令。**
+
 ## 交付目标与主线
 
 当前位置（2026-10-13 Winnipeg）：用户明确批准9a659800...后，F3c9l冻结132入口一次Revision条件V6代码PUT成功，14:39:40.029UTC永久槽消费63f167f1...，14:39:40.144–14:39:41.177UTC提交并收到响应，Run42db6f94...。14:40:48.770UTC独立新进程验收 `LOCKED_V6_CODE_INDEPENDENTLY_VERIFIED`：实际Revision1843cd76-fd3b-4b82-9c3d-1e532901a58e、CodeSha ofOAfejx...、432966字节、Active/Successful、slotMatches/invariantMatches true，15锁与原async保持；独立报告faa88863.../metadata6aadcf03.../snapshot e4337370...，锁+async不变量6210b806...一致。只写code1，IAM/async/Invoke/Secret值/Neon/表/parent/资源创建0，runtime及F3整体仍未完成，KMS/业务路径未证明；原132、包、旧槽及所有历史保留，禁止重放本Run。锁定期V6代码小阶段完成，下一准备独立新identity、实际新ARN的V6 IAM/table/parent与有限gate材料，长时准备先于新TTL，后续各云范围fresh另批；50USD/月非硬cap。[真实安装与继续位置](./aws-auto-deployment-fast-track-f3c9l-locked-v6-code-installed.md)。下面为历史。
