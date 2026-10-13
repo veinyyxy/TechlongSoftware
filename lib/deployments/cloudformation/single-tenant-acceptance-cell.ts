@@ -14,6 +14,13 @@ const removedParameters = [
   "CellJanitorFunctionArn", "CellSchedulerInvokeRoleArn", "CellSchedulerGroupName", "CleanupAt",
 ] as const;
 
+const renderedCells = new WeakMap<object, string>();
+export function assertSingleTenantCellRender(value: object): void {
+  if (!renderedCells.has(value) || renderedCells.get(value) !== canonicalJson(value)) {
+    throw Error("SINGLE_TENANT_CELL_RENDER_CHANGED_OR_UNRECOGNIZED");
+  }
+}
+
 /** A separate infrastructure candidate, not a live root or an authority brand.
  * Reuses the existing infrastructure without installing the old PLAN_ONLY
  * schedule or the deferred F3c9 parent protocol. Execution requires a separately
@@ -72,7 +79,7 @@ export async function renderSingleTenantAcceptanceCell(raw: SingleTenantAcceptan
       typeof resource.Type !== "string" || /^(AWS::(?:IAM|Lambda|Scheduler)::|Custom::)/.test(resource.Type))) {
     throw Error("SINGLE_TENANT_ACCEPTANCE_DEFERRED_CONTROL_REFERENCE");
   }
-  return {
+  const result = {
     schemaVersion: 1 as const,
     protocol: "single-tenant-supervised-acceptance" as const,
     stackName: original.stackName,
@@ -93,4 +100,6 @@ export async function renderSingleTenantAcceptanceCell(raw: SingleTenantAcceptan
       maxCells: 1, maxTenants: 1, maxAcu: 1, monthlyBudgetTargetUsd: 50, monthlyBudgetIsHardCap: false,
     },
   };
+  renderedCells.set(result, canonicalJson(result));
+  return result;
 }

@@ -11,6 +11,8 @@ import { OrderedTenantResourceCleanup } from "../lib/deployments/execution/clean
 import { RepositoryTenantExternalOwnershipCoordinator } from "../lib/deployments/execution/external-ownership-coordinator.ts";
 import { MtlsSaaSControlClient } from "../lib/deployments/execution/control-client.ts";
 import { runDeploymentWorkerOnce } from "../lib/deployments/execution/worker.ts";
+import { createPreparedSingleTenantAcceptanceRuntime } from "../lib/deployments/execution/single-tenant-acceptance-runtime.ts";
+import { FIRST_ACCEPTANCE_APP_IMAGE } from "../lib/deployments/execution/single-deployment-scope.ts";
 
 function input(calls: string[]): PreparedWorkerRuntimeInput {
   const forbidden = async () => { calls.push("io"); throw new Error("Assembly must not call providers"); };
@@ -79,6 +81,22 @@ test("prepared root composes real guarded adapters without I/O or activation", a
   assert.ok(runtime.controlClient instanceof MtlsSaaSControlClient);
   assert.equal(runtime.controlPayloadCompiler, source.controlPayloadCompiler);
   assert.equal(runtime.sharedCellSecurityPreflight, source.sharedCellSecurityPreflight);
+  assert.deepEqual(calls, ["construct-secret-provider"]);
+});
+
+test("single-tenant composition binds its own scoped Neon repository, remains disabled and performs no I/O", async () => {
+  const calls: string[] = [], source = input(calls);
+  const runtime = await createPreparedSingleTenantAcceptanceRuntime({ ...source,
+    databaseUrl: "postgresql://fixture:fixture@fixture.neon.tech/fixture?sslmode=require",
+    scope: { deploymentId: "dep_first_acceptance", appInstanceId: "app_first_acceptance", environmentId: "env_aws_sandbox_ca_central_1",
+      planHash: "a".repeat(64), configurationHash: "b".repeat(64), artifactRef: FIRST_ACCEPTANCE_APP_IMAGE },
+    cleanupReadiness: { verify: async () => { throw Error("Assembly must not verify or enable"); } },
+  });
+  assert.equal(runtime.mode, "single_tenant_prepared_not_activated");
+  assert.equal(runtime.repository === source.repository, false);
+  assert.equal(runtime.tenantWorkloadStrategy.mode, "single-tenant-supervised");
+  assert.equal(runtime.applyRuntimeReady, false); assert.equal(runtime.cleanupRuntimeReady, false);
+  assert.equal(runtime.automaticCleanupInstalled, false);
   assert.deepEqual(calls, ["construct-secret-provider"]);
 });
 

@@ -81,7 +81,7 @@ function parseHttpsUrl(name: string, value: string): URL {
   return parsed;
 }
 
-function validateExternalParameter(input: {
+export function validateExternalParameter(input: {
   name: string;
   value: string;
   environment: DeploymentEnvironment;

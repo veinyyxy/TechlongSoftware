@@ -9,6 +9,7 @@ import {
   tenantStackOperationTagKey,
   tenantStackStableOwnershipTagKeys,
 } from "../cloudformation/tenant-stack.ts";
+import { assertFinalizedSupervisedTenantStack, type SupervisedTenantStack } from "./single-tenant-workload-strategy.ts";
 
 interface AwsSdkClient {
   send(
@@ -241,6 +242,33 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
         false,
       );
     }
+    return this.applyStack(stack, input);
+  }
+
+  async applySupervisedTenantStack(stack: SupervisedTenantStack, input: { signal: AbortSignal }): Promise<{
+    operation: "create" | "update" | "no_change" | "existing_in_progress"; stackId: string;
+  }> {
+    assertFinalizedSupervisedTenantStack(stack);
+    const verifyCaller = async () => {
+      input.signal.throwIfAborted();
+      const identity = await this.getCallerIdentity(input);
+      if (this.region !== "ca-central-1" || identity.accountId !== "402010193138" ||
+        !/^arn:aws:sts::402010193138:assumed-role\/TechlongSandboxProvisionerRole\/[A-Za-z0-9+=,.@_-]{2,64}$/.test(identity.arn)) {
+        throw new AwsDeploymentApiError("SUPERVISED_STACK_CALLER_MISMATCH", "The exact provisioner caller is required.", false);
+      }
+    };
+    await verifyCaller();
+    return this.applyStack(stack, input, verifyCaller);
+  }
+
+  private async applyStack(
+    stack: ApplyReadyTenantStack | SupervisedTenantStack,
+    input: { signal: AbortSignal },
+    verifyCaller?: () => Promise<void>,
+  ): Promise<{
+    operation: "create" | "update" | "no_change" | "existing_in_progress"; stackId: string;
+  }> {
+    input.signal.throwIfAborted();
     if (stack.templateBody.length > 51_200) {
       throw new AwsDeploymentApiError(
         "STACK_TEMPLATE_TOO_LARGE",
@@ -249,10 +277,12 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
       );
     }
     const observed = await this.describeTenantStack(stack.stackName, input);
+    if ("protocol" in stack && observed.state !== "missing") assertExactStackId(stack.stackName, observed.stackId);
     if (observed.state !== "missing") {
       for (const key of [
         ...tenantStackStableOwnershipTagKeys,
         ...tenantStackExternalOperationTagKeys,
+        ...("protocol" in stack ? ["DeliveryTrack", "CleanupMode"] : []),
       ] as const) {
         if (observed.tags[key] !== stack.tags[key]) {
           throw new AwsDeploymentApiError(
@@ -322,10 +352,12 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
     try {
       if (observed.state === "missing") {
         input.signal.throwIfAborted();
+        await verifyCaller?.();
+        input.signal.throwIfAborted();
         const response = await this.sdk.cloudFormationClient.send(
           new this.sdk.commands.createStack({
             ...base,
-            OnFailure: "ROLLBACK",
+            OnFailure: stack.onFailure,
           }),
           { abortSignal: input.signal },
         );
@@ -338,10 +370,14 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
             true,
           );
         }
+        if ("protocol" in stack) assertExactStackId(stack.stackName, stackId);
         return { operation: "create", stackId };
       }
+      if ("protocol" in stack) assertExactStackId(stack.stackName, observed.stackId);
+      await verifyCaller?.();
+      input.signal.throwIfAborted();
       const response = await this.sdk.cloudFormationClient.send(
-        new this.sdk.commands.updateStack(base),
+        new this.sdk.commands.updateStack({ ...base, StackName: "protocol" in stack ? observed.stackId : stack.stackName }),
         { abortSignal: input.signal },
       );
       input.signal.throwIfAborted();
@@ -380,6 +416,7 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
       ...tenantStackStableOwnershipTagKeys,
       ...tenantStackExternalOperationTagKeys,
       tenantStackOperationTagKey,
+      ...Object.keys(input.expectedTags),
     ] as const) {
       if (observed.tags[key] !== input.expectedTags[key]) {
         throw new AwsDeploymentApiError(
@@ -392,8 +429,9 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
     if (observed.state === "delete_in_progress") {
       return { operation: "delete_in_progress" };
     }
+    assertExactStackId(input.stackName, observed.stackId);
     const deleteCommand = new this.sdk.commands.deleteStack({
-      StackName: input.stackName,
+      StackName: observed.stackId,
       ClientRequestToken: input.clientRequestToken,
       RoleARN: input.cloudFormationRoleArn,
       DeletionMode: "STANDARD",
@@ -411,6 +449,14 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
       if (isStackMissing(error, input.stackName)) return { operation: "already_deleted" };
       throw normalizeAwsError(error, "CLOUDFORMATION_DELETE_FAILED");
     }
+  }
+}
+
+function assertExactStackId(stackName: string, stackId: string | null): void {
+  const escaped = stackName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (!stackId || !(stackName.startsWith("arn:") ? stackName === stackId :
+    new RegExp(`^arn:aws:cloudformation:ca-central-1:402010193138:stack/${escaped}/[a-f0-9-]{36}$`).test(stackId))) {
+    throw new AwsDeploymentApiError("CLOUDFORMATION_EXACT_STACK_ID_REQUIRED", "An independently observed exact stack ARN is required.", false);
   }
 }
 
@@ -478,8 +524,8 @@ export function createAwsSdkDeploymentAdapterFromModules(
     throw new Error("AWS SDK default credential provider is invalid.");
   }
   return new AwsSdkDeploymentAdapter(region, {
-    stsClient: new STSClient({ region, credentials }),
-    cloudFormationClient: new CloudFormationClient({ region, credentials }),
+    stsClient: new STSClient({ region, credentials, maxAttempts: 1, ignoreConfiguredEndpointUrls: true }),
+    cloudFormationClient: new CloudFormationClient({ region, credentials, maxAttempts: 1, ignoreConfiguredEndpointUrls: true }),
     commands: {
       getCallerIdentity: commandConstructor(stsModule, "GetCallerIdentityCommand"),
       describeStacks: commandConstructor(

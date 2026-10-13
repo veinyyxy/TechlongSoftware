@@ -2,6 +2,13 @@ import { renderAwsSandboxTenantStack, type AwsSandboxTenantStackInput } from "./
 import { canonicalJson, sha256Hex } from "../execution/hash.ts";
 import { FIRST_ACCEPTANCE_APP_IMAGE } from "../execution/single-deployment-scope.ts";
 
+const renderedWorkloads = new WeakMap<object, string>();
+export function assertSingleTenantWorkloadRender(value: object): void {
+  if (!renderedWorkloads.has(value) || renderedWorkloads.get(value) !== canonicalJson(value)) {
+    throw Error("SINGLE_TENANT_WORKLOAD_RENDER_CHANGED_OR_UNRECOGNIZED");
+  }
+}
+
 /** Independent render-only workload for supervised acceptance. Retains the
  * original epoch/Secret/tenant isolation checks; never masquerades as the old
  * scheduled CloudFormationTenantStackPlan or issues an ApplyReady capability.
@@ -36,9 +43,10 @@ export async function renderSingleTenantAcceptanceWorkload(input: AwsSandboxTena
   const templateBody = canonicalJson(template);
   if (removed.some(name => templateBody.includes(name))) throw Error("SINGLE_TENANT_WORKLOAD_LEGACY_REFERENCE");
   const tags: Record<string, string> = { ...old.tags, DeliveryTrack: "single-tenant-acceptance", CleanupMode: "supervised-reviewed" };
-  return {
-    schemaVersion: 1, protocol: "single-tenant-supervised-workload" as const,
+  const result = {
+    schemaVersion: 1 as const, protocol: "single-tenant-supervised-workload" as const,
     stackName: old.stackName, accountId: old.accountId, region: old.region,
+    clientRequestToken: old.clientRequestToken, onFailure: old.onFailure, capabilities: old.capabilities,
     template, templateBody, templateSha256: await sha256Hex(template),
     parameters: Object.fromEntries(Object.entries(old.parameters).filter(([key]) => !removed.includes(key))),
     requiredExternalParameters: old.requiredExternalParameters.filter(key => !removed.includes(key)),
@@ -49,4 +57,6 @@ export async function renderSingleTenantAcceptanceWorkload(input: AwsSandboxTena
       fixedTaskCount: 1, capacityProvider: "FARGATE", ownershipChecksRetained: true,
       existingWorkerRendererUnchanged: true, appReadyNotYetVerified: true },
   };
+  renderedWorkloads.set(result, canonicalJson(result));
+  return result;
 }

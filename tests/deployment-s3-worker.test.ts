@@ -38,6 +38,10 @@ import {
 } from "../lib/deployments/cloudformation/tenant-stack.ts";
 import { AwsEcsCellPlanOnlyDriver } from "../lib/deployments/drivers/aws-ecs-cell.ts";
 import type { DeploymentEnvironment } from "../lib/deployments/environment.ts";
+import { FIRST_ACCEPTANCE_APP_IMAGE } from "../lib/deployments/execution/single-deployment-scope.ts";
+import { createSingleTenantWorkloadStrategy, type SupervisedTenantStack } from "../lib/deployments/execution/single-tenant-workload-strategy.ts";
+import { finalizeSupervisedTenantStack } from "../lib/deployments/execution/single-tenant-workload-strategy.ts";
+import { renderSingleTenantAcceptanceWorkload } from "../lib/deployments/cloudformation/single-tenant-acceptance-workload.ts";
 
 const now = Date.UTC(2026, 7, 9);
 const workerRoleArn =
@@ -50,6 +54,121 @@ const tenantRuntimeSecretRef =
   "arn:aws:secretsmanager:ca-central-1:402010193138:secret:" +
   `${tenantRuntimeSecretName}-abcdef`;
 const signal = () => new AbortController().signal;
+
+async function supervisedFixture() {
+  const { context } = await executionFixture();
+  context.environment = structuredClone(context.environment);
+  context.environment.policy.budgetLimitCents = 5000;
+  context.deployment.artifactRef = FIRST_ACCEPTANCE_APP_IMAGE;
+  for (const key of ["JanitorFunctionArn", "SchedulerInvokeRoleArn", "SchedulerGroupName"]) delete context.binding!.tenantStackParameters[key];
+  const scope = { deploymentId: context.deployment.id, appInstanceId: context.appInstance.id, environmentId: context.environment.id,
+    planHash: context.deployment.planHash, configurationHash: context.deployment.configurationHash, artifactRef: FIRST_ACCEPTANCE_APP_IMAGE };
+  const readiness = { scopeSha256: await sha256Hex(scope), reviewSha256: "b".repeat(64), permissionsEvidenceSha256: "c".repeat(64),
+    cellStackId: "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/11111111-2222-3333-4444-555555555555",
+    verifiedAt: now, expiresAt: now + 7200000, responsibleCallerArn: "arn:aws:iam::402010193138:user/techlong-sandbox-dev" as const,
+    order: "workload_database_role_generation_secret_then_cell" as const };
+  return { context, scope, readiness };
+}
+
+test("supervised apply and reconcile use the new workload and reach ready without fake TTL receipt", async () => {
+  const { context, scope, readiness } = await supervisedFixture();
+  const calls: string[] = [], patches: Record<string, unknown>[] = [];
+  let applied: SupervisedTenantStack | undefined;
+  const repository = inMemoryRepository({ context, onEnqueue: type => calls.push(`enqueue:${type}`) });
+  const strategy = createSingleTenantWorkloadStrategy({ scope, cleanupReadiness: { verify: async () => { calls.push("cleanup-proof"); return readiness; } } });
+  const base = readyAwsPort();
+  const aws = { ...base,
+    applyTenantStack: async () => { throw Error("legacy apply forbidden"); },
+    applySupervisedTenantStack: async (stack: SupervisedTenantStack) => {
+      calls.push("apply"); applied = stack;
+      assert.equal("TenantCleanupSchedule" in (stack.template.Resources as object), false);
+      assert.equal("cleanupScheduleFirst" in stack.safety, false);
+      assert.equal(stack.resourceInventory.length, 7);
+      assert.equal(Object.isFrozen(stack.parameters), true);
+      return { operation: "create" as const, stackId: `arn:aws:cloudformation:ca-central-1:402010193138:stack/${stack.stackName}/11111111-2222-3333-4444-555555555555` };
+    },
+    describeTenantStack: async () => ({ state: "ready" as const, rawStatus: "CREATE_COMPLETE", stackId: `arn:aws:cloudformation:ca-central-1:402010193138:stack/${applied!.stackName}/11111111-2222-3333-4444-555555555555`, outputs: {}, tags: applied!.tags }),
+  };
+  const dependencies: DeploymentWorkerDependencies = {
+    repository: { ...repository, confirmCleanupSchedule: async () => { throw Error("no scheduler confirmation"); },
+      transitionDeployment: async input => { patches.push(input.outputPatch ?? {}); return repository.transitionDeployment(input); } },
+    applyRuntimeReady: true, tenantWorkloadStrategy: strategy,
+    tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
+    awsFactory: async () => { calls.push("construct-aws"); return aws; },
+    cleanupScheduler: { confirmSchedule: async () => { throw Error("no scheduler"); } },
+    sharedCellSecurityPreflight: verifiedSharedCellSecurityPreflight(),
+    tenantDatabase: { ensureTenantDatabase: async () => { calls.push("database"); return tenantLifecycleOutput(context, "empty"); },
+      migrateTenantDatabase: async () => tenantLifecycleOutput(context, "verified") },
+    controlClient: { waitUntilHealthy: async () => ({ ready: true, desiredConfigurationHash: null, imageRevision: null }),
+      provision: async () => { calls.push("control"); return { accepted: true }; },
+      readConfiguration: async () => ({ ready: true, desiredConfigurationHash: scope.configurationHash, imageRevision: FIRST_ACCEPTANCE_APP_IMAGE.split("@")[1] }) },
+    controlPayloadCompiler: compiledPayloadCompiler(), now: () => now,
+  };
+  assert.equal((await runDeploymentWorkerOnce({ workerId: "worker:acceptance-test", config: enabledConfig, dependencies })).status, "succeeded");
+  assert.ok(calls.indexOf("cleanup-proof") < calls.indexOf("database"));
+  assert.ok(calls.filter(call => call === "cleanup-proof").length >= 3);
+  assert.equal(context.cleanupSchedule, null);
+  assert.equal(calls.includes("enqueue:cleanup"), false);
+  assert.equal(patches.some(patch => patch.cleanupAssuranceRef === `supervised-review:${readiness.reviewSha256}`), true);
+  assert.equal(patches.some(patch => "cleanupScheduleRef" in patch), false);
+  context.job.jobType = "reconcile";
+  assert.equal((await runDeploymentWorkerOnce({ workerId: "worker:acceptance-test", config: enabledConfig, dependencies })).status, "succeeded");
+  assert.equal(context.deployment.status, "ready"); assert.ok(calls.includes("control"));
+  // DI seam above is a control-flow check, not actual cloud/approval proof.
+});
+
+test("invalid supervised scope, binding or cleanup proof fails before generation, AWS and database operations", async () => {
+  for (const invalid of ["scope", "stale", "name", "permissions", "deadline", "order", "credentials", "binding"] as const) {
+    const { context, scope, readiness } = await supervisedFixture(), calls: string[] = [];
+    if (invalid === "scope") scope.configurationHash = "d".repeat(64);
+    if (invalid === "stale") readiness.verifiedAt -= 30001;
+    if (invalid === "name") readiness.cellStackId = "techlong-sandbox-cell-sandbox-1";
+    if (invalid === "permissions") readiness.permissionsEvidenceSha256 = "";
+    if (invalid === "deadline") readiness.expiresAt += 1000;
+    if (invalid === "order") Object.assign(readiness, { order: "cell_first" });
+    if (invalid === "credentials") context.binding!.tenantStackParameters.DatabaseUrlValueFrom = "forbidden";
+    if (invalid === "binding") delete context.binding!.tenantStackParameters.ClusterName;
+    const forbidden = async (): Promise<never> => { calls.push("forbidden"); throw Error("must not reach"); };
+    const result = await runDeploymentWorkerOnce({ workerId: "worker:acceptance-test", config: enabledConfig, dependencies: {
+      repository: { ...inMemoryRepository({ context }), claimTenantResourceGeneration: forbidden },
+      applyRuntimeReady: true, tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
+      tenantWorkloadStrategy: createSingleTenantWorkloadStrategy({ scope, cleanupReadiness: { verify: async () => readiness } }),
+      awsFactory: forbidden, cleanupScheduler: { confirmSchedule: forbidden }, sharedCellSecurityPreflight: { verify: forbidden },
+      tenantDatabase: { ensureTenantDatabase: forbidden, migrateTenantDatabase: forbidden },
+      controlClient: { waitUntilHealthy: forbidden, provision: forbidden, readConfiguration: forbidden },
+      controlPayloadCompiler: { compile: forbidden }, now: () => now,
+    } });
+    assert.equal(result.status, "dead_letter", invalid); assert.deepEqual(calls, [], invalid);
+  }
+});
+
+test("supervised SDK accepts only finalized immutable material and rechecks provisioner before CreateStack", async () => {
+  const { context } = await supervisedFixture();
+  const rendered = await renderSingleTenantAcceptanceWorkload({ deploymentId: context.deployment.id, resourceGeneration: 1,
+    externalOperation: stackExternalOperation(), runtimeSecretRef: tenantRuntimeSecretRef, runtimeSecretName: tenantRuntimeSecretName,
+    plan: context.deployment.desiredPlan, environment: context.environment, imageUri: FIRST_ACCEPTANCE_APP_IMAGE,
+    tenantHostname: "tenant-one.sandbox.techlong.cloud", listenerPriority: 100, activeCellCount: 1, activeTenantCount: 0, requestedAt: now });
+  const material = finalizeSupervisedTenantStack({ rendered, context, expectedRuntimeSecretName: tenantRuntimeSecretName });
+  const calls: string[] = [];
+  class Command { readonly input: Record<string, unknown>; constructor(input: Record<string, unknown>) { this.input = input; } }
+  class Identity extends Command {} class Describe extends Command {} class Create extends Command {} class Update extends Command {} class Delete extends Command {}
+  const adapter = new AwsSdkDeploymentAdapter(environment.region, {
+    stsClient: { send: async () => { calls.push("identity"); return { Account: "402010193138", Arn: "arn:aws:sts::402010193138:assumed-role/TechlongSandboxProvisionerRole/acceptance-test" }; } },
+    cloudFormationClient: { send: async command => {
+      if (command instanceof Describe) { calls.push("describe"); throw Object.assign(Error(`Stack with id ${material.stackName} does not exist`), { name: "ValidationError" }); }
+      if (command instanceof Create) { calls.push("create"); assert.equal(command.input.OnFailure, "ROLLBACK");
+        assert.equal(JSON.parse(String(command.input.TemplateBody)).Resources.TenantCleanupSchedule, undefined);
+        return { StackId: `arn:aws:cloudformation:ca-central-1:402010193138:stack/${material.stackName}/11111111-2222-3333-4444-555555555555` }; }
+      throw Error("Unexpected SDK call");
+    } }, commands: { getCallerIdentity: Identity, describeStacks: Describe, createStack: Create, updateStack: Update, deleteStack: Delete },
+  });
+  await assert.rejects(adapter.applySupervisedTenantStack(structuredClone(material), { signal: signal() }));
+  assert.deepEqual(calls, []);
+  assert.equal((await adapter.applySupervisedTenantStack(material, { signal: signal() })).operation, "create");
+  assert.deepEqual(calls, ["identity", "describe", "identity", "create"]);
+  rendered.tags.ManagedBy = "changed";
+  assert.throws(() => finalizeSupervisedTenantStack({ rendered, context, expectedRuntimeSecretName: tenantRuntimeSecretName }));
+});
 
 function stackExternalOperation(
   deploymentId = "dep_tenant_one",
@@ -1939,6 +2058,7 @@ test("AWS SDK adapter factory gives STS and CloudFormation one shared credential
 
 test("CloudFormation adapter resumes owned creates and treats delete-in-progress as idempotent", async () => {
   const { stack } = await executionFixture();
+  const exactStackId = `arn:aws:cloudformation:ca-central-1:402010193138:stack/${stack.stackName}/11111111-2222-3333-4444-555555555555`;
   class TestCommand {
     readonly input: Record<string, unknown>;
     constructor(input: Record<string, unknown>) {
@@ -1958,7 +2078,7 @@ test("CloudFormation adapter resumes owned creates and treats delete-in-progress
           return {
             Stacks: [
               {
-                StackId: "stack-id-one",
+                StackId: exactStackId,
                 StackStatus: status,
                 Tags: Object.entries(stack.tags).map(([Key, Value]) => ({ Key, Value })),
               },
@@ -1967,8 +2087,11 @@ test("CloudFormation adapter resumes owned creates and treats delete-in-progress
         }
         if (command instanceof CreateStackCommand) calls.creates += 1;
         else if (command instanceof UpdateStackCommand) calls.updates += 1;
-        else if (command instanceof DeleteStackCommand) calls.deletes += 1;
-        return { StackId: "stack-id-one" };
+        else if (command instanceof DeleteStackCommand) {
+          assert.equal(command.input.StackName, exactStackId);
+          calls.deletes += 1;
+        }
+        return { StackId: exactStackId };
       },
     };
     return {

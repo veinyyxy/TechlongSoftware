@@ -4,7 +4,9 @@ import {
   tenantStackExternalOperationTagKeys,
   tenantStackOperationTagKey,
   tenantStackStableOwnershipTagKeys,
+  type AwsSandboxTenantStackInput,
 } from "../cloudformation/tenant-stack.ts";
+import type { TenantWorkloadExecutionStrategy, WorkerTenantStack } from "./single-tenant-workload-strategy.ts";
 import { assertSafeDeploymentOutput, normalizeDeploymentError } from "../safety.ts";
 import type { DeploymentJobType, DeploymentStatus } from "../state-machine.ts";
 import type {
@@ -73,6 +75,9 @@ export interface DeploymentWorkerDependencies {
     workerRoleArn: string;
   }): Promise<AwsDeploymentPort>;
   cleanupScheduler: CleanupSchedulePort;
+  /** Optional, exact-scope supervised acceptance path. Absence preserves the
+   * original scheduled renderer; this strategy is not a runtime-enable flag. */
+  tenantWorkloadStrategy?: TenantWorkloadExecutionStrategy;
   sharedCellSecurityPreflight: SharedCellSecurityPreflightPort;
   tenantDatabase: TenantDatabasePort;
   /**
@@ -564,10 +569,7 @@ function listenerPriority(context: DeploymentExecutionContext): number {
   );
 }
 
-function renderApplyReadyStack(input: {
-  context: DeploymentExecutionContext;
-}): ApplyReadyTenantStack {
-  const { context } = input;
+function tenantStackInput(context: DeploymentExecutionContext): AwsSandboxTenantStackInput {
   const fence = currentTenantResourceFence(context);
   const runtimeSecretRef = requireVerifiedRuntimeSecretRef(context, fence);
   if (!context.binding) {
@@ -577,7 +579,7 @@ function renderApplyReadyStack(input: {
       false,
     );
   }
-  const rendered = renderAwsSandboxTenantStack({
+  return {
     deploymentId: context.deployment.id,
     resourceGeneration: fence.generation,
     externalOperation: {
@@ -598,13 +600,42 @@ function renderApplyReadyStack(input: {
     activeCellCount: context.activeCellCount,
     activeTenantCount: context.activeTenantCount,
     requestedAt: context.deployment.createdAt,
-  });
+  };
+}
+
+function renderApplyReadyStack(input: {
+  context: DeploymentExecutionContext;
+}): ApplyReadyTenantStack {
+  const { context } = input;
+  const fence = currentTenantResourceFence(context);
+  const rendered = renderAwsSandboxTenantStack(tenantStackInput(context));
   return finalizeTenantStackForApply({
     rendered,
     environment: context.environment,
-    binding: context.binding,
+    binding: context.binding!,
     expectedRuntimeSecretName: deriveTenantRuntimeSecretName(fence),
   });
+}
+
+async function renderExecutionStack(input: {
+  context: DeploymentExecutionContext; dependencies: DeploymentWorkerDependencies;
+}): Promise<WorkerTenantStack> {
+  return input.dependencies.tenantWorkloadStrategy
+    ? input.dependencies.tenantWorkloadStrategy.render({ context: input.context, stackInput: tenantStackInput(input.context) })
+    : renderApplyReadyStack(input);
+}
+
+async function ensureExecutionCleanup(input: {
+  context: DeploymentExecutionContext; dependencies: DeploymentWorkerDependencies;
+  config: DeploymentWorkerRuntimeConfig; workerId: string; now: number;
+}): Promise<string> {
+  const strategy = input.dependencies.tenantWorkloadStrategy;
+  if (strategy) return withLeaseGuard({ ...input, execute: signal => strategy.ensureCleanup({
+    context: input.context, signal, now: (input.dependencies.now ?? Date.now)(),
+  }) });
+  await ensureApplyCleanupSchedule({ ...input, cleanupScheduler: input.dependencies.cleanupScheduler,
+    repository: input.dependencies.repository });
+  return `cloudformation:${awsSandboxTenantStackName(input.context.appInstance.id)}:TenantCleanupSchedule`;
 }
 
 function requireCurrentRuntimeSecretRef(
@@ -1222,7 +1253,7 @@ async function handleApply(input: {
   config: DeploymentWorkerRuntimeConfig;
   workerId: string;
   aws: AwsDeploymentPort;
-  stack?: ApplyReadyTenantStack;
+  stack?: WorkerTenantStack;
 }): Promise<void> {
   if (["planned", "retry_wait"].includes(input.context.deployment.status)) {
     await moveState({
@@ -1358,13 +1389,14 @@ async function handleApply(input: {
   }
   input.context = refreshed;
   input.context = await requireActiveProvisionEpoch(input);
-  const stack = renderApplyReadyStack({
+  const stack = await renderExecutionStack({
     context: input.context,
+    dependencies: input.dependencies,
   });
-  await ensureApplyCleanupSchedule({
+  const cleanupAssuranceRef = await ensureExecutionCleanup({
     context: input.context,
-    cleanupScheduler: input.dependencies.cleanupScheduler,
-    repository: input.dependencies.repository,
+    dependencies: input.dependencies,
+    config: input.config,
     workerId: input.workerId,
     now: (input.dependencies.now ?? Date.now)(),
   });
@@ -1423,7 +1455,15 @@ async function handleApply(input: {
       templateHash: await sha256Hex(stack.templateBody),
       parameterHash: await sha256Hex(stack.parameters),
     },
-    execute: (signal) => input.aws.applyTenantStack(stack, { signal }),
+    execute: async (signal) => {
+      if ("protocol" in stack) {
+        const strategy = input.dependencies.tenantWorkloadStrategy;
+        if (!strategy) throw new DeploymentExecutionError("SUPERVISED_STRATEGY_MISSING", "Supervised strategy is missing.", false);
+        await strategy.ensureCleanup({ context: input.context, signal, now: (input.dependencies.now ?? Date.now)() });
+        return strategy.apply({ aws: input.aws, stack, signal });
+      }
+      return input.aws.applyTenantStack(stack, { signal });
+    },
   });
   await moveState({
     ...input,
@@ -1434,7 +1474,14 @@ async function handleApply(input: {
       stackName: stack.stackName,
       stackId: applied.stackId,
       stackOperation: applied.operation,
-      cleanupScheduleRef: `cloudformation:${stack.stackName}:TenantCleanupSchedule`,
+      ...("protocol" in stack ? { cleanupMode: "supervised-reviewed", cleanupAssuranceRef,
+        workloadTemplateSha256: stack.templateSha256, workloadParametersSha256: await sha256Hex(stack.parameters),
+        workloadStableIdentityHash: currentTenantResourceFence(input.context).identity.stableIdentityHash,
+        workloadGeneration: currentTenantResourceFence(input.context).generation,
+        workloadProvisionEpoch: input.context.tenantExternalOperation!.epoch,
+        workloadProvisionMarker: input.context.tenantExternalOperation!.marker,
+        workloadProvisionHash: input.context.tenantExternalOperation!.operationHash }
+        : { cleanupScheduleRef: cleanupAssuranceRef }),
     },
   });
   const reconcileJob = await input.dependencies.repository.enqueueJob({
@@ -1455,13 +1502,13 @@ async function handleReconcile(input: {
   config: DeploymentWorkerRuntimeConfig;
   workerId: string;
   aws: AwsDeploymentPort;
-  stack: ApplyReadyTenantStack;
+  stack: WorkerTenantStack;
 }): Promise<void> {
   if (input.context.deployment.status === "ready") return;
   await validateIdentity(input);
   await validateSharedCellSecurity(input);
   input.context = await requireActiveProvisionEpoch(input);
-  input.stack = renderApplyReadyStack({ context: input.context });
+  input.stack = await renderExecutionStack(input);
   await reserveEnvironmentCapacity(input);
   const observation = await checkpoint({
     ...input,
@@ -1539,8 +1586,9 @@ async function handleReconcile(input: {
         true,
       );
     }
-    input.stack = renderApplyReadyStack({
+    input.stack = await renderExecutionStack({
       context: input.context,
+      dependencies: input.dependencies,
     });
     await checkpoint({
       ...input,
@@ -1832,6 +1880,7 @@ export async function runDeploymentWorkerOnce(input: {
             binding: context.binding,
           }),
     );
+    input.dependencies.tenantWorkloadStrategy?.assertScope(context);
     if (destructive) {
       // The coordinator performs its atomic begin/assert/complete CAS before
       // each workload, database, and secret adapter call. No AWS adapter is
@@ -1843,6 +1892,11 @@ export async function runDeploymentWorkerOnce(input: {
         workerId: input.workerId,
       });
     } else {
+      // Supervised cleanup must be independently ready before generation,
+      // epoch, Secret or database writes, including reconcile resumes.
+      if (input.dependencies.tenantWorkloadStrategy) await ensureExecutionCleanup({
+        ...input, context, now,
+      });
       const claimed = await claimAndReloadTenantResource({
         dependencies: input.dependencies,
         context,
@@ -1862,10 +1916,10 @@ export async function runDeploymentWorkerOnce(input: {
           context.deployment.status,
         )
       ) {
-        await ensureApplyCleanupSchedule({
+        await ensureExecutionCleanup({
           context,
-          cleanupScheduler: input.dependencies.cleanupScheduler,
-          repository: input.dependencies.repository,
+          dependencies: input.dependencies,
+          config: input.config,
           workerId: input.workerId,
           now,
         });
@@ -1889,7 +1943,7 @@ export async function runDeploymentWorkerOnce(input: {
       } else {
         await handleReconcile({
           ...handlerInput,
-          stack: renderApplyReadyStack({ context }),
+          stack: await renderExecutionStack({ context, dependencies: input.dependencies }),
         });
       }
     }

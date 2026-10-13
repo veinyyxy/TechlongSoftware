@@ -4,10 +4,36 @@ import type { NeonQueryFunction } from "@neondatabase/serverless";
 import { NeonDeploymentExecutionRepository } from "../lib/deployments/execution/neon-repository.ts";
 import { FIRST_ACCEPTANCE_APP_IMAGE, singleDeploymentClaimPredicate,
   singleDeploymentScopeFromArguments, validateSingleDeploymentScope } from "../lib/deployments/execution/single-deployment-scope.ts";
-import type { ClaimedDeploymentJob } from "../lib/deployments/execution/contracts.ts";
+import type { ClaimedDeploymentJob, TenantResourceFence, TenantProvisionPredecessor } from "../lib/deployments/execution/contracts.ts";
+import { awsSandboxTenantStackName } from "../lib/deployments/cloudformation/tenant-stack.ts";
 
 const scope = () => ({ deploymentId: "dep_first_acceptance", appInstanceId: "app_first_acceptance",
   environmentId: "env_aws_sandbox_ca_central_1", planHash: "a".repeat(64), configurationHash: "b".repeat(64), artifactRef: FIRST_ACCEPTANCE_APP_IMAGE });
+
+test("supervised cleanup receipt lookup binds full scope, generation and exact provision predecessor", async () => {
+  const s = scope(), name = awsSandboxTenantStackName(s.appInstanceId);
+  const fence: TenantResourceFence = { schemaVersion: 1, ownerDeploymentId: s.deploymentId, generation: 1,
+    ownershipMarker: `tl_owner_${"c".repeat(32)}_g1`, identity: { schemaVersion: 1, appInstanceId: s.appInstanceId,
+      workspaceId: "wsp_first", productId: "prd_first", environmentId: s.environmentId, cellKey: "cell-sandbox-1",
+      databaseName: "tenant_first", roleName: "tenant_first_app", secretName: "techlong/sandbox/tenant/first/runtime/g1", stableIdentityHash: "c".repeat(64) } };
+  const provisionPredecessor: TenantProvisionPredecessor = { schemaVersion: 1, generation: 1, epoch: 2, intent: "provision",
+    ownerDeploymentId: s.deploymentId, operationHash: "d".repeat(64), marker: `tl_epoch_${"c".repeat(24)}_g1_e2` };
+  const stackId = `arn:aws:cloudformation:ca-central-1:402010193138:stack/${name}/11111111-2222-3333-4444-555555555555`;
+  const output = { stackName: name, stackId, cleanupMode: "supervised-reviewed", workloadStableIdentityHash: fence.identity.stableIdentityHash,
+    workloadGeneration: 1, workloadProvisionEpoch: 2, workloadProvisionMarker: provisionPredecessor.marker,
+    workloadProvisionHash: provisionPredecessor.operationHash, workloadTemplateSha256: "e".repeat(64), workloadParametersSha256: "f".repeat(64) };
+  const client = { query: async (statement: string, values: unknown[]) => {
+    assert.ok(statement.includes("mode='aws_sandbox'")); assert.deepEqual(values, Object.values(s));
+    return { rows: [{ outputs: JSON.stringify(output) }], rowCount: 1 };
+  } } as unknown as NeonQueryFunction<false, true>;
+  const repository = new NeonDeploymentExecutionRepository("postgresql://local-test:not-real@localhost/fixture", s, () => client);
+  const input = { fence, provisionPredecessor, signal: new AbortController().signal };
+  assert.equal(await repository.readSupervisedTenantStackId(input), stackId);
+  output.workloadProvisionEpoch = 1;
+  await assert.rejects(repository.readSupervisedTenantStackId(input), { code: "SUPERVISED_WORKLOAD_RECEIPT_UNPROVED" });
+  output.workloadProvisionEpoch = 2; output.stackId = name;
+  await assert.rejects(repository.readSupervisedTenantStackId(input), { code: "SUPERVISED_WORKLOAD_RECEIPT_UNPROVED" });
+});
 function repository(scoped = true) {
   const calls: { statement: string; values: unknown[] }[] = [];
   const client = { query: async (statement: string, values: unknown[]) => {

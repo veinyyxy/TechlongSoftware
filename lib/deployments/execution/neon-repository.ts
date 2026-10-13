@@ -34,6 +34,7 @@ import type {
   TenantResourceIdentity,
 } from "./contracts.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
+import { awsSandboxTenantStackName } from "../cloudformation/tenant-stack.ts";
 import {
   singleDeploymentClaimPredicate, validateSingleDeploymentScope,
   type SingleDeploymentClaimScope,
@@ -574,6 +575,32 @@ export class NeonDeploymentExecutionRepository
     }
     this.claimScope = claimScope === undefined ? undefined : validateSingleDeploymentScope(claimScope);
     this.sql = sqlFactory(databaseUrl);
+  }
+
+  /** Reference-only read for the separate supervised cleanup path. Never
+   * infer the current stack UUID from a mutable name or missing step output. */
+  async readSupervisedTenantStackId(input: {
+    fence: TenantResourceFence; provisionPredecessor: TenantProvisionPredecessor; signal: AbortSignal;
+  }): Promise<string> {
+    input.signal.throwIfAborted(); const s = this.claimScope, p = input.provisionPredecessor, f = input.fence;
+    const reject = () => { throw Object.assign(Error("SUPERVISED_WORKLOAD_RECEIPT_UNPROVED"), { code: "SUPERVISED_WORKLOAD_RECEIPT_UNPROVED", retryable: false }); };
+    if (!s || f.identity.appInstanceId !== s.appInstanceId || f.identity.environmentId !== s.environmentId ||
+      f.ownerDeploymentId !== s.deploymentId || p.ownerDeploymentId !== s.deploymentId || p.generation !== f.generation) return reject();
+    const rows = await query(this.sql, `SELECT outputs FROM app_instance_deployments
+      WHERE id=$1 AND app_instance_id=$2 AND environment_id=$3 AND plan_hash=$4
+        AND configuration_hash=$5 AND artifact_ref=$6 AND mode='aws_sandbox'`,
+    [s.deploymentId, s.appInstanceId, s.environmentId, s.planHash, s.configurationHash, s.artifactRef]);
+    input.signal.throwIfAborted(); if (rows.length !== 1) return reject();
+    const output = parseObject(rows[0].outputs), name = awsSandboxTenantStackName(s.appInstanceId);
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (output.stackName !== name || typeof output.stackId !== "string" ||
+      !new RegExp(`^arn:aws:cloudformation:ca-central-1:402010193138:stack/${escaped}/[a-f0-9-]{36}$`).test(output.stackId) ||
+      output.cleanupMode !== "supervised-reviewed" || output.workloadStableIdentityHash !== f.identity.stableIdentityHash ||
+      output.workloadGeneration !== f.generation || output.workloadProvisionEpoch !== p.epoch ||
+      output.workloadProvisionMarker !== p.marker || output.workloadProvisionHash !== p.operationHash ||
+      typeof output.workloadTemplateSha256 !== "string" || !/^[a-f0-9]{64}$/.test(output.workloadTemplateSha256) ||
+      typeof output.workloadParametersSha256 !== "string" || !/^[a-f0-9]{64}$/.test(output.workloadParametersSha256)) return reject();
+    return output.stackId;
   }
 
   async claimNext(input: {

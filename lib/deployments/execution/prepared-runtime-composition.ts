@@ -4,6 +4,7 @@ import type {
   SaaSControlPayloadCompilerPort,
   SharedCellSecurityPreflightPort,
   TenantApprovedBaseline,
+  TenantWorkloadLifecyclePort,
 } from "./contracts.ts";
 import {
   createAwsSdkTenantRuntimeSecretProvider,
@@ -74,6 +75,9 @@ export interface PreparedWorkerRuntimeInput {
   controlTokens: SaaSControlTokenProvider;
   controlEndpoint: SaaSControlEndpointPolicy;
   controlPayloadCompiler: SaaSControlPayloadCompilerPort;
+  /** Separate acceptance root may require receipt-pinned exact ARN cleanup.
+   * The original scheduled composition keeps its original adapter by default. */
+  tenantWorkloadLifecycle?: TenantWorkloadLifecyclePort;
   /** Construction-only test seam; the default constructs the actual AWS SDK provider. */
   secretProviderFactory?: (
     generator: TenantRuntimeSecretMaterialGenerator,
@@ -129,7 +133,7 @@ export async function createPreparedDeploymentWorkerRuntime(
   }
   const generator = new NodeTenantRuntimeSecretMaterialGenerator(input.materialConfig, input.paymentCredentials);
   const runner = new EcsOneShotTaskRunner({ api: input.taskApi, waiter: input.waiter, config: structuredClone(taskConfig) });
-  const workload = new CloudFormationTenantWorkloadLifecycleAdapter({ aws: input.aws, config: { ...workloadConfig } });
+  const workload = input.tenantWorkloadLifecycle ?? new CloudFormationTenantWorkloadLifecycleAdapter({ aws: input.aws, config: { ...workloadConfig } });
   const controlClient = new MtlsSaaSControlClient(input.controlTransport, input.controlTokens, { ...input.controlEndpoint });
   // Validate all local construction before loading SDK modules. SDK construction
   // does not resolve credentials or make a cloud call.

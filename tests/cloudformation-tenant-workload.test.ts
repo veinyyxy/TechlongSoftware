@@ -13,6 +13,7 @@ import type {
   TenantProvisionPredecessor,
   TenantResourceFence,
 } from "../lib/deployments/execution/contracts.ts";
+import { SupervisedTenantWorkloadCleanup } from "../lib/deployments/execution/supervised-tenant-workload-cleanup.ts";
 
 const accountId = "402010193138";
 const region = "ca-central-1";
@@ -169,6 +170,43 @@ function destroyInput(signal: AbortSignal = new AbortController().signal) {
     signal,
   };
 }
+
+test("supervised cleanup uses captured UUID for every observation/delete and rejects unknown receipts", async () => {
+  const calls: string[] = []; let deleted = false;
+  const aws: AwsDeploymentPort = {
+    region, getCallerIdentity: async () => ({ accountId, arn: `arn:aws:sts::${accountId}:assumed-role/TechlongSandboxProvisionerRole/test-session` }),
+    applyTenantStack: async () => { throw Error("No apply"); },
+    describeTenantStack: async id => { calls.push(`read:${id}`); return deleted ? observation("missing", null) :
+      observation("ready", "CREATE_COMPLETE", { ...expectedTags, DeliveryTrack: "single-tenant-acceptance", CleanupMode: "supervised-reviewed" }); },
+    deleteTenantStack: async i => {
+      calls.push(`delete:${i.stackName}`); assert.equal(i.expectedTags.DeliveryTrack, "single-tenant-acceptance"); deleted = true;
+      return { operation: "delete" };
+    },
+  };
+  const cleanup = new SupervisedTenantWorkloadCleanup({ aws, config: config(), reader: { read: async () => stackId } });
+  assert.equal((await cleanup.destroy(destroyInput())).outcome, "deleted");
+  assert.equal(calls.length, 3); assert.ok(calls.every(call => call.endsWith(stackId)));
+  const unknown = new SupervisedTenantWorkloadCleanup({ aws, config: config(), reader: { read: async () => stackName } });
+  await assert.rejects(unknown.destroy(destroyInput()), { code: "SUPERVISED_WORKLOAD_CREATION_UUID_UNPROVED" });
+  assert.equal(calls.length, 3);
+});
+
+test("a same-name workload recreated under another UUID or delivery track is never deleted", async () => {
+  for (const drift of ["uuid", "track"] as const) {
+    let writes = 0;
+    const aws: AwsDeploymentPort = { region,
+      getCallerIdentity: async () => ({ accountId, arn: `arn:aws:sts::${accountId}:assumed-role/TechlongSandboxProvisionerRole/test-session` }),
+      applyTenantStack: async () => { throw Error("No apply"); },
+      describeTenantStack: async () => ({ ...observation("ready", "CREATE_COMPLETE", { ...expectedTags,
+        DeliveryTrack: drift === "track" ? "legacy" : "single-tenant-acceptance", CleanupMode: "supervised-reviewed" }),
+        stackId: drift === "uuid" ? stackId.replace("12345678-", "87654321-") : stackId }),
+      deleteTenantStack: async () => { writes++; return { operation: "delete" }; },
+    };
+    await assert.rejects(new SupervisedTenantWorkloadCleanup({ aws, config: config(), reader: { read: async () => stackId } }).destroy(destroyInput()),
+      { code: "SUPERVISED_WORKLOAD_UUID_OR_TRACK_DRIFT" });
+    assert.equal(writes, 0);
+  }
+});
 
 test("CloudFormation workload cleanup deletes only predecessor-tagged stack and proves missing", async () => {
   const deleteInputs: Parameters<AwsDeploymentPort["deleteTenantStack"]>[0][] = [];
