@@ -1,5 +1,7 @@
 # D001 基础创建实际结果：公钥已创建，Cell因Free Plan限制自动回滚
 
+**后继路线 D002**：用户随后决定暂不升级账户，先做 Express / Full 兼容设计，当前优先Express连接/协议适配。下文“升级后恢复”是原Full路线的历史建议，不再是唯一后继；失败回执、原槽和未执行cleanup保留，本次不改云/数据库或重放创建。[双模式兼容方案与继续位置](./aws-auto-deployment-aurora-dual-mode.md)。
+
 2026-10-13 America/Winnipeg。用户确认 [ebeef325清单](./aws-auto-deployment-single-tenant-m1-cell-foundation-review.md)及完整风险后，在原fresh窗口内一次执行。**没有部署成功，没有tenant/job/activation或运行时启用。原Run和永久槽已消费，不可重放。**
 
 ## 实际执行与独立回读

@@ -2,11 +2,13 @@
 
 决策D001，2026-10-13 America/Winnipeg。用户在审计后明确同意收缩首轮目标并开始实施，同时要求封存F3c9以便重启。此文档取代旧方案中的“继续F3c9”作为当前导航；[原支线封存](./aws-auto-deployment-f3c9-deferred.md)，所有历史保留。
 
+**最新路线 D002（2026-10-13）**：用户暂不升级账户，先采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。设计已记录，适配代码、双模式镜像和Express实机验收尚未完成；本次不改云/数据库，不删除失败Stack、不复位原两槽。下一步仅 C1 集中连接/协议/provider 适配，再按具体资源新SHA审阅 C2；下方原Full路线的“升级后继续”及阶段状态保留为历史，不能当执行授权。[完整兼容、快速切换、风险与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
+
 ## 首轮交付定义
 
 管理员触发一个准确sandbox租户任务，后续自动完成独立Secret、独立database/role、空baseline恢复和迁移、ECS服务启动、健康检查、mTLS/JWT配置下发，以及可访问地址和`ready`回写。不是只让一个容器启动，也不是先接付款或开放多租户轮询。
 
-首轮使用一个Cell、一个租户、`standard-v1`、ca-central-1/账号402010193138、sandbox.techlong.cloud；沿用Aurora PG16.14、ECS Fargate和ALB，不改成共享租户数据库，不重建已验收镜像或导出业务数据。50USD/月为目标，不保证整套常驻在50USD内。
+首轮使用一个Cell、一个租户、`standard-v1`、ca-central-1/账号402010193138、sandbox.techlong.cloud，保持独立database/role、ECS Fargate和ALB。D002当前先适配Express实际引擎/网关/IAM；原Full PG16.14与已验收镜像保留，但不是Express兼容证明，后续需云端构建新双模式镜像并验收。原空baseline不重导出，不导出业务数据。50USD/月为目标，不保证整套常驻在50USD内。
 
 资源由受监督的、预先审阅的准确清理路径负责；首轮不要求先完成通用无人值守Cell出生/死亡系统。**自动部署与自动销毁不是同一验收项。** 必须在任何付费创建前具备可执行、准确ARN/ownership绑定的清理方案和失败后人工接管路径；本次同意改变交付顺序，不授权删除现有资源、关掉数据库约束或跳过权限审阅。
 
@@ -16,8 +18,8 @@
 
 | 交付块 | 可核对输出 | 当前状态 |
 | --- | --- | --- |
-| M1 准确首轮部署包 | 一个Cell/租户的模板、资源/权限/清理范围、镜像与baseline pins、所需新云批准 | **进行中**：Cell IAM、真实业务/config/policy和私有输入已核验；control公钥Secret已创建并核验，基础guard/准确未启动清理入口完成；完整tenant权限/DNS/live readiness仍待真实Cell输出，账户Free Plan阻断，未激活 |
-| M2 真实基础设施与数据库 | 经具体批准创建Cell，注册准确lifecycle任务定义，完成真实TLS prepare/restore/migrate/verify | **首次基础创建已执行但失败回滚**：Free Plan不支持当前Aurora full configuration；公钥Secret已创建，Stack ROLLBACK_COMPLETE，未注册任务/部署tenant；待用户账户计划选择，原槽不可重放 |
+| M1 准确首轮部署包 | 一个Cell/租户的模板、资源/权限/清理范围、镜像与baseline pins、所需新云批准 | **进行中**：原Full IAM、业务/config/policy、私有输入和公钥Secret已有证据；D002双模式设计完成但Express代码/镜像/权限/真实清理未完成，未激活 |
+| M2 真实基础设施与数据库 | 经具体批准创建Cell，注册准确lifecycle任务定义，完成真实TLS prepare/restore/migrate/verify | **原Full首次创建失败回滚**：公钥Secret保留、Stack ROLLBACK_COMPLETE，原槽不可重放；当前保持Free Plan，先C1适配再单独审阅Express实机范围，未注册任务/部署tenant |
 | M3 一个任务到ready | 管理员触发的受审单次入口、ECS健康端点、mTLS/JWT、地址和ready回写 | 未完成；原默认Worker仍关闭，不能改flag伪装启用 |
 | M4 清理验收与交接 | 准确资源有序清理、最终库存/费用、完整运行回执 | 未执行；不把ECS失败检测当数据库或全资源清理 |
 
@@ -41,7 +43,7 @@ AWS服务可能创建内部资源（例如RDS托管master Secret），25是templ
 
 ## 已有资产与关键接线
 
-- 镜像：[F3a2真实ECR验收](./aws-auto-deployment-fast-track-f3a2-ecr-published.md)，app `sha256:2af648ae122dad46dcba313481797a49766744c4de167d33642dba124908df07`，lifecycle `sha256:2ab7017dcebd64083e7804001685272a3a5461faa4b7a4bec37adab059980bb4`。未来读回这些精确digest，不重建或改用latest。
+- 原Full镜像：[F3a2真实ECR验收](./aws-auto-deployment-fast-track-f3a2-ecr-published.md)，app `sha256:2af648ae122dad46dcba313481797a49766744c4de167d33642dba124908df07`，lifecycle `sha256:2ab7017dcebd64083e7804001685272a3a5461faa4b7a4bec37adab059980bb4`。这些证据保留；D002需要新双模式镜像、新digest/发布审阅，不能改用latest或声称旧镜像已支持Express。
 - baseline/mTLS：[已安装基础](./aws-auto-deployment-fast-track-f3c2-material-foundation-executed.md)，archive `1a65288b4628018932a8d9af4658db5702b6cf49966a2032bc2d919bc591d70a`、manifest `62b5dc8cadcf276df140be86e002a08b64d9b713bd0257e14ac515c12a996971`。不重导出业务数据；未来仍需准确对象字节/权限核对。
 - 复用 `prepared-runtime-composition.ts`、ECS one-shot adapter、租户Secret/SQL与有序cleanup、control client、Worker任务状态机。单次受审live root仍需接线；当前default/prepared的false保留。
 - 后端现有admitted prepared root强制验证DDB activation/epoch、真实Fargate任务和RDS会话。**MVP不能绕过这些限制，也不能把本新模板作为旧authority品牌直接传入。** 下一只实现固定首轮资源的合法适配与准确activation/ownership材料，不重建通用Cell生命周期协议。
@@ -58,6 +60,8 @@ AWS服务可能创建内部资源（例如RDS托管master Secret），25是templ
 这是[AWS模板验证](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ValidateTemplate.html)，不能证明实际创建权限、服务就绪、数据库迁移或任务成功。没有CreateChangeSet/CreateStack、IAM/DB/table写、Invoke或新槽消费；没有读取Secret值，也没有连接Neon。F3c9冻结132文件与历史材料继续核对保留。
 
 ## 唯一下一步
+
+当前唯一下一步由 **D002 C1** 接管：集中实现双模式数据库连接与版本化契约，Full保留、Express新增，不先执行任何云写。以下D001逐段继续记录为历史；以页首最新D002及其兼容方案为准，不重新升级账户、部署Full或重放旧Run。
 
 本轮M1续段已实现限定领取、独立租户workload和集中权限编译，73项定向/相邻检查及真实Neon只读EXPLAIN/AWS模板验证通过；[具体接线、权限表、清理顺序与剩余缺口](./aws-auto-deployment-single-tenant-m1-integration.md)。当前仍无可执行云清单，不创建收费Cell。
 

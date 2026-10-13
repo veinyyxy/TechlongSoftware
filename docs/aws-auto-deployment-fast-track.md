@@ -4,6 +4,8 @@
 
 ## 当前主线变更：D001（2026-10-13 Winnipeg）
 
+**最新 D002**：原Full创建因Free Plan拒绝并回滚后，用户暂不升级账户，先写 Express / Full 双模式兼容及切换方案。当前保留Free Plan，下一仅 C1 集中连接/协议/provider实现，再另审Express实机变更；方案尚非可运行适配或部署批准，原失败Stack/公钥/永久槽与F3c9封存均保留。50USD/月目标非cap，未云写/DB写或升级。[兼容方案、三步实施与切换风险](./aws-auto-deployment-aurora-dual-mode.md)。下方先前继续位置作为历史，不覆盖此决策。
+
 最新 D001 M1：supervised workload 已接入既有 Worker apply/reconcile，原 UUID 清理、独立 prepared root 和 Cell 创建/准确清理接口实现；107项定向/相邻检查通过，运行时未激活。Source刷新后真实只读确认新Cell/角色/boundary均未创建、三service-linked role存在、17种provider声明读回；Neon只有旧plan_only、无binding、policy仍10USD，需新审阅而非自动改状态。[当前接线与剩余主线](./aws-auto-deployment-single-tenant-m1-runtime.md)。无云/DB写或新槽消费，F3c9继续封存。
 
 最新M1继续位置：限定deployment/app/env/两个hash/固定app digest的CLI与全部领取维护CTE限制完成；独立7资源workload不装旧TTL、候选用标准FARGATE；集中lifecycle/Execution权限和先注册后真实revision activation材料完成。73项定向/相邻检查、真实Neon PG18.6 READ ONLY非ANALYZE EXPLAIN及AWS ValidateTemplate通过，默认root仍disabled，云/DB写0。六role只读显示Cell execution无Allow；新workload尚未接入live Worker，supervised清理未就绪、M1未完成。下一集中Cell权限/准确删除、supervised live root及真实租户/签名输入/费用范围，不扩F3c9。[当前实现与唯一后继包](./aws-auto-deployment-single-tenant-m1-integration.md)。
