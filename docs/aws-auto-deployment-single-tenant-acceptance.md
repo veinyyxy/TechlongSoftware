@@ -16,8 +16,8 @@
 
 | 交付块 | 可核对输出 | 当前状态 |
 | --- | --- | --- |
-| M1 准确首轮部署包 | 一个Cell/租户的模板、资源/权限/清理范围、镜像与baseline pins、所需新云批准 | **进行中**：Cell IAM、真实业务/config/policy已核验；本机签名/mTLS/payment来源和密码来源接线完成，8项实际只读检查通过；实际权限、public-key Secret、DNS和live guard/readiness待集中收尾，未激活 |
-| M2 真实基础设施与数据库 | 经具体批准创建Cell，注册准确lifecycle任务定义，完成真实TLS prepare/restore/migrate/verify | 未执行，付费/权限/DB写另批 |
+| M1 准确首轮部署包 | 一个Cell/租户的模板、资源/权限/清理范围、镜像与baseline pins、所需新云批准 | **进行中**：Cell IAM、真实业务/config/policy和私有输入已核验；control公钥Secret已创建并核验，基础guard/准确未启动清理入口完成；完整tenant权限/DNS/live readiness仍待真实Cell输出，账户Free Plan阻断，未激活 |
+| M2 真实基础设施与数据库 | 经具体批准创建Cell，注册准确lifecycle任务定义，完成真实TLS prepare/restore/migrate/verify | **首次基础创建已执行但失败回滚**：Free Plan不支持当前Aurora full configuration；公钥Secret已创建，Stack ROLLBACK_COMPLETE，未注册任务/部署tenant；待用户账户计划选择，原槽不可重放 |
 | M3 一个任务到ready | 管理员触发的受审单次入口、ECS健康端点、mTLS/JWT、地址和ready回写 | 未完成；原默认Worker仍关闭，不能改flag伪装启用 |
 | M4 清理验收与交接 | 准确资源有序清理、最终库存/费用、完整运行回执 | 未执行；不把ECS失败检测当数据库或全资源清理 |
 
@@ -76,3 +76,5 @@ AWS服务可能创建内部资源（例如RDS托管master Secret），25是templ
 最新本机输入续段：新RSA-3072签名对、既有mTLS和服务端test-payment安全来源已准备在受限本机r2，首位商户密码来源/独立Neon配置回读/具体prepared接线完成；**22:15:59.651 UTC** 独立8项全部通过，`PRIVATE_INPUTS_VERIFIED_RUNTIME_DISABLED`。用户批准的一次Stripe官方只读认证HTTP200/test mode通过，不证明稍后包字节或webhook投递。实际IAM文档差异已归纳，旧mTLS宽ACL风险保留，132+4+14冻结pins未变；本轮云/DB写、Secret值、bearer/control请求、job/TTL/Cell均0。[本段证据与恢复位置](./aws-auto-deployment-single-tenant-m1-private-inputs.md)。下一集中实际权限/live guard/准确清理/public-key Secret以及收费Cell/DNS/费用批准包，M1未完成，继续封存F3c9。
 
 最新基础待审：现有Source对固定Cell创建/删除命名空间/PassRole、公钥CreateSecret+Tag五项模拟allowed，基础前无需额外IAM安装；真实角色/查空/证书/engine/AZ/key共27项、业务13项及无tenant generation、AWS模板验证通过。具体fresh guard/永久journal/独立Inspect与**未部署tenant的准确UUID清理**入口已完成，最大两次直接创建（公钥Secret+25资源Cell），未执行；后续任务/tenant IAM/DNS/activation/job必须依赖Cell真实输出另批。3h基础用量估算0.56715USD+变量，730h持续活跃约138.81USD，50目标非cap/ExpiresAt不自动删除。40检查/type/lint及158历史pins保持，云/DB写/Secret值/槽消费0。[准确SHA、时限、完整风险与恢复位置](./aws-auto-deployment-single-tenant-m1-cell-foundation-review.md)。这是D001依赖收口，不重启F3c9，也不宣称完整tenant cleanup或M1/部署闭环已完成。
+
+用户随后批准ebeef325...，两次直接创建完成，公钥Secret留存、真实Cell UUID已捕获；RDS因账户Free Plan要求Express/升级拒绝，CFN自动回滚。22:56:49.205UTC独立Inspect确认ROLLBACK_COMPLETE/20历史physical rows全DELETE_COMPLETE；真实VPC/IGW/DB/ALB/log不在，ECS仅INACTIVE/0任务0service，失败Stack记录保留。GetAccountPlanState证实FREE/ACTIVE；没有主动删除、升级账户或重试，原两槽已消费，private Secret值/IAM/Neon/job/runtime0。172历史/本次pins不变；[实际结果、准确失败Stack清理清单和下一选择](./aws-auto-deployment-single-tenant-cell-foundation-executed.md)。最快保留原私有Aurora方案需用户手动Paid Plan升级；Express涉及网络/认证/provider重新设计，不自动换。后继须先确认plan资格，再fresh单独审批旧失败UUID清理及新独立Cell尝试，保留公钥/旧槽，不重放原Run。

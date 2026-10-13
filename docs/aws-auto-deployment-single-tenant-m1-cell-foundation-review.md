@@ -1,6 +1,8 @@
 # D001：基础 Cell + control 公钥 Secret 集中待审
 
-2026-10-13 America/Winnipeg。[上一段私有输入](./aws-auto-deployment-single-tenant-m1-private-inputs.md)已完成；本段把依赖真实 Cell 输出的权限后置，不再用虚构 endpoint/Secret ARN/task revision 阻塞基础创建。**当前只准备，尚未获批或创建，M1整体和自动部署闭环仍未完成。** F3c9继续封存。
+2026-10-13 America/Winnipeg。[上一段私有输入](./aws-auto-deployment-single-tenant-m1-private-inputs.md)已完成；本段把依赖真实 Cell 输出的权限后置，不再用虚构 endpoint/Secret ARN/task revision 阻塞基础创建。**当时只准备，尚未获批或创建，M1整体和自动部署闭环仍未完成。** F3c9继续封存。
+
+后继状态：用户已批准并执行本SHA，两槽已消费；公钥创建成功，Cell因Free Plan限制自动ROLLBACK_COMPLETE。[实际回执和阻断](./aws-auto-deployment-single-tenant-cell-foundation-executed.md)。下面是原批准材料，不能作为重试命令或新的执行授权。
 
 ## 当前可批准范围：最多两次直接创建
 
