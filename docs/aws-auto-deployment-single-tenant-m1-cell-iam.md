@@ -1,5 +1,7 @@
 # M1：首轮 Cell 专属权限待审包
 
+最新状态：用户批准本 SHA 后，18:37:01.667 UTC 三写安装及独立回读已通过；[实际安装、回执与继续位置](./aws-auto-deployment-single-tenant-m1-cell-iam-installed.md)。下文保留为 18:28 的原待审记录，不可重放。
+
 2026-10-13 America/Winnipeg，继续 [D001 主线](./aws-auto-deployment-single-tenant-acceptance.md)。本轮集中完成真实 Cell 权限和管理员输入，不重启 F3c9，不新增探针系列。**只完成审阅准备，没有安装权限或部署 Cell；M1 尚未完成。**
 
 ## 待批准的准确三写
