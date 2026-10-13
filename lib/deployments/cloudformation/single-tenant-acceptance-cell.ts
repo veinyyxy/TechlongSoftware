@@ -49,7 +49,9 @@ export async function renderSingleTenantAcceptanceCell(raw: SingleTenantAcceptan
   }
   delete resources.CellCleanupSchedule;
   for (const name of removedParameters) delete parameters[name];
-  const tags = { ...original.tags, DeliveryTrack: "single-tenant-acceptance", CleanupMode: "supervised-reviewed" };
+  // This separate track must use the five ownership values of its installed
+  // Cell IAM policy. Keep the frozen legacy renderer's operator label intact.
+  const tags = { ...original.tags, ManagedBy: "techlong-provisioner", DeliveryTrack: "single-tenant-acceptance", CleanupMode: "supervised-reviewed" };
   for (const resource of Object.values(resources)) {
     if (!Array.isArray(resource.DependsOn) || !resource.DependsOn.includes("CellCleanupSchedule")) {
       throw Error("SINGLE_TENANT_ACCEPTANCE_BASE_TEMPLATE_DRIFT");
@@ -59,7 +61,7 @@ export async function renderSingleTenantAcceptanceCell(raw: SingleTenantAcceptan
     else delete resource.DependsOn;
     const properties = resource.Properties as Record<string, unknown>;
     if (Array.isArray(properties.Tags)) {
-      properties.Tags = [...properties.Tags,
+      properties.Tags = [...properties.Tags.map(tag => tag.Key === "ManagedBy" ? { ...tag, Value: tags.ManagedBy } : tag),
         { Key: "DeliveryTrack", Value: tags.DeliveryTrack },
         { Key: "CleanupMode", Value: tags.CleanupMode },
       ];

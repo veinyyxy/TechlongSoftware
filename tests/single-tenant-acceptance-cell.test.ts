@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { renderSingleTenantAcceptanceCell } from "../lib/deployments/cloudformation/single-tenant-acceptance-cell.ts";
 import { renderAwsSandboxSharedCellStack } from "../lib/deployments/cloudformation/shared-cell-stack.ts";
 import { v3Environment, v3Now } from "./fixtures/cell-stack-v3.ts";
+import { compileAcceptanceCellIam } from "../lib/deployments/execution/single-tenant-cell-iam.ts";
 
 const input = () => ({
   environment: v3Environment(), requestedAt: v3Now,
@@ -32,7 +33,7 @@ test("first acceptance candidate contains infrastructure, no legacy or deferred 
   assert.equal((await renderSingleTenantAcceptanceCell(input())).templateSha256, plan.templateSha256);
 });
 
-test("only schedule dependencies and explicit track tags change reused resource definitions", async () => {
+test("only schedule dependencies and explicit track/ownership tags change reused resource definitions", async () => {
   const draft = input(), plan = await renderSingleTenantAcceptanceCell(draft);
   const old = renderAwsSandboxSharedCellStack({ ...draft,
     cellJanitorFunctionArn: "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-cell-janitor",
@@ -45,12 +46,13 @@ test("only schedule dependencies and explicit track tags change reused resource 
     const dependencies = (resource.DependsOn as string[]).filter(id => id !== "CellCleanupSchedule");
     if (dependencies.length) resource.DependsOn = dependencies; else delete resource.DependsOn;
     const properties = resource.Properties as Record<string, unknown>;
-    if (Array.isArray(properties.Tags)) properties.Tags = [...properties.Tags,
+    if (Array.isArray(properties.Tags)) properties.Tags = [...properties.Tags.map(tag => tag.Key === "ManagedBy" ? { ...tag, Value: "techlong-provisioner" } : tag),
       { Key: "DeliveryTrack", Value: "single-tenant-acceptance" }, { Key: "CleanupMode", Value: "supervised-reviewed" }];
   }
   assert.deepEqual(plan.template.Resources, expected);
   assert.ok("CellCleanupSchedule" in (old.template.Resources as object));
   assert.equal(old.safety.cleanupScheduleFirst, true);
+  assert.equal(old.tags.ManagedBy, "techlong-cell-operator");
   const resources = plan.template.Resources as Record<string, { DependsOn?: string[]; Properties: Record<string, unknown> }>;
   for (const resource of Object.values(resources)) {
     for (const dependency of resource.DependsOn ?? []) assert.ok(dependency in resources);
@@ -61,6 +63,19 @@ test("only schedule dependencies and explicit track tags change reused resource 
   assert.equal(resources.CellDatabaseCluster.Properties.EngineVersion, "16.14");
   assert.deepEqual(resources.CellDatabaseCluster.Properties.ServerlessV2ScalingConfiguration,
     { MinCapacity: 0, MaxCapacity: 1, SecondsUntilAutoPause: 300 });
+});
+
+test("all tagged Cell resources satisfy the installed IAM ownership conditions", async () => {
+  const plan = await renderSingleTenantAcceptanceCell(input());
+  const iam = await compileAcceptanceCellIam({ rdsKmsKeyArn: "arn:aws:kms:ca-central-1:402010193138:key/637acceb-4c09-49d5-ac95-7ff8b22069a9",
+    secretsKmsKeyArn: "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570" });
+  for (const tag of iam.tags) assert.equal(plan.tags[tag.Key as keyof typeof plan.tags], tag.Value);
+  const resources = plan.template.Resources as Record<string, { Properties: { Tags?: { Key: string; Value: string }[] } }>;
+  for (const resource of Object.values(resources)) {
+    if (!resource.Properties.Tags) continue;
+    const actual = Object.fromEntries(resource.Properties.Tags.map(t => [t.Key, t.Value]));
+    for (const tag of iam.tags) assert.equal(actual[tag.Key], tag.Value);
+  }
 });
 
 test("wrong account, budget, capacity, region, domain and enablement remain rejected", async () => {

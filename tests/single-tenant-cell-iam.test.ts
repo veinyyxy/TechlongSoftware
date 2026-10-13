@@ -87,7 +87,7 @@ test("expiry between writes stops after boundary without creating role or repair
     journal: { consume: async () => { events.push("consume"); }, record: async () => {} } });
   assert.deepEqual(events, ["consume", "policy"]);
   assert.equal(result.outcome, "PARTIAL_OR_UNCERTAIN_REQUIRES_INSPECT_NO_RETRY");
-  assert.equal(result.writeStagesEntered, 1); assert.equal(result.failureCode, "CELL_IAM_FRESH_EXACT_APPROVAL_REQUIRED");
+  assert.equal(result.writeStagesEntered, 1); assert.ok("failureCode" in result); assert.equal(result.failureCode, "CELL_IAM_FRESH_EXACT_APPROVAL_REQUIRED");
 });
 test("occupied permanent journal stops all cloud writes even with valid fresh approval", async () => {
   const r = await review(), forbidden = async (): Promise<never> => { throw Error("must not reach write"); };
