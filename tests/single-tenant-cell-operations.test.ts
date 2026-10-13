@@ -35,6 +35,7 @@ test("Cell create captures service-generated UUID; exact owned delete submits ST
   assert.equal(receipt.stackId, stackId); assert.deepEqual(receipt, f.captured());
   const create = f.calls.find(c => c.create)!.create as Record<string, unknown>;
   assert.equal(create.OnFailure, "ROLLBACK"); assert.equal(create.RoleARN, ACCEPTANCE_CELL_SERVICE_ROLE);
+  assert.equal(create.TimeoutInMinutes, 45);
   assert.equal("DisableRollback" in create, false);
   assert.equal((await f.operations.inspect(receipt, signal()))!.resources.length, 25);
   const result = await f.operations.delete({ receipt, approvedReviewSha256: "b".repeat(64), signal: signal() });

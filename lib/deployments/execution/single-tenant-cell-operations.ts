@@ -79,7 +79,7 @@ export class SingleTenantAcceptanceCellOperations {
       Parameters: Object.entries(draft.parameters).map(([ParameterKey, ParameterValue]) => ({ ParameterKey, ParameterValue })),
       Tags: Object.entries(draft.tags).map(([Key, Value]) => ({ Key, Value })),
       RoleARN: ACCEPTANCE_CELL_SERVICE_ROLE, ClientRequestToken: clientRequestToken,
-      OnFailure: "ROLLBACK", EnableTerminationProtection: false }, input.signal);
+      OnFailure: "ROLLBACK", TimeoutInMinutes: 45, EnableTerminationProtection: false }, input.signal);
     exactId(stackId);
     // Capture even if cancellation raced with the response: losing this exact
     // identity would make later supervised cleanup ambiguous. Capture is not
