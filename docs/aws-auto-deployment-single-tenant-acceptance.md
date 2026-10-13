@@ -16,7 +16,7 @@
 
 | 交付块 | 可核对输出 | 当前状态 |
 | --- | --- | --- |
-| M1 准确首轮部署包 | 一个Cell/租户的模板、资源/权限/清理范围、镜像与baseline pins、所需新云批准 | **进行中**：25+7模板、限定领取、Task/Execution材料、supervised Worker/原UUID清理及Cell接口完成；实际Cell权限、业务/control/DNS输入和审阅guard/journal/verifier待收尾，未激活 |
+| M1 准确首轮部署包 | 一个Cell/租户的模板、资源/权限/清理范围、镜像与baseline pins、所需新云批准 | **进行中**：25+7模板、限定领取、Task/Execution材料、supervised Worker/原UUID清理及Cell接口完成；Cell IAM 三写待审批、管理员已精确匹配；业务/control/DNS输入和live guard/journal/verifier待收尾，未激活 |
 | M2 真实基础设施与数据库 | 经具体批准创建Cell，注册准确lifecycle任务定义，完成真实TLS prepare/restore/migrate/verify | 未执行，付费/权限/DB写另批 |
 | M3 一个任务到ready | 管理员触发的受审单次入口、ECS健康端点、mTLS/JWT、地址和ready回写 | 未完成；原默认Worker仍关闭，不能改flag伪装启用 |
 | M4 清理验收与交接 | 准确资源有序清理、最终库存/费用、完整运行回执 | 未执行；不把ECS失败检测当数据库或全资源清理 |
@@ -64,3 +64,5 @@ AWS服务可能创建内部资源（例如RDS托管master Secret），25是templ
 新策略已接到 apply/reconcile，租户清理使用持久创建 UUID 和 provision predecessor，Cell 创建/准确删除接口与独立 prepared root 完成；[最新接线及真实只读差异](./aws-auto-deployment-single-tenant-m1-runtime.md)。107项定向/相邻检查通过，但真实新权限、业务行/执行绑定、Neon 50USD policy、control/DNS 输入及批准 guard/journal/verifier仍未就绪；原记录保留。没有可执行云 SHA，默认仍 disabled。
 
 下一后继包集中完成这些**实际权限、输入和审阅边界**，之后按具体云/DB/收费/清理范围 fresh 批准再推进M2。不能用旧scheduler ref或改false绕过缺口；上述项不再拆成新的探针/恢复系列。
+
+最新续段已生成新 Cell 专属 boundary/role/inline **最多三写**的待审清单，实际 AWS 策略验证 findings 为零，新对象仍不存在；管理员指定邮箱只读精确匹配通过，复用真实 active plan 的已发布 schema-v2，无业务写。13项新/相邻检查通过，F3c9冻结132 pins 保持；[准确 SHA、有效期、完整风险和继续位置](./aws-auto-deployment-single-tenant-m1-cell-iam.md)。这是 IAM 安装审批材料，不授权 Cell/DB/DNS/Secret/运行时；本轮写和消费槽仍 0。
