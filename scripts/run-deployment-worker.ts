@@ -10,6 +10,7 @@ import {
 import { NeonDeploymentExecutionRepository } from "../lib/deployments/execution/neon-repository.ts";
 import { createDefaultDisabledWorkerRuntime } from "../lib/deployments/execution/runtime-composition.ts";
 import { runDeploymentWorkerOnce } from "../lib/deployments/execution/worker.ts";
+import { singleDeploymentScopeFromArguments } from "../lib/deployments/execution/single-deployment-scope.ts";
 
 const nodeVersion = process.versions.node.split(".").map(Number);
 if (nodeVersion[0] < 22 || (nodeVersion[0] === 22 && nodeVersion[1] < 13)) {
@@ -17,12 +18,15 @@ if (nodeVersion[0] < 22 || (nodeVersion[0] === 22 && nodeVersion[1] < 13)) {
 }
 
 const config = loadDeploymentWorkerRuntimeConfig(process.env);
+const claimScope = singleDeploymentScopeFromArguments(process.argv.slice(2));
 const runtime = createDefaultDisabledWorkerRuntime();
 if (process.argv.includes("--check-runtime")) {
   process.stdout.write(`${JSON.stringify({
     status: "disabled",
     mode: runtime.mode,
     blockers: runtime.blockers,
+    singleDeploymentScope: claimScope ?? null,
+    queueRestrictionDoesNotAuthorizeExecution: true,
     monthlyBudgetTargetUsd: AWS_SANDBOX_MONTHLY_BUDGET_CENTS / 100,
     cloudMutationPerformed: false,
     databaseAccessPerformed: false,
@@ -49,7 +53,7 @@ if (!databaseUrl) throw new Error("Deployment worker requires DATABASE_URL.");
 
 const workerId = `worker:${hostname().replace(/[^A-Za-z0-9._-]/g, "-")}:${randomUUID().slice(0, 8)}`;
 const dependencies = {
-  repository: new NeonDeploymentExecutionRepository(databaseUrl),
+  repository: new NeonDeploymentExecutionRepository(databaseUrl, claimScope),
   ...runtime,
   awsFactory: ({ region }: { region: string; workerRoleArn: string }) =>
     createAwsSdkDeploymentAdapter(region),

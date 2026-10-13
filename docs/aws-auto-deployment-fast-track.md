@@ -4,6 +4,8 @@
 
 ## 当前主线变更：D001（2026-10-13 Winnipeg）
 
+最新M1继续位置：限定deployment/app/env/两个hash/固定app digest的CLI与全部领取维护CTE限制完成；独立7资源workload不装旧TTL、候选用标准FARGATE；集中lifecycle/Execution权限和先注册后真实revision activation材料完成。73项定向/相邻检查、真实Neon PG18.6 READ ONLY非ANALYZE EXPLAIN及AWS ValidateTemplate通过，默认root仍disabled，云/DB写0。六role只读显示Cell execution无Allow；新workload尚未接入live Worker，supervised清理未就绪、M1未完成。下一集中Cell权限/准确删除、supervised live root及真实租户/签名输入/费用范围，不扩F3c9。[当前实现与唯一后继包](./aws-auto-deployment-single-tenant-m1-integration.md)。
+
 用户明确同意停止继续扩展F3c9，保留材料以便以后重启，改为管理员触发一个准确sandbox租户任务、自动完成部署到ready。当前导航：[单租户首轮执行计划](./aws-auto-deployment-single-tenant-acceptance.md)；[F3c9封存与重启条件](./aws-auto-deployment-f3c9-deferred.md)。后置通用无人值守Cell生命周期，不删除既有控制面/数据库保护或复位槽；原云写/权限/付费/DB/删除仍按具体范围fresh批准。M1独立基础设施候选完成，复用25资源且不安装旧或F3c9调度，13项定向/相邻测试及真实AWS ValidateTemplate通过；仅模板验证，无部署或运行时启用。M1剩余集中权限/准确清理和单次租户接线范围尚待收敛。**下面F3c9各段“下一步”已封存，不再作为当前执行指令。**
 
 ## 交付目标与主线

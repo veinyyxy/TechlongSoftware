@@ -16,7 +16,7 @@
 
 | 交付块 | 可核对输出 | 当前状态 |
 | --- | --- | --- |
-| M1 准确首轮部署包 | 一个Cell/租户的模板、资源/权限/清理范围、镜像与baseline pins、所需新云批准 | **进行中**：独立基础设施候选及真实模板验证完成；权限/清理/租户接线范围仍待收敛 |
+| M1 准确首轮部署包 | 一个Cell/租户的模板、资源/权限/清理范围、镜像与baseline pins、所需新云批准 | **进行中**：25项Cell与7项workload候选、限定部署领取、集中Task/Execution权限及无虚构revision的注册稿完成；Cell权限/准确清理和live root仍待收尾 |
 | M2 真实基础设施与数据库 | 经具体批准创建Cell，注册准确lifecycle任务定义，完成真实TLS prepare/restore/migrate/verify | 未执行，付费/权限/DB写另批 |
 | M3 一个任务到ready | 管理员触发的受审单次入口、ECS健康端点、mTLS/JWT、地址和ready回写 | 未完成；原默认Worker仍关闭，不能改flag伪装启用 |
 | M4 清理验收与交接 | 准确资源有序清理、最终库存/费用、完整运行回执 | 未执行；不把ECS失败检测当数据库或全资源清理 |
@@ -59,4 +59,6 @@ AWS服务可能创建内部资源（例如RDS托管master Secret），25是templ
 
 ## 唯一下一步
 
-完成M1的**集中资源/权限/清理与单次租户入口接线清单**：复用这份基础设施和既有tenant模板/任务定义，在同一范围明确新权限、准确activation/ownership适配、实际费用估算与受监督cleanup。准备完成后按具体云/DB范围和fresh SHA请求批准，再推进M2；不能因为本模板验证成功就直接创建收费Cell。若某项问题不阻挡该首轮输出，将其记入后置列表，不默认再开一条探针/恢复支线。
+本轮M1续段已实现限定领取、独立租户workload和集中权限编译，73项定向/相邻检查及真实Neon只读EXPLAIN/AWS模板验证通过；[具体接线、权限表、清理顺序与剩余缺口](./aws-auto-deployment-single-tenant-m1-integration.md)。当前仍无可执行云清单，不创建收费Cell。
+
+下一后继包集中完成**Cell收费创建/准确删除权限与执行范围、supervised cleanup assurance与workload live root、实际单租户/控制签名输入及费用审阅**，之后按具体云/DB范围fresh批准再推进M2。不能用旧scheduler ref或改false绕过缺口；上述项不再拆成新的探针/恢复系列。

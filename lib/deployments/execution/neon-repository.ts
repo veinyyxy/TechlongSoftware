@@ -35,6 +35,10 @@ import type {
 } from "./contracts.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import {
+  singleDeploymentClaimPredicate, validateSingleDeploymentScope,
+  type SingleDeploymentClaimScope,
+} from "./single-deployment-scope.ts";
+import {
   cleanupProvisionPredecessorFromEvidence,
   proofProvisionPredecessor,
   requireActiveCleanupProvisionPredecessor,
@@ -561,12 +565,15 @@ export class NeonDeploymentExecutionRepository
   implements DeploymentExecutionRepository
 {
   private readonly sql: SqlClient;
+  private readonly claimScope: Readonly<SingleDeploymentClaimScope> | undefined;
 
-  constructor(databaseUrl: string) {
+  constructor(databaseUrl: string, claimScope?: SingleDeploymentClaimScope,
+    sqlFactory: (databaseUrl: string) => SqlClient = url => neon(url, { fullResults: true })) {
     if (!/^postgres(?:ql)?:\/\//.test(databaseUrl)) {
       throw new Error("Deployment worker requires a PostgreSQL DATABASE_URL.");
     }
-    this.sql = neon(databaseUrl, { fullResults: true });
+    this.claimScope = claimScope === undefined ? undefined : validateSingleDeploymentScope(claimScope);
+    this.sql = sqlFactory(databaseUrl);
   }
 
   async claimNext(input: {
@@ -612,6 +619,7 @@ export class NeonDeploymentExecutionRepository
         WHERE blocked.status = 'running'
           AND blocked.lease_expires_at <= db_clock.now_ms
           AND blocked.job_type <> ALL($1::text[])
+          AND ${singleDeploymentClaimPredicate("blocked")}
           AND EXISTS (
             SELECT 1
             FROM deployment_jobs AS allowed_sibling
@@ -643,6 +651,7 @@ export class NeonDeploymentExecutionRepository
           AND exhausted_job.lease_expires_at <= db_clock.now_ms
           AND exhausted_job.attempts >= exhausted_job.max_attempts
           AND exhausted_job.job_type = ANY($1::text[])
+          AND ${singleDeploymentClaimPredicate("exhausted_job")}
         RETURNING exhausted_job.id, exhausted_job.deployment_id,
           exhausted_job.job_type, exhausted_job.status
       ), dead_cleanup_job AS (
@@ -684,6 +693,7 @@ export class NeonDeploymentExecutionRepository
           )
           AND candidate_job.attempts < candidate_job.max_attempts
           AND candidate_job.job_type = ANY($1::text[])
+          AND ${singleDeploymentClaimPredicate("candidate_job")}
           AND NOT EXISTS (
             SELECT 1 FROM deployment_jobs AS sibling
             WHERE sibling.deployment_id = candidate_job.deployment_id
@@ -714,6 +724,12 @@ export class NeonDeploymentExecutionRepository
         input.workerId,
         input.leaseDurationMs,
         leaseToken,
+        this.claimScope?.deploymentId ?? null,
+        this.claimScope?.appInstanceId ?? null,
+        this.claimScope?.environmentId ?? null,
+        this.claimScope?.planHash ?? null,
+        this.claimScope?.configurationHash ?? null,
+        this.claimScope?.artifactRef ?? null,
       ],
     );
     const row = rows[0];
@@ -732,6 +748,10 @@ export class NeonDeploymentExecutionRepository
   }
 
   async loadContext(job: ClaimedDeploymentJob): Promise<DeploymentExecutionContext> {
+    if (this.claimScope && (job.deploymentId !== this.claimScope.deploymentId ||
+      job.payload.deploymentId !== this.claimScope.deploymentId || job.payload.planHash !== this.claimScope.planHash)) {
+      throw Error("SINGLE_DEPLOYMENT_CLAIM_MISMATCH");
+    }
     const rows = await query<Record<string, unknown>>(
       this.sql,
       `SELECT d.id, d.app_instance_id, d.environment_id, d.status AS deployment_status,
@@ -800,6 +820,11 @@ export class NeonDeploymentExecutionRepository
     );
     const row = rows[0];
     if (!row) throw new Error("Claimed deployment no longer exists.");
+    if (this.claimScope && (row.id !== this.claimScope.deploymentId || row.app_instance_id !== this.claimScope.appInstanceId ||
+      row.environment_id !== this.claimScope.environmentId || row.plan_hash !== this.claimScope.planHash ||
+      row.configuration_hash !== this.claimScope.configurationHash || row.artifact_ref !== this.claimScope.artifactRef)) {
+      throw Error("SINGLE_DEPLOYMENT_CONTEXT_CHANGED");
+    }
     const policy = parseDeploymentEnvironmentPolicy(
       parseObject(row.environment_policy),
     );
