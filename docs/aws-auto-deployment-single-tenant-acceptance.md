@@ -16,7 +16,7 @@
 
 | 交付块 | 可核对输出 | 当前状态 |
 | --- | --- | --- |
-| M1 准确首轮部署包 | 一个Cell/租户的模板、资源/权限/清理范围、镜像与baseline pins、所需新云批准 | **进行中**：25+7模板、限定领取、Task/Execution材料、supervised Worker/原UUID清理及Cell接口完成；Cell IAM 已安装、管理员/商户输入已确认、业务六 DML 待审；control/DNS输入和live guard/readiness待收尾，未激活 |
+| M1 准确首轮部署包 | 一个Cell/租户的模板、资源/权限/清理范围、镜像与baseline pins、所需新云批准 | **进行中**：25+7模板、限定领取、Task/Execution材料、supervised Worker/原UUID清理及Cell接口完成；Cell IAM 已安装、新业务/22项配置与Neon50USD policy已独立核验，无job/TTL；control/DNS输入和live guard/readiness待收尾，未激活 |
 | M2 真实基础设施与数据库 | 经具体批准创建Cell，注册准确lifecycle任务定义，完成真实TLS prepare/restore/migrate/verify | 未执行，付费/权限/DB写另批 |
 | M3 一个任务到ready | 管理员触发的受审单次入口、ECS健康端点、mTLS/JWT、地址和ready回写 | 未完成；原默认Worker仍关闭，不能改flag伪装启用 |
 | M4 清理验收与交接 | 准确资源有序清理、最终库存/费用、完整运行回执 | 未执行；不把ECS失败检测当数据库或全资源清理 |
@@ -70,3 +70,5 @@ AWS服务可能创建内部资源（例如RDS托管master Secret），25是templ
 用户随后明确批准上述 SHA，实际三次新 IAM 写成功；**18:37:01.667 UTC** 独立新进程 12 项全部通过，`IAM_INDEPENDENTLY_VERIFIED_NO_CELL`。新角色能力为 active，但本范围不准部署 Cell；DB/Secret值/Invoke/Cell API 均 0，新永久槽消费1，旧资料/冻结 pins保留。[实际回执与下一主线](./aws-auto-deployment-single-tenant-m1-cell-iam-installed.md)。下一集中收尾业务/config/control 与 live guard/journal/readiness 及准确 Cell/DNS/费用/清理范围，再按 fresh 具体批准推进 M2，不回到 F3c9。
 
 最新业务续段：用户确认新店铺名/商户用户名，真实 published schema-v2 已按 plan overlay 解析为22项配置，独立 bootstrap 六 DML 原子提交/永久 journal/独立回读入口完成，**未提交**。拟5条新业务行+env budget1000→5000，不创建deployment/job或提前启动TTL，保留旧隔离原件；[准确SHA、有效期与完整风险](./aws-auto-deployment-single-tenant-m1-business-bootstrap.md)。仅新 Cell renderer 的 ManagedBy 对齐已安装IAM条件，原模板/云IAM不改；新25资源候选AWS ValidateTemplate、24项定向相邻检查/type/lint及冻结132pins通过。本轮云/DB写/槽消费0，control/live执行门禁仍待主线收尾。
+
+用户随后批准7b741e22...，六DML一次原子提交成功；**19:21:19.915 UTC** 独立13项全通过，`BUSINESS_BOOTSTRAP_VERIFIED_NO_JOB_NO_TTL`。新5行及5000 policy已落库，原记录/保护不变；无deployment/job/TTL、AWS写0，商户账号/密码尚未生成，runtime仍false。新永久槽消费1不可重放；[实际回执与继续位置](./aws-auto-deployment-single-tenant-m1-business-bootstrap-installed.md)。下一以真实app/config/scope接好安全control/payment来源和实际权限/live清理门禁，再审阅Cell/DNS/费用/清理，不回到F3c9。

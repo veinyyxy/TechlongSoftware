@@ -1,5 +1,7 @@
 # M1：首个 sandbox 业务输入与六 DML 原子提交待审
 
+最新状态：用户批准此 SHA 后已原子提交；19:21:19.915 UTC 独立 13 项核验通过，**无 job、无 TTL、runtime 未启用**。[实际提交、回执与下一主线](./aws-auto-deployment-single-tenant-m1-business-bootstrap-installed.md)。下文保留原待审记录，不可重放。
+
 2026-10-13 America/Winnipeg，继续 [D001 主线](./aws-auto-deployment-single-tenant-acceptance.md)。已安装 Cell IAM 保持不变；本阶段完成真实业务配置、原子提交入口/永久 journal/独立回读，并修正新 Cell 模板与 IAM 的标签差异。**本轮只是代码与只读准备：数据库/AWS 写、Secret 值读取、收费创建、槽消费均 0，运行时仍关闭。**
 
 ## 准确拟提交范围
