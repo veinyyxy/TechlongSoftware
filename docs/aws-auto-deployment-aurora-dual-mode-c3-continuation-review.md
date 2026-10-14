@@ -1,5 +1,7 @@
 # D002 C3d：保留准确已reserve角色的V4续建/恢复清单
 
+本清单87c5995e...已获批并单次执行，双永久槽已消费，禁止重放。数据库OID16459已续建/promotion，准确旧guard16457已删除；schema恢复被 `AURORA_V3_PG17_CATALOG_REJECTED` 拒绝。立即独立Inspect确认库与NOLOGIN app留存、guard缺席，但未验证租户schema。详见[真实结果与唯一接续位置](./aws-auto-deployment-aurora-dual-mode-c3-continuation-executed.md)。以下准备状态仅保留为历史，不能作为再次执行授权。
+
 2026-10-14 America/Winnipeg。承接[C3c真实目录诊断](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic-executed.md)。新增严格V4校验同时覆盖prepare与restore，旧Full/V2/V3、原212 code entries/183历史entries和全部旧槽不改。**本轮SQL连接/写、云资源写、新执行槽消费均0；以下SHA等待用户确认。**
 
 ## 当前待审SHA
