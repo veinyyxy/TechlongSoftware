@@ -2,6 +2,8 @@
 
 2026-10-13 America/Winnipeg。用户选择保留现有cluster，继续准备新只读诊断；[C2a创建成功/检查失败的原件](./aws-auto-deployment-aurora-dual-mode-c2-executed.md)全部保留。**本批只准备与只读云核对，未重新连接数据库；不重跑旧Run、消费旧槽、重建资源或打开C1写入口。**
 
+后续用户明确确认本新SHA：一次真实诊断成功、客户端正常关闭，独立云回读通过；新槽已消费。本文为原待审材料，不是可重放授权；以[实机结果与当前主线继续位置](./aws-auto-deployment-aurora-dual-mode-c2-diagnostic-executed.md)为准。
+
 ## 目标与实现
 
 新增Backend `aurora_express_admin_diagnostic.js`，作为原C2a固定检查器的独立观测adapter；原8项执行代码/pins不改。新增平台纯review契约与独立CLI，只有Review/Run/Inspect：SDK发送仅允许STS identity、RDS DescribeCluster/Instance、IAM SimulatePrincipalPolicy；另有固定Free Tier账户状态GET。没有Create/Modify/Delete/Grant/Invoke、Secret值、Neon、ECS或SQL写入口。

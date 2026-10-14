@@ -6,6 +6,8 @@
 
 ## 首轮交付定义
 
+最新C2b实际：用户确认f95a0c3c...，唯一Source管理员IAM/TLS连接及四固定只读SQL成功，PG170009/OID5/client TLS/backend TLS/admin目录真实观察；约23秒连接，旧10秒窗口对本次不够但不倒填旧失败原因。独立新进程5次云只读/SQL0回读物理binding一致，Run9metadata/1SQL/资源写0；新槽消费，不重放，cluster继续保留可能计费，仍非tenant或ready证明。下步回主线补C1管理写/连接配置、准备准确角色及原73表空baseline的有限验收包；SQL写/IAM/Secret/任务/部署仍fresh另批。[真实证据与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c2-diagnostic-executed.md)。
+
 最新C2b待审：用户选择保留现有Express后，分阶段白名单诊断adapter、准确临时Source snapshot/STS、新独立永久槽及Review/Run/Inspect入口已实现。新SHA只拟一次逻辑连接/四固定只读SQL，30秒connect/90秒会话，不新增权限或资源。新云只读回读/准确connect ARN模拟通过，实际SQL未调用、旧8执行pins和原槽不变；获批才执行。[新SHA、完整风险与准确范围](./aws-auto-deployment-aurora-dual-mode-c2-diagnostic-review.md)。
 
 最新C2a实际：用户批准b883fbea...后，唯一CreateDBCluster成功；真实PG17.9、0–1ACU、gateway/IAM及cluster/writer身份由独立只读回读一致。唯一管理员只读连接失败，原create/sql槽消费，不重试；尚无TLS/SQL或tenant证明、runtime关闭。资源留存可能计费，清理仅准备未批准。下一建议保留准确cluster，仅准备带分阶段诊断的新独立只读连接清单，不重建、不恢复旧槽，不继续SQL写/部署。[实际证据、费用接管与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c2-executed.md)。
