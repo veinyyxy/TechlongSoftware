@@ -6,6 +6,8 @@
 
 ## 首轮交付定义
 
+最新C3c：针对reserve后校验失败，新增绑定真实两角色OID16456/16457/nonce和旧五项回执SHA的单次只读诊断入口；原校验器不改，逐谓词报告属性/成员/grantor/ADMIN-INHERIT-SET不匹配，1连接/5固定query/同一read-only快照，无角色/数据库写或已有对象接管。3新+2相邻测试/types/lint/syntax通过，原210代码/183历史pins保持；不重复compile/镜像/Grant探针。Review r2停在Source凭据不可用，SQL/诊断槽/云写0，无manifest SHA。下一Source重新login后只生成Review r3及独立metadata，再按fresh SHA确认一次SQL；不继续原安装/复位旧槽。[准确只读范围、风险和继续位置](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic.md)。
+
 最新C3b实际：用户确认1df7e2f7...后，原Root仅一次Run，停在reserve提交后的目录核对/证据保存区间，返回AURORA_V3_SESSION_FAILED；立即独立只读Inspect确认app/guard两角色OID16456/16457、NOLOGIN及ownership匹配，指定租户库不存在。尚未进入创建库/73表恢复/迁移，两永久槽已消费，禁止重放/复位；没有ready或完整角色属性证明。共2个SQL连接/16次query，角色写已提交，AWS资源/IAM/Secret/Neon/ECS写0；执行源码/镜像和183pins保持。下一仅准备绑定真实OID/nonce的新准确目录只读诊断，额外SQL连接fresh另批，不重建/删除/接管/自动重试，不回F3c9。[实际证据、原因边界与唯一接续位置](./aws-auto-deployment-aurora-dual-mode-c3-executed.md)。下段待审状态已消费，仅为历史。
 
 最新C3b：73表原归档编译、PG17安全目录/零行与九条技术初始化行门禁、同事务恢复+迁移及Source单次受审Root已实现；最终完整CI/两镜像通过，原Full/183pins/关闭运行时保持。Source刷新后新Review r4和独立metadata r3通过（各5次直接只读），现有准确cluster/writer与身份/FREE-ACTIVE一致。新SHA `1df7e2f7da6b3e900f68e5d5814e2f32e1578c19af131270ef6a355112ced440` 待明确SQL批准，到Winnipeg 2026-10-14 11:28:18.531 CDT；SQL连接/写、AWS资源写、槽消费均0。下一批准具体范围及完整风险后单次真实prepare/restore/migrate与独立SQL回读，不重复镜像或C2b，不使用旧SHA；尚非schema/ready证明。[唯一继续位置、完整风险与证据](./aws-auto-deployment-aurora-dual-mode-c3-review.md)。

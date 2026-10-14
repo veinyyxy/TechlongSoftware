@@ -92,5 +92,5 @@
   "lifecycleCompatible": false,
   "automaticRetries": 0,
   "retainedResourcesMayAccrueCost": true,
-  "next": "Prepare a fresh exactly bound read-only role-catalog diagnostic for real OIDs 16456/16457 and nonce; any new SQL connection requires new reviewed approval. Both approved slots were permanently consumed, app and guard NOLOGIN roles remain with matching ownership, exact tenant database absent. Do not replay Run/Inspect, reset slots, alter/delete/adopt roles, create database, repeat images/C2b or recreate cluster. Preserve F3c9/Full/history and diagnose the missing original reserve verification condition before proposing a separately approved continuation."
+  "next": "The additive C3c read-only role diagnostic is implemented; continue from aurora-express-c3c-role-diagnostic.prepared.json after Source login, Review r3 and independent metadata, then exact fresh SQL approval. Old Run/Inspect slots stay consumed and original evidence is unchanged. Do not replay, reset, alter/delete/adopt roles, create database, repeat images/C2b/Grant/F3c9 or recreate cluster."
 }

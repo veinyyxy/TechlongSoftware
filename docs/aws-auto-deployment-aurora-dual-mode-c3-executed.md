@@ -35,6 +35,8 @@
 
 ## 唯一接续位置
 
+此接续的有限只读入口已在C3c实现；当前Source凭据不可用、无新manifest/SQL授权，详见[准确范围、风险和刷新后的继续点](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic.md)。下面保留该接续的设计范围，不代表已执行新的目录查询。
+
 建议下一小步仅准备一个fresh SHA的**准确角色完整目录只读诊断**：绑定现有cluster、两个真实OID/名称/nonce与独立回执，查询角色属性、creator membership及grantor选项，输出安全字段/比较拒绝条件；不修改角色、不重新prepare、不创建数据库，不重复C2b网络探针或Grant支线。额外SQL连接不在已消费Inspect授权内，需新具体清单确认。
 
 取得真实目录后，若是校验模型与合法实际目录不一致，才准备保留现有两角色的准确后继方案及必要代码修正；若是异常权限，则准备准确处置范围。任何角色修改/删除、已有对象接管、数据库创建/恢复、独立新槽均另按fresh SHA批准。**不清空旧槽、不自动修补/回滚/重试，不换名字堆叠新角色，不重建集群，不回F3c9。** [紧凑继续摘要](../ops/aws-sandbox/reviews/aurora-express-c3b.prepared.json)。
