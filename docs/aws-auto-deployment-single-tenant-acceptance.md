@@ -2,9 +2,11 @@
 
 决策D001，2026-10-13 America/Winnipeg。用户在审计后明确同意收缩首轮目标并开始实施，同时要求封存F3c9以便重启。此文档取代旧方案中的“继续F3c9”作为当前导航；[原支线封存](./aws-auto-deployment-f3c9-deferred.md)，所有历史保留。
 
-**最新路线 D002（2026-10-13）**：用户暂不升级账户，先采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。设计已记录，适配代码、双模式镜像和Express实机验收尚未完成；本次不改云/数据库，不删除失败Stack、不复位原两槽。下一步仅 C1 集中连接/协议/provider 适配，再按具体资源新SHA审阅 C2；下方原Full路线的“升级后继续”及阶段状态保留为历史，不能当执行授权。[完整兼容、快速切换、风险与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
+**当前路线 D002（更新2026-10-14）**：用户暂不升级账户，采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。双模式适配、云端两镜像和Express schema/两迁移/独立回读已完成（C3g），应用角色仍NOLOGIN、runtime/ready未启用。下一仅准备准确租户的最小权限、Secret-v2及PG17运行时接线候选；实际授权/登录/Secret/IAM/ECR/ECS写仍fresh具体清单另批。不重放已消费C3槽、不删除旧Full失败Stack、不扩展F3c9；下方旧“升级后继续”等记录仅历史。[完整兼容、快速切换、风险与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
 
 ## 首轮交付定义
+
+最新C3g实际（2026-10-14）：用户要求按1c0d337清单开始后唯一Run及立即独立Inspect均成功，16:08/16:09 UTC确认73表、两原迁移、九技术seed且其他业务count0；准确DB16459/owner16410/app16456 NOLOGIN/零成员/guard缺席保持。baseline真实hash868ca1...与原C3f拒绝目录相同，V5仅owner窄差异使17组通过；最终catalog hash93d3c7.../744,370字节在Run和Inspect一致，返回实际digest不改写目录。Run2连接/26query/9metadata、Inspect2连接/17只读query/9metadata，AWS资源写0；物理大小12,223,731/12,322,035都过512MiB，不作容量/账单cap证明。V5双槽永久消费，不重放1c0d、旧a5c7或任何槽；结构pin/LOGIN/runtime/ready/lifecycleCompatible仍false，无IAM/Secret/Neon/ECR/ECS改动。本轮仅结果文档、236源码及Backend12400d4/已验镜像保持。下一只准备应用最小权限、IAM登录/Secret-v2和PG17运行时接线清单，实际写另批，不再目录/恢复探针或F3c9。[完整实机证据与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c3g-restore-executed.md)。下段待审状态已消费，仅为历史。
 
 最新C3g待审（2026-10-14）：V5只修正实际uuid-ossp/1.1/public/rdsadmin owner模型，原V3/V4/SQL/角色/73表/seed门禁不改，返回实际目录digest，旧拒绝与新admission分离；V5 apply所有SQL派发/顺序与V4逐字节等价。Backend3新+8相邻/typecheck、平台4新+5相邻/types/lint/syntax过；源码12400d4完整CI38592688849和双镜像38592689025所有steps均success，两个最终镜像新增network-none V5自检过，不发布ECR。新Root真实编译原归档/private brand通过；Source刷新后Review-r2及独立metadata各5只读过、SQL/资源写/新双槽0。236当前pins+原2工具；原229只有imageworkflow新增8行发生变化，历史版本核对并现行重绑，228原文件不变。新SHA1c0d3371...到Winnipeg2026-10-14 16:55:07.952 CDT待同库73表/两迁移九seed/独立Inspect明确批准；旧a5c7和双槽不重放，不再探针/建库角色/Grant/F3c9。[准确新范围、完整风险与继续点](./aws-auto-deployment-aurora-dual-mode-c3g-owner-compatibility-review.md)。
 

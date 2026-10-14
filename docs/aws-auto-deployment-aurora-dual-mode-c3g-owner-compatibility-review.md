@@ -1,5 +1,7 @@
 # D002 C3g：准确 AWS 扩展所有者兼容与同库恢复待审
 
+**已单次执行且双槽永久消费（2026-10-14）。** schema/两迁移/九seed及立即独立Inspect均通过；当前仅运行时未验收。下方是执行前清单历史，不能作为未执行状态或重放授权。见[实际执行结果与唯一后继](./aws-auto-deployment-aurora-dual-mode-c3g-restore-executed.md)。
+
 2026-10-14 America/Winnipeg。直接承接[C3f真实拒绝报告](./aws-auto-deployment-aurora-dual-mode-c3-restore-only-executed.md)，不新增诊断SQL/Grant/F3c9支线。V5窄修正、平台受审入口及必要自检已完成。**本轮SQL连接/写、AWS资源写、新永久槽消费均0；尚未批准第二次恢复。**
 
 ## 当前唯一待审SHA
