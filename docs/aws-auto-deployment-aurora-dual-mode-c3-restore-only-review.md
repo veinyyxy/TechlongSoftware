@@ -1,5 +1,7 @@
 # D002 C3f：保留准确现有库的restore-only清单
 
+**本清单已单次尝试且双槽消费（2026-10-14）。** baseline校验仅因 `uuid-ossp` 实际owner为 `rdsadmin` 拒绝；立即独立只读核验确认当前用户目录仍为空。下方为执行前准备记录，不能当当前未执行状态或重试授权。当前结果与唯一后继见[实际执行记录](./aws-auto-deployment-aurora-dual-mode-c3-restore-only-executed.md)。
+
 2026-10-14 America/Winnipeg。承接[C3e当前空目录观察](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-executed.md)，不再独立目录探针/建库/角色/Grant/F3c9。本阶段只新增本地受审Root、fresh review和查询捕获装饰器；Backend冻结V4恢复port、原private archive编译品牌、校验逻辑和已验收镜像保持。**SQL连接/写、新槽消费、AWS资源写均0，尚无恢复执行授权。**
 
 ## 当前唯一待审SHA
