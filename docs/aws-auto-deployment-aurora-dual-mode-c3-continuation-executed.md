@@ -37,6 +37,8 @@
 
 ## 费用及唯一继续位置
 
+该接续已准备为[C3e准确租户库只读诊断](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic.md)：新d82c6da5...待单独SQL批准，SQL/新槽0；旧87c与本页真实收据不重放。C3e不会为重建失败目录重放DDL，也不读取业务内容。
+
 本轮合计4个SQL连接、30次query、18次直接metadata；AWS资源/IAM/Secret/Neon/ECS写0，数据库DDL写确已提交。保持 `runtimeEnabled=false / lifecycleCompatible=false / pg17LiveRestoreVerified=false`，没有app LOGIN/rds_iam/授权、Secret-v2、商户账号、任务、ready或ECS部署。Express集群与准确租户库留存可能计费，**50USD/月是目标非硬cap**；不自动删除或清理、此前空集群清理范围不再适用。原Full/F3c9与Backend用户`.vscode/settings.json`保持。
 
 下一唯一继续点是上述准确库目录门禁的窄诊断/恢复设计，不再重复网络/MFA/角色探针、Grant或F3c9。原87c清单及两槽消费，即使仍在时间窗口也禁止Run/Inspect重放。后继SQL诊断、schema恢复、应用登录授权或部署均按新具体范围批准。[紧凑继续摘要](../ops/aws-sandbox/reviews/aurora-express-c3d-continuation.prepared.json)。

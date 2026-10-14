@@ -85,5 +85,5 @@
   "pg17LiveRestoreVerified": false,
   "automaticRetries": 0,
   "retainedClusterMayAccrueCost": true,
-  "next": "87c r2 was approved and consumed once: database prepare/promotion committed, exact guard deleted, restore rejected by the PG17 catalog gate. Independent approved management-only Inspect confirms exact retained database/app and missing guard, not schema or rollback. Prepare a new narrow read-only tenant-catalog diagnostic bound to OID16459, owner16410, app16456 and these receipts to identify rejection predicates/current state; any extra SQL needs fresh specific approval. Do not replay Run/Inspect, reset slots, recreate database/guard, relax checks, grant app roles, rebuild unchanged images, revive Grant/F3c9 or deploy ECS."
+  "next": "C3e narrow read-only tenant catalog diagnostic is prepared: see aurora-express-c3e-catalog-diagnostic.prepared.json and its fresh d82c SHA. Two connections/nine fixed queries, business queries/writes zero; SQL/new slot remain zero until specific approval. Preserve retained OID16459/app16456, exact deleted guard, these receipts and consumed old slots. Empty current catalog cannot reconstruct original uncommitted rejection; do not replay DDL for diagnosis. Future restore/role/IAM/Secret/ECS changes remain separately approved; no F3c9/grant/image rebuild detours."
 }
