@@ -6,6 +6,8 @@
 
 ## 首轮交付定义
 
+最新C3d：严格V4 app零成员/guard准确唯一授权共同覆盖续建及restore，复用原归档/PG17/两迁移，只剩8条prepare语句、无CREATE ROLE/GRANT/app ADMIN；V4收据与新双槽不伪造旧成功。必要Backend8/平台4/types/lint、真实archive-brand拒绝V3 prepared、Root错误SHA全0负例通过；最终62010ac完整CI38561294834/两镜像38561294979均success。原212/183pins保持，新224+2工具r2清单87c5995e...和独立metadata各5只读通过，SQL/云写/新槽消费0；待具体批准准确复用role16456/16457、建库/promotion删除guard、73表及九seed恢复迁移和独立Inspect，截止Winnipeg2026-10-14 13:06:11.476 CDT。没有IAM/Secret/ECS/运行时或ready，不重复C3c探针，不执行过时8758 r1。[准确新SHA、完整风险与唯一继续点](./aws-auto-deployment-aurora-dual-mode-c3-continuation-review.md)。
+
 最新C3c实际：用户确认25dce036...后，唯一1连接/5固定query的角色目录诊断成功、SQL/AWS写0；app OID16456成员数0，使旧必须有管理成员/ADMIN两谓词拒绝，其余22项过，guard OID16457唯一准确postgres/rdsadmin ADMIN-INHERIT-SET全true/全部24项过。原catalog SHA与C3b失败后独立Inspect相同，准确库仍不存在；当前可复现旧校验模型不匹配，不唯一倒填原异常。后置独立5metadata通过，诊断槽永久消费，不重放。下一只编码保留现有两角色、严格app零成员/guard准确授权的续建与restore共用适配，原源/pins保留，后继建库/恢复写fresh另批；不额外给app ADMIN、不再角色probe/Grant/F3c9。[实际结果与最窄后继](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic-executed.md)。下段待审状态已消费，仅保留历史。
 
 最新C3c：绑定真实两角色OID16456/16457/nonce和五项旧回执的单次只读诊断入口已实现，1连接/5固定query/同一read-only快照，复用原校验器逐谓词报告，不能修改/接管/继续prepare。Source刷新后Review r3+独立metadata r1通过，各5次直接只读、SQL/云写/诊断槽消费0；错误SHA实际Root在AWS/SQL前拒绝。新SHA `25dce03675001fc6ff269cb5a0322a63d9baca9f2c5125ee6d462eef5d5918d2` 待具体SQL批准，到Winnipeg2026-10-14 12:08:21.746 CDT；212代码/旧210/183历史pins保持，必要5测试/types/lint已通过，不重复compile/镜像。下一仅按fresh SHA确认一次目录只读诊断；本轮元数据不是当前角色/故障原因证明，不重放原安装/复位旧槽。[准确只读范围、风险和继续位置](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic.md)。

@@ -30,6 +30,8 @@
 
 ## 最窄的后继方向——尚未实施或授权写入
 
+此后继已在C3d编码并通过最终CI/两镜像，具体新清单仍未执行，见[准确V4续建/恢复范围与待审SHA](./aws-auto-deployment-aurora-dual-mode-c3-continuation-review.md)。下面保留后继设计依据；旧诊断与安装都不可重放。
+
 建议保留真实两角色/OID/nonce，针对**NOLOGIN准备阶段**建立严格的实际目录模型：app必须零members/parents且原全部无提权/ownership/OID条件不变；guard必须准确唯一postgres/rdsadmin授权及ADMIN/INHERIT/SET全部true。不是宽泛接受任意成员，也不为迎合旧校验而额外给app安装ADMIN权限。应用LOGIN/rds_iam及业务授权是后续不同阶段，仍另行审阅。
 
 实现准确“已reserve”后继入口，从当前角色与库不存在的事实开始，仅推进原quarantine建库、promotion及固定73表恢复/两迁移；不能重放CREATE ROLE/reserve，不能伪造原成功prepared回执或把原槽复位。需要同时替换prepare和restore的角色目录校验：现有 `aurora_express_restore_v3.js` 的owners核对也导入同一个旧 `verifyStage`，只跳过prepare检查仍会再次拒绝。旧执行pins/根保留，新增窄版本/具体新SHA再批准实际写入。
