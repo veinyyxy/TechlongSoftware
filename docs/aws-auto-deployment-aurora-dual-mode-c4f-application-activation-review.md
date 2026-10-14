@@ -1,5 +1,7 @@
 # D002 C4f：最小 SQL 激活与一次真实 IAM 登录待审
 
+**已消费/仅历史（2026-10-14 Winnipeg）**：用户确认本最终SHA后，唯一Run八语句收到响应但写后核验停止，COMMIT未提交、ROLLBACK收到响应；立即独立Inspect确认原closed/NOLOGIN状态，未尝试应用登录。安装和核验槽永久消费，不得重放、复位或刷新成新尝试。下文0 SQL/槽不存在/待批准均为审阅时事实。[实际回滚证据与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4f-application-activation-stopped.md)。
+
 2026-10-14 America/Winnipeg。沿[C4e实际IAM结果](./aws-auto-deployment-aurora-dual-mode-c4e-runtime-iam-executed.md)继续首轮部署主线；本阶段将授权、独立回读和一次应用用户登录放在同一清单，不新增Grant/恢复探针支线。入口与定向检查已完成，**尚未执行SQL、启用LOGIN或消费新槽**。F3c9保持封存，旧`full_password`路径不改。
 
 ## 最终清单与准确范围
