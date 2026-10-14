@@ -1,5 +1,7 @@
 # D002 C4c：两库隔离修正待审，Secret-v7接线候选已修正
 
+**状态更新（2026-10-14）：用户已确认20487de0...；唯一Run和独立Inspect均已完成，两槽永久消费。结果为 ISOLATION_INDEPENDENTLY_OBSERVED_APP_NOLOGIN，不能再次运行或刷新以重放。下文是原准备范围及已接受风险的历史记录，不是当前执行入口。** [实际结果与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4c-isolation-executed.md)。
+
 2026-10-14 America/Winnipeg。基于[C4b真实结果](./aws-auto-deployment-aurora-dual-mode-c4b-isolation-executed.md)，已实现严格写入口和独立只读Inspect。**本轮没有执行SQL、撤权、启用LOGIN、创建Secret/IAM或部署ECS。** 本阶段先关闭准确两库的PUBLIC路径，应用授权/Secret/IAM/ready仍沿同一主线推进，不在未具备完整输入时提前启用LOGIN。
 
 ## 准确待审范围

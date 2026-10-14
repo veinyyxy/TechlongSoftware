@@ -2,9 +2,11 @@
 
 决策D001，2026-10-13 America/Winnipeg。用户在审计后明确同意收缩首轮目标并开始实施，同时要求封存F3c9以便重启。此文档取代旧方案中的“继续F3c9”作为当前导航；[原支线封存](./aws-auto-deployment-f3c9-deferred.md)，所有历史保留。
 
-**当前路线 D002（更新2026-10-14）**：用户暂不升级账户，采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。C3g schema/迁移实机验收、C4a最小应用候选及C4b真实隔离核对完成。C4c现已实现准确两库PUBLIC CONNECT原子修正/独立Inspect，并以V7修正Secret候选与既有生命周期wire的命名冲突；最终SHA20487de0...仅待两条撤权及立即独立只读回读确认，不启用LOGIN/安装app权限或创建Secret/IAM/ECS。取得隔离结果后沿同一主线完成V7四键Secret、准确IAM/应用权限、真实ready/初始化及ECR→ECS，各实际写fresh具体批准。不重放已消费C4b/C3槽，不删除旧Full失败Stack，不扩展F3c9；下方记录仅历史。[当前范围、完整风险与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4c-isolation-review.md)，[完整兼容与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
+**当前路线 D002（更新2026-10-14）**：用户暂不升级账户，采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。C3g schema/迁移验收、C4a应用候选与C4c准确两库PUBLIC CONNECT修正及独立实机回读完成。应用16456其它可CONNECT库计数0，仍NOLOGIN，无应用授权/Secret/IAM/ECS或ready验收；20487de0...与双槽已消费，不得重放。下一沿同一主线准备实际V7四键Secret、准确IAM/最小应用权限、真实TLS/IAM登录与ready/初始化及ECR→ECS，每项实际写fresh具体批准。保留旧Full失败Stack及所有历史，不扩展F3c9/Grant/恢复探针。[最新实际结果与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4c-isolation-executed.md)，[完整兼容与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
 
 ## 首轮交付定义
+
+最新C4c实际（2026-10-14）：用户确认20487de0...后唯一Run两条PUBLIC CONNECT撤销同事务提交，22:05:34.489 UTC获得COMMIT响应；紧随独立READ ONLY Inspect于22:06:34.522 UTC通过，四库完整closed快照digest0251a30e...一致。template1/postgres PUBLIC及app CONNECT均false，owner16410显式CONNECT/CREATE/TEMPORARY与postgres PUBLIC TEMPORARY保持；rdsadmin/tenant ACL及app NOLOGIN/无提升或成员保持，其它可CONNECT计数2→0。Run1连接/10query/6metadata/2权限写，Inspect1连接/6query/6metadata/0写；AWS/Secret值/LOGIN/业务写/ECR/ECS均0，未重查schema、未验ready。248源码LF pins+2工具及回执/双槽原字节核验过，无第三次SQL或重试。双槽永久消费不能刷新重放，153efbc执行源码及已验镜像保持。下一实际V7 Secret/IAM/最小应用权限及完整ready初始化，各fresh范围另批，不扩展隔离支线。[实际证据与继续点](./aws-auto-deployment-aurora-dual-mode-c4c-isolation-executed.md)。下方C4c待审仅历史，已被本段取代。
 
 最新C4c待审（2026-10-14）：严格两PUBLIC CONNECT RESTRICT写入口及独立Inspect已实现，完整ACL/OID/owner/角色写前后核对，保持app16456 NOLOGIN，不授予app/IAM权限，不修改rdsadmin/tenant/业务。新V7Secret候选采用不变生命周期v2所需准确stem+hash Name，旧V6 Name经共享wire回归证明不兼容；不修改旧Full/wire、不伪造ARN/version。8新+11相邻共19tests、types/syntax/lint过，真实错误批准SHA在AWS/SQL/槽之前拒绝。最终Review-r2 7metadata、新旧Secret Name均ABSENT，248当前code+2原工具；本轮SQL/权限/AWS写/私密值/新槽0。SHA20487de0...有效至Winnipeg2026-10-14 22:49:04.994 CDT，待准确两库撤权（影响所有PUBLIC依赖新连接）及成功/失败后立即唯一独立Inspect批准；旧cacddc5f r1保留但过时，4de95槽已消费不能重放。下一同一路线准备实际V7Secret/IAM/最小app与ready初始化，不扩展恢复/Grant/F3c9。[准确范围与风险](./aws-auto-deployment-aurora-dual-mode-c4c-isolation-review.md)。
 
