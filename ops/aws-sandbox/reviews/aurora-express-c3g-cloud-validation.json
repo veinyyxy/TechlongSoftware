@@ -1,0 +1,91 @@
+{
+  "sourceSha": "12400d40b0fea58ce5d502a1082e39e6c18ddef6",
+  "ci": {
+    "runId": 38592688849,
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 115951368055,
+        "name": "docker",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "12400d40b0fea58ce5d502a1082e39e6c18ddef6",
+        "startedAt": "2026-10-14T15:49:17Z",
+        "completedAt": "2026-10-14T15:49:51Z",
+        "allStepsSucceeded": true
+      },
+      {
+        "id": 115951368721,
+        "name": "check",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "12400d40b0fea58ce5d502a1082e39e6c18ddef6",
+        "startedAt": "2026-10-14T15:49:19Z",
+        "completedAt": "2026-10-14T15:49:40Z",
+        "allStepsSucceeded": true
+      }
+    ]
+  },
+  "images": {
+    "runId": 38592689025,
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 115951370746,
+        "name": "Build and self-check app",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "12400d40b0fea58ce5d502a1082e39e6c18ddef6",
+        "startedAt": "2026-10-14T15:49:17Z",
+        "completedAt": "2026-10-14T15:50:01Z",
+        "allStepsSucceeded": true,
+        "v5NetworkNoneStepSucceeded": true
+      },
+      {
+        "id": 115951371183,
+        "name": "Build and self-check lifecycle",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "12400d40b0fea58ce5d502a1082e39e6c18ddef6",
+        "startedAt": "2026-10-14T15:49:17Z",
+        "completedAt": "2026-10-14T15:50:12Z",
+        "allStepsSucceeded": true,
+        "v5NetworkNoneStepSucceeded": true
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "id": 11908197052,
+      "name": "os-scan-lifecycle-12400d40b0fea58ce5d502a1082e39e6c18ddef6-38592689025-1",
+      "sizeBytes": 17622,
+      "expired": false,
+      "digest": "sha256:e9c6ee6a320d29e7b72bbac0fd2eaefd04c2101bd51d824eca36c4fa0a8fecb8"
+    },
+    {
+      "id": 11907554514,
+      "name": "os-scan-app-12400d40b0fea58ce5d502a1082e39e6c18ddef6-38592689025-1",
+      "sizeBytes": 16390,
+      "expired": false,
+      "digest": "sha256:52b5884154975f820a09f6118ab48e11e2f55efe55eb3a980ef68912dbe9f79b"
+    },
+    {
+      "id": 11907439512,
+      "name": "checked-lifecycle-12400d40b0fea58ce5d502a1082e39e6c18ddef6-38592689025-1",
+      "sizeBytes": 85247569,
+      "expired": false,
+      "digest": "sha256:6ddb018aa62a44193e80e2e28909d1e60329e1526d295a0ba781b294dc868dca"
+    },
+    {
+      "id": 11907244443,
+      "name": "checked-app-12400d40b0fea58ce5d502a1082e39e6c18ddef6-38592689025-1",
+      "sizeBytes": 72635026,
+      "expired": false,
+      "digest": "sha256:590d3cc4b73c4d5979e05bad334612be7dce6a70e3f6e883c086d3b466c8e78f"
+    }
+  ],
+  "noEcrPublication": true,
+  "noAwsCredentials": true,
+  "noSqlConnection": true,
+  "noRuntimeEnablement": true
+}
