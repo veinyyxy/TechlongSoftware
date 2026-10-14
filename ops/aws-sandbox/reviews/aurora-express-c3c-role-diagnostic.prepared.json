@@ -1,9 +1,11 @@
 {
   "schema": "techlong/express-c3c-role-diagnostic-continuation/v1",
   "evidenceOnlyNotExecutionAuthority": true,
-  "state": "PREPARED_AWAIT_EXACT_READ_ONLY_SQL_APPROVAL",
+  "state": "READ_ONLY_DIAGNOSTIC_COMPLETE_APP_MEMBER_COUNT_ZERO",
   "previousSourceError": "EXPRESS_C3_ROLE_SOURCE_CREDENTIALS_UNAVAILABLE",
-  "pendingManifestSha256": "25dce03675001fc6ff269cb5a0322a63d9baca9f2c5125ee6d462eef5d5918d2",
+  "pendingManifestSha256": null,
+  "approvedAndConsumedManifestSha256": "25dce03675001fc6ff269cb5a0322a63d9baca9f2c5125ee6d462eef5d5918d2",
+  "humanDiagnosticApprovalReceived": true,
   "preparedAt": "2026-10-14T11:08:21.746Z",
   "expiresAt": "2026-10-14T17:08:21.746Z",
   "expiresAtWinnipeg": "2026-10-14T12:08:21.746-05:00",
@@ -24,7 +26,8 @@
   "legacySqlSha256": "6e754b9f6f2b2f61bae1c21637afdb05ff2b826fd4f915cddf421d988cffc0f5",
   "detailSqlSha256": "cffba8a1160a9f80d358272b30a91b75e2bb2f924dee724cf32f055a34fde3f5",
   "diagnosticSlot": "techlong-d002-express-c3-role-diagnostic-v1.permanent-slot.json",
-  "diagnosticSlotAbsent": true,
+  "diagnosticSlotAbsent": false,
+  "diagnosticSlotPermanentlyConsumed": true,
   "oldInstallationAndInspectSlotsConsumed": true,
   "stoppedReviewDirectories": [
     "F:/ChatGPT_workshop/techlong-d002-express-c3-role-review-20261014-r1",
@@ -49,10 +52,41 @@
     "slotConsumed": false
   },
   "validation": { "targetedTestsPassed": 5, "typecheck": "passed", "eslintWarnings": 0, "syntax": "passed" },
-  "sqlConnectionsThisStage": 0,
+  "run": {
+    "directory": "F:/ChatGPT_workshop/techlong-d002-express-c3-role-run-20261014-r1",
+    "observedAt": "2026-10-14T11:14:02.985Z",
+    "outcome": "RESERVE_PREDICATES_REJECTED_NOW_NOT_ORIGINAL_CAUSE_PROVED",
+    "observationFileSha256": "3fc01d30b67e583f5654acbe5d2b4baa9cff70bf113a8abbf45fd04c90602d6c",
+    "resultFileSha256": "bd805e58b2a73e8ad0966638bd1971ba25c0a0d6078f4fe6de201547cf3b4873",
+    "slotFileSha256": "f6e0d9d0e07e18f095c5226aac9f1e90c42b55bef00db7dafef220caf20d7678",
+    "slotConsumedAt": "2026-10-14T11:13:40.053Z",
+    "metadataCalls": 9,
+    "sqlConnections": 1,
+    "sqlCalls": 5,
+    "tenantMemberCount": 0,
+    "tenantRejectedPredicates": ["members_one_or_two", "some_admin"],
+    "guardMemberCount": 1,
+    "guardRejectedPredicates": [],
+    "tenantDatabaseAbsent": true,
+    "catalogSha256": "d4aa1330a48212824bba726b8c550d5523aedb009f3b1956948cc734ade147b8",
+    "matchesOriginalC3bIndependentCatalogSha": true,
+    "detailSha256": "20afac6ed40c8670becc68e86d167cf38390f77378475cf81194d85bebe931ea",
+    "originalFailureConditionProved": false,
+    "sqlMutationPerformed": false
+  },
+  "postSqlIndependentMetadata": {
+    "directory": "F:/ChatGPT_workshop/techlong-d002-express-c3-role-metadata-20261014-r2",
+    "observedAt": "2026-10-14T11:14:24.297Z",
+    "factsFileSha256": "2fc84648e3791d2007655c8281884868a0ffd09769851c95a5e9a5d2490a7637",
+    "calls": 5,
+    "sqlConnections": 0,
+    "outcome": "PHYSICAL_ONLY_ROLE_STATE_NOT_REOBSERVED"
+  },
+  "sqlConnectionsThisStage": 1,
+  "sqlQueriesThisStage": 5,
   "sqlMutationsThisStage": 0,
   "awsResourceWritesThisStage": 0,
   "runtimeEnabled": false,
   "automaticRetries": 0,
-  "next": "Await human approval of the pending fresh manifest and full risks, then run exactly one READ ONLY SQL role diagnostic within the window. Source refresh, Review r3 and independent metadata r1 succeeded; SQL remains uncalled and new slot absent. Do not repeat preparations/tests/images, execute the old installation SHA, reset slots, alter/adopt/delete roles, create database, repeat C2b/Grant/F3c9 or recreate cluster."
+  "next": "Prepare additive strict NOLOGIN app zero-members/guard exact-one-member verification and exactly bound continuation from existing reserved OIDs/nonce; both prepare and restore currently import the old verifier. No new writes approved. Do not replay the consumed diagnostic/installation, create extra roles, add app ADMIN merely for old expectations, reset slots, delete/adopt/change roles, create database or repeat C2b/Grant/F3c9. New continuation database/restore/migration writes need a fresh exact reviewed SHA."
 }

@@ -35,7 +35,7 @@
 
 ## 唯一接续位置
 
-此接续的有限只读入口已在C3c实现；Source刷新后新manifest和独立metadata已通过，仍待具体SHA批准SQL连接，详见[准确范围、风险和继续点](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic.md)。下面保留该接续的设计范围，不代表已执行新的目录查询。
+此接续的有限只读诊断已获批并成功单次执行：app成员数0与旧必须有管理成员/ADMIN的模型不匹配，guard全部检查通过，catalog SHA与本次失败后的独立回读相同。诊断槽已消费、无写，详见[真实目录证据与最窄后继](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic-executed.md)。下面保留原诊断设计范围，不授权重复查询或后续写入。
 
 建议下一小步仅准备一个fresh SHA的**准确角色完整目录只读诊断**：绑定现有cluster、两个真实OID/名称/nonce与独立回执，查询角色属性、creator membership及grantor选项，输出安全字段/比较拒绝条件；不修改角色、不重新prepare、不创建数据库，不重复C2b网络探针或Grant支线。额外SQL连接不在已消费Inspect授权内，需新具体清单确认。
 

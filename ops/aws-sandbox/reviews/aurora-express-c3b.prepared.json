@@ -92,5 +92,5 @@
   "lifecycleCompatible": false,
   "automaticRetries": 0,
   "retainedResourcesMayAccrueCost": true,
-  "next": "C3c Review r3 and independent metadata passed after Source refresh; continue from aurora-express-c3c-role-diagnostic.prepared.json pending exact fresh SQL approval. Old Run/Inspect slots stay consumed and original evidence is unchanged. Do not replay, reset, alter/delete/adopt roles, create database, repeat images/C2b/Grant/F3c9 or recreate cluster."
+  "next": "C3c one-shot read-only diagnostic completed: app has zero members and the old verifier rejects required management ADMIN membership; guard predicates pass and catalog SHA matches the original independent read. Continue from aurora-express-c3c-role-diagnostic.prepared.json to prepare a strict existing-role continuation candidate, no writes yet approved. Old slots/evidence stay unchanged; do not replay/reset, add app ADMIN, create extra roles, alter/delete/adopt roles, create database, repeat C2b/Grant/F3c9 or recreate cluster."
 }

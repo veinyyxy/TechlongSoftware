@@ -1,8 +1,10 @@
-# D002 C3c：准确两角色只读诊断清单已就绪，待具体SHA批准
+# D002 C3c：只读诊断已成功执行，原清单与诊断槽不可重放
 
 2026-10-14 America/Winnipeg。承接[C3b实际执行停止](./aws-auto-deployment-aurora-dual-mode-c3-executed.md)：原reserve已提交两NOLOGIN角色，但没有租户库，安装/独立Inspect两槽均永久消费。本小步只准备定位原角色校验的拒绝条件，**不重跑安装、不修改/删除/接管角色，不创建数据库或扩展F3c9**。
 
-## 当前待审SHA与新只读证据
+**最新实际状态**：用户确认下文SHA后，1连接/5条只读query成功；app成员数0使原“必须存在管理成员/ADMIN”两谓词拒绝，guard全部通过，目录SHA与C3b独立Inspect相同。后置独立metadata通过，写入0；诊断槽永久消费，未创建数据库或修复权限。[真实结果、证据与最窄后继](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic-executed.md)。下文是原批准范围和准备历史，不再是待执行清单。
+
+## 原已批准并消费的SHA与准备证据
 
 用户重新login后，Review r3和独立InspectMetadata r1均通过；Source/准确cluster-writer/PG17.9/FREE-ACTIVE与历史一致，两轮各5次直接metadata，SQL连接/云写/诊断槽消费均0。元数据回读结论 `PHYSICAL_ONLY_ROLE_STATE_NOT_REOBSERVED`：**本轮尚未重新读取SQL角色目录**。
 
@@ -55,6 +57,6 @@ Source刷新后r3与独立metadata均通过，没有修改执行源码。当前�
 
 ## 唯一接续位置
 
-当前只待用户确认SHA `25dce03675001fc6ff269cb5a0322a63d9baca9f2c5125ee6d462eef5d5918d2` 及完整风险；有效窗口内才执行单次只读Run，独立metadata后置回读不额外连接SQL。Source刷新、Review r3和独立metadata r1已经完成，不重复准备/测试/构建。**刷新身份不授权SQL Run，原安装SHA和两旧槽不能重放。**
+单次只读Run与独立metadata后置回读均已完成，新诊断槽永久消费，原SHA即使未过期也不可重放。下一只编码保留两个真实角色的准确NOLOGIN目录模型/续建候选；原安装和恢复都依赖旧同一个角色校验，需要共同适配。**不额外授权SQL、修补权限、删除/重建/复位或继续原Run**。[最新实际结果与接续位置](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic-executed.md)。
 
 批准后只执行这一次只读目录诊断，取得真实拒绝条件再准备必要的窄修正/已有对象后继方案；其写入仍fresh另批。不重复旧C2b网络诊断/构建，不换名堆叠角色、不重建cluster或回Grant/F3c9支线。[紧凑接续摘要](../ops/aws-sandbox/reviews/aurora-express-c3c-role-diagnostic.prepared.json)。

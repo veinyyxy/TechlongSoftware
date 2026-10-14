@@ -6,6 +6,8 @@
 
 ## 首轮交付定义
 
+最新C3c实际：用户确认25dce036...后，唯一1连接/5固定query的角色目录诊断成功、SQL/AWS写0；app OID16456成员数0，使旧必须有管理成员/ADMIN两谓词拒绝，其余22项过，guard OID16457唯一准确postgres/rdsadmin ADMIN-INHERIT-SET全true/全部24项过。原catalog SHA与C3b失败后独立Inspect相同，准确库仍不存在；当前可复现旧校验模型不匹配，不唯一倒填原异常。后置独立5metadata通过，诊断槽永久消费，不重放。下一只编码保留现有两角色、严格app零成员/guard准确授权的续建与restore共用适配，原源/pins保留，后继建库/恢复写fresh另批；不额外给app ADMIN、不再角色probe/Grant/F3c9。[实际结果与最窄后继](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic-executed.md)。下段待审状态已消费，仅保留历史。
+
 最新C3c：绑定真实两角色OID16456/16457/nonce和五项旧回执的单次只读诊断入口已实现，1连接/5固定query/同一read-only快照，复用原校验器逐谓词报告，不能修改/接管/继续prepare。Source刷新后Review r3+独立metadata r1通过，各5次直接只读、SQL/云写/诊断槽消费0；错误SHA实际Root在AWS/SQL前拒绝。新SHA `25dce03675001fc6ff269cb5a0322a63d9baca9f2c5125ee6d462eef5d5918d2` 待具体SQL批准，到Winnipeg2026-10-14 12:08:21.746 CDT；212代码/旧210/183历史pins保持，必要5测试/types/lint已通过，不重复compile/镜像。下一仅按fresh SHA确认一次目录只读诊断；本轮元数据不是当前角色/故障原因证明，不重放原安装/复位旧槽。[准确只读范围、风险和继续位置](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic.md)。
 
 最新C3b实际：用户确认1df7e2f7...后，原Root仅一次Run，停在reserve提交后的目录核对/证据保存区间，返回AURORA_V3_SESSION_FAILED；立即独立只读Inspect确认app/guard两角色OID16456/16457、NOLOGIN及ownership匹配，指定租户库不存在。尚未进入创建库/73表恢复/迁移，两永久槽已消费，禁止重放/复位；没有ready或完整角色属性证明。共2个SQL连接/16次query，角色写已提交，AWS资源/IAM/Secret/Neon/ECS写0；执行源码/镜像和183pins保持。下一仅准备绑定真实OID/nonce的新准确目录只读诊断，额外SQL连接fresh另批，不重建/删除/接管/自动重试，不回F3c9。[实际证据、原因边界与唯一接续位置](./aws-auto-deployment-aurora-dual-mode-c3-executed.md)。下段待审状态已消费，仅为历史。
