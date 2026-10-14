@@ -2,9 +2,11 @@
 
 决策D001，2026-10-13 America/Winnipeg。用户在审计后明确同意收缩首轮目标并开始实施，同时要求封存F3c9以便重启。此文档取代旧方案中的“继续F3c9”作为当前导航；[原支线封存](./aws-auto-deployment-f3c9-deferred.md)，所有历史保留。
 
-**当前路线 D002（更新2026-10-14）**：用户暂不升级账户，采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。C3g schema/迁移、C4c隔离及C4d四键Secret创建/独立元数据回读已完成，真实ARN后缀T9CqN5和固定版本已接入候选binding。未读Secret值、安装应用/IAM权限、启用LOGIN或部署ECS，完整ready尚未验收。C4d/C4c双槽均永久消费，不得重放。下一沿同一主线fresh准备准确三角色/共享boundary/Secret版本/IAM connect，再最小SQL授权、真实TLS IAM登录与ready/初始化及ECR→ECS；每项实际写新具体批准。保留旧Full失败Stack及所有历史，不扩展F3c9/Grant/恢复探针。[最新实际结果与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4d-runtime-secret-executed.md)，[完整兼容与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
+**当前路线 D002（更新2026-10-14）**：用户暂不升级账户，采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。C3g schema/迁移、C4c隔离、C4d四键Secret和C4e准确IAM三写/独立文档回读已完成；boundary实际默认v4/原v3保留、app/lifecycle连接及固定Secret版本限制已安装。未读Secret值、授予应用SQL权限、启用LOGIN或部署ECS，完整ready尚未验收。C4e/C4d/C4c双槽均永久消费，不得重放。下一沿同一主线准备C4a最小SQL授权、真实TLS IAM登录与ready/初始化及ECR→ECS；实际SQL/值访问/发布部署需新具体批准。保留旧Full失败Stack及所有历史，不扩展F3c9/Grant/恢复探针。[最新实际结果与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4e-runtime-iam-executed.md)，[完整兼容与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
 
 ## 首轮交付定义
+
+最新C4e实际（2026-10-14）：用户确认785b18c8...后唯一Run三次IAM响应成功，Winnipeg18:28:51–52 CDT完成；立即独立Inspect于18:29:05.847 CDT确认默认v4/原v3保留、候选全文与三role ID/trust/tags/attachments及7消费者保持。Run33metadata/3IAM写、Inspect30metadata/0写，两次六组策略模拟8资源结论均过但不是实际IAM/KMS/PG访问证明。SQL/LOGIN/GRANT、Secret值/私密材料、业务/authority/ECR/ECS均0；254pins/2工具及13原Review/25结果文件/双槽本地核验过，无额外云调用。持久能力/共享版本Deny及CFN drift风险保持，授权和双槽已消费不能重放。153efbc执行源码/已验镜像不改，下一集中最小SQL/真实TLS IAM登录/完整ready初始化再部署，各实际新范围另批，不开F3c9/Grant/恢复支线。[准确结果与继续点](./aws-auto-deployment-aurora-dual-mode-c4e-runtime-iam-executed.md)。下方C4e待审仅历史。
 
 最新C4e待审（2026-10-14）：准确IAM三写入口和独立Inspect已实现；6 tests/types/syntax/lint及六组实机策略模拟过（8准确资源结论），不是实际登录/密钥读取证明。新boundary保留v3全部语句，追加两个principal-ARN限定连接Allow和准确新Secret错/缺VersionId Deny；生命周期追加管理连接/固定版本读取、应用新inline仅应用连接，execution/旧Full不改。已完整盘点7个boundary角色/无普通附件，版本Deny影响它们对新Secret的读取，Source三项写模拟allowed。最终r3只读32metadata，254代码+2工具/原251及C4d历史保持；本轮写/SQL/私密值/新槽均0。SHA785b18c8...至Winnipeg2026-10-15 00:08:50.064 CDT仅待这三项持久IAM安装和独立Inspect批准；接受非原子/传播/CFN drift/部分遗留/永久槽不重试，不SQL LOGIN/GRANT、ECR/ECS/Cell。下一仍是最小SQL/真实IAM登录/完整ready初始化及部署，不扩展F3c9/Grant/恢复支线。[准确范围、全部影响与完整风险](./aws-auto-deployment-aurora-dual-mode-c4e-runtime-iam-review.md)。
 

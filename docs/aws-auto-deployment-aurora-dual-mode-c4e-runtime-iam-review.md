@@ -1,5 +1,7 @@
 # D002 C4e：准确连接与 Secret 版本 IAM 三写待审
 
+**已执行/仅历史（2026-10-14 Winnipeg）**：用户确认本最终SHA后，唯一Run三写成功，紧随独立Inspect确认实际默认v4/原v3保留及准确IAM文档一致。双槽永久消费，不得再次执行或刷新重放；下文0写/槽不存在和待批准均为审阅时历史事实。[实际结果与唯一下一主线](./aws-auto-deployment-aurora-dual-mode-c4e-runtime-iam-executed.md)。
+
 2026-10-14 America/Winnipeg。[C4d真实Secret及独立回读](./aws-auto-deployment-aurora-dual-mode-c4d-runtime-secret-executed.md)后，继续首轮部署主线。三写入口、独立Inspect、代码及实机只读策略验证已完成；**本轮IAM/AWS写、SQL连接、Secret值/私密读取和新槽消费均0。** F3c9继续封存。
 
 ## 最终 SHA 与准确三写
