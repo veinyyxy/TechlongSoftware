@@ -1,5 +1,7 @@
 # D002 C3e：准确租户库PG17目录门禁的窄只读诊断
 
+此d82c清单已获批并尝试一次，但Source凭据不可用，停在READ_ONLY_METADATA，SQL/写/槽消费全0。停止回执保留，槽仍空；刷新后先仅生成新fresh清单/独立metadata，再按新SHA确认SQL，不自动重跑。[本次真实停止与准确继续位置](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-stopped.md)。以下待审准备状态保留为历史。
+
 2026-10-14 America/Winnipeg。承接[C3d已提交续建及恢复拒绝](./aws-auto-deployment-aurora-dual-mode-c3-continuation-executed.md)。本阶段仅编码、必要检查、现有AWS元数据核对和待审准备：**SQL连接/写、新槽消费、AWS资源写均0**。不重建数据库/guard，不重放restore，不放宽校验、不回F3c9。
 
 ## 新待审SHA及截止

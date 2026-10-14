@@ -1,9 +1,21 @@
 {
   "schema": "techlong/express-c3e-catalog-diagnostic-prepared/v1",
   "evidenceOnlyNotExecutionAuthority": true,
-  "state": "PREPARED_AWAIT_EXACT_READ_ONLY_CATALOG_APPROVAL",
-  "pendingManifestSha256": "d82c6da5acc1fbbf2840c70b7ffa49bfa991eb020dd900bd84dc2751a40951bd",
+  "state": "SOURCE_UNAVAILABLE_PRE_SQL_SLOT_UNUSED_AWAIT_REFRESH_AND_NEW_REVIEW",
+  "approvedManifestSha256": "d82c6da5acc1fbbf2840c70b7ffa49bfa991eb020dd900bd84dc2751a40951bd",
   "executionAuthorized": false,
+  "preSqlRunAttempted": true,
+  "automaticRetryAuthorized": false,
+  "awaitingNewManifestAfterRefresh": true,
+  "stoppedDocument": "docs/aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-stopped.md",
+  "stoppedDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c3-catalog-run-20261014-r1",
+  "stoppedReceiptSha256": "f98307951c03c5c571935a78b1abe0d990d5824f6988e2ca718b1a5b3e6d6c3c",
+  "stoppedReceiptSavedAt": "2026-10-14T13:52:10.485Z",
+  "stoppedCode": "EXPRESS_C3_CATALOG_SOURCE_CREDENTIALS_UNAVAILABLE",
+  "stoppedPhase": "READ_ONLY_METADATA",
+  "stoppedMetadataCounter": 3,
+  "stoppedFactsComplete": false,
+  "slotConsumed": false,
   "preparedAt": "2026-10-14T13:31:05.518Z",
   "expiresAt": "2026-10-14T19:31:05.518Z",
   "expiresAtWinnipeg": "2026-10-14T14:31:05.518-05:00",
@@ -45,5 +57,5 @@
   "tenantCatalogReobserved": false,
   "automaticRetries": 0,
   "retainedClusterAndDatabaseMayAccrueCost": true,
-  "next": "Await exact fresh d82c SHA approval for one read-only owner/tenant catalog diagnostic with two connections and nine fixed queries. No business-table queries or writes. Preserve OID16459/app16456 and deleted guard/history/old slots. If current catalog is empty, do not claim it reconstructs the original uncommitted rejection or replay DDL for diagnosis. Derive a narrow same-database restore candidate after observation; future schema/roles/IAM/Secret/ECS still require specific approval. Do not revive F3c9, grants, role probes or unchanged image builds."
+  "next": "d82c was approved and attempted once but stopped at READ_ONLY_METADATA because Source credentials were unavailable: SQL/queries/writes/slot consumption zero, no new catalog observation. Ask for aws login --profile techlong-sandbox-user and Source refreshed. After refresh only generate a new fresh Review and independent metadata, preserving d82c/stopped directory/old slots; then request the new exact SHA approval before SQL. Do not automatically rerun the stopped Run, consume a slot for inspection, reset artifacts, change source, rebuild unchanged images, restore schema, recreate DB/guard, install permissions or revive F3c9."
 }
