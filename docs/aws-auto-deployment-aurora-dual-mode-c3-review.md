@@ -1,8 +1,8 @@
-# D002 C3b：73表恢复/迁移清单已就绪，等待准确SQL批准
+# D002 C3b：原受审清单已单次执行停止，不可重放
 
-2026-10-14 America/Winnipeg；承接[C3a准备port](./aws-auto-deployment-aurora-dual-mode-c3-bootstrap.md)。本阶段代码、原归档编译、必要检查与最终GitHub Actions通过。用户重新登录Source后，新Review r4及独立metadata r3均通过，现有cluster/writer/Source/FREE-ACTIVE与准确历史一致。**尚未执行任何SQL连接/写入，两个新槽均未消费；刷新身份不授权Run，等待下面的准确SHA批准。** 旧token过期和旧Review记录保留，不重放。
+2026-10-14 America/Winnipeg；承接[C3a准备port](./aws-auto-deployment-aurora-dual-mode-c3-bootstrap.md)。用户确认下文SHA及风险后，原冻结Root只运行一次，停在reserve提交后的目录核对/证据保存区间，返回 `AURORA_V3_SESSION_FAILED`。立即独立只读Inspect确认app/guard两NOLOGIN角色（OID16456/16457）及ownership匹配、指定租户库不存在；未进入73表恢复或迁移，runtime仍关闭。**两个新槽均已永久消费，即使仍在原窗口也不可重放或复位。** [实际结果、原始证据与唯一接续位置](./aws-auto-deployment-aurora-dual-mode-c3-executed.md)。下面保留原审阅材料，不代表后续写授权。
 
-## 当前待审清单与实际只读证据
+## 原已批准并消费的清单与准备证据（历史）
 
 - 新manifest SHA：`1df7e2f7da6b3e900f68e5d5814e2f32e1578c19af131270ef6a355112ced440`。
 - 生成时间：2026-10-14 10:28:18.531 UTC / Winnipeg 05:28:18.531 CDT；截止：**2026-10-14 16:28:18.531 UTC / Winnipeg 11:28:18.531 CDT**。批准、Run与SQL Inspect均必须使用有效窗口；到期不重放或自动延期。
@@ -10,7 +10,7 @@
 - 独立新进程回读：`F:/ChatGPT_workshop/techlong-d002-express-c3-metadata-20261014-r3/facts.json`，10:32:28.062 UTC / Winnipeg 05:32:28.062 CDT，文件字节SHA `5e22e302314042cc5281f75c575b21ef9723609deb4e2d307442046a3c3dac6c`。直接metadata 5次、SQL连接0、资源写0，结论 `PHYSICAL_ONLY_SQL_NOT_PROVED`，不证明待创建SQL对象不存在或schema可恢复。
 - 当前210 code entries+2原生工具、183历史pin entries全部匹配；code binding `fc7a6d9adc785d481269ceba26f8a1fef0c0edc594900663c8fd24be443f63e9`，SQL program `84948cfc92b85e6004429f1c19ffb02ed8ef887e44794bedc0c50001396a5431`。这里只更新文档/摘要，不改已验证执行源码，不重新构建镜像。
 
-待确认范围：仅在现有准确Express集群创建下文两NOLOGIN角色及一个新库，promotion仅删除本次新guard，恢复固定73表schema并应用两份固定迁移（九条技术初始化行），随后独立只读SQL核验；不改Neon、旧业务或旧对象，不启用app LOGIN/运行时，不改IAM/Secret/ECS，不创建AWS资源。接受下文完整风险；50USD/月是目标，不是硬费用上限。
+原批准范围：仅在现有准确Express集群创建下文两NOLOGIN角色及一个新库，promotion仅删除本次新guard，恢复固定73表schema并应用两份固定迁移（九条技术初始化行），随后独立只读SQL核验；不改Neon、旧业务或旧对象，不启用app LOGIN/运行时，不改IAM/Secret/ECS，不创建AWS资源。用户接受下文完整风险；50USD/月是目标，不是硬费用上限。实际只完成角色reserve提交，数据库/restore/migration均未进入。
 
 ## 已实现的主线范围
 
@@ -38,7 +38,7 @@ PG17的 `pg_collation.colllocale` 与旧PG16的 `colliculocale` 不同；新路�
 
 仍仅准确 `techlong-sandbox-express-d001` / `cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM`，新库 `tenant_a0da1748bc4d5419_db`、新app role `tenant_a0da1748bc4d5419_role`，nonce guard `tl_prepare_96c4e91750c441e3aab2de2609f7f029`。**拟创建两NOLOGIN role及一库，promotion仅删除这个新guard**；不删除旧对象，不改其他数据库PUBLIC ACL、不给app LOGIN/rds_iam/权限，不创建Secret/IAM/ECS/Cell或任何AWS资源。
 
-新永久槽 `techlong-d002-express-c3-bootstrap-g1.permanent-slot.json` 与 `techlong-d002-express-c3-bootstrap-g1-inspect.permanent-slot.json` 均缺失，尚未消费。批准后消耗即永久，不自动复位；原C2/C2b与全部旧记录/槽保持。
+新永久槽 `techlong-d002-express-c3-bootstrap-g1.permanent-slot.json` 与 `techlong-d002-express-c3-bootstrap-g1-inspect.permanent-slot.json` 在准备时缺失，现已分别于10:37:30.726/10:38:19.874 UTC消费。不自动复位；原C2/C2b与全部旧记录/槽保持。
 
 ## 完整风险——实际Run需要另行确认
 
@@ -59,4 +59,4 @@ PG17的 `pg_collation.colllocale` 与旧PG16的 `colliculocale` 不同；新路�
 - 最终源码 `16b5daa9d4af8a248d2918d719f1e15d60dc3498` 的[完整CI38517271135](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38517271135)与[双镜像38517271121](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38517271121)均success；独立app115698774364/lifecycle115698774520步骤回读全部success。不用前一版失败候选当证明，不ECR发布。
 - 私有旧Review r1/r2全部保留但已被源码修正取代；r2 `e39cd040...` **不能执行**。独立metadata r1泛化停止、不倒填唯一原因；新增安全错误分类后Review r3明确 `EXPRESS_C3_SOURCE_TOKEN_EXPIRED`，SQL/槽0，未生成manifest。后续对不存在manifest的metadata r2也在AWS前停止。CLI/单独SDK STS可成功，不等于RDS/IAM等服务接受该会话。
 
-**唯一继续点：确认当前 `1df7e2f7da6b3e900f68e5d5814e2f32e1578c19af131270ef6a355112ced440` 及完整风险 → 有效窗口内单次Run → 独立Inspect。** Source刷新、新Review r4及独立InspectMetadata已完成，不重复旧诊断、历史构建或任何Run；不接受旧r1/r2 SHA。当前无SQL、AWS资源/Neon/Secret/IAM/任务写，原183pins与用户Backend `.vscode/settings.json`保持；过期或凭据异常时不自动执行/重试写入。[紧凑继续摘要](../ops/aws-sandbox/reviews/aurora-express-c3b.prepared.json)。
+**唯一继续点：按真实两角色OID/nonce准备fresh准确目录只读诊断清单，新的SQL连接另批；不是继续Run。** 原SHA安装和Inspect已单次消费，2个SQL连接/16次query，角色写已发生，AWS资源/Neon/Secret/IAM/任务写0。原183pins与用户Backend `.vscode/settings.json`保持；不重复镜像/C2b，不删除角色、接管已有对象、复位槽或重试写入。[实际证据与原因边界](./aws-auto-deployment-aurora-dual-mode-c3-executed.md)、[紧凑继续摘要](../ops/aws-sandbox/reviews/aurora-express-c3b.prepared.json)。
