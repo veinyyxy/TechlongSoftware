@@ -1,9 +1,12 @@
 {
   "schema": "techlong/express-c3c-role-diagnostic-continuation/v1",
   "evidenceOnlyNotExecutionAuthority": true,
-  "state": "CODE_VERIFIED_AWAIT_SOURCE_REFRESH_AND_REVIEW",
-  "sourceError": "EXPRESS_C3_ROLE_SOURCE_CREDENTIALS_UNAVAILABLE",
-  "pendingManifestSha256": null,
+  "state": "PREPARED_AWAIT_EXACT_READ_ONLY_SQL_APPROVAL",
+  "previousSourceError": "EXPRESS_C3_ROLE_SOURCE_CREDENTIALS_UNAVAILABLE",
+  "pendingManifestSha256": "25dce03675001fc6ff269cb5a0322a63d9baca9f2c5125ee6d462eef5d5918d2",
+  "preparedAt": "2026-10-14T11:08:21.746Z",
+  "expiresAt": "2026-10-14T17:08:21.746Z",
+  "expiresAtWinnipeg": "2026-10-14T12:08:21.746-05:00",
   "executionAuthorized": false,
   "sqlDiagnosticAuthorized": false,
   "root": "ops/aws-sandbox/scripts/review-aurora-express-c3-roles.mjs",
@@ -27,13 +30,29 @@
     "F:/ChatGPT_workshop/techlong-d002-express-c3-role-review-20261014-r1",
     "F:/ChatGPT_workshop/techlong-d002-express-c3-role-review-20261014-r2"
   ],
-  "nextReviewDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c3-role-review-20261014-r3",
-  "nextMetadataDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c3-role-metadata-20261014-r1",
+  "currentReviewDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c3-role-review-20261014-r3",
+  "independentMetadataDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c3-role-metadata-20261014-r1",
+  "reviewMetadataCalls": 5,
+  "independentMetadata": {
+    "observedAt": "2026-10-14T11:08:35.549Z",
+    "factsFileSha256": "f2ba12e4bf9c4beb6404970c1546d76f98705a547947193d5213535d728fc1bc",
+    "calls": 5,
+    "outcome": "PHYSICAL_ONLY_ROLE_STATE_NOT_REOBSERVED",
+    "sqlConnections": 0
+  },
+  "invalidShaRootNegative": {
+    "directory": "F:/ChatGPT_workshop/techlong-d002-express-c3-role-negative-20261014-r1",
+    "code": "EXPRESS_C3_ROLE_FRESH_APPROVAL_REQUIRED",
+    "metadataCalls": 0,
+    "sqlConnections": 0,
+    "sqlCalls": 0,
+    "slotConsumed": false
+  },
   "validation": { "targetedTestsPassed": 5, "typecheck": "passed", "eslintWarnings": 0, "syntax": "passed" },
   "sqlConnectionsThisStage": 0,
   "sqlMutationsThisStage": 0,
   "awsResourceWritesThisStage": 0,
   "runtimeEnabled": false,
   "automaticRetries": 0,
-  "next": "After Source login, only generate role Review r3 and independent InspectMetadata r1. Request exact fresh SHA for one READ ONLY SQL diagnostic; do not run SQL under start-next-step authority. Do not recompile/rebuild, reset old slots, alter/adopt/delete roles, create database, repeat C2b/Grant/F3c9 or recreate cluster."
+  "next": "Await human approval of the pending fresh manifest and full risks, then run exactly one READ ONLY SQL role diagnostic within the window. Source refresh, Review r3 and independent metadata r1 succeeded; SQL remains uncalled and new slot absent. Do not repeat preparations/tests/images, execute the old installation SHA, reset slots, alter/adopt/delete roles, create database, repeat C2b/Grant/F3c9 or recreate cluster."
 }

@@ -1,6 +1,18 @@
-# D002 C3c：准确两角色只读诊断入口已就绪，待Source刷新及新SHA
+# D002 C3c：准确两角色只读诊断清单已就绪，待具体SHA批准
 
 2026-10-14 America/Winnipeg。承接[C3b实际执行停止](./aws-auto-deployment-aurora-dual-mode-c3-executed.md)：原reserve已提交两NOLOGIN角色，但没有租户库，安装/独立Inspect两槽均永久消费。本小步只准备定位原角色校验的拒绝条件，**不重跑安装、不修改/删除/接管角色，不创建数据库或扩展F3c9**。
+
+## 当前待审SHA与新只读证据
+
+用户重新login后，Review r3和独立InspectMetadata r1均通过；Source/准确cluster-writer/PG17.9/FREE-ACTIVE与历史一致，两轮各5次直接metadata，SQL连接/云写/诊断槽消费均0。元数据回读结论 `PHYSICAL_ONLY_ROLE_STATE_NOT_REOBSERVED`：**本轮尚未重新读取SQL角色目录**。
+
+- 待确认SHA：`25dce03675001fc6ff269cb5a0322a63d9baca9f2c5125ee6d462eef5d5918d2`。
+- 生成：2026-10-14 11:08:21.746 UTC / Winnipeg06:08:21.746 CDT；截止：**2026-10-14 17:08:21.746 UTC / Winnipeg12:08:21.746 CDT**。过期不执行、不自动延期。
+- 私有清单：`F:/ChatGPT_workshop/techlong-d002-express-c3-role-review-20261014-r3/manifest.json`。
+- 独立事实：`F:/ChatGPT_workshop/techlong-d002-express-c3-role-metadata-20261014-r1/facts.json`，11:08:35.549 UTC，字节SHA `f2ba12e4bf9c4beb6404970c1546d76f98705a547947193d5213535d728fc1bc`；除观察时间外与Review事实一致。Source connect模拟allowed不是SQL目录成功证明。
+- 错误SHA的实际Root负例 `F:/ChatGPT_workshop/techlong-d002-express-c3-role-negative-20261014-r1` 返回 `EXPRESS_C3_ROLE_FRESH_APPROVAL_REQUIRED`，在AWS/SQL前拒绝，metadata/连接/query/槽消费全0。
+
+需确认：按这个SHA仅一次固定只读连接/五条query，读取下文准确两角色的属性/成员关系并比较原reserve谓词；不修改/删除/接管角色或建库，不restore/migrate、不改AWS/Neon/Secret/IAM/ECS，不重放原安装；接受下文完整风险和新诊断永久槽单次消费。
 
 ## 准确对象和有限查询
 
@@ -39,10 +51,10 @@
 
 准备r1 `F:/ChatGPT_workshop/techlong-d002-express-c3-role-review-20261014-r1` 泛化停在READ_ONLY_METADATA；保留原回执，不倒填唯一原因。添加CLI安全分类后r2 `...-r2` 返回 `EXPRESS_C3_ROLE_SOURCE_CREDENTIALS_UNAVAILABLE`，metadata计数3、SQL连接/query0、诊断槽未消费、云写0，**没有manifest或可批准SHA**。SDK/CLI依赖均应通过实际Review，不能仅凭单独STS成功跳过。
 
-当前最终code binding `dc5d99e0e5e86171e6e13cfa65cbd3855f48529ea5a5bf6acf1afc3555c8ab9e`；历史SHA `66c9e10bb256e04d54f5f0fb901fffec48f93f4e6cc8e80a55ebf5f4812e8298`。原catalog SQL SHA `6e754b9f6f2b2f61bae1c21637afdb05ff2b826fd4f915cddf421d988cffc0f5`，新固定SELECT SHA `cffba8a1160a9f80d358272b30a91b75e2bb2f924dee724cf32f055a34fde3f5`；都是canonical string digest，不是新的云批准。
+Source刷新后r3与独立metadata均通过，没有修改执行源码。当前最终code binding `dc5d99e0e5e86171e6e13cfa65cbd3855f48529ea5a5bf6acf1afc3555c8ab9e`；历史SHA `66c9e10bb256e04d54f5f0fb901fffec48f93f4e6cc8e80a55ebf5f4812e8298`。原catalog SQL SHA `6e754b9f6f2b2f61bae1c21637afdb05ff2b826fd4f915cddf421d988cffc0f5`，新固定SELECT SHA `cffba8a1160a9f80d358272b30a91b75e2bb2f924dee724cf32f055a34fde3f5`；都是canonical string digest，不是新的云批准。
 
 ## 唯一接续位置
 
-用户运行 `aws login --profile techlong-sandbox-user` 后，只生成新Review r3（`F:/ChatGPT_workshop/techlong-d002-express-c3-role-review-20261014-r3`），再独立InspectMetadata r1（`...-role-metadata-20261014-r1`）。交付具体新SHA与上述完整风险供确认；**本轮“开始下一步”只授权准备，不授权SQL Run**。
+当前只待用户确认SHA `25dce03675001fc6ff269cb5a0322a63d9baca9f2c5125ee6d462eef5d5918d2` 及完整风险；有效窗口内才执行单次只读Run，独立metadata后置回读不额外连接SQL。Source刷新、Review r3和独立metadata r1已经完成，不重复准备/测试/构建。**刷新身份不授权SQL Run，原安装SHA和两旧槽不能重放。**
 
 批准后只执行这一次只读目录诊断，取得真实拒绝条件再准备必要的窄修正/已有对象后继方案；其写入仍fresh另批。不重复旧C2b网络诊断/构建，不换名堆叠角色、不重建cluster或回Grant/F3c9支线。[紧凑接续摘要](../ops/aws-sandbox/reviews/aurora-express-c3c-role-diagnostic.prepared.json)。

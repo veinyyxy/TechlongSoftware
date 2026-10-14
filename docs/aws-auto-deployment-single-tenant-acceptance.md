@@ -6,7 +6,7 @@
 
 ## 首轮交付定义
 
-最新C3c：针对reserve后校验失败，新增绑定真实两角色OID16456/16457/nonce和旧五项回执SHA的单次只读诊断入口；原校验器不改，逐谓词报告属性/成员/grantor/ADMIN-INHERIT-SET不匹配，1连接/5固定query/同一read-only快照，无角色/数据库写或已有对象接管。3新+2相邻测试/types/lint/syntax通过，原210代码/183历史pins保持；不重复compile/镜像/Grant探针。Review r2停在Source凭据不可用，SQL/诊断槽/云写0，无manifest SHA。下一Source重新login后只生成Review r3及独立metadata，再按fresh SHA确认一次SQL；不继续原安装/复位旧槽。[准确只读范围、风险和继续位置](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic.md)。
+最新C3c：绑定真实两角色OID16456/16457/nonce和五项旧回执的单次只读诊断入口已实现，1连接/5固定query/同一read-only快照，复用原校验器逐谓词报告，不能修改/接管/继续prepare。Source刷新后Review r3+独立metadata r1通过，各5次直接只读、SQL/云写/诊断槽消费0；错误SHA实际Root在AWS/SQL前拒绝。新SHA `25dce03675001fc6ff269cb5a0322a63d9baca9f2c5125ee6d462eef5d5918d2` 待具体SQL批准，到Winnipeg2026-10-14 12:08:21.746 CDT；212代码/旧210/183历史pins保持，必要5测试/types/lint已通过，不重复compile/镜像。下一仅按fresh SHA确认一次目录只读诊断；本轮元数据不是当前角色/故障原因证明，不重放原安装/复位旧槽。[准确只读范围、风险和继续位置](./aws-auto-deployment-aurora-dual-mode-c3-role-diagnostic.md)。
 
 最新C3b实际：用户确认1df7e2f7...后，原Root仅一次Run，停在reserve提交后的目录核对/证据保存区间，返回AURORA_V3_SESSION_FAILED；立即独立只读Inspect确认app/guard两角色OID16456/16457、NOLOGIN及ownership匹配，指定租户库不存在。尚未进入创建库/73表恢复/迁移，两永久槽已消费，禁止重放/复位；没有ready或完整角色属性证明。共2个SQL连接/16次query，角色写已提交，AWS资源/IAM/Secret/Neon/ECS写0；执行源码/镜像和183pins保持。下一仅准备绑定真实OID/nonce的新准确目录只读诊断，额外SQL连接fresh另批，不重建/删除/接管/自动重试，不回F3c9。[实际证据、原因边界与唯一接续位置](./aws-auto-deployment-aurora-dual-mode-c3-executed.md)。下段待审状态已消费，仅为历史。
 
