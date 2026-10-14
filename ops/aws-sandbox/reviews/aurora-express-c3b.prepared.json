@@ -1,7 +1,7 @@
 {
   "schema": "techlong/express-c3b-continuation/v1",
   "evidenceOnlyNotExecutionAuthority": true,
-  "state": "CODE_VERIFIED_AWAIT_SOURCE_REFRESH_AND_NEW_REVIEW",
+  "state": "PREPARED_AWAIT_EXACT_SQL_APPROVAL",
   "backendSourceSha": "16b5daa9d4af8a248d2918d719f1e15d60dc3498",
   "codeBindingSha256": "fc7a6d9adc785d481269ceba26f8a1fef0c0edc594900663c8fd24be443f63e9",
   "codePinEntries": 210,
@@ -13,12 +13,27 @@
   "manifestFileSha256": "62b5dc8cadcf276df140be86e002a08b64d9b713bd0257e14ac515c12a996971",
   "tables": 73,
   "migrationSeedRows": 9,
-  "phaseSourceError": "EXPRESS_C3_SOURCE_TOKEN_EXPIRED",
+  "previousSourceError": "EXPRESS_C3_SOURCE_TOKEN_EXPIRED",
   "currentExecutableApprovalSha": null,
+  "pendingManifestSha256": "1df7e2f7da6b3e900f68e5d5814e2f32e1578c19af131270ef6a355112ced440",
+  "preparedAt": "2026-10-14T10:28:18.531Z",
+  "expiresAt": "2026-10-14T16:28:18.531Z",
+  "expiresAtWinnipeg": "2026-10-14T11:28:18.531-05:00",
+  "humanSqlApprovalReceived": false,
+  "executionAuthorized": false,
   "obsoleteReviewDirectories": ["techlong-d002-express-c3-review-20261014-r1", "techlong-d002-express-c3-review-20261014-r2"],
   "stoppedReviewDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c3-review-20261014-r3",
-  "nextReviewDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c3-review-20261014-r4",
-  "nextMetadataInspectDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c3-metadata-20261014-r3",
+  "currentReviewDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c3-review-20261014-r4",
+  "independentMetadataInspectDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c3-metadata-20261014-r3",
+  "reviewMetadataCalls": 5,
+  "independentMetadata": {
+    "observedAt": "2026-10-14T10:32:28.062Z",
+    "factsFileSha256": "5e22e302314042cc5281f75c575b21ef9723609deb4e2d307442046a3c3dac6c",
+    "calls": 5,
+    "sqlConnections": 0,
+    "awsResourceWrites": 0,
+    "outcome": "PHYSICAL_ONLY_SQL_NOT_PROVED"
+  },
   "attemptSlot": "techlong-d002-express-c3-bootstrap-g1.permanent-slot.json",
   "independentInspectSlot": "techlong-d002-express-c3-bootstrap-g1-inspect.permanent-slot.json",
   "bothNewSlotsAbsent": true,
@@ -41,5 +56,5 @@
   "lifecycleCompatible": false,
   "automaticRetries": 0,
   "retainedResourcesMayAccrueCost": true,
-  "next": "After Source aws login, only generate r4 Review and independent metadata inspection. Then request exact fresh SQL approval. Old reviews are obsolete, no Run authorized; preserve F3c9/Full/old slots and do not recreate the cluster."
+  "next": "Await human approval of pending manifest SHA and full documented risks; only then Run once and independently Inspect within its fresh window. Review r4 and metadata r3 succeeded, both slots remain absent. Do not repeat old diagnostics/builds, execute obsolete SHA, retry writes or recreate the cluster; preserve F3c9/Full/old slots."
 }

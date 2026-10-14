@@ -6,7 +6,7 @@
 
 ## 首轮交付定义
 
-最新C3b：73表原归档编译、PG17安全目录/零行与九条技术初始化行门禁、同事务恢复+迁移及Source单次受审Root已实现；最终完整CI/两镜像通过，原Full/183pins/关闭运行时保持。本轮SQL连接/写、AWS资源写、槽消费均0。Source SDK明确token expired，旧待审SHA因源码修正已失效；下一先Source重新login，仅生成新Review和metadata回读，再按新SHA批准实际数据库安装。[唯一继续位置、完整风险与证据](./aws-auto-deployment-aurora-dual-mode-c3-review.md)。
+最新C3b：73表原归档编译、PG17安全目录/零行与九条技术初始化行门禁、同事务恢复+迁移及Source单次受审Root已实现；最终完整CI/两镜像通过，原Full/183pins/关闭运行时保持。Source刷新后新Review r4和独立metadata r3通过（各5次直接只读），现有准确cluster/writer与身份/FREE-ACTIVE一致。新SHA `1df7e2f7da6b3e900f68e5d5814e2f32e1578c19af131270ef6a355112ced440` 待明确SQL批准，到Winnipeg 2026-10-14 11:28:18.531 CDT；SQL连接/写、AWS资源写、槽消费均0。下一批准具体范围及完整风险后单次真实prepare/restore/migrate与独立SQL回读，不重复镜像或C2b，不使用旧SHA；尚非schema/ready证明。[唯一继续位置、完整风险与证据](./aws-auto-deployment-aurora-dual-mode-c3-review.md)。
 
 最新C3a：基于C2b真实PG17.9事实完成新V3管理写transport、有限NOLOGIN prepare port及双仓pre-Secret SQL候选，30秒连接、准确role/database OID和丢失联动；新Express app候选显式30秒，旧Full/183pins/v2写拒绝保持。本轮云/SQL写0，prepare尚未实际运行，73表恢复/迁移/Secret/IAM/任务/ready仍未完成。下一集中完成owned restore/migration及一次性fresh审阅执行根，不继续Grant探针或F3c9。[代码范围、准确租户候选与继续位置](./aws-auto-deployment-aurora-dual-mode-c3-bootstrap.md)。
 
