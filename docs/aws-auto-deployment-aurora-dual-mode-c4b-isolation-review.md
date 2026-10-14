@@ -1,5 +1,7 @@
 # D002 C4b：激活前准确隔离核对（待 SQL 只读批准）
 
+此清单已于2026-10-14获用户确认并执行，永久read槽已消费；下方待审/期限描述仅为历史，不可重放。[实际结果与当前唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4b-isolation-executed.md)。
+
 2026-10-14 America/Winnipeg。[C4a 候选](./aws-auto-deployment-aurora-dual-mode-c4a-application-candidate.md)之后直接推进真实激活输入。本轮只新增一次有界的管理目录核对，不恢复 schema、不扩展F3c9或Grant generation支线。尚未执行数据库核对，更没有启用应用登录或部署。
 
 ## 已完成的 AWS 只读事实
