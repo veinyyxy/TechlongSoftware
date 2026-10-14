@@ -6,6 +6,8 @@
 
 ## 首轮交付定义
 
+最新C1续段：lifecycle v2任务/独立只读准入/角色目录与receipt接线已实现，写入口仍关闭；旧Full/172pins/F3c9和槽保持。下一准备最小Express事实核验的准确新范围，取得引擎/网关/目录事实后完成写适配；尚无可执行云SHA，不自行安装IAM、创建资源或修改业务。[本续段与最新继续位置](./aws-auto-deployment-aurora-dual-mode-c1-lifecycle.md)。
+
 最新C1编码：双模式连接核心、严格v2契约、app pool接线和只读连接/Secret来源已完成，平台13/Backend41定向检查与types通过；云端双候选38488816036和完整Backend CI38488815977均success，新增断网自检/安全门禁通过，未ECR发布。完整lifecycle/目录/activation及Express实机仍未完成，不提前标记M2或ready，不改旧门禁/槽。[C1实现与继续位置](./aws-auto-deployment-aurora-dual-mode-c1.md)。
 
 管理员触发一个准确sandbox租户任务，后续自动完成独立Secret、独立database/role、空baseline恢复和迁移、ECS服务启动、健康检查、mTLS/JWT配置下发，以及可访问地址和`ready`回写。不是只让一个容器启动，也不是先接付款或开放多租户轮询。

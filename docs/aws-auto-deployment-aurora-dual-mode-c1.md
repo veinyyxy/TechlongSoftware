@@ -2,6 +2,8 @@
 
 2026-10-13 America/Winnipeg；后继[双模式方案](./aws-auto-deployment-aurora-dual-mode.md)。**连接核心已实现并本地验证；C1整体尚未完成，Express实机兼容尚未证明。** 用户本次授权编码，未授权新的IAM/SQL/云创建、删除或激活。
 
+后继进度：独立lifecycle v2任务/只读Fargate准入/角色目录/非发布receipt已接线，仍未实现或放开SQL写。下一先准备最小Express事实核验的受审范围，再依真实引擎/网关/目录完成写适配，C1/C2交叉推进。[本续段准确范围、验证与继续位置](./aws-auto-deployment-aurora-dual-mode-c1-lifecycle.md)。下方第一批继续位置保留历史，不覆盖此后继。
+
 ## 已完成的代码
 
 | 位置 | 实际能力 | 不代表 |
