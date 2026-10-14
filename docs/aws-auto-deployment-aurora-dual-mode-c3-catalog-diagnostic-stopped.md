@@ -1,5 +1,7 @@
 # D002 C3e：Source不可用，SQL连接前停止且槽未消费
 
+Source现已由用户刷新，新Review/独立metadata已只读通过，SQL/槽仍0。本页停止证据不改；下一只按[新872e3027清单](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-refreshed.md)取得确认，不再重复要求本次已完成的刷新。
+
 2026-10-14 America/Winnipeg。用户“确认”批准[目录只读诊断范围及完整风险](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic.md)，准确SHA `d82c6da5acc1fbbf2840c70b7ffa49bfa991eb020dd900bd84dc2751a40951bd`。在19:31:05.518 UTC截止前，仅尝试原Root一次；**没有连接数据库、执行SQL或消费槽，不自动重试。**
 
 ## 真实停止证据

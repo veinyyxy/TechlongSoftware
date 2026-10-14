@@ -6,6 +6,8 @@
 
 ## 首轮交付定义
 
+最新C3e刷新（2026-10-14）：用户Source刷新后仅Review r2+独立metadata r2各5次只读通过，SQL/新槽仍0；新旧清单除时间/facts/SHA外完全同范围，226/224/212/183源码和2工具/code/history均不变，原d82c与停止回执保留，不重复测试/compile/镜像。新唯一待审SHA872e3027...，截止Winnipeg2026-10-14 15:02:09.481 CDT；一次最多2连接/9固定目录query、业务查询/写0，范围及完整风险保持，待新具体确认才SQL，不重跑停止Run或重建DB/guard、不回F3c9。[新清单与准确继续点](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-refreshed.md)。下段Source不可用状态为历史。
+
 最新C3e停止（2026-10-14）：用户确认d82c后原Root一次在13:52 UTC的READ_ONLY_METADATA返回SOURCE_CREDENTIALS_UNAVAILABLE，未形成本次完整facts；SQL连接/query/写0、新永久槽未消费，metadata计数3不代表成功回读。没有新租户目录观察，不把其当目录校验失败/自动重试授权。226/224/212/183源码pins与镜像保持；仅记录停止证据/交接，不重复测试/构建。下一Source刷新后只生成新fresh只读清单并独立metadata，保留原d82c/停止目录/旧槽，再按新SHA确认SQL，不重建库/guard、不回F3c9。[真实停止与准确继续位置](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-stopped.md)。下段待审状态已尝试，仅保留历史。
 
 最新C3e待审（2026-10-14）：平台本地准确库只读目录诊断已实现，绑定C3d七真实证据、DB16459/owner16410/app16456/guard缺席，最多2连接/9固定query、业务表查询0、写0；原PG17目录SQL/校验器和V4 owner policy保持，17组解释谓词必须与真实原校验一致，不自动放宽/学习ready。4新+5相邻检查/types/syntax/lint通过，实际错误SHA负例在AWS/SQL/槽前拒绝；Review+独立metadata各5只读通过，SQL0/新槽0，新226/原224/212/183pins保持，Backend源码/镜像不改。待确认新SHA d82c6da5...，截止Winnipeg2026-10-14 14:31:05.518 CDT。若当前catalog为空不能倒填原事务失败目录，不重放DDL制造证据；只读观察后收敛保留准确库的窄恢复候选，后继写另批，不重建库/guard、不回Grant/F3c9。[新SHA、范围和完整风险](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic.md)。

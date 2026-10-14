@@ -85,5 +85,5 @@
   "pg17LiveRestoreVerified": false,
   "automaticRetries": 0,
   "retainedClusterMayAccrueCost": true,
-  "next": "C3e narrow read-only tenant catalog diagnostic is prepared: see aurora-express-c3e-catalog-diagnostic.prepared.json and its fresh d82c SHA. Two connections/nine fixed queries, business queries/writes zero; SQL/new slot remain zero until specific approval. Preserve retained OID16459/app16456, exact deleted guard, these receipts and consumed old slots. Empty current catalog cannot reconstruct original uncommitted rejection; do not replay DDL for diagnosis. Future restore/role/IAM/Secret/ECS changes remain separately approved; no F3c9/grant/image rebuild detours."
+  "next": "C3e is the current continue point: read aurora-express-c3e-catalog-diagnostic.prepared.json for its current fresh pending SHA/status, not this consumed C3d manifest. The pre-SQL Source stop was recorded, Source refreshed, and a new same-scope Review plus independent metadata prepared without SQL/slot consumption. Preserve retained OID16459/app16456, exact deleted guard, these receipts and consumed old slots; no DDL replay for diagnosis, new grants/F3c9 or unchanged image rebuild. Future SQL/restore/role/IAM/Secret/ECS changes require their specific approval."
 }
