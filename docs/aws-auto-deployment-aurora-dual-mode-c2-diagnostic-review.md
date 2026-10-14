@@ -57,4 +57,6 @@ node --experimental-strip-types ops/aws-sandbox/scripts/review-aurora-express-c2
 
 平台10、Backend16项必要新/相邻检查及两仓types、syntax、定向lint通过；新增测试只模拟阶段/redaction/凭据签名，不跑真实PG，未构建新的大型离线生命周期模型。独立CLI无效SHA检查返回EXPRESS_C2B_FRESH_APPROVAL_REQUIRED，metadata calls/SQL/resource writes均0。源码与文档直接提交推送两个main，用户.vscode不提交；无新依赖或旧production flag修改。
 
+Backend准确提交 `4ff29b7140d3a18412626361e34de2c26a1b85fa`、平台代码提交 `e89cb074c3da023aba8488de47aa5c1495c74646` 已推送并独立回读远端main一致。04:00 UTC独立回读：[完整Backend CI38508830122](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38508830122)的check/docker、[双镜像候选38508830171](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38508830171)的app/lifecycle，attempt1四job全部success，自检/安全门禁/导出通过。未ECR发布、未下载复算归档；云端镜像验证不代表真实Source诊断或PG登录。原172历史+8执行共180pins全部匹配，新11pins的binding SHA `71d0f310688b47fe81e5a9b00f36b0dffa846abe81acae2432b46eb86ad0b010`。本次[非秘密继续摘要](../ops/aws-sandbox/reviews/aurora-express-c2-diagnostic.prepared.json)只用于恢复位置，不是批准。
+
 下一步仅等本新SHA的**一次连接**批准；实际诊断结果再决定最小修正/有限角色与baseline验收，不继续扩大F3c9或重建可用cluster。原C2a准确清理代码及提案保留，但未执行、且它的旧时限仍独立，不作为本新批准的一部分。
