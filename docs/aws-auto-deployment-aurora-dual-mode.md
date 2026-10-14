@@ -2,6 +2,8 @@
 
 决策 **D002**，2026-10-13 America/Winnipeg。状态：**设计完成，代码与云适配尚未实现/验收**。用户暂不升级 AWS account plan，要求先设计兼容或快速切换方案。本文件调整 D001 的数据库交付路径，不扩大“一个 sandbox 租户自动部署到 ready”的首轮目标。
 
+后继编码已开始：C1双模式连接核心/严格v2契约/app pool分支/只读来源及云端镜像自检已实现；C1整体和Express实机尚未完成。[准确实现范围、验证与下一接线](./aws-auto-deployment-aurora-dual-mode-c1.md)。本方案以下“尚未开始/只有文档”是最初设计时状态，不覆盖后继实际进度。
+
 ## 结论与本轮边界
 
 采用**同一业务应用 + 两个基础设施 provider + 两个连接 profile**：当前优先 `express_iam`，未来可选择 `full_password`。业务路由、73 表空 baseline、配置下发、ECS/ALB、mTLS/JWT和任务状态机尽量共用；网络、凭据来源、会话证明、数据库资源创建与清理分别适配。
