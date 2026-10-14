@@ -6,6 +6,8 @@
 
 ## 首轮交付定义
 
+最新C3a：基于C2b真实PG17.9事实完成新V3管理写transport、有限NOLOGIN prepare port及双仓pre-Secret SQL候选，30秒连接、准确role/database OID和丢失联动；新Express app候选显式30秒，旧Full/183pins/v2写拒绝保持。本轮云/SQL写0，prepare尚未实际运行，73表恢复/迁移/Secret/IAM/任务/ready仍未完成。下一集中完成owned restore/migration及一次性fresh审阅执行根，不继续Grant探针或F3c9。[代码范围、准确租户候选与继续位置](./aws-auto-deployment-aurora-dual-mode-c3-bootstrap.md)。
+
 最新C2b实际：用户确认f95a0c3c...，唯一Source管理员IAM/TLS连接及四固定只读SQL成功，PG170009/OID5/client TLS/backend TLS/admin目录真实观察；约23秒连接，旧10秒窗口对本次不够但不倒填旧失败原因。独立新进程5次云只读/SQL0回读物理binding一致，Run9metadata/1SQL/资源写0；新槽消费，不重放，cluster继续保留可能计费，仍非tenant或ready证明。下步回主线补C1管理写/连接配置、准备准确角色及原73表空baseline的有限验收包；SQL写/IAM/Secret/任务/部署仍fresh另批。[真实证据与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c2-diagnostic-executed.md)。
 
 最新C2b待审：用户选择保留现有Express后，分阶段白名单诊断adapter、准确临时Source snapshot/STS、新独立永久槽及Review/Run/Inspect入口已实现。新SHA只拟一次逻辑连接/四固定只读SQL，30秒connect/90秒会话，不新增权限或资源。新云只读回读/准确connect ARN模拟通过，实际SQL未调用、旧8执行pins和原槽不变；获批才执行。[新SHA、完整风险与准确范围](./aws-auto-deployment-aurora-dual-mode-c2-diagnostic-review.md)。

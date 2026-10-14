@@ -59,6 +59,7 @@ test('D002 ECS config binds Express metadata and four immutable keys, never pers
   const c = buildDatabaseTaskConfigurationV2(fixture());
   const env = Object.fromEntries(c.environment.map(e => [e.name, e.value]));
   assert.equal(env.PG_DATABASE_PROFILE, 'express_iam'); assert.equal(env.PGSSLROOTCERT, '');
+  assert.equal(env.PGPOOL_CONNECTION_TIMEOUT_MS, '30000');
   assert.equal(env.PG_DATABASE_BINDING_SHA256, databaseBindingDigestV2(fixture()));
   assert.equal(c.secrets.length, 4); assert.equal(c.secrets.some(s => s.name === 'DATABASE_URL'), false);
   assert.equal(c.executionAuthorized, false);
@@ -67,4 +68,5 @@ test('D002 ECS config binds Express metadata and four immutable keys, never pers
   const f = buildDatabaseTaskConfigurationV2(full());
   assert.equal(f.secrets.length, 5);
   assert.equal(f.environment.some(e => e.name === 'PG_DATABASE_BINDING_V2'), false);
+  assert.equal(f.environment.some(e => e.name === 'PGPOOL_CONNECTION_TIMEOUT_MS'), false);
 });

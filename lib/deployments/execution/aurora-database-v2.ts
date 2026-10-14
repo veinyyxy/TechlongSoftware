@@ -71,7 +71,7 @@ export function buildDatabaseTaskConfigurationV2(raw: unknown) {
     AWS_REGION: 'ca-central-1', PGSSLMODE: 'verify-full', PGSSL_REJECT_UNAUTHORIZED: 'true' };
   if (binding.profile === 'express_iam') {
     Object.assign(environment, { PG_DATABASE_BINDING_V2: encodeDatabaseBindingV2(binding),
-      PG_DATABASE_BINDING_SHA256: bindingSha256, PGSSLROOTCERT: '', PGPOOL_MAX: '3' });
+      PG_DATABASE_BINDING_SHA256: bindingSha256, PGSSLROOTCERT: '', PGPOOL_MAX: '3', PGPOOL_CONNECTION_TIMEOUT_MS: '30000' });
   } else environment.PGSSLROOTCERT = '/usr/local/share/ca-certificates/aws-rds-global-bundle.pem';
   const secretNames: Record<string, string> = { hmac_secret_key: 'HMAC_SECRET_KEY', jwt_secret_key: 'JWT_SECRET_KEY',
     stripe_secret_key: 'STRIPE_SECRET_KEY', stripe_webhook_secret: 'STRIPE_WEBHOOK_SECRET' };
