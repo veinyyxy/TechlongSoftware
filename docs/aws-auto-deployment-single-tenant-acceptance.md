@@ -2,9 +2,11 @@
 
 决策D001，2026-10-13 America/Winnipeg。用户在审计后明确同意收缩首轮目标并开始实施，同时要求封存F3c9以便重启。此文档取代旧方案中的“继续F3c9”作为当前导航；[原支线封存](./aws-auto-deployment-f3c9-deferred.md)，所有历史保留。
 
-**当前路线 D002（更新2026-10-14）**：用户暂不升级账户，采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。Express schema/两迁移/独立回读已完成（C3g）；C4a最小应用权限与四键Secret-v2候选及两镜像云自检完成，尚未激活LOGIN/runtime/ready。下一直接准备准确数据库隔离及既有IAM/Secret元数据所需有界核对，收敛真实激活输入，再完成runtime-ready/初始化及ECR→ECS验收；SQL诊断及实际权限/登录/Secret/IAM/ECR/ECS写各按fresh具体范围另批，不把候选SHA当执行清单。不重放已消费C3槽、不删除旧Full失败Stack、不扩展F3c9；下方旧“升级后继续”等记录仅历史。[当前唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4a-application-candidate.md)，[完整兼容与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
+**当前路线 D002（更新2026-10-14）**：用户暂不升级账户，采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。Express schema/两迁移/独立回读已完成（C3g），C4a最小应用权限/四键Secret-v2候选及两镜像云自检完成。C4b现已核对三个既有任务角色和固定Secret名称元数据，准备一次准确管理库隔离只读清单，SQL尚待4de95e90...新SHA确认；LOGIN/runtime/ready未启用。取得隔离事实后集中收敛激活、runtime-ready/初始化及ECR→ECS验收，不另开通用授权支线；实际SQL/权限/登录/Secret/IAM/ECR/ECS写仍fresh具体范围另批。不重放已消费C3槽、不删除旧Full失败Stack、不扩展F3c9；下方旧“升级后继续”等记录仅历史。[当前范围、完整风险与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4b-isolation-review.md)，[完整兼容与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
 
 ## 首轮交付定义
+
+最新C4b只读清单（2026-10-14）：Source SDK初始身份1次及Review-r1的19次AWS/CLI元数据完成，三个准确role/RoleId、共享boundary v3/两个inline与历史一致，四键Secret准确名称ABSENT。新CLI/纯classifier/固定6query计划已实现，5项针对性测试/syntax/lint过；真实错误批准SHA在凭据/AWS/SQL/槽之前拒绝，0调用/连接/消费。243当前pins+原2工具/7历史保持；SHA4de95e90...有效到Winnipeg2026-10-14 21:53:27.942 CDT，仅待一个postgres管理库READ ONLY事务查看app16456及DB16459/其它库CONNECT/PUBLIC ACL，无客户表/密码/原始role config。SQL/写/Secret值/槽均0，仍无隔离/应用登录/ready证明。旧Backend153efbc已验两镜像保持，不重建/发布；后继仅根据真实隔离事实收敛实际激活范围，不恢复或扩展F3c9。[完整范围与风险](./aws-auto-deployment-aurora-dual-mode-c4b-isolation-review.md)。下方C4a为前置历史。
 
 最新C4a候选通过（2026-10-14）：已修正app镜像顶层归档compiler依赖，准确Backend153efbc源码的CI38633329098/双镜像38633329018所有steps均success，包括两个最终镜像network-none V6及原安全门禁。Backend8项/平台9项相关测试、types及定向lint通过。新r3真实编译原archive/private品牌并绑定73表/7序列，8个最小SQL仅数据；四键Secret候选实际ARN/version为null，元数据finalization不证明IAM/login/ready。r1保留，r2因本机Python更新在编译前停止，r3仅本地候选重绑新bundle/Python3.12.14，C3g旧工具/槽/receipt不改。240当前pins+2工具，候选6a618802...不是fresh执行SHA；本轮SQL/AWS/Secret值/新槽均0，无ECR/ECS。当前跨库隔离、任务角色权限、受限membership真实IAM登录及完整ready仍未核验，下一收敛这些具体激活事实，不再恢复/Grant/F3c9支线。[完成范围、失败修正、追溯与下一步](./aws-auto-deployment-aurora-dual-mode-c4a-application-candidate.md)。下方C3g为前置历史。
 

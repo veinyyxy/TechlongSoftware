@@ -1,0 +1,113 @@
+{
+  "schema": "techlong/express-c4b-isolation-prepared/v1",
+  "evidenceOnlyNotExecutionAuthority": true,
+  "state": "AWS_METADATA_VERIFIED_SQL_READ_REVIEW_READY_NOT_EXECUTED",
+  "preparedAt": "2026-10-14T20:53:27.942Z",
+  "expiresAt": "2026-10-15T02:53:27.942Z",
+  "expiresAtWinnipeg": "2026-10-14 21:53:27.942 CDT",
+  "reviewDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c4b-review-20261014-r1",
+  "manifestSha256": "4de95e9036fd7b87e57b2f67689f26bcc1561d43ed5327dc408ce18fe7af3121",
+  "codeBindingSha256": "bb553f2dc37df3633409bb83af442f782308a353e699e2d0945e6637608ccce1",
+  "sqlPlanSha256": "2c3ad97b4323bb5cdd953012876abe2ad755b3ed347f67baffcaf972c2bcb406",
+  "codePins": 243,
+  "toolPins": 2,
+  "predecessorCandidateSha256": "6a61880217d944c18c797ae1910e63fd8bbd6acbb6e4af27c915b585fa16486d",
+  "document": "docs/aws-auto-deployment-aurora-dual-mode-c4b-isolation-review.md",
+  "files": {
+    "manifest.json": "19f566a2fef9ceb120168ea4914fcfee33a5759fcf969c0ab41d2a01fd2fd2b7",
+    "result.json": "687799fe078987f45d8ce9fad3804372f5688ff841bb45627ef3cef267f23195",
+    "code-binding.json": "7cd0668f793f82659788cf714d1ed6ffa9b1950f522e2ed36674277a88bf8ab8",
+    "iam-metadata.json": "f162f529d43c77a0ff5e6848966f18b2b5cf757a5e4cfbe20fb93968afb6bd21",
+    "secret-metadata.json": "4da1a3ff3a20dff548efff537d69cfe693d1be3cd984679e59f029ad1e605479"
+  },
+  "metadata": {
+    "reviewCalls": 19,
+    "initialStandaloneSourceSdkCheckCalls": 1,
+    "exactSourceIdentityVerified": true,
+    "physicalExpressBindingUnchanged": true,
+    "engineVersion": "17.9",
+    "accountPlan": "FREE",
+    "accountPlanStatus": "ACTIVE",
+    "sourceManagementConnectSimulation": "allowed",
+    "effectiveRuntimePermissionVerified": false,
+    "roles": [
+      {
+        "name": "TechlongSandboxTaskRole",
+        "roleId": "AROAV3GNMXTZLH2AU5I5G",
+        "inlineCount": 0,
+        "attachedCount": 0
+      },
+      {
+        "name": "TechlongSandboxTenantLifecycleTaskRole",
+        "roleId": "AROAV3GNMXTZDIWVT3BKN",
+        "inlineCount": 1,
+        "attachedCount": 0
+      },
+      {
+        "name": "TechlongSandboxTaskExecutionRole",
+        "roleId": "AROAV3GNMXTZJHJWAN4IR",
+        "inlineCount": 1,
+        "attachedCount": 0
+      }
+    ],
+    "sharedBoundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxServiceRoleBoundary",
+    "sharedBoundaryPolicyId": "ANPAV3GNMXTZHXSTCQBZC",
+    "sharedBoundaryDefaultVersion": "v3",
+    "sharedBoundarySha256": "f2d2533515558b1afbca3e275f530c9a6cbf4421fac68581a496cc4939abb89f",
+    "secret": {
+      "name": "techlong/sandbox/tenant/a0da1748bc4d5419/runtime/g1",
+      "state": "ABSENT",
+      "arn": null,
+      "versionId": null
+    }
+  },
+  "realWrongApprovalCheck": {
+    "directory": "F:/ChatGPT_workshop/techlong-d002-express-c4b-negative-check-20261014-r1",
+    "stoppedFileSha256": "7864ca40178755b97baef3261bd50591a97756c9e612c189a64c93be283d4aa5",
+    "outcome": "C4B_FRESH_READ_APPROVAL_REQUIRED",
+    "phase": "LOCAL_BINDING",
+    "metadataCalls": 0,
+    "sqlConnections": 0,
+    "sqlCalls": 0,
+    "slotConsumed": false
+  },
+  "tests": {
+    "targetedTests": 5,
+    "passed": 5,
+    "syntaxPassed": true,
+    "targetedLintPassed": true,
+    "backendExecutionCodeUnchanged": true,
+    "backendPreviouslyCheckedSourceSha": "153efbc7566d2ed2d566437f002c8fa95a6b9c9f",
+    "noNewImageBuildOrPublication": true
+  },
+  "pendingReadonlyScope": {
+    "managementDatabase": "postgres",
+    "managementDatabaseOid": "5",
+    "managementRoleOid": "16410",
+    "tenantDatabaseOid": "16459",
+    "applicationRoleOid": "16456",
+    "sqlConnections": 1,
+    "normalQueries": 6,
+    "maximumQueriesWithFailureRollback": 7,
+    "databaseRowsMaximum": 32,
+    "inventoryBytesMaximum": 65536,
+    "preflightMetadataCallsMaximum": 7,
+    "slot": "F:/ChatGPT_workshop/techlong-d002-express-c4b-isolation-read-v1.permanent-slot.json",
+    "userApprovalReceived": false,
+    "slotConsumed": false,
+    "currentIsolationVerified": false
+  },
+  "sqlConnections": 0,
+  "sqlCalls": 0,
+  "sqlWrites": 0,
+  "awsWrites": 0,
+  "secretValueReads": 0,
+  "newSlotsConsumed": 0,
+  "loginActivated": false,
+  "iamInstalled": false,
+  "ecrPublished": false,
+  "ecsDeployed": false,
+  "runtimeEnabled": false,
+  "readyVerified": false,
+  "next": "Await human approval of manifest 4de95e9036fd7b87e57b2f67689f26bcc1561d43ed5327dc408ce18fe7af3121 for one read-only management catalog Inspect and all documented risks before SQL/slot. If expired or Source unavailable, refresh metadata only; never replay or reset any slot. After observing exact role/DB CONNECT and PUBLIC ACL gaps, prepare concentrated exact activation inputs/permission/isolation disposition, real runtime-ready and initialization wiring; actual writes and ECR/ECS launch still require fresh concrete approval. No F3c9, restore, prepare, guard or Grant-generation expansion."
+}
