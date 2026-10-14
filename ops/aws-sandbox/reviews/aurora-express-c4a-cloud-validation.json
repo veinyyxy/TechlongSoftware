@@ -1,0 +1,372 @@
+{
+  "schema": "techlong/express-c4a-cloud-validation/v1",
+  "evidenceOnlyNotExecutionAuthority": true,
+  "observedAt": "2026-10-14T20:37:43Z",
+  "backendSourceSha": "153efbc7566d2ed2d566437f002c8fa95a6b9c9f",
+  "previousFailure": {
+    "backendSourceSha": "4858bccbe360768d5dee3adae7e6754374ce3994",
+    "ciRunId": 38599242308,
+    "ciConclusion": "success",
+    "imageRunId": 38599242287,
+    "imageConclusion": "failure",
+    "appJobId": 115973871057,
+    "lifecycleJobId": 115973871601,
+    "lifecycleConclusion": "success",
+    "failingStep": "Self-check Express minimum application policy candidate V6 without network",
+    "cause": "Top-level tenant_baseline_program import required a native archive compiler absent from the app image.",
+    "fix": "Lazy-load the private archive compiler only inside compileApplicationCandidateV6; keep pure classifiers/image checks loadable without it."
+  },
+  "ci": {
+    "id": 38633329098,
+    "conclusion": "success",
+    "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38633329098",
+    "jobs": [
+      {
+        "id": 116090169222,
+        "name": "docker",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38633329098/job/116090169222",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out repository",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build Docker image",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Inspect Docker image",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Smoke test production container",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Check out repository",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 116090169929,
+        "name": "check",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38633329098/job/116090169929",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out repository",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Set up Node.js",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install dependencies",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check and test",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check migration script syntax",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check tenant bootstrap manifest policy",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Set up Node.js",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Check out repository",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ]
+  },
+  "images": {
+    "id": 38633329018,
+    "conclusion": "success",
+    "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38633329018",
+    "jobs": [
+      {
+        "id": 116090169547,
+        "name": "Build and self-check app",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38633329018/job/116090169547",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out exact source",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate self-check entrypoints",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Gate high and critical production dependency advisories",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build local linux/amd64 candidate",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run isolated container self-check",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check Aurora dual-mode connection support without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check reserved-role continuation V4 without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check exact Express uuid extension owner V5 without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check Express minimum application policy candidate V6 without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Gate operating-system HIGH and CRITICAL before retaining candidates",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Record the exact checked and scanned image",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Preserve OS scan diagnosis on success or failure",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Export the exact checked image",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Retain promotion candidate and small receipts",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Check out exact source",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 116090169874,
+        "name": "Build and self-check lifecycle",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38633329018/job/116090169874",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out exact source",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate self-check entrypoints",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Gate high and critical production dependency advisories",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build local linux/amd64 candidate",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run isolated container self-check",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check Aurora dual-mode connection support without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check reserved-role continuation V4 without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check exact Express uuid extension owner V5 without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check Express minimum application policy candidate V6 without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Gate operating-system HIGH and CRITICAL before retaining candidates",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Record the exact checked and scanned image",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Preserve OS scan diagnosis on success or failure",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Export the exact checked image",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Retain promotion candidate and small receipts",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Check out exact source",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ],
+    "artifacts": [
+      {
+        "id": 11927751317,
+        "name": "checked-app-153efbc7566d2ed2d566437f002c8fa95a6b9c9f-38633329018-1",
+        "sizeBytes": 72623793,
+        "digest": "sha256:b0d83bd713599fcba3ed2ddedaad637cf11a69cef1e2654f3662eecff7a98170",
+        "expired": false
+      },
+      {
+        "id": 11927516298,
+        "name": "os-scan-app-153efbc7566d2ed2d566437f002c8fa95a6b9c9f-38633329018-1",
+        "sizeBytes": 16406,
+        "digest": "sha256:4d56b33ee358666f004b959c244d9c8f3574e6e2124fb6046add848ab463d75d",
+        "expired": false
+      },
+      {
+        "id": 11927506441,
+        "name": "os-scan-lifecycle-153efbc7566d2ed2d566437f002c8fa95a6b9c9f-38633329018-1",
+        "sizeBytes": 17619,
+        "digest": "sha256:d561b73c3639811a36e1f78c0d53ad2813cf398188a689ed8d083ea9f59f4d1e",
+        "expired": false
+      },
+      {
+        "id": 11927296488,
+        "name": "checked-lifecycle-153efbc7566d2ed2d566437f002c8fa95a6b9c9f-38633329018-1",
+        "sizeBytes": 85246329,
+        "digest": "sha256:12f7b252f5f48cad628ca77052ab89652d5f55051ba358d6e64c098a85c3559d",
+        "expired": false
+      }
+    ],
+    "artifactDigestsAreNotImageManifestDigests": true,
+    "artifactsDownloaded": false
+  },
+  "local": {
+    "backendTests": 8,
+    "backendTypecheck": true,
+    "platformTests": 9,
+    "platformTypecheck": true,
+    "platformTargetedLint": true,
+    "prepareSyntax": true
+  },
+  "ecrPublished": false,
+  "ecsDeployed": false,
+  "awsPermissionWrites": 0,
+  "databaseConnections": 0,
+  "secretValueReads": 0,
+  "newExecutionSlotsConsumed": 0,
+  "runtimeEnabled": false,
+  "readyVerified": false
+}

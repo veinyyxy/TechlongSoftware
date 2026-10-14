@@ -2,9 +2,11 @@
 
 决策D001，2026-10-13 America/Winnipeg。用户在审计后明确同意收缩首轮目标并开始实施，同时要求封存F3c9以便重启。此文档取代旧方案中的“继续F3c9”作为当前导航；[原支线封存](./aws-auto-deployment-f3c9-deferred.md)，所有历史保留。
 
-**当前路线 D002（更新2026-10-14）**：用户暂不升级账户，采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。双模式适配、云端两镜像和Express schema/两迁移/独立回读已完成（C3g），应用角色仍NOLOGIN、runtime/ready未启用。下一仅准备准确租户的最小权限、Secret-v2及PG17运行时接线候选；实际授权/登录/Secret/IAM/ECR/ECS写仍fresh具体清单另批。不重放已消费C3槽、不删除旧Full失败Stack、不扩展F3c9；下方旧“升级后继续”等记录仅历史。[完整兼容、快速切换、风险与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
+**当前路线 D002（更新2026-10-14）**：用户暂不升级账户，采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。Express schema/两迁移/独立回读已完成（C3g）；C4a最小应用权限与四键Secret-v2候选及两镜像云自检完成，尚未激活LOGIN/runtime/ready。下一直接准备准确数据库隔离及既有IAM/Secret元数据所需有界核对，收敛真实激活输入，再完成runtime-ready/初始化及ECR→ECS验收；SQL诊断及实际权限/登录/Secret/IAM/ECR/ECS写各按fresh具体范围另批，不把候选SHA当执行清单。不重放已消费C3槽、不删除旧Full失败Stack、不扩展F3c9；下方旧“升级后继续”等记录仅历史。[当前唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4a-application-candidate.md)，[完整兼容与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
 
 ## 首轮交付定义
+
+最新C4a候选通过（2026-10-14）：已修正app镜像顶层归档compiler依赖，准确Backend153efbc源码的CI38633329098/双镜像38633329018所有steps均success，包括两个最终镜像network-none V6及原安全门禁。Backend8项/平台9项相关测试、types及定向lint通过。新r3真实编译原archive/private品牌并绑定73表/7序列，8个最小SQL仅数据；四键Secret候选实际ARN/version为null，元数据finalization不证明IAM/login/ready。r1保留，r2因本机Python更新在编译前停止，r3仅本地候选重绑新bundle/Python3.12.14，C3g旧工具/槽/receipt不改。240当前pins+2工具，候选6a618802...不是fresh执行SHA；本轮SQL/AWS/Secret值/新槽均0，无ECR/ECS。当前跨库隔离、任务角色权限、受限membership真实IAM登录及完整ready仍未核验，下一收敛这些具体激活事实，不再恢复/Grant/F3c9支线。[完成范围、失败修正、追溯与下一步](./aws-auto-deployment-aurora-dual-mode-c4a-application-candidate.md)。下方C3g为前置历史。
 
 最新C3g实际（2026-10-14）：用户要求按1c0d337清单开始后唯一Run及立即独立Inspect均成功，16:08/16:09 UTC确认73表、两原迁移、九技术seed且其他业务count0；准确DB16459/owner16410/app16456 NOLOGIN/零成员/guard缺席保持。baseline真实hash868ca1...与原C3f拒绝目录相同，V5仅owner窄差异使17组通过；最终catalog hash93d3c7.../744,370字节在Run和Inspect一致，返回实际digest不改写目录。Run2连接/26query/9metadata、Inspect2连接/17只读query/9metadata，AWS资源写0；物理大小12,223,731/12,322,035都过512MiB，不作容量/账单cap证明。V5双槽永久消费，不重放1c0d、旧a5c7或任何槽；结构pin/LOGIN/runtime/ready/lifecycleCompatible仍false，无IAM/Secret/Neon/ECR/ECS改动。本轮仅结果文档、236源码及Backend12400d4/已验镜像保持。下一只准备应用最小权限、IAM登录/Secret-v2和PG17运行时接线清单，实际写另批，不再目录/恢复探针或F3c9。[完整实机证据与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c3g-restore-executed.md)。下段待审状态已消费，仅为历史。
 
