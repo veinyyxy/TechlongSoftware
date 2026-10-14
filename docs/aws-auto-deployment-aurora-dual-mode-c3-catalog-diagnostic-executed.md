@@ -25,6 +25,8 @@
 
 ## 唯一后继：保留准确库的恢复专用候选，不再目录探针
 
+该后继现已仅编码/准备为[C3f restore-only清单](./aws-auto-deployment-aurora-dual-mode-c3-restore-only-review.md)，最终a5c7 SHA待单独恢复批准、SQL/新槽0。原V4/Backend镜像和本页真实记录不改；不重放本C3e诊断。下方设计保持为收敛依据。
+
 当前事实足以停止额外只读探针，下一小阶段仅编码/准备**restore-only受审入口**：
 
 1. 绑定现有DB16459/app16456/owner16410、原nonce/ownership、本次空目录SHA及三项收据；执行前再次严格核对准确空库/NOLOGIN及固定输入，不接管非空或漂移对象。

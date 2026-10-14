@@ -6,6 +6,8 @@
 
 ## 首轮交付定义
 
+最新C3f待审（2026-10-14）：同库restore-only Root/fresh review/tenant query捕获已实现，复用冻结V4和原archive/private brand/73表/two migrations，真实编译SQL identity557337...保持，无Backend源码/镜像变化。DB16459/app16456/owner16410/guard缺席及C3e空hash56f65c...绑定，写前同事务额外一次catalog必须精确匹配；不prepare/建库/角色。baseline/final校验前保存安全逐谓词及对象级ACL报告，原冻结verifier不改，迁移/final未通过在COMMIT前挡。5新+4相邻/types/lint/syntax通过，实际错误SHA在编译/AWS/SQL/槽前拒绝；最终Review r3+独立metadata各5只读过，229/原226/224/212/183+2工具保持，SQL/云写/新两槽0。新SHA a5c79b93...到Winnipeg2026-10-14 16:05:41.962 CDT待具体恢复/九seed/独立Inspect批准；旧417f r1已过时，不再目录探针/Grant/F3c9。[完整范围、风险与唯一继续点](./aws-auto-deployment-aurora-dual-mode-c3-restore-only-review.md)。
+
 最新C3e实际（2026-10-14）：用户确认872e后一次只读Run成功，14:09 UTC两连接/九query/九metadata、业务查询及写0；严格owner policy通过，DB16459/app16456/NOLOGIN/guard缺席和管理SHA30c1559c...保持。当前租户目录SHA56f65c61.../449字节，用户表及relations/functions/extensions/types/collations/eventTriggers全0，public owner/ACL通过，库物理大小8,537,331字节。当前缺73表/uuid导致三谓词拒绝，不倒填原失败原因或证明历史rollback。诊断槽永久消费，不再SQL探针；226/224/212/183源码/镜像保持，只保存证据。下一只编码/准备保留准确库的restore-only候选，复用冻结V4/原archive/two migrations，在事务内原校验前保存安全逐谓词报告，不重跑prepare/建库/guard/Grant/F3c9，不改门禁；实际恢复写fresh另批。[真实结果与唯一后继](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-executed.md)。下段待审状态已消费，仅保留历史。
 
 最新C3e刷新（2026-10-14）：用户Source刷新后仅Review r2+独立metadata r2各5次只读通过，SQL/新槽仍0；新旧清单除时间/facts/SHA外完全同范围，226/224/212/183源码和2工具/code/history均不变，原d82c与停止回执保留，不重复测试/compile/镜像。新唯一待审SHA872e3027...，截止Winnipeg2026-10-14 15:02:09.481 CDT；一次最多2连接/9固定目录query、业务查询/写0，范围及完整风险保持，待新具体确认才SQL，不重跑停止Run或重建DB/guard、不回F3c9。[新清单与准确继续点](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-refreshed.md)。下段Source不可用状态为历史。
