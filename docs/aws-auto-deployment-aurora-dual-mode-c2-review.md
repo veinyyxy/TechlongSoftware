@@ -2,6 +2,8 @@
 
 2026-10-13 America/Winnipeg。后继 [C1 生命周期接线](./aws-auto-deployment-aurora-dual-mode-c1-lifecycle.md)。**本批只读准备完成，尚未创建 Express、连接数据库或验收租户。** 不升级 account plan，不扩大 F3c9，不重新开启旧 Grant 系列。
 
+后续用户已确认并执行：Express cluster/writer创建成功，唯一管理员只读连接失败后停止；原两槽已消费，无重试/删除。本文是原审阅材料，不能作为再次运行批准；以[实际回执、独立核验和当前接管位置](./aws-auto-deployment-aurora-dual-mode-c2-executed.md)为准。
+
 ## 已核对的真实前置
 
 2026-10-14 01:34 UTC 的新清单回读：Source 为账号402010193138的固定 `techlong-sandbox-dev` IAM user，账户 `FREE / ACTIVE`。ca-central-1 无 DB cluster；有一个 `speedfeast-postgres-prod` 独立 RDS 实例，必须保留，不属于本清单。区域通用 quota 为 cluster 0/40、instance 1/40；这是区域通用 quota，不是证明 Free Plan 的跨区域剩余额度。Free Plan 额外限制仍由服务执行，区域查空不能保证创建成功。[Free Tier 限制](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-free-tier.html)

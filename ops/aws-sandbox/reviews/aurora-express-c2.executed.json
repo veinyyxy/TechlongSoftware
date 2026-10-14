@@ -1,0 +1,60 @@
+{
+  "schema": "techlong/express-c2-executed-evidence/v1",
+  "evidenceOnlyNotExecutionAuthority": true,
+  "approvalManifestSha256": "b883fbeacbb0ae473f408f296f805a31c50bd865730e3b4d7a2af45387101671",
+  "outcome": "CLUSTER_CREATED_ADMIN_INSPECTION_NOT_PROVED",
+  "directAwsWritesAttempted": 1,
+  "sqlSessionsAttempted": 1,
+  "sqlSuccessfulObservationSaved": false,
+  "driverErrorStageRecorded": false,
+  "failureCode": "EXPRESS_C2_INSPECT_FAILED",
+  "failureObservedAt": "2026-10-14T03:14:02.786Z",
+  "cluster": {
+    "arn": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001",
+    "resourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+    "createdAt": "2026-10-14T03:13:30.069Z",
+    "endpoint": "techlong-sandbox-express-d001.cluster-cn8aaekuqf1r.ca-central-1.rds.amazonaws.com",
+    "port": 5432,
+    "engineVersion": "17.9"
+  },
+  "writer": {
+    "arn": "arn:aws:rds:ca-central-1:402010193138:db:techlong-sandbox-express-d001-instance-1",
+    "resourceId": "db-NVAQZTKV2FPTHGITOQE563CPAY",
+    "createdAt": "2026-10-14T03:13:30.758Z"
+  },
+  "independentCloudObservation": {
+    "windowUtc": "2026-10-14T03:14:00Z/2026-10-14T03:17:00Z",
+    "clusterStatus": "available",
+    "writerStatus": "available",
+    "gatewayEnabled": true,
+    "iamEnabled": true,
+    "vpcNetworkingEnabled": false,
+    "minCapacity": 0,
+    "maxCapacity": 1,
+    "secondsUntilAutoPause": 300,
+    "bindingFileSha256": "139040a34b3a2ba187ea80f4a86da615c34daac584ecbe7023bc5edb184d3b15",
+    "matchesRunBinding": true,
+    "dnsResolutionObserved": true,
+    "tcpTlsAuthenticationSqlNotProved": true
+  },
+  "artifacts": {
+    "runDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c2-run-20261014-r1",
+    "inspectDirectory": "F:/ChatGPT_workshop/techlong-d002-express-c2-inspect-20261014-r1",
+    "createdFileSha256": "bc80e68ac03ce32cac72501a235cd57ed5d3c18458732e14054213049a5823c5",
+    "stoppedFileSha256": "5489e568edf1a23fbbe6de5e3277a58ff2ca7286f1591249afb2235148ab9f3f"
+  },
+  "slots": { "createConsumed": true, "sqlInspectConsumed": true, "writerDeleteConsumed": false, "clusterDeleteConsumed": false },
+  "cleanupProposal": {
+    "manifest": "F:/ChatGPT_workshop/techlong-d002-express-c2-cleanup-review-20261014-r1/cleanup-manifest.json",
+    "manifestSha256": "ccfdd8e7ac528c5a0c4cf84a674a7f72642316295ddc73f1110e53e5cb10ab67",
+    "expiresAt": "2026-10-14T04:16:41.803Z",
+    "executionApproved": false,
+    "deletionPerformed": false
+  },
+  "retainedResourcesMayAccrueCost": true,
+  "autoPauseVerified": false,
+  "runtimeEnabled": false,
+  "lifecycleCompatible": false,
+  "retryAuthorized": false,
+  "next": "Prepare a separately reviewed stage-observable single readonly diagnostic against these existing identities; no connection or mutation authorized by this evidence."
+}

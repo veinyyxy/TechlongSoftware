@@ -6,6 +6,8 @@
 
 ## 首轮交付定义
 
+最新C2a实际：用户批准b883fbea...后，唯一CreateDBCluster成功；真实PG17.9、0–1ACU、gateway/IAM及cluster/writer身份由独立只读回读一致。唯一管理员只读连接失败，原create/sql槽消费，不重试；尚无TLS/SQL或tenant证明、runtime关闭。资源留存可能计费，清理仅准备未批准。下一建议保留准确cluster，仅准备带分阶段诊断的新独立只读连接清单，不重建、不恢复旧槽，不继续SQL写/部署。[实际证据、费用接管与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c2-executed.md)。
+
 最新C2a：最小Express单次创建+一次管理员只读连接及独立准确清理入口已编码，FREE/ACTIVE、PG17.9默认、查空/配额、SLR和既有Source权限只读核对通过，无需新IAM。本批未创建资源/连接DB；新SHA待批准，真实事实先于剩余C1写适配。0–1ACU/auto-pause不是费用硬上限，旧Full栈、生产RDS、Neon/F3c9和槽保留。[准确范围、费用、完整风险与新SHA](./aws-auto-deployment-aurora-dual-mode-c2-review.md)。
 
 最新C1续段：lifecycle v2任务/独立只读准入/角色目录与receipt接线已实现，写入口仍关闭；旧Full/172pins/F3c9和槽保持。下一准备最小Express事实核验的准确新范围，取得引擎/网关/目录事实后完成写适配；尚无可执行云SHA，不自行安装IAM、创建资源或修改业务。[本续段与最新继续位置](./aws-auto-deployment-aurora-dual-mode-c1-lifecycle.md)。
