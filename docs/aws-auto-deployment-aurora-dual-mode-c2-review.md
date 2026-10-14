@@ -61,4 +61,6 @@ Run后另用新目录 `--mode Inspect --manifest <原manifest>` 做独立RDS只�
 
 平台12项新/相邻检查、Backend20项新/相邻检查、两仓types、定向lint零warning及syntax通过。Admin探针测试使用明确mock，不宣称实机；CLI无效SHA负向检查在任何AWS/SQL调用前拒绝，写入/会话计数均0（首次受沙箱realpath限制，独立许可检查得到准确拒绝代码；历史保留）。原172源码pin entries全部匹配，用户Backend `.vscode/settings.json`不提交。没有新依赖或runtime flag更改；两仓按既有授权直接提交推送main。
 
+Backend准确提交 `e3c019b4a11b1b7689bb899649a3a21b5e60e8df`、平台代码提交 `99b1ffc388107bac6483001669c3aac71b8274bb` 已推送并独立回读远端main一致。01:40 UTC独立GitHub回读：[完整Backend CI38496797219](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38496797219)的check/docker，以及[镜像候选38496797120](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38496797120)的app/lifecycle，attempt1四job全部success。两个候选构建、自检、安全门禁与导出通过；未下载复算归档、未ECR发布、不是Express实机证明。该CI证据只记录文档，不改变r2的8项代码pins或批准SHA。
+
 **下一步仅等待本新SHA的创建+只读会话批准**。通过后依据真实事实补剩余C1写适配及有限角色/空baseline验收范围，再推进D001单租户ready；不把这一个管理员连接检查扩成新的支线，也不视作本次获准 SQL写/安装/部署。
