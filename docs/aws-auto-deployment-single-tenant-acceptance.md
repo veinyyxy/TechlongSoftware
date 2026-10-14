@@ -6,6 +6,8 @@
 
 ## 首轮交付定义
 
+最新C2a：最小Express单次创建+一次管理员只读连接及独立准确清理入口已编码，FREE/ACTIVE、PG17.9默认、查空/配额、SLR和既有Source权限只读核对通过，无需新IAM。本批未创建资源/连接DB；新SHA待批准，真实事实先于剩余C1写适配。0–1ACU/auto-pause不是费用硬上限，旧Full栈、生产RDS、Neon/F3c9和槽保留。[准确范围、费用、完整风险与新SHA](./aws-auto-deployment-aurora-dual-mode-c2-review.md)。
+
 最新C1续段：lifecycle v2任务/独立只读准入/角色目录与receipt接线已实现，写入口仍关闭；旧Full/172pins/F3c9和槽保持。下一准备最小Express事实核验的准确新范围，取得引擎/网关/目录事实后完成写适配；尚无可执行云SHA，不自行安装IAM、创建资源或修改业务。[本续段与最新继续位置](./aws-auto-deployment-aurora-dual-mode-c1-lifecycle.md)。
 
 最新C1编码：双模式连接核心、严格v2契约、app pool接线和只读连接/Secret来源已完成，平台13/Backend41定向检查与types通过；云端双候选38488816036和完整Backend CI38488815977均success，新增断网自检/安全门禁通过，未ECR发布。完整lifecycle/目录/activation及Express实机仍未完成，不提前标记M2或ready，不改旧门禁/槽。[C1实现与继续位置](./aws-auto-deployment-aurora-dual-mode-c1.md)。
