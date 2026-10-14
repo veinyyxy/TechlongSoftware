@@ -1,5 +1,7 @@
 # D002 C3e：准确租户库PG17目录门禁的窄只读诊断
 
+872e刷新清单已完成唯一只读Run，准确库当前没有恢复对象，未复原原失败原因，槽已消费；停止追加目录诊断，下一只准备同库窄恢复及事务内安全报告，不放宽校验。[实际执行与唯一后继](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-executed.md)。下方待审/刷新条目为历史。
+
 当前唯一待审已刷新为872e3027...，Source恢复后的Review/独立metadata通过，SQL/槽仍0；范围、源码和历史pins不变，旧d82c与停止回执保留。[新SHA、截止和准确继续点](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-refreshed.md)。下段停止/准备状态为历史，不因刷新自动重试SQL。
 
 此d82c清单已获批并尝试一次，但Source凭据不可用，停在READ_ONLY_METADATA，SQL/写/槽消费全0。停止回执保留，槽仍空；刷新后先仅生成新fresh清单/独立metadata，再按新SHA确认SQL，不自动重跑。[本次真实停止与准确继续位置](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-stopped.md)。以下待审准备状态保留为历史。

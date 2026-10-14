@@ -1,5 +1,7 @@
 # D002 C3e刷新清单：Source恢复，仅重新准备只读诊断
 
+本872e清单已获批并单次执行成功，2连接/9固定query/9metadata，SQL和云资源写0；准确库当前用户目录为空，原失败目录未重建，诊断槽永久消费。下一仅准备保留准确库的restore-only候选，不再目录探针。[真实结果、证据与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-executed.md)。以下待审状态为历史，不授权重放。
+
 2026-10-14 America/Winnipeg。用户回复“Source 已刷新”后，只运行新Review和独立metadata，没有重跑[上次停止的Run](./aws-auto-deployment-aurora-dual-mode-c3-catalog-diagnostic-stopped.md)，SQL/写入/槽消费仍0。旧d82c清单、停止回执和全部历史记录保留。
 
 ## 当前唯一待审SHA
