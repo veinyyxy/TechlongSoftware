@@ -1,5 +1,7 @@
 # D002 C4d：四键运行时 Secret 单次创建待审
 
+**状态更新（2026-10-14）：用户已确认77edc1a6...；一次CreateSecret和独立Inspect均成功完成，两槽永久消费。实际ARN后缀T9CqN5、固定版本0f45d29f...，元数据通过但未读取Secret值/验收runtime。下文仅保留原范围及已接受风险，不是可重放入口。** [实际结果与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4d-runtime-secret-executed.md)。
+
 2026-10-14 America/Winnipeg。[C4c隔离已提交并独立核验](./aws-auto-deployment-aurora-dual-mode-c4c-isolation-executed.md)后，继续首轮真实部署主线。本阶段已完成代码、针对性验证和只读清单，**尚未创建Secret、读取私密材料、修改IAM/SQL或启用runtime**。不扩展F3c9、Grant或恢复探针。
 
 ## 最终清单及准确范围

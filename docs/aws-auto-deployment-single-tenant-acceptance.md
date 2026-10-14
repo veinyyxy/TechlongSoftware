@@ -2,9 +2,11 @@
 
 决策D001，2026-10-13 America/Winnipeg。用户在审计后明确同意收缩首轮目标并开始实施，同时要求封存F3c9以便重启。此文档取代旧方案中的“继续F3c9”作为当前导航；[原支线封存](./aws-auto-deployment-f3c9-deferred.md)，所有历史保留。
 
-**当前路线 D002（更新2026-10-14）**：用户暂不升级账户，采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。C3g schema/迁移验收、C4a应用候选与C4c准确两库PUBLIC CONNECT修正及独立实机回读完成。应用16456其它可CONNECT库计数0，仍NOLOGIN，无应用授权/Secret/IAM/ECS或ready验收；20487de0...与双槽已消费，不得重放。下一沿同一主线准备实际V7四键Secret、准确IAM/最小应用权限、真实TLS/IAM登录与ready/初始化及ECR→ECS，每项实际写fresh具体批准。保留旧Full失败Stack及所有历史，不扩展F3c9/Grant/恢复探针。[最新实际结果与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4c-isolation-executed.md)，[完整兼容与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
+**当前路线 D002（更新2026-10-14）**：用户暂不升级账户，采用 Aurora Express / Full 双模式兼容设计：当前优先 `express_iam`，未来保留 `full_password`。C3g schema/迁移、C4c隔离及C4d四键Secret创建/独立元数据回读已完成，真实ARN后缀T9CqN5和固定版本已接入候选binding。未读Secret值、安装应用/IAM权限、启用LOGIN或部署ECS，完整ready尚未验收。C4d/C4c双槽均永久消费，不得重放。下一沿同一主线fresh准备准确三角色/共享boundary/Secret版本/IAM connect，再最小SQL授权、真实TLS IAM登录与ready/初始化及ECR→ECS；每项实际写新具体批准。保留旧Full失败Stack及所有历史，不扩展F3c9/Grant/恢复探针。[最新实际结果与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4d-runtime-secret-executed.md)，[完整兼容与实施顺序](./aws-auto-deployment-aurora-dual-mode.md)。
 
 ## 首轮交付定义
+
+最新C4d实际（2026-10-14）：用户确认77edc1a6...后一次CreateSecret于22:43:34.957 UTC获响应，独立DescribeSecret于22:43:46 UTC通过；准确四键Name、真实ARN后缀T9CqN5、受审版本0f45d29f.../AWSCURRENT、五标签/默认KMS/无replica保持。Run14metadata/1私密读取/1AWS写，Inspect6metadata/0私密或写；两者SQL/GetSecretValue均0。四条ECS refs固定到真实版本，binding digest41c1d3ea...仍仅候选，不证明IAM/login/ready。现有execution role/boundary宽前缀读取Allow已接受，新Secret纳入它的范围；未验证实际读取或所有reader。251源码/2工具、9回执文件及2槽核验一致，无额外云回读/重试。77ed及双槽已消费不可重放，153efbc执行源码/已验镜像保持。下一fresh准备三角色/共享boundary准确IAM/Secret版本及最小应用/真实ready初始化，实际写另批。[准确结果与继续点](./aws-auto-deployment-aurora-dual-mode-c4d-runtime-secret-executed.md)。下方C4d待审仅历史。
 
 最新C4d待审（2026-10-14）：单次四键Secret创建/独立DescribeSecret入口已实现，7新+3相邻共10tests、types/syntax/lint过；251源码+2工具，原248及C4c历史不变。Source恢复后最终r5只读13metadata，两Name均ABSENT；新Secret会匹配既有execution role inline及boundary的techlong/sandbox/*读取Allow，风险显式纳入SHA77edc1a6...，不把0 IAM写说成不可读取。当前AWS/SQL写、私密/Secret值读取、新槽均0；错误SHA真实CLI在LOCAL_BINDING拒绝。清单到Winnipeg2026-10-14 23:34:32.263 CDT，仅待一次CreateSecret（含初始版本/五标签/默认KMS）及一次独立元数据回读批准；不安装权限/LOGIN/runtime/ECR/ECS。得到真实ARN/version后再准备准确IAM/最小应用与ready初始化；不扩展F3c9/隔离/恢复支线。[准确范围、完整风险与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4d-runtime-secret-review.md)。
 
