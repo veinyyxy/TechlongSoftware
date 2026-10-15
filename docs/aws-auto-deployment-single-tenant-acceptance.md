@@ -1,5 +1,7 @@
 # 单租户首轮 AWS 自动部署：当前执行主线
 
+**最新 C5c 首次认领接线（2026-10-15 Winnipeg）**：实际Source/DDB/Neon只读核对确认目标deployment/job/resource/operation均0、两套epoch authority key均缺失；旧D001 futureScope不是已安装owner。按新plan和真实镜像推导新ID `dep_7c99bd249470184852f0dc74`，独立Express准确队列范围和准备入口已接通，原Full入口不改。固定默认店铺单条INSERT候选已准备，不能执行；尚无owner/epoch/业务/部署/ready写。79项定向tests/types/lint/build通过。下一直接补实际首次认领/初始化受审执行包，不另开SQL诊断或重发镜像。[实际证据、边界及继续点](./aws-auto-deployment-aurora-dual-mode-c5c-first-claim.md)。下方进度保留为历史。
+
 **最新 C5c（2026-10-15 Winnipeg）**：真实 ECR digest 已接入独立 Express 组合入口；现有非私密租户元数据编译通过，原 plan 与显式物理数据库名修订分开 hash，四键固定版本 Secret/mTLS/模板编译/7资源 workload 已接线，旧 Full 入口不变。16资源计算模板已通过真实 AWS ValidateTemplate；旧失败栈仍占名、20条 CFN 资源记录 DELETE_COMPLETE，未删除。54项相关 tests/types/定向 lint 通过；未读 Secret 值/私密材料、无 SQL 或云资源写。尚缺实际 owner/epoch adoption、scoped queue、具体计算层/清理审批、默认店铺 seed/初始化和 ready 回写，不是完整 live root。[当前实现、证据及唯一继续点](./aws-auto-deployment-aurora-dual-mode-c5c-delivery-root.md)。下方进度为历史。
 
 决策D001，2026-10-13 America/Winnipeg。用户在审计后明确同意收缩首轮目标并开始实施，同时要求封存F3c9以便重启。此文档取代旧方案中的“继续F3c9”作为当前导航；[原支线封存](./aws-auto-deployment-f3c9-deferred.md)，所有历史保留。

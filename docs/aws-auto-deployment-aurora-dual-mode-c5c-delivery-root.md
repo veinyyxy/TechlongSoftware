@@ -1,5 +1,7 @@
 # C5c：真实镜像接线及 Express 组合入口（尚未部署）
 
+后续更新：[首次认领接线及默认店铺候选](./aws-auto-deployment-aurora-dual-mode-c5c-first-claim.md)已完成控制面实际只读核对，明确旧futureScope并非已安装owner，并接通新ID的scoped准备入口。以下是上一子阶段交接；当前仍未认领/部署，继续位置以新页面为准。
+
 2026-10-15 America/Winnipeg。继续已完成的[ECR 发布与撤权](./aws-auto-deployment-aurora-dual-mode-c5c-publication-executed.md)，不另开 Grant、SQL 诊断、恢复或 F3c9 支线。当前完成的是**独立 Express 组合入口及真实元数据编译**，不是已经启用的端到端 worker。新资源、旧栈删除、私密读取、业务写入均未执行，也没有新的部署批准清单可供执行。
 
 ## 已落地

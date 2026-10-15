@@ -39,6 +39,7 @@ import {
   singleDeploymentClaimPredicate, validateSingleDeploymentScope,
   type SingleDeploymentClaimScope,
 } from "./single-deployment-scope.ts";
+import { isExpressDeploymentClaimScopeV1 } from './express-deployment-scope-v1.ts';
 import {
   cleanupProvisionPredecessorFromEvidence,
   proofProvisionPredecessor,
@@ -573,7 +574,8 @@ export class NeonDeploymentExecutionRepository
     if (!/^postgres(?:ql)?:\/\//.test(databaseUrl)) {
       throw new Error("Deployment worker requires a PostgreSQL DATABASE_URL.");
     }
-    this.claimScope = claimScope === undefined ? undefined : validateSingleDeploymentScope(claimScope);
+    this.claimScope = claimScope === undefined ? undefined : isExpressDeploymentClaimScopeV1(claimScope)
+      ? claimScope : validateSingleDeploymentScope(claimScope);
     this.sql = sqlFactory(databaseUrl);
   }
 
