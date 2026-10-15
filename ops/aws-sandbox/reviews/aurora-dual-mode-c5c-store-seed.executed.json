@@ -1,0 +1,299 @@
+{
+  "schema": "techlong/aurora-dual-mode-c5c-store-seed-executed/v1",
+  "state": "DEFAULT_STORE_COMMITTED_AND_INDEPENDENTLY_VERIFIED_NOT_READY",
+  "date": "2026-10-15 America/Winnipeg",
+  "approvedManifestSha256": "d53b2572aac78bba7cc007b53315adc8f4edeb9f3d127d909d7e013ff328bfc0",
+  "codeBindingSha256": "b53b0b11172dce00208de38180e999f73162033548378efd0ae091cbd42bb088",
+  "humanApproval": "User confirmed exact previously presented manifest; Source refresh alone was not treated as new mutation approval.",
+  "originalCodeAndScopeUnchanged": true,
+  "approvedAttemptComplete": true,
+  "liveDeliveryRootComplete": false,
+  "runtimeEnabled": false,
+  "readyVerified": false,
+  "priorCredentialStop": {
+    "directory": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-run-20261015-r1",
+    "code": "STORE_SEED_SOURCE_REFRESH_REQUIRED",
+    "sqlConnections": 0,
+    "sqlWrites": 0,
+    "slotConsumed": false,
+    "preserved": true
+  },
+  "run": {
+    "mode": "Run",
+    "directory": "F:\\ChatGPT_workshop\\techlong-express-c5c-store-seed-run-20261015-r2",
+    "manifestSha256": "d53b2572aac78bba7cc007b53315adc8f4edeb9f3d127d909d7e013ff328bfc0",
+    "outcome": "STORE_SEED_COMMITTED_REQUIRES_INDEPENDENT_INSPECT",
+    "metadataCalls": 5,
+    "controlPlaneReads": {
+      "sts": 1,
+      "dynamodb": 2,
+      "neonReadonlyStatements": 1
+    },
+    "sqlConnections": 1,
+    "sqlCalls": 22,
+    "insertCalls": 1,
+    "slotConsumed": true,
+    "awsWrites": 0,
+    "secretValueReads": 0,
+    "privateMaterialReads": 0,
+    "automaticRetries": 0,
+    "runtimeEnabled": false,
+    "readyVerified": false,
+    "commitAcknowledgedAt": "2026-10-15T13:19:12.745Z",
+    "transaction": {
+      "schema": "techlong/express-store-seed-observation/v1",
+      "before": {
+        "actualCatalogSha256": "ad213560c608cc678d838e1789f9e90d33eff77062febe90a4f8881881299bc9",
+        "actualRoleSha256": "941cfda905da13438878f0f5415a2d9bb56a7be217a8d813daef8fde401055d5",
+        "databaseAclSha256": "9a6a5619d26ca00ec807c83e6dbf3c2f69504b06f93af26eb9b8ce6b86d61c22",
+        "actualRowCountsSha256": "310ee440ffb56b77c6ea0fea8da49af27d31da1fad4fc9da1f44c469b94f09f1",
+        "storeRows": 0,
+        "technicalSeeds": 9,
+        "otherBusinessRows": 0,
+        "pristineSingleton": true,
+        "originalCommentsVerified": true,
+        "clientTlsVerified": true,
+        "backendTlsActive": true
+      },
+      "after": {
+        "actualCatalogSha256": "ad213560c608cc678d838e1789f9e90d33eff77062febe90a4f8881881299bc9",
+        "actualRoleSha256": "941cfda905da13438878f0f5415a2d9bb56a7be217a8d813daef8fde401055d5",
+        "databaseAclSha256": "9a6a5619d26ca00ec807c83e6dbf3c2f69504b06f93af26eb9b8ce6b86d61c22",
+        "actualRowCountsSha256": "8fb858f29bf407a2e06afb7506078c253c4707e5eead0555483b5dca0ad7451f",
+        "storeRows": 1,
+        "technicalSeeds": 9,
+        "otherBusinessRows": 0,
+        "pristineSingleton": true,
+        "originalCommentsVerified": true,
+        "clientTlsVerified": true,
+        "backendTlsActive": true
+      },
+      "insertSubmitted": true,
+      "insertAcknowledged": true,
+      "commitSubmitted": true,
+      "commitAcknowledged": true,
+      "outcome": "STORE_SEED_COMMITTED_REQUIRES_INDEPENDENT_INSPECT",
+      "runtimeEnabled": false,
+      "readyVerified": false
+    },
+    "slot": {
+      "manifestSha256": "d53b2572aac78bba7cc007b53315adc8f4edeb9f3d127d909d7e013ff328bfc0",
+      "consumedAt": "2026-10-15T13:18:47.313Z",
+      "retryAuthorized": false
+    }
+  },
+  "independentInspect": {
+    "mode": "Inspect",
+    "directory": "F:\\ChatGPT_workshop\\techlong-express-c5c-store-seed-inspect-20261015-r1",
+    "manifestSha256": "d53b2572aac78bba7cc007b53315adc8f4edeb9f3d127d909d7e013ff328bfc0",
+    "outcome": "STORE_SEED_INDEPENDENTLY_OBSERVED_NOT_READY",
+    "metadataCalls": 5,
+    "controlPlaneReads": {
+      "sts": 1,
+      "dynamodb": 2,
+      "neonReadonlyStatements": 1
+    },
+    "sqlConnections": 1,
+    "sqlCalls": 12,
+    "insertCalls": 0,
+    "slotConsumed": true,
+    "awsWrites": 0,
+    "secretValueReads": 0,
+    "privateMaterialReads": 0,
+    "automaticRetries": 0,
+    "runtimeEnabled": false,
+    "readyVerified": false,
+    "commitAcknowledgedAt": "2026-10-15T13:19:45.842Z",
+    "transaction": {
+      "schema": "techlong/express-store-seed-observation/v1",
+      "before": {
+        "actualCatalogSha256": "ad213560c608cc678d838e1789f9e90d33eff77062febe90a4f8881881299bc9",
+        "actualRoleSha256": "941cfda905da13438878f0f5415a2d9bb56a7be217a8d813daef8fde401055d5",
+        "databaseAclSha256": "9a6a5619d26ca00ec807c83e6dbf3c2f69504b06f93af26eb9b8ce6b86d61c22",
+        "actualRowCountsSha256": "8fb858f29bf407a2e06afb7506078c253c4707e5eead0555483b5dca0ad7451f",
+        "storeRows": 1,
+        "technicalSeeds": 9,
+        "otherBusinessRows": 0,
+        "pristineSingleton": true,
+        "originalCommentsVerified": true,
+        "clientTlsVerified": true,
+        "backendTlsActive": true
+      },
+      "after": {
+        "actualCatalogSha256": "ad213560c608cc678d838e1789f9e90d33eff77062febe90a4f8881881299bc9",
+        "actualRoleSha256": "941cfda905da13438878f0f5415a2d9bb56a7be217a8d813daef8fde401055d5",
+        "databaseAclSha256": "9a6a5619d26ca00ec807c83e6dbf3c2f69504b06f93af26eb9b8ce6b86d61c22",
+        "actualRowCountsSha256": "8fb858f29bf407a2e06afb7506078c253c4707e5eead0555483b5dca0ad7451f",
+        "storeRows": 1,
+        "technicalSeeds": 9,
+        "otherBusinessRows": 0,
+        "pristineSingleton": true,
+        "originalCommentsVerified": true,
+        "clientTlsVerified": true,
+        "backendTlsActive": true
+      },
+      "insertSubmitted": false,
+      "insertAcknowledged": false,
+      "commitSubmitted": true,
+      "commitAcknowledged": true,
+      "outcome": "STORE_SEED_INDEPENDENTLY_OBSERVED_NOT_READY",
+      "runtimeEnabled": false,
+      "readyVerified": false
+    },
+    "slot": {
+      "manifestSha256": "d53b2572aac78bba7cc007b53315adc8f4edeb9f3d127d909d7e013ff328bfc0",
+      "consumedAt": "2026-10-15T13:19:43.258Z",
+      "retryAuthorized": false
+    }
+  },
+  "runPostcheckAndIndependentObservationMatch": true,
+  "store": {
+    "id": "add89a8c-f43e-81b9-8287-0cb6c5c54f87",
+    "code": "TECHLONG_SANDBOX",
+    "slug": "first-acceptance",
+    "timezone": "America/Winnipeg",
+    "currency": "CAD",
+    "status": "active",
+    "isDefault": true,
+    "existingBusinessRowsUpdated": 0,
+    "upsert": false,
+    "firstMerchantUserCreated": false,
+    "provisionPerformed": false
+  },
+  "target": {
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "cluster": "techlong-sandbox-express-d001",
+    "clusterResourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+    "database": "tenant_a0da1748bc4d5419_db",
+    "databaseOid": "16459",
+    "managementUsername": "postgres",
+    "managementRoleOid": "16410",
+    "applicationRole": "tenant_a0da1748bc4d5419_role",
+    "applicationRoleOid": "16456",
+    "profile": "express_iam"
+  },
+  "controlPlaneBeforeIndependentInspect": {
+    "outcome": "FIRST_CLAIM_CANDIDATE_AURORA_PROOF_STILL_REQUIRED",
+    "counts": {
+      "deployments": 0,
+      "jobs": 0,
+      "resources": 0,
+      "operations": 0
+    },
+    "authorities": [
+      {
+        "key": "tenant:a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+        "present": false,
+        "itemSha256": null
+      },
+      {
+        "key": "tenant:aurora-v2:a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+        "present": false,
+        "itemSha256": null
+      }
+    ],
+    "sameNeonSnapshot": true,
+    "stronglyConsistentDynamoReads": true,
+    "crossServiceCas": false,
+    "ownershipClaimed": false,
+    "epochActivated": false
+  },
+  "effectsThisTurn": {
+    "successfulStsResourceReads": 6,
+    "rdsDescribeReads": 4,
+    "iamSimulationReads": 2,
+    "dynamoStronglyConsistentGetItemReads": 4,
+    "neonReadonlySelectStatements": 2,
+    "auroraSqlConnections": 2,
+    "auroraRunStatements": 22,
+    "auroraInspectStatements": 12,
+    "auroraApplicationInsertCalls": 1,
+    "permanentSlotsConsumed": 2,
+    "automaticRetries": 0,
+    "awsResourceWrites": 0,
+    "permissionChanges": 0,
+    "awsSecretValueReads": 0,
+    "privateBundleReads": 0,
+    "authorityWrites": 0,
+    "neonBusinessWrites": 0,
+    "ownerOrEpochClaims": 0,
+    "jobOrTtlStart": 0,
+    "ecsOrCellDeployments": 0
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-run-20261015-r2/result.json",
+      "rawFileSha256": "02c8b6542d93060cd8653812ed6714358d596740dc7410537d794f5686cbd908"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-run-20261015-r2/observation.json",
+      "rawFileSha256": "f9b493bb372cd61515a83455ba36be202ea8b98bdae25417a260e48912eec865"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-run-20261015-r2/metadata.json",
+      "rawFileSha256": "3e0a19b1ec4099d707ca257789c58c295ca93f021aa8b809435afff0434fa37c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-run-20261015-r2/code-binding.json",
+      "rawFileSha256": "33f6191a86eb47a1f366d8d9f06dda091bc7d34f581cd04f6964084d3aa3d94d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-run-20261015-r2/program.json",
+      "rawFileSha256": "44815f7494479e583d8fb829532a11bd494e6e455e7eca94ed849d7ef189869d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-run-20261015-r2/stages.jsonl",
+      "rawFileSha256": "edd5c2c07df87710bbe0f61516d681de46563e57cae35f419275549355b6de1c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-inspect-20261015-r1/result.json",
+      "rawFileSha256": "b8138c6e6c93dd0c79a433d942713c22d8bf4b831df616115807c90f67902f7f"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-inspect-20261015-r1/observation.json",
+      "rawFileSha256": "f2b10c213807ce9d344447ea50a54593bf90273a7f96b1191003589f7e7dc1e6"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-inspect-20261015-r1/metadata.json",
+      "rawFileSha256": "71e416586fb1000e6b9c7c5167420448864b93395a71d4aea6c8c9009868fcba"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-inspect-20261015-r1/code-binding.json",
+      "rawFileSha256": "33f6191a86eb47a1f366d8d9f06dda091bc7d34f581cd04f6964084d3aa3d94d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-inspect-20261015-r1/program.json",
+      "rawFileSha256": "44815f7494479e583d8fb829532a11bd494e6e455e7eca94ed849d7ef189869d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-inspect-20261015-r1/stages.jsonl",
+      "rawFileSha256": "d322dab8e509bc701201548193753dcbf75f8eb80a8efbbae1c2624760da7f6b"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-run-v1.permanent-slot.json",
+      "rawFileSha256": "ab1bdc990ebed9a999c2f5253296a4622abf54372dc648ead41c55f9305a0e2c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-inspect-v1.permanent-slot.json",
+      "rawFileSha256": "d4cf7b7c6ccea9dcaa714d4754c633fb9e40248c08d3f4fbcf2dfd1c61f9a059"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-run-20261015-r1/stopped.json",
+      "rawFileSha256": "c7ee1d5443c7e57f66158f7c8065de3d2ba7cca6aeda627de2ca00d39557e1b9"
+    }
+  ],
+  "verification": {
+    "actualRunAndSeparateProcessReadonlyInspectPassed": true,
+    "pinnedCodeUnchanged": true,
+    "newOfflineTestsRunThisTurn": false,
+    "previousPinnedCodeTargetedTestsPassed": 54,
+    "sourceOrImageRebuild": false
+  },
+  "remaining": [
+    "Prepare scoped compute/old failed stack disposition, first owner/epoch, workload/DNS/private input/provision/ready delivery approval package.",
+    "Current tenant business state includes exactly one stores row. Do not replay old empty-business SQL restore/activation or reset consumed seed slots.",
+    "Any new IAM/resource creation/deletion/private read/owner or epoch write still requires a fresh explicit scoped approval. No automatic paid deployment."
+  ],
+  "documentation": "docs/aws-auto-deployment-aurora-dual-mode-c5c-store-seed-executed.md"
+}

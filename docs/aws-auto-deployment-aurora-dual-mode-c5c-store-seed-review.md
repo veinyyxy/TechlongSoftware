@@ -1,5 +1,7 @@
 # C5c：默认店铺单次初始化执行包（待批准）
 
+执行完成更新（2026-10-15）：用户已确认本清单；Run唯一一次INSERT收到COMMIT确认，独立Inspect确认准确store1、其他业务0、技术9seed及目录/权限不变。两永久槽已消费，**禁止重放本页命令**。见[实际结果与下一步](./aws-auto-deployment-aurora-dual-mode-c5c-store-seed-executed.md)；下文和prepared capsule保留为批准前历史。
+
 2026-10-15 America/Winnipeg。沿用 Express 单租户交付主线、现有两份已发布镜像及50 USD/月目标；Full路径、F3c9封存和全部旧记录不变。**实际执行器已实现，当前仅完成Review；店铺未创建，尚无owner/epoch/job/TTL/Cell/ECS/ready写入。**
 
 ## 为什么先做这一步
