@@ -1,5 +1,7 @@
 # C5h1：真实首轮交付执行内核，尚未安装 live 入口
 
+后继：[C5h2 完整入口与最终只读审阅](aws-auto-deployment-aurora-dual-mode-c5h2-live-review.md)已补齐下列接线；本页为当时历史状态，C5h1 local drafts 不能执行。
+
 2026-10-15，America/Winnipeg。承接 [C5g 已验证安装](aws-auto-deployment-aurora-dual-mode-c5g-cfn-read-policy-executed.md)。本轮用户要求“开始下一步”；据此实现代码和本地验证，没有把它扩张为部署、SQL 写、私密重读或 IAM 许可。
 
 结论：**执行内核、具体 AWS/Neon 适配器和本地候选已实现；完整现场执行命令尚未接通，应用尚未部署。** 不能把单元测试中的成功结果当作云端成功；本页不是执行审批清单，没有可批准的部署 SHA。

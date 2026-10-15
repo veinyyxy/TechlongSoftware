@@ -5,7 +5,7 @@ import { assertSafeDeploymentOutput } from '../safety.ts';
 const entries = new Set(['admit', 'private_control_load', 'first_claim', 'install_epoch', 'activate_epoch',
   'status_database_preparing', 'status_migrating', 'status_infrastructure_provisioning', 'create_workload', 'create_dns',
   'status_waiting_healthy', 'adopt_verified_schema', 'status_configuring', 'compile_first_owner', 'provision_once',
-  'status_verifying', 'atomic_ready']);
+  'status_verifying', 'atomic_ready', 'database_observe_preflight', 'database_observe_after_bootstrap']);
 const notes = new Set(['workload_acknowledged', 'dns_acknowledged', 'independent_ready_verified']);
 // Intentionally NOT derived from manifest SHA or child window. New approvals
 // cannot sidestep a consumed first-delivery root. Never reset/delete in code.
