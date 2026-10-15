@@ -1,0 +1,123 @@
+{
+  "schema": "techlong/aurora-dual-mode-c5c-publication-prepared/v1",
+  "state": "AWAITING_HUMAN_APPROVAL_NOT_PUBLISHED_OR_DEPLOYED",
+  "manifestSha256": "b7d4bb49a15c5b69aee22c456fea1d4e0bcd640a2e5dd32db32bf456bdfee792",
+  "manifestPath": "SpeedFeast_Backend_main/deployment/reviewed-ecr-publication.json",
+  "document": "docs/aws-auto-deployment-aurora-dual-mode-c5c-publication-review.md",
+  "humanApprovalReceived": false,
+  "reviewedAt": "2026-10-15T04:32:27Z",
+  "installBy": "2026-10-15T09:30:00Z",
+  "expiresAt": "2026-10-15T10:30:00Z",
+  "imageSourceCommit": "8753546772476b018d33b96ab66db4837abde186",
+  "candidateRunId": "38680847373",
+  "ciRunId": 38680847326,
+  "candidateJobIds": {
+    "app": 116244816773,
+    "lifecycle": 116244816521
+  },
+  "images": [
+    {
+      "kind": "app",
+      "artifactId": 11947876415,
+      "artifactZipDigest": "sha256:4a487b44ee657b2add524892d0f8dc64947d1ab96ba634256f7c8ec645418c08",
+      "receiptSha256": "72d15dfe2a06ad11257fce66efbb2dc4c1d639796b5cce66db2ea14a9bb8c43b",
+      "imageConfigDigest": "sha256:334299151810ba19165ea694f0c8fe10f8f3162b72b4aac851e539fffa2364e1",
+      "registryManifestDigest": null,
+      "tag": "app-sha8753546772476b018d33b96ab66db4837abde186-r38680847373-a1"
+    },
+    {
+      "kind": "lifecycle",
+      "artifactId": 11947134411,
+      "artifactZipDigest": "sha256:987efb24a3f649a96b83a4cf798a5730ad97d82c1f5fe0f22c88a180bec12664",
+      "receiptSha256": "d1a8938da7b0fa88347e231b8cb048c17816f37d7c597992a37e9fcb18c41dca",
+      "imageConfigDigest": "sha256:24ddb8f9dd57c71dc7639336f6dc2e3fa04becce1e8cf2f98abaa7a74bf539f1",
+      "registryManifestDigest": null,
+      "tag": "lifecycle-sha8753546772476b018d33b96ab66db4837abde186-r38680847373-a1"
+    }
+  ],
+  "publicationExecutors": {
+    "scripts/publication/run-reviewed-ecr-republish.ps1": "a7353f8265cea87f7c61028d9e93ed18b7d365cf6a1c935a8df779f7f4dbeb6b",
+    "scripts/publication/extract-checked-artifact.py": "9fb2ccdd9a573cdd09e253c747894f540bb80cdd821c7a85e0c2df8ced8f0d50",
+    ".github/workflows/backend-reviewed-ecr-publish.yml": "43b832e20fd87e8d6aa9607670f9d53bbeb6d2b94e6c5c99b8742bef6f530dcd",
+    "scripts/publication/reviewed-ecr-publication.js": "841f283f3645e4759ab96faaa2094bfd26cc634b90ee36a18765b61b87738b70"
+  },
+  "iamTemplates": {
+    "grant": {
+      "path": "deployment/ecr-publisher.regrant-20261015-c5c.template.json",
+      "textSha256": "9b4b5ae9bdd95cedef88a6f53f4088161265d1f1891faec62d1b30c2e297b8ea"
+    },
+    "revoke": {
+      "path": "deployment/ecr-publisher.revoke.template.json",
+      "textSha256": "5ef0c95edfc88901c74e62366de6127cc28b2bc7c65eb3c96044efe74bfc5ebe"
+    }
+  },
+  "readonlyFacts": {
+    "sourceAccount": "402010193138",
+    "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "sourceUserId": "AIDAV3GNMXTZEO7SHLC2X",
+    "lockedStackArn": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-github-image-publication/62c806e0-c27e-11f1-88a8-0e6ce3fed11f",
+    "stackStatus": "UPDATE_COMPLETE",
+    "lockedTemplateVerified": true,
+    "defaultVersionId": "v6",
+    "policyVersionIds": [
+      "v5",
+      "v6"
+    ],
+    "sourceLoginProviderVerifiedAt": "2026-10-15T04:34:36.491Z",
+    "sourceLoginPolicy": {
+      "provider": "AWS_CLI_LOGIN_AUTO_REFRESH",
+      "minimumCurrentCredentialRemainingSeconds": 120,
+      "verifyIdentityBeforeGrantAndRevoke": true,
+      "exportCredentialsToEnvironment": false,
+      "overallLoginSessionExpiryVerified": false
+    },
+    "failedFullCellStackArn": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/ede4f290-c758-11f1-8050-06ffda7a3477",
+    "failedFullCellStackStatus": "ROLLBACK_COMPLETE",
+    "underlyingResourceAbsenceReproved": false
+  },
+  "history": {
+    "preservedLatestF3ManifestSha256": "1ab97e7b380947662e54920a3150e4c314fd8d8f8a29c320a74f7abe46b51c6a",
+    "oldSchema3PrestateUnchanged": true,
+    "oldRevokeTemplateUnchanged": true,
+    "oldSlotsReplayed": false
+  },
+  "validation": {
+    "platformTests": 15,
+    "backendTests": 14,
+    "bothTypechecks": "passed",
+    "platformTargetedLint": "passed",
+    "backendSyntax": "passed",
+    "liveReviewOnly": "passed",
+    "cloudCIForNewPublicationExecutors": "passed",
+    "c5bApplicationAndReadinessPinsUnchanged": 18,
+    "publicationExecutorCommit": "9a58af5afd47aae26dde071c99da8f94c7d62601",
+    "publicationExecutorCiRunId": 38682480159,
+    "publicationExecutorCiJobs": [116249894539, 116249894856],
+    "publicationExecutorCiAllStepsSuccess": true
+  },
+  "expressCellCandidate": {
+    "resourceCount": 16,
+    "createsDatabaseResources": false,
+    "createsOneShotTaskResources": false,
+    "createsServiceOrTaskDefinition": false,
+    "oldFullResourceCount": 25,
+    "oldApplyBrandIssued": false,
+    "executionAuthorized": false
+  },
+  "boundaries": {
+    "awsMutations": 0,
+    "cloudSqlQueries": 0,
+    "secretValuesRead": 0,
+    "privateMaterialBundleReads": 0,
+    "permanentSlotsConsumed": 0,
+    "githubWorkflowDispatches": 0,
+    "ecrPublished": false,
+    "ecsOrCellDeploymentAuthorized": false,
+    "businessInitializationAuthorized": false,
+    "oldStackDeletionAuthorized": false,
+    "completeLiveExpressCompositionRootImplemented": false,
+    "runtimeEnabled": false,
+    "readyVerified": false
+  },
+  "next": "After exact fresh human approval only: regrant existing publisher IAM pair, single promotion of checked image pair, immediate Source revoke on success/failure and independent Locked Inspect; registry digests then feed the ongoing C5c deployment root."
+}

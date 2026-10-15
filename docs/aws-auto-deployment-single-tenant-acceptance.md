@@ -8,6 +8,8 @@
 
 ## 首轮交付定义
 
+当前 C5c 已推进到准确镜像发布审批：Source/发布栈及Locked/v6、精确v5/v6版本只读核验通过，新清单绑定C5b两份已检候选，尚未获云写授权。另已补16资源、无RDS/one-shot的Express计算网络模板候选，旧Full25资源不改；旧失败栈仍占名，未删除。真实ECR digest/新执行根/计算层/业务初始化均未完成，不把Docker config digest冒充registry digest。[当前待批范围、完整风险和继续位置](./aws-auto-deployment-aurora-dual-mode-c5c-publication-review.md)。下方为历史。
+
 最新C5a云验证完成（2026-10-14 Winnipeg）：准确执行源码760e632c72874a36b04e13554a5294ee8f224688的CI38678047208与双镜像38678047220全部success，app116236032493/lifecycle116236032929所有steps通过，含新增network-none readiness、原Dual/V4/V5/V6和依赖/OS安全门禁。初次87ec旧CA pin失败记录保留，修正仅官方公开新114根bundle准确SHA/相邻tests，原111及加拿大三根均未变，Express ATS不变，不关闭TLS/SHA。服务端62项/平台9项及CA相关21项（有重叠）过，source12文件LF哈希/实际13表清单/云artifact元数据记录；artifactZIP digest不是ECR digest，两候选UTC10月16日03:47:54/57到期。AWS账号API/SQL/Neon/Secret值/初始化/资源写/ECR/ECS0，未实际ready。代码接线第一步闭合，C5b直接集中Express bootstrap握手、独立workload健康路径、四键首位密码与现有provision/有效配置epoch/image最终核验；旧模板不能直接部署新Express，不新增C4或Grant/恢复/F3c9支线。[当前完成范围和唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c5a-readiness-wiring.md)。下方“云验证中”仅过程历史。
 
 最新C5a编码/云验证中（2026-10-14 Winnipeg）：真实app接入bootstrap-ready及严格tenant-v1 ready，Express不得降级SELECT1，旧Full默认行为保持，新Full可显式使用实际OID/初始化门禁；平台增加五字段/path纯数据候选。服务端62项/平台9项及types/lint过，无AWS/Neon/SQL新调用或Secret值/初始化/部署。首次源码87ec0c0的CI check通过，但三镜像build均被AWS公开CA bundle旧SHA挡住；核对新114根包含原111/加拿大三根不变，仅新增sa-west-1三根，固定新90a6...，保留旧文件/历史pin且不绕过TLS/SHA。修正源码760e632已推送，CA/container/readiness21项过，新CI38678047208/双镜像38678047220待核对。旧ECS/ALB health路径/worker bootstrap握手尚未适配，不能直接旧模板部署新Express；完整ready仍须实际ECS身份/Secret/初始化/有效配置及epoch/image验收。下一C5b集中接线，不再C4激活或F3c9/Grant/恢复支线。[当前实现、失败修正及唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c5a-readiness-wiring.md)。
