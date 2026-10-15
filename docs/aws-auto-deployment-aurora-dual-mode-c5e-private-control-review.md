@@ -1,5 +1,7 @@
 # C5e：Express 控制材料显式重绑定与实时配置接线（待批准）
 
+> **本页已执行，以下是原审批范围/风险历史。** 用户继续后，唯一Run成功，私密来源在内存校验/重绑定后dispose；永久槽已消费，不能重跑下方命令或复用SHA再次读取。没有JWT/控制HTTP或云/数据库写，尚非runtime/ready。当前状态及唯一继续点见[已执行记录](./aws-auto-deployment-aurora-dual-mode-c5e-private-control-executed.md)。
+
 2026-10-15 America/Winnipeg。继续[已完成的16资源计算层](./aws-auto-deployment-aurora-dual-mode-c5d-compute-executed.md)，不恢复空库、不重新seed、不发布镜像、不扩展F3c9。**已完成本阶段代码及真实只读准备，尚未读取私密包、认领owner/epoch或部署应用。**
 
 ## 为什么这是部署前置，而不是重新生成密钥
