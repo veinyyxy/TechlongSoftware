@@ -1,5 +1,7 @@
 # C5c：准确镜像发布待审，Express 计算层候选
 
+**本清单已获批并消费，发布与立即撤权、独立Locked/v8/ECR回读已完成，不再待批、刷新或重放。** 下文是当时审阅范围与风险原记录；[当前实际结果及继续位置](./aws-auto-deployment-aurora-dual-mode-c5c-publication-executed.md)。
+
 2026-10-14 America/Winnipeg（只读核验UTC2026-10-15）。接续 [C5b 已验接线](./aws-auto-deployment-aurora-dual-mode-c5b-delivery-wiring.md)，保持50 USD/月目标、现有隔离与审批边界，不扩展F3c9或再做SQL诊断。
 
 **C5c 尚未完成真实执行根，也未部署。当前停在必要的镜像发布审批处。** C5b候选只有 Docker config digest，不能把它填成 ECR registry manifest digest。先发布已经验证的准确字节并独立读回 registry digest，再把真实镜像绑定到当前租户的执行入口。新清单只涉及现有发布 IAM 两资源与两份镜像，不授权实际计算层、旧栈删除、数据库或业务写入。

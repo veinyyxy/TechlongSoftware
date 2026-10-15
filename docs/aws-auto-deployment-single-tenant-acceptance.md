@@ -8,6 +8,8 @@
 
 ## 首轮交付定义
 
+**最新C5c实际**：用户确认b7d4bb49...后单次发布38682952254成功；app registry digest5e42b2de...、lifecycle c5ef6cf0...已独立重算manifest并核对config，BASIC扫描COMPLETE/HIGH与CRITICAL0。立即Source Revoke，控制器及独立新进程均确认deny-all Locked/v8；CFN已清理旧v5/v6，文档备份保留而版本ID不可恢复。原21份记录保持、追加3份独立证据，槽永久消费，不重跑发布。未读Secret/私密bundle、未SQL/初始化或ECS/Cell部署；新完整Express root仍待实现。下一直接绑定这两真实ECR digest，收尾当前租户执行根与计算/workload/监督清理待审包。[真实结果与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c5c-publication-executed.md)。下方待审信息是历史。
+
 当前 C5c 已推进到准确镜像发布审批：Source/发布栈及Locked/v6、精确v5/v6版本只读核验通过，新清单绑定C5b两份已检候选，尚未获云写授权。另已补16资源、无RDS/one-shot的Express计算网络模板候选，旧Full25资源不改；旧失败栈仍占名，未删除。真实ECR digest/新执行根/计算层/业务初始化均未完成，不把Docker config digest冒充registry digest。[当前待批范围、完整风险和继续位置](./aws-auto-deployment-aurora-dual-mode-c5c-publication-review.md)。下方为历史。
 
 最新C5a云验证完成（2026-10-14 Winnipeg）：准确执行源码760e632c72874a36b04e13554a5294ee8f224688的CI38678047208与双镜像38678047220全部success，app116236032493/lifecycle116236032929所有steps通过，含新增network-none readiness、原Dual/V4/V5/V6和依赖/OS安全门禁。初次87ec旧CA pin失败记录保留，修正仅官方公开新114根bundle准确SHA/相邻tests，原111及加拿大三根均未变，Express ATS不变，不关闭TLS/SHA。服务端62项/平台9项及CA相关21项（有重叠）过，source12文件LF哈希/实际13表清单/云artifact元数据记录；artifactZIP digest不是ECR digest，两候选UTC10月16日03:47:54/57到期。AWS账号API/SQL/Neon/Secret值/初始化/资源写/ECR/ECS0，未实际ready。代码接线第一步闭合，C5b直接集中Express bootstrap握手、独立workload健康路径、四键首位密码与现有provision/有效配置epoch/image最终核验；旧模板不能直接部署新Express，不新增C4或Grant/恢复/F3c9支线。[当前完成范围和唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c5a-readiness-wiring.md)。下方“云验证中”仅过程历史。

@@ -1,0 +1,211 @@
+{
+  "schema": "techlong/aurora-dual-mode-c5c-publication-executed/v1",
+  "state": "IMAGE_PAIR_PUBLISHED_AND_INDEPENDENTLY_LOCKED_NOT_DEPLOYED",
+  "evidenceOnlyNotExecutionAuthority": true,
+  "humanApprovalReceived": true,
+  "approvalConsumed": true,
+  "approvedManifestSha256": "b7d4bb49a15c5b69aee22c456fea1d4e0bcd640a2e5dd32db32bf456bdfee792",
+  "document": "docs/aws-auto-deployment-aurora-dual-mode-c5c-publication-executed.md",
+  "previousPreparedEvidence": "ops/aws-sandbox/reviews/aurora-dual-mode-c5c-publication.prepared.json",
+  "evidenceDirectory": "F:/ChatGPT_workshop/techlong-reviewed-ecr-republish-b7d4bb49a15c",
+  "directActions": {
+    "cloudFormationUpdateStackSubmissions": 2,
+    "githubWorkflowDispatches": 1,
+    "dockerPushCommands": 2,
+    "directDeleteStackOrImageRequests": 0,
+    "privateSecretValueReads": 0,
+    "cloudSqlQueries": 0,
+    "ecsOrCellDeployments": 0
+  },
+  "iam": {
+    "stackArn": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-github-image-publication/62c806e0-c27e-11f1-88a8-0e6ce3fed11f",
+    "grantIntentAt": "2026-10-15T04:42:22.3293153+00:00",
+    "grantObservedAt": "2026-10-15T04:43:20.7348124+00:00",
+    "revokeIntentAt": "2026-10-15T04:45:22.4778270+00:00",
+    "lockedObservedAt": "2026-10-15T04:46:20.1780258+00:00",
+    "policyVersionIdsBefore": [
+      "v6",
+      "v5"
+    ],
+    "policyVersionIdsDuringGrant": [
+      "v7",
+      "v6"
+    ],
+    "policyVersionIdsLocked": [
+      "v8",
+      "v7"
+    ],
+    "defaultVersionBefore": "v6",
+    "defaultVersionDuringGrant": "v7",
+    "defaultVersionLocked": "v8",
+    "priorCloudPolicyVersionIdsRemoved": [
+      "v5",
+      "v6"
+    ],
+    "policyVersionCleanupWasApproved": true,
+    "priorPolicyDocumentsBackedUp": true,
+    "removedCloudVersionIdsRestorable": false,
+    "roleIdUnchanged": true,
+    "policyIdUnchanged": true,
+    "finalTrustInlineBoundaryDenyAllVerified": true,
+    "separatePostRunInspect": {
+      "mode": "Inspect",
+      "stackStatus": "UPDATE_COMPLETE",
+      "boundaryVersion": "v8",
+      "lockedVerified": true,
+      "mutationPerformed": false,
+      "evidenceFile": "independent-locked-inspect.json",
+      "provenance": "separate completed pwsh process; structured output transcribed to evidence file"
+    }
+  },
+  "publication": {
+    "sourceCommit": "8753546772476b018d33b96ab66db4837abde186",
+    "publisherImplementationCommit": "169166273a828f1c75d08c35100783e618789164",
+    "workflowRunId": 38682952254,
+    "workflowId": 377716399,
+    "runAttempt": 1,
+    "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38682952254",
+    "status": "completed",
+    "conclusion": "success",
+    "completedRunUpdatedAt": "2026-10-15T04:45:07Z",
+    "jobs": [
+      {
+        "id": 116251352632,
+        "name": "publish",
+        "conclusion": "success",
+        "allStepsSuccess": true
+      }
+    ],
+    "outcome": "ECR_PUBLISHED_SCANNED_NOT_DEPLOYED",
+    "receiptProvenance": "completed job log JSON, not a local binary artifact download",
+    "receiptArtifacts": [
+      {
+        "id": 11948254838,
+        "name": "reviewed-ecr-receipt-38682952254-1",
+        "zipDigest": "sha256:1d2d7d74627d6646dd4abfdc9245904433d67572b94d3ca4d9f467847199391a",
+        "sizeInBytes": 827,
+        "expiresAt": "2026-10-22T04:45:03Z"
+      }
+    ],
+    "artifactContentsDownloadedLocally": false,
+    "rebuiltDuringPromotion": false,
+    "images": [
+      {
+        "kind": "app",
+        "tag": "app-sha8753546772476b018d33b96ab66db4837abde186-r38680847373-a1",
+        "imageConfigDigest": "sha256:334299151810ba19165ea694f0c8fe10f8f3162b72b4aac851e539fffa2364e1",
+        "pushAttempted": true,
+        "registryManifestDigest": "sha256:5e42b2de7e0cc81b1c83a8abb21c866eeedc8801ddf50e686d116a5837caa004",
+        "scanVerified": true,
+        "findingSeverityCounts": {},
+        "pinnedImageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:5e42b2de7e0cc81b1c83a8abb21c866eeedc8801ddf50e686d116a5837caa004"
+      },
+      {
+        "kind": "lifecycle",
+        "tag": "lifecycle-sha8753546772476b018d33b96ab66db4837abde186-r38680847373-a1",
+        "imageConfigDigest": "sha256:24ddb8f9dd57c71dc7639336f6dc2e3fa04becce1e8cf2f98abaa7a74bf539f1",
+        "pushAttempted": true,
+        "registryManifestDigest": "sha256:c5ef6cf02f78fc61a4eff9a3c314a70ecf882f4189173464971c730ca3e2c759",
+        "scanVerified": true,
+        "findingSeverityCounts": {},
+        "pinnedImageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:c5ef6cf02f78fc61a4eff9a3c314a70ecf882f4189173464971c730ca3e2c759"
+      }
+    ]
+  },
+  "independentEcrReadback": {
+    "outcome": "EXACT_PAIR_REGISTRY_CONFIG_AND_BASIC_SCANS_VERIFIED",
+    "startedAt": "2026-10-15T04:47:56.549Z",
+    "completedAt": "2026-10-15T04:48:02.103Z",
+    "source": {
+      "UserId": "AIDAV3GNMXTZEO7SHLC2X",
+      "Account": "402010193138",
+      "Arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev"
+    },
+    "resourceApiCalls": 7,
+    "repositoryImmutable": true,
+    "scanOnPush": true,
+    "scanType": "BASIC",
+    "registryManifestShasIndependentlyRecomputed": true,
+    "approvedCandidateConfigDigestsMatched": true,
+    "bothScansCompleteHighCriticalZero": true,
+    "images": [
+      {
+        "kind": "app",
+        "tag": "app-sha8753546772476b018d33b96ab66db4837abde186-r38680847373-a1",
+        "imageConfigDigest": "sha256:334299151810ba19165ea694f0c8fe10f8f3162b72b4aac851e539fffa2364e1",
+        "registryManifestDigest": "sha256:5e42b2de7e0cc81b1c83a8abb21c866eeedc8801ddf50e686d116a5837caa004",
+        "manifestSha256IndependentlyRecomputed": true,
+        "configDigestMatchesApprovedCandidate": true,
+        "scanStatus": "COMPLETE",
+        "findingSeverityCounts": {},
+        "imageScanCompletedAt": "2026-10-14T23:44:38-05:00",
+        "vulnerabilitySourceUpdatedAt": "2026-10-14T23:44:38-05:00",
+        "pinnedImageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:5e42b2de7e0cc81b1c83a8abb21c866eeedc8801ddf50e686d116a5837caa004"
+      },
+      {
+        "kind": "lifecycle",
+        "tag": "lifecycle-sha8753546772476b018d33b96ab66db4837abde186-r38680847373-a1",
+        "imageConfigDigest": "sha256:24ddb8f9dd57c71dc7639336f6dc2e3fa04becce1e8cf2f98abaa7a74bf539f1",
+        "registryManifestDigest": "sha256:c5ef6cf02f78fc61a4eff9a3c314a70ecf882f4189173464971c730ca3e2c759",
+        "manifestSha256IndependentlyRecomputed": true,
+        "configDigestMatchesApprovedCandidate": true,
+        "scanStatus": "COMPLETE",
+        "findingSeverityCounts": {},
+        "imageScanCompletedAt": "2026-10-14T23:45:01-05:00",
+        "vulnerabilitySourceUpdatedAt": "2026-10-14T23:45:01-05:00",
+        "pinnedImageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:c5ef6cf02f78fc61a4eff9a3c314a70ecf882f4189173464971c730ca3e2c759"
+      }
+    ],
+    "evidenceFile": "independent-ecr-readback.json"
+  },
+  "rawLocalEvidenceFileSha256": {
+    "approved-manifest.json": "9f4ee97b4f5c6e95d974c826d34def563a61b5f8fd80452438fe2768e55dce61",
+    "boundary-pregrant-v5.json": "caa68ad40125155dc19f9f25fd9a814221eb72e1f007f5a000dd67cbaa3f9efe",
+    "boundary-pregrant-v6.json": "8c751da3b2a2ce639d3720ade6aed509f0e42a7f20426194ace435ecb6d38d77",
+    "dispatch-intent.json": "874f37a853374082a134984390b386a1e31fa5554d6d0234f9ce9ebc3347a3ae",
+    "dispatch-response.json": "87e667d80dde99f99d3157a897c03cfe57a0a9a60ec67d899892768d5686ea5d",
+    "execution-summary.json": "4f013014859d4d1a9bb3acdbb581908e9ebd8081626409315573a7a155040684",
+    "grant-readback.json": "d6347083ccd8411e50396ca2cb1a47273e5a01a3fa36cd98d5b11e655f2fb268",
+    "grant-stack.json": "c7053d27401d639c6e0d2d4c8639b38aaf1bbe3878ed79110895ce160dba0145",
+    "grant-submission.json": "40fe03a62bb5d2df91ef2688f4ce443b7802b9d4633376c5b6914a4d5ab76e7a",
+    "grant.template.json": "9b4b5ae9bdd95cedef88a6f53f4088161265d1f1891faec62d1b30c2e297b8ea",
+    "independent-ecr-readback.json": "c6961d930a0d4df501324a9f631ab25847f19be955ec130e8d55cb7b439def53",
+    "independent-locked-inspect.json": "d09b6f7d04e141e64248571bb06065e59f781f9675c12f026394d8e6bb1f283b",
+    "locked-iam-pregrant.json": "9eb862a0f40512dddce1d12ce126ab9a5bbb3436999ec0190c5de557469cbba4",
+    "locked-readback.json": "b369adf8f8ee645706b821d4be71cac4479388eda887dce6f148dc9a48cab531",
+    "locked-stack.json": "f8df8309518992fed2a600a84c98dcf3e8c98df5b869a67cb4f6e79f2eed5664",
+    "prestate-locked.json": "9eb862a0f40512dddce1d12ce126ab9a5bbb3436999ec0190c5de557469cbba4",
+    "publication-receipt.from-job-log.json": "13c691f456c4c1ebafcde89d1d5e9381e24c23b4867138980740d24cc6119736",
+    "publisher-run.json": "67d8b23a0d81ca39bf5573ec1a6b6582239297db1126d96ddf20c620e5525927",
+    "revoke-intent.json": "a6dcc9ec55d65f6db1626fbdfdf42905f6232b242b750875f40cde268c77b0df",
+    "revoke-submission.json": "2155e3dbaf5a84d80a4d66648917fb7ca41024aada537db51c7d541cf1326fd0",
+    "revoke.template.json": "5ef0c95edfc88901c74e62366de6127cc28b2bc7c65eb3c96044efe74bfc5ebe",
+    "source-login-pregrant.json": "2f7266a98c12328c9dff49dab30783bd5806e2531d5176f3cfae56cf3a0a6b2e",
+    "source-login-prerevoke.json": "9300877076323bd78447e99983d45d6120f0675f2a7a65a19e54e6bdc8b819ee",
+    "update-intent.json": "196699300c2393f2c55faf72cce3dd7a87a6633a6f63dd492334934e683b3f17"
+  },
+  "immutableJournal": {
+    "directoryPermanentlyOccupied": true,
+    "originalControllerFilesPreserved": 21,
+    "totalEvidenceFiles": 24,
+    "writeRetryAuthorized": false,
+    "resetAuthorized": false
+  },
+  "boundaries": {
+    "ecsDeploymentPerformed": false,
+    "cellCreated": false,
+    "oldFailedStackDeleted": false,
+    "businessInitializationPerformed": false,
+    "secretValuesRead": 0,
+    "privateInputBundleReads": 0,
+    "neonWrites": 0,
+    "auroraQueries": 0,
+    "baselinePublished": false,
+    "completeExpressLiveExecutionRootImplemented": false,
+    "runtimeEnabled": false,
+    "readyVerified": false,
+    "firstOwnerLoginVerified": false,
+    "f3c9Expanded": false
+  },
+  "next": "Continue the same C5c: bind these observed ECR registry digests to the explicit Express execution root and compute/workload review, preserving exact existing DB/generation/Secret; old failed Cell deletion, new resources, private reads and business/Neon writes require fresh concrete approval."
+}
