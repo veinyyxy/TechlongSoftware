@@ -44,6 +44,8 @@ Secret值/私密bundle读取、Aurora/Neon SQL、业务/activation/job/TTL写、
 
 ## 唯一继续位置
 
+更新2026-10-15 Winnipeg：[C5c Express组合入口及真实模板校验](./aws-auto-deployment-aurora-dual-mode-c5c-delivery-root.md)已继续完成；发布原证据/槽保持。后继以该页 owner/epoch adoption、计算层具体审批和默认店铺初始化为准，以下描述为本次发布结束时的交接，不再以“镜像未接线”作为当前状态。
+
 发布及撤权阶段已结束，不再刷新或重放b7d4...。继续同一个C5c：将上面**真实registry digest**接入新Express执行根、当前租户/数据库generation及监督清理，集中准备16资源计算层与7资源workload、地址和初始化验收清单。完整新root尚未实现，旧Full固定镜像/五键/恢复provider不能代替它，也不能伪造已完成的Express lifecycle证明。
 
 旧失败Full栈上次仍ROLLBACK_COMPLETE并占名；准确删除、创建新计算层、Neon deployment/job/epoch/激活、真实Secret/私密材料读取及商户初始化仍须fresh具体范围单独批准。不据本次镜像发布批准部署、删除或改数据库，不扩展新的SQL/Grant/恢复/F3c9支线。

@@ -50,10 +50,11 @@ function assignJsonPointer(
   return true;
 }
 
-export function compileProvisioningConfiguration(input: {
+/** Non-secret review projection. Not a valid provision request: first-owner
+ * password injection remains mandatory in compileProvisioningConfiguration. */
+export function compileProvisioningConfigurationForReview(input: {
   schema: TemplateConfigurationSchema;
   configuration: TemplateConfiguration;
-  runtimeSecrets?: ProvisioningRuntimeSecrets;
 }): ValidationResult<ProvisioningConfiguration> {
   const errors: FieldErrors = {};
   const schemaValidation = validateConfigurationSchema(input.schema);
@@ -98,6 +99,20 @@ export function compileProvisioningConfiguration(input: {
         "生成首位管理员时必须提供有效的 3–64 位用户名。",
       );
     }
+  }
+  return { data: Object.keys(errors).length ? null : data, errors };
+}
+
+export function compileProvisioningConfiguration(input: {
+  schema: TemplateConfigurationSchema;
+  configuration: TemplateConfiguration;
+  runtimeSecrets?: ProvisioningRuntimeSecrets;
+}): ValidationResult<ProvisioningConfiguration> {
+  const result = compileProvisioningConfigurationForReview(input);
+  if (!result.data) return result;
+  const { data, errors } = result;
+  const firstOwner = data.first_owner;
+  if (typeof firstOwner === "object" && firstOwner !== null && !Array.isArray(firstOwner)) {
     const password = input.runtimeSecrets?.firstOwnerPassword ?? "";
     if (password.length < 10) {
       addError(

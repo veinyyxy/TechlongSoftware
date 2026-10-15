@@ -1,5 +1,7 @@
 # 单租户首轮 AWS 自动部署：当前执行主线
 
+**最新 C5c（2026-10-15 Winnipeg）**：真实 ECR digest 已接入独立 Express 组合入口；现有非私密租户元数据编译通过，原 plan 与显式物理数据库名修订分开 hash，四键固定版本 Secret/mTLS/模板编译/7资源 workload 已接线，旧 Full 入口不变。16资源计算模板已通过真实 AWS ValidateTemplate；旧失败栈仍占名、20条 CFN 资源记录 DELETE_COMPLETE，未删除。54项相关 tests/types/定向 lint 通过；未读 Secret 值/私密材料、无 SQL 或云资源写。尚缺实际 owner/epoch adoption、scoped queue、具体计算层/清理审批、默认店铺 seed/初始化和 ready 回写，不是完整 live root。[当前实现、证据及唯一继续点](./aws-auto-deployment-aurora-dual-mode-c5c-delivery-root.md)。下方进度为历史。
+
 决策D001，2026-10-13 America/Winnipeg。用户在审计后明确同意收缩首轮目标并开始实施，同时要求封存F3c9以便重启。此文档取代旧方案中的“继续F3c9”作为当前导航；[原支线封存](./aws-auto-deployment-f3c9-deferred.md)，所有历史保留。
 
 **当前路线 D002（更新2026-10-14 Winnipeg）**：优先`express_iam`、保留`full_password`，暂不升级账户。C3g schema/迁移、C4c隔离、C4d四键Secret、C4e准确IAM保持；C4h唯一Run原八SQL已COMMIT成功，独立Inspect确认准确active/完整目录与ACL，并通过Source签发的应用TLS IAM只读登录。应用SQL权限/LOGIN已持久安装，rdsadmin/OID16389及ADMIN/INHERIT/SET false实证通过，但不是ECS任务身份或完整ready验收。全部已消费槽不可重放；不再C4激活/同类SQL探针。下一直接准备完整ready/商户初始化→ECR→ECS，各新的实际读取/写入/部署范围另审；不提升成员选项或改其它谓词。保留旧Full及历史，不扩展F3c9/Grant/恢复支线。[最新实机结果与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4h-application-activated.md)，[完整兼容顺序](./aws-auto-deployment-aurora-dual-mode.md)。

@@ -1,0 +1,125 @@
+{
+  "schema": "techlong/aurora-dual-mode-c5c-delivery-prepared/v1",
+  "state": "EXPRESS_COMPOSITION_AND_AWS_TEMPLATE_VALIDATED_NOT_LIVE",
+  "localDate": "2026-10-15 America/Winnipeg",
+  "executionAuthorized": false,
+  "deploymentApprovalManifestIssued": false,
+  "materialSha256": "06b4e0bcc986872233c1faa7064744f41244ec909ae075147eb7966bae01cf91",
+  "sourcePlanSha256": "c45dafe1d1c65609eed08ff397d899aeaa0e55092312e330a0b4eef507434e5a",
+  "expressPlanSha256": "8690c22f5b4dbf80d49bcee3cdff717dd8ae14957eedb7606b9829b533e49dc8",
+  "configurationSha256": "06d3cb50dd46b5f32771c356b7e7cd7d524a0707799ae24b9ace0672ef7281c9",
+  "configurationSchemaSha256": "7b4626437d37289c406afa0b4691a5497905bee9b9ddd10e5117a7eba84cadf2",
+  "databaseBindingSha256": "41c1d3eac63d9277a6f6910cd4db3df29b85086f47ed07bf7c4a2e8a23820231",
+  "images": {
+    "sourceCommit": "8753546772476b018d33b96ab66db4837abde186",
+    "publicationRunId": 38682952254,
+    "app": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:5e42b2de7e0cc81b1c83a8abb21c866eeedc8801ddf50e686d116a5837caa004",
+    "lifecycle": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:c5ef6cf02f78fc61a4eff9a3c314a70ecf882f4189173464971c730ca3e2c759"
+  },
+  "firstOwnerPasswordRead": false,
+  "privateMaterialLoaded": false,
+  "sourceFilesSha256": {
+    "business-review": "a9090da352a1c510effa5e59e7838bb8a12b5c0435bcb001ff97716164b49918",
+    "legacy-binding": "ab89566fc889b0ea7f4eeb1e818b7ce0ae02c330c88a71cf6924e18562d91bd9",
+    "runtime-binding": "123fe1eaf9be362b460e52efe4754ed68e84f297f67fcc30764e77b79f2b0194"
+  },
+  "sourcePinEncoding": "UTF-8 LF (CRLF normalized to LF)",
+  "sourcePins": [
+    {
+      "path": "lib/templates/provisioning.ts",
+      "sha256": "d27e9a435e07a51a1ed869c841d4fa436f50e97b9143369bbb51400153773ecd"
+    },
+    {
+      "path": "lib/deployments/execution/express-delivery-images-v1.ts",
+      "sha256": "6249d47e2f77755ce8a5b46c03a7ae806ff37772615c3956b8715db9a3ca2076"
+    },
+    {
+      "path": "lib/deployments/execution/express-single-tenant-delivery-v1.ts",
+      "sha256": "d065359c8d25fa2eeb2be4cb8e0ece071d14d637456d549ebe7523a5a4d12cf2"
+    },
+    {
+      "path": "ops/aws-sandbox/scripts/review-express-single-tenant-delivery.ts",
+      "sha256": "d900d9063b5b7b01d9cb3f7c57bb8e4991ccab2b5565cd24a523a52f52f0cbef"
+    },
+    {
+      "path": "tests/express-single-tenant-delivery-v1.test.ts",
+      "sha256": "e30d99347b4b34ea455e6d5dc0f60e48aa7574c6958ed5a600bb6f072ef9054d"
+    }
+  ],
+  "preparedArtifacts": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-delivery-c5c-20261015-r1.review.json",
+      "rawFileSha256": "f744acf7846b8e39498fef6cd1911356d867b54c32d4c71aaa6109fa3f7d263e"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-compute-c5c-20261015-r1.template.json",
+      "rawFileSha256": "8bd535e997c30d73f08f699d312d513cdb1b9d44b1f383b2109fa016f693c2f1",
+      "canonicalTemplateSha256": "65729666bb3447e4fa00532d33a31b1acfb76e42b8269bded62d7c5cec786523",
+      "resourceCount": 16,
+      "reviewDeadline": "2026-10-15T08:47:38.159Z"
+    }
+  ],
+  "actualReadonlyAws": {
+    "provenance": "CLI responses observed in this turn; structured summary, not saved raw response bytes",
+    "resourceApiOperations": [
+      "sts:GetCallerIdentity",
+      "cloudformation:DescribeStacks",
+      "cloudformation:ListStackResources",
+      "cloudformation:ValidateTemplate"
+    ],
+    "sourceAccount": "402010193138",
+    "sourceUserId": "AIDAV3GNMXTZEO7SHLC2X",
+    "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "oldCellStackArn": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/ede4f290-c758-11f1-8050-06ffda7a3477",
+    "oldCellStatus": "ROLLBACK_COMPLETE",
+    "oldStackReportedResourceCount": 20,
+    "allReportedResourcesDeleteComplete": true,
+    "underlyingProviderAbsenceIndependentlyProved": false,
+    "stackDeletionAuthorized": false,
+    "validateTemplateSucceeded": true,
+    "validatedCanonicalTemplateSha256": "65729666bb3447e4fa00532d33a31b1acfb76e42b8269bded62d7c5cec786523",
+    "returnedParameters": [
+      "AvailabilityZoneA",
+      "AvailabilityZoneB",
+      "ControlTrustStoreArn",
+      "CertificateArn"
+    ],
+    "newIamCapabilitiesReturned": false,
+    "permissionOrDeployabilityProved": false
+  },
+  "verification": {
+    "targetedTests": 54,
+    "newCompositionTests": 7,
+    "allPassed": true,
+    "typecheck": true,
+    "targetedEslint": true,
+    "platformProductionBuild": true,
+    "actualRuntimeReadiness": false,
+    "actualBusinessInitialization": false
+  },
+  "businessPrerequisites": {
+    "activeDefaultStoreRequiredByPublishedImage": true,
+    "publishedImageCreatesDefaultStore": false,
+    "currentStoreCountReadThisTurn": false,
+    "lastApprovedCatalogEvidence": "C4h: business rows 0",
+    "seedOrNewImageChangeAuthorized": false
+  },
+  "remaining": [
+    "fresh_exact_compute_cleanup_and_deployment_review",
+    "actual_database_owner_epoch_adoption_and_scoped_queue",
+    "private_sources_read_approval_and_live_control_bindings",
+    "initialized_effective_configuration_and_ready_writeback"
+  ],
+  "effects": {
+    "cloudResourceWrites": 0,
+    "sqlConnections": 0,
+    "secretValueReads": 0,
+    "privateMaterialReads": 0,
+    "executionSlotsConsumed": 0,
+    "deploymentJobWrites": 0,
+    "businessInitialization": 0,
+    "readyWriteback": 0,
+    "oldStackDeletions": 0
+  },
+  "documentation": "docs/aws-auto-deployment-aurora-dual-mode-c5c-delivery-root.md"
+}
