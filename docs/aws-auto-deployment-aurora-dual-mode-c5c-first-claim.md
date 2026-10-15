@@ -1,5 +1,7 @@
 # C5c：首次认领接线及默认店铺初始化候选
 
+后继更新：真实单次seed Run/独立Inspect及fresh执行清单已补齐，见[默认店铺待审执行包](./aws-auto-deployment-aurora-dual-mode-c5c-store-seed-review.md)。不提前认领owner/epoch或启动job/TTL，先解决已发布镜像要求的existing store。下文及capsule保留为本阶段历史，不表示当前已批准或写入。
+
 2026-10-15 America/Winnipeg。继续同一条[Express 单租户交付主线](./aws-auto-deployment-aurora-dual-mode-c5c-delivery-root.md)，不是新支线。本阶段完成：真实控制面只读核对、新部署身份/准确队列范围、绑定新 owner 候选的准备入口，以及默认店铺 seed 候选。**尚未认领 owner、激活 epoch、插入店铺、创建 job 或部署资源；当前没有可执行的审批清单。**
 
 ## 实际状态与 owner 含义

@@ -1,0 +1,125 @@
+{
+  "schema": "techlong/aurora-dual-mode-c5c-store-seed-prepared/v1",
+  "state": "EXECUTOR_AND_FRESH_MANIFEST_READY_NO_SQL_EXECUTED",
+  "date": "2026-10-15 America/Winnipeg",
+  "approvalRequested": true,
+  "executionAuthorized": false,
+  "liveDeliveryRootComplete": false,
+  "manifestSha256": "d53b2572aac78bba7cc007b53315adc8f4edeb9f3d127d909d7e013ff328bfc0",
+  "preparedAt": "2026-10-15T09:42:43.354Z",
+  "expiresAt": "2026-10-15T15:42:43.354Z",
+  "codeBindingSha256": "b53b0b11172dce00208de38180e999f73162033548378efd0ae091cbd42bb088",
+  "slots": {
+    "run": "techlong-express-c5c-store-seed-run-v1.permanent-slot.json",
+    "inspect": "techlong-express-c5c-store-seed-inspect-v1.permanent-slot.json"
+  },
+  "review": {
+    "mode": "Review",
+    "auroraSqlStateProved": false,
+    "sourceAndClusterMetadataMatched": true,
+    "controlPlaneOutcome": "FIRST_CLAIM_CANDIDATE_AURORA_PROOF_STILL_REQUIRED",
+    "bothDynamoAuthorityKeysAbsent": true,
+    "neonDeploymentsJobsResourcesOperations": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sameCurrentCodePinsVerified": true,
+    "pinnedLocalFiles": 83,
+    "pinnedNativeTools": 2,
+    "historicalInputFiles": 7,
+    "previousLocalReview": "r1 superseded by r2 after ordered SQL guard/time validation changes; neither used SQL or consumed slots"
+  },
+  "proposedScope": {
+    "profile": "express_iam",
+    "clusterResourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+    "database": "tenant_a0da1748bc4d5419_db",
+    "databaseOid": "16459",
+    "managementUsername": "postgres",
+    "managementRoleOid": "16410",
+    "applicationRole": "tenant_a0da1748bc4d5419_role",
+    "applicationRoleOid": "16456",
+    "storeId": "add89a8c-f43e-81b9-8287-0cb6c5c54f87",
+    "storeCode": "TECHLONG_SANDBOX",
+    "slug": "first-acceptance",
+    "maxApplicationInserts": 1,
+    "runConnections": 1,
+    "independentReadonlyInspectConnections": 1,
+    "runNormalQueries": 22,
+    "inspectNormalQueries": 12,
+    "safeRollbackMaximumPerSession": 1,
+    "actualRowVectorsCheckedWithoutProjection": true,
+    "technicalSeedRows": 9,
+    "newRolesOrPermissions": false,
+    "ownerOrEpochClaim": false,
+    "jobOrTtlStart": false,
+    "cloudDeployment": false,
+    "secretValueOrPrivateBundleRead": false,
+    "readyImpliedBySeed": false
+  },
+  "implementationPins": [
+    {
+      "filename": "E:\\NodejsProject\\TechlongSoftware\\lib\\deployments\\execution\\express-store-seed-reviewed-v1.cjs",
+      "sha256": "b567afcb79987fee520437c2d8b44fc619229376ed64d3815633775c3ab39692"
+    },
+    {
+      "filename": "E:\\NodejsProject\\TechlongSoftware\\ops\\aws-sandbox\\scripts\\review-express-store-seed-v1.mjs",
+      "sha256": "04eec07082d9abe1b65263a3266914c0ead58de164dcf618aeedd44ce914438b"
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-review-20261015-r2/manifest.json",
+      "rawFileSha256": "4473c822c89a5568db8129c4eb00424db345ff324c9700321936263aeaab9095"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-review-20261015-r2/program.json",
+      "rawFileSha256": "44815f7494479e583d8fb829532a11bd494e6e455e7eca94ed849d7ef189869d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-review-20261015-r2/code-binding.json",
+      "rawFileSha256": "33f6191a86eb47a1f366d8d9f06dda091bc7d34f581cd04f6964084d3aa3d94d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-review-20261015-r2/metadata.json",
+      "rawFileSha256": "23cad07c58b379c28b144ce879c38245c31bbeb830e43db30d23ef2622e085a3"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5c-store-seed-review-20261015-r2/result.json",
+      "rawFileSha256": "013096a1007c439aeba9eefeb71df3061ec7dd45737ff22242f251b3e29112a5"
+    }
+  ],
+  "verification": {
+    "targetedTests": 54,
+    "newTests": 9,
+    "allPassed": true,
+    "typecheck": true,
+    "targetedLint": true,
+    "nativePrivateArchiveCompilation": true,
+    "realMetadataReview": true,
+    "productionBuildRerun": false,
+    "containerOrImageRebuild": false
+  },
+  "effectsThisTurn": {
+    "successfulReviewPreparations": 2,
+    "stsResourceReads": 4,
+    "rdsDescribeReads": 4,
+    "iamSimulationReads": 2,
+    "dynamoStronglyConsistentGetItemReads": 4,
+    "neonReadonlySelectStatements": 2,
+    "auroraSqlConnections": 0,
+    "auroraSqlWrites": 0,
+    "cloudWrites": 0,
+    "awsSecretValueReads": 0,
+    "privateBundleReads": 0,
+    "neonBusinessWrites": 0,
+    "authorityWrites": 0,
+    "executionSlotsConsumed": 0
+  },
+  "remaining": [
+    "Approve and run exactly one store INSERT and independent Inspect before expiry; never replay a consumed slot.",
+    "Return to compute/old failed stack disposition, real first owner/epoch, workload/DNS/private provenance/provision/ready delivery package with separate scoped approvals."
+  ],
+  "documentation": "docs/aws-auto-deployment-aurora-dual-mode-c5c-store-seed-review.md"
+}

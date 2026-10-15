@@ -1,5 +1,7 @@
 # 单租户首轮 AWS 自动部署：当前执行主线
 
+**最新 C5c 默认店铺执行包（2026-10-15 Winnipeg）**：已补齐真实Source/TLS/IAM单次INSERT及独立只读Inspect入口，原恢复/角色/catalog验证不放宽；54项相关tests、types和定向lint通过。最终Review仅做元数据/控制面读取，当前Aurora连接/业务写/新槽消费仍0。待批准SHA `d53b2572aac78bba7cc007b53315adc8f4edeb9f3d127d909d7e013ff328bfc0`，截止Winnipeg10月15日10:42 CDT。不提前认领owner/epoch或enqueue启动TTL；此步seed通过后回到计算层部署/provision/ready主线，不新开诊断或重发镜像。[准确范围、完整风险及继续点](./aws-auto-deployment-aurora-dual-mode-c5c-store-seed-review.md)。下方保留历史。
+
 **最新 C5c 首次认领接线（2026-10-15 Winnipeg）**：实际Source/DDB/Neon只读核对确认目标deployment/job/resource/operation均0、两套epoch authority key均缺失；旧D001 futureScope不是已安装owner。按新plan和真实镜像推导新ID `dep_7c99bd249470184852f0dc74`，独立Express准确队列范围和准备入口已接通，原Full入口不改。固定默认店铺单条INSERT候选已准备，不能执行；尚无owner/epoch/业务/部署/ready写。79项定向tests/types/lint/build通过。下一直接补实际首次认领/初始化受审执行包，不另开SQL诊断或重发镜像。[实际证据、边界及继续点](./aws-auto-deployment-aurora-dual-mode-c5c-first-claim.md)。下方进度保留为历史。
 
 **最新 C5c（2026-10-15 Winnipeg）**：真实 ECR digest 已接入独立 Express 组合入口；现有非私密租户元数据编译通过，原 plan 与显式物理数据库名修订分开 hash，四键固定版本 Secret/mTLS/模板编译/7资源 workload 已接线，旧 Full 入口不变。16资源计算模板已通过真实 AWS ValidateTemplate；旧失败栈仍占名、20条 CFN 资源记录 DELETE_COMPLETE，未删除。54项相关 tests/types/定向 lint 通过；未读 Secret 值/私密材料、无 SQL 或云资源写。尚缺实际 owner/epoch adoption、scoped queue、具体计算层/清理审批、默认店铺 seed/初始化和 ready 回写，不是完整 live root。[当前实现、证据及唯一继续点](./aws-auto-deployment-aurora-dual-mode-c5c-delivery-root.md)。下方进度为历史。

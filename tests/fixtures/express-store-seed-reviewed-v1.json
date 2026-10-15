@@ -1,0 +1,410 @@
+{
+  "seed": {
+    "schema": "techlong/express-default-store-seed-candidate/v1",
+    "materialSha256": "06b4e0bcc986872233c1faa7064744f41244ec909ae075147eb7966bae01cf91",
+    "scope": {
+      "deploymentId": "dep_7c99bd249470184852f0dc74",
+      "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+      "environmentId": "env_aws_sandbox_ca_central_1",
+      "planHash": "8690c22f5b4dbf80d49bcee3cdff717dd8ae14957eedb7606b9829b533e49dc8",
+      "configurationHash": "06d3cb50dd46b5f32771c356b7e7cd7d524a0707799ae24b9ace0672ef7281c9",
+      "artifactRef": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:5e42b2de7e0cc81b1c83a8abb21c866eeedc8801ddf50e686d116a5837caa004"
+    },
+    "stableIdentity": "a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+    "resourceGeneration": 1,
+    "target": {
+      "clusterArn": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001",
+      "clusterResourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+      "endpoint": "techlong-sandbox-express-d001.cluster-cn8aaekuqf1r.ca-central-1.rds.amazonaws.com",
+      "database": "tenant_a0da1748bc4d5419_db",
+      "databaseOid": "16459",
+      "role": "tenant_a0da1748bc4d5419_role",
+      "roleOid": "16456",
+      "managementUser": "postgres",
+      "managementRoleOid": "16410",
+      "serverVersionNum": 170009
+    },
+    "store": {
+      "storeId": "add89a8c-f43e-81b9-8287-0cb6c5c54f87",
+      "storeCode": "TECHLONG_SANDBOX",
+      "slug": "first-acceptance",
+      "timezone": "America/Winnipeg",
+      "currency": "CAD",
+      "status": "active",
+      "isDefault": true
+    },
+    "transaction": {
+      "isolation": "SERIALIZABLE",
+      "maxRunConnections": 1,
+      "maxIndependentInspectConnections": 1,
+      "lockTimeoutMs": 5000,
+      "statementTimeoutMs": 15000,
+      "searchPath": "pg_catalog",
+      "tls": "verify-full-ATS-roots",
+      "automaticRetries": 0,
+      "tableLock": "LOCK TABLE public.stores IN SHARE ROW EXCLUSIVE MODE"
+    },
+    "requiredBeforeInsert": [
+      "fresh Source identity/cluster/DB OID/role OID plus verified client and backend TLS IAM session",
+      "exact original database/application bootstrap comments and same stable identity/generation; no owner transfer",
+      "fresh full catalog/ACL equals approved C4h active state; no user trigger/rewrite rule or unknown stores-column side effect",
+      "all baseline business tables empty, exactly one original technical SaaS singleton and eight original entitlements",
+      "SaaS singleton has no external instance, provisioned_at, epoch, request hash, result or provision operation",
+      "exact stores table empty under lock; no existing default/slug/code/store UUID; conflicts abort, never upsert",
+      "fresh Neon ownership and both DDB authority keys absent; source snapshots are not cross-service CAS"
+    ],
+    "insert": {
+      "text": "INSERT INTO public.stores (store_id,store_code,slug,phone,address,latitude,longitude,timezone,currency,status,is_default,created_at,updated_at)\n VALUES ($1::uuid,$2,$3,NULL,'{}'::jsonb,NULL,NULL,$4,$5,'active',TRUE,transaction_timestamp(),transaction_timestamp())\n RETURNING store_id::text,store_code,slug,timezone,currency,status,is_default",
+      "values": [
+        "add89a8c-f43e-81b9-8287-0cb6c5c54f87",
+        "TECHLONG_SANDBOX",
+        "first-acceptance",
+        "America/Winnipeg",
+        "CAD"
+      ]
+    },
+    "expectedReturnedRow": {
+      "store_id": "add89a8c-f43e-81b9-8287-0cb6c5c54f87",
+      "store_code": "TECHLONG_SANDBOX",
+      "slug": "first-acceptance",
+      "timezone": "America/Winnipeg",
+      "currency": "CAD",
+      "status": "active",
+      "is_default": true
+    },
+    "postcheck": {
+      "exactStoreRows": 1,
+      "otherBusinessRowsRemainEmpty": true,
+      "technicalSeedsUnchanged": true,
+      "catalogAndAclUnchanged": true,
+      "independentReadbackRequired": true
+    },
+    "followingProvision": {
+      "throughExistingAuthenticatedMtlsEndpoint": true,
+      "writesNameThemesEntitlementsAndFirstOwner": true,
+      "firstOwnerUsername": "techlong_sandbox_admin",
+      "storeName": "Techlong Sandbox",
+      "initializedReadinessAndEffectiveConfigurationStillRequired": true,
+      "platformReadyNotImpliedBySeed": true
+    },
+    "limits": {
+      "applicationDmlStatements": 1,
+      "newDatabaseRolesOrGrants": 0,
+      "schemaChanges": 0,
+      "iamChanges": 0,
+      "secretReads": 0,
+      "authorityWrites": 0,
+      "neonWrites": 0,
+      "ecsDeployments": 0,
+      "baselineRestoreOrMigration": 0
+    },
+    "risks": [
+      "The store row is business data and requires separate fresh reviewed approval; this candidate authorizes no SQL connection.",
+      "Locks/serializable conflicts may block or abort; privileged concurrent writers and cross-service races remain possible.",
+      "COMMIT can succeed with a lost response; inspect independently and never automatically repeat INSERT, delete, roll back committed data or reset an attempt slot.",
+      "SQL/IAM tokens pass through provider memory/logging boundaries and Aurora may resume with nonzero ACU/I/O cost; 50 USD/month is not a hard cap."
+    ],
+    "executionRootAvailable": false,
+    "executionAuthorized": false,
+    "storeCreated": false,
+    "readyVerified": false,
+    "programSha256": "5e433c2bc8c7844ce7d2c20dd2f08a8386fc9026a7525ebfdde2d6625d2eb4ea"
+  },
+  "candidate": {
+    "schema": "techlong/express-application-candidate/v6",
+    "target": {
+      "database": "tenant_a0da1748bc4d5419_db",
+      "databaseOid": "16459",
+      "role": "tenant_a0da1748bc4d5419_role",
+      "roleOid": "16456",
+      "owner": "postgres",
+      "managementTarget": {
+        "schema": "techlong/express-management-target/v3",
+        "clusterArn": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001",
+        "clusterResourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+        "endpoint": "techlong-sandbox-express-d001.cluster-cn8aaekuqf1r.ca-central-1.rds.amazonaws.com",
+        "port": 5432,
+        "observedEngineVersion": "17.9",
+        "managementDatabase": "postgres",
+        "managementUsername": "postgres",
+        "tenantDatabase": "tenant_a0da1748bc4d5419_db",
+        "tenantUsername": "tenant_a0da1748bc4d5419_role",
+        "stableIdentity": "a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+        "resourceGeneration": 1
+      }
+    },
+    "predecessorRestoreManifestSha256": "1c0d3371744eecbf9f0346059a0305b4ce365862c4d6615462d524b038965307",
+    "restoreSqlProgramSha256": "4468b84cbc553812ab143561ad72011cf294ebff2e4185d9422b7eac1033e982",
+    "migratedCatalogSha256": "93d3c7eb62bbdd3e38f0a3943c9d44d607b419d562fcbd73ebd2fccf319e876b",
+    "tables": [
+      "Order",
+      "Users",
+      "address",
+      "addressdeliveryrule",
+      "auditlog",
+      "cart",
+      "cartitem",
+      "categories",
+      "dining_tables",
+      "loyalty_accounts",
+      "loyalty_transactions",
+      "media_assets",
+      "merchant_device_tokens",
+      "merchant_notification_deliveries",
+      "merchant_notification_dismissals",
+      "merchant_notification_outbox",
+      "merchant_notification_reads",
+      "merchant_order_print_jobs",
+      "merchant_permissions",
+      "merchant_role_permissions",
+      "merchant_user_audit_logs",
+      "merchant_user_permission_overrides",
+      "merchant_user_stores",
+      "merchant_users",
+      "notification_deliveries",
+      "notification_device_tokens",
+      "notification_dismissals",
+      "notification_outbox",
+      "notification_reads",
+      "order_item_reviews",
+      "order_reviews",
+      "order_reward_redemptions",
+      "orderitem",
+      "orderitem_options",
+      "payment_events",
+      "payment_refunds",
+      "payments",
+      "pointsaccount",
+      "pointshistory",
+      "product_attributes",
+      "product_categories",
+      "product_images",
+      "product_images_legacy",
+      "product_option_group_items",
+      "product_option_group_links",
+      "product_option_groups",
+      "product_suppliers",
+      "product_translations",
+      "products",
+      "reward_items",
+      "reward_redemptions",
+      "saas_access_leases",
+      "saas_audit_logs",
+      "saas_entitlements",
+      "saas_instances",
+      "saas_licenses",
+      "saas_provisioning_operations",
+      "saas_usage_snapshots",
+      "shipment",
+      "shipmentorder",
+      "store_categories",
+      "store_customers",
+      "store_product_categories",
+      "store_products",
+      "stores",
+      "suppliers",
+      "system_config",
+      "system_config_history",
+      "user_payment_methods",
+      "usercontact",
+      "verification_codes",
+      "wallet",
+      "wallethistory"
+    ],
+    "sequences": [
+      "categories_category_id_seq",
+      "product_images_image_id_seq",
+      "products_product_id_seq",
+      "saas_audit_logs_audit_id_seq",
+      "saas_usage_snapshots_snapshot_id_seq",
+      "suppliers_supplier_id_seq",
+      "verification_codes_id_seq"
+    ],
+    "statements": [
+      "GRANT CONNECT ON DATABASE \"tenant_a0da1748bc4d5419_db\" TO \"tenant_a0da1748bc4d5419_role\"",
+      "GRANT USAGE ON SCHEMA public TO \"tenant_a0da1748bc4d5419_role\"",
+      "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.\"Order\", public.\"Users\", public.\"address\", public.\"addressdeliveryrule\", public.\"auditlog\", public.\"cart\", public.\"cartitem\", public.\"categories\", public.\"dining_tables\", public.\"loyalty_accounts\", public.\"loyalty_transactions\", public.\"media_assets\", public.\"merchant_device_tokens\", public.\"merchant_notification_deliveries\", public.\"merchant_notification_dismissals\", public.\"merchant_notification_outbox\", public.\"merchant_notification_reads\", public.\"merchant_order_print_jobs\", public.\"merchant_permissions\", public.\"merchant_role_permissions\", public.\"merchant_user_audit_logs\", public.\"merchant_user_permission_overrides\", public.\"merchant_user_stores\", public.\"merchant_users\", public.\"notification_deliveries\", public.\"notification_device_tokens\", public.\"notification_dismissals\", public.\"notification_outbox\", public.\"notification_reads\", public.\"order_item_reviews\", public.\"order_reviews\", public.\"order_reward_redemptions\", public.\"orderitem\", public.\"orderitem_options\", public.\"payment_events\", public.\"payment_refunds\", public.\"payments\", public.\"pointsaccount\", public.\"pointshistory\", public.\"product_attributes\", public.\"product_categories\", public.\"product_images\", public.\"product_images_legacy\", public.\"product_option_group_items\", public.\"product_option_group_links\", public.\"product_option_groups\", public.\"product_suppliers\", public.\"product_translations\", public.\"products\", public.\"reward_items\", public.\"reward_redemptions\", public.\"saas_access_leases\", public.\"saas_audit_logs\", public.\"saas_entitlements\", public.\"saas_instances\", public.\"saas_licenses\", public.\"saas_provisioning_operations\", public.\"saas_usage_snapshots\", public.\"shipment\", public.\"shipmentorder\", public.\"store_categories\", public.\"store_customers\", public.\"store_product_categories\", public.\"store_products\", public.\"stores\", public.\"suppliers\", public.\"system_config\", public.\"system_config_history\", public.\"user_payment_methods\", public.\"usercontact\", public.\"verification_codes\", public.\"wallet\", public.\"wallethistory\" TO \"tenant_a0da1748bc4d5419_role\"",
+      "GRANT USAGE ON SEQUENCE public.\"categories_category_id_seq\", public.\"product_images_image_id_seq\", public.\"products_product_id_seq\", public.\"saas_audit_logs_audit_id_seq\", public.\"saas_usage_snapshots_snapshot_id_seq\", public.\"suppliers_supplier_id_seq\", public.\"verification_codes_id_seq\" TO \"tenant_a0da1748bc4d5419_role\"",
+      "GRANT rds_iam TO \"tenant_a0da1748bc4d5419_role\" WITH SET FALSE",
+      "GRANT rds_iam TO \"tenant_a0da1748bc4d5419_role\" WITH INHERIT FALSE",
+      "GRANT rds_iam TO \"tenant_a0da1748bc4d5419_role\" WITH ADMIN FALSE",
+      "ALTER ROLE \"tenant_a0da1748bc4d5419_role\" LOGIN"
+    ],
+    "privileges": {
+      "database": [
+        "CONNECT"
+      ],
+      "schema": [
+        "USAGE"
+      ],
+      "table": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "sequence": [
+        "USAGE"
+      ],
+      "newFunctionGrants": 0,
+      "ddl": false,
+      "defaultPrivileges": false,
+      "iamMembership": {
+        "admin": false,
+        "inherit": false,
+        "set": false
+      }
+    },
+    "prerequisites": {
+      "exactClosedRoleAndDatabase": true,
+      "otherConnectableDatabases": 0,
+      "exactMigratedCatalog": true,
+      "noUnreviewedDefaultOrForeignObjects": true,
+      "freshExactHumanApproval": true,
+      "ownedTlsIamLoginAfterCommit": true
+    },
+    "isolationStatementsIncluded": false,
+    "iamNoInheritLiveCompatibilityVerified": false,
+    "executionAuthorized": false,
+    "runtimeEnabled": false,
+    "readyVerified": false
+  },
+  "closed": [
+    {
+      "oid": "1",
+      "name": "template1",
+      "owner_oid": "16410",
+      "allow_connections": true,
+      "connection_limit": -1,
+      "is_template": true,
+      "role_connect": false,
+      "public_connect": false,
+      "acl": [
+        {
+          "grantable": false,
+          "privilege": "CONNECT",
+          "grantee_oid": "16410",
+          "grantor_oid": "16410"
+        },
+        {
+          "grantable": false,
+          "privilege": "CREATE",
+          "grantee_oid": "16410",
+          "grantor_oid": "16410"
+        },
+        {
+          "grantable": false,
+          "privilege": "TEMPORARY",
+          "grantee_oid": "16410",
+          "grantor_oid": "16410"
+        }
+      ]
+    },
+    {
+      "oid": "5",
+      "name": "postgres",
+      "owner_oid": "16410",
+      "allow_connections": true,
+      "connection_limit": -1,
+      "is_template": false,
+      "role_connect": false,
+      "public_connect": false,
+      "acl": [
+        {
+          "grantable": false,
+          "privilege": "TEMPORARY",
+          "grantee_oid": "0",
+          "grantor_oid": "16410"
+        },
+        {
+          "grantable": false,
+          "privilege": "CONNECT",
+          "grantee_oid": "16410",
+          "grantor_oid": "16410"
+        },
+        {
+          "grantable": false,
+          "privilege": "CREATE",
+          "grantee_oid": "16410",
+          "grantor_oid": "16410"
+        },
+        {
+          "grantable": false,
+          "privilege": "TEMPORARY",
+          "grantee_oid": "16410",
+          "grantor_oid": "16410"
+        }
+      ]
+    },
+    {
+      "oid": "16384",
+      "name": "rdsadmin",
+      "owner_oid": "10",
+      "allow_connections": true,
+      "connection_limit": -1,
+      "is_template": false,
+      "role_connect": false,
+      "public_connect": false,
+      "acl": [
+        {
+          "grantable": false,
+          "privilege": "CONNECT",
+          "grantee_oid": "10",
+          "grantor_oid": "10"
+        },
+        {
+          "grantable": false,
+          "privilege": "CREATE",
+          "grantee_oid": "10",
+          "grantor_oid": "10"
+        },
+        {
+          "grantable": false,
+          "privilege": "TEMPORARY",
+          "grantee_oid": "10",
+          "grantor_oid": "10"
+        }
+      ]
+    },
+    {
+      "oid": "16459",
+      "name": "tenant_a0da1748bc4d5419_db",
+      "owner_oid": "16410",
+      "allow_connections": true,
+      "connection_limit": -1,
+      "is_template": false,
+      "role_connect": false,
+      "public_connect": false,
+      "acl": [
+        {
+          "grantable": false,
+          "privilege": "CONNECT",
+          "grantee_oid": "16410",
+          "grantor_oid": "16410"
+        },
+        {
+          "grantable": false,
+          "privilege": "CREATE",
+          "grantee_oid": "16410",
+          "grantor_oid": "16410"
+        },
+        {
+          "grantable": false,
+          "privilege": "TEMPORARY",
+          "grantee_oid": "16410",
+          "grantor_oid": "16410"
+        }
+      ]
+    }
+  ],
+  "bootstrap": {
+    "target": {
+      "tenantDatabase": "tenant_a0da1748bc4d5419_db"
+    },
+    "guardName": "tl_prepare_96c4e91750c441e3aab2de2609f7f029",
+    "comments": {
+      "database": "{\"kind\":\"database\",\"nonce\":\"96c4e91750c441e3aab2de2609f7f029\",\"resourceGeneration\":1,\"schema\":\"techlong/express-bootstrap-owner/v3\",\"stableIdentity\":\"a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d\",\"targetSha256\":\"817a664ba31a4776b94b5a836a1703c7c9e849f3a74c4aab56a8d434411e5a76\"}",
+      "role": "{\"kind\":\"role\",\"nonce\":\"96c4e91750c441e3aab2de2609f7f029\",\"resourceGeneration\":1,\"schema\":\"techlong/express-bootstrap-owner/v3\",\"stableIdentity\":\"a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d\",\"targetSha256\":\"817a664ba31a4776b94b5a836a1703c7c9e849f3a74c4aab56a8d434411e5a76\"}"
+    }
+  }
+}
