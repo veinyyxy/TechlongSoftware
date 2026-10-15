@@ -1,0 +1,288 @@
+{
+  "schema": "techlong/aurora-dual-mode-c5f-live-delivery-preflight/v1",
+  "state": "CONCRETE_PLAN_AND_SQL_COMPILER_COMPLETE_PREFLIGHT_BLOCKED_NOT_AUTHORIZED",
+  "date": "2026-10-15 America/Winnipeg",
+  "handoffAt": "2026-10-15T15:35:27.002Z",
+  "review": {
+    "directory": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r3",
+    "at": "2026-10-15T15:21:40.177Z",
+    "outcome": "EXACT_DEPLOYMENT_CANDIDATE_HAS_PREFLIGHT_BLOCKERS",
+    "planSha256": "d9afc3e7780651ddaebc333ddab8dcb09b6e74fecef37d9d3c72ad5d9248b92e",
+    "hashIsAnApproval": false,
+    "namespaceCollision": false,
+    "sdkReadonlyCalls": 43,
+    "cliReadonlyCalls": 8,
+    "countersExcludeIndependentChildrenAndLaterTargetedChecks": true,
+    "permissionDenialRows": [
+      {
+        "label": "cfn-service",
+        "action": "ecs:ListServiceDeployments",
+        "resource": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+        "decision": "implicitDeny",
+        "missingContext": []
+      },
+      {
+        "label": "cfn-service-deployments",
+        "action": "ecs:DescribeServiceDeployments",
+        "resource": "arn:aws:ecs:ca-central-1:402010193138:service-deployment/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service/*",
+        "decision": "implicitDeny",
+        "missingContext": []
+      },
+      {
+        "label": "cfn-target-read",
+        "action": "elasticloadbalancing:DescribeTargetGroupAttributes",
+        "resource": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/*",
+        "decision": "implicitDeny",
+        "missingContext": []
+      },
+      {
+        "label": "cfn-target-read",
+        "action": "elasticloadbalancing:DescribeTargetHealth",
+        "resource": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/*",
+        "decision": "implicitDeny",
+        "missingContext": []
+      },
+      {
+        "label": "cfn-target-read",
+        "action": "elasticloadbalancing:DescribeTags",
+        "resource": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/*",
+        "decision": "implicitDeny",
+        "missingContext": []
+      },
+      {
+        "label": "cfn-rule-tags-read",
+        "action": "elasticloadbalancing:DescribeTags",
+        "resource": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/*",
+        "decision": "implicitDeny",
+        "missingContext": []
+      },
+      {
+        "label": "cfn-rule-tags-read",
+        "action": "elasticloadbalancing:DescribeTags",
+        "resource": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/bc69b195b69bc2d9/*",
+        "decision": "implicitDeny",
+        "missingContext": []
+      },
+      {
+        "label": "cfn-log-policies",
+        "action": "logs:GetDataProtectionPolicy",
+        "resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+        "decision": "implicitDeny",
+        "missingContext": []
+      },
+      {
+        "label": "cfn-log-policies",
+        "action": "logs:DescribeIndexPolicies",
+        "resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+        "decision": "implicitDeny",
+        "missingContext": []
+      },
+      {
+        "label": "cfn-log-resource-policies",
+        "action": "logs:DescribeResourcePolicies",
+        "resource": "*",
+        "decision": "implicitDeny",
+        "missingContext": []
+      },
+      {
+        "label": "execution-log-stream",
+        "action": "logs:CreateLogStream",
+        "resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad:log-stream:*",
+        "decision": "implicitDeny",
+        "missingContext": []
+      },
+      {
+        "label": "execution-log-stream",
+        "action": "logs:PutLogEvents",
+        "resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad:log-stream:*",
+        "decision": "implicitDeny",
+        "missingContext": []
+      }
+    ]
+  },
+  "candidate": {
+    "deploymentId": "dep_7c99bd249470184852f0dc74",
+    "computeStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "workloadStackName": "techlong-sandbox-tenant-9c5ee9e64509dcad",
+    "resources": [
+      {
+        "logicalId": "TenantLogGroup",
+        "type": "AWS::Logs::LogGroup"
+      },
+      {
+        "logicalId": "TenantTaskDefinition",
+        "type": "AWS::ECS::TaskDefinition"
+      },
+      {
+        "logicalId": "TenantTargetGroup",
+        "type": "AWS::ElasticLoadBalancingV2::TargetGroup"
+      },
+      {
+        "logicalId": "TenantBusinessControlDenyRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule"
+      },
+      {
+        "logicalId": "TenantListenerRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule"
+      },
+      {
+        "logicalId": "TenantControlListenerRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule"
+      },
+      {
+        "logicalId": "TenantService",
+        "type": "AWS::ECS::Service"
+      }
+    ],
+    "hostedZoneId": "Z01473621BTTHKXBGOOEJ",
+    "tenantHostname": "first-acceptance.sandbox.techlong.cloud",
+    "deadlineTag": "2026-10-15T16:44:56.000Z",
+    "cellDeadlineTag": "2026-10-15T16:44:56.246Z",
+    "publicParametersSha256": "46ecbd75ab8264e5c6dbd29e28a6c13dd4cf04f0353aab634a671e7a5140fae6",
+    "publicParameterValuesPublished": false,
+    "proposedDirectAwsRequests": 3,
+    "proposedFirstClaimSqlStatements": 9,
+    "proposedFirstClaimInsertedRows": 6,
+    "countsExcludeIamActivationProvisionAndProviderInternalWrites": true,
+    "ddbAuroraV2MustBeAbsent": true,
+    "ddbOnlyLegacyKeyInserted": true,
+    "dnsCreateOnly": true,
+    "resourceVerified": false,
+    "epochActivated": false
+  },
+  "verification": {
+    "relatedTestsPassed": 16,
+    "newTests": 6,
+    "typecheckPassed": true,
+    "targetedLintPassed": true,
+    "realAwsTemplateValidation": true,
+    "realNeonNonAnalyzingReadonlyExplainStatements": 9,
+    "explainIsCommitOrTriggerProof": false,
+    "actualSecretOrProviderAccessProved": false
+  },
+  "logDiscrepancy": {
+    "initialPathNotCoveredAttributionWithdrawn": true,
+    "actualInlineAndBoundaryHaveMatchingTenantLogPathText": true,
+    "simulationsStillImplicitDeny": true,
+    "causeProved": false,
+    "sharedBoundaryConsumerCountObserved": 7,
+    "additionalInspectorImplemented": true,
+    "additionalInspectorExecuted": false,
+    "blockedByToolSafetyReview": true,
+    "permissionRequestedScope": "At most four fixed IAM metadata reads and four custom simulations; save policy/ARN evidence locally only; no mutations, credentials, Secret values or business data.",
+    "doNotWidenPoliciesBasedOnlyOnThisDiscrepancy": true
+  },
+  "effects": {
+    "awsWrites": 0,
+    "iamChanges": 0,
+    "secretValueReads": 0,
+    "localPrivateBundleReads": 0,
+    "auroraSqlConnections": 0,
+    "neonBusinessOrAuthorityWrites": 0,
+    "permanentSlotsConsumed": 0,
+    "jobsCreated": 0,
+    "ttlStarted": false,
+    "workloadOrDnsDeployed": false,
+    "imagesBuiltOrPublished": false
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r3/plan.json",
+      "rawFileSha256": "2ecb9e79b3a89c58a402d56e61e75e4ba96c9386ea5e0cc6bdbaba70c8fcd122"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r3/compute.json",
+      "rawFileSha256": "d007115b149ccb32c8e43d36568df2966b3f9d92a7db28716b1eb3e8f89d8dc1"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r3/control-plane.json",
+      "rawFileSha256": "65c1258e58868b8321d049a92c5a0b4d0f559d5bf086b70b9c11f418ed7a49a5"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r3/template-validation.json",
+      "rawFileSha256": "2cf6cdce99e52a728b609a0356870d31fafec35dc6a5bf8bd0ca331874308683"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r3/provider-permissions.json",
+      "rawFileSha256": "55e234c6fa96c8e622360aef54eefa06f448674995057f1af6e7c5ce5e43e273"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r3/roles.json",
+      "rawFileSha256": "f47e98a5513a9f3d0bb7f52a32c0f3dbfb9e828af0f1743129372ebb85dca1bf"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r3/secrets-metadata.json",
+      "rawFileSha256": "eb813e938bb04f92cb5a40cc6847a654ed89f02081c21c10cbf2cf25b2fb7a67"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r3/namespace.json",
+      "rawFileSha256": "cd9b747d71c82846720dbdd5e7081e39bc438cb9beb3bcc97e8a5407708c19f7"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r3/simulations.json",
+      "rawFileSha256": "a01a77cae2621211ad8e05d6aad21254ef7a979f353d7d099c98e1676d80d75b"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r3/neon-explain.json",
+      "rawFileSha256": "8f620e6580ef54386ac66c82dbc14357ede5775a790f2effee137e5603317ec4"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r3/result.json",
+      "rawFileSha256": "711ccbb724bd28e5ff7ed83a7fdeedb5c125bebc1b51d072dc19a9f52c528b33"
+    }
+  ],
+  "preservedPartialReviews": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r1/stopped.json",
+      "rawFileSha256": "c39ed22c0a9071dd965bfbf8f5a21958b180886ccb5657e795f7181b638c5245"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5f-review-20261015-r2/stopped.json",
+      "rawFileSha256": "f9e833eedf1c1cd559f6e116b06854a124345071adb15343a80be52eab862704"
+    }
+  ],
+  "handoffCodePins": [
+    {
+      "path": "lib/deployments/execution/express-live-delivery-plan-v1.ts",
+      "lfSha256": "2879c05232324c1d14dfd1c78863ac6a7fbf54d5eeb61f74c3ad9c6f8c63a87a"
+    },
+    {
+      "path": "lib/deployments/execution/express-first-claim-program-v1.ts",
+      "lfSha256": "d15f28fa85ec7583c9cd709b72c824cd306e89f0558f69d858696730b48ecef0"
+    },
+    {
+      "path": "ops/aws-sandbox/scripts/explain-express-first-claim-v1.ts",
+      "lfSha256": "860ef32e55072a8eb2d2e251e8cb347cfb53ffa1adbb3999e82f40576a115615"
+    },
+    {
+      "path": "ops/aws-sandbox/scripts/review-express-live-delivery-v1.mjs",
+      "lfSha256": "84303282f4c1b755f50122a0f562b85e5197dbcf8e7c1b6191114b3687d3bcd6"
+    },
+    {
+      "path": "ops/aws-sandbox/scripts/inspect-express-log-simulation-v1.mjs",
+      "lfSha256": "7c592e1b692c6276c9e6fc043ebbb1496336d176843c6c084532e0b8e7efd682"
+    },
+    {
+      "path": "tests/express-live-delivery-plan-v1.test.ts",
+      "lfSha256": "01d0c5213108e053d92787cedd39d634ff9a8c334dd592cf3e9ef9c705704bce"
+    }
+  ],
+  "codePinScope": "HANDOFF_FILES_ONLY_NOT_TRANSITIVE_EXECUTION_APPROVAL",
+  "codePinsRecordedAtHandoffNotAtProviderObservation": true,
+  "latestReviewSourceAddsReportingFlagsAfterR3NoProviderRerunClaimed": true,
+  "previousCompletedCapsule": {
+    "path": "ops/aws-sandbox/reviews/aurora-dual-mode-c5e-private-control.executed.json",
+    "rawFileSha256": "866ce66e842da79be819c609e4ecd7f93fd24639e0b287611e4b1462674e7c16"
+  },
+  "executionCliAvailable": false,
+  "liveDeliveryRootComplete": false,
+  "executionAuthorized": false,
+  "runtimeEnabled": false,
+  "readyVerified": false,
+  "existingNetworkFeesContinue": true,
+  "deadlineAutomaticallyStopsBilling": false,
+  "monthlyTargetUsd": 50,
+  "hardCostCap": false,
+  "documentation": "docs/aws-auto-deployment-aurora-dual-mode-c5f-live-delivery-preflight.md",
+  "next": "Obtain bounded read-only IAM inspection approval; isolate log simulation discrepancy; then finish one mainline minimal existing-IAM/first-claim/authority/workload/DNS/provision/initialized-ready closure. No premature job, old approval replay, image rebuild, seed or F3c9 expansion."
+}
