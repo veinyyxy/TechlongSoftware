@@ -1,5 +1,7 @@
 # D002 C4h：准确授予者校准，同一应用激活主线
 
+**已执行/批准及双槽已消费（2026-10-14 Winnipeg）**：唯一Run原八语句COMMIT成功，独立Inspect确认准确active/完整目录与ACL，并通过Source签发的应用TLS IAM只读登录。不是ECS身份或完整ready验收；尚未到期也不可重放。下文SQL0/槽不存在/待批准是准备时历史事实。[实际结果及唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4h-application-activated.md)。
+
 2026-10-14 America/Winnipeg。依据[C4g实机写后记录及独立回滚核验](./aws-auto-deployment-aurora-dual-mode-c4g-role-grantor-observed.md)，仅校准本目标的 `rds_iam` membership grantor。**本轮 SQL连接/写、AWS写、Secret值/私密材料读取和执行槽消费均0**。没有应用登录、ECR发布或ECS部署，也没有恢复F3c9、Grant或恢复探针支线。
 
 ## 准确改变与保持的边界
