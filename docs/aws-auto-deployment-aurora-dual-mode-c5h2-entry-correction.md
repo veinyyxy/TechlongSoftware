@@ -1,5 +1,7 @@
 # C5h2：首轮入口拒绝、窄修复及新的待审清单
 
+> 后续状态：本页r3清单已获批准并执行一次。新基础设施通过、provision返回HTTP500；根/17槽已消费，禁止重跑。本页保留当时待审材料；当前状态和唯一继续点见[真实部分交付记录](aws-auto-deployment-aurora-dual-mode-c5h2-partial-executed.md)。
+
 2026-10-15 America/Winnipeg。用户确认 `6d58a5e2c1e6673c00c566d9355ae98314449d055a38774d831ee48aa8541a88` 后，唯一一次 Run 于约20:06:35 UTC开始，尚在原15分钟窗口内；没有再次 Run。
 
 ## 实际结果，不是已部署
