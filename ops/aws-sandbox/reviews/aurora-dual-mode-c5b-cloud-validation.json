@@ -1,0 +1,347 @@
+{
+  "schema": "techlong/aurora-dual-mode-c5b-cloud-validation/v1",
+  "observedAtUtc": "2026-10-15T04:20:58Z",
+  "clientDate": "2026-10-14",
+  "clientTimezone": "America/Winnipeg",
+  "backendSourceCommit": "8753546772476b018d33b96ab66db4837abde186",
+  "platformSourceBaseCommit": "4693a1faa2e17485e7f9ad6df77d7bf437c2ae9d",
+  "sourceHashNormalization": "UTF-8 text with CRLF normalized to LF; source pins only, not execution authority",
+  "sourceFiles": {
+    "backend": [
+      {
+        "path": "app.js",
+        "lfSha256": "85ae16389c24214f976c80073f22bc2aabd55ab0716e7e9620188f469a6b2a1f"
+      },
+      {
+        "path": "routes/saas_control.js",
+        "lfSha256": "a2accd0b7dce5d20e34ca565e5d7902c244c1a3232f97c339ff9c0d9563d0ccf"
+      },
+      {
+        "path": "services/saas/tenant-control-readiness-v1.cjs",
+        "lfSha256": "459cde2a1e231c7d091657a2ca69e3f1c49284e57c06caa1f56cb7495254f850"
+      },
+      {
+        "path": "services/saas/tenant-readiness-v1.cjs",
+        "lfSha256": "a5ff7a6970c426c749d522887519ecefde659087796ba893db5f0f3c086c025f"
+      },
+      {
+        "path": "services/saas/tenant-readiness-v1-check.cjs",
+        "lfSha256": "ba79b5aee36a8e53d761c4ad6c3e4edbe5f2c4d5efc9c835300dfbf268e2e412"
+      },
+      {
+        "path": "test/tenant_control_readiness_v1.test.js",
+        "lfSha256": "5f731717e0bb65036ecf30544816dae1f492f05ba4ffcc324c5a541ef68262e7"
+      },
+      {
+        "path": ".github/workflows/backend-image-candidate.yml",
+        "lfSha256": "1d7fd99db80d03d8261e268d656045d5a89d0f28efa5a1f8e2e4471b92670aa8"
+      },
+      {
+        "path": "Dockerfile",
+        "lfSha256": "27df6b8c96ec5748a3a22a3cfa6768569806c6082f7cc99889568918eceb5a10"
+      },
+      {
+        "path": "Dockerfile.lifecycle",
+        "lfSha256": "acb250453f538ece427ce35ecf39d7a0e9ba2db5e573435e7a1832792fe2ab9c"
+      }
+    ],
+    "platform": [
+      {
+        "path": "lib/deployments/execution/control-client.ts",
+        "lfSha256": "b3e48d9816c6bc73ba288137703e0af614eb4f21aed495192eeffc00efca5d26"
+      },
+      {
+        "path": "lib/deployments/execution/express-control-readiness-v1.ts",
+        "lfSha256": "2fc82a0f3b499cce5b6e23b40cb62d4e493377f561dd3bc9a309c4fe2198a62d"
+      },
+      {
+        "path": "lib/deployments/execution/express-first-owner-password-v2.ts",
+        "lfSha256": "842f3c5a29d06e2a3d182fb121a7545b2f514de0089045e5b8afb884f1edcbec"
+      },
+      {
+        "path": "lib/deployments/cloudformation/single-tenant-acceptance-workload.ts",
+        "lfSha256": "2743e36b75896f426c79476967148c31c4c8f96154518c87a8bd059143ef80f9"
+      },
+      {
+        "path": "lib/deployments/cloudformation/express-single-tenant-workload-v1.ts",
+        "lfSha256": "23cedcbc0809959834c98c47bdebf9a5cc72b92772acfde9a3e5550cbed4382d"
+      },
+      {
+        "path": "tests/express-control-readiness-v1.test.ts",
+        "lfSha256": "74b6fe5d580ed25fd08d6dbdb368f7c4b5961a08e4a773035125a8eba5b1cc56"
+      },
+      {
+        "path": "tests/express-first-owner-password-v2.test.ts",
+        "lfSha256": "d426c9279daa664a9cf9fa0ee585ca16925f9030f7666296a304478b55e73231"
+      },
+      {
+        "path": "tests/express-single-tenant-workload-v1.test.ts",
+        "lfSha256": "e84385ab88288eabae069fa57564b1116886e902bf418d193f3aaf5bc53b4e8d"
+      },
+      {
+        "path": "tests/fixtures/express-delivery-v1.ts",
+        "lfSha256": "3f39881a0bd4972b0cc485a22933e2ba428e6aa57da0df80e480ad4006620c88"
+      }
+    ]
+  },
+  "localVerification": {
+    "platformTargetedTests": 36,
+    "platformCoreTargetedTests": 33,
+    "platformSupervisedWorkerAdjacentTests": 3,
+    "backendTargetedTests": 65,
+    "types": "passed-both",
+    "platformBuild": "passed",
+    "backendBuild": "passed",
+    "platformTargetedLint": "passed",
+    "backendSyntax": "passed",
+    "imageCheckEntrypoints": [
+      "app",
+      "lifecycle"
+    ],
+    "realAwsSecretValuesRead": 0,
+    "cloudSqlConnections": 0
+  },
+  "ci": {
+    "id": 38680847326,
+    "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38680847326",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 116244816360,
+        "name": "docker",
+        "conclusion": "success",
+        "allStepsSuccess": true
+      },
+      {
+        "id": 116244816674,
+        "name": "check",
+        "conclusion": "success",
+        "allStepsSuccess": true
+      }
+    ]
+  },
+  "imageCandidates": {
+    "id": 38680847373,
+    "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/38680847373",
+    "headSha": "8753546772476b018d33b96ab66db4837abde186",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-10-15T04:19:20Z",
+    "updatedAt": "2026-10-15T04:20:21Z",
+    "jobs": [
+      {
+        "id": 116244816521,
+        "name": "Build and self-check lifecycle",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out exact source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate self-check entrypoints",
+            "conclusion": "success"
+          },
+          {
+            "name": "Gate high and critical production dependency advisories",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build local linux/amd64 candidate",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run isolated container self-check",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check Aurora dual-mode connection support without network",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check reserved-role continuation V4 without network",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check exact Express uuid extension owner V5 without network",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check Express minimum application policy candidate V6 without network",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check tenant bootstrap and initialized readiness wiring without network",
+            "conclusion": "success"
+          },
+          {
+            "name": "Gate operating-system HIGH and CRITICAL before retaining candidates",
+            "conclusion": "success"
+          },
+          {
+            "name": "Record the exact checked and scanned image",
+            "conclusion": "success"
+          },
+          {
+            "name": "Preserve OS scan diagnosis on success or failure",
+            "conclusion": "success"
+          },
+          {
+            "name": "Export the exact checked image",
+            "conclusion": "success"
+          },
+          {
+            "name": "Retain promotion candidate and small receipts",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Check out exact source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 116244816773,
+        "name": "Build and self-check app",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out exact source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate self-check entrypoints",
+            "conclusion": "success"
+          },
+          {
+            "name": "Gate high and critical production dependency advisories",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build local linux/amd64 candidate",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run isolated container self-check",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check Aurora dual-mode connection support without network",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check reserved-role continuation V4 without network",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check exact Express uuid extension owner V5 without network",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check Express minimum application policy candidate V6 without network",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check tenant bootstrap and initialized readiness wiring without network",
+            "conclusion": "success"
+          },
+          {
+            "name": "Gate operating-system HIGH and CRITICAL before retaining candidates",
+            "conclusion": "success"
+          },
+          {
+            "name": "Record the exact checked and scanned image",
+            "conclusion": "success"
+          },
+          {
+            "name": "Preserve OS scan diagnosis on success or failure",
+            "conclusion": "success"
+          },
+          {
+            "name": "Export the exact checked image",
+            "conclusion": "success"
+          },
+          {
+            "name": "Retain promotion candidate and small receipts",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Check out exact source",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ],
+    "artifacts": [
+      {
+        "id": 11948275910,
+        "name": "os-scan-app-8753546772476b018d33b96ab66db4837abde186-38680847373-1",
+        "sizeInBytes": 16388,
+        "artifactZipSha256": "sha256:fbab830b7337f699cafddd1baaba6bc5c255c5bd55c9c2a232b09ba1493ed463",
+        "expired": false,
+        "expiresAtUtc": "2026-10-22T04:20:08Z"
+      },
+      {
+        "id": 11947876415,
+        "name": "checked-app-8753546772476b018d33b96ab66db4837abde186-38680847373-1",
+        "sizeInBytes": 72647672,
+        "artifactZipSha256": "sha256:4a487b44ee657b2add524892d0f8dc64947d1ab96ba634256f7c8ec645418c08",
+        "expired": false,
+        "expiresAtUtc": "2026-10-16T04:20:12Z"
+      },
+      {
+        "id": 11947134411,
+        "name": "checked-lifecycle-8753546772476b018d33b96ab66db4837abde186-38680847373-1",
+        "sizeInBytes": 85235583,
+        "artifactZipSha256": "sha256:987efb24a3f649a96b83a4cf798a5730ad97d82c1f5fe0f22c88a180bec12664",
+        "expired": false,
+        "expiresAtUtc": "2026-10-16T04:20:15Z"
+      },
+      {
+        "id": 11946869773,
+        "name": "os-scan-lifecycle-8753546772476b018d33b96ab66db4837abde186-38680847373-1",
+        "sizeInBytes": 17628,
+        "artifactZipSha256": "sha256:c9f19df9fb0bdca8a7173d4aa0d24b741efd2ca9740b0d592c473f0d5366cb34",
+        "expired": false,
+        "expiresAtUtc": "2026-10-22T04:20:10Z"
+      }
+    ],
+    "artifactContentsDownloaded": false,
+    "registryManifestDigest": null,
+    "ecrPublished": false,
+    "artifactDigestIsNotRegistryManifestDigest": true
+  },
+  "boundaries": {
+    "executionAuthorized": false,
+    "realSecretReadAuthorized": false,
+    "businessInitializationAuthorized": false,
+    "ecsOrCellDeploymentAuthorized": false,
+    "awsAccountApiCalls": 0,
+    "awsMutations": 0,
+    "cloudSqlQueries": 0,
+    "existingFullExecutionRootUnchanged": true,
+    "expressCandidateInstalledIntoLiveComposition": false,
+    "readyVerified": false,
+    "firstOwnerLoginVerified": false,
+    "legacySlotsReplayed": false,
+    "f3c9Expanded": false
+  },
+  "next": "C5c: assemble one current-tenant reviewed publish/deploy/initialize root and concrete manifests; no further SQL/Grant/restore side track. Actual value reads and writes require fresh scoped approval."
+}

@@ -5,6 +5,11 @@ import type {
 } from "./contracts.ts";
 import { clearFirstOwnerPassword } from "./control-secret-redaction.ts";
 import { sha256Hex } from "./hash.ts";
+import {
+  validateExpressControlReadinessPolicyV1, assertExpressControlFenceV1, expressReadinessMatchesV1,
+  assertExpressProvisionExpectationV1, assertExpressOwnerReceiptV1, expressEffectiveConfigurationMatchesV1,
+  type ExpressControlReadinessPolicyV1,
+} from './express-control-readiness-v1.ts';
 
 export interface SaaSControlRequest {
   method: "GET" | "POST";
@@ -110,6 +115,8 @@ export function assertSaaSControlTenantHostname(input: {
 export interface SaaSControlEndpointPolicy {
   /** Exact environment base domain, for example sandbox.techlong.cloud. */
   baseDomain: string;
+  /** Explicit new Express path. Omitted: legacy Full behavior is unchanged. */
+  expressReadiness?: ExpressControlReadinessPolicyV1;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -287,6 +294,7 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
   private readonly transport: SaaSControlTransport;
   private readonly tokenProvider: SaaSControlTokenProvider;
   private readonly baseDomain: string;
+  private readonly expressReadiness?: ExpressControlReadinessPolicyV1;
 
   constructor(
     transport: SaaSControlTransport,
@@ -296,6 +304,8 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
     this.transport = transport;
     this.tokenProvider = tokenProvider;
     this.baseDomain = assertSaaSControlBaseDomain(endpointPolicy.baseDomain);
+    this.expressReadiness = endpointPolicy.expressReadiness
+      ? validateExpressControlReadinessPolicyV1(endpointPolicy.expressReadiness) : undefined;
   }
 
   private async request(input: {
@@ -310,6 +320,7 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
   }): Promise<unknown> {
     input.signal.throwIfAborted();
     assertActiveControlFence(input.externalFence, input.appInstanceId);
+    if (this.expressReadiness) assertExpressControlFenceV1(this.expressReadiness, input.appInstanceId, input.externalFence);
     assertSaaSControlTenantHostname({
       hostname: input.hostname,
       baseDomain: this.baseDomain,
@@ -361,10 +372,14 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
       method: "GET",
       appInstanceId: input.appInstanceId,
       hostname: input.hostname,
-      path: "/api/saas/control",
+      path: this.expressReadiness ? '/api/saas/bootstrap' : "/api/saas/control",
       externalFence: input.externalFence,
       signal: input.signal,
     });
+    if (this.expressReadiness) return {
+      ready: expressReadinessMatchesV1(body, this.expressReadiness, false),
+      desiredConfigurationHash: this.expressReadiness.configurationHash, imageRevision: this.expressReadiness.imageRevision,
+    };
     return parseHealthObservation(
       body,
       input.appInstanceId,
@@ -387,6 +402,7 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
         appInstanceId: input.appInstanceId,
         externalFence: input.externalFence,
       });
+      if (this.expressReadiness) assertExpressProvisionExpectationV1(input.compiledPayload, this.expressReadiness);
       const requestHash = await sha256Hex(input.idempotencyKey);
       input.signal.throwIfAborted();
       const fencedIdempotencyKey =
@@ -410,6 +426,7 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
         signal: input.signal,
       });
       assertProvisionReceipt(body, input.externalFence);
+      if (this.expressReadiness) assertExpressOwnerReceiptV1(body, this.expressReadiness);
       return { accepted: true };
     } finally {
       // The compiler injects this secret at the last possible boundary. It is
@@ -425,6 +442,12 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
     signal: AbortSignal;
   }): Promise<SaaSControlObservation> {
     input.signal.throwIfAborted();
+    if (this.expressReadiness) {
+      const initialized = await this.request({ ...input, method: 'GET', path: '/api/saas/readiness' });
+      if (!expressReadinessMatchesV1(initialized, this.expressReadiness, true)) {
+        return { ready: false, desiredConfigurationHash: null, imageRevision: null };
+      }
+    }
     const body = await this.request({
       method: "GET",
       appInstanceId: input.appInstanceId,
@@ -433,11 +456,15 @@ export class MtlsSaaSControlClient implements SaaSControlPort {
       externalFence: input.externalFence,
       signal: input.signal,
     });
-    return parseReconciledObservation(
+    const observation = parseReconciledObservation(
       body,
       input.appInstanceId,
       input.externalFence,
     );
+    if (this.expressReadiness) observation.ready = observation.ready &&
+      observation.desiredConfigurationHash === this.expressReadiness.configurationHash && observation.imageRevision === this.expressReadiness.imageRevision &&
+      await expressEffectiveConfigurationMatchesV1(body, this.expressReadiness);
+    return observation;
   }
 }
 

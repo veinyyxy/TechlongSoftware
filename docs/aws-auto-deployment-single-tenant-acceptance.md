@@ -4,7 +4,7 @@
 
 **当前路线 D002（更新2026-10-14 Winnipeg）**：优先`express_iam`、保留`full_password`，暂不升级账户。C3g schema/迁移、C4c隔离、C4d四键Secret、C4e准确IAM保持；C4h唯一Run原八SQL已COMMIT成功，独立Inspect确认准确active/完整目录与ACL，并通过Source签发的应用TLS IAM只读登录。应用SQL权限/LOGIN已持久安装，rdsadmin/OID16389及ADMIN/INHERIT/SET false实证通过，但不是ECS任务身份或完整ready验收。全部已消费槽不可重放；不再C4激活/同类SQL探针。下一直接准备完整ready/商户初始化→ECR→ECS，各新的实际读取/写入/部署范围另审；不提升成员选项或改其它谓词。保留旧Full及历史，不扩展F3c9/Grant/恢复支线。[最新实机结果与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c4h-application-activated.md)，[完整兼容顺序](./aws-auto-deployment-aurora-dual-mode.md)。
 
-**当前编码进度 C5a**：bootstrap/初始化后ready核心、双模式配置候选与新双镜像验证已完成，当前已验执行源码为760e632；尚未初始化或部署。下一C5b集中bootstrap控制握手、workload健康路径和四键首位密码/最终reconciliation接线。[本阶段结果及边界](./aws-auto-deployment-aurora-dual-mode-c5a-readiness-wiring.md)。
+**当前编码进度 C5b 已完成验证**：Express 受认证 bootstrap/完整 readiness、独立四键固定版本 workload 健康路径、四键首位密码来源及实际配置/epoch/image最终核对接口已实现，旧 Full 路径保持。平台36/服务端65项定向测试、双方类型与完整构建通过；准确服务端8753546的CI38680847326/双候选38680847373全部成功。未读取真实Secret、初始化、发布ECR或部署，新适配尚未装入真实执行根。下一 C5c 合并准备一次受审发布→部署→初始化验收入口及清单，不再新开 SQL/Grant/F3c9 支线。[当前结果、风险与唯一继续位置](./aws-auto-deployment-aurora-dual-mode-c5b-delivery-wiring.md)。下方阶段信息保留为历史。
 
 ## 首轮交付定义
 

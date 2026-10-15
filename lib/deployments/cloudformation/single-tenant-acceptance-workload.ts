@@ -17,6 +17,14 @@ export async function renderSingleTenantAcceptanceWorkload(input: AwsSandboxTena
   if (input.environment.policy.budgetLimitCents !== 5000 || input.plan.deploymentProfileKey !== "standard-v1" ||
     input.imageUri !== FIRST_ACCEPTANCE_APP_IMAGE || input.environment.policy.maxTaskCount !== 1 ||
     input.environment.baseDomain !== "sandbox.techlong.cloud") throw Error("SINGLE_TENANT_WORKLOAD_SCOPE_INVALID");
+  const result = await renderSupervisedTenantWorkloadBase(input);
+  renderedWorkloads.set(result, canonicalJson(result));
+  return result;
+}
+
+/** Shared data-only isolation transform. Not an ApplyReady capability and not
+ * a replacement image allowlist for the unchanged legacy acceptance entry. */
+export async function renderSupervisedTenantWorkloadBase(input: AwsSandboxTenantStackInput) {
   const old = renderAwsSandboxTenantStack(input), template = structuredClone(old.template);
   const resources = template.Resources as Record<string, Record<string, unknown>>;
   const parameters = template.Parameters as Record<string, unknown>;
@@ -57,6 +65,5 @@ export async function renderSingleTenantAcceptanceWorkload(input: AwsSandboxTena
       fixedTaskCount: 1, capacityProvider: "FARGATE", ownershipChecksRetained: true,
       existingWorkerRendererUnchanged: true, appReadyNotYetVerified: true },
   };
-  renderedWorkloads.set(result, canonicalJson(result));
   return result;
 }
