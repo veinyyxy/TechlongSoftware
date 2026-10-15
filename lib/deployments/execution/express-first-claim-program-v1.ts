@@ -1,6 +1,6 @@
-import type { prepareExpressLiveDeliveryPlanV1 } from './express-live-delivery-plan-v1.ts';
+import type { prepareExpressLiveDeliveryPlanV1, prepareExpressLiveDeliveryPlanV2 } from './express-live-delivery-plan-v1.ts';
 import { canonicalJson, sha256Hex } from './hash.ts';
-type Plan = Awaited<ReturnType<typeof prepareExpressLiveDeliveryPlanV1>>;
+type Plan = Awaited<ReturnType<typeof prepareExpressLiveDeliveryPlanV1 | typeof prepareExpressLiveDeliveryPlanV2>>;
 export interface ExpressClaimStatementV1 { key: string; text: string; values: unknown[] }
 function fail(): never { throw Error('EXPRESS_FIRST_CLAIM_PROGRAM_INPUT_REJECTED'); }
 

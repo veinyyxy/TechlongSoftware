@@ -1,5 +1,7 @@
 # C5g 已执行：CFN 读取策略 v8 默认，旧 v7 完整保留
 
+后继状态：[C5h1 交付内核与明确缺口](aws-auto-deployment-aurora-dual-mode-c5h-live-delivery-kernel.md)。本页是既有安装历史，不再执行；原 Cell 标签现已过期，没有续期。
+
 2026-10-15 America/Winnipeg。用户在唯一 fresh SHA `dee0a0003308e809cb1d767d07756243507a99cb683b5181452e54168e77d9da`、准确一次写入范围及完整风险呈现后回复“确认”。仅据此执行该 IAM 更新及成功/失败后的独立只读核验，没有推定后续部署或其他写入许可。
 
 **结果：`EXACT_NEW_READ_POLICY_DEFAULT_V7_RETAINED`。本阶段完成；不是应用已部署或 ready。**

@@ -23,13 +23,51 @@ function freeze<T>(v: T): T { if (v && typeof v === 'object') { Object.values(v)
 /** Concrete data-only execution plan. The active coordinate passed to the
  * renderer is explicitly a FUTURE post-activation coordinate, never a live
  * ownership proof or ApplyReady capability. No SDK/client/credentials here. */
-export async function prepareExpressLiveDeliveryPlanV1(input: {
+export interface ExpressLiveDeliveryPlanInputV1 {
   sourceMaterial: Material; sourceMaterialSha256: string; subscriptionId: string;
   configuration: ExpressDeliveryInputV1['configuration']; configurationSchema: ExpressDeliveryInputV1['configurationSchema'];
   privateReceipt: { outcome: string; manifestSha256: string; summary: { targetMaterialSha256: string; targetScopeSha256: string };
     publicParameters: Record<string, string> };
   compute: ExpressComputeDeliveryOutputsV1; hostedZoneId: string; now: number;
+}
+export function prepareExpressLiveDeliveryPlanV1(input: ExpressLiveDeliveryPlanInputV1) {
+  return prepare(input, 'techlong/express-live-delivery-plan/v1');
+}
+
+/** New candidate only. An expired parent tag is retained verbatim, never
+ * renewed or reinterpreted as an unexpired compute approval. Execution needs
+ * a NEW reviewed scope that explicitly accepts this independent child window. */
+export async function prepareExpressLiveDeliveryPlanV2(input: ExpressLiveDeliveryPlanInputV1 & {
+  previousPlan: Awaited<ReturnType<typeof prepareExpressLiveDeliveryPlanV1>>;
+  windowAcknowledgement: 'INDEPENDENT_CHILD_WINDOW_PARENT_UNCHANGED_NO_AUTO_CLEANUP';
 }) {
+  const { previousPlan: previous, windowAcknowledgement, ...source } = input;
+  const { planSha256, ...body } = previous;
+  if (windowAcknowledgement !== 'INDEPENDENT_CHILD_WINDOW_PARENT_UNCHANGED_NO_AUTO_CLEANUP' ||
+      previous.schema !== 'techlong/express-live-delivery-plan/v1' || await sha256Hex(body) !== planSha256 ||
+      previous.sourceMaterialSha256 !== source.sourceMaterialSha256 ||
+      previous.computeStackId !== source.compute.stackId || previous.computeTemplateSha256 !== source.compute.templateSha256 ||
+      previous.cellDeadlineTag !== source.compute.outputs.CellExpiresAt ||
+      Date.parse(previous.cellDeadlineTag) >= source.now) fail('EXPRESS_INDEPENDENT_WINDOW_PROVENANCE_REJECTED');
+  const candidate = await prepare(source, 'techlong/express-live-delivery-plan/v2', {
+    supersededPlanSha256: planSha256, parentTagExpired: true, parentTagRenewalAuthorized: false,
+    automaticCleanupInstalled: false, acknowledgement: windowAcknowledgement,
+  });
+  if (candidate.materialSha256 !== previous.materialSha256 || canonicalJson(candidate.scope) !== canonicalJson(previous.scope) ||
+      candidate.publicParametersSha256 !== previous.publicParametersSha256 ||
+      canonicalJson(candidate.cellOutputs) !== canonicalJson(previous.cellOutputs) ||
+      canonicalJson(candidate.proposedEpochTransaction) !== canonicalJson(previous.proposedEpochTransaction) ||
+      canonicalJson(candidate.proposedDnsCreate) !== canonicalJson(previous.proposedDnsCreate))
+    fail('EXPRESS_INDEPENDENT_WINDOW_TARGET_DRIFT');
+  return candidate;
+}
+
+async function prepare<S extends 'techlong/express-live-delivery-plan/v1' | 'techlong/express-live-delivery-plan/v2'>(
+  input: ExpressLiveDeliveryPlanInputV1, schema: S, independentWindow?: {
+    supersededPlanSha256: string; parentTagExpired: boolean; parentTagRenewalAuthorized: boolean;
+    automaticCleanupInstalled: boolean; acknowledgement: string;
+  },
+) {
   const i = structuredClone(input), m = i.sourceMaterial, c = i.compute, constants = EXPRESS_LIVE_RESOURCES_V1;
   const proposal = await deriveExpressFirstDeploymentV1({ material: m, materialSha256: i.sourceMaterialSha256, subscriptionId: i.subscriptionId });
   if (c.outcome !== 'EXPRESS_COMPUTE_INDEPENDENTLY_VERIFIED_NO_WORKLOAD' ||
@@ -37,7 +75,9 @@ export async function prepareExpressLiveDeliveryPlanV1(input: {
       c.templateSha256 !== 'e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892' ||
       c.loadBalancer.vpcId !== c.outputs.VpcId || !/^[A-Za-z0-9-]+\.ca-central-1\.elb\.amazonaws\.com$/.test(c.loadBalancer.dnsName) ||
       !/^Z[A-Z0-9]+$/.test(c.loadBalancer.hostedZoneId) || !/^Z[A-Z0-9]+$/.test(i.hostedZoneId) ||
-      !Number.isSafeInteger(i.now) || Date.parse(c.outputs.CellExpiresAt) - i.now < 30 * 60000 ||
+      !Number.isSafeInteger(i.now) || !Number.isFinite(Date.parse(c.outputs.CellExpiresAt)) ||
+      (!independentWindow && Date.parse(c.outputs.CellExpiresAt) - i.now < 30 * 60000) ||
+      (independentWindow && (Date.parse(c.outputs.CellExpiresAt) >= i.now || m.environment.policy.ttlSeconds !== 7200)) ||
       i.privateReceipt.outcome !== 'PRIVATE_CONTROL_PROVENANCE_REBOUND_NOT_RUNTIME_VERIFIED' ||
       i.privateReceipt.manifestSha256 !== '755fc5af86fd7eff9e00f87b17f424c0e8ed2efa5292e1770bac51313e15fe36' ||
       i.privateReceipt.summary.targetScopeSha256 !== await sha256Hex(proposal.scope)) fail('EXPRESS_LIVE_INPUT_PROVENANCE_REJECTED');
@@ -61,7 +101,8 @@ export async function prepareExpressLiveDeliveryPlanV1(input: {
   // Anchor the two-hour tag to the already-approved Cell deadline; this is
   // a render-time deadline calculation, NOT an actual job/creation timestamp.
   const ttlMs = m.environment.policy.ttlSeconds * 1000;
-  const workloadDeadline = new Date(Math.floor(Math.min(i.now + ttlMs, Date.parse(c.outputs.CellExpiresAt)) / 1000) * 1000).toISOString();
+  const workloadDeadline = new Date(Math.floor((independentWindow ? i.now + ttlMs :
+    Math.min(i.now + ttlMs, Date.parse(c.outputs.CellExpiresAt))) / 1000) * 1000).toISOString();
   const requestedAt = Date.parse(workloadDeadline) - ttlMs;
   const futureTemplate = await delivery.renderWorkload({ fence: { ...pending, state: 'active' }, requestedAt,
     cellOutputs, activeCellCount: 1, activeTenantCount: 0 });
@@ -94,7 +135,7 @@ export async function prepareExpressLiveDeliveryPlanV1(input: {
   const dns = { HostedZoneId: i.hostedZoneId, ChangeBatch: { Comment: 'Reviewed first Express acceptance; create exact absent name only',
     Changes: [{ Action: 'CREATE', ResourceRecordSet: { Name: m.tenantHostname + '.', Type: 'A', AliasTarget: {
       DNSName: c.loadBalancer.dnsName, HostedZoneId: c.loadBalancer.hostedZoneId, EvaluateTargetHealth: false } } }] } };
-  const body = { schema: 'techlong/express-live-delivery-plan/v1' as const, sourceMaterialSha256: i.sourceMaterialSha256,
+  const body = { schema, ...(independentWindow ? { independentWindow } : {}), sourceMaterialSha256: i.sourceMaterialSha256,
     materialSha256: delivery.materialSha256, scope: proposal.scope, idempotencyKey: proposal.idempotencyKey,
     subscriptionId: i.subscriptionId, templateVersionId: m.scope.templateVersionId, desiredPlan: delivery.material.plan, environmentPolicy: m.environment.policy,
     computeStackId: c.stackId, computeTemplateSha256: c.templateSha256, cellOutputs,
