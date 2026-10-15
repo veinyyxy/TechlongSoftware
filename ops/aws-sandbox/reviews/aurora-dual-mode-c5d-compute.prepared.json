@@ -1,0 +1,395 @@
+{
+  "schema": "techlong/aurora-dual-mode-c5d-compute-prepared/v1",
+  "state": "EXACT_OLD_STACK_RETIRE_AND_16_RESOURCE_CREATE_REVIEWED_NOT_EXECUTED",
+  "date": "2026-10-15 America/Winnipeg",
+  "approvalRequested": true,
+  "executionAuthorized": false,
+  "manifestSha256": "7a0c636b741e1cc0af068046c052f1f09a6dd1bc8f0a62b539f3be609f245423",
+  "preparedAt": "2026-10-15T13:45:03.997Z",
+  "expiresAt": "2026-10-15T15:44:56.246Z",
+  "codeBindingSha256": "d05691bf55051b8a358db842dc55892f3d1ab3b9f2bff0fce27a39e7e1167800",
+  "codePinCount": 53,
+  "currentSourceMatchesActualFinalReview": true,
+  "oldStack": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/ede4f290-c758-11f1-8050-06ffda7a3477",
+    "status": "ROLLBACK_COMPLETE",
+    "templateSha256": "4d0061be99e0df1e51993f875596d00913aefe609c21a3432d4a7241431e8077",
+    "physicalResourceRows": 20,
+    "allPhysicalRowsDeleteComplete": true,
+    "operatorDeletionPerformed": false
+  },
+  "newCandidate": {
+    "stackName": "techlong-sandbox-cell-sandbox-1",
+    "protocol": "single-tenant-express-cell/v1",
+    "templateSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892",
+    "resourceInventory": [
+      {
+        "logicalId": "CellVpc",
+        "type": "AWS::EC2::VPC"
+      },
+      {
+        "logicalId": "CellInternetGateway",
+        "type": "AWS::EC2::InternetGateway"
+      },
+      {
+        "logicalId": "CellGatewayAttachment",
+        "type": "AWS::EC2::VPCGatewayAttachment"
+      },
+      {
+        "logicalId": "PublicSubnetA",
+        "type": "AWS::EC2::Subnet"
+      },
+      {
+        "logicalId": "PublicSubnetB",
+        "type": "AWS::EC2::Subnet"
+      },
+      {
+        "logicalId": "PublicRouteTable",
+        "type": "AWS::EC2::RouteTable"
+      },
+      {
+        "logicalId": "PublicDefaultRoute",
+        "type": "AWS::EC2::Route"
+      },
+      {
+        "logicalId": "PublicSubnetRouteAssociationA",
+        "type": "AWS::EC2::SubnetRouteTableAssociation"
+      },
+      {
+        "logicalId": "PublicSubnetRouteAssociationB",
+        "type": "AWS::EC2::SubnetRouteTableAssociation"
+      },
+      {
+        "logicalId": "LoadBalancerSecurityGroup",
+        "type": "AWS::EC2::SecurityGroup"
+      },
+      {
+        "logicalId": "TaskSecurityGroup",
+        "type": "AWS::EC2::SecurityGroup"
+      },
+      {
+        "logicalId": "CellCluster",
+        "type": "AWS::ECS::Cluster"
+      },
+      {
+        "logicalId": "CellLoadBalancer",
+        "type": "AWS::ElasticLoadBalancingV2::LoadBalancer"
+      },
+      {
+        "logicalId": "BusinessHttpsListener",
+        "type": "AWS::ElasticLoadBalancingV2::Listener"
+      },
+      {
+        "logicalId": "BusinessControlDenyRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule"
+      },
+      {
+        "logicalId": "ControlMtlsListener",
+        "type": "AWS::ElasticLoadBalancingV2::Listener"
+      }
+    ],
+    "parameters": {
+      "AvailabilityZoneA": "ca-central-1a",
+      "AvailabilityZoneB": "ca-central-1b",
+      "CertificateArn": "arn:aws:acm:ca-central-1:402010193138:certificate/6d1f2880-9f83-449c-930a-6b17516ef49d",
+      "ControlTrustStoreArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:truststore/techlong-sandbox-control-v1/aa1771fd0469cc44"
+    },
+    "tags": {
+      "Environment": "aws-sandbox",
+      "ManagedBy": "techlong-provisioner",
+      "CellId": "cell-sandbox-1",
+      "ExpiresAt": "2026-10-15T16:44:56.246Z",
+      "DeliveryTrack": "single-tenant-acceptance",
+      "CleanupMode": "supervised-reviewed"
+    },
+    "existingExpressDatabaseOwnedByThisStack": false,
+    "workloadIncluded": false,
+    "oldFullApplyBrandUsed": false
+  },
+  "existingIam": {
+    "roleId": "AROAV3GNMXTZESNMKM56K",
+    "policyId": "ANPAV3GNMXTZL4VMJHXXZ",
+    "boundaryVersion": "v1",
+    "materialSha256": "4d7d1712e914a7b4d7cc4e227a97761318585396893f5fab0d31b11f091e9faf",
+    "serviceLinkedRoles": [
+      {
+        "arn": "arn:aws:iam::402010193138:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+        "id": "AROAV3GNMXTZFKBPHQEYN",
+        "service": "ecs.amazonaws.com",
+        "trustSha256": "d5a8a17c28b6b10568d6050c1b8767fe608ed8fb84a16f0d7aa939b60f449538"
+      },
+      {
+        "arn": "arn:aws:iam::402010193138:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing",
+        "id": "AROAV3GNMXTZNUJ5QVBFD",
+        "service": "elasticloadbalancing.amazonaws.com",
+        "trustSha256": "81217ad7137baf00fcc27b88344a4a06e907925000cbc76aa3aa01170c77e9a2"
+      }
+    ],
+    "existingRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxFirstAcceptanceCellExecutionRole",
+    "installedDocumentsStillMatch": true,
+    "iamWrites": 0,
+    "remainingHistoricalFullCapabilityNotRemoved": true
+  },
+  "currentNamespace": {
+    "vpcs": [],
+    "loadBalancers": [],
+    "ecs": {
+      "failures": [],
+      "clusters": [
+        {
+          "arn": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1",
+          "name": "cell-sandbox-1",
+          "status": "INACTIVE",
+          "running": 0,
+          "pending": 0,
+          "services": 0
+        }
+      ]
+    }
+  },
+  "prerequisites": {
+    "certificateArn": "arn:aws:acm:ca-central-1:402010193138:certificate/6d1f2880-9f83-449c-930a-6b17516ef49d",
+    "certificateNotAfter": "2027-04-26T23:59:59.000Z",
+    "truststoreArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:truststore/techlong-sandbox-control-v1/aa1771fd0469cc44",
+    "truststoreActive": true,
+    "zones": [
+      "ca-central-1a",
+      "ca-central-1b"
+    ]
+  },
+  "sourceSimulations": [
+    {
+      "name": "create",
+      "action": "cloudformation:CreateStack",
+      "resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/*",
+      "allowed": true,
+      "decision": "allowed",
+      "missingContext": []
+    },
+    {
+      "name": "retire",
+      "action": "cloudformation:DeleteStack",
+      "resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/ede4f290-c758-11f1-8050-06ffda7a3477",
+      "allowed": true,
+      "decision": "allowed",
+      "missingContext": []
+    },
+    {
+      "name": "futureExactCleanupNamespace",
+      "action": "cloudformation:DeleteStack",
+      "resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/*",
+      "allowed": true,
+      "decision": "allowed",
+      "missingContext": []
+    },
+    {
+      "name": "passRole",
+      "action": "iam:PassRole",
+      "resource": "arn:aws:iam::402010193138:role/TechlongSandboxFirstAcceptanceCellExecutionRole",
+      "allowed": true,
+      "decision": "allowed",
+      "missingContext": []
+    }
+  ],
+  "simulationsAreProviderProof": false,
+  "controlPlane": {
+    "counts": {
+      "deployments": 0,
+      "jobs": 0,
+      "resources": 0,
+      "operations": 0
+    },
+    "authorities": [
+      {
+        "key": "tenant:a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+        "present": false,
+        "itemSha256": null
+      },
+      {
+        "key": "tenant:aurora-v2:a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+        "present": false,
+        "itemSha256": null
+      }
+    ],
+    "outcome": "FIRST_CLAIM_CANDIDATE_AURORA_PROOF_STILL_REQUIRED",
+    "ownershipClaimed": false,
+    "crossServiceCas": false
+  },
+  "seed": {
+    "approvedReceiptBoundSha256": "28657e70a814fcaed747b3a9bb7facb7274d6b711fa31d42da4c461913c9044c",
+    "storeRowsAtPriorIndependentSqlInspect": 1,
+    "currentAuroraSqlProofAtThisReview": false,
+    "seedReplayed": false
+  },
+  "estimate": {
+    "priceFileSha256": "95fa9ad53f823b6f0c46f9ff46a449cdc9f5bf12dc2add5cd939d9eb5726720f",
+    "observedAt": "2026-10-15T13:30:12.375Z",
+    "region": "ca-central-1",
+    "currency": "USD",
+    "rates": {
+      "albHour": 0.02475,
+      "truststoreHour": 0.0055,
+      "lcuHour": 0.0088,
+      "ipv4Hour": 0.005,
+      "cpuHour": 0.04456,
+      "memoryGbHour": 0.004865,
+      "acuHour": 0.14
+    },
+    "assumptions": {
+      "networkPublicIpv4": 2,
+      "truststoreAssociations": 1,
+      "lcuScenario": 1,
+      "futureTaskCpu": 0.25,
+      "futureTaskMemoryGb": 0.5,
+      "futureTaskPublicIpv4": 1
+    },
+    "currentScope": {
+      "networkHourlyUsd": 0.04025,
+      "threeHoursBaseUsd": 0.12075,
+      "threeHoursOneLcuUsd": 0.14715,
+      "monthly730HoursBaseUsd": 29.3825
+    },
+    "futureNotAuthorized": {
+      "taskWithIpv4HourlyUsd": 0.018572500000000002,
+      "monthly730HoursWithTaskAndOneLcuBeforeDatabaseUsd": 49.364425000000004,
+      "monthly730HoursAlsoOneActiveAcuUsd": 151.564425
+    },
+    "excludes": [
+      "existing resources",
+      "Secrets/storage/I/O/backups",
+      "CloudWatch/DNS",
+      "extra IPv4/LCU/data transfer",
+      "tax"
+    ],
+    "creditsAssumed": 0,
+    "monthlyTargetUsd": 50,
+    "hardCap": false,
+    "automaticDeletion": false,
+    "feesContinueUntilActualCleanup": true
+  },
+  "proposedLimits": {
+    "deleteOldStackCalls": 1,
+    "createStackCalls": 1,
+    "cfnTemplateResources": 16,
+    "iamWrites": 0,
+    "sqlConnections": 0,
+    "secretValueReads": 0,
+    "neonWrites": 0,
+    "authorityWrites": 0,
+    "writesRetry": 0,
+    "rootReset": false,
+    "cloudFormationFailureRollback": true,
+    "createTimeoutMinutes": 45,
+    "operatorDeleteNewStack": false
+  },
+  "slots": {
+    "run": "techlong-express-c5d-compute-run-v1.permanent-slot.json",
+    "oldDelete": "techlong-express-c5d-old-stack-delete-v1.permanent-slot.json",
+    "create": "techlong-express-c5d-compute-create-v1.permanent-slot.json"
+  },
+  "slotsConsumed": false,
+  "cleanupProcedure": {
+    "captureNewExactStackUuidBeforeFurtherActions": true,
+    "sourceAndInstalledCellRoleRechecked": true,
+    "futureDeleteRequiresNewExactUuidTemplateResourcesAndNoWorkloadReview": true,
+    "oldCreateOrCleanupApprovalNotReused": true,
+    "newStackMayContainChargeablePartialResources": true,
+    "expiryTagDoesNotDelete": true,
+    "expressDatabaseAndSecretsOutsideStackPreserved": true
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5d-compute-review-20261015-r2/manifest.json",
+      "rawFileSha256": "e80a2b13ded633828d72a21d76e16029aca34b48924996a217fae7b58a3ef399"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5d-compute-review-20261015-r2/facts.json",
+      "rawFileSha256": "496fe60ad73dd96e2ae1efb5f341ce74e05c272b53a154a2a6c16b4f9db99d57"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5d-compute-review-20261015-r2/control-plane.json",
+      "rawFileSha256": "6ace73f450c9e85d07f7690ff6229923ac6bafd728a1420116c801770c794fce"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5d-compute-review-20261015-r2/template.json",
+      "rawFileSha256": "2adf5669186f922427862f9c831efceff381338823a48609f1176b2a6d077087"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5d-compute-review-20261015-r2/requests.json",
+      "rawFileSha256": "a361d991df78e0c091b6147d96da5dcc24d754b8a34252a27301e3d5c88206d8"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5d-compute-review-20261015-r2/result.json",
+      "rawFileSha256": "ed3d248b4e0646507fb50ea0c616d1afd62a186798951e7d507fc27632b65741"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5d-compute-review-20261015-r2/template-validation.json",
+      "rawFileSha256": "77f9a8ced70192206523411928574d610cc94b96444742c4f4d4203a140d7c48"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5d-compute-review-20261015-r2/code-binding.json",
+      "rawFileSha256": "8717355b6fa77374dd1c079b9725d61db9c9bcc802bc80dd5c5e75372555de63"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-f3-prices-c5d-20261015-r1/selected-prices.json",
+      "rawFileSha256": "95fa9ad53f823b6f0c46f9ff46a449cdc9f5bf12dc2add5cd939d9eb5726720f"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-f3-prices-c5d-20261015-r1/AmazonECS.json",
+      "rawFileSha256": "29c49283d323f977ec10bd47c44a7de3f83a06bb51aa48aef605c3b930077ea0"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-f3-prices-c5d-20261015-r1/AWSELB.json",
+      "rawFileSha256": "5242efc51c9b3687c22b197ce27a388eda90902d314e5e5981ee54fdc3cc8d50"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-f3-prices-c5d-20261015-r1/AmazonRDS.json",
+      "rawFileSha256": "ebbfb948725e402a74fa5375e494e2d2938e80e980cd5d46d3b471073d292004"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-f3-prices-c5d-20261015-r1/AmazonVPC.json",
+      "rawFileSha256": "463552594f90f98c5025ea631f3554540389db4d1f78284a701eff8d3e437f83"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-f3-prices-c5d-20261015-r1/AWSSecretsManager.json",
+      "rawFileSha256": "9bea1ef20cb2951a28b8f8f7c6d77418070732e93b209f58dbe62352f863b507"
+    }
+  ],
+  "intermediateReview": {
+    "directory": "F:/ChatGPT_workshop/techlong-express-c5d-compute-review-20261015-r1",
+    "superseded": true,
+    "why": "final code adds ordered write-pipeline port tests, complete zero-workload output gate and service-linked trust hashes; no writes in either Review"
+  },
+  "verification": {
+    "targetedTests": 18,
+    "newTests": 7,
+    "allPassed": true,
+    "typecheck": true,
+    "targetedLint": true,
+    "realTemplateAndMetadataReview": true,
+    "productionOrContainerBuildRerun": false,
+    "publishOrApplicationSourceChanged": false
+  },
+  "effectsThisTurn": {
+    "awsReadonlyResourceApiCalls": 57,
+    "includesExpectedNotFoundCalls": true,
+    "successfulReviewPreparations": 2,
+    "validateTemplateCalls": 2,
+    "listenerProviderDescribeTypeCalls": 1,
+    "neonReadonlySelectStatements": 2,
+    "publicAwsPriceFeedGets": 5,
+    "cloudResourceWrites": 0,
+    "iamChanges": 0,
+    "auroraSqlConnections": 0,
+    "privateSecretOrBundleReads": 0,
+    "neonBusinessWrites": 0,
+    "authorityWrites": 0,
+    "jobOrTtlStart": 0,
+    "executionSlotsConsumed": 0
+  },
+  "runtimeEnabled": false,
+  "readyVerified": false,
+  "liveDeliveryRootComplete": false,
+  "documentation": "docs/aws-auto-deployment-aurora-dual-mode-c5d-compute-review.md",
+  "next": "Request exact fresh approval for old UUID retirement + one 16-resource compute CreateStack. After submission independently inspect exact new UUID/token/template/resources/outputs and zero workload. No automatic new-stack delete or paid tenant deployment."
+}

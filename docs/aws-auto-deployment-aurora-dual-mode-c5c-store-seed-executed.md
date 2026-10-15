@@ -1,5 +1,7 @@
 # C5c：默认店铺已提交并独立核验
 
+后继：[C5d准确旧栈退役及16资源计算层待审包](./aws-auto-deployment-aurora-dual-mode-c5d-compute-review.md)已完成实际只读核对与执行器，尚无云写；不改变本页已完成seed及其永久槽。
+
 2026-10-15 America/Winnipeg。用户确认[准确执行包及完整风险](./aws-auto-deployment-aurora-dual-mode-c5c-store-seed-review.md)后，按SHA `d53b2572aac78bba7cc007b53315adc8f4edeb9f3d127d909d7e013ff328bfc0`完成唯一一次INSERT和独立只读Inspect。**默认店铺初始化已完成；并未完成provision、部署或initialized ready。**
 
 ## 实际结果
