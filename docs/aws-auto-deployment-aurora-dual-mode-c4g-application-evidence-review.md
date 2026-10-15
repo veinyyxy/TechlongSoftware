@@ -1,5 +1,7 @@
 # D002 C4g：同一最小激活流程，补齐写后失败证据
 
+**已消费/仅历史（2026-10-14 Winnipeg）**：唯一Run写后ROLE_CLASSIFIER拒绝，实际rds_iam grantor=rdsadmin/旧期望postgres，COMMIT未提交、ROLLBACK成功。独立Inspect确认原closed/NOLOGIN，未进入应用登录。双槽永久消费，不复位/重放；下文0 SQL/槽不存在/待批准及候选原因尚未确认均为准备时事实。[实际差异、回滚证据与唯一下一步](./aws-auto-deployment-aurora-dual-mode-c4g-role-grantor-observed.md)。
+
 2026-10-14 America/Winnipeg。[C4f提交前回滚及独立closed验收](./aws-auto-deployment-aurora-dual-mode-c4f-application-activation-stopped.md)后继续同一主线。本轮已完成新入口、定向测试和AWS只读清单；**SQL连接/写、Secret值/私密读取、AWS写和新槽消费均0**。没有修改任何C4f源码/槽/历史，没有新增权限/Grant/恢复探针支线。
 
 ## 能定位的事实与仍未证明的原因
