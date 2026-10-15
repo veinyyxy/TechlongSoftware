@@ -1,5 +1,7 @@
 # C5f：首次认领与真实 workload 请求已编译，只读预检发现阻断
 
+追加状态：用户随后允许的四读四模拟已在10:38 CDT完成，所有对照仍隐式拒绝，未能定位权限原因；不据此修改日志权限或共享 boundary。[最新结果与主线继续点](aws-auto-deployment-aurora-dual-mode-c5f-log-inspection.md)。下文保留原预检时点记录，“未运行/待许可”不再表示当前状态。
+
 2026-10-15 America/Winnipeg。接续已完成 C5d 计算层和 C5e 本地控制材料来源验证，仍只推进同一个首轮交付闭环，不扩展 F3c9、恢复探针或发布支线。
 
 **本阶段完成的是具体请求编译与真实只读预检，不是部署完成，也没有新的写入批准。** `executionCliAvailable=false`、`authorityCurrentlyInstalled=false`、`runtimeEnabled=false`、`readyVerified=false`。本轮没有 AWS/IAM/Secret/Neon/authority 写、Aurora SQL、私密包或 Secret 值读取、执行槽消费、job/TTL 启动。
