@@ -1,0 +1,173 @@
+{
+  "schema": "techlong/aurora-dual-mode-c5g-cfn-read-policy-executed/v1",
+  "state": "EXACT_NEW_READ_POLICY_DEFAULT_V7_RETAINED",
+  "date": "2026-10-15 America/Winnipeg",
+  "approvedManifestSha256": "dee0a0003308e809cb1d767d07756243507a99cb683b5181452e54168e77d9da",
+  "humanAuthorizationContext": "User replied 确认 after the unique still-fresh SHA, exact one existing-policy version/default update, immediate independent Inspect and full linked risks were presented. No deployment or other mutation authority inferred.",
+  "approvedAttemptComplete": true,
+  "approvalConsumed": true,
+  "codeBindingSha256": "c732cf515ad191bfa230a8b5273be87714963034ea8c1a3c176a6a6146fec29f",
+  "currentCodePinsMatch": true,
+  "executionSourcesChanged": false,
+  "run": {
+    "directory": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-run-20261015-r1",
+    "outcome": "ONE_POLICY_VERSION_SUBMITTED_REQUIRES_INDEPENDENT_INSPECT",
+    "policyArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+    "roleId": "AROAV3GNMXTZKHYBCRSOE",
+    "policyId": "ANPAV3GNMXTZOQPIXOKJ4",
+    "newDefaultVersion": "v8",
+    "oldVersionNotDeleted": "v7",
+    "requestSha256": "61dee97ceb2eb4ea5d0026d379fcc87f9c19378b6526465711094f741a3e023f",
+    "submissionAt": "2026-10-15T16:11:49.797Z",
+    "iamWriteCalls": 1,
+    "readonlyCalls": 9,
+    "automaticRetryAuthorized": false
+  },
+  "independentInspect": {
+    "directory": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-inspect-20261015-r1",
+    "outcome": "EXACT_NEW_READ_POLICY_DEFAULT_V7_RETAINED",
+    "observedAt": "2026-10-15T16:11:55.488Z",
+    "versions": [
+      {
+        "id": "v7",
+        "isDefault": false
+      },
+      {
+        "id": "v8",
+        "isDefault": true
+      }
+    ],
+    "defaultPolicyDigestMatched": true,
+    "retainedV7DigestComparedByBoundInspect": true,
+    "rawRetainedVersionResponseSeparatelyArchived": false,
+    "roleTrustAttachmentsAndBothConsumerRostersMatched": true,
+    "boundaryConsumers": {
+      "roles": [
+        {
+          "name": "TechlongSandboxCloudFormationExecutionRole",
+          "id": "AROAV3GNMXTZKHYBCRSOE"
+        }
+      ],
+      "users": [],
+      "groups": []
+    },
+    "permissionConsumers": {
+      "roles": [
+        {
+          "name": "TechlongSandboxCloudFormationExecutionRole",
+          "id": "AROAV3GNMXTZKHYBCRSOE"
+        }
+      ],
+      "users": [],
+      "groups": []
+    },
+    "attributed": true,
+    "readonlyCalls": 10,
+    "additionalWrites": 0
+  },
+  "policy": {
+    "beforeDocumentSha256": "7b1d73a2defce79a34dc6e18ffa6f349302e2b1046b99256d86708ee5bb950d5",
+    "afterDocumentSha256": "bd2bd7d52bfdcc1f9c97230f510867d7be10a15f1a1269aa9e0f068add7f70ad",
+    "appendedStatements": 6,
+    "newReadActions": [
+      "ecs:DescribeServiceDeployments",
+      "ecs:ListServiceDeployments",
+      "elasticloadbalancing:DescribeTags",
+      "elasticloadbalancing:DescribeTargetGroupAttributes",
+      "elasticloadbalancing:DescribeTargetHealth",
+      "logs:DescribeIndexPolicies",
+      "logs:DescribeResourcePolicies",
+      "logs:GetDataProtectionPolicy"
+    ],
+    "requestedRegion": "ca-central-1",
+    "regionalStarActions": [
+      "logs:DescribeIndexPolicies",
+      "logs:DescribeResourcePolicies"
+    ],
+    "persistentNewReadPermissions": true,
+    "automaticRevokeOrRollback": false,
+    "taskExecutionOrSharedServiceBoundaryChanged": false,
+    "fullPolicyDocumentsPublishedToGit": false,
+    "propagationAndProviderAccessNotProved": true,
+    "futureCloudFormationOverwriteOrDriftRiskPersists": true
+  },
+  "permanentSlot": {
+    "path": "F:/ChatGPT_workshop/techlong-express-c5g-workload-cfn-read-policy-v1.permanent-slot.json",
+    "consumedAt": "2026-10-15T16:11:49.637Z",
+    "consumed": true,
+    "retryAuthorized": false,
+    "resetAuthorized": false
+  },
+  "effectsThisExecution": {
+    "readonlyCalls": 19,
+    "iamWrites": 1,
+    "otherIamOrResourceWrites": 0,
+    "automaticRetries": 0,
+    "simulations": 0,
+    "secretValueOrPrivateBundleReads": 0,
+    "auroraOrNeonSqlConnections": 0,
+    "businessOrAuthorityWrites": 0,
+    "permanentSlotsConsumed": 1,
+    "jobsOrTtlStarted": 0,
+    "workloadOrDnsDeployments": 0,
+    "containerBuildsOrPublishes": 0,
+    "testsRerun": false
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-run-20261015-r1/code-binding.json",
+      "rawFileSha256": "bb9d6710d7ec511a1cf0c878dd249f3bda9f671927032f8bd53512b2018f129d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-run-20261015-r1/candidate.json",
+      "rawFileSha256": "361f28e418fabe5ffc22a710c80088f34e8cc3350a956066773ae945b3b54de6"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-run-20261015-r1/before.json",
+      "rawFileSha256": "3f00b4b965ab037b7e45d7af2e40c44cf22e2c5d056554fad8e42a8b50774646"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-run-20261015-r1/submission.json",
+      "rawFileSha256": "c85a90b6af574f0b53c43e68c799beb98ad0f0fdc528536f5038a88ae1d1e1ed"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-run-20261015-r1/result.json",
+      "rawFileSha256": "a7df20650e933372f407389d5ebafae579468fced205515169fe5fff0edbdd4e"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-inspect-20261015-r1/code-binding.json",
+      "rawFileSha256": "bb9d6710d7ec511a1cf0c878dd249f3bda9f671927032f8bd53512b2018f129d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-inspect-20261015-r1/candidate.json",
+      "rawFileSha256": "361f28e418fabe5ffc22a710c80088f34e8cc3350a956066773ae945b3b54de6"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-inspect-20261015-r1/independent-inventory.json",
+      "rawFileSha256": "3a5cc7cf8d6a118813f2cc30f7696f7dddd64d9bb1cac2579de93f0397ff36c3"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-inspect-20261015-r1/result.json",
+      "rawFileSha256": "66b60ba4a0249cb8b4de876a03fd3a13f514bf0a75a8658a117ff9048168af08"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-workload-cfn-read-policy-v1.permanent-slot.json",
+      "rawFileSha256": "f46da7fafbd0f26a1de3a1708025cfec41d13b2d7a0ac77c5b956e5554491841"
+    }
+  ],
+  "previousPreparedCapsule": {
+    "path": "ops/aws-sandbox/reviews/aurora-dual-mode-c5g-cfn-read-policy.prepared.json",
+    "rawFileSha256": "d9fed6323ec0f8f02acc120c5d6b1296f1338cf97ef73255277b9c33796f5788",
+    "frozenHistoricalApprovalProposal": true
+  },
+  "runtimeEnabled": false,
+  "readyVerified": false,
+  "liveDeliveryRootComplete": false,
+  "actualProviderOrLogAccessProved": false,
+  "existingNetworkFeesContinue": true,
+  "cellDeadlineTagNotRenewed": "2026-10-15T16:44:56.246Z",
+  "monthlyTargetUsd": 50,
+  "hardCostCap": false,
+  "documentation": "docs/aws-auto-deployment-aurora-dual-mode-c5g-cfn-read-policy-executed.md",
+  "next": "Proceed only with the one real first-claim/epoch, seven-resource workload/DNS, provision and independent initialized-ready/atomic-writeback closure. New writes/private reads and a viable reviewed delivery window require fresh specific approval; no replay, premature job, expired-window bypass, extra log simulation or F3c9 expansion."
+}

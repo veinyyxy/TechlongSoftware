@@ -1,5 +1,7 @@
 # C5g 在线只读核对通过：仅一次既有 CFN 策略版本更新待批
 
+最新状态：用户确认后已完成唯一安装，v8默认/v7保留且独立Inspect通过；原SHA与永久槽已消费，**不得再执行下文Run命令**。[已执行结果与唯一继续点](aws-auto-deployment-aurora-dual-mode-c5g-cfn-read-policy-executed.md)。下文保留原待批材料，不代表当前执行授权。
+
 2026-10-15 America/Winnipeg。用户明确允许后，仅执行 **1次 STS 身份读取与8次 IAM 元数据读取**。没有模拟、IAM/资源写、私密包或 Secret 值读取、SQL、job/TTL、部署或执行槽消费。
 
 UTC **16:04:44.589** / Winnipeg **11:04:44.589 CDT** 生成新清单：
