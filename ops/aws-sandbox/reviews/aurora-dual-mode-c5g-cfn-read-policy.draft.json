@@ -1,0 +1,139 @@
+{
+  "schema": "techlong/aurora-dual-mode-c5g-cfn-read-policy-draft/v1",
+  "state": "ONE_WRITE_INSTALLER_IMPLEMENTED_FRESH_READONLY_INVENTORY_APPROVAL_REQUIRED",
+  "date": "2026-10-15 America/Winnipeg",
+  "handoffAt": "2026-10-15T16:00:08.921Z",
+  "candidate": {
+    "sha256": "2d96d656f0921fc93fe0a36747a11ca5df38f81b69e1a5687affdd6cad0509d1",
+    "hashIsApproval": false,
+    "beforeDocumentSha256": "7b1d73a2defce79a34dc6e18ffa6f349302e2b1046b99256d86708ee5bb950d5",
+    "afterDocumentSha256": "bd2bd7d52bfdcc1f9c97230f510867d7be10a15f1a1269aa9e0f068add7f70ad",
+    "policyArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+    "policyCharacters": 6086,
+    "appendedStatements": 6,
+    "newActions": [
+      "ecs:DescribeServiceDeployments",
+      "ecs:ListServiceDeployments",
+      "elasticloadbalancing:DescribeTags",
+      "elasticloadbalancing:DescribeTargetGroupAttributes",
+      "elasticloadbalancing:DescribeTargetHealth",
+      "logs:DescribeIndexPolicies",
+      "logs:DescribeResourcePolicies",
+      "logs:GetDataProtectionPolicy"
+    ],
+    "requestedRegion": "ca-central-1",
+    "regionalStarActions": [
+      "logs:DescribeIndexPolicies",
+      "logs:DescribeResourcePolicies"
+    ],
+    "preservesAllHistoricalStatements": true,
+    "oldVersionDeleted": false,
+    "taskExecutionOrSharedServiceBoundaryChanged": false
+  },
+  "entry": {
+    "path": "ops/aws-sandbox/scripts/review-express-cfn-read-policy-v1.mjs",
+    "modes": [
+      "Draft",
+      "Review",
+      "Run",
+      "Inspect"
+    ],
+    "singleWrite": "CreatePolicyVersion SetAsDefault=true on exact existing CFN policy",
+    "permanentSlot": "techlong-express-c5g-workload-cfn-read-policy-v1.permanent-slot.json",
+    "slotConsumed": false,
+    "runImplementedButNotAuthorized": true,
+    "defaultVersionIdCapturedNotAssumed": true,
+    "oldV7RetainedAndIndependentlyCompared": true,
+    "automaticRetryAuthorized": false,
+    "codeBindingSha256": "c732cf515ad191bfa230a8b5273be87714963034ea8c1a3c176a6a6146fec29f",
+    "codePins": 7,
+    "historyPins": 3,
+    "currentPinsMatch": true
+  },
+  "draft": {
+    "directory": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-draft-20261015-r3",
+    "outcome": "OFFLINE_EXACT_POLICY_CANDIDATE_NOT_APPROVABLE",
+    "approvalManifestIssued": false
+  },
+  "onlineReview": {
+    "processStarted": false,
+    "blockedByToolSafetyReview": true,
+    "reason": "New private IAM metadata reads require specific human confirmation; generic next-step instruction was not accepted as that authority.",
+    "requiredPermission": {
+      "stsIdentityReads": 1,
+      "iamMetadataReads": 8,
+      "iamCalls": [
+        "GetRole",
+        "ListRolePolicies",
+        "ListAttachedRolePolicies",
+        "GetPolicy",
+        "ListPolicyVersions",
+        "GetPolicyVersion",
+        "ListEntitiesForPolicy PermissionsBoundary",
+        "ListEntitiesForPolicy PermissionsPolicy"
+      ],
+      "scope": "Only existing TechlongSandboxCloudFormationExecutionRole and TechlongSandboxCloudFormationExecutionBoundary plus exact policy consumer name/ID rosters",
+      "localPolicyArnEvidenceOnly": true,
+      "simulatorCalls": 0,
+      "secretValues": 0,
+      "sql": 0,
+      "writes": 0
+    },
+    "noRetryOrWorkaroundAttempted": true
+  },
+  "fullReviewCorrection": {
+    "path": "ops/aws-sandbox/scripts/review-express-live-delivery-v1.mjs",
+    "lfSha256": "82c1d819762617d42fefbc25b28dc2d712fb05e07cf446afe2442707e8068a44",
+    "describeServiceDeploymentsAlsoUsesServiceArn": true,
+    "describeIndexPoliciesUsesRegionalStarScope": true,
+    "noRepeatedLogStreamSimulations": true,
+    "logAccessRemainsUnproved": true,
+    "fullReviewNotRerunThisTurn": true
+  },
+  "verification": {
+    "relatedTestsPassed": 25,
+    "newTests": 9,
+    "typecheckPassed": true,
+    "targetedLintPassed": true,
+    "actualSavedHistoricalPolicyCompiled": true,
+    "currentIamOrConsumerStateVerified": false,
+    "actualProviderAccessVerified": false
+  },
+  "effects": {
+    "awsCalls": 0,
+    "iamWrites": 0,
+    "resourceWrites": 0,
+    "secretValueOrLocalPrivateBundleReads": 0,
+    "sqlConnections": 0,
+    "businessOrAuthorityWrites": 0,
+    "permanentSlotsConsumed": 0,
+    "jobsOrDeploymentsStarted": 0
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-draft-20261015-r3/code-binding.json",
+      "rawFileSha256": "bb9d6710d7ec511a1cf0c878dd249f3bda9f671927032f8bd53512b2018f129d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-draft-20261015-r3/candidate.json",
+      "rawFileSha256": "361f28e418fabe5ffc22a710c80088f34e8cc3350a956066773ae945b3b54de6"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-draft-20261015-r3/result.json",
+      "rawFileSha256": "fa5372590b3ae0c5748cab71acccca3d7f658bcd65cd398a1eccbd05b2ff5b06"
+    }
+  ],
+  "preservedDraftDirectories": [
+    "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-draft-20261015-r1",
+    "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-draft-20261015-r2"
+  ],
+  "runtimeEnabled": false,
+  "readyVerified": false,
+  "liveDeliveryRootComplete": false,
+  "newIamInstallationAuthorized": false,
+  "existingNetworkFeesContinue": true,
+  "monthlyTargetUsd": 50,
+  "hardCostCap": false,
+  "documentation": "docs/aws-auto-deployment-aurora-dual-mode-c5g-cfn-read-policy.md",
+  "next": "Obtain explicit one STS/eight IAM metadata read-only permission, run Review once, present fresh manifest SHA and complete one-version risks before any installation. Then continue actual first-claim/authority/workload/DNS/provision/initialized-ready closure; no premature job or old-stage replay."
+}

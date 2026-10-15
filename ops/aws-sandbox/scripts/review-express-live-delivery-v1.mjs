@@ -31,6 +31,8 @@ try {
     'AWS_SHARED_CREDENTIALS_FILE', 'NODE_OPTIONS', 'NODE_EXTRA_CA_CERTS'].some(n => process.env[n]) || process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') throw Error('LIVE_REVIEW_ENV');
   const sourceFile = base + '/techlong-express-delivery-c5c-20261015-r1.review.json';
   if (hash(await readFile(sourceFile)) !== 'f744acf7846b8e39498fef6cd1911356d867b54c32d4c71aaa6109fa3f7d263e') throw Error('LIVE_REVIEW_SOURCE_DRIFT');
+  if (hash(await readFile(base + '/techlong-express-c5f-log-simulation-20261015-r1.json')) !==
+      '7a6a1ee4c204d2da5e7ec983585419d28e4fbcf59fd488c76069d1df94565122') throw Error('LIVE_REVIEW_LOG_HISTORY_DRIFT');
   const source = await json(sourceFile), business = await json(base + '/techlong-d001-business-review-20261013-r3/manifest.json');
   const executed = await json('ops/aws-sandbox/reviews/aurora-dual-mode-c5e-private-control.executed.json');
   if (!executed.approvedAttemptComplete || executed.run?.outcome !== 'PRIVATE_CONTROL_PROVENANCE_REBOUND_NOT_RUNTIME_VERIFIED') throw Error('LIVE_REVIEW_PRIVATE_RECEIPT_REQUIRED');
@@ -131,15 +133,16 @@ try {
   const logArn = 'arn:aws:logs:ca-central-1:402010193138:log-group:' + ecsProps.TenantLogGroup.Properties.LogGroupName;
   await sim('cfn-task', cfnRole, ['ecs:RegisterTaskDefinition', 'ecs:TagResource'], [taskArn]);
   await sim('cfn-service', cfnRole, ['ecs:CreateService', 'ecs:DescribeServices', 'ecs:UpdateService', 'ecs:DeleteService', 'ecs:ListServiceDeployments'], [serviceArn]);
-  await sim('cfn-service-deployments', cfnRole, ['ecs:DescribeServiceDeployments'], ['arn:aws:ecs:ca-central-1:402010193138:service-deployment/cell-sandbox-1/' + ecsProps.TenantService.Properties.ServiceName + '/*']);
+  await sim('cfn-service-deployments', cfnRole, ['ecs:DescribeServiceDeployments'], [serviceArn,
+    'arn:aws:ecs:ca-central-1:402010193138:service-deployment/cell-sandbox-1/' + ecsProps.TenantService.Properties.ServiceName + '/*']);
   await sim('cfn-logs', cfnRole, ['logs:CreateLogGroup', 'logs:DeleteLogGroup', 'logs:PutRetentionPolicy', 'logs:TagResource', 'logs:ListTagsForResource'], [logArn]);
   await sim('cfn-target-create', cfnRole, ['elasticloadbalancing:CreateTargetGroup'], ['*']);
   await sim('cfn-target-read', cfnRole, ['elasticloadbalancing:DescribeTargetGroupAttributes', 'elasticloadbalancing:DescribeTargetHealth', 'elasticloadbalancing:DescribeTags'],
     ['arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/' + ecsProps.TenantTargetGroup.Properties.Name + '/*']);
   await sim('cfn-rule-tags-read', cfnRole, ['elasticloadbalancing:DescribeTags'],
     [compute.outputs.HttpsListenerArn.replace(':listener/', ':listener-rule/') + '/*', compute.outputs.ControlListenerArn.replace(':listener/', ':listener-rule/') + '/*']);
-  await sim('cfn-log-policies', cfnRole, ['logs:GetDataProtectionPolicy', 'logs:DescribeIndexPolicies'], [logArn]);
-  await sim('cfn-log-resource-policies', cfnRole, ['logs:DescribeResourcePolicies'], ['*']);
+  await sim('cfn-log-policies', cfnRole, ['logs:GetDataProtectionPolicy'], [logArn]);
+  await sim('cfn-log-regional-policies', cfnRole, ['logs:DescribeIndexPolicies', 'logs:DescribeResourcePolicies'], ['*']);
   await sim('cfn-create-rules', cfnRole, ['elasticloadbalancing:CreateRule'], [compute.outputs.HttpsListenerArn, compute.outputs.ControlListenerArn]);
   await sim('cfn-read', cfnRole, ['ecs:DescribeTaskDefinition', 'elasticloadbalancing:DescribeRules', 'elasticloadbalancing:DescribeTargetGroups', 'logs:DescribeLogGroups'], ['*']);
   await sim('cfn-pass-runtime', cfnRole, ['iam:PassRole'], [C.taskExecutionRoleArn, source.material.binding.access.applicationRoleArn], [str('iam:PassedToService', 'ecs-tasks.amazonaws.com')]);
@@ -159,18 +162,25 @@ try {
   await sim('execution-ecr-token', C.taskExecutionRoleArn, ['ecr:GetAuthorizationToken'], ['*']);
   await sim('execution-image-pull', C.taskExecutionRoleArn, ['ecr:BatchGetImage', 'ecr:GetDownloadUrlForLayer', 'ecr:BatchCheckLayerAvailability'],
     ['arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast']);
-  await sim('execution-log-stream', C.taskExecutionRoleArn, ['logs:CreateLogStream', 'logs:PutLogEvents'], [logArn + ':log-stream:*']);
+  // The completed four-case experiment was non-diagnostic, including minimal
+  // Allow Resource:* without a boundary. Do not loop that simulator branch or
+  // convert the uncertainty into new permissions/an "allowed" result.
+  await save('log-access-unproved.json', { actualLogAccessVerified: false, simulatedAllowAssumed: false,
+    furtherStreamSimulationPerformed: false, actualValidationRequiresFreshReviewedDeployment: true,
+    priorEvidence: 'F:/ChatGPT_workshop/techlong-express-c5f-log-simulation-20261015-r1.json',
+    priorEvidenceRawSha256: '7a6a1ee4c204d2da5e7ec983585419d28e4fbcf59fd488c76069d1df94565122' });
   await save('simulations.json', { results, simulationIsProviderOrKeyPolicyProof: false });
   phase = 'NEON_EXPLAIN';
   const explain = await child(['--experimental-strip-types', '--env-file-if-exists=.env.local', 'ops/aws-sandbox/scripts/explain-express-first-claim-v1.ts', '--plan', path.join(out, 'plan.json').replaceAll('\\', '/')]);
   await save('neon-explain.json', explain);
   const gaps = results.flatMap(g => g.rows.filter(r => r.decision !== 'allowed' || r.missingContext.length).map(r => ({ label: g.label, ...r })));
   const collisions = !stackAbsent || tenantRecords.length > 0 || occupiedPriorities || !serviceAbsent || target !== null;
-  const result = { mode: 'ReviewOnly', outcome: gaps.length || collisions ? 'EXACT_DEPLOYMENT_CANDIDATE_HAS_PREFLIGHT_BLOCKERS' : 'EXACT_DEPLOYMENT_CANDIDATE_PREFLIGHT_PASSED_NOT_AUTHORIZED',
+  const result = { mode: 'ReviewOnly', outcome: gaps.length || collisions ? 'EXACT_DEPLOYMENT_CANDIDATE_HAS_PREFLIGHT_BLOCKERS' : 'READ_CHECKS_PASSED_LOG_ACCESS_STILL_UNPROVED_NOT_AUTHORIZED',
     directory: out, at: new Date().toISOString(), planSha256: plan.planSha256, resources: plan.futureTemplate.resourceInventory,
     workloadStackName: plan.futureTemplate.stackName, hostedZoneId, permissionGaps: gaps, namespaceCollision: !!collisions,
     sdkReadonlyCalls: calls, cliReadonlyCalls: cliCalls, readonlyThrottleRetries, proposedDirectAwsWrites: 3, proposedNeonClaimRows: 6,
     policyChangesDerivedFromSimulationAlone: false, proposedWriteCountsExcludeIamActivationAndProvision: true,
+    actualLogAccessVerified: false, furtherStreamSimulationPerformed: false,
     actualWrites: 0, privateReads: 0, executionSlotConsumed: false, executionCliAvailable: false, runtimeEnabled: false, readyVerified: false };
   await save('result.json', result); console.log(JSON.stringify(result, null, 2));
 } catch (e) { await save('stopped.json', { code: /^LIVE_REVIEW_[A-Z0-9_]+$/.test(e.message || '') ? e.message : 'LIVE_REVIEW_LOCAL_OR_PROVIDER_FAILED', phase,
