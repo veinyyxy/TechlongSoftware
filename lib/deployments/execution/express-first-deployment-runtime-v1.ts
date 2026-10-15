@@ -1,6 +1,11 @@
 import { prepareExpressSingleTenantDeliveryV1, type ExpressDeliveryInputV1 } from './express-single-tenant-delivery-v1.ts';
 import { deriveExpressFirstDeploymentV1 } from './express-deployment-scope-v1.ts';
 import { NeonDeploymentExecutionRepository } from './neon-repository.ts';
+import { createExpressControlBindingSourcesV1 } from './express-control-binding-sources-v1.ts';
+import { createAcceptanceReadonlyNeonSql } from './single-tenant-control-bindings.ts';
+import type { loadExpressPrivateControlSourcesV1 } from './express-private-control-v1.ts';
+import type { FirstOwnerSecretReadonlyPort } from './single-tenant-first-owner-password.ts';
+import { sha256Hex } from './hash.ts';
 
 /** Explicit first-claim entry, not a Full prepared-v2 factory. Construction
  * creates a genuinely scoped repository and rebinds the control/password scope
@@ -23,8 +28,18 @@ export async function createPreparedExpressFirstDeploymentRuntimeV1(input: {
   return Object.freeze({ mode: 'express_first_deployment_prepared_not_activated' as const,
     delivery, repository, scope: proposal.scope, sourceMaterialSha256: source.materialSha256,
     previousFutureDeploymentId: proposal.previousFutureDeploymentId, idempotencyKey: proposal.idempotencyKey,
-    blockers: ['fresh_Aurora_identity_catalog_and_empty_business_proof', 'reviewed_atomic_first_claim_and_external_epoch_installation',
-      'reviewed_default_store_seed_execution_root', 'reviewed_compute_workload_dns_and_private_source_execution',
+    async composeLiveControl(controlInput: { sources: Awaited<ReturnType<typeof loadExpressPrivateControlSourcesV1>>;
+      sdk: FirstOwnerSecretReadonlyPort; expectedSourceUserId: string }) {
+      if (controlInput.sources.summary.targetMaterialSha256 !== delivery.materialSha256 ||
+          controlInput.sources.summary.targetScopeSha256 !== await sha256Hex(proposal.scope))
+        throw Error('EXPRESS_FIRST_DEPLOYMENT_PRIVATE_SCOPE_REJECTED');
+      const live = await createExpressControlBindingSourcesV1({ material: delivery.material, materialSha256: delivery.materialSha256,
+        scope: proposal.scope, sql: createAcceptanceReadonlyNeonSql(input.databaseUrl) });
+      return delivery.composeControl({ ...live, transport: controlInput.sources.controlTransport, tokens: controlInput.sources.controlTokens,
+        sdk: controlInput.sdk, expectedSourceUserId: controlInput.expectedSourceUserId });
+    },
+    blockers: ['fresh_database_state_and_installed_store_evidence', 'reviewed_atomic_first_claim_and_external_epoch_installation',
+      'reviewed_workload_dns_and_private_source_execution',
       'initialized_reconciliation_and_atomic_ready_writeback'],
     workerStarted: false, jobClaimed: false, databaseOwnershipClaimed: false, epochActivated: false,
     executionAuthorized: false, runtimeEnabled: false });

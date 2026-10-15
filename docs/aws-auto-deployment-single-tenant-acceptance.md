@@ -1,5 +1,7 @@
 # 单租户首轮 AWS 自动部署：当前执行主线
 
+**最新 C5e 控制材料接线待审（2026-10-15 Winnipeg）**：显式保留旧Full校验/原私密包，通过新owner/image/两数据库名的来源关系验证后接入Express控制端口；真实app/schema及verified owner/generation/Neon active operation只读binding已接入准备runtime，不制造缺失owner。18项相关tests/types/lint通过，真实Review再次确认16资源/空ECS和未认领控制面；当前私密读取、云/业务写、新槽消费均0。SHA `755fc5af86fd7eff9e00f87b17f424c0e8ed2efa5292e1770bac51313e15fe36` 至Winnipeg10月15日11:14:56 CDT，仅待一次本地私密包校验/显式重绑定/dispose批准；不签token、不发HTTP、不读Secret值、不部署或写业务。原计算层持续计费且标签不自动停费；后继仍集中7资源workload/DNS、真实owner/epoch及provision/ready闭环。[具体范围、风险和入口](./aws-auto-deployment-aurora-dual-mode-c5e-private-control-review.md)。下方保留历史。
+
 **最新 C5d 计算层已完成（2026-10-15 Winnipeg）**：准确批准7a0c636b…后旧失败栈已删除，新UUID `b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1` 的16资源全部CREATE_COMPLETE；UTC14:03:28独立Inspect通过模板/参数/标签/角色/根事件token/输出来源，ECS ACTIVE且任务/服务0。直接云写2次、重试0、三槽永久消费；无Aurora SQL/IAM/Secret值/私密读取或Neon/authority/TTL/DNS写，尚非应用ready。网络已持续计费，11:44:56 CDT的ExpiresAt只是标签；实际清理要准确新UUID另批。下一唯一方向是实际owner/epoch及7资源workload/DNS、私密来源/provision和独立initialized ready闭环，不重建镜像、不重放seed或扩展F3c9。[实际证据、输出及继续点](./aws-auto-deployment-aurora-dual-mode-c5d-compute-executed.md)。下方均为历史。
 
 **最新 C5d 计算层待审（2026-10-15 Winnipeg）**：真实只读核对旧失败栈20条物理记录DELETE_COMPLETE、VPC/ALB无占用、ECS仅空INACTIVE历史、现有Cell角色/证书/TrustStore匹配；独立两写入口与18项相关tests/types/lint通过。待批SHA `7a0c636b741e1cc0af068046c052f1f09a6dd1bc8f0a62b539f3be609f245423`，Winnipeg10月15日10:44:56到期，仅准确旧UUID退役+新16资源计算层，不启动任务/SQL/TTL或读取私密值。短期3小时新增网络估算约0.12–0.15 USD，常驻整体可能超50/月，标签不会自动停费。新云写及新槽消费均0。[范围、完整风险、区域费用及执行入口](./aws-auto-deployment-aurora-dual-mode-c5d-compute-review.md)。下方保留历史。
