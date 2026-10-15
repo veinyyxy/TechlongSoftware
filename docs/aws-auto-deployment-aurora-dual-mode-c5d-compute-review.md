@@ -1,5 +1,7 @@
 # C5d：Express 计算层退役/创建执行包（待批准）
 
+> **历史审批包，已于2026-10-15执行完成。** 用户确认7a0c636b…后，准确旧失败栈已DELETE_COMPLETE；新16资源栈`b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1`独立核验通过，ECS ACTIVE且任务/服务0。三槽永久消费，不得重跑以下Run命令或复用此批准删除新栈；费用继续产生，ExpiresAt不是停费机制。以[已执行结果与唯一继续点](./aws-auto-deployment-aurora-dual-mode-c5d-compute-executed.md)为当前状态，以下待审文字仅保留原范围和风险，不再是待执行授权。
+
 2026-10-15 America/Winnipeg。继续[默认店铺已完成后的部署主线](./aws-auto-deployment-aurora-dual-mode-c5c-store-seed-executed.md)，不再动SQL、重发镜像或扩展F3c9。真实Review通过，18项相关测试（新增7项）、types和定向lint通过；**本轮云写入、Aurora SQL连接、AWS Secret值/私密bundle读取及新执行槽消费均0，尚未部署。**
 
 ## 本次准确范围：最多两次直接 CloudFormation 写
