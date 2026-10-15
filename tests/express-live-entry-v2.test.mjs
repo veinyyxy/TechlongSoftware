@@ -43,6 +43,40 @@ test('foreign database target refuses construction before credential resolution,
     journal: { consume() { consumed++; } }, save() {} }), /TARGET_REJECTED/);
   assert.equal(consumed, 0);
 });
+
+test('real observer entry accepts the frozen WITH catalog SELECT and rejects modified SQL before credentials or slots', async t => {
+  let program;
+  try {
+    program = JSON.parse(await readFile('F:/ChatGPT_workshop/techlong-express-c5c-store-seed-inspect-20261015-r1/program.json', 'utf8'));
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    t.skip('Requires the original non-secret, locally retained C5c SQL artifact; never substituted with synthetic SQL.'); return;
+  }
+  assert.match(program.snapshot[3].text.trim(), /^WITH\b/);
+  let consumed = 0, saved = 0;
+  const create = p => createExpressInstalledDatabaseObserverV1({ program: p,
+    journal: { consume() { consumed++; } }, save() { saved++; } });
+  // Invoke the REAL entry, but stop immediately after the local guard, before
+  // credential resolution, STS, permanent slots or any database connection.
+  const stop = Error('LOCAL_STOP_BEFORE_CREDENTIALS'), signal = AbortSignal.abort(stop), observer = create(program);
+  for (const phase of ['preflight', 'after_bootstrap']) {
+    await assert.rejects(observer.observe(phase, signal), e => e === stop);
+    await assert.rejects(observer.observe(phase, signal), /LIVE_DATABASE_OBSERVER_ENTRY_REJECTED/);
+  }
+  const concurrent = create(program);
+  await Promise.all([
+    assert.rejects(concurrent.observe('preflight', signal), e => e === stop),
+    assert.rejects(concurrent.observe('preflight', signal), /LIVE_DATABASE_OBSERVER_ENTRY_REJECTED/),
+  ]);
+  for (const text of ['SELECT 1', 'WITH x AS (DELETE FROM public.stores RETURNING *) SELECT * FROM x',
+    program.snapshot[3].text + '\nDELETE FROM public.stores']) {
+    const changed = structuredClone(program); changed.snapshot[3].text = text;
+    await assert.rejects(create(changed).observe('preflight', signal), /LIVE_DATABASE_OBSERVER_ENTRY_REJECTED/);
+  }
+  await assert.rejects(create({ ...program, snapshot: program.snapshot.slice(0, 7) }).observe('preflight', signal), /LIVE_DATABASE_OBSERVER_ENTRY_REJECTED/);
+  await assert.rejects(create(program).observe('other', signal), /LIVE_DATABASE_OBSERVER_ENTRY_REJECTED/);
+  assert.equal(consumed, 0); assert.equal(saved, 0);
+});
 test('database observer rejects partial/missing snapshots without accepting stale receipt booleans', async () => {
   await assert.rejects(validateExpressInstalledSnapshotV1([], { snapshot: [], tables: [] }), /SNAPSHOT_REJECTED/);
   await assert.rejects(validateExpressInstalledSnapshotV1(Array.from({ length: 8 }, () => ({ rows: [{}], rowCount: 1 })),

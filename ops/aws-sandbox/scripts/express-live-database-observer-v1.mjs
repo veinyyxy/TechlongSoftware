@@ -1,4 +1,5 @@
 import tls from 'node:tls';
+import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 import { fromLoginCredentials } from '@aws-sdk/credential-provider-login';
@@ -9,6 +10,10 @@ const EXPECTED = { catalog: 'ad213560c608cc678d838e1789f9e90d33eff77062febe90a4f
   role: '941cfda905da13438878f0f5415a2d9bb56a7be217a8d813daef8fde401055d5',
   acl: '9a6a5619d26ca00ec807c83e6dbf3c2f69504b06f93af26eb9b8ce6b86d61c22',
   counts: '8fb858f29bf407a2e06afb7506078c253c4707e5eead0555483b5dca0ad7451f' };
+// The frozen catalog query starts WITH ... SELECT. A SELECT-prefix check
+// rejects that approved read, while accepting arbitrary WITH could permit
+// data-changing CTEs. Admit only the exact eight-query snapshot instead.
+const SNAPSHOT_SHA256 = '2c3033c1c2b92b3c2ba6717b00d6226004e26856ee7d6663a8f760c3c43dd114';
 const ENTITLEMENTS = [
   ['branding.custom_theme.enabled', true, 'boolean'], ['branding.merchant_editable', true, 'boolean'],
   ['buyer.access.heartbeat_seconds', 300, 'integer'], ['buyer.access.lease_seconds', 900, 'integer'],
@@ -45,7 +50,7 @@ export function createExpressInstalledDatabaseObserverV1({ program, journal, sav
   const used = new Set();
   return { async observe(phase, signal) {
     if (!['preflight', 'after_bootstrap'].includes(phase) || used.has(phase) || program.snapshot.length !== 8 ||
-        program.snapshot.some(q => !/^SELECT\b/i.test(q.text.trim()))) throw Error('LIVE_DATABASE_OBSERVER_ENTRY_REJECTED');
+        createHash('sha256').update(canonicalJson(program.snapshot)).digest('hex') !== SNAPSHOT_SHA256) throw Error('LIVE_DATABASE_OBSERVER_ENTRY_REJECTED');
     used.add(phase); signal.throwIfAborted();
     const snapshot = await credentials();
     if (!(snapshot.expiration instanceof Date) || snapshot.expiration.getTime() < Date.now() + 180000) throw Error('LIVE_DATABASE_SOURCE_TOO_SHORT');

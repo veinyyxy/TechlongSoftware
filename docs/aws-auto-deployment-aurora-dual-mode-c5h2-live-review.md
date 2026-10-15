@@ -1,5 +1,7 @@
 # C5h2 已接通：最终只读审阅通过，真实交付待批准
 
+> 后续：该页r2清单已获批准并尝试一次，在任何SQL连接/私密读取/写入/槽消费前因本地WITH目录查询guard拒绝。原材料保留；修复代码不沿用旧批准，当前只使用[入口修正及r3新待审材料](aws-auto-deployment-aurora-dual-mode-c5h2-entry-correction.md)。下文为当时历史。
+
 2026-10-15 America/Winnipeg。用户明确允许本阶段现有 AWS 授权/计算/ECR/DDB/DNS/Secret固定版本元数据与 Neon 控制面只读核对；没有批准 Aurora 连接、私密重读或任何写入。本轮据此完成现场接线，未运行 Run。
 
 ## 当前唯一待审清单
