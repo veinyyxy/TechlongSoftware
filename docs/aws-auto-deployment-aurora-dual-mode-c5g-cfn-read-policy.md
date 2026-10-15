@@ -1,5 +1,7 @@
 # C5g：既有 CFN 策略最小读取差异与单次安装入口
 
+最新状态：用户已单独允许并完成1STS+8IAM只读核对，前态及两类唯一消费者通过；[fresh清单及安装待批范围](aws-auto-deployment-aurora-dual-mode-c5g-cfn-read-policy-review.md)。以下保留原草案时点记录，“待只读许可/仅草案”不再代表当前状态；仍未安装或部署。
+
 2026-10-15 America/Winnipeg。继续首轮真实交付的权限前置，不重开 Grant、日志模拟、SQL 恢复或 F3c9 支线。
 
 **代码已实现，当前只有草案；没有 fresh 执行清单，也没有安装权限或部署。** 新的在线 Review 被工具安全审批拦截，进程未启动；本轮 AWS 调用、IAM/业务写入、私密包或 Secret 值读取、SQL、job/TTL、永久槽消费均0。完整交付执行根仍未完成。

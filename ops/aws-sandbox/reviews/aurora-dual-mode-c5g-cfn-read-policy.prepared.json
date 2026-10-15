@@ -1,0 +1,158 @@
+{
+  "schema": "techlong/aurora-dual-mode-c5g-cfn-read-policy-prepared/v1",
+  "state": "FRESH_READONLY_REVIEW_PASSED_SINGLE_POLICY_WRITE_AWAITING_HUMAN_APPROVAL",
+  "date": "2026-10-15 America/Winnipeg",
+  "humanReadAuthorization": "User explicitly replied 确认允许 to one STS identity read plus eight IAM metadata reads; no simulation, mutation or deployment authority inferred.",
+  "preparedAt": "2026-10-15T16:04:44.589Z",
+  "expiresAt": "2026-10-15T17:04:44.589Z",
+  "localExpiresAt": "2026-10-15T12:04:44.589-05:00",
+  "manifestSha256": "dee0a0003308e809cb1d767d07756243507a99cb683b5181452e54168e77d9da",
+  "executionApproved": false,
+  "reviewDirectory": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-review-20261015-r1",
+  "readonlyCalls": 9,
+  "iamWrites": 0,
+  "consumerState": {
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+    "roleId": "AROAV3GNMXTZKHYBCRSOE",
+    "policyArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+    "policyId": "ANPAV3GNMXTZOQPIXOKJ4",
+    "defaultVersion": "v7",
+    "versions": [
+      {
+        "id": "v7",
+        "isDefault": true
+      }
+    ],
+    "boundaryConsumers": {
+      "roles": [
+        {
+          "name": "TechlongSandboxCloudFormationExecutionRole",
+          "id": "AROAV3GNMXTZKHYBCRSOE"
+        }
+      ],
+      "users": [],
+      "groups": []
+    },
+    "permissionConsumers": {
+      "roles": [
+        {
+          "name": "TechlongSandboxCloudFormationExecutionRole",
+          "id": "AROAV3GNMXTZKHYBCRSOE"
+        }
+      ],
+      "users": [],
+      "groups": []
+    },
+    "trustAndFullPolicyMatchHistorical": true,
+    "fullPolicyDocumentsPublishedToGit": false
+  },
+  "candidate": {
+    "candidateSha256": "2d96d656f0921fc93fe0a36747a11ca5df38f81b69e1a5687affdd6cad0509d1",
+    "beforeDocumentSha256": "7b1d73a2defce79a34dc6e18ffa6f349302e2b1046b99256d86708ee5bb950d5",
+    "afterDocumentSha256": "bd2bd7d52bfdcc1f9c97230f510867d7be10a15f1a1269aa9e0f068add7f70ad",
+    "newUniqueActions": [
+      "ecs:DescribeServiceDeployments",
+      "ecs:ListServiceDeployments",
+      "elasticloadbalancing:DescribeTags",
+      "elasticloadbalancing:DescribeTargetGroupAttributes",
+      "elasticloadbalancing:DescribeTargetHealth",
+      "logs:DescribeIndexPolicies",
+      "logs:DescribeResourcePolicies",
+      "logs:GetDataProtectionPolicy"
+    ],
+    "appendedStatements": 6,
+    "policyCharacters": 6086,
+    "scopeRequestedRegion": "ca-central-1",
+    "regionalStarActions": [
+      "logs:DescribeIndexPolicies",
+      "logs:DescribeResourcePolicies"
+    ],
+    "serviceBoundaryOrTaskExecutionPolicyChanges": false
+  },
+  "proposedInstall": {
+    "createPolicyVersionCalls": 1,
+    "setAsDefaultInSameCall": true,
+    "oldV7Retained": true,
+    "oldVersionsDeleted": 0,
+    "otherIamOrCloudWrites": 0,
+    "prewriteReadonlyCalls": 9,
+    "independentPostAttemptInspectReadonlyCallsAtMost": 10,
+    "newVersionIdNotAssumed": true,
+    "automaticRetryOrRollback": false,
+    "cfManagedPolicyDriftPossible": true,
+    "persistentNotTemporaryGrant": true
+  },
+  "risks": [
+    "One new managed policy version becomes default immediately for the existing role where this same policy is both attached identity policy and permissions boundary. This is persistent new read permission, not a temporary grant; v7 is retained, no automatic revoke or rollback.",
+    "New permissions include regional DescribeIndexPolicies and DescribeResourcePolicies on all CloudWatch Logs index/resource policies because these actions have no narrower resource scope. Existing broad historical permissions are preserved, not endorsed or widened by these additions.",
+    "IAM updates are not CAS. Role IDs, consumer rosters, default v7, all versions, trust and full document are rechecked, but privileged concurrent changes after checks remain possible. Propagation is not guaranteed; simulations do not prove service-provider or log-stream access.",
+    "A consumed permanent slot, failed/lost response or partial observation is inspect-only. No write retry, version deletion, rollback, completion, slot reset or second install is authorized. A new version may remain active even when the process fails.",
+    "If CloudFormation manages the existing policy, this direct IAM document update can introduce drift; a later stack update can overwrite it. No stack/template reconciliation is performed or authorized here.",
+    "This IAM-only step does not renew Cell tags, create workload/DNS/authority/job, read private material, initialize business data or prove ready. Existing resources continue billing; 50 USD per month is a target, not a hard cap."
+  ],
+  "codeBinding": {
+    "sha256": "c732cf515ad191bfa230a8b5273be87714963034ea8c1a3c176a6a6146fec29f",
+    "codePins": 7,
+    "historyPins": 3,
+    "currentPinsVerifiedLocally": true,
+    "correctManifestShaAcceptedLocally": true,
+    "wrongManifestShaRejectedLocally": true,
+    "executionSourcesChangedThisTurn": false,
+    "previous25TestsNotRerun": true
+  },
+  "slot": {
+    "name": "techlong-express-c5g-workload-cfn-read-policy-v1.permanent-slot.json",
+    "existsAtLocalVerification": false,
+    "consumed": false,
+    "resetOrRetryAuthorized": false
+  },
+  "effects": {
+    "stsReads": 1,
+    "iamMetadataReads": 8,
+    "simulations": 0,
+    "iamOrResourceWrites": 0,
+    "secretValuesOrPrivateBundleReads": 0,
+    "sqlConnections": 0,
+    "businessOrAuthorityWrites": 0,
+    "permanentSlotsConsumed": 0,
+    "jobsOrTtlStarted": 0,
+    "workloadOrDnsDeployed": false
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-review-20261015-r1/code-binding.json",
+      "rawFileSha256": "bb9d6710d7ec511a1cf0c878dd249f3bda9f671927032f8bd53512b2018f129d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-review-20261015-r1/candidate.json",
+      "rawFileSha256": "361f28e418fabe5ffc22a710c80088f34e8cc3350a956066773ae945b3b54de6"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-review-20261015-r1/before.json",
+      "rawFileSha256": "765784b0ba5389ce70b58a39808bf0d9f331b8304950c00448ef7d6e7d8b9baa"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-review-20261015-r1/manifest.json",
+      "rawFileSha256": "c51474c59b58cb5d487ae5f9e546fd965679a5e2ac3058ff30cdaf91334feea4"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5g-cfn-read-review-20261015-r1/result.json",
+      "rawFileSha256": "25b9ef96b8505b4bad5f7010a3e8ff63e3f7a2cb7dc3ba8e4c5343d4e34c5b95"
+    }
+  ],
+  "previousDraftCapsule": {
+    "path": "ops/aws-sandbox/reviews/aurora-dual-mode-c5g-cfn-read-policy.draft.json",
+    "rawFileSha256": "786a05eb32ed5d89ae06bce00abdb45f6f7d3955d525fcd7f4321befe3ce010f",
+    "historicalDraftNotApproval": true
+  },
+  "runtimeEnabled": false,
+  "readyVerified": false,
+  "liveDeliveryRootComplete": false,
+  "actualProviderOrLogAccessProved": false,
+  "monthlyTargetUsd": 50,
+  "hardCostCap": false,
+  "existingNetworkFeesContinue": true,
+  "cellDeadlineTagNotRenewed": "2026-10-15T16:44:56.246Z",
+  "documentation": "docs/aws-auto-deployment-aurora-dual-mode-c5g-cfn-read-policy-review.md",
+  "next": "Present this fresh SHA and complete exact one-policy update risks; only after separate approval run once and immediately independently Inspect after success or failure. No owner/job/deployment/private reload/SQL or tag renewal is authorized here."
+}
