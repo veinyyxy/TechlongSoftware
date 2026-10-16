@@ -1,0 +1,123 @@
+{
+  "schema": "techlong/manual-ready-reconciliation-prepared/v1",
+  "state": "PREPARED_REQUIRES_FRESH_EXACT_APPROVAL",
+  "approvalConsumed": false,
+  "executionAuthorized": false,
+  "manifestSha256": "f98bcd6ce2123c1e99085097e846937a8f389002f7637acd6cb1547efce2c5c0",
+  "manifestPath": "F:/ChatGPT_workshop/techlong-express-k2c-review-20261016-r2/manifest.json",
+  "preparedAt": "2026-10-16T06:13:10.481Z",
+  "admissionExpiresAt": "2026-10-16T08:13:10.481Z",
+  "executionExpiresAt": "2026-10-16T08:28:10.481Z",
+  "workloadExpiresAt": "2026-10-16T12:04:28.726Z",
+  "riskDocument": "docs/aws-auto-deployment-aurora-dual-mode-k2c-ready-reconciliation-risk.md",
+  "riskRawSha256": "1ea38af7e2d2a1f42f44cc0e409ff152e08fd453e2c7be4ffde13b8ba8f41bd1",
+  "initializedEvidence": {
+    "capsule": "ops/aws-sandbox/reviews/aurora-dual-mode-k2b-initialization-recovery.executed.json",
+    "canonicalSha256": "d5d96a217123afb9576bed0ee5031dd173b4fc34691a28c24fc7154ca5bea0b0",
+    "historicallyInitializedAndIndependentlyVerified": true,
+    "freshAuthenticatedReadsThisPreparation": 0,
+    "initializationMustNotBeRepeated": true
+  },
+  "currentPlatform": {
+    "deploymentId": "dep_7c99bd249470184852f0dc74",
+    "deploymentStatus": "configuring",
+    "currentStep": "provision_once_via_mtls",
+    "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "instanceStatus": "pending",
+    "accessUrl": "https://first-acceptance.sandbox.techlong.cloud",
+    "jobId": "job_202c8dc12a8bf379f3a7c693",
+    "jobStatus": "running",
+    "attempts": 1,
+    "maxAttempts": 1,
+    "leaseExpired": true,
+    "leaseExpiresAt": "1792099509634",
+    "outputsRawSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "readyVerified": false
+  },
+  "hosting": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/f71252c0-c917-11f1-8148-02ff648cb917",
+    "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:2",
+    "taskArn": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/3c586a7dd0094cbc8a0988a79297aa56",
+    "imageDigest": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+    "runningCount": 1,
+    "healthyTarget": true,
+    "cellIamSecretMetadataDnsAuthorityAndJanitorUnchanged": true
+  },
+  "databaseBinding": {
+    "endpointSha256": "ddafbcdf74b6e8df51e7bde9d7337778187983f05ab6cc01b2084ad54799d8f4",
+    "database": "neondb",
+    "databaseOid": "16396",
+    "role": "neondb_owner",
+    "roleOid": "16392",
+    "serverVersionNum": "180006",
+    "timezone": "GMT",
+    "catalogServerSha256": "3acdd88bfd8f8320a0191dcc97189b8ea39b08a34f0296e4df373abb43d84a1e",
+    "oldWholeRowsPinned": 9,
+    "mutableRows": 3,
+    "targetNoninternalTriggersInspected": true,
+    "sealedLegacyPlanIsDifferentAndUnaffectedByTheseUpdates": true
+  },
+  "requestedLimits": {
+    "serializableWriteTransactions": 1,
+    "fixedStatements": 7,
+    "changedExistingRows": 3,
+    "newRows": 0,
+    "privateBundleLoads": 2,
+    "authenticatedGets": 4,
+    "secretValueReads": 0,
+    "auroraConnections": 0,
+    "applicationPosts": 0,
+    "cloudWrites": 0,
+    "automaticRetries": 0
+  },
+  "preparationActual": {
+    "reviews": 2,
+    "metadataSdkReads": 70,
+    "metadataCliReads": 22,
+    "neonReadOnlyTransactions": 5,
+    "includesOneEarlierThreeStatementExploration": true,
+    "privateBundleLoads": 0,
+    "secretValueReads": 0,
+    "auroraConnections": 0,
+    "applicationHttpRequests": 0,
+    "cloudWrites": 0,
+    "platformWrites": 0,
+    "slotsConsumed": 0
+  },
+  "validation": {
+    "targetedTests": 13,
+    "adjacentTests": 26,
+    "typecheckPassed": true,
+    "targetedLintZeroWarnings": true,
+    "fourScriptSyntaxChecksPassed": true,
+    "localCheckNoActions": true,
+    "independentCanonicalManifestAndBindingVerification": true,
+    "planIdenticallyRederivedFromStableSnapshot": true,
+    "threeSlotsAbsent": true,
+    "ownRawPins": 5,
+    "initializedHistoryPinEntries": 20,
+    "baseRawPinEntries": 23,
+    "legacyNormalizedImportPinEntries": 70,
+    "pinCountsAreNotDistinctFileCountsOrDependencyAudit": true
+  },
+  "evidenceFiles": [
+    { "path": "F:/ChatGPT_workshop/techlong-express-k2c-review-20261016-r2/binding.json", "rawFileSha256": "dfae3038d39f89746ef72bb12987d1af0095eae46ea9d94e2efdc330c9f9b20c" },
+    { "path": "F:/ChatGPT_workshop/techlong-express-k2c-review-20261016-r2/metadata.json", "rawFileSha256": "ab9e762d494318c5270e6d0a19adec655261598b58fcfc985a30d0c60dfd79c2" },
+    { "path": "F:/ChatGPT_workshop/techlong-express-k2c-review-20261016-r2/state.json", "rawFileSha256": "ba64896c77bd8c54ddd3e013d3369202f8b8a0e0068f5f00b989540f0ca56c09" },
+    { "path": "F:/ChatGPT_workshop/techlong-express-k2c-review-20261016-r2/manifest.json", "rawFileSha256": "a4286ce08fc502091492d3c7ed0631bbbcd6d86e1c04923af3de9d52ae4d86b2" },
+    { "path": "F:/ChatGPT_workshop/techlong-express-k2c-review-20261016-r2/result.json", "rawFileSha256": "b17c5694cd6e6d88682dde7e4077dde198d28800fad7ba5d4c8403444fc66a28" }
+  ],
+  "supersededReview": {
+    "directory": "F:/ChatGPT_workshop/techlong-express-k2c-review-20261016-r1",
+    "manifestSha256": "9e4e81b1026e9e8b1e2baa98ca8ad44d386afa0f213fec0b00caf7011bb64869",
+    "reason": "Additional final-state checks and exact recovered-stack binding; r1 preserved, never approved or executed, must not run."
+  },
+  "permanentSlots": [
+    "F:/ChatGPT_workshop/techlong-express-k2c-ready-v1.permanent-slot.json",
+    "F:/ChatGPT_workshop/techlong-express-k2c-ready-v1.write-slot.json",
+    "F:/ChatGPT_workshop/techlong-express-k2c-ready-v1.inspect-slot.json"
+  ],
+  "monthlyBudgetTargetUSD": 50,
+  "budgetIsHardCap": false,
+  "f3c9BranchRemainsSealed": true
+}
