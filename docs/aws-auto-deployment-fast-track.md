@@ -1,5 +1,7 @@
 # AWS 自动部署最快交付方案
 
+> **当前 K2a 已准备、待单次只读批准**。真实35 SDK/11 CLI/1 Neon元数据核验通过，新栈/修复镜像健康且旧平台原状保持；16项针对测试、types/lint/语法及独立19代码/18历史绑定回读通过。新SHA `e5610e470f12ce98d274b7ad605d5d3492542acfd874a4f8ae4d1698e47b18b1`，入场截止Winnipeg 2026-10-16 01:46:21.931 CDT。仅申请postgres一次Aurora TLS只读事务/10 SELECT/14正常query，查明原HTTP500后的初始化状态；尚无Aurora连接/私密值/写/POST/槽消费，不续期、不ready。高权限只读及永久槽风险需明确批准；固定07:04:28.726 CDT到期和50USD非cap保持。[准确清单、完整风险与唯一继续命令](aws-auto-deployment-aurora-dual-mode-k2a-initialization-audit-review.md)。下方均为历史。
+
 > **当前 C5k K1 已完成、尚非平台ready**。唯一批准4b194dc3…/一次CreateStack恢复新workload UUID `f71252c0-c917-11f1-8148-02ff648cb917`，独立Inspect通过七资源/修复镜像实际task definition:2/1运行/目标健康；操作器无IAM/SQL/Secret/DNS/DDB/Neon写、私密读取或应用调用，不宣称应用内部无数据库活动。旧job/lease/plan/artifact/generation/epoch原样，固定槽已消费、不得重放；固定07:04:28.726 CDT到期、Janitor保持、50USD非cap。下一仅K2受审只读初始化状态，不能直接再POST或标ready。[完成证据及继续点](aws-auto-deployment-aurora-dual-mode-c5k-workload-recovery-executed.md)。下面为历史。
 
 > **最新 C5k K1：现场只读通过，待准确执行批准**。Source刷新后30 SDK + 14 CLI + 1 Neon只读通过，固定槽空、0写/私密/应用调用；未CreateStack。新SHA `4b194dc34fa44bc23c1999d21363351b14177fd0e57e62bce5726f75c8e95e10`，提交截止Winnipeg 2026-10-16 01:04:28.726 CDT，仅一次七资源新workload恢复/八小时单次人工窗口例外；不重建Cell/数据库，不改平台job/lease/plan/epoch或旧Janitor，不POST/ready。50USD非cap，完整风险及新窗口须另确认。[当前唯一批准点](aws-auto-deployment-aurora-dual-mode-c5k-workload-recovery-review.md)。下面为历史。

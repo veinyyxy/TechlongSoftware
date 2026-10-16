@@ -1,5 +1,7 @@
 # Aurora Express / Full 双模式兼容与切换方案
 
+> **当前 K2a 待审**：K1恢复已完成不重放。现场35 SDK/11 CLI/1 Neon只读通过，修复镜像、新栈及旧平台原状保持；10条冻结/固定SELECT的单次postgres Aurora只读审计入口已完成，16tests/types/lint/独立绑定核验通过。本轮0 Aurora/私密值/写/HTTP/槽，初始化状态仍未知。待审SHA `e5610e470f12ce98d274b7ad605d5d3492542acfd874a4f8ae4d1698e47b18b1`，入场早于Winnipeg 2026-10-16 01:46:21.931 CDT；不续期、不POST/ready，原07:04:28.726 CDT到期保持。[完整范围、风险与继续点](aws-auto-deployment-aurora-dual-mode-k2a-initialization-audit-review.md)。下方为历史。
+
 > **最新 C5k K1 已完成**：用户确认4b194dc3…后唯一CreateStack得到新UUID `f71252c0-c917-11f1-8148-02ff648cb917`，七资源CREATE_COMPLETE；Winnipeg 2026-10-15 23:16:07.509独立Inspect确认task definition:2/实际修复digest/1 running/healthy target，原Cell/IAM/Secret/DNS/authority/平台记录保持。新槽及批准消费，不重放，不POST/不ready；固定到期2026-10-16 07:04:28.726 CDT，旧Janitor保持，无自动续期。下一仅准备K2受审只读初始化状态核验及后续平台协调。[实际执行、证据与唯一继续点](aws-auto-deployment-aurora-dual-mode-c5k-workload-recovery-executed.md)。以下为历史。
 
 > **最新 C5k K1 最终待审**：Source刷新后真实30 SDK/14 CLI/1 Neon只读通过；准确旧七资源删除、原Cell/库/Secret/IAM、新命名空间/镜像、Janitor与旧平台原状匹配，永久槽空、0云写/私密/应用调用。SHA `4b194dc34fa44bc23c1999d21363351b14177fd0e57e62bce5726f75c8e95e10`，仅申请一次新CreateStack/七workload资源及独立八小时人工窗口例外，旧Janitor/平台记录保持；提交截止Winnipeg 2026-10-16 01:04:28.726 CDT，不执行初始化或ready。仍需明确SHA及完整风险批准。[最终清单、两项时限和确认文本](aws-auto-deployment-aurora-dual-mode-c5k-workload-recovery-review.md)。下面为历史。

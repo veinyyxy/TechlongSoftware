@@ -1,0 +1,109 @@
+{
+  "schema": "techlong/initialization-audit-prepared/v1",
+  "state": "READONLY_METADATA_REVIEW_PASSED_AURORA_EXECUTION_NOT_AUTHORIZED",
+  "executionAuthorized": false,
+  "manifestSha256": "e5610e470f12ce98d274b7ad605d5d3492542acfd874a4f8ae4d1698e47b18b1",
+  "codeBindingSha256": "3fb0e4b9025834a718f7f43e537a81de068cbed5b0103e4ae7a4f2701061b7c9",
+  "programSha256": "b42a31fe3e1f7cee2803918ac0f10fa917bc29efcd79a7a444413a54eb14a597",
+  "statementsSha256": "e5aec920589c0aefa4b6e10e807a8294014c19e9d2ba8a2ebf4d922f44dc9f26",
+  "riskRawFileSha256": "c413406657d72c4936e127986da8dc3d968457de513b6c9cb0f4daf4f58a0f30",
+  "preparedAt": "2026-10-16T04:46:21.931Z",
+  "admissionExpiresAt": "2026-10-16T06:46:21.931Z",
+  "admissionExpiresAtWinnipeg": "2026-10-16 01:46:21.931 CDT",
+  "workloadExpiresAt": "2026-10-16T12:04:28.726Z",
+  "workloadExpiresAtWinnipeg": "2026-10-16 07:04:28.726 CDT",
+  "userTimeZone": "America/Winnipeg",
+  "directory": "F:/ChatGPT_workshop/techlong-express-k2a-review-20261016-r1",
+  "nodeVersion": "v22.19.0",
+  "codeFiles": 19,
+  "historyFiles": 18,
+  "localClosureAndAllPinsVerified": true,
+  "permanentSlotAbsent": true,
+  "permanentSlot": "F:/ChatGPT_workshop/techlong-express-k2a-initialization-audit-v1.permanent-slot.json",
+  "metadata": {
+    "startedAt": "2026-10-16T04:46:11.650Z",
+    "checkedAt": "2026-10-16T04:46:21.498Z",
+    "sdkReads": 35,
+    "cliReads": 11,
+    "neonReadonlyTransactions": 1,
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/f71252c0-c917-11f1-8148-02ff648cb917",
+    "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:2",
+    "actualAppRegistryDigest": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+    "targetHealthy": true,
+    "currentIamLayoutVerified": true,
+    "parentCellUnchanged": true,
+    "fixedSecretVersionsUnchanged": true,
+    "janitorEnabledAndCodeUnchanged": true,
+    "auroraMetadataVerifiedWithoutConnection": true,
+    "auroraV2NamespaceAbsent": true,
+    "legacyAuthorityMatchesOriginal": true,
+    "platformUnchanged": true
+  },
+  "proposal": {
+    "user": "postgres",
+    "database": "tenant_a0da1748bc4d5419_db",
+    "databaseOid": "16459",
+    "maximumConnections": 1,
+    "transactions": 1,
+    "isolation": "SERIALIZABLE READ ONLY",
+    "selectStatements": 10,
+    "normalSqlCalls": 14,
+    "maximumExtraRollbackCalls": 1,
+    "rawCatalogEntitlementStoreMetadataReadIntoMemoryOnly": true,
+    "storedResults": "counts, booleans and digests only",
+    "secretValueReads": 0,
+    "privateBundleReads": 0,
+    "applicationRequests": 0,
+    "cloudWrites": 0,
+    "sqlBusinessWrites": 0,
+    "platformWrites": 0,
+    "automaticRetries": 0,
+    "independentInspectHasNoSecondAuroraConnection": true,
+    "originalReceiptIntegrityIsNotFreshDatabaseProof": true,
+    "provisionAuthorityGranted": false,
+    "readyAuthorityGranted": false
+  },
+  "actual": {
+    "operatorAuroraConnections": 0,
+    "iamDatabaseTokensSigned": 0,
+    "secretValueOrPrivateBundleReads": 0,
+    "applicationRequests": 0,
+    "cloudWrites": 0,
+    "platformOrBusinessWrites": 0,
+    "permanentSlotsConsumed": 0
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-review-20261016-r1/binding.json",
+      "rawFileSha256": "8726c2647aa629ce4f41ba210df91ea81180606290d3990bcbca40397c4e2d5c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-review-20261016-r1/manifest.json",
+      "rawFileSha256": "f6e50370a0d19bf07848e67618c48dc33cdcb183dfeaf5592ebd37414f10270d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-review-20261016-r1/metadata.json",
+      "rawFileSha256": "f323cb82f14f15116273b3253c64f393b5efbe801a57cfd2b1a4eacc406d8b23"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-review-20261016-r1/result.json",
+      "rawFileSha256": "ae374e8d9a2f0db41875d4d54ab34d81fe3f409c48eca9fe0d885729fde28062"
+    }
+  ],
+  "localCheckDirectory": "F:/ChatGPT_workshop/techlong-express-k2a-local-20261016-r2",
+  "verification": {
+    "newTargetedTestsPassed": 8,
+    "adjacentTestsPassed": 8,
+    "typecheck": "passed",
+    "targetedEslint": "passed",
+    "threeScriptsSyntax": "passed",
+    "publicAtsRootsVerified": 5
+  },
+  "monthlyBudgetTargetUSD": 50,
+  "budgetIsHardCap": false,
+  "resourcesContinueBilling": true,
+  "initializedVerified": false,
+  "readyVerified": false,
+  "riskDocument": "docs/aws-auto-deployment-aurora-dual-mode-k2a-initialization-audit-risk.md",
+  "next": "Await exact fresh K2a SHA and one privileged read-only Aurora audit/full risk approval; no connection, POST, renewal, platform reconciliation or ready write now"
+}
