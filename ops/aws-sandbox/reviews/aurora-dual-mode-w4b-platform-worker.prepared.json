@@ -1,0 +1,123 @@
+{
+  "schema": "techlong/platform-worker-w4b-prepared/v1",
+  "state": "EXACT_HELD_JOB_REVIEW_RUN_INSPECT_CODE_READY_NOT_ACTIVATED_NO_HELD_REQUEST",
+  "ownPins": [
+    {
+      "file": "ops/aws-sandbox/scripts/express-platform-worker-v4.mjs",
+      "rawFileSha256": "efaa69d93ecf2da0ba6004aa4d707b7f34aaf7d054b3dfe08dd9348cb0eae60a"
+    },
+    {
+      "file": "ops/aws-sandbox/scripts/run-express-platform-worker-v4.mjs",
+      "rawFileSha256": "fbda1d07450f249780e3608dd1f3f04c5d6d310dcc9734ed6e7d1691cbb1852c"
+    },
+    {
+      "file": "tests/express-platform-worker-v4.test.mjs",
+      "rawFileSha256": "99194f45f7d677b3378fbf3a79a729b1b7ae575cdf26f5017facae6338ffd9cf"
+    },
+    {
+      "file": "docs/aws-auto-deployment-aurora-dual-mode-w4b-execution-review.md",
+      "rawFileSha256": "367cdb5f57bde68596e5145195488422c7dc20ea61ed61ca17d2459428caef65"
+    }
+  ],
+  "prior": {
+    "platformCommit": "01f35dc8d686969790395d837ea2049e6054f371",
+    "backendCommit": "889d6e257a94539eaccdea8d359d808660ec79d5",
+    "w3RuntimePinsUnchanged": 76,
+    "w4aOwnPinsUnchanged": 11,
+    "w3SlotsRemainConsumed": true
+  },
+  "scope": {
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "deploymentId": "dep_7c99bd249470184852f0dc74",
+    "newJobs": 0,
+    "exactExistingHeldJobOnly": true,
+    "preservePlatformRequestProvenance": true,
+    "reviewDoesNotAuthorizeExecution": true,
+    "fixedPredecessorJobId": "job_e4147af2f10faf37b51ec9a3",
+    "fixedPredecessorStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/74a79560-c981-11f1-bfcc-06ffde30f30d",
+    "fixedPredecessorTaskDefinitionRevision": 4,
+    "newIamRequiredByCode": false,
+    "queuePollerEnabled": false,
+    "entryActivationPerformed": false,
+    "productionWebsitePublished": false,
+    "actualDeploymentReviewCreated": false
+  },
+  "validation": {
+    "newTests": 7,
+    "adjacentTests": 33,
+    "testsPassed": 40,
+    "typecheck": "passed",
+    "eslintFiles": 3,
+    "eslintWarnings": 0,
+    "syntaxChecks": "passed",
+    "webBuild": "W4a build retained; no web code changed or new build/deploy claimed",
+    "publicCodeAndHistoryCheck": "passed",
+    "boundFiles": 99,
+    "publicHistoryFiles": 36,
+    "realOldSucceededJobRejection": {
+      "attempts": 2,
+      "expectedExitCode": 1,
+      "code": "PLATFORM_W4_EXACT_HELD_JOB_REQUIRED",
+      "stoppedBeforeAwsClientAndSlots": true,
+      "neonReadOnlyTransactions": 2
+    },
+    "independentReadonlyStateTransactions": 2,
+    "syntheticRunnerCompositionIsNotLiveDeploymentAcceptance": true
+  },
+  "readonlyState": {
+    "checkedAt": "2026-10-16T17:37:27.322Z",
+    "heldRequestCount": 0,
+    "activeJobs": [],
+    "oldRowsAndQueueUnchangedFromW4a": true,
+    "snapshotSha256": "6db433f3ddcf42735772879c5b36e3786d88a68e2716947a2bb62b893809d633",
+    "w3JobSha256": "fb3c83e5f17537f3aab7d014ab15d42ef09b9224f74fc6c0ff4de1ecb3d0b3ba",
+    "jobsSha256": "2fded9b8ce9194d0ca859664f0f3ba93b14a178b30386a90758c173198109b37"
+  },
+  "rawEvidence": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-sources-20261016-r2/binding.json",
+      "rawFileSha256": "30af5773bae4a56440240139e45233e1373c09607c3f6e0954941e8418357e90"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-sources-20261016-r2/result.json",
+      "rawFileSha256": "97f2f40eaf4481c4a8a34aaec476c2a3af0c343dfb8a86ffa0b16b0bd87eaa9a"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-old-job-rejection-20261016-r1/result.json",
+      "rawFileSha256": "c3441e22e253d1871b05f5886ff5b2a62a66bf24175a37814c90157380464788"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-old-job-rejection-20261016-r2/result.json",
+      "rawFileSha256": "c3441e22e253d1871b05f5886ff5b2a62a66bf24175a37814c90157380464788"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4b-readonly-state-20261016-r1.json",
+      "rawFileSha256": "ca2b74e2a44f63581bc73d0a994db57b4a64c2e51dd8054640f7be840b6d5e90"
+    }
+  ],
+  "effects": {
+    "neonReadOnlyTransactions": 4,
+    "neonWrites": 0,
+    "newJobs": 0,
+    "awsCalls": 0,
+    "cloudWrites": 0,
+    "privateValueReads": 0,
+    "secretValueReads": 0,
+    "applicationRequests": 0,
+    "executionSlotsConsumed": 0,
+    "newSchedulesOrMonitors": 0,
+    "automaticRetries": 0
+  },
+  "remaining": {
+    "next": "W4c: prepare specific platform publication, gate activation and exactly one real held request for separate human approval",
+    "cloudExecution": "Only after a real held job exists and a fresh exact W4 Review plus separate execution/private-source approval; never replay W3",
+    "predecessorExpiry": "2026-10-16T18:42:30.000Z",
+    "predecessorRetirementOrCurrentAwsHealthRechecked": false,
+    "ttlIsNotCleanupProof": true,
+    "monthlyBudgetTargetUsd": 50,
+    "hardSpendingCap": false,
+    "fullModeAndInitializedDatabasePreserved": true
+  },
+  "riskFile": "docs/aws-auto-deployment-aurora-dual-mode-w4b-execution-review.md",
+  "handoff": "docs/aws-auto-deployment-aurora-dual-mode-w4b-platform-worker.md"
+}

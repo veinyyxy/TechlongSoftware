@@ -1,5 +1,7 @@
 # Aurora Express / Full 双模式兼容与切换方案
 
+> **当前 W4b：准确平台待审 job 的单次 Review/RunOnce/Inspect 根已接通，未实跑**。保留同 job 和管理员来源，绑定真实 W3 前驱:4/74a 的退役，原 W1/W2/W3/W4a不动。40 tests/typecheck/lint/语法及99项公开代码/证据绑定通过；真实旧成功 job 被入口正确拒绝，Neon held=0/active=0、旧行和任务保持。本轮0云/SQL写/私密/业务调用，没有平台执行 SHA。下一只准备平台发布/入口激活/一条真实待审请求的具体审批，之后生成真实部署清单，不扩支线。[W4b 事实与交接](aws-auto-deployment-aurora-dual-mode-w4b-platform-worker.md)。下方为历史。
+
 > **当前 W4a：平台受控请求与结果面板代码完成，未启用**。固定单租户管理员入口、现有任务表审核挂起、原地准确领取及来源保留适配已实现；33 tests/typecheck/lint/build、真实 Neon 保存回执投影及11条只读 SQL 规划通过，76个W3代码摘要不变。本轮0写/私密/应用调用，未发布网站或开启全局队列。下一只接准确 queued job 的单次 CLI 根；入口激活、任务登记与实际云执行仍另审，不把适配器当作端到端验收。[准确范围及下一步](aws-auto-deployment-aurora-dual-mode-w4a-platform-entry.md)。下方为历史。
 
 > **当前 W3：已初始化租户单任务承载闭环实跑验收通过**。一次新job/lease、真实七资源建栈、两认证GET及原子完成，独立Inspect再次证明新UUID `74a79560…`/task definition:4/实际镜像与健康target；旧成功job/ready归因、原store/初始化库不变。1次SourceCreateStack/2个Neon写事务/1私密包/2GET，无POST/重试/新增权限或全局队列激活，Full/旧代码不动。五槽已消费，固定今天13:42:30 CDT到期不续期；下一只接平台受控触发，实际新写仍另审，不重放此清单。[本轮实际结果](aws-auto-deployment-aurora-dual-mode-w3-executed.md)。下方为历史。

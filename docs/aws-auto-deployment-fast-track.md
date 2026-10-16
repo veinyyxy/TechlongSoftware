@@ -1,5 +1,7 @@
 # AWS 自动部署最快交付方案
 
+> **当前 W4b：平台准确待审任务的执行根已接通，保持未启用**。Review绑定原行/来源/快照，Run原地领取同 job 后复用真实七资源provider及两GET/原子收口，Inspect独立比较原成功任务；不建第二条job、不重放W3。40 tests/typecheck/lint/语法通过，99项公开代码与前驱绑定通过；真实旧成功 job 防重放拒绝正确，held=0/active=0，4个Neon只读事务、0 AWS/SQL写/私密调用。本阶段没有真实执行 SHA；下一只准备平台发布及首条待审请求的具体审批范围。[当前主线及边界](aws-auto-deployment-aurora-dual-mode-w4b-platform-worker.md)。下方为历史。
+
 > **当前 W4a 平台接线完成、保持关闭**：管理员实例页显示最新匹配成功 job 的真实回执/到期，不再一律标 DEMO；固定意图 POST、来源与管理员校验、现有任务表待审挂起及同 job 准确领取适配就绪。33 tests/typecheck/lint/build及真实 Neon 只读规划通过，旧行/任务/W3代码保持，0云/DB写和私密/业务请求。不是已上线平台触发部署：下一 W4b 仅接 queued-job Review/Run/Inspect 根，完成后入口激活和实际执行另批，不重开支线。[本阶段交接](aws-auto-deployment-aurora-dual-mode-w4a-platform-entry.md)。下方为历史。
 
 > **当前 W3 实跑与独立 Inspect 已通过**：按用户确认的 `bf4bd8b4…`，新单任务/有效lease自动完成一次真实七资源承载创建、两JWT/mTLS GET、原子输出追加/完成新job；新UUID `74a79560…`、task definition:4与修复digest/healthy target实证，旧job/ready/初始化库保持。2026-10-16 11:51:24 CDT新进程独立只读再次通过。1次Source CreateStack、2个Neon写事务，1次私密包/2GET，0初始化POST/自动重试/IAM-DNS-DDB-Secret写，全局worker仍disabled。固定今天13:42:30 CDT到期不续期，父Cell/库保留非全停费。五槽已消费，旧清单不可重放；下一主线接平台受控触发，不扩支线。[实际证据及准确范围](aws-auto-deployment-aurora-dual-mode-w3-executed.md)。下方为历史。
