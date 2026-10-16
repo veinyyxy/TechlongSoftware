@@ -1,5 +1,7 @@
 # C5k K1：workload-only 恢复最终待审清单
 
+> **已执行并消费，不可再次批准/重放。**用户确认后唯一CreateStack成功，新UUID `f71252c0-c917-11f1-8148-02ff648cb917`；Winnipeg 2026-10-15 23:16:07.509新进程独立Inspect通过，旧平台原状保持、未初始化/ready。固定07:04:28.726到期不延长。[实际执行与K2唯一继续点](aws-auto-deployment-aurora-dual-mode-c5k-workload-recovery-executed.md)。下方是保留的原审批文本。
+
 状态：**只读Review通过，尚未授权或执行创建**。Source刷新仅用于核验，不是部署批准。K1只恢复承载；K2初始化状态及平台协调仍另审。
 
 ## 准确SHA和时限
