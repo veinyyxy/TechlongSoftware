@@ -1,0 +1,67 @@
+{
+  "schema": "techlong/initialized-worker-w3-prepared/v1",
+  "state": "CONCRETE_SINGLE_JOB_AWS_ROOT_READY_SPECIFIC_APPROVAL_REQUIRED",
+  "ownPins": [
+    { "file": "ops/aws-sandbox/scripts/express-initialized-workload-v3.mjs", "rawFileSha256": "190e6fc80b25d168d98db46a9579d157a3176ef8792eabbada2d756e619ab6a5" },
+    { "file": "ops/aws-sandbox/scripts/aws-express-initialized-workload-v3.mjs", "rawFileSha256": "5b6461345b8eae82ca6b272270e17315c2fce3392fa8d25666d5cbc9ef998c98" },
+    { "file": "ops/aws-sandbox/scripts/run-express-initialized-worker-v3.mjs", "rawFileSha256": "c53ffef79ffdca50ebca8dd69fd7d83e0ec5d972658ff00ec63717c7834e466f" },
+    { "file": "tests/express-initialized-workload-v3.test.mjs", "rawFileSha256": "22319a2bac3ac326ecfdc46252679ee2c92474338fe4cb88caa8aba1df7679f6" },
+    { "file": "docs/aws-auto-deployment-aurora-dual-mode-w3-execution-review.md", "rawFileSha256": "3a91826eebca091ea15a49519729ff49cf2804754d7ebebf410a59612f382ceb" }
+  ],
+  "currentReview": {
+    "directory": "F:/ChatGPT_workshop/techlong-worker-w3-review-20261016-r2",
+    "manifestSha256": "bf4bd8b45acc0a01d1e24451e219891ee9d30521ac41a17e0d460fb584909937",
+    "requestId": "f02720407e3789c008173f16b6704fa6fb1fbad53119cd1e1d50ea88af4461d5",
+    "jobId": "job_e4147af2f10faf37b51ec9a3",
+    "preparedAt": "2026-10-16T16:42:30.084Z",
+    "claimBy": "2026-10-16T16:57:30.084Z",
+    "workloadExpiresAt": "2026-10-16T18:42:30.000Z",
+    "checkedAt": "2026-10-16T16:42:43.987Z",
+    "jobPlanSha256": "30cd417952f9de6e1509b0033b94d84d7f3acf886d1226d49331f0af6ed67923",
+    "workloadPlanSha256": "8951bfc117a831880e32b5b39d8db29c6b0d9423eec131e27fb3d4046bf903dc",
+    "requestSha256": "ab1657291daaca1c0427b92d4c7d100127c656ea4606c31234b44b28eef81f45",
+    "preflightSha256": "659d744113f38c8d2424b4d486d8a79f4e473bfbaf713742cdda704628055097",
+    "boundCodePins": 76,
+    "publicHistoryFiles": 35,
+    "sdkReads": 38,
+    "cliReads": 13,
+    "neonReadOnlyTransactions": 1,
+    "scope": { "newJobMaxAttempts": 1, "createStackCalls": 1, "childResourceCount": 7,
+      "taskCpu": "512", "taskMemory": "1024", "privatePackageLoads": 1, "authenticatedGets": 2,
+      "atomicCompletionRows": 2, "sourceSecretValueReads": 0, "initializationPosts": 0,
+      "iamWrites": 0, "dnsWrites": 0, "authorityWrites": 0, "secretWrites": 0, "auroraConnections": 0 },
+    "explicitUserExecutionApprovalReceived": false
+  },
+  "supersededReview": {
+    "directory": "F:/ChatGPT_workshop/techlong-worker-w3-review-20261016-r1",
+    "manifestSha256": "5fdfc3d501b608bf4ec4734ac78fc55b3e74ca17a325dd3cde04179e4aaaf155",
+    "state": "OBSOLETE_CODE_BINDING_NEVER_EXECUTED",
+    "reason": "Top-level failure text hardened so a late disk/disposal failure never falsely claims no action",
+    "sdkReads": 38, "cliReads": 13, "neonReadOnlyTransactions": 1
+  },
+  "rawEvidence": [
+    { "path": "F:/ChatGPT_workshop/techlong-worker-w3-review-20261016-r2/manifest.json", "rawFileSha256": "b1922071c82651adb8f445659a5c99b85fbad45eb3763da7aaabaff80458e79c" },
+    { "path": "F:/ChatGPT_workshop/techlong-worker-w3-review-20261016-r2/provider-review.json", "rawFileSha256": "aa78bf1b2c5c32615bb9a19073dc8ad121ad2a377c202d8dab1fb5c7c3e09977" },
+    { "path": "F:/ChatGPT_workshop/techlong-worker-w3-review-20261016-r2/result.json", "rawFileSha256": "6434f7c09067e001008f8bd586cc8e90fd6f9dcc709c1bc27bf418b768d5f2b0" },
+    { "path": "F:/ChatGPT_workshop/techlong-worker-w3-review-20261016-r1/manifest.json", "rawFileSha256": "74a389249621aa271c63a97d67a05e1a48dc392209639f43e8cc3fca90fd0634" },
+    { "path": "F:/ChatGPT_workshop/techlong-worker-w3-review-20261016-r1/provider-review.json", "rawFileSha256": "88874f1f4160319076139b566ce43b3a8bf8a2a6999556fa2b57aaaf26330e86" },
+    { "path": "F:/ChatGPT_workshop/techlong-worker-w3-review-20261016-r1/result.json", "rawFileSha256": "064aab506eea0dd054baea5ac1c537a6d8bf3159a379244c8101fc8755d58b10" }
+  ],
+  "observedRetirement": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/ab4aa8c0-c966-11f1-b068-0ecbbd896a2b",
+    "stackStatus": "DELETE_COMPLETE", "sevenResourcesDeleted": true,
+    "ecsStatus": "INACTIVE", "desiredCount": 0, "runningCount": 0, "pendingCount": 0,
+    "taskDefinition": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:3",
+    "taskDefinitionStatus": "INACTIVE", "sourceSuccessfulCliExitReads": 3,
+    "initialExpiredIdentityAttempt": 1, "deletionRequestedByThisStage": false,
+    "parentAndDatabaseRetained": true, "allBillingStoppedProved": false
+  },
+  "validation": { "newTests": 5, "adjacentTests": 21, "testsPassed": 26,
+    "typecheck": "passed", "eslintFiles": 4, "eslintWarnings": 0, "syntaxChecks": "passed",
+    "realReadonlyReview": "passed", "oldW1W2AndLegacyFilesChanged": false,
+    "liveClaimCreateControlOrCompletionExecuted": false },
+  "effects": { "cloudWrites": 0, "jobWrites": 0, "neonWrites": 0, "privatePackageLoads": 0,
+    "awsSecretValueReads": 0, "applicationRequests": 0, "auroraConnections": 0,
+    "executionSlotsConsumed": 0, "globalWorkerEnabled": false, "automaticDeploymentAccepted": false },
+  "next": "Explicit specific manifest approval, then one RunOnce and independent Inspect; expired review requires read-only refresh, never replay"
+}

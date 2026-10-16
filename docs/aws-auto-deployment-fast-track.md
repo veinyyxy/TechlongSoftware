@@ -1,5 +1,7 @@
 # AWS 自动部署最快交付方案
 
+> **当前 W3 真实 worker 根已接通，待一次集中批准实跑**：AWS SDK 一次 CreateStack/七资源、W2 新 job/lease/原子完成与 W1 两认证 GET 已接进单次 CLI，不启全局队列、不 provision/改库/IAM。26 tests/typecheck/lint及两轮真实只读Review通过；旧准确栈/七资源已删除、ECS inactive0，父Cell/库仍保留。当前只允许待审SHA `bf4bd8b4…`，准入至今天11:57:30.084 CDT，固定child到期13:42:30；0 job/云/业务写、0原私密包/应用请求。须明确接受整包读取（含未使用Stripe秘钥）、非原子/收费遗留/CFN自身rollback等完整风险后Run，过期只读刷新不重放。[已接线、当前清单与证据](aws-auto-deployment-aurora-dual-mode-w3-worker-root.md)。下方为历史。
+
 > **当前 W2 单任务/lease/原子收口代码完成，未启用**：新增已初始化租户一次性 runner、真实 Neon 适配器与独立 READ ONLY 完成回读；新 reconcile job 固定 attempt/max=1、数据库时钟 lease，不重放旧成功 apply，不改原 ready/instance/资源归属。21 tests/typecheck/五文件零警告 lint 通过，真实 Neon 九行快照及五项领取/lease SQL EXPLAIN（无 ANALYZE）通过，全程0云/job/业务写与私密/应用调用。实际 provider/CLI 根尚缺，不称自动部署已验收。下一 W3 只接真实承载、epoch 准入和单次入口，具体写及私密来源仍集中另批；Full/全局 disabled 与原到期不动。[实现、真实只读结果及剩余工作](aws-auto-deployment-aurora-dual-mode-w2-single-job.md)。下方为历史。
 
 > **当前W1 worker主线代码完成、未启用**：核实常规入口代码固定disabled，旧Express首次runner只支持pristine并固定旧镜像，不能重放成功job。新增修复镜像V2目录和已初始化租户材料/真实渲染/GET-only精确store配置回读接线，不暴露provision/密码能力；21tests/typecheck/lint通过，4次AWS只读验证两真实ECR manifest及既有扫描，实际公开材料编译通过。0云/SQL/job写，0私密读取/应用调用，全局队列保持关闭，原10:37:01.033 CDT到期不动。下一接新单次reconcile任务的lease/原子持久化/provider/CLI，不新开成本或Grant支线；真实写/私密调用仍fresh范围另批，不称已无人值守部署。[代码、证据及剩余接线](aws-auto-deployment-aurora-dual-mode-w1-worker-path.md)。下方为历史。

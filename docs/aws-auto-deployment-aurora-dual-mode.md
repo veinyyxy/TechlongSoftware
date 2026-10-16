@@ -1,5 +1,7 @@
 # Aurora Express / Full 双模式兼容与切换方案
 
+> **当前 W3：Express 真实单次 CLI/承载 provider 已接通，尚未实跑**。复用已初始化库/同一租户，真实CreateStack七资源、新job/有效lease、两GET和原子收口集中审阅；不重放旧任务或触碰Full/全局disabled。26 tests/typecheck/lint、真实只读Review通过，旧栈/七资源已退役、命名空间为空，父Cell/库不删。当前SHA `bf4bd8b4…` 到今天11:57:30.084 CDT，child固定到期13:42:30；0写/原私密包/应用请求，真实部署及私密读取仍需明确确认，过期不重放。[当前入口、范围和记录](aws-auto-deployment-aurora-dual-mode-w3-worker-root.md)。下方为历史。
+
 > **当前 W2：Express 单任务与真实 Neon 持久化代码完成、未启用**。一次新 reconcile/DB-clock lease、W1 GET-only 回读、原子追加 deployment outputs+完成新 job、独立 READ ONLY 回读已接线，原成功任务/ready 归因/初始化库保留。21 tests/typecheck/lint 通过；真实九行快照及五项 SQL 只读 EXPLAIN 通过，不执行被规划的写 SQL，0云/job/业务写和私密/应用调用。实际 AWS provider 与生产 CLI 尚待 W3，Full/旧路径/全局 disabled 不动；无部署执行 SHA，具体写及私密来源另审。[准确代码范围与继续方向](aws-auto-deployment-aurora-dual-mode-w2-single-job.md)。下方为历史。
 
 > **当前W1：Express已初始化worker接线完成，尚未激活**。新V2目录固定C5i修复app/lifecycle实际manifest；新材料/真实七资源渲染器与GET-only认证回读支持复用初始化、精确store/配置/镜像/epoch，不提供provision或密码能力，旧V1/Full/全局worker安全门保持。21tests/typecheck/lint、4次ECR/身份只读及实际公开材料编译通过，0云/SQL/job/私密/应用变更。下一只接新单任务runner的lease/原子完成/provider/CLI，具体写与私密请求另审；不重放旧成功任务或扩展Grant/成本支线。[准确实现与缺口](aws-auto-deployment-aurora-dual-mode-w1-worker-path.md)。下方为历史。
