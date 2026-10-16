@@ -1,5 +1,7 @@
 # K2b 最终待审：一次人工初始化恢复及独立应用验收
 
+> **已执行并消费，禁止重放。**用户确认后Winnipeg 2026-10-16 00:31:45.991唯一POST成功，00:32:19.910新进程独立认证验收通过initialized/effective configuration/准确store/image。共一次Aurora只读、一次固定Secret值、两次私密包加载、1 POST+5 GET，两个永久槽及全部本轮读取预算已消费；不再Run/Inspect。平台仍原configuring/pending/过期job，不ready、不续期。[实际证据与K2c唯一继续点](aws-auto-deployment-aurora-dual-mode-k2b-initialization-recovery-executed.md)。下方为保留的原审批历史。
+
 状态：**代码/Check/现场只读Review通过，尚无实际初始化或执行授权。** 不重跑旧部署流程，不创建资源。本阶段只把现有修复镜像承载上的准确租户初始化并认证验收，平台ready协调是验收后的K2c短事务，另审。
 
 ## 新清单与三个固定时间

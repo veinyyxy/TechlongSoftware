@@ -1,5 +1,7 @@
 # AWS 自动部署最快交付方案
 
+> **当前 K2b 已完成：租户真实初始化并独立认证验收通过。**用户确认7596abc9…后Winnipeg 2026-10-16 00:31:45.991唯一POST成功，00:32:19.910新进程readiness/control确认初始化、有效配置、准确store及实际修复image。1次Aurora只读、1次固定Secret值、2次原私密包、1 POST+5 GET；两个永久槽和本轮全部读取/执行批准已消费，不重跑或再Inspect。0云/IAM/Neon平台写，不续期/ready；旧job/lease/plan/artifact/epoch原状保持。下一只准备K2c准确旧值/DB时钟/CAS的平台artifact/job/ready协调，不能再provision。固定07:04:28.726 CDT到期、Janitor与50USD非cap保持。[真实执行、18份证据hash及唯一继续点](aws-auto-deployment-aurora-dual-mode-k2b-initialization-recovery-executed.md)。下方为历史。
+
 > **当前 K2b 单次人工初始化恢复待审**：10新+15相邻tests/types/lint/Check及真实35 SDK/11 CLI/1 Neon只读通过；新栈/修复镜像健康、旧平台原状保持。本轮0 Aurora/私密包/Secret值/HTTP/写/槽。SHA `7596abc946c49640de42832aab432bcbe437f51bcd81136221a692aebe1d3017`，入场早于Winnipeg 2026-10-16 02:24:39.501 CDT，执行/Inspect早于02:39:39.501。仅申请新的人工恢复例外：一次当前pristine只读、两次私密包加载、一次固定Secret读、一次真实provision及独立认证验收；不使用过期job lease、不改平台/IAM/资源、不续期/ready。须明确SHA及完整风险批准；原07:04:28.726到期/Janitor/50USD非cap保持，平台CAS协调留待验收后K2c。[完整待审范围与下一命令](aws-auto-deployment-aurora-dual-mode-k2b-initialization-recovery-review.md)。下方为历史。
 
 > **当前 K2a 已完成：未初始化、未见部分提交残留。**用户确认e5610e47…后一次Aurora只读事务/10 SELECT/14 query成功，原目录/ACL/73表计数/默认entitlements和UUIDv8店铺保持，operation/merchant user/profile/audit均0；Winnipeg 2026-10-15 23:52:07.651新进程Inspect确认原receipt与承载元数据，无第二次SQL。0云或业务写/Secret值/旧私密包/HTTP/POST，批准及读槽已消费不重放；仍非ready。下一仅准备K2b单次provision恢复与带准确旧值/CAS的平台协调清单，私密材料/POST/写仍另批。固定07:04:28.726 CDT到期、旧Janitor、50USD非cap保持。[实际结果、15份证据hash及继续点](aws-auto-deployment-aurora-dual-mode-k2a-initialization-audit-executed.md)。下方为历史。
