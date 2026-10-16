@@ -1,5 +1,7 @@
 # Aurora Express / Full 双模式兼容与切换方案
 
+> **最新 K3a 停止**：用户确认时清单和workload均已过期；Winnipeg 2026-10-16 07:55:49只读确认新workload UUID/七CFN资源记录DELETE_COMPLETE，父Cell记录CREATE_COMPLETE。0公网GET/私密/SQL/云写，槽未消费；不能只换SHA重放或自动重建/初始化。当前需选择另审承载恢复继续验收，或只读盘点准备退出；当前平台同步/全部停费未证明。[观察证据与下一选择](aws-auto-deployment-aurora-dual-mode-k3a-expired.md)。下方为历史。
+
 > **当前 K3a 公网最小冒烟待审**：只实现3个无认证443 GET（health/ready/merchant未签名401），无私密/AWS/SQL客户端或业务写/删除；6 tests/零警告lint/语法及本地22历史证据绑定通过，本轮网络/槽0，尚未证明当前公网。SHA `41ab184c73a04dc90ee70da21edf04653b65d27d99472cd58606607f027dcde6`，Winnipeg 2026-10-16 06:51:04.661前执行。K2c成功记录保持，原workload07:04:28.726到期不延长。已整理父Cell/库/Secret/DNS/平台退出依赖，尚不授权删除或正向业务操作。[最小清单、完整风险和退出顺序](aws-auto-deployment-aurora-dual-mode-k3-closeout.md)。下方为历史。
 
 > **最新 K2c 已完成**：用户确认f98bcd6c…后，Winnipeg 2026-10-16 01:30:52.825唯一三行事务提交，01:31:26.312另进程独立验收平台/初始化/有效配置/真实镜像通过；instance active、deployment ready、旧job succeeded/清lease，attempt与原计划/错误证据保持，明确人工恢复归因。2次私密加载/4GET，0云/IAM/Secret值/Aurora/POST，三个永久槽和本轮批准全消费，不再Run/Inspect或初始化。下一只做首轮验收/资源退出项盘点及最小方案，不扩展支线；固定07:04:28.726 CDT到期、Janitor和50USD非cap保持。[实际执行、22份证据及继续点](aws-auto-deployment-aurora-dual-mode-k2c-ready-reconciliation-executed.md)。下方为历史。

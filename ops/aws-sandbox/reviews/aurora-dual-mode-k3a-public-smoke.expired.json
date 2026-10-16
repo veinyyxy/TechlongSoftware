@@ -1,0 +1,97 @@
+{
+  "schema": "techlong/k3-expired-readonly-observation/v1",
+  "checkedAt": "2026-10-16T12:55:49.258Z",
+  "identity": {
+    "account": "402010193138",
+    "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev"
+  },
+  "workload": [
+    {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/f71252c0-c917-11f1-8148-02ff648cb917",
+      "status": "DELETE_COMPLETE",
+      "creationTime": "2026-10-16T04:13:39.242Z",
+      "deletionTime": "2026-10-16T12:08:38.748Z"
+    }
+  ],
+  "workloadResources": [
+    {
+      "logicalId": "TenantBusinessControlDenyRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/8e32d511c85f0ce1",
+      "status": "DELETE_COMPLETE",
+      "lastUpdated": "2026-10-16T12:16:36.083Z"
+    },
+    {
+      "logicalId": "TenantControlListenerRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/bc69b195b69bc2d9/8bd70e16559bd284",
+      "status": "DELETE_COMPLETE",
+      "lastUpdated": "2026-10-16T12:16:36.070Z"
+    },
+    {
+      "logicalId": "TenantListenerRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/b7714c8e342f4621",
+      "status": "DELETE_COMPLETE",
+      "lastUpdated": "2026-10-16T12:16:37.217Z"
+    },
+    {
+      "logicalId": "TenantLogGroup",
+      "type": "AWS::Logs::LogGroup",
+      "physicalId": "/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+      "status": "DELETE_COMPLETE",
+      "lastUpdated": "2026-10-16T12:16:37.487Z"
+    },
+    {
+      "logicalId": "TenantService",
+      "type": "AWS::ECS::Service",
+      "physicalId": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+      "status": "DELETE_COMPLETE",
+      "lastUpdated": "2026-10-16T12:16:34.674Z"
+    },
+    {
+      "logicalId": "TenantTargetGroup",
+      "type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/05443c1bcff99888",
+      "status": "DELETE_COMPLETE",
+      "lastUpdated": "2026-10-16T12:16:38.314Z"
+    },
+    {
+      "logicalId": "TenantTaskDefinition",
+      "type": "AWS::ECS::TaskDefinition",
+      "physicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:2",
+      "status": "DELETE_COMPLETE",
+      "lastUpdated": "2026-10-16T12:16:36.131Z"
+    }
+  ],
+  "resourcePaginationPresent": false,
+  "parent": [
+    {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+      "status": "CREATE_COMPLETE",
+      "creationTime": "2026-10-15T14:00:00.436Z"
+    }
+  ],
+  "operatorActions": {
+    "stsReads": 1,
+    "cloudFormationReads": 3,
+    "applicationRequests": 0,
+    "privateLoads": 0,
+    "secretValues": 0,
+    "sqlConnections": 0,
+    "writes": 0
+  },
+  "state": "ORIGINAL_PUBLIC_SMOKE_AND_WORKLOAD_EXPIRED_HOSTING_DELETE_COMPLETE",
+  "originalManifestSha256": "41ab184c73a04dc90ee70da21edf04653b65d27d99472cd58606607f027dcde6",
+  "originalManifestExpiresAt": "2026-10-16T11:51:04.661Z",
+  "workloadExpiresAt": "2026-10-16T12:04:28.726Z",
+  "userResponse": "User confirmed but reported the manifest had expired. No out-of-window HTTP or cloud mutation authorization inferred.",
+  "publicSmokeRunStarted": false,
+  "permanentSlotPresent": false,
+  "newManifestCreated": false,
+  "ttlExtended": false,
+  "currentPlatformStateNotRead": true,
+  "deletionCallerNotEstablished": true,
+  "cfnRecordsAreNotIndependentPhysicalAbsenceOrBillingProof": true,
+  "nextRequiresChoice": "Either separately review workload-only restoration to resume public acceptance, preserving initialized database; or prepare readonly residual/exit inventory. No automatic recreate, initialization, deletion or state reconciliation."
+}
