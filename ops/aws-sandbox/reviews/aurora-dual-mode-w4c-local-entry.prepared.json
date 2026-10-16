@@ -1,0 +1,127 @@
+{
+  "schema": "techlong/platform-local-entry-w4c-prepared/v1",
+  "preparedAt": "2026-10-16T18:06:57Z",
+  "state": "LOCAL_ENTRY_VERIFIED_REQUESTS_OFF_AWAITING_SEPARATE_APPROVAL",
+  "isExecutionManifest": false,
+  "decision": {
+    "publishSites": false,
+    "primaryGoal": "COMPLETE_AWS_AUTOMATIC_DEPLOYMENT_FIRST",
+    "finalHostingTarget": "ENTIRE_SYSTEM_ON_AWS",
+    "localPlatformAndNeonAreInterim": true,
+    "f3c9ExpansionFrozen": true,
+    "monthlyBudgetTargetUsd": 50,
+    "hardBillingCapGuaranteed": false
+  },
+  "prior": {
+    "platformCommit": "e6121194ab40477020c609d78774800d37721965",
+    "backendCommit": "66440f009442223e74a7c6ace329c114b92cf3a3",
+    "w3RuntimePinsUnchanged": 76,
+    "w4aOwnPinsUnchanged": 11,
+    "existingW4CodeBindingPins": 99,
+    "packageAndLockUnchanged": true,
+    "w3SlotsRemainConsumed": true
+  },
+  "ownPins": [
+    {
+      "file": "scripts/local-deployment-platform.mjs",
+      "rawFileSha256": "e62a790a707ce7133f4ebfe57091b163f0deed046cbcd61fd3c86f81d95c439c"
+    },
+    {
+      "file": "tests/local-deployment-platform.test.mjs",
+      "rawFileSha256": "909bf8b06f4b5d7e1e60488dda5c57fbb42b13cc11e521cedd14cafa4332fde2"
+    },
+    {
+      "file": "vite.config.ts",
+      "rawFileSha256": "326ab9a41384a5dde5acb570e5b64d3cac7a4c5951717bbde934f34a4d4f9610"
+    },
+    {
+      "file": "docs/aws-auto-deployment-mainline.md",
+      "rawFileSha256": "fd9c594ac1314aa9b093329bdb18e7f719fb4e40b2e307ae940838b6f96dea50"
+    }
+  ],
+  "localRuntime": {
+    "origin": "http://127.0.0.1:3100",
+    "strictPort": true,
+    "requestEntryEnabled": false,
+    "workerEnabled": false,
+    "awsApplyEnabled": false,
+    "environmentFilesChanged": false,
+    "secretValuesInViteConfig": false,
+    "explicitSecretBindingNamesOnly": true,
+    "unrelatedAwsCredentialsBound": false,
+    "serverStoppedAfterVerification": true,
+    "portNotListeningAfterStop": true
+  },
+  "verification": {
+    "targetedTestsPassed": 44,
+    "newLocalTests": 4,
+    "typecheckPassed": true,
+    "targetedEslintZeroWarnings": true,
+    "scriptSyntaxPassed": true,
+    "completeVinextBuildPassed": true,
+    "actualWranglerBindings": "ALL_THREE_GATES_FALSE_DATABASE_SECRET_TEXT",
+    "loopbackHttp": [
+      { "path": "/api/health", "status": 200, "health": "ok" },
+      { "path": "/login", "status": 200, "passwordInputPresent": true },
+      {
+        "path": "/api/admin/instances/app_e897a4377bce498b9c5ee9e64509dcad/initialized-deployment",
+        "status": 401,
+        "code": "UNAUTHORIZED"
+      }
+    ],
+    "publicSourceResult": {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-sources-20261016-r4/result.json",
+      "rawFileSha256": "97f2f40eaf4481c4a8a34aaec476c2a3af0c343dfb8a86ffa0b16b0bd87eaa9a"
+    },
+    "publicSourceBinding": {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-sources-20261016-r4/binding.json",
+      "rawFileSha256": "30af5773bae4a56440240139e45233e1373c09607c3f6e0954941e8418357e90"
+    },
+    "preservedFailedSourceCheck": {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-sources-20261016-r3/result.json",
+      "diagnosis": "INITIALIZATION_RECOVERY_AUDIT_CODE_CHANGED",
+      "cause": "TEMPORARY_NPM_SHORTCUTS_IN_PINNED_PACKAGE_JSON",
+      "resolution": "REMOVED_OWN_TWO_NEW_LINES_USE_DIRECT_NODE_COMMAND_NO_GUARD_RELAXATION",
+      "writesOrSlots": 0
+    },
+    "initialLoopbackSandboxDenied": true,
+    "loopbackOnlyEscalatedVerificationPassed": true,
+    "initialDiagnosticDefaultLogDirectoryDenied": true,
+    "finalDiagnosticProjectLocalLogsDisabled": true,
+    "freshNeonOrAwsInventoryClaimed": false,
+    "lastKnownHeldCountSource": "W4B_READONLY_AT_2026-10-16T17:37:27.322Z_NOT_REFRESHED_IN_W4C"
+  },
+  "actualEffects": {
+    "platformLogins": 0,
+    "credentialOrSessionWrites": 0,
+    "sqlConnections": 0,
+    "sqlWrites": 0,
+    "newHeldRequests": 0,
+    "awsCalls": 0,
+    "awsWrites": 0,
+    "iamChanges": 0,
+    "originalPrivatePackageReads": 0,
+    "awsSecretValueApiReads": 0,
+    "authenticatedTenantGets": 0,
+    "sitesPublications": 0,
+    "sitesRemotePushes": 0,
+    "permanentSlotsConsumed": 0,
+    "existingLocalApplicationEnvLoadedInMemory": true
+  },
+  "nextApproval": {
+    "required": true,
+    "riskFile": "docs/aws-auto-deployment-aurora-dual-mode-w4c-local-entry.md",
+    "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "deploymentId": "dep_7c99bd249470184852f0dc74",
+    "localProcessRequestEntryOnly": true,
+    "existingChosenAdminManualLogin": true,
+    "normalAuthSessionAndCredentialCounterWritesDisclosed": true,
+    "operatorMaximumNewHeldRequests": 1,
+    "operatorMustStopProcessAfterRequest": true,
+    "newCloudExecutionAuthorized": false,
+    "privatePackageReadAuthorized": false,
+    "noFakeSessionOrPasswordReset": true,
+    "noAutomaticRetryOrNonceReplacement": true,
+    "freshExactJobReviewRequiredBeforeAwsExecution": true
+  }
+}
