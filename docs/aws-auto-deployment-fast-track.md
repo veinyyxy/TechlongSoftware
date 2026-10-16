@@ -1,5 +1,7 @@
 # AWS 自动部署最快交付方案
 
+> **最新 K2c 已完成：平台 ready，独立认证验收通过。**Winnipeg 2026-10-16 01:30:52.825一次三行SERIALIZABLE事务成功，01:31:26.312另进程确认active/ready/succeeded、清旧lease及初始化/配置/镜像；保留原attempt、计划/错误及人工恢复归因，不声称无人值守全链路已验收。2次私密包/4GET，0云/IAM/Secret值/Aurora/POST，三个永久槽与本批准消费，不重放。下一只准备首轮业务访问/清理/费用退出的最小未验收项，具体新调用/清理仍另批；固定07:04:28.726 CDT到期不延长。[结果、证据及准确下一阶段](aws-auto-deployment-aurora-dual-mode-k2c-ready-reconciliation-executed.md)。下方为历史。
+
 > **当前 K2c 最终待审**：已实现一次Neon三行原子协调＋新的独立认证只读验收，平台可在批准后收口为active/ready/succeeded；这不是原worker有效lease或无人值守全链路证明。39 tests/types/零警告lint及真实只读Review/独立绑定核验通过；0写/私密/应用HTTP/槽消费。fresh SHA `f98bcd6ce2123c1e99085097e846937a8f389002f7637acd6cb1547efce2c5c0`，Winnipeg 2026-10-16 03:13:10.481前入场、03:28:10.481前事务/Inspect；不再初始化、不改IAM/资源、不延长固定07:04:28.726到期或扩展封存支线。[准确清单与完整风险](aws-auto-deployment-aurora-dual-mode-k2c-ready-reconciliation-review.md)。下方为历史。
 
 > **当前 K2b 已完成：租户真实初始化并独立认证验收通过。**用户确认7596abc9…后Winnipeg 2026-10-16 00:31:45.991唯一POST成功，00:32:19.910新进程readiness/control确认初始化、有效配置、准确store及实际修复image。1次Aurora只读、1次固定Secret值、2次原私密包、1 POST+5 GET；两个永久槽和本轮全部读取/执行批准已消费，不重跑或再Inspect。0云/IAM/Neon平台写，不续期/ready；旧job/lease/plan/artifact/epoch原状保持。下一只准备K2c准确旧值/DB时钟/CAS的平台artifact/job/ready协调，不能再provision。固定07:04:28.726 CDT到期、Janitor与50USD非cap保持。[真实执行、18份证据hash及唯一继续点](aws-auto-deployment-aurora-dual-mode-k2b-initialization-recovery-executed.md)。下方为历史。
