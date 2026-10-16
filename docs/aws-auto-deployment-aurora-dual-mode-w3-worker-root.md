@@ -1,5 +1,7 @@
 # W3：真实 AWS 承载执行器与单次 worker 根已接通，待批准实跑
 
+> **本待审资料已执行，不可重放**：用户确认r2完整SHA后，一次新job/建栈、两认证GET、原子收口和独立Inspect已于2026-10-16 11:51:24 CDT全部通过。新栈UUID `74a79560-c981-11f1-bfcc-06ffde30f30d`、task definition:4，固定13:42:30 CDT到期；五个永久槽均已消费。[实际结果与继续边界](aws-auto-deployment-aurora-dual-mode-w3-executed.md)。以下为历史准备说明，不再是可执行批准请求。
+
 2026-10-16 Winnipeg。承接 [W2](aws-auto-deployment-aurora-dual-mode-w2-single-job.md)，不扩展 Grant/generation/F3c9 支线。**本轮完成代码和真实只读 Review，没有创建 job/stack、读取原私密包或向应用发送请求。**
 
 ## 已接通

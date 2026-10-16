@@ -1,5 +1,7 @@
 # Aurora Express / Full 双模式兼容与切换方案
 
+> **当前 W3：已初始化租户单任务承载闭环实跑验收通过**。一次新job/lease、真实七资源建栈、两认证GET及原子完成，独立Inspect再次证明新UUID `74a79560…`/task definition:4/实际镜像与健康target；旧成功job/ready归因、原store/初始化库不变。1次SourceCreateStack/2个Neon写事务/1私密包/2GET，无POST/重试/新增权限或全局队列激活，Full/旧代码不动。五槽已消费，固定今天13:42:30 CDT到期不续期；下一只接平台受控触发，实际新写仍另审，不重放此清单。[本轮实际结果](aws-auto-deployment-aurora-dual-mode-w3-executed.md)。下方为历史。
+
 > **当前 W3：Express 真实单次 CLI/承载 provider 已接通，尚未实跑**。复用已初始化库/同一租户，真实CreateStack七资源、新job/有效lease、两GET和原子收口集中审阅；不重放旧任务或触碰Full/全局disabled。26 tests/typecheck/lint、真实只读Review通过，旧栈/七资源已退役、命名空间为空，父Cell/库不删。当前SHA `bf4bd8b4…` 到今天11:57:30.084 CDT，child固定到期13:42:30；0写/原私密包/应用请求，真实部署及私密读取仍需明确确认，过期不重放。[当前入口、范围和记录](aws-auto-deployment-aurora-dual-mode-w3-worker-root.md)。下方为历史。
 
 > **当前 W2：Express 单任务与真实 Neon 持久化代码完成、未启用**。一次新 reconcile/DB-clock lease、W1 GET-only 回读、原子追加 deployment outputs+完成新 job、独立 READ ONLY 回读已接线，原成功任务/ready 归因/初始化库保留。21 tests/typecheck/lint 通过；真实九行快照及五项 SQL 只读 EXPLAIN 通过，不执行被规划的写 SQL，0云/job/业务写和私密/应用调用。实际 AWS provider 与生产 CLI 尚待 W3，Full/旧路径/全局 disabled 不动；无部署执行 SHA，具体写及私密来源另审。[准确代码范围与继续方向](aws-auto-deployment-aurora-dual-mode-w2-single-job.md)。下方为历史。
