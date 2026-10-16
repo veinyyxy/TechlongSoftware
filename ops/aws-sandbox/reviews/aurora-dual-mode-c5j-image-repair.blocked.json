@@ -1,0 +1,59 @@
+{
+  "schema": "techlong/express-c5j-image-repair-blocked/v1",
+  "state": "ORIGINAL_WORKLOAD_DELETED_BY_EXISTING_JANITOR_NO_UPDATE_AUTHORITY",
+  "checkedAt": "2026-10-16T00:32:01.400Z",
+  "originalStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/863828e0-c8d6-11f1-bd9d-06fff5ad0437",
+  "deleteStartedAt": "2026-10-15T22:23:38.126Z",
+  "deleteCompletedAt": "2026-10-15T22:31:36.285Z",
+  "cloudTrailDeleteEventId": "967def00-afc8-4362-8d7c-82b9af7771fa",
+  "deleteActorArn": "arn:aws:sts::402010193138:assumed-role/TechlongSandboxJanitorExecutionRole/techlong-sandbox-janitor",
+  "existingJanitorScheduleEnabled": true,
+  "existingJanitorSchedule": "techlong-sandbox/global-expired-stack-scan",
+  "existingJanitorScheduleExpression": "rate(15 minutes)",
+  "originalSevenResourcesDeleted": true,
+  "serviceInactiveRunningZero": true,
+  "parentCellStillCreateComplete": true,
+  "auroraClusterStillAvailable": true,
+  "runtimeSecretFixedVersionUnchanged": true,
+  "tenantDatabaseContentsVerified": false,
+  "legacyAuthorityStillMatches": true,
+  "auroraV2NamespaceAbsenceProvedThisRound": false,
+  "platformDeploymentStatus": "configuring",
+  "platformInstanceStatus": "pending",
+  "platformJobStatus": "running",
+  "platformJobLeaseExpired": true,
+  "c5iPublicationReplayed": false,
+  "c5iLockedEvidencePreserved": true,
+  "validImageUpdateManifestGenerated": false,
+  "reviewDirectories": [
+    "F:/ChatGPT_workshop/techlong-express-c5j-review-20261016-r1",
+    "F:/ChatGPT_workshop/techlong-express-c5j-review-20261016-r2"
+  ],
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5j-deletion-inspect-20261016-r1/result.json",
+      "rawFileSha256": "9bebb00b2d4e75afec7332a406ed6f82af04d8ac49d1c29d595ff9cddec6ff44"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5j-survivors-inspect-20261016-r1/result.json",
+      "rawFileSha256": "6ea139215d91dd93eee22013d6a290ca777e34a7a19db0ac62dec9318ecd2112"
+    }
+  ],
+  "actual": {
+    "cloudWrites": 0,
+    "platformWrites": 0,
+    "neonReadonlyTransactions": 1,
+    "auroraConnections": 0,
+    "secretValueOrOriginalPrivateReads": 0,
+    "applicationRequests": 0,
+    "permanentSlotsConsumed": 0,
+    "automaticRetries": 0
+  },
+  "monthlyBudgetTargetUSD": 50,
+  "budgetIsHardCap": false,
+  "survivingResourcesContinueBilling": true,
+  "recreationAuthorized": false,
+  "janitorChangesAuthorized": false,
+  "readyVerified": false,
+  "next": "Confirm narrow workload-only recovery direction; prepare fresh exact scope for identity/job/plan coordination and Janitor-compatible window; never replay old deployment or infer business rollback"
+}

@@ -1,5 +1,7 @@
 # Aurora Express / Full 双模式兼容与切换方案
 
+> **当前继续点（2026-10-15 Winnipeg，C5j）**：UUIDv8修复镜像已在C5i发布并立即撤权、独立Locked/v10；恢复时查明原workload被既有旧Janitor删除，七资源DELETE_COMPLETE，镜像更新预检已拦截，未云写/业务写/消费槽。Cell/Aurora/固定Secret仍在，旧job租约过期。下一需确认“只恢复workload、保留数据库/Cell、明确Janitor兼容窗口及平台协调”方向，再准备fresh具体清单；不要重放旧批准。[准确删除证据、更正及最短主线恢复边界](aws-auto-deployment-aurora-dual-mode-c5j-deleted-workload.md)。下方设计/历史进度不覆盖当前状态。
+
 决策 **D002**，2026-10-13 America/Winnipeg。状态：**设计完成，代码与云适配尚未实现/验收**。用户暂不升级 AWS account plan，要求先设计兼容或快速切换方案。本文件调整 D001 的数据库交付路径，不扩大“一个 sandbox 租户自动部署到 ready”的首轮目标。
 
 后继编码已开始：C1双模式连接核心/严格v2契约/app pool分支/只读来源及云端镜像自检已实现；C1整体和Express实机尚未完成。[准确实现范围、验证与下一接线](./aws-auto-deployment-aurora-dual-mode-c1.md)。本方案以下“尚未开始/只有文档”是最初设计时状态，不覆盖后继实际进度。

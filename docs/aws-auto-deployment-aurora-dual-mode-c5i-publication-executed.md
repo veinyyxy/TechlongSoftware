@@ -1,5 +1,7 @@
 # C5i已完成：修复镜像发布及独立Locked/v10核验
 
+> **后继C5j状态更新**：本文件是C5i发布时证据。后续发现原workload在UTC22:23–22:31被既有Janitor删除，不能执行下方原UUID镜像窄更新；C5i不重跑。[删除事实、先前TTL表述更正与当前继续点](aws-auto-deployment-aurora-dual-mode-c5j-deleted-workload.md)。
+
 批准 `1d6b5415c3498e0a1e16add63b0b914215343bde51c2db05a75b47788de68ef1` 已消费，不可刷新、复位或重跑。[完整原范围与风险](aws-auto-deployment-aurora-dual-mode-c5i-publication-review.md)及旧记录保持。当前不是应用ready证明，ECS仍未更新。
 
 ## 实际发布
