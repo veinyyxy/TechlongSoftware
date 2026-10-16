@@ -1,0 +1,69 @@
+{
+  "schema": "techlong/workload-only-recovery-local-prepared/v1",
+  "state": "LOCAL_SCOPE_COMPILED_WAITING_FOR_SOURCE_READONLY",
+  "humanAuthorizedPreparationOnly": true,
+  "freshManifestSha256": null,
+  "executionAuthorized": false,
+  "proposedSourceCreateStackCalls": 1,
+  "proposedLogicalResources": 7,
+  "reusesExistingCellDatabaseRolesSecretsDns": true,
+  "reusesPublishedFixImage": true,
+  "proposedWorkloadWindowHoursFromReview": 8,
+  "proposedAdmissionWindowHours": 2,
+  "environmentTtlPolicySecondsUnchanged": 7200,
+  "independentWindowExceptionRequiresApproval": true,
+  "existingJanitorRemainsEnabled": true,
+  "platformJobLeasePlanArtifactUnchanged": true,
+  "generationUnchanged": 1,
+  "externalEpochUnchanged": 1,
+  "provisionRetryAuthorized": false,
+  "localCheckDirectory": "F:/ChatGPT_workshop/techlong-express-c5k-local-20261016-r1",
+  "localCheckIsNotExecutionApproval": true,
+  "stoppedReviewDirectory": "F:/ChatGPT_workshop/techlong-express-c5k-review-20261016-r1",
+  "stoppedReviewCode": "WORKLOAD_RECOVERY_SOURCE_REFRESH_REQUIRED",
+  "preliminaryDdbSdkObservation": {
+    "evidenceKind": "sanitized_tool_output_not_raw_provider_receipt",
+    "sdkConsistentGetItemCalls": 2,
+    "auroraV2NamespaceAbsent": true,
+    "legacyMatchesOriginal": true,
+    "legacyCanonicalSha256": "ede2c5dd0c096c8256c9f8e47c590d07e3a11bd4075d2094e824350c7f85783e",
+    "freshRunMustReRead": true
+  },
+  "verification": {
+    "newTargetedTests": 8,
+    "adjacentTests": 8,
+    "typecheck": "passed",
+    "targetedLint": "passed_zero_warnings",
+    "syntax": "passed",
+    "fullLiveReviewPassed": false,
+    "liveCreateStackOrIndependentInspectPerformed": false
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5k-review-20261016-r1/failure.json",
+      "rawFileSha256": "e1d3cc318d42b337304b4c7725a0bbdfd490621edd4d53fcb2ed947ce618ee14"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5k-local-20261016-r1/result.json",
+      "rawFileSha256": "8e9e3898ac1c8f02114e324d3bd864bfbddc399c49dedf972545b065bc368d56"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-c5k-local-20261016-r1/plan.json",
+      "rawFileSha256": "1579082a55cba8269c120f193cc1384724ae20e718517e56ade7208b57a78d62",
+      "gitContainsOnlyHashNotParameters": true
+    }
+  ],
+  "actual": {
+    "cloudWrites": 0,
+    "platformOrBusinessWrites": 0,
+    "neonReadonlyTransactions": 0,
+    "auroraConnections": 0,
+    "secretValueOrOriginalPrivateReads": 0,
+    "applicationRequests": 0,
+    "permanentWriteSlotsConsumed": 0
+  },
+  "monthlyBudgetTargetUSD": 50,
+  "budgetIsHardCap": false,
+  "resourcesContinueBilling": true,
+  "next": "After Source refresh run a new read-only Review, preserve r1, then present fresh exact SHA and risks for explicit CreateStack approval; no deployment now"
+}

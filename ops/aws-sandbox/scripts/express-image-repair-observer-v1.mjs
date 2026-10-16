@@ -16,19 +16,9 @@ export function clients() {
     credentials: fromLoginCredentials({ profile: 'techlong-sandbox-user', clientConfig: { maxAttempts: 1, ignoreConfiguredEndpointUrls: true } }) };
   const all = { cfn: new cfn.CloudFormationClient(config), ecs: new ecs.ECSClient(config), iam: new iam.IAMClient(config),
     ddb: new DynamoDBClient(config), sts: new STSClient({ ...config, endpoint: 'https://sts.ca-central-1.amazonaws.com' }) };
-  return { ...all, destroy() { Object.values(all).forEach(c => c.destroy()); } };
+  return { ...all, config, destroy() { Object.values(all).forEach(c => c.destroy()); } };
 }
-export async function observe({ api, historical, historicalPreflight, request, phase, baseline, signal }) {
-  const startedAt = Date.now(); let sdkReads = 0, cliReads = 0;
-  const send = (client, cmd) => { demand(++sdkReads <= 45, 'SDK_READ_LIMIT');
-    return client.send(cmd, { abortSignal: AbortSignal.any([signal, AbortSignal.timeout(30000)]) }); };
-  const cli = async args => {
-    demand(++cliReads <= 7, 'CLI_READ_LIMIT');
-    const r = await exec('aws', [...args, '--profile', 'techlong-sandbox-user', '--region', 'ca-central-1', '--output', 'json', '--no-cli-pager'],
-      { windowsHide: true, signal, timeout: 30000, maxBuffer: 4_000_000,
-        env: { ...process.env, AWS_MAX_ATTEMPTS: '1', AWS_IGNORE_CONFIGURED_ENDPOINT_URLS: 'true', AWS_CLI_AUTO_PROMPT: 'off', AWS_PAGER: '' } });
-    return JSON.parse(r.stdout);
-  };
+export async function assertExistingSourceAndIam({ api, historicalPreflight, send }) {
   const who = await send(api.sts, new GetCallerIdentityCommand({}));
   demand(who.Account === '402010193138' && who.Arn === 'arn:aws:iam::402010193138:user/techlong-sandbox-dev' &&
     who.UserId === 'AIDAV3GNMXTZEO7SHLC2X', 'SOURCE_IDENTITY');
@@ -58,6 +48,20 @@ export async function observe({ api, historical, historicalPreflight, request, p
       inline: inline.sort((a, b) => a.name.localeCompare(b.name)), tags: tags(r?.Tags) };
     demand(same(actual, wanted), 'TASK_ROLE_DRIFT');
   }
+  return { sourceVerified: true, iamLayoutUnchanged: true };
+}
+export async function observe({ api, historical, historicalPreflight, request, phase, baseline, signal }) {
+  const startedAt = Date.now(); let sdkReads = 0, cliReads = 0;
+  const send = (client, cmd) => { demand(++sdkReads <= 45, 'SDK_READ_LIMIT');
+    return client.send(cmd, { abortSignal: AbortSignal.any([signal, AbortSignal.timeout(30000)]) }); };
+  const cli = async args => {
+    demand(++cliReads <= 7, 'CLI_READ_LIMIT');
+    const r = await exec('aws', [...args, '--profile', 'techlong-sandbox-user', '--region', 'ca-central-1', '--output', 'json', '--no-cli-pager'],
+      { windowsHide: true, signal, timeout: 30000, maxBuffer: 4_000_000,
+        env: { ...process.env, AWS_MAX_ATTEMPTS: '1', AWS_IGNORE_CONFIGURED_ENDPOINT_URLS: 'true', AWS_CLI_AUTO_PROMPT: 'off', AWS_PAGER: '' } });
+    return JSON.parse(r.stdout);
+  };
+  await assertExistingSourceAndIam({ api, historicalPreflight, send });
   const [sr, tr, rs, sv] = await Promise.all([
     send(api.cfn, new cfn.DescribeStacksCommand({ StackName: C.stack })),
     send(api.cfn, new cfn.GetTemplateCommand({ StackName: C.stack, TemplateStage: 'Original' })),

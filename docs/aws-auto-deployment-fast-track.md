@@ -1,5 +1,7 @@
 # AWS 自动部署最快交付方案
 
+> **当前 C5k：仅准备恢复清单**。用户已同意workload-only方向；不重建数据库/Cell、不改旧job/plan/lease/epoch、不重试provision。单次七资源CreateStack及新八小时人工窗口（7200秒policy不变的明确待批例外）、旧Janitor保持的Review/Run/Inspect入口与16项测试/types已完成；真实只读Review停在Source SDK过期，0写/私密/SQL/槽，无有效执行SHA。刷新后只运行一次新目录Review；不重做C5i。[唯一继续点](aws-auto-deployment-aurora-dual-mode-c5k-workload-recovery-prepared.md)。下面为历史。
+
 > **最新主线 C5j（2026-10-15 Winnipeg）**：C5i修复镜像发布与Locked/v10完成。被额度中断后恢复，真实预检发现原workload已由既有15分钟旧Janitor删除；不是新增失败重试，当前无可执行镜像更新SHA。本轮只读、0云写/0业务写/0槽消费。下一仅准备保留现有Cell/数据库的workload恢复及Janitor兼容窗口，不扩展F3c9或清理支线。[唯一继续点与证据](aws-auto-deployment-aurora-dual-mode-c5j-deleted-workload.md)。下面均为设计及历史记录。
 
 决策日期：2026-10-05。用户明确要求执行最快实现方案，移除优先省钱策略，并给出新预算 `50 USD`；按此前月预算语境落实为 **50 USD/月目标**。
