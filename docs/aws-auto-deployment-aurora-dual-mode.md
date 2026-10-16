@@ -1,6 +1,6 @@
 # Aurora Express / Full 双模式兼容与切换方案
 
-> **当前 K3r Run成功、独立验收未完成**：一次新七资源承载/实际task definition:3和镜像健康、三公开GET 200/200/401、一行outputs重绑定及同进程只读回读成功；原初始化/任务/人工ready receipt保持。独立Inspect只读阶段未分类失败，三个永久槽已消费，未重试/补写。固定Winnipeg 2026-10-16 10:37:01.033 CDT到期；不续期、不再provision或新建，下一仅准备准确新UUID的窄只读诊断/验收及退出盘点。50USD非cap，未宣称无人值守/正向业务或全停费。[真实结果与23份原件hash](aws-auto-deployment-aurora-dual-mode-k3r-hosting-resume-executed.md)。下方为历史。
+> **当前 K3v准确承载与平台独立回读通过**：2026-10-16 09:09:50.998 CDT新进程只读确认七资源/实际task definition:3及镜像/healthy target、平台restoration receipt与九行完整摘要；0写/私密值/新增应用请求，原初始化/任务/人工ready归因保持。原K3r失败及槽不改、不重放，旧错误原因未知；6份新证据+23份历史原件及15tests/lint/语法核验通过。固定今天10:37:01.033 CDT到期不续期，下一只读退出/依赖/费用盘点，默认保留租户数据，不扩展支线或再provision。无人值守全链路、正向业务及全停费未验；50USD非cap。[独立验收结果](aws-auto-deployment-aurora-dual-mode-k3v-hosting-rebind-verified.md)。下方为历史。
 
 > **最新 K3a 停止**：用户确认时清单和workload均已过期；Winnipeg 2026-10-16 07:55:49只读确认新workload UUID/七CFN资源记录DELETE_COMPLETE，父Cell记录CREATE_COMPLETE。0公网GET/私密/SQL/云写，槽未消费；不能只换SHA重放或自动重建/初始化。当前需选择另审承载恢复继续验收，或只读盘点准备退出；当前平台同步/全部停费未证明。[观察证据与下一选择](aws-auto-deployment-aurora-dual-mode-k3a-expired.md)。下方为历史。
 

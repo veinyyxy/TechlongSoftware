@@ -1,5 +1,7 @@
 # K3r 实际结果：恢复与公网检查成功，独立 Inspect 停止
 
+> **后续K3v已补齐当前独立回读**：2026-10-16 09:09:50.998 CDT新窄只读范围确认准确新承载与平台receipt，0写/私密值/应用请求。原K3r Inspect仍保留失败、根因未建立且未重放；不改下方历史证据。[K3v真实结果及下一步](aws-auto-deployment-aurora-dual-mode-k3v-hosting-rebind-verified.md)。
+
 2026-10-16 Winnipeg。用户“确认”后，按清单 `10242ff57c631458705efde250ea2805786d07d22965e263b1e79630e965b148` 执行了一次 Run 和一次独立 Inspect。**Run 成功，但不能宣称完整独立验收通过**：Inspect 在只读阶段返回未分类错误，永久槽已消费，未重跑、补写或重新创建。
 
 ## 已发生的动作

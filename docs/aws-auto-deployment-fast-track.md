@@ -1,6 +1,6 @@
 # AWS 自动部署最快交付方案
 
-> **当前 K3r Run成功、独立Inspect停止**：2026-10-16 08:37 CDT一次创建新七资源，UUID `ab4aa8c0-c966-11f1-b068-0ecbbd896a2b`/task definition:3健康；三公开GET为200/200/401，一行deployment outputs重绑定ACK及Run只读回读通过，保留初始化/原instance/job/receipt。独立Inspect只读阶段未分类失败，三槽已消费，未重试，不能宣称完整独立验收。固定10:37:01.033 CDT到期不续期；下一只准备准确新UUID的窄只读诊断/验收及退出盘点，不再创建/provision/补写或扩展支线。50USD非cap。[真实结果、23份原件hash及继续边界](aws-auto-deployment-aurora-dual-mode-k3r-hosting-resume-executed.md)。下方为历史。
+> **当前 K3v 独立回读通过**：2026-10-16 09:09:50.998 CDT，新的窄只读入口以8 SDK/1 CLI/1 Neon只读事务确认准确新栈UUID `ab4aa8c0-c966-11f1-b068-0ecbbd896a2b`、task definition:3/实际镜像/healthy target及平台receipt，九行完整摘要与K3r写后保持；0写/私密值/新增应用请求。原K3r失败及三槽保留、不重放，根因仍未知；5新+10相邻tests/lint/语法及6新+23旧原件复核通过。固定今天10:37:01.033 CDT到期不续期，下一仅K3b准确退出/依赖/费用盘点，默认保留初始化数据，不自动删除或再建；无人值守全链路/正向业务未验。50USD非cap。[独立结果与唯一继续边界](aws-auto-deployment-aurora-dual-mode-k3v-hosting-rebind-verified.md)。下方为历史。
 
 > **最新 K3a 因原承载到期停止**：Winnipeg 2026-10-16 07:55只读核对workload准确UUID和七资源CFN记录DELETE_COMPLETE、父Cell记录CREATE_COMPLETE。清单和原07:04:28.726期限均已过，0公网GET/私密/SQL/写，槽未消费，不刷新范围或自动创建。K2c ready保持历史，当前平台同步/实际全清理/停费未验；需用户选另审恢复承载继续验收，或K3b只读退出盘点。[事实及选择](aws-auto-deployment-aurora-dual-mode-k3a-expired.md)。下方为历史。
 
