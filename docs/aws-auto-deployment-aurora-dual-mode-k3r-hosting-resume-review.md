@@ -1,5 +1,7 @@
 # K3r 最终待审：保留初始化结果，一次恢复承载并完成公网验收
 
+> **已执行，原命令禁止重放**（2026-10-16）：用户确认后一次CreateStack、三GET及一行Neon重绑定/同进程回读成功；新UUID `ab4aa8c0-c966-11f1-b068-0ecbbd896a2b`、task definition:3，到期Winnipeg 10:37:01.033 CDT。独立Inspect只读阶段未分类失败，三个永久槽全部消费，未重试。完整独立验收尚未通过；下方“待审/尚未执行/命令”全部仅为批准前历史，不是新的执行授权。[真实结果与继续边界](aws-auto-deployment-aurora-dual-mode-k3r-hosting-resume-executed.md)。
+
 用户选择继续承载恢复方向后，代码、29项针对/相邻测试、零警告lint、语法、本地Check、现场只读Review及独立绑定复核已通过。**尚未创建资源、发送应用请求、写平台或消费新槽。** 不是重新初始化，也不恢复F3c9/Grant支线。
 
 ## 最终SHA及不会因审批等待耗掉的承载窗口

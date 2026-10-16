@@ -1,0 +1,351 @@
+{
+  "schema": "techlong/hosting-resume-executed/v1",
+  "state": "RUN_SUCCEEDED_INDEPENDENT_INSPECT_UNCLASSIFIED_STOPPED",
+  "approvedManifestSha256": "10242ff57c631458705efde250ea2805786d07d22965e263b1e79630e965b148",
+  "approvalConsumed": true,
+  "replayAllowed": false,
+  "fullIndependentAcceptance": false,
+  "monthlyBudgetTargetUSD": 50,
+  "budgetIsHardCap": false,
+  "recordedAt": "2026-10-16T13:41:46.107Z",
+  "execution": {
+    "startedAt": "2026-10-16T13:37:01.033Z",
+    "workloadExpiresAt": "2026-10-16T15:37:01.033Z",
+    "finishBefore": "2026-10-16T15:32:01.033Z",
+    "requestSha256": "0fb05e4affb0a4a6195bc119b65588bf65996e7695e178fcca7022eb95cf9b60",
+    "ttlSeconds": 7200,
+    "extended": false,
+    "createRequests": 1,
+    "workloadResources": 7,
+    "submission": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/ab4aa8c0-c966-11f1-b068-0ecbbd896a2b",
+      "acknowledgedAt": "2026-10-16T13:37:01.424Z",
+      "requestId": "a55e9abf-b6b6-4af4-a311-8c6efb8c57e2"
+    },
+    "live": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/ab4aa8c0-c966-11f1-b068-0ecbbd896a2b",
+      "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:3",
+      "taskArn": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/fb79e1a0f0194d489fdc4f1f64bd89fa",
+      "digest": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e"
+    },
+    "hostingObservedAt": "2026-10-16T13:39:11.195Z",
+    "hostingObservationSha256": "540b96424c2fd55647abd2abade74af5fc2c6d0dff905c9d29b879a45100a95c",
+    "providerReadCounts": {
+      "sdk": 35,
+      "cli": 11
+    }
+  },
+  "publicAcceptance": {
+    "requests": [
+      {
+        "path": "/health",
+        "statusCode": 200,
+        "responseBytes": 15,
+        "expectedResponseVerified": true,
+        "tls": {
+          "authorized": true,
+          "protocol": "TLSv1.3",
+          "peerFingerprint256": "8F:FE:FB:3A:2E:46:19:A4:CF:1D:4A:15:21:1A:48:E7:D3:F7:7D:8A:20:DD:6B:33:70:36:F8:E5:C0:59:FD:63",
+          "peerValidTo": "Apr 26 23:59:59 2027 GMT"
+        },
+        "checkedAt": "2026-10-16T13:39:12.053Z"
+      },
+      {
+        "path": "/ready",
+        "statusCode": 200,
+        "responseBytes": 18,
+        "expectedResponseVerified": true,
+        "tls": {
+          "authorized": true,
+          "protocol": "TLSv1.3",
+          "peerFingerprint256": "8F:FE:FB:3A:2E:46:19:A4:CF:1D:4A:15:21:1A:48:E7:D3:F7:7D:8A:20:DD:6B:33:70:36:F8:E5:C0:59:FD:63",
+          "peerValidTo": "Apr 26 23:59:59 2027 GMT"
+        },
+        "checkedAt": "2026-10-16T13:39:12.475Z"
+      },
+      {
+        "path": "/api/merchant/stores",
+        "statusCode": 401,
+        "responseBytes": 17,
+        "expectedResponseVerified": true,
+        "tls": {
+          "authorized": true,
+          "protocol": "TLSv1.3",
+          "peerFingerprint256": "8F:FE:FB:3A:2E:46:19:A4:CF:1D:4A:15:21:1A:48:E7:D3:F7:7D:8A:20:DD:6B:33:70:36:F8:E5:C0:59:FD:63",
+          "peerValidTo": "Apr 26 23:59:59 2027 GMT"
+        },
+        "checkedAt": "2026-10-16T13:39:12.734Z"
+      }
+    ],
+    "totalRequests": 3,
+    "retries": 0,
+    "authenticatedRequests": 0,
+    "positiveBusinessAcceptance": false
+  },
+  "platform": {
+    "transaction": {
+      "acknowledgedAt": "2026-10-16T13:39:13.459Z",
+      "programSha256": "d877757b4c81eb83a87f8fee9cd0803945f9cbaf60e2b803ea65c7b270b82d3d",
+      "transactions": 1,
+      "changedRows": 1,
+      "statements": 5
+    },
+    "receipt": {
+      "protocol": "techlong/hosting-resume-receipt/v1",
+      "manifestSha256": "10242ff57c631458705efde250ea2805786d07d22965e263b1e79630e965b148",
+      "checkedAt": 1792157952734,
+      "hostingCheckedAt": 1792157951195,
+      "hostingSha256": "540b96424c2fd55647abd2abade74af5fc2c6d0dff905c9d29b879a45100a95c",
+      "publicProofSha256": "d761b94c589e860bc648f1a073f3f20ac59516aa65a7087515cfd51eb44d4c7e",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/ab4aa8c0-c966-11f1-b068-0ecbbd896a2b",
+      "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:3",
+      "imageDigest": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+      "expiresAt": "2026-10-16T15:37:01.033Z",
+      "predecessorStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/f71252c0-c917-11f1-8148-02ff648cb917",
+      "priorOutputsSha256": "ec32e68f8950c97a05e300041ff17349905619411337b1c397dd33fb4c3e446e",
+      "originalReadyAttributionPreserved": true,
+      "reinitialized": false,
+      "jobOrInstanceChanged": false,
+      "authenticatedConfigurationProof": "HISTORICAL_K2C_NOT_A_FRESH_CONTROL_GET",
+      "freshPublicReadiness": true,
+      "positiveBusinessAcceptance": false
+    },
+    "receiptSha256": "707c3feaf2a26ad1916b1c4c397ee390bb892d425bb21643fae67357ac1d9cce",
+    "runReadonlyAfterState": {
+      "checkedAt": 1792157953640,
+      "snapshot": {
+        "db_now": "1792157954626",
+        "read_only": "on",
+        "identity": {
+          "role": "neondb_owner",
+          "roleOid": "16392",
+          "version": "180006",
+          "database": "neondb",
+          "timezone": "GMT",
+          "databaseOid": "16396"
+        },
+        "hashes": {
+          "a": "37b1cf66453cf0bf994c89c07f424f9b7d8dc33e25d10f878b5656312bf318f5",
+          "d": "8376a88ef993e70d92be8130802c8e235bba70b6beb31a9b3e5f28a50001692e",
+          "e": "ef888d68c1f697a5438a772508056c14b773c57393625f0262b86c746bae2007",
+          "j": "f07bb1bf19fb3c01f12a62fab75f9a61d5fbc1dc2ef2da955c15af466c176c3d",
+          "o": "0dd0eb4243c5205a681803aa8c8bf22ed1ce5ea3783d6b29ef44c96aa4fa9f5b",
+          "r": "835f80e2e58ef3fac4b14948184f57ac3369d169121a7b34f4bf0325eff28d22",
+          "w": "d22403271b1bf7b5aec752fd920f7483a53dd2c34a021d41c65165d62147e54d",
+          "tv": "9217898c7518442262651aea002a13545cb6f166417ffc87035fe6cb76923fc1",
+          "sub": "6feb4164afdc08e1cb8ff957cde4d0c6e2aa294432690278a95d87f281e023d9"
+        },
+        "stable_hashes": {
+          "a": "37b1cf66453cf0bf994c89c07f424f9b7d8dc33e25d10f878b5656312bf318f5",
+          "d": "af270c7a460b0b8e2e2e93cc828ea07dcf1ba60014c6fd24479a9d1d7c097ce6",
+          "e": "ef888d68c1f697a5438a772508056c14b773c57393625f0262b86c746bae2007",
+          "j": "f07bb1bf19fb3c01f12a62fab75f9a61d5fbc1dc2ef2da955c15af466c176c3d",
+          "o": "0dd0eb4243c5205a681803aa8c8bf22ed1ce5ea3783d6b29ef44c96aa4fa9f5b",
+          "r": "835f80e2e58ef3fac4b14948184f57ac3369d169121a7b34f4bf0325eff28d22",
+          "w": "d22403271b1bf7b5aec752fd920f7483a53dd2c34a021d41c65165d62147e54d",
+          "tv": "9217898c7518442262651aea002a13545cb6f166417ffc87035fe6cb76923fc1",
+          "sub": "6feb4164afdc08e1cb8ff957cde4d0c6e2aa294432690278a95d87f281e023d9"
+        },
+        "deployment_status": "ready",
+        "artifact_ref": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+        "current_step": "ready",
+        "instance_status": "active",
+        "job_status": "succeeded",
+        "attempts": 1,
+        "max_attempts": 1,
+        "lease_cleared": true,
+        "stack_id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/ab4aa8c0-c966-11f1-b068-0ecbbd896a2b",
+        "observation_sha256": "707c3feaf2a26ad1916b1c4c397ee390bb892d425bb21643fae67357ac1d9cce",
+        "outputs_text_sha256": "71ba94ebbb32a0940814c1109e6bc7886ec9e6ec7fdadba029b06601e5b9369a",
+        "outputs_json_sha256": "71ba94ebbb32a0940814c1109e6bc7886ec9e6ec7fdadba029b06601e5b9369a",
+        "outputs_json_octets": 6660,
+        "original_receipt_intact": true,
+        "restoration_slot_absent": false,
+        "restoration_receipt_matches": true,
+        "previous_outputs_sha256": "ec32e68f8950c97a05e300041ff17349905619411337b1c397dd33fb4c3e446e",
+        "deployment_updated_at": "1792157954505"
+      },
+      "catalogServerSha256": "3acdd88bfd8f8320a0191dcc97189b8ea39b08a34f0296e4df373abb43d84a1e"
+    },
+    "changedExistingRows": 1,
+    "allowedColumns": [
+      "outputs",
+      "updated_at"
+    ],
+    "instanceAndJobUnchanged": true,
+    "originalManualReceiptPreserved": true
+  },
+  "run": {
+    "directory": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1",
+    "result": {
+      "mode": "Run",
+      "outcome": "HOSTING_RESUMED_PUBLIC_SMOKE_REBIND_ACK_REQUIRES_INDEPENDENT_INSPECT",
+      "manifestSha256": "10242ff57c631458705efde250ea2805786d07d22965e263b1e79630e965b148",
+      "approvalExpiresAt": "2026-10-17T13:22:43.744Z",
+      "workloadExpiresAt": "2026-10-16T15:37:01.033Z",
+      "rootConsumed": true,
+      "writeConsumed": true,
+      "inspectConsumed": false,
+      "createEntered": true,
+      "neonCommitAcknowledgedThisProcess": true,
+      "publicGetAttemptsThisProcess": 3,
+      "privateLoads": 0,
+      "secretValueReads": 0,
+      "directAuroraConnections": 0,
+      "applicationPosts": 0,
+      "iamWrites": 0,
+      "dnsWrites": 0,
+      "ddbWrites": 0,
+      "initializedAgain": false,
+      "instanceOrJobChanged": false,
+      "automaticRetries": 0,
+      "publicProofVerified": true,
+      "independentReadyVerified": false
+    }
+  },
+  "independent": {
+    "directory": "F:/ChatGPT_workshop/techlong-express-k3r-inspect-20261016-r1",
+    "failure": {
+      "mode": "Inspect",
+      "phase": "readonly_preflight",
+      "code": "HOSTING_RESUME_LOCAL_OR_PROVIDER_FAILURE",
+      "outcome": "STOP_PRESERVE_EVIDENCE_NO_RETRY",
+      "rootConsumed": false,
+      "writeConsumed": false,
+      "inspectConsumed": true,
+      "createEntered": false,
+      "committed": false,
+      "publicGetAttempts": 0,
+      "privateLoads": 0,
+      "initializedAgain": false,
+      "automaticRetries": 0
+    },
+    "failureFileSavedAt": "2026-10-16T13:39:37.155Z",
+    "completed": false,
+    "freshMetadataFileSaved": false,
+    "freshStateFileSaved": false,
+    "underlyingErrorNameOrStageNotSaved": true,
+    "rootCause": "UNDETERMINED_FROM_SANITIZED_FAILURE",
+    "automaticRetryPerformed": false
+  },
+  "localVerification": {
+    "performedAfterFailure": true,
+    "networkCalls": 0,
+    "manifestBindingsExact": true,
+    "executionRederivationExact": true,
+    "programRederivationExact": true,
+    "publicProofCorrelation": true,
+    "runSavedStateValidated": true,
+    "doesNotReplaceIndependentLiveInspect": true
+  },
+  "scopeZeroes": {
+    "privateLoads": 0,
+    "operatorSecretValueReads": 0,
+    "directAuroraConnections": 0,
+    "applicationPosts": 0,
+    "iamWrites": 0,
+    "dnsWrites": 0,
+    "ddbWrites": 0,
+    "reinitializations": 0,
+    "mutationRetries": 0
+  },
+  "preparedCapsule": {
+    "path": "ops/aws-sandbox/reviews/aurora-dual-mode-k3r-hosting-resume.prepared.json",
+    "rawFileSha256": "6644592c416ede299f3134082544a487ac76c362b44c8f6b298feb0bde33a314"
+  },
+  "rawEvidence": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/after-hosting.json",
+      "rawFileSha256": "f33741b10f73b2743e543fd70370550ef32f39f42dee173337c55b198fd9fa15"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/after-state.json",
+      "rawFileSha256": "3cf773a7b2bb7aba27201b6136ebcf8195183a7d48dfbe2ae45295de4b15d59a"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/before-write-state.json",
+      "rawFileSha256": "7bfddd255e674eadd6a245ec947ffb110d7bca37f85321c0c0ae4e5e71f2c03b"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/binding.json",
+      "rawFileSha256": "c92901be84cc9fc1361e6f01eea0b0808f898521fcdfc59083080fd276dced4c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/execution-binding.json",
+      "rawFileSha256": "2c28cc318a47ad4fd1ac8fd3b5e7a11248496f24b2f2b633eab6a117d25b1d8c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/http-1.intent.json",
+      "rawFileSha256": "12f467062e60c2c914d39eb9ea9eea818dcfff758ea4dc053d4c5c835cdfaed8"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/http-1.result.json",
+      "rawFileSha256": "7cf0a9c7d3e7d304e47d7ccde999fd2c6d4993051c0f944b5f3e7687b7b383c9"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/http-2.intent.json",
+      "rawFileSha256": "f4d92ce338634265c1d4e83c11b7de183fae55a2f2032b2027a2f21c3f535ba6"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/http-2.result.json",
+      "rawFileSha256": "4797ed6639807a998f20b793f1b9ec7cc4574bd5a4955573717b63adacb35af8"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/http-3.intent.json",
+      "rawFileSha256": "4f616c30fac8b538f93e0b0b8035b9c58793e0890b583f4b6c99ce50e0455ede"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/http-3.result.json",
+      "rawFileSha256": "4df94fbd2263729e33ac6fb99d493a8dae22099d0ebf3c522f629dc4839ebab1"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/metadata.json",
+      "rawFileSha256": "4d7a970095d02be5271050d1dcfba0236e090fbc07f3aa83b0515695abe5788c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/public-proof.json",
+      "rawFileSha256": "41adaf9856ba0fbc33eca555a888e20fe31cb872c838ff33d291289b02249f7e"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/rebind-program.json",
+      "rawFileSha256": "7050845c0822b2e08b2f810dd0c66b9b28cf9dc051298931132d8ec30926a471"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/result.json",
+      "rawFileSha256": "7cbb1344e751fc7b1e98ce8e03963d0dcf458d89dab8cc259d3e288b5f9176c0"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/state.json",
+      "rawFileSha256": "ee83fb351337084c5fde6c7f9690a437e849a2dfa1de2405a62f13afbd54f1e4"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/submission.json",
+      "rawFileSha256": "a459bfa7bc7be119773a5c13db72b69a30d213c4efc712052e3c58e36d24b22b"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-run-20261016-r1/transaction-ack.json",
+      "rawFileSha256": "dc471b2af10b909c7ffdb7373f6c1edbfb662f02a6c5a227b6706ef2d986b292"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-inspect-20261016-r1/binding.json",
+      "rawFileSha256": "c92901be84cc9fc1361e6f01eea0b0808f898521fcdfc59083080fd276dced4c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-inspect-20261016-r1/failure.json",
+      "rawFileSha256": "acf17ae503b40512c5dbd2cb72b66ba1a30bcc8dd5ca7f883d4ee5550b542742"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-hosting-resume-v1.permanent-slot.json",
+      "rawFileSha256": "b33661c09f2bfec8eabe5691a7d2254fab267484fc9cd4c0904ba67a82071108"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-hosting-resume-v1.write-slot.json",
+      "rawFileSha256": "14ec925744511b50ad2074ffa30951c01c1943b69d98e173b5d3335eba2e565f"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-hosting-resume-v1.inspect-slot.json",
+      "rawFileSha256": "6d0970daa5a8475faf7147052bcef5ea3455c900bcab115e15b3e56e731d7773"
+    }
+  ],
+  "nextBoundary": "NO_RUN_OR_INSPECT_REPLAY_NO_CREATE_OR_PROVISION; preserve consumed slots and receipts; only prepare a separately bounded read-only diagnostic/verification with error-stage diagnostics and exact new UUID, then exit-cost inventory; no new mutations authorized"
+}
