@@ -1,0 +1,188 @@
+{
+  "schema": "techlong/initialized-worker-w1-implementation/v1",
+  "state": "REPAIRED_IMAGE_AND_INITIALIZED_READBACK_BUILDING_BLOCK_READY_NOT_ACTIVATED",
+  "recordedAt": "2026-10-16T14:45:19.556Z",
+  "ownPins": [
+    {
+      "file": "lib/deployments/execution/express-delivery-images-v2.ts",
+      "rawFileSha256": "e0804e5d7d00cd7b72e7f066c9850909e68b928685646eaecdde3da68f485c6d"
+    },
+    {
+      "file": "lib/deployments/execution/express-initialized-worker-v2.ts",
+      "rawFileSha256": "905d8f280c572c74415e3cafdb74f622ee5b09084f701d8218d5389250dff57f"
+    },
+    {
+      "file": "tests/express-initialized-worker-v2.test.ts",
+      "rawFileSha256": "7a1f7350da73645d6552a79eb167b70c9e8d04788eae965b954dbbbbbb13b5f0"
+    }
+  ],
+  "auditedFrozenPins": [
+    {
+      "file": "scripts/run-deployment-worker.ts",
+      "rawFileSha256": "a32aaa8a2428ad4246b956b9c5b63335b6f9df3360aa3fa5a8613ec8ac1f11a9"
+    },
+    {
+      "file": "lib/deployments/execution/runtime-composition.ts",
+      "rawFileSha256": "3e8d525d1987208882b2e0e51d8d24c9954da33477fcd9bc3d6d3cda465699c1"
+    },
+    {
+      "file": "lib/deployments/execution/express-live-delivery-runner-v1.ts",
+      "rawFileSha256": "0745ddf57bade1f8766a2f6ce7317acc0029cf11306a3530f9ef39b697c0aab5"
+    },
+    {
+      "file": "lib/deployments/execution/express-single-tenant-delivery-v1.ts",
+      "rawFileSha256": "d065359c8d25fa2eeb2be4cb8e0ece071d14d637456d549ebe7523a5a4d12cf2"
+    },
+    {
+      "file": "lib/deployments/execution/express-delivery-images-v1.ts",
+      "rawFileSha256": "6249d47e2f77755ce8a5b46c03a7ae806ff37772615c3956b8715db9a3ca2076"
+    }
+  ],
+  "candidate": {
+    "schema": "techlong/worker-w1-public-candidate/v1",
+    "checkedAt": "2026-10-16T14:43:48.914Z",
+    "materialSha256": "8fa2b5c1cfe441ca6c95771046209e03c8ced91b8cdf0e7948c1c44c55da0313",
+    "predecessorMaterialSha256": "db70c7461464910bff782619a2168a99a29adef45e8ab97a4ca2f227bdf17057",
+    "sourcePlanSha256": "c45dafe1d1c65609eed08ff397d899aeaa0e55092312e330a0b4eef507434e5a",
+    "planSha256": "8690c22f5b4dbf80d49bcee3cdff717dd8ae14957eedb7606b9829b533e49dc8",
+    "scope": {
+      "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+      "ownerDeploymentId": "dep_7c99bd249470184852f0dc74",
+      "workspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+      "productId": "prd_restaurant_order_system",
+      "templateVersionId": "tplver_9c175436f0a14d9aa7f5fdfc2b5c139e",
+      "environmentId": "env_aws_sandbox_ca_central_1",
+      "cellKey": "cell-sandbox-1"
+    },
+    "images": {
+      "sourceCommit": "10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2",
+      "buildRunId": 38803364109,
+      "publicationRunId": 38807901068,
+      "app": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+      "lifecycle": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:34ba02327b5e7ed311e6c706790c16c5d97c5d1419584cc47df98a4d7b09714e"
+    },
+    "existingDefaultStoreId": "add89a8c-f43e-81b9-8287-0cb6c5c54f87",
+    "configurationSha256": "06d3cb50dd46b5f32771c356b7e7cd7d524a0707799ae24b9ace0672ef7281c9",
+    "materialHashVerified": true,
+    "lifecycle": {
+      "mode": "reuse_initialized_only",
+      "initializationPostAllowed": false,
+      "firstOwnerPasswordAllowed": false,
+      "secretValueReadAllowed": false,
+      "databaseRestoreOrMigrationAllowed": false
+    },
+    "executionAuthorized": false,
+    "runtimeEnabled": false,
+    "readyVerified": false,
+    "blockers": [
+      "reviewed_single_job_runtime_not_wired",
+      "fresh_lease_epoch_provider_admission_required",
+      "fresh_authenticated_initialized_readback_required",
+      "atomic_job_ready_and_independent_inspect_required"
+    ],
+    "publicHistoryFilesVerified": 34,
+    "privateBundleLoads": 0,
+    "secretValueReads": 0,
+    "networkCalls": 0,
+    "databaseQueries": 0,
+    "jobWrites": 0,
+    "cloudWrites": 0,
+    "workloadRenderedAgainstCurrentNamespace": false,
+    "oldSucceededJobNotReplayed": true
+  },
+  "ecr": {
+    "schema": "techlong/worker-w1-image-readback/v1",
+    "checkedAt": "2026-10-16T14:42:50.247Z",
+    "source": {
+      "account": "402010193138",
+      "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev"
+    },
+    "images": [
+      {
+        "kind": "app",
+        "pinnedImageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+        "manifestSha256Verified": true,
+        "imageConfigDigest": "sha256:74d083066dd15c62e006cf9ad7154f1a2727e693fae4a47bffc0af0b109c63dd",
+        "scanStatus": "COMPLETE",
+        "high": 0,
+        "critical": 0,
+        "scanCompletedAt": "2026-10-15T16:11:56-05:00"
+      },
+      {
+        "kind": "lifecycle",
+        "pinnedImageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:34ba02327b5e7ed311e6c706790c16c5d97c5d1419584cc47df98a4d7b09714e",
+        "manifestSha256Verified": true,
+        "imageConfigDigest": "sha256:56acf24122f879e27825a17d177e1a82011e8635aff62efdf351c590d806dcf2",
+        "scanStatus": "COMPLETE",
+        "high": 0,
+        "critical": 0,
+        "scanCompletedAt": "2026-10-15T16:12:17-05:00"
+      }
+    ],
+    "awsReadonlyCalls": 4,
+    "cloudWrites": 0,
+    "sqlConnections": 0,
+    "privateLoads": 0,
+    "applicationRequests": 0
+  },
+  "defaultWorker": {
+    "status": "disabled",
+    "mode": "offline_only",
+    "blockers": [
+      "live_runtime_enablement_not_implemented",
+      "tenant_runtime_provider_root_wiring_missing",
+      "tenant_lifecycle_task_definition_live_readback_missing",
+      "fenced_cleanup_provider_root_wiring_missing",
+      "shared_cell_provision_authority_predecessor_missing",
+      "shared_cell_cleanup_authority_writer_missing",
+      "shared_cell_live_preflight_root_wiring_missing",
+      "saas_control_credentials_root_wiring_missing"
+    ],
+    "singleDeploymentScope": null,
+    "queueRestrictionDoesNotAuthorizeExecution": true,
+    "monthlyBudgetTargetUsd": 50,
+    "cloudMutationPerformed": false,
+    "databaseAccessPerformed": false
+  },
+  "validation": {
+    "targetedTests": 7,
+    "adjacentTests": 14,
+    "totalTestsPassed": 21,
+    "typecheckPassed": true,
+    "eslintWarnings": 0,
+    "unitTransportTestsAreNotLiveApplicationCalls": true,
+    "fullBuildOrPublicationRepeated": false
+  },
+  "rawEvidence": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-worker-w1-ecr-20261016-r1.json",
+      "rawFileSha256": "3b84f9028e35834cf8245577aa01e5f7c01bce79d85f610afcc7d2067d236398"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-worker-w1-public-candidate-20261016-r1.json",
+      "rawFileSha256": "6f8f777ad8c4073bbf04fa6823f074b236557838b2ad2ed68d5e16a42538204f"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-worker-w1-default-runtime-20261016-r1.json",
+      "rawFileSha256": "e8dbc8a06245a068ebd26d24ec44f2d5ff6801f5e2ed4101704d5ccc68c959cf"
+    }
+  ],
+  "operations": {
+    "awsReadonlyCalls": 4,
+    "cloudWrites": 0,
+    "databaseQueries": 0,
+    "jobOrBusinessWrites": 0,
+    "privateBundleLoads": 0,
+    "secretValueReads": 0,
+    "authenticatedLiveApplicationRequests": 0,
+    "queueEnablement": false,
+    "oldSucceededJobReplayed": false
+  },
+  "remaining": [
+    "New lease-bound single reconcile-job execution root, not the old first claim or global queue",
+    "Fresh provider/namespace and active epoch checks before any cloud create/update",
+    "Atomic new job completion plus exact deployment outputs update and independent readback",
+    "Separately approved authenticated GET sources and actual cloud/DB mutations; no provision on this initialized path"
+  ],
+  "nextBoundary": "Implement the concrete single-job initialized-tenant rollout/recovery runner and fresh review. Preserve old successful job, material, scope ownership and initialized database. No global enablement, reinitialization, new permission or deployment is authorized by this code milestone. Original workload expiry 2026-10-16T15:37:01.033Z remains."
+}

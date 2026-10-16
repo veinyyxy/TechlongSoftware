@@ -1,5 +1,7 @@
 # Aurora Express / Full 双模式兼容与切换方案
 
+> **当前W1：Express已初始化worker接线完成，尚未激活**。新V2目录固定C5i修复app/lifecycle实际manifest；新材料/真实七资源渲染器与GET-only认证回读支持复用初始化、精确store/配置/镜像/epoch，不提供provision或密码能力，旧V1/Full/全局worker安全门保持。21tests/typecheck/lint、4次ECR/身份只读及实际公开材料编译通过，0云/SQL/job/私密/应用变更。下一只接新单任务runner的lease/原子完成/provider/CLI，具体写与私密请求另审；不重放旧成功任务或扩展Grant/成本支线。[准确实现与缺口](aws-auto-deployment-aurora-dual-mode-w1-worker-path.md)。下方为历史。
+
 > **当前 K3b到期前依赖清单已完成**：2026-10-16 09:21 CDT仅35 AWS读取/1 Neon只读，无写/私密值/应用调用。准确workload仍运行，父Cell/ALB/3公网IP、Aurora/固定Secret/镜像保留；账号FREE/ACTIVE、本月归因费用未知。一个新namespace JSON解析UNKNOWN不重读、不升级权限；旧namespace/平台九行保持。原10:37:01.033 CDT到期不续期，未声明退出或全停费、未启动监控；默认保留数据库。成本/诊断不再拆支线，下一回无人值守worker最小闭环审核；后续已到期时按准确事实只读确认退出。[实际清单与边界](aws-auto-deployment-aurora-dual-mode-k3b-exit-inventory.md)。下方为历史。
 
 > **当前 K3v准确承载与平台独立回读通过**：2026-10-16 09:09:50.998 CDT新进程只读确认七资源/实际task definition:3及镜像/healthy target、平台restoration receipt与九行完整摘要；0写/私密值/新增应用请求，原初始化/任务/人工ready归因保持。原K3r失败及槽不改、不重放，旧错误原因未知；6份新证据+23份历史原件及15tests/lint/语法核验通过。固定今天10:37:01.033 CDT到期不续期，下一只读退出/依赖/费用盘点，默认保留租户数据，不扩展支线或再provision。无人值守全链路、正向业务及全停费未验；50USD非cap。[独立验收结果](aws-auto-deployment-aurora-dual-mode-k3v-hosting-rebind-verified.md)。下方为历史。
