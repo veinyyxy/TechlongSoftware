@@ -1,5 +1,7 @@
 # Aurora Express / Full 双模式兼容与切换方案
 
+> **当前 K3a 公网最小冒烟待审**：只实现3个无认证443 GET（health/ready/merchant未签名401），无私密/AWS/SQL客户端或业务写/删除；6 tests/零警告lint/语法及本地22历史证据绑定通过，本轮网络/槽0，尚未证明当前公网。SHA `41ab184c73a04dc90ee70da21edf04653b65d27d99472cd58606607f027dcde6`，Winnipeg 2026-10-16 06:51:04.661前执行。K2c成功记录保持，原workload07:04:28.726到期不延长。已整理父Cell/库/Secret/DNS/平台退出依赖，尚不授权删除或正向业务操作。[最小清单、完整风险和退出顺序](aws-auto-deployment-aurora-dual-mode-k3-closeout.md)。下方为历史。
+
 > **最新 K2c 已完成**：用户确认f98bcd6c…后，Winnipeg 2026-10-16 01:30:52.825唯一三行事务提交，01:31:26.312另进程独立验收平台/初始化/有效配置/真实镜像通过；instance active、deployment ready、旧job succeeded/清lease，attempt与原计划/错误证据保持，明确人工恢复归因。2次私密加载/4GET，0云/IAM/Secret值/Aurora/POST，三个永久槽和本轮批准全消费，不再Run/Inspect或初始化。下一只做首轮验收/资源退出项盘点及最小方案，不扩展支线；固定07:04:28.726 CDT到期、Janitor和50USD非cap保持。[实际执行、22份证据及继续点](aws-auto-deployment-aurora-dual-mode-k2c-ready-reconciliation-executed.md)。下方为历史。
 
 > **当前 K2c 最终待审**：K2b已初始化，不重复POST。新的人工收口入口以一个SERIALIZABLE事务协调三条原记录为active/ready/succeeded，保留旧plan/错误/人工归因，不续租或增加attempt；两次新私密包加载/四个认证GET另审，0 AWS/IAM写。39 tests/types/零警告lint/Check、真实只读Review和独立绑定复核通过，平台尚未ready、三槽未消费。SHA `f98bcd6ce2123c1e99085097e846937a8f389002f7637acd6cb1547efce2c5c0`，Winnipeg 2026-10-16 03:13:10.481入场/03:28:10.481执行截止，固定07:04:28.726到期不延长。[具体范围、完整风险与确认文本](aws-auto-deployment-aurora-dual-mode-k2c-ready-reconciliation-review.md)。下方为历史。

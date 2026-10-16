@@ -1,0 +1,96 @@
+{
+  "schema": "techlong/public-smoke-prepared/v1",
+  "state": "PUBLIC_SMOKE_PREPARED_REQUIRES_EXACT_APPROVAL",
+  "executionAuthorized": false,
+  "approvalConsumed": false,
+  "manifestSha256": "41ab184c73a04dc90ee70da21edf04653b65d27d99472cd58606607f027dcde6",
+  "manifestPath": "F:/ChatGPT_workshop/techlong-express-k3-public-review-20261016-r1/manifest.json",
+  "preparedAt": "2026-10-16T11:21:04.661Z",
+  "expiresAt": "2026-10-16T11:51:04.661Z",
+  "workloadExpiresAt": "2026-10-16T12:04:28.726Z",
+  "plan": {
+    "schema": "techlong/public-smoke-plan/v1",
+    "preparedAt": 1792149664661,
+    "expiresAt": 1792151464661,
+    "workloadExpiresAt": "2026-10-16T12:04:28.726Z",
+    "hostname": "first-acceptance.sandbox.techlong.cloud",
+    "port": 443,
+    "storeId": "add89a8c-f43e-81b9-8287-0cb6c5c54f87",
+    "requests": [
+      {
+        "path": "/health",
+        "status": 200,
+        "json": {
+          "status": "ok"
+        }
+      },
+      {
+        "path": "/ready",
+        "status": 200,
+        "json": {
+          "status": "ready"
+        }
+      },
+      {
+        "path": "/api/merchant/stores",
+        "status": 401,
+        "text": "Invalid signature"
+      }
+    ],
+    "limits": {
+      "httpGetAttempts": 3,
+      "automaticRetries": 0,
+      "requestTimeoutMs": 10000,
+      "totalTimeoutMs": 45000,
+      "responseBytes": 4096,
+      "privateLoads": 0,
+      "secretValueReads": 0,
+      "awsCalls": 0,
+      "directSqlConnections": 0,
+      "applicationPosts": 0,
+      "resourceWrites": 0
+    },
+    "publicTransportProofOnly": true,
+    "positiveMerchantBusinessAcceptance": false,
+    "currentAwsResourceIdentityVerified": false,
+    "historicalReadyProofOnly": true,
+    "monthlyBudgetTargetUSD": 50,
+    "budgetIsHardCap": false,
+    "riskDocument": "docs/aws-auto-deployment-aurora-dual-mode-k3a-public-smoke-risk.md"
+  },
+  "riskRawSha256": "54586be566dcd2b772a56c1f63196b366b9af2845a7625c4dd16f3f275800cfc",
+  "validation": {
+    "newTestsPassed": 6,
+    "targetedLintZeroWarnings": true,
+    "syntaxPassed": true,
+    "canonicalManifestAndBindingIndependentlyVerified": true,
+    "permanentSlotAbsent": true,
+    "publicHistoryFilesChecked": 22,
+    "newOwnAndBackendPins": 10
+  },
+  "actualActions": {
+    "networkCalls": 0,
+    "awsCalls": 0,
+    "directSqlConnections": 0,
+    "privateLoads": 0,
+    "resourceWrites": 0,
+    "slotsConsumed": 0
+  },
+  "historicalReadyApiAt": "2026-10-16T06:31:26.312Z",
+  "historicalProofIsNotCurrentCloudObservation": true,
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3-public-review-20261016-r1/binding.json",
+      "rawFileSha256": "d54152fe8b0fcf95f98008dbe191b48dfcb47b9d9bde1507a149b73ad967c1b1"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3-public-review-20261016-r1/manifest.json",
+      "rawFileSha256": "95a1dd20c6b2906755e27d17391cd045293e2edca063d8b53b0741998115336f"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3-public-review-20261016-r1/result.json",
+      "rawFileSha256": "978cd2a2d350db604bce479b083e468e847e43b977c93176fd91916a7e9702dc"
+    }
+  ],
+  "permanentSlot": "F:/ChatGPT_workshop/techlong-express-k3-public-smoke-v1.permanent-slot.json"
+}
