@@ -1,0 +1,337 @@
+{
+  "schema": "techlong/initialization-audit-executed/v1",
+  "state": "PRISTINE_UNINITIALIZED_AUDIT_COMPLETED_NO_POST_AUTHORITY",
+  "userConfirmationText": "确认",
+  "approvedManifestSha256": "e5610e470f12ce98d274b7ad605d5d3492542acfd874a4f8ae4d1698e47b18b1",
+  "approvedScopeDocument": "docs/aws-auto-deployment-aurora-dual-mode-k2a-initialization-audit-review.md",
+  "approvalConsumed": true,
+  "replayAllowed": false,
+  "manifestSha256": "e5610e470f12ce98d274b7ad605d5d3492542acfd874a4f8ae4d1698e47b18b1",
+  "codeBindingSha256": "3fb0e4b9025834a718f7f43e537a81de068cbed5b0103e4ae7a4f2701061b7c9",
+  "programSha256": "b42a31fe3e1f7cee2803918ac0f10fa917bc29efcd79a7a444413a54eb14a597",
+  "runDirectory": "F:/ChatGPT_workshop/techlong-express-k2a-run-20261016-r1",
+  "independentDirectory": "F:/ChatGPT_workshop/techlong-express-k2a-inspect-20261016-r1",
+  "permanentSlot": {
+    "schema": "techlong/initialization-audit-slot/v1",
+    "consumedAt": "2026-10-16T04:51:27.655Z",
+    "manifestSha256": "e5610e470f12ce98d274b7ad605d5d3492542acfd874a4f8ae4d1698e47b18b1",
+    "programSha256": "b42a31fe3e1f7cee2803918ac0f10fa917bc29efcd79a7a444413a54eb14a597",
+    "runDirectory": "F:\\ChatGPT_workshop\\techlong-express-k2a-run-20261016-r1",
+    "retryAllowed": false
+  },
+  "sqlReceipt": {
+    "schema": "techlong/initialization-audit-receipt/v1",
+    "checkedAt": "2026-10-16T04:51:34.216Z",
+    "facts": {
+      "schema": "techlong/initialization-audit-facts/v1",
+      "outcome": "PRISTINE_UNINITIALIZED_NO_POST_AUTHORITY",
+      "ownershipCommentsVerified": true,
+      "fullPristineSnapshotMatches": true,
+      "originalCommitCandidate": false,
+      "runtimeReadinessFlags": {
+        "instance_matches": null,
+        "active": true,
+        "provisioned": false,
+        "configuration_matches": null,
+        "epoch_valid": null,
+        "marker_valid": null,
+        "hashes_valid": null,
+        "metadata_fence_matches": null,
+        "receipt_matches": null,
+        "entitlements_present": true,
+        "default_store_present": true,
+        "store_profile_present": false,
+        "owner_present": false
+      },
+      "countsAndBooleanSummary": {
+        "instances": 1,
+        "operations": 0,
+        "merchant_users": 0,
+        "audit_rows": 0,
+        "profiles": 0,
+        "exact_default_store": true,
+        "exact_owner": false,
+        "exact_profile": false,
+        "exact_original_completed_receipt": false,
+        "exact_provision_audit": false
+      },
+      "rowCountsSha256": "8fb858f29bf407a2e06afb7506078c253c4707e5eead0555483b5dca0ad7451f",
+      "defaultStoreUnchanged": true,
+      "statementsSha256": "e5aec920589c0aefa4b6e10e807a8294014c19e9d2ba8a2ebf4d922f44dc9f26",
+      "initializedApiVerified": false,
+      "effectiveConfigurationApiVerified": false,
+      "platformReady": false,
+      "provisionAuthorized": false,
+      "catalogAndOwnershipVerified": true
+    },
+    "target": {
+      "database": "tenant_a0da1748bc4d5419_db",
+      "databaseOid": "16459",
+      "roleOid": "16456",
+      "user": "postgres",
+      "endpoint": "techlong-sandbox-express-d001.cluster-cn8aaekuqf1r.ca-central-1.rds.amazonaws.com"
+    },
+    "clientTlsVerified": true,
+    "backendTlsVerified": true,
+    "readOnly": true,
+    "isolation": "serializable",
+    "connections": 1,
+    "sqlCalls": 14,
+    "rollbackCalls": 0,
+    "rawBusinessRowsPersisted": false,
+    "iamTokenPersisted": false,
+    "automaticRetries": 0,
+    "metadataIsNotCrossServiceCas": true,
+    "sqlBusinessWrites": 0,
+    "cloudWrites": 0,
+    "provisionAuthorized": false
+  },
+  "sqlReceiptCanonicalSha256": "64bd395361f7fa4e248c4ed15123a859f21b4017b7f328459f0e1957c2fd0709",
+  "preflight": {
+    "startedAt": "2026-10-16T04:51:17.999Z",
+    "checkedAt": "2026-10-16T04:51:26.132Z",
+    "sdkReads": 35,
+    "cliReads": 11,
+    "neonReadonlyTransactions": 1,
+    "live": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/f71252c0-c917-11f1-8148-02ff648cb917",
+      "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:2",
+      "taskArn": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/3c586a7dd0094cbc8a0988a79297aa56",
+      "digest": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e"
+    },
+    "platformUnchanged": true
+  },
+  "runAfter": {
+    "startedAt": "2026-10-16T04:51:34.304Z",
+    "checkedAt": "2026-10-16T04:51:40.698Z",
+    "sdkReads": 35,
+    "cliReads": 11,
+    "neonReadonlyTransactions": 1,
+    "live": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/f71252c0-c917-11f1-8148-02ff648cb917",
+      "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:2",
+      "taskArn": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/3c586a7dd0094cbc8a0988a79297aa56",
+      "digest": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e"
+    },
+    "platformUnchanged": true
+  },
+  "independent": {
+    "startedAt": "2026-10-16T04:52:00.400Z",
+    "checkedAt": "2026-10-16T04:52:07.651Z",
+    "sdkReads": 35,
+    "cliReads": 11,
+    "neonReadonlyTransactions": 1,
+    "live": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/f71252c0-c917-11f1-8148-02ff648cb917",
+      "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:2",
+      "taskArn": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/3c586a7dd0094cbc8a0988a79297aa56",
+      "digest": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e"
+    },
+    "platformUnchanged": true,
+    "receiptIntegrity": {
+      "receiptRawFileSha256": "4f11e5cf2659b33653af917e726d5379f776d763c47c14eae006128880ca9857",
+      "receiptSha256": "64bd395361f7fa4e248c4ed15123a859f21b4017b7f328459f0e1957c2fd0709",
+      "facts": {
+        "schema": "techlong/initialization-audit-facts/v1",
+        "outcome": "PRISTINE_UNINITIALIZED_NO_POST_AUTHORITY",
+        "ownershipCommentsVerified": true,
+        "fullPristineSnapshotMatches": true,
+        "originalCommitCandidate": false,
+        "runtimeReadinessFlags": {
+          "instance_matches": null,
+          "active": true,
+          "provisioned": false,
+          "configuration_matches": null,
+          "epoch_valid": null,
+          "marker_valid": null,
+          "hashes_valid": null,
+          "metadata_fence_matches": null,
+          "receipt_matches": null,
+          "entitlements_present": true,
+          "default_store_present": true,
+          "store_profile_present": false,
+          "owner_present": false
+        },
+        "countsAndBooleanSummary": {
+          "instances": 1,
+          "operations": 0,
+          "merchant_users": 0,
+          "audit_rows": 0,
+          "profiles": 0,
+          "exact_default_store": true,
+          "exact_owner": false,
+          "exact_profile": false,
+          "exact_original_completed_receipt": false,
+          "exact_provision_audit": false
+        },
+        "rowCountsSha256": "8fb858f29bf407a2e06afb7506078c253c4707e5eead0555483b5dca0ad7451f",
+        "defaultStoreUnchanged": true,
+        "statementsSha256": "e5aec920589c0aefa4b6e10e807a8294014c19e9d2ba8a2ebf4d922f44dc9f26",
+        "initializedApiVerified": false,
+        "effectiveConfigurationApiVerified": false,
+        "platformReady": false,
+        "provisionAuthorized": false,
+        "catalogAndOwnershipVerified": true
+      },
+      "noSecondAuroraConnection": true,
+      "sameSnapshotNotNewDatabaseProof": true
+    },
+    "result": {
+      "mode": "Inspect",
+      "outcome": "AUDIT_RECEIPT_INTEGRITY_AND_HOSTING_INDEPENDENTLY_INSPECTED",
+      "directory": "F:\\ChatGPT_workshop\\techlong-express-k2a-inspect-20261016-r1",
+      "manifestSha256": "e5610e470f12ce98d274b7ad605d5d3492542acfd874a4f8ae4d1698e47b18b1",
+      "admissionExpiresAt": "2026-10-16T06:46:21.931Z",
+      "workloadExpiresAt": "2026-10-16T12:04:28.726Z",
+      "operatorAuroraConnections": 0,
+      "cloudWrites": 0,
+      "sqlBusinessWrites": 0,
+      "secretValueReads": 0,
+      "privateBundleReads": 0,
+      "applicationRequests": 0,
+      "permanentSlotsConsumed": 0,
+      "provisionAuthorized": false,
+      "readyVerified": false
+    }
+  },
+  "platform": {
+    "deployment_id": "dep_7c99bd249470184852f0dc74",
+    "app_instance_id": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "deployment_status": "configuring",
+    "plan_hash": "8690c22f5b4dbf80d49bcee3cdff717dd8ae14957eedb7606b9829b533e49dc8",
+    "configuration_hash": "06d3cb50dd46b5f32771c356b7e7cd7d524a0707799ae24b9ace0672ef7281c9",
+    "artifact_ref": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:5e42b2de7e0cc81b1c83a8abb21c866eeedc8801ddf50e686d116a5837caa004",
+    "instance_status": "pending",
+    "job_id": "job_202c8dc12a8bf379f3a7c693",
+    "job_status": "running",
+    "attempts": 1,
+    "max_attempts": 1,
+    "lease_cleared": false,
+    "lease_expires_at": "1792099509634",
+    "job_updated_at": "1792095909634",
+    "lease_expired": true,
+    "deployment_updated_at": "1792096075649",
+    "stack_id": null,
+    "observation_sha256": null,
+    "owner_deployment_id": "dep_7c99bd249470184852f0dc74",
+    "generation": "1",
+    "lifecycle_status": "verified",
+    "resource_marked_destroyed": false,
+    "epoch": "1",
+    "intent": "provision",
+    "operation_state": "active",
+    "operation_hash": "3545b14293b00e381a54148b2adcff9340253d9a95ea02a27f4582256df81a90",
+    "marker": "tl_epoch_a0da1748bc4d5419a6306b89_g1_e1",
+    "environment_status": "active",
+    "apply_enabled": 0,
+    "admission_state": "open",
+    "admission_epoch": "0",
+    "admission_stack_id": null,
+    "workspace_status": "active",
+    "subscription_status": "active",
+    "subscription_current": true,
+    "business_scope_matches": true,
+    "app_deployments": 1,
+    "deployment_jobs": 1,
+    "desired_plan_sha256": "8690c22f5b4dbf80d49bcee3cdff717dd8ae14957eedb7606b9829b533e49dc8",
+    "configuration_snapshot_sha256": "06d3cb50dd46b5f32771c356b7e7cd7d524a0707799ae24b9ace0672ef7281c9",
+    "environment_policy_sha256": "eb1c33db933e1e98e598a3d786f4840d25b53d80cf3f617461d3427fb7cff596"
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-review-20261016-r1/binding.json",
+      "rawFileSha256": "8726c2647aa629ce4f41ba210df91ea81180606290d3990bcbca40397c4e2d5c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-review-20261016-r1/manifest.json",
+      "rawFileSha256": "f6e50370a0d19bf07848e67618c48dc33cdcb183dfeaf5592ebd37414f10270d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-review-20261016-r1/metadata.json",
+      "rawFileSha256": "f323cb82f14f15116273b3253c64f393b5efbe801a57cfd2b1a4eacc406d8b23"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-review-20261016-r1/result.json",
+      "rawFileSha256": "ae374e8d9a2f0db41875d4d54ab34d81fe3f409c48eca9fe0d885729fde28062"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-run-20261016-r1/after.json",
+      "rawFileSha256": "83d9eb787cd17d058353c01f8b413ea21113d60ac2a9488d3738d4d6ef6ee0d3"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-run-20261016-r1/binding.json",
+      "rawFileSha256": "8726c2647aa629ce4f41ba210df91ea81180606290d3990bcbca40397c4e2d5c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-run-20261016-r1/classification.json",
+      "rawFileSha256": "dd01a836c78931561b712d04604992d69be66703f6436553e11cf610673bcbf9"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-run-20261016-r1/metadata.json",
+      "rawFileSha256": "3bfe423f0ef647281d7b2934243a8ccbf09b123ed7a8c72879d32e50e6cfd43d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-run-20261016-r1/result.json",
+      "rawFileSha256": "35508b6e4acf3bbd87cf7a639510d8e412721c7b97732faa2d82d6dce513e986"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-run-20261016-r1/sql-receipt.json",
+      "rawFileSha256": "4f11e5cf2659b33653af917e726d5379f776d763c47c14eae006128880ca9857"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-inspect-20261016-r1/binding.json",
+      "rawFileSha256": "8726c2647aa629ce4f41ba210df91ea81180606290d3990bcbca40397c4e2d5c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-inspect-20261016-r1/metadata.json",
+      "rawFileSha256": "bbb1243ba7391db14c47ff63c292936adce9f217de2f885c3d81672659fd5860"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-inspect-20261016-r1/receipt-inspect.json",
+      "rawFileSha256": "1049457dbd8e9dabea4ae91a2fe06b8f102d7bb185e7373ffacd4cdfaf0579db"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-inspect-20261016-r1/result.json",
+      "rawFileSha256": "ba717e34c15f18890606ec1d70d1e2b6fba9e1b47a0b29a8709e6b4d881d5415"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2a-initialization-audit-v1.permanent-slot.json",
+      "rawFileSha256": "203ed7c520a50ca0ca6a1471474ec382543b48385b61f8a9e94c69dbb8668d05"
+    }
+  ],
+  "actual": {
+    "scope": "Explicit operator actions; not a claim of zero provider/application internal activity",
+    "operatorAuroraConnections": 1,
+    "serializableReadOnlyTransactions": 1,
+    "normalSqlCalls": 14,
+    "extraRollbackCalls": 0,
+    "metadataGroups": 3,
+    "metadataSdkReads": 105,
+    "additionalSourceStsReads": 1,
+    "cliReads": 33,
+    "neonReadonlyTransactions": 3,
+    "cloudWrites": 0,
+    "iamWrites": 0,
+    "dnsWrites": 0,
+    "ddbWrites": 0,
+    "secretWrites": 0,
+    "platformOrBusinessWrites": 0,
+    "operatorSecretValueOrOriginalPrivateReads": 0,
+    "applicationRequests": 0,
+    "provisionPosts": 0,
+    "permanentReadSlotsConsumed": 1,
+    "automaticRetries": 0
+  },
+  "workloadExpiresAt": "2026-10-16T12:04:28.726Z",
+  "workloadExpiresAtWinnipeg": "2026-10-16 07:04:28.726 CDT",
+  "existingJanitorRemainsEnabled": true,
+  "automaticRenewalAuthorized": false,
+  "monthlyBudgetTargetUSD": 50,
+  "budgetIsHardCap": false,
+  "resourcesContinueBilling": true,
+  "initializedApiVerified": false,
+  "effectiveConfigurationApiVerified": false,
+  "readyVerified": false,
+  "historicalRollbackExecutionIndependentlyProved": false,
+  "next": "Prepare K2b exact single initialization and platform coordination review from preserved pristine audit; no POST, extra Aurora connection, private reads, lease takeover or ready write under K2a approval"
+}

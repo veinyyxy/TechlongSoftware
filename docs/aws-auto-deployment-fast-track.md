@@ -1,5 +1,7 @@
 # AWS 自动部署最快交付方案
 
+> **当前 K2a 已完成：未初始化、未见部分提交残留。**用户确认e5610e47…后一次Aurora只读事务/10 SELECT/14 query成功，原目录/ACL/73表计数/默认entitlements和UUIDv8店铺保持，operation/merchant user/profile/audit均0；Winnipeg 2026-10-15 23:52:07.651新进程Inspect确认原receipt与承载元数据，无第二次SQL。0云或业务写/Secret值/旧私密包/HTTP/POST，批准及读槽已消费不重放；仍非ready。下一仅准备K2b单次provision恢复与带准确旧值/CAS的平台协调清单，私密材料/POST/写仍另批。固定07:04:28.726 CDT到期、旧Janitor、50USD非cap保持。[实际结果、15份证据hash及继续点](aws-auto-deployment-aurora-dual-mode-k2a-initialization-audit-executed.md)。下方为历史。
+
 > **当前 K2a 已准备、待单次只读批准**。真实35 SDK/11 CLI/1 Neon元数据核验通过，新栈/修复镜像健康且旧平台原状保持；16项针对测试、types/lint/语法及独立19代码/18历史绑定回读通过。新SHA `e5610e470f12ce98d274b7ad605d5d3492542acfd874a4f8ae4d1698e47b18b1`，入场截止Winnipeg 2026-10-16 01:46:21.931 CDT。仅申请postgres一次Aurora TLS只读事务/10 SELECT/14正常query，查明原HTTP500后的初始化状态；尚无Aurora连接/私密值/写/POST/槽消费，不续期、不ready。高权限只读及永久槽风险需明确批准；固定07:04:28.726 CDT到期和50USD非cap保持。[准确清单、完整风险与唯一继续命令](aws-auto-deployment-aurora-dual-mode-k2a-initialization-audit-review.md)。下方均为历史。
 
 > **当前 C5k K1 已完成、尚非平台ready**。唯一批准4b194dc3…/一次CreateStack恢复新workload UUID `f71252c0-c917-11f1-8148-02ff648cb917`，独立Inspect通过七资源/修复镜像实际task definition:2/1运行/目标健康；操作器无IAM/SQL/Secret/DNS/DDB/Neon写、私密读取或应用调用，不宣称应用内部无数据库活动。旧job/lease/plan/artifact/generation/epoch原样，固定槽已消费、不得重放；固定07:04:28.726 CDT到期、Janitor保持、50USD非cap。下一仅K2受审只读初始化状态，不能直接再POST或标ready。[完成证据及继续点](aws-auto-deployment-aurora-dual-mode-c5k-workload-recovery-executed.md)。下面为历史。

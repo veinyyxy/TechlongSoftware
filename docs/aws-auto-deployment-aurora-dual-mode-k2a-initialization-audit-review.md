@@ -1,5 +1,7 @@
 # K2a 最终待审：只读判定 HTTP500 后的实际初始化状态
 
+> **已执行并消费，不可重放。**用户确认后唯一只读事务于Winnipeg 2026-10-15 23:51:34.216 CDT完成，结果为原始未初始化/未见部分提交残留；23:52:07.651另进程Inspect通过原回执完整性及承载元数据，无第二次Aurora连接。0写/私密值/HTTP/POST，不ready、不续期。[实际结果与K2b唯一继续点](aws-auto-deployment-aurora-dual-mode-k2a-initialization-audit-executed.md)。下方是保留的原审批历史。
+
 状态：**现场只读 Review 通过，尚未连接 Aurora，也没有执行授权。** 本阶段只解决原 provision HTTP500 后的实际状态，不扩展 F3c9，不重建资源，不先做平台 job/plan 协调。
 
 ## 清单、窗口与已完成核验
