@@ -1,5 +1,7 @@
 # AWS 自动部署最快交付方案
 
+> **当前 W2 单任务/lease/原子收口代码完成，未启用**：新增已初始化租户一次性 runner、真实 Neon 适配器与独立 READ ONLY 完成回读；新 reconcile job 固定 attempt/max=1、数据库时钟 lease，不重放旧成功 apply，不改原 ready/instance/资源归属。21 tests/typecheck/五文件零警告 lint 通过，真实 Neon 九行快照及五项领取/lease SQL EXPLAIN（无 ANALYZE）通过，全程0云/job/业务写与私密/应用调用。实际 provider/CLI 根尚缺，不称自动部署已验收。下一 W3 只接真实承载、epoch 准入和单次入口，具体写及私密来源仍集中另批；Full/全局 disabled 与原到期不动。[实现、真实只读结果及剩余工作](aws-auto-deployment-aurora-dual-mode-w2-single-job.md)。下方为历史。
+
 > **当前W1 worker主线代码完成、未启用**：核实常规入口代码固定disabled，旧Express首次runner只支持pristine并固定旧镜像，不能重放成功job。新增修复镜像V2目录和已初始化租户材料/真实渲染/GET-only精确store配置回读接线，不暴露provision/密码能力；21tests/typecheck/lint通过，4次AWS只读验证两真实ECR manifest及既有扫描，实际公开材料编译通过。0云/SQL/job写，0私密读取/应用调用，全局队列保持关闭，原10:37:01.033 CDT到期不动。下一接新单次reconcile任务的lease/原子持久化/provider/CLI，不新开成本或Grant支线；真实写/私密调用仍fresh范围另批，不称已无人值守部署。[代码、证据及剩余接线](aws-auto-deployment-aurora-dual-mode-w1-worker-path.md)。下方为历史。
 
 > **当前 K3b到期前盘点完成，回到自动部署主线**：2026-10-16 09:21:39 CDT，35次AWS只读+1 Neon只读确认workload仍运行/父Cell16资源/ALB active、VPC3公网IP无NAT、Aurora/两固定Secret/镜像及平台记录保留。账号FREE/ACTIVE（无升级/余额保存），本月实际费用未知，50USD非cap。新namespace一次本地JSON解析UNKNOWN保留、不重读；旧namespace匹配。原10:37:01.033 CDT到期不移动，未删除/调度新监控；39新原件+29旧原件复核、5tests/lint/语法通过。盘点不再拆支线，下一审核无人值守worker最小闭环；用户后续触发且已到期时附带准确退出只读，不阻塞主线或自动清理数据。[依赖、费用边界和继续范围](aws-auto-deployment-aurora-dual-mode-k3b-exit-inventory.md)。下方为历史。

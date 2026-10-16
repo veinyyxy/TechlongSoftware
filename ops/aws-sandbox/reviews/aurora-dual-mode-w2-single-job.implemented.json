@@ -1,0 +1,89 @@
+{
+  "schema": "techlong/initialized-worker-w2-implementation/v1",
+  "state": "SINGLE_JOB_LEASE_ATOMIC_COMPLETION_CODE_READY_PROVIDER_CLI_NOT_ACTIVATED",
+  "recordedDate": "2026-10-16",
+  "ownPins": [
+    { "file": "lib/deployments/execution/express-initialized-job-v2.ts", "rawFileSha256": "d1672d8a2d373f432d1ea8c7309894987bff4def7dc2c6efa18b9fab2257d4b2" },
+    { "file": "lib/deployments/execution/express-initialized-job-neon-v2.ts", "rawFileSha256": "5cd0af0dde4d7b2a05ff92b8d13a11a7deb97b4bf6c2a887841a7753c4909353" },
+    { "file": "lib/deployments/execution/express-initialized-job-runner-v2.ts", "rawFileSha256": "2ff477ceb6863f6991bc86544b6d45b444cc806c46fafdc7fa10eb179bd8614d" },
+    { "file": "tests/express-initialized-job-v2.test.ts", "rawFileSha256": "ea12907506f7969f23963c5a348a21236ec86547f4f4f9845500a1d793451c76" },
+    { "file": "ops/aws-sandbox/scripts/check-express-initialized-job-v2.mjs", "rawFileSha256": "b23beb36dc1e34997e9a2d8aeddc03f676230460ced01a7ac6e9891f299ea9a6" }
+  ],
+  "predecessor": {
+    "file": "ops/aws-sandbox/reviews/aurora-dual-mode-w1-initialized-worker.implemented.json",
+    "rawFileSha256": "84b08fc517956a93ae4a0a3090ebabbfefe5898c979b717c8f92c3e4d3d977b6",
+    "frozenW1AndLegacyPinsChanged": false,
+    "initializedMaterialSha256": "8fa2b5c1cfe441ca6c95771046209e03c8ced91b8cdf0e7948c1c44c55da0313"
+  },
+  "evidence": {
+    "path": "F:/ChatGPT_workshop/techlong-worker-w2-readonly-check-20261016-r1.json",
+    "rawFileSha256": "949cc09baa04899a3a4ea4e7fb93dd9f226094619dc916ea25e8d3c172401233",
+    "successfulCheckCompletedAt": "2026-10-16T15:05:29.954Z",
+    "lastSuccessfulRun": { "readOnlyTransactions": 2, "snapshotSelects": 1, "explainWithoutAnalyzeStatements": 5 },
+    "developmentAttempts": {
+      "sandboxSnapshotFailures": 2,
+      "actualSnapshotReadRequests": 4,
+      "readOnlyExplainTransactionRequests": 3,
+      "localCompileRejectedMissingIdentitySchemaVersion": 1,
+      "localExplainResultValidationRejected": 2,
+      "validationFix": "Include identity schemaVersion; validate EXPLAIN plan rows instead of affected-row count",
+      "writeModeAvailableInCheckScript": false
+    },
+    "completionWritesExecuted": false,
+    "neonConnectionCredentialSource": "existing platform .env.local DATABASE_URL; never printed or persisted"
+  },
+  "validation": {
+    "newTests": 11,
+    "w1Tests": 7,
+    "disabledRuntimeTests": 3,
+    "totalTestsPassed": 21,
+    "typecheck": "passed",
+    "eslintFiles": 5,
+    "eslintWarnings": 0,
+    "realSnapshotMatchesInitializedMaterial": true,
+    "realClaimAndLeaseSqlPlannerChecksPassed": true,
+    "liveClaimLeaseOrCompletionProved": false
+  },
+  "implementation": {
+    "concreteNeonAdapter": true,
+    "databaseClockLease": true,
+    "singleNewReconcileJob": true,
+    "attempts": 1,
+    "maxAttempts": 1,
+    "claimWindowMs": 900000,
+    "maxLeaseDurationMs": 1200000,
+    "automaticRetries": 0,
+    "automaticHeartbeats": 0,
+    "oldReadyAtOrSuccessfulJobChanged": false,
+    "completionUpdates": ["exact deployment.outputs and updated_at", "exact new job status and lease fields"],
+    "independentReadback": "new READ ONLY transaction, same Neon adapter identity",
+    "resultEvidenceAllowlisted": true,
+    "workloadProviderInterfaceOnly": true,
+    "concreteProductionAwsProvider": false,
+    "productionCliWired": false
+  },
+  "effects": {
+    "cloudWrites": 0,
+    "neonWrites": 0,
+    "jobWrites": 0,
+    "businessWrites": 0,
+    "awsCalls": 0,
+    "awsSecretValueReads": 0,
+    "originalPrivatePackageLoads": 0,
+    "auroraConnections": 0,
+    "applicationRequests": 0,
+    "newJobsCreated": 0,
+    "liveWorkerRuns": 0,
+    "runtimeEnabled": false,
+    "automaticDeploymentAccepted": false
+  },
+  "continuation": {
+    "stage": "W3 concrete workload provider and single-run CLI root",
+    "keepInitializedDatabaseAndOldHistory": true,
+    "legacyFullAndGlobalDisabledRuntimeUnchanged": true,
+    "freshSpecificApprovalRequiredForWritesAndPrivateSources": true,
+    "executionApprovalManifestPrepared": false,
+    "existingWorkloadExpiryUnchanged": "2026-10-16T15:37:01.033Z",
+    "automaticCleanupOrMonitorCreated": false
+  }
+}
