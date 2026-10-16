@@ -1,5 +1,7 @@
 # AWS 自动部署最快交付方案
 
+> **当前 K3r 集中恢复待审**：用户选择保留数据库继续验收，已完成七资源CreateStack/三公开GET/一条deployment输出重绑定/独立只读入口。30 SDK/14 CLI/2 Neon现场只读、29tests/零警告lint/Check及独立绑定通过，0新写/私密/应用/槽；现有平台ready是指向已删前任的历史，不冒充当前运行。SHA `10242ff57c631458705efde250ea2805786d07d22965e263b1e79630e965b148` 至Winnipeg 2026-10-17 08:22:43.744，实际新承载两小时从Run开始固定，不延长旧对象、不初始化或改IAM/Secret/DNS/DDB/原任务。不扩展Grant/F3c9。[具体范围、风险和命令](aws-auto-deployment-aurora-dual-mode-k3r-hosting-resume-review.md)。下方为历史。
+
 > **最新 K3a 因原承载到期停止**：Winnipeg 2026-10-16 07:55只读核对workload准确UUID和七资源CFN记录DELETE_COMPLETE、父Cell记录CREATE_COMPLETE。清单和原07:04:28.726期限均已过，0公网GET/私密/SQL/写，槽未消费，不刷新范围或自动创建。K2c ready保持历史，当前平台同步/实际全清理/停费未验；需用户选另审恢复承载继续验收，或K3b只读退出盘点。[事实及选择](aws-auto-deployment-aurora-dual-mode-k3a-expired.md)。下方为历史。
 
 > **当前 K3收尾 / K3a待审**：K2c已ready，不重做初始化或扩展Grant。新增仅3个无认证公网443 GET的单次入口，6 tests/零警告lint/语法及独立本地绑定通过，0网络/私密/云或DB写/新槽。fresh SHA `41ab184c73a04dc90ee70da21edf04653b65d27d99472cd58606607f027dcde6`，Winnipeg 2026-10-16 06:51:04.661前执行；原07:04:28.726到期保持。父Cell/Aurora等不受旧workload Janitor全覆盖，已列最小退出依赖，清理和正向业务另审；不声称无人值守或全部停费。[准确清单与退出方案](aws-auto-deployment-aurora-dual-mode-k3-closeout.md)。下方为历史。

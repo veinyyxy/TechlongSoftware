@@ -1,5 +1,7 @@
 # Aurora Express / Full 双模式兼容与切换方案
 
+> **当前 K3r 保留初始化的恢复待审**：现有Cell/库/固定Secret元数据/IAM/ECR/DNS/DDB/Janitor与历史平台九行只读匹配，命名空间空；29tests/零警告lint/Check及独立绑定通过，0新写/私密/应用/槽。集中申请一次七资源workload、三公开GET及一次deployment outputs重绑定，不改instance/job或重新初始化。SHA `10242ff57c631458705efde250ea2805786d07d22965e263b1e79630e965b148`，审批至Winnipeg 2026-10-17 08:22:43.744；新TTL为Run startedAt+7200秒，唯一落盘后不移动，避免审批等待耗掉承载。50USD非cap、旧Janitor保持，无权限/支线扩展。[清单/完整风险/唯一命令](aws-auto-deployment-aurora-dual-mode-k3r-hosting-resume-review.md)。下方为历史。
+
 > **最新 K3a 停止**：用户确认时清单和workload均已过期；Winnipeg 2026-10-16 07:55:49只读确认新workload UUID/七CFN资源记录DELETE_COMPLETE，父Cell记录CREATE_COMPLETE。0公网GET/私密/SQL/云写，槽未消费；不能只换SHA重放或自动重建/初始化。当前需选择另审承载恢复继续验收，或只读盘点准备退出；当前平台同步/全部停费未证明。[观察证据与下一选择](aws-auto-deployment-aurora-dual-mode-k3a-expired.md)。下方为历史。
 
 > **当前 K3a 公网最小冒烟待审**：只实现3个无认证443 GET（health/ready/merchant未签名401），无私密/AWS/SQL客户端或业务写/删除；6 tests/零警告lint/语法及本地22历史证据绑定通过，本轮网络/槽0，尚未证明当前公网。SHA `41ab184c73a04dc90ee70da21edf04653b65d27d99472cd58606607f027dcde6`，Winnipeg 2026-10-16 06:51:04.661前执行。K2c成功记录保持，原workload07:04:28.726到期不延长。已整理父Cell/库/Secret/DNS/平台退出依赖，尚不授权删除或正向业务操作。[最小清单、完整风险和退出顺序](aws-auto-deployment-aurora-dual-mode-k3-closeout.md)。下方为历史。

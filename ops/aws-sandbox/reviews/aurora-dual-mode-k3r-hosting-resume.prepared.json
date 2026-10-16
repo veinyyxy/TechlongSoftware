@@ -1,0 +1,179 @@
+{
+  "schema": "techlong/hosting-resume-prepared/v1",
+  "state": "FRESH_WORKLOAD_ONLY_RESUME_REQUIRES_EXACT_APPROVAL",
+  "approvalConsumed": false,
+  "executionAuthorized": false,
+  "manifestSha256": "10242ff57c631458705efde250ea2805786d07d22965e263b1e79630e965b148",
+  "manifestPath": "F:/ChatGPT_workshop/techlong-express-k3r-review-20261016-r2/manifest.json",
+  "preparedAt": "2026-10-16T13:22:43.744Z",
+  "approvalExpiresAt": "2026-10-17T13:22:43.744Z",
+  "relativeExecution": {
+    "ttlSeconds": 7200,
+    "clockAnchor": "RUN_STARTED_AT_AFTER_FRESH_PREFLIGHT_AND_BEFORE_DURABLE_CREATE_INTENT",
+    "expiresAtNotYetAssigned": true,
+    "neverExtendedAfterBinding": true,
+    "finishBeforeSeconds": 6900
+  },
+  "riskDocument": "docs/aws-auto-deployment-aurora-dual-mode-k3r-hosting-resume-risk.md",
+  "riskRawSha256": "e507bde3963a367851af02a3637144cbc735cdbf8389a085bba0ade5e2622564",
+  "scope": {
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "stackName": "techlong-sandbox-tenant-9c5ee9e64509dcad",
+    "predecessorStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/f71252c0-c917-11f1-8148-02ff648cb917",
+    "predecessorTaskDefinition": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:2",
+    "newUuidAndTaskDefinitionNotYetKnown": true,
+    "parentCellStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "deploymentId": "dep_7c99bd249470184852f0dc74",
+    "jobId": "job_202c8dc12a8bf379f3a7c693",
+    "imageDigest": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+    "resourceTypes": {
+      "TenantLogGroup": "AWS::Logs::LogGroup",
+      "TenantTaskDefinition": "AWS::ECS::TaskDefinition",
+      "TenantTargetGroup": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "TenantBusinessControlDenyRule": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "TenantListenerRule": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "TenantControlListenerRule": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "TenantService": "AWS::ECS::Service"
+    },
+    "cpu": "512",
+    "memory": "1024",
+    "parameterCount": 20,
+    "parameterValuesOrTemplateNotIncludedInThisCapsule": true,
+    "requestSkeletonSha256": "d6106786550ea64b282b56a5efcece7db968b61043a425179e20f53e5a0fd949",
+    "createStackLimit": 1,
+    "neonSerializableTransactions": 1,
+    "changedExistingRows": 1,
+    "allowedDeploymentColumns": [
+      "outputs",
+      "updated_at"
+    ],
+    "publicGetLimit": 3,
+    "privateLoads": 0,
+    "secretValueReads": 0,
+    "directAuroraConnections": 0,
+    "applicationPosts": 0,
+    "iamWrites": 0,
+    "dnsWrites": 0,
+    "ddbWrites": 0
+  },
+  "currentPlatform": {
+    "recordStatuses": [
+      "active",
+      "ready",
+      "succeeded"
+    ],
+    "pointsToDeletedPredecessor": true,
+    "liveHostingAbsent": true,
+    "originalReadyReceiptIntact": true,
+    "attempts": 1,
+    "maxAttempts": 1,
+    "leaseCleared": true,
+    "oldFullRowHashes": {
+      "a": "37b1cf66453cf0bf994c89c07f424f9b7d8dc33e25d10f878b5656312bf318f5",
+      "d": "7f4efba061699cc8f5329853d56d811abe051ca58ef9faf9c460c76155fcea85",
+      "e": "ef888d68c1f697a5438a772508056c14b773c57393625f0262b86c746bae2007",
+      "j": "f07bb1bf19fb3c01f12a62fab75f9a61d5fbc1dc2ef2da955c15af466c176c3d",
+      "o": "0dd0eb4243c5205a681803aa8c8bf22ed1ce5ea3783d6b29ef44c96aa4fa9f5b",
+      "r": "835f80e2e58ef3fac4b14948184f57ac3369d169121a7b34f4bf0325eff28d22",
+      "w": "d22403271b1bf7b5aec752fd920f7483a53dd2c34a021d41c65165d62147e54d",
+      "tv": "9217898c7518442262651aea002a13545cb6f166417ffc87035fe6cb76923fc1",
+      "sub": "6feb4164afdc08e1cb8ff957cde4d0c6e2aa294432690278a95d87f281e023d9"
+    },
+    "newAllowedColumnMaskHashes": {
+      "a": "37b1cf66453cf0bf994c89c07f424f9b7d8dc33e25d10f878b5656312bf318f5",
+      "d": "af270c7a460b0b8e2e2e93cc828ea07dcf1ba60014c6fd24479a9d1d7c097ce6",
+      "e": "ef888d68c1f697a5438a772508056c14b773c57393625f0262b86c746bae2007",
+      "j": "f07bb1bf19fb3c01f12a62fab75f9a61d5fbc1dc2ef2da955c15af466c176c3d",
+      "o": "0dd0eb4243c5205a681803aa8c8bf22ed1ce5ea3783d6b29ef44c96aa4fa9f5b",
+      "r": "835f80e2e58ef3fac4b14948184f57ac3369d169121a7b34f4bf0325eff28d22",
+      "w": "d22403271b1bf7b5aec752fd920f7483a53dd2c34a021d41c65165d62147e54d",
+      "tv": "9217898c7518442262651aea002a13545cb6f166417ffc87035fe6cb76923fc1",
+      "sub": "6feb4164afdc08e1cb8ff957cde4d0c6e2aa294432690278a95d87f281e023d9"
+    },
+    "previousOutputsSha256": "ec32e68f8950c97a05e300041ff17349905619411337b1c397dd33fb4c3e446e",
+    "catalogServerSha256": "3acdd88bfd8f8320a0191dcc97189b8ea39b08a34f0296e4df373abb43d84a1e",
+    "endpointSha256": "ddafbcdf74b6e8df51e7bde9d7337778187983f05ab6cc01b2084ad54799d8f4"
+  },
+  "completedReadonlyReview": {
+    "sdkReads": 30,
+    "cliReads": 14,
+    "neonReadOnlyTransactions": 2,
+    "workloadAndNamespacesAbsent": true,
+    "parentCellIamSecretMetadataEcrDnsDdbJanitorMatched": true,
+    "sourceIdentityVerified": true,
+    "directAuroraConnections": 0,
+    "secretValueReads": 0,
+    "applicationRequests": 0,
+    "writes": 0,
+    "slotsConsumed": 0
+  },
+  "preliminaryReview": {
+    "directory": "F:/ChatGPT_workshop/techlong-express-k3r-review-20261016-r1",
+    "outcome": "STOPPED_READONLY_NO_SLOT_NO_WRITE",
+    "code": "IMAGE_REPAIR_TASK_OLD_IMAGE",
+    "reason": "Old transformer expected image from revision :1; changed new observer to compare actual repaired :2 against raw-pinned K2c spec. Old validators were not altered.",
+    "partialMetadataReadCountNotClaimedAsCompleteGroup": true
+  },
+  "validation": {
+    "newTests": 10,
+    "adjacentTests": 19,
+    "totalTestsPassed": 29,
+    "targetedLintZeroWarnings": true,
+    "threeScriptSyntaxChecks": true,
+    "canonicalManifestAndCurrentBindingAndPlanRederived": true,
+    "threeNewSlotsAbsent": true,
+    "ownRawPins": 5,
+    "priorPublicEvidenceRawFiles": 22,
+    "priorClosuresPreserved": true,
+    "fullBuildOrCiNotRerun": true
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-review-20261016-r2/binding.json",
+      "rawFileSha256": "c92901be84cc9fc1361e6f01eea0b0808f898521fcdfc59083080fd276dced4c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-review-20261016-r2/state.json",
+      "rawFileSha256": "b6e0831f346b006379f138f25f2d1d276eebbb0ce6333d4e39bdc6e99bb9c327"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-review-20261016-r2/metadata.json",
+      "rawFileSha256": "cace16b1f9a48634ebf7147aca98721061ea9d3266ebf05c4b4a1a9785b366f3"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-review-20261016-r2/manifest.json",
+      "rawFileSha256": "9b78f4e7bfaf27c586cfc36bf3f594f7653585bdc67e6353342032b213204912"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-review-20261016-r2/result.json",
+      "rawFileSha256": "76bb99f483417f1b75d57f5c6323e61847c87194ec5d08a0fbfc616599050903"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-review-20261016-r1/binding.json",
+      "rawFileSha256": "77f592913f6157b094b7be65ee11b6c70c9e368babf30faef9b9019c97e0fadd"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-review-20261016-r1/state.json",
+      "rawFileSha256": "c50232f51b30c0d56cdfbec3e0a896cf849850aaf1889dd5ba97894f8e752bab"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3r-review-20261016-r1/failure.json",
+      "rawFileSha256": "9a1470b385fbeb094b16cd6f49dbba56380180ee718d398437cc465aa8e2fc43"
+    }
+  ],
+  "permanentSlots": [
+    "F:/ChatGPT_workshop/techlong-express-k3r-hosting-resume-v1.permanent-slot.json",
+    "F:/ChatGPT_workshop/techlong-express-k3r-hosting-resume-v1.write-slot.json",
+    "F:/ChatGPT_workshop/techlong-express-k3r-hosting-resume-v1.inspect-slot.json"
+  ],
+  "budget": {
+    "monthlyTargetUSD": 50,
+    "hardCap": false,
+    "incrementalTaskAndSingleIpv4TwoHourEstimateUSD": 0.06429,
+    "excludesParentAndOtherResources": true,
+    "pricingDirectory": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/ca-central-1/index.json",
+    "pricingObservedAt": "2026-10-16T13:18:56.558Z"
+  }
+}

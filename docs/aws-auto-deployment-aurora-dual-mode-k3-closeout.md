@@ -1,5 +1,7 @@
 # K3 首轮验收收尾：先公网最小冒烟，再准确资源退出
 
+> **当前 K3r 恢复待审**：用户选择保留初始化结果、恢复workload继续公网验收。30 SDK/14 CLI/2 Neon只读通过，原承载命名空间空、现有Cell/库/角色/Secret元数据及九行平台匹配；29tests/零警告lint/Check与独立绑定通过，0新写/应用HTTP/私密/槽。SHA `10242ff57c631458705efde250ea2805786d07d22965e263b1e79630e965b148`，审批到Winnipeg 2026-10-17 08:22:43.744；新承载两小时从Run实际开始固定，不在审批等待期间倒计时。一次新七资源/三GET/一行outputs重绑定及独立只读集中另审，不初始化或改任务/IAM。[准确范围与完整风险](aws-auto-deployment-aurora-dual-mode-k3r-hosting-resume-review.md)。下方为历史。
+
 > **当前停止（2026-10-16 07:55 CDT）**：清单及原workload期限都已过。仅1 STS+3 CFN只读确认准确workload/七资源记录DELETE_COMPLETE、父Cell记录CREATE_COMPLETE；0公网GET/私密/SQL/写，K3a槽未消费，不刷新原范围、不续期/重建。需选择另审恢复承载继续公开验收，或K3b只读退出盘点；不重复初始化。[真实停止证据与两个方向](aws-auto-deployment-aurora-dual-mode-k3a-expired.md)。下方为保留的原准备历史，原命令不可执行。
 
 2026-10-16 Winnipeg。用户要求“下一步开始”；本阶段沿用收缩主线，不扩展F3c9/Grant/generation，不重做初始化、部署、镜像发布或权限探针。K2c已经完成，原私密/HTTP/写批准全部消费。本次只实现**K3a三个公开GET的单次待审入口**，并根据已有真实证据整理退出依赖；未联网读取任何应用/AWS/数据库。
