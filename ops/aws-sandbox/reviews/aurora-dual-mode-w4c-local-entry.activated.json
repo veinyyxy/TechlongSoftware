@@ -1,0 +1,61 @@
+{
+  "schema": "techlong/platform-local-entry-w4c-activated/v1",
+  "state": "LOCAL_REQUEST_ENTRY_ON_AWAITING_MANUAL_ADMIN_SUBMISSION",
+  "userApproval": {
+    "source": "USER_CONFIRMED_PRECEDING_W4C_LOCAL_LOGIN_AND_ONE_HELD_REQUEST_SCOPE",
+    "includesNormalLoginSessionAndCredentialCounterWrites": true,
+    "maximumNewHeldRequests": 1,
+    "cloudExecutionAuthorized": false,
+    "privatePackageReadAuthorized": false,
+    "iamChangesAuthorized": false
+  },
+  "preActivationReadOnly": {
+    "checkedAt": "2026-10-16T18:45:03.844Z",
+    "savedReceiptState": "expired",
+    "proofJobId": "job_e4147af2f10faf37b51ec9a3",
+    "fixedExpiresAt": "2026-10-16T18:42:30.000Z",
+    "selectedAdminActiveAndPlatformAdmin": true,
+    "heldOrActiveJobs": [],
+    "jobCount": 2,
+    "snapshotSha256": "6db433f3ddcf42735772879c5b36e3786d88a68e2716947a2bb62b893809d633",
+    "proofJobSha256": "fb3c83e5f17537f3aab7d014ab15d42ef09b9224f74fc6c0ff4de1ecb3d0b3ba",
+    "jobsSha256": "2fded9b8ce9194d0ca859664f0f3ba93b14a178b30386a90758c173198109b37",
+    "readOnlyTransactions": 2,
+    "credentialFieldsRead": 0,
+    "sqlWrites": 0,
+    "awsCalls": 0,
+    "doesNotProveAwsCleanup": true
+  },
+  "activation": {
+    "command": "node scripts/local-deployment-platform.mjs --enable-request-entry",
+    "origin": "http://127.0.0.1:3100",
+    "observedListeningAddress": "127.0.0.1",
+    "strictPort": true,
+    "requestEntryEnabled": true,
+    "workerEnabled": false,
+    "awsApplyEnabled": false,
+    "environmentFilesChanged": false,
+    "sitesPublished": false,
+    "healthHttpStatus": 200,
+    "loginHttpStatus": 200,
+    "manualLoginAndSubmissionPendingAtHandoff": true
+  },
+  "agentEffectsAtHandoff": {
+    "submittedAuthForms": 0,
+    "submittedDeploymentRequests": 0,
+    "sqlWrites": 0,
+    "awsCalls": 0,
+    "originalPrivatePackageReads": 0,
+    "awsSecretValueApiReads": 0,
+    "permanentSlotsConsumed": 0
+  },
+  "continuation": {
+    "doNotAutoSubmitOnBehalfOfAdmin": true,
+    "doNotRetryOrReplaceNonceOnAmbiguousResult": true,
+    "stopLocalProcessAfterUserReportsSubmission": true,
+    "independentReadOnlyInspectionRequired": true,
+    "exactHeldJobIdNotYetKnown": true,
+    "newExactJobReviewBeforeAnyAwsExecution": true,
+    "separateFreshApprovalBeforeAwsExecution": true
+  }
+}
