@@ -1,5 +1,7 @@
 # Aurora Express / Full 双模式兼容与切换方案
 
+> **最新 C5k K1 最终待审**：Source刷新后真实30 SDK/14 CLI/1 Neon只读通过；准确旧七资源删除、原Cell/库/Secret/IAM、新命名空间/镜像、Janitor与旧平台原状匹配，永久槽空、0云写/私密/应用调用。SHA `4b194dc34fa44bc23c1999d21363351b14177fd0e57e62bce5726f75c8e95e10`，仅申请一次新CreateStack/七workload资源及独立八小时人工窗口例外，旧Janitor/平台记录保持；提交截止Winnipeg 2026-10-16 01:04:28.726 CDT，不执行初始化或ready。仍需明确SHA及完整风险批准。[最终清单、两项时限和确认文本](aws-auto-deployment-aurora-dual-mode-c5k-workload-recovery-review.md)。下面为历史。
+
 > **最新继续点 C5k**：用户同意先准备workload-only恢复。七资源单次新CreateStack/复用现有Cell和数据库/旧平台记录保留/独立八小时窗口及启用Janitor的范围和入口已接线，16项测试与types/本地Check通过；现场Review第一项SDK遇Source过期，未生成有效SHA、0写/私密/SQL/槽。刷新后仅继续新目录只读Review，再公布具体SHA另审创建。[准备状态、完整风险与准确下一命令](aws-auto-deployment-aurora-dual-mode-c5k-workload-recovery-prepared.md)。
 
 > **当前继续点（2026-10-15 Winnipeg，C5j）**：UUIDv8修复镜像已在C5i发布并立即撤权、独立Locked/v10；恢复时查明原workload被既有旧Janitor删除，七资源DELETE_COMPLETE，镜像更新预检已拦截，未云写/业务写/消费槽。Cell/Aurora/固定Secret仍在，旧job租约过期。下一需确认“只恢复workload、保留数据库/Cell、明确Janitor兼容窗口及平台协调”方向，再准备fresh具体清单；不要重放旧批准。[准确删除证据、更正及最短主线恢复边界](aws-auto-deployment-aurora-dual-mode-c5j-deleted-workload.md)。下方设计/历史进度不覆盖当前状态。

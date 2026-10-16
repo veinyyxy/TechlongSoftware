@@ -1,5 +1,7 @@
 # C5k：workload-only 恢复清单已接线，待 Source 只读核验
 
+> **后续只读Review已通过**：Source刷新后r2完成30 SDK + 14 CLI + 1 Neon只读；新SHA `4b194dc34fa44bc23c1999d21363351b14177fd0e57e62bce5726f75c8e95e10`，提交截止Winnipeg 2026-10-16 01:04:28.726 CDT，尚未获准或执行创建。见[最终清单与准确范围](aws-auto-deployment-aurora-dual-mode-c5k-workload-recovery-review.md)。以下为保留的本地准备/r1停止记录，不覆盖后续状态。
+
 用户已同意“先准备恢复清单”，**未授权创建/续租/初始化**。当前 `LOCAL_SCOPE_COMPILED_WAITING_FOR_SOURCE_READONLY`，没有可批准执行的 fresh manifest SHA。不要把本地 request SHA 当成执行SHA。
 
 ## 本轮收缩后的交付
