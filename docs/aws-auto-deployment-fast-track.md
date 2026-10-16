@@ -1,5 +1,7 @@
 # AWS 自动部署最快交付方案
 
+> **当前 W4a 平台接线完成、保持关闭**：管理员实例页显示最新匹配成功 job 的真实回执/到期，不再一律标 DEMO；固定意图 POST、来源与管理员校验、现有任务表待审挂起及同 job 准确领取适配就绪。33 tests/typecheck/lint/build及真实 Neon 只读规划通过，旧行/任务/W3代码保持，0云/DB写和私密/业务请求。不是已上线平台触发部署：下一 W4b 仅接 queued-job Review/Run/Inspect 根，完成后入口激活和实际执行另批，不重开支线。[本阶段交接](aws-auto-deployment-aurora-dual-mode-w4a-platform-entry.md)。下方为历史。
+
 > **当前 W3 实跑与独立 Inspect 已通过**：按用户确认的 `bf4bd8b4…`，新单任务/有效lease自动完成一次真实七资源承载创建、两JWT/mTLS GET、原子输出追加/完成新job；新UUID `74a79560…`、task definition:4与修复digest/healthy target实证，旧job/ready/初始化库保持。2026-10-16 11:51:24 CDT新进程独立只读再次通过。1次Source CreateStack、2个Neon写事务，1次私密包/2GET，0初始化POST/自动重试/IAM-DNS-DDB-Secret写，全局worker仍disabled。固定今天13:42:30 CDT到期不续期，父Cell/库保留非全停费。五槽已消费，旧清单不可重放；下一主线接平台受控触发，不扩支线。[实际证据及准确范围](aws-auto-deployment-aurora-dual-mode-w3-executed.md)。下方为历史。
 
 > **当前 W3 真实 worker 根已接通，待一次集中批准实跑**：AWS SDK 一次 CreateStack/七资源、W2 新 job/lease/原子完成与 W1 两认证 GET 已接进单次 CLI，不启全局队列、不 provision/改库/IAM。26 tests/typecheck/lint及两轮真实只读Review通过；旧准确栈/七资源已删除、ECS inactive0，父Cell/库仍保留。当前只允许待审SHA `bf4bd8b4…`，准入至今天11:57:30.084 CDT，固定child到期13:42:30；0 job/云/业务写、0原私密包/应用请求。须明确接受整包读取（含未使用Stripe秘钥）、非原子/收费遗留/CFN自身rollback等完整风险后Run，过期只读刷新不重放。[已接线、当前清单与证据](aws-auto-deployment-aurora-dual-mode-w3-worker-root.md)。下方为历史。

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { StatusActionButton } from "@/components/admin/StatusActionButton";
+import { InitializedDeploymentPanel } from "@/components/admin/InitializedDeploymentPanel";
+import { getInitializedPlatformStatus } from "@/lib/deployments/initialized-platform-management";
 import { formatDate } from "@/lib/admin/presentation";
 import { getAdminAccount } from "@/lib/auth/account";
 import { subscriptionStatusLabels } from "@/lib/billing/presentation";
@@ -37,6 +39,7 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
   }
 
   const deployment = await getLatestAppInstanceDeployment(instance.id);
+  const initializedStatus = await getInitializedPlatformStatus(instance.id);
 
   const subscriptionIsActive = instance.subscriptionStatus === "active";
   const hasAccessUrl = hasRecordedAccessUrl(instance.accessUrl);
@@ -147,13 +150,15 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
         </section>
       </div>
 
+      {deployment ? <InitializedDeploymentPanel instanceId={instance.id} deploymentId={deployment.id} view={initializedStatus} /> : null}
+
       <section className="module-card">
-        <h2>AWS 部署计划（DEMO）</h2>
+        <h2>AWS 部署计划与记录</h2>
         {deployment ? (
           <>
             <dl className="detail-list">
               <div><dt>计划状态</dt><dd>{deployment.status}</dd></div>
-              <div><dt>执行模式</dt><dd>{deployment.mode}（仅规划）</dd></div>
+              <div><dt>执行模式</dt><dd>{deployment.mode}{deployment.mode === 'plan_only' ? '（仅规划）' : '（受控执行；当前承载以验收回执为准）'}</dd></div>
               <div><dt>驱动与版本</dt><dd>{deployment.driver} · {deployment.workflowVersion}</dd></div>
               <div><dt>资源档位</dt><dd>{getDeploymentProfile(deployment.deploymentProfileKey).label}</dd></div>
               <div><dt>AWS 区域 / Cell</dt><dd>{deployment.desiredPlan.region} / {deployment.cellKey}</dd></div>
@@ -175,13 +180,13 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
                 <dd>
                   {deployment.desiredPlan.resources.tenant.database.isolation === "dedicated_database"
                     ? `独立数据库目标：${deployment.desiredPlan.resources.tenant.database.dedicatedClusterLogicalName}`
-                    : "Cell Aurora 集群内独立 Database + Role"}
+                    : "每租户独立 Database + Role；实际数据库绑定以受控记录为准"}
                 </dd>
               </div>
               <div><dt>租户资源</dt><dd>ECS Service、Task Definition、Target Group、Listener Rule、Secret、日志与成本标签</dd></div>
             </dl>
             <div className="notice notice-warning">
-              当前计划不会调用 AWS，也不会生成假的 ARN、正式访问地址或 Secret 值。下一阶段由受控 Worker 执行并回写真实资源标识。
+              {deployment.mode === 'plan_only' ? '当前为仅规划模式，不调用 AWS，也不会生成假的 ARN 或 Secret 值。' : '计划/历史 ready 不代表实时在线。已初始化租户的真实承载、固定到期和任务结果请查看上方受控记录；此页不会直接调用 AWS。'}
             </div>
           </>
         ) : (

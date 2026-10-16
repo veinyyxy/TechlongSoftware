@@ -1,0 +1,440 @@
+{
+  "notice": "Public pinned W1 material; synthetic minimal rows for compiler tests only. Not a live snapshot, executable review or approval.",
+  "material": {
+    "schema": "techlong/express-initialized-worker/v2",
+    "predecessorMaterialSha256": "db70c7461464910bff782619a2168a99a29adef45e8ab97a4ca2f227bdf17057",
+    "sourcePlanSha256": "c45dafe1d1c65609eed08ff397d899aeaa0e55092312e330a0b4eef507434e5a",
+    "scope": {
+      "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+      "ownerDeploymentId": "dep_7c99bd249470184852f0dc74",
+      "workspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+      "productId": "prd_restaurant_order_system",
+      "templateVersionId": "tplver_9c175436f0a14d9aa7f5fdfc2b5c139e",
+      "environmentId": "env_aws_sandbox_ca_central_1",
+      "cellKey": "cell-sandbox-1"
+    },
+    "sourcePlan": {
+      "schemaVersion": 1,
+      "architecture": "aws-ecs-cell",
+      "driver": "aws_ecs_cell",
+      "workflowVersion": "v1",
+      "mode": "aws_sandbox",
+      "region": "ca-central-1",
+      "cellKey": "cell-sandbox-1",
+      "deploymentProfileKey": "standard-v1",
+      "resources": {
+        "shared": {
+          "buyerWeb": {
+            "cloudFront": "shared-buyer-web-cloudfront",
+            "s3": "shared-buyer-web-s3"
+          },
+          "controlPlane": "shared-saas-control-plane"
+        },
+        "cell": {
+          "alb": "cell-sandbox-1-alb",
+          "databaseCluster": "cell-sandbox-1-aurora-rds",
+          "network": {
+            "vpc": "cell-sandbox-1-vpc",
+            "egress": "cell-sandbox-1-nat-or-vpc-endpoints"
+          }
+        },
+        "tenant": {
+          "ecsService": "tenant-9c5ee9e64509dcad-ecs-service",
+          "taskDefinition": {
+            "logicalName": "tenant-9c5ee9e64509dcad-task-definition",
+            "cpu": 512,
+            "memoryMiB": 1024,
+            "desiredCount": 1
+          },
+          "targetGroup": "tenant-9c5ee9e64509dcad-target-group",
+          "listenerRule": "tenant-9c5ee9e64509dcad-listener-rule",
+          "database": {
+            "isolation": "tenant_database",
+            "dedicatedClusterLogicalName": null,
+            "roleName": "tenant_9c5ee9e64509dcad_role",
+            "databaseName": "tenant_9c5ee9e64509dcad_db"
+          },
+          "secret": {
+            "logicalName": "tenant-9c5ee9e64509dcad-runtime-secret"
+          },
+          "autoScaling": {
+            "minCapacity": 1,
+            "maxCapacity": 4
+          },
+          "logs": {
+            "logGroupName": "/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad"
+          },
+          "costTags": {
+            "WorkspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+            "ProductId": "prd_restaurant_order_system",
+            "PlanId": "pln_5303b097f504453caaca07715d1d7dbe",
+            "AppInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+            "CellId": "cell-sandbox-1"
+          }
+        }
+      },
+      "safety": {
+        "applyEnabled": false,
+        "createsAwsResources": false,
+        "storesSecretValues": false
+      }
+    },
+    "plan": {
+      "schemaVersion": 1,
+      "architecture": "aws-ecs-cell",
+      "driver": "aws_ecs_cell",
+      "workflowVersion": "v1",
+      "mode": "aws_sandbox",
+      "region": "ca-central-1",
+      "cellKey": "cell-sandbox-1",
+      "deploymentProfileKey": "standard-v1",
+      "resources": {
+        "shared": {
+          "buyerWeb": {
+            "cloudFront": "shared-buyer-web-cloudfront",
+            "s3": "shared-buyer-web-s3"
+          },
+          "controlPlane": "shared-saas-control-plane"
+        },
+        "cell": {
+          "alb": "cell-sandbox-1-alb",
+          "databaseCluster": "cell-sandbox-1-aurora-rds",
+          "network": {
+            "vpc": "cell-sandbox-1-vpc",
+            "egress": "cell-sandbox-1-nat-or-vpc-endpoints"
+          }
+        },
+        "tenant": {
+          "ecsService": "tenant-9c5ee9e64509dcad-ecs-service",
+          "taskDefinition": {
+            "logicalName": "tenant-9c5ee9e64509dcad-task-definition",
+            "cpu": 512,
+            "memoryMiB": 1024,
+            "desiredCount": 1
+          },
+          "targetGroup": "tenant-9c5ee9e64509dcad-target-group",
+          "listenerRule": "tenant-9c5ee9e64509dcad-listener-rule",
+          "database": {
+            "isolation": "tenant_database",
+            "dedicatedClusterLogicalName": null,
+            "roleName": "tenant_a0da1748bc4d5419_role",
+            "databaseName": "tenant_a0da1748bc4d5419_db"
+          },
+          "secret": {
+            "logicalName": "tenant-9c5ee9e64509dcad-runtime-secret"
+          },
+          "autoScaling": {
+            "minCapacity": 1,
+            "maxCapacity": 4
+          },
+          "logs": {
+            "logGroupName": "/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad"
+          },
+          "costTags": {
+            "WorkspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+            "ProductId": "prd_restaurant_order_system",
+            "PlanId": "pln_5303b097f504453caaca07715d1d7dbe",
+            "AppInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+            "CellId": "cell-sandbox-1"
+          }
+        }
+      },
+      "safety": {
+        "applyEnabled": false,
+        "createsAwsResources": false,
+        "storesSecretValues": false
+      }
+    },
+    "planSha256": "8690c22f5b4dbf80d49bcee3cdff717dd8ae14957eedb7606b9829b533e49dc8",
+    "environment": {
+      "id": "env_aws_sandbox_ca_central_1",
+      "key": "aws-sandbox-ca-central-1",
+      "name": "AWS Sandbox ca-central-1",
+      "kind": "aws_sandbox",
+      "driver": "aws_ecs_cell",
+      "expectedAccountId": "402010193138",
+      "region": "ca-central-1",
+      "cellKey": "cell-sandbox-1",
+      "baseDomain": "sandbox.techlong.cloud",
+      "status": "active",
+      "applyEnabled": false,
+      "policy": {
+        "budgetLimitCents": 5000,
+        "ttlSeconds": 7200,
+        "maxCells": 1,
+        "maxTenants": 1,
+        "maxTaskCount": 1,
+        "allowedProfiles": [
+          "standard-v1"
+        ],
+        "allowNatGateway": false,
+        "allowInterfaceEndpoints": false,
+        "databaseEngine": "aurora-postgresql-serverless-v2",
+        "auroraPostgresMinimumVersion": "16.3",
+        "auroraPostgresEngineVersion": "16.14",
+        "auroraEngineMode": "provisioned",
+        "allowLimitlessDatabase": false,
+        "databaseMode": "tenant_database",
+        "auroraServerlessMinAcu": 0,
+        "auroraServerlessMaxAcu": 1,
+        "auroraSecondsUntilAutoPause": 300,
+        "allowDedicatedDatabase": false,
+        "allowMultiAzDatabase": false,
+        "allowRdsProxy": false,
+        "allowGlobalDatabase": false,
+        "logRetentionDays": 1
+      }
+    },
+    "binding": {
+      "schema": "techlong/database-binding/v2",
+      "profile": "express_iam",
+      "clusterArn": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001",
+      "clusterResourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+      "endpoint": "techlong-sandbox-express-d001.cluster-cn8aaekuqf1r.ca-central-1.rds.amazonaws.com",
+      "port": 5432,
+      "observedEngineVersion": "17.9",
+      "tenantDatabase": "tenant_a0da1748bc4d5419_db",
+      "tenantUsername": "tenant_a0da1748bc4d5419_role",
+      "managementDatabase": "postgres",
+      "managementUsername": "postgres",
+      "stableIdentity": "a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+      "resourceGeneration": 1,
+      "tlsTrust": "ats-roots/v1",
+      "access": {
+        "authentication": "iam",
+        "internetAccessGatewayEnabled": true,
+        "applicationRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole",
+        "lifecycleRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole"
+      },
+      "runtimeSecret": {
+        "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+        "versionId": "0f45d29f-02d4-4117-99b1-c06645aa3c6e"
+      }
+    },
+    "databaseOid": "16459",
+    "roleOid": "16456",
+    "configurationSha256": "06d3cb50dd46b5f32771c356b7e7cd7d524a0707799ae24b9ace0672ef7281c9",
+    "configurationSchemaSha256": "7b4626437d37289c406afa0b4691a5497905bee9b9ddd10e5117a7eba84cadf2",
+    "images": {
+      "sourceCommit": "10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2",
+      "buildRunId": 38803364109,
+      "publicationRunId": 38807901068,
+      "app": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+      "lifecycle": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:34ba02327b5e7ed311e6c706790c16c5d97c5d1419584cc47df98a4d7b09714e"
+    },
+    "controlPolicy": {
+      "binding": {
+        "schema": "techlong/database-binding/v2",
+        "profile": "express_iam",
+        "clusterArn": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001",
+        "clusterResourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+        "endpoint": "techlong-sandbox-express-d001.cluster-cn8aaekuqf1r.ca-central-1.rds.amazonaws.com",
+        "port": 5432,
+        "observedEngineVersion": "17.9",
+        "tenantDatabase": "tenant_a0da1748bc4d5419_db",
+        "tenantUsername": "tenant_a0da1748bc4d5419_role",
+        "managementDatabase": "postgres",
+        "managementUsername": "postgres",
+        "stableIdentity": "a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+        "resourceGeneration": 1,
+        "tlsTrust": "ats-roots/v1",
+        "access": {
+          "authentication": "iam",
+          "internetAccessGatewayEnabled": true,
+          "applicationRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole",
+          "lifecycleRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole"
+        },
+        "runtimeSecret": {
+          "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+          "versionId": "0f45d29f-02d4-4117-99b1-c06645aa3c6e"
+        }
+      },
+      "databaseOid": "16459",
+      "roleOid": "16456",
+      "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+      "configurationHash": "06d3cb50dd46b5f32771c356b7e7cd7d524a0707799ae24b9ace0672ef7281c9",
+      "imageRevision": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+      "business": {
+        "entitlements": {
+          "buyer.accounts.max": 5,
+          "buyer.concurrent_access.max": 2,
+          "stores.max": 2,
+          "merchant.active_users.max": 3,
+          "branding.custom_theme.enabled": true,
+          "branding.merchant_editable": true,
+          "buyer.access.lease_seconds": 900,
+          "buyer.access.heartbeat_seconds": 300
+        },
+        "default_store": {
+          "name": "Techlong Sandbox",
+          "buyer_theme": {
+            "brightness": "light",
+            "primary": "#03A9F4",
+            "secondary": "#0288D1",
+            "surface": "#FFFFFF",
+            "background": "#FFFFFF",
+            "error": "#B3261E"
+          },
+          "merchant_theme": {
+            "brightness": "light",
+            "primary": "#0F766E",
+            "secondary": "#0D9488",
+            "surface": "#FFFFFF",
+            "background": "#F8FAFC",
+            "error": "#B3261E"
+          }
+        },
+        "firstOwnerUsername": "techlong_sandbox_admin"
+      }
+    },
+    "tenantHostname": "first-acceptance.sandbox.techlong.cloud",
+    "existingDefaultStoreId": "add89a8c-f43e-81b9-8287-0cb6c5c54f87",
+    "lifecycle": {
+      "mode": "reuse_initialized_only",
+      "initializationPostAllowed": false,
+      "firstOwnerPasswordAllowed": false,
+      "secretValueReadAllowed": false,
+      "databaseRestoreOrMigrationAllowed": false
+    },
+    "executionAuthorized": false,
+    "runtimeEnabled": false,
+    "readyVerified": false,
+    "blockers": [
+      "reviewed_single_job_runtime_not_wired",
+      "fresh_lease_epoch_provider_admission_required",
+      "fresh_authenticated_initialized_readback_required",
+      "atomic_job_ready_and_independent_inspect_required"
+    ]
+  },
+  "materialSha256": "8fa2b5c1cfe441ca6c95771046209e03c8ced91b8cdf0e7948c1c44c55da0313",
+  "snapshot": {
+    "deployment": {
+      "id": "dep_7c99bd249470184852f0dc74",
+      "app_instance_id": "app_e897a4377bce498b9c5ee9e64509dcad",
+      "environment_id": "env_aws_sandbox_ca_central_1",
+      "subscription_id": "sub_9253b47df64946a3ae6234ce1294ba26",
+      "status": "ready",
+      "current_step": "ready",
+      "ready_at": 1792132253690,
+      "updated_at": 1792157954505,
+      "mode": "aws_sandbox",
+      "cell_key": "cell-sandbox-1",
+      "plan_hash": "8690c22f5b4dbf80d49bcee3cdff717dd8ae14957eedb7606b9829b533e49dc8",
+      "configuration_hash": "06d3cb50dd46b5f32771c356b7e7cd7d524a0707799ae24b9ace0672ef7281c9",
+      "artifact_ref": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+      "desired_plan": "{\"architecture\":\"aws-ecs-cell\",\"cellKey\":\"cell-sandbox-1\",\"deploymentProfileKey\":\"standard-v1\",\"driver\":\"aws_ecs_cell\",\"mode\":\"aws_sandbox\",\"region\":\"ca-central-1\",\"resources\":{\"cell\":{\"alb\":\"cell-sandbox-1-alb\",\"databaseCluster\":\"cell-sandbox-1-aurora-rds\",\"network\":{\"egress\":\"cell-sandbox-1-nat-or-vpc-endpoints\",\"vpc\":\"cell-sandbox-1-vpc\"}},\"shared\":{\"buyerWeb\":{\"cloudFront\":\"shared-buyer-web-cloudfront\",\"s3\":\"shared-buyer-web-s3\"},\"controlPlane\":\"shared-saas-control-plane\"},\"tenant\":{\"autoScaling\":{\"maxCapacity\":4,\"minCapacity\":1},\"costTags\":{\"AppInstanceId\":\"app_e897a4377bce498b9c5ee9e64509dcad\",\"CellId\":\"cell-sandbox-1\",\"PlanId\":\"pln_5303b097f504453caaca07715d1d7dbe\",\"ProductId\":\"prd_restaurant_order_system\",\"WorkspaceId\":\"ws_ac46ffc6778f44f5a4b5332c41bb9f33\"},\"database\":{\"databaseName\":\"tenant_a0da1748bc4d5419_db\",\"dedicatedClusterLogicalName\":null,\"isolation\":\"tenant_database\",\"roleName\":\"tenant_a0da1748bc4d5419_role\"},\"ecsService\":\"tenant-9c5ee9e64509dcad-ecs-service\",\"listenerRule\":\"tenant-9c5ee9e64509dcad-listener-rule\",\"logs\":{\"logGroupName\":\"/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad\"},\"secret\":{\"logicalName\":\"tenant-9c5ee9e64509dcad-runtime-secret\"},\"targetGroup\":\"tenant-9c5ee9e64509dcad-target-group\",\"taskDefinition\":{\"cpu\":512,\"desiredCount\":1,\"logicalName\":\"tenant-9c5ee9e64509dcad-task-definition\",\"memoryMiB\":1024}}},\"safety\":{\"applyEnabled\":false,\"createsAwsResources\":false,\"storesSecretValues\":false},\"schemaVersion\":1,\"workflowVersion\":\"v1\"}",
+      "outputs": "{}"
+    },
+    "app": {
+      "id": "app_e897a4377bce498b9c5ee9e64509dcad",
+      "workspace_id": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+      "product_id": "prd_restaurant_order_system",
+      "template_version_id": "tplver_9c175436f0a14d9aa7f5fdfc2b5c139e",
+      "subscription_id": "sub_9253b47df64946a3ae6234ce1294ba26",
+      "status": "active",
+      "access_url": "https://first-acceptance.sandbox.techlong.cloud",
+      "configuration_snapshot": "{\"brandingCustomThemeEnabled\":true,\"brandingMerchantEditable\":true,\"buyerAccessHeartbeatSeconds\":300,\"buyerAccessLeaseSeconds\":900,\"buyerAccountsMax\":5,\"buyerConcurrentAccessMax\":2,\"buyerThemeBackground\":\"#FFFFFF\",\"buyerThemeBrightness\":\"light\",\"buyerThemeError\":\"#B3261E\",\"buyerThemePrimary\":\"#03A9F4\",\"buyerThemeSecondary\":\"#0288D1\",\"buyerThemeSurface\":\"#FFFFFF\",\"defaultStoreName\":\"Techlong Sandbox\",\"firstOwnerUsername\":\"techlong_sandbox_admin\",\"merchantActiveUsersMax\":3,\"merchantThemeBackground\":\"#F8FAFC\",\"merchantThemeBrightness\":\"light\",\"merchantThemeError\":\"#B3261E\",\"merchantThemePrimary\":\"#0F766E\",\"merchantThemeSecondary\":\"#0D9488\",\"merchantThemeSurface\":\"#FFFFFF\",\"storesMax\":2}"
+    },
+    "workspace": {
+      "id": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+      "status": "active"
+    },
+    "subscription": {
+      "id": "sub_9253b47df64946a3ae6234ce1294ba26",
+      "workspace_id": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+      "product_id": "prd_restaurant_order_system",
+      "template_version_id": "tplver_9c175436f0a14d9aa7f5fdfc2b5c139e",
+      "status": "active",
+      "current_period_end": 1794596925326
+    },
+    "environment": {
+      "id": "env_aws_sandbox_ca_central_1",
+      "status": "active",
+      "apply_enabled": 0,
+      "admission_state": "open",
+      "admission_epoch": 0,
+      "admission_stack_id": null,
+      "kind": "aws_sandbox",
+      "expected_account_id": "402010193138",
+      "region": "ca-central-1",
+      "cell_key": "cell-sandbox-1",
+      "policy": "{\"allowDedicatedDatabase\":false,\"allowedProfiles\":[\"standard-v1\"],\"allowGlobalDatabase\":false,\"allowInterfaceEndpoints\":false,\"allowLimitlessDatabase\":false,\"allowMultiAzDatabase\":false,\"allowNatGateway\":false,\"allowRdsProxy\":false,\"auroraEngineMode\":\"provisioned\",\"auroraPostgresEngineVersion\":\"16.14\",\"auroraPostgresMinimumVersion\":\"16.3\",\"auroraSecondsUntilAutoPause\":300,\"auroraServerlessMaxAcu\":1,\"auroraServerlessMinAcu\":0,\"budgetLimitCents\":5000,\"databaseEngine\":\"aurora-postgresql-serverless-v2\",\"databaseMode\":\"tenant_database\",\"logRetentionDays\":1,\"maxCells\":1,\"maxTaskCount\":1,\"maxTenants\":1,\"ttlSeconds\":7200}"
+    },
+    "predecessorJob": {
+      "id": "job_202c8dc12a8bf379f3a7c693",
+      "deployment_id": "dep_7c99bd249470184852f0dc74",
+      "job_type": "apply",
+      "status": "succeeded",
+      "lease_owner": null,
+      "lease_token": null,
+      "lease_expires_at": null,
+      "attempts": 1,
+      "completed_at": 1792132253703
+    },
+    "resource": {
+      "app_instance_id": "app_e897a4377bce498b9c5ee9e64509dcad",
+      "created_by_deployment_id": "dep_7c99bd249470184852f0dc74",
+      "owner_deployment_id": "dep_7c99bd249470184852f0dc74",
+      "generation": 1,
+      "lifecycle_status": "verified",
+      "destroyed_at": null,
+      "stable_identity_hash": "a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+      "environment_id": "env_aws_sandbox_ca_central_1",
+      "workspace_id": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+      "product_id": "prd_restaurant_order_system",
+      "cell_key": "cell-sandbox-1",
+      "database_name": "tenant_a0da1748bc4d5419_db",
+      "role_name": "tenant_a0da1748bc4d5419_role",
+      "secret_name": "techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime",
+      "runtime_secret_ref": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+      "ownership_marker": "tl_owner_a0da1748bc4d5419a6306b89c090957b_g1",
+      "evidence_hash": "9bbf80dfb2aff7964e491560bd3312b55d6d58036fd9d95bed28e840546355bf",
+      "external_operation_epoch": 1
+    },
+    "operation": {
+      "app_instance_id": "app_e897a4377bce498b9c5ee9e64509dcad",
+      "generation": 1,
+      "epoch": 1,
+      "owner_deployment_id": "dep_7c99bd249470184852f0dc74",
+      "stable_identity_hash": "a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+      "state": "active",
+      "intent": "provision",
+      "operation_hash": "3545b14293b00e381a54148b2adcff9340253d9a95ea02a27f4582256df81a90",
+      "marker": "tl_epoch_a0da1748bc4d5419a6306b89_g1_e1",
+      "created_by_job_id": "job_202c8dc12a8bf379f3a7c693"
+    },
+    "templateVersion": {
+      "id": "tplver_9c175436f0a14d9aa7f5fdfc2b5c139e",
+      "status": "published",
+      "configuration_schema": "{\"schemaVersion\":2,\"contract\":\"speedfeast-saas-control-v1\",\"fields\":[{\"key\":\"buyerAccountsMax\",\"label\":\"注册买家账号上限\",\"type\":\"integer\",\"source\":\"plan\",\"required\":false,\"min\":0,\"nullable\":true,\"nullLabel\":\"不限\",\"group\":\"套餐容量\",\"description\":\"允许注册的买家账号数量；选择“不限”时发送 null。\",\"unit\":\"个\",\"outputPath\":\"/entitlements/buyer.accounts.max\"},{\"key\":\"buyerConcurrentAccessMax\",\"label\":\"买家同时在线设备上限\",\"type\":\"integer\",\"source\":\"plan\",\"required\":true,\"min\":0,\"nullable\":true,\"nullLabel\":\"不限\",\"group\":\"套餐容量\",\"description\":\"允许同时保持活跃访问租约的买家设备数量。\",\"unit\":\"台\",\"outputPath\":\"/entitlements/buyer.concurrent_access.max\"},{\"key\":\"storesMax\",\"label\":\"门店上限\",\"type\":\"integer\",\"source\":\"plan\",\"required\":true,\"min\":1,\"nullable\":true,\"nullLabel\":\"不限\",\"group\":\"套餐容量\",\"description\":\"允许启用的门店数量，包含主店。\",\"unit\":\"家\",\"outputPath\":\"/entitlements/stores.max\"},{\"key\":\"merchantActiveUsersMax\",\"label\":\"商户用户账号上限（含管理员）\",\"type\":\"integer\",\"source\":\"plan\",\"required\":true,\"min\":1,\"nullable\":true,\"nullLabel\":\"不限\",\"group\":\"套餐容量\",\"description\":\"允许启用的商户端员工账号数量。\",\"unit\":\"个\",\"outputPath\":\"/entitlements/merchant.active_users.max\"},{\"key\":\"brandingCustomThemeEnabled\",\"label\":\"启用自定义主题\",\"type\":\"boolean\",\"source\":\"plan\",\"required\":true,\"group\":\"品牌能力\",\"description\":\"关闭后主题参数仍可保存，但订单系统运行时使用系统默认主题。\",\"outputPath\":\"/entitlements/branding.custom_theme.enabled\"},{\"key\":\"brandingMerchantEditable\",\"label\":\"允许商户修改品牌设置\",\"type\":\"boolean\",\"source\":\"plan\",\"required\":true,\"group\":\"品牌能力\",\"description\":\"控制商户是否可以自行修改店名和主题。\",\"outputPath\":\"/entitlements/branding.merchant_editable\"},{\"key\":\"buyerAccessLeaseSeconds\",\"label\":\"买家访问租约时长\",\"type\":\"integer\",\"source\":\"plan\",\"required\":true,\"min\":60,\"max\":86400,\"group\":\"访问策略\",\"description\":\"买家设备一次访问租约的有效时间。\",\"unit\":\"秒\",\"outputPath\":\"/entitlements/buyer.access.lease_seconds\"},{\"key\":\"buyerAccessHeartbeatSeconds\",\"label\":\"买家访问心跳间隔\",\"type\":\"integer\",\"source\":\"plan\",\"required\":true,\"min\":30,\"max\":3600,\"group\":\"访问策略\",\"description\":\"必须严格小于买家访问租约时长。\",\"unit\":\"秒\",\"outputPath\":\"/entitlements/buyer.access.heartbeat_seconds\"},{\"key\":\"defaultStoreName\",\"label\":\"店铺名称\",\"type\":\"text\",\"source\":\"customer\",\"required\":true,\"minLength\":1,\"maxLength\":120,\"group\":\"店铺基本信息\",\"description\":\"首次开通时写入订单系统现有默认主店的名称。\",\"placeholder\":\"例如：北岸餐厅\",\"outputPath\":\"/default_store/name\"},{\"key\":\"buyerThemeBrightness\",\"label\":\"买家端明暗模式\",\"type\":\"select\",\"source\":\"customer\",\"required\":true,\"options\":[\"light\",\"dark\"],\"group\":\"买家端主题\",\"outputPath\":\"/default_store/buyer_theme/brightness\"},{\"key\":\"buyerThemePrimary\",\"label\":\"买家端主色\",\"type\":\"color\",\"source\":\"customer\",\"required\":true,\"group\":\"买家端主题\",\"outputPath\":\"/default_store/buyer_theme/primary\"},{\"key\":\"buyerThemeSecondary\",\"label\":\"买家端辅助色\",\"type\":\"color\",\"source\":\"customer\",\"required\":true,\"group\":\"买家端主题\",\"outputPath\":\"/default_store/buyer_theme/secondary\"},{\"key\":\"buyerThemeSurface\",\"label\":\"买家端卡片背景色\",\"type\":\"color\",\"source\":\"customer\",\"required\":true,\"group\":\"买家端主题\",\"outputPath\":\"/default_store/buyer_theme/surface\"},{\"key\":\"buyerThemeBackground\",\"label\":\"买家端页面背景色\",\"type\":\"color\",\"source\":\"customer\",\"required\":true,\"group\":\"买家端主题\",\"outputPath\":\"/default_store/buyer_theme/background\"},{\"key\":\"buyerThemeError\",\"label\":\"买家端错误提示色\",\"type\":\"color\",\"source\":\"customer\",\"required\":true,\"group\":\"买家端主题\",\"outputPath\":\"/default_store/buyer_theme/error\"},{\"key\":\"merchantThemeBrightness\",\"label\":\"商户端明暗模式\",\"type\":\"select\",\"source\":\"customer\",\"required\":true,\"options\":[\"light\",\"dark\"],\"group\":\"商户端主题\",\"outputPath\":\"/default_store/merchant_theme/brightness\"},{\"key\":\"merchantThemePrimary\",\"label\":\"商户端主色\",\"type\":\"color\",\"source\":\"customer\",\"required\":true,\"group\":\"商户端主题\",\"outputPath\":\"/default_store/merchant_theme/primary\"},{\"key\":\"merchantThemeSecondary\",\"label\":\"商户端辅助色\",\"type\":\"color\",\"source\":\"customer\",\"required\":true,\"group\":\"商户端主题\",\"outputPath\":\"/default_store/merchant_theme/secondary\"},{\"key\":\"merchantThemeSurface\",\"label\":\"商户端卡片背景色\",\"type\":\"color\",\"source\":\"customer\",\"required\":true,\"group\":\"商户端主题\",\"outputPath\":\"/default_store/merchant_theme/surface\"},{\"key\":\"merchantThemeBackground\",\"label\":\"商户端页面背景色\",\"type\":\"color\",\"source\":\"customer\",\"required\":true,\"group\":\"商户端主题\",\"outputPath\":\"/default_store/merchant_theme/background\"},{\"key\":\"merchantThemeError\",\"label\":\"商户端错误提示色\",\"type\":\"color\",\"source\":\"customer\",\"required\":true,\"group\":\"商户端主题\",\"outputPath\":\"/default_store/merchant_theme/error\"},{\"key\":\"firstOwnerUsername\",\"label\":\"首位管理员用户名\",\"type\":\"text\",\"source\":\"customer\",\"required\":true,\"minLength\":3,\"maxLength\":64,\"group\":\"首位管理员\",\"description\":\"3–64 位，只能使用字母、数字、点、下划线和短横线。\",\"placeholder\":\"例如：owner\",\"outputPath\":\"/first_owner/username\",\"format\":\"merchant_username\"},{\"key\":\"firstOwnerDisplayName\",\"label\":\"首位管理员显示名称\",\"type\":\"text\",\"source\":\"customer\",\"required\":false,\"maxLength\":120,\"group\":\"首位管理员\",\"description\":\"留空时，订单系统会使用管理员用户名。\",\"placeholder\":\"例如：店铺负责人\",\"outputPath\":\"/first_owner/display_name\"}],\"rules\":[{\"type\":\"less_than\",\"leftKey\":\"buyerAccessHeartbeatSeconds\",\"rightKey\":\"buyerAccessLeaseSeconds\",\"message\":\"买家访问心跳间隔必须严格小于访问租约时长。\"}]}"
+    }
+  },
+  "externalFence": {
+    "schemaVersion": 1,
+    "resourceFence": {
+      "schemaVersion": 1,
+      "generation": 1,
+      "ownerDeploymentId": "dep_7c99bd249470184852f0dc74",
+      "ownershipMarker": "tl_owner_a0da1748bc4d5419a6306b89c090957b_g1",
+      "identity": {
+        "schemaVersion": 1,
+        "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+        "workspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+        "productId": "prd_restaurant_order_system",
+        "environmentId": "env_aws_sandbox_ca_central_1",
+        "cellKey": "cell-sandbox-1",
+        "stableIdentityHash": "a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+        "databaseName": "tenant_a0da1748bc4d5419_db",
+        "roleName": "tenant_a0da1748bc4d5419_role",
+        "secretName": "techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime"
+      }
+    },
+    "ownerDeploymentId": "dep_7c99bd249470184852f0dc74",
+    "epoch": 1,
+    "intent": "provision",
+    "marker": "tl_epoch_a0da1748bc4d5419a6306b89_g1_e1",
+    "operationHash": "3545b14293b00e381a54148b2adcff9340253d9a95ea02a27f4582256df81a90",
+    "state": "active"
+  },
+  "now": 1792168950084
+}

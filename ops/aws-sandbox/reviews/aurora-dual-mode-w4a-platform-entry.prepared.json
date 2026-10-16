@@ -1,0 +1,128 @@
+{
+  "schema": "techlong/platform-initialized-entry-w4a-prepared/v1",
+  "state": "ADMIN_ENTRY_AND_EXACT_JOB_ADAPTER_READY_GATE_OFF_QUEUED_CLI_NOT_WIRED",
+  "ownPins": [
+    {
+      "file": ".env.example",
+      "rawFileSha256": "e8b07528deeace99168d0f79dd574f49fca82ae8eaba8004b31c3e00932452da"
+    },
+    {
+      "file": "app/admin/instances/[instanceId]/page.tsx",
+      "rawFileSha256": "c3bb7c4988ec822288ffd1f81e66561d60f1576f83edd67c9f6e79610faf3599"
+    },
+    {
+      "file": "app/api/admin/instances/[instanceId]/initialized-deployment/route.ts",
+      "rawFileSha256": "52424f795cfa2f5356dfda5266dde03deaf4ce10f609f538583df401c07014ec"
+    },
+    {
+      "file": "components/admin/InitializedDeploymentPanel.tsx",
+      "rawFileSha256": "3d47b66936ceab50ebd293e9fce742bacdd5e55817e0ca80c9930fc6ea7f214b"
+    },
+    {
+      "file": "lib/deployments/initialized-platform-request-v1.ts",
+      "rawFileSha256": "206b9faf0bf5ef49c3c9edbe7713254bc70c0f8343da04dfef6b3f766fc552f1"
+    },
+    {
+      "file": "lib/deployments/initialized-platform-management.ts",
+      "rawFileSha256": "caaf623a436564d1fbbe702723ffb92af5590395e34a3e80bad69e6493276282"
+    },
+    {
+      "file": "lib/deployments/initialized-platform-http.ts",
+      "rawFileSha256": "1ad2d1a98ad18f618fe73d9034ab4508eaaf1003e4fc3561e90d71f8993e5feb"
+    },
+    {
+      "file": "lib/deployments/execution/express-platform-claim-v4.ts",
+      "rawFileSha256": "7410eafa8b08eac92c8aaaf2967bcb5f173f9972baa10448eadb33d3b6214e26"
+    },
+    {
+      "file": "ops/aws-sandbox/scripts/check-initialized-platform-v4.mjs",
+      "rawFileSha256": "35ab15f325aa325dc3af6dd6c4bc5ecc54225d6823f2dcc5e4db9bf3ece2b99e"
+    },
+    {
+      "file": "tests/initialized-platform-v4.test.ts",
+      "rawFileSha256": "eec97a136e1143db99874eb0f37a0706bcb23c3bf51e54a5bcbf4a8fca5c1450"
+    },
+    {
+      "file": "tests/fixtures/express-platform-v4.json",
+      "rawFileSha256": "be807e7d80050c72adc90f6cfd12dc72b1d3ca76f3d36815eef9a921f3589c49"
+    }
+  ],
+  "prior": {
+    "platformHead": "571fea790c2e1dc77c3f8544e64f5f85f765e615",
+    "backendHead": "0a4e60b5be1a77e54bd6e591ee1555655a720200",
+    "w3RunManifestSha256": "bf4bd8b45acc0a01d1e24451e219891ee9d30521ac41a17e0d460fb584909937",
+    "allFiveW3SlotsConsumed": true,
+    "replayAllowed": false
+  },
+  "scope": {
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "deploymentId": "dep_7c99bd249470184852f0dc74",
+    "adminOnly": true,
+    "requestGateDefault": false,
+    "activationPerformed": false,
+    "globalQueueEnabled": false,
+    "newTableRequired": false,
+    "newIamRequiredByCode": false,
+    "requestHoldAvailableAt": 9007199254740991,
+    "exactClaimUpdatesSameJob": true,
+    "provenancePreserved": true,
+    "actualQueuedCliImplemented": false
+  },
+  "validation": {
+    "newTests": 10,
+    "adjacentTests": 23,
+    "testsPassed": 33,
+    "typecheck": "passed",
+    "eslintFiles": 9,
+    "eslintWarnings": 0,
+    "build": "passed",
+    "apiRoutePresentInBuild": true,
+    "realReadonlyIntegration": "passed",
+    "readonlyReportTransactions": 5,
+    "sqlExplainWithoutAnalyzeStatements": 11,
+    "oldRowsAndJobsUnchanged": true,
+    "w3CodePinsUnchanged": 76,
+    "earlierReadonlyChecks": "Two nonzero checker exits from treating EXPLAIN utility rowCount as SELECT; result-shape assertion corrected. No DML."
+  },
+  "evidence": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4a-readonly-20261016-r3.json",
+      "rawFileSha256": "6fdf39ce0638b41e3a8957074ef344f011370bb0eec6a680fcccd6d98548499f"
+    }
+  ],
+  "currentSavedReceipt": {
+    "jobId": "job_e4147af2f10faf37b51ec9a3",
+    "checkedAt": 1792169457087,
+    "expiresAt": 1792176150000,
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/74a79560-c981-11f1-bfcc-06ffde30f30d",
+    "imageRevision": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e"
+  },
+  "checkedAt": "2026-10-16T17:18:23.774Z",
+  "caveat": "Projection of saved proof and syntax-only future/admin/queue/proof inputs, not live AWS health, a write review, real queued claim or end-to-end W4 acceptance",
+  "effects": {
+    "neonReadOnlyTransactions": 5,
+    "sqlDmlExecuted": 0,
+    "cloudCalls": 0,
+    "cloudWrites": 0,
+    "privatePackageReads": 0,
+    "secretValueReads": 0,
+    "applicationRequests": 0,
+    "executionSlotsConsumed": 0,
+    "requestGateActivated": false,
+    "globalQueueActivated": false
+  },
+  "continuation": {
+    "safeCodeNext": "W4b exact queued-job Review/RunOnce/Inspect root: bind queued full row and V4 program hashes, reuse W3 provider/W1 GET-only/W2 kernel, no generic queue or new job",
+    "requiresSpecificApproval": [
+      "Activate server request gate and insert a real held request",
+      "Actual cloud execution and private-source read bound to a fresh exact resource/code/queue manifest"
+    ],
+    "prohibited": [
+      "Replay W3 RunOnce against held job",
+      "Unreviewed cloud/DB writes or private-source reads",
+      "Automatic retry, takeover, slot reset or old job/ready attribution rewrite",
+      "Reopen F3c9/Grant/generation branch"
+    ]
+  },
+  "publishedWebsiteUpdated": false
+}
