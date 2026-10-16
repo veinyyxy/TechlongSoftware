@@ -1,5 +1,7 @@
 # C5i：UUIDv8修复镜像单次发布待审，不更新ECS或重试初始化
 
+> 该清单已获批且唯一执行完成，发布与立即撤权/独立Locked-v10/ECR核验通过，不再待批或可重跑。[实际结果与唯一继续点](aws-auto-deployment-aurora-dual-mode-c5i-publication-executed.md)。下文保留当时待审材料。
+
 2026-10-15 America/Winnipeg。承接[C5h2真实部分交付](aws-auto-deployment-aurora-dual-mode-c5h2-partial-executed.md)，不扩展F3c9/Grant探针/恢复/SQL模拟支线。用户要求开始下一步，仅据此做代码、候选及现有资源只读审阅；**本清单尚未获批，云写/发布/SQL/私密读取/槽消费均0**。
 
 ## 当前唯一待审清单
