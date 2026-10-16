@@ -1,0 +1,821 @@
+{
+  "schema": "techlong/express-exit-inventory-observed/v1",
+  "state": "PRE_EXPIRY_DEPENDENCY_INVENTORY_WITH_ONE_UNKNOWN",
+  "observedAt": "2026-10-16T14:21:39.727Z",
+  "result": {
+    "schema": "techlong/express-exit-inventory/v1",
+    "startedAt": "2026-10-16T14:20:47.160Z",
+    "checkedAt": "2026-10-16T14:21:39.727Z",
+    "workloadStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/ab4aa8c0-c966-11f1-b068-0ecbbd896a2b",
+    "workloadExpiresAt": "2026-10-16T15:37:01.033Z",
+    "assessment": {
+      "expired": false,
+      "allSevenDeleted": false,
+      "computeStopped": false,
+      "physicalReferencesAbsent": false,
+      "workloadExitProved": false,
+      "fullStopBillingProved": false,
+      "dataDeletionAuthorized": false,
+      "parentDeletionAuthorized": false
+    },
+    "completeReadAttempts": 35,
+    "unknownStages": [
+      "authority-1"
+    ],
+    "cliReads": 35,
+    "neonReadonlyTransactions": 1,
+    "cloudWrites": 0,
+    "sqlWrites": 0,
+    "applicationRequests": 0,
+    "privateBundleLoads": 0,
+    "secretValueReads": 0,
+    "directAuroraConnections": 0,
+    "automaticRetries": 0,
+    "invoiceOrCostExplorerRead": false,
+    "actualCostTotalKnown": false,
+    "monthlyBudgetTargetUSD": 50,
+    "budgetIsHardCap": false,
+    "retentionDefault": "PRESERVE_INITIALIZED_TENANT_DATABASE_AND_HISTORY",
+    "monitoringOrDeletionScheduled": false
+  },
+  "workload": {
+    "id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/ab4aa8c0-c966-11f1-b068-0ecbbd896a2b",
+    "status": "CREATE_COMPLETE",
+    "expiresAt": "2026-10-16T15:37:01.033Z",
+    "resources": {
+      "rows": [
+        {
+          "LogicalResourceId": "TenantBusinessControlDenyRule",
+          "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/9ea1ba8e9d8394ac",
+          "ResourceType": "AWS::ElasticLoadBalancingV2::ListenerRule",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-16T13:37:07.478000+00:00"
+        },
+        {
+          "LogicalResourceId": "TenantControlListenerRule",
+          "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/bc69b195b69bc2d9/65bc0675e8274148",
+          "ResourceType": "AWS::ElasticLoadBalancingV2::ListenerRule",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-16T13:37:24.246000+00:00"
+        },
+        {
+          "LogicalResourceId": "TenantListenerRule",
+          "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/ea4d4d7024c07b6a",
+          "ResourceType": "AWS::ElasticLoadBalancingV2::ListenerRule",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-16T13:37:24.398000+00:00"
+        },
+        {
+          "LogicalResourceId": "TenantLogGroup",
+          "PhysicalResourceId": "/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+          "ResourceType": "AWS::Logs::LogGroup",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-16T13:37:15.702000+00:00"
+        },
+        {
+          "LogicalResourceId": "TenantService",
+          "PhysicalResourceId": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+          "ResourceType": "AWS::ECS::Service",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-16T13:38:58.301000+00:00"
+        },
+        {
+          "LogicalResourceId": "TenantTargetGroup",
+          "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/d6cbffd5fbc3baa4",
+          "ResourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-16T13:37:22.492000+00:00"
+        },
+        {
+          "LogicalResourceId": "TenantTaskDefinition",
+          "PhysicalResourceId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:3",
+          "ResourceType": "AWS::ECS::TaskDefinition",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-16T13:37:17.372000+00:00"
+        }
+      ],
+      "complete": true
+    },
+    "service": {
+      "serviceArn": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+      "serviceName": "tenant-9c5ee9e64509dcad-ecs-service",
+      "status": "ACTIVE",
+      "desiredCount": 1,
+      "runningCount": 1,
+      "pendingCount": 0,
+      "taskDefinition": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:3",
+      "loadBalancers": [
+        {
+          "targetGroupArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/d6cbffd5fbc3baa4",
+          "containerName": "speedfeast-backend",
+          "containerPort": 3000
+        }
+      ]
+    },
+    "taskDefinition": {
+      "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:3",
+      "status": "ACTIVE",
+      "cpu": "512",
+      "memory": "1024",
+      "family": "tenant-9c5ee9e64509dcad-task-definition"
+    },
+    "tasks": {
+      "arns": [
+        "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/fb79e1a0f0194d489fdc4f1f64bd89fa"
+      ],
+      "complete": true
+    },
+    "logGroup": {
+      "groups": [
+        {
+          "logGroupName": "/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+          "retentionInDays": 1,
+          "storedBytes": 0,
+          "arn": "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad:*"
+        }
+      ],
+      "complete": true
+    }
+  },
+  "parent": {
+    "id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "status": "CREATE_COMPLETE",
+    "expiresAtTag": "2026-10-15T16:44:56.246Z",
+    "resources": {
+      "rows": [
+        {
+          "LogicalResourceId": "BusinessControlDenyRule",
+          "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/9851f4d18f9dbb6d",
+          "ResourceType": "AWS::ElasticLoadBalancingV2::ListenerRule",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:02:41.985000+00:00"
+        },
+        {
+          "LogicalResourceId": "BusinessHttpsListener",
+          "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1",
+          "ResourceType": "AWS::ElasticLoadBalancingV2::Listener",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:02:39.791000+00:00"
+        },
+        {
+          "LogicalResourceId": "CellCluster",
+          "PhysicalResourceId": "cell-sandbox-1",
+          "ResourceType": "AWS::ECS::Cluster",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:00:13.459000+00:00"
+        },
+        {
+          "LogicalResourceId": "CellGatewayAttachment",
+          "PhysicalResourceId": "IGW|vpc-0136b6ba92a72cbf9",
+          "ResourceType": "AWS::EC2::VPCGatewayAttachment",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:00:20.668000+00:00"
+        },
+        {
+          "LogicalResourceId": "CellInternetGateway",
+          "PhysicalResourceId": "igw-05cef33fecf6d93fc",
+          "ResourceType": "AWS::EC2::InternetGateway",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:00:21.493000+00:00"
+        },
+        {
+          "LogicalResourceId": "CellLoadBalancer",
+          "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86",
+          "ResourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:02:36.744000+00:00"
+        },
+        {
+          "LogicalResourceId": "CellVpc",
+          "PhysicalResourceId": "vpc-0136b6ba92a72cbf9",
+          "ResourceType": "AWS::EC2::VPC",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:00:17.791000+00:00"
+        },
+        {
+          "LogicalResourceId": "ControlMtlsListener",
+          "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/bc69b195b69bc2d9",
+          "ResourceType": "AWS::ElasticLoadBalancingV2::Listener",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:02:38.869000+00:00"
+        },
+        {
+          "LogicalResourceId": "LoadBalancerSecurityGroup",
+          "PhysicalResourceId": "sg-0c6090493d3e41653",
+          "ResourceType": "AWS::EC2::SecurityGroup",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:00:26.529000+00:00"
+        },
+        {
+          "LogicalResourceId": "PublicDefaultRoute",
+          "PhysicalResourceId": "rtb-064ff7feff7e592b0|0.0.0.0/0",
+          "ResourceType": "AWS::EC2::Route",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:00:31.393000+00:00"
+        },
+        {
+          "LogicalResourceId": "PublicRouteTable",
+          "PhysicalResourceId": "rtb-064ff7feff7e592b0",
+          "ResourceType": "AWS::EC2::RouteTable",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:00:29.547000+00:00"
+        },
+        {
+          "LogicalResourceId": "PublicSubnetA",
+          "PhysicalResourceId": "subnet-05b781276cc988b93",
+          "ResourceType": "AWS::EC2::Subnet",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:00:23.107000+00:00"
+        },
+        {
+          "LogicalResourceId": "PublicSubnetB",
+          "PhysicalResourceId": "subnet-05729abe921410a75",
+          "ResourceType": "AWS::EC2::Subnet",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:00:22.004000+00:00"
+        },
+        {
+          "LogicalResourceId": "PublicSubnetRouteAssociationA",
+          "PhysicalResourceId": "rtbassoc-02e2e2ed0edcb281c",
+          "ResourceType": "AWS::EC2::SubnetRouteTableAssociation",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:00:25.164000+00:00"
+        },
+        {
+          "LogicalResourceId": "PublicSubnetRouteAssociationB",
+          "PhysicalResourceId": "rtbassoc-0cf0401fb1ad49cb0",
+          "ResourceType": "AWS::EC2::SubnetRouteTableAssociation",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:00:23.973000+00:00"
+        },
+        {
+          "LogicalResourceId": "TaskSecurityGroup",
+          "PhysicalResourceId": "sg-0df75af0d0661492a",
+          "ResourceType": "AWS::EC2::SecurityGroup",
+          "ResourceStatus": "CREATE_COMPLETE",
+          "LastUpdatedTimestamp": "2026-10-15T14:00:35.010000+00:00"
+        }
+      ],
+      "complete": true
+    },
+    "loadBalancer": {
+      "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86",
+      "state": {
+        "Code": "active"
+      },
+      "scheme": "internet-facing",
+      "type": "application",
+      "ipAddressType": "ipv4",
+      "subnets": [
+        "subnet-05729abe921410a75",
+        "subnet-05b781276cc988b93"
+      ],
+      "deletionProtectionEnabled": "false"
+    },
+    "clusterServices": {
+      "arns": [
+        "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service"
+      ],
+      "complete": true
+    },
+    "clusterTasks": {
+      "arns": [
+        "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/fb79e1a0f0194d489fdc4f1f64bd89fa"
+      ],
+      "complete": true
+    },
+    "targetGroups": {
+      "groups": [
+        {
+          "TargetGroupArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/d6cbffd5fbc3baa4",
+          "TargetGroupName": "tenant-9c5ee9e64509dcad-target-g",
+          "Protocol": "HTTP",
+          "Port": 3000,
+          "VpcId": "vpc-0136b6ba92a72cbf9",
+          "HealthCheckProtocol": "HTTP",
+          "HealthCheckPort": "traffic-port",
+          "HealthCheckEnabled": true,
+          "HealthCheckIntervalSeconds": 30,
+          "HealthCheckTimeoutSeconds": 5,
+          "HealthyThresholdCount": 5,
+          "UnhealthyThresholdCount": 2,
+          "HealthCheckPath": "/bootstrap-ready",
+          "Matcher": {
+            "HttpCode": "200"
+          },
+          "LoadBalancerArns": [
+            "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86"
+          ],
+          "TargetType": "ip",
+          "ProtocolVersion": "HTTP1",
+          "IpAddressType": "ipv4"
+        }
+      ],
+      "complete": true
+    },
+    "listenerRules": {
+      "business": {
+        "count": 4,
+        "complete": true,
+        "ruleArns": [
+          "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/9851f4d18f9dbb6d",
+          "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/9ea1ba8e9d8394ac",
+          "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/ea4d4d7024c07b6a",
+          "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/1ad276ab05a39399"
+        ],
+        "forwardTargetGroups": [
+          "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/d6cbffd5fbc3baa4"
+        ]
+      },
+      "control": {
+        "count": 2,
+        "complete": true,
+        "ruleArns": [
+          "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/bc69b195b69bc2d9/65bc0675e8274148",
+          "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/bc69b195b69bc2d9/e10545e40aa479f7"
+        ],
+        "forwardTargetGroups": [
+          "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/d6cbffd5fbc3baa4"
+        ]
+      }
+    },
+    "networkSummary": {
+      "interfaces": 3,
+      "associatedPublicIPv4": 3,
+      "loadBalancerSecurityGroupInterfaces": 2,
+      "taskSecurityGroupInterfaces": 1,
+      "natGateways": {
+        "gateways": [],
+        "complete": true
+      },
+      "fullVpcInventoryComplete": true
+    },
+    "dns": {
+      "records": [
+        {
+          "Name": "first-acceptance.sandbox.techlong.cloud.",
+          "Type": "A",
+          "AliasTarget": {
+            "HostedZoneId": "ZQSVJUPU6J1EY",
+            "DNSName": "techlong-sandbox-cell-sandbox-1-335750443.ca-central-1.elb.amazonaws.com.",
+            "EvaluateTargetHealth": false
+          }
+        }
+      ],
+      "truncated": false
+    }
+  },
+  "retained": {
+    "aurora": {
+      "DBClusterIdentifier": "techlong-sandbox-express-d001",
+      "DBClusterArn": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001",
+      "DbClusterResourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+      "Status": "available",
+      "Engine": "aurora-postgresql",
+      "EngineVersion": "17.9",
+      "EngineMode": "provisioned",
+      "InternetAccessGatewayEnabled": true,
+      "VPCNetworkingEnabled": false,
+      "ServerlessV2ScalingConfiguration": {
+        "MinCapacity": 0,
+        "MaxCapacity": 1,
+        "SecondsUntilAutoPause": 300
+      },
+      "ServerlessV2PlatformVersion": "4",
+      "DeletionProtection": false,
+      "BackupRetentionPeriod": 1,
+      "DBClusterMembers": [
+        {
+          "DBInstanceIdentifier": "techlong-sandbox-express-d001-instance-1",
+          "IsClusterWriter": true,
+          "DBClusterParameterGroupStatus": "pending-reboot",
+          "PromotionTier": 1
+        }
+      ],
+      "StorageEncrypted": false,
+      "TagList": [
+        {
+          "Key": "DeliveryTrack",
+          "Value": "D002-C2-admin-facts"
+        },
+        {
+          "Key": "DatabaseProfile",
+          "Value": "express_iam"
+        },
+        {
+          "Key": "ManagedBy",
+          "Value": "techlong-sandbox"
+        },
+        {
+          "Key": "ProbeNonce",
+          "Value": "00a8312ed683845aaa682334cba3c032"
+        }
+      ]
+    },
+    "fixedSecrets": [
+      {
+        "ARN": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+        "Name": "techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1",
+        "VersionIdsToStages": {
+          "0f45d29f-02d4-4117-99b1-c06645aa3c6e": [
+            "AWSCURRENT"
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "ResourceGeneration",
+            "Value": "1"
+          },
+          {
+            "Key": "StableIdentity",
+            "Value": "a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d"
+          },
+          {
+            "Key": "SecretSchema",
+            "Value": "techlong-runtime-four-key-v2"
+          },
+          {
+            "Key": "DatabaseProfile",
+            "Value": "express_iam"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "techlong-sandbox"
+          }
+        ]
+      },
+      {
+        "ARN": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/control-public-key-first-acceptance-PfBjiq",
+        "Name": "techlong/sandbox/control-public-key-first-acceptance",
+        "VersionIdsToStages": {
+          "75d8da0af103e1e10e6d3341cbd50226fea7ce5e5aac8d150ab9e447b6340680": [
+            "AWSCURRENT"
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "DeliveryTrack",
+            "Value": "single-tenant-acceptance"
+          },
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "SecretSchema",
+            "Value": "techlong-rs256-public-key-v1"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "techlong-provisioner"
+          }
+        ]
+      }
+    ],
+    "appImage": {
+      "images": [
+        {
+          "imageDigest": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+          "imageSizeInBytes": 65418648,
+          "imagePushedAt": "2026-10-15T16:11:46.288000-05:00",
+          "imageTags": [
+            "app-sha10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2-r38803364109-a1"
+          ]
+        }
+      ]
+    },
+    "authorityTable": {
+      "TableArn": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+      "TableStatus": "ACTIVE",
+      "TableSizeBytes": 513,
+      "ItemCount": 1,
+      "BillingModeSummary": {
+        "BillingMode": "PAY_PER_REQUEST",
+        "LastUpdateToPayPerRequestDateTime": "2026-08-22T11:49:36.645000-05:00"
+      },
+      "OnDemandThroughput": {
+        "MaxReadRequestUnits": 100,
+        "MaxWriteRequestUnits": 2
+      },
+      "ProvisionedThroughput": {
+        "NumberOfDecreasesToday": 0,
+        "ReadCapacityUnits": 0,
+        "WriteCapacityUnits": 0
+      }
+    },
+    "authorityReads": [
+      {
+        "stage": "authority-1",
+        "checkedAt": "2026-10-16T14:21:35.575Z",
+        "presence": "UNKNOWN",
+        "diagnostic": {
+          "stage": "authority-1",
+          "name": "SyntaxError",
+          "code": "PROVIDER_OR_RUNTIME_FAILURE",
+          "httpStatus": null,
+          "requestId": null,
+          "sqlState": null,
+          "messagesSqlCredentialsAndStackOmitted": true,
+          "automaticRetries": 0,
+          "providerCode": "UNCLASSIFIED_CLI_ERROR"
+        }
+      },
+      {
+        "stage": "authority-2",
+        "checkedAt": "2026-10-16T14:21:36.901Z",
+        "presence": "PRESENT",
+        "data": {
+          "itemPresent": true,
+          "itemSha256": "ede2c5dd0c096c8256c9f8e47c590d07e3a11bd4075d2094e824350c7f85783e",
+          "matchesPrior": true
+        }
+      }
+    ],
+    "janitor": {
+      "schedule": {
+        "Arn": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox/global-expired-stack-scan",
+        "State": "ENABLED",
+        "ScheduleExpression": "rate(15 minutes)",
+        "Target": {
+          "Arn": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-janitor",
+          "Input": "{\"schemaVersion\":1,\"action\":\"scan_expired_cloudformation_stacks\"}",
+          "RetryPolicy": {
+            "MaximumEventAgeInSeconds": 3600,
+            "MaximumRetryAttempts": 2
+          },
+          "RoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxSchedulerInvokeRole"
+        }
+      },
+      "function": {
+        "FunctionArn": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-janitor",
+        "State": "Active",
+        "Role": "arn:aws:iam::402010193138:role/TechlongSandboxJanitorExecutionRole",
+        "CodeSha256": "LTQwSFbnrnl9fjdg2N7GCxLCKiKHeDBBjNWsQ4EdWdA=",
+        "LastUpdateStatus": "Successful"
+      }
+    },
+    "platform": {
+      "checkedAt": "2026-10-16T14:21:39.683Z",
+      "snapshot": {
+        "db_now": "1792160500504",
+        "read_only": "on",
+        "identity": {
+          "role": "neondb_owner",
+          "roleOid": "16392",
+          "version": "180006",
+          "database": "neondb",
+          "timezone": "GMT",
+          "databaseOid": "16396"
+        },
+        "hashes": {
+          "a": "37b1cf66453cf0bf994c89c07f424f9b7d8dc33e25d10f878b5656312bf318f5",
+          "d": "8376a88ef993e70d92be8130802c8e235bba70b6beb31a9b3e5f28a50001692e",
+          "e": "ef888d68c1f697a5438a772508056c14b773c57393625f0262b86c746bae2007",
+          "j": "f07bb1bf19fb3c01f12a62fab75f9a61d5fbc1dc2ef2da955c15af466c176c3d",
+          "o": "0dd0eb4243c5205a681803aa8c8bf22ed1ce5ea3783d6b29ef44c96aa4fa9f5b",
+          "r": "835f80e2e58ef3fac4b14948184f57ac3369d169121a7b34f4bf0325eff28d22",
+          "w": "d22403271b1bf7b5aec752fd920f7483a53dd2c34a021d41c65165d62147e54d",
+          "tv": "9217898c7518442262651aea002a13545cb6f166417ffc87035fe6cb76923fc1",
+          "sub": "6feb4164afdc08e1cb8ff957cde4d0c6e2aa294432690278a95d87f281e023d9"
+        },
+        "stable_hashes": {
+          "a": "37b1cf66453cf0bf994c89c07f424f9b7d8dc33e25d10f878b5656312bf318f5",
+          "d": "af270c7a460b0b8e2e2e93cc828ea07dcf1ba60014c6fd24479a9d1d7c097ce6",
+          "e": "ef888d68c1f697a5438a772508056c14b773c57393625f0262b86c746bae2007",
+          "j": "f07bb1bf19fb3c01f12a62fab75f9a61d5fbc1dc2ef2da955c15af466c176c3d",
+          "o": "0dd0eb4243c5205a681803aa8c8bf22ed1ce5ea3783d6b29ef44c96aa4fa9f5b",
+          "r": "835f80e2e58ef3fac4b14948184f57ac3369d169121a7b34f4bf0325eff28d22",
+          "w": "d22403271b1bf7b5aec752fd920f7483a53dd2c34a021d41c65165d62147e54d",
+          "tv": "9217898c7518442262651aea002a13545cb6f166417ffc87035fe6cb76923fc1",
+          "sub": "6feb4164afdc08e1cb8ff957cde4d0c6e2aa294432690278a95d87f281e023d9"
+        },
+        "deployment_status": "ready",
+        "artifact_ref": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+        "current_step": "ready",
+        "instance_status": "active",
+        "job_status": "succeeded",
+        "attempts": 1,
+        "max_attempts": 1,
+        "lease_cleared": true,
+        "stack_id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/ab4aa8c0-c966-11f1-b068-0ecbbd896a2b",
+        "observation_sha256": "707c3feaf2a26ad1916b1c4c397ee390bb892d425bb21643fae67357ac1d9cce",
+        "outputs_text_sha256": "71ba94ebbb32a0940814c1109e6bc7886ec9e6ec7fdadba029b06601e5b9369a",
+        "outputs_json_sha256": "71ba94ebbb32a0940814c1109e6bc7886ec9e6ec7fdadba029b06601e5b9369a",
+        "outputs_json_octets": 6660,
+        "original_receipt_intact": true,
+        "restoration_slot_absent": false,
+        "restoration_receipt_matches": true,
+        "previous_outputs_sha256": "ec32e68f8950c97a05e300041ff17349905619411337b1c397dd33fb4c3e446e",
+        "deployment_updated_at": "1792157954505"
+      },
+      "priorRebindInvariantVerified": true,
+      "sourceAndCatalogMatch": true,
+      "fullRowHashesEqualPriorVerified": true
+    }
+  },
+  "accountPlan": {
+    "accountId": "402010193138",
+    "accountPlanType": "FREE",
+    "accountPlanStatus": "ACTIVE",
+    "accountPlanExpirationDate": "2027-01-20T19:58:36.110000+00:00",
+    "creditAmountOmitted": true
+  },
+  "billing": {
+    "actualInvoiceOrCostExplorerNotRead": true,
+    "remainingCreditAmountNotSaved": true,
+    "costAttributionComplete": false,
+    "remainingMonthlyCostUSD": null,
+    "fullStopBillingVerified": false,
+    "monthlyBudgetTargetUSD": 50,
+    "budgetIsHardCap": false,
+    "rateOrCreditAdjustedTotalNotEstimated": true
+  },
+  "implementation": {
+    "executedScriptRawSha256": "28184e112e680ca6d5b44d8b8cf3db5272122b5c9368dfcf8cf1fbaf6ace5f9e",
+    "executedSourceArchive": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1.executed-source.mjs",
+    "currentPins": [
+      {
+        "file": "ops/aws-sandbox/scripts/inventory-express-exit-v1.mjs",
+        "rawFileSha256": "393bbe2dabba436b294c4a70bbc2679ebac33fef96aed31d1d02630fe8f1aae0"
+      },
+      {
+        "file": "tests/express-exit-inventory-v1.test.mjs",
+        "rawFileSha256": "4f8f599eabcf47a7df4c99577cf29314c69d96ee91656ebd13af67f5c3b42210"
+      }
+    ],
+    "postRunChange": "Handle successful empty GetItem CLI output only; regression tested offline; no extra cloud read; original authority-1 remains UNKNOWN",
+    "testsPassed": 5,
+    "lintWarnings": 0,
+    "syntaxPassed": true
+  },
+  "historical": {
+    "path": "ops/aws-sandbox/reviews/aurora-dual-mode-k3v-hosting-rebind.verified.json",
+    "rawFileSha256": "fa4e96dc007904a9e65630a10f0101d16e5a5113580ffef92464059d36b6df38",
+    "priorRawFilesVerified": 29
+  },
+  "rawEvidence": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/account-plan.json",
+      "rawFileSha256": "f97d5019145dee2e2a01a5bea6c2c21850f66df79b7befd1bfce355a8f995af5"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/aurora.json",
+      "rawFileSha256": "a83dda2d6749669fa51ccf31a60333fafc108e756b67007a9eee57347029e58b"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/authority-1.json",
+      "rawFileSha256": "72ede6402981b35714b2c30cd23c6d63085d540c1f81e97c2bbb53a55d029225"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/authority-2.json",
+      "rawFileSha256": "adf3bc66e5f73ebe229521140013d205900266d62bebdf6c51176599757200fc"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/authority-table.json",
+      "rawFileSha256": "a84ab70aa39e575e39be34934149586db7e60fa9e743d6947c4e71e5ec4c0d34"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/binding.json",
+      "rawFileSha256": "5999213e9027bc126e7ef965f4bac5f7d3117d4497a38f5dc445b6b9697a7242"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/cluster-services.json",
+      "rawFileSha256": "427afaf16efe9acea769e5875eced4eda978e76524696b11aec7dc29ec9fe3a1"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/cluster-tasks.json",
+      "rawFileSha256": "79b65a597b18e4c17673dbf0f1e76b41ec89db9d9ad60cfac5b06aeb7481fd3f"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/dns.json",
+      "rawFileSha256": "de6edbc72e0509926dd7596aa1c906abf73dca10d6d3f0a3d781658adfed14fa"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/image.json",
+      "rawFileSha256": "d7710876660a166e3aa22a3ba32a25b1e2c4887b846e9b01e1e6b5caea0323c4"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/janitor-function.json",
+      "rawFileSha256": "69f209faf263030f1900c314c125f1a5d0d8ccdabab6fdd8ce661cc71e9b5bd0"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/janitor-schedule.json",
+      "rawFileSha256": "44635a64e382ef792cb7efd5e1d84808e3cf5b30d10fc2bc63b82931cb28e569"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/listener-rules-business.json",
+      "rawFileSha256": "d87de5da7bc50649cf18491c97ebac1bedbdd81185a4050b268d07fe279f63d4"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/listener-rules-control.json",
+      "rawFileSha256": "c2af595a264fafbd850886a12285210efb6d2f227d6d1c9db73d06b13136dc00"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/load-balancer-attributes.json",
+      "rawFileSha256": "872e77bfc13f8bbf86b706d591e5c50fc2d79e726d30e365421b98fb24838d37"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/load-balancer-target-groups.json",
+      "rawFileSha256": "44c2be91666ff377a18bcb4c697ebd531f59fdf9bd34dd4cb9cd2a564116b3e1"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/load-balancer.json",
+      "rawFileSha256": "b62861850c326fb0aed9ed706b6c5fdfeef0587d9a36b631fd9644c184bb3c7c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/log-group.json",
+      "rawFileSha256": "2e63fcdcc60d9c5b8a6652bb2fc4c29a08b7dab71777e0fa87f39c157cee7cea"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/nat-gateways.json",
+      "rawFileSha256": "f12501f2a8b601504a124d168c26780092191d84871d51b6a418a2d916a4416a"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/network-interfaces.json",
+      "rawFileSha256": "2fb754f5d7556b93f59f676ef149c1fafb2f30dc6d495f8dc8b2f63e9f8ccd60"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/parent-resources.json",
+      "rawFileSha256": "b978c5c9b5709b403b5c02316d8dcff7ddc63cb45de80c516ac25706b1d01238"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/parent-stack.json",
+      "rawFileSha256": "38116294954353c8098a50ca807e5248738743296ae63edc7d9bc958cad354db"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/platform.json",
+      "rawFileSha256": "a8feeb84d60a1dd169a5375c549b2e305b7324eee9363ca1abfcd48d13486e98"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/result.json",
+      "rawFileSha256": "3a19957fe2de799b365b65b21902336ff757c633c230e9927ed878995f01c236"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/rule-TenantBusinessControlDenyRule.json",
+      "rawFileSha256": "30a41c27c019fd89f52d18ef485cdef8eccb076bed5dbdd5711f5aa59cc70141"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/rule-TenantControlListenerRule.json",
+      "rawFileSha256": "c41c6811fd135c35b73d3c9d2a298d5d97d521b50a1a427342b3afc440e9fb3b"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/rule-TenantListenerRule.json",
+      "rawFileSha256": "2dfb9c049f0bec7c89f26adeb455c928aa8ea1311c187f90395e7cff2dee065c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/secret-1.json",
+      "rawFileSha256": "93ec0cf0e3eacb6776f86670dd5b464f15242bd08234fcf56dbbf77a1a2d03c7"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/secret-2.json",
+      "rawFileSha256": "5791c050b2991869be37423d42fbc5f93c084920dd0c113060ed91299f999bb7"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/source.json",
+      "rawFileSha256": "c4f4c20c5e668e67fc926f00836d135208cfc113bd5346ee8cfa835b520d6a96"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/target-group.json",
+      "rawFileSha256": "c8cc8d85ec3e48703be8a76d51bf600c7ce37e322d1de06392e450f6c1e8f7c9"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/target-health.json",
+      "rawFileSha256": "501cdc423bb8c976df50364d7aeb4a6564526bb8e2c3ea65fb96a383f7a00cda"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/task-definition.json",
+      "rawFileSha256": "9d6be3c850fffcf5e5d3b3212a413cd704a2358d678efabbed52af3c893f8257"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/task-details.json",
+      "rawFileSha256": "cb9a900f46af7515b6d50ed3402fcd5723b53fc371dd3fa01d4a911427bb8a0d"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/workload-resources.json",
+      "rawFileSha256": "0e2a59c33f339a586ab08a9082d384ac329cdbbe3d85a797e61feb47c013e022"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/workload-service.json",
+      "rawFileSha256": "1330b9b8774cb38049596394a00f60c0aa0f52f1d8ba3e0329156a469b8789eb"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/workload-stack.json",
+      "rawFileSha256": "0ccbc46634699437630a31f0822c98e95c1e58184a914e9f18945a51f1b91499"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1/workload-tasks.json",
+      "rawFileSha256": "baab41fbd68a3bddc53bf98f874c0062f035a0a913d93f66f2ec8229f90ce5c0"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k3b-inventory-20261016-r1.executed-source.mjs",
+      "rawFileSha256": "28184e112e680ca6d5b44d8b8cf3db5272122b5c9368dfcf8cf1fbaf6ace5f9e"
+    }
+  ],
+  "limitations": [
+    "Not a full account-wide or all historical sandbox resource inventory",
+    "Other Secrets, lifecycle images, shared control Lambda logs, certificate/truststore/S3/IAM retained but not freshly enumerated",
+    "One authority read UNKNOWN from local SyntaxError; raw stdout not retained, so no retroactive ABSENT inference",
+    "Pre-expiry active resources are not a failed cleanup; no deletion or billing-stop proof"
+  ],
+  "nextBoundary": "Inventory is complete for this scope. Do not create cleanup/Grant/generation subphases or repeat pre-expiry reads. Default retain initialized tenant data. Main next work: review and close the unattended worker deployment path, with any cloud/DB mutation separately approved. At or after original expiry, one fresh read-only exit confirmation may accompany the next user-triggered work; no monitor or deletion scheduled."
+}

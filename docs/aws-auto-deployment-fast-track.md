@@ -1,5 +1,7 @@
 # AWS 自动部署最快交付方案
 
+> **当前 K3b到期前盘点完成，回到自动部署主线**：2026-10-16 09:21:39 CDT，35次AWS只读+1 Neon只读确认workload仍运行/父Cell16资源/ALB active、VPC3公网IP无NAT、Aurora/两固定Secret/镜像及平台记录保留。账号FREE/ACTIVE（无升级/余额保存），本月实际费用未知，50USD非cap。新namespace一次本地JSON解析UNKNOWN保留、不重读；旧namespace匹配。原10:37:01.033 CDT到期不移动，未删除/调度新监控；39新原件+29旧原件复核、5tests/lint/语法通过。盘点不再拆支线，下一审核无人值守worker最小闭环；用户后续触发且已到期时附带准确退出只读，不阻塞主线或自动清理数据。[依赖、费用边界和继续范围](aws-auto-deployment-aurora-dual-mode-k3b-exit-inventory.md)。下方为历史。
+
 > **当前 K3v 独立回读通过**：2026-10-16 09:09:50.998 CDT，新的窄只读入口以8 SDK/1 CLI/1 Neon只读事务确认准确新栈UUID `ab4aa8c0-c966-11f1-b068-0ecbbd896a2b`、task definition:3/实际镜像/healthy target及平台receipt，九行完整摘要与K3r写后保持；0写/私密值/新增应用请求。原K3r失败及三槽保留、不重放，根因仍未知；5新+10相邻tests/lint/语法及6新+23旧原件复核通过。固定今天10:37:01.033 CDT到期不续期，下一仅K3b准确退出/依赖/费用盘点，默认保留初始化数据，不自动删除或再建；无人值守全链路/正向业务未验。50USD非cap。[独立结果与唯一继续边界](aws-auto-deployment-aurora-dual-mode-k3v-hosting-rebind-verified.md)。下方为历史。
 
 > **最新 K3a 因原承载到期停止**：Winnipeg 2026-10-16 07:55只读核对workload准确UUID和七资源CFN记录DELETE_COMPLETE、父Cell记录CREATE_COMPLETE。清单和原07:04:28.726期限均已过，0公网GET/私密/SQL/写，槽未消费，不刷新范围或自动创建。K2c ready保持历史，当前平台同步/实际全清理/停费未验；需用户选另审恢复承载继续验收，或K3b只读退出盘点。[事实及选择](aws-auto-deployment-aurora-dual-mode-k3a-expired.md)。下方为历史。

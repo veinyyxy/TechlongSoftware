@@ -1,5 +1,7 @@
 # K3 首轮验收收尾：先公网最小冒烟，再准确资源退出
 
+> **当前 K3b到期前inventory已完成**：2026-10-16 09:21:39 CDT准确workload/七资源仍在、1运行任务，父Cell16资源/ALB active/3公网IP及数据库/Secret/镜像保留；35 AWS读取+1 Neon只读，0写/应用/私密。FREE/ACTIVE不等于实际费用已归零，未查账单/信用金额；新namespace JSON解析未知保留，不新开权限/诊断轮次。原10:37:01.033 CDT到期不续期，物理退出/全停费尚未证实；无监控或删除。退出依赖清单已交付，不再拆成本支线；后续主线审核无人值守worker，已到期时附带准确只读退出事实，任何删除/终态写仍另审。[实际清单及39份证据](aws-auto-deployment-aurora-dual-mode-k3b-exit-inventory.md)。下方为历史。
+
 > **当前 K3v独立回读已补齐**：2026-10-16 09:09:50.998 CDT新的窄只读观察确认准确新UUID/七资源/task definition:3/镜像和healthy target，Neon平台receipt/九行完整摘要保持。0写/私密值/新增应用GET，不重放旧失败Inspect；原错误原因仍未知。K3r三个公开检查作为08:39历史保持，本轮没有重发。固定今天10:37:01.033 CDT到期不续期，下一K3b只读退出/依赖/费用盘点，默认保留初始化数据；不自动删除、协调平台终态或再建。无人值守全链路/正向业务/全停费未验。[真实独立结果及下一步](aws-auto-deployment-aurora-dual-mode-k3v-hosting-rebind-verified.md)。下方为历史。
 
 > **当前停止（2026-10-16 07:55 CDT）**：清单及原workload期限都已过。仅1 STS+3 CFN只读确认准确workload/七资源记录DELETE_COMPLETE、父Cell记录CREATE_COMPLETE；0公网GET/私密/SQL/写，K3a槽未消费，不刷新原范围、不续期/重建。需选择另审恢复承载继续公开验收，或K3b只读退出盘点；不重复初始化。[真实停止证据与两个方向](aws-auto-deployment-aurora-dual-mode-k3a-expired.md)。下方为保留的原准备历史，原命令不可执行。
