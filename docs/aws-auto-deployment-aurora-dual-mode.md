@@ -1,5 +1,7 @@
 # Aurora Express / Full 双模式兼容与切换方案
 
+> **当前 K2b 待审**：新的人工单次恢复入口不冒充有效旧job lease，不改旧worker校验器或Neon记录；先一次新只读pristine guard，再固定Secret/原私密控制材料、一次provision和独立initialized/effective configuration验收，ready仍另审。25tests/types/lint及真实35/11/1元数据只读通过，尚无运行时动作；fresh SHA `7596abc946c49640de42832aab432bcbe437f51bcd81136221a692aebe1d3017`，Winnipeg 2026-10-16 02:24:39.501入场截止/02:39:39.501执行截止，workload固定07:04:28.726到期不延长。[准确范围、完整风险和继续点](aws-auto-deployment-aurora-dual-mode-k2b-initialization-recovery-review.md)。下方为历史。
+
 > **最新 K2a 已完成**：准确批准e5610e47…的一次Aurora只读审计得到原始未初始化状态，73表计数/目录/ACL/默认entitlements/store保持，operation/owner/profile/audit无残留；Winnipeg 2026-10-15 23:52:07.651独立回执完整性和承载核验通过，不是第二份SQL快照。0写/私密值/应用调用，不POST/ready/续期；读槽与批准消费，不再运行。下一只准备K2b明确单次初始化及平台协调，固定07:04:28.726 CDT到期保持。[执行证据和唯一继续点](aws-auto-deployment-aurora-dual-mode-k2a-initialization-audit-executed.md)。下方为历史。
 
 > **当前 K2a 待审**：K1恢复已完成不重放。现场35 SDK/11 CLI/1 Neon只读通过，修复镜像、新栈及旧平台原状保持；10条冻结/固定SELECT的单次postgres Aurora只读审计入口已完成，16tests/types/lint/独立绑定核验通过。本轮0 Aurora/私密值/写/HTTP/槽，初始化状态仍未知。待审SHA `e5610e470f12ce98d274b7ad605d5d3492542acfd874a4f8ae4d1698e47b18b1`，入场早于Winnipeg 2026-10-16 01:46:21.931 CDT；不续期、不POST/ready，原07:04:28.726 CDT到期保持。[完整范围、风险与继续点](aws-auto-deployment-aurora-dual-mode-k2a-initialization-audit-review.md)。下方为历史。

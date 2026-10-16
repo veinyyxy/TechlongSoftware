@@ -1,0 +1,126 @@
+{
+  "schema": "techlong/manual-initialization-recovery-prepared/v1",
+  "state": "READONLY_REVIEW_PASSED_MANUAL_INITIALIZATION_NOT_AUTHORIZED",
+  "executionAuthorized": false,
+  "manifestSha256": "7596abc946c49640de42832aab432bcbe437f51bcd81136221a692aebe1d3017",
+  "codeBindingSha256": "852f04f0d4431dd0a6d81b041b61d192fc4ee1a9744b9aedde21491ad96c9f32",
+  "planSha256": "c7dfb132c0e0b468ebcaee9156d538c28d95899306b702c3a4b99f2baacf03e0",
+  "riskRawFileSha256": "c6729d705d3e5a140bc87a5a1f13dec2953744fa03684457f59e4a8234a7df03",
+  "preparedAt": "2026-10-16T05:24:39.501Z",
+  "admissionExpiresAt": "2026-10-16T07:24:39.501Z",
+  "executionExpiresAt": "2026-10-16T07:39:39.501Z",
+  "workloadExpiresAt": "2026-10-16T12:04:28.726Z",
+  "binding": {
+    "rawCodePins": 23,
+    "legacyCodeClosurePins": 70,
+    "historyPinEntries": 38,
+    "legacyPublicHistoryPins": 34,
+    "nodeVersion": "v22.19.0"
+  },
+  "metadata": {
+    "startedAt": "2026-10-16T05:24:31.642Z",
+    "checkedAt": "2026-10-16T05:24:39.454Z",
+    "sdkReads": 35,
+    "cliReads": 11,
+    "neonReadonlyTransactions": 1,
+    "live": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/f71252c0-c917-11f1-8148-02ff648cb917",
+      "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:2",
+      "taskArn": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/3c586a7dd0094cbc8a0988a79297aa56",
+      "digest": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e"
+    },
+    "platformUnchanged": true
+  },
+  "proposal": {
+    "contract": "EXPLICIT_MANUAL_RECOVERY_NOT_AN_EXPIRED_JOB_LEASE",
+    "platformDisposition": "PRESERVE_OLD_JOB_LEASE_PLAN_ARTIFACT_EPOCH_NO_READY",
+    "limits": {
+      "runAuroraConnections": 1,
+      "runReadonlySqlCalls": 14,
+      "maximumExtraRollbackCalls": 1,
+      "totalPrivateBundleLoadsRunAndInspect": 2,
+      "totalFixedSecretValueReads": 1,
+      "runPostCalls": 1,
+      "runBootstrapGets": 1,
+      "runInitializedGets": 1,
+      "runConfigurationGets": 1,
+      "inspectInitializedGets": 1,
+      "inspectConfigurationGets": 1,
+      "metadataGroupsRunAndInspect": 4,
+      "sourceCloudWrites": 0,
+      "sourcePlatformWrites": 0,
+      "automaticRetries": 0
+    },
+    "secret": {
+      "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+      "versionId": "0f45d29f-02d4-4117-99b1-c06645aa3c6e"
+    },
+    "firstOwnerUsername": "techlong_sandbox_admin",
+    "shopName": "Techlong Sandbox",
+    "storeId": "add89a8c-f43e-81b9-8287-0cb6c5c54f87",
+    "configurationHash": "06d3cb50dd46b5f32771c356b7e7cd7d524a0707799ae24b9ace0672ef7281c9",
+    "actualArtifactRef": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+    "sqlProgramSha256": "b42a31fe3e1f7cee2803918ac0f10fa917bc29efcd79a7a444413a54eb14a597"
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2b-review-20261016-r2/binding.json",
+      "rawFileSha256": "24deabf92c0ad4a224f1f7eadf3132958aa4df3c2acc3146bdc02ce54c4be33a"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2b-review-20261016-r2/manifest.json",
+      "rawFileSha256": "daf70ac9e4f731562e9d79bea0bc3f87ceefc5844743e9186827ba9b825d78bc"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2b-review-20261016-r2/metadata.json",
+      "rawFileSha256": "ea9b2106122da0cb36e834aafa54fddd0a79bbdb26883b6e7993cf552ff06f71"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-express-k2b-review-20261016-r2/result.json",
+      "rawFileSha256": "084d2aa7d81a576f450419674d14c330edf9da14884a455c3d1fd3b301174847"
+    }
+  ],
+  "directory": "F:/ChatGPT_workshop/techlong-express-k2b-review-20261016-r2",
+  "userTimeZone": "America/Winnipeg",
+  "admissionExpiresAtWinnipeg": "2026-10-16 02:24:39.501 CDT",
+  "executionExpiresAtWinnipeg": "2026-10-16 02:39:39.501 CDT",
+  "workloadExpiresAtWinnipeg": "2026-10-16 07:04:28.726 CDT",
+  "manualRecoveryExceptionRequiresExplicitApproval": true,
+  "oldWorkerLeaseNotUsed": true,
+  "oldValidatorsUnchanged": true,
+  "bothPermanentSlotsAbsent": true,
+  "allBindingsIndependentlyVerified": true,
+  "localCheckDirectory": "F:/ChatGPT_workshop/techlong-express-k2b-local-20261016-r3",
+  "verification": {
+    "newTestsPassed": 10,
+    "adjacentTestsPassed": 15,
+    "typecheck": "passed",
+    "targetedEslint": "passed",
+    "threeScriptSyntax": "passed"
+  },
+  "actual": {
+    "auroraConnections": 0,
+    "privateBundleLoads": 0,
+    "secretValueReads": 0,
+    "jwtIssued": 0,
+    "applicationHttpRequests": 0,
+    "cloudWrites": 0,
+    "platformOrBusinessWrites": 0,
+    "permanentSlotsConsumed": 0,
+    "readonlyReviewGroupsThisPreparation": 2,
+    "metadataSdkReads": 70,
+    "cliReads": 22,
+    "neonReadonlyTransactions": 2
+  },
+  "monthlyBudgetTargetUSD": 50,
+  "budgetIsHardCap": false,
+  "resourcesContinueBilling": true,
+  "readyVerified": false,
+  "riskDocument": "docs/aws-auto-deployment-aurora-dual-mode-k2b-initialization-recovery-risk.md",
+  "next": "Await exact SHA approval including manual-not-lease exception, fresh readonly Aurora guard, two private bundle loads, one fixed Secret read, one initialization POST and independent API verification; no runtime actions now",
+  "supersededReadOnlyReview": {
+    "directory": "F:/ChatGPT_workshop/techlong-express-k2b-review-20261016-r1",
+    "manifestSha256": "3bc8159fc7fbd4dbe149621e8e9e728c160d33a34da2f6fab254ce8ebcbf1631",
+    "reason": "Post-fsync fact/window guards added before execution authorization; original read-only review is preserved and not executable"
+  }
+}
