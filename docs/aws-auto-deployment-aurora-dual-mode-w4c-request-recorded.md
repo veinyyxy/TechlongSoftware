@@ -1,5 +1,7 @@
 # W4c 真实待审任务已登记：等待单次 AWS 执行批准
 
+执行已完成（Winnipeg 2026-10-16 23:41 CDT）：用户明确批准aad13549新SHA后，同一待审job已单次领取并succeeded；新栈:5/aa96及旧行保留由独立Inspect证明，两认证GET和原子完成通过，5槽已消费不可重放。本地展示为request/worker/apply OFF。唯一当前状态及下一主线见 [实际执行记录](aws-auto-deployment-aurora-dual-mode-w4c-executed.md)；下方“待批准/刷新/停止”均是历史，不再执行。
+
 最新只读刷新（Winnipeg 2026-10-16 23:36 CDT）：Source刷新后，已对**同一条**held job完成新Review和独立回读，均通过。新SHA **`aad135499b74f8b93fe3f0204dc70a81bfe5ec7aec4e38b0afe5c5148a0add34`**，清单 `F:/ChatGPT_workshop/techlong-platform-w4-review-20261016-r3/manifest.json`，准入至**今天23:50:34.482 CDT / 2026-10-17T04:50:34.482Z**，若批准创建则承载固定至**10月17日01:35:34 CDT / 06:35:34Z**。旧b286清单已过期，不再执行；旧失败run/Inspect和未消费槽完整保留。准确job/原快照/原管理员/材料/99项代码/端点/资源与操作范围未变，只重新编译新时窗并采集新鲜读证据；不续期任何既有云资源。本轮4个Neon只读事务、38次SDK读/13条CLI只读命令，SQL/AWS写、领取、私密读取及槽消费0。新SHA仍须明确批准，不能将Source刷新当成执行批准；[完整风险](aws-auto-deployment-aurora-dual-mode-w4b-execution-review.md)与下文受限操作范围不变。见[刷新记录及原件摘要](../ops/aws-sandbox/reviews/aurora-dual-mode-w4c-platform-request.refreshed.json)。
 
 后续停止（Winnipeg 2026-10-16 23:32 CDT）：用户已逐字明确批准下述 `b2860860…` 清单及完整风险；准入仍有效时唯一RunOnce进入只读前检，但Source凭据获取失败，返回 `SOURCE_REFRESH_REQUIRED` / `rootEntered=false`。**未领取job、未CreateStack、未读取私密包、未创建/消费任何执行槽**；run目录仅有失败result.json，不重跑此命令。独立Inspect于2026-10-17T04:32:49.404Z确认准确job仍pending、完成/provider均NOT_PROVED；本阶段4个Neon READ ONLY事务、一次SDK身份读取尝试，SQL/AWS写和私密读取均0。现等待 `aws login --profile techlong-sandbox-user` 刷新后只读核对；若过期则重审原held job并对新SHA另行确认，不重登请求或沿用过期批准。下方的“待批准/下一步”保留原审阅时点，当前继续位置以本段为准。

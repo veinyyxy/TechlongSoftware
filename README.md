@@ -1,6 +1,6 @@
 # 餐饮 SaaS 平台
 
-当前唯一主线（2026-10-16）：**先完成本地平台触发的 AWS 自动部署闭环，最后整套系统在 AWS 上线；不发布 Sites，F3c9 等支线冻结。** W3真实部署已通过，W4c准确待审请求 `job_fe5ced28b698d0bf128e7b42` 已登记且入口关闭。旧b286执行在Source凭据过期的前检停止，无写/领取/私密读取/槽消费；失败记录保留。Source已刷新，同job新Review/独立回读通过，新SHA `aad13549…` 待明确批准，不重跑旧命令、重登请求或打开全局队列。见 [最新SHA、窗口与继续位置](docs/aws-auto-deployment-aurora-dual-mode-w4c-request-recorded.md) / [主线与完成标准](docs/aws-auto-deployment-mainline.md)。下方为历史记录，不作为当前下一步指令。
+当前唯一主线（2026-10-16）：**先完成AWS自动部署，最后整套系统在AWS上线；不发布Sites，F3c9等支线冻结。** W4c本地管理员真实请求 `job_fe5ced28b698d0bf128e7b42` 已单次部署成功并独立Inspect通过：准确同job succeeded/lease清除、七资源新栈:5/aa96、两认证GET、旧ready/store/历史保留。五槽永久消费不可重放，本地结果展示三gate OFF，新承载10月17日01:35:34 CDT固定到期、不保证准时停费。下一仅准备执行器云化/材料迁移，不重复验收或先迁整个平台。见 [实际结果、原件及继续位置](docs/aws-auto-deployment-aurora-dual-mode-w4c-executed.md) / [主线与完成标准](docs/aws-auto-deployment-mainline.md)。下方为历史，不作为当前指令。
 
 2026-10-08 F3b3 PG18/source-v3切片完成：固定PG18.6镜像的GitHub临时服务两次success（11/14组真实证明），数据库drop/容器stop与原ZIP/digest独立核对；无需本地Docker，未使用AWS/Neon凭据。新增独立只读schema3 source，精确证书/原件/永久fence与inline catalog指纹校验、不执行可替换helper、完整保留raw witness与future部署可见性。152项相邻回归/type/lint/build通过。未Neon安装/登记或把v3接入删除入口，旧source/root和规划门禁保持。下一步v3 freshness/admission/authority/deletion适配。见 [真实PG18证据与继续位置](./docs/aws-auto-deployment-fast-track-f3b3-pg18-ownership-v3.md)。以下保留历史。
 
