@@ -6,9 +6,11 @@ on:
     paths:
       - '.github/workflows/cloud-worker-candidate.yml'
       - 'ops/cloud-worker/**'
-      - 'tests/cloud-worker-v5.test.mjs'
+      - 'tests/cloud-worker*.test.*'
+      - 'tests/fixtures/cloud-worker*'
       - 'tests/fixtures/cloud-control*'
       - 'scripts/ci/check-cloud-worker-closure-v5.mjs'
+      - 'scripts/ci/verify-cloud-neon-v5.mjs'
       - 'lib/deployments/execution/**'
       - 'lib/deployments/initialized-platform-request-v1.ts'
       - 'package*.json'
@@ -21,6 +23,20 @@ jobs:
   candidate:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: cloud-worker-ci-only-bootstrap
+          POSTGRES_DB: postgres
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
@@ -39,7 +55,7 @@ jobs:
       - name: Type, lint and exact local module syntax
         run: |
           npx tsc --noEmit --incremental false
-          npx eslint ops/cloud-worker/*.mjs tests/cloud-worker-v5.test.mjs tests/fixtures/cloud-control-v5.mjs scripts/ci/check-cloud-worker-closure-v5.mjs
+          npx eslint ops/cloud-worker/*.mjs tests/cloud-worker*.test.mjs tests/fixtures/cloud-control-v5.mjs tests/fixtures/cloud-worker-root-v5.mjs scripts/ci/check-cloud-worker-closure-v5.mjs scripts/ci/verify-cloud-neon-v5.mjs
           node --check ops/cloud-worker/aws-initialized-workload-v5.mjs
       - name: Real crypto and cloud journal contracts - no tenant request
         run: >-
@@ -57,6 +73,10 @@ jobs:
           node --experimental-strip-types ops/cloud-worker/check-runtime-v5.mjs --mode CheckBundle > "$RUNNER_TEMP/cloud-worker-candidate/bundle.json"
           node scripts/ci/check-cloud-worker-closure-v5.mjs > "$RUNNER_TEMP/cloud-worker-candidate/closure.json"
           cat "$RUNNER_TEMP/cloud-worker-candidate/bundle.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Real narrow-role PostgreSQL proof - no production connection
+        run: node --experimental-strip-types scripts/ci/verify-cloud-neon-v5.mjs > "$RUNNER_TEMP/cloud-worker-candidate/neon-pg18.json"
+        env:
+          CLOUD_NEON_CI_PORT: ${{ job.services.postgres.ports[5432] }}
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         if: always()
         with:

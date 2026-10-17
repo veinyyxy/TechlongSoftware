@@ -1,0 +1,141 @@
+{
+  "claim": [
+    {
+      "key": "lock_unchanged_initialized_coordinate",
+      "text": "SELECT 1 / CASE WHEN count(*)=1 THEN 1 ELSE 0 END AS accepted FROM (\n    SELECT d.id FROM public.deployment_environments e, public.workspaces w, public.subscriptions sub, public.app_instances a, public.app_instance_template_versions t, public.app_instance_deployments d, public.deployment_jobs oldj, public.deployment_tenant_resources r, public.deployment_tenant_external_operations o\n    WHERE e.id=($1::jsonb->>'id') AND to_jsonb(e)=$1::jsonb AND w.id=($2::jsonb->>'id') AND to_jsonb(w)=$2::jsonb AND sub.id=($3::jsonb->>'id') AND to_jsonb(sub)=$3::jsonb AND a.id=($4::jsonb->>'id') AND to_jsonb(a)=$4::jsonb AND t.id=($5::jsonb->>'id') AND to_jsonb(t)=$5::jsonb AND d.id=($6::jsonb->>'id') AND to_jsonb(d)=$6::jsonb AND oldj.id=($7::jsonb->>'id') AND to_jsonb(oldj)=$7::jsonb AND r.app_instance_id=($8::jsonb->>'app_instance_id') AND to_jsonb(r)=$8::jsonb AND o.app_instance_id=($9::jsonb->>'app_instance_id') AND to_jsonb(o)=$9::jsonb AND o.generation=($9::jsonb->>'generation')::bigint AND o.epoch=($9::jsonb->>'epoch')::bigint\n      AND sub.current_period_end>(extract(epoch FROM clock_timestamp())*1000)::bigint AND (extract(epoch FROM clock_timestamp())*1000)::bigint<$10\n    FOR UPDATE OF e,w,sub,a,t,d,oldj,r,o) locked",
+      "types": [
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "bigint"
+      ]
+    },
+    {
+      "key": "lock_exact_held_request_and_active_admin",
+      "text": "SELECT 1 / CASE WHEN count(*)=1 THEN 1 ELSE 0 END AS accepted FROM (\n      SELECT j.id FROM public.deployment_jobs j JOIN public.users u ON u.id=$3\n      WHERE j.id=$1 AND to_jsonb(j)=$2::jsonb AND u.status='active' AND u.is_platform_admin=1 FOR UPDATE OF j,u) locked",
+      "types": [
+        "text",
+        "text",
+        "text"
+      ]
+    },
+    {
+      "key": "require_no_active_sibling_and_fresh_review",
+      "text": "SELECT 1 / CASE WHEN (extract(epoch FROM clock_timestamp())*1000)::bigint>=$3 AND (extract(epoch FROM clock_timestamp())*1000)::bigint<$4 AND $5-(extract(epoch FROM clock_timestamp())*1000)::bigint>=300000\n      AND NOT EXISTS(SELECT 1 FROM public.deployment_jobs WHERE deployment_id=$1 AND id<>$2 AND status IN ('pending','running','retry_wait'))\n      THEN 1 ELSE 0 END AS accepted",
+      "types": [
+        "text",
+        "text",
+        "bigint",
+        "bigint",
+        "bigint"
+      ]
+    },
+    {
+      "key": "claim_same_held_job_once",
+      "text": "WITH db_clock AS MATERIALIZED (SELECT (extract(epoch FROM clock_timestamp())*1000)::bigint AS now_ms), changed AS (\n      UPDATE public.deployment_jobs SET status='running',payload=$3,attempts=1,available_at=db_clock.now_ms,\n        lease_owner=$4,lease_token=$5,lease_expires_at=LEAST(db_clock.now_ms+$6,$7),updated_at=db_clock.now_ms\n      FROM db_clock WHERE id=$1 AND deployment_id=$2 AND status='pending' AND attempts=0 AND max_attempts=1 AND available_at=$8\n        AND db_clock.now_ms>=$9 AND db_clock.now_ms<$10 AND $7-db_clock.now_ms>=300000\n      RETURNING id,lease_expires_at)\n      SELECT 1 / CASE WHEN count(*)=1 THEN 1 ELSE 0 END AS accepted,max(lease_expires_at) AS lease_expires_at FROM changed",
+      "types": [
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "bigint",
+        "bigint",
+        "bigint",
+        "bigint",
+        "bigint"
+      ]
+    }
+  ],
+  "lease": [
+    {
+      "key": "lock_unchanged_initialized_coordinate",
+      "text": "SELECT 1 / CASE WHEN count(*)=1 THEN 1 ELSE 0 END AS accepted FROM (\n    SELECT d.id FROM public.deployment_environments e, public.workspaces w, public.subscriptions sub, public.app_instances a, public.app_instance_template_versions t, public.app_instance_deployments d, public.deployment_jobs oldj, public.deployment_tenant_resources r, public.deployment_tenant_external_operations o\n    WHERE e.id=($1::jsonb->>'id') AND to_jsonb(e)=$1::jsonb AND w.id=($2::jsonb->>'id') AND to_jsonb(w)=$2::jsonb AND sub.id=($3::jsonb->>'id') AND to_jsonb(sub)=$3::jsonb AND a.id=($4::jsonb->>'id') AND to_jsonb(a)=$4::jsonb AND t.id=($5::jsonb->>'id') AND to_jsonb(t)=$5::jsonb AND d.id=($6::jsonb->>'id') AND to_jsonb(d)=$6::jsonb AND oldj.id=($7::jsonb->>'id') AND to_jsonb(oldj)=$7::jsonb AND r.app_instance_id=($8::jsonb->>'app_instance_id') AND to_jsonb(r)=$8::jsonb AND o.app_instance_id=($9::jsonb->>'app_instance_id') AND to_jsonb(o)=$9::jsonb AND o.generation=($9::jsonb->>'generation')::bigint AND o.epoch=($9::jsonb->>'epoch')::bigint\n      AND sub.current_period_end>(extract(epoch FROM clock_timestamp())*1000)::bigint AND (extract(epoch FROM clock_timestamp())*1000)::bigint<$10\n    ) locked",
+      "types": [
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "bigint"
+      ]
+    },
+    {
+      "key": "require_live_new_lease",
+      "text": "SELECT 1 / CASE WHEN count(*)=1 THEN 1 ELSE 0 END AS accepted FROM (\n    SELECT id FROM public.deployment_jobs WHERE id=$1 AND deployment_id=$2 AND job_type='reconcile'\n      AND status='running' AND lease_owner=$3 AND lease_token=$4 AND attempts=1 AND max_attempts=1\n      AND payload::jsonb=$5::jsonb AND dedupe_key=$6 AND lease_expires_at>(extract(epoch FROM clock_timestamp())*1000)::bigint\n      AND lease_expires_at<=$7 AND (extract(epoch FROM clock_timestamp())*1000)::bigint<$7 ) locked",
+      "types": [
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "bigint"
+      ]
+    }
+  ],
+  "complete": [
+    {
+      "key": "lock_unchanged_initialized_coordinate",
+      "text": "SELECT 1 / CASE WHEN count(*)=1 THEN 1 ELSE 0 END AS accepted FROM (\n    SELECT d.id FROM public.deployment_environments e, public.workspaces w, public.subscriptions sub, public.app_instances a, public.app_instance_template_versions t, public.app_instance_deployments d, public.deployment_jobs oldj, public.deployment_tenant_resources r, public.deployment_tenant_external_operations o\n    WHERE e.id=($1::jsonb->>'id') AND to_jsonb(e)=$1::jsonb AND w.id=($2::jsonb->>'id') AND to_jsonb(w)=$2::jsonb AND sub.id=($3::jsonb->>'id') AND to_jsonb(sub)=$3::jsonb AND a.id=($4::jsonb->>'id') AND to_jsonb(a)=$4::jsonb AND t.id=($5::jsonb->>'id') AND to_jsonb(t)=$5::jsonb AND d.id=($6::jsonb->>'id') AND to_jsonb(d)=$6::jsonb AND oldj.id=($7::jsonb->>'id') AND to_jsonb(oldj)=$7::jsonb AND r.app_instance_id=($8::jsonb->>'app_instance_id') AND to_jsonb(r)=$8::jsonb AND o.app_instance_id=($9::jsonb->>'app_instance_id') AND to_jsonb(o)=$9::jsonb AND o.generation=($9::jsonb->>'generation')::bigint AND o.epoch=($9::jsonb->>'epoch')::bigint\n      AND sub.current_period_end>(extract(epoch FROM clock_timestamp())*1000)::bigint AND (extract(epoch FROM clock_timestamp())*1000)::bigint<$10\n    FOR UPDATE OF e,w,sub,a,t,d,oldj,r,o) locked",
+      "types": [
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "bigint"
+      ]
+    },
+    {
+      "key": "require_live_new_lease",
+      "text": "SELECT 1 / CASE WHEN count(*)=1 THEN 1 ELSE 0 END AS accepted FROM (\n    SELECT id FROM public.deployment_jobs WHERE id=$1 AND deployment_id=$2 AND job_type='reconcile'\n      AND status='running' AND lease_owner=$3 AND lease_token=$4 AND attempts=1 AND max_attempts=1\n      AND payload::jsonb=$5::jsonb AND dedupe_key=$6 AND lease_expires_at>(extract(epoch FROM clock_timestamp())*1000)::bigint\n      AND lease_expires_at<=$7 AND (extract(epoch FROM clock_timestamp())*1000)::bigint<$7 FOR UPDATE) locked",
+      "types": [
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "text",
+        "bigint"
+      ]
+    },
+    {
+      "key": "append_initialized_worker_receipt",
+      "text": "WITH changed AS (\n      UPDATE public.app_instance_deployments SET outputs=$2,updated_at=(extract(epoch FROM clock_timestamp())*1000)::bigint WHERE id=$1\n        AND (extract(epoch FROM clock_timestamp())*1000)::bigint>=$5 AND (extract(epoch FROM clock_timestamp())*1000)::bigint-$3<=30000 AND (extract(epoch FROM clock_timestamp())*1000)::bigint<$4 RETURNING id)\n      SELECT 1 / CASE WHEN count(*)=1 THEN 1 ELSE 0 END AS accepted FROM changed",
+      "types": [
+        "text",
+        "text",
+        "bigint",
+        "bigint",
+        "bigint"
+      ]
+    },
+    {
+      "key": "complete_only_new_job",
+      "text": "WITH changed AS (\n      UPDATE public.deployment_jobs SET status='succeeded',lease_owner=NULL,lease_token=NULL,lease_expires_at=NULL,\n        completed_at=(extract(epoch FROM clock_timestamp())*1000)::bigint,updated_at=(extract(epoch FROM clock_timestamp())*1000)::bigint WHERE id=$1 AND deployment_id=$2 AND status='running'\n        AND lease_owner=$3 AND lease_token=$4 AND attempts=1 AND max_attempts=1 AND lease_expires_at>(extract(epoch FROM clock_timestamp())*1000)::bigint\n        AND (extract(epoch FROM clock_timestamp())*1000)::bigint<$5 AND (extract(epoch FROM clock_timestamp())*1000)::bigint<$6 RETURNING id)\n      SELECT 1 / CASE WHEN count(*)=1 THEN 1 ELSE 0 END AS accepted FROM changed",
+      "types": [
+        "text",
+        "text",
+        "text",
+        "text",
+        "bigint",
+        "bigint"
+      ]
+    }
+  ]
+}
