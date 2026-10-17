@@ -1,5 +1,9 @@
 # W4c 真实待审任务已登记：等待单次 AWS 执行批准
 
+后续停止（Winnipeg 2026-10-16 23:32 CDT）：用户已逐字明确批准下述 `b2860860…` 清单及完整风险；准入仍有效时唯一RunOnce进入只读前检，但Source凭据获取失败，返回 `SOURCE_REFRESH_REQUIRED` / `rootEntered=false`。**未领取job、未CreateStack、未读取私密包、未创建/消费任何执行槽**；run目录仅有失败result.json，不重跑此命令。独立Inspect于2026-10-17T04:32:49.404Z确认准确job仍pending、完成/provider均NOT_PROVED；本阶段4个Neon READ ONLY事务、一次SDK身份读取尝试，SQL/AWS写和私密读取均0。现等待 `aws login --profile techlong-sandbox-user` 刷新后只读核对；若过期则重审原held job并对新SHA另行确认，不重登请求或沿用过期批准。下方的“待批准/下一步”保留原审阅时点，当前继续位置以本段为准。
+
+失败/独立Inspect原件摘要和准确继续边界保存在[停止记录](../ops/aws-sandbox/reviews/aurora-dual-mode-w4c-platform-request.stopped.json)，保留原run目录，不覆盖或清空。
+
 Winnipeg 2026-10-16 23:20 CDT。管理员已在本地页面自行登录并仅提交一次 POST，服务返回201；截图与独立 Neon READ ONLY 回读均证明准确 job 为 `job_fe5ced28b698d0bf128e7b42`。**本地入口已停止、3100不再监听；没有自动运行 worker 或创建云资源。** 不要再次点击、重设 nonce 或创建第二条任务。
 
 ## 已登记的事实

@@ -1,0 +1,63 @@
+{
+  "schema": "techlong/platform-worker-w4c-stopped/v1",
+  "state": "SOURCE_REFRESH_REQUIRED_BEFORE_EXECUTION_ENTRY_JOB_STILL_HELD",
+  "approvedManifestSha256": "b286086082c7754ef5a0c4e331a92409e3a22824f0d912ffd332e42ce714cc20",
+  "explicitUserShaScopeAndFullRiskConfirmationReceived": true,
+  "jobId": "job_fe5ced28b698d0bf128e7b42",
+  "requestId": "4f5eb21905f0d410241d7314df370afcf332bda01a724b4b4148bcbf6cddbdcc",
+  "run": {
+    "directory": "F:/ChatGPT_workshop/techlong-platform-w4-run-20261016-r1",
+    "outcome": "STOPPED_NO_AUTOMATIC_RETRY",
+    "stage": "run_readonly_preflight",
+    "code": "SOURCE_REFRESH_REQUIRED",
+    "rootEntered": false,
+    "sourceIdentitySdkReadAttempts": 1,
+    "cliReads": 0,
+    "createCalls": 0,
+    "readOnlyTransactions": 2,
+    "onlyResultFilePresent": true,
+    "requestSlotDirectoryExists": false
+  },
+  "independentInspect": {
+    "directory": "F:/ChatGPT_workshop/techlong-platform-w4-inspect-20261016-r1",
+    "checkedAt": "2026-10-17T04:32:49.404Z",
+    "jobStatus": "pending",
+    "completion": "NOT_PROVED",
+    "provider": "NOT_PROVED",
+    "readOnlyTransactions": 2,
+    "sdkReads": 0,
+    "cliReads": 0,
+    "createCalls": 0
+  },
+  "rawEvidence": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-run-20261016-r1/result.json",
+      "rawFileSha256": "0b943c078dc9926d689b43760929354f35691f03cbbac02ba9021aa4f6ba3606"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-inspect-20261016-r1/result.json",
+      "rawFileSha256": "04c762d9a6c1164539e8941e0220d183b92d79473ddd6ec29e948a92c2db5c7b"
+    }
+  ],
+  "effects": {
+    "sqlWrites": 0,
+    "awsWrites": 0,
+    "jobClaims": 0,
+    "originalPrivatePackageReads": 0,
+    "secretValueApiReads": 0,
+    "authenticatedTenantGets": 0,
+    "executionSlotsConsumed": 0,
+    "newJobs": 0,
+    "newIam": 0
+  },
+  "next": {
+    "sourceProfile": "techlong-sandbox-user",
+    "userLoginRefreshRequested": true,
+    "refreshOnlyAuthorizesReadOnlyChecks": true,
+    "doNotRerunThisFailedCommand": true,
+    "preserveRunAndInspectDirectories": true,
+    "preserveSameHeldJob": true,
+    "ifExpiredReviewSameJobAndRequestNewShaApproval": true,
+    "automaticWriteRetryAllowed": false
+  }
+}
