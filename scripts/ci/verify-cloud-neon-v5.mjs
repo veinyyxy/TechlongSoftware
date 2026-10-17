@@ -58,18 +58,24 @@ try {
   const admission = await admitPlatformJobV4({ root: f.context.root, observed, predecessor: f.context.predecessor, now: Date.now() });
   const plan = admission.jobPlan, queuedJob = observed.job;
   const cp = await claim({ plan, queuedJob, leaseToken: f.lease.leaseToken, approvedPlanSha256: plan.planSha256 });
-  const invoke = async (op, args, readOnly = false) => {
-    await worker.query('BEGIN ISOLATION LEVEL SERIALIZABLE' + (readOnly ? ' READ ONLY' : ''));
-    try { const result = (await worker.query(`SELECT ${NEON_V5.schema}.${op}($1::jsonb) AS r`, [JSON.stringify(args)])).rows[0].r;
-      await worker.query('COMMIT'); return result; }
-    catch (e) { await worker.query('ROLLBACK'); throw e; }
+  const invoke = async (op, args, readOnly = false, connection = worker) => {
+    await connection.query('BEGIN ISOLATION LEVEL SERIALIZABLE' + (readOnly ? ' READ ONLY' : ''));
+    try { const result = (await connection.query(`SELECT ${NEON_V5.schema}.${op}($1::jsonb) AS r`, [JSON.stringify(args)])).rows[0].r;
+      await connection.query('COMMIT'); return result; }
+    catch (e) { await connection.query('ROLLBACK'); throw e; }
   };
   const claimArgs = packNeonProgramV5(contract, 'claim', cp), foreign = structuredClone(claimArgs);
   const foreignDep = JSON.parse(foreign[0][5]); foreignDep.id = 'dep_foreign'; foreign[0][5] = canonicalJson(foreignDep);
   await assert.rejects(invoke('claim', foreign));
   const injection = structuredClone(claimArgs); injection[3][1] = "dep_foreign'; UPDATE public.users SET status='active';--";
   await assert.rejects(invoke('claim', injection)); check('server rejects cross-scope and SQL-shaped argument bypass');
-  const claimed = await invoke('claim', claimArgs); assert.equal(claimed.at(-1).accepted, 1);
+  const parallel = new pg.Client({ ...base, database: dbName, user: NEON_V5.role, password: 'cloud-worker-ci-fixture' });
+  await parallel.connect(); let raced;
+  try { raced = await Promise.allSettled([invoke('claim', claimArgs), invoke('claim', claimArgs, false, parallel)]); }
+  finally { await parallel.end(); }
+  assert.equal(raced.filter(r => r.status === 'fulfilled').length, 1);
+  assert.equal(raced.find(r => r.status === 'fulfilled').value.at(-1).accepted, 1);
+  check('two concurrent dedicated-role connections produce exactly one claim winner');
   await assert.rejects(invoke('claim', claimArgs)); check('same held job claimed once; replay rejected');
   const lp = await lease(plan, queuedJob, cp.lease);
   await invoke('lease', packNeonProgramV5(contract, 'lease', lp), true); check('lease checks work in read-only serializable transaction');

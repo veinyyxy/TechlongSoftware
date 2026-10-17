@@ -60,6 +60,7 @@ jobs:
       - name: Real crypto and cloud journal contracts - no tenant request
         run: >-
           node --experimental-strip-types --test tests/cloud-worker-v5.test.mjs
+          tests/cloud-worker-root-v5.test.mjs
           tests/cloud-worker-journal-v1.test.ts
       - name: W4 pure contracts - historical Windows local CLI verified separately
         run: >-
@@ -72,6 +73,7 @@ jobs:
           node --experimental-strip-types ops/cloud-worker/check-runtime-v5.mjs --mode CheckRuntime > "$RUNNER_TEMP/cloud-worker-candidate/runtime.json"
           node --experimental-strip-types ops/cloud-worker/check-runtime-v5.mjs --mode CheckBundle > "$RUNNER_TEMP/cloud-worker-candidate/bundle.json"
           node scripts/ci/check-cloud-worker-closure-v5.mjs > "$RUNNER_TEMP/cloud-worker-candidate/closure.json"
+          node --experimental-strip-types ops/cloud-worker/run-worker-v5.mjs --mode CheckCandidate > "$RUNNER_TEMP/cloud-worker-candidate/root.json"
           cat "$RUNNER_TEMP/cloud-worker-candidate/bundle.json" >> "$GITHUB_STEP_SUMMARY"
       - name: Real narrow-role PostgreSQL proof - no production connection
         run: node --experimental-strip-types scripts/ci/verify-cloud-neon-v5.mjs > "$RUNNER_TEMP/cloud-worker-candidate/neon-pg18.json"
