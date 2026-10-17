@@ -1,0 +1,104 @@
+{
+  "schema": "techlong/cloud-worker-w5a-prepared/v1",
+  "state": "JOURNAL_CANDIDATE_SERVICE_PROVED_NOT_INSTALLED",
+  "implementationCommit": "5eebbe60b71ac88561cfca39aedf6f700c390f76",
+  "mainline": "W5 cloud one-shot worker, not F3c9 or whole-platform hosting",
+  "executionTarget": "GitHub Actions one-shot Node worker with separately reviewed short-lived AWS OIDC role",
+  "journalCandidate": {
+    "tableArn": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-deployment-worker-journal-v1",
+    "tableInstalled": false,
+    "actualTableIdKnown": false,
+    "partitionKey": "JOB#exactJobId",
+    "sortKey": "STAGE#entry",
+    "entries": ["run", "claim_job", "create_workload", "private_control_load", "atomic_complete"],
+    "ttlAllowed": false,
+    "resetOrResumeAllowed": false,
+    "sdkMaxAttempts": 1,
+    "cloudCompositionRootWired": false,
+    "journalConsumptionDoesNotProveDeploymentSuccess": true
+  },
+  "codePins": [
+    { "file": "lib/deployments/execution/cloud-worker-journal-v1.ts", "rawFileSha256": "ba26aa4aeaf509c6eec309618fe163acc0bec4bbac6fd0d84c156306a1e100c6" },
+    { "file": "tests/cloud-worker-journal-v1.test.ts", "rawFileSha256": "bfedf27bf137e57d0e71a43ef56e60157bd695331875ed5d25b3d7f63f8e195d" },
+    { "file": "tests/fixtures/cloud-worker-journal-v1.ts", "rawFileSha256": "efe505f22113830680c9eebd683b7541c2d7a92cb1c6add95bccf5ce8ee2a184" },
+    { "file": ".github/workflows/cloud-worker-journal.yml", "rawFileSha256": "702f068ab63240e073ec49cd989ca25329a19aa7e76b6fa59e6ca8337d682255" },
+    { "file": "scripts/ci/prove-cloud-worker-journal-v1.mjs", "rawFileSha256": "08a21faa2a4eb6d4b855eb187c52deefd89f8e166c5da5849c908fa5d9774da9" }
+  ],
+  "localChecks": {
+    "journalTests": 8,
+    "adjacentW4Tests": 9,
+    "testsPassed": 17,
+    "fullTypecheck": "PASSED",
+    "targetedLint": "PASSED",
+    "workflowYaml": "PARSED_CONTENTS_READ_ONLY",
+    "legacyCheckSources": {
+      "directory": "F:/ChatGPT_workshop/techlong-platform-w4-w5a-sources-20261017",
+      "resultSha256": "97f2f40eaf4481c4a8a34aaec476c2a3af0c343dfb8a86ffa0b16b0bd87eaa9a",
+      "outcome": "PUBLIC_SOURCE_AND_EXACT_W3_PREDECESSOR_BINDING_PASSED",
+      "codePins": 99,
+      "cloudCalls": 0,
+      "databaseQueries": 0,
+      "privateReads": 0,
+      "slotsConsumed": 0,
+      "onlyHistoricalRootIntegrityNotNextDeploymentAdmission": true
+    }
+  },
+  "cloudServiceProofs": [
+    {
+      "runId": "39070217239",
+      "commit": "38c2c6985c8c25e98ee51ebe32a57975e73c3e69",
+      "runAttempt": 1,
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39070217239",
+      "conclusion": "success",
+      "artifactId": "12114293004",
+      "originalZipSha256": "24dee32feb6ad848c6365b874274b0ed88d9ad9998ed25a27e17d8c44a0b0ba9",
+      "proofSha256": "cd5995127b6bf57628ed637fe88279d6dba27f33db42b37c209d49c66985e2db",
+      "directory": "F:/ChatGPT_workshop/techlong-w5a-ci-39070217239",
+      "originalZipAndAllFourMembersVerified": true,
+      "ownedContainerRemoved": true,
+      "groupsPassed": 7
+    },
+    {
+      "runId": "39070352245",
+      "commit": "5eebbe60b71ac88561cfca39aedf6f700c390f76",
+      "runAttempt": 1,
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39070352245",
+      "conclusion": "success",
+      "artifactId": "12114544262",
+      "originalZipSha256": "552898b9d42ee71c57c9d6fd322be0128912475e757a07758cea961e38907ba7",
+      "proofSha256": "62ba45ab410f7bc131eefd183d7fecc48002bf45f81e8c11116bcef64890ba0c",
+      "directory": "F:/ChatGPT_workshop/techlong-w5a-ci-39070352245",
+      "originalZipAndAllFourMembersVerified": true,
+      "ownedContainerRemoved": true,
+      "groupsPassed": 7
+    }
+  ],
+  "commonArtifactMembers": [
+    { "file": "image.json", "sha256": "77b1abffd382044e3cf6edcaea73eae24a0d6f5ae265643725e99b02cc6ec644" },
+    { "file": "service.log", "sha256": "dd48412dd2842b5735807cb1a0299cdcacf75c319e55028121cc2b4facd65869" },
+    { "file": "cleanup.json", "sha256": "acec8de7d04288beba52ab328d4b5cdcd0bcdcb8ff1a9bfb5e9510a04f28ed28" }
+  ],
+  "service": {
+    "image": "amazon/dynamodb-local:3.3.2@sha256:bc216b4351fab2299ed73511118405721ecc6e26d9a231344b08dc3e8bdddcaf",
+    "observedVersion": "3.3.2",
+    "telemetryDisabled": true,
+    "loopbackOnly": true,
+    "ephemeralInMemory": true,
+    "localMetadataNormalizationIsNotAwsIdentityProof": true,
+    "productionDurabilityVerified": false,
+    "realAwsIamOrTlsVerified": false
+  },
+  "effectsThisPhase": {
+    "awsApiCalls": 0,
+    "neonCalls": 0,
+    "privatePackageOrSecretValueReads": 0,
+    "actualDeployments": 0,
+    "newIamInstalled": false,
+    "workerActivated": false,
+    "oldSlotsChanged": false,
+    "oldSuccessfulJobsChanged": false,
+    "sitesPublished": false,
+    "githubPushAndDisposableCiOnly": true
+  },
+  "next": "W5b cloud provider, exact W4c successor lineage and minimal controlled materials; installation and first cloud run require separate fresh scoped approval"
+}

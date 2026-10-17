@@ -1,6 +1,6 @@
 # 餐饮 SaaS 平台
 
-2026-10-17当前进度：W4c真实闭环已完成，现推进 **W5云端单次worker**。W5a独立DynamoDB永久围栏及无AWS凭据的Actions验证工作流已编码，未安装/启用；下一W5b云provider与最小材料，不重复请求/部署验收。见 [本次实现、云CI边界及继续位置](docs/aws-auto-deployment-cloud-worker-w5a.md)。
+2026-10-17当前进度：W4c真实闭环已完成，现推进 **W5云端单次worker**。W5a独立DynamoDB永久围栏及无AWS凭据的Actions验证工作流已完成，两轮云临时服务各7组通过、原始回执/清理独立核实；本地17项相邻测试/type/lint及旧99 pins通过。未安装/启用AWS资源，下一W5b云provider与最小材料，不重复请求/部署验收。见 [本次实现、云CI边界及继续位置](docs/aws-auto-deployment-cloud-worker-w5a.md)。
 
 当前唯一主线（2026-10-16）：**先完成AWS自动部署，最后整套系统在AWS上线；不发布Sites，F3c9等支线冻结。** W4c本地管理员真实请求 `job_fe5ced28b698d0bf128e7b42` 已单次部署成功并独立Inspect通过：准确同job succeeded/lease清除、七资源新栈:5/aa96、两认证GET、旧ready/store/历史保留。五槽永久消费不可重放，本地结果展示三gate OFF，新承载10月17日01:35:34 CDT固定到期、不保证准时停费。下一仅准备执行器云化/材料迁移，不重复验收或先迁整个平台。见 [实际结果、原件及继续位置](docs/aws-auto-deployment-aurora-dual-mode-w4c-executed.md) / [主线与完成标准](docs/aws-auto-deployment-mainline.md)。下方为历史，不作为当前指令。
 

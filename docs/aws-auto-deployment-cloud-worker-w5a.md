@@ -34,17 +34,23 @@
 - `.github/workflows/cloud-worker-journal.yml`：仅contents:read，**无OIDC/仓库Secret/AWS凭据**；ubuntu临时runner启动固定摘要DynamoDB Local 3.3.2容器，端口只绑定runner loopback、关闭telemetry，结束删除本次自有容器。
 - `scripts/ci/prove-cloud-worker-journal-v1.mjs`：使用SDK真实调用临时服务，证明五阶段、独立快照、跨对象重复/换清单阻断、并发单ACK、提交后丢ACK、事务前驱失败不遗留下一槽、过期零写。不是仅用Map替身宣称并发通过。
 - CI适配层仅将固定生产表ARN转成本地表名，并归一化本地不具备的真实账户/TableId元数据；AWS身份/IAM/TLS/生产持久性**没有在该服务测试中证明**。临时容器、虚构凭据和fixture job不接触Neon或真实任务。
-- 当前本地定向测试已通过；云CI结果以随后记录的准确commit/run和artifact为准，未通过前不称云验证成功。不安装本机Docker Desktop、不复制任何.env/原私密材料给Actions。
+- 本地journal及旧W4相邻回归共17项通过，完整typecheck和定向lint通过；只读CheckSources仍验证旧99 pins（DB/AWS/私密读取/槽消费均0）。云CI结果以随后记录的准确commit/run和artifact为准，未通过前不称最终版本云验证成功。不安装本机Docker Desktop、不复制任何.env/原私密材料给Actions。
 
 官方服务[运行方式](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.DownloadingAndRunning.html)、[关闭telemetry](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocalTelemetry.html)、[版本记录](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocalHistory.html)和[固定镜像来源](https://hub.docker.com/r/amazon/dynamodb-local/tags)于本阶段核对。
+
+### 已完成的云CI实证
+
+初版提交`38c2c69`的[run 39070217239](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39070217239)及补充TTL/迟到ACK测试后的最终代码`5eebbe6`的[run 39070352245](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39070352245)均success；各7组真实临时服务验证通过，最终CI另含8项journal测试、完整typecheck及定向lint。两个原始artifact ZIP的GitHub digest/长度及全部4成员独立回读核对，服务日志确认3.3.2，cleanup均证明只移除了本次自有临时容器。
+
+最终ZIP SHA `552898b9d42ee71c57c9d6fd322be0128912475e757a07758cea961e38907ba7`，proof SHA `62ba45ab410f7bc131eefd183d7fecc48002bf45f81e8c11116bcef64890ba0c`，原件目录`F:/ChatGPT_workshop/techlong-w5a-ci-39070352245`。完整代码pins/两轮原件摘要见[准备记录](../ops/aws-sandbox/reviews/cloud-worker-w5a.prepared.json)。这证明候选journal的服务语义，不是已经在AWS安装或云部署通过。
 
 ## 唯一继续位置
 
 W5a代码及CI通过后，直接做 **W5b：cloud composition root与最小受控材料**，不再重复journal切片：
 
-1. 给现有provider增加显式云身份/SDK读取组合，去掉本机aws CLI与AWS Login；历史W3/W4已绑定代码不改，保留旧76/99 pins，包清单暂不改。
+1. 给现有provider增加显式云身份/SDK读取组合，去掉本机aws CLI与AWS Login；历史W3/W4已绑定代码不改，保留旧76/99 pins，包清单暂不改。新云根从准确Git commit构建自己的依赖闭包，绑定实际交付字节，不把Windows CRLF原件与Linux checkout混作同一raw hash，也不为适配云端改写旧历史pin。
 2. 新根以W4c准确成功receipt(:5/aa96)为前驱，证明沿革及退役事实；不能把原W4固定:4/74a校验改成一个任意配置来绕过审阅。尚无新请求/部署授权。
-3. 最小材料只含Neon控制连接与本租户认证GET必要的JWT/mTLS材料，固定Secret版本及公开指纹；不上传原`private-material.json`（其中有不用的Stripe密钥），不读值来“准备一下”。明确Review→批准→Run→Inspect及持久化公开回执的位置。
+3. 最小材料只含准确job所需的Neon最小权限连接与本租户认证GET必要的JWT/mTLS材料，固定Secret版本及公开指纹；不得直接上传现有owner/admin DSN。若缺DB角色隔离，作为明确安装变更集中审阅，不扩成另一schema支线。不上传原`private-material.json`（其中有不用的Stripe密钥），不读值来“准备一下”。明确Review→批准→Run→Inspect及持久化公开回执的位置。
 4. 代码/工作流接完后，一次给出**具体新OIDC角色、专属journal表、最小Secret/材料和准确单job的资源/费用/风险清单**，再按fresh SHA批准安装与首次云运行。现有镜像发布OIDC角色不可借用。GitHub重跑/并发控制不是永久围栏。
 
 本次不需用户刷新Source、不需提供密码。实际资源安装或材料迁移时再请求所需授权，不把“开始下一步”当作新增IAM/收费部署批准。
