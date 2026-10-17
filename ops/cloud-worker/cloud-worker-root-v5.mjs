@@ -18,14 +18,18 @@ export const CLOUD_EFFECTS_V5 = Object.freeze({ durableJournalWrites: 5, sameHel
 export async function assertInstallationV5(i, approvedSha, contract) {
   const { installationSha256, ...body } = i;
   must(hash(approvedSha) && installationSha256 === approvedSha && await sha256Hex(body) === approvedSha &&
+    Object.keys(body).sort().join(',') === 'controlSecret,databaseSecret,evidenceBucket,installed,neon,roleId,schema,tableId' &&
     i.schema === 'techlong/cloud-worker-installed-binding/v5' && i.installed === true &&
     /^AROA[A-Z0-9]{17}$/.test(i.roleId) && /^[a-f0-9-]{36}$/.test(i.tableId) &&
+    Object.keys(i.neon ?? {}).sort().join(',') === 'contractSha256,endpointSha256,functionOids,ownerOid,roleOid,sqlSha256' &&
     i.neon?.contractSha256 === contract.contractSha256 && i.neon.sqlSha256 === await sha256Hex(renderNeonContractV5(contract).statements) && hash(i.neon.endpointSha256) &&
     /^\d+$/.test(i.neon.roleOid) && /^\d+$/.test(i.neon.ownerOid) && i.neon.ownerOid !== i.neon.roleOid &&
+    Object.keys(i.neon.functionOids ?? {}).sort().join(',') === 'claim,complete,lease,read_state' &&
     ['read_state','claim','lease','complete'].every(k => /^\d+$/.test(i.neon.functionOids?.[k])) && i.evidenceBucket === EVIDENCE_V5.bucket,
   'INSTALLATION_BINDING_REQUIRED');
   for (const [key, name] of [['databaseSecret','neon-control-v1'],['controlSecret','control-first-acceptance-v1']]) {
-    must(new RegExp('^arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/' + name + '-[A-Za-z0-9]{6}$').test(i[key]?.arn) &&
+    must(Object.keys(i[key] ?? {}).sort().join(',') === 'arn,versionId' &&
+      new RegExp('^arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/' + name + '-[A-Za-z0-9]{6}$').test(i[key]?.arn) &&
       /^[A-Za-z0-9-]{32,64}$/.test(i[key].versionId), 'FIXED_INSTALLED_SECRET_REFERENCE');
   }
   return freeze(structuredClone(i));
@@ -173,6 +177,7 @@ export function createCloudWorkerRootV5({ context, installation, contract, code,
             now: Math.max(receipt.providerCheckedAt, receipt.authorityCheckedAt, receipt.controlCheckedAt) });
           must(completion.outputs === d.outputs, 'INSPECT_FULL_COMPLETION_CONTRACT');
           for (const k of Object.keys(m.jobPlan.snapshot)) if (k !== 'deployment') must(same(observed.snapshot[k], m.jobPlan.snapshot[k]), 'INSPECT_RETAINED_ROW');
+          must(observed.jobs.some(j => same(j, m.queue.proofJob)), 'INSPECT_PREDECESSOR_JOB_PRESERVED');
           const { outputs: _a, updated_at: _b, ...old } = m.jobPlan.snapshot.deployment;
           const { outputs: _c, updated_at: _d, ...current } = d; void _a; void _b; void _c; void _d;
           must(same(old, current), 'INSPECT_ORIGINAL_READY');
