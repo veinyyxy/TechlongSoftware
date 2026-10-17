@@ -1,0 +1,118 @@
+{
+  "schema": "techlong/cloud-worker-w5b-prepared/v1",
+  "state": "SDK_CLOUD_PROVIDER_PUBLIC_LINEAGE_MINIMAL_CONTROL_CONTRACT_PORTABLE_NOT_ACTIVATED",
+  "implementationCommit": "dff062fae430e58a7f98d9ff3c2ae7a1173658c4",
+  "verifiedWorkflowCommit": "fa00d6cd69289bd5a0b1bf3dfeeca33f0f5d3883",
+  "cloudCandidate": {
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxGitHubDeploymentWorkerRole",
+    "roleInstalled": false,
+    "actualRoleIdKnown": false,
+    "sdkClients": 13,
+    "auxiliaryReadAllowlistOperations": 12,
+    "sdkMaxAttempts": 1,
+    "usesDefaultCredentialChainOrAwsLogin": false,
+    "usesLocalAwsCli": false,
+    "checkModes": ["CheckRuntime", "CheckBundle"],
+    "runModeAvailable": false,
+    "controlSecretCandidateName": "techlong/sandbox/deployment-worker/control-first-acceptance-v1",
+    "controlSecretInstalled": false,
+    "controlPayloadFields": ["schema", "appInstanceId", "signingPrivateKeyPem", "signingPublicKeyPem", "clientCertificatePem", "clientPrivateKeyPem", "clientCaPem"],
+    "paymentOrDatabaseSourceExposed": false,
+    "minimumNeonRoleAndConnectionContractStillRequired": true,
+    "journalHookStillRequiresFinalCompositionRootBinding": true
+  },
+  "publicCapsule": {
+    "file": "ops/cloud-worker/material/public-capsule-v5.json",
+    "canonicalCapsuleSha256": "5c7e5eeff2febef52b469487e0bd7d170e711fb2b26e3df81162b5b46c6e2e14",
+    "reconstructedMaterialSha256": "8fa2b5c1cfe441ca6c95771046209e03c8ced91b8cdf0e7948c1c44c55da0313",
+    "predecessorJobId": "job_fe5ced28b698d0bf128e7b42",
+    "predecessorStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/aa962890-c9e4-11f1-988b-06ffcd51c63d",
+    "predecessorTaskDefinitionRevision": 5,
+    "predecessorReceiptSha256": "d350a38748a2d1fe70c2e2dfc2768534c53aedc07a44994b571963a500da6bdb",
+    "currentRetirementOrHealthProved": false,
+    "privateKeyJwtPasswordDsnOrStripeSecretIncluded": false,
+    "sourceWitnesses": {
+      "provider-after.json": "0f89703a1bdd4402cb9bf7b0707a080c3669639cda720de831638ebc27fd2345",
+      "completion-reference.json": "ff20dab451c04f8126a427ee1ba5e6069dc32495e2a59414b64cbac7efbd74da"
+    }
+  },
+  "ownCodePins": [
+    { "file": "ops/cloud-worker/aws-initialized-workload-v5.mjs", "normalizedLfSha256": "5283bddb74aad4f68871e5f3613dc550353f8fee10a0d29fe58b5c73b086039a" },
+    { "file": "ops/cloud-worker/cloud-session-v5.mjs", "normalizedLfSha256": "e270b6709c91608de23252444b4d97b2711902e9adff88c7ece3f94ccb872f26" },
+    { "file": "ops/cloud-worker/cloud-aws-reads-v5.mjs", "normalizedLfSha256": "16c7e62c4e4f3c6ce2e49a8365c95f31bf92893d7a93a188666f84bff0af56d7" },
+    { "file": "ops/cloud-worker/cloud-control-v5.mjs", "normalizedLfSha256": "f12e20385059bcf8194bb83029042b967a2a9ae801b672b084a938f113619b6c" },
+    { "file": "ops/cloud-worker/cloud-context-v5.mjs", "normalizedLfSha256": "3a855b051d0a9802c39a75e39403bdd7b75f81b27d0c9e3990a87d194457d17c" },
+    { "file": "ops/cloud-worker/check-runtime-v5.mjs", "normalizedLfSha256": "21cbd9cb8b2a1d39aaddf3855336c567fc949743bf8334790b90eddc658b431d" },
+    { "file": "ops/cloud-worker/package-lock.json", "normalizedLfSha256": "2011778b7f0e58db266c77506e37ef9827c6043e4ce9565bce6cffff84a32b8c" },
+    { "file": ".github/workflows/cloud-worker-candidate.yml", "normalizedLfSha256": "29f65bd258ec84bb65ea6746f3d01f2a23995712ddd1423b6a4fec0f8dff1a9c" },
+    { "file": "tests/cloud-worker-v5.test.mjs", "normalizedLfSha256": "2d9206706589b560019779a8179b63b26ac525faa9b49297522d04e6f4f4ee03" },
+    { "file": "scripts/ci/check-cloud-worker-closure-v5.mjs", "normalizedLfSha256": "5722e2d5716192a4a2b0dfb3fa5c3c58d3d00eece6be666bf4c84372840dd6ae" }
+  ],
+  "localValidation": {
+    "newCloudTestsPassed": 12,
+    "journalTestsPassed": 8,
+    "w4TestsPassedIncludingWindowsCli": 9,
+    "totalTestsPassed": 29,
+    "realSyntheticRsa3072AndClientAuthCertificates": true,
+    "ownedTemporaryFixtureDirectoriesRemoved": true,
+    "fullTypecheck": "PASSED",
+    "targetedLint": "PASSED",
+    "independentWorkerDependencyAuditHigh": 0,
+    "independentWorkerDependencyAuditCritical": 0,
+    "legacySourceCheck": {
+      "directory": "F:/ChatGPT_workshop/techlong-platform-w4-w5b-sources-20261017",
+      "resultSha256": "97f2f40eaf4481c4a8a34aaec476c2a3af0c343dfb8a86ffa0b16b0bd87eaa9a",
+      "rawCodePinsPassed": 99,
+      "databaseQueries": 0,
+      "cloudCalls": 0,
+      "privateReads": 0,
+      "slotsConsumed": 0
+    }
+  },
+  "failedFirstCiPreserved": {
+    "runId": "39071674100",
+    "commit": "dff062fae430e58a7f98d9ff3c2ae7a1173658c4",
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39071674100",
+    "conclusion": "failure",
+    "cause": "Historical Windows-only W4 CLI test tried to import E-drive backend package on Linux",
+    "cloudOrLegacyProductionSourceChangedToBypassTest": false,
+    "correction": "Keep new V5 entry tests; run 20 new cloud/journal and 8 W4 pure tests on Linux; Windows-only CLI remains verified in 29 local tests"
+  },
+  "successfulCi": {
+    "runId": "39071810940",
+    "runAttempt": 1,
+    "commit": "fa00d6cd69289bd5a0b1bf3dfeeca33f0f5d3883",
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39071810940",
+    "conclusion": "success",
+    "newCloudAndJournalTestsPassed": 20,
+    "w4PureTestsPassed": 8,
+    "historicalWindowsOnlyTestExcludedOnLinux": 1,
+    "portableRuntimeClosureFiles": 60,
+    "all60PinsIndependentlyMatchedLocalNormalizedLfBytes": true,
+    "contentsReadOnlyNoOidcOrAwsCredentials": true,
+    "artifactId": "12115726337",
+    "directory": "F:/ChatGPT_workshop/techlong-w5b-ci-39071810940",
+    "originalZipSha256": "115b342d1212a37f5163bb63feefc612cfa6f18e112373e10aa635f568c44765",
+    "originalZipDigestAndSizeVerified": true,
+    "members": [
+      { "file": "closure.json", "sha256": "450a5ef7f1db825b4919e4bbdf66202089e77c01c3c6f9bb6266df3f58c37e12" },
+      { "file": "runtime.json", "sha256": "ba88a3a90643403230e27fb88256a4b4ac71ca7a0fe3bcce50511fd95ef4e0b2" },
+      { "file": "bundle.json", "sha256": "a5454ebf31af7f6b7419b70e3a566118534aecadcdeab976374808df37fc7929" }
+    ],
+    "actualAwsIamTlsOrDeploymentCompatibilityVerified": false
+  },
+  "productionEffectsThisPhase": {
+    "awsApiCalls": 0,
+    "neonCalls": 0,
+    "realPrivatePackageOrSecretValueReads": 0,
+    "tenantHttpRequests": 0,
+    "newPermanentSlotsConsumed": 0,
+    "actualDeployments": 0,
+    "iamSecretDbRoleOrResourceInstalled": false,
+    "rootPackageOrLegacyDeploymentCodeChanged": false,
+    "oldJobsReadyStoreAndSlotsChanged": false,
+    "workerActivated": false,
+    "sitesPublished": false
+  },
+  "next": "One exact-job cloud Review/Run/Inspect root plus minimum Neon role/material contract, then one concentrated fresh scoped installation review; do not repeat observers or W4c deployment proof"
+}

@@ -30,6 +30,12 @@ node scripts/ci/check-cloud-worker-closure-v5.mjs
 
 `.github/workflows/cloud-worker-candidate.yml`在干净Linux runner安装两套锁定依赖，运行20项新云/journal测试和8项W4纯逻辑回归、真实fixture crypto、runtime/capsule/60文件本地源码闭包检查；**contents:read、无OIDC/AWS凭据/仓库Secret**。不会调用真实provider或Secret loader。旧W4的1项Windows本机CLI测试仅在Windows的29项中验证，Linux明确排除该项，**新V5入口测试不排除**。首轮run 39071674100因错误地附跑旧CLI测试而失败（旧CLI加载E盘backend package），未修改旧码或放宽其限制；更正CI范围后另跑新提交。最终云CI结论及原件摘要以随后准确run记录为准，不把HTTP替身/本地fixture宣称为真实AWS权限/TLS部署验收。
 
+### 已通过的Linux CI及独立原件核验
+
+最终提交`fa00d6c`的[run 39071810940](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39071810940) **success**，20+8项、类型/lint/audit及新入口/公开capsule/60文件闭包均通过。原始ZIP的GitHub digest和长度、三个成员独立核验；Linux生成的60个normalized-LF pins与本机独立重算完全一致。
+
+ZIP SHA `115b342d1212a37f5163bb63feefc612cfa6f18e112373e10aa635f568c44765`，原件保存在`F:/ChatGPT_workshop/techlong-w5b-ci-39071810940`。完整代码pins、失败首轮及成功原件摘要见[W5b准备记录](../ops/aws-sandbox/reviews/cloud-worker-w5b.prepared.json)。这证明代码/材料可移植，不证明云角色已安装或实际部署成功。
+
 ## 具体待安装材料边界（尚未批准）
 
 候选新role：`arn:aws:iam::402010193138:role/TechlongSandboxGitHubDeploymentWorkerRole`。不借用image publisher。RoleId未知，不能占位通过实际身份核验。OIDC trust必须限定本仓受保护部署environment，部署workflow/commit及environment分支与审批规则一起审阅；Environment subject不是天然的单workflow限制。[GitHub官方OIDC说明](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws)与[SDK显式凭据说明](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/migrate-credential-providers.html)已核对。
