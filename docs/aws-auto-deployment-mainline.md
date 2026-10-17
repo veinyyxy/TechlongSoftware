@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-17）：**W5c单一云Review/RunOnce/独立Inspect候选已收口**，连接W5a永久journal、V5 SDK/最小Secret、四函数Neon窄权限、同任务原子完成及S3条件写回执；成功沿革可继续。run39073640808云端36项、真实PG18十二组、75文件闭包及原ZIP/五材料核验通过，旧99 raw pins保持。当前仍未安装身份/Secret/权限/付费资源，不代表实际云部署已启用。下一只做集中安装盘点与具体范围审批，不再加观察器切片。见 [W5c实现及完整风险](aws-auto-deployment-cloud-worker-w5c.md) / [原件和准确继续位置](../ops/aws-sandbox/reviews/cloud-worker-w5c.prepared.json)。下方W5b里程碑保留追溯。
+
 最新里程碑（2026-10-17）：W4c真实闭环及W5a云永久journal候选已完成。W5b独立SDK云provider、准确W4c沿革公开capsule和最小JWT/mTLS Secret接口已完成，本地29项/Linux 20+8项及60文件闭包通过、原始回执独立核实，保留旧99 pins。云执行入口尚未启用；下一直接收拢一个Review/Run/Inspect执行根及最小Neon权限合同，不扩观察器切片。无新增权限/资源安装或真实部署，不重复W4c、不扩F3c9。见 [W5b实现、验证与唯一继续位置](aws-auto-deployment-cloud-worker-w5b.md) / [W5a已完成](aws-auto-deployment-cloud-worker-w5a.md)。首轮Actions单次worker，最终整套AWS托管仍在其后。
 
 2026-10-16，按用户最新决定更新。**不在 Sites 上线，不修改 Sites 托管配置、不推送 sites remote。** 保留现有兼容代码和托管身份，避免把“现在不发布”扩大成未经批准的删除/重构。F3c9 等支线继续冻结，历史文档用于追溯，不再作为下一步任务来源。
@@ -21,4 +23,4 @@
 
 ## 唯一继续位置
 
-见 [W5b与执行根收口](aws-auto-deployment-cloud-worker-w5b.md)。不要从README旧历史/W4c入口重新登记请求，不制造新job/部署SHA，也不改旧前驱来重放W4。新增权限、材料迁移及实际云运行在执行根收口后按准确范围集中另审。
+见 [W5c集中安装审查](aws-auto-deployment-cloud-worker-w5c.md)。执行根及数据库合同已经完成候选验证；下一核对现有权限/候选名、准备一份具体安装清单，不再重复W5b/W5c代码验收。不要从README旧历史/W4c入口重新登记请求，不制造新job/部署SHA，也不改旧前驱重放W4。新增权限、材料迁移及实际云运行仍按准确范围集中另审。

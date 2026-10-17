@@ -1,0 +1,544 @@
+{
+  "schema": "techlong/cloud-worker-w5c-prepared/v1",
+  "state": "UNIFIED_CLOUD_ROOT_NARROW_NEON_AND_DURABLE_EVIDENCE_VERIFIED_CANDIDATE_NOT_INSTALLED",
+  "verifiedImplementationCommit": "8ab1ddb9aabc41882ccc6ff8509ed831610ea8e5",
+  "entry": "ops/cloud-worker/run-worker-v5.mjs",
+  "runtimeModes": [
+    "CheckCandidate",
+    "Review",
+    "RunOnce",
+    "Inspect"
+  ],
+  "runtimeEnabled": false,
+  "productionRoleAndSecretBindingAvailable": false,
+  "contract": {
+    "mode": "CheckCandidate",
+    "schema": "techlong/cloud-worker-root-candidate/v5",
+    "closureSha256": "4bf7cb340a45d5ccf38f2d80e043763277a61c39514f661f7984280cf557139b",
+    "contractSha256": "1af33941263b9e138abf1eeb0b9f9fe295df5f2be47622c09e7ba5a27c18546d",
+    "sqlSha256": "20621e72aead74004243b4705547530ecbfc37493dab23e67cb68ced2f5d1232",
+    "databaseFunctions": [
+      "read_state",
+      "claim",
+      "lease",
+      "complete"
+    ],
+    "rootModes": [
+      "Review",
+      "RunOnce",
+      "Inspect"
+    ],
+    "installed": false,
+    "runtimeEnabled": false,
+    "cloudCalls": 0,
+    "privateReads": 0,
+    "dbQueries": 0
+  },
+  "implementation": {
+    "composition": "cloud-application-v5: SDK provider + fixed Secret loaders + narrow Neon RPC + DynamoDB journal + conditional private S3 evidence",
+    "journalStages": [
+      "run",
+      "claim_job",
+      "create_workload",
+      "private_control_load",
+      "atomic_complete"
+    ],
+    "singleJobNoGlobalQueue": true,
+    "claimUpdatesOriginalHeldJob": true,
+    "createStackCallsAtMost": 1,
+    "privateControlSecretReadsAtMost": 1,
+    "authenticatedGetsAtMost": 2,
+    "databaseSecretReadsPerModeAtMost": 1,
+    "atomicCompletionRows": 2,
+    "automaticRetries": 0,
+    "lineageRoot": "W4c :5 aa962890-c9e4-11f1-988b-06ffcd51c63d",
+    "successorLineageWithoutSourceEdits": true,
+    "independentInspectUsesDifferentRunId": true,
+    "independentInspectUsesHistoricalVersionedEvidenceAndFreshHealth": true,
+    "legacyCliAndRootDependencyLocksChanged": false,
+    "adminDsnUploaded": false
+  },
+  "candidateInstallationNotApproval": {
+    "liveResourceExistenceNotCheckedThisTurn": true,
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxGitHubDeploymentWorkerRole",
+    "actualRoleId": null,
+    "journalTable": "techlong-sandbox-deployment-worker-journal-v1",
+    "actualTableId": null,
+    "evidenceBucket": "techlong-sandbox-cloud-worker-evidence-402010193138",
+    "dbRoleAndSchema": "techlong_cloud_worker_v5",
+    "dbFunctionNames": [
+      "read_state",
+      "claim",
+      "lease",
+      "complete"
+    ],
+    "actualOwnerRoleAndFunctionOids": null,
+    "controlSecret": "techlong/sandbox/deployment-worker/control-first-acceptance-v1",
+    "databaseSecret": "techlong/sandbox/deployment-worker/neon-control-v1",
+    "actualSecretArnsAndVersionIds": null,
+    "deploymentWorkflow": "cloud-worker-execute.yml",
+    "deploymentWorkflowCreated": false,
+    "needsExactFreshScopeAndShaApproval": true
+  },
+  "validation": {
+    "localUnifiedRootTests": 8,
+    "localFullTypecheck": "PASSED",
+    "localTargetedLint": "PASSED",
+    "cloudUnifiedAndV5AndJournalTests": 28,
+    "cloudW4PureTests": 8,
+    "realPostgresImage": "postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873",
+    "postgresProof": {
+      "schema": "techlong/cloud-worker-neon-pg18-proof/v5",
+      "outcome": "PASSED",
+      "contractSha256": "1af33941263b9e138abf1eeb0b9f9fe295df5f2be47622c09e7ba5a27c18546d",
+      "checks": [
+        "exact owner/source/ACL/OIDs and no inherited or base-table rights",
+        "password/table reads, generic writes, schema CREATE and unrelated job rejected",
+        "fixed-scope read returns only safe requester projection",
+        "server rejects cross-scope and SQL-shaped argument bypass",
+        "two concurrent dedicated-role connections produce exactly one claim winner",
+        "same held job claimed once; replay rejected",
+        "lease checks work in read-only serializable transaction",
+        "old outputs/history cannot be overwritten",
+        "last-row failure rolls back prior deployment output write",
+        "one atomic two-row completion succeeds",
+        "ready_at, original nine rows, successful jobs and receipt history preserved",
+        "completion replay rejected"
+      ],
+      "checkCount": 12,
+      "realPostgres": true,
+      "productionNeonUsed": false,
+      "productionPermissionsInstalled": false,
+      "awsCalls": 0,
+      "privateMaterialReads": 0
+    },
+    "ownedDatabaseAndRoleCleanupCompleted": true,
+    "ciContainerStopSucceeded": true,
+    "legacy99RawPins": {
+      "directory": "F:/ChatGPT_workshop/techlong-platform-w4-w5c-sources-20261017",
+      "resultSha256": "97f2f40eaf4481c4a8a34aaec476c2a3af0c343dfb8a86ffa0b16b0bd87eaa9a",
+      "passed": 99,
+      "cloudCalls": 0,
+      "databaseQueries": 0,
+      "privateReads": 0
+    }
+  },
+  "ciHistory": [
+    {
+      "runId": "39072898896",
+      "commit": "05f39b4169b7a7b68b0683ae8609f650836ea367",
+      "conclusion": "failure",
+      "cause": "PLpgSQL result record r conflicted with original SQL relation alias r; preserved as failed real-PG proof",
+      "scope": "No production connection; table privilege denials already observed",
+      "fix": "Rename only local result variable v_result; do not weaken SQL scope or tests"
+    },
+    {
+      "runId": "39073078066",
+      "commit": "97db64c1c28df46ce311a88563ba4c21d8c9a8e1",
+      "conclusion": "success",
+      "scope": "Initial real narrow-RPC proof"
+    },
+    {
+      "runId": "39073531040",
+      "commit": "a386ee5b0e3697e00905e3651eab2d32a4637dcf",
+      "conclusion": "success",
+      "scope": "Unified root, concurrent real PG and portable closure"
+    },
+    {
+      "runId": "39073640808",
+      "commit": "8ab1ddb9aabc41882ccc6ff8509ed831610ea8e5",
+      "conclusion": "success",
+      "scope": "Final strict installation key set and retained predecessor Inspect guard"
+    }
+  ],
+  "successfulCi": {
+    "runId": "39073640808",
+    "commit": "8ab1ddb9aabc41882ccc6ff8509ed831610ea8e5",
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39073640808",
+    "jobId": "117516203028",
+    "conclusion": "success",
+    "permissions": "contents:read; no OIDC/AWS/production Neon credentials",
+    "artifactId": "12116326066",
+    "directory": "F:/ChatGPT_workshop/techlong-w5c-ci-39073640808",
+    "originalZipSha256": "a420ff007840d184202ec9baf38d5579b0ce40fab3acee0baaa48087719bff91",
+    "files": [
+      {
+        "file": "bundle.json",
+        "sha256": "a5454ebf31af7f6b7419b70e3a566118534aecadcdeab976374808df37fc7929"
+      },
+      {
+        "file": "closure.json",
+        "sha256": "3b58243de89d46c67dbd29abd582f22aae006a5fd3960e4f4a719cca93268c1f"
+      },
+      {
+        "file": "neon-pg18.json",
+        "sha256": "fab23d2ca3be94845d7396a192b68d0804f97f4f7810d32b02ea0640416501b3"
+      },
+      {
+        "file": "root.json",
+        "sha256": "6e4898eb464e6093d5983eb7efadfade4797a645b1099fcd6a765254cf6250d0"
+      },
+      {
+        "file": "runtime.json",
+        "sha256": "ba88a3a90643403230e27fb88256a4b4ac71ca7a0fe3bcce50511fd95ef4e0b2"
+      }
+    ],
+    "independentZipMetadataDigestAndLengthMatched": true,
+    "independentLocalNormalizedLfPinsMatched": true
+  },
+  "runtimeClosure": {
+    "schema": "techlong/cloud-worker-portable-closure/v5",
+    "outcome": "PASSED",
+    "pinCount": 75,
+    "pins": [
+      {
+        "file": "docs/aws-auto-deployment-cloud-worker-w5c.md",
+        "normalizedLfSha256": "6a6b8678e432d1e9229a701b992bcdc5abcbce6a4f54016c5dd9e1294ea61972"
+      },
+      {
+        "file": "lib/deployments/cloudformation/express-single-tenant-cell-v1.ts",
+        "normalizedLfSha256": "751a355c4a9ebae059a9d8e7398e4578251a072c39adb257ded8cf66cfdb68d8"
+      },
+      {
+        "file": "lib/deployments/cloudformation/express-single-tenant-workload-v1.ts",
+        "normalizedLfSha256": "23cedcbc0809959834c98c47bdebf9a5cc72b92772acfde9a3e5550cbed4382d"
+      },
+      {
+        "file": "lib/deployments/cloudformation/shared-cell-stack.ts",
+        "normalizedLfSha256": "3d6e62c3506a91460397165cc354661092788f45a877fedbe9d1a77a18c67baf"
+      },
+      {
+        "file": "lib/deployments/cloudformation/single-tenant-acceptance-cell.ts",
+        "normalizedLfSha256": "51285054b301fe61d4738ff09dc9128fe6caa904a554ab9efbfb2a82828973b9"
+      },
+      {
+        "file": "lib/deployments/cloudformation/single-tenant-acceptance-workload.ts",
+        "normalizedLfSha256": "2743e36b75896f426c79476967148c31c4c8f96154518c87a8bd059143ef80f9"
+      },
+      {
+        "file": "lib/deployments/cloudformation/tenant-stack.ts",
+        "normalizedLfSha256": "c600476233a48991edd43f89144e5d9f9691ae5de6fa1b0c25a0e2e4423b70c2"
+      },
+      {
+        "file": "lib/deployments/environment.ts",
+        "normalizedLfSha256": "1edea559a326504b8404bd037a282aa0de3bc10c7630b0dfd66dcfdb4610746e"
+      },
+      {
+        "file": "lib/deployments/execution/aurora-database-contract-v2.cjs",
+        "normalizedLfSha256": "7292fa771b56c09b3d304c3b946e15e561d0a0d68372423d549af9d4cbda1c9c"
+      },
+      {
+        "file": "lib/deployments/execution/aurora-database-v2.ts",
+        "normalizedLfSha256": "b3ef342b55758f8c5156392545b9d8f6fa1c26787ae4723ab5b1f932d517e55b"
+      },
+      {
+        "file": "lib/deployments/execution/aws-sdk-tenant-secret-provider.ts",
+        "normalizedLfSha256": "f1da8b6819e854ac55bbe9de02c09c6cc6ed699b67a13eb7b265d66d3fb91073"
+      },
+      {
+        "file": "lib/deployments/execution/cell-launch-readiness-v1.ts",
+        "normalizedLfSha256": "ba415e2326c20076abf38f8ab5fa8efc1e830bf703e191053237a80bbe609a2b"
+      },
+      {
+        "file": "lib/deployments/execution/cloud-worker-journal-v1.ts",
+        "normalizedLfSha256": "ba26aa4aeaf509c6eec309618fe163acc0bec4bbac6fd0d84c156306a1e100c6"
+      },
+      {
+        "file": "lib/deployments/execution/contracts.ts",
+        "normalizedLfSha256": "a4135f92b9bcfd98a04577c2789ecb51731f2460ab9399300e5431074e8178dd"
+      },
+      {
+        "file": "lib/deployments/execution/control-client.ts",
+        "normalizedLfSha256": "b3e48d9816c6bc73ba288137703e0af614eb4f21aed495192eeffc00efca5d26"
+      },
+      {
+        "file": "lib/deployments/execution/control-https-transport.ts",
+        "normalizedLfSha256": "35d03ee34ab21badda582be5c1055667a6fad036f4f322724fc7966a8a15a57a"
+      },
+      {
+        "file": "lib/deployments/execution/control-jwt.ts",
+        "normalizedLfSha256": "97577d9ce83fae938233eb569a8e1b778c2a36d81048ed9d111459a08879c096"
+      },
+      {
+        "file": "lib/deployments/execution/control-payload.ts",
+        "normalizedLfSha256": "f1bb768e423e80bf674842e5ea0001b2a23f77b897f8e590c0ac4da69f3dceae"
+      },
+      {
+        "file": "lib/deployments/execution/control-secret-redaction.ts",
+        "normalizedLfSha256": "95f931debe72e13ac1b831c2e44a0271a6d05cf1754d22ca40e5bd822a560c8f"
+      },
+      {
+        "file": "lib/deployments/execution/ecs-one-shot-task.ts",
+        "normalizedLfSha256": "158a4ae47ef7b7e72cae599952b300f9c0438d6f72943e43a1f23d89d057f852"
+      },
+      {
+        "file": "lib/deployments/execution/express-control-readiness-v1.ts",
+        "normalizedLfSha256": "2fc82a0f3b499cce5b6e23b40cb62d4e493377f561dd3bc9a309c4fe2198a62d"
+      },
+      {
+        "file": "lib/deployments/execution/express-delivery-images-v1.ts",
+        "normalizedLfSha256": "6249d47e2f77755ce8a5b46c03a7ae806ff37772615c3956b8715db9a3ca2076"
+      },
+      {
+        "file": "lib/deployments/execution/express-delivery-images-v2.ts",
+        "normalizedLfSha256": "e0804e5d7d00cd7b72e7f066c9850909e68b928685646eaecdde3da68f485c6d"
+      },
+      {
+        "file": "lib/deployments/execution/express-deployment-scope-v1.ts",
+        "normalizedLfSha256": "6d6e5031ccebbfce9cedb40cb300d80d99411a2dcb1ec69ed0e17708ecc14fb8"
+      },
+      {
+        "file": "lib/deployments/execution/express-first-owner-password-v2.ts",
+        "normalizedLfSha256": "842f3c5a29d06e2a3d182fb121a7545b2f514de0089045e5b8afb884f1edcbec"
+      },
+      {
+        "file": "lib/deployments/execution/express-initialized-job-neon-v2.ts",
+        "normalizedLfSha256": "5cd0af0dde4d7b2a05ff92b8d13a11a7deb97b4bf6c2a887841a7753c4909353"
+      },
+      {
+        "file": "lib/deployments/execution/express-initialized-job-runner-v2.ts",
+        "normalizedLfSha256": "2ff477ceb6863f6991bc86544b6d45b444cc806c46fafdc7fa10eb179bd8614d"
+      },
+      {
+        "file": "lib/deployments/execution/express-initialized-job-v2.ts",
+        "normalizedLfSha256": "d1672d8a2d373f432d1ea8c7309894987bff4def7dc2c6efa18b9fab2257d4b2"
+      },
+      {
+        "file": "lib/deployments/execution/express-initialized-worker-v2.ts",
+        "normalizedLfSha256": "905d8f280c572c74415e3cafdb74f622ee5b09084f701d8218d5389250dff57f"
+      },
+      {
+        "file": "lib/deployments/execution/express-live-delivery-plan-v1.ts",
+        "normalizedLfSha256": "bc40c0e316492a2a829485aa92152351e543e6abcafa2eafaf987196ba1a554e"
+      },
+      {
+        "file": "lib/deployments/execution/express-platform-claim-v4.ts",
+        "normalizedLfSha256": "7410eafa8b08eac92c8aaaf2967bcb5f173f9972baa10448eadb33d3b6214e26"
+      },
+      {
+        "file": "lib/deployments/execution/express-single-tenant-delivery-v1.ts",
+        "normalizedLfSha256": "d065359c8d25fa2eeb2be4cb8e0ece071d14d637456d549ebe7523a5a4d12cf2"
+      },
+      {
+        "file": "lib/deployments/execution/external-ownership.ts",
+        "normalizedLfSha256": "03ada46d3273a5066ccef0561879e6ecef7300fa3d3348c865ffb4fca90cda7d"
+      },
+      {
+        "file": "lib/deployments/execution/fast-track-f3-readiness.ts",
+        "normalizedLfSha256": "f439469d136acc5c57949714c9caa1ac56cc679b0b864d451b45c945ef8b1573"
+      },
+      {
+        "file": "lib/deployments/execution/hash.ts",
+        "normalizedLfSha256": "3205a7d79369d7d70653bbb91983762b93b97f11a32972ba2b9c54bcfed0cdce"
+      },
+      {
+        "file": "lib/deployments/execution/parameters.ts",
+        "normalizedLfSha256": "13f5c5c9b048d8c6b60328209f7858eafc90f16f77985a54ed81d7d647d98b30"
+      },
+      {
+        "file": "lib/deployments/execution/single-deployment-scope.ts",
+        "normalizedLfSha256": "867f1bf1d267288a98e1a92cc2ae71cd7a7bf31906ed9cc8cc63dda987c9b7e8"
+      },
+      {
+        "file": "lib/deployments/execution/single-tenant-control-bindings.ts",
+        "normalizedLfSha256": "b47ce742a0044e6d4ee51dfb4d371aab0bef5f21baff503963a8252b01bbe401"
+      },
+      {
+        "file": "lib/deployments/execution/single-tenant-first-owner-password.ts",
+        "normalizedLfSha256": "7125d6366b8cc6553611ec41e90fdb9d5620dede0e64f1424e5913c07b1461a4"
+      },
+      {
+        "file": "lib/deployments/execution/single-tenant-private-sources.ts",
+        "normalizedLfSha256": "cace9efd767931e5b3d2173b93c6646efba98ae695e8b8322372df20db3df3a6"
+      },
+      {
+        "file": "lib/deployments/execution/tenant-application-access-proof.ts",
+        "normalizedLfSha256": "f72d2e5e9d701f34edd1a6a0a8e5b4d1bdb3cbfabc5c53830f3b922de50a3be7"
+      },
+      {
+        "file": "lib/deployments/execution/tenant-aws-one-shot-adapters.ts",
+        "normalizedLfSha256": "0f7fecf031cf70ad3dc4754dc7f0daa4ff72c0c24925750953eafd7cd85d528d"
+      },
+      {
+        "file": "lib/deployments/execution/tenant-database.ts",
+        "normalizedLfSha256": "2dca5f6f5edf1b575aa928e05e3f6438820c309484bca2a2878f8a32ae80207d"
+      },
+      {
+        "file": "lib/deployments/execution/tenant-lifecycle-prepared-contract.ts",
+        "normalizedLfSha256": "2c289a1c7ae9c758186bb0ed3d157ec9ad433479d77f1851ec57f928ca6843e7"
+      },
+      {
+        "file": "lib/deployments/execution/tenant-readiness-configuration-v1.ts",
+        "normalizedLfSha256": "709456908d4344ff62d179467b423f7e7473a0c762d65ac71ef4285077627ac2"
+      },
+      {
+        "file": "lib/deployments/execution/tenant-runtime-material.ts",
+        "normalizedLfSha256": "5b6dc29353092e14fa993bd55fd406173fc222a42edca66003554629e76ddb6f"
+      },
+      {
+        "file": "lib/deployments/initialized-platform-request-v1.ts",
+        "normalizedLfSha256": "206b9faf0bf5ef49c3c9edbe7713254bc70c0f8343da04dfef6b3f766fc552f1"
+      },
+      {
+        "file": "lib/deployments/preflight.ts",
+        "normalizedLfSha256": "0f845a656bbe9edb04fe04d5f2863e1ab19b218b524199580c053d2a8bbdfbc9"
+      },
+      {
+        "file": "lib/deployments/profiles.ts",
+        "normalizedLfSha256": "d836ab4e586bf3d43e81f22bb70aadaf8c22a54e01e39bc5a9ee83ec6114687f"
+      },
+      {
+        "file": "lib/deployments/state-machine.ts",
+        "normalizedLfSha256": "1edd9fb55b7094c773635d689b1a103553da683a964bb1d1a1ed32b189e69aaa"
+      },
+      {
+        "file": "lib/deployments/types.ts",
+        "normalizedLfSha256": "9e1a91c0b179192ae83be9f3ea0bda90d29659ed137475c3bd1fee7f8c659d63"
+      },
+      {
+        "file": "lib/domain/ids.ts",
+        "normalizedLfSha256": "80f72536d670888d8c38aaa12473f96e0966a41a33da4f2d6388ea0477ac0671"
+      },
+      {
+        "file": "lib/templates/provisioning.ts",
+        "normalizedLfSha256": "d27e9a435e07a51a1ed869c841d4fa436f50e97b9143369bbb51400153773ecd"
+      },
+      {
+        "file": "lib/templates/validation.ts",
+        "normalizedLfSha256": "cd331dffb8357aa2d9e5b22ec714d9b1570efa0fcc4edba2fe93a9e401edfbda"
+      },
+      {
+        "file": "ops/aws-sandbox/scripts/express-initialized-workload-v3.mjs",
+        "normalizedLfSha256": "190e6fc80b25d168d98db46a9579d157a3176ef8792eabbada2d756e619ab6a5"
+      },
+      {
+        "file": "ops/aws-sandbox/scripts/express-platform-worker-v4.mjs",
+        "normalizedLfSha256": "b7df53d4314dd7c49c5168af36aadc3c8931eaf13a4452dd950f88f7bfd03745"
+      },
+      {
+        "file": "ops/cloud-worker/aws-initialized-workload-v5.mjs",
+        "normalizedLfSha256": "5283bddb74aad4f68871e5f3613dc550353f8fee10a0d29fe58b5c73b086039a"
+      },
+      {
+        "file": "ops/cloud-worker/check-runtime-v5.mjs",
+        "normalizedLfSha256": "21cbd9cb8b2a1d39aaddf3855336c567fc949743bf8334790b90eddc658b431d"
+      },
+      {
+        "file": "ops/cloud-worker/closure-v5.mjs",
+        "normalizedLfSha256": "027ca6ace6a110c66f71999dcc05821c6fe3e50e4c4df1667e54f75c1d481679"
+      },
+      {
+        "file": "ops/cloud-worker/cloud-application-v5.mjs",
+        "normalizedLfSha256": "bdfbcb9b94dad6aed569fedf18d34f48fb36ed4d38a976f889f3f3f3102a5796"
+      },
+      {
+        "file": "ops/cloud-worker/cloud-aws-reads-v5.mjs",
+        "normalizedLfSha256": "16c7e62c4e4f3c6ce2e49a8365c95f31bf92893d7a93a188666f84bff0af56d7"
+      },
+      {
+        "file": "ops/cloud-worker/cloud-context-v5.mjs",
+        "normalizedLfSha256": "3a855b051d0a9802c39a75e39403bdd7b75f81b27d0c9e3990a87d194457d17c"
+      },
+      {
+        "file": "ops/cloud-worker/cloud-control-v5.mjs",
+        "normalizedLfSha256": "f12e20385059bcf8194bb83029042b967a2a9ae801b672b084a938f113619b6c"
+      },
+      {
+        "file": "ops/cloud-worker/cloud-evidence-v5.mjs",
+        "normalizedLfSha256": "6b3c013f92888200be5b5893e9d379e407d8af741d6627bdba6543d86fbb3c41"
+      },
+      {
+        "file": "ops/cloud-worker/cloud-session-v5.mjs",
+        "normalizedLfSha256": "e270b6709c91608de23252444b4d97b2711902e9adff88c7ece3f94ccb872f26"
+      },
+      {
+        "file": "ops/cloud-worker/cloud-worker-root-v5.mjs",
+        "normalizedLfSha256": "45e529ecded700c97e138ad78267c7e576f514776643d355989f8652a11ce6b9"
+      },
+      {
+        "file": "ops/cloud-worker/material/neon-programs-v5.json",
+        "normalizedLfSha256": "16d71c60e410437f4171329d38ae2d4fa088905b7dbf1d73290e6d5fea34e788"
+      },
+      {
+        "file": "ops/cloud-worker/material/public-capsule-v5.json",
+        "normalizedLfSha256": "263bc79a41746f3c036e19962953454e3d8d586bb2bf555ee3aeadd7d519ae4f"
+      },
+      {
+        "file": "ops/cloud-worker/neon-contract-v5.mjs",
+        "normalizedLfSha256": "0c1e83b81fcd0eefdc76c1ac0fa69ea4ac1bac634fc9138aa97010ad240a78b9"
+      },
+      {
+        "file": "ops/cloud-worker/neon-persistence-v5.mjs",
+        "normalizedLfSha256": "d80dcde40ccdf853846adc9be6f958ea532c560f782b4b2c2fb45c207f64dc18"
+      },
+      {
+        "file": "ops/cloud-worker/package-lock.json",
+        "normalizedLfSha256": "2011778b7f0e58db266c77506e37ef9827c6043e4ce9565bce6cffff84a32b8c"
+      },
+      {
+        "file": "ops/cloud-worker/package.json",
+        "normalizedLfSha256": "9a0124155263ac3641824c71338d07543f5c9167b3a98ae8ba74ad1cbf110718"
+      },
+      {
+        "file": "ops/cloud-worker/run-worker-v5.mjs",
+        "normalizedLfSha256": "17f49817448636238473dd4810f042b406142283593fa0e24b9ad47c2e2a5649"
+      },
+      {
+        "file": "package-lock.json",
+        "normalizedLfSha256": "bdef7dc276067e1d8749640b7365c8da98e3c7cd176d9863734d68c5804720a9"
+      },
+      {
+        "file": "package.json",
+        "normalizedLfSha256": "22dcd76795d40cfb0f15fbc39590d9c30adbc786e608c9f014eee6c3f4f6e57e"
+      }
+    ],
+    "closureSha256": "4bf7cb340a45d5ccf38f2d80e043763277a61c39514f661f7984280cf557139b",
+    "normalization": "CRLF_TO_LF_EXPLICIT_NOT_LEGACY_RAW_PINS",
+    "awsCalls": 0,
+    "databaseQueries": 0,
+    "privateReads": 0,
+    "runtimeActivated": false
+  },
+  "ciAndTestCodePins": [
+    {
+      "file": ".github/workflows/cloud-worker-candidate.yml",
+      "normalizedLfSha256": "711bdf8b20818b1ccd6af61af62d5fb09c0a19f808ce7143e57f989a2a1523c2"
+    },
+    {
+      "file": "tests/cloud-worker-root-v5.test.mjs",
+      "normalizedLfSha256": "2b4729eb8c1b9176dbe25749b5a29bbcc948cb6a89bfdcd10237596727012590"
+    },
+    {
+      "file": "tests/fixtures/cloud-worker-root-v5.mjs",
+      "normalizedLfSha256": "268880c1de8bab2d9ad45152863fae7166f7b5ba634f48e17b6f23c5f59be5ca"
+    },
+    {
+      "file": "scripts/ci/verify-cloud-neon-v5.mjs",
+      "normalizedLfSha256": "0f45e0f6202981175e2799f1bf81bc658f8c7e51b79292891c3fd27206671652"
+    },
+    {
+      "file": "scripts/ci/check-cloud-worker-closure-v5.mjs",
+      "normalizedLfSha256": "f3080c562047f9aee643326e12cab4680815fb28fa081e86e887a3fb20dd2acc"
+    }
+  ],
+  "productionEffectsThisPhase": {
+    "awsCalls": 0,
+    "neonQueries": 0,
+    "privateMaterialReads": 0,
+    "cloudWrites": 0,
+    "businessWrites": 0,
+    "slotsConsumed": 0,
+    "deployments": 0,
+    "sitesWrites": 0
+  },
+  "boundaries": {
+    "monthlyBudgetTargetUsd": 50,
+    "budgetIsHardCap": false,
+    "oldJobsRecordsSlotsAndReadyPreserved": true,
+    "sourceOrControlKeysRequested": false,
+    "currentWorkloadHealthCleanupAndFeesNotVerified": true,
+    "dbCredentialCanActWithinExactSandboxScope": true,
+    "hashesAreNotProviderAttestation": true
+  },
+  "nextStep": "Read-only installation inventory then one scoped review for OIDC role/policy, journal, private evidence bucket, narrow DB role/functions, two fixed Secrets and protected exact-job workflow. No further observer slices, no W4c replay."
+}

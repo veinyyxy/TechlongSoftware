@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-17最新：**W5c统一云执行根与最小Neon权限合同已完成候选验证**。一个Review/RunOnce/独立Inspect接五个永久槽、七资源一次建栈、最小Secret及两认证GET、同job原子完成和私有条件写回执；W4c之后沿革可继续，无需每次改源码。云端36项回归、真实PG18十二组（含并发/越权/回滚）及75文件闭包通过，原ZIP/五回执独立核对；旧99 pins保持。未安装权限/读生产私密值或部署，不是无人值守已上线。下一集中盘点/审核最小云安装资源，不扩观察器。见 [W5c实现、完整风险及下一范围](docs/aws-auto-deployment-cloud-worker-w5c.md) / [准确云CI证据](ops/aws-sandbox/reviews/cloud-worker-w5c.prepared.json)。下方进度为历史。
+
 2026-10-17当前进度：**W5b云adapter与最小材料候选已完成**：SDK替代本机CLI/Login、独立依赖锁、准确W4c :5沿革公开capsule和受限JWT/mTLS Secret接口；本地29项、Linux 20+8项/60文件闭包通过，原始回执独立核实。尚未启用执行入口/安装权限或读取真实私密值；下一收口一个Review/Run/Inspect根及最小Neon权限合同，不重复W4c验收或扩支线。见 [W5b实现、验证与继续位置](docs/aws-auto-deployment-cloud-worker-w5b.md)。
 
 2026-10-17当前进度：W4c真实闭环已完成，现推进 **W5云端单次worker**。W5a独立DynamoDB永久围栏及无AWS凭据的Actions验证工作流已完成，两轮云临时服务各7组通过、原始回执/清理独立核实；本地17项相邻测试/type/lint及旧99 pins通过。未安装/启用AWS资源，下一W5b云provider与最小材料，不重复请求/部署验收。见 [本次实现、云CI边界及继续位置](docs/aws-auto-deployment-cloud-worker-w5a.md)。
