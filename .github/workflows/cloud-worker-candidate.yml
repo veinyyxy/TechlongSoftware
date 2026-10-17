@@ -55,12 +55,13 @@ jobs:
       - name: Type, lint and exact local module syntax
         run: |
           npx tsc --noEmit --incremental false
-          npx eslint ops/cloud-worker/*.mjs tests/cloud-worker*.test.mjs tests/fixtures/cloud-control-v5.mjs tests/fixtures/cloud-worker-root-v5.mjs scripts/ci/check-cloud-worker-closure-v5.mjs scripts/ci/verify-cloud-neon-v5.mjs
+          npx eslint ops/cloud-worker/*.mjs ops/cloud-worker/install/*.mjs tests/cloud-worker*.test.mjs tests/fixtures/cloud-control-v5.mjs tests/fixtures/cloud-worker-root-v5.mjs scripts/ci/check-cloud-worker-closure-v5.mjs scripts/ci/verify-cloud-neon-v5.mjs
           node --check ops/cloud-worker/aws-initialized-workload-v5.mjs
       - name: Real crypto and cloud journal contracts - no tenant request
         run: >-
           node --experimental-strip-types --test tests/cloud-worker-v5.test.mjs
           tests/cloud-worker-root-v5.test.mjs
+          tests/cloud-worker-install-v5.test.mjs
           tests/cloud-worker-journal-v1.test.ts
       - name: W4 pure contracts - historical Windows local CLI verified separately
         run: >-
