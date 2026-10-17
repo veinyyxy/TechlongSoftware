@@ -41,10 +41,15 @@ jobs:
           npx tsc --noEmit --incremental false
           npx eslint ops/cloud-worker/*.mjs tests/cloud-worker-v5.test.mjs tests/fixtures/cloud-control-v5.mjs scripts/ci/check-cloud-worker-closure-v5.mjs
           node --check ops/cloud-worker/aws-initialized-workload-v5.mjs
-      - name: Real crypto and adjacent journal/platform contract tests - no tenant request
+      - name: Real crypto and cloud journal contracts - no tenant request
         run: >-
           node --experimental-strip-types --test tests/cloud-worker-v5.test.mjs
-          tests/cloud-worker-journal-v1.test.ts tests/express-platform-worker-v4.test.mjs
+          tests/cloud-worker-journal-v1.test.ts
+      - name: W4 pure contracts - historical Windows local CLI verified separately
+        run: >-
+          node --experimental-strip-types --test
+          --test-skip-pattern='^real CLI CheckRuntime is local;'
+          tests/express-platform-worker-v4.test.mjs
       - name: Check portable runtime, historical public lineage and module closure
         run: |
           mkdir -p "$RUNNER_TEMP/cloud-worker-candidate"

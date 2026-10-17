@@ -28,7 +28,7 @@ node scripts/ci/check-cloud-worker-closure-v5.mjs
 
 本地新12项加journal8/W4相邻9项共29项通过；测试使用自生成一次性证书与真实RSA签验，检查材料/指纹/域名/方法/版本/顺序及重试阻断，没有使用真实控制密钥或发送租户GET。Windows沙箱曾阻止OpenSSL命名对象，随后仅对自有fixture测试提权重跑通过，临时密钥目录已按准确前缀删除；不是放宽生产证书规则。完整typecheck/定向lint通过，独立依赖audit为0 HIGH/CRITICAL，旧99 raw pins仍通过。
 
-`.github/workflows/cloud-worker-candidate.yml`将在干净Linux runner安装两套锁定依赖，运行29项回归、真实fixture crypto、runtime/capsule/60文件本地源码闭包检查；**contents:read、无OIDC/AWS凭据/仓库Secret**。不会调用真实provider或Secret loader。云CI结论及原件摘要以随后的准确run记录为准，不把HTTP替身/本地fixture测试宣称为真实AWS权限/TLS部署验收。
+`.github/workflows/cloud-worker-candidate.yml`在干净Linux runner安装两套锁定依赖，运行20项新云/journal测试和8项W4纯逻辑回归、真实fixture crypto、runtime/capsule/60文件本地源码闭包检查；**contents:read、无OIDC/AWS凭据/仓库Secret**。不会调用真实provider或Secret loader。旧W4的1项Windows本机CLI测试仅在Windows的29项中验证，Linux明确排除该项，**新V5入口测试不排除**。首轮run 39071674100因错误地附跑旧CLI测试而失败（旧CLI加载E盘backend package），未修改旧码或放宽其限制；更正CI范围后另跑新提交。最终云CI结论及原件摘要以随后准确run记录为准，不把HTTP替身/本地fixture宣称为真实AWS权限/TLS部署验收。
 
 ## 具体待安装材料边界（尚未批准）
 
