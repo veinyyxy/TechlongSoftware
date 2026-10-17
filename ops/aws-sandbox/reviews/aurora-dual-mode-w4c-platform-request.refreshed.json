@@ -1,0 +1,68 @@
+{
+  "schema": "techlong/platform-worker-w4c-refreshed-review/v1",
+  "state": "SOURCE_REFRESHED_NEW_READONLY_REVIEW_AWAITING_EXPLICIT_NEW_SHA_APPROVAL",
+  "jobId": "job_fe5ced28b698d0bf128e7b42",
+  "requestId": "4f5eb21905f0d410241d7314df370afcf332bda01a724b4b4148bcbf6cddbdcc",
+  "previousApprovedManifestSha256": "b286086082c7754ef5a0c4e331a92409e3a22824f0d912ffd332e42ce714cc20",
+  "previousManifestExpired": true,
+  "failedRunDirectoryPreserved": "F:/ChatGPT_workshop/techlong-platform-w4-run-20261016-r1",
+  "oldFailureRawFileSha256Unchanged": "0b943c078dc9926d689b43760929354f35691f03cbbac02ba9021aa4f6ba3606",
+  "userSourceRefreshOnlyReadOnlyAuthority": true,
+  "review": {
+    "directory": "F:/ChatGPT_workshop/techlong-platform-w4-review-20261016-r3",
+    "outcome": "READY_FOR_EXACT_QUEUED_JOB_APPROVAL_NO_WRITES",
+    "manifestSha256": "aad135499b74f8b93fe3f0204dc70a81bfe5ec7aec4e38b0afe5c5148a0add34",
+    "claimBy": "2026-10-17T04:50:34.482Z",
+    "workloadExpiresAt": "2026-10-17T06:35:34.000Z",
+    "sdkReads": 38,
+    "cliReadCommands": 13,
+    "readOnlyTransactions": 2,
+    "codePins": 99,
+    "existingIamAndFixedMetadataVerified": true,
+    "retiredPredecessorAndNamespaceVerified": true,
+    "executionApproved": false
+  },
+  "independentReadback": {
+    "checkedAt": "2026-10-17T04:36:28.294Z",
+    "outcome": "FRESH_REVIEW_AND_SAME_HELD_JOB_INDEPENDENTLY_VERIFIED",
+    "status": "pending",
+    "attempts": 0,
+    "queuedRowSha256": "ccf6f1a5808223dc21cce8c604750a6324b4d35cb12ac7efeef7c86c957ed3b6",
+    "snapshotSha256": "6db433f3ddcf42735772879c5b36e3786d88a68e2716947a2bb62b893809d633",
+    "sameJobSnapshotMaterialActorCodeEndpointAndEffectScopeAsPriorReview": true,
+    "readOnlyTransactions": 2,
+    "requestSlotDirectoryExists": false
+  },
+  "rawEvidence": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-review-20261016-r3/manifest.json",
+      "rawFileSha256": "b52a30e24167f5d6615f0619bf9c6384fa78e089deac1dc8cab259729bb83c7b"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-review-20261016-r3/provider-review.json",
+      "rawFileSha256": "3879d0a01878b119ea4e14170f3256a27c2125fd027635c3f66a8e558af8d122"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-review-20261016-r3/result.json",
+      "rawFileSha256": "4dd79f2f9a528a6f41133626dbaa5a38eb40d97e5514189e815a1ed1f7ac9087"
+    }
+  ],
+  "effects": {
+    "sqlWrites": 0,
+    "awsWrites": 0,
+    "jobClaims": 0,
+    "newJobs": 0,
+    "privatePackageReads": 0,
+    "secretValueApiReads": 0,
+    "authenticatedApplicationGets": 0,
+    "executionSlotsConsumed": 0,
+    "localRequestEntryReopened": false
+  },
+  "next": {
+    "explicitNewManifestShaAndRiskApprovalRequired": true,
+    "sameExactHeldJobOnly": true,
+    "doNotReplayFailedRunOrOverwriteEvidence": true,
+    "automaticWriteRetryAllowed": false,
+    "riskFile": "docs/aws-auto-deployment-aurora-dual-mode-w4b-execution-review.md"
+  }
+}
