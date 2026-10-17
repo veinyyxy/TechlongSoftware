@@ -1,0 +1,66 @@
+name: Cloud worker durable journal proof - No AWS
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cloud-worker-journal.yml'
+      - 'lib/deployments/execution/cloud-worker-journal-v1.ts'
+      - 'lib/deployments/execution/hash.ts'
+      - 'tests/cloud-worker-journal-v1.test.ts'
+      - 'tests/fixtures/cloud-worker-journal-v1.ts'
+      - 'scripts/ci/prove-cloud-worker-journal-v1.mjs'
+      - 'package*.json'
+permissions:
+  contents: read
+concurrency:
+  group: cloud-worker-journal-proof-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      JOURNAL_CONTAINER: journal-proof-${{ github.run_id }}-${{ github.run_attempt }}
+      DYNAMODB_IMAGE: amazon/dynamodb-local:3.3.2@sha256:bc216b4351fab2299ed73511118405721ecc6e26d9a231344b08dc3e8bdddcaf
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check types, syntax and narrow fail-closed tests
+        run: |
+          npx tsc --noEmit --incremental false
+          npx eslint lib/deployments/execution/cloud-worker-journal-v1.ts tests/cloud-worker-journal-v1.test.ts tests/fixtures/cloud-worker-journal-v1.ts scripts/ci/prove-cloud-worker-journal-v1.mjs
+          node --experimental-strip-types --test tests/cloud-worker-journal-v1.test.ts
+      - name: Start owned disposable service on runner loopback only
+        run: >-
+          docker run --detach --name "$JOURNAL_CONTAINER" --publish 127.0.0.1:8000:8000
+          "$DYNAMODB_IMAGE" -jar DynamoDBLocal.jar -inMemory -sharedDb -disableTelemetry
+      - name: Prove real service condition, race and ACK-loss behavior
+        run: |
+          mkdir -p "$RUNNER_TEMP/journal-proof"
+          node --experimental-strip-types scripts/ci/prove-cloud-worker-journal-v1.mjs > "$RUNNER_TEMP/journal-proof/proof.json"
+          cat "$RUNNER_TEMP/journal-proof/proof.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Record exact image and remove only this run's disposable container
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/journal-proof"
+          if docker inspect "$JOURNAL_CONTAINER" > /dev/null 2>&1; then
+            docker inspect "$JOURNAL_CONTAINER" --format '{{json .Config.Image}}' > "$RUNNER_TEMP/journal-proof/image.json"
+            docker logs "$JOURNAL_CONTAINER" > "$RUNNER_TEMP/journal-proof/service.log" 2>&1
+            docker rm --force "$JOURNAL_CONTAINER"
+            if docker inspect "$JOURNAL_CONTAINER" > /dev/null 2>&1; then exit 1; fi
+            printf '{"ownedContainerRemoved":true}\n' > "$RUNNER_TEMP/journal-proof/cleanup.json"
+          fi
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: cloud-worker-journal-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/journal-proof/
+          if-no-files-found: warn
+          retention-days: 7

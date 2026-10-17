@@ -1,16 +1,16 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
-最新里程碑（Winnipeg 2026-10-16 23:41 CDT）：第一步真实平台触发的受控闭环已通过，准确同job succeeded、AWS新栈及两认证GET/原子回执和独立Inspect均核实。下一进入第二步的**执行器云化与受控材料准备**，不再重复登记请求/部署验收，不扩F3c9支线；仍未实现无人值守或整套平台AWS托管。具体原件/固定到期/继续边界见 [W4c实际执行](aws-auto-deployment-aurora-dual-mode-w4c-executed.md)。下方保留方案确立时的步骤与边界。
+最新里程碑（2026-10-17）：W4c真实平台触发闭环已通过，现进入第二步**W5执行器云化**。W5a已实现独立DynamoDB永久journal及无AWS凭据的Actions服务验证工作流，未安装或启用；云CI结论以准确run记录为准。首轮选Actions单次worker，不另建常驻worker服务；下一W5b去掉Login/本机CLI并准备最小材料。见 [W5a实现、验证与唯一继续位置](aws-auto-deployment-cloud-worker-w5a.md) / [W4c实际执行](aws-auto-deployment-aurora-dual-mode-w4c-executed.md)。不再重复部署验收、不扩F3c9支线，仍未实现无人值守或整套AWS托管。
 
 2026-10-16，按用户最新决定更新。**不在 Sites 上线，不修改 Sites 托管配置、不推送 sites remote。** 保留现有兼容代码和托管身份，避免把“现在不发布”扩大成未经批准的删除/重构。F3c9 等支线继续冻结，历史文档用于追溯，不再作为下一步任务来源。
 
 ## 顺序与完成标准
 
-1. **先打通平台触发闭环。** 本地平台 → 现有 Neon 控制面的一条待审任务 → W4 单次 worker → AWS 实际承载 → 两个认证 GET → 同任务结果回显及独立 Inspect。W3 已有真实部署证明，W4a/b 已完成代码接线；尚缺本地管理员真实请求和这条请求的实际部署验收。当前 W4c 只准备本地入口，未授权任何新请求或云部署。
+1. **先打通平台触发闭环（W4c已完成）。** 本地平台 → 现有 Neon 控制面的一条待审任务 → W4 单次 worker → AWS 实际承载 → 两个认证 GET → 同任务结果回显及独立 Inspect。准确同job已成功，历史入口与消费槽保留，不作为下一条请求的可重放根。
 2. **再把部署执行自动化。** 上述验收通过后，将准确 job 的 Review/批准/执行/Inspect 收拢到同一条操作流程；再把 worker 从依赖本机 AWS Login/本地私密包迁到受限云执行身份及受控材料。新增 IAM、云运行环境与凭据迁移按实际资源范围另审，不复制长期 AWS key，不先开放全局队列。完成标准是批准后无需人工逐条跑部署命令，失败/未知有明确状态且不偷偷重试。这才是本轮目标的自动部署完成，不把“按钮已出现”或“本机 CLI 成功”当作最终完成。
 3. **最后整套系统在 AWS 上线。** 平台前端/API、部署执行器、租户应用和最终数据库承载统一纳入 AWS 发布方案，配好 `techlong.cloud` 的子域、HTTPS、登录及 Stripe 回调、日志、备份和恢复验收。本地平台/Neon 是当前过渡，不把它们当最终 AWS 交付。平台目前有 Cloudflare runtime 依赖，届时需真实 Node/AWS 适配；本阶段不提前重写。Aurora Express/Full 快速切换方案保留。
 
-不把第三步提前做成另一个发布项目。上述第一步通过前，不新增 Sites 版本、不为平台再创建一套 ALB/ECS/数据库，也不重新启动旧 generation/IAM 探针。
+不把第三步提前做成另一个发布项目。当前不新增 Sites 版本、不为平台再创建一套 ALB/ECS/数据库，也不重新启动旧 generation/IAM 探针。
 
 ## 沿用边界
 
@@ -21,4 +21,4 @@
 
 ## 唯一继续位置
 
-见 [W4c 本地入口与下一次审批范围](aws-auto-deployment-aurora-dual-mode-w4c-local-entry.md)。不要从 README 下方保留的旧历史重新开始支线。W4c 准备后，先批准并由管理员在本机页面登记一条 held request，再对其准确 job 做 W4 Review；没有真实待审行时不能制造部署 SHA。
+见 [W5a云journal与W5b继续位置](aws-auto-deployment-cloud-worker-w5a.md)。不要从README下方旧历史或W4c已完成的本地入口重新登记请求，不制造新job/部署SHA，也不改旧前驱来重放W4。新增权限、材料迁移及实际云运行在W5b接线后按准确范围另审。
