@@ -112,7 +112,8 @@ export async function openCloudWorkerJournalV1(input: {
             ExpressionAttributeNames: { '#binding': 'binding', '#table': 'tableId', '#state': 'state' },
             ExpressionAttributeValues: { ':binding': S(bindingJson), ':table': S(tableId), ':state': S('CONSUMED_BEFORE_ATTEMPT') } } },
           { Put: put },
-        ] })); // No client token or retry: a duplicate must NOT return a fresh ACK.
+        ] })); // No reused client token/retry; SDK-generated random tokens are
+        // NOT the permanent fence and must never authorize replay/continuation.
         const acknowledgedAt = now();
         must(!halted && Number.isSafeInteger(acknowledgedAt) && acknowledgedAt >= at && acknowledgedAt < b.expiresAt); next++;
         return Object.freeze({ entry, actionSha256: b.actions[entry], effectSha256, bindingSha256,

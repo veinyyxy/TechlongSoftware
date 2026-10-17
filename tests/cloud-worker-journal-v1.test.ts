@@ -111,3 +111,29 @@ test('missing/gapped/tampered slots and provider errors never become success or 
   assert.equal((await j.inspect()).state, 'UNKNOWN_OR_CONFLICT');
   assert.equal((await j.inspect()).executionSucceededProved, false);
 });
+test('TTL enabling/disabled-with-old-attribute and replicated/indexed tables are rejected before writes', async () => {
+  for (const ttl of [{ TimeToLiveStatus: 'ENABLED', AttributeName: 'expires' },
+    { TimeToLiveStatus: 'DISABLING', AttributeName: 'expires' }, { TimeToLiveStatus: 'DISABLED', AttributeName: 'expires' }]) {
+    const s = stub(), port: CloudWorkerJournalPortV1 = { send: (c, signal) => c instanceof DescribeTimeToLiveCommand ?
+      Promise.resolve({ TimeToLiveDescription: ttl }) : s.port.send(c, signal) };
+    await assert.rejects(open(port), /INSPECT_REQUIRED_NO_RETRY/);
+    assert.equal(s.calls.filter(c => /PutItem|TransactWrite/.test(c)).length, 0);
+  }
+  for (const field of ['Replicas', 'GlobalSecondaryIndexes', 'LocalSecondaryIndexes']) {
+    const s = stub(), m = journalMetadata(); Object.assign(m.Table, { [field]: [{ unapproved: true }] }); s.setMetadata(m);
+    await assert.rejects(open(s.port), /INSPECT_REQUIRED_NO_RETRY/);
+  }
+});
+test('ACK arriving after deadline consumes fence but never permits an effect; expired Inspect still works', async () => {
+  const s = stub(), b = journalBinding(); let now = JOURNAL_NOW;
+  const port: CloudWorkerJournalPortV1 = { async send(c, signal) {
+    const response = await s.port.send(c, signal);
+    if (c instanceof PutItemCommand) now = b.expiresAt;
+    return response;
+  } };
+  const j = await open(port, b, () => now);
+  await assert.rejects(j.consume('run', b.manifestSha256), /INSPECT_REQUIRED_NO_RETRY/);
+  assert.equal((await j.inspect()).state, 'PARTIAL');
+  await assert.rejects(j.consume('claim_job', b.actions.claim_job));
+  assert.equal(s.items.size, 1);
+});
