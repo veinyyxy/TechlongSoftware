@@ -1,0 +1,1323 @@
+{
+  "schema": "techlong/cloud-worker-w5d-prepared/v1",
+  "state": "INSTALL_INVENTORY_AND_DESIGN_VERIFIED_NOT_EXECUTABLE_NO_APPROVAL",
+  "verifiedCodeCommit": "15e4d775cd61ee0eb274d1ccfbea5d3ff8e741d0",
+  "designReviewSha256": "ab5b514a087a41ec23a72718e7e787f0471130a4df1d05aba09dbfe1728a5aec",
+  "executionManifestAvailable": false,
+  "designReview": {
+    "schema": "techlong/cloud-worker-install-design-review/v5",
+    "state": "PREPARED_NOT_EXECUTABLE_NO_MUTATION_APPROVAL",
+    "currentRuntimeClosureSha256": "4bf7cb340a45d5ccf38f2d80e043763277a61c39514f661f7984280cf557139b",
+    "scope": {
+      "environment": "techlong-sandbox-deploy",
+      "repositoryId": "1323312747",
+      "ownerId": "14145707",
+      "subject": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy",
+      "caller": ".github/workflows/cloud-worker-execute.yml",
+      "reusable": ".github/workflows/cloud-worker-job.yml",
+      "foundationStack": "techlong-sandbox-cloud-worker-foundation-v5",
+      "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxGitHubDeploymentWorkerRole",
+      "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+      "secretVersions": [
+        "ce34d730-0e08-4ce7-b1b6-b5eaa5f9ca0e",
+        "2854e7b6-6c3c-41be-a5d8-b87dd9d98810"
+      ]
+    },
+    "inventorySha256": {
+      "aws": "5637a0abbdccb65bb5932a2ccfc39e838a05762e6dbcfff94117e0fde490c165",
+      "github": "ae4669c2d11addea35615cd554bddf9b4523ffc0fe058d8a0804f430361b1076",
+      "neon": "50be9ff0d89060254318038ef27a7437d1bfbe1fa2b2518c88fad697fb4f7e61"
+    },
+    "foundationTemplate": {
+      "AWSTemplateFormatVersion": "2010-09-09",
+      "Description": "W5 cloud worker foundation only; no workload, no secret values, locked trust",
+      "Resources": {
+        "Boundary": {
+          "Type": "AWS::IAM::ManagedPolicy",
+          "Properties": {
+            "ManagedPolicyName": "TechlongSandboxGitHubDeploymentWorkerBoundaryV5",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudformation:CreateStack",
+                    "cloudformation:DescribeStacks",
+                    "cloudformation:GetTemplate",
+                    "cloudformation:ListStackResources",
+                    "cloudformation:TagResource",
+                    "cloudformation:ValidateTemplate",
+                    "dynamodb:ConditionCheckItem",
+                    "dynamodb:DescribeTable",
+                    "dynamodb:DescribeTimeToLive",
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "ecr:BatchGetImage",
+                    "ecr:DescribeImageScanFindings",
+                    "ecs:DescribeClusters",
+                    "ecs:DescribeServices",
+                    "ecs:DescribeTaskDefinition",
+                    "ecs:DescribeTasks",
+                    "ecs:ListTaskDefinitions",
+                    "ecs:ListTasks",
+                    "elasticloadbalancing:DescribeListeners",
+                    "elasticloadbalancing:DescribeLoadBalancers",
+                    "elasticloadbalancing:DescribeRules",
+                    "elasticloadbalancing:DescribeTargetGroups",
+                    "elasticloadbalancing:DescribeTargetHealth",
+                    "iam:GetPolicy",
+                    "iam:GetPolicyVersion",
+                    "iam:GetRole",
+                    "iam:GetRolePolicy",
+                    "iam:ListAttachedRolePolicies",
+                    "iam:ListRolePolicies",
+                    "iam:PassRole",
+                    "lambda:GetFunctionConfiguration",
+                    "logs:DescribeLogGroups",
+                    "rds:DescribeDBClusters",
+                    "route53:ListResourceRecordSets",
+                    "s3:GetBucketOwnershipControls",
+                    "s3:GetBucketPublicAccessBlock",
+                    "s3:GetBucketVersioning",
+                    "s3:GetEncryptionConfiguration",
+                    "s3:GetObjectVersion",
+                    "s3:ListBucket",
+                    "s3:PutObject",
+                    "scheduler:GetSchedule",
+                    "secretsmanager:DescribeSecret",
+                    "secretsmanager:GetSecretValue"
+                  ],
+                  "Resource": "*",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:RequestedRegion": [
+                        "ca-central-1",
+                        "us-east-1"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "WorkerRole": {
+          "Type": "AWS::IAM::Role",
+          "Properties": {
+            "RoleName": "TechlongSandboxGitHubDeploymentWorkerRole",
+            "MaxSessionDuration": 3600,
+            "PermissionsBoundary": {
+              "Ref": "Boundary"
+            },
+            "AssumeRolePolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Deny",
+                  "Principal": {
+                    "Federated": "arn:aws:iam::402010193138:oidc-provider/token.actions.githubusercontent.com"
+                  },
+                  "Action": "sts:AssumeRoleWithWebIdentity"
+                }
+              ]
+            },
+            "Policies": [
+              {
+                "PolicyName": "ExactSandboxWorkerV5",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "cloudformation:DescribeStacks",
+                        "cloudformation:GetTemplate",
+                        "cloudformation:ListStackResources"
+                      ],
+                      "Resource": [
+                        "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+                        "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/*"
+                      ],
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "cloudformation:ValidateTemplate",
+                      "Resource": "*",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "cloudformation:CreateStack",
+                      "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/*",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1",
+                          "cloudformation:RoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+                          "aws:RequestTag/AppInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+                          "aws:RequestTag/DeploymentId": "dep_7c99bd249470184852f0dc74",
+                          "aws:RequestTag/Environment": "aws-sandbox",
+                          "aws:RequestTag/ManagedBy": "techlong-provisioner"
+                        },
+                        "ForAllValues:StringEquals": {
+                          "cloudformation:ResourceTypes": [
+                            "AWS::Logs::LogGroup",
+                            "AWS::ECS::TaskDefinition",
+                            "AWS::ElasticLoadBalancingV2::TargetGroup",
+                            "AWS::ElasticLoadBalancingV2::ListenerRule",
+                            "AWS::ECS::Service"
+                          ]
+                        },
+                        "Null": {
+                          "cloudformation:ResourceTypes": "false",
+                          "cloudformation:TemplateUrl": "true"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "cloudformation:TagResource",
+                      "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/*",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1",
+                          "aws:RequestTag/AppInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+                          "aws:RequestTag/DeploymentId": "dep_7c99bd249470184852f0dc74",
+                          "aws:RequestTag/Environment": "aws-sandbox"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "iam:PassRole",
+                      "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+                      "Condition": {
+                        "StringEquals": {
+                          "iam:PassedToService": "cloudformation.amazonaws.com"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "iam:GetRole",
+                        "iam:ListRolePolicies",
+                        "iam:ListAttachedRolePolicies",
+                        "iam:GetRolePolicy"
+                      ],
+                      "Resource": [
+                        "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+                        "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+                        "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "iam:GetPolicy",
+                        "iam:GetPolicyVersion"
+                      ],
+                      "Resource": [
+                        "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+                        "arn:aws:iam::402010193138:policy/TechlongSandboxServiceRoleBoundary"
+                      ]
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "ecs:DescribeClusters",
+                      "Resource": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "ecs:DescribeServices",
+                      "Resource": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "ecs:DescribeTasks",
+                      "Resource": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/*",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "ecs:DescribeTaskDefinition",
+                      "Resource": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:*",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "ecs:ListTasks",
+                      "Resource": "*",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1",
+                          "ecs:cluster": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "ecs:ListTaskDefinitions",
+                        "logs:DescribeLogGroups",
+                        "elasticloadbalancing:DescribeTargetGroups",
+                        "elasticloadbalancing:DescribeRules",
+                        "elasticloadbalancing:DescribeTargetHealth",
+                        "elasticloadbalancing:DescribeListeners",
+                        "elasticloadbalancing:DescribeLoadBalancers"
+                      ],
+                      "Resource": "*",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "rds:DescribeDBClusters",
+                      "Resource": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "ecr:BatchGetImage",
+                        "ecr:DescribeImageScanFindings"
+                      ],
+                      "Resource": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "route53:ListResourceRecordSets",
+                      "Resource": "arn:aws:route53:::hostedzone/Z01473621BTTHKXBGOOEJ"
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "lambda:GetFunctionConfiguration",
+                      "Resource": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-janitor",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "scheduler:GetSchedule",
+                      "Resource": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox/global-expired-stack-scan",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "secretsmanager:DescribeSecret",
+                      "Resource": [
+                        "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+                        "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/control-public-key-first-acceptance-PfBjiq"
+                      ],
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "dynamodb:DescribeTable",
+                        "dynamodb:DescribeTimeToLive"
+                      ],
+                      "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-deployment-worker-journal-v1",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "dynamodb:PutItem",
+                        "dynamodb:ConditionCheckItem",
+                        "dynamodb:GetItem"
+                      ],
+                      "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-deployment-worker-journal-v1",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        },
+                        "ForAllValues:StringLike": {
+                          "dynamodb:LeadingKeys": [
+                            "JOB#job_*"
+                          ]
+                        },
+                        "Null": {
+                          "dynamodb:LeadingKeys": "false"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "dynamodb:GetItem",
+                      "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        },
+                        "ForAllValues:StringEquals": {
+                          "dynamodb:LeadingKeys": [
+                            "tenant:a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+                            "tenant:aurora-v2:a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d"
+                          ]
+                        },
+                        "Null": {
+                          "dynamodb:LeadingKeys": "false"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": [
+                        "s3:ListBucket",
+                        "s3:GetBucketPublicAccessBlock",
+                        "s3:GetEncryptionConfiguration",
+                        "s3:GetBucketOwnershipControls",
+                        "s3:GetBucketVersioning"
+                      ],
+                      "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "s3:GetObjectVersion",
+                      "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/*",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "s3:PutObject",
+                      "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/*",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1",
+                          "s3:if-none-match": "*",
+                          "s3:x-amz-server-side-encryption": "AES256"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "secretsmanager:GetSecretValue",
+                      "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/neon-control-v1-??????",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1",
+                          "secretsmanager:VersionId": "ce34d730-0e08-4ce7-b1b6-b5eaa5f9ca0e"
+                        }
+                      }
+                    },
+                    {
+                      "Effect": "Allow",
+                      "Action": "secretsmanager:GetSecretValue",
+                      "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/control-first-acceptance-v1-??????",
+                      "Condition": {
+                        "StringEquals": {
+                          "aws:RequestedRegion": "ca-central-1",
+                          "secretsmanager:VersionId": "2854e7b6-6c3c-41be-a5d8-b87dd9d98810"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "Tags": [
+              {
+                "Key": "Environment",
+                "Value": "aws-sandbox"
+              },
+              {
+                "Key": "Purpose",
+                "Value": "cloud-worker-v5"
+              },
+              {
+                "Key": "AppInstanceId",
+                "Value": "app_e897a4377bce498b9c5ee9e64509dcad"
+              }
+            ]
+          }
+        },
+        "Journal": {
+          "Type": "AWS::DynamoDB::Table",
+          "DeletionPolicy": "Retain",
+          "UpdateReplacePolicy": "Retain",
+          "Properties": {
+            "TableName": "techlong-sandbox-deployment-worker-journal-v1",
+            "BillingMode": "PAY_PER_REQUEST",
+            "DeletionProtectionEnabled": true,
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "pk",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "sk",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "pk",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "sk",
+                "KeyType": "RANGE"
+              }
+            ],
+            "Tags": [
+              {
+                "Key": "Environment",
+                "Value": "aws-sandbox"
+              },
+              {
+                "Key": "Purpose",
+                "Value": "cloud-worker-v5"
+              },
+              {
+                "Key": "AppInstanceId",
+                "Value": "app_e897a4377bce498b9c5ee9e64509dcad"
+              }
+            ]
+          }
+        },
+        "EvidenceBucket": {
+          "Type": "AWS::S3::Bucket",
+          "DeletionPolicy": "Retain",
+          "UpdateReplacePolicy": "Retain",
+          "Properties": {
+            "BucketName": "techlong-sandbox-cloud-worker-evidence-402010193138",
+            "PublicAccessBlockConfiguration": {
+              "BlockPublicAcls": true,
+              "IgnorePublicAcls": true,
+              "BlockPublicPolicy": true,
+              "RestrictPublicBuckets": true
+            },
+            "OwnershipControls": {
+              "Rules": [
+                {
+                  "ObjectOwnership": "BucketOwnerEnforced"
+                }
+              ]
+            },
+            "VersioningConfiguration": {
+              "Status": "Enabled"
+            },
+            "BucketEncryption": {
+              "ServerSideEncryptionConfiguration": [
+                {
+                  "ServerSideEncryptionByDefault": {
+                    "SSEAlgorithm": "AES256"
+                  }
+                }
+              ]
+            },
+            "Tags": [
+              {
+                "Key": "Environment",
+                "Value": "aws-sandbox"
+              },
+              {
+                "Key": "Purpose",
+                "Value": "cloud-worker-v5"
+              },
+              {
+                "Key": "AppInstanceId",
+                "Value": "app_e897a4377bce498b9c5ee9e64509dcad"
+              }
+            ]
+          }
+        },
+        "EvidencePolicy": {
+          "Type": "AWS::S3::BucketPolicy",
+          "DependsOn": "EvidenceBucket",
+          "Properties": {
+            "Bucket": {
+              "Ref": "EvidenceBucket"
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "DenyInsecureTransport",
+                  "Effect": "Deny",
+                  "Principal": "*",
+                  "Action": "s3:*",
+                  "Resource": [
+                    "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138",
+                    "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/*"
+                  ],
+                  "Condition": {
+                    "Bool": {
+                      "aws:SecureTransport": "false"
+                    }
+                  }
+                },
+                {
+                  "Sid": "RequireCreateOnlyWorkerPut",
+                  "Effect": "Deny",
+                  "Principal": "*",
+                  "Action": "s3:PutObject",
+                  "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/*",
+                  "Condition": {
+                    "StringNotEquals": {
+                      "s3:if-none-match": "*"
+                    }
+                  }
+                },
+                {
+                  "Sid": "KeepWorkerReceipts",
+                  "Effect": "Deny",
+                  "Principal": "*",
+                  "Action": [
+                    "s3:DeleteObject",
+                    "s3:DeleteObjectVersion"
+                  ],
+                  "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/*"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "foundationTemplateSha256": "cd333e654a34268578f92a5495b3b3fd942095e00ddaf54882750e9556e54c02",
+    "secretReadIsolationPolicy": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "DenyOtherDataReaders",
+          "Effect": "Deny",
+          "Principal": "*",
+          "Action": "secretsmanager:GetSecretValue",
+          "Resource": "*",
+          "Condition": {
+            "ArnNotEquals": {
+              "aws:PrincipalArn": [
+                "arn:aws:iam::402010193138:role/TechlongSandboxGitHubDeploymentWorkerRole",
+                "arn:aws:iam::402010193138:user/techlong-sandbox-dev"
+              ]
+            }
+          }
+        },
+        {
+          "Sid": "OnlySourceMayManageNewSecrets",
+          "Effect": "Deny",
+          "Principal": "*",
+          "Action": [
+            "secretsmanager:PutSecretValue",
+            "secretsmanager:UpdateSecret",
+            "secretsmanager:DeleteSecret",
+            "secretsmanager:RestoreSecret",
+            "secretsmanager:PutResourcePolicy",
+            "secretsmanager:DeleteResourcePolicy",
+            "secretsmanager:RotateSecret",
+            "secretsmanager:CancelRotateSecret",
+            "secretsmanager:ReplicateSecretToRegions",
+            "secretsmanager:RemoveRegionsFromReplication",
+            "secretsmanager:StopReplicationToReplica"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "ArnNotEquals": {
+              "aws:PrincipalArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev"
+            }
+          }
+        }
+      ]
+    },
+    "secretInstallOrder": [
+      {
+        "name": "techlong/sandbox/deployment-worker/neon-control-v1",
+        "versionId": "ce34d730-0e08-4ce7-b1b6-b5eaa5f9ca0e",
+        "kms": "AWS_MANAGED_DEFAULT",
+        "sequence": [
+          "CreateSecretWithoutValue",
+          "PutResourcePolicyBlockPublicPolicyTrue",
+          "VerifyResourcePolicy",
+          "PutExactVersionValueOnce",
+          "DescribeMetadata"
+        ]
+      },
+      {
+        "name": "techlong/sandbox/deployment-worker/control-first-acceptance-v1",
+        "versionId": "2854e7b6-6c3c-41be-a5d8-b87dd9d98810",
+        "kms": "AWS_MANAGED_DEFAULT",
+        "sequence": [
+          "CreateSecretWithoutValue",
+          "PutResourcePolicyBlockPublicPolicyTrue",
+          "VerifyResourcePolicy",
+          "PutExactVersionValueOnce",
+          "DescribeMetadata"
+        ]
+      }
+    ],
+    "neon": {
+      "role": "techlong_cloud_worker_v5",
+      "schema": "techlong_cloud_worker_v5",
+      "ownerOid": "16392",
+      "roleFlags": "LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS",
+      "functions": [
+        "read_state",
+        "claim",
+        "lease",
+        "complete"
+      ],
+      "contractSha256": "1af33941263b9e138abf1eeb0b9f9fe295df5f2be47622c09e7ba5a27c18546d",
+      "sqlSha256": "20621e72aead74004243b4705547530ecbfc37493dab23e67cb68ced2f5d1232",
+      "existingAclRlsOrRowsChanged": false,
+      "passwordFromMemoryOnly": true,
+      "privilegedDsnUploaded": false
+    },
+    "github": {
+      "environment": "techlong-sandbox-deploy",
+      "reviewers": [
+        {
+          "type": "User",
+          "id": 14145707
+        }
+      ],
+      "preventSelfReview": false,
+      "adminBypass": false,
+      "deploymentBranch": "main",
+      "oidcSubjectMutation": false,
+      "candidatesAreNotActiveWorkflows": true
+    },
+    "executionBoundary": {
+      "paidCellCreated": false,
+      "newJobCreated": false,
+      "privateMaterialRead": false,
+      "existingIamChanged": false,
+      "automatedRollbackOrRetry": false,
+      "monthlyBudgetTargetUsd": 50,
+      "hardCostCap": false
+    },
+    "activationPending": [
+      "audited single-use installer and exact source/action hashes",
+      "immutable reusable workflow commit",
+      "fresh source identity and prestate",
+      "explicit scoped installation approval",
+      "actual role/table/secret/version/function IDs before activation"
+    ],
+    "reviewSha256": "ab5b514a087a41ec23a72718e7e787f0471130a4df1d05aba09dbfe1728a5aec"
+  },
+  "awsInventory": {
+    "observedAt": 1792276109781,
+    "completedSdkReadCalls": 28,
+    "source": {
+      "UserId": "AIDAV3GNMXTZEO7SHLC2X",
+      "Account": "402010193138",
+      "Arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev"
+    },
+    "oidcProvider": {
+      "state": "READ",
+      "value": {
+        "Url": "token.actions.githubusercontent.com",
+        "ClientIDList": [
+          "sts.amazonaws.com"
+        ],
+        "ThumbprintList": [
+          "ab9d0263244dd0326eb67015705a667e79cfe998"
+        ],
+        "CreateDate": "2026-07-21T05:38:01.895Z",
+        "Tags": []
+      }
+    },
+    "workerRole": {
+      "state": "ABSENT_AT_CHECK",
+      "error": "NoSuchEntityException"
+    },
+    "boundary": {
+      "state": "ABSENT_AT_CHECK",
+      "error": "NoSuchEntityException"
+    },
+    "journal": {
+      "state": "ABSENT_AT_CHECK",
+      "error": "ResourceNotFoundException"
+    },
+    "evidenceBucket": {
+      "state": "ABSENT_AT_CHECK",
+      "error": "NotFound"
+    },
+    "secrets": {
+      "techlong/sandbox/deployment-worker/neon-control-v1": {
+        "state": "ABSENT_AT_CHECK",
+        "error": "ResourceNotFoundException"
+      },
+      "techlong/sandbox/deployment-worker/control-first-acceptance-v1": {
+        "state": "ABSENT_AT_CHECK",
+        "error": "ResourceNotFoundException"
+      }
+    },
+    "preservedIam": {
+      "iamLayoutUnchanged": true
+    },
+    "oidcRoleReferenceScanComplete": true,
+    "existingOidcRoles": [
+      {
+        "name": "SpeedFeastBackendDeployRole",
+        "id": "AROAV3GNMXTZBKMOQVI7E",
+        "arn": "arn:aws:iam::402010193138:role/SpeedFeastBackendDeployRole"
+      },
+      {
+        "name": "SpeedFeastBuyerWebDeployRole",
+        "id": "AROAV3GNMXTZEM6R2Y7BI",
+        "arn": "arn:aws:iam::402010193138:role/SpeedFeastBuyerWebDeployRole"
+      },
+      {
+        "name": "TechlongSandboxGitHubImagePublisherRole",
+        "id": "AROAV3GNMXTZGGMKJ24YR",
+        "arn": "arn:aws:iam::402010193138:role/TechlongSandboxGitHubImagePublisherRole"
+      }
+    ],
+    "namespace": {
+      "cell": {
+        "state": "READ",
+        "stacks": [
+          {
+            "id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+            "status": "CREATE_COMPLETE",
+            "expiresAt": "2026-10-15T16:44:56.246Z"
+          }
+        ]
+      },
+      "predecessor": {
+        "state": "READ",
+        "stacks": [
+          {
+            "id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/aa962890-c9e4-11f1-988b-06ffcd51c63d",
+            "status": "DELETE_COMPLETE",
+            "expiresAt": "2026-10-17T06:35:34.000Z"
+          }
+        ],
+        "resources": {
+          "nextToken": null,
+          "items": [
+            {
+              "logical": "TenantBusinessControlDenyRule",
+              "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+              "status": "DELETE_COMPLETE"
+            },
+            {
+              "logical": "TenantControlListenerRule",
+              "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+              "status": "DELETE_COMPLETE"
+            },
+            {
+              "logical": "TenantListenerRule",
+              "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+              "status": "DELETE_COMPLETE"
+            },
+            {
+              "logical": "TenantLogGroup",
+              "type": "AWS::Logs::LogGroup",
+              "status": "DELETE_COMPLETE"
+            },
+            {
+              "logical": "TenantService",
+              "type": "AWS::ECS::Service",
+              "status": "DELETE_COMPLETE"
+            },
+            {
+              "logical": "TenantTargetGroup",
+              "type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+              "status": "DELETE_COMPLETE"
+            },
+            {
+              "logical": "TenantTaskDefinition",
+              "type": "AWS::ECS::TaskDefinition",
+              "status": "DELETE_COMPLETE"
+            }
+          ]
+        }
+      },
+      "namespace": {
+        "state": "UNKNOWN_NOT_ABSENT",
+        "error": "ValidationError"
+      }
+    },
+    "metadataOnly": true,
+    "secretValuesRead": 0,
+    "writes": 0,
+    "workloadHealthOrZeroFeesProved": false
+  },
+  "githubInventory": {
+    "schema": "techlong/cloud-worker-github-install-inventory/v5",
+    "observedAt": "2026-10-17T22:27:04.6503376Z",
+    "externalWrites": 0,
+    "privateValuesRead": 0,
+    "repository": {
+      "state": "READ",
+      "value": {
+        "id": 1323312747,
+        "fullName": "veinyyxy/TechlongSoftware",
+        "ownerLogin": "veinyyxy",
+        "ownerId": 14145707,
+        "visibility": "public",
+        "private": false,
+        "defaultBranch": "main",
+        "createdAt": "2026-08-04T19:32:40Z",
+        "permissions": {
+          "admin": true,
+          "maintain": true,
+          "push": true,
+          "triage": true,
+          "pull": true
+        }
+      }
+    },
+    "environments": {
+      "state": "READ",
+      "value": {
+        "total": 0,
+        "items": []
+      }
+    },
+    "branch": {
+      "state": "READ",
+      "value": {
+        "name": "main",
+        "commit": "2e5ada0c653d1ded1e0976a90a7c4dc411205ca0",
+        "protected": false
+      }
+    },
+    "branchProtection": {
+      "state": "UNAVAILABLE_NOT_PROVED_ABSENT",
+      "httpStatus": 404
+    },
+    "rulesets": {
+      "state": "READ",
+      "value": null
+    },
+    "oidcSubject": {
+      "state": "READ",
+      "value": {
+        "use_default": true,
+        "use_immutable_subject": true,
+        "sub_claim_prefix": "repo:veinyyxy@14145707/TechlongSoftware@1323312747"
+      }
+    },
+    "actionsPermissions": {
+      "state": "READ",
+      "value": {
+        "enabled": true,
+        "allowed_actions": "all",
+        "sha_pinning_required": false
+      }
+    },
+    "workflows": {
+      "state": "READ",
+      "value": {
+        "total": 3,
+        "items": [
+          {
+            "id": 387993205,
+            "name": "Cloud worker portable candidate - No AWS",
+            "path": ".github/workflows/cloud-worker-candidate.yml",
+            "state": "active"
+          },
+          {
+            "id": 387981211,
+            "name": "Cloud worker durable journal proof - No AWS",
+            "path": ".github/workflows/cloud-worker-journal.yml",
+            "state": "active"
+          },
+          {
+            "id": 378656541,
+            "name": "Sealed plan PostgreSQL 18 proof",
+            "path": ".github/workflows/sealed-plan-postgres18.yml",
+            "state": "active"
+          }
+        ]
+      }
+    }
+  },
+  "neonInventory": {
+    "observedAt": 1792276959523,
+    "targetFingerprintSha256": "36c8166cf5b967d2ce513fbb4a442271dee02dc574e2af09ac1fc323c0dcd966",
+    "version": "18.6 (653b019)",
+    "installer": {
+      "oid": "16392",
+      "name": "neondb_owner",
+      "superuser": false,
+      "createRole": true
+    },
+    "candidateRole": null,
+    "candidateSchema": null,
+    "readOnlyTransactionSetting": "on",
+    "publicSchema": [
+      {
+        "acl": [
+          "pg_database_owner=UC/pg_database_owner",
+          "=U/pg_database_owner",
+          "techlong_cell_cleanup_reader=U/pg_database_owner",
+          "techlong_cell_drain=U/pg_database_owner"
+        ],
+        "owner": "6171",
+        "schema": "public"
+      }
+    ],
+    "publicRelationGrants": [],
+    "publicColumnGrants": [],
+    "nonSystemDefinerCount": 10,
+    "publicExecutableDefiners": 0,
+    "targetTableCount": 10,
+    "targetTablesAllOwnedByInstaller": true,
+    "existingWriteTableTriggers": [
+      {
+        "name": "app_instance_deployments_draining_tombstone",
+        "table": "app_instance_deployments",
+        "enabled": "O",
+        "function": "enforce_draining_environment_ownership_tombstone",
+        "functionSchema": "public"
+      },
+      {
+        "name": "app_instance_deployments_admission_insert_fence",
+        "table": "app_instance_deployments",
+        "enabled": "O",
+        "function": "enforce_app_instance_deployment_admission",
+        "functionSchema": "public"
+      },
+      {
+        "name": "app_instance_deployments_admission_reopen_fence",
+        "table": "app_instance_deployments",
+        "enabled": "O",
+        "function": "enforce_app_instance_deployment_admission",
+        "functionSchema": "public"
+      },
+      {
+        "name": "aa_sealed_plan_deployment_write_v1",
+        "table": "app_instance_deployments",
+        "enabled": "A",
+        "function": "guard_sealed_plan_deployment_v1",
+        "functionSchema": "public"
+      },
+      {
+        "name": "aa_sealed_plan_deployment_jobs_v1",
+        "table": "deployment_jobs",
+        "enabled": "A",
+        "function": "guard_sealed_plan_reference_v1",
+        "functionSchema": "public"
+      }
+    ],
+    "businessRowsRead": 0,
+    "writeTransactions": 0,
+    "existingLocalNeonCredentialUsedInMemoryOnly": true,
+    "credentialStringSaved": false,
+    "successfulReadTransactions": 2,
+    "rejectedReadTransactions": 2,
+    "publicDatabaseCreate": false,
+    "publicCreateSchemas": []
+  },
+  "readOnlyAwsValidation": {
+    "directory": "F:/ChatGPT_workshop/techlong-w5d-validation-20261017-v2",
+    "identityPolicyErrors": 0,
+    "identityPolicyWarnings": [
+      {
+        "code": "WILDCARD_WITHOUT_LIKE_OPERATOR",
+        "field": "s3:if-none-match",
+        "disposition": "Literal * header is intentional. Do not use Like *."
+      }
+    ],
+    "secretResourcePolicyValidationPassed": true,
+    "trustShapeErrors": 0,
+    "trustSuggestions": [
+      "CONFIRM_AUDIENCE_CLAIM_TYPE"
+    ],
+    "foundationValidateTemplate": "ACCEPTED_CAPABILITY_NAMED_IAM",
+    "actualOidcExchangeProved": false,
+    "actualSecretReadProved": false,
+    "awsWrites": 0,
+    "policiesAndFoundationUnchangedBetweenDesignAAndB": true
+  },
+  "preservedFailures": [
+    {
+      "scope": "readonly Neon catalog",
+      "code": "42883",
+      "cause": "acldefault requires PostgreSQL internal char, not SQL char",
+      "correction": "Use explicit internal char casts, readonly re-query only",
+      "oldEvidence": "F:/ChatGPT_workshop/techlong-w5d-inventory-20261017-cloud/neon.json"
+    },
+    {
+      "scope": "readonly policy validation",
+      "cause": "Access Analyzer does not support AWS::SecretsManager::Secret validate-policy-resource-type",
+      "correction": "Use Secrets Manager ValidateResourcePolicy, retain old validation directory",
+      "oldEvidence": "F:/ChatGPT_workshop/techlong-w5d-validation-20261017"
+    }
+  ],
+  "validation": {
+    "newLocalInstallTestsPassed": 6,
+    "localTypecheck": "PASSED",
+    "localTargetedLint": "PASSED",
+    "cloudTotalTestsPassed": 42,
+    "cloudBreakdown": {
+      "v5Existing": 12,
+      "root": 8,
+      "journal": 8,
+      "installation": 6,
+      "w4Pure": 8
+    },
+    "realPostgresChecksPassed": 12,
+    "portableRuntimePins": 75,
+    "portableRuntimeClosureUnchangedFromW5c": "4bf7cb340a45d5ccf38f2d80e043763277a61c39514f661f7984280cf557139b",
+    "legacyRawCodePinsPassed": 99,
+    "legacySourceResult": "F:/ChatGPT_workshop/techlong-platform-w4-w5d-sources-20261017/result.json",
+    "legacySourceResultSha256": "97f2f40eaf4481c4a8a34aaec476c2a3af0c343dfb8a86ffa0b16b0bd87eaa9a"
+  },
+  "successfulCi": {
+    "runId": "39076204488",
+    "commit": "15e4d775cd61ee0eb274d1ccfbea5d3ff8e741d0",
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39076204488",
+    "conclusion": "success",
+    "artifactId": "12117182020",
+    "originalZipSha256": "3ed437f56418a5dca186b65c4c0e747264e1e44140bef91534fd600e0f6dde6d",
+    "directory": "F:/ChatGPT_workshop/techlong-w5d-ci-39076204488",
+    "files": [
+      {
+        "file": "bundle.json",
+        "sha256": "a5454ebf31af7f6b7419b70e3a566118534aecadcdeab976374808df37fc7929"
+      },
+      {
+        "file": "closure.json",
+        "sha256": "3b58243de89d46c67dbd29abd582f22aae006a5fd3960e4f4a719cca93268c1f"
+      },
+      {
+        "file": "neon-pg18.json",
+        "sha256": "fab23d2ca3be94845d7396a192b68d0804f97f4f7810d32b02ea0640416501b3"
+      },
+      {
+        "file": "root.json",
+        "sha256": "6e4898eb464e6093d5983eb7efadfade4797a645b1099fcd6a765254cf6250d0"
+      },
+      {
+        "file": "runtime.json",
+        "sha256": "ba88a3a90643403230e27fb88256a4b4ac71ca7a0fe3bcce50511fd95ef4e0b2"
+      }
+    ],
+    "independentZipDigestLengthMemberCheck": true,
+    "all75RuntimePinsIndependentlyMatched": true,
+    "contentsReadOnlyNoProductionCredentials": true
+  },
+  "codePins": [
+    {
+      "file": "ops/cloud-worker/install/inventory-v5.mjs",
+      "normalizedLfSha256": "3f3892bea7a54a08d14ea7d5be0a1d0851a088fc163e3745d734991d81f3e09a"
+    },
+    {
+      "file": "ops/cloud-worker/install/plan-v5.mjs",
+      "normalizedLfSha256": "1360c08a9a7e816f2aa9e83902ff36d17720e5fa388d8135e0312ef4acb76ea5"
+    },
+    {
+      "file": "ops/cloud-worker/install/prepare-v5.mjs",
+      "normalizedLfSha256": "723891f18a4dabd633ecb31ff11cc9a998ee527faaa4b97bea54bfde96f5d114"
+    },
+    {
+      "file": "tests/cloud-worker-install-v5.test.mjs",
+      "normalizedLfSha256": "4a22ed72166e72d0d78afe6c1e83fc5571f0d9a145b40edf92536e56cecf2203"
+    },
+    {
+      "file": ".github/workflows/cloud-worker-candidate.yml",
+      "normalizedLfSha256": "df614c077fc42431d79d1b7ca40a6e2079f2a086a18747dad8daa7986fb7a5b1"
+    },
+    {
+      "file": "docs/aws-auto-deployment-cloud-worker-w5d-install-review.md",
+      "normalizedLfSha256": "4e486c6a8a319e722af54f449dae1b58b5c19539f63ee784fb96ccb63ea116e9"
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-inventory-20261017-cloud/aws.json",
+      "rawSha256": "86c827ee64276166102ab413a820b00897f252a0475aa3d85a735c3ae8e20ad9"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-inventory-20261017-cloud/neon-catalog-v2.json",
+      "rawSha256": "f06cb6d976532510b81e459e6081d3d026c49e1becba621778e765d90b50a3a4"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-inventory-20261017-cloud/neon-catalog-v3.json",
+      "rawSha256": "5ced3400239f6ddd91a71b6637327838e8b961e92dc6453e9599c6ba8028cf47"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-inventory-20261017-cloud/neon.json",
+      "rawSha256": "50aea9d6c39286bee7740db3bc696c59f83cc0524663c626e7f665489b862367"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-inventory-20261017-cloud/summary.json",
+      "rawSha256": "e92da9e6215b3ae21c52551b1430026ae7e347604d66b1b1a2203f50ca32a206"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-inventory-20261017-github/github.json",
+      "rawSha256": "ef51ec170f12334f5607d9ea38339657746beba926d1d148c1e234045b34409e"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-a/design-review.json",
+      "rawSha256": "1239cd3beccf6c445bb58c515c47cd657da4e0987d5d205f9b7ed1d5fdd079a7"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-a/foundation.template.json",
+      "rawSha256": "ccc56d1d4e2e5340b2e41038a845a0341112ddb67808193653825f5cc3b83077"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-a/new-secrets.resource-policy.json",
+      "rawSha256": "c0d21264c91d8c3bc2a11e756549e3c68971eb9e5e95bd4ae9c670bc10f2cc8c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-a/preparation.json",
+      "rawSha256": "1f1441dee35c7ab722e58f7dbf780c8d9df0a1181a733c00833a6d28fd62d802"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-a/trust-shape.example.json",
+      "rawSha256": "425f65412b0d0cff1d3dc1c1cb3784129bd0d91955ce4f98a85574875291afe8"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-a/worker-permissions.json",
+      "rawSha256": "1f14971f57f42edc56caf4fd6b75bec581e444d3243f85188a5f632c90951be7"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-b/design-review.json",
+      "rawSha256": "df502d41ffb5610dfc72d0ff2e353ca7ab1b4cef6f36c154d1f8bfb0225d9cf2"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-b/foundation.template.json",
+      "rawSha256": "ccc56d1d4e2e5340b2e41038a845a0341112ddb67808193653825f5cc3b83077"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-b/new-secrets.resource-policy.json",
+      "rawSha256": "c0d21264c91d8c3bc2a11e756549e3c68971eb9e5e95bd4ae9c670bc10f2cc8c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-b/preparation.json",
+      "rawSha256": "32eb5e7ce9953cf84ce7b79072070217d089f04f13f7a18201ac0d3c1a24f242"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-b/trust-shape.example.json",
+      "rawSha256": "425f65412b0d0cff1d3dc1c1cb3784129bd0d91955ce4f98a85574875291afe8"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-b/worker-permissions.json",
+      "rawSha256": "1f14971f57f42edc56caf4fd6b75bec581e444d3243f85188a5f632c90951be7"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-validation-20261017-v2/foundation-validation.json",
+      "rawSha256": "9b46bed5b98ed30a69c2730c5a26d43fd63b30ada2fa9ea03e65367c646457ff"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-validation-20261017-v2/permissions.json",
+      "rawSha256": "17a55f14ed1e3acd6ae47f485ac7e3b6c31902c064a1861665544bffb9d8ed7b"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-validation-20261017-v2/secret-resource-policy.json",
+      "rawSha256": "6f1762e9351060da564556b4153fb743a70f413d1d241010df47fbee7c17de2c"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5d-validation-20261017-v2/trust-shape-only.json",
+      "rawSha256": "780e11dd1571e14f0b6d5fe4c6c5d37a1e504180fe17ef1601649d1390502d07"
+    }
+  ],
+  "productionEffects": {
+    "awsResourceWrites": 0,
+    "neonWrites": 0,
+    "githubSettingsWrites": 0,
+    "newActiveDeploymentWorkflows": 0,
+    "secretValueReads": 0,
+    "originalPrivateBundleReads": 0,
+    "journalSlotsConsumed": 0,
+    "tenantApplicationRequests": 0,
+    "newJobs": 0,
+    "deployments": 0,
+    "sitesWrites": 0
+  },
+  "installationHazards": {
+    "oldTaskExecutionRoleBroadReadWouldReachNewSecrets": true,
+    "mitigation": "Create empty secrets; deny other readers/other managers before usable values",
+    "boundaryIsActionCapNotSecondResourcePolicy": true,
+    "putItemConditionNotEnforcedByIam": true,
+    "headBucketNeedsListBucket": true,
+    "mainUnprotected": true,
+    "singleOwnerMayApproveOwnRun": true,
+    "monthlyBudgetTargetUsd": 50,
+    "hardCostCap": false,
+    "awsManagedKeyReadNotYetProved": true,
+    "defaultsOrPublicGrantsMustBeRecheckedBeforeInstall": true
+  },
+  "nextStep": "Implement one-shot reviewed installer and SHA-pinned reusable workflow candidate using this design; preserve old source/runtime. Bind fresh prestate/source/action SHA and exact private-read scope before one concentrated installation approval. No new observer slices or deployment replay.",
+  "ciHistory": [
+    {
+      "runId": "39075792759",
+      "commit": "0ab4299099da980052d7b233a9e3d51e4fb211cc",
+      "conclusion": "success",
+      "scope": "First installation design and policy regression proof"
+    },
+    {
+      "runId": "39076204488",
+      "commit": "15e4d775cd61ee0eb274d1ccfbea5d3ff8e741d0",
+      "conclusion": "success",
+      "scope": "Final PUBLIC CREATE rejection checks and full neighboring regression"
+    }
+  ],
+  "priorDesignsPreserved": [
+    {
+      "directory": "F:/ChatGPT_workshop/techlong-w5d-review-20261017-a",
+      "designReviewSha256": "4abf8f46ee50b31f38cabea026125c92e9ba78b3356052de7d72a2ada8a87f47",
+      "executable": false
+    }
+  ]
+}
