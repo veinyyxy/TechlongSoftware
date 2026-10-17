@@ -1,0 +1,61 @@
+name: Cloud worker portable candidate - No AWS
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cloud-worker-candidate.yml'
+      - 'ops/cloud-worker/**'
+      - 'tests/cloud-worker-v5.test.mjs'
+      - 'tests/fixtures/cloud-control*'
+      - 'scripts/ci/check-cloud-worker-closure-v5.mjs'
+      - 'lib/deployments/execution/**'
+      - 'lib/deployments/initialized-platform-request-v1.ts'
+      - 'package*.json'
+permissions:
+  contents: read
+concurrency:
+  group: cloud-worker-candidate-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            ops/cloud-worker/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
+      - name: Gate independent runtime dependency advisories
+        run: npm audit --prefix ops/cloud-worker --omit=dev --audit-level=high
+      - name: Type, lint and exact local module syntax
+        run: |
+          npx tsc --noEmit --incremental false
+          npx eslint ops/cloud-worker/*.mjs tests/cloud-worker-v5.test.mjs tests/fixtures/cloud-control-v5.mjs scripts/ci/check-cloud-worker-closure-v5.mjs
+          node --check ops/cloud-worker/aws-initialized-workload-v5.mjs
+      - name: Real crypto and adjacent journal/platform contract tests - no tenant request
+        run: >-
+          node --experimental-strip-types --test tests/cloud-worker-v5.test.mjs
+          tests/cloud-worker-journal-v1.test.ts tests/express-platform-worker-v4.test.mjs
+      - name: Check portable runtime, historical public lineage and module closure
+        run: |
+          mkdir -p "$RUNNER_TEMP/cloud-worker-candidate"
+          node --experimental-strip-types ops/cloud-worker/check-runtime-v5.mjs --mode CheckRuntime > "$RUNNER_TEMP/cloud-worker-candidate/runtime.json"
+          node --experimental-strip-types ops/cloud-worker/check-runtime-v5.mjs --mode CheckBundle > "$RUNNER_TEMP/cloud-worker-candidate/bundle.json"
+          node scripts/ci/check-cloud-worker-closure-v5.mjs > "$RUNNER_TEMP/cloud-worker-candidate/closure.json"
+          cat "$RUNNER_TEMP/cloud-worker-candidate/bundle.json" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: cloud-worker-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cloud-worker-candidate/
+          if-no-files-found: warn
+          retention-days: 7

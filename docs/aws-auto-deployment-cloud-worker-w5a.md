@@ -1,5 +1,7 @@
 # W5a：单次 worker 云化，先移除本地永久槽依赖
 
+后续已进入[W5b SDK云adapter、公开沿革及最小材料候选](aws-auto-deployment-cloud-worker-w5b.md)；下文W5a验证原件保留，不重复journal阶段。下一位置以W5b文档末尾为准。
+
 2026-10-17。沿用50 USD/月目标和已有批准边界；W4c真实闭环已通过，不再重复部署验收，不重启F3c9支线，也不发布Sites。
 
 ## 决策与本次交付

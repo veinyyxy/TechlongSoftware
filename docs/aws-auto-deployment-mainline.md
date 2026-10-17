@@ -1,6 +1,6 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
-最新里程碑（2026-10-17）：W4c真实平台触发闭环已通过，现进入第二步**W5执行器云化**。W5a已完成独立DynamoDB永久journal及无AWS凭据的Actions工作流，两轮云临时服务各7组通过/原始回执独立核实，17项本地相邻测试及旧99 pins通过；未安装或启用AWS资源。首轮选Actions单次worker，不另建常驻worker服务；下一W5b去掉Login/本机CLI并准备最小材料。见 [W5a实现、验证与唯一继续位置](aws-auto-deployment-cloud-worker-w5a.md) / [W4c实际执行](aws-auto-deployment-aurora-dual-mode-w4c-executed.md)。不再重复部署验收、不扩F3c9支线，仍未实现无人值守或整套AWS托管。
+最新里程碑（2026-10-17）：W4c真实闭环及W5a云永久journal候选已完成。现W5b已编码独立SDK云provider、准确W4c沿革公开capsule和最小JWT/mTLS Secret接口，保留旧99 pins，云执行入口尚未启用；下一直接收拢一个Review/Run/Inspect执行根及最小Neon权限合同，不再扩观察器切片。无新增权限/资源安装或真实部署，不重复W4c、不扩F3c9。见 [W5b实现、验证与唯一继续位置](aws-auto-deployment-cloud-worker-w5b.md) / [W5a已完成](aws-auto-deployment-cloud-worker-w5a.md)。首轮Actions单次worker，最终整套AWS托管仍在其后。
 
 2026-10-16，按用户最新决定更新。**不在 Sites 上线，不修改 Sites 托管配置、不推送 sites remote。** 保留现有兼容代码和托管身份，避免把“现在不发布”扩大成未经批准的删除/重构。F3c9 等支线继续冻结，历史文档用于追溯，不再作为下一步任务来源。
 
@@ -21,4 +21,4 @@
 
 ## 唯一继续位置
 
-见 [W5a云journal与W5b继续位置](aws-auto-deployment-cloud-worker-w5a.md)。不要从README下方旧历史或W4c已完成的本地入口重新登记请求，不制造新job/部署SHA，也不改旧前驱来重放W4。新增权限、材料迁移及实际云运行在W5b接线后按准确范围另审。
+见 [W5b与执行根收口](aws-auto-deployment-cloud-worker-w5b.md)。不要从README旧历史/W4c入口重新登记请求，不制造新job/部署SHA，也不改旧前驱来重放W4。新增权限、材料迁移及实际云运行在执行根收口后按准确范围集中另审。

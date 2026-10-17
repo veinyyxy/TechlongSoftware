@@ -1,0 +1,1329 @@
+{
+  "schema": "techlong/cloud-worker-public-capsule/v5",
+  "delivery": {
+    "scope": {
+      "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+      "ownerDeploymentId": "dep_7c99bd249470184852f0dc74",
+      "workspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+      "productId": "prd_restaurant_order_system",
+      "templateVersionId": "tplver_9c175436f0a14d9aa7f5fdfc2b5c139e",
+      "environmentId": "env_aws_sandbox_ca_central_1",
+      "cellKey": "cell-sandbox-1"
+    },
+    "sourcePlan": {
+      "schemaVersion": 1,
+      "architecture": "aws-ecs-cell",
+      "driver": "aws_ecs_cell",
+      "workflowVersion": "v1",
+      "mode": "aws_sandbox",
+      "region": "ca-central-1",
+      "cellKey": "cell-sandbox-1",
+      "deploymentProfileKey": "standard-v1",
+      "resources": {
+        "shared": {
+          "buyerWeb": {
+            "cloudFront": "shared-buyer-web-cloudfront",
+            "s3": "shared-buyer-web-s3"
+          },
+          "controlPlane": "shared-saas-control-plane"
+        },
+        "cell": {
+          "alb": "cell-sandbox-1-alb",
+          "databaseCluster": "cell-sandbox-1-aurora-rds",
+          "network": {
+            "vpc": "cell-sandbox-1-vpc",
+            "egress": "cell-sandbox-1-nat-or-vpc-endpoints"
+          }
+        },
+        "tenant": {
+          "ecsService": "tenant-9c5ee9e64509dcad-ecs-service",
+          "taskDefinition": {
+            "logicalName": "tenant-9c5ee9e64509dcad-task-definition",
+            "cpu": 512,
+            "memoryMiB": 1024,
+            "desiredCount": 1
+          },
+          "targetGroup": "tenant-9c5ee9e64509dcad-target-group",
+          "listenerRule": "tenant-9c5ee9e64509dcad-listener-rule",
+          "database": {
+            "isolation": "tenant_database",
+            "dedicatedClusterLogicalName": null,
+            "roleName": "tenant_9c5ee9e64509dcad_role",
+            "databaseName": "tenant_9c5ee9e64509dcad_db"
+          },
+          "secret": {
+            "logicalName": "tenant-9c5ee9e64509dcad-runtime-secret"
+          },
+          "autoScaling": {
+            "minCapacity": 1,
+            "maxCapacity": 4
+          },
+          "logs": {
+            "logGroupName": "/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad"
+          },
+          "costTags": {
+            "WorkspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+            "ProductId": "prd_restaurant_order_system",
+            "PlanId": "pln_5303b097f504453caaca07715d1d7dbe",
+            "AppInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+            "CellId": "cell-sandbox-1"
+          }
+        }
+      },
+      "safety": {
+        "applyEnabled": false,
+        "createsAwsResources": false,
+        "storesSecretValues": false
+      }
+    },
+    "sourcePlanSha256": "c45dafe1d1c65609eed08ff397d899aeaa0e55092312e330a0b4eef507434e5a",
+    "configuration": {
+      "buyerAccountsMax": 5,
+      "buyerConcurrentAccessMax": 2,
+      "storesMax": 2,
+      "merchantActiveUsersMax": 3,
+      "brandingCustomThemeEnabled": true,
+      "brandingMerchantEditable": true,
+      "buyerAccessLeaseSeconds": 900,
+      "buyerAccessHeartbeatSeconds": 300,
+      "defaultStoreName": "Techlong Sandbox",
+      "buyerThemeBrightness": "light",
+      "buyerThemePrimary": "#03A9F4",
+      "buyerThemeSecondary": "#0288D1",
+      "buyerThemeSurface": "#FFFFFF",
+      "buyerThemeBackground": "#FFFFFF",
+      "buyerThemeError": "#B3261E",
+      "merchantThemeBrightness": "light",
+      "merchantThemePrimary": "#0F766E",
+      "merchantThemeSecondary": "#0D9488",
+      "merchantThemeSurface": "#FFFFFF",
+      "merchantThemeBackground": "#F8FAFC",
+      "merchantThemeError": "#B3261E",
+      "firstOwnerUsername": "techlong_sandbox_admin"
+    },
+    "configurationSha256": "06d3cb50dd46b5f32771c356b7e7cd7d524a0707799ae24b9ace0672ef7281c9",
+    "configurationSchema": {
+      "schemaVersion": 2,
+      "contract": "speedfeast-saas-control-v1",
+      "fields": [
+        {
+          "key": "buyerAccountsMax",
+          "label": "注册买家账号上限",
+          "type": "integer",
+          "source": "plan",
+          "required": false,
+          "min": 0,
+          "nullable": true,
+          "nullLabel": "不限",
+          "group": "套餐容量",
+          "description": "允许注册的买家账号数量；选择“不限”时发送 null。",
+          "unit": "个",
+          "outputPath": "/entitlements/buyer.accounts.max"
+        },
+        {
+          "key": "buyerConcurrentAccessMax",
+          "label": "买家同时在线设备上限",
+          "type": "integer",
+          "source": "plan",
+          "required": true,
+          "min": 0,
+          "nullable": true,
+          "nullLabel": "不限",
+          "group": "套餐容量",
+          "description": "允许同时保持活跃访问租约的买家设备数量。",
+          "unit": "台",
+          "outputPath": "/entitlements/buyer.concurrent_access.max"
+        },
+        {
+          "key": "storesMax",
+          "label": "门店上限",
+          "type": "integer",
+          "source": "plan",
+          "required": true,
+          "min": 1,
+          "nullable": true,
+          "nullLabel": "不限",
+          "group": "套餐容量",
+          "description": "允许启用的门店数量，包含主店。",
+          "unit": "家",
+          "outputPath": "/entitlements/stores.max"
+        },
+        {
+          "key": "merchantActiveUsersMax",
+          "label": "商户用户账号上限（含管理员）",
+          "type": "integer",
+          "source": "plan",
+          "required": true,
+          "min": 1,
+          "nullable": true,
+          "nullLabel": "不限",
+          "group": "套餐容量",
+          "description": "允许启用的商户端员工账号数量。",
+          "unit": "个",
+          "outputPath": "/entitlements/merchant.active_users.max"
+        },
+        {
+          "key": "brandingCustomThemeEnabled",
+          "label": "启用自定义主题",
+          "type": "boolean",
+          "source": "plan",
+          "required": true,
+          "group": "品牌能力",
+          "description": "关闭后主题参数仍可保存，但订单系统运行时使用系统默认主题。",
+          "outputPath": "/entitlements/branding.custom_theme.enabled"
+        },
+        {
+          "key": "brandingMerchantEditable",
+          "label": "允许商户修改品牌设置",
+          "type": "boolean",
+          "source": "plan",
+          "required": true,
+          "group": "品牌能力",
+          "description": "控制商户是否可以自行修改店名和主题。",
+          "outputPath": "/entitlements/branding.merchant_editable"
+        },
+        {
+          "key": "buyerAccessLeaseSeconds",
+          "label": "买家访问租约时长",
+          "type": "integer",
+          "source": "plan",
+          "required": true,
+          "min": 60,
+          "max": 86400,
+          "group": "访问策略",
+          "description": "买家设备一次访问租约的有效时间。",
+          "unit": "秒",
+          "outputPath": "/entitlements/buyer.access.lease_seconds"
+        },
+        {
+          "key": "buyerAccessHeartbeatSeconds",
+          "label": "买家访问心跳间隔",
+          "type": "integer",
+          "source": "plan",
+          "required": true,
+          "min": 30,
+          "max": 3600,
+          "group": "访问策略",
+          "description": "必须严格小于买家访问租约时长。",
+          "unit": "秒",
+          "outputPath": "/entitlements/buyer.access.heartbeat_seconds"
+        },
+        {
+          "key": "defaultStoreName",
+          "label": "店铺名称",
+          "type": "text",
+          "source": "customer",
+          "required": true,
+          "minLength": 1,
+          "maxLength": 120,
+          "group": "店铺基本信息",
+          "description": "首次开通时写入订单系统现有默认主店的名称。",
+          "placeholder": "例如：北岸餐厅",
+          "outputPath": "/default_store/name"
+        },
+        {
+          "key": "buyerThemeBrightness",
+          "label": "买家端明暗模式",
+          "type": "select",
+          "source": "customer",
+          "required": true,
+          "options": [
+            "light",
+            "dark"
+          ],
+          "group": "买家端主题",
+          "outputPath": "/default_store/buyer_theme/brightness"
+        },
+        {
+          "key": "buyerThemePrimary",
+          "label": "买家端主色",
+          "type": "color",
+          "source": "customer",
+          "required": true,
+          "group": "买家端主题",
+          "outputPath": "/default_store/buyer_theme/primary"
+        },
+        {
+          "key": "buyerThemeSecondary",
+          "label": "买家端辅助色",
+          "type": "color",
+          "source": "customer",
+          "required": true,
+          "group": "买家端主题",
+          "outputPath": "/default_store/buyer_theme/secondary"
+        },
+        {
+          "key": "buyerThemeSurface",
+          "label": "买家端卡片背景色",
+          "type": "color",
+          "source": "customer",
+          "required": true,
+          "group": "买家端主题",
+          "outputPath": "/default_store/buyer_theme/surface"
+        },
+        {
+          "key": "buyerThemeBackground",
+          "label": "买家端页面背景色",
+          "type": "color",
+          "source": "customer",
+          "required": true,
+          "group": "买家端主题",
+          "outputPath": "/default_store/buyer_theme/background"
+        },
+        {
+          "key": "buyerThemeError",
+          "label": "买家端错误提示色",
+          "type": "color",
+          "source": "customer",
+          "required": true,
+          "group": "买家端主题",
+          "outputPath": "/default_store/buyer_theme/error"
+        },
+        {
+          "key": "merchantThemeBrightness",
+          "label": "商户端明暗模式",
+          "type": "select",
+          "source": "customer",
+          "required": true,
+          "options": [
+            "light",
+            "dark"
+          ],
+          "group": "商户端主题",
+          "outputPath": "/default_store/merchant_theme/brightness"
+        },
+        {
+          "key": "merchantThemePrimary",
+          "label": "商户端主色",
+          "type": "color",
+          "source": "customer",
+          "required": true,
+          "group": "商户端主题",
+          "outputPath": "/default_store/merchant_theme/primary"
+        },
+        {
+          "key": "merchantThemeSecondary",
+          "label": "商户端辅助色",
+          "type": "color",
+          "source": "customer",
+          "required": true,
+          "group": "商户端主题",
+          "outputPath": "/default_store/merchant_theme/secondary"
+        },
+        {
+          "key": "merchantThemeSurface",
+          "label": "商户端卡片背景色",
+          "type": "color",
+          "source": "customer",
+          "required": true,
+          "group": "商户端主题",
+          "outputPath": "/default_store/merchant_theme/surface"
+        },
+        {
+          "key": "merchantThemeBackground",
+          "label": "商户端页面背景色",
+          "type": "color",
+          "source": "customer",
+          "required": true,
+          "group": "商户端主题",
+          "outputPath": "/default_store/merchant_theme/background"
+        },
+        {
+          "key": "merchantThemeError",
+          "label": "商户端错误提示色",
+          "type": "color",
+          "source": "customer",
+          "required": true,
+          "group": "商户端主题",
+          "outputPath": "/default_store/merchant_theme/error"
+        },
+        {
+          "key": "firstOwnerUsername",
+          "label": "首位管理员用户名",
+          "type": "text",
+          "source": "customer",
+          "required": true,
+          "minLength": 3,
+          "maxLength": 64,
+          "group": "首位管理员",
+          "description": "3–64 位，只能使用字母、数字、点、下划线和短横线。",
+          "placeholder": "例如：owner",
+          "outputPath": "/first_owner/username",
+          "format": "merchant_username"
+        },
+        {
+          "key": "firstOwnerDisplayName",
+          "label": "首位管理员显示名称",
+          "type": "text",
+          "source": "customer",
+          "required": false,
+          "maxLength": 120,
+          "group": "首位管理员",
+          "description": "留空时，订单系统会使用管理员用户名。",
+          "placeholder": "例如：店铺负责人",
+          "outputPath": "/first_owner/display_name"
+        }
+      ],
+      "rules": [
+        {
+          "type": "less_than",
+          "leftKey": "buyerAccessHeartbeatSeconds",
+          "rightKey": "buyerAccessLeaseSeconds",
+          "message": "买家访问心跳间隔必须严格小于访问租约时长。"
+        }
+      ]
+    },
+    "environment": {
+      "id": "env_aws_sandbox_ca_central_1",
+      "key": "aws-sandbox-ca-central-1",
+      "name": "AWS Sandbox ca-central-1",
+      "kind": "aws_sandbox",
+      "driver": "aws_ecs_cell",
+      "expectedAccountId": "402010193138",
+      "region": "ca-central-1",
+      "cellKey": "cell-sandbox-1",
+      "baseDomain": "sandbox.techlong.cloud",
+      "status": "active",
+      "applyEnabled": false,
+      "policy": {
+        "budgetLimitCents": 5000,
+        "ttlSeconds": 7200,
+        "maxCells": 1,
+        "maxTenants": 1,
+        "maxTaskCount": 1,
+        "allowedProfiles": [
+          "standard-v1"
+        ],
+        "allowNatGateway": false,
+        "allowInterfaceEndpoints": false,
+        "databaseEngine": "aurora-postgresql-serverless-v2",
+        "auroraPostgresMinimumVersion": "16.3",
+        "auroraPostgresEngineVersion": "16.14",
+        "auroraEngineMode": "provisioned",
+        "allowLimitlessDatabase": false,
+        "databaseMode": "tenant_database",
+        "auroraServerlessMinAcu": 0,
+        "auroraServerlessMaxAcu": 1,
+        "auroraSecondsUntilAutoPause": 300,
+        "allowDedicatedDatabase": false,
+        "allowMultiAzDatabase": false,
+        "allowRdsProxy": false,
+        "allowGlobalDatabase": false,
+        "logRetentionDays": 1
+      }
+    },
+    "binding": {
+      "schema": "techlong/database-binding/v2",
+      "profile": "express_iam",
+      "clusterArn": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001",
+      "clusterResourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+      "endpoint": "techlong-sandbox-express-d001.cluster-cn8aaekuqf1r.ca-central-1.rds.amazonaws.com",
+      "port": 5432,
+      "observedEngineVersion": "17.9",
+      "tenantDatabase": "tenant_a0da1748bc4d5419_db",
+      "tenantUsername": "tenant_a0da1748bc4d5419_role",
+      "managementDatabase": "postgres",
+      "managementUsername": "postgres",
+      "stableIdentity": "a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+      "resourceGeneration": 1,
+      "tlsTrust": "ats-roots/v1",
+      "access": {
+        "authentication": "iam",
+        "internetAccessGatewayEnabled": true,
+        "applicationRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole",
+        "lifecycleRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole"
+      },
+      "runtimeSecret": {
+        "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+        "versionId": "0f45d29f-02d4-4117-99b1-c06645aa3c6e"
+      }
+    },
+    "databaseOid": "16459",
+    "roleOid": "16456",
+    "tenantHostname": "first-acceptance.sandbox.techlong.cloud"
+  },
+  "base": {
+    "compute": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+      "outputs": {
+        "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/bc69b195b69bc2d9",
+        "VpcId": "vpc-0136b6ba92a72cbf9",
+        "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1",
+        "CellExpiresAt": "2026-10-15T16:44:56.246Z",
+        "TaskSecurityGroupId": "sg-0df75af0d0661492a",
+        "ClusterName": "cell-sandbox-1",
+        "SubnetIds": "subnet-05b781276cc988b93,subnet-05729abe921410a75"
+      },
+      "templateSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892"
+    },
+    "iam": {
+      "cfnRole": {
+        "arn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+        "id": "AROAV3GNMXTZKHYBCRSOE",
+        "trust": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "cloudformation.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceAccount": "402010193138"
+                }
+              }
+            }
+          ]
+        },
+        "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+        "inlineNames": [],
+        "attached": [
+          "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary"
+        ]
+      },
+      "roles": [
+        {
+          "name": "TechlongSandboxTaskExecutionRole",
+          "id": "AROAV3GNMXTZJHJWAN4IR",
+          "arn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+          "trust": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "ecs-tasks.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:SourceAccount": "402010193138"
+                  },
+                  "ArnLike": {
+                    "aws:SourceArn": "arn:aws:ecs:ca-central-1:402010193138:*"
+                  }
+                }
+              }
+            ]
+          },
+          "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxServiceRoleBoundary",
+          "attached": [],
+          "inline": [
+            {
+              "name": "PullSandboxImageAndRuntimeSecrets",
+              "document": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Action": "ecr:GetAuthorizationToken",
+                    "Resource": "*",
+                    "Effect": "Allow"
+                  },
+                  {
+                    "Action": [
+                      "ecr:BatchCheckLayerAvailability",
+                      "ecr:BatchGetImage",
+                      "ecr:GetDownloadUrlForLayer"
+                    ],
+                    "Resource": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast",
+                    "Effect": "Allow"
+                  },
+                  {
+                    "Action": [
+                      "logs:CreateLogStream",
+                      "logs:PutLogEvents"
+                    ],
+                    "Resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-*:*",
+                    "Effect": "Allow"
+                  },
+                  {
+                    "Action": "secretsmanager:GetSecretValue",
+                    "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/*",
+                    "Effect": "Allow"
+                  }
+                ]
+              }
+            }
+          ],
+          "tags": {
+            "Component": "tenant-runtime",
+            "Environment": "aws-sandbox",
+            "ManagedBy": "techlong-provisioner"
+          }
+        },
+        {
+          "name": "TechlongSandboxTaskRole",
+          "id": "AROAV3GNMXTZLH2AU5I5G",
+          "arn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole",
+          "trust": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "ecs-tasks.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:SourceAccount": "402010193138"
+                  },
+                  "ArnLike": {
+                    "aws:SourceArn": "arn:aws:ecs:ca-central-1:402010193138:*"
+                  }
+                }
+              }
+            ]
+          },
+          "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxServiceRoleBoundary",
+          "attached": [],
+          "inline": [
+            {
+              "name": "ConnectExactExpressTenantC4e",
+              "document": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Sid": "C4eAppConnect",
+                    "Effect": "Allow",
+                    "Action": "rds-db:connect",
+                    "Resource": "arn:aws:rds-db:ca-central-1:402010193138:dbuser:cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM/tenant_a0da1748bc4d5419_role",
+                    "Condition": {
+                      "ArnEquals": {
+                        "aws:PrincipalArn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "tags": {
+            "Component": "tenant-runtime",
+            "Environment": "aws-sandbox",
+            "ManagedBy": "techlong-provisioner"
+          }
+        }
+      ],
+      "policies": [
+        {
+          "arn": "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+          "id": "ANPAV3GNMXTZOQPIXOKJ4",
+          "defaultVersion": "v8",
+          "document": {
+            "Statement": [
+              {
+                "Action": "ecs:RegisterTaskDefinition",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1",
+                    "aws:RequestTag/Environment": "aws-sandbox",
+                    "aws:RequestTag/ManagedBy": "techlong-provisioner"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-*:*",
+                "Sid": "AllowTaggedTaskDefinitionRegistration"
+              },
+              {
+                "Action": [
+                  "ecs:DeregisterTaskDefinition",
+                  "ecs:DescribeTaskDefinition"
+                ],
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "*",
+                "Sid": "AllowTenantTaskDefinitionCleanup"
+              },
+              {
+                "Action": [
+                  "ecs:CreateService",
+                  "ecs:DeleteService",
+                  "ecs:DescribeServices",
+                  "ecs:TagResource",
+                  "ecs:UntagResource",
+                  "ecs:UpdateService"
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1",
+                  "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-*",
+                  "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-*:*"
+                ],
+                "Sid": "AllowTenantEcsLifecycle"
+              },
+              {
+                "Action": [
+                  "logs:CreateLogGroup",
+                  "logs:DeleteLogGroup",
+                  "logs:ListTagsForResource",
+                  "logs:PutRetentionPolicy",
+                  "logs:TagResource",
+                  "logs:UntagResource"
+                ],
+                "Effect": "Allow",
+                "Resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-*",
+                "Sid": "AllowTenantLogs"
+              },
+              {
+                "Action": "logs:DescribeLogGroups",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "*",
+                "Sid": "AllowDescribeTenantLogs"
+              },
+              {
+                "Action": "elasticloadbalancing:CreateTargetGroup",
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1",
+                    "aws:RequestTag/Environment": "aws-sandbox",
+                    "aws:RequestTag/ManagedBy": "techlong-provisioner"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "*",
+                "Sid": "AllowTaggedTargetGroupCreation"
+              },
+              {
+                "Action": [
+                  "elasticloadbalancing:AddTags",
+                  "elasticloadbalancing:CreateRule",
+                  "elasticloadbalancing:DeleteRule",
+                  "elasticloadbalancing:DeleteTargetGroup",
+                  "elasticloadbalancing:ModifyRule",
+                  "elasticloadbalancing:ModifyTargetGroup",
+                  "elasticloadbalancing:RemoveTags",
+                  "elasticloadbalancing:SetRulePriorities"
+                ],
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-*/*/*",
+                  "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-*/*/*/*",
+                  "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-*/*"
+                ],
+                "Sid": "AllowTenantLoadBalancerChildren"
+              },
+              {
+                "Action": [
+                  "elasticloadbalancing:DescribeListeners",
+                  "elasticloadbalancing:DescribeRules",
+                  "elasticloadbalancing:DescribeTargetGroups"
+                ],
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "*",
+                "Sid": "AllowDescribeSandboxLoadBalancerChildren"
+              },
+              {
+                "Action": [
+                  "scheduler:CreateSchedule",
+                  "scheduler:DeleteSchedule",
+                  "scheduler:GetSchedule",
+                  "scheduler:UpdateSchedule"
+                ],
+                "Effect": "Allow",
+                "Resource": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox/tenant-*",
+                "Sid": "AllowTenantScheduleLifecycle"
+              },
+              {
+                "Action": [
+                  "ec2:DescribeSecurityGroups",
+                  "ec2:DescribeSubnets",
+                  "ec2:DescribeVpcs"
+                ],
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "*",
+                "Sid": "AllowReadCellNetworkMetadata"
+              },
+              {
+                "Action": "iam:GetRole",
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:iam::402010193138:role/TechlongSandboxSchedulerInvokeRole",
+                  "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+                  "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+                ],
+                "Sid": "AllowReadOnlySandboxRuntimeRoles"
+              },
+              {
+                "Action": "iam:PassRole",
+                "Condition": {
+                  "StringEquals": {
+                    "iam:PassedToService": "ecs-tasks.amazonaws.com"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+                  "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+                ],
+                "Sid": "AllowPassOnlySandboxTaskRolesToEcs"
+              },
+              {
+                "Action": "iam:PassRole",
+                "Condition": {
+                  "StringEquals": {
+                    "iam:PassedToService": "scheduler.amazonaws.com"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxSchedulerInvokeRole",
+                "Sid": "AllowPassOnlySandboxSchedulerRoleToScheduler"
+              },
+              {
+                "Action": [
+                  "ecs:ListServiceDeployments"
+                ],
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service"
+                ],
+                "Sid": "C5gExactServiceDeploymentsList"
+              },
+              {
+                "Action": [
+                  "ecs:DescribeServiceDeployments"
+                ],
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+                  "arn:aws:ecs:ca-central-1:402010193138:service-deployment/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service/*"
+                ],
+                "Sid": "C5gExactServiceDeploymentsRead"
+              },
+              {
+                "Action": [
+                  "elasticloadbalancing:DescribeTargetGroupAttributes",
+                  "elasticloadbalancing:DescribeTargetHealth",
+                  "elasticloadbalancing:DescribeTags"
+                ],
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/*"
+                ],
+                "Sid": "C5gExactTargetGroupRead"
+              },
+              {
+                "Action": [
+                  "elasticloadbalancing:DescribeTags"
+                ],
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/*",
+                  "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/bc69b195b69bc2d9/*"
+                ],
+                "Sid": "C5gExactListenerRulesTags"
+              },
+              {
+                "Action": [
+                  "logs:GetDataProtectionPolicy"
+                ],
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": [
+                  "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+                  "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad:*"
+                ],
+                "Sid": "C5gExactLogPoliciesRead"
+              },
+              {
+                "Action": [
+                  "logs:DescribeIndexPolicies",
+                  "logs:DescribeResourcePolicies"
+                ],
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": [
+                  "*"
+                ],
+                "Sid": "C5gRegionalLogPoliciesInventory"
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "versions": [
+            {
+              "id": "v7",
+              "isDefault": false
+            },
+            {
+              "id": "v8",
+              "isDefault": true
+            }
+          ],
+          "boundaryConsumers": {
+            "roles": [
+              {
+                "name": "TechlongSandboxCloudFormationExecutionRole",
+                "id": "AROAV3GNMXTZKHYBCRSOE"
+              }
+            ],
+            "users": [],
+            "groups": []
+          },
+          "permissionConsumers": {
+            "roles": [
+              {
+                "name": "TechlongSandboxCloudFormationExecutionRole",
+                "id": "AROAV3GNMXTZKHYBCRSOE"
+              }
+            ],
+            "users": [],
+            "groups": []
+          }
+        },
+        {
+          "arn": "arn:aws:iam::402010193138:policy/TechlongSandboxServiceRoleBoundary",
+          "id": "ANPAV3GNMXTZHXSTCQBZC",
+          "defaultVersion": "v4",
+          "document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Action": [
+                  "cloudformation:ListStacks"
+                ],
+                "Resource": "*",
+                "Effect": "Allow",
+                "Sid": "AllowJanitorStackInventory"
+              },
+              {
+                "Action": [
+                  "cloudformation:DeleteStack",
+                  "cloudformation:DescribeStacks"
+                ],
+                "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-*/*",
+                "Effect": "Allow",
+                "Sid": "AllowJanitorOnlySandboxStacks"
+              },
+              {
+                "Action": [
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents"
+                ],
+                "Resource": [
+                  "arn:aws:logs:ca-central-1:402010193138:log-group:/aws/lambda/techlong-sandbox-janitor:*",
+                  "arn:aws:logs:ca-central-1:402010193138:log-group:/aws/codebuild/techlong-sandbox-speedfeast-image:*",
+                  "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-*:*"
+                ],
+                "Effect": "Allow",
+                "Sid": "AllowServiceLogs"
+              },
+              {
+                "Action": [
+                  "lambda:InvokeFunction"
+                ],
+                "Resource": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-janitor",
+                "Effect": "Allow",
+                "Sid": "AllowSchedulerInvokeOnlyJanitor"
+              },
+              {
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Action": [
+                  "ecr:GetAuthorizationToken"
+                ],
+                "Resource": "*",
+                "Effect": "Allow",
+                "Sid": "AllowCodeBuildEcrLogin"
+              },
+              {
+                "Action": [
+                  "ecr:BatchCheckLayerAvailability",
+                  "ecr:BatchGetImage",
+                  "ecr:CompleteLayerUpload",
+                  "ecr:DescribeImages",
+                  "ecr:GetDownloadUrlForLayer",
+                  "ecr:InitiateLayerUpload",
+                  "ecr:PutImage",
+                  "ecr:UploadLayerPart"
+                ],
+                "Resource": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast",
+                "Effect": "Allow",
+                "Sid": "AllowSandboxImageRepository"
+              },
+              {
+                "Action": [
+                  "secretsmanager:GetSecretValue"
+                ],
+                "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/*",
+                "Effect": "Allow",
+                "Sid": "AllowTaskRuntimeSecrets"
+              },
+              {
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Action": "ecs:DescribeTaskDefinition",
+                "Resource": "*",
+                "Effect": "Allow",
+                "Sid": "AllowLifecycleTaskDefinitionReadback"
+              },
+              {
+                "Condition": {
+                  "StringEquals": {
+                    "aws:ResourceTag/aws:rds:primaryDBClusterArn": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-cell-sandbox-1",
+                    "aws:RequestedRegion": "ca-central-1",
+                    "aws:ResourceTag/aws:secretsmanager:owningService": "rds"
+                  }
+                },
+                "Action": "secretsmanager:GetSecretValue",
+                "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:rds!cluster-*",
+                "Effect": "Allow",
+                "Sid": "AllowExactCellManagedMasterSecretRead"
+              },
+              {
+                "Action": [
+                  "s3:GetObject",
+                  "s3:PutObject"
+                ],
+                "Resource": "arn:aws:s3:::techlong-sandbox-402010193138-ca-central-1-tenant-receipts/tenant-lifecycle/v1/*",
+                "Effect": "Allow",
+                "Sid": "AllowExactTenantLifecycleReceipts"
+              },
+              {
+                "Action": [
+                  "dynamodb:GetItem",
+                  "dynamodb:PutItem"
+                ],
+                "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+                "Effect": "Allow",
+                "Sid": "AllowExactExternalEpochAuthority"
+              },
+              {
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  },
+                  "ArnEquals": {
+                    "ecs:cluster": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1"
+                  }
+                },
+                "Action": "ecs:RunTask",
+                "Resource": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-lifecycle:*",
+                "Effect": "Allow",
+                "Sid": "AllowExactTenantLifecycleRunTask"
+              },
+              {
+                "Action": [
+                  "ecs:DescribeTasks",
+                  "ecs:StopTask"
+                ],
+                "Resource": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/*",
+                "Effect": "Allow",
+                "Sid": "AllowExactCellOneShotTaskControl"
+              },
+              {
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": "ca-central-1"
+                  },
+                  "ArnEquals": {
+                    "ecs:cluster": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1"
+                  }
+                },
+                "Action": "ecs:ListTasks",
+                "Resource": "*",
+                "Effect": "Allow",
+                "Sid": "AllowExactCellOneShotTaskRecovery"
+              },
+              {
+                "Condition": {
+                  "StringEquals": {
+                    "ecs:CreateAction": "RunTask",
+                    "aws:RequestedRegion": "ca-central-1"
+                  }
+                },
+                "Action": "ecs:TagResource",
+                "Resource": "*",
+                "Effect": "Allow",
+                "Sid": "AllowRunTaskTagAuthorizationOnly"
+              },
+              {
+                "Condition": {
+                  "StringEquals": {
+                    "iam:PassedToService": "ecs-tasks.amazonaws.com"
+                  }
+                },
+                "Action": "iam:PassRole",
+                "Resource": [
+                  "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+                  "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole"
+                ],
+                "Effect": "Allow",
+                "Sid": "AllowPassOnlySandboxTaskRoles"
+              },
+              {
+                "Action": [
+                  "secretsmanager:CreateSecret",
+                  "secretsmanager:DeleteSecret",
+                  "secretsmanager:DescribeSecret",
+                  "secretsmanager:GetSecretValue",
+                  "secretsmanager:PutSecretValue",
+                  "secretsmanager:TagResource"
+                ],
+                "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/*/runtime/g*-??????",
+                "Effect": "Allow",
+                "Sid": "AllowGenerationOwnedRuntimeSecretLifecycle"
+              },
+              {
+                "Action": [
+                  "s3:GetObject",
+                  "s3:GetObjectVersion"
+                ],
+                "Resource": "arn:aws:s3:::techlong-sandbox-build-source-402010193138-ca-central-1/source/*",
+                "Effect": "Allow",
+                "Sid": "AllowCodeBuildSourceRead"
+              },
+              {
+                "Condition": {
+                  "StringLike": {
+                    "s3:prefix": "source/*"
+                  }
+                },
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::techlong-sandbox-build-source-402010193138-ca-central-1",
+                "Effect": "Allow",
+                "Sid": "AllowCodeBuildSourceList"
+              },
+              {
+                "Sid": "C4eAppConnect",
+                "Effect": "Allow",
+                "Action": "rds-db:connect",
+                "Resource": "arn:aws:rds-db:ca-central-1:402010193138:dbuser:cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM/tenant_a0da1748bc4d5419_role",
+                "Condition": {
+                  "ArnEquals": {
+                    "aws:PrincipalArn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+                  }
+                }
+              },
+              {
+                "Sid": "C4eMgmtConnect",
+                "Effect": "Allow",
+                "Action": "rds-db:connect",
+                "Resource": "arn:aws:rds-db:ca-central-1:402010193138:dbuser:cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM/postgres",
+                "Condition": {
+                  "ArnEquals": {
+                    "aws:PrincipalArn": "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole"
+                  }
+                }
+              },
+              {
+                "Sid": "C4eOtherSecretVersion",
+                "Effect": "Deny",
+                "Action": "secretsmanager:GetSecretValue",
+                "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+                "Condition": {
+                  "StringNotEquals": {
+                    "secretsmanager:VersionId": "0f45d29f-02d4-4117-99b1-c06645aa3c6e"
+                  }
+                }
+              }
+            ]
+          },
+          "versions": [
+            {
+              "id": "v3",
+              "isDefault": false
+            },
+            {
+              "id": "v4",
+              "isDefault": true
+            }
+          ],
+          "boundaryConsumers": {
+            "roles": [
+              {
+                "name": "TechlongSandboxCodeBuildRole",
+                "id": "AROAV3GNMXTZOK74TOJ7W"
+              },
+              {
+                "name": "TechlongSandboxDeploymentWorkerRole",
+                "id": "AROAV3GNMXTZMR72QS7FW"
+              },
+              {
+                "name": "TechlongSandboxJanitorExecutionRole",
+                "id": "AROAV3GNMXTZBRVMWJVKS"
+              },
+              {
+                "name": "TechlongSandboxSchedulerInvokeRole",
+                "id": "AROAV3GNMXTZA6QTHNW3I"
+              },
+              {
+                "name": "TechlongSandboxTaskExecutionRole",
+                "id": "AROAV3GNMXTZJHJWAN4IR"
+              },
+              {
+                "name": "TechlongSandboxTaskRole",
+                "id": "AROAV3GNMXTZLH2AU5I5G"
+              },
+              {
+                "name": "TechlongSandboxTenantLifecycleTaskRole",
+                "id": "AROAV3GNMXTZDIWVT3BKN"
+              }
+            ],
+            "users": [],
+            "groups": []
+          },
+          "permissionConsumers": {
+            "roles": [],
+            "users": [],
+            "groups": []
+          }
+        }
+      ]
+    },
+    "predecessorStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/aa962890-c9e4-11f1-988b-06ffcd51c63d",
+    "predecessorTaskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:5",
+    "expectedTaskSha256": "1c976ac3e02ccb54720b2432a28c6bf83c5f21b1a20ba69cf37062e5a0d45c76",
+    "janitorCodeSha256": "LTQwSFbnrnl9fjdg2N7GCxLCKiKHeDBBjNWsQ4EdWdA=",
+    "epochItem": {
+      "authority_key": {
+        "S": "tenant:a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d"
+      },
+      "schema_version": {
+        "N": "1"
+      },
+      "revision": {
+        "N": "1"
+      },
+      "record_json": {
+        "S": "{\"epoch\":1,\"generation\":1,\"intent\":\"provision\",\"marker\":\"tl_epoch_a0da1748bc4d5419a6306b89_g1_e1\",\"operationHash\":\"3545b14293b00e381a54148b2adcff9340253d9a95ea02a27f4582256df81a90\",\"ownerDeploymentId\":\"dep_7c99bd249470184852f0dc74\",\"predecessor\":null,\"schemaVersion\":1,\"stableIdentityHash\":\"a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d\"}"
+      }
+    },
+    "hostedZoneId": "Z01473621BTTHKXBGOOEJ",
+    "dnsRecord": {
+      "Name": "first-acceptance.sandbox.techlong.cloud.",
+      "Type": "A",
+      "AliasTarget": {
+        "DNSName": "techlong-sandbox-cell-sandbox-1-335750443.ca-central-1.elb.amazonaws.com",
+        "HostedZoneId": "ZQSVJUPU6J1EY",
+        "EvaluateTargetHealth": false
+      }
+    }
+  },
+  "publicParameters": {
+    "ControlIssuer": "https://techlong.cloud",
+    "CorsAllowedOrigins": "https://first-acceptance.sandbox.techlong.cloud,https://techlong.cloud",
+    "StripePublishableKey": "pk_test_51Tjnz0Isq4kDfSbBHO1RQ81WWxHrh5nBuCl38WWFk1bdry00OIof4fS4eUSAzBtBrC6sEGjxvr21E0zgK80cJPXw006pw8Lzs7",
+    "StripeSuccessUrl": "https://first-acceptance.sandbox.techlong.cloud/payment-success?session_id={CHECKOUT_SESSION_ID}",
+    "StripeCancelUrl": "https://first-acceptance.sandbox.techlong.cloud/payment-cancel"
+  },
+  "controlFingerprints": {
+    "publicKeySha256": "72f953b9f3dab5269a7a1c08fa7acf684d2d9c379ae446b50e3d8294404f02a2",
+    "clientCertificateSha256": "195690a24ed53f23ea891158cbe5c6472cdff098b8c5e250dc2171c5c31c9182",
+    "clientCaSha256": "e60ee2d18d79c7e28c1e1dae192798ba7e18c5a106dcb5e280c1dd5643d27d5d"
+  },
+  "lineage": {
+    "predecessor": {
+      "jobId": "job_fe5ced28b698d0bf128e7b42",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/aa962890-c9e4-11f1-988b-06ffcd51c63d",
+      "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:5",
+      "receiptSha256": "d350a38748a2d1fe70c2e2dfc2768534c53aedc07a44994b571963a500da6bdb"
+    },
+    "receipt": {
+      "authorityCheckedAt": 1792212095318,
+      "authorityObservationSha256": "3fee7d259e5b0f08ff7881fdcc1e96b792618e0b70bf7c98d7d5cd6c870e6eb6",
+      "completedBy": "express-initialized-single-job-v2",
+      "configurationHash": "06d3cb50dd46b5f32771c356b7e7cd7d524a0707799ae24b9ace0672ef7281c9",
+      "controlCheckedAt": 1792212098477,
+      "controlObservationSha256": "e6c2323294e12c4b5043c3a159c6153aef20e7d73bc150fb8bf1eac7abadcdf2",
+      "effectiveConfigurationVerified": true,
+      "epoch": 1,
+      "existingDefaultStoreId": "add89a8c-f43e-81b9-8287-0cb6c5c54f87",
+      "imageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+      "initializedVerified": true,
+      "jobId": "job_fe5ced28b698d0bf128e7b42",
+      "jobPlanSha256": "f3454ac2331b79c120910692086b8c928cc049b33b15b00f95c5392cbc0f3f4b",
+      "materialSha256": "8fa2b5c1cfe441ca6c95771046209e03c8ced91b8cdf0e7948c1c44c55da0313",
+      "operationHash": "3545b14293b00e381a54148b2adcff9340253d9a95ea02a27f4582256df81a90",
+      "providerCheckedAt": 1792212095080,
+      "providerObservationSha256": "6d5095f6606b9c8188a75e95c835f8e508ae87fe11c15e598762902ff89bc902",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/aa962890-c9e4-11f1-988b-06ffcd51c63d",
+      "workloadExpiresAt": 1792218934000
+    },
+    "providerObservation": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/aa962890-c9e4-11f1-988b-06ffcd51c63d",
+      "physical": {
+        "TenantBusinessControlDenyRule": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/76b3fde501f1628e",
+        "TenantControlListenerRule": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/bc69b195b69bc2d9/4d80b028547f3f26",
+        "TenantListenerRule": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/4d9517dc5bcc18c8",
+        "TenantLogGroup": "/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+        "TenantService": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+        "TenantTargetGroup": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/beb9d2ec9e828370",
+        "TenantTaskDefinition": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:5"
+      },
+      "taskArn": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/12433b1649c04f0e98506da52561b4d3",
+      "imageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+      "checkedAt": 1792212095080
+    }
+  },
+  "sourceWitnesses": {
+    "provider-after.json": "0f89703a1bdd4402cb9bf7b0707a080c3669639cda720de831638ebc27fd2345",
+    "completion-reference.json": "ff20dab451c04f8126a427ee1ba5e6069dc32495e2a59414b64cbac7efbd74da"
+  },
+  "capsuleSha256": "5c7e5eeff2febef52b469487e0bd7d170e711fb2b26e3df81162b5b46c6e2e14"
+}
