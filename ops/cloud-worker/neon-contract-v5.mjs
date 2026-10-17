@@ -81,18 +81,18 @@ function guardSql(operation, templates) {
   return sql;
 }
 function programBody(operation, templates) {
-  let body = `DECLARE r record; result jsonb := '[]'::jsonb; held jsonb; running jsonb; request jsonb; job_id text; deadline bigint;
+  let body = `DECLARE v_result record; result jsonb := '[]'::jsonb; held jsonb; running jsonb; request jsonb; job_id text; deadline bigint;
     old_outputs jsonb; new_outputs jsonb; receipt jsonb;\nBEGIN\n${guardSql(operation, templates)}\n`;
   templates.forEach((q, i) => {
     let sql = q.text.replace(/\$(\d+)/g, (_, n) => value(i, Number(n) - 1, q.types[Number(n) - 1]));
     // Keep data-modifying CTEs at top level, insert PL/pgSQL INTO only in the
     // outer result SELECT (not inside a subquery or the UPDATE RETURNING).
-    if (q.key === 'claim_same_held_job_once') sql = sql.replace(' AS lease_expires_at FROM changed', ' AS lease_expires_at INTO STRICT r FROM changed');
-    else if (sql.includes(' AS accepted FROM')) sql = sql.replace(' AS accepted FROM', ' AS accepted INTO STRICT r FROM');
-    else { must(sql.endsWith(' AS accepted'), 'STATIC_SQL_RESULT_SHAPE'); sql += ' INTO STRICT r'; }
+    if (q.key === 'claim_same_held_job_once') sql = sql.replace(' AS lease_expires_at FROM changed', ' AS lease_expires_at INTO STRICT v_result FROM changed');
+    else if (sql.includes(' AS accepted FROM')) sql = sql.replace(' AS accepted FROM', ' AS accepted INTO STRICT v_result FROM');
+    else { must(sql.endsWith(' AS accepted'), 'STATIC_SQL_RESULT_SHAPE'); sql += ' INTO STRICT v_result'; }
     body += `${sql};
-      IF r.accepted<>1 THEN RAISE EXCEPTION 'CLOUD_WORKER_PROGRAM_REJECTED'; END IF;
-      result := result || jsonb_build_array(to_jsonb(r));\n`;
+      IF v_result.accepted<>1 THEN RAISE EXCEPTION 'CLOUD_WORKER_PROGRAM_REJECTED'; END IF;
+      result := result || jsonb_build_array(to_jsonb(v_result));\n`;
   });
   return body + 'RETURN result;\nEND';
 }
