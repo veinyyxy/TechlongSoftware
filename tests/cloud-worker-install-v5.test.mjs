@@ -47,7 +47,7 @@ test('new Secret resource policies deny legacy broad reader and allow management
   assert.equal(denyPut.Condition.StringNotEquals['s3:if-none-match'], '*'); // literal *, deliberately NOT Like
 });
 test('catalog query remains read-only, no password/source/value fields; uses PostgreSQL internal char type', () => {
-  assert.doesNotMatch(NEON_INSTALL_INVENTORY_SQL_V5, /\b(?:INSERT|UPDATE|DELETE|CREATE|ALTER|GRANT|REVOKE)\b|rolpassword|prosrc/);
+  assert.doesNotMatch(NEON_INSTALL_INVENTORY_SQL_V5.replace(/'(?:''|[^'])*'/g, "''"), /\b(?:INSERT|UPDATE|DELETE|CREATE|ALTER|GRANT|REVOKE)\b|rolpassword|prosrc/);
   assert.match(NEON_INSTALL_INVENTORY_SQL_V5, /'s'::"char"/);
 });
 test('design compiler fails closed for existing names, unknown IAM or public read capabilities', async () => {
@@ -55,9 +55,12 @@ test('design compiler fails closed for existing names, unknown IAM or public rea
     workerRole: absent, boundary: absent, journal: absent, evidenceBucket: absent, secrets: { db: absent, control: absent } },
     github = { repository: { value: { id: Number(I.repositoryId), ownerId: Number(I.ownerId), visibility: 'public' } },
       oidcSubject: { value: { sub_claim_prefix: I.subject.split(':environment:')[0], use_immutable_subject: true } } },
-    neon = { catalog: { candidate_role: null, candidate_schema: null, public_relation_grants: [], public_column_grants: [], definers: [], installer: { oid: '16392' } } };
+    neon = { catalog: { candidate_role: null, candidate_schema: null, public_database_create: false, public_create_schemas: [],
+      public_relation_grants: [], public_column_grants: [], definers: [], installer: { oid: '16392' } } };
   const r = await compileInstallReviewV5({ capsule, aws, github, neon }); assert.equal(r.state, 'PREPARED_NOT_EXECUTABLE_NO_MUTATION_APPROVAL');
   assert.equal(r.github.oidcSubjectMutation, false); assert.equal(r.executionBoundary.paidCellCreated, false);
   await assert.rejects(compileInstallReviewV5({ capsule, aws: { ...aws, workerRole: { state: 'READ' } }, github, neon }));
   await assert.rejects(compileInstallReviewV5({ capsule, aws, github, neon: { catalog: { ...neon.catalog, public_relation_grants: ['unsafe'] } } }));
+  await assert.rejects(compileInstallReviewV5({ capsule, aws, github, neon: { catalog: { ...neon.catalog, public_database_create: true } } }));
+  await assert.rejects(compileInstallReviewV5({ capsule, aws, github, neon: { catalog: { ...neon.catalog, public_create_schemas: ['untrusted'] } } }));
 });

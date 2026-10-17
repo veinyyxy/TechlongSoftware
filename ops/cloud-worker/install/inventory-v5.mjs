@@ -31,6 +31,10 @@ export const NEON_INSTALL_INVENTORY_SQL_V5 = `SELECT current_user AS actor,sessi
     FROM pg_roles r WHERE r.rolname='techlong_cloud_worker_v5') AS candidate_role,
   (SELECT jsonb_build_object('oid',n.oid::text,'owner',n.nspowner::text,'acl',n.nspacl) FROM pg_namespace n WHERE n.nspname='techlong_cloud_worker_v5') AS candidate_schema,
   (SELECT jsonb_agg(jsonb_build_object('schema',n.nspname,'owner',n.nspowner::text,'acl',n.nspacl)) FROM pg_namespace n WHERE n.nspname='public') AS public_schema,
+  exists(SELECT 1 FROM pg_database d CROSS JOIN LATERAL aclexplode(coalesce(d.datacl,acldefault('d',d.datdba))) a
+    WHERE d.datname=current_database() AND a.grantee=0 AND a.privilege_type='CREATE') AS public_database_create,
+  (SELECT coalesce(jsonb_agg(n.nspname),'[]'::jsonb) FROM pg_namespace n WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND
+    exists(SELECT 1 FROM aclexplode(coalesce(n.nspacl,acldefault('n',n.nspowner))) a WHERE a.grantee=0 AND a.privilege_type='CREATE')) AS public_create_schemas,
   (SELECT coalesce(jsonb_agg(jsonb_build_object('schema',n.nspname,'name',c.relname,'kind',c.relkind,'privilege',a.privilege_type)), '[]'::jsonb)
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace CROSS JOIN LATERAL aclexplode(coalesce(c.relacl,acldefault(CASE WHEN c.relkind='S' THEN 's'::"char" ELSE 'r'::"char" END,c.relowner))) a
     WHERE n.nspname='public' AND c.relkind IN ('r','p','v','m','f','S') AND a.grantee=0) AS public_relation_grants,

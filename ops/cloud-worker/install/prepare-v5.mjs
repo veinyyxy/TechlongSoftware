@@ -10,7 +10,7 @@ export async function prepareInstallV5(output) {
   if (path.dirname(out).toLowerCase() !== root.toLowerCase() || !/^techlong-w5d-review-[a-z0-9-]+$/.test(path.basename(out))) throw Error('FRESH_REVIEW_PATH_REQUIRED');
   const capsule = await json(new URL('../material/public-capsule-v5.json', import.meta.url)),
     aws = await json('F:/ChatGPT_workshop/techlong-w5d-inventory-20261017-cloud/aws.json'),
-    neon = await json('F:/ChatGPT_workshop/techlong-w5d-inventory-20261017-cloud/neon-catalog-v2.json'),
+    neon = await json('F:/ChatGPT_workshop/techlong-w5d-inventory-20261017-cloud/neon-catalog-v3.json'),
     github = await json('F:/ChatGPT_workshop/techlong-w5d-inventory-20261017-github/github.json');
   const review = await compileInstallReviewV5({ capsule, aws, neon, github });
   await mkdir(out);

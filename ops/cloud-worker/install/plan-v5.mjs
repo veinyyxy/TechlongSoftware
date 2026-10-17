@@ -117,7 +117,8 @@ export async function compileInstallReviewV5({ capsule, aws, github, neon }) {
     github.oidcSubject?.value?.sub_claim_prefix !== I.subject.split(':environment:')[0] || !github.oidcSubject.value.use_immutable_subject ||
     !aws.preservedIam?.iamLayoutUnchanged || !aws.oidcRoleReferenceScanComplete ||
     [aws.workerRole,aws.boundary,aws.journal,aws.evidenceBucket,...Object.values(aws.secrets)].some(r => r.state !== 'ABSENT_AT_CHECK') ||
-    !n || n.candidate_role !== null || n.candidate_schema !== null || n.public_relation_grants.length || n.public_column_grants.length ||
+    !n || n.candidate_role !== null || n.candidate_schema !== null || n.public_database_create !== false || n.public_create_schemas?.length !== 0 ||
+    n.public_relation_grants.length || n.public_column_grants.length ||
     n.definers.some(f => f.publicExecutable) || n.installer.oid !== '16392') throw Error('INSTALL_REVIEW_PRESTATE_UNPROVED');
   const contract = await loadNeonContractV5(), sql = renderNeonContractV5(contract), foundation = foundationTemplateV5(capsule);
   const body = { schema: 'techlong/cloud-worker-install-design-review/v5', state: 'PREPARED_NOT_EXECUTABLE_NO_MUTATION_APPROVAL',
