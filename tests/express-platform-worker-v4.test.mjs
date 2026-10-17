@@ -11,7 +11,8 @@ import { createExpressInitializedSingleJobRunnerV2 } from '../lib/deployments/ex
 import { canonicalJson, sha256Hex } from '../lib/deployments/execution/hash.ts';
 import { prepareInitializedWorkloadV3 } from '../ops/aws-sandbox/scripts/express-initialized-workload-v3.mjs';
 import { W4_ZERO_LEASE_TOKEN, assertHeldPlatformJobV4, admitPlatformJobV4, preparePlatformReviewV4,
-  assertPlatformManifestShapeV4, assertCurrentPlatformRowsV4, assertClaimMatchesReviewV4 } from '../ops/aws-sandbox/scripts/express-platform-worker-v4.mjs';
+  assertPlatformManifestShapeV4, assertCurrentPlatformRowsV4, assertClaimMatchesReviewV4,
+  platformReadObservationV4 } from '../ops/aws-sandbox/scripts/express-platform-worker-v4.mjs';
 
 const NOW = Date.parse('2026-10-16T20:00:00Z');
 async function fixture() {
@@ -84,6 +85,30 @@ test('succeeded old job, released hold, stale facts, revoked admin and active si
     if (key === 'rowDrift') observed.job.updated_at++;
     await assert.rejects(admitPlatformJobV4({ ...input, observed }));
   }
+});
+
+test('reader freshness starts before local I/O; small DB/host clock skew is not stale or a new lease clock', async () => {
+  const { input } = await fixture();
+  for (const delta of [-400, 400]) {
+    const raw = { ...input.observed, checkedAt: NOW + delta };
+    const observed = platformReadObservationV4(raw, { jobs: raw.jobs, requester: raw.requester }, NOW - 1000, NOW - 100);
+    assert.equal(observed.checkedAt, NOW - 1000);
+    assert.equal(observed.databaseCheckedAt, NOW + delta);
+    const admitted = await admitPlatformJobV4({ ...input, observed });
+    assert.equal(admitted.queue.observedAt, NOW - 1000);
+    assert.equal(admitted.queue.row.available_at, INITIALIZED_REVIEW_HOLD_AT);
+    assertCurrentPlatformRowsV4({ queue: admitted.queue, jobPlan: admitted.jobPlan }, observed, NOW);
+    // Reusing the same read does not reset its age or extend the 30s window.
+    await assert.rejects(admitPlatformJobV4({ ...input, observed, now: NOW + 29000 }));
+    assert.throws(() => assertCurrentPlatformRowsV4({ queue: admitted.queue, jobPlan: admitted.jobPlan }, observed, NOW + 29000));
+  }
+});
+
+test('slow reads, backward local clock or malformed DB timestamp still stop before review', async () => {
+  const { input } = await fixture(), raw = input.observed, facts = { jobs: raw.jobs, requester: raw.requester };
+  for (const [start, finish] of [[NOW - 30000, NOW], [NOW, NOW - 1], [NaN, NOW]])
+    assert.throws(() => platformReadObservationV4(raw, facts, start, finish));
+  assert.throws(() => platformReadObservationV4({ ...raw, checkedAt: NaN }, facts, NOW - 100, NOW));
 });
 test('TTL is not cleanup proof or substitute for exact predecessor; active window never reviews a second workload', async () => {
   const { input } = await fixture();

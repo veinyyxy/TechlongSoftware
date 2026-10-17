@@ -1,0 +1,104 @@
+{
+  "schema": "techlong/platform-held-request-w4c-recorded/v1",
+  "state": "REAL_HELD_REQUEST_RECORDED_LOCAL_ENTRY_CLOSED_AWAITING_EXACT_AWS_APPROVAL",
+  "independentReadbackAt": "2026-10-17T04:20:53.701Z",
+  "job": {
+    "id": "job_fe5ced28b698d0bf128e7b42",
+    "deploymentId": "dep_7c99bd249470184852f0dc74",
+    "requestId": "4f5eb21905f0d410241d7314df370afcf332bda01a724b4b4148bcbf6cddbdcc",
+    "requesterId": "usr_4dcd0a09821fde2bb1801f58",
+    "requesterActiveAdmin": true,
+    "status": "pending",
+    "jobType": "reconcile",
+    "attempts": 0,
+    "maxAttempts": 1,
+    "availableAt": 9007199254740991,
+    "leaseAbsent": true,
+    "cloudExecutionAuthorizedInPayload": false,
+    "queuedRowSha256": "ccf6f1a5808223dc21cce8c604750a6324b4d35cb12ac7efeef7c86c957ed3b6"
+  },
+  "requestOrigin": "MANUAL_EXISTING_ADMIN_LOCAL_BROWSER_AUTHENTICATED_POST_201",
+  "localRequestProcessStopped": true,
+  "port3100NotListeningAfterStop": true,
+  "normalUserLoginWritesNotCountedAsOneRequestInsert": true,
+  "preserved": {
+    "snapshotSha256": "6db433f3ddcf42735772879c5b36e3786d88a68e2716947a2bb62b893809d633",
+    "w3ProofJobSha256": "fb3c83e5f17537f3aab7d014ab15d42ef09b9224f74fc6c0ff4de1ecb3d0b3ba",
+    "exactOldSqlProjectionSha256": "2fded9b8ce9194d0ca859664f0f3ba93b14a178b30386a90758c173198109b37",
+    "oldSucceededJobs": 2,
+    "totalJobsNow": 3,
+    "w3CodePinsUnchanged": 76
+  },
+  "readerFix": {
+    "cause": "INDEPENDENT_DB_HOST_WALL_CLOCKS_COMPARED_AS_ONE_FRESHNESS_CLOCK",
+    "observedHostMinusDbMs": -363,
+    "freshnessUsesLocalStartBeforeBothTransactions": true,
+    "freshnessLimitMs": 30000,
+    "databaseTimestampRetainedAsDiagnostic": true,
+    "databaseLeaseAndCasUnchanged": true,
+    "oldReadIsNotRestamped": true,
+    "runtimePin": {
+      "file": "ops/aws-sandbox/scripts/express-platform-worker-v4.mjs",
+      "rawFileSha256": "b7df53d4314dd7c49c5168af36aadc3c8931eaf13a4452dd950f88f7bfd03745"
+    },
+    "testPin": {
+      "file": "tests/express-platform-worker-v4.test.mjs",
+      "rawFileSha256": "39c9a77581ae13c92901e93f63b15305fe2e15ab66f342a3bb8b5e1fb6d64a56"
+    },
+    "targetedTestsPassed": 42,
+    "newClockTests": 2,
+    "typecheckPassed": true,
+    "targetedEslintZeroWarnings": true,
+    "syntaxPassed": true,
+    "priorReadonlyFailurePreservedAt": "F:/ChatGPT_workshop/techlong-platform-w4-review-20261016-r1/result.json",
+    "independentProjectionDiagnostic": "ORIGINAL_BIGINT_DRIVER_STRING_SQL_PROJECTION_REPEATED_AND_MATCHED_NOT_STATE_DRIFT"
+  },
+  "review": {
+    "directory": "F:/ChatGPT_workshop/techlong-platform-w4-review-20261016-r2",
+    "outcome": "READY_FOR_EXACT_QUEUED_JOB_APPROVAL_NO_WRITES",
+    "manifestSha256": "b286086082c7754ef5a0c4e331a92409e3a22824f0d912ffd332e42ce714cc20",
+    "claimBy": "2026-10-17T04:34:55.088Z",
+    "workloadExpiresAt": "2026-10-17T06:19:55.000Z",
+    "sdkReads": 38,
+    "cliReadCommands": 13,
+    "exactW3PredecessorRetiredAndNamespaceAbsent": true,
+    "fixedMetadataAndExistingIamVerified": true,
+    "independentQueueBindingReadbackPassed": true,
+    "sourceRefreshNotRequiredByThisReview": true,
+    "executionApproved": false,
+    "permanentRequestSlotDirectoryPresent": false
+  },
+  "rawEvidence": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-review-20261016-r2/manifest.json",
+      "rawFileSha256": "bf409ddbd1b737e712ed1119526b260b272306f565b8341b5e054344ba4ae27f"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-review-20261016-r2/provider-review.json",
+      "rawFileSha256": "58103fb02f3c24bd6ac7194751582d05668d5dc06feed9ccfa1a359d521bf5ba"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-platform-w4-review-20261016-r2/result.json",
+      "rawFileSha256": "b3623d3d4bcda21b9a15f2fa1b8b4c2ca7d998bc9a10c126dc326624d0020e86"
+    }
+  ],
+  "agentEffects": {
+    "neonReadOnlyTransactions": 11,
+    "sqlWrites": 0,
+    "awsWrites": 0,
+    "originalPrivatePackageReads": 0,
+    "secretValueApiReads": 0,
+    "authenticatedTenantApplicationGets": 0,
+    "permanentExecutionSlotsConsumed": 0,
+    "sitesPublications": 0,
+    "newIamInstalled": 0,
+    "newCellCreated": 0
+  },
+  "next": {
+    "freshSpecificManifestApprovalRequired": true,
+    "exactSameHeldJobOnly": true,
+    "noRequestResubmissionOrPasswordRecovery": true,
+    "noAutomaticRetryOrSlotReset": true,
+    "riskFile": "docs/aws-auto-deployment-aurora-dual-mode-w4b-execution-review.md"
+  }
+}

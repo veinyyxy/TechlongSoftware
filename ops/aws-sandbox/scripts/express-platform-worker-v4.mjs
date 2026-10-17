@@ -32,6 +32,15 @@ export function assertHeldPlatformJobV4(job, now) {
   return p;
 }
 
+/** Freshness is elapsed LOCAL observation time, not subtraction of independent
+ * DB and host wall clocks. Start before BOTH transactions, never after I/O.
+ * Keep the DB timestamp as a diagnostic fact; DB-clock lease/CAS SQL is intact. */
+export function platformReadObservationV4(observed, facts, startedAt, finishedAt) {
+  requireW4(Number.isSafeInteger(startedAt) && startedAt > 0 && Number.isSafeInteger(finishedAt) &&
+    finishedAt >= startedAt && finishedAt - startedAt < 30000 && Number.isSafeInteger(observed.checkedAt), 'STALE_QUEUE_READ');
+  return { ...observed, ...facts, checkedAt: startedAt, databaseCheckedAt: observed.checkedAt };
+}
+
 /** Two bounded READ ONLY transactions. Never chooses/claims the next job.
  * Review requires an exact caller-supplied ID; Inspect supplies original actor. */
 export function createPlatformWorkerReaderV4(databaseUrl) {
@@ -40,6 +49,7 @@ export function createPlatformWorkerReaderV4(databaseUrl) {
   return Object.freeze({
     async read(jobId, signal, originalRequesterId) {
       requireW4(/^job_[a-f0-9]{24}$/.test(jobId), 'EXACT_JOB_ID');
+      const startedAt = Date.now();
       const observed = await base.readSnapshot({ deploymentId: S.deploymentId, predecessorJobId: 'job_202c8dc12a8bf379f3a7c693', newJobId: jobId }, signal);
       completedReadOnlyTransactions++;
       const actor = originalRequesterId ?? assertHeldPlatformJobV4(observed.job, Date.now()).requestedByUserId;
@@ -50,7 +60,7 @@ export function createPlatformWorkerReaderV4(databaseUrl) {
       [S.deploymentId, actor])], { isolationLevel: 'RepeatableRead', readOnly: true, fetchOptions: { signal } });
       completedReadOnlyTransactions++;
       requireW4(facts.rowCount === 1 && Array.isArray(facts.rows[0].jobs), 'READ_FACTS');
-      return { ...observed, ...facts.rows[0] };
+      return platformReadObservationV4(observed, facts.rows[0], startedAt, Date.now());
     },
     counts: () => ({ completedReadOnlyTransactions }),
   });
