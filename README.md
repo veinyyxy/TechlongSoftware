@@ -1,5 +1,9 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5h真实管理员新请求已登记，独立回读通过且本机入口已关闭。** 新job_ecbf09030d3da7286ea3ef93 pending/attempt0/max1/审核挂起，无lease/云授权；原9行和3旧job完整摘要不变，无AWS写/Secret值/dispatch/领取或部署。端口主机可见性误判、只读工具raw-int8/JSONB类型差异均已更正并保留失败记录，未改生产代码或重试提交。下一只准备该准确job的云Review新批准（固定DB读取+私有S3待审manifest写），不再登记或运行旧根；Review前提交全代码，随后冻结caller main跨RunOnce/Inspect。[实际结果与唯一继续点](docs/aws-auto-deployment-cloud-worker-w5h-request-recorded.md) / [证据](ops/aws-sandbox/reviews/cloud-worker-w5h-request-recorded.json)。以下为历史。
+
+2026-10-18最新：**W5h本地请求入口已获明确批准并开启，等待管理员单次创建heldjob。** 仅127.0.0.1:3100，request ON/worker/apply OFF，健康/登录200、未登录API401；未代登录/POST或dispatch/部署。原9行/3成功job摘要已存，提交有任何结果后关闭准确当前listener32800/launcher34096并独立回读，不重试。准备期隔离端口诊断不代表主机空闲，已更正：只替换原default-OFF项目进程，无文件删除或业务重试。[人工动作、准确进程和完整风险](docs/aws-auto-deployment-cloud-worker-w5h-request-entry.md) / [开启回执](ops/aws-sandbox/reviews/cloud-worker-w5h-request-entry.activated.json)。以下为历史。
+
 2026-10-18最新：**W5h只读前置核对完成，当前只缺一条新的真实管理员待审请求。** 12次AWS读/1个Neon只读事务确认旧3任务成功无活动、新待审0、旧七资源栈删除、ECS空闲、固定镜像扫描无报告HIGH/CRITICAL。父Cell旧过期标签保留，沿用独立child窗口，不续期或重建。复用现有页面/协议14项检查通过，无新业务代码或云模拟，116旧pins保持。下一只请求批准临时loopback入口，由管理员单次登记heldjob；尚未开启入口/写DB/dispatch或部署。[实际盘点、准确下一范围及完整风险](docs/aws-auto-deployment-cloud-worker-w5h-request-entry.md) / [证据](ops/aws-sandbox/reviews/cloud-worker-w5h-request-entry.prepared.json)。以下为历史。
 
 2026-10-18最新：**W5g真实云VerifyInstall已完成，独立公开proof核验通过。** 用户人工批准准确run39126114772后，真实OIDC/STS身份、固定S3绑定、一次固定DB Secret读取/窄角色只读catalog均成功，control Secret读/云与DB写0；未部署租户。18新原件/116pins及旧110pins/28激活原件、107pins/23旧原件完整，新槽永久消费不重跑。下一直接准备新的准确held job及有效Cell窗口下的云Review/RunOnce验收，新增业务/私密/部署变更另审，不重开旁支。[完成结果与下一范围](docs/aws-auto-deployment-cloud-worker-w5g-verified.md) / [机器证据](ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.executed.json)。以下为历史。

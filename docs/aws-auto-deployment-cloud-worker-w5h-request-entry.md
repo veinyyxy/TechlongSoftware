@@ -1,4 +1,14 @@
-# W5h：真实云部署前置核对与新待审请求（尚未开启）
+# W5h：真实云部署前置核对与新待审请求
+
+**当前已完成（2026-10-18 07:46 CDT）：用户单次登记新job `job_ecbf09030d3da7286ea3ef93`，入口已关闭。** 独立只读回读确认pending/attempt0/max1/审核挂起、准确管理员/原scope，原九行/三旧任务摘要不变，无云执行。不要再次开启或点击；下一只准备准确新job的云Review另审。见[实际登记、诊断更正与唯一继续点](aws-auto-deployment-cloud-worker-w5h-request-recorded.md)。以下开启/准备内容仅为历史。
+
+**后续状态（2026-10-18 07:42 CDT）：用户已明确批准本地入口和一条管理员请求，现已开启，等待用户单次操作。** 仅127.0.0.1:3100，request ON/worker/apply OFF，健康/登录200，无cookie管理员API401；准确listener32800/launcher34096、exec session10626。新登记尚未独立观察，不能称已生成新job。见[开启记录和恢复位置](../ops/aws-sandbox/reviews/cloud-worker-w5h-request-entry.activated.json)。
+
+更正准备时的端口判断：默认隔离诊断未显示主机监听，不足以证明主机3100空闲；首次启动因此报端口占用并退出。主机侧随后确认是旧W4c default-OFF展示进程27660/launcher28472及其workerd子进程31196，已只停止这组准确旧项目进程、确认端口关闭，再按当前批准正常启动替换。没有停止其它服务、删除文件或重试登录/任务POST。今后端口核对必须在主机侧完成，不能把隔离视图当作主机事实；原失败工具结果和Git准备记录保留。
+
+用户自行打开[本机登录及固定实例页](http://127.0.0.1:3100/login?returnTo=%2Fadmin%2Finstances%2Fapp_e897a4377bce498b9c5ee9e64509dcad)，用原管理员登录，只点一次“创建待审恢复请求”。报错/提交不明也不重试，先关闭准确本次进程再只读核对。原九行业务快照与三旧成功job已独立存摘要基线 `F:/ChatGPT_workshop/techlong-w5h-request-baseline-20261018-a.json`（raw SHA `91aa13bcc6117fa793751b88fc906f57dbe0ef61ab52a84a3f8f098ef198f164`），不保存原业务行/密码/会话令牌。
+
+以下为准备时点及仍适用的完整风险，不撤销上述用户批准，也不授权云部署。
 
 2026-10-18，America/Winnipeg。承接 [W5g 真实云身份/固定数据库验收成功](aws-auto-deployment-cloud-worker-w5g-verified.md)。本阶段复用既有页面、请求 API 和云 worker，不新增队列、角色、权限、模拟器或恢复分支；“开始下一步”只用于只读盘点和准备，**尚未开启请求入口、登记新任务或部署**。
 
@@ -11,7 +21,7 @@
 - 父 Cell `b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1` 仍 CREATE_COMPLETE，16资源及模板与冻结值一致，旧 ExpiresAt/CellExpiresAt 均 `2026-10-15T16:44:56.246Z`。旧标签已过期但不等于自动停费；沿用[W3已明确接受的独立child窗口](aws-auto-deployment-aurora-dual-mode-w3-execution-review.md)，未来新子承载使用原7200秒策略，不续期/改写父Cell。不能在执行时把过期标签说成新的有效父窗口。
 - Aurora仅元数据读取：准确集群available、PG17.9、IAM认证/Internet Gateway、无VPC networking、0–1 ACU/300秒auto-pause符合冻结配置；没有连接Aurora或读取其数据。
 - 两准确镜像scan为COMPLETE，保存的severityCounts为空，未报告HIGH/CRITICAL；不是重新扫描或绝对安全保证。Janitor代码与冻结值一致，调度ENABLED/rate(15 minutes)，不承诺准时删除或停费。
-- 所选既有管理员 `veinyang@gmail.com` / `usr_4dcd0a09821fde2bb1801f58` 仍active/platform admin。未读密码hash、salt、session token或创建会话。127.0.0.1:3100当前未监听。
+- 所选既有管理员 `veinyang@gmail.com` / `usr_4dcd0a09821fde2bb1801f58` 仍active/platform admin。未读密码hash、salt、session token或创建会话。准备阶段隔离诊断未显示3100监听；其主机侧结论已按上方更正。
 
 原件在 `F:/ChatGPT_workshop/techlong-w5h-prerequisites-20261018-a/`，包含 `platform.json`、`aws.json`、`summary.json`；[机器摘要](../ops/aws-sandbox/reviews/cloud-worker-w5h-request-entry.prepared.json)固定其哈希。读脚本首次在联网前因辅助SDK不在根依赖路径停止，随后改用既有 `ops/cloud-worker` 依赖（未安装依赖），只读盘点成功；没有写重试或执行槽消费。平台查询仅安全字段，未取lease能力/密码。
 

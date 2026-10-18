@@ -1,5 +1,9 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-18）：**W5h新真实管理员heldjob已登记并独立核验，入口关闭。** 准确job_ecbf09030d3da7286ea3ef93 pending/attempt0/max1/无限审核挂起，无lease/云授权；原9行业务和3旧job摘要不变。无代登录/POST/业务代码改动、AWS写/Secret值/dispatch/部署。端口隔离视图误判及raw-int8回读工具类型问题均更正/保留，不重试写。下一只准备该job的云Review调度新清单（固定DB Secret+私有S3 manifest写），不再登记、重跑VerifyInstall或套旧本机根；Review前完成代码提交，随后冻结caller main跨准确RunOnce/Inspect的15分钟领取窗口。见[实际结果/原件/继续范围](aws-auto-deployment-cloud-worker-w5h-request-recorded.md) / [机器证据](../ops/aws-sandbox/reviews/cloud-worker-w5h-request-recorded.json)。以下为历史。
+
+最新里程碑（2026-10-18）：**W5h经明确批准已临时开启本地管理员请求入口，等待一次真实heldjob登记。** host-side确认仅127.0.0.1:3100，request ON/worker/apply OFF，登录/健康200、无cookieAPI401；原九行/三旧job摘要保留。未代登录/提交或云dispatch/部署。用户操作有结果后停止准确listener32800/launcher34096、确认主机端口关闭并独立核对，不换nonce重试。准备期“无监听”是隔离视图误判，已只替换准确旧项目展示进程并更正文档，不做新业务代码/权限支线。见[当前人工动作和完整风险](aws-auto-deployment-cloud-worker-w5h-request-entry.md) / [准确进程与基线](../ops/aws-sandbox/reviews/cloud-worker-w5h-request-entry.activated.json)。以下为历史。
+
 最新里程碑（2026-10-18）：**W5h确认新heldjob不存在，复用管理员请求入口即可，不重建Cell/镜像或扩权限。** 12次AWS/1个Neon只读核对：原3任务均成功无活动，前驱七资源已删、ECS空闲、原Cell模板/固定Aurora元数据/镜像扫描/Janitor保持；完整namespace仍留给云Review终审。父Cell旧tag过期但按既有明确方案使用独立新child窗口，不续父TTL。下一仅申请临时127.0.0.1入口，由原管理员新登记一条审核挂起任务再关闭/独立回读，之后云Review调度和RunOnce仍fresh另批。14项复用协议检查/116旧pins保持，本轮未开启入口/DB写/私密读/dispatch/部署。见 [盘点、完整风险与最短继续路径](aws-auto-deployment-cloud-worker-w5h-request-entry.md) / [证据](../ops/aws-sandbox/reviews/cloud-worker-w5h-request-entry.prepared.json)。以下为历史。
 
 最新里程碑（2026-10-18）：**W5g单次云VerifyInstall验收成功，独立proof通过。** 人工批准准确run39126114772后，真实OIDC/STS身份、固定绑定、一次固定DB Secret/窄角色只读catalog通过；控制Secret读/云与DB写0，无应用或租户部署。18原件/116pins与旧110/28、107/23历史完整；新永久槽已消费，不再触发或重跑。下一直接准备新准确held job的云Review/RunOnce/Inspect，先只读核对Cell期限/空闲/命名空间与平台沿革；缺任务/窗口时仅准备新变更，入队/私密读取/部署仍fresh另批，不复用旧成功job或扩旁支。见 [完成事实、边界和继续点](aws-auto-deployment-cloud-worker-w5g-verified.md) / [机器证据](../ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.executed.json)。以下为历史。
