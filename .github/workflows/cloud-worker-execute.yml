@@ -1,0 +1,37 @@
+name: Reviewed single held-job deployment
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [VerifyInstall, Review, RunOnce, Inspect]
+        default: VerifyInstall
+        required: true
+      job: { type: string, default: '' }
+      installation:
+        description: Exact versioned public installation reference from the reviewed publication ACK
+        type: string
+        required: true
+      manifest: { type: string, default: '' }
+      manifestSha: { type: string, default: '' }
+      execution: { type: string, default: '' }
+      lineage: { type: string, default: '' }
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: single-techlong-sandbox-cloud-worker-v5
+  cancel-in-progress: false
+jobs:
+  reviewed:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.actor_id == '14145707'
+    uses: veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-job.yml@7c02d9db3a39fc2f926848a593eb804b642bd1e5
+    with:
+      installationSha: '0edfa9d7e9b284e0cf9dda91e280bd12e98bf8e9c36f955c3ad661f72d6ad4b1'
+      mode: ${{ inputs.mode }}
+      job: ${{ inputs.job }}
+      installation: ${{ inputs.installation }}
+      manifest: ${{ inputs.manifest }}
+      manifestSha: ${{ inputs.manifestSha }}
+      execution: ${{ inputs.execution }}
+      lineage: ${{ inputs.lineage }}
