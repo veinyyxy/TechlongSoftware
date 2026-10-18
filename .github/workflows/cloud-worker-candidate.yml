@@ -75,6 +75,7 @@ jobs:
           tests/cloud-worker-job-dispatch-v5.test.mjs
           tests/cloud-worker-dns-job-dispatch-v5.test.mjs
           tests/cloud-worker-ecs-absence-v5.test.mjs
+          tests/cloud-worker-ecs-publication-v5.test.mjs
       - name: W4 pure contracts - historical Windows local CLI verified separately
         run: >-
           node --experimental-strip-types --test
