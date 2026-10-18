@@ -1,0 +1,63 @@
+name: Cloud worker fixed-version continuation - No AWS
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cloud-worker-continuation.yml'
+      - 'ops/cloud-worker/**'
+      - 'tests/cloud-worker-continuation-v5.test.mjs'
+      - 'package*.json'
+permissions:
+  contents: read
+concurrency:
+  group: cloud-worker-continuation-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  continuation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: cloud-worker-ci-only-bootstrap
+          POSTGRES_DB: postgres
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Types and scoped lint
+        run: |
+          npx tsc --noEmit --incremental false
+          npx eslint ops/cloud-worker/install/continuation*.mjs ops/cloud-worker/install/run-continuation-v5.mjs tests/cloud-worker-continuation-v5.test.mjs
+      - name: Fixed API adapter, ACK-before-metadata and sealed continuation contracts - fake values only
+        run: |
+          mkdir -p "$RUNNER_TEMP/cloud-worker-continuation"
+          node --experimental-strip-types --test tests/cloud-worker-continuation-v5.test.mjs tests/cloud-worker-recovery-v5.test.mjs > "$RUNNER_TEMP/cloud-worker-continuation/tests.tap"
+      - name: Exact portable closure and unchanged Neon SQL on real non-superuser PostgreSQL
+        run: |
+          node scripts/ci/check-cloud-worker-closure-v5.mjs > "$RUNNER_TEMP/cloud-worker-continuation/closure.json"
+          node --experimental-strip-types scripts/ci/verify-cloud-neon-recovery-v5.mjs > "$RUNNER_TEMP/cloud-worker-continuation/neon-recovery-pg18.json"
+        env:
+          CLOUD_NEON_CI_PORT: ${{ job.services.postgres.ports[5432] }}
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: cloud-worker-continuation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cloud-worker-continuation/
+          if-no-files-found: warn
+          retention-days: 7
