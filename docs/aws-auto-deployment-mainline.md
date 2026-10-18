@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-18）：**W5q修正布局的本机续接已实现，尚未dispatch。** W5p 31原件/164当时pins和W5o失败沿革保持，新reader严格接受唯一已批新policy及其它原布局，旧verifier不改不绕过。Review-v5/RunOnce和Inspect-v4固定独立槽；云C/R/76闭包/两工作流及原held job不变。下一仅最终main无AWS CI后只读Prepare新Review清单，再fresh另批固定DB读取/私有manifest写和单次POST；不重做IAM或发布、不领取或部署。[完整风险与命令](aws-auto-deployment-cloud-worker-w5q-corrected-review.md)。以下为历史。
+
 最新里程碑（2026-10-18）：**W5p单项读取权限已执行并独立核验通过。** 用户批准b212b017后一次Create/严格核验/Execute，准确foundation UPDATE_COMPLETE；只有DescribeTaskDefinition Resource=*、区域条件保留，持续扩读已明确接受。trust/boundary默认v1/五资源身份及云C/R保持，31原件/旧失败槽保留；没有Secret值读取、job领取、Review或部署，不声称实际worker访问已证明。下一只显式接线新policy布局和独立Review-v5槽，最终main CI后fresh另审同held job的云Review；不换C/R、不重做发布或扩支线。[完成事实、证据及继续边界](aws-auto-deployment-cloud-worker-w5p-corrected.md)。以下为历史。
 
 最新里程碑（2026-10-18）：**W5p仅准备DescribeTaskDefinition单项权限兼容修正，未执行。** W5o run39157727313失败：STS/固定DB读取成功，精确审计确认DescribeTaskDefinition AccessDenied，当前ARN级Allow对该API不生效；旧v4槽/原件和业务保持，无manifest/RunOnce。新入口只准现有inline Resource=*、保留区域/其余权限/trust/boundary，明确持续扩读风险，7新+相邻回归共72项通过。下一最终main CI后只读Prepare新SHA，再另批一Create/严格核验/一Execute和独立CFN/IAM回读；不换云C/R、不重跑或部署。[完整范围和继续边界](aws-auto-deployment-cloud-worker-w5p-task-definition-read.md)。以下为历史。

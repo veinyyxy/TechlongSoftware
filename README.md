@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5q已接线修正后policy的同任务云Review续接，未调度。** 新本机严格metadata核验绑定W5p 31原件/164历史pins，旧W5o断言和失败槽保持；Review-v5/RunOnce与Inspect-v4独立槽，原job/云C/R/76闭包/工作流/权限不再改变。下一最终main两项无AWS CI通过后仅只读Prepare并请fresh SHA；不领取/部署或重新发布。[完整风险和继续命令](docs/aws-auto-deployment-cloud-worker-w5q-corrected-review.md) / [准备记录](ops/aws-sandbox/reviews/cloud-worker-w5q-corrected-review.prepared.json)。以下为历史。
+
 2026-10-18最新：**W5p单项读取权限已修正，独立Inspect通过。** 按b212b017批准完成一次Create/严格Policies-only核验/Execute，foundation为UPDATE_COMPLETE；仅DescribeTaskDefinition的Resource改为*、保留ca-central-1，持续扩大区域读取能力，不自动撤权。trust/boundary/五资源身份/云C/R/76闭包保持；未读Secret值、dispatch、领取或部署，31份原件及新旧槽保留。下一只将本机Review核验显式绑定新policy及独立Review-v5槽，另备fresh清单；不能复用旧W5o核验或把配置回读当真实worker授权验收。[完成事实和唯一继续点](docs/aws-auto-deployment-cloud-worker-w5p-corrected.md) / [执行证据](ops/aws-sandbox/reviews/cloud-worker-w5p-task-definition-read.executed.json)。以下为历史。
 
 2026-10-18最新：**W5p单项读取授权修正入口已准备，未改AWS。** W5o Review-v4失败的明确阻断是DescribeTaskDefinition的无效ARN级Allow；任务/业务/证据目录未变，无成功manifest，旧槽保留。候选只将该现有inline声明Resource改为*并保留ca-central-1，会持续扩大区域任务定义读取范围，须fresh另批；trust/boundary/写权限/云C/R/76闭包不改。7新+相邻回归共72本机通过；下一最终main无AWS CI后只读Prepare准确Create/严格核验/Execute清单，不执行、不重跑Review或部署。[完整风险与继续位置](docs/aws-auto-deployment-cloud-worker-w5p-task-definition-read.md) / [准备记录](ops/aws-sandbox/reviews/cloud-worker-w5p-task-definition-read.prepared.json)。以下为历史。
