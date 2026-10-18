@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-17最新：**W5e一次性Locked安装器已编码，尚未安装或激活。** 已接源/动作/fresh SHA、固定单次槽、五资源foundation、先隔离后写值的两Secret、Neon角色/四函数原子安装及独立Inspect；候选工作流仍在非活动目录。下一先完成云CI验收，再生成fresh集中Locked安装审批，不直接启用OIDC或部署。真实ID核验后单独收口工作流激活，不扩观察器支线。[实现与完整风险](docs/aws-auto-deployment-cloud-worker-w5e-installer.md)。以下为历史。
+
 2026-10-17最新：**W5d集中安装盘点/材料已准备，未执行安装。** 实际AWS/GitHub/Neon catalog只读核对完成；发现并绑定新版immutable OIDC subject，候选为五资源foundation、Neon窄角色/四函数、两个先隔离再写值的Secret及受审workflow。现有task宽Secret读取需用新Secret资源策略隔离，不改旧IAM。AWS策略/模板只读验证通过（有已说明warning/suggestion），云CI 42项及PG18十二组通过，原件/75闭包/旧99 pins保持。没有可执行批准清单、未读Secret值或部署；下一直接封装一次性安装入口与fresh source/action SHA，再集中确认安装。见 [具体范围、风险和继续位置](docs/aws-auto-deployment-cloud-worker-w5d-install-review.md) / [只读证据](ops/aws-sandbox/reviews/cloud-worker-w5d.prepared.json)。以下为历史。
 
 2026-10-17最新：**W5c统一云执行根与最小Neon权限合同已完成候选验证**。一个Review/RunOnce/独立Inspect接五个永久槽、七资源一次建栈、最小Secret及两认证GET、同job原子完成和私有条件写回执；W4c之后沿革可继续，无需每次改源码。云端36项回归、真实PG18十二组（含并发/越权/回滚）及75文件闭包通过，原ZIP/五回执独立核对；旧99 pins保持。未安装权限/读生产私密值或部署，不是无人值守已上线。下一集中盘点/审核最小云安装资源，不扩观察器。见 [W5c实现、完整风险及下一范围](docs/aws-auto-deployment-cloud-worker-w5c.md) / [准确云CI证据](ops/aws-sandbox/reviews/cloud-worker-w5c.prepared.json)。下方进度为历史。

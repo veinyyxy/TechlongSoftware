@@ -5,9 +5,10 @@ import { cloudRootFixtureV5 } from '../../tests/fixtures/cloud-worker-root-v5.mj
 import { admitPlatformJobV4 } from '../../ops/aws-sandbox/scripts/express-platform-worker-v4.mjs';
 import { compilePlatformInitializedClaimV4 as claim, compilePlatformInitializedLeaseCheckV4 as lease,
   compilePlatformInitializedCompleteV4 as complete } from '../../lib/deployments/execution/express-platform-claim-v4.ts';
-import { loadNeonContractV5, renderNeonContractV5, packNeonProgramV5, NEON_V5 } from '../../ops/cloud-worker/neon-contract-v5.mjs';
+import { loadNeonContractV5, packNeonProgramV5, NEON_V5 } from '../../ops/cloud-worker/neon-contract-v5.mjs';
 import { verifyNeonCatalogV5, NEON_CATALOG_SQL_V5 } from '../../ops/cloud-worker/neon-persistence-v5.mjs';
 import { canonicalJson } from '../../lib/deployments/execution/hash.ts';
+import { scramVerifierV5, neonInstallStatementsV5 } from '../../ops/cloud-worker/install/local-io-v5.mjs';
 const port = Number(process.env.CLOUD_NEON_CI_PORT), password = 'cloud-worker-ci-only-bootstrap';
 assert.equal(process.env.GITHUB_ACTIONS, 'true'); assert.ok(Number.isInteger(port) && port > 1024 && port < 65536);
 const base = { host: '127.0.0.1', port, user: 'postgres', password, database: 'postgres' }, dbName = 'cloud_worker_v5_ci';
@@ -19,7 +20,6 @@ let db, worker, dbCreated = false, roleCreated = false;
 const checks = [], check = (name, value = true) => { assert.equal(value, true); checks.push(name); };
 try {
   await admin.query(`CREATE DATABASE ${dbName}`); dbCreated = true;
-  await admin.query(`CREATE ROLE ${NEON_V5.role} LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD 'cloud-worker-ci-fixture'`); roleCreated = true;
   db = new pg.Client({ ...base, database: dbName }); await db.connect();
   const f = await cloudRootFixtureV5(), snap = f.observed.snapshot;
   const union = [...new Set(f.observed.jobs.flatMap(r => Object.keys(r)))];
@@ -36,11 +36,29 @@ try {
     await db.query(`CREATE TABLE public.${table} (${columns.map(k => `"${k}" ${type(k)}`).join(',')})`);
     for (const row of rows) await db.query(`INSERT INTO public.${table} (${columns.map(k => `"${k}"`).join(',')}) VALUES (${columns.map((_, i) => '$' + (i + 1)).join(',')})`, columns.map(k => row[k]));
   }
-  const contract = await loadNeonContractV5(), rendered = renderNeonContractV5(contract);
+  const contract = await loadNeonContractV5(), workerPassword = 'a'.repeat(96);
+  const installerStatements = await neonInstallStatementsV5(scramVerifierV5(workerPassword, Buffer.alloc(16, 7)));
   await db.query('BEGIN');
-  for (const sql of rendered.statements) await db.query(sql);
-  await db.query('COMMIT');
-  worker = new pg.Client({ ...base, database: dbName, user: NEON_V5.role, password: 'cloud-worker-ci-fixture' }); await worker.connect();
+  try {
+    for (const sql of installerStatements) await db.query(sql);
+    await db.query('SELECT 1/0'); assert.fail('forced last-statement failure did not occur');
+  } catch { await db.query('ROLLBACK'); }
+  assert.equal((await admin.query('SELECT 1 FROM pg_roles WHERE rolname=$1', [NEON_V5.role])).rowCount, 0);
+  assert.equal((await db.query('SELECT 1 FROM pg_namespace WHERE nspname=$1', [NEON_V5.schema])).rowCount, 0);
+  check('actual installer transaction rolls back new LOGIN role and all functions on final-statement failure');
+  await db.query('BEGIN');
+  await db.query('GRANT SELECT ON public.users TO PUBLIC');
+  await assert.rejects((async () => { for (const sql of installerStatements) await db.query(sql); })(),
+    e => e.message === 'CLOUD_WORKER_INSTALL_POSTCONDITION_REJECTED');
+  await db.query('ROLLBACK');
+  assert.equal((await admin.query('SELECT 1 FROM pg_roles WHERE rolname=$1', [NEON_V5.role])).rowCount, 0);
+  assert.equal((await db.query('SELECT 1 FROM pg_namespace WHERE nspname=$1', [NEON_V5.schema])).rowCount, 0);
+  check('installer transaction refuses inherited PUBLIC table access and rolls back all new permissions');
+  await db.query('BEGIN');
+  for (const sql of installerStatements) await db.query(sql);
+  await db.query('COMMIT'); roleCreated = true;
+  worker = new pg.Client({ ...base, database: dbName, user: NEON_V5.role, password: workerPassword }); await worker.connect();
+  check('actual installer SCRAM verifier authenticates dedicated password after atomic role/schema/functions commit');
   const catalog = (await worker.query(NEON_CATALOG_SQL_V5)).rows[0];
   const expected = { roleOid: String(catalog.role.oid), ownerOid: catalog.schema.owner,
     functionOids: Object.fromEntries(catalog.functions.map(f => [f.name, f.oid])) };
@@ -69,7 +87,7 @@ try {
   await assert.rejects(invoke('claim', foreign));
   const injection = structuredClone(claimArgs); injection[3][1] = "dep_foreign'; UPDATE public.users SET status='active';--";
   await assert.rejects(invoke('claim', injection)); check('server rejects cross-scope and SQL-shaped argument bypass');
-  const parallel = new pg.Client({ ...base, database: dbName, user: NEON_V5.role, password: 'cloud-worker-ci-fixture' });
+  const parallel = new pg.Client({ ...base, database: dbName, user: NEON_V5.role, password: workerPassword });
   await parallel.connect(); let raced;
   try { raced = await Promise.allSettled([invoke('claim', claimArgs), invoke('claim', claimArgs, false, parallel)]); }
   finally { await parallel.end(); }

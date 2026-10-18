@@ -1,0 +1,51 @@
+# CANDIDATE ONLY. Do not copy/publish before a fresh activation approval.
+name: Reviewed single held-job deployment
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [Review, RunOnce, Inspect]
+        required: true
+      job:
+        type: string
+        required: true
+      installation:
+        description: Exact private S3 version reference JSON, never a credential or document body
+        type: string
+        required: true
+      installationSha:
+        type: string
+        required: true
+      manifest:
+        type: string
+        default: ''
+      manifestSha:
+        type: string
+        default: ''
+      execution:
+        type: string
+        default: ''
+      lineage:
+        type: string
+        default: ''
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: single-techlong-sandbox-cloud-worker-v5
+  cancel-in-progress: false
+jobs:
+  reviewed:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1
+    # A literal immutable commit must replace this marker in an approved release.
+    uses: veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-job.yml@REVIEWED_REUSABLE_COMMIT_REQUIRED
+    with:
+      mode: ${{ inputs.mode }}
+      job: ${{ inputs.job }}
+      installation: ${{ inputs.installation }}
+      installationSha: ${{ inputs.installationSha }}
+      manifest: ${{ inputs.manifest }}
+      manifestSha: ${{ inputs.manifestSha }}
+      execution: ${{ inputs.execution }}
+      lineage: ${{ inputs.lineage }}

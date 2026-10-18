@@ -62,6 +62,7 @@ jobs:
           node --experimental-strip-types --test tests/cloud-worker-v5.test.mjs
           tests/cloud-worker-root-v5.test.mjs
           tests/cloud-worker-install-v5.test.mjs
+          tests/cloud-worker-installer-v5.test.mjs
           tests/cloud-worker-journal-v1.test.ts
       - name: W4 pure contracts - historical Windows local CLI verified separately
         run: >-

@@ -54,7 +54,8 @@ export const NEON_INSTALL_INVENTORY_SQL_V5 = `SELECT current_user AS actor,sessi
     ('deployment_jobs','app_instance_deployments')) AS write_table_triggers`;
 export async function readNeonInstallInventoryV5() {
   const config = parseEnv(await readFile(new URL('../../../.env.local', import.meta.url), 'utf8')), url = new URL(config.DATABASE_URL);
-  must(['postgres:','postgresql:'].includes(url.protocol) && url.hostname.endsWith('.neon.tech') && !!url.password &&
+  must(['postgres:','postgresql:'].includes(url.protocol) && /^ep-[a-z0-9-]+\.[a-z0-9.-]+\.neon\.tech$/.test(url.hostname) && !!url.password &&
+    (!url.port || url.port === '5432') && /^\/[A-Za-z0-9_-]{1,63}$/.test(url.pathname) &&
     ['require','verify-full'].includes(url.searchParams.get('sslmode')), 'FIXED_NEON_TLS_REQUIRED');
   const sql = neon(config.DATABASE_URL, { fullResults: true });
   const [r] = await sql.transaction(tx => [tx.query(NEON_INSTALL_INVENTORY_SQL_V5, [])], {

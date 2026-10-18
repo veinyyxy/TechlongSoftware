@@ -23,7 +23,7 @@ export async function computeCloudClosureV5() {
       if (!found) throw Error('Unresolved cloud import: ' + relative); await pin(found);
     }
   }
-  for (const f of ['ops/cloud-worker/check-runtime-v5.mjs','ops/cloud-worker/run-worker-v5.mjs',
+  for (const f of ['ops/cloud-worker/check-runtime-v5.mjs','ops/cloud-worker/run-worker-v5.mjs','ops/cloud-worker/workflow-input-v5.mjs',
     'ops/cloud-worker/material/public-capsule-v5.json','ops/cloud-worker/material/neon-programs-v5.json',
     'ops/cloud-worker/package.json','ops/cloud-worker/package-lock.json','package.json','package-lock.json',
     'docs/aws-auto-deployment-cloud-worker-w5c.md']) await pin(path.join(root, f));

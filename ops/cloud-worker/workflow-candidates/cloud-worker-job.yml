@@ -1,0 +1,44 @@
+# CANDIDATE ONLY. Required environment/reviewer is not installed yet.
+name: Pinned reviewed cloud worker job
+on:
+  workflow_call:
+    inputs:
+      mode: { type: string, required: true }
+      job: { type: string, required: true }
+      installation: { type: string, required: true }
+      installationSha: { type: string, required: true }
+      manifest: { type: string, default: '' }
+      manifestSha: { type: string, default: '' }
+      execution: { type: string, default: '' }
+      lineage: { type: string, default: '' }
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  single:
+    if: github.repository == 'veinyyxy/TechlongSoftware' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    environment: techlong-sandbox-deploy
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
+      - name: One explicit mode - never fall through from review to deployment
+        run: node --experimental-strip-types ops/cloud-worker/workflow-input-v5.mjs
+        env:
+          TECHLONG_INPUT_MODE: ${{ inputs.mode }}
+          TECHLONG_INPUT_JOB: ${{ inputs.job }}
+          TECHLONG_INPUT_INSTALLATION: ${{ inputs.installation }}
+          TECHLONG_INPUT_INSTALLATIONSHA: ${{ inputs.installationSha }}
+          TECHLONG_INPUT_MANIFEST: ${{ inputs.manifest }}
+          TECHLONG_INPUT_MANIFESTSHA: ${{ inputs.manifestSha }}
+          TECHLONG_INPUT_EXECUTION: ${{ inputs.execution }}
+          TECHLONG_INPUT_LINEAGE: ${{ inputs.lineage }}
+      # No public Actions artifact upload of private provider/Neon documents.
