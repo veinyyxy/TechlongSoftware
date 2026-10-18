@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5g真实云VerifyInstall已完成，独立公开proof核验通过。** 用户人工批准准确run39126114772后，真实OIDC/STS身份、固定S3绑定、一次固定DB Secret读取/窄角色只读catalog均成功，control Secret读/云与DB写0；未部署租户。18新原件/116pins及旧110pins/28激活原件、107pins/23旧原件完整，新槽永久消费不重跑。下一直接准备新的准确held job及有效Cell窗口下的云Review/RunOnce验收，新增业务/私密/部署变更另审，不重开旁支。[完成结果与下一范围](docs/aws-auto-deployment-cloud-worker-w5g-verified.md) / [机器证据](ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.executed.json)。以下为历史。
+
 2026-10-18最新：**W5g按a44dfaff批准只dispatch一次，已取得准确run 39126114772，首次独立Inspect为waiting。** 新永久槽已消费，不再Review/Dispatch或rerun。下一仅用户在该准确run人工批准techlong-sandbox-deploy，再独立只读Inspect公开proof；目前不称云端OIDC/DB验收通过，不部署资源。排队head固定90693a8，后续文档提交不替换它。[准确链接、待审批状态与继续命令](docs/aws-auto-deployment-cloud-worker-w5g-dispatched.md) / [ACK及原件摘要](ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.dispatched.json)。以下为历史。
 
 2026-10-18最新：**W5g单次VerifyInstall调度/准确运行回读入口已实现，尚未dispatch。** 只接现有冻结C/R与固定S3/DB版本；fresh SHA、新永久槽、一次带run ID ACK的POST、人工environment审批、独立公开proof回读，不自动rerun或部署。新9+原14测试、类型/定向lint通过，云运行源码/原110pins不改。Source首次只读核对不可用，用户已报刷新；下一仅最终clean main只读Review及新SHA确认，当前云写/Secret值/新槽0。[最小范围与完整风险](docs/aws-auto-deployment-cloud-worker-w5g-verify-install.md) / [准备证据和继续点](ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.prepared.json)。以下为历史。

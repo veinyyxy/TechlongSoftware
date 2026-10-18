@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-18）：**W5g单次云VerifyInstall验收成功，独立proof通过。** 人工批准准确run39126114772后，真实OIDC/STS身份、固定绑定、一次固定DB Secret/窄角色只读catalog通过；控制Secret读/云与DB写0，无应用或租户部署。18原件/116pins与旧110/28、107/23历史完整；新永久槽已消费，不再触发或重跑。下一直接准备新准确held job的云Review/RunOnce/Inspect，先只读核对Cell期限/空闲/命名空间与平台沿革；缺任务/窗口时仅准备新变更，入队/私密读取/部署仍fresh另批，不复用旧成功job或扩旁支。见 [完成事实、边界和继续点](aws-auto-deployment-cloud-worker-w5g-verified.md) / [机器证据](../ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.executed.json)。以下为历史。
+
 最新里程碑（2026-10-18）：**W5g已按a44dfaff fresh批准单次调度，准确run 39126114772首次独立Inspect状态waiting。** workflow/head/actor/attempt已核对，新永久槽消费，不再Review/Dispatch、重跑或复位；控制器未代批环境。下一唯一动作是用户批准该run的techlong-sandbox-deploy，然后只读Inspect验证公开proof；尚不称真实OIDC/固定DB连接验收成功，不部署/扩权或重开支线。queued head固定90693a8，不因文档main前进替换验收对象。见 [准确运行与下一只读命令](aws-auto-deployment-cloud-worker-w5g-dispatched.md) / [回执](../ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.dispatched.json)。以下为历史。
 
 最新里程碑（2026-10-18）：**W5g单次云VerifyInstall本地控制器已完成，等待最终只读Review和单独批准。** 固定已激活的C/R/S3/DB版本，一次dispatch要求准确run ID ACK、新永久槽/临提交fresh检查，用户人工环境审批后独立回读身份/公开proof，不自动重跑或读原控制材料。9新+14原测试/类型/零警告定向lint通过，云代码和110旧pins不改；初次preflight凭据不可用但0云写/Secret值/槽，用户已报刷新。下一在最终clean main生成fresh SHA再请确认，不能把本次准备当私密读取/dispatch授权；之后才新held job的真实云Review/RunOnce，不扩支线。见 [准确范围与完整风险](aws-auto-deployment-cloud-worker-w5g-verify-install.md) / [准备证据](../ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.prepared.json)。以下为历史。
