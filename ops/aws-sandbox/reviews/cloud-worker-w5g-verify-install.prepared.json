@@ -1,0 +1,56 @@
+{
+  "schema": "techlong/cloud-worker-verify-install-prepared/v5",
+  "state": "LOCAL_CONTROLLER_VERIFIED_FINAL_MAIN_READ_ONLY_REVIEW_PENDING_NO_DISPATCH",
+  "localDate": "2026-10-18",
+  "entry": "ops/cloud-worker/verify-install-v5.mjs",
+  "riskFile": "docs/aws-auto-deployment-cloud-worker-w5g-verify-install.md",
+  "cloudRuntimeChanged": false,
+  "runtimeCommit": "ac75c4bcbb856babc67d88b6e06212e981a25d90",
+  "reusableCommit": "7c02d9db3a39fc2f926848a593eb804b642bd1e5",
+  "workflowId": 388188162,
+  "environmentId": 24613410405,
+  "installationSha256": "0edfa9d7e9b284e0cf9dda91e280bd12e98bf8e9c36f955c3ad661f72d6ad4b1",
+  "bindingVersionId": "QzUuJ3ypqIdZW2OixF5WIDKpGZDtX_fV",
+  "permanentSlot": "F:/ChatGPT_workshop/techlong-cloud-worker-v5-verify-install-v1.permanent-slot.json",
+  "proposedMaximumEffectsAfterFreshApproval": {
+    "workflowDispatches": 1,
+    "userEnvironmentApprovalRequired": true,
+    "oidcTokenRequests": 1,
+    "stsExchanges": 1,
+    "maxWorkerSessionSeconds": 3600,
+    "fixedDatabaseSecretValueReads": 1,
+    "narrowReadOnlyCatalogTransactions": 1,
+    "controlSecretReads": 0,
+    "resourceOrDatabaseWrites": 0,
+    "originalPrivateBundleReads": 0,
+    "automaticReruns": 0,
+    "automaticCleanupOrRollback": false
+  },
+  "validation": {
+    "newLocalControllerTests": 9,
+    "adjacentActivationTests": 14,
+    "passedTests": 23,
+    "typecheck": "passed",
+    "targetedEslintMaxWarnings0": "passed",
+    "actualOidcExchangeVerified": false,
+    "privateReadPerformed": false
+  },
+  "preliminaryEvidence": {
+    "githubInventory": "F:/ChatGPT_workshop/techlong-w5d-inventory-20261018-w5g/github.json",
+    "firstPreflight": "F:/ChatGPT_workshop/techlong-w5g-preliminary-20261018-a/stopped.json",
+    "category": "CredentialsProviderError",
+    "uniqueCauseProved": false,
+    "userRefreshReportedAfterFailure": true,
+    "finalReviewRequired": true
+  },
+  "preparationEffects": {
+    "externalWrites": 0,
+    "secretValueReads": 0,
+    "originalPrivateBundleReads": 0,
+    "newSlotConsumed": false,
+    "workflowDispatched": false
+  },
+  "next": "After committing both main handoffs, run Review on final clean platform main, independently verify manifest/source/history hashes, and request fresh SHA approval. Do not dispatch, read Secret values, approve the environment or deploy under the preparation request.",
+  "monthlyBudgetTargetUsd": 50,
+  "hardCostCap": false
+}

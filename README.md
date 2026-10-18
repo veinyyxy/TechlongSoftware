@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5g单次VerifyInstall调度/准确运行回读入口已实现，尚未dispatch。** 只接现有冻结C/R与固定S3/DB版本；fresh SHA、新永久槽、一次带run ID ACK的POST、人工environment审批、独立公开proof回读，不自动rerun或部署。新9+原14测试、类型/定向lint通过，云运行源码/原110pins不改。Source首次只读核对不可用，用户已报刷新；下一仅最终clean main只读Review及新SHA确认，当前云写/Secret值/新槽0。[最小范围与完整风险](docs/aws-auto-deployment-cloud-worker-w5g-verify-install.md) / [准备证据和继续点](ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.prepared.json)。以下为历史。
+
 2026-10-18最新：**W5f已按f8786e44批准完成六项激活提交，独立Inspect通过，未运行云worker。** environment仅main/唯一人工reviewer/admin bypass=false、准确S3绑定版本、两固定工作流发布及foundation仅trust更新均验证；原IAM/边界/Secret版本和Neon目录保持。110源pins/28新原件及107旧pins/23旧原件核对，通过后本地main已ff-only同步；Secret值/原包/dispatch/job或部署写0。下一仅另审单次VerifyInstall，验证真实OIDC和固定数据库Secret/只读catalog，不自动触发或部署、不重开支线。[执行结果与唯一继续点](docs/aws-auto-deployment-cloud-worker-w5f-activation-executed.md) / [机器证据](ops/aws-sandbox/reviews/cloud-worker-w5f-activation.executed.json)。以下为历史。
 
 2026-10-17最新：**W5f集中激活入口/冻结源码工作流已准备并通过云CI，未激活。** 新reusable不再检出变化main；本地独立index可生成两枚准确待审提交对象，不建分支/移动main，批准后一次ff发布。拟6顶层提交：environment/main规则、公开绑定私有S3对象、两文件发布、foundation仅trust ChangeSet创建/执行；不自动dispatch或部署。新14项、原60及续接25/真实PG18证明通过，原ZIP/76闭包/107旧源码保持。下一只最终main准备对象、只读fresh Review及新SHA批准；源码之外的实际工作流/environment/IAM/S3仍0写，Secret值/原包0读。[完整范围与风险](docs/aws-auto-deployment-cloud-worker-w5f-activation.md) / [CI证据及继续位置](ops/aws-sandbox/reviews/cloud-worker-w5f-activation.prepared.json)。以下为历史。
