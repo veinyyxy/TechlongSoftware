@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import yaml from 'js-yaml';
+import {renderPinnedCallerV5} from '../ops/cloud-worker/activation/release-v5.mjs';
 import {JOB_DISPATCH_V5 as V,jobDispatchBodyV5,executionObjectV5,prepareJobDispatchV5,assertJobDispatchApprovalV5,
   dispatchJobV5,jobProofFromLogsV5,assertJobReferenceV5,jobDispatchSlotV5,assertInstalledJobWorkflowV5} from '../ops/cloud-worker/job-dispatch-v5.mjs';
 import {evidenceKeyV5} from '../ops/cloud-worker/cloud-evidence-v5.mjs';
@@ -32,8 +33,8 @@ test('Review binds the real held job and installed S3 version; no manifest/execu
   for(const k of ['manifest','manifestSha','execution','lineage'])assert.equal(body.inputs[k],'');
   assert.throws(()=>jobDispatchBodyV5('VerifyInstall'));assert.throws(()=>jobDispatchBodyV5('Review',cloud));
 });
-test('all three dispatch bodies match the real installed external schema; runtime-only SHA is rejected externally',async()=>{
-  const workflow=yaml.load(await readFile(new URL('../.github/workflows/cloud-worker-execute.yml',import.meta.url),'utf8'));
+test('historical three dispatch bodies match their frozen caller schema; runtime-only SHA is rejected externally',async()=>{
+  const workflow=yaml.load(renderPinnedCallerV5(V.reusable));
   const object=executionObjectV5(cloud,execution),ref={key:object.key,versionId:'actual-version',sha256:await sha256Hex(object.body)};
   for(const body of [jobDispatchBodyV5('Review'),jobDispatchBodyV5('RunOnce',cloud),jobDispatchBodyV5('Inspect',cloud,ref)]){
     assertInstalledJobWorkflowV5(workflow,body);

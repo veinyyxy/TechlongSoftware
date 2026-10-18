@@ -66,6 +66,14 @@ jobs:
           tests/cloud-worker-installer-v5.test.mjs
           tests/cloud-worker-recovery-v5.test.mjs
           tests/cloud-worker-journal-v1.test.ts
+      - name: DNS publication and new held-job continuation contracts - no cloud credentials
+        run: >-
+          node --experimental-strip-types --test
+          tests/cloud-worker-dns-normalization-v5.test.mjs
+          tests/cloud-worker-dns-release-v5.test.mjs
+          tests/cloud-worker-dns-publication-v5.test.mjs
+          tests/cloud-worker-job-dispatch-v5.test.mjs
+          tests/cloud-worker-dns-job-dispatch-v5.test.mjs
       - name: W4 pure contracts - historical Windows local CLI verified separately
         run: >-
           node --experimental-strip-types --test
