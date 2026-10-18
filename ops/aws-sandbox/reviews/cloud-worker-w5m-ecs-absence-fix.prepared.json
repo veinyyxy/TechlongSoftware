@@ -1,0 +1,50 @@
+{
+  "schema": "techlong/cloud-worker-ecs-absence-code-fix/v5",
+  "state": "STRICT_ABSENCE_COMPATIBILITY_IMPLEMENTED_NOT_PUBLISHED",
+  "localDate": "2026-10-18",
+  "scope": "Only code fix, tests, no-AWS CI and trace documentation as explicitly requested",
+  "failedRunId": "39149802733",
+  "failedCallerCommit": "da56077681ef259f3ce8d36d0baf8071d646ad1d",
+  "failureCheckpoint": {
+    "path": "F:/ChatGPT_workshop/techlong-w5l-failed-checkpoint-20261018-a.json",
+    "rawSha256": "f7174f3e2b0d12580fbf107bd6b8cb664168c200c6fe64a12a31ba6e7ad00357",
+    "originals": 11
+  },
+  "userAuthorizedEndingFailedMainFreezeForThisFixOnly": true,
+  "codeFile": "ops/cloud-worker/aws-initialized-workload-v5.mjs",
+  "testFile": "tests/cloud-worker-ecs-absence-v5.test.mjs",
+  "documentation": "docs/aws-auto-deployment-cloud-worker-w5m-ecs-absence-fix.md",
+  "fallbackOnlyWhen": {
+    "describeServices": "services=[]; one exact account/cluster/service ARN MISSING failure; actual arrays required",
+    "listTasks": "Same cluster/service, desiredStatus RUNNING; exact ServiceNotFoundException and HTTP400",
+    "otherwise": "Propagate original error without retry"
+  },
+  "readRequestCountUnchanged": 2,
+  "downstreamNamespaceAndOtherGuardsRetained": true,
+  "permissionExpansion": 0,
+  "candidateCloudClosureFiles": 76,
+  "candidateCloudClosureSha256": "70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac",
+  "onlyChangedCloudClosureFile": "ops/cloud-worker/aws-initialized-workload-v5.mjs",
+  "candidateRuntimeRootBindingUpdated": true,
+  "installedCloudRuntimeCommitUnchanged": "e55367c370ca5aa883d8a7e1342514fc3f34c442",
+  "installedReusableCommitUnchanged": "46312fff06d60e9e4ca96be6bb8d82ce1ce3d109",
+  "localValidation": {
+    "newTestsPassed": 8,
+    "relatedRegressionTestsPassed": 53,
+    "totalTestsPassed": 61,
+    "typecheckPassed": true,
+    "targetedLintWarnings": 0,
+    "initialFixtureFailure": "Root SDK instanceof differed from independent runtime SDK; test now resolves the actual runtime SDK. No dependency versions changed.",
+    "finalMainNoAwsCiRequired": true
+  },
+  "awsApiCallsThisStage": 0,
+  "neonApiCallsThisStage": 0,
+  "secretValueReadsThisStage": 0,
+  "cloudResourceWrites": 0,
+  "workflowDispatches": 0,
+  "slotConsumption": 0,
+  "jobClaims": 0,
+  "deployments": 0,
+  "oldRecordsAndSlotsPreserved": true,
+  "next": "Stop after code/tests/no-AWS CI. Only on a later user request prepare a new reviewed publication entry/material for new C/R; actual workflow/trust publication and fresh independent Review each require exact new approval. Do not reuse W5k Publish or W5l failed Review-v3, reset slots, expand IAM, or prepare RunOnce from an absent manifest."
+}

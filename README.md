@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5m仅代码修复/测试，未发布或重跑。** 用户允许结束失败main冻结；只在准确服务唯一MISSING与同服务ListTasks HTTP400/ServiceNotFoundException同时成立时兼容空任务，其余异常和全部原门禁保留。8新+53回归共61项本机通过；76云闭包仅provider变化并更新本地ROOT绑定。实际云C/R、权限/旧槽/业务不改，旧Review-v3失败且无manifest；下一推进发布需另行请求及fresh审批，不直接使用旧入口。[修复范围与继续边界](docs/aws-auto-deployment-cloud-worker-w5m-ecs-absence-fix.md) / [记录](ops/aws-sandbox/reviews/cloud-worker-w5m-ecs-absence-fix.prepared.json)。以下为历史。
+
 2026-10-18最新：**W5l同任务云Review的本机新版本衔接已实现，未调度。** 固定W5k已发布C/R不变，Review-v3、RunOnce/Inspect-v2独立槽，七输入/准确ACK/条件版本/冻结caller合同保持；核对134历史Git pins、26发布原件、旧失败和管理员来源，再核对实际布局/业务/最终main无AWS CI。旧controller/记录/槽保留，兼容测试改读历史caller，新测试直接查当前工作流。下一最终CI后只读Prepare准确原job的新Review清单并请fresh SHA，不重新发布/扩权/领取或部署。[完整风险及继续命令](docs/aws-auto-deployment-cloud-worker-w5l-review-continuation.md) / [准备记录](ops/aws-sandbox/reviews/cloud-worker-w5l-review-continuation.prepared.json)。以下为历史。
 
 2026-10-18最新：**W5k DNS修复固定版本已发布并独立Inspect通过。** 获批62bbe2c1清单下完成一次双workflow非force发布、一trust-only Create/严格核验/Execute及本地FF；栈UPDATE_COMPLETE，角色/权限/固定材料及Neon目录保持。运行C=e55367c、reusable R=46312ff、caller S=d25c97f，发布槽永久保留，26原件摘要已记；未读Secret值/dispatch/领取或部署。下一仅接线同held job的新云Review准备，旧W5i固定旧版本不可重用，实际Review另批；不重做发布或扩支线。[完成结果与继续位置](docs/aws-auto-deployment-cloud-worker-w5k-published.md) / [执行证据](ops/aws-sandbox/reviews/cloud-worker-w5k-dns-publication.executed.json)。以下为历史。

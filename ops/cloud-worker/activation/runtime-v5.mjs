@@ -12,7 +12,7 @@ import { createNarrowNeonV5, createNeonRpcTransportV5 } from '../neon-persistenc
 import { validateDatabaseMaterialV5 } from '../cloud-application-v5.mjs';
 import { assertEvidenceSafeV5, EVIDENCE_V5 } from '../cloud-evidence-v5.mjs';
 import { sha256Hex } from '../../../lib/deployments/execution/hash.ts';
-export const ROOT_CLOSURE_V5 = 'e06c12e53732268ca1665ca6ec77805bd626c9f2bce1d44f66ef8efa430e5299';
+export const ROOT_CLOSURE_V5 = '70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac';
 export const INSTALLED_SHA_V5 = '0edfa9d7e9b284e0cf9dda91e280bd12e98bf8e9c36f955c3ad661f72d6ad4b1';
 const roleId = 'AROAV3GNMXTZK5O45RG24', roleArn = 'arn:aws:iam::402010193138:role/TechlongSandboxGitHubDeploymentWorkerRole';
 const must = (ok,code) => { if (!ok) throw Error('ACTIVATION_RUNTIME_' + code); };

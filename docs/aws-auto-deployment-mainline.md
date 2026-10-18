@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-18）：**W5m按用户要求只做ECS缺失响应小修复及测试，不发布/重跑。** W5l准确失败会话的ListTasks ServiceNotFound及Source准确MISSING已印证；唯一兼容条件为同服务精确MISSING+HTTP400/ServiceNotFoundException，错误/已有资源/分页及其它门禁保留。8新+53相邻回归通过，候选ROOT/76闭包更新仅为本地源码，实际云仍旧C/R。旧v3槽/失败原件保留，无成功manifest、无RunOnce授权；本轮到代码/无AWS CI收口。[修复记录及下一步边界](aws-auto-deployment-cloud-worker-w5m-ecs-absence-fix.md)。以下为历史。
+
 最新里程碑（2026-10-18）：**W5l本机Review/RunOnce/Inspect已接固定新C/R，未执行云Review。** 原job不新建，新Review-v3及后续v2永久槽，旧失败/发布证据保留；历史134 pins/26原件和当前源码/准确双工作流、CI/布局/业务门禁均在新清单绑定。先完成最终main无AWS CI再只读Prepare；准确SHA审批仅限一次Review的固定DB读取/私有S3 manifest写，不领取或部署。云Review成功后冻结caller跨后续窗口，不再改代码延误。[完整范围、风险及命令](aws-auto-deployment-cloud-worker-w5l-review-continuation.md)。以下为历史。
 
 最新里程碑（2026-10-18）：**W5k真实发布完成并经新进程独立Inspect通过。** 用户重新确认62bbe2c1后，一次非force双workflow发布及现有角色trust-only Change Set创建/严格核验/执行完成，栈UPDATE_COMPLETE、本地main已FF，26原件含永久槽保留。固定运行C=e55367c、R=46312ff、发布caller S=d25c97f；无权限扩张、Secret值读取、dispatch、job领取或承载创建。下一只接线原job_ecbf09030d3da7286ea3ef93的新云Review版本/独立槽并准备fresh清单；旧W5i dispatcher不能用于新布局，不重做发布或登记新请求，实际Review/RunOnce仍分别批准。[结果、证据及唯一继续位置](aws-auto-deployment-cloud-worker-w5k-published.md)。以下为历史。

@@ -18,6 +18,24 @@ const tags = rows => Object.fromEntries((rows || []).map(t => [t.Key, t.Value]))
 const arn = 'arn:aws:ecs:ca-central-1:402010193138:';
 const names = ['ClusterName', 'VpcId', 'SubnetIds', 'TaskSecurityGroupId', 'HttpsListenerArn', 'ControlListenerArn'];
 export const normalizeCloudDnsV5 = value => String(value || '').toLowerCase().replace(/\.$/, '').replace(/^dualstack\./, '');
+function exactCloudServiceMissing(services, serviceName) {
+  return Array.isArray(services?.services) && services.services.length === 0 &&
+    Array.isArray(services.failures) && services.failures.length === 1 &&
+    services.failures[0]?.arn === arn + 'service/cell-sandbox-1/' + serviceName && services.failures[0].reason === 'MISSING';
+}
+export async function readCloudServiceNamespaceV5(send, serviceName) {
+  let missingError;
+  const [services, tasks] = await Promise.all([
+    send(new ecs.DescribeServicesCommand({ cluster: 'cell-sandbox-1', services: [serviceName] })),
+    send(new ecs.ListTasksCommand({ cluster: 'cell-sandbox-1', serviceName, desiredStatus: 'RUNNING' })).catch(error => {
+      // This is NOT an empty-list fallback for arbitrary SDK/network errors.
+      if (error?.name !== 'ServiceNotFoundException' || error.$metadata?.httpStatusCode !== 400) throw error;
+      missingError = error; return null;
+    }),
+  ]);
+  if (missingError && !exactCloudServiceMissing(services, serviceName)) throw missingError;
+  return { services, tasks: missingError ? { taskArns: [] } : tasks };
+}
 export function cloudTaskProjectionV5(definition) {
   const v = structuredClone(definition);
   for (const k of ['taskDefinitionArn', 'revision', 'status', 'requiresAttributes', 'compatibilities', 'registeredAt', 'registeredBy', 'deregisteredAt']) delete v[k];
@@ -111,9 +129,8 @@ export function createCloudInitializedAwsV5(base, session) {
     let absent = false;
     try { await send(api.cfn, new cf.DescribeStacksCommand({ StackName: workload.stackName }), signal); }
     catch (e) { if (e.name === 'ValidationError' && e.message === `Stack with id ${workload.stackName} does not exist`) absent = true; else throw e; }
-    const [services, tasks, definitions, target, logs, predecessor, resources, td] = await Promise.all([
-      send(api.ecs, new ecs.DescribeServicesCommand({ cluster: 'cell-sandbox-1', services: [svcName] }), signal),
-      send(api.ecs, new ecs.ListTasksCommand({ cluster: 'cell-sandbox-1', serviceName: svcName, desiredStatus: 'RUNNING' }), signal),
+    const [{ services, tasks }, definitions, target, logs, predecessor, resources, td] = await Promise.all([
+      readCloudServiceNamespaceV5(command => send(api.ecs, command, signal), svcName),
       send(api.ecs, new ecs.ListTaskDefinitionsCommand({ familyPrefix: family, status: 'ACTIVE' }), signal),
       readAuxiliary('elb.DescribeTargetGroups', { Names: [props.TenantTargetGroup.Properties.Name] }, signal, 'TargetGroupNotFound'),
       readAuxiliary('logs.DescribeLogGroups', { logGroupNamePrefix: props.TenantLogGroup.Properties.LogGroupName, limit: 5 }, signal),
@@ -122,8 +139,7 @@ export function createCloudInitializedAwsV5(base, session) {
       send(api.ecs, new ecs.DescribeTaskDefinitionCommand({ taskDefinition: base.predecessorTaskDefinitionArn }), signal),
     ]);
     const service = services.services?.[0];
-    const serviceAbsent = services.services?.length === 0 && services.failures?.length === 1 &&
-      services.failures[0].arn === arn + 'service/cell-sandbox-1/' + svcName && services.failures[0].reason === 'MISSING';
+    const serviceAbsent = exactCloudServiceMissing(services, svcName);
     must(absent && (!services.failures?.length && services.services?.length === 1 && service.status === 'INACTIVE' &&
       service.desiredCount === 0 && service.runningCount === 0 && service.pendingCount === 0 || serviceAbsent) &&
       !tasks.nextToken && tasks.taskArns?.length === 0 && !definitions.nextToken && !definitions.taskDefinitionArns?.some(a => a.includes('/' + family + ':')) &&
