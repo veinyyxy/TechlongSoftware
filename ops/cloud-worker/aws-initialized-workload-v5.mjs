@@ -17,7 +17,7 @@ function freeze(v) { if (v && typeof v === 'object') { Object.values(v).forEach(
 const tags = rows => Object.fromEntries((rows || []).map(t => [t.Key, t.Value]));
 const arn = 'arn:aws:ecs:ca-central-1:402010193138:';
 const names = ['ClusterName', 'VpcId', 'SubnetIds', 'TaskSecurityGroupId', 'HttpsListenerArn', 'ControlListenerArn'];
-const normalDns = value => String(value || '').toLowerCase().replace(/\\.$/, '').replace(/^dualstack\\./, '');
+export const normalizeCloudDnsV5 = value => String(value || '').toLowerCase().replace(/\.$/, '').replace(/^dualstack\./, '');
 export function cloudTaskProjectionV5(definition) {
   const v = structuredClone(definition);
   for (const k of ['taskDefinitionArn', 'revision', 'status', 'requiresAttributes', 'compatibilities', 'registeredAt', 'registeredBy', 'deregisteredAt']) delete v[k];
@@ -76,7 +76,7 @@ export function createCloudInitializedAwsV5(base, session) {
     ]);
     const alias = dns.ResourceRecordSets?.[0], wanted = base.dnsRecord, db = database.DBClusters?.[0], b = job.material.binding;
     must(alias?.Name === wanted.Name && alias.Type === 'A' && !alias.ResourceRecords && alias.AliasTarget?.HostedZoneId === wanted.AliasTarget.HostedZoneId &&
-      normalDns(alias.AliasTarget.DNSName) === normalDns(wanted.AliasTarget.DNSName) && alias.AliasTarget.EvaluateTargetHealth === false &&
+      normalizeCloudDnsV5(alias.AliasTarget.DNSName) === normalizeCloudDnsV5(wanted.AliasTarget.DNSName) && alias.AliasTarget.EvaluateTargetHealth === false &&
       listeners.Listeners?.length === 2 && listeners.Listeners.every(l => l.Protocol === 'HTTPS') &&
       listeners.Listeners.find(l => l.ListenerArn === workload.cellOutputs.ControlListenerArn)?.MutualAuthentication?.Mode === 'verify', 'DNS_OR_MTLS_LISTENER_DRIFT');
     must(database.DBClusters?.length === 1 && db.DBClusterArn === b.clusterArn && db.DbClusterResourceId === b.clusterResourceId &&
