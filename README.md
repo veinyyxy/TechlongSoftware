@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5i准确job的单次云调度/回读接线已完成，尚未调度。** 新11+原17检查通过、类型/定向lint通过，原116pins/76闭包/两工作流不动；Review、RunOnce、Inspect各自fresh批准/新永久槽，未知ACK不重试。下一在最终clean main只读Prepare准确job_ecbf09030d3da7286ea3ef93的Review清单，再批准固定DB读取+一个私有S3 manifest写；不领取/部署。后两模式预先备好以免云Review后15分钟窗口内改main；实际Review后冻结caller SHA，不自动扩大授权。[完整风险和命令](docs/aws-auto-deployment-cloud-worker-w5i-job-dispatch.md) / [准备记录](ops/aws-sandbox/reviews/cloud-worker-w5i-job-dispatch.prepared.json)。以下为历史。
+
 2026-10-18最新：**W5h真实管理员新请求已登记，独立回读通过且本机入口已关闭。** 新job_ecbf09030d3da7286ea3ef93 pending/attempt0/max1/审核挂起，无lease/云授权；原9行和3旧job完整摘要不变，无AWS写/Secret值/dispatch/领取或部署。端口主机可见性误判、只读工具raw-int8/JSONB类型差异均已更正并保留失败记录，未改生产代码或重试提交。下一只准备该准确job的云Review新批准（固定DB读取+私有S3待审manifest写），不再登记或运行旧根；Review前提交全代码，随后冻结caller main跨RunOnce/Inspect。[实际结果与唯一继续点](docs/aws-auto-deployment-cloud-worker-w5h-request-recorded.md) / [证据](ops/aws-sandbox/reviews/cloud-worker-w5h-request-recorded.json)。以下为历史。
 
 2026-10-18最新：**W5h本地请求入口已获明确批准并开启，等待管理员单次创建heldjob。** 仅127.0.0.1:3100，request ON/worker/apply OFF，健康/登录200、未登录API401；未代登录/POST或dispatch/部署。原9行/3成功job摘要已存，提交有任何结果后关闭准确当前listener32800/launcher34096并独立回读，不重试。准备期隔离端口诊断不代表主机空闲，已更正：只替换原default-OFF项目进程，无文件删除或业务重试。[人工动作、准确进程和完整风险](docs/aws-auto-deployment-cloud-worker-w5h-request-entry.md) / [开启回执](ops/aws-sandbox/reviews/cloud-worker-w5h-request-entry.activated.json)。以下为历史。

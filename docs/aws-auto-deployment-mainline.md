@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-18）：**W5i单次云Review/RunOnce/独立Inspect的本机接线完成，尚未dispatch。** 准确job_ecbf09030d3da7286ea3ef93不变，11新+17旧检查/类型/lint通过、116旧pins/76闭包及工作流未改。下一只在最终clean main准备Review fresh SHA，另批一次固定DB读取/私有S3 manifest写；当前不消费槽/领取/部署。提前完成后续调度回读，实际Review后冻结caller main跨原15分钟窗口，各模式仍独立批准，不重试或开全局队列。见[完整风险/继续命令](aws-auto-deployment-cloud-worker-w5i-job-dispatch.md) / [准备记录](../ops/aws-sandbox/reviews/cloud-worker-w5i-job-dispatch.prepared.json)。以下为历史。
+
 最新里程碑（2026-10-18）：**W5h新真实管理员heldjob已登记并独立核验，入口关闭。** 准确job_ecbf09030d3da7286ea3ef93 pending/attempt0/max1/无限审核挂起，无lease/云授权；原9行业务和3旧job摘要不变。无代登录/POST/业务代码改动、AWS写/Secret值/dispatch/部署。端口隔离视图误判及raw-int8回读工具类型问题均更正/保留，不重试写。下一只准备该job的云Review调度新清单（固定DB Secret+私有S3 manifest写），不再登记、重跑VerifyInstall或套旧本机根；Review前完成代码提交，随后冻结caller main跨准确RunOnce/Inspect的15分钟领取窗口。见[实际结果/原件/继续范围](aws-auto-deployment-cloud-worker-w5h-request-recorded.md) / [机器证据](../ops/aws-sandbox/reviews/cloud-worker-w5h-request-recorded.json)。以下为历史。
 
 最新里程碑（2026-10-18）：**W5h经明确批准已临时开启本地管理员请求入口，等待一次真实heldjob登记。** host-side确认仅127.0.0.1:3100，request ON/worker/apply OFF，登录/健康200、无cookieAPI401；原九行/三旧job摘要保留。未代登录/提交或云dispatch/部署。用户操作有结果后停止准确listener32800/launcher34096、确认主机端口关闭并独立核对，不换nonce重试。准备期“无监听”是隔离视图误判，已只替换准确旧项目展示进程并更正文档，不做新业务代码/权限支线。见[当前人工动作和完整风险](aws-auto-deployment-cloud-worker-w5h-request-entry.md) / [准确进程与基线](../ops/aws-sandbox/reviews/cloud-worker-w5h-request-entry.activated.json)。以下为历史。
