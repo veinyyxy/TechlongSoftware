@@ -1,0 +1,236 @@
+{
+  "schema": "techlong/cloud-worker-locked-install-execution/v5",
+  "state": "PARTIAL_INSTALL_LOCKED_FOUNDATION_SECRETS_EMPTY_NEON_OBJECTS_ABSENT_NO_REPLAY",
+  "localDate": "2026-10-17",
+  "approvedManifestSha256": "439ab7dc6ff32d196809d5467d713510bbb5b1e9886742e82e0d856171812152",
+  "sourceMainCommit": "0b11fe8f7026ab0be093de4db75cf70d7dba3846",
+  "ciCodeCommit": "eabf7636066d2e3c3cb4d6ded747fc08e457fb16",
+  "runInvocations": 1,
+  "runOutcome": "PARTIAL_OR_UNKNOWN_REQUIRES_INDEPENDENT_INSPECT_NO_RETRY",
+  "stoppedPhase": "NeonAtomicInstall",
+  "attemptedMutations": {
+    "installerAwsRequests": 5,
+    "createStack": 1,
+    "createEmptySecrets": 2,
+    "putResourcePolicies": 2,
+    "putSecretValues": 0,
+    "neonWriteTransactions": 1,
+    "cloudFormationInternalWritesNotIncluded": true,
+    "trustActivation": 0,
+    "github": 0,
+    "workload": 0,
+    "businessDml": 0
+  },
+  "privateReads": {
+    "originalJsonAttempts": 1,
+    "publicFingerprintValidationAck": true,
+    "sourceSecretValues": 0,
+    "secondOriginalPrivateRead": false,
+    "signJwt": 0,
+    "controlHttp": 0,
+    "stripe": 0,
+    "privateValuesSavedInReceipts": false
+  },
+  "permanentSlot": {
+    "file": "F:/ChatGPT_workshop/techlong-cloud-worker-v5-install.permanent-slot.json",
+    "rawSha256": "765a1e3cb46ce07cc781d8955323bfbe4baae6e323f55da9a8a859e328d7297f",
+    "consumed": true,
+    "resetAllowed": false
+  },
+  "independentProof": {
+    "schema": "techlong/cloud-worker-locked-partial-inspect/v5",
+    "outcome": "FOUNDATION_LOCKED_SECRETS_ISOLATED_EMPTY_NEON_OBJECTS_ABSENT",
+    "checkedAt": 1792291783111,
+    "approvedManifestSha256": "439ab7dc6ff32d196809d5467d713510bbb5b1e9886742e82e0d856171812152",
+    "foundation": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cloud-worker-foundation-v5/308174f0-ca9e-11f1-a04d-02569e9287b5"
+    },
+    "proof": {
+      "roleId": "AROAV3GNMXTZK5O45RG24",
+      "tableId": "ea69c69e-1c48-481a-83f0-36393c196d9f",
+      "lockedTrustVerified": true
+    },
+    "secrets": [
+      {
+        "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/neon-control-v1-pVKVEV",
+        "versionId": "ce34d730-0e08-4ce7-b1b6-b5eaa5f9ca0e",
+        "isolated": true,
+        "fixedVersionPresent": false
+      },
+      {
+        "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/control-first-acceptance-v1-CatDWK",
+        "versionId": "2854e7b6-6c3c-41be-a5d8-b87dd9d98810",
+        "isolated": true,
+        "fixedVersionPresent": false
+      }
+    ],
+    "neon": {
+      "roleAbsent": true,
+      "schemaAbsent": true,
+      "functionsAbsent": true,
+      "readOnly": "on"
+    },
+    "preservedIamUnchanged": true,
+    "slotConsumed": true,
+    "secretValueReads": 0,
+    "privateFileReads": 0,
+    "externalWrites": 0,
+    "retryAllowed": false,
+    "runtimeEnabled": false,
+    "providerControlPlaneSideEffectsExcluded": false
+  },
+  "diagnosis": {
+    "verifiedContractConflict": "Neon role-password SQL does not support a prehashed SCRAM verifier; current installer uses one.",
+    "officialSource": "https://neon.com/docs/manage/roles#manage-roles-with-sql",
+    "existingRepositoryConclusion": "docs/aws-auto-deployment-fast-track-f3b3-neon-credential-recovery.md",
+    "implementationOmission": true,
+    "actualProviderErrorCaptured": false,
+    "uniqueRuntimeCauseProved": false,
+    "postgresObjectsObservedAbsentTwice": true,
+    "providerControlPlaneSideEffectsExcluded": false,
+    "repeatedSqlForReproduction": false
+  },
+  "protectedBoundaries": {
+    "oldInstallerSourcesUnchanged": true,
+    "oldSlotPreserved": true,
+    "oldIamUnchanged": true,
+    "autoCleanup": false,
+    "autoRetry": false,
+    "sourceSecretValueRead": false,
+    "newJobCreated": false,
+    "workflowActivated": false,
+    "runtimeEnabled": false,
+    "completeInstalledBindingProduced": false
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-review-20261017-a/independent-review.json",
+      "rawSha256": "a92ea5074c718e57153dd5015398b91b3e41aba97c542d001110ad373925d7f3",
+      "bytes": 835
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-review-20261017-a/manifest.json",
+      "rawSha256": "aebf39bf3cb518439caa74f04dcb85933d1e10ae7ca49d9e1b28af1f4df2953b",
+      "bytes": 127834
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-review-20261017-a/prestate.json",
+      "rawSha256": "63a6fe5cef94cb65c9847da1de33c356ef8c6c4884fd64536ced8391e234d341",
+      "bytes": 14414
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-review-20261017-a/summary.json",
+      "rawSha256": "3f3670194e0d5573eda52ba3252a28eecb54fc49c691410fad84a5c245d2ed55",
+      "bytes": 376
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/approved-manifest.json",
+      "rawSha256": "aebf39bf3cb518439caa74f04dcb85933d1e10ae7ca49d9e1b28af1f4df2953b",
+      "bytes": 127834
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/EmptySecret0.ack.json",
+      "rawSha256": "714fcfd7a10c1e3cb96b9a07c8eeb292847b3d63777d02e051480ad80c56f16b",
+      "bytes": 129
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/EmptySecret0.intent.json",
+      "rawSha256": "6a7d229b7ee1d99fffda03959df15830cb5e4510a519026d18d9cea79868a131",
+      "bytes": 114
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/EmptySecret1.ack.json",
+      "rawSha256": "46b63706fbd5531fdee8f92d021d8cc1d8ed83835f1e6182a85a44e7f0fe69c8",
+      "bytes": 141
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/EmptySecret1.intent.json",
+      "rawSha256": "cc04771cfa2c01250455c2bd8aafe5edee6921408fa921abfc778749965fa124",
+      "bytes": 114
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/foundation-submission.json",
+      "rawSha256": "5df2e5b120e23cbd5fcdd73b75293661b409ec26f5e2ef87e3a8635fd4443be5",
+      "bytes": 155
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/FoundationLocked.ack.json",
+      "rawSha256": "5df2e5b120e23cbd5fcdd73b75293661b409ec26f5e2ef87e3a8635fd4443be5",
+      "bytes": 155
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/FoundationLocked.intent.json",
+      "rawSha256": "6b39d381fa1bbdacfd233b18f66428a779978ebae59e0add886984944e93c22c",
+      "bytes": 114
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/IsolateSecret0.ack.json",
+      "rawSha256": "66020ba0be9804851729e9e7009da824286618e07028dacb218d96738d6f0537",
+      "bytes": 150
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/IsolateSecret0.intent.json",
+      "rawSha256": "fe470796377578bd3e89661488860c87cf606d9e68536c9fe66729cd8040d353",
+      "bytes": 114
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/IsolateSecret1.ack.json",
+      "rawSha256": "f33865e9c6d038549e17baaeaba868999d8e0a1fbd7994f4bd8ed3d62f4d8545",
+      "bytes": 162
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/IsolateSecret1.intent.json",
+      "rawSha256": "a5c5c5878f95e05a864abfada43aacab947fecc2c67d41e3040f8a0d130103f4",
+      "bytes": 114
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/NeonAtomicInstall.intent.json",
+      "rawSha256": "2344ecd9e6fd5b0d60f366e102ba5743c76633dfe7facdcf010a4d642a85cac1",
+      "bytes": 114
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/PrivateControlRead.ack.json",
+      "rawSha256": "ed7587dfcf0caee241f5f14ae16b7444bc982e8c63eba1290b48872133dc0cc9",
+      "bytes": 65
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/PrivateControlRead.intent.json",
+      "rawSha256": "cd9e49a2fcacbc82b10ea02737ae4c07d1514b822f0ca2933f141718219a5e5d",
+      "bytes": 50
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/stopped.json",
+      "rawSha256": "169536266b973873c57abbd333b01cac982e25eda856e8fcb981bb3c475eaeb9",
+      "bytes": 324
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-install-20261017-a/summary.json",
+      "rawSha256": "169536266b973873c57abbd333b01cac982e25eda856e8fcb981bb3c475eaeb9",
+      "bytes": 324
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-inspect-20261017-a/partial-metadata.json",
+      "rawSha256": "003ac38ab3a6f171e60a12025356dea93fafe59dc67c1dc247ae76757dacbe79",
+      "bytes": 20160
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-inspect-20261017-a/summary.json",
+      "rawSha256": "05f875719c619ac017334c21306a71ab67f69cfc01be2fba563207fff642f207",
+      "bytes": 130
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-partial-verified-20261017-a/metadata.json",
+      "rawSha256": "136bb8217a63341702dacc93de1951705980df89f3429c88d92cb8cc32ea21aa",
+      "bytes": 20160
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-partial-verified-20261017-a/result.json",
+      "rawSha256": "759d6cf5519e049399fc0efb3c078d345256f9b1c2ccfcc342a9ff3c5008f562",
+      "bytes": 1493
+    }
+  ],
+  "next": "Only prepare a separate Neon-compatible recovery review after user direction; preserve existing foundation/empty Secrets. New slot, TLS plaintext password/provider-log risk and another private read each require explicit fresh approval. Never rerun old InstallLocked.",
+  "detail": "docs/aws-auto-deployment-cloud-worker-w5e-partial.md",
+  "monthlyBudgetTargetUsd": 50,
+  "hardCostCap": false
+}

@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-17）：**W5e获439ab7dc批准后仅执行一次，基础资源已Locked安装，Neon阶段停止。** 五资源准确栈CREATE_COMPLETE、两Secret隔离且空值，原私密包校验1次；两次独立只读核对Neon新role/schema/函数不存在，旧IAM不变。发现实现遗漏已知Neon不支持预哈希密码的限制，不能以普通PG18通过代替托管兼容。原异常未保存，保留唯一根因不确定性。旧槽不复位、不补齐/重试/激活，下一是新的兼容恢复设计，不重跑安装或重开支线。见 [完整部分结果](aws-auto-deployment-cloud-worker-w5e-partial.md) / [原件摘要](../ops/aws-sandbox/reviews/cloud-worker-w5e.executed.json)。以下为历史。
+
 最新里程碑（2026-10-17）：**W5e一次性Locked安装器已完成候选验收，等待fresh安装批准。** Review/InstallLocked/独立Inspect接固定永久槽和准确源/动作绑定；五资源foundation、两Secret先隔离后写值、Neon专属角色/四函数单事务安装都有实际适配器。云CI 50项及真实PG18十五组通过，原ZIP/76闭包独立核验，旧99 pins保持。候选工作流不在活动目录，OIDC不开放。本次没有权限安装、私密值读取或部署；下一只集中批准Locked安装，真实ID核验后收口激活，不扩观察器/支线。见 [完整风险](aws-auto-deployment-cloud-worker-w5e-installer.md) / [准确证据](../ops/aws-sandbox/reviews/cloud-worker-w5e.prepared.json)。以下为历史。
 
 最新里程碑（2026-10-17）：**W5d集中安装材料已准备，仍未安装。** 28次AWS SDK只读、GitHub配置和Neon catalog确认候选名为空/旧IAM不变，准确W4c栈七资源CFN已删、父Cell保留，不声明namespace全空/停费。真实immutable OIDC subject与旧task宽Secret权限已纳入候选；五资源foundation、Neon四函数、两个新Secret先资源策略隔离后写值，受审workflow尚未发布。AWS只读验证、42项云回归及PG18十二组通过，原始证据留存。当前design SHA不是执行批准；下一只做一次性安装入口和准确源/动作绑定，再给fresh集中安装确认，不再增加盘点切片。见 [W5d范围和风险](aws-auto-deployment-cloud-worker-w5d-install-review.md) / [原件摘要](../ops/aws-sandbox/reviews/cloud-worker-w5d.prepared.json)。以下里程碑保留追溯。
@@ -27,4 +29,4 @@
 
 ## 唯一继续位置
 
-见 [W5e一次性安装器](aws-auto-deployment-cloud-worker-w5e-installer.md)。安装代码已经接好，先通过云CI，再从最终clean main生成fresh Review，集中确认Locked安装及原私密文件一次读取。真实资源ID核验后再绑定准确不可变workflow commit做激活审批；不在未知ID时提前开放trust。W5d design-review仍不可执行，不重开观察器、不从README历史/W4c重新登记请求或重放旧job。实际云运行仍需准确新held job及fresh单独审批。
+见 [W5e实际部分安装](aws-auto-deployment-cloud-worker-w5e-partial.md)。原439ab7dc清单已经使用，固定槽已消费，禁止再Run或换目录绕过。保留并复用准确Locked基础栈和两空Secret；下一只准备独立Neon兼容恢复入口/新SHA，重新明确TLS原密码的服务端日志/托管同步风险、新密码生成和一次新的原私密文件读取，再另批写入。真实完整安装ID核验后才进入workflow激活审批；不提前开放trust、不从README历史/W4c重登请求或重放job，不扩F3c9/观察器。当前不是自动部署已上线。
