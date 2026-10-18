@@ -40,6 +40,7 @@ jobs:
           node-version: '22.19.0'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
       - name: Types and scoped lint
         run: |
           npx tsc --noEmit --incremental false
