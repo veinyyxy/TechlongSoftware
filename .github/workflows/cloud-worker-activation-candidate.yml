@@ -1,0 +1,38 @@
+name: Cloud worker activation candidate - No AWS or OIDC
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cloud-worker-activation-candidate.yml'
+      - 'ops/cloud-worker/activation/**'
+      - 'tests/cloud-worker-activation-v5.test.mjs'
+permissions:
+  contents: read
+jobs:
+  activation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
+      - name: Types, activation-only lint and pure release/identity/failure contracts
+        run: |
+          npx tsc --noEmit --incremental false
+          npx eslint ops/cloud-worker/activation/*.mjs tests/cloud-worker-activation-v5.test.mjs --max-warnings 0
+          mkdir -p "$RUNNER_TEMP/cloud-worker-activation"
+          node --experimental-strip-types --test tests/cloud-worker-activation-v5.test.mjs > "$RUNNER_TEMP/cloud-worker-activation/tests.tap"
+          node scripts/ci/check-cloud-worker-closure-v5.mjs > "$RUNNER_TEMP/cloud-worker-activation/closure.json"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: cloud-worker-activation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cloud-worker-activation/
+          if-no-files-found: warn
+          retention-days: 7
