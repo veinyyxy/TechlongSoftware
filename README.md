@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-17最新：**W5e-R1按4f82199f批准单次执行，数据库Secret固定版本已保存，随后停止。** 独立Inspect确认数据库唯一AWSCURRENT版本/隔离策略、控制Secret仍空、Neon role/schema不存在且catalog未变、foundation完整Locked。1次私密包读取/密码生成、Put尝试及ACK各1，Neon写0；写后具体检查失败原因未保存，不伪称传播或权限问题。新旧槽永久保留，未改IAM/激活/部署；99源和25旧原件复核。下一如获新授权，只准备复用已存数据库版本的窄续接，不重跑或自动读Secret值/补齐。[实际结果与继续边界](docs/aws-auto-deployment-cloud-worker-w5e-neon-recovery-partial.md) / [证据](ops/aws-sandbox/reviews/cloud-worker-w5e-neon-recovery.executed.json)。以下为历史。
+
 2026-10-17最新：**W5e-R1兼容恢复入口和清单合同已准备，未执行。** 仅复用准确Locked基础栈和两空Secret；新独立槽，原密码经TLS/Neon SQL，先两固定Secret版本后一个Neon事务，脱敏SQLSTATE/ACK分开记录。云CI 60项、新10组真实PG18（非超级用户创建者）及原15组通过，原ZIP/76闭包独立核验；提供者GUC模拟，不冒充真实Neon托管转发成功。原90源码/25原件/旧槽不变，下一最终main只读fresh Review后请用户新SHA批准，不自动恢复/重读私密包/激活/部署。[恢复完整风险](docs/aws-auto-deployment-cloud-worker-w5e-neon-recovery.md) / [证据](ops/aws-sandbox/reviews/cloud-worker-w5e-neon-recovery.prepared.json)。以下为历史。
 
 2026-10-17最新：**W5e已按439ab7dc批准单次执行，Neon阶段停止，不能激活。** 五资源foundation完整Locked、两Secret已隔离但没有值，私密包校验1次；AWS安装请求5/Neon事务尝试1，无重试或补齐。两次独立只读确认目标Neon角色/schema/函数不存在，旧IAM不变；发现SCRAM预哈希与Neon接口冲突，是实现未复用既有兼容结论的遗漏，未保存原异常故不伪称唯一根因。旧槽永久保留，下一只准备新的TLS原密码兼容恢复清单，不重跑旧安装、不再建栈/Secret或自动重读私密材料。[部分结果与继续位置](docs/aws-auto-deployment-cloud-worker-w5e-partial.md) / [原件摘要](ops/aws-sandbox/reviews/cloud-worker-w5e.executed.json)。以下为历史。

@@ -1,0 +1,123 @@
+{
+  "schema": "techlong/cloud-worker-neon-recovery-execution/v5",
+  "state": "PARTIAL_LOCKED_DATABASE_FIXED_VERSION_PRESENT_CONTROL_EMPTY_NEON_UNCHANGED_NO_REPLAY",
+  "localDate": "2026-10-17",
+  "approvedManifestSha256": "4f82199f64705e73ece260e6d14e416575b64ab8fed39a5d48e080ef3fb237bb",
+  "actionsSha256": "55c759177d1d56599532b6cf2792856e136d560989a0950e150029e14da90764",
+  "sourceMainCommit": "c0ada48eaf2c8ca056b0fc1ce4cc520679e97546",
+  "runInvocations": 1,
+  "runOutcome": "RECOVERY_PARTIAL_OR_UNKNOWN_INSPECT_ONLY_NO_RETRY",
+  "stoppedPhase": "DatabaseVersion",
+  "counts": {
+    "privateBundleReadAttempts": 1,
+    "passwordGenerated": true,
+    "awsPutAttempts": 1,
+    "awsPutAcknowledged": 1,
+    "neonTransactionAttempts": 0,
+    "neonCommitAcknowledged": false,
+    "dedicatedCatalogReads": 0,
+    "sourceSecretValueReads": 0
+  },
+  "zeroEffects": {
+    "resourceCreations": 0,
+    "resourceDeletions": 0,
+    "iamOrResourcePolicyWrites": 0,
+    "githubConfigurationWrites": 0,
+    "businessDml": 0,
+    "jobOrWorkloadWrites": 0,
+    "controlHttp": 0,
+    "stripeCalls": 0,
+    "automaticRetries": 0
+  },
+  "failure": {
+    "category": "LOCAL_OR_PROVIDER_FAILURE",
+    "sqlState": null,
+    "httpStatus": null,
+    "originalProviderTextSaved": false,
+    "exactPostAckCheckSaved": false,
+    "uniqueCauseProved": false
+  },
+  "independentProof": {
+    "checkedAt": 1792294235215,
+    "foundation": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cloud-worker-foundation-v5/308174f0-ca9e-11f1-a04d-02569e9287b5",
+      "roleId": "AROAV3GNMXTZK5O45RG24",
+      "tableId": "ea69c69e-1c48-481a-83f0-36393c196d9f",
+      "lockedTrustVerified": true,
+      "preservedIamUnchanged": true
+    },
+    "databaseSecret": {
+      "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/neon-control-v1-pVKVEV",
+      "versionId": "ce34d730-0e08-4ce7-b1b6-b5eaa5f9ca0e",
+      "state": "VERIFIED_FIXED_CURRENT",
+      "allVersionsIncludingDeprecatedVerified": true,
+      "versionCount": 1,
+      "stages": ["AWSCURRENT"],
+      "resourcePolicyVerified": true,
+      "providerWriteTimestamp": "2026-10-18T03:28:50.33Z",
+      "secretValueRead": false
+    },
+    "controlSecret": {
+      "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/control-first-acceptance-v1-CatDWK",
+      "plannedVersionId": "2854e7b6-6c3c-41be-a5d8-b87dd9d98810",
+      "state": "VERIFIED_EMPTY",
+      "allVersionsIncludingDeprecatedVerified": true,
+      "versionCount": 0,
+      "resourcePolicyVerified": true,
+      "secretValueRead": false
+    },
+    "neon": {
+      "roleAbsent": true,
+      "schemaAbsent": true,
+      "catalogUnchangedFromApprovedPrestate": true,
+      "targetFingerprintSha256": "36c8166cf5b967d2ce513fbb4a442271dee02dc574e2af09ac1fc323c0dcd966",
+      "installTransactionAttempts": 0,
+      "readOnly": true
+    },
+    "inspectInvocations": 1,
+    "inspectOutcome": "RECOVERY_PARTIAL_METADATA_ONLY_NO_RECOVERY_WRITE_AUTHORITY",
+    "inspectExternalWrites": 0,
+    "inspectOriginalPrivateReads": 0,
+    "inspectSourceSecretValueReads": 0,
+    "localSourcePinsVerified": 99,
+    "originalEvidenceFilesVerified": 25,
+    "localVerificationNetworkCalls": 0,
+    "localProof": "F:/ChatGPT_workshop/techlong-w5e-recovery-partial-verified-20261017-a.json",
+    "localProofRawSha256": "91e5d0c40eda20cf50ed151b9d5d5a07090ac302ad7e3d90472e799121f610fe"
+  },
+  "permanentSlots": {
+    "old": {
+      "path": "F:/ChatGPT_workshop/techlong-cloud-worker-v5-install.permanent-slot.json",
+      "rawSha256": "765a1e3cb46ce07cc781d8955323bfbe4baae6e323f55da9a8a859e328d7297f",
+      "preserved": true
+    },
+    "recovery": {
+      "path": "F:/ChatGPT_workshop/techlong-cloud-worker-v5-neon-recovery-v1.permanent-slot.json",
+      "rawSha256": "db1b665fda7abee9a5bdd852b60da06663747e659a097336cd070634edfd5459",
+      "consumed": true
+    },
+    "resetAllowed": false
+  },
+  "evidenceFiles": [
+    { "path": "F:/ChatGPT_workshop/techlong-w5e-recovery-review-20261017-a/independent-review.json", "rawSha256": "d6bb587e540fb46ed9b932da3db46e09d1b2e5951aa47ae3d5c17c2c25192216" },
+    { "path": "F:/ChatGPT_workshop/techlong-w5e-recovery-review-20261017-a/manifest.json", "rawSha256": "3cd715f042308039ab8491e38f4af8078671ca8a7a63f8682709718d2d3c6f77" },
+    { "path": "F:/ChatGPT_workshop/techlong-w5e-recovery-review-20261017-a/prestate.json", "rawSha256": "2b8ca5c817413df545287f3700b4e2e395203d7a9c31155c7faf005456cd707b" },
+    { "path": "F:/ChatGPT_workshop/techlong-w5e-recovery-review-20261017-a/summary.json", "rawSha256": "c0698e32362ab22fe95c7bb44e394dbcaa8eddd2dbc5b5b9230fba4fc22a7dce" },
+    { "path": "F:/ChatGPT_workshop/techlong-w5e-recovery-run-20261017-a/DatabaseVersion.intent.json", "rawSha256": "3ca6d7d68ab77a5609cc504bea4b93681f01a8221f227423adfae2bcf6055ffb" },
+    { "path": "F:/ChatGPT_workshop/techlong-w5e-recovery-run-20261017-a/PrivatePreparation.ack.json", "rawSha256": "9fc31a08cd9606dc2d409a8260ed02714b0a9a3c81adbe21449f3e321df7c44c" },
+    { "path": "F:/ChatGPT_workshop/techlong-w5e-recovery-run-20261017-a/PrivatePreparation.intent.json", "rawSha256": "6be2de5d31085513158fc03e30bcb94a4e1fc1ef7bcfb2482b26702973f04ab4" },
+    { "path": "F:/ChatGPT_workshop/techlong-w5e-recovery-run-20261017-a/approved-manifest.json", "rawSha256": "3cd715f042308039ab8491e38f4af8078671ca8a7a63f8682709718d2d3c6f77" },
+    { "path": "F:/ChatGPT_workshop/techlong-w5e-recovery-run-20261017-a/stopped.json", "rawSha256": "f663b770a890fd54488bba8c9861d82cd1a5d03f6c39b7599fca4e024ba19888" },
+    { "path": "F:/ChatGPT_workshop/techlong-w5e-recovery-run-20261017-a/summary.json", "rawSha256": "f663b770a890fd54488bba8c9861d82cd1a5d03f6c39b7599fca4e024ba19888" },
+    { "path": "F:/ChatGPT_workshop/techlong-w5e-recovery-inspect-20261017-a/partial-metadata.json", "rawSha256": "f3b65b14abba7efd65ebc818a3ef3e45f617c41cade1420855366564bfcb1f73" },
+    { "path": "F:/ChatGPT_workshop/techlong-w5e-recovery-inspect-20261017-a/summary.json", "rawSha256": "cfd49eb53f12143578ccde63dc327d9cfbbf807056959e991157b9a82d50ebfa" }
+  ],
+  "riskFile": "docs/aws-auto-deployment-cloud-worker-w5e-neon-recovery.md",
+  "resultFile": "docs/aws-auto-deployment-cloud-worker-w5e-neon-recovery-partial.md",
+  "next": "With new explicit authority, prepare a narrow continuation using the existing database fixed version. No replay, Source GetSecretValue, new private read, password replacement, missing-value write, SQL install or activation authorized by this record.",
+  "installationBindingProduced": false,
+  "runtimeEnabled": false,
+  "retryAllowed": false,
+  "monthlyBudgetTargetUsd": 50,
+  "hardCostCap": false
+}
