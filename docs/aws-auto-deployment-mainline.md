@@ -1,6 +1,6 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
-最新里程碑（2026-10-17）：**W5e一次性Locked安装器已经编码，等待候选验收和fresh安装批准。** Review/InstallLocked/独立Inspect已接固定永久槽和准确源/动作绑定；五资源foundation、两Secret的先隔离后写值、Neon专属角色/四函数单事务安装都已有实际适配器。候选工作流不在活动目录，OIDC仍不开放。本次没有权限安装、私密值读取或部署；下一集中批准Locked安装，真实ID核验后只收口激活，不扩观察器/支线。见 [W5e入口和完整风险](aws-auto-deployment-cloud-worker-w5e-installer.md)。以下为历史。
+最新里程碑（2026-10-17）：**W5e一次性Locked安装器已完成候选验收，等待fresh安装批准。** Review/InstallLocked/独立Inspect接固定永久槽和准确源/动作绑定；五资源foundation、两Secret先隔离后写值、Neon专属角色/四函数单事务安装都有实际适配器。云CI 50项及真实PG18十五组通过，原ZIP/76闭包独立核验，旧99 pins保持。候选工作流不在活动目录，OIDC不开放。本次没有权限安装、私密值读取或部署；下一只集中批准Locked安装，真实ID核验后收口激活，不扩观察器/支线。见 [完整风险](aws-auto-deployment-cloud-worker-w5e-installer.md) / [准确证据](../ops/aws-sandbox/reviews/cloud-worker-w5e.prepared.json)。以下为历史。
 
 最新里程碑（2026-10-17）：**W5d集中安装材料已准备，仍未安装。** 28次AWS SDK只读、GitHub配置和Neon catalog确认候选名为空/旧IAM不变，准确W4c栈七资源CFN已删、父Cell保留，不声明namespace全空/停费。真实immutable OIDC subject与旧task宽Secret权限已纳入候选；五资源foundation、Neon四函数、两个新Secret先资源策略隔离后写值，受审workflow尚未发布。AWS只读验证、42项云回归及PG18十二组通过，原始证据留存。当前design SHA不是执行批准；下一只做一次性安装入口和准确源/动作绑定，再给fresh集中安装确认，不再增加盘点切片。见 [W5d范围和风险](aws-auto-deployment-cloud-worker-w5d-install-review.md) / [原件摘要](../ops/aws-sandbox/reviews/cloud-worker-w5d.prepared.json)。以下里程碑保留追溯。
 

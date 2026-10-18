@@ -1,0 +1,70 @@
+{
+  "schema": "techlong/cloud-worker-installer-prepared/v5",
+  "state": "CODE_AND_CI_VERIFIED_LOCKED_INSTALL_NOT_APPROVED",
+  "localDate": "2026-10-17",
+  "codeCommit": "eabf7636066d2e3c3cb4d6ded747fc08e457fb16",
+  "backendHandoffCommit": "644c70f",
+  "entry": "ops/cloud-worker/install/run-install-v5.mjs",
+  "modes": [
+    "Review",
+    "InstallLocked",
+    "Inspect"
+  ],
+  "effects": {
+    "awsWriteRequestsAtMost": 7,
+    "foundationResources": 5,
+    "neonWriteTransactionsAtMost": 1,
+    "privateFileReadsAtMost": 1,
+    "sourceSecretValueReads": 0,
+    "githubWrites": 0,
+    "trustActivationWrites": 0,
+    "workloadWrites": 0
+  },
+  "runtimeClosure": {
+    "pinCount": 76,
+    "sha256": "110f06bcfe0037ffc1bc0e1d4679a6796080564abde42818074807e516b7bb84",
+    "newMember": "ops/cloud-worker/workflow-input-v5.mjs",
+    "installerInCloudClosure": false
+  },
+  "installationSourceFileCount": 90,
+  "ci": {
+    "runId": "39089481836",
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39089481836",
+    "status": "success",
+    "attempt": 1,
+    "event": "push",
+    "passedRegressionTests": 50,
+    "historicalWindowsCliSkippedInLinux": 1,
+    "realPostgresChecks": 15,
+    "productionNeonUsed": false,
+    "productionPermissionsInstalled": false,
+    "awsCalls": 0,
+    "privateMaterialReads": 0,
+    "originalDirectory": "F:/ChatGPT_workshop/techlong-w5e-ci-39089481836",
+    "originalZipSha256": "5edd92e41b3b6bc5fa0b4d15c748b2627d7827870ea8e5e6801ade42aa02d98d",
+    "independentVerificationSha256": "8a592068f28b2403acbfeed7e6706ad8452a63859988ff27e8bb96090c9c81a3",
+    "independentLocalPinsMatched": true
+  },
+  "historicalSourceProof": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-w4-w5e-sources-20261017/result.json",
+    "sha256": "97f2f40eaf4481c4a8a34aaec476c2a3af0c343dfb8a86ffa0b16b0bd87eaa9a",
+    "codePins": 99,
+    "outcome": "PUBLIC_SOURCE_AND_EXACT_W3_PREDECESSOR_BINDING_PASSED",
+    "cloudCalls": 0,
+    "privateReads": 0
+  },
+  "limitations": [
+    "Locked installer has no trust activation or GitHub write method",
+    "Candidate workflows are outside active directory; immutable reusable commit marker is deliberately unresolved",
+    "Fresh installation manifest must be generated after final clean-main commit and explicitly approved",
+    "Original eight-field local bundle, including unused Stripe test fields, enters installer memory once only after approval; only minimal control projection uploaded",
+    "Future activation separately binds actual IDs, exact reusable commit, environment and installation S3 version; no fake IDs",
+    "No actual cloud installation, private content read, SQL write or workload run in this stage"
+  ],
+  "riskFile": "docs/aws-auto-deployment-cloud-worker-w5e-installer.md",
+  "next": "Generate fresh locked-install Review on final clean main; request one concentrated installation/private-read approval. Do not install on 'next step' alone.",
+  "runtimeEnabled": false,
+  "installationExecuted": false,
+  "monthlyBudgetTargetUsd": 50,
+  "hardCostCap": false
+}

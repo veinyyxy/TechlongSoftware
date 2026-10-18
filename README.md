@@ -1,6 +1,6 @@
 # 餐饮 SaaS 平台
 
-2026-10-17最新：**W5e一次性Locked安装器已编码，尚未安装或激活。** 已接源/动作/fresh SHA、固定单次槽、五资源foundation、先隔离后写值的两Secret、Neon角色/四函数原子安装及独立Inspect；候选工作流仍在非活动目录。下一先完成云CI验收，再生成fresh集中Locked安装审批，不直接启用OIDC或部署。真实ID核验后单独收口工作流激活，不扩观察器支线。[实现与完整风险](docs/aws-auto-deployment-cloud-worker-w5e-installer.md)。以下为历史。
+2026-10-17最新：**W5e一次性Locked安装器已完成候选验收，尚未安装或激活。** 已接源/动作/fresh SHA、固定单次槽、五资源foundation、先隔离后写值的两Secret、Neon角色/四函数原子安装及独立Inspect；候选工作流仍在非活动目录。云CI 50项及真实PG18十五组通过，原ZIP/76源码闭包独立核验、旧99 pins保持。下一只生成fresh集中Locked安装审批，不直接启用OIDC或部署。真实ID核验后单独收口激活，不扩观察器支线。[完整风险](docs/aws-auto-deployment-cloud-worker-w5e-installer.md) / [准确证据及继续位置](ops/aws-sandbox/reviews/cloud-worker-w5e.prepared.json)。以下为历史。
 
 2026-10-17最新：**W5d集中安装盘点/材料已准备，未执行安装。** 实际AWS/GitHub/Neon catalog只读核对完成；发现并绑定新版immutable OIDC subject，候选为五资源foundation、Neon窄角色/四函数、两个先隔离再写值的Secret及受审workflow。现有task宽Secret读取需用新Secret资源策略隔离，不改旧IAM。AWS策略/模板只读验证通过（有已说明warning/suggestion），云CI 42项及PG18十二组通过，原件/75闭包/旧99 pins保持。没有可执行批准清单、未读Secret值或部署；下一直接封装一次性安装入口与fresh source/action SHA，再集中确认安装。见 [具体范围、风险和继续位置](docs/aws-auto-deployment-cloud-worker-w5d-install-review.md) / [只读证据](ops/aws-sandbox/reviews/cloud-worker-w5d.prepared.json)。以下为历史。
 
