@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5p单项读取授权修正入口已准备，未改AWS。** W5o Review-v4失败的明确阻断是DescribeTaskDefinition的无效ARN级Allow；任务/业务/证据目录未变，无成功manifest，旧槽保留。候选只将该现有inline声明Resource改为*并保留ca-central-1，会持续扩大区域任务定义读取范围，须fresh另批；trust/boundary/写权限/云C/R/76闭包不改。7新+相邻回归共72本机通过；下一最终main无AWS CI后只读Prepare准确Create/严格核验/Execute清单，不执行、不重跑Review或部署。[完整风险与继续位置](docs/aws-auto-deployment-cloud-worker-w5p-task-definition-read.md) / [准备记录](ops/aws-sandbox/reviews/cloud-worker-w5p-task-definition-read.prepared.json)。以下为历史。
+
 2026-10-18最新：**W5o已接线ECS修复版的原任务Review/RunOnce/Inspect，尚未调度。** 云C=d8cb996/R=7f0fbf2、76闭包/两工作流/权限不改；Review-v4和后续v3独立槽，W5l失败/旧槽保留。152历史pins/27发布原件/修复及失败证据门禁保持，9新+相邻回归共65本机通过；旧DNS测试改用历史fixture，新测试检查当前真实工作流。下一最终main无AWS CI后只读Prepare新Review清单，再请fresh SHA；不重新发布、领取或部署。[完整范围及继续命令](docs/aws-auto-deployment-cloud-worker-w5o-review-continuation.md) / [准备记录](ops/aws-sandbox/reviews/cloud-worker-w5o-review-continuation.prepared.json)。以下为历史。
 
 2026-10-18最新：**W5n ECS缺失兼容修复已发布，独立Inspect通过。** 用户确认f51a4de2后完成一次双workflow发布、现有角色trust-only Create/严格核验/Execute及本地FF，栈UPDATE_COMPLETE；运行C=d8cb996、R=7f0fbf2、caller S=68a476b，76闭包70ee60eb保持，无权限扩张。27份原件/新永久槽及旧失败槽保留，未读Secret值/dispatch/领取或部署。下一只显式接线新C/R、准备原held job的新云Review；旧W5l不能重用，实际Review/RunOnce仍fresh另批，不重做发布或扩支线。[完成事实及唯一继续位置](docs/aws-auto-deployment-cloud-worker-w5n-published.md) / [执行证据](ops/aws-sandbox/reviews/cloud-worker-w5n-ecs-publication.executed.json)。以下为历史。
