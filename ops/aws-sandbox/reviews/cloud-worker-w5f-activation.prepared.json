@@ -1,0 +1,99 @@
+{
+  "schema": "techlong/cloud-worker-activation-prepared/v5",
+  "state": "CANDIDATE_CI_VERIFIED_FINAL_RELEASE_OBJECTS_AND_READ_ONLY_REVIEW_PENDING_NOT_ACTIVATED",
+  "localDate": "2026-10-17",
+  "entry": "ops/cloud-worker/activation/run-activation-v5.mjs",
+  "riskFile": "docs/aws-auto-deployment-cloud-worker-w5f-activation.md",
+  "installationSha256": "0edfa9d7e9b284e0cf9dda91e280bd12e98bf8e9c36f955c3ad661f72d6ad4b1",
+  "runtimeSourceCommit": "ac75c4bcbb856babc67d88b6e06212e981a25d90",
+  "runtimeSourceFrozenNotCallerMain": true,
+  "reviewSourceFiles": 110,
+  "preservedContinuationSourcePins": 107,
+  "preservedContinuationReceiptAndSlotHashes": 23,
+  "proposedTopLevelEffectsOnlyAfterNewApproval": {
+    "githubEnvironmentPut": 1,
+    "githubMainBranchPolicyCreate": 1,
+    "publicBindingS3Put": 1,
+    "publishTwoPreparedCommitsByOneNonForceMainPush": 1,
+    "foundationTrustOnlyChangeSetCreate": 1,
+    "foundationTrustOnlyChangeSetExecuteDisableRollback": 1,
+    "iamDirectWrites": 0,
+    "oidcSubjectMutation": 0,
+    "automaticWorkflowDispatch": 0,
+    "secretValueReads": 0,
+    "originalPrivateBundleReads": 0,
+    "secretOrNeonWrites": 0,
+    "jobOrWorkloadWrites": 0,
+    "newBranches": 0,
+    "automaticWriteRetries": 0,
+    "automaticRollbackCleanupOrSlotReset": false
+  },
+  "readOnlyGithubPreliminaryObservation": {
+    "file": "F:/ChatGPT_workshop/techlong-w5d-inventory-20261017-w5f-github/github.json",
+    "observedAt": "2026-10-18T04:29:04.4037765Z",
+    "environments": 0,
+    "repositoryId": 1323312747,
+    "ownerId": 14145707,
+    "public": true,
+    "immutableSubject": true,
+    "notTheFinalExecutionReview": true,
+    "writes": 0
+  },
+  "ci": {
+    "activation": {
+      "runId": "39098424268",
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39098424268",
+      "commit": "ac75c4bcbb856babc67d88b6e06212e981a25d90",
+      "conclusion": "success",
+      "attempt": 1,
+      "passedTests": 14,
+      "awsCalls": 0,
+      "oidcTokenRequests": 0,
+      "productionNeonUsed": false,
+      "secretValueReads": 0,
+      "originalDirectory": "F:/ChatGPT_workshop/techlong-w5f-activation-ci-39098424268",
+      "originalZipSha256": "c9c7d534808632d58ebf9d32f294c6b28918b1d15b3f028adad4c05b18afd2c6",
+      "independentProof": "F:/ChatGPT_workshop/techlong-w5f-activation-ci-39098424268/independent-verification.json",
+      "independentProofRawSha256": "f4babc28d1180177306f34c9fcdd87ee0223753c6093c50fdf87bccd26c63b77"
+    },
+    "fullCandidate": {
+      "runId": "39098424210",
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39098424210",
+      "commit": "ac75c4bcbb856babc67d88b6e06212e981a25d90",
+      "conclusion": "success",
+      "passedTests": 60,
+      "realPostgresChecks": 15,
+      "realRecoveryPostgresChecks": 10,
+      "providerGucMockedNotRealNeonForwardingProof": true,
+      "originalDirectory": "F:/ChatGPT_workshop/techlong-w5e-recovery-ci-39098424210",
+      "originalZipSha256": "d5b1f42a493bd756a2c23fdd3e1d2f2e3b53a07505e348e7b33d6520d4036eb3"
+    },
+    "continuation": {
+      "runId": "39098424221",
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39098424221",
+      "commit": "ac75c4bcbb856babc67d88b6e06212e981a25d90",
+      "conclusion": "success",
+      "passedTests": 25,
+      "originalDirectory": "F:/ChatGPT_workshop/techlong-w5e-continuation-ci-39098424221",
+      "originalZipSha256": "5a5b8789c660d3efbd6feea53d8c9d369831e574597c3442c0e43986a9632dc5"
+    }
+  },
+  "originalPortableRoot": {
+    "pinCount": 76,
+    "closureSha256": "110f06bcfe0037ffc1bc0e1d4679a6796080564abde42818074807e516b7bb84",
+    "unchanged": true,
+    "newBootstrapSeparatelyFrozenBySourceCommitAndReviewPins": true
+  },
+  "preparationEffectsSoFar": {
+    "cloudWrites": 0,
+    "githubSettingsWrites": 0,
+    "deploymentWorkflowPublication": 0,
+    "secretValueReads": 0,
+    "originalPrivateBundleReads": 0,
+    "activationSlotConsumed": false
+  },
+  "next": "Final clean main: prepare two unreachable reviewed Git commit objects with an isolated index (no branch/main/remote move), online read-only Review, independent hashes and fresh approval for the six top-level activation submissions. Do not dispatch VerifyInstall/Review/RunOnce/Inspect automatically.",
+  "runtimeActivated": false,
+  "monthlyBudgetTargetUsd": 50,
+  "hardCostCap": false
+}

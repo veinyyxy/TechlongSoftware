@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-17最新：**W5f集中激活入口/冻结源码工作流已准备并通过云CI，未激活。** 新reusable不再检出变化main；本地独立index可生成两枚准确待审提交对象，不建分支/移动main，批准后一次ff发布。拟6顶层提交：environment/main规则、公开绑定私有S3对象、两文件发布、foundation仅trust ChangeSet创建/执行；不自动dispatch或部署。新14项、原60及续接25/真实PG18证明通过，原ZIP/76闭包/107旧源码保持。下一只最终main准备对象、只读fresh Review及新SHA批准；源码之外的实际工作流/environment/IAM/S3仍0写，Secret值/原包0读。[完整范围与风险](docs/aws-auto-deployment-cloud-worker-w5f-activation.md) / [CI证据及继续位置](ops/aws-sandbox/reviews/cloud-worker-w5f-activation.prepared.json)。以下为历史。
+
 2026-10-17最新：**W5e-C1按0f0e2c02批准单次完成，独立Inspect通过，Locked安装已完成。** 复用固定DB版本Get1/原包1、缺失控制Put1、Neon事务1且COMMIT ACK、真实窄角色catalog认证1；DB Secret写/新密码0，第一轮元数据通过。实际role/schema/四函数OID及准确Secret版本已保存公开绑定 `0edfa9d7…`；107源、23回执/槽、旧99源码/25原件保持。deny-all trust及旧IAM/DDB/S3保护不变，部署worker未激活/无job或workload写，不是自动部署已上线。下一只准备集中的OIDC/workflow/公开绑定激活审批，不重开恢复或模拟支线。[实际结果与继续位置](docs/aws-auto-deployment-cloud-worker-w5e-neon-continuation-executed.md) / [机器证据](ops/aws-sandbox/reviews/cloud-worker-w5e-neon-continuation.executed.json)。以下为历史。
 
 2026-10-17最新：**W5e-C1复用已存数据库版本的窄续接已编码并通过云CI，未执行。** 一个准确固定版本Get、一次原控制包新读、一个缺失控制版本Put和一个Neon事务，数据库Secret写/新密码生成0；新独立槽，先API ACK落盘、最多5轮只读发布核验，具体检查点/固定断言脱敏。新15+旧10测试、真实PG18十组以及原60回归/十五组通过，76闭包不变、原99源码/两旧槽/原件保持；首轮CI漏装独立依赖已修正并保留失败产物。下一仅最终main只读fresh Review和新SHA批准，不读生产值或激活部署。[完整新范围及风险](docs/aws-auto-deployment-cloud-worker-w5e-neon-continuation.md) / [CI与证据](ops/aws-sandbox/reviews/cloud-worker-w5e-neon-continuation.prepared.json)。以下为历史。
