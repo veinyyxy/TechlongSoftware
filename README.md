@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5h只读前置核对完成，当前只缺一条新的真实管理员待审请求。** 12次AWS读/1个Neon只读事务确认旧3任务成功无活动、新待审0、旧七资源栈删除、ECS空闲、固定镜像扫描无报告HIGH/CRITICAL。父Cell旧过期标签保留，沿用独立child窗口，不续期或重建。复用现有页面/协议14项检查通过，无新业务代码或云模拟，116旧pins保持。下一只请求批准临时loopback入口，由管理员单次登记heldjob；尚未开启入口/写DB/dispatch或部署。[实际盘点、准确下一范围及完整风险](docs/aws-auto-deployment-cloud-worker-w5h-request-entry.md) / [证据](ops/aws-sandbox/reviews/cloud-worker-w5h-request-entry.prepared.json)。以下为历史。
+
 2026-10-18最新：**W5g真实云VerifyInstall已完成，独立公开proof核验通过。** 用户人工批准准确run39126114772后，真实OIDC/STS身份、固定S3绑定、一次固定DB Secret读取/窄角色只读catalog均成功，control Secret读/云与DB写0；未部署租户。18新原件/116pins及旧110pins/28激活原件、107pins/23旧原件完整，新槽永久消费不重跑。下一直接准备新的准确held job及有效Cell窗口下的云Review/RunOnce验收，新增业务/私密/部署变更另审，不重开旁支。[完成结果与下一范围](docs/aws-auto-deployment-cloud-worker-w5g-verified.md) / [机器证据](ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.executed.json)。以下为历史。
 
 2026-10-18最新：**W5g按a44dfaff批准只dispatch一次，已取得准确run 39126114772，首次独立Inspect为waiting。** 新永久槽已消费，不再Review/Dispatch或rerun。下一仅用户在该准确run人工批准techlong-sandbox-deploy，再独立只读Inspect公开proof；目前不称云端OIDC/DB验收通过，不部署资源。排队head固定90693a8，后续文档提交不替换它。[准确链接、待审批状态与继续命令](docs/aws-auto-deployment-cloud-worker-w5g-dispatched.md) / [ACK及原件摘要](ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.dispatched.json)。以下为历史。

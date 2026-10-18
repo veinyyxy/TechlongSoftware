@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-18）：**W5h确认新heldjob不存在，复用管理员请求入口即可，不重建Cell/镜像或扩权限。** 12次AWS/1个Neon只读核对：原3任务均成功无活动，前驱七资源已删、ECS空闲、原Cell模板/固定Aurora元数据/镜像扫描/Janitor保持；完整namespace仍留给云Review终审。父Cell旧tag过期但按既有明确方案使用独立新child窗口，不续父TTL。下一仅申请临时127.0.0.1入口，由原管理员新登记一条审核挂起任务再关闭/独立回读，之后云Review调度和RunOnce仍fresh另批。14项复用协议检查/116旧pins保持，本轮未开启入口/DB写/私密读/dispatch/部署。见 [盘点、完整风险与最短继续路径](aws-auto-deployment-cloud-worker-w5h-request-entry.md) / [证据](../ops/aws-sandbox/reviews/cloud-worker-w5h-request-entry.prepared.json)。以下为历史。
+
 最新里程碑（2026-10-18）：**W5g单次云VerifyInstall验收成功，独立proof通过。** 人工批准准确run39126114772后，真实OIDC/STS身份、固定绑定、一次固定DB Secret/窄角色只读catalog通过；控制Secret读/云与DB写0，无应用或租户部署。18原件/116pins与旧110/28、107/23历史完整；新永久槽已消费，不再触发或重跑。下一直接准备新准确held job的云Review/RunOnce/Inspect，先只读核对Cell期限/空闲/命名空间与平台沿革；缺任务/窗口时仅准备新变更，入队/私密读取/部署仍fresh另批，不复用旧成功job或扩旁支。见 [完成事实、边界和继续点](aws-auto-deployment-cloud-worker-w5g-verified.md) / [机器证据](../ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.executed.json)。以下为历史。
 
 最新里程碑（2026-10-18）：**W5g已按a44dfaff fresh批准单次调度，准确run 39126114772首次独立Inspect状态waiting。** workflow/head/actor/attempt已核对，新永久槽消费，不再Review/Dispatch、重跑或复位；控制器未代批环境。下一唯一动作是用户批准该run的techlong-sandbox-deploy，然后只读Inspect验证公开proof；尚不称真实OIDC/固定DB连接验收成功，不部署/扩权或重开支线。queued head固定90693a8，不因文档main前进替换验收对象。见 [准确运行与下一只读命令](aws-auto-deployment-cloud-worker-w5g-dispatched.md) / [回执](../ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.dispatched.json)。以下为历史。
