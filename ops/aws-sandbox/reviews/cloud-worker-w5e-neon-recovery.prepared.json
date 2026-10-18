@@ -1,0 +1,79 @@
+{
+  "schema": "techlong/cloud-worker-neon-recovery-prepared/v5",
+  "state": "CANDIDATE_CODE_AND_CI_VERIFIED_NOT_EXECUTED_FRESH_REVIEW_PENDING",
+  "localDate": "2026-10-17",
+  "request": "Prepare compatible recovery checklist only",
+  "codeCommit": "ad3cec21d85f59533928776ebdb0bda02b90ba86",
+  "entry": "ops/cloud-worker/install/run-recovery-v5.mjs",
+  "modes": [
+    "Review",
+    "RecoverLocked",
+    "Inspect"
+  ],
+  "effectsIfSeparatelyApproved": {
+    "putFixedSecretVersions": 2,
+    "neonWriteTransactions": 1,
+    "newOriginalPrivateBundleReads": 1,
+    "newRandomPasswordBytes": 48,
+    "sourceSecretValueReads": 0,
+    "resourceCreations": 0,
+    "iamWrites": 0,
+    "githubConfigurationWrites": 0,
+    "workloadWrites": 0,
+    "businessDml": 0
+  },
+  "differencesFromFailedInstaller": [
+    "Neon-compatible original password in fixed SQL over authenticated TLS, not a client-generated SCRAM verifier",
+    "Both existing isolated Secrets get exact durable versions BEFORE SQL; failed SQL may leave populated Secrets",
+    "Separate fixed recovery-v1 permanent slot; original consumed slot and failed sources preserved",
+    "Limited category/SQLSTATE/HTTP and commit-ACK diagnostics only; no provider message/detail/query/stack/password/DSN",
+    "IncludeDeprecated secret version enumeration before and after writes, no Source GetSecretValue"
+  ],
+  "preparedStageProductionEffects": {
+    "awsMutations": 0,
+    "neonWrites": 0,
+    "originalPrivateContentReads": 0,
+    "productionPasswordsGenerated": 0,
+    "recoverySlotConsumed": false
+  },
+  "originalHistory": {
+    "record": "ops/aws-sandbox/reviews/cloud-worker-w5e.executed.json",
+    "rawSha256": "725672e5593616c906709d764f371647f727c91ed1e259ed1c2e581a89160c68",
+    "evidenceFilesVerified": 25,
+    "oldSlotSha256": "765a1e3cb46ce07cc781d8955323bfbe4baae6e323f55da9a8a859e328d7297f",
+    "oldInstallSourcePinsUnchanged": 90
+  },
+  "ci": {
+    "runId": "39093028057",
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39093028057",
+    "event": "push",
+    "attempt": 1,
+    "conclusion": "success",
+    "passedRegressionTests": 60,
+    "historicalWindowsCliSkippedInLinux": 1,
+    "oldRealPostgresChecks": 15,
+    "newRecoveryRealPostgresChecks": 10,
+    "nonSuperuserCreator": true,
+    "providerGucMocked": true,
+    "neonControlPlaneForwardingTested": false,
+    "productionNeonUsed": false,
+    "productionPermissionsInstalled": false,
+    "awsCalls": 0,
+    "originalPrivateFileReads": 0,
+    "originalArtifactDirectory": "F:/ChatGPT_workshop/techlong-w5e-recovery-ci-39093028057",
+    "originalZipSha256": "6f414df6763c8abf2445b5edbda3b154208a688dc750e49892d231e2fe3c80d2",
+    "independentVerificationSha256": "2c22ebbd5b952476296cf255976ba86626baf84e466aaab75ac2327d75017dac",
+    "runtimeLocalPinsMatched": 76
+  },
+  "runtimeClosure": {
+    "sha256": "110f06bcfe0037ffc1bc0e1d4679a6796080564abde42818074807e516b7bb84",
+    "pinCount": 76,
+    "unchanged": true
+  },
+  "recoverySourceFiles": 99,
+  "riskFile": "docs/aws-auto-deployment-cloud-worker-w5e-neon-recovery.md",
+  "next": "Final clean main: fresh read-only Review and independent digest/state verification, then request new exact SHA approval. Do not RecoverLocked on preparation authorization.",
+  "runtimeEnabled": false,
+  "monthlyBudgetTargetUsd": 50,
+  "hardCostCap": false
+}

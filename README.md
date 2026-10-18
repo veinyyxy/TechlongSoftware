@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-17最新：**W5e-R1兼容恢复入口和清单合同已准备，未执行。** 仅复用准确Locked基础栈和两空Secret；新独立槽，原密码经TLS/Neon SQL，先两固定Secret版本后一个Neon事务，脱敏SQLSTATE/ACK分开记录。云CI 60项、新10组真实PG18（非超级用户创建者）及原15组通过，原ZIP/76闭包独立核验；提供者GUC模拟，不冒充真实Neon托管转发成功。原90源码/25原件/旧槽不变，下一最终main只读fresh Review后请用户新SHA批准，不自动恢复/重读私密包/激活/部署。[恢复完整风险](docs/aws-auto-deployment-cloud-worker-w5e-neon-recovery.md) / [证据](ops/aws-sandbox/reviews/cloud-worker-w5e-neon-recovery.prepared.json)。以下为历史。
+
 2026-10-17最新：**W5e已按439ab7dc批准单次执行，Neon阶段停止，不能激活。** 五资源foundation完整Locked、两Secret已隔离但没有值，私密包校验1次；AWS安装请求5/Neon事务尝试1，无重试或补齐。两次独立只读确认目标Neon角色/schema/函数不存在，旧IAM不变；发现SCRAM预哈希与Neon接口冲突，是实现未复用既有兼容结论的遗漏，未保存原异常故不伪称唯一根因。旧槽永久保留，下一只准备新的TLS原密码兼容恢复清单，不重跑旧安装、不再建栈/Secret或自动重读私密材料。[部分结果与继续位置](docs/aws-auto-deployment-cloud-worker-w5e-partial.md) / [原件摘要](ops/aws-sandbox/reviews/cloud-worker-w5e.executed.json)。以下为历史。
 
 2026-10-17最新：**W5e一次性Locked安装器已完成候选验收，尚未安装或激活。** 已接源/动作/fresh SHA、固定单次槽、五资源foundation、先隔离后写值的两Secret、Neon角色/四函数原子安装及独立Inspect；候选工作流仍在非活动目录。云CI 50项及真实PG18十五组通过，原ZIP/76源码闭包独立核验、旧99 pins保持。下一只生成fresh集中Locked安装审批，不直接启用OIDC或部署。真实ID核验后单独收口激活，不扩观察器支线。[完整风险](docs/aws-auto-deployment-cloud-worker-w5e-installer.md) / [准确证据及继续位置](ops/aws-sandbox/reviews/cloud-worker-w5e.prepared.json)。以下为历史。
