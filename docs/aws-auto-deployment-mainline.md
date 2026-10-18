@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-17）：**W5e-C1已准备准确已存版本续接，尚未执行。** 新入口Review/ContinueLocked/独立Inspect保留R1和原99源码/两旧槽；未来仅一次固定DB值读取、一次原包控制材料读取、一次缺失控制Put、一个Neon事务，不改数据库Secret或生成密码。API ACK先持久化，5轮只读可见性上限，不重发写/放宽安全条件；不把旧错误归因传播。云CI25（新增15）/真实PG18十组及原60/十五组通过、76闭包原件核对；首轮CI独立依赖遗漏已修正，失败保留。本轮生产私密读取/写/新槽消费0，下一最终clean main只读fresh Review、独立重构后请求新范围SHA，不激活/部署。见 [完整风险和接口](aws-auto-deployment-cloud-worker-w5e-neon-continuation.md) / [准备证据](../ops/aws-sandbox/reviews/cloud-worker-w5e-neon-continuation.prepared.json)。以下为历史。
+
 最新里程碑（2026-10-17）：**W5e-R1获4f82199f批准后只执行一次，数据库Secret版本已保存，DatabaseVersion阶段随后停止。** 另进程Inspect确认精确数据库唯一AWSCURRENT/控制Secret空、Neon role/schema不存在/catalog未变、foundation完整Locked及原IAM保持。私密包读取1、Put尝试/ACK各1、Neon写0；具体写后断言/错误原因未保存，不断言权限或传播问题。新旧槽保留，失败源码/99 pins/25原件保持；未生成安装绑定、未激活或部署。下一须新授权准备“读取已存固定数据库版本并续接”的窄清单，不重放空Secret起点、不自动GetSecretValue/补齐或扩支线。见 [实际结果与唯一继续边界](aws-auto-deployment-cloud-worker-w5e-neon-recovery-partial.md) / [执行证据](../ops/aws-sandbox/reviews/cloud-worker-w5e-neon-recovery.executed.json)。以下为历史。
 
 最新里程碑（2026-10-17）：**按用户要求，W5e-R1兼容恢复入口已准备并通过候选云CI，仍未执行。** 新独立slot，不重放旧InstallLocked；准确复用Locked栈/两个空Secret，拟先持久化两固定版本再一个Neon原密码事务，新增脱敏诊断。60项回归、真实PG18新10组/原15组通过，原ZIP及76闭包独立核验；Neon托管转发仍未证明。原90源码、25证据和旧槽不变。本轮生产写入/私密读取/密码生成/新槽消费均0；只待最终main上fresh只读Review和新SHA批准，不自动恢复、激活或部署。见 [完整范围及风险](aws-auto-deployment-cloud-worker-w5e-neon-recovery.md) / [准备证据](../ops/aws-sandbox/reviews/cloud-worker-w5e-neon-recovery.prepared.json)。以下为历史。
