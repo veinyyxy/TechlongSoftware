@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-18）：**W5k真实发布完成并经新进程独立Inspect通过。** 用户重新确认62bbe2c1后，一次非force双workflow发布及现有角色trust-only Change Set创建/严格核验/执行完成，栈UPDATE_COMPLETE、本地main已FF，26原件含永久槽保留。固定运行C=e55367c、R=46312ff、发布caller S=d25c97f；无权限扩张、Secret值读取、dispatch、job领取或承载创建。下一只接线原job_ecbf09030d3da7286ea3ef93的新云Review版本/独立槽并准备fresh清单；旧W5i dispatcher不能用于新布局，不重做发布或登记新请求，实际Review/RunOnce仍分别批准。[结果、证据及唯一继续位置](aws-auto-deployment-cloud-worker-w5k-published.md)。以下为历史。
+
 最新里程碑（2026-10-18）：**W5k受审发布入口编码完成，本轮仅测试/准备，不发布。** 只允许两份准确固定workflow的非force FF和现有foundation单一trust固定SHA的Create/严格核验/Execute；新schema、永久槽、源/历史/元数据/CI fresh核验，每写前再核对，未知ACK及部分失败不续做写。独立Inspect支持旧/新/漂移状态，不用旧准备SHA冒充执行批准。129旧源码/76闭包保持，下一最终clean main CI通过后Prepare新清单再请准确SHA批准，不调度Review或部署。见[完整风险/继续命令](aws-auto-deployment-cloud-worker-w5k-dns-publication.md) / [准备记录](../ops/aws-sandbox/reviews/cloud-worker-w5k-dns-publication.prepared.json)。以下为历史。
 
 最新里程碑（2026-10-18）：**W5j经用户同意，只修DNS名称规范化并准备固定版本替换材料，未发布/更新AWS。** 云运行provider和activation ROOT绑定两处明确变更，76闭包仅provider变化；旧installer测试改为核对已安装workflow的固定引用而非错误地要求不存在，扩大88项/类型/lint通过。旧Review运行实际读过获批DB Secret但没有manifest/领取/部署，旧槽/原件保留。下一在最终clean main执行Prepare：本地R2/S2候选、trust-only三项发布提案及独立只读现有布局核验，不执行云操作。实际发布入口与fresh执行批准仍另行准备，不扩权限或重建Cell，旧W5i调度器不能绕过历史pins使用。[完整边界与继续命令](aws-auto-deployment-cloud-worker-w5j-dns-fix.md) / [准备记录](../ops/aws-sandbox/reviews/cloud-worker-w5j-dns-fix.prepared.json)。以下为历史。
