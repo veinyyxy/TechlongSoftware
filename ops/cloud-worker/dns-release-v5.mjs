@@ -22,7 +22,8 @@ export const DNS_RELEASE_V5=Object.freeze({
   riskFile:'docs/aws-auto-deployment-cloud-worker-w5j-dns-fix.md',
   proposedSlot:base+'/techlong-cloud-worker-v5-dns-normalization-release-v1.permanent-slot.json',
 });
-const V=DNS_RELEASE_V5,changedRuntime=['ops/cloud-worker/aws-initialized-workload-v5.mjs','ops/cloud-worker/activation/runtime-v5.mjs'];
+const V=DNS_RELEASE_V5,reviewedExceptions=['ops/cloud-worker/aws-initialized-workload-v5.mjs','ops/cloud-worker/activation/runtime-v5.mjs',
+  'tests/cloud-worker-installer-v5.test.mjs'];
 export function dnsTrustChangeV5(capsule,newReusable){
   must(/^[a-f0-9]{40}$/.test(newReusable)&&newReusable!==V.oldReusable,'NEW_REUSABLE');
   const oldTemplate=activationTemplateV5(capsule,V.oldReusable),template=activationTemplateV5(capsule,newReusable),copy=structuredClone(template);
@@ -89,7 +90,7 @@ async function sourceAndHistory(){
     must(hash((await gitLocalV5(['show',V.oldMain+':'+p.file])).replaceAll('\r\n','\n'))===p.normalizedLfSha256,'HISTORICAL_GIT_PIN');
     if(hash((await readFile(root+'/'+p.file,'utf8')).replaceAll('\r\n','\n'))!==p.normalizedLfSha256)changed.push(p.file);
   }));
-  must(same(changed.sort(),[...changedRuntime].sort()),'ONLY_REVIEWED_RUNTIME_EXCEPTIONS');
+  must(same(changed.sort(),[...reviewedExceptions].sort()),'ONLY_REVIEWED_SOURCE_EXCEPTIONS');
   const evidence=[
     ['techlong-w5i-cloud-review-failed-independent-20261018-a.json','59d98dfb68bdbb0ddb56f50a328f7760ea638d35eb9df76bbb397740e91d6466'],
     ['techlong-w5i-fixed-metadata-diagnosis-20261018-a.json','0e5412f2555c6b2e94f400c31e4112d588b0946daf8651c1970f1bc61819924a'],
@@ -105,7 +106,7 @@ async function sourceAndHistory(){
   const files=await Promise.all([...names].sort().map(async file=>({file,normalizedLfSha256:hash((await readFile(root+'/'+file,'utf8')).replaceAll('\r\n','\n'))})));
   return {source:{commit,node:process.version,runtimeClosureSha256:closure.closureSha256,files},
     history:{oldMain:V.oldMain,oldRuntime:V.oldRuntime,oldReusable:V.oldReusable,oldClosureSha256:V.oldClosure,
-      historicalGitPinsVerified:historical.length,currentOldPinsUnchanged:historical.length-changed.length,explicitChangedRuntimeFiles:changed,
+      historicalGitPinsVerified:historical.length,currentOldPinsUnchanged:historical.length-changed.length,explicitChangedSourceFiles:changed,
       failedRunId:'39132584005',failedRunHadNoManifest:true,evidenceFiles:evidence,userAuthorizedLocalFixAndEndOfFailedMainFreeze:true},old};
 }
 export async function mainDnsReleaseV5(args=process.argv.slice(2)){

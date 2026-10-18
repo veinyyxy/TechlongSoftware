@@ -47,7 +47,7 @@ test('updated activation digest binds the actual 76-file closure without changin
 test('the preparation entry has no remote-write/Secret/dispatch operation and rejects execution modes before I/O',async()=>{
   const code=await readFile(new URL('../ops/cloud-worker/dns-release-v5.mjs',import.meta.url),'utf8');
   assert.doesNotMatch(code,/CreateChangeSetCommand|ExecuteChangeSetCommand|GetSecretValueCommand|gitLocalV5\(\['push'|fetch\(/);
-  assert.match(code,/PREPARE_ONLY_ARGUMENTS/);assert.match(code,/ONLY_REVIEWED_RUNTIME_EXCEPTIONS/);
+  assert.match(code,/PREPARE_ONLY_ARGUMENTS/);assert.match(code,/ONLY_REVIEWED_SOURCE_EXCEPTIONS/);
   const result=spawnSync(process.execPath,['--experimental-strip-types','ops/cloud-worker/dns-release-v5.mjs','--mode','Publish','--output','F:/ChatGPT_workshop/techlong-w5j-dns-release-not-authorized'],
     {cwd:new URL('../',import.meta.url),encoding:'utf8',timeout:15000,windowsHide:true});
   assert.notEqual(result.status,0);assert.match(result.stderr,/PREPARE_ONLY_ARGUMENTS/);

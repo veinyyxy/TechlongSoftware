@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFile, access } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import yaml from 'js-yaml';
 import { sha256Hex } from '../lib/deployments/execution/hash.ts';
 import { prepareInstallV5, installLockedV5, assertInstallApprovalV5, stablePrestateV5, INSTALL_EFFECTS_V5 } from '../ops/cloud-worker/install/installer-v5.mjs';
@@ -8,6 +8,7 @@ import { INSTALL_SCOPE_V5 as I } from '../ops/cloud-worker/install/plan-v5.mjs';
 import { INSTALL_CANDIDATE_V5 as C } from '../ops/cloud-worker/install/inventory-v5.mjs';
 import { scramVerifierV5, neonInstallStatementsV5 } from '../ops/cloud-worker/install/local-io-v5.mjs';
 import { validateWorkflowInputV5 } from '../ops/cloud-worker/workflow-input-v5.mjs';
+import { renderPinnedJobV5, renderPinnedCallerV5 } from '../ops/cloud-worker/activation/release-v5.mjs';
 const capsule = JSON.parse(await readFile(new URL('../ops/cloud-worker/material/public-capsule-v5.json', import.meta.url), 'utf8'));
 const source = { commit: 'a'.repeat(40), files: [{ file: 'installer.mjs', normalizedLfSha256: 'b'.repeat(64) }] },
   material = { summarySha256: 'c'.repeat(64) }, now = 1800000000000;
@@ -127,7 +128,7 @@ test('workflow inputs carry only fixed private S3 version references, not manife
   i.manifest = ref(prefix + i.job + '/' + i.manifestSha + '/manifest.json'); validateWorkflowInputV5(i);
   i.execution = ref(prefix + 'run.json'); assert.throws(() => validateWorkflowInputV5(i));
 });
-test('candidate workflows are inactive, main-only, environment-reviewed, rerun-disabled and do not upload private artifacts', async () => {
+test('candidate templates stay inactive; installed workflows retain immutable pins and identical review protections', async () => {
   const root = '../ops/cloud-worker/workflow-candidates/';
   const caller = yaml.load(await readFile(new URL(root + 'cloud-worker-execute.yml', import.meta.url), 'utf8')),
     reusable = yaml.load(await readFile(new URL(root + 'cloud-worker-job.yml', import.meta.url), 'utf8'));
@@ -137,6 +138,12 @@ test('candidate workflows are inactive, main-only, environment-reviewed, rerun-d
   assert.equal(reusable.jobs.single.environment, 'techlong-sandbox-deploy');
   assert.equal(reusable.jobs.single.steps.some(s => /upload-artifact/.test(s.uses ?? '')), false);
   assert.equal(reusable.jobs.single.steps.some(s => s.env && Object.values(s.env).some(v => /secrets\./.test(v))), false);
-  for (const name of ['cloud-worker-execute.yml','cloud-worker-job.yml'])
-    await assert.rejects(access(new URL('../.github/workflows/' + name, import.meta.url)), { code: 'ENOENT' });
+  const installedCaller=await readFile(new URL('../.github/workflows/cloud-worker-execute.yml',import.meta.url),'utf8'),
+    installedJob=await readFile(new URL('../.github/workflows/cloud-worker-job.yml',import.meta.url),'utf8'),
+    callerYaml=yaml.load(installedCaller),jobYaml=yaml.load(installedJob),
+    reusableSha=callerYaml.jobs.reviewed.uses.match(/^veinyyxy\/TechlongSoftware\/\.github\/workflows\/cloud-worker-job\.yml@([a-f0-9]{40})$/)?.[1],
+    runtimeSha=jobYaml.jobs.single.steps[0].with.ref;
+  assert.match(reusableSha??'',/^[a-f0-9]{40}$/);assert.match(runtimeSha,/^[a-f0-9]{40}$/);
+  assert.equal(installedCaller.replaceAll('\r\n','\n'),renderPinnedCallerV5(reusableSha));
+  assert.equal(installedJob.replaceAll('\r\n','\n'),renderPinnedJobV5(runtimeSha));
 });

@@ -10,9 +10,13 @@
 
 确定的代码缺陷：Route53返回ALB别名域名末尾带`.`，而固定期望无末尾点；原normalDns正则过度转义，实际没有正确去掉末尾点和dualstack前缀。已只修`aws-initialized-workload-v5.mjs`的规范化表达式及其调用，导出纯函数供针对性回归。域名目标/HostedZone/别名类型与health、HTTPS/mTLS仍各自严格检查，不接受不同主机/后缀/端口/URL/多余点。
 
-本次云闭包仍76文件，只该provider文件改变；旧摘要 `110f06bcfe0037ffc1bc0e1d4679a6796080564abde42818074807e516b7bb84`，新摘要 `e06c12e53732268ca1665ca6ec77805bd626c9f2bce1d44f66ef8efa430e5299`。activation/runtime的ROOT_CLOSURE随之更新，以免新源码被旧摘要门禁拒绝。旧源码commit/回执不覆盖；原124 pins在历史main `1c45f9e…`逐一核对，当前只允许这两个明确文件例外，其余122保持。
+本次云闭包仍76文件，只该provider文件改变；旧摘要 `110f06bcfe0037ffc1bc0e1d4679a6796080564abde42818074807e516b7bb84`，新摘要 `e06c12e53732268ca1665ca6ec77805bd626c9f2bce1d44f66ef8efa430e5299`。activation/runtime的ROOT_CLOSURE随之更新，以免新源码被旧摘要门禁拒绝。旧源码commit/回执不覆盖；原124 pins在历史main `1c45f9e…`逐一核对，当前只允许这两个运行文件及下述一项旧测试例外，其余121保持。
 
 本机新增DNS及发布材料9项、既有activation/root/dispatcher35项，共44项通过；类型检查和定向lint零警告。这里是针对性代码/合同检查，未以模拟结果声称真实新云Review通过。历史124 pins和准确新Git对象在最终Prepare再次核验。
+
+首轮自动候选CI：activation `39134262759`及continuation `39134262767`成功；portable `39134262800`因旧installer测试仍断言两份部署workflow不存在而失败，本地同样复现（不是DNS修复后退）。工作流早在W5f实际安装，故仅把这条测试改为继续验证候选模板隔离、并严格比对已安装工作流的完整SHA引用/原保护渲染；不跳过测试或修改任何workflow。首轮失败和`techlong-w5j-dns-release-20261018-a`未发布对象/材料均保留，但不能作为最终发布材料；最终clean main必须生成新目录后缀b并重新核验。
+
+修正后扩大为本机88项（9新、79既有合同/回归）通过，类型/lint通过。隔离环境曾有4项测试OpenSSL fixture失败，主机环境同一套88项全部通过；未修改fixture、跳过加密测试或把结果冒充生产连接验收。CI仍需查看新main准确运行结果，不复跑旧失败run。
 
 ## 发布材料范围（提案，不是执行授权）
 
@@ -41,7 +45,7 @@ main未保护，读取到一致状态也不能排除并发。所有计划对象�
 所有源码/测试/文档提交推送后，在平台最终clean main：
 
 ```powershell
-node --experimental-strip-types ops/cloud-worker/dns-release-v5.mjs --mode Prepare --output F:/ChatGPT_workshop/techlong-w5j-dns-release-20261018-a
+node --experimental-strip-types ops/cloud-worker/dns-release-v5.mjs --mode Prepare --output F:/ChatGPT_workshop/techlong-w5j-dns-release-20261018-b
 ```
 
 输出目录必须全新。结果/manifest/release/template/现有安装元数据仅存F盘；不会消费拟发布槽、不自动发布、运行Review或改AWS。临时index和两个commit对象的本地Git写是本次准备范围，主工作tree/ref不动。Source失效只停止并留原件，不刷新后自动重试写。

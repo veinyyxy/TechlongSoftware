@@ -1,6 +1,6 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
-最新里程碑（2026-10-18）：**W5j经用户同意，只修DNS名称规范化并准备固定版本替换材料，未发布/更新AWS。** 云运行provider和activation ROOT绑定两处明确变更，76闭包仅provider变化；9新+35既有共44项/类型/lint通过。旧Review运行实际读过获批DB Secret但没有manifest/领取/部署，旧槽/原件保留。下一在最终clean main执行Prepare：本地R2/S2候选、trust-only三项发布提案及独立只读现有布局核验，不执行云操作。实际发布入口与fresh执行批准仍另行准备，不扩权限或重建Cell，旧W5i调度器不能绕过历史pins使用。[完整边界与继续命令](aws-auto-deployment-cloud-worker-w5j-dns-fix.md) / [准备记录](../ops/aws-sandbox/reviews/cloud-worker-w5j-dns-fix.prepared.json)。以下为历史。
+最新里程碑（2026-10-18）：**W5j经用户同意，只修DNS名称规范化并准备固定版本替换材料，未发布/更新AWS。** 云运行provider和activation ROOT绑定两处明确变更，76闭包仅provider变化；旧installer测试改为核对已安装workflow的固定引用而非错误地要求不存在，扩大88项/类型/lint通过。旧Review运行实际读过获批DB Secret但没有manifest/领取/部署，旧槽/原件保留。下一在最终clean main执行Prepare：本地R2/S2候选、trust-only三项发布提案及独立只读现有布局核验，不执行云操作。实际发布入口与fresh执行批准仍另行准备，不扩权限或重建Cell，旧W5i调度器不能绕过历史pins使用。[完整边界与继续命令](aws-auto-deployment-cloud-worker-w5j-dns-fix.md) / [准备记录](../ops/aws-sandbox/reviews/cloud-worker-w5j-dns-fix.prepared.json)。以下为历史。
 
 最新里程碑（2026-10-18）：**W5i获批的单次Review POST返回422，没有新运行，任务/九行及旧job摘要不变。** 已独立只读核对并保留v1槽/失败原件；本机外部输入多传runtime-only installationSha的缺陷已修，真实workflow合同回归加入，30项/类型/lint通过，云端代码/工作流/权限未改。原响应正文未保存，不把本机合同证据说成提供者唯一原因正文证明。下一只准备新独立Review-v2槽的fresh清单，仍须新SHA批准才能再POST，不重跑旧槽或部署。见[完整风险和继续范围](aws-auto-deployment-cloud-worker-w5i-dispatch-recovery.md) / [失败记录](../ops/aws-sandbox/reviews/cloud-worker-w5i-dispatch.stopped.json)。以下为历史。
 
