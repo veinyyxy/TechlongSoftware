@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5i单次Review dispatch返回422，独立确认无新run、业务不变；本机参数映射已修正，未重发。** runtime-only installationSha误入外部七字段合同；已改投影并新增真实workflow定义回归，30项/类型/lint通过，116旧pins/76云闭包/工作流不动。旧Review-v1槽永久保留，下一只准备绑定新独立v2槽的fresh Review清单，再请准确新SHA批准；旧授权不复用，不领取/部署。[失败证据与完整新风险](docs/aws-auto-deployment-cloud-worker-w5i-dispatch-recovery.md) / [机器记录](ops/aws-sandbox/reviews/cloud-worker-w5i-dispatch.stopped.json)。以下为历史。
+
 2026-10-18最新：**W5i准确job的单次云调度/回读接线已完成，尚未调度。** 新11+原17检查通过、类型/定向lint通过，原116pins/76闭包/两工作流不动；Review、RunOnce、Inspect各自fresh批准/新永久槽，未知ACK不重试。下一在最终clean main只读Prepare准确job_ecbf09030d3da7286ea3ef93的Review清单，再批准固定DB读取+一个私有S3 manifest写；不领取/部署。后两模式预先备好以免云Review后15分钟窗口内改main；实际Review后冻结caller SHA，不自动扩大授权。[完整风险和命令](docs/aws-auto-deployment-cloud-worker-w5i-job-dispatch.md) / [准备记录](ops/aws-sandbox/reviews/cloud-worker-w5i-job-dispatch.prepared.json)。以下为历史。
 
 2026-10-18最新：**W5h真实管理员新请求已登记，独立回读通过且本机入口已关闭。** 新job_ecbf09030d3da7286ea3ef93 pending/attempt0/max1/审核挂起，无lease/云授权；原9行和3旧job完整摘要不变，无AWS写/Secret值/dispatch/领取或部署。端口主机可见性误判、只读工具raw-int8/JSONB类型差异均已更正并保留失败记录，未改生产代码或重试提交。下一只准备该准确job的云Review新批准（固定DB读取+私有S3待审manifest写），不再登记或运行旧根；Review前提交全代码，随后冻结caller main跨RunOnce/Inspect。[实际结果与唯一继续点](docs/aws-auto-deployment-cloud-worker-w5h-request-recorded.md) / [证据](ops/aws-sandbox/reviews/cloud-worker-w5h-request-recorded.json)。以下为历史。

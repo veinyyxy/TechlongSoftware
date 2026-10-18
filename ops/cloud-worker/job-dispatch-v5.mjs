@@ -16,9 +16,13 @@ export const JOB_DISPATCH_V5 = Object.freeze({
   installationSha256:'0edfa9d7e9b284e0cf9dda91e280bd12e98bf8e9c36f955c3ad661f72d6ad4b1',
   publication:{key:'worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/installation/0edfa9d7e9b284e0cf9dda91e280bd12e98bf8e9c36f955c3ad661f72d6ad4b1.json',
     versionId:'QzUuJ3ypqIdZW2OixF5WIDKpGZDtX_fV',sha256:'695cb13f463ba734fc5aaf8400eee6ef42021949bdb44a426ae10764e393acae'},
-  apiVersion:'2026-03-10', riskFile:'docs/aws-auto-deployment-cloud-worker-w5i-job-dispatch.md',
+  apiVersion:'2026-03-10', riskFile:'docs/aws-auto-deployment-cloud-worker-w5i-dispatch-recovery.md',
 });
 const V=JOB_DISPATCH_V5;
+export function jobDispatchSlotV5(mode) {
+  must(['Review','RunOnce','Inspect'].includes(mode),'SLOT_MODE');
+  return 'F:/ChatGPT_workshop/techlong-cloud-worker-v5-'+V.jobId+'-'+mode.toLowerCase()+'-v'+(mode==='Review'?'2':'1')+'.permanent-slot.json';
+}
 export function assertJobReferenceV5(r,key) {
   must(r && Object.keys(r).sort().join(',')==='key,sha256,versionId' && r.key===key && /^[a-f0-9]{64}$/.test(r.sha256) &&
     typeof r.versionId==='string' && /^[A-Za-z0-9._-]{1,256}$/.test(r.versionId),'EXACT_OBJECT_REFERENCE'); return r;
@@ -35,7 +39,20 @@ export function jobDispatchBodyV5(mode,cloud=null,execution=null) {
     if(mode==='Inspect') { must(execution,'EXECUTION_REQUIRED'); inputs.execution=canonicalJson(execution); }
     else must(execution===null,'RUN_HAS_NO_EXECUTION_REFERENCE');
   }
-  validateWorkflowInputV5(inputs); return {ref:'main',return_run_details:true,inputs};
+  validateWorkflowInputV5(inputs);
+  // installationSha is a reusable/runtime input, NOT an external dispatch input.
+  // The installed caller already binds it as a literal in jobs.reviewed.with.
+  const externalInputs={...inputs};delete externalInputs.installationSha;
+  return {ref:'main',return_run_details:true,inputs:externalInputs};
+}
+export function assertInstalledJobWorkflowV5(workflow,body=jobDispatchBodyV5('Review')) {
+  const declared=workflow?.on?.workflow_dispatch?.inputs;
+  must(declared && same(Object.keys(declared).sort(),['execution','installation','job','lineage','manifest','manifestSha','mode']) &&
+    same(Object.keys(body.inputs).sort(),Object.keys(declared).sort()) && body.ref==='main' && body.return_run_details===true &&
+    workflow.jobs?.reviewed?.with?.installationSha===V.installationSha256 &&
+    workflow.jobs.reviewed.uses==='veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-job.yml@'+V.reusable &&
+    same(declared.mode.options,['VerifyInstall','Review','RunOnce','Inspect']),'INSTALLED_EXTERNAL_INPUT_SCHEMA');
+  validateWorkflowInputV5({...body.inputs,installationSha:workflow.jobs.reviewed.with.installationSha});
 }
 export function executionObjectV5(cloud,run) {
   must(run?.jobId===V.jobId && run.manifestSha256===cloud?.manifestSha256 &&
@@ -66,7 +83,7 @@ export async function prepareJobDispatchV5({mode,source,history,prestate,cloud=n
   must(Number.isSafeInteger(expiresAt) && expiresAt>now,'CLOUD_WINDOW_EXPIRED');
   const body={schema:'techlong/cloud-worker-job-dispatch-review/v5',mode,jobId:V.jobId,preparedAt:now,expiresAt,
     source,history,prestate,cloud,execution,executionObject:object,request,riskFile:V.riskFile,
-    runtimeCommit:V.runtime,reusableCommit:V.reusable,effects,
+    runtimeCommit:V.runtime,reusableCommit:V.reusable,effects,localPermanentSlot:jobDispatchSlotV5(mode),
     workflowDispatches:1,humanEnvironmentApprovalRequired:true,automaticReruns:0,controllerAutomaticRollback:false,
     approvalWindowOnlyControlsDispatchNotLaterHumanReview:true,
     executionVersionRule:object?'Only the VersionId returned by this exact conditional Put ACK, independently read and hash verified':'No execution object write'};

@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import yaml from 'js-yaml';
 import {JOB_DISPATCH_V5 as V,jobDispatchBodyV5,executionObjectV5,prepareJobDispatchV5,assertJobDispatchApprovalV5,
-  dispatchJobV5,jobProofFromLogsV5,assertJobReferenceV5} from '../ops/cloud-worker/job-dispatch-v5.mjs';
+  dispatchJobV5,jobProofFromLogsV5,assertJobReferenceV5,jobDispatchSlotV5,assertInstalledJobWorkflowV5} from '../ops/cloud-worker/job-dispatch-v5.mjs';
 import {evidenceKeyV5} from '../ops/cloud-worker/cloud-evidence-v5.mjs';
 import {sha256Hex} from '../lib/deployments/execution/hash.ts';
 const now=1800000000000,source={commit:'a'.repeat(40),files:Array.from({length:122},(_,i)=>({file:'pin-'+i,normalizedLfSha256:'b'.repeat(64)}))},
@@ -26,10 +27,25 @@ async function fixture(mode='Review'){
 }
 test('Review binds the real held job and installed S3 version; no manifest/execution/lineage input',()=>{
   const body=jobDispatchBodyV5('Review');assert.equal(body.ref,'main');assert.equal(body.return_run_details,true);
-  assert.equal(body.inputs.job,V.jobId);assert.equal(body.inputs.installationSha,V.installationSha256);
+  assert.equal(body.inputs.job,V.jobId);assert.equal(body.inputs.installationSha,undefined);
   assert.deepEqual(JSON.parse(body.inputs.installation),V.publication);
   for(const k of ['manifest','manifestSha','execution','lineage'])assert.equal(body.inputs[k],'');
   assert.throws(()=>jobDispatchBodyV5('VerifyInstall'));assert.throws(()=>jobDispatchBodyV5('Review',cloud));
+});
+test('all three dispatch bodies match the real installed external schema; runtime-only SHA is rejected externally',async()=>{
+  const workflow=yaml.load(await readFile(new URL('../.github/workflows/cloud-worker-execute.yml',import.meta.url),'utf8'));
+  const object=executionObjectV5(cloud,execution),ref={key:object.key,versionId:'actual-version',sha256:await sha256Hex(object.body)};
+  for(const body of [jobDispatchBodyV5('Review'),jobDispatchBodyV5('RunOnce',cloud),jobDispatchBodyV5('Inspect',cloud,ref)]){
+    assertInstalledJobWorkflowV5(workflow,body);
+    assert.throws(()=>assertInstalledJobWorkflowV5(workflow,{...body,inputs:{...body.inputs,installationSha:V.installationSha256}}));
+  }
+  const altered=structuredClone(workflow);altered.jobs.reviewed.with.installationSha='f'.repeat(64);
+  assert.throws(()=>assertInstalledJobWorkflowV5(altered));
+});
+test('only a fresh approval can name the new Review-v2 slot; old slot is not reused or reset',async()=>{
+  const m=await prepareJobDispatchV5(context());assert.equal(m.localPermanentSlot,jobDispatchSlotV5('Review'));
+  assert.match(m.localPermanentSlot,/-review-v2\.permanent-slot\.json$/);assert.match(jobDispatchSlotV5('RunOnce'),/-runonce-v1\.permanent-slot\.json$/);
+  await assert.rejects(assertJobDispatchApprovalV5({...m,localPermanentSlot:m.localPermanentSlot.replace('-v2.','-v1.')},m.manifestSha256,context(),now));
 });
 test('RunOnce and Inspect use exact versioned cloud manifest; execution object is separate and fixed',()=>{
   const b=jobDispatchBodyV5('RunOnce',cloud);assert.equal(b.inputs.manifestSha,cloud.manifestSha256);assert.equal(b.inputs.execution,'');

@@ -4,10 +4,12 @@ import {parseEnv} from 'node:util';
 import {createHash} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import path from 'node:path';
+import yaml from 'js-yaml';
 import {fromLoginCredentials} from '@aws-sdk/credential-provider-login';
 import {S3Client,GetObjectCommand,PutObjectCommand} from '@aws-sdk/client-s3';
 import {canonicalJson,sha256Hex} from '../../lib/deployments/execution/hash.ts';
-import {JOB_DISPATCH_V5 as V,prepareJobDispatchV5,dispatchJobV5,jobProofFromLogsV5,assertJobReferenceV5,executionObjectV5} from './job-dispatch-v5.mjs';
+import {JOB_DISPATCH_V5 as V,prepareJobDispatchV5,dispatchJobV5,jobProofFromLogsV5,assertJobReferenceV5,executionObjectV5,
+  jobDispatchSlotV5,assertInstalledJobWorkflowV5} from './job-dispatch-v5.mjs';
 import {assertProbeRunV5} from './verify-install-v5.mjs';
 import {createActivationIoV5} from './activation/local-io-v5.mjs';
 import {activationHistoryV5} from './activation/run-activation-v5.mjs';
@@ -23,7 +25,7 @@ import {assertRunWindowV3} from '../aws-sandbox/scripts/express-initialized-work
 const root='E:/NodejsProject/TechlongSoftware',base='F:/ChatGPT_workshop',repo='repos/veinyyxy/TechlongSoftware';
 const must=(v,c)=>requireActivationV5(v,'JOB_LOCAL_'+c),same=(a,b)=>canonicalJson(a)===canonicalJson(b);
 const digest=v=>createHash('sha256').update(v).digest('hex'),json=async f=>JSON.parse(await readFile(f,'utf8'));
-const slot=mode=>base+'/techlong-cloud-worker-v5-'+V.jobId+'-'+mode.toLowerCase()+'-v1.permanent-slot.json';
+const slot=jobDispatchSlotV5;
 async function absent(file){try{await access(file);throw Error('JOB_LOCAL_SLOT_USED');}catch(e){if(e.code!=='ENOENT')throw e;}}
 async function directory(input){const p=path.resolve(input);must(path.dirname(p).toLowerCase()===path.resolve(base).toLowerCase() &&
   /^techlong-w5i-[a-z0-9-]+$/.test(path.basename(p)) && (await realpath(base)).toLowerCase()===path.resolve(base).toLowerCase(),'OUTPUT_PATH');return p;}
@@ -42,12 +44,19 @@ async function sourceContext(){
   must(digest(ap)===activation.independentProof.rawSha256,'ACTIVATION_PROOF');
   for(const f of JSON.parse(ap).evidenceFiles)must(f.path.startsWith(base+'/') && digest(await readFile(f.path))===f.rawSha256,'ACTIVATION_EVIDENCE');
   await assertReleaseObjectsV5(old.actions.release);
+  const stoppedRaw=await readFile(base+'/techlong-w5i-dispatch-stopped-independent-20261018-a.json');
+  must(digest(stoppedRaw)==='38e928bcde4bfa252bc62b50510f0eef02d75334ace81c134b701c7a93ad58f5','FAILED_REVIEW_PROOF');
+  const stopped=JSON.parse(stoppedRaw);
+  must(stopped.outcome==='HTTP_422_NO_NEW_WORKFLOW_RUN_BUSINESS_UNCHANGED_SLOT_PRESERVED' && stopped.newWorkflowRuns===0 && stopped.slotConsumed===true,'FAILED_REVIEW_STATE');
+  for(const f of stopped.evidenceFiles)must(f.path.startsWith(base+'/') && digest(await readFile(f.path))===f.rawSha256,'FAILED_REVIEW_ORIGINALS');
   const files=[...pins.source.files];for(const p of files)must(digest((await readFile(root+'/'+p.file,'utf8')).replaceAll('\r\n','\n'))===p.normalizedLfSha256,'OLD_SOURCE_PIN');
   for(const file of ['ops/cloud-worker/job-dispatch-v5.mjs','ops/cloud-worker/job-dispatch-local-v5.mjs',
     'tests/cloud-worker-job-dispatch-v5.test.mjs',V.riskFile,'ops/aws-sandbox/reviews/cloud-worker-w5g-verify-install.executed.json',
-    'ops/aws-sandbox/reviews/cloud-worker-w5h-request-recorded.json'])files.push({file,normalizedLfSha256:digest((await readFile(root+'/'+file,'utf8')).replaceAll('\r\n','\n'))});
+    'ops/aws-sandbox/reviews/cloud-worker-w5h-request-recorded.json','docs/aws-auto-deployment-cloud-worker-w5i-job-dispatch.md',
+    'ops/aws-sandbox/reviews/cloud-worker-w5i-dispatch.stopped.json'])files.push({file,normalizedLfSha256:digest((await readFile(root+'/'+file,'utf8')).replaceAll('\r\n','\n'))});
   return {source:{commit:(await gitLocalV5(['rev-parse','HEAD'])).trim(),files:files.sort((a,b)=>a.file.localeCompare(b.file)),node:process.version},
-    history:{...history,verifyInstallProofRawSha256:digest(gp),activationProofRawSha256:digest(ap),heldRequestRecordRawSha256:digest(await readFile(root+'/ops/aws-sandbox/reviews/cloud-worker-w5h-request-recorded.json'))},old};
+    history:{...history,verifyInstallProofRawSha256:digest(gp),activationProofRawSha256:digest(ap),heldRequestRecordRawSha256:digest(await readFile(root+'/ops/aws-sandbox/reviews/cloud-worker-w5h-request-recorded.json')),
+      failedReviewProofRawSha256:digest(stoppedRaw),oldReviewSlotPreserved:true,newReviewAttemptRequiresFreshApproval:true},old};
 }
 async function credential(){return new Promise((resolve,reject)=>{
   const p=spawn('git',['credential','fill'],{cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe']});let text='';
@@ -110,6 +119,7 @@ export async function createJobDispatchIoV5(output,context){
       for(const [r,f]of [[caller,'.github/workflows/cloud-worker-execute.yml'],[reusable,'.github/workflows/cloud-worker-job.yml']])
         must(r.encoding==='base64' && r.type==='file' && r.path===f && Buffer.from(r.content,'base64').toString('utf8').replaceAll('\r\n','\n')===
           (await readFile(root+'/'+f,'utf8')).replaceAll('\r\n','\n'),'REMOTE_WORKFLOW_PIN');
+      assertInstalledJobWorkflowV5(yaml.load(Buffer.from(caller.content,'base64').toString('utf8')));
       const view=structuredClone(context.old);view.actions.release.caller.commit=context.source.commit;
       const publication={...V.publication,installationSha256:V.installationSha256};
       const proof=await metadata.inspectActivated(view,publication);await record('metadata',proof);
