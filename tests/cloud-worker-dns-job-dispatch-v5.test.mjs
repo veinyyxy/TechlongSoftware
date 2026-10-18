@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import yaml from 'js-yaml';
+import {renderPinnedCallerV5} from '../ops/cloud-worker/activation/release-v5.mjs';
 import {DNS_JOB_DISPATCH_V5 as V,dnsJobDispatchSlotV5,prepareDnsJobDispatchV5,assertDnsJobDispatchApprovalV5,
   dispatchDnsJobV5,assertInstalledDnsJobWorkflowV5,jobDispatchBodyV5,executionObjectV5} from '../ops/cloud-worker/dns-job-dispatch-v5.mjs';
 import {JOB_DISPATCH_V5 as OLD,assertInstalledJobWorkflowV5} from '../ops/cloud-worker/job-dispatch-v5.mjs';
@@ -28,8 +29,8 @@ async function fixture(mode='Review'){
       html_url:'https://github.com/veinyyxy/TechlongSoftware/actions/runs/124',run_url:'https://api.github.com/repos/veinyyxy/TechlongSoftware/actions/runs/124'};}};
   return {c,m,io,events,run:()=>dispatchDnsJobV5({manifest:m,approved:m.manifestSha256,context:c,io,now:()=>now})};
 }
-test('actual W5k workflow accepts the unchanged seven-input contract for all modes; historical dispatcher rejects new R',async()=>{
-  const workflow=yaml.load(await readFile(new URL('../.github/workflows/cloud-worker-execute.yml',import.meta.url),'utf8'));
+test('historical W5k workflow accepts its frozen seven-input contract; earlier dispatcher rejects that R',async()=>{
+  const workflow=yaml.load(renderPinnedCallerV5(V.reusable));
   assert.notEqual(V.runtime,OLD.runtime);assert.notEqual(V.reusable,OLD.reusable);
   const object=executionObjectV5(cloud,execution),ref={key:object.key,versionId:'exact-version',sha256:await sha256Hex(object.body)};
   for(const body of [jobDispatchBodyV5('Review'),jobDispatchBodyV5('RunOnce',cloud),jobDispatchBodyV5('Inspect',cloud,ref)]){

@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-18）：**W5o原job新C/R的本机三模式衔接已实现，未dispatch。** 复用准确已发布C=d8cb996/R=7f0fbf2及七输入/准确ACK/冻结caller合同，不改云代码/权限/两工作流；Review-v4、RunOnce/Inspect-v3新永久槽，旧失败和发布槽保持。152历史pins/27原件及W5m/W5l证据继续核验，9新+相邻回归共65本机通过。下一最终main两项无AWS CI成功后只读Prepare原job的新Review清单，固定DB读/私有manifest写仍fresh另批，不领取或部署。[完整风险与唯一继续位置](aws-auto-deployment-cloud-worker-w5o-review-continuation.md)。以下为历史。
+
 最新里程碑（2026-10-18）：**W5n严格ECS缺失修复真实发布完成，独立Inspect通过。** 按f51a4de2批准一次双workflow非force发布及现有角色trust-only Change Set创建/严格核验/执行，栈UPDATE_COMPLETE、本地main准确FF；C=d8cb996、R=7f0fbf2、S=68a476b，原权限/固定材料及76闭包保持。27原件/发布永久槽和旧失败证据保留，无Secret值读取、dispatch、领取或承载创建。下一仅接线原job的新C/R及独立Review槽并准备fresh清单；旧W5l入口不能套用，云Review/RunOnce另审，当前不称部署验收通过。[结果、证据及继续边界](aws-auto-deployment-cloud-worker-w5n-published.md)。以下为历史。
 
 最新里程碑（2026-10-18）：**W5n进入修复版受审发布准备，尚未执行云版本切换。** 当前旧R463，候选严格ECS缺失修复/70ee60eb闭包不再改动；新独立发布槽与准确schema只允许一push/一trust-only Create/严格ACK和完整模板核验/一Execute，再新进程Inspect。9新+61旧回归通过，原142历史pins/26发布原件/失败槽保持。下一最终main CI成功后只读Prepare并请fresh SHA；新Review、RunOnce及部署不在本轮授权内。[完整风险、命令及继续点](aws-auto-deployment-cloud-worker-w5n-ecs-publication.md)。以下为历史。
