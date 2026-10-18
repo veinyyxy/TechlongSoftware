@@ -11,6 +11,7 @@ on:
       - 'tests/fixtures/cloud-control*'
       - 'scripts/ci/check-cloud-worker-closure-v5.mjs'
       - 'scripts/ci/verify-cloud-neon-v5.mjs'
+      - 'scripts/ci/verify-cloud-neon-recovery-v5.mjs'
       - 'lib/deployments/execution/**'
       - 'lib/deployments/initialized-platform-request-v1.ts'
       - 'package*.json'
@@ -55,7 +56,7 @@ jobs:
       - name: Type, lint and exact local module syntax
         run: |
           npx tsc --noEmit --incremental false
-          npx eslint ops/cloud-worker/*.mjs ops/cloud-worker/install/*.mjs tests/cloud-worker*.test.mjs tests/fixtures/cloud-control-v5.mjs tests/fixtures/cloud-worker-root-v5.mjs scripts/ci/check-cloud-worker-closure-v5.mjs scripts/ci/verify-cloud-neon-v5.mjs
+          npx eslint ops/cloud-worker/*.mjs ops/cloud-worker/install/*.mjs tests/cloud-worker*.test.mjs tests/fixtures/cloud-control-v5.mjs tests/fixtures/cloud-worker-root-v5.mjs scripts/ci/check-cloud-worker-closure-v5.mjs scripts/ci/verify-cloud-neon-v5.mjs scripts/ci/verify-cloud-neon-recovery-v5.mjs
           node --check ops/cloud-worker/aws-initialized-workload-v5.mjs
       - name: Real crypto and cloud journal contracts - no tenant request
         run: >-
@@ -63,6 +64,7 @@ jobs:
           tests/cloud-worker-root-v5.test.mjs
           tests/cloud-worker-install-v5.test.mjs
           tests/cloud-worker-installer-v5.test.mjs
+          tests/cloud-worker-recovery-v5.test.mjs
           tests/cloud-worker-journal-v1.test.ts
       - name: W4 pure contracts - historical Windows local CLI verified separately
         run: >-
@@ -79,6 +81,10 @@ jobs:
           cat "$RUNNER_TEMP/cloud-worker-candidate/bundle.json" >> "$GITHUB_STEP_SUMMARY"
       - name: Real narrow-role PostgreSQL proof - no production connection
         run: node --experimental-strip-types scripts/ci/verify-cloud-neon-v5.mjs > "$RUNNER_TEMP/cloud-worker-candidate/neon-pg18.json"
+        env:
+          CLOUD_NEON_CI_PORT: ${{ job.services.postgres.ports[5432] }}
+      - name: Real recovery SQL and non-superuser creator proof - Neon forwarding explicitly mocked
+        run: node --experimental-strip-types scripts/ci/verify-cloud-neon-recovery-v5.mjs > "$RUNNER_TEMP/cloud-worker-candidate/neon-recovery-pg18.json"
         env:
           CLOUD_NEON_CI_PORT: ${{ job.services.postgres.ports[5432] }}
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
