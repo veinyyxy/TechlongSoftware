@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5n ECS缺失兼容修复已发布，独立Inspect通过。** 用户确认f51a4de2后完成一次双workflow发布、现有角色trust-only Create/严格核验/Execute及本地FF，栈UPDATE_COMPLETE；运行C=d8cb996、R=7f0fbf2、caller S=68a476b，76闭包70ee60eb保持，无权限扩张。27份原件/新永久槽及旧失败槽保留，未读Secret值/dispatch/领取或部署。下一只显式接线新C/R、准备原held job的新云Review；旧W5l不能重用，实际Review/RunOnce仍fresh另批，不重做发布或扩支线。[完成事实及唯一继续位置](docs/aws-auto-deployment-cloud-worker-w5n-published.md) / [执行证据](ops/aws-sandbox/reviews/cloud-worker-w5n-ecs-publication.executed.json)。以下为历史。
+
 2026-10-18最新：**W5n修复版受审发布入口已实现，尚未发布。** 只替换两份固定workflow及现有角色trust的准确R引用；新schema/独立发布槽，旧W5k及失败Review-v3记录/槽保持，142历史Git pins/26发布原件/W5m修复证据门禁保留。候选76闭包仍70ee60eb，9新+61回归共70项本机通过；下一最终main无AWS CI后只读Prepare，再请fresh SHA批准单次push/Create/严格核验/Execute与独立Inspect。不扩权、不调度Review/领取或部署。[完整风险和命令](docs/aws-auto-deployment-cloud-worker-w5n-ecs-publication.md) / [准备记录](ops/aws-sandbox/reviews/cloud-worker-w5n-ecs-publication.prepared.json)。以下为历史。
 
 2026-10-18最新：**W5m仅代码修复/测试，未发布或重跑。** 用户允许结束失败main冻结；只在准确服务唯一MISSING与同服务ListTasks HTTP400/ServiceNotFoundException同时成立时兼容空任务，其余异常和全部原门禁保留。8新+53回归共61项本机通过；76云闭包仅provider变化并更新本地ROOT绑定。实际云C/R、权限/旧槽/业务不改，旧Review-v3失败且无manifest；下一推进发布需另行请求及fresh审批，不直接使用旧入口。[修复范围与继续边界](docs/aws-auto-deployment-cloud-worker-w5m-ecs-absence-fix.md) / [记录](ops/aws-sandbox/reviews/cloud-worker-w5m-ecs-absence-fix.prepared.json)。以下为历史。
