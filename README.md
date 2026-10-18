@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5k DNS修复的受审发布入口已实现，尚未执行。** 新执行schema/fresh SHA、单次永久槽、一push/一Create/一Execute、严格准确ACK ARN与trust-only模板/ChangeSet门禁、部分失败只读Inspect；不自动补齐/回滚/重试/dispatch。96项/类型/lint通过，129旧pins和76闭包保持，实际工作流/trust/Secret/业务未改。下一最终main CI成功后只读Prepare新执行清单，请用户准确新SHA批准；旧823d准备材料不能执行。[完整风险与命令](docs/aws-auto-deployment-cloud-worker-w5k-dns-publication.md) / [准备状态](ops/aws-sandbox/reviews/cloud-worker-w5k-dns-publication.prepared.json)。以下为历史。
+
 2026-10-18最新：**W5j DNS规范化小修复及发布材料准备入口完成，未发布云版本。** 用户同意结束失败Review冻结；只修末尾点/dualstack转义及ROOT摘要绑定，云闭包仍76且仅provider一项改变；另纠正旧测试对已安装workflow的“不存在”断言，88项/类型/lint通过。Prepare只生成无ref移动的R2/S2候选与既有trust固定SHA替换提案，工作流/IAM/Secret/Neon/旧槽不改，不重跑Review或部署；现有云仍旧C/R。实际版本切换另建受审入口并fresh批准，不用准备材料代替执行授权。[范围、完整风险及继续位置](docs/aws-auto-deployment-cloud-worker-w5j-dns-fix.md) / [准备状态](ops/aws-sandbox/reviews/cloud-worker-w5j-dns-fix.prepared.json)。以下为历史。
 
 2026-10-18最新：**W5i单次Review dispatch返回422，独立确认无新run、业务不变；本机参数映射已修正，未重发。** runtime-only installationSha误入外部七字段合同；已改投影并新增真实workflow定义回归，30项/类型/lint通过，116旧pins/76云闭包/工作流不动。旧Review-v1槽永久保留，下一只准备绑定新独立v2槽的fresh Review清单，再请准确新SHA批准；旧授权不复用，不领取/部署。[失败证据与完整新风险](docs/aws-auto-deployment-cloud-worker-w5i-dispatch-recovery.md) / [机器记录](ops/aws-sandbox/reviews/cloud-worker-w5i-dispatch.stopped.json)。以下为历史。
