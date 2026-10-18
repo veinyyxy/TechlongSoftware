@@ -1,0 +1,29 @@
+{
+  "schema": "techlong/cloud-worker-installed-binding/v5",
+  "installed": true,
+  "roleId": "AROAV3GNMXTZK5O45RG24",
+  "tableId": "ea69c69e-1c48-481a-83f0-36393c196d9f",
+  "neon": {
+    "roleOid": "163840",
+    "ownerOid": "16392",
+    "functionOids": {
+      "read_state": "163843",
+      "claim": "163844",
+      "lease": "163848",
+      "complete": "163852"
+    },
+    "endpointSha256": "72859859f354b717a96734785252c0d76267884abcc1ce82bec0d0bbf23d437e",
+    "contractSha256": "1af33941263b9e138abf1eeb0b9f9fe295df5f2be47622c09e7ba5a27c18546d",
+    "sqlSha256": "20621e72aead74004243b4705547530ecbfc37493dab23e67cb68ced2f5d1232"
+  },
+  "databaseSecret": {
+    "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/neon-control-v1-pVKVEV",
+    "versionId": "ce34d730-0e08-4ce7-b1b6-b5eaa5f9ca0e"
+  },
+  "controlSecret": {
+    "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/control-first-acceptance-v1-CatDWK",
+    "versionId": "2854e7b6-6c3c-41be-a5d8-b87dd9d98810"
+  },
+  "evidenceBucket": "techlong-sandbox-cloud-worker-evidence-402010193138",
+  "installationSha256": "0edfa9d7e9b284e0cf9dda91e280bd12e98bf8e9c36f955c3ad661f72d6ad4b1"
+}

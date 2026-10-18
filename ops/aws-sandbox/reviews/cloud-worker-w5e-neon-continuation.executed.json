@@ -1,0 +1,229 @@
+{
+  "schema": "techlong/cloud-worker-neon-continuation-execution/v5",
+  "state": "LOCKED_INSTALL_COMPLETE_INDEPENDENTLY_VERIFIED_NOT_ACTIVATED",
+  "localDate": "2026-10-17",
+  "approvedManifestSha256": "0f0e2c02b2c8a20d0cefd2cc8097de939a654fbfd6664dc720fdbfc0ca6d23a5",
+  "actionsSha256": "98bd3414293df504451db46444dac60e26300945b275bc06ed7b9640044eb465",
+  "sourceMainCommit": "f4f328aeb3ca231147e3401a65d8c79c39c556f8",
+  "runInvocations": 1,
+  "inspectInvocations": 1,
+  "runOutcome": "CONTINUATION_LOCKED_COMPLETE_REQUIRES_INDEPENDENT_INSPECT",
+  "inspectOutcome": "CONTINUATION_LOCKED_INSTALL_INDEPENDENT_METADATA_VERIFIED",
+  "counts": {
+    "originalPrivateBundleReadAttempts": 1,
+    "neonTransactionAttempts": 1,
+    "neonCommitAcknowledged": true,
+    "dedicatedCatalogReads": 1,
+    "sourceSecretValueReadAttempts": 1,
+    "sourceSecretValueReadAcknowledged": 1,
+    "controlPutAttempts": 1,
+    "controlPutAcknowledged": 1,
+    "publicationObservations": 1,
+    "generatedPassword": false,
+    "databaseSecretWrites": 0
+  },
+  "independentProof": {
+    "checkedAt": 1792297164850,
+    "foundation": {
+      "roleId": "AROAV3GNMXTZK5O45RG24",
+      "tableId": "ea69c69e-1c48-481a-83f0-36393c196d9f",
+      "lockedTrustVerified": true,
+      "sourceSecretValueReads": 0,
+      "metadataOnlyPasswordAuthenticationNotRepeated": true
+    },
+    "schemaOid": "163842",
+    "installationBindingFile": "ops/aws-sandbox/reviews/cloud-worker-v5.installed-binding.json",
+    "installationBindingSha256": "0edfa9d7e9b284e0cf9dda91e280bd12e98bf8e9c36f955c3ad661f72d6ad4b1",
+    "originalBindingRawSha256": "eda3239175312aec36a1448766e05aaab45aaac8da2979d43e7530d485884222",
+    "oldPublicTableAndTriggerMetadataPreserved": true,
+    "oldDefinersAndDefaultAclPreserved": true,
+    "addedRestrictedDefiners": [
+      {
+        "name": "read_state",
+        "oid": "163843",
+        "owner": "16392",
+        "publicExecutable": false
+      },
+      {
+        "name": "claim",
+        "oid": "163844",
+        "owner": "16392",
+        "publicExecutable": false
+      },
+      {
+        "name": "lease",
+        "oid": "163848",
+        "owner": "16392",
+        "publicExecutable": false
+      },
+      {
+        "name": "complete",
+        "oid": "163852",
+        "owner": "16392",
+        "publicExecutable": false
+      }
+    ],
+    "sourcePinsVerified": 107,
+    "history": {
+      "original": {
+        "recordSha256": "725672e5593616c906709d764f371647f727c91ed1e259ed1c2e581a89160c68",
+        "evidenceFiles": 25,
+        "oldSlotSha256": "765a1e3cb46ce07cc781d8955323bfbe4baae6e323f55da9a8a859e328d7297f"
+      },
+      "priorRecordRawSha256": "7d0e85b59db316f80b820d8cb0e356f747935d64b0882ee10fa85a1efeeaf682",
+      "priorProofRawSha256": "91e5d0c40eda20cf50ed151b9d5d5a07090ac302ad7e3d90472e799121f610fe",
+      "priorSlotSha256": "db1b665fda7abee9a5bdd852b60da06663747e659a097336cd070634edfd5459",
+      "priorEvidenceFilesVerified": 14,
+      "priorSourcePinsPreserved": 99
+    },
+    "localProof": "F:/ChatGPT_workshop/techlong-w5e-continuation-execution-verified-20261017-a.json",
+    "localProofRawSha256": "2fa63beb16632014339253cc88b31ea697ced6c46644dfad73685bf304507793",
+    "verifierNetworkCalls": 0,
+    "verifierPrivateReads": 0,
+    "verifierExternalWrites": 0,
+    "passwordAuthenticationNotRepeatedByInspect": true,
+    "cloudOidcOrSecretReadPathProved": false
+  },
+  "permanentSlot": {
+    "path": "F:/ChatGPT_workshop/techlong-cloud-worker-v5-neon-continuation-v1.permanent-slot.json",
+    "rawSha256": "1b35a1261e7df3c1f1dc81d8d9095f0a646130ab761bccbb614f940d8f1da0fa",
+    "consumed": true,
+    "resetAllowed": false
+  },
+  "evidenceFiles": [
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-review-20261017-a/independent-review.json",
+      "rawSha256": "714824fba2f4c02e71793a330d838694c63ad885944d9312d23a549518ce0317",
+      "bytes": 2832
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-review-20261017-a/manifest.json",
+      "rawSha256": "274cd02999e9fce3a9f76d4a0cb4844f3d14dc0e6be6c991b6879389743dd17b",
+      "bytes": 69970
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-review-20261017-a/prestate.json",
+      "rawSha256": "9e7c2e838b09d58882309d78b9389125cc58e956eced5bd153b92f4bb4403ad9",
+      "bytes": 23079
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-review-20261017-a/summary.json",
+      "rawSha256": "bbd125e3c90b494baeb6b3eea2b87e1e5bd10ae736bfa593bcb5f9f46433d45d",
+      "bytes": 379
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/ControlPrivateRead.ack.json",
+      "rawSha256": "53b42a901530dbe279584573cf410da54e4917fa43f86e2133f7677f2645e84e",
+      "bytes": 117
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/ControlPrivateRead.intent.json",
+      "rawSha256": "86e86a69b00e2a54b6ba31f2c0d612e1d58967991de1e3f1327991a2e2b240ea",
+      "bytes": 114
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/ControlVersion.ack.json",
+      "rawSha256": "4f3adf6e373cd8711090c132cc96d2909981e7b256a4177c01e539d40d2e3d7c",
+      "bytes": 318
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/ControlVersion.intent.json",
+      "rawSha256": "821d1c526443ad78267c019e304ba5d38f0de7719529628e4344c8a074dfdf2b",
+      "bytes": 114
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/DatabaseRead.ack.json",
+      "rawSha256": "7a37dadb6bec4b72a5c0a0b7cd4f25e05e48fda2ce5fbe46229b941d815bfa88",
+      "bytes": 141
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/DatabaseRead.intent.json",
+      "rawSha256": "cdd7bbc301092dabec46c83267e144369ea6051d84e84e914d410c355e60a7a9",
+      "bytes": 114
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/NeonAtomicInstall.ack.json",
+      "rawSha256": "45c42909347cf154a97674d925b6d75ba19310042ef9b8043244b551ebd026ad",
+      "bytes": 77
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/NeonAtomicInstall.intent.json",
+      "rawSha256": "dd40323aef9a795323711e429f249f2e3c4af0fd2f0bdef555dae7daa1a5a111",
+      "bytes": 114
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/approved-manifest.json",
+      "rawSha256": "274cd02999e9fce3a9f76d4a0cb4844f3d14dc0e6be6c991b6879389743dd17b",
+      "bytes": 69970
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/control-api-ack.json",
+      "rawSha256": "24c13b5ff1088d059f898d8e0a1753487b71d6cabaef8da4571d248dee39ad4e",
+      "bytes": 255
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/installation-binding.json",
+      "rawSha256": "eda3239175312aec36a1448766e05aaab45aaac8da2979d43e7530d485884222",
+      "bytes": 1239
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/neon-commit-ack.json",
+      "rawSha256": "e3d8144697caaabb6223285109c2bd437277aa2a7f2dc792646f48870f3e45db",
+      "bytes": 75
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/result.json",
+      "rawSha256": "b69e9447be33eb9e129caa427841d5e9769251f337b5ccc8947cb85dc9fae5c0",
+      "bytes": 711
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-run-20261017-a/summary.json",
+      "rawSha256": "b69e9447be33eb9e129caa427841d5e9769251f337b5ccc8947cb85dc9fae5c0",
+      "bytes": 711
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-inspect-20261017-a/partial-metadata.json",
+      "rawSha256": "4f41cc10b59ffc206e3798a39e74de9ad07db67e776d039e28758613da702aa1",
+      "bytes": 24659
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-w5e-continuation-inspect-20261017-a/summary.json",
+      "rawSha256": "0d773b664dc85c35ce99a7168dd7c1d2256e23d5053652e42478e47958f9120a",
+      "bytes": 645
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-cloud-worker-v5-install.permanent-slot.json",
+      "rawSha256": "765a1e3cb46ce07cc781d8955323bfbe4baae6e323f55da9a8a859e328d7297f"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-cloud-worker-v5-neon-recovery-v1.permanent-slot.json",
+      "rawSha256": "db1b665fda7abee9a5bdd852b60da06663747e659a097336cd070634edfd5459"
+    },
+    {
+      "path": "F:/ChatGPT_workshop/techlong-cloud-worker-v5-neon-continuation-v1.permanent-slot.json",
+      "rawSha256": "1b35a1261e7df3c1f1dc81d8d9095f0a646130ab761bccbb614f940d8f1da0fa"
+    }
+  ],
+  "zeroEffects": {
+    "databaseSecretWrites": 0,
+    "newPasswordBytes": 0,
+    "awsResourceCreations": 0,
+    "awsResourceDeletions": 0,
+    "iamOrResourcePolicyWrites": 0,
+    "githubConfigurationWrites": 0,
+    "jobOrWorkloadWrites": 0,
+    "businessDml": 0,
+    "controlHttp": 0,
+    "stripeCalls": 0,
+    "automaticRetries": 0,
+    "rollbackOrCleanup": 0,
+    "slotResets": 0
+  },
+  "riskFile": "docs/aws-auto-deployment-cloud-worker-w5e-neon-continuation.md",
+  "resultFile": "docs/aws-auto-deployment-cloud-worker-w5e-neon-continuation-executed.md",
+  "next": "Prepare a separate concentrated activation review for exact GitHub OIDC trust, SHA-pinned workflow/environment and public installed-binding publication. No activation, Source private rereads, business function calls, jobs or workload writes authorized by this record.",
+  "runtimeEnabled": false,
+  "retryAllowed": false,
+  "monthlyBudgetTargetUsd": 50,
+  "hardCostCap": false
+}
