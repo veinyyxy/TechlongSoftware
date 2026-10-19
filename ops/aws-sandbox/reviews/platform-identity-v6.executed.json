@@ -1,0 +1,29 @@
+{
+  "schema":"techlong/platform-identity-publication-execution-evidence/v6",
+  "state":"PUBLISHED_AND_INDEPENDENTLY_VERIFIED_NOT_DISPATCHED",
+  "observedAt":"2026-10-19T19:16:59Z",
+  "approvedManifestCanonicalSha256":"cf521abb72153a096fc00efff3badc7515e9503e57ad6043d2f35c737facfa40",
+  "repository":"veinyyxy/TechlongSoftware",
+  "parent":"cd25ac7d1e958b26d963ef3431c2fe0e86a89560",
+  "publicationCommit":"f1318ad8a50dd4b1f6f60714283503131ddc1d4b",
+  "localMainAtIndependentInspection":"f1318ad8a50dd4b1f6f60714283503131ddc1d4b",
+  "sourceCommitFrozen":"ca2b38d8c756dd8fb800a88ded596c93687f278f",
+  "workflow":{"id":389772013,"path":".github/workflows/platform-controller-identity-v6.yml","state":"active","blob":"4fb6626ca37730e8606abe3ae0d06000d015dcce","normalizedLfSha256":"ffac70244e455a547b498fc233a9a17fa5b0c022ab598c5b9735c83436007dea","manualOnly":true,"permissions":{"contents":"read"},"idTokenPermission":false,"environment":"techlong-sandbox-deploy"},
+  "execution":{"pushCommandAckSaved":true,"pushAttempts":1,"forcePush":false,"localMainFastForwardAckSaved":true,"permanentSlotConsumed":true,"retryAllowed":false,"outcome":"IDENTITY_WORKFLOW_PUBLISHED_REQUIRES_INDEPENDENT_INSPECT"},
+  "independentInspection":{"outcome":"IDENTITY_PUBLICATION_INDEPENDENTLY_VERIFIED_NO_DISPATCH","remoteAndLocalAtExactApprovedCommit":true,"exactBlobAndWorkflowRegistrationMatched":true,"remoteWrites":0},
+  "receipts":[
+    {"path":"F:/ChatGPT_workshop/techlong-w6d-identity-20261019-a/manifest.json","rawSha256":"6dfa8f644428527b6c8bf6f135ea26ea0f5af1a7de06325b18c496157959188a"},
+    {"path":"F:/ChatGPT_workshop/techlong-w6d-identity-publication.intent.json","rawSha256":"d42c0c469dd24b3ef6622c2b5b61876a63afb887481ff845853f1258d22b3e55"},
+    {"path":"F:/ChatGPT_workshop/techlong-w6d-identity-20261019-a-run/push-command-ack.json","rawSha256":"0bc4fa8135bfffd6e0360b79f133f63a1b820c0d62c171a095cc803e8a72d521"},
+    {"path":"F:/ChatGPT_workshop/techlong-w6d-identity-20261019-a-run/post-push-readback.json","rawSha256":"50036a491cc54713460c4a649739f81ea65c891e7b83e443053a0b7791e9d154"},
+    {"path":"F:/ChatGPT_workshop/techlong-w6d-identity-20261019-a-run/local-main-ack.json","rawSha256":"0bc4fa8135bfffd6e0360b79f133f63a1b820c0d62c171a095cc803e8a72d521"},
+    {"path":"F:/ChatGPT_workshop/techlong-w6d-identity-20261019-a-run/result.json","rawSha256":"dea1f9dcf99a05464c61d4d213c0a106a124a867713bca165fc2d1a4ed21d4f5"},
+    {"path":"F:/ChatGPT_workshop/techlong-w6d-identity-20261019-a-inspect/result.json","rawSha256":"4265416039137b3826fe347ccbba909718ebfb7e7ff5c4fafddcc9d3f0fec6f7"}
+  ],
+  "notPerformed":{"workflowDispatches":0,"appPrivateKeyReads":0,"appTokensCreated":0,"awsOrSqlCalls":0,"iamOrEnvironmentChanges":0,"oldSlotReplay":0},
+  "platformRelease":"UNPUBLISHED",
+  "realAppDispatchActorVerified":false,
+  "w6Complete":false,
+  "document":"docs/aws-auto-deployment-platform-w6d-identity-publication-executed.md",
+  "next":"Do not rerun publication or reset its permanent slot. Implement/prepare the minimal one-shot no-AWS App identity dispatch entry, binding actual workflow ID, then-current main caller SHA, frozen source, nonce and new slot. Real private-key read, App token mint/dispatch/revoke need separate fresh approval. No production SQL or App AWS trust authority has been added."
+}

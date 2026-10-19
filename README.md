@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-19当前：**W6d身份工作流已按cf521abb清单单次发布并独立核验，尚未调度。** workflow389772013、准确内容/发布commit及本地main快进均匹配，永久槽已占用；未读App key/mint token、改AWS/SQL或激活平台。下一只准备一次无AWS真实App身份调度验收，新私钥/token/dispatch范围仍单独批准，不重跑发布。[完成事实、原件及唯一继续点](docs/aws-auto-deployment-platform-w6d-identity-publication-executed.md)。下文为历史。
+
 2026-10-19当前：**W6c准确CI已全成功（16步骤、12组真实临时PG检查），W6d“仅发布身份工作流”的受审入口已完成。** 8项定向检查/零警告lint通过，准备不挂ref的单文件Git对象并绑定48小时fresh SHA；尚未发布、读App key、调度、改AWS/SQL或激活平台。下一只审最终发布清单，不重做CI或扩支线；发布后身份dispatch仍另审。[范围、完整风险与继续命令](docs/aws-auto-deployment-platform-w6d-identity-publication-review.md)。下文均为历史快照，旧queued结论已被[成功证据](ops/aws-sandbox/reviews/platform-cloud-v6.verified.json)取代。
 
 2026-10-19最新：**W6d身份草稿已固化，不可执行；最终job日志已确认12组PG检查通过，但CI元数据仍queued，整轮success未确认。** 用户UI无额外提示、无待批环境，准确attempt接口也与已完成日志不一致，不猜额度/权限原因。候选保留在非.github目录，本轮未重跑/新增CI、读key/调度或改AWS/SQL。下一只回读原CI终态，确认成功后定稿fresh发布SHA；当前无需用户点击或升级。[证据、风险和继续点](docs/aws-auto-deployment-platform-w6d-identity-publication-review.md)。以下为历史。
