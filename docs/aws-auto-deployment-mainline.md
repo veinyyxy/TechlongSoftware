@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新完成（2026-10-19）：**现有App真实只读认证通过，已观察本次token撤销204，独立本地回读匹配。** 固定清单22dc06b2、一次PEM读取/单仓最小read token及六API，无dispatch/AWS/SQL/业务写；永久本地槽保留，运行时仍UNPUBLISHED。下一只集中V6云候选、无AWS实际actor验证及可信材料/证据导入代码，实际安装/调度/发布/部署另审，不重跑认证。[完成记录和继续位置](aws-auto-deployment-platform-w6b-app-auth-completed.md)。以下为历史。
+
 最新继续点（2026-10-19）：**App真实只读认证入口已备，待最终SHA批准。** 不再扩展模拟支线；本轮只准备现有App/固定PEM的最小token接入，48小时清单绑定源码/ACL元数据和永久本地槽。未读私钥内容/mint/dispatch/安装SQL或改AWS，UNPUBLISHED保持。失败不自动重试/轮换；成功也不是W6完成或实测actor。[完整范围、风险及唯一执行入口](aws-auto-deployment-platform-w6b-app-auth-review.md)。以下为历史。
 
 入口准确源码30bdcfd的CI39273460659已独立核验全成功（含临时PG九组），本机83项/类型/lint/构建通过；最终待批SHA为 `22dc06b289f5964464ec27f537540d68a006f20fd68d391239956af3bbf48782`，截止2026-10-21 09:55:37温尼伯时间。[结果与恢复位置](../ops/aws-sandbox/reviews/platform-controller-auth-v6.verified.json)。

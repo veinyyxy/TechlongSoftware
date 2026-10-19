@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-19最新：**W6b真实App只读认证成功，令牌撤销HTTP204已观察，本地回执独立回读通过。** 按22dc06b2清单一次读取固定PEM、创建单仓最小read token、六请求完成；永久本地槽已占用，不重跑。未调度/改AWS/Neon/业务或启用控制器；真实actor与V6发布/可信导入仍待后续实现及另审，W6未完成。[完成事实、证据及唯一继续点](docs/aws-auto-deployment-platform-w6b-app-auth-completed.md)。以下为历史，旧“未读钥”仅表示当时准备状态。
+
 2026-10-19最新：**W6b 一次 App 只读认证入口及48小时待审清单已准备，未执行。** 固定现有PEM/ACL元数据和九项源码，永久本地槽先于读钥；最多一次最小read token及finally一次撤销，六API白名单，不调度/改AWS/SQL/启用运行时。真实私钥内容未读，App身份/撤销尚未实测；响应丢失或撤销失败不自动重试。[范围、完整风险及命令](docs/aws-auto-deployment-platform-w6b-app-auth-review.md)。以下为历史。
 
 该入口准确源码 `30bdcfd` 的[无AWS CI 39273460659](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39273460659)已独立回读全步骤成功，含真实临时PG九组检查；本机10新增+73原相关测试共83项/类型/lint/构建通过。最终待批SHA `22dc06b289f5964464ec27f537540d68a006f20fd68d391239956af3bbf48782`，截止2026-10-21 09:55:37温尼伯时间；它不授权旧job重放或其它步骤。[准备验证记录](ops/aws-sandbox/reviews/platform-controller-auth-v6.verified.json)。

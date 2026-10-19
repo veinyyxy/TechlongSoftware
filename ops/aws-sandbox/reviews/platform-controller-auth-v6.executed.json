@@ -1,0 +1,32 @@
+{
+  "schema":"techlong/platform-controller-auth-execution/v6",
+  "state":"AUTH_METADATA_MATCH_TOKEN_REVOKED_NOT_ACTIVATED",
+  "manifestSha256":"22dc06b289f5964464ec27f537540d68a006f20fd68d391239956af3bbf48782",
+  "executedSourceCommit":"25572aad38db1cb408a73299d496b912fd29986b",
+  "testedCodeCommit":"30bdcfd4687489b6e13e0fb043fb805b75dd2582",
+  "sourcePinsVerifiedBeforeExecution":9,
+  "claimedAt":1792422131343,
+  "finishedAt":1792422135503,
+  "receiptPath":"F:/ChatGPT_workshop/techlong-controller-auth-v6.receipt.json",
+  "receiptRawSha256":"bf0d96e6fe3af2b7d752b2b78c06604da95d439e13f0e3739292ade4fcfb9d75",
+  "receiptIndependentlyReadBack":true,
+  "liveProviderRevocationIndependentlyProved":false,
+  "keyReadAttempts":1,
+  "tokenIssueHttp201":true,
+  "tokenRevocationHttp204":true,
+  "tokenRepositoryScopeVerified":true,
+  "tokenRequestedPermissions":{"actions":"read","contents":"read","metadata":"read"},
+  "identity":{"appId":"5381160","installationId":"173033406","slug":"techlong-sandbox-controller","candidateBotId":"344813947","repository":"veinyyxy/TechlongSoftware","repositoryId":"1323312747","ownerId":"14145707"},
+  "audit":[
+    {"method":"GET","pathname":"/app","status":200},
+    {"method":"GET","pathname":"/app/installations/173033406","status":200},
+    {"method":"POST","pathname":"/app/installations/173033406/access_tokens","status":201},
+    {"method":"GET","pathname":"/installation/repositories","status":200},
+    {"method":"GET","pathname":"/users/techlong-sandbox-controller%5Bbot%5D","status":200},
+    {"method":"DELETE","pathname":"/installation/token","status":204}
+  ],
+  "boundaries":{"installationTotalRepositoryCountProved":false,"manualSettingsReviewStillRequired":true,"actualDispatchActorProved":false,"privateKeyRevokedOrRotated":false,"runtimeEnabled":false,"platformRelease":"UNPUBLISHED","workflowDispatches":0,"awsCalls":0,"sqlConnections":0,"businessWrites":0,"secretsWritten":0,"retryAuthorized":false,"permanentLocalSlotConsumed":true},
+  "next":"Implement and test V6 cloud candidate, no-AWS App dispatch identity workflow and trusted capsule/proof import adapters. Actual dispatch, SQL/credential installation, workflow/trust publication and deployment require separate specific approval.",
+  "document":"docs/aws-auto-deployment-platform-w6b-app-auth-completed.md",
+  "w6Complete":false
+}
