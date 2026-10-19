@@ -1,0 +1,51 @@
+{
+  "subject": {
+    "schema": "techlong/platform-controller-auth-review/v6",
+    "state": "PREPARED_NOT_EXECUTED",
+    "preparedAt": 1792421737512,
+    "expiresAt": 1792594537512,
+    "appId": "5381160",
+    "installationId": "173033406",
+    "ownerId": "14145707",
+    "repository": "veinyyxy/TechlongSoftware",
+    "repositoryId": "1323312747",
+    "candidateBotId": "344813947",
+    "keyPath": "E:/NodejsProject/TechlongSoftware/techlong-sandbox-controller.2026-10-19.private-key.pem",
+    "keyMetadata": {
+      "length": 1675,
+      "lastWriteUtc": "2026-10-19T13:00:12.4848743Z",
+      "creationUtc": "2026-10-19T13:00:12.1182294Z",
+      "aclSha256": "e5c87732ec35b0f266c23e3a7362e9619b34fa7de18a5614874cf7da3cc84436",
+      "protectedThreePrincipalAcl": true,
+      "keyContentRead": false
+    },
+    "sourcePins": [
+      {"file":"scripts/review-platform-controller-auth-v6.mjs","normalizedLfSha256":"24cf845f00789d089b0bb5fef1fce8fdd50448bcf7e0b3a951c4e58081791448"},
+      {"file":"scripts/controller-auth-metadata-v6.ps1","normalizedLfSha256":"7b9ea838ab294392416e7ea340240a62171de2ec041d9f6040b6ac9b2f9b104b"},
+      {"file":"lib/deployments/controller-v6/github.ts","normalizedLfSha256":"c20e0be45652d13cb07c6bd7bc7d01ef9e41c6772caf8d11ba4fc09f022f3d6e"},
+      {"file":"lib/deployments/controller-v6/contract.ts","normalizedLfSha256":"e201097ba52de2694801a0369c0b3b6ebe1e638df9a1a4f7b125f31e84ccace4"},
+      {"file":"lib/deployments/platform-controller-registration-v1.ts","normalizedLfSha256":"386d4f24c823968bf323ae11247732c3bed4ffa28687a30601c801bbabcc608a"},
+      {"file":"lib/deployments/execution/hash.ts","normalizedLfSha256":"3205a7d79369d7d70653bbb91983762b93b97f11a32972ba2b9c54bcfed0cdce"},
+      {"file":"tests/platform-controller-auth-v6.test.mjs","normalizedLfSha256":"3a0e1d572abd09d645c7f1d5c618b0905a9587142e5b00ff7f0b89473847b3f1"},
+      {"file":".github/workflows/platform-controller.yml","normalizedLfSha256":"a83a7d9c704f40b7b471983b127b4f43cb0cc2b83be06aee3b8b67c24ab00d04"},
+      {"file":"docs/aws-auto-deployment-platform-w6b-app-auth-review.md","normalizedLfSha256":"dbeb826e70b0d5b6f2a7f6c34091e65b7e70b18c8208d45bcea60a9902f417ca"}
+    ],
+    "limits": {"keyReads":1,"jwtSignatures":1,"tokenIssuePosts":1,"metadataGets":4,"tokenRevokeDeletes":1,"dispatches":0,"awsCalls":0,"sqlConnections":0,"secretWrites":0,"automaticRetries":0},
+    "endpoints": [
+      {"method":"GET","url":"https://api.github.com/app"},
+      {"method":"GET","url":"https://api.github.com/app/installations/173033406"},
+      {"method":"POST","url":"https://api.github.com/app/installations/173033406/access_tokens"},
+      {"method":"GET","url":"https://api.github.com/installation/repositories"},
+      {"method":"GET","url":"https://api.github.com/users/techlong-sandbox-controller%5Bbot%5D"},
+      {"method":"DELETE","url":"https://api.github.com/installation/token"}
+    ],
+    "tokenRequest":{"repository_ids":[1323312747],"permissions":{"actions":"read","contents":"read","metadata":"read"}},
+    "intentPath":"F:/ChatGPT_workshop/techlong-controller-auth-v6.intent.json",
+    "receiptPath":"F:/ChatGPT_workshop/techlong-controller-auth-v6.receipt.json",
+    "keyContentIntegrityProved":false,
+    "runtimeRemainsUnpublished":true,
+    "installationTotalRepositoryCountProved":false,
+    "onFailure":"stop_keep_permanent_local_slot_no_reissue_retry_reset_rotation_or_automatic_compensation"
+  },
+  "manifestSha256":"22dc06b289f5964464ec27f537540d68a006f20fd68d391239956af3bbf48782"
+}
