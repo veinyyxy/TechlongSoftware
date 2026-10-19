@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新状态（2026-10-19）：**用户报告 W6b App 5381160 / installation 173033406 已创建，安装尚未独立验收。** 两次无认证 GET 仅核到候选 bot 344813947，不等于实测 dispatch actor；私有 App 查询404不证明不存在/可见性正确。误生成的一把未用私钥已作例外记录，保管/暴露状态待确认，不读取或自动轮换/生成第二把；安装权限与单仓范围待非敏感证据核对。旧 V5、AWS/SQL/Secret/运行能力不变，不重建 App 或重放旧任务。[当前证据与密钥处理边界](aws-auto-deployment-platform-w6b-controller-plan.md)。以下为历史。
+
 最新里程碑（2026-10-19）：**W6b 控制器方案收口及单仓 App 待审材料已实现，尚未激活。** 本地平台/Neon 独立账本/单仓 Actions write 身份，人工 environment 审批保持。旧个人 actor 与准确 trust 限制已定位，不放宽 V5；后续新候选精确绑定实际 App actor。公开预填/元数据合同和清单核对代码不读取凭据或调度；App 注册安装本身仍待具体批准，key/SQL/发布/部署另审。未扩 F3c9/Sites/新常驻云服务。[W6b 具体决策、完整风险和唯一继续动作](aws-auto-deployment-platform-w6b-controller-plan.md)。以下为历史。
 
 最新里程碑（2026-10-19）：**W6a只读平台接线已实现。** 实例页展示匹配真实数据库回执的三阶段归档/准确run链接/摘要与标签倒计时，不将pending、running、过期或旧成功冒充新任务授权/实时健康。固定W5r记录保持，真实Neon两只读事务匹配，无业务写/新增AWS资源/Secret值读取/部署dispatch。W6b需集中确认新任务参数化、服务端执行位置、GitHub App窄身份和审批ACK持久化，不能复用本机凭据/F盘槽；未激活控制器。[W6实现和唯一继续点](aws-auto-deployment-platform-w6.md)。以下为历史。

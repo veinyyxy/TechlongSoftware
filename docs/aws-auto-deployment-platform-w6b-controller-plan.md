@@ -1,5 +1,17 @@
 # W6b：平台控制器定案与单仓 GitHub App 待审清单
 
+## 当前状态：用户报告已注册/安装，尚未独立验收
+
+2026-10-19：原清单 `827c5a54…` 已获用户确认。因 Edge 会话未接入浏览器控制，用户自行完成并提供 App ID **5381160**、slug `techlong-sandbox-controller`、installation ID **173033406**；这是用户报告，不是完整安装验收。新增[独立报告记录](../ops/aws-sandbox/reviews/platform-controller-registration-w6b.reported.json)，原 prepared 清单及九源码绑定保持。
+
+两次无认证官方 API GET：App 查询返回 404，不能据此断言不存在或已验证私有配置；候选 bot 查询返回 200，公开 ID 为 **344813947**。没有读取私钥或生成 JWT/token。候选 bot ID **不是实测 dispatch actor**，不得据此放宽旧 V5 门禁。安装权限、单仓范围、私有可见性/OAuth/webhook 设置仍未核验，运行能力保持关闭。
+
+用户另报告误生成一把尚未使用的私钥，因最后一把限制不能删除。该生成超出原“无 key”范围；记录异常不追认读取/使用授权。官方明确最后一把删除前需先生成另一把，私钥不会自动过期；**不自动生成第二把、删除 App 重建或读取下载目录**。[GitHub 私钥管理规则](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps)。
+
+先确认 PEM 是否只保存在本机、未分享/提交 Git/上传；不要发送文件、内容或截图中的密钥。若未暴露，可在后续明确批准安全接入时评估复用；若已暴露或无法确认，单独审查隔离及轮换。删除本机文件不等于 GitHub 撤销；“尚未使用”也不等于密钥失效。接下来只核对非敏感设置/安装截图并记录密钥保管状态，密钥读取/储存、mint token、身份 workflow、SQL/发布/部署仍另批。
+
+以下保留注册前的方案、风险和准备验证，不作为重复注册授权。
+
 2026-10-19，America/Winnipeg。接续 W6a；本阶段只交付具体方案、公开身份核对代码和注册待审材料。**没有创建 App、安装权限、生成/读取私钥、读取 Secret、安装 SQL、dispatch 或云部署。** W5r 成功记录、两份部署 workflow、云代码与 IAM 保持。
 
 ## 定案：最快接回主线
@@ -78,6 +90,6 @@ node --experimental-strip-types scripts/prepare-platform-controller-registration
 
 本机验证：4 项新增合同测试 + W6a/既有请求 24 项 + 授权隔离 14 项 + 原审批衔接 13 项，共 **55 项通过**；类型检查、定向 lint、生产构建通过。九文件清单回读通过；76 文件云闭包仍为 `70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac`。延用原无 AWS CI 并增加本合同及清单校验，无 OIDC/环境批准/Secrets 或部署步骤；最终提交的云 CI 结果须独立回读，不用本机通过代替。
 
-下一需要用户单独批准机器清单的 manifest SHA，范围仅上述两个 GitHub 注册/安装动作及完整风险。批准后按该表单人工完成、只记录公开标识；然后集中实现接线。**尚未授权 key、令牌、SQL、身份 probe、工作流发布或实际部署。**
+原注册/单仓安装清单已获确认，用户已报告公开标识；不再次注册或复用该清单授权密钥接入。当前以文首的待核验/密钥异常状态为准，再集中实现接线。**尚未授权 key、令牌、SQL、身份 probe、工作流发布或实际部署。**
 
 回到 [W6 总览](aws-auto-deployment-platform-w6.md) / [主线](aws-auto-deployment-mainline.md)。

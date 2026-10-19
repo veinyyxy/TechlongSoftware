@@ -1,0 +1,43 @@
+{
+  "schema": "techlong/platform-controller-registration-reported/v1",
+  "state": "USER_REPORTED_REGISTRATION_KEY_EXCEPTION_SETTINGS_NOT_VERIFIED_NOT_ACTIVATED",
+  "localDate": "2026-10-19",
+  "timezone": "America/Winnipeg",
+  "originalManifestSha256": "827c5a5418d959def18bcca5afd73d34f27bdcf9ed649ec2dedcdf5d6667fcc1",
+  "originalRegistrationAndSelectedRepositoryInstallationApprovalReceived": true,
+  "originalPreparedRecordPreserved": true,
+  "userReported": {
+    "appId": "5381160",
+    "slug": "techlong-sandbox-controller",
+    "appSettingsUrl": "https://github.com/settings/apps/techlong-sandbox-controller",
+    "installationId": "173033406",
+    "installationSettingsUrl": "https://github.com/settings/installations/173033406",
+    "onePrivateKeyAccidentallyGenerated": true,
+    "privateKeyUnused": true,
+    "lastKeyDeletionBlocked": true
+  },
+  "independentReadOnlyObservation": {
+    "authentication": "NONE",
+    "getRequests": 2,
+    "appLookup": {"endpoint":"https://api.github.com/apps/techlong-sandbox-controller","httpStatus":404,"verified":false,"notProofOfAbsentRegistrationOrCorrectPrivateVisibility":true},
+    "candidateBotLookup": {"endpoint":"https://api.github.com/users/techlong-sandbox-controller%5Bbot%5D","httpStatus":200,"id":"344813947","login":"techlong-sandbox-controller[bot]","type":"Bot"},
+    "installationPermissionsVerified": false,
+    "selectedRepositoryScopeVerified": false,
+    "privateVisibilityOauthAndWebhookSettingsVerified": false,
+    "actualDispatchActorObserved": false
+  },
+  "keyException": {
+    "outsideOriginalNoKeyRegistrationScope": true,
+    "notRetroactivelyAuthorizedForUse": true,
+    "custodyOrExposureStatus": "NOT_YET_CONFIRMED",
+    "keyFilesSearchedOrReadByAssistant": false,
+    "fingerprintComputedByAssistant": false,
+    "newKeyOrRotationOrDeletionAuthorized": false,
+    "appJwtOrInstallationTokenMintedByAssistant": false,
+    "officialKeyManagementSource": "https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps",
+    "handling": "No automatic second key, key deletion, App deletion or credential use. Confirm custody without sending the PEM. If kept local and unexposed, defer a specific safe-use approval; if exposed or uncertain, separately review containment and rotation. Local file deletion alone is not GitHub key revocation."
+  },
+  "capabilities": {"canDispatch":false,"canApproveEnvironment":false,"canDeploy":false,"runtimeActivated":false},
+  "assistantEffects": {"githubSettingsWrites":0,"credentialReads":0,"awsCalls":0,"databaseQueries":0,"secretReads":0,"workflowDispatches":0},
+  "next": "Confirm key custody and inspect non-secret installation/settings evidence. Do not send key content. Key use/storage, installation-token creation, identity workflow dispatch, SQL installation and cloud publication/deployment remain separate approvals. Preserve original evidence and old slots; do not recreate the App."
+}
