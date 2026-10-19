@@ -1,5 +1,4 @@
 import { CONTROL_SCOPE as S, must, keys, obj, commit, digest, assertExact } from '../../lib/deployments/controller-v6/contract.ts';
-import { validateWorkflowInputV5 } from '../cloud-worker/workflow-input-v5.mjs';
 export const CLOUD_V6 = Object.freeze({ ...S, environment:'techlong-sandbox-deploy',
   identityWorkflow:'platform-controller-identity-v6.yml', reusableWorkflow:'cloud-worker-platform-job-v6.yml',
   actorLogin:'techlong-sandbox-controller[bot]', roleId:'AROAV3GNMXTZK5O45RG24',
@@ -23,15 +22,23 @@ export function cloudReleaseReadyV6(b) {
 }
 export function externalInputsV6(input) {
   const v=obj(input);keys(v,['mode','job','installation','manifest','manifestSha','execution','lineage']);
+  must(['Review','RunOnce','Inspect'].includes(v.mode) && /^job_[a-f0-9]{24}$/.test(v.job) &&
+    Object.values(v).every(x=>typeof x==='string' && x.length<=1800),'CONTROL_V6_INPUTS');
   must(v.job!==S.completedJob,'CONTROL_V6_OLD_JOB');
-  validateWorkflowInputV5({...v,installationSha:CLOUD_V6.installationSha256});
+  const prefix=`worker-v5/${S.instanceId}/`;
+  must(v.installation!=='' && (v.mode==='Review'?v.manifest==='' && v.manifestSha==='' && v.execution==='':
+    v.manifest!=='' && digest(v.manifestSha) && (v.mode==='RunOnce'?v.execution==='':v.execution!=='')),'CONTROL_V6_MODE_INPUTS');
   if(v.mode==='Inspect') {
     const e=obj(JSON.parse(v.execution));
     must(new RegExp('^worker-v5/'+S.instanceId+'/'+v.job+'/'+v.manifestSha+'/execution-reference-[1-9][0-9]{0,15}-v1\\.json$').test(e.key),'CONTROL_V6_EXECUTION_KEY');
   }
   for(const name of ['installation','manifest','execution','lineage'])if(v[name]!=='') {
     const r=obj(JSON.parse(v[name]));
-    must(/^[A-Za-z0-9/_.-]+$/.test(r.key) && !r.key.includes('..'),'CONTROL_V6_REFERENCE');
+    keys(r,['key','sha256','versionId']);
+    must(typeof r.key==='string' && r.key.startsWith(prefix) && /^[A-Za-z0-9/_.-]+$/.test(r.key) && !r.key.includes('..') &&
+      digest(r.sha256) && typeof r.versionId==='string' && /^[A-Za-z0-9._-]{1,256}$/.test(r.versionId),'CONTROL_V6_REFERENCE');
+    if(name==='installation')must(r.key===prefix+`installation/${CLOUD_V6.installationSha256}.json`,'CONTROL_V6_INSTALLATION_KEY');
+    if(name==='manifest')must(r.key===prefix+`${v.job}/${v.manifestSha}/manifest.json`,'CONTROL_V6_MANIFEST_KEY');
     if(name==='lineage')must(r.key.startsWith('worker-v5/'+S.instanceId+'/lineage/'),'CONTROL_V6_LINEAGE_KEY');
   }
   return structuredClone(v);

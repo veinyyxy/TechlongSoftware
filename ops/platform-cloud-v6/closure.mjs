@@ -23,6 +23,8 @@ export async function platformClosureV6() {
   }
   for(const file of ['ops/platform-cloud-v6/run.mjs','ops/cloud-worker/material/public-capsule-v5.json','ops/cloud-worker/material/neon-programs-v5.json',
     'ops/cloud-worker/package.json','ops/cloud-worker/package-lock.json','package.json','package-lock.json','docs/aws-auto-deployment-cloud-worker-w5c.md'])await pin(path.join(root,file));
-  pins.sort((a,b)=>a.file.localeCompare(b.file));const old=await computeCloudClosureV5();
+  // Retain all legacy public roots as well as the V6 transitive runtime graph.
+  const old=await computeCloudClosureV5();for(const p of old.pins)await pin(path.join(root,p.file));
+  pins.sort((a,b)=>a.file.localeCompare(b.file));
   return {schema:'techlong/platform-cloud-closure/v6',pinCount:pins.length,pins,closureSha256:hash(JSON.stringify(pins)),legacyClosureSha256:old.closureSha256};
 }

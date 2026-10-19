@@ -11,7 +11,7 @@
 - `identity.mjs`：无AWS App实际actor候选，绑定nonce、caller main SHA、冻结执行代码SHA、event sender、bot actor及attempt1；拒绝OIDC/私钥/AWS凭据。证明必须另与准确GitHub run API元数据比对，不能只相信日志JSON或测试fixture。
 - `workflows.mjs`：三个工作流的文本渲染器（身份caller、部署caller/reusable），**不写入 `.github/workflows`，不发布或调度**。身份候选仅Contents read，无OIDC/AWS；所有实际运行保留现有 `techlong-sandbox-deploy` 人工环境门禁。部署候选使用与旧V5相同的并发group，避免两入口并行部署同实例。
 - `publisher.mjs`：可信发布者导入适配器，读取准确版本/摘要/SSE元数据，重建旧核心的完整manifest/material/lineage/SQL合同，核对实际run actor/head/workflow/reusable，再编译/调用两个固定参数化owner-only函数。无HTTP入口、数据库发现、owner DSN回退、自由SQL或自动轮询。
-- `closure.mjs`：新80文件云执行闭包，包含完整传递依赖及显式材料/包锁；同时重新计算旧76文件闭包。新入口未加入旧闭包，不改变已安装V5源码。
+- `closure.mjs`：新81文件云执行闭包，包含完整传递依赖、旧76个公开根及显式材料/包锁；同时重新计算旧76文件闭包。新入口未加入旧闭包，不改变已安装V5源码。
 
 默认 `node --experimental-strip-types ops/platform-cloud-v6/run.mjs --check` 只读公开源码、输出候选状态/闭包摘要；没有实际云调用、私密材料读取或SQL连接。无参数本机入口在缺少受审发布描述符/真实GitHub上下文时停止。
 

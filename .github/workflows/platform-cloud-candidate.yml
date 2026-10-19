@@ -50,6 +50,7 @@ jobs:
           node-version: '22.19.0'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
       - name: Real bridge and publisher code with injected synthetic providers
         run: node --experimental-strip-types --test tests/platform-cloud-v6.test.mjs tests/platform-cloud-publisher-v6.test.mjs tests/cloud-worker-root-v5.test.mjs tests/platform-controller-v6.test.ts tests/platform-controller-github-v6.test.ts tests/platform-controller-auth-v6.test.mjs
       - name: Exact SQL and actual publisher queries on disposable PostgreSQL
