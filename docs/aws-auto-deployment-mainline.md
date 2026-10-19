@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-19）：**准确CI39278613827已completed/success，16步骤及9+3组临时PG证明确认。** W6d仅发布入口/8项定向检查完成，候选仍在非.github目录；先在最终同步main准备48小时清单，fresh SHA获批后最多一次单文件push及本地ff，再独立核验。此次不读App key/dispatch、不改AWS/SQL，平台仍UNPUBLISHED；下一身份调度单独授权。不再排队诊断/重跑原CI。[唯一执行边界与完整风险](aws-auto-deployment-platform-w6d-identity-publication-review.md) / [成功证据](../ops/aws-sandbox/reviews/platform-cloud-v6.verified.json)。下文保留历史，旧queued/未验证不再代表当前状态。
+
 最新材料（2026-10-19）：**无AWS身份草稿不可执行；准确job日志已有9+3组PG成功证明，但CI39278613827/attempt1/check元数据仍queued，整轮success未确认。** 用户UI无额度/审批提示，待批环境0，不猜原因。不重复读日志/测试或新建CI，不读key/调度、不改AWS/Neon。下一仅回读准确终态；success后再绑定fresh父commit并请求发布SHA，当前无需额外用户动作。[证据不一致、草稿与唯一继续点](aws-auto-deployment-platform-w6d-identity-publication-review.md)。以下为历史。
 
 最新代码阶段（2026-10-19）：**V6云接线、无AWS App身份及可信材料/证据导入候选已实现，尚未发布或激活。** 复用V5核心而不改旧闭包/工作流/trust，14新增+91回归本机通过；实际角色/数据写/调度为0，真实PG导入CI待最终回读。下一只准备一次无AWS App身份工作流的发布/调度清单；之后才审批安装/发布并跑新任务，不重开模拟支线。[完整范围、尚未接线部分与继续点](aws-auto-deployment-platform-w6c-cloud-candidate.md)。以下为历史。

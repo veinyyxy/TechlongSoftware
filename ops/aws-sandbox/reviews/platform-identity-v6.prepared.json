@@ -1,0 +1,17 @@
+{
+  "schema":"techlong/platform-identity-publication-entry-preparation/v6",
+  "state":"CODE_VERIFIED_FINAL_MANIFEST_REQUIRES_CLEAN_MAIN_PREPARE_AND_APPROVAL",
+  "sourceCommitFrozen":"ca2b38d8c756dd8fb800a88ded596c93687f278f",
+  "exactCiVerified":"ops/aws-sandbox/reviews/platform-cloud-v6.verified.json",
+  "entry":"ops/platform-identity-review-v6/publication.mjs",
+  "target":".github/workflows/platform-controller-identity-v6.yml",
+  "workflowSha256":"ffac70244e455a547b498fc233a9a17fa5b0c022ab598c5b9735c83436007dea",
+  "verification":{"focusedTestsPassed":8,"realDisposableGitObjectsTestPassed":true,"scopedLintWarnings":0,"fullOriginalTestsOrCiRepeated":false},
+  "preparation":{"isolatedIndex":true,"unreachableCommitObjects":true,"newBranches":0,"mainMoved":false,"workflowPublished":false,"manifestLocation":"F:/ChatGPT_workshop/techlong-w6d-identity-20261019-a/manifest.json","validHours":48},
+  "proposedOnly":{"singleNonForcePush":1,"newManualWorkflowFiles":1,"localMainFastForward":1,"dispatches":0,"appKeyReads":0,"appTokens":0,"awsOrSqlCalls":0,"iamOrEnvironmentChanges":0},
+  "slot":"F:/ChatGPT_workshop/techlong-w6d-identity-publication.intent.json",
+  "failure":"No reset/retry/rollback; independently inspect exact remote head, blob and workflow registration. No automatic local branch repair.",
+  "document":"docs/aws-auto-deployment-platform-w6d-identity-publication-review.md",
+  "notAnExecutionApproval":true,
+  "next":"Commit/push code and docs under standing authorization, then Prepare final manifest on synchronized clean main without moving refs or publishing target. Independently reconstruct digest and objects; request exact final SHA publication approval. Freeze platform main meanwhile. Real App dispatch/key/token authorization remains separate."
+}

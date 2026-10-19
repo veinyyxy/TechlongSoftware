@@ -1,5 +1,7 @@
 {
   "schema":"techlong/platform-identity-publication-draft/v6",
+  "historicalSnapshot":true,
+  "supersededBy":"ops/aws-sandbox/reviews/platform-cloud-v6.verified.json and fresh external W6d publication manifest",
   "state":"DRAFT_BLOCKED_BY_EXACT_CI_NOT_APPROVABLE_NOT_EXECUTABLE",
   "blockerType":"CI_METADATA_AND_AVAILABLE_LOGS_INCONSISTENT_TERMINAL_CONCLUSION_UNCONFIRMED",
   "sourceCommit":"ca2b38d8c756dd8fb800a88ded596c93687f278f",

@@ -1,0 +1,23 @@
+{
+  "schema":"techlong/platform-cloud-candidate-verification/v6",
+  "state":"EXACT_CI_ALL_STEPS_AND_REAL_POSTGRES_VERIFIED_NOT_PUBLISHED",
+  "observedAt":"2026-10-19T15:58:12Z",
+  "sourceCommit":"ca2b38d8c756dd8fb800a88ded596c93687f278f",
+  "runId":"39278613827",
+  "jobId":"118148719175",
+  "attempt":1,
+  "status":"completed",
+  "conclusion":"success",
+  "stepsPassed":16,
+  "url":"https://github.com/veinyyxy/TechlongSoftware/actions/runs/39278613827",
+  "postgres":{"version":"18.6 disposable CI service, NOT Neon","existingSqlChecks":9,"publisherSqlChecks":3,"independentlyReadExactJobLogs":true,"existingProofAt":"2026-10-19T15:31:48.5418984Z","publisherProofAt":"2026-10-19T15:31:49.7997104Z","negativeSqlErrorsExpected":true},
+  "history":{"previousMetadata":"queued despite completed successful PostgreSQL logs","terminalInconsistencyNowResolved":true,"queueCauseNotProved":true,"noRerunOrNewCiForQueue":true},
+  "localVerificationPreviouslyPassed":{"newTests":14,"regressionTests":91,"typecheck":true,"scopedLint":true,"productionBuild":true},
+  "unchangedClosures":{"v6Files":81,"v6Sha256":"828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a","v5Files":76,"v5Sha256":"70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac"},
+  "notProved":["real App dispatch actor","production Neon installation/compatibility","new workflow publication","App OIDC/trust installation","production publisher port binding","end-to-end platform deployment"],
+  "identityWorkflowPublished":false,
+  "platformRelease":"UNPUBLISHED",
+  "w6Complete":false,
+  "notAnExecutionApproval":true,
+  "next":"Finalize publication-only manifest on clean synchronized main. Frozen identity source stays ca2b38d. Actual publication needs fresh SHA; App key/token/dispatch remain separately approved. Do not rerun the completed CI."
+}
