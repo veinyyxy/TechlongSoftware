@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5r真实受控云部署闭环已独立验收通过。** Review 39200031548、RunOnce 39200300265、独立Inspect 39200910036均成功；一次七资源CreateStack、两认证GET、原任务完成，旧READY/前驱任务保持。三阶段分别fresh批准及人工environment批准；IAM/云C/R/工作流不改，旧失败及全部永久槽保留。此结论限一条已有初始化sandbox任务，不是任意租户或整套平台已AWS上线。资源继续保留并可能收费，50 USD目标不是硬cap；不自动清理/续期/重放或创建新请求。[完成事实、证据及继续边界](docs/aws-auto-deployment-cloud-worker-w5r-completed.md)。以下为历史。
+
 2026-10-18最新：**W5r本机审批交接已实现，未开始新云轮次。** W5q云Review成功，但RunOnce实际开始晚于15分钟窗口；任务/业务/五云槽未变，失败原件和本地旧槽永久保留。新增一次只读Handoff直接回读Review并生成下一SHA/范围，RunOnce不足8分钟余量就在本机停止；不改云时间、IAM、C/R或部署工作流，旧入口保持。Review-v6/RunOnce与Inspect-v5独立槽，下一最终main无AWS CI后只读Prepare，实际动作fresh另批并先确认可连续人工审批。[范围、失败事实及完整风险](docs/aws-auto-deployment-cloud-worker-w5r-approval-handoff.md)。以下为历史。
 
 2026-10-18最新：**W5q已接线修正后policy的同任务云Review续接，未调度。** 新本机严格metadata核验绑定W5p 31原件/164历史pins，旧W5o断言和失败槽保持；Review-v5/RunOnce与Inspect-v4独立槽，原job/云C/R/76闭包/工作流/权限不再改变。下一最终main两项无AWS CI通过后仅只读Prepare并请fresh SHA；不领取/部署或重新发布。[完整风险和继续命令](docs/aws-auto-deployment-cloud-worker-w5q-corrected-review.md) / [准备记录](ops/aws-sandbox/reviews/cloud-worker-w5q-corrected-review.prepared.json)。以下为历史。

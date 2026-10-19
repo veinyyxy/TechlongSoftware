@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-18）：**W5r一条真实受控AWS部署闭环已完成，独立Inspect通过。** 三次fresh批准的Review/RunOnce/Inspect run为39200031548/39200300265/39200910036，均attempt1成功；原job完成、七资源CREATE_COMPLETE、两认证GET通过、旧READY和前驱保留。执行源码2957f714/179 pins和原云C/R/76闭包不变，本轮未改IAM。五云槽及三个本地槽永久占用，不重放。caller冻结仅在独立验收及原件回读后结束以记录文档；不自动开始新请求/部署、清理或扩支线。资源可能继续收费，50 USD只是目标。[准确完成范围、证据和下一阶段边界](aws-auto-deployment-cloud-worker-w5r-completed.md)。以下为历史。
+
 最新里程碑（2026-10-18）：**W5r仅改善本机人工审批交接，未重新dispatch。** W5q真实Review已过，RunOnce开始时原claimBy已过；旧成功/失败证据、Review-v5/RunOnce-v4槽保持。新Handoff只读观察并即时准备下一清单/范围，至少留8分钟才允许RunOnce提交；云原窗口/权限/C/R/工作流不改，不代批。新独立Review-v6/RunOnce及Inspect-v5槽仍需fresh批准，新预检只读确认同job五云槽为空，不重盖旧时间或建新任务。下一最终CI后只读Prepare，用户准备好连续审批再开始新云Review。[完整风险和命令](aws-auto-deployment-cloud-worker-w5r-approval-handoff.md)。以下为历史。
 
 最新里程碑（2026-10-18）：**W5q修正布局的本机续接已实现，尚未dispatch。** W5p 31原件/164当时pins和W5o失败沿革保持，新reader严格接受唯一已批新policy及其它原布局，旧verifier不改不绕过。Review-v5/RunOnce和Inspect-v4固定独立槽；云C/R/76闭包/两工作流及原held job不变。下一仅最终main无AWS CI后只读Prepare新Review清单，再fresh另批固定DB读取/私有manifest写和单次POST；不重做IAM或发布、不领取或部署。[完整风险与命令](aws-auto-deployment-cloud-worker-w5q-corrected-review.md)。以下为历史。
@@ -80,5 +82,9 @@
 - W3 原承载固定于 **2026-10-16 18:42:30 UTC / 13:42:30 CDT** 到期，不续期；到期不等于已清理。W4 执行前仍须 AWS 证明准确前驱已退役及 namespace 空，无自动删除。
 
 ## 唯一继续位置
+
+本轮W5r已完成，见[完成文档](aws-auto-deployment-cloud-worker-w5r-completed.md)和[机器记录](../ops/aws-sandbox/reviews/cloud-worker-w5r.executed.json)。不要重用本轮三个批准SHA、原job、manifest、永久槽或旧恢复命令。下一阶段先明确平台审批串联/新请求或最终AWS托管的具体范围；现有资源停止/销毁/续期另按准确资源批准。本轮不自动推进新云动作，不扩F3c9或发布Sites。
+
+### 历史继续点（已完成，不再作为当前执行入口）
 
 见 [W5e-R1兼容恢复清单](aws-auto-deployment-cloud-worker-w5e-neon-recovery.md)。候选入口/云CI已完成，只在最终clean main做fresh只读Review并请求新SHA批准。未来上限为两个既存Secret固定版本写、一个Neon事务、一次新的原私密JSON读取，允许一个新的固定独立槽；明确接受原密码进入服务端/提供者日志、托管同步非原子、先Secret后SQL的部分状态风险。没有新增资源/IAM或Source Secret值读取。原439ab7dc及旧槽不得重放/复位，当前“准备”不授权执行。完成真实安装ID和独立核验后才另审激活，不扩支线、不提前部署。

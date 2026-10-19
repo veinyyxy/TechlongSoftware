@@ -1,0 +1,83 @@
+{
+  "schema": "techlong/cloud-worker-controlled-deployment-executed/v5",
+  "state": "CONTROLLED_AWS_DEPLOYMENT_INDEPENDENTLY_VERIFIED",
+  "localDate": "2026-10-18",
+  "timezone": "America/Winnipeg",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "sourceCommitAtExecution": "2957f714a6cdfbd849bf354af3f7f0fcda25aa11",
+  "sourceFilesVerified": 179,
+  "runtimeCommitUnchanged": "d8cb99693231770de6a5d73e02dda42b87035714",
+  "reusableCommitUnchanged": "7f0fbf2549fa3e2e05163b2ebb1f3de275f2b66c",
+  "cloudClosureFilesUnchanged": 76,
+  "cloudClosureSha256Unchanged": "70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac",
+  "jobId": "job_ecbf09030d3da7286ea3ef93",
+  "appId": "app_e897a4377bce498b9c5ee9e64509dcad",
+  "deploymentId": "dep_7c99bd249470184852f0dc74",
+  "cloudManifestSha256": "a5ea222a8a827638683859f96bbfa8ad1de386e5f489de2f7e06e052f624e362",
+  "stages": [
+    {"mode":"Review","approvedManifestSha256":"fa0677e1d2c682bbd9474354dbc19936ec2d8aa0dcd4d0550910eb90c1e74427","runId":"39200031548","attempt":1,"conclusion":"success"},
+    {"mode":"RunOnce","approvedManifestSha256":"73236b62295b42a4aed4d3d02bc12296a80d5cbfb29450826c06c438f07c7442","runId":"39200300265","attempt":1,"conclusion":"success"},
+    {"mode":"Inspect","approvedManifestSha256":"0e219dc44790391bd371313868e03cecdf013c183948b9d6768ac51dda6a89b9","runId":"39200910036","attempt":1,"conclusion":"success"}
+  ],
+  "reviewManifestReference": {
+    "versionId": "Nn0yPH0AFqq0.lq_D6tz8pmIUIElOoRP",
+    "sha256": "c75384030bef9c0814fdaa8a097749a54e314014d4f88f0fad59398272c55131"
+  },
+  "runReportReference": {
+    "versionId": "O6.SuHplu6PrXH_5QgVVUI_WtWvKehbO",
+    "sha256": "ddd22fc36936ea190a853eb36627e10c057eda6ef649974c3ffcc008af00251f"
+  },
+  "executionReference": {
+    "versionId": "7eu8bJa.zfs3RoNeTzsnyXA2S9gSFlb.",
+    "sha256": "95ebfadf2689d4f8ede2a93e36f36fb55115edb699c0dc9306658bbb46c92797"
+  },
+  "inspectReportReference": {
+    "versionId": "ficRbUpExxWPCN6KCTlUYeEJm3icnwGz",
+    "sha256": "1089fe909f978f0746a4863cbb4cf079fc1f9005198c685dc8cf7545ff865e07"
+  },
+  "inspectBodySha256": "baf5597143af1bed98166933747308176077ba905235d43a01a1356c9ad69504",
+  "completionReceiptSha256": "8a44b3547fabf8f9de037aff8415ada396356d5d79b3fe71691eb5abe7ec2d54",
+  "providerObservationSha256": "fd33a7ccb57033f11b24ff5c571b416f08369b0d5725f7725bf1eb376cd83a64",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/c017ca00-cb76-11f1-bc7a-02920833add5",
+  "stackStatusAtIndependentVerification": "CREATE_COMPLETE",
+  "createdResources": 7,
+  "createStackCalls": 1,
+  "authenticatedHttpGetAttempts": 2,
+  "databaseWriteTransactionsInRunOnce": 2,
+  "initializationPosts": 0,
+  "automaticRetries": 0,
+  "jobSucceededAttemptsOneNoLease": true,
+  "oldReadyAndPredecessorJobPreserved": true,
+  "fiveCloudJournalSlotsConsumed": true,
+  "journalAloneProvesExecutionSucceeded": false,
+  "threeLocalPermanentSlotsPreserved": true,
+  "distinctExecutionAndInspectRunsVerified": true,
+  "inspectDatabaseWrites": 0,
+  "inspectWorkloadCloudWrites": 0,
+  "inspectControlSecretReads": 0,
+  "inspectApplicationGets": 0,
+  "inspectSourceExecutionReferencePuts": 1,
+  "inspectWorkerReportPuts": 1,
+  "inspectApprovedFixedDatabaseSecretValueReads": 1,
+  "iamOrCloudCodeChangesInThisRound": 0,
+  "controllerApprovedEnvironment": false,
+  "privateBusinessSnapshotOrRawLogsPublished": false,
+  "recursiveEvidenceOriginalsVerified": 69,
+  "completionCheckpointReadbackPassed": true,
+  "postWriteLocalConsoleErrorRetainedAndIndependentlyResolved": true,
+  "evidenceFiles": [
+    {"path":"F:/ChatGPT_workshop/techlong-w5r-completed-checkpoint-20261018-a.json","rawSha256":"43d243548d4d6d8be7b285bae434307071385cf00016320e470bfbf2e9ce3a3c"},
+    {"path":"F:/ChatGPT_workshop/techlong-w5r-completion-readback-confirmation-20261018-a.json","rawSha256":"1c08c8fb8229be46173e58cb4b7eb64b118d9e1bac9e690c87152fd5ff48df9f"}
+  ],
+  "callerFreezeEndedAfterIndependentVerificationForDocumentationOnly": true,
+  "resourcesPreservedNoCleanup": true,
+  "workloadExpiryTag": "2026-10-19T06:34:15.000Z",
+  "expiryGuaranteesCleanupOrStoppedCharges": false,
+  "monthlyUsdBudgetTarget": 50,
+  "budgetIsHardCap": false,
+  "arbitraryTenantAutomationOrFullPlatformAwsLaunchVerified": false,
+  "riskFile": "docs/aws-auto-deployment-cloud-worker-w5r-approval-handoff.md",
+  "completionDocument": "docs/aws-auto-deployment-cloud-worker-w5r-completed.md",
+  "next": "This exact existing initialized sandbox job is complete and must not be replayed. Preserve all prior failures, objects and consumed slots. No new deployment, request, permission, renewal, compensation or cleanup is authorized. Further platform orchestration or full AWS hosting requires a separately scoped next stage; do not expand F3c9 or publish Sites."
+}
