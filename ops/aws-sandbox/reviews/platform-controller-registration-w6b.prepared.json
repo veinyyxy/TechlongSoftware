@@ -1,0 +1,51 @@
+{
+  "subject": {
+    "schema": "techlong/platform-controller-registration-review/v1",
+    "state": "PREPARED_NOT_REGISTERED_NOT_INSTALLED_NOT_ACTIVATED",
+    "plan": {
+      "schema": "techlong/platform-controller-registration-plan/v1",
+      "name": "Techlong Sandbox Controller",
+      "description": "Single-repository reviewed deployment controller; human environment approval remains required.",
+      "homepage": "https://github.com/veinyyxy/TechlongSoftware",
+      "owner": {"login":"veinyyxy","id":"14145707","type":"User"},
+      "repository": {"fullName":"veinyyxy/TechlongSoftware","id":"1323312747"},
+      "registration": {"public":false,"webhookActive":false,"events":[],"requestOauthOnInstall":false,"callbackUrls":[],"setupUrl":null},
+      "installation": {"repositorySelection":"selected","repositoryIds":["1323312747"]},
+      "permissions": {"actions":"write","contents":"read","metadata":"read"},
+      "requestedActions": ["manually_register_one_app","manually_install_on_one_selected_repository"],
+      "notAuthorized": ["generate_or_read_private_key_or_client_secret","mint_installation_token","dispatch_or_rerun_workflow","approve_github_environment","change_workflow_or_aws_trust","create_secret_or_database_objects","write_business_records","deploy_or_delete_resources"],
+      "onCollisionOrUnknownResult": "stop_and_inspect_no_automatic_retry_or_rename",
+      "approvalLifetime": "configuration_bound_not_a_deployment_window; recheck_before_manual_submission",
+      "risks": [
+        "Actions write is repository-wide, not an external per-workflow ACL; it includes more than dispatch.",
+        "Actions read/write can expose run logs and artifacts; do not put credentials in them.",
+        "Installation grants permissions immediately, even though this phase generates no private key.",
+        "Existing or separately issued App credentials could exercise installed permissions.",
+        "Registration and installation are not atomic; partial registration may remain.",
+        "Provider-generated identifiers or internal credentials are not controlled by this preparation tool.",
+        "Name availability and absence of a previous App are not proved; a collision requires inspection.",
+        "This approval does not authorize retries, automatic uninstall, deletion, runtime activation or AWS spending."
+      ]
+    },
+    "registrationUrl": "https://github.com/settings/apps/new?name=Techlong+Sandbox+Controller&description=Single-repository+reviewed+deployment+controller%3B+human+environment+approval+remains+required.&url=https%3A%2F%2Fgithub.com%2Fveinyyxy%2FTechlongSoftware&public=false&webhook_active=false&request_oauth_on_install=false&actions=write&contents=read",
+    "sourcePins": [
+      {"file":"lib/deployments/platform-controller-registration-v1.ts","normalizedLfSha256":"386d4f24c823968bf323ae11247732c3bed4ffa28687a30601c801bbabcc608a"},
+      {"file":"scripts/prepare-platform-controller-registration.mjs","normalizedLfSha256":"a750b73815002366e9a02f3bffaba8ad744b02e069f7c1d867f92a02c90fbc7e"},
+      {"file":"tests/platform-controller-registration-v1.test.ts","normalizedLfSha256":"15314ab6723036966e2bd6a1722fe927670ae849f39b453c5bfb6655f38ddcf7"},
+      {"file":".github/workflows/cloud-worker-execute.yml","normalizedLfSha256":"5885a9f1b7b2e236b4650f1e8ac8ebd9bd4886659e178a9a502a253fd6067a15"},
+      {"file":".github/workflows/cloud-worker-job.yml","normalizedLfSha256":"0d64cd5f4883383ca49af677afcfc01ca469d07931200c23d5d427904b38d729"},
+      {"file":"ops/cloud-worker/activation/runtime-v5.mjs","normalizedLfSha256":"a209b656d563a44d77fbf0182516562a92b9f55568af1cdb158cfd6cde577e7b"},
+      {"file":"ops/cloud-worker/install/plan-v5.mjs","normalizedLfSha256":"1360c08a9a7e816f2aa9e83902ff36d17720e5fa388d8135e0312ef4acb76ea5"},
+      {"file":"scripts/local-deployment-platform.mjs","normalizedLfSha256":"e62a790a707ce7133f4ebfe57091b163f0deed046cbcd61fd3c86f81d95c439c"},
+      {"file":"ops/aws-sandbox/reviews/cloud-worker-w5r.executed.json","normalizedLfSha256":"58e90455c9e5aa2451997b1fcbe72c54ce40e4e28afe4bcf591c6e08b0048d94"}
+    ],
+    "currentActorId": "14145707",
+    "currentDeploymentWorkflowsAndTrustPreserved": true,
+    "appIdentityKnown": false,
+    "privateKeyRead": false,
+    "cloudOrDatabaseWrites": 0,
+    "workflowDispatches": 0,
+    "nextAfterApproval": "Manual registration and single-repository installation only. Record public IDs; review settings. Credentials, identity probe, SQL install and workflow/trust publication need separate approval."
+  },
+  "manifestSha256": "827c5a5418d959def18bcca5afd73d34f27bdcf9ed649ec2dedcdf5d6667fcc1"
+}

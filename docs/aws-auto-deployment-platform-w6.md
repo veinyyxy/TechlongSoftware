@@ -24,6 +24,8 @@
 
 ## W6b 接线审查：尚未实现实际调度
 
+2026-10-19 后续：**W6b 具体方案和注册待审代码已准备**，见 [控制器定案、完整风险及单仓 App 清单](aws-auto-deployment-platform-w6b-controller-plan.md)。选定本地平台 + Neon 独立审批账本 + 单仓 GitHub App，后续云候选精确绑定实测 App actor；发现现有 caller/runtime 固定个人 actor，不能只换 token。注册 URL/元数据白名单核对与纯公开材料校验已编码，不是已安装身份或实际调度器；注册/安装本身先待批准。以下保留原问题及边界。
+
 目前不能把本机调度脚本直接放进平台 HTTP route。代码审查发现：
 
 1. `job-dispatch-v5.mjs`、ROOT 材料与已安装证据绑定固定 job/app/前驱及永久槽；不能只替换浏览器 job ID、重用原 SHA 或清空 journal。下一新任务必须重新构造受审计划，并核对现有 IAM 是否覆盖准确证据前缀，不自动扩大权限。

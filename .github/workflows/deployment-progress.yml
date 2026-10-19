@@ -8,9 +8,13 @@ on:
       - 'app/admin/instances/**'
       - 'app/globals.css'
       - 'lib/deployments/deployment-progress*'
+      - 'lib/deployments/platform-controller-registration-v1.ts'
       - 'lib/deployments/initialized-platform-*'
       - 'ops/aws-sandbox/reviews/cloud-worker-w5r.executed.json'
       - 'tests/deployment-progress*'
+      - 'tests/platform-controller-registration-v1.test.ts'
+      - 'scripts/prepare-platform-controller-registration.mjs'
+      - 'ops/aws-sandbox/reviews/platform-controller-registration-w6b.prepared.json'
       - 'package*.json'
   pull_request:
     paths:
@@ -19,9 +23,13 @@ on:
       - 'app/admin/instances/**'
       - 'app/globals.css'
       - 'lib/deployments/deployment-progress*'
+      - 'lib/deployments/platform-controller-registration-v1.ts'
       - 'lib/deployments/initialized-platform-*'
       - 'ops/aws-sandbox/reviews/cloud-worker-w5r.executed.json'
       - 'tests/deployment-progress*'
+      - 'tests/platform-controller-registration-v1.test.ts'
+      - 'scripts/prepare-platform-controller-registration.mjs'
+      - 'ops/aws-sandbox/reviews/platform-controller-registration-w6b.prepared.json'
       - 'package*.json'
 permissions:
   contents: read
@@ -45,7 +53,11 @@ jobs:
         run: node --experimental-strip-types --test tests/deployment-progress-v1.test.ts tests/deployment-progress-render.test.mjs tests/initialized-platform-v4.test.ts
       - name: Authorization and customer isolation regression
         run: node --experimental-strip-types --experimental-loader ./tests/cloudflare-loader.mjs --test tests/authorization.test.ts tests/customer-isolation.test.mjs tests/launch-readiness.test.mjs
+      - name: Public registration contract and exact preparation record - no credentials
+        run: |
+          node --experimental-strip-types --test tests/platform-controller-registration-v1.test.ts
+          node --experimental-strip-types scripts/prepare-platform-controller-registration.mjs --check
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
       - name: Scoped lint
-        run: node node_modules/eslint/bin/eslint.js lib/deployments/deployment-progress-v1.ts lib/deployments/deployment-progress-evidence.ts lib/deployments/initialized-platform-management.ts components/admin/DeploymentProgressPanel.tsx 'app/admin/instances/[instanceId]/page.tsx' tests/deployment-progress-v1.test.ts tests/deployment-progress-render.test.mjs --max-warnings 0
+        run: node node_modules/eslint/bin/eslint.js lib/deployments/deployment-progress-v1.ts lib/deployments/deployment-progress-evidence.ts lib/deployments/initialized-platform-management.ts components/admin/DeploymentProgressPanel.tsx 'app/admin/instances/[instanceId]/page.tsx' tests/deployment-progress-v1.test.ts tests/deployment-progress-render.test.mjs lib/deployments/platform-controller-registration-v1.ts scripts/prepare-platform-controller-registration.mjs tests/platform-controller-registration-v1.test.ts --max-warnings 0
       - run: npm run build
