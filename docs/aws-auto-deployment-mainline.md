@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新里程碑（2026-10-18）：**W5r仅改善本机人工审批交接，未重新dispatch。** W5q真实Review已过，RunOnce开始时原claimBy已过；旧成功/失败证据、Review-v5/RunOnce-v4槽保持。新Handoff只读观察并即时准备下一清单/范围，至少留8分钟才允许RunOnce提交；云原窗口/权限/C/R/工作流不改，不代批。新独立Review-v6/RunOnce及Inspect-v5槽仍需fresh批准，新预检只读确认同job五云槽为空，不重盖旧时间或建新任务。下一最终CI后只读Prepare，用户准备好连续审批再开始新云Review。[完整风险和命令](aws-auto-deployment-cloud-worker-w5r-approval-handoff.md)。以下为历史。
+
 最新里程碑（2026-10-18）：**W5q修正布局的本机续接已实现，尚未dispatch。** W5p 31原件/164当时pins和W5o失败沿革保持，新reader严格接受唯一已批新policy及其它原布局，旧verifier不改不绕过。Review-v5/RunOnce和Inspect-v4固定独立槽；云C/R/76闭包/两工作流及原held job不变。下一仅最终main无AWS CI后只读Prepare新Review清单，再fresh另批固定DB读取/私有manifest写和单次POST；不重做IAM或发布、不领取或部署。[完整风险与命令](aws-auto-deployment-cloud-worker-w5q-corrected-review.md)。以下为历史。
 
 最新里程碑（2026-10-18）：**W5p单项读取权限已执行并独立核验通过。** 用户批准b212b017后一次Create/严格核验/Execute，准确foundation UPDATE_COMPLETE；只有DescribeTaskDefinition Resource=*、区域条件保留，持续扩读已明确接受。trust/boundary默认v1/五资源身份及云C/R保持，31原件/旧失败槽保留；没有Secret值读取、job领取、Review或部署，不声称实际worker访问已证明。下一只显式接线新policy布局和独立Review-v5槽，最终main CI后fresh另审同held job的云Review；不换C/R、不重做发布或扩支线。[完成事实、证据及继续边界](aws-auto-deployment-cloud-worker-w5p-corrected.md)。以下为历史。

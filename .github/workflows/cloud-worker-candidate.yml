@@ -79,6 +79,7 @@ jobs:
           tests/cloud-worker-ecs-job-dispatch-v5.test.mjs
           tests/cloud-worker-task-definition-permission-v5.test.mjs
           tests/cloud-worker-corrected-job-dispatch-v5.test.mjs
+          tests/cloud-worker-approval-handoff-v5.test.mjs
       - name: W4 pure contracts - historical Windows local CLI verified separately
         run: >-
           node --experimental-strip-types --test

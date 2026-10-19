@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-18最新：**W5r本机审批交接已实现，未开始新云轮次。** W5q云Review成功，但RunOnce实际开始晚于15分钟窗口；任务/业务/五云槽未变，失败原件和本地旧槽永久保留。新增一次只读Handoff直接回读Review并生成下一SHA/范围，RunOnce不足8分钟余量就在本机停止；不改云时间、IAM、C/R或部署工作流，旧入口保持。Review-v6/RunOnce与Inspect-v5独立槽，下一最终main无AWS CI后只读Prepare，实际动作fresh另批并先确认可连续人工审批。[范围、失败事实及完整风险](docs/aws-auto-deployment-cloud-worker-w5r-approval-handoff.md)。以下为历史。
+
 2026-10-18最新：**W5q已接线修正后policy的同任务云Review续接，未调度。** 新本机严格metadata核验绑定W5p 31原件/164历史pins，旧W5o断言和失败槽保持；Review-v5/RunOnce与Inspect-v4独立槽，原job/云C/R/76闭包/工作流/权限不再改变。下一最终main两项无AWS CI通过后仅只读Prepare并请fresh SHA；不领取/部署或重新发布。[完整风险和继续命令](docs/aws-auto-deployment-cloud-worker-w5q-corrected-review.md) / [准备记录](ops/aws-sandbox/reviews/cloud-worker-w5q-corrected-review.prepared.json)。以下为历史。
 
 2026-10-18最新：**W5p单项读取权限已修正，独立Inspect通过。** 按b212b017批准完成一次Create/严格Policies-only核验/Execute，foundation为UPDATE_COMPLETE；仅DescribeTaskDefinition的Resource改为*、保留ca-central-1，持续扩大区域读取能力，不自动撤权。trust/boundary/五资源身份/云C/R/76闭包保持；未读Secret值、dispatch、领取或部署，31份原件及新旧槽保留。下一只将本机Review核验显式绑定新policy及独立Review-v5槽，另备fresh清单；不能复用旧W5o核验或把配置回读当真实worker授权验收。[完成事实和唯一继续点](docs/aws-auto-deployment-cloud-worker-w5p-corrected.md) / [执行证据](ops/aws-sandbox/reviews/cloud-worker-w5p-task-definition-read.executed.json)。以下为历史。
