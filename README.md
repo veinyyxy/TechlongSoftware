@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-19最新：**W6a平台只读部署进度面板已实现。** 管理员实例页回显匹配当前数据库回执的Review/RunOnce/Inspect历史运行、批准与验收摘要、承载标签倒计时；新待审任务不借用旧成功，不声称实时在线。原归档digest固定，真实Neon只读核对匹配；不新建任务/dispatch/改IAM或启用队列。W6b身份、固定任务参数化和审批持久化已集中列出待审边界，尚未实现云调度。新增无AWS CI；代码/文档沿用两个main。[实现、验证与W6b继续位置](docs/aws-auto-deployment-platform-w6.md)。以下为历史。
+
 2026-10-18最新：**W5r真实受控云部署闭环已独立验收通过。** Review 39200031548、RunOnce 39200300265、独立Inspect 39200910036均成功；一次七资源CreateStack、两认证GET、原任务完成，旧READY/前驱任务保持。三阶段分别fresh批准及人工environment批准；IAM/云C/R/工作流不改，旧失败及全部永久槽保留。此结论限一条已有初始化sandbox任务，不是任意租户或整套平台已AWS上线。资源继续保留并可能收费，50 USD目标不是硬cap；不自动清理/续期/重放或创建新请求。[完成事实、证据及继续边界](docs/aws-auto-deployment-cloud-worker-w5r-completed.md)。以下为历史。
 
 2026-10-18最新：**W5r本机审批交接已实现，未开始新云轮次。** W5q云Review成功，但RunOnce实际开始晚于15分钟窗口；任务/业务/五云槽未变，失败原件和本地旧槽永久保留。新增一次只读Handoff直接回读Review并生成下一SHA/范围，RunOnce不足8分钟余量就在本机停止；不改云时间、IAM、C/R或部署工作流，旧入口保持。Review-v6/RunOnce与Inspect-v5独立槽，下一最终main无AWS CI后只读Prepare，实际动作fresh另批并先确认可连续人工审批。[范围、失败事实及完整风险](docs/aws-auto-deployment-cloud-worker-w5r-approval-handoff.md)。以下为历史。

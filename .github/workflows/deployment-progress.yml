@@ -1,0 +1,51 @@
+name: Deployment progress panel - No AWS
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deployment-progress.yml'
+      - 'components/admin/DeploymentProgressPanel.tsx'
+      - 'app/admin/instances/**'
+      - 'app/globals.css'
+      - 'lib/deployments/deployment-progress*'
+      - 'lib/deployments/initialized-platform-*'
+      - 'ops/aws-sandbox/reviews/cloud-worker-w5r.executed.json'
+      - 'tests/deployment-progress*'
+      - 'package*.json'
+  pull_request:
+    paths:
+      - '.github/workflows/deployment-progress.yml'
+      - 'components/admin/DeploymentProgressPanel.tsx'
+      - 'app/admin/instances/**'
+      - 'app/globals.css'
+      - 'lib/deployments/deployment-progress*'
+      - 'lib/deployments/initialized-platform-*'
+      - 'ops/aws-sandbox/reviews/cloud-worker-w5r.executed.json'
+      - 'tests/deployment-progress*'
+      - 'package*.json'
+permissions:
+  contents: read
+concurrency:
+  group: deployment-progress-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Read-only projection, real component SSR and existing request guards
+        run: node --experimental-strip-types --test tests/deployment-progress-v1.test.ts tests/deployment-progress-render.test.mjs tests/initialized-platform-v4.test.ts
+      - name: Authorization and customer isolation regression
+        run: node --experimental-strip-types --experimental-loader ./tests/cloudflare-loader.mjs --test tests/authorization.test.ts tests/customer-isolation.test.mjs tests/launch-readiness.test.mjs
+      - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Scoped lint
+        run: node node_modules/eslint/bin/eslint.js lib/deployments/deployment-progress-v1.ts lib/deployments/deployment-progress-evidence.ts lib/deployments/initialized-platform-management.ts components/admin/DeploymentProgressPanel.tsx 'app/admin/instances/[instanceId]/page.tsx' tests/deployment-progress-v1.test.ts tests/deployment-progress-render.test.mjs --max-warnings 0
+      - run: npm run build

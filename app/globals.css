@@ -1080,6 +1080,16 @@ select {
 }
 
 /* Admin management */
+.deployment-progress-heading { align-items: start; display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; }
+.deployment-progress-steps { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); list-style: none; margin: 24px 0; padding: 0; }
+.deployment-progress-steps li { align-items: start; border: 1px solid var(--line); border-radius: 12px; display: flex; gap: 12px; padding: 18px; }
+.deployment-progress-number { align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 50%; display: inline-flex; flex-shrink: 0; font-size: 12px; height: 26px; justify-content: center; width: 26px; }
+.deployment-progress-steps [data-stage-status="verified"] .deployment-progress-number { background: #e4f2e9; color: #24563b; }
+.deployment-progress-steps p, .deployment-progress-archive p, .deployment-progress-boundary { color: var(--muted); font-size: 12px; line-height: 1.7; }
+.deployment-progress-archive { border-top: 1px solid var(--line); padding-top: 16px; }
+.deployment-progress-archive summary { cursor: pointer; font-size: 13px; padding: 12px 0; }
+.deployment-progress code { overflow-wrap: anywhere; }
+
 .header-actions,
 .form-actions,
 .plan-card-actions {

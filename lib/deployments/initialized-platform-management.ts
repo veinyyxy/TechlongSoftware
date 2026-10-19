@@ -4,6 +4,8 @@ import { getDatabase } from '@/db';
 import { getLatestAppInstanceDeployment } from './management';
 import { INITIALIZED_PLATFORM_SCOPE, InitializedRequestError, initializedRequestsEnabled,
   prepareInitializedPlatformRequest, projectInitializedDeployment } from './initialized-platform-request-v1';
+import { projectDeploymentProgress } from './deployment-progress-v1';
+import { getArchivedDeploymentEvidence } from './deployment-progress-evidence';
 
 function binding(name: string): unknown {
   const value = (env as unknown as Record<string, unknown>)[name];
@@ -19,9 +21,12 @@ async function load(instanceId: string) {
   return { deployment, jobs, gateEnabled: initializedPlatformRequestGateEnabled(), now: Date.now() };
 }
 export async function getInitializedPlatformStatus(instanceId: string) {
-  if (instanceId !== INITIALIZED_PLATFORM_SCOPE.appInstanceId) return projectInitializedDeployment({ deployment: null,
-    jobs: [], gateEnabled: false, now: Date.now() }).view;
-  return projectInitializedDeployment(await load(instanceId)).view;
+  if (instanceId !== INITIALIZED_PLATFORM_SCOPE.appInstanceId) return { ...projectInitializedDeployment({ deployment: null,
+    jobs: [], gateEnabled: false, now: Date.now() }).view, progress: null };
+  const current = await load(instanceId), projected = projectInitializedDeployment(current);
+  const progress = await projectDeploymentProgress({ ...projected, instanceId, deploymentId: current.deployment?.id ?? '',
+    archive: await getArchivedDeploymentEvidence(), now: current.now });
+  return { ...projected.view, progress };
 }
 export async function submitInitializedPlatformRequest(input: { instanceId: string; adminUserId: string; body: unknown }) {
   // Default OFF and check before any query/credential read. Shipping code must

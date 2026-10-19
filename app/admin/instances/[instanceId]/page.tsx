@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { StatusActionButton } from "@/components/admin/StatusActionButton";
 import { InitializedDeploymentPanel } from "@/components/admin/InitializedDeploymentPanel";
+import { DeploymentProgressPanel } from "@/components/admin/DeploymentProgressPanel";
 import { getInitializedPlatformStatus } from "@/lib/deployments/initialized-platform-management";
 import { formatDate } from "@/lib/admin/presentation";
 import { getAdminAccount } from "@/lib/auth/account";
@@ -150,6 +151,7 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
         </section>
       </div>
 
+      <DeploymentProgressPanel view={initializedStatus.progress} />
       {deployment ? <InitializedDeploymentPanel instanceId={instance.id} deploymentId={deployment.id} view={initializedStatus} /> : null}
 
       <section className="module-card">
