@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+最新材料（2026-10-19）：**无AWS App身份发布草稿已固化，保持不可执行。** CI39278613827仍未分配runner，独立check-run无注释；不判定为代码/账单问题，不重跑/新增CI或改Actions付费配置。身份候选未放入.github，不读key/调度，不改AWS/Neon。下一只回读原CI或核对用户页面提示，成功后再绑定fresh父commit并请求准确发布SHA。[唯一继续点与草稿](aws-auto-deployment-platform-w6d-identity-publication-review.md)。以下为历史。
+
 最新代码阶段（2026-10-19）：**V6云接线、无AWS App身份及可信材料/证据导入候选已实现，尚未发布或激活。** 复用V5核心而不改旧闭包/工作流/trust，14新增+91回归本机通过；实际角色/数据写/调度为0，真实PG导入CI待最终回读。下一只准备一次无AWS App身份工作流的发布/调度清单；之后才审批安装/发布并跑新任务，不重开模拟支线。[完整范围、尚未接线部分与继续点](aws-auto-deployment-platform-w6c-cloud-candidate.md)。以下为历史。
 
 唯一继续点：准确源码ca2b38d的CI39278613827仍queued，先只读回读这一轮，不从头重跑测试/实现、不再为了排队追加提交；PG云验证尚未通过。通过后才准备身份发布/调度的fresh清单。[最小状态记录](../ops/aws-sandbox/reviews/platform-cloud-v6.prepared.json)。

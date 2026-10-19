@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-19最新：**W6d无AWS App身份发布草稿已固化，但原CI门禁未通过，不可批准执行。** 精确复用ca2b38d renderer，候选保留在ops外部草稿目录，未创建实际workflow；CI39278613827仍queued，runner未分配、步骤/注释为0，原因未明。本轮没有重跑测试/新增CI、读key/调度或改AWS/SQL。下一只核对原CI及用户页面提示，通过后才定稿fresh发布SHA。[草稿、风险和继续点](docs/aws-auto-deployment-platform-w6d-identity-publication-review.md)。以下为历史。
+
 2026-10-19最新：**W6c云V6候选、无AWS实际App身份候选和可信导入代码已实现，未发布/启用。** Review/RunOnce/Inspect复用原部署核心，固定OIDC/角色/版本化材料；可信导入重建完整manifest和准确run，分开写待审计划/证明，不自动批准。旧76闭包/个人V5工作流/trust/永久槽保持；本轮未读真实key或改AWS/Neon。下一准备一次无AWS真实actor发布/调度清单，再另审安装/发布并验收新任务。[实现、剩余接线和风险](docs/aws-auto-deployment-platform-w6c-cloud-candidate.md)。以下为历史。
 
 本阶段本机105项/类型/lint/构建通过；最终源码ca2b38d的[无AWS CI39278613827](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39278613827)仍排队，真实PG导入待验证，不能冒充云端通过。下一只回读此run，不重做实现或追加CI轮次；[准确继续记录](ops/aws-sandbox/reviews/platform-cloud-v6.prepared.json)。

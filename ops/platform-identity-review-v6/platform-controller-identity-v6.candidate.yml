@@ -1,0 +1,39 @@
+name: Reviewed App identity - No AWS
+on:
+  workflow_dispatch:
+    inputs:
+      nonce: {type: string, required: true}
+      sourceCommit: {type: string, required: true}
+permissions:
+  contents: read
+concurrency:
+  group: techlong-platform-app-identity-v6
+  cancel-in-progress: false
+jobs:
+  identity:
+    if: github.repository_id == '1323312747' && github.repository_owner_id == '14145707' && github.actor_id == '344813947' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: techlong-sandbox-deploy
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ca2b38d8c756dd8fb800a88ded596c93687f278f
+          persist-credentials: false
+      - run: test "$(git rev-parse HEAD)" = 'ca2b38d8c756dd8fb800a88ded596c93687f278f'
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --experimental-strip-types ops/platform-cloud-v6/identity.mjs
+        env:
+          TECHLONG_IDENTITY_NONCE: ${{ inputs.nonce }}
+          TECHLONG_IDENTITY_SOURCE: ${{ inputs.sourceCommit }}
+          TECHLONG_IDENTITY_FROZEN_SOURCE: ca2b38d8c756dd8fb800a88ded596c93687f278f
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: platform-app-identity-v6-${{ github.run_id }}
+          path: ${{ runner.temp }}/platform-app-identity-v6.json
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: false
