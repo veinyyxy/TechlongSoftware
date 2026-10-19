@@ -1,0 +1,70 @@
+name: Platform controller candidate - No AWS
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/platform-controller.yml'
+      - 'lib/deployments/controller-v6/**'
+      - 'ops/platform-controller-v6/**'
+      - 'components/admin/DeploymentControlPanel.tsx'
+      - 'app/api/admin/instances/**/deployment-control/**'
+      - 'app/admin/instances/**'
+      - 'tests/platform-controller*v6*'
+      - 'tests/fixtures/platform-controller-v6.ts'
+      - 'scripts/ci/verify-platform-controller-pg-v6.mjs'
+      - 'package*.json'
+  pull_request:
+    paths:
+      - '.github/workflows/platform-controller.yml'
+      - 'lib/deployments/controller-v6/**'
+      - 'ops/platform-controller-v6/**'
+      - 'components/admin/DeploymentControlPanel.tsx'
+      - 'app/api/admin/instances/**/deployment-control/**'
+      - 'app/admin/instances/**'
+      - 'tests/platform-controller*v6*'
+      - 'tests/fixtures/platform-controller-v6.ts'
+      - 'scripts/ci/verify-platform-controller-pg-v6.mjs'
+      - 'package*.json'
+permissions:
+  contents: read
+concurrency:
+  group: platform-controller-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: controller-ci-only-bootstrap
+          POSTGRES_DB: postgres
+        ports: ['5432/tcp']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Pure controller, throwaway RSA key, fake HTTP and real component SSR
+        run: node --experimental-strip-types --test tests/platform-controller-v6.test.ts tests/platform-controller-github-v6.test.ts tests/platform-controller-render-v6.test.mjs
+      - name: Real runtime remains closed even with accidental opt-in
+        run: node --experimental-strip-types --experimental-loader ./tests/cloudflare-loader.mjs --test tests/platform-controller-runtime-v6.test.mjs
+      - name: Exact SQL with non-superuser installer and true concurrent clients
+        run: node --experimental-strip-types scripts/ci/verify-platform-controller-pg-v6.mjs
+        env:
+          PLATFORM_CONTROL_CI_PORT: ${{ job.services.postgres.ports[5432] }}
+      - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Scoped lint
+        run: node node_modules/eslint/bin/eslint.js lib/deployments/controller-v6/ components/admin/DeploymentControlPanel.tsx 'app/api/admin/instances/[instanceId]/deployment-control/route.ts' tests/platform-controller*v6* tests/fixtures/platform-controller-v6.ts scripts/ci/verify-platform-controller-pg-v6.mjs --max-warnings 0
+      - run: npm run build

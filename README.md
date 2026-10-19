@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-19最新：**W6b 平台控制器候选已编码，未激活，W6 未完成。** 新管理员 API/页面、App 内存认证客户端及独立审批/intent/ACK 账本接线；SQL 候选不在自动迁移中，角色初始 NOLOGIN，环境变量不能绕过 UNPUBLISHED 绑定。UNKNOWN 不重发，GitHub success 不冒充部署验收；旧工作流/云闭包/槽不动。未读取真实 PEM、安装 Neon、mint App token、dispatch 或改 AWS；新云 worker 与可信 capsule/证据导入仍待后续实现和受审接入。[代码范围、完整风险及下一步](docs/aws-auto-deployment-platform-w6b-controller-implementation.md)。以下为历史。
+
 2026-10-19最新：**W6b App 注册/安装已由用户报告，尚未验收或激活。** App 5381160、installation 173033406；仅候选 bot 344813947 的公开 API 核对通过，不证明安装权限/单仓范围或实际调度身份。误生成的未用私钥已记录，未读取、使用或自动轮换，先核对保管状态及非敏感设置；不重建 App、不触发部署，原准备清单/云闭包/工作流保持。[当前状态与继续边界](docs/aws-auto-deployment-platform-w6b-controller-plan.md)。以下为历史。
 
 2026-10-19最新：**W6b 控制器路径定案，单仓 GitHub App 注册清单待批准。** 复用本地平台和 Neon 独立审批账本，不新增常驻控制服务；旧 caller/runtime 固定个人 actor，后续候选绑定实测 App 身份，不能只换 token。已编码公开注册预填/元数据窄输出核对、九文件摘要清单及无凭据校验；未注册/安装/读 key/改 SQL/dispatch/部署。Actions write 是仓库级权限，注册安装单独确认，旧两部署 workflow/IAM/云闭包保持。[具体方案、完整风险和下一动作](docs/aws-auto-deployment-platform-w6b-controller-plan.md)。以下为历史。

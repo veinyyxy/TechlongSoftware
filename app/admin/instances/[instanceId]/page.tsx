@@ -3,6 +3,8 @@ import Link from "next/link";
 import { StatusActionButton } from "@/components/admin/StatusActionButton";
 import { InitializedDeploymentPanel } from "@/components/admin/InitializedDeploymentPanel";
 import { DeploymentProgressPanel } from "@/components/admin/DeploymentProgressPanel";
+import { DeploymentControlPanel } from "@/components/admin/DeploymentControlPanel";
+import { getPlatformControlStatus } from "@/lib/deployments/controller-v6/runtime";
 import { getInitializedPlatformStatus } from "@/lib/deployments/initialized-platform-management";
 import { formatDate } from "@/lib/admin/presentation";
 import { getAdminAccount } from "@/lib/auth/account";
@@ -41,6 +43,7 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
 
   const deployment = await getLatestAppInstanceDeployment(instance.id);
   const initializedStatus = await getInitializedPlatformStatus(instance.id);
+  const controlStatus = initializedStatus.supported ? await getPlatformControlStatus(instance.id) : null;
 
   const subscriptionIsActive = instance.subscriptionStatus === "active";
   const hasAccessUrl = hasRecordedAccessUrl(instance.accessUrl);
@@ -152,6 +155,7 @@ export default async function InstanceDetailPage({ params }: InstanceDetailPageP
       </div>
 
       <DeploymentProgressPanel view={initializedStatus.progress} />
+      {controlStatus ? <DeploymentControlPanel key={JSON.stringify(controlStatus)} instanceId={instance.id} view={controlStatus} /> : null}
       {deployment ? <InitializedDeploymentPanel instanceId={instance.id} deploymentId={deployment.id} view={initializedStatus} /> : null}
 
       <section className="module-card">

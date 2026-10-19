@@ -1,0 +1,16 @@
+{
+  "schema": "techlong/platform-controller-candidate/v6",
+  "state": "CODE_IMPLEMENTED_UNPUBLISHED_NOT_INSTALLED_NOT_ACTIVATED",
+  "w6Complete": false,
+  "scope": {"appInstanceId":"app_e897a4377bce498b9c5ee9e64509dcad","deploymentId":"dep_7c99bd249470184852f0dc74","githubAppId":"5381160","installationId":"173033406","candidateBotId":"344813947","repositoryId":"1323312747"},
+  "priorSetup": {"userProvidedInstallationScreenshotMatchedRequestedPermissionsAndSelectedRepository":true,"userReportedPrivateKeyStoredLocally":true,"privateKeyAclRestrictedAfterSeparateApprovalAndIndependentlyReadBack":true,"privateKeyContentNotRead":true,"notProofOfNoPastCopiesOrExposure":true},
+  "implementation": {"webCryptoGitHubClient":true,"strictSingleDispatchAndAckBeforeTokenCleanup":true,"neonNarrowCredentialAdapter":true,"approvalAndPermanentIntentController":true,"adminApiAndPageWired":true,"defaultReleaseState":"UNPUBLISHED","environmentOptInAloneCannotActivate":true,"globalQueueEnabled":false,"oldDeploymentWorkflowsAndCloudClosureUnchanged":true},
+  "databaseCandidate": {"file":"ops/platform-controller-v6/install.sql","automaticMigration":false,"newNoLoginRoles":1,"tables":3,"functions":9,"controllerExecutableFunctions":7,"ownerOnlyPublishAndAttestFunctions":2,"roleLoginActivated":false,"productionSqlInstalled":false},
+  "notYetImplementedOrPublished": ["trusted public review capsule and evidence import adapters","V6 AWS caller/reusable/runtime candidate and reviewed publication binding","actual GitHub App dispatch-actor proof","new-task platform-to-AWS end-to-end acceptance"],
+  "actualEffectsThisStage": {"realPemReads":0,"realAppJwtOrInstallationTokens":0,"githubAppApiCalls":0,"deploymentDispatches":0,"awsCalls":0,"neonQueriesOrWrites":0,"cloudResourcesCreated":0,"iamChanges":0},
+  "verification": {"localControllerAndGithubSsrRuntimeTests":18,"existingTargetedRegressionTests":55,"totalLocalTests":73,"productionBuildPassed":true,"typecheckAndScopedLintRequiredBeforeCommit":true,"ciWorkflow":".github/workflows/platform-controller.yml","ciDatabase":"disposable PostgreSQL18.6, non-superuser installer and concurrent real clients; NOT Neon","ciOutcomeRecordedInFinalHandoff":true,"realAppIntegrationPerformed":false,"browserVisualAcceptancePerformed":false},
+  "unchangedCloudClosure": {"files":76,"sha256":"70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac"},
+  "riskDocument":"docs/aws-auto-deployment-platform-w6b-controller-implementation.md",
+  "notAnExecutionApproval":true,
+  "next":"After candidate CI succeeds, prepare a separately reviewed one-time App read-only authentication using the protected local PEM, minimal token and immediate revocation. Implement/verify V6 cloud capsule and evidence bridges before reviewing SQL/login/secret/publication/trust activation or a new real deployment. Do not read the PEM, run install.sql, dispatch or replay old jobs under this preparation record."
+}
