@@ -2,6 +2,8 @@
 
 2026-10-19最新：**W6b 一次 App 只读认证入口及48小时待审清单已准备，未执行。** 固定现有PEM/ACL元数据和九项源码，永久本地槽先于读钥；最多一次最小read token及finally一次撤销，六API白名单，不调度/改AWS/SQL/启用运行时。真实私钥内容未读，App身份/撤销尚未实测；响应丢失或撤销失败不自动重试。[范围、完整风险及命令](docs/aws-auto-deployment-platform-w6b-app-auth-review.md)。以下为历史。
 
+该入口准确源码 `30bdcfd` 的[无AWS CI 39273460659](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39273460659)已独立回读全步骤成功，含真实临时PG九组检查；本机10新增+73原相关测试共83项/类型/lint/构建通过。最终待批SHA `22dc06b289f5964464ec27f537540d68a006f20fd68d391239956af3bbf48782`，截止2026-10-21 09:55:37温尼伯时间；它不授权旧job重放或其它步骤。[准备验证记录](ops/aws-sandbox/reviews/platform-controller-auth-v6.verified.json)。
+
 2026-10-19最新：**W6b 平台控制器候选已编码，未激活，W6 未完成。** 新管理员 API/页面、App 内存认证客户端及独立审批/intent/ACK 账本接线；SQL 候选不在自动迁移中，角色初始 NOLOGIN，环境变量不能绕过 UNPUBLISHED 绑定。UNKNOWN 不重发，GitHub success 不冒充部署验收；旧工作流/云闭包/槽不动。未读取真实 PEM、安装 Neon、mint App token、dispatch 或改 AWS；新云 worker 与可信 capsule/证据导入仍待后续实现和受审接入。[代码范围、完整风险及下一步](docs/aws-auto-deployment-platform-w6b-controller-implementation.md)。以下为历史。
 
 2026-10-19最新：**W6b App 注册/安装已由用户报告，尚未验收或激活。** App 5381160、installation 173033406；仅候选 bot 344813947 的公开 API 核对通过，不证明安装权限/单仓范围或实际调度身份。误生成的未用私钥已记录，未读取、使用或自动轮换，先核对保管状态及非敏感设置；不重建 App、不触发部署，原准备清单/云闭包/工作流保持。[当前状态与继续边界](docs/aws-auto-deployment-platform-w6b-controller-plan.md)。以下为历史。

@@ -2,6 +2,8 @@
 
 最新继续点（2026-10-19）：**App真实只读认证入口已备，待最终SHA批准。** 不再扩展模拟支线；本轮只准备现有App/固定PEM的最小token接入，48小时清单绑定源码/ACL元数据和永久本地槽。未读私钥内容/mint/dispatch/安装SQL或改AWS，UNPUBLISHED保持。失败不自动重试/轮换；成功也不是W6完成或实测actor。[完整范围、风险及唯一执行入口](aws-auto-deployment-platform-w6b-app-auth-review.md)。以下为历史。
 
+入口准确源码30bdcfd的CI39273460659已独立核验全成功（含临时PG九组），本机83项/类型/lint/构建通过；最终待批SHA为 `22dc06b289f5964464ec27f537540d68a006f20fd68d391239956af3bbf48782`，截止2026-10-21 09:55:37温尼伯时间。[结果与恢复位置](../ops/aws-sandbox/reviews/platform-controller-auth-v6.verified.json)。
+
 最新里程碑（2026-10-19）：**W6b 控制器代码候选已实现，硬关闭未激活。** 管理员页面/同源 API、WebCrypto App 客户端、三表九函数独立账本（窄角色七函数权限、owner-only 发布/证明）及无 AWS PG18 并发 CI；不自动安装或读取真实 PEM，不 mint/dispatch，不改旧 V5/IAM。前驱需可信证据、刷新不能绕过永久槽、ACK 先于令牌清理保存。下一集中真实 App 只读接入与 V6 云候选/可信 capsule/证据导入，之后才审批安装/发布并验收新任务；不是 W6 已完成。[完整范围、风险与继续位置](aws-auto-deployment-platform-w6b-controller-implementation.md)。以下为历史。
 
 最新状态（2026-10-19）：**用户报告 W6b App 5381160 / installation 173033406 已创建，安装尚未独立验收。** 两次无认证 GET 仅核到候选 bot 344813947，不等于实测 dispatch actor；私有 App 查询404不证明不存在/可见性正确。误生成的一把未用私钥已作例外记录，保管/暴露状态待确认，不读取或自动轮换/生成第二把；安装权限与单仓范围待非敏感证据核对。旧 V5、AWS/SQL/Secret/运行能力不变，不重建 App 或重放旧任务。[当前证据与密钥处理边界](aws-auto-deployment-platform-w6b-controller-plan.md)。以下为历史。

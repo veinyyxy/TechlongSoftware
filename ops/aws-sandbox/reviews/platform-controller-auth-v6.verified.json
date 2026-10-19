@@ -1,0 +1,17 @@
+{
+  "schema":"techlong/platform-controller-auth-preparation-verification/v6",
+  "state":"AUTH_ENTRY_TESTED_PREPARED_NOT_EXECUTED",
+  "testedSourceCommit":"30bdcfd4687489b6e13e0fb043fb805b75dd2582",
+  "manifestSha256":"22dc06b289f5964464ec27f537540d68a006f20fd68d391239956af3bbf48782",
+  "expiresAt":"2026-10-21T14:55:37.512Z",
+  "expiresAtWinnipeg":"2026-10-21 09:55:37 CDT",
+  "localVerification":{"newAuthTestsPassed":10,"priorControllerTestsPassed":18,"existingRegressionTestsPassed":55,"totalTestsPassed":83,"typecheckPassed":true,"scopedLintPassed":true,"productionBuildPassed":true,"savedReviewAndLiveFileMetadataMatched":true,"metadataCheckDoesNotReadKeyContent":true},
+  "ci":{"runId":"39273460659","jobId":"118131525896","sourceCommit":"30bdcfd4687489b6e13e0fb043fb805b75dd2582","attempt":1,"conclusion":"success","allStepsSucceeded":true,"resultIndependentlyReadBack":true,"url":"https://github.com/veinyyxy/TechlongSoftware/actions/runs/39273460659","realPostgresChecks":9,"postgres":"18.6 disposable CI service only","productionDatabaseTouched":false,"realAppAuthenticationPerformed":false,"userPrivateKeyRead":false},
+  "productionEffects":{"userPemContentReads":0,"appJwtsMinted":0,"installationTokensCreated":0,"deploymentDispatches":0,"awsCalls":0,"neonQueriesOrWrites":0,"authIntentSlotsConsumed":0,"runtimeEnabled":false},
+  "unchanged":{"cloudClosureFiles":76,"cloudClosureSha256":"70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac","originalRegistrationSourcePinsVerified":9,"oldCloudWorkflowsTrustAndPermanentSlotsPreserved":true,"platformRelease":"UNPUBLISHED","backendApplicationUntouched":true},
+  "next":"Request fresh exact manifest approval for one protected PEM read, one minimal single-repository read token, four metadata GETs, one finally revoke attempt and independent local receipt readback only. No dispatch, SQL install or AWS.",
+  "document":"docs/aws-auto-deployment-platform-w6b-app-auth-review.md",
+  "noRetryResetRotationOrCleanupAuthorized":true,
+  "notAnExecutionApproval":true,
+  "w6Complete":false
+}
