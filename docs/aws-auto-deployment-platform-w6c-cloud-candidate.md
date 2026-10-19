@@ -59,6 +59,8 @@
 
 依赖审核后已把身份纯合同与云SDK入口解耦，并为CI明确安装独立云核心依赖。旧候选CI39277731949尚无测试步骤，85cf9b3的CI39278202726被旧branch并发组排队；一次准确旧测试取消请求未获确认，未重发。最终无AWS CI按source SHA隔离并发（每个job的PostgreSQL是独立服务），保留旧记录；**真实部署caller仍共用原实例并发组**。这不是重新运行旧云任务或修改部署锁。
 
+最终候选源码 `ca2b38d8c756dd8fb800a88ded596c93687f278f` 的[CI39278613827](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39278613827)截至记录时仍queued，job118148719175尚无步骤；**真实PG导入和云端构建没有标记为通过**。本机最终90+15=105项、类型/lint/构建已通过；新81文件闭包为 `828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a`。后续只读回读这一次准确run，避免从头实现、重复本机测试或为排队再发新CI；通过后再准备具体身份发布/调度清单。[最小继续记录](../ops/aws-sandbox/reviews/platform-cloud-v6.prepared.json)。
+
 下一步仅准备**一次无AWS App身份工作流的具体发布及调度清单**，绑定最终源码、nonce和受审范围；获批后实测actor。之后才集中准备现有trust切换、账本/窄凭据和平台激活，最后做一条新任务的真实闭环验收。不要执行未发布候选、手工设置启用变量或复用旧任务/清单。
 
 回到[主线](aws-auto-deployment-mainline.md) / [真实App认证完成记录](aws-auto-deployment-platform-w6b-app-auth-completed.md)。

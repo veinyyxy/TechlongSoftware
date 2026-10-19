@@ -1,0 +1,18 @@
+{
+  "schema":"techlong/platform-cloud-candidate-preparation/v6",
+  "state":"CODE_LOCAL_VERIFIED_CLOUD_CI_QUEUED_NOT_PUBLISHED",
+  "recordedAt":"2026-10-19T15:34:01Z",
+  "latestCodeAndCiCommit":"ca2b38d8c756dd8fb800a88ded596c93687f278f",
+  "runtimeCodeCommit":"85cf9b3c19c7bd209e5fd89079be15fe50dae2f2",
+  "initialCodeCommit":"62599bbdcf34963ed624e312fb8dea4bd1a232d6",
+  "localVerification":{"newTestsPassed":14,"relatedRegressionTestsPassed":91,"totalTestsPassed":105,"typecheckPassed":true,"scopedLintPassed":true,"productionBuildPassed":true,"originalRegistrationPinsVerified":9,"realAppActorObserved":false,"realNeonCompatibilityVerified":false},
+  "candidateCi":{"runId":"39278613827","jobId":"118148719175","sourceCommit":"ca2b38d8c756dd8fb800a88ded596c93687f278f","attempt":1,"status":"queued","conclusion":null,"url":"https://github.com/veinyyxy/TechlongSoftware/actions/runs/39278613827","realPostgresResultsVerified":false,"configuredPostgres":"18.6 disposable GitHub service only","configuredExistingSqlChecks":9,"configuredPublisherSqlChecks":3,"hasOidcOrEnvironmentOrProductionSecrets":false},
+  "retainedRuns":[{"runId":"39277731949","sourceCommit":"62599bbdcf34963ed624e312fb8dea4bd1a232d6","lastObservedStatus":"in_progress","stepsObserved":0,"obsoleteCancelAttemptedOnce":true,"cancellationConfirmed":false,"cancelNotRetried":true},{"runId":"39278202726","sourceCommit":"85cf9b3c19c7bd209e5fd89079be15fe50dae2f2","lastObservedStatus":"queued","rerunRequested":false}],
+  "cloudClosure":{"files":81,"sha256":"828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a","legacyFiles":76,"legacySha256":"70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac","legacyUnchanged":true},
+  "implemented":["strict App actor and fixed OIDC/source/reusable bindings","one-mode bridge reusing existing Review/RunOnce/Inspect core","conditional versioned platform-result and execution descriptor","unpublished no-AWS identity proof and workflow text renderers","trusted material/run reconstruction and fixed owner-only publisher SQL adapters","dedicated no-AWS CI with disposable PostgreSQL publisher checks"],
+  "notActivated":{"platformRelease":"UNPUBLISHED","identityWorkflowPublished":false,"cloudWorkflowsPublished":false,"identityDispatches":0,"appKeyReads":0,"appTokensCreated":0,"awsCalls":0,"neonConnectionsOrWrites":0,"businessWrites":0,"iamOrTrustChanges":0,"oldCloudSlotsChanged":0,"productionPublisherIoBound":false,"uiDeploymentVerifiedActivated":false},
+  "next":"Read ONLY exact CI 39278613827 for source ca2b38d8c756dd8fb800a88ded596c93687f278f. Do not repeat implementation/tests or create a fresh CI just because it is queued. If successful, record independently verified PostgreSQL results, then prepare one no-AWS App identity workflow publication and single-dispatch approval manifest. Real key use, publication/dispatch, SQL/credentials, trust and deployment still require specific approval.",
+  "document":"docs/aws-auto-deployment-platform-w6c-cloud-candidate.md",
+  "notAnExecutionApproval":true,
+  "w6Complete":false
+}

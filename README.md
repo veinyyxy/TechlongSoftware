@@ -2,6 +2,8 @@
 
 2026-10-19最新：**W6c云V6候选、无AWS实际App身份候选和可信导入代码已实现，未发布/启用。** Review/RunOnce/Inspect复用原部署核心，固定OIDC/角色/版本化材料；可信导入重建完整manifest和准确run，分开写待审计划/证明，不自动批准。旧76闭包/个人V5工作流/trust/永久槽保持；本轮未读真实key或改AWS/Neon。下一准备一次无AWS真实actor发布/调度清单，再另审安装/发布并验收新任务。[实现、剩余接线和风险](docs/aws-auto-deployment-platform-w6c-cloud-candidate.md)。以下为历史。
 
+本阶段本机105项/类型/lint/构建通过；最终源码ca2b38d的[无AWS CI39278613827](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39278613827)仍排队，真实PG导入待验证，不能冒充云端通过。下一只回读此run，不重做实现或追加CI轮次；[准确继续记录](ops/aws-sandbox/reviews/platform-cloud-v6.prepared.json)。
+
 2026-10-19最新：**W6b真实App只读认证成功，令牌撤销HTTP204已观察，本地回执独立回读通过。** 按22dc06b2清单一次读取固定PEM、创建单仓最小read token、六请求完成；永久本地槽已占用，不重跑。未调度/改AWS/Neon/业务或启用控制器；真实actor与V6发布/可信导入仍待后续实现及另审，W6未完成。[完成事实、证据及唯一继续点](docs/aws-auto-deployment-platform-w6b-app-auth-completed.md)。以下为历史，旧“未读钥”仅表示当时准备状态。
 
 2026-10-19最新：**W6b 一次 App 只读认证入口及48小时待审清单已准备，未执行。** 固定现有PEM/ACL元数据和九项源码，永久本地槽先于读钥；最多一次最小read token及finally一次撤销，六API白名单，不调度/改AWS/SQL/启用运行时。真实私钥内容未读，App身份/撤销尚未实测；响应丢失或撤销失败不自动重试。[范围、完整风险及命令](docs/aws-auto-deployment-platform-w6b-app-auth-review.md)。以下为历史。

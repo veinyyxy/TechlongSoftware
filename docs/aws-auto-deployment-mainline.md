@@ -2,6 +2,8 @@
 
 最新代码阶段（2026-10-19）：**V6云接线、无AWS App身份及可信材料/证据导入候选已实现，尚未发布或激活。** 复用V5核心而不改旧闭包/工作流/trust，14新增+91回归本机通过；实际角色/数据写/调度为0，真实PG导入CI待最终回读。下一只准备一次无AWS App身份工作流的发布/调度清单；之后才审批安装/发布并跑新任务，不重开模拟支线。[完整范围、尚未接线部分与继续点](aws-auto-deployment-platform-w6c-cloud-candidate.md)。以下为历史。
 
+唯一继续点：准确源码ca2b38d的CI39278613827仍queued，先只读回读这一轮，不从头重跑测试/实现、不再为了排队追加提交；PG云验证尚未通过。通过后才准备身份发布/调度的fresh清单。[最小状态记录](../ops/aws-sandbox/reviews/platform-cloud-v6.prepared.json)。
+
 最新完成（2026-10-19）：**现有App真实只读认证通过，已观察本次token撤销204，独立本地回读匹配。** 固定清单22dc06b2、一次PEM读取/单仓最小read token及六API，无dispatch/AWS/SQL/业务写；永久本地槽保留，运行时仍UNPUBLISHED。下一只集中V6云候选、无AWS实际actor验证及可信材料/证据导入代码，实际安装/调度/发布/部署另审，不重跑认证。[完成记录和继续位置](aws-auto-deployment-platform-w6b-app-auth-completed.md)。以下为历史。
 
 最新继续点（2026-10-19）：**App真实只读认证入口已备，待最终SHA批准。** 不再扩展模拟支线；本轮只准备现有App/固定PEM的最小token接入，48小时清单绑定源码/ACL元数据和永久本地槽。未读私钥内容/mint/dispatch/安装SQL或改AWS，UNPUBLISHED保持。失败不自动重试/轮换；成功也不是W6完成或实测actor。[完整范围、风险及唯一执行入口](aws-auto-deployment-platform-w6b-app-auth-review.md)。以下为历史。
