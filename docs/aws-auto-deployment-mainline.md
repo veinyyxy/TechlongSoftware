@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-19）：**W6e真实App身份门禁已通过，准确run39312477081/attempt1成功，proof1465a605…独立匹配，原token撤销204已保存。** 一次PEM/token/dispatch，无重试/代批/AWS或SQL调用；永久槽保留，身份实验不重复。平台仍UNPUBLISHED，下一集中控制器窄SQL/可信publisher生产端口及App云发布最小激活方案，真实安装/发布/trust/新任务执行另批，不恢复支线。[完整事实和继续位置](aws-auto-deployment-platform-w6e-app-identity-verified.md)。下文为历史。
+
 当前继续点（2026-10-19）：**W6e专用无AWS身份调度与独立只读验收代码已实现，尚未读真实key/mint/dispatch。** 保留已有工作流、旧认证/发布槽和UNPUBLISHED；只在最终同步main生成48小时清单并请求准确SHA。实际获批后最多一读钥/一token/一dispatch及立即一次revoke，用户批准准确environment后再只读核对run与artifact。不要重做CI、旧发布或扩云支线。[完整风险和唯一命令](aws-auto-deployment-platform-w6e-app-identity-dispatch.md)。下文为历史。
 
 当前继续点（2026-10-19）：**身份workflow389772013已单次发布并独立核验，准确内容/commit与本地快进一致。** 原cf521abb发布槽已消费，不重放；尚未读App key/mint token/dispatch，不改AWS/SQL，平台仍UNPUBLISHED。下一实现/准备最小单次无AWS App身份调度入口，绑定实际workflow ID、fresh caller main、冻结代码和新nonce；私钥/令牌/调度仍另审。[实际结果与原件](aws-auto-deployment-platform-w6d-identity-publication-executed.md)。下文旧“未发布”仅为历史。

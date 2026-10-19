@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-19当前：**W6e真实App身份验收成功，令牌撤销204已观察；尚非AWS部署授权。** 单次run39312477081成功，actor/sender/nonce/caller/冻结源码及公开artifact摘要独立比对通过，新槽保留不重放。未改AWS/SQL、workflow或激活平台。下一收口控制器SQL/可信publisher生产接线与App云发布最小激活清单，不再做身份探针，实际安装/权限/部署仍另审。[完成事实、原件与下一步](docs/aws-auto-deployment-platform-w6e-app-identity-verified.md)。下文为历史。
+
 2026-10-19当前：**W6e无AWS实际App身份验收的单次调度/独立Inspect入口已实现，尚未执行。** 绑定真实workflow389772013、fresh caller/nonce及15项pin；槽先于读钥、ACK先于立即撤权，Inspect只读准确run和公开proof，不自动重试或代批环境。下一最终main准备48小时fresh清单，再单独批准真实PEM/token/一次dispatch；本轮没有这些操作或AWS/SQL调用。[完整范围、风险与继续命令](docs/aws-auto-deployment-platform-w6e-app-identity-dispatch.md)。下文为历史。
 
 2026-10-19当前：**W6d身份工作流已按cf521abb清单单次发布并独立核验，尚未调度。** workflow389772013、准确内容/发布commit及本地main快进均匹配，永久槽已占用；未读App key/mint token、改AWS/SQL或激活平台。下一只准备一次无AWS真实App身份调度验收，新私钥/token/dispatch范围仍单独批准，不重跑发布。[完成事实、原件及唯一继续点](docs/aws-auto-deployment-platform-w6d-identity-publication-executed.md)。下文为历史。
