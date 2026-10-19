@@ -22,7 +22,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: platform-cloud-candidate-${{ github.ref }}
+  group: platform-cloud-candidate-${{ github.sha }}
   cancel-in-progress: false
 jobs:
   candidate:
