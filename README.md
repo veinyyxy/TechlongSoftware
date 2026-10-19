@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-19当前：**W6e无AWS实际App身份验收的单次调度/独立Inspect入口已实现，尚未执行。** 绑定真实workflow389772013、fresh caller/nonce及15项pin；槽先于读钥、ACK先于立即撤权，Inspect只读准确run和公开proof，不自动重试或代批环境。下一最终main准备48小时fresh清单，再单独批准真实PEM/token/一次dispatch；本轮没有这些操作或AWS/SQL调用。[完整范围、风险与继续命令](docs/aws-auto-deployment-platform-w6e-app-identity-dispatch.md)。下文为历史。
+
 2026-10-19当前：**W6d身份工作流已按cf521abb清单单次发布并独立核验，尚未调度。** workflow389772013、准确内容/发布commit及本地main快进均匹配，永久槽已占用；未读App key/mint token、改AWS/SQL或激活平台。下一只准备一次无AWS真实App身份调度验收，新私钥/token/dispatch范围仍单独批准，不重跑发布。[完成事实、原件及唯一继续点](docs/aws-auto-deployment-platform-w6d-identity-publication-executed.md)。下文为历史。
 
 2026-10-19当前：**W6c准确CI已全成功（16步骤、12组真实临时PG检查），W6d“仅发布身份工作流”的受审入口已完成。** 8项定向检查/零警告lint通过，准备不挂ref的单文件Git对象并绑定48小时fresh SHA；尚未发布、读App key、调度、改AWS/SQL或激活平台。下一只审最终发布清单，不重做CI或扩支线；发布后身份dispatch仍另审。[范围、完整风险与继续命令](docs/aws-auto-deployment-platform-w6d-identity-publication-review.md)。下文均为历史快照，旧queued结论已被[成功证据](ops/aws-sandbox/reviews/platform-cloud-v6.verified.json)取代。

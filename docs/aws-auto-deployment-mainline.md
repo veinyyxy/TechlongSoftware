@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-19）：**W6e专用无AWS身份调度与独立只读验收代码已实现，尚未读真实key/mint/dispatch。** 保留已有工作流、旧认证/发布槽和UNPUBLISHED；只在最终同步main生成48小时清单并请求准确SHA。实际获批后最多一读钥/一token/一dispatch及立即一次revoke，用户批准准确environment后再只读核对run与artifact。不要重做CI、旧发布或扩云支线。[完整风险和唯一命令](aws-auto-deployment-platform-w6e-app-identity-dispatch.md)。下文为历史。
+
 当前继续点（2026-10-19）：**身份workflow389772013已单次发布并独立核验，准确内容/commit与本地快进一致。** 原cf521abb发布槽已消费，不重放；尚未读App key/mint token/dispatch，不改AWS/SQL，平台仍UNPUBLISHED。下一实现/准备最小单次无AWS App身份调度入口，绑定实际workflow ID、fresh caller main、冻结代码和新nonce；私钥/令牌/调度仍另审。[实际结果与原件](aws-auto-deployment-platform-w6d-identity-publication-executed.md)。下文旧“未发布”仅为历史。
 
 当前继续点（2026-10-19）：**准确CI39278613827已completed/success，16步骤及9+3组临时PG证明确认。** W6d仅发布入口/8项定向检查完成，候选仍在非.github目录；先在最终同步main准备48小时清单，fresh SHA获批后最多一次单文件push及本地ff，再独立核验。此次不读App key/dispatch、不改AWS/SQL，平台仍UNPUBLISHED；下一身份调度单独授权。不再排队诊断/重跑原CI。[唯一执行边界与完整风险](aws-auto-deployment-platform-w6d-identity-publication-review.md) / [成功证据](../ops/aws-sandbox/reviews/platform-cloud-v6.verified.json)。下文保留历史，旧queued/未验证不再代表当前状态。
