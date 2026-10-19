@@ -68,6 +68,8 @@
 
 本机测试覆盖纯控制器、严格 HTTP、临时生成的 RSA 私钥/伪 HTTP、真实组件 SSR、真实 runtime 关闭门禁及旧接口回归；**不读取用户 PEM，也不伪称真实 GitHub 集成已通过**。新增无 AWS CI 对精确候选 SQL 使用临时 PostgreSQL18.6、非超级用户安装者和两个真实并发连接；该服务不是 Neon，不接触生产数据，不使用 AWS/OIDC/environment/平台 Secrets。
 
+首轮候选 CI `39271106116`（源码 `a3ba8f1`）在 SQL 解析阶段发现 PLpgSQL IF 内 CASE 表达式缺括号；已修正并保留失败运行，使用新提交重新校验。该失败未安装生产 SQL 或消费云槽；同提交原平台 CI `39271106084` 已通过。最终 CI 结果以准确提交的独立回读为准。
+
 下一阶段集中完成：一次受审 App 只读认证接入（读取准确受保护 PEM、最小 token、立即撤销）、无 AWS 实测身份及 V6 云候选/可信 capsule 与证据导入代码，再准备 SQL/发布/trust 的明确变更清单。实际 key/token、身份 workflow 调度、SQL/Secret/IAM/云部署仍单独具体批准。本阶段没有执行清单，不要运行安装文件或设置启用变量。
 
 回到 [W6](aws-auto-deployment-platform-w6.md) / [注册与权限边界](aws-auto-deployment-platform-w6b-controller-plan.md)。

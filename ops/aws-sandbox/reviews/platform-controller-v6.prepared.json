@@ -12,5 +12,6 @@
   "unchangedCloudClosure": {"files":76,"sha256":"70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac"},
   "riskDocument":"docs/aws-auto-deployment-platform-w6b-controller-implementation.md",
   "notAnExecutionApproval":true,
+  "retainedInitialCiFailure":{"runId":"39271106116","sourceCommit":"a3ba8f1ba0c30edd42af4791f33d1e35f878946c","step":"Exact SQL with non-superuser installer and true concurrent clients","outcome":"failed during SQL parsing","fix":"Parenthesize the SQL CASE expression inside the PLpgSQL IF condition; fresh source CI, no rerun of a production action","productionEffects":0},
   "next":"After candidate CI succeeds, prepare a separately reviewed one-time App read-only authentication using the protected local PEM, minimal token and immediate revocation. Implement/verify V6 cloud capsule and evidence bridges before reviewing SQL/login/secret/publication/trust activation or a new real deployment. Do not read the PEM, run install.sql, dispatch or replay old jobs under this preparation record."
 }

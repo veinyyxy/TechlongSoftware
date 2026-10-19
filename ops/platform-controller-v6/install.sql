@@ -97,7 +97,7 @@ BEGIN
   IF p.mode<>'Review' THEN
     SELECT * INTO STRICT previous FROM deployment_control_v6.dispatch_attempts
       WHERE plan_sha=p.body->'predecessor'->>'planSha256' FOR SHARE;
-    IF previous.job_id IS DISTINCT FROM p.job_id OR previous.mode IS DISTINCT FROM CASE WHEN p.mode='RunOnce' THEN 'Review' ELSE 'RunOnce' END OR
+    IF previous.job_id IS DISTINCT FROM p.job_id OR previous.mode IS DISTINCT FROM (CASE WHEN p.mode='RunOnce' THEN 'Review' ELSE 'RunOnce' END) OR
       previous.state<>'OBSERVED' OR previous.run_status IS DISTINCT FROM 'completed' OR
       (p.mode='RunOnce' AND previous.conclusion IS DISTINCT FROM 'success') OR previous.proof_sha IS NULL OR
       previous.proof_sha IS DISTINCT FROM p.body->'predecessor'->>'proofSha256' OR
