@@ -4,9 +4,11 @@
 
 ## 当前门禁事实
 
-准确源码 `ca2b38d8c756dd8fb800a88ded596c93687f278f` 的[CI39278613827](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39278613827)仍queued；job118148719175的runner_id/runner_name均null、步骤0。独立check-run也queued，摘要为空、注释0。尚无代码失败结果，也没有足够证据判断排队是否由容量、账户额度或设置导致，不猜测原因。
+准确源码 `ca2b38d8c756dd8fb800a88ded596c93687f278f` 的[CI39278613827](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39278613827)元数据仍queued；job118148719175的runner_id/runner_name均null、步骤0。独立check-run也queued，摘要为空、注释0。用户UI仅显示candidate和“Started 11m 17s ago”，没有提供用量/账单/审批提示；pending environment回读为0。没有足够证据判断原因，不猜测为额度、设置或MFA问题。
 
-原真实PG导入/云端构建仍未验证，不把本机105项通过冒充云结果。已请用户只看该页面有无用量/账单/审批/runner提示，不提供凭据、不Run/Re-run、不升级或改付费设置。原CI与旧失败/取消未确认记录保持，不再自动取消、重排或新增候选轮次。
+随后已独立读取**准确最终job日志**：15:31:48 UTC输出 `PASSED_REAL_POSTGRESQL_18`（9组），15:31:49输出 `PASSED_REAL_PUBLISHER_POSTGRESQL_18`（3组）；15:32:10已记录post-job cleanup。SQL权限拒绝、占槽/重复键ERROR是成功测试中的预期负断言，不是这些检查失败。日志还确认旧62599bb首轮失败为缺少ELB SDK依赖，85cf9b3已做对应依赖修正；没有重新跑旧轮次。
+
+但列表、单独check-run、准确attempt1及其jobs接口（含no-cache头）仍显示queued/无conclusion，run updated_at仍15:31:10；独立GitHub连接器也返回同一job queued、conclusion/steps为null。**目前证据不一致：12组真实PG检查可确认通过，整轮CI终态及全部步骤成功尚不能确认。** 不从空runner/steps推导从未执行，也不从PG日志越过整轮success门禁。无需用户再点按钮、提供凭据、刷新AWS、Run/Re-run、升级或改付费设置；不再自动取消、重排或新增候选轮次。
 
 ## 已固化的候选文件
 
@@ -28,6 +30,6 @@
 
 ## 最小继续位置
 
-[结构化草稿](../ops/aws-sandbox/reviews/platform-identity-v6.draft.json)保留唯一run和全部阻断项。后续只读查CI39278613827，或核对用户提供的页面提示；CI未通过时不重复实现/测试，不生成可执行批准SHA。通过后直接使用已固化候选准备最终发布清单，不再重新设计身份方案。
+[结构化草稿](../ops/aws-sandbox/reviews/platform-identity-v6.draft.json)保留唯一run和准确日志证明。后续**只读查准确CI/attempt的终态**，不重复读取已保存的PG日志、不重复实现/测试、不为排队改CI或生成可执行批准SHA。确认准确success后，直接使用已固化候选准备最终发布清单，不再重新设计身份方案；当前没有额外用户动作。
 
 回到[W6c候选与风险](aws-auto-deployment-platform-w6c-cloud-candidate.md)。

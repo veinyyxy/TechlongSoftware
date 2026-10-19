@@ -1,6 +1,6 @@
 # 餐饮 SaaS 平台
 
-2026-10-19最新：**W6d无AWS App身份发布草稿已固化，但原CI门禁未通过，不可批准执行。** 精确复用ca2b38d renderer，候选保留在ops外部草稿目录，未创建实际workflow；CI39278613827仍queued，runner未分配、步骤/注释为0，原因未明。本轮没有重跑测试/新增CI、读key/调度或改AWS/SQL。下一只核对原CI及用户页面提示，通过后才定稿fresh发布SHA。[草稿、风险和继续点](docs/aws-auto-deployment-platform-w6d-identity-publication-review.md)。以下为历史。
+2026-10-19最新：**W6d身份草稿已固化，不可执行；最终job日志已确认12组PG检查通过，但CI元数据仍queued，整轮success未确认。** 用户UI无额外提示、无待批环境，准确attempt接口也与已完成日志不一致，不猜额度/权限原因。候选保留在非.github目录，本轮未重跑/新增CI、读key/调度或改AWS/SQL。下一只回读原CI终态，确认成功后定稿fresh发布SHA；当前无需用户点击或升级。[证据、风险和继续点](docs/aws-auto-deployment-platform-w6d-identity-publication-review.md)。以下为历史。
 
 2026-10-19最新：**W6c云V6候选、无AWS实际App身份候选和可信导入代码已实现，未发布/启用。** Review/RunOnce/Inspect复用原部署核心，固定OIDC/角色/版本化材料；可信导入重建完整manifest和准确run，分开写待审计划/证明，不自动批准。旧76闭包/个人V5工作流/trust/永久槽保持；本轮未读真实key或改AWS/Neon。下一准备一次无AWS真实actor发布/调度清单，再另审安装/发布并验收新任务。[实现、剩余接线和风险](docs/aws-auto-deployment-platform-w6c-cloud-candidate.md)。以下为历史。
 
