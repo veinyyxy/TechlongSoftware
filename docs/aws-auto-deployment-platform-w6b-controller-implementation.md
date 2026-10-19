@@ -70,6 +70,8 @@
 
 首轮候选 CI `39271106116`（源码 `a3ba8f1`）在 SQL 解析阶段发现 PLpgSQL IF 内 CASE 表达式缺括号；已修正并保留失败运行，使用新提交重新校验。该失败未安装生产 SQL 或消费云槽；同提交原平台 CI `39271106084` 已通过。最终 CI 结果以准确提交的独立回读为准。
 
+最终验证已独立回读：准确源码 `9653c47e10043a1ecc9b4167b60da69362d3b822` 的 [CI 39271439304](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39271439304) attempt1 全步骤成功，真实 PostgreSQL 九组检查通过；本机18新增+55回归共73项、类型/lint/生产构建通过。最终 SQL 与真实并发、权限拒绝、永久槽、ACK/终态保护和原业务行保留均由精确候选脚本实际执行，不只是文本断言。依赖业务表为 CI 最小形状 fixture，不冒充全量生产 schema 或 Neon 托管验证。[公开结果记录](../ops/aws-sandbox/reviews/platform-controller-v6.verified.json)。后续只补结果文档，不改变已验证候选代码。
+
 下一阶段集中完成：一次受审 App 只读认证接入（读取准确受保护 PEM、最小 token、立即撤销）、无 AWS 实测身份及 V6 云候选/可信 capsule 与证据导入代码，再准备 SQL/发布/trust 的明确变更清单。实际 key/token、身份 workflow 调度、SQL/Secret/IAM/云部署仍单独具体批准。本阶段没有执行清单，不要运行安装文件或设置启用变量。
 
 回到 [W6](aws-auto-deployment-platform-w6.md) / [注册与权限边界](aws-auto-deployment-platform-w6b-controller-plan.md)。

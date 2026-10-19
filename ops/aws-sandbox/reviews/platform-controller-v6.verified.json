@@ -1,0 +1,17 @@
+{
+  "schema": "techlong/platform-controller-candidate-verification/v6",
+  "state": "CANDIDATE_CODE_VERIFIED_UNPUBLISHED_NOT_INSTALLED_NOT_ACTIVATED",
+  "w6Complete": false,
+  "testedSourceCommit": "9653c47e10043a1ecc9b4167b60da69362d3b822",
+  "initialCodeCommit": "a3ba8f1ba0c30edd42af4791f33d1e35f878946c",
+  "localVerification": {"newTestsPassed":18,"existingTargetedRegressionTestsPassed":55,"totalTestsPassed":73,"typecheckPassed":true,"scopedLintPassed":true,"productionBuildPassed":true},
+  "candidateCi": {"runId":"39271439304","jobId":"118124487328","attempt":1,"conclusion":"success","url":"https://github.com/veinyyxy/TechlongSoftware/actions/runs/39271439304","allStepsSucceeded":true,"resultIndependentlyReadBack":true,"realPostgresChecks":9,"postgres":"18.6, disposable GitHub service only","installer":"non-superuser CREATEROLE database owner","concurrentClients":2,"realNeonCompatibilityVerified":false},
+  "priorPlatformCi": {"runId":"39271106084","sourceCommit":"a3ba8f1ba0c30edd42af4791f33d1e35f878946c","conclusion":"success","subsequentCodeChange":"only candidate SQL CASE parentheses; no platform UI/API/controller TS changes"},
+  "retainedFailure": {"runId":"39271106116","conclusion":"failure","failure":"candidate SQL parsing before successful installation","repairedByFreshSourceCiNotProductionRetry":true},
+  "productionEffects": {"userPemReads":0,"appJwtOrInstallationTokensMinted":0,"deploymentDispatches":0,"awsCalls":0,"neonQueriesOrWrites":0,"schemaOrRolesInstalled":0,"iamChanges":0,"resourcesCreated":0},
+  "guards": {"release":"UNPUBLISHED","enableVariableCannotActivateAlone":true,"launcherCredentialAllowlistUnchanged":true,"oldCloudWorkflowsRuntimeAndPermanentSlotsUnchanged":true,"originalNineRegistrationSourcePinsVerified":true,"cloudClosureFiles":76,"cloudClosureSha256":"70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac"},
+  "remaining": ["separately reviewed real App authentication using protected PEM","actual App dispatch actor identity proof","V6 AWS workflow/runtime candidate and reviewed publication/trust","trusted cloud capsule and proof import adapters","reviewed SQL installation and credential activation","one new platform-to-AWS real acceptance"],
+  "browserVisualAcceptancePerformed": false,
+  "document": "docs/aws-auto-deployment-platform-w6b-controller-implementation.md",
+  "notAnExecutionApproval": true
+}
