@@ -6,6 +6,8 @@ import pg from 'pg';
 import {platformFixtureV6} from '../../tests/fixtures/platform-cloud-v6.mjs';
 import {createTrustedPublisherV6} from '../../ops/platform-cloud-v6/publisher.mjs';
 import {CONTROL_SCOPE as S} from '../../lib/deployments/controller-v6/contract.ts';
+import {readControlCatalog} from '../../ops/platform-controller-review-v6/catalog.mjs';
+import {assertAbsent,assertInstalled,sqlContract} from '../../ops/platform-controller-review-v6/install.mjs';
 assert.equal(process.env.GITHUB_ACTIONS,'true');
 const port=Number(process.env.PLATFORM_CONTROL_CI_PORT);assert.ok(Number.isInteger(port)&&port>1024&&port<65536);
 const base={host:'127.0.0.1',port,user:'postgres',password:'controller-ci-only-bootstrap',database:'postgres'};
@@ -25,7 +27,12 @@ try {
   await owner.query('INSERT INTO public.app_instance_deployments VALUES($1,$2,$3,$4)',[S.deploymentId,S.instanceId,'aws_sandbox','ready']);
   await owner.query('INSERT INTO public.deployment_jobs VALUES($1,$2,$3,$4,0,1,NULL,$5,$6)',[j.id,S.deploymentId,'reconcile','pending',String(j.available_at),j.payload]);
   const before=(await owner.query('SELECT * FROM public.deployment_jobs')).rows;
-  await owner.query(await readFile(new URL('../../ops/platform-controller-v6/install.sql',import.meta.url),'utf8'));
+  const ddl=(await readFile(new URL('../../ops/platform-controller-v6/install.sql',import.meta.url),'utf8')).replaceAll('\r\n','\n');
+  const pre=await readControlCatalog(owner);assertAbsent(pre);
+  const installedBatch=await owner.query(ddl);assert.equal(installedBatch.at(-1).command,'COMMIT');
+  const catalogProof=assertInstalled(await readControlCatalog(owner),sqlContract(ddl),pre);
+  assert.equal(catalogProof.roleLogin,false);assert.equal(catalogProof.functions,9);assert.equal(catalogProof.emptyTables,3);
+  console.log(JSON.stringify({outcome:'PASSED_REAL_CONTROL_INSTALL_CATALOG_POSTGRESQL_18',verified:catalogProof,productionDatabaseTouched:false}));
   await owner.query(`ALTER ROLE ${S.databaseRole} LOGIN PASSWORD '${password}'`); // temporary CI only
   worker=new pg.Client({...base,database:dbName,user:S.databaseRole,password});await worker.connect();
   f.ports.writeOwner=q=>owner.query(q.text,q.values);

@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-20）：**先安装既有NOLOGIN控制账本，完成最小激活的必要底座；本轮入口已编码、生产写0。** 只读Neon18.6显示目标角色/schema缺席，10新增安装检查+6 publisher回归通过；准确新CI将用临时PG真实安装并验证同一目录/函数体/权限逻辑。通过后只在最终main生成48小时fresh SHA，另批一事务安装1角色/1 schema/3表/9函数；不LOGIN/Secret/IAM/dispatch/业务写。之后收口生产publisher与App云发布，不再身份实验。[范围、风险和执行命令](aws-auto-deployment-platform-w6f-control-install.md)。下文为历史。
+
 当前继续点（2026-10-19）：**W6e真实App身份门禁已通过，准确run39312477081/attempt1成功，proof1465a605…独立匹配，原token撤销204已保存。** 一次PEM/token/dispatch，无重试/代批/AWS或SQL调用；永久槽保留，身份实验不重复。平台仍UNPUBLISHED，下一集中控制器窄SQL/可信publisher生产端口及App云发布最小激活方案，真实安装/发布/trust/新任务执行另批，不恢复支线。[完整事实和继续位置](aws-auto-deployment-platform-w6e-app-identity-verified.md)。下文为历史。
 
 当前继续点（2026-10-19）：**W6e专用无AWS身份调度与独立只读验收代码已实现，尚未读真实key/mint/dispatch。** 保留已有工作流、旧认证/发布槽和UNPUBLISHED；只在最终同步main生成48小时清单并请求准确SHA。实际获批后最多一读钥/一token/一dispatch及立即一次revoke，用户批准准确environment后再只读核对run与artifact。不要重做CI、旧发布或扩云支线。[完整风险和唯一命令](aws-auto-deployment-platform-w6e-app-identity-dispatch.md)。下文为历史。
