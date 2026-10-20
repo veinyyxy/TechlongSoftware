@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-20当前：**W6k真实本机启动/管理员登录查看已完成，服务已关闭并独立核验。** 按2a50da9d…单次供给/启动，用户确认登录及页面正常；原PID退出、3100无监听，永久槽已消费，不再重启。48项本机与准确CI39476628734全部17步骤通过，7项公开原件/23源码pin已核对；没有AWS写、新任务或调度，正常登录会话写不是“SQL为0”。下一集中新heldjob及独立受审运行窗口，完成平台Review→RunOnce→Inspect；不重放旧槽或扩支线。[完成记录、证据与唯一继续点](docs/aws-auto-deployment-platform-w6k-local-runtime-verified.md)。下文为历史。
+
 2026-10-20当前：**W6k最小受审本机启动器已编码，尚未读取真实凭据或启动服务。** 独立配置/白名单内存传递、固定Secret版本/key元数据、30分钟许可、前台停止及只读Inspect；原launcher与81/76云闭包不变。10新+4原launcher+34回归通过；真实Wrangler仅合成变量检查通过，下一准确CI再验证一次性runner本机服务并只读Prepare48小时清单，Start另按新SHA批准。本轮生产SQL/AWS写/私密读取/新任务/调度0。[范围、完整风险与命令](docs/aws-auto-deployment-platform-w6k-local-runtime-review.md)。下文为历史。
 
 2026-10-20当前：**W6j公开绑定已按752a9ee9…单次发布并独立核验成功，运行时尚未启动。** 仅一个binding文件变为PUBLISHED，真实workflow/R与release摘要匹配；一次非强制push/本地ff，永久槽已消费。发布后34项本机检查/typecheck及准确提交两项云CI全部通过；无AWS写、生产SQL、私密读取、任务创建、服务启动或部署。下一集中受审本机最小启动器/私密供给和一个全新任务的Review→RunOnce→Inspect验收，不重放旧任务或扩支线。[完成事实、证据与唯一继续点](docs/aws-auto-deployment-platform-w6j-binding-published.md)。下文为历史。

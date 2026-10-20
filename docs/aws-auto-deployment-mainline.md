@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-20）：**W6k按2a50da9d…完成一次真实Windows本机启动与用户登录查看，已关停并独立核验。** Ready/PID与loopback匹配，用户报告页面正常；原PID退出/3100空闲，7原件及23源码pin完整。准确CI39476628734全部17步骤通过；本步不创建任务或调度，无AWS写，原普通launcher及云闭包保持。永久槽已消费，禁止Start重放/凭据重读；当前服务OFF。下一集中准备新heldjob及其独立运行窗口/具体计划写入、App调度和云执行范围，平台Review→RunOnce→Inspect验收；不是重复W6k，不扩F3c9/身份实验。[完成事实、边界与继续点](aws-auto-deployment-platform-w6k-local-runtime-verified.md)。下文为历史。
+
 当前继续点（2026-10-20）：**W6k独立本机启动器/单次私密供给入口已实现，尚未实际启动。** 原launcher/云闭包不变；固定Secret版本、key/auth文件元数据、白名单子进程环境、根dotenv关闭及独立无env配置目录、30分钟截止/停止/只读端口Inspect。10新+4原launcher+34回归/定向lint通过；下一最终main准确云CI的合成材料真实进程验收通过后，只读Prepare新48小时SHA，请用户单次Start批准。当前真实私密读取/生产SQL/服务启动/新任务/dispatch0，启动许可不代替任务或调度批准。[完整风险和唯一入口](aws-auto-deployment-platform-w6k-local-runtime-review.md)。下文为历史。
 
 当前继续点（2026-10-20）：**W6j按752a9ee9…清单公开绑定发布成功，独立Inspect通过，运行时未启动。** main曾精确ff到69a3643…，仅单文件PUBLISHED；真实workflow390829326/R4588febb…及release268efbd9…准确，云闭包和既有权限不变。发布后34项本机/typecheck、两项准确提交CI全通过，槽永久消费，禁止Publish重放；本轮AWS写/生产SQL/私密读取/新任务/启动/dispatch0。下一集中准备一次受审本机启动器（固定私密供给/30分钟许可/loopback/停止方式），获新范围批准后登记一个全新heldjob，平台Review→RunOnce→Inspect验收。不要再身份探针、扩F3c9或重装W6h/W6i。[完成记录与唯一继续点](aws-auto-deployment-platform-w6j-binding-published.md)。下文为历史。

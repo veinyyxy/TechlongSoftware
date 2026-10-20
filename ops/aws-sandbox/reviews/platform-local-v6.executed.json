@@ -1,0 +1,31 @@
+{
+  "schema": "techlong/platform-local-start-executed/v6",
+  "state": "LOCAL_LOGIN_REPORTED_RUNTIME_STOPPED_AND_PORT_INDEPENDENTLY_VERIFIED",
+  "date": "2026-10-20",
+  "timezone": "America/Winnipeg",
+  "manifestSha256": "2a50da9d571112f08bff15647bac37c48d0fe3db77235dfcdc281edec6ef3d03",
+  "sourceCommit": "5d6c9caf4cff7d9414288de200ebf8e908377f95",
+  "riskFile": "docs/aws-auto-deployment-platform-w6k-local-runtime-review.md",
+  "completionFile": "docs/aws-auto-deployment-platform-w6k-local-runtime-verified.md",
+  "ci": {"runId": "39476628734", "jobId": "118814144104", "sourceCommit": "5d6c9caf4cff7d9414288de200ebf8e908377f95", "attempt": 1, "status": "completed", "conclusion": "success", "stepsPassed": 17, "syntheticRunnerProcessHealth200Admin401AndClosePassed": true, "firstFailedRunRetained": "39475772723", "rerun": false, "productionPrivateMaterialUsed": false},
+  "startup": {"slotConsumedAtUtc": "2026-10-20T18:44:54.867Z", "readyAtUtc": "2026-10-20T18:45:09.748Z", "leaseExpiresAtUtc": "2026-10-20T19:14:54.867Z", "origin": "http://127.0.0.1:3100", "childPid": 34336, "releaseSha256": "268efbd9674824f79cb453e82a05bd09b5d7fd3c01c3c277f6506f850ae79d40", "fixedSecretArn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-controller/neon-v6-M4A08E", "fixedSecretVersionId": "3574f24e-ecb3-476c-8f71-baa501fd129e", "requestEntryEnabled": false, "ordinaryWorkerEnabled": false, "awsApplyEnabled": false},
+  "boundedExecutionPathCounts": {"fixedSecretReads": 1, "appPrivateKeyFileReads": 1, "existingAuthFileReads": 1, "childStarts": 1, "automaticStartupSqlSubmissions": 0, "awsWrites": 0, "iamOrSecretWrites": 0, "appTokenOrDispatchActionsByAgent": 0, "businessJobWritesByAgent": 0, "workloadCreatesByAgent": 0, "automaticRetriesRestartsOrResets": 0, "countsFromReviewedBoundedPathNotIndependentProviderAudit": true},
+  "operatorResult": {"selfLoginReportedSuccessful": true, "instancePageReportedNormal": true, "agentReceivedPasswordOrCookie": false, "normalAuthenticationSessionWritesAccepted": true, "actualSqlStatementCount": null, "independentBusinessRowsOrAuthenticatedLedgerAuditPerformed": false},
+  "preStopDiagnostics": {"healthStatus": 200, "anonymousControllerApiStatus": 401, "cookiesOrCredentialsSent": false, "responseBodiesLogged": false, "listenerAddress": "127.0.0.1", "listenerPort": 3100, "listenerPidMatchedOriginalChild": true},
+  "shutdown": {"method": "CtrlCToOriginalForegroundPty80294", "terminalWrapperExitCode": 1, "structuredOutcome": "LOCAL_RUNTIME_STOPPED_REQUIRES_INDEPENDENT_INSPECT", "runResultFileModifiedAtUtc": "2026-10-20T18:47:41.764Z", "childExited": true, "portFree": true, "stoppedBeforeOriginalDeadline": true, "restarted": false, "otherProcessesKilledByName": false},
+  "independentVerification": {"outcome": "LOCAL_PORT_CLOSED_INDEPENDENTLY_OBSERVED", "separateInspectProcess": true, "portFree": true, "privateReads": 0, "awsCalls": 0, "externalWrites": 0, "osObservationAtUtc": "2026-10-20T18:48:08.646Z", "exactOriginalChildPidAbsent": true, "port3100Listeners": 0, "all7OriginalRawHashesReconciled": true, "all23ExecutionSourcePinsMatchedBeforeDocumentationEdits": true, "wholeProcessTreeMemoryCredentialRevocationOrBusinessStateProved": false},
+  "permanentSlot": {"path": "F:/ChatGPT_workshop/techlong-w6k-local-runtime.intent.json", "consumed": true, "replayOrResetAllowed": false},
+  "receipts": [
+    {"path": "F:/ChatGPT_workshop/techlong-w6k-local-runtime-20261020-a/manifest.json", "rawSha256": "cd59793f67732133fb5bfdf381095757feded57916f88a25c1c4832165b03601"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6k-local-runtime-20261020-a/result.json", "rawSha256": "8bec888f8073225ed0e061e6fee7d274517a66a8602cbc321e2f95833e8fbe85"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6k-local-runtime-20261020-a-run/approved-manifest.json", "rawSha256": "cd59793f67732133fb5bfdf381095757feded57916f88a25c1c4832165b03601"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6k-local-runtime-20261020-a-run/started.json", "rawSha256": "766e6e1e03dd9a7261f6e54dac4b4ed7bccf71b79691a830fef419b549253cbb"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6k-local-runtime-20261020-a-run/result.json", "rawSha256": "37301743537d898a73fdaa6acff980fa6b01f62760148dcaa4955059dfa4a8ef"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6k-local-runtime-20261020-a-inspect/result.json", "rawSha256": "5d6bfc8c6b35dde354a361ae3e40f55453f7f1b22363b918de37439939e4afad"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6k-local-runtime.intent.json", "rawSha256": "18056a059310f8e8d344ff6efdf2dbc87185c19c074ea0c7c35f5efc9bf271d2"}
+  ],
+  "runtimeWasStarted": true,
+  "runtimeCurrentlyRunningForThisWindow": false,
+  "awsEndToEndDeploymentVerified": false,
+  "next": "Prepare one NEW held job and a separate reviewed runtime window for platform Review/RunOnce/Inspect. Task/plan/proof writes, private supply in a new window, App operations and cloud deployment require fresh exact scope; never replay/reset this W6k slot or old jobs and installation stages."
+}
