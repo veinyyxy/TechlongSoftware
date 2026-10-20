@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-20）：**W6i按9a888e4f…清单发布成功，独立Inspect通过。** caller workflow390829326、reusable390829324、R4588febb…及新trust/完整模板已匹配，栈UPDATE_COMPLETE；原策略/boundary v1/五资源物理身份/审批门禁保持。原个人actor/reusable不符合新trust，不宣称撤销已有STS会话。一次push/Create/Execute/ff和永久槽已完成，禁止重放；无私密读取/Neon/dispatch/部署，平台/publisher仍UNPUBLISHED。下一只集中真实workflow/R的发布绑定和新待审任务一次端到端验收，具体激活/私密读取/调度仍新范围审批，不做身份实验或F3c9。[完成事实、原件和继续点](aws-auto-deployment-platform-w6i-app-published.md)。下文为历史。
+
 当前继续点（2026-10-20）：**W6i App发布/trust-only入口已编码，30项本机检查及零警告lint通过，尚未执行。** 复用原冻结云代码/真实App proof，保留旧R/S；只有新SHA批准后一次push两手动工作流、一次创建/严格核验/执行准确Change Set及ff，现有IAM策略和其它资源不变，旧个人worker将失去角色访问权。下一准确无AWS CI成功后在clean main只读Prepare新48小时清单，不读取任何私密值/连接Neon/调度或部署；平台/publisher仍UNPUBLISHED。[完整风险及唯一入口](aws-auto-deployment-platform-w6i-app-publication-review.md)。下文为历史。
 
 当前继续点（2026-10-20 10:43温尼伯）：**W6h专用数据库凭据已单次安装，独立核验通过。** 按a9b5e2ce…清单三次Secret写、一事务既有角色密码/LOGIN，准确版本/Source-only策略、目录仅LOGIN变化及两次TLS只读认证匹配；三控制表空，两个永久槽已消费，不重放或再读私密值。准确CI39447172538全部通过。本轮无App key、workflow发布、worker trust、dispatch或部署，平台/publisher仍UNPUBLISHED。下一仅集中最新clean main的App caller/reusable发布和现有角色trust-only待审范围，再接发布绑定；旧未发布R/S保留但不能覆盖已推进main。实际发布/权限/私密读取/部署仍fresh另审。[完成证据和继续点](aws-auto-deployment-platform-w6h-credentials-installed.md)。下文为历史。

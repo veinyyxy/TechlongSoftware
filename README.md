@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-20当前：**W6i App双工作流与worker trust已单次发布，独立核验成功，尚未dispatch。** 真实caller390829326/reusable390829324、固定R4588febb…、准确Change Set及UPDATE_COMPLETE匹配；仅两trust字段变化，原policy/boundary/其它绑定布局保持。一次push/Create/Execute/ff，永久槽已消费，不重放；未读私密值、连接Neon或部署，平台/publisher仍UNPUBLISHED。下一集中真实workflow/R的平台发布绑定及新任务端到端验收，私密读取/调度另审。[完成证据和唯一继续点](docs/aws-auto-deployment-platform-w6i-app-published.md)。下文为历史。
+
 2026-10-20当前：**W6i App双工作流发布/现有worker trust-only受审入口已实现，尚未发布或改trust。** 12新边界+18回归共30项、零警告lint通过，81/76云闭包保持；拟一次非强制push、一Create、一严格准确ARN/模板核验后Execute及本地ff，旧个人worker将失去角色访问权。下一准确无AWS CI后只读准备48小时新SHA，实际发布另批；不读Secret/App key、连Neon、dispatch或部署，平台/publisher仍UNPUBLISHED。[完整范围、风险和命令](docs/aws-auto-deployment-platform-w6i-app-publication-review.md)。下文为历史。
 
 2026-10-20 10:43温尼伯：**W6h单窄凭据已按a9b5e2ce…清单安装并独立核验成功。** 一个受保护Secret/固定版本、既有角色密码及LOGIN一事务COMMIT、两次专用TLS只读认证通过；目录/权限除LOGIN外不变，三张控制表仍空。三次Secret写/一SQL事务/一次独立值读取，两个永久槽已消费，不重放。未读App key、发布workflow、改worker trust、dispatch或部署，平台/publisher仍UNPUBLISHED。下一集中最新main上的App发布/trust-only待审清单，旧未发布R/S仅保留证据，不直接推送。[完成事实、原件和唯一继续点](docs/aws-auto-deployment-platform-w6h-credentials-installed.md)。下文为历史。

@@ -1,0 +1,43 @@
+{
+  "schema": "techlong/platform-app-publication-executed/v6",
+  "state": "APP_PUBLICATION_INDEPENDENTLY_VERIFIED_NO_DISPATCH",
+  "date": "2026-10-20",
+  "timezone": "America/Winnipeg",
+  "manifestSha256": "9a888e4fd0c27cf0f1093c30fdb92a0cc7c7e04d8538cc58ae8f9881905f2697",
+  "riskFile": "docs/aws-auto-deployment-platform-w6i-app-publication-review.md",
+  "completionFile": "docs/aws-auto-deployment-platform-w6i-app-published.md",
+  "sourceCommit": "07c1ce9db4ce7262a30b7e876c2427ce82980e47",
+  "publishedReusableCommit": "4588febb7b33378ccf2aa1a2b552a18660be8292",
+  "publishedCallerCommit": "f992a54ec92d3e8a4711720b313ba67b5310ff96",
+  "ci": {"runId": "39453321476", "jobId": "118733585268", "attempt": 1, "status": "completed", "conclusion": "success", "stepsPassed": 16, "productionAwsIdentityUsed": false},
+  "frozen": {"sourceCommit": "ca2b38d8c756dd8fb800a88ded596c93687f278f", "v6ClosureSha256": "828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a", "v5ClosureSha256": "70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac", "identityProofSha256": "1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca"},
+  "workflows": [
+    {"path": ".github/workflows/cloud-worker-platform-job-v6.yml", "id": "390829324", "blob": "1f94d28ec0433d367d08f0e01d79a8c6e89478d2"},
+    {"path": ".github/workflows/cloud-worker-platform-v6.yml", "id": "390829326", "blob": "6b6e04ba4fc191b1642cdfafd0dd04467df63f7a"}
+  ],
+  "foundation": {"stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cloud-worker-foundation-v5/308174f0-ca9e-11f1-a04d-02569e9287b5", "status": "UPDATE_COMPLETE", "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/platform-app-v6-f992a54ec92d3e8a4711720b/3006d079-2131-4ee6-b757-d1d21efb82a2", "strictChangeSetVerifiedBeforeExecute": true, "disableRollback": true, "onlyChangedLogicalId": "WorkerRole", "replacement": false, "templateSha256": "b222efec1e29013c7c9ab1c4c9120c40eacb484cd6b7d9f39c8b0a12e62c6187", "physicalResourceIdentitiesPreserved": 5},
+  "iam": {"roleId": "AROAV3GNMXTZK5O45RG24", "changedTrustClaims": ["actor_id", "job_workflow_ref"], "oldActorId": "14145707", "newActorId": "344813947", "newReusableReference": "veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@4588febb7b33378ccf2aa1a2b552a18660be8292", "remainingLayoutMatched": true, "boundaryDefaultVersion": "v1", "boundaryDocumentSha256": "0551f01ec4398abd89e52997f3a63b35ba84f2b5e68a2d29df09dfc7065a91d6", "inlineDocumentSha256": "ef09a5c638b600914cf0a29873a705432a5f96ffb9cdc20c6fa16aeaaa157bfd", "existingIssuedSessionsRevokedOrProvedExpired": false},
+  "verification": {"separateInspectProcess": true, "independentOutcome": "APP_PUBLICATION_INDEPENDENTLY_VERIFIED_NO_DISPATCH", "workflowIdsBlobsAndBytesMatched": true, "templateState": "new", "remainingLayoutMatched": true, "localAndRemoteHeadAtInspection": "f992a54ec92d3e8a4711720b313ba67b5310ff96", "all13OriginalRawHashesReconciled": true},
+  "counts": {"push": 1, "createChangeSet": 1, "executeChangeSet": 1, "localFastForward": 1, "automaticRetries": 0, "compensationOrDeletes": 0, "iamIdentityPermissionExpansion": 0, "newIamResources": 0, "secretValueReads": 0, "appPrivateKeyReads": 0, "appTokens": 0, "neonConnections": 0, "environmentWrites": 0, "dispatches": 0, "jobClaims": 0, "workloadCreates": 0},
+  "permanentSlot": {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication.intent.json", "consumedAtUtc": "2026-10-20T17:32:09.147Z", "replayOrResetAllowed": false},
+  "receipts": [
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-run/approved-manifest.json", "rawSha256": "161a315a4640cd46928f56b496b40e7f3540b2a984a7699576690dafb73e43bb"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-run/change-set-verified.json", "rawSha256": "db42358425b1b73849497ed9ed51a2998cf701eedcf7048c6edad10ad0767441"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-run/create-ack.json", "rawSha256": "46bed2236363e590c07926b97e89a8246dce79518183380b6c6c2a2df7c37962"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-run/execute-ack.json", "rawSha256": "46bed2236363e590c07926b97e89a8246dce79518183380b6c6c2a2df7c37962"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-run/final-workflows.json", "rawSha256": "d8903333aaa9273b5591c4c7831387ec6817ccbc7b7a34901ff476354f33095a"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-run/local-main-ack.json", "rawSha256": "bad5becd194fc0602dc6db41f669dd1fe0400bcb96c6ecc490cfa50249738a7c"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-run/post-layout.json", "rawSha256": "d4fd6eb372598c1f61648080b135c9b85c03dcd4abdf283bf1981c0e837540b4"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-run/published-workflows.json", "rawSha256": "d8903333aaa9273b5591c4c7831387ec6817ccbc7b7a34901ff476354f33095a"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-run/push-ack.json", "rawSha256": "e30d8c4283d098d69d098a40c7352a1ab7066c5675045fe4ec4599292232d594"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-run/result.json", "rawSha256": "ef4658a8bbd75d77e26348c5d40fecd24f7a13c9ea0cd3c90c0d82101a53cfcc"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-inspect/independent-layout.json", "rawSha256": "3059fc48c7ab2a93bb85aed489e637b2dfe337a4982d4a7397c3af3ed854eefa"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-inspect/result.json", "rawSha256": "6c02ab9c1f45c98a49239f53d990d9eb9d784391afd05a40a428e4d385e0904a"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6i-app-publication.intent.json", "rawSha256": "0ebfa9017e28950437ed95d5064987ae88594d7914f55da111b204c60db889a1"}
+  ],
+  "platformRelease": "UNPUBLISHED",
+  "publisherRelease": "UNPUBLISHED",
+  "runtimeEnabled": false,
+  "workflowDispatched": false,
+  "next": "Bind actual caller workflow390829326 and exact R to platform/publisher using a separately reviewed minimum activation scope, then prepare a NEW held job for one Review/RunOnce/Inspect acceptance. Private reads, App tokens/dispatch and AWS task execution remain separately approved. Never replay Publish/W6h/identity probes/old completed W5r job; preserve slots and avoid F3c9 expansion."
+}
