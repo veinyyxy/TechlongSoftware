@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-20）：**W6l准确新待审任务已登记并独立核验，入口已关闭。** `job_fc0309dabebc09367f64153f` pending/attempt0/max1/审核挂起、无lease/云执行授权；九行及四旧job摘要保持。准确CI17步骤、12原件/26源码pin通过，两永久槽消费禁止重放；原PID退出、3100无监听。本阶段不读App key/AWS Secret、不调用AWS或dispatch；正常登录写入不声称SQL为0。下一仅复用既有publisher/controller为该准确job准备Review计划及新范围，计划SQL/私密供给/App操作/部署另审，不新增任务、执行器或身份支线。[完成证据和唯一继续点](aws-auto-deployment-platform-w6l-held-request-verified.md)。下文为历史。
+
 当前继续点（2026-10-20）：**W6l只准备真实新heldjob的固定请求窗口，不重跑W6k。** 管理员/UUID/request/job预先绑定，前置和SQL前复核、刷新不换nonce；原登记SQL不变，request-only窗口不读App key/AWS Secret，controller/worker/apply关闭。新Start/独立Inspect两槽、两次认证文件读取/四显式只读事务及一真实管理员逻辑job均需最终新SHA批准。67项本机/类型/lint通过，原云闭包不变；下一准确CI成功后只读Prepare，登记核验后直接复用publisher/controller绑定该job的Review计划，不扩新执行器/身份/F3c9。[完整范围和唯一入口](aws-auto-deployment-platform-w6l-held-request-review.md)。下文为历史。
 
 当前继续点（2026-10-20）：**W6k按2a50da9d…完成一次真实Windows本机启动与用户登录查看，已关停并独立核验。** Ready/PID与loopback匹配，用户报告页面正常；原PID退出/3100空闲，7原件及23源码pin完整。准确CI39476628734全部17步骤通过；本步不创建任务或调度，无AWS写，原普通launcher及云闭包保持。永久槽已消费，禁止Start重放/凭据重读；当前服务OFF。下一集中准备新heldjob及其独立运行窗口/具体计划写入、App调度和云执行范围，平台Review→RunOnce→Inspect验收；不是重复W6k，不扩F3c9/身份实验。[完成事实、边界与继续点](aws-auto-deployment-platform-w6k-local-runtime-verified.md)。下文为历史。
