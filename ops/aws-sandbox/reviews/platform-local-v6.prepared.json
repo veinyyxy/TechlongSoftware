@@ -1,0 +1,18 @@
+{
+  "schema": "techlong/platform-local-code-prepared/v6",
+  "state": "CODE_TESTED_AWAITING_EXACT_SOURCE_CI_AND_METADATA_REVIEW",
+  "date": "2026-10-20",
+  "timezone": "America/Winnipeg",
+  "document": "docs/aws-auto-deployment-platform-w6k-local-runtime-review.md",
+  "bindingAlreadyPublished": true,
+  "originalLauncherUnchanged": true,
+  "newLocalTests": 10,
+  "originalLauncherRegressionTests": 4,
+  "bindingControllerPublisherRuntimeRenderRegressionTests": 34,
+  "scopedLintWarnings": 0,
+  "cloudValidation": "Pending exact-source CI: includes actual disposable runner-local child, synthetic credentials only, health200/admin401 and awaited stop; no production identity or material.",
+  "unchangedClosures": {"v6Files": 81, "v6Sha256": "828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a", "v5Files": 76, "v5Sha256": "70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac"},
+  "localMetadataOnly": {"keyProtectedThreePrincipalAclMatched": true, "authFileInheritedAclRetained": true, "port3100Free": true, "contentsRead": false},
+  "productionEffects": {"awsWrites": 0, "productionSqlConnections": 0, "secretValueReads": 0, "privateKeyReads": 0, "authFileContentsReads": 0, "serverStarts": 0, "newJobs": 0, "appTokens": 0, "dispatches": 0, "permanentSlotsConsumed": 0},
+  "next": "After exact final main CI success, Prepare one 48h metadata-only review. Exact new SHA approval is required for one fixed Secret/key/auth read and max30min loopback child; no task writes or dispatch under startup approval. Preserve old slots and no replay, F3c9 or identity expansion."
+}

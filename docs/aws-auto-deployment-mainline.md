@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-20）：**W6k独立本机启动器/单次私密供给入口已实现，尚未实际启动。** 原launcher/云闭包不变；固定Secret版本、key/auth文件元数据、白名单子进程环境、根dotenv关闭及独立无env配置目录、30分钟截止/停止/只读端口Inspect。10新+4原launcher+34回归/定向lint通过；下一最终main准确云CI的合成材料真实进程验收通过后，只读Prepare新48小时SHA，请用户单次Start批准。当前真实私密读取/生产SQL/服务启动/新任务/dispatch0，启动许可不代替任务或调度批准。[完整风险和唯一入口](aws-auto-deployment-platform-w6k-local-runtime-review.md)。下文为历史。
+
 当前继续点（2026-10-20）：**W6j按752a9ee9…清单公开绑定发布成功，独立Inspect通过，运行时未启动。** main曾精确ff到69a3643…，仅单文件PUBLISHED；真实workflow390829326/R4588febb…及release268efbd9…准确，云闭包和既有权限不变。发布后34项本机/typecheck、两项准确提交CI全通过，槽永久消费，禁止Publish重放；本轮AWS写/生产SQL/私密读取/新任务/启动/dispatch0。下一集中准备一次受审本机启动器（固定私密供给/30分钟许可/loopback/停止方式），获新范围批准后登记一个全新heldjob，平台Review→RunOnce→Inspect验收。不要再身份探针、扩F3c9或重装W6h/W6i。[完成记录与唯一继续点](aws-auto-deployment-platform-w6j-binding-published.md)。下文为历史。
 
 当前继续点（2026-10-20）：**W6j已接真实workflow390829326/R4588febb…的独立binding候选，默认仍UNPUBLISHED。** 34项本机检查通过；平台/publisher共用受审release摘要，云contract及81/76闭包不变，另有本机30分钟许可、准确origin/source、专用Neon目标/verify-full及POST前复核。原launcher不供给私密值；公开binding发布也不启动运行时。下一准确CI成功后只读Prepare单文件发布SHA，实际发布另批，然后集中受审启动/新任务一次验收，不做身份探针；本轮生产写/私密读取/任务创建/服务启动/dispatch0。[完整风险与入口](aws-auto-deployment-platform-w6j-runtime-binding-review.md)。下文为历史。

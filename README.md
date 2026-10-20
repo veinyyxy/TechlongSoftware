@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-20当前：**W6k最小受审本机启动器已编码，尚未读取真实凭据或启动服务。** 独立配置/白名单内存传递、固定Secret版本/key元数据、30分钟许可、前台停止及只读Inspect；原launcher与81/76云闭包不变。10新+4原launcher+34回归通过；真实Wrangler仅合成变量检查通过，下一准确CI再验证一次性runner本机服务并只读Prepare48小时清单，Start另按新SHA批准。本轮生产SQL/AWS写/私密读取/新任务/调度0。[范围、完整风险与命令](docs/aws-auto-deployment-platform-w6k-local-runtime-review.md)。下文为历史。
+
 2026-10-20当前：**W6j公开绑定已按752a9ee9…单次发布并独立核验成功，运行时尚未启动。** 仅一个binding文件变为PUBLISHED，真实workflow/R与release摘要匹配；一次非强制push/本地ff，永久槽已消费。发布后34项本机检查/typecheck及准确提交两项云CI全部通过；无AWS写、生产SQL、私密读取、任务创建、服务启动或部署。下一集中受审本机最小启动器/私密供给和一个全新任务的Review→RunOnce→Inspect验收，不重放旧任务或扩支线。[完成事实、证据与唯一继续点](docs/aws-auto-deployment-platform-w6j-binding-published.md)。下文为历史。
 
 2026-10-20当前：**W6j真实workflow/R绑定候选、限时本机运行门禁及单公开文件发布入口已实现，未启用。** 12新+22回归/实际入口渲染共34项通过；只拟将一个独立binding文件受审发布，原contract/云81及76闭包保持。运行仍需另审供给的30分钟本机许可/准确源码/专用TLS凭据，错误来源或Neon全局fetch覆盖拒绝；原launcher不变。本轮未读私密值、连生产SQL、创建任务/启动服务/dispatch。下一准确CI后只读准备48小时新SHA，实际binding发布另批。[完整范围、运行风险和继续命令](docs/aws-auto-deployment-platform-w6j-runtime-binding-review.md)。下文为历史。

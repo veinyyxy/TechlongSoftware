@@ -1,0 +1,13 @@
+{
+  "name": "techlong-local-platform-v6",
+  "main": "../../worker/index.ts",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "secrets": {
+    "required": [
+      "DATABASE_URL", "AWS_INITIALIZED_REQUESTS_ENABLED", "DEPLOYMENT_WORKER_ENABLED", "AWS_APPLY_ENABLED",
+      "TECHLONG_PLATFORM_CONTROLLER_ENABLED", "TECHLONG_PLATFORM_CONTROL_LOCAL", "TECHLONG_PLATFORM_CONTROLLER_LEASE",
+      "TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL", "TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY"
+    ]
+  }
+}

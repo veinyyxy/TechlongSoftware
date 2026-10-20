@@ -21,6 +21,9 @@ on:
       - 'ops/platform-binding-v6/**'
       - 'tests/platform-binding-v6.test.mjs'
       - 'tests/fixtures/platform-binding-template-v6.json'
+      - 'ops/platform-local-v6/**'
+      - 'tests/platform-local-v6.test.mjs'
+      - 'scripts/ci/verify-platform-local-v6.mjs'
       - 'components/admin/DeploymentControlPanel.tsx'
       - 'app/api/admin/instances/**/deployment-control/route.ts'
   pull_request:
@@ -43,6 +46,9 @@ on:
       - 'ops/platform-binding-v6/**'
       - 'tests/platform-binding-v6.test.mjs'
       - 'tests/fixtures/platform-binding-template-v6.json'
+      - 'ops/platform-local-v6/**'
+      - 'tests/platform-local-v6.test.mjs'
+      - 'scripts/ci/verify-platform-local-v6.mjs'
       - 'components/admin/DeploymentControlPanel.tsx'
       - 'app/api/admin/instances/**/deployment-control/route.ts'
 permissions:
@@ -85,6 +91,11 @@ jobs:
           node --experimental-strip-types scripts/ci/verify-platform-cloud-publisher-pg-v6.mjs
         env:
           PLATFORM_CONTROL_CI_PORT: ${{ job.services.postgres.ports[5432] }}
+      - name: Reviewed local launcher with synthetic I/O only
+        run: |
+          node --experimental-strip-types --test tests/platform-local-v6.test.mjs
+          node --experimental-strip-types scripts/ci/verify-platform-local-v6.mjs
+          node node_modules/eslint/bin/eslint.js ops/platform-local-v6/ tests/platform-local-v6.test.mjs scripts/ci/verify-platform-local-v6.mjs --max-warnings 0
       - name: Unpublished platform still never reads runtime credentials
         run: node --experimental-strip-types --experimental-loader ./tests/cloudflare-loader.mjs --test tests/platform-controller-runtime-v6.test.mjs
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
