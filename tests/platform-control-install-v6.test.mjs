@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {canonicalJson} from '../lib/deployments/execution/hash.ts';
 import {I,SOURCE_FILES,hash,sqlContract,assertAbsent,assertInstalled,makeManifest,verifyManifest,installOnce} from '../ops/platform-controller-review-v6/install.mjs';
 import {ROLE,TABLE_COLUMNS,readControlCatalog,CATALOG_SQL} from '../ops/platform-controller-review-v6/catalog.mjs';
 const sql=(await readFile(new URL('../ops/platform-controller-v6/install.sql',import.meta.url),'utf8')).replaceAll('\r\n','\n'),contract=sqlContract(sql);
@@ -27,7 +28,7 @@ function fixture(){
     claim:async()=>{assert.equal(occupied,false);occupied=true;events.push('slot');if(failure==='expire')clock=m.expiresAt;},
     installBatch:async()=>{events.push('install');batch=true;if(failure==='install')throw Error('COMMIT ACK unknown');return {commitAcknowledged:failure!=='ack'};},
     record:async name=>{events.push(name);if(failure===name)throw Error('disk');}};
-  return {m,events,io,fail:n=>{failure=n;},run:()=>installOnce({manifest:m,approved:m.manifestSha256,io,now:()=>clock})};
+  return {m,events,io,fail:n=>{failure=n;},at:t=>{clock=t;},run:()=>installOnce({manifest:m,approved:m.manifestSha256,io,now:()=>clock})};
 }
 test('exact existing SQL contract is nine definers, seven service calls, no password/LOGIN activation',()=>{
   assert.equal(contract.functions.length,9);assert.equal(contract.functions.filter(f=>f.serviceExecute).length,7);assert.equal(SOURCE_FILES.length,14);
@@ -49,12 +50,29 @@ test('post readback validates body hashes, exact NOLOGIN role, empty tables and 
     c=>{c.memberships=[{role:ROLE,member:'other',admin:true}];},c=>{c.actor='other';},c=>{c.business_tables[0].oid='999';}]){
     const v=installed();change(v);assert.throws(()=>assertInstalled(v,contract,prestate()));}
 });
-test('48-hour exact manifest binds SQL/target/CI/pins and no credentials, AWS or business mutations',()=>{
-  const m=manifest();verifyManifest(m,m.manifestSha256,now);assert.equal(m.expiresAt-now,48*3600000);
+test('seven-day exact manifest binds SQL/target/CI/pins and no credentials, AWS or business mutations',()=>{
+  const m=manifest();verifyManifest(m,m.manifestSha256,now);assert.equal(m.expiresAt-now,7*24*3600000);
   assert.equal(m.effects.installBatchSubmissions,1);for(const k of ['passwords','loginActivations','businessWrites','awsCalls','appKeyReads','workflowDispatches','automaticRetries'])assert.equal(m.effects[k],0);
   for(const v of [{...m,slot:'different'},{...m,effects:{...m.effects,loginActivations:1}},{...m,targetFingerprintSha256:'d'.repeat(64)},
     {...m,action:{...m.action,sqlSha256:'d'.repeat(64)}},{...m,extra:true}])assert.throws(()=>verifyManifest(v,m.manifestSha256,now));
   assert.throws(()=>verifyManifest(m,'wrong',now));assert.throws(()=>verifyManifest(m,m.manifestSha256,m.expiresAt));verifyManifest(m,undefined,m.expiresAt+1,true);
+});
+
+test('extended window accepts day six, rejects before creation/at expiry, and never silently extends an old approved SHA',()=>{
+  const m=manifest();verifyManifest(m,m.manifestSha256,now+6*24*3600000);verifyManifest(m,m.manifestSha256,m.expiresAt-1);
+  assert.throws(()=>verifyManifest(m,m.manifestSha256,now-1));assert.throws(()=>verifyManifest(m,m.manifestSha256,m.expiresAt));
+  const oldBody={...m,expiresAt:now+48*3600000};delete oldBody.manifestSha256;
+  const old={...oldBody,manifestSha256:hash(canonicalJson(oldBody))};
+  assert.throws(()=>verifyManifest(old,old.manifestSha256,now));
+});
+
+test('day-six install still requires unchanged fresh catalog and source before consuming the same permanent slot',async()=>{
+  const f=fixture();f.at(now+6*24*3600000);assert.equal((await f.run()).independentInspectRequired,true);
+  for(const drift of ['source','catalog']){
+    const q=fixture();q.at(now+6*24*3600000);
+    if(drift==='source')q.fail('source');else q.io.readCatalog=async()=>({...prestate(),server_version_num:'180007'});
+    await assert.rejects(q.run());assert.equal(q.events.includes('slot'),false);assert.equal(q.events.includes('install'),false);
+  }
 });
 test('bad approval, source/read/collision/catalog drift fail without slot or batch',async()=>{
   const f=fixture();await assert.rejects(installOnce({manifest:f.m,approved:'wrong',io:f.io,now:()=>now}));assert.deepEqual(f.events,[]);
@@ -85,4 +103,5 @@ test('actual local adapter has one exact SQL submission, explicit verified TLS, 
   assert.equal((code.match(/db\.client\.query\(sql\)/g)||[]).length,1);assert.match(code,/ssl:\{rejectUnauthorized:true\}/);assert.match(code,/flag:'wx',flush:true/);
   assert.doesNotMatch(code,/\.pem|@aws-sdk|GetSecretValue|PASSWORD|ALTER ROLE|DROP SCHEMA|dispatchOnce/);
   assert.match(code,/\['Inventory','Prepare','Install','Inspect'\]/);assert.match(code,/identityEvidence\(\)/);
+  assert.match(code,/displayTimeZone:'America\/Winnipeg'/);assert.match(code,/expiresAtWinnipeg:/);assert.match(code,/validForHours:I.validMs\/3600000/);
 });

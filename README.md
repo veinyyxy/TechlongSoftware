@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-20更新：**应用户要求，W6f NOLOGIN账本安装清单改为7天（168小时），安装范围不变、生产未执行。** 12安装+6 publisher检查及零警告lint通过；仅该准备窗口延长，执行前源码/CI/目录fresh核对、同一永久槽及不自动重试保持。旧203cda41…清单保留但不执行，新源码准确CI后生成新SHA，明确完整日期与America/Winnipeg时区；其它权限启用/部署窗口不变。[范围、风险与命令](docs/aws-auto-deployment-platform-w6f-control-install.md)。下文为历史。
+
 2026-10-20当前：**W6f最小激活先落控制账本，单次原子安装/独立目录核验入口已实现，未生产安装。** 复用原SQL，只拟1 NOLOGIN角色/1 schema/3表/9函数/7窄EXECUTE；10新+6回归通过，Neon18.6只读确认目标缺席、无业务行读取或写入。下一准确临时PG CI验证后生成48小时安装SHA；不设密码/LOGIN、读App key/dispatch或改AWS。后续publisher/窄凭据/App发布集中准备，不再扩身份探针。[完整风险和最短路线](docs/aws-auto-deployment-platform-w6f-control-install.md)。下文为历史。
 
 2026-10-19当前：**W6e真实App身份验收成功，令牌撤销204已观察；尚非AWS部署授权。** 单次run39312477081成功，actor/sender/nonce/caller/冻结源码及公开artifact摘要独立比对通过，新槽保留不重放。未改AWS/SQL、workflow或激活平台。下一收口控制器SQL/可信publisher生产接线与App云发布最小激活清单，不再做身份探针，实际安装/权限/部署仍另审。[完成事实、原件与下一步](docs/aws-auto-deployment-platform-w6e-app-identity-verified.md)。下文为历史。

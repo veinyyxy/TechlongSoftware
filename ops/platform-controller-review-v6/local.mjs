@@ -95,7 +95,10 @@ export async function main(args=process.argv.slice(2)){
       const sourceCommit=await cleanMain();g=await github();const ci=await ciProof(g,a['--ci-run'],sourceCommit),prestate=await read();assertAbsent(prestate);
       m=makeManifest({sourceCommit,pins:await pins(),contract,prestate,targetFingerprintSha256:db.targetFingerprintSha256,ci,createdAt:Date.now()});
       await record('manifest',m);result={outcome:'CONTROL_NOLOGIN_INSTALL_PREPARED_NOT_EXECUTED',manifestSha256:m.manifestSha256,sourceCommit,
-        expiresAt:new Date(m.expiresAt).toISOString(),installSubmissions:0,slotConsumed:false};
+        validForHours:I.validMs/3600000,createdAt:new Date(m.createdAt).toISOString(),expiresAt:new Date(m.expiresAt).toISOString(),
+        displayTimeZone:'America/Winnipeg',expiresAtWinnipeg:new Intl.DateTimeFormat('en-CA',{timeZone:'America/Winnipeg',
+          year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23',timeZoneName:'short'}).format(m.expiresAt),
+        installSubmissions:0,slotConsumed:false};
     }else if(mode==='Install'){
       must(db.targetFingerprintSha256===m.targetFingerprintSha256&&same(contract,m.contract),'TARGET_OR_SQL_DRIFT');g=await github();
       await ciProof(g,m.ci.runId,m.sourceCommit);await record('approved-manifest',m);

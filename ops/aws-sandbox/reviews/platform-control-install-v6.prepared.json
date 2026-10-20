@@ -1,13 +1,15 @@
 {
   "schema":"techlong/platform-control-schema-install-entry-preparation/v6",
-  "state":"CODE_VERIFIED_REAL_CI_PENDING_NOT_INSTALLED",
+  "state":"SEVEN_DAY_WINDOW_CODE_VERIFIED_EXACT_NEW_CI_PENDING_NOT_INSTALLED",
   "identityRunId":"39312477081",
   "identityProofSha256":"1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca",
   "entry":"ops/platform-controller-review-v6/local.mjs",
   "sql":"ops/platform-controller-v6/install.sql",
   "existingSqlUnchanged":true,
   "sourcePins":14,
-  "localVerification":{"newTestsPassed":10,"publisherRegressionTestsPassed":6,"scopedLintWarnings":0},
+  "localVerification":{"installTestsPassed":12,"publisherRegressionTestsPassed":6,"scopedLintWarnings":0},
+  "approvalWindow":{"durationHours":168,"timeZone":"America/Winnipeg","utcAlsoDisplayed":true,"appliesOnlyToThisNoLoginSchemaInstall":true,"executionTimeFreshSourceCiAndCatalogChecksUnchanged":true},
+  "supersededUnexecutedManifest":{"sha256":"203cda411dd01c01d3295663ee517d936dd80634c907d6291b78ca8f7f2c2c2a","directory":"F:/ChatGPT_workshop/techlong-w6f-control-20261020-a","preserved":true,"doNotExecute":true,"approvalNotTransferred":true,"previousExactCiRun":"39425720068"},
   "readOnlyNeonInventory":{"directory":"F:/ChatGPT_workshop/techlong-w6f-control-inventory-20261020-a","serverVersionNum":"180006","targetFingerprintSha256":"5d5e52c00c54ed761aac13730f81b1b6f107d7ac06a68a407276132d150690a7","roleAbsent":true,"schemaAbsent":true,"businessRowsRead":0,"writes":0},
   "proposed":{"noLoginRoles":1,"schemas":1,"tables":3,"functions":9,"serviceExecuteFunctions":7,"passwords":0,"loginActivations":0,"secretWrites":0,"businessWrites":0,"awsCalls":0,"workflowDispatches":0},
   "slot":"F:/ChatGPT_workshop/techlong-w6f-control-install.intent.json",
@@ -16,5 +18,5 @@
   "platformRelease":"UNPUBLISHED",
   "document":"docs/aws-auto-deployment-platform-w6f-control-install.md",
   "notAnExecutionApproval":true,
-  "next":"Commit/push source, independently verify exact no-AWS CI and real temporary-PG catalog/body/grant proof. Prepare 48h external execution manifest from synchronized clean main and fresh Neon READ ONLY catalog. Request exact SHA before one production SQL batch. Do not read App key, dispatch, create credentials or change AWS. After this, consolidate publisher production ports, narrow credentials and App cloud release/trust activation without new identity probes."
+  "next":"Commit/push the user-requested seven-day window change, independently verify exact new no-AWS CI and real temporary-PG catalog/body/grant proof. Prepare 168h external execution manifest in F:/ChatGPT_workshop/techlong-w6f-control-20261020-b from synchronized clean main and fresh Neon READ ONLY catalog. Request new exact SHA before one production SQL batch; do not execute the superseded 203cda41 manifest or carry its approval forward. Do not read App key, dispatch, create credentials or change AWS. After this, consolidate publisher production ports, narrow credentials and App cloud release/trust activation without new identity probes."
 }

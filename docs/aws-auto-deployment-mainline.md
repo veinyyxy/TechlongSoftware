@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-20更新）：**W6f本次NOLOGIN安装批准窗口按用户要求延长至7天；未生产安装、未消费永久槽。** 12安装+6回归/零警告lint通过；旧48小时203cda41…清单不执行，旧批准不转移至新SHA。提交后新源码准确CI成功再只读准备新清单，执行时仍逐项比对fresh目录/源码/main/CI。只改本次窗口及明确完整日期/时区展示，不延长权限启用或实际部署窗口。[完整范围与风险](aws-auto-deployment-platform-w6f-control-install.md)。下文为历史。
+
 当前继续点（2026-10-20）：**先安装既有NOLOGIN控制账本，完成最小激活的必要底座；本轮入口已编码、生产写0。** 只读Neon18.6显示目标角色/schema缺席，10新增安装检查+6 publisher回归通过；准确新CI将用临时PG真实安装并验证同一目录/函数体/权限逻辑。通过后只在最终main生成48小时fresh SHA，另批一事务安装1角色/1 schema/3表/9函数；不LOGIN/Secret/IAM/dispatch/业务写。之后收口生产publisher与App云发布，不再身份实验。[范围、风险和执行命令](aws-auto-deployment-platform-w6f-control-install.md)。下文为历史。
 
 当前继续点（2026-10-19）：**W6e真实App身份门禁已通过，准确run39312477081/attempt1成功，proof1465a605…独立匹配，原token撤销204已保存。** 一次PEM/token/dispatch，无重试/代批/AWS或SQL调用；永久槽保留，身份实验不重复。平台仍UNPUBLISHED，下一集中控制器窄SQL/可信publisher生产端口及App云发布最小激活方案，真实安装/发布/trust/新任务执行另批，不恢复支线。[完整事实和继续位置](aws-auto-deployment-platform-w6e-app-identity-verified.md)。下文为历史。

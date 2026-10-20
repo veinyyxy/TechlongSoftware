@@ -6,7 +6,7 @@ export const I=Object.freeze({role:ROLE,schema:SCHEMA,sql:'ops/platform-controll
   identityRecord:'ops/aws-sandbox/reviews/platform-identity-dispatch-v6.executed.json',
   identityProofSha256:'1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca',
   identityRun:'39312477081',slot:'F:/ChatGPT_workshop/techlong-w6f-control-install.intent.json',
-  riskFile:'docs/aws-auto-deployment-platform-w6f-control-install.md',validMs:48*3600000});
+  riskFile:'docs/aws-auto-deployment-platform-w6f-control-install.md',validMs:7*24*3600000});
 export const SOURCE_FILES=['ops/platform-controller-review-v6/catalog.mjs','ops/platform-controller-review-v6/install.mjs',
   'ops/platform-controller-review-v6/local.mjs','tests/platform-control-install-v6.test.mjs',I.sql,I.riskFile,I.identityRecord,
   'lib/deployments/execution/hash.ts','ops/platform-identity-review-v6/publication.mjs','ops/platform-cloud-v6/workflows.mjs',
