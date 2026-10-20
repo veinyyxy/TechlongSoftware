@@ -1,0 +1,17 @@
+{
+  "schema": "techlong/platform-held-request-code-prepared/v6",
+  "state": "CODE_TESTED_AWAITING_EXACT_SOURCE_CI_AND_METADATA_PREPARE",
+  "date": "2026-10-20",
+  "timezone": "America/Winnipeg",
+  "document": "docs/aws-auto-deployment-platform-w6l-held-request-review.md",
+  "scope": "One NEW deterministic held request from original administrator; request-only loopback window and independent readback. Not a Review dispatch or deployment.",
+  "localTests": {"newRequestWindow": 9, "localWindowRegressions": 10, "originalInitializedRequest": 10, "originalLauncher": 4, "bindingControllerPublisherRuntimeRender": 34, "passed": 67},
+  "typecheckPassed": true,
+  "scopedLintWarnings": 0,
+  "ci": "Pending exact-source CI; includes actual disposable PostgreSQL new SELECT/int8/lease redaction and real controller/request-only local children with synthetic values only.",
+  "unchangedClosures": {"v6Files": 81, "v6Sha256": "828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a", "v5Files": 76, "v5Sha256": "70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac"},
+  "oldW6kSlotRetainedNoReplay": true,
+  "newSlotsNotConsumed": true,
+  "productionEffects": {"privateKeyReads": 0, "awsSecretReads": 0, "authFileContentReads": 0, "productionSqlTransactions": 0, "awsCalls": 0, "serverStarts": 0, "newJobs": 0, "appTokens": 0, "dispatches": 0},
+  "next": "After final exact source CI success, metadata-only Prepare a fresh48h SHA; request-only Start/user click and one independent private readback require explicit new approval. Then bind that real job to the already installed publisher/controller Review path. No old job/slot reset, F3c9 or identity expansion."
+}

@@ -14,7 +14,7 @@ export const must=(v,c)=>{if(!v)throw Error('LOCAL_RUNTIME_'+c);};
 export const same=(a,b)=>canonicalJson(a)===canonicalJson(b);
 export const BINDINGS=Object.freeze(['DATABASE_URL','AWS_INITIALIZED_REQUESTS_ENABLED','DEPLOYMENT_WORKER_ENABLED','AWS_APPLY_ENABLED',
   'TECHLONG_PLATFORM_CONTROLLER_ENABLED','TECHLONG_PLATFORM_CONTROL_LOCAL','TECHLONG_PLATFORM_CONTROLLER_LEASE',
-  'TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL','TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY']);
+  'TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL','TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY','TECHLONG_PLATFORM_REQUEST_WINDOW_V6']);
 export async function makeLocalReviewV6({sourceCommit,pins,ci,metadata,createdAt}){
   must(B.state==='PUBLISHED'&&B.publisher.state==='PUBLISHED'&&await sha256Hex(B.platform)===B.publisher.releaseSha256,'BINDING');
   must(/^[a-f0-9]{40}$/.test(sourceCommit)&&ci?.sourceCommit===sourceCommit&&ci.conclusion==='success'&&ci.status==='completed'&&ci.attempt===1&&
@@ -50,6 +50,7 @@ export function childEnvironmentV6(inherited,material,lease){
     DATABASE_URL:material.authUrl,TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL:material.databaseUrl,
     TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY:material.privateKey,TECHLONG_PLATFORM_CONTROLLER_LEASE:JSON.stringify(lease),
     TECHLONG_PLATFORM_CONTROLLER_ENABLED:'true',TECHLONG_PLATFORM_CONTROL_LOCAL:'true',TECHLONG_PLATFORM_LOCAL_LAUNCHER_V6:'true',
+    TECHLONG_PLATFORM_REQUEST_WINDOW_V6:'',
     AWS_INITIALIZED_REQUESTS_ENABLED:'false',DEPLOYMENT_WORKER_ENABLED:'false',AWS_APPLY_ENABLED:'false',
     // Wrangler reads only the dedicated config directory, not repository .env files.
     CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV:'true',CLOUDFLARE_INCLUDE_PROCESS_ENV:'true',

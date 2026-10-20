@@ -29,6 +29,7 @@ const pins=()=>Promise.all(FILES.map(async file=>({file,sha256:hash((await readF
 async function cleanMain(expected){const head=(await git(['rev-parse','HEAD'])).trim();must((await git(['branch','--show-current'])).trim()==='main'&&
   (await git(['status','--porcelain'])).trim()===''&&(!expected||head===expected),'CLEAN_MAIN');return head;}
 async function fileMetadata(file){const r=await exec('pwsh',['-NoLogo','-NoProfile','-NonInteractive','-File',file],{cwd:L.root,windowsHide:true,timeout:20000,maxBuffer:8000});return JSON.parse(r.stdout);}
+export const authMetadataV6=()=>fileMetadata('ops/platform-local-v6/metadata.ps1');
 export async function portFreeV6(){return new Promise((resolve,reject)=>{
   const s=net.createConnection({host:'127.0.0.1',port:3100}),done=v=>{s.destroy();resolve(v);};
   s.setTimeout(1500,()=>{s.destroy();reject(Error('LOCAL_RUNTIME_PORT_UNKNOWN'));});s.once('connect',()=>done(false));
@@ -44,7 +45,7 @@ async function readReviewedFile(file,expected,metadata){
     return new TextDecoder('utf-8',{fatal:true}).decode(bytes.subarray(0,r.bytesRead));
   }finally{bytes?.fill(0);await handle.close();}
 }
-async function ciProof(id,head){
+export async function readLocalCiV6(id,head){
   must(/^[1-9][0-9]{0,15}$/.test(id),'CI_ID');const raw=await git(['credential','fill'],{input:'protocol=https\nhost=github.com\npath=veinyyxy/TechlongSoftware.git\n\n'});
   let token=raw.split(/\r?\n/).find(v=>v.startsWith('password='))?.slice(9);must(token,'GITHUB_READ_AUTH');
   const get=async suffix=>{const r=await fetch('https://api.github.com/repos/'+P.repository+'/'+suffix,{redirect:'error',signal:AbortSignal.timeout(20000),
@@ -60,9 +61,9 @@ async function ciProof(id,head){
     return {runId:id,jobId:String(j.jobs[0].id),sourceCommit:head,attempt:1,status:'completed',conclusion:'success'};
   }finally{token=undefined;}
 }
-async function serve(material,lease,onReady){
+export async function serveEnvironmentV6(environment,lease,onReady){
   const child=spawn(process.execPath,['--experimental-strip-types',path.join(L.root,'ops/platform-local-v6/child.mjs')],{
-    cwd:L.root,env:childEnvironmentV6(process.env,material,lease),windowsHide:true,shell:false,stdio:['ignore','ignore','ignore','ipc']});
+    cwd:L.root,env:environment,windowsHide:true,shell:false,stdio:['ignore','ignore','ignore','ipc']});
   let clean=false,ready=false,bad=false,forceTimer,readyWrite=Promise.resolve();
   const stop=()=>{if(!forceTimer){if(child.connected)child.send({type:'stop'},error=>{if(error)bad=true;});forceTimer=setTimeout(()=>{bad=true;child.kill();},10000);}};
   const deadline=setTimeout(stop,Math.max(0,lease.expiresAt-Date.now())),startup=setTimeout(()=>{bad=true;stop();},120000);
@@ -72,13 +73,21 @@ async function serve(material,lease,onReady){
     child.on('message',message=>{if(message?.type==='ready'&&!ready&&message.pid===child.pid&&message.origin==='http://127.0.0.1:3100'){
       ready=true;clearTimeout(startup);readyWrite=onReady({childPid:child.pid,origin:message.origin,startedAt:Date.now()}).then(()=>{
         console.log(JSON.stringify({outcome:'LOCAL_RUNTIME_READY',childPid:child.pid,origin:message.origin,expiresAtUtc:new Date(lease.expiresAt).toISOString(),
-          next:'Login/view only under startup approval. Any task write or dispatch requires a separate exact approval. Ctrl+C stops this child; never restart this slot.'}));
+          next:'Follow only the exact reviewed window scope. Ctrl+C stops this child; never restart this slot.'}));
       }).catch(()=>{bad=true;stop();});
     }else if(message?.type==='stopped')clean=message.clean===true;else{bad=true;stop();}});
     child.once('close',code=>{if(code!==0)bad=true;resolve();});
   });await readyWrite;return {childExited:true,portFree:await portFreeV6(),cleanClose:ready&&clean&&!bad};
   }finally{clearTimeout(deadline);clearTimeout(startup);clearTimeout(forceTimer);process.off('SIGINT',stop);process.off('SIGTERM',stop);}
 }
+const serve=(material,lease,onReady)=>serveEnvironmentV6(childEnvironmentV6(process.env,material,lease),lease,onReady);
+export async function readAuthV6(expected){const values=parseEnv(await readReviewedFile(L.authFile,expected,authMetadataV6));let u;
+  try{u=new URL(values.DATABASE_URL);}catch{must(false,'AUTH_DATABASE');}
+  must(['postgres:','postgresql:'].includes(u.protocol)&&decodeURIComponent(u.username)==='neondb_owner'&&u.password&&!u.hash&&
+    (!u.port||u.port==='5432')&&['require','verify-full'].includes(u.searchParams.get('sslmode'))&&
+    [...u.searchParams.keys()].every(k=>['sslmode','channel_binding'].includes(k))&&
+    await sha256Hex({host:u.hostname,port:5432,database:u.pathname.slice(1),actor:'neondb_owner',transport:'PostgresTLSVerifyFull'})===
+    '5d5e52c00c54ed761aac13730f81b1b6f107d7ac06a68a407276132d150690a7','AUTH_DATABASE');return values.DATABASE_URL;}
 async function openIo(output){
   const config={region:L.region,maxAttempts:1,ignoreConfiguredEndpointUrls:true,credentials:fromLoginCredentials({profile:'techlong-sandbox-user'})};
   const sts=new STSClient(config),sm=new SecretsManagerClient(config),send=(c,v)=>c.send(v,{abortSignal:AbortSignal.timeout(20000)});
@@ -99,13 +108,7 @@ async function openIo(output){
       return assertControllerDatabaseUrlV6(value.databaseUrl);},
     async readKey(expected){const pem=await readReviewedFile(L.key,expected,key),k=createPrivateKey(pem);
       must(k.asymmetricKeyType==='rsa'&&k.asymmetricKeyDetails?.modulusLength>=2048,'KEY_FORMAT');return pem;},
-    async readAuth(expected){const values=parseEnv(await readReviewedFile(L.authFile,expected,auth));let u;
-      try{u=new URL(values.DATABASE_URL);}catch{must(false,'AUTH_DATABASE');}
-      must(['postgres:','postgresql:'].includes(u.protocol)&&decodeURIComponent(u.username)==='neondb_owner'&&u.password&&!u.hash&&
-        (!u.port||u.port==='5432')&&['require','verify-full'].includes(u.searchParams.get('sslmode'))&&
-        [...u.searchParams.keys()].every(k=>['sslmode','channel_binding'].includes(k))&&
-        await sha256Hex({host:u.hostname,port:5432,database:u.pathname.slice(1),actor:'neondb_owner',transport:'PostgresTLSVerifyFull'})===
-        '5d5e52c00c54ed761aac13730f81b1b6f107d7ac06a68a407276132d150690a7','AUTH_DATABASE');return values.DATABASE_URL;},
+    readAuth:readAuthV6,
     serve,dispose(){sts.destroy();sm.destroy();}
   };
 }
@@ -130,13 +133,13 @@ export async function main(args=process.argv.slice(2)){
     await write(output+'/result.json',result);console.log(JSON.stringify(result));return result;
   }
   const io=await openIo(output);
-  try{if(mode==='Prepare'){const sourceCommit=await cleanMain(),ci=await ciProof(a['--ci-run'],sourceCommit),metadata=await io.metadata();
+  try{if(mode==='Prepare'){const sourceCommit=await cleanMain(),ci=await readLocalCiV6(a['--ci-run'],sourceCommit),metadata=await io.metadata();
       m=await makeLocalReviewV6({sourceCommit,pins:await pins(),ci,metadata,createdAt:Date.now()});await io.assertSource(m);await io.record('manifest',m);
       const result={outcome:'LOCAL_START_REVIEW_PREPARED_NOT_STARTED',manifestSha256:m.manifestSha256,sourceCommit,expiresAtUtc:new Date(m.expiresAt).toISOString(),
         expiresAtWinnipeg:new Intl.DateTimeFormat('en-CA',{timeZone:'America/Winnipeg',dateStyle:'full',timeStyle:'long'}).format(m.expiresAt),
         secretValueReads:0,privateKeyReads:0,authFileReads:0,serverStarts:0,slotConsumed:false};await io.record('result',result);console.log(JSON.stringify(result,null,2));return result;
     }
-    await ciProof(m.ci.runId,m.sourceCommit);await io.record('approved-manifest',m);const result=await startLocalOnceV6({manifest:m,approved:a['--approved-sha'],io});
+    await readLocalCiV6(m.ci.runId,m.sourceCommit);await io.record('approved-manifest',m);const result=await startLocalOnceV6({manifest:m,approved:a['--approved-sha'],io});
     if(result.outcome.includes('UNKNOWN'))process.exitCode=1;console.log(JSON.stringify({...result,output},null,2));return result;
   }finally{io.dispose();}
 }

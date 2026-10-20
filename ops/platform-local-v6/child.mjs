@@ -5,6 +5,7 @@ import {pathToFileURL,fileURLToPath} from 'node:url';
 import {BINDINGS,L,must} from './plan.mjs';
 import {INSTALLED_BINDING_V6 as B} from '../../lib/deployments/controller-v6/installed-binding.ts';
 import {verifiedRuntimeLeaseV6} from '../../lib/deployments/controller-v6/configuration.ts';
+import {REQUEST_WINDOW_BINDING_V6,verifiedRequestWindowV6} from '../../lib/deployments/reviewed-request-window-v6.ts';
 export async function assertConfigDirectoryV6(root){
   const files=await readdir(path.join(root,'ops/platform-local-v6'));
   must(!files.some(f=>/^\.env(?:\.|$)|^\.dev\.vars(?:\.|$)/i.test(f)),'CONFIG_ENV_FILE');
@@ -35,6 +36,13 @@ export async function childMainV6(){
   must(process.env.TECHLONG_PLATFORM_LOCAL_LAUNCHER_V6==='true'&&typeof process.send==='function'&&process.connected,'PARENT_REQUIRED');
   must(path.resolve(process.cwd()).toLowerCase()===path.resolve(root).toLowerCase(),'ROOT');
   const lease=await verifiedRuntimeLeaseV6(process.env.TECHLONG_PLATFORM_CONTROLLER_LEASE,B.platform,Date.now());must(lease,'LEASE');
+  if(process.env[REQUEST_WINDOW_BINDING_V6]){
+    const r=await verifiedRequestWindowV6(process.env[REQUEST_WINDOW_BINDING_V6],Date.now());
+    must(r&&r.sourceCommit===lease.sourceCommit&&r.issuedAt===lease.issuedAt&&r.expiresAt===lease.expiresAt&&
+      process.env.TECHLONG_PLATFORM_CONTROLLER_ENABLED==='false'&&process.env.TECHLONG_PLATFORM_CONTROL_LOCAL==='false'&&
+      process.env.TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL===''&&process.env.TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY===''&&
+      process.env.AWS_INITIALIZED_REQUESTS_ENABLED==='true'&&process.env.DEPLOYMENT_WORKER_ENABLED==='false'&&process.env.AWS_APPLY_ENABLED==='false','REQUEST_ONLY_BINDINGS');
+  }
   await assertConfigDirectoryV6(root);
   const [{createServer},{default:vinext},{cloudflare}]=await Promise.all([import('vite'),import('vinext'),import('@cloudflare/vite-plugin')]);
   const plugins=[vinext(),cloudflare({configPath:path.join(root,L.config),persistState:false,inspectorPort:false,remoteBindings:false,

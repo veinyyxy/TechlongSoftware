@@ -6,11 +6,13 @@ type Authorization = { account: { user: { id: string } } | null; response: Respo
  * session authorization and the concrete DB store, never browser-provided ports. */
 export function createInitializedPlatformHandlers(deps: {
   authorize: () => Promise<Authorization>; enabled: () => boolean;
+  origin?:()=>string|null;
   read: (id: string) => Promise<unknown>;
   submit: (input: { instanceId: string; adminUserId: string; body: unknown }) => Promise<{ created: boolean; jobId: string; cloudExecutionAuthorized: boolean }>;
 }) {
   return {
     async GET(_request: Request, context: Context) {
+      if(deps.origin?.()&&new URL(_request.url).origin!==deps.origin())return Response.json(apiError('ORIGIN_FORBIDDEN','请求来源不受信任。'),{status:403});
       const auth = await deps.authorize();
       if (auth.response) return auth.response;
       if (!auth.account) return Response.json(apiError('UNAUTHORIZED', '请先登录。'), { status: 401 });
@@ -20,7 +22,7 @@ export function createInitializedPlatformHandlers(deps: {
     async POST(request: Request, context: Context) {
       let trusted = false;
       try { trusted = Boolean(request.headers.get('origin')) && new URL(request.headers.get('origin')!).origin === new URL(request.url).origin; } catch { /* reject */ }
-      if (!trusted) return Response.json(apiError('ORIGIN_FORBIDDEN', '请求来源不受信任。'), { status: 403 });
+      if (!trusted||deps.origin?.()&&new URL(request.url).origin!==deps.origin()) return Response.json(apiError('ORIGIN_FORBIDDEN', '请求来源不受信任。'), { status: 403 });
       const auth = await deps.authorize();
       if (auth.response) return auth.response;
       if (!auth.account) return Response.json(apiError('UNAUTHORIZED', '请先登录。'), { status: 401 });
