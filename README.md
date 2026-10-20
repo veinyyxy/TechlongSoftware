@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-20 10:43温尼伯：**W6h单窄凭据已按a9b5e2ce…清单安装并独立核验成功。** 一个受保护Secret/固定版本、既有角色密码及LOGIN一事务COMMIT、两次专用TLS只读认证通过；目录/权限除LOGIN外不变，三张控制表仍空。三次Secret写/一SQL事务/一次独立值读取，两个永久槽已消费，不重放。未读App key、发布workflow、改worker trust、dispatch或部署，平台/publisher仍UNPUBLISHED。下一集中最新main上的App发布/trust-only待审清单，旧未发布R/S仅保留证据，不直接推送。[完成事实、原件和唯一继续点](docs/aws-auto-deployment-platform-w6h-credentials-installed.md)。下文为历史。
+
 2026-10-20当前：**W6h精确27触发器兼容、单窄凭据安装入口与App发布材料准备代码完成，未安装/激活。** 38本机检查和零警告lint通过；只读确认新Secret缺席、仍NOLOGIN及准确快照匹配，兼容仍未批准。拟1个空Secret→Source-only保护→固定版本→一事务LOGIN，再独立只读认证；App私钥不读/不复制。下一准确新CI通过后生成48小时凭据SHA；App两workflow/两trust字段材料仅不可达Git对象，另审发布，runtime仍UNPUBLISHED。[具体范围与完整风险](docs/aws-auto-deployment-platform-w6h-activation-review.md)。下文为历史。
 
 2026-10-20当前：**W6g可信publisher实际I/O适配器及LOGIN前只读权限审计完成，准确CI已全通过，未激活。** 固定TLS/owner/OID/函数体、S3版本摘要、准确GitHub run、两段固定SQL及单阶段写预算；28项本机/零警告lint、CI39432718217真实PG适配器/权限负例/类型/构建通过。Neon发现27个旧PUBLIC invoker触发器，逐个摘要已记，兼容仅提案、不自动放行/撤权；LOGIN/Secret/AWS/dispatch仍0，平台与publisher仍UNPUBLISHED。下一集中兼容与窄凭据/App发布材料，不扩身份实验。[实现、实际阻断和继续点](docs/aws-auto-deployment-platform-w6g-publisher-io.md)。下文为历史。
