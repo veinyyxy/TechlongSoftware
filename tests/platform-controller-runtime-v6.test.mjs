@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { env } from 'cloudflare:workers';
 import { platformControlEnabled,getPlatformControlStatus } from '../lib/deployments/controller-v6/runtime.ts';
 import { CONTROL_SCOPE } from '../lib/deployments/controller-v6/contract.ts';
-test('actual runtime ignores accidental enable flag and never accesses private binding without published release',async()=>{
+test('actual runtime ignores accidental enable flag and never accesses private binding without published release and short local lease',async()=>{
   let reads=0;env.TECHLONG_PLATFORM_CONTROLLER_ENABLED='true';
   Object.defineProperty(env,'TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY',{configurable:true,get(){reads++;throw Error('NO_KEY_READ');}});
   Object.defineProperty(env,'TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL',{configurable:true,get(){reads++;throw Error('NO_DB_READ');}});

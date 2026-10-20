@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-20当前：**W6j真实workflow/R绑定候选、限时本机运行门禁及单公开文件发布入口已实现，未启用。** 12新+22回归/实际入口渲染共34项通过；只拟将一个独立binding文件受审发布，原contract/云81及76闭包保持。运行仍需另审供给的30分钟本机许可/准确源码/专用TLS凭据，错误来源或Neon全局fetch覆盖拒绝；原launcher不变。本轮未读私密值、连生产SQL、创建任务/启动服务/dispatch。下一准确CI后只读准备48小时新SHA，实际binding发布另批。[完整范围、运行风险和继续命令](docs/aws-auto-deployment-platform-w6j-runtime-binding-review.md)。下文为历史。
+
 2026-10-20当前：**W6i App双工作流与worker trust已单次发布，独立核验成功，尚未dispatch。** 真实caller390829326/reusable390829324、固定R4588febb…、准确Change Set及UPDATE_COMPLETE匹配；仅两trust字段变化，原policy/boundary/其它绑定布局保持。一次push/Create/Execute/ff，永久槽已消费，不重放；未读私密值、连接Neon或部署，平台/publisher仍UNPUBLISHED。下一集中真实workflow/R的平台发布绑定及新任务端到端验收，私密读取/调度另审。[完成证据和唯一继续点](docs/aws-auto-deployment-platform-w6i-app-published.md)。下文为历史。
 
 2026-10-20当前：**W6i App双工作流发布/现有worker trust-only受审入口已实现，尚未发布或改trust。** 12新边界+18回归共30项、零警告lint通过，81/76云闭包保持；拟一次非强制push、一Create、一严格准确ARN/模板核验后Execute及本地ff，旧个人worker将失去角色访问权。下一准确无AWS CI后只读准备48小时新SHA，实际发布另批；不读Secret/App key、连Neon、dispatch或部署，平台/publisher仍UNPUBLISHED。[完整范围、风险和命令](docs/aws-auto-deployment-platform-w6i-app-publication-review.md)。下文为历史。

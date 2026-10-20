@@ -25,7 +25,7 @@ export function DeploymentControlPanel({instanceId,view}:{instanceId:string;view
       <p>准确范围：ca-central-1 / techlong-sandbox-tenant-9c5ee9e64509dcad；最多 {p.effects.createStackCalls} 次建栈、{p.effects.resourcesMax} 项承载资源、{p.effects.authenticatedApplicationGets} 次认证 GET。</p>
       <p>计划 <code>{p.planSha256}</code><br/>动作 <code>{p.actionSha256}</code><br/>风险版本 <code>{p.riskSha256}</code></p>
       <p>期限 {new Date(p.expiresAt).toISOString()}；源码 <code>{p.sourceCommit}</code></p>
-      <a className="table-link" href={`https://github.com/veinyyxy/TechlongSoftware/blob/${p.sourceCommit}/docs/aws-auto-deployment-platform-w6b-controller-implementation.md`} target="_blank" rel="noopener noreferrer">核对该源码版本的风险说明 ↗</a>
+      <a className="table-link" href={`https://github.com/veinyyxy/TechlongSoftware/blob/${p.sourceCommit}/docs/aws-auto-deployment-platform-w6j-runtime-binding-review.md`} target="_blank" rel="noopener noreferrer">核对该源码版本的风险说明 ↗</a>
       <p>{p.status ? `${p.status} / ${p.conclusion ?? '未结束'}`:'尚无确认的运行结果'}。{p.evidenceAttested?'已有受信证据摘要；部署结论仍需匹配业务回执。':'未有受信独立证据，不能判定部署验收通过。'}</p>
       {p.url?<a className="table-link" href={p.url} target="_blank" rel="noopener noreferrer">GitHub run {p.runId} ↗</a>:null}
       {p.state==='AWAITING_APPROVAL'?<button type="button" className="button button-dark button-small" disabled={busy || !view.enabled} onClick={()=>act('approve_and_dispatch',p)}>批准并单次调度 {p.mode}</button>:null}

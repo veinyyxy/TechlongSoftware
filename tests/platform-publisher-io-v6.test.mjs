@@ -87,8 +87,8 @@ test('explicit Neon URL validation pins the owner and TLS target and ignores no 
   for(const u of [url.replace('owner_ci:','service:'),url.replace('verify-full','disable'),url+'&options=unsafe',url.replace(target.host,'other.neon.tech')])
     await assert.rejects(publisherDatabaseConfigV6(u,bound));
 });
-test('production publisher remains code-bound UNPUBLISHED even with a fabricated release; owner/key/credentials are not read',async()=>{
-  const f=await platformFixtureV6();let reads=0;assert.equal(PUBLISHER_RELEASE_V6.state,'UNPUBLISHED');
+test('production publisher rejects a fabricated release regardless of reviewed binding state; owner/key/credentials are not read',async()=>{
+  const f=await platformFixtureV6();let reads=0;assert.ok(['UNPUBLISHED','PUBLISHED'].includes(PUBLISHER_RELEASE_V6.state));
   await assert.rejects(openProductionPublisherV6({...f,operation:'ReviewPlan',readOwnerUrl:async()=>{reads++;throw Error('must not read');}}),/NOT_ACTIVATED/);
   assert.equal(reads,0);
 });

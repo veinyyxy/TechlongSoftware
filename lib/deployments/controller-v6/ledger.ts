@@ -1,20 +1,19 @@
-import { neon } from '@neondatabase/serverless';
-import { CONTROL_SCOPE, ControlError, digest, must, obj } from './contract.ts';
+import { neon, neonConfig } from '@neondatabase/serverless';
+import { ControlError, digest, must, obj } from './contract.ts';
 import type { ControlLedger, LedgerEntry } from './controller.ts';
+import { assertControllerDatabaseUrlV6, assertControllerNeonTransportV6 } from './configuration.ts';
 
 export function createNeonControlLedger(urlBinding: () => unknown): ControlLedger {
   // Lazy and dedicated credential only. No DATABASE_URL or owner-role fallback.
   async function call(name: string, values: unknown[] = []) {
     const binding = urlBinding(); must(typeof binding === 'string' && binding.length < 4096,'CONTROL_DATABASE_BINDING',503);
-    let url: URL; try { url = new URL(binding); } catch { throw new ControlError('CONTROL_DATABASE_BINDING',503); }
-    must(['postgres:','postgresql:'].includes(url.protocol) && url.hostname.endsWith('.neon.tech') &&
-      decodeURIComponent(url.username) === CONTROL_SCOPE.databaseRole && url.password &&
-      ['require','verify-full'].includes(url.searchParams.get('sslmode') ?? '') && !url.hash,
-    'CONTROL_DATABASE_BINDING',503);
+    try {await assertControllerDatabaseUrlV6(binding);} catch {throw new ControlError('CONTROL_DATABASE_BINDING',503);}
     try {
+      // Do not inherit/reset a global probe fetch guard or alternate endpoint.
+      assertControllerNeonTransportV6(new URL(binding).hostname,{fetchFunction:neonConfig.fetchFunction,fetchEndpoint:neonConfig.fetchEndpoint});
       const sql = neon(binding);
       const result = await sql.query(`SELECT deployment_control_v6.${name}(${values.map((_,i)=>'$'+(i+1)).join(',')}) AS value`, values,
-        {fetchOptions:{signal:AbortSignal.timeout(15000)}});
+        {fetchOptions:{signal:AbortSignal.timeout(15000),redirect:'error'}});
       return result[0]?.value;
     } catch { throw new ControlError('CONTROL_LEDGER_REQUIRES_READBACK',503); }
   }

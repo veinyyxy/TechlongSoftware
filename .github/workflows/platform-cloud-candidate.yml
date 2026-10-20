@@ -18,6 +18,11 @@ on:
       - 'tests/platform-activation-v6.test.mjs'
       - 'ops/platform-publication-v6/**'
       - 'tests/platform-app-publication-v6.test.mjs'
+      - 'ops/platform-binding-v6/**'
+      - 'tests/platform-binding-v6.test.mjs'
+      - 'tests/fixtures/platform-binding-template-v6.json'
+      - 'components/admin/DeploymentControlPanel.tsx'
+      - 'app/api/admin/instances/**/deployment-control/route.ts'
   pull_request:
     paths:
       - '.github/workflows/platform-cloud-candidate.yml'
@@ -35,6 +40,11 @@ on:
       - 'tests/platform-activation-v6.test.mjs'
       - 'ops/platform-publication-v6/**'
       - 'tests/platform-app-publication-v6.test.mjs'
+      - 'ops/platform-binding-v6/**'
+      - 'tests/platform-binding-v6.test.mjs'
+      - 'tests/fixtures/platform-binding-template-v6.json'
+      - 'components/admin/DeploymentControlPanel.tsx'
+      - 'app/api/admin/instances/**/deployment-control/route.ts'
 permissions:
   contents: read
 concurrency:
@@ -68,7 +78,7 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
       - name: Real bridge and publisher code with injected synthetic providers
-        run: node --experimental-strip-types --test tests/platform-cloud-v6.test.mjs tests/platform-cloud-publisher-v6.test.mjs tests/platform-publisher-io-v6.test.mjs tests/platform-activation-v6.test.mjs tests/platform-app-publication-v6.test.mjs tests/cloud-worker-root-v5.test.mjs tests/platform-controller-v6.test.ts tests/platform-controller-github-v6.test.ts tests/platform-controller-auth-v6.test.mjs tests/platform-control-install-v6.test.mjs
+        run: node --experimental-strip-types --test tests/platform-cloud-v6.test.mjs tests/platform-cloud-publisher-v6.test.mjs tests/platform-publisher-io-v6.test.mjs tests/platform-activation-v6.test.mjs tests/platform-app-publication-v6.test.mjs tests/platform-binding-v6.test.mjs tests/cloud-worker-root-v5.test.mjs tests/platform-controller-v6.test.ts tests/platform-controller-github-v6.test.ts tests/platform-controller-auth-v6.test.mjs tests/platform-control-install-v6.test.mjs
       - name: Exact SQL and actual publisher queries on disposable PostgreSQL
         run: |
           node --experimental-strip-types scripts/ci/verify-platform-controller-pg-v6.mjs
@@ -78,5 +88,5 @@ jobs:
       - name: Unpublished platform still never reads runtime credentials
         run: node --experimental-strip-types --experimental-loader ./tests/cloudflare-loader.mjs --test tests/platform-controller-runtime-v6.test.mjs
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
-      - run: node node_modules/eslint/bin/eslint.js ops/platform-cloud-v6/ ops/platform-controller-review-v6/ ops/platform-publisher-v6/ ops/platform-activation-v6/ ops/platform-publication-v6/ tests/platform-cloud*v6.test.mjs tests/platform-control-install-v6.test.mjs tests/platform-publisher-io-v6.test.mjs tests/platform-activation-v6.test.mjs tests/platform-app-publication-v6.test.mjs tests/fixtures/platform-cloud-v6.mjs scripts/ci/verify-platform-cloud-publisher-pg-v6.mjs --max-warnings 0
+      - run: node node_modules/eslint/bin/eslint.js ops/platform-cloud-v6/ ops/platform-controller-review-v6/ ops/platform-publisher-v6/ ops/platform-activation-v6/ ops/platform-publication-v6/ ops/platform-binding-v6/ lib/deployments/controller-v6/ components/admin/DeploymentControlPanel.tsx tests/platform-cloud*v6.test.mjs tests/platform-control-install-v6.test.mjs tests/platform-publisher-io-v6.test.mjs tests/platform-activation-v6.test.mjs tests/platform-app-publication-v6.test.mjs tests/platform-binding-v6.test.mjs tests/fixtures/platform-cloud-v6.mjs scripts/ci/verify-platform-cloud-publisher-pg-v6.mjs --max-warnings 0
       - run: npm run build

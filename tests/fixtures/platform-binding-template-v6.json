@@ -1,0 +1,977 @@
+{
+  "template": {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "W5 cloud worker foundation only; no workload, no secret values, locked trust",
+    "Resources": {
+      "Boundary": {
+        "Properties": {
+          "ManagedPolicyName": "TechlongSandboxGitHubDeploymentWorkerBoundaryV5",
+          "PolicyDocument": {
+            "Statement": [
+              {
+                "Action": [
+                  "cloudformation:CreateStack",
+                  "cloudformation:DescribeStacks",
+                  "cloudformation:GetTemplate",
+                  "cloudformation:ListStackResources",
+                  "cloudformation:TagResource",
+                  "cloudformation:ValidateTemplate",
+                  "dynamodb:ConditionCheckItem",
+                  "dynamodb:DescribeTable",
+                  "dynamodb:DescribeTimeToLive",
+                  "dynamodb:GetItem",
+                  "dynamodb:PutItem",
+                  "ecr:BatchGetImage",
+                  "ecr:DescribeImageScanFindings",
+                  "ecs:DescribeClusters",
+                  "ecs:DescribeServices",
+                  "ecs:DescribeTaskDefinition",
+                  "ecs:DescribeTasks",
+                  "ecs:ListTaskDefinitions",
+                  "ecs:ListTasks",
+                  "elasticloadbalancing:DescribeListeners",
+                  "elasticloadbalancing:DescribeLoadBalancers",
+                  "elasticloadbalancing:DescribeRules",
+                  "elasticloadbalancing:DescribeTargetGroups",
+                  "elasticloadbalancing:DescribeTargetHealth",
+                  "iam:GetPolicy",
+                  "iam:GetPolicyVersion",
+                  "iam:GetRole",
+                  "iam:GetRolePolicy",
+                  "iam:ListAttachedRolePolicies",
+                  "iam:ListRolePolicies",
+                  "iam:PassRole",
+                  "lambda:GetFunctionConfiguration",
+                  "logs:DescribeLogGroups",
+                  "rds:DescribeDBClusters",
+                  "route53:ListResourceRecordSets",
+                  "s3:GetBucketOwnershipControls",
+                  "s3:GetBucketPublicAccessBlock",
+                  "s3:GetBucketVersioning",
+                  "s3:GetEncryptionConfiguration",
+                  "s3:GetObjectVersion",
+                  "s3:ListBucket",
+                  "s3:PutObject",
+                  "scheduler:GetSchedule",
+                  "secretsmanager:DescribeSecret",
+                  "secretsmanager:GetSecretValue"
+                ],
+                "Condition": {
+                  "StringEquals": {
+                    "aws:RequestedRegion": [
+                      "ca-central-1",
+                      "us-east-1"
+                    ]
+                  }
+                },
+                "Effect": "Allow",
+                "Resource": "*"
+              }
+            ],
+            "Version": "2012-10-17"
+          }
+        },
+        "Type": "AWS::IAM::ManagedPolicy"
+      },
+      "EvidenceBucket": {
+        "DeletionPolicy": "Retain",
+        "Properties": {
+          "BucketEncryption": {
+            "ServerSideEncryptionConfiguration": [
+              {
+                "ServerSideEncryptionByDefault": {
+                  "SSEAlgorithm": "AES256"
+                }
+              }
+            ]
+          },
+          "BucketName": "techlong-sandbox-cloud-worker-evidence-402010193138",
+          "OwnershipControls": {
+            "Rules": [
+              {
+                "ObjectOwnership": "BucketOwnerEnforced"
+              }
+            ]
+          },
+          "PublicAccessBlockConfiguration": {
+            "BlockPublicAcls": true,
+            "BlockPublicPolicy": true,
+            "IgnorePublicAcls": true,
+            "RestrictPublicBuckets": true
+          },
+          "Tags": [
+            {
+              "Key": "Environment",
+              "Value": "aws-sandbox"
+            },
+            {
+              "Key": "Purpose",
+              "Value": "cloud-worker-v5"
+            },
+            {
+              "Key": "AppInstanceId",
+              "Value": "app_e897a4377bce498b9c5ee9e64509dcad"
+            }
+          ],
+          "VersioningConfiguration": {
+            "Status": "Enabled"
+          }
+        },
+        "Type": "AWS::S3::Bucket",
+        "UpdateReplacePolicy": "Retain"
+      },
+      "EvidencePolicy": {
+        "DependsOn": "EvidenceBucket",
+        "Properties": {
+          "Bucket": {
+            "Ref": "EvidenceBucket"
+          },
+          "PolicyDocument": {
+            "Statement": [
+              {
+                "Action": "s3:*",
+                "Condition": {
+                  "Bool": {
+                    "aws:SecureTransport": "false"
+                  }
+                },
+                "Effect": "Deny",
+                "Principal": "*",
+                "Resource": [
+                  "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138",
+                  "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/*"
+                ],
+                "Sid": "DenyInsecureTransport"
+              },
+              {
+                "Action": "s3:PutObject",
+                "Condition": {
+                  "StringNotEquals": {
+                    "s3:if-none-match": "*"
+                  }
+                },
+                "Effect": "Deny",
+                "Principal": "*",
+                "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/*",
+                "Sid": "RequireCreateOnlyWorkerPut"
+              },
+              {
+                "Action": [
+                  "s3:DeleteObject",
+                  "s3:DeleteObjectVersion"
+                ],
+                "Effect": "Deny",
+                "Principal": "*",
+                "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/*",
+                "Sid": "KeepWorkerReceipts"
+              }
+            ],
+            "Version": "2012-10-17"
+          }
+        },
+        "Type": "AWS::S3::BucketPolicy"
+      },
+      "Journal": {
+        "DeletionPolicy": "Retain",
+        "Properties": {
+          "AttributeDefinitions": [
+            {
+              "AttributeName": "pk",
+              "AttributeType": "S"
+            },
+            {
+              "AttributeName": "sk",
+              "AttributeType": "S"
+            }
+          ],
+          "BillingMode": "PAY_PER_REQUEST",
+          "DeletionProtectionEnabled": true,
+          "KeySchema": [
+            {
+              "AttributeName": "pk",
+              "KeyType": "HASH"
+            },
+            {
+              "AttributeName": "sk",
+              "KeyType": "RANGE"
+            }
+          ],
+          "TableName": "techlong-sandbox-deployment-worker-journal-v1",
+          "Tags": [
+            {
+              "Key": "Environment",
+              "Value": "aws-sandbox"
+            },
+            {
+              "Key": "Purpose",
+              "Value": "cloud-worker-v5"
+            },
+            {
+              "Key": "AppInstanceId",
+              "Value": "app_e897a4377bce498b9c5ee9e64509dcad"
+            }
+          ]
+        },
+        "Type": "AWS::DynamoDB::Table",
+        "UpdateReplacePolicy": "Retain"
+      },
+      "WorkerRole": {
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Statement": [
+              {
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                  "StringEquals": {
+                    "token.actions.githubusercontent.com:actor_id": "344813947",
+                    "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                    "token.actions.githubusercontent.com:environment": "techlong-sandbox-deploy",
+                    "token.actions.githubusercontent.com:job_workflow_ref": "veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@4588febb7b33378ccf2aa1a2b552a18660be8292",
+                    "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                    "token.actions.githubusercontent.com:repository_id": "1323312747",
+                    "token.actions.githubusercontent.com:repository_owner_id": "14145707",
+                    "token.actions.githubusercontent.com:sub": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy"
+                  }
+                },
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "arn:aws:iam::402010193138:oidc-provider/token.actions.githubusercontent.com"
+                }
+              }
+            ],
+            "Version": "2012-10-17"
+          },
+          "MaxSessionDuration": 3600,
+          "PermissionsBoundary": {
+            "Ref": "Boundary"
+          },
+          "Policies": [
+            {
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": [
+                      "cloudformation:DescribeStacks",
+                      "cloudformation:GetTemplate",
+                      "cloudformation:ListStackResources"
+                    ],
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": [
+                      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+                      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/*"
+                    ]
+                  },
+                  {
+                    "Action": "cloudformation:ValidateTemplate",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "*"
+                  },
+                  {
+                    "Action": "cloudformation:CreateStack",
+                    "Condition": {
+                      "ForAllValues:StringEquals": {
+                        "cloudformation:ResourceTypes": [
+                          "AWS::Logs::LogGroup",
+                          "AWS::ECS::TaskDefinition",
+                          "AWS::ElasticLoadBalancingV2::TargetGroup",
+                          "AWS::ElasticLoadBalancingV2::ListenerRule",
+                          "AWS::ECS::Service"
+                        ]
+                      },
+                      "Null": {
+                        "cloudformation:ResourceTypes": "false",
+                        "cloudformation:TemplateUrl": "true"
+                      },
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1",
+                        "aws:RequestTag/AppInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+                        "aws:RequestTag/DeploymentId": "dep_7c99bd249470184852f0dc74",
+                        "aws:RequestTag/Environment": "aws-sandbox",
+                        "aws:RequestTag/ManagedBy": "techlong-provisioner",
+                        "cloudformation:RoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/*"
+                  },
+                  {
+                    "Action": "cloudformation:TagResource",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1",
+                        "aws:RequestTag/AppInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+                        "aws:RequestTag/DeploymentId": "dep_7c99bd249470184852f0dc74",
+                        "aws:RequestTag/Environment": "aws-sandbox"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/*"
+                  },
+                  {
+                    "Action": "iam:PassRole",
+                    "Condition": {
+                      "StringEquals": {
+                        "iam:PassedToService": "cloudformation.amazonaws.com"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole"
+                  },
+                  {
+                    "Action": [
+                      "iam:GetRole",
+                      "iam:ListRolePolicies",
+                      "iam:ListAttachedRolePolicies",
+                      "iam:GetRolePolicy"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": [
+                      "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+                      "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+                      "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+                    ]
+                  },
+                  {
+                    "Action": [
+                      "iam:GetPolicy",
+                      "iam:GetPolicyVersion"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": [
+                      "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+                      "arn:aws:iam::402010193138:policy/TechlongSandboxServiceRoleBoundary"
+                    ]
+                  },
+                  {
+                    "Action": "ecs:DescribeClusters",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1"
+                  },
+                  {
+                    "Action": "ecs:DescribeServices",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service"
+                  },
+                  {
+                    "Action": "ecs:DescribeTasks",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/*"
+                  },
+                  {
+                    "Action": "ecs:DescribeTaskDefinition",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "*"
+                  },
+                  {
+                    "Action": "ecs:ListTasks",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1",
+                        "ecs:cluster": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "*"
+                  },
+                  {
+                    "Action": [
+                      "ecs:ListTaskDefinitions",
+                      "logs:DescribeLogGroups",
+                      "elasticloadbalancing:DescribeTargetGroups",
+                      "elasticloadbalancing:DescribeRules",
+                      "elasticloadbalancing:DescribeTargetHealth",
+                      "elasticloadbalancing:DescribeListeners",
+                      "elasticloadbalancing:DescribeLoadBalancers"
+                    ],
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "*"
+                  },
+                  {
+                    "Action": "rds:DescribeDBClusters",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001"
+                  },
+                  {
+                    "Action": [
+                      "ecr:BatchGetImage",
+                      "ecr:DescribeImageScanFindings"
+                    ],
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast"
+                  },
+                  {
+                    "Action": "route53:ListResourceRecordSets",
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:route53:::hostedzone/Z01473621BTTHKXBGOOEJ"
+                  },
+                  {
+                    "Action": "lambda:GetFunctionConfiguration",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-janitor"
+                  },
+                  {
+                    "Action": "scheduler:GetSchedule",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox/global-expired-stack-scan"
+                  },
+                  {
+                    "Action": "secretsmanager:DescribeSecret",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": [
+                      "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+                      "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/control-public-key-first-acceptance-PfBjiq"
+                    ]
+                  },
+                  {
+                    "Action": [
+                      "dynamodb:DescribeTable",
+                      "dynamodb:DescribeTimeToLive"
+                    ],
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-deployment-worker-journal-v1"
+                  },
+                  {
+                    "Action": [
+                      "dynamodb:PutItem",
+                      "dynamodb:ConditionCheckItem",
+                      "dynamodb:GetItem"
+                    ],
+                    "Condition": {
+                      "ForAllValues:StringLike": {
+                        "dynamodb:LeadingKeys": [
+                          "JOB#job_*"
+                        ]
+                      },
+                      "Null": {
+                        "dynamodb:LeadingKeys": "false"
+                      },
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-deployment-worker-journal-v1"
+                  },
+                  {
+                    "Action": "dynamodb:GetItem",
+                    "Condition": {
+                      "ForAllValues:StringEquals": {
+                        "dynamodb:LeadingKeys": [
+                          "tenant:a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+                          "tenant:aurora-v2:a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d"
+                        ]
+                      },
+                      "Null": {
+                        "dynamodb:LeadingKeys": "false"
+                      },
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority"
+                  },
+                  {
+                    "Action": [
+                      "s3:ListBucket",
+                      "s3:GetBucketPublicAccessBlock",
+                      "s3:GetEncryptionConfiguration",
+                      "s3:GetBucketOwnershipControls",
+                      "s3:GetBucketVersioning"
+                    ],
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138"
+                  },
+                  {
+                    "Action": "s3:GetObjectVersion",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/*"
+                  },
+                  {
+                    "Action": "s3:PutObject",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1",
+                        "s3:if-none-match": "*",
+                        "s3:x-amz-server-side-encryption": "AES256"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/*"
+                  },
+                  {
+                    "Action": "secretsmanager:GetSecretValue",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1",
+                        "secretsmanager:VersionId": "ce34d730-0e08-4ce7-b1b6-b5eaa5f9ca0e"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/neon-control-v1-??????"
+                  },
+                  {
+                    "Action": "secretsmanager:GetSecretValue",
+                    "Condition": {
+                      "StringEquals": {
+                        "aws:RequestedRegion": "ca-central-1",
+                        "secretsmanager:VersionId": "2854e7b6-6c3c-41be-a5d8-b87dd9d98810"
+                      }
+                    },
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/control-first-acceptance-v1-??????"
+                  }
+                ],
+                "Version": "2012-10-17"
+              },
+              "PolicyName": "ExactSandboxWorkerV5"
+            }
+          ],
+          "RoleName": "TechlongSandboxGitHubDeploymentWorkerRole",
+          "Tags": [
+            {
+              "Key": "Environment",
+              "Value": "aws-sandbox"
+            },
+            {
+              "Key": "Purpose",
+              "Value": "cloud-worker-v5"
+            },
+            {
+              "Key": "AppInstanceId",
+              "Value": "app_e897a4377bce498b9c5ee9e64509dcad"
+            }
+          ]
+        },
+        "Type": "AWS::IAM::Role"
+      }
+    }
+  },
+  "inlineDocument": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": [
+          "cloudformation:DescribeStacks",
+          "cloudformation:GetTemplate",
+          "cloudformation:ListStackResources"
+        ],
+        "Resource": [
+          "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+          "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/*"
+        ],
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": "cloudformation:ValidateTemplate",
+        "Resource": "*",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1",
+            "aws:RequestTag/DeploymentId": "dep_7c99bd249470184852f0dc74",
+            "aws:RequestTag/ManagedBy": "techlong-provisioner",
+            "aws:RequestTag/Environment": "aws-sandbox",
+            "aws:RequestTag/AppInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+            "cloudformation:RoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole"
+          },
+          "Null": {
+            "cloudformation:ResourceTypes": "false",
+            "cloudformation:TemplateUrl": "true"
+          },
+          "ForAllValues:StringEquals": {
+            "cloudformation:ResourceTypes": [
+              "AWS::Logs::LogGroup",
+              "AWS::ECS::TaskDefinition",
+              "AWS::ElasticLoadBalancingV2::TargetGroup",
+              "AWS::ElasticLoadBalancingV2::ListenerRule",
+              "AWS::ECS::Service"
+            ]
+          }
+        },
+        "Action": "cloudformation:CreateStack",
+        "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/*",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1",
+            "aws:RequestTag/DeploymentId": "dep_7c99bd249470184852f0dc74",
+            "aws:RequestTag/Environment": "aws-sandbox",
+            "aws:RequestTag/AppInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad"
+          }
+        },
+        "Action": "cloudformation:TagResource",
+        "Resource": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/*",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "iam:PassedToService": "cloudformation.amazonaws.com"
+          }
+        },
+        "Action": "iam:PassRole",
+        "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+        "Effect": "Allow"
+      },
+      {
+        "Action": [
+          "iam:GetRole",
+          "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies",
+          "iam:GetRolePolicy"
+        ],
+        "Resource": [
+          "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+          "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+          "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+        ],
+        "Effect": "Allow"
+      },
+      {
+        "Action": [
+          "iam:GetPolicy",
+          "iam:GetPolicyVersion"
+        ],
+        "Resource": [
+          "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+          "arn:aws:iam::402010193138:policy/TechlongSandboxServiceRoleBoundary"
+        ],
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": "ecs:DescribeClusters",
+        "Resource": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": "ecs:DescribeServices",
+        "Resource": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": "ecs:DescribeTasks",
+        "Resource": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/*",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": "ecs:DescribeTaskDefinition",
+        "Resource": "*",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1",
+            "ecs:cluster": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1"
+          }
+        },
+        "Action": "ecs:ListTasks",
+        "Resource": "*",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": [
+          "ecs:ListTaskDefinitions",
+          "logs:DescribeLogGroups",
+          "elasticloadbalancing:DescribeTargetGroups",
+          "elasticloadbalancing:DescribeRules",
+          "elasticloadbalancing:DescribeTargetHealth",
+          "elasticloadbalancing:DescribeListeners",
+          "elasticloadbalancing:DescribeLoadBalancers"
+        ],
+        "Resource": "*",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": "rds:DescribeDBClusters",
+        "Resource": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": [
+          "ecr:BatchGetImage",
+          "ecr:DescribeImageScanFindings"
+        ],
+        "Resource": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast",
+        "Effect": "Allow"
+      },
+      {
+        "Action": "route53:ListResourceRecordSets",
+        "Resource": "arn:aws:route53:::hostedzone/Z01473621BTTHKXBGOOEJ",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": "lambda:GetFunctionConfiguration",
+        "Resource": "arn:aws:lambda:ca-central-1:402010193138:function:techlong-sandbox-janitor",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": "scheduler:GetSchedule",
+        "Resource": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox/global-expired-stack-scan",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": "secretsmanager:DescribeSecret",
+        "Resource": [
+          "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+          "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/control-public-key-first-acceptance-PfBjiq"
+        ],
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": [
+          "dynamodb:DescribeTable",
+          "dynamodb:DescribeTimeToLive"
+        ],
+        "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-deployment-worker-journal-v1",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          },
+          "Null": {
+            "dynamodb:LeadingKeys": "false"
+          },
+          "ForAllValues:StringLike": {
+            "dynamodb:LeadingKeys": [
+              "JOB#job_*"
+            ]
+          }
+        },
+        "Action": [
+          "dynamodb:PutItem",
+          "dynamodb:ConditionCheckItem",
+          "dynamodb:GetItem"
+        ],
+        "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-deployment-worker-journal-v1",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          },
+          "Null": {
+            "dynamodb:LeadingKeys": "false"
+          },
+          "ForAllValues:StringEquals": {
+            "dynamodb:LeadingKeys": [
+              "tenant:a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d",
+              "tenant:aurora-v2:a0da1748bc4d5419a6306b89c090957bc432332f6cc33820abc7f02ad63a808d"
+            ]
+          }
+        },
+        "Action": "dynamodb:GetItem",
+        "Resource": "arn:aws:dynamodb:ca-central-1:402010193138:table/techlong-sandbox-tenant-external-epoch-authority",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": [
+          "s3:ListBucket",
+          "s3:GetBucketPublicAccessBlock",
+          "s3:GetEncryptionConfiguration",
+          "s3:GetBucketOwnershipControls",
+          "s3:GetBucketVersioning"
+        ],
+        "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1"
+          }
+        },
+        "Action": "s3:GetObjectVersion",
+        "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/*",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1",
+            "s3:if-none-match": "*",
+            "s3:x-amz-server-side-encryption": "AES256"
+          }
+        },
+        "Action": "s3:PutObject",
+        "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/*",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1",
+            "secretsmanager:VersionId": "ce34d730-0e08-4ce7-b1b6-b5eaa5f9ca0e"
+          }
+        },
+        "Action": "secretsmanager:GetSecretValue",
+        "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/neon-control-v1-??????",
+        "Effect": "Allow"
+      },
+      {
+        "Condition": {
+          "StringEquals": {
+            "aws:RequestedRegion": "ca-central-1",
+            "secretsmanager:VersionId": "2854e7b6-6c3c-41be-a5d8-b87dd9d98810"
+          }
+        },
+        "Action": "secretsmanager:GetSecretValue",
+        "Resource": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/deployment-worker/control-first-acceptance-v1-??????",
+        "Effect": "Allow"
+      }
+    ]
+  }
+}

@@ -14,17 +14,20 @@ export interface ControlLedger {
   status(): Promise<unknown[]>;
 }
 export function createPlatformController(deps: { enabled: () => boolean; release: ReleaseBinding;
-  ledger: () => ControlLedger; github: () => GitHubController; now?: () => number }) {
+  ledger: () => ControlLedger; github: () => GitHubController; now?: () => number;
+  sourceCommit?:()=>string|null; verifyRuntime?:()=>Promise<void> }) {
   const now = deps.now ?? Date.now;
   const enabled = () => deps.enabled() && releaseReady(deps.release);
   const gate = () => must(enabled(),'CONTROL_NOT_ACTIVATED');
   return {
     async status(instanceId: string) {
       if (instanceId !== CONTROL_SCOPE.instanceId || !enabled()) return { enabled:false, plans:[], canApproveEnvironment:false, canRetry:false };
+      await deps.verifyRuntime?.();
       return { enabled:true, plans:(await deps.ledger().status()).map(projectStatus), canApproveEnvironment:false, canRetry:false };
     },
     async act(instanceId: string, admin: string, action: Action) {
       gate(); must(instanceId === CONTROL_SCOPE.instanceId && /^usr_[a-f0-9]{24}$/.test(admin),'CONTROL_SCOPE');
+      await deps.verifyRuntime?.();
       const ledger = deps.ledger(), entry = await ledger.load(action.planSha256);
       // Expired plans may be observed, but never submitted; validation checks the
       // immutable structure at its original instant for the observation path.
@@ -38,12 +41,15 @@ export function createPlatformController(deps: { enabled: () => boolean; release
         return { outcome:'RUN_OBSERVED_NOT_DEPLOYMENT_ATTESTATION',...observation,canRetry:false };
       }
       must(action.actionSha256 === valid.actionSha256 && action.riskSha256 === entry.riskSha256 && entry.attempt === null,'CONTROL_APPROVAL_MISMATCH');
+      must(!deps.sourceCommit||deps.sourceCommit()===valid.plan.sourceCommit,'CONTROL_RUNTIME_SOURCE_MISMATCH');
       // Atomically store human approval and the permanent submission intent.
       // Failure here stops before any private key, token or network access.
       await ledger.begin(action.planSha256,action.actionSha256,action.riskSha256,admin);
       try {
         const ack = await deps.github().dispatch(valid.plan,async () => {
-          gate(); await validatePlan(valid.plan,deps.release,now()); await ledger.assertLive(action.planSha256);
+          gate(); await deps.verifyRuntime?.();
+          must(!deps.sourceCommit||deps.sourceCommit()===valid.plan.sourceCommit,'CONTROL_RUNTIME_SOURCE_MISMATCH');
+          await validatePlan(valid.plan,deps.release,now()); await ledger.assertLive(action.planSha256);
         },ack => ledger.acknowledge(action.planSha256,ack));
         return {outcome:'DISPATCH_ACKNOWLEDGED_REQUIRES_HUMAN_ENVIRONMENT_APPROVAL',...ack,canRetry:false};
       } catch {

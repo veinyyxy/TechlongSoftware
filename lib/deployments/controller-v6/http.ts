@@ -3,7 +3,7 @@ import { ControlError, parseAction } from './contract.ts';
 type Context = { params: Promise<{instanceId:string}> };
 type Auth = {account:{user:{id:string}}|null;response:Response|null};
 export function createControlHandlers(deps: { authorize:()=>Promise<Auth>;
-  status:(id:string)=>Promise<unknown>; enabled:()=>boolean;
+  status:(id:string)=>Promise<unknown>; enabled:()=>boolean; origin?:()=>string|null;
   act:(id:string,admin:string,action:ReturnType<typeof parseAction>)=>Promise<unknown> }) {
   const json = (body:unknown,status=200) => Response.json(body,{status,headers:{'cache-control':'no-store'}});
   const denied = (response:Response) => { const headers=new Headers(response.headers);headers.set('cache-control','no-store');
@@ -11,7 +11,8 @@ export function createControlHandlers(deps: { authorize:()=>Promise<Auth>;
   const failure = (e:unknown) => json(apiError(e instanceof ControlError ? e.code : 'CONTROL_REQUIRES_READBACK_NO_RETRY',
     '操作未获确认或结果需只读核对；不会自动重试。'),e instanceof ControlError ? e.status : 503);
   return {
-    async GET(_request:Request,context:Context) {
+    async GET(request:Request,context:Context) {
+      if(deps.origin?.()&&new URL(request.url).origin!==deps.origin())return json(apiError('ORIGIN_FORBIDDEN','请求来源不受信任。'),403);
       const auth = await deps.authorize(); if(auth.response) return denied(auth.response);
       if(!auth.account) return json(apiError('UNAUTHORIZED','请先登录。'),401);
       try { return json(apiSuccess(await deps.status((await context.params).instanceId))); } catch(e) { return failure(e); }
@@ -19,7 +20,7 @@ export function createControlHandlers(deps: { authorize:()=>Promise<Auth>;
     async POST(request:Request,context:Context) {
       try {
         const origin = request.headers.get('origin');
-        if(!origin || origin !== new URL(request.url).origin) return json(apiError('ORIGIN_FORBIDDEN','请求来源不受信任。'),403);
+        if(!origin || origin !== new URL(request.url).origin || deps.origin?.()&&origin!==deps.origin()) return json(apiError('ORIGIN_FORBIDDEN','请求来源不受信任。'),403);
         const auth = await deps.authorize(); if(auth.response) return denied(auth.response);
         if(!auth.account) return json(apiError('UNAUTHORIZED','请先登录。'),401);
         if(!deps.enabled()) return json(apiError('CONTROL_NOT_ACTIVATED','控制器尚未批准启用。'),409);

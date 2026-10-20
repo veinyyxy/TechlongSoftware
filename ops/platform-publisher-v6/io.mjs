@@ -11,12 +11,13 @@ import {assertEvidenceSafeV5,EVIDENCE_V5 as E} from '../cloud-worker/cloud-evide
 import {platformReadObservationV4} from '../aws-sandbox/scripts/express-platform-worker-v4.mjs';
 import {readControlCatalog} from '../platform-controller-review-v6/catalog.mjs';
 import {sqlContract,hash} from '../platform-controller-review-v6/install.mjs';
+import {INSTALLED_BINDING_V6} from '../../lib/deployments/controller-v6/installed-binding.ts';
 
 export const DATABASE_V6=Object.freeze({ownerRole:'neondb_owner',ownerOid:'16392',database:'neondb',roleOid:'180224',schemaOid:'180226',
   targetFingerprintSha256:'5d5e52c00c54ed761aac13730f81b1b6f107d7ac06a68a407276132d150690a7'});
 // Publishing this exact source/release binding requires separate approval.
 // An environment boolean or caller-supplied PUBLISHED object cannot enable it.
-export const PUBLISHER_RELEASE_V6=Object.freeze({state:'UNPUBLISHED',releaseSha256:null,frozenSourceCommit:null});
+export const PUBLISHER_RELEASE_V6=Object.freeze(INSTALLED_BINDING_V6.publisher);
 export async function publisherReleaseReadyV6(binding,{release,sourceCommit,frozenSourceCommit}){
   // Caller main is frozen by each reviewed plan/operator intent, not embedded
   // into the commit that would have to contain its own SHA. R/release and the

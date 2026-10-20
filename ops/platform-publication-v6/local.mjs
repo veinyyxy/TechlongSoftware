@@ -142,6 +142,8 @@ async function createIo(output){
 async function directory(s,existing=false){const p=path.resolve(s);must(path.dirname(p).toLowerCase()===path.resolve(P.base).toLowerCase()&&
   /^techlong-w6i-app-publication-[a-z0-9-]+$/.test(path.basename(p))&&(await realpath(P.base)).toLowerCase()===path.resolve(P.base).toLowerCase(),'DIRECTORY');
   if(existing)must((await realpath(p)).toLowerCase()===p.toLowerCase(),'REALPATH');return p;}
+// Metadata-only reuse after W6i; does not expose any writer method.
+export async function readPublishedLayoutV6(){const io=await createIo();try{return await io.layout();}finally{io.dispose();}}
 export async function main(args=process.argv.slice(2)){
   const a={};must(args.length%2===0,'ARGS');for(let i=0;i<args.length;i+=2){must(!Object.hasOwn(a,args[i]),'DUPLICATE_ARG');a[args[i]]=args[i+1];}
   const mode=a['--mode'],keys=['--mode','--output',...(mode==='Prepare'?['--ci-run']:mode==='Publish'?['--manifest','--approved-sha']:mode==='Inspect'?['--manifest']:[])];

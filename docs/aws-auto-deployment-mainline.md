@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-20）：**W6j已接真实workflow390829326/R4588febb…的独立binding候选，默认仍UNPUBLISHED。** 34项本机检查通过；平台/publisher共用受审release摘要，云contract及81/76闭包不变，另有本机30分钟许可、准确origin/source、专用Neon目标/verify-full及POST前复核。原launcher不供给私密值；公开binding发布也不启动运行时。下一准确CI成功后只读Prepare单文件发布SHA，实际发布另批，然后集中受审启动/新任务一次验收，不做身份探针；本轮生产写/私密读取/任务创建/服务启动/dispatch0。[完整风险与入口](aws-auto-deployment-platform-w6j-runtime-binding-review.md)。下文为历史。
+
 当前继续点（2026-10-20）：**W6i按9a888e4f…清单发布成功，独立Inspect通过。** caller workflow390829326、reusable390829324、R4588febb…及新trust/完整模板已匹配，栈UPDATE_COMPLETE；原策略/boundary v1/五资源物理身份/审批门禁保持。原个人actor/reusable不符合新trust，不宣称撤销已有STS会话。一次push/Create/Execute/ff和永久槽已完成，禁止重放；无私密读取/Neon/dispatch/部署，平台/publisher仍UNPUBLISHED。下一只集中真实workflow/R的发布绑定和新待审任务一次端到端验收，具体激活/私密读取/调度仍新范围审批，不做身份实验或F3c9。[完成事实、原件和继续点](aws-auto-deployment-platform-w6i-app-published.md)。下文为历史。
 
 当前继续点（2026-10-20）：**W6i App发布/trust-only入口已编码，30项本机检查及零警告lint通过，尚未执行。** 复用原冻结云代码/真实App proof，保留旧R/S；只有新SHA批准后一次push两手动工作流、一次创建/严格核验/执行准确Change Set及ff，现有IAM策略和其它资源不变，旧个人worker将失去角色访问权。下一准确无AWS CI成功后在clean main只读Prepare新48小时清单，不读取任何私密值/连接Neon/调度或部署；平台/publisher仍UNPUBLISHED。[完整风险及唯一入口](aws-auto-deployment-platform-w6i-app-publication-review.md)。下文为历史。

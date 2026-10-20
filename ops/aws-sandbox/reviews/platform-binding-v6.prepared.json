@@ -1,0 +1,19 @@
+{
+  "schema": "techlong/platform-runtime-binding-code-prepared/v6",
+  "state": "CODE_VERIFIED_BINDING_UNPUBLISHED_EXACT_CI_PENDING",
+  "date": "2026-10-20",
+  "entry": "ops/platform-binding-v6/local.mjs",
+  "riskFile": "docs/aws-auto-deployment-platform-w6j-runtime-binding-review.md",
+  "target": "lib/deployments/controller-v6/installed-binding.ts",
+  "sourcePins": 24,
+  "localVerification": {"newTestsPassed": 12, "controllerRegressionTestsPassed": 8, "publisherIoRegressionTestsPassed": 10, "actualRuntimeAndRenderTestsPassed": 4, "totalPassed": 34, "scopedLintWarnings": 0, "typecheckPassed": true},
+  "actualPublishedFacts": {"callerWorkflowId": "390829326", "reusableWorkflowId": "390829324", "reusableCommit": "4588febb7b33378ccf2aa1a2b552a18660be8292", "frozenSourceCommit": "ca2b38d8c756dd8fb800a88ded596c93687f278f", "identityProofSha256": "1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca"},
+  "unchangedCloudClosures": {"v6Files": 81, "v6Sha256": "828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a", "v5Files": 76, "v5Sha256": "70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac", "originalContractAndFrozenWorkflowsUnchanged": true},
+  "runtimeGate": {"compiledBindingState": "UNPUBLISHED", "publishedBindingAloneStartsNothing": true, "separateCredentialProvisionRequired": true, "maximumLocalLeaseMs": 1800000, "origin": "http://127.0.0.1:3100", "leaseRequiresReleaseShaAndSourceCommit": true, "recheckBeforeDispatchPost": true, "ownerFallback": false, "dedicatedDatabaseTargetAndVerifyFullPinned": true, "customNeonGlobalFetchOrEndpointRejected": true, "oldLauncherAllowlistUnchanged": true},
+  "proposedPublicationEffects": {"changedPublicBindingFiles": 1, "nonForceGitPushAttempts": 1, "localMainFastForwards": 1, "awsWrites": 0, "sqlConnections": 0, "secretValueReads": 0, "privateKeyReads": 0, "appTokens": 0, "dispatches": 0, "serverStarts": 0, "businessWrites": 0, "automaticRetries": 0},
+  "fixtureProvenance": {"publicTemplateAndInlineMetadataOnly": true, "source": "F:/ChatGPT_workshop/techlong-w6i-app-publication-20261020-a-inspect/independent-layout.json", "sourceRawSha256": "3059fc48c7ab2a93bb85aed489e637b2dfe337a4982d4a7397c3af3ed854eefa", "privateValues": false, "notARealRuntimeConnectionProof": true},
+  "permanentSlot": "F:/ChatGPT_workshop/techlong-w6j-binding-publication.intent.json",
+  "approvalValidityHours": 48,
+  "currentEffects": {"bindingPublication": 0, "awsWrites": 0, "sqlConnections": 0, "secretValueReads": 0, "privateKeyReads": 0, "dispatches": 0, "serverStarts": 0, "businessWrites": 0, "slotConsumption": 0},
+  "next": "After exact-source no-AWS CI succeeds, Prepare fresh read-only published-layout/workflow facts and one unreachable binding commit on synchronized clean main. Independently verify the new SHA and ask separate approval for ONLY public binding publication. Private provisioning/launcher/new task/dispatch/deployment remain separate; never replay W6h/W6i or old W5r job."
+}
