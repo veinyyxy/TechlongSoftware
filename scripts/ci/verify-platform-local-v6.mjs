@@ -7,10 +7,14 @@ import {childEnvironmentV6} from '../../ops/platform-local-v6/plan.mjs';
 import {INSTALLED_BINDING_V6 as B} from '../../lib/deployments/controller-v6/installed-binding.ts';
 const root=fileURLToPath(new URL('../../',import.meta.url)),head=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),now=Date.now();
 const lease={schema:'techlong/platform-local-runtime-lease/v6',releaseSha256:B.publisher.releaseSha256,origin:'http://127.0.0.1:3100',sourceCommit:head,issuedAt:now,expiresAt:now+180000};
-const child=spawn(process.execPath,['--experimental-strip-types',fileURLToPath(new URL('../../ops/platform-local-v6/child.mjs',import.meta.url))],
+// CI invokes the same entry with a diagnostic wrapper. Only synthetic values
+// exist in this sanitized child; production launcher still discards all stdio.
+const entry=new URL('../../ops/platform-local-v6/child.mjs',import.meta.url).href;
+const code=`import {childMainV6} from ${JSON.stringify(entry)};childMainV6().then(()=>{if(process.connected)process.disconnect();}).catch(e=>{console.error('CI_SYNTHETIC_STARTUP_ERROR',e);process.exit(1);});`;
+const child=spawn(process.execPath,['--experimental-strip-types','--input-type=module','-e',code],
   {cwd:root,env:childEnvironmentV6(process.env,{authUrl:'postgresql://synthetic:synthetic@127.0.0.1/ci?sslmode=verify-full',
     databaseUrl:'postgresql://synthetic:synthetic@127.0.0.1/ci?sslmode=verify-full',privateKey:'SYNTHETIC_NOT_A_PRIVATE_KEY'},lease),
-  windowsHide:true,stdio:['ignore','ignore','ignore','ipc']});
+  windowsHide:true,stdio:['ignore','inherit','inherit','ipc']});
 let clean=false,exited=false;const closed=once(child,'close').then(([code])=>{exited=true;return code;});
 const timer=setTimeout(()=>child.kill(),180000);
 try{

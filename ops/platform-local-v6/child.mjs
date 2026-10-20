@@ -12,7 +12,8 @@ export async function assertConfigDirectoryV6(root){
 export function viteOptionsV6(root,plugins){return {root,configFile:false,envFile:false,envDir:false,mode:'development',
   plugins,logLevel:'silent',clearScreen:false,
   server:{host:'127.0.0.1',port:3100,strictPort:true,allowedHosts:['127.0.0.1'],cors:false,hmr:false,
-    fs:{strict:true,allow:[root],deny:['.env','.env.*','**/.env*','**/*.pem','**/*.key','**/.git/**','**/.local-secrets/**']},
+    fs:{strict:true,allow:[root],deny:['.env','.env.*','**/.env*','**/*.pem','**/*.key','**/*.crt','**/*.p12','**/*.pfx',
+      '**/.git/**','**/.aws/**','**/.aws-sandbox/**','**/.local-secrets/**','**/stripe_sandbox/**','**/account.md']},
     watch:{ignored:['**/.env*','**/*.pem','**/*.key','**/.git/**']}}};}
 export async function runChildV6({create,now=Date.now,expiresAt,send,onStop,schedule=setTimeout,cancel=clearTimeout}){
   let server,requested=false,clean=false;
@@ -29,7 +30,7 @@ export async function runChildV6({create,now=Date.now,expiresAt,send,onStop,sche
   }finally{cancel(timer);detach();try{if(server)await server.close();clean=true;}finally{send({type:'stopped',clean});}}
   return {clean};
 }
-async function main(){
+export async function childMainV6(){
   const root=fileURLToPath(new URL('../../',import.meta.url));
   must(process.env.TECHLONG_PLATFORM_LOCAL_LAUNCHER_V6==='true'&&typeof process.send==='function'&&process.connected,'PARENT_REQUIRED');
   must(path.resolve(process.cwd()).toLowerCase()===path.resolve(root).toLowerCase(),'ROOT');
@@ -48,4 +49,4 @@ async function main(){
   process.exitCode=result.clean?0:1;
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href)
-  main().then(()=>{if(process.connected)process.disconnect();}).catch(()=>{if(process.connected)process.send({type:'stopped',clean:false});process.exit(1);});
+  childMainV6().then(()=>{if(process.connected)process.disconnect();}).catch(()=>{if(process.connected)process.send({type:'stopped',clean:false});process.exit(1);});

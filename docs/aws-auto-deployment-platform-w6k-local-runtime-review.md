@@ -22,6 +22,8 @@
 
 实现依据为[当前Vite JavaScript API](https://vite.dev/guide/api-javascript.html)和[Cloudflare本机变量与secrets规则](https://developers.cloudflare.com/workers/local-development/environment-variables/)，并实际核对当前安装的Wrangler/Vinext源码。特别地，当前Wrangler若关闭dotenv总开关也不加载process secrets；所以不是简单设置false，而是固定无环境文件的独立配置目录、保留process secret加载、禁止根dotenv与未列明变量。单元测试直接调用真实Wrangler入口，使用纯合成值验证该行为。
 
+本机worker兼容日期固定为lockfile中workerd `1.20260515.1` 对应的`2026-05-15`，不使用晚于内置runtime的日期，也不升级依赖。首轮CI39475772723在真实子进程就绪前失败，原失败保留，不能据此批准Start。新CI以全合成材料调用相同child入口并公开该合成进程的错误输出，便于定位；生产Start仍丢弃子进程输出。该CI验证不加载根环境文件、不读用户材料，不代表真实凭据/Windows进程树已经验收。
+
 ## 停止、回执和失败边界
 
 Start是前台命令。到期、父进程IPC断开或Ctrl+C/SIGTERM，子进程调用一次Vite close；父进程也发一次停止请求并等待关闭。若十秒内未退，父进程只终止自己持有的准确Node子进程句柄，不按名称杀进程或杀其它listener。正常结束后核对原child退出及3100端口空闲，再独立Inspect。若状态不明保留槽及回执，停止写入，不“为了清理”重新启动、自动补齐、删除或重读凭据。
