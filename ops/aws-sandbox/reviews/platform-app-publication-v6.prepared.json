@@ -1,0 +1,20 @@
+{
+  "schema": "techlong/platform-app-publication-code-prepared/v6",
+  "state": "CODE_VERIFIED_EXACT_SOURCE_CI_PENDING_NOT_APPROVED_NOT_PUBLISHED",
+  "date": "2026-10-20",
+  "entry": "ops/platform-publication-v6/local.mjs",
+  "riskFile": "docs/aws-auto-deployment-platform-w6i-app-publication-review.md",
+  "localVerification": {"newBoundaryTestsPassed": 12, "activationRegressionTestsPassed": 10, "identityPublicationRegressionTestsPassed": 8, "totalPassed": 30, "scopedLintWarnings": 0, "diffCheckPassed": true, "isolatedGitTestPassedWithFilesystemApproval": true},
+  "sourcePins": 16,
+  "frozen": {"cloudSource": "ca2b38d8c756dd8fb800a88ded596c93687f278f", "v6ClosureFiles": 81, "v6ClosureSha256": "828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a", "v5ClosureFiles": 76, "v5ClosureSha256": "70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac", "realAppProofSha256": "1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca"},
+  "foundationReadOnlyObservation": {"stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cloud-worker-foundation-v5/308174f0-ca9e-11f1-a04d-02569e9287b5", "status": "UPDATE_COMPLETE", "stackRoleArn": null, "parameters": [], "resourceCount": 5, "templateBytesObserved": 13433, "workerInlineNames": ["ExactSandboxWorkerV5"]},
+  "proposedEffects": {"gitPushAttempts": 1, "newManualWorkflowFiles": 2, "createChangeSetAttempts": 1, "executeChangeSetAttempts": 1, "localMainFastForwards": 1, "existingRoleTrustChanges": ["actor_id", "job_workflow_ref"], "iamPermissionExpansion": 0, "newIamResources": 0, "secretValueReads": 0, "appKeyReads": 0, "appTokens": 0, "workflowDispatches": 0, "neonConnections": 0, "workloadCreates": 0, "automaticWriteRetries": 0},
+  "permanentSlot": "F:/ChatGPT_workshop/techlong-w6i-app-publication.intent.json",
+  "approvalValidityHours": 48,
+  "oldW6hCredentialsCompletedNotReplayed": true,
+  "oldUnapprovedPublicationObjectsPreservedNotReplayed": true,
+  "currentEffects": {"workflowPublications": 0, "awsWrites": 0, "neonConnections": 0, "secretValueReads": 0, "privateKeyReads": 0, "slotConsumption": 0},
+  "platformRelease": "UNPUBLISHED",
+  "publisherRelease": "UNPUBLISHED",
+  "next": "Commit code/docs to existing main, verify exact-source no-AWS CI once, then Prepare read-only metadata and fresh unreachable R/S from synchronized clean main. Independently verify SHA and exact publication/trust scope. Ask new SHA approval before Publish. Never dispatch, read private values, replay W6h or old W5r job, force-push or extend F3c9."
+}

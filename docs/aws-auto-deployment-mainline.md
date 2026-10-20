@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-20）：**W6i App发布/trust-only入口已编码，30项本机检查及零警告lint通过，尚未执行。** 复用原冻结云代码/真实App proof，保留旧R/S；只有新SHA批准后一次push两手动工作流、一次创建/严格核验/执行准确Change Set及ff，现有IAM策略和其它资源不变，旧个人worker将失去角色访问权。下一准确无AWS CI成功后在clean main只读Prepare新48小时清单，不读取任何私密值/连接Neon/调度或部署；平台/publisher仍UNPUBLISHED。[完整风险及唯一入口](aws-auto-deployment-platform-w6i-app-publication-review.md)。下文为历史。
+
 当前继续点（2026-10-20 10:43温尼伯）：**W6h专用数据库凭据已单次安装，独立核验通过。** 按a9b5e2ce…清单三次Secret写、一事务既有角色密码/LOGIN，准确版本/Source-only策略、目录仅LOGIN变化及两次TLS只读认证匹配；三控制表空，两个永久槽已消费，不重放或再读私密值。准确CI39447172538全部通过。本轮无App key、workflow发布、worker trust、dispatch或部署，平台/publisher仍UNPUBLISHED。下一仅集中最新clean main的App caller/reusable发布和现有角色trust-only待审范围，再接发布绑定；旧未发布R/S保留但不能覆盖已推进main。实际发布/权限/私密读取/部署仍fresh另审。[完成证据和继续点](aws-auto-deployment-platform-w6h-credentials-installed.md)。下文为历史。
 
 当前继续点（2026-10-20）：**W6h已将27项精确兼容、1个窄数据库凭据及App发布材料集中接线，生产写0。** 38项本机/零警告lint通过；只读实查Secret缺席、Source/Key/worker身份正确、27项快照完全相同且角色仍NOLOGIN。下一新准确CI验证实际密码LOGIN模板和invoker权限后，只读Prepare凭据新SHA与未发布Git/trust材料。实际凭据安装另批；App工作流/trust发布和平台启动更另审，不扩身份实验或F3c9。[范围、完整风险与命令](aws-auto-deployment-platform-w6h-activation-review.md)。下文为历史。
