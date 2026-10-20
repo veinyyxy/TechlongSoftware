@@ -1,0 +1,30 @@
+name: Reviewed platform deployment V6
+on:
+  workflow_dispatch:
+    inputs:
+      mode: {type: choice, options: [Review, RunOnce, Inspect], required: true}
+      job: {type: string, default: ''}
+      installation: {type: string, default: ''}
+      manifest: {type: string, default: ''}
+      manifestSha: {type: string, default: ''}
+      execution: {type: string, default: ''}
+      lineage: {type: string, default: ''}
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: single-techlong-sandbox-cloud-worker-v5
+  cancel-in-progress: false
+jobs:
+  reviewed:
+    if: github.repository_id == '1323312747' && github.repository_owner_id == '14145707' && github.actor_id == '344813947' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.event_name == 'workflow_dispatch'
+    uses: veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@4588febb7b33378ccf2aa1a2b552a18660be8292
+    with:
+      mode: ${{ inputs.mode }}
+      job: ${{ inputs.job }}
+      installation: ${{ inputs.installation }}
+      manifest: ${{ inputs.manifest }}
+      manifestSha: ${{ inputs.manifestSha }}
+      execution: ${{ inputs.execution }}
+      lineage: ${{ inputs.lineage }}
+      releaseReusableCommit: '4588febb7b33378ccf2aa1a2b552a18660be8292'
