@@ -10,6 +10,9 @@ import {readControlCatalog} from '../../ops/platform-controller-review-v6/catalo
 import {assertAbsent,assertInstalled,sqlContract} from '../../ops/platform-controller-review-v6/install.mjs';
 import {createPublisherDatabaseV6} from '../../ops/platform-publisher-v6/io.mjs';
 import {readControlPrivilegesV6,inspectControlPrivilegesV6} from '../../ops/platform-publisher-v6/privileges.mjs';
+import {assessLegacyCompatibilityV6} from '../../ops/platform-activation-v6/compatibility.mjs';
+import {roleLoginSqlV6,A} from '../../ops/platform-activation-v6/credentials.mjs';
+import {sha256Hex} from '../../lib/deployments/execution/hash.ts';
 assert.equal(process.env.GITHUB_ACTIONS,'true');
 const port=Number(process.env.PLATFORM_CONTROL_CI_PORT);assert.ok(Number.isInteger(port)&&port>1024&&port<65536);
 const base={host:'127.0.0.1',port,user:'postgres',password:'controller-ci-only-bootstrap',database:'postgres'};
@@ -44,11 +47,29 @@ try {
   assert.ok((await audit()).blockers.includes('unexpected_executable_functions'));
   await owner.query('REVOKE EXECUTE ON FUNCTION public.publisher_public_exec_ci() FROM PUBLIC');
   assert.equal((await audit()).activationPreflightPassed,true);
+  for(let i=0;i<27;i++)await owner.query(`CREATE FUNCTION public.legacy_trigger_ci_${String(i).padStart(2,'0')}() RETURNS trigger
+    LANGUAGE plpgsql AS 'BEGIN PERFORM 1 FROM public.users; RETURN NEW; END'`);
+  const legacyCatalog=await readControlPrivilegesV6(owner),legacyProposal={schema:'techlong/platform-legacy-invoker-trigger-compatibility-proposal/v6',
+    serviceRoleOid:catalogProof.roleOid,expectedFunctionOwnerOid:pre.installer.oid,functionCount:27,
+    functions:legacyCatalog.unexpected_executable_functions,functionSnapshotSha256:await sha256Hex(legacyCatalog.unexpected_executable_functions)};
+  assert.equal((await assessLegacyCompatibilityV6(legacyCatalog,legacyProposal)).eligibleForReviewedCredentialInstall,true);
+  assert.equal((await audit()).activationPreflightPassed,false); // strict default still blocks; no silent allowlist
   const expected={ownerRole:ownerName,ownerOid:pre.installer.oid,database:dbName,roleOid:catalogProof.roleOid,schemaOid:catalogProof.schemaOid};
   const database=budget=>createPublisherDatabaseV6({client:owner,expected,contract:sqlContract(ddl),release:f.release,now:f.now,maxWrites:budget});
   let dbPort=database(1);await dbPort.verify();
-  await owner.query(`ALTER ROLE ${S.databaseRole} LOGIN PASSWORD '${password}'`); // temporary CI only
-  worker=new pg.Client({...base,database:dbName,user:S.databaseRole,password});await worker.connect();
+  const controllerPassword='A'.repeat(64),productionRoleSql=roleLoginSqlV6(controllerPassword);
+  const ciRoleSql=productionRoleSql.replace('oid='+A.roleOid,'oid='+catalogProof.roleOid);
+  assert.notEqual(ciRoleSql,productionRoleSql);assert.equal(ciRoleSql.replace('oid='+catalogProof.roleOid,'oid='+A.roleOid),productionRoleSql);
+  assert.equal((await owner.query(ciRoleSql)).at(-1).command,'COMMIT'); // only the CI-specific role OID is substituted
+  worker=new pg.Client({...base,database:dbName,user:S.databaseRole,password:controllerPassword});await worker.connect();
+  assert.equal((await assessLegacyCompatibilityV6(await readControlPrivilegesV6(owner),legacyProposal,{expectedLogin:true})).eligibleForReviewedCredentialInstall,true);
+  await assert.rejects(worker.query('SELECT public.legacy_trigger_ci_00()'),/trigger/i);
+  await worker.query('CREATE TEMP TABLE invoker_trigger_ci_probe(id text)');
+  await worker.query('CREATE TRIGGER invoker_ci BEFORE INSERT ON invoker_trigger_ci_probe FOR EACH ROW EXECUTE FUNCTION public.legacy_trigger_ci_00()');
+  await assert.rejects(worker.query("INSERT INTO invoker_trigger_ci_probe VALUES('not-a-business-row')"),/permission denied/);
+  console.log(JSON.stringify({outcome:'PASSED_REAL_EXACT_LEGACY_TRIGGER_COMPATIBILITY_POSTGRESQL_18',legacyTriggers:27,strictDefaultStillBlocks:true,
+    exactSnapshotCompatibilityPassed:true,rolePasswordSqlOnlyCiOidSubstituted:true,dedicatedRoleAuthenticated:true,invokerCannotReadOwnerBusinessTable:true,
+    productionDatabaseTouched:false}));
   f.ports.writeOwner=dbPort.writeOwner;
   f.ports.loadPlan=dbPort.loadPlan;
   const publisher=createTrustedPublisherV6({release:f.release,sourceCommit:f.sourceCommit,frozenSourceCommit:f.frozenSourceCommit,ports:f.ports,now:f.now});

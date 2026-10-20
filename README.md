@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-20当前：**W6h精确27触发器兼容、单窄凭据安装入口与App发布材料准备代码完成，未安装/激活。** 38本机检查和零警告lint通过；只读确认新Secret缺席、仍NOLOGIN及准确快照匹配，兼容仍未批准。拟1个空Secret→Source-only保护→固定版本→一事务LOGIN，再独立只读认证；App私钥不读/不复制。下一准确新CI通过后生成48小时凭据SHA；App两workflow/两trust字段材料仅不可达Git对象，另审发布，runtime仍UNPUBLISHED。[具体范围与完整风险](docs/aws-auto-deployment-platform-w6h-activation-review.md)。下文为历史。
+
 2026-10-20当前：**W6g可信publisher实际I/O适配器及LOGIN前只读权限审计完成，准确CI已全通过，未激活。** 固定TLS/owner/OID/函数体、S3版本摘要、准确GitHub run、两段固定SQL及单阶段写预算；28项本机/零警告lint、CI39432718217真实PG适配器/权限负例/类型/构建通过。Neon发现27个旧PUBLIC invoker触发器，逐个摘要已记，兼容仅提案、不自动放行/撤权；LOGIN/Secret/AWS/dispatch仍0，平台与publisher仍UNPUBLISHED。下一集中兼容与窄凭据/App发布材料，不扩身份实验。[实现、实际阻断和继续点](docs/aws-auto-deployment-platform-w6g-publisher-io.md)。下文为历史。
 
 2026-10-20当前：**W6f NOLOGIN控制账本已单次原子安装，独立新连接核验通过。** 1角色/1 schema/3空表/9函数体/7窄EXECUTE准确匹配，COMMIT ACK及10原件摘要已保存，永久槽已消费、禁止重放。未设密码/LOGIN、读Secret/App key、改AWS或业务状态；平台仍UNPUBLISHED。下一集中可信publisher生产I/O、窄凭据与App云发布接线，具体安装/权限/部署另审，不再身份探针。[完成证据与唯一继续点](docs/aws-auto-deployment-platform-w6f-control-installed.md)。下文为历史。

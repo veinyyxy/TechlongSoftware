@@ -16,7 +16,14 @@ export const DATABASE_V6=Object.freeze({ownerRole:'neondb_owner',ownerOid:'16392
   targetFingerprintSha256:'5d5e52c00c54ed761aac13730f81b1b6f107d7ac06a68a407276132d150690a7'});
 // Publishing this exact source/release binding requires separate approval.
 // An environment boolean or caller-supplied PUBLISHED object cannot enable it.
-export const PUBLISHER_RELEASE_V6=Object.freeze({state:'UNPUBLISHED',releaseSha256:null,sourceCommit:null,frozenSourceCommit:null});
+export const PUBLISHER_RELEASE_V6=Object.freeze({state:'UNPUBLISHED',releaseSha256:null,frozenSourceCommit:null});
+export async function publisherReleaseReadyV6(binding,{release,sourceCommit,frozenSourceCommit}){
+  // Caller main is frozen by each reviewed plan/operator intent, not embedded
+  // into the commit that would have to contain its own SHA. R/release and the
+  // frozen runtime source remain literal, separately published bindings.
+  return binding.state==='PUBLISHED'&&releaseReady(release)&&commit(sourceCommit)&&commit(frozenSourceCommit)&&
+    binding.releaseSha256===await sha256Hex(release)&&binding.frozenSourceCommit===frozenSourceCommit;
+}
 const prefix=`worker-v5/${S.instanceId}/`,planSql=ownerQueryV6('plan',{planSha256:'',actionSha256:'',plan:{riskSha256:''}}).text;
 const proofSql=ownerQueryV6('proof',{planSha256:'a'.repeat(64),proofSha256:'b'.repeat(64)}).text;
 const job=v=>typeof v==='string'&&/^job_[a-f0-9]{24}$/.test(v)&&v!==S.completedJob;
@@ -127,8 +134,7 @@ export async function runPublisherOperationV6(operation,raw,{publisher:p,loadPla
 // fallback. A separately reviewed operator entry must supply these capabilities.
 export async function openProductionPublisherV6({release,sourceCommit,frozenSourceCommit,readOwnerUrl,credentials,githubToken,operation}){
   release=structuredClone(release);credentials=structuredClone(credentials);
-  must(PUBLISHER_RELEASE_V6.state==='PUBLISHED'&&PUBLISHER_RELEASE_V6.releaseSha256===await sha256Hex(release)&&
-    PUBLISHER_RELEASE_V6.sourceCommit===sourceCommit&&PUBLISHER_RELEASE_V6.frozenSourceCommit===frozenSourceCommit,'PUBLISHER_NOT_ACTIVATED');
+  must(await publisherReleaseReadyV6(PUBLISHER_RELEASE_V6,{release,sourceCommit,frozenSourceCommit}),'PUBLISHER_NOT_ACTIVATED');
   must(releaseReady(release)&&commit(sourceCommit)&&commit(frozenSourceCommit)&&release.installationSha256===C.installationSha256&&
     ['ReviewPlan','AttestAndAdvance','FinalAttest'].includes(operation),
     'PUBLISHER_RELEASE_OR_OPERATION');

@@ -1,0 +1,25 @@
+{
+  "schema":"techlong/platform-minimum-activation-preparation/v6",
+  "state":"CODE_AND_READONLY_INVENTORY_VERIFIED_EXACT_CI_PENDING_NO_INSTALL_APPROVAL",
+  "entry":"ops/platform-activation-v6/local.mjs",
+  "document":"docs/aws-auto-deployment-platform-w6h-activation-review.md",
+  "localVerification":{"newTestsPassed":10,"publisherIoTestsPassed":10,"publisherRegressionTestsPassed":6,"installRegressionTestsPassed":12,"totalPassed":38,"scopedLintWarnings":0},
+  "sourcePins":22,
+  "source":{"account":"402010193138","arn":"arn:aws:iam::402010193138:user/techlong-sandbox-dev","userId":"AIDAV3GNMXTZEO7SHLC2X","profile":"techlong-sandbox-user"},
+  "inventory":{"directory":"F:/ChatGPT_workshop/techlong-w6h-activation-inventory-20261020-d","secretName":"techlong/sandbox/platform-controller/neon-v6","secretAbsent":true,"roleOid":"180224","roleLogin":false,"legacyFunctionsExactlyMatched":27,"functionSnapshotSha256":"ba28793914eae30cb2cd1dc3a9d8cd5ce61553250f68ddf6edd3d2cd93f2d5d2","compatibilityAccepted":false,"kmsKeyManager":"AWS","workerRoleId":"AROAV3GNMXTZK5O45RG24"},
+  "proposedCredentialEffects":{"newSecrets":1,"secretPersistentWritesMax":3,"ownerSqlTransactionSubmissionsMax":1,"existingRolePasswordAndLogin":1,"independentFixedSecretValueReadsMax":1,"appPrivateKeyReads":0,"iamRoleChanges":0,"workflowPublications":0,"dispatches":0,"businessWrites":0},
+  "permanentSlot":"F:/ChatGPT_workshop/techlong-w6h-controller-credentials.intent.json",
+  "independentReadSlot":"F:/ChatGPT_workshop/techlong-w6h-controller-credentials-inspect.intent.json",
+  "slotsConsumed":false,
+  "publicationMaterialOnly":{"newWorkflowFiles":2,"unreachableGitObjectsOnly":true,"mainOrBranchMoves":0,"remoteWrites":0,"awsWrites":0,"trustClaimsProposedToChange":["actor_id","job_workflow_ref"],"allPermissionsAndOtherResourcesUnchanged":true,"separateFreshApprovalRequired":true,"workflowIdNotGuessed":true},
+  "cloudClosuresUnchanged":{"v6Files":81,"v6Sha256":"828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a","v5Sha256":"70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac"},
+  "receipts":[
+    {"path":"F:/ChatGPT_workshop/techlong-w6h-activation-inventory-20261020-d/prestate.json","rawSha256":"f4d7be96538d1483c995d9dd8f4504132c6db280b8796eae966a5c3fd2677fa8"},
+    {"path":"F:/ChatGPT_workshop/techlong-w6h-activation-inventory-20261020-d/compatibility.json","rawSha256":"213817738b11b63abf982904a64fae71a4e503f6ea25e1ef1e3c7ce28d51f769"},
+    {"path":"F:/ChatGPT_workshop/techlong-w6h-activation-inventory-20261020-d/result.json","rawSha256":"3553816e1ff95218da4fa87a92dc3ed4f5ab2981d33849e2f79ca336496ac2f9"}
+  ],
+  "currentEffects":{"productionAwsWrites":0,"productionDatabaseWrites":0,"secretValueReads":0,"appPrivateKeyReads":0,"workflowDispatches":0},
+  "platformAndPublisherRelease":"UNPUBLISHED",
+  "notAnExecutionApproval":true,
+  "next":"After exact-source no-AWS CI with actual PostgreSQL role-password/LOGIN template (only CI role OID substituted) and real legacy-invoker permission tests succeeds, run Prepare on synchronized clean main. Generate one 48h credential-install manifest and separately unapproved App workflow/trust materials outside the repository. Ask exact credential SHA approval; do not install or publish automatically. Preserve every old slot and original, use a new held job only after activation."
+}
