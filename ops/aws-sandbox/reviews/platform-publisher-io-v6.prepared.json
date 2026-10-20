@@ -1,6 +1,8 @@
 {
   "schema":"techlong/platform-publisher-production-io-preparation/v6",
-  "state":"CODE_AND_READONLY_PRIVILEGE_AUDIT_COMPLETE_EXACT_CI_PENDING_NOT_ACTIVATED",
+  "state":"CODE_AND_EXACT_CI_VERIFIED_LOGIN_COMPATIBILITY_REVIEW_REQUIRED_NOT_ACTIVATED",
+  "sourceCommit":"01083e48673d0bf3afd75e484954f60d0e979fc0",
+  "ci":{"runId":"39432718217","jobId":"118661625173","attempt":1,"status":"completed","conclusion":"success","allStepsSucceeded":true,"url":"https://github.com/veinyyxy/TechlongSoftware/actions/runs/39432718217","realIoPrivilegeMarker":"PASSED_REAL_PUBLISHER_IO_PRIVILEGE_PREFLIGHT_POSTGRESQL_18","markerLoggedAtUtc":"2026-10-20T13:43:02.9331005Z","actualOwnerSqlAdapterUsed":true,"columnGrantAndPublicFunctionDetected":true,"existingControllerChecks":9,"publisherChecks":3,"exactNoAwsSuccessMarkersIndependentlyRead":true},
   "entry":"ops/platform-publisher-v6/io.mjs",
   "auditEntry":"ops/platform-publisher-v6/audit-local.mjs",
   "productionRelease":"UNPUBLISHED",
@@ -19,5 +21,5 @@
   "notPerformed":{"productionSqlWrites":0,"awsCalls":0,"businessRowsRead":0,"loginActivations":0,"secretValueReadsOrWrites":0,"appPrivateKeyReads":0,"workflowDispatches":0,"oldSlotReplay":0},
   "document":"docs/aws-auto-deployment-platform-w6g-publisher-io.md",
   "notAnExecutionApproval":true,
-  "next":"Verify exact-source no-AWS CI, including actual PostgreSQL publisher adapter and privilege-negative assertions. Then consolidate reviewed compatibility for exact 27 legacy invoker triggers, narrow platform credentials and App caller/reusable/trust activation preparation. Do not globally revoke existing business grants or silently allowlist functions. Actual LOGIN, Secret, IAM, workflow publication and new-job deployment still require fresh resource-bound approval; no identity experiment or W6f replay."
+  "next":"Exact-source CI has passed; do not rerun it or the identity/W6f install experiments. Consolidate reviewed compatibility for exact 27 legacy invoker triggers, narrow platform credentials and App caller/reusable/trust activation preparation. Do not globally revoke existing business grants or silently allowlist functions. Actual LOGIN, Secret, IAM, workflow publication and new-job deployment still require fresh resource-bound approval."
 }

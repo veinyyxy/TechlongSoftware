@@ -34,11 +34,13 @@
 
 本机10项新I/O/权限检查+6 publisher+12安装回归共28项通过；scoped lint零警告。云候选/旧闭包均未变化（81文件828491ec…，旧76文件70ee60eb…）。
 
+准确源码 `01083e48673d0bf3afd75e484954f60d0e979fc0` 的[无AWS CI39432718217](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39432718217)已completed/success，attempt1、job118661625173所有步骤成功。日志13:43:02.9331005Z独立确认 `PASSED_REAL_PUBLISHER_IO_PRIVILEGE_PREFLIGHT_POSTGRESQL_18`，原9+3组PG证明、目录证明、类型/lint/构建也全部通过。不要重跑；结果文档提交不是新的执行代码版本或激活批准。
+
 无AWS CI新增真实PostgreSQL检查：使用相同SQL适配器提交已验证计划/证明/后继；在临时库中真实授予一列SELECT和创建一个默认PUBLIC函数，确认审计阻断，再只在临时库撤销，继续真实publisher测试。生产没有做这些授权实验。临时PG验证不证明真实Neon LOGIN、AWS凭据、App发布/trust或端到端部署成功。
 
 ## 唯一后续主线
 
-1. 独立确认本次准确源码CI真实PG、类型/lint/构建全成功，保留本步只读原件，不重跑旧W6e/W6f。
+1. 本次准确源码CI真实PG、类型/lint/构建已独立确认全成功；保留只读原件，不重跑本CI或旧W6e/W6f。
 2. 将准确27函数兼容、平台专用窄凭据及App caller/reusable/trust接线集中准备为明确资源清单。优先复用现有组件，不扩F3c9；owner计划/证明导入仍留在独立可信边界。实际LOGIN/Secret、发布和IAM变更各按fresh具体范围另批，不能借本步代码提交授权执行。
 3. 激活后只用新held job完成Review→人工environment批准→RunOnce→独立Inspect，不重放已完成W5r任务；整套系统AWS上线仍是最后阶段，50 USD/月目标、Aurora双模式与不升级plan保持。
 

@@ -1,6 +1,6 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
-当前继续点（2026-10-20）：**W6g独立可信publisher生产I/O代码已接入，NOLOGIN权限只读实查已完成，尚未激活。** 28项本机和零警告lint通过；新CI将真实使用SQL适配器并验证列权限/PUBLIC函数阻断。现有27项PUBLIC函数全为owner16392的PL/pgSQL invoker trigger，精确快照仅待审提案；不自动撤旧业务权限或开启LOGIN。AWS/Secret/App key/dispatch/生产写0，81/76云闭包不变。下一准确CI通过后集中准备27项兼容、窄凭据与App caller/reusable/trust最小激活，不再身份探针。[范围、风险与继续点](aws-auto-deployment-platform-w6g-publisher-io.md)。下文为历史。
+当前继续点（2026-10-20）：**W6g独立可信publisher生产I/O代码及NOLOGIN只读审计完成，准确CI39432718217全部success，尚未激活。** 28项本机/零警告lint、真实PG SQL适配器与列权限/PUBLIC函数负例、类型/构建均通过，不重跑。现有27项PUBLIC函数全为owner16392的PL/pgSQL invoker trigger，精确快照仅待审提案；不自动撤旧业务权限或开启LOGIN。AWS/Secret/App key/dispatch/生产写0，81/76云闭包不变。下一集中准备27项兼容、窄凭据与App caller/reusable/trust最小激活，不再身份探针。[范围、风险与继续点](aws-auto-deployment-platform-w6g-publisher-io.md)。下文为历史。
 
 当前继续点（2026-10-20 08:10温尼伯）：**W6f NOLOGIN账本安装完成，独立只读核验通过，永久槽已消费。** 按acf19e10…清单一原SQL事务COMMIT，准确角色/schema/3空表/9函数体/7窄EXECUTE与安装前旧三表OID/owner核对通过，10原件摘要已记录。未LOGIN/Secret/App key/dispatch/AWS/业务写，平台仍UNPUBLISHED；不重跑Install或身份实验。下一收口生产publisher I/O、窄凭据与App caller/reusable/trust接线，真实激活/发布/部署继续具体资源fresh另批。[完成事实、风险和继续位置](aws-auto-deployment-platform-w6f-control-installed.md)。下文为历史。
 
