@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-20）：**W6m准确job的可信Review计划受审入口已编码，尚未发布。** 复用原publisher/SQL/S3读取器，准确W5r沿革重建后最多一次条件对象写和一次计划SQL，另进程只读回读；不签App token/dispatch、不读key/Secret或部署。48小时operator清单、实际发布时才启动原2小时Review计划；23项本机/定向lint通过，下一准确CI后元数据Prepare并请新SHA确认。保留W6l任务/槽，不再新增任务或扩权限/云执行器。[完整范围、风险和继续命令](aws-auto-deployment-platform-w6m-review-plan.md)。下文为历史。
+
 当前继续点（2026-10-20）：**W6l准确新待审任务已登记并独立核验，入口已关闭。** `job_fc0309dabebc09367f64153f` pending/attempt0/max1/审核挂起、无lease/云执行授权；九行及四旧job摘要保持。准确CI17步骤、12原件/26源码pin通过，两永久槽消费禁止重放；原PID退出、3100无监听。本阶段不读App key/AWS Secret、不调用AWS或dispatch；正常登录写入不声称SQL为0。下一仅复用既有publisher/controller为该准确job准备Review计划及新范围，计划SQL/私密供给/App操作/部署另审，不新增任务、执行器或身份支线。[完成证据和唯一继续点](aws-auto-deployment-platform-w6l-held-request-verified.md)。下文为历史。
 
 当前继续点（2026-10-20）：**W6l只准备真实新heldjob的固定请求窗口，不重跑W6k。** 管理员/UUID/request/job预先绑定，前置和SQL前复核、刷新不换nonce；原登记SQL不变，request-only窗口不读App key/AWS Secret，controller/worker/apply关闭。新Start/独立Inspect两槽、两次认证文件读取/四显式只读事务及一真实管理员逻辑job均需最终新SHA批准。67项本机/类型/lint通过，原云闭包不变；下一准确CI成功后只读Prepare，登记核验后直接复用publisher/controller绑定该job的Review计划，不扩新执行器/身份/F3c9。[完整范围和唯一入口](aws-auto-deployment-platform-w6l-held-request-review.md)。下文为历史。

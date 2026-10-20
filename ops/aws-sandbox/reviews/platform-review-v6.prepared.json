@@ -1,0 +1,14 @@
+{
+  "schema": "techlong/platform-review-publication-code-prepared/v6",
+  "state": "CODE_TESTED_AWAITING_EXACT_SOURCE_CI_AND_METADATA_PREPARE",
+  "date": "2026-10-20",
+  "timezone": "America/Winnipeg",
+  "document": "docs/aws-auto-deployment-platform-w6m-review-plan.md",
+  "jobId": "job_fc0309dabebc09367f64153f",
+  "scope": "Reuse installed trusted publisher to conditionally publish one fixed historical lineage object and one Review plan, followed by independent readback. Not dispatch or deployment.",
+  "localTests": {"newOperator": 7, "existingPublisherAndIo": 16, "passed": 23},
+  "scopedLintWarnings": 0,
+  "ci": "Pending exact-source no-AWS CI; retains disposable PostgreSQL tests for the actual SQL publisher and controller, plus existing local-runtime tests.",
+  "preparationEffects": {"authFileContentReads": 0, "productionSqlConnections": 0, "awsCalls": 0, "s3Writes": 0, "ownerPlanWrites": 0, "appPrivateKeyReads": 0, "appTokensOrDispatches": 0, "newJobs": 0},
+  "next": "After exact clean-main CI passes, metadata-only Prepare a fresh48h SHA and request explicit publication/readback approval. Preserve all W6l originals and consumed slots. Do not Publish or create another request until exact approval."
+}
