@@ -1,0 +1,41 @@
+{
+  "schema": "techlong/platform-binding-executed/v6",
+  "state": "BINDING_PUBLICATION_INDEPENDENTLY_VERIFIED_RUNTIME_NOT_STARTED",
+  "date": "2026-10-20",
+  "timezone": "America/Winnipeg",
+  "manifestSha256": "752a9ee9f48cd053cffe0a5445ae8cec9ae3aec19ea3c008c17d4dfcedc92b9f",
+  "riskFile": "docs/aws-auto-deployment-platform-w6j-runtime-binding-review.md",
+  "riskFileLfSha256": "e248044029c1c9f38965be6018b0b52bb045677ce48dc5c262d1a54e6400300f",
+  "completionFile": "docs/aws-auto-deployment-platform-w6j-binding-published.md",
+  "sourceCommit": "ccbb9e522a5ba1eaf7b5e69e4505f109b761eebb",
+  "publication": {"commit": "69a3643f86d841c697a46ea8eb9d176e329db8c0", "onlyChangedFile": "lib/deployments/controller-v6/installed-binding.ts", "blob": "e970e8658aa5dddfa985d3ef1ac87fa0d95c0963", "lfSha256": "40348c45fbe39722190921ae6ce624d5c11b9c39010c2fff4f0d6510b2d3331f", "force": false},
+  "binding": {"platform": "PUBLISHED", "publisher": "PUBLISHED", "workflowId": "390829326", "actorId": "344813947", "reusableCommit": "4588febb7b33378ccf2aa1a2b552a18660be8292", "releaseSha256": "268efbd9674824f79cb453e82a05bd09b5d7fd3c01c3c277f6506f850ae79d40", "frozenSourceCommit": "ca2b38d8c756dd8fb800a88ded596c93687f278f", "v6ClosureSha256": "828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a", "v5ClosureSha256": "70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac", "identityProofSha256": "1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca", "installationSha256": "0edfa9d7e9b284e0cf9dda91e280bd12e98bf8e9c36f955c3ad661f72d6ad4b1"},
+  "ci": {
+    "prePublication": {"sourceCommit": "ccbb9e522a5ba1eaf7b5e69e4505f109b761eebb", "cloudRunId": "39470489242", "cloudJobId": "118792948320", "controllerRunId": "39470489100", "attempt": 1, "conclusion": "success"},
+    "publishedCommit": [
+      {"workflow": ".github/workflows/platform-cloud-candidate.yml", "sourceCommit": "69a3643f86d841c697a46ea8eb9d176e329db8c0", "runId": "39472650532", "jobId": "118800423817", "attempt": 1, "status": "completed", "conclusion": "success", "stepsPassed": 16},
+      {"workflow": ".github/workflows/platform-controller.yml", "sourceCommit": "69a3643f86d841c697a46ea8eb9d176e329db8c0", "runId": "39472652205", "jobId": "118800429688", "attempt": 1, "status": "completed", "conclusion": "success", "stepsPassed": 15}
+    ],
+    "productionAwsIdentityUsed": false,
+    "manuallyDispatchedOrRerun": false
+  },
+  "verification": {"separateInspectProcess": true, "localAndRemoteHeadAtInspection": "69a3643f86d841c697a46ea8eb9d176e329db8c0", "remoteBlobAndBytesMatched": true, "installedBindingReconstructedExactly": true, "all10OriginalRawHashesReconciled": true, "postPublicationLocalTestsPassed": 34, "postPublicationTypecheckPassed": true, "actualRuntimeWithoutValidLocalLeaseClosedBeforePrivateReads": true, "independentInspectExternalWrites": 0},
+  "counts": {"publicationPush": 1, "localFastForward": 1, "automaticRetries": 0, "compensationDeletesOrResets": 0, "awsWrites": 0, "productionSqlConnections": 0, "secretValueReads": 0, "appPrivateKeyReads": 0, "appTokens": 0, "serverStarts": 0, "businessWrites": 0, "jobClaims": 0, "workflowDispatches": 0, "workloadCreates": 0},
+  "permanentSlot": {"path": "F:/ChatGPT_workshop/techlong-w6j-binding-publication.intent.json", "consumedAtUtc": "2026-10-20T18:11:52.165Z", "replayOrResetAllowed": false},
+  "receipts": [
+    {"path": "F:/ChatGPT_workshop/techlong-w6j-binding-20261020-a/manifest.json", "rawSha256": "d1b54da3e8e370d4115824e1cb8a9d13e969674406388f63bdfc837f02ea7d58"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6j-binding-20261020-a/candidate-binding.json", "rawSha256": "6f851edd533c41554c22f9c08dc98cd815b4a6ac3da5361e80f4c33b24e8338d"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6j-binding-20261020-a/result.json", "rawSha256": "46faca0dbd800507596190174dccfda0dc3255955d049c2c9e8d422d0207e298"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6j-binding-20261020-a-run/approved-manifest.json", "rawSha256": "d1b54da3e8e370d4115824e1cb8a9d13e969674406388f63bdfc837f02ea7d58"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6j-binding-20261020-a-run/local-main-ack.json", "rawSha256": "f700170a4b09e9c2aad8600c0bdb9121d0739f83c267692014eace23ad83b023"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6j-binding-20261020-a-run/published-binding.json", "rawSha256": "ff4e4f904f33fc59921cde0178037e75282c96c5297b722a6248ede41ccd851b"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6j-binding-20261020-a-run/push-ack.json", "rawSha256": "c35f8506572795a40b16a7093bbfde311871ae95191d0f380b39ec0e6f8ff4d5"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6j-binding-20261020-a-run/result.json", "rawSha256": "48cdd45756ecbabdd55b10d65998d6f25d3149add8fecac58379e96815ed5078"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6j-binding-20261020-a-inspect/result.json", "rawSha256": "1d9db725a1415f828c9affdd26b18b165aea4333c5f5c3121480b25cf18925e0"},
+    {"path": "F:/ChatGPT_workshop/techlong-w6j-binding-publication.intent.json", "rawSha256": "c88983268ac6e7e64d58506f11bb3fcdf96bf7524fad992b6d07a6ca1fdc8c40"}
+  ],
+  "runtimeProvisioned": false,
+  "runtimeStarted": false,
+  "workflowDispatched": false,
+  "next": "Prepare one separately reviewed minimal local launcher/private provisioning scope, then a NEW held task and platform Review/RunOnce/Inspect acceptance. No private reads/startup/new business writes/dispatch are authorized by this publication. Never replay W6h/W6i/W6j or completed W5r, reset slots, expand F3c9 or repeat identity probes."
+}

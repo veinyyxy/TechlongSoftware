@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-20）：**W6j按752a9ee9…清单公开绑定发布成功，独立Inspect通过，运行时未启动。** main曾精确ff到69a3643…，仅单文件PUBLISHED；真实workflow390829326/R4588febb…及release268efbd9…准确，云闭包和既有权限不变。发布后34项本机/typecheck、两项准确提交CI全通过，槽永久消费，禁止Publish重放；本轮AWS写/生产SQL/私密读取/新任务/启动/dispatch0。下一集中准备一次受审本机启动器（固定私密供给/30分钟许可/loopback/停止方式），获新范围批准后登记一个全新heldjob，平台Review→RunOnce→Inspect验收。不要再身份探针、扩F3c9或重装W6h/W6i。[完成记录与唯一继续点](aws-auto-deployment-platform-w6j-binding-published.md)。下文为历史。
+
 当前继续点（2026-10-20）：**W6j已接真实workflow390829326/R4588febb…的独立binding候选，默认仍UNPUBLISHED。** 34项本机检查通过；平台/publisher共用受审release摘要，云contract及81/76闭包不变，另有本机30分钟许可、准确origin/source、专用Neon目标/verify-full及POST前复核。原launcher不供给私密值；公开binding发布也不启动运行时。下一准确CI成功后只读Prepare单文件发布SHA，实际发布另批，然后集中受审启动/新任务一次验收，不做身份探针；本轮生产写/私密读取/任务创建/服务启动/dispatch0。[完整风险与入口](aws-auto-deployment-platform-w6j-runtime-binding-review.md)。下文为历史。
 
 当前继续点（2026-10-20）：**W6i按9a888e4f…清单发布成功，独立Inspect通过。** caller workflow390829326、reusable390829324、R4588febb…及新trust/完整模板已匹配，栈UPDATE_COMPLETE；原策略/boundary v1/五资源物理身份/审批门禁保持。原个人actor/reusable不符合新trust，不宣称撤销已有STS会话。一次push/Create/Execute/ff和永久槽已完成，禁止重放；无私密读取/Neon/dispatch/部署，平台/publisher仍UNPUBLISHED。下一只集中真实workflow/R的发布绑定和新待审任务一次端到端验收，具体激活/私密读取/调度仍新范围审批，不做身份实验或F3c9。[完成事实、原件和继续点](aws-auto-deployment-platform-w6i-app-published.md)。下文为历史。
