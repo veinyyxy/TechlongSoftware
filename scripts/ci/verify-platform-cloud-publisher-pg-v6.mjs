@@ -8,6 +8,8 @@ import {createTrustedPublisherV6} from '../../ops/platform-cloud-v6/publisher.mj
 import {CONTROL_SCOPE as S} from '../../lib/deployments/controller-v6/contract.ts';
 import {readControlCatalog} from '../../ops/platform-controller-review-v6/catalog.mjs';
 import {assertAbsent,assertInstalled,sqlContract} from '../../ops/platform-controller-review-v6/install.mjs';
+import {createPublisherDatabaseV6} from '../../ops/platform-publisher-v6/io.mjs';
+import {readControlPrivilegesV6,inspectControlPrivilegesV6} from '../../ops/platform-publisher-v6/privileges.mjs';
 assert.equal(process.env.GITHUB_ACTIONS,'true');
 const port=Number(process.env.PLATFORM_CONTROL_CI_PORT);assert.ok(Number.isInteger(port)&&port>1024&&port<65536);
 const base={host:'127.0.0.1',port,user:'postgres',password:'controller-ci-only-bootstrap',database:'postgres'};
@@ -33,10 +35,22 @@ try {
   const catalogProof=assertInstalled(await readControlCatalog(owner),sqlContract(ddl),pre);
   assert.equal(catalogProof.roleLogin,false);assert.equal(catalogProof.functions,9);assert.equal(catalogProof.emptyTables,3);
   console.log(JSON.stringify({outcome:'PASSED_REAL_CONTROL_INSTALL_CATALOG_POSTGRESQL_18',verified:catalogProof,productionDatabaseTouched:false}));
+  const audit=()=>readControlPrivilegesV6(owner).then(c=>inspectControlPrivilegesV6(c,catalogProof.roleOid));
+  assert.equal((await audit()).activationPreflightPassed,true);
+  await owner.query(`GRANT SELECT(id) ON public.users TO ${S.databaseRole}`); // disposable CI negative assertion only
+  assert.ok((await audit()).blockers.includes('relation_or_column_rights'));
+  await owner.query(`REVOKE SELECT(id) ON public.users FROM ${S.databaseRole}`);
+  await owner.query(`CREATE FUNCTION public.publisher_public_exec_ci() RETURNS int LANGUAGE sql AS 'SELECT 1'`);
+  assert.ok((await audit()).blockers.includes('unexpected_executable_functions'));
+  await owner.query('REVOKE EXECUTE ON FUNCTION public.publisher_public_exec_ci() FROM PUBLIC');
+  assert.equal((await audit()).activationPreflightPassed,true);
+  const expected={ownerRole:ownerName,ownerOid:pre.installer.oid,database:dbName,roleOid:catalogProof.roleOid,schemaOid:catalogProof.schemaOid};
+  const database=budget=>createPublisherDatabaseV6({client:owner,expected,contract:sqlContract(ddl),release:f.release,now:f.now,maxWrites:budget});
+  let dbPort=database(1);await dbPort.verify();
   await owner.query(`ALTER ROLE ${S.databaseRole} LOGIN PASSWORD '${password}'`); // temporary CI only
   worker=new pg.Client({...base,database:dbName,user:S.databaseRole,password});await worker.connect();
-  f.ports.writeOwner=q=>owner.query(q.text,q.values);
-  f.ports.loadPlan=async sha=>(await worker.query('SELECT deployment_control_v6.load_plan($1) v',[sha])).rows[0].v;
+  f.ports.writeOwner=dbPort.writeOwner;
+  f.ports.loadPlan=dbPort.loadPlan;
   const publisher=createTrustedPublisherV6({release:f.release,sourceCommit:f.sourceCommit,frozenSourceCommit:f.frozenSourceCommit,ports:f.ports,now:f.now});
   const v=await publisher.publishReview({jobId:j.id,installationReference:f.installationReference});
   const loaded=await f.ports.loadPlan(v.planSha256);assert.deepEqual(loaded.plan,v.plan);assert.equal(loaded.actionSha256,v.actionSha256);
@@ -47,6 +61,7 @@ try {
   await worker.query('SELECT deployment_control_v6.begin_dispatch($1,$2,$3,$4)',[v.planSha256,v.actionSha256,f.release.riskSha256,adminId]);
   await worker.query('SELECT deployment_control_v6.acknowledge($1,$2)',[v.planSha256,'123456789']);
   await worker.query('SELECT deployment_control_v6.observe_run($1,$2,$3,$4)',[v.planSha256,'123456789','completed','success']);
+  dbPort=database(2);await dbPort.verify();f.ports.writeOwner=dbPort.writeOwner;f.ports.loadPlan=dbPort.loadPlan;
   const ref=await f.resultFor(v.plan,'123456789');
   await assert.rejects(publisher.publishSuccessor(v.planSha256,ref));
   const attested=await publisher.attestResult(v.planSha256,ref);
@@ -55,6 +70,9 @@ try {
   await worker.query('SELECT deployment_control_v6.begin_dispatch($1,$2,$3,$4)',[next.planSha256,next.actionSha256,f.release.riskSha256,adminId]);
   assert.deepEqual((await owner.query('SELECT * FROM public.deployment_jobs')).rows,before);
   checks.push('validated real manifest attestation enables original-window RunOnce intent while business job stays unchanged');
+  assert.equal(dbPort.counts().ownerWriteSubmissions,2);
+  console.log(JSON.stringify({outcome:'PASSED_REAL_PUBLISHER_IO_PRIVILEGE_PREFLIGHT_POSTGRESQL_18',ownerSqlAdapterUsed:true,
+    columnGrantAndPublicFunctionDetected:true,implicitRetries:0,productionDatabaseTouched:false}));
   console.log(JSON.stringify({outcome:'PASSED_REAL_PUBLISHER_POSTGRESQL_18',checks,productionDatabaseTouched:false,githubOrAwsCalls:0,
     realNeonCompatibilityVerified:false,appActorObserved:false,fixtureBusinessTablesOnly:true}));
 } finally {

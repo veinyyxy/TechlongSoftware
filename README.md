@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-20当前：**W6g可信publisher实际I/O适配器及LOGIN前只读权限审计完成，未激活。** 固定TLS/owner/OID/函数体、S3版本摘要、准确GitHub run、两段固定SQL及单阶段写预算；28项本机/零警告lint通过，准确新CI待验。Neon发现27个旧PUBLIC invoker触发器，逐个摘要已记，兼容仅提案、不自动放行/撤权；LOGIN/Secret/AWS/dispatch仍0，平台与publisher仍UNPUBLISHED。下一集中兼容与窄凭据/App发布材料，不扩身份实验。[实现、实际阻断和继续点](docs/aws-auto-deployment-platform-w6g-publisher-io.md)。下文为历史。
+
 2026-10-20当前：**W6f NOLOGIN控制账本已单次原子安装，独立新连接核验通过。** 1角色/1 schema/3空表/9函数体/7窄EXECUTE准确匹配，COMMIT ACK及10原件摘要已保存，永久槽已消费、禁止重放。未设密码/LOGIN、读Secret/App key、改AWS或业务状态；平台仍UNPUBLISHED。下一集中可信publisher生产I/O、窄凭据与App云发布接线，具体安装/权限/部署另审，不再身份探针。[完成证据与唯一继续点](docs/aws-auto-deployment-platform-w6f-control-installed.md)。下文为历史。
 
 2026-10-20更新：**应用户要求，W6f NOLOGIN账本安装清单改为7天（168小时），安装范围不变、生产未执行。** 12安装+6 publisher检查及零警告lint通过；仅该准备窗口延长，执行前源码/CI/目录fresh核对、同一永久槽及不自动重试保持。旧203cda41…清单保留但不执行，新源码准确CI后生成新SHA，明确完整日期与America/Winnipeg时区；其它权限启用/部署窗口不变。[范围、风险与命令](docs/aws-auto-deployment-platform-w6f-control-install.md)。下文为历史。

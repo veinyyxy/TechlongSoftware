@@ -1,0 +1,23 @@
+{
+  "schema":"techlong/platform-publisher-production-io-preparation/v6",
+  "state":"CODE_AND_READONLY_PRIVILEGE_AUDIT_COMPLETE_EXACT_CI_PENDING_NOT_ACTIVATED",
+  "entry":"ops/platform-publisher-v6/io.mjs",
+  "auditEntry":"ops/platform-publisher-v6/audit-local.mjs",
+  "productionRelease":"UNPUBLISHED",
+  "publisherEntryActivated":false,
+  "platformRelease":"UNPUBLISHED",
+  "localVerification":{"newIoAndAuditTestsPassed":10,"publisherRegressionTestsPassed":6,"installRegressionTestsPassed":12,"totalPassed":28,"scopedLintWarnings":0},
+  "productionAudit":{"state":"LOGIN_ACTIVATION_BLOCKED_REQUIRES_REVIEW","roleOid":"180224","roleLogin":false,"unexpectedExecutableFunctions":27,"legacyInvokerTriggers":27,"allFunctionOwners":"16392","sourceDigestsVerified":27,"roleMemberships":0,"baseTableColumnOrSequenceRights":0,"functionGrantOptions":0,"databaseOrSchemaCreateRights":0,"temporaryObjectsAllowed":true},
+  "compatibilityProposal":{"document":"ops/aws-sandbox/reviews/platform-publisher-v6.legacy-trigger-proposal.json","snapshotSha256":"ba28793914eae30cb2cd1dc3a9d8cd5ce61553250f68ddf6edd3d2cd93f2d5d2","approved":false,"automaticAllowlisting":false,"automaticRevocation":false},
+  "cloudClosuresUnchanged":{"v6Files":81,"v6Sha256":"828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a","v5Sha256":"70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac"},
+  "receipts":[
+    {"path":"F:/ChatGPT_workshop/techlong-w6g-privileges-20261020-a/catalog.json","rawSha256":"cbe4116f9d125cf543414c1a8100c79bc894554c80cd7408f8ad7a598d60b5e2"},
+    {"path":"F:/ChatGPT_workshop/techlong-w6g-privileges-20261020-a/result.json","rawSha256":"64001e3477be5e3b55ca6fc7e3ca4acf54e5462bf1484cdf653d60a1cb82ba3a"},
+    {"path":"F:/ChatGPT_workshop/techlong-w6g-privileges-20261020-b/catalog.json","rawSha256":"d384a4c76aefbaa9ecb81d6c01ae8beaa2fc180d988d7d92f6c90f0ddb34e4cc"},
+    {"path":"F:/ChatGPT_workshop/techlong-w6g-privileges-20261020-b/result.json","rawSha256":"4968eebae7769ac7a688d0bac52a226104d8c3d97e87816fe24e3bee6a015b90"}
+  ],
+  "notPerformed":{"productionSqlWrites":0,"awsCalls":0,"businessRowsRead":0,"loginActivations":0,"secretValueReadsOrWrites":0,"appPrivateKeyReads":0,"workflowDispatches":0,"oldSlotReplay":0},
+  "document":"docs/aws-auto-deployment-platform-w6g-publisher-io.md",
+  "notAnExecutionApproval":true,
+  "next":"Verify exact-source no-AWS CI, including actual PostgreSQL publisher adapter and privilege-negative assertions. Then consolidate reviewed compatibility for exact 27 legacy invoker triggers, narrow platform credentials and App caller/reusable/trust activation preparation. Do not globally revoke existing business grants or silently allowlist functions. Actual LOGIN, Secret, IAM, workflow publication and new-job deployment still require fresh resource-bound approval; no identity experiment or W6f replay."
+}

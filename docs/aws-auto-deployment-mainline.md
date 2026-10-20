@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-20）：**W6g独立可信publisher生产I/O代码已接入，NOLOGIN权限只读实查已完成，尚未激活。** 28项本机和零警告lint通过；新CI将真实使用SQL适配器并验证列权限/PUBLIC函数阻断。现有27项PUBLIC函数全为owner16392的PL/pgSQL invoker trigger，精确快照仅待审提案；不自动撤旧业务权限或开启LOGIN。AWS/Secret/App key/dispatch/生产写0，81/76云闭包不变。下一准确CI通过后集中准备27项兼容、窄凭据与App caller/reusable/trust最小激活，不再身份探针。[范围、风险与继续点](aws-auto-deployment-platform-w6g-publisher-io.md)。下文为历史。
+
 当前继续点（2026-10-20 08:10温尼伯）：**W6f NOLOGIN账本安装完成，独立只读核验通过，永久槽已消费。** 按acf19e10…清单一原SQL事务COMMIT，准确角色/schema/3空表/9函数体/7窄EXECUTE与安装前旧三表OID/owner核对通过，10原件摘要已记录。未LOGIN/Secret/App key/dispatch/AWS/业务写，平台仍UNPUBLISHED；不重跑Install或身份实验。下一收口生产publisher I/O、窄凭据与App caller/reusable/trust接线，真实激活/发布/部署继续具体资源fresh另批。[完成事实、风险和继续位置](aws-auto-deployment-platform-w6f-control-installed.md)。下文为历史。
 
 当前继续点（2026-10-20更新）：**W6f本次NOLOGIN安装批准窗口按用户要求延长至7天；未生产安装、未消费永久槽。** 12安装+6回归/零警告lint通过；旧48小时203cda41…清单不执行，旧批准不转移至新SHA。提交后新源码准确CI成功再只读准备新清单，执行时仍逐项比对fresh目录/源码/main/CI。只改本次窗口及明确完整日期/时区展示，不延长权限启用或实际部署窗口。[完整范围与风险](aws-auto-deployment-platform-w6f-control-install.md)。下文为历史。
