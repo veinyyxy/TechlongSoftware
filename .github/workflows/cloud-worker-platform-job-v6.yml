@@ -1,0 +1,46 @@
+name: Pinned platform cloud worker V6
+on:
+  workflow_call:
+    inputs:
+      mode: {type: string, required: true}
+      job: {type: string, required: true}
+      installation: {type: string, required: true}
+      manifest: {type: string, required: true}
+      manifestSha: {type: string, required: true}
+      execution: {type: string, required: true}
+      lineage: {type: string, required: true}
+      releaseReusableCommit: {type: string, required: true}
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  single:
+    if: github.repository_id == '1323312747' && github.repository_owner_id == '14145707' && github.actor_id == '344813947' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    environment: techlong-sandbox-deploy
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ca2b38d8c756dd8fb800a88ded596c93687f278f
+          persist-credentials: false
+      - run: test "$(git rev-parse HEAD)" = 'ca2b38d8c756dd8fb800a88ded596c93687f278f'
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
+      - run: node --experimental-strip-types ops/platform-cloud-v6/run.mjs
+        env:
+          TECHLONG_FROZEN_SOURCE_COMMIT: ca2b38d8c756dd8fb800a88ded596c93687f278f
+          TECHLONG_REUSABLE_COMMIT: ${{ inputs.releaseReusableCommit }}
+          TECHLONG_PLATFORM_RELEASE_STATE: PUBLISHED
+          TECHLONG_PLATFORM_CLOSURE_SHA: 828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a
+          TECHLONG_APP_IDENTITY_PROOF_SHA: 1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca
+          TECHLONG_INPUT_MODE: ${{ inputs.mode }}
+          TECHLONG_INPUT_JOB: ${{ inputs.job }}
+          TECHLONG_INPUT_INSTALLATION: ${{ inputs.installation }}
+          TECHLONG_INPUT_MANIFEST: ${{ inputs.manifest }}
+          TECHLONG_INPUT_MANIFESTSHA: ${{ inputs.manifestSha }}
+          TECHLONG_INPUT_EXECUTION: ${{ inputs.execution }}
+          TECHLONG_INPUT_LINEAGE: ${{ inputs.lineage }}
