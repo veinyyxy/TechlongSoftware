@@ -1,5 +1,33 @@
 # W7h：基础镜像修复与云端兼容验收（No AWS）
 
+## 已完成：新候选通过，尚未推送 ECR
+
+[准确源码4209fcab…的云端run39692352506](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39692352506)
+已于2026-10-21T23:18:35Z completed/success；workflow391864582 / job119541336546 / main push attempt1，
+全部17个报告步骤成功。实际 Alpine 3.24.1、18个OS包扫描 **0 HIGH / 0 CRITICAL**；两种真实容器 smoke 各18个浏览器资产。
+这证明本轮编译/匿名路径/固定HTTPS边界及OS扫描，不证明真实数据库登录、TLS或全部原生依赖业务路径。
+
+独立读取官方run/jobs/artifacts及job日志，并按官方摘要下载778字节扫描证据、核对单JSON条目；
+没有在本机下载307MB镜像或启动Docker。
+[机器可读结果及证据摘要](evidence/platform-hosting-w7h.result.json) 已保存：
+
+- image config：`sha256:2338439ea316a6189d50281f5d25a0a1c2a2ca1f4455494253f20bcbd8f6f9ae`。
+- 原压缩镜像 SHA：`31578b890954ab675b1ef4c1f90424af82f519fd09b0b1a2cfac4fb1b0e5b30c`，来自 producer 的 seal 日志；
+  本轮未独立下载整个镜像ZIP再次计算，其后发布前必须验证官方ZIP和archive准确字节。
+- image artifact `12388759351`，307758788字节，官方ZIP摘要
+  `sha256:74cf0fa61cc2a6ba9192050fbe63b0872785afc65239445f146395c3b361e478`，
+  截止2026-10-24T23:18:27Z（温尼伯10月24日18:18:27 CDT）。不是 ECR manifest digest。
+- 扫描 artifact `12389895251`，ZIP摘要
+  `d387b55a5e17d1d9f5dc088d5c7b82c600268c79da194cdd4e330f6571538fea`；
+  `os-scan-summary.json` 摘要 `18af872f8a225cc16fe4a59e173f1e43272cfd73bfafeafc5cbfb1747c6bc2d1`。
+  本地 `F:/ChatGPT_workshop/platform-web-security-12389895251.zip` 保留。
+- 独立元数据/选定准确日志的排他证据
+  `F:/ChatGPT_workshop/techlong-platform-image-w7h.cloud-verification-39692352506.json`，
+  SHA `6f5631bf3ee03b5e6f0193fb6ca9be8de326c2b0cd7b7542d42fcc5b4c40b98c`。
+
+唯一下一步：基于**新**候选准备受控一次ECR发布及立即撤权，先完成真实publish/revoke接线、云端字节复核和新审阅，
+不直接运行旧W7g proposal（它仍绑定被拦截的旧镜像）。此阶段完成，没有待批的AWS执行清单。
+
 ## W7g 实际结果，不是待重跑
 
 2026-10-21，准确执行源码 `4889f9f61b7f761dba995b2744ec9844a1fda3f0` 的
@@ -66,7 +94,7 @@ Debian 官方记录说明：
 ## 验证与唯一继续点
 
 本机54项 Node 回归通过（含新门禁及失败摘要保留），类型/定向lint检查通过；
-真实 GitHub No-AWS 构建结果必须按新提交独立读取，不能把旧成功 smoke 当作新 Alpine 兼容证据。
+真实 GitHub No-AWS 构建结果已按新提交独立读取，见本页顶部；不是沿用旧 smoke 结果。
 
 若新候选失败，保存准确失败结果并修复，不重跑旧run或放宽门禁；若成功，读取新 artifact/source/run/config/ZIP 的准确身份，
 另准备受控一次 ECR 发布及立即撤权的待审清单。**此文不是执行授权。** IAM/OIDC/推送/实际部署继续分别按具体范围确认。
