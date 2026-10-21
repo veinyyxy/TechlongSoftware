@@ -65,8 +65,10 @@ CloudFormation `ValidateTemplate` 只读验证在 `2026-10-21T18:51:27.886Z` 成
 
 ## 验证、边界与下一步
 
-本地42项hosting/release测试全部通过，包括真实临时loopback HTTP、实际CLI文件摘要、重封装拒绝、root/私密env/来源替换拒绝、三个准确foundation资源、无扩权/删除、schema内真实表存在及metadata-only SQL。TypeScript、scoped lint和原81pin部署闭包也需保持通过；真实镜像/导出/上传产物以本次新CI结果为准，不用旧W7c成功记录替代。
+本地42项hosting/release测试全部通过，包括真实临时loopback HTTP、实际CLI文件摘要、重封装拒绝、root/私密env/来源替换拒绝、三个准确foundation资源、无扩权/删除、schema内真实表存在及metadata-only SQL。TypeScript、scoped lint和原81pin部署闭包均通过。
+
+**新CI及产物已独立核对成功：** [run39656845292](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39656845292)，源码 `e06498436dab7022f6fb6ab4f450689fd3c6722e`、push/attempt1、repository1323312747/workflow391864582；run与job119419263591均completed/success，15项报告步骤全部成功。两种真实smoke各核对18项浏览器资源，随后同一镜像导出上传成功。准确artifact ID=`12371098858`，size=`329772909` bytes，官方ZIP digest=`sha256:3b7764998422bfe07381a758d75e3463cf3ab91770a25dd75d8b98faac182855`，expires=`2026-10-24T18:55:49Z`，独立元数据回读expired=false。CI日志的image config digest=`sha256:98591bc59ab26105f6d60c1b2b3d70c853fd56846109b09f9561c3acd53610a3`，archive SHA=`164d39e898e76f90ce132ce7fcae6044443e03f85ba121e7526e9a60898f3b6c`。本轮没有下载该330MB ZIP，也没有因此声称本机重新验过压缩包/镜像或ECR；未来发布前按上述完整链路验证。
 
 当前只发生必要只读AWS身份/准确名称/OIDC/扫描/模板验证，以及代码提交推送和No-AWS CI。没有Secret/PEM/.env值读取、Neon连接、SQL写入、AWS资源/权限安装、registry push、workflow dispatch、旧记录/槽修改或新清理。客户端和Backend仓库不动。
 
-下一执行依赖：精确新CI/artifact回读 → 新foundation创建范围与fresh清单审核 → 当前OIDC/准确一次镜像发布及独立ECR digest/扫描 → 数据库catalog核对及凭据另审 → 精确两小时hosting部署、真实登录/TLS验收和单独清理批准。准备可以并行，不再展开旧F3c9身份探针或重跑历史租户。
+下一执行依赖：[新foundation创建范围与完整风险审核](aws-platform-hosting-w7d-foundation-creation-review.md)及[准确JSON清单](../ops/aws-sandbox/reviews/platform-image-foundation-w7d.create-review.json)确认 → 当前OIDC/准确一次镜像发布及独立ECR digest/扫描 → 数据库catalog核对及凭据另审 → 精确两小时hosting部署、真实登录/TLS验收和单独清理批准。准备可以并行，不再展开旧F3c9身份探针或重跑历史租户。后续只有文档/JSON更新，不改变本次已验证代码锚点。

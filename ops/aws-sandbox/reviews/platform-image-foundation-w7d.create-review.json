@@ -1,0 +1,104 @@
+{
+  "schema": "techlong/platform-image-foundation-create-review/v1",
+  "phase": "W7d",
+  "state": "AWAITING_EXPLICIT_CREATION_APPROVAL",
+  "approved": false,
+  "issuedAtUtc": "2026-10-21T18:58:12Z",
+  "expiresAtUtc": "2026-10-23T18:58:12Z",
+  "expiresAtWinnipeg": "2026-10-23T13:58:12-05:00",
+  "approvalValidityHours": 48,
+  "hostingTwoHourWindowStarted": false,
+  "source": {
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "profile": "techlong-sandbox-user",
+    "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "userId": "AIDAV3GNMXTZEO7SHLC2X"
+  },
+  "code": {
+    "sourceCommit": "e06498436dab7022f6fb6ab4f450689fd3c6722e",
+    "file": "ops/platform-hosting-v1/image-foundation.mjs",
+    "utf8LfSha256": "f4138aaf410ea75b3553a27303ac18145473f85f76758789fcb8bf887984337b",
+    "export": "lockedImageFoundation",
+    "templateEncoding": "JSON.stringify(lockedImageFoundation(), null, 2) + newline",
+    "templateBytes": 5319,
+    "templateSha256": "c97085b1447d20c4815eb9064589948a0159c61b14c3baee7aed00bd855c82b9"
+  },
+  "risk": {
+    "file": "docs/aws-platform-hosting-w7d-foundation-creation-review.md",
+    "utf8LfSha256": "d734303cc84fa0e13388d2893a0d97916a2fd67668aba682414a8123a3d2c168",
+    "requiresAcceptanceOfCompleteDocument": true
+  },
+  "request": {
+    "service": "CloudFormation",
+    "operation": "CreateStack",
+    "StackName": "techlong-sandbox-platform-image-foundation-v1",
+    "Capabilities": ["CAPABILITY_NAMED_IAM"],
+    "DisableRollback": true,
+    "TimeoutInMinutes": 20,
+    "EnableTerminationProtection": false,
+    "ClientRequestToken": "techlong-platform-image-foundation-v1",
+    "Tags": [
+      {"Key": "Project", "Value": "Techlong"},
+      {"Key": "Environment", "Value": "aws-sandbox"},
+      {"Key": "Purpose", "Value": "platform-web-image-v1"}
+    ],
+    "TemplateBody": "GENERATE_ONLY_FROM_PINNED_EXPORT_AND_VERIFY_BOUND_SHA256",
+    "RoleARN": null,
+    "TemplateURL": null,
+    "Parameters": []
+  },
+  "expectedResources": [
+    {"logicalId": "PlatformWebRepository", "type": "AWS::ECR::Repository", "name": "techlong-sandbox-platform-web"},
+    {"logicalId": "PlatformImageBoundary", "type": "AWS::IAM::ManagedPolicy", "arn": "arn:aws:iam::402010193138:policy/TechlongSandboxPlatformImagePublishBoundaryV1"},
+    {"logicalId": "PlatformImagePublisher", "type": "AWS::IAM::Role", "name": "TechlongSandboxPlatformImagePublisherV1", "trust": "EXPLICIT_DENY_ALL_ASSUME_ROLE_ROUTES"}
+  ],
+  "writeFence": {
+    "permanentIntentFile": "F:/ChatGPT_workshop/techlong-platform-image-foundation-v1.create.intent.json",
+    "intentCreation": "exclusive wx after successful preflight and before first write submission",
+    "slotRefreshOrResetAuthorized": false,
+    "topLevelCreateStackSubmissionsMaximum": 1,
+    "applicationSdkMaxAttempts": 1,
+    "underlyingCloudFormationServiceWritesAndRetriesMayExceedOne": true,
+    "automaticApplicationWriteRetry": false,
+    "automaticDeleteRollbackOrRepair": false
+  },
+  "freshPreconditions": [
+    "explicit user approval of this full manifest SHA and complete risk document",
+    "manifest and code/template/risk SHA verified; clean source or documentation-only commits since pinned source",
+    "exact current Source identity and four new stack/repository/role/boundary names absent within five minutes before submission",
+    "no existing permanent intent; no accepting or updating existing same-name resources",
+    "default regional AWS endpoints only; no unreviewed endpoint/proxy/Node overrides",
+    "never automatically replay after stale credentials, ambiguous submission, timeout, prior intent or existing stack"
+  ],
+  "independentReadback": [
+    "fresh client DescribeStacks exact returned StackId and terminal status",
+    "ListStackResources exactly three reviewed logical IDs/types/physical objects",
+    "GetTemplate matches reviewed template and no unexpected parameters or execution role",
+    "ECR immutable, AES256, scanOnPush, retained repository settings",
+    "IAM exact RoleId/ARN, no attached policies, exact inline and managed boundary document/default version, explicit deny trust"
+  ],
+  "notAuthorized": [
+    "OIDC grant or AssumeRole attempt", "image download/load or registry push", "workflow dispatch or re-run",
+    "old IAM/resource changes", "Secret or private material values", "Neon or other database connections/writes",
+    "ECS/Cell/ALB/DNS deployment", "budget changes", "resource deletion or automatic cleanup"
+  ],
+  "evidenceAtPreparation": {
+    "newFourNamesObservedAbsent": true,
+    "observationsAreNonAtomicAndRequireFreshRecheck": true,
+    "registryScanType": "BASIC",
+    "validateTemplateAtUtc": "2026-10-21T18:51:27.886Z",
+    "validateTemplateCapabilities": ["CAPABILITY_NAMED_IAM"],
+    "codeCiRunId": "39656845292",
+    "codeCiJobId": "119419263591",
+    "codeCiStatus": "completed",
+    "codeCiConclusion": "success",
+    "codeCiAttempt": 1,
+    "codeCiArtifactId": "12371098858",
+    "codeCiArtifactDigest": "sha256:3b7764998422bfe07381a758d75e3463cf3ab91770a25dd75d8b98faac182855"
+  },
+  "currentEffects": {"createStackSubmissions": 0, "iamWrites": 0, "ecrWrites": 0, "secretValueReads": 0, "databaseConnections": 0, "intentSlotsConsumed": 0},
+  "budgetTargetUsdPerMonth": 50,
+  "lowCostButNotGuaranteedZeroAcceptedOnlyAfterApproval": true,
+  "deploymentAndCleanupStillRequireSeparateApproval": true
+}
