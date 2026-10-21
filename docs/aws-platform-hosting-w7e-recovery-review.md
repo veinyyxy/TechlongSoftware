@@ -57,4 +57,6 @@ Source仍有高权限；此清单不是对Source本身的IAM硬限制。元数�
 
 新7项边界/回归测试＋原42项hosting/release测试，共49项本地通过；原81pin云闭包、原创建源码/manifest/风险摘要未变。恢复纯模块不接入Web或已发布云执行图。新独立No-AWS代码CI只跑测试、类型检查和scoped lint，不安装AWS身份、不创建/执行Change Set，也不重建或重新上传约330MB镜像，避免无关产物占用。原镜像artifact12371098858及2026-10-24T18:55:49Z到期保持不变。
 
-真实CI结果将在独立完成核验后记录；不能用旧镜像CI代替本次恢复代码验证。本页连同准确JSON清单只是待审材料，不是执行许可。
+新独立[No-AWS CI39661129294](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39661129294)准确源码 `fe9ff105f0c2c25b87dff9c007ee47837efb826a`、push/attempt1、repository1323312747/workflow392089773。独立回读run与job119434092208均completed/success，9项报告步骤全部成功；7项恢复测试、类型和scoped lint通过，没有构建/上传镜像或云端操作。后续仅文档/清单更新不改变该代码锚点。
+
+本页连同准确JSON清单只是待审材料，不是执行许可。必须确认完整清单SHA后，才允许第一步“创建但不执行Change Set”；不能将用户同意准备恢复，解释成已经批准云端创建/执行。

@@ -1,0 +1,132 @@
+{
+  "schema": "techlong/platform-image-recovery-changeset-create-review/v1",
+  "phase": "W7e",
+  "state": "AWAITING_EXPLICIT_CREATE_CHANGE_SET_APPROVAL_ONLY",
+  "approved": false,
+  "issuedAtUtc": "2026-10-21T19:24:00Z",
+  "expiresAtUtc": "2026-10-23T19:24:00Z",
+  "expiresAtWinnipeg": "2026-10-23T14:24:00-05:00",
+  "approvalValidityHours": 48,
+  "source": {
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "profile": "techlong-sandbox-user",
+    "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "userId": "AIDAV3GNMXTZEO7SHLC2X",
+    "iamReadsUseDefaultGlobalEndpointAndUsEast1Signing": true
+  },
+  "code": {
+    "sourceCommit": "fe9ff105f0c2c25b87dff9c007ee47837efb826a",
+    "sourcePinsUtf8LfSha256": {
+      "ops/platform-image-recovery-v1/recovery.mjs": "34074420bff9b90da65ef73b3dc945905ef4269c4fd8d694a4f232a989c3f261",
+      "ops/platform-hosting-v1/image-foundation.mjs": "f4138aaf410ea75b3553a27303ac18145473f85f76758789fcb8bf887984337b"
+    },
+    "requestFactory": "recoveryChangeSetRequest",
+    "templateFactory": "recoveryTemplate",
+    "templateEncoding": "JSON.stringify(recoveryTemplate(), null, 2) + newline",
+    "templateBytes": 5298,
+    "templateSha256": "01c4ab5a4cfd0d40f33592f388ab77003162dee22a00d2b9c221bcc79a76914d",
+    "changeSetInspector": "inspectRecoveryChangeSet"
+  },
+  "risk": {
+    "file": "docs/aws-platform-hosting-w7e-recovery-review.md",
+    "utf8LfSha256": "79afa766a09886e0ee9317a08e5b128d49f421bb31512fa166dda9a8a1b4279b",
+    "requiresCompleteRiskAcceptance": true
+  },
+  "request": {
+    "service": "CloudFormation",
+    "operation": "CreateChangeSet",
+    "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-foundation-v1/5db98d40-cd82-11f1-8f8c-06fff229a471",
+    "ChangeSetName": "platform-image-locked-trust-recovery-v1",
+    "ChangeSetType": "UPDATE",
+    "ClientToken": "techlong-platform-image-locked-trust-recovery-v1",
+    "Capabilities": ["CAPABILITY_NAMED_IAM"],
+    "Description": "Review only: retry absent publisher with valid locked trust; preserve existing ECR and boundary",
+    "TemplateBody": "GENERATE_ONLY_FROM_PINNED_FACTORY_AND_VERIFY_TEMPLATE_SHA256",
+    "Parameters": [],
+    "IncludeNestedStacks": false,
+    "ImportExistingResources": false
+  },
+  "expectedTemplateDifference": {
+    "onlyLogicalResource": "PlatformImagePublisher",
+    "onlyProperty": "AssumeRolePolicyDocument",
+    "beforePrincipal": "*",
+    "beforeActions": ["sts:AssumeRole", "sts:AssumeRoleWithWebIdentity", "sts:AssumeRoleWithSAML"],
+    "afterPrincipal": {"AWS": "arn:aws:iam::402010193138:root"},
+    "afterActions": ["sts:AssumeRole"],
+    "effectRemains": "Deny",
+    "allowStatementCount": 0,
+    "otherAssumePaths": "implicitly denied because no Allow statement exists",
+    "repositoryBoundaryInlineRoleNameAndOtherTemplateFieldsUnchanged": true
+  },
+  "preserve": {
+    "originalCreateManifestSha256": "717984e928d0038c861fb175279d3b7c75f5af12842cf7641d2b323c98bcd052",
+    "originalTemplateSha256": "c97085b1447d20c4815eb9064589948a0159c61b14c3baee7aed00bd855c82b9",
+    "originalCreateIntentFile": "F:/ChatGPT_workshop/techlong-platform-image-foundation-v1.create.intent.json",
+    "originalCreateIntentSha256": "67481e505428ea0efe92ee887d75357858d1ed91f85aaea3f28ad566d1f954cd",
+    "repositoryArn": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-platform-web",
+    "repositoryCreatedAtUtc": "2026-10-21T19:05:26.229Z",
+    "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxPlatformImagePublishBoundaryV1",
+    "boundaryPolicyId": "ANPAV3GNMXTZP2F37SEFP",
+    "boundaryDefaultVersion": "v1",
+    "oldSlotsResetOrReused": false
+  },
+  "writeFence": {
+    "newIndependentPermanentIntentFile": "F:/ChatGPT_workshop/techlong-platform-image-foundation-v1.recovery-changeset.intent.json",
+    "intentCreation": "exclusive wx after fresh preflight before one submission",
+    "maximumCreateChangeSetSubmissions": 1,
+    "applicationSdkMaxAttempts": 1,
+    "automaticRetryResetCleanupOrCompensation": false,
+    "maximumExecuteChangeSetSubmissions": 0,
+    "maximumResourceMutationSubmissions": 0
+  },
+  "freshPreconditions": [
+    "explicit human approval of this complete manifest SHA and risk document; within validity period",
+    "clean source or documentation/review-only commits since pinned source; all code/risk/template SHA values match",
+    "original consumed create-intent unchanged and new recovery intent absent",
+    "within five minutes verify exact Source and assertRecoverySnapshot: exact CREATE_FAILED stack, original template, three physical resources, retained ECR and boundary identities/settings, absent publisher, zero images, unused v1 boundary",
+    "complete ListChangeSets for exact StackId is empty and requested name absent; no taking over existing change sets",
+    "default AWS endpoints only; reject unreviewed endpoint/proxy/Node overrides",
+    "if stale credentials or any ambiguity before submission, stop; never replay any previous write or automatically switch recovery method"
+  ],
+  "independentReadback": [
+    "DescribeChangeSet only for bounded status polling of exact returned ChangeSetId",
+    "new clients verify exact ChangeSetId, StackId, name, CREATE_COMPLETE and AVAILABLE, no pagination omission, no service role or parameters",
+    "GetTemplate for exact change set matches corrected template and its bound SHA/semantics",
+    "inspectRecoveryChangeSet accepts exactly one PlatformImagePublisher Add or non-replacement Modify with only AssumeRolePolicyDocument details; ECR/boundary/remove/replacement/permission changes refused",
+    "assertRecoverySnapshot after creation: stack and actual retained resources remain unchanged, publisher still absent; creation does not constitute recovery execution",
+    "save receipts and stop even when verified; execute requires new exact ChangeSet ARN approval"
+  ],
+  "notAuthorized": [
+    "ExecuteChangeSet or UpdateStack", "CreateStack or original create replay", "DeleteChangeSet, DeleteStack or RollbackStack",
+    "CreateRole or direct IAM/policy changes", "OIDC grant or AssumeRole probe", "ECR login/push or image download/load",
+    "Secret, PEM or private bundle reads", "Neon/SQL connection or writes", "GitHub workflow dispatch or environment changes",
+    "Cell/ECS/ALB/DNS deployment", "business/authority/budget changes", "resource deletion, import or replacement", "slot reset or automatic retry"
+  ],
+  "preparationEvidence": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-image-recovery-v1.readonly-preparation-20261021.json",
+    "sha256": "352084bd961f49aa1b7016b1aacb0640085892e68af8f2c155329d494933fec0",
+    "completedAtUtc": "2026-10-21T19:19:53.510Z",
+    "observationsAreNonAtomicNotExecutionPreflight": true,
+    "existingChangeSets": 0,
+    "roleState": "ABSENT",
+    "failedTrustIssueCode": "ROLE_TRUST_POLICY_UNSUPPORTED_WILDCARD_IN_PRINCIPAL",
+    "correctedTrustFindingCount": 0,
+    "actualCreateRoleSemanticsInstallationProved": false,
+    "ciRunId": "39661129294",
+    "ciJobId": "119434092208",
+    "ciSourceCommit": "fe9ff105f0c2c25b87dff9c007ee47837efb826a",
+    "ciWorkflowId": "392089773",
+    "ciRepositoryId": "1323312747",
+    "ciStatus": "completed",
+    "ciConclusion": "success",
+    "ciAttempt": 1,
+    "newRecoveryTestsPassed": 7,
+    "combinedLocalTestsPassed": 49
+  },
+  "currentEffects": {"cloudWrites": 0, "changeSetsCreated": 0, "newIntentSlotsConsumed": 0, "resourceChanges": 0, "privateValueReads": 0, "databaseConnections": 0},
+  "hostingTwoHourWindowStarted": false,
+  "budgetTargetUsdPerMonth": 50,
+  "acceptLowCostButNotGuaranteedZeroOnlyAfterApproval": true,
+  "creationOnlyNotRecoveryExecutionApproval": true
+}
