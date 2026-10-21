@@ -1,6 +1,8 @@
 # 餐饮 SaaS 平台
 
-2026-10-21当前：**W7g先对原镜像做真实云端发布前自检，尚未授权或发布。** 当前GitHub immutable subject/既有环境与V2角色/ECR元数据已只读核对；新No-AWS CI校验官方ZIP、精确解包、load/inspect同一image ID、两种无网络容器自检及新DB的OS高危扫描，不重建或推镜像。已实现限时grant/关闭trust并Deny ECR的纯模板候选，尚无真实publish/收尾执行入口或新执行清单；本机22项Node/3项ZIP测试及类型/lint通过，云端结果待核对。原身份仍锁定，旧栈/Change Set不动。[范围、证据、限制和下一步](docs/aws-platform-hosting-w7g-image-publication-preflight.md)。以下为历史。
+2026-10-21当前：**W7g原镜像被真实OS扫描拦截；W7h改进基础镜像并重新云端验收，尚未发布或部署。** 原字节/inspect/两种smoke成功，但扫描64 HIGH/4 CRITICAL（23种CVE），准确小型证据已保存。新平台候选保持Node24.18.0，采用固定官方Alpine3.24基础及安全更新，producer在精确镜像扫描通过后才上传产物；不忽略unfixed，不改旧批准或IAM。54项本机回归通过，新云端兼容/扫描结果待核对。[证据、代码范围、限制和唯一继续点](docs/aws-platform-hosting-w7h-os-remediation.md)。以下为历史。
+
+2026-10-21历史：**W7g先对原镜像做真实云端发布前自检，尚未授权或发布。** 当前GitHub immutable subject/既有环境与V2角色/ECR元数据已只读核对；新No-AWS CI校验官方ZIP、精确解包、load/inspect同一image ID、两种无网络容器自检及新DB的OS高危扫描，不重建或推镜像。已实现限时grant/关闭trust并Deny ECR的纯模板候选，尚无真实publish/收尾执行入口或新执行清单；本机22项Node/3项ZIP测试及类型/lint通过，实际云端结果见W7h。原身份仍锁定，旧栈/Change Set不动。[范围、证据、限制和下一步](docs/aws-platform-hosting-w7g-image-publication-preflight.md)。以下为历史。
 
 2026-10-21历史：**W7f独立V2锁定发布角色已创建，独立语义验收通过。** 唯一一次CreateStack成功，新角色真实RoleId已核验，trust无Allow、唯一ECR-only inline及准确原boundary；usage按批准从0变为1，原ECR零镜像。旧栈仍CREATE_FAILED、旧Change Set保持AVAILABLE/V1角色缺失，均未更新或执行。IAM单项Action序列化及边界类型显示诊断已原样保留，没有修改云策略或重试建栈。下一准备绑定新角色的受控单次镜像发布，grant/push/部署仍分审，两小时hosting未开始。[实际安装、诊断与继续边界](docs/aws-platform-hosting-w7f-publisher-created.md)。以下为历史。
 

@@ -1,5 +1,11 @@
-# Same pinned Node base already used by the tenant application's reviewed images.
-FROM node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d AS build
+# Platform-only compatibility candidate; the tenant images are unchanged.
+# Keep the Node version, but remove the unused Debian utility/package closure.
+FROM node:24.18.0-alpine3.24@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS base
+# The base digest is fixed; package security updates are resolved at build time.
+# The resulting whole image is then sealed and scanned before artifact upload.
+RUN apk upgrade --no-cache
+
+FROM base AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --include=dev --ignore-scripts --no-audit --no-fund
@@ -15,7 +21,7 @@ COPY postcss.config.mjs tsconfig.json ./
 ENV CI=true GITHUB_ACTIONS=true
 RUN node ops/platform-hosting-v1/build.mjs
 
-FROM node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d AS candidate
+FROM base AS candidate
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000
 # vinext currently lives in devDependencies; retain the locked runtime graph for

@@ -8,6 +8,7 @@ import {load} from 'js-yaml';
 import {imageReceipt,verifyReceipt,main} from '../ops/platform-hosting-v1/image-artifact.mjs';
 import {lockedImageFoundation,IMAGE_FOUNDATION as S} from '../ops/platform-hosting-v1/image-foundation.mjs';
 import {WEB_DATABASE_PROFILE as D,WEB_DATABASE_CATALOG_SQL} from '../ops/platform-hosting-v1/database-profile.mjs';
+import {checkCandidateScan,scanCandidate} from '../ops/platform-hosting-v1/security-scan.mjs';
 const context={CI:'true',GITHUB_ACTIONS:'true',GITHUB_REPOSITORY:'veinyyxy/TechlongSoftware',GITHUB_EVENT_NAME:'push',
   GITHUB_REF:'refs/heads/main',GITHUB_RUN_ATTEMPT:'1',GITHUB_SHA:'a'.repeat(40),GITHUB_RUN_ID:'123456789'};
 const inspect=[{Id:'sha256:'+'b'.repeat(64),Os:'linux',Architecture:'amd64',Config:{User:'node',WorkingDir:'/app',
@@ -99,4 +100,51 @@ test('only successful first main push can export/upload three fixed files, never
   assert.equal(upload.with['retention-days'],3);assert.equal(upload.with.overwrite,false);
   assert.deepEqual(upload.with.path.trim().split('\n').map(x=>x.split('/').at(-1)),['image.tar.gz','image-receipt.json','SHA256SUMS']);
   assert.doesNotMatch(w.jobs.candidate.steps.map(s=>s.run??'').join('\n'),/docker push|configure-aws|aws ecr|id-token|secrets\./);
+});
+
+function scanned(){return {report:{ArtifactName:inspect[0].Id,ArtifactType:'container_image',
+  Metadata:{ImageID:inspect[0].Id,OS:{Family:'alpine',Name:'3.24.2',EOSL:false}},
+  Results:[{Class:'os-pkgs',Packages:Array.from({length:15},(_,i)=>({Name:'synthetic-'+i})),Vulnerabilities:[]}]},
+  db:{Version:2,UpdatedAt:'2026-10-21T22:00:00Z'}};}
+const scanNow=Date.parse('2026-10-21T23:00:00Z');
+test('new Alpine candidate requires exact image, OS inventory, supported release and fresh scanner database',()=>{
+  let s=scanned();assert.equal(checkCandidateScan(s.report,s.db,inspect[0].Id,scanNow).outcome,'OS_HIGH_CRITICAL_ZERO');
+  for(const change of [s=>{s.report.Metadata.ImageID='sha256:'+'a'.repeat(64);},s=>{s.report.ArtifactName='other';},
+    s=>{s.report.Metadata.OS.Family='debian';},s=>{s.report.Metadata.OS.Name='3.23';},s=>{s.report.Metadata.OS.EOSL=true;},
+    s=>{s.report.Results=[];},s=>{s.report.Results[0].Packages=[];},s=>{s.db.UpdatedAt='invalid';},
+    s=>{s.db.UpdatedAt='2026-10-19T00:00:00Z';},s=>{s.db.UpdatedAt='2026-10-22T00:00:00Z';}]){
+    s=scanned();change(s);assert.throws(()=>checkCandidateScan(s.report,s.db,inspect[0].Id,scanNow));
+  }
+});
+test('candidate scan saves failure evidence exclusively and refuses credential-bearing callers before reading files',async t=>{
+  const prefix=path.join(tmpdir(),'techlong-scan-test-'),dir=await mkdtemp(prefix);
+  t.after(()=>{assert(dir.startsWith(prefix)&&path.dirname(dir)===path.resolve(tmpdir()));return rm(dir,{recursive:true,force:true});});
+  const {mkdir}=await import('node:fs/promises');await mkdir(path.join(dir,'db'));
+  const s=scanned();s.db.UpdatedAt=new Date().toISOString();s.report.Results[0].Vulnerabilities=[{Severity:'HIGH',PkgName:'synthetic'}];
+  await writeFile(path.join(dir,'image-inspect.json'),JSON.stringify(inspect));
+  await writeFile(path.join(dir,'image-receipt.json'),JSON.stringify(imageReceipt(inspect,archive,context)));
+  await writeFile(path.join(dir,'os-scan.json'),JSON.stringify(s.report));
+  await writeFile(path.join(dir,'db/metadata.json'),JSON.stringify(s.db));await writeFile(path.join(dir,'db/trivy.db'),'synthetic DB bytes');
+  await assert.rejects(scanCandidate(dir,dir,{...context,AWS_PROFILE:'synthetic'}),/CREDENTIAL_OR_OVERRIDE/);
+  await assert.rejects(scanCandidate(dir,dir,context),/SECURITY_SCAN_FINDINGS/);
+  const bytes=await readFile(path.join(dir,'os-scan-summary.json'),'utf8');assert.equal(JSON.parse(bytes).outcome,'HIGH_CRITICAL_FINDINGS');
+  await assert.rejects(scanCandidate(dir,dir,context),/EEXIST/);assert.equal(await readFile(path.join(dir,'os-scan-summary.json'),'utf8'),bytes);
+});
+test('unfixed HIGH and CRITICAL remain blocking, without ignoring or asserting application exploitability',()=>{
+  const s=scanned();s.report.Results[0].Vulnerabilities=[{VulnerabilityID:'CVE-synthetic',PkgName:'synthetic',InstalledVersion:'1',Severity:'HIGH'},
+    {VulnerabilityID:'CVE-synthetic-critical',PkgName:'synthetic',InstalledVersion:'1',FixedVersion:'2',Severity:'CRITICAL'}];
+  const r=checkCandidateScan(s.report,s.db,inspect[0].Id,scanNow);
+  assert.equal(r.outcome,'HIGH_CRITICAL_FINDINGS');assert.deepEqual(r.findingSeverityCounts,{HIGH:1,CRITICAL:1});
+  assert.equal(r.findings[0].fixedVersion,null);assert.equal(r.ignoreUnfixedAllowed,false);
+  s.report.Results[0].Vulnerabilities=[{Severity:'LOW'}];assert.throws(()=>checkCandidateScan(s.report,s.db,inspect[0].Id,scanNow));
+});
+test('producer scans sealed exact image before upload, keeps evidence on failure and has no security bypass',async()=>{
+  const text=await readFile(new URL('../.github/workflows/platform-hosting-candidate.yml',import.meta.url),'utf8'),w=load(text),steps=w.jobs.candidate.steps;
+  const scanIndex=steps.findIndex(s=>s.name?.startsWith('Fresh OS HIGH'));
+  const imageUpload=steps.findIndex(s=>s.uses?.startsWith('actions/upload-artifact'));
+  assert(scanIndex>0&&scanIndex<imageUpload);assert.match(steps[scanIndex].if,/github.run_attempt == 1/);
+  const scan=steps[scanIndex].run;
+  for(const value of ['env -i','--list-all-pkgs','--ignorefile','security-scan.mjs','test "$scan_exit" -eq 0'])assert(scan.includes(value));
+  assert.doesNotMatch(scan,/ignore-unfixed|skip-db-update|skip-files|skip-dirs|\.trivyignore|\.env/);
+  assert.match(steps.at(-1).if,/always\(\)/);assert.match(steps.at(-1).with.path,/os-scan-summary\.json$/);
 });

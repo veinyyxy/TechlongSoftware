@@ -1,5 +1,8 @@
 # W7g：原镜像真实云端自检与发布/撤权候选
 
+实际结果补充：准确run39669482771已完成；字节/inspect/两种smoke成功，OS扫描64 HIGH/4 CRITICAL而失败。
+原候选不能发布，不重跑旧run或忽略发现；准确摘要及新基础镜像兼容候选见 [W7h](aws-platform-hosting-w7h-os-remediation.md)。以下保留原准备记录。
+
 2026-10-21。用户要求继续，当前仅准备与验证。**本页不是IAM安装、workflow dispatch、AssumeRole或ECR发布许可**；尚无可执行的发布批准清单。旧失败栈、旧未执行Change Set及全部创建槽不再操作，V2身份保持锁定，不扩展F3c9/数据库支线。
 
 ## 当前只读事实

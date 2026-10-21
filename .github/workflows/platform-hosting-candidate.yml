@@ -93,6 +93,24 @@ jobs:
           docker save "techlong-platform-ci:${GITHUB_SHA}" | gzip -1 > "$artifact_dir/image.tar.gz"
           docker image inspect "techlong-platform-ci:${GITHUB_SHA}" > "$artifact_dir/image-inspect.json"
           node ops/platform-hosting-v1/image-artifact.mjs seal "$artifact_dir"
+      - name: Fresh OS HIGH and CRITICAL gate before candidate image upload
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_dir="$RUNNER_TEMP/platform-web-image"
+          scanner=$(mktemp -d "$RUNNER_TEMP/platform-candidate-trivy.XXXXXX")
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 https://github.com/aquasecurity/trivy/releases/download/v0.75.0/trivy_0.75.0_Linux-64bit.tar.gz --output "$scanner/trivy.tar.gz"
+          echo "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  $scanner/trivy.tar.gz" | sha256sum --check --strict
+          tar --extract --gzip --file "$scanner/trivy.tar.gz" --directory "$scanner" trivy
+          touch "$scanner/empty.ignore"
+          image_id=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).imageConfigDigest)' "$artifact_dir/image-receipt.json")
+          set +e
+          (cd "$scanner" && env -i PATH="$PATH" HOME="$HOME" DOCKER_CONFIG="$scanner/docker-config" "$scanner/trivy" image --image-src docker --scanners vuln --pkg-types os --severity HIGH,CRITICAL --exit-code 1 --format json --list-all-pkgs --ignorefile "$scanner/empty.ignore" --cache-dir "$scanner/cache" --timeout 8m --output "$artifact_dir/os-scan.json" "$image_id")
+          scan_exit=$?
+          set -e
+          node ops/platform-hosting-v1/security-scan.mjs "$artifact_dir" "$scanner/cache"
+          test "$scan_exit" -eq 0
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1
         with:
@@ -104,4 +122,13 @@ jobs:
           if-no-files-found: error
           retention-days: 3
           compression-level: 0
+          overwrite: false
+      - name: Preserve small scan evidence even when image upload was refused
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: platform-web-security-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/platform-web-image/os-scan-summary.json
+          if-no-files-found: warn
+          retention-days: 3
           overwrite: false

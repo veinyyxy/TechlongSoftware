@@ -175,7 +175,9 @@ test('installed Vite/vinext hooks preserve the actual client output after config
 });
 test('pinned non-root container has explicit source COPY, no secret build args and no migrations',async()=>{
   const source=await readFile(new URL('../ops/platform-hosting-v1/Dockerfile',import.meta.url),'utf8');
-  assert.equal((source.match(/@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d/g)??[]).length,2);
+  assert.match(source,/FROM node:24\.18\.0-alpine3\.24@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS base/);
+  assert.match(source,/RUN apk upgrade --no-cache/);
+  assert.match(source,/FROM base AS build/);assert.match(source,/FROM base AS candidate/);
   assert.match(source,/USER node/);assert.doesNotMatch(source,/COPY \. |ARG .*SECRET|migrate|aws login/);
   const ignore=await readFile(new URL('../ops/platform-hosting-v1/Dockerfile.dockerignore',import.meta.url),'utf8');assert(ignore.includes('**/.env*')&&ignore.includes('**/*.pem'));
 });
