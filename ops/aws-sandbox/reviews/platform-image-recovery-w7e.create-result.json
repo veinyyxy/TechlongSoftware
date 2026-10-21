@@ -1,0 +1,80 @@
+{
+  "schema": "techlong/platform-image-recovery-create-result/v1",
+  "phase": "W7e",
+  "outcome": "CREATED_UNEXECUTED_SCOPE_BLOCKED",
+  "approvedManifestSha256": "fe75c0f9c7445f300791c55b8cb3660875b1b57aa9686e25f31430a89ca41fef",
+  "executionHead": "f2c95a7d708d36348d8b8bca1a9c80ec0ed9ddf8",
+  "verifiedCodeCommit": "fe9ff105f0c2c25b87dff9c007ee47837efb826a",
+  "account": "402010193138",
+  "region": "ca-central-1",
+  "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "preflightCompletedAtUtc": "2026-10-21T19:32:16.443Z",
+  "submissionRecordedAtUtc": "2026-10-21T19:32:16.809Z",
+  "changeSetCreationTimeUtc": "2026-10-21T19:32:17.281Z",
+  "independentReadCompletedAtUtc": "2026-10-21T19:33:41.660Z",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-foundation-v1/5db98d40-cd82-11f1-8f8c-06fff229a471",
+  "changeSet": {
+    "id": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/platform-image-locked-trust-recovery-v1/ec0f7450-b25e-47e8-bd2b-7a9dcfe080a3",
+    "name": "platform-image-locked-trust-recovery-v1",
+    "type": "UPDATE",
+    "requestId": "478da93f-8868-4b6f-b3ca-9fa670ed8bc0",
+    "status": "CREATE_COMPLETE",
+    "executionStatus": "AVAILABLE",
+    "executed": false,
+    "templateMatchesApproval": true,
+    "templateSha256": "01c4ab5a4cfd0d40f33592f388ab77003162dee22a00d2b9c221bcc79a76914d",
+    "actualChangeCount": 3,
+    "scopeAccepted": false,
+    "firstInspectorError": "PLATFORM_IMAGE_RECOVERY_CHANGE_COUNT",
+    "onlyChangeSetOnStack": true,
+    "changes": [
+      {"logicalId": "PlatformImageBoundary", "type": "AWS::IAM::ManagedPolicy", "action": "Modify", "replacement": "False", "scope": ["Tags"], "details": [{"Target": {"Attribute": "Tags", "RequiresRecreation": "Never"}, "Evaluation": "Static"}]},
+      {"logicalId": "PlatformImagePublisher", "type": "AWS::IAM::Role", "action": "Modify", "replacement": "True", "scope": [], "details": []},
+      {"logicalId": "PlatformWebRepository", "type": "AWS::ECR::Repository", "action": "Modify", "replacement": "False", "scope": ["Tags"], "details": [{"Target": {"Attribute": "Tags", "RequiresRecreation": "Never"}, "Evaluation": "Static"}]}
+    ],
+    "calculatedDifferenceCauseProven": false,
+    "gateRelaxed": false,
+    "futureExecutionAuthorized": false
+  },
+  "independentSafety": {
+    "snapshotGuardPassed": true,
+    "stackStatus": "CREATE_FAILED",
+    "stackDisableRollback": true,
+    "currentStackStillHasOriginalTemplate": true,
+    "publisherRoleActualState": "ABSENT",
+    "repositoryCreatedAtUtc": "2026-10-21T19:05:26.229Z",
+    "repositoryImageCount": 0,
+    "repositoryIdentityAndSettingsPreserved": true,
+    "boundaryPolicyId": "ANPAV3GNMXTZP2F37SEFP",
+    "boundaryDefaultVersion": "v1",
+    "boundaryDocumentPreserved": true,
+    "boundaryAttachmentCount": 0,
+    "boundaryUsageCount": 0,
+    "noExecutionObserved": true,
+    "readsAreNonAtomicObservations": true
+  },
+  "effects": {"createChangeSetSubmissions": 1, "newPermanentIntentSlotsConsumed": 1, "executeChangeSetSubmissions": 0, "updateStackSubmissions": 0, "createStackSubmissions": 0, "directResourceMutations": 0, "deletions": 0, "grants": 0, "imagePublications": 0, "deployments": 0, "privateValueReads": 0, "databaseConnections": 0, "automaticWriteRetries": 0},
+  "newPermanentIntent": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-image-foundation-v1.recovery-changeset.intent.json",
+    "sha256": "b10faac7199ef75b68acea4ce84111c9d498c355286fe1eae0c22fc2cf30c605",
+    "consumed": true,
+    "resetOrReplayAllowed": false
+  },
+  "originalPermanentIntent": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-image-foundation-v1.create.intent.json",
+    "sha256": "67481e505428ea0efe92ee887d75357858d1ed91f85aaea3f28ad566d1f954cd",
+    "unchangedAndStillConsumed": true
+  },
+  "evidencePrefix": "F:/ChatGPT_workshop/techlong-platform-image-recovery-v1.create-fe75c0f9",
+  "evidenceSha256": {
+    ".preflight.json": "b762ee3cd2713df0c06a1280a37669f7f468adbaf60fc35f8faece7f9fd6531e",
+    ".submission.json": "3f2e5040fa45c9070f734a31d12a05d159e2e097d2b95fcf7e219ad149269efd",
+    ".polls.json": "0fca5403a198011b9153e5c3766bfed6089982aee4d648fcffff280cdcc93ba8",
+    ".independent-inspect.json": "f50bfa3a07c169f66293bdde1bd35a39e7c5f9c71fae08ac969c7738d85617a4"
+  },
+  "approvedCodeRiskAndManifestUnchanged": true,
+  "hostingTwoHourWindowStarted": false,
+  "budgetTargetUsdPerMonth": 50,
+  "nextStep": "READ_ONLY_REASSESS_ACTUAL_RECOVERY_DIFF_BEFORE_ANY_NEW_EXECUTION_APPROVAL",
+  "document": "docs/aws-platform-hosting-w7e-changeset-blocked.md"
+}

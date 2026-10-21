@@ -1,6 +1,8 @@
 # 餐饮 SaaS 平台
 
-2026-10-21当前：**W7e仅准备保留现有资源的恢复审阅。** Access Analyzer复现旧Principal错误，新“明确账户Deny＋无Allow”策略零发现；原栈仍CREATE_FAILED、角色缺失、ECR零镜像、boundary未使用。新模块仅编译候选模板和检查窄差异；拟议下一步最多创建一个未执行UPDATE Change Set，仍需新SHA批准，不重放原CreateStack或消费新槽。新代码CI不重建/上传镜像。[恢复范围、服务验证及完整风险](docs/aws-platform-hosting-w7e-recovery-review.md)。以下为历史。
+2026-10-21当前：**W7e已创建未执行Change Set，实际差异超出门禁，停止推进执行。** 仅一次CreateChangeSet；独立回读显示ECR和boundary的Tags变更、publisher的Replacement=True，不符合仅角色Add或无替换trust修改的批准范围。候选模板SHA正确，但不能据此忽略真实计划；未执行、未建角色或授权发布。原栈仍CREATE_FAILED、角色实际不存在、仓库零镜像、boundary未使用；新旧永久槽和Change Set全部保留。下一步先重新审查恢复范围，不能执行当前计划或重放创建。[实际差异、独立证据与继续边界](docs/aws-platform-hosting-w7e-changeset-blocked.md)。以下为历史。
+
+2026-10-21历史：**W7e仅准备保留现有资源的恢复审阅。** Access Analyzer复现旧Principal错误，新“明确账户Deny＋无Allow”策略零发现；原栈仍CREATE_FAILED、角色缺失、ECR零镜像、boundary未使用。新模块仅编译候选模板和检查窄差异；拟议下一步最多创建一个未执行UPDATE Change Set，仍需新SHA批准，不重放原CreateStack或消费新槽。新代码CI不重建/上传镜像。[恢复范围、服务验证及完整风险](docs/aws-platform-hosting-w7e-recovery-review.md)。以下为历史。
 
 2026-10-21历史：**W7d已批准的唯一一次建栈部分失败，独立核验已完成。** 模板Principal格式被IAM拒绝：新ECR和未附加boundary已创建，发布角色不存在，仓库零镜像；栈CREATE_FAILED，永久槽已消费。没有补齐/重试/删除/解锁或部署；原清单、模板、风险文档和证据保留。下一步须另审保留已建对象的锁定trust恢复方案，不能重放原CreateStack。[实际结果、错误原因与恢复边界](docs/aws-platform-hosting-w7d-foundation-partial-result.md)。以下为历史。
 
