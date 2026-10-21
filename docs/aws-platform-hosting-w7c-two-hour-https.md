@@ -54,6 +54,8 @@ TECHLONG_PLATFORM_PUBLIC_ORIGIN=https://console.sandbox.techlong.cloud
 
 本地33项 hosting测试通过（包括临时 loopback 真实 HTTP 重复头拒绝和安装版 vinext URL转换）、TypeScript和 scoped lint通过。受限沙箱首次 loopback 客户端 EACCES，获准同一合成测试后33项全部通过，未改为跳过。原 app health/auth/session 源码保持不变。
 
-No-AWS CI 使用同一真实镜像运行两个独立 non-root/read-only/network-none 容器：默认本机匿名 GET；固定 HTTPS 模式的 ALB 头模拟。后者检查真实登录页/浏览器资源/管理页跳转，恶意 Host/Origin 拒绝，空登录参数在数据库前失败，以及**无 Cookie 的真实 logout 路由**生成 Secure 清除 Cookie（不删除数据库 session）。不以合成令牌冒充真实管理员，不提交密码或调用真实登录数据库。TLS、真实账号登录和 AWS 部署仍未验收。CI结果在确认为 completed/success 后另记准确源码与 run，不用旧 W7a CI 替代新代码验证。
+No-AWS CI 使用同一真实镜像运行两个独立 non-root/read-only/network-none 容器：默认本机匿名 GET；固定 HTTPS 模式的 ALB 头模拟。后者检查真实登录页/浏览器资源/管理页跳转，恶意 Host/Origin 拒绝，空登录参数在数据库前失败，以及**无 Cookie 的真实 logout 路由**生成 Secure 清除 Cookie（不删除数据库 session）。不以合成令牌冒充真实管理员，不提交密码或调用真实登录数据库。TLS、真实账号登录和 AWS 部署仍未验收。
+
+**最终镜像验证通过：** [No-AWS CI 39653327466](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39653327466)，准确源码 `b563d5e8e154cee845e03a3ac02723f15f96efe2`、push/attempt1、workflow391864582、repository1323312747。独立回读 run 与 job119407047708 均 completed/success，13项报告步骤全部成功。日志在2026-10-21T18:31:58.8197749Z记录匿名 smoke 通过，18:32:02.4004463Z记录 HTTPS 边界 smoke 通过，各核对18项页面浏览器资源；Host/CSRF拒绝与Secure清除Cookie=true，realDatabaseConfigured/realAuthenticationProved/realTlsProved=false、cloudWrites=0。CI本地镜像ID `sha256:4dbc8a9ac42a45055a84841faa0b7f2e4789328165e91def4830c511ab9c7f44` 不是已发布ECR manifest digest，不用于冒充未来部署镜像。未重跑任何旧 workflow；本段后续仅文档更新，不改变已验收代码锚点。
 
 工程内入口和工作流可复用；外部历史脚本/证据/永久槽保持不动。本轮没有 AWS、Neon、Stripe、私密包/Secret/PEM 读取或云端写入；仅代码/文档提交推送及无 AWS 身份的候选 CI。下一步是准确的独立 ECR/窄发布权限和数据库身份准备，不是直接部署。
