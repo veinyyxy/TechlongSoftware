@@ -1,5 +1,21 @@
 # W7i：新镜像的发布前复核与受保护云端发布入口
 
+## 当前结果：本阶段验收完成，实际发布尚未就绪
+
+[最终代码c35dd66e…的run39695238725](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39695238725)
+已于2026-10-21T23:45:10Z completed/success：contracts 10步骤、exact-image 8步骤均成功。
+20项Node、3项严格ZIP提取、类型/lint检查通过；实际下载并校验原307758788字节ZIP，
+得到准确307757790字节archive，load/inspect与双smoke及新DB扫描均通过，18个Alpine 3.24.1 OS包仍为0 HIGH/0 CRITICAL。
+
+只下载3321字节小型proof到本机，并独立核对官方ZIP摘要、三个entry SHA、实际image config安全契约与fresh scan；
+没有本机Docker或307MB镜像下载。[机器可读结果](evidence/platform-publication-w7i.result.json) 保存准确source/run/jobs/摘要。
+初始ba1adc7的run39695130496同样成功，仅作历史；修正撤权提交报错仍独立回读分支后，最终冻结云端候选为 **c35dd66e1207181b9591056e1202cfb84ffcf010**，不是第一次提交。
+
+独立元数据证据 `F:/ChatGPT_workshop/techlong-platform-publication-v2-cloud-readback-39695238725.json`，
+SHA `184314142846d5829d219cf643f0177fdd471370392616560b78731b20968cf8`。
+proof artifact `12389839999`，官方ZIP摘要 `81c868bfe1921915eb0d32f83632033fb4f5a1eacc7839bfafece0ee25b47f65`；
+本地 `F:/ChatGPT_workshop/platform-publication-v2-preflight-12389839999.zip` 保留。
+
 2026-10-21。当前仅编码、只读核验及No-AWS CI；**不是Grant、dispatch或ECR发布授权**。
 此阶段完成云端侧入口与Source编排边界，Source生产写入适配器/固定caller/完整执行清单尚未完成；
 不能把合成撤权测试当作真实权限已经收回，也不能直接调用reusable workflow代替审批。
@@ -54,7 +70,7 @@ SHA `5ea06a4ae0fa590fa45223a2974b0dd18c1babb0d9aaedd22506e93cc5743420`。
 
 ## 当前验证与后续完整执行审阅必须包含的风险
 
-本机20项Node检查（12新＋8旧）及类型/lint通过；新的真实云端字节/load/scan结果须单独核对。
+本机20项Node检查（12新＋8旧）及类型/lint通过；最终准确源码的真实云端字节/load/scan已独立核对，见顶部结果。
 测试包含旧image/review替换、错误身份/branch/attempt/源码、过期、unfixed非零拦截、错误registry manifest、
 失败不重试、模糊grant错误仍进入Source revoke、Locked未证明不得成功等。未真实调用AWS发布路径。
 

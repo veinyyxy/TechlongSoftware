@@ -1,0 +1,72 @@
+{
+  "schema": "techlong/platform-publication-w7i-result/v1",
+  "outcome": "EXACT_IMAGE_PREFLIGHT_AND_CLOUD_ENTRY_VERIFIED_NOT_EXECUTION_READY",
+  "verifiedCodeCommit": "c35dd66e1207181b9591056e1202cfb84ffcf010",
+  "workflowId": 392289399,
+  "runId": 39695238725,
+  "event": "push",
+  "attempt": 1,
+  "status": "completed",
+  "conclusion": "success",
+  "updatedAt": "2026-10-21T23:45:10Z",
+  "jobs": [
+    {"id": 119550887700, "name": "contracts", "conclusion": "success", "steps": 10},
+    {"id": 119551117663, "name": "exact-image", "conclusion": "success", "steps": 8}
+  ],
+  "nodeTests": 20,
+  "pythonExtractionTests": 3,
+  "candidateSource": "4209fcab429b868e253ea2d7263dfe2189187232",
+  "producerRunId": 39692352506,
+  "imageArtifactId": 12388759351,
+  "officialImageZipDigest": "sha256:74cf0fa61cc2a6ba9192050fbe63b0872785afc65239445f146395c3b361e478",
+  "officialImageZipBytes": 307758788,
+  "cloudVerifiedArchiveBytes": 307757790,
+  "archiveSha256": "31578b890954ab675b1ef4c1f90424af82f519fd09b0b1a2cfac4fb1b0e5b30c",
+  "imageConfigDigest": "sha256:2338439ea316a6189d50281f5d25a0a1c2a2ca1f4455494253f20bcbd8f6f9ae",
+  "scan": {
+    "outcome": "OS_HIGH_CRITICAL_ZERO",
+    "recordedAtUtc": "2026-10-21T23:45:04.650Z",
+    "os": "Alpine 3.24.1",
+    "packages": 18,
+    "high": 0,
+    "critical": 0,
+    "databaseUpdatedAt": "2026-10-21T19:18:22.876313144Z",
+    "reportSha256": "07ffecee50d2c9e6a37f0392b2743d12b222ca13945cf5d92bf1d734410c96fd",
+    "databaseMetadataSha256": "11088fa2025a5e2b81510b48483ff92170e5c628b4059db7fdbd5295e1e49a76",
+    "databaseSha256": "bf98ff436002ef79c138708a973649b3576380eab58473fb42963e1cf5d2b91f"
+  },
+  "proofArtifact": {
+    "id": 12389839999,
+    "bytes": 3321,
+    "zipDigest": "sha256:81c868bfe1921915eb0d32f83632033fb4f5a1eacc7839bfafece0ee25b47f65",
+    "expiresAt": "2026-10-24T23:45:06Z",
+    "localPath": "F:/ChatGPT_workshop/platform-publication-v2-preflight-12389839999.zip",
+    "entrySha256": {
+      "verified-artifact.json": "72f450ce34c6f287cb4d338ac450f238152b2b487115de16e844f9f18906ae57",
+      "loaded-inspect.json": "958e07b036a86f1f307a81299cd548a619882708a66eee5c185fd39ff72869a4",
+      "verified-preflight.json": "4c4377f65db1184dcd88f07363fcf4f3e99426f91d444637517d2c1eeb525dd8"
+    }
+  },
+  "independentCloudReadback": {
+    "path": "F:/ChatGPT_workshop/techlong-platform-publication-v2-cloud-readback-39695238725.json",
+    "sha256": "184314142846d5829d219cf643f0177fdd471370392616560b78731b20968cf8"
+  },
+  "awsReadOnlySnapshot": {
+    "path": "F:/ChatGPT_workshop/techlong-platform-publication-v2-inspect-20261021.json",
+    "sha256": "5ea06a4ae0fa590fa45223a2974b0dd18c1babb0d9aaedd22506e93cc5743420",
+    "completedAtUtc": "2026-10-21T23:36:54.838Z",
+    "outcome": "INITIAL_LOCKED_PUBLISHER_AND_EMPTY_ECR_VERIFIED"
+  },
+  "sourceProductionWriteAdapterImplemented": false,
+  "fixedCallerPublished": false,
+  "executionManifestReady": false,
+  "publicationAuthorized": false,
+  "awsWrites": 0,
+  "assumeRoleCalls": 0,
+  "newPermanentExecutionSlots": 0,
+  "dispatchCalls": 0,
+  "privateValueReads": 0,
+  "sqlConnections": 0,
+  "ecrPushes": 0,
+  "deployments": 0
+}
