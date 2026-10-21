@@ -1,6 +1,8 @@
 # 餐饮 SaaS 平台
 
-2026-10-21当前：**W7c按用户选择准备两小时受控平台验收，部署与清理分别审核。** Node候选补齐固定HTTPS Origin/ALB头、重复Host拒绝、写请求Origin和Secure Cookie边界；默认只监听本机，部署/支付/controller继续关闭。新增合成测试及真实镜像双模式No-AWS自检，不代表真实TLS/管理员登录/AWS部署通过。尚未创建ECR、IAM、Secret或平台承载；两小时不是硬停费/自动销毁。[方案、入口契约、部署/清理分审及验证](docs/aws-platform-hosting-w7c-two-hour-https.md)。以下为历史。
+2026-10-21当前：**W7d准备可追溯镜像发布产物、独立ECR/锁定身份模板及首轮数据库权限矩阵。** No-AWS候选CI仅在同一镜像双模式自检后保存三天产物；精确ECR/role/boundary/stack目前不存在，锁定模板通过AWS只读ValidateTemplate，尚未创建。数据库角色仅是登录/会话＋管理概览/实例浏览提案，未连Neon、读Secret或安装授权。两小时部署和清理仍分审，旧Publisher/F3c9/租户不动。[工程入口、资源权限、凭据风险与后续审查](docs/aws-platform-hosting-w7d-image-and-db-preparation.md)。以下为历史。
+
+2026-10-21历史：**W7c按用户选择准备两小时受控平台验收，部署与清理分别审核。** Node候选补齐固定HTTPS Origin/ALB头、重复Host拒绝、写请求Origin和Secure Cookie边界；默认只监听本机，部署/支付/controller继续关闭。新增合成测试及真实镜像双模式No-AWS自检，不代表真实TLS/管理员登录/AWS部署通过。尚未创建ECR、IAM、Secret或平台承载；两小时不是硬停费/自动销毁。[方案、入口契约、部署/清理分审及验证](docs/aws-platform-hosting-w7c-two-hour-https.md)。以下为历史。
 
 2026-10-21历史：**W7b完成平台独立托管资源/区域价格只读盘点，尚未创建资源或生成写入批准清单。** 默认VPC/公共子网与现有sandbox通配证书可作候选；现有Cell承载不复用，上午验收的旧租户栈已删除且集群零服务，不自动恢复。独立平台730小时核心估算约49.88USD（744小时约50.82USD），尚未含既有资源/日志/流量；当前50USD Budget只覆盖指定标签，账号CE净额不能作为未来免费承诺。用户后续已选择两小时准备方向，真实IAM、Secret、ECR和部署另审。[盘点、费用、风险与准备顺序](docs/aws-platform-hosting-w7b-inventory-and-cost.md)。以下为历史。
 
