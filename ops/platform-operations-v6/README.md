@@ -18,7 +18,7 @@ import {createRecoveryHandoff} from './handoff.mjs';
 import {verifyCloudResultContent} from './evidence.mjs';
 ```
 
-No module is itself an approved live command. A future live adapter must bind a fresh reviewed manifest, exact source/job/release/roles/endpoints, permanent write-once slots, bounded I/O and private-material scope. Constructing these functions or setting an environment variable does not grant that authority. There is deliberately no “resume”, automatic re-run, catch-up or implicit owner fallback.
+No module is itself an approved live command. The separate [reviewed Inspect CLI](../platform-operator-v6/cli.mjs) now binds a fresh manifest, exact source/job/release/endpoints, permanent write-once slots, bounded I/O and private-material scope; its [risk and usage document](../../docs/aws-auto-deployment-platform-w6y-operator-entry.md) distinguishes implementation from authorization. Constructing these functions or setting an environment variable does not grant that authority. There is deliberately no “resume”, automatic re-run, catch-up or implicit owner fallback.
 
 `createReadyGatedDriver` requires `bridgeFactory:createRecoveryHandoff` explicitly; it never dispatches workflows. The human must approve the exact plan/action/risk and GitHub environment. The anonymous login probe is not a substitute for the separate human page-ready receipt. The bridge has real write capabilities **only when passed approved ports**, and its three submissions are not a distributed transaction.
 

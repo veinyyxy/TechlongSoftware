@@ -1,6 +1,6 @@
 # 餐饮 SaaS 平台
 
-2026-10-21当前：**W6w sandbox自动部署已通过独立云端验收，W6x开始将已验证运维核心收敛进工程。** 原RunOnce39607535810 / 独立Inspect39613198333核对资源、服务、完整完成回执和旧记录保留通过；平台账本未写回，不能解释为整套系统已上线。本轮新增便携、显式能力注入的凭据/页面审批等待/预留窗口衔接/验收内容核验模块及仓库内合成测试，不启用在线入口；旧脚本、证据和永久槽保留，已发布云闭包不改。[独立验收与脱敏摘要](docs/aws-auto-deployment-platform-w6w-independent-acceptance.md) / [代码收敛范围及后续边界](docs/aws-auto-deployment-platform-w6x-code-consolidation.md)。以下为历史。
+2026-10-21当前：**W6w sandbox自动部署已通过独立云端验收；W6x纯运维核心已收敛，W6y新增工程内受审Inspect命令。** 新入口支持48小时清单准备、单次调度/准确run观察和离线证据复核，路径可配置，ACK先保存后撤权，审批链接即时提示；真实调用仍需fresh SHA另审，本轮仅编码/合成测试与No-AWS CI。旧脚本、证据和永久槽保留，81/76云闭包、IAM及业务状态不改；平台账本未导入，不代表整套系统已AWS上线。[入口、完整风险与命令](docs/aws-auto-deployment-platform-w6y-operator-entry.md) / [独立验收摘要](docs/aws-auto-deployment-platform-w6w-independent-acceptance.md) / [核心收敛来源](docs/aws-auto-deployment-platform-w6x-code-consolidation.md)。以下为历史。
 
 2026-10-20当前：**W6n 页面传输兼容修复已编码，旧 Review 计划停止使用、原件和槽位保留。** 用户同意解除旧链条 main 冻结；账本/GitHub 请求使用 workerd 兼容且不跟随跳转的 manual，仍严格拒绝3xx，旧认证审计守卫同步，历史批准不改写。124项本机回归/类型/定向lint通过，新实际workerd回归已接入现有No AWS CI，发布后核对准确提交Checks。本轮未读真实凭据、重开入口、改权限或部署；真实页面尚未复测。[诊断、旧计划处置及唯一继续方向](docs/aws-auto-deployment-platform-w6n-transport-fix.md)。以下为历史。
 

@@ -5,9 +5,10 @@ import {CLOUD_EFFECTS_V5} from '../../ops/cloud-worker/cloud-worker-root-v5.mjs'
 import {sha256Hex,canonicalJson} from '../../lib/deployments/execution/hash.ts';
 import {validatePlan} from '../../lib/deployments/controller-v6/contract.ts';
 import {CLOUD_V6 as C,S,resultKeyV6} from '../../ops/platform-cloud-v6/contract.mjs';
-export async function platformFixtureV6() {
+import {INSTALLED_BINDING_V6 as INSTALLED} from '../../lib/deployments/controller-v6/installed-binding.ts';
+export async function platformFixtureV6({installed=false}={}) {
   const f=await cloudRootFixtureV5(),at=f.now,objects=new Map(),plans=new Map(),writes=[],calls=[];
-  const sourceCommit='f'.repeat(40),frozenSourceCommit='a'.repeat(40),release={state:'PUBLISHED',workflowId:'12345',actorId:S.candidateBotId,
+  const sourceCommit='f'.repeat(40),frozenSourceCommit=installed?INSTALLED.publisher.frozenSourceCommit:'a'.repeat(40),release=installed?structuredClone(INSTALLED.platform):{state:'PUBLISHED',workflowId:'12345',actorId:S.candidateBotId,
     reusableCommit:'b'.repeat(40),closureSha256:'c'.repeat(64),identityProofSha256:'d'.repeat(64),installationSha256:C.installationSha256,riskSha256:'e'.repeat(64)};
   const binding={state:'PUBLISHED',sourceCommit:frozenSourceCommit,reusableCommit:release.reusableCommit,closureSha256:release.closureSha256,
     identityProofSha256:release.identityProofSha256,actorId:S.candidateBotId,installationSha256:C.installationSha256};
@@ -31,7 +32,7 @@ export async function platformFixtureV6() {
     sourceCommit,releaseSha256:await sha256Hex(release),riskSha256:release.riskSha256,preparedAt:at,expiresAt:at+7200000,predecessor:null,
     inputs:{mode:'Review',job:jobId,installation:canonicalJson(installationReference),manifest:'',manifestSha:'',execution:'',lineage:''}};
   const rawRun=(id,workflowFile=S.workflowFile)=>({id:Number(id),run_attempt:1,event:'workflow_dispatch',head_branch:'main',head_sha:sourceCommit,
-    workflow_id:12345,path:'.github/workflows/'+workflowFile,repository:{id:Number(S.repositoryId),full_name:S.repository,owner:{id:Number(S.ownerId)}},
+    workflow_id:Number(release.workflowId),path:'.github/workflows/'+workflowFile,repository:{id:Number(S.repositoryId),full_name:S.repository,owner:{id:Number(S.ownerId)}},
     actor:{id:Number(S.candidateBotId)},triggering_actor:{id:Number(S.candidateBotId)},status:'completed',conclusion:'success',
     referenced_workflows:[{sha:release.reusableCommit,path:`${S.repository}/.github/workflows/${C.reusableWorkflow}@${release.reusableCommit}`}]});
   const run=id=>({repository:S.repository,runId:id,runAttempt:1,commitSha:sourceCommit});

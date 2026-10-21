@@ -6,6 +6,8 @@ on:
       - '.github/workflows/platform-cloud-candidate.yml'
       - 'ops/platform-cloud-v6/**'
       - 'ops/platform-operations-v6/**'
+      - 'ops/platform-operator-v6/**'
+      - 'tests/platform-operator-v6.test.mjs'
       - 'tests/platform-operations-*v6.test.mjs'
       - 'tests/fixtures/platform-operations-v6.mjs'
       - 'tests/platform-cloud*v6*'
@@ -46,6 +48,8 @@ on:
       - '.github/workflows/platform-cloud-candidate.yml'
       - 'ops/platform-cloud-v6/**'
       - 'ops/platform-operations-v6/**'
+      - 'ops/platform-operator-v6/**'
+      - 'tests/platform-operator-v6.test.mjs'
       - 'tests/platform-operations-*v6.test.mjs'
       - 'tests/fixtures/platform-operations-v6.mjs'
       - 'tests/platform-cloud*v6*'
@@ -119,6 +123,10 @@ jobs:
         run: |
           node --experimental-strip-types --test tests/platform-operations-credentials-v6.test.mjs tests/platform-operations-window-v6.test.mjs tests/platform-operations-evidence-v6.test.mjs
           node node_modules/eslint/bin/eslint.js ops/platform-operations-v6/ tests/platform-operations-credentials-v6.test.mjs tests/platform-operations-window-v6.test.mjs tests/platform-operations-evidence-v6.test.mjs tests/fixtures/platform-operations-v6.mjs --max-warnings 0
+      - name: Portable reviewed operator CLI with synthetic network and temporary files only
+        run: |
+          node --experimental-strip-types --test tests/platform-operator-v6.test.mjs
+          node node_modules/eslint/bin/eslint.js ops/platform-operator-v6/ tests/platform-operator-v6.test.mjs --max-warnings 0
       - name: Exact SQL and actual publisher queries on disposable PostgreSQL
         run: |
           node --experimental-strip-types scripts/ci/verify-platform-controller-pg-v6.mjs
