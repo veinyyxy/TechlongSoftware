@@ -36,6 +36,22 @@ CI通过可证明这份准确源码构建出的Linux/amd64容器能以非root、
 
 首轮云CI39625194760（源码deafb2a）实际构建成功，健康/登录/访问保护通过，但favicon检查404，故整轮失败、未通过验收。日志确认安装版本的App Router忽略`clientOutDir`而写到`dist/client`，候选只复制`dist-platform`，因此漏静态资源。修正为Vite显式client环境输出目录，并扩大页面JS/CSS检查；保留失败记录，不重跑旧run，而由新提交的正常CI验证。没有因此改业务源、依赖或云权限。
 
+修复源码 `f0da4df75003eb0211e72929132809d5ee3f0115` 的 [No-AWS CI39626016929](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39626016929) 已独立回读 `completed/success`（push/attempt1），job119311345913全部12个报告步骤成功。实际容器输出 `NODE_HOSTING_ANONYMOUS_SMOKE_PASSED`，18项页面JS/CSS引用及健康、登录、admin/API保护、favicon全部通过。未配置真实数据库、未证明真实账号认证、未部署AWS。后续仅文档记录不倒填这个源码锚点，也不为记录状态再次构建或发布。
+
+## 用户补充的 Flutter 客户端（只读核对）
+
+2026-10-21用户提供 [veinyyxy/speedfeast](https://github.com/veinyyxy/speedfeast)。只读核对默认分支为 `master`，当时head为 `5a01ee49344c9c2cfc6c3c5ecfbea6db76fcf269`。它是Flutter/Dart购买端，不是本阶段管理端的JS/CSS资源，也不应部署成管理端Node服务。
+
+整套上线分为三部分：管理端TechlongSoftware的Node容器；已验收sandbox后端/ECS服务；speedfeast的Flutter Web静态产物和原生移动包。客户端应复用自身已有构建能力，不在本仓库再创建另一份Flutter源码或混入平台镜像。
+
+- [README](https://github.com/veinyyxy/speedfeast/blob/5a01ee49344c9c2cfc6c3c5ecfbea6db76fcf269/README.md) 指定编译期 `BUYER_API_BASE_URL`，生产示例为 `https://api.techlong.cloud`。接入sandbox时需绑定准确租户API域名，另核对后端CORS、认证、支付及推送来源，不能把API地址设成管理端域名。
+- [Web工作流](https://github.com/veinyyxy/speedfeast/blob/5a01ee49344c9c2cfc6c3c5ecfbea6db76fcf269/.github/workflows/web-deploy.yml) 已定义 `flutter build web --release`，手动production环境批准、OIDC、S3 sync和CloudFront invalidation。存在配置不等于已安装AWS权限或成功部署；尤其 `sync --delete` 会删除目标桶中源目录没有的对象，后续须准确限定独立桶/前缀和权限，不直接调度此流程。
+- [Android工作流](https://github.com/veinyyxy/speedfeast/blob/5a01ee49344c9c2cfc6c3c5ecfbea6db76fcf269/.github/workflows/android-package.yml) 定义APK/AAB artifact和tag Release，不上传Google Play；无签名配置会退回debug签名，不是正式发布验收。本次只读Releases列表为空，未下载或核验任何二进制，不能声称已有通过验证的产物。
+- 明确配置阻碍：[pubspec](https://github.com/veinyyxy/speedfeast/blob/5a01ee49344c9c2cfc6c3c5ecfbea6db76fcf269/pubspec.yaml) 要求 Flutter>=3.44.9 / Dart^3.12.2，而两个workflow固定Flutter3.32.5。这里先记录版本不一致，不能假定其CI可通过，不自动升级或修改第三仓库。
+- 工作流把 `HMAC_SECRET_KEY` 经dart-define编入客户端。它不能被当作不可提取的服务端秘密；上线前需核对后端是否错误依赖其保密性。本次没有读取该值，也未做“已泄漏”的无证推断。Flutter官方明确说明混淆不保护资源或阻止逆向，不能用混淆替代信任边界。[官方安全限制](https://docs.flutter.dev/deployment/obfuscate)
+
+仅把上述接入点纳入整套系统资源/费用清单；本轮没有clone/改写/推送speedfeast、读其Secrets、调度工作流或发布客户端。后续具体客户端修正和AWS发布另按范围确认，不能把“提供仓库地址”解释为批准生产S3删除或CloudFront变更。
+
 ## 下一阶段的最小资源方案（提案，不是授权）
 
 优先沿用现有ECR/ECS/Fargate操作经验，工件可以复用，不先引入另一套托管产品/部署适配器。具体资源布局和费用还未核对，**本阶段不生成可执行云清单**。
