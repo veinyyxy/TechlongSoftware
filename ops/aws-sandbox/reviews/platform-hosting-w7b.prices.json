@@ -1,0 +1,26 @@
+{
+  "schema": "techlong/platform-hosting-public-price-snapshot/v1",
+  "observedDateUtc": "2026-10-21",
+  "region": "ca-central-1",
+  "currency": "USD",
+  "catalogs": [
+    {"service":"AmazonECS","url":"https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/ca-central-1/index.json","version":"20261019224317","publicationDate":"2026-10-19T22:43:17Z","rawTextSha256":"a00a46211bc7caacff13a95aaa3501775d14e2e0c24314d75ca07076bcab9b50"},
+    {"service":"AWSELB","url":"https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/ca-central-1/index.json","version":"20260911124544","publicationDate":"2026-09-11T12:45:44Z","rawTextSha256":"5242efc51c9b3687c22b197ce27a388eda90902d314e5e5981ee54fdc3cc8d50"},
+    {"service":"AmazonVPC","url":"https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/ca-central-1/index.json","version":"20261016224321","publicationDate":"2026-10-16T22:43:21Z","rawTextSha256":"24d4b2b7b608dc6af3b63b0eb00e505e23226b5a038df71aa861bdf636520044"},
+    {"service":"AWSSecretsManager","url":"https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSSecretsManager/current/ca-central-1/index.json","version":"20260911124610","publicationDate":"2026-09-11T12:46:10Z","rawTextSha256":"9bea1ef20cb2951a28b8f8f7c6d77418070732e93b209f58dbe62352f863b507"}
+  ],
+  "rates": {
+    "x86LinuxVcpuHour":{"sku":"AMFFWAW2YZ4NE23V","usageType":"CAN1-Fargate-vCPU-Hours:perCPU","usd":"0.0445600000"},
+    "x86LinuxMemoryGbHour":{"sku":"6VAMAU37C7C88BUA","usageType":"CAN1-Fargate-GB-Hours","usd":"0.0048650000"},
+    "albHour":{"sku":"QMDFDZRE84T95832","usageType":"CAN1-LoadBalancerUsage","operation":"LoadBalancing:Application","usd":"0.0247500000"},
+    "albLcuHour":{"sku":"4CB824Z6CRKPUBG4","usageType":"CAN1-LCUUsage","operation":"LoadBalancing:Application","usd":"0.0088000000"},
+    "inUsePublicIpv4Hour":{"sku":"4Q2UVHZNUYYAPGTD","usageType":"CAN1-PublicIPv4:InUseAddress","usd":"0.0050000000"},
+    "secretMonth":{"sku":"4H7JXWCMWMQERTVA","usageType":"CAN1-AWSSecretsManager-Secrets","usd":"0.4000000000"}
+  },
+  "assumptions": {"tasks":1,"vcpu":0.5,"memoryGb":1,"albCount":1,"publicIpv4Addresses":3,"exampleAverageLcu":0.1,"secrets":1,"averageMonthHours":730,"longMonthHours":744},
+  "estimatesUsd": {"fargate730h":"19.81585","alb730h":"18.06750","ipv4730h":"10.95000","lcuExample730h":"0.64240","secretMonth":"0.40000","core730h":"49.87575","core744h":"50.82460","variablePerHour":"0.067775","variableTwoHours":"0.135550"},
+  "excludes": ["existing resources","ECR storage and scanning","log ingestion/storage","data transfer and requests","extra ALB addresses/capacity","deployment overlap and provision/cleanup time","tax","support","client S3/CloudFront","discounts and credits"],
+  "notACostCap": true,
+  "notACompleteAccountForecast": true,
+  "notAnExecutionApproval": true
+}

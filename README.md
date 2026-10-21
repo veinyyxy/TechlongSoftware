@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-21当前：**W7b完成平台独立托管资源/区域价格只读盘点，尚未创建资源或生成写入批准清单。** 默认VPC/公共子网与现有sandbox通配证书可作候选；现有Cell承载不复用，上午验收的旧租户栈已删除且集群零服务，不自动恢复。独立平台730小时核心估算约49.88USD（744小时约50.82USD），尚未含既有资源/日志/流量；当前50USD Budget只覆盖指定标签，账号CE净额不能作为未来免费承诺。限时/常驻方向待用户选择；下一优先固定HTTPS/Origin/Cookie接线，真实IAM、Secret、ECR和部署另审。[盘点、费用、风险与准备顺序](docs/aws-platform-hosting-w7b-inventory-and-cost.md)。以下为历史。
+
 2026-10-21当前：**W7a开始平台管理端AWS托管的独立Node容器候选。** 复用现有页面/Neon/认证，通过单独构建配置移除候选对Workers/Sites运行时的依赖；编译隔离本地dotenv/凭据、固定关闭部署与支付能力、无外网容器匿名GET自检。新GitHub No-AWS CI实际编译/构建/检查；未发布ECR、改IAM/Secret/数据库/DNS或部署平台，正常账号/HTTPS和托管controller尚未验收。[范围、工程入口、资源提案和下一步](docs/aws-platform-hosting-w7a-node-candidate.md)。以下为历史。
 
 2026-10-21当前：**W6w sandbox自动部署已通过独立云端验收；W6x纯运维核心已收敛，W6y新增工程内受审Inspect命令。** 新入口支持48小时清单准备、单次调度/准确run观察和离线证据复核，路径可配置，ACK先保存后撤权，审批链接即时提示；真实调用仍需fresh SHA另审，本轮仅编码/合成测试与No-AWS CI。旧脚本、证据和永久槽保留，81/76云闭包、IAM及业务状态不改；平台账本未导入，不代表整套系统已AWS上线。[入口、完整风险与命令](docs/aws-auto-deployment-platform-w6y-operator-entry.md) / [独立验收摘要](docs/aws-auto-deployment-platform-w6w-independent-acceptance.md) / [核心收敛来源](docs/aws-auto-deployment-platform-w6x-code-consolidation.md)。以下为历史。
