@@ -52,11 +52,14 @@ test('exact review SHA, key metadata, source pins and 48h deadline are mandatory
   await assert.rejects(verifyAuthReview(altered,altered.manifestSha256,now,metadata,pins),/DRIFT/);
   assert.equal(AUTH_SOURCES.length,9);assert.equal(subject.limits.dispatches,0);assert.equal(subject.keyPath,AUTH_PATHS.key);
 });
-test('saved public review binds exact current sources without loading the real PEM or ACL',async()=>{
+test('historical auth review stays immutable and cannot approve the redirect-fixed sources',async()=>{
   const root=new URL('../',import.meta.url),review=JSON.parse(await readFile(new URL(AUTH_PATHS.review,root),'utf8'));
   const pins=await Promise.all(AUTH_SOURCES.map(async file=>({file,normalizedLfSha256:createHash('sha256')
     .update((await readFile(new URL(file,root),'utf8')).replace(/\r\n/g,'\n')).digest('hex')})));
-  await verifyAuthReview(review,review.manifestSha256,review.subject.preparedAt,review.subject.keyMetadata,pins);
+  assert.equal(review.manifestSha256,'22dc06b289f5964464ec27f537540d68a006f20fd68d391239956af3bbf48782');
+  await verifyAuthReview(review,review.manifestSha256,review.subject.preparedAt,review.subject.keyMetadata,review.subject.sourcePins);
+  assert.notDeepEqual(pins,review.subject.sourcePins);
+  await assert.rejects(verifyAuthReview(review,review.manifestSha256,review.subject.preparedAt,review.subject.keyMetadata,pins),/CONTROL_AUTH_DRIFT/);
   assert.equal(review.subject.keyContentIntegrityProved,false);assert.equal(review.subject.runtimeRemainsUnpublished,true);
 });
 test('success claims before one key read, restricts token, revokes before sanitized receipt',async()=>{
@@ -107,11 +110,11 @@ test('unconfirmed revocation preserves risk, never retries or reports authentica
 });
 test('audit network boundary rejects dispatch, redirection, duplicates, reordering and write token before fetch',async()=>{
   let network=0;const f=authAuditFetch(async()=>{network++;return new Response(null,{status:200});},[]);
-  const init={method:'GET',redirect:'error',cache:'no-store'};
+  const init={method:'GET',redirect:'manual',cache:'no-store'};
   for(const url of ['https://evil.invalid/app','https://api.github.com/app?x=1',
     'https://api.github.com/repos/'+S.repository+'/actions/workflows/x/dispatches',
     'https://api.github.com/installation/repositories'])await assert.rejects(f(url,init));
-  await assert.rejects(f('https://api.github.com/app',{...init,redirect:'follow'}));assert.equal(network,0);
+  for(const redirect of ['follow','error'])await assert.rejects(f('https://api.github.com/app',{...init,redirect}));assert.equal(network,0);
   await f('https://api.github.com/app',init);await assert.rejects(f('https://api.github.com/app',init));assert.equal(network,1);
   await f('https://api.github.com/app/installations/'+S.installationId,init);
   await assert.rejects(f('https://api.github.com/app/installations/'+S.installationId+'/access_tokens',

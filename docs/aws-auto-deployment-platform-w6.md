@@ -1,5 +1,7 @@
 # W6：平台部署操作串联
 
+最新（2026-10-20）：[W6n传输兼容修复与旧计划停止使用](aws-auto-deployment-platform-w6n-transport-fix.md)。用户已同意保留旧计划/槽、不再执行并解除该链条main冻结；本次只修复代码与验证，不重开入口或部署。下文早期W6a/b状态保留为历史，不代表当前最新安装状态。
+
 当前继续状态（2026-10-19）：**W6b 控制器候选代码已接线、保持硬关闭，W6 尚未全部完成。** 实例页/管理员 API、WebCrypto App 客户端、独立三表审批账本及非自动安装 SQL 已实现；实际 PEM 未读、Neon 未安装、新云 workflow/可信 capsule 及证据导入器尚未实现或发布。App 和单仓权限截图已提供，PEM ACL 已另获批准并收紧；这些不等于真实 App 认证或部署启用。[候选实现、完整风险及剩余接线](aws-auto-deployment-platform-w6b-controller-implementation.md)。以下保留 W6a 和早期 W6b 记录。
 
 2026-10-19，America/Winnipeg。用户批准开始实施 W6。首先交付 W6a 的真实只读接线；W6b 的身份、任务参数化与执行权限集中审查，不把“实施代码”扩大为创建业务任务、安装身份或部署授权。

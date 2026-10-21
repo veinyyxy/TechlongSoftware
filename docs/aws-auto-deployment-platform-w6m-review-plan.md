@@ -1,5 +1,7 @@
 # W6m：准确任务的 Review 计划发布与独立回读
 
+2026-10-20后续处置：[W6n记录](aws-auto-deployment-platform-w6n-transport-fix.md)取代本页的待执行状态。W6m已发布dd73b717…计划；W6n入口状态读取失败后已关闭并独立核验，另一次只读诊断无attempt。用户现同意旧计划保留但停止使用、解除main冻结以修复传输兼容；不重放Publish/Start或旧批准、不改数据库原件。下文为当时的受审实现及历史风险，不是当前执行授权。
+
 2026-10-20，America/Winnipeg。W6l已登记 `job_fc0309dabebc09367f64153f`，本机入口已关闭且独立核验通过。本阶段只补齐可信publisher的受审operator入口，**当前没有读取真实认证文件、连接生产Neon、调用AWS或写入对象/计划**。不新增云执行器、权限或任务。
 
 ## 最短路径及拟批准范围

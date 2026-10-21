@@ -8,13 +8,14 @@ import { TEST_NOW, TEST_RELEASE, controlPlanFixture } from './fixtures/platform-
 const pair=generateKeyPairSync('rsa',{modulusLength:2048});
 const pem=pair.privateKey.export({type:'pkcs1',format:'pem'}).toString();
 const jwtPart=(text:string)=>JSON.parse(Buffer.from(text,'base64url').toString('utf8'));
-function apiFixture(patch:{extraPermission?:boolean;wrongAck?:boolean;wrongActor?:boolean;revokeFails?:boolean;unknownPost?:boolean;wrongMain?:boolean}={}) {
+function apiFixture(patch:{extraPermission?:boolean;wrongAck?:boolean;wrongActor?:boolean;revokeFails?:boolean;unknownPost?:boolean;wrongMain?:boolean;redirectPath?:string;redirectStatus?:number}={}) {
   const calls:{path:string;method:string;body:Record<string,unknown>|null}[]=[],headers:Headers[]=[];
   const permissions={actions:'write',contents:'read',metadata:'read'},account={id:Number(S.ownerId),login:'veinyyxy',type:'User'};
   const fetcher:typeof fetch=async(input,init)=>{
     const url=new URL(String(input)),method=init?.method??'GET',body=init?.body?JSON.parse(String(init.body)):null;
-    assert.equal(url.origin,'https://api.github.com');assert.equal(init?.redirect,'error');headers.push(new Headers(init?.headers));
+    assert.equal(url.origin,'https://api.github.com');assert.equal(init?.redirect,'manual');headers.push(new Headers(init?.headers));
     calls.push({path:url.pathname,method,body});let value:unknown;
+    if(url.pathname===patch.redirectPath)return new Response(null,{status:patch.redirectStatus,headers:{location:'https://must-not-follow.invalid/private'}});
     if(url.pathname==='/app')value={id:Number(S.appId),slug:'techlong-sandbox-controller',name:'Techlong Sandbox Controller',
       external_url:'https://github.com/'+S.repository,html_url:'https://github.com/apps/techlong-sandbox-controller',owner:account,
       permissions:patch.extraPermission?{...permissions,deployments:'write'}:permissions,events:[]};
@@ -87,4 +88,21 @@ test('last-moment guard failure prevents POST, while unpublished dispatch never 
   assert.equal(f.calls.filter(c=>c.path.endsWith('/dispatches')).length,0);assert.equal(f.calls.at(-1)?.method,'DELETE');
   let keyReads=0;const c=createGitHubController({release:PLATFORM_RELEASE,privateKey:async()=>{keyReads++;return pem;},fetch:f.fetcher});
   await assert.rejects(c.dispatch(await controlPlanFixture(),async()=>{},async()=>{}),/UNPUBLISHED/);assert.equal(keyReads,0);
+});
+
+test('all GitHub stages reject redirects once; returned tokens still get one cleanup attempt',async()=>{
+  const stages=['/app',`/app/installations/${S.installationId}/access_tokens`,
+    `/repos/${S.repository}/actions/workflows/${S.workflowFile}/dispatches`,
+    `/repos/${S.repository}/actions/runs/123`,'/installation/token'];
+  for(const redirectStatus of [300,301,302,303,304,305,307,308,399])for(const redirectPath of stages){
+    const f=apiFixture({redirectPath,redirectStatus}),plan=await controlPlanFixture();let ackSaved=false;
+    const action=redirectPath.endsWith('/actions/runs/123')?f.client.observe(plan,'123'):
+      f.client.dispatch(plan,async()=>{},async()=>{ackSaved=true;});
+    await assert.rejects(action,/CONTROL_(?:GITHUB_RESPONSE|TOKEN_REVOKE_UNCONFIRMED)/);
+    assert.equal(f.calls.filter(c=>c.path===redirectPath).length,1);
+    assert.equal(f.calls.filter(c=>c.path.endsWith('/dispatches')).length,redirectPath==='/installation/token'||redirectPath.endsWith('/dispatches')?1:0);
+    const tokenReturned=!['/app',`/app/installations/${S.installationId}/access_tokens`].includes(redirectPath);
+    assert.equal(f.calls.filter(c=>c.path==='/installation/token').length,tokenReturned?1:0);
+    assert.equal(ackSaved,redirectPath==='/installation/token');
+  }
 });

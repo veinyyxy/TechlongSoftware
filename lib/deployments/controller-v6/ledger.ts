@@ -13,7 +13,9 @@ export function createNeonControlLedger(urlBinding: () => unknown): ControlLedge
       assertControllerNeonTransportV6(new URL(binding).hostname,{fetchFunction:neonConfig.fetchFunction,fetchEndpoint:neonConfig.fetchEndpoint});
       const sql = neon(binding);
       const result = await sql.query(`SELECT deployment_control_v6.${name}(${values.map((_,i)=>'$'+(i+1)).join(',')}) AS value`, values,
-        {fetchOptions:{signal:AbortSignal.timeout(15000),redirect:'error'}});
+        // workerd rejects redirect:'error'. Manual never follows; Neon rejects
+        // non-2xx responses (including every 3xx) before parsing query results.
+        {fetchOptions:{signal:AbortSignal.timeout(15000),redirect:'manual'}});
       return result[0]?.value;
     } catch { throw new ControlError('CONTROL_LEDGER_REQUIRES_READBACK',503); }
   }

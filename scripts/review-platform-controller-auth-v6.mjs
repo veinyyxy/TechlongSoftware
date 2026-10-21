@@ -75,7 +75,7 @@ export function authAuditFetch(fetcher, audit) {
     const url=new URL(String(input)), method=init?.method??'GET';
     const index=endpoints.findIndex(([m,p])=>m===method && p===url.pathname);
     must(url.origin==='https://api.github.com' && !url.search && !url.hash && !url.username && !url.password && index>=0 &&
-      !used.has(index) && init?.redirect==='error' && init?.cache==='no-store','CONTROL_AUTH_ENDPOINT');
+      !used.has(index) && init?.redirect==='manual' && init?.cache==='no-store','CONTROL_AUTH_ENDPOINT');
     if(method==='POST') assertExact(JSON.parse(String(init.body)),authSubject(1,{},[]).tokenRequest,'CONTROL_AUTH_TOKEN_SCOPE');
     else must(init?.body===undefined,'CONTROL_AUTH_BODY');
     // The only non-sequential operation allowed is cleanup after a failed GET/parser.

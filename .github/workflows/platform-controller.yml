@@ -11,6 +11,7 @@ on:
       - 'app/admin/instances/**'
       - 'tests/platform-controller*v6*'
       - 'tests/fixtures/platform-controller-v6.ts'
+      - 'tests/fixtures/platform-controller-transport-v6.mjs'
       - 'scripts/ci/verify-platform-controller-pg-v6.mjs'
       - 'scripts/review-platform-controller-auth-v6.mjs'
       - 'scripts/controller-auth-metadata-v6.ps1'
@@ -25,6 +26,7 @@ on:
       - 'app/admin/instances/**'
       - 'tests/platform-controller*v6*'
       - 'tests/fixtures/platform-controller-v6.ts'
+      - 'tests/fixtures/platform-controller-transport-v6.mjs'
       - 'scripts/ci/verify-platform-controller-pg-v6.mjs'
       - 'scripts/review-platform-controller-auth-v6.mjs'
       - 'scripts/controller-auth-metadata-v6.ps1'
@@ -61,7 +63,7 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Pure controller, throwaway RSA key, fake HTTP and real component SSR
-        run: node --experimental-strip-types --test tests/platform-controller-v6.test.ts tests/platform-controller-github-v6.test.ts tests/platform-controller-render-v6.test.mjs tests/platform-controller-auth-v6.test.mjs
+        run: node --experimental-strip-types --test tests/platform-controller-v6.test.ts tests/platform-controller-github-v6.test.ts tests/platform-controller-transport-v6.test.mjs tests/platform-controller-render-v6.test.mjs tests/platform-controller-auth-v6.test.mjs
       - name: Real runtime remains closed even with accidental opt-in
         run: node --experimental-strip-types --experimental-loader ./tests/cloudflare-loader.mjs --test tests/platform-controller-runtime-v6.test.mjs
       - name: Exact SQL with non-superuser installer and true concurrent clients
@@ -70,5 +72,5 @@ jobs:
           PLATFORM_CONTROL_CI_PORT: ${{ job.services.postgres.ports[5432] }}
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
       - name: Scoped lint
-        run: node node_modules/eslint/bin/eslint.js lib/deployments/controller-v6/ components/admin/DeploymentControlPanel.tsx 'app/api/admin/instances/[instanceId]/deployment-control/route.ts' tests/platform-controller*v6* tests/fixtures/platform-controller-v6.ts scripts/ci/verify-platform-controller-pg-v6.mjs scripts/review-platform-controller-auth-v6.mjs --max-warnings 0
+        run: node node_modules/eslint/bin/eslint.js lib/deployments/controller-v6/ components/admin/DeploymentControlPanel.tsx 'app/api/admin/instances/[instanceId]/deployment-control/route.ts' tests/platform-controller*v6* tests/fixtures/platform-controller-v6.ts tests/fixtures/platform-controller-transport-v6.mjs scripts/ci/verify-platform-controller-pg-v6.mjs scripts/review-platform-controller-auth-v6.mjs --max-warnings 0
       - run: npm run build

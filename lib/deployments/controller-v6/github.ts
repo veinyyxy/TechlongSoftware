@@ -38,7 +38,9 @@ export function createGitHubController(deps: { release: ReleaseBinding; privateK
   const now = deps.now ?? Date.now;
   async function request(path: string, token: string, method = 'GET', body?: unknown) {
     let response: Response;
-    try { response = await deps.fetch(API + path, { method, redirect:'error', cache:'no-store', signal:AbortSignal.timeout(20000),
+    // workerd supports manual, not error. Exact status checks below reject
+    // redirects without forwarding a JWT/token/body to the Location target.
+    try { response = await deps.fetch(API + path, { method, redirect:'manual', cache:'no-store', signal:AbortSignal.timeout(20000),
       headers: {accept:'application/vnd.github+json',authorization:'Bearer '+token,'X-GitHub-Api-Version':'2026-03-10',
         'content-type':'application/json','user-agent':'Techlong-Platform-Controller-V6'}, ...(body === undefined ? {} : {body:JSON.stringify(body)}) });
     } catch { throw new ControlError('CONTROL_GITHUB_UNKNOWN',503); }
