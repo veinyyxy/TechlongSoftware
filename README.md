@@ -1,6 +1,8 @@
 # 餐饮 SaaS 平台
 
-2026-10-21当前：**W7f独立V2锁定发布角色已创建，独立语义验收通过。** 唯一一次CreateStack成功，新角色真实RoleId已核验，trust无Allow、唯一ECR-only inline及准确原boundary；usage按批准从0变为1，原ECR零镜像。旧栈仍CREATE_FAILED、旧Change Set保持AVAILABLE/V1角色缺失，均未更新或执行。IAM单项Action序列化及边界类型显示诊断已原样保留，没有修改云策略或重试建栈。下一准备绑定新角色的受控单次镜像发布，grant/push/部署仍分审，两小时hosting未开始。[实际安装、诊断与继续边界](docs/aws-platform-hosting-w7f-publisher-created.md)。以下为历史。
+2026-10-21当前：**W7g先对原镜像做真实云端发布前自检，尚未授权或发布。** 当前GitHub immutable subject/既有环境与V2角色/ECR元数据已只读核对；新No-AWS CI校验官方ZIP、精确解包、load/inspect同一image ID、两种无网络容器自检及新DB的OS高危扫描，不重建或推镜像。已实现限时grant/关闭trust并Deny ECR的纯模板候选，尚无真实publish/收尾执行入口或新执行清单；本机22项Node/3项ZIP测试及类型/lint通过，云端结果待核对。原身份仍锁定，旧栈/Change Set不动。[范围、证据、限制和下一步](docs/aws-platform-hosting-w7g-image-publication-preflight.md)。以下为历史。
+
+2026-10-21历史：**W7f独立V2锁定发布角色已创建，独立语义验收通过。** 唯一一次CreateStack成功，新角色真实RoleId已核验，trust无Allow、唯一ECR-only inline及准确原boundary；usage按批准从0变为1，原ECR零镜像。旧栈仍CREATE_FAILED、旧Change Set保持AVAILABLE/V1角色缺失，均未更新或执行。IAM单项Action序列化及边界类型显示诊断已原样保留，没有修改云策略或重试建栈。下一准备绑定新角色的受控单次镜像发布，grant/push/部署仍分审，两小时hosting未开始。[实际安装、诊断与继续边界](docs/aws-platform-hosting-w7f-publisher-created.md)。以下为历史。
 
 2026-10-21历史：**W7f独立锁定publisher候选与48小时创建清单已准备，未安装。** 同一旧Change Set普通视图三项、属性级视图仅缺失角色，仍不足以保证Replacement=True可安全保留恢复；不修改原门禁或执行旧计划。新候选栈只创建V2新名称角色，引用现存ECR/boundary，不接管或更新旧栈；trust无Allow，安装和镜像发布分审。本机14项/类型/lint及准确源码[No-AWS CI39664792753](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39664792753)通过；仅待新SHA批准，本轮云写/新槽消费为0。[只读证据、候选范围及完整风险](docs/aws-platform-hosting-w7f-independent-publisher-review.md) / [准确创建清单](ops/aws-sandbox/reviews/platform-image-publisher-w7f.create-review.json)。以下为历史。
 

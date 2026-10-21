@@ -1,0 +1,106 @@
+name: Platform image publication preflight - No AWS
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/platform-image-publication-candidate.yml'
+      - 'ops/platform-image-publication-v1/**'
+      - 'tests/platform-image-publication.test.mjs'
+      - 'tests/platform-image-extraction_test.py'
+  pull_request:
+    paths:
+      - '.github/workflows/platform-image-publication-candidate.yml'
+      - 'ops/platform-image-publication-v1/**'
+      - 'tests/platform-image-publication.test.mjs'
+      - 'tests/platform-image-extraction_test.py'
+permissions:
+  contents: read
+concurrency:
+  group: platform-image-preflight-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/platform-image-publication.test.mjs
+      - run: python3 -B tests/platform-image-extraction_test.py
+      - run: |
+          node node_modules/typescript/bin/tsc --noEmit --incremental false
+          node node_modules/eslint/bin/eslint.js ops/platform-image-publication-v1/ tests/platform-image-publication.test.mjs --max-warnings 0
+  checked-image:
+    needs: contracts
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+      - name: Verify official source and ZIP digest before extracting fixed entries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node ops/platform-image-publication-v1/preflight.mjs prepare "$RUNNER_TEMP/platform-checked-image"
+      - name: Load and inspect the exact checked image without registry credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          gzip -dc "$RUNNER_TEMP/platform-checked-image/image.tar.gz" | docker load
+          docker image inspect sha256:98591bc59ab26105f6d60c1b2b3d70c853fd56846109b09f9561c3acd53610a3 > "$RUNNER_TEMP/platform-checked-image/loaded-inspect.json"
+          node ops/platform-image-publication-v1/preflight.mjs inspect "$RUNNER_TEMP/platform-checked-image"
+      - name: Recheck exact image liveness and HTTPS-origin contract without network or database
+        shell: bash
+        run: |
+          set -euo pipefail
+          for mode in loopback https; do
+            name="platform-preflight-${GITHUB_RUN_ID}-${mode}"
+            extra=()
+            if [ "$mode" = https ]; then extra=(--env TECHLONG_PLATFORM_INGRESS=alb-https-v1 --env TECHLONG_PLATFORM_PUBLIC_ORIGIN=https://console.sandbox.techlong.cloud); fi
+            docker run --detach --name "$name" --network none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL --security-opt no-new-privileges --pids-limit 256 --memory 1g --cpus 1 "${extra[@]}" sha256:98591bc59ab26105f6d60c1b2b3d70c853fd56846109b09f9561c3acd53610a3
+            trap 'docker rm --force "$name"' EXIT
+            test "$(docker exec "$name" id -u)" != 0
+            if [ "$mode" = https ]; then docker exec "$name" node ops/platform-hosting-v1/https-smoke.mjs; else docker exec "$name" node ops/platform-hosting-v1/smoke.mjs; fi
+            docker rm --force "$name"
+            trap - EXIT
+          done
+      - name: Fresh OS scan with verified Trivy binary, no ignore or unfixed exception
+        shell: bash
+        run: |
+          set -euo pipefail
+          scanner=$(mktemp -d "$RUNNER_TEMP/platform-trivy.XXXXXX")
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --tlsv1.2 https://github.com/aquasecurity/trivy/releases/download/v0.75.0/trivy_0.75.0_Linux-64bit.tar.gz --output "$scanner/trivy.tar.gz"
+          echo "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  $scanner/trivy.tar.gz" | sha256sum --check --strict
+          tar --extract --gzip --file "$scanner/trivy.tar.gz" --directory "$scanner" trivy
+          touch "$scanner/empty.ignore"
+          set +e
+          (cd "$scanner" && env -i PATH="$PATH" HOME="$HOME" DOCKER_CONFIG="$scanner/docker-config" "$scanner/trivy" image --image-src docker --scanners vuln --pkg-types os --severity HIGH,CRITICAL --exit-code 1 --format json --list-all-pkgs --ignorefile "$scanner/empty.ignore" --cache-dir "$scanner/cache" --timeout 8m --output "$RUNNER_TEMP/platform-checked-image/os-scan.json" sha256:98591bc59ab26105f6d60c1b2b3d70c853fd56846109b09f9561c3acd53610a3)
+          scan_exit=$?
+          set -e
+          node ops/platform-image-publication-v1/preflight.mjs scan "$RUNNER_TEMP/platform-checked-image" "$scanner/cache"
+          test "$scan_exit" -eq 0
+      - name: Preserve only small preflight evidence, not the image or credentials
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: platform-image-preflight-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/platform-checked-image/preflight-bytes.json
+            ${{ runner.temp }}/platform-checked-image/loaded-inspect.json
+            ${{ runner.temp }}/platform-checked-image/os-scan-summary.json
+          if-no-files-found: warn
+          retention-days: 3
+          overwrite: false
