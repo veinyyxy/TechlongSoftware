@@ -109,12 +109,15 @@ export async function execute(dir,env=process.env){
 // clients here; no success claim unless independent revoke verification succeeds.
 export async function coordinatePublication({text,approvedSha,ports,now=Date.now()}){
   const m=validateReview(text,approvedSha,now),t=templatesForCoordinator(m);
+  must(now>=Date.parse(m.grantStartsAt)&&now+60000<Date.parse(m.grantExpiresAt),'SOURCE_GRANT_WINDOW');
   await ports.preflight(m);await ports.consume({manifestSha256:approvedSha,nonce:m.nonce});let result,error;
   try{await ports.grant(t.grant);await ports.verifyGrant(t.grant);result=await ports.dispatchAndWait(m);}
   catch(e){error=e;}
   finally{
     // Revoke even when grant submission or dispatch returns an ambiguous error.
-    try{await ports.revoke(t.revoke);await ports.verifyLocked(t.revoke);}catch(e){error=e;}
+    try{await ports.revoke(t.revoke);}catch(e){error=e;}
+    // A rejected/ambiguous revoke submission still requires a separate readback.
+    try{await ports.verifyLocked(t.revoke);}catch(e){error=e;}
   }
   if(error)throw error;return result;
 }

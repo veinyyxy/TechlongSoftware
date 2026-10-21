@@ -101,7 +101,7 @@ test('registry response requires full raw-manifest hash plus exact tag/repositor
   }
 });
 test('Source coordinator boundary always attempts revoke and independent Locked verification, including ambiguous grant/dispatch errors',async()=>{
-  for(const failure of [null,'grant','verifyGrant','dispatchAndWait']){
+  for(const failure of [null,'grant','verifyGrant','dispatchAndWait','revoke']){
     const calls=[],ports=Object.fromEntries(['preflight','consume','grant','verifyGrant','dispatchAndWait','revoke','verifyLocked'].map(k=>[k,async()=>{
       calls.push(k);if(k===failure)throw Error('synthetic');return {outcome:'synthetic'};} ]));
     const invoke=()=>coordinatePublication({...input(),ports,now});if(failure)await assert.rejects(invoke());else await invoke();
@@ -109,6 +109,8 @@ test('Source coordinator boundary always attempts revoke and independent Locked 
   }
   const ports=Object.fromEntries(['preflight','consume','grant','verifyGrant','dispatchAndWait','revoke'].map(k=>[k,async()=>{}]));
   ports.verifyLocked=async()=>{throw Error('LOCK_NOT_PROVED');};await assert.rejects(coordinatePublication({...input(),ports,now}),/LOCK_NOT_PROVED/);
+  let called=false;await assert.rejects(coordinatePublication({...input(),ports:{preflight:async()=>{called=true;}},
+    now:Date.parse('2026-10-22T09:59:00Z')}),/SOURCE_GRANT_WINDOW/);assert.equal(called,false);
 });
 test('No-AWS preflight has no AWS/OIDC/environment/publish authority; reusable is workflow_call only and checks out OIDC-derived source',async()=>{
   const ciText=await readFile(new URL('../.github/workflows/platform-image-publication-v2-candidate.yml',import.meta.url),'utf8'),ci=load(ciText);
