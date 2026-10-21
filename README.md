@@ -1,6 +1,8 @@
 # 餐饮 SaaS 平台
 
-2026-10-21当前：**W7d已批准的唯一一次建栈部分失败，独立核验已完成。** 模板Principal格式被IAM拒绝：新ECR和未附加boundary已创建，发布角色不存在，仓库零镜像；栈CREATE_FAILED，永久槽已消费。没有补齐/重试/删除/解锁或部署；原清单、模板、风险文档和证据保留。下一步须另审保留已建对象的锁定trust恢复方案，不能重放原CreateStack。[实际结果、错误原因与恢复边界](docs/aws-platform-hosting-w7d-foundation-partial-result.md)。以下为历史。
+2026-10-21当前：**W7e仅准备保留现有资源的恢复审阅。** Access Analyzer复现旧Principal错误，新“明确账户Deny＋无Allow”策略零发现；原栈仍CREATE_FAILED、角色缺失、ECR零镜像、boundary未使用。新模块仅编译候选模板和检查窄差异；拟议下一步最多创建一个未执行UPDATE Change Set，仍需新SHA批准，不重放原CreateStack或消费新槽。新代码CI不重建/上传镜像。[恢复范围、服务验证及完整风险](docs/aws-platform-hosting-w7e-recovery-review.md)。以下为历史。
+
+2026-10-21历史：**W7d已批准的唯一一次建栈部分失败，独立核验已完成。** 模板Principal格式被IAM拒绝：新ECR和未附加boundary已创建，发布角色不存在，仓库零镜像；栈CREATE_FAILED，永久槽已消费。没有补齐/重试/删除/解锁或部署；原清单、模板、风险文档和证据保留。下一步须另审保留已建对象的锁定trust恢复方案，不能重放原CreateStack。[实际结果、错误原因与恢复边界](docs/aws-platform-hosting-w7d-foundation-partial-result.md)。以下为历史。
 
 2026-10-21历史：**W7d准备可追溯镜像发布产物、独立ECR/锁定身份模板及首轮数据库权限矩阵。** No-AWS候选CI仅在同一镜像双模式自检后保存三天产物；盘点时精确ECR/role/boundary/stack不存在，锁定模板通过AWS只读ValidateTemplate。数据库角色仅是登录/会话＋管理概览/实例浏览提案，未连Neon、读Secret或安装授权。两小时部署和清理仍分审，旧Publisher/F3c9/租户不动。[工程入口、资源权限、凭据风险与后续审查](docs/aws-platform-hosting-w7d-image-and-db-preparation.md)。以下为历史。
 
