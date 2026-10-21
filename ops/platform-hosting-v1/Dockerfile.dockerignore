@@ -1,0 +1,27 @@
+# Explicit source allowlist. CI additionally builds from git archive, not a dirty checkout.
+**
+!package.json
+!package-lock.json
+!app/
+!app/**
+!components/
+!components/**
+!config/
+!config/**
+!db/
+!db/**
+!lib/
+!lib/**
+!public/
+!public/**
+!ops/
+!ops/**
+!types/
+!types/**
+!postcss.config.mjs
+!tsconfig.json
+**/.env*
+**/*.pem
+**/*.key
+**/node_modules
+**/.git

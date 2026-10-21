@@ -1,0 +1,74 @@
+name: Platform AWS hosting candidate - No AWS
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/platform-hosting-candidate.yml'
+      - 'ops/platform-hosting-v1/**'
+      - 'tests/platform-hosting-v1.test.mjs'
+      - 'app/**'
+      - 'components/**'
+      - 'config/**'
+      - 'db/**'
+      - 'lib/**'
+      - 'public/**'
+      - 'types/**'
+      - 'postcss.config.mjs'
+      - 'tsconfig.json'
+      - 'package*.json'
+  pull_request:
+    paths:
+      - '.github/workflows/platform-hosting-candidate.yml'
+      - 'ops/platform-hosting-v1/**'
+      - 'tests/platform-hosting-v1.test.mjs'
+      - 'app/**'
+      - 'components/**'
+      - 'config/**'
+      - 'db/**'
+      - 'lib/**'
+      - 'public/**'
+      - 'types/**'
+      - 'postcss.config.mjs'
+      - 'tsconfig.json'
+      - 'package*.json'
+permissions:
+  contents: read
+concurrency:
+  group: platform-hosting-candidate-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
+      - name: Hosting contracts, liveness and unchanged cloud closure
+        run: node --experimental-strip-types --test tests/platform-hosting-v1.test.mjs
+      - name: Typecheck and scoped lint
+        run: |
+          node node_modules/typescript/bin/tsc --noEmit --incremental false
+          node node_modules/eslint/bin/eslint.js ops/platform-hosting-v1/ app/api/health/route.ts tests/platform-hosting-v1.test.mjs --max-warnings 0
+      - name: Build exact tracked sources without local private files
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_context=$(mktemp -d "${RUNNER_TEMP}/platform-hosting.XXXXXX")
+          git archive HEAD | tar -x -C "$candidate_context"
+          docker build --file "$candidate_context/ops/platform-hosting-v1/Dockerfile" --tag "techlong-platform-ci:${GITHUB_SHA}" "$candidate_context"
+      - name: Non-root read-only container, anonymous GETs, network disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_name="techlong-platform-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          trap 'docker logs "$candidate_name"; docker rm --force "$candidate_name"' EXIT
+          docker run --detach --name "$candidate_name" --network none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL --security-opt no-new-privileges --pids-limit 256 --memory 1g --cpus 1 "techlong-platform-ci:${GITHUB_SHA}"
+          test "$(docker exec "$candidate_name" id -u)" != 0
+          docker exec "$candidate_name" node ops/platform-hosting-v1/smoke.mjs
