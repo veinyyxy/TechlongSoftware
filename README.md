@@ -1,6 +1,6 @@
 # 餐饮 SaaS 平台
 
-2026-10-21当前：**W7f准备独立锁定publisher，旧恢复计划保持未执行。** 同一Change Set普通视图三项、属性级视图仅缺失角色，仍不足以保证Replacement=True可安全保留恢复；不修改原门禁。新候选栈只创建V2新名称角色，引用现存ECR/boundary，不接管或更新旧栈；trust无Allow，安装和镜像发布分审。本机14项测试、类型及lint通过，下一绑定No-AWS CI及新48小时创建清单后待批；本轮云写/新槽消费为0。[只读证据、候选范围及完整风险](docs/aws-platform-hosting-w7f-independent-publisher-review.md)。以下为历史。
+2026-10-21当前：**W7f独立锁定publisher候选与48小时创建清单已准备，未安装。** 同一旧Change Set普通视图三项、属性级视图仅缺失角色，仍不足以保证Replacement=True可安全保留恢复；不修改原门禁或执行旧计划。新候选栈只创建V2新名称角色，引用现存ECR/boundary，不接管或更新旧栈；trust无Allow，安装和镜像发布分审。本机14项/类型/lint及准确源码[No-AWS CI39664792753](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39664792753)通过；仅待新SHA批准，本轮云写/新槽消费为0。[只读证据、候选范围及完整风险](docs/aws-platform-hosting-w7f-independent-publisher-review.md) / [准确创建清单](ops/aws-sandbox/reviews/platform-image-publisher-w7f.create-review.json)。以下为历史。
 
 2026-10-21历史：**W7e已创建未执行Change Set，实际差异超出门禁，停止推进执行。** 仅一次CreateChangeSet；独立回读显示ECR和boundary的Tags变更、publisher的Replacement=True，不符合仅角色Add或无替换trust修改的批准范围。候选模板SHA正确，但不能据此忽略真实计划；未执行、未建角色或授权发布。原栈仍CREATE_FAILED、角色实际不存在、仓库零镜像、boundary未使用；新旧永久槽和Change Set全部保留。下一步先重新审查恢复范围，不能执行当前计划或重放创建。[实际差异、独立证据与继续边界](docs/aws-platform-hosting-w7e-changeset-blocked.md)。以下为历史。
 
