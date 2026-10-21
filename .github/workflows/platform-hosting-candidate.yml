@@ -72,3 +72,12 @@ jobs:
           docker run --detach --name "$candidate_name" --network none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL --security-opt no-new-privileges --pids-limit 256 --memory 1g --cpus 1 "techlong-platform-ci:${GITHUB_SHA}"
           test "$(docker exec "$candidate_name" id -u)" != 0
           docker exec "$candidate_name" node ops/platform-hosting-v1/smoke.mjs
+      - name: Fixed HTTPS origin and ALB-header simulation, no database or TLS credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_name="techlong-platform-https-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          trap 'docker logs "$candidate_name"; docker rm --force "$candidate_name"' EXIT
+          docker run --detach --name "$candidate_name" --network none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL --security-opt no-new-privileges --pids-limit 256 --memory 1g --cpus 1 --env TECHLONG_PLATFORM_INGRESS=alb-https-v1 --env TECHLONG_PLATFORM_PUBLIC_ORIGIN=https://console.sandbox.techlong.cloud "techlong-platform-ci:${GITHUB_SHA}"
+          test "$(docker exec "$candidate_name" id -u)" != 0
+          docker exec "$candidate_name" node ops/platform-hosting-v1/https-smoke.mjs
