@@ -23,8 +23,8 @@ vinext官方说明其Node服务与自托管输出可用，但不同部署目标�
 - `Dockerfile`：复用租户镜像已采用的准确Node24.18.0/bookworm-slim digest；非root、独立构建层、准确COPY。vinext目前在devDependencies，为避免改旧闭包，首候选保留锁定node_modules，不声称镜像已最小化或通过完整漏洞验收。
 - `Dockerfile.dockerignore`：源码白名单，拒绝dotenv、PEM/key、node_modules及git元数据。CI另外用 `git archive HEAD` 创建准确已提交源码上下文；本地未跟踪/忽略的私密文件不会进入Docker上下文。
 - `.github/workflows/platform-hosting-candidate.yml`：只有contents:read，无OIDC/环境/Secret/发布/部署权限。编译需下载公开npm/镜像/字体依赖，但容器HTTP验收使用 `--network none --read-only`、64MB临时目录、去除Linux capabilities、no-new-privileges、1GB内存限制；不发布端口。
-- `smoke.mjs`：容器内部访问准确loopback的既有健康API、登录页、匿名admin跳转、匿名管理API401和静态favicon。不发送认证/业务POST、Cookie或真实凭据；没有数据库URL，不能连接生产Neon。
-- `tests/platform-hosting-v1.test.mjs`：25项本机静态/配置/门禁检查，并计算原云闭包摘要确认不变；真实编译和镜像HTTP结果由CI单独确认。
+- `smoke.mjs`：容器内部访问准确loopback的既有健康API、登录页及其全部本地JS/CSS引用（最多40项）、匿名admin跳转、匿名管理API401和静态favicon。不发送认证/业务POST、Cookie或真实凭据；没有数据库URL，不能连接生产Neon。
+- `tests/platform-hosting-v1.test.mjs`：26项本机静态/配置/门禁检查，包括隔离子进程中真实Vite/vinext合并后的client输出断言，并计算原云闭包摘要确认不变；真实编译和镜像HTTP结果由CI单独确认。
 
 ## 能证明与不能证明
 
@@ -33,6 +33,8 @@ CI通过可证明这份准确源码构建出的Linux/amd64容器能以非root、
 既有 `/api/health` 仍是原响应契约，只表示进程/路由存活，不探测数据库，不等同业务就绪。候选明确拒绝代理信任配置；在真实ALB HTTPS上线前必须按准确域名和代理边界另行接线并测试，不能跳过Secure Cookie/Origin/Host核验。
 
 本候选禁用Stripe及部署控制器是初次托管验收范围，不是删除已实现功能。正常管理端数据库仍复用现有Neon；不把平台DB迁移到租户Aurora。以后接入数据库Secret/正常登录属于真实凭据供给及认证写入范围，需要先审核，不能偷偷复用Source登录或窄controller凭据当平台数据库owner。
+
+首轮云CI39625194760（源码deafb2a）实际构建成功，健康/登录/访问保护通过，但favicon检查404，故整轮失败、未通过验收。日志确认安装版本的App Router忽略`clientOutDir`而写到`dist/client`，候选只复制`dist-platform`，因此漏静态资源。修正为Vite显式client环境输出目录，并扩大页面JS/CSS检查；保留失败记录，不重跑旧run，而由新提交的正常CI验证。没有因此改业务源、依赖或云权限。
 
 ## 下一阶段的最小资源方案（提案，不是授权）
 

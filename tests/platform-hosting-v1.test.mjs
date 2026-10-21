@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {spawnSync} from 'node:child_process';
 import {buildEnvironment,assertBuildChildEnvironment,assertRuntimeEnvironment,serverOptions,CLOSED_BINDINGS,FORBIDDEN} from '../ops/platform-hosting-v1/contract.mjs';
 import {makeBuildConfig} from '../ops/platform-hosting-v1/config.mjs';
 import {platformClosureV6} from '../ops/platform-cloud-v6/closure.mjs';
@@ -40,6 +41,7 @@ test('Node-only binding maps selected runtime values and masks deployment flags 
 });
 test('separate Node build never loads root Vite/Cloudflare/Sites config or repository dotenv',async()=>{
   const c=await makeBuildConfig();assert.equal(c.configFile,false);assert(c.envDir.endsWith('empty-env'));assert.equal(c.mode,'production');
+  assert(c.environments.client.build.outDir.replaceAll('\\','/').endsWith('/dist-platform/client'));
   const plugins=c.plugins.flat(Infinity).map(p=>p.name);assert(!plugins.some(p=>/^vite-plugin-cloudflare|^sites$/.test(p)));
   const alias=c.plugins[0];assert.throws(()=>alias.resolveId.call({environment:{name:'client'}},'cloudflare:workers'));
   assert(alias.resolveId.call({environment:{name:'rsc'}},'cloudflare:workers').endsWith('bindings.mjs'));
@@ -48,6 +50,13 @@ test('existing health contract is retained without provider, credential or datab
   const source=await readFile(new URL('../app/api/health/route.ts',import.meta.url),'utf8');
   assert.match(source,/service: "saas-platform"/);assert.match(source,/"cache-control": "no-store"/);
   assert.doesNotMatch(source,/getDatabase|process\.env|fetch\(|Secret|cloudflare:/);
+});
+test('installed Vite/vinext hooks preserve the actual client output after config merging',()=>{
+  const code=`import {resolveConfig} from 'vite';import {makeBuildConfig,OUTPUT} from './ops/platform-hosting-v1/config.mjs';
+    import path from 'node:path';const c=await resolveConfig(await makeBuildConfig(),'build');
+    if(path.resolve(c.environments.client.build.outDir)!==path.join(OUTPUT,'client')||c.configFile)throw Error('CLIENT_OUTPUT_DRIFT');`;
+  const r=spawnSync(process.execPath,['--input-type=module','-e',code],{cwd:new URL('../',import.meta.url),
+    env:buildEnvironment(process.env),encoding:'utf8',timeout:30000});assert.equal(r.status,0,r.stderr);
 });
 test('pinned non-root container has explicit source COPY, no secret build args and no migrations',async()=>{
   const source=await readFile(new URL('../ops/platform-hosting-v1/Dockerfile',import.meta.url),'utf8');
