@@ -1,0 +1,87 @@
+{
+  "schema": "techlong/platform-image-foundation-partial-result/v1",
+  "phase": "W7d",
+  "outcome": "PARTIAL_CREATE_FAILED_ROLE_ABSENT_BOUNDARY_UNATTACHED",
+  "approvedManifestSha256": "717984e928d0038c861fb175279d3b7c75f5af12842cf7641d2b323c98bcd052",
+  "executionSourceCommit": "847dde02ef8fea76e0f5b4969ef629a2f1226a06",
+  "templateCodeCommit": "e06498436dab7022f6fb6ab4f450689fd3c6722e",
+  "templateSha256": "c97085b1447d20c4815eb9064589948a0159c61b14c3baee7aed00bd855c82b9",
+  "source": {"account": "402010193138", "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev", "userId": "AIDAV3GNMXTZEO7SHLC2X"},
+  "region": "ca-central-1",
+  "submissionAtUtc": "2026-10-21T19:05:22.334Z",
+  "independentReadAtUtc": "2026-10-21T19:06:45.877Z",
+  "finalSafetyReadAtUtc": "2026-10-21T19:07:46.773Z",
+  "stack": {
+    "id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-foundation-v1/5db98d40-cd82-11f1-8f8c-06fff229a471",
+    "name": "techlong-sandbox-platform-image-foundation-v1",
+    "status": "CREATE_FAILED",
+    "requestId": "1fe5acaa-f877-4595-986e-aa75ee2528ae",
+    "clientRequestToken": "techlong-platform-image-foundation-v1",
+    "disableRollback": true,
+    "roleArn": null,
+    "parameters": [],
+    "templateMatchesApproval": true,
+    "logicalResourceCount": 3,
+    "successfulLogicalResourceCount": 2
+  },
+  "repository": {
+    "name": "techlong-sandbox-platform-web",
+    "arn": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-platform-web",
+    "status": "CREATE_COMPLETE",
+    "tagMutability": "IMMUTABLE",
+    "scanOnPush": true,
+    "encryption": "AES256",
+    "tagExclusionCount": 0,
+    "imageCount": 0,
+    "nextPage": false,
+    "retainedByTemplate": true
+  },
+  "boundary": {
+    "arn": "arn:aws:iam::402010193138:policy/TechlongSandboxPlatformImagePublishBoundaryV1",
+    "policyId": "ANPAV3GNMXTZP2F37SEFP",
+    "status": "CREATE_COMPLETE",
+    "defaultVersion": "v1",
+    "documentMatchesApproval": true,
+    "attachmentCount": 0,
+    "permissionsBoundaryUsageCount": 0
+  },
+  "publisherRole": {
+    "name": "TechlongSandboxPlatformImagePublisherV1",
+    "cfnStatus": "CREATE_FAILED",
+    "directGetRoleState": "ABSENT",
+    "roleId": null,
+    "error": "AssumeRolepolicy contained an invalid principal: STAR:*",
+    "errorService": "IAM",
+    "errorHttpStatus": 400,
+    "handlerErrorCode": "InvalidRequest",
+    "automaticCorrectionApplied": false
+  },
+  "preflightDiagnostic": {
+    "initialReadOnlyError": "SignatureDoesNotMatch from explicit IAM global endpoint with ca-central-1 signing",
+    "sourceExpiryWasNotCause": true,
+    "initialCreateSubmissions": 0,
+    "initialIntentConsumed": false,
+    "newIndependentGlobalIamReadAndFreshFullPreflightPassed": true,
+    "failedOriginalCommandReplayed": false
+  },
+  "effects": {"topLevelCreateStackSubmissions": 1, "intentSlotsConsumed": 1, "automaticApplicationWriteRetries": 0, "cloudRepairs": 0, "deletions": 0, "grants": 0, "imagePublications": 0, "secretValueReads": 0, "databaseConnections": 0, "deployments": 0},
+  "permanentIntent": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-image-foundation-v1.create.intent.json",
+    "sha256": "67481e505428ea0efe92ee887d75357858d1ed91f85aaea3f28ad566d1f954cd",
+    "consumed": true,
+    "resetOrReplayAuthorized": false
+  },
+  "evidencePrefix": "F:/ChatGPT_workshop/techlong-platform-image-foundation-v1.create-717984e9",
+  "evidenceSha256": {
+    ".preflight.json": "4a504b67bed88d0f26e4ea71374db74d114d30a442f6bf09b8bee3133f543568",
+    ".receipt.json": "c4d042e17ee494fde021b31a0dc531464ccf9c7b4f403dc16aa998509e770557",
+    ".poll-01.json": "c92e788c133e0164fa7259a43a9083f925dd420d843415966e4a8018fc856e26",
+    ".independent-inspect.json": "df002557d1bcf26f06abced9256c3bac619aadbc182d0272ee743865b4a45a77",
+    ".final-safety-read.json": "2e9943a82e1af77a5482d5d82625c2f2e64a30842591f829cca9b01161d4124b"
+  },
+  "foundationInstallationSucceeded": false,
+  "hostingTwoHourWindowStarted": false,
+  "newRecoveryApprovalManifestCreated": false,
+  "requiresNewApprovalForAnyCloudRecovery": true,
+  "document": "docs/aws-platform-hosting-w7d-foundation-partial-result.md"
+}

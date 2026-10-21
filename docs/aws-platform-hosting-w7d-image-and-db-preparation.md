@@ -1,5 +1,7 @@
 # W7d：可追溯镜像、独立 ECR 身份及数据库权限准备
 
+后续执行结果：本页准备完成后用户批准清单717984e9，唯一一次CreateStack已提交但因IAM principal格式错误而部分失败；仓库与未附加boundary存在，发布角色不存在。**不可重放原清单或将下文Absent快照当作现状。** 见[实际失败与独立核验](aws-platform-hosting-w7d-foundation-partial-result.md)。
+
 2026-10-21；沿用[W7c两小时受控验收](aws-platform-hosting-w7c-two-hour-https.md)。本阶段只准备工程和只读材料，不批准/执行 ECR 创建或发布、IAM/数据库授权、Secret 供给、平台部署或清理。`executionReady=false`，两小时运行窗口尚未开始。
 
 ## 1. 保留同一份经过自检的镜像
