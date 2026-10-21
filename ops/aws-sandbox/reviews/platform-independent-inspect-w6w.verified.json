@@ -1,0 +1,33 @@
+{
+  "schema": "techlong/independent-cloud-acceptance-summary/v6",
+  "state": "INDEPENDENT_CLOUD_ACCEPTANCE_VERIFIED_NOT_IMPORTED",
+  "historicalSourceCommit": "b82ef569582655ff8f121fa15bcc1b6ebafa193d",
+  "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+  "jobId": "job_c6cb047ac3ff30ed51ba9f34",
+  "region": "ca-central-1",
+  "stackName": "techlong-sandbox-tenant-9c5ee9e64509dcad",
+  "executionRunId": "39607535810",
+  "inspectRunId": "39613198333",
+  "inspectRunUrl": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39613198333",
+  "checkedAtUtc": "2026-10-21T14:03:25.309Z",
+  "outcome": "SUCCEEDED_INDEPENDENTLY_VERIFIED",
+  "approvedManifestSha256": "ce3032a2420807b4fa917d3416dc1c0b06926307019bf7d9e6875ca37c15ff90",
+  "cloudManifestSha256": "44f1b096d6f6521454fab65b2766ca57d34ffc4c1444eb5e0579fcd274c19f39",
+  "inspectReportInternalSha256": "d521807ef51bb08d7bdf0a782b6578594372c8e2807f4b6a77155a4412aa9cc9",
+  "attestationProofSha256": "4c9d1251ac61577eb10051ebb81d64c5a18fd7fa6efc34ea1450b64720ba465b",
+  "rawFileSha256": {
+    "result": "4595651390ebc9deffbd7270b991af65e265dc3452e83f1ed952cde72cf5e71c",
+    "independentLocalVerification": "9ef7d558486a3067e7c67d0e5196bf2a9fcfdf90b5c177d884ace676533b2d3a",
+    "consumedPermanentSlot": "d340d3180c6ef41a52122cf7c9ff27249276c73ea8e057974a6904c728aff147"
+  },
+  "localIndependentVerification": {"sourcePins":148,"versionedObjects":8,"indexedReceipts":19,"newAwsCalls":0,"newSqlConnections":0,"newPrivateReads":0},
+  "inspectEffects": {"cloudResourceWrites":0,"databaseWrites":0,"jobClaims":0,"privateControlPackageReads":0,"authenticatedApplicationGets":0,"privateConditionalEvidenceObjects":2},
+  "platformLedgerRead": false,
+  "platformLedgerWrites": 0,
+  "platformAttestationImported": false,
+  "platformAcceptanceFlagChanged": false,
+  "originalFilesAndPermanentSlotsRetained": true,
+  "wholePlatformAwsHostingClaimed": false,
+  "notAnExecutionApproval": true,
+  "document": "docs/aws-auto-deployment-platform-w6w-independent-acceptance.md"
+}

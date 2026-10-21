@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-21当前：**W6w sandbox自动部署已通过独立云端验收，W6x开始将已验证运维核心收敛进工程。** 原RunOnce39607535810 / 独立Inspect39613198333核对资源、服务、完整完成回执和旧记录保留通过；平台账本未写回，不能解释为整套系统已上线。本轮新增便携、显式能力注入的凭据/页面审批等待/预留窗口衔接/验收内容核验模块及仓库内合成测试，不启用在线入口；旧脚本、证据和永久槽保留，已发布云闭包不改。[独立验收与脱敏摘要](docs/aws-auto-deployment-platform-w6w-independent-acceptance.md) / [代码收敛范围及后续边界](docs/aws-auto-deployment-platform-w6x-code-consolidation.md)。以下为历史。
+
 2026-10-20当前：**W6n 页面传输兼容修复已编码，旧 Review 计划停止使用、原件和槽位保留。** 用户同意解除旧链条 main 冻结；账本/GitHub 请求使用 workerd 兼容且不跟随跳转的 manual，仍严格拒绝3xx，旧认证审计守卫同步，历史批准不改写。124项本机回归/类型/定向lint通过，新实际workerd回归已接入现有No AWS CI，发布后核对准确提交Checks。本轮未读真实凭据、重开入口、改权限或部署；真实页面尚未复测。[诊断、旧计划处置及唯一继续方向](docs/aws-auto-deployment-platform-w6n-transport-fix.md)。以下为历史。
 
 2026-10-20当前：**W6l新heldjob固定请求窗口及独立回读入口已编码，尚未开启或登记。** 固定管理员/nonce/预期job，刷新不换ID，进程内一次尝试及SQL前截止复核；复用原SERIALIZABLE登记SQL，controller/key/Secret能力关闭，不改81/76云闭包。67项本机回归/类型/lint通过，下一准确CI验证真实请求专用child与新SELECT，再只读Prepare48小时新SHA；实际新请求和两次认证文件读取另审，本轮生产私密/SQL/AWS/新任务/调度0。[准确范围、完整风险与命令](docs/aws-auto-deployment-platform-w6l-held-request-review.md)。下文为历史。

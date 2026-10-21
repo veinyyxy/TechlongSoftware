@@ -5,6 +5,9 @@ on:
     paths:
       - '.github/workflows/platform-cloud-candidate.yml'
       - 'ops/platform-cloud-v6/**'
+      - 'ops/platform-operations-v6/**'
+      - 'tests/platform-operations-*v6.test.mjs'
+      - 'tests/fixtures/platform-operations-v6.mjs'
       - 'tests/platform-cloud*v6*'
       - 'tests/fixtures/platform-cloud-v6.mjs'
       - 'scripts/ci/verify-platform-cloud-publisher-pg-v6.mjs'
@@ -42,6 +45,9 @@ on:
     paths:
       - '.github/workflows/platform-cloud-candidate.yml'
       - 'ops/platform-cloud-v6/**'
+      - 'ops/platform-operations-v6/**'
+      - 'tests/platform-operations-*v6.test.mjs'
+      - 'tests/fixtures/platform-operations-v6.mjs'
       - 'tests/platform-cloud*v6*'
       - 'tests/fixtures/platform-cloud-v6.mjs'
       - 'scripts/ci/verify-platform-cloud-publisher-pg-v6.mjs'
@@ -109,6 +115,10 @@ jobs:
       - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
       - name: Real bridge and publisher code with injected synthetic providers
         run: node --experimental-strip-types --test tests/platform-cloud-v6.test.mjs tests/platform-cloud-publisher-v6.test.mjs tests/platform-publisher-io-v6.test.mjs tests/platform-review-v6.test.mjs tests/platform-activation-v6.test.mjs tests/platform-app-publication-v6.test.mjs tests/platform-binding-v6.test.mjs tests/cloud-worker-root-v5.test.mjs tests/platform-controller-v6.test.ts tests/platform-controller-github-v6.test.ts tests/platform-controller-transport-v6.test.mjs tests/platform-controller-auth-v6.test.mjs tests/platform-control-install-v6.test.mjs
+      - name: Consolidated operator core with synthetic capabilities only
+        run: |
+          node --experimental-strip-types --test tests/platform-operations-credentials-v6.test.mjs tests/platform-operations-window-v6.test.mjs tests/platform-operations-evidence-v6.test.mjs
+          node node_modules/eslint/bin/eslint.js ops/platform-operations-v6/ tests/platform-operations-credentials-v6.test.mjs tests/platform-operations-window-v6.test.mjs tests/platform-operations-evidence-v6.test.mjs tests/fixtures/platform-operations-v6.mjs --max-warnings 0
       - name: Exact SQL and actual publisher queries on disposable PostgreSQL
         run: |
           node --experimental-strip-types scripts/ci/verify-platform-controller-pg-v6.mjs
