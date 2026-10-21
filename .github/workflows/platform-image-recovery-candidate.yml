@@ -5,14 +5,18 @@ on:
     paths:
       - '.github/workflows/platform-image-recovery-candidate.yml'
       - 'ops/platform-image-recovery-v1/**'
+      - 'ops/platform-image-recovery-v2/**'
       - 'tests/platform-image-recovery.test.mjs'
+      - 'tests/platform-publisher-v2.test.mjs'
       - 'ops/platform-hosting-v1/image-foundation.mjs'
       - 'package*.json'
   pull_request:
     paths:
       - '.github/workflows/platform-image-recovery-candidate.yml'
       - 'ops/platform-image-recovery-v1/**'
+      - 'ops/platform-image-recovery-v2/**'
       - 'tests/platform-image-recovery.test.mjs'
+      - 'tests/platform-publisher-v2.test.mjs'
       - 'ops/platform-hosting-v1/image-foundation.mjs'
       - 'package*.json'
 permissions:
@@ -34,8 +38,8 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Recovery boundaries and immutable prior approval
-        run: node --test tests/platform-image-recovery.test.mjs
+        run: node --test tests/platform-image-recovery.test.mjs tests/platform-publisher-v2.test.mjs
       - name: Typecheck and scoped lint
         run: |
           node node_modules/typescript/bin/tsc --noEmit --incremental false
-          node node_modules/eslint/bin/eslint.js ops/platform-image-recovery-v1/ tests/platform-image-recovery.test.mjs --max-warnings 0
+          node node_modules/eslint/bin/eslint.js ops/platform-image-recovery-v1/ ops/platform-image-recovery-v2/ tests/platform-image-recovery.test.mjs tests/platform-publisher-v2.test.mjs --max-warnings 0
