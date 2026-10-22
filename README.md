@@ -1,6 +1,12 @@
 # 餐饮 SaaS 平台
 
-2026-10-22当前：**W7n ECS execution角色/Secret读取接线及两小时HTTPS承载草案已编码，正在云端验证；尚未安装或部署。** 本轮只读确认新名称空闲、固定Secret元数据/镜像、现有网络main有效路由/双AZ/IGW/NACL、证书DNS和service-linked roles及50USD月预算。路由支持main隐式关联并拒绝显式覆盖；CloudFormation读取改用已只读验证的IPv4非keepalive handler，原服务超时未产生写入。实际下一审批仅一次CreateStack两项IAM资源（role含inline+boundary）及一次准确Secret读取例外，不创建承载资源。[完整access风险](docs/aws-platform-hosting-w7n-access-review.md) / [11项两小时承载草案，非部署批准](docs/aws-platform-hosting-w7n-two-hour-draft.md)。本轮未读Secret值、连Neon、消费新槽或写AWS，hosting窗口未开始。
+2026-10-22当前：**W7n ECS execution角色/Secret读取接线与两小时HTTPS承载草案验证完成；48小时权限清单待批准，尚未安装或部署。** [准确CI39856557759](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39856557759)绑定源码`ceaaf92c7298ed67039ead2ca6cd059ea3722479`，全部10报告步骤成功（10项契约测试、类型、lint）。AWS只读验证两份模板、Secret资源策略及身份/trust策略通过，Access Analyzer均零发现；新名称空闲、固定Secret/镜像、网络/证书/DNS/service-linked roles及50USD月预算已核对。公开区域价目表按单task/ALB/3公网IPv4/平均0.1LCU估算未来两小时变量费约0.13555USD，未含既有资源、日志、流量和额外容量等，不是上限。路由支持main隐式关联并拒绝显式覆盖；CloudFormation读取已修复transport超时，不涉及云写。本轮AWS写/Secret值读取/Neon连接/新槽消费均0，hosting窗口未开始。[完整access风险](docs/aws-platform-hosting-w7n-access-review.md) / [11项承载草案，非部署批准](docs/aws-platform-hosting-w7n-two-hour-draft.md) / [待审索引（非原件）](ops/aws-sandbox/reviews/platform-ecs-w7n.access-review.json)。
+
+W7n待批准SHA：`9cdfcdc03a33cbcc22ca749bbb84294054bdeb58439447656e337ae4ad592e09`。原件仅保留`F:/ChatGPT_workshop/techlong-platform-ecs-access-review-w7n-20261022.json`；到期 **2026-10-24 16:24:46 CDT（America/Winnipeg）**，最晚启动 **16:04:46 CDT**（分别`21:24:46.377Z`、`21:04:46.377Z`）。最多一次CreateStack创建两项具名IAM逻辑资源（role含inline及boundary），一次准确Secret读取Deny例外更新，随后独立只读核验；CloudFormation内部操作不受“两次顶层提交”计数约束。权限安装后不会随清单到期失效，失败不自动回滚/补齐/撤权/删除/重试；实际两小时承载和后续清理另审。只有该SHA及完整风险明确获批后才使用：
+
+```powershell
+node 'E:/NodejsProject/TechlongSoftware/ops/platform-ecs-v1/local.mjs' InstallAccessReviewed 'F:/ChatGPT_workshop/techlong-platform-ecs-access-review-w7n-20261022.json' '9cdfcdc03a33cbcc22ca749bbb84294054bdeb58439447656e337ae4ad592e09'
+```
 
 以下为W7m已完成历史。
 
