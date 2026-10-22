@@ -6,7 +6,7 @@ export const must=(v,code)=>{if(!v)throw Error('WEB_DB_'+code);};
 const userSchema="n.nspname !~ '^pg_' AND n.nspname<>'information_schema'";
 const acl=(value,kind,owner)=>`coalesce((SELECT jsonb_agg(jsonb_build_object('grantee',a.grantee::text,'grantor',a.grantor::text,
  'privilege',a.privilege_type,'grantable',a.is_grantable) ORDER BY a.grantee,a.grantor,a.privilege_type)
- FROM pg_catalog.aclexplode(coalesce(${value},pg_catalog.acldefault(${kind==='relation'?`(CASE WHEN c.relkind='S' THEN 'S' ELSE 'r' END)::"char"`:`'${kind}'`},${owner}))) a),'[]'::jsonb)`;
+ FROM pg_catalog.aclexplode(coalesce(${value},pg_catalog.acldefault(${kind==='relation'?`(CASE WHEN c.relkind='S' THEN 's' ELSE 'r' END)::"char"`:`'${kind}'`},${owner}))) a),'[]'::jsonb)`;
 const roleFields=`jsonb_build_object('oid',r.oid::text,'name',r.rolname,'login',r.rolcanlogin,'super',r.rolsuper,
  'inherit',r.rolinherit,'createRole',r.rolcreaterole,'createDb',r.rolcreatedb,'replication',r.rolreplication,'bypassRls',r.rolbypassrls,
  'connectionLimit',r.rolconnlimit,'hasRoleSettings',r.rolconfig IS NOT NULL)`;

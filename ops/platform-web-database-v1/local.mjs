@@ -103,7 +103,9 @@ export async function runAudit({manifest:m,sha,ports}){
   }finally{if(client)await client.end();}
 }
 export async function readReviewed(file,sha){
-  environment();const m=validateReview(await read(file),sha);await source(m.sourceCommit);
+  environment();must(/^F:\/ChatGPT_workshop\/techlong-platform-web-db-review-[a-z0-9-]+\.json$/.test(file??'')&&
+    /^[a-f0-9]{64}$/.test(sha??''),'READ_ARGUMENTS');
+  const m=validateReview(await read(file),sha);await source(m.sourceCommit);
   must(same(await pins(),m.sourcePins)&&hash(lf(await read(path.join(ROOT,RISK))))===m.riskSha256,'APPROVED_CODE_DRIFT');
   const ciText=await read(m.ciReceipt.file),ci=JSON.parse(ciText);must(hash(ciText)===m.ciReceipt.sha256&&ci.runId===m.ciReceipt.runId,'CI_RECEIPT_DRIFT');verifyCi(ci,m.sourceCommit);
   const {target,config}=await databaseConfig();must(same(target,m.target),'DATABASE_TARGET_DRIFT');

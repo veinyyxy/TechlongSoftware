@@ -25,7 +25,7 @@ test('catalog is exactly seven pinned metadata SELECTs, never business rows, pas
   for(const {sql} of QUERIES){assert.match(sql,/^(SELECT|WITH) /);assert.doesNotMatch(sql,/\b(?:INSERT|UPDATE|DELETE|ALTER|CREATE|DROP|GRANT|REVOKE|COPY|CALL|DO)\b|rolpassword|pg_authid|prosrc|pg_get_functiondef|FROM public\./i);}
   assert.equal(PROFILE.installed,false);assert.equal(PROFILE.rowIsolation,false);
   assert.equal(SCOPE.sqlDataWrites,0);assert.equal(SCOPE.sqlDdl,0);assert.equal(SCOPE.awsCalls,0);assert.equal(SCOPE.businessRows,0);
-  assert.match(QUERIES.find(q=>q.name==='relations').sql,/c\.relkind='S'/);
+  assert.match(QUERIES.find(q=>q.name==='relations').sql,/c\.relkind='S' THEN 's' ELSE 'r'/);
 });
 test('one read-only repeatable-read transaction, fixed safe search path, all catalog queries, then COMMIT',async()=>{
   const c=fixture();const v=await readCatalog(c,target);assert.equal(v.identity.read_only,'on');
@@ -61,6 +61,7 @@ test('approval binds original JSON bytes, exact metadata-only scope, source pins
   for(const change of [v=>v.scope.sqlDdl=1,v=>v.scope.connections=2,v=>v.profile.selectTables=[],v=>v.querySha256='a'.repeat(64),
     v=>v.sourcePins.pop(),v=>v.expiresAt='2026-10-25T15:00:00.000Z']){const v=structuredClone(m);change(v);const raw=JSON.stringify(v);assert.throws(()=>validateReview(raw,hash(raw),now));}
   await assert.rejects(main(['ReadReviewed','not-a-file']),/ARGS/);
+  await assert.rejects(main(['ReadReviewed','not-a-file','a'.repeat(64)]),/READ_ARGUMENTS/);
 });
 test('one permanent local consume before connection; all failure paths close, no write/SQL/connection retry',async()=>{
   for(const failed of ['consume','connect','query',null]){

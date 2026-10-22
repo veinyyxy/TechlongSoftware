@@ -48,4 +48,6 @@ No-AWS CI 只有 contents:read，无 environment、id-token、仓库私密材料
 
 本地契约测试覆盖准确七查询/安全路径/目标TLS/清单期限及摘要/身份和截断拒绝/单次连接前先消费/失败关闭不重试/固定错误码。已发布平台镜像、旧发布权限和旧永久槽保持不变；不用再跑300MB镜像构建。
 
+首轮真实PostgreSQL CI `39838421235` 捕获了序列默认ACL类型码大小写错误，证据保留：pg_class的relkind是大写S，但acldefault的SEQUENCE参数必须是小写s，大写S代表FOREIGN SERVER。修正的是目录查询，不是放宽原SELECT/UPDATE/USAGE断言；最终批准材料只绑定修正后源码的成功CI。[PostgreSQL acldefault类型参数](https://www.postgresql.org/docs/current/functions-info.html)。此诊断没有连接生产Neon或消费执行槽。
+
 具体清单将在准确 CI 成功、独立回读后离线生成，48小时内可批准；当前不得执行生产审计。审计完成后的下一步才是以真实目录为依据准备该单一 NOLOGIN Web 角色及窄授权，再单独处理 Secret/LOGIN 与两小时托管部署；不进入旧 F3c9 或恢复旧租户支线。
