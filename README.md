@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-22当前：**W7k 平台 Web 数据库接线的只读目录审计入口已实现，生产审计尚未批准或执行。** 新入口只支持离线Prepare与准确SHA批准后的单次TLS目录读取，不安装角色/授权/Secret、不部署；本机9项契约测试、TypeScript及scoped lint通过，真实一次性PostgreSQL语法/元数据验证由独立No-AWS CI执行。原已发布镜像和W7j锁定状态不变，不重建300MB产物。CI独立核验后生成48小时待审清单；生产数据库连接/永久槽消费均仍为0。[完整范围、风险和下一步](docs/aws-platform-hosting-w7k-database-catalog-review.md)。以下为历史。
+
 2026-10-22当前：**W7j 平台镜像首次 ECR 发布与 Source 独立撤权验收已完成。** [运行39801811721](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39801811721)的12项报告步骤全部成功；恰有一份预期镜像，registry manifest digest=`sha256:81fb8157fd9dcf834204a3b0c866d3fc8071386a4cbc1ff71f2ccac992ed4612`。两次准确V2角色栈UpdateStack完成，Source结果PUBLISHED_AND_INDEPENDENTLY_LOCKED，额外只读Inspect确认Locked；角色no-Allow trust/显式ECR Deny、原boundary不变。**永久槽已消费，不得重放下列历史命令。没有部署ECS，未证明真实数据库/管理员登录或整个平台上线，两小时hosting窗口未启动。** [执行证据与下一步](docs/aws-platform-hosting-w7j-publication-verified.md) / [机器摘要](ops/aws-sandbox/reviews/platform-publication-w7j.verified.json)。下一主线仅准备最小权限平台web数据库/固定Secret版本与后续两小时HTTPS部署清单，实际写入、部署、清理分别审批。以下为历史准备记录。
 
 2026-10-21准备记录（已执行，非当前待办）：**W7j Source生产控制器、固定caller和完整待审清单已准备，尚未执行。** 源码5670b889的30项Node/类型/lint与[准确No-AWS CI39698015750](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39698015750)全部9步骤通过。固定caller引用已验收R=c35dd66e；现有V2角色no-Allow/原boundary/空ECR/BASIC扫描及GitHub真实账号、immutable subject、人工环境和main门禁均已fresh只读核验。最多两次V2单Role UpdateStack/一次GitHub dispatch/一次顶层ECR push，失败也进入Source Revoke及独立核验；不改旧栈、不部署、不删除。[完整风险](docs/aws-platform-hosting-w7j-source-review.md) / [精确待审清单](ops/aws-sandbox/reviews/platform-publication-w7j.review.json)。以下为历史。
