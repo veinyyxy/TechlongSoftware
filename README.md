@@ -1,6 +1,12 @@
 # 餐饮 SaaS 平台
 
-2026-10-22当前：**W7m 固定 Web Secret/Neon LOGIN 及task接线方案正在准备，尚未执行。** 已只读确认Source身份、拟用Secret名称空闲、现有AWS-managed Key及Source-only候选资源策略验证通过；未读取Secret值、连接生产Neon或消费新槽。新代码仅拟三次Secret写/一次既有角色密码LOGIN/一次固定版本只读认证；不改IAM、不部署。沿用Neon原密码接口，禁止旧预哈希路径；先空对象、保护策略，再写值。[完整风险](docs/aws-platform-hosting-w7m-credential-review.md) / [后续task接线约定](docs/aws-platform-hosting-w7m-task-handoff.md)。实际执行仍需新SHA批准，两小时hosting窗口未启动。
+2026-10-22当前：**W7m 固定 Web Secret/Neon LOGIN 及task接线准备完成，48小时清单待批准；尚未执行。** [准确CI39850777219](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39850777219)绑定源码`00b4189e44097bd8c7708013e41c95726235731a`，全部13步骤成功：8项新契约测试、真实PG18.6原密码认证/错误密码拒绝/事务回滚/独立回读、类型及lint；AWS在CI中仍是内存double，不是生产安装证明。本机新旧25项及类型/lint通过。已只读确认Source身份、Secret名称空闲、现有AWS-managed Key及Source-only候选策略验证通过；生产Secret值读取/Neon连接/新槽消费/密码生成均0。新清单最多三次Secret写、一次既有角色密码LOGIN、一次固定版本读取及只读认证；不改IAM、不部署。[完整风险](docs/aws-platform-hosting-w7m-credential-review.md) / [后续task接线约定](docs/aws-platform-hosting-w7m-task-handoff.md) / [脱敏索引（非原件）](ops/aws-sandbox/reviews/platform-web-credential-w7m.review.json)。两小时hosting窗口未启动。
+
+W7m准确待审SHA：`a93b64169dd598d45832a7e9e0fc7317395fdd907cb7baa8c0f4a935b7c45b09`。原件只在`F:/ChatGPT_workshop/techlong-platform-web-credential-review-w7m-20261022.json`，不公开生产host/actor/database。到期 **2026-10-24 15:41:48 CDT（America/Winnipeg）**，最晚启动 **15:31:48 CDT**（分别`20:41:48.651Z`、`20:31:48.651Z`）。Source-only显式Deny在凭据写入前安装；未来task execution role尚不能读，后续IAM/资源策略handoff另审。Neon仅支持原密码接口，服务端日志/非原子/失败残留等完整风险需接受。只有该新SHA明确获批后使用：
+
+```powershell
+node 'E:/NodejsProject/TechlongSoftware/ops/platform-web-credential-v1/local.mjs' InstallReviewed 'F:/ChatGPT_workshop/techlong-platform-web-credential-review-w7m-20261022.json' 'a93b64169dd598d45832a7e9e0fc7317395fdd907cb7baa8c0f4a935b7c45b09'
+```
 
 以下为W7l已完成历史。
 
