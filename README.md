@@ -1,5 +1,9 @@
 # 餐饮 SaaS 平台
 
+2026-10-22当前：**W7n ECS execution角色/Secret读取接线及两小时HTTPS承载草案已编码，正在云端验证；尚未安装或部署。** 本轮只读确认新名称空闲、固定Secret元数据/镜像、现有网络main有效路由/双AZ/IGW/NACL、证书DNS和service-linked roles及50USD月预算。路由支持main隐式关联并拒绝显式覆盖；CloudFormation读取改用已只读验证的IPv4非keepalive handler，原服务超时未产生写入。实际下一审批仅一次CreateStack两项IAM资源（role含inline+boundary）及一次准确Secret读取例外，不创建承载资源。[完整access风险](docs/aws-platform-hosting-w7n-access-review.md) / [11项两小时承载草案，非部署批准](docs/aws-platform-hosting-w7n-two-hour-draft.md)。本轮未读Secret值、连Neon、消费新槽或写AWS，hosting窗口未开始。
+
+以下为W7m已完成历史。
+
 2026-10-22当前：**W7m Web固定凭据已安装并通过真实独立认证：WEB_CREDENTIAL_INDEPENDENTLY_VERIFIED。** 15:46CDT按准确a93b6416清单执行三次Secret写/一次既有Web角色密码LOGIN，提交ACK、独立完整目录及准确UUID的一次Secret读取后只读认证均通过，授权未变。Source-only策略仍保护准确Secret，未来execution role尚不能读取；没有改IAM或部署，管理员账号密码未变。**永久槽已消费，以下准备命令仅历史，不可重放。** [实际证据与下一步](docs/aws-platform-hosting-web-credential-w7m-observed.md) / [脱敏机器摘要](ops/aws-sandbox/reviews/platform-web-credential-w7m.observed.json)。下一步准备execution-role/固定版本handoff及两小时HTTPS部署的独立清单；角色LOGIN与收费Secret将保留至后续明确处置，平台仍未上线、hosting窗口未开始。
 
 以下为W7m已完成历史准备记录（不再待批准）。
