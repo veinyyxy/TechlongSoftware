@@ -1,5 +1,9 @@
 # 餐饮 SaaS 平台
 
+2026-10-22当前：**W7m 固定 Web Secret/Neon LOGIN 及task接线方案正在准备，尚未执行。** 已只读确认Source身份、拟用Secret名称空闲、现有AWS-managed Key及Source-only候选资源策略验证通过；未读取Secret值、连接生产Neon或消费新槽。新代码仅拟三次Secret写/一次既有角色密码LOGIN/一次固定版本只读认证；不改IAM、不部署。沿用Neon原密码接口，禁止旧预哈希路径；先空对象、保护策略，再写值。[完整风险](docs/aws-platform-hosting-w7m-credential-review.md) / [后续task接线约定](docs/aws-platform-hosting-w7m-task-handoff.md)。实际执行仍需新SHA批准，两小时hosting窗口未启动。
+
+以下为W7l已完成历史。
+
 2026-10-22当前：**W7l NOLOGIN Web角色安装及独立验收完成：NOLOGIN_ROLE_INSTALLED_AND_INDEPENDENTLY_VERIFIED。** 15:15CDT按准确38e987e1清单执行一次七条SQL事务并收到COMMIT ACK；独立只读连接核验实际OID196608、NOLOGIN/连接上限5/准确search_path、13表SELECT及认证窄授权全部一致，无未审目录差异。没有设置密码、启用LOGIN、读/写Secret、改AWS或部署，保留PUBLIC TEMP及创建者ADMIN（无SET/INHERIT）。**永久槽已消费，以下准备命令仅历史，不可重放。** [执行结果与下一步](docs/aws-platform-hosting-w7l-nologin-role-observed.md) / [脱敏机器证据](ops/aws-sandbox/reviews/platform-web-database-w7l.nologin-observed.json)。下一步只准备固定Secret/LOGIN及task接线的独立待审方案；平台仍未上线，两小时hosting窗口未启动。
 
 以下为W7l历史准备记录（已批准并完成，非当前待办）。
