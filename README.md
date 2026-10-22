@@ -1,5 +1,9 @@
 # 餐饮 SaaS 平台
 
+2026-10-22当前：**W7l 单一 NOLOGIN 平台 Web 数据库角色与窄授权正在准备，尚未安装。** 本机新旧共17项测试、类型检查通过；真实 SQL、事务回滚及禁止操作将由无 AWS 权限的临时 PostgreSQL CI 验证。仅七条固定持久语句、两次连接（安装及独立只读核验）；不设置密码、不启用 LOGIN、不创建 Secret、不改 AWS、不部署。保留现有 PUBLIC TEMPORARY 风险及创建者自动 ADMIN（无 SET/INHERIT），实际安装需新的准确 SHA 批准。[完整范围与风险](docs/aws-platform-hosting-w7l-nologin-role-review.md)。两小时 hosting 窗口尚未启动。
+
+以下 W7k 为已完成历史。
+
 2026-10-22当前：**W7k Neon生产只读目录审计完成：READ_ONLY_CATALOG_CAPTURED_NOT_INSTALLED。** 14:29CDT按准确cdf4f18d清单执行一次TLS连接/七条目录SELECT；候选Web角色尚不存在，15张所需表及认证列齐全，已审计范围内PUBLIC可达definer路径和认证表用户触发器均0。没有SQL写、授权安装、LOGIN/Secret或AWS调用。发现现有PUBLIC CONNECT/TEMPORARY，下一窄授权清单必须明确临时表继承风险，不能宣称完全禁止DDL；本轮不动共享权限。**永久审计槽已消费，以下命令仅历史，不得重放。** [完整观测与下一步](docs/aws-platform-hosting-w7k-database-catalog-observed.md) / [脱敏机器摘要](ops/aws-sandbox/reviews/platform-web-database-w7k.catalog-observed.json)。下一步仅准备单一NOLOGIN Web角色与窄授权，实际写入、Secret/LOGIN及hosting仍单独审批；两小时窗口尚未启动。
 
 2026-10-22准备记录（已执行，非当前待办）：**W7k 平台 Web 数据库接线的只读目录审计已实现、云端验证通过，具体清单待批准；生产审计尚未执行。** [准确CI39838810686](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39838810686)绑定源码`526a3323350e3013c3f09562ff2364e1a4f0e385`，全部13项步骤成功，包含真实一次性PostgreSQL查询、9项契约测试、类型/lint；本机同样通过。首次CI的sequence默认ACL类型码错误已修正，失败证据保留，原断言未放宽。本轮未改动W7j发布权限或镜像，不重建300MB产物。只读执行拟为一次TLS连接、七条固定系统目录SELECT；不读业务行/口令哈希/函数正文，不安装角色/授权/Secret，不改AWS或部署。[完整风险](docs/aws-platform-hosting-w7k-database-catalog-review.md) / [待审索引（非原始清单）](ops/aws-sandbox/reviews/platform-web-database-w7k.catalog-review.json)。生产连接/执行槽消费仍为0。
