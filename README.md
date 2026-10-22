@@ -1,6 +1,8 @@
 # 餐饮 SaaS 平台
 
-2026-10-21当前：**W7j Source生产控制器、固定caller和完整待审清单已准备，尚未执行。** 源码5670b889的30项Node/类型/lint与[准确No-AWS CI39698015750](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39698015750)全部9步骤通过。固定caller引用已验收R=c35dd66e；现有V2角色no-Allow/原boundary/空ECR/BASIC扫描及GitHub真实账号、immutable subject、人工环境和main门禁均已fresh只读核验。最多两次V2单Role UpdateStack/一次GitHub dispatch/一次顶层ECR push，失败也进入Source Revoke及独立核验；不改旧栈、不部署、不删除。[完整风险](docs/aws-platform-hosting-w7j-source-review.md) / [精确待审清单](ops/aws-sandbox/reviews/platform-publication-w7j.review.json)。以下为历史。
+2026-10-22当前：**W7j 平台镜像首次 ECR 发布与 Source 独立撤权验收已完成。** [运行39801811721](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39801811721)的12项报告步骤全部成功；恰有一份预期镜像，registry manifest digest=`sha256:81fb8157fd9dcf834204a3b0c866d3fc8071386a4cbc1ff71f2ccac992ed4612`。两次准确V2角色栈UpdateStack完成，Source结果PUBLISHED_AND_INDEPENDENTLY_LOCKED，额外只读Inspect确认Locked；角色no-Allow trust/显式ECR Deny、原boundary不变。**永久槽已消费，不得重放下列历史命令。没有部署ECS，未证明真实数据库/管理员登录或整个平台上线，两小时hosting窗口未启动。** [执行证据与下一步](docs/aws-platform-hosting-w7j-publication-verified.md) / [机器摘要](ops/aws-sandbox/reviews/platform-publication-w7j.verified.json)。下一主线仅准备最小权限平台web数据库/固定Secret版本与后续两小时HTTPS部署清单，实际写入、部署、清理分别审批。以下为历史准备记录。
+
+2026-10-21准备记录（已执行，非当前待办）：**W7j Source生产控制器、固定caller和完整待审清单已准备，尚未执行。** 源码5670b889的30项Node/类型/lint与[准确No-AWS CI39698015750](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39698015750)全部9步骤通过。固定caller引用已验收R=c35dd66e；现有V2角色no-Allow/原boundary/空ECR/BASIC扫描及GitHub真实账号、immutable subject、人工环境和main门禁均已fresh只读核验。最多两次V2单Role UpdateStack/一次GitHub dispatch/一次顶层ECR push，失败也进入Source Revoke及独立核验；不改旧栈、不部署、不删除。[完整风险](docs/aws-platform-hosting-w7j-source-review.md) / [精确待审清单](ops/aws-sandbox/reviews/platform-publication-w7j.review.json)。以下为历史。
 
 W7j待批准SHA：`d902a5f5bfdb7f1a0f5ae33e729f306c13dfeb4a15832a67539cd53cd9aedc56`。
 外层到期2026-10-23 **19:11:32 CDT（America/Winnipeg）**，最迟启动为当日 **18:11:32 CDT**；

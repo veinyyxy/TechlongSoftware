@@ -1,0 +1,273 @@
+{
+  "schema": "techlong/platform-image-publication-verified/v2",
+  "verifiedAtUtc": "2026-10-22T15:16:17.039Z",
+  "outcome": "PUBLISHED_AND_INDEPENDENTLY_LOCKED",
+  "approval": {
+    "outerSha256": "d902a5f5bfdb7f1a0f5ae33e729f306c13dfeb4a15832a67539cd53cd9aedc56",
+    "innerSha256": "3314cdb7119b14a56b4c41aa5301e70242945c16e4fee3603aef6c4455186008",
+    "nonce": "e3a23b0d1364d86549414bf01c34c60b",
+    "grantStartsAt": "2026-10-22T15:06:42.736Z",
+    "grantExpiresAt": "2026-10-22T16:06:42.736Z",
+    "permanentSlotConsumed": true,
+    "retryAllowed": false
+  },
+  "source": {
+    "operatorCommit": "5670b88977daeab8168d9b50d62bcd276c391ccf",
+    "sourceCiRunId": 39698015750,
+    "dispatchCommit": "c0ced53a699aa1158005d14bf9a685361581b5df",
+    "reusableCommit": "c35dd66e1207181b9591056e1202cfb84ffcf010",
+    "imageSourceCommit": "4209fcab429b868e253ea2d7263dfe2189187232"
+  },
+  "timeline": {
+    "preflightStarted": "2026-10-22T15:06:37.849Z",
+    "preflightCompleted": "2026-10-22T15:06:38.802Z",
+    "grantSubmitted": "2026-10-22T15:06:42.804Z",
+    "grantReadback": "2026-10-22T15:07:15.422Z",
+    "revokeSubmitted": "2026-10-22T15:15:05.631Z",
+    "revokeReadback": "2026-10-22T15:15:38.149Z",
+    "finalReadback": "2026-10-22T15:15:39.763Z",
+    "independentInspect": "2026-10-22T15:16:17.039Z"
+  },
+  "localRegression": {
+    "nodeTestsPassed": 30,
+    "nodeTestsFailed": 0,
+    "executionModulesChanged": false,
+    "publicationRerun": false
+  },
+  "topLevelControls": {
+    "cloudFormationUpdateStackSubmissions": 2,
+    "githubWorkflowDispatches": 1,
+    "webIdentityRoleSessions": 1,
+    "roleSessionSeconds": 900,
+    "dockerPushProcessCalls": 1,
+    "directIamWrites": 0,
+    "cloudFormationCreates": 0,
+    "deployments": 0,
+    "deletions": 0,
+    "sqlConnections": 0,
+    "awsSecretValueReads": 0,
+    "appPemReads": 0,
+    "privatePackageReads": 0,
+    "applicationWriteRetries": 0,
+    "note": "Counts describe the reviewed control flow, not a CloudTrail enumeration of all provider/internal HTTP operations."
+  },
+  "github": {
+    "runId": 39801811721,
+    "workflowId": 392305101,
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39801811721",
+    "status": "completed",
+    "conclusion": "success",
+    "attempt": 1,
+    "jobId": 119904258886,
+    "reportedSteps": 12,
+    "allStepsSucceeded": true,
+    "environment": "techlong-sandbox-deploy",
+    "approvedByUserId": 14145707,
+    "approvalState": "approved"
+  },
+  "publication": {
+    "repository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-platform-web",
+    "tag": "platform-sha4209fcab429b868e253ea2d7263dfe2189187232-r39692352506-a1",
+    "immutableReference": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-platform-web@sha256:81fb8157fd9dcf834204a3b0c866d3fc8071386a4cbc1ff71f2ccac992ed4612",
+    "manifestDigest": "sha256:81fb8157fd9dcf834204a3b0c866d3fc8071386a4cbc1ff71f2ccac992ed4612",
+    "imageConfigDigest": "sha256:2338439ea316a6189d50281f5d25a0a1c2a2ca1f4455494253f20bcbd8f6f9ae",
+    "layerCount": 10,
+    "registryReportedImageBytes": 271259127,
+    "imageCount": 1
+  },
+  "locked": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b",
+    "stackStatus": "UPDATE_COMPLETE",
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxPlatformImagePublisherV2",
+    "roleId": "AROAV3GNMXTZID6CJJBA2",
+    "noAllowTrust": true,
+    "inlineExplicitDenyAllEcr": true,
+    "attachedManagedPolicies": 0,
+    "boundaryPolicyId": "ANPAV3GNMXTZP2F37SEFP",
+    "boundaryDefaultVersion": "v1",
+    "boundaryUnchanged": true,
+    "repositorySettingsUnchanged": true,
+    "stackAndRoleTagsUnchanged": true,
+    "independentInspectOutcome": "LOCKED_OBSERVED",
+    "warning": "Observed resource policies; not a guarantee that cached authorization, existing tokens or in-flight requests become invalid instantaneously."
+  },
+  "securityPreflight": {
+    "schema": "techlong/platform-publication-preflight/v2",
+    "outcome": "OS_HIGH_CRITICAL_ZERO",
+    "imageConfigDigest": "sha256:2338439ea316a6189d50281f5d25a0a1c2a2ca1f4455494253f20bcbd8f6f9ae",
+    "scannerVersion": "0.75.0",
+    "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+    "os": {
+      "Family": "alpine",
+      "Name": "3.24.1"
+    },
+    "packageCount": 18,
+    "databaseUpdatedAt": "2026-10-22T13:15:26.425424764Z",
+    "findingSeverityCounts": {
+      "HIGH": 0,
+      "CRITICAL": 0
+    },
+    "findings": [],
+    "findingsTruncated": false,
+    "ignoredFindingsAllowed": false,
+    "ignoreUnfixedAllowed": false,
+    "awsCalls": 0,
+    "sourceCommit": "4209fcab429b868e253ea2d7263dfe2189187232",
+    "producerRunId": 39692352506,
+    "artifactId": 12388759351,
+    "artifactZipDigest": "sha256:74cf0fa61cc2a6ba9192050fbe63b0872785afc65239445f146395c3b361e478",
+    "archiveSha256": "31578b890954ab675b1ef4c1f90424af82f519fd09b0b1a2cfac4fb1b0e5b30c",
+    "recordedAtUtc": "2026-10-22T15:13:59.312Z",
+    "reportSha256": "e8d5fba18a0a55a6047a49223b5840bb21d1c920885218dd7a4466c0009a1d8b",
+    "databaseMetadataSha256": "3436d7949d7850116de506eb2076cf9d90507a6d3ac3c46b9b87d3c0fc7480d0",
+    "databaseSha256": "b21b4f3ced4ff587023a351dcb28c0cf1d72e71159a0161d05591cc2e611abf2"
+  },
+  "evidence": {
+    "sourceDirectory": "F:/ChatGPT_workshop/techlong-platform-source-v2-e3a23b0d1364d86549414bf01c34c60b",
+    "sourceFiles": [
+      {
+        "name": "awaiting-human-environment.json",
+        "bytes": 339,
+        "sha256": "eb073163c30ef0529bd534cfc5127d11bd44f620e52986d53908f4dd50d07e22"
+      },
+      {
+        "name": "dispatch-ack.json",
+        "bytes": 173,
+        "sha256": "fc1e948defab035b064d43555704de5c5a46f0ac7573bbad80a92d372a7eda12"
+      },
+      {
+        "name": "dispatch-intent.json",
+        "bytes": 197,
+        "sha256": "25ac0e4f30f34d933552faa4589ea41721905a09bb4872bf3f934cc8fc3d32c1"
+      },
+      {
+        "name": "final-reference-readback.json",
+        "bytes": 13247,
+        "sha256": "dde1faaffddf3695a892aa13edacc55cfa659c35f394dc3c202cec297ae74b90"
+      },
+      {
+        "name": "grant-ack.json",
+        "bytes": 228,
+        "sha256": "edb16c786349d765784e18df7b778a3ca9c04fc7becaac56d47103c85e2a7c32"
+      },
+      {
+        "name": "grant-independent-readback.json",
+        "bytes": 18354,
+        "sha256": "ff43be4c273f028fd76720c641a0b6eeac93d9198ca5e6edc5618ae28fda5f6e"
+      },
+      {
+        "name": "grant-intent.json",
+        "bytes": 6263,
+        "sha256": "23e13b3b8ad4fa122bbda8a1ec8990bb2f8aa44402435b90584cabc553144172"
+      },
+      {
+        "name": "independent-registry-manifest.json",
+        "bytes": 3518,
+        "sha256": "9198c4f16d8da80477de25cf138961ee60eb8e58a15b83efa05db721a7031b43"
+      },
+      {
+        "name": "inner-review.json",
+        "bytes": 2196,
+        "sha256": "63f4b50921a28733a16efefe13f9c952d3a0d06d5594fdab302a45ece3596128"
+      },
+      {
+        "name": "preflight-aws.json",
+        "bytes": 14261,
+        "sha256": "7a71ab382487b49cf98d60fdbadaa1eff14b6160a9ecea5a79121b7e9b477d7d"
+      },
+      {
+        "name": "preflight-github.json",
+        "bytes": 54886,
+        "sha256": "3a01afb0c4f8521c2ba59261560aab099b02a8733e54a6f5b427948501210894"
+      },
+      {
+        "name": "result.json",
+        "bytes": 609,
+        "sha256": "ef86fe127b8a0f42a5bb203ad2509cd875ecb3d45ec4ce4d0f34bde281488eeb"
+      },
+      {
+        "name": "revoke-ack.json",
+        "bytes": 228,
+        "sha256": "b616fd6c6a92dc7ceea39f7b80c22d49d847990807a060e2a8c0d8f83370d308"
+      },
+      {
+        "name": "revoke-independent-readback.json",
+        "bytes": 13247,
+        "sha256": "90c37fbd0e8ef2b021e2f9173da246a2d70f22fb225561d674824f80ed460da4"
+      },
+      {
+        "name": "revoke-intent.json",
+        "bytes": 3038,
+        "sha256": "1658122baa0855a619b8391d9bf52ef97f40cc562e85a8ed60b146180fe57cad"
+      },
+      {
+        "name": "run-completed.json",
+        "bytes": 14199,
+        "sha256": "9e2a97d3bbdbeefccddb16afaa40e0d9d955f2788657c3a6d03f02d08d27cf99"
+      }
+    ],
+    "additionalLocalFiles": [
+      {
+        "name": "techlong-platform-publication-v2.source.intent.json",
+        "bytes": 2527,
+        "sha256": "a95dc5c045879257f72ae6c91c49e7f9228996fbdc41659c0358ca8597eb3c26"
+      },
+      {
+        "name": "techlong-platform-source-v2-inspect-1792682177043.json",
+        "bytes": 14086,
+        "sha256": "f4fd394d466e266bc42e719e8b83e057ca847c32480682cf60430f720cf03706"
+      },
+      {
+        "name": "techlong-platform-source-v2-github-39801811721.json",
+        "bytes": 5700,
+        "sha256": "d03ec3d414e75b5e796fbb0481b86552acb16d96700676794df6e6c1a3b2e3ed"
+      },
+      {
+        "name": "platform-publication-v2-12435359935.zip",
+        "bytes": 2401,
+        "sha256": "53783b044565b6968046fbbab4096a7fa8bccf4a016c5913be77d03908dc21cc"
+      }
+    ],
+    "githubArtifact": {
+      "id": 12435359935,
+      "name": "platform-publication-v2-39801811721",
+      "bytes": 2401,
+      "sha256": "53783b044565b6968046fbbab4096a7fa8bccf4a016c5913be77d03908dc21cc",
+      "expiresAt": "2026-10-25T15:14:40Z",
+      "entries": [
+        {
+          "name": "publication-result.json",
+          "bytes": 860,
+          "sha256": "b63cd4416c49f9cc6882ffe70ccc10ae092f229137a3dbbb33979b326d700234"
+        },
+        {
+          "name": "publication.intent.json",
+          "bytes": 189,
+          "sha256": "98a623cf36ca3f560f49dda79aa235e11649e80c3196d7cde441edda288bfa7d"
+        },
+        {
+          "name": "verified-artifact.json",
+          "bytes": 649,
+          "sha256": "c6682de5edbac030ad9851d256d4e977b4639fe49f4479f1b798a9f99241da8d"
+        },
+        {
+          "name": "verified-preflight.json",
+          "bytes": 1285,
+          "sha256": "0b110cfa1f39409d3808a6534aa0fe670c205ab805b80ff13c91448c56221d7a"
+        }
+      ]
+    }
+  },
+  "boundaries": {
+    "platformDeployed": false,
+    "ecsServiceCreated": false,
+    "realTlsProved": false,
+    "realDatabaseLoginProved": false,
+    "realPlatformAuthenticationProved": false,
+    "twoHourHostingWindowStarted": false,
+    "budgetTargetUsdPerMonth": 50,
+    "budgetIsHardCap": false,
+    "oldFailedStackAndOldChangeSetActions": 0
+  },
+  "nextStep": "Prepare minimum-privilege platform web database wiring and pinned Secret version/deployment IAM review for the existing two-hour HTTPS hosting plan. Writes, hosting deployment and later cleanup each require scoped approval; do not replay this consumed publication."
+}
