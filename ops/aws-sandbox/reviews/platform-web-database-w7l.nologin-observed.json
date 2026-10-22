@@ -1,0 +1,149 @@
+{
+  "schema": "techlong/platform-web-nologin-observed/v1",
+  "outcome": "NOLOGIN_ROLE_INSTALLED_AND_INDEPENDENTLY_VERIFIED",
+  "approvedManifestSha256": "38e987e12585c6494990ac7fc68b0222ee12828a05fd248703885a6f95ac8154",
+  "nonce": "cdf793b6ecd15dd71c9d8e420928b27e",
+  "executableSourceCommit": "f78ec0f999a9ee839d6b3d135d7280eb7e510aeb",
+  "executionHead": "40e0a499a041b69ab6854e5587ed6bae86cb423b",
+  "startedAtUtc": "2026-10-22T20:15:18.465Z",
+  "commitAcknowledgedAtUtc": "2026-10-22T20:15:22.367Z",
+  "offlineVerifiedAtUtc": "2026-10-22T20:15:55Z",
+  "role": {
+    "name": "techlong_platform_web_acceptance_v1",
+    "oid": "196608",
+    "login": false,
+    "inherit": false,
+    "superuser": false,
+    "createRole": false,
+    "createDb": false,
+    "replication": false,
+    "bypassRls": false,
+    "connectionLimit": 5,
+    "searchPath": [
+      "pg_catalog",
+      "public",
+      "pg_temp"
+    ]
+  },
+  "grants": {
+    "wholeTableSelect": 13,
+    "credentialSelectColumns": 6,
+    "credentialUpdateColumns": 3,
+    "authSessions": [
+      "SELECT",
+      "INSERT",
+      "DELETE"
+    ],
+    "schemaUsage": "public",
+    "grantOption": false
+  },
+  "creatorMembership": {
+    "admin": true,
+    "inherit": false,
+    "set": false
+  },
+  "effectiveRights": {
+    "exactTableColumnAndSchemaPrivileges": true,
+    "connectFromPublic": true,
+    "temporaryFromPublic": true,
+    "roleConfigExact": true,
+    "unreviewedCatalogDelta": false,
+    "rowIsolation": false
+  },
+  "verification": {
+    "writeTransactionCommitAcknowledged": true,
+    "independentConnectionState": "EXACT_NOLOGIN_ROLE_OBSERVED",
+    "independentReadOnly": true,
+    "sameRoleOid": true,
+    "preflightMatchesOriginalBaseline": true,
+    "sourcePinsMatched": 15,
+    "offlineReevaluationAdditionalConnections": 0,
+    "errors": []
+  },
+  "successfulReviewedPath": {
+    "installerConnections": 1,
+    "independentReadConnections": 1,
+    "persistentStatements": 7,
+    "metadataSelects": 23,
+    "sessionLocalSettings": 7,
+    "accessShareTableLockStatements": 1,
+    "scopeCountBasis": "Fixed successful program path, not a separate wire-level query audit"
+  },
+  "permanentSlot": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-web-db-nologin-v1.intent.json",
+    "sha256": "eadb07978cd78296c4669874624e5b7f00a91aefee41140a97c55f85c940aa70",
+    "consumed": true,
+    "retryAllowed": false
+  },
+  "localEvidence": [
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-db-nologin-cdf793b6ecd15dd71c9d8e420928b27e/before-commit.json",
+      "bytes": 350877,
+      "sha256": "ae2b95d144a74341d8533e52a3acc5c02ca0fa07211c1a9a80838fc45e5cd26a"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-db-nologin-cdf793b6ecd15dd71c9d8e420928b27e/commit-ack.json",
+      "bytes": 88,
+      "sha256": "df6dce01cc4db7f2c29f2faac559c6e8b8dc9f789c3bdada9b221cb9cf3e57d8"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-db-nologin-cdf793b6ecd15dd71c9d8e420928b27e/commit-intent.json",
+      "bytes": 90,
+      "sha256": "c1af6cef87d8e8dc987aa99f33dfece8fdb577bc8f35aa8ca8c5aa4d11b41e14"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-db-nologin-cdf793b6ecd15dd71c9d8e420928b27e/independent-catalog.json",
+      "bytes": 222318,
+      "sha256": "28b83add3de469a950e7e4d02a57db4358875b2d7fa6c7156c089170dd08930f"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-db-nologin-cdf793b6ecd15dd71c9d8e420928b27e/independent-effective.json",
+      "bytes": 109431,
+      "sha256": "ca8fdfe15e08737f10e5cdc154395dacc7ad322c0aa3a9546757314b2d77e3b3"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-db-nologin-cdf793b6ecd15dd71c9d8e420928b27e/preflight.json",
+      "bytes": 218046,
+      "sha256": "ff7066eff6aeff7a9347f67bd24fdeafc0cf26e6cbc0c06d2f33e088e3758f82"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-db-nologin-cdf793b6ecd15dd71c9d8e420928b27e/result.json",
+      "bytes": 1776,
+      "sha256": "0633a871f8cc067d1593a499e8345aa791e5048447863c367ef0b69e59c89715"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-db-nologin-cdf793b6ecd15dd71c9d8e420928b27e/role-identity.json",
+      "bytes": 26,
+      "sha256": "2a31ef438aeff395230967ae1410b6a42580fa7939916b9b5bc99e24250411a1"
+    }
+  ],
+  "offlineSemantic": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-web-db-nologin-cdf793b6ecd15dd71c9d8e420928b27e/offline-semantic.json",
+    "sha256": "4a3779d928ea69e51c4d9baacf97421fdd5277ccd4e7b9d33f321b608d40e65b"
+  },
+  "privacy": {
+    "rawCatalogsKeptLocal": true,
+    "actualTargetFieldsNotPublished": true,
+    "targetFingerprintSha256": "5d5e52c00c54ed761aac13730f81b1b6f107d7ac06a68a407276132d150690a7"
+  },
+  "unchangedOrNotPerformed": {
+    "passwordStatementSent": false,
+    "loginActivation": false,
+    "secretValueReads": 0,
+    "awsCalls": 0,
+    "businessRowReads": 0,
+    "businessDataWrites": 0,
+    "cloudDeployments": 0,
+    "deletions": 0,
+    "applicationRetries": 0,
+    "twoHourHostingWindowStarted": false
+  },
+  "limitations": [
+    "NOLOGIN and grants are an observed snapshot, not an immutable fence or real Web login proof",
+    "No pg_authid/password-value query was performed; this flow sent no password statement",
+    "PUBLIC TEMP remains effective; creator ADMIN remains without SET/INHERIT; no row/cluster-wide database isolation claim",
+    "Successful TLS connection used explicit verify-full configuration; no extra SSL telemetry query",
+    "No fresh AWS state was obtained; prior image and publisher state are historical"
+  ],
+  "nextStage": "Prepare a separately reviewed password/fixed Secret version and hosted task identity handoff; do not activate LOGIN, read/write Secret values or deploy using this consumed approval."
+}
