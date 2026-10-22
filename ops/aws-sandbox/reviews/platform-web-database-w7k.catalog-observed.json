@@ -1,0 +1,130 @@
+{
+  "schema": "techlong/platform-web-database-catalog-observed/v1",
+  "state": "READ_ONLY_AUDIT_COMPLETED_NOT_INSTALLED",
+  "outcome": "READ_ONLY_CATALOG_CAPTURED_NOT_INSTALLED",
+  "manifestSha256": "cdf4f18d0989075ba364b503b0f82effc0ee0aa123d9b0468d149937e3d5e27f",
+  "nonce": "8b2005d47002a7361de0b84e95dbff0e",
+  "sourceCommit": "526a3323350e3013c3f09562ff2364e1a4f0e385",
+  "executionCommit": "274b91f551ff8f0be30fb27dd7cef5f36fbfed1a",
+  "startedAtUtc": "2026-10-22T19:29:18.814Z",
+  "completedAtUtc": "2026-10-22T19:29:23.324Z",
+  "targetFingerprintSha256": "bc419154f085462772a0398683366bc4d4f0815f5b8458aeb89e658d64880c24",
+  "productionControlFlow": {
+    "connections": 1,
+    "readOnlyTransactions": 1,
+    "metadataSelects": 7,
+    "sessionLocalSettings": 3,
+    "sqlDataWrites": 0,
+    "sqlDdl": 0,
+    "awsCalls": 0,
+    "secretValueReads": 0,
+    "githubCalls": 0,
+    "businessRowsRead": 0,
+    "passwordHashesRead": 0,
+    "functionBodiesRead": 0,
+    "deployments": 0,
+    "deletions": 0,
+    "applicationRetries": 0,
+    "note": "Counts describe the approved fixed program flow; no server audit-log enumeration was performed."
+  },
+  "observed": {
+    "serverVersionNum": "180006",
+    "transactionReadOnly": "on",
+    "candidateRoleAbsent": true,
+    "catalogCounts": {
+      "relations": 43,
+      "routines": 51,
+      "schemas": 3,
+      "authTriggers": 4,
+      "authUserTriggers": 0,
+      "memberships": 5,
+      "defaultAcls": 2
+    },
+    "requiredTableCount": 15,
+    "allRequiredRelationsOrdinaryTables": true,
+    "allRequiredTablesOwnedByReviewActor": true,
+    "allRequiredTablesRlsDisabled": true,
+    "missingRequiredTables": [],
+    "missingCredentialColumns": [],
+    "publicDefinerPathsInAuditedSchemas": 0,
+    "publicRelationGrantsInAccessibleSchemas": 0,
+    "authUserTriggers": 0,
+    "authInternalTriggers": 4,
+    "publicDatabasePrivileges": [
+      "CONNECT",
+      "TEMPORARY"
+    ],
+    "publicSchemaPrivileges": [
+      "USAGE"
+    ],
+    "publicCreateOnAuditedUserSchemas": false,
+    "publicDefaultAclGrants": 0
+  },
+  "findings": {
+    "existingLocalCredentialMustNotBeHosted": true,
+    "reviewActorCapabilities": {
+      "super": false,
+      "inherit": true,
+      "createRole": true,
+      "createDb": true,
+      "replication": true,
+      "bypassRls": true,
+      "ownsDatabase": true
+    },
+    "publicTemporaryPresent": true,
+    "futureRoleTemporaryPrivilegeTested": false,
+    "publicTemporaryDecision": "Do not alter shared PUBLIC grants under this approval. Future Web grant proposal must disclose inherited temporary-table privileges and cannot claim complete DDL denial.",
+    "proposedRoleInstalled": false,
+    "grantInstallationAuthorized": false,
+    "sqlRoleOrGrantChanged": false,
+    "awsSecretCreated": false,
+    "realPlatformLoginTested": false,
+    "hostingWindowStarted": false
+  },
+  "evidence": {
+    "rawReceipt": {
+      "path": "F:/ChatGPT_workshop/techlong-platform-web-db-catalog-8b2005d47002a7361de0b84e95dbff0e.json",
+      "bytes": 238246,
+      "sha256": "d351064ef8d7b4fca5266830117286febaca9e8b41fa15621c7718feab9ebf3e"
+    },
+    "stableIntent": {
+      "path": "F:/ChatGPT_workshop/techlong-platform-web-db-catalog-v1.intent.json",
+      "sha256": "06f62069535276ad15c65322a21b81bb152d4bc030605155c6a7eeb82461f0cf",
+      "startedAtUtc": "2026-10-22T19:29:18.814Z"
+    },
+    "offlineSemanticCheck": {
+      "path": "F:/ChatGPT_workshop/techlong-platform-web-db-catalog-8b2005d47002a7361de0b84e95dbff0e.semantic.json",
+      "sha256": "390df5f248b002d354f145b406c019a836bc17298753c8db67126cf3b65cc22b",
+      "verifiedAtUtc": "2026-10-22T19:33:44.834Z",
+      "checks": {
+        "approvedSourcePins": 10,
+        "identityAndTargetMatched": true,
+        "scopeMatched": true,
+        "assessmentRecomputed": true,
+        "readOnlyObserved": true,
+        "timestampWithinApproval": true,
+        "ciReceiptDigestMatched": true
+      },
+      "additionalDatabaseConnections": 0,
+      "basis": "Offline verification of the existing raw receipt; not another live database observation."
+    },
+    "originalCiReceipt": {
+      "path": "F:/ChatGPT_workshop/techlong-platform-web-db-ci-39838810686.json",
+      "sha256": "ba54b008676b2a0eade803ba816fcd6adcc35087adbcd54806d758d284f65088",
+      "runId": 39838810686
+    },
+    "preparedIndex": "ops/aws-sandbox/reviews/platform-web-database-w7k.catalog-review.json",
+    "preparedIndexPreserved": true
+  },
+  "privacy": {
+    "rawTargetHostActorDatabasePublished": false,
+    "credentialsPublished": false,
+    "businessRowsPublished": false,
+    "fullCatalogLocalOnly": true
+  },
+  "policyReferences": [
+    "https://www.postgresql.org/docs/current/ddl-priv.html",
+    "https://www.postgresql.org/docs/current/sql-revoke.html"
+  ],
+  "nextStep": "Prepare a separately reviewed single NOLOGIN Web role and minimum explicit grants using this catalog baseline; preserve shared PUBLIC settings and disclose TEMPORARY inheritance. No SQL/Secret/IAM/LOGIN/deployment writes are authorized by this audit."
+}
