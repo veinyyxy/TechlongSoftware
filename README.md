@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-21当前：**W7j已接入Source生产控制器候选，待准确CI与只读清单准备，尚未执行。** 固定caller引用已验收R=c35dd66e；新入口绑定48小时外层审批、启动后最多1小时Grant、最多两次V2单Role UpdateStack/一次GitHub dispatch，失败进入Source Revoke及独立Locked/ECR核验。永久槽/ACK/中断后只读Inspect已编码，不直接IAM修复，不重建镜像。代码测试与准确CI结果随后核对，实际Grant/发布必须另按完整SHA批准。[完整范围、凭据、异步收尾及费用风险](docs/aws-platform-hosting-w7j-source-review.md)。以下为历史。
+
 2026-10-21当前：**W7i发布前字节复核和云端发布入口已验收，尚未开放权限或发布。** 新v2明确绑定W7h安全候选，保留旧失败产物/批准；20项Node/3项ZIP及类型/lint通过，[最终源码c35dd66e的No-AWS run39695238725](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39695238725)两个job全部18步骤成功。准确原ZIP/archive/load/双smoke与新DB的0 HIGH/0 CRITICAL均独立核对；V2角色仍no-Allow、boundary未变、ECR空。已实现固定reusable源码bootstrap和单次云端push入口，但Source生产写入适配器/固定caller/完整执行清单尚未完成，不能直接dispatch或申请执行批准。[证据、边界与唯一下一步](docs/aws-platform-hosting-w7i-publication-entry.md)。以下为历史。
 
 2026-10-21当前：**W7h平台镜像修复已通过真实云端验收，尚未发布或部署。** 原Debian镜像扫描64 HIGH/4 CRITICAL被拦截，证据保留；新固定官方Alpine3.24/Node24.18候选已构建、双模式smoke及OS扫描成功（0 HIGH/0 CRITICAL），producer仅在扫描通过后上传准确产物。54项本机回归/类型/lint通过，[准确云端run39692352506](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39692352506)17步骤成功，独立小型证据已核对。下一准备新候选一次ECR发布/立即撤权清单；不运行旧proposal，不改IAM或创建部署。[完整证据、限制和唯一继续点](docs/aws-platform-hosting-w7h-os-remediation.md)。以下为历史。

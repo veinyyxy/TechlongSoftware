@@ -1,0 +1,25 @@
+name: Platform single ECR publication v2
+run-name: Platform ECR ${{ inputs.review_sha }}
+on:
+  workflow_dispatch:
+    inputs:
+      review_json:
+        description: Exact Source-generated inner review; not a generic approval
+        type: string
+        required: true
+      review_sha:
+        description: SHA256 of exact review_json bytes
+        type: string
+        required: true
+permissions: {}
+jobs:
+  reviewed-publication:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: veinyyxy/TechlongSoftware/.github/workflows/platform-image-publish-job-v2.yml@c35dd66e1207181b9591056e1202cfb84ffcf010
+    with:
+      review_json: ${{ inputs.review_json }}
+      review_sha: ${{ inputs.review_sha }}
