@@ -1,0 +1,237 @@
+{
+  "schema": "techlong/platform-web-nologin-review-index/v1",
+  "state": "PREPARED_NOT_INSTALLED_APPROVAL_PENDING",
+  "originalManifest": false,
+  "authoritativeLocalManifest": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-web-role-review-w7l-20261022.json",
+    "sha256": "38e987e12585c6494990ac7fc68b0222ee12828a05fd248703885a6f95ac8154"
+  },
+  "sourceCommit": "f78ec0f999a9ee839d6b3d135d7280eb7e510aeb",
+  "nonce": "cdf793b6ecd15dd71c9d8e420928b27e",
+  "issuedAt": "2026-10-22T20:03:54.026Z",
+  "expiresAt": "2026-10-24T20:03:54.026Z",
+  "latestStartAt": "2026-10-24T19:58:54.026Z",
+  "scope": {
+    "installerConnections": 1,
+    "independentReadConnections": 1,
+    "maxConnections": 2,
+    "writeTransactions": 1,
+    "readOnlyTransactions": 1,
+    "persistentStatements": 7,
+    "createRoles": 1,
+    "alterRoleSearchPaths": 1,
+    "grantStatements": 5,
+    "metadataSelectsMax": 23,
+    "accessShareLockStatements": 1,
+    "sessionLocalSettingsMax": 7,
+    "businessRowReads": 0,
+    "businessDataWrites": 0,
+    "passwordChanges": 0,
+    "loginActivations": 0,
+    "awsCalls": 0,
+    "secretValueReads": 0,
+    "deployments": 0,
+    "deletions": 0,
+    "applicationWriteRetries": 0
+  },
+  "role": {
+    "name": "techlong_platform_web_acceptance_v1",
+    "login": false,
+    "inherit": false,
+    "superuser": false,
+    "createDb": false,
+    "createRole": false,
+    "replication": false,
+    "bypassRls": false,
+    "connectionLimit": 5,
+    "searchPath": [
+      "pg_catalog",
+      "public",
+      "pg_temp"
+    ],
+    "passwordStatement": false
+  },
+  "grants": {
+    "tableSelect": [
+      "users",
+      "workspaces",
+      "workspace_members",
+      "products",
+      "plans",
+      "subscriptions",
+      "app_instances",
+      "app_instance_templates",
+      "app_instance_template_versions",
+      "workspace_product_entitlements",
+      "app_instance_deployments",
+      "deployment_jobs",
+      "payment_records"
+    ],
+    "credentialSelectColumns": [
+      "user_id",
+      "password_hash",
+      "password_salt",
+      "password_iterations",
+      "failed_attempts",
+      "locked_until"
+    ],
+    "credentialUpdateColumns": [
+      "failed_attempts",
+      "locked_until",
+      "updated_at"
+    ],
+    "sessionPrivileges": [
+      "SELECT",
+      "INSERT",
+      "DELETE"
+    ],
+    "schemaUsage": "public"
+  },
+  "explicitExceptions": {
+    "existingPublicConnectAndTemporaryRetained": true,
+    "temporaryDdlStillEffective": true,
+    "notRowIsolation": true,
+    "notClusterWideDatabaseIsolation": true,
+    "creatorAutomaticMembership": {
+      "admin": true,
+      "inherit": false,
+      "set": false
+    },
+    "profileNote": "Frozen image profile is a proposal; exact seven statements and bound risk document explicitly retain PUBLIC TEMP and creator automatic ADMIN. No additional parent role grants."
+  },
+  "sqlSha256": "13d383a7090a648efdb68d9c44d629a913cd21c1fdb41aca8a50f7d080569fbc",
+  "querySha256": "684aa316d193f0a2cd1f9ba028f8476f0320b7591c1afcde479b9a1405842af3",
+  "baseline": {
+    "receipt": {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-db-catalog-8b2005d47002a7361de0b84e95dbff0e.json",
+      "sha256": "d351064ef8d7b4fca5266830117286febaca9e8b41fa15621c7718feab9ebf3e"
+    },
+    "review": {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-db-review-w7k-20261022.json",
+      "sha256": "cdf4f18d0989075ba364b503b0f82effc0ee0aa123d9b0468d149937e3d5e27f"
+    },
+    "intent": {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-db-catalog-v1.intent.json",
+      "sha256": "06f62069535276ad15c65322a21b81bb152d4bc030605155c6a7eeb82461f0cf"
+    },
+    "semantic": {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-db-catalog-8b2005d47002a7361de0b84e95dbff0e.semantic.json",
+      "sha256": "390df5f248b002d354f145b406c019a836bc17298753c8db67126cf3b65cc22b"
+    }
+  },
+  "baselineCatalogSha256": "962194bcef45ccae27f05f6553f9c6621b3bee63737b91b59ac3ad34ff835587",
+  "targetFingerprintSha256": "5d5e52c00c54ed761aac13730f81b1b6f107d7ac06a68a407276132d150690a7",
+  "targetPrivacy": "Actual target is unchanged from W7k; only local original contains host/actor/database. This fingerprint uses sorted-key canonical JSON, unlike the older unsorted JSON fingerprint.",
+  "risk": {
+    "file": "docs/aws-platform-hosting-w7l-nologin-role-review.md",
+    "sha256": "b9e9b2b550f57301c095a7201133e79f5554f9bf54e00f7aa37c5f621faa860b"
+  },
+  "ci": {
+    "runId": 39845273491,
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39845273491",
+    "workflowId": 393312169,
+    "workflowPath": ".github/workflows/platform-web-database-role-candidate.yml",
+    "headSha": "f78ec0f999a9ee839d6b3d135d7280eb7e510aeb",
+    "conclusion": "success",
+    "reportedSteps": 13,
+    "allReportedStepsSuccessful": true,
+    "localReceipt": {
+      "file": "F:/ChatGPT_workshop/techlong-platform-web-role-ci-39845273491.json",
+      "sha256": "d6416591fae4f0d1ae21a53b979c52b494673bf2c1ea7284118bd14d6bc25328",
+      "runId": 39845273491
+    },
+    "proof": {
+      "outcome": "NOLOGIN_ROLE_SQL_VERIFIED_ON_DISPOSABLE_PG",
+      "rollbackVerified": true,
+      "exactGrants": true,
+      "forbiddenOperationsDenied": 9,
+      "creatorAdminOnly": true,
+      "publicTemporaryStillEffective": true,
+      "independentReadback": true,
+      "productionConnections": 0,
+      "awsCalls": 0
+    }
+  },
+  "sourcePins": [
+    {
+      "file": "ops/platform-web-database-role-v1/contract.mjs",
+      "sha256": "2d6cbf52b4d1bd9e1d741061dbe6abb166ec56a7b825496b529b08c2c02420f4"
+    },
+    {
+      "file": "ops/platform-web-database-role-v1/effective.mjs",
+      "sha256": "9bf37b711235ca6a566fd63ed5a0012ff181078cf9d789d6bfb6a50e63bd657d"
+    },
+    {
+      "file": "ops/platform-web-database-role-v1/install.mjs",
+      "sha256": "f75252ec965f9f1fb832c9eeac7c3888c98fc1257d05e1f5af3fe01b9090d536"
+    },
+    {
+      "file": "ops/platform-web-database-role-v1/local.mjs",
+      "sha256": "b20d6a12d26317dc2830654e2473113cb0a590094bf4ae8c6955c733708ef94f"
+    },
+    {
+      "file": "ops/platform-web-database-role-v1/no-login.sql",
+      "sha256": "13d383a7090a648efdb68d9c44d629a913cd21c1fdb41aca8a50f7d080569fbc"
+    },
+    {
+      "file": "ops/platform-web-database-v1/catalog.mjs",
+      "sha256": "36396955512755dfb9bb6ed43c7c8086840a9ffe5a51eb14202c0b76acc86357"
+    },
+    {
+      "file": "ops/platform-web-database-v1/local.mjs",
+      "sha256": "8d29b9bb7d50acd189e013538d9e630a1f317ce9ba35557faf3c67c561b86899"
+    },
+    {
+      "file": "ops/platform-hosting-v1/database-profile.mjs",
+      "sha256": "d54a70890ce1c3fa19968c1f731be7b81e0c01a97fdf23c1ad6df5c3bddf6ee9"
+    },
+    {
+      "file": "tests/platform-web-database-role-v1.test.mjs",
+      "sha256": "66b743b13cd900589bb282470dce7fdbae98962f255789c0ad1bab0e17ad00ee"
+    },
+    {
+      "file": "scripts/ci/verify-platform-web-role-v1.mjs",
+      "sha256": "e715e2c0f9b1b7474039c731b971b596640eb19ec2e2e4b8b90a51dc7ec17556"
+    },
+    {
+      "file": ".github/workflows/platform-web-database-role-candidate.yml",
+      "sha256": "90141320e5e91063ef455795e179a9ca271e5d9831ffe5beb73a8fb1f7862cbe"
+    },
+    {
+      "file": "docs/aws-platform-hosting-w7l-nologin-role-review.md",
+      "sha256": "b9e9b2b550f57301c095a7201133e79f5554f9bf54e00f7aa37c5f621faa860b"
+    },
+    {
+      "file": "package.json",
+      "sha256": "22dcd76795d40cfb0f15fbc39590d9c30adbc786e608c9f014eee6c3f4f6e57e"
+    },
+    {
+      "file": "package-lock.json",
+      "sha256": "bdef7dc276067e1d8749640b7365c8da98e3c7cd176d9863734d68c5804720a9"
+    },
+    {
+      "file": "ops/aws-sandbox/reviews/platform-web-database-w7k.catalog-observed.json",
+      "sha256": "fa110578f5b668830d48fb1ca2fa1a2b6eb7954bd89444f5e5fa9308ad5e5612"
+    }
+  ],
+  "preparationOnly": {
+    "productionConnections": 0,
+    "sqlWrites": 0,
+    "awsCalls": 0,
+    "secretValueReads": 0,
+    "slotConsumed": false,
+    "twoHourHostingWindowStarted": false
+  },
+  "permanentSlot": "F:/ChatGPT_workshop/techlong-platform-web-db-nologin-v1.intent.json",
+  "futureInstallationResultDirectory": "F:/ChatGPT_workshop/techlong-platform-web-db-nologin-cdf793b6ecd15dd71c9d8e420928b27e",
+  "separateFutureApprovalRequired": [
+    "Password and LOGIN activation",
+    "AWS fixed Secret version and task IAM",
+    "Two-hour platform HTTPS hosting",
+    "Cloud resource cleanup"
+  ],
+  "references": [
+    "https://www.postgresql.org/docs/18/sql-createrole.html",
+    "https://www.postgresql.org/docs/18/runtime-config-client.html#GUC-CREATEROLE-SELF-GRANT"
+  ]
+}

@@ -1,6 +1,12 @@
 # 餐饮 SaaS 平台
 
-2026-10-22当前：**W7l 单一 NOLOGIN 平台 Web 数据库角色与窄授权正在准备，尚未安装。** 本机新旧共17项测试、类型检查通过；真实 SQL、事务回滚及禁止操作将由无 AWS 权限的临时 PostgreSQL CI 验证。仅七条固定持久语句、两次连接（安装及独立只读核验）；不设置密码、不启用 LOGIN、不创建 Secret、不改 AWS、不部署。保留现有 PUBLIC TEMPORARY 风险及创建者自动 ADMIN（无 SET/INHERIT），实际安装需新的准确 SHA 批准。[完整范围与风险](docs/aws-platform-hosting-w7l-nologin-role-review.md)。两小时 hosting 窗口尚未启动。
+2026-10-22当前：**W7l 单一 NOLOGIN 平台 Web 数据库角色与窄授权已实现、真实 PostgreSQL CI 通过，48小时安装清单待批准；生产尚未安装。** [准确CI39845273491](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39845273491)绑定源码`f78ec0f999a9ee839d6b3d135d7280eb7e510aeb`，全部13步骤成功：8项新契约测试、真实七条SQL/事务失败回滚/独立回读、9种禁止操作、类型和lint。本机新旧共17项及类型/lint通过。准确范围仅一个禁用角色、七条持久语句、两次连接（安装及独立只读核验）、最多23条目录SELECT；不设置密码、不启用LOGIN、不创建Secret、不改AWS、不部署。保留PUBLIC TEMPORARY及创建者自动ADMIN（无SET/INHERIT）风险，列授权不等于行隔离。[完整风险](docs/aws-platform-hosting-w7l-nologin-role-review.md) / [脱敏索引，非原始清单](ops/aws-sandbox/reviews/platform-web-database-w7l.nologin-review.json)。两小时hosting窗口尚未启动。
+
+W7l准确待审SHA：`38e987e12585c6494990ac7fc68b0222ee12828a05fd248703885a6f95ac8154`。原件只在`F:/ChatGPT_workshop/techlong-platform-web-role-review-w7l-20261022.json`，不公开生产目标字段。到期 **2026-10-24 15:03:54 CDT（America/Winnipeg）**，最晚启动 **14:58:54 CDT**（分别`20:03:54.026Z`、`19:58:54.026Z`）。新永久槽未消费，本轮生产连接/SQL写/AWS调用均0；旧W7k审计槽保持已消费。仅该新SHA获得明确批准后使用下列命令，不可重放旧只读命令或把此批准扩展到Secret/LOGIN/hosting：
+
+```powershell
+node 'E:/NodejsProject/TechlongSoftware/ops/platform-web-database-role-v1/local.mjs' InstallReviewed 'F:/ChatGPT_workshop/techlong-platform-web-role-review-w7l-20261022.json' '38e987e12585c6494990ac7fc68b0222ee12828a05fd248703885a6f95ac8154'
+```
 
 以下 W7k 为已完成历史。
 
