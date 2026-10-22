@@ -1,6 +1,23 @@
 # 餐饮 SaaS 平台
 
-2026-10-21当前：**W7j已接入Source生产控制器候选，待准确CI与只读清单准备，尚未执行。** 固定caller引用已验收R=c35dd66e；新入口绑定48小时外层审批、启动后最多1小时Grant、最多两次V2单Role UpdateStack/一次GitHub dispatch，失败进入Source Revoke及独立Locked/ECR核验。永久槽/ACK/中断后只读Inspect已编码，不直接IAM修复，不重建镜像。代码测试与准确CI结果随后核对，实际Grant/发布必须另按完整SHA批准。[完整范围、凭据、异步收尾及费用风险](docs/aws-platform-hosting-w7j-source-review.md)。以下为历史。
+2026-10-21当前：**W7j Source生产控制器、固定caller和完整待审清单已准备，尚未执行。** 源码5670b889的30项Node/类型/lint与[准确No-AWS CI39698015750](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39698015750)全部9步骤通过。固定caller引用已验收R=c35dd66e；现有V2角色no-Allow/原boundary/空ECR/BASIC扫描及GitHub真实账号、immutable subject、人工环境和main门禁均已fresh只读核验。最多两次V2单Role UpdateStack/一次GitHub dispatch/一次顶层ECR push，失败也进入Source Revoke及独立核验；不改旧栈、不部署、不删除。[完整风险](docs/aws-platform-hosting-w7j-source-review.md) / [精确待审清单](ops/aws-sandbox/reviews/platform-publication-w7j.review.json)。以下为历史。
+
+W7j待批准SHA：`d902a5f5bfdb7f1a0f5ae33e729f306c13dfeb4a15832a67539cd53cd9aedc56`。
+外层到期2026-10-23 **19:11:32 CDT（America/Winnipeg）**，最迟启动为当日 **18:11:32 CDT**；
+Source在实际RunReviewed时才生成最多1小时的Grant窗口，不提前开放权限。稳定永久槽尚未消费，当前AWS写/dispatch/角色会话/ECR push均为0。
+执行命令只在上述完整SHA另行批准后使用：
+
+```powershell
+node 'E:/NodejsProject/TechlongSoftware/ops/platform-image-source-v2/cli.mjs' RunReviewed 'F:/ChatGPT_workshop/techlong-platform-source-v2-review-w7j-20261022.json' 'd902a5f5bfdb7f1a0f5ae33e729f306c13dfeb4a15832a67539cd53cd9aedc56'
+```
+
+准备facts：`F:/ChatGPT_workshop/techlong-platform-source-v2-review-w7j-20261022.json.facts.json`，SHA `8bb9666d651a5a914fe40a19cd269b89a3b6b8800648b7880baeeb2e183fcd9e`。
+CI独立元数据：`F:/ChatGPT_workshop/techlong-platform-source-v2-ci-39698015750.json`，SHA `c5fc54222023043d22e4000bce3513258043f7e62e93c9924338a62c4a055dc7`。
+AWS只读ValidateTemplate两模板通过；Access Analyzer的两个inline和Revoke trust零发现，Grant trust仅一项 `CONFIRM_AUDIENCE_CLAIM_TYPE` SUGGESTION，无ERROR/SECURITY_WARNING。
+当前aud使用单值StringEquals、没有集合限定符，符合[该提示的AWS说明](https://docs.aws.amazon.com/IAM/latest/UserGuide/access-analyzer-reference-policy-checks.html#access-analyzer-reference-policy-checks-suggestion-confirm-audience-claim-type)。
+只读验证原件：`F:/ChatGPT_workshop/techlong-source-v2-validation-20261022.json`（SHA `e84cb0ea0d67b695dbbbd714916ae161e4ad952cfff3726a966194ddb27c7d97`）、
+`F:/ChatGPT_workshop/techlong-source-v2-inline-validation-20261022.json`（SHA `1a6fc4cd3aee3babc4825f54c16dfab3a536fe3e76f582485ef55084dd6be1bd`）。
+它们是生成算法的静态结构预览，不是已安装的Grant、真实OIDC成功证据或未来执行时刻的内层JSON原件。
 
 2026-10-21当前：**W7i发布前字节复核和云端发布入口已验收，尚未开放权限或发布。** 新v2明确绑定W7h安全候选，保留旧失败产物/批准；20项Node/3项ZIP及类型/lint通过，[最终源码c35dd66e的No-AWS run39695238725](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39695238725)两个job全部18步骤成功。准确原ZIP/archive/load/双smoke与新DB的0 HIGH/0 CRITICAL均独立核对；V2角色仍no-Allow、boundary未变、ECR空。已实现固定reusable源码bootstrap和单次云端push入口，但Source生产写入适配器/固定caller/完整执行清单尚未完成，不能直接dispatch或申请执行批准。[证据、边界与唯一下一步](docs/aws-platform-hosting-w7i-publication-entry.md)。以下为历史。
 

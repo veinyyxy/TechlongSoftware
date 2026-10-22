@@ -1,0 +1,156 @@
+{
+  "schema": "techlong/platform-image-source-review/v2",
+  "issuedAt": "2026-10-22T00:11:32.095Z",
+  "expiresAt": "2026-10-24T00:11:32.095Z",
+  "latestStartAt": "2026-10-23T23:11:32.095Z",
+  "nonce": "e3a23b0d1364d86549414bf01c34c60b",
+  "operatorSourceCommit": "5670b88977daeab8168d9b50d62bcd276c391ccf",
+  "sourceCiRunId": 39698015750,
+  "callerWorkflowId": 392305101,
+  "sourcePins": [
+    {
+      "file": ".github/workflows/platform-image-publish-v2.yml",
+      "sha256": "4dace7e8d4e5971ef96825578ae66cbea9029fee13d43591f2a5050b18df2774"
+    },
+    {
+      "file": ".github/workflows/platform-image-source-v2-candidate.yml",
+      "sha256": "a188e8607507eaad48b4b6b6e3e8ccbaa392093e1f5e377e1cd4b366ed73054e"
+    },
+    {
+      "file": "docs/aws-platform-hosting-w7j-source-review.md",
+      "sha256": "6df49df3437283641fd1c9feefcc24f55c586ab3d0c224119f8d6a9dddd7290a"
+    },
+    {
+      "file": "ops/cloud-worker/package-lock.json",
+      "sha256": "2011778b7f0e58db266c77506e37ef9827c6043e4ce9565bce6cffff84a32b8c"
+    },
+    {
+      "file": "ops/cloud-worker/package.json",
+      "sha256": "9a0124155263ac3641824c71338d07543f5c9167b3a98ae8ba74ad1cbf110718"
+    },
+    {
+      "file": "ops/platform-hosting-v1/contract.mjs",
+      "sha256": "082a31a16744893770e8ee5e46fbc2de90bbb7dbc1eb3ba94180b613f5005015"
+    },
+    {
+      "file": "ops/platform-hosting-v1/image-artifact.mjs",
+      "sha256": "3300df5a8c7542599107af5825d3e5e40a76d8575e63a62df48216886ec20b20"
+    },
+    {
+      "file": "ops/platform-hosting-v1/image-foundation.mjs",
+      "sha256": "f4138aaf410ea75b3553a27303ac18145473f85f76758789fcb8bf887984337b"
+    },
+    {
+      "file": "ops/platform-hosting-v1/security-scan.mjs",
+      "sha256": "deed680033d5540d8956f83bbcd78dbff04e4ea800a992cb4b128fc1353d7688"
+    },
+    {
+      "file": "ops/platform-image-publication-v2/artifact.mjs",
+      "sha256": "a152e3bd0bf406ad54a63940efd870d35c065d24e9ae02469590dd3d55ac77cc"
+    },
+    {
+      "file": "ops/platform-image-publication-v2/inspect-aws.mjs",
+      "sha256": "bcbec6a3a3349880dbaa6138c52d46db42cd934356ee17a4f6955d047cf45028"
+    },
+    {
+      "file": "ops/platform-image-publication-v2/plan.mjs",
+      "sha256": "bf360f3bde574b5899e8135330d844285265830c4481e2ba00cbb85d910216cb"
+    },
+    {
+      "file": "ops/platform-image-publication-v2/publish.mjs",
+      "sha256": "a3c868189f64dd5dcf4557e72d48d875d09265780fb6c2cba7267c0a2addcd53"
+    },
+    {
+      "file": "ops/platform-image-recovery-v1/recovery.mjs",
+      "sha256": "34074420bff9b90da65ef73b3dc945905ef4269c4fd8d694a4f232a989c3f261"
+    },
+    {
+      "file": "ops/platform-image-recovery-v2/publisher-foundation.mjs",
+      "sha256": "4b3e8c268ebd989f766795671131576e97af05345ba4d65cea26a56455509ba8"
+    },
+    {
+      "file": "ops/platform-image-source-v2/aws.mjs",
+      "sha256": "0ff9c268b67e76151a637547482311bbc822a51810a1009fd61577a66f70c3d3"
+    },
+    {
+      "file": "ops/platform-image-source-v2/cli.mjs",
+      "sha256": "afb2b73d5291ca322e14b1a3e2cc1944470cc90738501d4075f9cb805fc97803"
+    },
+    {
+      "file": "ops/platform-image-source-v2/files.mjs",
+      "sha256": "d598a96b6a1fefbbe45faa80c799cbb284bbfbca3b79421219ad9ed038bbe02a"
+    },
+    {
+      "file": "ops/platform-image-source-v2/github.mjs",
+      "sha256": "6d54e403017c8e40afbe70f3633b43777558f1d68beed4d9913f36762e6e1e64"
+    },
+    {
+      "file": "ops/platform-image-source-v2/review.mjs",
+      "sha256": "c2f7dca4dccd6215fbbc918f7ad925255efd378c606048e113cd1a0beb29d691"
+    },
+    {
+      "file": "ops/platform-image-source-v2/runner.mjs",
+      "sha256": "5a7fabbbae9ebede508b16851f6eb29033e238ab62800d10b69af83db2e0ad68"
+    },
+    {
+      "file": "package-lock.json",
+      "sha256": "bdef7dc276067e1d8749640b7365c8da98e3c7cd176d9863734d68c5804720a9"
+    },
+    {
+      "file": "package.json",
+      "sha256": "22dcd76795d40cfb0f15fbc39590d9c30adbc786e608c9f014eee6c3f4f6e57e"
+    },
+    {
+      "file": "tests/platform-image-source-v2.test.mjs",
+      "sha256": "d28fb7dc5dbe17fe357439b4b12140596028c7bea9e58921a44be02e62a997f3"
+    }
+  ],
+  "riskSha256": "6df49df3437283641fd1c9feefcc24f55c586ab3d0c224119f8d6a9dddd7290a",
+  "candidate": {
+    "repository": "veinyyxy/TechlongSoftware",
+    "repositoryId": 1323312747,
+    "actorId": "14145707",
+    "ownerId": "14145707",
+    "sourceCommit": "4209fcab429b868e253ea2d7263dfe2189187232",
+    "runId": 39692352506,
+    "workflowId": 391864582,
+    "artifactId": 12388759351,
+    "artifactBytes": 307758788,
+    "artifactName": "platform-web-image-4209fcab429b868e253ea2d7263dfe2189187232-39692352506",
+    "artifactDigest": "sha256:74cf0fa61cc2a6ba9192050fbe63b0872785afc65239445f146395c3b361e478",
+    "artifactExpiresAt": "2026-10-24T23:18:27Z",
+    "imageConfigDigest": "sha256:2338439ea316a6189d50281f5d25a0a1c2a2ca1f4455494253f20bcbd8f6f9ae",
+    "archiveSha256": "31578b890954ab675b1ef4c1f90424af82f519fd09b0b1a2cfac4fb1b0e5b30c",
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "role": "TechlongSandboxPlatformImagePublisherV2",
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxPlatformImagePublisherV2",
+    "roleId": "AROAV3GNMXTZID6CJJBA2",
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b",
+    "ecrRepository": "techlong-sandbox-platform-web",
+    "registry": "402010193138.dkr.ecr.ca-central-1.amazonaws.com",
+    "targetTag": "platform-sha4209fcab429b868e253ea2d7263dfe2189187232-r39692352506-a1",
+    "environment": "techlong-sandbox-deploy",
+    "subject": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy",
+    "reusableFile": "platform-image-publish-job-v2.yml",
+    "callerFile": "platform-image-publish-v2.yml",
+    "scannerVersion": "0.75.0",
+    "scannerSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f"
+  },
+  "reusableCommit": "c35dd66e1207181b9591056e1202cfb84ffcf010",
+  "scope": {
+    "cloudFormationUpdateStack": 2,
+    "githubWorkflowDispatch": 1,
+    "roleSessions": 1,
+    "topLevelDockerPush": 1,
+    "grantSeconds": 3600,
+    "stsSeconds": 900,
+    "gitCredentialLoads": 1,
+    "awsSecretValueReads": 0,
+    "appPrivateKeyReads": 0,
+    "sqlConnections": 0,
+    "resourceCreates": 0,
+    "resourceDeletes": 0,
+    "deployments": 0
+  }
+}
