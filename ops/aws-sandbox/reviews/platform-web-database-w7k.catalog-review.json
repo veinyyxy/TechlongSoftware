@@ -1,0 +1,182 @@
+{
+  "schema": "techlong/platform-web-database-catalog-prepared-index/v1",
+  "state": "READY_FOR_FRESH_READ_ONLY_APPROVAL_NOT_EXECUTED",
+  "authoritativeManifestFile": "F:/ChatGPT_workshop/techlong-platform-web-db-review-w7k-20261022.json",
+  "manifestSha256": "cdf4f18d0989075ba364b503b0f82effc0ee0aa123d9b0468d149937e3d5e27f",
+  "sourceCommit": "526a3323350e3013c3f09562ff2364e1a4f0e385",
+  "nonce": "8b2005d47002a7361de0b84e95dbff0e",
+  "issuedAt": "2026-10-22T19:19:33.612Z",
+  "expiresAt": "2026-10-24T19:19:33.612Z",
+  "targetFingerprintSha256": "bc419154f085462772a0398683366bc4d4f0815f5b8458aeb89e658d64880c24",
+  "querySha256": "2d7269838a86520bda7e5af226f6ece543e06bec0ca40f27cc5fc063157ca895",
+  "riskSha256": "913c8a339dcb62babd557b6830892020b7bc8b25b50addd1a4ae08bad09a109d",
+  "ciReceipt": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-web-db-ci-39838810686.json",
+    "sha256": "ba54b008676b2a0eade803ba816fcd6adcc35087adbcd54806d758d284f65088",
+    "runId": 39838810686
+  },
+  "sourcePins": [
+    {
+      "file": "ops/platform-web-database-v1/catalog.mjs",
+      "sha256": "36396955512755dfb9bb6ed43c7c8086840a9ffe5a51eb14202c0b76acc86357"
+    },
+    {
+      "file": "ops/platform-web-database-v1/local.mjs",
+      "sha256": "8d29b9bb7d50acd189e013538d9e630a1f317ce9ba35557faf3c67c561b86899"
+    },
+    {
+      "file": "ops/platform-hosting-v1/database-profile.mjs",
+      "sha256": "d54a70890ce1c3fa19968c1f731be7b81e0c01a97fdf23c1ad6df5c3bddf6ee9"
+    },
+    {
+      "file": "tests/platform-web-database-v1.test.mjs",
+      "sha256": "91af026ab1e247a3f66a7894159d17b40887febfe0581e421736bcb341f668a0"
+    },
+    {
+      "file": "scripts/ci/verify-platform-web-catalog-v1.mjs",
+      "sha256": "e03310865a7ca78304c53bdaf75f30557103a32f1c661d4c3a111457954ea2bb"
+    },
+    {
+      "file": ".github/workflows/platform-web-database-candidate.yml",
+      "sha256": "fef3d9721f6800a064ea227edad3fa9e24d2c8e8a476b10b701c763f3d2919ed"
+    },
+    {
+      "file": "docs/aws-platform-hosting-w7k-database-catalog-review.md",
+      "sha256": "913c8a339dcb62babd557b6830892020b7bc8b25b50addd1a4ae08bad09a109d"
+    },
+    {
+      "file": "package.json",
+      "sha256": "22dcd76795d40cfb0f15fbc39590d9c30adbc786e608c9f014eee6c3f4f6e57e"
+    },
+    {
+      "file": "package-lock.json",
+      "sha256": "bdef7dc276067e1d8749640b7365c8da98e3c7cd176d9863734d68c5804720a9"
+    },
+    {
+      "file": "ops/aws-sandbox/reviews/platform-publication-w7j.verified.json",
+      "sha256": "7bb6631ab8d3ceecc24c454c6ebf002e81b428550f903be089b9cb27515f7e2e"
+    }
+  ],
+  "scope": {
+    "connections": 1,
+    "metadataSelects": 7,
+    "readOnlyTransactions": 1,
+    "sessionLocalSettings": 3,
+    "localDatabaseUrlLoads": 1,
+    "businessRows": 0,
+    "passwordHashReads": 0,
+    "functionBodyReads": 0,
+    "sqlDataWrites": 0,
+    "sqlDdl": 0,
+    "awsCalls": 0,
+    "secretValueReads": 0,
+    "githubCalls": 0,
+    "deployments": 0,
+    "deletions": 0,
+    "applicationRetries": 0
+  },
+  "profile": {
+    "role": "techlong_platform_web_acceptance_v1",
+    "secretName": "techlong/sandbox/platform-web/neon-v1",
+    "allowedPurpose": "existing admin login, overview and instance readback only",
+    "selectTables": [
+      "users",
+      "workspaces",
+      "workspace_members",
+      "products",
+      "plans",
+      "subscriptions",
+      "app_instances",
+      "app_instance_templates",
+      "app_instance_template_versions",
+      "workspace_product_entitlements",
+      "app_instance_deployments",
+      "deployment_jobs",
+      "payment_records"
+    ],
+    "credentialsSelectColumns": [
+      "user_id",
+      "password_hash",
+      "password_salt",
+      "password_iterations",
+      "failed_attempts",
+      "locked_until"
+    ],
+    "credentialsUpdateColumns": [
+      "failed_attempts",
+      "locked_until",
+      "updated_at"
+    ],
+    "sessionPrivileges": [
+      "SELECT",
+      "INSERT",
+      "DELETE"
+    ],
+    "prohibited": [
+      "owner",
+      "superuser",
+      "bypassrls",
+      "createdb",
+      "createrole",
+      "role memberships",
+      "schema create",
+      "DDL",
+      "password changes",
+      "business writes",
+      "deployment writes",
+      "authority writes",
+      "controller schema access",
+      "default privileges"
+    ],
+    "catalogVerified": false,
+    "installed": false,
+    "rowIsolation": false
+  },
+  "failedCiReceiptSha256": "9853cd930786a8cf58d5f06ac2836496b11faddc64b40b93e5bb3412f99ea3aa",
+  "ci": {
+    "runId": 39838810686,
+    "workflowId": 393270111,
+    "jobId": 120034081908,
+    "sourceCommit": "526a3323350e3013c3f09562ff2364e1a4f0e385",
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39838810686",
+    "status": "completed",
+    "conclusion": "success",
+    "reportedSteps": 13,
+    "postgresProof": {
+      "outcome": "CATALOG_SQL_VERIFIED_ON_DISPOSABLE_PG",
+      "metadataSelectsPerAudit": 7,
+      "roleAbsentAndPresent": true,
+      "publicEscalationPathsVisible": true,
+      "noBusinessRowsOrFunctionBodies": true,
+      "productionConnections": 0,
+      "awsCalls": 0
+    }
+  },
+  "production": {
+    "databaseConnections": 0,
+    "awsCalls": 0,
+    "permanentSlotConsumed": false,
+    "roleStatus": "NOT_READ",
+    "installed": false,
+    "loginEnabledByThisPhase": false,
+    "secretCreated": false,
+    "hostingWindowStarted": false
+  },
+  "diagnostic": {
+    "previousCiRunId": 39838421235,
+    "previousJobId": 120032726312,
+    "result": "Sequence acldefault discriminator fixed from uppercase S to lowercase s; expected SELECT/UPDATE/USAGE assertion retained.",
+    "localReceipt": "F:/ChatGPT_workshop/techlong-platform-web-db-ci-39838421235.failed.json"
+  },
+  "privacy": {
+    "rawProductionTargetIncluded": false,
+    "credentialsIncluded": false,
+    "publicTargetIsFingerprintOnly": true
+  },
+  "review": {
+    "riskFile": "docs/aws-platform-hosting-w7k-database-catalog-review.md",
+    "readReviewedOnlyAfterSpecificShaApproval": true,
+    "writesAuthorized": false,
+    "retryAllowed": false
+  }
+}

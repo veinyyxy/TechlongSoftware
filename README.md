@@ -1,6 +1,14 @@
 # 餐饮 SaaS 平台
 
-2026-10-22当前：**W7k 平台 Web 数据库接线的只读目录审计入口已实现，生产审计尚未批准或执行。** 新入口只支持离线Prepare与准确SHA批准后的单次TLS目录读取，不安装角色/授权/Secret、不部署；本机9项契约测试、TypeScript及scoped lint通过，真实一次性PostgreSQL语法/元数据验证由独立No-AWS CI执行。原已发布镜像和W7j锁定状态不变，不重建300MB产物。CI独立核验后生成48小时待审清单；生产数据库连接/永久槽消费均仍为0。[完整范围、风险和下一步](docs/aws-platform-hosting-w7k-database-catalog-review.md)。以下为历史。
+2026-10-22当前：**W7k 平台 Web 数据库接线的只读目录审计已实现、云端验证通过，具体清单待批准；生产审计尚未执行。** [准确CI39838810686](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39838810686)绑定源码`526a3323350e3013c3f09562ff2364e1a4f0e385`，全部13项步骤成功，包含真实一次性PostgreSQL查询、9项契约测试、类型/lint；本机同样通过。首次CI的sequence默认ACL类型码错误已修正，失败证据保留，原断言未放宽。本轮未改动W7j发布权限或镜像，不重建300MB产物。只读执行拟为一次TLS连接、七条固定系统目录SELECT；不读业务行/口令哈希/函数正文，不安装角色/授权/Secret，不改AWS或部署。[完整风险](docs/aws-platform-hosting-w7k-database-catalog-review.md) / [待审索引（非原始清单）](ops/aws-sandbox/reviews/platform-web-database-w7k.catalog-review.json)。生产连接/执行槽消费仍为0。
+
+W7k准确清单SHA：`cdf4f18d0989075ba364b503b0f82effc0ee0aa123d9b0468d149937e3d5e27f`；原件仅保留`F:/ChatGPT_workshop/techlong-platform-web-db-review-w7k-20261022.json`，项目索引不公开生产host/actor/database，只绑定目标指纹。到期 **2026-10-24 14:19:33 CDT（America/Winnipeg）**，即`2026-10-24T19:19:33.612Z`。稳定只读审计槽尚未消费；确认该SHA只授权目录读取，不授权未来grant/LOGIN/Secret或部署。仅明确批准后才使用：
+
+```powershell
+node 'E:/NodejsProject/TechlongSoftware/ops/platform-web-database-v1/local.mjs' ReadReviewed 'F:/ChatGPT_workshop/techlong-platform-web-db-review-w7k-20261022.json' 'cdf4f18d0989075ba364b503b0f82effc0ee0aa123d9b0468d149937e3d5e27f'
+```
+
+以下为历史。
 
 2026-10-22当前：**W7j 平台镜像首次 ECR 发布与 Source 独立撤权验收已完成。** [运行39801811721](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39801811721)的12项报告步骤全部成功；恰有一份预期镜像，registry manifest digest=`sha256:81fb8157fd9dcf834204a3b0c866d3fc8071386a4cbc1ff71f2ccac992ed4612`。两次准确V2角色栈UpdateStack完成，Source结果PUBLISHED_AND_INDEPENDENTLY_LOCKED，额外只读Inspect确认Locked；角色no-Allow trust/显式ECR Deny、原boundary不变。**永久槽已消费，不得重放下列历史命令。没有部署ECS，未证明真实数据库/管理员登录或整个平台上线，两小时hosting窗口未启动。** [执行证据与下一步](docs/aws-platform-hosting-w7j-publication-verified.md) / [机器摘要](ops/aws-sandbox/reviews/platform-publication-w7j.verified.json)。下一主线仅准备最小权限平台web数据库/固定Secret版本与后续两小时HTTPS部署清单，实际写入、部署、清理分别审批。以下为历史准备记录。
 
