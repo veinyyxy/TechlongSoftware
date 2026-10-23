@@ -1,0 +1,234 @@
+{
+  "schema": "techlong/platform-hosting-second-trial-observed/v1",
+  "metadataOnly": true,
+  "status": "HOSTING_METADATA_VERIFIED_APPLICATION_ACCEPTANCE_PENDING",
+  "stackStatus": "CREATE_COMPLETE",
+  "observedAtUtc": "2026-10-23T10:59:18.293Z",
+  "archivedAtUtc": "2026-10-23T11:01:59.029Z",
+  "approvedManifest": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-hosting-review-w7q-20261022.json",
+    "sha256": "08d13df8f84a9e560bbf754a0bd1316cf5adff9f80dabc02a3c44a133b1e487d",
+    "nonce": "9783a307662094fdaa000045217b5bff",
+    "sourceCommit": "bd70439f59a52fca363c93bd5b127e093ff2b286"
+  },
+  "executionCommit": "555da851e256b844aaeef774ee2d594f1e397a44",
+  "risk": {
+    "file": "docs/aws-platform-hosting-w7q-acceptance-review.md",
+    "sha256": "129182436015ee1cabf3c5a4cb05cc45d0dbd462c54cd7cc667b75560f7ecd38"
+  },
+  "preparedIndex": {
+    "file": "ops/aws-sandbox/reviews/platform-hosting-w7q.review.json",
+    "sha256": "e360d22e2d08305238c17afc8415d39efbf23179b1eeea18899d094447688726",
+    "preserved": true,
+    "historicalApprovalFlagsNotRewritten": true
+  },
+  "result": {
+    "schema": "techlong/platform-hosting-deployment-result/v1",
+    "manifestSha256": "08d13df8f84a9e560bbf754a0bd1316cf5adff9f80dabc02a3c44a133b1e487d",
+    "nonce": "9783a307662094fdaa000045217b5bff",
+    "trialGeneration": 2,
+    "outcome": "HOSTING_METADATA_VERIFIED_APPLICATION_ACCEPTANCE_PENDING",
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/2d7d45a0-ced0-11f1-acc8-0effedbce869",
+    "roleId": "AROAV3GNMXTZJ45S2ANZ7",
+    "hostingExpiresAt": "2026-10-23T12:54:53.398Z",
+    "url": "https://console.sandbox.techlong.cloud",
+    "errors": [],
+    "awsCalls": {
+      "reads": 105,
+      "writes": 1
+    },
+    "directSecretValueReads": 0,
+    "directSqlConnections": 0,
+    "directHttpRequests": 0,
+    "applicationAcceptancePassed": false,
+    "automaticCleanup": false,
+    "retryAllowed": false
+  },
+  "independentObservation": {
+    "verified": true,
+    "present": true,
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/2d7d45a0-ced0-11f1-acc8-0effedbce869",
+    "status": "CREATE_COMPLETE",
+    "hostingExpiresAt": "2026-10-23T12:54:53.398Z",
+    "resources": [
+      {
+        "id": "AlbSecurityGroup",
+        "type": "AWS::EC2::SecurityGroup",
+        "physicalId": "sg-0787f4d63aad50662",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "Cluster",
+        "type": "AWS::ECS::Cluster",
+        "physicalId": "techlong-sandbox-platform",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "DnsRecord",
+        "type": "AWS::Route53::RecordSet",
+        "physicalId": "console.sandbox.techlong.cloud",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "HttpsListener",
+        "type": "AWS::ElasticLoadBalancingV2::Listener",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-platform/a6804542ce24ff78/e8a64462678c398a",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "LoadBalancer",
+        "type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/a6804542ce24ff78",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "LogGroup",
+        "type": "AWS::Logs::LogGroup",
+        "physicalId": "/ecs/techlong-sandbox/platform-web",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "Service",
+        "type": "AWS::ECS::Service",
+        "physicalId": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "TargetGroup",
+        "type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/techlong-platform-web-v1/fa3bf2bb1ae8308b",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "TaskDefinition",
+        "type": "AWS::ECS::TaskDefinition",
+        "physicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:2",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "TaskIngress",
+        "type": "AWS::EC2::SecurityGroupIngress",
+        "physicalId": "sgr-09d0e690ff10ecf93",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "TaskSecurityGroup",
+        "type": "AWS::EC2::SecurityGroup",
+        "physicalId": "sg-07450bcefdb480818",
+        "status": "CREATE_COMPLETE"
+      }
+    ],
+    "roleId": "AROAV3GNMXTZJ45S2ANZ7",
+    "boundaryId": "ANPAV3GNMXTZP7KMHXNYF",
+    "secretVersion": "6ea2ca59-9a24-4f3e-b16f-ec824f32bc5f",
+    "service": {
+      "arn": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+      "running": 1,
+      "desired": 1,
+      "taskDefinition": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:2"
+    },
+    "task": {
+      "arn": "arn:aws:ecs:ca-central-1:402010193138:task/techlong-sandbox-platform/924c638c20674497a19287faa532dc3e",
+      "status": "RUNNING",
+      "imageDigest": "sha256:81fb8157fd9dcf834204a3b0c866d3fc8071386a4cbc1ff71f2ccac992ed4612"
+    },
+    "targetHealthy": true,
+    "dnsAliasVerified": true,
+    "url": "https://console.sandbox.techlong.cloud",
+    "applicationAcceptancePassed": false
+  },
+  "localTime": {
+    "timeZone": "America/Winnipeg",
+    "slotConsumedAt": "2026-10-23 05:54:50.290 CDT",
+    "createAt": "2026-10-23 05:54:53.398 CDT",
+    "independentReceiptSavedAt": "2026-10-23 05:59:18.293 CDT",
+    "hostingIntentExpiresAt": "2026-10-23 07:54:53.398 CDT",
+    "intentIsAutomaticStop": false
+  },
+  "counts": {
+    "installerAwsReads": 105,
+    "installerCreateStackSubmissions": 1,
+    "extraSourceIdentityReads": 1,
+    "extraProgressListStackResourcesReads": 2,
+    "totalTopLevelMetadataReads": 108,
+    "otherCloudWrites": 0,
+    "additionalAwsCallsInThisOfflineVerification": 0
+  },
+  "sourcePinsVerified": 33,
+  "parentPinsVerified": 7,
+  "reviewArtifactPinsVerified": 4,
+  "ci": {
+    "runId": 39902733486,
+    "sourceCommit": "bd70439f59a52fca363c93bd5b127e093ff2b286",
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39902733486",
+    "sha256": "99238f61380cc32426854d625e32a2c02867a06f77048981a30fdce3cea1aa50",
+    "tests": 29,
+    "conclusion": "success",
+    "scope": "Contract fixtures, types and lint only; no AWS identity or application acceptance in CI."
+  },
+  "evidence": [
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-deploy-v2.intent.json",
+      "sha256": "54af1ca8f93c8a472cc445c6e5418ecd868738c99ec95f531c30e90b7bb34c69"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-preexecution-identity-w7q-20261023.json",
+      "sha256": "ab8ff10238446e3eb8ead85ac36058168d834e879f05456d3f656c3e8e70be3d"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-deployment-9783a307662094fdaa000045217b5bff/create-ack.json",
+      "name": "create-ack.json",
+      "sha256": "18ede98ae5e2d06b0fc491413898bca1d2b3c7cb6068e6ca7290638203673ccb",
+      "bytes": 198,
+      "lastWriteTimeUtc": "2026-10-23T10:54:53.868Z"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-deployment-9783a307662094fdaa000045217b5bff/create-intent.json",
+      "name": "create-intent.json",
+      "sha256": "f89851a0849cee6972a3e6b19eaa90c1a756a7df1301538c38afc34962c8891f",
+      "bytes": 135,
+      "lastWriteTimeUtc": "2026-10-23T10:54:53.411Z"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-deployment-9783a307662094fdaa000045217b5bff/independent-observation.json",
+      "name": "independent-observation.json",
+      "sha256": "87e7e514e890b68ae9dceaa44ed8f527267a063c7af956531c8328e984b70685",
+      "bytes": 3368,
+      "lastWriteTimeUtc": "2026-10-23T10:59:18.293Z"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-deployment-9783a307662094fdaa000045217b5bff/result.json",
+      "name": "result.json",
+      "sha256": "24d8c97be220b539dc30b70dd4e4a6c413ba8cdbe8cae2e84bcea26b31b58cfd",
+      "bytes": 832,
+      "lastWriteTimeUtc": "2026-10-23T10:59:18.627Z"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-deployment-9783a307662094fdaa000045217b5bff/offline-observation.json",
+      "sha256": "99dd36a7104f75c113e51039c87d9e592ab799140af5c5fa263b47484b56c17a"
+    }
+  ],
+  "permanentIntentConsumed": true,
+  "automaticWriteRetry": false,
+  "newIamResources": 0,
+  "secretPolicyWrites": 0,
+  "oldResourceDeletes": 0,
+  "limitations": [
+    "Runtime guards checked full API fields; raw receipts contain metadata summaries, not full signed wire responses.",
+    "Top-level request counts exclude AWS Login refreshes and CloudFormation/ECS provider-internal operations.",
+    "Managed ECS Secret injection can occur repeatedly; no direct Source Secret-value read, SQL connection or application HTTP occurred.",
+    "No external HTTPS handshake, browser login or administrator/business acceptance was performed in this trial.",
+    "HostingExpiresAt is only a two-hour intent tag/output; no automatic stopping or cleanup.",
+    "ECS cluster/service names and ARNs can be reused after retirement; CFN stack UUID is new and actual task definition is revision 2."
+  ],
+  "next": {
+    "publicHttpsAcceptancePending": true,
+    "administratorApplicationLoginPending": true,
+    "manualAuthenticationApproved": false,
+    "cleanupPendingSeparateExactNewUuidApproval": true,
+    "automaticCleanup": false,
+    "oldCreationAndDeletionCommandsMustNotBeReplayed": true,
+    "controllerWorkerApplyRemainClosed": true,
+    "wholeSystemOnline": false
+  }
+}

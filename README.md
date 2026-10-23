@@ -1,5 +1,9 @@
 # 餐饮 SaaS 平台
 
+2026-10-23 05:59CDT当前：**W7q第二轮承载已创建并独立核验通过：HOSTING_METADATA_VERIFIED_APPLICATION_ACCEPTANCE_PENDING。** 按批准08d13df8清单仅一次CreateStack，新UUID `2d7d45a0-ced0-11f1-acc8-0effedbce869`、11项资源CREATE_COMPLETE，真实task健康/固定digest/target、443listener/SG/DNS及原access绑定一致，任务定义为`:2`、errors为空。**尚未做本轮公网HTTP或管理员登录验收，不代表整套系统上线。收费资源现在存在；今天07:54:53CDT仅是意图标签，不会自动停机/清理。** 创建槽已消费，以下命令仅历史，不可重放；旧W7p删除目标是不同UUID，不可用于本轮。[实际结果、证据与下一步](docs/aws-platform-hosting-w7q-deployed.md) / [机器核验](ops/aws-sandbox/reviews/platform-hosting-w7q.observed.json)。下一步仅准备有限公网/人工认证验收及准确新UUID清理，分别确认；controller/worker/apply仍关闭。
+
+以下为已批准并完成的W7q历史准备记录（不再待批准）。
+
 W7q清单于**2026-10-22 23:56CDT**准备完成：准确源码`bd70439f59a52fca363c93bd5b127e093ff2b286`的[No-AWS CI39902733486](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39902733486)全部10报告步骤成功（29项新旧测试、类型、lint），fresh AWS元数据与模板验证通过。**尚未部署，入口仍下线，第二轮槽未消费。** 新清单只拟议一次CreateStack、新UUID、原布局11项承载资源，复用既有镜像/权限/固定Secret，不新增IAM、不改数据库；ECS未来会读取真实Secret，公开应用可能产生认证写。两小时意图不自动停机/清理；官方区域价格示例变量费0.13555USD/2h（不含既有资源/日志/流量/额外容量/创建清理耗时等，不是上限）。33源码pin、7父证据及4产物已绑定。[完整范围、风险与认证步骤](docs/aws-platform-hosting-w7q-acceptance-review.md) / [脱敏待审索引（非原件）](ops/aws-sandbox/reviews/platform-hosting-w7q.review.json)。人工登录及后续准确新UUID清理仍分别确认，不能宣称管理员或整套系统验收通过。
 
 待批准SHA：`08d13df8f84a9e560bbf754a0bd1316cf5adff9f80dabc02a3c44a133b1e487d`；原件`F:/ChatGPT_workshop/techlong-platform-hosting-review-w7q-20261022.json`。有效期至**2026-10-24 23:56:25CDT**，最晚启动**23:26:25CDT**（UTC分别为`2026-10-25T04:56:25.642Z`和`04:26:25.642Z`）。只有新SHA及完整风险明确确认后才能运行`DeployTrial2Reviewed`；不要执行旧W7o命令或重置旧槽。T0+2小时从实际创建开始计算，不从清单准备开始；新槽一经消费也不自动重试或复位。
