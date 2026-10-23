@@ -1,5 +1,9 @@
 # 餐饮 SaaS 平台
 
+2026-10-22 23:09CDT当前：**W7p公网TLS/健康/登录页及未登录重定向三次GET已通过；用户选择优先准备清理，不继续登录验收。** 未发送Cookie/密码或提交表单，未验证管理员认证/业务页面。Source会话过期，fresh清理清单尚未生成、删除写入0、清理槽未消费；需要刷新Source后只读核对准确已建栈，再单独确认删除SHA。[有限公网结果](docs/aws-platform-hosting-w7p-public-readback.md) / [清理范围与完整风险，尚未批准](docs/aws-platform-hosting-w7p-cleanup-review.md)。**今晚23:13:24仅是标签，服务不会自动停机；未清理会继续计费。**
+
+以下为W7o已完成部署记录。
+
 2026-10-22当前：**W7o HTTPS承载已创建并通过独立元数据核验：HOSTING_METADATA_VERIFIED_APPLICATION_ACCEPTANCE_PENDING。** 21:13–21:17CDT按准确289e7cdc清单，仅一次CreateStack创建11项承载逻辑资源；栈CREATE_COMPLETE，实际单task健康、固定digest、ALB target/443listener/SG/DNS及原access身份均通过，errors为空。入口为[console.sandbox.techlong.cloud](https://console.sandbox.techlong.cloud)，尚未执行公网HTTP或管理员登录验收，不代表整套系统上线。**收费资源现在存在；两小时意图截止今晚23:13:24CDT，但不会自动停止或销毁，清理仍需另审。永久槽已消费，下方部署命令仅历史，不可重放。** [部署结果与边界](docs/aws-platform-hosting-w7o-deployed.md) / [机器证据](ops/aws-sandbox/reviews/platform-hosting-w7o.observed.json)。下一步先做独立应用验收并尽快审批准确栈清理，controller/worker/apply保持关闭。
 
 以下为W7o已完成的历史准备记录（不再待批准）。

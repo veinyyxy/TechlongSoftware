@@ -1,0 +1,80 @@
+{
+  "schema": "techlong/platform-public-readback/v1",
+  "observedAtUtc": "2026-10-23T04:09:46.507Z",
+  "origin": "https://console.sandbox.techlong.cloud",
+  "requests": 3,
+  "method": "GET",
+  "cookiesSent": false,
+  "authorizationSent": false,
+  "followedRedirects": false,
+  "results": [
+    {
+      "path": "/api/health",
+      "status": 200,
+      "bytes": 167,
+      "bodySha256": "78c1473c3767ac4d9bc8ddb659f02ffcdeced65ca209f63e84b0ffa8dd3e711f",
+      "hsts": "max-age=300",
+      "redirectPath": null,
+      "cookieHeaderObserved": false,
+      "tls": {
+        "authorized": true,
+        "protocol": "TLSv1.3",
+        "subjectCN": "sandbox.techlong.cloud",
+        "issuerCN": "Amazon RSA 2048 M04",
+        "validTo": "Apr 26 23:59:59 2027 GMT",
+        "fingerprint256": "8F:FE:FB:3A:2E:46:19:A4:CF:1D:4A:15:21:1A:48:E7:D3:F7:7D:8A:20:DD:6B:33:70:36:F8:E5:C0:59:FD:63"
+      },
+      "expected": true
+    },
+    {
+      "path": "/login",
+      "status": 200,
+      "bytes": 12996,
+      "bodySha256": "2d3126d56abccf1dc2a9c1e809e6cc2d3180c972cfcc99f22aac2a2e4ee61e84",
+      "hsts": "max-age=300",
+      "redirectPath": null,
+      "cookieHeaderObserved": false,
+      "tls": {
+        "authorized": true,
+        "protocol": "TLSv1.3",
+        "subjectCN": "sandbox.techlong.cloud",
+        "issuerCN": "Amazon RSA 2048 M04",
+        "validTo": "Apr 26 23:59:59 2027 GMT",
+        "fingerprint256": "8F:FE:FB:3A:2E:46:19:A4:CF:1D:4A:15:21:1A:48:E7:D3:F7:7D:8A:20:DD:6B:33:70:36:F8:E5:C0:59:FD:63"
+      },
+      "expected": true
+    },
+    {
+      "path": "/admin",
+      "status": 307,
+      "bytes": 0,
+      "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "hsts": "max-age=300",
+      "redirectPath": "/login",
+      "cookieHeaderObserved": false,
+      "tls": {
+        "authorized": true,
+        "protocol": "TLSv1.3",
+        "subjectCN": "sandbox.techlong.cloud",
+        "issuerCN": "Amazon RSA 2048 M04",
+        "validTo": "Apr 26 23:59:59 2027 GMT",
+        "fingerprint256": "8F:FE:FB:3A:2E:46:19:A4:CF:1D:4A:15:21:1A:48:E7:D3:F7:7D:8A:20:DD:6B:33:70:36:F8:E5:C0:59:FD:63"
+      },
+      "expected": true
+    }
+  ],
+  "publicReadbackPassed": true,
+  "administratorLoginPerformed": false,
+  "awsWrites": 0,
+  "secretValueReads": 0,
+  "directSqlConnections": 0,
+  "scopeLimitations": [
+    "Only unauthenticated GET health/login/admin; no assets, forged Host/Origin or POST tests",
+    "No authenticated session/Secure Cookie, administrator login or business-page acceptance",
+    "Not an assertion that whole system acceptance passed"
+  ],
+  "userSelectedNext": "PRIORITIZE_CLEANUP_REVIEW",
+  "cleanupReviewPrepared": false,
+  "cleanupAuthorization": false,
+  "sourceCredentialRefreshRequired": true
+}
