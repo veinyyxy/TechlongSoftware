@@ -1,6 +1,6 @@
 {
   "schema": "techlong/platform-hosted-publication-review-index/v2",
-  "state": "PREPARED_NOT_APPROVED_NOT_EXECUTED",
+  "state": "EXECUTED_PUBLISHED_AND_INDEPENDENTLY_LOCKED_NO_HOSTING",
   "originalManifest": "F:/ChatGPT_workshop/techlong-hosted-publication-w8f-review-20261023.json",
   "originalManifestSha256": "97077303703d826e39f766e5f0de18fdfe170efe5254e1e4f4b0c8f10ef29f54",
   "sourceCommit": "6b88e11007ac849c43e5672662db3448d336c68c",
@@ -94,10 +94,28 @@
   },
   "permanentSlot": {
     "path": "F:/ChatGPT_workshop/techlong-platform-hosted-publication-v2.source.intent.json",
-    "state": "ABSENT",
+    "sha256": "34f2e425748a5968dc34a9dc7ade3e287a9ec6a237bbc9bedb2d11ece3b3281c",
+    "state": "CONSUMED",
     "resetOrRetryAllowed": false
   },
   "effects": {
+    "sourceCloudFormationUpdateStackSubmissions": 2,
+    "githubDispatches": 1,
+    "publisherRoleSessions": 1,
+    "publisherTopLevelPushProcesses": 1,
+    "ecrImagePublicationsObserved": 1,
+    "underlyingEcrLayerWriteCountNotMeasured": true,
+    "secretManagerValueReads": 0,
+    "privateKeyFileReads": 0,
+    "sqlConnections": 0,
+    "appTokenRequests": 0,
+    "deletions": 0,
+    "hostingDeployments": 0,
+    "separateInspectCloudWrites": 0
+  },
+  "executionAuthorized": false,
+  "thisIndexIsNotExecutableManifest": true,
+  "preparationEffects": {
     "cloudWrites": 0,
     "secretValueReads": 0,
     "privateKeyReads": 0,
@@ -108,7 +126,311 @@
     "imagePublications": 0,
     "hostingDeployments": 0
   },
-  "executionAuthorized": false,
-  "newExplicitApprovalRequired": true,
-  "thisIndexIsNotExecutableManifest": true
+  "publicationApprovalConfirmedByHuman": true,
+  "githubEnvironmentApprovedByHuman": true,
+  "approvedScopeExecuted": true,
+  "replayAllowed": false,
+  "newExplicitApprovalRequiredForFurtherWrites": true,
+  "execution": {
+    "schema": "techlong/platform-hosted-publication-execution-verification/v2",
+    "state": "PUBLISHED_AND_LOCKED_SEPARATE_INSPECT_VERIFIED_NO_HOSTING",
+    "sourceManifestSha256": "97077303703d826e39f766e5f0de18fdfe170efe5254e1e4f4b0c8f10ef29f54",
+    "innerReviewSha256": "9942d04a0f95d57bb15fd89ea16b926fc7480122e3b7458c950a15afff54c184",
+    "nonce": "97cf75e760763028096b13b7d443e6c6",
+    "recordedAtUtc": "2026-10-23T18:23:49.040Z",
+    "startedAtUtc": "2026-10-23T18:13:43.867Z",
+    "resultSavedAtUtc": "2026-10-23T18:18:19.173Z",
+    "separateInspectSavedAtUtc": "2026-10-23T18:19:08.895Z",
+    "sourceOutcome": "PUBLISHED_AND_INDEPENDENTLY_LOCKED",
+    "separateInspectOutcome": "LOCKED_PUBLISHED_INDEPENDENTLY_VERIFIED",
+    "errors": [],
+    "sourceHead": "6f743f4726388745bca5a01d0477f8af115ca10d",
+    "sourceCiCommit": "6b88e11007ac849c43e5672662db3448d336c68c",
+    "reusableCommit": "04cb44b5f0c0386a1c998033327030e72358d088",
+    "grantPeriod": {
+      "start": "2026-10-23T18:13:43.866Z",
+      "end": "2026-10-23T19:13:43.866Z"
+    },
+    "revokeSubmittedAtUtc": "2026-10-23T18:17:45.635Z",
+    "revokeIndependentObservedAtUtc": "2026-10-23T18:18:17.802Z",
+    "lastIndependentObservedAtUtc": "2026-10-23T18:19:08.394Z",
+    "sourceCloudFormationUpdates": [
+      {
+        "phase": "grant",
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b",
+        "requestId": "edbd1042-d3d7-4062-a63d-645789e35916",
+        "attempts": 1
+      },
+      {
+        "phase": "revoke",
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b",
+        "requestId": "6c95bc6c-2214-4ce7-bf3a-348e6dd7aa08",
+        "attempts": 1
+      }
+    ],
+    "run": {
+      "id": 40001659308,
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/40001659308",
+      "workflowId": 394340100,
+      "path": ".github/workflows/platform-image-hosted-publish-v2.yml",
+      "head": "6f743f4726388745bca5a01d0477f8af115ca10d",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "referencedWorkflows": [
+        {
+          "path": "veinyyxy/TechlongSoftware/.github/workflows/platform-image-hosted-publish-job-v2.yml@04cb44b5f0c0386a1c998033327030e72358d088",
+          "sha": "04cb44b5f0c0386a1c998033327030e72358d088"
+        }
+      ],
+      "job": {
+        "id": 120579020723,
+        "name": "reviewed-publication / publish",
+        "status": "completed",
+        "conclusion": "success",
+        "steps": [
+          {
+            "number": 1,
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "number": 2,
+            "name": "Resolve code only from this immutable reusable workflow identity",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "number": 3,
+            "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "number": 4,
+            "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "number": 5,
+            "name": "Validate complete review and original dispatch context before download",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "number": 6,
+            "name": "Reverify original bytes and same image before requesting AWS session",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "number": 7,
+            "name": "Run npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "number": 8,
+            "name": "One reviewed role session and one top-level ECR push, never ECS",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "number": 9,
+            "name": "Preserve small publication facts, never auth files or image archive",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "number": 17,
+            "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "number": 18,
+            "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "number": 19,
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    },
+    "cloudArtifact": {
+      "id": 12522511906,
+      "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/cloud-publication-40001659308.zip",
+      "bytes": 2403,
+      "sha256": "2bab0d0bc387504e694aef0c36cebb27251bcb8e548a05bdedb3613154f4b175",
+      "memberSha256": {
+        "verified-artifact.json": "71e9e839b7504483814f63cd87d0bfb3ab1af9e808da668fb3f022693a3e1117",
+        "verified-preflight.json": "c46d34bf5b81012fd6c70072d3b6f2cf16ea876bdc218a477acabf2d865f40b2",
+        "publication.intent.json": "541f9663631796bf6b91967bd340e00850c5b74846959ff449f79c9a25ffa7fd",
+        "publication-result.json": "2a452478ff9b3bc679e5b6cf89c0cb6541f479f6efd8257aac3123f3a1d75654"
+      },
+      "safeFourMemberZipVerified": true
+    },
+    "published": {
+      "repository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-platform-web",
+      "targetTag": "platform-shaf3cea2da7d26dfc09726c4cbc52cab40217340c6-r39960583333-a1",
+      "manifestDigest": "sha256:ad3cbde847375967a1eb0d593e39d9faefcb742c64ba87aa3abb463b9c534789",
+      "imageConfigDigest": "sha256:c418fef9c5146ef1fcdb39f88cb28ffe2d50a8b89f64ce94f6c8f463f6924230",
+      "layerCount": 12
+    },
+    "independentInventory": [
+      {
+        "digest": "sha256:ad3cbde847375967a1eb0d593e39d9faefcb742c64ba87aa3abb463b9c534789",
+        "tags": [
+          "platform-shaf3cea2da7d26dfc09726c4cbc52cab40217340c6-r39960583333-a1"
+        ],
+        "pushedAt": "2026-10-23T18:17:33.496Z",
+        "sizeBytes": 271266459
+      },
+      {
+        "digest": "sha256:81fb8157fd9dcf834204a3b0c866d3fc8071386a4cbc1ff71f2ccac992ed4612",
+        "tags": [
+          "platform-sha4209fcab429b868e253ea2d7263dfe2189187232-r39692352506-a1"
+        ],
+        "pushedAt": "2026-10-22T15:14:39.902Z",
+        "sizeBytes": 271259127
+      }
+    ],
+    "lockedPublisher": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b",
+      "stackStatus": "UPDATE_COMPLETE",
+      "roleId": "AROAV3GNMXTZID6CJJBA2",
+      "boundaryPolicyId": "ANPAV3GNMXTZP2F37SEFP",
+      "boundaryDefaultVersion": "v1",
+      "trustHasAllow": false,
+      "inline": "LockedDenyAllEcr",
+      "pendingChangeSets": 0
+    },
+    "actualPublicationPreflight": {
+      "schema": "techlong/platform-publication-preflight/v2",
+      "outcome": "OS_HIGH_CRITICAL_ZERO",
+      "imageConfigDigest": "sha256:c418fef9c5146ef1fcdb39f88cb28ffe2d50a8b89f64ce94f6c8f463f6924230",
+      "scannerVersion": "0.75.0",
+      "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+      "os": {
+        "Family": "alpine",
+        "Name": "3.24.1"
+      },
+      "packageCount": 18,
+      "databaseUpdatedAt": "2026-10-23T13:13:41.529244645Z",
+      "findingSeverityCounts": {
+        "HIGH": 0,
+        "CRITICAL": 0
+      },
+      "findings": [],
+      "findingsTruncated": false,
+      "ignoredFindingsAllowed": false,
+      "ignoreUnfixedAllowed": false,
+      "awsCalls": 0,
+      "sourceCommit": "f3cea2da7d26dfc09726c4cbc52cab40217340c6",
+      "producerRunId": 39960583333,
+      "artifactId": 12503974340,
+      "artifactZipDigest": "sha256:12f027cccd21d955c5a0c4db9b6f536606749028c0a1fdcc8d09f95279265723",
+      "archiveSha256": "9c427ec8a2f5b4146ee578b0fd1f5f602f729cf09f65aa7bb5392b1c596a22f5",
+      "recordedAtUtc": "2026-10-23T18:16:54.874Z",
+      "reportSha256": "3e2f5bc307846b29082a9e04ed7d7a775c78f8b2c13989b020a57d65e9878a9f",
+      "databaseMetadataSha256": "dd7deaafe0096a10012618c434d5a1fd5a1c9ec3b71c06d9f579438b689f84d4",
+      "databaseSha256": "a3e2a693b5f130132acc609d723f60fb546a85b3b35179d63063afa6f355d0d2"
+    },
+    "effects": {
+      "sourceCloudFormationUpdateStackSubmissions": 2,
+      "githubDispatches": 1,
+      "publisherRoleSessions": 1,
+      "publisherTopLevelPushProcesses": 1,
+      "ecrImagePublicationsObserved": 1,
+      "underlyingEcrLayerWriteCountNotMeasured": true,
+      "secretManagerValueReads": 0,
+      "privateKeyFileReads": 0,
+      "sqlConnections": 0,
+      "appTokenRequests": 0,
+      "deletions": 0,
+      "hostingDeployments": 0,
+      "separateInspectCloudWrites": 0
+    },
+    "permanentSlot": {
+      "path": "F:/ChatGPT_workshop/techlong-platform-hosted-publication-v2.source.intent.json",
+      "sha256": "34f2e425748a5968dc34a9dc7ade3e287a9ec6a237bbc9bedb2d11ece3b3281c",
+      "state": "CONSUMED",
+      "resetOrRetryAllowed": false
+    },
+    "retainedOldImageVerified": true,
+    "originalRoleBoundaryRepositoryAndTagsPreserved": true,
+    "runtimeEnabled": false,
+    "hostingDeployed": false,
+    "cloudPublisherDidNotSelfProveRevoke": true,
+    "sourceAndSeparateInspectProvedRevoke": true,
+    "receipts": [
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/preflight-aws.json",
+        "sha256": "18efd9aa3897a8733b96463acdc1245b1e6798a1060d9c1bffe1ad7642469ee2"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/inner-review.json",
+        "sha256": "a77a7a123fb616eef44b3a1edd8d12f84a2517c93dcb4c07ec1cbe9544ba29a9"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/grant-intent.json",
+        "sha256": "c2a8406ba81ea92181c94f416d89b34385bad9406c98e929c10fb46eaac45163"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/grant-ack.json",
+        "sha256": "cdfd437a16a44cc6cf2444b1c8ab29874d947fc4fb498292dbc1bda6555d1db8"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/grant-independent-readback.json",
+        "sha256": "6f6af08bc6658a98240dd9da02835d3d71e3aee85eabc8219135d2a11b1100f4"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/dispatch-ack.json",
+        "sha256": "7e5f4e1a30fe803c7b771b5ae4fabc00fd83eadb099a65cac489b41786cfcf2b"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/run-completed.json",
+        "sha256": "6bf3b6b30c710efe5dd432293c62ae78c9ee26e500c798c812853394ae954dd2"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/revoke-intent.json",
+        "sha256": "834794ef8b95cab526995174f5cccec647829e43631062a970a221cb2d2106a5"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/revoke-ack.json",
+        "sha256": "d886ad2aa2d9c398e76eae053a27b5bf2d020a08cb527f067957f0cefb5de876"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/revoke-independent-readback.json",
+        "sha256": "5fd0350e249ae7fe7192bb6a8f4f5593d51320687e80cb00d3e5771e814006b7"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/independent-registry-manifest.json",
+        "sha256": "e9217a69d88a42a208e69026d9f29163aa7d45d244f996637827fbda1833a305"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/final-independent-readback.json",
+        "sha256": "22753403657d8de864e8ff14e3becf119f64bd9900ff569f5777a5f770cf6347"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/result.json",
+        "sha256": "ffb5ce27b347fdf1d443bf385cacae3422045069a02a95dc6089fdec15fb1601"
+      },
+      {
+        "path": "F:/ChatGPT_workshop/techlong-hosted-publication-w8f-inspect-1792779548893.json",
+        "sha256": "ee73d991935e7106e2d4692558b6f34afd941f6bdbbbe1808d55be640bbe97d5"
+      }
+    ],
+    "verificationReceipt": {
+      "path": "F:/ChatGPT_workshop/techlong-hosted-publication-w8f-execution-verified-20261023.json",
+      "sha256": "280a37d95d0eeb66c05244bc1ad490601b258399a8af51fcb7ebba4d477867dd"
+    }
+  }
 }
