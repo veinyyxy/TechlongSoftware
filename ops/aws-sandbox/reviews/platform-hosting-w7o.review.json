@@ -1,0 +1,418 @@
+{
+  "schema": "techlong/platform-hosting-deployment-review-index/v1",
+  "metadataOnly": true,
+  "notAuthoritativeManifest": true,
+  "status": "PREPARED_PENDING_SPECIFIC_DEPLOYMENT_APPROVAL",
+  "authoritativeManifest": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-hosting-review-w7o-20261022.json",
+    "sha256": "289e7cdcb09630b2b851fe5fa493477f1d7a642bbe10509efa21bf3ccac178ab"
+  },
+  "sourceCommit": "281933ba4064fbde4978d4d2f3cc214bcdef1fb5",
+  "nonce": "3cbd907904d9162f560f80a5e2de1581",
+  "issuedAt": "2026-10-23T01:52:52.306Z",
+  "expiresAt": "2026-10-25T01:52:52.306Z",
+  "latestStartAt": "2026-10-25T01:22:52.306Z",
+  "localTime": {
+    "timeZone": "America/Winnipeg",
+    "issuedAt": "2026-10-22 20:52:52 CDT",
+    "expiresAt": "2026-10-24 20:52:52 CDT",
+    "latestStartAt": "2026-10-24 20:22:52 CDT"
+  },
+  "constants": {
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "profile": "techlong-sandbox-user",
+    "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "sourceId": "AIDAV3GNMXTZEO7SHLC2X",
+    "accessStack": "techlong-sandbox-platform-access-v1",
+    "hostingStack": "techlong-sandbox-platform-hosting-v1",
+    "role": "TechlongSandboxPlatformWebExecutionRoleV1",
+    "boundary": "TechlongSandboxPlatformWebExecutionBoundaryV1",
+    "inline": "ExecutionOnly",
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxPlatformWebExecutionRoleV1",
+    "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxPlatformWebExecutionBoundaryV1",
+    "repository": "techlong-sandbox-platform-web",
+    "repositoryArn": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-platform-web",
+    "imageDigest": "sha256:81fb8157fd9dcf834204a3b0c866d3fc8071386a4cbc1ff71f2ccac992ed4612",
+    "image": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-platform-web@sha256:81fb8157fd9dcf834204a3b0c866d3fc8071386a4cbc1ff71f2ccac992ed4612",
+    "secretArn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/neon-v1-UfFKVF",
+    "secretVersion": "6ea2ca59-9a24-4f3e-b16f-ec824f32bc5f",
+    "secretReviewSha": "a93b64169dd598d45832a7e9e0fc7317395fdd907cb7baa8c0f4a935b7c45b09",
+    "kmsArn": "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570",
+    "vpc": "vpc-011dab69fff93972b",
+    "subnets": [
+      "subnet-023b1a81311709ed3",
+      "subnet-059d0bb14c42ff523"
+    ],
+    "igw": "igw-0bd95cc8d2c24d5d5",
+    "routeTable": "rtb-006fb14f444eec219",
+    "hostedZone": "Z01473621BTTHKXBGOOEJ",
+    "domain": "console.sandbox.techlong.cloud",
+    "certificate": "arn:aws:acm:ca-central-1:402010193138:certificate/6d1f2880-9f83-449c-930a-6b17516ef49d",
+    "cluster": "techlong-sandbox-platform",
+    "service": "techlong-sandbox-platform-web",
+    "alb": "techlong-sandbox-platform",
+    "targetGroup": "techlong-platform-web-v1",
+    "logGroup": "/ecs/techlong-sandbox/platform-web",
+    "family": "techlong-sandbox-platform-web-v1",
+    "sslPolicy": "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  },
+  "accessBinding": {
+    "accessNonce": "aca6c7934875a069a696bbe47d9b7b35",
+    "accessStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-access-v1/01b4bb80-ce60-11f1-9435-0e85c8c75895",
+    "roleId": "AROAV3GNMXTZJ45S2ANZ7",
+    "boundaryId": "ANPAV3GNMXTZP7KMHXNYF",
+    "parentManifestSha256": "9cdfcdc03a33cbcc22ca749bbb84294054bdeb58439447656e337ae4ad592e09",
+    "parentResultSha256": "a1777458e1da3b3979110d3065b09d4ad9ac5c6eed523fcceda20e4514b9ce61",
+    "parentObservationSha256": "2f943c2ddff1f71b0a229b9102c3e8034b8722612787e2136ea1678f6c26e597",
+    "parentIntentSha256": "572ed1b9c0f47bf57e1063a2767e410f1bd464ba0baed504db6d6ecce3323b48"
+  },
+  "scope": {
+    "cloudFormationCreateStack": 1,
+    "hostingLogicalResources": 11,
+    "newIamResources": 0,
+    "secretPolicyWrites": 0,
+    "directSecretValueReads": 0,
+    "directSqlConnections": 0,
+    "directHttpRequests": 0,
+    "oldResourceDeletes": 0,
+    "applicationWriteRetries": 0,
+    "ecsManagedTaskStartsAndSecretRetrievals": true,
+    "publicApplicationExposure": true,
+    "automaticCleanup": false
+  },
+  "risk": {
+    "file": "docs/aws-platform-hosting-w7o-deployment-review.md",
+    "sha256": "e56a71398ed1b6652b3f0aab860a071cf14abb2da6993974457b4e63a5734df2"
+  },
+  "templateSha256": "7a22aed8bcf4e2d59057c55a004cd8064117f6766ab4a4732d531a3c2d0a15a7",
+  "parent": [
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-ecs-access-aca6c7934875a069a696bbe47d9b7b35/result.json",
+      "sha256": "a1777458e1da3b3979110d3065b09d4ad9ac5c6eed523fcceda20e4514b9ce61"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-ecs-access-aca6c7934875a069a696bbe47d9b7b35/independent-observation.json",
+      "sha256": "2f943c2ddff1f71b0a229b9102c3e8034b8722612787e2136ea1678f6c26e597"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-ecs-access-v1.intent.json",
+      "sha256": "572ed1b9c0f47bf57e1063a2767e410f1bd464ba0baed504db6d6ecce3323b48"
+    }
+  ],
+  "sourcePins": [
+    {
+      "file": "ops/platform-hosting-deploy-v1/contract.mjs",
+      "sha256": "82bac629f90ab7863a5ef1ae3a20da8d7c3161e145bda98dab97a9bb6ee7aaea"
+    },
+    {
+      "file": "ops/platform-hosting-deploy-v1/cloud.mjs",
+      "sha256": "15f912ee4e8ec981571d3cc0f25fe2760c7b734681f0b98a632c98c2683c5315"
+    },
+    {
+      "file": "ops/platform-hosting-deploy-v1/deploy.mjs",
+      "sha256": "09346200a75db57e29490fa50a6d2ddb823c5418f5dd6cd628f1e988e21eaea9"
+    },
+    {
+      "file": "ops/platform-hosting-deploy-v1/local.mjs",
+      "sha256": "492b5e36dd7bb636cb9ff5e75b352a2a061c09613aa694b302b70b34ba5c34cc"
+    },
+    {
+      "file": "tests/platform-hosting-deploy-v1.test.mjs",
+      "sha256": "8c9c1c3d420310271dcdbc1ca1fd80de5cdcb5000c21d50c6b4f725ab1386be5"
+    },
+    {
+      "file": ".github/workflows/platform-hosting-deploy-candidate.yml",
+      "sha256": "3e32405cf0c4c83fc47f227031f95db1bf425347516ec6a5bf562a81f2fd1002"
+    },
+    {
+      "file": "docs/aws-platform-hosting-w7o-deployment-review.md",
+      "sha256": "e56a71398ed1b6652b3f0aab860a071cf14abb2da6993974457b4e63a5734df2"
+    },
+    {
+      "file": "ops/platform-ecs-v1/contract.mjs",
+      "sha256": "62aa66cf7757a4ef3606109286d57459904755c99f581d901b3533e0e969416c"
+    },
+    {
+      "file": "ops/platform-ecs-v1/templates.mjs",
+      "sha256": "21bb1229ff77a20767322d2b6406c533c9beb7a173fa75451486a76a3ec53d01"
+    },
+    {
+      "file": "ops/platform-ecs-v1/cloud.mjs",
+      "sha256": "0fb163ae76a62639dd258e27af2dbbb5311cb8ca1f13c60f0140080b8fc960f5"
+    },
+    {
+      "file": "ops/platform-ecs-v1/prices.mjs",
+      "sha256": "a6952dc479b84f9f6b3663262d7c716f0dc9b4a9c50044d409063eff4892a1fd"
+    },
+    {
+      "file": "ops/platform-ecs-v1/access.mjs",
+      "sha256": "8ad741b7b9de19538fa1a0b3b47c5046613f90f021cf36068b50c4db29de5ab9"
+    },
+    {
+      "file": "ops/platform-ecs-v1/local.mjs",
+      "sha256": "daf4c276b1baea4eacc14ca3da2860585086b64a621227a65c1a1e3f79a9c57b"
+    },
+    {
+      "file": "ops/platform-hosting-v1/contract.mjs",
+      "sha256": "082a31a16744893770e8ee5e46fbc2de90bbb7dbc1eb3ba94180b613f5005015"
+    },
+    {
+      "file": "ops/platform-web-credential-v1/contract.mjs",
+      "sha256": "7916eaead078f597fadef8d0c5280e24f604223a36eb82981b33ad7e0a891e57"
+    },
+    {
+      "file": "ops/platform-web-credential-v1/aws.mjs",
+      "sha256": "b5dd6097b3837b757ca28556b3fa2607ca6fbd4928d3b30a5d08dafb646cac33"
+    },
+    {
+      "file": "ops/platform-web-database-role-v1/contract.mjs",
+      "sha256": "2d6cbf52b4d1bd9e1d741061dbe6abb166ec56a7b825496b529b08c2c02420f4"
+    },
+    {
+      "file": "ops/platform-web-database-role-v1/effective.mjs",
+      "sha256": "9bf37b711235ca6a566fd63ed5a0012ff181078cf9d789d6bfb6a50e63bd657d"
+    },
+    {
+      "file": "ops/platform-web-database-v1/catalog.mjs",
+      "sha256": "36396955512755dfb9bb6ed43c7c8086840a9ffe5a51eb14202c0b76acc86357"
+    },
+    {
+      "file": "ops/platform-web-database-v1/local.mjs",
+      "sha256": "8d29b9bb7d50acd189e013538d9e630a1f317ce9ba35557faf3c67c561b86899"
+    },
+    {
+      "file": "ops/platform-hosting-v1/database-profile.mjs",
+      "sha256": "d54a70890ce1c3fa19968c1f731be7b81e0c01a97fdf23c1ad6df5c3bddf6ee9"
+    },
+    {
+      "file": "tests/platform-ecs-v1.test.mjs",
+      "sha256": "1ccccc157656a20cf45ef35ce0b84da461c9aca6857838763efbb8e056bc0c68"
+    },
+    {
+      "file": ".github/workflows/platform-ecs-access-candidate.yml",
+      "sha256": "103acb3474aca53e4880f931c5756c5f69efb8546ad78450db8c5dbcd5aee601"
+    },
+    {
+      "file": "docs/aws-platform-hosting-w7n-access-review.md",
+      "sha256": "2450c2614a8358d56471a24b70460c8d1b43eccb6cf2f7ce7b3a88d67b3961b5"
+    },
+    {
+      "file": "docs/aws-platform-hosting-w7n-two-hour-draft.md",
+      "sha256": "71ad1d9d9379bcb1bbd0310b737005a4db171b79e0ae9259a3a6a09dc0d68c04"
+    },
+    {
+      "file": "package.json",
+      "sha256": "22dcd76795d40cfb0f15fbc39590d9c30adbc786e608c9f014eee6c3f4f6e57e"
+    },
+    {
+      "file": "package-lock.json",
+      "sha256": "bdef7dc276067e1d8749640b7365c8da98e3c7cd176d9863734d68c5804720a9"
+    },
+    {
+      "file": "ops/aws-sandbox/reviews/platform-web-credential-w7m.observed.json",
+      "sha256": "b99e4fffd7e7064fc812d66673f49531f8c497eb19a2c9e10574063fd86e4bf8"
+    },
+    {
+      "file": "ops/aws-sandbox/reviews/platform-ecs-w7n.observed.json",
+      "sha256": "94eef90428756b3590e0a2f24f688bb7580f9bd989db6ffe983c92a71af44076"
+    }
+  ],
+  "artifactDirectory": "F:/ChatGPT_workshop/techlong-platform-hosting-review-3cbd907904d9162f560f80a5e2de1581",
+  "artifactPins": [
+    {
+      "name": "hosting-template.json",
+      "sha256": "4686671dafe979b5647e3b3fd627c6eb8346f092db4fc57359b828275c691817"
+    },
+    {
+      "name": "inventory.json",
+      "sha256": "4b59f3494805ef2ff99037b453464201c3e6c557cf3a5bc36a79165df5be979b"
+    },
+    {
+      "name": "prices.json",
+      "sha256": "316082974bf20f510b2b19ae1284b23b408c9a590e9dbbb3e695a1f4781f27ad"
+    },
+    {
+      "name": "service-validation.json",
+      "sha256": "8726b96fa8c8adfedd7b1cdfc12f27bdf863853c4c6435a1516ada8ce19a243f"
+    }
+  ],
+  "ci": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-hosting-ci-39886264015.json",
+    "sha256": "4f3631abf69f9722e9fa75d497aa561459369cc9b817aeee01b4b34df01f4b22",
+    "runId": 39886264015,
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39886264015",
+    "exactHeadVerified": true,
+    "reportedSteps": 10,
+    "tests": 21,
+    "noAws": true,
+    "noApplicationHttpProbe": true,
+    "checkoutAndPackageDownloadNetworkExpected": true,
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "readOnlyInventory": {
+    "checkedAtUtc": "2026-10-23T01:52:49.482Z",
+    "source": {
+      "Account": "402010193138",
+      "Arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+      "UserId": "AIDAV3GNMXTZEO7SHLC2X"
+    },
+    "access": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-access-v1/01b4bb80-ce60-11f1-9435-0e85c8c75895",
+      "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxPlatformWebExecutionRoleV1",
+      "roleId": "AROAV3GNMXTZJ45S2ANZ7",
+      "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxPlatformWebExecutionBoundaryV1",
+      "boundaryId": "ANPAV3GNMXTZP7KMHXNYF",
+      "defaultVersion": "v1"
+    },
+    "secret": {
+      "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/neon-v1-UfFKVF",
+      "versionId": "6ea2ca59-9a24-4f3e-b16f-ec824f32bc5f",
+      "kmsArn": "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570",
+      "policyState": "HANDOFF",
+      "valuesRead": false
+    },
+    "hostingNamesAbsent": true,
+    "image": {
+      "digest": "sha256:81fb8157fd9dcf834204a3b0c866d3fc8071386a4cbc1ff71f2ccac992ed4612",
+      "size": 271259127,
+      "manifestMediaType": "application/vnd.docker.distribution.manifest.v2+json"
+    },
+    "network": {
+      "vpc": "vpc-011dab69fff93972b",
+      "cidr": "172.31.0.0/16",
+      "subnets": [
+        {
+          "id": "subnet-023b1a81311709ed3",
+          "az": "ca-central-1a"
+        },
+        {
+          "id": "subnet-059d0bb14c42ff523",
+          "az": "ca-central-1b"
+        }
+      ],
+      "routeTable": "rtb-006fb14f444eec219",
+      "igw": "igw-0bd95cc8d2c24d5d5"
+    },
+    "certificate": {
+      "arn": "arn:aws:acm:ca-central-1:402010193138:certificate/6d1f2880-9f83-449c-930a-6b17516ef49d",
+      "status": "ISSUED",
+      "notAfter": "2027-04-26T18:59:59-05:00"
+    },
+    "serviceLinkedRoles": [
+      {
+        "name": "AWSServiceRoleForECS",
+        "id": "AROAV3GNMXTZFKBPHQEYN",
+        "arn": "arn:aws:iam::402010193138:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS"
+      },
+      {
+        "name": "AWSServiceRoleForElasticLoadBalancing",
+        "id": "AROAV3GNMXTZNUJ5QVBFD",
+        "arn": "arn:aws:iam::402010193138:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing"
+      }
+    ],
+    "budget": {
+      "limitUsd": 50,
+      "hardCap": false
+    }
+  },
+  "serviceValidation": {
+    "capabilities": [],
+    "parameters": [
+      {
+        "ParameterKey": "HostingExpiresAt",
+        "NoEcho": false,
+        "Description": "Derived at future approved CreateStack start plus two hours; tag is not an automatic stop"
+      }
+    ]
+  },
+  "pricing": {
+    "observedAtUtc": "2026-10-23T01:52:51.858Z",
+    "currency": "USD",
+    "catalogs": [
+      {
+        "service": "AmazonECS",
+        "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/ca-central-1/index.json",
+        "version": "20261019224317",
+        "publicationDate": "2026-10-19T22:43:17Z",
+        "sha256": "a00a46211bc7caacff13a95aaa3501775d14e2e0c24314d75ca07076bcab9b50"
+      },
+      {
+        "service": "AWSELB",
+        "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/ca-central-1/index.json",
+        "version": "20260911124544",
+        "publicationDate": "2026-09-11T12:45:44Z",
+        "sha256": "5242efc51c9b3687c22b197ce27a388eda90902d314e5e5981ee54fdc3cc8d50"
+      },
+      {
+        "service": "AmazonVPC",
+        "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/ca-central-1/index.json",
+        "version": "20261016224321",
+        "publicationDate": "2026-10-16T22:43:21Z",
+        "sha256": "24d4b2b7b608dc6af3b63b0eb00e505e23226b5a038df71aa861bdf636520044"
+      },
+      {
+        "service": "AWSSecretsManager",
+        "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSSecretsManager/current/ca-central-1/index.json",
+        "version": "20260911124610",
+        "publicationDate": "2026-09-11T12:46:10Z",
+        "sha256": "9bea1ef20cb2951a28b8f8f7c6d77418070732e93b209f58dbe62352f863b507"
+      }
+    ],
+    "rates": {
+      "vcpuHour": 0.04456,
+      "gbHour": 0.004865,
+      "albHour": 0.02475,
+      "lcuHour": 0.0088,
+      "ipv4Hour": 0.005,
+      "secretMonth": 0.4
+    },
+    "estimate": {
+      "exampleHourlyUsd": 0.067775,
+      "exampleTwoHoursUsd": 0.13555,
+      "core730HoursUsd": 49.87575,
+      "assumptions": {
+        "tasks": 1,
+        "vcpu": 0.5,
+        "memoryGb": 1,
+        "alb": 1,
+        "averageLcu": 0.1,
+        "publicIpv4": 3
+      },
+      "excludes": [
+        "existing resources",
+        "ECR storage/scans",
+        "logs",
+        "data transfer",
+        "extra ALB capacity/addresses",
+        "task restarts/overlap",
+        "provision/cleanup time",
+        "tax"
+      ],
+      "notAHardCap": true
+    }
+  },
+  "permanentIntent": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-hosting-deploy-v1.intent.json",
+    "consumed": false,
+    "autoResetAllowed": false
+  },
+  "hostingWindowStarted": false,
+  "deploymentAuthorized": false,
+  "cleanupAuthorized": false,
+  "thisPhaseActual": {
+    "awsWrites": 0,
+    "directSecretValueReads": 0,
+    "directSqlConnections": 0,
+    "hostingDeployments": 0
+  },
+  "limitations": [
+    "IAM and fixed Secret policy already installed, not changed by this phase",
+    "Future ECS managed tasks will retrieve actual Secret values and may restart repeatedly",
+    "Future public application may make database accesses/authentication writes, even though deployment CLI does not connect SQL or HTTP",
+    "HostingExpiresAt is only a tag/output, not an automatic stop or fee cap",
+    "Metadata verification is not external HTTPS or administrator application acceptance",
+    "Actual deployment, application acceptance and cleanup remain separately authorized"
+  ]
+}
