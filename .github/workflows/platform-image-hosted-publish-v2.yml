@@ -1,0 +1,25 @@
+name: Platform single hosted ECR publication v2
+run-name: Platform hosted ECR ${{ inputs.review_sha }}
+on:
+  workflow_dispatch:
+    inputs:
+      review_json:
+        description: Exact Source-generated hosted review, not generic approval
+        type: string
+        required: true
+      review_sha:
+        description: SHA256 of exact review_json bytes
+        type: string
+        required: true
+permissions: {}
+jobs:
+  reviewed-publication:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: veinyyxy/TechlongSoftware/.github/workflows/platform-image-hosted-publish-job-v2.yml@04cb44b5f0c0386a1c998033327030e72358d088
+    with:
+      review_json: ${{ inputs.review_json }}
+      review_sha: ${{ inputs.review_sha }}
