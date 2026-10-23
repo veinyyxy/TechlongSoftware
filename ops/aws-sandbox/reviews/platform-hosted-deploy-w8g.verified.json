@@ -106,5 +106,185 @@
     "runId": 40005767004,
     "reportedSuccessfulSteps": 9,
     "originalEvidence": "F:/ChatGPT_workshop/techlong-hosted-deploy-w8g-ci-20261023.json"
+  },
+  "postExecutionReadOnlyCompatibility": {
+    "sourceCommit": "f24e5b935cff986dfb2597ea8f8b5d9a61352045",
+    "entry": "ops/platform-hosted-deploy-v6/inspect-defaults.mjs",
+    "sourceFileSha256": "772f14258474dcc58db7d1f9166937009b81e937ba06ab6d878ed512528943d8",
+    "proof": {
+      "file": "F:/ChatGPT_workshop/techlong-hosted-deploy-w8g-readonly-ci-20261023.json",
+      "sha256": "dabd047648d24be63e1ae3049ad4b3ece1a92b6725c907c85c1fd4c78633aa4b",
+      "savedAtUtc": "2026-10-23T19:10:45.230Z"
+    },
+    "record": {
+      "schema": "techlong/platform-hosted-deploy-readonly-ci/v6",
+      "sourceCommit": "f24e5b935cff986dfb2597ea8f8b5d9a61352045",
+      "runs": [
+        {
+          "id": 40009052767,
+          "head": "f24e5b935cff986dfb2597ea8f8b5d9a61352045",
+          "path": ".github/workflows/platform-hosted-inspect-candidate.yml",
+          "status": "completed",
+          "conclusion": "success",
+          "attempt": 1,
+          "jobs": [
+            {
+              "id": 120604375854,
+              "name": "candidate",
+              "status": "completed",
+              "conclusion": "success",
+              "run_id": 40009052767,
+              "logs_url": null,
+              "steps": [
+                {
+                  "name": "Set up job",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 1
+                },
+                {
+                  "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 2
+                },
+                {
+                  "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 3
+                },
+                {
+                  "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 4
+                },
+                {
+                  "name": "Read-only ECS defaults and original contracts - No AWS",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 5
+                },
+                {
+                  "name": "Typecheck and scoped lint",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 6
+                },
+                {
+                  "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 11
+                },
+                {
+                  "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 12
+                },
+                {
+                  "name": "Complete job",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 13
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": 40009052868,
+          "head": "f24e5b935cff986dfb2597ea8f8b5d9a61352045",
+          "path": ".github/workflows/platform-hosted-deploy-candidate.yml",
+          "status": "completed",
+          "conclusion": "success",
+          "attempt": 1,
+          "jobs": [
+            {
+              "id": 120604375799,
+              "name": "candidate",
+              "status": "completed",
+              "conclusion": "success",
+              "run_id": 40009052868,
+              "logs_url": null,
+              "steps": [
+                {
+                  "name": "Set up job",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 1
+                },
+                {
+                  "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 2
+                },
+                {
+                  "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 3
+                },
+                {
+                  "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 4
+                },
+                {
+                  "name": "Hosted deployment contracts - No AWS",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 5
+                },
+                {
+                  "name": "Typecheck and scoped lint",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 6
+                },
+                {
+                  "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 11
+                },
+                {
+                  "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 12
+                },
+                {
+                  "name": "Complete job",
+                  "status": "completed",
+                  "conclusion": "success",
+                  "number": 13
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "reportedSuccessfulSteps": 18,
+      "localTests": {
+        "pass": 14,
+        "fail": 0,
+        "skip": 0
+      },
+      "typecheck": "passed",
+      "scopedLint": "passed",
+      "originalApproved48PinsUnchanged": true,
+      "approvedDeploymentSourceChanged": false,
+      "resourceMutation": false,
+      "secretValueReads": 0,
+      "awsCalls": 0
+    },
+    "originalApproved48SourcePinsUnchanged": true,
+    "approvedDeploymentCodeChanged": false,
+    "awsWrites": 0
   }
 }
