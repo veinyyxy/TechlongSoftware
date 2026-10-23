@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-23主线：**W8g已实现最小托管部署入口，尚未部署或授权。** 复用原11项资源/既有execution身份，固定W8f已发布ad3cbde8…4789镜像，显式hosted命令、三个准确Secret版本及创建前才起算的30分钟控制租约；两小时承载意图不自动停费，清理另按新UUID确认。39项针对性测试、类型/lint通过；下一验证准确无AWS CI、集中只读资源/官方价格核对并生成48小时具体SHA，不重建镜像、不新增IAM/执行器/UI。工程内Prepare/单次RunReviewed/独立Inspect，新永久槽不复位；本轮尚无云写或私密读取。[具体范围、完整风险和入口](docs/aws-auto-deployment-platform-w8g-hosting-review.md)。下文为历史。
+
 2026-10-23主线：**W8f镜像已单次发布，立即撤权及另进程独立Inspect全部通过，errors为空。** 按970773…清单实际两次原栈Update（SDK各1attempt）、一次dispatch/角色会话/顶层push；[run40001659308](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40001659308)12步骤成功。新registry digest `sha256:ad3cbde847375967a1eb0d593e39d9faefcb742c64ba87aa3abb463b9c534789` 链接已核验config c418fef9…4230；独立确认旧＋新恰好两份，原角色/边界/仓库/tags保持、publisher恢复Locked。新槽永久消费，禁止重跑/复位；未读Secret/PEM、连SQL或部署ECS，镜像保留可能计费。下一仅准备两小时平台托管验收具体清单，不继承本次发布授权。[执行及独立核验证据](ops/aws-sandbox/reviews/platform-hosted-publication-w8f.review.json) / [原完整范围与风险（写入口不可重放）](docs/aws-auto-deployment-platform-w8f-publish-review.md)。下文为历史。
 
 2026-10-23主线：**W8e真实W8b镜像封验及准确云CI均通过，两条CI共35报告步骤全部成功。** 实际ZIP/archive/config摘要匹配；云端Docker加载同一镜像，loopback/HTTPS/托管到期三项隔离自检通过，Alpine3.24.1的18个OS包HIGH/CRITICAL为0。不重新构建、不安装Docker Desktop；AWS/私密读取/SQL/App调度/ECR发布/ECS部署均0，旧槽保留。下一仅把真实候选接原Source Grant→单次发布→立即Revoke及独立Locked核验，发布授权另审，不新增身份/执行器/UI。[具体范围与唯一继续点](docs/aws-auto-deployment-platform-w8e-image-preflight.md) / [真实产物及35步CI证据](ops/aws-sandbox/reviews/platform-hosted-publication-w8e.verified.json)。下文为历史。
