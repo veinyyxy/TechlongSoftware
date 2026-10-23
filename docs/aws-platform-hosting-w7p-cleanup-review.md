@@ -1,6 +1,6 @@
 # W7p：准确承载栈清理范围与风险（尚未批准删除）
 
-用户选择优先准备清理，**不是批准删除**。Source会话过期，尚不能生成经fresh云事实核对的删除清单；Source刷新也只授权只读准备。必须获得之后生成的准确新SHA及本页完整风险确认，才能提交一次DeleteStack。
+用户选择优先准备清理，**不是批准删除**。初次准备因Source过期退出，没有触发删除；之后已完成Source刷新及fresh只读核对，当前清单见[准确待审索引](../ops/aws-sandbox/reviews/platform-hosting-w7p.cleanup-review.json)。Source刷新也不是删除批准。必须获得准确新SHA及本页完整风险确认，才能提交一次DeleteStack。
 
 ## 唯一目标与保留边界
 

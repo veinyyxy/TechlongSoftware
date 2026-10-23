@@ -1,5 +1,11 @@
 # 餐饮 SaaS 平台
 
+2026-10-22 23:18CDT当前：**W7p Source已刷新，准确承载栈清理清单已fresh只读核对并准备，尚未批准或删除。** 唯一目标为W7o栈UUID `54a0d7d0-ce87-11f1-aa1a-0eb4b7868f6f`，仍CREATE_COMPLETE、11项物理资源/原模板一致、termination protection关闭且无额外CFN service RoleARN。拟议仅一次标准DeleteStack，保留IAM/Secret/Neon/ECR/证书/hosted zone/VPC等旧资源；无force、retain、补删或自动重试。[准确待审索引（非原件）](ops/aws-sandbox/reviews/platform-hosting-w7p.cleanup-review.json) / [完整删除风险](docs/aws-platform-hosting-w7p-cleanup-review.md)。两小时标签已过，**资源不会自动停止，删除尚未提交，仍可能持续计费**。
+
+W7p待批准删除SHA：`d71670b132fe6e0613ff4f9a97970d5a89fa05b118c04ee5366c7d40eac7829d`。原件`F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-review-w7p-20261022-refreshed.json`，到期2026-10-24 23:18:31CDT，最晚启动22:48:31CDT。确认后先原样fresh核对、消费独立永久槽，再单次DeleteStack及最多约25分钟独立只读观察；失败/提交不明不重试、不强制或补删。删除会停止公网应用并不可恢复地移除该日志组日志，可能异步部分失败或遗留费用；新确认不可由“优先准备清理”或“Source已刷新”代替。旧未审批原件0a19d353保留，仅澄清风险文档历史凭据状态后重绑SHA，删除范围/API/nonce/fresh云快照均未改变。
+
+以下为W7p已完成公网核验及过期凭据的历史记录。
+
 2026-10-22 23:09CDT当前：**W7p公网TLS/健康/登录页及未登录重定向三次GET已通过；用户选择优先准备清理，不继续登录验收。** 未发送Cookie/密码或提交表单，未验证管理员认证/业务页面。Source会话过期，fresh清理清单尚未生成、删除写入0、清理槽未消费；需要刷新Source后只读核对准确已建栈，再单独确认删除SHA。[有限公网结果](docs/aws-platform-hosting-w7p-public-readback.md) / [清理范围与完整风险，尚未批准](docs/aws-platform-hosting-w7p-cleanup-review.md)。**今晚23:13:24仅是标签，服务不会自动停机；未清理会继续计费。**
 
 以下为W7o已完成部署记录。

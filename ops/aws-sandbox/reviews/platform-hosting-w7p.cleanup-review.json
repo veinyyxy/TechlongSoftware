@@ -1,0 +1,200 @@
+{
+  "schema": "techlong/platform-hosting-cleanup-review-index/v1",
+  "metadataOnly": true,
+  "notAuthoritativeManifest": true,
+  "status": "PREPARED_PENDING_SPECIFIC_DELETE_APPROVAL",
+  "authoritativeManifest": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-review-w7p-20261022-refreshed.json",
+    "sha256": "d71670b132fe6e0613ff4f9a97970d5a89fa05b118c04ee5366c7d40eac7829d"
+  },
+  "issuedAt": "2026-10-23T04:18:31.347Z",
+  "expiresAt": "2026-10-25T04:18:31.347Z",
+  "latestStartAt": "2026-10-25T03:48:31.347Z",
+  "localTime": {
+    "timeZone": "America/Winnipeg",
+    "issuedAt": "2026-10-22 23:18:31.347 CDT",
+    "expiresAt": "2026-10-24 23:18:31.347 CDT",
+    "latestStartAt": "2026-10-24 22:48:31.347 CDT"
+  },
+  "proposal": {
+    "schema": "techlong/platform-hosting-cleanup-review/v1",
+    "nonce": "909671516a0e75efbfec4b22856b6089",
+    "issuedAt": "2026-10-23T04:18:31.347Z",
+    "expiresAt": "2026-10-25T04:18:31.347Z",
+    "latestStartAt": "2026-10-25T03:48:31.347Z",
+    "source": {
+      "Account": "402010193138",
+      "Arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+      "UserId": "AIDAV3GNMXTZEO7SHLC2X"
+    },
+    "region": "ca-central-1",
+    "profile": "techlong-sandbox-user",
+    "targetStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/54a0d7d0-ce87-11f1-aa1a-0eb4b7868f6f",
+    "scope": {
+      "deleteStackSubmissions": 1,
+      "expectedLogicalResources": 11,
+      "forceDelete": false,
+      "retainResources": false,
+      "iamMutations": 0,
+      "secretMutations": 0,
+      "directSecretValueReads": 0,
+      "directSqlConnections": 0,
+      "applicationHttpRequests": 0,
+      "automaticRetry": false
+    },
+    "apiRequest": {
+      "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/54a0d7d0-ce87-11f1-aa1a-0eb4b7868f6f",
+      "ClientRequestToken": "platform-hosting-cleanup-909671516a0e75efbfec4b22856b6089",
+      "DeletionMode": "STANDARD"
+    },
+    "snapshot": {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-snapshot-w7p-20261022.json",
+      "sha256": "04d6088b361b52a1553d0fbe01cce1092db6a95d80a63da245d61e3bda8561bd"
+    },
+    "expectedResources": [
+      {
+        "id": "AlbSecurityGroup",
+        "type": "AWS::EC2::SecurityGroup",
+        "physicalId": "sg-0a4bff4c830525496",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "Cluster",
+        "type": "AWS::ECS::Cluster",
+        "physicalId": "techlong-sandbox-platform",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "DnsRecord",
+        "type": "AWS::Route53::RecordSet",
+        "physicalId": "console.sandbox.techlong.cloud",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "HttpsListener",
+        "type": "AWS::ElasticLoadBalancingV2::Listener",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-platform/66040ba906e55e14/ae73a73712dba190",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "LoadBalancer",
+        "type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/66040ba906e55e14",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "LogGroup",
+        "type": "AWS::Logs::LogGroup",
+        "physicalId": "/ecs/techlong-sandbox/platform-web",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "Service",
+        "type": "AWS::ECS::Service",
+        "physicalId": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "TargetGroup",
+        "type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/techlong-platform-web-v1/622eee26f391a6d9",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "TaskDefinition",
+        "type": "AWS::ECS::TaskDefinition",
+        "physicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:1",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "TaskIngress",
+        "type": "AWS::EC2::SecurityGroupIngress",
+        "physicalId": "sgr-0ac8e8d6b349a7169",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "id": "TaskSecurityGroup",
+        "type": "AWS::EC2::SecurityGroup",
+        "physicalId": "sg-005aa74d7e0c4589d",
+        "status": "CREATE_COMPLETE"
+      }
+    ],
+    "expectedTemplateSha256": "7a22aed8bcf4e2d59057c55a004cd8064117f6766ab4a4732d531a3c2d0a15a7",
+    "parentObserved": {
+      "file": "ops/aws-sandbox/reviews/platform-hosting-w7o.observed.json",
+      "sha256": "7469b444a526d4d4d0654a43054043eddbefa404d44d4318fe382307e72bc7d2"
+    },
+    "frozenDeploymentReview": {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-review-w7o-20261022.json",
+      "sha256": "289e7cdcb09630b2b851fe5fa493477f1d7a642bbe10509efa21bf3ccac178ab",
+      "sourceCommit": "281933ba4064fbde4978d4d2f3cc214bcdef1fb5",
+      "sourcePinsCount": 29
+    },
+    "permanentIntent": {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-v1.intent.json",
+      "creation": "exclusive wx + fsync before one DeleteStack",
+      "autoReset": false
+    },
+    "preserve": {
+      "iamRole": "arn:aws:iam::402010193138:role/TechlongSandboxPlatformWebExecutionRoleV1",
+      "permissionsBoundary": "arn:aws:iam::402010193138:policy/TechlongSandboxPlatformWebExecutionBoundaryV1",
+      "secret": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/neon-v1-UfFKVF",
+      "ecrRepository": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-platform-web",
+      "certificate": "arn:aws:acm:ca-central-1:402010193138:certificate/6d1f2880-9f83-449c-930a-6b17516ef49d",
+      "hostedZone": "Z01473621BTTHKXBGOOEJ",
+      "vpc": "vpc-011dab69fff93972b",
+      "subnets": [
+        "subnet-023b1a81311709ed3",
+        "subnet-059d0bb14c42ff523"
+      ],
+      "neonDatabaseAndRoles": true,
+      "oldStacksAndBusinessRecords": true
+    },
+    "risk": {
+      "file": "docs/aws-platform-hosting-w7p-cleanup-review.md",
+      "sha256": "a7268606e80d92f07cc9313fcae8577f35a87a8ba4c9dfc51ab7de808e0f8bcc"
+    },
+    "executionProcedure": [
+      "Validate exact raw SHA, latest-start/48h expiry, risk hash, frozen original W7o source pins and parent evidence",
+      "Read fresh Source identity, exact ARN stack status/template and eleven unchanged physical resources; protection disabled and no service RoleARN; submit within 30 seconds of full preflight completion",
+      "Require absent permanent cleanup intent; consume once with wx/fsync and approval SHA before AWS write",
+      "Submit exactly apiRequest to DeleteStack with SDK maxAttempts=1, fixed official endpoint; no force/retain/RoleARN or other write calls",
+      "Save submission ACK or ambiguity, then independently read exact ARN status/resources and wait at most 25 minutes; validate DELETE_COMPLETE or exact-ARN absence and service-specific removal metadata",
+      "No automatic retry/repair/force/delete-other-resource; on failure preserve resources and intent and request a new reviewed scope"
+    ],
+    "concurrencyRisk": "No cross-service CAS; fresh checks cannot prevent concurrent changes before/as deletion runs",
+    "irreversibleEffects": [
+      "Stops service tasks and removes public DNS/ALB/listener/target group",
+      "Deletes this stack log group and its logs; task revision may remain INACTIVE metadata",
+      "Deletes this stack cluster and security groups/rule; stack UUID cannot be restored by recreating name"
+    ],
+    "residualCostRisk": "Asynchronous/failed deletion can leave billable resources; existing Secret, databases and other resources remain billed",
+    "hostingIntentExpiresAt": "2026-10-23T04:13:24.726Z",
+    "cleanupAuthorized": false,
+    "supersedesUnapprovedManifest": {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-review-w7p-20261022.json",
+      "sha256": "0a19d353c46a35f947e841f0598cd73991303aaefc6980c212edcbd11936b073",
+      "reason": "Risk document now distinguishes historical Source failure from successful refreshed preflight; scope, API request and snapshot unchanged"
+    }
+  },
+  "preparationActual": {
+    "successfulAwsMetadataReads": 4,
+    "awsWrites": 0,
+    "deleteStackSubmitted": false,
+    "cleanupIntentConsumed": false,
+    "credentialRefreshPerformedByUser": true
+  },
+  "priorCredentialFailurePreserved": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-prepare-w7p-20261022.failed.json",
+  "publicReadback": {
+    "file": "ops/aws-sandbox/reviews/platform-hosting-w7p.public-readback.json",
+    "sha256": "057752ebd0beb38d5fe84d929933193b200ec81513b3962613b5a8ffd7a52ccd",
+    "requests": 3,
+    "administratorLoginPerformed": false
+  },
+  "warnings": [
+    "Original two-hour hosting intent has already passed; it never auto-stops resources",
+    "Cleanup authorization is still pending; Source refresh alone is not DeleteStack approval",
+    "Target only this immutable hosting stack ARN and its exact eleven resources; preserve listed external resources",
+    "No new execution framework, IAM or image build required for this standard bounded control-plane operation"
+  ]
+}
