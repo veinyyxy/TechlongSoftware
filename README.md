@@ -1,5 +1,9 @@
 # 餐饮 SaaS 平台
 
+2026-10-22 23:35CDT当前：**W7p承载栈已按批准清单单次删除并通过独立核验：HOSTING_CLEANUP_INDEPENDENTLY_VERIFIED。** 准确栈及11项逻辑资源全部DELETE_COMPLETE；服务级确认ALB/listener/target group、准确DNS A、日志组、两安全组及入站规则已移除，ECS服务/cluster为INACTIVE且任务0，任务定义注销为INACTIVE。公网试验入口现已下线，日志未经导出已删除。IAM/Secret/Neon/ECR/证书/zone/VPC等未操作，保留资源仍可能收费，不等于账单归零。创建及删除永久槽均已消费，以下旧命令不可重放。[实际结果与续接边界](docs/aws-platform-hosting-w7p-cleanup-observed.md) / [独立机器证据](ops/aws-sandbox/reviews/platform-hosting-w7p.cleanup-observed.json)。本轮完成两小时承载试验闭环，但尚未做管理员认证/完整业务验收，也不代表整套系统上线；下一阶段只准备新的受控端到端验收，实际部署和认证范围另审。
+
+以下为W7p清理已完成前的历史准备状态（不再待批准）。
+
 2026-10-22 23:18CDT当前：**W7p Source已刷新，准确承载栈清理清单已fresh只读核对并准备，尚未批准或删除。** 唯一目标为W7o栈UUID `54a0d7d0-ce87-11f1-aa1a-0eb4b7868f6f`，仍CREATE_COMPLETE、11项物理资源/原模板一致、termination protection关闭且无额外CFN service RoleARN。拟议仅一次标准DeleteStack，保留IAM/Secret/Neon/ECR/证书/hosted zone/VPC等旧资源；无force、retain、补删或自动重试。[准确待审索引（非原件）](ops/aws-sandbox/reviews/platform-hosting-w7p.cleanup-review.json) / [完整删除风险](docs/aws-platform-hosting-w7p-cleanup-review.md)。两小时标签已过，**资源不会自动停止，删除尚未提交，仍可能持续计费**。
 
 W7p待批准删除SHA：`d71670b132fe6e0613ff4f9a97970d5a89fa05b118c04ee5366c7d40eac7829d`。原件`F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-review-w7p-20261022-refreshed.json`，到期2026-10-24 23:18:31CDT，最晚启动22:48:31CDT。确认后先原样fresh核对、消费独立永久槽，再单次DeleteStack及最多约25分钟独立只读观察；失败/提交不明不重试、不强制或补删。删除会停止公网应用并不可恢复地移除该日志组日志，可能异步部分失败或遗留费用；新确认不可由“优先准备清理”或“Source已刷新”代替。旧未审批原件0a19d353保留，仅澄清风险文档历史凭据状态后重绑SHA，删除范围/API/nonce/fresh云快照均未改变。
