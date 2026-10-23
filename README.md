@@ -1,5 +1,9 @@
 # 餐饮 SaaS 平台
 
+2026-10-23 07:17CDT当前：**W7r第二轮临时承载已清理并独立核验：HOSTING_CLEANUP_INDEPENDENTLY_VERIFIED，errors为空。** 按批准`6c74ce1e…f344`仅一次标准DeleteStack，准确新UUID `2d7d45a0-ced0-11f1-acc8-0effedbce869` 的11项CFN资源DELETE_COMPLETE、11项服务检查通过；ALB/入口DNS/安全组/日志组已移除，ECS仅保留INACTIVE历史、无运行任务。cleanup-v2槽已消费，禁止重放或补删。**临时承载入口已移除；IAM/Secret/Neon/ECR/证书/zone/VPC等保留，仍可能收费，不是全账户零费用。** 日志及容器临时数据未备份、不可恢复。应用/镜像/权限未改，窄屏退出缺陷仍待修，非完整生产验收。[实际清理及下一步](docs/aws-platform-hosting-w7r-cleanup-observed.md) / [机器证据](ops/aws-sandbox/reviews/platform-hosting-w7r.cleanup-observed.json)。
+
+以下为W7r验收和清理准备时的历史状态（当时仍在计费、删除待批准，现已由上方实际结果取代）。原清单与哈希保留，不可重放。
+
 2026-10-23 06:35CDT当前：**W7r公网与管理员有限闭环已验证，存在未修复的窄屏退出入口缺陷。** 本轮新栈/DNS绑定核对后，三次无身份GET确认TLS1.3、health/login200、未登录admin307；用户自行登录后只读查看概览/实例列表/准确详情，随后一次成功登出，访问admin跳登录。没有读取密码/Cookie值、导出业务数据或创建/批准/观察/调度任务。<=900px布局隐藏退出按钮，临时桌面宽度完成登出后已恢复视口；**缺陷未修复，不代表全产品或移动端生产验收通过**。[有限验收及缺陷](docs/aws-platform-hosting-w7r-acceptance.md) / [机器证据](ops/aws-sandbox/reviews/platform-hosting-w7r.acceptance.json)。
 
 **承载仍在计费，今天07:54:53CDT仅标签，不会自动停止。** 已fresh只读准备仅针对新UUID `2d7d45a0-ced0-11f1-acc8-0effedbce869` 的清理清单：`6c74ce1e002f31e1b3061cc29122f63f8d0c4c4491bcdbabd5c0360a8156f344`，原件`F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-review-w7r-20261023.json`。拟议一次标准DeleteStack删除当前11项承载资源及日志，保留IAM/Secret/Neon/ECR/证书/zone/VPC等；不force/retain/换角色/补删或自动重试。**删除未批准、未提交、新cleanup-v2槽未消费**。[完整清理风险](docs/aws-platform-hosting-w7r-cleanup-review.md) / [待审索引（非原件）](ops/aws-sandbox/reviews/platform-hosting-w7r.cleanup-review.json)。清单到期10月25日06:35:06CDT、最晚启动06:05:06CDT，仅为审核期限，不建议继续收费48小时；实际执行仍需明确新SHA/风险确认。旧W7p删除目标不同，不可重放。窄屏修复与镜像重发另审，不为等待修复自动续费或保留承载。

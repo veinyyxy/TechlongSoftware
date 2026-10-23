@@ -1,0 +1,351 @@
+{
+  "schema": "techlong/platform-hosting-cleanup-observed/v2",
+  "metadataOnly": true,
+  "status": "HOSTING_CLEANUP_INDEPENDENTLY_VERIFIED",
+  "trialGeneration": 2,
+  "observedAtUtc": "2026-10-23T12:17:36.235Z",
+  "targetStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/2d7d45a0-ced0-11f1-acc8-0effedbce869",
+  "approvedManifest": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-review-w7r-20261023.json",
+    "sha256": "6c74ce1e002f31e1b3061cc29122f63f8d0c4c4491bcdbabd5c0360a8156f344"
+  },
+  "approval": {
+    "userReply": "确认",
+    "context": "Immediately following exact cleanup SHA and linked complete risk; not approval inferred from Source refresh."
+  },
+  "risk": {
+    "file": "docs/aws-platform-hosting-w7r-cleanup-review.md",
+    "sha256": "d2ea305bc9e87993a127c72e85c6051110cc6acc964d1e4050e178d2e7a955f5"
+  },
+  "preparedIndex": {
+    "file": "ops/aws-sandbox/reviews/platform-hosting-w7r.cleanup-review.json",
+    "sha256": "b9352b30c8a9566f73eaef9251a917ab8d9e1544638e6d7a4434ce6ceb8f2722"
+  },
+  "deploymentParent": {
+    "file": "ops/aws-sandbox/reviews/platform-hosting-w7q.observed.json",
+    "sha256": "c9abd698a0d67d96313cc8a385f75adb5ebcd7f33865bac1192b09acb0b01d6a"
+  },
+  "acceptanceParent": {
+    "file": "ops/aws-sandbox/reviews/platform-hosting-w7r.acceptance.json",
+    "sha256": "4e97d65f18b3f9871c3ac585490a711266dce91204ef4c27b70ff1d5bffc4b70"
+  },
+  "executionHead": "9647ae28b21858bdd0df6e11a23751eae403c8fd",
+  "times": {
+    "submittedAtUtc": "2026-10-23T12:10:27.890Z",
+    "acknowledgedAtUtc": "2026-10-23T12:10:28.323Z",
+    "cfnDeleteCompleteObservedAtUtc": "2026-10-23T12:15:27.392Z",
+    "independentCfnFinishedAtUtc": "2026-10-23T12:15:27.959Z",
+    "independentServicesFinishedAtUtc": "2026-10-23T12:17:36.235Z"
+  },
+  "permanentIntent": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-v2.intent.json",
+    "sha256": "feed94c6ae7c2ae32e43e44861c715137b0c8e696758f4be8c4e73d6736571a6",
+    "state": "CONSUMED",
+    "retryAllowed": false
+  },
+  "counts": {
+    "executionAndObservationReadCommands": 28,
+    "executionPreflightReads": 4,
+    "cfnObservationReads": 11,
+    "independentServiceReads": 12,
+    "additionalProgressReads": 1,
+    "outsideSuccessfulReadCommands": 5,
+    "outsideSuccessfulReadBreakdown": {
+      "sourceNetworkDiagnostic": 1,
+      "independentRefreshedReadback": 4
+    },
+    "outsideFailedIdentityChecks": 2,
+    "totalTopLevelReadCommandsAttempted": 35,
+    "successfulTopLevelReadCommands": 33,
+    "cloudWriteSubmissions": 1,
+    "otherCloudWriteSubmissions": 0,
+    "secretValueReads": 0,
+    "sqlConnections": 0,
+    "applicationHttpRequests": 0
+  },
+  "countingLimits": [
+    "Top-level commands, not proof all failed identity checks reached AWS; two Source-only failures happened before slot consumption.",
+    "Provider/login/internal network operations and CloudFormation-managed deletion calls are not counted as separate top-level commands."
+  ],
+  "cfn": {
+    "status": "DELETE_COMPLETE",
+    "independentStatus": "DELETE_COMPLETE",
+    "allElevenDeleteComplete": true,
+    "resources": [
+      {
+        "id": "AlbSecurityGroup",
+        "type": "AWS::EC2::SecurityGroup",
+        "physicalId": "sg-0787f4d63aad50662",
+        "status": "DELETE_COMPLETE"
+      },
+      {
+        "id": "Cluster",
+        "type": "AWS::ECS::Cluster",
+        "physicalId": "techlong-sandbox-platform",
+        "status": "DELETE_COMPLETE"
+      },
+      {
+        "id": "DnsRecord",
+        "type": "AWS::Route53::RecordSet",
+        "physicalId": "console.sandbox.techlong.cloud",
+        "status": "DELETE_COMPLETE"
+      },
+      {
+        "id": "HttpsListener",
+        "type": "AWS::ElasticLoadBalancingV2::Listener",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-platform/a6804542ce24ff78/e8a64462678c398a",
+        "status": "DELETE_COMPLETE"
+      },
+      {
+        "id": "LoadBalancer",
+        "type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/a6804542ce24ff78",
+        "status": "DELETE_COMPLETE"
+      },
+      {
+        "id": "LogGroup",
+        "type": "AWS::Logs::LogGroup",
+        "physicalId": "/ecs/techlong-sandbox/platform-web",
+        "status": "DELETE_COMPLETE"
+      },
+      {
+        "id": "Service",
+        "type": "AWS::ECS::Service",
+        "physicalId": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+        "status": "DELETE_COMPLETE"
+      },
+      {
+        "id": "TargetGroup",
+        "type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/techlong-platform-web-v1/fa3bf2bb1ae8308b",
+        "status": "DELETE_COMPLETE"
+      },
+      {
+        "id": "TaskDefinition",
+        "type": "AWS::ECS::TaskDefinition",
+        "physicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:2",
+        "status": "DELETE_COMPLETE"
+      },
+      {
+        "id": "TaskIngress",
+        "type": "AWS::EC2::SecurityGroupIngress",
+        "physicalId": "sgr-09d0e690ff10ecf93",
+        "status": "DELETE_COMPLETE"
+      },
+      {
+        "id": "TaskSecurityGroup",
+        "type": "AWS::EC2::SecurityGroup",
+        "physicalId": "sg-07450bcefdb480818",
+        "status": "DELETE_COMPLETE"
+      }
+    ]
+  },
+  "independentServices": {
+    "allPassed": true,
+    "checks": [
+      {
+        "logicalId": "AlbSecurityGroup",
+        "physicalId": "sg-0787f4d63aad50662",
+        "operation": "ec2:describe-security-groups",
+        "passed": true,
+        "errorCode": "InvalidGroup.NotFound",
+        "atUtc": "2026-10-23T12:17:34.574Z"
+      },
+      {
+        "logicalId": "Cluster",
+        "physicalId": "techlong-sandbox-platform",
+        "operation": "ecs:describe-clusters",
+        "passed": true,
+        "metadata": {
+          "clusters": [
+            {
+              "arn": "arn:aws:ecs:ca-central-1:402010193138:cluster/techlong-sandbox-platform",
+              "status": "INACTIVE",
+              "runningTasks": 0,
+              "pendingTasks": 0,
+              "activeServices": 0
+            }
+          ],
+          "failures": []
+        },
+        "atUtc": "2026-10-23T12:17:32.774Z"
+      },
+      {
+        "logicalId": "DnsRecord",
+        "physicalId": "console.sandbox.techlong.cloud",
+        "operation": "route53:list-resource-record-sets",
+        "passed": true,
+        "metadata": [],
+        "atUtc": "2026-10-23T12:17:36.221Z"
+      },
+      {
+        "logicalId": "HttpsListener",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-platform/a6804542ce24ff78/e8a64462678c398a",
+        "operation": "elbv2:describe-listeners",
+        "passed": true,
+        "errorCode": "ListenerNotFound",
+        "atUtc": "2026-10-23T12:17:31.075Z"
+      },
+      {
+        "logicalId": "LoadBalancer",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/a6804542ce24ff78",
+        "operation": "elbv2:describe-load-balancers",
+        "passed": true,
+        "errorCode": "LoadBalancerNotFound",
+        "atUtc": "2026-10-23T12:17:31.064Z"
+      },
+      {
+        "logicalId": "LogGroup",
+        "physicalId": "/ecs/techlong-sandbox/platform-web",
+        "operation": "logs:describe-log-groups",
+        "passed": true,
+        "metadata": {
+          "exactMatchingNames": [],
+          "nextTokenPresent": false
+        },
+        "atUtc": "2026-10-23T12:17:35.913Z"
+      },
+      {
+        "logicalId": "Service",
+        "physicalId": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+        "operation": "ecs:describe-services",
+        "passed": true,
+        "metadata": {
+          "services": [
+            {
+              "arn": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+              "status": "INACTIVE",
+              "desired": 0,
+              "running": 0,
+              "pending": 0
+            }
+          ],
+          "failures": []
+        },
+        "atUtc": "2026-10-23T12:17:32.785Z"
+      },
+      {
+        "logicalId": "TargetGroup",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/techlong-platform-web-v1/fa3bf2bb1ae8308b",
+        "operation": "elbv2:describe-target-groups",
+        "passed": true,
+        "errorCode": "TargetGroupNotFound",
+        "atUtc": "2026-10-23T12:17:31.085Z"
+      },
+      {
+        "logicalId": "TaskDefinition",
+        "physicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:2",
+        "operation": "ecs:describe-task-definition",
+        "passed": true,
+        "metadata": {
+          "arn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:2",
+          "status": "INACTIVE"
+        },
+        "atUtc": "2026-10-23T12:17:32.763Z"
+      },
+      {
+        "logicalId": "TaskIngress",
+        "physicalId": "sgr-09d0e690ff10ecf93",
+        "operation": "ec2:describe-security-group-rules",
+        "passed": true,
+        "errorCode": "InvalidSecurityGroupRuleId.NotFound",
+        "atUtc": "2026-10-23T12:17:34.562Z"
+      },
+      {
+        "logicalId": "TaskSecurityGroup",
+        "physicalId": "sg-07450bcefdb480818",
+        "operation": "ec2:describe-security-groups",
+        "passed": true,
+        "errorCode": "InvalidGroup.NotFound",
+        "atUtc": "2026-10-23T12:17:34.584Z"
+      }
+    ],
+    "errors": []
+  },
+  "rawEvidence": [
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-v2.intent.json",
+      "sha256": "feed94c6ae7c2ae32e43e44861c715137b0c8e696758f4be8c4e73d6736571a6"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-16f93fb9ab0e8e9887ee4e4698909269/preflight.json",
+      "sha256": "a137811e2e3dd00a724897e0d7cf6ffda536591fa6e68c6847d71e5c5d3f3e92"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-16f93fb9ab0e8e9887ee4e4698909269/delete-intent.json",
+      "sha256": "9e6a1aaad8015d34131de07bb26525e4ca4ae2a4100b6926908d8c08bcffe282"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-16f93fb9ab0e8e9887ee4e4698909269/delete-ack.json",
+      "sha256": "3ba4e4e4ef200d1bc79c566c87dd0bd29fe0791e34c5ec99b5784dc728fe5717"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-16f93fb9ab0e8e9887ee4e4698909269/submission-result.json",
+      "sha256": "7033243ce2018936010137e2a0e26a1609cfd747fbe8bad7dc2c2cf0ed8b68b5"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-16f93fb9ab0e8e9887ee4e4698909269/cfn-observation.json",
+      "sha256": "0b26cf118b0da5b59bfdfd3e979a49fe38b4f6c8fc91147a5614ee5d93855cde"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-16f93fb9ab0e8e9887ee4e4698909269/progress-resources.json",
+      "sha256": "e36e205358c7a35e0b7fa66e421a4f0be4c1f9c06a71c5e6038578f3d350fb18"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-16f93fb9ab0e8e9887ee4e4698909269/service-observation.json",
+      "sha256": "bda61d9b0e23f8945fa6766cb3a1e1954093c7401a440e19cb8b674a1d8c7d29"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-refreshed-readback-w7r-20261023.json",
+      "sha256": "fc2e4f3280a670893371a415f4a81f3610045d2d252de96f580f20f3ae3b8ab4"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-source-unavailable-w7r-20261023.json",
+      "sha256": "7f6f2d356477b4b0a5dcfdb289c71ab186e92efd90c2f235b115f0dd84aa57a2"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-16f93fb9ab0e8e9887ee4e4698909269/offline-verification.json",
+      "sha256": "5e9c98d327ee856fd60d7f8f3acb259e5847e7325ef30223aaeb3646cbf8addf"
+    }
+  ],
+  "preservedByScope": {
+    "iamRole": "arn:aws:iam::402010193138:role/TechlongSandboxPlatformWebExecutionRoleV1",
+    "permissionsBoundary": "arn:aws:iam::402010193138:policy/TechlongSandboxPlatformWebExecutionBoundaryV1",
+    "secret": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/neon-v1-UfFKVF",
+    "ecrRepository": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-platform-web",
+    "certificate": "arn:aws:acm:ca-central-1:402010193138:certificate/6d1f2880-9f83-449c-930a-6b17516ef49d",
+    "hostedZone": "Z01473621BTTHKXBGOOEJ",
+    "vpc": "vpc-011dab69fff93972b",
+    "subnets": [
+      "subnet-023b1a81311709ed3",
+      "subnet-059d0bb14c42ff523"
+    ],
+    "neonDatabaseAndRoles": true,
+    "oldStacksAndBusinessRecords": true
+  },
+  "preservedResourcesReauditedThisPhase": false,
+  "hostingEndpointState": "HOSTING_REMOVED_DNS_ALIAS_ABSENT_NO_APPLICATION_HTTP_RETEST",
+  "irreversibleEffects": [
+    "This hosting log group/logs and ephemeral task data removed without export; old stack UUID not recoverable."
+  ],
+  "residualState": {
+    "cluster": "INACTIVE_ZERO_TASKS_ZERO_ACTIVE_SERVICES",
+    "service": "INACTIVE_DESIRED_RUNNING_PENDING_ZERO",
+    "taskDefinition": "INACTIVE_REVISION_2",
+    "fullProductProductionAcceptance": false,
+    "narrowLogoutDefectUnfixed": true,
+    "accountZeroCostProved": false
+  },
+  "restrictions": {
+    "forceDelete": false,
+    "perResourceSupplementalDelete": false,
+    "automaticRetry": false,
+    "intentReset": false,
+    "newSlot": false,
+    "applicationCodeChanged": false,
+    "newIam": false,
+    "secretChanged": false,
+    "directSql": false
+  },
+  "next": "Phase complete. Preserve all original records/consumed intents. A minimal narrow-viewport logout fix and regression tests can be prepared after a new implementation request; no automatic rebuild/publication/deploy or recreation."
+}
