@@ -1,0 +1,234 @@
+{
+  "schema": "techlong/platform-acceptance-observed/v1",
+  "metadataOnly": true,
+  "status": "BOUNDED_ADMIN_FLOW_PASSED_WITH_NARROW_LOGOUT_DEFECT",
+  "publicObservedAtUtc": "2026-10-23T11:12:22.283Z",
+  "authenticatedRecordedAtUtc": "2026-10-23T11:26:42.514Z",
+  "targetStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/2d7d45a0-ced0-11f1-acc8-0effedbce869",
+  "origin": "https://console.sandbox.techlong.cloud",
+  "authorization": {
+    "userMessage": "开始下一步",
+    "scope": "Bounded public probes, user self-login, three read-only administrator pages and one logout; not cleanup or deployment/code mutation."
+  },
+  "publicCheck": {
+    "counts": {
+      "awsMetadataReads": 4,
+      "awsWrites": 0,
+      "applicationUnauthenticatedGets": 3,
+      "loginPosts": 0,
+      "secretValueReads": 0,
+      "sqlConnections": 0
+    },
+    "checks": [
+      {
+        "path": "/api/health",
+        "status": 200,
+        "atUtc": "2026-10-23T11:12:21.739Z",
+        "tls": {
+          "authorized": true,
+          "protocol": "TLSv1.3",
+          "certificateCn": "sandbox.techlong.cloud",
+          "issuerCn": "Amazon RSA 2048 M04",
+          "fingerprint256": "8F:FE:FB:3A:2E:46:19:A4:CF:1D:4A:15:21:1A:48:E7:D3:F7:7D:8A:20:DD:6B:33:70:36:F8:E5:C0:59:FD:63"
+        },
+        "bodyBytes": 167,
+        "bodySha256": "63dff2dd82d12e1b3b813b7494b50f191c77670d3a4b266b79b7574a0e79f2b3",
+        "setCookiePresent": false,
+        "hsts": "max-age=300",
+        "contentType": "application/json",
+        "redirect": null,
+        "health": {
+          "status": "ok",
+          "service": "saas-platform"
+        }
+      },
+      {
+        "path": "/login",
+        "status": 200,
+        "atUtc": "2026-10-23T11:12:22.123Z",
+        "tls": {
+          "authorized": true,
+          "protocol": "TLSv1.3",
+          "certificateCn": "sandbox.techlong.cloud",
+          "issuerCn": "Amazon RSA 2048 M04",
+          "fingerprint256": "8F:FE:FB:3A:2E:46:19:A4:CF:1D:4A:15:21:1A:48:E7:D3:F7:7D:8A:20:DD:6B:33:70:36:F8:E5:C0:59:FD:63"
+        },
+        "bodyBytes": 12996,
+        "bodySha256": "2d3126d56abccf1dc2a9c1e809e6cc2d3180c972cfcc99f22aac2a2e4ee61e84",
+        "setCookiePresent": false,
+        "hsts": "max-age=300",
+        "contentType": "text/html; charset=utf-8",
+        "redirect": null,
+        "loginFormPresent": true
+      },
+      {
+        "path": "/admin",
+        "status": 307,
+        "atUtc": "2026-10-23T11:12:22.283Z",
+        "tls": {
+          "authorized": true,
+          "protocol": "TLSv1.3",
+          "certificateCn": "sandbox.techlong.cloud",
+          "issuerCn": "Amazon RSA 2048 M04",
+          "fingerprint256": "8F:FE:FB:3A:2E:46:19:A4:CF:1D:4A:15:21:1A:48:E7:D3:F7:7D:8A:20:DD:6B:33:70:36:F8:E5:C0:59:FD:63"
+        },
+        "bodyBytes": 0,
+        "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "setCookiePresent": false,
+        "hsts": "max-age=300",
+        "redirect": {
+          "sameOrigin": true,
+          "path": "/login"
+        }
+      }
+    ],
+    "errors": [],
+    "cookiesSent": false,
+    "authorizationSent": false,
+    "currentHosting": {
+      "stackStatus": "CREATE_COMPLETE",
+      "loadBalancerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/a6804542ce24ff78",
+      "dnsBoundToExactLoadBalancer": true
+    },
+    "automaticRetry": false
+  },
+  "authenticatedCheck": {
+    "schema": "techlong/platform-authenticated-acceptance/v1",
+    "recordedAtUtc": "2026-10-23T11:26:42.514Z",
+    "targetStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/2d7d45a0-ced0-11f1-acc8-0effedbce869",
+    "origin": "https://console.sandbox.techlong.cloud",
+    "outcome": "BOUNDED_ADMIN_FLOW_PASSED_WITH_NARROW_LOGOUT_DEFECT",
+    "userReportedSelfLogin": true,
+    "userProvidedPasswordsOrCodesToAgent": false,
+    "pages": [
+      {
+        "url": "https://console.sandbox.techlong.cloud/admin",
+        "adminNavPresent": true,
+        "h1Present": true,
+        "instanceListHref": "/admin/instances",
+        "logoutPresent": true,
+        "title": "管理概览 · 餐饮 SaaS 平台",
+        "visibleError": false
+      },
+      {
+        "url": "https://console.sandbox.techlong.cloud/admin/instances",
+        "errorIndicator": false,
+        "expectedInstanceHref": "/admin/instances/app_e897a4377bce498b9c5ee9e64509dcad",
+        "h1Present": true,
+        "logoutPresent": true,
+        "title": "应用实例管理 · 餐饮 SaaS 平台"
+      },
+      {
+        "url": "https://console.sandbox.techlong.cloud/admin/instances/app_e897a4377bce498b9c5ee9e64509dcad",
+        "enabledDeploymentControlCount": 0,
+        "errorIndicator": false,
+        "h1Present": true,
+        "instanceNotFound": false,
+        "logoutButtonNames": [
+          "退出登录"
+        ],
+        "title": "应用实例详情 · 餐饮 SaaS 平台"
+      }
+    ],
+    "logout": {
+      "agentSubmitClicks": 1,
+      "precedingLocatorAttempt": {
+        "matchCount": 0,
+        "inputDispatched": false,
+        "cause": "Control hidden at narrow breakpoint; no write retry"
+      },
+      "actualDestination": {
+        "pathname": "/",
+        "title": "客户服务 Dashboard · 餐饮 SaaS 平台"
+      },
+      "providerUrlWasStaleImmediatelyAfterNavigation": true,
+      "protectedPageReadback": {
+        "defaultNarrowViewportRestored": true,
+        "loginFormPresent": true,
+        "logoutVisible": false,
+        "pathname": "/login",
+        "redirectedToLogin": true,
+        "title": "登录 · 餐饮 SaaS 平台"
+      }
+    },
+    "warning": {
+      "code": "NARROW_VIEWPORT_LOGOUT_HIDDEN",
+      "narrow": {
+        "logoutVisible": false,
+        "userCardDisplay": "none",
+        "viewportAtOrBelow900": true
+      },
+      "desktop": {
+        "logoutControls": [
+          {
+            "disabled": false,
+            "name": "退出登录",
+            "visible": true
+          }
+        ],
+        "viewportAbove900": true
+      },
+      "source": "app/globals.css @media (max-width: 900px) hides .user-card containing logout",
+      "onlineCodeChanged": false,
+      "temporaryDesktopViewportUsed": true,
+      "viewportResetCompleted": true
+    },
+    "privacy": {
+      "businessRowsExported": false,
+      "credentialsRead": false,
+      "cookieValuesRead": false,
+      "browserStorageRead": false,
+      "authenticatedPageScreenshotsSaved": false,
+      "publicHeaderScreenshot": "F:/ChatGPT_workshop/techlong-platform-acceptance-w7r-logged-out-public-header.png",
+      "screenshotFormExcluded": true
+    },
+    "agentActions": {
+      "awsWrites": 0,
+      "directSecretValueReads": 0,
+      "directSqlConnections": 0,
+      "loginSubmitClicks": 0,
+      "logoutSubmitClicks": 1,
+      "createRequestClicks": 0,
+      "approveOrDispatchClicks": 0,
+      "observeJobClicks": 0
+    },
+    "limits": [
+      "User self-login success is user-reported plus authenticated DOM checks; no password or network payload was captured.",
+      "Browser HTTP request counts and actual authentication response status/Set-Cookie flags were not captured.",
+      "Post-logout protected-page redirect proves this browser is signed out, not independent proof of database session-row removal or replay resistance.",
+      "Only bounded administrator page rendering was checked; not complete business workflows, security, responsive or production acceptance.",
+      "Normal browser assets/prefetch/session traffic are additional to the three separate unauthenticated diagnostic GETs."
+    ],
+    "cleanupAuthorized": false,
+    "wholeSystemProductionAccepted": false
+  },
+  "rawEvidence": [
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-acceptance-public-w7r-20261023.json",
+      "sha256": "c9df617ef344228180449ff4c72df64b7769937b4efbdd3a1db95ac5ad6bc2d2"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-acceptance-auth-w7r-20261023.json",
+      "sha256": "ebead275dc8eda954070dfaae9a4d4fdb98bb6ef816ebd9a1c31d4064e429689"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-acceptance-w7r-logged-out-public-header.png",
+      "sha256": "ba5bfb1a5397c1dc5f84fca27f50ccb2cc23c5f7fb3f324b0a56a3be6addb08e",
+      "publicHeaderOnly": true,
+      "formExcluded": true
+    }
+  ],
+  "deploymentParent": {
+    "file": "ops/aws-sandbox/reviews/platform-hosting-w7q.observed.json",
+    "sha256": "c9abd698a0d67d96313cc8a385f75adb5ebcd7f33865bac1192b09acb0b01d6a"
+  },
+  "hostingIntentExpiresAt": "2026-10-23T12:54:53.398Z",
+  "automaticCleanup": false,
+  "wholeSystemProductionAccepted": false,
+  "followUp": {
+    "narrowLogoutFixPending": true,
+    "cleanupPreparationOnly": true,
+    "actualDeletionRequiresExactNewManifestApproval": true,
+    "noCodeOrImageChanged": true
+  }
+}
