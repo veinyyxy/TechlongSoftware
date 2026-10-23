@@ -1,0 +1,57 @@
+{
+  "schema": "techlong/platform-hosted-controller-inventory-summary/v6",
+  "phase": "W8c",
+  "status": "METADATA_MATCHED_ACTIVATION_NOT_PERFORMED",
+  "sourceCommit": "57c85cfa084c86885a2785afee83967f4c074b7e",
+  "startedAtUtc": "2026-10-23T13:55:11.338Z",
+  "completedAtUtc": "2026-10-23T13:55:14.470Z",
+  "timezone": "America/Winnipeg",
+  "rawReceipt": {
+    "path": "F:/ChatGPT_workshop/techlong-platform-hosted-inventory-w8c-20261023.json",
+    "sha256": "0c65862be1346c3e8375efeab51c7a988c0d80b7202dc28c24ec6c223562c6b1",
+    "metadataOperations": 31
+  },
+  "source": {"account": "402010193138", "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev", "userId": "AIDAV3GNMXTZEO7SHLC2X", "sdkVerified": true},
+  "secrets": {
+    "web": {"arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/neon-v1-UfFKVF", "versionId": "6ea2ca59-9a24-4f3e-b16f-ec824f32bc5f", "versionCount": 1, "stage": "AWSCURRENT", "policyMatchesExistingHandoff": true},
+    "controller": {"arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-controller/neon-v6-M4A08E", "versionId": "3574f24e-ecb3-476c-8f71-baa501fd129e", "versionCount": 1, "stage": "AWSCURRENT", "policyMatchesSourceOnly": true},
+    "both": {"notScheduledForDeletion": true, "rotationDisabled": true, "replicationAbsent": true, "versionListsComplete": true, "valuesRead": false},
+    "proposedAppKey": {"name": "techlong/sandbox/platform-controller/github-app-v6", "state": "ABSENT", "arn": null, "versionId": null}
+  },
+  "execution": {
+    "role": "TechlongSandboxPlatformWebExecutionRoleV1", "roleId": "AROAV3GNMXTZJ45S2ANZ7",
+    "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxPlatformWebExecutionBoundaryV1", "policyId": "ANPAV3GNMXTZP7KMHXNYF", "defaultVersion": "v1", "versions": ["v1"],
+    "inlineNames": ["ExecutionOnly"], "managedAttachments": [], "listsComplete": true,
+    "trustMatchesExistingEcsOnly": true, "boundaryAndInlineMatchExistingWebOnly": true,
+    "controllerCredentialAccessPresent": false,
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-access-v1/01b4bb80-ce60-11f1-9435-0e85c8c75895", "stackStatus": "CREATE_COMPLETE", "logicalResources": 2
+  },
+  "publisher": {
+    "role": "TechlongSandboxPlatformImagePublisherV2", "roleId": "AROAV3GNMXTZID6CJJBA2",
+    "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxPlatformImagePublishBoundaryV1", "policyId": "ANPAV3GNMXTZP2F37SEFP", "defaultVersion": "v1", "versions": ["v1"],
+    "inlineNames": ["OnlyPlatformWebRepository"], "managedAttachments": [], "listsComplete": true,
+    "state": "LOCKED", "trustAllowStatements": 0, "inlineExplicitDenyAllEcr": true, "boundaryMatchesOriginalMaximum": true,
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b", "stackStatus": "UPDATE_COMPLETE", "logicalResources": 1, "templateMatchesPriorRevoke": true,
+    "oldInitialAllowInlineExpectationIsNotCurrentPrestate": true, "assumeRoleProbePerformed": false
+  },
+  "ecr": {"repository": "techlong-sandbox-platform-web", "tagMutability": "IMMUTABLE", "scanOnPush": true, "encryption": "AES256", "imageCount": 1, "listComplete": true, "currentImageDigest": "sha256:81fb8157fd9dcf834204a3b0c866d3fc8071386a4cbc1ff71f2ccac992ed4612", "currentImageIsW8b": false},
+  "hosting": {"stackName": "techlong-sandbox-platform-hosting-v1", "state": "ABSENT", "fullServiceInventoryRepeated": false},
+  "additionalKmsDescribe": {"keyId": "3af8de5c-dbb7-451a-83f3-983fb1673570", "arn": "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570", "keyManager": "AWS", "state": "Enabled", "enabled": true, "usage": "ENCRYPT_DECRYPT", "spec": "SYMMETRIC_DEFAULT", "decryptCalled": false},
+  "canonicalMetadataSha256": {
+    "webSecretPolicy": "e6b7171042818dbcb1819548cc5904fc8d7680ba54cda8813c4cee634a7b6b0f",
+    "controllerSecretPolicy": "d21f2e9f0e33775471bee801c7b42c66f3d7c98fdc804f6c4f01b2124af4aaed",
+    "executionTrust": "6db015a4b45aff6aba2adbd3d608c6e24562907fa2b8c175b3c1e8a85ff06616",
+    "executionPolicy": "fa49ece9cc620e1d0d157ad27c1b1ac90f92c995b91f721c8f8a2bbb3744906d",
+    "publisherTrust": "27c6b04ae8addf59e07d8d3caa6da9b2bae3e683d7096381eedcf260df170948",
+    "publisherLockedInline": "f786bbfbeeb322ff1be04d6921b3e94e5d9f4ad3a383b84fb635d9b5f9633203",
+    "publisherBoundary": "326e94a2730f76bb7fdec2f8799f31d05a06976d674dc6e4c2940d4a39d93b47",
+    "accessTemplate": "e566999d2fb2926cebb1fe698d729d99044d481494d02fb6c8cfee785125e458",
+    "publisherRevokeTemplate": "2524cdf3b560e1a7739bd6293e5d52f5f6355d9b315a7926cd6c7d70c3e5c7f6"
+  },
+  "candidateArtifactMetadata": {"sourceCommit": "f3cea2da7d26dfc09726c4cbc52cab40217340c6", "runId": 39960583333, "artifactId": 12503974340, "bytes": 307773703, "digest": "sha256:12f027cccd21d955c5a0c4db9b6f536606749028c0a1fdcc8d09f95279265723", "expiresAtUtc": "2026-10-26T13:24:09Z", "expiredAtRead": false, "binaryDownloadedOrVerified": false, "registryManifestDigest": null},
+  "preservedCleanupSlotSha256": "feed94c6ae7c2ae32e43e44861c715137b0c8e696758f4be8c4e73d6736571a6",
+  "effects": {"snapshotMetadataOperations": 31, "additionalStsPrecheck": 1, "additionalKmsDescribe": 1, "secretValueReads": 0, "privateKeyContentReads": 0, "sqlConnections": 0, "cloudWrites": 0, "workflowDispatches": 0, "deployments": 0, "newExecutionSlotsConsumed": 0},
+  "nonAtomicObservation": true,
+  "executionAuthorized": false,
+  "document": "docs/aws-auto-deployment-platform-w8c-activation-scope.md"
+}

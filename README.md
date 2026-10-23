@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-23主线：**W8c现有资源核对与最小接入范围已收敛。** 两个数据库Secret的固定版本、原execution身份/权限及publisher Locked状态匹配；拟用App私钥Secret尚不存在，平台承载栈已不存在，ECR仍只有旧镜像。下一复用原入口准备“一项新密钥Secret＋既有execution权限补充＋W8b单次镜像发布”的具体执行材料，之后另审两小时托管验收；不新增身份/执行器/数据库或UI。只读33项AWS元数据操作（含预检/Key），未读私密值、未写云或SQL、未消费执行槽。本计划不是可执行清单，也不授权安装/发布/部署。[准确范围与唯一继续点](docs/aws-auto-deployment-platform-w8c-activation-scope.md) / [核对事实](ops/aws-sandbox/reviews/platform-hosted-controller-w8c.inventory.json)。
+
 2026-10-23主线：**W8b已接通显式Node托管启动与受控私密binding候选，本机87项新旧回归通过；准确f3cea2d源码CI39960583333的18报告步骤全成功，含真实容器启动/25秒到期/安全扫描。** 默认入口仍关闭；新模式先验证固定HTTPS/release/源码/租约，再按需供给原控制器凭据。到期只关控制能力，Web仍运行且继续可能计费，不自动清理或重建。未读真实Secret/key、未改IAM、发布ECR或部署AWS，UI不改。下一仅集中具体资源、固定版本、权限及发布/部署审核材料。[范围、风险和唯一继续点](docs/aws-auto-deployment-platform-w8b-hosted-startup.md) / [CI机器证据](ops/aws-sandbox/reviews/platform-hosted-startup-w8b.verified.json)。
 
 2026-10-23主线：**W8a控制器托管来源/租约兼容已编码，本机79项新旧回归、类型和定向lint通过；准确9f241d6源码的三项No-AWS CI全部成功（51报告步骤），含真实Docker构建/容器冒烟/安全扫描。** 复用既有Review/RunOnce/Inspect控制器，增加准确HTTPS来源、互斥模式和原30分钟上限；Node默认入口仍关闭，未装载密钥/凭据或启用部署。下一集中Node受审托管启动及私密供给，不重建只读壳、不扩F3c9。**用户明确窄屏退出按钮不修复，历史UI修复建议已撤回。** 本阶段AWS/Secret/生产SQL/真实App调度为0，实际权限和部署仍具体确认。[主线范围与继续点](docs/aws-auto-deployment-platform-w8a-hosted-controller.md) / [CI机器证据](ops/aws-sandbox/reviews/platform-controller-hosted-w8a.verified.json)。
