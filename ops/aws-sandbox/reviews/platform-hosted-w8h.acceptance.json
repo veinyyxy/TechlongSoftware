@@ -1,0 +1,202 @@
+{
+  "schema": "techlong/platform-hosted-bounded-acceptance-index/v1",
+  "phase": "W8h",
+  "status": "HOSTED_CONTROL_READ_PATH_AND_BOUNDED_AUTH_FLOW_VERIFIED_NO_DISPATCH",
+  "origin": "https://console.sandbox.techlong.cloud",
+  "targetStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+  "scopeFile": "docs/aws-auto-deployment-platform-w8h-bounded-acceptance.md",
+  "scopeSha256": "e403ea726a5fc7e4958f7315dc123da4b43d7d6d1cde1a8126fdad2f1c3d0dfb",
+  "authorization": {
+    "userApproval": "批准本轮有限验收",
+    "userLoginReport": "已登录概览",
+    "userLogoutReport": "已退出"
+  },
+  "publicCheck": {
+    "checks": [
+      {
+        "path": "/api/health",
+        "status": 200,
+        "observedAtUtc": "2026-10-23T19:24:49.189Z",
+        "tls": {
+          "authorized": true,
+          "protocol": "TLSv1.3",
+          "certificateCn": "sandbox.techlong.cloud",
+          "issuerCn": "Amazon RSA 2048 M04",
+          "fingerprint256": "8F:FE:FB:3A:2E:46:19:A4:CF:1D:4A:15:21:1A:48:E7:D3:F7:7D:8A:20:DD:6B:33:70:36:F8:E5:C0:59:FD:63"
+        },
+        "bodyBytes": 167,
+        "bodySha256": "5efe06444508ba5a3c29b68284fdab58afe8a62e47d372181a976b54393d54af",
+        "setCookiePresent": false,
+        "hsts": "max-age=300",
+        "health": {}
+      },
+      {
+        "path": "/login",
+        "status": 200,
+        "observedAtUtc": "2026-10-23T19:25:46.123Z",
+        "tls": {
+          "authorized": true,
+          "protocol": "TLSv1.3"
+        },
+        "bodyBytes": 12996,
+        "bodySha256": "07dba85cf86b86ca618b5f30446a9e0c9fe63084a628f908fcfd5b5e91e9bea6",
+        "setCookiePresent": false,
+        "hsts": "max-age=300",
+        "loginFormPresent": true
+      },
+      {
+        "path": "/admin",
+        "status": 307,
+        "observedAtUtc": "2026-10-23T19:25:46.294Z",
+        "tls": {
+          "authorized": true,
+          "protocol": "TLSv1.3"
+        },
+        "bodyBytes": 0,
+        "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "setCookiePresent": false,
+        "hsts": "max-age=300",
+        "redirect": {
+          "sameOrigin": true,
+          "path": "/login"
+        }
+      }
+    ],
+    "preflight": {
+      "observedAtUtc": "2026-10-23T19:24:48.875Z",
+      "stackStatus": "CREATE_COMPLETE",
+      "exactAlbArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/23610822b0ae5c30",
+      "dnsBound": true,
+      "running": 1,
+      "pending": 0,
+      "controlLeaseExpiresAtUtc": "2026-10-23T19:28:42.592Z",
+      "hostingIntentExpiresAtUtc": "2026-10-23T20:58:42.592Z",
+      "controlLeaseTimeRemainingMs": 233715
+    },
+    "diagnosticGets": 3,
+    "awsMetadataReads": 5,
+    "awsWrites": 0,
+    "cookiesSent": false,
+    "authorizationSent": false,
+    "originalProjectionError": [
+      "HTTP_RESULT"
+    ],
+    "healthSemanticsVerified": false,
+    "loginAndAdminGatePassed": true,
+    "healthRequestRetried": false,
+    "automaticRetry": false
+  },
+  "authenticatedCheck": {
+    "schema": "techlong/platform-hosted-bounded-authenticated-acceptance/v1",
+    "targetStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "origin": "https://console.sandbox.techlong.cloud",
+    "recordedAtUtc": "2026-10-23T19:31:00.165Z",
+    "authorization": {
+      "userApproval": "批准本轮有限验收",
+      "userLoginReport": "已登录概览",
+      "userLogoutReport": "已退出"
+    },
+    "overview": {
+      "path": "/admin",
+      "title": "管理概览 · 餐饮 SaaS 平台",
+      "overviewHeading": true,
+      "hasInstanceNavigation": true,
+      "visibleErrorCode": null,
+      "observation": "Browser DOM projection before the exact detail navigation"
+    },
+    "detail": {
+      "observedAtUtc": "2026-10-23T19:27:30.591Z",
+      "path": "/admin/instances/app_e897a4377bce498b9c5ee9e64509dcad",
+      "title": "应用实例详情 · 餐饮 SaaS 平台",
+      "controlPanelPresent": true,
+      "controlEnabledText": true,
+      "controlDisabledText": false,
+      "notFound": false,
+      "visibleErrorCode": null,
+      "planStates": [
+        "RunOnce · ACKNOWLEDGED",
+        "Review · OBSERVED",
+        "Review · SLOT_OCCUPIED",
+        "Review · OBSERVED",
+        "Review · SLOT_OCCUPIED"
+      ],
+      "evidence": "Only visible controller state projection; no action buttons clicked",
+      "privateDatabaseStatusReadPathVerified": true,
+      "appSigningOrDispatchVerified": false,
+      "discardedHeuristic": "An initial H1 substring test for 实例 was false because the instance-specific H1 need not contain that generic word; exact path/title/panel and no-error signals are authoritative."
+    },
+    "logout": {
+      "userPerformed": true,
+      "assistantSubmitted": false,
+      "firstObservation": {
+        "observedAtUtc": "2026-10-23T19:29:22.635Z",
+        "path": "/",
+        "title": "客户服务 Dashboard · 餐饮 SaaS 平台",
+        "loginLinkPresent": true
+      },
+      "protectedGateObservation": {
+        "observedAtUtc": "2026-10-23T19:29:27.088Z",
+        "requestedPath": "/admin",
+        "resultPath": "/login",
+        "title": "登录 · 餐饮 SaaS 平台",
+        "loginHeading": true,
+        "loginFormPresent": true
+      },
+      "browserLogoutAndProtectionVerified": true,
+      "databaseSessionDeletionOrOldTokenReplayNotIndependentlyTested": true
+    },
+    "credentialBoundary": {
+      "userEnteredCredentials": true,
+      "assistantReadOrEnteredCredentials": false,
+      "cookiesOrStorageRead": false,
+      "authenticatedScreenshotsSaved": false,
+      "rawAuthenticatedPageExported": false
+    },
+    "assistantActions": {
+      "createRequest": 0,
+      "approve": 0,
+      "observe": 0,
+      "dispatch": 0,
+      "appTokens": 0,
+      "awsWrites": 0,
+      "directSql": 0,
+      "secretValueReads": 0
+    },
+    "controlLeaseExpiresAtUtc": "2026-10-23T19:28:42.592Z",
+    "controlReadObservedBeforeExpiry": true,
+    "leaseExpiredByCurrentClock": true,
+    "renewed": false,
+    "hostingIntentExpiresAtUtc": "2026-10-23T20:58:42.592Z",
+    "automaticStopOrCleanup": false,
+    "cleanupAuthorized": false,
+    "outcome": "HOSTED_CONTROL_READ_PATH_AND_BOUNDED_AUTH_FLOW_VERIFIED_NO_DISPATCH",
+    "publicProbeCaveat": "Health HTTP200/TLS passed; first helper expected unwrapped status instead of apiSuccess.data, so semantic health fields were not verified. Original HTTP_RESULT receipt retained, health not retried; remaining two approved paths each requested once.",
+    "browserTrafficCountingCaveat": "Login/logout/resource loads/prefetch/session traffic is not counted in the three isolated diagnostic GETs; authentication request counts are not independently captured.",
+    "skillInfluence": "computer-use skill: credentials handed off to the user; dedicated browser interface used; only minimum visible DOM projections retained."
+  },
+  "verifiedReceipt": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-w8h-acceptance-verified-20261023.json",
+    "sha256": "f3abdabfd418a7c2470e0ae3a75f45cdd07fab06f32881097aeb98f4396ab985"
+  },
+  "receipts": [
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-w8h-public-check-20261023.json",
+      "sha256": "bcf43030e8abb197bfde5f61a9c15b1da893c23dfc4049175c1638c773294742"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-w8h-public-remaining-20261023.json",
+      "sha256": "d03adb2f00c0022c4a56f6b2f8c4252ee8f6ac90845960a4ede9e8894fccfd86"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-w8h-authenticated-check-20261023.json",
+      "sha256": "8983e12f6ca8cc6d0ac894105089191626d69d31d2c3d7474f0d54e2e3173df1"
+    }
+  ],
+  "fullSystemProductionAcceptance": false,
+  "appSigningOrDispatchVerified": false,
+  "controlLeaseExpired": true,
+  "controlLeaseRenewed": false,
+  "hostingMayContinueBilling": true,
+  "cleanupAuthorized": false,
+  "next": "Prepare all prerequisites for a separately approved real hosted Review dispatch before activating any new control lease; do not repeat shell/login/image/IAM work. Prepare exact-new-stack cleanup separately; no auto-renew or delete."
+}
