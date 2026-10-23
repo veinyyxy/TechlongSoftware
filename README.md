@@ -1,5 +1,9 @@
 # 餐饮 SaaS 平台
 
+2026-10-22当前：**W7o HTTPS承载已创建并通过独立元数据核验：HOSTING_METADATA_VERIFIED_APPLICATION_ACCEPTANCE_PENDING。** 21:13–21:17CDT按准确289e7cdc清单，仅一次CreateStack创建11项承载逻辑资源；栈CREATE_COMPLETE，实际单task健康、固定digest、ALB target/443listener/SG/DNS及原access身份均通过，errors为空。入口为[console.sandbox.techlong.cloud](https://console.sandbox.techlong.cloud)，尚未执行公网HTTP或管理员登录验收，不代表整套系统上线。**收费资源现在存在；两小时意图截止今晚23:13:24CDT，但不会自动停止或销毁，清理仍需另审。永久槽已消费，下方部署命令仅历史，不可重放。** [部署结果与边界](docs/aws-platform-hosting-w7o-deployed.md) / [机器证据](ops/aws-sandbox/reviews/platform-hosting-w7o.observed.json)。下一步先做独立应用验收并尽快审批准确栈清理，controller/worker/apply保持关闭。
+
+以下为W7o已完成的历史准备记录（不再待批准）。
+
 2026-10-22当前：**W7o 两小时HTTPS承载部署入口及48小时清单已准备，CI和AWS只读模板验证通过；尚未部署。** [准确CI39886264015](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39886264015)绑定源码`281933ba4064fbde4978d4d2f3cc214bcdef1fb5`，全部10报告步骤成功（21项新旧测试、类型、lint）。沿用W7n真实RoleId/PolicyId、固定Secret UUID及已发布单平台manifest；fresh inventory已核对原权限/Secret元数据、网络/路由/证书/预算及承载名称/task family空闲。无新IAM或Secret策略修改，未来新栈仅11项承载逻辑资源；2小时变量费示例0.13555USD，不含既有资源/日志/流量/额外容量等，不是上限。本轮AWS写/Secret值读取/SQL均0，29项源码及4份产物已绑定，永久部署槽未消费，hosting窗口未开始。[完整部署范围与风险](docs/aws-platform-hosting-w7o-deployment-review.md) / [脱敏待审索引（非原件）](ops/aws-sandbox/reviews/platform-hosting-w7o.review.json)。
 
 W7o待批准SHA：`289e7cdcb09630b2b851fe5fa493477f1d7a642bbe10509efa21bf3ccac178ab`。原件仅保留`F:/ChatGPT_workshop/techlong-platform-hosting-review-w7o-20261022.json`；到期 **2026-10-24 20:52:52 CDT（America/Winnipeg）**，最晚启动 **20:22:52 CDT**（分别`2026-10-25T01:52:52.306Z`、`01:22:52.306Z`）。拟议仅一次CreateStack创建11项承载资源并独立元数据核验；允许ECS按固定任务定义启动/替换任务、读取并注入真实固定版本Secret，公开应用可能产生数据库访问或认证写，不等于部署程序主动读取值/SQL。DisableRollback=true/20分钟CFN超时，失败不自动重建/回滚/清理，永久槽不复位；T0+2小时仅标签/输出，**不会自动停止收费**。实际管理员登录/公网应用验收及后续清理另审。只有该SHA和完整风险明确获批后才使用：
