@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-23）：**W8d最小供给CLI及W8b发布协议适配已实现，42项本机新旧检查、类型和定向lint通过；新准确CI待main验证。** 先完成No-AWS CI再只读Prepare新48小时七写清单，另批一次PEM/Secret/既有IAM安装；不是立即运行。旧W7j候选/入口不变，新协议严格保留仓库旧镜像，新镜像真实产物/工作流及Source撤权编排仍待独立绑定。应用、运行时、数据库、旧执行闭包/槽及UI保持，无新增身份/部署。不要重做W8c资源盘点或只读壳；下一仅准确CI→fresh供给清单。[完整风险及入口](aws-auto-deployment-platform-w8d-supply-review.md)。下文为历史。
+
 当前继续点（2026-10-23）：**W8c元数据实查完成，已把接入缩为一项新App私钥Secret、既有execution角色两项固定凭据权限及既有publisher单次发布W8b镜像。** 原两个数据库Secret版本/策略和身份保持，publisher确认为上次撤权后的Locked，不把其Deny inline误作漂移。平台承载栈不存在、ECR尚无W8b镜像；本轮只读无私密值/SQL/云写/新槽。下一实现最小供给安装入口与现有发布适配，验证后才生成具体SHA分别确认；实际两小时托管/新任务/调度/清理另审。不新建身份/执行器或重做应用壳，不修窄屏UI。[资源表、顺序及风险](aws-auto-deployment-platform-w8c-activation-scope.md) / [未获批的机器计划](../ops/aws-sandbox/reviews/platform-hosted-controller-w8c.plan.json)。下文为历史。
 
 当前继续点（2026-10-23）：**W8b Node托管启动/私密供给候选已完成，准确f3cea2d源码的No-AWS CI39960583333全部18报告步骤成功，真实容器25秒到期检查和安全扫描通过。** 默认关闭保持，本机87项回归、类型/lint通过；只在明确托管模式及有效上下文下供给两项控制器私密绑定，单进程不替换，到期永久关闭但Web不自动停机/停费。下一仅集中现有资源/固定Secret版本/发布及execution角色的具体最小审核材料，不读真实key、不部署或创建任务；窄屏UI明确排除。[具体边界和唯一继续点](aws-auto-deployment-platform-w8b-hosted-startup.md)。下文为历史。

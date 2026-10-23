@@ -1,0 +1,43 @@
+name: Platform hosted supply and publication binding - No AWS
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/platform-hosted-access-candidate.yml'
+      - 'ops/platform-hosted-access-v6/**'
+      - 'ops/platform-image-publication-v2/plan.mjs'
+      - 'ops/platform-image-publication-v2/publish.mjs'
+      - 'tests/platform-hosted-access-v6.test.mjs'
+      - 'docs/aws-auto-deployment-platform-w8d-supply-review.md'
+  pull_request:
+    paths:
+      - '.github/workflows/platform-hosted-access-candidate.yml'
+      - 'ops/platform-hosted-access-v6/**'
+      - 'ops/platform-image-publication-v2/plan.mjs'
+      - 'ops/platform-image-publication-v2/publish.mjs'
+      - 'tests/platform-hosted-access-v6.test.mjs'
+      - 'docs/aws-auto-deployment-platform-w8d-supply-review.md'
+permissions:
+  contents: read
+concurrency:
+  group: platform-hosted-access-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Exact hosted supply and candidate binding - No AWS
+        run: node --test tests/platform-hosted-access-v6.test.mjs tests/platform-ecs-v1.test.mjs tests/platform-image-publication-v2.test.mjs tests/platform-image-source-v2.test.mjs
+      - name: Typecheck and scoped lint
+        run: |
+          node node_modules/typescript/bin/tsc --noEmit --incremental false
+          node node_modules/eslint/bin/eslint.js ops/platform-hosted-access-v6/ ops/platform-image-publication-v2/plan.mjs ops/platform-image-publication-v2/publish.mjs tests/platform-hosted-access-v6.test.mjs --max-warnings 0

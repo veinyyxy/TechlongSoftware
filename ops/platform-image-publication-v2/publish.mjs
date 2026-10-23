@@ -1,5 +1,5 @@
 // Only invoked by the protected, immutable reusable job after future approval.
-import {P,must,validateReview,validateCloud,validateClaims,verifyPublishedManifest,same} from './plan.mjs';
+import {P,must,validateReview,validateCloud,validateClaims,same,publicationProtocol} from './plan.mjs';
 import {readFile,mkdtemp,unlink,rmdir} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
@@ -7,7 +7,8 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {inspect,save,fileHash} from './artifact.mjs';
 
-export function verifyPreflight(p,now=Date.now()){
+export function verifyPreflight(p,now=Date.now(),candidate=P){
+  const P=candidate;
   must(p?.schema==='techlong/platform-publication-preflight/v2'&&p.outcome==='OS_HIGH_CRITICAL_ZERO'&&
     p.sourceCommit===P.sourceCommit&&p.producerRunId===P.runId&&p.artifactId===P.artifactId&&
     p.artifactZipDigest===P.artifactDigest&&p.archiveSha256===P.archiveSha256&&p.imageConfigDigest===P.imageConfigDigest&&
@@ -19,8 +20,9 @@ export function verifyPreflight(p,now=Date.now()){
     now-Date.parse(p.recordedAtUtc)>=0&&now-Date.parse(p.recordedAtUtc)<=15*60000&&
     now-Date.parse(p.databaseUpdatedAt)>=-300000&&now-Date.parse(p.databaseUpdatedAt)<=48*3600000,'PREFLIGHT');
 }
-export async function runPublisher({text,approvedSha,env,preflight,ports,now=Date.now()}){
-  const m=validateReview(text,approvedSha,now);validateCloud(env,m,now);verifyPreflight(preflight,now);
+export async function runPublisher({text,approvedSha,env,preflight,ports,now=Date.now(),protocol=publicationProtocol()}){
+  const {P,validateReview,validateCloud,verifyPublishedManifest}=protocol;
+  const m=validateReview(text,approvedSha,now);validateCloud(env,m,now);verifyPreflight(preflight,now,P);
   await ports.consume({manifestSha256:approvedSha,nonce:m.nonce,runId:env.GITHUB_RUN_ID,retryAllowed:false});
   try{
     // Source owns IAM revoke; this role has no IAM/CFN permission.
@@ -29,7 +31,8 @@ export async function runPublisher({text,approvedSha,env,preflight,ports,now=Dat
     must(who.Account===P.account&&who.UserId===P.roleId+':'+session&&
       who.Arn===`arn:aws:sts::${P.account}:assumed-role/${P.role}/${session}`,'ROLE_ID');
     const inventory=await ports.inventory();
-    must(!inventory.nextToken&&Array.isArray(inventory.imageDetails)&&inventory.imageDetails.length===0,'REPOSITORY_NOT_EMPTY');
+    if(protocol.verifyInventory)protocol.verifyInventory(inventory);
+    else must(!inventory.nextToken&&Array.isArray(inventory.imageDetails)&&inventory.imageDetails.length===0,'REPOSITORY_NOT_EMPTY');
     await ports.login();await ports.tag();await ports.push(); // exactly one top-level push, no application retry
     const published=verifyPublishedManifest(await ports.manifest());
     const result={schema:'techlong/platform-image-publication-result/v2',outcome:'IMAGE_PUBLISHED_REVOKE_NOT_YET_PROVED',

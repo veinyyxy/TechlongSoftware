@@ -20,7 +20,23 @@ export const must=(v,c)=>{if(!v)throw Error('PLATFORM_PUBLISH_V2_'+c);};
 export const hash=b=>createHash('sha256').update(b).digest('hex');
 const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
 export const same=(a,b)=>JSON.stringify(canonical(a))===JSON.stringify(canonical(b));
-export function verifyCandidate(run,artifact,now=Date.now()){
+// A bound candidate shares the proven protocol, never mutates the legacy P.
+export function publicationProtocol(candidate=P){
+  const mutable=new Set(['sourceCommit','runId','artifactId','artifactBytes','artifactName','artifactDigest','artifactExpiresAt',
+    'imageConfigDigest','archiveSha256','targetTag','reusableFile','callerFile']);
+  must(same(Object.keys(candidate).sort(),Object.keys(P).sort())&&Object.keys(P).every(k=>mutable.has(k)||same(candidate[k],P[k]))&&
+    /^[a-f0-9]{40}$/.test(candidate.sourceCommit)&&Number.isSafeInteger(candidate.runId)&&candidate.runId>0&&
+    Number.isSafeInteger(candidate.artifactId)&&candidate.artifactId>0&&Number.isSafeInteger(candidate.artifactBytes)&&candidate.artifactBytes>0&&
+    candidate.artifactName===`platform-web-image-${candidate.sourceCommit}-${candidate.runId}`&&
+    /^sha256:[a-f0-9]{64}$/.test(candidate.artifactDigest)&&Number.isFinite(Date.parse(candidate.artifactExpiresAt))&&
+    /^sha256:[a-f0-9]{64}$/.test(candidate.imageConfigDigest)&&/^[a-f0-9]{64}$/.test(candidate.archiveSha256)&&
+    candidate.targetTag===`platform-sha${candidate.sourceCommit}-r${candidate.runId}-a1`&&
+    ((candidate.reusableFile===P.reusableFile&&candidate.callerFile===P.callerFile)||
+      (candidate.reusableFile==='platform-image-hosted-publish-job-v2.yml'&&candidate.callerFile==='platform-image-hosted-publish-v2.yml')),'BOUND_CANDIDATE');
+  return boundProtocol(Object.freeze({...candidate}));
+}
+function boundProtocol(P){
+function verifyCandidate(run,artifact,now=Date.now()){
   must(run.id===P.runId&&run.head_sha===P.sourceCommit&&run.head_branch==='main'&&run.event==='push'&&run.run_attempt===1&&
     run.status==='completed'&&run.conclusion==='success'&&run.workflow_id===P.workflowId&&
     run.path==='.github/workflows/platform-hosting-candidate.yml'&&run.repository?.id===P.repositoryId,'CANDIDATE_RUN');
@@ -29,7 +45,7 @@ export function verifyCandidate(run,artifact,now=Date.now()){
     artifact.workflow_run?.id===P.runId&&artifact.workflow_run.head_sha===P.sourceCommit&&
     artifact.workflow_run.repository_id===P.repositoryId&&artifact.workflow_run.head_repository_id===P.repositoryId,'CANDIDATE_ARTIFACT');
 }
-export function validateReview(text,sha,now=Date.now()){
+function validateReview(text,sha,now=Date.now()){
   must(typeof text==='string'&&text.length<20000&&/^[a-f0-9]{64}$/.test(sha)&&hash(text)===sha,'REVIEW_SHA');
   const m=JSON.parse(text);
   must(same(Object.keys(m).sort(),['schema','reusableCommit','dispatchCommit','nonce','issuedAt','expiresAt','grantStartsAt','grantExpiresAt','candidate'].sort())&&
@@ -40,7 +56,7 @@ export function validateReview(text,sha,now=Date.now()){
     start>=issued&&grantEnd>start&&grantEnd-start<=3600000&&grantEnd<=end&&end<=Date.parse(P.artifactExpiresAt),'REVIEW_WINDOW');
   return m;
 }
-export function templates(m){
+function templates(m){
   // Revalidate even when called by a local planner rather than the cloud worker.
   const text=JSON.stringify(m);validateReview(text,hash(text),Date.parse(m.issuedAt));
   const grant=lockedPublisherFoundation(),role=grant.Resources.PlatformImagePublisher.Properties;
@@ -58,7 +74,7 @@ export function templates(m){
     Statement:[{Sid:'LockedDenyAllEcr',Effect:'Deny',Action:['ecr:*'],Resource:'*'}]};
   return {grant,revoke};
 }
-export function validateCloud(env,m,now=Date.now()){
+function validateCloud(env,m,now=Date.now()){
   must(env.GITHUB_ACTIONS==='true'&&env.GITHUB_REPOSITORY===P.repository&&env.GITHUB_REPOSITORY_ID===String(P.repositoryId)&&
     env.GITHUB_EVENT_NAME==='workflow_dispatch'&&env.GITHUB_REF==='refs/heads/main'&&env.GITHUB_RUN_ATTEMPT==='1'&&
     env.GITHUB_SHA===m.dispatchCommit&&env.GITHUB_ACTOR_ID===P.actorId&&/^[1-9][0-9]{5,19}$/.test(env.GITHUB_RUN_ID)&&
@@ -67,7 +83,7 @@ export function validateCloud(env,m,now=Date.now()){
     env.NODE_TLS_REJECT_UNAUTHORIZED!=='0','CREDENTIAL_OR_ENDPOINT_OVERRIDE');
   must(now>=Date.parse(m.grantStartsAt)&&now+60000<Date.parse(m.grantExpiresAt),'CLOUD_GRANT_WINDOW');
 }
-export function validateClaims(c,env,m,now=Date.now()){
+function validateClaims(c,env,m,now=Date.now()){
   must(c.iss==='https://token.actions.githubusercontent.com'&&c.aud==='sts.amazonaws.com'&&c.sub===P.subject&&c.repository===P.repository&&
     c.repository_id===String(P.repositoryId)&&c.repository_owner_id===P.ownerId&&c.actor_id===P.actorId&&
     c.ref==='refs/heads/main'&&c.event_name==='workflow_dispatch'&&c.environment===P.environment&&c.run_id===env.GITHUB_RUN_ID&&
@@ -75,7 +91,7 @@ export function validateClaims(c,env,m,now=Date.now()){
     c.job_workflow_ref===`${P.repository}/.github/workflows/${P.reusableFile}@${m.reusableCommit}`&&c.job_workflow_sha===m.reusableCommit&&
     Number.isSafeInteger(c.exp)&&c.exp*1000>now&&Number.isSafeInteger(c.iat)&&c.iat*1000<=now+300000,'OIDC_CLAIMS');
 }
-export function verifyPublishedManifest(response){
+function verifyPublishedManifest(response){
   must((response.failures??[]).length===0&&response.images?.length===1,'ECR_MANIFEST_RESPONSE');
   const i=response.images[0],manifest=JSON.parse(i.imageManifest??'null');
   must(i.registryId===P.account&&i.repositoryName===P.ecrRepository&&i.imageId?.imageTag===P.targetTag&&
@@ -84,3 +100,7 @@ export function verifyPublishedManifest(response){
     manifest.config?.digest===P.imageConfigDigest&&Array.isArray(manifest.layers)&&manifest.layers.length>0,'ECR_MANIFEST_IMAGE');
   return {manifestDigest:i.imageId.imageDigest,imageConfigDigest:manifest.config.digest,layerCount:manifest.layers.length};
 }
+return Object.freeze({P,verifyCandidate,validateReview,templates,validateCloud,validateClaims,verifyPublishedManifest});
+}
+const legacy=publicationProtocol();
+export const {verifyCandidate,validateReview,templates,validateCloud,validateClaims,verifyPublishedManifest}=legacy;
