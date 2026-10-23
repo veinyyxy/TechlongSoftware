@@ -1,0 +1,48 @@
+{
+  "schema": "techlong/platform-followup-request-summary/v6",
+  "state": "FOLLOWUP_HELD_REQUEST_VERIFIED_LOCAL_ENTRY_CLOSED",
+  "approvedManifestSha256": "a2616ef62e1854a6ac138beb3cbc063fa59408b514f931931ceae0418ed2f20b",
+  "operatorSourceCommit": "bd4afdf38700a5dbdc89fc34b78528011c9ff8df",
+  "requiredHostedPlanSourceCommit": "f3cea2da7d26dfc09726c4cbc52cab40217340c6",
+  "ciRunId": "40015027142",
+  "ciJobId": "120624779654",
+  "ciReportedStepsAllSuccess": 19,
+  "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+  "deploymentId": "dep_7c99bd249470184852f0dc74",
+  "job": {
+    "id": "job_6e2e115c80301595512f11fb",
+    "status": "pending",
+    "attempts": 0,
+    "maxAttempts": 1,
+    "availableAt": 9007199254740991,
+    "leasePresent": false,
+    "reviewRequired": true,
+    "cloudExecutionAuthorized": false,
+    "rowSha256": "2f9eb8c47fb21e17af4b344eda03057c4dafad4231fdd62234e5db73de9c021d"
+  },
+  "oldRowsPreserved": 9,
+  "oldJobsPreserved": 6,
+  "canceledHistoryPreserved": true,
+  "localRuntime": {"childPid": 5004, "childPidAbsent": true, "portFree": true, "currentlyRunningForThisWindow": false},
+  "effects": {
+    "authFileReads": 2, "explicitReadOnlyTransactions": 4, "logicalHeldJobsCreated": 1,
+    "normalAuthenticationWritesNotZero": true, "awsCalls": 0, "awsSecretValueReads": 0,
+    "privateKeyReads": 0, "appTokens": 0, "workflowDispatches": 0, "controlPlanPublications": 0,
+    "cloudLeaseUpdates": 0, "cloudDeployments": 0, "newlyConsumedPermanentSlots": 2, "automaticWriteRetries": 0
+  },
+  "summaryReceipt": {
+    "path": "F:/ChatGPT_workshop/techlong-platform-w8i-followup-verified-20261023.json",
+    "rawSha256": "ad09b8aa4d52d0fc538e81a1aeb89e2b9cd0fe18e8341d0fdda7496642424b25",
+    "indexedRawFiles": 10
+  },
+  "permanentSlotHashes": {
+    "start": "f0ec84eccf376c41f2cebf604f2d3d8548dc098215fb7dce603953bacbe06cc4",
+    "inspect": "fa291a3eb1632137965cd075d18fecd983b92860e4e19755d796bc6a3825c89b"
+  },
+  "sourcePinsVerified": 23,
+  "oldW8gPinsUnchanged": 48,
+  "newPlanPublished": false,
+  "cloudExecutionApproved": false,
+  "retryAllowed": false,
+  "document": "docs/aws-auto-deployment-platform-w8i-held-request-observed.md"
+}
