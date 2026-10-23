@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {load} from 'js-yaml';
-import {H,P,IMAGE,RELEASE_SHA,SCOPE,hash,canonical,lease,template,assertBaseline,makeReview,validate,runtime} from '../ops/platform-hosted-deploy-v6/contract.mjs';
+import {H,P,IMAGE,RELEASE_SHA,SCOPE,hash,canonical,lease,template,assertDefinitions,assertBaseline,makeReview,validate,runtime} from '../ops/platform-hosted-deploy-v6/contract.mjs';
 import {run} from '../ops/platform-hosted-deploy-v6/run.mjs';
 import {H as A,suppliedTemplate,readPolicy} from '../ops/platform-hosted-access-v6/contract.mjs';
 import {handoffPolicy} from '../ops/platform-ecs-v1/contract.mjs';
@@ -57,6 +57,13 @@ test('baseline requires W8d exact roles and versions, prior deletion, accurate E
     x=>x.supply.pendingChangeSets.push({}),x=>x.hostingNamesAbsent=false,x=>x.previousStackStatus='CREATE_COMPLETE',
     x=>x.image.digest=P.imageDigest,x=>x.image.configDigest='other',x=>x.budget.limitUsd=10,x=>x.retired.active=1]){
     const b=baseline();change(b);assert.throws(()=>assertBaseline(b));}
+});
+test('only the two known inactive W7 task revisions may remain; active, deleting, unknown or paged records still block',()=>{
+  const data=()=>({ACTIVE:{taskDefinitionArns:[]},INACTIVE:{taskDefinitionArns:[...H.retiredTaskDefinitions]},DELETE_IN_PROGRESS:{taskDefinitionArns:[]}});
+  assert.deepEqual(assertDefinitions(data()),H.retiredTaskDefinitions);const absent=data();absent.INACTIVE.taskDefinitionArns=[];assert.deepEqual(assertDefinitions(absent),[]);
+  for(const change of [x=>x.ACTIVE.taskDefinitionArns.push(H.previousTaskDefinition),x=>x.DELETE_IN_PROGRESS.taskDefinitionArns.push(H.previousTaskDefinition),
+    x=>x.INACTIVE.nextToken='next',x=>x.INACTIVE.taskDefinitionArns.push(H.previousTaskDefinition.replace(':2',':3')),
+    x=>x.INACTIVE.taskDefinitionArns.push(H.previousTaskDefinition)]){const x=data();change(x);assert.throws(()=>assertDefinitions(x));}
 });
 test('raw SHA, whole scope, template, parent evidence and 48-hour approval are bound; audit grants no replay',()=>{
   const m=review(),text=JSON.stringify(m);validate(text,hash(text),now);assert.deepEqual(m.scope,SCOPE);

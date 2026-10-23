@@ -14,6 +14,7 @@ export const H=Object.freeze({phase:'W8g',validMs:48*3600000,runMs:20*60000,leas
   controllerVersion:'3574f24e-ecb3-476c-8f71-baa501fd129e',roleId:'AROAV3GNMXTZJ45S2ANZ7',
   previousStackId:'arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/2d7d45a0-ced0-11f1-acc8-0effedbce869',
   previousTaskDefinition:'arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:2',
+  retiredTaskDefinitions:Object.freeze([1,2].map(n=>`arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:${n}`)),
   slot:'F:/ChatGPT_workshop/techlong-platform-hosted-deploy-v6.intent.json',
   riskFile:'docs/aws-auto-deployment-platform-w8g-hosting-review.md',ciPath:'.github/workflows/platform-hosted-deploy-candidate.yml'});
 export const SCOPE=Object.freeze({createStackMax:1,logicalResources:11,newIam:0,secretWrites:0,directSecretValueReads:0,
@@ -47,6 +48,11 @@ export const tags=(nonce,expiry)=>[{Key:'Environment',Value:'aws-sandbox'},{Key:
   {Key:'ReviewNonce',Value:nonce},{Key:'HostingExpiresAt',Value:expiry}];
 export function assertSupply(s){verifyInstalled(s,H.appArn,H.appVersion);
   must(s.pendingComplete===true&&s.pendingChangeSets.length===0,'PENDING_ACCESS_CHANGE');}
+export function assertDefinitions(data){must(same(Object.keys(data??{}).sort(),['ACTIVE','DELETE_IN_PROGRESS','INACTIVE']),'DEFINITION_STATUSES');
+  for(const [status,d]of Object.entries(data))must(!d.nextToken&&Array.isArray(d.taskDefinitionArns)&&new Set(d.taskDefinitionArns).size===d.taskDefinitionArns.length&&
+    (status==='INACTIVE'?d.taskDefinitionArns.every(a=>H.retiredTaskDefinitions.includes(a)):d.taskDefinitionArns.length===0),'DEFINITION_OCCUPIED');
+  return data.INACTIVE.taskDefinitionArns;
+}
 export function assertBaseline(b){assertSupply(b?.supply);must(b.hostingNamesAbsent===true&&b.previousStackId===H.previousStackId&&
   b.previousStackStatus==='DELETE_COMPLETE'&&b.image?.digest===H.imageDigest&&b.image?.configDigest===H.imageConfigDigest&&
   b.budget?.limitUsd===50&&b.network?.vpc===P.vpc&&b.certificate?.arn===P.certificate&&

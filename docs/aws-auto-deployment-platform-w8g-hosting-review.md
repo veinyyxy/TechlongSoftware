@@ -6,7 +6,7 @@
 
 账户 `402010193138`，区域 `ca-central-1`，Source 为既有 `techlong-sandbox-dev`。部署入口为工程内 `ops/platform-hosted-deploy-v6/local.mjs`，不在 F 盘增加可执行包装。仅一次 `CreateStack`，SDK 单尝试、`DisableRollback=true`、20分钟 CloudFormation 创建超时；不发 Create/Execute Change Set，不设置 service role，不安装权限。
 
-准确栈名 `techlong-sandbox-platform-hosting-v1`。W7r 已删除旧 UUID `2d7d45a0-ced0-11f1-acc8-0effedbce869`；本次是新的托管控制入口验收，不是重试 W7q 或复活旧 UUID。执行前按名称无在用栈、旧准确栈 DELETE_COMPLETE、名称/网络/证书/执行权限/镜像元数据均匹配才可消费新永久槽。新建返回的完整栈 ARN 必须记录，后续清理只能另审这个新 UUID。旧原件和已消费槽全部保留。
+准确栈名 `techlong-sandbox-platform-hosting-v1`。W7r 已删除旧 UUID `2d7d45a0-ced0-11f1-acc8-0effedbce869`；本次是新的托管控制入口验收，不是重试 W7q 或复活旧 UUID。执行前按名称无在用栈、旧准确栈 DELETE_COMPLETE、名称/网络/证书/执行权限/镜像元数据均匹配才可消费新永久槽。允许保留准确family的已知旧任务定义`:1`和`:2`，且只能INACTIVE或已消失；ACTIVE、删除中、分页不明或任何其它版本仍阻断，绝不删除这些历史记录。新建返回的完整栈 ARN 必须记录，后续清理只能另审这个新 UUID。旧原件和已消费槽全部保留。
 
 沿用原11个逻辑资源：TaskSecurityGroup、AlbSecurityGroup、TaskIngress、LogGroup、Cluster、LoadBalancer、TargetGroup、HttpsListener、TaskDefinition、Service、DnsRecord。两安全组仅443公网入 ALB、ALB到3000任务、任务443出网；既有 VPC `vpc-011dab69fff93972b`、两公网子网、sandbox Zone `Z01473621BTTHKXBGOOEJ`、ACM证书 `6d1f2880-9f83-449c-930a-6b17516ef49d`。公网域名固定 `https://console.sandbox.techlong.cloud`。不创建 NAT、数据库、Secret、角色、boundary 或 task role。
 

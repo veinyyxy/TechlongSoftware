@@ -7,7 +7,7 @@ import * as C from '@aws-sdk/client-cloudformation';
 import {createCloud as supplyCloud} from '../platform-hosted-access-v6/cloud.mjs';
 import {assertPublicRoutes} from '../platform-ecs-v1/cloud.mjs';
 import {assertGroups} from '../platform-hosting-deploy-v1/cloud.mjs';
-import {H,P,must,same,hash,canonical,lease,template,tags,assertSupply,assertBaseline,runtime} from './contract.mjs';
+import {H,P,must,same,hash,canonical,lease,template,tags,assertSupply,assertDefinitions,assertBaseline,runtime} from './contract.mjs';
 const endpoints={ec2:'ec2.ca-central-1.amazonaws.com',ecr:'api.ecr.ca-central-1.amazonaws.com',ecs:'ecs.ca-central-1.amazonaws.com',
   elbv2:'elasticloadbalancing.ca-central-1.amazonaws.com',logs:'logs.ca-central-1.amazonaws.com',route53:'route53.amazonaws.com',
   acm:'acm.ca-central-1.amazonaws.com',iam:'iam.amazonaws.com',budgets:'budgets.amazonaws.com'};
@@ -65,8 +65,8 @@ export function cloud(){
     if(!missing){const sv=cli('ecs','describe-services',['--cluster',P.cluster,'--services',P.service]);
       must(sv.services?.length===1&&sv.services[0].serviceName===P.service&&sv.services[0].status==='INACTIVE'&&sv.services[0].desiredCount===0&&
         sv.services[0].runningCount===0&&sv.services[0].pendingCount===0&&!sv.failures?.length,'SERVICE_OCCUPIED');}
-    const definitions={};for(const status of ['ACTIVE','INACTIVE','DELETE_IN_PROGRESS']){const d=cli('ecs','list-task-definitions',['--family-prefix',P.family,'--status',status,'--max-results','100']);
-      must(!d.nextToken&&Array.isArray(d.taskDefinitionArns)&&(status==='INACTIVE'?d.taskDefinitionArns.every(a=>a===H.previousTaskDefinition):d.taskDefinitionArns.length===0),'DEFINITION_OCCUPIED');definitions[status]=d.taskDefinitionArns;}
+    const definitions={};for(const status of ['ACTIVE','INACTIVE','DELETE_IN_PROGRESS'])definitions[status]=cli('ecs','list-task-definitions',['--family-prefix',P.family,'--status',status,'--max-results','100']);
+    const inactive=assertDefinitions(definitions);
     const logs=cli('logs','describe-log-groups',['--log-group-name-prefix',P.logGroup,'--limit','50']);must(!logs.nextToken&&!logs.logGroups?.some(g=>g.logGroupName===P.logGroup),'LOGS_OCCUPIED');
     const linked=[];for(const name of ['AWSServiceRoleForECS','AWSServiceRoleForElasticLoadBalancing']){const r=cli('iam','get-role',['--role-name',name]).Role;
       must(r?.RoleId&&r.Arn.includes(':role/aws-service-role/'),'LINKED_ROLE');linked.push({name,id:r.RoleId,arn:r.Arn});}
@@ -76,7 +76,7 @@ export function cloud(){
       image:{digest:H.imageDigest,configDigest:doc.config.digest,size:image.imageDetails[0].imageSizeInBytes},
       network:{vpc:P.vpc,subnets:sort(sub.map(x=>({id:x.SubnetId,az:x.AvailabilityZone}))),routeTable:P.routeTable,igw:P.igw},
       certificate:{arn:P.certificate,status:cert.Status,notAfter:cert.NotAfter},serviceLinkedRoles:linked,budget:{limitUsd:50,hardCap:false},
-      retired:{cluster:missing?'MISSING':'INACTIVE',active:0,deleting:0,running:0,inactiveDefinitions:definitions.INACTIVE}};
+      retired:{cluster:missing?'MISSING':'INACTIVE',active:0,deleting:0,running:0,inactiveDefinitions:inactive}};
     assertBaseline(baseline);return {observedAtUtc:new Date().toISOString(),baseline};
   }
   async function observe({nonce,stackId,hostingExpiresAt,controlLease}){
@@ -90,7 +90,7 @@ export function cloud(){
         same(sort(st.Parameters?.map(p=>({ParameterKey:p.ParameterKey,ParameterValue:p.ParameterValue}))??[]),sort([
           {ParameterKey:'HostingExpiresAt',ParameterValue:hostingExpiresAt},{ParameterKey:'ControllerLease',ParameterValue:canonical(controlLease)}]))&&
         same(sort(st.Tags??[]),sort(tags(nonce,hostingExpiresAt)))&&resources.length===11&&resources.every(x=>x.status==='CREATE_COMPLETE'&&x.physicalId&&intended.Resources[x.id]?.Type===x.type),'STACK_EXACT');
-      const ids=Object.fromEntries(resources.map(x=>[x.id,x.physicalId]));must(ids.TaskDefinition!==H.previousTaskDefinition,'OLD_DEFINITION');
+      const ids=Object.fromEntries(resources.map(x=>[x.id,x.physicalId]));must(!H.retiredTaskDefinitions.includes(ids.TaskDefinition),'OLD_DEFINITION');
       const lb=cli('elbv2','describe-load-balancers',['--load-balancer-arns',ids.LoadBalancer]).LoadBalancers;
       must(lb?.length===1&&lb[0].LoadBalancerArn===ids.LoadBalancer&&lb[0].LoadBalancerName===P.alb&&lb[0].State.Code==='active'&&lb[0].VpcId===P.vpc&&
         lb[0].Type==='application'&&lb[0].Scheme==='internet-facing'&&lb[0].IpAddressType==='ipv4'&&same(lb[0].SecurityGroups,[ids.AlbSecurityGroup])&&same(sort(lb[0].AvailabilityZones.map(z=>z.SubnetId)),sort(P.subnets)),'ALB');

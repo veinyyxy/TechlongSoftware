@@ -1,0 +1,96 @@
+{
+  "schema": "techlong/platform-hosted-deploy-ci/v6",
+  "state": "EXACT_SOURCE_NO_AWS_CI_VERIFIED",
+  "sourceCommit": "ff99d97a8c880ef0d5c3d4f688d5d50cf22acd47",
+  "repository": "veinyyxy/TechlongSoftware",
+  "repositoryId": 1323312747,
+  "runId": 40005767004,
+  "workflowId": 394424703,
+  "path": ".github/workflows/platform-hosted-deploy-candidate.yml",
+  "headBranch": "main",
+  "event": "push",
+  "attempt": 1,
+  "status": "completed",
+  "conclusion": "success",
+  "htmlUrl": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/40005767004",
+  "reportedSuccessfulSteps": 9,
+  "jobs": [
+    {
+      "id": 120593139438,
+      "name": "candidate",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 40005767004,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Hosted deployment contracts - No AWS",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Typecheck and scoped lint",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13
+        }
+      ]
+    }
+  ],
+  "localTests": {
+    "pass": 39,
+    "fail": 0,
+    "skip": 0
+  },
+  "typecheck": "passed",
+  "scopedLint": "passed",
+  "imageRebuilt": false,
+  "imageRepublished": false,
+  "awsCalls": 0,
+  "privateValueReads": 0,
+  "hostingDeployment": false,
+  "cloudRuntimeAcceptance": false
+}
