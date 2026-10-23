@@ -1,21 +1,42 @@
-// Public local-runtime lease checks only; no filesystem/network/secret discovery.
+// Public runtime lease checks only; no filesystem/network/secret discovery.
 import { CONTROL_SCOPE as S, commit, keys, obj, releaseReady } from './contract.ts';
 import type { ReleaseBinding } from './contract.ts';
 import { sha256Hex } from '../execution/hash.ts';
 export const CONTROL_ORIGIN_V6 = 'http://127.0.0.1:3100';
+export const HOSTED_CONTROL_ORIGIN_V6 = 'https://console.sandbox.techlong.cloud';
 export const CONTROL_RISK_PATH_V6 = 'docs/aws-auto-deployment-platform-w6j-runtime-binding-review.md';
 export interface RuntimeLeaseV6 {schema:string;releaseSha256:string;origin:string;sourceCommit:string;issuedAt:number;expiresAt:number}
-export function localRuntimeLeaseV6(raw:unknown,release:ReleaseBinding,now:number):RuntimeLeaseV6|null {
+function runtimeLeaseV6(raw:unknown,release:ReleaseBinding,now:number,schema:string,origin:string):RuntimeLeaseV6|null {
   if(!releaseReady(release)||typeof raw!=='string'||raw.length>2048||!Number.isSafeInteger(now)||now<=0)return null;
   try{const p=obj(JSON.parse(raw));keys(p,['schema','releaseSha256','origin','sourceCommit','issuedAt','expiresAt']);
-    if(p.schema!=='techlong/platform-local-runtime-lease/v6'||p.origin!==CONTROL_ORIGIN_V6||!commit(p.sourceCommit)||
+    if(p.schema!==schema||p.origin!==origin||!commit(p.sourceCommit)||
       typeof p.releaseSha256!=='string'||!/^[a-f0-9]{64}$/.test(p.releaseSha256)||!Number.isSafeInteger(p.issuedAt)||!Number.isSafeInteger(p.expiresAt)||
       Number(p.issuedAt)>now||now>=Number(p.expiresAt)||Number(p.expiresAt)-Number(p.issuedAt)<=0||Number(p.expiresAt)-Number(p.issuedAt)>1800000)return null;
     return p as unknown as RuntimeLeaseV6;
   }catch{return null;}
 }
+export function localRuntimeLeaseV6(raw:unknown,release:ReleaseBinding,now:number):RuntimeLeaseV6|null {
+  return runtimeLeaseV6(raw,release,now,'techlong/platform-local-runtime-lease/v6',CONTROL_ORIGIN_V6);
+}
+export function hostedRuntimeLeaseV6(raw:unknown,release:ReleaseBinding,now:number):RuntimeLeaseV6|null {
+  return runtimeLeaseV6(raw,release,now,'techlong/platform-hosted-runtime-lease/v6',HOSTED_CONTROL_ORIGIN_V6);
+}
 export async function verifiedRuntimeLeaseV6(raw:unknown,release:ReleaseBinding,now:number):Promise<RuntimeLeaseV6|null>{
   const p=localRuntimeLeaseV6(raw,release,now);return p&&p.releaseSha256===await sha256Hex(release)?p:null;
+}
+export interface ControllerRuntimeV6 {mode:'local'|'hosted';origin:string;lease:RuntimeLeaseV6}
+export function controllerRuntimeV6(read:(name:string)=>unknown,release:ReleaseBinding,now:number):ControllerRuntimeV6|null {
+  if(!releaseReady(release)||read('TECHLONG_PLATFORM_CONTROLLER_ENABLED')!=='true')return null;
+  const local=read('TECHLONG_PLATFORM_CONTROL_LOCAL'),hosted=read('TECHLONG_PLATFORM_CONTROL_HOSTED');
+  const flag=(v:unknown)=>v===undefined||v===''||v==='false'||v==='true';
+  if(!flag(local)||!flag(hosted)||(local==='true')===(hosted==='true'))return null;
+  const raw=read('TECHLONG_PLATFORM_CONTROLLER_LEASE');
+  const lease=hosted==='true'?hostedRuntimeLeaseV6(raw,release,now):localRuntimeLeaseV6(raw,release,now);
+  return lease?{mode:hosted==='true'?'hosted':'local',origin:lease.origin,lease}:null;
+}
+export async function verifiedControllerRuntimeV6(read:(name:string)=>unknown,release:ReleaseBinding,now:number):Promise<ControllerRuntimeV6|null>{
+  const p=controllerRuntimeV6(read,release,now);
+  return p&&p.lease.releaseSha256===await sha256Hex(release)?p:null;
 }
 export async function assertControllerDatabaseUrlV6(binding:unknown){
   if(typeof binding!=='string'||binding.length>4096)throw Error('CONTROL_DATABASE_BINDING');

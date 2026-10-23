@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-23）：**W8a已实现控制器AWS托管来源/租约候选，原本机模式和Node默认关闭保持。** W6w租户独立部署、W7r平台有限登录验收及临时承载清理均已完成；剩余缺口是把既有控制器接到AWS托管运行，不再重做只读壳或扩F3c9。用户明确不修窄屏退出按钮，历史UI建议不再作为下一步。W8a本机79项新旧测试、类型和定向lint通过；下一准确云CI及Node受审托管启动/私密供给接线，实际IAM/Secret/镜像发布/部署另按具体范围确认。本阶段不读真实私钥/Secret、不连生产库、不调度或建资源。[具体范围、实现和唯一继续点](aws-auto-deployment-platform-w8a-hosted-controller.md)。下文为历史，不能重放旧清单或已消费槽。
+
 当前继续点（2026-10-20）：**W6m准确job的可信Review计划受审入口已编码，尚未发布。** 复用原publisher/SQL/S3读取器，准确W5r沿革重建后最多一次条件对象写和一次计划SQL，另进程只读回读；不签App token/dispatch、不读key/Secret或部署。48小时operator清单、实际发布时才启动原2小时Review计划；23项本机/定向lint通过，下一准确CI后元数据Prepare并请新SHA确认。保留W6l任务/槽，不再新增任务或扩权限/云执行器。[完整范围、风险和继续命令](aws-auto-deployment-platform-w6m-review-plan.md)。下文为历史。
 
 当前继续点（2026-10-20）：**W6l准确新待审任务已登记并独立核验，入口已关闭。** `job_fc0309dabebc09367f64153f` pending/attempt0/max1/审核挂起、无lease/云执行授权；九行及四旧job摘要保持。准确CI17步骤、12原件/26源码pin通过，两永久槽消费禁止重放；原PID退出、3100无监听。本阶段不读App key/AWS Secret、不调用AWS或dispatch；正常登录写入不声称SQL为0。下一仅复用既有publisher/controller为该准确job准备Review计划及新范围，计划SQL/私密供给/App操作/部署另审，不新增任务、执行器或身份支线。[完成证据和唯一继续点](aws-auto-deployment-platform-w6l-held-request-verified.md)。下文为历史。
