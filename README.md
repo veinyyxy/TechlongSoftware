@@ -1,6 +1,6 @@
 # 餐饮 SaaS 平台
 
-2026-10-23主线：**W8f单次发布/立即撤权接线已实现，尚待不可变reusable准确CI及caller绑定后生成具体清单。** 真实W8b候选、原publisher/Source/边界复用；预检查旧镜像、结束精确旧＋新，旧默认入口保持。新绑定未就绪时闭锁，无AWS写/私密读取/调度/发布/部署。实际ECR发布另按新SHA确认，不继承W8d安装批准。[固定范围与完整风险](docs/aws-auto-deployment-platform-w8f-publish-review.md)。
+2026-10-23主线：**W8f单次发布/立即撤权接线、不可变reusable与caller绑定已通过准确CI，共70报告步骤成功；fresh只读清单已准备，未执行。** 原publisher仍Locked、仓库准确旧镜像及人工门禁保持；33源码pin/18不可变云pin，真实W8b候选固定。待审SHA `97077303703d826e39f766e5f0de18fdfe170efe5254e1e4f4b0c8f10ef29f54`，最晚启动2026-10-25 11:30:14CDT，到期12:30:14CDT；一小时实际Grant从运行时开始，不自动延长。最多两次原栈Update、一次dispatch、900秒会话和一次顶层ECR push，成功失败立即尝试Revoke并独立Locked；保留旧镜像，不部署ECS。云写/私密读取/SQL/实际调度/新槽消费均0，必须新SHA批准，不继承安装授权。[完整风险](docs/aws-auto-deployment-platform-w8f-publish-review.md) / [待审索引（非原件）](ops/aws-sandbox/reviews/platform-hosted-publication-w8f.review.json) / [真实CI证据](ops/aws-sandbox/reviews/platform-hosted-publication-w8f.verified.json)。下文为历史。
 
 2026-10-23主线：**W8e真实W8b镜像封验及准确云CI均通过，两条CI共35报告步骤全部成功。** 实际ZIP/archive/config摘要匹配；云端Docker加载同一镜像，loopback/HTTPS/托管到期三项隔离自检通过，Alpine3.24.1的18个OS包HIGH/CRITICAL为0。不重新构建、不安装Docker Desktop；AWS/私密读取/SQL/App调度/ECR发布/ECS部署均0，旧槽保留。下一仅把真实候选接原Source Grant→单次发布→立即Revoke及独立Locked核验，发布授权另审，不新增身份/执行器/UI。[具体范围与唯一继续点](docs/aws-auto-deployment-platform-w8e-image-preflight.md) / [真实产物及35步CI证据](ops/aws-sandbox/reviews/platform-hosted-publication-w8e.verified.json)。下文为历史。
 

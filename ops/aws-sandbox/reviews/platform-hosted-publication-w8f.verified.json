@@ -1,0 +1,773 @@
+{
+  "schema": "techlong/platform-hosted-publication-binding-ci/v2",
+  "state": "CODE_AND_IMMUTABLE_BINDING_VERIFIED_PREPARED_NOT_EXECUTED",
+  "sourceCommit": "6b88e11007ac849c43e5672662db3448d336c68c",
+  "reusableCommit": "04cb44b5f0c0386a1c998033327030e72358d088",
+  "recordedAtUtc": "2026-10-23T17:34:43.435Z",
+  "candidate": {
+    "repository": "veinyyxy/TechlongSoftware",
+    "repositoryId": 1323312747,
+    "actorId": "14145707",
+    "ownerId": "14145707",
+    "sourceCommit": "f3cea2da7d26dfc09726c4cbc52cab40217340c6",
+    "runId": 39960583333,
+    "workflowId": 391864582,
+    "artifactId": 12503974340,
+    "artifactBytes": 307773703,
+    "artifactName": "platform-web-image-f3cea2da7d26dfc09726c4cbc52cab40217340c6-39960583333",
+    "artifactDigest": "sha256:12f027cccd21d955c5a0c4db9b6f536606749028c0a1fdcc8d09f95279265723",
+    "artifactExpiresAt": "2026-10-26T13:24:09Z",
+    "imageConfigDigest": "sha256:c418fef9c5146ef1fcdb39f88cb28ffe2d50a8b89f64ce94f6c8f463f6924230",
+    "archiveSha256": "9c427ec8a2f5b4146ee578b0fd1f5f602f729cf09f65aa7bb5392b1c596a22f5",
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "role": "TechlongSandboxPlatformImagePublisherV2",
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxPlatformImagePublisherV2",
+    "roleId": "AROAV3GNMXTZID6CJJBA2",
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b",
+    "ecrRepository": "techlong-sandbox-platform-web",
+    "registry": "402010193138.dkr.ecr.ca-central-1.amazonaws.com",
+    "targetTag": "platform-shaf3cea2da7d26dfc09726c4cbc52cab40217340c6-r39960583333-a1",
+    "environment": "techlong-sandbox-deploy",
+    "subject": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy",
+    "reusableFile": "platform-image-hosted-publish-job-v2.yml",
+    "callerFile": "platform-image-hosted-publish-v2.yml",
+    "scannerVersion": "0.75.0",
+    "scannerSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f"
+  },
+  "reusableCiEvidence": {
+    "path": "F:/ChatGPT_workshop/techlong-hosted-publication-w8f-reusable-ci-20261023.json",
+    "sha256": "b9aaca7fdfe788f692e769ed67bb22169cadfb46aa2dee3ba5da8911e2a59893"
+  },
+  "ci": [
+    {
+      "id": 39994545953,
+      "path": ".github/workflows/platform-hosted-access-candidate.yml",
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39994545953",
+      "sourceCommit": "04cb44b5f0c0386a1c998033327030e72358d088",
+      "workflowId": 394273685,
+      "event": "push",
+      "branch": "main",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 120554547334,
+          "name": "candidate",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Exact hosted supply and candidate binding - No AWS",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 6,
+              "name": "Typecheck and scoped lint",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 12,
+              "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 13,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 39994545689,
+      "path": ".github/workflows/platform-image-source-v2-candidate.yml",
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39994545689",
+      "sourceCommit": "04cb44b5f0c0386a1c998033327030e72358d088",
+      "workflowId": 392305102,
+      "event": "push",
+      "branch": "main",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 120554543820,
+          "name": "source-contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Run node --test tests/platform-image-source-v2.test.mjs tests/platform-image-publication-v2.test.mjs tests/platform-image-publication.test.mjs",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 6,
+              "name": "Run node node_modules/typescript/bin/tsc --noEmit --incremental false",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 12,
+              "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 13,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 39994545634,
+      "path": ".github/workflows/platform-image-publication-v2-candidate.yml",
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39994545634",
+      "sourceCommit": "04cb44b5f0c0386a1c998033327030e72358d088",
+      "workflowId": 392289399,
+      "event": "push",
+      "branch": "main",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 120554543863,
+          "name": "contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Run node --test tests/platform-image-publication-v2.test.mjs tests/platform-image-publication.test.mjs",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 6,
+              "name": "Run python3 -B tests/platform-image-extraction_test.py",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 7,
+              "name": "Run node node_modules/typescript/bin/tsc --noEmit --incremental false",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 13,
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 14,
+              "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 15,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 120554997495,
+          "name": "exact-image",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Exact original ZIP and Alpine image, dual smoke and fresh zero-finding scan",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Save only small independent preflight evidence",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 9,
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 10,
+              "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 39994545711,
+      "path": ".github/workflows/platform-hosted-publication-candidate.yml",
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39994545711",
+      "sourceCommit": "04cb44b5f0c0386a1c998033327030e72358d088",
+      "workflowId": 394308354,
+      "event": "push",
+      "branch": "main",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 120554543981,
+          "name": "contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Run node --test tests/platform-hosted-source-v2.test.mjs tests/platform-hosted-publication-v2.test.mjs tests/platform-image-publication-v2.test.mjs tests/platform-image-source-v2.test.mjs",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 6,
+              "name": "Run node node_modules/typescript/bin/tsc --noEmit --incremental false",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 12,
+              "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 13,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 120554889910,
+          "name": "exact-image",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Original hosted bytes, Docker load, three smokes and fresh OS scan",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Save small independent facts only, no image or private bindings",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 9,
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 10,
+              "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 39995110624,
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39995110624",
+      "path": ".github/workflows/platform-hosted-publication-candidate.yml",
+      "sourceCommit": "6b88e11007ac849c43e5672662db3448d336c68c",
+      "workflowId": 394308354,
+      "event": "push",
+      "branch": "main",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 120556491254,
+          "name": "contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Run node --test tests/platform-hosted-source-v2.test.mjs tests/platform-hosted-publication-v2.test.mjs tests/platform-image-publication-v2.test.mjs tests/platform-image-source-v2.test.mjs",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 6,
+              "name": "Run node node_modules/typescript/bin/tsc --noEmit --incremental false",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 12,
+              "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 13,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 120556876021,
+          "name": "exact-image",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Original hosted bytes, Docker load, three smokes and fresh OS scan",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Save small independent facts only, no image or private bindings",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 9,
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 10,
+              "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12520175087,
+          "name": "platform-hosted-publication-preflight-6b88e11007ac849c43e5672662db3448d336c68c-39995110624",
+          "size_in_bytes": 3482,
+          "url": "https://api.github.com/repos/veinyyxy/TechlongSoftware/actions/artifacts/12520175087",
+          "archive_download_url": "https://api.github.com/repos/veinyyxy/TechlongSoftware/actions/artifacts/12520175087/zip",
+          "expired": false,
+          "created_at": "2026-10-23T17:29:00Z",
+          "expires_at": "2026-10-26T17:29:00Z",
+          "updated_at": "2026-10-23T17:29:00Z",
+          "digest": "sha256:8208e797f8ae01c09091625da5472ad29ddb35cb74501edd88f817ce67376558",
+          "workflow_run": {
+            "id": 39995110624,
+            "repository_id": 1323312747,
+            "head_repository_id": 1323312747,
+            "head_branch": "main",
+            "head_sha": "6b88e11007ac849c43e5672662db3448d336c68c"
+          }
+        }
+      ]
+    }
+  ],
+  "reportedSteps": 70,
+  "frozenCloudPins": [
+    {
+      "file": ".github/workflows/platform-image-hosted-publish-job-v2.yml",
+      "sha256": "b81a54786b0cd914a20d2e33a31949b285f8197f275a62728330808e66eefe27"
+    },
+    {
+      "file": "ops/cloud-worker/package-lock.json",
+      "sha256": "2011778b7f0e58db266c77506e37ef9827c6043e4ce9565bce6cffff84a32b8c"
+    },
+    {
+      "file": "ops/cloud-worker/package.json",
+      "sha256": "9a0124155263ac3641824c71338d07543f5c9167b3a98ae8ba74ad1cbf110718"
+    },
+    {
+      "file": "ops/platform-hosted-access-v6/publication.mjs",
+      "sha256": "a1e5aed7cefe8cca87281c325f99b0034ab1e733a2dc4b8bed9d776ace5b8fd3"
+    },
+    {
+      "file": "ops/platform-hosted-publication-v2/artifact.mjs",
+      "sha256": "b12a778a32f6383172b1d752f25dae7c1ed9e588c08de1a04aafef32af657c02"
+    },
+    {
+      "file": "ops/platform-hosted-publication-v2/candidate.mjs",
+      "sha256": "67834159a3137aaba0525cc9f99c8ba78f1610737a5ae40bd991bcb124c23879"
+    },
+    {
+      "file": "ops/platform-hosted-publication-v2/cloud.mjs",
+      "sha256": "6e19cf9ad84e177bfdb58f822bd9c5a86e53ba121129ed4832f791ed1ca995a1"
+    },
+    {
+      "file": "ops/platform-hosting-v1/contract.mjs",
+      "sha256": "d32ba9af706ecc883a7481c6baa8c89b8a5c301807c0c1d4fe6434cad13b007f"
+    },
+    {
+      "file": "ops/platform-hosting-v1/image-artifact.mjs",
+      "sha256": "3300df5a8c7542599107af5825d3e5e40a76d8575e63a62df48216886ec20b20"
+    },
+    {
+      "file": "ops/platform-hosting-v1/image-foundation.mjs",
+      "sha256": "f4138aaf410ea75b3553a27303ac18145473f85f76758789fcb8bf887984337b"
+    },
+    {
+      "file": "ops/platform-hosting-v1/security-scan.mjs",
+      "sha256": "deed680033d5540d8956f83bbcd78dbff04e4ea800a992cb4b128fc1353d7688"
+    },
+    {
+      "file": "ops/platform-image-publication-v1/extract.py",
+      "sha256": "d8c39125a2b8f334a6096e77a57553efb579ccbdbda98de229348b2624c3eb48"
+    },
+    {
+      "file": "ops/platform-image-publication-v2/artifact.mjs",
+      "sha256": "0ce670d9c4cd319b282200233a55e405712ea9af91a89ca31c00d2a87057288e"
+    },
+    {
+      "file": "ops/platform-image-publication-v2/cloud-preflight.sh",
+      "sha256": "930513fa80a5630841f24027ec32fed5e4c5ae893dcbf5d36386bcfbf3b697d0"
+    },
+    {
+      "file": "ops/platform-image-publication-v2/plan.mjs",
+      "sha256": "ca0fd0d0253ac112434b2cec83655572a899233f9750bdb7c7f14ba3a6180317"
+    },
+    {
+      "file": "ops/platform-image-publication-v2/publish.mjs",
+      "sha256": "f0235f88c2746f7ac70dab4d1fb4adc3de885e46c7becd866508f050cd316d89"
+    },
+    {
+      "file": "ops/platform-image-recovery-v1/recovery.mjs",
+      "sha256": "34074420bff9b90da65ef73b3dc945905ef4269c4fd8d694a4f232a989c3f261"
+    },
+    {
+      "file": "ops/platform-image-recovery-v2/publisher-foundation.mjs",
+      "sha256": "4b3e8c268ebd989f766795671131576e97af05345ba4d65cea26a56455509ba8"
+    }
+  ],
+  "localTests": 37,
+  "localSkipped": 0,
+  "typecheck": "pass",
+  "scopedLint": "pass",
+  "actualBindingPreflight": {
+    "schema": "techlong/platform-publication-preflight/v2",
+    "outcome": "OS_HIGH_CRITICAL_ZERO",
+    "imageConfigDigest": "sha256:c418fef9c5146ef1fcdb39f88cb28ffe2d50a8b89f64ce94f6c8f463f6924230",
+    "scannerVersion": "0.75.0",
+    "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+    "os": {
+      "Family": "alpine",
+      "Name": "3.24.1"
+    },
+    "packageCount": 18,
+    "databaseUpdatedAt": "2026-10-23T13:13:41.529244645Z",
+    "findingSeverityCounts": {
+      "HIGH": 0,
+      "CRITICAL": 0
+    },
+    "findings": [],
+    "findingsTruncated": false,
+    "ignoredFindingsAllowed": false,
+    "ignoreUnfixedAllowed": false,
+    "awsCalls": 0,
+    "sourceCommit": "f3cea2da7d26dfc09726c4cbc52cab40217340c6",
+    "producerRunId": 39960583333,
+    "artifactId": 12503974340,
+    "artifactZipDigest": "sha256:12f027cccd21d955c5a0c4db9b6f536606749028c0a1fdcc8d09f95279265723",
+    "archiveSha256": "9c427ec8a2f5b4146ee578b0fd1f5f602f729cf09f65aa7bb5392b1c596a22f5",
+    "recordedAtUtc": "2026-10-23T17:28:58.382Z",
+    "reportSha256": "69cbb144adfeeb922bda370b16f926c97da4cb4f27251ffccb40e52cfcc2551b",
+    "databaseMetadataSha256": "e306bdec58c3aa0036c1ac0652c66b67cfb2d44b91583746846f4f3178931874",
+    "databaseSha256": "a3e2a693b5f130132acc609d723f60fb546a85b3b35179d63063afa6f355d0d2"
+  },
+  "actualLoadedImage": {
+    "digest": "sha256:c418fef9c5146ef1fcdb39f88cb28ffe2d50a8b89f64ce94f6c8f463f6924230",
+    "layerCount": 12,
+    "user": "node",
+    "command": [
+      "node",
+      "ops/platform-hosting-v1/start.mjs"
+    ]
+  },
+  "downloadedCiEvidence": {
+    "path": "F:/ChatGPT_workshop/techlong-hosted-publication-w8f-preflight-39995110624.zip",
+    "bytes": 3482,
+    "sha256": "8208e797f8ae01c09091625da5472ad29ddb35cb74501edd88f817ce67376558",
+    "memberSha256": {
+      "verified-artifact.json": "038618b6c45a2b74aa2a0ab759a9e0da329139180b03c9a550b6c93a139be64c",
+      "loaded-inspect.json": "88fa478df5621d68bb83b017d332d6cd4f879bdbdcc715fe8216abc8e2c20b08",
+      "verified-preflight.json": "b7df4f95365970cef53f4725b3487047b6aa705f087a5e0ac9551b80eda1b563"
+    },
+    "safeThreeMemberZipVerified": true
+  },
+  "reviewOriginal": {
+    "path": "F:/ChatGPT_workshop/techlong-hosted-publication-w8f-review-20261023.json",
+    "sha256": "97077303703d826e39f766e5f0de18fdfe170efe5254e1e4f4b0c8f10ef29f54",
+    "sourcePins": 33
+  },
+  "effects": {
+    "cloudWrites": 0,
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "sqlConnections": 0,
+    "appTokenRequests": 0,
+    "githubDispatches": 0,
+    "newExecutionSlotsConsumed": 0,
+    "imagePublications": 0,
+    "hostingDeployments": 0
+  },
+  "preserved": {
+    "legacySourceIntentSha256": "a95dc5c045879257f72ae6c91c49e7f9228996fbdc41659c0358ca8597eb3c26",
+    "supplyIntentSha256": "535e329567008606f18e344c49d7f110e26c3de16f0bfd456769342dd9540694",
+    "cleanupIntentSha256": "feed94c6ae7c2ae32e43e44861c715137b0c8e696758f4be8c4e73d6736571a6"
+  },
+  "ecrPublished": false,
+  "runtimeAcceptanceProved": false,
+  "cloudWritesAuthorized": false
+}
