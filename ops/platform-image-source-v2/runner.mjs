@@ -6,9 +6,9 @@ import {createAws,verifySnapshot,expectedTemplate} from './aws.mjs';
 import {createGithub} from './github.mjs';
 import {lockedPublisherFoundation} from '../platform-image-recovery-v2/publisher-foundation.mjs';
 export function errorCode(e){return /^[A-Za-z0-9_]+$/.test(e?.message??'')?e.message:(/^[A-Za-z0-9_]+$/.test(e?.name??'')?e.name:'UNKNOWN');}
-export async function runControlled({text,approvedSha,ports,now=Date.now}){
-  const m=validateOuter(text,approvedSha,now());const head=await ports.preflight(m);
-  const inner=innerReview(m,head,now()),innerText=JSON.stringify(inner),innerSha=hash(innerText);
+export async function runControlled({text,approvedSha,ports,now=Date.now,review={validateOuter,innerReview}}){
+  const m=review.validateOuter(text,approvedSha,now());const head=await ports.preflight(m);
+  const inner=review.innerReview(m,head,now()),innerText=JSON.stringify(inner),innerSha=hash(innerText);
   await ports.consume({schema:'techlong/platform-publication-source-intent/v2',outerSha256:approvedSha,innerSha256:innerSha,
     innerReview:innerText,nonce:m.nonce,head,startedAtUtc:new Date(now()).toISOString(),retryAllowed:false});
   const errors=[];let run,locked=false,published;

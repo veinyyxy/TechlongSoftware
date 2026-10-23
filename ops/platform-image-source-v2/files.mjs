@@ -24,9 +24,12 @@ export async function writeOnce(file,value){
   try{await h.writeFile(JSON.stringify(value,null,2)+'\n');await h.sync();}finally{await h.close();}
 }
 export async function absent(file){try{await lstat(file);must(false,'SOURCE_PERMANENT_SLOT_OCCUPIED');}catch(e){if(e.code!=='ENOENT')throw e;}}
-export async function directory(name){must(/^techlong-platform-source-v2-[a-f0-9]{32}$/.test(name),'SOURCE_EVIDENCE_NAME');
+export async function directory(name,{prefix='techlong-platform-source-v2'}={}){
+  must(['techlong-platform-source-v2','techlong-platform-hosted-source-v2'].includes(prefix)&&
+    name.startsWith(prefix+'-')&&/^[a-f0-9]{32}$/.test(name.slice(prefix.length+1)),'SOURCE_EVIDENCE_NAME');
   await noLinks(EVIDENCE);const dir=path.join(EVIDENCE,name);await mkdir(dir,{mode:0o700});await noLinks(dir);return dir;}
-export async function pins(){
+export async function pins({settings=S,roots}={}){
+  const S=settings;
   const known=new Set(git(['ls-files','-z']).split('\0')),out=new Map();
   async function visit(file){
     must(known.has(file)&&!file.includes('..')&&!file.includes('.env')&&!/\.pem$/.test(file),'SOURCE_PIN_PATH');if(out.has(file))return;
@@ -36,23 +39,25 @@ export async function pins(){
       const rel=path.relative(ROOT,path.resolve(path.dirname(path.join(ROOT,file)),m[1])).replaceAll('\\','/');await visit(rel);
     }
   }
-  for(const file of ['ops/platform-image-source-v2/cli.mjs',S.riskFile,`.github/workflows/${S.sourceCiFile}`,'.github/workflows/platform-image-publish-v2.yml',
+  for(const file of roots??['ops/platform-image-source-v2/cli.mjs',S.riskFile,`.github/workflows/${S.sourceCiFile}`,'.github/workflows/platform-image-publish-v2.yml',
     'ops/platform-image-publication-v2/publish.mjs','tests/platform-image-source-v2.test.mjs','package.json','package-lock.json',
     'ops/cloud-worker/package.json','ops/cloud-worker/package-lock.json'])await visit(file);
   return [...out.values()].sort((a,b)=>a.file.localeCompare(b.file));
 }
-export async function cleanSource(m){
+export async function cleanSource(m,{settings=S,roots,frozenRoots,metadataFiles=['README.md',settings.publicReviewFile]}={}){
+  const S=settings,options={settings,roots};
   environment();must(git(['branch','--show-current']).trim()==='main'&&git(['status','--porcelain']).trim()==='','SOURCE_CLEAN_MAIN');
   const head=git(['rev-parse','HEAD']).trim();
   if(m){
     git(['merge-base','--is-ancestor',m.operatorSourceCommit,head]);
     const changed=git(['diff','--name-only',m.operatorSourceCommit,head]).trim().split(/\r?\n/).filter(Boolean);
-    must(changed.every(f=>['README.md',S.publicReviewFile].includes(f)),'SOURCE_CODE_DRIFT');
-    must(same(await pins(),m.sourcePins),'SOURCE_PIN_DRIFT');
+    must(changed.every(f=>metadataFiles.includes(f)),'SOURCE_CODE_DRIFT');
+    must(same(await pins(options),m.sourcePins),'SOURCE_PIN_DRIFT');
   }
   // Frozen reusable code must remain identical in the local import closure.
-  const frozen=(await pins()).map(p=>p.file).filter(f=>/^ops\/platform-(image-publication|image-recovery|hosting)-/.test(f));
-  for(const file of [...frozen,'.github/workflows/platform-image-publish-job-v2.yml']){
+  const frozen=frozenRoots?(await pins({settings,roots:frozenRoots})).map(p=>p.file):
+    [...(await pins(options)).map(p=>p.file).filter(f=>/^ops\/platform-(image-publication|image-recovery|hosting)-/.test(f)),'.github/workflows/platform-image-publish-job-v2.yml'];
+  for(const file of frozen){
     const current=(await readText(path.join(ROOT,file),1000000)).replaceAll('\r\n','\n');
     must(current===git(['show',S.reusableCommit+':'+file]).replaceAll('\r\n','\n'),'SOURCE_REUSABLE_DRIFT');
   }

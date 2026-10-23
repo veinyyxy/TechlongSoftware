@@ -1,5 +1,5 @@
 // Only invoked by the protected, immutable reusable job after future approval.
-import {P,must,validateReview,validateCloud,validateClaims,same,publicationProtocol} from './plan.mjs';
+import {P,must,validateReview,validateClaims,same,publicationProtocol} from './plan.mjs';
 import {readFile,mkdtemp,unlink,rmdir} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
@@ -42,7 +42,7 @@ export async function runPublisher({text,approvedSha,env,preflight,ports,now=Dat
     await ports.save(result);return result;
   }finally{await ports.dispose();}
 }
-async function oidc(env,m){
+async function oidc(env,m,validateClaimsForCandidate=validateClaims){
   const u=new URL(env.ACTIONS_ID_TOKEN_REQUEST_URL);
   must(u.protocol==='https:'&&u.hostname.endsWith('.actions.githubusercontent.com')&&!u.username&&!u.password&&!u.port&&
     typeof env.ACTIONS_ID_TOKEN_REQUEST_TOKEN==='string'&&env.ACTIONS_ID_TOKEN_REQUEST_TOKEN.length>0,'OIDC_ENDPOINT');
@@ -50,14 +50,15 @@ async function oidc(env,m){
   const r=await fetch(u,{headers:{authorization:'Bearer '+env.ACTIONS_ID_TOKEN_REQUEST_TOKEN},redirect:'error',signal:AbortSignal.timeout(15000)});
   must(r.ok,'OIDC_RESPONSE');const body=await r.text();must(body.length<24000,'OIDC_SIZE');
   const token=JSON.parse(body).value;must(typeof token==='string'&&token.length<20000&&token.split('.').length===3,'OIDC_TOKEN');
-  validateClaims(JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString('utf8')),env,m);return token;
+  validateClaimsForCandidate(JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString('utf8')),env,m);return token;
 }
-export async function execute(dir,env=process.env){
+export async function execute(dir,env=process.env,{protocol=publicationProtocol()}={}){
+  const {P,validateReview,validateCloud,validateClaims}=protocol;
   const text=env.TECHLONG_PUBLICATION_REVIEW,approvedSha=env.TECHLONG_PUBLICATION_SHA;
   const m=validateReview(text,approvedSha);validateCloud(env,m);
   must(path.dirname(path.resolve(dir))===path.resolve(env.RUNNER_TEMP),'PUBLICATION_DIRECTORY');
-  const preflight=JSON.parse(await readFile(path.join(dir,'verified-preflight.json'),'utf8'));verifyPreflight(preflight);
-  await inspect(dir);must(await fileHash(path.join(dir,'os-scan.json'))===preflight.reportSha256,'SCAN_REPORT_CHANGED');
+  const preflight=JSON.parse(await readFile(path.join(dir,'verified-preflight.json'),'utf8'));verifyPreflight(preflight,Date.now(),P);
+  await inspect(dir,{candidate:P});must(await fileHash(path.join(dir,'os-scan.json'))===preflight.reportSha256,'SCAN_REPORT_CHANGED');
   const {execFileSync}=await import('node:child_process');
   must(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()===m.reusableCommit,'IMMUTABLE_SOURCE');
   const require=createRequire(new URL('../cloud-worker/package.json',import.meta.url));
@@ -71,10 +72,10 @@ export async function execute(dir,env=process.env){
     const r=spawnSync('docker',args,{env:{...childEnv,DOCKER_CONFIG:dockerDir},input,encoding:'utf8',
       timeout:600000,maxBuffer:4*1024*1024,windowsHide:true});must(r.status===0&&!r.error,'DOCKER_COMMAND');
   };
-  return runPublisher({text,approvedSha,env,preflight,ports:{
+  return runPublisher({text,approvedSha,env,preflight,protocol,ports:{
     consume:v=>save(path.join(dir,'publication.intent.json'),v),
     async authenticate(review){
-      const token=await oidc(env,review),session='Platform-'+env.GITHUB_RUN_ID+'-1';
+      const token=await oidc(env,review,validateClaims),session='Platform-'+env.GITHUB_RUN_ID+'-1';
       const r=await call(baseSts,new AssumeRoleWithWebIdentityCommand({RoleArn:P.roleArn,RoleSessionName:session,WebIdentityToken:token,DurationSeconds:900}));
       const c=r.Credentials;must(c?.AccessKeyId&&c.SecretAccessKey&&c.SessionToken&&c.Expiration?.getTime()>Date.now()+60000,'STS_CREDENTIALS');
       const credentials={accessKeyId:c.AccessKeyId,secretAccessKey:c.SecretAccessKey,sessionToken:c.SessionToken,expiration:c.Expiration};

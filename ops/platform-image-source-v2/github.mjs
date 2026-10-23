@@ -6,10 +6,11 @@ async function json(r){
   try{for(;;){const p=await reader.read();if(p.done)break;size+=p.value.length;must(size<=1000000,'SOURCE_GITHUB_SIZE');parts.push(Buffer.from(p.value));}}
   finally{await reader.cancel().catch(()=>{});reader.releaseLock();}return JSON.parse(Buffer.concat(parts).toString('utf8'));
 }
-export function createGithub({fetcher=fetch,credential=()=>{
+export function createGithub({context={P,S,validateGithubLayout,verifyRun,verifyCandidate},fetcher=fetch,credential=()=>{
   const raw=git(['credential','fill'],`protocol=https\nhost=github.com\npath=${P.repository}.git\n\n`);
   const token=raw.split(/\r?\n/).find(l=>l.startsWith('password='))?.slice(9);must(token&&token.length<=16000&&!/[\r\n]/.test(token),'SOURCE_GITHUB_CREDENTIAL');return token;
 }}={}){
+  const {P,S,validateGithubLayout,verifyRun,verifyCandidate}=context;
   let token,posts=0;
   async function request(suffix,{method='GET',body}={}){
     must(suffix.startsWith(`/repos/${P.repository}/`)||suffix===`/repos/${P.repository}`||suffix==='/user','SOURCE_GITHUB_SCOPE');
@@ -23,7 +24,7 @@ export function createGithub({fetcher=fetch,credential=()=>{
   const prefix=`/repos/${P.repository}`;
   return {
     async readIdentity(){const v=await request('/user');return {id:v.id,login:v.login};},
-    async metadata(head,m){
+    async metadata(head,m,{sourceCiRunId}={}){
       const paths={user:'/user',repo:prefix,oidc:prefix+'/actions/oidc/customization/sub',
         environment:prefix+'/environments/'+P.environment,branches:prefix+'/environments/'+P.environment+'/deployment-branch-policies?per_page=100',
         head:prefix+'/git/ref/heads/main',workflow:prefix+'/actions/workflows/'+P.callerFile,
@@ -37,14 +38,15 @@ export function createGithub({fetcher=fetch,credential=()=>{
       const ci=v.reusableCi;
       must(ci.id===S.reusableCiRun&&ci.head_sha===S.reusableCommit&&ci.workflow_id===S.reusableCiWorkflow&&ci.repository?.id===P.repositoryId&&
         ci.status==='completed'&&ci.conclusion==='success'&&ci.event==='push'&&ci.head_branch==='main'&&ci.run_attempt===1,'SOURCE_REUSABLE_CI');
-      if(m)v.sourceCi=await request(prefix+'/actions/runs/'+m.sourceCiRunId);
+      if(m||sourceCiRunId)v.sourceCi=await request(prefix+'/actions/runs/'+(m?.sourceCiRunId??sourceCiRunId));
       else{
         const list=await request(prefix+`/actions/runs?head_sha=${head}&event=push&per_page=100`);
         must(list.total_count<=100,'SOURCE_CI_PAGINATION');const rows=list.workflow_runs?.filter(r=>r.path===`.github/workflows/${S.sourceCiFile}`);
         must(rows?.length===1,'SOURCE_CI_UNIQUE');v.sourceCi=rows[0];
       }
       const sc=v.sourceCi;
-      must(sc.head_sha===(m?.operatorSourceCommit??head)&&sc.repository?.id===P.repositoryId&&sc.path===`.github/workflows/${S.sourceCiFile}`&&
+      must(sc.head_sha===(m?.operatorSourceCommit??(sourceCiRunId?sc.head_sha:head))&&/^[a-f0-9]{40}$/.test(sc.head_sha)&&
+        sc.repository?.id===P.repositoryId&&sc.path===`.github/workflows/${S.sourceCiFile}`&&
         sc.head_branch==='main'&&sc.event==='push'&&sc.run_attempt===1&&sc.status==='completed'&&sc.conclusion==='success','SOURCE_OPERATOR_CI');
       return v;
     },

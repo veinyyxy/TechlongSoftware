@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-23主线：**W8f单次发布/立即撤权接线已实现，尚待不可变reusable准确CI及caller绑定后生成具体清单。** 真实W8b候选、原publisher/Source/边界复用；预检查旧镜像、结束精确旧＋新，旧默认入口保持。新绑定未就绪时闭锁，无AWS写/私密读取/调度/发布/部署。实际ECR发布另按新SHA确认，不继承W8d安装批准。[固定范围与完整风险](docs/aws-auto-deployment-platform-w8f-publish-review.md)。
+
 2026-10-23主线：**W8e真实W8b镜像封验及准确云CI均通过，两条CI共35报告步骤全部成功。** 实际ZIP/archive/config摘要匹配；云端Docker加载同一镜像，loopback/HTTPS/托管到期三项隔离自检通过，Alpine3.24.1的18个OS包HIGH/CRITICAL为0。不重新构建、不安装Docker Desktop；AWS/私密读取/SQL/App调度/ECR发布/ECS部署均0，旧槽保留。下一仅把真实候选接原Source Grant→单次发布→立即Revoke及独立Locked核验，发布授权另审，不新增身份/执行器/UI。[具体范围与唯一继续点](docs/aws-auto-deployment-platform-w8e-image-preflight.md) / [真实产物及35步CI证据](ops/aws-sandbox/reviews/platform-hosted-publication-w8e.verified.json)。下文为历史。
 
 2026-10-23主线：**W8d已按02d50822…清单安装成功，另进程独立Inspect通过，errors为空。** 11:38–11:40CDT完成七次顶层写、一次受审PEM读取；新App Secret固定版本、原access栈UPDATE_COMPLETE、原身份/两资源及boundary默认v2均匹配，v1保留，两控制凭据读取例外到位且管理仍Source-only。原Web凭据版本/策略保持，未GetSecretValue、连SQL、申请App token、发布镜像或部署ECS。**新安装槽已消费，禁止重跑或复位；Secret会持续计费、权限不会自动到期，运行时仍关闭。** 下一仅准备W8b真实镜像产物封验和原publisher发布/立即撤权编排的新清单，不新增身份/执行器/UI，不沿用本次安装批准发布镜像。[完整范围与风险](docs/aws-auto-deployment-platform-w8d-supply-review.md) / [安装及独立核验证据](ops/aws-sandbox/reviews/platform-hosted-access-w8d.review.json) / [准确CI证据](ops/aws-sandbox/reviews/platform-hosted-access-w8d.verified.json)。下方为历史记录，不能重放旧清单。

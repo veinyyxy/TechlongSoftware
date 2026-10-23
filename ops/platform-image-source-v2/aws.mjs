@@ -1,6 +1,9 @@
 import {createRequire} from 'node:module';
+import {Agent} from 'node:https';
+import {NodeHttpHandler} from '@smithy/node-http-handler';
+import {fromLoginCredentials} from '@aws-sdk/credential-provider-login';
 import {P,must,same,updateRequest} from './review.mjs';
-import {templates,verifyPublishedManifest} from '../platform-image-publication-v2/plan.mjs';
+import {templates,publicationProtocol} from '../platform-image-publication-v2/plan.mjs';
 import {lockedPublisherFoundation} from '../platform-image-recovery-v2/publisher-foundation.mjs';
 import {RECOVERY_SCOPE as R} from '../platform-image-recovery-v1/recovery.mjs';
 import {verifyInitialSnapshot} from '../platform-image-publication-v2/inspect-aws.mjs';
@@ -34,13 +37,19 @@ export function verifySnapshot(v,expected,{initial=false}={}){
   if(initial)must(v.images.imageDetails.length===0,'SOURCE_INITIAL_ECR_EMPTY');
   return {locked:t.AssumeRolePolicyDocument.Statement.every(s=>s.Effect!=='Allow'),imageCount:v.images.imageDetails.length};
 }
-export async function createAws(){
+export async function createAws({protocol=publicationProtocol(),request=updateRequest,sourceLogin=false}={}){
+  const {P,verifyPublishedManifest}=protocol;
   const require=createRequire(new URL('../cloud-worker/package.json',import.meta.url));
   const stsApi=require('@aws-sdk/client-sts'),iamApi=require('@aws-sdk/client-iam'),cfnApi=require('@aws-sdk/client-cloudformation'),ecrApi=require('@aws-sdk/client-ecr');
   const {defaultProvider}=await import('@aws-sdk/credential-provider-node');
-  const credentials=defaultProvider({profile:'techlong-sandbox-user'}),cfg={region:P.region,credentials,maxAttempts:1,ignoreConfiguredEndpointUrls:true};
-  const clients=()=>({sts:new stsApi.STSClient(cfg),iam:new iamApi.IAMClient({...cfg,region:'us-east-1'}),
-    cfn:new cfnApi.CloudFormationClient(cfg),ecr:new ecrApi.ECRClient(cfg)});
+  const credentials=sourceLogin?fromLoginCredentials({profile:'techlong-sandbox-user',ignoreCache:true}):defaultProvider({profile:'techlong-sandbox-user'});
+  const cfg={region:P.region,credentials,maxAttempts:1,ignoreConfiguredEndpointUrls:true};
+  const config=(endpoint,region=P.region)=>({...cfg,region,...(sourceLogin?{endpoint,requestHandler:new NodeHttpHandler({
+    httpsAgent:new Agent({family:4,keepAlive:false}),connectionTimeout:5000,socketTimeout:20000})}:{})});
+  const clients=()=>({sts:new stsApi.STSClient(config('https://sts.ca-central-1.amazonaws.com')),
+    iam:new iamApi.IAMClient(config('https://iam.amazonaws.com','us-east-1')),
+    cfn:new cfnApi.CloudFormationClient(config('https://cloudformation.ca-central-1.amazonaws.com')),
+    ecr:new ecrApi.ECRClient(config('https://api.ecr.ca-central-1.amazonaws.com'))});
   const call=(c,cmd)=>c.send(cmd,{abortSignal:AbortSignal.timeout(30000)}),dispose=c=>Object.values(c).forEach(v=>v.destroy());
   const writer=clients(),writes=new Set();
   return {
@@ -79,7 +88,7 @@ export async function createAws(){
       const role=await call(writer.iam,new iamApi.GetRoleCommand({RoleName:P.role}));
       must(role.Role?.RoleId===P.roleId&&role.Role.Arn===P.roleArn,'SOURCE_WRITE_ROLE_ID');
       if(phase==='grant')must(Date.now()+60000<Date.parse(inner.grantExpiresAt),'SOURCE_UPDATE_WINDOW');
-      writes.add(phase);const r=await call(writer.cfn,new cfnApi.UpdateStackCommand(updateRequest(inner,phase)));
+      writes.add(phase);const r=await call(writer.cfn,new cfnApi.UpdateStackCommand(request(inner,phase)));
       must(r.StackId===P.stackId,'SOURCE_UPDATE_ACK');return {stackId:r.StackId,requestId:r.$metadata?.requestId??null,attempts:r.$metadata?.attempts??null};
     },
     async published(){

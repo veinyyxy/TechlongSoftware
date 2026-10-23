@@ -6,14 +6,24 @@ on:
       - 'ops/platform-hosted-publication-v2/**'
       - 'ops/platform-hosted-access-v6/publication.mjs'
       - 'ops/platform-image-publication-v2/**'
+      - 'ops/platform-image-source-v2/**'
       - 'tests/platform-hosted-publication-v2.test.mjs'
+      - 'tests/platform-hosted-source-v2.test.mjs'
+      - 'docs/aws-auto-deployment-platform-w8f-publish-review.md'
+      - '.github/workflows/platform-image-hosted-publish-job-v2.yml'
+      - '.github/workflows/platform-image-hosted-publish-v2.yml'
       - '.github/workflows/platform-hosted-publication-candidate.yml'
   pull_request:
     paths:
       - 'ops/platform-hosted-publication-v2/**'
       - 'ops/platform-hosted-access-v6/publication.mjs'
       - 'ops/platform-image-publication-v2/**'
+      - 'ops/platform-image-source-v2/**'
       - 'tests/platform-hosted-publication-v2.test.mjs'
+      - 'tests/platform-hosted-source-v2.test.mjs'
+      - 'docs/aws-auto-deployment-platform-w8f-publish-review.md'
+      - '.github/workflows/platform-image-hosted-publish-job-v2.yml'
+      - '.github/workflows/platform-image-hosted-publish-v2.yml'
       - '.github/workflows/platform-hosted-publication-candidate.yml'
 permissions:
   contents: read
@@ -33,10 +43,10 @@ jobs:
           node-version: '22.19.0'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: node --test tests/platform-hosted-publication-v2.test.mjs tests/platform-image-publication-v2.test.mjs tests/platform-image-source-v2.test.mjs
+      - run: node --test tests/platform-hosted-source-v2.test.mjs tests/platform-hosted-publication-v2.test.mjs tests/platform-image-publication-v2.test.mjs tests/platform-image-source-v2.test.mjs
       - run: |
           node node_modules/typescript/bin/tsc --noEmit --incremental false
-          node node_modules/eslint/bin/eslint.js ops/platform-hosted-publication-v2/ tests/platform-hosted-publication-v2.test.mjs --max-warnings 0
+          node node_modules/eslint/bin/eslint.js ops/platform-hosted-publication-v2/ ops/platform-image-source-v2/ tests/platform-hosted-source-v2.test.mjs tests/platform-hosted-publication-v2.test.mjs --max-warnings 0
   exact-image:
     needs: contracts
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1
