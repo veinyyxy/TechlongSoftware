@@ -6,13 +6,17 @@ on:
       - '.github/workflows/platform-hosting-deploy-candidate.yml'
       - 'ops/platform-hosting-deploy-v1/**'
       - 'tests/platform-hosting-deploy-v1.test.mjs'
+      - 'tests/platform-hosting-trial-v2.test.mjs'
       - 'docs/aws-platform-hosting-w7o-deployment-review.md'
+      - 'docs/aws-platform-hosting-w7q-acceptance-review.md'
   pull_request:
     paths:
       - '.github/workflows/platform-hosting-deploy-candidate.yml'
       - 'ops/platform-hosting-deploy-v1/**'
       - 'tests/platform-hosting-deploy-v1.test.mjs'
+      - 'tests/platform-hosting-trial-v2.test.mjs'
       - 'docs/aws-platform-hosting-w7o-deployment-review.md'
+      - 'docs/aws-platform-hosting-w7q-acceptance-review.md'
 permissions:
   contents: read
 concurrency:
@@ -32,6 +36,6 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Fixed hosting deployment contracts - No AWS
-        run: node --test tests/platform-ecs-v1.test.mjs tests/platform-hosting-deploy-v1.test.mjs
+        run: node --test tests/platform-ecs-v1.test.mjs tests/platform-hosting-deploy-v1.test.mjs tests/platform-hosting-trial-v2.test.mjs
       - run: npx tsc --noEmit
-      - run: npx eslint ops/platform-hosting-deploy-v1 tests/platform-hosting-deploy-v1.test.mjs
+      - run: npx eslint ops/platform-hosting-deploy-v1 tests/platform-hosting-deploy-v1.test.mjs tests/platform-hosting-trial-v2.test.mjs

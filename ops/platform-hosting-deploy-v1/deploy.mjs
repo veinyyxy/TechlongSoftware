@@ -19,6 +19,7 @@ export async function deployHosting({manifest:m,sha,io,now=Date.now}){
   catch(e){errors.push({stage:'INDEPENDENT_OBSERVATION',code:safeCode(e)});}
   const ok=createAck&&completed&&errors.length===0&&observation?.verified===true;
   const result={schema:'techlong/platform-hosting-deployment-result/v1',manifestSha256:sha,nonce:m.nonce,
+    trialGeneration:m.trialBinding?.generation??1,
     outcome:ok?'HOSTING_METADATA_VERIFIED_APPLICATION_ACCEPTANCE_PENDING':'HOSTING_REQUIRES_REVIEW_NO_RETRY',
     stackId:stackId??null,roleId:B.roleId,hostingExpiresAt:hostingExpiresAt??null,url:'https://'+P.domain,errors,awsCalls:{...io.cloud.counts},
     directSecretValueReads:0,directSqlConnections:0,directHttpRequests:0,applicationAcceptancePassed:false,automaticCleanup:false,retryAllowed:false};

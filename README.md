@@ -1,5 +1,9 @@
 # 餐饮 SaaS 平台
 
+2026-10-22 23:51CDT当前：**W7q第二轮管理员验收准备已编码，本地29项新旧契约测试、类型及lint通过，fresh AWS只读inventory通过；尚未部署。** 复用固定镜像/权限/Secret/证书/网络，在原部署入口增加显式Trial2模式，仅兼容W7p已证明清理的准确旧UUID、INACTIVE且任务0的cluster/service和旧任务定义`:1`；未知/活跃/删除中对象仍拒绝。旧创建/删除intent保留，第二轮新槽未消费。下一步验证准确源码的No-AWS CI并生成48小时待审清单，实际新栈、人工认证和清理分别确认。[范围、完整风险与最小人工验收步骤](docs/aws-platform-hosting-w7q-acceptance-review.md)。没有新增IAM、重建镜像、读Secret值、连SQL或重启F3c9。
+
+以下为W7p已完成记录。
+
 2026-10-22 23:35CDT当前：**W7p承载栈已按批准清单单次删除并通过独立核验：HOSTING_CLEANUP_INDEPENDENTLY_VERIFIED。** 准确栈及11项逻辑资源全部DELETE_COMPLETE；服务级确认ALB/listener/target group、准确DNS A、日志组、两安全组及入站规则已移除，ECS服务/cluster为INACTIVE且任务0，任务定义注销为INACTIVE。公网试验入口现已下线，日志未经导出已删除。IAM/Secret/Neon/ECR/证书/zone/VPC等未操作，保留资源仍可能收费，不等于账单归零。创建及删除永久槽均已消费，以下旧命令不可重放。[实际结果与续接边界](docs/aws-platform-hosting-w7p-cleanup-observed.md) / [独立机器证据](ops/aws-sandbox/reviews/platform-hosting-w7p.cleanup-observed.json)。本轮完成两小时承载试验闭环，但尚未做管理员认证/完整业务验收，也不代表整套系统上线；下一阶段只准备新的受控端到端验收，实际部署和认证范围另审。
 
 以下为W7p清理已完成前的历史准备状态（不再待批准）。

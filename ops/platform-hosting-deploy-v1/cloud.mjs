@@ -7,9 +7,11 @@ import {CloudFormationClient,CreateStackCommand,GetTemplateCommand,ListStackReso
 import {cloud as accessCloud,assertPublicRoutes} from '../platform-ecs-v1/cloud.mjs';
 import {awsEnvironment} from '../platform-web-credential-v1/aws.mjs';
 import {P,B,must,same,canonical,handoffPolicy,template,stackTags,assertAccess} from './contract.mjs';
+import {Q,assertRetiredHosting} from './trial-v2.mjs';
 const sorted=a=>[...a].sort((x,y)=>canonical(x).localeCompare(canonical(y)));
 const dnsName=s=>s.toLowerCase().replace(/\.$/,'');
-export function cloud(){
+export function cloud({secondTrial=false}={}){
+  must(typeof secondTrial==='boolean','TRIAL_SELECTOR');const intendedTemplate=nonce=>template(nonce,secondTrial);
   awsEnvironment();const access=accessCloud(),count={reads:0,writes:0};
   const cfn=new CloudFormationClient({region:P.region,endpoint:'https://cloudformation.ca-central-1.amazonaws.com',maxAttempts:1,ignoreConfiguredEndpointUrls:true,
     credentials:fromLoginCredentials({profile:P.profile,ignoreCache:true}),requestHandler:new NodeHttpHandler({httpsAgent:new Agent({family:4,keepAlive:false}),connectionTimeout:5000,socketTimeout:20000})});
@@ -22,7 +24,8 @@ export function cloud(){
     try{return JSON.parse(execFileSync('aws.exe',[service,operation,...args,'--profile',P.profile,'--region',['route53','iam','budgets'].includes(service)?'us-east-1':P.region,
       '--endpoint-url','https://'+endpoints[service],'--output','json','--no-cli-pager','--no-paginate'],{encoding:'utf8',windowsHide:true,timeout:30000,maxBuffer:2*1024*1024,
       stdio:['ignore','pipe','pipe'],env:{...process.env,AWS_MAX_ATTEMPTS:'1',AWS_RETRY_MODE:'standard',AWS_PAGER:''}}));}
-    catch(e){const code=String(e.stderr??'').match(/An error occurred \(([A-Za-z0-9_.]+)\)/)?.[1],err=Error('PLATFORM_HOSTING_DEPLOY_CLI_READ_FAILED');err.name=code??'AwsCliReadUnavailable';err.operation=service+'-'+operation;throw err;}};
+    catch(e){const text=String(e.stderr??''),code=text.match(/An error occurred \(([A-Za-z0-9_.]+)\)/)?.[1],err=Error('PLATFORM_HOSTING_DEPLOY_CLI_READ_FAILED');err.name=code??'AwsCliReadUnavailable';err.operation=service+'-'+operation;
+      err.exactDefinitionUnavailable=service==='ecs'&&operation==='describe-task-definition'&&code==='ClientException'&&/Unable to describe task definition/.test(text);throw err;}};
   const stack=()=>access.stack(P.hostingStack);
   async function accessState(){const a=await access.inspectAccess(B.accessNonce,B.accessStackId);assertAccess(a);const secret=await access.secret(handoffPolicy());
     const k=cli('kms','describe-key',['--key-id',P.kmsArn]).KeyMetadata;must(k?.Arn===P.kmsArn&&k.KeyManager==='AWS'&&k.Enabled&&k.KeyState==='Enabled','KMS');return {access:a,secret};}
@@ -45,13 +48,20 @@ export function cloud(){
     must(!dns.ResourceRecordSets?.some(r=>dnsName(r.Name)===P.domain&&['A','AAAA','CNAME'].includes(r.Type)),'DNS_OCCUPIED');
     for(const [op,name,notFound]of [['describe-load-balancers',P.alb,'LoadBalancerNotFound'],['describe-target-groups',P.targetGroup,'TargetGroupNotFound']]){
       let absent=false;try{cli('elbv2',op,['--names',name]);}catch(e){if(e.name!==notFound)throw e;absent=true;}must(absent,'ELB_OCCUPIED');}
-    const cl=cli('ecs','describe-clusters',['--clusters',P.cluster]);must(cl.clusters?.length===0&&cl.failures?.length===1&&cl.failures[0].reason==='MISSING','CLUSTER_OCCUPIED');
-    for(const status of ['ACTIVE','INACTIVE']){const d=cli('ecs','list-task-definitions',['--family-prefix',P.family,'--status',status,'--max-results','100']);must(!d.nextToken&&d.taskDefinitionArns?.length===0,'TASK_FAMILY_OCCUPIED');}
+    const cl=cli('ecs','describe-clusters',['--clusters',P.cluster]);let retiredHosting;
+    if(secondTrial){const previous=await access.stack(Q.previousStackId);let service;
+      try{service=cli('ecs','describe-services',['--cluster',P.cluster,'--services',P.service]);}catch(e){if(e.name!=='ClusterNotFoundException')throw e;service={clusterNotFound:true};}
+      let definition;try{definition=cli('ecs','describe-task-definition',['--task-definition',Q.previousTaskDefinition]).taskDefinition;}
+      catch(e){if(!e.exactDefinitionUnavailable)throw e;definition={absent:true};}const definitions={};
+      for(const status of ['ACTIVE','INACTIVE','DELETE_IN_PROGRESS'])definitions[status]=cli('ecs','list-task-definitions',['--family-prefix',P.family,'--status',status,'--max-results','100']);
+      retiredHosting=assertRetiredHosting({stack:previous,cluster:cl,service,definition,definitions});
+    }else{must(cl.clusters?.length===0&&cl.failures?.length===1&&cl.failures[0].reason==='MISSING','CLUSTER_OCCUPIED');
+      for(const status of ['ACTIVE','INACTIVE']){const d=cli('ecs','list-task-definitions',['--family-prefix',P.family,'--status',status,'--max-results','100']);must(!d.nextToken&&d.taskDefinitionArns?.length===0,'TASK_FAMILY_OCCUPIED');}}
     const logs=cli('logs','describe-log-groups',['--log-group-name-prefix',P.logGroup,'--limit','50']);must(!logs.nextToken&&!logs.logGroups?.some(g=>g.logGroupName===P.logGroup),'LOGS_OCCUPIED');
     const linked=[];for(const name of ['AWSServiceRoleForECS','AWSServiceRoleForElasticLoadBalancing']){const r=cli('iam','get-role',['--role-name',name]).Role;must(r?.RoleId&&r.Arn.includes(':role/aws-service-role/'),'SERVICE_LINKED_ROLE');linked.push({name,id:r.RoleId,arn:r.Arn});}
     const budget=cli('budgets','describe-budget',['--account-id',P.account,'--budget-name','techlong-sandbox-402010193138-ca-central-1']).Budget;
     must(Number(budget?.BudgetLimit?.Amount)===50&&budget.BudgetLimit.Unit==='USD'&&budget.TimeUnit==='MONTHLY','BUDGET');
-    return {checkedAtUtc:new Date().toISOString(),source,...identity,hostingNamesAbsent:true,image:{digest:P.imageDigest,size:im[0].imageSizeInBytes,manifestMediaType:im[0].imageManifestMediaType},
+    return {checkedAtUtc:new Date().toISOString(),source,...identity,hostingNamesAbsent:true,...(secondTrial?{retiredHosting}:{}),image:{digest:P.imageDigest,size:im[0].imageSizeInBytes,manifestMediaType:im[0].imageManifestMediaType},
       network:{vpc:P.vpc,cidr:v[0].CidrBlock,subnets:sorted(sub.map(s=>({id:s.SubnetId,az:s.AvailabilityZone}))),routeTable:P.routeTable,igw:P.igw},
       certificate:{arn:P.certificate,status:cert.Status,notAfter:cert.NotAfter},serviceLinkedRoles:linked,budget:{limitUsd:50,hardCap:false}};
   }
@@ -61,10 +71,12 @@ export function cloud(){
     const resources=(list.StackResourceSummaries??[]).map(r=>({id:r.LogicalResourceId,type:r.ResourceType,physicalId:r.PhysicalResourceId,status:r.ResourceStatus}));
     if(!expectedId||s.StackId!==expectedId||s.StackStatus!=='CREATE_COMPLETE')return {verified:false,present:true,stackId:s.StackId,status:s.StackStatus,resources};
     const doc=await send(new GetTemplateCommand({StackName:expectedId,TemplateStage:'Original'}));
-    const intended=template(nonce);must(same(typeof doc.TemplateBody==='string'?JSON.parse(doc.TemplateBody):doc.TemplateBody,intended)&&
+    if(secondTrial)must(expectedId!==Q.previousStackId,'OLD_STACK_REUSE');
+    const intended=intendedTemplate(nonce);must(same(typeof doc.TemplateBody==='string'?JSON.parse(doc.TemplateBody):doc.TemplateBody,intended)&&
       same(s.Parameters?.map(p=>({ParameterKey:p.ParameterKey,ParameterValue:p.ParameterValue})),[{ParameterKey:'HostingExpiresAt',ParameterValue:expiry}])&&
       same(sorted(s.Tags??[]),sorted(stackTags(nonce,expiry)))&&resources.length===11&&resources.every(r=>r.status==='CREATE_COMPLETE'&&r.type===intended.Resources[r.id]?.Type&&r.physicalId),'STACK_EXACT');
     const ids=Object.fromEntries(resources.map(r=>[r.id,r.physicalId]));
+    if(secondTrial)must(ids.TaskDefinition!==Q.previousTaskDefinition,'OLD_DEFINITION_REUSE');
     const lb=cli('elbv2','describe-load-balancers',['--load-balancer-arns',ids.LoadBalancer]).LoadBalancers;
     must(lb?.length===1&&lb[0].LoadBalancerArn===ids.LoadBalancer&&lb[0].LoadBalancerName===P.alb&&lb[0].Type==='application'&&lb[0].Scheme==='internet-facing'&&lb[0].IpAddressType==='ipv4'&&
       lb[0].State.Code==='active'&&lb[0].VpcId===P.vpc&&same(sorted(lb[0].SecurityGroups),[ids.AlbSecurityGroup])&&same(sorted(lb[0].AvailabilityZones.map(z=>z.SubnetId)),sorted(P.subnets)),'ALB');
@@ -89,9 +101,9 @@ export function cloud(){
   }
   return {get counts(){return {reads:count.reads+access.counts.reads,writes:count.writes+access.counts.writes};},source:access.source,stack,inventory,observe,
     async assertAccessFresh(){await accessState();},
-    async validate(nonce){const r=await send(new ValidateTemplateCommand({TemplateBody:canonical(template(nonce))}));must(!(r.Capabilities??[]).length&&r.Parameters?.length===1&&r.Parameters[0].ParameterKey==='HostingExpiresAt'&&!r.Parameters[0].DefaultValue,'TEMPLATE_VALIDATION');return {capabilities:[],parameters:r.Parameters};},
-    async create(nonce,expiry){must(new RegExp(template(nonce).Parameters.HostingExpiresAt.AllowedPattern).test(expiry),'EXPIRY_FORMAT');
-      const r=await send(new CreateStackCommand({StackName:P.hostingStack,TemplateBody:canonical(template(nonce)),Parameters:[{ParameterKey:'HostingExpiresAt',ParameterValue:expiry}],
+    async validate(nonce){const r=await send(new ValidateTemplateCommand({TemplateBody:canonical(intendedTemplate(nonce))}));must(!(r.Capabilities??[]).length&&r.Parameters?.length===1&&r.Parameters[0].ParameterKey==='HostingExpiresAt'&&!r.Parameters[0].DefaultValue,'TEMPLATE_VALIDATION');return {capabilities:[],parameters:r.Parameters};},
+    async create(nonce,expiry){must(new RegExp(intendedTemplate(nonce).Parameters.HostingExpiresAt.AllowedPattern).test(expiry),'EXPIRY_FORMAT');
+      const r=await send(new CreateStackCommand({StackName:P.hostingStack,TemplateBody:canonical(intendedTemplate(nonce)),Parameters:[{ParameterKey:'HostingExpiresAt',ParameterValue:expiry}],
         DisableRollback:true,TimeoutInMinutes:20,Tags:stackTags(nonce,expiry),ClientRequestToken:'platform-hosting-'+nonce}),true);
       must(r.StackId?.startsWith(`arn:aws:cloudformation:${P.region}:${P.account}:stack/${P.hostingStack}/`),'CREATE_ACK');return r.StackId;},
     dispose(){access.dispose();cfn.destroy();}
