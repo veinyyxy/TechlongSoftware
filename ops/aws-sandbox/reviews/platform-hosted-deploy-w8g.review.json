@@ -1,0 +1,463 @@
+{
+  "schema": "techlong/platform-hosted-deploy-review-index/v6",
+  "state": "PREPARED_NOT_APPROVED_NOT_EXECUTED",
+  "originalManifest": "F:/ChatGPT_workshop/techlong-hosted-deploy-review-w8g-20261023.json",
+  "originalManifestSha256": "d7452b87c53430156569d2fc8fd049229c3d4e12cd0670087a83f050d42568fe",
+  "thisIndexIsNotExecutableManifest": true,
+  "phase": "W8g",
+  "sourceCommit": "871ac3c5e9c184a268011a948d3e3331f07d63b6",
+  "ci": {
+    "runId": 40006342243,
+    "jobId": 120595101938,
+    "sourceCommit": "871ac3c5e9c184a268011a948d3e3331f07d63b6",
+    "path": ".github/workflows/platform-hosted-deploy-candidate.yml",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "sourcePinCount": 48,
+  "sourcePins": [
+    {
+      "file": ".github/workflows/platform-hosted-deploy-candidate.yml",
+      "sha256": "61dd5d3144c8955436219565f7fa6e5ed598c48985bf7f4d73d29e602e7c0a06"
+    },
+    {
+      "file": "docs/aws-auto-deployment-platform-w8g-hosting-review.md",
+      "sha256": "3dba823207a123e6e74c92982bac148c3fcfbdaae26899b9126a383377aefdf3"
+    },
+    {
+      "file": "lib/deployments/controller-v6/contract.ts",
+      "sha256": "e201097ba52de2694801a0369c0b3b6ebe1e638df9a1a4f7b125f31e84ccace4"
+    },
+    {
+      "file": "lib/deployments/controller-v6/github.ts",
+      "sha256": "b590ec9de7149958ee99aaafa31c74476c4093e599097b9a067d985ddbcf5ec4"
+    },
+    {
+      "file": "lib/deployments/controller-v6/installed-binding.ts",
+      "sha256": "40348c45fbe39722190921ae6ce624d5c11b9c39010c2fff4f0d6510b2d3331f"
+    },
+    {
+      "file": "lib/deployments/execution/hash.ts",
+      "sha256": "3205a7d79369d7d70653bbb91983762b93b97f11a32972ba2b9c54bcfed0cdce"
+    },
+    {
+      "file": "lib/deployments/platform-controller-registration-v1.ts",
+      "sha256": "386d4f24c823968bf323ae11247732c3bed4ffa28687a30601c801bbabcc608a"
+    },
+    {
+      "file": "ops/cloud-worker/package-lock.json",
+      "sha256": "2011778b7f0e58db266c77506e37ef9827c6043e4ce9565bce6cffff84a32b8c"
+    },
+    {
+      "file": "ops/cloud-worker/package.json",
+      "sha256": "9a0124155263ac3641824c71338d07543f5c9167b3a98ae8ba74ad1cbf110718"
+    },
+    {
+      "file": "ops/platform-activation-v6/compatibility.mjs",
+      "sha256": "17cbee46211bd37c5a2416052d28e468304485928b321410a0bc0922ef12ebd9"
+    },
+    {
+      "file": "ops/platform-activation-v6/credentials.mjs",
+      "sha256": "878a3b1da800ecf1e05fddaa1995b03328146f65bc3ccbb8e0b8ea207be86fc2"
+    },
+    {
+      "file": "ops/platform-cloud-v6/contract.mjs",
+      "sha256": "6b7d367056c2e1a1c286a710b03c3f76a15bea10c178286ae8d99a110bcacddd"
+    },
+    {
+      "file": "ops/platform-cloud-v6/identity.mjs",
+      "sha256": "45aecc8945780c3aff0ae89c05319dd2195b6e1a4fb1573c1be5454ca5c52a11"
+    },
+    {
+      "file": "ops/platform-cloud-v6/workflows.mjs",
+      "sha256": "0d837a23d4112a85aa1deefd9450d12788a8134ad3ffd4f4eccfc27d523b428c"
+    },
+    {
+      "file": "ops/platform-ecs-v1/cloud.mjs",
+      "sha256": "0fb163ae76a62639dd258e27af2dbbb5311cb8ca1f13c60f0140080b8fc960f5"
+    },
+    {
+      "file": "ops/platform-ecs-v1/contract.mjs",
+      "sha256": "62aa66cf7757a4ef3606109286d57459904755c99f581d901b3533e0e969416c"
+    },
+    {
+      "file": "ops/platform-ecs-v1/prices.mjs",
+      "sha256": "a6952dc479b84f9f6b3663262d7c716f0dc9b4a9c50044d409063eff4892a1fd"
+    },
+    {
+      "file": "ops/platform-ecs-v1/templates.mjs",
+      "sha256": "21bb1229ff77a20767322d2b6406c533c9beb7a173fa75451486a76a3ec53d01"
+    },
+    {
+      "file": "ops/platform-hosted-access-v6/cloud.mjs",
+      "sha256": "46d3818a531bff87d6abe8362ea9428b6fc34ab79fa7f0846a7394b62b163eee"
+    },
+    {
+      "file": "ops/platform-hosted-access-v6/contract.mjs",
+      "sha256": "202fb205bf50652077630140a1c61d9ef1a49e722462217dfd6fb4142d99f563"
+    },
+    {
+      "file": "ops/platform-hosted-deploy-v6/cloud.mjs",
+      "sha256": "9f9532fcc12309d3244034756b4a6d7bbbb6f86355578106d362041fbd400f54"
+    },
+    {
+      "file": "ops/platform-hosted-deploy-v6/contract.mjs",
+      "sha256": "4930aacd9c3fcaea69525ea0f6a9e3732cae00a439a204a6fb95a182bb193a72"
+    },
+    {
+      "file": "ops/platform-hosted-deploy-v6/local.mjs",
+      "sha256": "ca2674c6fbf1f182a96b48b2d2568716ec39e1b13074dbc503992527b162d532"
+    },
+    {
+      "file": "ops/platform-hosted-deploy-v6/run.mjs",
+      "sha256": "0b448eb9756b803accc41fcf9485a0155732c8370ee74111cee711b9862e38c7"
+    },
+    {
+      "file": "ops/platform-hosting-deploy-v1/cloud.mjs",
+      "sha256": "d1896572f50bc55a74b4b95ce3f077efbabe852ba577652b25a6271135374eea"
+    },
+    {
+      "file": "ops/platform-hosting-deploy-v1/contract.mjs",
+      "sha256": "0442e62f592b6a282a133ab0eea21afbd49848c8357bc366b8de6a10c9e2c63a"
+    },
+    {
+      "file": "ops/platform-hosting-deploy-v1/trial-v2.mjs",
+      "sha256": "f3970b7a0e6cc2d397fcf5b9ca36d8e98a804a53845ac6b2e0c311d6fa6b1fdd"
+    },
+    {
+      "file": "ops/platform-hosting-v1/contract.mjs",
+      "sha256": "d32ba9af706ecc883a7481c6baa8c89b8a5c301807c0c1d4fe6434cad13b007f"
+    },
+    {
+      "file": "ops/platform-hosting-v1/database-profile.mjs",
+      "sha256": "d54a70890ce1c3fa19968c1f731be7b81e0c01a97fdf23c1ad6df5c3bddf6ee9"
+    },
+    {
+      "file": "ops/platform-hosting-v1/image-foundation.mjs",
+      "sha256": "f4138aaf410ea75b3553a27303ac18145473f85f76758789fcb8bf887984337b"
+    },
+    {
+      "file": "ops/platform-identity-review-v6/dispatch-local.mjs",
+      "sha256": "bce7e46359f7ae878b1a9613396713d0ad1c42bf4dc2484c3e010ee4a36f14f0"
+    },
+    {
+      "file": "ops/platform-identity-review-v6/dispatch.mjs",
+      "sha256": "0b1549b6889eaa7eb6e4487cde277689e01928b8984fc0600c6114a7d19afd5c"
+    },
+    {
+      "file": "ops/platform-identity-review-v6/publication.mjs",
+      "sha256": "3c86295d7ed3363776f2c4dd8b55a1529336e9a0c99c71ce09fcc8c721674f33"
+    },
+    {
+      "file": "ops/platform-image-publication-v2/plan.mjs",
+      "sha256": "ca0fd0d0253ac112434b2cec83655572a899233f9750bdb7c7f14ba3a6180317"
+    },
+    {
+      "file": "ops/platform-image-recovery-v1/recovery.mjs",
+      "sha256": "34074420bff9b90da65ef73b3dc945905ef4269c4fd8d694a4f232a989c3f261"
+    },
+    {
+      "file": "ops/platform-image-recovery-v2/publisher-foundation.mjs",
+      "sha256": "4b3e8c268ebd989f766795671131576e97af05345ba4d65cea26a56455509ba8"
+    },
+    {
+      "file": "ops/platform-image-source-v2/files.mjs",
+      "sha256": "e1ef5b78654bc09e40f40dd6d7baf3c71185e0518e7ff28bd285f2128ed40e4d"
+    },
+    {
+      "file": "ops/platform-image-source-v2/review.mjs",
+      "sha256": "4c62215514c224b6bcdfd5d0788a1b88866fcf01b8281ec479bb02712537d7bf"
+    },
+    {
+      "file": "ops/platform-publisher-v6/privileges.mjs",
+      "sha256": "e377a5e04a493ee41b191fb1a7f00862d6e17897ab022e77912587e696b9bf65"
+    },
+    {
+      "file": "ops/platform-web-credential-v1/aws.mjs",
+      "sha256": "b5dd6097b3837b757ca28556b3fa2607ca6fbd4928d3b30a5d08dafb646cac33"
+    },
+    {
+      "file": "ops/platform-web-credential-v1/contract.mjs",
+      "sha256": "7916eaead078f597fadef8d0c5280e24f604223a36eb82981b33ad7e0a891e57"
+    },
+    {
+      "file": "ops/platform-web-database-role-v1/contract.mjs",
+      "sha256": "2d6cbf52b4d1bd9e1d741061dbe6abb166ec56a7b825496b529b08c2c02420f4"
+    },
+    {
+      "file": "ops/platform-web-database-role-v1/effective.mjs",
+      "sha256": "9bf37b711235ca6a566fd63ed5a0012ff181078cf9d789d6bfb6a50e63bd657d"
+    },
+    {
+      "file": "ops/platform-web-database-v1/catalog.mjs",
+      "sha256": "36396955512755dfb9bb6ed43c7c8086840a9ffe5a51eb14202c0b76acc86357"
+    },
+    {
+      "file": "ops/platform-web-database-v1/local.mjs",
+      "sha256": "8d29b9bb7d50acd189e013538d9e630a1f317ce9ba35557faf3c67c561b86899"
+    },
+    {
+      "file": "package-lock.json",
+      "sha256": "bdef7dc276067e1d8749640b7365c8da98e3c7cd176d9863734d68c5804720a9"
+    },
+    {
+      "file": "package.json",
+      "sha256": "22dcd76795d40cfb0f15fbc39590d9c30adbc786e608c9f014eee6c3f4f6e57e"
+    },
+    {
+      "file": "tests/platform-hosted-deploy-v6.test.mjs",
+      "sha256": "579b0284dbb3a2b94be066c6f8770aa564eef956b0542d21dbeb1945682ec66d"
+    }
+  ],
+  "parents": [
+    {
+      "file": "F:/ChatGPT_workshop/techlong-hosted-supply-48978ffd5cbe6fcdca130d9f4d4e689b/result.json",
+      "sha256": "5c523063d4a512b340d42bbf992d8789d0e38fe20ffef749d1800236e5433682"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosted-source-v2-97cf75e760763028096b13b7d443e6c6/result.json",
+      "sha256": "ffb5ce27b347fdf1d443bf385cacae3422045069a02a95dc6089fdec15fb1601"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosting-cleanup-v2.intent.json",
+      "sha256": "feed94c6ae7c2ae32e43e44861c715137b0c8e696758f4be8c4e73d6736571a6"
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-hosted-publication-v2.source.intent.json",
+      "sha256": "34f2e425748a5968dc34a9dc7ade3e287a9ec6a237bbc9bedb2d11ece3b3281c"
+    }
+  ],
+  "nonce": "1e710b176bd5e31bcddae438ace7d772",
+  "riskFile": "docs/aws-auto-deployment-platform-w8g-hosting-review.md",
+  "riskSha256": "3dba823207a123e6e74c92982bac148c3fcfbdaae26899b9126a383377aefdf3",
+  "issuedAtUtc": "2026-10-23T18:51:49.669Z",
+  "expiresAtUtc": "2026-10-25T18:51:49.669Z",
+  "latestStartAtUtc": "2026-10-25T18:21:49.669Z",
+  "timezone": "America/Winnipeg",
+  "expiresAtLocal": "2026-10-25 13:51:49 CDT",
+  "latestStartAtLocal": "2026-10-25 13:21:49 CDT",
+  "account": "402010193138",
+  "region": "ca-central-1",
+  "stackName": "techlong-sandbox-platform-hosting-v1",
+  "newStackId": null,
+  "previousStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/2d7d45a0-ced0-11f1-acc8-0effedbce869",
+  "scope": {
+    "createStackMax": 1,
+    "logicalResources": 11,
+    "newIam": 0,
+    "secretWrites": 0,
+    "directSecretValueReads": 0,
+    "directSql": 0,
+    "applicationHttp": 0,
+    "appTokens": 0,
+    "githubDispatches": 0,
+    "deletes": 0,
+    "retries": 0,
+    "managedSecretInjection": true,
+    "managedTaskReplacementsPossible": true,
+    "publicHosting": true,
+    "controlMinutes": 30,
+    "hostingIntentHours": 2,
+    "automaticCleanup": false
+  },
+  "image": {
+    "reference": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-platform-web@sha256:ad3cbde847375967a1eb0d593e39d9faefcb742c64ba87aa3abb463b9c534789",
+    "digest": "sha256:ad3cbde847375967a1eb0d593e39d9faefcb742c64ba87aa3abb463b9c534789",
+    "configDigest": "sha256:c418fef9c5146ef1fcdb39f88cb28ffe2d50a8b89f64ce94f6c8f463f6924230",
+    "sourceCommit": "f3cea2da7d26dfc09726c4cbc52cab40217340c6"
+  },
+  "templateCanonicalSha256": "2c276c8abbf3894b9789183c81c2d8d46b11c0b49ee8410228e5f0b096f5a4f7",
+  "logicalResources": [
+    {
+      "logicalId": "TaskSecurityGroup",
+      "type": "AWS::EC2::SecurityGroup"
+    },
+    {
+      "logicalId": "AlbSecurityGroup",
+      "type": "AWS::EC2::SecurityGroup"
+    },
+    {
+      "logicalId": "TaskIngress",
+      "type": "AWS::EC2::SecurityGroupIngress"
+    },
+    {
+      "logicalId": "LogGroup",
+      "type": "AWS::Logs::LogGroup"
+    },
+    {
+      "logicalId": "Cluster",
+      "type": "AWS::ECS::Cluster"
+    },
+    {
+      "logicalId": "LoadBalancer",
+      "type": "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    },
+    {
+      "logicalId": "TargetGroup",
+      "type": "AWS::ElasticLoadBalancingV2::TargetGroup"
+    },
+    {
+      "logicalId": "HttpsListener",
+      "type": "AWS::ElasticLoadBalancingV2::Listener"
+    },
+    {
+      "logicalId": "TaskDefinition",
+      "type": "AWS::ECS::TaskDefinition"
+    },
+    {
+      "logicalId": "Service",
+      "type": "AWS::ECS::Service"
+    },
+    {
+      "logicalId": "DnsRecord",
+      "type": "AWS::Route53::RecordSet"
+    }
+  ],
+  "executionRole": {
+    "arn": "arn:aws:iam::402010193138:role/TechlongSandboxPlatformWebExecutionRoleV1",
+    "roleId": "AROAV3GNMXTZJ45S2ANZ7",
+    "boundaryVersion": "v2",
+    "newIam": false,
+    "taskRole": false
+  },
+  "fixedSecretBindings": [
+    {
+      "Name": "DATABASE_URL",
+      "ValueFrom": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/neon-v1-UfFKVF:databaseUrl::6ea2ca59-9a24-4f3e-b16f-ec824f32bc5f"
+    },
+    {
+      "Name": "TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL",
+      "ValueFrom": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-controller/neon-v6-M4A08E:databaseUrl::3574f24e-ecb3-476c-8f71-baa501fd129e"
+    },
+    {
+      "Name": "TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY",
+      "ValueFrom": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-controller/github-app-v6-C58FqK:privateKey::0aee41e2-c4c3-4d4d-afca-9e68f66cd379"
+    }
+  ],
+  "controlLeaseMinutes": 30,
+  "hostingIntentHours": 2,
+  "automaticCleanup": false,
+  "permanentSlot": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-hosted-deploy-v6.intent.json",
+    "state": "ABSENT",
+    "retryAllowed": false
+  },
+  "successfulPreparation": {
+    "observedAtUtc": "2026-10-23T18:51:48.549Z",
+    "awsMetadataOperations": 48,
+    "awsWrites": 0,
+    "directSecretValueReads": 0,
+    "directSql": 0,
+    "applicationHttp": 0,
+    "githubDispatches": 0,
+    "slotConsumed": false,
+    "factsReceipt": {
+      "file": "F:/ChatGPT_workshop/techlong-hosted-deploy-review-w8g-20261023.json.facts.json",
+      "sha256": "c4821a44f6343a22021bec6550b67e1118beb439d9205849ea4ecd85a3d5282b"
+    }
+  },
+  "earlierPreparationStops": [
+    {
+      "code": "HOSTED_DEPLOY_DEFINITION_OCCUPIED",
+      "resolution": "Preserved the two known inactive revisions :1 and :2; fixed-source exact CI then passed",
+      "metadataReadCountNotPersisted": true,
+      "cloudWrites": 0,
+      "slotConsumed": false
+    },
+    {
+      "code": "HOSTED_DEPLOY_CLEAN_MAIN",
+      "resolution": "CI metadata publication overlapped preparation; completed that local metadata commit, then performed a new clean read-only preparation",
+      "metadataReadCountNotPersisted": true,
+      "cloudWrites": 0,
+      "slotConsumed": false
+    }
+  ],
+  "additionalTargetedMetadataRead": {
+    "operation": "ecs list-task-definitions INACTIVE",
+    "topLevelCalls": 1,
+    "writes": 0
+  },
+  "currentRetiredState": {
+    "cluster": "INACTIVE",
+    "active": 0,
+    "deleting": 0,
+    "running": 0,
+    "inactiveDefinitions": [
+      "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:1",
+      "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:2"
+    ]
+  },
+  "pricing": {
+    "observedAtUtc": "2026-10-23T18:51:49.194Z",
+    "currency": "USD",
+    "catalogs": [
+      {
+        "service": "AmazonECS",
+        "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/ca-central-1/index.json",
+        "version": "20261019224317",
+        "publicationDate": "2026-10-19T22:43:17Z",
+        "sha256": "a00a46211bc7caacff13a95aaa3501775d14e2e0c24314d75ca07076bcab9b50"
+      },
+      {
+        "service": "AWSELB",
+        "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/ca-central-1/index.json",
+        "version": "20260911124544",
+        "publicationDate": "2026-09-11T12:45:44Z",
+        "sha256": "5242efc51c9b3687c22b197ce27a388eda90902d314e5e5981ee54fdc3cc8d50"
+      },
+      {
+        "service": "AmazonVPC",
+        "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/ca-central-1/index.json",
+        "version": "20261016224321",
+        "publicationDate": "2026-10-16T22:43:21Z",
+        "sha256": "24d4b2b7b608dc6af3b63b0eb00e505e23226b5a038df71aa861bdf636520044"
+      },
+      {
+        "service": "AWSSecretsManager",
+        "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSSecretsManager/current/ca-central-1/index.json",
+        "version": "20260911124610",
+        "publicationDate": "2026-09-11T12:46:10Z",
+        "sha256": "9bea1ef20cb2951a28b8f8f7c6d77418070732e93b209f58dbe62352f863b507"
+      }
+    ],
+    "rates": {
+      "vcpuHour": 0.04456,
+      "gbHour": 0.004865,
+      "albHour": 0.02475,
+      "lcuHour": 0.0088,
+      "ipv4Hour": 0.005,
+      "secretMonth": 0.4
+    },
+    "estimate": {
+      "exampleHourlyUsd": 0.067775,
+      "exampleTwoHoursUsd": 0.13555,
+      "core730HoursUsd": 49.87575,
+      "assumptions": {
+        "tasks": 1,
+        "vcpu": 0.5,
+        "memoryGb": 1,
+        "alb": 1,
+        "averageLcu": 0.1,
+        "publicIpv4": 3
+      },
+      "excludes": [
+        "existing resources",
+        "ECR storage/scans",
+        "logs",
+        "data transfer",
+        "extra ALB capacity/addresses",
+        "task restarts/overlap",
+        "provision/cleanup time",
+        "tax"
+      ],
+      "notAHardCap": true
+    }
+  },
+  "monthlyReferenceWithThreeRetainedSecretsUsd": 50.67575,
+  "monthlyReferenceCaveat": "Shared core730HoursUsd estimator includes one Secret; this deployment uses three retained Secrets. Neither monthly reference includes database, logs, transfer, ECR, other retained resources or tax; 50USD is not a hard cap.",
+  "executionAuthorized": false,
+  "preparationIsNotApproval": true,
+  "realControlAcceptancePassed": false,
+  "cleanupRequiresSeparateExactNewStackApproval": true
+}
