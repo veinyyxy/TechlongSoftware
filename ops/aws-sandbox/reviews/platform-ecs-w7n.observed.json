@@ -1,0 +1,130 @@
+{
+  "schema": "techlong/platform-ecs-access-observed/v1",
+  "metadataOnly": true,
+  "status": "COMPLETE_NOT_HOSTING_DEPLOYED",
+  "observedAtUtc": "2026-10-22T21:33:27.712Z",
+  "approval": {
+    "manifest": {
+      "file": "F:/ChatGPT_workshop/techlong-platform-ecs-access-review-w7n-20261022.json",
+      "sha256": "9cdfcdc03a33cbcc22ca749bbb84294054bdeb58439447656e337ae4ad592e09",
+      "nonce": "aca6c7934875a069a696bbe47d9b7b35",
+      "sourceCommit": "ceaaf92c7298ed67039ead2ca6cd059ea3722479"
+    },
+    "scope": {
+      "cloudFormationCreateStack": 1,
+      "namedIamResources": 2,
+      "secretPolicyPuts": 1,
+      "secretValueReads": 0,
+      "sqlConnections": 0,
+      "hostingDeployments": 0
+    },
+    "userConfirmed": true,
+    "riskFile": "docs/aws-platform-hosting-w7n-access-review.md",
+    "riskSha256": "2450c2614a8358d56471a24b70460c8d1b43eccb6cf2f7ce7b3a88d67b3961b5",
+    "preparedIndexFile": "ops/aws-sandbox/reviews/platform-ecs-w7n.access-review.json",
+    "preparedIndexSha256": "835d772f153f7984d8f717fac87cdbe7197da4bf86abb2f494ece9a2c3f0b59f"
+  },
+  "productionRun": {
+    "schema": "techlong/platform-ecs-access-offline-observation/v1",
+    "observedAtUtc": "2026-10-22T21:33:27.712Z",
+    "manifest": {
+      "file": "F:/ChatGPT_workshop/techlong-platform-ecs-access-review-w7n-20261022.json",
+      "sha256": "9cdfcdc03a33cbcc22ca749bbb84294054bdeb58439447656e337ae4ad592e09",
+      "nonce": "aca6c7934875a069a696bbe47d9b7b35",
+      "sourceCommit": "ceaaf92c7298ed67039ead2ca6cd059ea3722479"
+    },
+    "executionCommit": "e9ebc52881a90aaae80ee815b4f8540c90848f19",
+    "outcome": "ACCESS_HANDOFF_INDEPENDENTLY_VERIFIED",
+    "startedAtUtc": "2026-10-22T21:31:55.419Z",
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-access-v1/01b4bb80-ce60-11f1-9435-0e85c8c75895",
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxPlatformWebExecutionRoleV1",
+    "roleId": "AROAV3GNMXTZJ45S2ANZ7",
+    "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxPlatformWebExecutionBoundaryV1",
+    "boundaryId": "ANPAV3GNMXTZP7KMHXNYF",
+    "defaultVersion": "v1",
+    "secretArn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/neon-v1-UfFKVF",
+    "versionId": "6ea2ca59-9a24-4f3e-b16f-ec824f32bc5f",
+    "secretPolicyState": "HANDOFF",
+    "sourcePinsVerified": 21,
+    "artifactPinsVerified": 9,
+    "ciReceiptVerified": true,
+    "parentCredentialReceiptVerified": true,
+    "preparedIndexUnchanged": true,
+    "sourcePinsUnchanged": true,
+    "intent": {
+      "file": "F:/ChatGPT_workshop/techlong-platform-ecs-access-v1.intent.json",
+      "sha256": "572ed1b9c0f47bf57e1063a2767e410f1bd464ba0baed504db6d6ecce3323b48",
+      "consumed": true,
+      "retryAllowed": false
+    },
+    "records": [
+      {
+        "name": "access-installed.json",
+        "bytes": 3128,
+        "sha256": "2c0adeb1f2c794e570ea26da834bff98e95968437c66a125e9d402dc12c8bac2",
+        "lastWriteTimeUtc": "2026-10-22T21:32:38.596Z"
+      },
+      {
+        "name": "create-ack.json",
+        "bytes": 147,
+        "sha256": "e9525c466016925d196df20cc70394e7b53f28b05799a0e0f194836543988b72",
+        "lastWriteTimeUtc": "2026-10-22T21:31:55.921Z"
+      },
+      {
+        "name": "handoff-ack.json",
+        "bytes": 1694,
+        "sha256": "fdcb09ed75a2d14837cce17b01384ea8717826b614a729804160a272db2e39fd",
+        "lastWriteTimeUtc": "2026-10-22T21:32:39.442Z"
+      },
+      {
+        "name": "independent-observation.json",
+        "bytes": 5627,
+        "sha256": "2f943c2ddff1f71b0a229b9102c3e8034b8722612787e2136ea1678f6c26e597",
+        "lastWriteTimeUtc": "2026-10-22T21:32:41.057Z"
+      },
+      {
+        "name": "result.json",
+        "bytes": 894,
+        "sha256": "a1777458e1da3b3979110d3065b09d4ad9ac5c6eed523fcceda20e4514b9ce61",
+        "lastWriteTimeUtc": "2026-10-22T21:32:41.102Z"
+      }
+    ],
+    "errors": [],
+    "awsCalls": {
+      "reads": 41,
+      "writes": 2
+    },
+    "secretValueReads": 0,
+    "sqlConnections": 0,
+    "hostingDeployed": false,
+    "hostingWindowStarted": false,
+    "additionalAwsCallsForOfflineReevaluation": 0,
+    "limitations": [
+      "Counts are wrapper submissions, excluding CloudFormation provider operations and AWS Login internals",
+      "Metadata and ACK proof only, not actual ECS role assumption or Secret value retrieval",
+      "Offline re-evaluation did not perform another live read",
+      "IAM and Secret exception persist; no automatic expiry, rollback, revoke or cleanup"
+    ]
+  },
+  "offlineSemanticReceipt": {
+    "file": "F:/ChatGPT_workshop/techlong-platform-ecs-access-aca6c7934875a069a696bbe47d9b7b35/offline-semantic.json",
+    "sha256": "2556727c5700aaa3f420d8cacc7c22030d7c8ca4a85d8dc612dda976fd6197b4"
+  },
+  "validationLimitations": [
+    "Counts are wrapper submissions, excluding CloudFormation provider operations and AWS Login internals",
+    "Metadata and ACK proof only, not actual ECS role assumption or Secret value retrieval",
+    "Offline re-evaluation did not perform another live read",
+    "IAM and Secret exception persist; no automatic expiry, rollback, revoke or cleanup"
+  ],
+  "next": {
+    "phase": "PREPARE_SEPARATE_TWO_HOUR_HTTPS_HOSTING_APPROVAL",
+    "requiresActualRoleId": "AROAV3GNMXTZJ45S2ANZ7",
+    "requiresActualBoundaryId": "ANPAV3GNMXTZP7KMHXNYF",
+    "hostingDraft": "docs/aws-platform-hosting-w7n-two-hour-draft.md",
+    "hostingResources": 11,
+    "hostingDeploymentAuthorized": false,
+    "cleanupAuthorized": false,
+    "hostingWindowStarted": false,
+    "oldBranchesRemainStopped": true
+  }
+}
