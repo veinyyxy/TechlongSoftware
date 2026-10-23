@@ -1,0 +1,237 @@
+{
+  "schema": "techlong/platform-hosted-supply-ci-verified/v6",
+  "sourceCommit": "ef29fed7f7d72902f14b036d387b3e31de4b5b00",
+  "status": "CODE_AND_CI_VERIFIED_SUPPLY_NOT_INSTALLED",
+  "runs": [
+    {
+      "runId": 39986807966,
+      "path": ".github/workflows/platform-hosted-access-candidate.yml",
+      "headSha": "ef29fed7f7d72902f14b036d387b3e31de4b5b00",
+      "event": "push",
+      "branch": "main",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39986807966",
+      "jobs": [
+        {
+          "id": 120527990369,
+          "name": "candidate",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Exact hosted supply and candidate binding - No AWS",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 6,
+              "name": "Typecheck and scoped lint",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 12,
+              "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 13,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "runId": 39986807974,
+      "path": ".github/workflows/platform-image-publication-v2-candidate.yml",
+      "headSha": "ef29fed7f7d72902f14b036d387b3e31de4b5b00",
+      "event": "push",
+      "branch": "main",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/39986807974",
+      "jobs": [
+        {
+          "id": 120527989470,
+          "name": "contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Run node --test tests/platform-image-publication-v2.test.mjs tests/platform-image-publication.test.mjs",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 6,
+              "name": "Run python3 -B tests/platform-image-extraction_test.py",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 7,
+              "name": "Run node node_modules/typescript/bin/tsc --noEmit --incremental false",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 13,
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 14,
+              "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 15,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 120528369697,
+          "name": "exact-image",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": [
+            {
+              "number": 1,
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 2,
+              "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 3,
+              "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 4,
+              "name": "Exact original ZIP and Alpine image, dual smoke and fresh zero-finding scan",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 5,
+              "name": "Save only small independent preflight evidence",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 9,
+              "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 10,
+              "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "number": 11,
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "localTests": {
+    "passed": 42,
+    "skipped": 0
+  },
+  "localTypecheckPassed": true,
+  "localScopedLintPassed": true,
+  "sourcePinCount": 45,
+  "realReadOnlyCheck": {
+    "file": "F:/ChatGPT_workshop/techlong-hosted-supply-w8d-readonly-check-20261023.json",
+    "sha256": "45776540606a67fa5513f30e4ab4314492e35d9e73ec130479bb2c600ec159a0",
+    "metadataCalls": 22,
+    "privateValueReads": 0,
+    "cloudWrites": 0
+  },
+  "legacyImagePreflightIsNotW8bArtifactProof": true,
+  "w8bActualArtifactBinaryVerified": false,
+  "hostingDeployed": false,
+  "executionAuthorized": false
+}

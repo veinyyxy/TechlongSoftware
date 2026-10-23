@@ -1,6 +1,6 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
-当前继续点（2026-10-23）：**W8d最小供给CLI及W8b发布协议适配已实现，42项本机新旧检查、类型和定向lint通过；新准确CI待main验证。** 先完成No-AWS CI再只读Prepare新48小时七写清单，另批一次PEM/Secret/既有IAM安装；不是立即运行。旧W7j候选/入口不变，新协议严格保留仓库旧镜像，新镜像真实产物/工作流及Source撤权编排仍待独立绑定。应用、运行时、数据库、旧执行闭包/槽及UI保持，无新增身份/部署。不要重做W8c资源盘点或只读壳；下一仅准确CI→fresh供给清单。[完整风险及入口](aws-auto-deployment-platform-w8d-supply-review.md)。下文为历史。
+当前继续点（2026-10-23）：**W8d已完成代码及准确CI，48小时七写供给清单已准备，等待准确SHA/完整风险批准。** ef29fed源码CI39986807966与原发布回归39986807974的27报告步骤全部成功；本机42项、类型/lint及真实22项只读元数据/PEM属性通过，45pin。原件 `F:/ChatGPT_workshop/techlong-hosted-supply-review-w8d-20261023.json`，SHA `02d50822369b872f26e70b09eff912f421ee259fc0df05e97c0f5d9da841c975`；最晚启动2026-10-25 11:08:20CDT，到期11:28:20CDT。新槽ABSENT，未读私密值或安装；只覆盖新App Secret及既有access/controller策略，不含镜像发布、App调度或ECS。新发布协议已适配且保留旧镜像，但真实产物/受保护工作流及Source撤权编排仍需后续绑定。不重做盘点/壳、不扩F3c9或UI；批准后只运行这一个安装并独立Inspect，不自动推进其它写。[完整风险与入口](aws-auto-deployment-platform-w8d-supply-review.md) / [待审索引](../ops/aws-sandbox/reviews/platform-hosted-access-w8d.review.json) / [CI证据](../ops/aws-sandbox/reviews/platform-hosted-access-w8d.verified.json)。下文为历史。
 
 当前继续点（2026-10-23）：**W8c元数据实查完成，已把接入缩为一项新App私钥Secret、既有execution角色两项固定凭据权限及既有publisher单次发布W8b镜像。** 原两个数据库Secret版本/策略和身份保持，publisher确认为上次撤权后的Locked，不把其Deny inline误作漂移。平台承载栈不存在、ECR尚无W8b镜像；本轮只读无私密值/SQL/云写/新槽。下一实现最小供给安装入口与现有发布适配，验证后才生成具体SHA分别确认；实际两小时托管/新任务/调度/清理另审。不新建身份/执行器或重做应用壳，不修窄屏UI。[资源表、顺序及风险](aws-auto-deployment-platform-w8c-activation-scope.md) / [未获批的机器计划](../ops/aws-sandbox/reviews/platform-hosted-controller-w8c.plan.json)。下文为历史。
 

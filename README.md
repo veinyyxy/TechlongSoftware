@@ -1,6 +1,6 @@
 # 餐饮 SaaS 平台
 
-2026-10-23主线：**W8d最小供给入口及W8b发布协议适配已编码，本机42项新旧检查、类型和定向lint通过；准确新CI尚待main验证。** 供给仅一项新App Secret及既有access栈/控制器Secret的七次顶层写，原身份、Web凭据、业务/运行时保持；新SHA批准前不读PEM或安装。发布适配保留旧镜像且不改旧W7j默认入口，实际产物封验、受保护工作流和发布控制器绑定仍另审；本轮不部署AWS、不调度GitHub或改UI。[入口、完整风险与继续点](docs/aws-auto-deployment-platform-w8d-supply-review.md)。
+2026-10-23主线：**W8d最小供给入口及W8b发布协议适配已完成，准确ef29fed源码两条No-AWS CI共27报告步骤全部成功；新48小时供给清单已准备，未安装。** 本机42项新旧检查、类型/lint及真实22项只读元数据/PEM属性核对通过，45源码pin；真实私密读取/云写/槽消费均0。待审SHA `02d50822369b872f26e70b09eff912f421ee259fc0df05e97c0f5d9da841c975`，最晚启动2026-10-25 11:08:20CDT、到期11:28:20CDT；仅一项新App Secret及既有access/控制器策略的七次顶层写，PEM一次读取需准确SHA及完整风险批准。**不包含镜像发布或ECS部署**；发布目前仅协议层适配，真实W8b产物/受保护工作流及Source撤权编排仍另审，旧镜像保留。运行时/业务/UI不改。[完整风险](docs/aws-auto-deployment-platform-w8d-supply-review.md) / [待审索引（非原件）](ops/aws-sandbox/reviews/platform-hosted-access-w8d.review.json) / [准确CI证据](ops/aws-sandbox/reviews/platform-hosted-access-w8d.verified.json)。
 
 2026-10-23主线：**W8c现有资源核对与最小接入范围已收敛。** 两个数据库Secret的固定版本、原execution身份/权限及publisher Locked状态匹配；拟用App私钥Secret尚不存在，平台承载栈已不存在，ECR仍只有旧镜像。下一复用原入口准备“一项新密钥Secret＋既有execution权限补充＋W8b单次镜像发布”的具体执行材料，之后另审两小时托管验收；不新增身份/执行器/数据库或UI。只读33项AWS元数据操作（含预检/Key），未读私密值、未写云或SQL、未消费执行槽。本计划不是可执行清单，也不授权安装/发布/部署。[准确范围与唯一继续点](docs/aws-auto-deployment-platform-w8c-activation-scope.md) / [核对事实](ops/aws-sandbox/reviews/platform-hosted-controller-w8c.inventory.json)。
 
