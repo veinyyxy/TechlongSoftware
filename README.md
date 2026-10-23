@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-23主线：**W8b已接通显式Node托管启动与受控私密binding候选，本机87项新旧回归通过，准确云容器/到期CI待本次源码验证。** 默认入口仍关闭；新模式先验证固定HTTPS/release/源码/租约，再按需供给原控制器凭据。到期只关控制能力，Web仍运行且继续可能计费，不自动清理或重建。未读真实Secret/key、未改IAM或部署AWS，UI不改。[范围、风险和唯一继续点](docs/aws-auto-deployment-platform-w8b-hosted-startup.md)。
+
 2026-10-23主线：**W8a控制器托管来源/租约兼容已编码，本机79项新旧回归、类型和定向lint通过；准确9f241d6源码的三项No-AWS CI全部成功（51报告步骤），含真实Docker构建/容器冒烟/安全扫描。** 复用既有Review/RunOnce/Inspect控制器，增加准确HTTPS来源、互斥模式和原30分钟上限；Node默认入口仍关闭，未装载密钥/凭据或启用部署。下一集中Node受审托管启动及私密供给，不重建只读壳、不扩F3c9。**用户明确窄屏退出按钮不修复，历史UI修复建议已撤回。** 本阶段AWS/Secret/生产SQL/真实App调度为0，实际权限和部署仍具体确认。[主线范围与继续点](docs/aws-auto-deployment-platform-w8a-hosted-controller.md) / [CI机器证据](ops/aws-sandbox/reviews/platform-controller-hosted-w8a.verified.json)。
 
 2026-10-23 07:17CDT当前：**W7r第二轮临时承载已清理并独立核验：HOSTING_CLEANUP_INDEPENDENTLY_VERIFIED，errors为空。** 按批准`6c74ce1e…f344`仅一次标准DeleteStack，准确新UUID `2d7d45a0-ced0-11f1-acc8-0effedbce869` 的11项CFN资源DELETE_COMPLETE、11项服务检查通过；ALB/入口DNS/安全组/日志组已移除，ECS仅保留INACTIVE历史、无运行任务。cleanup-v2槽已消费，禁止重放或补删。**临时承载入口已移除；IAM/Secret/Neon/ECR/证书/zone/VPC等保留，仍可能收费，不是全账户零费用。** 日志及容器临时数据未备份、不可恢复。应用/镜像/权限未改，窄屏退出缺陷仍待修，非完整生产验收。[实际清理及下一步](docs/aws-platform-hosting-w7r-cleanup-observed.md) / [机器证据](ops/aws-sandbox/reviews/platform-hosting-w7r.cleanup-observed.json)。

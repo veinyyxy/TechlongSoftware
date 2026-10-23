@@ -7,6 +7,7 @@ on:
       - 'ops/platform-hosting-v1/**'
       - 'tests/platform-hosting-v1.test.mjs'
       - 'tests/platform-hosting-release.test.mjs'
+      - 'tests/platform-hosted-control-v6.test.mjs'
       - 'app/**'
       - 'components/**'
       - 'config/**'
@@ -23,6 +24,7 @@ on:
       - 'ops/platform-hosting-v1/**'
       - 'tests/platform-hosting-v1.test.mjs'
       - 'tests/platform-hosting-release.test.mjs'
+      - 'tests/platform-hosted-control-v6.test.mjs'
       - 'app/**'
       - 'components/**'
       - 'config/**'
@@ -53,11 +55,11 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
       - name: Hosting contracts, liveness and unchanged cloud closure
-        run: node --experimental-strip-types --test tests/platform-hosting-v1.test.mjs tests/platform-hosting-release.test.mjs
+        run: node --experimental-strip-types --test tests/platform-hosting-v1.test.mjs tests/platform-hosting-release.test.mjs tests/platform-hosted-control-v6.test.mjs
       - name: Typecheck and scoped lint
         run: |
           node node_modules/typescript/bin/tsc --noEmit --incremental false
-          node node_modules/eslint/bin/eslint.js ops/platform-hosting-v1/ app/api/health/route.ts tests/platform-hosting-v1.test.mjs tests/platform-hosting-release.test.mjs --max-warnings 0
+          node node_modules/eslint/bin/eslint.js ops/platform-hosting-v1/ app/api/health/route.ts tests/platform-hosting-v1.test.mjs tests/platform-hosting-release.test.mjs tests/platform-hosted-control-v6.test.mjs --max-warnings 0
       - name: Build exact tracked sources without local private files
         shell: bash
         run: |
@@ -83,6 +85,16 @@ jobs:
           docker run --detach --name "$candidate_name" --network none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL --security-opt no-new-privileges --pids-limit 256 --memory 1g --cpus 1 --env TECHLONG_PLATFORM_INGRESS=alb-https-v1 --env TECHLONG_PLATFORM_PUBLIC_ORIGIN=https://console.sandbox.techlong.cloud "techlong-platform-ci:${GITHUB_SHA}"
           test "$(docker exec "$candidate_name" id -u)" != 0
           docker exec "$candidate_name" node ops/platform-hosting-v1/https-smoke.mjs
+      - name: Hosted controller bootstrap and expiry, no private bindings or AWS
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_name="techlong-platform-hosted-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          trap 'docker logs "$candidate_name"; docker rm --force "$candidate_name"' EXIT
+          docker run --detach --name "$candidate_name" --network none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL --security-opt no-new-privileges --pids-limit 256 --memory 1g --cpus 1 --env CI=true --env GITHUB_ACTIONS=true --env GITHUB_SHA="$GITHUB_SHA" "techlong-platform-ci:${GITHUB_SHA}" node ops/platform-hosting-v1/hosted-smoke.mjs
+          test "$(timeout 60s docker wait "$candidate_name")" = 0
+          docker logs "$candidate_name" | grep --fixed-strings NODE_HOSTED_CONTROL_SMOKE_PASSED_NO_REAL_PRIVATE_BINDINGS
+          docker logs "$candidate_name" | grep --fixed-strings PLATFORM_HOSTING_CONTROL_LEASE_CLOSED
       - name: Export the checked image with exact-source byte receipts, no registry
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1
         shell: bash
