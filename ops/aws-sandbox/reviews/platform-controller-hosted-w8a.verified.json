@@ -1,0 +1,305 @@
+{
+  "schema": "techlong/platform-controller-hosted-ci/v6",
+  "metadataOnly": true,
+  "status": "CODE_AND_NO_AWS_CI_VERIFIED_NOT_ACTIVATED",
+  "sourceCommit": "9f241d6daf81e59e3205a38216c094656f40d4b7",
+  "repository": "veinyyxy/TechlongSoftware",
+  "repositoryId": 1323312747,
+  "local": {
+    "tests": 79,
+    "pass": 79,
+    "fail": 0,
+    "skipped": 0,
+    "typecheck": "PASS",
+    "scopedLint": "PASS_ZERO_WARNINGS",
+    "sandboxFailure": "Initial loopback EACCES; same suite passed unchanged with permitted loopback."
+  },
+  "runs": [
+    {
+      "runId": 39954866059,
+      "headSha": "9f241d6daf81e59e3205a38216c094656f40d4b7",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "push",
+      "attempt": 1,
+      "path": ".github/workflows/platform-hosting-candidate.yml",
+      "jobId": 120418066135,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund",
+          "conclusion": "success"
+        },
+        {
+          "name": "Hosting contracts, liveness and unchanged cloud closure",
+          "conclusion": "success"
+        },
+        {
+          "name": "Typecheck and scoped lint",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build exact tracked sources without local private files",
+          "conclusion": "success"
+        },
+        {
+          "name": "Non-root read-only container, anonymous GETs, network disabled",
+          "conclusion": "success"
+        },
+        {
+          "name": "Fixed HTTPS origin and ALB-header simulation, no database or TLS credentials",
+          "conclusion": "success"
+        },
+        {
+          "name": "Export the checked image with exact-source byte receipts, no registry",
+          "conclusion": "success"
+        },
+        {
+          "name": "Fresh OS HIGH and CRITICAL gate before candidate image upload",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f",
+          "conclusion": "success"
+        },
+        {
+          "name": "Preserve small scan evidence even when image upload was refused",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "runId": 39954865963,
+      "headSha": "9f241d6daf81e59e3205a38216c094656f40d4b7",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "push",
+      "attempt": 1,
+      "path": ".github/workflows/platform-controller.yml",
+      "jobId": 120418065589,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Initialize containers",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+          "conclusion": "success"
+        },
+        {
+          "name": "Pure controller, throwaway RSA key, fake HTTP and real component SSR",
+          "conclusion": "success"
+        },
+        {
+          "name": "Real runtime remains closed even with accidental opt-in",
+          "conclusion": "success"
+        },
+        {
+          "name": "Exact SQL with non-superuser installer and true concurrent clients",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run node node_modules/typescript/bin/tsc --noEmit --incremental false",
+          "conclusion": "success"
+        },
+        {
+          "name": "Scoped lint",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm run build",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "conclusion": "success"
+        },
+        {
+          "name": "Stop containers",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "runId": 39954866031,
+      "headSha": "9f241d6daf81e59e3205a38216c094656f40d4b7",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "push",
+      "attempt": 1,
+      "path": ".github/workflows/platform-cloud-candidate.yml",
+      "jobId": 120418065845,
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Initialize containers",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund",
+          "conclusion": "success"
+        },
+        {
+          "name": "Real bridge and publisher code with injected synthetic providers",
+          "conclusion": "success"
+        },
+        {
+          "name": "Consolidated operator core with synthetic capabilities only",
+          "conclusion": "success"
+        },
+        {
+          "name": "Portable reviewed operator CLI with synthetic network and temporary files only",
+          "conclusion": "success"
+        },
+        {
+          "name": "Exact SQL and actual publisher queries on disposable PostgreSQL",
+          "conclusion": "success"
+        },
+        {
+          "name": "Reviewed local launcher with synthetic I/O only",
+          "conclusion": "success"
+        },
+        {
+          "name": "Closed runtime and hosted-local lease candidates without private bindings",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run node node_modules/typescript/bin/tsc --noEmit --incremental false",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run node node_modules/eslint/bin/eslint.js ops/platform-cloud-v6/ ops/platform-controller-review-v6/ ops/platform-publisher-v6/ ops/platform-review-v6/ ops/platform-activation-v6/ ops/platform-publication-v6/ ops/platform-binding-v6/ lib/deployments/controller-v6/ components/admin/DeploymentControlPanel.tsx tests/platform-cloud*v6.test.mjs tests/platform-control-install-v6.test.mjs tests/platform-publisher-io-v6.test.mjs tests/platform-review-v6.test.mjs tests/platform-activation-v6.test.mjs tests/platform-app-publication-v6.test.mjs tests/platform-binding-v6.test.mjs tests/platform-controller-transport-v6.test.mjs tests/fixtures/platform-controller-transport-v6.mjs tests/fixtures/platform-cloud-v6.mjs scripts/ci/verify-platform-cloud-publisher-pg-v6.mjs --max-warnings 0",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run npm run build",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+          "conclusion": "success"
+        },
+        {
+          "name": "Stop containers",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 12502271026,
+      "name": "platform-web-security-9f241d6daf81e59e3205a38216c094656f40d4b7-39954866059",
+      "sizeInBytes": 776,
+      "digest": "sha256:980061d16db4220e519c6ede2fb9abc0e69e9c27755fbf42e51588bb36ad380f",
+      "expired": false,
+      "expiresAt": "2026-10-26T12:40:28Z"
+    },
+    {
+      "id": 12501198895,
+      "name": "platform-web-image-9f241d6daf81e59e3205a38216c094656f40d4b7-39954866059",
+      "sizeInBytes": 307767517,
+      "digest": "sha256:4b4ff7b1f517ab9de1e88dd22c257d26e915516ce746209cbfb03478b0942d5e",
+      "expired": false,
+      "expiresAt": "2026-10-26T12:40:25Z"
+    }
+  ],
+  "artifactLimits": "Metadata existence and successful build/smoke/scan/upload steps verified; binary image/receipt not downloaded or independently resealed here. No registry image digest or publication claim.",
+  "cloudClosure": {
+    "pinCount": 81,
+    "sha256": "828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a",
+    "legacyPinCount": 76,
+    "legacySha256": "70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac",
+    "unchanged": true
+  },
+  "effects": {
+    "awsCalls": 0,
+    "productionSqlConnections": 0,
+    "privateKeyReads": 0,
+    "secretValueReads": 0,
+    "realAppTokens": 0,
+    "workflowDispatches": 0,
+    "environmentApprovals": 0,
+    "registryPushes": 0,
+    "ecsDeployments": 0,
+    "hostingRecreations": 0,
+    "uiChanges": 0
+  },
+  "runtimeState": {
+    "nodeDefaultClosed": true,
+    "hostedPrivateSupplyWired": false,
+    "awsHostedControllerActivated": false,
+    "fullProductionAcceptance": false
+  },
+  "next": "W8b reviewed Node-hosted startup/private binding supply candidate; preserve default closed mode, existing controller/cloud closure and excluded UI scope. Actual private supply, permissions, registry publication and deployment need concrete approval."
+}

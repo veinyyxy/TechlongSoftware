@@ -32,4 +32,10 @@ Node托管构建/绑定增加明确的`TECHLONG_PLATFORM_CONTROL_HOSTED=false`�
 
 本机79项相关新旧测试全部通过、0跳过，包含5项新增托管候选测试、原本机来源/租约、真实控制器私密读取前拒绝、HTTP同源门禁、App协议与默认关闭Node镜像/云闭包回归；类型和定向零警告lint通过。首次沙箱运行78/79通过，唯一失败是本机loopback连接EACCES；在允许loopback的环境原样重跑79/79通过，没有修改守卫绕过。测试只用合成配置/内存测试密钥，不代表生产托管控制器已验收。
 
-新测试进入既有No-AWS cloud candidate工作流；现有hosting candidate会构建精确main的容器并做无网络冒烟与安全扫描。真实CI结果在对应源码Checks核对，不冒充本机Docker验证；不安装Docker Desktop，不新增有AWS权限的工作流。源码push后等待准确CI，本页初版不预先宣称云构建通过。
+新测试进入既有No-AWS cloud candidate工作流；不安装Docker Desktop，不新增有AWS权限的工作流。准确源码`9f241d6daf81e59e3205a38216c094656f40d4b7`的三条CI均已completed/success、attempt1，共51个报告步骤全部成功：
+
+- [hosting39954866059](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39954866059)：17步骤，真实精确源码Docker构建、无网络容器/HTTPS边界冒烟、安全扫描及产物上传均成功。
+- [controller39954865963](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39954865963)：15步骤，原控制器/SQL回归、类型、lint及应用构建成功。
+- [cloud bridge39954866031](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39954866031)：19步骤，新增托管/本机租约、临时PostgreSQL、原协议/闭包和应用构建成功。
+
+[机器证据](../ops/aws-sandbox/reviews/platform-controller-hosted-w8a.verified.json)记录步骤与两个artifact的元数据；镜像artifact约308MB、保留至2026-10-26T12:40:25Z。这里只核对元数据和成功构建/扫描门禁，没有下载镜像或宣称ECR发布、真实托管控制器激活。后续若发布须重新验证具体二进制回执、有效性和实际权限，不能把artifact存在当作部署批准。
