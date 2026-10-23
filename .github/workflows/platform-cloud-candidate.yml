@@ -21,6 +21,7 @@ on:
       - 'tests/platform-publisher-io-v6.test.mjs'
       - 'ops/platform-review-v6/**'
       - 'tests/platform-review-v6.test.mjs'
+      - 'tests/platform-review-followup-v6.test.mjs'
       - 'ops/platform-activation-v6/**'
       - 'tests/platform-activation-v6.test.mjs'
       - 'ops/platform-publication-v6/**'
@@ -65,6 +66,7 @@ on:
       - 'tests/platform-publisher-io-v6.test.mjs'
       - 'ops/platform-review-v6/**'
       - 'tests/platform-review-v6.test.mjs'
+      - 'tests/platform-review-followup-v6.test.mjs'
       - 'ops/platform-activation-v6/**'
       - 'tests/platform-activation-v6.test.mjs'
       - 'ops/platform-publication-v6/**'
@@ -122,7 +124,7 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
       - name: Real bridge and publisher code with injected synthetic providers
-        run: node --experimental-strip-types --test tests/platform-cloud-v6.test.mjs tests/platform-cloud-publisher-v6.test.mjs tests/platform-publisher-io-v6.test.mjs tests/platform-review-v6.test.mjs tests/platform-activation-v6.test.mjs tests/platform-app-publication-v6.test.mjs tests/platform-binding-v6.test.mjs tests/cloud-worker-root-v5.test.mjs tests/platform-controller-v6.test.ts tests/platform-controller-github-v6.test.ts tests/platform-controller-transport-v6.test.mjs tests/platform-controller-auth-v6.test.mjs tests/platform-control-install-v6.test.mjs
+        run: node --experimental-strip-types --test tests/platform-cloud-v6.test.mjs tests/platform-cloud-publisher-v6.test.mjs tests/platform-publisher-io-v6.test.mjs tests/platform-review-v6.test.mjs tests/platform-review-followup-v6.test.mjs tests/platform-activation-v6.test.mjs tests/platform-app-publication-v6.test.mjs tests/platform-binding-v6.test.mjs tests/cloud-worker-root-v5.test.mjs tests/platform-controller-v6.test.ts tests/platform-controller-github-v6.test.ts tests/platform-controller-transport-v6.test.mjs tests/platform-controller-auth-v6.test.mjs tests/platform-control-install-v6.test.mjs
       - name: Consolidated operator core with synthetic capabilities only
         run: |
           node --experimental-strip-types --test tests/platform-operations-credentials-v6.test.mjs tests/platform-operations-window-v6.test.mjs tests/platform-operations-evidence-v6.test.mjs
@@ -151,5 +153,5 @@ jobs:
           node --experimental-strip-types --experimental-loader ./tests/cloudflare-loader.mjs --test tests/platform-controller-runtime-v6.test.mjs tests/platform-controller-hosted-v6.test.mjs
           node node_modules/eslint/bin/eslint.js tests/platform-controller-hosted-v6.test.mjs --max-warnings 0
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
-      - run: node node_modules/eslint/bin/eslint.js ops/platform-cloud-v6/ ops/platform-controller-review-v6/ ops/platform-publisher-v6/ ops/platform-review-v6/ ops/platform-activation-v6/ ops/platform-publication-v6/ ops/platform-binding-v6/ lib/deployments/controller-v6/ components/admin/DeploymentControlPanel.tsx tests/platform-cloud*v6.test.mjs tests/platform-control-install-v6.test.mjs tests/platform-publisher-io-v6.test.mjs tests/platform-review-v6.test.mjs tests/platform-activation-v6.test.mjs tests/platform-app-publication-v6.test.mjs tests/platform-binding-v6.test.mjs tests/platform-controller-transport-v6.test.mjs tests/fixtures/platform-controller-transport-v6.mjs tests/fixtures/platform-cloud-v6.mjs scripts/ci/verify-platform-cloud-publisher-pg-v6.mjs --max-warnings 0
+      - run: node node_modules/eslint/bin/eslint.js ops/platform-cloud-v6/ ops/platform-controller-review-v6/ ops/platform-publisher-v6/ ops/platform-review-v6/ ops/platform-activation-v6/ ops/platform-publication-v6/ ops/platform-binding-v6/ lib/deployments/controller-v6/ components/admin/DeploymentControlPanel.tsx tests/platform-cloud*v6.test.mjs tests/platform-control-install-v6.test.mjs tests/platform-publisher-io-v6.test.mjs tests/platform-review-v6.test.mjs tests/platform-review-followup-v6.test.mjs tests/platform-activation-v6.test.mjs tests/platform-app-publication-v6.test.mjs tests/platform-binding-v6.test.mjs tests/platform-controller-transport-v6.test.mjs tests/fixtures/platform-controller-transport-v6.mjs tests/fixtures/platform-cloud-v6.mjs scripts/ci/verify-platform-cloud-publisher-pg-v6.mjs --max-warnings 0
       - run: npm run build

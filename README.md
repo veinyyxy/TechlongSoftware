@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-23主线：**W8j准确heldjob的Review发布适配已实现，两段历史沿革已完整核对；尚未发布计划。** 本机14项新旧测试/lint通过，复用原publisher/窄SQL/证据桶；operator与现有镜像f3源码分开绑定。仅一次STS和一次准确S3版本GET补齐历史provider，未读认证文件/Secret/Neon或写云资源。下一准确CI后生成48小时待审清单；新托管窗口和真实调度仍另审，建议相关材料齐备再发布两小时Review。原15:58承载意图已过，不自动停费，清理另批。[完整范围与风险](docs/aws-auto-deployment-platform-w8j-review-publication.md) / [准备证据](ops/aws-sandbox/reviews/platform-review-followup-w8j.prepared.json)。下文为历史。
+
 2026-10-23主线：**W8i新任务`job_6e2e115c80301595512f11fb`已登记并独立核验，本机入口已关闭。** pending/attempt0/max1、审核挂起、无lease/云执行授权；九行旧快照和六旧job保持，两槽永久消费。未发布计划、续租或部署。下一仅准备该准确任务的lineage/Review发布清单，再另审云控制窗口；现有AWS承载15:58:42标签不自动停费，清理另批。[实际执行、证据与下一步](docs/aws-auto-deployment-platform-w8i-held-request-observed.md)。下文为历史。
 
 2026-10-23主线：**W8i已实际只读确认必须登记一个新held任务；request-only适配已实现，本机16测试及lint通过，尚未启动。** 六旧job五成功/一取消且无lease，五旧计划均过期/已占槽，禁止重放。固定新任务`job_6e2e115c80301595512f11fb`尚未登记；先准备准确CI及48小时清单，再按新SHA开启本机请求入口，由管理员单次登记并关闭/独立回读。云Review稍后绑定现有镜像f3源码，不冒充operator新HEAD；本阶段不读App key/Secret、不发布计划、不续租或部署。原W8g48源码pin保持；承载15:58:42仅意图标签，不自动停费，清理另批。[完整范围与风险](docs/aws-auto-deployment-platform-w8i-held-request-review.md) / [实际只读索引](ops/aws-sandbox/reviews/platform-hosted-review-w8i.readiness.json)。下文为历史。

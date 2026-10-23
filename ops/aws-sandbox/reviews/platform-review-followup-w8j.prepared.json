@@ -1,0 +1,30 @@
+{
+  "schema": "techlong/platform-followup-review-preparation-summary/v6",
+  "state": "PUBLICATION_ADAPTER_IMPLEMENTED_HISTORICAL_LINEAGE_VERIFIED_NOT_PUBLISHED",
+  "jobId": "job_6e2e115c80301595512f11fb",
+  "predecessorJobId": "job_c6cb047ac3ff30ed51ba9f34",
+  "requiredHostedPlanSourceCommit": "f3cea2da7d26dfc09726c4cbc52cab40217340c6",
+  "lineageLinks": 2,
+  "lineageContentSha256": "7ad860d750474ab8e3a9eb50539e736cab5c4e1d67da0ee390caecc836b406c1",
+  "predecessorReceiptSha256": "96713476e019d487deaceae860146708af2a949b88bd474b8209ab4a72e25588",
+  "providerReceipt": {
+    "path": "F:/ChatGPT_workshop/techlong-platform-w8j-provider-predecessor-20261023.json",
+    "rawSha256": "a5dfb9f6919906fd333c0a3584dd5a6409531ee8a0b599083a40ea7a55a331b7"
+  },
+  "lineagePreparationReceipt": {
+    "path": "F:/ChatGPT_workshop/techlong-platform-w8j-lineage-prepared-20261023.json",
+    "rawSha256": "67cadcb955b379d478338018c438f997e9dc415ce289919c21373bc0cfe300b9"
+  },
+  "actualPreparationEffects": {
+    "sourceStsReads": 1, "s3VersionGetAttempts": 1, "authFileContentReads": 0, "sqlConnections": 0,
+    "secretValueReads": 0, "privateKeyReads": 0, "awsWrites": 0, "slotsConsumed": 0,
+    "plansPublished": 0, "dispatches": 0, "cloudLeaseUpdates": 0
+  },
+  "localNewAndOriginalTestsPassed": 14,
+  "localLintWarnings": 0,
+  "entry": "ops/platform-review-v6/followup-local.mjs",
+  "riskFile": "docs/aws-auto-deployment-platform-w8j-review-publication.md",
+  "publicationApproved": false,
+  "historicalEvidenceIsNotCurrentHealth": true,
+  "preparationIsNotExecutionApproval": true
+}
