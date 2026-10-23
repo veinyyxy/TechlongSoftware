@@ -1,10 +1,10 @@
 {
   "schema": "techlong/platform-hosted-deploy-ci/v6",
   "state": "EXACT_SOURCE_NO_AWS_CI_VERIFIED",
-  "sourceCommit": "ff99d97a8c880ef0d5c3d4f688d5d50cf22acd47",
+  "sourceCommit": "871ac3c5e9c184a268011a948d3e3331f07d63b6",
   "repository": "veinyyxy/TechlongSoftware",
   "repositoryId": 1323312747,
-  "runId": 40005767004,
+  "runId": 40006342243,
   "workflowId": 394424703,
   "path": ".github/workflows/platform-hosted-deploy-candidate.yml",
   "headBranch": "main",
@@ -12,15 +12,15 @@
   "attempt": 1,
   "status": "completed",
   "conclusion": "success",
-  "htmlUrl": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/40005767004",
+  "htmlUrl": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/40006342243",
   "reportedSuccessfulSteps": 9,
   "jobs": [
     {
-      "id": 120593139438,
+      "id": 120595101938,
       "name": "candidate",
       "status": "completed",
       "conclusion": "success",
-      "run_id": 40005767004,
+      "run_id": 40006342243,
       "logs_url": null,
       "steps": [
         {
@@ -81,9 +81,16 @@
     }
   ],
   "localTests": {
-    "pass": 39,
-    "fail": 0,
-    "skip": 0
+    "original": {
+      "pass": 39,
+      "fail": 0,
+      "skip": 0
+    },
+    "fix": {
+      "pass": 11,
+      "fail": 0,
+      "skip": 0
+    }
   },
   "typecheck": "passed",
   "scopedLint": "passed",
@@ -92,5 +99,12 @@
   "awsCalls": 0,
   "privateValueReads": 0,
   "hostingDeployment": false,
-  "cloudRuntimeAcceptance": false
+  "cloudRuntimeAcceptance": false,
+  "exactCiTestCount": 40,
+  "previousVerifiedCi": {
+    "sourceCommit": "ff99d97a8c880ef0d5c3d4f688d5d50cf22acd47",
+    "runId": 40005767004,
+    "reportedSuccessfulSteps": 9,
+    "originalEvidence": "F:/ChatGPT_workshop/techlong-hosted-deploy-w8g-ci-20261023.json"
+  }
 }
