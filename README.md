@@ -1,5 +1,11 @@
 # 餐饮 SaaS 平台
 
+W7q清单于**2026-10-22 23:56CDT**准备完成：准确源码`bd70439f59a52fca363c93bd5b127e093ff2b286`的[No-AWS CI39902733486](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39902733486)全部10报告步骤成功（29项新旧测试、类型、lint），fresh AWS元数据与模板验证通过。**尚未部署，入口仍下线，第二轮槽未消费。** 新清单只拟议一次CreateStack、新UUID、原布局11项承载资源，复用既有镜像/权限/固定Secret，不新增IAM、不改数据库；ECS未来会读取真实Secret，公开应用可能产生认证写。两小时意图不自动停机/清理；官方区域价格示例变量费0.13555USD/2h（不含既有资源/日志/流量/额外容量/创建清理耗时等，不是上限）。33源码pin、7父证据及4产物已绑定。[完整范围、风险与认证步骤](docs/aws-platform-hosting-w7q-acceptance-review.md) / [脱敏待审索引（非原件）](ops/aws-sandbox/reviews/platform-hosting-w7q.review.json)。人工登录及后续准确新UUID清理仍分别确认，不能宣称管理员或整套系统验收通过。
+
+待批准SHA：`08d13df8f84a9e560bbf754a0bd1316cf5adff9f80dabc02a3c44a133b1e487d`；原件`F:/ChatGPT_workshop/techlong-platform-hosting-review-w7q-20261022.json`。有效期至**2026-10-24 23:56:25CDT**，最晚启动**23:26:25CDT**（UTC分别为`2026-10-25T04:56:25.642Z`和`04:26:25.642Z`）。只有新SHA及完整风险明确确认后才能运行`DeployTrial2Reviewed`；不要执行旧W7o命令或重置旧槽。T0+2小时从实际创建开始计算，不从清单准备开始；新槽一经消费也不自动重试或复位。
+
+以下为W7q代码实现时的历史准备记录。
+
 2026-10-22 23:51CDT当前：**W7q第二轮管理员验收准备已编码，本地29项新旧契约测试、类型及lint通过，fresh AWS只读inventory通过；尚未部署。** 复用固定镜像/权限/Secret/证书/网络，在原部署入口增加显式Trial2模式，仅兼容W7p已证明清理的准确旧UUID、INACTIVE且任务0的cluster/service和旧任务定义`:1`；未知/活跃/删除中对象仍拒绝。旧创建/删除intent保留，第二轮新槽未消费。下一步验证准确源码的No-AWS CI并生成48小时待审清单，实际新栈、人工认证和清理分别确认。[范围、完整风险与最小人工验收步骤](docs/aws-platform-hosting-w7q-acceptance-review.md)。没有新增IAM、重建镜像、读Secret值、连SQL或重启F3c9。
 
 以下为W7p已完成记录。
