@@ -1,0 +1,159 @@
+{
+  "schema": "techlong/platform-hosted-startup-ci/v6",
+  "metadataOnly": true,
+  "status": "HOSTED_STARTUP_AND_EXPIRY_CI_VERIFIED_NOT_DEPLOYED",
+  "runStatus": "completed",
+  "repository": "veinyyxy/TechlongSoftware",
+  "repositoryId": 1323312747,
+  "runId": 39960583333,
+  "sourceCommit": "f3cea2da7d26dfc09726c4cbc52cab40217340c6",
+  "headBranch": "main",
+  "event": "push",
+  "attempt": 1,
+  "conclusion": "success",
+  "workflowPath": ".github/workflows/platform-hosting-candidate.yml",
+  "jobId": 120437272670,
+  "steps": [
+    {
+      "name": "Set up job",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund",
+      "conclusion": "success"
+    },
+    {
+      "name": "Hosting contracts, liveness and unchanged cloud closure",
+      "conclusion": "success"
+    },
+    {
+      "name": "Typecheck and scoped lint",
+      "conclusion": "success"
+    },
+    {
+      "name": "Build exact tracked sources without local private files",
+      "conclusion": "success"
+    },
+    {
+      "name": "Non-root read-only container, anonymous GETs, network disabled",
+      "conclusion": "success"
+    },
+    {
+      "name": "Fixed HTTPS origin and ALB-header simulation, no database or TLS credentials",
+      "conclusion": "success"
+    },
+    {
+      "name": "Hosted controller bootstrap and expiry, no private bindings or AWS",
+      "conclusion": "success"
+    },
+    {
+      "name": "Export the checked image with exact-source byte receipts, no registry",
+      "conclusion": "success"
+    },
+    {
+      "name": "Fresh OS HIGH and CRITICAL gate before candidate image upload",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f",
+      "conclusion": "success"
+    },
+    {
+      "name": "Preserve small scan evidence even when image upload was refused",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+      "conclusion": "success"
+    },
+    {
+      "name": "Complete job",
+      "conclusion": "success"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 12504178427,
+      "name": "platform-web-security-f3cea2da7d26dfc09726c4cbc52cab40217340c6-39960583333",
+      "sizeInBytes": 775,
+      "digest": "sha256:3d0989214970155368779c159b4e4196111ba67869c7b93d230706542192df0c",
+      "expired": false,
+      "expiresAt": "2026-10-26T13:24:12Z"
+    },
+    {
+      "id": 12503974340,
+      "name": "platform-web-image-f3cea2da7d26dfc09726c4cbc52cab40217340c6-39960583333",
+      "sizeInBytes": 307773703,
+      "digest": "sha256:12f027cccd21d955c5a0c4db9b6f536606749028c0a1fdcc8d09f95279265723",
+      "expired": false,
+      "expiresAt": "2026-10-26T13:24:09Z"
+    }
+  ],
+  "localValidation": {
+    "regressionTests": 87,
+    "pass": 87,
+    "fail": 0,
+    "skipped": 0,
+    "newHostedTests": 8,
+    "typecheck": "PASS",
+    "scopedLint": "PASS_ZERO_WARNINGS"
+  },
+  "verifiedBoundaries": {
+    "defaultCommandUnchanged": true,
+    "defaultModeClosed": true,
+    "explicitHostedStartup": true,
+    "fixedHttpsOrigin": true,
+    "releaseAndSourceLeaseChecks": true,
+    "lazyPrivateBindingSupply": true,
+    "expiredCapabilityIrreversiblyClosed": true,
+    "expiredPrivateBindingsNull": true,
+    "healthStill200AfterExpiry": true,
+    "webNotAutomaticallyStopped": true,
+    "syntheticLeaseSeconds": 25,
+    "realProductionAuthenticationProved": false
+  },
+  "artifactLimits": "Only metadata and successful exact-source build/smoke/OS scan/upload verified. No binary download, image-config digest recheck or registry publication in this phase.",
+  "cloudClosure": {
+    "pinCount": 81,
+    "sha256": "828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a",
+    "legacyPinCount": 76,
+    "legacySha256": "70ee60eb7c5d3a7144a08c33587d81ef255a5f0126107f03b85541b7e7f961ac",
+    "unchanged": true
+  },
+  "effects": {
+    "awsCalls": 0,
+    "productionSqlConnections": 0,
+    "realAppKeyReads": 0,
+    "realSecretValueReads": 0,
+    "realControllerAppTokens": 0,
+    "workflowDispatches": 0,
+    "environmentApprovals": 0,
+    "registryPushes": 0,
+    "ecsDeployments": 0,
+    "hostingRecreations": 0,
+    "uiChanges": 0
+  },
+  "scopeLimits": [
+    "Candidate supply is lazy only at application boundary; future ECS-managed Secret injection may occur before validation.",
+    "Cache clearing is not secure erasure and does not revoke in-flight requests or already issued tokens.",
+    "Control expiry does not stop hosting, remove IAM/LOGIN, cancel charges or authorize cleanup.",
+    "Source pin and public lease are not signed deployment authorization; future manifest must bind actual image/config/resources."
+  ],
+  "next": "Prepare one concrete least-scope inventory/review of existing controller credentials, fixed Secret versions, existing publisher/execution-role permissions and exact image publication/hosting activation. No actual key load, new Secret, IAM write, registry publication or deployment without specific approval."
+}
