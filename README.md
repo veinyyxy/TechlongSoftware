@@ -1,5 +1,9 @@
 # 餐饮 SaaS 平台
 
+2026-10-22当前：**W7o 两小时HTTPS承载部署入口已实现，正在完成CI与待审清单；尚未部署。** 沿用W7n已安装execution角色、固定Secret UUID及已发布镜像，不建新IAM或改Secret策略；未来新栈仅11项承载资源。新的Source只读inventory已确认原身份/元数据、网络/证书/预算和承载名称空闲，镜像为单平台manifest。准备阶段AWS写/Secret值读取/SQL均0，永久部署槽未消费，hosting窗口未开始。实际CreateStack及ECS托管任务/Secret注入必须另按fresh SHA批准，随后独立应用验收、清理另审。[完整部署范围与风险](docs/aws-platform-hosting-w7o-deployment-review.md)。
+
+以下为已完成W7n历史。
+
 2026-10-22当前：**W7n execution角色、权限边界及固定Web Secret读取接线已安装，独立核验通过：ACCESS_HANDOFF_INDEPENDENTLY_VERIFIED。** 16:31–16:32CDT按准确9cdfcdc0清单执行一次两项IAM建栈和一次Secret策略更新，两个ACK、CREATE_COMPLETE、相同实际RoleId/默认v1/准确权限及独立HANDOFF均通过，errors为空。实际41次元数据读取/2次顶层写；没有读Secret值、连Neon或部署ECS。**永久槽已消费，下方准备命令只作历史，不可重放。** 额度中断仅延迟文档发布；恢复后只核本地证据，未重试安装。[实际结果与下一步](docs/aws-platform-hosting-w7n-access-observed.md) / [机器证据](ops/aws-sandbox/reviews/platform-ecs-w7n.observed.json)。下一步仅准备绑定真实RoleId的11项两小时HTTPS承载执行清单，实际部署/验收/清理另审；角色权限持续存在，平台尚未上线，hosting窗口未开始。
 
 以下为W7n已完成的历史准备记录（不再待批准）。

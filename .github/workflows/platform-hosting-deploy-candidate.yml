@@ -1,0 +1,37 @@
+name: Platform HTTPS hosting deployment - No AWS
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/platform-hosting-deploy-candidate.yml'
+      - 'ops/platform-hosting-deploy-v1/**'
+      - 'tests/platform-hosting-deploy-v1.test.mjs'
+      - 'docs/aws-platform-hosting-w7o-deployment-review.md'
+  pull_request:
+    paths:
+      - '.github/workflows/platform-hosting-deploy-candidate.yml'
+      - 'ops/platform-hosting-deploy-v1/**'
+      - 'tests/platform-hosting-deploy-v1.test.mjs'
+      - 'docs/aws-platform-hosting-w7o-deployment-review.md'
+permissions:
+  contents: read
+concurrency:
+  group: platform-hosting-deploy-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Fixed hosting deployment contracts - No AWS
+        run: node --test tests/platform-ecs-v1.test.mjs tests/platform-hosting-deploy-v1.test.mjs
+      - run: npx tsc --noEmit
+      - run: npx eslint ops/platform-hosting-deploy-v1 tests/platform-hosting-deploy-v1.test.mjs
