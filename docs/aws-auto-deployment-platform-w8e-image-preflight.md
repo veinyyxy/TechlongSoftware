@@ -1,5 +1,11 @@
 # W8e：真实托管镜像封验与无 AWS 身份自检
 
+## 完成状态
+
+**2026-10-23已完成，尚未发布ECR或部署。** 准确源码 `8fbd7bfffe73735b016d5f471c62b61b4010b1e1` 的新CI[39991362851](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39991362851)和旧发布回归[39991362854](https://github.com/veinyyxy/TechlongSoftware/actions/runs/39991362854)均首次push/attempt1成功，共35报告步骤，无跳过或重跑。新job120544094699实际加载原镜像，三项隔离smoke成功，fresh扫描Alpine3.24.1、18个OS包，HIGH/CRITICAL均0，无忽略发现或unfixed。
+
+真实小型CI artifact12517079051（3481字节）已独立下载并核对官方ZIP SHA256 `bd874b76399c34fd9522b0fba834a14690933879116c73f05b3a84170f047bc7`，严格核对三个普通文件；loaded-inspect确认config、12layers和默认关闭命令，真实preflight回执通过原安全门禁校验。源码、生产者、原件、扫描器/漏洞库和全部CI步骤见[机器证据](../ops/aws-sandbox/reviews/platform-hosted-publication-w8e.verified.json)。本地相同回执 `F:/ChatGPT_workshop/techlong-hosted-publication-w8e-ci-20261023.json`，SHA256 `5937094eff4037c1ced4d747eaeee1e05fe7e8cf31bb5fb8bb2bb031e8131053`。扫描数据库更新2026-10-23T13:13:41.529244645Z；它不永久有效，实际发布前仍重跑fresh安全门禁。
+
 ## 主线与范围
 
 W8d已安装并独立核验完成，本阶段只核验它后续要使用的W8b真实镜像。复用原artifact下载/严格解包/回执、Docker加载、匿名健康检查及扫描流程；没有新构建、依赖、身份、执行器或UI。旧publisher默认候选和原受保护工作流不改，不重放任何已消费安装/发布/清理槽。
