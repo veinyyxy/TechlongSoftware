@@ -7,7 +7,7 @@ import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {P,must,hash,verifyCandidate} from './plan.mjs';
+import {P,must,hash,publicationProtocol} from './plan.mjs';
 import {main as verifyArchive,imageReceipt} from '../platform-hosting-v1/image-artifact.mjs';
 import {checkCandidateScan} from '../platform-hosting-v1/security-scan.mjs';
 export async function save(file,value){const h=await open(file,'wx',0o600);try{await h.writeFile(JSON.stringify(value,null,2)+'\n');await h.sync();}finally{await h.close();}}
@@ -23,7 +23,8 @@ async function github(suffix,token){
   const r=await fetch('https://api.github.com'+suffix,{headers:{authorization:'Bearer '+token,accept:'application/vnd.github+json'},
     redirect:'error',signal:AbortSignal.timeout(30000)});must(r.ok,'ARTIFACT_API_RESPONSE');return r.json();
 }
-export async function prepare(dir,env=process.env,{publication=false}={}){
+export async function prepare(dir,env=process.env,{publication=false,protocol=publicationProtocol()}={}){
+  const {P,verifyCandidate}=protocol;
   assertArtifactContext(env,{publication});const out=path.resolve(dir),temp=path.resolve(env.RUNNER_TEMP);
   must(path.dirname(out)===temp&&(await lstat(temp)).isDirectory(),'ARTIFACT_DIRECTORY');
   const [run,artifact]=await Promise.all([github(`/repos/${P.repository}/actions/runs/${P.runId}`,env.GH_TOKEN),
@@ -47,14 +48,16 @@ export async function prepare(dir,env=process.env,{publication=false}={}){
     executorCommit:env.GITHUB_SHA,runId:env.GITHUB_RUN_ID,recordedAtUtc:new Date().toISOString()};
   await save(path.join(out,'verified-artifact.json'),result);return result;
 }
-export async function inspect(dir){
+export async function inspect(dir,{candidate=P}={}){
+  const P=candidate;
   const a=JSON.parse(await readFile(path.join(dir,'verified-artifact.json'),'utf8'));
   const context={CI:'true',GITHUB_ACTIONS:'true',GITHUB_REPOSITORY:P.repository,GITHUB_EVENT_NAME:'push',GITHUB_REF:'refs/heads/main',
     GITHUB_RUN_ATTEMPT:'1',GITHUB_SHA:P.sourceCommit,GITHUB_RUN_ID:String(P.runId)};
   const r=imageReceipt(JSON.parse(await readFile(path.join(dir,'loaded-inspect.json'),'utf8')),{bytes:a.archiveBytes,sha256:P.archiveSha256},context);
   must(r.imageConfigDigest===P.imageConfigDigest,'LOADED_IMAGE');return r;
 }
-export async function scan(dir,cache){
+export async function scan(dir,cache,{candidate=P}={}){
+  const P=candidate;
   const report=path.join(dir,'os-scan.json'),metadata=path.join(cache,'db/metadata.json');
   const r=checkCandidateScan(JSON.parse(await readFile(report,'utf8')),JSON.parse(await readFile(metadata,'utf8')),P.imageConfigDigest);
   Object.assign(r,{schema:'techlong/platform-publication-preflight/v2',sourceCommit:P.sourceCommit,producerRunId:P.runId,

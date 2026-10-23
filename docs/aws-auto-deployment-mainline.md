@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-23）：**W8e真实ZIP/archive字节已匹配，新的固定候选及No-AWS exact-image自检已实现，准确CI待完成。** 生产者f3cea2d/39960583333/artifact12503974340；新image-config c418fef9…4230、archive9c427ec8…22f5。复用原artifact/preflight，旧候选默认保持；不新建镜像、身份或执行器，云端加载原件、三项隔离smoke和fresh OS扫描后再推进Source发布绑定。AWS写/Secret或PEM读取/SQL/App调度/ECR/ECS均0；不消费新执行槽。上一阶段W8d安装独立通过且不重跑。此代码继续不包含发布许可；原件到期10月26日08:24:09CDT不自动延长。[具体范围与下一步](aws-auto-deployment-platform-w8e-image-preflight.md)。下文为历史。
+
 当前继续点（2026-10-23）：**W8d供给安装及另进程独立核验已完成：SUPPLY_METADATA_INDEPENDENTLY_VERIFIED，errors及bindingErrors为空。** 按02d50822…清单七次顶层写、一次PEM读取；新App Secret `github-app-v6-C58FqK` 固定版本 `0aee41e2-c4c3-4d4d-afca-9e68f66cd379`，原access栈UPDATE_COMPLETE/两物理IAM身份保持，boundary默认v2且v1保留，精确九条策略和两项读取例外匹配。Web凭据版本/策略及controller版本不改，管理仍Source-only；无Secret值回读/SQL/App token/发布/部署。安装槽永久消费，禁止重跑/复位/补齐；新增Secret及权限保留，不自动停费或撤权，运行时未启用。下一仅集中W8b真实产物字节/配置/安全门禁和既有publisher单次发布→立即撤权控制器的新具体材料；另按SHA确认，不继承安装批准，不新建身份或重做盘点/壳/UI。[安装事实、原件和独立核验](../ops/aws-sandbox/reviews/platform-hosted-access-w8d.review.json) / [原完整风险与代码接口（写命令仅历史）](aws-auto-deployment-platform-w8d-supply-review.md)。下文为历史。
 
 当前继续点（2026-10-23）：**W8c元数据实查完成，已把接入缩为一项新App私钥Secret、既有execution角色两项固定凭据权限及既有publisher单次发布W8b镜像。** 原两个数据库Secret版本/策略和身份保持，publisher确认为上次撤权后的Locked，不把其Deny inline误作漂移。平台承载栈不存在、ECR尚无W8b镜像；本轮只读无私密值/SQL/云写/新槽。下一实现最小供给安装入口与现有发布适配，验证后才生成具体SHA分别确认；实际两小时托管/新任务/调度/清理另审。不新建身份/执行器或重做应用壳，不修窄屏UI。[资源表、顺序及风险](aws-auto-deployment-platform-w8c-activation-scope.md) / [未获批的机器计划](../ops/aws-sandbox/reviews/platform-hosted-controller-w8c.plan.json)。下文为历史。
