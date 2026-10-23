@@ -1,0 +1,35 @@
+{
+  "schema": "techlong/platform-hosted-review-readiness-summary/v1",
+  "state": "READ_ONLY_BASELINE_VERIFIED_NEW_HELD_REQUEST_REQUIRED",
+  "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+  "deploymentId": "dep_7c99bd249470184852f0dc74",
+  "latestSucceededJobId": "job_c6cb047ac3ff30ed51ba9f34",
+  "oldJobs": {"total": 6, "succeeded": 5, "canceled": 1, "active": 0, "leases": 0},
+  "canceledJobIdPreserved": "job_fc0309dabebc09367f64153f",
+  "oldPlans": {"total": 5, "live": 0, "reviewModeSlotsUsed": true},
+  "receipt": {
+    "path": "F:/ChatGPT_workshop/techlong-platform-w8i-readiness-readonly-20261023.json",
+    "rawSha256": "a6a784064085443be8a0a507e86ba0ddaafe1d8905b31ba5cd9599b48872a310"
+  },
+  "candidateNotRegistered": {
+    "clientRequestId": "c78f3b80-4c6b-4af1-8b05-4feabb89e7de",
+    "requestId": "c99ca0cb30620d6f3ccc47dee1d6287ee3c9489531fd750db41d127182be7730",
+    "jobId": "job_6e2e115c80301595512f11fb"
+  },
+  "requiredHostedPlanSourceCommit": "f3cea2da7d26dfc09726c4cbc52cab40217340c6",
+  "actualReadOnlyEffects": {
+    "authFileReads": 1, "sqlConnections": 1, "readOnlyTransactions": 1, "selects": 4,
+    "databaseWrites": 0, "awsCalls": 0, "pemReads": 0, "awsSecretValueReads": 0,
+    "appTokens": 0, "dispatches": 0, "leaseUpdates": 0, "slotsConsumed": 0
+  },
+  "newEntry": "ops/platform-request-v6/followup-local.mjs",
+  "newEntryLocalTestsPassed": 16,
+  "newEntryLocalLintWarnings": 0,
+  "entryExecuted": false,
+  "startApproved": false,
+  "preparationIsNotApproval": true,
+  "document": "docs/aws-auto-deployment-platform-w8i-held-request-review.md",
+  "originalControlLeaseExpiresAtUtc": "2026-10-23T19:28:42.592Z",
+  "originalHostingIntentUtc": "2026-10-23T20:58:42.592Z",
+  "automaticStopOrCleanup": false
+}

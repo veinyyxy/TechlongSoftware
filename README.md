@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-23主线：**W8i已实际只读确认必须登记一个新held任务；request-only适配已实现，本机16测试及lint通过，尚未启动。** 六旧job五成功/一取消且无lease，五旧计划均过期/已占槽，禁止重放。固定新任务`job_6e2e115c80301595512f11fb`尚未登记；先准备准确CI及48小时清单，再按新SHA开启本机请求入口，由管理员单次登记并关闭/独立回读。云Review稍后绑定现有镜像f3源码，不冒充operator新HEAD；本阶段不读App key/Secret、不发布计划、不续租或部署。原W8g48源码pin保持；承载15:58:42仅意图标签，不自动停费，清理另批。[完整范围与风险](docs/aws-auto-deployment-platform-w8i-held-request-review.md) / [实际只读索引](ops/aws-sandbox/reviews/platform-hosted-review-w8i.readiness.json)。下文为历史。
+
 2026-10-23主线：**W8h托管控制读取链路和有限登录/退出验收通过，未调度工作流。** 用户自行登录/退出，14:27:30CDT准确实例的控制区启用、专用Neon状态读取成功，无控制错误；公网TLS、login200/未登录admin307及退出后门禁已验证。health HTTP200，但诊断器误解析JSON包裹结构，语义不声称通过，原错误回执保留且不重试。无云写/直接Secret值读取/请求创建或批准/观察/调度，页面仅使用既有注入凭据读取状态。原控制租约14:28:42已到期，未续；**承载15:58:42仅标签，不自动停费，清理仍需另批。** 下一先齐备真实Review调度材料，再审批新控制窗口，不重复壳/登录/镜像/身份工作。[实际范围、证据与唯一缺口](docs/aws-auto-deployment-platform-w8h-acceptance-observed.md)。下文为历史。
 
 2026-10-23 14:10CDT主线：**W8g已单次部署，独立资源核验通过，真实控制功能验收待进行。** 准确新栈UUID `c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7` 的11资源完成、单task健康；已发布ad3镜像/f3源码、hosted命令/三个固定Secret引用及原权限/SG/DNS匹配。原脚本因AWS三个默认空数组误报，两份失败回执保留；仅新增已通过准确18步CI的独立只读兼容核验，原48源码pin不改，无再次建栈/重启/权限安装。永久槽已消费，禁止重放。**今天14:28:42CDT控制租约关闭；15:58:42CDT仅承载意图，资源不会自动停止收费，清理尚未授权。** 下一只准备真实托管控制验收及准确新UUID清理，分别确认，不自动登录/调度/续租。[实际结果、期限与证据](docs/aws-auto-deployment-platform-w8g-hosting-observed.md)。下文为历史，旧待审命令不可重放。

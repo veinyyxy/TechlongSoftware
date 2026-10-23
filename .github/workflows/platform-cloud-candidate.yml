@@ -41,6 +41,7 @@ on:
       - 'components/admin/InitializedDeploymentPanel.tsx'
       - 'app/api/admin/instances/**/initialized-deployment/route.ts'
       - 'tests/platform-request-v6.test.mjs'
+      - 'tests/platform-request-followup-v6.test.mjs'
       - 'scripts/ci/verify-platform-request-readback-v6.mjs'
       - 'components/admin/DeploymentControlPanel.tsx'
       - 'app/api/admin/instances/**/deployment-control/route.ts'
@@ -84,6 +85,7 @@ on:
       - 'components/admin/InitializedDeploymentPanel.tsx'
       - 'app/api/admin/instances/**/initialized-deployment/route.ts'
       - 'tests/platform-request-v6.test.mjs'
+      - 'tests/platform-request-followup-v6.test.mjs'
       - 'scripts/ci/verify-platform-request-readback-v6.mjs'
       - 'components/admin/DeploymentControlPanel.tsx'
       - 'app/api/admin/instances/**/deployment-control/route.ts'
@@ -137,11 +139,11 @@ jobs:
           PLATFORM_CONTROL_CI_PORT: ${{ job.services.postgres.ports[5432] }}
       - name: Reviewed local launcher with synthetic I/O only
         run: |
-          node --experimental-strip-types --test tests/platform-local-v6.test.mjs tests/platform-request-v6.test.mjs tests/initialized-platform-v4.test.ts tests/local-deployment-platform.test.mjs
+          node --experimental-strip-types --test tests/platform-local-v6.test.mjs tests/platform-request-v6.test.mjs tests/platform-request-followup-v6.test.mjs tests/initialized-platform-v4.test.ts tests/local-deployment-platform.test.mjs
           node --experimental-strip-types scripts/ci/verify-platform-request-readback-v6.mjs
           node --experimental-strip-types scripts/ci/verify-platform-local-v6.mjs
           node --experimental-strip-types scripts/ci/verify-platform-local-v6.mjs request
-          node node_modules/eslint/bin/eslint.js ops/platform-local-v6/ ops/platform-request-v6/ lib/deployments/reviewed-request-window-v6.ts lib/deployments/initialized-platform-management.ts lib/deployments/initialized-platform-http.ts components/admin/InitializedDeploymentPanel.tsx 'app/api/admin/instances/[instanceId]/initialized-deployment/route.ts' tests/platform-request-v6.test.mjs tests/platform-local-v6.test.mjs scripts/ci/verify-platform-local-v6.mjs scripts/ci/verify-platform-request-readback-v6.mjs --max-warnings 0
+          node node_modules/eslint/bin/eslint.js ops/platform-local-v6/ ops/platform-request-v6/ lib/deployments/reviewed-request-window-v6.ts lib/deployments/initialized-platform-management.ts lib/deployments/initialized-platform-http.ts components/admin/InitializedDeploymentPanel.tsx 'app/api/admin/instances/[instanceId]/initialized-deployment/route.ts' tests/platform-request-v6.test.mjs tests/platform-request-followup-v6.test.mjs tests/platform-local-v6.test.mjs scripts/ci/verify-platform-local-v6.mjs scripts/ci/verify-platform-request-readback-v6.mjs --max-warnings 0
         env:
           PLATFORM_CONTROL_CI_PORT: ${{ job.services.postgres.ports[5432] }}
       - name: Closed runtime and hosted-local lease candidates without private bindings
