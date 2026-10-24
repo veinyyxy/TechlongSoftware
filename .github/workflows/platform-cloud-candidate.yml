@@ -22,6 +22,7 @@ on:
       - 'ops/platform-review-v6/**'
       - 'tests/platform-review-v6.test.mjs'
       - 'tests/platform-review-followup-v6.test.mjs'
+      - 'tests/platform-transferred-cycle-v6.test.mjs'
       - 'tests/platform-review-refresh-v6.test.mjs'
       - 'tests/fixtures/platform-review-refresh-v6.mjs'
       - 'scripts/ci/verify-platform-review-refresh-pg-v6.mjs'
@@ -78,6 +79,7 @@ on:
       - 'ops/platform-review-v6/**'
       - 'tests/platform-review-v6.test.mjs'
       - 'tests/platform-review-followup-v6.test.mjs'
+      - 'tests/platform-transferred-cycle-v6.test.mjs'
       - 'tests/platform-review-refresh-v6.test.mjs'
       - 'tests/fixtures/platform-review-refresh-v6.mjs'
       - 'scripts/ci/verify-platform-review-refresh-pg-v6.mjs'
@@ -151,6 +153,10 @@ jobs:
         run: |
           node --experimental-strip-types --test tests/platform-operations-credentials-v6.test.mjs tests/platform-operations-window-v6.test.mjs tests/platform-operations-evidence-v6.test.mjs
           node node_modules/eslint/bin/eslint.js ops/platform-operations-v6/ tests/platform-operations-credentials-v6.test.mjs tests/platform-operations-window-v6.test.mjs tests/platform-operations-evidence-v6.test.mjs tests/fixtures/platform-operations-v6.mjs --max-warnings 0
+      - name: Transferred held task and HOSTED evidence handoff, no live capabilities
+        run: |
+          node --experimental-strip-types --test tests/platform-transferred-cycle-v6.test.mjs
+          node node_modules/eslint/bin/eslint.js ops/platform-review-v6/transferred-cycle.mjs ops/platform-review-v6/hosted-handoff.mjs tests/platform-transferred-cycle-v6.test.mjs --max-warnings 0
       - name: Portable reviewed operator CLI with synthetic network and temporary files only
         run: |
           node --experimental-strip-types --test tests/platform-operator-v6.test.mjs
