@@ -54,6 +54,9 @@ const execute=(baseline,options={})=>transaction(options.dbClient,options.record
 try{
   await control.query('CREATE DATABASE '+db);created=true;
   client=new pg.Client({...base,database:db});second=new pg.Client({...base,database:db});await client.connect();await second.connect();
+  // Disposable connections must render catalog definitions with the same
+  // search_path as the real RO reader and transaction-local writer context.
+  await client.query('SET search_path=pg_catalog');await second.query('SET search_path=pg_catalog');
   await client.query(`CREATE TABLE public.users(id text PRIMARY KEY,status text,is_platform_admin int);
     CREATE TABLE public.workspaces(id text PRIMARY KEY,status text);
     CREATE TABLE public.subscriptions(id text PRIMARY KEY,status text,current_period_end bigint);
@@ -82,7 +85,10 @@ try{
   await client.query("INSERT INTO public.app_instance_deployments VALUES($1,$2,$3,$4,'aws_sandbox','ready',$5,$6,$7,'{}','cell-sandbox-1')",[S.deploymentId,S.appInstanceId,S.environmentId,sub,S.planHash,S.configurationHash,S.artifactRef]);
   await client.query("INSERT INTO public.deployment_tenant_resources VALUES($1,$2,'verified',NULL,$2,1,1)",[S.appInstanceId,S.deploymentId]);
   await client.query("INSERT INTO public.deployment_tenant_external_operations VALUES($1,1,1,'active','provision',$2,$3)",[S.appInstanceId,S.deploymentId,S.operationHash]);
-  let before=await reset(),r=await execute(before);assert.equal(r.committed,true);
+  let before=await reset();
+  await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');await client.query('SET LOCAL search_path=pg_catalog');
+  const stablePresentation=await readState(client);await client.query('ROLLBACK');assert.deepEqual(stablePresentation.protection,before.protection);
+  let r=await execute(before);assert.equal(r.committed,true,JSON.stringify(r));
   await second.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
   const proof=await verifyTransferReadback(before,await readState(second),r.at);await second.query('COMMIT');assert.equal(proof.otherJobsPreserved,2);
   checks.push('actual_original_admission_sql_and_atomic_two_rows_independent_connection_readback');
