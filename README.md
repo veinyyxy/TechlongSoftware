@@ -1,5 +1,7 @@
 # 餐饮 SaaS 平台
 
+2026-10-23主线：**W8k现有托管窗口单次更新入口及源码兼容纠正已实现，尚未执行AWS写入或发布计划。** 本机28项新旧测试/lint通过，42次AWS只读元数据确认准确现有栈及唯一活动`:3` revision；不用新镜像/IAM/任务。旧W8j e004…清单未执行且已替代：计划/租约绑定最终受审main，f3只记录镜像产物出处，应用运行时及81项云闭包不变。下一准确CI后一起准备新的48小时W8j发布与W8k更新清单，再分别审批；main冻结至本job验收结束。更新可能中断服务，旧15:58费用标签不自动停费，清理另审。[W8k完整范围与风险](docs/aws-auto-deployment-platform-w8k-hosted-window-review.md) / [实际准备索引](ops/aws-sandbox/reviews/platform-hosted-window-w8k.prepared.json)。下文旧源码绑定表述只作历史，以本纠正为准。
+
 2026-10-23主线：**W8j准确heldjob的Review发布适配已实现，两段历史沿革已完整核对；尚未发布计划。** 本机14项新旧测试/lint通过，复用原publisher/窄SQL/证据桶；operator与现有镜像f3源码分开绑定。仅一次STS和一次准确S3版本GET补齐历史provider，未读认证文件/Secret/Neon或写云资源。下一准确CI后生成48小时待审清单；新托管窗口和真实调度仍另审，建议相关材料齐备再发布两小时Review。原15:58承载意图已过，不自动停费，清理另批。[完整范围与风险](docs/aws-auto-deployment-platform-w8j-review-publication.md) / [准备证据](ops/aws-sandbox/reviews/platform-review-followup-w8j.prepared.json)。下文为历史。
 
 2026-10-23主线：**W8i新任务`job_6e2e115c80301595512f11fb`已登记并独立核验，本机入口已关闭。** pending/attempt0/max1、审核挂起、无lease/云执行授权；九行旧快照和六旧job保持，两槽永久消费。未发布计划、续租或部署。下一仅准备该准确任务的lineage/Review发布清单，再另审云控制窗口；现有AWS承载15:58:42标签不自动停费，清理另批。[实际执行、证据与下一步](docs/aws-auto-deployment-platform-w8i-held-request-observed.md)。下文为历史。

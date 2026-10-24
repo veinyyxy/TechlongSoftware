@@ -18,20 +18,21 @@ import {createTrustedPublisherV6} from '../platform-cloud-v6/publisher.mjs';
 import {EVIDENCE_V5 as E,assertEvidenceSafeV5} from '../cloud-worker/cloud-evidence-v5.mjs';
 import {canonicalJson} from '../../lib/deployments/execution/hash.ts';
 import {J,must,same,makeFollowupPublication,verifyFollowupPublication,assertFollowupHeld,reconstructFollowupLineage,validateFollowupPlan,publishFollowupOnce} from './followup.mjs';
+import {sourceCompatibility} from '../platform-hosted-window-v6/compatibility.mjs';
 export const FILES=['ops/platform-review-v6/followup.mjs','ops/platform-review-v6/followup-local.mjs','ops/platform-publisher-v6/io.mjs',
   'ops/platform-cloud-v6/publisher.mjs','ops/platform-cloud-v6/contract.mjs','ops/platform-controller-v6/install.sql',
   'ops/platform-controller-review-v6/catalog.mjs','ops/platform-controller-review-v6/install.mjs','ops/platform-local-v6/local.mjs',
   'ops/platform-local-v6/metadata.ps1','lib/deployments/controller-v6/installed-binding.ts','lib/deployments/controller-v6/contract.ts',
   'ops/cloud-worker/cloud-worker-root-v5.mjs','ops/cloud-worker/cloud-context-v5.mjs','ops/cloud-worker/material/public-capsule-v5.json',
   'ops/aws-sandbox/reviews/platform-request-followup-w8i.executed.json','tests/platform-review-followup-v6.test.mjs',
-  '.github/workflows/platform-cloud-candidate.yml',J.riskFile];
+  'ops/platform-hosted-window-v6/compatibility.mjs','.github/workflows/platform-cloud-candidate.yml',J.riskFile];
 const hash=v=>createHash('sha256').update(v).digest('hex'),json=async f=>JSON.parse(await readFile(f,'utf8'));
 async function write(f,v){assertEvidenceSafeV5(v);await writeFile(f,JSON.stringify(v,null,2)+'\n',{flag:'wx',flush:true});}
 async function absent(f){try{await access(f);must(false,'OCCUPIED');}catch(e){if(e.code!=='ENOENT')throw e;}}
 const pins=()=>Promise.all(FILES.map(async file=>({file,sha256:hash((await readFile(L.root+'/'+file,'utf8')).replaceAll('\r\n','\n'))})));
 async function source(expected){const head=(await git(['rev-parse','HEAD'])).trim();must((await git(['branch','--show-current'])).trim()==='main'&&
   (await git(['status','--porcelain'])).trim()===''&&(!expected||head===expected),'SOURCE');
-  await git(['merge-base','--is-ancestor',J.runtimeSourceCommit,'HEAD']);return head;}
+  await sourceCompatibility(head);return head;}
 async function directory(value,existing=false){const p=path.resolve(value);must(path.dirname(p).toLowerCase()===path.resolve(L.base).toLowerCase()&&
   /^techlong-w8j-review-plan-[a-z0-9-]+$/.test(path.basename(p))&&(await realpath(L.base)).toLowerCase()===path.resolve(L.base).toLowerCase(),'DIRECTORY');
   if(existing)must((await realpath(p)).toLowerCase()===p.toLowerCase(),'DIRECTORY_LINK');return p;}
@@ -99,9 +100,9 @@ export async function main(args=process.argv.slice(2)){
   await mkdir(output);
   if(mode==='Prepare'){
     const sourceCommit=await source(),ci=await readLocalCiV6(a['--ci-run'],sourceCommit),auth=await authMetadataV6();
-    m=await makeFollowupPublication({sourceCommit,pins:await pins(),ci,auth,baseline:p.baseline,references:p.prepared.references,receipts:p.receipts,createdAt:Date.now()});await source(sourceCommit);
+    m=await makeFollowupPublication({sourceCommit,pins:await pins(),ci,auth,baseline:p.baseline,references:p.prepared.references,receipts:p.receipts,createdAt:Date.now(),compatibility:await sourceCompatibility(sourceCommit)});await source(sourceCommit);
     await write(output+'/manifest.json',m);const result={outcome:'FOLLOWUP_REVIEW_PREPARED_NOT_APPROVED',manifestSha256:m.manifestSha256,jobId:J.jobId,
-      operatorSourceCommit:m.sourceCommit,runtimeSourceCommit:m.runtimeSourceCommit,expiresAtUtc:new Date(m.expiresAt).toISOString(),
+      operatorSourceCommit:m.sourceCommit,runtimeSourceCommit:m.runtimeSourceCommit,imageSourceCommit:m.imageSourceCommit,expiresAtUtc:new Date(m.expiresAt).toISOString(),
       latestStartAtUtc:new Date(m.latestStartAt).toISOString(),expiresAtWinnipeg:new Intl.DateTimeFormat('en-CA',{timeZone:'America/Winnipeg',dateStyle:'full',timeStyle:'long'}).format(m.expiresAt),
       authContentReads:0,sqlConnections:0,awsCalls:0,slotsConsumed:0,executionApproved:false};await write(output+'/result.json',result);console.log(JSON.stringify(result,null,2));return result;
   }

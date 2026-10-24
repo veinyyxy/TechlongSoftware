@@ -4,7 +4,15 @@
 
 W8i的`job_6e2e115c80301595512f11fb`已单次登记、独立核验，本机入口已关闭。它仍是pending/attempt0/max1/审核挂起，无lease或云执行授权。本轮不再创建任务，不复活旧canceled任务，不重放旧W6m发布。
 
-准备沿用现有trusted publisher、窄`publish_plan`函数、来源身份和证据桶，为该job发布一个Review计划。operator源码绑定本次准确main/CI；**计划源码固定为现有云镜像的`f3cea2da7d26dfc09726c4cbc52cab40217340c6`**，不是operator HEAD。旧云闭包、IAM、镜像、Web代码和控制器均不改。
+准备沿用现有trusted publisher、窄`publish_plan`函数、来源身份和证据桶，为该job发布一个Review计划。**计划、operator及新控制租约必须绑定最终受审的同一main/CI**；镜像产物源码仍为`f3cea2da7d26dfc09726c4cbc52cab40217340c6`，固定摘要不变。新兼容证据逐一证明应用/控制器/托管运行时代码及81项云闭包文件相对于产物源码未变；只允许operator、测试、文档和明确列出的候选/发布工作流差异，不重建镜像或放宽main门禁。
+
+### W8k发现的源码绑定纠正（旧清单不可执行）
+
+前一版把计划源码固定成镜像产物f3，忽略了既有GitHub适配器的`head.object.sha === plan.sourceCommit`及`ref:main`要求，因此会被`CONTROL_MAIN_DRIFT`拒绝。已生成但**未执行**的`e0043a11b496f9b93284c34a526305d48ae1d981c399db19c103698558413f98`清单保留作历史，现已被替代；不得发布。无旧计划、写调用或槽消费需要补偿。
+
+修正后分别记录`imageSourceCommit`（产物出处）和`runtimeSourceCommit/sourceCommit`（受审执行源码）。W8k拟仅更新容器一个公开环境变量与ControllerLease，使租约、计划、main匹配；镜像标签/摘要及Metadata.ImageSource仍诚实保留f3。原运行时验证的是该公开绑定与租约相等，并未把它当作不可变OCI标签。详情及独立更新授权见[W8k](aws-auto-deployment-platform-w8k-hosted-window-review.md)。
+
+**最终两份清单准备后，直到本job的Review→RunOnce→Inspect结束冻结main**。计划发布、窗口更新和后续验收证据只记F盘及本地检查点，不在中间提交新证据；完成后一起提交。任何必要代码修改都必须停下、保留旧记录并重新审核，不绕过main校验或把旧批准平移到新源码。
 
 ## 本轮实际只读准备
 

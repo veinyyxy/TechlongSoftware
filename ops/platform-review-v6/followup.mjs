@@ -6,7 +6,7 @@ import {assertHeldPlatformJobV4} from '../aws-sandbox/scripts/express-platform-w
 import {continueCloudContextV5,providerPublicV5} from '../cloud-worker/cloud-worker-root-v5.mjs';
 import {prepareCloudContextV5} from '../cloud-worker/cloud-context-v5.mjs';
 export const J=Object.freeze({jobId:'job_6e2e115c80301595512f11fb',priorJobId:'job_c6cb047ac3ff30ed51ba9f34',
-  runtimeSourceCommit:'f3cea2da7d26dfc09726c4cbc52cab40217340c6',
+  imageSourceCommit:'f3cea2da7d26dfc09726c4cbc52cab40217340c6',
   receiptSha256:'96713476e019d487deaceae860146708af2a949b88bd474b8209ab4a72e25588',
   lineageSha256:'7ad860d750474ab8e3a9eb50539e736cab5c4e1d67da0ee390caecc836b406c1',
   lineageKey:'worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/lineage/w8j-job_6e2e115c80301595512f11fb-v1.json',
@@ -20,7 +20,7 @@ export const J=Object.freeze({jobId:'job_6e2e115c80301595512f11fb',priorJobId:'j
   evidenceSha256:'ad09b8aa4d52d0fc538e81a1aeb89e2b9cd0fe18e8341d0fdda7496642424b25'});
 export const must=(ok,code)=>{if(!ok)throw Error('FOLLOWUP_REVIEW_'+code);};
 export const same=(a,b)=>canonicalJson(a)===canonicalJson(b);
-export async function makeFollowupPublication({sourceCommit,pins,ci,auth,baseline,references,receipts,createdAt}){
+export async function makeFollowupPublication({sourceCommit,pins,ci,auth,baseline,references,receipts,createdAt,compatibility}){
   must(/^[a-f0-9]{40}$/.test(sourceCommit)&&ci?.sourceCommit===sourceCommit&&ci.attempt===1&&ci.status==='completed'&&ci.conclusion==='success'&&
     pins.length>=15&&new Set(pins.map(p=>p.file)).size===pins.length&&pins.every(p=>/^[a-f0-9]{64}$/.test(p.sha256)),'SOURCE_CI');
   must(auth?.contentRead===false&&auth.length>0&&/^[a-f0-9]{64}$/.test(auth.aclSha256)&&Number.isSafeInteger(createdAt)&&createdAt>0&&
@@ -32,7 +32,9 @@ export async function makeFollowupPublication({sourceCommit,pins,ci,auth,baselin
       r.key.startsWith('worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/')&&!r.key.includes('..')&&/^[a-f0-9]{64}$/.test(r.sha256)&&
       /^[A-Za-z0-9._-]{1,256}$/.test(r.versionId))&&receipts.length>=3&&receipts.every(r=>/^[a-f0-9]{64}$/.test(r.rawSha256)),'REFERENCES');
   must(B.state==='PUBLISHED'&&B.publisher.state==='PUBLISHED'&&await sha256Hex(B.platform)===B.publisher.releaseSha256,'RELEASE');
-  const body={schema:'techlong/platform-followup-review-publication/v6',sourceCommit,runtimeSourceCommit:J.runtimeSourceCommit,pins,ci,auth,
+  must(compatibility?.executionSourceCommit===sourceCommit&&compatibility.imageSourceCommit===J.imageSourceCommit&&
+    compatibility.protectedRuntimeCodeUnchanged===true&&compatibility.cloudClosureSha256===B.platform.closureSha256,'SOURCE_COMPATIBILITY');
+  const body={schema:'techlong/platform-followup-review-publication/v6',sourceCommit,runtimeSourceCommit:sourceCommit,imageSourceCommit:J.imageSourceCommit,compatibility,pins,ci,auth,
     baseline,references,receipts,createdAt,expiresAt:createdAt+48*3600000,latestStartAt:createdAt+48*3600000-120000,
     binding:B,scope:J,
     effects:{authFileReadsMax:2,explicitReadOnlyTransactionsMax:8,sourceStsReadsMax:2,s3GetMax:7,conditionalLineagePutsMax:1,ownerPlanWritesMax:1,

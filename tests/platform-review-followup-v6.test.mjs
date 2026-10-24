@@ -22,11 +22,12 @@ async function fixture(){const f=await cloudRootFixtureV5(at),job=structuredClon
     priorLineage:ref('lineage/fixture.json'),provider:ref('fixture/provider-after.json'),inspect:ref('fixture/inspect.json')};
   const sourceCommit='a'.repeat(40),m=await makeFollowupPublication({sourceCommit,pins:Array.from({length:16},(_,i)=>({file:'fixture-'+i,sha256:'b'.repeat(64)})),
     ci:{sourceCommit,attempt:1,status:'completed',conclusion:'success'},auth:{contentRead:false,length:300,aclSha256:'c'.repeat(64)},baseline,references,
-    receipts:Array.from({length:3},(_,i)=>({path:'fixture-'+i,rawSha256:'d'.repeat(64)})),createdAt:at});
+    receipts:Array.from({length:3},(_,i)=>({path:'fixture-'+i,rawSha256:'d'.repeat(64)})),createdAt:at,
+    compatibility:{executionSourceCommit:sourceCommit,imageSourceCommit:J.imageSourceCommit,protectedRuntimeCodeUnchanged:true,cloudClosureSha256:B.platform.closureSha256}});
   return {m,o,f,reference:{key:J.lineageKey,sha256:J.lineageSha256,versionId:'fixture-version'}};
 }
 async function plan(m,reference){return {schema:'techlong/platform-controller-plan/v6',instanceId:S.appInstanceId,deploymentId:S.deploymentId,
-  jobId:J.jobId,mode:'Review',sourceCommit:J.runtimeSourceCommit,releaseSha256:await sha256Hex(B.platform),riskSha256:B.platform.riskSha256,
+  jobId:J.jobId,mode:'Review',sourceCommit:m.runtimeSourceCommit,releaseSha256:await sha256Hex(B.platform),riskSha256:B.platform.riskSha256,
   preparedAt:at,expiresAt:at+7200000,predecessor:null,inputs:{mode:'Review',job:J.jobId,installation:canonicalJson(m.references.installation),
     lineage:canonicalJson(reference),manifest:'',manifestSha:'',execution:''}};}
 async function runner(){const f=await fixture(),events=[];let used=false,fail,clock=at;
@@ -39,11 +40,11 @@ async function runner(){const f=await fixture(),events=[];let used=false,fail,cl
     record:async(n,v)=>{step('record-'+n);assert.doesNotMatch(JSON.stringify(v),/SYNTHETIC_OWNER_URL|SENSITIVE_PROVIDER_DETAILS/);},dispose:async()=>step('close')};
   return {...f,io,events,fail:n=>{fail=n;},tick:n=>{clock+=n;},run:()=>publishFollowupOnce({manifest:f.m,approved:f.m.manifestSha256,io,now:()=>clock})};
 }
-test('48h operator review binds exact existing held job and separates cloud f3 source from main',async()=>{
+test('48h review binds execution to main, with separate immutable image provenance and unchanged runtime proof',async()=>{
   const {m}=await fixture();await verifyFollowupPublication(m,m.manifestSha256,at);assert.equal(m.expiresAt-at,48*3600000);
-  assert.notEqual(m.sourceCommit,m.runtimeSourceCommit);assert.equal(m.runtimeSourceCommit,J.runtimeSourceCommit);
+  assert.equal(m.sourceCommit,m.runtimeSourceCommit);assert.notEqual(m.sourceCommit,m.imageSourceCommit);assert.equal(m.imageSourceCommit,J.imageSourceCommit);
   assert.equal(m.effects.s3GetMax,7);assert.equal(m.effects.ownerPlanWritesMax,1);assert.equal(m.effects.conditionalLineagePutsMax,1);
-  for(const patch of [{runtimeSourceCommit:m.sourceCommit},{scope:{...J,jobId:J.priorJobId}},{effects:{...m.effects,dispatches:1}},{extra:true}])
+  for(const patch of [{runtimeSourceCommit:J.imageSourceCommit},{scope:{...J,jobId:J.priorJobId}},{effects:{...m.effects,dispatches:1}},{extra:true}])
     await assert.rejects(verifyFollowupPublication({...m,...patch},m.manifestSha256,at));
   await assert.rejects(verifyFollowupPublication(m,'wrong',at));await assert.rejects(verifyFollowupPublication(m,m.manifestSha256,m.latestStartAt));
 });
@@ -53,15 +54,15 @@ test('held-row and all nine/six prior row hashes are fenced; old canceled histor
     x=>{x.snapshot.deployment.status='changed';},x=>{x.requester.status='disabled';}]){
     const changed=structuredClone(o);change(changed);await assert.rejects(assertFollowupHeld(changed,m.baseline,at));}
 });
-test('plan must use f3 not operator HEAD and exact lineage/version/install references',async()=>{
+test('plan must use reviewed main, not image producer; exact lineage/version/install references remain required',async()=>{
   const {m,reference}=await fixture(),p=await plan(m,reference);await validateFollowupPlan(p,m,reference);
-  for(const patch of [{sourceCommit:m.sourceCommit},{jobId:J.priorJobId},{mode:'RunOnce'}])await assert.rejects(validateFollowupPlan({...p,...patch},m,reference));
+  for(const patch of [{sourceCommit:J.imageSourceCommit},{jobId:J.priorJobId},{mode:'RunOnce'}])await assert.rejects(validateFollowupPlan({...p,...patch},m,reference));
   await assert.rejects(validateFollowupPlan(p,m,{...reference,sha256:'e'.repeat(64)}));
 });
 test('slot precedes owner read; lineage conditional put precedes one publisher SQL; no dispatch capability',async()=>{
   const f=await runner(),r=await f.run();assert.equal(r.outcome,'FOLLOWUP_REVIEW_PUBLISHED_REQUIRES_INDEPENDENT_INSPECT');
   assert.ok(f.events.indexOf('slot')<f.events.indexOf('auth'));assert.ok(f.events.indexOf('lineage')<f.events.indexOf('put'));
-  assert.ok(f.events.indexOf('put')<f.events.indexOf('sql'));assert.equal(r.runtimeSourceCommit,J.runtimeSourceCommit);assert.equal(r.dispatches,0);
+  assert.ok(f.events.indexOf('put')<f.events.indexOf('sql'));assert.equal(r.runtimeSourceCommit,f.m.sourceCommit);assert.equal(r.dispatches,0);
   await assert.rejects(f.run());assert.equal(f.events.filter(n=>n==='sql').length,1);
 });
 test('partial/unknown actions never replay, reset or leak provider details',async()=>{
