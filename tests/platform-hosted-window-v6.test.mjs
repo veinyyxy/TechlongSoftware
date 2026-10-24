@@ -5,6 +5,7 @@ import {K,H,P,hash,canonical,lease,policy,windowLease,windowTemplate,normalizeSu
   makeReview,validate,readyReview,updateInput,runOnce} from '../ops/platform-hosted-window-v6/contract.mjs';
 import {template} from '../ops/platform-hosted-deploy-v6/contract.mjs';
 import {assertOperatorOnlyDiff} from '../ops/platform-hosted-window-v6/compatibility.mjs';
+import {readMetadataJson} from '../ops/platform-hosted-window-v6/cloud.mjs';
 import {prepareHostedControl} from '../ops/platform-hosting-v1/control-runtime.mjs';
 import {INSTALLED_BINDING_V6 as B} from '../lib/deployments/controller-v6/installed-binding.ts';
 
@@ -153,4 +154,34 @@ test('concrete cloud entry has single bounded UpdateStack and no secret, SQL, di
   assert.equal((code.match(/new UpdateStackCommand/g)??[]).length,1);assert.match(code,/maxAttempts:1/);assert.match(code,/counts\.writes\+\+/);
   assert.match(code,/requestSha256:hash\(canonical\(request\)\)/);
   assert.doesNotMatch(code,/GetSecretValueCommand|DeleteStackCommand|SetStackPolicyCommand|UpdateServiceCommand|workflow_dispatch|from ['"]pg['"]/);
+});
+
+test('only successful empty GetStackPolicy output is normalized to an absent policy response',()=>{
+  for(const text of ['', ' \r\n\t', '{}']){
+    let calls=0;assert.deepEqual(readMetadataJson('cloudformation','get-stack-policy',()=>{calls++;return text;}),{});assert.equal(calls,1);
+  }
+  for(const [service,op] of [['cloudformation','get-template'],['cloudformation','describe-stacks'],['cloudformation','list-change-sets'],
+    ['ecs','list-task-definitions'],['ecs','get-stack-policy']])
+    assert.throws(()=>readMetadataJson(service,op,()=>''),/HOSTED_WINDOW_METADATA_UNAVAILABLE/);
+  assert.deepEqual(readMetadataJson('ecs','list-tasks',()=>'{"taskArns":[]}'),{taskArns:[]});
+});
+
+test('failed CLI commands are never converted into absence, retried or exposed, even when their stdout is empty',()=>{
+  let calls=0;const error=Object.assign(Error('PRIVATE_PROVIDER_DETAILS'),{status:254,stdout:'',stderr:'PRIVATE_PROVIDER_DETAILS'});
+  assert.throws(()=>readMetadataJson('cloudformation','get-stack-policy',()=>{calls++;throw error;}),
+    e=>e.message==='HOSTED_WINDOW_METADATA_UNAVAILABLE'&&!e.message.includes('PRIVATE_PROVIDER_DETAILS'));
+  assert.equal(calls,1);
+});
+
+test('existing or malformed policy cannot masquerade as absence; all existing baseline policy fences remain active',()=>{
+  const body=canonical(policy()),response=readMetadataJson('cloudformation','get-stack-policy',()=>JSON.stringify({StackPolicyBody:body}));
+  assert.equal(response.StackPolicyBody,body);
+  const ids=fixture().baseline.ids,extra={stackId:K.stackId,stackPolicy:JSON.parse(response.StackPolicyBody),changeSets:[],
+    definitions:{ACTIVE:[K.originalDefinition],INACTIVE:[...H.retiredTaskDefinitions],DELETE_IN_PROGRESS:[]}};
+  assert.throws(()=>assertExtra(extra,ids),/HOSTED_WINDOW_EXTRA_LAYOUT/);
+  for(const text of ['null','[]','false','invalid','{"unexpected":true}',
+    '{"StackPolicyBody":null}','{"StackPolicyBody":""}','{"StackPolicyBody":"null"}','{"StackPolicyBody":"invalid"}'])
+    assert.throws(()=>readMetadataJson('cloudformation','get-stack-policy',()=>text),/HOSTED_WINDOW_METADATA_UNAVAILABLE/);
+  for(const value of [undefined,null,Buffer.alloc(0)])
+    assert.throws(()=>readMetadataJson('cloudformation','get-stack-policy',()=>value),/HOSTED_WINDOW_METADATA_UNAVAILABLE/);
 });

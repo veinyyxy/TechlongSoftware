@@ -1,0 +1,32 @@
+{
+  "schema": "techlong/platform-hosted-window-recovery-preparation/v6",
+  "state": "EMPTY_POLICY_REPAIR_TESTED_NEW_EXECUTION_REVIEW_NOT_READY",
+  "repairScope": ["operator CLI response parsing", "three regression tests"],
+  "localRelatedTestsPassed": 31,
+  "localLintWarnings": 0,
+  "oldExecutionSource": "02bc4c26a22e4e81141e7426f521e4bb0a51fe6f",
+  "oldWindowApprovalSha256": "ce3bb28d8b13324941aec15266f93d5f2d66bdb5d904b1094481c244041cdac6",
+  "stopEvidence": {
+    "path": "F:/ChatGPT_workshop/techlong-platform-w8k-prewrite-stop-20261023-a.json",
+    "rawSha256": "ea2ddea9054a2a580bf434753728358291bb3caa0968cebca03e9957014f73bc",
+    "awsWrites": 0,
+    "slotsConsumed": 0
+  },
+  "jobId": "job_6e2e115c80301595512f11fb",
+  "oldPlanSha256": "efeff7c2bbd24c9869cd6daccb43bdb106940ba12720fee6853c085cbdeed4e6",
+  "oldPlanExpiresAtUtc": "2026-10-24T03:05:11.885Z",
+  "oldPlanAlreadyExpiredAtRepairPreparation": true,
+  "currentDatabaseStateRechecked": false,
+  "nextPreparation": "User-authorized read-only ledger and held-job verification, then prepare append-only same-job Review publication; do not replay consumed W8j entry",
+  "newPublicationAdapterImplemented": false,
+  "newCloudExecutionManifestReady": false,
+  "sameSourceMainGuardKept": true,
+  "cloudRuntimeAndImageChanges": 0,
+  "iamChanges": 0,
+  "awsCallsThisRepair": 0,
+  "databaseWritesThisRepair": 0,
+  "oldRecordsAndSlotsPreserved": true,
+  "noAutomaticRetryOrReset": true,
+  "material": "docs/aws-auto-deployment-platform-w8k-empty-policy-recovery.md",
+  "preparationIsNotExecutionApproval": true
+}
