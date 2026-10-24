@@ -45,3 +45,5 @@ node --experimental-strip-types --test tests/platform-task-transfer-v6.test.mjs
 没有生产任务取消/创建、数据库角色/触发器/约束安装、App签名、GitHub部署dispatch、AWS控制窗口更新或Cell部署。没有修改web/cloud执行闭包、请求编译器、已发布release、既有权限或普通队列。
 
 下一步才是为这个核心建立受审生产入口、固定代码/CI与完整新鲜基线，并生成用户单独批准的fresh SHA。托管观察/证据/RunOnce材料连续衔接仍需另外完成；本模块不宣称已经可以进行下一次实际部署。
+
+后续生产入口见 [W8r受审入口与风险](aws-auto-deployment-platform-w8r-task-transfer-review.md)。本页保留W8q核心阶段的实现范围；生产执行授权仍须单独取得。

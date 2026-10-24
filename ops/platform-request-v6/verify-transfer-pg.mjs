@@ -1,15 +1,18 @@
 // Disposable GitHub PostgreSQL ONLY. Never reads .env, AWS or a production URL.
 import assert from 'node:assert/strict';
 import pg from 'pg';
+import {readFile} from 'node:fs/promises';
 import {INITIALIZED_PLATFORM_SCOPE as S} from '../../lib/deployments/initialized-platform-request-v1.ts';
 import {REQUEST_ADMIN_V6 as adminId} from '../../lib/deployments/reviewed-request-window-v6.ts';
 import {sha256Hex} from '../../lib/deployments/execution/hash.ts';
 import {transferFixture} from '../../tests/fixtures/platform-task-transfer-v6.mjs';
 import {TRANSFER as T,createTransferTransaction,verifyTransferReadback} from './transfer.mjs';
+import {readTransferState} from './transfer-state.mjs';
+import {sqlContract,I} from '../platform-controller-review-v6/install.mjs';
 assert.equal(process.env.GITHUB_ACTIONS,'true');
 const port=Number(process.env.PLATFORM_CONTROL_CI_PORT);assert.ok(Number.isInteger(port)&&port>1024&&port<65536);
 const base={host:'127.0.0.1',port,user:'postgres',password:'controller-ci-only-bootstrap',database:'postgres'},db='task_transfer_v6_ci';
-const control=new pg.Client(base);await control.connect();let client,second,created=false;
+const control=new pg.Client(base);await control.connect();let client,second,created=false,roleCreated=false;
 const checks=[];
 async function readState(c){
   const jobs=(await c.query(`SELECT to_jsonb(j)||jsonb_build_object('payload',j.payload::jsonb) AS value
@@ -112,7 +115,42 @@ try{
   await second.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');await verifyTransferReadback(before,await readState(second),r.at);await second.query('COMMIT');
   checks.push('commit_ack_lost_no_retry_committed_rows_independently_verified');
   console.log(JSON.stringify({outcome:'PASSED_REAL_POSTGRESQL_TASK_TRANSFER',checks,productionDatabaseTouched:false,awsCalls:0}));
+  // Same trusted production SELECT reader, but explicit CI-only identity and
+  // already isolated client. The production CLI has no such override flag.
+  const sql=(await readFile(new URL('../../'+I.sql,import.meta.url),'utf8')).replaceAll('\r\n','\n'),contract=sqlContract(sql);
+  await client.query('CREATE ROLE techlong_deployment_controller_v6 NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS');roleCreated=true;
+  await client.query('REVOKE ALL ON SCHEMA deployment_control_v6 FROM PUBLIC;GRANT USAGE ON SCHEMA deployment_control_v6 TO techlong_deployment_controller_v6');
+  for(const statement of sql.match(/CREATE FUNCTION deployment_control_v6\.\w+\([\s\S]*?\$\$;/g))await client.query(statement);
+  await client.query('REVOKE ALL ON ALL FUNCTIONS IN SCHEMA deployment_control_v6 FROM PUBLIC');
+  for(const f of contract.functions.filter(f=>f.serviceExecute))await client.query(`GRANT EXECUTE ON FUNCTION deployment_control_v6.${f.name}(${f.types}) TO techlong_deployment_controller_v6`);
+  const sealed=(await readFile(new URL('../aws-sandbox/sql-candidates/f3b3-sealed-plan-isolation.sql',import.meta.url),'utf8')).replaceAll('\r\n','\n');
+  const guard=sealed.match(/CREATE FUNCTION public\.guard_sealed_plan_reference_v1\(\)[\s\S]*?\$\$;/)[0];
+  await client.query('DROP TRIGGER transfer_sealed_guard_ci ON public.deployment_jobs');await client.query(guard);
+  await client.query(`CREATE TRIGGER aa_sealed_plan_deployment_jobs_v1 BEFORE INSERT OR UPDATE ON public.deployment_jobs FOR EACH ROW
+    EXECUTE FUNCTION public.guard_sealed_plan_reference_v1('deployment_id','');ALTER TABLE public.deployment_jobs ENABLE ALWAYS TRIGGER aa_sealed_plan_deployment_jobs_v1;
+    ALTER TABLE public.users ADD COLUMN email text;
+    ALTER TABLE public.app_instances ADD COLUMN template_version_id text;
+    CREATE TABLE public.app_instance_template_versions(id text PRIMARY KEY,metadata jsonb);
+    INSERT INTO public.app_instance_template_versions VALUES('template_transfer_fixture','{}');
+    UPDATE public.users SET email='veinyang@gmail.com';UPDATE public.app_instances SET template_version_id='template_transfer_fixture';`);
+  const identity=(await client.query(`SELECT current_user::text AS "ownerRole",(SELECT oid::text FROM pg_roles WHERE rolname=current_user) AS "ownerOid",
+    current_database() AS database,(SELECT oid::text FROM pg_roles WHERE rolname='techlong_deployment_controller_v6') AS "roleOid",
+    (SELECT oid::text FROM pg_namespace WHERE nspname='deployment_control_v6') AS "schemaOid"`)).rows[0];
+  const trusted=c=>readTransferState(c,{contract,expected:identity});
+  await reset();await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');before=await trusted(client);await client.query('COMMIT');
+  assert.equal(before.deployment.admissionSnapshot.admin.id,adminId);
+  const productionTx=createTransferTransaction({client,readState:trusted});r=await productionTx({baseline:before,assertApproved:async()=>{}});
+  assert.equal(r.committed,true);await second.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+  await verifyTransferReadback(before,await trusted(second),r.at);await second.query('COMMIT');
+  await client.query('GRANT EXECUTE ON FUNCTION deployment_control_v6.attest_evidence(text,text) TO techlong_deployment_controller_v6');
+  await assert.rejects(trusted(client),/TRANSFER_STATE_CONTROL_FUNCTIONS/);
+  await client.query('REVOKE EXECUTE ON FUNCTION deployment_control_v6.attest_evidence(text,text) FROM techlong_deployment_controller_v6');
+  await client.query("CREATE TRIGGER unexpected_transfer_ci BEFORE UPDATE ON public.deployment_jobs FOR EACH ROW EXECUTE FUNCTION public.guard_sealed_plan_reference_v1('deployment_id','')");
+  await assert.rejects(trusted(client),/TRANSFER_STATE_JOB_GUARD/);await client.query('DROP TRIGGER unexpected_transfer_ci ON public.deployment_jobs');
+  console.log(JSON.stringify({outcome:'PASSED_REAL_POSTGRESQL_TRANSFER_PRODUCTION_READER',checks:['nine_installed_function_bodies_and_role_isolation',
+    'complete_business_admission_snapshot','actual_atomic_core_with_production_reader','separate_readonly_connection_verified',
+    'unexpected_execute_privilege_rejected','unexpected_job_trigger_rejected'],productionDatabaseTouched:false,awsCalls:0}));
 }finally{
   if(second)await second.end();if(client)await client.end();
-  if(created)await control.query('DROP DATABASE '+db);await control.end();
+  if(created)await control.query('DROP DATABASE '+db);if(roleCreated)await control.query('DROP ROLE techlong_deployment_controller_v6');await control.end();
 }

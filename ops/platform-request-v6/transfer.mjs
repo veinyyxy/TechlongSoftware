@@ -101,6 +101,7 @@ export function createTransferTransaction({client,readState,record=async()=>{},n
     must(!used,'TRANSACTION_ONCE');used=true;let phase='BEGIN',started=false,committing=false,committed=false,at;
     try{
       await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');started=true;
+      await client.query('SET LOCAL search_path=pg_catalog');
       await client.query("SET LOCAL lock_timeout='1s'");await client.query("SET LOCAL statement_timeout='15s'");
       await client.query('LOCK TABLE deployment_control_v6.plans,deployment_control_v6.approvals,deployment_control_v6.dispatch_attempts IN SHARE MODE');
       at=Number((await client.query('SELECT floor(extract(epoch FROM clock_timestamp())*1000)::bigint AS at')).rows[0].at);
