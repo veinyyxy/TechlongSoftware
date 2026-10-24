@@ -5,6 +5,8 @@ import pg from 'pg';
 import {refreshFixture,newReviewFixture} from '../../tests/fixtures/platform-review-refresh-v6.mjs';
 import {R,LEDGER_SQL,assertRefreshLedger,refreshedPlan} from '../../ops/platform-review-v6/refresh.mjs';
 import {ownerQueryV6} from '../../ops/platform-cloud-v6/publisher.mjs';
+import {resumeFixture,resumedPlan} from '../../tests/fixtures/platform-review-resume-v6.mjs';
+import {assertResumeLedger,newResumePlan} from '../../ops/platform-review-v6/resume.mjs';
 assert.equal(process.env.GITHUB_ACTIONS,'true');
 const port=Number(process.env.PLATFORM_CONTROL_CI_PORT);assert.ok(Number.isInteger(port)&&port>1024&&port<65536);
 const config={host:'127.0.0.1',port,user:'postgres',password:'controller-ci-only-bootstrap',database:'postgres'};
@@ -50,8 +52,31 @@ try{
     await client.query('ROLLBACK');
   }catch(e){await client.query('ROLLBACK');throw e;}
   await assertRefreshLedger(await ledger(),m,at,next);
+  // Exercise the real two-old -> three-exact protocol on the same real schema,
+  // retaining both expired bodies and the permanent UNIQUE(job_id,mode) fence.
+  // Remove only the synthetic successor of the preceding fixture in this
+  // disposable CI database, never any production plan.
+  await client.query('DELETE FROM deployment_control_v6.plans WHERE plan_sha=$1',[next.planSha256]);
+  const resume=(await resumeFixture(Math.max(Date.now(),1792827529846))).m,second=resume.oldPlans[1];
+  await client.query(`INSERT INTO deployment_control_v6.plans(plan_sha,action_sha,risk_sha,job_id,mode,body,expires_at)
+    VALUES($1,$2,$3,$4,'Review',$5::jsonb,to_timestamp($6::double precision/1000))`,
+  [second.planSha256,second.actionSha256,second.plan.riskSha256,R.jobId,JSON.stringify(second.plan),second.plan.expiresAt]);
+  await assertResumeLedger(await ledger(),resume,Date.now());
+  const third=await newResumePlan(resumedPlan(resume,Date.now()),resume,resume.createdAt,Date.now()),thirdQuery=ownerQueryV6('plan',third);
+  await client.query(thirdQuery);await assertResumeLedger(await ledger(),resume,Date.now(),third);
+  assert.deepEqual((await client.query('SELECT * FROM public.deployment_jobs')).rows,before);
+  await assert.rejects(client.query(thirdQuery),e=>e.code==='23505');
+  await client.query('BEGIN');
+  try{
+    for(const p of [old,second,third])await client.query('INSERT INTO deployment_control_v6.approvals(plan_sha,admin_id) VALUES($1,$2)',[p.planSha256,adminId]);
+    await assert.rejects(assertResumeLedger((await client.query(LEDGER_SQL,[R.jobId])).rows[0].value,resume,Date.now(),third));
+    await client.query("INSERT INTO deployment_control_v6.dispatch_attempts(plan_sha,job_id,mode,state) VALUES($1,$2,'Review','SUBMISSION_STARTED')",[second.planSha256,R.jobId]);
+    await assert.rejects(client.query("INSERT INTO deployment_control_v6.dispatch_attempts(plan_sha,job_id,mode,state) VALUES($1,$2,'Review','SUBMISSION_STARTED')",[third.planSha256,R.jobId]),e=>e.code==='23505');
+    await client.query('ROLLBACK');
+  }catch(e){await client.query('ROLLBACK');throw e;}
+  await assertResumeLedger(await ledger(),resume,Date.now(),third);
   console.log(JSON.stringify({outcome:'PASSED_REAL_APPEND_ONLY_REVIEW_REFRESH_POSTGRESQL_18',exactLedgerSqlUsed:true,oldPlanPreserved:true,
-    sameJobTwoExactPlans:true,unexpectedApprovalRejected:true,permanentDispatchUniquenessKept:true,productionTouched:false,awsCalls:0}));
+    sameJobTwoExactPlans:true,strictTwoOldToThreeExactPlans:true,unexpectedApprovalRejected:true,permanentDispatchUniquenessKept:true,productionTouched:false,awsCalls:0}));
 }finally{
   await client?.end();if(created)await admin.query('DROP DATABASE review_refresh_v6_ci WITH (FORCE)');
   if(installed)await admin.query('DROP ROLE techlong_deployment_controller_v6');await admin.end();
