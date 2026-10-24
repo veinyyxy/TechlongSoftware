@@ -12,7 +12,7 @@ export function assertOperatorOnlyDiff(files,protectedFiles){
   const exact=new Set(protectedFiles);
   for(const f of files){
     if(exact.has(f)||/^(?:app|components|lib|worker|public|ops\/platform-hosting-v1|ops\/platform-cloud-v6|ops\/cloud-worker)\//.test(f)||
-      !(/^(?:docs|tests|ops\/aws-sandbox\/reviews)\//.test(f)||f==='README.md'||operator.test(f)||
+      !(/^(?:docs|tests|ops\/aws-sandbox\/reviews)\//.test(f)||f==='README.md'||f==='scripts/ci/verify-platform-review-refresh-pg-v6.mjs'||operator.test(f)||
         f.startsWith('.github/workflows/')&&workflows.has(f.slice('.github/workflows/'.length))))throw Error('HOSTED_WINDOW_RUNTIME_SOURCE_CHANGED');
   }
 }

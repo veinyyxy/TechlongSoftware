@@ -1,0 +1,31 @@
+{
+  "schema": "techlong/platform-review-refresh-preparation-summary/v6",
+  "state": "APPEND_ONLY_REVIEW_ADAPTER_IMPLEMENTED_NOT_PUBLISHED",
+  "jobId": "job_6e2e115c80301595512f11fb",
+  "preservedOldPlanSha256": "efeff7c2bbd24c9869cd6daccb43bdb106940ba12720fee6853c085cbdeed4e6",
+  "readOnlyProof": {
+    "path": "F:/ChatGPT_workshop/techlong-platform-w8k-recovery-readonly-20261023-b.json",
+    "rawSha256": "d8cd5f3733ef3d8cb3e91744fe18848ab473a04340c84c89d21134502eebb1c5",
+    "heldJobAndNinePlusSixHashesUnchanged": true,
+    "countsAtThatRead": { "plans": 1, "approvals": 0, "attempts": 0 }
+  },
+  "localRelatedTestsPassed": 33,
+  "localLintWarnings": 0,
+  "proposedOwnerPlanSqlMax": 1,
+  "proposedPostReadbackExactPlanCount": 2,
+  "newS3Puts": 0,
+  "newJobs": 0,
+  "iamChanges": 0,
+  "cloudRuntimeOrImageChanges": 0,
+  "databaseWritesThisStage": 0,
+  "awsCallsThisStage": 0,
+  "newSlotsConsumed": 0,
+  "newPlansPublished": 0,
+  "hostedUpdates": 0,
+  "workflowDispatches": 0,
+  "oldRecordsAndSlotsPreserved": true,
+  "pairedWindowAcceptsOnlyExplicitExactTwoPlanProof": true,
+  "entry": "ops/platform-review-v6/refresh-local.mjs",
+  "riskFile": "docs/aws-auto-deployment-platform-w8l-review-refresh.md",
+  "preparationIsNotExecutionApproval": true
+}

@@ -8,6 +8,7 @@ import {readLocalCiV6} from '../platform-local-v6/local.mjs';
 import {environment} from '../platform-image-source-v2/files.mjs';
 import {assertEvidenceSafeV5} from '../cloud-worker/cloud-evidence-v5.mjs';
 import {verifyFollowupPublication,validateFollowupPlan,J} from '../platform-review-v6/followup.mjs';
+import {R,verifyRefreshReview,refreshedPlan} from '../platform-review-v6/refresh.mjs';
 import {sourceCompatibility} from './compatibility.mjs';
 import {cloud} from './cloud.mjs';
 import {K,H,must,same,hash,baseline,makeReview,validate,readyReview,runOnce} from './contract.mjs';
@@ -16,6 +17,7 @@ export const FILES=['ops/platform-hosted-window-v6/contract.mjs','ops/platform-h
   'ops/platform-hosted-window-v6/local.mjs','ops/platform-hosted-deploy-v6/contract.mjs','ops/platform-hosted-deploy-v6/inspect-defaults.mjs',
   'ops/platform-review-v6/followup.mjs','ops/platform-review-v6/followup-local.mjs','lib/deployments/controller-v6/github.ts',
   'lib/deployments/controller-v6/controller.ts','ops/platform-hosting-v1/control-runtime.mjs','lib/deployments/controller-v6/configuration.ts',
+  'ops/platform-review-v6/refresh.mjs','ops/platform-review-v6/refresh-local.mjs','tests/platform-review-refresh-v6.test.mjs',
   'tests/platform-hosted-window-v6.test.mjs','.github/workflows/platform-cloud-candidate.yml',K.riskFile];
 const json=async f=>JSON.parse(await readFile(f,'utf8'));
 async function write(f,v){assertEvidenceSafeV5(v);await writeFile(f,JSON.stringify(v,null,2)+'\n',{flag:'wx',flush:true});}
@@ -26,14 +28,18 @@ async function source(expected){const s=(await git(['rev-parse','HEAD'])).trim()
 async function directory(value){const p=path.resolve(value);must(path.dirname(p).toLowerCase()===path.resolve(BASE).toLowerCase()&&
   /^techlong-w8k-window-[a-z0-9-]+$/.test(path.basename(p))&&(await realpath(BASE)).toLowerCase()===path.resolve(BASE).toLowerCase(),'DIRECTORY');return p;}
 async function publication(file){const p=path.resolve(file);must(path.basename(p)==='manifest.json'&&path.dirname(path.dirname(p)).toLowerCase()===path.resolve(BASE).toLowerCase()&&
-  /^techlong-w8j-review-plan-[a-z0-9-]+$/.test(path.basename(path.dirname(p))),'PUBLICATION_PATH');
-  const text=await readFile(p,'utf8'),v=JSON.parse(text);await verifyFollowupPublication(v,v.manifestSha256,Date.now());
-  return {path:p,rawSha256:hash(text),manifestSha256:v.manifestSha256,sourceCommit:v.sourceCommit,runtimeSourceCommit:v.runtimeSourceCommit,jobId:J.jobId};}
+  /^techlong-(?:w8j-review-plan|w8l-review-refresh)-[a-z0-9-]+$/.test(path.basename(path.dirname(p))),'PUBLICATION_PATH');
+  const text=await readFile(p,'utf8'),v=JSON.parse(text),refresh=path.basename(path.dirname(p)).startsWith('techlong-w8l-review-refresh-');
+  if(refresh)await verifyRefreshReview(v,v.manifestSha256,Date.now());else await verifyFollowupPublication(v,v.manifestSha256,Date.now());
+  return {path:p,rawSha256:hash(text),manifestSha256:v.manifestSha256,sourceCommit:v.sourceCommit,runtimeSourceCommit:v.runtimeSourceCommit,jobId:J.jobId,
+    ...(refresh?{kind:'ReviewRefresh',preservedOldPlanSha256:R.oldPlanSha256}:{})};}
 async function parents(){const p=[{path:K.inventoryFile,rawSha256:K.inventorySha256},{path:K.extraFile,rawSha256:K.extraSha256}];
   for(const r of p)must(hash(await readFile(r.path))===r.rawSha256,'PARENT');return p;}
 async function reviewReady(m){const p=await publication(m.publication.path);must(same(p,m.publication),'PUBLICATION_DRIFT');
-  const pub=await json(p.path),dir=path.dirname(p.path),r=await json(dir+'-inspect/result.json'),proposed=await json(dir+'-run/proposed-plan.json'),ref=await json(dir+'-run/lineage-reference.json');
-  const v=await validateFollowupPlan(proposed.plan,pub,ref),slot=await json(J.slot),inspectSlot=await json(J.inspectSlot);
+  const pub=await json(p.path),dir=path.dirname(p.path),r=await json(dir+'-inspect/result.json'),proposed=await json(dir+'-run/proposed-plan.json');
+  const refresh=p.kind==='ReviewRefresh',ref=refresh?pub.references.lineage:await json(dir+'-run/lineage-reference.json');
+  const v=refresh?await refreshedPlan(proposed.plan,pub,pub.createdAt,Date.now()):await validateFollowupPlan(proposed.plan,pub,ref),
+    slot=await json(refresh?R.slot:J.slot),inspectSlot=await json(refresh?R.inspectSlot:J.inspectSlot);
   must(slot.manifestSha256===p.manifestSha256&&inspectSlot.manifestSha256===p.manifestSha256&&r.planSha256===v.planSha256&&
     r.actionSha256===v.actionSha256&&r.riskSha256===v.plan.riskSha256&&r.planExpiresAt===v.plan.expiresAt,'REVIEW_EVIDENCE');return readyReview(r,m,Date.now());}
 export async function main(args=process.argv.slice(2)){

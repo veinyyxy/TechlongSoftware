@@ -1,6 +1,7 @@
 // Existing-stack update only. Import grants no AWS capability.
 import {H,P,hash,canonical,same,lease,template} from '../platform-hosted-deploy-v6/contract.mjs';
 import {verifyMetadata} from '../platform-hosted-deploy-v6/inspect-defaults.mjs';
+import {R} from '../platform-review-v6/refresh.mjs';
 export {H,P,hash,canonical,same,lease};
 export const K=Object.freeze({stackId:'arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7',
   originalNonce:'1e710b176bd5e31bcddae438ace7d772',originalDefinition:'arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:3',
@@ -73,6 +74,7 @@ export function makeReview({sourceCommit,pins,ci,baseline:before,publication,par
     before.stackId===K.stackId&&before.ids.TaskDefinition===K.originalDefinition&&before.imageDigest===H.imageDigest&&before.healthy===true&&
     before.templateSha256===hash(canonical(template(K.originalNonce)))&&before.hostingExpiresAt===K.originalHostingExpiresAt&&before.stackPolicy===null&&
     publication.sourceCommit===sourceCommit&&publication.runtimeSourceCommit===sourceCommit&&publication.jobId===K.jobId&&
+    (!Object.hasOwn(publication,'kind')||publication.kind==='ReviewRefresh'&&publication.preservedOldPlanSha256===R.oldPlanSha256)&&
     compatibility?.executionSourceCommit===sourceCommit&&compatibility.imageSourceCommit===H.imageSource&&compatibility.protectedRuntimeCodeUnchanged===true&&
     /^[a-f0-9]{64}$/.test(publication.manifestSha256)&&/^[a-f0-9]{64}$/.test(publication.rawSha256)&&
     parents.length===2&&parents.every(p=>/^[a-f0-9]{64}$/.test(p.rawSha256))&&/^[a-f0-9]{32}$/.test(nonce)&&Number.isSafeInteger(createdAt),'REVIEW_INPUT');
@@ -91,8 +93,11 @@ export function makeReview({sourceCommit,pins,ci,baseline:before,publication,par
 export function validate(m,approved,now,audit=false){must(same(m,makeReview(m))&&approved===m.manifestSha256,'APPROVAL_SHA');
   if(!audit)must(now>=m.createdAt&&now<m.latestStartAt,'EXPIRED');return m;}
 export function readyReview(v,m,now){
-  must(v.outcome==='FOLLOWUP_REVIEW_INDEPENDENTLY_VERIFIED_NOT_DISPATCHED'&&v.jobId===K.jobId&&v.runtimeSourceCommit===m.sourceCommit&&
-    same(v.controlCounts,{plans:1,approvals:0,attempts:0})&&v.heldJobUnchanged===true&&v.executionApproved===false&&
+  const refresh=m.publication.kind==='ReviewRefresh';
+  must(v.outcome===(refresh?'REVIEW_REFRESH_INDEPENDENTLY_VERIFIED_NOT_DISPATCHED':'FOLLOWUP_REVIEW_INDEPENDENTLY_VERIFIED_NOT_DISPATCHED')&&
+    (!refresh||v.preservedOldPlanSha256===R.oldPlanSha256&&v.oldPlanUnchanged===true&&v.oldPlanExpired===true&&
+      same(v.planHashes,[R.oldPlanSha256,v.planSha256].sort()))&&v.jobId===K.jobId&&v.runtimeSourceCommit===m.sourceCommit&&
+    same(v.controlCounts,{plans:refresh?2:1,approvals:0,attempts:0})&&v.heldJobUnchanged===true&&v.executionApproved===false&&
     Number.isSafeInteger(v.checkedAt)&&now>=v.checkedAt&&now-v.checkedAt<80*60000&&v.planExpiresAt-now>=40*60000&&
     /^[a-f0-9]{64}$/.test(v.planSha256)&&m.publication.sourceCommit===m.sourceCommit,'REVIEW_NOT_READY');return v;
 }

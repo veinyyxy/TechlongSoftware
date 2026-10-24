@@ -2,6 +2,8 @@
 
 ## 后续状态纠正
 
+W8l已补齐保留旧计划的同job新Review准备入口及窗口显式接线：刷新路径要求准确旧+新两计划、批准0/attempt0、旧正文及期限不变；原单计划路径不放宽。配套新清单仍绑定最终同一main，旧ce3不能重跑。见[W8l范围、风险与顺序](aws-auto-deployment-platform-w8l-review-refresh.md)。此更新不表示新计划或窗口已执行。
+
 `ce3…`获批后执行在元数据阶段停止，未消费槽、未提交UpdateStack。成功的空GetStackPolicy输出被误按JSON解析；用户现要求仅最小修复、测试及新审核材料。旧Review计划已于10月23日22:05 CDT到期，修复源码不能沿用旧SHA或重放W8j发布入口。下文为原范围/风险历史，新的继续点见[空策略兼容修复与恢复审核材料](aws-auto-deployment-platform-w8k-empty-policy-recovery.md)。没有开启新的控制窗口。
 
 ## 状态与主线
