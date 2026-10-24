@@ -27,6 +27,7 @@ on:
       - 'scripts/ci/verify-platform-review-refresh-pg-v6.mjs'
       - 'ops/platform-hosted-window-v6/**'
       - 'tests/platform-hosted-window-v6.test.mjs'
+      - 'tests/platform-hosted-recovery-v6.test.mjs'
       - 'ops/platform-activation-v6/**'
       - 'tests/platform-activation-v6.test.mjs'
       - 'ops/platform-publication-v6/**'
@@ -77,6 +78,7 @@ on:
       - 'scripts/ci/verify-platform-review-refresh-pg-v6.mjs'
       - 'ops/platform-hosted-window-v6/**'
       - 'tests/platform-hosted-window-v6.test.mjs'
+      - 'tests/platform-hosted-recovery-v6.test.mjs'
       - 'ops/platform-activation-v6/**'
       - 'tests/platform-activation-v6.test.mjs'
       - 'ops/platform-publication-v6/**'
@@ -146,8 +148,10 @@ jobs:
       - name: Existing hosted window update and image-execution source compatibility, synthetic only
         run: |
           node --experimental-strip-types --test tests/platform-hosted-window-v6.test.mjs
+          node --experimental-strip-types --test tests/platform-hosted-recovery-v6.test.mjs
           node --experimental-strip-types --test tests/platform-review-refresh-v6.test.mjs
           node node_modules/eslint/bin/eslint.js ops/platform-hosted-window-v6/ tests/platform-hosted-window-v6.test.mjs --max-warnings 0
+          node node_modules/eslint/bin/eslint.js tests/platform-hosted-recovery-v6.test.mjs --max-warnings 0
           node node_modules/eslint/bin/eslint.js tests/platform-review-refresh-v6.test.mjs tests/fixtures/platform-review-refresh-v6.mjs scripts/ci/verify-platform-review-refresh-pg-v6.mjs --max-warnings 0
       - name: Exact SQL and actual publisher queries on disposable PostgreSQL
         run: |
