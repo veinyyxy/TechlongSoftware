@@ -8,6 +8,7 @@ import {sha256Hex} from '../../lib/deployments/execution/hash.ts';
 import {transferFixture} from '../../tests/fixtures/platform-task-transfer-v6.mjs';
 import {TRANSFER as T,createTransferTransaction,verifyTransferReadback} from './transfer.mjs';
 import {readTransferState} from './transfer-state.mjs';
+import {readTransferredSnapshot} from '../platform-review-v6/current-database.mjs';
 import {sqlContract,I} from '../platform-controller-review-v6/install.mjs';
 assert.equal(process.env.GITHUB_ACTIONS,'true');
 const port=Number(process.env.PLATFORM_CONTROL_CI_PORT);assert.ok(Number.isInteger(port)&&port>1024&&port<65536);
@@ -148,6 +149,18 @@ try{
   const productionTx=createTransferTransaction({client,readState:trusted});r=await productionTx({baseline:before,assertApproved:async()=>{}});
   assert.equal(r.committed,true);await second.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
   await verifyTransferReadback(before,await trusted(second),r.at);await second.query('COMMIT');
+  const prepared=await readTransferredSnapshot(second,{contract,expected:identity});
+  assert.deepEqual(prepared.newLedger,{plans:[],approvals:[],attempts:[]});
+  assert.equal(prepared.state.jobs.find(j=>j.id===T.oldJobId).status,'canceled');
+  assert.equal(prepared.state.jobs.find(j=>j.id===T.newJobId).status,'pending');
+  assert.equal(prepared.state.ledger.attempts[0].run_id,T.oldReviewRunId);
+  // The new-job read is not an alias for the old job's acknowledged history.
+  const newPlan=structuredClone(prepared.state.ledger.plans[0]);newPlan.job_id=T.newJobId;newPlan.plan_sha='9'.repeat(64);
+  await client.query('INSERT INTO deployment_control_v6.plans SELECT $1,action_sha,risk_sha,$2,mode,body,expires_at,created_at FROM deployment_control_v6.plans LIMIT 1',[newPlan.plan_sha,T.newJobId]);
+  const occupied=await readTransferredSnapshot(second,{contract,expected:identity});assert.equal(occupied.newLedger.plans.length,1);
+  assert.equal(occupied.state.ledger.plans.length,3);await client.query('DELETE FROM deployment_control_v6.plans WHERE plan_sha=$1',[newPlan.plan_sha]);
+  console.log(JSON.stringify({outcome:'PASSED_REAL_POSTGRESQL_TRANSFERRED_PREPARE_READER',checks:['single_readonly_snapshot_of_both_scopes',
+    'old_canceled_new_pending','old_acknowledged_history_not_relabelled','new_plan_occupancy_detected'],productionDatabaseTouched:false,awsCalls:0}));
   await client.query('GRANT EXECUTE ON FUNCTION deployment_control_v6.attest_evidence(text,text) TO techlong_deployment_controller_v6');
   await assert.rejects(trusted(client),/TRANSFER_STATE_CONTROL_FUNCTIONS/);
   await client.query('REVOKE EXECUTE ON FUNCTION deployment_control_v6.attest_evidence(text,text) FROM techlong_deployment_controller_v6');

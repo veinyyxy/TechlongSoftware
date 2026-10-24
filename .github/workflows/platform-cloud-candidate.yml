@@ -23,6 +23,8 @@ on:
       - 'tests/platform-review-v6.test.mjs'
       - 'tests/platform-review-followup-v6.test.mjs'
       - 'tests/platform-transferred-cycle-v6.test.mjs'
+      - 'tests/platform-current-prepare-v6.test.mjs'
+      - 'tests/platform-hosted-driver-v6.test.mjs'
       - 'tests/platform-review-refresh-v6.test.mjs'
       - 'tests/fixtures/platform-review-refresh-v6.mjs'
       - 'scripts/ci/verify-platform-review-refresh-pg-v6.mjs'
@@ -80,6 +82,8 @@ on:
       - 'tests/platform-review-v6.test.mjs'
       - 'tests/platform-review-followup-v6.test.mjs'
       - 'tests/platform-transferred-cycle-v6.test.mjs'
+      - 'tests/platform-current-prepare-v6.test.mjs'
+      - 'tests/platform-hosted-driver-v6.test.mjs'
       - 'tests/platform-review-refresh-v6.test.mjs'
       - 'tests/fixtures/platform-review-refresh-v6.mjs'
       - 'scripts/ci/verify-platform-review-refresh-pg-v6.mjs'
@@ -156,7 +160,9 @@ jobs:
       - name: Transferred held task and HOSTED evidence handoff, no live capabilities
         run: |
           node --experimental-strip-types --test tests/platform-transferred-cycle-v6.test.mjs
+          node --experimental-strip-types --test tests/platform-current-prepare-v6.test.mjs tests/platform-hosted-driver-v6.test.mjs
           node node_modules/eslint/bin/eslint.js ops/platform-review-v6/transferred-cycle.mjs ops/platform-review-v6/hosted-handoff.mjs tests/platform-transferred-cycle-v6.test.mjs --max-warnings 0
+          node node_modules/eslint/bin/eslint.js ops/platform-review-v6/current-local.mjs ops/platform-review-v6/current-cloud.mjs ops/platform-review-v6/current-database.mjs ops/platform-review-v6/hosted-driver.mjs tests/platform-current-prepare-v6.test.mjs tests/platform-hosted-driver-v6.test.mjs --max-warnings 0
       - name: Portable reviewed operator CLI with synthetic network and temporary files only
         run: |
           node --experimental-strip-types --test tests/platform-operator-v6.test.mjs
