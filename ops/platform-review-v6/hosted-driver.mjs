@@ -25,17 +25,26 @@ export async function waitForHostedReady({expected,lease,release,loadReady,signa
   }throw Error('PLATFORM_OPERATIONS_HOSTED_PAGE_POLL_BUDGET');
 }
 export function createHostedCycleDriver({scope:rawScope,release:rawRelease,frozenSourceCommit,manifestSha256,live,loadReady,
-  publishReview,probePage,record,bridgeFactory=createHostedHandoff,now=Date.now,sleep=abortableDelay}){
+  publishReview,probePage,record,preconfirmedReadiness=null,bridgeFactory=createHostedHandoff,now=Date.now,sleep=abortableDelay}){
   const scope=assertScope(rawScope),release=structuredClone(rawRelease);
   must(releaseReady(release)&&commit(frozenSourceCommit)&&/^[a-f0-9]{64}$/.test(manifestSha256)&&
-    [loadReady,publishReview,probePage,record,bridgeFactory].every(f=>typeof f==='function'),'HOSTED_DRIVER_PORTS');let used=false;
+    [loadReady,publishReview,probePage,record,bridgeFactory].every(f=>typeof f==='function')&&
+    (preconfirmedReadiness===null||typeof preconfirmedReadiness==='function'),'HOSTED_DRIVER_PORTS');let used=false;
   return async({lease:rawLease,hosting:rawHosting,signal})=>{
     must(!used,'HOSTED_DRIVER_MEMORY_ONCE');used=true;const lease=structuredClone(rawLease),hosting=structuredClone(rawHosting);
     await assertHostedHandoffLease(lease,release,scope,now());const d=readinessDeadlines(lease);
     signal.throwIfAborted();await probePage();before(signal,d.pageReadyBy,now);
-    await record('awaiting-hosted-page',{jobId:scope.jobId,url:'https://'+P.domain+'/admin/instances/'+CONTROL_SCOPE.instanceId,
-      manifestSha256,hosting,leaseSha256:await sha256Hex(lease),deadline:d.pageReadyBy,viewOnly:true});
-    const ready=await waitForHostedReady({expected:{manifestSha256,scope,hosting},lease,release,loadReady,signal,now,sleep});
+    let ready;
+    if(preconfirmedReadiness){
+      // A fixed reviewed entry may bind a distinct PRE-window human statement.
+      // Never label this as an authenticated page view after the update.
+      ready=await preconfirmedReadiness({manifestSha256,scope,lease,release,hosting,checkedAt:now()});
+      before(signal,d.pageReadyBy,now);await record('preconfirmed-page-readiness-verified',ready);
+    }else{
+      await record('awaiting-hosted-page',{jobId:scope.jobId,url:'https://'+P.domain+'/admin/instances/'+CONTROL_SCOPE.instanceId,
+        manifestSha256,hosting,leaseSha256:await sha256Hex(lease),deadline:d.pageReadyBy,viewOnly:true});
+      ready=await waitForHostedReady({expected:{manifestSha256,scope,hosting},lease,release,loadReady,signal,now,sleep});
+    }
     before(signal,d.reviewCompleteBy,now);const review=await publishReview({lease,ready});
     const v=await validatePlan(review.plan,release,now());
     must(v.planSha256===review.planSha256&&v.actionSha256===review.actionSha256&&v.plan.mode==='Review'&&v.plan.jobId===scope.jobId&&

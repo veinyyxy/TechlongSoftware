@@ -152,6 +152,7 @@ export async function executeCycleMain(args,protocol=LEGACY_PROTOCOL){
         const driver=createHostedCycleDriver({scope:{sourceCommit:m.sourceCommit,jobId:CYCLE.jobId},release:m.binding.platform,
           frozenSourceCommit:m.binding.publisher.frozenSourceCommit,manifestSha256:m.manifestSha256,
           loadReady:()=>optional(out+'/page-ready.json'),record:writeEvent,
+          preconfirmedReadiness:cfg.preconfirmedReadiness?input=>cfg.preconfirmedReadiness({...input,manifest:m,online}):null,
           probePage:async()=>{await guard();must(publicPageGets++===0,'PAGE_GET_ONCE');const r=await fetch('https://'+P.domain+'/login?returnTo=%2Fadmin',{method:'GET',redirect:'error',signal:AbortSignal.any([signal,AbortSignal.timeout(15000)])});
             must(r.status===200&&(r.headers.get('content-type')??'').includes('text/html'),'PAGE_PROBE');await boundedText(r,250000);},
           publishReview:async input=>{ready=input.ready;
