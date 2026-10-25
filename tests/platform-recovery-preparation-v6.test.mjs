@@ -21,6 +21,7 @@ function fixture(){const sourceCommit='f'.repeat(40),at=Date.parse('2026-10-25T1
 test('recovery prepares only a bounded new read, never reuses stale claim or virtual proof as execution authority',async()=>{
   const m=await makeRecoveryPreparation(fixture());assert.equal(m.cloudExecutionEntryReady,false);assert.equal(m.readPreparationIsNotApproval,true);
   assert.equal(m.historicalFactsAreNotCurrentState,true);assert.equal(m.lastKnown.controlCounts.plans,1);assert.equal(m.lastKnown.proofSha256,null);
+  assert.equal(m.lastKnown.reviewDispatchSlotPermanentlyConsumed,true);assert(m.nextAfterRead.includes('UNIQUE(job_id,mode)'));
   assert.deepEqual(m.nextProposedRead.scope,RECOVERY_READ_SCOPE);assert.equal(m.nextProposedRead.scope.cloudWrites,0);assert.equal(m.nextProposedRead.scope.s3Gets,0);
   assert.equal(m.stageEffects.awsCalls,0);assert.equal(m.expiresAt,m.createdAt+48*3600000);assert(m.forbidden.includes('extend old manifest claimBy'));
 });
