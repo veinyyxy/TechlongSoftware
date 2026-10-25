@@ -8,11 +8,11 @@ import {validateNextCycleReview} from './cycle-next.mjs';
 import {verifyCycleWindow,must} from './cycle-plan.mjs';
 import {LAUNCH_BASE} from './cycle-launch.mjs';
 const ROOT='F:/ChatGPT_workshop/techlong-w8v-hosted-cycle-20261024-a',json=async f=>JSON.parse(await readText(f,3000000));
-export function verifyLaunchCurrent(inventory,witness,now=Date.now(),{savedRead=false}={}){
+export function verifyLaunchCurrent(inventory,witness,now=Date.now(),{savedRead=false,baseline=LAUNCH_BASE}={}){
   const {parentManifest,parentIntent}=witness,proof=verifyCycleWindow(inventory,parentManifest,parentIntent),s=inventory.rawMetadata.stack.Stacks[0];
   const ids=Object.fromEntries(proof.resources.map(r=>[r.id,r.physicalId]));
-  must(parentManifest.sourceCommit===LAUNCH_BASE.sourceCommit&&proof.rootEventId===LAUNCH_BASE.rootEventId&&
-    ids.TaskDefinition===LAUNCH_BASE.definition&&(savedRead||proof.controlLease.expiresAt<=now),'LAUNCH_CURRENT_ROOT_OR_ACTIVE_LEASE');
+  must(parentManifest.sourceCommit===baseline.sourceCommit&&proof.rootEventId===baseline.rootEventId&&
+    ids.TaskDefinition===baseline.definition&&(savedRead||proof.controlLease.expiresAt<=now),'LAUNCH_CURRENT_ROOT_OR_ACTIVE_LEASE');
   checkIdentities(inventory.rawMetadata.resources.StackResourceSummaries,witness.ids??ids,false);
   const template=inventory.rawMetadata.template.TemplateBody;
   return {stackId:K.stackId,stackStatus:s.StackStatus,rootEventId:proof.rootEventId,ids,oldLease:proof.controlLease,

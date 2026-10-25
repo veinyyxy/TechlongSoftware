@@ -21,16 +21,17 @@ export function cycleSqlGate({inspect=false}={}){
     }else must(/^SELECT\b/.test(text)||['BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY','COMMIT','ROLLBACK','SET LOCAL search_path=pg_catalog'].includes(text),'SQL_OPERATION');
   }};
 }
-export async function verifyPublishedReview(snapshot,entry,m){
+export async function verifyPublishedReview(snapshot,entry,m,profile){
   must(same(normalizedState(snapshot.state),m.anchor.after)&&snapshot.newLedger.plans.length===1&&
     snapshot.newLedger.approvals.length===0&&snapshot.newLedger.attempts.length===0&&entry.attempt===null,'PUBLICATION_READBACK_STATE');
-  await assertTransferredReviewQuery(ownerQueryV6('plan',entry),m.anchor,m.sourceCommit,entry.plan.preparedAt);
+  await assertTransferredReviewQuery(ownerQueryV6('plan',entry),m.anchor,m.sourceCommit,entry.plan.preparedAt,profile);
   const p=snapshot.newLedger.plans[0];must(p.plan_sha===entry.planSha256&&p.action_sha===entry.actionSha256&&p.risk_sha===entry.plan.riskSha256&&
-    p.job_id===CYCLE.jobId&&p.mode==='Review'&&same(p.body,entry.plan)&&Date.parse(p.expires_at)===entry.plan.expiresAt,'PUBLICATION_READBACK_PLAN');
+    p.job_id===(profile?.target.newJobId??CYCLE.jobId)&&p.mode==='Review'&&same(p.body,entry.plan)&&Date.parse(p.expires_at)===entry.plan.expiresAt,'PUBLICATION_READBACK_PLAN');
   return {planSha256:entry.planSha256,actionSha256:entry.actionSha256,plans:1,approvals:0,attempts:0,independentReadClient:true};
 }
 export async function wireCycleDatabase({writer:rawWriter,reader:rawReader,contract,manifest:m,guard,assertClaim,inspect=false,
-  expected=D,gate=cycleSqlGate({inspect}),counts={configReads:0,connections:2},close=async()=>{}}){
+  expected=D,gate=cycleSqlGate({inspect}),counts={configReads:0,connections:2},close=async()=>{},profile}){
+  const jobId=profile?.target.newJobId??CYCLE.jobId;
   must(typeof assertClaim==='function','EXPLICIT_CLAIM_PORT');
   const wrap=(raw,readOnly)=>({async query(text,values){gate.check(text,values,readOnly);await guard();
     if([planSql,proofSql,OBSERVE_SQL].includes(text))await assertClaim();
@@ -40,17 +41,17 @@ export async function wireCycleDatabase({writer:rawWriter,reader:rawReader,contr
     const reads=make(reader,1);await reads.verify();
     const pub=writer&&make(writer,1),handoff=writer&&make(writer,2);if(pub){await pub.verify();await handoff.verify();}
     return Object.freeze({counts:()=>({...counts,...gate.counts}),
-      snapshot:()=>readTransferredSnapshot(reader,{contract,expected}),loadPlan:sha=>reads.loadPlan(sha),
-      readHeldJob:async id=>{must(!inspect&&id===CYCLE.jobId,'EXACT_HELD_JOB');return pub.readHeldJob(id);},
-      publish:async q=>{must(!inspect,'INSPECT_READONLY');await assertTransferredReviewQuery(q,m.anchor,m.sourceCommit,Date.now());await guard();return pub.writeOwner(q);},
+      snapshot:()=>readTransferredSnapshot(reader,{contract,expected,profile}),loadPlan:sha=>reads.loadPlan(sha),
+      readHeldJob:async id=>{must(!inspect&&id===jobId,'EXACT_HELD_JOB');return pub.readHeldJob(id);},
+      publish:async q=>{must(!inspect,'INSPECT_READONLY');await assertTransferredReviewQuery(q,m.anchor,m.sourceCommit,Date.now(),profile);await guard();return pub.writeOwner(q);},
       advance:async q=>{
         must(!inspect,'INSPECT_READONLY');
-        if(q.text===proofSql){const e=await reads.loadPlan(q.values[0]);must(e.plan.jobId===CYCLE.jobId&&e.plan.sourceCommit===m.sourceCommit&&e.plan.mode==='Review'&&
+        if(q.text===proofSql){const e=await reads.loadPlan(q.values[0]);must(e.plan.jobId===jobId&&e.plan.sourceCommit===m.sourceCommit&&e.plan.mode==='Review'&&
           e.attempt?.state==='OBSERVED'&&e.attempt.status==='completed'&&e.attempt.conclusion==='success'&&e.attempt.proofSha256===null,'PROOF_SCOPE');}
         else{must(q.text===planSql,'SUCCESSOR_SQL');const v=await validatePlan(JSON.parse(q.values[3]),m.binding.platform,Date.now()),p=v.plan;
-          must(p.mode==='RunOnce'&&p.jobId===CYCLE.jobId&&p.sourceCommit===m.sourceCommit,'SUCCESSOR_SCOPE');
+          must(p.mode==='RunOnce'&&p.jobId===jobId&&p.sourceCommit===m.sourceCommit,'SUCCESSOR_SCOPE');
           const e=await reads.loadPlan(p.predecessor.planSha256);
-          must(e.plan.jobId===CYCLE.jobId&&e.plan.sourceCommit===m.sourceCommit&&e.plan.mode==='Review'&&e.attempt?.state==='OBSERVED'&&
+          must(e.plan.jobId===jobId&&e.plan.sourceCommit===m.sourceCommit&&e.plan.mode==='Review'&&e.attempt?.state==='OBSERVED'&&
             e.attempt.runId===p.predecessor.runId&&e.attempt.proofSha256===p.predecessor.proofSha256&&e.attempt.proofSha256!==null&&
             p.inputs.installation===e.plan.inputs.installation&&p.inputs.lineage===e.plan.inputs.lineage,'SUCCESSOR_PREDECESSOR');}
         await guard();return handoff.writeOwner(q);
@@ -59,14 +60,14 @@ export async function wireCycleDatabase({writer:rawWriter,reader:rawReader,contr
         must(!inspect&&o.status==='completed'&&o.conclusion==='success'&&/^[1-9][0-9]{0,15}$/.test(o.runId)&&
           o.url===`https://github.com/${CONTROL_SCOPE.repository}/actions/runs/${o.runId}`,'EXACT_OBSERVATION');
         const entry=await reads.loadPlan(sha),v=await validatePlan(entry.plan,m.binding.platform,entry.plan.preparedAt);
-        must(v.planSha256===sha&&v.plan.sourceCommit===m.sourceCommit&&v.plan.jobId===CYCLE.jobId&&v.plan.mode==='Review'&&
+        must(v.planSha256===sha&&v.plan.sourceCommit===m.sourceCommit&&v.plan.jobId===jobId&&v.plan.mode==='Review'&&
           ['ACKNOWLEDGED','OBSERVED'].includes(entry.attempt?.state)&&entry.attempt.runId===o.runId&&entry.attempt.proofSha256===null,'OBSERVATION_LEDGER');
         await guard();return writer.query(OBSERVE_SQL,[sha,o.runId,'completed','success']);
       },
       async close(){gate.halt();await close();},
     });
 }
-export async function openCycleDatabase({auth,contract,manifest:m,guard,assertClaim,inspect=false}){
+export async function openCycleDatabase({auth,contract,manifest:m,guard,assertClaim,inspect=false,profile}){
   const gate=cycleSqlGate({inspect}),counts={configReads:0,connections:0},opened=[];let config;
   const close=async()=>{for(const c of opened)try{await c.end();}catch{/* no reconnect */}};
   try{
@@ -74,7 +75,7 @@ export async function openCycleDatabase({auth,contract,manifest:m,guard,assertCl
     const connect=async label=>{const c=new pg.Client({...config,options:'',application_name:'Techlong-Reviewed-Cycle-'+label});opened.push(c);c.on('error',()=>gate.halt());
       counts.connections++;await c.connect();must(c.connection.stream.encrypted===true&&c.connection.stream.authorized===true,'DATABASE_TLS');return c;};
     const writer=inspect?null:await connect('Owner'),reader=await connect('IndependentRead');config=undefined;
-    return await wireCycleDatabase({writer,reader,contract,manifest:m,guard,assertClaim,inspect,gate,counts,close});
+    return await wireCycleDatabase({writer,reader,contract,manifest:m,guard,assertClaim,inspect,gate,counts,close,profile});
   }catch{gate.halt();for(const c of opened)try{await c.end();}catch{/* no retry */}
     throw Object.assign(Error('HOSTED_CYCLE_DATABASE_OPEN_STOPPED'),{counts:{...counts,...gate.counts}});
   }finally{config=undefined;}

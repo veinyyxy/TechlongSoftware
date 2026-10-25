@@ -41,7 +41,10 @@ export function assertLaunchOnline(a,m,at){
   return {...assertNextOnline(a,m,at),pageViewedBeforeWindow:true,authenticatedPageRecheckedAfterUpdate:false};
 }
 export async function preconfirmedReadiness({manifest:m,online,manifestSha256,scope,lease,release,hosting,checkedAt}){
-  must(manifestSha256===m.manifestSha256&&same(release,m.binding.platform)&&scope.sourceCommit===m.sourceCommit&&scope.jobId===LAUNCH.jobId&&
+  return compilePreconfirmedReadiness({manifest:m,online,manifestSha256,scope,lease,release,hosting,checkedAt});
+}
+export async function compilePreconfirmedReadiness({manifest:m,online,manifestSha256,scope,lease,release,hosting,checkedAt},cycle=LAUNCH){
+  must(manifestSha256===m.manifestSha256&&same(release,m.binding.platform)&&scope.sourceCommit===m.sourceCommit&&scope.jobId===cycle.jobId&&
     online?.manifestSha256===manifestSha256&&online.sourceCommit===m.sourceCommit&&online.pageViewedBeforeWindow===true&&
     online.authenticatedPageRecheckedAfterUpdate===false&&online.confirmedAt<=lease.issuedAt&&
     checkedAt>=lease.issuedAt&&checkedAt<readinessDeadlines(lease).pageReadyBy,'PRECONFIRMED_BINDING');

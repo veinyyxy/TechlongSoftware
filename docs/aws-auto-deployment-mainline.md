@@ -1,5 +1,7 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前继续点（2026-10-25）：**W8y原子衔接及独立核验已完成，W8z集中把新9db任务接回原部署链，尚未开窗或发布Review。** 旧6a取消但原行保留，新9db pending/attempt0/审核挂起，无云执行授权；其余7旧任务及4/2/2两代账本、业务/保护保持。新固定代码profile贯穿anchor、数据库新旧ledger、publisher、日志/版本对象及窗口driver，不伪造重命名旧状态；旧入口默认行为保持，不扩IAM/云worker/UI。用户另允本阶段一次75元数据/配置1/TLS只读连接1/SQL45核对，新9db ledger必须实读不能假定为空；准确CI后才收集，成功后生成新SHA另批实际窗口/计划/完整人工批准链。旧15份任务回执和60份窗口原件封存，旧槽永不重放。[W8z完整范围、风险与入口](aws-auto-deployment-platform-w8z-successor-review.md)。下文为历史。
+
 当前继续点（2026-10-25）：**W8y只准备准确旧任务取消＋新held任务的原子衔接，尚未执行SQL。** W8x真实只读核验已完成，revision7健康、过期租约不续，当前6a仍pending/attempt0，Review40165734067为ACK/proof NULL；永久(job_id,mode)门禁禁止同job再调度Review。新固定候选9db8466f…复用原事务/admission/独立回读，完整保留两代4/2/2账本、原行及所有旧槽，不扩IAM/云代码/UI。PrepareSaved只使用已封存真实采样及CI/源码/ACL元数据，不再读配置内容或连接生产；48小时到期从原采样计算，不因准备刷新。代码、临时PG真实事务与准确CI通过后生成新SHA，实际两行原子写＋独立只读核验另批；不自动发布Review或部署。[W8y完整风险、固定范围与唯一入口](aws-auto-deployment-platform-w8y-held-handoff.md)。下文为历史。
 
 当前继续点（2026-10-25）：**W8x脱敏诊断与恢复准备已编码，本轮不连接生产或执行恢复。** W8w平台更新至revision7、Review40165734067完成，但完整证据重建停止，未写观察/证明或RunOnce；独立核验最后状态为1计划/1批准/1ACK、业务任务pending/attempt0。另批准确S3/GitHub只读诊断及本地完整重建通过，原失败未复现、原因仍不确定，不据此增加IAM。现在operator读取层保留白名单错误码/阶段/HTTP状态，原始错误消息/凭据/URL/正文不落日志，失败仍停止不重试。旧槽、过期claimBy、虚拟OBSERVED与本地计算证明都不可恢复或冒充真实写入。下一在准确CI后只生成新限定只读准备清单，另获一次Source元数据及Neon只读核对允许，核对真实ledger/角色/准入后再拟新恢复范围；不重复IAM/镜像/身份探针或F3c9。[W8x范围、风险及准备入口](aws-auto-deployment-platform-w8x-recovery-preparation.md)。当前承载仍可能计费，清理另审。下文为历史继续点。

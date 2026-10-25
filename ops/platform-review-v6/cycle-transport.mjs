@@ -23,7 +23,7 @@ export function reviewSummaryFromLog(text,jobId,runId){
   }
   must(found.length===1,'LOG_SUMMARY_COUNT');return found[0];
 }
-export function createCycleTransport({manifest:rawManifest,ports,now=Date.now}){
+export function createCycleTransport({manifest:rawManifest,ports,now=Date.now,cycle=CYCLE}){
   const m=structuredClone(rawManifest);
   const cache=new Map(),runs=new Map(),allowed=new Set(Object.values(m.anchor.references).map(canonicalJson));
   const counts={s3Gets:0,runGets:0,jobsGets:0,logGets:0,logBytes:0};let discovered=false,closed=false;
@@ -48,16 +48,16 @@ export function createCycleTransport({manifest:rawManifest,ports,now=Date.now}){
       must(String(job.run_id)===id&&job.run_attempt===1&&job.head_sha===m.sourceCommit&&job.status==='completed'&&job.conclusion==='success'&&
         /^[1-9][0-9]{0,15}$/.test(String(job.id)),'REVIEW_JOB_BINDING');counts.logGets++;
       const text=await ports.readLog(String(job.id));counts.logBytes=Buffer.byteLength(text);
-      const summary=reviewSummaryFromLog(text,CYCLE.jobId,id);allowed.add(canonicalJson(summary.saved));
+      const summary=reviewSummaryFromLog(text,cycle.jobId,id);allowed.add(canonicalJson(summary.saved));
       const p=(await readObject(summary.saved)).value;
-      must(p.schema==='techlong/platform-cloud-result/v6'&&p.mode==='Review'&&p.jobId===CYCLE.jobId&&p.manifestSha256===summary.manifestSha256&&
+      must(p.schema==='techlong/platform-cloud-result/v6'&&p.mode==='Review'&&p.jobId===cycle.jobId&&p.manifestSha256===summary.manifestSha256&&
         same(p.run,{repository:S.repository,runId:id,runAttempt:1,commitSha:m.sourceCommit}),'REVIEW_RESULT_BINDING');
-      assertReferenceV6(p.cloudReportReference,evidenceKeyV5('manifest.json',{jobId:CYCLE.jobId,manifestSha256:summary.manifestSha256}));
+      assertReferenceV6(p.cloudReportReference,evidenceKeyV5('manifest.json',{jobId:cycle.jobId,manifestSha256:summary.manifestSha256}));
       allowed.add(canonicalJson(p.cloudReportReference));const refs={resultReference:summary.saved,manifestReference:p.cloudReportReference,manifestSha256:summary.manifestSha256};
       await ports.record('review-result-discovery',{runId:id,...refs,checkedAt:now(),logIsLocatorNotProof:true});return refs;
     },close(){closed=true;cache.clear();runs.clear();}});
 }
-export async function openCycleTransport({manifest:m,credentials,guard,loadToken,record,signal}){
+export async function openCycleTransport({manifest:m,credentials,guard,loadToken,record,signal,cycle=CYCLE}){
   let token=await loadToken();must(typeof token==='string'&&token.length>0&&token.length<16000&&!/[\r\n]/.test(token),'GITHUB_READ_CREDENTIAL');
   const headers=()=>({authorization:'Bearer '+token,accept:'application/vnd.github+json','user-agent':'Techlong-Reviewed-Hosted-Cycle'});
   const url=p=>'https://api.github.com/repos/'+S.repository+'/'+p;
@@ -68,7 +68,7 @@ export async function openCycleTransport({manifest:m,credentials,guard,loadToken
   const s3=new S3Client({region:E.region,endpoint:'https://s3.ca-central-1.amazonaws.com',credentials,maxAttempts:1,ignoreConfiguredEndpointUrls:true});
   const reads=createCycleReads({s3,githubToken:token,signal,onFailure:f=>record('read-failure',f),
     fetch:async(u,o)=>{must(o.method==='GET','GITHUB_GET_ONLY');await guard();return fetch(u,o);}});
-  const transport=createCycleTransport({manifest:m,ports:{guard,record,readRun:reads.readRun,readObject:reads.readObject,
+  const transport=createCycleTransport({manifest:m,cycle,ports:{guard,record,readRun:reads.readRun,readObject:reads.readObject,
     readJobs:id=>get('actions/runs/'+id+'/attempts/1/jobs?per_page=100'),async readLog(id){
       let response,stage='LOG_REDIRECT';try{const r=await get('actions/jobs/'+id+'/logs',false,'GITHUB_LOG');response=r;must(r.status===302,'LOG_REDIRECT');const u=new URL(r.headers.get('location'));
       must(u.protocol==='https:'&&u.hostname.endsWith('.blob.core.windows.net')&&!u.username&&!u.password&&!u.port,'LOG_STORAGE');

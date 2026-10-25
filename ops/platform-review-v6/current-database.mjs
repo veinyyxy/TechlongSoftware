@@ -10,7 +10,7 @@ export const NEW_LEDGER_SQL=`SELECT
   (SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY plan_sha),'[]') FROM deployment_control_v6.plans p WHERE job_id=$1) AS plans,
   (SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.plan_sha),'[]') FROM deployment_control_v6.approvals a JOIN deployment_control_v6.plans p USING(plan_sha) WHERE p.job_id=$1) AS approvals,
   (SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY plan_sha),'[]') FROM deployment_control_v6.dispatch_attempts a WHERE job_id=$1) AS attempts`;
-export async function readTransferredSnapshot(client,{contract,expected=D,now=Date.now}){
+export async function readTransferredSnapshot(client,{contract,expected=D,now=Date.now,profile}){
   await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
   try{
     await client.query('SET LOCAL search_path=pg_catalog');
@@ -19,14 +19,14 @@ export async function readTransferredSnapshot(client,{contract,expected=D,now=Da
       current_setting('transaction_isolation') AS isolation`)).rows[0];
     must(identity.actor===expected.ownerRole&&identity.session_actor===expected.ownerRole&&identity.database===expected.database&&
       identity.oid===expected.ownerOid&&identity.read_only==='on'&&identity.isolation==='repeatable read','IDENTITY_OR_TRANSACTION');
-    const state=await readTransferState(client,{contract,expected,now}),rows=(await client.query(NEW_LEDGER_SQL,[T.newJobId])).rows;
+    const state=await readTransferState(client,{contract,expected,now,...profile?.reader}),rows=(await client.query(NEW_LEDGER_SQL,[profile?.target.newJobId??T.newJobId])).rows;
     must(rows.length===1&&Object.values(rows[0]).every(v=>Array.isArray(v)&&v.length<=3),'NEW_LEDGER');
     const ro=(await client.query("SELECT current_setting('transaction_read_only') AS ro")).rows[0];must(ro.ro==='on','READ_ONLY');
     const result={state,newLedger:rows[0],checkedAt:now()};assertEvidenceSafeV5(result);
     await client.query('COMMIT');return result;
   }catch(e){try{await client.query('ROLLBACK');}catch{/* no retry */}throw e;}
 }
-export async function readCurrentDatabaseOnce({auth,contract}){
+export async function readCurrentDatabaseOnce({auth,contract,profile}){
   const counts={configReadAttempts:0,connectionAttempts:0,queries:0,retries:0};let raw,config;
   try{
     counts.configReadAttempts++;let url=await readAuthV6(auth);config=await publisherDatabaseConfigV6(url);url=undefined;
@@ -36,7 +36,7 @@ export async function readCurrentDatabaseOnce({auth,contract}){
     const client={async query(text,values){must(!failed&&++counts.queries<=45&&
       (/^SELECT\b/.test(text)||['BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY','SET LOCAL search_path=pg_catalog','COMMIT','ROLLBACK'].includes(text)),'SQL_BUDGET_OR_OPERATION');
       return raw.query(text,values);}};
-    return {snapshot:await readTransferredSnapshot(client,{contract}),counts};
+    return {snapshot:await readTransferredSnapshot(client,{contract,profile}),counts};
   }catch{throw Object.assign(Error('CURRENT_DATABASE_READ_STOPPED_NO_RETRY'),{counts});}
   finally{config=undefined;if(raw)try{await raw.end();}catch{/* no retry */}}
 }

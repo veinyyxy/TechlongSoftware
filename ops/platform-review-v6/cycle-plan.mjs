@@ -25,17 +25,17 @@ export async function compileCycleReview({sourceCommit,pins,ci,compatibility,pre
   const cycle=profile?.cycle??CYCLE;
   must(/^[a-f0-9]{40}$/.test(sourceCommit)&&ci?.sourceCommit===sourceCommit&&ci.attempt===1&&ci.status==='completed'&&ci.conclusion==='success'&&
     pins.length>=20&&new Set(pins.map(p=>p.file)).size===pins.length&&pins.every(p=>/^[a-f0-9]{64}$/.test(p.sha256)),'SOURCE_CI');
-  must(preparation?.schema==='techlong/current-pipeline-preparation/v6'&&preparation.jobId===T.newJobId&&
+  must(preparation?.schema==='techlong/current-pipeline-preparation/v6'&&preparation.jobId===cycle.jobId&&
     preparation.productionWriteEntryReady===false&&preparation.preparationIsNotWriteApproval===true&&
     same(preparation.newControlCounts,{plans:0,approvals:0,attempts:0})&&preparation.baseline?.stackId===K.stackId&&
     preparation.baseline.stackStatus==='UPDATE_COMPLETE'&&preparation.baseline.healthy===true&&preparation.baseline.iamLayoutUnchanged===true&&
     preparation.baseline.ids.TaskDefinition===(profile?.baselineDefinition??`arn:aws:ecs:${P.region}:${P.account}:task-definition/${P.family}:4`)&&
-    anchor.jobId===T.newJobId&&anchor.anchorSha256===preparation.anchorSha256,'PREPARATION');
+    anchor.jobId===cycle.jobId&&anchor.anchorSha256===preparation.anchorSha256,'PREPARATION');
   must(compatibility?.executionSourceCommit===sourceCommit&&compatibility.imageSourceCommit===H.imageSource&&compatibility.protectedRuntimeCodeUnchanged===true&&
     compatibility.cloudClosureSha256===B.platform.closureSha256&&auth?.contentRead===false&&auth.length>0&&/^[a-f0-9]{64}$/.test(auth.aclSha256)&&
     /^[a-f0-9]{32}$/.test(nonce)&&/^[a-f0-9]{64}$/.test(riskSha256)&&Number.isSafeInteger(createdAt)&&createdAt>=preparation.createdAt&&
     createdAt<preparation.expiresAt-cycle.runMs,'INPUTS_OR_PREPARATION_EXPIRED');
-  must(same(anchor,await makeTransferredAnchor(anchor)),'ANCHOR');
+  must(same(anchor,await makeTransferredAnchor(anchor,profile?.reviewProfile)),'ANCHOR');
   const body={schema:profile?.schema??'techlong/transferred-hosted-cycle-review/v6',sourceCommit,pins,ci,compatibility,preparation,anchor,auth,nonce,createdAt,
     expiresAt:preparation.expiresAt,latestStartAt:preparation.expiresAt-cycle.runMs,riskSha256,riskFile:cycle.riskFile,binding:B,scope:profile?.scope??CYCLE_SCOPE,
     windowTemplateSha256:await sha256Hex(windowTemplate(sourceCommit)),

@@ -67,7 +67,7 @@ const LEGACY_PROTOCOL=Object.freeze({cycle:CYCLE,roots:CYCLE_ROOTS,parseArgs:par
 export async function executeCycleMain(args,protocol=LEGACY_PROTOCOL){
   const cfg={...LEGACY_PROTOCOL,...protocol};
   const {cycle:CYCLE,roots:CYCLE_ROOTS,makeReview:makeCycleReview,validateReview:validateCycleReview,loadPreparation:loadCyclePreparation,
-    verifyCurrent:verifyCurrentHosting,publicationSlot,handoffSlot}=cfg;
+    verifyCurrent:verifyCurrentHosting,publicationSlot,handoffSlot,reviewProfile}=cfg;
   const source=(expected,options={})=>checkSource(expected,{...options,roots:CYCLE_ROOTS}),directory=file=>validateDirectory(file,cfg.outputPrefix);
   const a=cfg.parseArgs(args),mode=a['--mode'];environment();must(process.platform==='win32'&&path.resolve(process.cwd()).toLowerCase()===path.resolve(ROOT).toLowerCase()&&
     !['DATABASE_URL','PGHOST','PGPORT','PGPASSWORD','PGSERVICE','PGOPTIONS'].some(k=>process.env[k]),'ENVIRONMENT');
@@ -114,7 +114,7 @@ export async function executeCycleMain(args,protocol=LEGACY_PROTOCOL){
       await assertClaim();const intent=await json(run+'/window-intent.json');await record(out,'inspect-intent',{manifestSha256:m.manifestSha256,readOnly:true});
       await writeOnce(CYCLE.inspectSlot,{manifestSha256:m.manifestSha256,output:out});
       const inventory=await cloud.snapshot();await record(out,'window-inventory',inventory);const verified=verifyCycleWindow(inventory,m,intent);
-      db=await openCycleDatabase({auth:m.auth,contract,manifest:m,guard,assertClaim,inspect:true});const snapshot=await db.snapshot();await record(out,'control-snapshot',snapshot);
+      db=await openCycleDatabase({auth:m.auth,contract,manifest:m,guard,assertClaim,inspect:true,profile:reviewProfile});const snapshot=await db.snapshot();await record(out,'control-snapshot',snapshot);
       const old=normalizedState(snapshot.state),expected=m.anchor.after;
       must(same(old.ledger,expected.ledger)&&same(old.protection,expected.protection)&&
         same(old.jobs.filter(j=>j.id!==CYCLE.jobId),expected.jobs.filter(j=>j.id!==CYCLE.jobId)),'OLD_ROWS_OR_PROTECTION_CHANGED');
@@ -133,8 +133,8 @@ export async function executeCycleMain(args,protocol=LEGACY_PROTOCOL){
     const writeEvent=async(n,v)=>{await record(out,n,v);notify(n,v);};
     const baseline=async()=>{const inventory=await cloud.snapshot();await record(out,'preflight-window-inventory',inventory);
       const b=verifyCurrentHosting(inventory,p.hosting);must(same(b,m.preparation.baseline),'CLOUD_BASELINE_DRIFT');
-      db=await openCycleDatabase({auth:m.auth,contract,manifest:m,guard,assertClaim});const snapshot=await db.snapshot();await assertTransferredBaseline(m.anchor,snapshot);await record(out,'preflight-database',snapshot);
-      transport=await openCycleTransport({manifest:m,credentials:cloud.credentials,guard,record:(n,v)=>record(out,n,v),signal,
+      db=await openCycleDatabase({auth:m.auth,contract,manifest:m,guard,assertClaim,profile:reviewProfile});const snapshot=await db.snapshot();await assertTransferredBaseline(m.anchor,snapshot,reviewProfile);await record(out,'preflight-database',snapshot);
+      transport=await openCycleTransport({manifest:m,cycle:CYCLE,credentials:cloud.credentials,guard,record:(n,v)=>record(out,n,v),signal,
         loadToken:async()=>{const raw=git(['credential','fill'],`protocol=https\nhost=github.com\npath=veinyyxy/TechlongSoftware.git\n\n`);return raw.split(/\r?\n/).find(v=>v.startsWith('password='))?.slice(9);}});
       const install=(await transport.readObject(m.anchor.references.installation)).value,links=(await transport.readObject(m.anchor.references.lineage)).value;
       await assertInstallationV5(install,m.binding.platform.installationSha256,await loadNeonContractV5());
@@ -157,14 +157,14 @@ export async function executeCycleMain(args,protocol=LEGACY_PROTOCOL){
           probePage:async()=>{await guard();must(publicPageGets++===0,'PAGE_GET_ONCE');const r=await fetch('https://'+P.domain+'/login?returnTo=%2Fadmin',{method:'GET',redirect:'error',signal:AbortSignal.any([signal,AbortSignal.timeout(15000)])});
             must(r.status===200&&(r.headers.get('content-type')??'').includes('text/html'),'PAGE_PROBE');await boundedText(r,250000);},
           publishReview:async input=>{ready=input.ready;
-            const publisher=createTransferredReviewPublisher({anchor:m.anchor,sourceCommit:m.sourceCommit,lease,ports:{assertApproved:guard,assertSource:()=>source(m.sourceCommit),
+            const publisher=createTransferredReviewPublisher({anchor:m.anchor,sourceCommit:m.sourceCommit,lease,profile:reviewProfile,ports:{assertApproved:guard,assertSource:()=>source(m.sourceCommit),
               assertTransferEvidence:async()=>{const x=await loadCyclePreparation(m.createdAt);must(same(x.anchor,m.anchor),'ANCHOR_DRIFT');},readLease:()=>cloud.lease(),
               readiness:freshReady,readBaseline:()=>db.snapshot(),readObject:transport.readObject,readHeldJob:db.readHeldJob,writeOwner:db.publish,
               claim:()=>writeOnce(publicationSlot,{manifestSha256:m.manifestSha256,output:out}),
               record:async(n,v)=>{if(n==='proposed-review-plan')proposed=v;await record(out,'publish-'+n,v);},dispose:async()=>{}}});
             const result=await publisher.once();must(result.outcome==='TRANSFERRED_REVIEW_PUBLISHED_REQUIRES_INDEPENDENT_INSPECT'&&proposed,'PUBLICATION_STOPPED');
             const entry=await db.loadPlan(result.planSha256);must(same(entry.plan,proposed.plan),'PUBLISHED_PLAN_DRIFT');
-            await record(out,'publish-independent-readback',await verifyPublishedReview(await db.snapshot(),entry,m));return proposed;
+            await record(out,'publish-independent-readback',await verifyPublishedReview(await db.snapshot(),entry,m,reviewProfile));return proposed;
           },live:{loadPlan:async sha=>{const e=await db.loadPlan(sha);must(e.plan.sourceCommit===m.sourceCommit&&e.plan.jobId===CYCLE.jobId,'EXACT_PLAN');
               if(e.attempt?.runId)transport.registerRun(e.attempt.runId,e.plan.mode);return e;},readRun:transport.readRun,discover:transport.discover,
             ports:{assertApproved:assertInstalled,assertSource:()=>source(m.sourceCommit),readiness:freshReady,loadPlan:db.loadPlan,readRun:transport.readRun,

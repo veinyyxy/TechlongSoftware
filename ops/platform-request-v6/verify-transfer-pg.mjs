@@ -14,6 +14,8 @@ import {readTransferState} from './transfer-state.mjs';
 import {NEXT,makeNextTransferProfile} from './transfer-next.mjs';
 import {readTransferredSnapshot} from '../platform-review-v6/current-database.mjs';
 import {wireCycleDatabase,verifyPublishedReview} from '../platform-review-v6/cycle-database.mjs';
+import {makeTransferredAnchor,TRANSFERRED_CYCLE} from '../platform-review-v6/transferred-cycle.mjs';
+import {J} from '../platform-review-v6/followup.mjs';
 import {sqlContract,I} from '../platform-controller-review-v6/install.mjs';
 assert.equal(process.env.GITHUB_ACTIONS,'true');
 const port=Number(process.env.PLATFORM_CONTROL_CI_PORT);assert.ok(Number.isInteger(port)&&port>1024&&port<65536);
@@ -183,6 +185,9 @@ try{
     const oldTx=createTransferTransaction({client,readState:trusted});assert.equal((await oldTx({baseline:legacyBefore,assertApproved:async()=>{}})).committed,true);
     const at=Date.now(),body=structuredClone(legacyBefore.ledger.plans[0].body);
     Object.assign(body,{jobId:NEXT.oldJobId,sourceCommit:NEXT.oldSource,preparedAt:at-7200000,expiresAt:at-3600000});body.inputs.job=NEXT.oldJobId;
+    body.inputs.installation=canonicalJson({key:`worker-v5/${S.appInstanceId}/installation/${B.platform.installationSha256}.json`,
+      sha256:TRANSFERRED_CYCLE.installationObjectSha256,versionId:'synthetic-ci-installation'});
+    body.inputs.lineage=canonicalJson({key:J.lineageKey,sha256:J.lineageSha256,versionId:'synthetic-ci-lineage'});
     const v=await validatePlan(body,B.platform,body.preparedAt);
     await insertRows('deployment_control_v6.plans',[{plan_sha:v.planSha256,action_sha:v.actionSha256,risk_sha:body.riskSha256,job_id:NEXT.oldJobId,mode:'Review',body,
       expires_at:new Date(body.expiresAt).toISOString(),created_at:new Date(body.preparedAt).toISOString()}]);
@@ -211,6 +216,36 @@ try{
   }
   successorChecks.push('both_generations_full_ledger_read_and_preserved','same_owner_admission_and_always_guard');
   console.log(JSON.stringify({outcome:'PASSED_REAL_POSTGRESQL_HELD_SUCCESSOR',checks:successorChecks,productionDatabaseTouched:false,awsCalls:0,workflowDispatches:0}));
+  {
+    const {baseline,profile:txProfile}=await resetSuccessor(),profile={...txProfile,anchorSchema:'techlong/held-successor-review-anchor/v6'};
+    const applied=await createTransferTransaction({client,readState:nextReader,profile})({baseline,assertApproved:async()=>{}});assert.equal(applied.committed,true);
+    const anchor=await makeTransferredAnchor({before:baseline,after:await nextReader(client),transferredAt:applied.at},profile),source='c'.repeat(40);
+    const manifest={binding:B,sourceCommit:source,anchor},ports=await wireCycleDatabase({writer:client,reader:second,contract,expected:identity,
+      manifest,profile,guard:async()=>{},assertClaim:async()=>{}});
+    const empty=await ports.snapshot();assert.deepEqual(empty.newLedger,{plans:[],approvals:[],attempts:[]});assert.deepEqual(normalizedState(empty.state),anchor.after);
+    const at=Date.now(),body=structuredClone(baseline.ledger.plans.find(p=>p.job_id===NEXT.oldJobId).body);
+    Object.assign(body,{jobId:NEXT.newJobId,sourceCommit:source,preparedAt:at,expiresAt:at+7200000});body.inputs.job=NEXT.newJobId;
+    const review=await validatePlan(body,B.platform,at);await ports.publish(ownerQueryV6('plan',review));
+    await verifyPublishedReview(await ports.snapshot(),await ports.loadPlan(review.planSha256),manifest,profile);
+    const wrong=structuredClone(body);wrong.jobId=NEXT.oldJobId;wrong.inputs.job=NEXT.oldJobId;
+    await assert.rejects(ports.publish(ownerQueryV6('plan',await validatePlan(wrong,B.platform,at))));
+    await client.query('SELECT deployment_control_v6.begin_dispatch($1,$2,$3,$4)',[review.planSha256,review.actionSha256,B.platform.riskSha256,adminId]);
+    await client.query('SELECT deployment_control_v6.acknowledge($1,$2)',[review.planSha256,'223456781']);
+    await ports.observe(review.planSha256,{runId:'223456781',status:'completed',conclusion:'success',url:'https://github.com/veinyyxy/TechlongSoftware/actions/runs/223456781'});
+    await ports.advance(ownerQueryV6('proof',{planSha256:review.planSha256,proofSha256:'8'.repeat(64)}));
+    const next=structuredClone(body);next.mode='RunOnce';next.inputs.mode='RunOnce';next.preparedAt=Date.now();next.expiresAt=next.preparedAt+300000;
+    next.predecessor={planSha256:review.planSha256,runId:'223456781',proofSha256:'8'.repeat(64)};
+    next.inputs.manifest=canonicalJson({key:`worker-v5/${S.appInstanceId}/${NEXT.newJobId}/${'7'.repeat(64)}/manifest.json`,sha256:'6'.repeat(64),versionId:'synthetic-ci'});
+    next.inputs.manifestSha='7'.repeat(64);await ports.advance(ownerQueryV6('plan',await validatePlan(next,B.platform,next.preparedAt)));
+    const observed=await ports.snapshot();assert.deepEqual(normalizedState(observed.state),anchor.after);
+    assert.deepEqual(Object.values(observed.newLedger).map(v=>v.length),[2,1,1]);
+    const readOnly=await wireCycleDatabase({reader:second,contract,expected:identity,manifest,profile,guard:async()=>{},assertClaim:async()=>{},inspect:true});
+    await assert.rejects(readOnly.publish(ownerQueryV6('plan',review)),/INSPECT_READONLY/);await readOnly.close();await ports.close();
+    console.log(JSON.stringify({outcome:'PASSED_REAL_POSTGRESQL_SUCCESSOR_CYCLE_PORTS',checks:['new9db_ledger_read_separate_from_both_old_generations',
+      'empty_new_occupancy_verified','exact_new_review_sql_and_independent_readback','old6a_publication_rejected',
+      'simulated_manual_ack_and_exact_observation','bound_proof_and_runonce','complete_old_history_business_and_held_job_unchanged','inspect_cannot_publish'],
+      productionDatabaseTouched:false,awsCalls:0,workflowDispatches:0}));
+  }
   // Restore the original one-generation fixture for the existing cycle proofs.
   await reset();before=await trusted(client);r=await createTransferTransaction({client,readState:trusted})({baseline:before,assertApproved:async()=>{}});
   assert.equal(r.committed,true);

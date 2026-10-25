@@ -17,9 +17,11 @@ export const TRANSFERRED_CYCLE=Object.freeze({jobId:T.newJobId,oldJobId:T.oldJob
   publicationSlot:'F:/ChatGPT_workshop/techlong-w8s-transferred-review.intent.json',
   handoffSlot:'F:/ChatGPT_workshop/techlong-w8s-hosted-handoff.intent.json'});
 
-export async function makeTransferredAnchor({before,after,transferredAt}){
-  await verifyTransferReadback(before,after,transferredAt);
-  const state=normalizedState(after),prior=state.ledger.plans.find(p=>p.plan_sha===state.ledger.attempts[0].plan_sha);
+export async function makeTransferredAnchor({before,after,transferredAt},profile){
+  const target=profile?.target??T;
+  await (profile?.verifyReadback??verifyTransferReadback)(before,after,transferredAt);
+  const state=normalizedState(after),attempt=state.ledger.attempts.find(a=>a.job_id===target.oldJobId),prior=state.ledger.plans.find(p=>p.plan_sha===attempt?.plan_sha);
+  must(prior,'PRIOR_REVIEW');
   const references={installation:JSON.parse(prior.body.inputs.installation),lineage:JSON.parse(prior.body.inputs.lineage)};
   const prefix=`worker-v5/${prior.body.instanceId}/`;
   for(const r of Object.values(references))must(Object.keys(r).sort().join(',')==='key,sha256,versionId'&&
@@ -27,32 +29,34 @@ export async function makeTransferredAnchor({before,after,transferredAt}){
   must(references.installation.key===prefix+`installation/${B.platform.installationSha256}.json`&&
     references.installation.sha256===TRANSFERRED_CYCLE.installationObjectSha256&&references.lineage.key===J.lineageKey&&
     references.lineage.sha256===J.lineageSha256,'EXISTING_IMMUTABLE_LINEAGE');
-  const body={schema:'techlong/transferred-review-anchor/v6',before:normalizedState(before),after:state,transferredAt,references,
-    jobId:T.newJobId,oldJobId:T.oldJobId,priorReviewPlanSha256:prior.plan_sha,
+  const body={schema:profile?.anchorSchema??'techlong/transferred-review-anchor/v6',before:normalizedState(before),after:state,transferredAt,references,
+    jobId:target.newJobId,oldJobId:target.oldJobId,priorReviewPlanSha256:prior.plan_sha,
     priorReviewReusableForExecution:false,preparationIsNotApproval:true};
   return {...body,anchorSha256:await sha256Hex(body)};
 }
-export async function assertTransferredBaseline(anchor,current){
-  must(same(anchor,await makeTransferredAnchor(anchor)),'ANCHOR');
+export async function assertTransferredBaseline(anchor,current,profile){
+  must(same(anchor,await makeTransferredAnchor(anchor,profile)),'ANCHOR');
   must(same(normalizedState(current.state),anchor.after)&&current.newLedger&&
     Object.keys(current.newLedger).sort().join(',')==='approvals,attempts,plans'&&
     Object.values(current.newLedger).every(v=>Array.isArray(v)&&v.length===0),'LIVE_STATE_OR_NEW_LEDGER_CHANGED');
 }
-export async function assertTransferredReviewQuery(q,anchor,sourceCommit,now){
+export async function assertTransferredReviewQuery(q,anchor,sourceCommit,now,profile){
+  const target=profile?.target??T;
   must(q.text===ownerQueryV6('plan',{planSha256:'',actionSha256:'',plan:{riskSha256:''}}).text&&q.values.length===4,'EXACT_PUBLICATION');
   const v=await validatePlan(JSON.parse(q.values[3]),B.platform,now);
   must(v.planSha256===q.values[0]&&v.actionSha256===q.values[1]&&q.values[2]===B.platform.riskSha256&&v.plan.mode==='Review'&&
-    v.plan.sourceCommit===sourceCommit&&v.plan.jobId===T.newJobId&&v.plan.expiresAt-v.plan.preparedAt===TRANSFERRED_CYCLE.reviewMs&&
+    v.plan.sourceCommit===sourceCommit&&v.plan.jobId===target.newJobId&&v.plan.expiresAt-v.plan.preparedAt===TRANSFERRED_CYCLE.reviewMs&&
     v.plan.inputs.installation===canonicalJson(anchor.references.installation)&&v.plan.inputs.lineage===canonicalJson(anchor.references.lineage),'PLAN_BINDING');
   return v;
 }
-export function createTransferredReviewPublisher({anchor:rawAnchor,sourceCommit,lease:rawLease,ports,now=Date.now}){
-  const anchor=structuredClone(rawAnchor),lease=structuredClone(rawLease),scope={sourceCommit,jobId:T.newJobId};must(commit(sourceCommit),'SOURCE');let used=false;
+export function createTransferredReviewPublisher({anchor:rawAnchor,sourceCommit,lease:rawLease,ports,now=Date.now,profile}){
+  const target=profile?.target??T;
+  const anchor=structuredClone(rawAnchor),lease=structuredClone(rawLease),scope={sourceCommit,jobId:target.newJobId};must(commit(sourceCommit),'SOURCE');let used=false;
   return Object.freeze({async once(){
     must(!used,'MEMORY_ONCE');used=true;let phase='PRE_APPROVAL',claimAttempted=false,claimed=false,ownerSubmissions=0;
     const startedAt=now();
     try{
-      must(same(anchor,await makeTransferredAnchor(anchor)),'ANCHOR');
+      must(same(anchor,await makeTransferredAnchor(anchor,profile)),'ANCHOR');
       const guard=async()=>{
         await ports.assertApproved();await ports.assertSource();
         must(same(await ports.readLease(),lease),'LEASE_CHANGED');
@@ -60,19 +64,19 @@ export function createTransferredReviewPublisher({anchor:rawAnchor,sourceCommit,
         await assertHostedHandoffLease(lease,B.platform,scope,now());
         must(lease.expiresAt-now()>TRANSFERRED_CYCLE.minimumLeaseMs&&now()>=startedAt&&now()-startedAt<TRANSFERRED_CYCLE.operationMs,'PUBLICATION_WINDOW');
       };
-      await guard();await ports.assertTransferEvidence(anchor);await assertTransferredBaseline(anchor,await ports.readBaseline());await guard();
+      await guard();await ports.assertTransferEvidence(anchor);await assertTransferredBaseline(anchor,await ports.readBaseline(),profile);await guard();
       phase='PERMANENT_CLAIM';claimAttempted=true;await ports.claim();claimed=true;
       phase='RECONSTRUCT_AND_ADMIT';
       const publisher=createTrustedPublisherV6({release:B.platform,sourceCommit,frozenSourceCommit:B.publisher.frozenSourceCommit,now,
         ports:{readObject:async r=>{must(Object.values(anchor.references).some(v=>same(v,r)),'OBJECT_ALLOWLIST');return ports.readObject(r);},
           readHeldJob:async id=>{must(id===scope.jobId,'EXACT_JOB');return ports.readHeldJob(id);},
           async writeOwner(q){
-            must(ownerSubmissions===0,'WRITE_BUDGET');const v=await assertTransferredReviewQuery(q,anchor,sourceCommit,now());
-            await ports.record('proposed-review-plan',v);await assertTransferredBaseline(anchor,await ports.readBaseline());await guard();
+            must(ownerSubmissions===0,'WRITE_BUDGET');const v=await assertTransferredReviewQuery(q,anchor,sourceCommit,now(),profile);
+            await ports.record('proposed-review-plan',v);await assertTransferredBaseline(anchor,await ports.readBaseline(),profile);await guard();
             phase='OWNER_PLAN_SUBMISSION';ownerSubmissions++;await ports.writeOwner(q);
           }}});
-      const published=await publisher.publishReview({jobId:T.newJobId,installationReference:anchor.references.installation,lineageReference:anchor.references.lineage});
-      const result={outcome:'TRANSFERRED_REVIEW_PUBLISHED_REQUIRES_INDEPENDENT_INSPECT',jobId:T.newJobId,sourceCommit,
+      const published=await publisher.publishReview({jobId:target.newJobId,installationReference:anchor.references.installation,lineageReference:anchor.references.lineage});
+      const result={outcome:'TRANSFERRED_REVIEW_PUBLISHED_REQUIRES_INDEPENDENT_INSPECT',jobId:target.newJobId,sourceCommit,
         planSha256:published.planSha256,actionSha256:published.actionSha256,riskSha256:B.platform.riskSha256,
         expiresAt:published.plan.expiresAt,ownerSubmissions,conditionalLineagePuts:0,workflowDispatches:0,executionApproved:false,retryAllowed:false};
       await ports.record('result',result);return result;
