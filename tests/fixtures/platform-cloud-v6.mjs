@@ -6,8 +6,8 @@ import {sha256Hex,canonicalJson} from '../../lib/deployments/execution/hash.ts';
 import {validatePlan} from '../../lib/deployments/controller-v6/contract.ts';
 import {CLOUD_V6 as C,S,resultKeyV6} from '../../ops/platform-cloud-v6/contract.mjs';
 import {INSTALLED_BINDING_V6 as INSTALLED} from '../../lib/deployments/controller-v6/installed-binding.ts';
-export async function platformFixtureV6({installed=false}={}) {
-  const f=await cloudRootFixtureV5(),at=f.now,objects=new Map(),plans=new Map(),writes=[],calls=[];
+export async function platformFixtureV6({installed=false,now=Date.now()}={}) {
+  const f=await cloudRootFixtureV5(now),at=f.now,objects=new Map(),plans=new Map(),writes=[],calls=[];
   const sourceCommit='f'.repeat(40),frozenSourceCommit=installed?INSTALLED.publisher.frozenSourceCommit:'a'.repeat(40),release=installed?structuredClone(INSTALLED.platform):{state:'PUBLISHED',workflowId:'12345',actorId:S.candidateBotId,
     reusableCommit:'b'.repeat(40),closureSha256:'c'.repeat(64),identityProofSha256:'d'.repeat(64),installationSha256:C.installationSha256,riskSha256:'e'.repeat(64)};
   const binding={state:'PUBLISHED',sourceCommit:frozenSourceCommit,reusableCommit:release.reusableCommit,closureSha256:release.closureSha256,

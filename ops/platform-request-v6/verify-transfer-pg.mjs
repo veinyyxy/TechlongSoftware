@@ -17,6 +17,9 @@ import {wireCycleDatabase,verifyPublishedReview} from '../platform-review-v6/cyc
 import {makeTransferredAnchor,TRANSFERRED_CYCLE} from '../platform-review-v6/transferred-cycle.mjs';
 import {J} from '../platform-review-v6/followup.mjs';
 import {sqlContract,I} from '../platform-controller-review-v6/install.mjs';
+import {recoveryFixture} from '../../tests/fixtures/platform-recovery-v1.mjs';
+import {recoveryBasisCompiler} from '../platform-recovery-v1/basis.mjs';
+import {makeRecoveryRequestReview,createRecoveryRequestTransaction,verifyRecoveryRequestReadback} from '../platform-recovery-v1/request.mjs';
 assert.equal(process.env.GITHUB_ACTIONS,'true');
 const port=Number(process.env.PLATFORM_CONTROL_CI_PORT);assert.ok(Number.isInteger(port)&&port>1024&&port<65536);
 const base={host:'127.0.0.1',port,user:'postgres',password:'controller-ci-only-bootstrap',database:'postgres'},db='task_transfer_v6_ci';
@@ -94,6 +97,40 @@ try{
   await client.query("INSERT INTO public.deployment_tenant_resources VALUES($1,$2,'verified',NULL,$2,1,1)",[S.appInstanceId,S.deploymentId]);
   await client.query("INSERT INTO public.deployment_tenant_external_operations VALUES($1,1,1,'active','provision',$2,$3)",[S.appInstanceId,S.deploymentId,S.operationHash]);
   let before=await reset();
+  const recoveryChecks=[];
+  for(const scenario of ['success','insertFailure','lostCommitAck']){
+    const f=await recoveryFixture();
+    await client.query('TRUNCATE deployment_control_v6.dispatch_attempts,deployment_control_v6.approvals,deployment_control_v6.plans,public.deployment_jobs');
+    await client.query('UPDATE public.app_instance_deployments SET outputs=$1',[JSON.stringify(f.state.deployment.outputs)]);
+    await insertRows('public.deployment_jobs',f.state.jobs);
+    for(const name of ['plans','approvals','attempts'])await insertRows('deployment_control_v6.'+(name==='attempts'?'dispatch_attempts':name),f.state.ledger[name]);
+    const readRecovery=async c=>{
+      const s=await readState(c);s.ledger=(await c.query(`SELECT
+        (SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY plan_sha),'[]') FROM deployment_control_v6.plans p) AS plans,
+        (SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY plan_sha),'[]') FROM deployment_control_v6.approvals a) AS approvals,
+        (SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY plan_sha),'[]') FROM deployment_control_v6.dispatch_attempts a) AS attempts`)).rows[0];
+      s.deployment.admissionSnapshot={...structuredClone(f.state.deployment.admissionSnapshot),predecessorJob:s.jobs.find(j=>j.id===f.profile.oldJobId)};
+      return normalizedState(s);
+    };
+    const baseline=await readRecovery(client),profile={...f.profile,stateSha256:await sha256Hex(baseline)};
+    const basis=await recoveryBasisCompiler(profile)({...f.input,state:baseline}),review=await makeRecoveryRequestReview({basis,sourceCommit:f.sourceCommit,createdAt:f.at});
+    let commits=0,claims=0,inserts=0;
+    const adapter={query:async(...args)=>{
+      if(args[0].includes(') INSERT INTO public.deployment_jobs')){inserts++;if(scenario==='insertFailure')return client.query('SELECT 1/0');}
+      const r=await client.query(...args);if(args[0]==='COMMIT'){commits++;if(scenario==='lostCommitAck')throw Error('synthetic ACK loss');}return r;
+    }};
+    const result=await createRecoveryRequestTransaction({client:adapter,readState:readRecovery,assertApproved:async()=>{},claimPermanent:async()=>{claims++;}})
+      ({review,basis,approved:review.manifestSha256});
+    await second.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');const after=await readRecovery(second);await second.query('COMMIT');
+    assert.equal(claims,1);assert.equal(inserts,1);
+    if(scenario==='insertFailure'){assert.equal(commits,0);assert.deepEqual(after,baseline);}
+    else{assert.equal(commits,1);await verifyRecoveryRequestReadback(basis,after,result.at);
+      if(scenario==='lostCommitAck')assert.equal(result.outcome,'RECOVERY_REQUEST_COMMIT_UNKNOWN_REQUIRES_READBACK');else assert.equal(result.committed,true,JSON.stringify(result));}
+    recoveryChecks.push(scenario);
+  }
+  console.log(JSON.stringify({outcome:'PASSED_REAL_POSTGRESQL_RETIRED_RECOVERY_REQUEST',checks:recoveryChecks,
+    exactOriginalAdmissionSql:true,oldTaskUpdates:0,productionDatabaseTouched:false,awsCalls:0,workflowDispatches:0}));
+  before=await reset();
   await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');await client.query('SET LOCAL search_path=pg_catalog');
   const stablePresentation=await readState(client);await client.query('ROLLBACK');assert.deepEqual(stablePresentation.protection,before.protection);
   let r=await execute(before);assert.equal(r.committed,true,JSON.stringify(r));
