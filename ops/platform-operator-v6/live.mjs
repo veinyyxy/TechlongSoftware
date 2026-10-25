@@ -18,10 +18,13 @@ export async function boundedJson(response,max=256000){
   return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(parts)));
 }
 export function createInspectTransport(m,p){
-  let token,closed=false,ack,gets=0,heads=0,runs=0,keys=0,issues=0,posts=0,revokes=0,http=0,credentialLoads=0;
-  const cache=new Map(),allowed=new Set([m.input.resultReference,...['installation','manifest','lineage'].filter(k=>m.input.plan.inputs[k]!=='')
+  const followup=m.schema==='techlong/platform-operator-followup-review/v1'&&m.policy.waitForRunOnce===true;
+  let token,closed=false,ack,gets=0,heads=0,executionHeads=0,runs=0,keys=0,issues=0,posts=0,revokes=0,http=0,credentialLoads=0;
+  let originalReference=m.input.resultReference??null;
+  const cache=new Map(),allowed=new Set([...(originalReference?[originalReference]:[]),...['installation','manifest','lineage'].filter(k=>m.input.plan.inputs[k]!=='')
     .map(k=>JSON.parse(m.input.plan.inputs[k]))].map(canonicalJson));
   const input=m.input,sourceCommit=input.plan.sourceCommit,job=input.plan.jobId,mv=input.plan.inputs.manifestSha;
+  const reserve=()=>{if(followup)must(p.now()+m.policy.minInspectReserveMs<Math.min(p.deadline,m.expiresAt,input.workloadExpiresAt),'FOLLOWUP_INSUFFICIENT_WINDOW');};
   const guard=async()=>{must(!closed,'CLOSED');await p.guard();};
   const readRun=async id=>{
     await guard();must(token&&(id===input.runId||id===ack?.runId)&&runs<LIMITS.maxRunGets,'RUN_BUDGET_OR_SCOPE');runs++;
@@ -36,8 +39,8 @@ export function createInspectTransport(m,p){
     must(gets<LIMITS.maxObjects,'OBJECT_BUDGET');gets++;const r=await p.getObject(ref);
     must(r.versionId===ref.versionId&&r.encryption==='AES256'&&r.contentLength>0&&r.contentLength<=1000000,'OBJECT_METADATA');
     assertEvidenceSafeV5(r.value);must(await sha256Hex(r.value)===ref.sha256,'OBJECT_HASH');
-    if(ref.key===input.resultReference.key||ref.key===resultKeyV6(job,mv,ack?.runId??input.runId)){
-      const original=ref.key===input.resultReference.key,id=original?input.runId:ack.runId,mode=original?'RunOnce':'Inspect',v=r.value;
+    if(ref.key===originalReference?.key||ref.key===resultKeyV6(job,mv,ack?.runId??input.runId)){
+      const original=ref.key===originalReference?.key,id=original?input.runId:ack.runId,mode=original?'RunOnce':'Inspect',v=r.value;
       must(v.mode===mode&&v.jobId===job&&v.manifestSha256===mv&&v.run?.runId===id&&v.run.commitSha===sourceCommit,'RESULT_BINDING');
       assertReferenceV6(v.cloudReportReference,evidenceKeyV5(original?'run.json':'inspect.json',{jobId:job,manifestSha256:mv,run:v.run}));
       allowed.add(canonicalJson(v.cloudReportReference));
@@ -56,13 +59,22 @@ export function createInspectTransport(m,p){
     if(method!=='DELETE')await guard();must(http++<10,'APP_HTTP_BUDGET');
     if(method==='POST'&&u.pathname===`/app/installations/${S.installationId}/access_tokens`)must(issues++===0,'TOKEN_ONCE');
     else if(method==='POST'){
-      must(u.pathname===`/repos/${S.repository}/actions/workflows/${S.workflowFile}/dispatches`&&posts++===0,'DISPATCH_ONCE');
+      must(u.pathname===`/repos/${S.repository}/actions/workflows/${S.workflowFile}/dispatches`&&posts===0,'DISPATCH_ONCE');
+      reserve();
       const body=JSON.parse(options.body);must(body.ref==='main'&&body.return_run_details===true&&same(body.inputs,dispatchPlan?.inputs)&&body.inputs.mode==='Inspect','INSPECT_ONLY');
+      posts++;
     }else if(method==='DELETE')must(u.pathname==='/installation/token'&&revokes++===0,'REVOKE_ONCE');
     else must(method==='GET'&&appGets.has(u.pathname),'APP_GET_SCOPE');
     return p.fetch(url,options);
   }});
   let dispatchPlan;
+  async function resultHead(id,name){
+    const key=resultKeyV6(job,mv,id),r=await p.headObject(key);
+    must(typeof r.versionId==='string'&&r.encryption==='AES256'&&r.contentLength>0&&r.contentLength<=1000000&&
+      /^[A-Za-z0-9+/]{43}=$/.test(r.checksumSHA256),'RESULT_HEAD');
+    const ref={key,versionId:r.versionId,sha256:Buffer.from(r.checksumSHA256,'base64').toString('hex')};assertReferenceV6(ref,key);
+    allowed.add(canonicalJson(ref));await p.record(name,ref);return ref;
+  }
   return {
     deadline:p.deadline,guard,record:p.record,readRun,readObject,knownAck:()=>structuredClone(ack??null),
     async preflight(){await guard();await p.source.credentials();must(same(await p.keyMetadata(input.keyPath),m.key),'KEY_DRIFT');},
@@ -72,31 +84,31 @@ export function createInspectTransport(m,p){
       await guard();must(plan.mode==='Inspect'&&plan.sourceCommit===sourceCommit&&plan.jobId===job&&plan.inputs.manifestSha===mv&&
         plan.predecessor?.runId===input.runId&&posts===0&&!dispatchPlan,'EXACT_INSPECT');
       const expected=await validatePlan(plan,B.platform,p.now());dispatchPlan=structuredClone(plan);
-      return controller.dispatch(dispatchPlan,async()=>{await guard();must(same(expected,await validatePlan(dispatchPlan,B.platform,p.now())),'FINAL_PLAN');},
+      return controller.dispatch(dispatchPlan,async()=>{await guard();reserve();must(same(expected,await validatePlan(dispatchPlan,B.platform,p.now())),'FINAL_PLAN');},
         async value=>{ack=structuredClone(value);await p.record('dispatch-api-ack',ack);});
     },
     async discoverResult(id){
-      await guard();must(id===ack?.runId&&heads++===0,'RESULT_HEAD_ONCE');const key=resultKeyV6(job,mv,id),r=await p.headObject(key);
-      must(typeof r.versionId==='string'&&r.encryption==='AES256'&&r.contentLength>0&&r.contentLength<=1000000&&
-        /^[A-Za-z0-9+/]{43}=$/.test(r.checksumSHA256),'RESULT_HEAD');
-      const ref={key,versionId:r.versionId,sha256:Buffer.from(r.checksumSHA256,'base64').toString('hex')};assertReferenceV6(ref,key);
-      allowed.add(canonicalJson(ref));await p.record('inspect-result-reference',ref);return ref;
+      await guard();must(id===ack?.runId&&heads++===0,'RESULT_HEAD_ONCE');return resultHead(id,'inspect-result-reference');
+    },
+    async discoverExecutionResult(id){
+      await guard();must(followup&&id===input.runId&&!originalReference&&executionHeads++===0,'EXECUTION_HEAD_ONCE_OR_SCOPE');
+      originalReference=await resultHead(id,'execution-result-reference');return structuredClone(originalReference);
     },
     async bundle(plan,runId,run,resultReference){return {schema:'techlong/platform-operator-bundle/v6',plan,runId,run,resultReference,objects:[...cache.values()],observedAt:p.now()};},
     async close(){
       if(closed)return;closed=true;token=undefined;await p.source.close();await p.dispose();
-      await p.record('capability-counts',{...p.source.counts(),s3VersionedGets:gets,s3LatestHeads:heads,githubRunGets:runs,
+      await p.record('capability-counts',{...p.source.counts(),s3VersionedGets:gets,s3LatestHeads:heads+executionHeads,executionResultHeads:executionHeads,githubRunGets:runs,
         keyReads:keys,githubReadCredentialLoads:credentialLoads,appTokenIssues:issues,inspectDispatches:posts,appTokenRevocations:revokes,
         localSqlConnections:0,localSecretValueReads:0,platformLedgerWrites:0});
     },
   };
 }
-export async function livePorts(m,output,notify){
-  const now=Date.now,deadline=now()+LIMITS.runMs,signal=AbortSignal.timeout(LIMITS.runMs);
+export async function livePorts(m,output,notify,{verify=verifyReview}={}){
+  const now=Date.now,deadline=Math.min(now()+LIMITS.runMs,m.expiresAt),signal=AbortSignal.timeout(LIMITS.runMs);
   const record=async(name,value)=>{await writeOnce(path.join(output,name+'.json'),value);
-    if(name==='awaiting-human-environment')notify({stage:name,...value,deadlineUtc:new Date(value.deadline).toISOString(),
+    if(['awaiting-human-environment','awaiting-runonce-terminal'].includes(name))notify({stage:name,...value,deadlineUtc:new Date(value.deadline).toISOString(),
       deadlineLocal:new Intl.DateTimeFormat('en-CA',{timeZone:'America/Winnipeg',dateStyle:'full',timeStyle:'long'}).format(value.deadline)});};
-  const guard=async()=>{must(now()<deadline,'ACTIVE_WINDOW_EXPIRED');signal.throwIfAborted();await verifyReview(m,m.manifestSha256,now());
+  const guard=async()=>{must(now()<deadline,'ACTIVE_WINDOW_EXPIRED');signal.throwIfAborted();await verify(m,m.manifestSha256,now());
     await cleanSource(m.operatorSourceCommit);await evidenceRoot(m.input.evidenceRoot);};
   // Only reached by inspect-once after approval, source/pin checks and explicit human readiness.
   const req=createRequire(path.join(ROOT,'package.json')),{fromLoginCredentials}=req('@aws-sdk/credential-provider-login'),

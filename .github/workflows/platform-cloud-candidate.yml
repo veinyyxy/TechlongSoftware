@@ -8,6 +8,8 @@ on:
       - 'ops/platform-operations-v6/**'
       - 'ops/platform-operator-v6/**'
       - 'tests/platform-operator-v6.test.mjs'
+      - 'tests/platform-operator-followup-v6.test.mjs'
+      - 'docs/aws-auto-deployment-w9c-immediate-inspect.md'
       - 'tests/platform-operations-*v6.test.mjs'
       - 'tests/fixtures/platform-operations-v6.mjs'
       - 'tests/platform-cloud*v6*'
@@ -78,6 +80,8 @@ on:
       - 'ops/platform-operations-v6/**'
       - 'ops/platform-operator-v6/**'
       - 'tests/platform-operator-v6.test.mjs'
+      - 'tests/platform-operator-followup-v6.test.mjs'
+      - 'docs/aws-auto-deployment-w9c-immediate-inspect.md'
       - 'tests/platform-operations-*v6.test.mjs'
       - 'tests/fixtures/platform-operations-v6.mjs'
       - 'tests/platform-cloud*v6*'
@@ -193,8 +197,8 @@ jobs:
           node node_modules/eslint/bin/eslint.js ops/platform-review-v6/cycle-*.mjs tests/platform-cycle-v6.test.mjs tests/platform-cycle-transport-v6.test.mjs tests/platform-cycle-next-v6.test.mjs tests/platform-cycle-launch-v6.test.mjs tests/fixtures/platform-cycle-v6.mjs --max-warnings 0
       - name: Portable reviewed operator CLI with synthetic network and temporary files only
         run: |
-          node --experimental-strip-types --test tests/platform-operator-v6.test.mjs
-          node node_modules/eslint/bin/eslint.js ops/platform-operator-v6/ tests/platform-operator-v6.test.mjs --max-warnings 0
+          node --experimental-strip-types --test tests/platform-operator-v6.test.mjs tests/platform-operator-followup-v6.test.mjs
+          node node_modules/eslint/bin/eslint.js ops/platform-operator-v6/ tests/platform-operator-v6.test.mjs tests/platform-operator-followup-v6.test.mjs --max-warnings 0
       - name: Existing hosted window update and image-execution source compatibility, synthetic only
         run: |
           node --experimental-strip-types --test tests/platform-hosted-window-v6.test.mjs

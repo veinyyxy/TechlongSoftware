@@ -97,6 +97,7 @@ export async function sourcePins(){
     }
   }
   for(const file of ['ops/platform-operator-v6/cli.mjs','ops/platform-operator-v6/key-metadata.ps1',
-    'tests/platform-operator-v6.test.mjs','docs/aws-auto-deployment-platform-w6y-operator-entry.md',...closure.pins.map(p=>p.file)])await visit(file);
+    'tests/platform-operator-v6.test.mjs','tests/platform-operator-followup-v6.test.mjs',
+    'docs/aws-auto-deployment-w9c-immediate-inspect.md','docs/aws-auto-deployment-platform-w6y-operator-entry.md',...closure.pins.map(p=>p.file)])await visit(file);
   return [...pins.values()].sort((a,b)=>a.file.localeCompare(b.file));
 }

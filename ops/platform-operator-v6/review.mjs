@@ -20,8 +20,7 @@ export async function validateInput(raw){
   for(const p of [v.keyPath,v.evidenceRoot])must(typeof p==='string'&&path.isAbsolute(p)&&!/[\r\n\0]/.test(p)&&p.length<2048,'ABSOLUTE_PATH');
   return v;
 }
-export async function makeReview({input,operatorSourceCommit,pins,key,createdAt}){
-  input=await validateInput(input);
+export function validateReviewMetadata({operatorSourceCommit,pins,key,createdAt}){
   must(commit(operatorSourceCommit)&&Number.isSafeInteger(createdAt)&&createdAt>0&&Array.isArray(pins)&&pins.length>=20&&
     new Set(pins.map(p=>p.file)).size===pins.length&&pins.every(p=>{
       exactKeys(p,['file','sha256']);return typeof p.file==='string'&&!path.isAbsolute(p.file)&&!p.file.includes('..')&&digest(p.sha256);
@@ -29,6 +28,9 @@ export async function makeReview({input,operatorSourceCommit,pins,key,createdAt}
   exactKeys(key,['length','mtimeMs','ctimeMs','identity','protectionSha256','contentRead']);
   must(key.contentRead===false&&key.length>0&&key.length<=16000&&Number.isFinite(key.mtimeMs)&&Number.isFinite(key.ctimeMs)&&
     typeof key.identity==='string'&&digest(key.protectionSha256),'KEY_METADATA');
+}
+export async function makeReview({input,operatorSourceCommit,pins,key,createdAt}){
+  input=await validateInput(input);validateReviewMetadata({operatorSourceCommit,pins,key,createdAt});
   const body={schema:'techlong/platform-operator-inspect-review/v6',input,operatorSourceCommit,pins,key,binding:B,
     createdAt,expiresAt:createdAt+LIMITS.validMs,lastStartAt:createdAt+LIMITS.validMs-LIMITS.runMs,
     effects:{inspectDispatchesMax:1,appKeyReadsMax:1,githubReadCredentialLoadsMax:1,appInstallationTokensMax:1,appTokenRevocationsMax:1,
