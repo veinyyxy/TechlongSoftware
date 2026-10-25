@@ -32,12 +32,13 @@ export function verifyCurrentHosting({rawMetadata:raw,extra,iam},parent,now=Date
     hostingExpiresAt:p.hostingExpiresAt,templateSha256:hash(canonical(typeof raw.template.TemplateBody==='string'?JSON.parse(raw.template.TemplateBody):raw.template.TemplateBody)),
     tags:s.Tags??[],stackPolicy:null,imageDigest:H.imageDigest,healthy:true,iamLayoutUnchanged:true,notNewWindow:true};
 }
-export async function currentCloudInventory(){
+export async function currentCloudInventory({maxMetadata=220}={}){
+  must(Number.isSafeInteger(maxMetadata)&&maxMetadata>0&&maxMetadata<=220,'READ_BUDGET');
   const credentials=fromLoginCredentials({profile:P.profile,ignoreCache:true}),cfg={region:P.region,credentials,maxAttempts:1,ignoreConfiguredEndpointUrls:true,
     requestHandler:new NodeHttpHandler({httpsAgent:new Agent({family:4,keepAlive:false}),connectionTimeout:5000,socketTimeout:20000})};
   const sts=new STSClient({...cfg,endpoint:'https://sts.ca-central-1.amazonaws.com'}),iam=new IAMClient({...cfg,region:'us-east-1',endpoint:'https://iam.amazonaws.com'});
   const supply=supplyCloud(),counts={metadata:0,writes:0,privateReads:0};let used=false;
-  const tick=()=>must(++counts.metadata+supply.counts.metadata<=220,'READ_BUDGET');
+  const tick=()=>must(++counts.metadata+supply.counts.metadata<=maxMetadata,'READ_BUDGET');
   const cli=(service,op,args=[])=>{must(CURRENT_READS[service]?.includes(op),'READ_ALLOWLIST');tick();
     return readMetadataJson(service,op,()=>execFileSync('aws.exe',[service,op,...args,'--profile',P.profile,'--region',service==='route53'?'us-east-1':P.region,
       '--endpoint-url','https://'+endpoints[service],'--output','json','--no-cli-pager','--no-paginate'],{encoding:'utf8',windowsHide:true,timeout:30000,maxBuffer:3000000,
@@ -57,7 +58,10 @@ export async function currentCloudInventory(){
     must(!v.running.nextToken&&v.running.taskArns?.length===1,'RUNNING_COUNT');v.tasks=cli('ecs','describe-tasks',['--cluster',P.cluster,'--tasks',v.running.taskArns[0]]);
     v.targets=cli('elbv2','describe-target-health',['--target-group-arn',ids.TargetGroup]);v.groups=cli('ec2','describe-security-groups',['--group-ids',ids.TaskSecurityGroup,ids.AlbSecurityGroup]);
     v.logs=cli('logs','describe-log-groups',['--log-group-name-prefix',P.logGroup,'--limit','50']);
-    v.dns=cli('route53','list-resource-record-sets',['--hosted-zone-id',P.hostedZone,'--start-record-name',P.domain,'--start-record-type','A']);v.supply=await supply.snapshot();
+    v.dns=cli('route53','list-resource-record-sets',['--hosted-zone-id',P.hostedZone,'--start-record-name',P.domain,'--start-record-type','A']);
+    // The unchanged fixed supply snapshot has 22 metadata submissions, including
+    // all three Secret metadata triplets. Reserve them before its parallel reads.
+    must(counts.metadata+supply.counts.metadata+22<=maxMetadata,'READ_BUDGET');v.supply=await supply.snapshot();
     const p=cli('cloudformation','get-stack-policy',['--stack-name',K.stackId]),c=cli('cloudformation','list-change-sets',['--stack-name',K.stackId]);must(!c.NextToken,'CHANGE_SET_PAGE');
     const definitions={};for(const status of ['ACTIVE','INACTIVE','DELETE_IN_PROGRESS']){const r=cli('ecs','list-task-definitions',['--family-prefix',P.family,'--status',status,'--max-results','100']);must(!r.nextToken,'DEFINITION_PAGE');definitions[status]=r.taskDefinitionArns??[];}
     const capsule=JSON.parse(await readFile(new URL('../cloud-worker/material/public-capsule-v5.json',import.meta.url),'utf8')),context=await prepareCloudContextV5(capsule);

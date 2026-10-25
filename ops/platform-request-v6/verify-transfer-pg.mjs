@@ -4,11 +4,15 @@ import pg from 'pg';
 import {readFile} from 'node:fs/promises';
 import {INITIALIZED_PLATFORM_SCOPE as S} from '../../lib/deployments/initialized-platform-request-v1.ts';
 import {REQUEST_ADMIN_V6 as adminId} from '../../lib/deployments/reviewed-request-window-v6.ts';
-import {sha256Hex} from '../../lib/deployments/execution/hash.ts';
+import {sha256Hex,canonicalJson} from '../../lib/deployments/execution/hash.ts';
+import {INSTALLED_BINDING_V6 as B} from '../../lib/deployments/controller-v6/installed-binding.ts';
+import {validatePlan} from '../../lib/deployments/controller-v6/contract.ts';
+import {ownerQueryV6} from '../platform-cloud-v6/publisher.mjs';
 import {transferFixture} from '../../tests/fixtures/platform-task-transfer-v6.mjs';
-import {TRANSFER as T,createTransferTransaction,verifyTransferReadback} from './transfer.mjs';
+import {TRANSFER as T,createTransferTransaction,verifyTransferReadback,normalizedState} from './transfer.mjs';
 import {readTransferState} from './transfer-state.mjs';
 import {readTransferredSnapshot} from '../platform-review-v6/current-database.mjs';
+import {wireCycleDatabase,verifyPublishedReview} from '../platform-review-v6/cycle-database.mjs';
 import {sqlContract,I} from '../platform-controller-review-v6/install.mjs';
 assert.equal(process.env.GITHUB_ACTIONS,'true');
 const port=Number(process.env.PLATFORM_CONTROL_CI_PORT);assert.ok(Number.isInteger(port)&&port>1024&&port<65536);
@@ -169,6 +173,32 @@ try{
   console.log(JSON.stringify({outcome:'PASSED_REAL_POSTGRESQL_TRANSFER_PRODUCTION_READER',checks:['nine_installed_function_bodies_and_role_isolation',
     'complete_business_admission_snapshot','actual_atomic_core_with_production_reader','separate_readonly_connection_verified',
     'unexpected_execute_privilege_rejected','unexpected_job_trigger_rejected'],productionDatabaseTouched:false,awsCalls:0}));
+  const source='f'.repeat(40),at=Date.now(),body=structuredClone(prepared.state.ledger.plans[0].body);
+  Object.assign(body,{jobId:T.newJobId,sourceCommit:source,preparedAt:at,expiresAt:at+7200000});body.inputs.job=T.newJobId;
+  body.inputs.installation=canonicalJson(JSON.parse(body.inputs.installation));
+  body.inputs.lineage=canonicalJson({key:`worker-v5/${S.appInstanceId}/lineage/synthetic-ci.json`,sha256:'2'.repeat(64),versionId:'synthetic-ci'});
+  const cycleManifest={binding:B,sourceCommit:source,anchor:{after:normalizedState(prepared.state),references:{installation:JSON.parse(body.inputs.installation),lineage:JSON.parse(body.inputs.lineage)}}};
+  const ports=await wireCycleDatabase({writer:client,reader:second,contract,expected:identity,manifest:cycleManifest,guard:async()=>{},assertClaim:async()=>{}});
+  const review=await validatePlan(body,B.platform,at);await ports.publish(ownerQueryV6('plan',review));
+  const independent=await ports.snapshot();await verifyPublishedReview(independent,await ports.loadPlan(review.planSha256),cycleManifest);
+  await client.query('SELECT deployment_control_v6.begin_dispatch($1,$2,$3,$4)',[review.planSha256,review.actionSha256,B.platform.riskSha256,adminId]);
+  await client.query('SELECT deployment_control_v6.acknowledge($1,$2)',[review.planSha256,'123456781']);
+  await ports.observe(review.planSha256,{runId:'123456781',status:'completed',conclusion:'success',url:'https://github.com/veinyyxy/TechlongSoftware/actions/runs/123456781'});
+  const proofQuery=ownerQueryV6('proof',{planSha256:review.planSha256,proofSha256:'8'.repeat(64)});await ports.advance(proofQuery);
+  const next=structuredClone(body);next.mode='RunOnce';next.inputs.mode='RunOnce';next.preparedAt=Date.now();next.expiresAt=next.preparedAt+300000;
+  next.predecessor={planSha256:review.planSha256,runId:'123456781',proofSha256:'8'.repeat(64)};
+  next.inputs.manifest=canonicalJson({key:`worker-v5/${S.appInstanceId}/${T.newJobId}/${'7'.repeat(64)}/manifest.json`,sha256:'6'.repeat(64),versionId:'synthetic-ci'});
+  next.inputs.manifestSha='7'.repeat(64);const successor=await validatePlan(next,B.platform,next.preparedAt);await ports.advance(ownerQueryV6('plan',successor));
+  assert.equal((await ports.loadPlan(review.planSha256)).attempt.proofSha256,'8'.repeat(64));
+  assert.equal((await ports.loadPlan(successor.planSha256)).attempt,null);
+  await assert.rejects(ports.publish(ownerQueryV6('plan',review)));await assert.rejects(ports.advance(proofQuery));
+  const readOnly=await wireCycleDatabase({reader:second,contract,expected:identity,manifest:cycleManifest,guard:async()=>{},assertClaim:async()=>{},inspect:true});
+  await assert.rejects(readOnly.publish(ownerQueryV6('plan',review)),/INSPECT_READONLY/);
+  assert.deepEqual({plans:ports.counts().plans,proofs:ports.counts().proofs,observations:ports.counts().observations},{plans:2,proofs:1,observations:1});
+  await readOnly.close();await ports.close();
+  console.log(JSON.stringify({outcome:'PASSED_REAL_POSTGRESQL_HOSTED_CYCLE_WRITE_PORTS',checks:['exact_review_publication',
+    'separate_read_client_publication_readback','simulated_manual_begin_ack_without_GitHub','one_exact_observation','one_proof_and_bound_runonce',
+    'write_budget_and_duplicate_proof_rejected','inspect_cannot_publish'],productionDatabaseTouched:false,awsCalls:0,workflowDispatches:0}));
 }finally{
   if(second)await second.end();if(client)await client.end();
   if(created)await control.query('DROP DATABASE '+db);if(roleCreated)await control.query('DROP ROLE techlong_deployment_controller_v6');await control.end();
