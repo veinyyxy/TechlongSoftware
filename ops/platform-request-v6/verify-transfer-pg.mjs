@@ -11,6 +11,7 @@ import {ownerQueryV6} from '../platform-cloud-v6/publisher.mjs';
 import {transferFixture} from '../../tests/fixtures/platform-task-transfer-v6.mjs';
 import {TRANSFER as T,createTransferTransaction,verifyTransferReadback,normalizedState} from './transfer.mjs';
 import {readTransferState} from './transfer-state.mjs';
+import {NEXT,makeNextTransferProfile} from './transfer-next.mjs';
 import {readTransferredSnapshot} from '../platform-review-v6/current-database.mjs';
 import {wireCycleDatabase,verifyPublishedReview} from '../platform-review-v6/cycle-database.mjs';
 import {sqlContract,I} from '../platform-controller-review-v6/install.mjs';
@@ -153,7 +154,7 @@ try{
   const productionTx=createTransferTransaction({client,readState:trusted});r=await productionTx({baseline:before,assertApproved:async()=>{}});
   assert.equal(r.committed,true);await second.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
   await verifyTransferReadback(before,await trusted(second),r.at);await second.query('COMMIT');
-  const prepared=await readTransferredSnapshot(second,{contract,expected:identity});
+  let prepared=await readTransferredSnapshot(second,{contract,expected:identity});
   assert.deepEqual(prepared.newLedger,{plans:[],approvals:[],attempts:[]});
   assert.equal(prepared.state.jobs.find(j=>j.id===T.oldJobId).status,'canceled');
   assert.equal(prepared.state.jobs.find(j=>j.id===T.newJobId).status,'pending');
@@ -173,6 +174,47 @@ try{
   console.log(JSON.stringify({outcome:'PASSED_REAL_POSTGRESQL_TRANSFER_PRODUCTION_READER',checks:['nine_installed_function_bodies_and_role_isolation',
     'complete_business_admission_snapshot','actual_atomic_core_with_production_reader','separate_readonly_connection_verified',
     'unexpected_execute_privilege_rejected','unexpected_job_trigger_rejected'],productionDatabaseTouched:false,awsCalls:0}));
+  // W8y executes the SAME SQL/reader, with two historical ledger scopes. CI
+  // identity/facts are explicit code capabilities, absent from production flags.
+  const successorChecks=[];
+  const nextReader=c=>readTransferState(c,{contract,expected:identity,ledgerJobIds:[T.oldJobId,NEXT.oldJobId],candidateJobId:NEXT.newJobId});
+  async function resetSuccessor(){
+    await reset();const legacyBefore=await trusted(client);
+    const oldTx=createTransferTransaction({client,readState:trusted});assert.equal((await oldTx({baseline:legacyBefore,assertApproved:async()=>{}})).committed,true);
+    const at=Date.now(),body=structuredClone(legacyBefore.ledger.plans[0].body);
+    Object.assign(body,{jobId:NEXT.oldJobId,sourceCommit:NEXT.oldSource,preparedAt:at-7200000,expiresAt:at-3600000});body.inputs.job=NEXT.oldJobId;
+    const v=await validatePlan(body,B.platform,body.preparedAt);
+    await insertRows('deployment_control_v6.plans',[{plan_sha:v.planSha256,action_sha:v.actionSha256,risk_sha:body.riskSha256,job_id:NEXT.oldJobId,mode:'Review',body,
+      expires_at:new Date(body.expiresAt).toISOString(),created_at:new Date(body.preparedAt).toISOString()}]);
+    await insertRows('deployment_control_v6.approvals',[{plan_sha:v.planSha256,admin_id:adminId,approved_at:new Date(at-3500000).toISOString()}]);
+    await insertRows('deployment_control_v6.dispatch_attempts',[{plan_sha:v.planSha256,job_id:NEXT.oldJobId,mode:'Review',state:'ACKNOWLEDGED',run_id:NEXT.oldReviewRunId,
+      run_status:null,conclusion:null,proof_sha:null,started_at:new Date(at-3500000).toISOString(),observed_at:null}]);
+    const baseline=normalizedState(await nextReader(client)),profile=makeNextTransferProfile({factsAt:at-1000,databaseCheckedAt:at-500,jobCount:baseline.jobs.length,
+      baselineSha256:await sha256Hex(baseline),ledgerSha256:await sha256Hex(baseline.ledger),protection:baseline.protection});
+    assert.deepEqual(Object.values(baseline.ledger).map(v=>v.length),[4,2,2]);return {baseline,profile};
+  }
+  for(const scenario of ['success','insertFailure','controllerRace','lostCommitAck']){
+    const {baseline,profile}=await resetSuccessor();let commits=0;
+    const adapter={query:async(...args)=>{
+      if(scenario==='insertFailure'&&args[0].includes(') INSERT INTO public.deployment_jobs'))return client.query('SELECT 1/0');
+      if(args[0]==='COMMIT'){commits++;const result=await client.query(...args);if(scenario==='lostCommitAck')throw Error('synthetic ACK loss');return result;}
+      return client.query(...args);}};
+    const tx=createTransferTransaction({client:adapter,readState:nextReader,profile,record:async()=>{
+      if(scenario==='controllerRace')await assert.rejects(second.query('UPDATE deployment_control_v6.dispatch_attempts SET observed_at=clock_timestamp()'),e=>e.code==='55P03');
+    }});
+    const result=await tx({baseline,assertApproved:async()=>{}});
+    await second.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');const observed=await nextReader(second);await second.query('COMMIT');
+    if(scenario==='insertFailure'){assert.equal(result.phase,'INSERT');assert.equal(commits,0);assert.deepEqual(normalizedState(observed),baseline);}
+    else{await profile.verifyReadback(baseline,observed,result.at);assert.equal(commits,1);
+      if(scenario==='lostCommitAck')assert.equal(result.outcome,'TASK_TRANSFER_COMMIT_UNKNOWN_REQUIRES_READBACK');else assert.equal(result.committed,true);}
+    successorChecks.push(scenario);
+  }
+  successorChecks.push('both_generations_full_ledger_read_and_preserved','same_owner_admission_and_always_guard');
+  console.log(JSON.stringify({outcome:'PASSED_REAL_POSTGRESQL_HELD_SUCCESSOR',checks:successorChecks,productionDatabaseTouched:false,awsCalls:0,workflowDispatches:0}));
+  // Restore the original one-generation fixture for the existing cycle proofs.
+  await reset();before=await trusted(client);r=await createTransferTransaction({client,readState:trusted})({baseline:before,assertApproved:async()=>{}});
+  assert.equal(r.committed,true);
+  prepared=await readTransferredSnapshot(second,{contract,expected:identity});
   const source='f'.repeat(40),at=Date.now(),body=structuredClone(prepared.state.ledger.plans[0].body);
   Object.assign(body,{jobId:T.newJobId,sourceCommit:source,preparedAt:at,expiresAt:at+7200000});body.inputs.job=T.newJobId;
   body.inputs.installation=canonicalJson(JSON.parse(body.inputs.installation));

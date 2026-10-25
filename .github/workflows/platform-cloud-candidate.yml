@@ -63,6 +63,8 @@ on:
       - 'tests/platform-request-followup-v6.test.mjs'
       - 'tests/platform-task-transfer-v6.test.mjs'
       - 'tests/platform-task-transfer-entry-v6.test.mjs'
+      - 'tests/platform-task-transfer-next-v6.test.mjs'
+      - 'tests/fixtures/platform-task-transfer-next-v6.mjs'
       - 'tests/fixtures/platform-task-transfer-v6.mjs'
       - 'scripts/ci/verify-platform-request-readback-v6.mjs'
       - 'components/admin/DeploymentControlPanel.tsx'
@@ -129,6 +131,8 @@ on:
       - 'tests/platform-request-followup-v6.test.mjs'
       - 'tests/platform-task-transfer-v6.test.mjs'
       - 'tests/platform-task-transfer-entry-v6.test.mjs'
+      - 'tests/platform-task-transfer-next-v6.test.mjs'
+      - 'tests/fixtures/platform-task-transfer-next-v6.mjs'
       - 'tests/fixtures/platform-task-transfer-v6.mjs'
       - 'scripts/ci/verify-platform-request-readback-v6.mjs'
       - 'components/admin/DeploymentControlPanel.tsx'
@@ -197,8 +201,8 @@ jobs:
           node node_modules/eslint/bin/eslint.js tests/platform-review-refresh-v6.test.mjs tests/fixtures/platform-review-refresh-v6.mjs scripts/ci/verify-platform-review-refresh-pg-v6.mjs --max-warnings 0
       - name: Atomic held-task transfer with synthetic capabilities only
         run: |
-          node --experimental-strip-types --test tests/platform-task-transfer-v6.test.mjs tests/platform-task-transfer-entry-v6.test.mjs
-          node node_modules/eslint/bin/eslint.js ops/platform-request-v6/transfer*.mjs ops/platform-request-v6/verify-transfer-pg.mjs tests/platform-task-transfer-v6.test.mjs tests/platform-task-transfer-entry-v6.test.mjs tests/fixtures/platform-task-transfer-v6.mjs --max-warnings 0
+          node --experimental-strip-types --test tests/platform-task-transfer-v6.test.mjs tests/platform-task-transfer-entry-v6.test.mjs tests/platform-task-transfer-next-v6.test.mjs
+          node node_modules/eslint/bin/eslint.js ops/platform-request-v6/transfer*.mjs ops/platform-request-v6/verify-transfer-pg.mjs tests/platform-task-transfer-v6.test.mjs tests/platform-task-transfer-entry-v6.test.mjs tests/platform-task-transfer-next-v6.test.mjs tests/fixtures/platform-task-transfer-v6.mjs tests/fixtures/platform-task-transfer-next-v6.mjs --max-warnings 0
       - name: Exact SQL and actual publisher queries on disposable PostgreSQL
         run: |
           node --experimental-strip-types scripts/ci/verify-platform-controller-pg-v6.mjs

@@ -38,18 +38,20 @@ export function assertAdmissionSnapshot(d,at){
   must(s.admin.id===ADMIN&&s.admin.status==='active'&&s.admin.platformAdmin===1&&s.admin.email==='veinyang@gmail.com'&&
     s.predecessorJob.status==='succeeded'&&['lease_token','lease_owner','lease_expires_at'].every(k=>s.predecessorJob[k]===null),'ADMIN_OR_PROOF');
 }
-export async function readTransferState(client,{contract,expected=DATABASE_V6,now=Date.now}={}){
+export async function readTransferState(client,{contract,expected=DATABASE_V6,now=Date.now,ledgerJobIds,candidateJobId=T.newJobId}={}){
   must(contract?.functions?.length===9,'CONTRACT');
+  must(!ledgerJobIds||ledgerJobIds.length===2&&new Set(ledgerJobIds).size===2&&ledgerJobIds.every(v=>/^job_[a-f0-9]{24}$/.test(v)),'LEDGER_SCOPE');
+  must(/^job_[a-f0-9]{24}$/.test(candidateJobId),'CANDIDATE');
   const c=(await client.query(CATALOG_SQL)).rows[0];await assertControlLayout(c,contract,expected);
   const rows=(await client.query(`SELECT CASE WHEN lease_token IS NULL AND lease_owner IS NULL AND lease_expires_at IS NULL
     THEN to_jsonb(j)||jsonb_build_object('payload',j.payload::jsonb) ELSE jsonb_build_object('leased',true,'id',id) END AS value
     FROM public.deployment_jobs j WHERE deployment_id=$1 ORDER BY id LIMIT 21`,[S.deploymentId])).rows;
   must(rows.length>1&&rows.length<21&&!rows.some(r=>r.value.leased),'LEASED_OR_TOO_MANY');const jobs=rows.map(r=>r.value);
   const ledger=(await client.query(`SELECT
-    (SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY plan_sha),'[]') FROM deployment_control_v6.plans p WHERE job_id=$1) AS plans,
-    (SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.plan_sha),'[]') FROM deployment_control_v6.approvals a JOIN deployment_control_v6.plans p USING(plan_sha) WHERE p.job_id=$1) AS approvals,
-    (SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY plan_sha),'[]') FROM deployment_control_v6.dispatch_attempts a WHERE job_id=$1) AS attempts,
-    EXISTS(SELECT FROM public.deployment_jobs WHERE id=$2 AND deployment_id<>$3) AS foreign_candidate`,[T.oldJobId,T.newJobId,S.deploymentId])).rows[0];
+    (SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY plan_sha),'[]') FROM deployment_control_v6.plans p WHERE job_id${ledgerJobIds?'=ANY($1::text[])':'=$1'}) AS plans,
+    (SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.plan_sha),'[]') FROM deployment_control_v6.approvals a JOIN deployment_control_v6.plans p USING(plan_sha) WHERE p.job_id${ledgerJobIds?'=ANY($1::text[])':'=$1'}) AS approvals,
+    (SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY plan_sha),'[]') FROM deployment_control_v6.dispatch_attempts a WHERE job_id${ledgerJobIds?'=ANY($1::text[])':'=$1'}) AS attempts,
+    EXISTS(SELECT FROM public.deployment_jobs WHERE id=$2 AND deployment_id<>$3) AS foreign_candidate`,[ledgerJobIds??T.oldJobId,candidateJobId,S.deploymentId])).rows[0];
   must(ledger.foreign_candidate===false,'FOREIGN_CANDIDATE');delete ledger.foreign_candidate;
   const ds=(await client.query(`SELECT id,app_instance_id AS "appInstanceId",environment_id AS "environmentId",mode,status,
     plan_hash AS "planHash",configuration_hash AS "configurationHash",artifact_ref AS "artifactRef",outputs::jsonb AS outputs

@@ -59,13 +59,19 @@ export async function assertTransferReview(review,approved,at){
     review.manifestSha256===approved&&at>=review.createdAt&&at<review.expiresAt,'APPROVAL');return review;
 }
 export async function compileTransfer(input,at){
-  const state=await assertTransferState(input,at),old=state.jobs.find(j=>j.id===TRANSFER.oldJobId);
+  return compileHeldTransferProgram(await assertTransferState(input,at),at,TRANSFER);
+}
+// Shared SQL compiler. A code-selected profile must validate its complete live
+// state first; no CLI/manifest data can select a profile or SQL implementation.
+export async function compileHeldTransferProgram(state,at,target){
+  must(target.runMs===30000&&target.oldJobId!==target.newJobId,'TARGET');
+  const old=state.jobs.find(j=>j.id===target.oldJobId);must(old,'OLD_JOB');
   // This is a PROPOSED post-cancellation state for the existing pure compiler,
   // never a normalized live read or proof that cancellation has already occurred.
   const proposedJobs=state.jobs.map(j=>j.id===old.id?{...j,status:'canceled',updated_at:at,completed_at:at}:j);
   const request=await prepareInitializedPlatformRequest({deployment:state.deployment,jobs:proposedJobs,gateEnabled:true,
-    body:{clientRequestId:TRANSFER.clientRequestId,deploymentId:S.deploymentId,intent:'restore_initialized_workload'},adminUserId:REQUEST_ADMIN_V6,now:at});
-  must(request.program&&request.existingJobId===null&&request.program.jobId===TRANSFER.newJobId&&request.requestId===TRANSFER.requestId,'REQUEST_COMPILER');
+    body:{clientRequestId:target.clientRequestId,deploymentId:S.deploymentId,intent:'restore_initialized_workload'},adminUserId:REQUEST_ADMIN_V6,now:at});
+  must(request.program&&request.existingJobId===null&&request.program.jobId===target.newJobId&&request.requestId===target.requestId,'REQUEST_COMPILER');
   const insert=request.program,marker=') INSERT INTO public.deployment_jobs';
   must(insert.text.split(marker).length===2&&insert.isolationLevel==='Serializable','COMPILER_SHAPE');
   const lockAdmission={text:insert.text.split(marker)[0]+`) SELECT id FROM locked
@@ -80,23 +86,28 @@ export async function compileTransfer(input,at){
   return {state,at,lockAdmission,cancel,insert};
 }
 export async function verifyTransferReadback(beforeInput,afterInput,at){
-  const before=await assertTransferState(beforeInput,at),after=normalizedState(afterInput),old=before.jobs.find(j=>j.id===TRANSFER.oldJobId),
-    expected=before.jobs.map(j=>j.id===old.id?{...j,status:'canceled',updated_at:at,completed_at:at}:j),next=after.jobs.find(j=>j.id===TRANSFER.newJobId);
+  return verifyHeldTransferReadback(await assertTransferState(beforeInput,at),afterInput,at,TRANSFER);
+}
+export async function verifyHeldTransferReadback(before,afterInput,at,target){
+  const after=normalizedState(afterInput),old=before.jobs.find(j=>j.id===target.oldJobId),
+    expected=before.jobs.map(j=>j.id===old.id?{...j,status:'canceled',updated_at:at,completed_at:at}:j),next=after.jobs.find(j=>j.id===target.newJobId);
   must(same(before.deployment,after.deployment)&&same(before.ledger,after.ledger)&&same(before.protection,after.protection)&&
-    same(expected,after.jobs.filter(j=>j.id!==TRANSFER.newJobId)),'PRESERVED_ROWS');
-  const p=next&&payload(next);must(next&&same(p,{kind:'express_initialized_request_v4',requestId:TRANSFER.requestId,requestedByUserId:REQUEST_ADMIN_V6,
+    same(expected,after.jobs.filter(j=>j.id!==target.newJobId)),'PRESERVED_ROWS');
+  const p=next&&payload(next);must(next&&same(p,{kind:'express_initialized_request_v4',requestId:target.requestId,requestedByUserId:REQUEST_ADMIN_V6,
     requestedAt:at,scope:S,reviewRequired:true,cloudExecutionAuthorized:false})&&next.deployment_id===S.deploymentId&&next.job_type==='reconcile'&&next.status==='pending'&&next.attempts===0&&
     next.max_attempts===1&&String(next.available_at)==='9007199254740991'&&unleased(next)&&next.completed_at===null&&next.last_error_code===null&&next.last_error_message===null&&
-    next.dedupe_key==='express-initialized-v2:'+TRANSFER.requestId&&p.kind==='express_initialized_request_v4'&&p.requestId===TRANSFER.requestId&&
+    next.dedupe_key==='express-initialized-v2:'+target.requestId&&p.kind==='express_initialized_request_v4'&&p.requestId===target.requestId&&
     p.requestedByUserId===REQUEST_ADMIN_V6&&p.requestedAt===at&&same(p.scope,S)&&p.reviewRequired===true&&p.cloudExecutionAuthorized===false&&
-    Number(next.created_at)>=at&&Number(next.created_at)<=at+TRANSFER.runMs&&Number(next.updated_at)>=at&&Number(next.updated_at)<=at+TRANSFER.runMs,'NEW_HELD_ROW');
+    Number(next.created_at)>=at&&Number(next.created_at)<=at+target.runMs&&Number(next.updated_at)>=at&&Number(next.updated_at)<=at+target.runMs,'NEW_HELD_ROW');
   return {outcome:'TASK_TRANSFER_ROWS_VERIFIED_NO_EXECUTION_APPROVAL',oldJobId:old.id,newJobId:next.id,otherJobsPreserved:before.jobs.length-1,
     controlHistoryPreserved:true,executionApproved:false,retryAllowed:false};
 }
 // SQL adapter has no default connection. Control-table SHARE locks precede the
 // first snapshot read, preventing a racing dispatch/attestation during transfer.
 // They can briefly block other controller writes; lock timeout is one second.
-export function createTransferTransaction({client,readState,record=async()=>{},now=Date.now}){
+export function createTransferTransaction({client,readState,record=async()=>{},now=Date.now,profile}){
+  const target=profile?.target??TRANSFER,assertState=profile?.assertState??assertTransferState,
+    compile=profile?.compile??compileTransfer,verifyReadback=profile?.verifyReadback??verifyTransferReadback;
   let used=false;return async({baseline,assertApproved})=>{
     must(!used,'TRANSACTION_ONCE');used=true;let phase='BEGIN',started=false,committing=false,committed=false,at;
     try{
@@ -105,18 +116,18 @@ export function createTransferTransaction({client,readState,record=async()=>{},n
       await client.query("SET LOCAL lock_timeout='1s'");await client.query("SET LOCAL statement_timeout='15s'");
       await client.query('LOCK TABLE deployment_control_v6.plans,deployment_control_v6.approvals,deployment_control_v6.dispatch_attempts IN SHARE MODE');
       at=Number((await client.query('SELECT floor(extract(epoch FROM clock_timestamp())*1000)::bigint AS at')).rows[0].at);
-      phase='FRESH_STATE';const fresh=await assertTransferState(await readState(client),at);
-      must(same(fresh,normalizedState(baseline)),'STATE_DRIFT');const p=await compileTransfer(fresh,at);
+      phase='FRESH_STATE';const fresh=await assertState(await readState(client),at);
+      must(same(fresh,normalizedState(baseline)),'STATE_DRIFT');const p=await compile(fresh,at);
       phase='ADMISSION_LOCK';const admission=await client.query(p.lockAdmission.text,p.lockAdmission.values);must(admission.rowCount===1,'ADMISSION');
       const jobs=await client.query('SELECT id FROM public.deployment_jobs WHERE deployment_id=$1 ORDER BY id FOR UPDATE',[S.deploymentId]);
       must(same(jobs.rows.map(j=>j.id),fresh.jobs.map(j=>j.id)),'JOB_SET');
       must(same(normalizedState(await readState(client)),fresh),'LOCKED_STATE_DRIFT');
-      await assertApproved();must(now()-at>=0&&now()-at<TRANSFER.runMs,'DEADLINE');
-      await record('transfer-intent',{at,oldJobId:TRANSFER.oldJobId,newJobId:TRANSFER.newJobId,baselineSha256:await sha256Hex(fresh)});
+      await assertApproved();must(now()-at>=0&&now()-at<target.runMs,'DEADLINE');
+      await record('transfer-intent',{at,oldJobId:target.oldJobId,newJobId:target.newJobId,baselineSha256:await sha256Hex(fresh)});
       phase='CANCEL';must((await client.query(p.cancel.text,p.cancel.values)).rowCount===1,'CANCEL_RESULT');
       await assertApproved();phase='INSERT';must((await client.query(p.insert.text,p.insert.values)).rowCount===1,'INSERT_RESULT');
-      phase='IN_TRANSACTION_READBACK';await verifyTransferReadback(fresh,await readState(client),at);
-      await assertApproved();must(now()-at<TRANSFER.runMs,'DEADLINE');
+      phase='IN_TRANSACTION_READBACK';await verifyReadback(fresh,await readState(client),at);
+      await assertApproved();must(now()-at<target.runMs,'DEADLINE');
       phase='COMMIT';committing=true;await client.query('COMMIT');committed=true;
       return {outcome:'TASK_TRANSFER_COMMITTED_REQUIRES_INDEPENDENT_READBACK',at,committed:true,retryAllowed:false};
     }catch{
@@ -128,13 +139,14 @@ export function createTransferTransaction({client,readState,record=async()=>{},n
     }
   };
 }
-export function createReviewedTransfer({review,approved,io,now=Date.now}){
+export function createReviewedTransfer({review,approved,io,now=Date.now,profile}){
+  const target=profile?.target??TRANSFER,assertReview=profile?.assertReview??assertTransferReview;
   let used=false;return async()=>{
     must(!used,'OPERATION_ONCE');used=true;let phase='APPROVAL';try{
-      await assertTransferReview(review,approved,now());phase='SOURCE';await io.assertSource(review);
+      await assertReview(review,approved,now());phase='SOURCE';await io.assertSource(review);
       // Permanent claim must be provided by a separately approved local entry.
-      phase='PERMANENT_CLAIM';await io.claim({manifestSha256:approved,oldJobId:TRANSFER.oldJobId,newJobId:TRANSFER.newJobId});
-      phase='TRANSACTION';return await io.transaction({baseline:review.baseline,assertApproved:async()=>{await assertTransferReview(review,approved,now());await io.assertSource(review);}});
+      phase='PERMANENT_CLAIM';await io.claim({manifestSha256:approved,oldJobId:target.oldJobId,newJobId:target.newJobId});
+      phase='TRANSACTION';return await io.transaction({baseline:review.baseline,assertApproved:async()=>{await assertReview(review,approved,now());await io.assertSource(review);}});
     }catch{return {outcome:'TASK_TRANSFER_ENTRY_STOPPED_REQUIRES_READBACK',phase,retryAllowed:false};}
   };
 }

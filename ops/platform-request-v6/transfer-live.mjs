@@ -5,7 +5,8 @@ import {publisherDatabaseConfigV6,DATABASE_V6 as D} from '../platform-publisher-
 import {readTransferState} from './transfer-state.mjs';
 import {createTransferTransaction} from './transfer.mjs';
 import {must} from './transfer-entry.mjs';
-export async function openTransferDatabase({auth,contract,record}){
+export async function openTransferDatabase({auth,contract,record,profile}){
+  const readState=c=>readTransferState(c,{contract,...profile?.reader});
   let url=await readAuthV6(auth),config=await publisherDatabaseConfigV6(url);url=undefined;
   const raw=new pg.Client({...config,options:'',application_name:'Techlong-Reviewed-Task-Transfer-V6'});config=undefined;
   let calls=0,failed=false,opened=false;raw.on('error',()=>{failed=true;});
@@ -25,12 +26,12 @@ export async function openTransferDatabase({auth,contract,record}){
       await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       await client.query('SET LOCAL search_path=pg_catalog');
       try{const before=(await client.query("SELECT current_setting('transaction_read_only') AS ro")).rows[0];must(before.ro==='on','READ_ONLY');
-        const state=await readTransferState(client,{contract});
+        const state=await readState(client);
         const after=(await client.query("SELECT current_setting('transaction_read_only') AS ro")).rows[0];must(after.ro==='on','READ_ONLY');
         await client.query('COMMIT');return state;
       }catch(e){try{await client.query('ROLLBACK');}catch{/* no retry */}throw e;}
     };
-    const transaction=createTransferTransaction({client,readState:c=>readTransferState(c,{contract}),record});
+    const transaction=createTransferTransaction({client,readState,record,profile});
     return {readOnly,transaction,close,counts:()=>({configReads:1,connections:1,queries:calls,automaticRetries:0})};
   }catch(e){try{await close();}catch{/* no retry */}throw Object.assign(Error('TRANSFER_ENTRY_DATABASE_OPEN_FAILED'),
     {code:/^[A-Z0-9]{5}$/.test(e?.code??'')?e.code:undefined,opened});}
