@@ -9,6 +9,8 @@ on:
       - 'ops/platform-operator-v6/**'
       - 'ops/platform-recovery-v1/**'
       - 'tests/platform-recovery-v1.test.mjs'
+      - 'tests/platform-recovery-entry-bridge-v1.test.mjs'
+      - 'docs/aws-auto-deployment-w9f-recovery-entry-bridge.md'
       - 'tests/fixtures/platform-recovery-v1.mjs'
       - 'docs/aws-auto-deployment-w9e-retired-recovery.md'
       - 'tests/platform-operator-v6.test.mjs'
@@ -85,6 +87,8 @@ on:
       - 'ops/platform-operator-v6/**'
       - 'ops/platform-recovery-v1/**'
       - 'tests/platform-recovery-v1.test.mjs'
+      - 'tests/platform-recovery-entry-bridge-v1.test.mjs'
+      - 'docs/aws-auto-deployment-w9f-recovery-entry-bridge.md'
       - 'tests/fixtures/platform-recovery-v1.mjs'
       - 'docs/aws-auto-deployment-w9e-retired-recovery.md'
       - 'tests/platform-operator-v6.test.mjs'
@@ -209,8 +213,8 @@ jobs:
           node node_modules/eslint/bin/eslint.js ops/platform-operator-v6/ tests/platform-operator-v6.test.mjs tests/platform-operator-followup-v6.test.mjs --max-warnings 0
       - name: Retired unaccepted recovery candidate, no production capabilities
         run: |
-          node --experimental-strip-types --test tests/platform-recovery-v1.test.mjs
-          node node_modules/eslint/bin/eslint.js ops/platform-recovery-v1/ tests/platform-recovery-v1.test.mjs tests/fixtures/platform-recovery-v1.mjs --max-warnings 0
+          node --experimental-strip-types --test tests/platform-recovery-v1.test.mjs tests/platform-recovery-entry-bridge-v1.test.mjs
+          node node_modules/eslint/bin/eslint.js ops/platform-recovery-v1/ tests/platform-recovery-v1.test.mjs tests/platform-recovery-entry-bridge-v1.test.mjs tests/fixtures/platform-recovery-v1.mjs --max-warnings 0
       - name: Existing hosted window update and image-execution source compatibility, synthetic only
         run: |
           node --experimental-strip-types --test tests/platform-hosted-window-v6.test.mjs

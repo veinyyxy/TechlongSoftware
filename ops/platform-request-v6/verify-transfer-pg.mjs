@@ -20,6 +20,7 @@ import {sqlContract,I} from '../platform-controller-review-v6/install.mjs';
 import {recoveryFixture} from '../../tests/fixtures/platform-recovery-v1.mjs';
 import {recoveryBasisCompiler} from '../platform-recovery-v1/basis.mjs';
 import {makeRecoveryRequestReview,createRecoveryRequestTransaction,verifyRecoveryRequestReadback} from '../platform-recovery-v1/request.mjs';
+import {readRecoveryRequestState} from '../platform-recovery-v1/request-state.mjs';
 assert.equal(process.env.GITHUB_ACTIONS,'true');
 const port=Number(process.env.PLATFORM_CONTROL_CI_PORT);assert.ok(Number.isInteger(port)&&port>1024&&port<65536);
 const base={host:'127.0.0.1',port,user:'postgres',password:'controller-ci-only-bootstrap',database:'postgres'},db='task_transfer_v6_ci';
@@ -278,6 +279,12 @@ try{
     assert.deepEqual(Object.values(observed.newLedger).map(v=>v.length),[2,1,1]);
     const readOnly=await wireCycleDatabase({reader:second,contract,expected:identity,manifest,profile,guard:async()=>{},assertClaim:async()=>{},inspect:true});
     await assert.rejects(readOnly.publish(ownerQueryV6('plan',review)),/INSPECT_READONLY/);await readOnly.close();await ports.close();
+    await second.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+    const recoveryState=await readRecoveryRequestState(second,{contract,expected:identity});await second.query('COMMIT');
+    assert.deepEqual(Object.values(recoveryState.ledger).map(v=>v.length),[6,3,3]);
+    assert.deepEqual(recoveryState.jobs,normalizedState(observed.state).jobs);
+    console.log(JSON.stringify({outcome:'PASSED_REAL_POSTGRESQL_RECOVERY_ENTRY_READER',plans:6,approvals:3,attempts:3,
+      oldGenerationsAndLatestIncluded:true,futureCandidateAbsent:true,productionDatabaseTouched:false,sqlWrites:0}));
     console.log(JSON.stringify({outcome:'PASSED_REAL_POSTGRESQL_SUCCESSOR_CYCLE_PORTS',checks:['new9db_ledger_read_separate_from_both_old_generations',
       'empty_new_occupancy_verified','exact_new_review_sql_and_independent_readback','old6a_publication_rejected',
       'simulated_manual_ack_and_exact_observation','bound_proof_and_runonce','complete_old_history_business_and_held_job_unchanged','inspect_cannot_publish'],

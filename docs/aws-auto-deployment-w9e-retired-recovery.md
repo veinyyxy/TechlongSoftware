@@ -41,7 +41,7 @@ jobId            job_9b57b43a6b88f37202b29170
 node --experimental-strip-types ops/platform-recovery-v1/saved.mjs --mode PrepareSaved --output F:/ChatGPT_workshop/techlong-w9e-recovery-candidate-20261025-a
 ```
 
-只有clean main及完整原件才会输出候选基准。现存材料缺少旧 `execution-reference-40204548444-v1.json` 原件；入口明确拒绝制造推导对象来冒充S3读取。补齐这个固定key/version/SHA的单次只读GET需要额外明确许可；未批准时只继续代码/CI，当前没有执行这个GET。
+只有clean main及完整原件才会输出候选基准。初版缺失的旧 `execution-reference-40204548444-v1.json` 原件，已在 2026-10-25 获单独限定许可后读回；固定 key/version/SHA、AES256 和长度均已核验，真实保存候选重建成功。原失败与缺失记录保留，不用推导对象冒充 S3 原件，也不重复该已完成的 GET。
 
 本地证据池中的完整数据库快照不会写入Git或候选输出；只输出准确引用、摘要和不授予权限的状态。原始材料保存在工程外的受保护目录，旧闭包和永久槽不覆盖。
 
@@ -51,4 +51,4 @@ node --experimental-strip-types ops/platform-recovery-v1/saved.mjs --mode Prepar
 
 既有No-AWS CI加入该测试集和ESLint，并在原一次性PostgreSQL验证程序中增加三种实际SQL场景：成功单行插入、插入失败不留变更、COMMIT确认丢失后的独立读回。它仅连接GitHub job提供的localhost临时PostgreSQL，不读取本机.env或生产URL，不涉及AWS。
 
-下一阶段首先补齐缺失的固定版本证据并重建候选，然后完成真实入口/新发布桥的最小接线与风险清单。实际新held行登记、云代码发布/精确trust更新、Review/RunOnce/Inspect及私密材料读取，仍各按具体资源和新SHA批准。候选库不是可直接执行的生产CLI；没有省略source/CI/pins/TLS身份校验后就运行SQL的入口。
+后续最小接线、准确范围和完整风险见 [W9f 恢复请求入口与发布桥](aws-auto-deployment-w9f-recovery-entry-bridge.md)。本文件描述的 W9e 内核仍不是部署批准；W9f 新入口另有 source/CI/pins/TLS 身份及 operator SHA 门禁。实际新held行登记、云代码发布/精确trust更新、Review/RunOnce/Inspect及私密材料读取，仍各按具体资源和新SHA批准。
