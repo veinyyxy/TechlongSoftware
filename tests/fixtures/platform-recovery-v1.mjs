@@ -32,7 +32,7 @@ export async function recoveryFixture(){
   const resultRef=await f.resultFor(plan,runId,{outcome:report.result.outcome,cloudReportReference:reportRef,executionReference:executionRef});
   const before=(await nextFixture(at)).before;
   for(const j of before.jobs)if(j.status==='pending'){j.status='canceled';j.completed_at=at-2000;}
-  const oldJob={...before.jobs[0],id:plan.jobId,status:'succeeded',attempts:1,completed_at:f.at+2000,
+  const oldJob={...before.jobs[0],id:plan.jobId,dedupe_key:f.observed.job.dedupe_key,status:'succeeded',attempts:1,completed_at:f.at+2000,
     payload:{kind:'express_initialized_workload_v2',planSha256:receipt.jobPlanSha256,materialSha256:S.materialSha256},
     lease_owner:null,lease_token:null,lease_expires_at:null};
   before.jobs=before.jobs.filter(j=>j.id!==oldJob.id);before.jobs.push(oldJob);

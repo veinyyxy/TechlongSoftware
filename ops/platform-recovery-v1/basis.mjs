@@ -50,6 +50,8 @@ export function recoveryBasisCompiler(profile){
     must(Number.isSafeInteger(createdAt)&&createdAt>=target.observedBy&&createdAt<target.factsAt+target.validMs&&
       target.factsAt<=target.databaseCheckedAt&&target.databaseCheckedAt<=target.observedBy,'FACT_WINDOW');
     assertAdmissionSnapshot(state.deployment,createdAt);
+    const dedupes=state.jobs.filter(j=>j.dedupe_key!==null&&j.dedupe_key!==undefined).map(j=>j.dedupe_key);
+    must(new Set(state.jobs.map(j=>j.id)).size===state.jobs.length&&new Set(dedupes).size===dedupes.length,'JOB_UNIQUENESS');
     must(await sha256Hex(state)===target.stateSha256&&state.jobs.every(j=>['succeeded','canceled'].includes(j.status)&&
       ['lease_owner','lease_token','lease_expires_at'].every(k=>j[k]===null)),'EXACT_TERMINAL_STATE');
     const receipt=state.deployment.outputs.expressInitializedWorkerRunsV2?.[target.oldJobId],job=state.jobs.find(j=>j.id===target.oldJobId);

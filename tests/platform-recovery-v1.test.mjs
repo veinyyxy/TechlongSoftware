@@ -17,6 +17,7 @@ import {parseSavedArgs} from '../ops/platform-recovery-v1/saved.mjs';
 
 test('full execution evidence plus retirement creates only an unaccepted recovery basis; no owner write',async()=>{
   const f=await recoveryFixture(),d=recoveryData(f.basis,f.at);assert.equal(f.basis.disposition.independentAcceptance,false);
+  assert.equal(new Set(f.state.jobs.map(j=>j.dedupe_key)).size,f.state.jobs.length);
   assert.equal(f.basis.disposition.executionSucceeded,true);assert.equal(f.basis.disposition.acceptedLineageAppend,false);
   assert.equal(d.context.predecessor.jobId,f.profile.oldJobId);assert.equal(d.context.acceptedPredecessor.jobId,f.context.predecessor.jobId);
   assert.equal(d.context.executionAuthorized,false);assert(Object.isFrozen(d));assert(Object.isFrozen(d.context));
