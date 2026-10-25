@@ -27,6 +27,7 @@ on:
       - 'tests/platform-hosted-driver-v6.test.mjs'
       - 'tests/platform-cycle-v6.test.mjs'
       - 'tests/platform-cycle-transport-v6.test.mjs'
+      - 'tests/platform-cycle-next-v6.test.mjs'
       - 'tests/fixtures/platform-cycle-v6.mjs'
       - 'tests/platform-review-refresh-v6.test.mjs'
       - 'tests/fixtures/platform-review-refresh-v6.mjs'
@@ -89,6 +90,7 @@ on:
       - 'tests/platform-hosted-driver-v6.test.mjs'
       - 'tests/platform-cycle-v6.test.mjs'
       - 'tests/platform-cycle-transport-v6.test.mjs'
+      - 'tests/platform-cycle-next-v6.test.mjs'
       - 'tests/fixtures/platform-cycle-v6.mjs'
       - 'tests/platform-review-refresh-v6.test.mjs'
       - 'tests/fixtures/platform-review-refresh-v6.mjs'
@@ -167,10 +169,10 @@ jobs:
         run: |
           node --experimental-strip-types --test tests/platform-transferred-cycle-v6.test.mjs
           node --experimental-strip-types --test tests/platform-current-prepare-v6.test.mjs tests/platform-hosted-driver-v6.test.mjs
-          node --experimental-strip-types --test tests/platform-cycle-v6.test.mjs tests/platform-cycle-transport-v6.test.mjs
+          node --experimental-strip-types --test tests/platform-cycle-v6.test.mjs tests/platform-cycle-transport-v6.test.mjs tests/platform-cycle-next-v6.test.mjs
           node node_modules/eslint/bin/eslint.js ops/platform-review-v6/transferred-cycle.mjs ops/platform-review-v6/hosted-handoff.mjs tests/platform-transferred-cycle-v6.test.mjs --max-warnings 0
           node node_modules/eslint/bin/eslint.js ops/platform-review-v6/current-local.mjs ops/platform-review-v6/current-cloud.mjs ops/platform-review-v6/current-database.mjs ops/platform-review-v6/hosted-driver.mjs tests/platform-current-prepare-v6.test.mjs tests/platform-hosted-driver-v6.test.mjs --max-warnings 0
-          node node_modules/eslint/bin/eslint.js ops/platform-review-v6/cycle-*.mjs tests/platform-cycle-v6.test.mjs tests/platform-cycle-transport-v6.test.mjs tests/fixtures/platform-cycle-v6.mjs --max-warnings 0
+          node node_modules/eslint/bin/eslint.js ops/platform-review-v6/cycle-*.mjs tests/platform-cycle-v6.test.mjs tests/platform-cycle-transport-v6.test.mjs tests/platform-cycle-next-v6.test.mjs tests/fixtures/platform-cycle-v6.mjs --max-warnings 0
       - name: Portable reviewed operator CLI with synthetic network and temporary files only
         run: |
           node --experimental-strip-types --test tests/platform-operator-v6.test.mjs

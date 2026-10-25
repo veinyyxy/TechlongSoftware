@@ -35,8 +35,8 @@ export const CYCLE_ROOTS=['ops/platform-review-v6/cycle-local.mjs','ops/platform
 const json=async f=>JSON.parse(await readText(f,3000000));
 async function record(out,name,value){must(/^[a-z0-9-]+$/.test(name),'RECORD_NAME');assertEvidenceSafeV5(value);await writeOnce(path.join(out,name+'.json'),value);}
 async function optional(file){try{return await json(file);}catch(e){if(e.code==='ENOENT')return null;throw e;}}
-async function directory(file){const p=path.resolve(file);must(path.dirname(p).toLowerCase()===path.resolve(BASE).toLowerCase()&&
-  /^techlong-w8u-hosted-cycle-[a-z0-9-]+$/.test(path.basename(p)),'DIRECTORY');await noLinks(BASE);return p;}
+async function validateDirectory(file,prefix){const p=path.resolve(file);must(path.dirname(p).toLowerCase()===path.resolve(BASE).toLowerCase()&&
+  new RegExp('^'+prefix+'[a-z0-9-]+$').test(path.basename(p)),'DIRECTORY');await noLinks(BASE);return p;}
 export function parseCycleArgs(args){
   const a=Object.create(null);must(args.length%2===0,'ARGS');for(let n=0;n<args.length;n+=2){must(!Object.hasOwn(a,args[n])&&typeof args[n+1]==='string','ARGS');a[args[n]]=args[n+1];}
   const mode=a['--mode'],fields=mode==='Prepare'?['--mode','--ci-run','--output']:mode==='ConfirmPage'?['--mode','--manifest','--approved-sha','--ready-through-lease']:
@@ -44,9 +44,9 @@ export function parseCycleArgs(args){
   must(['Prepare','RunReviewed','Inspect','ConfirmPage'].includes(mode)&&same(Object.keys(a).sort(),fields.sort())&&fields.every(k=>a[k])&&
     (mode!=='ConfirmPage'||a['--ready-through-lease']==='yes'),'ARGS');return a;
 }
-async function source(expected,{full=false,pins}={}){
+async function checkSource(expected,{full=false,pins,roots=CYCLE_ROOTS}={}){
   const head=git(['rev-parse','HEAD']).trim();must(git(['branch','--show-current']).trim()==='main'&&git(['status','--porcelain']).trim()===''&&(!expected||head===expected),'CLEAN_FROZEN_MAIN');
-  if(full&&pins)must(same(await collectPins({roots:CYCLE_ROOTS}),pins),'CODE_PINS');return head;
+  if(full&&pins)must(same(await collectPins({roots}),pins),'CODE_PINS');return head;
 }
 export async function loadCyclePreparation(at=Date.now()){
   const raw=await readText(proofFile,3000000);must(await sha256Hex(raw)===proofRawSha,'PREPARATION_CLOSURE');const proof=JSON.parse(raw);
@@ -59,11 +59,19 @@ export async function loadCyclePreparation(at=Date.now()){
 function notify(name,v){if(!name.startsWith('awaiting-'))return;
   console.log(JSON.stringify({notice:name,...v,...(Number.isSafeInteger(v.deadline)?{deadlineUtc:new Date(v.deadline).toISOString(),
     deadlineWinnipeg:new Intl.DateTimeFormat('en-CA',{timeZone:'America/Winnipeg',dateStyle:'full',timeStyle:'long'}).format(v.deadline)}:{})}));}
-export async function main(args=process.argv.slice(2)){
-  const a=parseCycleArgs(args),mode=a['--mode'];environment();must(process.platform==='win32'&&path.resolve(process.cwd()).toLowerCase()===path.resolve(ROOT).toLowerCase()&&
+const LEGACY_PROTOCOL=Object.freeze({cycle:CYCLE,roots:CYCLE_ROOTS,parseArgs:parseCycleArgs,makeReview:makeCycleReview,validateReview:validateCycleReview,
+  loadPreparation:loadCyclePreparation,verifyCurrent:verifyCurrentHosting,outputPrefix:'techlong-w8u-hosted-cycle-',
+  publicationSlot:TRANSFERRED_CYCLE.publicationSlot,handoffSlot:TRANSFERRED_CYCLE.handoffSlot,assertOnline:()=>null,assertAvailable:()=>{}});
+// A reviewed entry supplies a fixed protocol. Never select one from manifest JSON.
+export async function executeCycleMain(args,protocol=LEGACY_PROTOCOL){
+  const cfg={...LEGACY_PROTOCOL,...protocol};
+  const {cycle:CYCLE,roots:CYCLE_ROOTS,makeReview:makeCycleReview,validateReview:validateCycleReview,loadPreparation:loadCyclePreparation,
+    verifyCurrent:verifyCurrentHosting,publicationSlot,handoffSlot}=cfg;
+  const source=(expected,options={})=>checkSource(expected,{...options,roots:CYCLE_ROOTS}),directory=file=>validateDirectory(file,cfg.outputPrefix);
+  const a=cfg.parseArgs(args),mode=a['--mode'];environment();must(process.platform==='win32'&&path.resolve(process.cwd()).toLowerCase()===path.resolve(ROOT).toLowerCase()&&
     !['DATABASE_URL','PGHOST','PGPORT','PGPASSWORD','PGSERVICE','PGOPTIONS'].some(k=>process.env[k]),'ENVIRONMENT');
   if(mode==='Prepare'){
-    const out=await directory(a['--output']);await absent(out);for(const f of [CYCLE.slot,CYCLE.inspectSlot,TRANSFERRED_CYCLE.publicationSlot,TRANSFERRED_CYCLE.handoffSlot])await absent(f);
+    const out=await directory(a['--output']);await absent(out);for(const f of [CYCLE.slot,CYCLE.inspectSlot,publicationSlot,handoffSlot])await absent(f);
     const sourceCommit=await source(),p=await loadCyclePreparation(),ci=await readLocalCiV6(a['--ci-run'],sourceCommit);
     const m=await makeCycleReview({sourceCommit,pins:await collectPins({roots:CYCLE_ROOTS}),ci,compatibility:await sourceCompatibility(sourceCommit),
       preparation:p.preparation,anchor:p.anchor,auth:await authMetadataV6(),nonce:randomBytes(16).toString('hex'),createdAt:Date.now(),
@@ -75,6 +83,7 @@ export async function main(args=process.argv.slice(2)){
   }
   const file=path.resolve(a['--manifest']),root=await directory(path.dirname(file));must(path.basename(file)==='manifest.json','MANIFEST_FILE');const m=await json(file);
   await validateCycleReview(m,a['--approved-sha'],Date.now(),{inspect:mode==='Inspect',running:mode==='ConfirmPage'});
+  const online=mode==='RunReviewed'?cfg.assertOnline(a,m,Date.now()):null;
   const p=await loadCyclePreparation(m.createdAt);must(same(m.preparation,p.preparation)&&same(m.anchor,p.anchor),'PREPARATION_BINDING');
   await source(m.sourceCommit,{full:true,pins:m.pins});must(same(await sourceCompatibility(m.sourceCommit),m.compatibility),'SOURCE_COMPATIBILITY');
   const run=root+'-run';
@@ -87,7 +96,7 @@ export async function main(args=process.argv.slice(2)){
     await record(run,'page-ready',ready);console.log(JSON.stringify({outcome:'HOSTED_PAGE_READINESS_RECORDED_NOT_EXECUTION_APPROVAL',checkedAt:ready.checkedAt}));return ready;
   }
   const inspect=mode==='Inspect',out=await directory(a['--output']);must(out===root+(inspect?'-inspect':'-run'),'OUTPUT_BINDING');await absent(out);
-  await absent(inspect?CYCLE.inspectSlot:CYCLE.slot);if(!inspect)for(const f of [CYCLE.inspectSlot,TRANSFERRED_CYCLE.publicationSlot,TRANSFERRED_CYCLE.handoffSlot])await absent(f);
+  await absent(inspect?CYCLE.inspectSlot:CYCLE.slot);if(!inspect)for(const f of [CYCLE.inspectSlot,publicationSlot,handoffSlot])await absent(f);
   await readLocalCiV6(m.ci.runId,m.sourceCommit);
   const deadline=Date.now()+(inspect?10*60000:CYCLE.runMs),signal=AbortSignal.timeout(inspect?10*60000:CYCLE.runMs);let active=inspect,db,cloud,transport,closed=false,outputReady=false,publicPageGets=0;
   const guard=async()=>{signal.throwIfAborted();must(Date.now()<deadline,'RUN_DEADLINE');await validateCycleReview(m,a['--approved-sha'],Date.now(),{inspect,running:active});await source(m.sourceCommit);};
@@ -95,10 +104,10 @@ export async function main(args=process.argv.slice(2)){
   const counts=()=>({cloud:cloud?.counts()??null,database:db?.counts()??null,transport:transport?.counts()??null,publicPageGets});
   const close=async()=>{if(closed)return;closed=true;transport?.close();await db?.close();cloud?.close();};
   try{
-    cloud=await cycleCloud({manifest:m,approved:a['--approved-sha'],guard,assertClaim,deadline,signal,inspect});await cloud.preflight();
+    cloud=await cycleCloud({manifest:m,approved:a['--approved-sha'],guard,assertClaim,deadline,signal,inspect,validateReview:validateCycleReview});await cloud.preflight();
     // An expired Source session consumes no config/connection/slot/output. A
     // human may explicitly continue after refresh; this process never retries.
-    await mkdir(out,{mode:0o700});outputReady=true;await record(out,'approved-manifest',m);
+    await mkdir(out,{mode:0o700});outputReady=true;await record(out,'approved-manifest',m);if(online)await record(out,'human-online-before-window',online);
     const contract=sqlContract((await readText(path.resolve(ROOT,I.sql),3000000)).replaceAll('\r\n','\n'));
     if(inspect){
       await assertClaim();const intent=await json(run+'/window-intent.json');await record(out,'inspect-intent',{manifestSha256:m.manifestSha256,readOnly:true});
@@ -135,9 +144,9 @@ export async function main(args=process.argv.slice(2)){
       mainFrozen:true,leaseVerified:true,publisherAdapterReady:true,controllerReady:true,independentInspectorReady:true,replacementIndependentlyVerified:true,
       sourceCredentialsReady:true,environmentApprovalPageReady:true};};
     const assertInstalled=async()=>{await guard();await assertClaim();must(same(await cloud.lease(),currentLease),'INSTALLED_LEASE_CHANGED');};
-    const flow=createCycleRun({manifest:m,approved:a['--approved-sha'],io:{guard,preflight:baseline,counts,close,record:writeEvent,
-      claim:async()=>{await source(m.sourceCommit,{full:true,pins:m.pins});await writeOnce(CYCLE.slot,{manifestSha256:m.manifestSha256,output:run,sourceCommit:m.sourceCommit});active=true;},
-      update:intent=>cloud.update(intent),stack:()=>cloud.stack(),wait:ms=>new Promise(r=>setTimeout(r,ms)),windowSnapshot:()=>cloud.snapshot(),
+    const flow=createCycleRun({manifest:m,approved:a['--approved-sha'],cycle:CYCLE,validateReview:validateCycleReview,io:{guard,preflight:baseline,counts,close,record:writeEvent,
+      claim:async()=>{cfg.assertAvailable(online,Date.now()+31*60000,Date.now());await source(m.sourceCommit,{full:true,pins:m.pins});await writeOnce(CYCLE.slot,{manifestSha256:m.manifestSha256,output:run,sourceCommit:m.sourceCommit});active=true;},
+      update:intent=>{cfg.assertAvailable(online,intent.controlLease.expiresAt,Date.now());return cloud.update(intent);},stack:()=>cloud.stack(),wait:ms=>new Promise(r=>setTimeout(r,ms)),windowSnapshot:()=>cloud.snapshot(),
       async drive({lease,hosting}){
         currentLease=lease;
         const driver=createHostedCycleDriver({scope:{sourceCommit:m.sourceCommit,jobId:CYCLE.jobId},release:m.binding.platform,
@@ -149,7 +158,7 @@ export async function main(args=process.argv.slice(2)){
             const publisher=createTransferredReviewPublisher({anchor:m.anchor,sourceCommit:m.sourceCommit,lease,ports:{assertApproved:guard,assertSource:()=>source(m.sourceCommit),
               assertTransferEvidence:async()=>{const x=await loadCyclePreparation(m.createdAt);must(same(x.anchor,m.anchor),'ANCHOR_DRIFT');},readLease:()=>cloud.lease(),
               readiness:freshReady,readBaseline:()=>db.snapshot(),readObject:transport.readObject,readHeldJob:db.readHeldJob,writeOwner:db.publish,
-              claim:()=>writeOnce(TRANSFERRED_CYCLE.publicationSlot,{manifestSha256:m.manifestSha256,output:out}),
+              claim:()=>writeOnce(publicationSlot,{manifestSha256:m.manifestSha256,output:out}),
               record:async(n,v)=>{if(n==='proposed-review-plan')proposed=v;await record(out,'publish-'+n,v);},dispose:async()=>{}}});
             const result=await publisher.once();must(result.outcome==='TRANSFERRED_REVIEW_PUBLISHED_REQUIRES_INDEPENDENT_INSPECT'&&proposed,'PUBLICATION_STOPPED');
             const entry=await db.loadPlan(result.planSha256);must(same(entry.plan,proposed.plan),'PUBLISHED_PLAN_DRIFT');
@@ -158,7 +167,7 @@ export async function main(args=process.argv.slice(2)){
               if(e.attempt?.runId)transport.registerRun(e.attempt.runId,e.plan.mode);return e;},readRun:transport.readRun,discover:transport.discover,
             ports:{assertApproved:assertInstalled,assertSource:()=>source(m.sourceCommit),readiness:freshReady,loadPlan:db.loadPlan,readRun:transport.readRun,
               readObject:transport.readObject,observeRun:db.observe,writeOwner:db.advance,
-              claim:()=>writeOnce(TRANSFERRED_CYCLE.handoffSlot,{manifestSha256:m.manifestSha256,output:out}),record:(n,v)=>record(out,'handoff-'+n,v),dispose:async()=>{}}}});
+              claim:()=>writeOnce(handoffSlot,{manifestSha256:m.manifestSha256,output:out}),record:(n,v)=>record(out,'handoff-'+n,v),dispose:async()=>{}}}});
         return driver({lease,hosting,signal});
       }}});
     const result=await flow();console.log(JSON.stringify(result));if(result.outcome!=='HOSTED_CYCLE_RUNONCE_TERMINAL_REQUIRES_INDEPENDENT_INSPECT')process.exitCode=1;return result;
@@ -167,4 +176,5 @@ export async function main(args=process.argv.slice(2)){
     if(outputReady)await record(out,'stopped',stopped);else console.error(JSON.stringify(stopped));throw Error('HOSTED_CYCLE_ENTRY_STOPPED_NO_RETRY');}
   finally{await close();}
 }
+export async function main(args=process.argv.slice(2)){return executeCycleMain(args);}
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href)main().catch(()=>{console.error('HOSTED_CYCLE_ENTRY_STOPPED_NO_RETRY');process.exitCode=1;});

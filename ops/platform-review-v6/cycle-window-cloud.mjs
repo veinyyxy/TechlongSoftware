@@ -8,7 +8,7 @@ import {createVerifiedCredentialPort} from '../platform-operations-v6/credential
 import {currentCloudInventory} from './current-cloud.mjs';
 import {K,P} from '../platform-hosted-window-v6/contract.mjs';
 import {CYCLE_SCOPE,cycleUpdateRequest,validateCycleReview,must,same} from './cycle-plan.mjs';
-export async function cycleCloud({manifest:m,approved,guard,assertClaim,deadline,signal,inspect=false}){
+export async function cycleCloud({manifest:m,approved,guard,assertClaim,deadline,signal,inspect=false,validateReview=validateCycleReview}){
   must(typeof assertClaim==='function','EXPLICIT_CLAIM_PORT');
   const limit=inspect?CYCLE_SCOPE.inspectAwsMetadataMax:CYCLE_SCOPE.runAwsMetadataMax,counts={metadata:0,updates:0};
   const handler=()=>new NodeHttpHandler({httpsAgent:new Agent({family:4,keepAlive:false}),connectionTimeout:5000,socketTimeout:20000});
@@ -30,7 +30,7 @@ export async function cycleCloud({manifest:m,approved,guard,assertClaim,deadline
     async stack(){await guard();tick();const r=await cfn.send(new DescribeStacksCommand({StackName:K.stackId}),{abortSignal:AbortSignal.any([signal,AbortSignal.timeout(20000)])});
       must(r.Stacks?.length===1&&r.Stacks[0].StackId===K.stackId,'STACK_ID');return {StackId:K.stackId,StackStatus:r.Stacks[0].StackStatus,
         LastUpdatedTime:r.Stacks[0].LastUpdatedTime?.toISOString()??null};},
-    async update(intent){must(!inspect&&counts.updates===0,'UPDATE_ONCE');await guard();await validateCycleReview(m,approved,Date.now(),{running:true});
+    async update(intent){must(!inspect&&counts.updates===0,'UPDATE_ONCE');await guard();await validateReview(m,approved,Date.now(),{running:true});
       await assertClaim();must(intent.manifestSha256===approved&&same(intent.request,cycleUpdateRequest(m,intent.intentAt))&&Date.now()>=intent.intentAt&&
         Date.now()-intent.intentAt<30000,'UPDATE_INTENT');await source.credentials();await guard();
       await assertClaim();must(Date.now()-intent.intentAt<30000,'UPDATE_INTENT_EXPIRED');counts.updates++;

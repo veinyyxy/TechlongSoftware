@@ -18,29 +18,34 @@ export const CYCLE_SCOPE=Object.freeze({updateStackMax:1,logicalUpdates:['TaskDe
   inspectConfigReadsMax:1,inspectNeonConnectionsMax:1,inspectSqlQueriesMax:60,inspectAwsMetadataMax:75,
   publicPageGetsMax:1,controlMinutes:30,iamWrites:0,secretValueReads:0,pemReads:0,s3Puts:0,parentWorkflowDispatches:0,
   parentJobClaims:0,parentTenantCreates:0,automaticStopCleanupRetryOrOperatorRollback:false});
-export async function makeCycleReview({sourceCommit,pins,ci,compatibility,preparation,anchor,auth,nonce,createdAt,riskSha256}){
+export async function makeCycleReview(input){return compileCycleReview(input);}
+// Profiles are fixed by a reviewed entry module, never loaded from caller JSON.
+// The legacy default must continue reconstructing its original bytes unchanged.
+export async function compileCycleReview({sourceCommit,pins,ci,compatibility,preparation,anchor,auth,nonce,createdAt,riskSha256},profile=null){
+  const cycle=profile?.cycle??CYCLE;
   must(/^[a-f0-9]{40}$/.test(sourceCommit)&&ci?.sourceCommit===sourceCommit&&ci.attempt===1&&ci.status==='completed'&&ci.conclusion==='success'&&
     pins.length>=20&&new Set(pins.map(p=>p.file)).size===pins.length&&pins.every(p=>/^[a-f0-9]{64}$/.test(p.sha256)),'SOURCE_CI');
   must(preparation?.schema==='techlong/current-pipeline-preparation/v6'&&preparation.jobId===T.newJobId&&
     preparation.productionWriteEntryReady===false&&preparation.preparationIsNotWriteApproval===true&&
     same(preparation.newControlCounts,{plans:0,approvals:0,attempts:0})&&preparation.baseline?.stackId===K.stackId&&
     preparation.baseline.stackStatus==='UPDATE_COMPLETE'&&preparation.baseline.healthy===true&&preparation.baseline.iamLayoutUnchanged===true&&
-    preparation.baseline.ids.TaskDefinition===`arn:aws:ecs:${P.region}:${P.account}:task-definition/${P.family}:4`&&
+    preparation.baseline.ids.TaskDefinition===(profile?.baselineDefinition??`arn:aws:ecs:${P.region}:${P.account}:task-definition/${P.family}:4`)&&
     anchor.jobId===T.newJobId&&anchor.anchorSha256===preparation.anchorSha256,'PREPARATION');
   must(compatibility?.executionSourceCommit===sourceCommit&&compatibility.imageSourceCommit===H.imageSource&&compatibility.protectedRuntimeCodeUnchanged===true&&
     compatibility.cloudClosureSha256===B.platform.closureSha256&&auth?.contentRead===false&&auth.length>0&&/^[a-f0-9]{64}$/.test(auth.aclSha256)&&
     /^[a-f0-9]{32}$/.test(nonce)&&/^[a-f0-9]{64}$/.test(riskSha256)&&Number.isSafeInteger(createdAt)&&createdAt>=preparation.createdAt&&
-    createdAt<preparation.expiresAt-CYCLE.runMs,'INPUTS_OR_PREPARATION_EXPIRED');
+    createdAt<preparation.expiresAt-cycle.runMs,'INPUTS_OR_PREPARATION_EXPIRED');
   must(same(anchor,await makeTransferredAnchor(anchor)),'ANCHOR');
-  const body={schema:'techlong/transferred-hosted-cycle-review/v6',sourceCommit,pins,ci,compatibility,preparation,anchor,auth,nonce,createdAt,
-    expiresAt:preparation.expiresAt,latestStartAt:preparation.expiresAt-CYCLE.runMs,riskSha256,riskFile:CYCLE.riskFile,binding:B,scope:CYCLE_SCOPE,
+  const body={schema:profile?.schema??'techlong/transferred-hosted-cycle-review/v6',sourceCommit,pins,ci,compatibility,preparation,anchor,auth,nonce,createdAt,
+    expiresAt:preparation.expiresAt,latestStartAt:preparation.expiresAt-cycle.runMs,riskSha256,riskFile:cycle.riskFile,binding:B,scope:profile?.scope??CYCLE_SCOPE,
     windowTemplateSha256:await sha256Hex(windowTemplate(sourceCommit)),
-    clocks:'30min from actual UpdateStack intent; Review2h minted only after human page readiness; original cloud claim15min not extended',
+    clocks:profile?.clocks??'30min from actual UpdateStack intent; Review2h minted only after human page readiness; original cloud claim15min not extended',
     prerequisites:'Fresh unchanged hosting and exact held task; no new-job plans/approval/attempt; final source and CI frozen. Manual platform and GitHub approvals remain required.',
     independentInspect:'One separately invoked read-only window/control inspection; NOT workload acceptance or permission to dispatch cloud Inspect.',
     risks:{nonAtomicNotCas:true,normalFailureRollbackAndOldRevisionCleanup:true,serviceDowntime:true,credentialsMemoryAndProviderLogs:true,
       sourceRefreshMayFail:true,ownerCredentialNotRowLimited:true,partialOrUnknownWritesMayPersist:true,logsReadIntoMemory:true,
-      feesContinueAfterLease:true,noAutomaticRetryDeleteCompensationResetOrExtension:true},preparationIsNotExecutionApproval:true};
+      feesContinueAfterLease:true,noAutomaticRetryDeleteCompensationResetOrExtension:true},preparationIsNotExecutionApproval:true,
+    ...(profile?.binding?{executionProfile:profile.binding}:{})};
   return {...body,manifestSha256:await sha256Hex(body)};
 }
 export async function validateCycleReview(m,sha,at,{inspect=false,running=false}={}){
@@ -48,7 +53,7 @@ export async function validateCycleReview(m,sha,at,{inspect=false,running=false}
   must(Number.isSafeInteger(at)&&at>=m.createdAt&&(inspect||at<(running?m.expiresAt:m.latestStartAt)),'APPROVAL_EXPIRED');return m;
 }
 export function cycleUpdateRequest(m,at){
-  must(Number.isSafeInteger(at),'INTENT_TIME');return {...compatibleUpdateDraft(m.sourceCommit,m.nonce,at),ClientRequestToken:'platform-cycle-'+m.nonce};
+  must(Number.isSafeInteger(at),'INTENT_TIME');return {...compatibleUpdateDraft(m.sourceCommit,m.nonce,at),ClientRequestToken:(m.executionProfile?.tokenPrefix??'platform-cycle-')+m.nonce};
 }
 export function verifyCycleWindow(inventory,m,intent){
   must(intent.manifestSha256===m.manifestSha256&&same(intent.request,cycleUpdateRequest(m,intent.intentAt))&&
@@ -57,7 +62,7 @@ export function verifyCycleWindow(inventory,m,intent){
   must(inventory.iam?.iamLayoutUnchanged===true&&r.stack.Stacks[0].DisableRollback===false&&root.ResourceStatus==='UPDATE_COMPLETE'&&
     root.ClientRequestToken===intent.request.ClientRequestToken&&Date.parse(root.Timestamp)>=intent.intentAt,'UPDATED_ROOT');
   const proof=verifyWindowMetadata(r,intent.controlLease,m.preparation.baseline.ids,true,m.sourceCommit),ids=Object.fromEntries(proof.resources.map(r=>[r.id,r.physicalId]));
-  const retired=[...H.retiredTaskDefinitions,K.originalDefinition,m.preparation.baseline.ids.TaskDefinition];
+  const retired=[...H.retiredTaskDefinitions,K.originalDefinition,...(m.executionProfile?.additionalRetiredDefinitions??[]),m.preparation.baseline.ids.TaskDefinition];
   must(e.stackId===K.stackId&&e.stackPolicy===null&&same(e.changeSets,[])&&same(e.definitions.ACTIVE,[ids.TaskDefinition])&&
     e.definitions.INACTIVE.every(v=>retired.includes(v))&&e.definitions.DELETE_IN_PROGRESS.every(v=>v===m.preparation.baseline.ids.TaskDefinition),'UPDATED_EXTRA');
   return {...proof,rootEventId:root.EventId,normalFailureRollbackEnabled:true,workloadAcceptanceVerified:false};

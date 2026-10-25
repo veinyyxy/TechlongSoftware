@@ -1,20 +1,20 @@
 // One owned orchestration; all privileged capabilities are separately bounded ports.
 import {K,windowLease} from '../platform-hosted-window-v6/contract.mjs';
 import {CYCLE,cycleUpdateRequest,validateCycleReview,verifyCycleWindow,must} from './cycle-plan.mjs';
-export function createCycleRun({manifest:m,approved,io,verifyWindow=verifyCycleWindow,now=Date.now}){
+export function createCycleRun({manifest:m,approved,io,verifyWindow=verifyCycleWindow,validateReview=validateCycleReview,cycle=CYCLE,now=Date.now}){
   let used=false;return async()=>{
     must(!used,'MEMORY_ONCE');used=true;let phase='PRE_APPROVAL',claimAttempted=false,claimed=false,intent=null;
     try{
-      await validateCycleReview(m,approved,now());await io.guard();
+      await validateReview(m,approved,now());await io.guard();
       phase='READONLY_PREFLIGHT';const fresh=await io.preflight();
-      await validateCycleReview(m,approved,now());await io.guard();must(now()>=fresh.checkedAt&&now()-fresh.checkedAt<120000,'PREFLIGHT_STALE');
+      await validateReview(m,approved,now());await io.guard();must(now()>=fresh.checkedAt&&now()-fresh.checkedAt<120000,'PREFLIGHT_STALE');
       phase='PERMANENT_CLAIM';claimAttempted=true;await io.claim();claimed=true;
       phase='WINDOW_INTENT';const at=now();intent={manifestSha256:m.manifestSha256,intentAt:at,controlLease:windowLease(at,m.sourceCommit),request:cycleUpdateRequest(m,at)};
       await io.record('window-intent',intent);await io.guard();must(now()>=at&&now()-at<30000,'INTENT_STALE');
       phase='UPDATE_STACK_SUBMISSION';const ack=await io.update(intent);must(ack.StackId===K.stackId,'UPDATE_ACK');await io.record('window-ack',ack);
       phase='WAIT_WINDOW';let complete=false;
       for(let n=0;n<=30;n++){
-        await io.guard();must(now()-at<CYCLE.updateWaitMs+1000,'UPDATE_WAIT_EXPIRED');const s=await io.stack();await io.record('window-stack-'+n,s);
+        await io.guard();must(now()-at<cycle.updateWaitMs+1000,'UPDATE_WAIT_EXPIRED');const s=await io.stack();await io.record('window-stack-'+n,s);
         must(s.StackId===K.stackId,'STACK_ID');
         if(s.StackStatus==='UPDATE_COMPLETE'&&Date.parse(s.LastUpdatedTime)>Date.parse(fresh.lastUpdatedTime)){complete=true;break;}
         must(['UPDATE_IN_PROGRESS','UPDATE_COMPLETE_CLEANUP_IN_PROGRESS'].includes(s.StackStatus)||
