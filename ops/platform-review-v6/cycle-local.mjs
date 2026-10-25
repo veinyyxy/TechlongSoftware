@@ -21,6 +21,7 @@ import {sha256Hex} from '../../lib/deployments/execution/hash.ts';
 import {validatePlan} from '../../lib/deployments/controller-v6/contract.ts';
 import {normalizedState} from '../platform-request-v6/transfer.mjs';
 import {assertEvidenceSafeV5} from '../cloud-worker/cloud-evidence-v5.mjs';
+import {operatorFailure} from './operator-failure.mjs';
 import {prepareCloudContextV5} from '../cloud-worker/cloud-context-v5.mjs';
 import {continueCloudContextV5,assertInstallationV5} from '../cloud-worker/cloud-worker-root-v5.mjs';
 import {loadNeonContractV5} from '../cloud-worker/neon-contract-v5.mjs';
@@ -173,7 +174,8 @@ export async function executeCycleMain(args,protocol=LEGACY_PROTOCOL){
       }}});
     const result=await flow();console.log(JSON.stringify(result));if(result.outcome!=='HOSTED_CYCLE_RUNONCE_TERMINAL_REQUIRES_INDEPENDENT_INSPECT')process.exitCode=1;return result;
   }catch(e){const stopped={outcome:outputReady?'HOSTED_CYCLE_ENTRY_STOPPED_NO_RETRY':'HOSTED_CYCLE_SOURCE_PRECHECK_STOPPED_NO_OUTPUT',
-    counts:e.counts??counts(),outputCreated:outputReady,retryAllowed:false};
+    counts:e.counts??counts(),outputCreated:outputReady,retryAllowed:false,
+    failure:operatorFailure(e,'CYCLE_ENTRY',outputReady?(inspect?'INSPECT_ENTRY':'RUN_ENTRY'):'SOURCE_PRECHECK')};
     if(outputReady)await record(out,'stopped',stopped);else console.error(JSON.stringify(stopped));throw Error('HOSTED_CYCLE_ENTRY_STOPPED_NO_RETRY');}
   finally{await close();}
 }

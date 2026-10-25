@@ -6,6 +6,7 @@ import {readinessDeadlines,abortableDelay,waitForLeaseAck,waitForLeaseRun} from 
 import {assertScope,must,same} from '../platform-operations-v6/contract.mjs';
 import {K,P} from '../platform-hosted-window-v6/contract.mjs';
 import {assertHostedHandoffLease,createHostedHandoff} from './hosted-handoff.mjs';
+import {recordedFailureError} from './operator-failure.mjs';
 const before=(signal,deadline,now)=>{signal.throwIfAborted();must(now()<deadline,'HOSTED_DRIVER_DEADLINE');};
 export async function hostedReadyReceipt({manifestSha256,scope,lease,release,hosting,checkedAt,humanReadyUntil}){
   assertScope(scope);await assertHostedHandoffLease(lease,release,scope,checkedAt);
@@ -57,7 +58,7 @@ export function createHostedCycleDriver({scope:rawScope,release:rawRelease,froze
     await waitForLeaseRun({readRun:live.readRun,runId,scope,release,deadline:d.reviewCompleteBy,signal,record,stage:'awaiting-human-review-environment',now,sleep});
     const refs=await live.discover(runId);before(signal,d.reviewCompleteBy,now);
     const prepared=await bridgeFactory({scope,release,frozenSourceCommit,lease,ports:live.ports,now}).once({planSha256:v.planSha256,runId,...refs});
-    must(prepared.outcome==='RESERVED_RUNONCE_PLAN_READY_REQUIRES_EXACT_HUMAN_APPROVAL','HOSTED_BRIDGE_STOPPED');
+    if(prepared.outcome!=='RESERVED_RUNONCE_PLAN_READY_REQUIRES_EXACT_HUMAN_APPROVAL')throw recordedFailureError(prepared.failure,'HOSTED_DRIVER','HANDOFF_STOPPED');
     await record('awaiting-human-runonce-plan',{...prepared,reloadPageOnceToShowNewPlan:true,noRepeatOnError:true});
     const next=await waitForLeaseAck({loadPlan:live.loadPlan,planSha256:prepared.planSha256,scope,mode:'RunOnce',release,
       deadline:prepared.expiresAt,signal,now,sleep});

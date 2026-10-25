@@ -1,6 +1,7 @@
 // One owned orchestration; all privileged capabilities are separately bounded ports.
 import {K,windowLease} from '../platform-hosted-window-v6/contract.mjs';
 import {CYCLE,cycleUpdateRequest,validateCycleReview,verifyCycleWindow,must} from './cycle-plan.mjs';
+import {operatorFailure} from './operator-failure.mjs';
 export function createCycleRun({manifest:m,approved,io,verifyWindow=verifyCycleWindow,validateReview=validateCycleReview,cycle=CYCLE,now=Date.now}){
   let used=false;return async()=>{
     must(!used,'MEMORY_ONCE');used=true;let phase='PRE_APPROVAL',claimAttempted=false,claimed=false,intent=null;
@@ -28,9 +29,9 @@ export function createCycleRun({manifest:m,approved,io,verifyWindow=verifyCycleW
       must(result.outcome==='RUNONCE_TERMINAL_REQUIRES_SEPARATE_INDEPENDENT_INSPECT','DRIVER_STOPPED');
       const out={...result,outcome:'HOSTED_CYCLE_RUNONCE_TERMINAL_REQUIRES_INDEPENDENT_INSPECT',windowUpdateAttempts:1,executionApprovedByParent:false,counts:io.counts()};
       await io.record('result',out);return out;
-    }catch{
+    }catch(e){
       const out={outcome:'HOSTED_CYCLE_STOPPED_REQUIRES_INDEPENDENT_INSPECT',phase,slotClaimAttempted:claimAttempted,slotClaimed:claimed,windowIntentRecordAttempted:intent!==null,
-        workflowDispatchesByParent:0,retryAllowed:false,counts:io.counts()};await io.record('result',out);return out;
+        workflowDispatchesByParent:0,retryAllowed:false,counts:io.counts(),failure:operatorFailure(e,'CYCLE_RUN',phase)};await io.record('result',out);return out;
     }finally{await io.close();}
   };
 }

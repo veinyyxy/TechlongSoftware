@@ -29,6 +29,8 @@ on:
       - 'tests/platform-cycle-transport-v6.test.mjs'
       - 'tests/platform-cycle-next-v6.test.mjs'
       - 'tests/platform-cycle-launch-v6.test.mjs'
+      - 'tests/platform-operator-failure-v6.test.mjs'
+      - 'tests/platform-recovery-preparation-v6.test.mjs'
       - 'tests/fixtures/platform-cycle-v6.mjs'
       - 'tests/platform-review-refresh-v6.test.mjs'
       - 'tests/fixtures/platform-review-refresh-v6.mjs'
@@ -93,6 +95,8 @@ on:
       - 'tests/platform-cycle-transport-v6.test.mjs'
       - 'tests/platform-cycle-next-v6.test.mjs'
       - 'tests/platform-cycle-launch-v6.test.mjs'
+      - 'tests/platform-operator-failure-v6.test.mjs'
+      - 'tests/platform-recovery-preparation-v6.test.mjs'
       - 'tests/fixtures/platform-cycle-v6.mjs'
       - 'tests/platform-review-refresh-v6.test.mjs'
       - 'tests/fixtures/platform-review-refresh-v6.mjs'
@@ -172,6 +176,8 @@ jobs:
           node --experimental-strip-types --test tests/platform-transferred-cycle-v6.test.mjs
           node --experimental-strip-types --test tests/platform-current-prepare-v6.test.mjs tests/platform-hosted-driver-v6.test.mjs
           node --experimental-strip-types --test tests/platform-cycle-v6.test.mjs tests/platform-cycle-transport-v6.test.mjs tests/platform-cycle-next-v6.test.mjs tests/platform-cycle-launch-v6.test.mjs
+          node --experimental-strip-types --test tests/platform-operator-failure-v6.test.mjs tests/platform-recovery-preparation-v6.test.mjs
+          node node_modules/eslint/bin/eslint.js ops/platform-review-v6/operator-failure.mjs ops/platform-review-v6/cycle-reads.mjs ops/platform-review-v6/recovery-preparation.mjs tests/platform-operator-failure-v6.test.mjs tests/platform-recovery-preparation-v6.test.mjs --max-warnings 0
           node node_modules/eslint/bin/eslint.js ops/platform-review-v6/transferred-cycle.mjs ops/platform-review-v6/hosted-handoff.mjs tests/platform-transferred-cycle-v6.test.mjs --max-warnings 0
           node node_modules/eslint/bin/eslint.js ops/platform-review-v6/current-local.mjs ops/platform-review-v6/current-cloud.mjs ops/platform-review-v6/current-database.mjs ops/platform-review-v6/hosted-driver.mjs tests/platform-current-prepare-v6.test.mjs tests/platform-hosted-driver-v6.test.mjs --max-warnings 0
           node node_modules/eslint/bin/eslint.js ops/platform-review-v6/cycle-*.mjs tests/platform-cycle-v6.test.mjs tests/platform-cycle-transport-v6.test.mjs tests/platform-cycle-next-v6.test.mjs tests/platform-cycle-launch-v6.test.mjs tests/fixtures/platform-cycle-v6.mjs --max-warnings 0

@@ -7,6 +7,7 @@ import {createTrustedPublisherV6,ownerQueryV6} from '../platform-cloud-v6/publis
 import {exactRunV6,resultKeyV6} from '../platform-cloud-v6/contract.mjs';
 import {assertScope,must,same} from '../platform-operations-v6/contract.mjs';
 import {assertReadiness,assertHandoffBudget,reserveRunOncePlan,HANDOFF_LIMITS} from '../platform-operations-v6/handoff.mjs';
+import {recordedFailure} from './operator-failure.mjs';
 
 export async function assertHostedHandoffLease(lease,release,scope,now){
   must(hostedRuntimeLeaseV6(JSON.stringify(lease),release,now)&&lease.sourceCommit===scope.sourceCommit&&
@@ -76,9 +77,9 @@ export function createHostedHandoff({scope:rawScope,release:rawRelease,frozenSou
         cloudClaimBy:manifest.jobPlan.claimBy,reservedMs:HANDOFF_LIMITS.reserveMs,observations,ownerSubmissions,workflowDispatches:0,
         humanRunOnceApprovalRequired:true,humanEnvironmentApprovalRequired:true,executionApproved:false,retryAllowed:false};
       await ports.record('result',result);return result;
-    }catch{
+    }catch(e){
       const result={outcome:'HANDOFF_STOPPED_REQUIRES_READBACK_NO_RETRY',phase,slotClaimAttempted:claimAttempted,slotClaimed:claimed,
-        observations,ownerSubmissions,workflowDispatches:0,retryAllowed:false};
+        observations,ownerSubmissions,workflowDispatches:0,retryAllowed:false,failure:recordedFailure(e,'HOSTED_HANDOFF',phase)};
       if(claimAttempted)await ports.record('result',result);return result;
     }finally{await ports.dispose();}
   }});
