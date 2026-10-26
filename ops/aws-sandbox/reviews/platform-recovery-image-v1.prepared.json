@@ -1,0 +1,167 @@
+{
+  "schema": "techlong/recovery-image-publication-prepared/v1",
+  "outcome": "EXACT_IMAGE_PUBLICATION_REVIEW_READY_NOT_APPROVED",
+  "preparedAtUtc": "2026-10-26T15:15:01.562Z",
+  "operatorSourceCommit": "b29b984e4cc7f2bff185367389eb83995368e277",
+  "sourceCiRunId": 40346504910,
+  "reusableCommit": "9b26b7c7d16929d50c0e14e05d92f1e7fe40eb75",
+  "reusableCiRunId": 40345578484,
+  "callerWorkflowId": 397198383,
+  "manifest": {
+    "file": "F:/ChatGPT_workshop/techlong-w9o-recovery-image-review-20261026-a.json",
+    "sha256": "67782d1e0f5e2e4f661f9deef8214c74590d16c2b994d2a6a07667b036cba4eb",
+    "bytes": 8506,
+    "issuedAt": "2026-10-26T15:13:49.633Z",
+    "expiresAt": "2026-10-28T15:13:49.633Z",
+    "latestStartAt": "2026-10-28T14:13:49.633Z",
+    "pinCount": 37,
+    "riskFile": "docs/aws-auto-deployment-w9o-recovery-image-publication-review.md",
+    "riskSha256": "058171842612d5feadb4bfc87abe83ffb797cb7d1c715fe681095c1ed34a4f00"
+  },
+  "candidate": {
+    "repository": "veinyyxy/TechlongSoftware",
+    "repositoryId": 1323312747,
+    "actorId": "14145707",
+    "ownerId": "14145707",
+    "sourceCommit": "5fcbc23ccaccec2c6a0fab8e732728a55b0b7ffc",
+    "runId": 40340097784,
+    "workflowId": 391864582,
+    "artifactId": 12658433499,
+    "artifactBytes": 307800935,
+    "artifactName": "platform-web-image-5fcbc23ccaccec2c6a0fab8e732728a55b0b7ffc-40340097784",
+    "artifactDigest": "sha256:d16bc943e4ff7792f1782675717db3df8fd2e9a9c33532756fa60edaa7426745",
+    "artifactExpiresAt": "2026-10-29T14:32:46Z",
+    "imageConfigDigest": "sha256:23fbf299930cdd5883579d296adc40ff789d4acc9881587bbeb3a93f87a7ab90",
+    "archiveSha256": "e91fd462db78dd3bd28f5b0ae7d313db9f1604d33dc77c0619e6e10a6cce54bb",
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "role": "TechlongSandboxPlatformImagePublisherV2",
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxPlatformImagePublisherV2",
+    "roleId": "AROAV3GNMXTZID6CJJBA2",
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b",
+    "ecrRepository": "techlong-sandbox-platform-web",
+    "registry": "402010193138.dkr.ecr.ca-central-1.amazonaws.com",
+    "targetTag": "platform-sha5fcbc23ccaccec2c6a0fab8e732728a55b0b7ffc-r40340097784-a1",
+    "environment": "techlong-sandbox-deploy",
+    "subject": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy",
+    "reusableFile": "platform-image-recovery-publish-job-v1.yml",
+    "callerFile": "platform-image-recovery-publish-v1.yml",
+    "scannerVersion": "0.75.0",
+    "scannerSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f"
+  },
+  "scope": {
+    "cloudFormationUpdateStack": 2,
+    "githubWorkflowDispatch": 1,
+    "roleSessions": 1,
+    "topLevelDockerPush": 1,
+    "grantSeconds": 3600,
+    "stsSeconds": 900,
+    "gitCredentialLoads": 1,
+    "awsSecretValueReads": 0,
+    "appPrivateKeyReads": 0,
+    "sqlConnections": 0,
+    "resourceCreates": 0,
+    "resourceDeletes": 0,
+    "deployments": 0
+  },
+  "counts": {
+    "aws": {
+      "sts": 1,
+      "metadata": 15,
+      "writes": 0
+    },
+    "githubPrepare": {
+      "gets": 11,
+      "posts": 0
+    },
+    "githubDiagnosticReads": 8,
+    "githubTotalGets": 19
+  },
+  "preflight": {
+    "publisherLocked": true,
+    "retainedImages": 2,
+    "sourceVerified": true,
+    "repositoryImmutable": true,
+    "environmentRequiredHumanReviewer": true,
+    "slotAbsent": true,
+    "notCrossServiceCas": true
+  },
+  "businessBasisExpiresAtUtc": "2026-10-27T18:47:57.695Z",
+  "noEcsOrRuntimeLeaseChange": true,
+  "noSecretValuePemEnvOrSqlRead": true,
+  "localTestsPassed": 62,
+  "sourcePinsReverified": true,
+  "evidence": [
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9o-recovery-image-review-20261026-a.json",
+      "rawSha256": "67782d1e0f5e2e4f661f9deef8214c74590d16c2b994d2a6a07667b036cba4eb",
+      "bytes": 8506
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9o-recovery-image-review-20261026-a.json.facts.json",
+      "rawSha256": "6c4cbc5e3f610159f679964ee1f4cb0371213a59c79f2144b483a3a121d314de",
+      "bytes": 71689
+    }
+  ],
+  "parentSeal": {
+    "file": "F:/ChatGPT_workshop/techlong-w9n-hosted-bootstrap-completed-verified-20261026-a.json",
+    "rawSha256": "5da3ad5b2ccd81e783815b6912703e729886e8b13852ac852098568703b03ba8",
+    "bytes": 8096
+  },
+  "ci": {
+    "reusable": {
+      "runId": 40345578484,
+      "head": "9b26b7c7d16929d50c0e14e05d92f1e7fe40eb75",
+      "workflowId": 397198387,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 121651487335,
+          "name": "contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": 9,
+          "allSuccess": true,
+          "failed": []
+        },
+        {
+          "id": 121651908083,
+          "name": "exact-image",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": 8,
+          "allSuccess": true,
+          "failed": []
+        }
+      ]
+    },
+    "operator": {
+      "runId": 40346504910,
+      "head": "b29b984e4cc7f2bff185367389eb83995368e277",
+      "workflowId": 397198387,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 121654725976,
+          "name": "contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": 10,
+          "allSuccess": true,
+          "failed": []
+        },
+        {
+          "id": 121655205106,
+          "name": "exact-image",
+          "status": "completed",
+          "conclusion": "success",
+          "steps": 8,
+          "allSuccess": true,
+          "failed": []
+        }
+      ]
+    }
+  }
+}
