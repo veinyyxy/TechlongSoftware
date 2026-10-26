@@ -11,6 +11,7 @@ import {main as cloud} from '../ops/platform-recovery-image-v1/cloud.mjs';
 import {P,hash,publicationProtocol} from '../ops/platform-image-publication-v2/plan.mjs';
 import {runControlled} from '../ops/platform-image-source-v2/runner.mjs';
 import {createGithub} from '../ops/platform-image-source-v2/github.mjs';
+import {createAws} from '../ops/platform-image-source-v2/aws.mjs';
 const now=Date.parse('2026-10-26T15:00:00Z'),head='2'.repeat(40),binding={reusableCommit:'1'.repeat(40),reusableCiRun:123456789,reusableCiWorkflow:12345};
 const review=sourceContext(binding);
 function outer(){return {schema:review.S.schema,issuedAt:'2026-10-26T14:00:00Z',expiresAt:'2026-10-28T14:00:00Z',latestStartAt:'2026-10-28T13:00:00Z',
@@ -143,4 +144,10 @@ test('candidate CI has no OIDC/environment/AWS or production dispatch and loads 
   const cmds=Object.values(w.jobs).flatMap(j=>j.steps.map(s=>s.run??'')).join('\n');
   assert.doesNotMatch(cmds,/RunReviewed|node (?:--\S+ )?ops\/[^ \n]*(?:source|cloud)\.mjs\b|docker push|docker build|aws /);
   assert(cmds.includes('preflight.sh preflight'));assert.equal(w.on.workflow_dispatch,undefined);
+});
+test('read-only preparation rejects update before credentials and bounds GitHub reads before network',async()=>{
+  const aws=await createAws({protocol,readOnly:true,metadataLimit:15,stsLimit:1});
+  try{await assert.rejects(aws.update({},'grant'),/SOURCE_READ_ONLY/);assert.deepEqual(aws.counts,{sts:0,metadata:0,writes:0});}finally{aws.close();}
+  let requests=0;const gh=createGithub({context:review,maxGets:1,credential:()=> 'synthetic',fetcher:async()=>{requests++;return new Response('{"id":14145707,"login":"veinyyxy"}');}});
+  await gh.readIdentity();await assert.rejects(gh.readIdentity(),/SOURCE_GITHUB_READ_BUDGET/);assert.equal(requests,1);gh.close();
 });

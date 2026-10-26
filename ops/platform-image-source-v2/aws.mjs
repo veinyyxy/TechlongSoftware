@@ -37,7 +37,8 @@ export function verifySnapshot(v,expected,{initial=false}={}){
   if(initial)must(v.images.imageDetails.length===0,'SOURCE_INITIAL_ECR_EMPTY');
   return {locked:t.AssumeRolePolicyDocument.Statement.every(s=>s.Effect!=='Allow'),imageCount:v.images.imageDetails.length};
 }
-export async function createAws({protocol=publicationProtocol(),request=updateRequest,sourceLogin=false}={}){
+export async function createAws({protocol=publicationProtocol(),request=updateRequest,sourceLogin=false,
+  readOnly=false,metadataLimit=Infinity,stsLimit=Infinity}={}){
   const {P,verifyPublishedManifest}=protocol;
   const require=createRequire(new URL('../cloud-worker/package.json',import.meta.url));
   const stsApi=require('@aws-sdk/client-sts'),iamApi=require('@aws-sdk/client-iam'),cfnApi=require('@aws-sdk/client-cloudformation'),ecrApi=require('@aws-sdk/client-ecr');
@@ -50,9 +51,16 @@ export async function createAws({protocol=publicationProtocol(),request=updateRe
     iam:new iamApi.IAMClient(config('https://iam.amazonaws.com','us-east-1')),
     cfn:new cfnApi.CloudFormationClient(config('https://cloudformation.ca-central-1.amazonaws.com')),
     ecr:new ecrApi.ECRClient(config('https://api.ecr.ca-central-1.amazonaws.com'))});
-  const call=(c,cmd)=>c.send(cmd,{abortSignal:AbortSignal.timeout(30000)}),dispose=c=>Object.values(c).forEach(v=>v.destroy());
+  const counts={sts:0,metadata:0,writes:0};
+  const call=(c,cmd)=>{
+    if(cmd instanceof cfnApi.UpdateStackCommand){must(!readOnly,'SOURCE_READ_ONLY');counts.writes++;}
+    else if(cmd instanceof stsApi.GetCallerIdentityCommand)must(++counts.sts<=stsLimit,'SOURCE_STS_BUDGET');
+    else must(++counts.metadata<=metadataLimit,'SOURCE_METADATA_BUDGET');
+    return c.send(cmd,{abortSignal:AbortSignal.timeout(30000)});
+  },dispose=c=>Object.values(c).forEach(v=>v.destroy());
   const writer=clients(),writes=new Set();
   return {
+    counts,
     async snapshot(){
       const c=clients(),v={startedAtUtc:new Date().toISOString()};
       try{
@@ -83,6 +91,7 @@ export async function createAws({protocol=publicationProtocol(),request=updateRe
       }throw Error('PLATFORM_PUBLISH_V2_SOURCE_CFN_NOT_SETTLED');
     },
     async update(inner,phase){
+      must(!readOnly,'SOURCE_READ_ONLY'); // Before Source credential or metadata discovery.
       must(['grant','revoke'].includes(phase)&&!writes.has(phase),'SOURCE_UPDATE_ONCE');
       const who=await call(writer.sts,new stsApi.GetCallerIdentityCommand({}));identity(who);
       const role=await call(writer.iam,new iamApi.GetRoleCommand({RoleName:P.role}));

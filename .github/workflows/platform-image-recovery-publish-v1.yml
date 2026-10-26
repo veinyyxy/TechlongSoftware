@@ -13,7 +13,13 @@ on:
         required: true
 permissions: {}
 jobs:
-  not-ready:
-    runs-on: ubuntu-24.04
-    steps:
-      - run: echo 'Immutable reusable CI binding not yet installed; no AWS identity or publication.' && exit 1
+  reviewed-publication:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: veinyyxy/TechlongSoftware/.github/workflows/platform-image-recovery-publish-job-v1.yml@9b26b7c7d16929d50c0e14e05d92f1e7fe40eb75
+    with:
+      review_json: ${{ inputs.review_json }}
+      review_sha: ${{ inputs.review_sha }}

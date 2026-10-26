@@ -6,15 +6,17 @@ async function json(r){
   try{for(;;){const p=await reader.read();if(p.done)break;size+=p.value.length;must(size<=1000000,'SOURCE_GITHUB_SIZE');parts.push(Buffer.from(p.value));}}
   finally{await reader.cancel().catch(()=>{});reader.releaseLock();}return JSON.parse(Buffer.concat(parts).toString('utf8'));
 }
-export function createGithub({context={P,S,validateGithubLayout,verifyRun,verifyCandidate},fetcher=fetch,credential=()=>{
+export function createGithub({context={P,S,validateGithubLayout,verifyRun,verifyCandidate},fetcher=fetch,maxGets=Infinity,credential=()=>{
   const raw=git(['credential','fill'],`protocol=https\nhost=github.com\npath=${P.repository}.git\n\n`);
   const token=raw.split(/\r?\n/).find(l=>l.startsWith('password='))?.slice(9);must(token&&token.length<=16000&&!/[\r\n]/.test(token),'SOURCE_GITHUB_CREDENTIAL');return token;
 }}={}){
   const {P,S,validateGithubLayout,verifyRun,verifyCandidate}=context;
-  let token,posts=0;
+  let token,posts=0;const counts={gets:0,posts:0};
   async function request(suffix,{method='GET',body}={}){
     must(suffix.startsWith(`/repos/${P.repository}/`)||suffix===`/repos/${P.repository}`||suffix==='/user','SOURCE_GITHUB_SCOPE');
+    if(method==='GET')must(++counts.gets<=maxGets,'SOURCE_GITHUB_READ_BUDGET');
     if(method!=='GET')must(method==='POST'&&suffix===`/repos/${P.repository}/actions/workflows/${P.callerFile}/dispatches`&&posts++===0,'SOURCE_DISPATCH_ONCE');
+    if(method==='POST')counts.posts++;
     token??=await credential();
     const r=await fetcher('https://api.github.com'+suffix,{method,redirect:'error',cache:'no-store',signal:AbortSignal.timeout(20000),
       headers:{authorization:'Bearer '+token,accept:'application/vnd.github+json','x-github-api-version':'2026-03-10','content-type':'application/json'},
@@ -23,6 +25,7 @@ export function createGithub({context={P,S,validateGithubLayout,verifyRun,verify
   }
   const prefix=`/repos/${P.repository}`;
   return {
+    counts,
     async readIdentity(){const v=await request('/user');return {id:v.id,login:v.login};},
     async metadata(head,m,{sourceCiRunId}={}){
       const paths={user:'/user',repo:prefix,oidc:prefix+'/actions/oidc/customization/sub',

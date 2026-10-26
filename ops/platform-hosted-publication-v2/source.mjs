@@ -26,7 +26,8 @@ function fileContext(review){
   const options={settings:review.S,roots,frozenRoots:cloudRoots,metadataFiles:[...metadataFiles,review.S.publicReviewFile]};
   return {pins:()=>pins(options),clean:m=>cleanSource(m,options)};
 }
-function cloud(review){environment();return createAws({protocol,request:review.updateRequest,sourceLogin:true});}
+function cloud(review,readOnly=false){environment();return createAws({protocol,request:review.updateRequest,sourceLogin:true,
+  readOnly,metadataLimit:readOnly?15:Infinity,stsLimit:readOnly?1:Infinity});}
 function lockedTemplate(inner){return protocol.templates(inner).revoke;}
 function initial(v){
   // This lineage begins after the old publication: trust+inline are Locked and
@@ -51,7 +52,7 @@ async function prepare(output,ciRun){
   must(reviewPattern.test(output??'')&&
     /^[1-9][0-9]{5,19}$/.test(ciRun??''),'HOSTED_PREPARE_ARGUMENTS');
   await absent(output);await absent(path.join(EVIDENCE,review.S.intentFile));
-  const head=await files.clean(),aws=await cloud(review),gh=createGithub({context:review});
+  const head=await files.clean(),aws=await cloud(review,true),gh=createGithub({context:review,maxGets:11});
   try{
     const snapshot=await aws.snapshot();initial(snapshot);
     const metadata=await gh.metadata(head,undefined,{sourceCiRunId:Number(ciRun)}),sourcePins=await files.pins();
@@ -64,9 +65,10 @@ async function prepare(output,ciRun){
       riskSha256:hash((await readText(path.join(ROOT,review.S.riskFile))).replaceAll('\r\n','\n')),
       candidate:{...C},reusableCommit:review.S.reusableCommit,scope:{...review.S.scope}};
     const text=JSON.stringify(m,null,2)+'\n';review.validateOuter(text,hash(text));
-    await writeOnce(output+'.facts.json',{snapshot,metadata,cloudWrites:0,privateValueReads:0});await writeOnce(output,m);
+    const counts={aws:{...aws.counts},github:{...gh.counts}};
+    await writeOnce(output+'.facts.json',{snapshot,metadata,counts,cloudWrites:0,privateValueReads:0});await writeOnce(output,m);
     return {mode:'Prepare',output,manifestSha256:hash(text),expiresAt:m.expiresAt,latestStartAt:m.latestStartAt,
-      grantWindow:'Maximum one hour from RunReviewed, never beyond approved deadline',cloudWrites:0};
+      grantWindow:'Maximum one hour from RunReviewed, never beyond approved deadline',cloudWrites:0,counts};
   }finally{aws.close();gh.close();}
 }
 async function run(file,sha,notify=console.log){

@@ -41,6 +41,7 @@ jobs:
           node-version: '22.19.0'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
       - run: node --test tests/platform-recovery-image-v1.test.mjs tests/platform-hosted-source-v2.test.mjs tests/platform-hosted-publication-v2.test.mjs tests/platform-image-publication-v2.test.mjs tests/platform-image-source-v2.test.mjs
       - run: |
           node node_modules/typescript/bin/tsc --noEmit --incremental false
