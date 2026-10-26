@@ -1,0 +1,63 @@
+{
+  "schema": "techlong/recovery-hosting-preparation-record/v1",
+  "status": "FRESH_READONLY_VERIFIED_EXECUTION_UNAPPROVED",
+  "snapshot": {
+    "checkedAtUtc": "2026-10-26T19:29:27.729Z",
+    "recordedAtUtc": "2026-10-26T19:29:56.821Z",
+    "rawSha256": "2aa83db27527b0f3786ca9276bd4e614c4abaa6ec1150595a24110f9bce89abb",
+    "sts": 1,
+    "metadata": 43,
+    "writes": 0,
+    "sourceIdentityMatched": true,
+    "oldSnapshotsAndFailuresPreserved": true
+  },
+  "target": {
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "resourceCount": 11,
+    "taskDefinition": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:8",
+    "healthy": true,
+    "dnsAliasVerified": true,
+    "existingRolesAndFixedSecretVersionMetadataMatched": true
+  },
+  "image": {
+    "manifestDigest": "sha256:71e268934bb1dbe8220f33cf68757cd48d74c89be35269ba583f6dd1b712e75a",
+    "configDigest": "sha256:23fbf299930cdd5883579d296adc40ff789d4acc9881587bbeb3a93f87a7ab90",
+    "rawManifestVerified": true,
+    "rebuildOrRepublishRequired": false
+  },
+  "ci": {
+    "runId": "40382378149",
+    "jobId": "121781716499",
+    "testedSourceCommit": "6fa0650544cded5dd6fda90fab0bdedd12960874",
+    "attempt": 1,
+    "conclusion": "success",
+    "allStepsIndependentlyVerified": true
+  },
+  "proposedUpdate": {
+    "topLevelUpdateStackMax": 1,
+    "logicalUpdates": ["TaskDefinition", "Service"],
+    "normalCfnFailureRollback": true,
+    "managedSecretReinjection": true,
+    "controlMinutes": 30,
+    "newIam": 0,
+    "secretWrites": 0,
+    "directPrivateReads": 0,
+    "sql": 0,
+    "dispatches": 0,
+    "automaticCleanupOrRetries": false
+  },
+  "approvalManifest": {
+    "entry": "ops/platform-recovery-hosting-v1/local.mjs",
+    "mode": "PrepareSaved",
+    "executionSourceBinding": "clean main after this metadata-only publication",
+    "exactShaLocation": "separately generated local manifest and user confirmation",
+    "thisRecordIsNotAnApprovalSha": true
+  },
+  "businessBasisExpiresAtUtc": "2026-10-27T18:47:57.695Z",
+  "riskFile": "docs/aws-auto-deployment-w9p-recovery-hosting-update-review.md",
+  "mainlineRunbook": "docs/aws-auto-deployment-recovery-launch-readiness.md",
+  "executionAuthorized": false,
+  "businessAcceptancePassed": false
+}
