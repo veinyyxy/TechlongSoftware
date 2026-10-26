@@ -9,11 +9,16 @@ import {readMetadataJson} from '../platform-hosted-window-v6/cloud.mjs';
 import {H as A} from '../platform-hosted-access-v6/contract.mjs';
 import {H as D} from '../platform-hosted-deploy-v6/contract.mjs';
 import {T,P,BEFORE,hash,same,must,request,validate,verifyObserved,baseline} from './plan.mjs';
+import * as continuation from '../platform-recovery-continuation-v1/plan.mjs';
 const req=createRequire(new URL('../cloud-worker/package.json',import.meta.url));
 const C=req('@aws-sdk/client-cloudformation'),E=req('@aws-sdk/client-ecs'),I=req('@aws-sdk/client-iam'),S=req('@aws-sdk/client-secrets-manager'),
   L=req('@aws-sdk/client-elastic-load-balancing-v2'),G=req('@aws-sdk/client-cloudwatch-logs'),R=req('@aws-sdk/client-route-53'),X=req('@aws-sdk/client-ecr'),Q=req('@aws-sdk/client-sts');
 const decode=v=>typeof v==='string'?JSON.parse(decodeURIComponent(v)):v;
-export function createCloud({manifest,approved,readOnly=true,metadataLimit=65,record=async()=>{}}={}){
+// Two code-bound constructors; callers cannot supply a validator/target/endpoint.
+export const createCloud=options=>createFixedCloud(options,false);
+export const createContinuationCloud=options=>createFixedCloud(options,true);
+function createFixedCloud({manifest,approved,readOnly=true,metadataLimit=65,record=async()=>{}}={},continuing=false){
+  const protocol=continuing?continuation:{validate,request,verifyObserved,baseline};
   awsEnvironment();const provider=fromLoginCredentials({profile:P.profile,ignoreCache:true});
   const config=(endpoint,region=P.region)=>({region,credentials:provider,maxAttempts:1,ignoreConfiguredEndpointUrls:true,endpoint,
     requestHandler:new NodeHttpHandler({httpsAgent:new Agent({family:4,keepAlive:false}),connectionTimeout:5000,socketTimeout:20000})});
@@ -25,6 +30,7 @@ export function createCloud({manifest,approved,readOnly=true,metadataLimit=65,re
   const counts={sts:0,metadata:0,writes:0};let identity=null;
   const call=(client,cmd)=>{must(++counts.metadata<=metadataLimit,'METADATA_BUDGET');return clients[client].send(cmd,{abortSignal:AbortSignal.timeout(30000)});};
   async function source(){if(identity)return identity;must(++counts.sts===1,'STS_BUDGET');const v=await clients.sts.send(new Q.GetCallerIdentityCommand({}),{abortSignal:AbortSignal.timeout(30000)});
+    await record('source-identity',{Account:v.Account,Arn:v.Arn,UserId:v.UserId});
     must(v.Account===P.account&&v.Arn===P.sourceArn&&v.UserId===P.sourceId,'SOURCE_IDENTITY');identity={Account:v.Account,Arn:v.Arn,UserId:v.UserId};return identity;}
   const cli=(service,op,args)=>{must((service==='ec2'&&op==='describe-security-groups')||(service==='kms'&&op==='describe-key'),'CLI_READ_ONLY');
     must(++counts.metadata<=metadataLimit,'METADATA_BUDGET');return readMetadataJson(service,op,()=>execFileSync('aws.exe',[service,op,...args,'--profile',P.profile,'--region',P.region,
@@ -68,21 +74,21 @@ export function createCloud({manifest,approved,readOnly=true,metadataLimit=65,re
     return {rawMetadata:v,extra:{stackPolicy:p.StackPolicyBody?JSON.parse(p.StackPolicyBody):null,changeSets:c.Summaries??[],definitions}};
   }
   return {counts,
-    async snapshot(){const checkedAt=Date.now(),v=await read();await record('raw-readback',v);const proof=await verifyObserved(v.rawMetadata,v.extra,{controlLease:BEFORE.oldLease});
+    async snapshot(){const checkedAt=Date.now(),v=await read();await record('raw-readback',v);const proof=await protocol.verifyObserved(v.rawMetadata,v.extra,{controlLease:BEFORE.oldLease});
       const permissions=[];for(const action of ['cloudformation:UpdateStack','cloudformation:SetStackPolicy']){const r=await call('iam',new I.SimulatePrincipalPolicyCommand({PolicySourceArn:P.sourceArn,ActionNames:[action],ResourceArns:[T.stackId],
         ContextEntries:[{ContextKeyName:'aws:RequestedRegion',ContextKeyValues:[P.region],ContextKeyType:'string'}]}));const e=r.EvaluationResults?.[0];
         must(!r.IsTruncated&&r.EvaluationResults?.length===1&&e.EvalActionName===action&&e.EvalDecision==='allowed'&&!(e.MissingContextValues??[]).length,'PERMISSION');permissions.push({action,decision:e.EvalDecision});}
       const response=await call('ecr',new X.BatchGetImageCommand({registryId:P.account,repositoryName:P.repository,imageIds:[{imageDigest:T.imageDigest}],acceptedMediaTypes:['application/vnd.docker.distribution.manifest.v2+json','application/vnd.oci.image.manifest.v1+json']}));
       const image=response.images?.[0],body=image?.imageManifest;must(!response.failures?.length&&response.images?.length===1&&image.imageId?.imageDigest===T.imageDigest&&
         'sha256:'+hash(body)===T.imageDigest&&JSON.parse(body).config?.digest===T.configDigest,'ECR_MANIFEST');
-      return {...v,checkedAt,permissions,proof,image:{digest:T.imageDigest,configDigest:T.configDigest,rawManifest:response},baseline:baseline(v.rawMetadata,v.extra,proof),counts:{...counts}};
+      return {...v,checkedAt,permissions,proof,image:{digest:T.imageDigest,configDigest:T.configDigest,rawManifest:response},baseline:protocol.baseline(v.rawMetadata,v.extra,proof),counts:{...counts}};
     },
-    async update(input){must(!readOnly&&manifest&&approved&&counts.writes===0,'WRITE_DISABLED');validate(manifest,approved,Date.now());const at=JSON.parse(input.Parameters.find(p=>p.ParameterKey==='ControllerLease').ParameterValue).issuedAt;
-      must(identity&&Date.now()>=at&&Date.now()-at<30000&&same(input,request(manifest,at)),'EXACT_UPDATE');counts.writes++;
+    async update(input){must(!readOnly&&manifest&&approved&&counts.writes===0,'WRITE_DISABLED');protocol.validate(manifest,approved,Date.now());const at=JSON.parse(input.Parameters.find(p=>p.ParameterKey==='ControllerLease').ParameterValue).issuedAt;
+      must(identity&&Date.now()>=at&&Date.now()-at<30000&&same(input,protocol.request(manifest,at)),'EXACT_UPDATE');counts.writes++;
       const r=await clients.cfn.send(new C.UpdateStackCommand(input),{abortSignal:AbortSignal.timeout(30000)});return {StackId:r.StackId,sdkAttempts:r.$metadata?.attempts??null};},
     async stack(){const r=await call('cfn',new C.DescribeStacksCommand({StackName:T.stackId}));must(r.Stacks?.length===1,'STACK_COUNT');return {StackId:r.Stacks[0].StackId,StackStatus:r.Stacks[0].StackStatus,LastUpdatedTime:r.Stacks[0].LastUpdatedTime};},
     async observe(intent){const v=await read();await record('observed-readback',v);
-      const proof=await verifyObserved(v.rawMetadata,v.extra,{source:manifest.sourceCommit,controlLease:intent.controlLease,updated:true,
+      const proof=await protocol.verifyObserved(v.rawMetadata,v.extra,{source:manifest.sourceCommit,controlLease:intent.controlLease,updated:true,
       intentAt:intent.intentAt,token:intent.request.ClientRequestToken,priorInactive:manifest.before.inactive});return {...v,proof,counts:{...counts}};},
     close(){for(const c of Object.values(clients))c.destroy();},
   };

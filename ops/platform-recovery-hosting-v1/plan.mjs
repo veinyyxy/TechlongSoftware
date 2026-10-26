@@ -31,7 +31,7 @@ export function nextTemplate(source){must(/^[a-f0-9]{40}$/.test(source),'SOURCE'
 export function lease(at,source){must(Number.isSafeInteger(at)&&at>0&&at+T.leaseMs<=T.basisExpiresAt&&/^[a-f0-9]{40}$/.test(source),'LEASE');
   return {schema:'techlong/platform-hosted-runtime-lease/v6',releaseSha256:hash(B.release),origin:'https://'+P.domain,
     sourceCommit:source,issuedAt:at,expiresAt:at+T.leaseMs};}
-export async function verifyObserved(v,extra,{source,controlLease,updated=false,intentAt,token,priorInactive=[]},shared=verifyMetadata){
+export async function verifyObserved(v,extra,{source,controlLease,updated=false,intentAt,token,priorInactive=[],priorDefinition=BEFORE.ids.TaskDefinition},shared=verifyMetadata){
   await assertRecoveryPublication(B);const st=v.stack?.Stacks?.[0],rs=v.resources?.StackResourceSummaries,doc=typeof v.template?.TemplateBody==='string'?JSON.parse(v.template.TemplateBody):v.template?.TemplateBody;
   must(v.stack?.Stacks?.length===1&&st.StackId===T.stackId&&st.StackStatus==='UPDATE_COMPLETE'&&!st.RoleARN&&st.DisableRollback===false&&
     rs?.length===11&&!v.resources.NextToken&&rs.every(r=>['CREATE_COMPLETE','UPDATE_COMPLETE'].includes(r.ResourceStatus)),'STABLE_STACK');
@@ -45,8 +45,8 @@ export async function verifyObserved(v,extra,{source,controlLease,updated=false,
     deployment.deploymentCircuitBreaker.rollback===false&&deployment.strategy==='ROLLING'&&deployment.bakeTimeInMinutes===0,'DEPLOYMENT_POLICY');
   const ids=Object.fromEntries(rs.map(r=>[r.LogicalResourceId,r.PhysicalResourceId]));
   must(extra.stackPolicy===null&&extra.changeSets.length===0&&same(extra.definitions.ACTIVE,[ids.TaskDefinition])&&
-    extra.definitions.INACTIVE.every(a=>(updated?[...priorInactive,BEFORE.ids.TaskDefinition]:Array.from({length:7},(_,n)=>BEFORE.ids.TaskDefinition.replace(/:8$/,':'+(n+1)))).includes(a))&&
-    extra.definitions.DELETE_IN_PROGRESS.every(a=>updated&&a===BEFORE.ids.TaskDefinition),'EXTRA_LAYOUT');
+    extra.definitions.INACTIVE.every(a=>(updated?[...priorInactive,priorDefinition]:Array.from({length:7},(_,n)=>BEFORE.ids.TaskDefinition.replace(/:8$/,':'+(n+1)))).includes(a))&&
+    extra.definitions.DELETE_IN_PROGRESS.every(a=>updated&&a===priorDefinition),'EXTRA_LAYOUT');
   if(updated){const roots=v.events?.StackEvents?.filter(e=>e.ResourceType==='AWS::CloudFormation::Stack'&&e.PhysicalResourceId===T.stackId)
     .sort((a,b)=>new Date(b.Timestamp).getTime()-new Date(a.Timestamp).getTime());must(roots?.[0]?.ResourceStatus==='UPDATE_COMPLETE'&&roots[0].ClientRequestToken===token&&new Date(roots[0].Timestamp).getTime()>=intentAt,'UPDATE_EVENT');}
   // Compare actual values first; normalize ONLY verified substitutions on a clone.

@@ -2,11 +2,13 @@
 
 2026-10-26。目标仅为现有实例的一轮真实 Review → RunOnce → 独立 Inspect，不新增产品功能或通用控制框架。代码存在、镜像发布、CI 成功均不等于这一轮业务验收成功。
 
-本轮实际结果：ECS已更新至revision9并独立核验；Review登记因保护摘要差异在写前停止，未消费登记槽。只读诊断表明业务/任务/账本未变，新入口漏设原读取器的事务内`search_path=pg_catalog`。已按用户许可仅修正读取环境并加测试，不重算/替换保护基准；尚未在同一设置下重新连接生产证明摘要恢复一致。本轮生产流程已关闭，原控制租约不延长，修复提交不用于本窗口。[完整实际记录](aws-auto-deployment-w9p-recovery-hosting-executed.md)。下述命令是未来新批准流程索引，不可用旧SHA重放。
+前轮历史结果：ECS已更新至revision9并独立核验；Review登记因保护摘要差异在写前停止，未消费登记槽。只读诊断表明业务/任务/账本未变，新入口漏设原读取器的事务内`search_path=pg_catalog`。当时仅修正读取环境并加测试，不重算/替换保护基准。该轮生产流程已关闭，原控制租约不延长，修复提交未用于旧窗口。[完整实际记录](aws-auto-deployment-w9p-recovery-hosting-executed.md)。下述命令是未来新批准流程索引，不可用旧SHA重放。
+
+后续限定只读确认已证明保护摘要匹配；第二处误报来自把行created_at误当原事务时间。原事务回执及12份封存原件验证后，用原始校验器对真实快照完整通过，未改基准。[已封存的继续方案](aws-auto-deployment-recovery-continuation-plan.md)保留该事实。新代码将原事务证据绑定到operator清单；准备与执行都必须重新核验固定原件，不能由material或行值选择时间。新的现有承载继续入口及其独立槽见[完整范围/风险](aws-auto-deployment-recovery-continuation-review.md)。这些实现不授予任何生产执行权限。
 
 ## 核对结论与本次最小修复
 
-W9o 已完成新镜像 ECR 发布及独立撤权核验；W9p 已完成现有 ECS 更新代码/测试，但没有实际更新。新恢复协议的桥提供 Review/后继计划核心逻辑，平台控制器和单次 Inspect 入口也已有；缺的是该桥的受审生产发布组合。旧 `openProductionPublisherV6` 固定旧 release，不能换一个输入就冒充新协议授权。
+最初编码时，W9o 已完成镜像发布，W9p 尚未更新；之后W9p已实际完成revision9更新和独立核验，见上述历史记录。新恢复协议的桥提供 Review/后继计划核心逻辑，平台控制器和单次 Inspect 入口也已有；本目录补上该桥的受审生产发布组合。旧 `openProductionPublisherV6` 固定旧 release，不能换一个输入就冒充新协议授权。
 
 本次只新增 `ops/platform-recovery-launch-v1/` 本地 operator：复用原桥、原 publisher 数据库/版本对象读取器、原 TLS/角色/OID/函数体核验与原账本。只支持 `PublishReview`、`AdvanceReview`，没有创建业务任务、dispatch、App 签名、IAM、Secret 或承载写能力。后续平台批准和 GitHub environment 批准仍由用户完成。
 
@@ -14,8 +16,8 @@ W9o 已完成新镜像 ECR 发布及独立撤权核验；W9p 已完成现有 ECS
 
 ## 唯一执行顺序
 
-1. 新代码与关联 CI 通过。另获限定只读许可后，用新的 AWS 快照生成 W9p 准确更新 SHA；不能复用过期快照或旧批准。
-2. 用户批准准确 W9p 更新清单并确认可连续配合约40分钟，才更新现有 ECS。另起进程执行原 W9p 独立 Inspect；必须核对实际新 revision、镜像、source 和 control lease。期间冻结 main，结果先存本地，不提交移动运行源码。
+1. 新代码与关联 CI 通过。另获限定只读许可后，用新的 AWS 快照生成[revision9继续入口](aws-auto-deployment-recovery-continuation-implementation.md)的准确更新 SHA；不能复用过期快照或旧批准，原W9p执行/Inspect槽已消费，不再使用。
+2. 用户批准新的继续清单并确认可连续配合约40分钟，才按其完整范围更新现有 ECS。另起进程执行新继续入口的独立 Inspect；必须核对实际新 revision、镜像、source 和 control lease。期间冻结 main，结果先存本地，不提交移动运行源码。
 3. 从该真实 manifest、update-intent、独立 Inspect 原件及已发布 package 准备 `PublishReview` operator SHA。用户另批后，只登记同一 held 任务的一条 Review，回读准确计划；用户在 AWS 平台单次批准，再批准准确 GitHub environment。
 4. Review 真成功后，用其准确 plan/run 和固定版本结果引用准备 `AdvanceReview` SHA。用户另批后，先完整重建新 envelope/inner manifest、原件与真实 run，再至多写一次观察、一条证明、一条 RunOnce 计划。保留原 claimBy，页面批准期至少提前8分钟截止；不自动调度。
 5. 用户单次批准平台 RunOnce 和其 GitHub environment。成功后复用现有 `ops/platform-recovery-control-v1/cli.mjs` 的 `prepare-followup` / `follow-runonce`，另按准确 SHA 批准一次独立 Inspect。记录资源、服务和业务回执，不能用平台的 `completed/success` 观察替代可信独立内容证明。

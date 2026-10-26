@@ -9,8 +9,10 @@ import {rebuildRecoveryPackage} from '../platform-recovery-v1/package.mjs';
 import {authMetadataV6} from '../platform-local-v6/local.mjs';
 import {readCi} from '../platform-recovery-hosting-v1/ci.mjs';
 import {validate as validateHosting,request as hostingRequest,hash as rawHash} from '../platform-recovery-hosting-v1/plan.mjs';
+import {W,validate as validateContinuation,request as continuationRequest} from '../platform-recovery-continuation-v1/plan.mjs';
 import {assertEvidenceSafeV5} from '../cloud-worker/cloud-evidence-v5.mjs';
 import {createLiveIo} from './io.mjs';
+import {loadOriginalRequestEvidence} from './request-evidence.mjs';
 import {makeReview,verifyReview,runReviewed,RISK,must,same} from './operation.mjs';
 const BASE='F:/ChatGPT_workshop';
 export const ROOTS=['ops/platform-recovery-launch-v1/local.mjs','tests/platform-recovery-launch-v1.test.mjs',RISK,
@@ -33,16 +35,22 @@ async function packageFor(material,binding){
   return {value,basis:await rebuildRecoveryPackage(value)};
 }
 async function hosting(material,source){
-  evidenceFile(material.hostingManifestFile,'techlong-w9p-recovery-hosting-[a-z0-9-]+/manifest\\.json');
-  evidenceFile(material.hostingIntentFile,'techlong-w9p-recovery-hosting-[a-z0-9-]+/update-intent\\.json');
-  evidenceFile(material.hostingInspectionFile,'techlong-w9p-recovery-hosting-[a-z0-9-]+/result\\.json');
-  const h=await json(material.hostingManifestFile);validateHosting(h,h.manifestSha256,Date.now(),true);must(h.sourceCommit===source,'HOSTING_SOURCE');
+  evidenceFile(material.hostingManifestFile,'techlong-(?:w9p-recovery-hosting|recovery-hosting-continuation)-[a-z0-9-]+/manifest\\.json');
+  const h=await json(material.hostingManifestFile),continuing=h.schema===W.schema,prefix=continuing?'techlong-recovery-hosting-continuation':'techlong-w9p-recovery-hosting';
+  evidenceFile(material.hostingManifestFile,prefix+'-[a-z0-9-]+/manifest\\.json');
+  evidenceFile(material.hostingIntentFile,prefix+'-[a-z0-9-]+/update-intent\\.json');
+  evidenceFile(material.hostingInspectionFile,prefix+'-[a-z0-9-]+/result\\.json');
   const i=await json(material.hostingIntentFile),inspection=await json(material.hostingInspectionFile);
-  must(i.manifestSha256===h.manifestSha256&&same(i.request,hostingRequest(h,i.intentAt))&&same(i.controlLease,JSON.parse(i.request.Parameters.find(p=>p.ParameterKey==='ControllerLease').ParameterValue)),'HOSTING_INTENT');
-  must(inspection.outcome==='RECOVERY_HOSTING_INDEPENDENTLY_VERIFIED_ACCEPTANCE_PENDING'&&inspection.cloudWrites===0&&
-    same(inspection.proof?.controlLease,i.controlLease)&&inspection.controlAcceptancePassed===false&&inspection.businessDeploymentAccepted===false,'HOSTING_INSPECTION');
+  validateHostingObjects(h,i,inspection,source);
   return {manifest:h,intent:i,parents:await Promise.all([material.hostingManifestFile,material.hostingIntentFile,material.hostingInspectionFile]
     .map(async file=>({file,rawSha256:rawHash(await readText(file,3000000))})))};
+}
+export function validateHostingObjects(h,i,inspection,source){
+  const continuing=h.schema===W.schema;
+  (continuing?validateContinuation:validateHosting)(h,h.manifestSha256,Date.now(),true);must(h.sourceCommit===source,'HOSTING_SOURCE');
+  must(i.manifestSha256===h.manifestSha256&&same(i.request,(continuing?continuationRequest:hostingRequest)(h,i.intentAt))&&same(i.controlLease,JSON.parse(i.request.Parameters.find(p=>p.ParameterKey==='ControllerLease').ParameterValue)),'HOSTING_INTENT');
+  must(inspection.outcome===(continuing?'RECOVERY_CONTINUATION_INDEPENDENTLY_VERIFIED_ACCEPTANCE_PENDING':'RECOVERY_HOSTING_INDEPENDENTLY_VERIFIED_ACCEPTANCE_PENDING')&&inspection.cloudWrites===0&&
+    same(inspection.proof?.controlLease,i.controlLease)&&inspection.controlAcceptancePassed===false&&inspection.businessDeploymentAccepted===false,'HOSTING_INSPECTION');
 }
 export async function main(args=process.argv.slice(2)){
   const a=parseArgs(args);if(a.mode==='Check'){
@@ -56,9 +64,9 @@ export async function main(args=process.argv.slice(2)){
   if(a['--mode']==='PrepareSaved'){
     evidenceFile(a['--material'],'techlong-recovery-launch-[a-z0-9-]+\\.json');const material=await json(a['--material']);
     must(same(Object.keys(material).sort(),['action','hostingInspectionFile','hostingIntentFile','hostingManifestFile','packageFile']),'MATERIAL_KEYS');
-    const {basis}=await packageFor(material,binding),host=await hosting(material,sourceCommit),ci=await readCi(a['--ci-run'],sourceCommit);
+    const {basis}=await packageFor(material,binding),requestEvidence=await loadOriginalRequestEvidence(basis),host=await hosting(material,sourceCommit),ci=await readCi(a['--ci-run'],sourceCommit);
     const m=await makeReview({binding,basis,sourceCommit,pins:await collectPins({roots:ROOTS}),ci,auth:await authMetadataV6(),
-      hostingManifestSha256:host.manifest.manifestSha256,hostingIntentFile:material.hostingIntentFile,action:material.action,createdAt:Date.now()});
+      requestEvidence,hostingManifestSha256:host.manifest.manifestSha256,hostingIntentFile:material.hostingIntentFile,action:material.action,createdAt:Date.now()});
     const extra={material,materialSha256:await sha256Hex(material),parents:host.parents};clean(sourceCommit);await absent(m.slot);await mkdir(out,{mode:0o700});
     await safeWrite(out+'/manifest.json',{review:m,extra,operatorSha256:await sha256Hex({review:m,extra})});
     const r={outcome:'RECOVERY_LAUNCH_PREPARED_NOT_APPROVED',operation:m.action.operation,manifestSha256:await sha256Hex({review:m,extra}),
@@ -69,6 +77,7 @@ export async function main(args=process.argv.slice(2)){
   must(saved.operatorSha256===a['--approved-sha']&&await sha256Hex({review:m,extra})===saved.operatorSha256,'OPERATOR_APPROVAL');
   must(same(binding,m.binding)&&same(await collectPins({roots:ROOTS}),m.pins)&&extra.materialSha256===await sha256Hex(extra.material),'SOURCE_PINS');
   const {value,basis}=await packageFor(extra.material,binding);await verifyReview(m,basis,m.manifestSha256,Date.now());
+  must(same(await loadOriginalRequestEvidence(basis),m.requestEvidence),'REQUEST_EVIDENCE_DRIFT');
   const host=await hosting(extra.material,sourceCommit);must(same(host.parents,extra.parents)&&host.manifest.manifestSha256===m.hostingManifestSha256&&
     extra.material.hostingIntentFile===m.hostingIntentFile&&same(extra.material.action,m.action),'PARENT_DRIFT');
   await absent(m.slot);await mkdir(out,{mode:0o700});const record=(n,v)=>safeWrite(out+'/'+n+'.json',v);await record('approved-manifest',saved);

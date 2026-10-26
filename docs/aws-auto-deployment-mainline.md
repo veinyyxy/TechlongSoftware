@@ -1,6 +1,6 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
-当前唯一继续点（2026-10-26）：**现有ECS承载:9已独立核验，整条业务部署验收仍未完成。** 新一轮限定只读确认已证明原业务、任务、账本和保护摘要匹配；另定位组合入口误用行创建时间重算payload（比原事务时间晚3036ms）。用已封存原事务回执及原始校验器，整行也完整通过；组合入口本身仍待最小修正，没有重试或改变基准。条件满足后仅STS1/元数据41核对现有承载、角色/固定Secret版本与ECR，写0；原租约已过，不续租。本轮只记录新的继续方案：绑定原事务证据＋现有承载单次source/lease继续入口，不重建镜像、不新增IAM/schema/业务任务；两项代码尚未实现，无新执行SHA。下一只实现这两项主线必要接线并集中验证，实际继续窗口及后续登记/调度另批。F3c9/UI等支线停止，旧回执及已消费槽全部保留。[新继续方案与真实只读结果](aws-auto-deployment-recovery-continuation-plan.md) / [既有承载更新记录](aws-auto-deployment-w9p-recovery-hosting-executed.md)。
+当前唯一继续点（2026-10-26）：**两项必要接线已编码，本机141项相关测试、类型及lint通过；整条业务部署验收仍未完成。** held行校验现绑定hash核验的原事务回执，不再用晚3036ms的行创建时间重算payload；封存真实AWS/Neon证据回放通过，不改变保护基准。新增仅针对实际revision9的单次source/lease继续入口及独立槽，镜像、角色、Secret和网络不变，后续Review准备可接受其真实独立核验原件。当前只提交代码并验证无AWS身份CI，不读取生产、不写云/数据库、不消费槽或续租。旧快照已超过2小时，不能准备执行SHA；下一须另允一次新限定AWS元数据快照，之后新SHA/人工在线确认才可继续。F3c9/UI等支线停止，旧回执及已消费槽全部保留。[实现与唯一继续顺序](aws-auto-deployment-recovery-continuation-implementation.md) / [未来执行完整风险](aws-auto-deployment-recovery-continuation-review.md)。
 
 ## 历史记录
 

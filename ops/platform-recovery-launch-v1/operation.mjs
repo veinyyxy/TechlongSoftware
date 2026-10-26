@@ -9,14 +9,16 @@ import {verifyRecoveryRequestReadback} from '../platform-recovery-v1/request.mjs
 import {recoveryData} from '../platform-recovery-v1/basis.mjs';
 import {assertRecoveryBinding,assertRecoveryPlanScope} from '../platform-recovery-control-v1/binding.mjs';
 import {assertHandoffBudget,HANDOFF_LIMITS} from '../platform-operations-v6/handoff.mjs';
+import {validateRequestEvidence} from './request-evidence.mjs';
 export const RISK='docs/aws-auto-deployment-recovery-launch-readiness.md';
 export const must=(v,c)=>{if(!v)throw Error('RECOVERY_LAUNCH_'+c);};
 export const same=(a,b)=>canonicalJson(a)===canonicalJson(b);
 const digest=v=>/^[a-f0-9]{64}$/.test(v??'');
 const operations=['PublishReview','AdvanceReview'];
 export const slotFor=operation=>{must(operations.includes(operation),'OPERATION');return 'F:/ChatGPT_workshop/techlong-recovery-launch-v1-'+operation+'.intent.json';};
-export async function makeReview({binding,basis,sourceCommit,pins,ci,auth,hostingManifestSha256,hostingIntentFile,action,createdAt}){
+export async function makeReview({binding,basis,sourceCommit,pins,ci,auth,requestEvidence,hostingManifestSha256,hostingIntentFile,action,createdAt}){
   await assertRecoveryBinding(binding);const d=recoveryData(basis,createdAt);
+  validateRequestEvidence(requestEvidence,basis);
   must(sourceCommit===binding.sourceCommit&&d.target.newJobId==='job_9b57b43a6b88f37202b29170'&&basis.basisSha256===binding.basisSha256,'BINDING');
   must(operations.includes(action?.operation)&&same(Object.keys(action).sort(),action.operation==='PublishReview'?['operation']:['operation','planSha256','resultReference','runId']),'ACTION');
   if(action.operation==='AdvanceReview'){
@@ -24,13 +26,13 @@ export async function makeReview({binding,basis,sourceCommit,pins,ci,auth,hostin
     const ref=action.resultReference;assertReferenceV6(ref,ref?.key);
     must(new RegExp('^worker-v5/'+S.instanceId+'/'+d.target.newJobId+'/[a-f0-9]{64}/run-'+action.runId+'-1/platform-result-v6\\.json$').test(ref.key),'RESULT_KEY');
   }
-  must(digest(hostingManifestSha256)&&/^F:\/ChatGPT_workshop\/techlong-w9p-recovery-hosting-[a-z0-9-]+\/update-intent\.json$/.test(hostingIntentFile),'HOSTING_INTENT');
+  must(digest(hostingManifestSha256)&&/^F:\/ChatGPT_workshop\/techlong-(?:w9p-recovery-hosting|recovery-hosting-continuation)-[a-z0-9-]+\/update-intent\.json$/.test(hostingIntentFile),'HOSTING_INTENT');
   must(Array.isArray(pins)&&pins.length>=20&&pins.every(p=>digest(p.sha256))&&new Set(pins.map(p=>p.file)).size===pins.length,'PINS');
   must(ci?.sourceCommit===sourceCommit&&ci.attempt===1&&ci.status==='completed'&&ci.conclusion==='success'&&ci.testedSourceCommit,'CI');
   must(auth?.contentRead===false&&Number.isSafeInteger(auth.length)&&auth.length>0&&auth.length<=131072&&digest(auth.aclSha256),'AUTH_METADATA');
   const expiresAt=Math.min(createdAt+86400000,basis.expiresAt);must(expiresAt>createdAt+35*60000,'BASIS_WINDOW');
   const body={schema:'techlong/recovery-launch-review/v1',binding,basisSha256:basis.basisSha256,sourceCommit,pins,ci,auth,
-    hostingManifestSha256,hostingIntentFile,action,createdAt,expiresAt,latestStartAt:expiresAt-120000,
+    requestEvidence,hostingManifestSha256,hostingIntentFile,action,createdAt,expiresAt,latestStartAt:expiresAt-120000,
     slot:slotFor(action.operation),riskFile:RISK,
     effects:{configurationContentReadsMax:1,tlsConnectionsMax:2,sqlQueriesMax:100,stsGetsMax:1,s3GetsMax:6,githubRunGetsMax:2,
       ciGithubGetsMax:3,ownerWriteSubmissionsMax:action.operation==='PublishReview'?1:3,awsWrites:0,dispatches:0,privateKeyReads:0,secretValueReads:0,retries:0},
@@ -43,12 +45,13 @@ export async function verifyReview(m,basis,approved,at){
   must(same(m,await makeReview({...m,basis}))&&approved===m.manifestSha256&&at>=m.createdAt&&at<m.latestStartAt,'APPROVAL');
   recoveryData(basis,at);
 }
-export async function verifyBaseline(basis,snapshot,operation,binding){
+export async function verifyBaseline(basis,snapshot,operation,binding,requestEvidence){
+  validateRequestEvidence(requestEvidence,basis);
   const d=recoveryData(basis,basis.createdAt),j=snapshot.jobs.find(v=>v.id===d.target.newJobId);
   must(j,'HELD_JOB');const ledger=snapshot.ledger,newPlans=ledger.plans.filter(p=>p.job_id===j.id),ids=new Set(newPlans.map(p=>p.plan_sha));
   const old={...snapshot,ledger:{plans:ledger.plans.filter(p=>!ids.has(p.plan_sha)),approvals:ledger.approvals.filter(p=>!ids.has(p.plan_sha)),
     attempts:ledger.attempts.filter(p=>p.job_id!==j.id)}};
-  await verifyRecoveryRequestReadback(basis,old,j.created_at);
+  await verifyRecoveryRequestReadback(basis,old,requestEvidence.transactionAt);
   const newApprovals=ledger.approvals.filter(p=>ids.has(p.plan_sha)),newAttempts=ledger.attempts.filter(p=>p.job_id===j.id);
   if(operation==='PublishReview')must(newPlans.length+newApprovals.length+newAttempts.length===0,'REVIEW_SLOT_OCCUPIED');
   else{
@@ -69,7 +72,7 @@ export async function runReviewed({manifest:m,basis,approved,lease,readyAt,io,no
   };
   try{
     await guard();await io.verifyCi(m);await io.verifySourceIdentity();db=await io.open(m);
-    await verifyBaseline(basis,await db.snapshot(),m.action.operation,m.binding);await guard();
+    await verifyBaseline(basis,await db.snapshot(),m.action.operation,m.binding,m.requestEvidence);await guard();
     await io.claim({manifestSha256:approved,sourceCommit:m.sourceCommit,operation:m.action.operation,retryAllowed:false});claimed=true;
     const common={basis,release:m.binding.release,sourceCommit:m.sourceCommit,frozenSourceCommit:m.binding.frozenSourceCommit,
       activation:m.binding.activation,now,...(rebuildPackage?{rebuildPackage}:{} )};
@@ -80,7 +83,7 @@ export async function runReviewed({manifest:m,basis,approved,lease,readyAt,io,no
     if(m.action.operation==='PublishReview'){
       phase='PUBLISH_REVIEW';const installation=await io.installationReference();allow.push(installation);
       const p=publish(async q=>{must(submissions===0,'WRITE_BUDGET');await io.record('proposed-review',q);
-        await verifyBaseline(basis,await db.snapshot(),'PublishReview',m.binding);await guard();submissions++;await db.writeOwner(q);});
+        await verifyBaseline(basis,await db.snapshot(),'PublishReview',m.binding,m.requestEvidence);await guard();submissions++;await db.writeOwner(q);});
       const v=await p.publishReview({installationReference:installation,recoveryPackageReference:m.binding.packageReference});
       const saved=await db.loadPlan(v.planSha256);must(same(saved.plan,v.plan)&&saved.attempt===null,'REVIEW_READBACK');
       const r={outcome:'REVIEW_PUBLISHED_REQUIRES_HUMAN_APPROVAL',...v,submissions,dispatches:0,retryAllowed:false};await io.record('result',r);return r;
@@ -100,7 +103,7 @@ export async function runReviewed({manifest:m,basis,approved,lease,readyAt,io,no
     const attestation=await verifier.attestResult(a.planSha256,a.resultReference);
     const budget=async()=>{await guard();assertHandoffBudget(envelope.innerManifest,lease,now());};await budget();
     // Only after full content reconstruction: one observation, one proof, one reserved plan.
-    await verifyBaseline(basis,await db.snapshot(),'AdvanceReview',m.binding);await budget();
+    await verifyBaseline(basis,await db.snapshot(),'AdvanceReview',m.binding,m.requestEvidence);await budget();
     phase='OBSERVE_REVIEW';submissions++;await db.observe(a.planSha256,a.runId);
     let next;const p=publish(async q=>{
       await budget();if(submissions===1){must(same(q,proof),'EXACT_PROOF');phase='ATTEST_REVIEW';submissions++;await db.writeOwner(q);}

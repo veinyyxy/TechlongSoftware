@@ -7,6 +7,7 @@ import {recoveryCloudResult} from '../ops/platform-recovery-v1/package.mjs';
 import {makeReview,runReviewed,slotFor,verifyBaseline} from '../ops/platform-recovery-launch-v1/operation.mjs';
 import {parseArgs} from '../ops/platform-recovery-launch-v1/local.mjs';
 import {sqlGate,readLaunchSnapshot} from '../ops/platform-recovery-launch-v1/io.mjs';
+import {ORIGINAL_REQUEST,loadOriginalRequestEvidence} from '../ops/platform-recovery-launch-v1/request-evidence.mjs';
 import {canonicalJson,sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {REQUEST_ADMIN_V6 as ADMIN} from '../lib/deployments/reviewed-request-window-v6.ts';
 import {resultKeyV6} from '../ops/platform-cloud-v6/contract.mjs';
@@ -31,7 +32,8 @@ async function fixture(){
     readObject:f.ports.readObject,readRun:async id=>f.rawRun(id),record:async(n,v)=>records.push({n,v}),close:async()=>effects.push('io-close')};
   const lease={schema:'techlong/platform-hosted-runtime-lease/v6',releaseSha256:await sha256Hex(f.release),
     origin:'https://console.sandbox.techlong.cloud',sourceCommit:f.sourceCommit,issuedAt:f.at,expiresAt:f.at+30*60000};
-  const review=action=>makeReview({binding:f.binding,basis:f.basis,sourceCommit:f.sourceCommit,pins:Array.from({length:20},(_,i)=>({file:'synthetic/'+i+'.mjs',sha256:'1'.repeat(64)})),
+  const requestEvidence={schema:'techlong/original-recovery-request-evidence/v1',...ORIGINAL_REQUEST,transactionAt:f.at,basisSha256:f.basis.basisSha256,artifactsVerified:12};
+  const review=action=>makeReview({binding:f.binding,basis:f.basis,sourceCommit:f.sourceCommit,pins:Array.from({length:20},(_,i)=>({file:'synthetic/'+i+'.mjs',sha256:'1'.repeat(64)})),requestEvidence,
     ci:{runId:'123',jobId:'456',sourceCommit:f.sourceCommit,testedSourceCommit:f.sourceCommit,attempt:1,status:'completed',conclusion:'success'},
     auth:{length:100,aclSha256:'2'.repeat(64),contentRead:false},hostingManifestSha256:'3'.repeat(64),
     hostingIntentFile:'F:/ChatGPT_workshop/techlong-w9p-recovery-hosting-test/update-intent.json',action,createdAt:f.at});
@@ -46,7 +48,7 @@ async function fixture(){
     const ref=await f.store(resultKeyV6(e.plan.jobId,f.envelope.recoveryReviewSha256,id),value);
     effects.length=0;return {operation:'AdvanceReview',planSha256:published.planSha256,runId:id,resultReference:ref};
   }
-  return {...f,review,run,lease,io,db,effects,records,plans,snapshot,advanceMaterial};
+  return {...f,review,run,lease,io,db,effects,records,plans,snapshot,advanceMaterial,requestEvidence,state};
 }
 test('real recovery publisher composition appends one Review without dispatch or execution',async()=>{
   const f=await fixture(),r=await f.run({operation:'PublishReview'});
@@ -96,7 +98,21 @@ test('late publication or unknown publication ACK never opens a new Review slot 
 test('same held job cannot receive another Review after first publication',async()=>{
   const f=await fixture();await f.run({operation:'PublishReview'});f.effects.length=0;
   const r=await f.run({operation:'PublishReview'});assert(r.outcome.includes('STOPPED'));assert(!f.effects.includes('claim'));
-  await assert.rejects(verifyBaseline(f.basis,f.snapshot(),'PublishReview',f.binding));
+  await assert.rejects(verifyBaseline(f.basis,f.snapshot(),'PublishReview',f.binding,f.requestEvidence));
+});
+test('legitimate 3036ms insert delay uses the sealed transaction time, never row creation time',async()=>{
+  const f=await fixture(),j=f.state.jobs.find(v=>v.id===f.profile.newJobId);j.created_at+=3036;j.updated_at+=3036;
+  await verifyBaseline(f.basis,f.snapshot(),'PublishReview',f.binding,f.requestEvidence);
+  await assert.rejects(verifyBaseline(f.basis,f.snapshot(),'PublishReview',f.binding,{...f.requestEvidence,transactionAt:j.created_at}));
+  j.updated_at=f.at+30001;await assert.rejects(verifyBaseline(f.basis,f.snapshot(),'PublishReview',f.binding,f.requestEvidence));
+});
+test('request provenance or payload tampering cannot use the corrected timestamp to bypass checks',async()=>{
+  const f=await fixture();
+  for(const e of [{...f.requestEvidence,transactionAt:f.at-1},{...f.requestEvidence,sealSha256:'0'.repeat(64)},null])
+    await assert.rejects(verifyBaseline(f.basis,f.snapshot(),'PublishReview',f.binding,e));
+  f.state.jobs.find(v=>v.id===f.profile.newJobId).payload={changed:true};
+  await assert.rejects(verifyBaseline(f.basis,f.snapshot(),'PublishReview',f.binding,f.requestEvidence));
+  await assert.rejects(loadOriginalRequestEvidence(f.basis,{read:async()=>'{"tampered":true}'}),/SEAL_HASH/);
 });
 test('operation slots are fixed, distinct and cannot be replaced by arbitrary action input',()=>{
   assert.notEqual(slotFor('PublishReview'),slotFor('AdvanceReview'));assert.throws(()=>slotFor('RunOnce'));
