@@ -1,0 +1,145 @@
+{
+  "schema": "techlong/recovery-binding-executed/v1",
+  "outcome": "BINDING_PUBLICATION_INDEPENDENTLY_VERIFIED_RUNTIME_NOT_STARTED",
+  "approvedManifestSha256": "31d9727d5a3c229a59f5ce4dfe1a68ac7507398ee464a71d186616ad89b40323",
+  "operatorSourceCommit": "655cc62e8557cc387d73b1e969498c8aee879b20",
+  "operatorSourceCi": {
+    "runId": "40333512308",
+    "jobId": "121608818850",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "publishedCommit": "9a005f5f798f01b339726a0c23aaf400a4d74c60",
+  "bindingPath": "ops/platform-recovery-control-v1/binding.mjs",
+  "bindingLfSha256": "f6fa8c41635137f6486620189f91e21a0196331067782c97f79a77743f4c5f22",
+  "bindingBlob": "c9856c8daf52b88742930efb6ad613bc65e596ad",
+  "independentResultRecordedAtUtc": "2026-10-26T14:09:34.4748793Z",
+  "metadataStateSha256": "5a8985a65ccb0b9016443d8c916a82faf827abb3d59d80be5d4d4435d6388e40",
+  "roleId": "AROAV3GNMXTZK5O45RG24",
+  "basisSha256": "c7baeb6471d48c01f99144d299225e33fe2d8f8eb9763f9d976cdb053374c7c0",
+  "basisExpiresAtUtc": "2026-10-27T18:47:57.695Z",
+  "execution": {
+    "outcome": "BINDING_PUBLISHED_REQUIRES_INDEPENDENT_INSPECT",
+    "counts": {
+      "pushes": 1,
+      "localFastForwards": 1,
+      "githubGets": 28,
+      "awsMetadata": 20
+    }
+  },
+  "independentInspection": {
+    "outcome": "BINDING_PUBLICATION_INDEPENDENTLY_VERIFIED_RUNTIME_NOT_STARTED",
+    "counts": {
+      "githubGets": 13,
+      "awsMetadata": 10
+    },
+    "externalWrites": 0
+  },
+  "postPublicationVerification": {
+    "initialCi": {
+      "runId": "40336750289",
+      "jobId": "121620269310",
+      "sourceCommit": "9a005f5f798f01b339726a0c23aaf400a4d74c60",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "cause": "Legacy test expected CONTROL_RUNTIME_LEASE instead of RECOVERY_V1_CONTROL_RUNTIME_BINDING",
+      "rerun": false
+    },
+    "testOnlyFixCommit": "2f69888b8db7e9616f7c331c2d7a2efe8575d669",
+    "localTestsPassed": 53,
+    "lintPassed": true,
+    "typecheckPassed": true,
+    "correctedCi": {
+      "runId": "40338452848",
+      "jobId": "121626244947",
+      "sourceCommit": "2f69888b8db7e9616f7c331c2d7a2efe8575d669",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "steps": 26,
+      "allStepsSuccessful": true
+    }
+  },
+  "scope": {
+    "persistentSourceSelectorPublished": true,
+    "notProofOfGlobalRuntimeClosure": true,
+    "runtimeProvisionedByThisPhase": false,
+    "currentDatabaseStateNotQueried": true,
+    "workflowDispatchedByThisPhase": false,
+    "awsWrites": 0,
+    "secretValueReads": 0,
+    "pemReads": 0,
+    "configurationContentReads": 0,
+    "privatePackageValueReads": 0,
+    "sqlConnections": 0,
+    "leaseWrites": 0,
+    "hostingUpdates": 0,
+    "cellCreates": 0
+  },
+  "lifecycle": {
+    "publicationSlotConsumed": true,
+    "independentInspectSlotConsumed": true,
+    "retryAllowed": false,
+    "automaticRollback": false,
+    "automaticCleanup": false
+  },
+  "evidence": [
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9m-recovery-binding-20261026-a/manifest.json",
+      "rawSha256": "d02bf62449af151dbf4ec834eb1cb0022e4be47e73d60c9ee78be71a656bee0f",
+      "bytes": 82430
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9m-recovery-binding-run-20261026-a/approved-manifest.json",
+      "rawSha256": "d02bf62449af151dbf4ec834eb1cb0022e4be47e73d60c9ee78be71a656bee0f",
+      "bytes": 82430
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9m-recovery-binding-run-20261026-a/execution-preflight.json",
+      "rawSha256": "dd3164a21fd7b9b8b7229f21e77f1ba12c82dd8ae35b949d69fa6c6d933f5997",
+      "bytes": 49635
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9m-recovery-binding-run-20261026-a/push-ack.json",
+      "rawSha256": "7def5736acd9de46d68b89831b743ecd5d2b858ff362be29c655ef8ad44b7565",
+      "bytes": 59
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9m-recovery-binding-run-20261026-a/published-binding.json",
+      "rawSha256": "070392cb85380450c43a7830848cb4b36fd04e1f2fed6aaef929b3db1019be3b",
+      "bytes": 461
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9m-recovery-binding-run-20261026-a/local-main-ack.json",
+      "rawSha256": "588635c6f26cb35e0dfa7ed88d1669139c6ad15b84279fe7d3324819adfd4ab0",
+      "bytes": 57
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9m-recovery-binding-run-20261026-a/result.json",
+      "rawSha256": "91f9586f31a6c6a8434a3c341b9e4c8865a377e0c54a4465976f61d993a968d1",
+      "bytes": 908
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9m-recovery-binding-inspect-20261026-a/approved-manifest.json",
+      "rawSha256": "d02bf62449af151dbf4ec834eb1cb0022e4be47e73d60c9ee78be71a656bee0f",
+      "bytes": 82430
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9m-recovery-binding-inspect-20261026-a/result.json",
+      "rawSha256": "f288646689067de92d78e0c8891cea400297418fde53401ff4d06c3b5bdc78ec",
+      "bytes": 1064
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9m-recovery-binding.intent.json",
+      "rawSha256": "efccb3b3fe49fe5a16651faca23cab5b3cd1b8a22d25c4c13c8647363621767b",
+      "bytes": 428
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9m-recovery-binding.inspect.intent.json",
+      "rawSha256": "ba4d9cb733830352efd38c7e0e55eb7bc2b2ef795baeeb3936125d66b289effc",
+      "bytes": 253
+    }
+  ]
+}
