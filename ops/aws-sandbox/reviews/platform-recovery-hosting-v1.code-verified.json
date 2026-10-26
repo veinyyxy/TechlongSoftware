@@ -1,0 +1,90 @@
+{
+  "schema": "techlong/recovery-hosting-code-verified/v1",
+  "outcome": "CODE_AND_TESTS_COMPLETE_NO_FRESH_SNAPSHOT_OR_EXECUTION_MANIFEST",
+  "recordedAtUtc": "2026-10-26T18:23:11.097Z",
+  "implementationSource": "07afbdb8f8c87c784f4128615bf0bed9fa51c204",
+  "ci": {
+    "runId": "40376722583",
+    "jobId": "121761676709",
+    "sourceCommit": "07afbdb8f8c87c784f4128615bf0bed9fa51c204",
+    "testedSourceCommit": "07afbdb8f8c87c784f4128615bf0bed9fa51c204",
+    "metadataOnlyChangedFiles": [],
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "githubGets": 3
+  },
+  "allReportedCiStepsSuccessful": true,
+  "local": {
+    "testsPassed": 52,
+    "testsSkipped": 0,
+    "lintPassed": true,
+    "typecheckPassed": true,
+    "pinCount": 77,
+    "protectedImageRuntimeUnchanged": true,
+    "cloudClosureSha256": "30a7cdf74b50563afbc73f4a6b62661962d83127c3e409b627d11e5b3b91e374"
+  },
+  "userScope": {
+    "choice": "CODE_AND_TESTS_ONLY",
+    "freshAwsReadApproved": false,
+    "serviceUpdateApproved": false
+  },
+  "historicalSnapshot": {
+    "observedAtUtc": "2026-10-26T15:46:14.311Z",
+    "resultRecordedAtUtc": "2026-10-26T15:46:24.140Z",
+    "calls": {
+      "sts": 1,
+      "metadata": 43,
+      "writes": 0
+    },
+    "expiredForPreparation": true,
+    "notCurrentAwsStateProof": true,
+    "preservedWithoutOverwrite": true
+  },
+  "sinceResume": {
+    "awsCalls": 0,
+    "awsWrites": 0,
+    "secretValueReads": 0,
+    "pemReads": 0,
+    "envFileReads": 0,
+    "sqlConnections": 0,
+    "runtimeStarts": 0,
+    "leaseWrites": 0,
+    "executionManifestsGenerated": 0,
+    "slotsConsumed": 0
+  },
+  "prerequisites": {
+    "freshBoundedMetadataConsentRequired": true,
+    "freshManifestShaRequiredBeforeUpdate": true,
+    "freshHumanReadinessRequiredBeforeUpdate": true,
+    "freezeMainDuringActiveControlCycle": true,
+    "businessBasisExpiresAtUtc": "2026-10-27T18:47:57.695Z"
+  },
+  "evidence": [
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9p-hosting-code-ci-20261026-a.json",
+      "rawSha256": "c5e88cae62e68665ea2ccd8d9a4651243dd04a6a6ba9534883233c35e6060087",
+      "bytes": 509
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9p-hosting-snapshot-20261026-a/snapshot.json",
+      "rawSha256": "3a0470d75222049a7856528c823220c77b3cd42b595b1ef048be616675dca048",
+      "bytes": 283078
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9p-hosting-snapshot-20261026-a/raw-readback.json",
+      "rawSha256": "94219a1d3cda1a6c222313399ac18bd9b3e4d5f3cdb4e980aac9839f38ebfa8b",
+      "bytes": 271717
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9p-hosting-snapshot-20261026-a/result.json",
+      "rawSha256": "2c95cc66a9529408584bb1eed10920149d24052b62b9026717c1bf6b2957105f",
+      "bytes": 4089
+    }
+  ],
+  "parentSeal": {
+    "file": "F:/ChatGPT_workshop/techlong-w9o-image-publication-completed-verified-20261026-a.json",
+    "rawSha256": "ef343562a15d7761d86c1517015e1b445cdd81f79cc9eace40e9d54399be8b78",
+    "bytes": 8777
+  }
+}
