@@ -4,7 +4,7 @@
 import {sha256Hex} from '../../lib/deployments/execution/hash.ts';
 import {createCloudWorkerRootV5} from '../cloud-worker/cloud-worker-root-v5.mjs';
 import {assertRunWindowV3} from '../aws-sandbox/scripts/express-initialized-workload-v3.mjs';
-import {recoveryData,assertRetirement,must,same,freeze} from './basis.mjs';
+import {recoveryData,assertRetirement,must,same,freeze} from './basis-core.mjs';
 
 export async function recoveryEnvelope(basis,innerManifest,at){
   const d=recoveryData(basis,at);

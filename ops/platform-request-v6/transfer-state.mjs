@@ -6,6 +6,7 @@ import {CATALOG_SQL,TABLE_COLUMNS,ROLE} from '../platform-controller-review-v6/c
 import {DATABASE_V6} from '../platform-publisher-v6/io.mjs';
 import {assertEvidenceSafeV5} from '../cloud-worker/cloud-evidence-v5.mjs';
 import {TRANSFER as T} from './transfer.mjs';
+import {assertAdmissionSnapshot} from './state-contract.mjs';
 const must=(ok,c)=>{if(!ok)throw Error('TRANSFER_STATE_'+c);};
 const same=(a,b)=>canonicalJson(a)===canonicalJson(b);
 export const JOB_GUARD_SHA256='da6bd92d2c1d862199929e1673852927a5070f45a0023b8875ab799b7897ca24';
@@ -22,22 +23,7 @@ export async function assertControlLayout(c,contract,expected){
     f.language===e.language&&f.types.replaceAll(' ','')===e.types&&await sha256Hex(f.body)===e.bodySha256&&f.publicExecute===false&&f.serviceExecute===e.serviceExecute&&
     same(f.config?.map(v=>v.replaceAll(' ','')),['search_path=pg_catalog,pg_temp']),'CONTROL_FUNCTIONS');}
 }
-export function assertAdmissionSnapshot(d,at){
-  const s=d.admissionSnapshot;must(s&&Object.keys(s).sort().join(',')==='admin,app,environment,operation,predecessorJob,resource,subscription,templateVersion,workspace','FULL_ADMISSION');
-  must(d.id===S.deploymentId&&d.appInstanceId===S.appInstanceId&&d.environmentId===S.environmentId&&d.mode==='aws_sandbox'&&d.status==='ready'&&
-    d.planHash===S.planHash&&d.configurationHash===S.configurationHash&&d.artifactRef===S.artifactRef,'DEPLOYMENT');
-  must(s.app.id===S.appInstanceId&&s.app.workspace_id===S.workspaceId&&s.app.product_id===S.productId&&s.app.status==='active'&&
-    s.workspace.id===S.workspaceId&&s.workspace.status==='active'&&s.subscription.id===s.app.subscription_id&&s.subscription.status==='active'&&
-    Number(s.subscription.current_period_end)>at&&s.templateVersion.id===s.app.template_version_id,'BUSINESS');
-  const e=s.environment,r=s.resource,o=s.operation;
-  must(e.id===S.environmentId&&e.status==='active'&&e.apply_enabled===0&&e.admission_state==='open'&&e.admission_epoch===0&&
-    e.admission_stack_id===null&&e.kind==='aws_sandbox'&&e.expected_account_id==='402010193138'&&e.region==='ca-central-1'&&e.cell_key===S.cellKey,'ENVIRONMENT');
-  must(r.app_instance_id===S.appInstanceId&&r.owner_deployment_id===S.deploymentId&&r.created_by_deployment_id===S.deploymentId&&
-    r.lifecycle_status==='verified'&&r.destroyed_at===null&&r.generation===1&&r.external_operation_epoch===1&&
-    o.app_instance_id===S.appInstanceId&&o.generation===1&&o.epoch===1&&o.owner_deployment_id===S.deploymentId&&o.state==='active'&&o.intent==='provision'&&o.operation_hash===S.operationHash,'OWNERSHIP');
-  must(s.admin.id===ADMIN&&s.admin.status==='active'&&s.admin.platformAdmin===1&&s.admin.email==='veinyang@gmail.com'&&
-    s.predecessorJob.status==='succeeded'&&['lease_token','lease_owner','lease_expires_at'].every(k=>s.predecessorJob[k]===null),'ADMIN_OR_PROOF');
-}
+export {assertAdmissionSnapshot} from './state-contract.mjs';
 export async function readTransferState(client,{contract,expected=DATABASE_V6,now=Date.now,ledgerJobIds,candidateJobId=T.newJobId}={}){
   must(contract?.functions?.length===9,'CONTRACT');
   must(!ledgerJobIds||ledgerJobIds.length===2&&new Set(ledgerJobIds).size===2&&ledgerJobIds.every(v=>/^job_[a-f0-9]{24}$/.test(v)),'LEDGER_SCOPE');

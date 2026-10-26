@@ -11,20 +11,11 @@ export const TRANSFER=Object.freeze({oldJobId:'job_6e2e115c80301595512f11fb',new
   oldRequestId:'c99ca0cb30620d6f3ccc47dee1d6287ee3c9489531fd750db41d127182be7730',oldReviewRunId:'40106010722',
   oldSource:'a308e15781877687d1255b87ba29ac8d742f093e',claimBy:Date.parse('2026-10-24T15:30:44.165Z'),validMs:48*3600000,runMs:30000});
 const must=(ok,c)=>{if(!ok)throw Error('TASK_TRANSFER_'+c);};
-const clone=v=>JSON.parse(JSON.stringify(v));
+import {normalizedState} from './state-contract.mjs';
 const same=(a,b)=>canonicalJson(a)===canonicalJson(b);
 const unleased=j=>['lease_owner','lease_token','lease_expires_at'].every(k=>j[k]===null);
 const payload=j=>typeof j.payload==='string'?JSON.parse(j.payload):j.payload;
-export function normalizedState(input){
-  const s=clone(input);must(Object.keys(s).sort().join(',')==='deployment,jobs,ledger,protection','STATE_FIELDS');
-  must(Array.isArray(s.jobs)&&s.jobs.length>1&&s.jobs.length<21,'JOBS');
-  s.jobs=s.jobs.map(j=>{const row={...j,payload:payload(j)};
-    for(const k of ['available_at','created_at','updated_at','completed_at','lease_expires_at'])if(typeof row[k]==='string'){
-      must(/^\d+$/.test(row[k])&&Number.isSafeInteger(Number(row[k])),'INTEGER');row[k]=Number(row[k]);}return row;
-  }).sort((a,b)=>a.id.localeCompare(b.id));
-  for(const k of ['plans','approvals','attempts']){must(Array.isArray(s.ledger[k]),'LEDGER');s.ledger[k].sort((a,b)=>a.plan_sha.localeCompare(b.plan_sha));}
-  return s;
-}
+export {normalizedState} from './state-contract.mjs';
 export async function assertTransferState(input,at){
   const s=normalizedState(input);must(Number.isSafeInteger(at)&&at>=TRANSFER.claimBy,'OLD_WINDOW_NOT_EXPIRED');
   const old=s.jobs.find(j=>j.id===TRANSFER.oldJobId),p=old&&payload(old);

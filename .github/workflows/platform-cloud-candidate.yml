@@ -8,6 +8,9 @@ on:
       - 'ops/platform-operations-v6/**'
       - 'ops/platform-operator-v6/**'
       - 'ops/platform-recovery-v1/**'
+      - 'ops/platform-recovery-cloud-v1/**'
+      - 'tests/platform-recovery-cloud-v1.test.mjs'
+      - 'docs/aws-auto-deployment-w9g-recovery-cloud-runtime.md'
       - 'tests/platform-recovery-v1.test.mjs'
       - 'tests/platform-recovery-entry-bridge-v1.test.mjs'
       - 'docs/aws-auto-deployment-w9f-recovery-entry-bridge.md'
@@ -86,6 +89,9 @@ on:
       - 'ops/platform-operations-v6/**'
       - 'ops/platform-operator-v6/**'
       - 'ops/platform-recovery-v1/**'
+      - 'ops/platform-recovery-cloud-v1/**'
+      - 'tests/platform-recovery-cloud-v1.test.mjs'
+      - 'docs/aws-auto-deployment-w9g-recovery-cloud-runtime.md'
       - 'tests/platform-recovery-v1.test.mjs'
       - 'tests/platform-recovery-entry-bridge-v1.test.mjs'
       - 'docs/aws-auto-deployment-w9f-recovery-entry-bridge.md'
@@ -213,8 +219,8 @@ jobs:
           node node_modules/eslint/bin/eslint.js ops/platform-operator-v6/ tests/platform-operator-v6.test.mjs tests/platform-operator-followup-v6.test.mjs --max-warnings 0
       - name: Retired unaccepted recovery candidate, no production capabilities
         run: |
-          node --experimental-strip-types --test tests/platform-recovery-v1.test.mjs tests/platform-recovery-entry-bridge-v1.test.mjs
-          node node_modules/eslint/bin/eslint.js ops/platform-recovery-v1/ tests/platform-recovery-v1.test.mjs tests/platform-recovery-entry-bridge-v1.test.mjs tests/fixtures/platform-recovery-v1.mjs --max-warnings 0
+          node --experimental-strip-types --test tests/platform-recovery-v1.test.mjs tests/platform-recovery-entry-bridge-v1.test.mjs tests/platform-recovery-cloud-v1.test.mjs
+          node node_modules/eslint/bin/eslint.js ops/platform-recovery-v1/ ops/platform-recovery-cloud-v1/ tests/platform-recovery-v1.test.mjs tests/platform-recovery-entry-bridge-v1.test.mjs tests/platform-recovery-cloud-v1.test.mjs tests/fixtures/platform-recovery-v1.mjs --max-warnings 0
       - name: Existing hosted window update and image-execution source compatibility, synthetic only
         run: |
           node --experimental-strip-types --test tests/platform-hosted-window-v6.test.mjs
