@@ -11,6 +11,9 @@ on:
       - 'ops/platform-recovery-cloud-v1/**'
       - 'ops/platform-recovery-control-v1/**'
       - 'ops/platform-recovery-publication-v1/**'
+      - 'ops/platform-recovery-package-v1/**'
+      - 'tests/platform-recovery-package-v1.test.mjs'
+      - 'docs/aws-auto-deployment-w9l-recovery-package-review.md'
       - 'tests/platform-recovery-publication-v1.test.mjs'
       - 'tests/fixtures/platform-recovery-publication-v1.json'
       - 'docs/aws-auto-deployment-w9k-recovery-publication-review.md'
@@ -237,6 +240,10 @@ jobs:
         run: |
           node --experimental-strip-types --test tests/platform-recovery-publication-v1.test.mjs
           node node_modules/eslint/bin/eslint.js ops/platform-recovery-publication-v1/ tests/platform-recovery-publication-v1.test.mjs --max-warnings 0
+      - name: Recovery package single conditional upload, synthetic providers only
+        run: |
+          node --experimental-strip-types --test tests/platform-recovery-package-v1.test.mjs
+          node node_modules/eslint/bin/eslint.js ops/platform-recovery-package-v1/ tests/platform-recovery-package-v1.test.mjs --max-warnings 0
       - name: Existing hosted window update and image-execution source compatibility, synthetic only
         run: |
           node --experimental-strip-types --test tests/platform-hosted-window-v6.test.mjs
