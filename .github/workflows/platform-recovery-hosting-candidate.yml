@@ -1,0 +1,40 @@
+name: Recovery hosting update candidate - No AWS
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ops/platform-recovery-hosting-v1/**'
+      - 'tests/platform-recovery-hosting-v1.test.mjs'
+      - 'docs/aws-auto-deployment-w9p-recovery-hosting-update-review.md'
+      - '.github/workflows/platform-recovery-hosting-candidate.yml'
+  pull_request:
+    paths:
+      - 'ops/platform-recovery-hosting-v1/**'
+      - 'tests/platform-recovery-hosting-v1.test.mjs'
+      - 'docs/aws-auto-deployment-w9p-recovery-hosting-update-review.md'
+      - '.github/workflows/platform-recovery-hosting-candidate.yml'
+permissions:
+  contents: read
+concurrency:
+  group: platform-recovery-hosting-candidate-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
+      - name: Recovery hosting update contracts
+        run: node --experimental-strip-types --test tests/platform-recovery-hosting-v1.test.mjs tests/platform-hosted-window-v6.test.mjs tests/platform-hosted-deploy-v6.test.mjs
+      - name: Typecheck and scoped lint
+        run: |
+          node node_modules/typescript/bin/tsc --noEmit --incremental false
+          node node_modules/eslint/bin/eslint.js ops/platform-recovery-hosting-v1/ tests/platform-recovery-hosting-v1.test.mjs --max-warnings 0
