@@ -93,6 +93,11 @@ test('old UPDATE_COMPLETE cannot be taken for the new update before observed pro
   const f=runFixture();let seen=0;f.io.stack=async()=>{seen++;return {StackId:T.stackId,StackStatus:seen===2?'UPDATE_IN_PROGRESS':'UPDATE_COMPLETE',LastUpdatedTime:new Date(at-1000).toISOString()};};
   const r=await runOnce({manifest:f.m,approved:f.m.manifestSha256,io:f.io,now:f.now});assert.equal(r.outcome,'RECOVERY_HOSTING_METADATA_VERIFIED_ACCEPTANCE_PENDING');assert.equal(seen,3);
 });
+test('SDK Date objects preserve milliseconds when recognizing a fresh completed update',async()=>{
+  const f=runFixture();f.time(at+123);f.io.stack=async()=>({StackId:T.stackId,StackStatus:'UPDATE_COMPLETE',LastUpdatedTime:new Date(at+200)});
+  const r=await runOnce({manifest:f.m,approved:f.m.manifestSha256,io:f.io,now:f.now});assert.equal(r.outcome,'RECOVERY_HOSTING_METADATA_VERIFIED_ACCEPTANCE_PENDING');
+  assert.equal(r.controlLease.issuedAt,at+123);
+});
 test('fresh readiness timestamp is an operator attestation, cannot be future/expired or replace approval SHA',async()=>{
   assertReadiness(at,at+1000);for(const t of [NaN,Infinity,at+1,at-180000])assert.throws(()=>assertReadiness(t,at));
   const f=runFixture();await assert.rejects(runOnce({manifest:f.m,approved:'0'.repeat(64),io:f.io,now:f.now}));

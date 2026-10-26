@@ -48,7 +48,7 @@ export async function verifyObserved(v,extra,{source,controlLease,updated=false,
     extra.definitions.INACTIVE.every(a=>(updated?[...priorInactive,BEFORE.ids.TaskDefinition]:Array.from({length:7},(_,n)=>BEFORE.ids.TaskDefinition.replace(/:8$/,':'+(n+1)))).includes(a))&&
     extra.definitions.DELETE_IN_PROGRESS.every(a=>updated&&a===BEFORE.ids.TaskDefinition),'EXTRA_LAYOUT');
   if(updated){const roots=v.events?.StackEvents?.filter(e=>e.ResourceType==='AWS::CloudFormation::Stack'&&e.PhysicalResourceId===T.stackId)
-    .sort((a,b)=>Date.parse(b.Timestamp)-Date.parse(a.Timestamp));must(roots?.[0]?.ResourceStatus==='UPDATE_COMPLETE'&&roots[0].ClientRequestToken===token&&Date.parse(roots[0].Timestamp)>=intentAt,'UPDATE_EVENT');}
+    .sort((a,b)=>new Date(b.Timestamp).getTime()-new Date(a.Timestamp).getTime());must(roots?.[0]?.ResourceStatus==='UPDATE_COMPLETE'&&roots[0].ClientRequestToken===token&&new Date(roots[0].Timestamp).getTime()>=intentAt,'UPDATE_EVENT');}
   // Compare actual values first; normalize ONLY verified substitutions on a clone.
   const copy=structuredClone(v);copy.stack.Stacks[0].StackStatus='CREATE_COMPLETE';for(const r of copy.resources.StackResourceSummaries)r.ResourceStatus='CREATE_COMPLETE';
   copy.template.TemplateBody=oldTemplate(T.nonce);copy.definition.taskDefinition.containerDefinitions[0].image=`${P.account}.dkr.ecr.${P.region}.amazonaws.com/${P.repository}@${OLD.imageDigest}`;
@@ -85,7 +85,7 @@ export async function runOnce({manifest:m,approved,io,now=Date.now}){
       request:request(m,at),controlLease:lease(at,m.sourceCommit)};await io.record('update-intent',intent);await guard();
     must(now()>=at&&now()-at<30000,'INTENT_STALE');await io.assertHumanReady();phase='UPDATE';const ack=await io.update(intent.request);must(ack.StackId===T.stackId,'ACK');await io.record('update-ack',ack);
     phase='WAIT';let done=false,seen=false;for(let n=0;n<100;n++){await guard();must(now()-start<T.runMs,'DEADLINE');const st=await io.stack();await io.record('stack-'+n,st);
-      must(st.StackId===T.stackId,'STACK_ID');if(st.StackStatus==='UPDATE_COMPLETE'&&(seen||Date.parse(st.LastUpdatedTime)>=at)){done=true;break;}
+      must(st.StackId===T.stackId,'STACK_ID');if(st.StackStatus==='UPDATE_COMPLETE'&&(seen||new Date(st.LastUpdatedTime).getTime()>=at)){done=true;break;}
       must(['UPDATE_COMPLETE','UPDATE_IN_PROGRESS','UPDATE_COMPLETE_CLEANUP_IN_PROGRESS'].includes(st.StackStatus),'UPDATE_OR_ROLLBACK_STOP');
       if(st.StackStatus!=='UPDATE_COMPLETE')seen=true;await io.wait();}
     must(done,'NOT_COMPLETE');phase='VERIFY';const observed=await io.observe(intent);await io.record('observed',observed);
