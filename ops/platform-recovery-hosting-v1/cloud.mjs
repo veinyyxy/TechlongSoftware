@@ -81,7 +81,8 @@ export function createCloud({manifest,approved,readOnly=true,metadataLimit=65,re
       must(identity&&Date.now()>=at&&Date.now()-at<30000&&same(input,request(manifest,at)),'EXACT_UPDATE');counts.writes++;
       const r=await clients.cfn.send(new C.UpdateStackCommand(input),{abortSignal:AbortSignal.timeout(30000)});return {StackId:r.StackId,sdkAttempts:r.$metadata?.attempts??null};},
     async stack(){const r=await call('cfn',new C.DescribeStacksCommand({StackName:T.stackId}));must(r.Stacks?.length===1,'STACK_COUNT');return {StackId:r.Stacks[0].StackId,StackStatus:r.Stacks[0].StackStatus,LastUpdatedTime:r.Stacks[0].LastUpdatedTime};},
-    async observe(intent){const v=await read(),proof=await verifyObserved(v.rawMetadata,v.extra,{source:manifest.sourceCommit,controlLease:intent.controlLease,updated:true,
+    async observe(intent){const v=await read();await record('observed-readback',v);
+      const proof=await verifyObserved(v.rawMetadata,v.extra,{source:manifest.sourceCommit,controlLease:intent.controlLease,updated:true,
       intentAt:intent.intentAt,token:intent.request.ClientRequestToken,priorInactive:manifest.before.inactive});return {...v,proof,counts:{...counts}};},
     close(){for(const c of Object.values(clients))c.destroy();},
   };

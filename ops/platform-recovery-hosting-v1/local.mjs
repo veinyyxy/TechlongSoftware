@@ -47,7 +47,7 @@ export async function main(args=process.argv.slice(2)){
   if(mode==='RunReviewed'){
     await absent(T.slot);await absent(T.inspectSlot);const e=await parentEvidence(m.parents[1].file,true);must(same(e.parents,m.parents),'PARENTS');
     const readyAt=Date.parse(a['--ready-at']);const assertHumanReady=async()=>assertReadiness(readyAt,Date.now());
-    await assertHumanReady();await mkdir(out);const record=(n,v)=>write(out+'/'+n+'.json',v),c=createCloud({manifest:m,approved:a['--approved-sha'],readOnly:false,metadataLimit:240});
+    await assertHumanReady();await mkdir(out);const record=(n,v)=>write(out+'/'+n+'.json',v),c=createCloud({manifest:m,approved:a['--approved-sha'],readOnly:false,metadataLimit:240,record});
     try{await record('approved-manifest',m);await record('operator-readiness',{readyAt,notAuthenticationEvidence:true,requiresFreshHumanReply:true});
       const r=await runOnce({manifest:m,approved:a['--approved-sha'],io:{...c,record,assertHumanReady,
         assertSource:async()=>{await source(h);must(same(await pin(),m.pins),'SOURCE_DRIFT');},
@@ -58,7 +58,7 @@ export async function main(args=process.argv.slice(2)){
   const slot=await json(T.slot);must(slot.manifestSha256===m.manifestSha256,'SLOT_BINDING');const intent=await json(slot.output+'/update-intent.json');
   must(intent.manifestSha256===m.manifestSha256&&same(intent.request,request(m,intent.intentAt)),'INTENT');await absent(T.inspectSlot);await mkdir(out);
   await write(T.inspectSlot,{manifestSha256:m.manifestSha256,consumedAt:Date.now(),retryAllowed:false});
-  const c=createCloud({manifest:m,readOnly:true,metadataLimit:65});try{const observed=await c.observe(intent);await write(out+'/observed.json',observed);
+  const c=createCloud({manifest:m,readOnly:true,metadataLimit:65,record:(n,v)=>write(out+'/'+n+'.json',v)});try{const observed=await c.observe(intent);await write(out+'/observed.json',observed);
     const r={outcome:'RECOVERY_HOSTING_INDEPENDENTLY_VERIFIED_ACCEPTANCE_PENDING',proof:observed.proof,cloudWrites:c.counts.writes,
       controlAcceptancePassed:false,businessDeploymentAccepted:false,retryAllowed:false};await write(out+'/result.json',r);console.log(JSON.stringify(r));return r;
   }finally{c.close();}

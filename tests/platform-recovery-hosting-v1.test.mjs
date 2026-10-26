@@ -110,6 +110,7 @@ test('read-only IO refuses update before credentials/metadata; no secret value/d
   const c=createCloud({readOnly:true});try{await assert.rejects(c.update({}),/WRITE_DISABLED/);assert.deepEqual(c.counts,{sts:0,metadata:0,writes:0});}finally{c.close();}
   const text=await readFile('ops/platform-recovery-hosting-v1/cloud.mjs','utf8');assert.doesNotMatch(text,/GetSecretValueCommand|PutSecretValue|DeleteStackCommand|CreateStackCommand|RunTaskCommand|UpdateServiceCommand|new pg\./);
   assert.equal((text.match(/new C\.UpdateStackCommand/g)??[]).length,1);assert.match(text,/maxAttempts:1/);
+  const observe=text.slice(text.indexOf('async observe(intent)'));assert(observe.indexOf("record('observed-readback',v)")<observe.indexOf('verifyObserved('));
 });
 test('CI metadata-only mapping cannot bless application, risk, tests, workflow or operator code drift',()=>{
   metadataOnly(['docs/aws-auto-deployment-w9p-recovery-hosting-code-verified.md']);metadataOnly([]);
