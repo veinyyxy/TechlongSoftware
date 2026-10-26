@@ -1,0 +1,192 @@
+{
+  "schema": "techlong/recovery-image-publication-executed/v1",
+  "outcome": "IMAGE_PUBLISHED_AND_LOCKED_SEPARATELY_VERIFIED",
+  "approvedManifestSha256": "67782d1e0f5e2e4f661f9deef8214c74590d16c2b994d2a6a07667b036cba4eb",
+  "innerReviewSha256": "d98ba902be74639a1eeae81c8a099936b1f9b9abddb29547dd937d80b48e4c20",
+  "dispatchCommit": "3dbe4dcfef2ca7f415185edd34181f9aadf320eb",
+  "reusableCommit": "9b26b7c7d16929d50c0e14e05d92f1e7fe40eb75",
+  "runId": 40348522944,
+  "runAttempt": 1,
+  "workflowId": 397198383,
+  "job": [
+    {
+      "id": 121661905358,
+      "steps": 12,
+      "allStepsSuccessful": true
+    }
+  ],
+  "cloudFactsArtifact": {
+    "id": 12662567754,
+    "name": "platform-recovery-image-v1-40348522944",
+    "bytes": 2405,
+    "digest": "sha256:0f9aafe762d59ebbb7d4641b7bb808fe325ce214378a199ab3cab58e23174075"
+  },
+  "registry": {
+    "repository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-platform-web",
+    "tag": "platform-sha5fcbc23ccaccec2c6a0fab8e732728a55b0b7ffc-r40340097784-a1",
+    "manifestDigest": "sha256:71e268934bb1dbe8220f33cf68757cd48d74c89be35269ba583f6dd1b712e75a",
+    "imageConfigDigest": "sha256:23fbf299930cdd5883579d296adc40ff789d4acc9881587bbeb3a93f87a7ab90",
+    "layerCount": 14,
+    "digestReference": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-platform-web@sha256:71e268934bb1dbe8220f33cf68757cd48d74c89be35269ba583f6dd1b712e75a"
+  },
+  "grant": {
+    "startsAt": "2026-10-26T15:20:50.531Z",
+    "originalExpiresAt": "2026-10-26T16:20:50.531Z",
+    "grantAckRecordedAtUtc": "2026-10-26T15:20:53.898Z",
+    "revokeIntentRecordedAtUtc": "2026-10-26T15:25:23.560Z",
+    "revokeAckRecordedAtUtc": "2026-10-26T15:25:24.624Z"
+  },
+  "execution": {
+    "outcome": "PUBLISHED_AND_INDEPENDENTLY_LOCKED",
+    "sourceCloudFormationUpdateStackCalls": 2,
+    "sourceCloudFormationAckAttempts": [
+      1,
+      1
+    ],
+    "topLevelDockerPushCalls": 1,
+    "roleSessions": 1,
+    "independentRegistryConfigLinkVerified": true,
+    "finalInventoryCount": 3,
+    "oldImagesPreserved": 2
+  },
+  "independentInspection": {
+    "outcome": "LOCKED_PUBLISHED_INDEPENDENTLY_VERIFIED",
+    "file": "F:/ChatGPT_workshop/techlong-w9o-recovery-image-inspect-1793028391968.json",
+    "recordedAtUtc": "2026-10-26T15:26:31.961Z",
+    "locked": true,
+    "roleId": "AROAV3GNMXTZID6CJJBA2",
+    "cloudWrites": 0,
+    "notProofOfImmediateTokenInvalidation": true
+  },
+  "scope": {
+    "boundaryChanges": 0,
+    "newIamIdentities": 0,
+    "secretValuePemEnvReads": 0,
+    "sqlConnections": 0,
+    "ecsDeployments": 0,
+    "runtimeLeaseWrites": 0,
+    "cellCreates": 0,
+    "resourceDeletes": 0
+  },
+  "lifecycle": {
+    "publicationSlotConsumed": true,
+    "retryAllowed": false,
+    "automaticRollback": false,
+    "automaticCleanup": false,
+    "imageRetainedAndMayIncurCharges": true,
+    "previousHostingNotCleanedOrRenewed": true
+  },
+  "businessBasisExpiresAtUtc": "2026-10-27T18:47:57.695Z",
+  "evidence": [
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/awaiting-human-environment.json",
+      "rawSha256": "4257d3aac6428cabd464c9ea3bb9d3251b00b9e7988093c026fc7152980a8386",
+      "bytes": 339
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/cloud-publication-facts.json",
+      "rawSha256": "d3acf5f6c4c4714c8df334fd41f8dda91f6f5d53c9528c72d0bbba994f4f7a75",
+      "bytes": 5574
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/dispatch-ack.json",
+      "rawSha256": "13543d2eb71f854fb2e5a3c7263b62cb3a53541b8ae49f1f5d35819244550731",
+      "bytes": 173
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/dispatch-intent.json",
+      "rawSha256": "d0157ac77ed92116dcf47f0b392daeffbb9a46d197850a94f1531a69b8c34a2b",
+      "bytes": 164
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/final-independent-readback.json",
+      "rawSha256": "62551966c59d22ad8508011ee307d8967f143fd09441446940dc739b47aeaae9",
+      "bytes": 14699
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/grant-ack.json",
+      "rawSha256": "489e5e618761f618b5f7d2ec0af7c289942a026dcb7d18a0f9fde01e2e415ac1",
+      "bytes": 228
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/grant-independent-readback.json",
+      "rawSha256": "012a39aca8cc3deb64a65bf9319d4f43460477f40c071b34fabdfd40e57b020e",
+      "bytes": 19828
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/grant-intent.json",
+      "rawSha256": "db5f1abae34e6f96306afcf85bf9fc7bac46fe50391800fd02af5adb53bba5e0",
+      "bytes": 6206
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/independent-registry-manifest.json",
+      "rawSha256": "6305148a7af21fc51963ba5a8c99796e79b423f71058f318fc18e4668d37616d",
+      "bytes": 4410
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/inner-review.json",
+      "rawSha256": "1764d43c2bf36ae3a41f2c9706e373aaa790b422daafe28cd3db73e35354d64f",
+      "bytes": 2214
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/preflight-aws.json",
+      "rawSha256": "c77a039de324659e9608649b5fa7085fa7e3391c30e64adc51558a2788177b37",
+      "bytes": 14079
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/preflight-github.json",
+      "rawSha256": "66c239685c131736b40f33dde7b2c344fc318516208acf61b71645efd08b4c0a",
+      "bytes": 54875
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/publication-facts.zip",
+      "rawSha256": "0f9aafe762d59ebbb7d4641b7bb808fe325ce214378a199ab3cab58e23174075",
+      "bytes": 2405
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/result.json",
+      "rawSha256": "8df960aecec019568615459abfb29054831bc468ae34b34a254866d45a3643ce",
+      "bytes": 609
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/revoke-ack.json",
+      "rawSha256": "3b27e097168b33cacacc52bb9d707022d478be25debd670010b6e0ee081249ff",
+      "bytes": 228
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/revoke-independent-readback.json",
+      "rawSha256": "bfa89fe29929585cd2b47ac840def8e80140124a51b9ca944fe2da00bf729151",
+      "bytes": 14699
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/revoke-intent.json",
+      "rawSha256": "834794ef8b95cab526995174f5cccec647829e43631062a970a221cb2d2106a5",
+      "bytes": 2971
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-platform-recovery-image-v1-1c2128dd545678b31faa3272128fde32/run-completed.json",
+      "rawSha256": "f5e213d4f438a135e34a5fc9fe604745bfb1e7e5c4eade48950f61447fc4dc42",
+      "bytes": 14242
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9o-recovery-image-inspect-1793028391968.json",
+      "rawSha256": "eaeb941a17c3bd8640702b1b9a572476956d067f5f74d675c7d5e3fb515bc3e6",
+      "bytes": 20002
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-recovery-image-v1.source.intent.json",
+      "rawSha256": "2c81319fed3fa4802675f2c655bdccd8cd7cdcc18cfba963478e0ce84683dc54",
+      "bytes": 2545
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9o-recovery-image-review-20261026-a.json",
+      "rawSha256": "67782d1e0f5e2e4f661f9deef8214c74590d16c2b994d2a6a07667b036cba4eb",
+      "bytes": 8506
+    }
+  ],
+  "parentSeal": {
+    "file": "F:/ChatGPT_workshop/techlong-w9o-image-publication-preparation-verified-20261026-a.json",
+    "rawSha256": "3bc1968183e64d6337e3e588947dffdda8e182d0fd07d947f808f2bfe96df6f6",
+    "bytes": 3984
+  }
+}
