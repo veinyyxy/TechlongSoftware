@@ -1,0 +1,68 @@
+{
+  "schema": "techlong/recovery-continuation-plan/v1",
+  "status": "READONLY_FACTS_VERIFIED_PLAN_ONLY_NO_NEW_EXECUTION_SHA",
+  "verificationCodeCommit": "97e3551d3bb690287228a3e76a80eff03db2b27e",
+  "neon": {
+    "configurationContentReads": 1,
+    "tlsConnections": 1,
+    "queries": 13,
+    "writes": 0,
+    "serverSearchPath": "pg_catalog",
+    "serverTransactionReadOnly": "on",
+    "originalBusinessAndProtectionMatched": true,
+    "composedGuardPassed": false,
+    "composedGuardStop": "RECOVERY_V1_EXACT_NEW_HELD_ROW",
+    "originalProducerGuardPassedWithVerifiedOriginalIntent": true,
+    "originalRequestAt": 1792970812292,
+    "rowCreationDelayMs": 3036,
+    "originalIntentRawSha256": "7a9aab930e3b1074913654223035a4b9174b292a971201193eb8f6b553f0cd0b",
+    "originalRequestSealRawSha256": "64b1ebf45dc66fbbdba4be2feec3d7d7c51bafe7419d908a1ce9ace773c0593f",
+    "originalArtifactsVerified": 12,
+    "actualStateRawSha256": "5429571a92185780f15d526b156a1744b2e957e8b4541a576437ab10821e2615",
+    "producerConfirmationRawSha256": "3bc0d3b923d4f84a83d34612070496ece4c910b47e92b2953646dfbb135d321c"
+  },
+  "aws": {
+    "checkedAtUtc": "2026-10-26T20:17:08.419Z",
+    "recordedAtUtc": "2026-10-26T20:17:16.467Z",
+    "sts": 1,
+    "metadata": 41,
+    "writes": 0,
+    "snapshotRawSha256": "1a4cbc78541977b27705421d13476cd5ab20bc648db4d607cda3056ecd2986b1",
+    "taskDefinitionRevision": 9,
+    "healthy": true,
+    "dnsAndRolesAndFixedSecretVersionsMatched": true,
+    "rawEcrManifestAndConfigMatched": true,
+    "priorControlLeaseExpired": true,
+    "controlLeaseRenewed": false
+  },
+  "proposedCodeOnlyScope": [
+    "Bind held-row verification to hash-verified original request transaction evidence, not current row creation time",
+    "Prepare one independently reviewed source-and-lease-only continuation of the existing hosting stack"
+  ],
+  "preserve": {
+    "businessAndProtectionBaseline": true,
+    "allOldReceiptsAndFailures": true,
+    "allConsumedSlots": true,
+    "existingPublishedImage": true,
+    "iamAndSecretsAndSchemaAndNetwork": true
+  },
+  "notImplemented": {
+    "requestTransactionBindingFix": true,
+    "newContinuationEntry": true
+  },
+  "executionManifestSha256": null,
+  "executionAuthorized": false,
+  "businessAcceptancePassed": false,
+  "noEffectsThisStage": {
+    "databaseWrites": 0,
+    "awsWrites": 0,
+    "secretValueReads": 0,
+    "pemReads": 0,
+    "auroraConnections": 0,
+    "workflowDispatches": 0,
+    "leasesStarted": 0,
+    "slotsConsumed": 0
+  },
+  "businessBasisExpiresAtUtc": "2026-10-27T18:47:57.695Z",
+  "planFile": "docs/aws-auto-deployment-recovery-continuation-plan.md"
+}
