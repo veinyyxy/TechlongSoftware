@@ -2,8 +2,8 @@
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {randomBytes} from 'node:crypto';
-import {C,protocol} from './candidate.mjs';
-import {sourceContext,verifyRetained,verifyFinalInventory} from './source-review.mjs';
+import {C as LEGACY_C,protocol as LEGACY_PROTOCOL} from './candidate.mjs';
+import {sourceContext as legacyContext,verifyRetained as legacyRetained,verifyFinalInventory as legacyFinal} from './source-review.mjs';
 import {hash,must,same} from '../platform-image-publication-v2/plan.mjs';
 import {ROOT,EVIDENCE,pins,cleanSource,readText,writeOnce,absent,directory,environment} from '../platform-image-source-v2/files.mjs';
 import {createAws,verifySnapshot} from '../platform-image-source-v2/aws.mjs';
@@ -13,11 +13,17 @@ import {lockedPublisherFoundation} from '../platform-image-recovery-v2/publisher
 export const CLOUD_ROOTS=Object.freeze(['ops/platform-hosted-publication-v2/cloud.mjs','ops/platform-hosted-publication-v2/artifact.mjs',
   'ops/platform-image-publication-v2/cloud-preflight.sh','ops/platform-image-publication-v1/extract.py',
   '.github/workflows/platform-image-hosted-publish-job-v2.yml','ops/cloud-worker/package.json','ops/cloud-worker/package-lock.json']);
+// Code-only composition; the legacy CLI never accepts a profile or target override.
+export function sourceAdapter({candidate:C=LEGACY_C,protocol=LEGACY_PROTOCOL,sourceContext=legacyContext,
+  verifyRetained=legacyRetained,verifyFinalInventory=legacyFinal,cloudRoots=CLOUD_ROOTS,
+  sourceEntry='ops/platform-hosted-publication-v2/source.mjs',testFile='tests/platform-hosted-source-v2.test.mjs',
+  reviewPattern=/^F:\/ChatGPT_workshop\/techlong-hosted-publication-w8f-review-[a-z0-9-]+\.json$/,
+  directoryPrefix='techlong-platform-hosted-source-v2',inspectPrefix='techlong-hosted-publication-w8f-inspect',
+  metadataFiles=['README.md','docs/aws-auto-deployment-mainline.md','ops/aws-sandbox/reviews/platform-hosted-publication-w8f.verified.json']}={}){
 function fileContext(review){
-  const roots=['ops/platform-hosted-publication-v2/source.mjs',review.S.riskFile,`.github/workflows/${review.S.sourceCiFile}`,
-    `.github/workflows/${C.callerFile}`,'tests/platform-hosted-source-v2.test.mjs','package.json','package-lock.json',...CLOUD_ROOTS];
-  const options={settings:review.S,roots,frozenRoots:CLOUD_ROOTS,metadataFiles:['README.md','docs/aws-auto-deployment-mainline.md',
-    review.S.publicReviewFile,'ops/aws-sandbox/reviews/platform-hosted-publication-w8f.verified.json']};
+  const roots=[sourceEntry,review.S.riskFile,`.github/workflows/${review.S.sourceCiFile}`,
+    `.github/workflows/${C.callerFile}`,testFile,'package.json','package-lock.json',...cloudRoots];
+  const options={settings:review.S,roots,frozenRoots:cloudRoots,metadataFiles:[...metadataFiles,review.S.publicReviewFile]};
   return {pins:()=>pins(options),clean:m=>cleanSource(m,options)};
 }
 function cloud(review){environment();return createAws({protocol,request:review.updateRequest,sourceLogin:true});}
@@ -33,7 +39,7 @@ function initial(v){
 function references(v){return {boundary:v.boundary.Policy,repository:v.repository.repositories,
   roleTags:[...(v.role.Role.Tags??[])].sort((a,b)=>a.Key.localeCompare(b.Key)),
   stackTags:[...(v.stack.Stacks[0].Tags??[])].sort((a,b)=>a.Key.localeCompare(b.Key))};}
-export async function revokeOnce(aws,record,inner){
+async function revokeOnce(aws,record,inner){
   // The cloud adapter itself enforces one submission per phase. Recording a
   // cleanup intent/ACK may fail, but must not prevent the one revoke attempt.
   try{await aws.settled(Date.now()+10*60000);}catch(e){try{await record('revoke-wait-error',{code:errorCode(e)});}catch{}}
@@ -42,7 +48,7 @@ export async function revokeOnce(aws,record,inner){
 }
 async function prepare(output,ciRun){
   const review=sourceContext(),files=fileContext(review);
-  must(/^F:\/ChatGPT_workshop\/techlong-hosted-publication-w8f-review-[a-z0-9-]+\.json$/.test(output??'')&&
+  must(reviewPattern.test(output??'')&&
     /^[1-9][0-9]{5,19}$/.test(ciRun??''),'HOSTED_PREPARE_ARGUMENTS');
   await absent(output);await absent(path.join(EVIDENCE,review.S.intentFile));
   const head=await files.clean(),aws=await cloud(review),gh=createGithub({context:review});
@@ -68,7 +74,7 @@ async function run(file,sha,notify=console.log){
   const review=sourceContext(),text=await readText(file),m=review.validateOuter(text,sha),files=fileContext(review);
   await files.clean(m);must(hash((await readText(path.join(ROOT,review.S.riskFile))).replaceAll('\r\n','\n'))===m.riskSha256,'HOSTED_RISK_DRIFT');
   const intent=path.join(EVIDENCE,review.S.intentFile);await absent(intent);
-  const dir=await directory('techlong-platform-hosted-source-v2-'+m.nonce,{prefix:'techlong-platform-hosted-source-v2'});
+  const dir=await directory(directoryPrefix+'-'+m.nonce,{prefix:directoryPrefix});
   const record=(name,value)=>{must(/^[a-z0-9-]+$/.test(name),'HOSTED_RECORD_NAME');return writeOnce(path.join(dir,name+'.json'),value);};
   const aws=await cloud(review),gh=createGithub({context:review});let before,executedInner;
   try{
@@ -118,17 +124,22 @@ async function inspect(file,sha){
     const snapshot=await aws.snapshot();let locked=false;
     try{verifySnapshot(snapshot,lockedTemplate(inner));locked=true;}catch(e){errors.push(errorCode(e));}
     try{published=await aws.published();verifyFinalInventory(snapshot.images,published.verified.manifestDigest);}catch(e){errors.push(errorCode(e));}
-    const output=path.join(EVIDENCE,'techlong-hosted-publication-w8f-inspect-'+Date.now()+'.json');
+    const output=path.join(EVIDENCE,inspectPrefix+'-'+Date.now()+'.json');
     const result={mode:'Inspect',outcome:locked&&!errors.length?'LOCKED_PUBLISHED_INDEPENDENTLY_VERIFIED':locked?'LOCKED_PUBLICATION_NOT_PROVED':'LOCK_NOT_PROVED',
       locked,snapshot,published:published??null,errors,cloudWrites:0};await writeOnce(output,result);
     return {mode:'Inspect',output,outcome:result.outcome,locked,errors,cloudWrites:0};
   }finally{aws.close();}
 }
-export async function main(args=process.argv.slice(2)){
+async function main(args=process.argv.slice(2)){
   const [mode,file,value,...extra]=args;
   must(!extra.length&&file&&value&&['Prepare','RunReviewed','Inspect'].includes(mode),'HOSTED_SOURCE_ARGUMENTS');
   return mode==='Prepare'?prepare(file,value):mode==='RunReviewed'?run(file,value):inspect(file,value);
 }
+return Object.freeze({main,revokeOnce});
+}
+const legacy=sourceAdapter();
+export const main=(...args)=>legacy.main(...args);
+export const revokeOnce=(...args)=>legacy.revokeOnce(...args);
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href)main()
   .then(r=>{console.log(JSON.stringify(r));if(r.outcome==='REQUIRES_INDEPENDENT_INSPECT')process.exitCode=2;})
   .catch(e=>{console.error(JSON.stringify({outcome:'HOSTED_SOURCE_STOPPED',errorCode:errorCode(e),automaticRetry:false}));process.exitCode=1;});

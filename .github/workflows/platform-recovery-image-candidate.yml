@@ -1,0 +1,78 @@
+name: Recovery platform exact image - No AWS
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ops/platform-recovery-image-v1/**'
+      - 'ops/platform-image-publication-v2/**'
+      - 'ops/platform-image-source-v2/**'
+      - 'ops/platform-hosted-publication-v2/source.mjs'
+      - 'tests/platform-recovery-image-v1.test.mjs'
+      - 'docs/aws-auto-deployment-w9o-recovery-image-publication-review.md'
+      - '.github/workflows/platform-image-recovery-publish-job-v1.yml'
+      - '.github/workflows/platform-image-recovery-publish-v1.yml'
+      - '.github/workflows/platform-recovery-image-candidate.yml'
+  pull_request:
+    paths:
+      - 'ops/platform-recovery-image-v1/**'
+      - 'ops/platform-image-publication-v2/**'
+      - 'ops/platform-image-source-v2/**'
+      - 'ops/platform-hosted-publication-v2/source.mjs'
+      - 'tests/platform-recovery-image-v1.test.mjs'
+      - 'docs/aws-auto-deployment-w9o-recovery-image-publication-review.md'
+      - '.github/workflows/platform-image-recovery-publish-job-v1.yml'
+      - '.github/workflows/platform-image-recovery-publish-v1.yml'
+      - '.github/workflows/platform-recovery-image-candidate.yml'
+permissions:
+  contents: read
+concurrency:
+  group: platform-recovery-image-candidate-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/platform-recovery-image-v1.test.mjs tests/platform-hosted-source-v2.test.mjs tests/platform-hosted-publication-v2.test.mjs tests/platform-image-publication-v2.test.mjs tests/platform-image-source-v2.test.mjs
+      - run: |
+          node node_modules/typescript/bin/tsc --noEmit --incremental false
+          node node_modules/eslint/bin/eslint.js ops/platform-recovery-image-v1/ ops/platform-hosted-publication-v2/source.mjs ops/platform-image-source-v2/ tests/platform-recovery-image-v1.test.mjs --max-warnings 0
+  exact-image:
+    needs: contracts
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+      - name: Original recovery image bytes, Docker load, three smokes and fresh OS scan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash ops/platform-recovery-image-v1/preflight.sh preflight
+      - name: Save small independent image facts only
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: platform-recovery-image-preflight-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/platform-recovery-image-v1/verified-artifact.json
+            ${{ runner.temp }}/platform-recovery-image-v1/loaded-inspect.json
+            ${{ runner.temp }}/platform-recovery-image-v1/verified-preflight.json
+          if-no-files-found: warn
+          retention-days: 3
+          overwrite: false

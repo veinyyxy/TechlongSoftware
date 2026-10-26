@@ -1,0 +1,79 @@
+name: Protected single recovery platform image publication v1
+on:
+  workflow_call:
+    inputs:
+      review_json:
+        required: true
+        type: string
+      review_sha:
+        required: true
+        type: string
+permissions: {}
+jobs:
+  publish:
+    environment: techlong-sandbox-deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    concurrency:
+      group: platform-ecr-image-5fcbc23-r40340097784
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      TECHLONG_PUBLICATION_REVIEW: ${{ inputs.review_json }}
+      TECHLONG_PUBLICATION_SHA: ${{ inputs.review_sha }}
+    steps:
+      - name: Resolve code only from this immutable reusable workflow identity
+        id: source
+        # This bootstrap must not execute a caller-selected checkout. It obtains a
+        # GitHub OIDC token only to identify this reusable revision, not AWS STS.
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';import crypto from 'node:crypto';
+          const e=process.env,fail=()=>{throw Error('IMMUTABLE_PUBLISHER_BOOTSTRAP_REFUSED');};
+          if(e.GITHUB_REPOSITORY!=='veinyyxy/TechlongSoftware'||e.GITHUB_REPOSITORY_ID!=='1323312747'||e.GITHUB_ACTOR_ID!=='14145707'||e.GITHUB_EVENT_NAME!=='workflow_dispatch'||e.GITHUB_REF!=='refs/heads/main'||e.GITHUB_RUN_ATTEMPT!=='1')fail();
+          const raw=e.TECHLONG_PUBLICATION_REVIEW,sha=e.TECHLONG_PUBLICATION_SHA;
+          if(!raw||raw.length>20000||!/^[a-f0-9]{64}$/.test(sha)||crypto.createHash('sha256').update(raw).digest('hex')!==sha)fail();
+          const m=JSON.parse(raw),u=new URL(e.ACTIONS_ID_TOKEN_REQUEST_URL);
+          if(u.protocol!=='https:'||!u.hostname.endsWith('.actions.githubusercontent.com')||u.username||u.password||u.port)fail();
+          u.searchParams.set('audience','sts.amazonaws.com');
+          const r=await fetch(u,{headers:{authorization:'Bearer '+e.ACTIONS_ID_TOKEN_REQUEST_TOKEN},redirect:'error',signal:AbortSignal.timeout(15000)});
+          if(!r.ok)fail();const body=await r.text();if(body.length>24000)fail();const token=JSON.parse(body).value;
+          if(typeof token!=='string'||token.length>20000||token.split('.').length!==3)fail();
+          const c=JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString('utf8')),ref=c.job_workflow_sha;
+          if(!/^[a-f0-9]{40}$/.test(ref)||ref!==m.reusableCommit||c.job_workflow_ref!==`veinyyxy/TechlongSoftware/.github/workflows/platform-image-recovery-publish-job-v1.yml@${ref}`||c.repository_id!=='1323312747'||c.actor_id!=='14145707')fail();
+          fs.appendFileSync(e.GITHUB_OUTPUT,`sha=${ref}\n`);
+          NODE
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+      - name: Validate complete review and original dispatch context before download
+        run: |
+          node --input-type=module -e 'import {protocol} from "./ops/platform-recovery-image-v1/candidate.mjs"; const {validateReview,validateCloud}=protocol; const e=process.env;validateCloud(e,validateReview(e.TECHLONG_PUBLICATION_REVIEW,e.TECHLONG_PUBLICATION_SHA));'
+      - name: Reverify original bytes and same image before requesting AWS session
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash ops/platform-recovery-image-v1/preflight.sh publication
+      - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
+      - name: One reviewed role session and one top-level ECR push, never ECS
+        run: node ops/platform-recovery-image-v1/cloud.mjs "$RUNNER_TEMP/platform-recovery-image-v1"
+      - name: Preserve small publication facts, never auth files or image archive
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: platform-recovery-image-v1-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/platform-recovery-image-v1/verified-artifact.json
+            ${{ runner.temp }}/platform-recovery-image-v1/verified-preflight.json
+            ${{ runner.temp }}/platform-recovery-image-v1/publication.intent.json
+            ${{ runner.temp }}/platform-recovery-image-v1/publication-result.json
+          if-no-files-found: warn
+          retention-days: 3
+          overwrite: false

@@ -25,7 +25,7 @@ export async function writeOnce(file,value){
 }
 export async function absent(file){try{await lstat(file);must(false,'SOURCE_PERMANENT_SLOT_OCCUPIED');}catch(e){if(e.code!=='ENOENT')throw e;}}
 export async function directory(name,{prefix='techlong-platform-source-v2'}={}){
-  must(['techlong-platform-source-v2','techlong-platform-hosted-source-v2'].includes(prefix)&&
+  must(['techlong-platform-source-v2','techlong-platform-hosted-source-v2','techlong-platform-recovery-image-v1'].includes(prefix)&&
     name.startsWith(prefix+'-')&&/^[a-f0-9]{32}$/.test(name.slice(prefix.length+1)),'SOURCE_EVIDENCE_NAME');
   await noLinks(EVIDENCE);const dir=path.join(EVIDENCE,name);await mkdir(dir,{mode:0o700});await noLinks(dir);return dir;}
 export async function pins({settings=S,roots}={}){

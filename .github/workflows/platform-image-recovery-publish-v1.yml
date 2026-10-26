@@ -1,0 +1,19 @@
+name: Platform single recovery ECR publication v1
+run-name: Platform recovery ECR ${{ inputs.review_sha }}
+on:
+  workflow_dispatch:
+    inputs:
+      review_json:
+        description: Exact Source review; never generic approval
+        type: string
+        required: true
+      review_sha:
+        description: SHA256 of exact review_json bytes
+        type: string
+        required: true
+permissions: {}
+jobs:
+  not-ready:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo 'Immutable reusable CI binding not yet installed; no AWS identity or publication.' && exit 1

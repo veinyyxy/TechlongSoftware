@@ -32,7 +32,8 @@ export function publicationProtocol(candidate=P){
     /^sha256:[a-f0-9]{64}$/.test(candidate.imageConfigDigest)&&/^[a-f0-9]{64}$/.test(candidate.archiveSha256)&&
     candidate.targetTag===`platform-sha${candidate.sourceCommit}-r${candidate.runId}-a1`&&
     ((candidate.reusableFile===P.reusableFile&&candidate.callerFile===P.callerFile)||
-      (candidate.reusableFile==='platform-image-hosted-publish-job-v2.yml'&&candidate.callerFile==='platform-image-hosted-publish-v2.yml')),'BOUND_CANDIDATE');
+      (candidate.reusableFile==='platform-image-hosted-publish-job-v2.yml'&&candidate.callerFile==='platform-image-hosted-publish-v2.yml')||
+      (candidate.reusableFile==='platform-image-recovery-publish-job-v1.yml'&&candidate.callerFile==='platform-image-recovery-publish-v1.yml')),'BOUND_CANDIDATE');
   return boundProtocol(Object.freeze({...candidate}));
 }
 function boundProtocol(P){
