@@ -18,10 +18,17 @@ import {sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {REQUEST_ADMIN_V6 as ADMIN} from '../lib/deployments/reviewed-request-window-v6.ts';
 const run=(f,overrides={})=>followRecoveryRunOnce({manifest:f.m,approved:f.m.manifestSha256,basis:f.basis,binding:f.binding,io:f.io,now:f.now,sleep:async()=>{},rebuildPackage:f.rebuild,...overrides});
 
-test('default source binding is closed before even public runtime values, ledger or key factories are read',async()=>{
-  let reads=0;const controller=createBoundRecoveryController({read:()=>{reads++;throw Error('must stay closed');},fetch});
+test('explicit candidate binding is closed before even public runtime values, ledger or key factories are read',async()=>{
+  const candidate={schema:'techlong/recovery-control-binding/v1',state:'CANDIDATE'};
+  let reads=0;const controller=createBoundRecoveryController({binding:candidate,read:()=>{reads++;throw Error('must stay closed');},fetch});
   const v=await controller.status(S.instanceId);assert.equal(v.enabled,false);assert.equal(controller.enabled(),false);assert.equal(reads,0);
   await assert.rejects(controller.act(S.instanceId,ADMIN,{}));await assert.rejects(assertRecoveryBinding(RECOVERY_CONTROL_BINDING));
+});
+test('current source binding without provisioned runtime stays disabled before database/key/network capabilities',async()=>{
+  let privateReads=0,factories=0;const controller=createBoundRecoveryController({read:n=>{if(n.endsWith('DATABASE_URL')||n.endsWith('PRIVATE_KEY'))privateReads++;return undefined;},fetch,
+    ledgerFactory:()=>{factories++;throw Error('no database capability');},githubFactory:()=>{factories++;throw Error('no GitHub capability');}});
+  assert.equal(controller.enabled(),false);assert.equal((await controller.status(S.instanceId)).enabled,false);
+  await assert.rejects(controller.act(S.instanceId,ADMIN,{}));assert.equal(privateReads+factories,0);
 });
 
 async function controllerFixture({publication=false}={}){
@@ -138,7 +145,13 @@ test('real shared transport handles outer/inner references, one token/Inspect an
 test('CLI rejects scope overrides and default check performs no private/network actions; both cloud closures stay pinned',async()=>{
   assert.equal(parseRecoveryControlArgs(['--check']).command,'check');assert.throws(()=>parseRecoveryControlArgs(['prepare-followup','--input','x','--profile','owner']));
   const r=spawnSync(process.execPath,['--experimental-strip-types','ops/platform-recovery-control-v1/cli.mjs','--check'],{encoding:'utf8',timeout:30000,windowsHide:true});
-  assert.equal(r.status,0);const v=JSON.parse(r.stdout);assert.equal(v.state,'CANDIDATE');assert.equal(v.privateReads+v.awsCalls+v.sqlConnections+v.dispatches,0);
+  assert.equal(r.status,0);const v=JSON.parse(r.stdout);assert.equal(v.state,RECOVERY_CONTROL_BINDING.state);assert.equal(v.privateReads+v.awsCalls+v.sqlConnections+v.dispatches,0);
+  if(v.state==='PUBLISHED'){
+    await assertRecoveryPublication(RECOVERY_CONTROL_BINDING);
+    assert.equal(RECOVERY_CONTROL_BINDING.release.reusableCommit,'4c09548ab9852a4f3e948f0686f8c81251cda73b');
+    assert.equal(RECOVERY_CONTROL_BINDING.packageReference.versionId,'Zz5fH5Javs900ZrmMrgi3QhBzFbCNkPm');
+    assert.equal(RECOVERY_CONTROL_BINDING.sourceCommit,null);assert.equal(RECOVERY_CONTROL_BINDING.activation.sourceCommit,null);
+  }
   const c=await recoveryCloudClosure();assert.equal(c.closureSha256,'30a7cdf74b50563afbc73f4a6b62661962d83127c3e409b627d11e5b3b91e374');assert.equal(c.pinCount,97);
   assert.equal(c.previousPlatformClosureSha256,'828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a');
   const ci=load(await readFile(new URL('../.github/workflows/platform-cloud-candidate.yml',import.meta.url),'utf8'));assert.deepEqual(ci.permissions,{contents:'read'});

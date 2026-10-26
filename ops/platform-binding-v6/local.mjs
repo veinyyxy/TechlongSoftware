@@ -28,8 +28,10 @@ async function objects(m){const o=m.object,text=await renderBindingV6(m.riskSha2
     (await git(['ls-tree',o.commit,'--',J.target])).trim()==='100644 blob '+o.blob+'\t'+J.target&&
     (await git(['show',o.commit+':'+J.target])).replaceAll('\r\n','\n')===text&&
     (await git(['diff','--name-status',o.parent,o.commit])).trim()==='M\t'+J.target,'EXACT_OBJECT');}
-async function ioFor(output){let token;const record=(n,v)=>write(output+'/'+n+'.json',v);
-  async function get(suffix,missing=false){if(!token){const raw=await git(['credential','fill'],{input:'protocol=https\nhost=github.com\npath=veinyyxy/TechlongSoftware.git\n\n'});
+const DEFAULT_SCOPE=J;
+export async function createBindingPublicationIo(output,{profile}={}){let token;const J=profile?.scope??DEFAULT_SCOPE,record=(n,v)=>write(output+'/'+n+'.json',v);
+  const objectsNow=profile?.verifyObjects??objects,pinsNow=profile?.pins??pins,writable=()=>must(!profile?.readOnly,'READ_ONLY_CAPABILITY');let githubGets=0;
+  async function get(suffix,missing=false){if(profile)must(++githubGets<=50,'GITHUB_READ_BUDGET');if(!token){const raw=await git(['credential','fill'],{input:'protocol=https\nhost=github.com\npath=veinyyxy/TechlongSoftware.git\n\n'});
       token=raw.split(/\r?\n/).find(s=>s.startsWith('password='))?.slice(9);must(token&&token.length<20000,'GITHUB_AUTH');}
     const r=await fetch('https://api.github.com/repos/'+P.repository+'/'+suffix,{redirect:'error',signal:AbortSignal.timeout(20000),
       headers:{authorization:'Bearer '+token,accept:'application/vnd.github+json','user-agent':'Techlong-Reviewed-Binding-V6'}});
@@ -44,6 +46,7 @@ async function ioFor(output){let token;const record=(n,v)=>write(output+'/'+n+'.
   let pushes=0,ffs=0;
   return {record,ci,
     async preflight(parent){must(await main()===parent,'REMOTE_PARENT');
+      if(profile)return profile.preflight({get,parent});
       const layout=await readPublishedLayoutV6(),closure=await platformClosureV6(),texts=cloudWorkflowsV6({...F,reusableCommit:J.reusable}),workflows=[];
       for(const [file,id,commit,text] of [['cloud-worker-platform-job-v6.yml',J.reusableId,J.reusable,texts.reusable],['cloud-worker-platform-v6.yml',J.workflowId,parent,texts.caller]]){
         const w=await get('actions/workflows/'+file),c=await get('contents/.github/workflows/'+file+'?ref='+commit);
@@ -53,20 +56,22 @@ async function ioFor(output){let token;const record=(n,v)=>write(output+'/'+n+'.
       const runs=await get('actions/workflows/'+J.workflowId+'/runs?per_page=100');must(runs.total_count<100&&runs.workflow_runs?.length===runs.total_count&&runs.workflow_runs.every(r=>r.status==='completed'),'NO_ACTIVE_APP_RUN');
       const p={layout,workflows,closureSha256:closure.closureSha256,newWorkflowUnfinishedRuns:0,newWorkflowRunIds:runs.workflow_runs.map(x=>String(x.id)).sort()};await assertBindingPrestateV6(p,parent);return p;},
     async assertLocal(m){must((await git(['rev-parse','HEAD'])).trim()===m.parent&&(await git(['branch','--show-current'])).trim()==='main'&&
-      (await git(['status','--porcelain'])).trim()===''&&(await git(['remote','get-url','--push','--all','github'])).trim()===P.remote&&same(await pins(),m.pins),'LOCAL_SOURCE');await objects(m);},
-    claim:v=>write(J.slot,v),
-    async push(m,guard){must(pushes++===0&&await main()===m.parent,'PUSH_ONCE');await guard();
+      (await git(['status','--porcelain'])).trim()===''&&(await git(['remote','get-url','--push','--all','github'])).trim()===P.remote&&same(await pinsNow(),m.pins),'LOCAL_SOURCE');await objectsNow(m);},
+    claim:v=>{writable();return write(J.slot,{...v,...(profile?{output}:{})});},
+    async push(m,guard){writable();must(pushes++===0&&await main()===m.parent,'PUSH_ONCE');await guard();
       await git(['-c','push.followTags=false','-c','remote.github.mirror=false','push','--porcelain','github',m.actions.pushRefspec]);},
     async verifyRemote(m){must(await main()===m.object.commit,'PUBLISHED_MAIN');const c=await get('contents/'+J.target+'?ref='+m.object.commit);
       must(c.type==='file'&&c.sha===m.object.blob&&c.encoding==='base64'&&hash(Buffer.from(c.content,'base64'))===m.object.sha256,'PUBLISHED_BINDING');
-      return {head:m.object.commit,blob:c.sha,sha256:m.object.sha256,compiledBindingPublished:true,runtimeProvisioned:false,serverStarted:false};},
-    async fastForward(m,guard){must(ffs++===0&&await main()===m.object.commit,'FF_ONCE');await guard();await git(['merge','--ff-only',m.object.commit]);},
-    async inspect(m){await objects(m);const remote=await main(),local=(await git(['rev-parse','HEAD'])).trim();return {
+      const extra=profile?.verifyRemote?await profile.verifyRemote({get,manifest:m,bindingSha256:m.object.sha256}):{};
+      return {head:m.object.commit,blob:c.sha,sha256:m.object.sha256,compiledBindingPublished:true,runtimeProvisioned:false,serverStarted:false,...extra};},
+    async fastForward(m,guard){writable();must(ffs++===0&&await main()===m.object.commit,'FF_ONCE');await guard();await git(['merge','--ff-only',m.object.commit]);},
+    async inspect(m){await objectsNow(m);const remote=await main(),local=(await git(['rev-parse','HEAD'])).trim();return {
       outcome:remote===m.object.commit?'BINDING_PUBLICATION_INDEPENDENTLY_VERIFIED_RUNTIME_NOT_STARTED':remote===m.parent?'BINDING_REMOTE_OLD_INSPECT_ONLY_NO_RETRY':'BINDING_REMOTE_DRIFT_INSPECT_ONLY_NO_RETRY',
       remoteMain:remote,localHead:local,...(remote===m.object.commit?{proof:await this.verifyRemote(m)}:{}),externalWrites:0,runtimeStarted:false,workflowDispatched:false,retryAllowed:false};},
-    dispose(){token=undefined;}
+    counts:()=>({pushes,fastForwards:ffs,...(profile?{githubGets}:{})}),dispose(){token=undefined;profile?.dispose?.();}
   };
 }
+const ioFor=createBindingPublicationIo;
 async function directory(s,existing=false){const p=path.resolve(s);must(path.dirname(p).toLowerCase()===path.resolve(P.base).toLowerCase()&&/^techlong-w6j-binding-[a-z0-9-]+$/.test(path.basename(p))&&
   (await realpath(P.base)).toLowerCase()===path.resolve(P.base).toLowerCase(),'DIRECTORY');if(existing)must((await realpath(p)).toLowerCase()===p.toLowerCase(),'REALPATH');return p;}
 export async function main(args=process.argv.slice(2)){

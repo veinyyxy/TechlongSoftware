@@ -56,10 +56,14 @@ export async function makeBindingReviewV6({parent,object,pins,ci,prestate,riskSh
 }
 export async function verifyBindingApprovalV6(m,approved,now,inspect=false){must(same(m,await makeBindingReviewV6(m)),'MANIFEST_CHANGED');
   if(!inspect)must(approved===m.manifestSha256&&now>=m.createdAt&&now<m.expiresAt,'APPROVAL_OR_EXPIRED');}
-export async function publishBindingOnceV6({manifest:m,approved,io,now=Date.now}){
-  const approve=()=>verifyBindingApprovalV6(m,approved,now());await approve();await io.assertLocal(m);
-  const start=now(),p=await io.preflight(m.parent);must(now()-start<180000&&same(p,m.prestate),'FRESH_PRESTATE');await approve();
-  await io.claim({manifestSha256:m.manifestSha256,parent:m.parent,commit:m.object.commit,consumedAt:now(),retryAllowed:false});
+export async function publishBindingOnceV6({manifest:m,approved,io,now=Date.now,profile}){
+  // Optional capability is injected by reviewed code, never selected by JSON.
+  const approve=()=>profile?profile.verifyApproval(m,approved,now()):verifyBindingApprovalV6(m,approved,now());await approve();await io.assertLocal(m);
+  const start=now(),p=await io.preflight(m.parent);must(now()-start<180000,'FRESH_PRESTATE');
+  if(profile)await profile.validatePreflight(p,m);else must(same(p,m.prestate),'FRESH_PRESTATE');await approve();
+  if(profile)await io.record('execution-preflight',p);
+  await io.claim({manifestSha256:m.manifestSha256,parent:m.parent,commit:m.object.commit,consumedAt:now(),retryAllowed:false,
+    ...(profile?{preflightSha256:await sha256Hex(p)}:{})});
   const guard=async()=>{await approve();must(now()-start<1200000,'EXECUTION_WINDOW');await io.assertLocal(m);};let phase='SLOT_CONSUMED';
   try{phase='PUSH_BINDING';await guard();await io.push(m,guard);await io.record('push-ack',{commit:m.object.commit});
     phase='VERIFY_REMOTE';const proof=await io.verifyRemote(m);await io.record('published-binding',proof);
