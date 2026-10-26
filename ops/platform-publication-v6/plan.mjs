@@ -76,22 +76,28 @@ export function reconcilePublicationLayoutV6(actual,m,state){
   p.main=old.main;p.foundation.template=structuredClone(old.foundation.template);p.iam.trust=structuredClone(old.iam.trust);
   must(same(p,old),'NON_TRUST_LAYOUT_DRIFT');return {state,remainingLayoutUnchanged:true,roleId:p.iam.roleId};
 }
-export async function publishAppOnceV6({manifest:m,approved,io,now=Date.now}){
-  const approve=()=>validateAppPublicationApprovalV6(m,approved,now());await approve();await io.assertLocal(m);
-  const start=now(),p=await io.preflight(m.parent);must(now()-start<180000&&same(p,m.prestate),'FRESH_PRESTATE');await approve();
-  await io.consume({manifestSha256:m.manifestSha256,parent:m.parent,caller:m.objects.caller.commit,consumedAt:now(),retryAllowed:false});
+export async function publishAppOnceV6({manifest:m,approved,io,now=Date.now,profile}){
+  // Optional profiles are code capabilities, never selected by manifest fields.
+  const approve=()=>profile?profile.validateApproval(m,approved,now()):validateAppPublicationApprovalV6(m,approved,now());
+  const reconcile=(actual,state,p)=>profile?profile.reconcile(actual,m,state,p):reconcilePublicationLayoutV6(actual,m,state);
+  await approve();await io.assertLocal(m);
+  const start=now(),p=await io.preflight(m.parent);
+  must(now()-start<180000,'FRESH_PRESTATE');if(profile)await profile.validatePreflight(p,m);else must(same(p,m.prestate),'FRESH_PRESTATE');
+  await approve();if(profile)await io.record('execution-preflight',p);
+  await io.consume({manifestSha256:m.manifestSha256,parent:m.parent,caller:m.objects.caller.commit,consumedAt:now(),retryAllowed:false,
+    ...(profile?{preflightSha256:await sha256Hex(p)}:{})});
   let phase='SLOT_CONSUMED';
   const guard=async()=>{await approve();must(now()-start<1200000,'EXECUTION_WINDOW');await io.assertLocal(m);};
   try{
     phase='PUSH_WORKFLOWS';await guard();await io.push(m,guard);await io.record('push-ack',{caller:m.objects.caller.commit});
     await io.record('published-workflows',await io.verifyWorkflows(m));
-    phase='PRE_CREATE_LAYOUT';reconcilePublicationLayoutV6(await io.layout(),m,'old');
+    phase='PRE_CREATE_LAYOUT';reconcile(await io.layout(),'old',p);
     phase='CREATE_CHANGE_SET';await guard();const ref=await io.create(m,guard);await io.record('create-ack',ref);
     phase='VERIFY_CHANGE_SET';await io.waitChangeSet(m,ref,guard);
-    phase='PRE_EXECUTE_LAYOUT';reconcilePublicationLayoutV6(await io.layout(),m,'old');
+    phase='PRE_EXECUTE_LAYOUT';reconcile(await io.layout(),'old',p);
     phase='EXECUTE_CHANGE_SET';await guard();await io.execute(m,ref,guard);await io.record('execute-ack',ref);
     phase='WAIT_FOUNDATION';await io.waitFoundation(guard);
-    phase='FINAL_LAYOUT';const proof=reconcilePublicationLayoutV6(await io.layout(),m,'new');await io.record('post-layout',proof);
+    phase='FINAL_LAYOUT';const proof=reconcile(await io.layout(),'new',p);await io.record('post-layout',proof);
     const workflows=await io.verifyWorkflows(m);await io.record('final-workflows',workflows);
     phase='LOCAL_FAST_FORWARD';await guard();await io.fastForward(m,guard);await io.record('local-main-ack',{head:m.objects.caller.commit});
     return {outcome:'APP_WORKFLOWS_AND_TRUST_PUBLISHED_REQUIRES_INDEPENDENT_INSPECT',changeSetId:ref.id,workflows,

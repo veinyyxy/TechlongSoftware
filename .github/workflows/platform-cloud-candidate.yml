@@ -10,6 +10,10 @@ on:
       - 'ops/platform-recovery-v1/**'
       - 'ops/platform-recovery-cloud-v1/**'
       - 'ops/platform-recovery-control-v1/**'
+      - 'ops/platform-recovery-publication-v1/**'
+      - 'tests/platform-recovery-publication-v1.test.mjs'
+      - 'tests/fixtures/platform-recovery-publication-v1.json'
+      - 'docs/aws-auto-deployment-w9k-recovery-publication-review.md'
       - 'tests/platform-recovery-control-v1.test.mjs'
       - 'tests/fixtures/platform-recovery-control-v1.mjs'
       - 'docs/aws-auto-deployment-w9h-recovery-control-followup.md'
@@ -229,6 +233,10 @@ jobs:
         run: |
           node --experimental-strip-types --test tests/platform-recovery-v1.test.mjs tests/platform-recovery-entry-bridge-v1.test.mjs tests/platform-recovery-cloud-v1.test.mjs tests/platform-recovery-control-v1.test.mjs
           node node_modules/eslint/bin/eslint.js ops/platform-recovery-v1/ ops/platform-recovery-cloud-v1/ ops/platform-recovery-control-v1/ tests/platform-recovery-v1.test.mjs tests/platform-recovery-entry-bridge-v1.test.mjs tests/platform-recovery-cloud-v1.test.mjs tests/platform-recovery-control-v1.test.mjs tests/fixtures/platform-recovery-v1.mjs tests/fixtures/platform-recovery-control-v1.mjs --max-warnings 0
+      - name: Recovery trust-only publication profile, synthetic providers and no credentials
+        run: |
+          node --experimental-strip-types --test tests/platform-recovery-publication-v1.test.mjs
+          node node_modules/eslint/bin/eslint.js ops/platform-recovery-publication-v1/ tests/platform-recovery-publication-v1.test.mjs --max-warnings 0
       - name: Existing hosted window update and image-execution source compatibility, synthetic only
         run: |
           node --experimental-strip-types --test tests/platform-hosted-window-v6.test.mjs

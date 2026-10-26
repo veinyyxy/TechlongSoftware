@@ -37,15 +37,24 @@ async function verifyObjects(m){
   must((await git(['diff','--name-status',m.parent,o.reusable.commit])).trim()==='A\t'+U.reusable&&
     (await git(['diff','--name-status',o.reusable.commit,o.caller.commit])).trim()==='A\t'+U.caller,'ONLY_TWO_ADDED_WORKFLOWS');
 }
-async function createIo(output){
+const DEFAULT_SCOPE=U,DEFAULT_FROZEN=F;
+// Profile callbacks are supplied only by a reviewed local entry point, never by JSON.
+export async function createAppPublicationIo(output,{profile}={}){
+  const U=profile?.scope??DEFAULT_SCOPE,F=profile?.frozen??DEFAULT_FROZEN;
+  const pinsNow=profile?.pins??pins,objectsNow=profile?.verifyObjects??verifyObjects;
+  const closureNow=profile?.closure??platformClosureV6,validateSource=profile?.validateSource??validatePublicationSourceV6;
+  const writable=()=>must(!profile?.readOnly,'READ_ONLY_CAPABILITY');
   let token;const counts={push:0,create:0,execute:0,fastForward:0};const record=(n,v)=>write(output+'/'+n+'.json',v);
+  let awsMetadata=0,githubGets=0;
   const cfg={region:'ca-central-1',maxAttempts:1,ignoreConfiguredEndpointUrls:true,credentials:fromLoginCredentials({profile:'techlong-sandbox-user',ignoreCache:true})};
   const cf=new CloudFormationClient({...cfg,endpoint:'https://cloudformation.ca-central-1.amazonaws.com'}),
     iam=new IAMClient({...cfg,region:'us-east-1',endpoint:'https://iam.amazonaws.com'}),sts=new STSClient({...cfg,endpoint:'https://sts.ca-central-1.amazonaws.com'});
-  const send=(c,q)=>c.send(q,{abortSignal:AbortSignal.timeout(30000)});
+  const send=(c,q)=>{if(profile&&!(q instanceof CreateChangeSetCommand)&&!(q instanceof ExecuteChangeSetCommand))
+    must(++awsMetadata<=profile.awsMetadataMax,'AWS_METADATA_LIMIT');return c.send(q,{abortSignal:AbortSignal.timeout(30000)});};
   async function source(){const r=await send(sts,new GetCallerIdentityCommand({}));must(r.Account==='402010193138'&&r.Arn===U.sourceArn&&r.UserId===U.sourceUserId,'SOURCE');
     return {Account:r.Account,Arn:r.Arn,UserId:r.UserId};}
   async function get(suffix,allow404=false){
+    if(profile)must(++githubGets<=profile.githubGetsMax,'GITHUB_GET_LIMIT');
     if(!token){const raw=await git(['credential','fill'],{input:'protocol=https\nhost=github.com\npath=veinyyxy/TechlongSoftware.git\n\n'});
       token=raw.split(/\r?\n/).find(x=>x.startsWith('password='))?.slice(9);must(token&&token.length<20000,'GITHUB_AUTH');}
     const r=await fetch('https://api.github.com/repos/'+P.repository+(suffix?'/'+suffix:''),{redirect:'error',signal:AbortSignal.timeout(20000),
@@ -68,7 +77,7 @@ async function createIo(output){
       send(cf,new ListStackResourcesCommand({StackName:F.stackId})),send(iam,new GetRoleCommand({RoleName:U.roleName})),
       send(iam,new ListRolePoliciesCommand({RoleName:U.roleName})),send(iam,new ListAttachedRolePoliciesCommand({RoleName:U.roleName})),get(''),
       get('environments/techlong-sandbox-deploy'),get('environments/techlong-sandbox-deploy/deployment-branch-policies?per_page=100'),
-      get('actions/oidc/customization/sub'),get('actions/workflows/cloud-worker-execute.yml/runs?per_page=100'),main()]);
+      get('actions/oidc/customization/sub'),get('actions/workflows/'+(profile?path.basename(U.caller):'cloud-worker-execute.yml')+'/runs?per_page=100'),main()]);
     must(repo.id===P.repositoryId&&repo.owner.id===P.ownerId&&repo.full_name===P.repository&&repo.default_branch==='main'&&
       st.Stacks?.length===1&&st.Stacks[0].StackId===F.stackId&&!rs.NextToken&&!lp.IsTruncated&&!attached.IsTruncated&&
       same(lp.PolicyNames,['ExactSandboxWorkerV5'])&&attached.AttachedPolicies?.length===0&&runs.total_count<100&&
@@ -93,8 +102,8 @@ async function createIo(output){
   }
   async function assertLocal(m){
     must((await git(['branch','--show-current'])).trim()==='main'&&(await git(['rev-parse','HEAD'])).trim()===m.parent&&
-      (await git(['status','--porcelain'])).trim()===''&&(await git(['remote','get-url','--push','--all','github'])).trim()===P.remote&&same(await pins(),m.pins),'LOCAL_SOURCE');
-    const c=await platformClosureV6();must(c.pinCount===81&&c.closureSha256===F.closureSha256,'FROZEN_CLOSURE');await verifyObjects(m);
+      (await git(['status','--porcelain'])).trim()===''&&(await git(['remote','get-url','--push','--all','github'])).trim()===P.remote&&same(await pinsNow(),m.pins),'LOCAL_SOURCE');
+    const c=await closureNow();must(c.pinCount===(profile?.closureCount??81)&&c.closureSha256===F.closureSha256,'FROZEN_CLOSURE');await objectsNow(m);
   }
   async function readChangeSet(m,ref){
     must(ref.stackId===F.stackId,'CHANGE_SET_STACK');
@@ -106,39 +115,44 @@ async function createIo(output){
   }
   return {record,ci,layout,assertLocal,
     async preflight(parent){must(await main()===parent,'REMOTE_PARENT');
-      for(const f of [U.caller,U.reusable])must(await get('contents/'+f+'?ref='+parent,true)===null&&await get('actions/workflows/'+path.basename(f),true)===null,'TARGET_EXISTS');
-      const p=await layout();validatePublicationSourceV6(p);return p;},
-    consume:v=>write(U.slot,v),
-    async push(m,guard){must(counts.push++===0&&await main()===m.parent,'PUSH_ONCE');await source();await guard();
+      if(profile)await profile.verifyExistingTargets(get,parent);
+      else for(const f of [U.caller,U.reusable])must(await get('contents/'+f+'?ref='+parent,true)===null&&await get('actions/workflows/'+path.basename(f),true)===null,'TARGET_EXISTS');
+      const p=await layout();validateSource(p);return p;},
+    consume:v=>{writable();return write(U.slot,{...v,...(profile?{output}: {})});},
+    async push(m,guard){writable();must(counts.push++===0&&await main()===m.parent,'PUSH_ONCE');await source();await guard();
       await git(['-c','push.followTags=false','-c','remote.github.mirror=false','push','--porcelain','github',m.actions.push.refspec]);},
     async verifyWorkflows(m){must(await main()===m.objects.caller.commit,'PUBLISHED_MAIN');const proof=[];
       for(const o of [m.objects.reusable,m.objects.caller]){const c=await get('contents/'+o.file+'?ref='+o.commit),w=await get('actions/workflows/'+path.basename(o.file));
         must(c.type==='file'&&c.sha===o.blob&&c.encoding==='base64'&&hash(Buffer.from(c.content,'base64'))===o.normalizedLfSha256&&
-          Number.isSafeInteger(w.id)&&w.id>0&&w.path===o.file&&w.state==='active','PUBLISHED_WORKFLOW');proof.push({path:w.path,id:String(w.id),blob:c.sha});}
+          Number.isSafeInteger(w.id)&&w.id>0&&w.path===o.file&&w.state==='active'&&
+          (!profile||String(w.id)===profile.workflowId(o.file)),'PUBLISHED_WORKFLOW');proof.push({path:w.path,id:String(w.id),blob:c.sha});}
       return proof;},
-    async create(m,guard){must(counts.create++===0&&await main()===m.objects.caller.commit,'CREATE_ONCE');await source();await guard();
+    async create(m,guard){writable();must(counts.create++===0&&await main()===m.objects.caller.commit,'CREATE_ONCE');await source();await guard();
       const r=await send(cf,new CreateChangeSetCommand(m.actions.create));
       must(r.StackId===F.stackId&&typeof r.Id==='string'&&r.Id.startsWith('arn:aws:cloudformation:ca-central-1:402010193138:changeSet/'+m.actions.create.ChangeSetName+'/'),'CREATE_ACK');
       return {id:r.Id,stackId:r.StackId};},
     async waitChangeSet(m,ref,guard){for(let i=0;i<20;i++){await guard();const x=await readChangeSet(m,ref);if(x.proof){await record('change-set-verified',x.proof);return x.proof;}
       must(['CREATE_PENDING','CREATE_IN_PROGRESS'].includes(x.d.Status),'CHANGE_SET_STOPPED');await pause(1500);}throw Error('APP_PUBLICATION_CHANGE_SET_PENDING_INSPECT_ONLY');},
-    async execute(m,ref,guard){const x=await readChangeSet(m,ref);must(x.proof&&counts.execute++===0&&await main()===m.objects.caller.commit,'EXECUTE_ONCE');await source();await guard();
+    async execute(m,ref,guard){writable();const x=await readChangeSet(m,ref);must(x.proof&&counts.execute++===0&&await main()===m.objects.caller.commit,'EXECUTE_ONCE');await source();await guard();
       await send(cf,new ExecuteChangeSetCommand({...m.actions.execute,ChangeSetName:ref.id}));},
     async waitFoundation(guard){for(let i=0;i<40;i++){await guard();const r=await send(cf,new DescribeStacksCommand({StackName:F.stackId}));
       must(r.Stacks?.length===1&&r.Stacks[0].StackId===F.stackId,'STACK_ID');const s=r.Stacks[0].StackStatus;if(s==='UPDATE_COMPLETE')return;
       must(['UPDATE_IN_PROGRESS','UPDATE_COMPLETE_CLEANUP_IN_PROGRESS'].includes(s),'STACK_STOPPED');await pause(2500);}throw Error('APP_PUBLICATION_STACK_PENDING_INSPECT_ONLY');},
-    async fastForward(m,guard){await assertLocal(m);must(counts.fastForward++===0&&await main()===m.objects.caller.commit,'FAST_FORWARD_ONCE');await guard();
+    async fastForward(m,guard){writable();await assertLocal(m);must(counts.fastForward++===0&&await main()===m.objects.caller.commit,'FAST_FORWARD_ONCE');await guard();
       await git(['merge','--ff-only',m.objects.caller.commit]);},
-    async inspect(m){await verifyObjects(m);const p=await layout();await record('independent-layout',p);
-      const state=same(p.foundation.template,JSON.parse(m.actions.create.TemplateBody))?'new':same(p.foundation.template,m.prestate.foundation.template)?'old':'unknown';
-      let matched=false;try{if(p.main===m.objects.caller.commit&&state!=='unknown'){reconcilePublicationLayoutV6(p,m,state);matched=true;}}catch{/* Facts retained, no repair. */}
+    async inspect(m){await objectsNow(m);const p=await layout();await record('independent-layout',p);
+      const before=profile?.executionPrestate??m.prestate;
+      const state=same(p.foundation.template,JSON.parse(m.actions.create.TemplateBody))?'new':same(p.foundation.template,before.foundation.template)?'old':'unknown';
+      let matched=false;try{if(p.main===m.objects.caller.commit&&state!=='unknown'){
+        if(profile)profile.reconcile(p,m,state,before);else reconcilePublicationLayoutV6(p,m,state);matched=true;}}catch{/* Facts retained, no repair. */}
       const full=matched&&state==='new',workflows=p.main===m.objects.caller.commit?await this.verifyWorkflows(m):null;
       return {outcome:full?'APP_PUBLICATION_INDEPENDENTLY_VERIFIED_NO_DISPATCH':'APP_PUBLICATION_PARTIAL_OR_DRIFT_INSPECT_ONLY_NO_RETRY',
         templateState:state,remainingLayoutMatched:matched,remoteMain:p.main,localHead:(await git(['rev-parse','HEAD'])).trim(),workflows,
         runtimeEnabled:false,workflowDispatched:false,externalWrites:0,secretValueReads:0,retryAllowed:false};},
-    counts:()=>({...counts}),dispose(){token=undefined;cf.destroy();iam.destroy();sts.destroy();},
+    counts:()=>({...counts,...(profile?{awsMetadata,githubGets}:{})}),dispose(){token=undefined;cf.destroy();iam.destroy();sts.destroy();},
   };
 }
+const createIo=createAppPublicationIo;
 async function directory(s,existing=false){const p=path.resolve(s);must(path.dirname(p).toLowerCase()===path.resolve(P.base).toLowerCase()&&
   /^techlong-w6i-app-publication-[a-z0-9-]+$/.test(path.basename(p))&&(await realpath(P.base)).toLowerCase()===path.resolve(P.base).toLowerCase(),'DIRECTORY');
   if(existing)must((await realpath(p)).toLowerCase()===p.toLowerCase(),'REALPATH');return p;}
