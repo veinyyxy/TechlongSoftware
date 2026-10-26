@@ -19,7 +19,7 @@ export const ROOTS=['ops/platform-recovery-package-v1/local.mjs','tests/platform
   '.github/workflows/cloud-worker-platform-job-v6.yml','.github/workflows/cloud-worker-platform-v6.yml',
   'package.json','package-lock.json','ops/cloud-worker/package.json','ops/cloud-worker/package-lock.json'];
 export const packagePins=()=>collectPins({roots:ROOTS});
-export function isDefiniteMissing(e){return e?.$metadata?.httpStatusCode===404&&['NotFound','NoSuchKey'].includes(e.name)&&
+export function isDefiniteMissing(e){return e?.$metadata?.httpStatusCode===404&&['NotFound','NoSuchKey'].includes(e.name)&&!!e.$response?.headers&&
   String(e.DeleteMarker).toLowerCase()!=='true'&&!Object.entries(e.$response?.headers??{}).some(([k,v])=>k.toLowerCase()==='x-amz-delete-marker'&&String(v).toLowerCase()==='true');}
 function environment(){assertEnvironment();must(!Object.keys(process.env).some(k=>/^AWS_(?:CA_BUNDLE|CONFIG_FILE|SHARED_CREDENTIALS_FILE|ACCESS_KEY_ID|SECRET_ACCESS_KEY|SESSION_TOKEN|PROFILE|DEFAULT_PROFILE|REGION|DEFAULT_REGION)$/.test(k)),'ENVIRONMENT');}
 async function savedProofs(){

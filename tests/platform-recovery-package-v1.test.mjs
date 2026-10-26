@@ -70,9 +70,10 @@ test('every unknown final read, PUT or ACK failure preserves once-only slot with
     assert.equal(r.retryAllowed,false);await assert.rejects(f.run());assert.ok(f.events.filter(x=>x==='put').length<=1);}
 });
 test('HEAD only treats named 404 without a delete-marker as absence; 403, unknown errors and deletion markers stop',()=>{
-  const missing={name:'NotFound',$metadata:{httpStatusCode:404}};assert.equal(isDefiniteMissing(missing),true);
+  const missing={name:'NotFound',$metadata:{httpStatusCode:404},$response:{headers:{}}};assert.equal(isDefiniteMissing(missing),true);
   for(const e of [{...missing,$metadata:{httpStatusCode:403}},{...missing,name:'Unknown'},
-    {...missing,DeleteMarker:true},{...missing,DeleteMarker:'true'},{...missing,$response:{headers:{'X-Amz-Delete-Marker':'true'}}},{}])assert.equal(isDefiniteMissing(e),false);
+    {...missing,DeleteMarker:true},{...missing,DeleteMarker:'true'},{...missing,$response:undefined},
+    {...missing,$response:{headers:{'X-Amz-Delete-Marker':'true'}}},{}])assert.equal(isDefiniteMissing(e),false);
 });
 test('expired approval or local drift after final read prevents network PUT and leaves slot permanently consumed',async()=>{
   const f=await runner();f.io.finalRead=async()=>{f.events.push('final');f.at(f.m.expiresAt);return {source:f.p.source,targetAbsent:true,deleteMarker:false};};
