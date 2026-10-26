@@ -20,6 +20,16 @@ export function sqlGate(operation){
     else must(/^SELECT\b/.test(text)||['BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY','COMMIT','ROLLBACK','SET LOCAL search_path=pg_catalog'].includes(text),'SQL_OPERATION');
   }};
 }
+export async function readLaunchSnapshot(reader,{contract,readState=readRecoveryRequestState}){
+  await reader.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+  try{
+    // Match the original reviewed reader: object-definition fingerprints depend
+    // on visibility/search_path. Do not normalize hashes or relax the baseline.
+    await reader.query('SET LOCAL search_path=pg_catalog');
+    const v=await readState(reader,{contract,expected:DATABASE_V6});
+    await reader.query('COMMIT');return v;
+  }catch(e){try{await reader.query('ROLLBACK');}catch{/* Read-only cleanup only. */}throw e;}
+}
 export function createLiveIo({manifest:m,packageValue,record,claim,assertSource,verifyCi,githubToken}){
   let s3,sts,reads,credentials,db,closed=false;const counts={sts:0,s3Gets:0,githubRunGets:0,configReads:0,connections:0};
   const gate=sqlGate(m.action.operation),assertOpen=()=>must(!closed,'CLOSED');
@@ -54,9 +64,7 @@ export function createLiveIo({manifest:m,packageValue,record,claim,assertSource,
         const read=createPublisherDatabaseV6({client:reader,contract,expected:DATABASE_V6,release:m.binding.release,maxWrites:1});
         await write.verify();await read.verify();
         db={close,loadPlan:read.loadPlan,readHeldJob:read.readHeldJob,writeOwner:write.writeOwner,
-          async snapshot(){await reader.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
-            try{const v=await readRecoveryRequestState(reader,{contract,expected:DATABASE_V6});await reader.query('COMMIT');return v;}
-            catch(e){try{await reader.query('ROLLBACK');}catch{/* Read-only cleanup. */}throw e;}},
+          snapshot:()=>readLaunchSnapshot(reader,{contract}),
           async observe(sha,id){must(m.action.operation==='AdvanceReview'&&sha===m.action.planSha256&&id===m.action.runId,'EXACT_OBSERVATION');
             return writer.query(OBSERVE,[sha,id,'completed','success']);}};return db;
       }catch(e){await close();throw e;}

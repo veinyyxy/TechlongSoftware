@@ -6,7 +6,7 @@ import {compileRecoveryRequest} from '../ops/platform-recovery-v1/request.mjs';
 import {recoveryCloudResult} from '../ops/platform-recovery-v1/package.mjs';
 import {makeReview,runReviewed,slotFor,verifyBaseline} from '../ops/platform-recovery-launch-v1/operation.mjs';
 import {parseArgs} from '../ops/platform-recovery-launch-v1/local.mjs';
-import {sqlGate} from '../ops/platform-recovery-launch-v1/io.mjs';
+import {sqlGate,readLaunchSnapshot} from '../ops/platform-recovery-launch-v1/io.mjs';
 import {canonicalJson,sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {REQUEST_ADMIN_V6 as ADMIN} from '../lib/deployments/reviewed-request-window-v6.ts';
 import {resultKeyV6} from '../ops/platform-cloud-v6/contract.mjs';
@@ -107,6 +107,23 @@ test('SQL read client rejects all three ledger write capabilities; unknown mutat
   assert.throws(()=>sqlGate('PublishReview').check('UPDATE public.deployment_jobs SET status=$1',false));
   const g=sqlGate('AdvanceReview');g.check('SELECT deployment_control_v6.observe_run($1,$2,$3,$4)',false);
   assert.throws(()=>g.check('SELECT deployment_control_v6.observe_run($1,$2,$3,$4)',false));
+});
+test('production snapshot sets the original transaction-local catalog path before fingerprinting, without changing returned state',async()=>{
+  const calls=[],state={protection:{catalogSha256:'original-catalog',triggersSha256:'original-trigger'}},contract={synthetic:true};
+  let catalogPath=false;
+  const reader={query:async sql=>{calls.push(sql);if(sql==='SET LOCAL search_path=pg_catalog')catalogPath=true;}};
+  const actual=await readLaunchSnapshot(reader,{contract,readState:async(c,options)=>{
+    assert.equal(c,reader);assert.equal(options.contract,contract);assert.equal(catalogPath,true);
+    calls.push('READ_REVIEWED_STATE');return state;
+  }});
+  assert.equal(actual,state);assert.deepEqual(state.protection,{catalogSha256:'original-catalog',triggersSha256:'original-trigger'});
+  assert.deepEqual(calls,['BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY','SET LOCAL search_path=pg_catalog','READ_REVIEWED_STATE','COMMIT']);
+});
+for(const failAt of ['path','read'])test('snapshot '+failAt+' failure rolls back once without fingerprint fallback or retry',async()=>{
+  const calls=[];let reads=0;const failure=Error('SYNTHETIC_READ_FAILURE');
+  const reader={query:async sql=>{calls.push(sql);if(failAt==='path'&&sql==='SET LOCAL search_path=pg_catalog')throw failure;}};
+  await assert.rejects(readLaunchSnapshot(reader,{contract:{synthetic:true},readState:async()=>{reads++;throw failure;}}),e=>e===failure);
+  assert.equal(reads,failAt==='path'?0:1);assert.equal(calls.filter(v=>v==='ROLLBACK').length,1);assert(!calls.includes('COMMIT'));
 });
 test('CLI rejects unknown modes, AWS profile/endpoint overrides and arbitrary output paths',()=>{
   assert.equal(parseArgs(['--check']).mode,'Check');
