@@ -144,11 +144,22 @@ test('new closure has no local capabilities and retains all 81 deployed files un
   assert.equal(r.status,0);const v=JSON.parse(r.stdout);assert.equal(v.state,'CANDIDATE_NOT_PUBLISHED');assert.equal(v.awsCalls+v.privateReads+v.sqlConnections,0);
 });
 
-test('workflow renderer stays seven-input, pinned and human-gated; live workflow files are untouched',async()=>{
+test('workflow renderer stays seven-input, pinned and human-gated; live files match the independently verified publication',async()=>{
   const f=await fixture(),w=recoveryCloudWorkflows(f.binding),caller=load(w.caller),job=load(w.reusable);
   assert.equal(Object.keys(caller.on.workflow_dispatch.inputs).length,7);assert.equal(caller.concurrency.group,'single-techlong-sandbox-cloud-worker-v5');
   assert.equal(job.jobs.single.environment,'techlong-sandbox-deploy');assert.equal(w.published,false);
   assert.equal(w.reusable.includes(f.binding.reusableCommit),false);assert(w.reusable.includes('ops/platform-recovery-cloud-v1/run.mjs'));
   assert(w.reusable.includes('TECHLONG_RECOVERY_PROTOCOL: recovery-envelope/v1'));
-  assert((await readFile(new URL('../.github/workflows/cloud-worker-platform-job-v6.yml',import.meta.url),'utf8')).includes('ops/platform-cloud-v6/run.mjs'));
+  const published=JSON.parse(await readFile(new URL('../ops/aws-sandbox/reviews/platform-recovery-publication-v1.executed.json',import.meta.url),'utf8'));
+  assert.equal(published.outcome,'RECOVERY_WORKFLOWS_AND_TRUST_INDEPENDENTLY_VERIFIED_NO_DISPATCH');
+  assert.equal(published.release.sourceCommit,'0494b2be7b0f559ac991533137dfb1b0388ac7a9');
+  assert.equal(published.release.closureSha256,'30a7cdf74b50563afbc73f4a6b62661962d83127c3e409b627d11e5b3b91e374');
+  assert.equal(published.release.reusableCommit,'4c09548ab9852a4f3e948f0686f8c81251cda73b');
+  assert.equal(published.role.reusableTrustPin,published.release.reusableCommit);
+  const actual=recoveryCloudWorkflows(published.release);
+  for(const [file,text] of [['cloud-worker-platform-job-v6.yml',actual.reusable],['cloud-worker-platform-v6.yml',actual.caller]]){
+    const current=(await readFile(new URL('../.github/workflows/'+file,import.meta.url),'utf8')).replaceAll('\r\n','\n');
+    assert.equal(current,text);assert.equal(await sha256Hex(current),published.workflows.find(w=>w.path==='.github/workflows/'+file).normalizedLfSha256);
+  }
+  assert.equal(published.state.controllerActivated,false);assert.equal(published.state.workflowDispatched,false);
 });

@@ -1,0 +1,147 @@
+{
+  "schema": "techlong/recovery-publication-executed/v1",
+  "outcome": "RECOVERY_WORKFLOWS_AND_TRUST_INDEPENDENTLY_VERIFIED_NO_DISPATCH",
+  "approvedManifestSha256": "c53c7f8ef5758afe35ef7d5397fb3489cf650d3dbb199fd0d41df66ca03b290c",
+  "independentResultRecordedAtUtc": "2026-10-26T04:21:50.121Z",
+  "publicationParent": "0041db6d587589d93ff302cf74d3c3196e3a48fa",
+  "publishedCallerCommit": "f76d8264e7805a1a9c3eedb0fbd40cd1b0ad0a92",
+  "release": {
+    "sourceCommit": "0494b2be7b0f559ac991533137dfb1b0388ac7a9",
+    "reusableCommit": "4c09548ab9852a4f3e948f0686f8c81251cda73b",
+    "closureSha256": "30a7cdf74b50563afbc73f4a6b62661962d83127c3e409b627d11e5b3b91e374",
+    "identityProofSha256": "1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca"
+  },
+  "role": {
+    "arn": "arn:aws:iam::402010193138:role/TechlongSandboxGitHubDeploymentWorkerRole",
+    "roleId": "AROAV3GNMXTZK5O45RG24",
+    "foundationStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cloud-worker-foundation-v5/308174f0-ca9e-11f1-a04d-02569e9287b5",
+    "reusableTrustPin": "4c09548ab9852a4f3e948f0686f8c81251cda73b",
+    "trustClaimChanges": [
+      {
+        "claim": "job_workflow_ref",
+        "before": "veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@4588febb7b33378ccf2aa1a2b552a18660be8292",
+        "after": "veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@4c09548ab9852a4f3e948f0686f8c81251cda73b"
+      }
+    ],
+    "permissionsUnchanged": true,
+    "boundaryUnchanged": true,
+    "remainingLayoutMatched": true,
+    "templateState": "new"
+  },
+  "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/recovery-app-v1-f76d8264e7805a1a9c3eedb0/7b7f413f-e5fc-42c2-8e80-fa8123cc8e4b",
+  "workflows": [
+    {
+      "path": ".github/workflows/cloud-worker-platform-job-v6.yml",
+      "id": "390829324",
+      "blob": "ab28749ea907b22f9b0bceb107d4c28549b25272",
+      "normalizedLfSha256": "1d77568bda70c5710ad23a0b33f06078f5b7a3ad58215966197fabcb2788ec30"
+    },
+    {
+      "path": ".github/workflows/cloud-worker-platform-v6.yml",
+      "id": "390829326",
+      "blob": "c072b836ec218db8034a342051d3948fa2e2506d",
+      "normalizedLfSha256": "ce97b61c72f7df69364dc7b88c01b6964547163a01cba91ae5d422433315f6d3"
+    }
+  ],
+  "execution": {
+    "outcome": "APP_WORKFLOWS_AND_TRUST_PUBLISHED_REQUIRES_INDEPENDENT_INSPECT",
+    "counts": {
+      "push": 1,
+      "create": 1,
+      "execute": 1,
+      "fastForward": 1,
+      "awsMetadata": 54,
+      "githubGets": 45
+    }
+  },
+  "independentInspection": {
+    "outcome": "APP_PUBLICATION_INDEPENDENTLY_VERIFIED_NO_DISPATCH",
+    "counts": {
+      "push": 0,
+      "create": 0,
+      "execute": 0,
+      "fastForward": 0,
+      "awsMetadata": 10,
+      "githubGets": 11
+    },
+    "mainAtObservation": "f76d8264e7805a1a9c3eedb0fbd40cd1b0ad0a92",
+    "localHeadAtObservation": "f76d8264e7805a1a9c3eedb0fbd40cd1b0ad0a92"
+  },
+  "state": {
+    "scope": "This publication only; controller state describes the local compiled binding, not an unrequested global deployment survey",
+    "compiledController": "CANDIDATE",
+    "controllerActivated": false,
+    "recoveryPackageUploaded": false,
+    "workflowDispatched": false,
+    "cellCreated": false,
+    "secretValueReads": 0,
+    "pemReads": 0,
+    "sqlConnections": 0
+  },
+  "history": {
+    "initialCredentialFailurePreserved": true,
+    "independentReadOnlyAfterRefresh": true,
+    "humanExplicitlyResumed": true,
+    "writeRetries": 0,
+    "slotResets": 0,
+    "permanentPublicationSlotConsumed": true,
+    "permanentIndependentInspectSlotConsumed": true
+  },
+  "evidence": [
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9k-recovery-publication-20261025-a/manifest.json",
+      "rawSha256": "7cf704317cd074bb58a08c1f947d1dfe215fa2616225eb3275aa7155a7679d81",
+      "bytes": 71596
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9k-recovery-publication-run-20261025-b/execution-preflight.json",
+      "rawSha256": "717b9f2c0c0c3c6b9af0c6891f0d7d8abdbf190429f1c1721764758792e4b655",
+      "bytes": 46821
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9k-recovery-publication-run-20261025-b/create-ack.json",
+      "rawSha256": "c04c7d5cc15ba7398f1c60791abd8c3b77911366b33354ca776827d6fe8260ca",
+      "bytes": 303
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9k-recovery-publication-run-20261025-b/change-set-verified.json",
+      "rawSha256": "cc7726ca34c812fd8450d62c111039edf2ed54e87f827e1e107987d95fda35b5",
+      "bytes": 372
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9k-recovery-publication-run-20261025-b/execute-ack.json",
+      "rawSha256": "c04c7d5cc15ba7398f1c60791abd8c3b77911366b33354ca776827d6fe8260ca",
+      "bytes": 303
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9k-recovery-publication-run-20261025-b/post-layout.json",
+      "rawSha256": "d4fd6eb372598c1f61648080b135c9b85c03dcd4abdf283bf1981c0e837540b4",
+      "bytes": 94
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9k-recovery-publication-run-20261025-b/result.json",
+      "rawSha256": "151991d42b823b104bf84b0522ece85022a0f5b250abc42e6fb78dd28c337785",
+      "bytes": 888
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9k-recovery-publication-inspect-20261025-a/independent-layout.json",
+      "rawSha256": "e1be8963ddbec57187a26610a8c5b483d393a41618a2d7407200503f520c6ef0",
+      "bytes": 46821
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9k-recovery-publication-inspect-20261025-a/result.json",
+      "rawSha256": "91fe8197e1ea4c78009e1855e70b52fceb31f3e47088dfc153610c9e4a172725",
+      "bytes": 946
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9k-recovery-publication.intent.json",
+      "rawSha256": "651b583ebd58b557c28fc912411ad6bd56e8e0d93a7070d0f31cfb5d83552091",
+      "bytes": 434
+    },
+    {
+      "file": "F:/ChatGPT_workshop/techlong-w9k-recovery-publication.inspect.intent.json",
+      "rawSha256": "0efd836712c7bf0d1dd13dadc029b614e3f35851ea702c8825fc67da26abec52",
+      "bytes": 351
+    }
+  ]
+}
