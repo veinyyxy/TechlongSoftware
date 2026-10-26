@@ -22,20 +22,21 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          ref: ca2b38d8c756dd8fb800a88ded596c93687f278f
+          ref: 0494b2be7b0f559ac991533137dfb1b0388ac7a9
           persist-credentials: false
-      - run: test "$(git rev-parse HEAD)" = 'ca2b38d8c756dd8fb800a88ded596c93687f278f'
+      - run: test "$(git rev-parse HEAD)" = '0494b2be7b0f559ac991533137dfb1b0388ac7a9'
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '22.19.0'
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
-      - run: node --experimental-strip-types ops/platform-cloud-v6/run.mjs
+      - run: node --experimental-strip-types ops/platform-recovery-cloud-v1/run.mjs
         env:
-          TECHLONG_FROZEN_SOURCE_COMMIT: ca2b38d8c756dd8fb800a88ded596c93687f278f
+          TECHLONG_FROZEN_SOURCE_COMMIT: 0494b2be7b0f559ac991533137dfb1b0388ac7a9
           TECHLONG_REUSABLE_COMMIT: ${{ inputs.releaseReusableCommit }}
+          TECHLONG_RECOVERY_PROTOCOL: recovery-envelope/v1
           TECHLONG_PLATFORM_RELEASE_STATE: PUBLISHED
-          TECHLONG_PLATFORM_CLOSURE_SHA: 828491ecbb72054fd3098ebba837331bb587e5e4620bcbf9096bf25b4df63b2a
+          TECHLONG_PLATFORM_CLOSURE_SHA: 30a7cdf74b50563afbc73f4a6b62661962d83127c3e409b627d11e5b3b91e374
           TECHLONG_APP_IDENTITY_PROOF_SHA: 1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca
           TECHLONG_INPUT_MODE: ${{ inputs.mode }}
           TECHLONG_INPUT_JOB: ${{ inputs.job }}
