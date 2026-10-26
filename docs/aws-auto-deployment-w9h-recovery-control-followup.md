@@ -20,6 +20,10 @@ node --experimental-strip-types ops/platform-recovery-control-v1/cli.mjs --check
 
 ## 未来执行范围与完整风险（本阶段未批准）
 
+控制面会按准确计划显示模式、最多建栈/资源/认证 GET 数，以及计划、动作、风险 SHA；用户仍须逐次批准。Review 的范围是固定 package/installation 读取、一次固定数据库 Secret 读取、窄只读业务/准入核验和最多三次条件 S3 PUT（inner manifest、恢复 envelope、结果），不领取任务或创建承载。RunOnce 则是另一份独立批准：同任务领取、最多一次 CreateStack/七项承载资源、一次固定数据库 Secret 与一次固定私密控制材料读取、两次认证 GET、原子完成及原单次 DDB 槽；不创建付费 Cell、不迁移数据库或改 IAM。其非原子/并发、提供者日志、凭据与私密数据进入内存、响应/提交不明、失败遗留收费资源、条件 PUT/槽不可重放，以及 TTL 不保证即时清理/停止计费的风险均保留；不能把 Review 或跟进批准当作 RunOnce 批准。完整原内核与云协议边界同时见 [W9g](aws-auto-deployment-w9g-recovery-cloud-runtime.md) 与 [V5 云执行风险](aws-auto-deployment-cloud-worker-w5c.md)。
+
+以下限制专指已成功调度 RunOnce 之后的有限 Inspect 跟进，不扩大上述任何模式权限：
+
 1. 一次跟进最多读取一把现有 App 私钥到内存、加载一次既有 GitHub 只读凭据、签发一个仅该仓库 actions-write/contents-read token，并尝试撤销一次。Source 自动刷新身份最多六次及对应六次 STS 核对；只读 S3 最多 16 次固定版本 GET、两次准确结果 HEAD，GitHub run GET 总计最多 80 次。正常轮询是等待同一 run，不是重跑工作流。
 2. 本地不读 Secret 值、不连接 Neon、不写平台账本、不 RunOnce、不领取任务或创建承载。唯一新调度是一次 Inspect；云端 Inspect 会读取一次既有固定数据库 Secret，经窄 RPC 只读核对业务/资源，最多两次条件证据 PUT。现有 DDB/CFN/服务读取由原 Inspect 执行，不能将“本地只读”说成整个过程没有提供者副作用或费用。
 3. 复用 `intent-<job>-<RunOnce run>.json` 的永久槽，与旧普通 Inspect 入口共享，刷新审批 SHA 不得重新打开同一次执行。slot 已占、部分写入、网络错误、提交或 dispatch ACK 不明时，保留原材料；不删除、不补齐、不重置、不重跑。已知 ACK 必须先保存，撤销 token 失败也不能再调度。
