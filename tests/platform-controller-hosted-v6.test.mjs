@@ -4,6 +4,7 @@ import {env} from 'cloudflare:workers';
 import {sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {CONTROL_SCOPE as S} from '../lib/deployments/controller-v6/contract.ts';
 import {INSTALLED_BINDING_V6 as B} from '../lib/deployments/controller-v6/installed-binding.ts';
+import {RECOVERY_CONTROL_BINDING as R} from '../ops/platform-recovery-control-v1/binding.mjs';
 import {CONTROL_ORIGIN_V6,HOSTED_CONTROL_ORIGIN_V6,localRuntimeLeaseV6,hostedRuntimeLeaseV6,
   controllerRuntimeV6,verifiedControllerRuntimeV6} from '../lib/deployments/controller-v6/configuration.ts';
 import {platformControlEnabled,platformControlOrigin,getPlatformControlStatus} from '../lib/deployments/controller-v6/runtime.ts';
@@ -11,8 +12,9 @@ import {createControlHandlers} from '../lib/deployments/controller-v6/http.ts';
 import {assertRuntimeEnvironment,buildEnvironment} from '../ops/platform-hosting-v1/contract.mjs';
 
 const at=Date.parse('2026-10-23T13:00:00Z');
-async function fixture(now=at){return {schema:'techlong/platform-hosted-runtime-lease/v6',origin:HOSTED_CONTROL_ORIGIN_V6,
-  sourceCommit:'a'.repeat(40),releaseSha256:await sha256Hex(B.platform),issuedAt:now,expiresAt:now+1800000};}
+async function fixture(now=at,release=B.platform){return {schema:'techlong/platform-hosted-runtime-lease/v6',origin:HOSTED_CONTROL_ORIGIN_V6,
+  sourceCommit:'a'.repeat(40),releaseSha256:await sha256Hex(release),issuedAt:now,expiresAt:now+1800000};}
+const recoverySelected=R.state==='PUBLISHED';
 const flags={TECHLONG_PLATFORM_CONTROLLER_ENABLED:'true',TECHLONG_PLATFORM_CONTROL_LOCAL:'false',TECHLONG_PLATFORM_CONTROL_HOSTED:'true'};
 const reader=(lease,patch={})=>{const v={...flags,TECHLONG_PLATFORM_CONTROLLER_LEASE:JSON.stringify(lease),...patch};return name=>v[name];};
 
@@ -43,16 +45,30 @@ test('local lease behavior remains separate; modes and leases cannot be intercha
 });
 
 test('real controller runtime selects hosted origin without reading private bindings; invalid digest stops before ledger',async()=>{
-  const lease=await fixture(Date.now());let privateReads=0;
+  const lease=await fixture(Date.now(),recoverySelected?R.release:B.platform);let privateReads=0;
   const values={...flags,TECHLONG_PLATFORM_CONTROLLER_LEASE:JSON.stringify(lease)};
   for(const [name,value] of Object.entries(values))env[name]=value;
   for(const name of ['TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY','TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL'])
     Object.defineProperty(env,name,{configurable:true,get(){privateReads++;throw Error('PRIVATE_READ_FORBIDDEN');}});
   try{assert.equal(platformControlEnabled(),true);assert.equal(platformControlOrigin(),HOSTED_CONTROL_ORIGIN_V6);assert.equal(privateReads,0);
     env.TECHLONG_PLATFORM_CONTROLLER_LEASE=JSON.stringify({...lease,releaseSha256:'0'.repeat(64)});
-    await assert.rejects(getPlatformControlStatus(S.instanceId),e=>e.code==='CONTROL_RUNTIME_LEASE');assert.equal(privateReads,0);
+    await assert.rejects(getPlatformControlStatus(S.instanceId),e=>recoverySelected?
+      e.message==='RECOVERY_V1_CONTROL_RUNTIME_BINDING':e.code==='CONTROL_RUNTIME_LEASE');assert.equal(privateReads,0);
     env.TECHLONG_PLATFORM_CONTROLLER_LEASE=JSON.stringify({...lease,expiresAt:Date.now()-1});
     assert.equal(platformControlEnabled(),false);assert.deepEqual((await getPlatformControlStatus(S.instanceId)).plans,[]);assert.equal(privateReads,0);
+  }finally{for(const name of [...Object.keys(values),'TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY','TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL'])delete env[name];}
+});
+
+test('published recovery runtime rejects a legacy release lease before any private binding read',async()=>{
+  if(!recoverySelected)return;
+  const lease=await fixture(Date.now());let privateReads=0;
+  assert.notEqual(lease.releaseSha256,await sha256Hex(R.release));
+  const values={...flags,TECHLONG_PLATFORM_CONTROLLER_LEASE:JSON.stringify(lease)};
+  for(const [name,value] of Object.entries(values))env[name]=value;
+  for(const name of ['TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY','TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL'])
+    Object.defineProperty(env,name,{configurable:true,get(){privateReads++;throw Error('PRIVATE_READ_FORBIDDEN');}});
+  try{await assert.rejects(getPlatformControlStatus(S.instanceId),e=>e.message==='RECOVERY_V1_CONTROL_RUNTIME_BINDING');
+    assert.equal(privateReads,0);
   }finally{for(const name of [...Object.keys(values),'TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY','TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL'])delete env[name];}
 });
 
