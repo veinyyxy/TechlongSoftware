@@ -7,7 +7,7 @@ import {H as OLD,template as oldTemplate} from '../ops/platform-hosted-deploy-v6
 import {RECOVERY_CONTROL_BINDING as B} from '../ops/platform-recovery-control-v1/binding.mjs';
 import {hostedRuntimeLeaseV6} from '../lib/deployments/controller-v6/configuration.ts';
 import {createCloud} from '../ops/platform-recovery-hosting-v1/cloud.mjs';
-import {metadataOnly} from '../ops/platform-recovery-hosting-v1/ci.mjs';
+import {metadataOnly,readCi} from '../ops/platform-recovery-hosting-v1/ci.mjs';
 const at=Date.parse('2026-10-26T18:00:00Z'),source='2'.repeat(40),nonce='a'.repeat(32),newDefinition=BEFORE.ids.TaskDefinition.replace(/:8$/,':9');
 function manifest(){return review({sourceCommit:source,pins:Array.from({length:12},(_,i)=>({file:'synthetic-'+i+'.mjs',sha256:'b'.repeat(64)})),
   ci:{sourceCommit:source,status:'completed',conclusion:'success',attempt:1},before:{stackId:T.stackId,healthy:true,ids:BEFORE.ids,
@@ -114,6 +114,17 @@ test('read-only IO refuses update before credentials/metadata; no secret value/d
 test('CI metadata-only mapping cannot bless application, risk, tests, workflow or operator code drift',()=>{
   metadataOnly(['docs/aws-auto-deployment-w9p-recovery-hosting-code-verified.md']);metadataOnly([]);
   for(const f of ['app/page.tsx','ops/platform-recovery-hosting-v1/plan.mjs',T.riskFile,'tests/platform-recovery-hosting-v1.test.mjs','.github/workflows/'+T.ciFile])assert.throws(()=>metadataOnly([f]));
+});
+test('strict CI reader uses GitHub repository, exactly three GETs, and validates steps/head/attempt before success',async()=>{
+  function ports(patch=()=>{}){const calls=[],run={id:123456789,head_sha:source,head_branch:'main',path:'.github/workflows/'+T.ciFile,event:'push',run_attempt:1,
+    repository:{id:1323312747,owner:{id:14145707}},status:'completed',conclusion:'success'},jobs={total_count:1,jobs:[{id:987654321,head_sha:source,run_attempt:1,run_id:123456789,
+      status:'completed',conclusion:'success',steps:[{name:'Recovery hosting update contracts',status:'completed',conclusion:'success'}]}]};patch(run,jobs);
+    return {calls,options:{credential:()=> 'synthetic-not-a-credential',gitRunner:()=> '',fetcher:async(url,opt)=>{
+      assert(url.startsWith('https://api.github.com/repos/veinyyxy/TechlongSoftware/'));assert.equal(opt.redirect,'error');assert.equal(opt.method,undefined);calls.push(url);
+      return new Response(JSON.stringify(url.endsWith('branches/main')?{commit:{sha:source}}:url.includes('/jobs?')?jobs:run));}}};}
+  const p=ports(),r=await readCi('123456789',source,p.options);assert.equal(r.sourceCommit,source);assert.equal(r.testedSourceCommit,source);assert.equal(r.githubGets,3);assert.equal(p.calls.length,3);
+  for(const mutate of [(r)=>r.run_attempt=2,(r)=>r.repository.owner.id=1,(r,j)=>j.jobs[0].steps[0].conclusion='failure']){
+    const p=ports(mutate);await assert.rejects(readCi('123456789',source,p.options));assert(p.calls.length<=3);}
 });
 test('No-AWS CI is code-only; no environment, OIDC, private input, image rebuild or deployment commands',async()=>{
   const y=load(await readFile('.github/workflows/'+T.ciFile,'utf8'));assert.deepEqual(y.permissions,{contents:'read'});assert.equal(y.on.workflow_dispatch,undefined);
