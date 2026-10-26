@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {M,hash,recoveryBindingCandidate,renderRecoveryBinding,validateBindingLive,makeRecoveryBindingReview,verifyRecoveryBindingApproval} from '../ops/platform-recovery-binding-v1/plan.mjs';
-import {parseBindingArgs,createRecoveryBindingIo} from '../ops/platform-recovery-binding-v1/local.mjs';
+import {parseBindingArgs,createRecoveryBindingIo,bindingPins} from '../ops/platform-recovery-binding-v1/local.mjs';
 import {trustOnlyRecoveryTemplate,R} from '../ops/platform-recovery-publication-v1/plan.mjs';
 import {recoveryCloudWorkflows} from '../ops/platform-recovery-cloud-v1/workflows.mjs';
 import {recoveryCloudClosure} from '../ops/platform-recovery-cloud-v1/closure.mjs';
@@ -12,7 +12,7 @@ import {publishBindingOnceV6} from '../ops/platform-binding-v6/plan.mjs';
 const now=1793020000000;
 async function fixture(){
   const b=JSON.parse(await readFile(new URL('./fixtures/platform-recovery-publication-v1.json',import.meta.url),'utf8')),
-    before=await readFile(new URL('./fixtures/platform-recovery-binding-v1.source.txt',import.meta.url),'utf8'),parent='a'.repeat(40),
+    before=(await readFile(new URL('./fixtures/platform-recovery-binding-v1.source.txt',import.meta.url),'utf8')).replaceAll('\r\n','\n'),parent='a'.repeat(40),
     template=trustOnlyRecoveryTemplate(b.template,M.reusableCommit).template;
   const baseline={source:b.source,main:'f76d8264e7805a1a9c3eedb0fbd40cd1b0ad0a92',
     foundation:{stackId:R.stackId,status:'UPDATE_COMPLETE',roleArn:null,parameters:[],template,resources:b.resources},
@@ -95,9 +95,15 @@ test('independent read-only adapter rejects claim/push/FF before any GitHub/AWS 
 test('CLI has no target/profile/package/source/lease/dispatch override, and PrepareSaved cannot request live metadata',async()=>{
   for(const args of [[],['--mode','Activate','--output','x'],['--mode','Publish'],['--mode','PrepareSaved','--output','x','--ci-run','123','--profile','other']])assert.throws(()=>parseBindingArgs(args));
   const text=await readFile(new URL('../ops/platform-recovery-binding-v1/local.mjs',import.meta.url),'utf8');
-  assert.doesNotMatch(text,/GetObjectCommand|GetSecretValueCommand|\.env\.local|\.pem|signAppJwt|new pg\.|\/dispatches/);
+  assert.doesNotMatch(text,/GetObjectCommand|GetSecretValueCommand|\.env\.local|readKey\s*\(|readAuthV6\s*\(|signAppJwt|new pg\.|\/dispatches/);
   assert.match(text,/readOnly:true/);assert.match(text,/INSPECT_SOURCE_PINS/);
 });
 test('new local binding publisher is outside the unchanged 97-file cloud closure',async()=>{
   const c=await recoveryCloudClosure();assert.equal(c.pinCount,97);assert.equal(c.closureSha256,M.closureSha256);assert(!c.pins.some(p=>p.file.startsWith('ops/platform-recovery-binding-v1/')));
+});
+test('fixed publisher dependency lists plus audited control closure avoid template-string pseudo imports',async()=>{
+  const p=await bindingPins(),files=p.map(v=>v.file);assert.equal(new Set(files).size,p.length);
+  for(const file of ['ops/platform-recovery-binding-v1/local.mjs','ops/platform-recovery-binding-v1/plan.mjs','ops/platform-binding-v6/local.mjs',
+    'ops/platform-publication-v6/local.mjs','ops/platform-local-v6/local.mjs','lib/deployments/controller-v6/contract.ts',M.target])assert(files.includes(file));
+  assert(!files.includes('ops/platform-binding-v6/contract.ts'));assert(p.every(v=>/^[a-f0-9]{64}$/.test(v.sha256)));
 });

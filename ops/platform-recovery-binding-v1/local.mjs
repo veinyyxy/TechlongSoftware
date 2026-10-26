@@ -3,14 +3,14 @@ import {readFile,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {git,P} from '../platform-identity-review-v6/publication.mjs';
-import {createBindingPublicationIo} from '../platform-binding-v6/local.mjs';
+import {createBindingPublicationIo,FILES as BINDING_FILES} from '../platform-binding-v6/local.mjs';
 import {publishBindingOnceV6} from '../platform-binding-v6/plan.mjs';
-import {createAppPublicationIo} from '../platform-publication-v6/local.mjs';
+import {createAppPublicationIo,FILES as PUBLICATION_FILES} from '../platform-publication-v6/local.mjs';
 import {U} from '../platform-publication-v6/plan.mjs';
 import {R} from '../platform-recovery-publication-v1/plan.mjs';
-import {noLinks,jsonFile,absent,newDirectory,writeOnce,cleanSource,assertEnvironment} from '../platform-operator-v6/files.mjs';
-import {pins as collectPins} from '../platform-image-source-v2/files.mjs';
-import {readLocalCiV6} from '../platform-local-v6/local.mjs';
+import {ROOT,noLinks,jsonFile,absent,newDirectory,writeOnce,cleanSource,assertEnvironment} from '../platform-operator-v6/files.mjs';
+import {readLocalCiV6,FILES as LOCAL_FILES} from '../platform-local-v6/local.mjs';
+import {recoveryControlPins} from '../platform-recovery-control-v1/live.mjs';
 import {recoveryCloudClosure} from '../platform-recovery-cloud-v1/closure.mjs';
 import {recoveryCloudWorkflows} from '../platform-recovery-cloud-v1/workflows.mjs';
 import {M,must,same,hash,renderRecoveryBinding,makeRecoveryBindingReview,verifyRecoveryBindingApproval,validateBindingLive} from './plan.mjs';
@@ -18,7 +18,16 @@ export const ROOTS=['ops/platform-recovery-binding-v1/local.mjs','tests/platform
   'tests/fixtures/platform-recovery-binding-v1.source.txt','tests/platform-recovery-control-v1.test.mjs',M.riskFile,M.runtimeRiskFile,
   'ops/aws-sandbox/reviews/platform-recovery-publication-v1.executed.json','ops/aws-sandbox/reviews/platform-recovery-package-v1.executed.json',
   M.target,'package.json','package-lock.json','ops/cloud-worker/package.json','ops/cloud-worker/package-lock.json','.github/workflows/platform-cloud-candidate.yml'];
-export const bindingPins=()=>collectPins({roots:ROOTS});
+// Old renderers contain illustrative imports inside strings, so do not parse
+// their text as a module graph. Reuse the audited control closure and fixed lists.
+export async function bindingPins(){
+  const pins=new Map((await recoveryControlPins()).map(p=>[p.file,p]));
+  for(const file of new Set([...ROOTS,'ops/platform-recovery-binding-v1/plan.mjs','ops/platform-recovery-publication-v1/plan.mjs',
+    ...BINDING_FILES,...PUBLICATION_FILES,...LOCAL_FILES])){
+    must(!path.isAbsolute(file)&&!file.includes('..')&&!file.includes('.env')&&!file.endsWith('.pem'),'PIN_PATH');
+    pins.set(file,{file,sha256:hash(lf(await readFile(path.join(ROOT,file),'utf8')))});
+  }return [...pins.values()].sort((a,b)=>a.file.localeCompare(b.file));
+}
 const lf=v=>v.replaceAll('\r\n','\n');
 function environment(){assertEnvironment();must(!['AWS_CONFIG_FILE','AWS_SHARED_CREDENTIALS_FILE','AWS_CA_BUNDLE'].some(k=>process.env[k]),'ENVIRONMENT');}
 async function pinnedJson(file,sha){const s=await noLinks(file);must(s.isFile()&&s.size<1000000,'ARCHIVE_FILE');const b=await readFile(file);must(hash(b)===sha,'ARCHIVE_CHANGED');return JSON.parse(b);}
