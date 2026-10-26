@@ -17,8 +17,12 @@ export async function boundedJson(response,max=256000){
   finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
   return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(parts)));
 }
-export function createInspectTransport(m,p){
-  const followup=m.schema==='techlong/platform-operator-followup-review/v1'&&m.policy.waitForRunOnce===true;
+export function createInspectTransport(m,p,options={}){
+  // Code-only adapters may bind a separately reviewed protocol/release. No
+  // manifest field selects these capabilities; old V6 callers keep defaults.
+  const release=options.release??B.platform,maxObjects=options.maxObjects??LIMITS.maxObjects;
+  must(Number.isSafeInteger(maxObjects)&&maxObjects>=LIMITS.maxObjects&&maxObjects<=16,'TRANSPORT_OBJECT_LIMIT');
+  const followup=options.followup===true||m.schema==='techlong/platform-operator-followup-review/v1'&&m.policy.waitForRunOnce===true;
   let token,closed=false,ack,gets=0,heads=0,executionHeads=0,runs=0,keys=0,issues=0,posts=0,revokes=0,http=0,credentialLoads=0;
   let originalReference=m.input.resultReference??null;
   const cache=new Map(),allowed=new Set([...(originalReference?[originalReference]:[]),...['installation','manifest','lineage'].filter(k=>m.input.plan.inputs[k]!=='')
@@ -36,10 +40,14 @@ export function createInspectTransport(m,p){
   async function readObject(ref){
     await guard();const k=canonicalJson(ref);must(allowed.has(k),'OBJECT_ALLOWLIST');
     if(cache.has(k))return structuredClone(cache.get(k).object);
-    must(gets<LIMITS.maxObjects,'OBJECT_BUDGET');gets++;const r=await p.getObject(ref);
+    must(gets<maxObjects,'OBJECT_BUDGET');gets++;const r=await p.getObject(ref);
     must(r.versionId===ref.versionId&&r.encryption==='AES256'&&r.contentLength>0&&r.contentLength<=1000000,'OBJECT_METADATA');
     assertEvidenceSafeV5(r.value);must(await sha256Hex(r.value)===ref.sha256,'OBJECT_HASH');
-    if(ref.key===originalReference?.key||ref.key===resultKeyV6(job,mv,ack?.runId??input.runId)){
+    if(options.expandReferences){
+      const refs=options.expandReferences({reference:ref,object:r.value,originalReference,ack,sourceCommit,job,mv,input});
+      must(Array.isArray(refs)&&refs.length<=2,'REFERENCE_EXPANSION');
+      for(const v of refs){assertReferenceV6(v,v.key);must(v.key.startsWith(`worker-v5/${S.instanceId}/`),'REFERENCE_SCOPE');allowed.add(canonicalJson(v));}
+    }else if(ref.key===originalReference?.key||ref.key===resultKeyV6(job,mv,ack?.runId??input.runId)){
       const original=ref.key===originalReference?.key,id=original?input.runId:ack.runId,mode=original?'RunOnce':'Inspect',v=r.value;
       must(v.mode===mode&&v.jobId===job&&v.manifestSha256===mv&&v.run?.runId===id&&v.run.commitSha===sourceCommit,'RESULT_BINDING');
       assertReferenceV6(v.cloudReportReference,evidenceKeyV5(original?'run.json':'inspect.json',{jobId:job,manifestSha256:mv,run:v.run}));
@@ -51,7 +59,7 @@ export function createInspectTransport(m,p){
   }
   const appGets=new Set(['/app',`/app/installations/${S.installationId}`,'/installation/repositories','/users/techlong-sandbox-controller%5Bbot%5D',
     `/repos/${S.repository}/git/ref/heads/main`,`/repos/${S.repository}/actions/workflows/${S.workflowFile}`]);
-  const controller=createGitHubController({release:B.platform,now:p.now,privateKey:async()=>{
+  const controller=createGitHubController({release,now:p.now,privateKey:async()=>{
     await guard();must(keys++===0,'KEY_ONCE');return p.readKey(input.keyPath,m.key);
   },fetch:async(url,options)=>{
     const u=new URL(url),method=options.method??'GET';must(u.origin==='https://api.github.com'&&!u.search&&!u.hash&&options.redirect==='manual','APP_ENDPOINT');
@@ -83,8 +91,8 @@ export function createInspectTransport(m,p){
     async dispatch(plan){
       await guard();must(plan.mode==='Inspect'&&plan.sourceCommit===sourceCommit&&plan.jobId===job&&plan.inputs.manifestSha===mv&&
         plan.predecessor?.runId===input.runId&&posts===0&&!dispatchPlan,'EXACT_INSPECT');
-      const expected=await validatePlan(plan,B.platform,p.now());dispatchPlan=structuredClone(plan);
-      return controller.dispatch(dispatchPlan,async()=>{await guard();reserve();must(same(expected,await validatePlan(dispatchPlan,B.platform,p.now())),'FINAL_PLAN');},
+      const expected=await validatePlan(plan,release,p.now());dispatchPlan=structuredClone(plan);
+      return controller.dispatch(dispatchPlan,async()=>{await guard();reserve();must(same(expected,await validatePlan(dispatchPlan,release,p.now())),'FINAL_PLAN');},
         async value=>{ack=structuredClone(value);await p.record('dispatch-api-ack',ack);});
     },
     async discoverResult(id){
@@ -103,7 +111,7 @@ export function createInspectTransport(m,p){
     },
   };
 }
-export async function livePorts(m,output,notify,{verify=verifyReview}={}){
+export async function livePorts(m,output,notify,{verify=verifyReview,transportFactory=createInspectTransport,pinSource=sourcePins}={}){
   const now=Date.now,deadline=Math.min(now()+LIMITS.runMs,m.expiresAt),signal=AbortSignal.timeout(LIMITS.runMs);
   const record=async(name,value)=>{await writeOnce(path.join(output,name+'.json'),value);
     if(['awaiting-human-environment','awaiting-runonce-terminal'].includes(name))notify({stage:name,...value,deadlineUtc:new Date(value.deadline).toISOString(),
@@ -123,8 +131,8 @@ export async function livePorts(m,output,notify,{verify=verifyReview}={}){
       try{return await c.send(new GetCallerIdentityCommand({}),{abortSignal:AbortSignal.any([signal,AbortSignal.timeout(20000)])});}finally{c.destroy();}
     }});
   const s3=new S3Client({...sdk,endpoint:'https://s3.ca-central-1.amazonaws.com',credentials:source.credentials});
-  let slotClaimed=false;const io=createInspectTransport(m,{guard,deadline,now,record,source,keyMetadata,readKey,
-    async claim(){await guard();must(same(await sourcePins(),m.pins),'SOURCE_PINS');await guard();
+  let slotClaimed=false;const io=transportFactory(m,{guard,deadline,now,record,source,keyMetadata,readKey,
+    async claim(){await guard();must(same(await pinSource(),m.pins),'SOURCE_PINS');await guard();
       await writeOnce(path.join(m.input.evidenceRoot,intentName(m)),
         {manifestSha256:m.manifestSha256,jobId:m.input.plan.jobId,claimedAt:now(),retryAllowed:false});slotClaimed=true;},
     async loadReadCredential(){must(slotClaimed,'SLOT_REQUIRED');const raw=await git(['credential','fill'],`protocol=https\nhost=github.com\npath=${S.repository}.git\n\n`);
