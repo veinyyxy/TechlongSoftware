@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/platform-hosting-candidate.yml'
       - 'ops/platform-hosting-v1/**'
+      - 'ops/platform-recovery-control-v1/**'
+      - 'ops/platform-cloud-v6/contract.mjs'
       - 'tests/platform-hosting-v1.test.mjs'
       - 'tests/platform-hosting-release.test.mjs'
       - 'tests/platform-hosted-control-v6.test.mjs'
@@ -22,6 +24,8 @@ on:
     paths:
       - '.github/workflows/platform-hosting-candidate.yml'
       - 'ops/platform-hosting-v1/**'
+      - 'ops/platform-recovery-control-v1/**'
+      - 'ops/platform-cloud-v6/contract.mjs'
       - 'tests/platform-hosting-v1.test.mjs'
       - 'tests/platform-hosting-release.test.mjs'
       - 'tests/platform-hosted-control-v6.test.mjs'

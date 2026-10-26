@@ -1,11 +1,10 @@
 // ONLY a credential-free CI bootstrap/expiry check, never a production launcher.
 import assert from 'node:assert/strict';
 import {request} from 'node:http';
-import {INSTALLED_BINDING_V6 as B} from '../../lib/deployments/controller-v6/installed-binding.ts';
 import {sha256Hex} from '../../lib/deployments/execution/hash.ts';
 import {CONTROL_SCOPE as S} from '../../lib/deployments/controller-v6/contract.ts';
 import {PUBLIC_ORIGIN} from './ingress.mjs';
-import {hostedControlBinding,PRIVATE_CONTROL_BINDINGS} from './control-runtime.mjs';
+import {hostedControlRelease,hostedControlBinding,PRIVATE_CONTROL_BINDINGS} from './control-runtime.mjs';
 import {main} from './start.mjs';
 
 async function smoke(){
@@ -14,7 +13,7 @@ async function smoke(){
     /DATABASE_URL|PRIVATE_KEY|SECRET|TOKEN|^AWS_/.test(k)));
   const source=process.env.GITHUB_SHA;assert.match(source??'',/^[a-f0-9]{40}$/);
   const now=Date.now(),lease={schema:'techlong/platform-hosted-runtime-lease/v6',origin:PUBLIC_ORIGIN,
-    sourceCommit:source,releaseSha256:await sha256Hex(B.platform),issuedAt:now,expiresAt:now+25000};
+    sourceCommit:source,releaseSha256:await sha256Hex(await hostedControlRelease()),issuedAt:now,expiresAt:now+25000};
   Object.assign(process.env,{TECHLONG_PLATFORM_INGRESS:'alb-https-v1',TECHLONG_PLATFORM_PUBLIC_ORIGIN:PUBLIC_ORIGIN,
     TECHLONG_PLATFORM_CONTROLLER_ENABLED:'true',TECHLONG_PLATFORM_CONTROL_HOSTED:'true',TECHLONG_PLATFORM_CONTROL_LOCAL:'false',
     TECHLONG_PLATFORM_CONTROLLER_LEASE:JSON.stringify(lease),TECHLONG_PLATFORM_HOSTED_SOURCE_COMMIT:source});

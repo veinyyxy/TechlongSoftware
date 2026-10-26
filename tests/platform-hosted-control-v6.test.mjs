@@ -4,14 +4,15 @@ import {readFile} from 'node:fs/promises';
 import {load} from 'js-yaml';
 import {sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {INSTALLED_BINDING_V6 as B} from '../lib/deployments/controller-v6/installed-binding.ts';
+import {RECOVERY_CONTROL_BINDING as R} from '../ops/platform-recovery-control-v1/binding.mjs';
 import {CLOSED_BINDINGS,serverOptions} from '../ops/platform-hosting-v1/contract.mjs';
 import {PUBLIC_ORIGIN} from '../ops/platform-hosting-v1/ingress.mjs';
-import {prepareHostedControl,installHostedControl,hostedControlBinding,PRIVATE_CONTROL_BINDINGS} from '../ops/platform-hosting-v1/control-runtime.mjs';
+import {prepareHostedControl,installHostedControl,hostedControlRelease,hostedControlBinding,PRIVATE_CONTROL_BINDINGS} from '../ops/platform-hosting-v1/control-runtime.mjs';
 
 const at=Date.parse('2026-10-23T14:00:00Z');
 async function fixture(){
   const lease={schema:'techlong/platform-hosted-runtime-lease/v6',origin:PUBLIC_ORIGIN,sourceCommit:'a'.repeat(40),
-    releaseSha256:await sha256Hex(B.platform),issuedAt:at,expiresAt:at+1800000};
+    releaseSha256:await sha256Hex(await hostedControlRelease()),issuedAt:at,expiresAt:at+1800000};
   const env={TECHLONG_PLATFORM_INGRESS:'alb-https-v1',TECHLONG_PLATFORM_PUBLIC_ORIGIN:PUBLIC_ORIGIN,
     TECHLONG_PLATFORM_CONTROLLER_ENABLED:'true',TECHLONG_PLATFORM_CONTROL_LOCAL:'false',TECHLONG_PLATFORM_CONTROL_HOSTED:'true',
     TECHLONG_PLATFORM_CONTROLLER_LEASE:JSON.stringify(lease),TECHLONG_PLATFORM_HOSTED_SOURCE_COMMIT:lease.sourceCommit};
@@ -27,6 +28,15 @@ test('explicit hosted preparation validates public context before lazily supplyi
   for(const name of PRIVATE_CONTROL_BINDINGS){assert.match(c.read(name),/^synthetic-only-/);assert.equal(c.read(name),c.read(name));}
   assert.equal(f.reads(),2);c.close();for(const name of PRIVATE_CONTROL_BINDINGS)assert.equal(c.read(name),null);
   assert.equal(c.read('TECHLONG_PLATFORM_CONTROLLER_ENABLED'),'false');assert.equal(f.reads(),2);
+});
+
+test('hosted source selector matches published recovery release; legacy lease and environment protocol overrides cannot select it',async()=>{
+  const release=await hostedControlRelease();assert.deepEqual(release,R.state==='PUBLISHED'?R.release:B.platform);
+  if(R.state!=='PUBLISHED')return;
+  assert.notEqual(await sha256Hex(release),await sha256Hex(B.platform));
+  const f=await fixture();f.env.TECHLONG_PLATFORM_CONTROLLER_LEASE=JSON.stringify({...f.lease,releaseSha256:await sha256Hex(B.platform)});
+  f.env.TECHLONG_PLATFORM_RECOVERY_RELEASE=JSON.stringify(B.platform);
+  await assert.rejects(prepareHostedControl(f.env,{now:f.now}),/HOSTED_RUNTIME_BINDING/);assert.equal(f.reads(),0);
 });
 
 test('expired, wrong release/source/origin, mixed local mode or incomplete ingress never reads private values',async()=>{
@@ -87,8 +97,11 @@ test('Docker retains default command and only public TS dependencies; CI tests s
   const docker=await readFile(new URL('../ops/platform-hosting-v1/Dockerfile',import.meta.url),'utf8');
   assert.match(docker,/CMD \["node", "ops\/platform-hosting-v1\/start.mjs"\]/);assert(docker.includes('control-runtime.mjs'));
   for(const name of ['configuration.ts','contract.ts','installed-binding.ts','execution/hash.ts'])assert(docker.includes(name));
+  for(const name of ['platform-recovery-control-v1/binding.mjs','platform-cloud-v6/contract.mjs'])assert(docker.includes(name));
   const y=load(await readFile(new URL('../.github/workflows/platform-hosting-candidate.yml',import.meta.url),'utf8'));
   assert.deepEqual(y.permissions,{contents:'read'});assert.equal(y.jobs.candidate.environment,undefined);
+  for(const event of ['push','pull_request'])for(const file of ['ops/platform-recovery-control-v1/**','ops/platform-cloud-v6/contract.mjs'])
+    assert(y.on[event].paths.includes(file));
   const step=y.jobs.candidate.steps.find(s=>s.name?.startsWith('Hosted controller bootstrap'));
   assert(step);for(const text of ['--network none','hosted-smoke.mjs','docker wait','CONTROL_LEASE_CLOSED'])assert(step.run.includes(text));
   assert.doesNotMatch(step.run,/configure-aws|aws sts|secrets\.|docker push/);

@@ -30,10 +30,12 @@ COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/package.json ./package.json
 COPY --from=build --chown=node:node /app/dist-platform ./dist-platform
 COPY --from=build --chown=node:node /app/ops/platform-hosting-v1/contract.mjs /app/ops/platform-hosting-v1/ingress.mjs /app/ops/platform-hosting-v1/control-runtime.mjs /app/ops/platform-hosting-v1/start.mjs /app/ops/platform-hosting-v1/smoke.mjs /app/ops/platform-hosting-v1/https-smoke.mjs /app/ops/platform-hosting-v1/hosted-smoke.mjs ./ops/platform-hosting-v1/
-# Four public, erasable-TypeScript modules are shared with the bundled controller.
+# Public TypeScript and binding contracts are shared with the bundled controller.
 # Node24 loads them directly; no repository dotenv, private key or full source tree.
 COPY --from=build --chown=node:node /app/lib/deployments/controller-v6/configuration.ts /app/lib/deployments/controller-v6/contract.ts /app/lib/deployments/controller-v6/installed-binding.ts ./lib/deployments/controller-v6/
 COPY --from=build --chown=node:node /app/lib/deployments/execution/hash.ts ./lib/deployments/execution/
+COPY --from=build --chown=node:node /app/ops/platform-recovery-control-v1/binding.mjs ./ops/platform-recovery-control-v1/
+COPY --from=build --chown=node:node /app/ops/platform-cloud-v6/contract.mjs ./ops/platform-cloud-v6/
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 CMD ["node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"]

@@ -4,6 +4,7 @@ import {CLOSED_BINDINGS,FORBIDDEN,must,serverOptions} from './contract.mjs';
 import {ingressPolicy} from './ingress.mjs';
 import {INSTALLED_BINDING_V6 as B} from '../../lib/deployments/controller-v6/installed-binding.ts';
 import {verifiedControllerRuntimeV6} from '../../lib/deployments/controller-v6/configuration.ts';
+import {RECOVERY_CONTROL_BINDING,assertRecoveryPublication} from '../platform-recovery-control-v1/binding.mjs';
 
 const SLOT=Symbol.for('techlong.platform.hosted-controller.v6');
 const prepared=new WeakSet();
@@ -15,6 +16,15 @@ export const PUBLIC_CONTROL_BINDINGS=Object.freeze([
   'TECHLONG_PLATFORM_CONTROLLER_LEASE',
 ]);
 
+// Match the application's source-only selector. No environment/input override.
+export async function hostedControlRelease(){
+  if(RECOVERY_CONTROL_BINDING.state==='PUBLISHED'){
+    await assertRecoveryPublication(RECOVERY_CONTROL_BINDING);
+    return RECOVERY_CONTROL_BINDING.release;
+  }
+  must(B.state==='PUBLISHED','HOSTED_RELEASE');return B.platform;
+}
+
 export async function prepareHostedControl(env,{now=Date.now}={}){
   // Reject forbidden names without inspecting their possibly private values.
   const forbidden=[...FORBIDDEN,'AWS_CONTAINER_CREDENTIALS_RELATIVE_URI','AWS_CONTAINER_CREDENTIALS_FULL_URI',
@@ -23,9 +33,10 @@ export async function prepareHostedControl(env,{now=Date.now}={}){
   const mask=new Set([...PRIVATE_CONTROL_BINDINGS,...PUBLIC_CONTROL_BINDINGS]);
   const shadow=new Proxy(env,{get:(target,key)=>mask.has(key)?CLOSED_BINDINGS[key]:Reflect.get(target,key)});
   const options=serverOptions([],shadow),policy=ingressPolicy(env,options);
-  must(policy.mode==='alb-https-v1'&&B.state==='PUBLISHED','HOSTED_INGRESS');
+  must(policy.mode==='alb-https-v1','HOSTED_INGRESS');
+  const release=await hostedControlRelease();
   const values=Object.freeze(Object.fromEntries(PUBLIC_CONTROL_BINDINGS.map(k=>[k,env[k]??CLOSED_BINDINGS[k]])));
-  const ctx=await verifiedControllerRuntimeV6(k=>values[k],B.platform,now());
+  const ctx=await verifiedControllerRuntimeV6(k=>values[k],release,now());
   must(ctx?.mode==='hosted'&&env.TECHLONG_PLATFORM_HOSTED_SOURCE_COMMIT===ctx.lease.sourceCommit,'HOSTED_RUNTIME_BINDING');
   const lease=Object.freeze({...ctx.lease}),cache=new Map();let closed=false,last=lease.issuedAt;
   const close=()=>{closed=true;cache.clear();};

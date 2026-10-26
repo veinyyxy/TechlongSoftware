@@ -6,7 +6,7 @@ import {K,H,P,hash,canonical,lease,policy,windowLease,windowTemplate,normalizeSu
 import {template} from '../ops/platform-hosted-deploy-v6/contract.mjs';
 import {assertOperatorOnlyDiff} from '../ops/platform-hosted-window-v6/compatibility.mjs';
 import {readMetadataJson} from '../ops/platform-hosted-window-v6/cloud.mjs';
-import {prepareHostedControl} from '../ops/platform-hosting-v1/control-runtime.mjs';
+import {prepareHostedControl,hostedControlRelease} from '../ops/platform-hosting-v1/control-runtime.mjs';
 import {INSTALLED_BINDING_V6 as B} from '../lib/deployments/controller-v6/installed-binding.ts';
 
 const at=Date.parse('2026-10-24T00:00:00Z'),source='a'.repeat(40);
@@ -74,7 +74,7 @@ test('source witness allows operator-only changes but cannot bless runtime, clou
 });
 
 test('existing hosted runtime supports explicit execution binding distinct from image producer without private reads',async()=>{
-  const l=windowLease(at,source),env={NODE_ENV:'production',HOST:'0.0.0.0',PORT:'3000',
+  const l={...windowLease(at,source),releaseSha256:hash(canonical(await hostedControlRelease()))},env={NODE_ENV:'production',HOST:'0.0.0.0',PORT:'3000',
     TECHLONG_PLATFORM_INGRESS:'alb-https-v1',TECHLONG_PLATFORM_PUBLIC_ORIGIN:'https://'+P.domain,
     TECHLONG_PLATFORM_CONTROLLER_ENABLED:'true',TECHLONG_PLATFORM_CONTROL_LOCAL:'false',TECHLONG_PLATFORM_CONTROL_HOSTED:'true',
     TECHLONG_PLATFORM_CONTROLLER_LEASE:canonical(l),TECHLONG_PLATFORM_HOSTED_SOURCE_COMMIT:source};
