@@ -18,6 +18,8 @@ import {loadNeonContractV5} from '../ops/cloud-worker/neon-contract-v5.mjs';
 import {INSTALLED_BINDING_V6 as B} from '../lib/deployments/controller-v6/installed-binding.ts';
 import {REQUEST_ADMIN_V6 as ADMIN} from '../lib/deployments/reviewed-request-window-v6.ts';
 import {canonicalJson,sha256Hex} from '../lib/deployments/execution/hash.ts';
+import {a604CloudWorkflows} from '../ops/platform-a604-cloud-v1/workflows.mjs';
+import {LOCAL_PUBLICATION,publicationAt} from '../ops/platform-a604-operator-v1/scope.mjs';
 
 async function fixture(){
   const f=await recoveryFixture(),d=recoveryData(f.basis,f.at),events=[],puts=[];
@@ -144,7 +146,7 @@ test('new closure has no local capabilities and retains all 81 deployed files un
   assert.equal(r.status,0);const v=JSON.parse(r.stdout);assert.equal(v.state,'CANDIDATE_NOT_PUBLISHED');assert.equal(v.awsCalls+v.privateReads+v.sqlConnections,0);
 });
 
-test('workflow renderer stays seven-input, pinned and human-gated; live files match the independently verified publication',async()=>{
+test('workflow renderer preserves archived publication; live files match the current reviewed SOURCE binding',async()=>{
   const f=await fixture(),w=recoveryCloudWorkflows(f.binding),caller=load(w.caller),job=load(w.reusable);
   assert.equal(Object.keys(caller.on.workflow_dispatch.inputs).length,7);assert.equal(caller.concurrency.group,'single-techlong-sandbox-cloud-worker-v5');
   assert.equal(job.jobs.single.environment,'techlong-sandbox-deploy');assert.equal(w.published,false);
@@ -156,10 +158,26 @@ test('workflow renderer stays seven-input, pinned and human-gated; live files ma
   assert.equal(published.release.closureSha256,'30a7cdf74b50563afbc73f4a6b62661962d83127c3e409b627d11e5b3b91e374');
   assert.equal(published.release.reusableCommit,'4c09548ab9852a4f3e948f0686f8c81251cda73b');
   assert.equal(published.role.reusableTrustPin,published.release.reusableCommit);
-  const actual=recoveryCloudWorkflows(published.release);
-  for(const [file,text] of [['cloud-worker-platform-job-v6.yml',actual.reusable],['cloud-worker-platform-v6.yml',actual.caller]]){
+  const historical=recoveryCloudWorkflows(published.release);
+  // An immutable old publication remains an archive, not the expected bytes
+  // of a subsequently approved deployment. Never rewrite its recorded hashes.
+  for(const [file,text] of [['cloud-worker-platform-job-v6.yml',historical.reusable],['cloud-worker-platform-v6.yml',historical.caller]])
+    assert.equal(await sha256Hex(text),published.workflows.find(w=>w.path==='.github/workflows/'+file).normalizedLfSha256);
+  let active=historical;
+  assert(['UNPUBLISHED','PUBLISHED'].includes(LOCAL_PUBLICATION.state));
+  if(LOCAL_PUBLICATION.state==='PUBLISHED'){
+    const head=spawnSync('git',['rev-parse','HEAD'],{encoding:'utf8',timeout:20000,windowsHide:true});assert.equal(head.status,0);assert.match(head.stdout.trim(),/^[a-f0-9]{40}$/);
+    // Validate the approved descriptor at its real recorded observation time;
+    // CI tests publication provenance, not a new grant or a renewed validity.
+    const current=await publicationAt(head.stdout.trim(),LOCAL_PUBLICATION.template.factsApproval.observedBy);
+    active=a604CloudWorkflows({...current.release,sourceCommit:current.frozenSourceCommit},{publication:current});
+    assert.equal(load(active.caller).jobs.reviewed.uses,'veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@'+LOCAL_PUBLICATION.reusableCommit);
+  }
+  assert.equal(Object.keys(load(active.caller).on.workflow_dispatch.inputs).length,7);
+  assert.equal(load(active.reusable).jobs.single.environment,'techlong-sandbox-deploy');
+  for(const [file,text] of [['cloud-worker-platform-job-v6.yml',active.reusable],['cloud-worker-platform-v6.yml',active.caller]]){
     const current=(await readFile(new URL('../.github/workflows/'+file,import.meta.url),'utf8')).replaceAll('\r\n','\n');
-    assert.equal(current,text);assert.equal(await sha256Hex(current),published.workflows.find(w=>w.path==='.github/workflows/'+file).normalizedLfSha256);
+    assert.equal(current,text);
   }
   assert.equal(published.state.controllerActivated,false);assert.equal(published.state.workflowDispatched,false);
 });
