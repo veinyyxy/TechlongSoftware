@@ -10,6 +10,7 @@ import {authMetadataV6} from '../platform-local-v6/local.mjs';
 import {readCi} from '../platform-recovery-hosting-v1/ci.mjs';
 import {validate as validateHosting,request as hostingRequest,hash as rawHash} from '../platform-recovery-hosting-v1/plan.mjs';
 import {W,validate as validateContinuation,request as continuationRequest} from '../platform-recovery-continuation-v1/plan.mjs';
+import {H,validate as validateHandoff,request as handoffRequest,verifyInspection as verifyHandoffInspection} from '../platform-recovery-handoff-v1/plan.mjs';
 import {assertEvidenceSafeV5} from '../cloud-worker/cloud-evidence-v5.mjs';
 import {createLiveIo} from './io.mjs';
 import {loadOriginalRequestEvidence} from './request-evidence.mjs';
@@ -35,8 +36,8 @@ async function packageFor(material,binding){
   return {value,basis:await rebuildRecoveryPackage(value)};
 }
 async function hosting(material,source){
-  evidenceFile(material.hostingManifestFile,'techlong-(?:w9p-recovery-hosting|recovery-hosting-continuation)-[a-z0-9-]+/manifest\\.json');
-  const h=await json(material.hostingManifestFile),continuing=h.schema===W.schema,prefix=continuing?'techlong-recovery-hosting-continuation':'techlong-w9p-recovery-hosting';
+  evidenceFile(material.hostingManifestFile,'techlong-(?:w9p-recovery-hosting|recovery-hosting-continuation|recovery-handoff)-[a-z0-9-]+/manifest\\.json');
+  const h=await json(material.hostingManifestFile),prefix=h.schema===H.schema?'techlong-recovery-handoff':h.schema===W.schema?'techlong-recovery-hosting-continuation':'techlong-w9p-recovery-hosting';
   evidenceFile(material.hostingManifestFile,prefix+'-[a-z0-9-]+/manifest\\.json');
   evidenceFile(material.hostingIntentFile,prefix+'-[a-z0-9-]+/update-intent\\.json');
   evidenceFile(material.hostingInspectionFile,prefix+'-[a-z0-9-]+/result\\.json');
@@ -46,10 +47,11 @@ async function hosting(material,source){
     .map(async file=>({file,rawSha256:rawHash(await readText(file,3000000))})))};
 }
 export function validateHostingObjects(h,i,inspection,source){
-  const continuing=h.schema===W.schema;
-  (continuing?validateContinuation:validateHosting)(h,h.manifestSha256,Date.now(),true);must(h.sourceCommit===source,'HOSTING_SOURCE');
-  must(i.manifestSha256===h.manifestSha256&&same(i.request,(continuing?continuationRequest:hostingRequest)(h,i.intentAt))&&same(i.controlLease,JSON.parse(i.request.Parameters.find(p=>p.ParameterKey==='ControllerLease').ParameterValue)),'HOSTING_INTENT');
-  must(inspection.outcome===(continuing?'RECOVERY_CONTINUATION_INDEPENDENTLY_VERIFIED_ACCEPTANCE_PENDING':'RECOVERY_HOSTING_INDEPENDENTLY_VERIFIED_ACCEPTANCE_PENDING')&&inspection.cloudWrites===0&&
+  const continuing=h.schema===W.schema,handoff=h.schema===H.schema;
+  (handoff?validateHandoff:continuing?validateContinuation:validateHosting)(h,h.manifestSha256,Date.now(),true);must(h.sourceCommit===source,'HOSTING_SOURCE');
+  if(handoff)verifyHandoffInspection(h,i,inspection);
+  must(i.manifestSha256===h.manifestSha256&&same(i.request,(handoff?handoffRequest:continuing?continuationRequest:hostingRequest)(h,i.intentAt))&&same(i.controlLease,JSON.parse(i.request.Parameters.find(p=>p.ParameterKey==='ControllerLease').ParameterValue)),'HOSTING_INTENT');
+  must(inspection.outcome===(handoff?'RECOVERY_HANDOFF_HOSTING_INDEPENDENTLY_VERIFIED_ACCEPTANCE_PENDING':continuing?'RECOVERY_CONTINUATION_INDEPENDENTLY_VERIFIED_ACCEPTANCE_PENDING':'RECOVERY_HOSTING_INDEPENDENTLY_VERIFIED_ACCEPTANCE_PENDING')&&inspection.cloudWrites===0&&
     same(inspection.proof?.controlLease,i.controlLease)&&inspection.controlAcceptancePassed===false&&inspection.businessDeploymentAccepted===false,'HOSTING_INSPECTION');
 }
 export async function main(args=process.argv.slice(2)){

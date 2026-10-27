@@ -1,6 +1,6 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
-当前唯一继续点（2026-10-26）：**revision10已单次更新并独立核验；Review未登记，业务验收未完成。** 原事务绑定已通过真实Neon只读核对，保护基准未变。后续登记确认的执行检查发生在15分钟余量门限之后，入口未调用、配置/SQL/槽/写0；旧轮在未登记状态关闭，原租约不修改，19:24:06到期不自动停费。现在仅完成[连续执行方案](aws-auto-deployment-recovery-continuous-handoff-plan.md)：先用一个外层SHA整体审批，再连续更新→独立Inspect→立即登记Review，不在倒计时内等待第二次聊天批准，不伪造ready-at或放宽旧15分钟门禁。方案未编码、无新执行SHA或生产授权；下一仅实现固定revision10的最小串联入口及显式有界会话策略，再准确CI和另批新只读准备。镜像/IAM/schema/UI/F3c9不扩展，旧槽/原件永久保留。[机器方案](../ops/aws-sandbox/reviews/platform-recovery-continuous-handoff-v1.plan.json)。
+当前唯一继续点（2026-10-26）：**固定revision10的连续入口已实现，本机174项相关测试/类型/lint通过；Review仍未登记，业务验收未完成。** 一个新外层SHA整体审批后，连续更新→独立Inspect→立即登记Review；新会话始终绑定原始在线回复及12分钟链，不伪造ready-at，旧手动三分钟守卫和15分钟租约余量保留。真实封存原件回放及默认派生路径通过，不改基准。当前仅代码提交/准确No-AWS CI，无生产/配置内容/SQL/续租/槽/dispatch；下一CI通过后另获新限定只读准备许可，再生成准确外层SHA。旧d646批准、旧租约及已消费槽不复用，不新增IAM/镜像/schema/业务任务或F3c9/UI功能。[实现与继续点](aws-auto-deployment-recovery-handoff-implementation.md) / [完整风险](aws-auto-deployment-recovery-handoff-review.md) / [历史连续方案](aws-auto-deployment-recovery-continuous-handoff-plan.md)。
 
 ## 历史记录
 

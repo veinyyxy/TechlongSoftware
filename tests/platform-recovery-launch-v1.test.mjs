@@ -63,12 +63,13 @@ test('successful Review validates outer/inner envelopes then observes, attests a
   assert(r.plan.expiresAt<=r.cloudClaimBy-8*60000);assert(r.plan.expiresAt<=f.lease.expiresAt-8*60000);
   assert.equal(f.effects.filter(v=>v==='observe').length,1);assert.equal(f.effects.filter(v=>v==='write').length,2);assert.equal(r.executionApproved,false);
 });
-for(const fault of ['sha','expired','lease','readiness','source','identity','old-state','slot'])test('reject '+fault+' before owner mutation',async()=>{
+for(const fault of ['sha','expired','lease','readiness','forged-session','source','identity','old-state','slot'])test('reject '+fault+' before owner mutation',async()=>{
   const f=await fixture(),a={operation:'PublishReview'},overrides={};
   if(fault==='sha')overrides.approved='0'.repeat(64);
   if(fault==='expired')overrides.now=()=>f.basis.expiresAt;
   if(fault==='lease')overrides.lease={...f.lease,sourceCommit:'0'.repeat(40)};
   if(fault==='readiness')overrides.readyAt=f.at-180000;
+  if(fault==='forged-session')overrides.handoffSession={};
   if(fault==='source')f.io.assertSource=async()=>{throw Error('SOURCE_DRIFT');};
   if(fault==='identity')f.io.verifySourceIdentity=async()=>{throw Error('SOURCE_EXPIRED');};
   if(fault==='old-state')f.db.snapshot=async()=>{const s=f.snapshot();s.jobs[0].status='changed';return s;};

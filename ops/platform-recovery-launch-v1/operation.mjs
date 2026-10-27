@@ -10,6 +10,7 @@ import {recoveryData} from '../platform-recovery-v1/basis.mjs';
 import {assertRecoveryBinding,assertRecoveryPlanScope} from '../platform-recovery-control-v1/binding.mjs';
 import {assertHandoffBudget,HANDOFF_LIMITS} from '../platform-operations-v6/handoff.mjs';
 import {validateRequestEvidence} from './request-evidence.mjs';
+import {assertReviewSession} from '../platform-recovery-handoff-v1/session.mjs';
 export const RISK='docs/aws-auto-deployment-recovery-launch-readiness.md';
 export const must=(v,c)=>{if(!v)throw Error('RECOVERY_LAUNCH_'+c);};
 export const same=(a,b)=>canonicalJson(a)===canonicalJson(b);
@@ -26,7 +27,7 @@ export async function makeReview({binding,basis,sourceCommit,pins,ci,auth,reques
     const ref=action.resultReference;assertReferenceV6(ref,ref?.key);
     must(new RegExp('^worker-v5/'+S.instanceId+'/'+d.target.newJobId+'/[a-f0-9]{64}/run-'+action.runId+'-1/platform-result-v6\\.json$').test(ref.key),'RESULT_KEY');
   }
-  must(digest(hostingManifestSha256)&&/^F:\/ChatGPT_workshop\/techlong-(?:w9p-recovery-hosting|recovery-hosting-continuation)-[a-z0-9-]+\/update-intent\.json$/.test(hostingIntentFile),'HOSTING_INTENT');
+  must(digest(hostingManifestSha256)&&/^F:\/ChatGPT_workshop\/techlong-(?:w9p-recovery-hosting|recovery-hosting-continuation|recovery-handoff)-[a-z0-9-]+\/update-intent\.json$/.test(hostingIntentFile),'HOSTING_INTENT');
   must(Array.isArray(pins)&&pins.length>=20&&pins.every(p=>digest(p.sha256))&&new Set(pins.map(p=>p.file)).size===pins.length,'PINS');
   must(ci?.sourceCommit===sourceCommit&&ci.attempt===1&&ci.status==='completed'&&ci.conclusion==='success'&&ci.testedSourceCommit,'CI');
   must(auth?.contentRead===false&&Number.isSafeInteger(auth.length)&&auth.length>0&&auth.length<=131072&&digest(auth.aclSha256),'AUTH_METADATA');
@@ -60,13 +61,14 @@ export async function verifyBaseline(basis,snapshot,operation,binding,requestEvi
     must(newPlans[0].body.mode==='Review','REVIEW_HISTORY_MODE');
   }
 }
-export async function runReviewed({manifest:m,basis,approved,lease,readyAt,io,now=Date.now,rebuildPackage}){
+export async function runReviewed({manifest:m,basis,approved,lease,readyAt,io,now=Date.now,rebuildPackage,handoffSession}){
   // Invalid approvals cannot acquire even a metadata/credential port.
   await verifyReview(m,basis,approved,now());const startedAt=now();let db,claimed=false,phase='PREFLIGHT',submissions=0;
   const guard=async()=>{
     await verifyReview(m,basis,approved,now());await io.assertSource(m);
     must(hostedRuntimeLeaseV6(JSON.stringify(lease),m.binding.release,now())&&lease.sourceCommit===m.sourceCommit,'LEASE');
-    must(Number.isSafeInteger(readyAt)&&now()>=readyAt&&now()-readyAt<180000,'HUMAN_READY');
+    if(handoffSession!==undefined)assertReviewSession(handoffSession,{review:m,lease,readyAt,at:now()});
+    else must(Number.isSafeInteger(readyAt)&&now()>=readyAt&&now()-readyAt<180000,'HUMAN_READY');
     must(now()>=startedAt&&now()-startedAt<120000,'OPERATION_DEADLINE');
     if(m.action.operation==='PublishReview')must(lease.expiresAt-now()>15*60000,'REVIEW_WINDOW');
   };

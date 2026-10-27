@@ -10,15 +10,17 @@ import {H as A} from '../platform-hosted-access-v6/contract.mjs';
 import {H as D} from '../platform-hosted-deploy-v6/contract.mjs';
 import {T,P,BEFORE,hash,same,must,request,validate,verifyObserved,baseline} from './plan.mjs';
 import * as continuation from '../platform-recovery-continuation-v1/plan.mjs';
+import * as handoff from '../platform-recovery-handoff-v1/plan.mjs';
 const req=createRequire(new URL('../cloud-worker/package.json',import.meta.url));
 const C=req('@aws-sdk/client-cloudformation'),E=req('@aws-sdk/client-ecs'),I=req('@aws-sdk/client-iam'),S=req('@aws-sdk/client-secrets-manager'),
   L=req('@aws-sdk/client-elastic-load-balancing-v2'),G=req('@aws-sdk/client-cloudwatch-logs'),R=req('@aws-sdk/client-route-53'),X=req('@aws-sdk/client-ecr'),Q=req('@aws-sdk/client-sts');
 const decode=v=>typeof v==='string'?JSON.parse(decodeURIComponent(v)):v;
-// Two code-bound constructors; callers cannot supply a validator/target/endpoint.
-export const createCloud=options=>createFixedCloud(options,false);
-export const createContinuationCloud=options=>createFixedCloud(options,true);
-function createFixedCloud({manifest,approved,readOnly=true,metadataLimit=65,record=async()=>{}}={},continuing=false){
-  const protocol=continuing?continuation:{validate,request,verifyObserved,baseline};
+// Code-bound constructors; callers cannot supply a validator/target/endpoint.
+export const createCloud=options=>createFixedCloud(options,0);
+export const createContinuationCloud=options=>createFixedCloud(options,1);
+export const createHandoffCloud=options=>createFixedCloud(options,2);
+function createFixedCloud({manifest,approved,readOnly=true,metadataLimit=65,record=async()=>{}}={},profile=0){
+  const protocol=profile===2?handoff:profile===1?continuation:{validate,request,verifyObserved,baseline};
   awsEnvironment();const provider=fromLoginCredentials({profile:P.profile,ignoreCache:true});
   const config=(endpoint,region=P.region)=>({region,credentials:provider,maxAttempts:1,ignoreConfiguredEndpointUrls:true,endpoint,
     requestHandler:new NodeHttpHandler({httpsAgent:new Agent({family:4,keepAlive:false}),connectionTimeout:5000,socketTimeout:20000})});
