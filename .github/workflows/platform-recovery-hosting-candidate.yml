@@ -11,6 +11,9 @@ on:
       - 'ops/platform-delegated-publisher-v1/**'
       - 'ops/platform-a604-handoff-v1/**'
       - 'ops/platform-a604-cloud-v1/**'
+      - 'ops/platform-a604-operator-v1/**'
+      - 'tests/platform-a604-operator-v1.test.mjs'
+      - 'docs/aws-auto-deployment-a604-operator-v1.md'
       - 'tests/platform-a604-cloud-v1.test.mjs'
       - 'tests/fixtures/platform-a604-cloud-v1.mjs'
       - 'docs/aws-auto-deployment-a604-cloud-compatibility.md'
@@ -42,6 +45,9 @@ on:
       - 'ops/platform-delegated-publisher-v1/**'
       - 'ops/platform-a604-handoff-v1/**'
       - 'ops/platform-a604-cloud-v1/**'
+      - 'ops/platform-a604-operator-v1/**'
+      - 'tests/platform-a604-operator-v1.test.mjs'
+      - 'docs/aws-auto-deployment-a604-operator-v1.md'
       - 'tests/platform-a604-cloud-v1.test.mjs'
       - 'tests/fixtures/platform-a604-cloud-v1.mjs'
       - 'docs/aws-auto-deployment-a604-cloud-compatibility.md'
@@ -88,6 +94,11 @@ jobs:
         run: |
           node --experimental-strip-types ops/platform-a604-cloud-v1/run.mjs --check
           node node_modules/eslint/bin/eslint.js ops/platform-a604-cloud-v1/ tests/platform-a604-cloud-v1.test.mjs tests/fixtures/platform-a604-cloud-v1.mjs --max-warnings 0
+      - name: A604 operator contracts
+        run: |
+          node --experimental-strip-types --test tests/platform-a604-operator-v1.test.mjs
+          node --experimental-strip-types ops/platform-a604-operator-v1/local.mjs --check
+          node node_modules/eslint/bin/eslint.js ops/platform-a604-operator-v1/ tests/platform-a604-operator-v1.test.mjs --max-warnings 0
       - name: Typecheck and scoped lint
         run: |
           node node_modules/typescript/bin/tsc --noEmit --incremental false

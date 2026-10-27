@@ -1,5 +1,9 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前唯一继续点（2026-10-27，a604免Web operator阶段）：**新三模式调度与Review→RunOnce三写本机入口已接线，新的本地包草稿准备可用；源publication仍UNPUBLISHED。** 复用原审计/SQL/App/ACK保护，旧9b默认行为和全部旧槽保留；a604使用独立slot/审计key，配置/私钥/生产读取与运行本轮均不执行。新包仅序列化候选，48小时事实窗口未批准，旧basis不延长。**RunOnce→Inspect受信发布CLI尚需收口，连续链未就绪，不开Review。** 下一补齐此跳，再准备fresh最小元数据与包/事实/工作流/trust审批，不新建任务或为Web续租。[入口、实际限制及完整风险](aws-auto-deployment-a604-operator-v1.md)。
+
+## 已完成的云兼容核心（保留）
+
 当前唯一继续点（2026-10-27，a604云兼容核心阶段）：**固定a604的独立云协议、OIDC适配、包重建与可信publisher组合已编码；publication仍UNPUBLISHED，未启用新期限或云入口。** 复用原执行/完成/独立Inspect保护，旧97文件和已发布工作流保持；本轮不连接生产、不读Secret/私钥、不发布/调度/部署。新profile只引用真实衔接事后事实，不把9b升格为成功前驱；新窗口批准为空。下一收口新包/免Web生产operator与准确发布准备，材料齐备后再审事实窗口、包/双工作流/trust-only发布；不新建任务、不为Web续租、不提前开启Review。[实现边界与后续前置](aws-auto-deployment-a604-cloud-compatibility.md)。
 
 ## 已完成的请求衔接（保留）

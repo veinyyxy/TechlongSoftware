@@ -20,7 +20,10 @@ export function reviewTiming(inner,basisExpiresAt,at){
   must(expiresAt>at+60000,'INSUFFICIENT_HANDOFF_RESERVE');
   return {checkedAt:at,claimBy:inner.jobPlan.claimBy,workloadExpiresAt:inner.workload.workloadExpiresAt,expiresAt};
 }
-export async function proposeReviewSuccessor({binding,basis,entry,run,resultReference,readObject,now=Date.now,rebuildPackage}){
+export async function proposeReviewSuccessor({binding,basis,entry,run,resultReference,readObject,now=Date.now,rebuildPackage},
+  {assertBinding=assertRecoveryBinding,assertScope=assertRecoveryPlanScope}={}){
+  // The override is a source capability, never selected by external material.
+  const assertRecoveryBinding=assertBinding,assertRecoveryPlanScope=assertScope;
   await assertRecoveryBinding(binding);assertRecoveryPlanScope(entry?.plan,binding);
   must(basis.basisSha256===binding.basisSha256&&typeof readObject==='function','BINDING');
   const valid=await validatePlan(entry.plan,binding.release,entry.plan.preparedAt),attempt=entry.attempt;

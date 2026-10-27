@@ -31,7 +31,7 @@ export function parseArgs(args){if(same(args,['--check']))return {mode:'Check'};
   if(a['--mode']==='PrepareSaved'){evidence(a['--material']);output(a['--output']);}
   else must(/^F:\/ChatGPT_workshop\/techlong-delegated-publisher-prepare-[a-z0-9-]+\/manifest\.json$/.test(a['--manifest']??'')&&/^[a-f0-9]{64}$/.test(a['--approved-sha']??''),'MANIFEST_PATH');return a;
 }
-export async function savedMaterial(file,binding){
+export async function savedMaterial(file,binding,{rebuild=rebuildRecoveryPackage,propose=proposeReviewSuccessor}={}){
   const material=await json(evidence(file));must(material.schema==='techlong/delegated-publisher-material/v1'&&
     same(Object.keys(material).sort(),['entryFile','objectsFile','runFile','schema','snapshotFile']),'MATERIAL');
   const archives=[{file,sha256:await sha256Hex(await readText(file,5000000))}],values={};
@@ -42,11 +42,11 @@ export async function savedMaterial(file,binding){
     v.object.encryption==='AES256'&&v.object.contentLength>0&&v.object.contentLength<=1000000&&await sha256Hex(v.object.value)===v.reference.sha256,'SAVED_OBJECT');
   }
   const packageObject=objects.find(v=>same(v.reference,binding.packageReference));must(packageObject,'ORIGINAL_PACKAGE');
-  const basis=await rebuildRecoveryPackage(packageObject.object.value),entry=values.entryFile,run=values.runFile;
+  const basis=await rebuild(packageObject.object.value),entry=values.entryFile,run=values.runFile;
   must(entry.plan?.sourceCommit===binding.sourceCommit&&entry.plan.mode==='Review','MATERIAL_SOURCE');
   const candidates=objects.filter(v=>v.object.value.schema==='techlong/recovery-cloud-result/v1'&&v.object.value.run?.runId===entry.attempt?.runId);
   must(candidates.length===1,'SAVED_RESULT');
-  const proposal=await proposeReviewSuccessor({binding,basis,entry,run,resultReference:candidates[0].reference,
+  const proposal=await propose({binding,basis,entry,run,resultReference:candidates[0].reference,
     readObject:async r=>{const v=objects.find(v=>same(v.reference,r));must(v,'SAVED_REFERENCE');return structuredClone(v.object);}});
   const envelope=objects.find(v=>same(v.reference,proposal.manifestReference)).object.value;
   return {material,archives,basis,entry,run,baseline:values.snapshotFile,resultReference:candidates[0].reference,

@@ -1,12 +1,16 @@
 // This replaces a Web click, not the GitHub deployment-environment decision.
 import {D,validateGrant,validateTarget,must,same,safeCode,auditKey,historyProof} from './policy.mjs';
-export async function dispatchOnce({grant:g,approved,mode,planSha256,io,now=Date.now}){
+export function createDispatchOperation({definition=D,approve=validateGrant,target=validateTarget,history=historyProof,key=auditKey,historyModes=['Review']}={}){
+return async function({grant:g,approved,mode,planSha256,io,now=Date.now}){
+  // Source-selected adaptation only; legacy CLI never takes this capability
+  // from a flag, grant, JSON material or environment.
+  const D=definition,validateGrant=approve,validateTarget=target,historyProof=history,auditKey=key;
   await validateGrant(g,approved,now());must(D.modes.includes(mode),'MODE');let phase='PREFLIGHT',claimed=false,beginAttempted=false,dispatchAttempts=0,knownAck=null;
   if(mode==='Review')must(now()<g.reviewLatestStartAt,'REVIEW_WINDOW_EXPIRED');
   const guard=async()=>{await validateGrant(g,approved,now());await io.assertSource();};
   try{
     await guard();await io.verifyCi();must(same(await io.environment(),g.environment),'ENVIRONMENT_DRIFT');await io.preflight();
-    if(mode==='Review')must(same(historyProof(await io.status(),g.seed.planSha256),g.history),'OLD_HISTORY_DRIFT');
+    if(historyModes.includes(mode))must(same(historyProof(await io.status(),g.seed.planSha256),g.history),'OLD_HISTORY_DRIFT');
     let entry=await io.loadPlan(planSha256);
     const publishSeed=mode==='Review'&&entry===null;
     if(publishSeed){must(planSha256===g.seed.planSha256,'SEED_SHA');entry={...g.seed,riskSha256:g.seed.plan.riskSha256,attempt:null};}
@@ -33,4 +37,5 @@ export async function dispatchOnce({grant:g,approved,mode,planSha256,io,now=Date
     const r={outcome:'DELEGATED_DISPATCH_STOPPED_REQUIRES_READBACK',phase,claimed,beginAttempted,dispatchAttempts,knownAck,code:safeCode(e),retryAllowed:false};
     await io.record('result',r);return r;
   }finally{await io.close();}
-}
+};}
+export const dispatchOnce=createDispatchOperation();

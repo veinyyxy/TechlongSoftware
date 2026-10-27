@@ -18,16 +18,19 @@ const HISTORY=['636676cb2faed296b492797942328486b4089962fa23cf5ceb36ca0cdc3b461e
 const safeCode=e=>/^[A-Z][A-Z0-9_]+$/.test(e?.message??'')?e.message:'DETAILS_WITHHELD';
 // Source-selected fixtures may exercise other histories; the CLI uses only the
 // literal default. No flag/material/manifest selects this capability.
-export function createPublisherOperations({historicalPlanShas=HISTORY}={}){
-  const history=[...historicalPlanShas].sort();must(history.length>0&&history.length<=4&&history.every(digest)&&new Set(history).size===history.length,'HISTORY_PROFILE');
+export function createPublisherOperations({historicalPlanShas=HISTORY,capability}={}){
+  const assertBinding=capability?.assertBinding??assertRecoveryBinding,assertScope=capability?.assertScope??assertRecoveryPlanScope,
+    requestEvidenceCheck=capability?.validateRequestEvidence??validateRequestEvidence,readback=capability?.verifyRequestReadback??verifyRecoveryRequestReadback,
+    propose=capability?.propose??proposeReviewSuccessor,slot=capability?.slot??SLOT,risk=capability?.riskFile??RISK;
+  const history=[...historicalPlanShas].sort();must((history.length>0||capability?.allowEmptyHistory===true)&&history.length<=4&&history.every(digest)&&new Set(history).size===history.length,'HISTORY_PROFILE');
   async function verifyBaseline({basis,snapshot,entry,requestEvidence,binding}){
-    validateRequestEvidence(requestEvidence,basis);await assertRecoveryBinding(binding);
-    assertRecoveryPlanScope(entry.plan,binding);
+    await requestEvidenceCheck(requestEvidence,basis);await assertBinding(binding);
+    assertScope(entry.plan,binding);
     const s=normalizedState(snapshot),job=entry.plan.jobId,plans=s.ledger.plans.filter(p=>p.job_id===job),ids=new Set(plans.map(p=>p.plan_sha));
     must(same([...ids].sort(),[...history,entry.planSha256].sort())&&plans.length===ids.size,'COMPLETE_TARGET_HISTORY');
     const old={...s,ledger:{plans:s.ledger.plans.filter(p=>!ids.has(p.plan_sha)),approvals:s.ledger.approvals.filter(a=>!ids.has(a.plan_sha)),
       attempts:s.ledger.attempts.filter(a=>a.job_id!==job)}};
-    await verifyRecoveryRequestReadback(basis,old,requestEvidence.transactionAt);
+    await readback(basis,old,requestEvidence.transactionAt);
     for(const p of plans){const v=await validatePlan(p.body,binding.release,p.body.preparedAt);
       must(p.plan_sha===v.planSha256&&p.action_sha===v.actionSha256&&p.risk_sha===v.plan.riskSha256&&p.mode==='Review'&&p.body.jobId===job,'HISTORICAL_PLAN');}
     const seed=plans.find(p=>p.plan_sha===entry.planSha256),approvals=s.ledger.approvals.filter(a=>ids.has(a.plan_sha)),attempts=s.ledger.attempts.filter(a=>a.job_id===job);
@@ -38,7 +41,7 @@ export function createPublisherOperations({historicalPlanShas=HISTORY}={}){
     return s;
   }
   async function makeReview({binding,basis,baseline,reviewEntry,requestEvidence,action,timing,pins,ci,auth,createdAt}){
-    await assertRecoveryBinding(binding);must(binding.basisSha256===basis.basisSha256,'BINDING');
+    await assertBinding(binding);must(binding.basisSha256===basis.basisSha256,'BINDING');
     const s=await verifyBaseline({basis,snapshot:baseline,entry:reviewEntry,requestEvidence,binding});
     must(action?.operation==='AdvanceReview'&&action.planSha256===reviewEntry.planSha256&&action.runId===reviewEntry.attempt.runId&&
       same(Object.keys(action).sort(),['operation','planSha256','resultReference','runId']),'ACTION');
@@ -51,9 +54,9 @@ export function createPublisherOperations({historicalPlanShas=HISTORY}={}){
     must(ci?.sourceCommit===binding.sourceCommit&&ci.testedSourceCommit===binding.sourceCommit&&ci.attempt===1&&ci.status==='completed'&&ci.conclusion==='success','CI');
     must(Array.isArray(pins)&&pins.length>=20&&pins.every(p=>typeof p.file==='string'&&digest(p.sha256))&&new Set(pins.map(p=>p.file)).size===pins.length,'PINS');
     must(auth?.contentRead===false&&auth.length>0&&auth.length<=131072&&digest(auth.aclSha256),'AUTH_METADATA');
-    const body={schema:'techlong/delegated-publisher-review/v1',sourceCommit:binding.sourceCommit,binding,basisSha256:basis.basisSha256,
+    const body={schema:capability?.schema??'techlong/delegated-publisher-review/v1',sourceCommit:binding.sourceCommit,binding,basisSha256:basis.basisSha256,
       baseline:s,baselineSha256:await sha256Hex(s),reviewEntry,requestEvidence,action,timing,pins,ci,auth,createdAt,expiresAt:budget.expiresAt,
-      latestStartAt:budget.expiresAt-120000,protectedHistoricalPlanShas:history,slot:SLOT,riskFile:RISK,
+      latestStartAt:budget.expiresAt-120000,protectedHistoricalPlanShas:history,slot,riskFile:risk,
       effects:{configurationContentReadsMax:1,tlsConnectionsMax:2,sqlQueriesMax:100,stsGetsMax:1,s3GetsMax:4,githubRunGetsMax:2,ciGithubGetsMax:3,
         observationsMax:1,proofWritesMax:1,planWritesMax:1,awsWrites:0,dispatches:0,privateKeyReads:0,secretValueReads:0,retries:0},
       policy:{webLeaseRequired:false,preserveOldHistory:true,independentReadbackRequired:true,permanentSlotNeverReset:true,
@@ -85,7 +88,7 @@ export function createPublisherOperations({historicalPlanShas=HISTORY}={}){
       must(same(await verifyBaseline({basis,snapshot:await db.snapshot(),entry,requestEvidence:m.requestEvidence,binding:m.binding}),m.baseline),'BASELINE_DRIFT');
       const cache=new Map(),readObject=async ref=>{await guard();const key=canonicalJson(ref);if(!cache.has(key)){
         must(cache.size<4,'OBJECT_BUDGET');cache.set(key,await io.readObject(ref));}return structuredClone(cache.get(key));};
-      const run=await io.readRun(m.action.runId),proposal=await proposeReviewSuccessor({binding:m.binding,basis,entry,run,
+      const run=await io.readRun(m.action.runId),proposal=await propose({binding:m.binding,basis,entry,run,
         resultReference:m.action.resultReference,readObject,now,...(rebuildPackage?{rebuildPackage}:{})});
       must(proposal.timing.claimBy===m.timing.claimBy&&proposal.timing.workloadExpiresAt===m.timing.workloadExpiresAt,'REAL_TIMING_BINDING');
       await guard();must(same(await io.readRun(m.action.runId),run),'RUN_DRIFT');
