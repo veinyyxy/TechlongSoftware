@@ -22,21 +22,33 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          ref: 0494b2be7b0f559ac991533137dfb1b0388ac7a9
+          ref: 72a29559f914768a8df57c8e3e6b4ed940697e54
           persist-credentials: false
-      - run: test "$(git rev-parse HEAD)" = '0494b2be7b0f559ac991533137dfb1b0388ac7a9'
+      - run: test "$(git rev-parse HEAD)" = '72a29559f914768a8df57c8e3e6b4ed940697e54'
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '22.19.0'
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
-      - run: node --experimental-strip-types ops/platform-recovery-cloud-v1/run.mjs
+      - run: |
+          node --experimental-strip-types --input-type=module <<'A604_BOOTSTRAP'
+          import {pathToFileURL} from 'node:url';
+          const load = rel => import(pathToFileURL(process.cwd()+'/'+rel).href);
+          const {bindA604WorkflowPublication} = await load('ops/platform-a604-cloud-v1/contract.mjs');
+          const {a604CloudClosure} = await load('ops/platform-a604-cloud-v1/closure.mjs');
+          const {a604Runtime} = await load('ops/platform-a604-cloud-v1/live.mjs');
+          const template = {"schema":"techlong/a604-protocol-publication/v1","state":"PUBLISHED","protocol":"recovery-envelope/v1","sourceCommit":null,"frozenSourceCommit":"72a29559f914768a8df57c8e3e6b4ed940697e54","release":{"state":"PUBLISHED","workflowId":"390829326","actorId":"344813947","reusableCommit":null,"closureSha256":"f4e76cfb90ef04cb4229c6f720f08603130335d84c35cb638817f7209e0d1269","identityProofSha256":"1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca","installationSha256":"0edfa9d7e9b284e0cf9dda91e280bd12e98bf8e9c36f955c3ad661f72d6ad4b1","riskSha256":"e017491cc8e8ae88d914f7a82371196fc996f0874c5ca9549b0e1215c7131849"},"basisSha256":"61865f5e4b8af472ce5e5a118c3ab5d1db2aead6c400e5648dcc714891e99c40","packageReference":{"key":"worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/lineage/recovery-v1-61865f5e4b8af472ce5e5a118c3ab5d1db2aead6c400e5648dcc714891e99c40.json","versionId":"WKWNfTsDXkQ5lZuqQRIG7YZw.4PERCEt","sha256":"03e32f4b3f1f364cab53593d662b8744fb6081f7960d153c0da928946286986e"},"profileSha256":"cfebd33eaf335e16801d0836efcf2f02b06b62eac4134ffed62d4e8c9e5202b7","factsApproval":{"state":"APPROVED","manifestSha256":"af800cdbe26b61f96a8454522a8c0e94f215aa72b0834c22bc83101fbf79ebce","profileSha256":"cfebd33eaf335e16801d0836efcf2f02b06b62eac4134ffed62d4e8c9e5202b7","factsAt":1793109984483,"databaseCheckedAt":1793109995619,"observedBy":1793109995619,"expiresAt":1793282784483,"originalBasisExtended":false},"activation":{"schema":"techlong/recovery-bridge-activation/v1","state":"PUBLISHED","protocol":"recovery-envelope/v1","sourceCommit":null,"frozenSourceCommit":"72a29559f914768a8df57c8e3e6b4ed940697e54","releaseSha256":null},"riskFile":"docs/aws-auto-deployment-a604-cloud-compatibility.md"};
+          try {
+            const publication = await bindA604WorkflowPublication(template,process.env.GITHUB_SHA,process.env.TECHLONG_REUSABLE_COMMIT);
+            console.log(JSON.stringify(await a604Runtime(process.env,await a604CloudClosure(),{publication})));
+          } catch { console.error('A604_CLOUD_STOPPED_REQUIRES_INSPECT_NO_RETRY'); process.exitCode=1; }
+          A604_BOOTSTRAP
         env:
-          TECHLONG_FROZEN_SOURCE_COMMIT: 0494b2be7b0f559ac991533137dfb1b0388ac7a9
+          TECHLONG_FROZEN_SOURCE_COMMIT: 72a29559f914768a8df57c8e3e6b4ed940697e54
           TECHLONG_REUSABLE_COMMIT: ${{ inputs.releaseReusableCommit }}
           TECHLONG_RECOVERY_PROTOCOL: recovery-envelope/v1
           TECHLONG_PLATFORM_RELEASE_STATE: PUBLISHED
-          TECHLONG_PLATFORM_CLOSURE_SHA: 30a7cdf74b50563afbc73f4a6b62661962d83127c3e409b627d11e5b3b91e374
+          TECHLONG_PLATFORM_CLOSURE_SHA: f4e76cfb90ef04cb4229c6f720f08603130335d84c35cb638817f7209e0d1269
           TECHLONG_APP_IDENTITY_PROOF_SHA: 1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca
           TECHLONG_INPUT_MODE: ${{ inputs.mode }}
           TECHLONG_INPUT_JOB: ${{ inputs.job }}
