@@ -1,5 +1,9 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前唯一继续点（2026-10-27，a604云兼容核心阶段）：**固定a604的独立云协议、OIDC适配、包重建与可信publisher组合已编码；publication仍UNPUBLISHED，未启用新期限或云入口。** 复用原执行/完成/独立Inspect保护，旧97文件和已发布工作流保持；本轮不连接生产、不读Secret/私钥、不发布/调度/部署。新profile只引用真实衔接事后事实，不把9b升格为成功前驱；新窗口批准为空。下一收口新包/免Web生产operator与准确发布准备，材料齐备后再审事实窗口、包/双工作流/trust-only发布；不新建任务、不为Web续租、不提前开启Review。[实现边界与后续前置](aws-auto-deployment-a604-cloud-compatibility.md)。
+
+## 已完成的请求衔接（保留）
+
 当前唯一继续点（2026-10-27，a604衔接实际完成）：**按dee68024…清单单次事务取消旧9b、创建新a604 held请求，独立连接核验通过。** 新任务pending/attempt0/max1/无lease，无云执行授权；其余9旧任务、业务/保护及8/5/5控制历史完全保持。实际2配置读取/2验证TLS连接/84 SQL，无AWS/Secret/PEM/控制写/dispatch/部署；两个永久槽已消费，禁止重跑。14份本地原件封存并派生UNPUBLISHED候选，成功前驱仍9db，原basis期限未延长。**下一只准备a604云binding/release兼容与连续链，不新建请求或提前开Review，不为Web续租；真实发布和新事实窗口仍另审。** [实际结果与准确原件索引](aws-auto-deployment-a604-handoff-observed.md)。
 
 ## 上一代码阶段（未执行时记录，保留）
