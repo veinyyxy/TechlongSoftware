@@ -1,6 +1,8 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
-当前唯一继续点（2026-10-27，a604包发布已完成）：**af800cdb准确审批下，一次条件PUT及独立固定版本GET已完成，新a604事实窗口获批；运行时仍UNPUBLISHED。** 真实VersionId为 `WKWNfTsDXkQ5lZuqQRIG7YZw.4PERCEt`，390134字节/内容SHA及basis重建通过，两永久槽已消费，绝不重放。唯一下一步是按真实包引用准备双工作流与现有worker role的trust-only新清单，权限内容/97与104云闭包不改，不新增任务/镜像或续Web租约。本次未发布工作流、改IAM或调度/部署；不扩支线。[实际结果与原件](aws-auto-deployment-a604-package-upload-observed.md) / [公开机器摘要](../ops/aws-sandbox/reviews/platform-a604-package-v1.executed.json)。
+当前唯一继续点（2026-10-27，a604工作流/trust发布准备）：**复用既有发布器，准备双工作流＋同版本本机SOURCE绑定的三文件候选，AWS只改现有worker role一个job_workflow_ref。** 绑定已独立验证的包 `WKWNfTsDXkQ5lZuqQRIG7YZw.4PERCEt` 和已批固定事实期限；候选仅不可达Git对象，不更新ref/分支或工作区。准确CI和本轮另批的角色/基础栈/GitHub限定只读通过后生成新SHA，实际推送/Change Set创建执行/快进及独立核验均须该新批准。当前SOURCE仍UNPUBLISHED，无工作流或IAM写、调度、部署、续租或新任务。97/104云闭包及权限保持，不扩支线。[本步完整范围与风险](aws-auto-deployment-a604-workflow-publication-review.md)。
+
+上一已完成阶段：af800cdb准确审批下，一次390134字节审查包PUT及独立固定版本GET通过，新a604事实窗口获批，两永久槽已消费；绝不重放或重新上传。[实际结果](aws-auto-deployment-a604-package-upload-observed.md) / [公开机器摘要](../ops/aws-sandbox/reviews/platform-a604-package-v1.executed.json)。
 
 ## 上一入口阶段（代码仍有效，状态以上述继续点为准）
 

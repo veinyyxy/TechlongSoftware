@@ -9,6 +9,7 @@ import {recoveryCloudClosure} from '../ops/platform-recovery-cloud-v1/closure.mj
 import {a604CloudClosure} from '../ops/platform-a604-cloud-v1/closure.mjs';
 import {A604_PROFILE,HANDOFF,A604_PUBLICATION} from '../ops/platform-a604-cloud-v1/profile.mjs';
 import {LOCAL_PUBLICATION} from '../ops/platform-a604-operator-v1/scope.mjs';
+import {publicationAt} from '../ops/platform-a604-operator-v1/scope.mjs';
 import {sha256Hex,canonicalJson} from '../lib/deployments/execution/hash.ts';
 const at=1793128000000;
 async function fixture(){const sourceCommit='a'.repeat(40),input={sourceCommit,createdAt:at,
@@ -98,7 +99,11 @@ test('new CLI is closed without exact approved mode and exposes no target/profil
   const checked=await main(['--check']);assert.equal(checked.awsCalls,0);assert.equal(checked.uploads,0);assert.equal(checked.executionAuthorized,false);
   for(const args of [[],['--mode','UploadReviewed'],['--mode','Delete'],['--mode','PrepareSaved','--ci-run','123','--output','F:/ChatGPT_workshop/techlong-a604-package-x','--profile','other']])assert.throws(()=>parseArgs(args));
   if(process.platform==='win32')assert.equal(parseArgs(['--mode','PrepareSaved','--ci-run','123','--output','F:/ChatGPT_workshop/techlong-a604-package-x'])['--mode'],'PrepareSaved');
-  assert(ROOTS.includes(K.riskFile));assert.equal(A604_PUBLICATION.state,'UNPUBLISHED');assert.equal(LOCAL_PUBLICATION.state,'UNPUBLISHED');
+  assert(ROOTS.includes(K.riskFile));assert.equal(A604_PUBLICATION.state,'UNPUBLISHED');
+  if(LOCAL_PUBLICATION.state==='PUBLISHED'){
+    const p=await publicationAt('a'.repeat(40),LOCAL_PUBLICATION.template.factsApproval.observedBy);assert.equal(p.packageReference.sha256,K.packageSha256);
+    assert.equal(p.factsApproval.manifestSha256,'af800cdbe26b61f96a8454522a8c0e94f215aa72b0834c22bc83101fbf79ebce');
+  }else assert.equal(LOCAL_PUBLICATION.state,'UNPUBLISHED');
 });
 test('local entry never creates deployment/IAM/SQL/Secret or protected workflow writers',async()=>{
   const text=await readFile(new URL('../ops/platform-a604-package-v1/local.mjs',import.meta.url),'utf8');

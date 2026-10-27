@@ -13,6 +13,13 @@ on:
       - 'ops/platform-a604-cloud-v1/**'
       - 'ops/platform-a604-operator-v1/**'
       - 'ops/platform-a604-package-v1/**'
+      - 'ops/platform-a604-publication-v1/**'
+      - 'ops/platform-publication-v6/**'
+      - 'ops/platform-recovery-publication-v1/**'
+      - 'tests/platform-a604-publication-v1.test.mjs'
+      - 'tests/platform-recovery-publication-v1.test.mjs'
+      - 'tests/platform-app-publication-v6.test.mjs'
+      - 'docs/aws-auto-deployment-a604-workflow-publication-review.md'
       - 'ops/platform-recovery-package-v1/**'
       - 'tests/platform-a604-package-v1.test.mjs'
       - 'tests/platform-recovery-package-v1.test.mjs'
@@ -54,6 +61,13 @@ on:
       - 'ops/platform-a604-cloud-v1/**'
       - 'ops/platform-a604-operator-v1/**'
       - 'ops/platform-a604-package-v1/**'
+      - 'ops/platform-a604-publication-v1/**'
+      - 'ops/platform-publication-v6/**'
+      - 'ops/platform-recovery-publication-v1/**'
+      - 'tests/platform-a604-publication-v1.test.mjs'
+      - 'tests/platform-recovery-publication-v1.test.mjs'
+      - 'tests/platform-app-publication-v6.test.mjs'
+      - 'docs/aws-auto-deployment-a604-workflow-publication-review.md'
       - 'ops/platform-recovery-package-v1/**'
       - 'tests/platform-a604-package-v1.test.mjs'
       - 'tests/platform-recovery-package-v1.test.mjs'
@@ -118,6 +132,11 @@ jobs:
           node --experimental-strip-types --test tests/platform-recovery-package-v1.test.mjs tests/platform-a604-package-v1.test.mjs
           node --experimental-strip-types ops/platform-a604-package-v1/local.mjs --check
           node node_modules/eslint/bin/eslint.js ops/platform-recovery-package-v1/ ops/platform-a604-package-v1/ tests/platform-recovery-package-v1.test.mjs tests/platform-a604-package-v1.test.mjs --max-warnings 0
+      - name: A604 reviewed workflow publication contracts - No AWS
+        run: |
+          node --experimental-strip-types --test tests/platform-a604-publication-v1.test.mjs tests/platform-recovery-publication-v1.test.mjs tests/platform-app-publication-v6.test.mjs
+          node --experimental-strip-types ops/platform-a604-publication-v1/local.mjs --check
+          node node_modules/eslint/bin/eslint.js ops/platform-a604-publication-v1/ ops/platform-publication-v6/local.mjs tests/platform-a604-publication-v1.test.mjs --max-warnings 0
       - name: Typecheck and scoped lint
         run: |
           node node_modules/typescript/bin/tsc --noEmit --incremental false

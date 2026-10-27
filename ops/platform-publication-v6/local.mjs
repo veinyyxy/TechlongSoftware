@@ -63,6 +63,7 @@ export async function createAppPublicationIo(output,{profile}={}){
   }
   const main=async()=>(await get('branches/main')).commit.sha;
   async function ci(id,parent){
+    if(profile?.readCi)return profile.readCi(id,parent);
     must(/^[1-9][0-9]{0,15}$/.test(id),'CI_ID');const r=await get('actions/runs/'+id),j=await get('actions/runs/'+id+'/attempts/1/jobs?per_page=100');
     must(String(r.id)===id&&r.head_sha===parent&&r.head_branch==='main'&&r.event==='push'&&r.path==='.github/workflows/platform-cloud-candidate.yml'&&
       r.run_attempt===1&&r.status==='completed'&&r.conclusion==='success'&&r.repository.id===P.repositoryId&&r.repository.owner.id===P.ownerId&&

@@ -15,7 +15,7 @@ import {proposeReviewSuccessor} from '../platform-delegated-publisher-v1/success
 import {assertA604Publication,assertA604PlanScope} from '../platform-a604-cloud-v1/contract.mjs';
 import {createA604Runtime} from '../platform-a604-cloud-v1/runtime.mjs';
 import {A604_PROFILE,HANDOFF} from '../platform-a604-cloud-v1/profile.mjs';
-import {D,RISK,PUBLISH_SLOT,INSPECT_PUBLISH_SLOT,publicationAt} from './scope.mjs';
+import {D,RISK,PUBLISH_SLOT,INSPECT_PUBLISH_SLOT,LOCAL_PUBLICATION,publicationAt} from './scope.mjs';
 import {must,same,digest,slot,auditKey,oldHistory,createA604Policy} from './policy.mjs';
 import {createA604DispatchIo,createA604PublisherIo} from './io.mjs';
 import {createA604PublisherOperations,createA604InspectPublisherOperations,REQUEST_EVIDENCE} from './publisher.mjs';
@@ -39,7 +39,7 @@ export function parseArgs(args){if(same(args,['--check']))return {mode:'Check'};
   if(a['--mode']==='DispatchReviewed')must(D.modes.includes(a['--action'])&&digest(a['--plan-sha']),'TARGET');return a;
 }
 export async function main(args=process.argv.slice(2)){
-  const a=parseArgs(args);if(a.mode==='Check'){const r={outcome:'A604_OPERATOR_CODE_AVAILABLE_PUBLICATION_CLOSED',jobId:D.jobId,webLoginRequired:false,
+  const a=parseArgs(args);if(a.mode==='Check'){const r={outcome:LOCAL_PUBLICATION.state==='PUBLISHED'?'A604_OPERATOR_SOURCE_PUBLISHED_REQUIRES_REVIEWED_GRANT':'A604_OPERATOR_CODE_AVAILABLE_PUBLICATION_CLOSED',jobId:D.jobId,webLoginRequired:false,
     githubEnvironmentApproval:'human-owner-required',privateReads:0,sqlConnections:0,awsCalls:0,dispatches:0,executionAuthorized:false};console.log(JSON.stringify(r));return r;}
   environment();must(process.platform==='win32'&&path.resolve(process.cwd()).toLowerCase()===path.resolve(ROOT).toLowerCase()&&
     !['DATABASE_URL','PGHOST','PGPORT','PGPASSWORD','PGOPTIONS','PGSERVICE'].some(k=>process.env[k]),'ENVIRONMENT');await noLinks(BASE);

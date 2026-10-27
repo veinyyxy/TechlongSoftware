@@ -4,7 +4,7 @@ import {spawnSync} from 'node:child_process';
 import {a604Fixture} from './fixtures/platform-a604-cloud-v1.mjs';
 import {createDispatchOperation} from '../ops/platform-delegated-approval-v1/operation.mjs';
 import {createA604Policy,oldHistory,auditKey,slot} from '../ops/platform-a604-operator-v1/policy.mjs';
-import {D,publicationAt,PUBLISH_SLOT} from '../ops/platform-a604-operator-v1/scope.mjs';
+import {D,publicationAt,PUBLISH_SLOT,LOCAL_PUBLICATION} from '../ops/platform-a604-operator-v1/scope.mjs';
 import {createPackageCandidateBuilder} from '../ops/platform-a604-operator-v1/package.mjs';
 import {createA604PublisherOperations} from '../ops/platform-a604-operator-v1/publisher.mjs';
 import {parseArgs} from '../ops/platform-a604-operator-v1/local.mjs';
@@ -111,7 +111,10 @@ test('publisher accepts the real pre-basis held timestamp and performs only obse
   assert.equal(r.plan.jobId,D.jobId);assert.equal(m.slot,PUBLISH_SLOT);assert.equal(m.protectedHistoricalPlanShas.length,0);
 });
 test('default publication remains closed and CLI has no job/profile/binding override',async()=>{
-  await assert.rejects(publicationAt('a'.repeat(40),Date.now()),/NOT_PUBLISHED/);
+  if(LOCAL_PUBLICATION.state==='UNPUBLISHED')await assert.rejects(publicationAt('a'.repeat(40),Date.now()),/NOT_PUBLISHED/);
+  else{const at=LOCAL_PUBLICATION.template.factsApproval.observedBy,p=await publicationAt('a'.repeat(40),at);
+    assert.equal(p.release.reusableCommit,LOCAL_PUBLICATION.reusableCommit);assert.equal(p.factsApproval.originalBasisExtended,false);
+    await assert.rejects(publicationAt('a'.repeat(40),p.factsApproval.expiresAt));}
   assert.equal(parseArgs(['--check']).mode,'Check');
   for(const args of [[],['--mode','DispatchReviewed','--grant','x','--approved-sha','x','--action','Review','--plan-sha','a'.repeat(64),'--job','other'],
     ['--mode','PreparePackageSaved','--ci-run','1','--output','F:/arbitrary']])assert.throws(()=>parseArgs(args));
