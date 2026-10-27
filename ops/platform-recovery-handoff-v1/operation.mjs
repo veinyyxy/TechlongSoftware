@@ -18,6 +18,7 @@ export async function runOnce({manifest:m,approved,readyAt,basis,binding,io,now=
     await guard();assertSession(ticket,now(),{beforeUpdate:true});must(now()-fresh.checkedAt<120000&&now()-n.checkedAt<120000,'STALE');
     const at=now();intent={manifestSha256:m.manifestSha256,intentAt:at,request:request(m,at),controlLease:lease(at,m.sourceCommit)};
     attachIntent(ticket,intent,at);await io.record('update-intent',intent);await guard();assertSession(ticket,now(),{beforeUpdate:true});must(now()-at<30000,'INTENT_STALE');
+    must(now()-fresh.checkedAt<120000&&now()-n.checkedAt<120000,'STALE');
     phase='UPDATE';updates++;const ack=await io.cloud.update(intent.request);must(ack.StackId===H.stackId,'ACK');await io.record('update-ack',ack);
     phase='WAIT';let done=false,seen=false;for(let k=0;k<60;k++){
       await guard();must(now()-at<H.updateWaitMs,'UPDATE_DEADLINE');const v=await io.cloud.stack();await io.record('stack-'+k,v);must(v.StackId===H.stackId,'STACK');

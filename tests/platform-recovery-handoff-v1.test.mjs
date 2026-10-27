@@ -93,6 +93,11 @@ test('elapsed chain or bad independent proof prevents publishing; old UPDATE_COM
 test('slow permanent slot claim makes original AWS and Neon facts stale, preventing the update',async()=>{
   const f=fixture();f.io.claim=async()=>f.tick(120001);const r=await run(f);assert(r.outcome.includes('STOPPED'));assert.equal(r.claimed,true);assert(!f.calls.includes('update'));
 });
+test('facts are checked again immediately before UpdateStack, even when the new intent is still fresh',async()=>{
+  const f=fixture(),record=f.io.record;f.io.cloud.snapshot=async()=>({baseline:f.m.before,checkedAt:at-119000});
+  f.io.record=async(n,v)=>{await record(n,v);if(n==='update-intent')f.tick(2000);};
+  const r=await run(f);assert.equal(r.code,'RECOVERY_HANDOFF_STALE');assert(!f.calls.includes('update'));
+});
 test('only revision10 baseline and the exact newer source/image/template/event reach shared verifier',async()=>{
   for(const updated of [false,true]){const d=updated?H.priorDefinition.replace(/:10$/,':11'):H.priorDefinition,s=updated?source:H.priorSource,
     t=updated?at:H.priorAt,token=updated?'recovery-handoff-'+nonce:H.priorToken,doc=nextTemplate(s);
