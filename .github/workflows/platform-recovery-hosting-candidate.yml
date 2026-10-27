@@ -9,6 +9,9 @@ on:
       - 'ops/platform-recovery-handoff-v1/**'
       - 'ops/platform-delegated-approval-v1/**'
       - 'ops/platform-delegated-publisher-v1/**'
+      - 'ops/platform-a604-handoff-v1/**'
+      - 'tests/platform-a604-handoff-v1.test.mjs'
+      - 'docs/aws-auto-deployment-a604-handoff-v1.md'
       - 'tests/platform-delegated-publisher-v1.test.mjs'
       - 'tests/platform-delegated-publisher-live-v1.test.mjs'
       - 'tests/platform-delegated-request-handoff-v1.test.mjs'
@@ -33,6 +36,9 @@ on:
       - 'ops/platform-recovery-handoff-v1/**'
       - 'ops/platform-delegated-approval-v1/**'
       - 'ops/platform-delegated-publisher-v1/**'
+      - 'ops/platform-a604-handoff-v1/**'
+      - 'tests/platform-a604-handoff-v1.test.mjs'
+      - 'docs/aws-auto-deployment-a604-handoff-v1.md'
       - 'tests/platform-delegated-publisher-v1.test.mjs'
       - 'tests/platform-delegated-publisher-live-v1.test.mjs'
       - 'tests/platform-delegated-request-handoff-v1.test.mjs'
@@ -69,8 +75,8 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
       - name: Recovery hosting update contracts
-        run: node --experimental-strip-types --test tests/platform-recovery-hosting-v1.test.mjs tests/platform-hosted-window-v6.test.mjs tests/platform-hosted-deploy-v6.test.mjs tests/platform-recovery-launch-v1.test.mjs tests/platform-recovery-control-v1.test.mjs tests/platform-recovery-entry-bridge-v1.test.mjs tests/platform-recovery-continuation-v1.test.mjs tests/platform-recovery-handoff-v1.test.mjs tests/platform-delegated-approval-v1.test.mjs tests/platform-delegated-publisher-v1.test.mjs tests/platform-delegated-publisher-live-v1.test.mjs tests/platform-delegated-request-handoff-v1.test.mjs
+        run: node --experimental-strip-types --test tests/platform-recovery-hosting-v1.test.mjs tests/platform-hosted-window-v6.test.mjs tests/platform-hosted-deploy-v6.test.mjs tests/platform-recovery-launch-v1.test.mjs tests/platform-recovery-control-v1.test.mjs tests/platform-recovery-entry-bridge-v1.test.mjs tests/platform-recovery-continuation-v1.test.mjs tests/platform-recovery-handoff-v1.test.mjs tests/platform-delegated-approval-v1.test.mjs tests/platform-delegated-publisher-v1.test.mjs tests/platform-delegated-publisher-live-v1.test.mjs tests/platform-delegated-request-handoff-v1.test.mjs tests/platform-a604-handoff-v1.test.mjs
       - name: Typecheck and scoped lint
         run: |
           node node_modules/typescript/bin/tsc --noEmit --incremental false
-          node node_modules/eslint/bin/eslint.js ops/platform-recovery-hosting-v1/ ops/platform-recovery-launch-v1/ ops/platform-recovery-continuation-v1/ ops/platform-recovery-handoff-v1/ ops/platform-delegated-approval-v1/ ops/platform-delegated-publisher-v1/ tests/platform-recovery-hosting-v1.test.mjs tests/platform-recovery-launch-v1.test.mjs tests/platform-recovery-continuation-v1.test.mjs tests/platform-recovery-handoff-v1.test.mjs tests/platform-delegated-approval-v1.test.mjs tests/platform-delegated-publisher-v1.test.mjs tests/platform-delegated-publisher-live-v1.test.mjs tests/platform-delegated-request-handoff-v1.test.mjs tests/fixtures/platform-delegated-publisher-v1.mjs --max-warnings 0
+          node node_modules/eslint/bin/eslint.js ops/platform-recovery-hosting-v1/ ops/platform-recovery-launch-v1/ ops/platform-recovery-continuation-v1/ ops/platform-recovery-handoff-v1/ ops/platform-delegated-approval-v1/ ops/platform-delegated-publisher-v1/ ops/platform-a604-handoff-v1/ tests/platform-recovery-hosting-v1.test.mjs tests/platform-recovery-launch-v1.test.mjs tests/platform-recovery-continuation-v1.test.mjs tests/platform-recovery-handoff-v1.test.mjs tests/platform-delegated-approval-v1.test.mjs tests/platform-delegated-publisher-v1.test.mjs tests/platform-delegated-publisher-live-v1.test.mjs tests/platform-delegated-request-handoff-v1.test.mjs tests/platform-a604-handoff-v1.test.mjs tests/fixtures/platform-delegated-publisher-v1.mjs --max-warnings 0
