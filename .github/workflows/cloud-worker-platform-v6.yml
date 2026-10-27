@@ -18,7 +18,7 @@ concurrency:
 jobs:
   reviewed:
     if: github.repository_id == '1323312747' && github.repository_owner_id == '14145707' && github.actor_id == '344813947' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.event_name == 'workflow_dispatch'
-    uses: veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@4c09548ab9852a4f3e948f0686f8c81251cda73b
+    uses: veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@e658f7b88ab50b4ff3c5653d46866b859fbadfe1
     with:
       mode: ${{ inputs.mode }}
       job: ${{ inputs.job }}
@@ -27,4 +27,4 @@ jobs:
       manifestSha: ${{ inputs.manifestSha }}
       execution: ${{ inputs.execution }}
       lineage: ${{ inputs.lineage }}
-      releaseReusableCommit: '4c09548ab9852a4f3e948f0686f8c81251cda73b'
+      releaseReusableCommit: 'e658f7b88ab50b4ff3c5653d46866b859fbadfe1'
