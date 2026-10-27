@@ -1,6 +1,6 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
-当前唯一继续点（2026-10-27，a604最小包发布准备）：**限定只读已匹配真实held/空新账本、全旧业务/保护及IAM，复用原上传器接入准确新包与新永久槽。** 本地摘要算法误报已定位，原失败保留。先准确CI和封存原件重建后生成“一次包PUT/固定版本独立回读＋新事实窗口”的待审SHA；取得真实VersionId后再单独准备双工作流与现有角色trust-only发布，不提前猜版本。当前没有上传、权限或工作流写、续租、运行/部署授权，source gate仍UNPUBLISHED，97/104云闭包不改，不新建任务或扩支线。[本步完整范围、期限和风险](aws-auto-deployment-a604-package-upload-review.md)。
+当前唯一继续点（2026-10-27，a604包发布已完成）：**af800cdb准确审批下，一次条件PUT及独立固定版本GET已完成，新a604事实窗口获批；运行时仍UNPUBLISHED。** 真实VersionId为 `WKWNfTsDXkQ5lZuqQRIG7YZw.4PERCEt`，390134字节/内容SHA及basis重建通过，两永久槽已消费，绝不重放。唯一下一步是按真实包引用准备双工作流与现有worker role的trust-only新清单，权限内容/97与104云闭包不改，不新增任务/镜像或续Web租约。本次未发布工作流、改IAM或调度/部署；不扩支线。[实际结果与原件](aws-auto-deployment-a604-package-upload-observed.md) / [公开机器摘要](../ops/aws-sandbox/reviews/platform-a604-package-v1.executed.json)。
 
 ## 上一入口阶段（代码仍有效，状态以上述继续点为准）
 

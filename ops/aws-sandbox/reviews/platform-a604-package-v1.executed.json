@@ -1,0 +1,53 @@
+{
+  "schema": "techlong/a604-package-executed-public-summary/v1",
+  "outcome": "A604_PACKAGE_UPLOADED_AND_INDEPENDENT_FIXED_VERSION_VERIFIED",
+  "executionSourceCommit": "592492ccce9207efd06369e0d1d0afa54e79cef5",
+  "approvedManifestSha256": "af800cdbe26b61f96a8454522a8c0e94f215aa72b0834c22bc83101fbf79ebce",
+  "jobId": "job_a60423b885fef3e4326213f7",
+  "canonicalBytes": 390134,
+  "basisSha256": "61865f5e4b8af472ce5e5a118c3ab5d1db2aead6c400e5648dcc714891e99c40",
+  "packageReference": {
+    "key": "worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/lineage/recovery-v1-61865f5e4b8af472ce5e5a118c3ab5d1db2aead6c400e5648dcc714891e99c40.json",
+    "versionId": "WKWNfTsDXkQ5lZuqQRIG7YZw.4PERCEt",
+    "sha256": "03e32f4b3f1f364cab53593d662b8744fb6081f7960d153c0da928946286986e"
+  },
+  "factsApproval": {
+    "state": "APPROVED",
+    "manifestSha256": "af800cdbe26b61f96a8454522a8c0e94f215aa72b0834c22bc83101fbf79ebce",
+    "profileSha256": "cfebd33eaf335e16801d0836efcf2f02b06b62eac4134ffed62d4e8c9e5202b7",
+    "factsAt": 1793109984483,
+    "databaseCheckedAt": 1793109995619,
+    "observedBy": 1793109995619,
+    "expiresAt": 1793282784483,
+    "originalBasisExtended": false
+  },
+  "counts": {
+    "sourceSts": 3,
+    "bucketMetadata": 6,
+    "targetHead": 2,
+    "localPackageContentReads": 1,
+    "conditionalPuts": 1,
+    "independentFixedVersionGets": 1,
+    "githubCiGets": 3,
+    "iamWrites": 0,
+    "sqlConnections": 0,
+    "configurationContentReads": 0,
+    "secretValueReads": 0,
+    "pemReads": 0,
+    "workflowPublications": 0,
+    "workflowDispatches": 0,
+    "cellCreates": 0,
+    "automaticRetries": 0
+  },
+  "privateExecutionProof": {
+    "file": "F:/ChatGPT_workshop/techlong-a604-package-executed-verified-20261027-a.json",
+    "rawSha256": "fa960d1bc00b990dd63985063b980f1a277f3773dd49cce844453076fafd055f"
+  },
+  "permanentSlotsConsumed": true,
+  "retryAllowed": false,
+  "cloudPublicationState": "UNPUBLISHED",
+  "localPublicationState": "UNPUBLISHED",
+  "runtimeActivated": false,
+  "acceptancePassed": false,
+  "next": "Prepare exact two-workflow and existing-role trust-only review with this real package version; actual publication and dispatch are not authorized."
+}
