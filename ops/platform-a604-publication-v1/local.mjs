@@ -22,7 +22,7 @@ export function profile(m,{readOnly=false,executionPrestate}={}){
     workflowId:file=>file===Q.caller?'390829326':'390829324',
     async verifyExistingTargets(get,parent){must(m.parent===parent,'TARGET_PARENT');for(const o of m.previousTargets.filter(o=>o.file!==Q.bindingFile)){
       const c=await get('contents/'+o.file+'?ref='+parent),w=await get('actions/workflows/'+path.basename(o.file));
-      must(c.type==='file'&&c.sha===o.blob&&c.encoding==='base64'&&hash(Buffer.from(c.content,'base64'))===o.normalizedLfSha256&&w.path===o.file&&w.state==='active'&&
+      must(c.type==='file'&&c.sha===o.blob&&c.encoding==='base64'&&hash(Buffer.from(c.content,'base64').toString('utf8'))===o.normalizedLfSha256&&w.path===o.file&&w.state==='active'&&
         String(w.id)===(o.file===Q.caller?'390829326':'390829324'),'EXISTING_WORKFLOW');}}};
 }
 export async function savedPackage(){const raw=await readText(Q.packageProof,1000000);must(hash(raw)===Q.packageProofRawSha256,'PACKAGE_PROOF');const p=JSON.parse(raw);

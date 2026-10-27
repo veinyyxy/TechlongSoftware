@@ -18,6 +18,8 @@
 
 `ops/platform-a604-publication-v1/local.mjs --check` 为零私密/网络I/O。`CaptureReadiness` 必须在准确CI通过、收到当轮明确只读授权后运行：最多一次Source STS＋12次AWS元数据（适配器合并上限13）、最多20次GitHub GET（其中CI三GET），核对既有准确角色/基础栈、main、两份工作流、环境/分支/OIDC及未完成运行。无Secret/PEM/.env/SQL或云/仓库写。失败保留输出，不自动重试。
 
+首次捕获在GitHub前置校验停止：适配把Buffer传给JSON对象摘要函数，导致误报。实际6次GitHub GET（含CI三GET）、Source/AWS/写/槽均0；原失败保留。已改为base64解码成UTF-8文本再用原文本摘要，并对实际回调增加“正确两个旧工作流通过、内容或workflow ID变化拒绝”的无网络测试；不更改既有摘要基准。修复后的新一轮读取需新授权和新记录。
+
 `PrepareSaved` 只用两小时内、同源码的捕获结果、封存包执行证明及原件和准确CI，再写不可达Git候选；没有实时AWS回退。验证旧工作流blob/hash、原SOURCE绑定hash、准确Git父链/tree/blob/diff和104/97云闭包。候选有且仅有前述三文件差异，ref/main/分支均不变。清单期限从真实观察时间起最多24小时、受新事实截止截断；最晚启动预留20分钟，不滚动补时。
 
 `PublishReviewed` 必须准确新SHA。复用原发布器：完整只读preflight、记录新事实→消费永久槽→一次push→核对工作流→旧布局核对→一次CreateChangeSet→严格核对→再次旧布局核对→一次ExecuteChangeSet→最终新布局核对→一次本地快进→独立Inspect。主流程最多180次AWS元数据（含Source核对）、160次GitHub GET、20分钟；独立读取最多13次AWS元数据（含一次Source）、17次GitHub GET。SDK maxAttempts1；轮询只观察同一Change Set/Stack，不重发写。

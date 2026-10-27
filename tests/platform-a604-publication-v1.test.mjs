@@ -106,6 +106,17 @@ test('new read-only SDK profile rejects every writer before credentials or metad
   try{for(const fn of [()=>io.consume({}),()=>io.push(m),()=>io.create(m),()=>io.execute(m,{}),()=>io.fastForward(m)])await assert.rejects(Promise.resolve().then(fn),/READ_ONLY_CAPABILITY/);
     assert.deepEqual(io.counts(),{push:0,create:0,execute:0,fastForward:0,awsMetadata:0,githubGets:0});}finally{io.dispose();}
 });
+test('actual existing-target callback hashes decoded workflow TEXT, not a Buffer JSON object; checks both exact GitHub IDs',async()=>{
+  const parent='a'.repeat(40),targets=[Q.reusable,Q.caller].map(file=>({file,blob:'b'.repeat(40),normalizedLfSha256:hash('existing '+file+'\n')})),calls=[];
+  const p=profile({parent,previousTargets:targets},{readOnly:true});let bad;
+  const get=async path=>{calls.push(path);const target=targets.find(o=>path==='contents/'+o.file+'?ref='+parent);
+    if(target)return {type:'file',sha:target.blob,encoding:'base64',content:Buffer.from('existing '+target.file+'\n'+(bad==='content'?'changed':'')).toString('base64')};
+    const file=targets.find(o=>path==='actions/workflows/'+o.file.split('/').at(-1)).file;
+    return {path:file,state:'active',id:bad==='id'?1:Number(file===Q.caller?'390829326':'390829324')};};
+  await p.verifyExistingTargets(get,parent);assert.equal(calls.length,4);
+  for(const fault of ['content','id']){bad=fault;await assert.rejects(p.verifyExistingTargets(get,parent),/EXISTING_WORKFLOW/);}
+  assert.notEqual(hash(Buffer.from('existing '+Q.reusable+'\n')),targets[0].normalizedLfSha256);
+});
 test('CLI cannot dispatch, read secret/config or override profile/target/binding; default check is zero I/O',async()=>{
   const r=await main(['--check']);assert.equal(r.awsCalls+r.privateReads+r.externalWrites,0);
   for(const args of [[],['--mode','PublishReviewed'],['--mode','Dispatch'],['--mode','CaptureReadiness','--output','x','--ci-run','123','--profile','unsafe']])assert.throws(()=>parseArgs(args));
