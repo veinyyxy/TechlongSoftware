@@ -21,9 +21,11 @@ const safeCode=e=>/^[A-Z][A-Z0-9_]+$/.test(e?.message??'')?e.message:'DETAILS_WI
 export function createPublisherOperations({historicalPlanShas=HISTORY,capability}={}){
   const assertBinding=capability?.assertBinding??assertRecoveryBinding,assertScope=capability?.assertScope??assertRecoveryPlanScope,
     requestEvidenceCheck=capability?.validateRequestEvidence??validateRequestEvidence,readback=capability?.verifyRequestReadback??verifyRecoveryRequestReadback,
-    propose=capability?.propose??proposeReviewSuccessor,slot=capability?.slot??SLOT,risk=capability?.riskFile??RISK;
+    propose=capability?.propose??proposeReviewSuccessor,slot=capability?.slot??SLOT,risk=capability?.riskFile??RISK,
+    timingBudget=capability?.timingBudget??reviewTiming,actionName=capability?.actionName??'AdvanceReview',nextMode=capability?.nextMode??'RunOnce',maxObjects=capability?.maxObjects??4;
   const history=[...historicalPlanShas].sort();must((history.length>0||capability?.allowEmptyHistory===true)&&history.length<=4&&history.every(digest)&&new Set(history).size===history.length,'HISTORY_PROFILE');
   async function verifyBaseline({basis,snapshot,entry,requestEvidence,binding}){
+    if(capability?.verifyBaseline)return capability.verifyBaseline({basis,snapshot,entry,requestEvidence,binding});
     await requestEvidenceCheck(requestEvidence,basis);await assertBinding(binding);
     assertScope(entry.plan,binding);
     const s=normalizedState(snapshot),job=entry.plan.jobId,plans=s.ledger.plans.filter(p=>p.job_id===job),ids=new Set(plans.map(p=>p.plan_sha));
@@ -43,21 +45,21 @@ export function createPublisherOperations({historicalPlanShas=HISTORY,capability
   async function makeReview({binding,basis,baseline,reviewEntry,requestEvidence,action,timing,pins,ci,auth,createdAt}){
     await assertBinding(binding);must(binding.basisSha256===basis.basisSha256,'BINDING');
     const s=await verifyBaseline({basis,snapshot:baseline,entry:reviewEntry,requestEvidence,binding});
-    must(action?.operation==='AdvanceReview'&&action.planSha256===reviewEntry.planSha256&&action.runId===reviewEntry.attempt.runId&&
+    must(action?.operation===actionName&&action.planSha256===reviewEntry.planSha256&&action.runId===reviewEntry.attempt.runId&&
       same(Object.keys(action).sort(),['operation','planSha256','resultReference','runId']),'ACTION');
     assertReferenceV6(action.resultReference,action.resultReference.key);
     must(new RegExp('^worker-v5/'+reviewEntry.plan.instanceId+'/'+reviewEntry.plan.jobId+'/[a-f0-9]{64}/run-'+action.runId+'-1/platform-result-v6\\.json$').test(action.resultReference.key),'RESULT_SCOPE');
     must(Number.isSafeInteger(createdAt)&&Number.isSafeInteger(timing?.preparedAt)&&Number.isSafeInteger(timing.workloadExpiresAt)&&
       timing.claimBy===timing.preparedAt+900000,'TIMING');
-    const budget=reviewTiming({jobPlan:timing,workload:{workloadExpiresAt:timing.workloadExpiresAt}},basis.expiresAt,createdAt);
+    const budget=timingBudget({jobPlan:timing,workload:{workloadExpiresAt:timing.workloadExpiresAt}},basis.expiresAt,createdAt);
     must(budget.expiresAt>createdAt+120000,'PREPARE_WINDOW');
     must(ci?.sourceCommit===binding.sourceCommit&&ci.testedSourceCommit===binding.sourceCommit&&ci.attempt===1&&ci.status==='completed'&&ci.conclusion==='success','CI');
     must(Array.isArray(pins)&&pins.length>=20&&pins.every(p=>typeof p.file==='string'&&digest(p.sha256))&&new Set(pins.map(p=>p.file)).size===pins.length,'PINS');
     must(auth?.contentRead===false&&auth.length>0&&auth.length<=131072&&digest(auth.aclSha256),'AUTH_METADATA');
     const body={schema:capability?.schema??'techlong/delegated-publisher-review/v1',sourceCommit:binding.sourceCommit,binding,basisSha256:basis.basisSha256,
       baseline:s,baselineSha256:await sha256Hex(s),reviewEntry,requestEvidence,action,timing,pins,ci,auth,createdAt,expiresAt:budget.expiresAt,
-      latestStartAt:budget.expiresAt-120000,protectedHistoricalPlanShas:history,slot,riskFile:risk,
-      effects:{configurationContentReadsMax:1,tlsConnectionsMax:2,sqlQueriesMax:100,stsGetsMax:1,s3GetsMax:4,githubRunGetsMax:2,ciGithubGetsMax:3,
+      latestStartAt:budget.expiresAt-(capability?.startReserveMs??120000),protectedHistoricalPlanShas:history,slot,riskFile:risk,
+      effects:{configurationContentReadsMax:1,tlsConnectionsMax:2,sqlQueriesMax:100,stsGetsMax:1,s3GetsMax:maxObjects,githubRunGetsMax:2,ciGithubGetsMax:3,
         observationsMax:1,proofWritesMax:1,planWritesMax:1,awsWrites:0,dispatches:0,privateKeyReads:0,secretValueReads:0,retries:0},
       policy:{webLeaseRequired:false,preserveOldHistory:true,independentReadbackRequired:true,permanentSlotNeverReset:true,
         dynamicSuccessorUsesPinnedRulesOnly:true,githubEnvironmentApproval:'human-owner-required'},executionAuthorized:false};
@@ -71,7 +73,7 @@ export function createPublisherOperations({historicalPlanShas=HISTORY,capability
     const before=normalizedState(beforeInput),after=normalizedState(afterInput),seed=entry.planSha256,next=proposal.successor;
     const added=after.ledger.plans.filter(p=>p.plan_sha===next.planSha256),attempt=after.ledger.attempts.find(a=>a.plan_sha===seed);
     must(added.length===1&&same(added[0].body,next.plan)&&added[0].action_sha===next.actionSha256&&added[0].risk_sha===next.plan.riskSha256&&
-      added[0].job_id===entry.plan.jobId&&added[0].mode==='RunOnce'&&Date.parse(added[0].expires_at)===next.plan.expiresAt,'PUBLISHED_PLAN');
+      added[0].job_id===entry.plan.jobId&&added[0].mode===nextMode&&Date.parse(added[0].expires_at)===next.plan.expiresAt,'PUBLISHED_PLAN');
     must(attempt?.state==='OBSERVED'&&attempt.run_status==='completed'&&attempt.conclusion==='success'&&
       attempt.proof_sha===proposal.attestation.proofSha256&&typeof attempt.observed_at==='string'&&Number.isFinite(Date.parse(attempt.observed_at)),'PUBLISHED_PROOF');
     after.ledger.plans=after.ledger.plans.filter(p=>p.plan_sha!==next.planSha256);
@@ -87,13 +89,15 @@ export function createPublisherOperations({historicalPlanShas=HISTORY,capability
       const entry=await db.loadPlan(m.action.planSha256);must(same(entry,m.reviewEntry),'REVIEW_DRIFT');
       must(same(await verifyBaseline({basis,snapshot:await db.snapshot(),entry,requestEvidence:m.requestEvidence,binding:m.binding}),m.baseline),'BASELINE_DRIFT');
       const cache=new Map(),readObject=async ref=>{await guard();const key=canonicalJson(ref);if(!cache.has(key)){
-        must(cache.size<4,'OBJECT_BUDGET');cache.set(key,await io.readObject(ref));}return structuredClone(cache.get(key));};
+        must(cache.size<maxObjects,'OBJECT_BUDGET');cache.set(key,await io.readObject(ref));}return structuredClone(cache.get(key));};
       const run=await io.readRun(m.action.runId),proposal=await propose({binding:m.binding,basis,entry,run,
         resultReference:m.action.resultReference,readObject,now,...(rebuildPackage?{rebuildPackage}:{})});
       must(proposal.timing.claimBy===m.timing.claimBy&&proposal.timing.workloadExpiresAt===m.timing.workloadExpiresAt,'REAL_TIMING_BINDING');
       await guard();must(same(await io.readRun(m.action.runId),run),'RUN_DRIFT');
       must(same(normalizedState(await db.snapshot()),m.baseline),'PRE_WRITE_BASELINE_DRIFT');
-      const budget=async()=>{await guard();must(proposal.successor.plan.expiresAt>now()+60000,'LATE_SUCCESSOR');};
+      if(capability?.verifyProposal)await capability.verifyProposal(m.baseline,proposal);
+      const budget=async()=>{await guard();must(proposal.successor.plan.expiresAt>now()+60000,'LATE_SUCCESSOR');
+        if(capability?.guardBudget)await capability.guardBudget(m,proposal,now());};
       await budget();phase='CLAIM';claimAttempted=true;await io.claim({manifestSha256:approved,reviewPlanSha256:entry.planSha256,runId:m.action.runId});claimed=true;
       await io.record('publisher-intent',{manifestSha256:approved,proposal});
       phase='OBSERVE';await budget();submissions++;await db.observe(entry.planSha256,m.action.runId);
@@ -106,7 +110,7 @@ export function createPublisherOperations({historicalPlanShas=HISTORY,capability
       phase='INDEPENDENT_READBACK';const saved=await db.loadPlan(proposal.successor.planSha256);
       must(same(saved.plan,proposal.successor.plan)&&saved.attempt===null,'SUCCESSOR_READBACK');
       verifyPublished(m.baseline,await db.snapshot(),entry,proposal);await guard();
-      const r={outcome:'DELEGATED_RUNONCE_PUBLISHED_REQUIRES_SEPARATE_DISPATCH',...proposal.successor,submissions,
+      const r={outcome:capability?.resultOutcome??'DELEGATED_RUNONCE_PUBLISHED_REQUIRES_SEPARATE_DISPATCH',...proposal.successor,submissions,
         sourceCommit:m.sourceCommit,reviewRunId:m.action.runId,proofSha256:proposal.attestation.proofSha256,independentReadbackVerified:true,
         dispatches:0,webLeaseUsed:false,executionApproved:false,retryAllowed:false};await io.record('result',r);return r;
     }catch(e){const r={outcome:'DELEGATED_PUBLISHER_STOPPED_REQUIRES_READBACK',phase,claimAttempted,claimed,submissions,code:safeCode(e),retryAllowed:false};

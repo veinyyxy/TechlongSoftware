@@ -15,15 +15,17 @@ import {proposeReviewSuccessor} from '../platform-delegated-publisher-v1/success
 import {assertA604Publication,assertA604PlanScope} from '../platform-a604-cloud-v1/contract.mjs';
 import {createA604Runtime} from '../platform-a604-cloud-v1/runtime.mjs';
 import {A604_PROFILE,HANDOFF} from '../platform-a604-cloud-v1/profile.mjs';
-import {D,RISK,PUBLISH_SLOT,publicationAt} from './scope.mjs';
+import {D,RISK,PUBLISH_SLOT,INSPECT_PUBLISH_SLOT,publicationAt} from './scope.mjs';
 import {must,same,digest,slot,auditKey,oldHistory,createA604Policy} from './policy.mjs';
 import {createA604DispatchIo,createA604PublisherIo} from './io.mjs';
-import {createA604PublisherOperations,REQUEST_EVIDENCE} from './publisher.mjs';
+import {createA604PublisherOperations,createA604InspectPublisherOperations,REQUEST_EVIDENCE} from './publisher.mjs';
+import {createInspectProposer} from './inspect-successor.mjs';
 import {preparePackageCandidate} from './package.mjs';
 import {loadSealedPackageInputs} from './saved.mjs';
 const BASE='F:/ChatGPT_workshop';
 export const ROOTS=['ops/platform-a604-operator-v1/local.mjs','ops/platform-operator-v6/key-metadata.ps1',RISK,
-  'tests/platform-a604-operator-v1.test.mjs','.github/workflows/platform-recovery-hosting-candidate.yml','package.json','package-lock.json'];
+  'tests/platform-a604-operator-v1.test.mjs','tests/platform-a604-inspect-publisher-v1.test.mjs',
+  '.github/workflows/platform-recovery-hosting-candidate.yml','package.json','package-lock.json'];
 const json=async f=>JSON.parse(await readText(f,5000000)),write=async(f,v)=>{assertEvidenceSafeV5(v);await writeOnce(f,v);};
 const outPath=f=>{must(/^F:\/ChatGPT_workshop\/techlong-a604-operator-[a-z0-9-]+$/.test(f??''),'OUTPUT');return f;};
 const evidence=f=>{must(/^F:\/ChatGPT_workshop\/techlong-[A-Za-z0-9/_.-]+\.json$/.test(f??'')&&!f.includes('..'),'EVIDENCE_PATH');return f;};
@@ -31,7 +33,8 @@ export function parseArgs(args){if(same(args,['--check']))return {mode:'Check'};
   for(let i=0;i<args.length;i+=2){must(!Object.hasOwn(a,args[i])&&args[i+1]&&!args[i+1].startsWith('--'),'ARGS');a[args[i]]=args[i+1];}
   const fields={PreparePackageSaved:['--mode','--ci-run','--output'],PrepareGrantSaved:['--mode','--ci-run','--output','--environment-file','--ledger-file'],
     PrepareAdvanceSaved:['--mode','--ci-run','--output','--material'],DispatchReviewed:['--mode','--grant','--approved-sha','--action','--plan-sha'],
-    AdvanceReviewed:['--mode','--manifest','--approved-sha']}[a['--mode']];
+    AdvanceReviewed:['--mode','--manifest','--approved-sha'],PrepareInspectSaved:['--mode','--ci-run','--output','--material'],
+    AdvanceInspectReviewed:['--mode','--manifest','--approved-sha']}[a['--mode']];
   must(fields&&same(Object.keys(a).sort(),fields.sort()),'MODE');if(a['--output'])outPath(a['--output']);
   if(a['--mode']==='DispatchReviewed')must(D.modes.includes(a['--action'])&&digest(a['--plan-sha']),'TARGET');return a;
 }
@@ -52,8 +55,11 @@ export async function main(args=process.argv.slice(2)){
     await write(out+'/result.json',r);console.log(JSON.stringify({...r,sourcePins:r.sourcePins.length,archives:r.archives.length}));return r;
   }
   const binding=await publicationAt(head,Date.now()),policy=createA604Policy({publication:binding}),runtime=createA604Runtime({publication:binding});
-  const ops=createA604PublisherOperations({publication:binding});
-  const proposer=args=>proposeReviewSuccessor({...args,rebuildPackage:runtime.rebuild},{assertBinding:p=>assertA604Publication(p,A604_PROFILE,Date.now()),assertScope:assertA604PlanScope});
+  const isInspect=['PrepareInspectSaved','AdvanceInspectReviewed'].includes(a['--mode']),publishSlot=isInspect?INSPECT_PUBLISH_SLOT:PUBLISH_SLOT;
+  const ops=(isInspect?createA604InspectPublisherOperations:createA604PublisherOperations)({publication:binding});
+  const proposer=isInspect?createInspectProposer({publication:binding}):args=>proposeReviewSuccessor({...args,rebuildPackage:runtime.rebuild},
+    {assertBinding:p=>assertA604Publication(p,A604_PROFILE,Date.now()),assertScope:assertA604PlanScope});
+  const materialOptions={rebuild:runtime.rebuild,propose:proposer,objectCount:isInspect?6:4,expectedMode:isInspect?'RunOnce':'Review'};
   if(a['--mode']==='PrepareGrantSaved'){
     const out=outPath(a['--output']);await absent(out);for(const mode of D.modes)await absent(slot(mode));
     const ep=await json(evidence(a['--environment-file'])),ledger=await json(evidence(a['--ledger-file'])),now=Date.now();
@@ -65,11 +71,11 @@ export async function main(args=process.argv.slice(2)){
       history:oldHistory(ledger.plans),auth:await authMetadataV6(),key:await keyMetadata(D.keyPath),issuedAt:now});
     clean();await mkdir(out);await write(out+'/grant.json',g);console.log(JSON.stringify({outcome:'A604_GRANT_PREPARED_NOT_APPROVED',grantSha256:g.grantSha256}));return g;
   }
-  if(a['--mode']==='PrepareAdvanceSaved'){
-    const out=outPath(a['--output']);await absent(out);await absent(PUBLISH_SLOT);const materialFile=evidence(a['--material']);
-    const v=await savedMaterial(materialFile,binding,{rebuild:runtime.rebuild,propose:proposer});
+  if(['PrepareAdvanceSaved','PrepareInspectSaved'].includes(a['--mode'])){
+    const out=outPath(a['--output']);await absent(out);await absent(publishSlot);const materialFile=evidence(a['--material']);
+    const v=await savedMaterial(materialFile,binding,materialOptions);
     const review=await ops.makeReview({binding,basis:v.basis,baseline:v.baseline,reviewEntry:v.entry,requestEvidence:REQUEST_EVIDENCE,
-      action:{operation:'AdvanceReview',planSha256:v.entry.planSha256,runId:v.entry.attempt.runId,resultReference:v.resultReference},timing:v.timing,
+      action:{operation:isInspect?'AdvanceRunOnce':'AdvanceReview',planSha256:v.entry.planSha256,runId:v.entry.attempt.runId,resultReference:v.resultReference},timing:v.timing,
       pins:await collect(),ci:await readCi(a['--ci-run'],head),auth:await authMetadataV6(),createdAt:Date.now()});
     const extra={materialFile,archives:v.archives},operatorSha256=await sha256Hex({review,extra});clean();await mkdir(out);
     await write(out+'/manifest.json',{review,extra,operatorSha256});console.log(JSON.stringify({outcome:'A604_ADVANCE_PREPARED_NOT_APPROVED',operatorSha256}));return review;
@@ -87,12 +93,12 @@ export async function main(args=process.argv.slice(2)){
   }
   const saved=await json(evidence(a['--manifest'])),m=saved.review,extra=saved.extra;
   must(saved.operatorSha256===a['--approved-sha']&&await sha256Hex({review:m,extra})===saved.operatorSha256&&same(m.binding,binding)&&same(await collect(),m.pins),'ADVANCE_SOURCE_APPROVAL');
-  const v=await savedMaterial(evidence(extra.materialFile),binding,{rebuild:runtime.rebuild,propose:proposer});must(same(v.archives,extra.archives),'ARCHIVE_DRIFT');
-  await ops.verifyReview(m,v.basis,m.manifestSha256,Date.now(),true);await absent(PUBLISH_SLOT);
-  const out=BASE+'/techlong-a604-operator-advance-'+saved.operatorSha256;await absent(out);await mkdir(out);const record=(n,v)=>write(out+'/'+n+'.json',v);let token;
+  const v=await savedMaterial(evidence(extra.materialFile),binding,materialOptions);must(same(v.archives,extra.archives),'ARCHIVE_DRIFT');
+  await ops.verifyReview(m,v.basis,m.manifestSha256,Date.now(),true);await absent(publishSlot);
+  const out=BASE+'/techlong-a604-operator-'+(isInspect?'inspect-advance-':'advance-')+saved.operatorSha256;await absent(out);await mkdir(out);const record=(n,v)=>write(out+'/'+n+'.json',v);let token;
   const guard=async()=>{clean();must(same(await collect(),m.pins),'SOURCE_PINS');};
   await record('approved-manifest',saved);const io=createA604PublisherIo({manifest:m,packageValue:v.packageValue,record,assertSource:guard,
-    claim:x=>write(PUBLISH_SLOT,{...x,operatorSha256:saved.operatorSha256,output:out,consumedAt:Date.now(),retryAllowed:false}),
+    claim:x=>write(publishSlot,{...x,operatorSha256:saved.operatorSha256,output:out,consumedAt:Date.now(),retryAllowed:false}),
     verifyCi:async()=>{must(same(await readCi(m.ci.runId,head),m.ci),'CI_DRIFT');let raw=git(['credential','fill'],'protocol=https\nhost=github.com\npath=veinyyxy/TechlongSoftware.git\n\n');
       token=raw.split(/\r?\n/).find(x=>x.startsWith('password='))?.slice(9);raw=undefined;must(token,'GITHUB_AUTH');},githubToken:()=>token});
   try{const r=await ops.runReviewed({manifest:m,basis:v.basis,approved:m.manifestSha256,io,rebuildPackage:runtime.rebuild});console.log(JSON.stringify(r));if(r.outcome.includes('STOPPED'))process.exitCode=1;return r;}

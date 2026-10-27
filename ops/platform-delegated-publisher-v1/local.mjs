@@ -31,19 +31,19 @@ export function parseArgs(args){if(same(args,['--check']))return {mode:'Check'};
   if(a['--mode']==='PrepareSaved'){evidence(a['--material']);output(a['--output']);}
   else must(/^F:\/ChatGPT_workshop\/techlong-delegated-publisher-prepare-[a-z0-9-]+\/manifest\.json$/.test(a['--manifest']??'')&&/^[a-f0-9]{64}$/.test(a['--approved-sha']??''),'MANIFEST_PATH');return a;
 }
-export async function savedMaterial(file,binding,{rebuild=rebuildRecoveryPackage,propose=proposeReviewSuccessor}={}){
+export async function savedMaterial(file,binding,{rebuild=rebuildRecoveryPackage,propose=proposeReviewSuccessor,objectCount=4,expectedMode='Review'}={}){
   const material=await json(evidence(file));must(material.schema==='techlong/delegated-publisher-material/v1'&&
     same(Object.keys(material).sort(),['entryFile','objectsFile','runFile','schema','snapshotFile']),'MATERIAL');
   const archives=[{file,sha256:await sha256Hex(await readText(file,5000000))}],values={};
   for(const k of ['entryFile','objectsFile','runFile','snapshotFile']){const f=evidence(material[k]),raw=await readText(f,5000000);
     archives.push({file:f,sha256:await sha256Hex(raw)});values[k]=JSON.parse(raw);assertEvidenceSafeV5(values[k]);}
-  const objects=values.objectsFile;must(Array.isArray(objects)&&objects.length===4&&new Set(objects.map(v=>v.reference?.key)).size===4,'FOUR_OBJECTS');
+  const objects=values.objectsFile;must([4,6].includes(objectCount)&&Array.isArray(objects)&&objects.length===objectCount&&new Set(objects.map(v=>v.reference?.key)).size===objectCount,'FOUR_OBJECTS');
   for(const v of objects){must(v.reference&&v.object?.value&&v.object.versionId===v.reference.versionId&&
     v.object.encryption==='AES256'&&v.object.contentLength>0&&v.object.contentLength<=1000000&&await sha256Hex(v.object.value)===v.reference.sha256,'SAVED_OBJECT');
   }
   const packageObject=objects.find(v=>same(v.reference,binding.packageReference));must(packageObject,'ORIGINAL_PACKAGE');
   const basis=await rebuild(packageObject.object.value),entry=values.entryFile,run=values.runFile;
-  must(entry.plan?.sourceCommit===binding.sourceCommit&&entry.plan.mode==='Review','MATERIAL_SOURCE');
+  must(entry.plan?.sourceCommit===binding.sourceCommit&&entry.plan.mode===expectedMode,'MATERIAL_SOURCE');
   const candidates=objects.filter(v=>v.object.value.schema==='techlong/recovery-cloud-result/v1'&&v.object.value.run?.runId===entry.attempt?.runId);
   must(candidates.length===1,'SAVED_RESULT');
   const proposal=await propose({binding,basis,entry,run,resultReference:candidates[0].reference,

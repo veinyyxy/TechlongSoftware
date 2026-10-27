@@ -2,15 +2,17 @@
 
 2026-10-27。仅代码、测试、文档和封存本地材料准备。生产publication仍关闭；本阶段不读生产配置/私钥/Secret、不连数据库、不调用AWS、不上传或发布、不续期、创建任务或dispatch。实际权限、云部署和新期限仍各按准确范围审批，GitHub environment只能由用户本人批准。
 
-## 已接线与未完成部分
+## 已接线与实际启用边界
 
 新增固定a604本机CLI，复用原审计→计划登记→账本begin→单次App调度→API ACK保存/数据库确认及token撤销流程。适配由源码工厂显式提供，旧9b CLI、默认scope/历史/slot不变，没有JSON、CLI参数或环境变量选择profile的入口。a604三个模式分别使用新的永久槽和新审计前缀，不重用任何9b grant或槽。
 
 Review和RunOnce调度前由独立reader重读完整受审业务/任务/保护快照，移除本轮新任务的控制记录后必须匹配真实衔接基准；所有模式还比较受审八条旧计划的稳定元数据、状态和proof，不仅检查旧任务ID。Inspect跟随已完成RunOnce，不能再要求任务保持held；它核对受信账本前驱和原执行描述符，由既有云worker独立读取业务/资源，不把本机旧快照冒充当前健康。
 
-可信三写发布入口仅处理 **Review→RunOnce**：准确ACK/run和固定版本内容重建通过后，依次observe、proof、publish，独立回读并验证仅本轮变化。a604初始没有旧的自身计划，允许空“本任务历史”，但完整保留其他任务的旧账本。真实held行在新basis之前已存在，必须比较原事务时间和完整事后状态，不用basis创建时间重写payload或伪造requestedAt。
+可信三写发布入口现已覆盖 **Review→RunOnce** 和 **RunOnce→Inspect**：准确ACK/run和固定版本内容重建通过后，依次observe、proof、publish，独立回读并验证仅本轮变化。a604初始没有旧的自身计划，第一跳允许空“本任务历史”；第二跳只允许原Review和RunOnce两计划、两批准/两attempt，Review必须已真实OBSERVED并有匹配proof。全部旧任务及受审旧账本完整保留。
 
-**连续部署链仍未就绪：RunOnce→Inspect的受信内容核验/证明/计划发布CLI还需收口。** 现有云协议和publisher组合已支持该内容路径，但本机三写CLI尚未扩展到这一跳；不能据此提前启动Review、直接人工拼Inspect计划或宣称端到端已完成。
+第一跳比较真实held原事务时间和完整事后状态，不用basis创建时间重写payload。第二跳要求新任务已succeeded/attempt1/无lease，只新增一条准确完成回执，其余业务/旧任务/旧账本/保护不变。原claim/complete编译器以原Review、原请求来源和真实完成时间重建预期payload/回执；回执SHA必须匹配成功RunOnce报告，四字段execution descriptor绑定相同basis/review/run/report。仅有“success”字样或重算摘要不能替代这些核验。
+
+**本机衔接入口代码已齐，不等于生产就绪或端到端验收完成。** 两个三写入口都有独立永久槽、准确SHA、六/四版本对象边界和独立回读；新publication仍UNPUBLISHED，尚未获取本轮新鲜生产现状，包/新事实/工作流/trust与委托执行尚未批准。不能提前开Review、人工拼Inspect计划或把RunOnce成功当成独立验收。
 
 ## 新包草稿不等于新事实批准
 
@@ -29,14 +31,15 @@ PreparePackageSaved仅核对固定封存seal、十四份原件及旧package原�
 - `PrepareGrantSaved`：要求源publication已另批发布，核对fresh环境/账本材料、源码/CI及配置/私钥元数据；不读私钥或配置内容；
 - `DispatchReviewed`：准确新grant SHA及模式/plan SHA，最多每模式一次调度，不调用GitHub批准API；
 - `PrepareAdvanceSaved` / `AdvanceReviewed`：准确新外层SHA，最多一次Review后继三写和独立回读，不dispatch。
+- `PrepareInspectSaved` / `AdvanceInspectReviewed`：独立准确外层SHA，最多一次RunOnce后继三写，发布Inspect但不调度；保留原执行描述符和原截止，不领取业务任务或写资源。
 
 除包草稿和check外，默认UNPUBLISHED source gate在任何生产I/O前拒绝。计划/授权不能自行填PUBLISHED打开入口。后续source publication描述符独立于冻结104文件云源码，固定审核的模板及reusable pin，再按既定规则绑定当前受审main；不产生提交SHA自引用。
 
 调度每模式上限沿用原流程：配置全文件1读、验证TLS连接2条、SQL/RPC100、Source STS1、IAM审计权限模拟1、条件审计PUT1、私钥1读、token1签发/一次dispatch/一次revoke尝试；CI3GET、环境最多2GET。Review可在审计持久化后新增准确seed1条。新审计前缀必须单独证明Put允许，原9b前缀允许不能替代。Inspect本机预检不做held基准比较，其后由云端独立验收实际状态。
 
-三写发布上限：配置1读、验证TLS连接2条、SQL/RPC100、STS1、固定版本S3 GET最多4、准确run GET2、CI3GET、observe/proof/publish各1。无私钥、App token或dispatch。原子业务衔接已完成，不会在本入口重复取消/新建任务。
+每个三写发布入口上限：配置1读、验证TLS连接2条、SQL/RPC100、STS1、准确run GET2、CI3GET、observe/proof/publish各1。第一跳固定版本S3 GET最多4，第二跳最多6（result、原Review envelope、RunOnce report、execution descriptor、package、installation）；每份1MB且精确版本/hash，不开放任意前缀扫描。无私钥、App token或dispatch。Inspect启动须预留12分钟（含本机最多2分钟操作及至少10分钟后继窗口），每次写前再次核对剩余10分钟；不刷新原workload/basis截止或RunOnce claim窗口。
 
-永久槽为 `techlong-a604-delegation-v1-Review/RunOnce/Inspect.intent.json` 和 `techlong-a604-publisher-advance-v1.intent.json`；实际路径固定在本地工作目录。槽不删除/改名/复位。未知ACK、部分SQL提交或撤销失败保留已知API ACK，停止不自动重跑、补齐、清理或伪记“本人点击”。
+永久槽为 `techlong-a604-delegation-v1-Review/RunOnce/Inspect.intent.json`、`techlong-a604-publisher-advance-v1.intent.json`、`techlong-a604-inspect-publisher-v1.intent.json`；实际路径固定在本地工作目录。槽不删除/改名/复位。未知ACK、部分SQL提交或撤销失败保留已知API ACK，停止不自动重跑、补齐、清理或伪记“本人点击”。
 
 ## 完整风险与继续边界
 
@@ -44,4 +47,4 @@ owner凭据权限比用途宽，整份配置进入内存；私钥仅在账本beg
 
 审计、GitHub dispatch、token撤销、各条SQL和本地回执不构成单一事务，可能出现审计已存而未调度、API已ACK但账本确认失败、三写只完成部分、永久槽已消费但资源未变化。严格无重试不保证自动恢复；失败需另审准确只读回读。状态/保护漂移必须停止，不能修改基准求通过。
 
-50USD/月是预算目标不是硬停费；现有资源可能继续计费，本阶段无续租或删除。下一先补齐RunOnce→Inspect受信发布，再获取准确新鲜元数据和新包/事实窗口/工作流/trust最小审批；全部衔接材料就绪后才启动Review。不要扩大F3c9、UI、身份探针或镜像支线。
+50USD/月是预算目标不是硬停费；现有资源可能继续计费，本阶段无续租或删除。下一获取另批的新鲜现状：最多一次固定Source STS和65次现有AWS元数据核对，随后一次既有配置全文件读取、一条验证TLS的Neon只读连接/最多45查询，核对新held任务、空新账本及旧业务/保护；不读Secret值或私钥，不连接Aurora，不写或调度。整份本机配置进入内存、网络与提供者日志风险必须明确接受。只有准确现状吻合，才能准备新包/事实窗口/双工作流/trust最小审批。全部材料与授权就绪后才启动Review，不扩大F3c9、UI、身份探针或镜像支线。

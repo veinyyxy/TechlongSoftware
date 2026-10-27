@@ -7,6 +7,7 @@ export const RISK='docs/aws-auto-deployment-a604-operator-v1.md';
 export const D=freeze({...OLD,schema:'techlong/a604-delegated-approval/v1',jobId:A604_JOB,riskFile:RISK,
   slotPrefix:'F:/ChatGPT_workshop/techlong-a604-delegation-v1-',basisExpiresAt:A604_PROFILE.factsAt+A604_PROFILE.validMs});
 export const PUBLISH_SLOT='F:/ChatGPT_workshop/techlong-a604-publisher-advance-v1.intent.json';
+export const INSPECT_PUBLISH_SLOT='F:/ChatGPT_workshop/techlong-a604-inspect-publisher-v1.intent.json';
 // Publication requires a later specifically reviewed SOURCE change. It cannot
 // be supplied in the grant/material, via an env var or a CLI override.
 export const LOCAL_PUBLICATION=freeze({state:'UNPUBLISHED',template:A604_PUBLICATION,reusableCommit:null});

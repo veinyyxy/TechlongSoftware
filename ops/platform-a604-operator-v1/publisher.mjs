@@ -7,7 +7,9 @@ import {assertA604Publication,assertA604PlanScope} from '../platform-a604-cloud-
 import {A604_JOB,A604_PROFILE,HANDOFF} from '../platform-a604-cloud-v1/profile.mjs';
 import {createA604Runtime} from '../platform-a604-cloud-v1/runtime.mjs';
 import {must,same} from './policy.mjs';
-import {RISK,PUBLISH_SLOT} from './scope.mjs';
+import {RISK,PUBLISH_SLOT,INSPECT_PUBLISH_SLOT} from './scope.mjs';
+import {createInspectProposer,inspectTiming} from './inspect-successor.mjs';
+import {verifyRunOnceBaseline,verifyCompletionContent} from './inspect-state.mjs';
 export const REQUEST_EVIDENCE=Object.freeze({schema:'techlong/a604-handoff-evidence/v1',transactionAt:A604_PROFILE.factsAt,
   independentObservedAt:A604_PROFILE.databaseCheckedAt,sealRawSha256:HANDOFF.sealRawSha256,afterSha256:HANDOFF.actualAfterSha256});
 export function createA604PublisherOperations({publication:raw,profile:rawProfile=A604_PROFILE,requestEvidence:rawEvidence=REQUEST_EVIDENCE,now=Date.now}={}){
@@ -26,4 +28,14 @@ export function createA604PublisherOperations({publication:raw,profile:rawProfil
     },
     propose:args=>proposeReviewSuccessor({...args,rebuildPackage:runtime.rebuild},{assertBinding:check,assertScope:assertA604PlanScope})};
   return createPublisherOperations({historicalPlanShas:[],capability});
+}
+export function createA604InspectPublisherOperations({publication:raw,profile:rawProfile=A604_PROFILE,now=Date.now}={}){
+  const publication=freeze(structuredClone(raw)),profile=freeze(structuredClone(rawProfile));
+  const check=async p=>{must(same(p,publication),'SOURCE_PUBLICATION');return assertA604Publication(p,profile,now());};
+  return createPublisherOperations({historicalPlanShas:[],capability:{schema:'techlong/a604-inspect-publisher-review/v1',allowEmptyHistory:true,
+    assertBinding:check,assertScope:assertA604PlanScope,slot:INSPECT_PUBLISH_SLOT,riskFile:RISK,actionName:'AdvanceRunOnce',nextMode:'Inspect',maxObjects:6,
+    startReserveMs:12*60000,timingBudget:inspectTiming,resultOutcome:'DELEGATED_INSPECT_PUBLISHED_REQUIRES_SEPARATE_DISPATCH',
+    verifyBaseline:async input=>{await check(input.binding);must(same(input.requestEvidence,REQUEST_EVIDENCE),'HANDOFF_EVIDENCE');return verifyRunOnceBaseline(input);},
+    verifyProposal:verifyCompletionContent,propose:createInspectProposer({publication,profile,now}),
+    guardBudget:async(m,proposal,at)=>must(proposal.successor.plan.expiresAt>at+10*60000,'INSPECT_PUBLICATION_RESERVE')}});
 }

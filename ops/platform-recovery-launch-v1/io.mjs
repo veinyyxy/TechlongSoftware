@@ -16,7 +16,7 @@ export function sqlGate(operation){
   return {counts,halt:()=>{halted=true;},check(text,readOnly){
     must((!halted||text==='ROLLBACK')&&++counts.queries<=100,'SQL_BUDGET');
     const writes=/^SELECT deployment_control_v6\.(?:publish_plan|attest_evidence|observe_run)\(/.test(text);
-    if(writes){must(!readOnly,'READ_CLIENT_WRITE');if(text===OBSERVE)must(operation==='AdvanceReview'&&++counts.observations===1,'OBSERVATION_BUDGET');}
+    if(writes){must(!readOnly,'READ_CLIENT_WRITE');if(text===OBSERVE)must(['AdvanceReview','AdvanceRunOnce'].includes(operation)&&++counts.observations===1,'OBSERVATION_BUDGET');}
     else must(/^SELECT\b/.test(text)||['BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY','COMMIT','ROLLBACK','SET LOCAL search_path=pg_catalog'].includes(text),'SQL_OPERATION');
   }};
 }
@@ -65,7 +65,7 @@ export function createLiveIo({manifest:m,packageValue,record,claim,assertSource,
         await write.verify();await read.verify();
         db={close,loadPlan:read.loadPlan,readHeldJob:read.readHeldJob,writeOwner:write.writeOwner,
           snapshot:()=>readLaunchSnapshot(reader,{contract,readState}),
-          async observe(sha,id){must(m.action.operation==='AdvanceReview'&&sha===m.action.planSha256&&id===m.action.runId,'EXACT_OBSERVATION');
+          async observe(sha,id){must(['AdvanceReview','AdvanceRunOnce'].includes(m.action.operation)&&sha===m.action.planSha256&&id===m.action.runId,'EXACT_OBSERVATION');
             return writer.query(OBSERVE,[sha,id,'completed','success']);}};return db;
       }catch(e){await close();throw e;}
     },
