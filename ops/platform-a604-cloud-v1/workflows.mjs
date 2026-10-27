@@ -11,9 +11,11 @@ export function a604CloudWorkflows(pins,{publication=A604_PUBLICATION}={}){
       template.release.identityProofSha256===pins.identityProofSha256,'WORKFLOW_PUBLICATION_PINS');
     template.sourceCommit=null;template.release.reusableCommit=null;template.activation.sourceCommit=null;template.activation.releaseSha256=null;
   }
-  const code=["import {bindA604WorkflowPublication} from './ops/platform-a604-cloud-v1/contract.mjs';",
-    "import {a604CloudClosure} from './ops/platform-a604-cloud-v1/closure.mjs';",
-    "import {a604Runtime} from './ops/platform-a604-cloud-v1/live.mjs';",
+  const code=["import {pathToFileURL} from 'node:url';",
+    "const load = rel => import(pathToFileURL(process.cwd()+'/'+rel).href);",
+    "const {bindA604WorkflowPublication} = await load('ops/platform-a604-cloud-v1/contract.mjs');",
+    "const {a604CloudClosure} = await load('ops/platform-a604-cloud-v1/closure.mjs');",
+    "const {a604Runtime} = await load('ops/platform-a604-cloud-v1/live.mjs');",
     'const template = '+JSON.stringify(template)+';',
     'try {',
     '  const publication = await bindA604WorkflowPublication(template,process.env.GITHUB_SHA,process.env.TECHLONG_REUSABLE_COMMIT);',

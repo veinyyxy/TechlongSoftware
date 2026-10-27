@@ -14,6 +14,7 @@ import {sha256Hex,canonicalJson} from '../lib/deployments/execution/hash.ts';
 import {validatePlan} from '../lib/deployments/controller-v6/contract.ts';
 import {recoveryData} from '../ops/platform-recovery-v1/basis-core.mjs';
 import {recoveryCloudClosure} from '../ops/platform-recovery-cloud-v1/closure.mjs';
+import {pins} from '../ops/platform-image-source-v2/files.mjs';
 const runtime=f=>createA604Runtime({publication:f.publication,profile:f.profile,now:f.now});
 
 test('production profile records true post-facts without approving a new window or promoting9b',()=>{
@@ -142,4 +143,10 @@ test('CLI check is closed and has no private/network/SQL side effects',()=>{
   const r=spawnSync(process.execPath,['--experimental-strip-types','ops/platform-a604-cloud-v1/run.mjs','--check'],{encoding:'utf8',timeout:30000,windowsHide:true});
   assert.equal(r.status,0,r.stderr);const v=JSON.parse(r.stdout);assert.equal(v.state,'UNPUBLISHED');assert.equal(v.jobId,A604_JOB);
   assert.equal(v.privateReads+v.awsCalls+v.sqlConnections,0);assert.equal(v.executionAuthorized,false);
+});
+
+test('rendered bootstrap source remains compatible with the existing tracked-source pin collector',async()=>{
+  const p=await pins({roots:['ops/platform-a604-cloud-v1/run.mjs','ops/platform-a604-cloud-v1/workflows.mjs']});
+  assert(p.length>20);assert(p.some(p=>p.file==='ops/platform-a604-cloud-v1/contract.mjs'));
+  assert(!p.some(p=>p.file.includes('.env')||p.file.endsWith('.pem')));
 });
