@@ -60,17 +60,19 @@ export function assertBucket(p){
 export function assertAck(a){must(a?.key===packageKey()&&typeof a.versionId==='string'&&a.versionId.length>0&&a.versionId.length<=1024&&
   a.versionId!=='null'&&a.encryption==='AES256'&&a.checksum===checksum(),'PUT_ACK');return {key:a.key,versionId:a.versionId,sha256:K.packageSha256};}
 // A test may supply a synthetic verifier as a code capability, never via JSON/CLI.
-export function packageUploadRunner({verifyBody=body=>typeof body==='string'&&Buffer.byteLength(body)===K.bytes&&hash(body)===K.packageSha256}={}){
+export function packageUploadRunner({verifyBody=body=>typeof body==='string'&&Buffer.byteLength(body)===K.bytes&&hash(body)===K.packageSha256,capability}={}){
+const target=capability?.target??K,verify=capability?.verifyReview??verifyPackageReview,
+  bucket=capability?.assertBucket??assertBucket,identity=capability?.assertSourceIdentity??assertSourceIdentity,acknowledge=capability?.assertAck??assertAck;
 return async function upload({manifest:m,approved,io,now=Date.now}){
-  const approve=()=>verifyPackageReview(m,approved,now());await approve();await io.assertSource();
-  const started=now(),p=await io.preflight();assertBucket(p);must(now()-started<180000,'STALE_PREFLIGHT');
+  const approve=()=>verify(m,approved,now());await approve();await io.assertSource();
+  const started=now(),p=await io.preflight();bucket(p);must(now()-started<180000,'STALE_PREFLIGHT');
   await io.record('preflight',p);const body=await io.readPackage();must(verifyBody(body)===true,'BODY_CHANGED');
-  await approve();await io.assertSource();await io.consume({manifestSha256:m.manifestSha256,claimedAt:now(),packageSha256:K.packageSha256,retryAllowed:false});
+  await approve();await io.assertSource();await io.consume({manifestSha256:m.manifestSha256,claimedAt:now(),packageSha256:target.packageSha256,retryAllowed:false});
   let phase='SLOT_CONSUMED';
   try{
-    phase='FINAL_READ';const final=await io.finalRead();assertSourceIdentity(final.source);must(final.targetAbsent===true&&final.deleteMarker===false&&now()-started<180000,'FINAL_READ_CHANGED');
+    phase='FINAL_READ';const final=await io.finalRead();identity(final.source);must(final.targetAbsent===true&&final.deleteMarker===false&&now()-started<180000,'FINAL_READ_CHANGED');
     const finalAt=now();await approve();await io.assertSource();must(now()-finalAt<30000,'FINAL_READ_STALE');
-    phase='PUT_ONCE';const ack=await io.put(body);await io.record('put-ack-unverified',ack);const reference=assertAck(ack);await io.record('put-ack',ack);
+    phase='PUT_ONCE';const ack=await io.put(body);await io.record('put-ack-unverified',ack);const reference=acknowledge(ack);await io.record('put-ack',ack);
     return {outcome:'RECOVERY_PACKAGE_UPLOADED_REQUIRES_INDEPENDENT_INSPECT',reference,controllerActivated:false,workflowDispatched:false,retryAllowed:false};
   }catch{return {outcome:'RECOVERY_PACKAGE_PARTIAL_OR_UNKNOWN_INSPECT_ONLY_NO_RETRY',phase,controllerActivated:false,workflowDispatched:false,retryAllowed:false};}
 };}

@@ -42,21 +42,25 @@ export async function readFixedPackage(){
       basis.expiresAt===K.basisExpiresAt&&data.target.newJobId===K.jobId&&value.objects.length===7,'LOCAL_PACKAGE_BINDING');return body;
   }finally{b?.fill(0);await f.close();}
 }
-export async function createPackageIo(m,out,{inspect=false}={}){
+export async function createPackageIo(m,out,{inspect=false,capability}={}){
+  // Only a source-selected caller supplies these hooks; the old CLI never deserializes them.
+  const target=capability?.target??K,identity=capability?.assertSourceIdentity??assertSourceIdentity,acknowledge=capability?.assertAck??assertAck,
+    rebuild=capability?.rebuild??rebuildRecoveryPackage,bodyReader=capability?.readPackage??readFixedPackage;
   const counts={sourceSts:0,bucketMetadata:0,targetHead:0,localPackageReads:0,put:0,fixedVersionGet:0};
-  const cfg={region:K.region,maxAttempts:1,ignoreConfiguredEndpointUrls:true,credentials:fromLoginCredentials({profile:'techlong-sandbox-user',ignoreCache:true})};
+  const cfg={region:target.region,maxAttempts:1,ignoreConfiguredEndpointUrls:true,credentials:fromLoginCredentials({profile:'techlong-sandbox-user',ignoreCache:true})};
   const sts=new STSClient({...cfg,endpoint:'https://sts.ca-central-1.amazonaws.com'}),s3=new S3Client({...cfg,endpoint:'https://s3.ca-central-1.amazonaws.com',followRegionRedirects:false});
   const signal=AbortSignal.timeout(600000),send=(c,q)=>c.send(q,{abortSignal:AbortSignal.any([signal,AbortSignal.timeout(30000)])});
-  const base={Bucket:K.bucket,ExpectedBucketOwner:K.owner},record=(name,v)=>writeOnce(out+'/'+name+'.json',v),writable=()=>must(!inspect,'READ_ONLY_CAPABILITY');
+  const base={Bucket:target.bucket,ExpectedBucketOwner:target.owner},record=(name,v)=>writeOnce(out+'/'+name+'.json',v),writable=()=>must(!inspect,'READ_ONLY_CAPABILITY');
   const source=async()=>{must(++counts.sourceSts<=(inspect?1:2),'SOURCE_READ_BUDGET');const r=await send(sts,new GetCallerIdentityCommand({}));
-    const p={Account:r.Account,Arn:r.Arn,UserId:r.UserId};assertSourceIdentity(p);return p;};
+    const p={Account:r.Account,Arn:r.Arn,UserId:r.UserId};identity(p);return p;};
   async function headAbsent(){
     must(!inspect&&++counts.targetHead<=2,'HEAD_BUDGET');
     try{await send(s3,new HeadObjectCommand({...base,Key:m.put.Key}));}catch(e){
       if(isDefiniteMissing(e))return {targetAbsent:true,deleteMarker:false};throw e;
     }throw Error('RECOVERY_PACKAGE_TARGET_EXISTS');
   }
-  async function assertSource(){environment();await cleanSource(m.sourceCommit);must(same(await packagePins(),m.pins),'SOURCE_PINS');
+  async function assertSource(){environment();if(capability?.assertSource){await capability.assertSource();return;}
+    await cleanSource(m.sourceCommit);must(same(await packagePins(),m.pins),'SOURCE_PINS');
     const c=await recoveryCloudClosure();must(c.pinCount===97&&c.closureSha256===K.closureSha256,'CLOUD_CLOSURE');}
   return {assertSource,record,
     async preflight(){writable();const who=await source(),meta=async q=>{must(++counts.bucketMetadata<=6,'METADATA_BUDGET');return send(s3,q);};
@@ -66,21 +70,21 @@ export async function createPackageIo(m,out,{inspect=false}={}){
       return {source:who,region:h.BucketRegion,versioning:{Status:versioning.Status},encryption:e.ServerSideEncryptionConfiguration,
         ownership:o.OwnershipControls,publicAccess:p.PublicAccessBlockConfiguration,policyIsPublic:s.PolicyStatus?.IsPublic,...await headAbsent()};},
     async finalRead(){writable();return {source:await source(),...await headAbsent()};},
-    async readPackage(){writable();must(++counts.localPackageReads===1,'PACKAGE_READ_BUDGET');return readFixedPackage();},
-    async consume(v){writable();await writeOnce(K.slot,{...v,output:out,sourceCommit:m.sourceCommit});},
-    async put(body){writable();must(++counts.put===1&&hash(body)===K.packageSha256&&Buffer.byteLength(body)===K.bytes,'PUT_BUDGET_OR_BODY');
+    async readPackage(){writable();must(++counts.localPackageReads===1,'PACKAGE_READ_BUDGET');return bodyReader();},
+    async consume(v){writable();await writeOnce(target.slot,{...v,output:out,sourceCommit:m.sourceCommit});},
+    async put(body){writable();must(++counts.put===1&&hash(body)===target.packageSha256&&Buffer.byteLength(body)===target.bytes,'PUT_BUDGET_OR_BODY');
       const r=await send(s3,new PutObjectCommand({...m.put,Body:body}));must(r.$metadata?.httpStatusCode===200,'PUT_STATUS');
       return {key:m.put.Key,versionId:r.VersionId,encryption:r.ServerSideEncryption,checksum:r.ChecksumSHA256};},
-    async inspect(ack){must(inspect,'INSPECT_ONLY_CAPABILITY');const ref=assertAck(ack);await source();must(++counts.fixedVersionGet===1,'GET_BUDGET');
+    async inspect(ack){must(inspect,'INSPECT_ONLY_CAPABILITY');const ref=acknowledge(ack);await source();must(++counts.fixedVersionGet===1,'GET_BUDGET');
       const r=await send(s3,new GetObjectCommand({...base,Key:ref.key,VersionId:ref.versionId,ChecksumMode:'ENABLED'}));
-      try{must(r.$metadata?.httpStatusCode===200&&r.VersionId===ref.versionId&&r.ContentLength===K.bytes&&r.ServerSideEncryption==='AES256'&&
+      try{must(r.$metadata?.httpStatusCode===200&&r.VersionId===ref.versionId&&r.ContentLength===target.bytes&&r.ServerSideEncryption==='AES256'&&
           r.ChecksumSHA256===m.put.ChecksumSHA256&&r.DeleteMarker!==true&&r.Body,'GET_BINDING');
-        const parts=[];let size=0;for await(const part of r.Body){size+=part.length;must(size<=K.bytes,'GET_SIZE');parts.push(part);}
-        const b=Buffer.concat(parts);must(b.length===K.bytes&&hash(b)===K.packageSha256,'GET_HASH');const value=JSON.parse(new TextDecoder('utf8',{fatal:true}).decode(b));
-        must(canonicalJson(value)===b.toString('utf8'),'GET_CANONICAL');const basis=await rebuildRecoveryPackage(value);
-        must(basis.basisSha256===K.basisSha256&&basis.expiresAt===K.basisExpiresAt,'GET_BASIS');
-        return {outcome:'RECOVERY_PACKAGE_FIXED_VERSION_INDEPENDENTLY_VERIFIED',reference:ref,basisSha256:K.basisSha256,basisExpiresAt:K.basisExpiresAt,
-          basisCurrentlyExpired:Date.now()>=K.basisExpiresAt,controllerActivated:false,workflowDispatched:false,externalWrites:0,retryAllowed:false};
+        const parts=[];let size=0;for await(const part of r.Body){size+=part.length;must(size<=target.bytes,'GET_SIZE');parts.push(part);}
+        const b=Buffer.concat(parts);must(b.length===target.bytes&&hash(b)===target.packageSha256,'GET_HASH');const value=JSON.parse(new TextDecoder('utf8',{fatal:true}).decode(b));
+        must(canonicalJson(value)===b.toString('utf8'),'GET_CANONICAL');const basis=await rebuild(value);
+        must(basis.basisSha256===target.basisSha256&&basis.expiresAt===target.basisExpiresAt,'GET_BASIS');
+        return {outcome:'RECOVERY_PACKAGE_FIXED_VERSION_INDEPENDENTLY_VERIFIED',reference:ref,basisSha256:target.basisSha256,basisExpiresAt:target.basisExpiresAt,
+          basisCurrentlyExpired:Date.now()>=target.basisExpiresAt,controllerActivated:false,workflowDispatched:false,externalWrites:0,retryAllowed:false};
       }finally{r.Body?.destroy?.();}},
     counts:()=>({...counts}),close(){s3.destroy();sts.destroy();},
   };

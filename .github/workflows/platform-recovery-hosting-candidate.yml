@@ -12,6 +12,11 @@ on:
       - 'ops/platform-a604-handoff-v1/**'
       - 'ops/platform-a604-cloud-v1/**'
       - 'ops/platform-a604-operator-v1/**'
+      - 'ops/platform-a604-package-v1/**'
+      - 'ops/platform-recovery-package-v1/**'
+      - 'tests/platform-a604-package-v1.test.mjs'
+      - 'tests/platform-recovery-package-v1.test.mjs'
+      - 'docs/aws-auto-deployment-a604-package-upload-review.md'
       - 'tests/platform-a604-operator-v1.test.mjs'
       - 'tests/platform-a604-inspect-publisher-v1.test.mjs'
       - 'tests/fixtures/platform-a604-inspect-publisher-v1.mjs'
@@ -48,6 +53,11 @@ on:
       - 'ops/platform-a604-handoff-v1/**'
       - 'ops/platform-a604-cloud-v1/**'
       - 'ops/platform-a604-operator-v1/**'
+      - 'ops/platform-a604-package-v1/**'
+      - 'ops/platform-recovery-package-v1/**'
+      - 'tests/platform-a604-package-v1.test.mjs'
+      - 'tests/platform-recovery-package-v1.test.mjs'
+      - 'docs/aws-auto-deployment-a604-package-upload-review.md'
       - 'tests/platform-a604-operator-v1.test.mjs'
       - 'tests/platform-a604-inspect-publisher-v1.test.mjs'
       - 'tests/fixtures/platform-a604-inspect-publisher-v1.mjs'
@@ -103,6 +113,11 @@ jobs:
           node --experimental-strip-types --test tests/platform-a604-operator-v1.test.mjs tests/platform-a604-inspect-publisher-v1.test.mjs
           node --experimental-strip-types ops/platform-a604-operator-v1/local.mjs --check
           node node_modules/eslint/bin/eslint.js ops/platform-a604-operator-v1/ tests/platform-a604-operator-v1.test.mjs tests/platform-a604-inspect-publisher-v1.test.mjs tests/fixtures/platform-a604-inspect-publisher-v1.mjs --max-warnings 0
+      - name: A604 package upload contracts - No AWS
+        run: |
+          node --experimental-strip-types --test tests/platform-recovery-package-v1.test.mjs tests/platform-a604-package-v1.test.mjs
+          node --experimental-strip-types ops/platform-a604-package-v1/local.mjs --check
+          node node_modules/eslint/bin/eslint.js ops/platform-recovery-package-v1/ ops/platform-a604-package-v1/ tests/platform-recovery-package-v1.test.mjs tests/platform-a604-package-v1.test.mjs --max-warnings 0
       - name: Typecheck and scoped lint
         run: |
           node node_modules/typescript/bin/tsc --noEmit --incremental false
