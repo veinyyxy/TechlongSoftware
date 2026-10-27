@@ -1,5 +1,9 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前唯一继续点（2026-10-27）：**免Web代批的Review已真实成功，但其领取窗口00:25:44及workload TTL02:10:44 CDT均已过期，不能再部署。** 本轮限定证据读取已核对准确版本/SHA，仅STS1/List1/HEAD1/GET2/GitHubGET1，无SQL/资源写/调度。旧执行周期封存，所有旧记录/槽保留，不续租、不刷新manifest、不自动新job。新增无实际writer的后继内容核验/SQL提案核心，复用原RecoveryPublisher，阻断过期证据，移除提案对Web租约的依赖；它不是已上线发布器。下一次Review之前必须备齐连续“核验→受审发布→代批→GitHub本人审批”链；业务请求衔接及冻结9b任务绑定的变更另审，不能仅替换job ID或重跑旧Review。[真实时限、代码范围与后续边界](aws-auto-deployment-delegated-publisher-v1.md)。
+
+## 之前的继续点（保留，不作为当前执行指令）
+
 当前唯一继续点（2026-10-26）：**按用户新要求改为“免Web逐次批准，GitHub环境仍由本人审批”。** 本地委托operator已实现，本机208项相关测试/类型/lint通过，待准确No-AWS CI收口。固定同一任务、源码/CI/资源上限，一次新grant授权后可代批Review/RunOnce/Inspect各一次；先存审计再写批准，dispatch前重核GitHub本人reviewer，禁止自动批准环境。原可信publisher证明/后继生成仍独立，不伪造“本人点击”。不再为了Web按钮续平台租约，不改IAM/镜像/schema/GitHub规则或云闭包。本轮无生产读取/写入/私密内容/调度/新槽；下一另获限定只读许可，核对旧6366…是否仍未调度，再准备新grant。最后实际已核验为revision11及一条Review登记，后续用户是否触发尚无新回读；旧窗口已过，不重放。F3c9/UI支线停止。[实现与命令](aws-auto-deployment-delegated-web-approval-v1-implementation.md) / [完整风险](aws-auto-deployment-delegated-web-approval-v1.md)。
 
 ## 历史记录
