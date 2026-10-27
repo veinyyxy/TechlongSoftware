@@ -1,5 +1,9 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+当前唯一继续点（2026-10-27，在线入口阶段）：**免Web三写发布器和固定请求衔接编译器已实现，仅代码/测试，尚未生产运行。** 入口绑定准确SHA、完整旧历史/业务/保护、固定版本内容核验、一次observe/proof/publish及独立回读；无Web租约、无dispatch/IAM/Secret写。候选新任务a60423…只是待审提案，尚未创建，现有冻结云9b绑定不兼容，不能直接部署。下一先准备新请求及对应云绑定的受审兼容，再备齐连续链并开启新Review；不重放旧grant或新建假时间窗口。[本阶段完整范围/风险](aws-auto-deployment-delegated-publisher-live-v1.md)。
+
+## 前一阶段记录
+
 当前唯一继续点（2026-10-27）：**免Web代批的Review已真实成功，但其领取窗口00:25:44及workload TTL02:10:44 CDT均已过期，不能再部署。** 本轮限定证据读取已核对准确版本/SHA，仅STS1/List1/HEAD1/GET2/GitHubGET1，无SQL/资源写/调度。旧执行周期封存，所有旧记录/槽保留，不续租、不刷新manifest、不自动新job。新增无实际writer的后继内容核验/SQL提案核心，复用原RecoveryPublisher，阻断过期证据，移除提案对Web租约的依赖；它不是已上线发布器。下一次Review之前必须备齐连续“核验→受审发布→代批→GitHub本人审批”链；业务请求衔接及冻结9b任务绑定的变更另审，不能仅替换job ID或重跑旧Review。[真实时限、代码范围与后续边界](aws-auto-deployment-delegated-publisher-v1.md)。
 
 ## 之前的继续点（保留，不作为当前执行指令）

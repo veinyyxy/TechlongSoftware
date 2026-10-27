@@ -1,5 +1,7 @@
 # 免 Web 后继计划准备核心与本轮真实时限
 
+后续状态：在线publisher三写入口及固定新请求编译器已实现，仍未生产执行。当前完整范围和风险见[免Web受审发布入口](aws-auto-deployment-delegated-publisher-live-v1.md)；以下保留的是此前纯准备核心阶段记录。
+
 2026-10-27。本阶段完成的是**内容核验及后继 SQL 提案核心**，不是已安装的在线发布器，也没有发布或调度 RunOnce。新增 `ops/platform-delegated-publisher-v1/successor.mjs`；沿用已有 RecoveryPublisher 的完整内容重建，不新增证明协议、数据库 schema、IAM、镜像或云 worker。
 
 ## 先纠正当前执行状态
