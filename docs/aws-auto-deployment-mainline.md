@@ -1,6 +1,6 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
-当前唯一继续点（2026-10-27，a604工作流/trust准备的最小修复收口）：**新发布入口及406项回归/准确031b源码CI已通过；首次只读在GitHub文本摘要适配处误报，Source/AWS/写/槽均0。** 修复为先base64解码UTF-8文本再计算原摘要，补测实际前置回调，修复后40项发布器相关测试通过。用户明确选择“先只完成修复和CI”，因此本轮不再读取生产现状，不准备执行SHA或不可达发布候选；后续需新许可才捕获现状。已验证包与新事实期限不变。拟议双工作流＋同版本本机SOURCE绑定、现有role单个job_workflow_ref的范围仅待审设计，当前SOURCE仍UNPUBLISHED；IAM/权限、环境、业务、97/104云闭包不变，不续租或部署。[完整范围、误报与边界](aws-auto-deployment-a604-workflow-publication-review.md)。
+当前唯一继续点（2026-10-27，5小时快照准备策略）：**新一轮限定只读已通过（1STS/9AWS元数据/14GitHub GET/0写）；用户进一步明确以后准备快照使用5小时，不再使用2小时限制。** 当前快照真实时间14:38:53.490 CDT，准备截止19:38:53.490，原件/事实期限/清单24小时及执行前实时核验不变。仅本次准确原件允许经过“期限策略代码-only”的新CI源码推进；不改旧观测、不放行任何受保护目标变更，来源明确写进清单。下一按已存原件准备三文件/trust-only准确新SHA；实际发布仍另批。当前SOURCE仍UNPUBLISHED，IAM/工作流/数据库/97与104云闭包未改变，不续租或部署。[完整范围与期限](aws-auto-deployment-a604-workflow-publication-review.md)。
 
 上一已完成阶段：af800cdb准确审批下，一次390134字节审查包PUT及独立固定版本GET通过，新a604事实窗口获批，两永久槽已消费；绝不重放或重新上传。[实际结果](aws-auto-deployment-a604-package-upload-observed.md) / [公开机器摘要](../ops/aws-sandbox/reviews/platform-a604-package-v1.executed.json)。
 

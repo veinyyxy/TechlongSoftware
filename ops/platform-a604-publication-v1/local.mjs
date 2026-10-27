@@ -11,6 +11,7 @@ import {publishAppOnceV6} from '../platform-publication-v6/plan.mjs';
 import {assertEvidenceSafeV5} from '../cloud-worker/cloud-evidence-v5.mjs';
 import {Q,F,FACTS,REFERENCE,must,same,hash,validateLayout,makeReview,validateApproval,validatePreflight,reconcile} from './plan.mjs';
 import {previousTargets,prepareObjects,verifyObjects} from './objects.mjs';
+import {assertSnapshotTime,reviewReadiness} from './readiness.mjs';
 export const ROOTS=['ops/platform-a604-publication-v1/local.mjs','tests/platform-a604-publication-v1.test.mjs',Q.riskFile,
   Q.bindingFile,Q.caller,Q.reusable,
   'ops/aws-sandbox/reviews/platform-a604-package-v1.executed.json','.github/workflows/platform-recovery-hosting-candidate.yml',
@@ -52,16 +53,22 @@ export async function main(args=process.argv.slice(2)){
     finally{io.dispose();}
   }
   if(a['--mode']==='PrepareSaved'){
-    await absent(Q.slot);await absent(Q.inspectSlot);const saved=await json(a['--readiness']);validateLayout(saved.baseline);
-    must(saved.sourceCommit===head&&saved.baseline.main===head&&saved.observedAt<=Date.now()&&Date.now()-saved.observedAt<7200000&&saved.externalWrites===0&&saved.slotsConsumed===0&&
+    await absent(Q.slot);await absent(Q.inspectSlot);const raw=await readText(a['--readiness'],2000000),saved=JSON.parse(raw);validateLayout(saved.baseline);assertSnapshotTime(saved.observedAt,Date.now());
+    must(saved.externalWrites===0&&saved.slotsConsumed===0&&
       saved.counts.push===0&&saved.counts.create===0&&saved.counts.execute===0&&saved.counts.awsMetadata<=13&&saved.counts.githubGets+saved.githubCiGets<=20,'SAVED_READINESS');
-    const ci=await readCi(a['--ci-run'],head);await mkdir(a['--output']);const material=await prepareObjects({parent:head,output:a['--output']}),
-      m=await makeReview({parent:head,...material,pins:await collect(),ci,baseline:saved.baseline,observedAt:saved.observedAt,createdAt:Date.now()});clean();
+    const ci=await readCi(a['--ci-run'],head);let ancestor=false,changedFiles=[];
+    if(saved.sourceCommit!==head){git(['merge-base','--is-ancestor',saved.sourceCommit,head]);ancestor=true;
+      changedFiles=git(['diff','--name-only',saved.sourceCommit,head]).trim().split(/\r?\n/).filter(Boolean);}
+    const prepared=reviewReadiness(saved,{head,rawSha256:hash(raw),ancestor,changedFiles,now:Date.now()});
+    await mkdir(a['--output']);const material=await prepareObjects({parent:head,output:a['--output']}),
+      m=await makeReview({parent:head,...material,...prepared,pins:await collect(),ci,observedAt:saved.observedAt,createdAt:Date.now()});clean();
     await write(a['--output']+'/manifest.json',m);await write(a['--output']+'/material.json',material);const r={outcome:'A604_PUBLICATION_REVIEW_PREPARED_NOT_APPROVED',manifestSha256:m.manifestSha256,
       parent:head,reusable:m.objects.reusable.commit,caller:m.objects.caller.commit,expiresAt:m.expiresAt,latestStartAt:m.expiresAt-1200000,awsCalls:0,externalWrites:0,refsChanged:0,branchesCreated:0};
     await write(a['--output']+'/result.json',r);console.log(JSON.stringify(r));return r;
   }
-  const m=await json(a['--manifest']);await validateApproval(m,a['--approved-sha'],Date.now(),a['--mode']==='Inspect',a['--mode']==='PublishReviewed');let prestate;
+  const m=await json(a['--manifest']);await validateApproval(m,a['--approved-sha'],Date.now(),a['--mode']==='Inspect',a['--mode']==='PublishReviewed');
+  if(m.readinessOrigin){const archived=await readText(m.readinessOrigin.snapshotFile,2000000);must(hash(archived)===m.readinessOrigin.snapshotRawSha256,'ORIGIN_ARCHIVE');}
+  let prestate;
   const inspect=async out=>{await absent(Q.inspectSlot);await absent(out);await mkdir(out);const io=await createAppPublicationIo(out,{profile:profile(m,{readOnly:true,executionPrestate:prestate})});
     try{await write(Q.inspectSlot,{manifestSha256:m.manifestSha256,output:out,writesAuthorized:0,consumedAt:Date.now(),retryAllowed:false});
       const r=await io.inspect(m);await write(out+'/result.json',{...r,counts:io.counts()});return r;}finally{io.dispose();}};

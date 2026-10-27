@@ -8,13 +8,14 @@ import {FROZEN_V6} from '../platform-activation-v6/publication.mjs';
 import {U,validatePublicationSourceV6,reconcilePublicationLayoutV6} from '../platform-publication-v6/plan.mjs';
 import {hash,INLINE_SHA,BOUNDARY_SHA} from '../platform-recovery-publication-v1/plan.mjs';
 import {freeze} from '../platform-recovery-v1/basis-core.mjs';
+import {SNAPSHOT_MAX_AGE_MS,assertSnapshotTime,assertOrigin} from './readiness.mjs';
 export {hash};
 export const must=(v,c)=>{if(!v)throw Error('A604_PUBLICATION_'+c);},same=(a,b)=>canonicalJson(a)===canonicalJson(b);
 const sha=v=>/^[a-f0-9]{40}$/.test(v??''),digest=v=>/^[a-f0-9]{64}$/.test(v??'');
 export const F=freeze({...FROZEN_V6,sourceCommit:'72a29559f914768a8df57c8e3e6b4ed940697e54',
   closureSha256:'f4e76cfb90ef04cb4229c6f720f08603130335d84c35cb638817f7209e0d1269'});
 export const Q=freeze({...U,slot:'F:/ChatGPT_workshop/techlong-a604-publication-v1.intent.json',
-  inspectSlot:'F:/ChatGPT_workshop/techlong-a604-publication-v1.inspect.intent.json',validMs:24*3600000,
+  inspectSlot:'F:/ChatGPT_workshop/techlong-a604-publication-v1.inspect.intent.json',validMs:24*3600000,snapshotMaxAgeMs:SNAPSHOT_MAX_AGE_MS,
   bindingFile:'ops/platform-a604-operator-v1/scope.mjs',bindingBeforeSha256:'1fdc462565f35137204d3785fe3720c94092cdb22a4659e5edd48a4560a5631f',
   templateBeforeSha256:'9129228d16f91bf6eac6b24e6c2ad4aba6d50161a04fdf91a857d0fb9ab4fc96',
   oldReusable:'4c09548ab9852a4f3e948f0686f8c81251cda73b',riskFile:'docs/aws-auto-deployment-a604-workflow-publication-review.md',
@@ -53,8 +54,9 @@ export function validateObjects(parent,objects,original){must(sha(parent)&&objec
   const rendered=texts(objects.reusable.commit);for(const [o,t] of [[objects.reusable,rendered.reusable],[objects.caller,rendered.caller],[objects.caller.operatorBinding,bindingText(original,objects.reusable.commit)]])
     must(sha(o.blob)&&digest(o.normalizedLfSha256)&&o.normalizedLfSha256===hash(t),'OBJECT_CONTENT');
   for(const o of [objects.reusable,objects.caller])must(sha(o.commit)&&sha(o.tree),'GIT_IDENTITIES');return rendered;}
-export async function makeReview({parent,objects,previousTargets,operatorScopeSource,pins,ci,baseline,observedAt,createdAt}){
+export async function makeReview({parent,objects,previousTargets,operatorScopeSource,pins,ci,baseline,observedAt,createdAt,readinessOrigin=null}){
   validateLayout(baseline);validateObjects(parent,objects,operatorScopeSource);
+  assertSnapshotTime(observedAt,createdAt);assertOrigin(readinessOrigin,baseline,parent,observedAt);
   must(baseline.main===parent&&Number.isSafeInteger(observedAt)&&observedAt>=FACTS.observedBy&&Number.isSafeInteger(createdAt)&&createdAt>=observedAt&&
     createdAt<Math.min(observedAt+Q.validMs,FACTS.expiresAt)&&pins?.length>=20&&new Set(pins.map(p=>p.file)).size===pins.length&&pins.every(p=>digest(p.sha256))&&
     ci?.sourceCommit===parent&&ci.testedSourceCommit===parent&&ci.attempt===1&&ci.status==='completed'&&ci.conclusion==='success'&&
@@ -64,7 +66,7 @@ export async function makeReview({parent,objects,previousTargets,operatorScopeSo
   const changed=trustTemplate(baseline.foundation.template,objects.reusable.commit),create={StackName:F.stackId,ChangeSetName:'a604-publication-v1-'+objects.caller.commit.slice(0,24),
     ChangeSetType:'UPDATE',TemplateBody:canonicalJson(changed.template),Capabilities:['CAPABILITY_NAMED_IAM'],Description:'A604 pinned reusable trust only; '+objects.reusable.commit};
   must(Buffer.byteLength(create.TemplateBody)<=51200,'TEMPLATE_SIZE');create.ClientToken='a604-publication-create-'+hash(create).slice(0,40);
-  const body={schema:'techlong/a604-workflow-publication-review/v1',parent,objects,previousTargets,operatorScopeSource,pins,ci,baseline,observedAt,createdAt,
+  const body={schema:'techlong/a604-workflow-publication-review/v1',parent,objects,previousTargets,operatorScopeSource,pins,ci,baseline,observedAt,createdAt,readinessOrigin,
     expiresAt:Math.min(observedAt+Q.validMs,FACTS.expiresAt),frozen:F,publication:p,packageProof:{file:Q.packageProof,rawSha256:Q.packageProofRawSha256},
     permanentSlot:Q.slot,inspectSlot:Q.inspectSlot,riskFile:Q.riskFile,
     actions:{push:{remote:'github',refspec:objects.caller.commit+':refs/heads/main',force:false},create,
@@ -73,7 +75,7 @@ export async function makeReview({parent,objects,previousTargets,operatorScopeSo
     effects:{gitPushAttempts:1,existingWorkflowUpdates:2,localOperatorSourceBindingUpdates:1,newWorkflowFiles:0,createChangeSetAttempts:1,executeChangeSetAttempts:1,
       existingWorkerTrustUpdates:1,localMainFastForwards:1,independentInspectAttempts:1,iamPermissionExpansion:0,newIamResources:0,environmentWrites:0,
       secretValueReads:0,pemReads:0,dispatches:0,sqlConnections:0,packageUploads:0,hostingRenewals:0,workloadCreates:0,automaticWriteRetries:0},
-    limits:{awsMetadata:Q.awsMetadataMax,githubGets:Q.githubGetsMax,independentAwsMetadata:13,independentGithubGets:17,executionMs:1200000},
+    limits:{awsMetadata:Q.awsMetadataMax,githubGets:Q.githubGetsMax,independentAwsMetadata:13,independentGithubGets:17,executionMs:1200000,snapshotPreparationMaxAgeMs:SNAPSHOT_MAX_AGE_MS},
     risks:{crossServiceNonAtomic:true,concurrentChangesNotCas:true,disableFailureRollback:true,oldWorkflowPinLosesRoleAccess:true,
       sourceBindingPublishedBeforeTrustMayRemain:true,partialPublishedWorkflowsOrTrustMayRemain:true,sourceLoginMayExpire:true,
       noAutomaticRollbackDeleteOrReplay:true,permanentSlotsNeverReset:true,lowCostNotZero:true},preparationIsNotExecutionApproval:true};

@@ -8,6 +8,7 @@ import {publishAppOnceV6,verifyAppChangeSetV6} from '../ops/platform-publication
 import {A604_PROFILE} from '../ops/platform-a604-cloud-v1/profile.mjs';
 import {bindA604WorkflowPublication,assertA604Publication} from '../ops/platform-a604-cloud-v1/contract.mjs';
 import {load} from 'js-yaml';
+import {SNAPSHOT_MAX_AGE_MS,assertSnapshotTime,createReadinessPolicy} from '../ops/platform-a604-publication-v1/readiness.mjs';
 const at=1793130000000,defaultLine="export const LOCAL_PUBLICATION=freeze({state:'UNPUBLISHED',template:A604_PUBLICATION,reusableCommit:null});";
 async function originalScope(){const text=(await readFile(new URL('../ops/platform-a604-operator-v1/scope.mjs',import.meta.url),'utf8')).replaceAll('\r\n','\n');
   const restored=text.replace(/^export const LOCAL_PUBLICATION=freeze\(.+\);$/m,defaultLine).replace('A604_JOB,A604_PROFILE}', 'A604_JOB,A604_PROFILE,A604_PUBLICATION}');
@@ -64,6 +65,23 @@ test('approval max24h from actual observation, bounded by fixed facts, retains20
   for(const [sha,time] of [['bad',at],[m.manifestSha256,at-1],[m.manifestSha256,m.expiresAt-1200000]])await assert.rejects(validateApproval(m,sha,time,false,true));
   await validateApproval(m,m.manifestSha256,m.expiresAt-1200000); // already-started guards use the real expiry, not another start reserve.
   await validateApproval(m,undefined,m.expiresAt+100,true);
+});
+test('snapshot preparation permits up to5h without restamping, rejects future or expired observations, keeps24h approval unchanged',async()=>{
+  assert.equal(SNAPSHOT_MAX_AGE_MS,5*3600000);assert.doesNotThrow(()=>assertSnapshotTime(at,at+2*3600000));
+  assert.doesNotThrow(()=>assertSnapshotTime(at,at+SNAPSHOT_MAX_AGE_MS-1));assert.throws(()=>assertSnapshotTime(at,at+SNAPSHOT_MAX_AGE_MS));assert.throws(()=>assertSnapshotTime(at,at-1));
+  const {input}=await fixture(),m=await makeReview({...input,createdAt:input.observedAt+5*3600000-1});
+  assert.equal(m.observedAt,input.observedAt);assert.equal(m.expiresAt,input.observedAt+24*3600000);assert.equal(m.publication.factsApproval.expiresAt,FACTS.expiresAt);
+  await assert.rejects(makeReview({...input,createdAt:input.observedAt+5*3600000}));
+});
+test('time-policy-only source advance preserves all captured non-main facts, records origin, rejects protected changes and altered snapshots',()=>{
+  const old='a'.repeat(40),head='b'.repeat(40),baseline={main:old,source:{arn:'synthetic'},permission:'unchanged'},prior={sourceCommit:old,observedAt:at,file:'synthetic.json',rawSha256:'c'.repeat(64),baselineSha256:hash(baseline)},
+    policy=createReadinessPolicy(prior),saved={sourceCommit:old,baseline,observedAt:at},options={head,rawSha256:prior.rawSha256,ancestor:true,changedFiles:['ops/platform-a604-publication-v1/local.mjs'],now:at+4*3600000};
+  const prepared=policy.reviewReadiness(saved,options);assert.equal(saved.baseline.main,old);assert.equal(prepared.baseline.main,head);assert.equal(prepared.baseline.permission,'unchanged');
+  assert.equal(prepared.readinessOrigin.capturedMain,old);policy.assertOrigin(prepared.readinessOrigin,prepared.baseline,head,at);
+  for(const patch of [{ancestor:false},{rawSha256:'d'.repeat(64)},{changedFiles:['.github/workflows/cloud-worker-platform-v6.yml']},{changedFiles:['ops/platform-a604-operator-v1/scope.mjs']}])
+    assert.throws(()=>policy.reviewReadiness(saved,{...options,...patch}));
+  assert.throws(()=>policy.reviewReadiness({...saved,baseline:{...baseline,permission:'changed'}},options));
+  assert.equal(policy.reviewReadiness(saved,{...options,head:old}).readinessOrigin,null);
 });
 test('all supplied manifest actions, content, source-binding/hash, versions, risks and limits are reconstructed',async()=>{
   const {m}=await fixture();for(const fn of [v=>{v.publication.packageReference.versionId='other';},v=>{v.publication.factsApproval.expiresAt++;},
