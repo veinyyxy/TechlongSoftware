@@ -1,6 +1,6 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
-当前唯一继续点（2026-10-26）：**固定revision10的连续入口已实现，本机175项相关测试/类型/lint通过；Review仍未登记，业务验收未完成。** 一个新外层SHA整体审批后，连续更新→独立Inspect→立即登记Review；新会话始终绑定原始在线回复及12分钟链，不伪造ready-at，旧手动三分钟守卫和15分钟租约余量保留。真实封存原件回放及默认派生路径通过，不改基准。当前仅代码提交/准确No-AWS CI，无生产/配置内容/SQL/续租/槽/dispatch；下一CI通过后另获新限定只读准备许可，再生成准确外层SHA。旧d646批准、旧租约及已消费槽不复用，不新增IAM/镜像/schema/业务任务或F3c9/UI功能。[实现与继续点](aws-auto-deployment-recovery-handoff-implementation.md) / [完整风险](aws-auto-deployment-recovery-handoff-review.md) / [历史连续方案](aws-auto-deployment-recovery-continuous-handoff-plan.md)。
+当前唯一继续点（2026-10-26）：**按用户新要求改为“免Web逐次批准，GitHub环境仍由本人审批”。** 本地委托operator已实现，本机208项相关测试/类型/lint通过，待准确No-AWS CI收口。固定同一任务、源码/CI/资源上限，一次新grant授权后可代批Review/RunOnce/Inspect各一次；先存审计再写批准，dispatch前重核GitHub本人reviewer，禁止自动批准环境。原可信publisher证明/后继生成仍独立，不伪造“本人点击”。不再为了Web按钮续平台租约，不改IAM/镜像/schema/GitHub规则或云闭包。本轮无生产读取/写入/私密内容/调度/新槽；下一另获限定只读许可，核对旧6366…是否仍未调度，再准备新grant。最后实际已核验为revision11及一条Review登记，后续用户是否触发尚无新回读；旧窗口已过，不重放。F3c9/UI支线停止。[实现与命令](aws-auto-deployment-delegated-web-approval-v1-implementation.md) / [完整风险](aws-auto-deployment-delegated-web-approval-v1.md)。
 
 ## 历史记录
 
