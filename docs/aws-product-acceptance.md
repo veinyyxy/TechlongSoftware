@@ -56,7 +56,7 @@
 
 真实资源/配置/私密使用范围另经批准后，再进行客户端发布和有限真实业务验收，随后才商户认证及必要业务场景；不扩UI、探针、通用框架或新的固定任务分支。原工作负载意图和清理审核边界保持。
 
-本次准备已按另允范围核对现有角色/门禁/CORS，形成[六资源最小承载及接线候选](aws-buyer-web-sandbox-plan.md)；旧production没有required reviewers，因此候选使用独立sandbox环境/窄角色而不修改旧生产配置。下一只实现原客户端workflow的sandbox选择/独立Secret/无delete适配及准确无AWS CI；候选不是安装、私密读取或调度许可。
+本次准备已按另允范围核对现有角色/门禁/CORS，形成[六资源最小承载及接线候选](aws-buyer-web-sandbox-plan.md)；旧production没有required reviewers，因此候选使用独立sandbox环境/窄角色而不修改旧生产配置。原客户端workflow接线已在602e543完成，准确CI40789471388全部通过、deploy skipped；候选不是安装、私密读取或调度许可。下一集中准备实际变更待审材料，原窗口过期后的现状/清理及必要元数据读取须另获允许。
 
 ### 为什么不直接打开买家页面“只读验收”
 

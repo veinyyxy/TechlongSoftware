@@ -54,9 +54,25 @@
 
 假设总存储（含版本）1GB、每月10GB CDN传出、10万HTTPS、2000次S3 PUT/LIST和1000次GET，模型合计约**0.99 USD/月**，未含可能收费的invalidation路径、税、GitHub额度或超量。详见[机器模型](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.prices.json)。不是上限，不承诺整套50 USD/月已达标；既有后端/平台/数据库费用不在此小计，TTL和Retain都不自动停费。
 
+## 已完成：现有客户端workflow的sandbox接线
+
+客户端源码 **`602e543c03564898625618ec3327720d56be04e4`** 已推送到既有master，新增明确sandbox选择但未创建分支。准确[CI40789471388](https://github.com/veinyyxy/speedfeast/actions/runs/40789471388)，push/attempt1、head等于该源码，于温尼伯18:46:20报告completed/success；verify job123170803785的工作流合约、依赖、Analyze、Test、Web release build及收尾步骤全部success。deploy job123170806092为skipped，没有手动dispatch或实际AWS发布。
+
+改动仅原web-deploy.yml、一个纯配置校验器/定向测试和客户端README；不新增部署工作流或通用执行框架：
+
+- 手动target为production/sandbox；production保留原默认、原配置与上传行为。新sandbox名称绑定到techlong-sandbox-buyer-deploy，但这**不等于已安装或核验reviewer设置**；旧production无人工reviewer的事实未在本轮修复，不能误调度旧路径。
+- sandbox配置独立读取SANDBOX_BUYER_HMAC_SECRET_KEY；共享build选择的是Secret名称，不是以生产值作兜底。缺失时在AWS认证前拒绝，错误只输出枚举码，不输出输入值。
+- 校验器锁定候选账号/role/region/bucket/API，拒绝旧distribution；新distribution仍须由后续真实栈输出与执行清单独立绑定，格式检查不证明资源存在。
+- sandbox角色会话请求900秒、限制账号、关闭认证重试；上传不含--delete、CLI最多一次尝试，不取消正在执行的sandbox run。production的原10个step在按production选择投影后与3ad0ea8一致（仅新增分支条件及Secret名称选择）。
+- 本机23项定向Node测试、两文件语法、YAML解析/production投影及diff检查通过；CI也实际运行这些合约检查和原Flutter测试/构建。CI只使用合成配置与api.example.invalid，不读生产私密输入、不触发认证或上传。
+
+恢复检查点 `F:/ChatGPT_workshop/techlong-buyer-web-workflow-code-verified-20261028-a.json`，原始字节SHA `2a2febf19e922faae7b1906490069479debcf9edf9d239f9133eef1139e62a63`，绑定四个源码文件LF摘要、准确run/job与成功步骤。本轮AWS调用/写入、私密配置/PEM/HMAC或AWS Secret值读取、DB连接、GitHub环境/Secret设置、手动dispatch、agent审批均0；只推送代码并观察无AWS CI，没有新健康/费用核验或清理。
+
+[原候选总清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.plan.json)及三份候选摘要原样保留，其中3ad0ea8和workflowPatchNotImplemented描述的是准备当时状态，不改写为安装事实；实际后继材料必须改用本节602e543及其准确CI，不把原草案直接用于执行。
+
 ## 当前唯一继续点
 
-[候选总清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.plan.json)已绑定本次事实和模板，但仍不可执行。下一**仅实现现有客户端workflow的sandbox选择、独立环境/Secret名称和无delete适配，做定向检查及准确无AWS CI**；不安装云/GitHub环境或私密材料。无需重跑已通过的原SDK CI，不再扩控制面。
+工作流最小接线和准确无AWS CI现已完成，不再加功能或重跑该CI。下一仅集中准备六资源、GitHub设置/私密输入、准确CORS及执行时序的**实际待审材料**，仍无执行SHA。因原16:06:01窗口已过，先取得新的限定只读许可，核对现状/清理边界及必要当前元数据；不复用旧读取许可、秘密输入、旧TTL或旧批准。未获准确范围批准前不安装环境/角色/资源、转移HMAC、续租或dispatch，不重启部署控制面支线。
 
 代码/材料齐备后才集中准备实际六资源、GitHub设置/私密输入和准确CORS变更的执行批准与新时序。现在不发执行SHA、不抢用原16:06:01窗口，也不自动给它延期；原到期后若要继续在线验收，先按手册另审现状/清理及所需新窗口，不重启整轮部署或伪造新TTL。
 
@@ -64,4 +80,4 @@
 
 本地收尾已通过10组定向检查：准确六类资源、不可执行状态、私有/加密/保留桶、签名HTTPS静态origin、准确分布桶策略、publisher动作白名单及boundary、intrinsic引用、原证据/次数/CORS绑定、费用算术、不延长窗口或私密权限；162个本地Markdown链接有效，git diff检查通过。没有新增运行时代码、AWS模板验证或云部署测试。
 
-恢复检查点 `F:/ChatGPT_workshop/techlong-buyer-web-candidate-verified-20261028-a.json`，原始字节SHA `aca73213e1aac68293c5f4fae43b1df752a6aa91eab6eb3c443d19f0cee70ce7`，绑定原只读结果和三份候选的LF摘要。不重新执行只读脚本、不把本地检查当安装证明；下一只从上述workflow最小适配继续。
+候选准备阶段检查点 `F:/ChatGPT_workshop/techlong-buyer-web-candidate-verified-20261028-a.json`，原始字节SHA `aca73213e1aac68293c5f4fae43b1df752a6aa91eab6eb3c443d19f0cee70ce7`，绑定原只读结果和三份候选的LF摘要。不重新执行只读脚本、不把本地检查当安装证明；workflow阶段已由本节新源码/CI检查点收尾。

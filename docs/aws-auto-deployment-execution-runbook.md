@@ -39,9 +39,11 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 产品阶段的[当前最小继续点与副作用边界](aws-product-acceptance.md)：客户端源码3ad0ea8仅对齐两workflow三处SDK pin，准确CI40755064679全部通过、deploy跳过。随后用户允许的限定核对已确认租户revision9/运行1、health/ready均200；仓库配置的旧S3/CloudFront分别NoSuchBucket/NoSuchDistribution，API仍指向旧api.techlong.cloud，不是本次sandbox。检查点 `F:/ChatGPT_workshop/techlong-product-online-check-verified-20261028-a.json`（原始字节SHA `3258c70b983e0354e4e15eac50327eaa9de77ab0923cf24195ae62894976187a`），实际预算占用GitHub10/STS1/AWS元数据7/无身份HTTP2，无写或私密读取。对应最小独立sandbox买家Web承载/发布及准确API/CORS/输入来源候选现已按下述完成，真实变更另审；不自动重建旧目标、不续窗口或重做租户部署，也不将会写访问租约的买家页面当纯只读。
 
-上述候选现已完成，[六资源模板、准确差异、门禁/私密边界和费用](aws-buyer-web-sandbox-plan.md)均为DRAFT_NOT_EXECUTABLE。本次另允元数据实用GitHub9/STS1/AWS11，无写或私密值读取，发现旧production无required reviewers、旧publisher只信任production且绑定已删目标、revision9的准确CORS尚未允许新来源。下一唯一只实现现有客户端workflow的sandbox选择/独立Secret名称/无delete适配并核对准确无AWS CI，再集中准备实际变更批准；不立即安装六资源、新环境或HMAC，不续旧窗口、不扩部署控制面。
+上述候选现已完成，[六资源模板、准确差异、门禁/私密边界和费用](aws-buyer-web-sandbox-plan.md)均为DRAFT_NOT_EXECUTABLE。本次另允元数据实用GitHub9/STS1/AWS11，无写或私密值读取，发现旧production无required reviewers、旧publisher只信任production且绑定已删目标、revision9的准确CORS尚未允许新来源。对应现有客户端workflow的sandbox选择/独立Secret名称/无delete适配已按下方完成；仍不安装六资源、新环境或HMAC，不续旧窗口、不扩部署控制面。
 
 恢复先读 `F:/ChatGPT_workshop/techlong-buyer-web-candidate-verified-20261028-a.json`（原始字节SHA `aca73213e1aac68293c5f4fae43b1df752a6aa91eab6eb3c443d19f0cee70ce7`）；10组本地候选检查/162链接已通过，没有AWS模板验证或安装。18:23恢复时原窗口已过期，只做本地收尾，不重跑已用元数据许可，不假设停费或当前健康。
+
+最新代码阶段已收尾：客户端602e543/准确CI40789471388全部通过，23项本机定向测试和原production10步投影保持，deploy skipped；只复用原workflow接入sandbox、独立Secret/no-delete和900秒账号限定认证，没有AWS调用、Secret值、GitHub设置或dispatch。恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-workflow-code-verified-20261028-a.json`（原始字节SHA `2a2febf19e922faae7b1906490069479debcf9edf9d239f9133eef1139e62a63`）。**下一唯一集中准备实际六资源/GitHub设置/私密输入/CORS的待审范围与时序；先另获过期承载现状/清理及必要元数据的限定只读许可，不复用旧窗口或重开控制面。** 代码成功不是已安装发布门禁、客户端上线或整套验收。
 
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 
