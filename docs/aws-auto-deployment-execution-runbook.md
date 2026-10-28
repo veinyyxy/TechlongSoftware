@@ -37,6 +37,8 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 下一只准备现有客户端、服务端、租户数据库的有限真实业务验收和整套AWS交付，明确具体场景与读取/登录/业务写范围；不继续扩部署基础设施。工作负载意图为今天10月28日16:06:01（温尼伯），不是自动停费/销毁；当前资源可能持续计费，清理按准确资源另审。若恢复时已过期，先另审现状/清理，不自动延期、重新部署或假设费用已停止。
 
+产品阶段的[当前最小继续点与副作用边界](aws-product-acceptance.md)：客户端原准确CI因SDK不匹配失败，已仅在既有master的两份workflow中将三处Flutter pin对齐项目已要求的3.44.9（源码3ad0ea8）；准确CI40755064679的依赖安装/Analyze/Test/Web构建已全部通过，deploy跳过，无云发布。下一仅按另允范围核对现有客户端来源与租户API，不直接将会写访问租约的买家页面当纯只读。不能重做已完成部署或借此扩运行时基础设施。
+
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 
 发布后CI40747653765的旧来源比较问题已仅在 `tests/platform-recovery-cloud-v1.test.mjs` 最小修复：保留历史发布SHA/a604 provenance，再识别已安装reviewed-cycle SOURCE、准确模板与原observedBy，完整比较workflow全文、reusable pin和本人门禁。352项相关本机回归、类型/lint/diff与110闭包核验通过；不改线上workflow/云代码/IAM、不重做发布，本轮生产调用/私密读取/SQL/云写/dispatch均0。原失败诊断 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-post-ci-20261028-a.json` 保留；准确源码/CI只在真实成功后封存 `F:/ChatGPT_workshop/techlong-reviewed-cycle-legacy-test-fix-verified-20261028-a.json`，未封存前先查同一提交CI，不开始生产准备。
