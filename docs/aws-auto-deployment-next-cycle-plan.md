@@ -2,6 +2,10 @@
 
 ## 当前P4：仅从真实事后原件准备包与来源候选（2026-10-28）
 
+上传接线现已落实为共享目录内 `upload-plan.mjs` / `upload-local.mjs`，完整[新key/次数/事实窗口及风险](aws-auto-deployment-reviewed-cycle-package-upload.md)单独绑定到待审SHA；只复用原条件PUT和只读回读器，不改其SDK实现。固定605958字节candidate只提取403623字节canonical包，保留真实profile和原七对象；不重新生成包。四份原readiness只作历史来源，执行前桶/目标必须fresh核对，真正worker的业务准入仍不能省略。
+
+最终准确CI后只读本地原件PrepareSaved，再封存 `F:/ChatGPT_workshop/techlong-reviewed-cycle-upload-20261028-a/prepared-verified.json`；未生成时保持No-Go。清单最长24小时且保留2分钟启动余量，新的事实范围仍从原真实数据库时间起固定48小时；旧五小时准备截止、原包和所有旧槽不变。清单生成后冻结main，下一只等待准确SHA及完整风险批准；此处不批准上传/事实或来源发布，更不运行Review。
+
 P2/P3已完成，当前以[主线顶部](aws-auto-deployment-mainline.md)为准；以下旧G1/G2缺口表保留历史，不能当成仍需重做的任务。本阶段只用已封存的独立handoff、旧包及七份原始证据，复用 `recoveryBasisCompiler` / `makeRecoveryPackage` / `rebuildRecoveryPackage`，生成本地候选。没有新的成功前驱、accepted lineage或部署证明。
 
 准备入口 `ops/platform-reviewed-cycle-v1/package-saved.mjs` 只接受 `--check` 或 `--output F:/ChatGPT_workshop/techlong-reviewed-cycle-package-…`；不接受job/profile/事实/私钥/批准或运行参数，没有AWS、数据库或dispatch端口。固定SHA核对handoff seal和其14原件，以及原a604 package的原始字节与canonical摘要；真实事务时间用作拟议factsAt，独立数据库时间用作databaseCheckedAt/observedBy。只排除新held行，旧a604保留canceled，完整旧任务和账本保留；投影明确不是另一次数据库快照。

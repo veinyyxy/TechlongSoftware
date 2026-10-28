@@ -2,13 +2,21 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-28，完整历史兼容已完成；下一仅包上传审批接线）
+## 当前唯一继续点（2026-10-28，上传接线已实现；准备准确清单后仅等待新SHA批准）
+
+已把403623字节固定新包接到原条件上传/独立固定版本回读器，未复制AWS执行器或改旧入口。`ops/platform-reviewed-cycle-v1/upload-local.mjs` 只允许PrepareSaved、准确SHA的UploadReviewed和只读Inspect；默认check无能力。包原字节、七原证据、四份readiness及110云闭包须匹配，selection保持null。[完整对象、次数、期限和风险](aws-auto-deployment-reviewed-cycle-package-upload.md)。
+
+本机已核对封存body/四原件且新旧上传47项测试通过；最终源码/准确CI和待审SHA以 `F:/ChatGPT_workshop/techlong-reviewed-cycle-upload-20261028-a/prepared-verified.json` 为恢复入口。该文件只在最终clean main准确CI成功、13:42:18准备截止前生成清单后封存；不存在或检查失败时不得执行，也不把本段文字当批准。清单生成后main冻结，不追加文档提交让SHA失效。
+
+**下一唯一动作：** 核对本地准备结果，向用户给出新的准确SHA，等待一次条件PUT＋独立准确VersionId GET及固定新事实窗口的明确批准。有效期最长24小时、最晚启动保留2分钟；新facts到期固定温尼伯10月30日10:08:09.592，不是确认后重计48小时。当前AWS/SQL/私密配置/PEM/Secret值/上传/槽消费/dispatch均0；没有实际版本引用、事实批准或来源激活，不发布workflow/trust或部署。若main/原件/期限漂移先停止，不重放旧清单或复位槽。
+
+## 本轮已完成完整历史兼容（保留）
 
 最小只读兼容修复已完成：源码 `d8c3de1f569cceb756529ec128c94df8631e24f8` 的[准确CI40717621406](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40717621406)全部成功，本机121项相关检查（新周期45＋旧入口76，含12新增）、类型/lint/diff通过。仅新周期composition复用已完成原TLS/角色/catalog/preflight的现有reader，用一次SOURCE范围SELECT取得完整历史；53行上限保持、54行作溢出拒绝，真实status准确映射且显式冲突停止。旧安装函数/权限/保护和旧入口不改，没有额外连接或扩大原SQL预算。
 
 封存检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-history-fix-verified-20261028-a.json`，原始字节SHA `14ce5f3744cab426296719fcb163f1dd38579da2bf88f595a89d65a8d5b32247`。纯本地归档投影证明14条历史摘要、原403623字节包、事实时刻和110文件云闭包保持；不冒充生产SQL或当前健康验证。本轮AWS/生产配置/SQL连接/PEM/Secret值/权限/上传/新槽/dispatch均0，仅6次GitHub只读GET核验CI；selection仍null。
 
-**下一唯一动作：** 把下方已封存的准确候选接到既有条件上传及独立固定版本回读入口，集中准备一次新key PUT＋独立GET及新事实窗口的准确审批材料；不重建包、追加历史基准或重新创建任务。源码/准确CI、包字节、事实批准范围、实时身份/桶/目标预检和永久槽须精确绑定；实际上传另按新SHA批准。固定VersionId仅来自真实ACK及独立核验，之后才准备现有双workflow/SOURCE/trust-only发布。当前无可执行新SHA，不开Review或部署；旧读取许可、期限和执行槽均不重用。[具体材料与范围](aws-auto-deployment-next-cycle-plan.md)。
+该阶段记录的上传接线现已按顶部实现；原包不重建、历史基准和任务不变。固定VersionId仍只能来自真实ACK及独立核验，之后才准备现有双workflow/SOURCE/trust-only发布；没有包上传、新事实批准或部署授权。
 
 ## 本轮已完成P4本地候选（保留原件）
 

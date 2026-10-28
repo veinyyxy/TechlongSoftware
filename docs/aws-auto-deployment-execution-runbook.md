@@ -29,7 +29,13 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：既有包上传/独立回读接线与准确审批材料
+## 3. 当前唯一继续点：准确包上传清单准备收尾与新SHA批准
+
+本次包上传接线已实现，复用原 `packageUploadRunner` / `createPackageIo`，新旧上传47项本机测试及真实封存body/四原件核对通过；不修改旧上传器或新增AWS执行器。只拟新key一次条件PUT、独立一次固定版本GET及准确新basis事实批准，不发布来源或部署。[完整风险和边界](aws-auto-deployment-reviewed-cycle-package-upload.md)。
+
+最终准确CI通过后，在原五小时准备截止前PrepareSaved生成清单；恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-upload-20261028-a/prepared-verified.json` 并核对实际源码/CI/原件/SHA。它只在准备真实成功后封存，不存在时不能靠本手册声称已获准。新清单最长24小时，最晚启动提前2分钟；新facts仅按真实10月28日10:08:09.592起至10月30日同一时刻，不给旧basis延期。
+
+生成清单后main冻结，不追加文档提交或重写原件；下一只请求用户对准确SHA及新事实/上传范围确认。本轮尚无AWS、SQL或私密配置读取、上传、新槽或dispatch。Prepare不调用AWS；真正获批上传前仍实时核验IAM用户/桶/目标，不因准备完成预先要求Source刷新。包VersionId必须来自真实ACK和独立核验，后继来源发布及整轮执行仍另审。
 
 完整历史最小兼容已完成：源码d8c3de1的准确CI40717621406通过，本机121项（新周期45＋旧入口76、含12新增）及类型/lint/diff通过。新周期仅复用原核验后的现有只读reader，一次固定SOURCE范围SELECT替代12行显示RPC；53行合同不变、54行只作溢出拒绝；status/runStatus显式冲突停止。旧安装函数、权限、保护、入口、包和事实时刻不变，110云闭包保持。每次仍仅一条status查询，计入原单次100/整轮635预算，不增连接或读取配置。
 
@@ -37,7 +43,7 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 P4本地包候选已从真实handoff和七份历史原证据完整重建：11旧job/14历史plan保留，canonical包403623字节；未上传/启用来源。源码630fcf4的准确CI40715649202全部15报告步骤及本机33项定向测试、类型/lint通过。恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-package-20261028-a/verified.json`（原始字节SHA `056168741efc03aa93bf528e455f5b0aa6223aa40f0fa5366d4ff4266f71f84a`）；它绑定candidate/source/result原件及SHA。该阶段无AWS/生产配置/SQL/私钥/Secret值/新槽/上传/dispatch，仅GitHub只读CI核验。
 
-下一仅把已封存准确候选接到原条件上传/独立固定版本回读入口，集中准备新key一次PUT＋独立GET及新事实窗口的准确审批材料，不重建包/改历史基准、重新建任务或先写云。实际上传另按新SHA批准，真实VersionId只有经ACK和独立核验后才能填入后继来源；现有双workflow/SOURCE/trust-only发布及整轮执行仍另审。原准备发现的12行/状态字段问题已在代码层最小修复，旧阻塞记录保留不覆盖。当前selection仍null，没有上传、事实窗口、来源发布或整轮批准。[总清单当前P4](aws-auto-deployment-next-cycle-plan.md)。
+该项上传接线现已按顶部实现，不重建包/改历史基准或新建任务。实际上传另按新SHA批准；真实VersionId只有经ACK和独立核验后才能填入后继来源；现有双workflow/SOURCE/trust-only发布及整轮执行仍另审。原准备发现的12行/状态字段问题已最小修复，旧阻塞记录保留不覆盖。当前selection仍null，没有上传、事实窗口、来源发布或整轮批准。[总清单当前P4](aws-auto-deployment-next-cycle-plan.md)。
 
 P2只读事实及P3[两行原子任务衔接](aws-auto-deployment-reviewed-cycle-handoff-v1.md)已完成。用户批准 `89bf6dcd…` 后，执行源码 `a87d2fe`（准确CI40704097228通过）于2026-10-28温尼伯10:08:09.592提交、10:08:21.656独立回读通过：旧a604原行保留为canceled，新 `job_a00fc18c13a5d6c6616c8039` 为pending/attempt0/max1、永久held、无lease或云执行授权；其他10旧job、14/9/9完整控制账本、业务与保护保持。实际配置读取2/TLS2/SQL79/CI GET6，AWS/Secret值/PEM/控制表写/dispatch/部署均0。写与Inspect两槽永久消费，绝不重放或复位。
 
