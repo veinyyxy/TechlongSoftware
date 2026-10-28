@@ -1,0 +1,80 @@
+{
+  "schema": "techlong/aws-next-cycle-preparation/v1",
+  "state": "DRAFT_BLOCKED_NOT_EXECUTABLE",
+  "sourceAuditCommit": "f289a29c049cc07e4c7e5230f7be221f058445d2",
+  "governingRunbook": "docs/aws-auto-deployment-execution-runbook.md",
+  "planDocument": "docs/aws-auto-deployment-next-cycle-plan.md",
+  "scope": {
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "scenario": "restore_initialized_sandbox_then_independent_inspect",
+    "newIamResourcesMax": 0,
+    "workloadCreateStackMax": 1,
+    "workloadResourcesMax": 7,
+    "authenticatedGetsMax": 2,
+    "privateControlReadsMax": 1,
+    "monthlyBudgetTargetUsd": 50,
+    "monthlyHardCapGuaranteed": false
+  },
+  "historicalCycle": {
+    "jobId": "job_a60423b885fef3e4326213f7",
+    "reviewRunId": "40607422851",
+    "reviewWasSuccessful": true,
+    "reviewFullProofRebuilt": false,
+    "runOncePublished": false,
+    "reviewReplayAllowed": false,
+    "claimByExtended": false,
+    "oldSlotsMustRemain": true
+  },
+  "blockers": [
+    {
+      "id": "G1",
+      "kind": "reviewed_cycle_binding",
+      "currentImplementation": "fixed_a604_job_profile_reader_publication_and_consumed_review_slot",
+      "proposal": "reuse_existing_compilers_and_one_reviewed_cycle_composition_not_per_job_copied_branches",
+      "implementationAuthorized": false
+    },
+    {
+      "id": "G2",
+      "kind": "whole_cycle_preapproval_and_handoff",
+      "currentImplementation": "continuous_review_stops_after_runonce_plan_publication",
+      "proposal": "reuse_existing_runonce_inspect_dispatch_and_three_write_verifiers_under_exact_preapproved_rules",
+      "implementationAuthorized": false
+    }
+  ],
+  "newCycle": {
+    "jobId": null,
+    "requestId": null,
+    "sourceCommit": null,
+    "basisSha256": null,
+    "packageVersionReference": null,
+    "factsApprovalSha256": null,
+    "publicationSha256": null,
+    "wholeCycleApprovalSha256": null,
+    "approvedExecutionManifestSha256": null
+  },
+  "readiness": {
+    "productionSampledThisStage": false,
+    "snapshotPreparationMaxAgeMs": 18000000,
+    "claimWindowMs": 900000,
+    "runOnceReserveMs": 480000,
+    "publisherStartReserveMs": 120000,
+    "inspectHandoffReserveMs": 720000,
+    "aggregateBudgetsFinalized": false,
+    "exactResourcesAndAllStageApprovalsComplete": false
+  },
+  "thisStage": {
+    "newExecutorModules": 0,
+    "newBusinessJobs": 0,
+    "productionCalls": 0,
+    "privateContentReads": 0,
+    "cloudWrites": 0,
+    "sqlWrites": 0,
+    "workflowDispatches": 0,
+    "slotsConsumed": 0
+  },
+  "executionAuthorized": false,
+  "notAcceptedByAnyRunReviewedEntry": true,
+  "nextOnly": "Request direction for G1/G2 minimal mainline integration; no production reads, task creation, publication or dispatch from this draft."
+}
