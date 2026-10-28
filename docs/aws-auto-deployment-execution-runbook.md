@@ -29,7 +29,9 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：G1/G2最小接线与测试（仅代码）
+## 3. 当前唯一继续点：已存事实上的两行任务衔接审批准备
+
+P2只读事实已通过，独立封存在 `F:/ChatGPT_workshop/techlong-reviewed-cycle-facts-20261028-c/verified.json`。当前只用这些原件准备[旧a604取消＋一个新held请求](aws-auto-deployment-reviewed-cycle-handoff-v1.md)及必要SOURCE接线；复用原两行事务/完整事实保护/独立回读，不重复生产读取、不建固定任务分支或新执行器。快照仍按真实最早采样起5小时，不延长；实际DML、来源发布和部署仍逐项准确批准。
 
 用户在总清单收尾后明确要求“开始下一步唯一动作”，本轮据此仅实施G1受审新周期接入与G2整轮预授权衔接的最小代码/测试/文档。复用已有编译器、单次调度和独立三写核验；不复制固定任务分支、不新建执行器或调度平台。本轮不读取生产配置/私钥/Secret，不查询生产、不创建任务、不安装权限、不发布来源或部署。代码可执行能力不等于已获实际执行许可；生产事实、请求/包/来源及整轮SHA仍须另审。
 

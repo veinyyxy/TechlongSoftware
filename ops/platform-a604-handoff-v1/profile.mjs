@@ -18,7 +18,12 @@ export const FACTS=Object.freeze({observedAt:1793107724255,checkedAt:17931077291
   evidenceRoot:'F:/ChatGPT_workshop/techlong-delegated-request-readonly-20261027-a'});
 export const must=(v,c)=>{if(!v)throw Error('TASK_TRANSFER_CANDIDATE_'+c);};
 export const same=(a,b)=>canonicalJson(a)===canonicalJson(b);
-export function createHandoffProfile(input){
+const DEFAULTS={target:TARGET,entry:ENTRY,successfulPredecessor:SUCCESSFUL_PREDECESSOR};
+export function createHandoffProfile(input,capability={}){
+  // SOURCE-only adaptation. The legacy CLI never accepts these via JSON/flags.
+  const TARGET=Object.freeze(structuredClone(capability.target??DEFAULTS.target)),ENTRY=Object.freeze(structuredClone(capability.entry??DEFAULTS.entry)),
+    SUCCESSFUL_PREDECESSOR=capability.successfulPredecessor??DEFAULTS.successfulPredecessor;
+  must(TARGET.runMs===30000&&TARGET.oldJobId!==TARGET.newJobId&&[TARGET.oldJobId,TARGET.newJobId].every(v=>/^job_[a-f0-9]{24}$/.test(v)),'SOURCE_TARGET');
   const copy=structuredClone(input);Object.freeze(copy.protection);const facts=Object.freeze(copy);must([facts.baselineSha256,facts.ledgerSha256].every(x=>/^[a-f0-9]{64}$/.test(x))&&
     Number.isSafeInteger(facts.checkedAt)&&facts.checkedAt<facts.expiresAt,'FACTS');
   const assertState=async(input,at)=>{
@@ -34,7 +39,8 @@ export function createHandoffProfile(input){
       !state.jobs.some(j=>j.id===TARGET.newJobId||j.dedupe_key==='express-initialized-v2:'+TARGET.requestId),'JOB_SET');
     const plans=state.ledger.plans.filter(p=>p.job_id===old.id),attempts=state.ledger.attempts.filter(a=>a.job_id===old.id),approval=state.ledger.approvals.filter(a=>plans.some(p=>p.plan_sha===a.plan_sha));
     must(plans.every(p=>p.mode==='Review'&&p.body.expiresAt<=at),'OLD_REVIEW_EXPIRY');
-    must(same(plans.map(p=>p.plan_sha).sort(),[facts.historicalPlanSha256,facts.reviewPlanSha256].sort())&&attempts.length===1&&approval.length===1&&
+    const historical=facts.historicalPlanShas??[facts.historicalPlanSha256];
+    must(same(plans.map(p=>p.plan_sha).sort(),[...historical,facts.reviewPlanSha256].sort())&&attempts.length===1&&approval.length===1&&
       attempts[0].plan_sha===facts.reviewPlanSha256&&attempts[0].run_id===facts.reviewRunId&&attempts[0].mode==='Review'&&attempts[0].state==='ACKNOWLEDGED'&&
       attempts[0].run_status===null&&attempts[0].conclusion===null&&attempts[0].proof_sha===null&&approval[0].admin_id===ADMIN,'REVIEW_HISTORY');
     must(state.jobs.find(j=>j.id===SUCCESSFUL_PREDECESSOR)?.status==='succeeded','SUCCESSFUL_PREDECESSOR');return state;
@@ -43,12 +49,12 @@ export function createHandoffProfile(input){
   const verifyReadback=async(before,after,at)=>verifyHeldTransferReadback(await assertState(before,at),after,at,TARGET);
   const prepareReview=async({baseline,sourceCommit,createdAt})=>{
     const state=await assertState(baseline,createdAt);must(/^[a-f0-9]{40}$/.test(sourceCommit),'SOURCE');await compile(state,createdAt);
-    const body={schema:'techlong/a604-held-request-review/v1',sourceCommit,createdAt,expiresAt:facts.expiresAt,facts,baseline:state,baselineSha256:facts.baselineSha256,target:TARGET,
+    const body={schema:capability.reviewSchema??'techlong/a604-held-request-review/v1',sourceCommit,createdAt,expiresAt:facts.expiresAt,facts,baseline:state,baselineSha256:facts.baselineSha256,target:TARGET,
       scope:{oldJobUpdates:1,newHeldJobs:1,controlWrites:0,deploymentUpdates:0,awsCalls:0,dispatches:0,protectionChanges:0},
       cloudRuntimeCompatible:false,preparationIsNotApproval:true};return {...body,manifestSha256:await sha256Hex(body)};
   };
   const assertReview=async(m,approved,at)=>{must(same(m,await prepareReview({baseline:m.baseline,sourceCommit:m.sourceCommit,createdAt:m.createdAt}))&&
     approved===m.manifestSha256&&at>=m.createdAt&&at<m.expiresAt,'APPROVAL');return m;};
-  return Object.freeze({target:TARGET,facts,entry:ENTRY,operatorSchema:'techlong/a604-held-request-operator/v1',assertState,compile,verifyReadback,prepareReview,assertReview});
+  return Object.freeze({target:TARGET,facts,entry:ENTRY,operatorSchema:capability.operatorSchema??'techlong/a604-held-request-operator/v1',assertState,compile,verifyReadback,prepareReview,assertReview});
 }
 export const PROFILE=createHandoffProfile(FACTS);

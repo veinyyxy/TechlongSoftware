@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-28，G1/G2最小接线代码完成，仍禁止开窗）
+## 当前唯一继续点（2026-10-28，已存事实准备两行任务衔接审批，仍禁止开窗）
+
+P2已完成并封存于 `F:/ChatGPT_workshop/techlong-reviewed-cycle-facts-20261028-c/verified.json`：原业务/保护保持，a604 pending/attempt0；全部11旧job及完整14/9/9控制账本已读。下一只用原件准备[准确取消a604＋一个新held请求](aws-auto-deployment-reviewed-cycle-handoff-v1.md)，补齐共享事务入口的SOURCE接线，复用原事务/独立readback，不读取生产、不新建固定任务目录或执行器。原08:42:18最早元数据/08:51:24数据库时间及今天13:42:18准备截止不变。入口代码及待审SHA不是执行许可；真实两行写入须另批。云周期SOURCE仍null，不开Review或部署。
+
+## 历史：G1/G2最小接线代码完成（保留）
 
 用户同意的[单个受审周期组合与整轮衔接](aws-auto-deployment-reviewed-cycle-v1.md)已编码：复用单次调度、两次三写及原冻结云内核，整轮外层批准可覆盖连续Review→RunOnce→独立Inspect，三次GitHub环境仍本人批准。默认source为null，尚无真实新任务/事实/包/来源或执行SHA。原97/104云闭包、旧入口及旧槽不改，本轮没有生产读取、私密内容读取、任务创建或云/数据库写入。等待本次准确CI后，仅准备当轮限定只读事实清单并另征允许；不开Review、不复制固定任务分支，不因代码通过声称部署验收。
 
