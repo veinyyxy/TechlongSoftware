@@ -1,5 +1,7 @@
 # 最小连续衔接：Review → 核验 → 后继计划发布
 
+后续执行统一遵守[主线执行手册](aws-auto-deployment-execution-runbook.md)。本修复已在提交 `b4fc2dfdef9b3a2de010dfeb7b01cdfd4c53f5f2` 收尾，[准确CI40610066977](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40610066977)全部通过；下一只准备完整新周期总清单，不再扩展本模块或运行旧周期。
+
 2026-10-27。本次仅实现代码、无生产身份测试和文档；没有运行新周期、读生产配置/Secret/PEM、连接 Neon/Aurora、调用 AWS、写账本、安装权限或调度。工作流、97/104 冻结云闭包、原 deadline 和旧永久槽均不修改。
 
 ## 解决的实际问题及当前限制
