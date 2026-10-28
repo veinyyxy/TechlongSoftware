@@ -29,17 +29,17 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：已存事实上的两行任务衔接审批准备
+## 3. 当前唯一继续点：用独立核验的事后原件准备包与来源审批材料
 
-P2只读事实已通过，独立封存在 `F:/ChatGPT_workshop/techlong-reviewed-cycle-facts-20261028-c/verified.json`。当前只用这些原件准备[旧a604取消＋一个新held请求](aws-auto-deployment-reviewed-cycle-handoff-v1.md)及必要SOURCE接线；复用原两行事务/完整事实保护/独立回读，不重复生产读取、不建固定任务分支或新执行器。快照仍按真实最早采样起5小时，不延长；实际DML、来源发布和部署仍逐项准确批准。
+P2只读事实及P3[两行原子任务衔接](aws-auto-deployment-reviewed-cycle-handoff-v1.md)已完成。用户批准 `89bf6dcd…` 后，执行源码 `a87d2fe`（准确CI40704097228通过）于2026-10-28温尼伯10:08:09.592提交、10:08:21.656独立回读通过：旧a604原行保留为canceled，新 `job_a00fc18c13a5d6c6616c8039` 为pending/attempt0/max1、永久held、无lease或云执行授权；其他10旧job、14/9/9完整控制账本、业务与保护保持。实际配置读取2/TLS2/SQL79/CI GET6，AWS/Secret值/PEM/控制表写/dispatch/部署均0。写与Inspect两槽永久消费，绝不重放或复位。
 
-用户在总清单收尾后明确要求“开始下一步唯一动作”，本轮据此仅实施G1受审新周期接入与G2整轮预授权衔接的最小代码/测试/文档。复用已有编译器、单次调度和独立三写核验；不复制固定任务分支、不新建执行器或调度平台。本轮不读取生产配置/私钥/Secret，不查询生产、不创建任务、不安装权限、不发布来源或部署。代码可执行能力不等于已获实际执行许可；生产事实、请求/包/来源及整轮SHA仍须另审。
+恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-handoff-executed-verified-20261028-a.json`（原始字节SHA `c5b365acc3d812b7102f282a6cc3302aa42fb3e67a3a75d8cf538f594cf954bf`）；它索引真实writer/Inspect原件及SHA，不含私密配置或业务正文。下一只用真实事后原件准备新basis/profile、包及必要SOURCE/来源发布审批材料，不重复生产读取、不建固定任务分支或新执行器。只排除新held行，保留canceled a604及完整旧历史；原成功前驱9db不变。原最早事实时间及13:42:18准备截止不改，不自动赋予新事实窗口。
 
-[最小接线与累计执行上限](aws-auto-deployment-reviewed-cycle-v1.md)已编码，默认source仍为null；代码/准确CI收尾后，下一只拟当轮限定只读事实范围并另征允许。不再扩运行时框架、不先开窗；真实请求、包、必要来源发布和准确整轮批准按总清单P2–P5分别落实。
+G1受审新周期接入与G2整轮衔接的[最小接线与累计执行上限](aws-auto-deployment-reviewed-cycle-v1.md)已编码并通过准确CI，复用原编译器、单次调度和独立三写核验；默认云周期source仍为null。新事实窗口、包上传、必要来源发布及整轮SHA仍须另审，不先开Review或部署，不扩运行时框架或调度平台。真实请求已按准确批准完成，后续按总清单P4–P5集中落实材料与执行范围。
 
 该项的[准备总清单、时序及开窗阻塞](aws-auto-deployment-next-cycle-plan.md)现已落地；其[机器摘要](aws-auto-deployment-next-cycle-plan.json)明确不可执行。它只是本节附表，不另建平行手册；后续以其中No-Go条件和最小范围提案继续，不把草案摘要当批准SHA。
 
-代码与准确CI通过前仍**不启动Review、不新建业务任务、不做云写入**。需要新的生产事实时，先取得当轮明确的限定只读许可；旧读取批准和旧快照不自动延用。
+新SOURCE/包及必要来源发布尚未完成，当前仍**不启动Review、不新建业务任务、不做云写入**。需要新的生产事实时，先取得当轮明确的限定只读许可；旧读取批准和旧快照不自动延用。
 
 总清单必须在开窗前覆盖：
 

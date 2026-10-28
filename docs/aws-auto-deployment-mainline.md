@@ -2,9 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-28，已存事实准备两行任务衔接审批，仍禁止开窗）
+## 当前唯一继续点（2026-10-28，两行任务衔接已独立核验，下一仅准备包与来源审批材料）
 
-P2已完成并封存于 `F:/ChatGPT_workshop/techlong-reviewed-cycle-facts-20261028-c/verified.json`：原业务/保护保持，a604 pending/attempt0；全部11旧job及完整14/9/9控制账本已读。下一只用原件准备[准确取消a604＋一个新held请求](aws-auto-deployment-reviewed-cycle-handoff-v1.md)，补齐共享事务入口的SOURCE接线，复用原事务/独立readback，不读取生产、不新建固定任务目录或执行器。原08:42:18最早元数据/08:51:24数据库时间及今天13:42:18准备截止不变。入口代码及待审SHA不是执行许可；真实两行写入须另批。云周期SOURCE仍null，不开Review或部署。
+用户确认清单 `89bf6dcd122e2e0ffbc04a3f76156ffde8b9d57886d1848bc76507a57bbd9f1e` 后，[准确取消a604＋新held请求](aws-auto-deployment-reviewed-cycle-handoff-v1.md)已在温尼伯10:08:09.592原子提交，10:08:21.656由第二条TLS连接独立核验，结果 `TASK_TRANSFER_INDEPENDENTLY_VERIFIED_HELD_ONLY`。旧 `job_a60423b885fef3e4326213f7` 原行保留为canceled；新 `job_a00fc18c13a5d6c6616c8039` 为pending/attempt0/max1、永久审核挂起、无lease、无云执行授权。其他10旧job、完整14/9/9控制账本、业务与保护完全保持。两永久槽已消费，禁止重放、复位或再执行写入。
+
+执行源码 `a87d2feab7e3f304f1c3f5e07b50c43c506c3658` 的[准确CI40704097228](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40704097228)通过；本轮实际配置读取2/TLS2/SQL79（writer60＋Inspect19）/准确CI GET6，AWS/Secret值/PEM/控制表写/dispatch/部署均0。真实事后快照SHA `c4d28f90e792b935c4fd3f3b99f80775410d481e0bb15e72f4804cf2da0bea52`；私有原件及摘要封存在 `F:/ChatGPT_workshop/techlong-reviewed-cycle-handoff-executed-verified-20261028-a.json`，原始字节SHA `c5b365acc3d812b7102f282a6cc3302aa42fb3e67a3a75d8cf538f594cf954bf`，业务正文不入Git。
+
+下一仅用真实事后原件准备新basis/profile、包及必要SOURCE/来源发布的准确审批材料；只排除新held行，保留已取消a604及全部旧历史，成功前驱仍为 `job_9db8466fd95cef0c23ad6bfc`。不重复生产读取、不复制固定任务分支、不新建执行器。原最早事实时间和13:42:18准备截止不改；尚未批准新事实窗口、包上传、来源发布或整轮执行。云周期SOURCE仍null，不开Review、不dispatch或部署；新生产读取及实际副作用仍另审。
 
 ## 历史：G1/G2最小接线代码完成（保留）
 
