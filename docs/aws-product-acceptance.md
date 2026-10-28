@@ -27,13 +27,34 @@
 
 原触发及权限边界保持：master push只运行verify、使用无效示例API地址和测试值；没有AWS身份、真实HMAC或生产Secret。web部署仍仅手动dispatch、沿用production环境；Android仅tag或手动触发，本轮没有tag或dispatch。没有运行现有 `s3 sync --delete`、CloudFront invalidation、Android签名/打包或Release上传。
 
-## 接下来的单条路径
+## 限定在线核对实测（温尼伯14:41–14:43）
 
-1. 上述准确CI已通过，不重跑、不再为此增加测试框架；这只证明测试参数下能构建，不证明当前sandbox客户端已发布或业务通过。
-2. 经当轮明确允许，用既有入口核对当前租户API及已发布客户端的真实来源/配置；不把CI中 `api.example.invalid` 的构建当作可验收的sandbox产物。没有当前资源快照或生产发布配置实证时，不声称客户端已绑定新租户。
-3. 对齐来源后，才单独审批短时真实客户端访问、商户认证和必要业务场景。复用现有资源和工作流，不新建控制器、任务代际或恢复框架；部署及清理按具体资源另审。
+用户明确允许最多10次GitHub GET、1次STS+20次AWS元数据及4次无身份HTTPS GET后，本轮已完成限定核对。Source准确为账号402010193138的 `user/techlong-sandbox-dev`。
 
-本轮已发起限定在线核对的许可询问，尚未据此调用生产AWS/HTTP。拟定范围为最多10次GitHub GET、1次STS+20次AWS元数据以及4次无身份HTTPS GET；不读Secret值/PEM/.env/HMAC、不执行网页JS、不认证或写业务、不连数据库、不调度或续租。回复与实际调用次数须在执行后记录；这份文档本身不代替批准。
+| 实际核对项 | 观察与边界 |
+| --- | --- |
+| 准确租户栈 | 原UUID `2b604c90-d303-11f1-9e27-0eac036e5781`，CREATE_COMPLETE；不新建或更新栈 |
+| ECS | `cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service`，ACTIVE；desired/running/pending=1/1/0，task definition revision9、PRIMARY rollout COMPLETED |
+| 租户HTTPS | `https://first-acceptance.sandbox.techlong.cloud/health` 在14:41:22.992返回200/ok；`/ready` 在14:41:23.267返回200/ready |
+| 客户端发布历史 | 最后列出的成功手动发布为run29945258964、源码df1ae366…；其旧日志当前不可获取，不重试，不据此推导历史配置或现存bundle |
+| 变量来源 | 三个production环境级变量均404（可能未设置或不可见）；随后三个准确仓库级变量均200，不能把环境级404误判为整个配置缺失 |
+| 已配置S3 | 仓库变量为 `speedfeast-buyer-web-402010193138-ca-central-1-an`；14:43:05.631开始的准确读取返回NoSuchBucket，带expected-owner402010193138；没有创建或列举其他桶 |
+| 已配置CloudFront | 仓库变量为 `ERQVWHE0LMAMX`；14:43:03.975开始的准确读取返回NoSuchDistribution；没有创建或列举其他分布 |
+| 客户端API配置 | 仓库级 `BUYER_API_BASE_URL=https://api.techlong.cloud`，不是本次sandbox入口；未请求该旧域名，也未读取JS来证明已发布bundle的实际编译值 |
+
+结论为 **`TENANT_READY_CONFIGURED_CLIENT_TARGETS_ABSENT`**，不是整套产品验收通过，也不证明账号没有任何其他客户端承载。已配置目标当前不存在，因此没有猜测客户端URL或请求其首页/manifest。CORS仍未测试（两个租户GET没有Origin），没有打开页面、执行JS、登录、签HMAC或连接数据库。
+
+实际累计：GitHub GET预算占用10（列表1、jobs1、旧日志保守记2、六个准确变量GET；不是十次底层传输的实测断言），STS1、AWS元数据7、无身份HTTPS GET2。私密配置/PEM/AWS Secret值/HMAC读取、直接数据库连接、业务写、云写、dispatch及提供者请求重试均0。既有Git凭据与Source身份仅在进程内使用；初次本机脚本在任何新网络/凭据使用前因Windows ESM路径退出，纯本地修正并检查后才发出尚未尝试的请求，原错误被保留，不冒充首次装载成功。
+
+最终本地检查点：`F:/ChatGPT_workshop/techlong-product-online-check-verified-20261028-a.json`，原始字节SHA `3258c70b983e0354e4e15eac50327eaa9de77ab0923cf24195ae62894976187a`；绑定三份真实结果及其SHA，包含当前资源观察、变量来源、两个准确缺失错误和次数。记录不含凭据、HMAC、网页正文或业务快照；原始结果保留，不重新运行本轮脚本。剩余未使用次数不是后继阶段的自动读取许可。
+
+## 下一唯一动作：准备最小sandbox买家Web承载与接线清单
+
+当前主线缺口是**可用客户端承载及其与准确租户API的接线**，不是控制器、队列或数据库恢复。上述准确CI已通过，不重跑或增加测试框架；不把测试中 `api.example.invalid` 的构建当sandbox产物，不重做已完成的租户部署。
+
+下一仅准备一个独立sandbox买家Web承载/发布的准确变更提案，复用现有客户端与GitHub云构建工作流；集中列明目标桶/分布、现有或确需变更的发布身份、准确API与CORS、CLIENT_ID/HMAC的受审来源、GitHub本人门禁和费用/清理。尚未核对的项明确为待确认，不制造执行SHA或声称材料已齐；不自动复活旧分布、重建旧桶、修改production变量、扩权限、读取私密值或dispatch。本轮只读批准不能覆盖这些变更。
+
+真实资源/配置/私密使用范围另经批准后，再进行客户端发布和有限真实业务验收，随后才商户认证及必要业务场景；不扩UI、探针、通用框架或新的固定任务分支。原工作负载意图和清理审核边界保持。
 
 ### 为什么不直接打开买家页面“只读验收”
 

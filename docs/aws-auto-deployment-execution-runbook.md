@@ -37,7 +37,7 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 下一只准备现有客户端、服务端、租户数据库的有限真实业务验收和整套AWS交付，明确具体场景与读取/登录/业务写范围；不继续扩部署基础设施。工作负载意图为今天10月28日16:06:01（温尼伯），不是自动停费/销毁；当前资源可能持续计费，清理按准确资源另审。若恢复时已过期，先另审现状/清理，不自动延期、重新部署或假设费用已停止。
 
-产品阶段的[当前最小继续点与副作用边界](aws-product-acceptance.md)：客户端原准确CI因SDK不匹配失败，已仅在既有master的两份workflow中将三处Flutter pin对齐项目已要求的3.44.9（源码3ad0ea8）；准确CI40755064679的依赖安装/Analyze/Test/Web构建已全部通过，deploy跳过，无云发布。下一仅按另允范围核对现有客户端来源与租户API，不直接将会写访问租约的买家页面当纯只读。不能重做已完成部署或借此扩运行时基础设施。
+产品阶段的[当前最小继续点与副作用边界](aws-product-acceptance.md)：客户端源码3ad0ea8仅对齐两workflow三处SDK pin，准确CI40755064679全部通过、deploy跳过。随后用户允许的限定核对已确认租户revision9/运行1、health/ready均200；仓库配置的旧S3/CloudFront分别NoSuchBucket/NoSuchDistribution，API仍指向旧api.techlong.cloud，不是本次sandbox。检查点 `F:/ChatGPT_workshop/techlong-product-online-check-verified-20261028-a.json`（原始字节SHA `3258c70b983e0354e4e15eac50327eaa9de77ab0923cf24195ae62894976187a`），实际预算占用GitHub10/STS1/AWS元数据7/无身份HTTP2，无写或私密读取。下一唯一准备最小独立sandbox买家Web承载/发布及准确API/CORS/输入来源清单，真实变更另审；不自动重建旧目标、不续窗口或重做租户部署，也不将会写访问租约的买家页面当纯只读。
 
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 
