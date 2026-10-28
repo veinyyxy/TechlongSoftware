@@ -21,7 +21,11 @@ export function oldHistory(rows){
   must(values.length===8&&values.every(r=>[r.planSha256,r.actionSha256,r.riskSha256].every(digest))&&
     new Set(values.map(r=>r.planSha256)).size===8,'HISTORY_COMPLETE');return values.sort((a,b)=>a.planSha256.localeCompare(b.planSha256));
 }
-export function createA604Policy({publication,profile:rawProfile=A604_PROFILE,baselineSha256=HANDOFF.actualAfterSha256}={}){
+const D_DEFAULT=D,oldHistoryDefault=oldHistory,assertPublicationDefault=assertA604Publication,assertScopeDefault=assertA604PlanScope;
+export function createA604Policy({publication,profile:rawProfile=A604_PROFILE,baselineSha256=HANDOFF.actualAfterSha256,capability}={}){
+  // Code-selected composition only; legacy CLI never accepts a capability.
+  const D=capability?.definition??D_DEFAULT,oldHistory=capability?.history??oldHistoryDefault,
+    assertA604Publication=capability?.assertPublication??assertPublicationDefault,assertA604PlanScope=capability?.assertScope??assertScopeDefault;
   const binding=freeze(structuredClone(publication)),profile=freeze(structuredClone(rawProfile));
   const seed=async at=>{await assertA604Publication(binding,profile,at);return validatePlan({schema:'techlong/platform-controller-plan/v6',
     instanceId:S.instanceId,deploymentId:S.deploymentId,jobId:D.jobId,mode:'Review',sourceCommit:binding.sourceCommit,

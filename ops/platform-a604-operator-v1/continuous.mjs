@@ -11,7 +11,10 @@ export const CONTINUOUS=Object.freeze({schema:'techlong/a604-continuous-review/v
   riskFile:'docs/aws-auto-deployment-a604-continuous-review.md',maxRunMs:20*60000,pollMs:15000,pollsMax:80});
 const must=(v,c)=>{if(!v)throw Error('A604_CONTINUOUS_'+c);},same=(a,b)=>canonicalJson(a)===canonicalJson(b);
 const safe=e=>/^[A-Z][A-Z0-9_]+$/.test(e?.message??'')?e.message:'DETAILS_WITHHELD';
-export function createContinuousReviewFlow({policy,publisher,runtime,profile=A604_PROFILE,requestEvidence=REQUEST_EVIDENCE,now=Date.now}){
+const defaults={D,CONTINUOUS,PUBLISH_SLOT,assertA604Publication,assertA604PlanScope};
+export function createContinuousReviewFlow({policy,publisher,runtime,profile=A604_PROFILE,requestEvidence=REQUEST_EVIDENCE,now=Date.now,capability}){
+  const D=capability?.definition??defaults.D,CONTINUOUS=capability?.continuous??defaults.CONTINUOUS,PUBLISH_SLOT=capability?.publishSlot??defaults.PUBLISH_SLOT,
+    assertA604Publication=capability?.assertPublication??defaults.assertA604Publication,assertA604PlanScope=capability?.assertScope??defaults.assertA604PlanScope;
   async function makeReview({grant,createdAt}){
     await policy.approve(grant,grant.grantSha256,createdAt);
     must(Number.isSafeInteger(createdAt)&&createdAt>=grant.issuedAt&&createdAt<grant.reviewLatestStartAt&&

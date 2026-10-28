@@ -8,7 +8,8 @@ import {A604_JOB} from '../platform-a604-cloud-v1/profile.mjs';
 import {assertA604PlanScope} from '../platform-a604-cloud-v1/contract.mjs';
 import {must,same} from './policy.mjs';
 import {D} from './scope.mjs';
-export function completedBusiness(basis,input){
+const DEFAULT_JOB=A604_JOB,defaultScope=assertA604PlanScope;
+export function completedBusiness(basis,input,{jobId:A604_JOB=DEFAULT_JOB}={}){
   const s=normalizedState(input),before=recoveryData(basis,basis.createdAt).state,j=s.jobs.find(j=>j.id===A604_JOB),r=s.deployment.outputs.expressInitializedWorkerRunsV2?.[A604_JOB];
   must(j?.status==='succeeded'&&j.attempts===1&&j.max_attempts===1&&['lease_owner','lease_token','lease_expires_at'].every(k=>j[k]===null)&&
     Number.isSafeInteger(j.completed_at)&&Number.isSafeInteger(j.updated_at)&&Number.isSafeInteger(j.available_at)&&j.available_at<=j.completed_at&&
@@ -18,8 +19,9 @@ export function completedBusiness(basis,input){
   delete d.outputs.expressInitializedWorkerRunsV2[A604_JOB];d.admissionSnapshot.predecessorJob=before.deployment.admissionSnapshot.predecessorJob;
   must(same(d,before.deployment),'PRESERVED_BUSINESS');return {state:s,job:j,receipt:r,before};
 }
-export async function verifyRunOnceBaseline({basis,snapshot,entry,binding}){
-  const {state:s,before}=completedBusiness(basis,snapshot),p=entry.plan;assertA604PlanScope(p,binding);
+export async function verifyRunOnceBaseline({basis,snapshot,entry,binding},capability={}){
+  const A604_JOB=capability.jobId??DEFAULT_JOB,assertA604PlanScope=capability.assertScope??defaultScope;
+  const {state:s,before}=completedBusiness(basis,snapshot,{jobId:A604_JOB}),p=entry.plan;assertA604PlanScope(p,binding);
   const valid=await validatePlan(p,binding.release,p.preparedAt);
   must(valid.planSha256===entry.planSha256&&valid.actionSha256===entry.actionSha256&&entry.riskSha256===p.riskSha256,'RUN_PLAN_HASHES');
   must(p.mode==='RunOnce'&&entry.attempt?.state==='ACKNOWLEDGED'&&entry.attempt.status==null&&entry.attempt.conclusion==null&&entry.attempt.proofSha256===null,'RUN_ACK');
@@ -36,7 +38,7 @@ export async function verifyRunOnceBaseline({basis,snapshot,entry,binding}){
   const old={plans:s.ledger.plans.filter(p=>!ids.has(p.plan_sha)),approvals:s.ledger.approvals.filter(a=>!ids.has(a.plan_sha)),attempts:s.ledger.attempts.filter(a=>a.job_id!==A604_JOB)};
   must(same(old,before.ledger),'PRESERVED_OLD_CONTROL');return s;
 }
-export async function verifyCompletionContent(snapshot,proposal){
+export async function verifyCompletionContent(snapshot,proposal,{jobId:A604_JOB=DEFAULT_JOB}={}){
   const s=normalizedState(snapshot),j=s.jobs.find(j=>j.id===A604_JOB),r=s.deployment.outputs.expressInitializedWorkerRunsV2[A604_JOB],
     inner=proposal.verifiedEnvelope.innerManifest,report=proposal.verifiedRunReport,token='lease_'+'0'.repeat(32);
   must(inner.jobPlan.jobId===A604_JOB&&r.jobPlanSha256===inner.jobPlan.planSha256&&r.completedBy==='express-initialized-single-job-v2'&&

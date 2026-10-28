@@ -17,8 +17,10 @@ export function inspectTiming(inner,basisExpiresAt,at){
   must(expiresAt>at+12*60000,'INSPECT_HANDOFF_RESERVE');
   return {checkedAt:at,claimBy:inner.jobPlan.claimBy,workloadExpiresAt:inner.workload.workloadExpiresAt,expiresAt};
 }
-export function createInspectProposer({publication:raw,profile:rawProfile=A604_PROFILE,now=Date.now}){
-  const publication=freeze(structuredClone(raw)),profile=freeze(structuredClone(rawProfile)),runtime=createA604Runtime({publication,profile,now});
+const defaultScope=assertA604PlanScope,defaultPublication=assertA604Publication;
+export function createInspectProposer({publication:raw,profile:rawProfile=A604_PROFILE,now=Date.now,capability}){
+  const publication=freeze(structuredClone(raw)),profile=freeze(structuredClone(rawProfile)),runtime=capability?.runtime??createA604Runtime({publication,profile,now});
+  const assertA604Publication=capability?.assertPublication??defaultPublication,assertA604PlanScope=capability?.assertScope??defaultScope;
   return async function({binding,basis,entry,run,resultReference,readObject}){
     const guard=async()=>{must(same(binding,publication),'SOURCE_PUBLICATION');await assertA604Publication(binding,profile,now());};
     await guard();assertA604PlanScope(entry.plan,binding);must(basis.basisSha256===binding.basisSha256,'BASIS');

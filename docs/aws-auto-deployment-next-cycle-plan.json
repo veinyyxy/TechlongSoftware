@@ -33,14 +33,16 @@
       "kind": "reviewed_cycle_binding",
       "currentImplementation": "fixed_a604_job_profile_reader_publication_and_consumed_review_slot",
       "proposal": "reuse_existing_compilers_and_one_reviewed_cycle_composition_not_per_job_copied_branches",
-      "implementationAuthorized": false
+      "implementationAuthorized": true,
+      "implementationState": "CODE_IMPLEMENTED_SOURCE_NOT_CONFIGURED"
     },
     {
       "id": "G2",
       "kind": "whole_cycle_preapproval_and_handoff",
       "currentImplementation": "continuous_review_stops_after_runonce_plan_publication",
       "proposal": "reuse_existing_runonce_inspect_dispatch_and_three_write_verifiers_under_exact_preapproved_rules",
-      "implementationAuthorized": false
+      "implementationAuthorized": true,
+      "implementationState": "CODE_IMPLEMENTED_REQUIRES_EXACT_CI_AND_FRESH_EXECUTION_APPROVAL"
     }
   ],
   "newCycle": {
@@ -76,5 +78,5 @@
   },
   "executionAuthorized": false,
   "notAcceptedByAnyRunReviewedEntry": true,
-  "nextOnly": "Request direction for G1/G2 minimal mainline integration; no production reads, task creation, publication or dispatch from this draft."
+  "nextOnly": "After exact code CI, propose bounded fresh read-only preparation and obtain its separate permission. Source is not configured; no production reading, task creation, publication or dispatch is authorized."
 }

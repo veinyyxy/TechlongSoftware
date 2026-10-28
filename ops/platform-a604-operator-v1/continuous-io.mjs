@@ -23,16 +23,23 @@ async function boundedText(response,max){
   try{for(;;){const r=await reader.read();if(r.done)break;size+=r.value.length;must(size<=max,'CONTINUOUS_BODY_SIZE');parts.push(r.value);}}
   finally{reader.releaseLock();}return new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(parts,size));
 }
-export function extractReviewReference(logs,{jobId,runId}){
+export function extractReviewReference(logs,{jobId,runId,mode='Review'}){
+  must(['Review','RunOnce','Inspect'].includes(mode),'CONTINUOUS_LOG_MODE');
   must(typeof logs==='string'&&Buffer.byteLength(logs)<=2000000,'CONTINUOUS_LOG_SIZE');const candidates=[];
   for(const line of logs.split(/\r?\n/)){const start=line.indexOf('{');if(start<0)continue;let v;
     try{v=JSON.parse(line.slice(start));}catch{continue;}
-    if(v.mode==='Review'&&v.jobId===jobId&&v.saved)candidates.push(v);
+    if(v.mode===mode&&v.jobId===jobId&&v.saved)candidates.push(v);
   }
   must(candidates.length===1,'CONTINUOUS_LOG_RESULT');const value=candidates[0];
   assertReferenceV6(value.saved,resultKeyV6(jobId,value.manifestSha256,runId));return value.saved;
 }
-export function createContinuousIo({manifest:m,output,record,policy,assertSource,verifyCi}){
+const defaults={D,CONTINUOUS,PUBLISH_SLOT,INSPECT_PUBLISH_SLOT,slot,auditKey,oldHistory,readA604State,createA604DispatchIo,createA604PublisherIo};
+export function createContinuousIo({manifest:m,output,record,policy,assertSource,verifyCi,capability}){
+  const D=capability?.definition??defaults.D,CONTINUOUS=capability?.continuous??defaults.CONTINUOUS,
+    PUBLISH_SLOT=capability?.publishSlot??defaults.PUBLISH_SLOT,INSPECT_PUBLISH_SLOT=capability?.inspectSlot??defaults.INSPECT_PUBLISH_SLOT,
+    slot=capability?.slot??defaults.slot,auditKey=capability?.auditKey??defaults.auditKey,oldHistory=capability?.history??defaults.oldHistory,
+    readA604State=capability?.readState??defaults.readA604State,createA604DispatchIo=capability?.dispatchIo??defaults.createA604DispatchIo,
+    createA604PublisherIo=capability?.publisherIo??defaults.createA604PublisherIo;
   let token,closed=false;const g=m.grant;
   const counts={monitorGithubGets:0,officialLogDownloads:0,captureSts:0,captureS3Gets:0,configReads:0,connections:0,queries:0,runOnceDispatches:0};
   const auth=()=>{if(!token){let raw=git(['credential','fill'],'protocol=https\nhost=github.com\npath='+S.repository+'.git\n\n');
@@ -47,13 +54,14 @@ export function createContinuousIo({manifest:m,output,record,policy,assertSource
   return {record,assertSource,verifyCi,
     async assertUnused(){for(const f of [CONTINUOUS.slot,slot('Review'),slot('RunOnce'),slot('Inspect'),PUBLISH_SLOT,INSPECT_PUBLISH_SLOT])await absent(f);},
     claim:v=>writeOnce(CONTINUOUS.slot,{...v,output,consumedAt:Date.now(),retryAllowed:false}),
-    async dispatchReview(grant,guard){
-      must(same(grant,g),'CONTINUOUS_GRANT');const started=Date.now(),localGuard=async()=>{await guard();must(Date.now()-started<D.runMs,'CONTINUOUS_DISPATCH_DEADLINE');};
-      const io=createA604DispatchIo({grant:g,mode:'Review',planSha256:g.seed.planSha256,record:(n,v)=>record('dispatch-'+n,v),guard:localGuard,verifyCi,
-        claim:()=>writeOnce(slot('Review'),{grantSha256:g.grantSha256,sourceCommit:m.sourceCommit,mode:'Review',planSha256:g.seed.planSha256,
+    dispatchReview(grant,guard){must(same(grant,g),'CONTINUOUS_GRANT');return this.dispatch('Review',g.seed.planSha256,guard);},
+    async dispatch(mode,planSha256,guard){
+      must(D.modes.includes(mode),'CONTINUOUS_MODE');const started=Date.now(),localGuard=async()=>{await guard();must(Date.now()-started<D.runMs,'CONTINUOUS_DISPATCH_DEADLINE');};
+      const io=createA604DispatchIo({grant:g,mode,planSha256,record:(n,v)=>record('dispatch-'+n,v),guard:localGuard,verifyCi,
+        claim:()=>writeOnce(slot(mode),{grantSha256:g.grantSha256,sourceCommit:m.sourceCommit,mode,planSha256,
           outerSha256:m.manifestSha256,output,consumedAt:Date.now(),retryAllowed:false})});
       return createDispatchOperation({definition:D,approve:policy.approve,target:policy.target,history:oldHistory,key:auditKey,historyModes:D.modes})
-        ({grant:g,approved:g.grantSha256,mode:'Review',planSha256:g.seed.planSha256,io});
+        ({grant:g,approved:g.grantSha256,mode,planSha256,io});
     },
     async waitReview(ack,deadline,guard){let announced=false;
       for(let i=0;i<CONTINUOUS.pollsMax;i++){
@@ -64,7 +72,7 @@ export function createContinuousIo({manifest:m,output,record,policy,assertSource
         if(r.status==='waiting'&&!announced){const pending=await get('actions/runs/'+ack.runId+'/pending_deployments');
           must(pending.length===1&&pending[0].environment?.id===24613410405&&pending[0].environment.name===D.environment&&
             pending[0].reviewers?.some(x=>x.type==='User'&&x.reviewer?.id===14145707),'CONTINUOUS_HUMAN_GATE');
-          announced=true;const notice={outcome:'REVIEW_GITHUB_ENVIRONMENT_WAITING',runId:ack.runId,url:ack.url,environment:D.environment};
+          announced=true;const notice={outcome:'REVIEW_GITHUB_ENVIRONMENT_WAITING',mode:ack.mode,runId:ack.runId,url:ack.url,environment:D.environment};
           await record('human-gate',notice);console.log(JSON.stringify(notice));}
         await new Promise(resolve=>setTimeout(resolve,Math.min(CONTINUOUS.pollMs,Math.max(1,deadline-Date.now()))));
       }throw Error('A604_CONTINUOUS_POLL_BUDGET');
@@ -78,21 +86,30 @@ export function createContinuousIo({manifest:m,output,record,policy,assertSource
         const location=new URL(log.headers.get('location'));must(location.protocol==='https:'&&
           (location.hostname.endsWith('.blob.core.windows.net')||location.hostname.endsWith('.actions.githubusercontent.com')),'CONTINUOUS_LOG_HOST');
         must(++counts.officialLogDownloads===1,'CONTINUOUS_LOG_ONCE');const response=await fetch(location,{redirect:'error',signal:AbortSignal.timeout(20000)});
-        must(response.status===200,'CONTINUOUS_LOG_DOWNLOAD');const logs=await boundedText(response,2000000),resultReference=extractReviewReference(logs,{jobId:D.jobId,runId:ack.runId});
+        must(response.status===200,'CONTINUOUS_LOG_DOWNLOAD');const logs=await boundedText(response,2000000),resultReference=extractReviewReference(logs,{jobId:D.jobId,runId:ack.runId,mode:ack.mode});
         await record('review-result-reference',{reference:resultReference,logSha256:await sha256Hex(logs)});
         const cfg={region:P.region,credentials:fromLoginCredentials({profile:P.profile,ignoreCache:true}),maxAttempts:1,ignoreConfiguredEndpointUrls:true};
         sts=new STSClient({...cfg,endpoint:'https://sts.ca-central-1.amazonaws.com'});must(++counts.captureSts===1,'CONTINUOUS_STS_ONCE');
         const id=await sts.send(new GetCallerIdentityCommand({}),{abortSignal:AbortSignal.timeout(20000)});
         must(id.Account===P.account&&id.Arn===P.sourceArn&&id.UserId===P.sourceId,'CONTINUOUS_SOURCE');
         s3=new S3Client({...cfg,endpoint:'https://s3.ca-central-1.amazonaws.com'});reads=createPublisherReadsV6({s3,fetch,githubToken:auth()});
-        const objects=[],read=async reference=>{await guard();must(++counts.captureS3Gets<=4,'CONTINUOUS_OBJECT_BUDGET');
+        const objects=[],read=async reference=>{await guard();must(++counts.captureS3Gets<=(ack.mode==='Review'?4:6),'CONTINUOUS_OBJECT_BUDGET');
           const object=await reads.readObject(reference);objects.push({reference,object});return object.value;};
-        const result=await read(resultReference);must(result.mode==='Review'&&result.jobId===D.jobId&&result.run.runId===ack.runId,'CONTINUOUS_RESULT');
-        assertReferenceV6(result.cloudReportReference,`worker-v5/${S.instanceId}/${D.jobId}/${result.manifestSha256}/manifest.json`);
-        const envelope=await read(result.cloudReportReference);
+        const result=await read(resultReference);must(result.mode===ack.mode&&result.jobId===D.jobId&&result.run.runId===ack.runId,'CONTINUOUS_RESULT');
+        const envelopeRef=ack.mode==='Review'?result.cloudReportReference:JSON.parse(ack.plan.inputs.manifest);
+        assertReferenceV6(envelopeRef,`worker-v5/${S.instanceId}/${D.jobId}/${result.manifestSha256}/manifest.json`);
+        const envelope=await read(envelopeRef);
         // Preserve the original15m claim,8m execution and2m publication reserves.
-        const timing=reviewTiming(envelope.innerManifest,g.binding.factsApproval.expiresAt,Date.now());
-        must(timing.expiresAt>Date.now()+120000,'CONTINUOUS_PREPARE_WINDOW');
+        if(ack.mode==='Review'){const timing=reviewTiming(envelope.innerManifest,g.binding.factsApproval.expiresAt,Date.now());
+          must(timing.expiresAt>Date.now()+120000,'CONTINUOUS_PREPARE_WINDOW');}
+        else{
+          assertReferenceV6(result.cloudReportReference,`worker-v5/${S.instanceId}/${D.jobId}/${envelope.innerManifest.manifestSha256}/run-${ack.runId}-1/${ack.mode==='RunOnce'?'run':'inspect'}.json`);
+          await read(result.cloudReportReference);
+          if(ack.mode==='RunOnce'){
+            assertReferenceV6(result.executionReference,`worker-v5/${S.instanceId}/${D.jobId}/${result.manifestSha256}/execution-reference-${ack.runId}-v1.json`);
+            await read(result.executionReference);
+          }
+        }
         await read(g.binding.packageReference);await read(JSON.parse(g.seed.plan.inputs.installation));
         await guard();must(++counts.configReads===1,'CONTINUOUS_CONFIG_ONCE');let url=await readAuthV6(g.auth),config=await publisherDatabaseConfigV6(url);url=undefined;
         c=new pg.Client({...config,application_name:'Techlong-A604-Continuous-Readiness'});config=undefined;c.on('error',()=>{closed=true;});counts.connections++;
@@ -104,7 +121,7 @@ export function createContinuousIo({manifest:m,output,record,policy,assertSource
           return c.query(text,values);}};
         const contract=sqlContract((await readText(ROOT+'/'+I.sql,3000000)).replaceAll('\r\n','\n'));let entry;
         const snapshot=await readLaunchSnapshot(reader,{contract,readState:async(q,options)=>{const state=await readA604State(q,options);
-          const r=await q.query('SELECT deployment_control_v6.load_plan($1) AS value',[g.seed.planSha256]);must(r.rows.length===1,'CONTINUOUS_ENTRY');entry=r.rows[0].value;return state;}});
+          const r=await q.query('SELECT deployment_control_v6.load_plan($1) AS value',[ack.planSha256]);must(r.rows.length===1,'CONTINUOUS_ENTRY');entry=r.rows[0].value;return state;}});
         const captured={entry,snapshot,objects,resultReference};await record('captured-material',captured);return captured;
       }finally{try{await c?.end();}finally{reads?.dispose();sts?.destroy();s3?.destroy();}}
     },

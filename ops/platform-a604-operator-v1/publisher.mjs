@@ -12,11 +12,13 @@ import {createInspectProposer,inspectTiming} from './inspect-successor.mjs';
 import {verifyRunOnceBaseline,verifyCompletionContent} from './inspect-state.mjs';
 export const REQUEST_EVIDENCE=Object.freeze({schema:'techlong/a604-handoff-evidence/v1',transactionAt:A604_PROFILE.factsAt,
   independentObservedAt:A604_PROFILE.databaseCheckedAt,sealRawSha256:HANDOFF.sealRawSha256,afterSha256:HANDOFF.actualAfterSha256});
-export function createA604PublisherOperations({publication:raw,profile:rawProfile=A604_PROFILE,requestEvidence:rawEvidence=REQUEST_EVIDENCE,now=Date.now}={}){
+const defaults={jobId:A604_JOB,assertPublication:assertA604Publication,assertScope:assertA604PlanScope};
+export function createA604PublisherOperations({publication:raw,profile:rawProfile=A604_PROFILE,requestEvidence:rawEvidence=REQUEST_EVIDENCE,now=Date.now,capability:c}={}){
+  const A604_JOB=c?.jobId??defaults.jobId,assertA604Publication=c?.assertPublication??defaults.assertPublication,assertA604PlanScope=c?.assertScope??defaults.assertScope;
   const publication=freeze(structuredClone(raw)),profile=freeze(structuredClone(rawProfile)),requestEvidence=freeze(structuredClone(rawEvidence));
   const check=async p=>{must(same(p,publication),'SOURCE_PUBLICATION');return assertA604Publication(p,profile,now());};
-  const runtime=createA604Runtime({publication,profile,now});
-  const capability={schema:'techlong/a604-publisher-review/v1',assertBinding:check,assertScope:assertA604PlanScope,slot:PUBLISH_SLOT,riskFile:RISK,allowEmptyHistory:true,
+  const runtime=c?.runtime??createA604Runtime({publication,profile,now});
+  const capability={schema:c?.publisherSchema??'techlong/a604-publisher-review/v1',assertBinding:check,assertScope:assertA604PlanScope,slot:c?.publishSlot??PUBLISH_SLOT,riskFile:c?.riskFile??RISK,allowEmptyHistory:true,
     validateRequestEvidence:async e=>must(same(e,requestEvidence),'HANDOFF_EVIDENCE'),
     verifyRequestReadback:async(basis,input,at)=>{
       // The held row predates the new basis: do not recompile it at a fabricated
@@ -29,13 +31,14 @@ export function createA604PublisherOperations({publication:raw,profile:rawProfil
     propose:args=>proposeReviewSuccessor({...args,rebuildPackage:runtime.rebuild},{assertBinding:check,assertScope:assertA604PlanScope})};
   return createPublisherOperations({historicalPlanShas:[],capability});
 }
-export function createA604InspectPublisherOperations({publication:raw,profile:rawProfile=A604_PROFILE,now=Date.now}={}){
+export function createA604InspectPublisherOperations({publication:raw,profile:rawProfile=A604_PROFILE,now=Date.now,capability:c,requestEvidence=REQUEST_EVIDENCE}={}){
+  const assertA604Publication=c?.assertPublication??defaults.assertPublication,assertA604PlanScope=c?.assertScope??defaults.assertScope;
   const publication=freeze(structuredClone(raw)),profile=freeze(structuredClone(rawProfile));
   const check=async p=>{must(same(p,publication),'SOURCE_PUBLICATION');return assertA604Publication(p,profile,now());};
-  return createPublisherOperations({historicalPlanShas:[],capability:{schema:'techlong/a604-inspect-publisher-review/v1',allowEmptyHistory:true,
-    assertBinding:check,assertScope:assertA604PlanScope,slot:INSPECT_PUBLISH_SLOT,riskFile:RISK,actionName:'AdvanceRunOnce',nextMode:'Inspect',maxObjects:6,
+  return createPublisherOperations({historicalPlanShas:[],capability:{schema:c?.inspectSchema??'techlong/a604-inspect-publisher-review/v1',allowEmptyHistory:true,
+    assertBinding:check,assertScope:assertA604PlanScope,slot:c?.inspectSlot??INSPECT_PUBLISH_SLOT,riskFile:c?.riskFile??RISK,actionName:'AdvanceRunOnce',nextMode:'Inspect',maxObjects:6,
     startReserveMs:12*60000,timingBudget:inspectTiming,resultOutcome:'DELEGATED_INSPECT_PUBLISHED_REQUIRES_SEPARATE_DISPATCH',
-    verifyBaseline:async input=>{await check(input.binding);must(same(input.requestEvidence,REQUEST_EVIDENCE),'HANDOFF_EVIDENCE');return verifyRunOnceBaseline(input);},
-    verifyProposal:verifyCompletionContent,propose:createInspectProposer({publication,profile,now}),
+    verifyBaseline:async input=>{await check(input.binding);must(same(input.requestEvidence,requestEvidence),'HANDOFF_EVIDENCE');return verifyRunOnceBaseline(input,c);},
+    verifyProposal:(snapshot,proposal)=>verifyCompletionContent(snapshot,proposal,c),propose:createInspectProposer({publication,profile,now,capability:c}),
     guardBudget:async(m,proposal,at)=>must(proposal.successor.plan.expiresAt>at+10*60000,'INSPECT_PUBLICATION_RESERVE')}});
 }
