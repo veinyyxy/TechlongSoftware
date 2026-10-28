@@ -7,7 +7,8 @@ import {createA604Policy,oldHistory,auditKey,slot} from '../ops/platform-a604-op
 import {D,publicationAt,PUBLISH_SLOT,LOCAL_PUBLICATION} from '../ops/platform-a604-operator-v1/scope.mjs';
 import {createPackageCandidateBuilder} from '../ops/platform-a604-operator-v1/package.mjs';
 import {createA604PublisherOperations} from '../ops/platform-a604-operator-v1/publisher.mjs';
-import {parseArgs} from '../ops/platform-a604-operator-v1/local.mjs';
+import {parseArgs,assertPreparationReadiness} from '../ops/platform-a604-operator-v1/local.mjs';
+import {SNAPSHOT_MAX_AGE_MS} from '../ops/platform-a604-publication-v1/readiness.mjs';
 import {environmentProof} from '../ops/platform-delegated-approval-v1/policy.mjs';
 import {verifyAuditPermission,appFetchGuard} from '../ops/platform-delegated-approval-v1/io.mjs';
 import {createA604Runtime} from '../ops/platform-a604-cloud-v1/runtime.mjs';
@@ -23,6 +24,19 @@ async function grantFixture(){const f=await a604Fixture(),policy=createA604Polic
   const g=await policy.grant({sourceCommit:f.sourceCommit,pins:Array.from({length:20},(_,i)=>({file:'synthetic/'+i+'.mjs',sha256:'a'.repeat(64)})),
     ci:{sourceCommit:f.sourceCommit,testedSourceCommit:f.sourceCommit,attempt:1,status:'completed',conclusion:'success'},environment:ep(),history:history(),
     key:{length:2000,contentRead:false,protectionSha256:'c'.repeat(64)},auth:{length:100,contentRead:false,aclSha256:'e'.repeat(64)},issuedAt:f.at});return {...f,policy,g};}
+test('grant preparation shares the five-hour snapshot window without changing recorded timestamps',()=>{
+  const at=1700000000000,saved={checkedAt:at,expiresAt:at+1000},original=structuredClone(saved);
+  assert.equal(SNAPSHOT_MAX_AGE_MS,5*3600000);
+  for(const age of [0,2*3600000,SNAPSHOT_MAX_AGE_MS-1])assert.doesNotThrow(()=>assertPreparationReadiness(saved,at+age));
+  for(const now of [at-1,at+SNAPSHOT_MAX_AGE_MS,at+SNAPSHOT_MAX_AGE_MS+1,NaN,Infinity,at+0.5,'1700000000000']){
+    assert.throws(()=>assertPreparationReadiness(saved,now),/READINESS_AGE/);
+  }
+  for(const checkedAt of [undefined,null,-1,NaN,Infinity,at+0.5,String(at)]){
+    assert.throws(()=>assertPreparationReadiness({checkedAt},at),/READINESS_AGE/);
+  }
+  assert.throws(()=>assertPreparationReadiness(null,at),/READINESS_AGE/);assert.deepEqual(saved,original);
+});
+
 test('new delegation has independent scope/slots and cannot be mistaken for a9b grant',async()=>{
   const f=await grantFixture();await f.policy.approve(f.g,f.g.grantSha256,f.at);
   assert.equal(f.g.schema,'techlong/a604-delegated-approval/v1');assert.equal(f.g.policy.jobId,D.jobId);assert.equal(f.g.policy.approveGithubEnvironment,false);

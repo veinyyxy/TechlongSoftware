@@ -1,5 +1,17 @@
 # 当前主线：先完成自动部署，再整套迁到 AWS
 
+## 当前唯一继续点（2026-10-27，已发布、待新模式真实闭环）
+
+**a604 审查包、双工作流、本机 SOURCE 绑定及既有角色 trust-only 更新均已实际完成，并通过独立核验；新模式尚未调度或部署。** 发布依据为清单 `08db1a1be2aa9ac05951e133780c08281f39e080e9fa766a4131ab3b9a1ba5a4`；reusable 为 `e658f7b88ab50b4ff3c5653d46866b859fbadfe1`，caller 为 `7cad79476337033d7f5289fea77e230d9acbc370`。原权限、角色身份及 97/104 文件云闭包保持，两个发布永久槽已消费；禁止再次上传包或重放发布。
+
+发布后的旧工作流测试误报已在 `c06c0a6feaf9f7e0806dd396cc7346708bcdf2fa` 修复，[准确 CI 40602836192](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40602836192) 的 409 项测试、类型及 lint 检查全部通过。该结果只证明对应源码；本次及以后的提交仍须各自准确 CI 通过。实际发布与 CI 原始证明分别封存在 `F:/ChatGPT_workshop/techlong-a604-publication-executed-verified-20261027-a.json` 和 `F:/ChatGPT_workshop/techlong-a604-legacy-test-fix-verified-20261027-a.json`，旧失败记录保留。
+
+**最快继续路径：完成本次 5 小时准备策略收尾及准确 CI → 获得当轮限定只读许可并核对同一 a604 held 任务/空新账本和现有授权 → 准备准确委托与计划 → 连续完成 Review、RunOnce、独立 Inspect。** 不为 Web 按钮续租，不新增任务、镜像、IAM、探针或 F3c9/UI 功能；GitHub environment 仍由用户本人批准。现有发布不是 grant、计划、私密读取、dispatch 或部署许可，所有实际副作用仍按准确范围单独批准。
+
+发布准备与 `PrepareGrantSaved` 的准备快照统一为真实观测后 **不足 5 小时**；不改写采样时间，不延长事实窗口、grant/计划/任务领取期限或执行前实时核验。新 a604 事实期限固定为 2026-10-29 09:06:24.483（温尼伯 CDT）；旧 basis 不延长。50 USD/月仍是预算目标，不是自动停费；本次没有重新核验当前资源健康或费用。完成新模式独立验收后，转向完整客户端/业务/数据库与长期运维交付，不把 CI 或旧部署成功当成整套 AWS 上线。
+
+## 历史：发布前的准备继续点（保留，不作为当前状态）
+
 当前唯一继续点（2026-10-27，5小时快照准备策略）：**新一轮限定只读已通过（1STS/9AWS元数据/14GitHub GET/0写）；用户进一步明确以后准备快照使用5小时，不再使用2小时限制。** 当前快照真实时间14:38:53.490 CDT，准备截止19:38:53.490，原件/事实期限/清单24小时及执行前实时核验不变。仅本次准确原件允许经过“期限策略代码-only”的新CI源码推进；不改旧观测、不放行任何受保护目标变更，来源明确写进清单。下一按已存原件准备三文件/trust-only准确新SHA；实际发布仍另批。当前SOURCE仍UNPUBLISHED，IAM/工作流/数据库/97与104云闭包未改变，不续租或部署。[完整范围与期限](aws-auto-deployment-a604-workflow-publication-review.md)。
 
 上一已完成阶段：af800cdb准确审批下，一次390134字节审查包PUT及独立固定版本GET通过，新a604事实窗口获批，两永久槽已消费；绝不重放或重新上传。[实际结果](aws-auto-deployment-a604-package-upload-observed.md) / [公开机器摘要](../ops/aws-sandbox/reviews/platform-a604-package-v1.executed.json)。

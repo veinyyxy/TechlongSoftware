@@ -22,6 +22,7 @@ import {createA604PublisherOperations,createA604InspectPublisherOperations,REQUE
 import {createInspectProposer} from './inspect-successor.mjs';
 import {preparePackageCandidate} from './package.mjs';
 import {loadSealedPackageInputs} from './saved.mjs';
+import {SNAPSHOT_MAX_AGE_MS} from '../platform-a604-publication-v1/readiness.mjs';
 const BASE='F:/ChatGPT_workshop';
 export const ROOTS=['ops/platform-a604-operator-v1/local.mjs','ops/platform-operator-v6/key-metadata.ps1',RISK,
   'tests/platform-a604-operator-v1.test.mjs','tests/platform-a604-inspect-publisher-v1.test.mjs',
@@ -29,6 +30,10 @@ export const ROOTS=['ops/platform-a604-operator-v1/local.mjs','ops/platform-oper
 const json=async f=>JSON.parse(await readText(f,5000000)),write=async(f,v)=>{assertEvidenceSafeV5(v);await writeOnce(f,v);};
 const outPath=f=>{must(/^F:\/ChatGPT_workshop\/techlong-a604-operator-[a-z0-9-]+$/.test(f??''),'OUTPUT');return f;};
 const evidence=f=>{must(/^F:\/ChatGPT_workshop\/techlong-[A-Za-z0-9/_.-]+\.json$/.test(f??'')&&!f.includes('..'),'EVIDENCE_PATH');return f;};
+export function assertPreparationReadiness(saved,now){
+  must(Number.isSafeInteger(now)&&now>=0&&Number.isSafeInteger(saved?.checkedAt)&&saved.checkedAt>=0&&
+    saved.checkedAt<=now&&now-saved.checkedAt<SNAPSHOT_MAX_AGE_MS,'READINESS_AGE');
+}
 export function parseArgs(args){if(same(args,['--check']))return {mode:'Check'};const a={};must(args.length%2===0,'ARGS');
   for(let i=0;i<args.length;i+=2){must(!Object.hasOwn(a,args[i])&&args[i+1]&&!args[i+1].startsWith('--'),'ARGS');a[args[i]]=args[i+1];}
   const fields={PreparePackageSaved:['--mode','--ci-run','--output'],PrepareGrantSaved:['--mode','--ci-run','--output','--environment-file','--ledger-file'],
@@ -63,7 +68,7 @@ export async function main(args=process.argv.slice(2)){
   if(a['--mode']==='PrepareGrantSaved'){
     const out=outPath(a['--output']);await absent(out);for(const mode of D.modes)await absent(slot(mode));
     const ep=await json(evidence(a['--environment-file'])),ledger=await json(evidence(a['--ledger-file'])),now=Date.now();
-    for(const saved of [ep,ledger])must(Number.isSafeInteger(saved.checkedAt)&&saved.checkedAt<=now&&now-saved.checkedAt<7200000,'READINESS_AGE');
+    for(const saved of [ep,ledger])assertPreparationReadiness(saved,now);
     must(ledger.sourceCommit===head&&ledger.counts?.writes===0&&ledger.counts.configReads===1&&ledger.counts.connections===1&&
       ledger.counts.queries<=45&&await sha256Hex(ledger.snapshot)===HANDOFF.actualAfterSha256&&
       ledger.plans.every(p=>p.jobId!==D.jobId),'READINESS_BASELINE');
