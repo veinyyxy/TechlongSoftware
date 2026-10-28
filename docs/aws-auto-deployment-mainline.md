@@ -2,7 +2,17 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-28，旧测试已最小修复；准确CI后准备整轮清单）
+## 当前唯一继续点（2026-10-28，真实整轮闭环完成；转向产品业务验收与AWS交付）
+
+**同一a00任务的 Review → RunOnce → 独立 Inspect 已真实通过，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`。** 用户批准外层913ea70a…并本人完成三次GitHub环境审批；准确runs为[Review 40751073822](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40751073822)、[RunOnce 40751515012](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40751515012)、[Inspect 40752434574](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40752434574)。执行源码284f6ad/准确CI40748831700；一次建栈、两次认证GET，任务成功且租约清空，旧11job和14/9/9控制历史及保护保持。没有新增IAM、重试、清理或agent代批。
+
+[完整实测记录、实际次数、费用及边界](aws-auto-deployment-reviewed-cycle-observed.md)。最终proof SHA `22302bc205f703249a3881fc9c238ea02fee71e0e1238ae849dc291a5eaa8c90`；检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-whole-executed-verified-20261028-a.json`，原始字节SHA `51d1896f6075d07646ce62d3d2f350d99754a5c5ad13cdead6a470b002f94359`，绑定54份真实原件。7个本机槽均消费，不再RunReviewed、调度、改旧历史、重发包或发布来源；冻结在最终证明与本地重建后结束。
+
+**下一唯一动作是现有客户端/服务端/租户数据库的有限真实业务验收及整套AWS交付，不继续扩部署基础设施。** 场景、必要读取/认证/业务写与清理各明确范围再做；这是已初始化sandbox恢复成功，不是新租户首次初始化、版本升级或整套产品上线。最后Inspect证明未额外写回账本（finalLedgerProofImported=false），不为UI标签另开支线。
+
+工作负载意图今天10月28日16:06:01（温尼伯）到期，**不会自动销毁或停止计费**；单独清理未获批准。窗口内安排有限业务验收和清理审批；若恢复时已过期，先另审准确状态/清理准备，不自动续租、重新部署或假定费用停止。
+
+## 本轮旧测试与整轮准备历史（保留，不重复执行）
 
 发布后文档提交6b09a0e的[CI40747653765](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40747653765)在恢复合同组失败；本地准确复现306项中305通过，唯一失败在 `tests/platform-recovery-cloud-v1.test.mjs:180`：当前workflow文本仍与旧a604 SOURCE renderer比较，而本次获批的新周期SOURCE已真实安装。其他CI组被跳过，不能声称当前main完整CI通过。实际来源发布及独立云核验成功不撤销、不重放；本次诊断没有新AWS/SQL或云写。
 

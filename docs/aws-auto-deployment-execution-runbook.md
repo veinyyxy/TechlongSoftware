@@ -29,7 +29,15 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：旧测试已最小修复，准确CI后准备整轮清单
+## 3. 当前唯一继续点：整轮真实部署闭环已完成，转向产品验收与AWS交付
+
+用户批准外层913ea70a…并本人完成三次环境审批后，同一a00任务已连续完成Review40751073822、RunOnce40751515012和独立Inspect40752434574，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`。执行源码284f6ad/准确CI40748831700；一次CreateStack/受审7资源、两次认证GET、同任务成功及租约清空，旧11job/14旧plan/9批准/9尝试及保护保持。Inspect没有云写、DB写或控制私密包读取；没有自动重试、清理、新IAM或agent代批。[完整实测与次数](aws-auto-deployment-reviewed-cycle-observed.md)。
+
+恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-whole-executed-verified-20261028-a.json`（原始字节SHA `51d1896f6075d07646ce62d3d2f350d99754a5c5ad13cdead6a470b002f94359`），其54原件和最终proof已本地重建核对，7个永久槽已消费，不再RunReviewed或重做来源/包/任务。最终证明未额外导入Inspect账本，wholeProductAccepted=false，不为页面标签扩UI支线。
+
+下一只准备现有客户端、服务端、租户数据库的有限真实业务验收和整套AWS交付，明确具体场景与读取/登录/业务写范围；不继续扩部署基础设施。工作负载意图为今天10月28日16:06:01（温尼伯），不是自动停费/销毁；当前资源可能持续计费，清理按准确资源另审。若恢复时已过期，先另审现状/清理，不自动延期、重新部署或假设费用已停止。
+
+### 本轮旧测试与整轮准备历史（保留，不重复执行）
 
 发布后CI40747653765的旧来源比较问题已仅在 `tests/platform-recovery-cloud-v1.test.mjs` 最小修复：保留历史发布SHA/a604 provenance，再识别已安装reviewed-cycle SOURCE、准确模板与原observedBy，完整比较workflow全文、reusable pin和本人门禁。352项相关本机回归、类型/lint/diff与110闭包核验通过；不改线上workflow/云代码/IAM、不重做发布，本轮生产调用/私密读取/SQL/云写/dispatch均0。原失败诊断 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-post-ci-20261028-a.json` 保留；准确源码/CI只在真实成功后封存 `F:/ChatGPT_workshop/techlong-reviewed-cycle-legacy-test-fix-verified-20261028-a.json`，未封存前先查同一提交CI，不开始生产准备。
 

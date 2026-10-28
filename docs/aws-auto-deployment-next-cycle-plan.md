@@ -1,6 +1,12 @@
 # 完整新周期准备总清单（草案，不可执行）
 
-## 当前P5：来源已发布核验，下一仅准备同任务整轮SHA（2026-10-28）
+## P5已完成：当前唯一继续点转向产品验收与AWS交付（2026-10-28）
+
+准确外层913ea70a…下，同一a00任务真实完成Review40751073822→RunOnce40751515012→独立Inspect40752434574，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`。执行源码284f6ad/准确CI40748831700；一次建栈、两次认证GET、任务成功且租约清空，旧历史/保护保持。三次GitHub环境均本人批准，7个本机槽已消费，不得复位或重跑。
+
+[完整实测结果及边界](aws-auto-deployment-reviewed-cycle-observed.md)。检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-whole-executed-verified-20261028-a.json`（原始字节SHA `51d1896f6075d07646ce62d3d2f350d99754a5c5ad13cdead6a470b002f94359`）绑定54原件；不得把下方历史草案或机器摘要当新的可执行清单。下一仅按手册转向完整产品/有限业务验收，并单独准备准确清理审批；不扩框架或为导入最后Inspect proof改UI。今天16:06:01（温尼伯）仅意图到期，不会自动停费；晚于窗口先另审现状/清理，不自动续租或重部署。
+
+## P5准备历史（保留，不重复执行）
 
 唯一旧测试阻塞现已最小修复：只改测试的当前SOURCE识别，保留历史发布/a604验证、全文比较、准确pin及本人门禁；352项本机相关回归、类型/lint/diff和110闭包通过。准确源码/CI成功后封存 `F:/ChatGPT_workshop/techlong-reviewed-cycle-legacy-test-fix-verified-20261028-a.json`，之后才准备整轮清单；未封存先核对同一提交CI。没有改已发布workflow、云内核或IAM，没有生产读取/写入或重放；原诊断及失败CI保留。
 
