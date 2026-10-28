@@ -20,6 +20,9 @@ import {REQUEST_ADMIN_V6 as ADMIN} from '../lib/deployments/reviewed-request-win
 import {canonicalJson,sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {a604CloudWorkflows} from '../ops/platform-a604-cloud-v1/workflows.mjs';
 import {LOCAL_PUBLICATION,publicationAt} from '../ops/platform-a604-operator-v1/scope.mjs';
+import {SELECTED_CYCLE} from '../ops/platform-reviewed-cycle-v1/operator-source.mjs';
+import {bindWorkflowSource,createReviewedCycle,assertPublication} from '../ops/platform-reviewed-cycle-v1/cycle.mjs';
+import {sourceTemplate,texts as cycleWorkflowTexts} from '../ops/platform-reviewed-cycle-v1/publication.mjs';
 
 async function fixture(){
   const f=await recoveryFixture(),d=recoveryData(f.basis,f.at),events=[],puts=[];
@@ -165,13 +168,26 @@ test('workflow renderer preserves archived publication; live files match the cur
     assert.equal(await sha256Hex(text),published.workflows.find(w=>w.path==='.github/workflows/'+file).normalizedLfSha256);
   let active=historical;
   assert(['UNPUBLISHED','PUBLISHED'].includes(LOCAL_PUBLICATION.state));
+  let head;
+  if(LOCAL_PUBLICATION.state==='PUBLISHED'||SELECTED_CYCLE!==null){
+    const result=spawnSync('git',['rev-parse','HEAD'],{encoding:'utf8',timeout:20000,windowsHide:true});
+    assert.equal(result.status,0);head=result.stdout.trim();assert.match(head,/^[a-f0-9]{40}$/);
+  }
   if(LOCAL_PUBLICATION.state==='PUBLISHED'){
-    const head=spawnSync('git',['rev-parse','HEAD'],{encoding:'utf8',timeout:20000,windowsHide:true});assert.equal(head.status,0);assert.match(head.stdout.trim(),/^[a-f0-9]{40}$/);
     // Validate the approved descriptor at its real recorded observation time;
     // CI tests publication provenance, not a new grant or a renewed validity.
-    const current=await publicationAt(head.stdout.trim(),LOCAL_PUBLICATION.template.factsApproval.observedBy);
+    const current=await publicationAt(head,LOCAL_PUBLICATION.template.factsApproval.observedBy);
     active=a604CloudWorkflows({...current.release,sourceCommit:current.frozenSourceCommit},{publication:current});
     assert.equal(load(active.caller).jobs.reviewed.uses,'veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@'+LOCAL_PUBLICATION.reusableCommit);
+  }
+  if(SELECTED_CYCLE!==null){
+    // The newer installed SOURCE supersedes a604 only for current file bytes;
+    // both older publication/provenance checks above remain mandatory.
+    assert.deepEqual(SELECTED_CYCLE,{...sourceTemplate(),reusableCommit:SELECTED_CYCLE.reusableCommit});
+    const source=await bindWorkflowSource(SELECTED_CYCLE,head,SELECTED_CYCLE.reusableCommit),cycle=await createReviewedCycle(source);
+    await assertPublication(cycle,source.publication,source.publication.factsApproval.observedBy);
+    active=cycleWorkflowTexts(SELECTED_CYCLE.reusableCommit);
+    assert.equal(load(active.caller).jobs.reviewed.uses,'veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@'+SELECTED_CYCLE.reusableCommit);
   }
   assert.equal(Object.keys(load(active.caller).on.workflow_dispatch.inputs).length,7);
   assert.equal(load(active.reusable).jobs.single.environment,'techlong-sandbox-deploy');
