@@ -25,6 +25,8 @@ on:
       - 'tests/platform-recovery-package-v1.test.mjs'
       - 'docs/aws-auto-deployment-a604-package-upload-review.md'
       - 'tests/platform-a604-operator-v1.test.mjs'
+      - 'tests/platform-a604-continuous-review-v1.test.mjs'
+      - 'docs/aws-auto-deployment-a604-continuous-review.md'
       - 'tests/platform-a604-inspect-publisher-v1.test.mjs'
       - 'tests/fixtures/platform-a604-inspect-publisher-v1.mjs'
       - 'docs/aws-auto-deployment-a604-operator-v1.md'
@@ -74,6 +76,8 @@ on:
       - 'tests/platform-recovery-package-v1.test.mjs'
       - 'docs/aws-auto-deployment-a604-package-upload-review.md'
       - 'tests/platform-a604-operator-v1.test.mjs'
+      - 'tests/platform-a604-continuous-review-v1.test.mjs'
+      - 'docs/aws-auto-deployment-a604-continuous-review.md'
       - 'tests/platform-a604-inspect-publisher-v1.test.mjs'
       - 'tests/fixtures/platform-a604-inspect-publisher-v1.mjs'
       - 'docs/aws-auto-deployment-a604-operator-v1.md'
@@ -126,9 +130,9 @@ jobs:
           node node_modules/eslint/bin/eslint.js ops/platform-a604-cloud-v1/ tests/platform-a604-cloud-v1.test.mjs tests/fixtures/platform-a604-cloud-v1.mjs --max-warnings 0
       - name: A604 operator contracts
         run: |
-          node --experimental-strip-types --test tests/platform-a604-operator-v1.test.mjs tests/platform-a604-inspect-publisher-v1.test.mjs
+          node --experimental-strip-types --test tests/platform-a604-operator-v1.test.mjs tests/platform-a604-inspect-publisher-v1.test.mjs tests/platform-a604-continuous-review-v1.test.mjs
           node --experimental-strip-types ops/platform-a604-operator-v1/local.mjs --check
-          node node_modules/eslint/bin/eslint.js ops/platform-a604-operator-v1/ tests/platform-a604-operator-v1.test.mjs tests/platform-a604-inspect-publisher-v1.test.mjs tests/fixtures/platform-a604-inspect-publisher-v1.mjs --max-warnings 0
+          node node_modules/eslint/bin/eslint.js ops/platform-a604-operator-v1/ tests/platform-a604-operator-v1.test.mjs tests/platform-a604-inspect-publisher-v1.test.mjs tests/platform-a604-continuous-review-v1.test.mjs tests/fixtures/platform-a604-inspect-publisher-v1.mjs --max-warnings 0
       - name: A604 package upload contracts - No AWS
         run: |
           node --experimental-strip-types --test tests/platform-recovery-package-v1.test.mjs tests/platform-a604-package-v1.test.mjs

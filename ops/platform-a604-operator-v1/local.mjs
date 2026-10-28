@@ -23,9 +23,12 @@ import {createInspectProposer} from './inspect-successor.mjs';
 import {preparePackageCandidate} from './package.mjs';
 import {loadSealedPackageInputs} from './saved.mjs';
 import {SNAPSHOT_MAX_AGE_MS} from '../platform-a604-publication-v1/readiness.mjs';
+import {CONTINUOUS,createContinuousReviewFlow} from './continuous.mjs';
+import {createContinuousIo} from './continuous-io.mjs';
 const BASE='F:/ChatGPT_workshop';
 export const ROOTS=['ops/platform-a604-operator-v1/local.mjs','ops/platform-operator-v6/key-metadata.ps1',RISK,
   'tests/platform-a604-operator-v1.test.mjs','tests/platform-a604-inspect-publisher-v1.test.mjs',
+  'tests/platform-a604-continuous-review-v1.test.mjs',CONTINUOUS.riskFile,
   '.github/workflows/platform-recovery-hosting-candidate.yml','package.json','package-lock.json'];
 const json=async f=>JSON.parse(await readText(f,5000000)),write=async(f,v)=>{assertEvidenceSafeV5(v);await writeOnce(f,v);};
 const outPath=f=>{must(/^F:\/ChatGPT_workshop\/techlong-a604-operator-[a-z0-9-]+$/.test(f??''),'OUTPUT');return f;};
@@ -39,7 +42,8 @@ export function parseArgs(args){if(same(args,['--check']))return {mode:'Check'};
   const fields={PreparePackageSaved:['--mode','--ci-run','--output'],PrepareGrantSaved:['--mode','--ci-run','--output','--environment-file','--ledger-file'],
     PrepareAdvanceSaved:['--mode','--ci-run','--output','--material'],DispatchReviewed:['--mode','--grant','--approved-sha','--action','--plan-sha'],
     AdvanceReviewed:['--mode','--manifest','--approved-sha'],PrepareInspectSaved:['--mode','--ci-run','--output','--material'],
-    AdvanceInspectReviewed:['--mode','--manifest','--approved-sha']}[a['--mode']];
+    AdvanceInspectReviewed:['--mode','--manifest','--approved-sha'],PrepareContinuousSaved:['--mode','--grant','--output'],
+    RunContinuousReviewed:['--mode','--manifest','--approved-sha']}[a['--mode']];
   must(fields&&same(Object.keys(a).sort(),fields.sort()),'MODE');if(a['--output'])outPath(a['--output']);
   if(a['--mode']==='DispatchReviewed')must(D.modes.includes(a['--action'])&&digest(a['--plan-sha']),'TARGET');return a;
 }
@@ -62,6 +66,25 @@ export async function main(args=process.argv.slice(2)){
   const binding=await publicationAt(head,Date.now()),policy=createA604Policy({publication:binding}),runtime=createA604Runtime({publication:binding});
   const isInspect=['PrepareInspectSaved','AdvanceInspectReviewed'].includes(a['--mode']),publishSlot=isInspect?INSPECT_PUBLISH_SLOT:PUBLISH_SLOT;
   const ops=(isInspect?createA604InspectPublisherOperations:createA604PublisherOperations)({publication:binding});
+  if(['PrepareContinuousSaved','RunContinuousReviewed'].includes(a['--mode'])){
+    const flow=createContinuousReviewFlow({policy,publisher:ops,runtime});
+    for(const f of [CONTINUOUS.slot,slot('Review'),slot('RunOnce'),slot('Inspect'),PUBLISH_SLOT,INSPECT_PUBLISH_SLOT])await absent(f);
+    if(a['--mode']==='PrepareContinuousSaved'){
+      const g=await json(evidence(a['--grant']));must(g.sourceCommit===head&&same(g.pins,await collect()),'CONTINUOUS_SOURCE');
+      must(same(await readCi(g.ci.runId,head),g.ci),'CI_DRIFT');
+      const m=await flow.makeReview({grant:g,createdAt:Date.now()}),out=outPath(a['--output']);await absent(out);clean();await mkdir(out);
+      await write(out+'/manifest.json',m);console.log(JSON.stringify({outcome:'CONTINUOUS_REVIEW_PREPARED_NOT_APPROVED',manifestSha256:m.manifestSha256,
+        reviewPlanSha256:g.seed.planSha256,latestStartAt:m.latestStartAt,externalWrites:0,slotsConsumed:0}));return m;
+    }
+    const m=await json(evidence(a['--manifest']));await flow.verify(m,a['--approved-sha'],Date.now(),true);
+    must(m.sourceCommit===head&&same(m.grant.pins,await collect()),'CONTINUOUS_SOURCE');
+    const out=BASE+'/techlong-a604-operator-continuous-'+m.manifestSha256;await absent(out);await mkdir(out);
+    const guard=async()=>{await flow.verify(m,a['--approved-sha'],Date.now());clean();must(same(await collect(),m.grant.pins),'CONTINUOUS_SOURCE');};
+    const io=createContinuousIo({manifest:m,output:out,record:(n,v)=>write(out+'/'+n+'.json',v),policy,assertSource:guard,
+      verifyCi:async()=>must(same(await readCi(m.grant.ci.runId,head),m.grant.ci),'CI_DRIFT')});
+    const r=await flow.run({manifest:m,approved:a['--approved-sha'],io});console.log(JSON.stringify(r));
+    if(r.outcome.includes('STOPPED'))process.exitCode=1;return r;
+  }
   const proposer=isInspect?createInspectProposer({publication:binding}):args=>proposeReviewSuccessor({...args,rebuildPackage:runtime.rebuild},
     {assertBinding:p=>assertA604Publication(p,A604_PROFILE,Date.now()),assertScope:assertA604PlanScope});
   const materialOptions={rebuild:runtime.rebuild,propose:proposer,objectCount:isInspect?6:4,expectedMode:isInspect?'RunOnce':'Review'};

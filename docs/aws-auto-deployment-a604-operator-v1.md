@@ -1,5 +1,7 @@
 # a604 免Web本机operator：已发布，待单次委托与真实验收
 
+本次新增的连续衔接入口与历史 Review 超时事实见[最小连续衔接](aws-auto-deployment-a604-continuous-review.md)。它要求额外外层SHA批准，不升级原Review-only grant，不重放已消费槽，不自动调度RunOnce；本次仅代码/测试，没有生产运行。
+
 2026-10-27 状态更新：新包上传及固定版本独立核验、双工作流、本机 SOURCE 绑定和现有角色 trust-only 发布均已完成；reusable 固定 `e658f7b88ab50b4ff3c5653d46866b859fbadfe1`。旧测试修复源码 `c06c0a6feaf9f7e0806dd396cc7346708bcdf2fa` 的准确 CI 40602836192 已通过。本机 `--check` 返回 `A604_OPERATOR_SOURCE_PUBLISHED_REQUIRES_REVIEWED_GRANT`，但 `executionAuthorized=false`：尚无 a604 新委托/计划/调度或实际部署验收，不能重放已消费的包/发布槽。当前继续点与历史证据见[主线](aws-auto-deployment-mainline.md)。
 
 本次收尾仅统一准备快照期限及更新文档/测试，不读生产配置/私钥/Secret、不连数据库、不调用AWS、不消费执行槽或dispatch。真实私密读取、数据库/云副作用和部署仍各按准确范围审批；GitHub environment只能由用户本人批准。默认云模块模板仍关闭，实际受审工作流携带的 SOURCE publication 已发布，两者不可混淆。
