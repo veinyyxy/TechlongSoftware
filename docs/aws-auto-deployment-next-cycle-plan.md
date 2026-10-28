@@ -2,6 +2,8 @@
 
 ## 当前P5：来源已发布核验，下一仅准备同任务整轮SHA（2026-10-28）
 
+当前先收尾唯一门禁阻塞：发布后CI40747653765的旧workflow比较测试仍选a604 SOURCE，本地306项仅该1项失败。下一仅改该测试的当前来源识别并保留完整验证；回归/准确CI通过后再准备整轮清单。不改已发布workflow、云内核或IAM，不重放发布或读取生产；诊断见 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-post-ci-20261028-a.json`。
+
 P4已完成：用户批准42a33afc…，现有双workflow/本机SOURCE/角色一个trust pin实际发布，原权限、身份、门禁和110云闭包保持。reusable `1120f5106079a006c5e1c455f7de4b70e9732e5b` / caller `5b98b36284be5e06e0cd185be617d66b5fa711ac`；独立结果 `APP_PUBLICATION_INDEPENDENTLY_VERIFIED_NO_DISPATCH`。执行源码573bdb5/准确CI40745969505通过，push/Create/Execute/快进各1，没有私密配置/PEM/Secret值、SQL、调度、Cell或续租。
 
 恢复检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-executed-verified-20261028-a.json`（原始字节SHA `812544109e02b2e70715e66ce3044828788498cb00de9ce9178328c22ed58441`），15原件绑定且两永久槽已消费，不得重放。下一只使用已安装整轮入口准备同一a00任务的准确外层SHA；新鲜只读准备另征当轮范围，整轮私密读取/账本写/三次dispatch及云合同另批，GitHub环境仍由本人批准。新facts固定到期不变；不新建任务/镜像/身份、重传包、续Web租约或扩框架。

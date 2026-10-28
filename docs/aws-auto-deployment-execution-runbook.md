@@ -29,7 +29,9 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：来源发布已核验，准备同任务整轮执行清单
+## 3. 当前唯一继续点：来源发布已核验，先修复一条旧测试再准备整轮清单
+
+发布后CI40747653765在恢复合同组失败，本地306项准确复现仅1条失败：`tests/platform-recovery-cloud-v1.test.mjs:180` 仍按旧a604 SOURCE生成当前workflow预期，未识别新安装的reviewed-cycle来源。下一只最小修复该测试的来源识别，保留完整文本、历史renderer及pin/门禁验证，不改线上workflow/云代码/IAM或重做发布；通过回归和准确CI后才进入下方整轮准备。检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-post-ci-20261028-a.json`；未修代码，没有新AWS/SQL或云写。
 
 用户批准42a33afc…后，现有双workflow/SOURCE绑定和角色一项trust pin已发布，独立核验为 `APP_PUBLICATION_INDEPENDENTLY_VERIFIED_NO_DISPATCH`，原栈UPDATE_COMPLETE；原权限/RoleId/门禁/110云闭包不变，没有调度或部署。reusable为1120f510…，caller为5b98b362…。执行源码573bdb5的准确CI40745969505全部15步骤通过，实际push/Create/Execute/快进各1，writer AWS元数据含STS53/GitHub43＋CI3、独立10/11；私密内容、SQL、包上传、承载或租约变更均0。
 

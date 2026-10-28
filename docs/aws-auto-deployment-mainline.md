@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-28，来源发布与独立核验完成；下一仅准备整轮清单）
+## 当前唯一继续点（2026-10-28，来源发布已核验；先收尾一条旧测试）
+
+发布后文档提交6b09a0e的[CI40747653765](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40747653765)在恢复合同组失败；本地准确复现306项中305通过，唯一失败在 `tests/platform-recovery-cloud-v1.test.mjs:180`：当前workflow文本仍与旧a604 SOURCE renderer比较，而本次获批的新周期SOURCE已真实安装。其他CI组被跳过，不能声称当前main完整CI通过。实际来源发布及独立云核验成功不撤销、不重放；本次诊断没有新AWS/SQL或云写。
+
+**下一唯一动作先仅修复这条测试的当前来源识别，保留历史renderer验证、完整文本/准确pin/人工门禁断言；不修改线上workflow、云内核或权限。** 回归及准确CI通过后，再按下方范围准备整轮SHA。诊断检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-post-ci-20261028-a.json`；尚未实施测试修复，不用放宽断言或重做发布掩盖失败。
 
 用户确认 `42a33afc9a77b42c5bc6237e61788ea5cb2434d9b0b4eac35d2b85d091354e9a` 后，现有双workflow、本机SOURCE绑定和WorkerRole一个trust pin已实际发布，原栈 `UPDATE_COMPLETE`；独立结果为 `APP_PUBLICATION_INDEPENDENTLY_VERIFIED_NO_DISPATCH`。reusable `1120f5106079a006c5e1c455f7de4b70e9732e5b`，caller `5b98b36284be5e06e0cd185be617d66b5fa711ac`。原RoleId、inline/boundary v1、五资源、GitHub本人门禁与110云闭包全部保持，没有dispatch或部署。
 
