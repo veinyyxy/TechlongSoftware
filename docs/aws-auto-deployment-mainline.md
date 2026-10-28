@@ -2,13 +2,21 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-28，新包已本地重建；下一仅完整历史读取的最小兼容修复）
+## 当前唯一继续点（2026-10-28，完整历史兼容已完成；下一仅包上传审批接线）
+
+最小只读兼容修复已完成：源码 `d8c3de1f569cceb756529ec128c94df8631e24f8` 的[准确CI40717621406](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40717621406)全部成功，本机121项相关检查（新周期45＋旧入口76，含12新增）、类型/lint/diff通过。仅新周期composition复用已完成原TLS/角色/catalog/preflight的现有reader，用一次SOURCE范围SELECT取得完整历史；53行上限保持、54行作溢出拒绝，真实status准确映射且显式冲突停止。旧安装函数/权限/保护和旧入口不改，没有额外连接或扩大原SQL预算。
+
+封存检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-history-fix-verified-20261028-a.json`，原始字节SHA `14ce5f3744cab426296719fcb163f1dd38579da2bf88f595a89d65a8d5b32247`。纯本地归档投影证明14条历史摘要、原403623字节包、事实时刻和110文件云闭包保持；不冒充生产SQL或当前健康验证。本轮AWS/生产配置/SQL连接/PEM/Secret值/权限/上传/新槽/dispatch均0，仅6次GitHub只读GET核验CI；selection仍null。
+
+**下一唯一动作：** 把下方已封存的准确候选接到既有条件上传及独立固定版本回读入口，集中准备一次新key PUT＋独立GET及新事实窗口的准确审批材料；不重建包、追加历史基准或重新创建任务。源码/准确CI、包字节、事实批准范围、实时身份/桶/目标预检和永久槽须精确绑定；实际上传另按新SHA批准。固定VersionId仅来自真实ACK及独立核验，之后才准备现有双workflow/SOURCE/trust-only发布。当前无可执行新SHA，不开Review或部署；旧读取许可、期限和执行槽均不重用。[具体材料与范围](aws-auto-deployment-next-cycle-plan.md)。
+
+## 本轮已完成P4本地候选（保留原件）
 
 P4本地包与SOURCE候选已从真实handoff及原七份证据完整重建，保留11旧job/14历史plan和原9db成功前驱；未上传或发布。源码 `630fcf4188eabcfef1cd7041615309f82683c321` 的[准确CI40715649202](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40715649202)全部15报告步骤成功，本机33项定向测试（含8新增）、类型/lint通过。包canonical为403623字节，SHA `e908e74b0de03ae61a2f36bfe1e9f0423ce3850e341a1a3cdf5f9676553b0700`；basis `2cf26916af4f9d8734da18231d2571b23758397c72f1a5566bee5656623d8045`。投影只排除新held行，不是新的数据库快照；拟议事实期限尚未批准，工程selection仍null，包固定版本引用/activation均为空。
 
 完整本地检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-package-20261028-a/verified.json`，原始字节SHA `056168741efc03aa93bf528e455f5b0aa6223aa40f0fa5366d4ff4266f71f84a`；候选业务正文只在同目录 `candidate.json`，禁止入Git。该阶段AWS/生产配置/SQL/PEM/Secret值/上传/新槽/dispatch均0，仅5次GitHub GET核验本次CI；旧事实时刻与13:42:18准备截止不变。
 
-**唯一剩余接线阻塞：** 安装的 `deployment_control_v6.status()` 最多12行，当前SOURCE绑定14历史plan；共享历史投影还期待 `runStatus`，RPC原字段是 `status`。下一只准备/实施这项最小只读adapter兼容及回归，保留完整历史、不改数据库函数/权限/保护、不新增任务、执行器或来源窗口；不得通过截断历史或缺省null绕过。解决后接原条件上传/独立固定版本回读器的准确包＋新事实审批，再按真实VersionId准备现有双workflow/SOURCE/trust-only范围。当前无可执行新SHA，不开Review或部署。[具体材料与No-Go](aws-auto-deployment-next-cycle-plan.md)。
+原准备时发现的12行/状态字段兼容阻塞已按顶部最小修复解除；旧候选result/verified中的阻塞文字保留历史，不覆盖原件或当作原先已经通过。包、事实批准、上传和来源发布仍未完成。
 
 ## 本轮已完成P3（保留原执行与独立核验证据）
 

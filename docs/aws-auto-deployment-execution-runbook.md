@@ -29,11 +29,15 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：完整历史只读adapter的最小兼容修复
+## 3. 当前唯一继续点：既有包上传/独立回读接线与准确审批材料
+
+完整历史最小兼容已完成：源码d8c3de1的准确CI40717621406通过，本机121项（新周期45＋旧入口76、含12新增）及类型/lint/diff通过。新周期仅复用原核验后的现有只读reader，一次固定SOURCE范围SELECT替代12行显示RPC；53行合同不变、54行只作溢出拒绝；status/runStatus显式冲突停止。旧安装函数、权限、保护、入口、包和事实时刻不变，110云闭包保持。每次仍仅一条status查询，计入原单次100/整轮635预算，不增连接或读取配置。
+
+恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-history-fix-verified-20261028-a.json`（原始字节SHA `14ce5f3744cab426296719fcb163f1dd38579da2bf88f595a89d65a8d5b32247`）；它绑定准确源码/CI和本地归档映射结果，不是生产观测。本轮无AWS、生产配置/SQL连接、私钥/Secret值、权限安装、上传、槽消费或dispatch，仅6次GitHub只读GET核验CI。
 
 P4本地包候选已从真实handoff和七份历史原证据完整重建：11旧job/14历史plan保留，canonical包403623字节；未上传/启用来源。源码630fcf4的准确CI40715649202全部15报告步骤及本机33项定向测试、类型/lint通过。恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-package-20261028-a/verified.json`（原始字节SHA `056168741efc03aa93bf528e455f5b0aa6223aa40f0fa5366d4ff4266f71f84a`）；它绑定candidate/source/result原件及SHA。该阶段无AWS/生产配置/SQL/私钥/Secret值/新槽/上传/dispatch，仅GitHub只读CI核验。
 
-准备发现开窗阻塞：原安装status RPC最多12行，但新SOURCE绑定完整14历史plan，且RPC的status与共享投影runStatus字段不兼容。下一仅以最小只读adapter差异和回归解决这项阻塞，不改数据库函数/权限/保护，不删减历史或以缺省null冒充状态，不另建执行器或任务。解决后再接原上传器生成准确包＋新事实审批，取得真实VersionId后准备来源发布；当前selection仍null，没有上传、事实窗口、来源发布或整轮批准。材料详见[总清单当前P4](aws-auto-deployment-next-cycle-plan.md)。
+下一仅把已封存准确候选接到原条件上传/独立固定版本回读入口，集中准备新key一次PUT＋独立GET及新事实窗口的准确审批材料，不重建包/改历史基准、重新建任务或先写云。实际上传另按新SHA批准，真实VersionId只有经ACK和独立核验后才能填入后继来源；现有双workflow/SOURCE/trust-only发布及整轮执行仍另审。原准备发现的12行/状态字段问题已在代码层最小修复，旧阻塞记录保留不覆盖。当前selection仍null，没有上传、事实窗口、来源发布或整轮批准。[总清单当前P4](aws-auto-deployment-next-cycle-plan.md)。
 
 P2只读事实及P3[两行原子任务衔接](aws-auto-deployment-reviewed-cycle-handoff-v1.md)已完成。用户批准 `89bf6dcd…` 后，执行源码 `a87d2fe`（准确CI40704097228通过）于2026-10-28温尼伯10:08:09.592提交、10:08:21.656独立回读通过：旧a604原行保留为canceled，新 `job_a00fc18c13a5d6c6616c8039` 为pending/attempt0/max1、永久held、无lease或云执行授权；其他10旧job、14/9/9完整控制账本、业务与保护保持。实际配置读取2/TLS2/SQL79/CI GET6，AWS/Secret值/PEM/控制表写/dispatch/部署均0。写与Inspect两槽永久消费，绝不重放或复位。
 

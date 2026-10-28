@@ -10,11 +10,15 @@ P2/P3已完成，当前以[主线顶部](aws-auto-deployment-mainline.md)为准�
 
 后继待审最小范围仍是：准确新key的一次条件PUT（AES256/IfNoneMatch/Checksum）和一次独立固定版本GET、单独批准新事实窗口；固定VersionId只能取自实际上传ACK和独立核验。之后仅现有双workflow、SOURCE选择及既有worker trust的必要精确pin差异，沿用原发布器，不扩策略、不新建IAM/Secret或重发镜像。真实package版本、最终准确CI和具体模板/角色差异未齐前，不生成可执行发布SHA，不伪造VersionId或PUBLISHED描述符。
 
-**已确认的额外No-Go：** `deployment_control_v6.status()` 的现有安装定义最多返回12条，而新SOURCE必须绑定全部14条历史plan。共享adapter的 `projectHistory` 还期待 `runStatus` 字段，安装RPC原字段为 `status`；不能用缺省null冒充真实历史。这两点必须在开窗前以最小只读适配修复并回归，不能删减历史、改保护摘要、修改数据库函数/权限或开新任务绕过。本阶段仅把完整历史重建进候选并记录阻塞，**没有改变运行时adapter、生产SQL或权限**。
+**完整历史兼容修复（代码完成，不是生产验收）：** 安装的 `deployment_control_v6.status()` 仍保持12行显示上限及原函数体/权限；仅新周期本机composition改用已完成原TLS/身份/角色/catalog及完整preflight核验的现有reader，按SOURCE绑定的旧job＋准确新job做一次参数化SELECT。没有新连接或新配置读取，每次查询仍计入原100条/整轮635条硬预算。SQL保留原status字段、slot优先级和到期语义；53行合同不变，54行只作溢出哨兵并立即拒绝，不允许截断成成功。
+
+`projectHistory` 将RPC的 `status` 准确映射为 `runStatus`，兼容已有归档字段；两字段显式冲突（包括一侧null）立即拒绝，不能缺省null掩盖真实状态。reader未核验/已关闭、非SOURCE任务、重复/缺行/超量和旧历史摘要变化都停止，不回退到12行RPC。旧9b/a604入口、安装SQL、数据库权限/保护、包/事实时刻和97/104/110云闭包保持；`selection.mjs` 仍null。
+
+源码 `d8c3de1f569cceb756529ec128c94df8631e24f8` 的[准确CI40717621406](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40717621406)通过；本机45项新周期/请求/包检查与76项旧入口回归全部通过（新增12项），类型/lint/diff通过；原私有包字节及其14条历史摘要也经纯本地映射核对不变。这不是实际SQL查询或当前云健康证明；本轮没有生产配置读取、SQL连接、AWS调用、上传、槽消费或dispatch。检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-history-fix-verified-20261028-a.json` 原始字节SHA `14ce5f3744cab426296719fcb163f1dd38579da2bf88f595a89d65a8d5b32247`；旧包准备输出中的原阻塞记录保留，禁止覆盖成“原先已通过”。
 
 该候选不是上传、事实批准、来源发布或整轮执行清单。下一继续点按主线顶部记录，不重跑已消费的handoff或旧Review。
 
-本次实际准备已完成：执行源码630fcf4，[准确CI40715649202](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40715649202)全部15报告步骤成功；本机33项定向测试/类型/lint通过。包canonical 403623字节/七原证据，SHA `e908e74b0de03ae61a2f36bfe1e9f0423ce3850e341a1a3cdf5f9676553b0700`，basis `2cf26916af4f9d8734da18231d2571b23758397c72f1a5566bee5656623d8045`，历史11 job/14 plan完整；候选、来源和结果在 `F:/ChatGPT_workshop/techlong-reviewed-cycle-package-20261028-a/`，`verified.json` 原始字节SHA `056168741efc03aa93bf528e455f5b0aa6223aa40f0fa5366d4ff4266f71f84a`。尚无实际云版本或执行批准；下一只最小完整历史adapter兼容，不扩大本阶段读取或写入范围。
+本次实际准备已完成：执行源码630fcf4，[准确CI40715649202](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40715649202)全部15报告步骤成功；本机33项定向测试/类型/lint通过。包canonical 403623字节/七原证据，SHA `e908e74b0de03ae61a2f36bfe1e9f0423ce3850e341a1a3cdf5f9676553b0700`，basis `2cf26916af4f9d8734da18231d2571b23758397c72f1a5566bee5656623d8045`，历史11 job/14 plan完整；候选、来源和结果在 `F:/ChatGPT_workshop/techlong-reviewed-cycle-package-20261028-a/`，`verified.json` 原始字节SHA `056168741efc03aa93bf528e455f5b0aa6223aa40f0fa5366d4ff4266f71f84a`。上述最小adapter修复现已完成；下一仅接原上传/独立回读入口并生成准确包＋新事实审批，不扩大生产读取或写入范围。尚无真实云版本、上传或执行批准。
 
 本文件仅落实[执行手册第3节](aws-auto-deployment-execution-runbook.md)，不是第二套手册或新增分支。2026-10-27，America/Winnipeg；源码审阅锚点 `f289a29c049cc07e4c7e5230f7be221f058445d2`，[对应CI40611556422](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40611556422)通过。本阶段只检查工程源码和本地既有验证摘要；没有AWS/GitHub生产查询、配置/PEM/Secret内容读取、数据库连接、任务创建、发布或调度。文档提交后的CI只验证对应源码，不刷新生产事实。
 
