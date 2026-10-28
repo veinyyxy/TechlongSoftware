@@ -29,7 +29,15 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：来源发布接线收尾、限定只读核对与准确SHA
+## 3. 当前唯一继续点：来源发布已核验，准备同任务整轮执行清单
+
+用户批准42a33afc…后，现有双workflow/SOURCE绑定和角色一项trust pin已发布，独立核验为 `APP_PUBLICATION_INDEPENDENTLY_VERIFIED_NO_DISPATCH`，原栈UPDATE_COMPLETE；原权限/RoleId/门禁/110云闭包不变，没有调度或部署。reusable为1120f510…，caller为5b98b362…。执行源码573bdb5的准确CI40745969505全部15步骤通过，实际push/Create/Execute/快进各1，writer AWS元数据含STS53/GitHub43＋CI3、独立10/11；私密内容、SQL、包上传、承载或租约变更均0。
+
+恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-executed-verified-20261028-a.json`（原始字节SHA `812544109e02b2e70715e66ce3044828788498cb00de9ce9178328c22ed58441`）；15原件及完整reconcile已核对，两发布槽永久消费，不再Publish/Inspect或改写准备记录。完成后main冻结已结束，仅正常记录结果，不重新发布工作流。
+
+下一只按已安装整轮入口准备同一a00任务的外层SHA：先准确CI，再另征当轮必要只读范围，用真实状态集中绑定Review→RunOnce→独立Inspect的材料、累计副作用、期限及三次本人GitHub审批。当前不读配置/私钥/Secret值、不连生产数据库、不调度或部署，不新增接线/身份/任务或重传包。原facts10月30日10:08:09.592到期不延长；来源发布不能替代真实整轮验收，最终通过后立即转向产品与AWS交付。
+
+### 本轮来源发布准备历史（保留，不重复执行）
 
 来源发布的最小接线已完成：原Git三文件对象准备器仅增加SOURCE能力复用，原Git/CFN发布器不变；新本机operator绑定在110云闭包外，云端默认selection仍null，受审reusable携带准确SOURCE和原四项自引用规则。新旧相关115项检查（新周期73＋旧发布42、含15新增）和类型/lint通过；冻结0e18a25内核、包原件与角色/权限均未改变。[完整发布范围与风险](aws-auto-deployment-reviewed-cycle-source-publication.md)。
 

@@ -1,6 +1,12 @@
 # 完整新周期准备总清单（草案，不可执行）
 
-## 当前P4：仅从真实事后原件准备包与来源候选（2026-10-28）
+## 当前P5：来源已发布核验，下一仅准备同任务整轮SHA（2026-10-28）
+
+P4已完成：用户批准42a33afc…，现有双workflow/本机SOURCE/角色一个trust pin实际发布，原权限、身份、门禁和110云闭包保持。reusable `1120f5106079a006c5e1c455f7de4b70e9732e5b` / caller `5b98b36284be5e06e0cd185be617d66b5fa711ac`；独立结果 `APP_PUBLICATION_INDEPENDENTLY_VERIFIED_NO_DISPATCH`。执行源码573bdb5/准确CI40745969505通过，push/Create/Execute/快进各1，没有私密配置/PEM/Secret值、SQL、调度、Cell或续租。
+
+恢复检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-executed-verified-20261028-a.json`（原始字节SHA `812544109e02b2e70715e66ce3044828788498cb00de9ce9178328c22ed58441`），15原件绑定且两永久槽已消费，不得重放。下一只使用已安装整轮入口准备同一a00任务的准确外层SHA；新鲜只读准备另征当轮范围，整轮私密读取/账本写/三次dispatch及云合同另批，GitHub环境仍由本人批准。新facts固定到期不变；不新建任务/镜像/身份、重传包、续Web租约或扩框架。
+
+## P4准备历史：真实事后原件、包与来源候选（保留，不重复执行）
 
 必要来源发布接线现已复用原三文件Git准备器和Git/CFN发布器实现；本机operator-source独立于冻结云闭包，云端保持null默认，由受审reusable携带固定SOURCE，避免把自身closure SHA嵌入自身文件。只拟现有双workflow＋本机SOURCE绑定三个文件和WorkerRole一个trust pin，不改内核、策略/边界/物理身份；默认仍关闭。115项本机相关检查、类型/lint通过，准确CI之后仅执行已获许可的那一次1STS＋12AWS元数据＋20GitHub GET限定核对，不读私密值或写资源。[完整风险](aws-auto-deployment-reviewed-cycle-source-publication.md)。
 

@@ -43,3 +43,9 @@ PrepareSaved复用原三文件Git对象准备器：只生成未引用blob/tree/c
 审批必须接受Source凭据在内存使用和自动刷新失效、网络/提供者/审计日志、Account ID/ARN及部署状态进入已授权Git提交和私有本地原件、禁用失败自动回滚，以及低额但非零费用。50 USD/月只是目标，TTL/标签不自动停止费用；不隐含任何清理授权。
 
 来源绑定安装后本机入口可准备新整轮清单，但不会启动后台worker或自动调度。Review→RunOnce→独立Inspect仍需新的准确整轮SHA；三次GitHub environment都必须用户本人批准，不能由本方案代审、移除门禁或缩减完整历史。后续生产数据库或私密读取不继承本次准备/发布授权。
+
+## 2026-10-28执行记录（只供追溯，不允许重放）
+
+用户确认清单 `42a33afc9a77b42c5bc6237e61788ea5cb2434d9b0b4eac35d2b85d091354e9a` 后，执行源码573bdb5/准确CI40745969505下，push/CreateChangeSet/Execute/本机快进各一次完成；reusable `1120f5106079a006c5e1c455f7de4b70e9732e5b`、caller `5b98b36284be5e06e0cd185be617d66b5fa711ac`。原栈UPDATE_COMPLETE，独立核验 `APP_PUBLICATION_INDEPENDENTLY_VERIFIED_NO_DISPATCH`，RoleId、策略/边界、本人门禁及110云闭包保持。没有私密内容、SQL、dispatch、部署或续租，两永久槽已消费。
+
+私有检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-executed-verified-20261028-a.json`（原始字节SHA `812544109e02b2e70715e66ce3044828788498cb00de9ce9178328c22ed58441`）绑定15份真实原件；原准备材料不改写。此记录不批准再次发布、Inspect、包读取或新整轮执行，下一仅按主线准备新的整轮外层SHA。

@@ -2,7 +2,17 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-28，来源发布接线已实现；准确CI后限定核对与待审材料）
+## 当前唯一继续点（2026-10-28，来源发布与独立核验完成；下一仅准备整轮清单）
+
+用户确认 `42a33afc9a77b42c5bc6237e61788ea5cb2434d9b0b4eac35d2b85d091354e9a` 后，现有双workflow、本机SOURCE绑定和WorkerRole一个trust pin已实际发布，原栈 `UPDATE_COMPLETE`；独立结果为 `APP_PUBLICATION_INDEPENDENTLY_VERIFIED_NO_DISPATCH`。reusable `1120f5106079a006c5e1c455f7de4b70e9732e5b`，caller `5b98b36284be5e06e0cd185be617d66b5fa711ac`。原RoleId、inline/boundary v1、五资源、GitHub本人门禁与110云闭包全部保持，没有dispatch或部署。
+
+执行源码 `573bdb53946909fa1db868848b12508b34d11e37` 的[准确CI40745969505](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40745969505)全部15步骤通过。实际push/CreateChangeSet/Execute/本机快进各1；writer AWS元数据含STS53/GitHub43＋CI3，独立实例10/11；配置、PEM、Secret值、SQL、包上传、租约续期和Cell创建均0。两永久发布槽已消费，禁止再次Publish或Inspect；已存准备记录保持原样，不覆盖为执行事实。
+
+恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-executed-verified-20261028-a.json`，原始字节SHA `812544109e02b2e70715e66ce3044828788498cb00de9ce9178328c22ed58441`，绑定writer/独立回读及15份原件。writer/独立核验与本地完整reconcile完成后main才结束冻结，后续文档提交不重发受保护workflow。来源安装不是整轮执行授权，也不代表部署验收或完整AWS上线。
+
+**下一唯一动作：准确CI后，先取得当轮限定只读准备许可，使用已安装的整轮入口准备同一 `job_a00fc18c13a5d6c6616c8039` 的 Review→RunOnce→独立Inspect 外层SHA。** 不再写发布器/框架、不重传包、新建任务/镜像/IAM或为Web续租；所有必要私密读取、账本写、调度和云副作用须预先集中绑定，三次GitHub环境仍本人批准。facts仍固定至10月30日10:08:09.592（温尼伯），不重写时钟或复用本次只读/发布许可。
+
+## 本轮来源发布准备历史（保留，不重复执行）
 
 本轮只补必要SOURCE/双workflow/单项trust pin发布接线：复用原三文件未引用Git对象准备器及Git/CFN发布器，旧a604默认行为保持。本机 `operator-source.mjs` 默认null、在冻结云闭包外；云端 `selection.mjs` 仍null，受审reusable以SOURCE literal调用冻结0e18a25/110文件内核，只有原四项自引用字段运行时绑定，不改变执行器或求自摘要固定点。受保护workflow、角色trust、数据库、Secret/PEM和包均未写。[准确范围与完整风险](aws-auto-deployment-reviewed-cycle-source-publication.md)。
 
