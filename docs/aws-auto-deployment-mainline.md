@@ -12,7 +12,11 @@
 
 工作负载意图今天10月28日16:06:01（温尼伯）到期，**不会自动销毁或停止计费**；单独清理未获批准。窗口内安排有限业务验收和清理审批；若恢复时已过期，先另审准确状态/清理准备，不自动续租、重新部署或假定费用停止。
 
-当前产品验收的SDK阻塞已解除：3ad0ea8/准确CI40755064679全部通过，deploy跳过。用户另允的限定在线核对在14:41–14:43证实准确租户ECS运行1、health/ready均200；但客户端仓库配置的S3/CloudFront目标已不存在，API仍指向旧api.techlong.cloud。未猜测其他资源、读私密值、执行JS、认证或写云/业务。**下一唯一准备最小独立sandbox买家Web承载与发布/API/CORS接线清单，实际云变更另审；不再修部署控制面或重跑租户部署。** [完整实测、次数与检查点](aws-product-acceptance.md)。
+当前产品验收的SDK阻塞已解除：3ad0ea8/准确CI40755064679全部通过，deploy跳过。用户另允的限定在线核对在14:41–14:43证实准确租户ECS运行1、health/ready均200；但客户端仓库配置的S3/CloudFront目标已不存在，API仍指向旧api.techlong.cloud。未猜测其他资源、读私密值、执行JS、认证或写云/业务。对应最小独立sandbox买家Web承载与发布/API/CORS候选现已按下方准备，实际云变更另审；不再修部署控制面或重跑租户部署。[完整实测、次数与检查点](aws-product-acceptance.md)。
+
+上述[最小候选已准备](aws-buyer-web-sandbox-plan.md)：4项私有S3/CDN承载＋2项独立publisher/IAM boundary，无新compute/DB/DNS；原production缺required reviewers，不能当受保护发布门禁。本次另允读取9/1/11、零写/私密值，准确CORS及固定HMAC版本引用已记录但未取值。**下一唯一只实现既有客户端workflow的sandbox选择、独立Secret名称及无delete适配，做准确无AWS CI；实际六资源/GitHub设置/CORS/私密使用集中另审。** 原16:06:01窗口不延长，候选无执行SHA，不为此重开控制面支线。
+
+候选本地10组检查与162链接通过；恢复检查点 `F:/ChatGPT_workshop/techlong-buyer-web-candidate-verified-20261028-a.json`（原始字节SHA `aca73213e1aac68293c5f4fae43b1df752a6aa91eab6eb3c443d19f0cee70ce7`）。18:23恢复时旧窗口已过，只做本地收尾，未重新核验当前健康/计费或删除资源；不重跑本轮元数据脚本。
 
 ## 本轮旧测试与整轮准备历史（保留，不重复执行）
 

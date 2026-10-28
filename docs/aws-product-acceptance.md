@@ -56,6 +56,8 @@
 
 真实资源/配置/私密使用范围另经批准后，再进行客户端发布和有限真实业务验收，随后才商户认证及必要业务场景；不扩UI、探针、通用框架或新的固定任务分支。原工作负载意图和清理审核边界保持。
 
+本次准备已按另允范围核对现有角色/门禁/CORS，形成[六资源最小承载及接线候选](aws-buyer-web-sandbox-plan.md)；旧production没有required reviewers，因此候选使用独立sandbox环境/窄角色而不修改旧生产配置。下一只实现原客户端workflow的sandbox选择/独立Secret/无delete适配及准确无AWS CI；候选不是安装、私密读取或调度许可。
+
 ### 为什么不直接打开买家页面“只读验收”
 
 客户端 `lib/Controller/service_provider.dart` 在initialize中设置设备上下文并GET `/api/buyer/access`，随后开启定时heartbeat。服务端当前本地源码 `a79ed89cdb5dc788ec880d8dcbeeb875f1f19159` 的buyer middleware会据此INSERT/UPDATE `saas_access_leases`；GET不等于零业务写。商户 `/api/merchant/auth/login` 也更新 `merchant_users.last_login_at`。当前云镜像的源码及配置对应关系仍须核对，不能仅凭本地HEAD宣称线上已经包含这些行为。

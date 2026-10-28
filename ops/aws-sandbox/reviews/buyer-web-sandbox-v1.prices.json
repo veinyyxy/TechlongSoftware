@@ -1,0 +1,38 @@
+{
+  "schema": "techlong/buyer-web-public-price-model/v1",
+  "observedDateWinnipeg": "2026-10-28",
+  "currency": "USD",
+  "notABillingQuoteOrCap": true,
+  "publicSources": {
+    "cloudFront": "https://aws.amazon.com/cloudfront/pricing/pay-as-you-go/",
+    "s3RegionOffer": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/ca-central-1/index.json",
+    "s3Overview": "https://aws.amazon.com/s3/pricing/"
+  },
+  "conservativeModelIgnoresFreeTierAndCredits": true,
+  "rates": {
+    "s3StandardCaCentral1PerGbMonth": 0.025,
+    "s3PutCopyPostListPerRequest": 0.0000055,
+    "s3GetAndOtherPerRequest": 0.00000044,
+    "cloudFrontUsMexicoCanadaFirstPaidTierPerGb": 0.085,
+    "cloudFrontHttpsPer10000Requests": 0.01
+  },
+  "monthlyExample": {
+    "storedGbIncludingObjectVersions": 1,
+    "cdnTransferGb": 10,
+    "cdnHttpsRequests": 100000,
+    "s3PutListRequests": 2000,
+    "s3GetRequests": 1000,
+    "invalidationPaths": 1,
+    "storageUsd": 0.025,
+    "cdnTransferUsdWithoutFreeTier": 0.85,
+    "cdnRequestsUsdWithoutFreeTier": 0.1,
+    "s3PutListUsd": 0.011,
+    "s3GetUsd": 0.00044,
+    "modeledSubtotalUsd": 0.98644,
+    "invalidationCostDependsOnAccountMonthlyFreePathUsage": true
+  },
+  "excludes": ["existing backend/platform/database resources", "GitHub Actions quotas or billed minutes", "tax", "support", "extra traffic or invalidations", "retained object version growth", "future custom domain or WAF"],
+  "overallMonthlyBudgetTargetUsd": 50,
+  "overallBudgetComplianceNotProved": true,
+  "ttlStopsBilling": false
+}
