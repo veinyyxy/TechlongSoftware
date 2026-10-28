@@ -29,11 +29,15 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：用独立核验的事后原件准备包与来源审批材料
+## 3. 当前唯一继续点：完整历史只读adapter的最小兼容修复
+
+P4本地包候选已从真实handoff和七份历史原证据完整重建：11旧job/14历史plan保留，canonical包403623字节；未上传/启用来源。源码630fcf4的准确CI40715649202全部15报告步骤及本机33项定向测试、类型/lint通过。恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-package-20261028-a/verified.json`（原始字节SHA `056168741efc03aa93bf528e455f5b0aa6223aa40f0fa5366d4ff4266f71f84a`）；它绑定candidate/source/result原件及SHA。该阶段无AWS/生产配置/SQL/私钥/Secret值/新槽/上传/dispatch，仅GitHub只读CI核验。
+
+准备发现开窗阻塞：原安装status RPC最多12行，但新SOURCE绑定完整14历史plan，且RPC的status与共享投影runStatus字段不兼容。下一仅以最小只读adapter差异和回归解决这项阻塞，不改数据库函数/权限/保护，不删减历史或以缺省null冒充状态，不另建执行器或任务。解决后再接原上传器生成准确包＋新事实审批，取得真实VersionId后准备来源发布；当前selection仍null，没有上传、事实窗口、来源发布或整轮批准。材料详见[总清单当前P4](aws-auto-deployment-next-cycle-plan.md)。
 
 P2只读事实及P3[两行原子任务衔接](aws-auto-deployment-reviewed-cycle-handoff-v1.md)已完成。用户批准 `89bf6dcd…` 后，执行源码 `a87d2fe`（准确CI40704097228通过）于2026-10-28温尼伯10:08:09.592提交、10:08:21.656独立回读通过：旧a604原行保留为canceled，新 `job_a00fc18c13a5d6c6616c8039` 为pending/attempt0/max1、永久held、无lease或云执行授权；其他10旧job、14/9/9完整控制账本、业务与保护保持。实际配置读取2/TLS2/SQL79/CI GET6，AWS/Secret值/PEM/控制表写/dispatch/部署均0。写与Inspect两槽永久消费，绝不重放或复位。
 
-恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-handoff-executed-verified-20261028-a.json`（原始字节SHA `c5b365acc3d812b7102f282a6cc3302aa42fb3e67a3a75d8cf538f594cf954bf`）；它索引真实writer/Inspect原件及SHA，不含私密配置或业务正文。下一只用真实事后原件准备新basis/profile、包及必要SOURCE/来源发布审批材料，不重复生产读取、不建固定任务分支或新执行器。只排除新held行，保留canceled a604及完整旧历史；原成功前驱9db不变。原最早事实时间及13:42:18准备截止不改，不自动赋予新事实窗口。
+P3原件仍在 `F:/ChatGPT_workshop/techlong-reviewed-cycle-handoff-executed-verified-20261028-a.json`（原始字节SHA `c5b365acc3d812b7102f282a6cc3302aa42fb3e67a3a75d8cf538f594cf954bf`）；它索引真实writer/Inspect原件及SHA，不含私密配置或业务正文。P4只排除新held行，保留canceled a604及完整旧历史；原成功前驱9db不变。原最早事实时间及13:42:18准备截止不改，不自动赋予新事实窗口，不重复生产读取、不建固定任务分支或新执行器。
 
 G1受审新周期接入与G2整轮衔接的[最小接线与累计执行上限](aws-auto-deployment-reviewed-cycle-v1.md)已编码并通过准确CI，复用原编译器、单次调度和独立三写核验；默认云周期source仍为null。新事实窗口、包上传、必要来源发布及整轮SHA仍须另审，不先开Review或部署，不扩运行时框架或调度平台。真实请求已按准确批准完成，后续按总清单P4–P5集中落实材料与执行范围。
 

@@ -2,13 +2,21 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-28，两行任务衔接已独立核验，下一仅准备包与来源审批材料）
+## 当前唯一继续点（2026-10-28，新包已本地重建；下一仅完整历史读取的最小兼容修复）
+
+P4本地包与SOURCE候选已从真实handoff及原七份证据完整重建，保留11旧job/14历史plan和原9db成功前驱；未上传或发布。源码 `630fcf4188eabcfef1cd7041615309f82683c321` 的[准确CI40715649202](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40715649202)全部15报告步骤成功，本机33项定向测试（含8新增）、类型/lint通过。包canonical为403623字节，SHA `e908e74b0de03ae61a2f36bfe1e9f0423ce3850e341a1a3cdf5f9676553b0700`；basis `2cf26916af4f9d8734da18231d2571b23758397c72f1a5566bee5656623d8045`。投影只排除新held行，不是新的数据库快照；拟议事实期限尚未批准，工程selection仍null，包固定版本引用/activation均为空。
+
+完整本地检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-package-20261028-a/verified.json`，原始字节SHA `056168741efc03aa93bf528e455f5b0aa6223aa40f0fa5366d4ff4266f71f84a`；候选业务正文只在同目录 `candidate.json`，禁止入Git。该阶段AWS/生产配置/SQL/PEM/Secret值/上传/新槽/dispatch均0，仅5次GitHub GET核验本次CI；旧事实时刻与13:42:18准备截止不变。
+
+**唯一剩余接线阻塞：** 安装的 `deployment_control_v6.status()` 最多12行，当前SOURCE绑定14历史plan；共享历史投影还期待 `runStatus`，RPC原字段是 `status`。下一只准备/实施这项最小只读adapter兼容及回归，保留完整历史、不改数据库函数/权限/保护、不新增任务、执行器或来源窗口；不得通过截断历史或缺省null绕过。解决后接原条件上传/独立固定版本回读器的准确包＋新事实审批，再按真实VersionId准备现有双workflow/SOURCE/trust-only范围。当前无可执行新SHA，不开Review或部署。[具体材料与No-Go](aws-auto-deployment-next-cycle-plan.md)。
+
+## 本轮已完成P3（保留原执行与独立核验证据）
 
 用户确认清单 `89bf6dcd122e2e0ffbc04a3f76156ffde8b9d57886d1848bc76507a57bbd9f1e` 后，[准确取消a604＋新held请求](aws-auto-deployment-reviewed-cycle-handoff-v1.md)已在温尼伯10:08:09.592原子提交，10:08:21.656由第二条TLS连接独立核验，结果 `TASK_TRANSFER_INDEPENDENTLY_VERIFIED_HELD_ONLY`。旧 `job_a60423b885fef3e4326213f7` 原行保留为canceled；新 `job_a00fc18c13a5d6c6616c8039` 为pending/attempt0/max1、永久审核挂起、无lease、无云执行授权。其他10旧job、完整14/9/9控制账本、业务与保护完全保持。两永久槽已消费，禁止重放、复位或再执行写入。
 
 执行源码 `a87d2feab7e3f304f1c3f5e07b50c43c506c3658` 的[准确CI40704097228](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40704097228)通过；本轮实际配置读取2/TLS2/SQL79（writer60＋Inspect19）/准确CI GET6，AWS/Secret值/PEM/控制表写/dispatch/部署均0。真实事后快照SHA `c4d28f90e792b935c4fd3f3b99f80775410d481e0bb15e72f4804cf2da0bea52`；私有原件及摘要封存在 `F:/ChatGPT_workshop/techlong-reviewed-cycle-handoff-executed-verified-20261028-a.json`，原始字节SHA `c5b365acc3d812b7102f282a6cc3302aa42fb3e67a3a75d8cf538f594cf954bf`，业务正文不入Git。
 
-下一仅用真实事后原件准备新basis/profile、包及必要SOURCE/来源发布的准确审批材料；只排除新held行，保留已取消a604及全部旧历史，成功前驱仍为 `job_9db8466fd95cef0c23ad6bfc`。不重复生产读取、不复制固定任务分支、不新建执行器。原最早事实时间和13:42:18准备截止不改；尚未批准新事实窗口、包上传、来源发布或整轮执行。云周期SOURCE仍null，不开Review、不dispatch或部署；新生产读取及实际副作用仍另审。
+上述真实事后原件已用于顶部P4候选；原最早事实时间和13:42:18准备截止不改。新事实窗口、包上传、来源发布及整轮执行仍未批准，不复用本次handoff批准。
 
 ## 历史：G1/G2最小接线代码完成（保留）
 
