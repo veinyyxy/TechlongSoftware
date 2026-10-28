@@ -2,6 +2,10 @@
 
 ## 当前P4：仅从真实事后原件准备包与来源候选（2026-10-28）
 
+本次包已实际完成一次条件上传＋独立准确版本回读（用户批准ce3a497b…；执行源码0e18a25/准确CI40721151594），VersionId `PCD4J0_Ydp1lpa1BzFeKhDbNIEiUK1HC`，包403623字节及SHA `e908e74b0de03ae61a2f36bfe1e9f0423ce3850e341a1a3cdf5f9676553b0700`保持。新basis facts批准固定至10月30日10:08:09.592（温尼伯），未激活SOURCE、发布workflow/trust或部署。两永久槽已消费，不得依本清单再PUT/GET或复位；后继读取不继承本次授权，原准备记录保留原状态不覆盖。
+
+恢复只读执行检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-package-executed-verified-20261028-a.json`，原始字节SHA `044bae2e914647b6b479c35f5be6c33345eb8d5aef96cabaf50aa3372bc14706`。下一仅必要来源发布材料：现有双workflow、SOURCE选择及既有worker trust的准确pin差异，沿用原发布器和完整14条历史，不重传包或新增身份。新生产元数据读取、实际来源/trust变更及整轮执行仍各按准确范围另审；下方准备时文字仅历史记录，不重放其中命令。
+
 上传接线现已落实为共享目录内 `upload-plan.mjs` / `upload-local.mjs`，完整[新key/次数/事实窗口及风险](aws-auto-deployment-reviewed-cycle-package-upload.md)单独绑定到待审SHA；只复用原条件PUT和只读回读器，不改其SDK实现。固定605958字节candidate只提取403623字节canonical包，保留真实profile和原七对象；不重新生成包。四份原readiness只作历史来源，执行前桶/目标必须fresh核对，真正worker的业务准入仍不能省略。
 
 最终准确CI后只读本地原件PrepareSaved，再封存 `F:/ChatGPT_workshop/techlong-reviewed-cycle-upload-20261028-a/prepared-verified.json`；未生成时保持No-Go。清单最长24小时且保留2分钟启动余量，新的事实范围仍从原真实数据库时间起固定48小时；旧五小时准备截止、原包和所有旧槽不变。清单生成后冻结main，下一只等待准确SHA及完整风险批准；此处不批准上传/事实或来源发布，更不运行Review。

@@ -29,7 +29,15 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：准确包上传清单准备收尾与新SHA批准
+## 3. 当前唯一继续点：已核验包版本的必要来源发布材料
+
+本次P4包上传已按用户确认的ce3a497b…准确清单完成：一次403623字节条件PUT＋独立一次准确版本GET，大小/SHA/checksum/AES256/版本和原basis重建全部通过；VersionId `PCD4J0_Ydp1lpa1BzFeKhDbNIEiUK1HC`，包SHA `e908e74b0de03ae61a2f36bfe1e9f0423ce3850e341a1a3cdf5f9676553b0700`。新basis facts批准固定至2026-10-30 10:08:09.592（温尼伯），旧basis/Review不延期，SOURCE和运行时仍关闭。
+
+恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-package-executed-verified-20261028-a.json`（原始字节SHA `044bae2e914647b6b479c35f5be6c33345eb8d5aef96cabaf50aa3372bc14706`），不重放旧上传或Inspect。执行源码0e18a25/准确CI40721151594通过；实际Source STS3、桶元数据6、HEAD2、PUT1、GET1、候选内容1/readiness4/CI GET3；无SQL、私密配置/PEM/Secret值、IAM写、workflow发布或dispatch。两永久槽已消费；仅本地领取时刻可追溯，不声称AWS创建时间。writer/Inspect和本地核验完成后main才结束冻结，原件与原NOT_APPROVED准备记录均保留。
+
+下一只用真实固定版本、facts批准provenance及SOURCE候选准备现有双workflow/SOURCE选择/既有worker trust-only的必要发布材料，复用原发布器，不重复上传、新建任务/镜像/身份或扩权限。不先发布或部署；新的生产元数据读取先取得当轮限定许可，实际来源/trust变更与整轮执行仍分别准确审批。包成功不是完整Review或部署验收，更不是整套AWS上线。
+
+以下为本轮代码与准备阶段记录，保留追溯，不构成再次上传或读取许可。
 
 本次包上传接线已实现，复用原 `packageUploadRunner` / `createPackageIo`，新旧上传47项本机测试及真实封存body/四原件核对通过；不修改旧上传器或新增AWS执行器。只拟新key一次条件PUT、独立一次固定版本GET及准确新basis事实批准，不发布来源或部署。[完整风险和边界](aws-auto-deployment-reviewed-cycle-package-upload.md)。
 
