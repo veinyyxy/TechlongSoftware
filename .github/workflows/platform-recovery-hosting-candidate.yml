@@ -17,7 +17,9 @@ on:
       - 'tests/platform-reviewed-cycle-handoff-v1.test.mjs'
       - 'tests/platform-reviewed-cycle-package-v1.test.mjs'
       - 'tests/platform-reviewed-cycle-upload-v1.test.mjs'
+      - 'tests/platform-reviewed-cycle-publication-v1.test.mjs'
       - 'docs/aws-auto-deployment-reviewed-cycle-package-upload.md'
+      - 'docs/aws-auto-deployment-reviewed-cycle-source-publication.md'
       - 'docs/aws-auto-deployment-reviewed-cycle-handoff-v1.md'
       - 'docs/aws-auto-deployment-reviewed-cycle-v1.md'
       - 'ops/platform-a604-package-v1/**'
@@ -76,7 +78,9 @@ on:
       - 'tests/platform-reviewed-cycle-handoff-v1.test.mjs'
       - 'tests/platform-reviewed-cycle-package-v1.test.mjs'
       - 'tests/platform-reviewed-cycle-upload-v1.test.mjs'
+      - 'tests/platform-reviewed-cycle-publication-v1.test.mjs'
       - 'docs/aws-auto-deployment-reviewed-cycle-package-upload.md'
+      - 'docs/aws-auto-deployment-reviewed-cycle-source-publication.md'
       - 'docs/aws-auto-deployment-reviewed-cycle-handoff-v1.md'
       - 'docs/aws-auto-deployment-reviewed-cycle-v1.md'
       - 'ops/platform-a604-package-v1/**'
@@ -151,12 +155,13 @@ jobs:
           node node_modules/eslint/bin/eslint.js ops/platform-a604-operator-v1/ tests/platform-a604-operator-v1.test.mjs tests/platform-a604-inspect-publisher-v1.test.mjs tests/platform-a604-continuous-review-v1.test.mjs tests/fixtures/platform-a604-inspect-publisher-v1.mjs --max-warnings 0
       - name: Reviewed whole-cycle wiring - No AWS
         run: |
-          node --experimental-strip-types --test tests/platform-reviewed-cycle-v1.test.mjs tests/platform-reviewed-cycle-handoff-v1.test.mjs tests/platform-reviewed-cycle-package-v1.test.mjs tests/platform-reviewed-cycle-upload-v1.test.mjs
+          node --experimental-strip-types --test tests/platform-reviewed-cycle-v1.test.mjs tests/platform-reviewed-cycle-handoff-v1.test.mjs tests/platform-reviewed-cycle-package-v1.test.mjs tests/platform-reviewed-cycle-upload-v1.test.mjs tests/platform-reviewed-cycle-publication-v1.test.mjs
           node --experimental-strip-types ops/platform-reviewed-cycle-v1/local.mjs --check
           node --experimental-strip-types ops/platform-reviewed-cycle-v1/request-local.mjs --check
           node --experimental-strip-types ops/platform-reviewed-cycle-v1/package-saved.mjs --check
           node --experimental-strip-types ops/platform-reviewed-cycle-v1/upload-local.mjs --check
-          node node_modules/eslint/bin/eslint.js ops/platform-reviewed-cycle-v1/ tests/platform-reviewed-cycle-v1.test.mjs tests/platform-reviewed-cycle-handoff-v1.test.mjs tests/platform-reviewed-cycle-package-v1.test.mjs tests/platform-reviewed-cycle-upload-v1.test.mjs --max-warnings 0
+          node --experimental-strip-types ops/platform-reviewed-cycle-v1/publication-local.mjs --check
+          node node_modules/eslint/bin/eslint.js ops/platform-reviewed-cycle-v1/ tests/platform-reviewed-cycle-v1.test.mjs tests/platform-reviewed-cycle-handoff-v1.test.mjs tests/platform-reviewed-cycle-package-v1.test.mjs tests/platform-reviewed-cycle-upload-v1.test.mjs tests/platform-reviewed-cycle-publication-v1.test.mjs --max-warnings 0
       - name: A604 package upload contracts - No AWS
         run: |
           node --experimental-strip-types --test tests/platform-recovery-package-v1.test.mjs tests/platform-a604-package-v1.test.mjs

@@ -1,0 +1,45 @@
+# 新周期来源发布：现有双工作流、本机绑定与一项trust pin
+
+这是[执行手册](aws-auto-deployment-execution-runbook.md)当前P4的风险附表。代码、测试、只读Capture和未引用Git对象只是在准备材料，不代表批准发布、信任变更、App操作或部署。只有用户确认新的准确SHA后才可PublishReviewed；旧a604及包上传SHA不能复用。
+
+## 固定复用与最小差异
+
+复用准确新任务 `job_a00fc18c13a5d6c6616c8039`、已独立核验的包VersionId `PCD4J0_Ydp1lpa1BzFeKhDbNIEiUK1HC`、包SHA `e908e74b0de03ae61a2f36bfe1e9f0423ce3850e341a1a3cdf5f9676553b0700`、basis `2cf26916af4f9d8734da18231d2571b23758397c72f1a5566bee5656623d8045` 及ce3a497b…新事实批准。新facts仍固定至2026-10-30 10:08:09.592（温尼伯CDT），不重传包、不改事实时刻或延长旧basis。完整11旧job/14旧plan及原9db成功前驱保持，不把a604 Review升级为成功或accepted lineage。
+
+拟议发布仅更新现有三个文件：
+
+1. `.github/workflows/cloud-worker-platform-job-v6.yml`：沿用原manual caller/reusable结构、App actor、7个输入、环境人工审批、并发组及安装合同；受审SOURCE literal调用已冻结的 `runCycleLive`。
+2. `.github/workflows/cloud-worker-platform-v6.yml`：只引用本次真正生成的reusable commit R。
+3. `ops/platform-reviewed-cycle-v1/operator-source.mjs`：本机operator绑定同一SOURCE及R。它在冻结云闭包外，工程准备期间为null；原云端 `selection.mjs` 仍null，由受审reusable携带SOURCE，不使用CLI/env/外部JSON选择能力。
+
+云执行/claim/complete/独立Inspect内核不变，冻结源码 `0e18a25e15af64010187c9870be3cfa6433aa5de`、110文件闭包 `0c6f119def3b10efe592f559b29d4d8f929893a28dbc77a065c2746052aa308d`。只按原固定规则绑定caller source、reusable SHA、activation source和release SHA四项自引用；可重建的原七对象包不变，不求解源码自身摘要的循环固定点。
+
+现有 `TechlongSandboxGitHubDeploymentWorkerRole` 的 `job_workflow_ref` 从 `…/cloud-worker-platform-job-v6.yml@e658f7b88ab50b4ff3c5653d46866b859fbadfe1` 改为本次准确R；actor、其他条件、RoleId、inline、boundary v1及所有资源保持。Foundation为原准确UUID `308174f0-ca9e-11f1-a04d-02569e9287b5`，模板原摘要 `5bee8aacbb2cce98e69807f9b21da7f0d033abd41c0cd9b0a146494185bc5c75`。不新增IAM/Secret/Cell，不扩权限。
+
+## 准备与时限
+
+先完成最终源码准确No-AWS CI，再按当轮单独许可CaptureReadiness：最多1次STS＋12次AWS元数据、20次GitHub GET（CI GET计入）。只核对现有角色/基础栈/策略和GitHub门禁/OIDC/现有workflow/main，无Secret值/PEM/.env/SQL或资源写。观测时间保留为本次调用开始时刻，不以后续序列化完成时间重算。
+
+PrepareSaved复用原三文件Git对象准备器：只生成未引用blob/tree/commit及F:/ChatGPT_workshop私有候选，不创建分支、不移动任何ref，不写工作区受保护workflow。原main、refs与protected文件须逐项保持，未来Publish只有一次非强推精确caller commit。
+
+准备快照从真实Capture开始不足5小时；清单为 `min(观测开始+24小时, 已批准新facts固定到期)`，最晚启动保留20分钟。源/准确CI/本机main/pins、真实package proof、观察时间及完整baseline绑定。若材料缺失、Source失效或任何漂移，停止保留原件，不重放失败Capture/写入或倒填时钟。清单生成后冻结main，不能再追加文档提交使其失效。
+
+## 获新SHA批准后才允许的顺序
+
+复用原 `publishAppOnceV6` / `createAppPublicationIo`，不是新增执行器：
+
+- 实时核验同一IAM Source、远端parent、两个既有workflow准确ID/内容、角色/策略/模板、环境人工门禁及OIDC；原五资源与完整prestate匹配后消费固定发布槽。
+- 一次非强推精确caller commit（链中含reusable和三个文件），不Run/Re-run或dispatch。
+- 一次CreateChangeSet，严格核对准确ARN、模板及仅WorkerRole信任文档的变化，再最多一次ExecuteChangeSet；`DisableRollback=true`。不允许使用其它栈、额外IAM变更或自动重建Change Set。
+- 原栈完成后核对完整layout/两个workflow，最多一次本机main快进。
+- 新只读实例独立核对准确模板、角色物理身份/策略/门禁、远端main和workflow。只有全部匹配才声称来源发布完成；不意味着部署验收。
+
+写上限为push1/CreateChangeSet1/Execute1/本机快进1，两个固定永久槽（按准确job）不因换清单、源码或输出复位。执行metadata上限沿用原发布器180次AWS/160次GitHub，独立核验最多13/17；均包含原有有限轮询，不是任意范围查询许可。没有Secret值/PEM/数据库、包上传、环境设置写、App签名、dispatch、承载创建或租约续期。
+
+## 完整风险与后继边界
+
+接受：GitHub与AWS非原子、无跨服务CAS、IAM传播及异步CFN；workflow/本机绑定可能先发布而trust未完成，失败可能遗留已发布来源、未完成Change Set或部分信任变化。原旧reusable pin将失去新STS角色访问能力，但这不是撤销已签发STS会话；不自动回滚、删除、补齐、换槽、换任务或重试。精确Git对象仍可被本地并发影响，运行前后仍须重复核验；缺失/未知ACK不得猜测成功。
+
+审批必须接受Source凭据在内存使用和自动刷新失效、网络/提供者/审计日志、Account ID/ARN及部署状态进入已授权Git提交和私有本地原件、禁用失败自动回滚，以及低额但非零费用。50 USD/月只是目标，TTL/标签不自动停止费用；不隐含任何清理授权。
+
+来源绑定安装后本机入口可准备新整轮清单，但不会启动后台worker或自动调度。Review→RunOnce→独立Inspect仍需新的准确整轮SHA；三次GitHub environment都必须用户本人批准，不能由本方案代审、移除门禁或缩减完整历史。后续生产数据库或私密读取不继承本次准备/发布授权。

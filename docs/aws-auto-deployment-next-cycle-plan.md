@@ -2,6 +2,10 @@
 
 ## 当前P4：仅从真实事后原件准备包与来源候选（2026-10-28）
 
+必要来源发布接线现已复用原三文件Git准备器和Git/CFN发布器实现；本机operator-source独立于冻结云闭包，云端保持null默认，由受审reusable携带固定SOURCE，避免把自身closure SHA嵌入自身文件。只拟现有双workflow＋本机SOURCE绑定三个文件和WorkerRole一个trust pin，不改内核、策略/边界/物理身份；默认仍关闭。115项本机相关检查、类型/lint通过，准确CI之后仅执行已获许可的那一次1STS＋12AWS元数据＋20GitHub GET限定核对，不读私密值或写资源。[完整风险](aws-auto-deployment-reviewed-cycle-source-publication.md)。
+
+候选/准确清单及恢复索引固定在 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-20261028-ready-a/`，只在实际准备成功后封存；未引用Git对象不等于已发布，SHA未确认不push或Execute。生成后main冻结，新的观察时间仅属于本次metadata，不延期原facts/claim或自动开Review。
+
 本次包已实际完成一次条件上传＋独立准确版本回读（用户批准ce3a497b…；执行源码0e18a25/准确CI40721151594），VersionId `PCD4J0_Ydp1lpa1BzFeKhDbNIEiUK1HC`，包403623字节及SHA `e908e74b0de03ae61a2f36bfe1e9f0423ce3850e341a1a3cdf5f9676553b0700`保持。新basis facts批准固定至10月30日10:08:09.592（温尼伯），未激活SOURCE、发布workflow/trust或部署。两永久槽已消费，不得依本清单再PUT/GET或复位；后继读取不继承本次授权，原准备记录保留原状态不覆盖。
 
 恢复只读执行检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-package-executed-verified-20261028-a.json`，原始字节SHA `044bae2e914647b6b479c35f5be6c33345eb8d5aef96cabaf50aa3372bc14706`。下一仅必要来源发布材料：现有双workflow、SOURCE选择及既有worker trust的准确pin差异，沿用原发布器和完整14条历史，不重传包或新增身份。新生产元数据读取、实际来源/trust变更及整轮执行仍各按准确范围另审；下方准备时文字仅历史记录，不重放其中命令。

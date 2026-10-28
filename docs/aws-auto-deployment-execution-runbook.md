@@ -29,13 +29,19 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：已核验包版本的必要来源发布材料
+## 3. 当前唯一继续点：来源发布接线收尾、限定只读核对与准确SHA
+
+来源发布的最小接线已完成：原Git三文件对象准备器仅增加SOURCE能力复用，原Git/CFN发布器不变；新本机operator绑定在110云闭包外，云端默认selection仍null，受审reusable携带准确SOURCE和原四项自引用规则。新旧相关115项检查（新周期73＋旧发布42、含15新增）和类型/lint通过；冻结0e18a25内核、包原件与角色/权限均未改变。[完整发布范围与风险](aws-auto-deployment-reviewed-cycle-source-publication.md)。
+
+用户已允许准确CI通过后一次限定核对（1STS＋12AWS元数据＋20GitHub GET），不读私密配置/Secret/PEM、不连数据库或写资源。恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-20261028-ready-a/prepared-verified.json`；它只在该次真实Capture及Prepare成功后生成。不存在时检查准确CI/readonly-a原件及是否已用许可，不自动重新Capture。准备只创建未引用Git对象/私有候选，不改受保护workflow、refs或分支。
+
+新的metadata观测从Capture真正开始计时，准备5小时、审批24小时及20分钟执行预留仍受固定10月30日10:08:09.592（温尼伯）facts到期约束，不restamp或延长旧窗口。生成准确清单后main冻结，下一只请求用户确认新SHA；实际一次push/CreateChangeSet/Execute及独立核验另审，不调度或部署。
 
 本次P4包上传已按用户确认的ce3a497b…准确清单完成：一次403623字节条件PUT＋独立一次准确版本GET，大小/SHA/checksum/AES256/版本和原basis重建全部通过；VersionId `PCD4J0_Ydp1lpa1BzFeKhDbNIEiUK1HC`，包SHA `e908e74b0de03ae61a2f36bfe1e9f0423ce3850e341a1a3cdf5f9676553b0700`。新basis facts批准固定至2026-10-30 10:08:09.592（温尼伯），旧basis/Review不延期，SOURCE和运行时仍关闭。
 
 恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-package-executed-verified-20261028-a.json`（原始字节SHA `044bae2e914647b6b479c35f5be6c33345eb8d5aef96cabaf50aa3372bc14706`），不重放旧上传或Inspect。执行源码0e18a25/准确CI40721151594通过；实际Source STS3、桶元数据6、HEAD2、PUT1、GET1、候选内容1/readiness4/CI GET3；无SQL、私密配置/PEM/Secret值、IAM写、workflow发布或dispatch。两永久槽已消费；仅本地领取时刻可追溯，不声称AWS创建时间。writer/Inspect和本地核验完成后main才结束冻结，原件与原NOT_APPROVED准备记录均保留。
 
-下一只用真实固定版本、facts批准provenance及SOURCE候选准备现有双workflow/SOURCE选择/既有worker trust-only的必要发布材料，复用原发布器，不重复上传、新建任务/镜像/身份或扩权限。不先发布或部署；新的生产元数据读取先取得当轮限定许可，实际来源/trust变更与整轮执行仍分别准确审批。包成功不是完整Review或部署验收，更不是整套AWS上线。
+该项必要来源接线已按顶部实现，不重复上传、新建任务/镜像/身份或扩权限；实际来源/trust变更与整轮执行仍分别准确审批，不先发布或部署。包成功不是完整Review或部署验收，更不是整套AWS上线。
 
 以下为本轮代码与准备阶段记录，保留追溯，不构成再次上传或读取许可。
 

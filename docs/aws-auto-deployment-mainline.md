@@ -2,7 +2,15 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-28，包已上传并独立核验；下一仅必要来源发布材料）
+## 当前唯一继续点（2026-10-28，来源发布接线已实现；准确CI后限定核对与待审材料）
+
+本轮只补必要SOURCE/双workflow/单项trust pin发布接线：复用原三文件未引用Git对象准备器及Git/CFN发布器，旧a604默认行为保持。本机 `operator-source.mjs` 默认null、在冻结云闭包外；云端 `selection.mjs` 仍null，受审reusable以SOURCE literal调用冻结0e18a25/110文件内核，只有原四项自引用字段运行时绑定，不改变执行器或求自摘要固定点。受保护workflow、角色trust、数据库、Secret/PEM和包均未写。[准确范围与完整风险](aws-auto-deployment-reviewed-cycle-source-publication.md)。
+
+本机115项相关检查（新周期73＋旧发布42，含15新增）、类型/lint通过，已存真实包证明与110闭包核对保持。用户已允许准确CI通过后**一次**最多1STS＋12次AWS元数据及20次GitHub GET；目前尚未消费该只读核对，不包含私密配置/数据库或写资源。之后只准备未引用三文件Git对象和准确发布清单，不创建分支或移动refs；旧包/槽不重放。
+
+恢复入口为 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-20261028-ready-a/prepared-verified.json`，只在实际限定核对及PrepareSaved成功后封存；若不存在，先检查准确CI和 `techlong-reviewed-cycle-publication-20261028-readonly-a/`，不重复捕获、不用草案当批准。观测从真实Capture开始起5小时，清单最长24小时且保留20分钟启动余量，facts仍固定至10月30日10:08:09.592（温尼伯）。生成后main冻结，下一只等用户对准确SHA和完整风险确认；当前不发布、不改IAM或调度部署。
+
+## 本轮已完成包上传与独立回读（保留）
 
 用户确认清单 `ce3a497b88eaebe1da1200ee242b81cadb73749aac9ac7fd63c5c7774120eb1d` 后，一次403623字节条件PUT和独立固定版本GET已成功，结果 `PACKAGE_UPLOADED_AND_INDEPENDENT_FIXED_VERSION_VERIFIED_NO_ACTIVATION`。准确版本 `PCD4J0_Ydp1lpa1BzFeKhDbNIEiUK1HC`，key为 `worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/lineage/recovery-v1-2cf26916af4f9d8734da18231d2571b23758397c72f1a5566bee5656623d8045.json`，SHA `e908e74b0de03ae61a2f36bfe1e9f0423ce3850e341a1a3cdf5f9676553b0700`。新basis事实批准固定至温尼伯2026-10-30 10:08:09.592，原basis/Review期限不延长；没有启用运行时。
 
@@ -10,7 +18,7 @@
 
 完整私有检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-package-executed-verified-20261028-a.json`，原始字节SHA `044bae2e914647b6b479c35f5be6c33345eb8d5aef96cabaf50aa3372bc14706`。它绑定原清单、writer/独立Inspect、准确ACK和两槽原件，业务正文不入Git。原准备文件继续保持NOT_APPROVED历史原貌；本次真实批准与版本以执行检查点为准。原main冻结在writer/Inspect及本地核验完成后结束，旧执行清单不再重用。
 
-**下一唯一动作：** 只用已核验版本、准确新facts provenance和原SOURCE候选准备现有双workflow/SOURCE选择及既有worker trust-only的必要发布材料；复用原发布器，不重复上传或新建任务/镜像/身份。不提前发布或调度，不读Secret/PEM/私密配置、不连数据库。需要额外生产元数据时先拟当轮限定读取范围；实际来源发布、IAM trust变更和整轮部署仍按准确范围新审批。当前selection仍null，不把包成功等同部署验收。[准备总清单](aws-auto-deployment-next-cycle-plan.md)。
+该阶段记录的必要来源发布接线已按顶部实现；实际来源发布、IAM trust变更和整轮部署仍按准确范围新审批。当前云端selection仍null，不重复上传/新建任务/镜像/身份或把包成功等同部署验收。[准备总清单](aws-auto-deployment-next-cycle-plan.md)。
 
 ## 本轮已完成上传接线与审批准备（保留）
 

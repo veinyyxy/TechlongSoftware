@@ -11,7 +11,7 @@ import {assertEvidenceSafeV5} from '../cloud-worker/cloud-evidence-v5.mjs';
 import {assertPreparationReadiness} from '../platform-a604-operator-v1/local.mjs';
 import {normalizedState} from '../platform-request-v6/state-contract.mjs';
 import {sha256Hex} from '../../lib/deployments/execution/hash.ts';
-import {SELECTED_CYCLE} from './selection.mjs';
+import {SELECTED_CYCLE} from './operator-source.mjs';
 import {createCycleComposition} from './composition.mjs';
 import {bindWorkflowSource,must,same,RISK} from './cycle.mjs';
 import {createWholeCycleFlow} from './whole.mjs';

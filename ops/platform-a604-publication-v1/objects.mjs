@@ -2,11 +2,15 @@
 import {writeFile,access} from 'node:fs/promises';
 import {git} from '../platform-identity-review-v6/publication.mjs';
 import {Q,F,must,same,hash,texts,bindingText,validateObjects} from './plan.mjs';
-export async function previousTargets(parent){const rows=[];for(const file of [Q.reusable,Q.caller,Q.bindingFile]){
+const DEFAULT={Q,F,must,same,hash,texts,bindingText,validateObjects};
+// SOURCE-only reuse by the next reviewed cycle; never selected from a manifest.
+export function createPublicationObjects(capability=DEFAULT){
+const {Q,F,must,same,hash,texts,bindingText,validateObjects}=capability;
+async function previousTargets(parent){const rows=[];for(const file of [Q.reusable,Q.caller,Q.bindingFile]){
   const t=(await git(['ls-tree',parent,'--',file])).trim(),text=(await git(['show',parent+':'+file])).replaceAll('\r\n','\n');
   must(t.startsWith('100644 blob ')&&t.endsWith('\t'+file),'EXISTING_FILE');rows.push({file,blob:t.split(/\s+/)[2],normalizedLfSha256:hash(text)});
 }return rows;}
-export async function verifyObjects(m){const rendered=validateObjects(m.parent,m.objects,m.operatorScopeSource);must(same(await previousTargets(m.parent),m.previousTargets),'PREVIOUS_OBJECTS');
+async function verifyObjects(m){const rendered=validateObjects(m.parent,m.objects,m.operatorScopeSource);must(same(await previousTargets(m.parent),m.previousTargets),'PREVIOUS_OBJECTS');
   for(const [o,text] of [[m.objects.reusable,rendered.reusable],[m.objects.caller,rendered.caller]])must(
     (await git(['rev-list','--parents','-n','1',o.commit])).trim()===o.commit+' '+o.parent&&
     (await git(['rev-parse',o.commit+'^{tree}'])).trim()===o.tree&&(await git(['ls-tree',o.commit,'--',o.file])).trim()==='100644 blob '+o.blob+'\t'+o.file&&
@@ -17,7 +21,7 @@ export async function verifyObjects(m){const rendered=validateObjects(m.parent,m
   must((await git(['diff','--name-status',m.parent,m.objects.reusable.commit])).trim()==='M\t'+Q.reusable&&
     (await git(['diff','--name-status',m.objects.reusable.commit,m.objects.caller.commit])).trim()==='M\t'+Q.caller+'\nM\t'+Q.bindingFile,'EXACT_THREE_FILE_DIFF');
 }
-export async function prepareObjects({parent,output,now=Date.now()}){
+async function prepareObjects({parent,output,now=Date.now()}){
   must((await git(['rev-parse','HEAD'])).trim()===parent&&(await git(['branch','--show-current'])).trim()==='main'&&(await git(['status','--porcelain'])).trim()==='','CLEAN_MAIN');
   const previous=await previousTargets(parent),operatorScopeSource=(await git(['show',parent+':'+Q.bindingFile])).replaceAll('\r\n','\n'),refs=(await git(['show-ref'])).trim();
   must(hash(operatorScopeSource)===Q.bindingBeforeSha256,'OLD_BINDING');const index=output+'/publication.index';
@@ -36,3 +40,6 @@ export async function prepareObjects({parent,output,now=Date.now()}){
     await writeFile(output+'/'+name,text,{flag:'wx',flush:true});
   return {objects,previousTargets:previous,operatorScopeSource,branchesCreated:0,refsChanged:0,externalWrites:0};
 }
+return Object.freeze({previousTargets,verifyObjects,prepareObjects});
+}
+export const {previousTargets,verifyObjects,prepareObjects}=createPublicationObjects();
