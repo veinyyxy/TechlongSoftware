@@ -22,33 +22,30 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          ref: 72a29559f914768a8df57c8e3e6b4ed940697e54
+          ref: 0e18a25e15af64010187c9870be3cfa6433aa5de
           persist-credentials: false
-      - run: test "$(git rev-parse HEAD)" = '72a29559f914768a8df57c8e3e6b4ed940697e54'
+      - run: test "$(git rev-parse HEAD)" = '0e18a25e15af64010187c9870be3cfa6433aa5de'
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '22.19.0'
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm ci --prefix ops/cloud-worker --ignore-scripts --no-audit --no-fund
       - run: |
-          node --experimental-strip-types --input-type=module <<'A604_BOOTSTRAP'
+          node --experimental-strip-types --input-type=module <<'REVIEWED_CYCLE_BOOTSTRAP'
           import {pathToFileURL} from 'node:url';
           const load = rel => import(pathToFileURL(process.cwd()+'/'+rel).href);
-          const {bindA604WorkflowPublication} = await load('ops/platform-a604-cloud-v1/contract.mjs');
-          const {a604CloudClosure} = await load('ops/platform-a604-cloud-v1/closure.mjs');
-          const {a604Runtime} = await load('ops/platform-a604-cloud-v1/live.mjs');
-          const template = {"schema":"techlong/a604-protocol-publication/v1","state":"PUBLISHED","protocol":"recovery-envelope/v1","sourceCommit":null,"frozenSourceCommit":"72a29559f914768a8df57c8e3e6b4ed940697e54","release":{"state":"PUBLISHED","workflowId":"390829326","actorId":"344813947","reusableCommit":null,"closureSha256":"f4e76cfb90ef04cb4229c6f720f08603130335d84c35cb638817f7209e0d1269","identityProofSha256":"1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca","installationSha256":"0edfa9d7e9b284e0cf9dda91e280bd12e98bf8e9c36f955c3ad661f72d6ad4b1","riskSha256":"e017491cc8e8ae88d914f7a82371196fc996f0874c5ca9549b0e1215c7131849"},"basisSha256":"61865f5e4b8af472ce5e5a118c3ab5d1db2aead6c400e5648dcc714891e99c40","packageReference":{"key":"worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/lineage/recovery-v1-61865f5e4b8af472ce5e5a118c3ab5d1db2aead6c400e5648dcc714891e99c40.json","versionId":"WKWNfTsDXkQ5lZuqQRIG7YZw.4PERCEt","sha256":"03e32f4b3f1f364cab53593d662b8744fb6081f7960d153c0da928946286986e"},"profileSha256":"cfebd33eaf335e16801d0836efcf2f02b06b62eac4134ffed62d4e8c9e5202b7","factsApproval":{"state":"APPROVED","manifestSha256":"af800cdbe26b61f96a8454522a8c0e94f215aa72b0834c22bc83101fbf79ebce","profileSha256":"cfebd33eaf335e16801d0836efcf2f02b06b62eac4134ffed62d4e8c9e5202b7","factsAt":1793109984483,"databaseCheckedAt":1793109995619,"observedBy":1793109995619,"expiresAt":1793282784483,"originalBasisExtended":false},"activation":{"schema":"techlong/recovery-bridge-activation/v1","state":"PUBLISHED","protocol":"recovery-envelope/v1","sourceCommit":null,"frozenSourceCommit":"72a29559f914768a8df57c8e3e6b4ed940697e54","releaseSha256":null},"riskFile":"docs/aws-auto-deployment-a604-cloud-compatibility.md"};
-          try {
-            const publication = await bindA604WorkflowPublication(template,process.env.GITHUB_SHA,process.env.TECHLONG_REUSABLE_COMMIT);
-            console.log(JSON.stringify(await a604Runtime(process.env,await a604CloudClosure(),{publication})));
-          } catch { console.error('A604_CLOUD_STOPPED_REQUIRES_INSPECT_NO_RETRY'); process.exitCode=1; }
-          A604_BOOTSTRAP
+          const {cycleCloudClosure} = await load('ops/platform-reviewed-cycle-v1/closure.mjs');
+          const {runCycleLive} = await load('ops/platform-reviewed-cycle-v1/live.mjs');
+          const source = {"schema":"techlong/reviewed-cycle-source/v1","profile":{"oldJobId":"job_9db8466fd95cef0c23ad6bfc","runId":"40204548444","sourceCommit":"fbad7cbae56320108ee0f20e2d46679ab1c00b0d","manifestSha":"263eed6e5ff4be1f834b470665a2413d5d1aedb3d24833e1cf89d87fa7fcef59","stackId":"arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/53f32460-d084-11f1-ad5b-0ee0206d8b5f","taskDefinitionArn":"arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:8","receiptSha256":"90b2eaac6b30b074169e94d1754fe47f201eac16b859e48aac80140558e8f116","stateSha256":"784a22147158686fe15e19abd65ba1f9a172c513b4d7f974e59255c5ac0d88e1","retirementSha256":"d703b2ae2e7295fa7ef51e1e5f142884147a9298987ee4e80ebbb90c546e33d4","factsAt":1793200089592,"databaseCheckedAt":1793200101656,"observedBy":1793200101656,"validMs":172800000,"clientRequestId":"d520d219-4b60-455e-8596-3730bcb8fe9b","newJobId":"job_a00fc18c13a5d6c6616c8039","requestId":"67181c98fe9ad70988655d66660a2dc0c1127d0a6889d7ebfb91320b9e8b7538","resultReference":{"key":"worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/job_9db8466fd95cef0c23ad6bfc/263eed6e5ff4be1f834b470665a2413d5d1aedb3d24833e1cf89d87fa7fcef59/run-40204548444-1/platform-result-v6.json","versionId":"V4DkcKLhxxLSypjL3wlTsjeN6k2R8.tQ","sha256":"5bec017ad20962160f61b7420d6db58ad97e8a05ecf0b20e55b575fd4931cdd5"}},"historicalJobIds":["job_202c8dc12a8bf379f3a7c693","job_6a1129afcebfc9fb580517c9","job_6e2e115c80301595512f11fb","job_9b57b43a6b88f37202b29170","job_9db8466fd95cef0c23ad6bfc","job_a60423b885fef3e4326213f7","job_c6cb047ac3ff30ed51ba9f34","job_e4147af2f10faf37b51ec9a3","job_ecbf09030d3da7286ea3ef93","job_fc0309dabebc09367f64153f","job_fe5ced28b698d0bf128e7b42"],"historicalPlanCount":14,"historySha256":"b97a4e7de0c10e2f0902826d4d36ffe1a92e240b4ce02e3dc6ffd2bfa5fc3d91","requestEvidence":{"schema":"techlong/reviewed-cycle-request-evidence/v1","jobId":"job_a00fc18c13a5d6c6616c8039","requestId":"67181c98fe9ad70988655d66660a2dc0c1127d0a6889d7ebfb91320b9e8b7538","transactionAt":1793200089592,"independentObservedAt":1793200101656,"afterSha256":"c4d28f90e792b935c4fd3f3b99f80775410d481e0bb15e72f4804cf2da0bea52","sealRawSha256":"c5b365acc3d812b7102f282a6cc3302aa42fb3e67a3a75d8cf538f594cf954bf"},"publication":{"schema":"techlong/reviewed-cycle-publication/v1","state":"PUBLISHED","protocol":"recovery-envelope/v1","riskFile":"docs/aws-auto-deployment-reviewed-cycle-v1.md","cycleId":"ee79cfd6db502930a19afb1d87823cf1a9672a9afb01981f6a361b52146d32fa","sourceCommit":null,"frozenSourceCommit":"0e18a25e15af64010187c9870be3cfa6433aa5de","release":{"state":"PUBLISHED","workflowId":"390829326","actorId":"344813947","reusableCommit":null,"closureSha256":"0c6f119def3b10efe592f559b29d4d8f929893a28dbc77a065c2746052aa308d","identityProofSha256":"1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca","installationSha256":"0edfa9d7e9b284e0cf9dda91e280bd12e98bf8e9c36f955c3ad661f72d6ad4b1","riskSha256":"28045e69d2ceeed1b3f6fd3da5be3ffc174d19bb0792fa4d4272a31d1ed4f805"},"basisSha256":"2cf26916af4f9d8734da18231d2571b23758397c72f1a5566bee5656623d8045","packageReference":{"key":"worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/lineage/recovery-v1-2cf26916af4f9d8734da18231d2571b23758397c72f1a5566bee5656623d8045.json","versionId":"PCD4J0_Ydp1lpa1BzFeKhDbNIEiUK1HC","sha256":"e908e74b0de03ae61a2f36bfe1e9f0423ce3850e341a1a3cdf5f9676553b0700"},"profileSha256":"e3602b2c4cd7d298c223ed69b0d1ffe4706ef8b2c13fa4bdd96911423f46763d","factsApproval":{"state":"APPROVED","manifestSha256":"ce3a497b88eaebe1da1200ee242b81cadb73749aac9ac7fd63c5c7774120eb1d","profileSha256":"e3602b2c4cd7d298c223ed69b0d1ffe4706ef8b2c13fa4bdd96911423f46763d","factsAt":1793200089592,"databaseCheckedAt":1793200101656,"observedBy":1793200101656,"expiresAt":1793372889592,"originalBasisExtended":false},"activation":{"schema":"techlong/recovery-bridge-activation/v1","state":"PUBLISHED","protocol":"recovery-envelope/v1","sourceCommit":null,"frozenSourceCommit":"0e18a25e15af64010187c9870be3cfa6433aa5de","releaseSha256":null}}};
+          try { console.log(JSON.stringify(await runCycleLive(process.env,await cycleCloudClosure(),{source}))); }
+          catch { console.error('REVIEWED_CYCLE_CLOUD_STOPPED_NO_RETRY'); process.exitCode=1; }
+          REVIEWED_CYCLE_BOOTSTRAP
         env:
-          TECHLONG_FROZEN_SOURCE_COMMIT: 72a29559f914768a8df57c8e3e6b4ed940697e54
+          TECHLONG_FROZEN_SOURCE_COMMIT: 0e18a25e15af64010187c9870be3cfa6433aa5de
           TECHLONG_REUSABLE_COMMIT: ${{ inputs.releaseReusableCommit }}
           TECHLONG_RECOVERY_PROTOCOL: recovery-envelope/v1
           TECHLONG_PLATFORM_RELEASE_STATE: PUBLISHED
-          TECHLONG_PLATFORM_CLOSURE_SHA: f4e76cfb90ef04cb4229c6f720f08603130335d84c35cb638817f7209e0d1269
+          TECHLONG_PLATFORM_CLOSURE_SHA: 0c6f119def3b10efe592f559b29d4d8f929893a28dbc77a065c2746052aa308d
           TECHLONG_APP_IDENTITY_PROOF_SHA: 1465a6050e878dba63b58c0214b82ef88ff051256a28ddc63a14e817e2076aca
           TECHLONG_INPUT_MODE: ${{ inputs.mode }}
           TECHLONG_INPUT_JOB: ${{ inputs.job }}
