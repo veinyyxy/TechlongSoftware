@@ -1,5 +1,19 @@
 # 完整新周期准备总清单（草案，不可执行）
 
+## 当前P4：仅从真实事后原件准备包与来源候选（2026-10-28）
+
+P2/P3已完成，当前以[主线顶部](aws-auto-deployment-mainline.md)为准；以下旧G1/G2缺口表保留历史，不能当成仍需重做的任务。本阶段只用已封存的独立handoff、旧包及七份原始证据，复用 `recoveryBasisCompiler` / `makeRecoveryPackage` / `rebuildRecoveryPackage`，生成本地候选。没有新的成功前驱、accepted lineage或部署证明。
+
+准备入口 `ops/platform-reviewed-cycle-v1/package-saved.mjs` 只接受 `--check` 或 `--output F:/ChatGPT_workshop/techlong-reviewed-cycle-package-…`；不接受job/profile/事实/私钥/批准或运行参数，没有AWS、数据库或dispatch端口。固定SHA核对handoff seal和其14原件，以及原a604 package的原始字节与canonical摘要；真实事务时间用作拟议factsAt，独立数据库时间用作databaseCheckedAt/observedBy。只排除新held行，旧a604保留canceled，完整旧任务和账本保留；投影明确不是另一次数据库快照。
+
+输出的 `candidate.json` 含业务正文，只放本地私有目录；`source-candidate.json` 和 `result.json` 记录必要摘要与来源。候选明确 `CANDIDATE_NOT_APPROVED`、publication `UNPUBLISHED`、固定版本引用/事实批准/activation为空；工程 `selection.mjs` 仍为null。拟议48小时只绑定真实factsAt，**不是本次准备自动获得的批准，也不改旧包或事实期限**。当轮准备仍在原最早观测后5小时、10月28日13:42:18（温尼伯）前完成，不能因生成候选重新计时。
+
+后继待审最小范围仍是：准确新key的一次条件PUT（AES256/IfNoneMatch/Checksum）和一次独立固定版本GET、单独批准新事实窗口；固定VersionId只能取自实际上传ACK和独立核验。之后仅现有双workflow、SOURCE选择及既有worker trust的必要精确pin差异，沿用原发布器，不扩策略、不新建IAM/Secret或重发镜像。真实package版本、最终准确CI和具体模板/角色差异未齐前，不生成可执行发布SHA，不伪造VersionId或PUBLISHED描述符。
+
+**已确认的额外No-Go：** `deployment_control_v6.status()` 的现有安装定义最多返回12条，而新SOURCE必须绑定全部14条历史plan。共享adapter的 `projectHistory` 还期待 `runStatus` 字段，安装RPC原字段为 `status`；不能用缺省null冒充真实历史。这两点必须在开窗前以最小只读适配修复并回归，不能删减历史、改保护摘要、修改数据库函数/权限或开新任务绕过。本阶段仅把完整历史重建进候选并记录阻塞，**没有改变运行时adapter、生产SQL或权限**。
+
+该候选不是上传、事实批准、来源发布或整轮执行清单。下一继续点按主线顶部记录，不重跑已消费的handoff或旧Review。
+
 本文件仅落实[执行手册第3节](aws-auto-deployment-execution-runbook.md)，不是第二套手册或新增分支。2026-10-27，America/Winnipeg；源码审阅锚点 `f289a29c049cc07e4c7e5230f7be221f058445d2`，[对应CI40611556422](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40611556422)通过。本阶段只检查工程源码和本地既有验证摘要；没有AWS/GitHub生产查询、配置/PEM/Secret内容读取、数据库连接、任务创建、发布或调度。文档提交后的CI只验证对应源码，不刷新生产事实。
 
 **状态：DRAFT_BLOCKED_NOT_EXECUTABLE。** [机器摘要](aws-auto-deployment-next-cycle-plan.json)不是任何 RunReviewed/DispatchReviewed 入口接受的执行清单，其文件摘要也不是云写批准SHA。新任务ID、新事实/基准、包版本、来源绑定、整轮授权SHA及完整累计预算尚未形成，均不得用旧值填充。
