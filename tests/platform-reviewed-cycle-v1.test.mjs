@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {readFile} from 'node:fs/promises';
 import {a604Fixture} from './fixtures/platform-a604-cloud-v1.mjs';
 import {cycleCloudClosure} from '../ops/platform-reviewed-cycle-v1/closure.mjs';
 import {createReviewedCycle,assertCycle,RISK} from '../ops/platform-reviewed-cycle-v1/cycle.mjs';
-import {createCycleComposition,projectHistory} from '../ops/platform-reviewed-cycle-v1/composition.mjs';
+import {createCycleComposition,projectHistory,COMPLETE_STATUS_SQL,readCompleteCycleStatus,createCompleteHistoryDispatchIo} from '../ops/platform-reviewed-cycle-v1/composition.mjs';
 import {createWholeCycleFlow,LOCAL_LIMITS} from '../ops/platform-reviewed-cycle-v1/whole.mjs';
 import {createCycleRuntime} from '../ops/platform-reviewed-cycle-v1/cloud.mjs';
 import {runCycleLive} from '../ops/platform-reviewed-cycle-v1/live.mjs';
@@ -171,4 +172,64 @@ test('default entry and cloud transport close before credentials; no job/profile
   const r=spawnSync(process.execPath,['--experimental-strip-types','ops/platform-reviewed-cycle-v1/local.mjs','--check'],{encoding:'utf8',timeout:30000,windowsHide:true});
   assert.equal(r.status,0,r.stderr);assert.equal(JSON.parse(r.stdout).executionAuthorized,false);
   assert.equal(closure.previousA604ClosureSha256,'f4e76cfb90ef04cb4229c6f720f08603130335d84c35cb638817f7209e0d1269');
+});
+
+const historyJobs=['job_'+'1'.repeat(24),'job_'+'2'.repeat(24)];
+const statusRows=(count=14)=>Array.from({length:count},(_,i)=>({jobId:historyJobs[0],planSha256:(i+1).toString(16).padStart(64,'0'),
+  actionSha256:'a'.repeat(64),riskSha256:'b'.repeat(64),sourceCommit:'c'.repeat(40),mode:'Review',expiresAt:1,
+  state:i===0?'OBSERVED':'SLOT_OCCUPIED',runId:i===0?'123456797':null,status:i===0?'completed':null,
+  conclusion:i===0?'success':null,proofSha256:i===0?'d'.repeat(64):null}));
+test('runtime status maps to the archived runStatus without losing a real value or masking conflicts',()=>{
+  const rows=statusRows(),expected=rows.map(({status,...r})=>({...r,runStatus:status}));
+  assert.deepEqual(projectHistory(rows,historyJobs),projectHistory(expected,historyJobs));
+  assert.equal(projectHistory(rows,historyJobs)[0].runStatus,'completed');
+  for(const runStatus of [null,'queued',undefined])assert.throws(()=>projectHistory([{...rows[0],runStatus}],historyJobs),/HISTORY_STATUS_CONFLICT/);
+  assert.throws(()=>projectHistory([{...expected[0],runStatus:{forged:true}}],historyJobs),/HISTORY_RUN_STATUS/);
+});
+test('complete status is one fixed scoped SELECT, retaining fourteen rows and the original status semantics',async()=>{
+  const value=statusRows(),calls=[],client={query:async(text,values)=>{calls.push({text,values});return {rows:[{plan_count:14,value}]};}};
+  assert.deepEqual(await readCompleteCycleStatus(client,historyJobs),value);assert.equal(calls.length,1);
+  assert.equal(calls[0].text,COMPLETE_STATUS_SQL);assert.deepEqual(calls[0].values,[historyJobs]);
+  assert.match(COMPLETE_STATUS_SQL,/WHERE p\.job_id=ANY\(\$1::text\[\]\)/);assert.match(COMPLETE_STATUS_SQL,/LIMIT 54/);
+  assert(!/LIMIT 12|\b(?:INSERT|UPDATE|DELETE|CREATE|ALTER|GRANT|REVOKE)\b/.test(COMPLETE_STATUS_SQL));
+  const installed=(await readFile(new URL('../ops/platform-controller-v6/install.sql',import.meta.url),'utf8')).split('CREATE FUNCTION deployment_control_v6.status()')[1].split('$$;')[0],
+    object=s=>s.slice(s.indexOf('jsonb_build_object('),s.indexOf(' AS v FROM')).replaceAll('pg_catalog.','').replace(/\s+/g,' ');
+  assert.equal(object(COMPLETE_STATUS_SQL),object(installed));
+});
+for(const fault of ['overflow','missing','duplicate','foreign','multiple','string-count'])test('complete status rejects '+fault+' without RPC fallback or another query',async()=>{
+  const value=statusRows(fault==='overflow'?54:14);let plan_count=value.length;
+  if(fault==='missing')value.pop();if(fault==='duplicate')value[1]={...value[0]};
+  if(fault==='foreign')value[0].jobId='job_'+'f'.repeat(24);if(fault==='string-count')plan_count=String(plan_count);
+  const rows=[{plan_count,value}];if(fault==='multiple')rows.push(rows[0]);let calls=0;
+  await assert.rejects(readCompleteCycleStatus({query:async()=>{calls++;return {rows};}},historyJobs),/COMPLETE_STATUS/);assert.equal(calls,1);
+});
+test('complete reader keeps the existing 53 row ceiling and rejects invalid SOURCE job sets before querying',async()=>{
+  const value=statusRows(53);assert.equal((await readCompleteCycleStatus({query:async()=>({rows:[{plan_count:53,value}]})},historyJobs)).length,53);
+  let calls=0;for(const ids of [[],['arbitrary'],[historyJobs[0],historyJobs[0]],Array.from({length:21},(_,i)=>'job_'+i.toString(16).padStart(24,'0'))])
+    await assert.rejects(readCompleteCycleStatus({query:async()=>{calls++;}},ids),/STATUS_JOB_SCOPE/);
+  assert.equal(calls,0);
+});
+test('SOURCE dispatch wrapper uses only the verified existing reader, never opens another connection and closes access',async()=>{
+  const rows=statusRows(),events=[],ids=[...historyJobs],queries=[],client={query:async(text,values)=>{queries.push({text,values});return {rows:[{plan_count:rows.length,value:rows}]};}};
+  const io=createCompleteHistoryDispatchIo({capability:{verifyPreflight:async({client:c})=>{assert.equal(c,client);events.push('full-preflight');}}},ids,
+    options=>({preflight:async()=>{events.push('original-tls-role-catalog');await options.capability.verifyPreflight({client});},
+      status:async()=>{throw Error('TRUNCATED_RPC_MUST_NOT_RUN');},close:async()=>events.push('original-close')}));
+  ids[0]='job_'+'e'.repeat(24);await assert.rejects(io.status(),/VERIFIED_READER_REQUIRED/);assert.equal(queries.length,0);
+  await io.preflight();assert.deepEqual(events,['original-tls-role-catalog','full-preflight']);
+  assert.deepEqual(await io.status(),rows);assert.equal(queries.length,1);assert.deepEqual(queries[0].values,[historyJobs]);
+  await io.close();await assert.rejects(io.status(),/VERIFIED_READER_REQUIRED/);assert.equal(queries.length,1);
+});
+test('failed full preflight never exposes a status reader',async()=>{
+  let reads=0;const io=createCompleteHistoryDispatchIo({capability:{verifyPreflight:async()=>{throw Error('SYNTHETIC_BASELINE_DRIFT');}}},historyJobs,
+    options=>({preflight:async()=>options.capability.verifyPreflight({client:{query:async()=>{reads++;}}}),close:async()=>{}}));
+  await assert.rejects(io.preflight(),/BASELINE_DRIFT/);await assert.rejects(io.status(),/VERIFIED_READER_REQUIRED/);assert.equal(reads,0);await io.close();
+});
+test('complete fourteen-plan history is mandatory; missing older rows or changing actual status cannot pass the frozen digest',async()=>{
+  const f=await fixture(),source=structuredClone(f.source),rows=statusRows().map(r=>({...r,jobId:source.historicalJobIds[0]}));
+  source.historicalPlanCount=14;source.historySha256=await sha256Hex(projectHistory(rows,source.historicalJobIds));
+  const selected=await createReviewedCycle(source,{anchor:f.f.profile});source.publication.cycleId=selected.cycleId;
+  const c=await createCycleComposition(source,{anchor:f.f.profile,now:f.f.now});assert.equal(c.capability.history(rows).length,14);
+  assert.throws(()=>c.capability.history(rows.slice(2)),/HISTORY_DRIFT/);
+  assert.throws(()=>c.capability.history(rows.map((r,i)=>i===0?{...r,status:null}:r)),/HISTORY_DRIFT/);
+  assert.throws(()=>c.capability.history(rows.map((r,i)=>i===0?{...r,proofSha256:null}:r)),/HISTORY_DRIFT/);
 });

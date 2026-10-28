@@ -51,8 +51,7 @@ export async function main(args=process.argv.slice(2)){
     historySha256:candidate.sourceCandidate.historySha256,requestEvidence:candidate.sourceCandidate.requestEvidence,
     preparationExpiresAt:candidate.preparationExpiresAt,proposedNewExpiresAt:candidate.proposedNewExpiresAt,
     cloudClosureSha256:closure.closureSha256,sourceSelected:false,newFactsWindowApproved:false,approvedForUpload:false,
-    blockers:['Exact upload/facts approval and immutable VersionId are not yet available.','Workflow/source/trust publication requires its own exact approval.',
-      'Installed status RPC returns at most 12 rows, but this source binds 14 historical plans; preserve full history before any dispatch.'],
+    blockers:['Exact upload/facts approval and immutable VersionId are not yet available.','Workflow/source/trust publication requires its own exact approval.'],
     productionReads:0,configurationContentReads:0,sqlConnections:0,awsCalls:0,uploads:0,slotsConsumed:0,dispatches:0,executionAuthorized:false};
   await write('result',result);console.log(JSON.stringify({...result,archives:result.archives.length}));return result;
 }
