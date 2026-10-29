@@ -104,3 +104,18 @@ C补核执行源码e620a0f，于2026-10-28 23:29:16–23:29:22 CDT完成：配�
 只补齐**既有单INSERT请求接入及准确buyer CORS材料/SOURCE兼容接线与定向测试**，复用原V5根、claim/完成/Inspect和既有调度/发布能力；不新增通用恢复器、固定job分支、探针或执行内核。新材料只能比原公开body多一个准确buyer来源，保留两个原来源、控制指纹、业务材料和历史；旧body/pin/110文件闭包不改写。
 
 本地已确认buyer值通过真实域边界校验、候选body仍649c3077…；原工厂按设计拒绝该新body的旧固定哈希，因此**还未接通已发布云入口**，不能把仅参数检查通过称为完整V5 Review可用。接线完成的No-Go标准：实际V5 Review/模板重建必须接受准确三来源、原两来源历史仍验证、旧任务/账本不变、默认入口仍关闭，云端与本机绑定同一来源；未经真实定向测试及准确CI，不创建新held任务、不上传材料/发布来源、不改trust、不开始短窗口或部署。必要来源/reusable/trust-only差异与请求/整轮副作用仍集中列明、按新SHA审核，GitHub环境由本人批准。
+
+### 最小组合候选已编码（本轮仅代码/测试，未激活）
+
+新增仅一个 [buyer-compatibility.mjs](../ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs)，位于原整轮目录；没有新执行器、SDK封装、队列、恢复框架或固定job分支。`BUYER_SOURCE=null`，原已发布workflow、operator绑定、两来源材料和110文件不改。候选把以下能力接到同一份显式SOURCE：
+
+- 原 `prepareInitializedPlatformRequest` 单INSERT编译器：完整旧业务/账本/保护摘要、全终态/空lease、最新准确回执及确定性request/job ID全部匹配才返回原SQL；不执行SQL，不取消旧成功任务，不生成实际新任务ID。
+- 原 `recoveryData` genuine capability与 `continueCloudContextV5`：先重建真实历史恢复锚，再验证成功回执＋独立Inspect的后继链。不可把序列化basis当能力、跳过旧未验收缺口、把成功a00再当未验收恢复，或延长basis事实时间。
+- 只接受649c3077…准确新body；还原其唯一CORS差异后必须由原工厂验证5c7e5eef…旧body。原材料、控制指纹、镜像、Secret引用及业务配置不变。新旧Review的完整CFN模板与七项resource inventory相同，参数只差准确buyer来源，request/manifest哈希相应变化。
+- 同一候选SOURCE调用原 V5 root 和原 `runPlatformCloudV6` mode bridge；安装绑定、源码/closure、准确job、原claim/完成/Inspect校验继续保留。候选新增文件用**111文件增量闭包**单独计入，不冒称110旧闭包已覆盖新增接线。
+
+本机35项定向检查通过（10项新接线＋15项原域名/边界＋10项原请求）；包含真实V5 Review/完整模板重建、云mode bridge、原body保持、伪造basis/独立证据/请求/安装/源码/过期/旧行漂移拒绝。使用公开材料和合成行/依赖，不读生产配置、私钥、Secret或业务原件，不调用AWS/Neon。新检查进入原无AWS身份CI，准确远端CI结果只在实际完成后记录。
+
+**尚未完成/不能混称**：这不是已安装cloud entry或整轮部署证明。当前线上仍是旧 `recovery-envelope/v1` SOURCE；新候选使用原V6已验收后继能力，并不声称旧固定恢复发布器可直接接收新材料或新协议。SDK/OIDC/S3运输端仍须复用原能力，在后继集中材料中明确来源/发布组合差异，不能偷偷替换workflow或绕开人工门禁。还未用真实a00原件重建候选SOURCE，未分配新job/nonce、上传新材料、消费槽、续租、dispatch或部署。
+
+准确CI通过后，下一唯一动作是以已封存事实和原件准备**准确新请求＋accepted lineage＋buyer材料/SOURCE与必要发布组合的集中材料**，先证明原发布/整轮组合能承载该绑定；如有必需差异只改原组合，不复制执行器。原09:07只读事实至14:07:12.204 CDT不重计；到期只继续本地材料，不自动重新读取生产。实际副作用仍新SHA审核，先备齐整轮再开短窗口。

@@ -14,6 +14,8 @@
 
 **下一唯一代码动作：仅补齐既有单INSERT请求及精确buyer CORS材料/SOURCE兼容接线并定向测试。** 原工厂仍只接受旧body，当前没有接通新材料的已发布入口，不能把域参数通过当完整Review通过。不改旧110/pin、不新建执行器/通用框架/固定job分支；实际V5 Review和云入口绑定、准确CI必须先过，再集中审批新请求、必要材料/来源/trust差异及整轮，不先建任务或开短窗口。[具体No-Go门槛](aws-backend-integration-preparation.md)。
 
+**本轮该代码候选已实现，正收尾准确CI**：单个buyer组合模块复用原请求编译器、genuine历史锚/accepted后继链、V5 root与V6 mode bridge；35项定向检查通过，真实Review/完整模板重建接受三来源，七资源模板原样、旧110不变，新增文件单独111闭包；默认SOURCE=null、无生产调用。当前线上仍旧recovery-envelope/v1，未声称原固定恢复发布器直接兼容。下一只准备真实原件支撑的新请求/accepted lineage/材料与必要发布组合集中差异，先证明既有发布/整轮可承载；不复制执行器、不建任务或开窗。[具体完成与缺口](aws-backend-integration-preparation.md)。
+
 **最新18:54限定只读结果：旧租户栈DELETE_COMPLETE、ECS INACTIVE/运行0，health/ready均404。** 根事件记录16:08:39开始删除、16:16:37完成，“User Initiated”不能确定操作者；本轮未删除或查询CloudTrail。不要更新已删UUID/CORS、重放成功任务或把下方14:41历史健康当现状；不宣称整体费用归零。
 
 **前端承载和GitHub本人门禁已安装并独立核验通过（19:19–19:24）**：用户确认e6654426…后，先两次GitHub配置写并独立证明门禁，再一次CreateStack/六项前端资源（含持久窄IAM）；新栈UUID71751190…/CREATE_COMPLETE，CloudFront EDJYJUKAZ12BO、来源https://d3a0kml1xanzgt.cloudfront.net。最终原模板/准确资源/策略/输出与门禁回读均通过。[完整实测与风险边界](aws-buyer-web-sandbox-bootstrap-observed.md)。实际GitHub GET11/配置写2、STS2/AWS元数据32/CreateStack1，私密值/DB/发布/dispatch/后端/CORS/TTL/重试/清理均0。

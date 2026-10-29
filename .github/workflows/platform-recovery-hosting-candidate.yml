@@ -19,6 +19,7 @@ on:
       - 'tests/platform-reviewed-cycle-upload-v1.test.mjs'
       - 'tests/platform-reviewed-cycle-publication-v1.test.mjs'
       - 'tests/buyer-origin-boundary-v1.test.mjs'
+      - 'tests/buyer-compatibility-v1.test.mjs'
       - 'ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-plan.json'
       - 'ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-template-proposal.json'
       - 'ops/aws-sandbox/cloudformation/buyer-web-sandbox-v1.domain.candidate.template.json'
@@ -86,6 +87,7 @@ on:
       - 'tests/platform-reviewed-cycle-upload-v1.test.mjs'
       - 'tests/platform-reviewed-cycle-publication-v1.test.mjs'
       - 'tests/buyer-origin-boundary-v1.test.mjs'
+      - 'tests/buyer-compatibility-v1.test.mjs'
       - 'ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-plan.json'
       - 'ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-template-proposal.json'
       - 'ops/aws-sandbox/cloudformation/buyer-web-sandbox-v1.domain.candidate.template.json'
@@ -176,8 +178,8 @@ jobs:
           node node_modules/eslint/bin/eslint.js ops/platform-reviewed-cycle-v1/ tests/platform-reviewed-cycle-v1.test.mjs tests/platform-reviewed-cycle-handoff-v1.test.mjs tests/platform-reviewed-cycle-package-v1.test.mjs tests/platform-reviewed-cycle-upload-v1.test.mjs tests/platform-reviewed-cycle-publication-v1.test.mjs --max-warnings 0
       - name: Buyer origin boundary and existing request compiler - No AWS
         run: |
-          node --experimental-strip-types --test tests/buyer-origin-boundary-v1.test.mjs tests/initialized-platform-v4.test.ts
-          node node_modules/eslint/bin/eslint.js tests/buyer-origin-boundary-v1.test.mjs --max-warnings 0
+          node --experimental-strip-types --test tests/buyer-origin-boundary-v1.test.mjs tests/buyer-compatibility-v1.test.mjs tests/initialized-platform-v4.test.ts
+          node node_modules/eslint/bin/eslint.js tests/buyer-origin-boundary-v1.test.mjs tests/buyer-compatibility-v1.test.mjs --max-warnings 0
       - name: A604 package upload contracts - No AWS
         run: |
           node --experimental-strip-types --test tests/platform-recovery-package-v1.test.mjs tests/platform-a604-package-v1.test.mjs

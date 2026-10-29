@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "READONLY_BACKEND_FACTS_VERIFIED_PENDING_MINIMAL_MATERIAL_SOURCE_WIRING",
+  "status": "BUYER_COMPATIBILITY_CANDIDATE_IMPLEMENTED_PENDING_EXACT_CI_AND_REVIEWED_BINDING",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
@@ -180,6 +180,20 @@
     "additionalDiagnosticApproved": true,
     "oldCommandsNotReplayed": true
   },
-  "nextUniqueAction": "Implement only the minimal SOURCE-selected compatibility wiring for the existing single-INSERT request and exact three-origin buyer material, with real V5 Review/template and cloud-entry binding tests. Preserve the old body/pins/110-file closure, historical rows and default-closed behavior. Do not add a per-job executor or generic recovery framework. No new held job, material upload, source/trust publication, runtime window or deployment until exact CI and concentrated fresh-SHA approvals. Do not redo frontend/domain/image work or reread HMAC.",
+  "candidateCompatibility": {
+    "file": "ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs",
+    "productionSourceSelected": false,
+    "localTargetedTests": 35,
+    "newCompatibilityTests": 10,
+    "originalFrozenFiles": 110,
+    "additiveCandidateFiles": 111,
+    "usesOriginalRequestCompilerRootAndModeBridge": true,
+    "fullTemplateAndSevenResourceInventoryUnchanged": true,
+    "exactRemoteCiVerified": false,
+    "actualSourceReconstructed": false,
+    "installedRecoveryEnvelopePublisherCompatibilityClaimed": false,
+    "liveActivationAuthorized": false
+  },
+  "nextUniqueAction": "Finish exact no-AWS CI, then prepare only original-evidence-bound single-INSERT request, accepted successor lineage, exact buyer material/SOURCE and necessary existing-publication composition differences. Prove the existing publisher/whole-cycle composition can carry that binding before opening any window. Do not duplicate executors/frameworks or claim the installed recovery-envelope/v1 accepts the native V6 candidate without wiring. No new held job, material upload, source/trust publication, renewal or deployment until concentrated fresh-SHA approvals. Preserve old body/pins/110-file closure/history; do not redo frontend/domain/image work or reread HMAC.",
   "wholeProductAccepted": false
 }
