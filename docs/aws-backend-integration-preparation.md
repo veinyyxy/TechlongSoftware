@@ -76,3 +76,11 @@ C补核执行源码e620a0f，于2026-10-28 23:29:16–23:29:22 CDT完成：配�
 实际买家来源现在是 `https://buyer.sandbox.techlong.cloud`；后继CORS只追加这一项，保留原first-acceptance与techlong.cloud。域内校验无需例外，候选body SHA 649c3077…仍只是差异证明；原capsule/固定pin不静默改写，也不直接让旧成功a00再跑一次。
 
 复用原prepareInitializedPlatformRequest单INSERT和既有整轮能力，不再实现两行pending取消handoff、固定job分支或新执行器。旧23:29快照只证明当时12任务/17/12/12历史均终态/空lease，AWS/GitHub/Neon准备已过期，不能据此声称当前仍未变或直接生成写清单。下一次仅取得当轮限定只读许可，核对完整真实状态、原镜像/权限/Secret版本元数据与必要来源绑定后，集中给出新请求/材料/必要发布和整轮的明确范围/时序；不提前建任务、占槽、开TTL或云写。GitHub环境仍由用户本人批准，50 USD目标与清理另审边界不变。
+
+### 10月29日新准备的当前停止点
+
+用户批准一次1STS/65AWS元数据/10GitHub GET/配置1/TLS1/SQL45后，08:52:39的a记录在第一次STS调用停止。用户刷新并明确给出新一轮同范围许可后，08:55:40的b独立记录仍在第一次STS停止；不是重跑a。两者原生返回都被既有错误处理归为CLI_OR_CREDENTIAL_FAILURE，尚不能区分认证、端点或本地调用错误，**不能断言用户刷新失败或凭据仍过期**。
+
+实际合计仅Source STS调用尝试2次（是否已到达服务端未知），其余AWS/GitHub/配置读取/Neon/SQL/写入/执行槽/调度均0；没有新生产事实、可用5小时快照或部署SHA。原结果中的计算到期字段不构成已取得事实或新执行窗口。CLI2.36.19/region ca-central-1仅作本地非秘密元数据核对，没有新增STS调用。
+
+恢复读 `F:/ChatGPT_workshop/techlong-backend-integration-preparation-stopped-20261029-a.json`，raw SHA `76d4f315d1a87c8bbc1c574799cbf50c0c76e1252b0006c6a5d811dd540ef8ab`，绑定a/b原停止结果；旧命令、旧事实与永久槽不重放或重计。下一只等待用户对一次固定官方endpoint的去敏STS诊断确认；若准确IAM身份通过，才按该次新许可继续仍未用的65/10/配置1/TLS1/SQL45，不先读配置或做写入。失败则保存分类停止，不盲目要求反复刷新。

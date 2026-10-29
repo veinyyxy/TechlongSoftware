@@ -1,9 +1,10 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "USER_SELECTED_CUSTOM_DOMAIN_PREPARATION_AFTER_RENDERER_BOUNDARY_BLOCK",
+  "status": "BACKEND_READONLY_PREPARATION_STOPPED_AT_SOURCE_CLI_IDENTITY",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
-  "sourceAuditCommit": "66e9985dbb5d498dd49f3647f40efae62b3fec45",
+  "sourceAuditCommit": "df8a22ba39557418fcbd91df66bf105f8eca6cd2",
+  "priorSourceAuditCommit": "66e9985dbb5d498dd49f3647f40efae62b3fec45",
   "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
   "deploymentId": "dep_7c99bd249470184852f0dc74",
   "publishedClient": {
@@ -142,14 +143,33 @@
   },
   "customDomainPreparation": {
     "userSelectedDirection": true,
+    "status": "INSTALLED_AND_INDEPENDENTLY_VERIFIED_STATIC_ONLY",
     "plan": "ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-plan.json",
     "templateProposal": "ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-template-proposal.json",
-    "certificateArn": null,
+    "certificateArn": "arn:aws:acm:us-east-1:402010193138:certificate/68a43688-08d5-47c6-96c6-f48740b61caf",
+    "currentStaticEntry": "https://buyer.sandbox.techlong.cloud",
+    "observedResult": "ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-install-observed.json",
+    "observedCheckpointRawSha256": "bf5a03fc9687e67084acff917c8eb8b980eb6844bde20d00e3ae9b977dff52f7",
     "cloudWritesOrExecutionApproval": false,
     "unconnectedAdapterPrototypeWithdrawn": true,
     "old110FileClosureAndParameterValidatorUnchanged": true,
     "existingSingleInsertRequestCompilerVerifiedWithoutNewFramework": true
   },
-  "nextUniqueAction": "Finish the existing-CDN custom-domain candidate and exact no-AWS CI; then request one domain-scoped metadata-only preflight for the existing distribution/stack, exact DNS names and certificate options. Do not request a certificate, change DNS/CDN/IAM, create a task, publish source/trust, renew, dispatch or deploy without exact separate approval.",
+  "currentReadOnlyPreparation": {
+    "status": "TWO_SEPARATELY_PERMITTED_FIRST_STS_STOPS_NO_USABLE_BACKEND_FACTS",
+    "attempts": [
+      {"path": "F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261029-a/result.json", "rawSha256": "8e14473fb320258426604069243d425f91882f4606f3e0cfafda3248a32bc25e"},
+      {"path": "F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261029-b/result.json", "rawSha256": "ba3f38dbda7e250aaf000d6629c0882ee46bbe05bdfa59361261d04c3af2a416"}
+    ],
+    "nativeFailureClass": "CLI_OR_CREDENTIAL_FAILURE",
+    "underlyingCredentialExpiryProved": false,
+    "actualTotals": {"sourceStsAttempts": 2, "awsMetadata": 0, "githubGets": 0, "configurationReads": 0, "neonConnections": 0, "sqlQueries": 0, "cloudWrites": 0, "databaseWrites": 0, "executionSlots": 0},
+    "usablePreparationExpiresAt": null,
+    "checkpointPath": "F:/ChatGPT_workshop/techlong-backend-integration-preparation-stopped-20261029-a.json",
+    "checkpointRawSha256": "76d4f315d1a87c8bbc1c574799cbf50c0c76e1252b0006c6a5d811dd540ef8ab",
+    "additionalDiagnosticApproved": false,
+    "oldCommandsNotReplayed": true
+  },
+  "nextUniqueAction": "Await permission for one explicitly official-endpoint STS diagnostic with redacted error classification; only on exact Source IAM success continue the still-unused 65 AWS metadata/10 GitHub GET/config1/TLS1/SQL45 scope. Preserve both stops. Do not request certificates, change frontend/DNS/CDN, write jobs/material/source/IAM, renew, dispatch or deploy. Then prepare the new legal single-insert request and exact buyer-CORS whole-cycle material, not a per-job or generic recovery branch.",
   "wholeProductAccepted": false
 }

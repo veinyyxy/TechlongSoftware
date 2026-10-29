@@ -8,6 +8,8 @@
 
 **下一只准备新的合法后端请求、准确buyer CORS材料/必要来源绑定及一次Review→RunOnce→独立Inspect的集中范围。** 不再改前端、重发客户端/HMAC、申请证书或重复域名安装；旧后端/Neon准备事实已过期，新生产读取/请求写/来源与部署仍另审，不开短窗口、不重放旧job或已删UUID。当前仅静态通过，未执行JS、API或真实业务，wholeProductAccepted=false。下方阶段沿革保留，不是重新执行指令。
 
+**后端新准备当前停在Source CLI身份步骤**：用户先后两次明确允许的a/b记录（08:52与08:55）各只尝试STS1，均为通用CLI异常，不能证明刷新失败；其余AWS/GitHub/配置/Neon/SQL/写/槽均0，没有新事实或执行SHA。恢复F:/ChatGPT_workshop/techlong-backend-integration-preparation-stopped-20261029-a.json，raw SHA 76d4f315d1a87c8bbc1c574799cbf50c0c76e1252b0006c6a5d811dd540ef8ab。下一只等一次官方endpoint去敏STS诊断的新许可，成功才继续尚未使用的限定读取；不重跑a/b或盲目要求刷新，不扩探针、权限或后端窗口。详见[当前停止点](aws-backend-integration-preparation.md)。
+
 **最新18:54限定只读结果：旧租户栈DELETE_COMPLETE、ECS INACTIVE/运行0，health/ready均404。** 根事件记录16:08:39开始删除、16:16:37完成，“User Initiated”不能确定操作者；本轮未删除或查询CloudTrail。不要更新已删UUID/CORS、重放成功任务或把下方14:41历史健康当现状；不宣称整体费用归零。
 
 **前端承载和GitHub本人门禁已安装并独立核验通过（19:19–19:24）**：用户确认e6654426…后，先两次GitHub配置写并独立证明门禁，再一次CreateStack/六项前端资源（含持久窄IAM）；新栈UUID71751190…/CREATE_COMPLETE，CloudFront EDJYJUKAZ12BO、来源https://d3a0kml1xanzgt.cloudfront.net。最终原模板/准确资源/策略/输出与门禁回读均通过。[完整实测与风险边界](aws-buyer-web-sandbox-bootstrap-observed.md)。实际GitHub GET11/配置写2、STS2/AWS元数据32/CreateStack1，私密值/DB/发布/dispatch/后端/CORS/TTL/重试/清理均0。
