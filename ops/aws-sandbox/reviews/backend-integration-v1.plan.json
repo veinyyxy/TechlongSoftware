@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "BUYER_PUBLICATION_WHOLE_COMPOSITION_IMPLEMENTED_PENDING_EXACT_CI_AND_REAL_SOURCE",
+  "status": "BUYER_PUBLICATION_WHOLE_COMPOSITION_CODE_AND_CI_VERIFIED_PENDING_REAL_SOURCE",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
@@ -246,7 +246,14 @@
   },
   "publicationCompositionCode": {
     "implemented": true,
-    "exactCiVerified": false,
+    "exactCiVerified": true,
+    "sourceCommit": "4a62d740c1350aefab058327cddaa19ae4bb4f7a",
+    "ciRunId": "40926305909",
+    "ciJobId": "123632624159",
+    "reportedCiStepsAllSuccessful": 16,
+    "checkpointPath": "F:/ChatGPT_workshop/techlong-buyer-publication-composition-code-verified-20261029-a.json",
+    "checkpointRawSha256": "1d75807adc81ba7a9c50b9ca228410f2b62ac576afbc5e96d0644208b2768512",
+    "currentAdditiveClosureSha256": "caeca1f9d0413d0b592efa2bec373d4d0d4eb26f306f2e2d1165ea212d55d1e3",
     "localTargetedTests": 46,
     "localLegacyRegressionTests": 81,
     "reusesOriginalThreeWritePublisherAndWholeFlow": true,
@@ -263,6 +270,6 @@
     "productionCalls": 0,
     "executionAuthorized": false
   },
-  "nextUniqueAction": "Finish exact no-AWS CI, then separately approve the known fixed provider-original supplement, reconstruct the actual SOURCE/bundle and prepare concentrated original-workflow/SOURCE/trust-only publication candidates. Prove the production transport assembly and the four original plus two explicit buyer self-reference rules before publication; do not assume the old publication-local is executable for this candidate. Keep genuine capabilities, original V5 root, old 110 pins, human GitHub gate and default-closed behavior; do not add an executor/framework or relabel schemas. No stopped supplement replay, production reread, held job, upload, SOURCE/trust write, renewal, window or dispatch by default.",
+  "nextUniqueAction": "Separately approve the known fixed provider-original supplement, reconstruct the actual SOURCE/bundle and prepare concentrated original-workflow/SOURCE/trust-only publication candidates. The code phase is complete at 4a62d74/run40926305909; do not repeat it. Prove the production transport assembly and the four original plus two explicit buyer self-reference rules before publication; do not assume the old publication-local is executable for this candidate. Keep genuine capabilities, original V5 root, old 110 pins, human GitHub gate and default-closed behavior; do not add an executor/framework or relabel schemas. No stopped supplement replay, production reread, held job, upload, SOURCE/trust write, renewal, window or dispatch by default.",
   "wholeProductAccepted": false
 }
