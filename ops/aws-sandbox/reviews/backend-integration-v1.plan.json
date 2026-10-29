@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "FRESH_READONLY_FACTS_AND_LOCAL_REQUEST_PROJECTION_VERIFIED_NO_EXECUTION_AUTHORITY",
+  "status": "REQUEST_UPLOAD_FIXED_RECIPE_VALIDATED_AWAITING_EXACT_MANIFEST_AND_APPROVAL",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
@@ -371,6 +371,24 @@
     "newExecutionApprovalSha256": null,
     "executionAuthorized": false
   },
-  "nextUniqueAction": "Prepare the precise same-b236 held-request/independent-full-readback and exact bundle-upload approval, followed by the original SOURCE/two-workflow/trust-only publication and same-job reviewed cycle. New limited readonly facts were captured at 2026-10-29T19:39:51.491Z and expire after five hours; original basis deadline is unchanged. No more code repair or historical supplement. Actual request/upload VersionId/publication proofs remain null; drafts are not executable approvals. Defaults stay null, old 110 and guards unchanged, no new framework, IAM expansion, historical replay, renewal, dispatch or early paid window.",
+  "requestUploadReview": {
+    "riskFile": "docs/aws-backend-integration-request-upload-review.md",
+    "localRecipe": "F:/ChatGPT_workshop/techlong-buyer-request-upload-20261029-a.mjs",
+    "localSyntheticChecks": 17,
+    "oldTwoRowRequestCliNotInvoked": true,
+    "originalSingleInsertTlsReaderAndUploaderReused": true,
+    "applicationSourceOrCloudExecutorChanges": 0,
+    "preparedCheckpointMustExistAndMatch": "F:/ChatGPT_workshop/techlong-buyer-request-upload-20261029-a/prepared-verified.json",
+    "exactManifestShaNotAssumedBeforeCheckpoint": true,
+    "freezeMainAndRecipeAfterPreparation": true,
+    "preparationExpiresAt": "2026-10-30T00:39:51.491Z",
+    "maximumApprovalExpiresAt": "2026-10-30T15:08:09.592Z",
+    "latestStartAt": "2026-10-30T14:53:09.592Z",
+    "proposedLimits": {"configurationFullFileReads": 2, "verifiedTlsConnections": 2, "sqlQueries": 160, "singleInsertSubmissions": 1, "newHeldRows": 1, "sourceSts": 3, "bucketMetadata": 6, "targetHead": 2, "conditionalPut": 1, "fixedVersionGet": 1},
+    "currentPhaseProductionReadsOrWrites": 0,
+    "currentPhaseSlotsConsumed": 0,
+    "executionAuthorized": false
+  },
+  "nextUniqueAction": "Finish offline exact manifest/checkpoint on final clean main from the five-hour d snapshot, then freeze source and request the single exact SHA for same-b236 held request/independent readback plus original conditional upload/version inspection. The prepared checkpoint must actually exist and match; do not infer approval from these docs. No further production preparation read, source change, feature or paid window. Actual request/upload VersionId/publication proofs remain null. Original basis expires 2026-10-30T15:08:09.592Z without extension; downstream original workflow/trust-only publication and whole cycle still separately reviewed.",
   "wholeProductAccepted": false
 }

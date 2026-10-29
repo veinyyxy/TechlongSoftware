@@ -2,6 +2,10 @@
 
 **最新继续点（2026-10-29，14:41 CDT新只读事实已取得）**：代码cfb1408/准确CI40940078691已收尾；用户另允的新d记录及独立本地核验通过。下一只准备同一b236真实待审请求登记/独立回读及材料上传的准确清单，再沿原双workflow/SOURCE/唯一trust pin及整轮继续，不重复代码或历史补件。两个buyer选择仍null，真实请求/版本/发布证明未产生；新快照5小时至今天19:39:51.491 CDT，不延长basis或提前开付费窗口。
 
+**本次已落实该准备动作的固定调用与风险范围**：[请求登记＋材料上传审核说明](aws-backend-integration-request-upload-review.md)。旧request-local两行handoff不适用，本次不调用；仅在本地固定配方编排原单INSERT、原TLS身份/完整reader以及原上传器/固定版本Inspector，没有工程应用代码、上传SDK或新执行根改动。17项本地合成检查覆盖单次INSERT、pg_catalog/Serializable、基线漂移/错误clock/零行/批准失败、COMMIT ACK未知、旧账本漂移、held行各约束、准确ACK及条件上传冲突。不是新增生产探针，不当真实数据库或云验收。
+
+当前仅准备，配置内容/SQL连接/AWS或GitHub调用/写/槽均0。精确清单和封存只在最终clean main文档提交后从既有事实离线生成；必须读取F:/ChatGPT_workshop/techlong-buyer-request-upload-20261029-a/prepared-verified.json并核对真实hash才继续，不能依据本段推定它已生成。配方最多配置2/TLS2/SQL160、原单INSERT1/held行1、STS3/桶元数据6/HEAD2/条件PUT1/固定GET1；任一失败/未知不自动补齐下一写。执行授权最长24小时但不超过原basis明天10:08:09.592 CDT、最晚09:53:09.592 CDT启动，不延长旧basis/TTL。准确SHA准备完成即冻结main及配方；下一唯一动作是请用户批准同一SHA和完整风险，而不是新只读/重复代码或部署。实际来源发布及整轮仍后继新范围审批。
+
 2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)，承接[已完成的客户端静态发布](aws-buyer-web-sandbox-publication-observed.md)。本文件仅整理当前主线，不是新任务、数据库写入、私密读取、来源发布、IAM修改或付费后端部署授权。[机器准备摘要](../ops/aws-sandbox/reviews/backend-integration-v1.plan.json)执行SHA为null。
 
 ## 新一轮限定只读事实与本地投影（10月29日14:39–14:41 CDT）

@@ -35,7 +35,9 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 **最新只读阶段已完成（10月29日14:39–14:41 CDT）**：另获用户限定许可后，新d记录完成STS1/AWS元数据64/GitHub9/配置1/验证TLS1/只读SQL16；完整12任务及17/12/12账本、业务/保护摘要未变，候选b236及去重键不存在，准确拟上传键HEAD404，角色/策略/三Secret固定版本元数据及本人门禁匹配。独立本地核验和原单INSERT重新投影通过，未写业务或云资源；[公开去敏摘要](../ops/aws-sandbox/reviews/backend-integration-v1.readiness-20261029-d.json)不含业务正文。恢复F:/ChatGPT_workshop/techlong-buyer-backend-readiness-20261029-d/verified.json，raw SHA 0aa14e355472379e04400d1a47f77e7972ade773cbf094303faa41b280befe55。
 
-**下一唯一动作是准备同一b236请求登记/独立回读及准确材料上传的待审清单，再沿原双workflow/SOURCE/唯一trust pin发布和整轮联调继续。** 新准备事实仅至今天10月29日19:39:51.491 CDT（UTC次日00:39:51.491），不是请求/上传/来源发布或部署批准；原basis明天10:08:09.592 CDT不延长。实际请求、上传VersionId和发布回执仍null，两个源码选择仍null；本地草案不冒称可执行SHA，不开短窗口、不重复代码/补件或新增框架。以下旧快照期限及“先读取”的记录仅为沿革，不能重放；后续纯文档HEAD不是上述CI源码。
+**本轮下一步已收拢为[同一b236请求登记/独立回读及准确材料上传的审核范围](aws-backend-integration-request-upload-review.md)**：原请求CLI是两行handoff，不用于全终态历史；固定本地配方仅编排原单INSERT/TLS读取器和原条件PUT/版本GET，不新增工程应用代码或云执行根。17项合成客户端检查通过，真实配置/数据库/AWS读取写入及槽仍0。本页及普通文档提交不是执行批准；精确SHA只以F:/ChatGPT_workshop/techlong-buyer-request-upload-20261029-a/prepared-verified.json真实生成并匹配为准。生成后冻结main/配方，下一只请求该SHA批准，不再生产读取或加功能。
+
+新准备事实仅至今天10月29日19:39:51.491 CDT（UTC次日00:39:51.491）；本次清单最长24小时且不超过原basis明天10:08:09.592 CDT，最晚启动保留15分钟至明天09:53:09.592 CDT。执行仍实时核验完整数据库/目标桶，失败或未知停止更多写；真实请求、上传VersionId和发布回执仍null，两个源码选择仍null。请求/上传成功后才准备原双workflow/SOURCE/唯一trust pin及整轮，不开短窗口、不重复代码/补件或新增框架。以下旧快照期限及“先读取”的记录仅为沿革，不能重放；后续纯文档HEAD不是上述CI源码。
 
 **用户现已同意仅实施下述两处最小接线与定向测试。** 本轮范围为现有buyer SDK装配、publication/publication-local来源选择及对应测试/文档；保留旧110和默认恢复路径。不读取生产、私密配置或凭据，不执行发布/部署/调度；正常代码提交及无AWS CI按既有授权继续。下方“先取得同意”是本次批准前的停止记录，不重复征求同一代码范围。
 

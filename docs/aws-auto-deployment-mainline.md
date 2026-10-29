@@ -8,7 +8,9 @@
 
 **最新只读核对现已完成（10月29日14:39–14:41 CDT）**：新d记录STS1/元数据64/GitHub9/配置1/验证TLS1/只读SQL16，完整业务/历史/保护匹配；候选b236及请求去重键均不存在，拟上传键HEAD404，原角色策略/Secret版本元数据/本人门禁未变。仅本地重建了当前受测代码绑定和原单INSERT投影，无请求、上传、云或DB写、槽、dispatch。[去敏事实摘要](../ops/aws-sandbox/reviews/backend-integration-v1.readiness-20261029-d.json)；恢复F:/ChatGPT_workshop/techlong-buyer-backend-readiness-20261029-d/verified.json，raw SHA 0aa14e355472379e04400d1a47f77e7972ade773cbf094303faa41b280befe55。
 
-**下一只准备同一b236的真实待审请求登记/独立回读及准确材料上传清单，再推进原双workflow/SOURCE/trust-only发布及整轮。** 不重复代码或历史补件；新5小时准备截止今天19:39:51.491 CDT，basis明天10:08:09.592仍不延长。实际请求/上传版本/发布证明未发生，草案执行SHA仍null，默认选择null，不提前开窗或认为已部署。以下旧14:07期限和读取前状态保留追溯，不是当前继续指令；后续文档提交不冒称重跑准确CI。
+**下一只等待[同一b236请求登记/独立回读＋准确材料上传](aws-backend-integration-request-upload-review.md)的真实精确清单和批准**。固定本地配方复用原编译器/TLS口/条件上传及版本回读，17项合成检查已通过；无工程应用代码或权限改动、无生产读取/写/槽。准确SHA及来源以F:/ChatGPT_workshop/techlong-buyer-request-upload-20261029-a/prepared-verified.json真实存在并匹配为准，生成后冻结main/配方，不把普通文档提交当执行批准。不再申请重复只读或扩代码；请求/上传成功后才按原双workflow/SOURCE/trust-only及整轮继续。
+
+新5小时准备截止今天19:39:51.491 CDT；执行批准最长24小时且硬截于basis明天10:08:09.592，最晚启动明天09:53:09.592 CDT，不延长旧事实或TTL。实际请求/上传版本/发布证明未发生，默认选择null，不提前开窗或认为已部署。以下旧14:07期限和读取前状态保留追溯，不是当前继续指令；后续文档提交不冒称重跑准确CI。
 
 **最新13:36 CDT：固定历史provider已补齐，真实accepted后继链、buyer上下文包及同一b236单INSERT草案重建通过；仍未创建任务、上传或发布。** 本轮实际仅另批STS1/S3固定版本GET1，余下均为本地原件核验；旧失败不覆盖，已有`providerPublicV5`处理完整报告的标准投影，无应用代码/旧110改动。[完整事实和剩余材料](aws-backend-integration-preparation.md#固定原件及真实buyer材料已重建10月29日1336-cdt)。恢复F:/ChatGPT_workshop/techlong-buyer-real-material-verified-20261029-a.json，raw SHA 16b1a0dff9deed74ee41d0a1e880fb7e412c6d675527bc3f13e4e2a68a9b9fb2。
 
