@@ -1,5 +1,9 @@
 # 后端联调/CORS：当前最小准备与继续点
 
+**当前来源准备已推进到明确门禁**：真实b236请求/版本经原编译器和历史投影重建为cycle d1fdfd0e…/profile f9319902…；SOURCE、facts及旧layout投影仅保存在F:/ChatGPT_workshop/techlong-buyer-publication-material-20261029-b，result raw SHA f49a8945a82d28642051546d83a52714e18caa7f7af28b227574087adfcc816b。[去敏摘要](../ops/aws-sandbox/reviews/backend-integration-v1.publication-material-20261029.json)。factsApproval仍null，旧D布局明确标记为历史投影，不把当前本地重建时间当新采样；没有生成可执行YAML、Git对象或发布批准。
+
+下一只等[显式本地SOURCE facts绑定＋原发布前限定只读](aws-auto-deployment-reviewed-cycle-source-publication.md#固定复用与最小差异)的准确准备清单确认：原basis终点不变，读范围仅STS1/现有worker基础栈元数据12/GitHub20，不需要配置、Secret/PEM/HMAC/S3正文或Neon。原上传许可不隐含facts批准，原PUB工厂必须等真实facts批准/新layout/最终准确CI再生成发布SHA。准备入口F:/ChatGPT_workshop/techlong-buyer-publication-preflight-20261029-a.mjs只调用原readOnly I/O，无新工程代码/SDK/执行器或生产副作用；清单/封存实际生成后冻结main，当前不能推定它们已存在。后继三文件/trust-only及整轮仍另审，不重登记/上传/复位。
+
 **最新实际结果（10月29日17:47–17:48 CDT）**：a8393ad2…获批后，请求b236单INSERT/明确COMMIT、独立完整回读、原条件PUT及独立固定版本GET全部成功；准确副作用和下一唯一点见[完成摘要](../ops/aws-sandbox/reviews/backend-integration-v1.request-upload-observed.json)及[原审核说明的实测收尾](aws-backend-integration-request-upload-review.md#本次实际完成结果)。四槽已消费，23原件已封存，不能重跑请求/上传或继续使用原读取额度。下一仅用真实回执/VersionId准备原双workflow/SOURCE/六项派生/trust-only发布的准确材料；实际新读取、来源发布及整轮另审，不开短窗口、不扩支线。以下“请求/版本未产生”仅为完成前沿革。
 
 **最新继续点（2026-10-29，14:41 CDT新只读事实已取得）**：代码cfb1408/准确CI40940078691已收尾；用户另允的新d记录及独立本地核验通过。下一只准备同一b236真实待审请求登记/独立回读及材料上传的准确清单，再沿原双workflow/SOURCE/唯一trust pin及整轮继续，不重复代码或历史补件。两个buyer选择仍null，真实请求/版本/发布证明未产生；新快照5小时至今天19:39:51.491 CDT，不延长basis或提前开付费窗口。

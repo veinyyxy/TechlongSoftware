@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "HELD_REQUEST_AND_BUYER_BUNDLE_EXECUTED_AND_LOCALLY_RECONCILED_NO_ACTIVATION",
+  "status": "PUBLICATION_SOURCE_AND_FACT_BINDING_DRAFT_FROM_REAL_ORIGINALS_AWAITING_PREPARATION_APPROVAL",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
@@ -413,6 +413,26 @@
     "sourceFreezeEndedAfterReconciliation": true,
     "oldApprovalsMayBeReplayed": false
   },
-  "nextUniqueAction": "Prepare the original two-workflow/SOURCE/six-derived-fields/trust-only publication scope using the actual b236 held-request and fixed upload-version originals. Request and upload are complete: never recreate, reupload, reset slots or replay a839. Necessary new metadata reads and actual publication effects remain separately reviewed. Both production selections stay null; no dispatch, hosting renewal, deployment, new framework or IAM permission expansion. Original basis expires 2026-10-30T15:08:09.592Z unchanged; subsequent same-job whole cycle and human GitHub gates are separately approved.",
+  "nativePublicationMaterial": {
+    "observation": "ops/aws-sandbox/reviews/backend-integration-v1.publication-material-20261029.json",
+    "privateResult": "F:/ChatGPT_workshop/techlong-buyer-publication-material-20261029-b/result.json",
+    "privateResultRawSha256": "f49a8945a82d28642051546d83a52714e18caa7f7af28b227574087adfcc816b",
+    "actualRequestVersionAndOriginalBasisReconstructed": true,
+    "cycleId": "d1fdfd0e10352a971a9b9d329137854b8dd94c6394fb6727a0a22c95a2331891",
+    "profileSha256": "f9319902ae8f3a18cd15702ff8ac68237ee324f12a1c2969d1b36e2749b3dacc",
+    "factsApproval": null,
+    "sourceState": "UNPUBLISHED",
+    "oldLayoutProjectionIsNotNewRead": true,
+    "futurePreparationCheckpointMustExistAndMatch": "F:/ChatGPT_workshop/techlong-buyer-publication-preflight-20261029-a/prepared-verified.json",
+    "proposedPrepReads": {"sourceSts": 1, "awsMetadataExcludingSts": 12, "githubGetsIncludingCi": 20},
+    "currentPhaseProductionCalls": 0,
+    "existingPublicationContractChecksPassed": 37,
+    "newTestsOrApplicationFeatures": 0,
+    "applicationCodeOrExecutorChanges": 0,
+    "gitCandidateObjectsOrRefsWritten": 0,
+    "sourceSelectionsOrCloudWrites": 0,
+    "executionAuthorized": false
+  },
+  "nextUniqueAction": "Prepare/freeze the exact local SOURCE fact-binding plus original publication read-only capture manifest, then request explicit approval for that SHA. Actual b236 request/upload evidence is complete; do not recreate/reupload/replay a839. Fact binding is not publication or runtime approval, and a839 must not be relabeled as facts approval. Read scope is Source STS1 + worker/foundation metadata12 + GitHub20; no config/Secret/PEM/HMAC/S3 body/DB or resource writes. Only approved facts, fresh layout and exact final-parent CI may feed the original three-file/one-trust-claim publication review; actual publication and whole cycle remain separately approved. Original basis endpoint unchanged, no framework/code expansion or early paid window.",
   "wholeProductAccepted": false
 }

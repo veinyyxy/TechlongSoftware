@@ -35,7 +35,9 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 恢复F:/ChatGPT_workshop/techlong-buyer-request-upload-executed-verified-20261029-a.json，raw SHA 4af3c72085a367a601120646fc4832315bd43946252be311585ab5d6df534a30；23份原件已本地重建，四个永久槽已消费，不再RunReviewed、重新登记/上传或复位。首次工具因额度无法完成自动审批而明确未启动；用户要求继续后核对全部槽/目录空缺，才唯一实际执行，未绕过审批。独立复核后本次来源冻结结束，允许正常记录结果，不重放已批准命令。
 
-**下一唯一动作：使用这些真实请求/版本原件，准备原双workflow/SOURCE/六项派生/唯一trust pin的准确发布范围。** 不再补件、重复请求/上传或扩代码/框架；尚未选定或发布buyer生产SOURCE，不dispatch或部署。新必要元数据读取及来源/trust发布仍按准确新范围审核，不自动沿用已消费的读取/写入许可。原basis截止明天10:08:09.592 CDT保持，不延长窗口；后继整轮及三次本人GitHub审批另审，wholeProductAccepted=false。下方“待批准/尚无请求和VersionId”仅为本次完成前沿革，不是重复执行指令。
+**本轮来源材料已用真实请求/版本重建，下一只等待[本地事实绑定＋原发布前限定只读](aws-auto-deployment-reviewed-cycle-source-publication.md#固定复用与最小差异)的准确准备SHA确认。** cycle d1fdfd0e…/profile f9319902…经原编译器/完整历史投影校验，本地SOURCE仍UNPUBLISHED、factsApproval及新Git引用为null；不把a839上传许可变成来源许可。[去敏候选摘要](../ops/aws-sandbox/reviews/backend-integration-v1.publication-material-20261029.json)只存索引，完整原件在F:/ChatGPT_workshop/techlong-buyer-publication-material-20261029-b/result.json（raw SHA f49a8945a82d28642051546d83a52714e18caa7f7af28b227574087adfcc816b）。无生产/私密读取、Git候选对象、执行槽或应用代码改动。
+
+新准备组合仅显式批准原basis内的本地事实绑定，以及STS1/元数据12/GitHub20的现有worker/foundation/准确CI/双workflow/本人门禁/OIDC读取；配置/私钥/Secret/S3正文/数据库/云写/来源选择/dispatch均0。准确清单以F:/ChatGPT_workshop/techlong-buyer-publication-preflight-20261029-a/prepared-verified.json真实生成并匹配为准，生成后冻结main/入口；这不是发布或部署批准。随后才按真正facts/新layout准备原三文件及唯一trust pin发布的另审SHA，不重复请求/上传或扩框架。原basis明天10:08:09.592 CDT保持；后继整轮及三次本人GitHub审批另审，wholeProductAccepted=false。下方“待批准/尚无请求和VersionId”仅为本次完成前沿革，不是重复执行指令。
 
 **本次获同意的两处代码接线及准确无AWS CI已完成**：源码cfb1408/[CI40940078691](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40940078691) completed/success，16报告步骤全过。三处既有源码接入buyer真实SDK端口和原发布器SOURCE/template/prestate选择；默认BUYER_SOURCE/BUYER_PUBLICATION_SOURCE仍null，旧110与默认恢复保持。本机57定向/122相关检查（重叠）、类型/lint和--check通过；外部SDK响应为明确合成，不是生产验收。111现为52ae2ee3…。恢复F:/ChatGPT_workshop/techlong-buyer-sdk-publication-wiring-code-verified-20261029-a.json，raw SHA 84cb3a8627dffaa50047e45d9259276afa1b87b83f3a86e3df6e821f66d8db42；旧材料和失败记录保留，不重跑代码或补件。
 

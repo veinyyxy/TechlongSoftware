@@ -4,6 +4,18 @@
 
 ## 固定复用与最小差异
 
+**2026-10-29 18:06 CDT：b236真实来源材料已重建，当前只准备事实绑定与发布前只读核对。** [材料去敏摘要](../ops/aws-sandbox/reviews/backend-integration-v1.publication-material-20261029.json)绑定已提交且独立回读的b236、真实上传版本ywA1SETga2C.2JIxiHXvTcLbXimP0n_4及原basis。原a839清单仅批准请求/上传，不自动成为新SOURCE的factsApproval。本地候选publication/activation仍UNPUBLISHED、factsApproval及六项待派生引用仍null；没有用伪造APPROVED、假Git SHA或合成请求回执来调用发布器。
+
+下一份**准备清单**仅请求两项组合批准：以该清单SHA形成本地SOURCE事实批准记录，profile SHA f9319902…、factsAt准确请求事务17:47:07.486 CDT、databaseCheckedAt/observedBy准确独立回读17:47:13.475 CDT，有效终点仍截于原basis明天10:08:09.592 CDT；以及最多STS1＋AWS元数据12＋GitHub GET20的原只读Capture。其余历史锚、48小时profile合同不改，但有效事实期限取原basis和新profile期限的较早者，不延长原basis。事实批准并不是workflow/trust发布或整轮执行批准。
+
+本次只复用并检查原37项发布合同（合成外部端口），没有新增测试、应用功能或改发布执行器；本地只读入口语法及零调用--check通过。这个结果不替代最终main的准确远端无AWS CI；后者由上述限定GET实际核对后才记录。
+
+只读范围限准确现有foundation五资源、WorkerRole/trust/inline/boundary，和最终clean main的准确无AWS CI、原双workflow/本人environment/main规则/OIDC/未完成caller运行；CI定位和校验计入20次。源码/CI通过后才核对AWS；不读.env、Secret值、PEM/HMAC或S3正文，不连Neon/Aurora，不写AWS/数据库/工作流、不创建Git候选对象或消费执行槽、不dispatch。沿用原readOnly publication I/O，原writer方法被readOnly capability拒绝；失败保留新记录、不自动重试，也不提前要求刷新Source。
+
+准备清单从最终clean main及原件离线生成后冻结main/本地入口，只有其F:/ChatGPT_workshop/techlong-buyer-publication-preflight-20261029-a/prepared-verified.json真实存在并匹配才可请求准确SHA。准备必须仍在真实独立请求观察的5小时内（至今天22:47:13.475 CDT），不是从本地重建时刻重新计时；新metadata的5小时从实际Capture开始，但原数据库观察、请求及basis时间不变。接受既有Source/Git凭据在内存使用、AWS Login自动刷新失败、网络/提供者/审计日志、跨读取非CAS、低额非零费用及失败不自动重试；不接触owner连接或私钥。
+
+准备后才用真正的facts批准和新layout生成原三文件Git对象及唯一trust claim变更清单，仍须另批准确发布SHA。目标reusable commit只能由原prepareObjects的真实ACK/本地对象核验得到；当前不得把旧1120f510…说成新buyer工作流已发布。上段新b236状态优先，以下a00固定坐标和2026-10-28执行只保留历史追溯，禁止重放。
+
 **2026-10-29 buyer兼容附注（代码/测试，不是发布批准）**：原a00来源发布已完成，下方固定值仅为历史默认路径，不能重放。新buyer入口仅在源码中的BUYER_PUBLICATION_SOURCE另行准确选定、真实请求/独立回读及已核验上传版本齐备后选择；目前该常量和BUYER_SOURCE均null。新路径复用原Git/CFN发布和独立Inspect，只把旧四项自引用增加到已明确的六项：原caller source、reusable、activation source及release SHA，加buyer.source.code.commitSha和publication.buyerContextSha256。后两者由前者绑定后计算，不能用外部参数或旧批准覆盖。
 
 原SDK/session/provider/evidence/固定Secret/窄Neon/control/journal及V5执行根保持；new buyer SOURCE与实际SDK端口同一上下文，旧110不改，新增111候选摘要按实际代码另核对。新caller/reusable仍为原两文件和本人环境门禁；云端literal不含本机bundleFile，按准确S3 key/version/SHA取得同一bundle。发布前必须用真正生成的caller/reusable、准确新CI及完整来源证明，不能用模拟测试结果或旧包VersionId填空。

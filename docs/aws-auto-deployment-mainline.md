@@ -6,7 +6,9 @@
 
 **最新：同一b236请求＋准确材料上传已真实完成，未激活或部署。** 用户批准a8393ad2…后，来源cc52401于17:47:07.486 CDT提交新held请求，17:47:13.475独立TLS回读通过；12旧任务及完整账本/业务/保护保持。原条件上传615808字节、固定版本回读成功，真实VersionId ywA1SETga2C.2JIxiHXvTcLbXimP0n_4。实际配置2/TLS2/SQL72/STS3/桶元数据6/HEAD2/PUT1/GET1，四槽已消费，23原件本地核对通过。[去敏完成记录](../ops/aws-sandbox/reviews/backend-integration-v1.request-upload-observed.json)；恢复F:/ChatGPT_workshop/techlong-buyer-request-upload-executed-verified-20261029-a.json，raw SHA 4af3c72085a367a601120646fc4832315bd43946252be311585ab5d6df534a30。
 
-**下一只准备原双workflow/SOURCE/六项派生/唯一trust claim的准确发布范围**，使用真实请求及上传版本，不再登记/上传/复位或扩代码。必要新读取、来源/trust发布及后继整轮仍分别新范围审核；生产选择仍null，无dispatch/承载/续租/Secret值或私钥读取，basis明天10:08:09.592 CDT不延长。来源冻结在独立复核后结束，只正常记录结果；下方待审描述保留沿革，不重放a839清单，wholeProductAccepted=false。
+**来源候选已重建，下一只确认“本地事实绑定＋原发布前限定只读”的准确准备清单。** 真实b236请求/VersionId及原basis已编译成cycle d1fdfd0e…/profile f9319902…，factsApproval仍null、SOURCE未发布；[去敏候选摘要](../ops/aws-sandbox/reviews/backend-integration-v1.publication-material-20261029.json)绑定F:/ChatGPT_workshop/techlong-buyer-publication-material-20261029-b/result.json（raw SHA f49a8945a82d28642051546d83a52714e18caa7f7af28b227574087adfcc816b）。本轮无新生产读取/代码改动/对象/槽，不能复用a839作为事实或来源批准。
+
+准备范围只含本地原basis内facts绑定及STS1/现有worker基础栈元数据12/GitHub20；准确SHA以F:/ChatGPT_workshop/techlong-buyer-publication-preflight-20261029-a/prepared-verified.json真实存在并匹配为准。main/入口从清单生成后冻结，等批准才读；不读配置/私钥/Secret/S3正文或数据库，不写云/工作流或dispatch。新layout和facts齐备后才生成原双workflow/六项派生/唯一trust claim的准确发布另审SHA。不再登记/上传/复位或扩代码，basis明天10:08:09.592 CDT不延长，wholeProductAccepted=false。下方待审描述保留沿革，不重放旧清单。
 
 **最新：三文件/两处接线及准确CI已完成**，源码cfb1408/[run40940078691](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40940078691)成功、16报告步骤全过。原SDK/固定Secret/窄Neon/provider/evidence/journal及V5执行根接到同一buyer context；原publication/local复用Git/CFN发布和独立核验。57项定向/122项相关检查（重叠）、类型/lint通过；旧110不变、111现52ae2ee3…。默认选择null、未发布装配，本轮生产读取/私密读取/云或SQL写/上传/任务/槽/IAM或受保护workflow改动/dispatch0。[实现与边界](aws-backend-integration-preparation.md#两处最小接线的代码验证)。恢复F:/ChatGPT_workshop/techlong-buyer-sdk-publication-wiring-code-verified-20261029-a.json，raw SHA 84cb3a8627dffaa50047e45d9259276afa1b87b83f3a86e3df6e821f66d8db42。
 
