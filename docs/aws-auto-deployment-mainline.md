@@ -12,13 +12,15 @@
 
 恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json`，raw SHA `6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc`，绑定9原件与48条调用；永久标记已消费，不重跑安装/准备或复位标记。准备/批准原件保持不改写，原后端16:06意图未延长，新IAM与保留桶可能持续产生费用，不自动撤权或清理。
 
-**下一唯一动作：准备现有workflow的sandbox客户端发布所需准确变量、私密来源及单次发布清单，并明确新的真实后端联调/CORS窗口。** 不先读HMAC/Secret/.env/PEM、写变量/Secret、发布/dispatch或恢复后端；仍按准确范围另审，先备齐再开窗口。不新增执行框架、UI或固定任务代码分支，wholeProductAccepted=false。
+以下客户端准备/发布阶段**已按新的准确批准完成**，不是待办；当前唯一继续点见下方真实发布完成记录后的后端联调/CORS准备。未新增执行框架、UI或固定任务代码分支，wholeProductAccepted=false。
 
 本次[发布准备](aws-buyer-web-sandbox-publication-plan.md)已完成新限定核对：19:46:35–19:47:02实际STS1/AWS元数据16/GitHub GET17，承载/权限/门禁/源码CI保持、五变量和目标Secret空、固定runtime版本AWSCURRENT、公有变量原摘要相同、无冲突运行；旧准确backend UUID仍DELETE_COMPLETE。私密值/DB/云与配置写/dispatch/执行槽消费均0。标准LibSodium 0.7.15仅本地安装，3组合成检查及全部依赖摘要绑定通过，不改应用运行时。
 
-**当前唯一动作：等待[发布完整风险](aws-buyer-web-sandbox-publication-review.md)及[实际清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.publication-execution.json) SHA `abf867cc61e01a9450763aec66fa7c5e27236b71967c5e39f966a0f73067ace7` 的新确认**。拟5变量＋1固定版本HMAC转移/环境Secret＋1准确sandbox dispatch/独立静态核验；GitHub环境仍用户本人批准，HMAC进入公开Web可被提取，不隐藏这一风险。不含后端/CORS/DB/TTL或IAM扩展，尚未执行。
+**客户端已真实发布并独立静态核验通过（20:21–20:26）**：用户确认abf867cc…及本人环境审批后，[run40799958045](https://github.com/veinyyxy/speedfeast/actions/runs/40799958045) completed/success、attempt1、准确602e543；五变量/一个环境Secret和单次sandbox发布完成，326对象/51,149,344字节，准确新invalidation Completed，index与两份JS的静态200/大小/ETag相符。未取JS正文/执行JS或访问API/DB/后端，没有基础设施/IAM新写、重试或清理。[完整实测与边界](aws-buyer-web-sandbox-publication-observed.md)。HMAC按受审设计在公开产物中可提取，不再声称对客户端保密。
 
-恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-publication-20261028-a/prepared-verified.json`（raw SHA `5e761dfef54c75906044fdcac7a0445da447ed54d36ba81d63477f52ea2d9a1c`），7输入/7本地/8依赖与真实读取原件已封存，不重跑捕获或准备器。最晚启动温尼伯10月28日23:46:35，准备至10月29日00:46:35；原旧backend意图不延期。现有workflow无绝对截止、本机停止不自动取消已ACK run，异步越界及不自动清理风险见新清单；执行槽未创建。
+恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-publication-20261028-a/executed-verified.json`（raw SHA `379c64cbe93ff4fd7fd824476c4da791f1e001f8c7aa419c5ce826c950e4be80`），10原件/72提供者记录已重建核对。实际GET35/写7、STS3/AWS元数据23/固定Secret GET1/静态HTTPS3；秘密/密文正文未保存，永久标记已消费，不重跑发布/读取/dispatch或复位槽，PENDING原件保持。持久Secret/配置/IAM及对象版本保留，未停费或自动清理。
+
+**当前唯一动作：准备新的真实后端联调/CORS和有限业务验收窗口**，复用现有能力、镜像/数据库与已发布客户端；新读取、合法请求/来源和实际恢复/业务写仍具体另审。不更新旧已删UUID、不重放旧job/事实时刻，不再改前端、扩框架/探针/UI或复制固定任务代码分支。当前wholeProductAccepted=false，静态发布不等于整套业务可用。
 
 ### 已完成历程与本轮准备沿革（以下不是重放指令）
 

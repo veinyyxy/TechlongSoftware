@@ -53,13 +53,15 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 恢复先读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json`（raw SHA `6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc`），绑定9原件；48条提供者调用与本地证据已重建核对。永久标记已消费，不再运行安装脚本/CreateStack、不重跑准备器或复位标记，原PENDING准备材料保持不改写。原后端16:06意图不延长，整套仍未验收。
 
-**下一唯一动作：准备现有workflow的sandbox客户端发布所需准确变量、私密输入来源与单次发布清单，并明确新的真实后端联调/CORS窗口。** 新CDN来源为https://d3a0kml1xanzgt.cloudfront.net；不新增运行器或固定任务代码分支。私密使用/变量Secret设置/发布dispatch及后端恢复仍具体另审，不自动读取、调度、续租或重放旧任务；先集中备齐材料再开短窗口。
+以下为**已完成的客户端准备与发布沿革**，不再作为待办：新CDN来源为https://d3a0kml1xanzgt.cloudfront.net；准备范围、私密使用和单次发布均另按下方准确批准执行，没有新增运行器或固定任务代码分支。当前唯一继续点见下方真实完成记录后的后端联调/CORS准备，不重复开客户端窗口。
 
 [最小发布准备表](aws-buyer-web-sandbox-publication-plan.md)与原机器草案保留。用户另允的新元数据核对已于19:46:35–19:47:02完成，实用STS1/AWS元数据16/GitHub GET17；承载/IAM/门禁和602e543/CI匹配，五变量为空、目标Secret不存在，两个公有变量摘要匹配、无冲突发布运行，固定runtime版本仍AWSCURRENT，旧准确backend UUID仍DELETE_COMPLETE。私密值、DB、配置/云写、dispatch及执行槽消费均0。
 
-标准LibSodium 0.7.15仅安装在本轮本地目录，锁定官方tarball完整性及8个包文件摘要，3组合成测试通过；没有真实秘密或应用运行时依赖变更。五变量请求、固定接收公钥、单次sandbox调度与风险已集中封存。[完整执行范围/风险](aws-buyer-web-sandbox-publication-review.md)对应[机器清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.publication-execution.json) SHA **`abf867cc61e01a9450763aec66fa7c5e27236b71967c5e39f966a0f73067ace7`**，尚未批准/执行。**当前唯一动作是等待该准确SHA及完整风险的新确认**，不能把本轮只读许可当作私密取值、配置或发布批准。
+**客户端真实静态发布及独立核验已完成**：用户随后确认[清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.publication-execution.json) SHA `abf867cc61e01a9450763aec66fa7c5e27236b71967c5e39f966a0f73067ace7`，本人批准准确run40799958045环境，20:21:09–20:26:05完成五变量/一个环境Secret及单次sandbox发布；326对象/51,149,344字节，准确invalidation Completed、三份静态文件200且ETag/大小与S3相符。源码602e543不变，production步骤全部跳过；未执行JS或调用API/DB/后端/CORS/TTL，没有新基础设施/IAM、重试或清理。[完整实测](aws-buyer-web-sandbox-publication-observed.md)。
 
-恢复先读 `F:/ChatGPT_workshop/techlong-buyer-web-publication-20261028-a/prepared-verified.json`（raw SHA `5e761dfef54c75906044fdcac7a0445da447ed54d36ba81d63477f52ea2d9a1c`），绑定真实观察原件（raw SHA `747dca413f92ebcff1a5e2f887cdec27ce92f7bf154a8ae4f6718ae47c696173`）、7输入、7本地文件及8依赖文件；不要重跑捕获/准备器。5小时准备到温尼伯10月29日00:46:35，最晚启动10月28日23:46:35；真实run本人门禁另提示15分钟截止。现有workflow没有绝对墙钟截止，本机退出不会自动取消已ACK的唯一run，异步越界风险已写入审批，不隐瞒或靠改时钟解决。旧backend窗口不延长，不恢复或重放任务；静态发布后才另定新后端联调/CORS与业务验收。
+恢复先读 `F:/ChatGPT_workshop/techlong-buyer-web-publication-20261028-a/executed-verified.json`（raw SHA `379c64cbe93ff4fd7fd824476c4da791f1e001f8c7aa419c5ce826c950e4be80`），绑定10原件，72条提供者记录已本地重建核对。实际GitHub GET35/写7、Source STS3/AWS元数据23/固定版本秘密GET1、静态HTTPS3；不是云端上传内部API次数。Secret/密文正文未保存，HMAC按已接受设计进入公开JS可被提取，持久配置/Secret/IAM和对象版本保留；不自动撤权或清理。永久标记已消费，不再运行发布脚本、重读秘密或dispatch，原PENDING/准备材料保留，不restamp或复位。
+
+**当前唯一动作：准备新的真实后端联调/CORS与有限业务验收窗口。** 复用现有请求/Review→RunOnce→Inspect能力、镜像/数据库和已发布客户端；先核对新合法请求/来源/期限及当前资源，实际读取/恢复/业务写仍准确另审。不更新已删旧UUID、不重放已消费job，不再改前端、扩执行器/探针/UI或复制固定任务代码分支；旧backend意图未延长、wholeProductAccepted=false。
 
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 

@@ -2,7 +2,7 @@
 
 2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)；这是主线第二步的工作记录，不是新的云部署、私密读取或业务写入批准。
 
-## 最新现状与唯一继续点（18:54）
+## 当前状态与唯一继续点（截至20:26）
 
 新一轮经批准的限定只读已证明：原租户栈DELETE_COMPLETE，ECS INACTIVE/任务0，health/ready均404。根事件16:08:39.496开始删除、16:16:37.415完成；“User Initiated”不能确定具体操作者。本轮没有删除、查询CloudTrail或连接数据库；以下14:41健康和整轮成功均保留为历史，不代表当前可用或整体停费。
 
@@ -12,7 +12,9 @@
 
 恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json`（raw SHA `6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc`）；9原件和48调用已重建核对，安装标记永久消费，不重复安装。**下一只准备现有workflow的sandbox发布变量/私密来源与单次发布清单，并明确新的真实后端联调/CORS窗口**；私密使用、配置写、发布/dispatch或后端恢复另审，不改旧意图、不重放任务或扩框架。`wholeProductAccepted=false`，前端承载创建不等于已发布应用或完整产品验收。
 
-[静态客户端发布准备](aws-buyer-web-sandbox-publication-plan.md)已完成另允的STS1/AWS16/GitHub17元数据核对，零私密取值/DB/写入/dispatch；承载/权限/门禁/源码CI保持、目标配置空、固定版本及公有变量来源匹配。纯标准加密步骤本地3组合成测试通过。[清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.publication-execution.json) SHA `abf867cc61e01a9450763aec66fa7c5e27236b71967c5e39f966a0f73067ace7` 和[完整风险](aws-buyer-web-sandbox-publication-review.md)现已封存待新批准，尚未实际配置或发布；静态成功也不会代表新后端/CORS或访问租约、订单/支付等业务验收完成。
+**静态客户端发布已真实完成并独立通过**：用户确认abf867cc…并本人批准run40799958045环境，20:21–20:26完成五变量/一个环境Secret、326对象/51,149,344字节、准确缓存失效Completed及三静态文件200/ETag/大小核对。秘密固定版本仅GET1次，未保存明文或密文正文；未执行JS、读JS正文、调用API/DB/后端或新增IAM/基础设施，没有自动重试/清理。[真实结果、风险与次数](aws-buyer-web-sandbox-publication-observed.md)。恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-publication-20261028-a/executed-verified.json`（raw SHA `379c64cbe93ff4fd7fd824476c4da791f1e001f8c7aa419c5ce826c950e4be80`），永久标记已消费，不再发布/读秘密/dispatch。
+
+**下一唯一动作是新的真实后端联调/CORS及有限业务验收窗口准备**，不是再改前端。新读取/合法请求/来源/恢复/业务操作另审；旧已删UUID不能UpdateStack、成功任务不重放。HMAC按受审设计可从公开Web提取，持久Secret/配置/IAM和对象继续保留；静态成功不代表访问租约、登录、订单或支付通过，wholeProductAccepted=false。
 
 ## 已完成与本轮阻塞
 

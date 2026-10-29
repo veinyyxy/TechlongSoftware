@@ -2,7 +2,7 @@
 
 2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)。本文件保留初始 **DRAFT_NOT_EXECUTABLE** 候选及后继沿革；初始机器摘要的executionApprovalSha256仍为null，不改写成批准。随后另批的六资源/门禁已真实安装，最新结果见下节及[实测记录](aws-buyer-web-sandbox-bootstrap-observed.md)；原草案和本文件都不是后继私密使用或发布授权。
 
-## 最新限定核对与实际安装待审（18:54，原后端已退役）
+## 限定核对及安装/发布沿革（当前客户端静态发布完成）
 
 用户新批准的限定读取已完成：GitHub9、STS1、AWS元数据16（含一次ValidateTemplate）、无身份HTTPS2；云/配置写、私密值/配置读取、DB、JS、续租、dispatch及重试均0。两份原件为 `F:/ChatGPT_workshop/techlong-buyer-web-execution-readiness-20261028-a.json`（raw SHA `d15b9116a00d864c1fceab20ad9c01f50430302a3f92824573e515dc1f9112a2`）及其 `.supplement.json`（raw SHA `14295af89e49526bdf3b28e7868126cc85a226ceb434b465fe53cdebeeb5d812`）。
 
@@ -14,7 +14,7 @@
 
 原准备 `prepared-verified.json` 和三请求体保持原样，不改写PENDING标签或事实起点。恢复改读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json`（raw SHA `6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc`），绑定9原件与48调用；永久标记已消费，不重复安装/捕获/准备或复位标记。下一仅准备现有workflow所需准确sandbox变量、私密来源与发布清单，并明确新的后端联调/CORS窗口；仍须另审，不延长旧16:06意图或扩控制面。
 
-后继[发布准备表](aws-buyer-web-sandbox-publication-plan.md)现已完成新限定元数据（STS1/AWS16/GitHub17、零私密/写入/调度）与标准LibSodium本地3组合成检查；[实际清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.publication-execution.json) SHA `abf867cc61e01a9450763aec66fa7c5e27236b71967c5e39f966a0f73067ace7` 已封存，等待用户另批[完整风险](aws-buyer-web-sandbox-publication-review.md)。本轮只读许可不授权取值/配置/发布；原草案及历史准备原件不改写，backend恢复/CORS仍另定范围。
+后继[客户端发布](aws-buyer-web-sandbox-publication-observed.md)已按用户确认abf867cc…及本人环境审批于20:21–20:26真实完成：准确run40799958045成功、五变量/一个环境Secret、326对象和准确缓存失效/三静态核验通过；原草案与批准风险不改写。恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-publication-20261028-a/executed-verified.json`（raw SHA `379c64cbe93ff4fd7fd824476c4da791f1e001f8c7aa419c5ce826c950e4be80`），不重读Secret、重跑发布或复位标记。无后端/CORS/DB/TTL或新IAM/基础设施操作；下一只另审准备新的真实后端联调与业务验收，不扩前端/框架。
 
 ## 15:35已核实的缺口（历史）
 
