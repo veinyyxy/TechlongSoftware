@@ -30,7 +30,9 @@
 
 **用户已选定：先准备现有CDN的buyer.sandbox.techlong.cloud自定义域名方案；当前唯一动作见[域名候选](aws-buyer-web-custom-domain-plan.md)。** 本地候选与原请求合计23项检查通过，真实CI另据准确run封存。只准备现有分布别名/证书/DNS及对应准确CORS材料，不新增CDN/桶/执行器或改旧内核，不申请证书、改DNS/IAM/CDN、创建任务或部署后端。实际云变更、新合法请求/来源及整轮执行仍分别准确另审；旧成功任务和前端产物保持，wholeProductAccepted=false。
 
-候选已收尾：aad23fa/准确CI40820296477全部成功，本机23项及类型/lint/YAML/原110闭包保持，CI GET5，无AWS/生产配置/SQL/云写。检查点F:/ChatGPT_workshop/techlong-buyer-domain-code-verified-20261028-a.json。**下一只另获1次STS＋最多20次AWS元数据的域名限定预检许可，准备证书阶段待审SHA；不读秘密/配置、不连数据库、不写云或dispatch。** 无实际证书ARN、DNS占用事实或云执行批准，不把候选通过当域名上线。
+域名候选aad23fa/准确CI40820296477成功，本机23项/类型/lint/YAML/旧110闭包保持。其后用户另允的新预检已于10月29日00:05–00:06 CDT完成，累计STS1/AWS元数据11、零秘密值/SQL/写入/GitHub或槽消费；原六资源模板一致，CDN Deployed无alias，准确buyer DNS空缺，无覆盖buyer的现有证书。字段映射停止原件保留，未重发已取得返回；[公开事实](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-preflight.json)不冒称公网父委派/全局alias空缺已证明。
+
+**下一只等[RequestCertificate单写清单](aws-buyer-web-certificate-review.md)的准确SHA批准，不写DNS/CDN/CFN或后端。** 实际ARN/CNAME返回后再集中准备DNS验证与现有栈更新；不扩权限、不读秘密/配置或连接数据库。恢复入口F:/ChatGPT_workshop/techlong-buyer-domain-certificate-20261029-a/prepared-verified.json，未生成/核验失败即未完成准备。生成后main冻结；05:05:04.864 CDT原准备截止不重计，写前仍须清单内新鲜核对和独占固定槽，当前没有证书、DNS或后端部署批准。
 
 ### 已完成历程与本轮准备沿革（以下不是重放指令）
 

@@ -26,8 +26,8 @@ CloudFront要求alias由所挂证书覆盖，ACM证书需在us-east-1；S3和现
 ## 实施前必须分开的审核点
 
 1. **先只读准备**：新许可后核对准确栈/原模板、CDN当前配置/ETag/alias及域名冲突、公开zone/委派、准确DNS名称占用和可用证书元数据。不得用旧快照声称alias空缺；不能证明或出现漂移就停止。无需Secret值、PEM、.env、数据库、GitHub配置或调度。
-2. **证书/验证DNS清单**：另给准确SHA，最多一次RequestCertificate和一次准确验证CNAME CREATE；公开CT、验证pending和部分遗留风险须接受。不建立新IAM或导出证书私钥；传播不足只观察，不自动重试写或清理。
-3. **现有栈更新清单**：证书ISSUED并独立核验覆盖/区域/账号后，以实际ARN准备新模板。准确Change Set只能有BuyerDistribution Modify（不得替换）和BuyerAliasIpv4/Ipv6 Add；其他资源/权限变化一律停止。预计CreateChangeSet和ExecuteChangeSet各一次，CFN会有其托管底层写入，不混称总API仅两写。证书与验证CNAME不在该ca-central-1模板中。
+2. **证书单写清单（本轮）**：另给准确SHA，仅一次RequestCertificate，不写未知DNS值；公开CT、验证pending和部分遗留风险须接受。不建立新IAM或导出私钥；先拿到真实ARN/CNAME再准备后继，不自动重复申请或清理。
+3. **DNS/现有栈更新（后继）**：用实际ARN及CNAME，集中准备一次准确验证CNAME CREATE，以及证书ISSUED并独立核验后的现有栈更新。准确Change Set只能有BuyerDistribution Modify（不得替换）和BuyerAliasIpv4/Ipv6 Add；其他资源/权限变化一律停止。预计CreateChangeSet和ExecuteChangeSet各一次，CFN会有托管底层写入，不混称总API仅两写；验证pending不跳过检查，也不自动重试写。证书与验证CNAME不在该ca-central-1模板中。
 4. **独立静态验收**：核对分布Deployed、证书、A/AAAA、HTTPS证书和既有静态对象；不执行网页JS，不登录或创建访问租约，不因静态200宣称后端已恢复。正常CFN回滚、传播和并发风险不能靠本地测试排除。
 5. **再衔接后端主线**：仅新合法held请求、准确材料/来源及必要trust-only发布，再Review→RunOnce→独立Inspect和有限业务验收。集中备齐整轮材料后才开2小时候选窗口，GitHub环境由用户本人批准；旧成功任务、旧永久槽及原到期不改。
 
@@ -41,4 +41,6 @@ CloudFront要求alias由所挂证书覆盖，ACM证书需在us-east-1；S3和现
 
 本轮源码aad23fa/准确[CI40820296477](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40820296477)已completed/success、attempt1；23项定向检查及类型/lint/YAML/旧110文件闭包核对均通过。[公开验证摘要](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-code-verified.json)只含代码/CI与不可执行状态；恢复读F:/ChatGPT_workshop/techlong-buyer-domain-code-verified-20261028-a.json，其绑定源码与本地CI原件，不是云安装证明。
 
-本轮没有AWS元数据或写入、生产配置/PEM读取、SQL、GitHub环境配置/dispatch、证书请求、DNS/CDN更新或后端部署；CI核验仅5次GitHub GET，使用既有Git凭据且不输出凭据。准备快照仍按原真实时间，不因本方案重新计时。**下一唯一动作：另获一次最多1次STS＋20次AWS元数据的域名只读预检许可，核对准确现有承载/CDN、DNS名称与证书元数据，生成证书阶段待审SHA。** 不读Secret值/PEM/.env、不连接数据库，不改资源/权限或调度；当前未获该新读取或任何实际云写许可，不提前要求刷新Source。
+以上为候选代码阶段：GitHub核验5次GET，未调用AWS或读取私密配置。用户随后批准的新只读预检已完成，实际STS1/AWS元数据11；[观察摘要](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-preflight.json)证明原模板/六资源匹配、CDN Deployed且alias空、buyer DNS空、无覆盖该域名的证书。初次本地字段映射停止及其未用额度继续记录保留，不重发已取得云返回。公网父级委派及全局alias冲突缺失仍未独立证明。
+
+**下一仅准备并等待[RequestCertificate单写清单](aws-buyer-web-certificate-review.md)的准确SHA批准。** 不写DNS/CDN/CFN，不读秘密/配置、连接数据库或dispatch；真实ARN及CNAME返回后，将DNS验证与现有分布更新集中准备。准备5小时仍由新实际00:05:04.864 CDT至05:05:04.864计，不扩大后端旧窗口；没有执行槽消费或实际云写授权。

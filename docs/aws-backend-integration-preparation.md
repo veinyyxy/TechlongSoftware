@@ -67,4 +67,4 @@ C补核执行源码e620a0f，于2026-10-28 23:29:16–23:29:22 CDT完成：配�
 
 本轮新增边界/域名候选回归与原请求回归合计23项通过，类型/lint及旧110文件闭包核对保持；源码aad23fa的准确CI40820296477全部成功，实用GitHub GET5，无AWS/生产配置/SQL。恢复读F:/ChatGPT_workshop/techlong-buyer-domain-code-verified-20261028-a.json。上述不是AWS模板验证、域名安装、后端部署或业务验收；只把检查加到原无AWS CI，没有新部署workflow或云副作用。
 
-**下一唯一动作：准确CI通过后，另获一次域名范围限定元数据读取许可，核对准确CDN/现有栈、DNS占用和证书选项，为证书阶段生成待审SHA。** 不沿用旧读取许可，不重采数据库，不申请证书、改DNS/CDN/IAM、创建任务、发布来源/trust、续租或调度。实际云变更、后继材料/来源与Review→RunOnce→Inspect仍分别按准确范围另审，GitHub环境由用户本人批准。先备齐整轮再开短窗口，到期不代表自动停费或清理；50 USD/月仍是目标，wholeProductAccepted=false。
+用户随后确认本轮域名限定预检，已用STS1/AWS11取得准确CDN/栈、DNS及证书事实，零配置/秘密/数据库/写入。详见[公开观察](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-preflight.json)与[证书单写风险清单](aws-buyer-web-certificate-review.md)。**下一唯一动作：准确SHA获批后仅一次申请buyer公开不可导出证书；当前不执行。** 不先写未知DNS值或更新分布；真实ARN/CNAME返回后，再合并准备DNS验证与CDN栈更新。新任务、材料/来源和Review→RunOnce→Inspect仍在域名就绪后具体另审，不取消成功任务或扩框架。
