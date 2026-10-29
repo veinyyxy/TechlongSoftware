@@ -57,4 +57,3 @@ export async function buyerFixture(){
     writeResult:async(key,value)=>{events.push('result');return f.store(key,value);},writeExecution:async()=>{throw Error('REVIEW_HAS_NO_EXECUTION_DESCRIPTOR');}};
   return {closure,f,options,compat,source,state,request,links,capsule,observed,dependencies,events,contract,binding,env,ports,advance:n=>{at+=n;}};
 }
-
