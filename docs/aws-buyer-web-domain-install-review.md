@@ -1,6 +1,6 @@
 # 买家域名：验证 DNS 与现有 CDN 更新待审范围
 
-遵守[执行手册](aws-auto-deployment-execution-runbook.md)，只衔接[已完成的证书单次申请](aws-buyer-web-certificate-observed.md)。**本文件当前是准备草案，没有执行 SHA，不授权 DNS/CDN/CloudFormation 写入。** 新一轮只读核对通过、准确 CI 与材料/期限绑定后，才生成独立审批清单；旧 05:05 CDT 截止已过，不复用旧准备授权。
+遵守[执行手册](aws-auto-deployment-execution-runbook.md)，只衔接[已完成的证书单次申请](aws-buyer-web-certificate-observed.md)。**本文件本身不授权 DNS/CDN/CloudFormation 写入。** 本轮仅获限定只读许可；准确 SHA、请求文件、源码与时限以 `F:/ChatGPT_workshop/techlong-buyer-domain-install-20261029-a/prepared-verified.json` 绑定的 manifest 为准。不存在或核验失败即未完成准备，不得执行。旧 05:05 CDT 截止已过，不复用旧准备授权。
 
 ## 唯一目标与准确材料
 
@@ -22,7 +22,31 @@
 4. 严格回读该 ACK 的准确 Change Set ARN、栈 UUID、模板、参数、执行状态和完整资源差异：只能 BuyerDistribution Modify / Replacement=false，以及 BuyerAliasIpv4、BuyerAliasIpv6 Add。任何其他资源/权限变化、替换、不明或截断均不执行。匹配后最多一次 ExecuteChangeSet，不直接 UpdateDistribution、不新建栈、不 DeleteStack/ChangeSet。
 5. 有限观察栈结束后，以独立身份/读取路径核对原 UUID、原资源物理 ID、准确完整模板/参数、证书、CDN Deployed/单一 alias、A/AAAA 和验证 CNAME；静态 HTTPS 验收必须另在准确清单中列出次数/路径，不执行 JS、登录或访问后端业务。成功也只证明静态域名接通，不等于完整产品验收。
 
-未来准确清单须写明读写次数和等待上限、官方 endpoint、CLI 版本/禁重试、永久槽、实际有效期和最晚启动预留。只读准备快照按真实观测起 5 小时，不是新后端 TTL，也不延长任何旧窗口；生成清单后 main 冻结至结果与本地重建结束。不能把本段预计顺序当执行脚本或自行补齐缺失授权。
+## 准确执行上限与时序（仍待新 SHA 确认）
+
+直接写入总上限 **3 次**：验证 CNAME CREATE 1、CreateChangeSet 1、ExecuteChangeSet 1。CFN 还会托管更新原分布、创建两条 Alias；不能把这些底层写入混称为总共只有三次 AWS 变更。原五项非分布资源及其物理 ID/权限必须保持，不授予 IAM 变更或新资源替换权。
+
+执行总上限：固定 IAM Source **STS 3、AWS 元数据 115、公开 DNS 4、无身份 HTTPS GET 2**。元数据分配如下，未使用额度不变成额外读取许可：
+
+| 阶段 | 元数据上限与等待 |
+| --- | --- |
+| 写前现状检查 | 12：原栈/模板/六资源/空Change Set、CDN、证书/标签、zone及四类DNS名；成功后才领取槽 |
+| 验证 DNS 状态 | GetChange 最多6次，间隔10秒，最多50秒 |
+| 证书签发观察 | DescribeCertificate 最多21次，间隔15秒，最多5分钟；只接受准确证书ISSUED |
+| 创建Change Set前 | 6：原栈/模板/六资源、CDN、buyer名、证书标签再核对 |
+| Change Set创建观察 | DescribeChangeSet最多13次、间隔5秒、最多1分钟；最终一次完整响应核对三项差异 |
+| Change Set模板 | GetTemplate 1，必须为准确完整候选及参数 |
+| 执行前检查 | 4：原栈、CDN、准确证书、buyer名，并新STS身份核对 |
+| 栈完成观察 | DescribeStacks最多41次、间隔30秒、最多20分钟；失败/超时不写重试 |
+| 独立回读 | 11：原栈/模板/八资源、CDN/标签、证书/标签、zone/验证CNAME/buyer A与AAAA/NS；另新STS |
+
+原栈、CDN的写前事实窗口不是跨服务 CAS；每个阶段只能使用固定资源与已知 ACK。独立读取为新进程和新 STS，不把 writer 的输出当验收。公开 DNS 最多4次核对两处递归NS与buyer A/AAAA；HTTPS最多2次，仅 `https://buyer.sandbox.techlong.cloud/` 和 `/manifest.json`，验证TLS主机名，禁重定向、不发送认证/Cookie、不执行JS或读JS/HMAC，正文仅本机计算摘要/大小、不提交GitHub。证据不完整或读请求失败即保留未知停止，不为凑齐成功自动重试。
+
+原生 AWS CLI 固定2.36.19、官方 endpoint、显式profile/region、`AWS_MAX_ATTEMPTS=1`，不关闭TLS校验。DNS批次和CreateChangeSet请求正文逐字固定；ExecuteChangeSet只可从该次CreateChangeSet ACK派生准确ARN，保留固定栈UUID、固定client token、DisableRollback=false/RetainExceptOnCreate=false，不接受名称覆盖或外部参数。幂等token不是重放许可。
+
+固定永久槽 `F:/ChatGPT_workshop/techlong-buyer-domain-install-v1.intent.json`，在本阶段所有新清单之间独立，不按 SHA 换槽；当前尚不存在。仅写前核对全过才独占领取，之后各写前仍保存独占提交意图。占槽后即使凭据失效/尚未发出写，也不自动复位、重放或新SHA补齐。证书单写旧槽保持，不占用/重做它。
+
+事实始于 **10月29日07:57:00.563 CDT**，准备/审批至 **12:57:00.563 CDT**，最晚启动 **12:12:00.563 CDT**（预留45分钟）；UTC及毫秒以manifest为准。不重计采样时间、延长旧窗口或新建后端TTL。生成清单后main冻结至结果与本地重建结束。超时/到期不取消正在运行的CFN或删除记录，只保留状态，后继只读处理另审。
 
 ## 必须接受的风险与停止点
 
@@ -39,4 +63,6 @@
 
 准确源码 `d869f47385ac691691a1afb8189c9374db6252a0` 的[CI 40875734305](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40875734305) completed/success、attempt1；job123453944812 的全部16个步骤成功，无 AWS 身份。恢复读 `F:/ChatGPT_workshop/techlong-buyer-domain-install-code-verified-20261029-a.json`，raw SHA `306390108b9ac4aa5c9f6604833ba5fb2c18aa7c84fd148badbf93637ab9efbd`，绑定两份真实 CI 返回及七份源码 pin。实际 GitHub GET4、AWS/公开 DNS/私密读取/SQL/云写/执行槽/dispatch 均0；该证明不是云端更新或验收。
 
-**当前只等本轮限定只读准备许可**：最多1次STS＋14次AWS元数据/模板验证及4次公开DNS查询；不读私密值、不连数据库、不写云，不复用凌晨快照。新事实尚未核验，没有执行SHA，不得先写验证DNS、创建/执行Change Set或恢复后端。
+**本轮限定只读已完成（07:57:00–07:57:21 CDT）**：实用STS1/AWS元数据13/公开DNS2、零云写/私密读取/SQL/槽/dispatch。原UUID/六资源/模板保持，Change Set列表空，CDN Deployed、ETag E23ZP02F085DFQ、无alias；准确证书仍PENDING_VALIDATION、属性和六标签一致；验证名/buyer名/sandbox wildcard空，zone/自身NS与两处公共递归NS一致，完整候选ValidateTemplate成功。未逐跳查询权威父区或证明CloudFront全局alias空缺。[公开事实](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-install-preflight.json)。
+
+恢复读 `F:/ChatGPT_workshop/techlong-buyer-domain-install-readonly-20261029-a/verified.json`，raw SHA `19327da3311952cc568e2bdfe062bb59f0dc71394decd309832b1ba69381e767`；35份原件、16条真实读取及原采样时间已本地重建。下一只生成新外层审批SHA并请求用户确认上述累计范围和风险；**不执行写入、不消费槽**。代码CI成功与真实事实准备均不等于域名已接通。
