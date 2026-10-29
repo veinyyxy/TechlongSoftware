@@ -8,9 +8,9 @@
 
 客户端602e543/CI40789471388成功、deploy skipped，六资源候选的AWS ValidateTemplate已通过。新前端角色/policy/stack仍不存在，OAC名称无冲突，桶HEAD404非全球预留；人工sandbox门禁未安装。实际读取GitHub9/STS1/AWS元数据16/无身份HTTPS2，云/配置写、私密值、数据库、续租和调度均0。
 
-当前唯一待审是[前端承载和GitHub本人门禁安装](aws-buyer-web-sandbox-bootstrap-review.md)，清单SHA `e66544260e91a60af62e7275dd69522e406c27aa70f1a5ebb033b066b02570ae`，尚未批准/执行。先独立证明新门禁后，才可按未来准确批准CreateStack六项前端资源（含持久窄IAM）并核验；不含私密输入、变量、发布、旧CORS/栈更新、后端恢复、TTL或清理。旧后端已退役，后续产品联调须另定真实后端窗口，不能重放已消费任务或拿前端空桶安装当整套成功。
+用户随后确认e6654426…清单，**19:19–19:24已完成前端承载与GitHub本人门禁安装、独立核验**。先两次GitHub配置写并独立证明门禁，再一次CreateStack六项前端资源；新栈UUID71751190…/CREATE_COMPLETE、CloudFront EDJYJUKAZ12BO、来源https://d3a0kml1xanzgt.cloudfront.net。原模板/资源/策略/IAM和最终门禁全部回读通过，窄IAM持久保留；没有私密值、变量/Secret、发布、后端/CORS/TTL、删除或自动重试。[真实结果与准确边界](aws-buyer-web-sandbox-bootstrap-observed.md)。
 
-恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/prepared-verified.json`（raw SHA `f96d8d61651ac9799ba024c01785bc154ce79ea072818c513640de3ac53ecd99`）。新准备按18:54:17起5小时，最晚启动温尼伯10月28日23:14:17；不延长原后端16:06意图、不自动执行任何写入。`wholeProductAccepted=false`。
+恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json`（raw SHA `6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc`）；9原件和48调用已重建核对，安装标记永久消费，不重复安装。**下一只准备现有workflow的sandbox发布变量/私密来源与单次发布清单，并明确新的真实后端联调/CORS窗口**；私密使用、配置写、发布/dispatch或后端恢复另审，不改旧意图、不重放任务或扩框架。`wholeProductAccepted=false`，前端承载创建不等于已发布应用或完整产品验收。
 
 ## 已完成与本轮阻塞
 

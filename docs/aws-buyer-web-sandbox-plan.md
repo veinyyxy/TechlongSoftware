@@ -1,6 +1,6 @@
 # 买家Web最小承载与发布候选
 
-2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)。状态为 **DRAFT_NOT_EXECUTABLE**：本阶段只完成元数据核对、模板和范围准备；没有安装IAM、创建资源、改GitHub配置、读取私密值或调度。下文不是执行批准清单，机器摘要中的executionApprovalSha256仍为null。
+2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)。本文件保留初始 **DRAFT_NOT_EXECUTABLE** 候选及后继沿革；初始机器摘要的executionApprovalSha256仍为null，不改写成批准。随后另批的六资源/门禁已真实安装，最新结果见下节及[实测记录](aws-buyer-web-sandbox-bootstrap-observed.md)；原草案和本文件都不是后继私密使用或发布授权。
 
 ## 最新限定核对与实际安装待审（18:54，原后端已退役）
 
@@ -10,9 +10,9 @@
 
 原六资源模板LF SHA `2a582f4d1e69c69fead459d921ed9ed35e62f9711d9d5e7f4d4fab7e666a6630` 已被AWS ValidateTemplate接受，报告CAPABILITY_NAMED_IAM；不改写原“尚未验证”的历史检查点。新role/policy/stack不存在，OAC候选名称无冲突；桶HEAD404并非全球名称预留。新环境404仍不等于已安装门禁；客户端602e543/CI40789471388保持匹配。
 
-下一仅等待[前端承载与人工门禁完整风险](aws-buyer-web-sandbox-bootstrap-review.md)对应[实际机器清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.bootstrap-execution.json) SHA `e66544260e91a60af62e7275dd69522e406c27aa70f1a5ebb033b066b02570ae` 的新批准：GitHub环境与master规则两写、独立证明门禁后，最多一次新栈CreateStack/六项前端资源及独立核验；包含持久窄IAM，不自动撤权。**未获批准、未执行**，不含HMAC、变量、发布、CORS、后端恢复或清理。
+用户随后确认[实际清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.bootstrap-execution.json) SHA `e66544260e91a60af62e7275dd69522e406c27aa70f1a5ebb033b066b02570ae`，**19:19–19:24已完成前端承载与人工门禁安装和独立核验**。GitHub环境/master规则两写，独立证明门禁后一次CreateStack/六项准确资源；新栈UUID71751190…/CREATE_COMPLETE，分布EDJYJUKAZ12BO、OAC E2RCLW5N96SAFV、来源https://d3a0kml1xanzgt.cloudfront.net。窄IAM持久保留；没有私密值、变量/Secret设置、发布、CORS、后端恢复或清理。[完整实测、实际次数及下一边界](aws-buyer-web-sandbox-bootstrap-observed.md)。
 
-封存准备 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/prepared-verified.json`（raw SHA `f96d8d61651ac9799ba024c01785bc154ce79ea072818c513640de3ac53ecd99`）绑定原件和三请求体。事实起点18:54:17.108，准备到23:54:17.108、最晚启动23:14:17.108（温尼伯10月28日），不延长旧16:06意图。不要重跑捕获或准备器；后继私密输入/发布及新的后端验收单独定范围，不扩控制面。
+原准备 `prepared-verified.json` 和三请求体保持原样，不改写PENDING标签或事实起点。恢复改读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json`（raw SHA `6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc`），绑定9原件与48调用；永久标记已消费，不重复安装/捕获/准备或复位标记。下一仅准备现有workflow所需准确sandbox变量、私密来源与发布清单，并明确新的后端联调/CORS窗口；仍须另审，不延长旧16:06意图或扩控制面。
 
 ## 15:35已核实的缺口（历史）
 

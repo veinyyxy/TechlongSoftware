@@ -49,9 +49,11 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 本轮另允读取实际为GitHub9/STS1/AWS元数据16（含一次ValidateTemplate）/无身份GET2，云/配置写、私密值、数据库、续租和dispatch均0。模板AWS验证通过；新role/policy/stack不存在，OAC名称无冲突，桶HEAD404不保证全球可用；新environment404，未创建。
 
-下一**仅等待用户对[前端承载与人工门禁安装范围](aws-buyer-web-sandbox-bootstrap-review.md)和[机器清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.bootstrap-execution.json)准确SHA `e66544260e91a60af62e7275dd69522e406c27aa70f1a5ebb033b066b02570ae` 单独批准**：两次GitHub配置写入并独立证明本人门禁后，最多一次CreateStack/六项前端资源，随后独立核验；包括新持久窄IAM，不是临时Grant。不含私密输入、变量、客户端发布、CORS、后端恢复、旧栈更新、TTL或删除，不新增执行框架。本轮只读批准不能覆盖这些写入。
+**前端承载与本人门禁已真实安装通过**：用户随后确认[清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.bootstrap-execution.json) SHA `e66544260e91a60af62e7275dd69522e406c27aa70f1a5ebb033b066b02570ae`，19:19:28–19:24:25执行两次GitHub配置写，独立证明门禁后一次CreateStack/六项前端资源；最终原模板、UUID/资源/策略/输出与门禁均独立核验通过。新栈UUID71751190…，CloudFront EDJYJUKAZ12BO；新窄IAM持久保留，不是临时Grant。实际GitHub GET11/配置写2、STS2/AWS元数据32（9次观察）/CreateStack1，私密值、DB、发布/dispatch、后端/CORS/TTL、重试及清理均0。[完整实测及后继边界](aws-buyer-web-sandbox-bootstrap-observed.md)。
 
-恢复先读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/prepared-verified.json`（原始字节SHA `f96d8d61651ac9799ba024c01785bc154ce79ea072818c513640de3ac53ecd99`），绑定两份真实读取原件、准确602e543/CI及三份待审请求体；不要重跑捕获/准备器。18:54:17事实起点后5小时到23:54:17，最晚启动23:14:17（均温尼伯10月28日），原后端16:06意图不延长。未确认或逾期不执行，也不创建/复位一次尝试标记；后继私密输入、发布及新的后端验收范围另审。
+恢复先读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json`（raw SHA `6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc`），绑定9原件；48条提供者调用与本地证据已重建核对。永久标记已消费，不再运行安装脚本/CreateStack、不重跑准备器或复位标记，原PENDING准备材料保持不改写。原后端16:06意图不延长，整套仍未验收。
+
+**下一唯一动作：准备现有workflow的sandbox客户端发布所需准确变量、私密输入来源与单次发布清单，并明确新的真实后端联调/CORS窗口。** 新CDN来源为https://d3a0kml1xanzgt.cloudfront.net；不新增运行器或固定任务代码分支。私密使用/变量Secret设置/发布dispatch及后端恢复仍具体另审，不自动读取、调度、续租或重放旧任务；先集中备齐材料再开短窗口。
 
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 

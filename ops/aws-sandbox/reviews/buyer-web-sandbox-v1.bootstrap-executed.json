@@ -1,0 +1,44 @@
+{
+  "schema": "techlong/buyer-web-bootstrap-public-execution-summary/v1",
+  "outcome": "FRONTEND_HOSTING_AND_HUMAN_GATE_INDEPENDENTLY_VERIFIED_NO_PUBLICATION",
+  "approvedManifestSha256Utf8Lf": "e66544260e91a60af62e7275dd69522e406c27aa70f1a5ebb033b066b02570ae",
+  "startedAt": "2026-10-29T00:19:28.817Z",
+  "finishedAt": "2026-10-29T00:24:25.774Z",
+  "counts": { "githubGets": 11, "githubConfigurationWrites": 2, "sourceSts": 2, "awsMetadata": 32, "createStackCalls": 1, "stackStatusPolls": 9 },
+  "providerCallRecordsReconciled": 48,
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-buyer-web-v1/71751190-d32e-11f1-9a09-06ffda7a3477",
+  "stackStatus": "CREATE_COMPLETE",
+  "declaredResources": 6,
+  "outputs": {
+    "ClientOrigin": "https://d3a0kml1xanzgt.cloudfront.net",
+    "PublisherRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxBuyerWebPublisherRole",
+    "BucketName": "techlong-sandbox-buyer-web-402010193138-ca-central-1-v1",
+    "DistributionId": "EDJYJUKAZ12BO"
+  },
+  "oacId": "E2RCLW5N96SAFV",
+  "publisherRoleId": "AROAV3GNMXTZCUU7ORDXB",
+  "policyId": "ANPAV3GNMXTZIWQQVOEAJ",
+  "githubEnvironmentId": 25634086386,
+  "githubMasterRuleId": 64728366,
+  "githubGateVerifiedBeforeAwsAndAtFinalReadback": true,
+  "localCheckpoint": {
+    "path": "F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json",
+    "rawSha256": "6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc"
+  },
+  "executionEvidence": {
+    "path": "F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/execution-result.json",
+    "rawSha256": "8853333b9a2a58d0847607bf945743c9b2b77e844fc26f070c34db5252de97ab"
+  },
+  "intentPermanentlyConsumed": true,
+  "privateValueReads": 0,
+  "databaseConnections": 0,
+  "dispatches": 0,
+  "productHttpGets": 0,
+  "backendActions": 0,
+  "providerWriteRetries": 0,
+  "automaticCleanup": 0,
+  "persistentNarrowIamRemainsInstalled": true,
+  "clientPublished": false,
+  "backendRestored": false,
+  "wholeProductAccepted": false
+}

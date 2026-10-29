@@ -6,11 +6,13 @@
 
 **最新18:54限定只读结果：旧租户栈DELETE_COMPLETE、ECS INACTIVE/运行0，health/ready均404。** 根事件记录16:08:39开始删除、16:16:37完成，“User Initiated”不能确定操作者；本轮未删除或查询CloudTrail。不要更新已删UUID/CORS、重放成功任务或把下方14:41历史健康当现状；不宣称整体费用归零。
 
-当前唯一动作是等待用户另批[前端承载与GitHub本人门禁安装](aws-buyer-web-sandbox-bootstrap-review.md)，[机器清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.bootstrap-execution.json) SHA `e66544260e91a60af62e7275dd69522e406c27aa70f1a5ebb033b066b02570ae`：先两次GitHub配置写并独立证明门禁，再最多一次CreateStack/六项独立前端资源（含持久窄IAM）及独立核验。**尚未批准、未执行**；不含HMAC/Secret/.env/PEM、变量、发布/dispatch、CORS、后端恢复、续租或删除，不扩运行框架。
+**前端承载和GitHub本人门禁已安装并独立核验通过（19:19–19:24）**：用户确认e6654426…后，先两次GitHub配置写并独立证明门禁，再一次CreateStack/六项前端资源（含持久窄IAM）；新栈UUID71751190…/CREATE_COMPLETE，CloudFront EDJYJUKAZ12BO、来源https://d3a0kml1xanzgt.cloudfront.net。最终原模板/准确资源/策略/输出与门禁回读均通过。[完整实测与风险边界](aws-buyer-web-sandbox-bootstrap-observed.md)。实际GitHub GET11/配置写2、STS2/AWS元数据32/CreateStack1，私密值/DB/发布/dispatch/后端/CORS/TTL/重试/清理均0。
 
-本轮实际GitHub9/STS1/AWS元数据16（含一次AWS模板验证成功）/无身份GET2，云与配置写/私密值/DB/续租/dispatch均0。新role/policy/stack不存在，OAC名称无冲突，桶HEAD404不保证全球名称可用；sandbox environment404，尚无人工门禁安装证明。客户端602e543/CI40789471388保持成功、deploy skipped。
+前置18:54只读使用GitHub9/STS1/AWS元数据16（含一次AWS模板验证成功）/无身份GET2，零写/私密值；当时新对象空缺已在安装预检再次证明。该“空缺”事实不再是当前状态，安装结果以上段为准。客户端602e543/CI40789471388保持成功、deploy skipped，没有运行实际发布工作流。
 
-恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/prepared-verified.json`，原始字节SHA `f96d8d61651ac9799ba024c01785bc154ce79ea072818c513640de3ac53ecd99`；原件和三个请求体已绑定，不重跑读取/准备。准备期限按真实18:54:17起5小时至23:54:17，最晚启动23:14:17（温尼伯10月28日）；不延长旧16:06意图、不自行建新后端窗口。逾期或未获新SHA批准不写。
+恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json`，raw SHA `6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc`，绑定9原件与48条调用；永久标记已消费，不重跑安装/准备或复位标记。准备/批准原件保持不改写，原后端16:06意图未延长，新IAM与保留桶可能持续产生费用，不自动撤权或清理。
+
+**下一唯一动作：准备现有workflow的sandbox客户端发布所需准确变量、私密来源及单次发布清单，并明确新的真实后端联调/CORS窗口。** 不先读HMAC/Secret/.env/PEM、写变量/Secret、发布/dispatch或恢复后端；仍按准确范围另审，先备齐再开窗口。不新增执行框架、UI或固定任务代码分支，wholeProductAccepted=false。
 
 ### 已完成历程与本轮准备沿革（以下不是重放指令）
 
