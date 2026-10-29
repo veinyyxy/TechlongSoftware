@@ -121,3 +121,33 @@ C补核执行源码e620a0f，于2026-10-28 23:29:16–23:29:22 CDT完成：配�
 准确CI通过后，下一唯一动作是以已封存事实和原件准备**准确新请求＋accepted lineage＋buyer材料/SOURCE与必要发布组合的集中材料**，先证明原发布/整轮组合能承载该绑定；如有必需差异只改原组合，不复制执行器。原09:07只读事实至14:07:12.204 CDT不重计；到期只继续本地材料，不自动重新读取生产。实际副作用仍新SHA审核，先备齐整轮再开短窗口。
 
 **准确CI现已通过**：源码 `ed4d15dbdbc11bdad4acd8b4feda0f85e3dc5745` 的 [run40894623180](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40894623180) completed/success、attempt1，job123520234513的16项报告步骤全部成功。本机35项定向＋81项旧相关回归、类型、lint、YAML/链接/diff均通过；原110闭包仍0c6f119d…，新增111候选闭包为96679e2e…。恢复读 `F:/ChatGPT_workshop/techlong-buyer-compatibility-code-verified-20261029-a.json`，raw SHA `9beba5a3bd1fa7954df2ebc68935b81843669e9ad739d5524ac6ce8b69e67254`。本轮生产配置/私钥/Secret/HMAC读取、AWS/SQL连接/写入、任务/槽/dispatch均0；正常代码/文档提交和无AWS CI不等于生产激活。后续文档HEAD不是这次CI源码，未改测试源码不冒称重跑。
+
+## 集中材料草案及兼容性核对（10月29日09:57 CDT）
+
+本阶段不重复上轮测试或部署。已用真实封存原件重建旧basis并核对54份整轮原件、11份固定版本对象记录；读取09:07已存数据库快照，仅在本地调用原单INSERT编译器。候选 `job_b236b120d6406d3e296d341b` **只是草案ID，未创建、未查询其当前数据库存在性、未分配任何执行槽**；全部12旧任务/17plan/12approval/12attempt保留，不能取消已成功a00。新材料仍仅增加buyer来源，body SHA649c3077…；请求SQL、nonce、原始业务及未完成后继链只在私有目录，不提交Git。
+
+恢复读 `F:/ChatGPT_workshop/techlong-buyer-backend-material-prepared-20261029-a.json`，raw SHA `a362f39693f14d80d8f59fa788b0aa8b986f179fa16c02e0dd13b8f555a40223`。它绑定本地草案result（raw SHA94b644fb…）、四份草案文件及下面的单次补件停止记录。原准备仍于今天14:07:12.204 CDT到期，旧basis原截止为10月30日10:08:09.592 CDT；两者均不重计，不把草案编译时刻09:57当生产观测或新事实批准。最初Windows ESM导入路径错误发生在任何准备I/O之前，改成file URL后本地编译完成；不涉及生产重试。
+
+### 不能直接发布的准确差异
+
+| 既有位置 | 当前源码实际约束 | 最小处理边界 |
+| --- | --- | --- |
+| 原 `package.mjs` / 请求来源 | 要求旧pending取消后的两行handoff及其独立回执 | 本轮是单INSERT，不能假造canceled旧成功任务或复用旧handoff证明；复用原请求编译/事务/回读能力 |
+| `cycle.mjs`、恢复publisher/信封 | publication必须recovery-envelope/v1，inner predecessor固定为原basis恢复锚 | buyer候选先追加真正验收的a00，再改变准确CORS；不能仅换SOURCE/job ID或给旧恢复basis改前驱 |
+| 原native V6 publisher | 自行读取旧两来源capsule并调用原固定工厂 | 仅换成native发布器仍不兼容；本机证据验证和云根必须绑定同一个经验证buyer context |
+| `whole.mjs`、Review/Inspect successor组合 | 硬接恢复publisher，并按innerManifest、旧descriptor字段和固定capture对象数校验 | 只在原组合接入准确buyer材料/模式绑定，保留三写、完整业务/账本校验、时间预留和未知不重试；不放宽字段/数量guard掩盖差异 |
+| 线上live/bootstrap及发布模板 | 固定旧恢复application、110冻结源码、旧SOURCE/reusable | 不改旧110；候选111是代码证明，不是已装SDK/OIDC/S3入口。必要源码/原双workflow/唯一trust pin差异集中准确审核，不扩IAM权限或新建执行器 |
+
+上述是本地源码事实，不是新的云漂移。当前组合兼容性结论为 **NOT_COMPATIBLE / NOT_EXECUTABLE**；没有生成部署批准SHA。下一只完成这些原发布/整轮组合的必要兼容接线，复用原V5执行根、SDK能力与Git/CFN发布器，不新建运行器、框架、身份、镜像或固定job分支；旧测试和旧110必须保持。
+
+### 唯一缺失的历史原件及一次补件停止
+
+a00的manifest、成功回执、独立Inspect及固定provider引用均已找到，但54份封存集合不含该provider对象正文。不能从现在的已删栈、推算task revision或合成数据代替原件。准确对象为同一私有证据桶中 `.../job_a00fc18c13a5d6c6616c8039/35ca1be63598b1989f7c3c12ff91c53482bd5c7ad6dc41c738bb7b82806bca58/run-40751515012-1/provider-after.json`，固定VersionId `.geI7CLMRhzabh1lmey4OLkDHhy7JlaB`，既有SHA `c2a78b3ee6dbb6b6d81aa7daadb91c574ac9fff8abc3db8efeebd328f16ed4ef`。完整键只在上述机器检查点内，未列桶。
+
+用户另允STS1＋该版本GET1/≤1MB后，10:03:13–10:03:15的独立记录在官方STS身份步骤以CLI255停止；实际STS尝试1（是否到达服务未知）、S3 GET0、其他AWS/配置/Neon/秘密读取/云或DB写/槽/dispatch0。错误分类CLI_OR_TRANSPORT_FAILURE，原因未证实，不能断言凭据过期或刷新失败，也不推定一定是本地网络限制。不重跑、不沿用未用GET继续、不盲目要求刷新；需要时另批新的准确补件尝试。原result `F:/ChatGPT_workshop/techlong-buyer-provider-readonly-20261029-a/result.json`，raw SHA `b823b531b4b64259c0f79bf3c7b4c64ef7e235b275b128061d9615ad57054646` 保持。
+
+### 后继集中范围草案（非执行批准）
+
+准备顺序固定为：完成原组合兼容及准确CI → 取得缺失固定原件并验证accepted链 → 绑定真实完整状态/新请求与独立回读 → 准确新材料上传及必要原双workflow/SOURCE/trust-only差异 → 同任务Review→RunOnce→独立Inspect。前三项不齐就不占短窗口。实际请求写、上传、权限/来源发布、私钥/固定Secret使用及三次dispatch，仍须完整次数、资源、期限、派生规则和风险绑定到新SHA；本草案的批准SHA为null。
+
+云范围仍只考虑原ca-central-1租户名/原镜像、最多一次CreateStack/七承载资源、一次控制私密包读取/两次认证GET、同任务原子完成及独立验收；GitHub environment三次由用户本人批准，不再要求Web页面点击。50 USD/月仅目标、可能遗留收费资源、清理另审；不删除、不续旧TTL、不重发客户端/证书/CDN/HMAC，不通过新增IAM权限来迁就候选。具体预算及整轮上限须组合验证后再确定，不能把旧整轮SHA/635查询预算或上轮读取许可自动套给新周期。
