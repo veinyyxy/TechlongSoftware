@@ -1,5 +1,7 @@
 # 买家域名：仅申请证书的执行待审范围
 
+**状态更新：本清单已由用户准确确认并执行完成，独立回读通过；证书 PENDING_VALIDATION，DNS 尚未写入。** [真实结果及恢复入口](aws-buyer-web-certificate-observed.md)。下方原待审文字保留追溯，不再作为重新执行或后继写入批准。
+
 承接[自定义域名方案](aws-buyer-web-custom-domain-plan.md)，遵守[执行手册](aws-auto-deployment-execution-runbook.md)。当前只有只读预检批准，**尚未获准任何AWS写入**。准确SHA、源码、请求JSON和期限以F:/ChatGPT_workshop/techlong-buyer-domain-certificate-20261029-a/prepared-verified.json绑定的manifest为准；该文件不存在或核验失败时，不得声称准备完成或执行。
 
 ## 已取得的真实状态

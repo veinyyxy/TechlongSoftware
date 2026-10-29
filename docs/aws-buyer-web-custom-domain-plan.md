@@ -14,8 +14,8 @@
 | --- | --- |
 | 现有CDN | EDJYJUKAZ12BO / d3a0kml1xanzgt.cloudfront.net；追加一个准确alias，改用SNI证书 |
 | 现有承载栈 | ca-central-1 / techlong-sandbox-buyer-web-v1 / UUID71751190-d32e-11f1-9a09-06ffda7a3477；不新建分布、桶或IAM |
-| ACM | us-east-1中一份准确buyer域名的不可导出公开RSA2048证书，DNS验证；实际ARN尚为null |
-| 证书验证DNS | 仅ACM实际返回且独立核验的一个CNAME；名称和值尚未知，不猜测、不盲目UPSERT或删除旧记录 |
+| ACM | us-east-1中准确buyer域名的不可导出公开RSA2048证书已单次申请并回读，ARN68a43688…，状态PENDING_VALIDATION；[完整实际ARN](aws-buyer-web-certificate-observed.md) |
+| 证书验证DNS | ACM已实际返回并独立核验一个CNAME，完整名称和值见上链接；尚未写入，不猜测、不盲目UPSERT或删除旧记录 |
 | 业务DNS | 既有公开zone Z01473621BTTHKXBGOOEJ内buyer域名的A、AAAA Alias，目标为现有分布 |
 | 后端后继 | 新受审材料仅追加https://buyer.sandbox.techlong.cloud；原两个来源保留，旧后端不重放 |
 
@@ -43,4 +43,4 @@ CloudFront要求alias由所挂证书覆盖，ACM证书需在us-east-1；S3和现
 
 以上为候选代码阶段：GitHub核验5次GET，未调用AWS或读取私密配置。用户随后批准的新只读预检已完成，实际STS1/AWS元数据11；[观察摘要](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-preflight.json)证明原模板/六资源匹配、CDN Deployed且alias空、buyer DNS空、无覆盖该域名的证书。初次本地字段映射停止及其未用额度继续记录保留，不重发已取得云返回。公网父级委派及全局alias冲突缺失仍未独立证明。
 
-**下一仅准备并等待[RequestCertificate单写清单](aws-buyer-web-certificate-review.md)的准确SHA批准。** 不写DNS/CDN/CFN，不读秘密/配置、连接数据库或dispatch；真实ARN及CNAME返回后，将DNS验证与现有分布更新集中准备。准备5小时仍由新实际00:05:04.864 CDT至05:05:04.864计，不扩大后端旧窗口；没有执行槽消费或实际云写授权。
+**RequestCertificate单写已获准确批准并完成；下一只准备准确DNS验证与现有分布更新的集中清单。** [实际结果](aws-buyer-web-certificate-observed.md)为独立核验通过、PENDING_VALIDATION，累计STS2/AWS元数据5/申请1，永久槽已消费；实际ARN及CNAME已返回，不再申请。DNS/CDN/CFN、秘密/配置、SQL/dispatch均未做，后继仍另审。原00:05:04.864至05:05:04.864 CDT期限不重计，不扩大后端旧窗口。

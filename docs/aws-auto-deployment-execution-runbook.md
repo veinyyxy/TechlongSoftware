@@ -77,7 +77,9 @@ Source刷新及新同范围许可后，20:56–20:59的B记录取得AWS/GitHub�
 
 该候选源码aad23fa/准确CI40820296477全部成功；23项定向检查、类型/lint/YAML及原110闭包保持。代码检查点F:/ChatGPT_workshop/techlong-buyer-domain-code-verified-20261028-a.json保留，不当云安装证明。用户随后允许本轮域名元数据预检，于10月29日00:05–00:06 CDT实用STS1/AWS11、零写/秘密值/SQL/GitHub/执行槽；原模板一致、CDN Deployed无alias、准确buyer DNS空、没有可覆盖buyer的现有证书。IPv6字段映射造成的本地停止原件保留，只用未用额度继续，没有重发已获AWS返回，不改真实采样时间。公开事实见[预检摘要](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-preflight.json)。
 
-**下一唯一动作：等待[仅申请一份证书清单](aws-buyer-web-certificate-review.md)的准确SHA批准。** 本轮先仅RequestCertificate一次，不写DNS/CDN/CFN，不建后端；实际ARN/CNAME返回后，再把准确DNS验证与分布更新集中准备。恢复读F:/ChatGPT_workshop/techlong-buyer-domain-certificate-20261029-a/prepared-verified.json；不存在则准备未完成，禁止执行。准备后main冻结，不再追加提交使清单失效。事实从00:05:04.864 CDT起5小时至05:05:04.864，最晚启动预留2分钟，不重计、复位槽或重放；当前证书请求及永久尝试槽仍0。
+**证书单写及独立回读已完成（10月29日00:28 CDT）**：用户确认8b2a6ab9…后，仅一次RequestCertificate，准确ARN68a43688…及唯一buyer域名/DNS/RSA2048/不可导出/六标签均通过，实际CNAME已返回，状态PENDING_VALIDATION。实际STS2/AWS元数据5/申请1，DNS/CDN/CFN/IAM、私密读取/SQL/调度/后端/重试均0。[结果和完整边界](aws-buyer-web-certificate-observed.md)。恢复读F:/ChatGPT_workshop/techlong-buyer-domain-certificate-20261029-a/executed-verified.json，raw SHA 66f44538329211818525cb446f401d0fe160e0395d7a1b7dbf1eaa7ecd7f996f；26份原件已本地重建，永久槽已消费，不重新申请/回读、复位或改写原准备记录。独立核验与重建后main结束冻结，仅正常记录结果。
+
+**下一唯一动作：准备准确验证CNAME、证书签发等待及现有CDN栈更新的集中审批清单。** 复用原CDN/桶/角色，不扩IAM、不重发客户端；实际新鲜读取和DNS/CDN/CFN写仍另审，不自动进入后端恢复。原00:05:04.864至05:05:04.864 CDT准备期限不重计，PENDING_VALIDATION不是域名可用或产品验收，wholeProductAccepted=false。
 
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 
