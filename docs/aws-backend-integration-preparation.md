@@ -33,7 +33,19 @@
 
 失败记录中的计算到期字段不是可用于部署的新事实窗口；本轮尚未获得AWS/Neon现状，不能声称namespace已空、业务/保护未变、新job不存在或材料已经齐备。旧19:46退役记录仍只证明当时那个准确UUID，不能据此推导现在所有同名资源不存在或费用停止。
 
-**当前唯一动作：Source刷新并获得新一次同范围读取许可后，创建新的观察记录继续限定核对。** 请运行aws login --profile techlong-sandbox-user，完成后回复“Source 已刷新，允许新一轮同范围只读核对”；不要发送凭据/验证码。旧已消费的STS尝试和读取许可不重复使用，不执行原失败命令。
+A失败原件保持。用户随后刷新Source并明确允许新一轮同范围读取；B观察于20:56:03–20:59:51 CDT完成以下部分，不重跑A或重新采样AWS：
+
+- 实际合计STS1、AWS元数据57、GitHub GET9、配置全文件1、验证TLS连接1、SQL4（BEGIN、SET LOCAL、身份查询、ROLLBACK）；所有云/数据库持久写、Secret值/HMAC/PEM/DDB项、调度及执行槽均0。
+- 旧准确UUID仍DELETE_COMPLETE，同名栈不存在；旧ECS服务INACTIVE、desired/running均0，集群服务与运行任务列表为空。共享Cell为CREATE_COMPLETE、worker基础栈UPDATE_COMPLETE；这不证明全账户费用停止。
+- 原应用镜像digest仍在；三个指定Secret固定版本均AWSCURRENT。五个现有角色及边界/授权布局已记录，不能据此声称新来源已发布或新部署获批。两张DDB表ACTIVE、TTL DISABLED，没有读取业务项。
+- GitHub人工reviewer与main分支门禁保持。当前66e9985只是文档/候选材料变更，未触发recovery CI；“准确HEAD必须有该CI”的本地预期导致B停止，原记录保留。随后只使用尚未用完的额度核对成功CI40748831700/284f6ad，并逐文件证明至66e9985未改部署运行时代码；不冒称66e9985自身跑过该CI，没有重查AWS或重复GitHub请求。
+- TLS客户端证书验证通过，但接下来组合门禁返回DATABASE_IDENTITY_OR_MODE，已ROLLBACK并关闭连接。该门禁同时比较actor/session actor、库、owner OID、只读模式及数据库侧TLS布尔值；本次未保存逐字段结果，不能确定哪个字段不符，也不能声称身份、权限或TLS已改变。没有读取任务/业务/保护快照，不能认定它们仍匹配。
+
+B原停止记录：F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-b/result.json，raw SHA eb2e2a4405805f95afc25a6868ecadf87cc92cfb32543f5ea935dc605ad1cd2e。未使用额度继续记录：F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-b-continuation/result.json，raw SHA f60aa42991df400518a698fbc498ca717c9ccd6f19d8827c0a919128fce134c4。两者均保持原样，后者累计计数包含前者，不相加重复计算。
+
+AWS/GitHub部分观察的原准备到期为2026-10-29 01:56:03 CDT，继续过程没有重计5小时；数据库事实尚不完整，不能生成执行SHA或开付费窗口。没有更改capsule、冻结源码、门禁、部署代码或任何原批准。
+
+**当前唯一动作：另获一次最小数据库补核许可后，仅补核组合门禁及尚未取得的任务/账本/准入/保护快照。** 拟只读现有.env.local一次、建立一条验证TLS的Neon只读连接、最多45条查询；先保存非秘密的逐字段匹配布尔值，保持证书、身份、只读事务和现有catalog/保护校验，不猜测根因或直接放宽门禁。复用本轮AWS/GitHub记录，不再调用AWS/GitHub，不读Secret值/HMAC/PEM/DDB项，不改生产代码、数据库、CORS或来源，不创建任务、续租、消费槽或调度。该补核尚未批准，已使用的配置/连接额度不自动续用。
 
 ## 读取完成后需要备齐的一轮材料
 

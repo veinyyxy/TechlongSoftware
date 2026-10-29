@@ -22,7 +22,9 @@
 
 **当前唯一动作：准备新的真实后端联调/CORS和有限业务验收窗口**，复用现有能力、镜像/数据库与已发布客户端；新读取、合法请求/来源和实际恢复/业务写仍具体另审。不更新旧已删UUID、不重放旧job/事实时刻，不再改前端、扩框架/探针/UI或复制固定任务代码分支。当前wholeProductAccepted=false，静态发布不等于整套业务可用。
 
-本轮[后端准备](aws-backend-integration-preparation.md)已定位必要单一CORS差异：原capsule/冻结源码仍仅两来源，新真实CF来源尚未纳入；没有改材料、旧pin或部署代码。另允读取在20:39第一次Source STS即失败，STS1/其他元数据、GitHub、配置、TLS、SQL及写入/执行槽均0。原件 `F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-a/result.json`（raw SHA `ebd73a2a1d4dae7c2c2e7815dc209f6a6aa4e0fc3bc154f0622bfe12650c3548`）保留；**下一只在Source刷新及新的同范围许可后，用新记录继续限定事实核对**，不重跑原命令或虚构可执行SHA/任务。旧客户端发布仍完成，不再取HMAC/发布前端。
+本轮[后端准备](aws-backend-integration-preparation.md)已定位必要单一CORS差异：原capsule/冻结源码仍仅两来源，新真实CF来源尚未纳入；没有改材料、旧pin或部署代码。20:39的Source失败A保留，未重放。刷新及新许可后的B核对旧UUID删除/同名栈空缺、ECS空闲、原镜像/固定版本及本人门禁；文档提交未触发CI，只核对未变运行时代码的成功CI40748831700，不冒称当前HEAD CI。累计STS1/AWS57/GitHub9/配置1/TLS1/SQL4，持久写/秘密值/槽/dispatch均0。
+
+Neon客户端证书验证通过，但身份/只读/数据库侧TLS组合门禁未通过，已回滚关闭；未保存逐字段结果，不能断言具体原因，尚无任务/业务/保护快照。原B与继续记录保持，后者 F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-b-continuation/result.json，raw SHA f60aa42991df400518a698fbc498ca717c9ccd6f19d8827c0a919128fce134c4；部分观察期限10月29日01:56:03 CDT不重计。**下一只另获最小数据库补核许可后，读取配置1次/验证TLS连接1条/最多45查询，补核门禁与完整状态；不重查AWS/GitHub或重放旧观察，不放宽身份/证书/保护。** 不改CORS/来源、建任务、续租、调度或部署；旧客户端发布仍完成，不再取HMAC/发布前端。
 
 ### 已完成历程与本轮准备沿革（以下不是重放指令）
 

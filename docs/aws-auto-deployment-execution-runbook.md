@@ -63,7 +63,11 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 **当前唯一动作：准备新的真实后端联调/CORS与有限业务验收窗口。** 复用现有请求/Review→RunOnce→Inspect能力、镜像/数据库和已发布客户端；先核对新合法请求/来源/期限及当前资源，实际读取/恢复/业务写仍准确另审。不更新已删旧UUID、不重放已消费job，不再改前端、扩执行器/探针/UI或复制固定任务代码分支；旧backend意图未延长、wholeProductAccepted=false。
 
-[本轮后端准备与停止点](aws-backend-integration-preparation.md)已记录：当前云材料把旧两项CORS固定在capsule哈希/冻结源码中，需受审地只追加真实CloudFront来源，不能临时绕过参数校验或改旧pin。原部署代码/材料/工作流未改，候选body差异哈希不是执行批准。本轮另允读取在20:39首个Source STS失败，STS1/其余AWS、GitHub、配置、TLS/SQL及写入/槽均0；原件 `F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-a/result.json`，raw SHA `ebd73a2a1d4dae7c2c2e7815dc209f6a6aa4e0fc3bc154f0622bfe12650c3548`。**下一唯一动作为Source刷新并新一次同范围读取许可后，使用新观察记录继续事实核对**；不重跑原失败命令，不把失败时间当新事实窗口，不先实现新固定任务分支或启动后端。
+[本轮后端准备与停止点](aws-backend-integration-preparation.md)已记录：旧两项CORS固定在capsule哈希/冻结源码中，需受审地只追加真实CloudFront来源，不能绕过参数校验或改旧pin；原部署代码/材料/工作流未改，候选差异哈希不是执行批准。20:39的Source失败A原件保留，未重放。
+
+Source刷新及新同范围许可后，20:56–20:59的B记录取得AWS/GitHub部分事实：旧UUID删除、同名栈不存在、ECS空闲，原镜像/固定Secret版本和本人门禁保持；文档提交未触发CI，只核对未变运行时代码对应的成功CI40748831700，不冒称当前HEAD跑过。累计STS1/AWS57/GitHub9/配置1/TLS1/SQL4，持久写/秘密值/槽/调度0。Neon在身份/只读/数据库侧TLS组合检查停止并回滚，未取得业务/保护快照，不能生成执行SHA。原B停止及未用额度继续记录均保留，后者raw SHA f60aa42991df400518a698fbc498ca717c9ccd6f19d8827c0a919128fce134c4，路径 F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-b-continuation/result.json。原准备期限10月29日01:56:03 CDT不重计。
+
+**下一唯一动作：另批一次配置读取/一条验证TLS Neon只读连接/最多45查询，仅补核组合门禁及任务/账本/准入/保护。** 不重查AWS/GitHub、不重跑A/B、不猜测失败字段或放宽身份/证书/保护；不改CORS/来源、创建任务、续租、调度或启动后端，完整事实前不实现新的固定任务分支。
 
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 

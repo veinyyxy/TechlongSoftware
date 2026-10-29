@@ -1,9 +1,9 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "BLOCKED_SOURCE_REFRESH_REQUIRED_NO_CURRENT_FACTS",
+  "status": "PARTIAL_AWS_GITHUB_FACTS_CAPTURED_DATABASE_CHECK_REQUIRES_SEPARATE_READ",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
-  "sourceAuditCommit": "75ca2225236166962aec6628497fb334fc49579f",
+  "sourceAuditCommit": "66e9985dbb5d498dd49f3647f40efae62b3fec45",
   "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
   "deploymentId": "dep_7c99bd249470184852f0dc74",
   "publishedClient": {
@@ -44,8 +44,35 @@
     "usableProductionFacts": false,
     "oldCommandMayBeReplayed": false
   },
-  "pendingNewObservationPermission": {
-    "status": "REQUESTED_PENDING_REFRESH_AND_RENEWED_EXPLICIT_SCOPE",
+  "partialCapture": {
+    "sourceObservedAt": "2026-10-29T01:56:03.679Z",
+    "finishedAt": "2026-10-29T01:59:51.343Z",
+    "originalPreparationExpiresAt": "2026-10-29T06:56:03.679Z",
+    "originalStopPath": "F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-b/result.json",
+    "originalStopRawSha256": "eb2e2a4405805f95afc25a6868ecadf87cc92cfb32543f5ea935dc605ad1cd2e",
+    "continuationPath": "F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-b-continuation/result.json",
+    "continuationRawSha256": "f60aa42991df400518a698fbc498ca717c9ccd6f19d8827c0a919128fce134c4",
+    "countsAreCumulativeNotAdditive": true,
+    "counts": { "sourceSts": 1, "awsMetadata": 57, "githubGets": 9, "configReads": 1, "tlsConnections": 1, "sqlQueries": 4 },
+    "oldStackStatus": "DELETE_COMPLETE",
+    "stackNameAbsent": true,
+    "ecsServices": 0,
+    "ecsRunningTasks": 0,
+    "fixedSecretVersionsCurrent": true,
+    "humanGitHubGatePresent": true,
+    "unchangedRuntimeCi": { "runId": 40748831700, "sourceCommit": "284f6adc2adcd0fff66785e6fdb12647faeb2f44", "conclusion": "success" },
+    "exactCurrentHeadCiClaimed": false,
+    "databaseErrorCode": "DATABASE_IDENTITY_OR_MODE",
+    "failedDatabaseFieldKnown": false,
+    "tlsCertificateVerified": true,
+    "readOnlyTransactionRolledBack": true,
+    "businessSnapshotObtained": false,
+    "persistentWrites": 0,
+    "productionReadsComplete": false,
+    "executionAuthority": false
+  },
+  "renewedObservationPermission": {
+    "status": "USED_B_WITH_UNUSED_ALLOWANCE_CONTINUATION_NO_AWS_REPLAY",
     "sourceSts": 1,
     "awsMetadata": 65,
     "githubGets": 10,
@@ -60,6 +87,18 @@
     "renewalsDispatchesOrExecutionSlots": 0,
     "snapshotHoursAfterRealObservation": 5
   },
-  "nextUniqueAction": "Refresh Source and receive a new same-scope read-only permission, then capture fresh facts in a new record while preserving failed attempt A. Do not replay, deploy, change CORS/source or invent new job state.",
+  "proposedDatabaseSupplementNotApproved": {
+    "envLocalFullFileReads": 1,
+    "verifiedTlsNeonConnections": 1,
+    "readOnlySqlQueries": 45,
+    "awsCalls": 0,
+    "githubGets": 0,
+    "secretHmacPemOrDdbItemReads": 0,
+    "persistentWritesOrDispatches": 0,
+    "saveNonSecretPerFieldIdentityMatchBooleans": true,
+    "weakenIdentityCertificateOrProtectionChecks": false,
+    "reuseAwsGithubWithoutRestamping": true
+  },
+  "nextUniqueAction": "Obtain one narrow database-only supplement approval; diagnose the composite identity/read-only/server-TLS check and obtain the missing task/ledger/admission/protection snapshot. Preserve A/B stops and original AWS/GitHub observation times. No AWS/GitHub replay, CORS/source changes, new task, renewal, deployment or dispatch.",
   "wholeProductAccepted": false
 }
