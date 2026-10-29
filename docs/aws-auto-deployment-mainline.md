@@ -8,7 +8,11 @@
 
 **下一只准备新的合法后端请求、准确buyer CORS材料/必要来源绑定及一次Review→RunOnce→独立Inspect的集中范围。** 不再改前端、重发客户端/HMAC、申请证书或重复域名安装；旧后端/Neon准备事实已过期，新生产读取/请求写/来源与部署仍另审，不开短窗口、不重放旧job或已删UUID。当前仅静态通过，未执行JS、API或真实业务，wholeProductAccepted=false。下方阶段沿革保留，不是重新执行指令。
 
-**后端新准备当前停在Source CLI身份步骤**：用户先后两次明确允许的a/b记录（08:52与08:55）各只尝试STS1，均为通用CLI异常，不能证明刷新失败；其余AWS/GitHub/配置/Neon/SQL/写/槽均0，没有新事实或执行SHA。恢复F:/ChatGPT_workshop/techlong-backend-integration-preparation-stopped-20261029-a.json，raw SHA 76d4f315d1a87c8bbc1c574799cbf50c0c76e1252b0006c6a5d811dd540ef8ab。下一只等一次官方endpoint去敏STS诊断的新许可，成功才继续尚未使用的限定读取；不重跑a/b或盲目要求刷新，不扩探针、权限或后端窗口。详见[当前停止点](aws-backend-integration-preparation.md)。
+**后端身份步骤的a/b停止沿革（已由下段c解除）**：用户先后两次明确允许的a/b记录（08:52与08:55）各只尝试STS1，均为通用CLI异常，不能证明刷新失败；其余AWS/GitHub/配置/Neon/SQL/写/槽均0，没有新事实或执行SHA。恢复F:/ChatGPT_workshop/techlong-backend-integration-preparation-stopped-20261029-a.json，raw SHA 76d4f315d1a87c8bbc1c574799cbf50c0c76e1252b0006c6a5d811dd540ef8ab；原待审诊断已按下段新许可执行，不重跑a/b或盲目要求刷新，不扩探针、权限或后端窗口。详见[沿革与新结果](aws-backend-integration-preparation.md)。
+
+**该阻塞已由新许可下的c官方端点核对解除（09:07–09:08 CDT）**：准确IAM身份通过，STS1/AWS元数据57/GitHub9/配置1/TLS1/SQL15、零持久写/Secret值/PEM/HMAC/DDB项/任务/槽/dispatch。旧栈DELETE_COMPLETE/同名栈空、ECS空闲，角色/策略/固定Secret版本及Cell/Foundation模板保持；完整12任务/17/12/12账本、业务/准入/保护与旧可信snapshot一致，无活跃任务/租约。旧服务现MISSING，不追写旧INACTIVE事实；a/b原因仍未知。恢复F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261029-c/verified.json，raw SHA 0febbdba1fd957cb1d24a5f88d0b03d2b6e4536d6430d32125cc9fe449b95eeb，8原件已核对；准备截至今天14:07:12.204 CDT，不自动赋予新执行窗口。
+
+**下一唯一代码动作：仅补齐既有单INSERT请求及精确buyer CORS材料/SOURCE兼容接线并定向测试。** 原工厂仍只接受旧body，当前没有接通新材料的已发布入口，不能把域参数通过当完整Review通过。不改旧110/pin、不新建执行器/通用框架/固定job分支；实际V5 Review和云入口绑定、准确CI必须先过，再集中审批新请求、必要材料/来源/trust差异及整轮，不先建任务或开短窗口。[具体No-Go门槛](aws-backend-integration-preparation.md)。
 
 **最新18:54限定只读结果：旧租户栈DELETE_COMPLETE、ECS INACTIVE/运行0，health/ready均404。** 根事件记录16:08:39开始删除、16:16:37完成，“User Initiated”不能确定操作者；本轮未删除或查询CloudTrail。不要更新已删UUID/CORS、重放成功任务或把下方14:41历史健康当现状；不宣称整体费用归零。
 

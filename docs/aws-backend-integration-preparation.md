@@ -77,10 +77,30 @@ C补核执行源码e620a0f，于2026-10-28 23:29:16–23:29:22 CDT完成：配�
 
 复用原prepareInitializedPlatformRequest单INSERT和既有整轮能力，不再实现两行pending取消handoff、固定job分支或新执行器。旧23:29快照只证明当时12任务/17/12/12历史均终态/空lease，AWS/GitHub/Neon准备已过期，不能据此声称当前仍未变或直接生成写清单。下一次仅取得当轮限定只读许可，核对完整真实状态、原镜像/权限/Secret版本元数据与必要来源绑定后，集中给出新请求/材料/必要发布和整轮的明确范围/时序；不提前建任务、占槽、开TTL或云写。GitHub环境仍由用户本人批准，50 USD目标与清理另审边界不变。
 
-### 10月29日新准备的当前停止点
+### 10月29日a/b停止沿革（保留原件，后经下段c解除）
 
 用户批准一次1STS/65AWS元数据/10GitHub GET/配置1/TLS1/SQL45后，08:52:39的a记录在第一次STS调用停止。用户刷新并明确给出新一轮同范围许可后，08:55:40的b独立记录仍在第一次STS停止；不是重跑a。两者原生返回都被既有错误处理归为CLI_OR_CREDENTIAL_FAILURE，尚不能区分认证、端点或本地调用错误，**不能断言用户刷新失败或凭据仍过期**。
 
 实际合计仅Source STS调用尝试2次（是否已到达服务端未知），其余AWS/GitHub/配置读取/Neon/SQL/写入/执行槽/调度均0；没有新生产事实、可用5小时快照或部署SHA。原结果中的计算到期字段不构成已取得事实或新执行窗口。CLI2.36.19/region ca-central-1仅作本地非秘密元数据核对，没有新增STS调用。
 
 恢复读 `F:/ChatGPT_workshop/techlong-backend-integration-preparation-stopped-20261029-a.json`，raw SHA `76d4f315d1a87c8bbc1c574799cbf50c0c76e1252b0006c6a5d811dd540ef8ab`，绑定a/b原停止结果；旧命令、旧事实与永久槽不重放或重计。下一只等待用户对一次固定官方endpoint的去敏STS诊断确认；若准确IAM身份通过，才按该次新许可继续仍未用的65/10/配置1/TLS1/SQL45，不先读配置或做写入。失败则保存分类停止，不盲目要求反复刷新。
+
+### 官方端点诊断与剩余只读已完成（09:07–09:08 CDT）
+
+用户另允一次诊断及成功后剩余范围，c独立记录通过 `https://sts.ca-central-1.amazonaws.com` 核对准确IAM用户，再完成原未用只读。**这证明当前官方端点路径及身份可用，不倒推a/b一定是端点错误或用户刷新失败**；旧失败原件保留，不重跑。实际STS1/AWS元数据57/GitHub GET9/配置全文件1/验证TLS连接1/SQL15；云/数据库持久写、Secret值/PEM/HMAC/DDB项、任务创建/取消、续租、调度及执行槽均0。
+
+新事实如下：
+
+- 原a00准确栈仍DELETE_COMPLETE，同名栈不存在，ECS服务/运行任务列表均空。旧服务已被ECS清退，Describe返回准确ARN的MISSING，不追写成先前的INACTIVE。共享Cell CREATE_COMPLETE、worker基础栈UPDATE_COMPLETE，模板未变。
+- 五角色的RoleId/trust/inline/attached/boundary布局及三份managed policy默认版本和正文，与上一可信布局逐项一致；三个固定Secret版本仍AWSCURRENT。只核对元数据，不读Secret值。两张控制表ACTIVE/TTL DISABLED，没有读DDB项；表布局可用不是内部epoch/authority记录可用的证明。
+- 原镜像digest仍存在，已有扫描记录COMPLETE/无报告项；扫描时间仍为10月15日，不冒称本轮重新扫描。没有构建或发布新镜像。
+- 本人GitHub environment/main分支门禁保持；当前reusable仍1120f510…，原已完成a00的SOURCE未替换。准确未改代码CI为d869f47/run40875734305成功，不冒称当前文档HEAD跑过CI。
+- 客户端TLSv1.3/证书验证、owner/session/database/OID/只读全部匹配。数据库侧TLS视图仍false，只作代理诊断，不替代客户端证书证据。12任务/17plan/12approval/12attempt、完整业务/准入/保护与旧可信snapshot逐字段一致，任务全终态/无lease，latest仍a00且已过期。新请求/任务ID没有分配，不能取消已成功a00。
+
+恢复读 `F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261029-c/verified.json`，raw SHA `0febbdba1fd957cb1d24a5f88d0b03d2b6e4536d6430d32125cc9fe449b95eeb`；绑定8份本轮原件、旧可信数据库/布局及a/b停止索引。[公开摘要](../ops/aws-sandbox/reviews/backend-integration-v1.readiness-20261029.json)不包含业务快照正文或凭据。事实真正始于09:07:12.204 CDT，5小时准备截止**今天14:07:12.204 CDT**；不是新执行/TTL/48小时事实批准，也不改变旧窗口。
+
+### 接下来的唯一最小代码动作
+
+只补齐**既有单INSERT请求接入及准确buyer CORS材料/SOURCE兼容接线与定向测试**，复用原V5根、claim/完成/Inspect和既有调度/发布能力；不新增通用恢复器、固定job分支、探针或执行内核。新材料只能比原公开body多一个准确buyer来源，保留两个原来源、控制指纹、业务材料和历史；旧body/pin/110文件闭包不改写。
+
+本地已确认buyer值通过真实域边界校验、候选body仍649c3077…；原工厂按设计拒绝该新body的旧固定哈希，因此**还未接通已发布云入口**，不能把仅参数检查通过称为完整V5 Review可用。接线完成的No-Go标准：实际V5 Review/模板重建必须接受准确三来源、原两来源历史仍验证、旧任务/账本不变、默认入口仍关闭，云端与本机绑定同一来源；未经真实定向测试及准确CI，不创建新held任务、不上传材料/发布来源、不改trust、不开始短窗口或部署。必要来源/reusable/trust-only差异与请求/整轮副作用仍集中列明、按新SHA审核，GitHub环境由本人批准。

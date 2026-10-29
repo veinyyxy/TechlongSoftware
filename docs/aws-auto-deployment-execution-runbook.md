@@ -35,6 +35,10 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 恢复读F:/ChatGPT_workshop/techlong-buyer-domain-install-20261029-a/executed-verified.json，raw SHA bf5a03fc9687e67084acff917c8eb8b980eb6844bde20d00e3ae9b977dff52f7；149原件已本地重建，永久槽消费，独立验收/重建后main结束冻结。不再按下方历史待审段申请证书、写DNS或执行原Change Set，不重发前端/HMAC。后端/Neon旧事实已过期，新的必要读取、请求/材料/来源与云部署仍准确另审，不先开短窗口、不重放旧成功任务或已删栈UUID。
 
+**当前后端事实准备已完成（10月29日09:07–09:08 CDT）**：用户另允官方STS诊断成功后，c记录取得STS1/AWS元数据57/GitHub9/配置1/验证TLS1/SQL15；角色/策略/固定Secret版本和完整12任务/17/12/12账本、业务/保护均匹配，无活跃任务/lease。写/任务/槽/Secret值/PEM/HMAC/DDB项/dispatch均0，a/b失败保留不重跑，也不倒推其原因。恢复F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261029-c/verified.json，raw SHA 0febbdba1fd957cb1d24a5f88d0b03d2b6e4536d6430d32125cc9fe449b95eeb；仅5小时准备至今天14:07:12.204 CDT，不是新执行/TTL批准。
+
+下一只做[既有单INSERT请求与精确buyer CORS材料/SOURCE的最小兼容接线和定向测试](aws-backend-integration-preparation.md)。旧110闭包、原历史body/pin保持；新body仅增buyer一来源。实际V5 Review/模板重建和云端绑定必须通过、默认仍关闭，不能只测字符串后声称已接通。未通过准确CI前，不创建任务或新建运行时/通用框架；必要材料/来源/trust、请求及整轮实际副作用后继集中另审，不先开短窗口。
+
 用户批准外层913ea70a…并本人完成三次环境审批后，同一a00任务已连续完成Review40751073822、RunOnce40751515012和独立Inspect40752434574，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`。执行源码284f6ad/准确CI40748831700；一次CreateStack/受审7资源、两次认证GET、同任务成功及租约清空，旧11job/14旧plan/9批准/9尝试及保护保持。Inspect没有云写、DB写或控制私密包读取；没有自动重试、清理、新IAM或agent代批。[完整实测与次数](aws-auto-deployment-reviewed-cycle-observed.md)。
 
 恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-whole-executed-verified-20261028-a.json`（原始字节SHA `51d1896f6075d07646ce62d3d2f350d99754a5c5ad13cdead6a470b002f94359`），其54原件和最终proof已本地重建核对，7个永久槽已消费，不再RunReviewed或重做来源/包/任务。最终证明未额外导入Inspect账本，wholeProductAccepted=false，不为页面标签扩UI支线。

@@ -1,9 +1,9 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "BACKEND_READONLY_PREPARATION_STOPPED_AT_SOURCE_CLI_IDENTITY",
+  "status": "READONLY_BACKEND_FACTS_VERIFIED_PENDING_MINIMAL_MATERIAL_SOURCE_WIRING",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
-  "sourceAuditCommit": "df8a22ba39557418fcbd91df66bf105f8eca6cd2",
+  "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
   "priorSourceAuditCommit": "66e9985dbb5d498dd49f3647f40efae62b3fec45",
   "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
   "deploymentId": "dep_7c99bd249470184852f0dc74",
@@ -26,6 +26,9 @@
     "rawCloudFrontOriginRejectedByExistingParameterBoundary": true,
     "candidateIsNotExecutionApproval": true,
     "sourceMaterialOrFrozenClosureChanged": false,
+    "candidateParameterBoundaryAccepted": true,
+    "legacyFactoryAcceptsNewBodyWithoutAdapter": false,
+    "minimalSourceBindingStillRequired": true,
     "wildcardOrOriginBypassAllowed": false
   },
   "existingCloudBinding": {
@@ -156,20 +159,27 @@
     "existingSingleInsertRequestCompilerVerifiedWithoutNewFramework": true
   },
   "currentReadOnlyPreparation": {
-    "status": "TWO_SEPARATELY_PERMITTED_FIRST_STS_STOPS_NO_USABLE_BACKEND_FACTS",
+    "status": "OFFICIAL_ENDPOINT_IDENTITY_AND_REMAINING_READS_VERIFIED",
     "attempts": [
       {"path": "F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261029-a/result.json", "rawSha256": "8e14473fb320258426604069243d425f91882f4606f3e0cfafda3248a32bc25e"},
       {"path": "F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261029-b/result.json", "rawSha256": "ba3f38dbda7e250aaf000d6629c0882ee46bbe05bdfa59361261d04c3af2a416"}
     ],
-    "nativeFailureClass": "CLI_OR_CREDENTIAL_FAILURE",
+    "priorNativeFailureClass": "CLI_OR_CREDENTIAL_FAILURE",
     "underlyingCredentialExpiryProved": false,
-    "actualTotals": {"sourceStsAttempts": 2, "awsMetadata": 0, "githubGets": 0, "configurationReads": 0, "neonConnections": 0, "sqlQueries": 0, "cloudWrites": 0, "databaseWrites": 0, "executionSlots": 0},
-    "usablePreparationExpiresAt": null,
-    "checkpointPath": "F:/ChatGPT_workshop/techlong-backend-integration-preparation-stopped-20261029-a.json",
-    "checkpointRawSha256": "76d4f315d1a87c8bbc1c574799cbf50c0c76e1252b0006c6a5d811dd540ef8ab",
-    "additionalDiagnosticApproved": false,
+    "priorFailureActualTotals": {"sourceStsAttempts": 2, "awsMetadata": 0, "githubGets": 0, "configurationReads": 0, "neonConnections": 0, "sqlQueries": 0, "cloudWrites": 0, "databaseWrites": 0, "executionSlots": 0},
+    "currentCounts": {"sourceSts": 1, "awsMetadata": 57, "githubGets": 9, "configReads": 1, "tlsConnections": 1, "sqlQueries": 15},
+    "currentIdentityVerified": true,
+    "officialStsEndpoint": "https://sts.ca-central-1.amazonaws.com",
+    "observedAt": "2026-10-29T14:07:12.204Z",
+    "usablePreparationExpiresAt": "2026-10-29T19:07:12.204Z",
+    "priorStopCheckpointPath": "F:/ChatGPT_workshop/techlong-backend-integration-preparation-stopped-20261029-a.json",
+    "priorStopCheckpointRawSha256": "76d4f315d1a87c8bbc1c574799cbf50c0c76e1252b0006c6a5d811dd540ef8ab",
+    "checkpointPath": "F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261029-c/verified.json",
+    "checkpointRawSha256": "0febbdba1fd957cb1d24a5f88d0b03d2b6e4536d6430d32125cc9fe449b95eeb",
+    "publicObservation": "ops/aws-sandbox/reviews/backend-integration-v1.readiness-20261029.json",
+    "additionalDiagnosticApproved": true,
     "oldCommandsNotReplayed": true
   },
-  "nextUniqueAction": "Await permission for one explicitly official-endpoint STS diagnostic with redacted error classification; only on exact Source IAM success continue the still-unused 65 AWS metadata/10 GitHub GET/config1/TLS1/SQL45 scope. Preserve both stops. Do not request certificates, change frontend/DNS/CDN, write jobs/material/source/IAM, renew, dispatch or deploy. Then prepare the new legal single-insert request and exact buyer-CORS whole-cycle material, not a per-job or generic recovery branch.",
+  "nextUniqueAction": "Implement only the minimal SOURCE-selected compatibility wiring for the existing single-INSERT request and exact three-origin buyer material, with real V5 Review/template and cloud-entry binding tests. Preserve the old body/pins/110-file closure, historical rows and default-closed behavior. Do not add a per-job executor or generic recovery framework. No new held job, material upload, source/trust publication, runtime window or deployment until exact CI and concentrated fresh-SHA approvals. Do not redo frontend/domain/image work or reread HMAC.",
   "wholeProductAccepted": false
 }
