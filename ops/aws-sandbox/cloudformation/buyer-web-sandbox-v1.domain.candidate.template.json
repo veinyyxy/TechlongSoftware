@@ -1,0 +1,389 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "DRAFT ONLY - isolated Techlong sandbox buyer Web and bounded GitHub publisher; not approved for installation",
+  "Metadata": {
+    "PreparationOnly": true,
+    "ExpectedAccountId": "402010193138",
+    "ExpectedRegion": "ca-central-1",
+    "ExpectedStackName": "techlong-sandbox-buyer-web-v1",
+    "ExecutionApprovalSha256": "NOT_APPROVED",
+    "RequiredGithubEnvironment": "techlong-sandbox-buyer-deploy",
+    "RequiresHumanEnvironmentApproval": true,
+    "DoesNotExtendTenantWindow": true,
+    "DoesNotInstallGithubConfigurationOrTenantCors": true
+  },
+  "Resources": {
+    "BuyerAssetsBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketName": "techlong-sandbox-buyer-web-402010193138-ca-central-1-v1",
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "RestrictPublicBuckets": true
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "Techlong"
+          },
+          {
+            "Key": "Environment",
+            "Value": "sandbox"
+          },
+          {
+            "Key": "Component",
+            "Value": "buyer-web"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "TechlongCloudFormation"
+          }
+        ]
+      }
+    },
+    "BuyerOriginAccessControl": {
+      "Type": "AWS::CloudFront::OriginAccessControl",
+      "Properties": {
+        "OriginAccessControlConfig": {
+          "Name": "techlong-sandbox-buyer-web-v1",
+          "Description": "Only the isolated sandbox S3 REST origin",
+          "OriginAccessControlOriginType": "s3",
+          "SigningBehavior": "always",
+          "SigningProtocol": "sigv4"
+        }
+      }
+    },
+    "BuyerDistribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "Comment": "Techlong isolated sandbox buyer Web; exact buyer alias, no API proxy",
+          "Enabled": true,
+          "DefaultRootObject": "index.html",
+          "PriceClass": "PriceClass_100",
+          "HttpVersion": "http2",
+          "IPV6Enabled": true,
+          "Origins": [
+            {
+              "Id": "sandbox-buyer-s3",
+              "DomainName": {
+                "Fn::GetAtt": [
+                  "BuyerAssetsBucket",
+                  "RegionalDomainName"
+                ]
+              },
+              "OriginAccessControlId": {
+                "Fn::GetAtt": [
+                  "BuyerOriginAccessControl",
+                  "Id"
+                ]
+              },
+              "S3OriginConfig": {
+                "OriginAccessIdentity": ""
+              }
+            }
+          ],
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "sandbox-buyer-s3",
+            "ViewerProtocolPolicy": "https-only",
+            "AllowedMethods": [
+              "GET",
+              "HEAD"
+            ],
+            "CachedMethods": [
+              "GET",
+              "HEAD"
+            ],
+            "Compress": true,
+            "MinTTL": 0,
+            "DefaultTTL": 300,
+            "MaxTTL": 86400,
+            "ForwardedValues": {
+              "QueryString": false,
+              "Cookies": {
+                "Forward": "none"
+              }
+            }
+          },
+          "ViewerCertificate": {
+            "AcmCertificateArn": {
+              "Ref": "SandboxBuyerCertificateArn"
+            },
+            "SslSupportMethod": "sni-only",
+            "MinimumProtocolVersion": "TLSv1.2_2021"
+          },
+          "Aliases": [
+            "buyer.sandbox.techlong.cloud"
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "Techlong"
+          },
+          {
+            "Key": "Environment",
+            "Value": "sandbox"
+          },
+          {
+            "Key": "Component",
+            "Value": "buyer-web"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "TechlongCloudFormation"
+          }
+        ]
+      }
+    },
+    "BuyerAssetsBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "BuyerAssetsBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyInsecureTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "BuyerAssetsBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Sub": "${BuyerAssetsBucket.Arn}/*"
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            },
+            {
+              "Sid": "AllowOnlyThisCloudFrontDistribution",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "cloudfront.amazonaws.com"
+              },
+              "Action": "s3:GetObject",
+              "Resource": {
+                "Fn::Sub": "${BuyerAssetsBucket.Arn}/*"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "AWS:SourceArn": {
+                    "Fn::Sub": "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${BuyerDistribution}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "BuyerPublisherBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxBuyerWebPublishBoundary",
+        "Description": "Same narrow document used as identity grant and boundary; no committed-object deletion, secret, IAM or compute access",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "ReadOnlyExactBucketMetadata",
+              "Effect": "Allow",
+              "Action": [
+                "s3:ListBucket",
+                "s3:GetBucketLocation"
+              ],
+              "Resource": {
+                "Fn::GetAtt": [
+                  "BuyerAssetsBucket",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Sid": "UploadOnlyExactBuildBucket",
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:AbortMultipartUpload"
+              ],
+              "Resource": {
+                "Fn::Sub": "${BuyerAssetsBucket.Arn}/*"
+              }
+            },
+            {
+              "Sid": "InvalidateOnlyExactDistribution",
+              "Effect": "Allow",
+              "Action": [
+                "cloudfront:CreateInvalidation",
+                "cloudfront:GetInvalidation"
+              ],
+              "Resource": {
+                "Fn::Sub": "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${BuyerDistribution}"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "BuyerPublisherRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "TechlongSandboxBuyerWebPublisherRole",
+        "Description": "Only veinyyxy/speedfeast protected sandbox environment may publish this isolated buyer build",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": {
+          "Ref": "BuyerPublisherBoundary"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Ref": "BuyerPublisherBoundary"
+          }
+        ],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "arn:aws:iam::402010193138:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:veinyyxy/speedfeast:environment:techlong-sandbox-buyer-deploy"
+                }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "Techlong"
+          },
+          {
+            "Key": "Environment",
+            "Value": "sandbox"
+          },
+          {
+            "Key": "Component",
+            "Value": "buyer-web"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "TechlongCloudFormation"
+          }
+        ]
+      }
+    },
+    "BuyerAliasIpv4": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "HostedZoneId": "Z01473621BTTHKXBGOOEJ",
+        "Name": "buyer.sandbox.techlong.cloud.",
+        "Type": "A",
+        "AliasTarget": {
+          "DNSName": {
+            "Fn::GetAtt": [
+              "BuyerDistribution",
+              "DomainName"
+            ]
+          },
+          "HostedZoneId": "Z2FDTNDATAQYW2",
+          "EvaluateTargetHealth": false
+        }
+      }
+    },
+    "BuyerAliasIpv6": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "HostedZoneId": "Z01473621BTTHKXBGOOEJ",
+        "Name": "buyer.sandbox.techlong.cloud.",
+        "Type": "AAAA",
+        "AliasTarget": {
+          "DNSName": {
+            "Fn::GetAtt": [
+              "BuyerDistribution",
+              "DomainName"
+            ]
+          },
+          "HostedZoneId": "Z2FDTNDATAQYW2",
+          "EvaluateTargetHealth": false
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "BucketName": {
+      "Value": {
+        "Ref": "BuyerAssetsBucket"
+      }
+    },
+    "DistributionId": {
+      "Value": {
+        "Ref": "BuyerDistribution"
+      }
+    },
+    "ClientOrigin": {
+      "Value": {
+        "Fn::Sub": "https://${BuyerDistribution.DomainName}"
+      }
+    },
+    "PublisherRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "BuyerPublisherRole",
+          "Arn"
+        ]
+      }
+    },
+    "BuyerCustomOrigin": {
+      "Value": "https://buyer.sandbox.techlong.cloud"
+    }
+  },
+  "Parameters": {
+    "SandboxBuyerCertificateArn": {
+      "Type": "String",
+      "Description": "Separately approved ISSUED non-exportable public ACM certificate for buyer.sandbox.techlong.cloud in us-east-1",
+      "AllowedPattern": "^arn:aws:acm:us-east-1:402010193138:certificate/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+      "ConstraintDescription": "Use the exact independently verified certificate ARN; this parameter has no default."
+    }
+  }
+}

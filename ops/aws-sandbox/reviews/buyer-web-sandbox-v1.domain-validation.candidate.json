@@ -1,0 +1,18 @@
+{
+  "Comment": "Reviewed candidate only: exact ACM buyer domain validation; not approved for submission",
+  "Changes": [
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "_c58f6bf59cf3d7ebdc05257e15da6134.buyer.sandbox.techlong.cloud.",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "_7efd69b26b5dacac8abde494f027ab68.wzccmgtwzk.acm-validations.aws."
+          }
+        ]
+      }
+    }
+  ]
+}

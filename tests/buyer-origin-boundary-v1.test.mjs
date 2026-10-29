@@ -85,3 +85,27 @@ test('viewer remains HTTPS-only SNI, original origin/cache/objects and publisher
   assert.equal(baseline.Resources.BuyerDistribution.Properties.DistributionConfig.DefaultCacheBehavior.ViewerProtocolPolicy,'https-only');
   assert.equal(plan.futureReviewedDirectWriteLimitsNotAuthorizedNow.privateReadsUploadsDispatchesOrBackendCreates,0);
 });
+
+test('complete domain candidate is exactly the previously tested patch, with no hidden resource or metadata change',async()=>{
+  const candidate=JSON.parse(await readFile(new URL('../ops/aws-sandbox/cloudformation/buyer-web-sandbox-v1.domain.candidate.template.json',import.meta.url),'utf8'));
+  const expected=structuredClone(baseline);
+  expected.Parameters=structuredClone(proposal.parametersToAdd);
+  Object.assign(expected.Resources.BuyerDistribution.Properties.DistributionConfig,structuredClone(proposal.distributionConfigFieldsToSet));
+  Object.assign(expected.Resources,structuredClone(proposal.resourcesToAdd));
+  Object.assign(expected.Outputs,structuredClone(proposal.outputsToAdd));
+  assert.deepEqual(candidate,expected);
+  assert.equal(candidate.Metadata.PreparationOnly,true);
+  assert.equal(candidate.Metadata.ExecutionApprovalSha256,'NOT_APPROVED');
+  assert.equal(Object.hasOwn(candidate.Parameters.SandboxBuyerCertificateArn,'Default'),false);
+});
+test('DNS validation candidate binds only the real independently observed CNAME and cannot overwrite an existing record',async()=>{
+  const observed=JSON.parse(await readFile(new URL('../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-certificate-observed.json',import.meta.url),'utf8'));
+  const batch=JSON.parse(await readFile(new URL('../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-validation.candidate.json',import.meta.url),'utf8'));
+  assert.equal(observed.outcome,'CERTIFICATE_REQUEST_INDEPENDENTLY_VERIFIED_DNS_NOT_WRITTEN');
+  assert.equal(observed.certificateArn,'arn:aws:acm:us-east-1:402010193138:certificate/68a43688-08d5-47c6-96c6-f48740b61caf');
+  assert.equal(observed.domainName,plan.domain);
+  assert.deepEqual(batch.Changes,[{Action:'CREATE',ResourceRecordSet:{Name:observed.validationRecord.Name,
+    Type:'CNAME',TTL:300,ResourceRecords:[{Value:observed.validationRecord.Value}]}}]);
+  assert.equal(observed.permanentSlotConsumed,true);
+  assert.equal(observed.nextExecutionApproved,false);
+});

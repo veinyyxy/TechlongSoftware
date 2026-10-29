@@ -81,6 +81,8 @@ Source刷新及新同范围许可后，20:56–20:59的B记录取得AWS/GitHub�
 
 **下一唯一动作：准备准确验证CNAME、证书签发等待及现有CDN栈更新的集中审批清单。** 复用原CDN/桶/角色，不扩IAM、不重发客户端；实际新鲜读取和DNS/CDN/CFN写仍另审，不自动进入后端恢复。原00:05:04.864至05:05:04.864 CDT准备期限不重计，PENDING_VALIDATION不是域名可用或产品验收，wholeProductAccepted=false。
 
+10月29日早间仅展开[集中草案](aws-buyer-web-domain-install-review.md)：完整八资源模板等于原已测试差异、验证批次仅CREATE真实CNAME，25项定向检查通过，不新增执行器。准确CI与新一轮限定只读事实须真实通过后再生成5小时审批SHA；本地候选不是DNS/CDN写入许可，不重申证书或复用凌晨快照。
+
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 
 发布后CI40747653765的旧来源比较问题已仅在 `tests/platform-recovery-cloud-v1.test.mjs` 最小修复：保留历史发布SHA/a604 provenance，再识别已安装reviewed-cycle SOURCE、准确模板与原observedBy，完整比较workflow全文、reusable pin和本人门禁。352项相关本机回归、类型/lint/diff与110闭包核验通过；不改线上workflow/云代码/IAM、不重做发布，本轮生产调用/私密读取/SQL/云写/dispatch均0。原失败诊断 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-post-ci-20261028-a.json` 保留；准确源码/CI只在真实成功后封存 `F:/ChatGPT_workshop/techlong-reviewed-cycle-legacy-test-fix-verified-20261028-a.json`，未封存前先查同一提交CI，不开始生产准备。

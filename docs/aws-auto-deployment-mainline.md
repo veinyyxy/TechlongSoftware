@@ -36,6 +36,8 @@
 
 **当前唯一动作：用已返回的准确ARN/CNAME，准备验证DNS与现有CDN栈更新的集中审批清单。** 仍不写DNS/CDN/CFN或恢复后端；后继新鲜读取/真实变更另按准确范围审批，不扩大IAM、重发客户端或读秘密/配置。原05:05:04.864 CDT准备截止不重计，证书pending不是域名上线，wholeProductAccepted=false。
 
+10月29日早间[集中清单草案](aws-buyer-web-domain-install-review.md)已展开为完整八资源模板与准确验证CNAME CREATE批次；25项本机定向检查通过，只新增两项候选原件回归并接入既有无AWS CI。不改原六资源候选/域名差异原件、旧110闭包或部署工作流，不重新申请证书。当前仅本地准备，准确CI/新鲜AWS与公开DNS事实尚待真实核验，无执行SHA或新云写授权。
+
 ### 已完成历程与本轮准备沿革（以下不是重放指令）
 
 **同一a00任务的 Review → RunOnce → 独立 Inspect 已真实通过，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`。** 用户批准外层913ea70a…并本人完成三次GitHub环境审批；准确runs为[Review 40751073822](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40751073822)、[RunOnce 40751515012](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40751515012)、[Inspect 40752434574](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40752434574)。执行源码284f6ad/准确CI40748831700；一次建栈、两次认证GET，任务成功且租约清空，旧11job和14/9/9控制历史及保护保持。没有新增IAM、重试、清理或agent代批。
