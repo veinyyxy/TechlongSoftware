@@ -45,13 +45,26 @@ B原停止记录：F:/ChatGPT_workshop/techlong-backend-integration-readiness-20
 
 AWS/GitHub部分观察的原准备到期为2026-10-29 01:56:03 CDT，继续过程没有重计5小时；数据库事实尚不完整，不能生成执行SHA或开付费窗口。没有更改capsule、冻结源码、门禁、部署代码或任何原批准。
 
-**当前唯一动作：另获一次最小数据库补核许可后，仅补核组合门禁及尚未取得的任务/账本/准入/保护快照。** 拟只读现有.env.local一次、建立一条验证TLS的Neon只读连接、最多45条查询；先保存非秘密的逐字段匹配布尔值，保持证书、身份、只读事务和现有catalog/保护校验，不猜测根因或直接放宽门禁。复用本轮AWS/GitHub记录，不再调用AWS/GitHub，不读Secret值/HMAC/PEM/DDB项，不改生产代码、数据库、CORS或来源，不创建任务、续租、消费槽或调度。该补核尚未批准，已使用的配置/连接额度不自动续用。
+上述补核随后由用户“开始下一步”确认，已按新独立记录执行，不重跑A/B。以下为当前事实，前述失败原件不覆盖。
 
-## 读取完成后需要备齐的一轮材料
+## 数据库补核已完成（23:29 CDT）
 
-1. 核对准确旧UUID/七资源退役、同名CFN/ECS/监听规则/目标组空缺、共享Cell、镜像和原角色权限，以及固定Secret版本元数据。DDB只看表/TTL布局，不读业务项，不据静态capsule中的旧epoch项冒充当前强读事实。
-2. 一次验证TLS的Neon只读快照覆盖准确实例全部job、完整计划/批准/尝试账本、准入和保护摘要；原成功任务/订阅/店铺/默认库与历史全部保留。新合法请求和候选ID只能依据现状及准确批准形成，不先编造状态或复制固定任务代码分支。
-3. 把单一CORS差异、必要材料/来源绑定、真实新后端起止、GitHub本人审批点、正常应用副作用和独立验收方式集中列清，再给准确执行SHA；先备齐再开付费窗口。候选意图可按2小时准备，但现在不填写实际起止、不续旧TTL；到期不等于自动销毁或停费，清理仍准确资源另审。
-4. 首轮联调先准备客户端启动、既有店铺/菜单读取与后端/数据库连通。运行客户端会正常创建/更新访问租约并heartbeat，不能当纯只读；实际执行仍须预先明确批准。尚不默认创建商品/订单、商户改密或Stripe支付；数据不足先记录缺口，不自动造业务数据。此阶段通过也不冒充订单/支付或最终整套交付完成。
+C补核执行源码e620a0f，于2026-10-28 23:29:16–23:29:22 CDT完成：配置全文件1次、单条验证TLS连接、15条只读查询；AWS/GitHub调用、持久写、Secret值/HMAC/PEM/DDB项、Aurora、续租、任务创建/取消、调度及执行槽均0。
 
-本次仅完成本地源码/差异核对和停止记录；没有修改部署代码、角色、材料、数据库或前端。50 USD/月仍是整体目标而非硬停费，平台/共享Cell/数据库和静态版本可能持续收费。后继不扩F3c9、前端/探针/UI/调度平台，`wholeProductAccepted=false`。
+逐字段诊断中actor、session actor、数据库、owner OID、只读事务全部匹配；客户端TLSv1.3且证书authorized=true，唯一诊断差异是backendTlsReported=false。它是数据库侧视图，不作为客户端证书验证的替代。本次沿用原publisher的显式rejectUnauthorized:true、无connectionString覆盖配置，以及现有readTransferState的完整身份/catalog/函数/权限/准入/保护校验；没有修改线上权限、数据库或运行时，也没有关闭证书验证。[Neon连接安全/代理说明](https://neon.com/docs/security/security-overview)、[node-postgres的TLS参数说明](https://node-postgres.com/features/ssl)。原B未保存逐字段值，因此这里只记录本次复现差异，不追写B的未知字段。
+
+已取得准确实例12条任务、17条plan/12条approval/12条dispatch attempt。所有任务为succeeded或canceled，无pending/running/retry_wait，lease全部清空；最新成功仍为a00。整个normalized snapshot（包括任务、完整账本、deployment/admission和保护）与上一轮受信Inspect封存snapshot逐字段完全一致，catalog/trigger摘要仍ff430aee…/72037e9b…。没有重置或取消任何旧成功任务。
+
+原始result：F:/ChatGPT_workshop/techlong-backend-integration-database-supplement-20261028-c/result.json，raw SHA 16a4e43673dcb9003c62f11b942db2aafe31bfb0894e033759cb1dc25fd58395。完整业务快照仅保留该本地目录，不入Git。恢复先读该目录verified.json，raw SHA 21ac8c94e8cb851564e4923f6d4d81627a0a90ee113a2e92e84b6fa4bfefaae8；它绑定6份原件及上一轮Inspect快照，并核对了父B记录。C没有重采AWS/GitHub或延长期限，集中准备仍受较早的2026-10-29 01:56:03 CDT限制。
+
+## 当前唯一继续点：本地最小CORS/新合法请求接线与测试
+
+已有事实足够准备最小适配，不再重复只读核对或开前端支线；没有可重用的待审任务。下一步按以下顺序备齐整轮材料，实际副作用仍另批：
+
+1. 仅纳入前述准确CloudFront来源，保留原两个CORS来源。把差异绑定到新的受审配置材料/源码，不改写旧capsule/pin的历史含义，不放宽任意参数/来源/闭包；复用原执行器与7资源模板。
+2. 复用prepareInitializedPlatformRequest的一条新held请求编译能力；本机纯投影已证明expired且无活跃任务，可准备新请求。不得使用要求“旧pending取消+新建”的两行handoff，不取消或复活a00，不复制固定job目录或创建新的通用请求框架。当前尚未分配新job/request ID、编译或提交写入。
+3. 在开窗前集中备齐新请求、配置/来源与必要包引用、准确源码/CI、必要workflow/reusable trust-only差异、Review→RunOnce→Inspect累计副作用、本人GitHub审批点及时间预留。代码/测试不产生云权限；新任务写、上传、来源发布、IAM trust及付费部署各在准确清单列清，不能临时扩大。无需重发镜像、重读HMAC或重建前端。
+4. 新后端验收意图仅按2小时候选准备，实际起止仍null；当前不续旧TTL或启动任何资源。先备齐再审批，过期不重放；清理按准确资源另审，到期不等于停费。
+5. 后端独立Inspect通过后，才另按准确范围准备客户端启动、既有店铺/菜单读取及API/数据库连通。启动客户端会正常创建/更新访问租约并heartbeat，不能当纯只读；不默认创建商品/订单、重设商户密码或Stripe支付，数据不足先记录缺口。
+
+本阶段只完成只读事实与本地差异/投影核对；没有修改部署代码、角色、材料、数据库或前端，也没有执行SHA或新事实执行授权。50 USD/月仍是整体目标而非硬停费，平台/共享Cell/数据库和静态版本可能持续收费；不扩F3c9、前端/探针/UI/调度平台，wholeProductAccepted=false。

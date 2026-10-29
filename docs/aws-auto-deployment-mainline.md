@@ -24,7 +24,9 @@
 
 本轮[后端准备](aws-backend-integration-preparation.md)已定位必要单一CORS差异：原capsule/冻结源码仍仅两来源，新真实CF来源尚未纳入；没有改材料、旧pin或部署代码。20:39的Source失败A保留，未重放。刷新及新许可后的B核对旧UUID删除/同名栈空缺、ECS空闲、原镜像/固定版本及本人门禁；文档提交未触发CI，只核对未变运行时代码的成功CI40748831700，不冒称当前HEAD CI。累计STS1/AWS57/GitHub9/配置1/TLS1/SQL4，持久写/秘密值/槽/dispatch均0。
 
-Neon客户端证书验证通过，但身份/只读/数据库侧TLS组合门禁未通过，已回滚关闭；未保存逐字段结果，不能断言具体原因，尚无任务/业务/保护快照。原B与继续记录保持，后者 F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-b-continuation/result.json，raw SHA f60aa42991df400518a698fbc498ca717c9ccd6f19d8827c0a919128fce134c4；部分观察期限10月29日01:56:03 CDT不重计。**下一只另获最小数据库补核许可后，读取配置1次/验证TLS连接1条/最多45查询，补核门禁与完整状态；不重查AWS/GitHub或重放旧观察，不放宽身份/证书/保护。** 不改CORS/来源、建任务、续租、调度或部署；旧客户端发布仍完成，不再取HMAC/发布前端。
+原B组合检查失败/回滚及未知逐字段值保持，不覆盖。用户随后确认的C数据库补核于23:29完成，配置1/验证TLS1/只读SQL15，AWS/GitHub及持久写均0；身份、owner OID、只读与客户端TLSv1.3/证书授权全部匹配，本次唯一诊断差异是数据库侧TLS视图false，未修改线上或降低证书/身份/保护校验。当前12条任务、17/12/12完整账本、deployment/admission及保护与上一轮受信Inspect snapshot逐字段完全一致，均终态/无lease。原请求编译器纯投影可准备新held请求；未创建任务或分配新ID。
+
+恢复读 F:/ChatGPT_workshop/techlong-backend-integration-database-supplement-20261028-c/verified.json，raw SHA 21ac8c94e8cb851564e4923f6d4d81627a0a90ee113a2e92e84b6fa4bfefaae8。原AWS/GitHub观察期限10月29日01:56:03 CDT不重计，业务正文只保留本地。**下一仅本地最小CORS固定来源/新合法请求接线与测试，集中备齐后继来源及整轮待审材料。** 不走取消旧pending的两行handoff、不改旧成功a00、不复制固定job分支，不再重查生产或开启短窗口；来源/trust、任务写、上传及实际部署按准确范围另审。旧客户端已完成，不再取HMAC或发布前端，wholeProductAccepted=false。
 
 ### 已完成历程与本轮准备沿革（以下不是重放指令）
 

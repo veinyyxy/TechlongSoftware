@@ -67,7 +67,9 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 Source刷新及新同范围许可后，20:56–20:59的B记录取得AWS/GitHub部分事实：旧UUID删除、同名栈不存在、ECS空闲，原镜像/固定Secret版本和本人门禁保持；文档提交未触发CI，只核对未变运行时代码对应的成功CI40748831700，不冒称当前HEAD跑过。累计STS1/AWS57/GitHub9/配置1/TLS1/SQL4，持久写/秘密值/槽/调度0。Neon在身份/只读/数据库侧TLS组合检查停止并回滚，未取得业务/保护快照，不能生成执行SHA。原B停止及未用额度继续记录均保留，后者raw SHA f60aa42991df400518a698fbc498ca717c9ccd6f19d8827c0a919128fce134c4，路径 F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-b-continuation/result.json。原准备期限10月29日01:56:03 CDT不重计。
 
-**下一唯一动作：另批一次配置读取/一条验证TLS Neon只读连接/最多45查询，仅补核组合门禁及任务/账本/准入/保护。** 不重查AWS/GitHub、不重跑A/B、不猜测失败字段或放宽身份/证书/保护；不改CORS/来源、创建任务、续租、调度或启动后端，完整事实前不实现新的固定任务分支。
+**数据库补核已完成（23:29 CDT）**：用户确认下一步后，独立C记录配置1/TLS1/SQL15、AWS/GitHub及持久写均0。客户端TLSv1.3/证书验证及身份/只读全部匹配，本次唯一诊断差异为数据库侧TLS视图false；沿用原显式证书及完整catalog/准入/保护校验，没有改线上或降低身份/证书要求。12任务、17/12/12完整账本、deployment/admission及保护与上一轮封存Inspect snapshot逐字段完全一致，任务均终态/lease清空；纯投影可准备新held请求，但未编译或提交写入。
+
+恢复读 F:/ChatGPT_workshop/techlong-backend-integration-database-supplement-20261028-c/verified.json，raw SHA 21ac8c94e8cb851564e4923f6d4d81627a0a90ee113a2e92e84b6fa4bfefaae8；业务正文只在本地，原A/B不覆盖，AWS/GitHub原准备期限10月29日01:56:03 CDT不延长。**下一唯一动作：本地最小CORS固定来源/新合法请求接线与定向测试，集中备齐来源发布及整轮待审材料。** 复用现有请求编译器和执行器，不取消成功a00、不走旧pending两行handoff、不复制固定任务或扩框架；当前不再重复生产读取、不建任务、发布来源/trust、开租约或部署。执行SHA、真实新窗口和云/业务副作用仍另审。
 
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 
