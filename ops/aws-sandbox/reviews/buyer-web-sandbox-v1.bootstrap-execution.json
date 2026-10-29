@@ -1,0 +1,146 @@
+{
+  "schema": "techlong/buyer-web-bootstrap-execution-review/v1",
+  "status": "PENDING_EXPLICIT_USER_APPROVAL",
+  "phase": "FRONTEND_HOSTING_AND_HUMAN_GATE_ONLY",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "requiredSourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "sourceProfile": "techlong-sandbox-user",
+  "operationId": "buyer-web-bootstrap-20261028-d15b9116a00d864c",
+  "observedFrom": "2026-10-28T23:54:17.108Z",
+  "observationSupplementFinishedAt": "2026-10-28T23:56:24.166Z",
+  "latestExecutionStartAt": "2026-10-29T04:14:17.108Z",
+  "expiresAt": "2026-10-29T04:54:17.108Z",
+  "maximumExecutionMinutes": 40,
+  "doesNotExtendOldBackendWindow": true,
+  "preparation": {
+    "path": "F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/prepared-verified.json",
+    "rawSha256": "f96d8d61651ac9799ba024c01785bc154ce79ea072818c513640de3ac53ecd99",
+    "githubGets": 9,
+    "sourceSts": 1,
+    "awsMetadataIncludingValidateTemplate": 16,
+    "anonymousHttpsGets": 2,
+    "cloudAndConfigurationWrites": 0,
+    "privateValueReads": 0
+  },
+  "riskDocument": {
+    "path": "docs/aws-buyer-web-sandbox-bootstrap-review.md",
+    "sha256Utf8Lf": "f573ea3e742556d612babee4b69272bb10ec71760724d78bdb9d8fec79ed9361"
+  },
+  "template": {
+    "path": "ops/aws-sandbox/cloudformation/buyer-web-sandbox-v1.candidate.template.json",
+    "sha256Utf8Lf": "2a582f4d1e69c69fead459d921ed9ed35e62f9711d9d5e7f4d4fab7e666a6630",
+    "awsValidateTemplatePassed": true,
+    "capability": "CAPABILITY_NAMED_IAM",
+    "metadataDraftLabelDoesNotReplaceExternalApproval": true
+  },
+  "preflight": {
+    "requireUnusedExecutionIntent": true,
+    "intentPath": "F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/execute.intent.json",
+    "requireExactLocalInputAndRiskHashes": true,
+    "requireExactSourceIdentity": true,
+    "requireActualGitWriteCredentialRepoAdmin": true,
+    "requireExactClientSourceAndCi": true,
+    "requireEnvironment404AndNoExistingTargetObjects": true,
+    "requireNewRolePolicyAndStackAbsent": true,
+    "requireOacNameNoCollisionAndUnchangedOidc": true,
+    "bucketHead404DoesNotGuaranteeGlobalAvailability": true,
+    "noAutomaticIdentitySwitchOrPermissionGrant": true
+  },
+  "github": {
+    "repository": "veinyyxy/speedfeast",
+    "expectedRepositoryId": "1051779077",
+    "expectedClientSource": "602e543c03564898625618ec3327720d56be04e4",
+    "expectedCiRun": 40789471388,
+    "environment": "techlong-sandbox-buyer-deploy",
+    "writes": [
+      {
+        "method": "PUT",
+        "path": "/repos/veinyyxy/speedfeast/environments/techlong-sandbox-buyer-deploy",
+        "inputPath": "F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/github-environment.input.json",
+        "inputRawSha256": "eb1caefec3d25d1ba63229a862d2b80a436387d109f7536271dd0893980897dd",
+        "reviewerUserId": 14145707,
+        "canAdminsBypass": false,
+        "preventSelfReview": false
+      },
+      {
+        "method": "POST",
+        "path": "/repos/veinyyxy/speedfeast/environments/techlong-sandbox-buyer-deploy/deployment-branch-policies",
+        "inputPath": "F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/github-branch.input.json",
+        "inputRawSha256": "d700d98b20aa1671f68ef50d991c16ef13d795b33a95921c92f2db75d18b92f0",
+        "onlyBranch": "master"
+      }
+    ],
+    "gateMustBeIndependentlyProvedBeforeAwsWrite": true,
+    "agentMayApproveEnvironmentRun": false,
+    "variableOrSecretWritesAllowed": false,
+    "manualDispatchAllowed": false
+  },
+  "aws": {
+    "directWrite": {
+      "service": "cloudformation",
+      "operation": "create-stack",
+      "maximumCalls": 1,
+      "inputPath": "F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/create-stack.input.json",
+      "inputRawSha256": "0c71bc713241776eb21cb6c27c39b77ce1de77fb5232a160f7bec35053ffc300",
+      "stackName": "techlong-sandbox-buyer-web-v1",
+      "clientRequestToken": "buyer-web-bootstrap-20261028-d15b9116a00d864c",
+      "disableRollback": true,
+      "cloudFormationServiceRoleArn": null
+    },
+    "declaredResources": [
+      { "logicalId": "BuyerAssetsBucket", "type": "AWS::S3::Bucket", "name": "techlong-sandbox-buyer-web-402010193138-ca-central-1-v1" },
+      { "logicalId": "BuyerOriginAccessControl", "type": "AWS::CloudFront::OriginAccessControl", "name": "techlong-sandbox-buyer-web-v1" },
+      { "logicalId": "BuyerDistribution", "type": "AWS::CloudFront::Distribution", "id": "DERIVED_FROM_THIS_CREATE_ONLY" },
+      { "logicalId": "BuyerAssetsBucketPolicy", "type": "AWS::S3::BucketPolicy", "bucket": "techlong-sandbox-buyer-web-402010193138-ca-central-1-v1" },
+      { "logicalId": "BuyerPublisherBoundary", "type": "AWS::IAM::ManagedPolicy", "name": "TechlongSandboxBuyerWebPublishBoundary" },
+      { "logicalId": "BuyerPublisherRole", "type": "AWS::IAM::Role", "name": "TechlongSandboxBuyerWebPublisherRole" }
+    ],
+    "persistentNarrowIamNotTemporaryGrant": true,
+    "automaticRevoke": false,
+    "callerMustNotUseManagerOrProvisionerInstead": true,
+    "declaredResourceCountNotAnUnderlyingApiWriteLimit": true
+  },
+  "executionLimits": {
+    "githubGets": 12,
+    "githubConfigurationWrites": 2,
+    "sourceSts": 2,
+    "awsMetadataIncludingPolling": 90,
+    "directCloudFormationWriteCalls": 1,
+    "stackStatusPolls": 60,
+    "pollIntervalSeconds": 30,
+    "providerWriteRetries": 0,
+    "anonymousOrAuthenticatedProductHttpGets": 0,
+    "privateValueReads": 0,
+    "directDatabaseConnections": 0,
+    "workflowDispatches": 0
+  },
+  "independentVerification": [
+    "GitHub required reviewer14145707, can_admins_bypass=false, prevent_self_review=false and only master branch before AWS creation and at final readback",
+    "New exact stack UUID, request token and reviewed-operation tags with exactly six declared resources",
+    "Original stored template structurally equals reviewed body; no template or parameter substitution",
+    "Bucket ownership/public-access-block/AES256/versioning and exact CloudFront-only read policy",
+    "CloudFront and OAC identities, S3 REST origin, HTTPS read-only behavior, output domain and no aliases/API proxy/edge functions",
+    "Exact role trust, one identity managed policy and matching boundary, no inline/extra attached policies",
+    "No application publication/Secret access assumed or exercised"
+  ],
+  "exclusions": [
+    "Any Secret value, HMAC, .env or PEM read or transfer",
+    "GitHub variable/Secret/OIDC/production configuration changes",
+    "Client build publication, S3 object upload, cache invalidation, workflow dispatch or run approval",
+    "CORS, backend restore, old stack update, database/business writes, DNS, new compute/Cell, TTL renewal",
+    "Deletion, automatic rollback/cleanup/retry or reset of old/new audit evidence"
+  ],
+  "failurePolicy": {
+    "uncertainWriteStopsFurtherWrites": true,
+    "onlyApprovedIndependentReadbackAfterUncertainty": true,
+    "noAutomaticRetryOrCleanup": true,
+    "preserveInputsAndAttemptEvidence": true,
+    "deadlineOrInProgressDoesNotMeanCreationFailed": true,
+    "mayLeavePartialConfigurationPermissionsAndBillableResources": true
+  },
+  "pricingModelPath": "ops/aws-sandbox/reviews/buyer-web-sandbox-v1.prices.json",
+  "overallBudgetTargetUsdPerMonth": 50,
+  "notABillingCap": true,
+  "notFullProductAcceptance": true
+}

@@ -2,6 +2,16 @@
 
 2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)；这是主线第二步的工作记录，不是新的云部署、私密读取或业务写入批准。
 
+## 最新现状与唯一继续点（18:54）
+
+新一轮经批准的限定只读已证明：原租户栈DELETE_COMPLETE，ECS INACTIVE/任务0，health/ready均404。根事件16:08:39.496开始删除、16:16:37.415完成；“User Initiated”不能确定具体操作者。本轮没有删除、查询CloudTrail或连接数据库；以下14:41健康和整轮成功均保留为历史，不代表当前可用或整体停费。
+
+客户端602e543/CI40789471388成功、deploy skipped，六资源候选的AWS ValidateTemplate已通过。新前端角色/policy/stack仍不存在，OAC名称无冲突，桶HEAD404非全球预留；人工sandbox门禁未安装。实际读取GitHub9/STS1/AWS元数据16/无身份HTTPS2，云/配置写、私密值、数据库、续租和调度均0。
+
+当前唯一待审是[前端承载和GitHub本人门禁安装](aws-buyer-web-sandbox-bootstrap-review.md)，清单SHA `e66544260e91a60af62e7275dd69522e406c27aa70f1a5ebb033b066b02570ae`，尚未批准/执行。先独立证明新门禁后，才可按未来准确批准CreateStack六项前端资源（含持久窄IAM）并核验；不含私密输入、变量、发布、旧CORS/栈更新、后端恢复、TTL或清理。旧后端已退役，后续产品联调须另定真实后端窗口，不能重放已消费任务或拿前端空桶安装当整套成功。
+
+恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/prepared-verified.json`（raw SHA `f96d8d61651ac9799ba024c01785bc154ce79ea072818c513640de3ac53ecd99`）。新准备按18:54:17起5小时，最晚启动温尼伯10月28日23:14:17；不延长原后端16:06意图、不自动执行任何写入。`wholeProductAccepted=false`。
+
 ## 已完成与本轮阻塞
 
 [同一 sandbox 的整轮恢复部署](aws-auto-deployment-reviewed-cycle-observed.md)已独立通过，不重跑 Review、RunOnce 或 Inspect，也不再扩部署框架。整套产品仍未验收。
@@ -48,7 +58,7 @@
 
 最终本地检查点：`F:/ChatGPT_workshop/techlong-product-online-check-verified-20261028-a.json`，原始字节SHA `3258c70b983e0354e4e15eac50327eaa9de77ab0923cf24195ae62894976187a`；绑定三份真实结果及其SHA，包含当前资源观察、变量来源、两个准确缺失错误和次数。记录不含凭据、HMAC、网页正文或业务快照；原始结果保留，不重新运行本轮脚本。剩余未使用次数不是后继阶段的自动读取许可。
 
-## 下一唯一动作：准备最小sandbox买家Web承载与接线清单
+## 14:43后的准备方向（历史；现状与继续点见顶部）
 
 当前主线缺口是**可用客户端承载及其与准确租户API的接线**，不是控制器、队列或数据库恢复。上述准确CI已通过，不重跑或增加测试框架；不把测试中 `api.example.invalid` 的构建当sandbox产物，不重做已完成的租户部署。
 
@@ -56,7 +66,7 @@
 
 真实资源/配置/私密使用范围另经批准后，再进行客户端发布和有限真实业务验收，随后才商户认证及必要业务场景；不扩UI、探针、通用框架或新的固定任务分支。原工作负载意图和清理审核边界保持。
 
-本次准备已按另允范围核对现有角色/门禁/CORS，形成[六资源最小承载及接线候选](aws-buyer-web-sandbox-plan.md)；旧production没有required reviewers，因此候选使用独立sandbox环境/窄角色而不修改旧生产配置。原客户端workflow接线已在602e543完成，准确CI40789471388全部通过、deploy skipped；候选不是安装、私密读取或调度许可。下一集中准备实际变更待审材料，原窗口过期后的现状/清理及必要元数据读取须另获允许。
+本次准备按另允范围核对角色/门禁/CORS，形成[六资源最小承载及接线候选](aws-buyer-web-sandbox-plan.md)；旧production没有required reviewers，因此候选使用独立sandbox环境/窄角色而不修改旧生产配置。原客户端workflow接线已在602e543完成，准确CI40789471388全部通过、deploy skipped；候选不是安装、私密读取或调度许可。其后限定现状核对与收缩后的实际待审范围见顶部，旧现有栈CORS更新方向不再适用。
 
 ### 为什么不直接打开买家页面“只读验收”
 

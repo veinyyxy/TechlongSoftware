@@ -4,6 +4,16 @@
 
 ## 当前唯一继续点（2026-10-28，真实整轮闭环完成；转向产品业务验收与AWS交付）
 
+**最新18:54限定只读结果：旧租户栈DELETE_COMPLETE、ECS INACTIVE/运行0，health/ready均404。** 根事件记录16:08:39开始删除、16:16:37完成，“User Initiated”不能确定操作者；本轮未删除或查询CloudTrail。不要更新已删UUID/CORS、重放成功任务或把下方14:41历史健康当现状；不宣称整体费用归零。
+
+当前唯一动作是等待用户另批[前端承载与GitHub本人门禁安装](aws-buyer-web-sandbox-bootstrap-review.md)，[机器清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.bootstrap-execution.json) SHA `e66544260e91a60af62e7275dd69522e406c27aa70f1a5ebb033b066b02570ae`：先两次GitHub配置写并独立证明门禁，再最多一次CreateStack/六项独立前端资源（含持久窄IAM）及独立核验。**尚未批准、未执行**；不含HMAC/Secret/.env/PEM、变量、发布/dispatch、CORS、后端恢复、续租或删除，不扩运行框架。
+
+本轮实际GitHub9/STS1/AWS元数据16（含一次AWS模板验证成功）/无身份GET2，云与配置写/私密值/DB/续租/dispatch均0。新role/policy/stack不存在，OAC名称无冲突，桶HEAD404不保证全球名称可用；sandbox environment404，尚无人工门禁安装证明。客户端602e543/CI40789471388保持成功、deploy skipped。
+
+恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/prepared-verified.json`，原始字节SHA `f96d8d61651ac9799ba024c01785bc154ce79ea072818c513640de3ac53ecd99`；原件和三个请求体已绑定，不重跑读取/准备。准备期限按真实18:54:17起5小时至23:54:17，最晚启动23:14:17（温尼伯10月28日）；不延长旧16:06意图、不自行建新后端窗口。逾期或未获新SHA批准不写。
+
+### 已完成历程与本轮准备沿革（以下不是重放指令）
+
 **同一a00任务的 Review → RunOnce → 独立 Inspect 已真实通过，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`。** 用户批准外层913ea70a…并本人完成三次GitHub环境审批；准确runs为[Review 40751073822](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40751073822)、[RunOnce 40751515012](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40751515012)、[Inspect 40752434574](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40752434574)。执行源码284f6ad/准确CI40748831700；一次建栈、两次认证GET，任务成功且租约清空，旧11job和14/9/9控制历史及保护保持。没有新增IAM、重试、清理或agent代批。
 
 [完整实测记录、实际次数、费用及边界](aws-auto-deployment-reviewed-cycle-observed.md)。最终proof SHA `22302bc205f703249a3881fc9c238ea02fee71e0e1238ae849dc291a5eaa8c90`；检查点 `F:/ChatGPT_workshop/techlong-reviewed-cycle-whole-executed-verified-20261028-a.json`，原始字节SHA `51d1896f6075d07646ce62d3d2f350d99754a5c5ad13cdead6a470b002f94359`，绑定54份真实原件。7个本机槽均消费，不再RunReviewed、调度、改旧历史、重发包或发布来源；冻结在最终证明与本地重建后结束。
@@ -18,7 +28,7 @@
 
 候选本地10组检查与162链接通过；恢复检查点 `F:/ChatGPT_workshop/techlong-buyer-web-candidate-verified-20261028-a.json`（原始字节SHA `aca73213e1aac68293c5f4fae43b1df752a6aa91eab6eb3c443d19f0cee70ce7`）。18:23恢复时旧窗口已过，只做本地收尾，未重新核验当前健康/计费或删除资源；不重跑本轮元数据脚本。
 
-**工作流代码已完成：客户端602e543／准确CI40789471388全部通过，deploy skipped。** 23项本机定向检查、原production10步投影保持；sandbox目标/独立Secret/no-delete、900秒账号限定及无重试接线已提交，未安装云/GitHub设置或读取私密值。新检查点 `F:/ChatGPT_workshop/techlong-buyer-web-workflow-code-verified-20261028-a.json`（原始字节SHA `2a2febf19e922faae7b1906490069479debcf9edf9d239f9133eef1139e62a63`）。**下一唯一集中准备实际六资源、GitHub设置/私密输入/CORS的待审材料；先另获现状/清理及必要当前元数据的限定只读许可。** 不复用过期窗口、不重跑已过CI，不把代码就绪当已上线。
+**工作流代码已完成：客户端602e543／准确CI40789471388全部通过，deploy skipped。** 23项本机定向检查、原production10步投影保持；sandbox目标/独立Secret/no-delete、900秒账号限定及无重试接线已提交，未安装云/GitHub设置或读取私密值。代码检查点 `F:/ChatGPT_workshop/techlong-buyer-web-workflow-code-verified-20261028-a.json`（原始字节SHA `2a2febf19e922faae7b1906490069479debcf9edf9d239f9133eef1139e62a63`）。其后限定读取已按顶部收尾，旧“现有租户CORS更新”方向因栈退役失效；当前仅顶部前端安装待审，不复用过期窗口、不重跑已过CI，不把代码就绪当已上线。
 
 ## 本轮旧测试与整轮准备历史（保留，不重复执行）
 

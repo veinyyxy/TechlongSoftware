@@ -43,7 +43,15 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 恢复先读 `F:/ChatGPT_workshop/techlong-buyer-web-candidate-verified-20261028-a.json`（原始字节SHA `aca73213e1aac68293c5f4fae43b1df752a6aa91eab6eb3c443d19f0cee70ce7`）；10组本地候选检查/162链接已通过，没有AWS模板验证或安装。18:23恢复时原窗口已过期，只做本地收尾，不重跑已用元数据许可，不假设停费或当前健康。
 
-最新代码阶段已收尾：客户端602e543/准确CI40789471388全部通过，23项本机定向测试和原production10步投影保持，deploy skipped；只复用原workflow接入sandbox、独立Secret/no-delete和900秒账号限定认证，没有AWS调用、Secret值、GitHub设置或dispatch。恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-workflow-code-verified-20261028-a.json`（原始字节SHA `2a2febf19e922faae7b1906490069479debcf9edf9d239f9133eef1139e62a63`）。**下一唯一集中准备实际六资源/GitHub设置/私密输入/CORS的待审范围与时序；先另获过期承载现状/清理及必要元数据的限定只读许可，不复用旧窗口或重开控制面。** 代码成功不是已安装发布门禁、客户端上线或整套验收。
+最新代码阶段已收尾：客户端602e543/准确CI40789471388全部通过，23项本机定向测试和原production10步投影保持，deploy skipped；只复用原workflow接入sandbox、独立Secret/no-delete和900秒账号限定认证，没有AWS调用、Secret值、GitHub设置或dispatch。恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-workflow-code-verified-20261028-a.json`（原始字节SHA `2a2febf19e922faae7b1906490069479debcf9edf9d239f9133eef1139e62a63`）。代码成功不是已安装发布门禁、客户端上线或整套验收。
+
+**最新事实与唯一继续点（10月28日18:54限定只读核对后）：原租户栈已DELETE_COMPLETE、ECS INACTIVE/运行0，health/ready均404。** 根事件16:08:39开始删除、16:16:37完成；通用“User Initiated”不能确定操作者，本轮未删除资源或查询CloudTrail。不能再UpdateStack旧UUID/CORS、重放a00任务或用14:41健康替代现状；原整轮成功保留为历史事实，整体费用未核清，不宣称停费。
+
+本轮另允读取实际为GitHub9/STS1/AWS元数据16（含一次ValidateTemplate）/无身份GET2，云/配置写、私密值、数据库、续租和dispatch均0。模板AWS验证通过；新role/policy/stack不存在，OAC名称无冲突，桶HEAD404不保证全球可用；新environment404，未创建。
+
+下一**仅等待用户对[前端承载与人工门禁安装范围](aws-buyer-web-sandbox-bootstrap-review.md)和[机器清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.bootstrap-execution.json)准确SHA `e66544260e91a60af62e7275dd69522e406c27aa70f1a5ebb033b066b02570ae` 单独批准**：两次GitHub配置写入并独立证明本人门禁后，最多一次CreateStack/六项前端资源，随后独立核验；包括新持久窄IAM，不是临时Grant。不含私密输入、变量、客户端发布、CORS、后端恢复、旧栈更新、TTL或删除，不新增执行框架。本轮只读批准不能覆盖这些写入。
+
+恢复先读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/prepared-verified.json`（原始字节SHA `f96d8d61651ac9799ba024c01785bc154ce79ea072818c513640de3ac53ecd99`），绑定两份真实读取原件、准确602e543/CI及三份待审请求体；不要重跑捕获/准备器。18:54:17事实起点后5小时到23:54:17，最晚启动23:14:17（均温尼伯10月28日），原后端16:06意图不延长。未确认或逾期不执行，也不创建/复位一次尝试标记；后继私密输入、发布及新的后端验收范围另审。
 
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 
