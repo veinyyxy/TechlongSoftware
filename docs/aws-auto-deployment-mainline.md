@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-28，真实整轮闭环完成；转向产品业务验收与AWS交付）
+## 当前唯一继续点（2026-10-29，买家域名静态验收完成；回到后端联调）
+
+**截至10月29日08:37 CDT：buyer自定义域名已真实安装并独立静态验收通过。** 用户确认42f208d6…后，验证CNAME、严格三项Change Set及执行均完成；原栈UPDATE_COMPLETE、CDN Deployed、证书ISSUED、A/AAAA/CNAME准确，首页与manifest均HTTPS200/TLS通过，原六物理ID保持。实际STS3/AWS元数据53/公开DNS4/HTTPS2/直接写3；私密读取/SQL/IAM写/上传/dispatch/后端/重试/清理均0。[完整结果](aws-buyer-web-domain-install-observed.md)。恢复F:/ChatGPT_workshop/techlong-buyer-domain-install-20261029-a/executed-verified.json，raw SHA bf5a03fc9687e67084acff917c8eb8b980eb6844bde20d00e3ae9b977dff52f7；149原件已重建，永久槽消费，main冻结已结束，禁止重放。
+
+**下一只准备新的合法后端请求、准确buyer CORS材料/必要来源绑定及一次Review→RunOnce→独立Inspect的集中范围。** 不再改前端、重发客户端/HMAC、申请证书或重复域名安装；旧后端/Neon准备事实已过期，新生产读取/请求写/来源与部署仍另审，不开短窗口、不重放旧job或已删UUID。当前仅静态通过，未执行JS、API或真实业务，wholeProductAccepted=false。下方阶段沿革保留，不是重新执行指令。
 
 **最新18:54限定只读结果：旧租户栈DELETE_COMPLETE、ECS INACTIVE/运行0，health/ready均404。** 根事件记录16:08:39开始删除、16:16:37完成，“User Initiated”不能确定操作者；本轮未删除或查询CloudTrail。不要更新已删UUID/CORS、重放成功任务或把下方14:41历史健康当现状；不宣称整体费用归零。
 

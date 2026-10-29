@@ -1,5 +1,7 @@
 # 买家域名：验证 DNS 与现有 CDN 更新待审范围
 
+**状态更新：本清单已由用户准确确认并执行，独立静态验收通过。** [真实结果与恢复入口](aws-buyer-web-domain-install-observed.md)。下方原范围/时限保留追溯，不授权重跑或后继后端操作。
+
 遵守[执行手册](aws-auto-deployment-execution-runbook.md)，只衔接[已完成的证书单次申请](aws-buyer-web-certificate-observed.md)。**本文件本身不授权 DNS/CDN/CloudFormation 写入。** 本轮仅获限定只读许可；准确 SHA、请求文件、源码与时限以 `F:/ChatGPT_workshop/techlong-buyer-domain-install-20261029-a/prepared-verified.json` 绑定的 manifest 为准。不存在或核验失败即未完成准备，不得执行。旧 05:05 CDT 截止已过，不复用旧准备授权。
 
 ## 唯一目标与准确材料

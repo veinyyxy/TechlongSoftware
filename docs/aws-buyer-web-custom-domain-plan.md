@@ -1,5 +1,7 @@
 # 买家自定义域名：最小准备方案
 
+**最新状态：本方案的证书、验证DNS及现有栈更新已按新准确批准完成，独立静态验收通过。** [结果与实际次数](aws-buyer-web-domain-install-observed.md)。下方候选/待审沿革保留，不构成重放许可；当前回到后端联调准备，不继续域名支线。
+
 沿用[执行手册](aws-auto-deployment-execution-runbook.md)。用户明确选择“先准备自定义域名方案”，不是申请证书、修改DNS/CDN、扩大权限或恢复后端的批准。[机器摘要](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-plan.json)和[模板差异候选](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-template-proposal.json)均无执行SHA；差异候选不是可直接应用的CloudFormation模板。
 
 ## 为什么改用域名

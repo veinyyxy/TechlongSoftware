@@ -31,6 +31,10 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 ## 3. 当前唯一继续点：整轮真实部署闭环已完成，转向产品验收与AWS交付
 
+**最新08:37 CDT（10月29日）：buyer自定义域名安装及独立静态验收已通过，下一只准备新的合法后端请求/准确buyer CORS材料、必要来源绑定和Review→RunOnce→独立Inspect的集中范围。** [完整结果](aws-buyer-web-domain-install-observed.md)。实际STS3/AWS元数据53/公开DNS4/HTTPS2/直接写3，原六物理ID/IAM模板保持；证书ISSUED、原栈UPDATE_COMPLETE、CDN Deployed，CNAME/A/AAAA与两条静态HTTPS200/TLS均匹配。无私密读取、SQL、IAM写、上传、dispatch、后端或代理重试/清理；未执行JS/业务，wholeProductAccepted=false。
+
+恢复读F:/ChatGPT_workshop/techlong-buyer-domain-install-20261029-a/executed-verified.json，raw SHA bf5a03fc9687e67084acff917c8eb8b980eb6844bde20d00e3ae9b977dff52f7；149原件已本地重建，永久槽消费，独立验收/重建后main结束冻结。不再按下方历史待审段申请证书、写DNS或执行原Change Set，不重发前端/HMAC。后端/Neon旧事实已过期，新的必要读取、请求/材料/来源与云部署仍准确另审，不先开短窗口、不重放旧成功任务或已删栈UUID。
+
 用户批准外层913ea70a…并本人完成三次环境审批后，同一a00任务已连续完成Review40751073822、RunOnce40751515012和独立Inspect40752434574，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`。执行源码284f6ad/准确CI40748831700；一次CreateStack/受审7资源、两次认证GET、同任务成功及租约清空，旧11job/14旧plan/9批准/9尝试及保护保持。Inspect没有云写、DB写或控制私密包读取；没有自动重试、清理、新IAM或agent代批。[完整实测与次数](aws-auto-deployment-reviewed-cycle-observed.md)。
 
 恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-whole-executed-verified-20261028-a.json`（原始字节SHA `51d1896f6075d07646ce62d3d2f350d99754a5c5ad13cdead6a470b002f94359`），其54原件和最终proof已本地重建核对，7个永久槽已消费，不再RunReviewed或重做来源/包/任务。最终证明未额外导入Inspect账本，wholeProductAccepted=false，不为页面标签扩UI支线。

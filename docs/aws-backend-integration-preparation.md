@@ -1,5 +1,7 @@
 # 后端联调/CORS：当前最小准备与继续点
 
+**最新继续点（2026-10-29 08:37 CDT）**：[buyer自定义域名已安装并独立静态验收通过](aws-buyer-web-domain-install-observed.md)。现在只准备新合法后端held请求、准确buyer域内CORS材料/必要来源与一次Review→RunOnce→独立Inspect的集中范围；不再申请证书、改CDN/DNS、重发客户端或读取HMAC。域名成功不等于业务连通，本轮没有JS/API/业务或后端部署。
+
 2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)，承接[已完成的客户端静态发布](aws-buyer-web-sandbox-publication-observed.md)。本文件仅整理当前主线，不是新任务、数据库写入、私密读取、来源发布、IAM修改或付费后端部署授权。[机器准备摘要](../ops/aws-sandbox/reviews/backend-integration-v1.plan.json)执行SHA为null。
 
 ## 初始差异核对（raw CloudFront方向已被下方域名方案取代）
@@ -57,7 +59,7 @@ C补核执行源码e620a0f，于2026-10-28 23:29:16–23:29:22 CDT完成：配�
 
 原始result：F:/ChatGPT_workshop/techlong-backend-integration-database-supplement-20261028-c/result.json，raw SHA 16a4e43673dcb9003c62f11b942db2aafe31bfb0894e033759cb1dc25fd58395。完整业务快照仅保留该本地目录，不入Git。恢复先读该目录verified.json，raw SHA 21ac8c94e8cb851564e4923f6d4d81627a0a90ee113a2e92e84b6fa4bfefaae8；它绑定6份原件及上一轮Inspect快照，并核对了父B记录。C没有重采AWS/GitHub或延长期限，集中准备仍受较早的2026-10-29 01:56:03 CDT限制。
 
-## 当前唯一继续点：自定义域名准备（用户明确调整）
+## 自定义域名准备沿革（现已完成，保留追溯）
 
 本轮适配原型的实际V5 Review测试发现，除固定capsule哈希外，lib/deployments/execution/parameters.ts还拒绝techlong.cloud域外CORS。追加raw CloudFront来源会报“must use the techlong.cloud HTTPS boundary”，不能渲染实际请求。原型没有发布，未接通的新增适配文件已撤回，没有修改原校验器或旧110文件闭包。诊断保留在F:/ChatGPT_workshop/techlong-buyer-origin-adapter-stopped-20261028-a.json；不把23/25原型检查中的失败改称接线成功。
 
@@ -67,4 +69,10 @@ C补核执行源码e620a0f，于2026-10-28 23:29:16–23:29:22 CDT完成：配�
 
 本轮新增边界/域名候选回归与原请求回归合计23项通过，类型/lint及旧110文件闭包核对保持；源码aad23fa的准确CI40820296477全部成功，实用GitHub GET5，无AWS/生产配置/SQL。恢复读F:/ChatGPT_workshop/techlong-buyer-domain-code-verified-20261028-a.json。上述不是AWS模板验证、域名安装、后端部署或业务验收；只把检查加到原无AWS CI，没有新部署workflow或云副作用。
 
-用户随后确认本轮域名限定预检，已用STS1/AWS11取得准确CDN/栈、DNS及证书事实，零配置/秘密/数据库/写入。详见[公开观察](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-preflight.json)与[证书单写风险清单](aws-buyer-web-certificate-review.md)。**下一唯一动作：准确SHA获批后仅一次申请buyer公开不可导出证书；当前不执行。** 不先写未知DNS值或更新分布；真实ARN/CNAME返回后，再合并准备DNS验证与CDN栈更新。新任务、材料/来源和Review→RunOnce→Inspect仍在域名就绪后具体另审，不取消成功任务或扩框架。
+用户随后确认本轮域名限定预检，已用STS1/AWS11取得准确CDN/栈、DNS及证书事实，零配置/秘密/数据库/写入。详见[公开观察](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-preflight.json)与[证书单写风险清单](aws-buyer-web-certificate-review.md)。该证书单写及后继验证DNS/CDN更新现均已按各自准确批准完成，不能继续把此段历史“待申请”当当前任务，禁止重新申请、重放或复位槽。
+
+## 当前唯一动作：集中准备后端联调整轮材料
+
+实际买家来源现在是 `https://buyer.sandbox.techlong.cloud`；后继CORS只追加这一项，保留原first-acceptance与techlong.cloud。域内校验无需例外，候选body SHA 649c3077…仍只是差异证明；原capsule/固定pin不静默改写，也不直接让旧成功a00再跑一次。
+
+复用原prepareInitializedPlatformRequest单INSERT和既有整轮能力，不再实现两行pending取消handoff、固定job分支或新执行器。旧23:29快照只证明当时12任务/17/12/12历史均终态/空lease，AWS/GitHub/Neon准备已过期，不能据此声称当前仍未变或直接生成写清单。下一次仅取得当轮限定只读许可，核对完整真实状态、原镜像/权限/Secret版本元数据与必要来源绑定后，集中给出新请求/材料/必要发布和整轮的明确范围/时序；不提前建任务、占槽、开TTL或云写。GitHub环境仍由用户本人批准，50 USD目标与清理另审边界不变。
