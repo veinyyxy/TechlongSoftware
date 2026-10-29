@@ -119,3 +119,5 @@ C补核执行源码e620a0f，于2026-10-28 23:29:16–23:29:22 CDT完成：配�
 **尚未完成/不能混称**：这不是已安装cloud entry或整轮部署证明。当前线上仍是旧 `recovery-envelope/v1` SOURCE；新候选使用原V6已验收后继能力，并不声称旧固定恢复发布器可直接接收新材料或新协议。SDK/OIDC/S3运输端仍须复用原能力，在后继集中材料中明确来源/发布组合差异，不能偷偷替换workflow或绕开人工门禁。还未用真实a00原件重建候选SOURCE，未分配新job/nonce、上传新材料、消费槽、续租、dispatch或部署。
 
 准确CI通过后，下一唯一动作是以已封存事实和原件准备**准确新请求＋accepted lineage＋buyer材料/SOURCE与必要发布组合的集中材料**，先证明原发布/整轮组合能承载该绑定；如有必需差异只改原组合，不复制执行器。原09:07只读事实至14:07:12.204 CDT不重计；到期只继续本地材料，不自动重新读取生产。实际副作用仍新SHA审核，先备齐整轮再开短窗口。
+
+**准确CI现已通过**：源码 `ed4d15dbdbc11bdad4acd8b4feda0f85e3dc5745` 的 [run40894623180](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40894623180) completed/success、attempt1，job123520234513的16项报告步骤全部成功。本机35项定向＋81项旧相关回归、类型、lint、YAML/链接/diff均通过；原110闭包仍0c6f119d…，新增111候选闭包为96679e2e…。恢复读 `F:/ChatGPT_workshop/techlong-buyer-compatibility-code-verified-20261029-a.json`，raw SHA `9beba5a3bd1fa7954df2ebc68935b81843669e9ad739d5524ac6ce8b69e67254`。本轮生产配置/私钥/Secret/HMAC读取、AWS/SQL连接/写入、任务/槽/dispatch均0；正常代码/文档提交和无AWS CI不等于生产激活。后续文档HEAD不是这次CI源码，未改测试源码不冒称重跑。

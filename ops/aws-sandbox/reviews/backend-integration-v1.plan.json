@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "BUYER_COMPATIBILITY_CANDIDATE_IMPLEMENTED_PENDING_EXACT_CI_AND_REVIEWED_BINDING",
+  "status": "BUYER_COMPATIBILITY_CODE_AND_EXACT_CI_VERIFIED_PENDING_REVIEWED_BINDING",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
@@ -189,11 +189,19 @@
     "additiveCandidateFiles": 111,
     "usesOriginalRequestCompilerRootAndModeBridge": true,
     "fullTemplateAndSevenResourceInventoryUnchanged": true,
-    "exactRemoteCiVerified": false,
+    "exactRemoteCiVerified": true,
+    "codeSourceCommit": "ed4d15dbdbc11bdad4acd8b4feda0f85e3dc5745",
+    "ciRunId": "40894623180",
+    "ciJobId": "123520234513",
+    "allSixteenReportedCiStepsSuccessful": true,
+    "existingRelatedLocalRegressionTests": 81,
+    "candidateClosureSha256": "96679e2efa3bd6c9e85c93c6b0740c87be18e70d0539f4f148a479b1ecc74c0a",
+    "checkpointPath": "F:/ChatGPT_workshop/techlong-buyer-compatibility-code-verified-20261029-a.json",
+    "checkpointRawSha256": "9beba5a3bd1fa7954df2ebc68935b81843669e9ad739d5524ac6ce8b69e67254",
     "actualSourceReconstructed": false,
     "installedRecoveryEnvelopePublisherCompatibilityClaimed": false,
     "liveActivationAuthorized": false
   },
-  "nextUniqueAction": "Finish exact no-AWS CI, then prepare only original-evidence-bound single-INSERT request, accepted successor lineage, exact buyer material/SOURCE and necessary existing-publication composition differences. Prove the existing publisher/whole-cycle composition can carry that binding before opening any window. Do not duplicate executors/frameworks or claim the installed recovery-envelope/v1 accepts the native V6 candidate without wiring. No new held job, material upload, source/trust publication, renewal or deployment until concentrated fresh-SHA approvals. Preserve old body/pins/110-file closure/history; do not redo frontend/domain/image work or reread HMAC.",
+  "nextUniqueAction": "Prepare only original-evidence-bound single-INSERT request, accepted successor lineage, exact buyer material/SOURCE and necessary existing-publication composition differences. Exact no-AWS code CI passed at ed4d15d/run40894623180; do not repeat that phase. Prove the existing publisher/whole-cycle composition can carry that binding before opening any window. Do not duplicate executors/frameworks or claim the installed recovery-envelope/v1 accepts the native V6 candidate without wiring. No new held job, material upload, source/trust publication, renewal or deployment until concentrated fresh-SHA approvals. Preserve old body/pins/110-file closure/history; do not redo frontend/domain/image work or reread HMAC.",
   "wholeProductAccepted": false
 }
