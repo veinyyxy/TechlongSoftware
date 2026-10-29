@@ -1,8 +1,32 @@
 # 后端联调/CORS：当前最小准备与继续点
 
-**最新继续点（2026-10-29 13:36 CDT）**：固定历史provider原件及真实buyer上下文/SOURCE材料已重建，下一只准备原双workflow/SOURCE/唯一trust pin的准确发布候选，先证明生产运输装配和六项派生。真实请求/回读、上传版本及事实/发布批准仍缺，不能生成可执行来源或先开部署窗口；新增云/数据库读取与实际写入继续具体另审。下方为完成事实及历史沿革，不重复代码/CI、补件、域名安装或客户端发布。
+**最新继续点（2026-10-29，本地发布候选核对后）**：固定provider及buyer真实材料保持；双workflow/SOURCE/唯一trust claim差异已核对，但现有生产运输和发布准备器不能直接承载buyer候选。下一只征求下节两处最小接线与定向测试同意，不自动展开代码或云阶段。真实请求/回读、上传版本及事实/发布批准仍缺，不生成可执行来源或先开窗口。新增生产读取与实际写入继续具体另审。
 
 2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)，承接[已完成的客户端静态发布](aws-buyer-web-sandbox-publication-observed.md)。本文件仅整理当前主线，不是新任务、数据库写入、私密读取、来源发布、IAM修改或付费后端部署授权。[机器准备摘要](../ops/aws-sandbox/reviews/backend-integration-v1.plan.json)执行SHA为null。
+
+## 发布候选差异与两处最小接线缺口
+
+本轮只读本机源码和已存09:07元数据/13:36真实材料，未重新访问AWS、GitHub或Neon，也没有读取配置/PEM/Secret。候选包括原caller/reusable及本地operator绑定的差异表、六项SOURCE派生规则、现有基础栈的唯一trust claim替换草案；全部DRAFT_NOT_EXECUTABLE，未生成可执行YAML、Git对象、Change Set或发布批准SHA。
+
+| 位置 | 已核实的当前约束 | 候选最小差异 |
+| --- | --- | --- |
+| 原caller | 两处1120f510… reusable引用 | 只改为同一真实新reusable commit；目前after=null |
+| 原reusable | checkout 0e18a25、旧SOURCE和runCycleLive/recovery-envelope | 仅换准确受测源码、经真实回执构建的buyer SOURCE和已证明生产装配；三模式/七输入/本人门禁/actor/main/单attempt及并发保持 |
+| 本地operator-source | 已安装a00来源 | 原值/旧周期保持，未来仅安装对应buyer来源与reusable；目前after=null |
+| 现有基础栈trust | job_workflow_ref固定1120f510… | 仅这个claim换真实新reusable pin；从本地原模板投影后复原完全一致，其他角色/权限/资源不变，不声称现在云端未漂移 |
+| 六项自引用 | 原四项＋buyer code.commitSha/context hash两项 | 使用已测bindBuyerWorkflowSource规则；实际caller/reusable和完整请求/版本证据缺失，不能拿假commit运行发布验证 |
+
+**准确No-Go 1：SDK_CONTEXT_ASSEMBLY。** ops/platform-reviewed-cycle-v1/live.mjs硬接createRecoveryApplication，后者用d.context.base和旧恢复worker；原createCloudApplicationV5也重建旧两来源capsule。runBuyerCompatibility只是已测的mode/root组合，要求调用方供给生产SDK端口，并没有隐式填好它们。不能只改workflow调用名、把旧application返回值当新root，或将合成端口测试称为真实生产装配证明。
+
+**准确No-Go 2：PUBLICATION_FIXED_RECOVERY。** 原publication.mjs仍固定旧PROFILE/T/包/信封、旧OPERATOR_BEFORE=null及旧e658f7… trust prestate；publication-local据此执行。现在实际本机workflow/operator及已存云trust都已是a00/1120f510…，旧准备器不能直接复用其before hash/信封并发布buyer材料。这是已存源码约束，不是新增云权限需求。
+
+**只拟两处既有入口接线，不扩工具**：限ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs中的生产端口装配，以及原publication.mjs/publication-local.mjs的genuine buyer SOURCE、模板及准确prestate选择；复用原V5 session/provider/evidence、固定版本Secret/窄Neon/control/journal、V6 mode bridge和原Git/CFN发布/独立核验。旧110、旧默认恢复路径、IAM权限/环境门禁/七资源/claim-complete及独立Inspect合同不改。新增111候选摘要只能按真实改动重算并跑准确CI，不修改旧pin或增加执行器、通用框架、任意job/协议开关。需要超出这三处源码或改变合同先说明，不静默扩展。
+
+验证只针对新缺口：默认/无效来源在凭据和网络前拒绝；生产端口确实绑定同一genuine buyer context；固定Secret/身份/namespace/authority/journal和原独立验收要求保留；原三写及发布独立Inspect复用；精确before布局和唯一trust claim；六项派生无自由输入；缺真实请求/回读/上传/发布证据即拒绝，云workflow不能含本机F:/E:/私有路径；旧110及相关默认回归保持、准确无AWS CI通过。未获本轮代码方向同意前不实现，不触发生产。
+
+真实副作用回执是另一组未满足前置：requestTransaction、independentRequestReadback、uploadVersion、publicationFactsApproval、workflowCallerCommit、reusableCommit、transportAssemblyProof、trustOnlyChangeSet仍不完整。它们不由本地投影或代码测试补造；实际请求/上传/来源发布及以后整轮分别准确审批。
+
+恢复读F:/ChatGPT_workshop/techlong-buyer-publication-candidate-verified-20261029-a.json，raw SHA `95ada491ca4658d480f9f72d0132f7d97a2a37e8880fc5d375502b8e80150ea1`；它绑定四份本地差异、十处源码pin和原真实材料检查点。本轮生产调用/私密配置读取/DB/云写/上传/任务/执行槽/调度/应用代码或受保护workflow改动/Git对象准备均0。原09:07准备截止2026-10-29 14:07:12.204 CDT和basis 2026-10-30 10:08:09.592 CDT均保留，候选整理不是新采样或已通过的发布证明。
 
 ## 固定原件及真实buyer材料已重建（10月29日13:36 CDT）
 

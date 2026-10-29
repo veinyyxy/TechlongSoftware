@@ -6,7 +6,7 @@
 
 **最新13:36 CDT：固定历史provider已补齐，真实accepted后继链、buyer上下文包及同一b236单INSERT草案重建通过；仍未创建任务、上传或发布。** 本轮实际仅另批STS1/S3固定版本GET1，余下均为本地原件核验；旧失败不覆盖，已有`providerPublicV5`处理完整报告的标准投影，无应用代码/旧110改动。[完整事实和剩余材料](aws-backend-integration-preparation.md#固定原件及真实buyer材料已重建10月29日1336-cdt)。恢复F:/ChatGPT_workshop/techlong-buyer-real-material-verified-20261029-a.json，raw SHA 16b1a0dff9deed74ee41d0a1e880fb7e412c6d675527bc3f13e4e2a68a9b9fb2。
 
-**下一只准备原双workflow/SOURCE/唯一trust pin的准确发布候选，并证明生产运输装配及六项派生；不再补件或重复代码阶段。** 真实新请求/回读、上传版本及新事实/发布批准尚缺，不伪造可执行SOURCE。09:07快照截止今天14:07:12.204、basis明天10:08:09.592均不延长；新生产读取、请求/上传/发布和整轮部署继续按准确范围另审，不自动执行或开窗。以下历史继续点不再重复执行。
+**候选差异已核对，尚不能发布**：原live固定旧恢复application，publication/local仍固定旧信封/周期/before pin；本轮只整理双workflow/六项派生/唯一trust claim的准确本地差异，没有改应用代码、旧110或调用生产。恢复F:/ChatGPT_workshop/techlong-buyer-publication-candidate-verified-20261029-a.json，raw SHA 95ada491ca4658d480f9f72d0132f7d97a2a37e8880fc5d375502b8e80150ea1。[两处最小接线及停止条件](aws-backend-integration-preparation.md#发布候选差异与两处最小接线缺口)。下一只征求现有buyer SDK装配及原publication/local的最小代码/定向测试同意，不再扩框架；真实请求/回读、上传和事实/来源发布仍缺且另审，不先开窗或调用旧publication-local。原事实/期限不延长，历史步骤不重放。
 
 **截至10月29日08:37 CDT：buyer自定义域名已真实安装并独立静态验收通过。** 用户确认42f208d6…后，验证CNAME、严格三项Change Set及执行均完成；原栈UPDATE_COMPLETE、CDN Deployed、证书ISSUED、A/AAAA/CNAME准确，首页与manifest均HTTPS200/TLS通过，原六物理ID保持。实际STS3/AWS元数据53/公开DNS4/HTTPS2/直接写3；私密读取/SQL/IAM写/上传/dispatch/后端/重试/清理均0。[完整结果](aws-buyer-web-domain-install-observed.md)。恢复F:/ChatGPT_workshop/techlong-buyer-domain-install-20261029-a/executed-verified.json，raw SHA bf5a03fc9687e67084acff917c8eb8b980eb6844bde20d00e3ae9b977dff52f7；149原件已重建，永久槽消费，main冻结已结束，禁止重放。
 

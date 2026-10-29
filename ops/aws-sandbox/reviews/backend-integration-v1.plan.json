@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "FIXED_ORIGINAL_AND_REAL_BUYER_MATERIAL_VERIFIED_PENDING_PUBLICATION_CANDIDATE",
+  "status": "LOCAL_PUBLICATION_DELTAS_VERIFIED_TWO_MINIMAL_WIRING_GAPS_PENDING_AGREEMENT",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
@@ -302,6 +302,29 @@
     "uploadsOrDispatches": 0,
     "executionAuthorized": false
   },
-  "nextUniqueAction": "Prepare only the exact existing two-workflow/SOURCE/one-trust-pin publication candidates and prove the production SDK/OIDC/S3 assembly and all six self-reference rules. The fixed provider original and genuine buyer SOURCE/context bundle are reconstructed; do not repeat supplement or code/CI. Real request transaction/readback, upload version, fresh fact approval, workflow commits and actual publication remain missing and separately reviewed; never manufacture their receipts or version IDs. Retain the original V5 root, old 110 pins, human GitHub gate and default-closed behavior. No new production reads, private reads, request, upload, SOURCE/trust writes, renewal, window or dispatch under the completed supplement approval.",
+  "publicationDeltaReview": {
+    "checkpoint": "F:/ChatGPT_workshop/techlong-buyer-publication-candidate-verified-20261029-a.json",
+    "checkpointRawSha256": "95ada491ca4658d480f9f72d0132f7d97a2a37e8880fc5d375502b8e80150ea1",
+    "draftsOnly": true,
+    "twoExistingWorkflowsAndLocalBindingMapped": true,
+    "trustClaimChangesProposedMax": 1,
+    "trustRestoreProjectionEqualsOriginal": true,
+    "selfReferenceRules": 6,
+    "productionTransportAssemblyProved": false,
+    "blockerIds": ["SDK_CONTEXT_ASSEMBLY", "PUBLICATION_FIXED_RECOVERY", "REAL_EFFECT_RECEIPTS"],
+    "minimumProposedCodeFiles": ["ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs", "ops/platform-reviewed-cycle-v1/publication.mjs", "ops/platform-reviewed-cycle-v1/publication-local.mjs"],
+    "implementationAgreementRequired": true,
+    "oldFrozenFilesMustRemainUnchanged": 110,
+    "newExecutorOrFrameworkAllowed": false,
+    "executableWorkflowCandidate": null,
+    "publicationApprovalSha256": null,
+    "productionCalls": 0,
+    "privateReads": 0,
+    "applicationCodeChanges": 0,
+    "protectedWorkflowOrIamChanges": 0,
+    "gitCandidateObjectsCreated": 0,
+    "executionAuthorized": false
+  },
+  "nextUniqueAction": "Seek agreement for only the two existing-entry wiring gaps: source-selected real SDK/context assembly inside the current buyer module, and genuine buyer SOURCE/template/exact-prestate selection in the original publication/local entry, plus targeted tests and exact No-AWS CI. Bound the initial source scope to those three files; preserve old 110 pins/default recovery, original V5 execution guards, existing Git/CFN publisher/inspector, human environment gate and current permissions. Do not repeat the fixed provider supplement or genuine material reconstruction. Missing real request/readback/upload/version/fact/release receipts stay null and separately reviewed. No implementation, production reads, private reads, job/upload/SOURCE/trust writes, renewal, window or dispatch before the corresponding agreement/approval.",
   "wholeProductAccepted": false
 }

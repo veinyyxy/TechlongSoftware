@@ -33,7 +33,9 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 **最新13:36 CDT（10月29日）：固定provider原件已另批补齐，真实buyer后继链和来源材料已本地重建，仍不可执行。** 新记录仅STS1＋准确版本S3 GET1/1703字节，版本/完整大小/SHA全部匹配；54原件、11固定对象和原basis重建通过。完整报告用已有`providerPublicV5`投影后经原后继链校验通过，未改原件、旧110或应用代码；本地B格式停止和旧STS失败均保留，无云重试。原b236请求身份保持，仅本地SQL编译，未创建/占槽/上传/发布/调度。[真实材料、缺口及下一范围](aws-backend-integration-preparation.md#固定原件及真实buyer材料已重建10月29日1336-cdt)。恢复F:/ChatGPT_workshop/techlong-buyer-real-material-verified-20261029-a.json，raw SHA 16b1a0dff9deed74ee41d0a1e880fb7e412c6d675527bc3f13e4e2a68a9b9fb2。
 
-**下一唯一动作只准备现有双workflow/SOURCE/唯一trust pin的准确发布候选，先证明生产运输装配及六项来源派生。** 真实请求/独立回读、上传VersionId、事实批准及发布证明仍为空，不编造或套用旧周期；具体读取与实际写入继续另审。本轮补件批准已用完，不再读取AWS/数据库或私密配置，不重复代码/CI或补件，不开短窗口。09:07事实仍只至今天14:07:12.204 CDT、原basis至10月30日10:08:09.592 CDT，重建和文档时间都不延长它们。以下为已完成沿革，不是重复执行指令。
+**发布候选差异核对现已完成，但生产装配证明未通过，不能生成可执行发布SHA。** 原双workflow、六项SOURCE派生及唯一trust claim的本地差异已核对；旧live仍调用固定恢复application，原publication/local仍固定旧周期/信封/before hash，不能直接拿buyer材料发布。恢复F:/ChatGPT_workshop/techlong-buyer-publication-candidate-verified-20261029-a.json，raw SHA 95ada491ca4658d480f9f72d0132f7d97a2a37e8880fc5d375502b8e80150ea1。本轮生产调用、私密读取、应用代码/受保护workflow/IAM改动、Git候选对象、槽和dispatch均0。
+
+**下一唯一动作先取得仅两处既有入口最小接线及定向测试的同意**：在现有buyer模块装配原SDK/窄数据库/provider/evidence能力，以及在原publication/local选择真实buyer SOURCE/模板/prestate；限三处现有源码加对应测试，旧110/默认路径、权限和执行根不改，不建执行器/框架。[具体差异与停止条件](aws-backend-integration-preparation.md#发布候选差异与两处最小接线缺口)。真实请求/独立回读、上传VersionId、事实批准及发布证明仍为空；具体生产读取/写入继续另审。09:07事实仍只至今天14:07:12.204 CDT、原basis至10月30日10:08:09.592 CDT，不重计或先开窗。以下为已完成沿革，不是重复执行指令。
 
 **最新08:37 CDT（10月29日）：buyer自定义域名安装及独立静态验收已通过，下一只准备新的合法后端请求/准确buyer CORS材料、必要来源绑定和Review→RunOnce→独立Inspect的集中范围。** [完整结果](aws-buyer-web-domain-install-observed.md)。实际STS3/AWS元数据53/公开DNS4/HTTPS2/直接写3，原六物理ID/IAM模板保持；证书ISSUED、原栈UPDATE_COMPLETE、CDN Deployed，CNAME/A/AAAA与两条静态HTTPS200/TLS均匹配。无私密读取、SQL、IAM写、上传、dispatch、后端或代理重试/清理；未执行JS/业务，wholeProductAccepted=false。
 
