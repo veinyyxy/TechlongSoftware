@@ -83,7 +83,7 @@ Source刷新及新同范围许可后，20:56–20:59的B记录取得AWS/GitHub�
 
 10月29日早间仅展开[集中草案](aws-buyer-web-domain-install-review.md)：完整八资源模板等于原已测试差异、验证批次仅CREATE真实CNAME，25项定向检查及类型/lint/YAML/177相对链接/旧110闭包通过，不新增执行器。准确源码d869f47/CI40875734305全部成功；代码检查点F:/ChatGPT_workshop/techlong-buyer-domain-install-code-verified-20261029-a.json，raw SHA 306390108b9ac4aa5c9f6604833ba5fb2c18aa7c84fd148badbf93637ab9efbd。当前只等本轮限定只读许可，实际GitHub GET4、AWS/公开DNS/私密读取/SQL/云写/槽/dispatch均0；新事实真实通过后才生成5小时审批SHA，不重申证书或复用凌晨快照。
 
-该新许可已由用户确认并于07:57:00–07:57:21 CDT完成：STS1/AWS元数据13/公共DNS2，原栈/六资源/模板、空Change Set、CDN/证书/标签和DNS空缺均匹配，两公共递归NS与zone一致，完整候选模板AWS验证成功；写/私密/SQL/槽/dispatch均0。只读检查点F:/ChatGPT_workshop/techlong-buyer-domain-install-readonly-20261029-a/verified.json，raw SHA 19327da3311952cc568e2bdfe062bb59f0dc71394decd309832b1ba69381e767，35原件已本地重建；不冒称全局alias或权威父区逐跳已证明。**下一只等[集中范围](aws-buyer-web-domain-install-review.md)的新SHA确认**，准确原件F:/ChatGPT_workshop/techlong-buyer-domain-install-20261029-a/prepared-verified.json未生成/不匹配即未准备完成。原事实至12:57:00.563 CDT、最晚12:12:00.563启动，main在清单真实生成后冻结；不先写DNS、CFN、恢复后端或占永久槽。
+该新许可已由用户确认，07:57主快照及08:07:17原剩余额度一次验证名补核完成：累计STS1/AWS元数据14/公共DNS2，补查从A类型起覆盖验证名全部类型，不重发原调用或重计原事实时间。原栈/六资源/模板、空Change Set、CDN/证书/标签和DNS空缺均匹配，两公共递归NS与zone一致，完整候选模板AWS验证成功；写/私密/SQL/槽/dispatch均0。只读检查点F:/ChatGPT_workshop/techlong-buyer-domain-install-readonly-20261029-a/verified-with-validation-name.json，raw SHA 02650c15d096cf5de702258852329ab00f5aed493077bf184154f994b01b760f，38原件已本地重建；不冒称全局alias或权威父区逐跳已证明。**下一只等[集中范围](aws-buyer-web-domain-install-review.md)的新SHA确认**，准确原件F:/ChatGPT_workshop/techlong-buyer-domain-install-20261029-a/prepared-verified.json未生成/不匹配即未准备完成。原事实至12:57:00.563 CDT、最晚12:12:00.563启动，main在清单真实生成后冻结；不先写DNS、CFN、恢复后端或占永久槽。
 
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 
