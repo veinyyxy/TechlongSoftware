@@ -1,5 +1,7 @@
 # 后端联调/CORS：当前最小准备与继续点
 
+**最新实际结果（10月29日17:47–17:48 CDT）**：a8393ad2…获批后，请求b236单INSERT/明确COMMIT、独立完整回读、原条件PUT及独立固定版本GET全部成功；准确副作用和下一唯一点见[完成摘要](../ops/aws-sandbox/reviews/backend-integration-v1.request-upload-observed.json)及[原审核说明的实测收尾](aws-backend-integration-request-upload-review.md#本次实际完成结果)。四槽已消费，23原件已封存，不能重跑请求/上传或继续使用原读取额度。下一仅用真实回执/VersionId准备原双workflow/SOURCE/六项派生/trust-only发布的准确材料；实际新读取、来源发布及整轮另审，不开短窗口、不扩支线。以下“请求/版本未产生”仅为完成前沿革。
+
 **最新继续点（2026-10-29，14:41 CDT新只读事实已取得）**：代码cfb1408/准确CI40940078691已收尾；用户另允的新d记录及独立本地核验通过。下一只准备同一b236真实待审请求登记/独立回读及材料上传的准确清单，再沿原双workflow/SOURCE/唯一trust pin及整轮继续，不重复代码或历史补件。两个buyer选择仍null，真实请求/版本/发布证明未产生；新快照5小时至今天19:39:51.491 CDT，不延长basis或提前开付费窗口。
 
 **本次已落实该准备动作的固定调用与风险范围**：[请求登记＋材料上传审核说明](aws-backend-integration-request-upload-review.md)。旧request-local两行handoff不适用，本次不调用；仅在本地固定配方编排原单INSERT、原TLS身份/完整reader以及原上传器/固定版本Inspector，没有工程应用代码、上传SDK或新执行根改动。17项本地合成检查覆盖单次INSERT、pg_catalog/Serializable、基线漂移/错误clock/零行/批准失败、COMMIT ACK未知、旧账本漂移、held行各约束、准确ACK及条件上传冲突。不是新增生产探针，不当真实数据库或云验收。

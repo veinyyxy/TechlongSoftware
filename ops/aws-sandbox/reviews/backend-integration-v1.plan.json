@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "REQUEST_UPLOAD_FIXED_RECIPE_VALIDATED_AWAITING_EXACT_MANIFEST_AND_APPROVAL",
+  "status": "HELD_REQUEST_AND_BUYER_BUNDLE_EXECUTED_AND_LOCALLY_RECONCILED_NO_ACTIVATION",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
@@ -389,6 +389,30 @@
     "currentPhaseSlotsConsumed": 0,
     "executionAuthorized": false
   },
-  "nextUniqueAction": "Finish offline exact manifest/checkpoint on final clean main from the five-hour d snapshot, then freeze source and request the single exact SHA for same-b236 held request/independent readback plus original conditional upload/version inspection. The prepared checkpoint must actually exist and match; do not infer approval from these docs. No further production preparation read, source change, feature or paid window. Actual request/upload VersionId/publication proofs remain null. Original basis expires 2026-10-30T15:08:09.592Z without extension; downstream original workflow/trust-only publication and whole cycle still separately reviewed.",
+  "requestUploadExecution": {
+    "publicObservation": "ops/aws-sandbox/reviews/backend-integration-v1.request-upload-observed.json",
+    "approvedManifestSha256": "a8393ad2aeb7bdc65f04fd6b73fb9f3e5e6fddbce532a84cfebe557edff783fb",
+    "executionSourceCommit": "cc5240120d132ae316347dbed6f641c72ce609f7",
+    "checkpoint": "F:/ChatGPT_workshop/techlong-buyer-request-upload-executed-verified-20261029-a.json",
+    "checkpointRawSha256": "4af3c72085a367a601120646fc4832315bd43946252be311585ab5d6df534a30",
+    "transactionAt": "2026-10-29T22:47:07.486Z",
+    "independentObservedAt": "2026-10-29T22:47:13.475Z",
+    "newHeldJobCreatedAndIndependentlyVerified": true,
+    "newHeldJobId": "job_b236b120d6406d3e296d341b",
+    "oldJobsAndCompleteBusinessLedgerProtectionUnchanged": true,
+    "uploadAndExactVersionIndependentlyVerified": true,
+    "actualVersionId": "ywA1SETga2C.2JIxiHXvTcLbXimP0n_4",
+    "bundleSha256": "f01f9489f1987c3517c858ed7a4cf81fbbf0fb502dea405b9c82336dbecc8b78",
+    "artifactsReconciled": 23,
+    "actualCounts": {"configurationReads": 2, "verifiedTlsConnections": 2, "sqlQueries": 72, "sourceSts": 3, "bucketMetadata": 6, "targetHead": 2, "conditionalPuts": 1, "fixedVersionGets": 1},
+    "fourPermanentSlotsConsumed": true,
+    "initialApprovalReviewQuotaFailureDidNotExecuteCommand": true,
+    "actualExecutions": 1,
+    "productionSourceSelectionPublished": false,
+    "dispatchesOrWorkloadCreates": 0,
+    "sourceFreezeEndedAfterReconciliation": true,
+    "oldApprovalsMayBeReplayed": false
+  },
+  "nextUniqueAction": "Prepare the original two-workflow/SOURCE/six-derived-fields/trust-only publication scope using the actual b236 held-request and fixed upload-version originals. Request and upload are complete: never recreate, reupload, reset slots or replay a839. Necessary new metadata reads and actual publication effects remain separately reviewed. Both production selections stay null; no dispatch, hosting renewal, deployment, new framework or IAM permission expansion. Original basis expires 2026-10-30T15:08:09.592Z unchanged; subsequent same-job whole cycle and human GitHub gates are separately approved.",
   "wholeProductAccepted": false
 }

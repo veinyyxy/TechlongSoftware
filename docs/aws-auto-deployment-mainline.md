@@ -4,6 +4,10 @@
 
 ## 当前唯一继续点（2026-10-29，买家域名静态验收完成；回到后端联调）
 
+**最新：同一b236请求＋准确材料上传已真实完成，未激活或部署。** 用户批准a8393ad2…后，来源cc52401于17:47:07.486 CDT提交新held请求，17:47:13.475独立TLS回读通过；12旧任务及完整账本/业务/保护保持。原条件上传615808字节、固定版本回读成功，真实VersionId ywA1SETga2C.2JIxiHXvTcLbXimP0n_4。实际配置2/TLS2/SQL72/STS3/桶元数据6/HEAD2/PUT1/GET1，四槽已消费，23原件本地核对通过。[去敏完成记录](../ops/aws-sandbox/reviews/backend-integration-v1.request-upload-observed.json)；恢复F:/ChatGPT_workshop/techlong-buyer-request-upload-executed-verified-20261029-a.json，raw SHA 4af3c72085a367a601120646fc4832315bd43946252be311585ab5d6df534a30。
+
+**下一只准备原双workflow/SOURCE/六项派生/唯一trust claim的准确发布范围**，使用真实请求及上传版本，不再登记/上传/复位或扩代码。必要新读取、来源/trust发布及后继整轮仍分别新范围审核；生产选择仍null，无dispatch/承载/续租/Secret值或私钥读取，basis明天10:08:09.592 CDT不延长。来源冻结在独立复核后结束，只正常记录结果；下方待审描述保留沿革，不重放a839清单，wholeProductAccepted=false。
+
 **最新：三文件/两处接线及准确CI已完成**，源码cfb1408/[run40940078691](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40940078691)成功、16报告步骤全过。原SDK/固定Secret/窄Neon/provider/evidence/journal及V5执行根接到同一buyer context；原publication/local复用Git/CFN发布和独立核验。57项定向/122项相关检查（重叠）、类型/lint通过；旧110不变、111现52ae2ee3…。默认选择null、未发布装配，本轮生产读取/私密读取/云或SQL写/上传/任务/槽/IAM或受保护workflow改动/dispatch0。[实现与边界](aws-backend-integration-preparation.md#两处最小接线的代码验证)。恢复F:/ChatGPT_workshop/techlong-buyer-sdk-publication-wiring-code-verified-20261029-a.json，raw SHA 84cb3a8627dffaa50047e45d9259276afa1b87b83f3a86e3df6e821f66d8db42。
 
 **最新只读核对现已完成（10月29日14:39–14:41 CDT）**：新d记录STS1/元数据64/GitHub9/配置1/验证TLS1/只读SQL16，完整业务/历史/保护匹配；候选b236及请求去重键均不存在，拟上传键HEAD404，原角色策略/Secret版本元数据/本人门禁未变。仅本地重建了当前受测代码绑定和原单INSERT投影，无请求、上传、云或DB写、槽、dispatch。[去敏事实摘要](../ops/aws-sandbox/reviews/backend-integration-v1.readiness-20261029-d.json)；恢复F:/ChatGPT_workshop/techlong-buyer-backend-readiness-20261029-d/verified.json，raw SHA 0aa14e355472379e04400d1a47f77e7972ade773cbf094303faa41b280befe55。
