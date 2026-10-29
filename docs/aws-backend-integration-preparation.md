@@ -65,6 +65,6 @@ C补核执行源码e620a0f，于2026-10-28 23:29:16–23:29:22 CDT完成：配�
 
 既有prepareInitializedPlatformRequest已支持一条新held请求，无需再实现取消/恢复框架。现状12条任务均终态、无lease，不能使用“取消旧pending+新建”的两行handoff。后继仍保留全部旧任务/账本/业务与保护；新job/request ID、真实新窗口和请求写入均未产生。
 
-本轮新增边界/域名候选回归与原请求回归合计23项通过，类型/lint及旧110文件闭包核对保持；这些不是AWS模板验证、域名安装、后端部署或业务验收。仅把检查加到原无AWS CI，没有新部署workflow或云副作用。
+本轮新增边界/域名候选回归与原请求回归合计23项通过，类型/lint及旧110文件闭包核对保持；源码aad23fa的准确CI40820296477全部成功，实用GitHub GET5，无AWS/生产配置/SQL。恢复读F:/ChatGPT_workshop/techlong-buyer-domain-code-verified-20261028-a.json。上述不是AWS模板验证、域名安装、后端部署或业务验收；只把检查加到原无AWS CI，没有新部署workflow或云副作用。
 
 **下一唯一动作：准确CI通过后，另获一次域名范围限定元数据读取许可，核对准确CDN/现有栈、DNS占用和证书选项，为证书阶段生成待审SHA。** 不沿用旧读取许可，不重采数据库，不申请证书、改DNS/CDN/IAM、创建任务、发布来源/trust、续租或调度。实际云变更、后继材料/来源与Review→RunOnce→Inspect仍分别按准确范围另审，GitHub环境由用户本人批准。先备齐整轮再开短窗口，到期不代表自动停费或清理；50 USD/月仍是目标，wholeProductAccepted=false。

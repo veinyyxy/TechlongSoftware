@@ -75,6 +75,8 @@ Source刷新及新同范围许可后，20:56–20:59的B记录取得AWS/GitHub�
 
 **当前唯一继续点：完成[自定义域名候选](aws-buyer-web-custom-domain-plan.md)的准确CDN/证书/DNS差异、测试与待审材料。** 本地候选和原请求合计23项检查已通过，精确CI结果另据真实run封存。当前不批准ACM申请、DNS/CDN写入、新IAM或后端部署，不为绕过校验创建新执行器。复用原CDN/桶/角色、原请求编译器及7资源后端，后继CORS只追加准确buyer域名；新合法请求/材料/来源发布与整轮执行仍集中准备并另审，不取消成功a00、不走旧pending两行handoff或复制固定任务分支。
 
+该候选现已完成：源码aad23fa/准确CI40820296477全部成功；23项本机定向检查、类型/lint/YAML及原110文件闭包保持，实用CI GET5，无AWS/生产配置/SQL或云写。恢复读F:/ChatGPT_workshop/techlong-buyer-domain-code-verified-20261028-a.json；它只封存本地候选，不证明证书、DNS或域名已安装。**下一唯一动作：另允最多1次STS＋20次AWS元数据，仅核对现有CDN/栈、准确DNS名称及证书元数据，准备证书阶段清单。** 不读Secret值/PEM/.env、不连数据库、不写资源或调度，不重用旧读取许可或提前要求Source刷新。
+
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 
 发布后CI40747653765的旧来源比较问题已仅在 `tests/platform-recovery-cloud-v1.test.mjs` 最小修复：保留历史发布SHA/a604 provenance，再识别已安装reviewed-cycle SOURCE、准确模板与原observedBy，完整比较workflow全文、reusable pin和本人门禁。352项相关本机回归、类型/lint/diff与110闭包核验通过；不改线上workflow/云代码/IAM、不重做发布，本轮生产调用/私密读取/SQL/云写/dispatch均0。原失败诊断 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-post-ci-20261028-a.json` 保留；准确源码/CI只在真实成功后封存 `F:/ChatGPT_workshop/techlong-reviewed-cycle-legacy-test-fix-verified-20261028-a.json`，未封存前先查同一提交CI，不开始生产准备。

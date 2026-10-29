@@ -39,4 +39,6 @@ CloudFront要求alias由所挂证书覆盖，ACM证书需在us-east-1；S3和现
 
 不新增ECS、ALB、RDS、CDN或桶；原CDN/S3流量、存储版本、zone和其他现有系统费用继续，50 USD/月仅是整体目标，不能保证绝对零费用或自动停费。DNS记录超量、异常流量、配额及提供者价格变化需在执行清单再次核对。证书CT/公开DNS可能长期留痕；跨区域/服务非原子，失败可能留证书或记录，不自动删、补齐、回滚、续租或重试。
 
-本轮仅本地准备与无AWS测试/CI；没有AWS元数据或写入、私密读取、SQL、GitHub环境配置/dispatch、证书请求、DNS/CDN更新或后端部署。准备快照仍按原真实时间，不因本方案重新计时。下一只在准确CI通过后申请一次域名范围的限定元数据核对，生成证书阶段待审SHA。
+本轮源码aad23fa/准确[CI40820296477](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40820296477)已completed/success、attempt1；23项定向检查及类型/lint/YAML/旧110文件闭包核对均通过。[公开验证摘要](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-code-verified.json)只含代码/CI与不可执行状态；恢复读F:/ChatGPT_workshop/techlong-buyer-domain-code-verified-20261028-a.json，其绑定源码与本地CI原件，不是云安装证明。
+
+本轮没有AWS元数据或写入、生产配置/PEM读取、SQL、GitHub环境配置/dispatch、证书请求、DNS/CDN更新或后端部署；CI核验仅5次GitHub GET，使用既有Git凭据且不输出凭据。准备快照仍按原真实时间，不因本方案重新计时。**下一唯一动作：另获一次最多1次STS＋20次AWS元数据的域名只读预检许可，核对准确现有承载/CDN、DNS名称与证书元数据，生成证书阶段待审SHA。** 不读Secret值/PEM/.env、不连接数据库，不改资源/权限或调度；当前未获该新读取或任何实际云写许可，不提前要求刷新Source。

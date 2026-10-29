@@ -1,0 +1,43 @@
+{
+  "schema": "techlong/buyer-domain-local-candidate-verification/v1",
+  "outcome": "LOCAL_DOMAIN_CANDIDATE_AND_EXACT_NO_AWS_CI_VERIFIED_NOT_INSTALLED",
+  "testedSourceCommit": "aad23fa63b1440575f11fb133b6b89d2dc9aa844",
+  "ci": {
+    "runId": "40820296477",
+    "jobId": "123270943789",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/40820296477"
+  },
+  "localTargetedTestsPassed": 23,
+  "typecheckScopedLintAndYamlPassed": true,
+  "oldCloudClosure": {
+    "pinCount": 110,
+    "sha256": "0c6f119def3b10efe592f559b29d4d8f929893a28dbc77a065c2746052aa308d",
+    "unchanged": true
+  },
+  "checks": {
+    "rawCloudFrontOriginStillRejected": true,
+    "buyerDomainFitsExistingBoundary": true,
+    "onlyOneExistingDistributionModificationAndTwoDnsAdditionsProposed": true,
+    "otherResourcesAndIamIdenticalInPureCandidateComposition": true,
+    "certificateRegionAndAccountRestrictedNoDefaultOrInventedArn": true,
+    "existingSingleInsertRequestCompilerReusedNotDuplicated": true
+  },
+  "userApprovedPreparationDirectionOnly": true,
+  "actualCertificateArn": null,
+  "currentDomainOccupancyChecked": false,
+  "awsTemplateValidationPerformed": false,
+  "awsCalls": 0,
+  "configOrPemReads": 0,
+  "sqlConnections": 0,
+  "cloudWrites": 0,
+  "workflowDispatches": 0,
+  "githubGetsForExactCiVerification": 5,
+  "executionAuthorized": false,
+  "executionApprovalSha256": null,
+  "backendRestored": false,
+  "wholeProductAccepted": false,
+  "localRecoveryCheckpoint": "F:/ChatGPT_workshop/techlong-buyer-domain-code-verified-20261028-a.json"
+}

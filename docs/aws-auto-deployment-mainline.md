@@ -30,6 +30,8 @@
 
 **用户已选定：先准备现有CDN的buyer.sandbox.techlong.cloud自定义域名方案；当前唯一动作见[域名候选](aws-buyer-web-custom-domain-plan.md)。** 本地候选与原请求合计23项检查通过，真实CI另据准确run封存。只准备现有分布别名/证书/DNS及对应准确CORS材料，不新增CDN/桶/执行器或改旧内核，不申请证书、改DNS/IAM/CDN、创建任务或部署后端。实际云变更、新合法请求/来源及整轮执行仍分别准确另审；旧成功任务和前端产物保持，wholeProductAccepted=false。
 
+候选已收尾：aad23fa/准确CI40820296477全部成功，本机23项及类型/lint/YAML/原110闭包保持，CI GET5，无AWS/生产配置/SQL/云写。检查点F:/ChatGPT_workshop/techlong-buyer-domain-code-verified-20261028-a.json。**下一只另获1次STS＋最多20次AWS元数据的域名限定预检许可，准备证书阶段待审SHA；不读秘密/配置、不连数据库、不写云或dispatch。** 无实际证书ARN、DNS占用事实或云执行批准，不把候选通过当域名上线。
+
 ### 已完成历程与本轮准备沿革（以下不是重放指令）
 
 **同一a00任务的 Review → RunOnce → 独立 Inspect 已真实通过，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`。** 用户批准外层913ea70a…并本人完成三次GitHub环境审批；准确runs为[Review 40751073822](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40751073822)、[RunOnce 40751515012](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40751515012)、[Inspect 40752434574](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40752434574)。执行源码284f6ad/准确CI40748831700；一次建栈、两次认证GET，任务成功且租约清空，旧11job和14/9/9控制历史及保护保持。没有新增IAM、重试、清理或agent代批。
