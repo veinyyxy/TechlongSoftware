@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "LOCAL_PUBLICATION_DELTAS_VERIFIED_TWO_MINIMAL_WIRING_GAPS_PENDING_AGREEMENT",
+  "status": "TWO_EXISTING_ENTRY_WIRING_IMPLEMENTED_LOCAL_VERIFIED_PENDING_EXACT_CI",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
@@ -325,6 +325,25 @@
     "gitCandidateObjectsCreated": 0,
     "executionAuthorized": false
   },
-  "nextUniqueAction": "Seek agreement for only the two existing-entry wiring gaps: source-selected real SDK/context assembly inside the current buyer module, and genuine buyer SOURCE/template/exact-prestate selection in the original publication/local entry, plus targeted tests and exact No-AWS CI. Bound the initial source scope to those three files; preserve old 110 pins/default recovery, original V5 execution guards, existing Git/CFN publisher/inspector, human environment gate and current permissions. Do not repeat the fixed provider supplement or genuine material reconstruction. Missing real request/readback/upload/version/fact/release receipts stay null and separately reviewed. No implementation, production reads, private reads, job/upload/SOURCE/trust writes, renewal, window or dispatch before the corresponding agreement/approval.",
+  "entryWiringCode": {
+    "userAgreedToTwoMinimalGaps": true,
+    "sourceFiles": ["ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs", "ops/platform-reviewed-cycle-v1/publication.mjs", "ops/platform-reviewed-cycle-v1/publication-local.mjs"],
+    "implementationComplete": true,
+    "localTargetedTests": 57,
+    "localRelatedTests": 122,
+    "testSetsOverlap": true,
+    "additionalTargetedTests": 11,
+    "realSdkClassesWithSyntheticResponses": true,
+    "exactCiVerified": false,
+    "oldCloudClosureSha256": "0c6f119def3b10efe592f559b29d4d8f929893a28dbc77a065c2746052aa308d",
+    "candidate111Sha256": "52ae2ee335ecf9d6726c65c9aaa1c90776a10caabfd13decc0401fbeb1c276a0",
+    "newSdkOrExecutorFramework": false,
+    "productionSourceSelected": false,
+    "productionAssemblyPublished": false,
+    "protectedWorkflowOrIamChanges": 0,
+    "productionCalls": 0,
+    "executionAuthorized": false
+  },
+  "nextUniqueAction": "Verify the exact source No-AWS CI and seal these two completed wiring repairs, then prepare the concentrated real request/upload/necessary SOURCE publication and reviewed deployment scope. Do not repeat historical supplement or expand code. The original 14:07 snapshot is expired; new fact reads and real request/readback/upload/version/source/trust/deployment effects remain separately reviewed. Defaults stay null, old 110 and original guards stay intact, missing receipts remain null, no cloud/private reads, renewal, window or dispatch by default.",
   "wholeProductAccepted": false
 }

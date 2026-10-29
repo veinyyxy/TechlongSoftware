@@ -1,8 +1,20 @@
 # 后端联调/CORS：当前最小准备与继续点
 
-**最新继续点（2026-10-29，本地发布候选核对后）**：固定provider及buyer真实材料保持；双workflow/SOURCE/唯一trust claim差异已核对，但现有生产运输和发布准备器不能直接承载buyer候选。下一只征求下节两处最小接线与定向测试同意，不自动展开代码或云阶段。真实请求/回读、上传版本及事实/发布批准仍缺，不生成可执行来源或先开窗口。新增生产读取与实际写入继续具体另审。
+**最新继续点（2026-10-29，用户同意两处最小接线后）**：三处既有源码及对应测试已本机完成，下一只核验准确无AWS CI并封存代码结果。默认两个buyer选择仍null，没有发布或部署；固定原件/真实材料保持。真实请求/回读、上传版本及新事实/来源批准仍缺，原14:07准备快照已到期，不能自动重读生产、填假回执或先开窗口。
 
 2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)，承接[已完成的客户端静态发布](aws-buyer-web-sandbox-publication-observed.md)。本文件仅整理当前主线，不是新任务、数据库写入、私密读取、来源发布、IAM修改或付费后端部署授权。[机器准备摘要](../ops/aws-sandbox/reviews/backend-integration-v1.plan.json)执行SHA为null。
+
+## 两处最小接线的代码验证
+
+用户已同意仅三处现有源码加对应测试，不扩框架/权限或发布部署。buyer-compatibility.mjs新增生产端口装配和受审live入口：genuine context在创建SDK客户端前校验，绑定同一源码/安装/角色；沿用原V5 session、固定版本DB Secret、窄Neon TLS/角色检查、control指纹、provider/evidence及永久journal，再调用原V5 root/V6 mode bridge。OIDC及STS仍限定本人门禁/固定bot/main/首次run/准确reusable和RoleId；S3读取限4次准确引用、写限2次准确结果/descriptor条件PUT，默认/无效来源在OIDC或私密读取前拒绝。没有改旧110或复制执行器。
+
+publication.mjs/publication-local.mjs保留旧恢复默认导出，仅不可伪造的buyer能力及完整真实材料可选择新来源；JSON/CLI/env不能自行切协议。新增源码选择常量BUYER_PUBLICATION_SOURCE仍null。实际请求snapshot必须通过原单INSERT读回核验，上传proof必须绑定同一准确包/事实及原一次PUT/GET回执；缺件拒绝。原Git对象准备/三写发布/独立Inspect复用，before模板/operator/reusable来自完整受审prestate，inline/boundary固定不变，唯一trust claim替换之外完整复原。六项自引用均按原函数派生，云端SOURCE移除本机bundleFile，不把本机路径发送到云端。过期只读Inspect不赋予写入权限，实际写前仍按wall clock/20分钟启动预留检查。
+
+本机57项定向（46旧项＋11新项）、122项相关检查通过；两组重叠不相加。新检查使用真实SDK类/实际装配与原发布器，在CODE内mock OIDC、STS/S3/Secret响应；验证身份失败不能读Secret、只读固定版本、错误版本不能连接Neon、默认无凭据发现/网络、完整workflow/六项绑定/唯一trust差异、缺真实回执拒绝、未知写停止及不重试。测试在Secret边界停止，不冒充AWS/Neon实测或完整部署验收。旧合成profile含本机requestSlot触发路径guard，已在对应新测试内重建无本机坐标的genuine basis，不放宽guard；旧合成安装引用已对齐准确模拟版本，原失败只属本机测试。
+
+类型、scoped lint（零warning）、diff及默认publication --check通过，旧110摘要仍0c6f119d…；当前111为`52ae2ee335ecf9d6726c65c9aaa1c90776a10caabfd13decc0401fbeb1c276a0`，旧caeca1f9…是上一阶段代码，不覆盖原件。原无AWS CI已经覆盖该测试文件及三个源码，不改受保护部署workflow或新增工作流。准确CI完成后另封存，当前不冒称已获远端成功。
+
+本轮无项目配置、私钥/Secret/HMAC或生产DB读取、AWS调用/写入、上传/任务/槽、Git发布候选对象、IAM或受保护workflow改动及dispatch。普通代码/文档提交只触发无AWS CI，不是来源发布或云部署。源码/CI收尾后只集中准备新事实/真实请求、上传/必要来源绑定及整轮范围；原09:07快照14:07截止已过、basis 10月30日10:08:09.592 CDT仍固定，不能复用旧读取许可或延时，不再展开新功能。
 
 ## 发布候选差异与两处最小接线缺口
 

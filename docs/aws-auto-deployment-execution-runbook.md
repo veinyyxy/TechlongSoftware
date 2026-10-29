@@ -31,6 +31,12 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 ## 3. 当前唯一继续点：整轮真实部署闭环已完成，转向产品验收与AWS交付
 
+**本次获同意的两处代码接线已本机完成，下一只核对该提交的准确无AWS CI。** 三处既有源码接入buyer真实SDK端口和原发布器的SOURCE/template/prestate选择；默认BUYER_SOURCE/BUYER_PUBLICATION_SOURCE仍null，旧110与默认恢复路径保持。57项定向检查及122项相关检查（两组重叠）通过，类型/lint和发布入口--check通过；新增外部SDK/OIDC/S3/Secret响应均为明确合成，不是生产调用。111候选摘要现为52ae2ee3…，旧材料/code检查点继续保留，不冒称旧111仍是当前代码。
+
+源码/准确CI收尾后，下一仅集中准备真实请求、上传和现有来源发布/整轮所需的准确范围，不再补件或扩代码。原14:07准备快照已到期，不自动重读生产或生成执行SHA；原basis 10月30日10:08:09.592 CDT不延长。真实请求/回读、上传版本、固定源码选择、发布与部署均未发生，仍按具体新范围另审，不先开窗。
+
+**用户现已同意仅实施下述两处最小接线与定向测试。** 本轮范围为现有buyer SDK装配、publication/publication-local来源选择及对应测试/文档；保留旧110和默认恢复路径。不读取生产、私密配置或凭据，不执行发布/部署/调度；正常代码提交及无AWS CI按既有授权继续。下方“先取得同意”是本次批准前的停止记录，不重复征求同一代码范围。
+
 **最新13:36 CDT（10月29日）：固定provider原件已另批补齐，真实buyer后继链和来源材料已本地重建，仍不可执行。** 新记录仅STS1＋准确版本S3 GET1/1703字节，版本/完整大小/SHA全部匹配；54原件、11固定对象和原basis重建通过。完整报告用已有`providerPublicV5`投影后经原后继链校验通过，未改原件、旧110或应用代码；本地B格式停止和旧STS失败均保留，无云重试。原b236请求身份保持，仅本地SQL编译，未创建/占槽/上传/发布/调度。[真实材料、缺口及下一范围](aws-backend-integration-preparation.md#固定原件及真实buyer材料已重建10月29日1336-cdt)。恢复F:/ChatGPT_workshop/techlong-buyer-real-material-verified-20261029-a.json，raw SHA 16b1a0dff9deed74ee41d0a1e880fb7e412c6d675527bc3f13e4e2a68a9b9fb2。
 
 **发布候选差异核对现已完成，但生产装配证明未通过，不能生成可执行发布SHA。** 原双workflow、六项SOURCE派生及唯一trust claim的本地差异已核对；旧live仍调用固定恢复application，原publication/local仍固定旧周期/信封/before hash，不能直接拿buyer材料发布。恢复F:/ChatGPT_workshop/techlong-buyer-publication-candidate-verified-20261029-a.json，raw SHA 95ada491ca4658d480f9f72d0132f7d97a2a37e8880fc5d375502b8e80150ea1。本轮生产调用、私密读取、应用代码/受保护workflow/IAM改动、Git候选对象、槽和dispatch均0。

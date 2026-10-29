@@ -4,6 +4,12 @@
 
 ## 固定复用与最小差异
 
+**2026-10-29 buyer兼容附注（代码/测试，不是发布批准）**：原a00来源发布已完成，下方固定值仅为历史默认路径，不能重放。新buyer入口仅在源码中的BUYER_PUBLICATION_SOURCE另行准确选定、真实请求/独立回读及已核验上传版本齐备后选择；目前该常量和BUYER_SOURCE均null。新路径复用原Git/CFN发布和独立Inspect，只把旧四项自引用增加到已明确的六项：原caller source、reusable、activation source及release SHA，加buyer.source.code.commitSha和publication.buyerContextSha256。后两者由前者绑定后计算，不能用外部参数或旧批准覆盖。
+
+原SDK/session/provider/evidence/固定Secret/窄Neon/control/journal及V5执行根保持；new buyer SOURCE与实际SDK端口同一上下文，旧110不改，新增111候选摘要按实际代码另核对。新caller/reusable仍为原两文件和本人环境门禁；云端literal不含本机bundleFile，按准确S3 key/version/SHA取得同一bundle。发布前必须用真正生成的caller/reusable、准确新CI及完整来源证明，不能用模拟测试结果或旧包VersionId填空。
+
+新prestate按本次已核验的真实template/operator/old reusable确定，不再套用下方旧null binding及e658f7… pin。唯一trust claim之外的模板、inline/boundary/RoleId/actor和资源保持；源码选择不是云授权，Capture、上传、请求写、Git push、CFN Create/Execute及整轮仍各按新准确范围另审。原非原子/传播/部分遗留/费用/永久槽风险继续适用；编译历史材料和过期后的独立只读Inspect不延长写入时限。相关代码测试外部SDK响应为明确合成，尚未真实发布或部署。
+
 复用准确新任务 `job_a00fc18c13a5d6c6616c8039`、已独立核验的包VersionId `PCD4J0_Ydp1lpa1BzFeKhDbNIEiUK1HC`、包SHA `e908e74b0de03ae61a2f36bfe1e9f0423ce3850e341a1a3cdf5f9676553b0700`、basis `2cf26916af4f9d8734da18231d2571b23758397c72f1a5566bee5656623d8045` 及ce3a497b…新事实批准。新facts仍固定至2026-10-30 10:08:09.592（温尼伯CDT），不重传包、不改事实时刻或延长旧basis。完整11旧job/14旧plan及原9db成功前驱保持，不把a604 Review升级为成功或accepted lineage。
 
 拟议发布仅更新现有三个文件：

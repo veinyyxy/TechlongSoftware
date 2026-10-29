@@ -1,8 +1,14 @@
 // Targeted regression for native buyer publication through the EXISTING whole
 // flow. Cloud reports/ports are synthetic; compilers, verifiers and publishers
 // are real. No local archives, production credentials, network or live writes.
-import test from 'node:test';
+import test,{mock} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {load} from 'js-yaml';
+import {STSClient} from '@aws-sdk/client-sts';
+import {SecretsManagerClient} from '@aws-sdk/client-secrets-manager';
+import {S3Client} from '@aws-sdk/client-s3';
+import {CLOUD_V6} from '../ops/platform-cloud-v6/contract.mjs';
 import {buyerFixture} from './fixtures/buyer-compatibility-v1.mjs';
 import {createReviewedCycle,RISK} from '../ops/platform-reviewed-cycle-v1/cycle.mjs';
 import {createCycleComposition,projectHistory} from '../ops/platform-reviewed-cycle-v1/composition.mjs';
@@ -19,6 +25,13 @@ import {validatePlan} from '../lib/deployments/controller-v6/contract.ts';
 import {compilePlatformInitializedClaimV4,compilePlatformInitializedCompleteV4} from '../lib/deployments/execution/express-platform-claim-v4.ts';
 import {normalizedState} from '../ops/platform-request-v6/state-contract.mjs';
 import {sha256Hex,canonicalJson} from '../lib/deployments/execution/hash.ts';
+import {createBuyerApplication,runBuyerLive,assertBuyerPublicationSource} from '../ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs';
+import {createBuyerPublication,BUYER_PUBLICATION_SOURCE,hash} from '../ops/platform-reviewed-cycle-v1/publication.mjs';
+import {selectPublication,profile as publicationProfile} from '../ops/platform-reviewed-cycle-v1/publication-local.mjs';
+import {publishAppOnceV6} from '../ops/platform-publication-v6/plan.mjs';
+import {rebuildRecoveryPackage} from '../ops/platform-recovery-v1/package.mjs';
+import {recoveryBasisCompiler} from '../ops/platform-recovery-v1/basis-core.mjs';
+import {prepareBuyerCompatibility} from '../ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs';
 
 async function fixture(fault){
   const f=await buyerFixture(),now=f.options.now,at=now(),job=f.source.request.jobId,store=f.f.store,readObject=f.f.readObject,
@@ -186,4 +199,169 @@ test('SOURCE bundle loader rejects changed code binding, proof bytes and fabrica
   const bundle=structuredClone(f.bundle);bundle.baseline.protection.catalogSha256='0'.repeat(64);
   await assert.rejects(prepareBuyerFromSource(source,bundle,{now:f.f.options.now}),/SELECTED_BUNDLE/);
   await assert.rejects(prepareBuyerFromSource({...source,buyer:{...source.buyer,originalProfile:{...source.buyer.originalProfile,receiptSha256:'0'.repeat(64)}}},f.bundle,{now:f.f.options.now}));
+});
+
+test('buyer SDK application requires a genuine code capability before credentials and constructs without I/O',async()=>{
+  const f=await buyerFixture();let credentials=0;
+  const options={compat:f.compat,installation:f.dependencies.installation,code:f.source.code,run:f.dependencies.run,
+    credentials:async()=>{credentials++;throw Error('NO_CREDENTIAL_DISCOVERY');},now:f.options.now};
+  await assert.rejects(createBuyerApplication({...options,compat:{...f.compat}}),/SOURCE_CAPABILITY_REQUIRED/);
+  await assert.rejects(createBuyerApplication({...options,code:{...f.source.code,commitSha:'0'.repeat(40)}}),/SDK_CODE_BINDING/);
+  const app=await createBuyerApplication(options);assert.equal(credentials,0);assert.equal(typeof app.runOnce,'function');app.dispose();
+});
+for(const identity of ['exact','wrong'])test('real buyer SDK port gates its fixed DB Secret on '+identity+' role identity',async()=>{
+  const f=await buyerFixture(),run=f.dependencies.run,events=[];
+  const sts=mock.method(STSClient.prototype,'send',async()=>{events.push('identity');return {Account:'402010193138',
+    UserId:(identity==='exact'?f.dependencies.installation.roleId:'AROAWRONG')+`:Deploy-${run.runId}-1`,
+    Arn:`arn:aws:sts::402010193138:assumed-role/TechlongSandboxGitHubDeploymentWorkerRole/Deploy-${run.runId}-1`};});
+  const sm=mock.method(SecretsManagerClient.prototype,'send',async command=>{events.push('secret');
+    assert.deepEqual(command.input,{SecretId:f.dependencies.installation.databaseSecret.arn,
+      VersionId:f.dependencies.installation.databaseSecret.versionId,VersionStage:'AWSCURRENT'});throw Error('SYNTHETIC_FIXED_SECRET_STOP');});
+  try{
+    const app=await createBuyerApplication({compat:f.compat,installation:f.dependencies.installation,code:f.source.code,run,
+      credentials:async()=>{throw Error('NO_REAL_CREDENTIALS');},now:f.options.now});
+    assert.deepEqual(events,[]);
+    try{await assert.rejects(app.review({jobId:f.source.request.jobId,signal:AbortSignal.timeout(10000)}),
+      identity==='exact'?/SYNTHETIC_FIXED_SECRET_STOP/:/ASSUMED_ROLE_IDENTITY_MISMATCH/);
+      assert.deepEqual(events,identity==='exact'?['identity','secret']:['identity']);
+      await assert.rejects(app.review({jobId:f.source.request.jobId,signal:AbortSignal.timeout(10000)}),/ROOT_MODE_ONCE/);
+    }finally{app.dispose();}
+  }finally{sts.mock.restore();sm.mock.restore();}
+});
+test('new live/publication default selection rejects before OIDC, file or credentials',async()=>{
+  let reads=0;const fetch=mock.method(globalThis,'fetch',async()=>{reads++;throw Error('NO_NETWORK');});
+  try{
+    await assert.rejects(runBuyerLive({},{}),/SOURCE_NOT_CONFIGURED/);
+    assert.equal(await selectPublication({read:async()=>{reads++;throw Error('NO_FILE');}}),null);
+    assert.equal(BUYER_PUBLICATION_SOURCE,null);assert.equal(reads,0);
+  }finally{fetch.mock.restore();}
+});
+async function publicationFixture(){
+  const f=await fixture(),s=structuredClone(f.source),now=f.f.options.now;
+  // The older synthetic recovery fixture includes a LOCAL requestSlot. The
+  // real cloud profile does not. Rebuild its genuine basis without that local
+  // test coordinate rather than weakening the cloud-template path guard.
+  const originalProfile={...f.f.f.profile};delete originalProfile.requestSlot;delete s.profile.requestSlot;
+  const basis=await rebuildRecoveryPackage(f.bundle.originalPackage,recoveryBasisCompiler(originalProfile)),
+    compat=await prepareBuyerCompatibility({...f.f.options,basis});
+  const profileSha256=await sha256Hex(s.profile);s.publication.profileSha256=profileSha256;s.publication.factsApproval.profileSha256=profileSha256;
+  s.publication.cycleId=(await createReviewedCycle(s,{anchor:originalProfile})).cycleId;
+  s.buyer={schema:'techlong/buyer-context-selection/v1',source:f.f.source,originalProfile,
+    bundleFile:'F:/ChatGPT_workshop/techlong-synthetic-buyer-bundle.json'};
+  const b=JSON.parse(await readFile(new URL('./fixtures/platform-recovery-publication-v1.json',import.meta.url),'utf8')),
+    pin='veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@1120f5106079a006c5e1c455f7de4b70e9732e5b';
+  b.template.Resources.WorkerRole.Properties.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals['token.actions.githubusercontent.com:job_workflow_ref']=pin;
+  b.iam.trust=structuredClone(b.template.Resources.WorkerRole.Properties.AssumeRolePolicyDocument);
+  const baseline={source:b.source,main:s.publication.sourceCommit,foundation:{stackId:'arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cloud-worker-foundation-v5/308174f0-ca9e-11f1-a04d-02569e9287b5',
+    status:'UPDATE_COMPLETE',roleArn:null,parameters:[],template:b.template,resources:b.resources},iam:b.iam,
+    environment:{environmentId:24613410405,requiredReviewerId:14145707,adminBypass:false,mainBranchOnly:true},
+    oidc:{use_default:true,use_immutable_subject:true,sub_claim_prefix:'repo:veinyyxy@14145707/TechlongSoftware@1323312747'},unfinishedDeploymentRuns:0};
+  const operatorScopeSource='// Local operator binding only; never part of the frozen cloud closure.\nexport const SELECTED_CYCLE=Object.freeze({"previous":"synthetic-installed"});\n',
+    requestSnapshot=normalizedState({...f.f.state,jobs:[...f.f.state.jobs,f.f.observed.job]}),
+    options={compat,bundle:f.bundle,source:s,requestSnapshot,baseline,operatorScopeSource,now},p=await createBuyerPublication(options),
+    parent=s.publication.sourceCommit,r='b'.repeat(40),objects={reusable:{file:p.Q.reusable,parent,commit:r,tree:'c'.repeat(40),blob:'d'.repeat(40)},
+      caller:{file:p.Q.caller,parent:r,commit:'e'.repeat(40),tree:'f'.repeat(40),blob:'1'.repeat(40),operatorBinding:{file:p.Q.bindingFile,blob:'2'.repeat(40)}}},w=p.texts(r);
+  objects.reusable.normalizedLfSha256=hash(w.reusable);objects.caller.normalizedLfSha256=hash(w.caller);
+  objects.caller.operatorBinding.normalizedLfSha256=hash(p.bindingText(operatorScopeSource,r));
+  const input={parent,objects,baseline,operatorScopeSource,previousTargets:[p.Q.reusable,p.Q.caller,p.Q.bindingFile].map(file=>({file,blob:'3'.repeat(40),
+    normalizedLfSha256:file===p.Q.bindingFile?p.Q.bindingBeforeSha256:'4'.repeat(64)})),
+    observedAt:now(),createdAt:now(),pins:Array.from({length:20},(_,i)=>({file:'synthetic/'+i,sha256:'5'.repeat(64)})),
+    ci:{sourceCommit:parent,testedSourceCommit:parent,attempt:1,status:'completed',conclusion:'success'}};
+  return {f,s,now,options,p,input,w,m:await p.makeReview(input)};
+}
+test('native publication renders existing workflows with six SOURCE bindings and no local cloud paths',async()=>{
+  const {p,w,m}=await publicationFixture();assert(w.reusable.includes('runBuyerLive'));assert(!w.reusable.includes('runCycleLive'));
+  assert(!w.reusable.includes('F:/'));assert(!w.reusable.includes('E:/'));assert(!w.reusable.includes(m.objects.reusable.commit));
+  assert.equal(load(w.reusable).jobs.single.environment,'techlong-sandbox-deploy');
+  assert.equal(Object.keys(load(w.caller).on.workflow_dispatch.inputs).length,7);
+  assert.equal(m.source.buyer.source.code.commitSha,m.objects.caller.commit);
+  assert.equal(m.source.publication.buyerContextSha256,await sha256Hex(m.source.buyer.source));
+  assert.equal(p.closureCount,111);assert.equal(m.effects.iamPermissionExpansion,0);assert.equal(m.effects.dispatches,0);
+  const native=publicationProfile(m,{publication:p,readOnly:true});assert.equal(native.closureCount,111);assert.equal(native.scope.oldReusable,'1120f5106079a006c5e1c455f7de4b70e9732e5b');
+});
+test('native publication uses exact installed prestate and changes only one trust claim',async()=>{
+  const {p,m,options}=await publicationFixture(),next=JSON.parse(m.actions.create.TemplateBody),claim='token.actions.githubusercontent.com:job_workflow_ref';
+  next.Resources.WorkerRole.Properties.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals[claim]=
+    options.baseline.foundation.template.Resources.WorkerRole.Properties.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals[claim];
+  assert.deepEqual(next,options.baseline.foundation.template);assert.equal(m.actions.trustChanges.length,1);
+  await p.validateApproval(m,m.manifestSha256,m.createdAt);
+  const changed=structuredClone(m);changed.effects.newIamResources=1;await assert.rejects(p.validateApproval(changed,m.manifestSha256,m.createdAt));
+  assert.throws(()=>p.bindingText('export const SELECTED_CYCLE=null;','a'.repeat(40)),/OLD_BINDING/);
+  const drift=structuredClone(options.baseline);drift.iam.boundary.defaultVersion='v9';assert.throws(()=>p.validatePreflight(drift,m),/FIXED_LAYOUT/);
+  await assert.rejects(p.validateApproval(m,m.manifestSha256,m.expiresAt),/APPROVAL_OR_TOO_LATE/);
+  await assert.rejects(p.validateApproval(m,m.manifestSha256,m.expiresAt-1200000,false,true),/APPROVAL_OR_TOO_LATE/);
+  await p.validateApproval(m,null,m.expiresAt+1,true); // archived, read-only inspection only
+});
+test('native publication refuses missing or fabricated request and upload evidence without production ports',async()=>{
+  const {options,s}=await publicationFixture();
+  await assert.rejects(createBuyerPublication({...options,source:{...s,requestEvidence:null}}),/REAL_REQUEST_EVIDENCE/);
+  const changed=structuredClone(options.requestSnapshot);changed.jobs.at(-1).dedupe_key='changed';
+  await assert.rejects(createBuyerPublication({...options,requestSnapshot:changed}),/BUYER_REAL_SINGLE_INSERT/);
+  const material={source:s,bundle:options.bundle,requestSnapshot:options.requestSnapshot,baseline:options.baseline,
+    operatorScopeSource:options.operatorScopeSource,uploadProof:null},raw=JSON.stringify(material),selection={schema:'techlong/buyer-publication-selection/v1',
+      file:'F:/ChatGPT_workshop/techlong-synthetic-material.json',rawSha256:hash(raw)};
+  await assert.rejects(selectPublication({selection,read:async()=>raw}),/UPLOAD_RECEIPT/);
+  material.uploadProof={outcome:'PACKAGE_UPLOADED_AND_INDEPENDENT_FIXED_VERSION_VERIFIED_NO_ACTIVATION',packageReference:s.publication.packageReference,
+    factsApproval:s.publication.factsApproval,slots:{permanentlyConsumed:true},actualCounts:{conditionalPuts:1,fixedVersionGets:1},runtimeActivated:false};
+  const full=JSON.stringify(material),p=await selectPublication({selection:{...selection,rawSha256:hash(full)},read:async()=>full});
+  assert.equal(p.closureCount,111);
+});
+test('native source facts cannot extend historical basis or bypass the SDK source gate',async()=>{
+  const f=await publicationFixture();await assertBuyerPublicationSource(f.s,f.now(),{anchor:f.options.source.buyer.originalProfile});
+  const s=structuredClone(f.s);s.publication.factsApproval.expiresAt++;
+  await assert.rejects(assertBuyerPublicationSource(s,f.now(),{anchor:s.buyer.originalProfile}),/LIVE_FACTS/);
+  let calls=0;const fetch=mock.method(globalThis,'fetch',async()=>{calls++;throw Error('NO_OIDC');});
+  try{await assert.rejects(runBuyerLive({},f.f.f.closure,{source:{}}));assert.equal(calls,0);}finally{fetch.mock.restore();}
+});
+test('native publication reuses original push/create/execute ordering and stops on unknown without retry',async()=>{
+  for(const failure of [null,'create']){
+    const {p,m,options,now}=await publicationFixture(),events=[];let layouts=0;
+    const step=n=>{events.push(n);if(failure===n)throw Error('SYNTHETIC_UNKNOWN');};
+    const layout=()=>{const s=structuredClone(options.baseline);s.main=m.objects.caller.commit;if(++layouts>=3){
+      s.foundation.template=JSON.parse(m.actions.create.TemplateBody);s.iam.trust=s.foundation.template.Resources.WorkerRole.Properties.AssumeRolePolicyDocument;}return s;};
+    const io={assertLocal:async()=>{},preflight:async()=>options.baseline,consume:async()=>step('slot'),record:async()=>{},
+      push:async()=>step('push'),verifyWorkflows:async()=>[],layout:async()=>layout(),create:async()=>{step('create');return {id:'synthetic'};},
+      waitChangeSet:async()=>step('verify'),execute:async()=>step('execute'),waitFoundation:async()=>step('wait'),fastForward:async()=>step('ff')};
+    const r=await publishAppOnceV6({manifest:m,approved:m.manifestSha256,io,now,profile:p});
+    assert.deepEqual(events,failure?['slot','push','create']:['slot','push','create','verify','execute','wait','ff']);
+    assert.equal(r.retryAllowed,false);assert.equal(r.workflowDispatched,false);
+    assert.equal(r.outcome,failure?'APP_PUBLICATION_PARTIAL_OR_UNKNOWN_INSPECT_ONLY_NO_RETRY':'APP_WORKFLOWS_AND_TRUST_PUBLISHED_REQUIRES_INDEPENDENT_INSPECT');
+  }
+});
+for(const wrongVersion of [false,true])test('production buyer bootstrap uses exact OIDC/SDK ports and fixed Secret guard (wrong version='+wrongVersion+')',async()=>{
+  const f=await publicationFixture(),source=structuredClone(f.p.sourceTemplate()),p=f.s.publication,
+    env={...f.f.f.env,GITHUB_SHA:p.sourceCommit,TECHLONG_FROZEN_SOURCE_COMMIT:p.frozenSourceCommit,
+      TECHLONG_REUSABLE_COMMIT:p.release.reusableCommit,TECHLONG_PLATFORM_CLOSURE_SHA:p.release.closureSha256,
+      TECHLONG_PLATFORM_RELEASE_STATE:'PUBLISHED',TECHLONG_APP_IDENTITY_PROOF_SHA:p.release.identityProofSha256,
+      TECHLONG_INPUT_INSTALLATION:canonicalJson(INSTALLATION),
+      ACTIONS_ID_TOKEN_REQUEST_URL:'https://test.actions.githubusercontent.com/id-token',ACTIONS_ID_TOKEN_REQUEST_TOKEN:'synthetic-oidc-request'},
+    at=f.now(),events=[],runId=env.GITHUB_RUN_ID,
+    who={Account:'402010193138',UserId:CLOUD_V6.roleId+`:Deploy-${runId}-1`,
+      Arn:`arn:aws:sts::402010193138:assumed-role/TechlongSandboxGitHubDeploymentWorkerRole/Deploy-${runId}-1`},
+    claims={iss:'https://token.actions.githubusercontent.com',aud:'sts.amazonaws.com',sub:CLOUD_V6.oidcSubject,
+      repository:env.GITHUB_REPOSITORY,repository_id:env.GITHUB_REPOSITORY_ID,repository_owner_id:env.GITHUB_REPOSITORY_OWNER_ID,
+      actor_id:env.GITHUB_ACTOR_ID,actor:env.GITHUB_ACTOR,ref:'refs/heads/main',sha:env.GITHUB_SHA,workflow_ref:env.GITHUB_WORKFLOW_REF,
+      workflow_sha:env.GITHUB_SHA,runner_environment:'github-hosted',event_name:'workflow_dispatch',run_id:runId,run_attempt:'1',
+      environment:CLOUD_V6.environment,job_workflow_ref:`veinyyxy/TechlongSoftware/.github/workflows/${CLOUD_V6.reusableWorkflow}@${p.release.reusableCommit}`,
+      job_workflow_sha:p.release.reusableCommit,exp:Math.floor(at/1000)+300,nbf:Math.floor(at/1000)-1};
+  const date=mock.method(Date,'now',()=>at),fetch=mock.method(globalThis,'fetch',async url=>{
+    assert.equal(new URL(url).hostname,'test.actions.githubusercontent.com');events.push('oidc');
+    return new Response(JSON.stringify({value:'e30.'+Buffer.from(JSON.stringify(claims)).toString('base64url')+'.synthetic-signature'}),{status:200});}),
+    sts=mock.method(STSClient.prototype,'send',async command=>{
+      events.push(command.constructor.name);if(command.constructor.name==='AssumeRoleWithWebIdentityCommand'){
+        assert.equal(command.input.RoleArn,CLOUD_V6.roleArn);return {Credentials:{AccessKeyId:'ASIA'+'A'.repeat(16),SecretAccessKey:'synthetic',
+          SessionToken:'synthetic',Expiration:new Date(at+3600000)}};}return who;}),
+    s3=mock.method(S3Client.prototype,'send',async command=>{
+      assert.equal(command.constructor.name,'GetObjectCommand');events.push('get');const ref=command.input.Key===p.packageReference.key?p.packageReference:INSTALLATION;
+      assert.equal(command.input.Key,ref.key);assert.equal(command.input.VersionId,ref.versionId);
+      const value=ref===INSTALLATION?f.f.f.dependencies.installation:f.f.bundle,text=canonicalJson(value);
+      return {VersionId:ref.versionId,ServerSideEncryption:'AES256',ContentLength:Buffer.byteLength(text),Body:{transformToWebStream:()=>new Response(text).body}};}),
+    secret=mock.method(SecretsManagerClient.prototype,'send',async command=>{
+      events.push('secret');assert.equal(command.input.VersionId,f.f.f.dependencies.installation.databaseSecret.versionId);
+      if(wrongVersion)return {VersionId:'wrong'};throw Error('SYNTHETIC_END_TO_END_SECRET_STOP');});
+  try{
+    await assert.rejects(runBuyerLive(env,f.f.f.closure,{source,anchor:f.options.source.buyer.originalProfile}),
+      wrongVersion?/DATABASE_SECRET_FIXED_VERSION/:/SYNTHETIC_END_TO_END_SECRET_STOP/);
+    assert.deepEqual(events,['oidc','AssumeRoleWithWebIdentityCommand','GetCallerIdentityCommand','get','get','GetCallerIdentityCommand','secret']);
+  }finally{secret.mock.restore();s3.mock.restore();sts.mock.restore();fetch.mock.restore();date.mock.restore();}
 });

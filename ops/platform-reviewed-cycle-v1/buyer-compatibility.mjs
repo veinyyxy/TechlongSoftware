@@ -18,7 +18,18 @@ import {assertEvidenceSafeV5,evidenceKeyV5} from '../cloud-worker/cloud-evidence
 import {validatePlan,releaseReady} from '../../lib/deployments/controller-v6/contract.ts';
 import {assertRunWindowV3} from '../aws-sandbox/scripts/express-initialized-workload-v3.mjs';
 import {admitPlatformJobV4} from '../aws-sandbox/scripts/express-platform-worker-v4.mjs';
-import {bindWorkflowSource} from './cycle.mjs';
+import {bindWorkflowSource,createReviewedCycle,RISK} from './cycle.mjs';
+import {SecretsManagerClient,GetSecretValueCommand} from '@aws-sdk/client-secrets-manager';
+import {STSClient,GetCallerIdentityCommand,AssumeRoleWithWebIdentityCommand} from '@aws-sdk/client-sts';
+import {S3Client,GetObjectCommand,PutObjectCommand} from '@aws-sdk/client-s3';
+import {createCloudSessionV5} from '../cloud-worker/cloud-session-v5.mjs';
+import {createCloudInitializedAwsV5} from '../cloud-worker/aws-initialized-workload-v5.mjs';
+import {createCloudEvidenceV5,EVIDENCE_V5} from '../cloud-worker/cloud-evidence-v5.mjs';
+import {createFixedControlSecretLoaderV5} from '../cloud-worker/cloud-control-v5.mjs';
+import {validateDatabaseMaterialV5} from '../cloud-worker/cloud-application-v5.mjs';
+import {createNarrowNeonV5,createNeonRpcTransportV5} from '../cloud-worker/neon-persistence-v5.mjs';
+import {openDynamoCloudWorkerJournalV1} from '../../lib/deployments/execution/cloud-worker-journal-v1.ts';
+import {validateCloudRunV6,externalInputsV6,releaseFromWorkflowV6,validateOidcClaimsV6} from '../platform-cloud-v6/contract.mjs';
 
 export const BUYER_SOURCE=null; // A later reviewed publication must select it.
 export const BUYER_ORIGINS='https://first-acceptance.sandbox.techlong.cloud,https://techlong.cloud,https://buyer.sandbox.techlong.cloud';
@@ -255,4 +266,115 @@ export async function runBuyerCompatibility({source=BUYER_SOURCE,basis,capsule,l
     const root=await compat.openRoot({...dependencies,installation:options.installation,code:options.code,run:options.run});
     return Object.freeze({...root,dispose:()=>dependencies.dispose?.()});
   }}});
+}
+
+// Concrete ports for the EXISTING root; no executor, credential discovery or
+// private I/O during construction. A serialized context cannot select them.
+export async function createBuyerApplication({compat,installation:raw,code,run,credentials,now=Date.now}){
+  const d=buyerCompatibilityData(compat,now());
+  must(same(code,d.source.code)&&run.commitSha===code.commitSha,'SDK_CODE_BINDING');
+  const contract=await loadNeonContractV5(),installation=await assertInstallationV5(raw,CLOUD_V6.installationSha256,contract),
+    session=createCloudSessionV5({credentials,expected:{...run,roleId:installation.roleId},now}),cfg=session.clientConfig(),
+    sm=new SecretsManagerClient({...cfg,endpoint:'https://secretsmanager.ca-central-1.amazonaws.com'}),
+    provider=createCloudInitializedAwsV5(d.context.base,session),evidence=createCloudEvidenceV5(session);
+  let opened=false;
+  const dispose=()=>{provider.dispose();evidence.dispose();sm.destroy();};
+  const secretRead=(ref,signal)=>sm.send(new GetSecretValueCommand({SecretId:ref.arn,VersionId:ref.versionId,VersionStage:'AWSCURRENT'}),
+    {abortSignal:AbortSignal.any([signal,AbortSignal.timeout(30000)])});
+  try{return Object.freeze({...await compat.openRoot({installation,contract,code,run,provider,evidence,
+    async openDatabase(signal){
+      must(!opened,'DATABASE_SECRET_ONCE');opened=true;const sts=new STSClient({...cfg,endpoint:'https://sts.ca-central-1.amazonaws.com'});
+      try{session.assertIdentity(await sts.send(new GetCallerIdentityCommand({}),{abortSignal:signal}));}finally{sts.destroy();}
+      const ref=installation.databaseSecret,r=await secretRead(ref,signal);
+      must(r.ARN===ref.arn&&r.VersionId===ref.versionId&&r.Name==='techlong/sandbox/deployment-worker/neon-control-v1'&&
+        r.VersionStages?.length===1&&r.VersionStages[0]==='AWSCURRENT'&&!r.SecretBinary&&typeof r.SecretString==='string'&&
+        Buffer.byteLength(r.SecretString)<=12000,'DATABASE_SECRET_FIXED_VERSION');
+      const url=await validateDatabaseMaterialV5(JSON.parse(r.SecretString),installation.neon.endpointSha256);
+      return createNarrowNeonV5({transport:createNeonRpcTransportV5(url),contract,expected:installation.neon});
+    },
+    loadControl:({beforeRead,signal})=>createFixedControlSecretLoaderV5({reference:installation.controlSecret,
+      expected:d.context.controlFingerprints,getSecretValue:input=>secretRead({arn:input.SecretId,versionId:input.VersionId},signal),beforeRead}).loadOnce(signal),
+    openJournal:(binding,signal)=>openDynamoCloudWorkerJournalV1({binding,tableId:installation.tableId,signal,credentials:cfg.credentials}),dispose}),dispose});
+  }catch(e){dispose();throw e;}
+}
+
+// Common native publication guard for both production bootstrap and preparation.
+// Receipt values must already be source-bound; this function invents none.
+export async function assertBuyerPublicationSource(source,at,{anchor}={}){
+  const cycle=await createReviewedCycle(source,{anchor}),p=source.publication,b=source.buyer,s=b?.source,a=p?.factsApproval,
+    end=Math.min(b?.originalProfile?.factsAt+b?.originalProfile?.validMs,cycle.profile.factsAt+cycle.profile.validMs);
+  must(b?.schema==='techlong/buyer-context-selection/v1'&&s?.schema==='techlong/buyer-compatibility-source/v1'&&
+    p?.schema==='techlong/buyer-context-publication/v1'&&p.protocol==='platform-v6/buyer-context'&&p.state==='PUBLISHED'&&
+    p.riskFile===RISK&&p.cycleId===cycle.cycleId&&releaseReady(p.release)&&/^[a-f0-9]{40}$/.test(p.frozenSourceCommit??'')&&
+    p.release.installationSha256===CLOUD_V6.installationSha256&&p.profileSha256===await sha256Hex(cycle.profile)&&
+    p.basisSha256===s.basisSha256&&digest(p.basisSha256)&&p.sourceCommit===s.code?.commitSha&&
+    p.release.closureSha256===s.code?.closureSha256&&await sha256Hex(s)===p.buyerContextSha256&&
+    s.request?.jobId===cycle.profile.newJobId&&s.request.requestId===cycle.profile.requestId&&
+    s.request.clientRequestId===cycle.profile.clientRequestId&&s.baselineSha256===cycle.profile.stateSha256,'LIVE_SOURCE');
+  assertReferenceV6(p.packageReference,`worker-v5/${S.appInstanceId}/lineage/buyer-context-v1-${p.packageReference?.sha256}.json`);
+  must(a?.state==='APPROVED'&&digest(a.manifestSha256)&&a.profileSha256===p.profileSha256&&
+    a.factsAt===cycle.profile.factsAt&&a.databaseCheckedAt===cycle.profile.databaseCheckedAt&&a.observedBy===cycle.profile.observedBy&&
+    a.expiresAt===end&&a.originalBasisExtended===false&&Number.isSafeInteger(at)&&at>=a.observedBy&&at<end,'LIVE_FACTS');
+  must(p.activation?.schema==='techlong/buyer-context-activation/v1'&&p.activation.state==='PUBLISHED'&&
+    p.activation.protocol===p.protocol&&p.activation.sourceCommit===p.sourceCommit&&p.activation.frozenSourceCommit===p.frozenSourceCommit&&
+    p.activation.releaseSha256===await sha256Hex(p.release),'LIVE_ACTIVATION');return cycle;
+}
+async function buyerJson(body,limit){
+  must(body,'LIVE_BODY');const reader=body.getReader(),chunks=[];let size=0;
+  try{for(;;){const r=await reader.read();if(r.done)break;size+=r.value.length;
+    if(size>limit){await reader.cancel();must(false,'LIVE_SIZE');}chunks.push(r.value);}}finally{reader.releaseLock();}
+  return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks,size)));
+}
+export async function runBuyerLive(env,closure,{source=BUYER_SOURCE,anchor}={}){
+  must(source,'SOURCE_NOT_CONFIGURED');
+  const bound=await bindBuyerWorkflowSource(source,env.GITHUB_SHA,env.TECHLONG_REUSABLE_COMMIT),at=Date.now();
+  await assertBuyerPublicationSource(bound,at,{anchor});const p=bound.publication,b=releaseFromWorkflowV6(env),run=validateCloudRunV6(env,b,closure);
+  must(closure.schema==='techlong/buyer-compatibility-closure/v1'&&closure.pinCount===111&&closure.closureSha256===p.release.closureSha256&&
+    same(b,{state:p.release.state,sourceCommit:p.frozenSourceCommit,reusableCommit:p.release.reusableCommit,
+      closureSha256:p.release.closureSha256,identityProofSha256:p.release.identityProofSha256,actorId:p.release.actorId,
+      installationSha256:p.release.installationSha256})&&run.commitSha===p.sourceCommit,'LIVE_RELEASE');
+  const input=externalInputsV6(Object.fromEntries(['mode','job','installation','manifest','manifestSha','execution','lineage']
+    .map(k=>[k,env['TECHLONG_INPUT_'+k.toUpperCase()]??''])));
+  must(input.job===bound.profile.newJobId&&input.lineage==='','LIVE_INPUT');
+  const endpoint=new URL(env.ACTIONS_ID_TOKEN_REQUEST_URL);
+  must(endpoint.protocol==='https:'&&endpoint.hostname.endsWith('.actions.githubusercontent.com')&&!endpoint.username&&!endpoint.password&&
+    typeof env.ACTIONS_ID_TOKEN_REQUEST_TOKEN==='string'&&env.ACTIONS_ID_TOKEN_REQUEST_TOKEN.length>0,'LIVE_OIDC_ENDPOINT');
+  endpoint.searchParams.set('audience','sts.amazonaws.com');
+  const response=await fetch(endpoint,{headers:{authorization:'Bearer '+env.ACTIONS_ID_TOKEN_REQUEST_TOKEN},redirect:'error',signal:AbortSignal.timeout(15000)});
+  must(response.status===200,'LIVE_OIDC_RESPONSE');const oidc=await buyerJson(response.body,20000);
+  must(typeof oidc.value==='string'&&oidc.value.length<15000&&oidc.value.split('.').length===3,'LIVE_OIDC_TOKEN');
+  validateOidcClaimsV6(JSON.parse(Buffer.from(oidc.value.split('.')[1],'base64url').toString('utf8')),env,b,Date.now());
+  const cfg={region:CLOUD_V6.region,maxAttempts:1,ignoreConfiguredEndpointUrls:true},sts=new STSClient(cfg);let authSts,s3;
+  try{
+    const r=await sts.send(new AssumeRoleWithWebIdentityCommand({RoleArn:CLOUD_V6.roleArn,RoleSessionName:`Deploy-${run.runId}-1`,
+      WebIdentityToken:oidc.value,DurationSeconds:3600}),{abortSignal:AbortSignal.timeout(30000)}),v=r.Credentials;
+    must(v?.AccessKeyId&&v.SecretAccessKey&&v.SessionToken&&v.Expiration?.getTime()>Date.now()+60000,'LIVE_TEMPORARY_CREDENTIALS');
+    const credentials={accessKeyId:v.AccessKeyId,secretAccessKey:v.SecretAccessKey,sessionToken:v.SessionToken,expiration:v.Expiration};
+    authSts=new STSClient({...cfg,credentials});const who=await authSts.send(new GetCallerIdentityCommand({}),{abortSignal:AbortSignal.timeout(30000)});
+    must(who.Account===EVIDENCE_V5.owner&&who.UserId===CLOUD_V6.roleId+`:Deploy-${run.runId}-1`&&
+      who.Arn===`arn:aws:sts::${EVIDENCE_V5.owner}:assumed-role/TechlongSandboxGitHubDeploymentWorkerRole/Deploy-${run.runId}-1`,'LIVE_ROLE_ID');
+    s3=new S3Client({...cfg,credentials});const signal=AbortSignal.timeout(3600000),allowed=new Set([p.packageReference,
+      ...['installation','manifest','execution'].filter(k=>input[k]).map(k=>JSON.parse(input[k]))].map(canonicalJson));let reads=0,puts=0;
+    const read=async ref=>{
+      await assertBuyerPublicationSource(bound,Date.now(),{anchor});must(++reads<=4&&allowed.has(canonicalJson(ref)),'LIVE_READ_SCOPE');
+      const r=await s3.send(new GetObjectCommand({Bucket:EVIDENCE_V5.bucket,ExpectedBucketOwner:EVIDENCE_V5.owner,Key:ref.key,VersionId:ref.versionId}),
+        {abortSignal:AbortSignal.any([signal,AbortSignal.timeout(30000)])});
+      must(r.VersionId===ref.versionId&&r.ServerSideEncryption==='AES256'&&r.ContentLength>0&&r.ContentLength<=1000000,'LIVE_OBJECT_METADATA');
+      const value=await buyerJson(r.Body.transformToWebStream(),1000000);assertEvidenceSafeV5(value);must(await sha256Hex(value)===ref.sha256,'LIVE_OBJECT_SHA');return value;
+    };
+    const bundle=await read(p.packageReference),compat=await prepareBuyerFromSource(bound,bundle);
+    const ports={signal,read,open:options=>createBuyerApplication({...options,compat,credentials:async()=>credentials}),
+      async writeResult(key,value){return put(key,value);},async writeExecution(key,value){return put(key,value);}};
+    async function put(key,value){
+      await assertBuyerPublicationSource(bound,Date.now(),{anchor});
+      const manifestSha=value.manifestSha256??input.manifestSha,valid=key===resultKeyV6(input.job,manifestSha,run.runId)||
+        input.mode==='RunOnce'&&key===`worker-v5/${S.appInstanceId}/${input.job}/${input.manifestSha}/execution-reference-${run.runId}-v1.json`;
+      must(valid&&++puts<=2,'LIVE_PUT_SCOPE');assertEvidenceSafeV5(value);const Body=canonicalJson(value),sha=await sha256Hex(value);
+      must(Buffer.byteLength(Body)<=1000000,'LIVE_PUT_SIZE');
+      const r=await s3.send(new PutObjectCommand({Bucket:EVIDENCE_V5.bucket,ExpectedBucketOwner:EVIDENCE_V5.owner,Key:key,Body,IfNoneMatch:'*',
+        ServerSideEncryption:'AES256',ContentType:'application/json',ChecksumSHA256:Buffer.from(sha,'hex').toString('base64')}),{abortSignal:AbortSignal.any([signal,AbortSignal.timeout(30000)])});
+      must(r.VersionId&&r.ServerSideEncryption==='AES256','LIVE_PUT_ACK');return {key,versionId:r.VersionId,sha256:sha};
+    }
+    return await runPlatformCloudV6({env,binding:b,closure,ports});
+  }finally{authSts?.destroy();s3?.destroy();sts.destroy();}
 }

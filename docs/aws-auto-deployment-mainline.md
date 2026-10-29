@@ -4,6 +4,10 @@
 
 ## 当前唯一继续点（2026-10-29，买家域名静态验收完成；回到后端联调）
 
+**最新：用户同意的三文件/两处接线已本机完成，正在核验准确无AWS CI。** buyer模块现在装配原SDK/固定Secret/窄Neon/provider/evidence/journal和V5执行根；原publication/local按CODE选择新SOURCE与当前prestate，复用原Git/CFN发布及独立核验。默认两个buyer选择仍null，旧110不变、111更新为52ae2ee3…。57项定向/122项相关检查通过（重叠，不相加），没有生产读取、私密读取、云/SQL写、上传、任务/槽、受保护workflow/IAM写或dispatch。[实现及剩余边界](aws-backend-integration-preparation.md#两处最小接线的代码验证)。
+
+准确源码/CI收尾后只准备真实请求/材料上传/必要来源发布及整轮的集中准确范围，不重复代码或补件。原14:07准备快照已过期，必要的新鲜读取和所有实际副作用仍另审；basis明天10:08:09.592不延长，不提前开窗或认为已部署。
+
 **最新13:36 CDT：固定历史provider已补齐，真实accepted后继链、buyer上下文包及同一b236单INSERT草案重建通过；仍未创建任务、上传或发布。** 本轮实际仅另批STS1/S3固定版本GET1，余下均为本地原件核验；旧失败不覆盖，已有`providerPublicV5`处理完整报告的标准投影，无应用代码/旧110改动。[完整事实和剩余材料](aws-backend-integration-preparation.md#固定原件及真实buyer材料已重建10月29日1336-cdt)。恢复F:/ChatGPT_workshop/techlong-buyer-real-material-verified-20261029-a.json，raw SHA 16b1a0dff9deed74ee41d0a1e880fb7e412c6d675527bc3f13e4e2a68a9b9fb2。
 
 **候选差异已核对，尚不能发布**：原live固定旧恢复application，publication/local仍固定旧信封/周期/before pin；本轮只整理双workflow/六项派生/唯一trust claim的准确本地差异，没有改应用代码、旧110或调用生产。恢复F:/ChatGPT_workshop/techlong-buyer-publication-candidate-verified-20261029-a.json，raw SHA 95ada491ca4658d480f9f72d0132f7d97a2a37e8880fc5d375502b8e80150ea1。[两处最小接线及停止条件](aws-backend-integration-preparation.md#发布候选差异与两处最小接线缺口)。下一只征求现有buyer SDK装配及原publication/local的最小代码/定向测试同意，不再扩框架；真实请求/回读、上传和事实/来源发布仍缺且另审，不先开窗或调用旧publication-local。原事实/期限不延长，历史步骤不重放。

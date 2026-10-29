@@ -9,6 +9,9 @@ import {recoveryCloudWorkflows} from '../platform-recovery-cloud-v1/workflows.mj
 import {createPublicationObjects} from '../platform-a604-publication-v1/objects.mjs';
 import {PROFILE,T} from './upload-plan.mjs';
 import {createReviewedCycle,bindWorkflowSource,assertPublication,RISK} from './cycle.mjs';
+import {cloudWorkflowsV6} from '../platform-cloud-v6/workflows.mjs';
+import {buyerCompatibilityData,rebuildBuyerBundle,prepareBuyerFromSource,bindBuyerWorkflowSource,assertBuyerPublicationSource,buyerCompatibilityClosure} from './buyer-compatibility.mjs';
+import {createCycleComposition} from './composition.mjs';
 export {hash};
 export const must=(v,c)=>{if(!v)throw Error('CYCLE_PUBLICATION_'+c);},same=(a,b)=>canonicalJson(a)===canonicalJson(b);
 const sha=v=>/^[a-f0-9]{40}$/.test(v??''),digest=v=>/^[a-f0-9]{64}$/.test(v??'');
@@ -102,3 +105,104 @@ export async function validateApproval(m,approved,at,inspect=false,start=false){
   if(!inspect)must(approved===m.manifestSha256&&at>=m.createdAt&&at<m.expiresAt&&(!start||at<m.expiresAt-1200000),'APPROVAL_OR_TOO_LATE');}
 export function validatePreflight(p,m){validateLayout(p);must(same(p,m.baseline),'FRESH_BASELINE_DRIFT');}
 export function reconcile(p,m,state,before){validatePreflight(before,m);return reconcilePublicationLayoutV6(p,{...m,prestate:before},state);}
+
+// CODE-selected only; a future reviewed source binds real request/upload proofs.
+// Null is checked before configuration, credential or readiness I/O.
+export const BUYER_PUBLICATION_SOURCE=null;
+export async function createBuyerPublication({compat,bundle,source,requestSnapshot,baseline,operatorScopeSource,now=Date.now}){
+  const d=buyerCompatibilityData(compat,now()),rebuilt=await rebuildBuyerBundle(compat,bundle);
+  await assertBuyerPublicationSource(source,now(),{anchor:d.target});
+  must(same(source.buyer?.source,d.source)&&same(source.buyer.originalProfile,d.target),'BUYER_GENUINE_SOURCE');
+  const composition=await createCycleComposition(source,{buyer:compat,buyerBundle:bundle,now,anchor:d.target});
+  await composition.capability.verifyRequestReadback(rebuilt.basis,requestSnapshot,source.requestEvidence.transactionAt);
+  must(typeof operatorScopeSource==='string'&&operatorScopeSource.startsWith('// Local operator binding only;')&&
+    operatorScopeSource.includes('export const SELECTED_CYCLE=Object.freeze('),'BUYER_BEFORE_BINDING');
+  validatePublicationSourceV6(baseline);
+  const old=baseline.foundation.template,eq=old.Resources.WorkerRole.Properties.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals,
+    oldPin=eq['token.actions.githubusercontent.com:job_workflow_ref'],needle='veinyyxy/TechlongSoftware/'+Q.reusable+'@';
+  must(oldPin.startsWith(needle)&&sha(oldPin.slice(needle.length))&&same(baseline.iam.trust,old.Resources.WorkerRole.Properties.AssumeRolePolicyDocument),
+    'BUYER_BEFORE_TRUST');
+  const closure=await buyerCompatibilityClosure();must(closure.closureSha256===d.source.code.closureSha256,'BUYER_CLOSURE');
+  const frozen=freeze({...F,sourceCommit:source.publication.frozenSourceCommit,closureSha256:closure.closureSha256}),
+    scope=freeze({...Q,slot:'F:/ChatGPT_workshop/techlong-reviewed-cycle-'+d.source.request.jobId+'-source-publication.intent.json',
+      inspectSlot:'F:/ChatGPT_workshop/techlong-reviewed-cycle-'+d.source.request.jobId+'-source-publication-inspect.intent.json',
+      bindingBeforeSha256:hash(operatorScopeSource),templateBeforeSha256:hash(old),oldReusable:oldPin.slice(needle.length)}),
+    before=freeze(structuredClone(baseline)),original=operatorScopeSource,template=structuredClone(source);
+  template.publication.sourceCommit=null;template.publication.release.reusableCommit=null;template.publication.activation.sourceCommit=null;
+  template.publication.activation.releaseSha256=null;template.publication.buyerContextSha256=null;template.buyer.source.code.commitSha=null;
+  // The cloud obtains the same bundle by fixed S3 version, never a local path.
+  const cloudTemplate=structuredClone(template);delete cloudTemplate.buyer.bundleFile;
+  const layout=p=>{validatePublicationSourceV6(p);must(hash(p.foundation.template)===scope.templateBeforeSha256&&
+    hash(p.iam.inline[0].document)===INLINE_SHA&&p.iam.boundary.policyId==='ANPAV3GNMXTZK24FGAXCF'&&
+    p.iam.boundary.defaultVersion==='v1'&&p.iam.boundary.documentSha256===BOUNDARY_SHA&&hash(p.iam.boundary.document)===BOUNDARY_SHA&&
+    same(p.iam,before.iam)&&same(p.foundation.resources,before.foundation.resources),'BUYER_FIXED_LAYOUT');return p;};
+  layout(before);
+  const render=reusable=>{
+    must(sha(reusable),'BUYER_REUSABLE');const old=cloudWorkflowsV6({...frozen,reusableCommit:reusable}),
+      needle='      - run: node --experimental-strip-types ops/platform-cloud-v6/run.mjs';
+    must(old.reusable.split(needle).length===2,'BUYER_BOOTSTRAP_SHAPE');
+    const code=["import {pathToFileURL} from 'node:url';","const load=rel=>import(pathToFileURL(process.cwd()+'/'+rel).href);",
+      "const {runBuyerLive,buyerCompatibilityClosure}=await load('ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs');",
+      'const source='+JSON.stringify(cloudTemplate)+';',
+      "try { console.log(JSON.stringify(await runBuyerLive(process.env,await buyerCompatibilityClosure(),{source}))); }",
+      "catch { console.error('BUYER_CLOUD_STOPPED_NO_RETRY'); process.exitCode=1; }"];
+    const bootstrap="      - run: |\n          node --experimental-strip-types --input-type=module <<'BUYER_BOOTSTRAP'\n"+
+      code.map(s=>'          '+s).join('\n')+'\n          BUYER_BOOTSTRAP';
+    const text=old.reusable.replace(needle,bootstrap);must(!/[EF]:\//.test(text),'BUYER_CLOUD_LOCAL_PATH');
+    return {...old,reusable:text,published:false};
+  };
+  const binding=(text,reusable)=>{must(text===original&&sha(reusable),'BUYER_OLD_BINDING');
+    return '// Local operator binding only; never part of the frozen cloud closure.\nexport const SELECTED_CYCLE=Object.freeze('+
+      JSON.stringify({...template,reusableCommit:reusable})+');\n';};
+  const objects=(parent,o,text)=>{
+    must(sha(parent)&&o?.reusable?.parent===parent&&o.caller?.parent===o.reusable.commit&&o.reusable.file===scope.reusable&&
+      o.caller.file===scope.caller&&o.caller.operatorBinding?.file===scope.bindingFile,'BUYER_OBJECT_CHAIN');
+    const w=render(o.reusable.commit);
+    for(const [x,t] of [[o.reusable,w.reusable],[o.caller,w.caller],[o.caller.operatorBinding,binding(text,o.reusable.commit)]])
+      must(sha(x.blob)&&digest(x.normalizedLfSha256)&&hash(t)===x.normalizedLfSha256,'BUYER_OBJECT_BYTES');
+    for(const x of [o.reusable,o.caller])must(sha(x.commit)&&sha(x.tree),'BUYER_OBJECT_IDS');return w;
+  };
+  const gitObjects=createPublicationObjects({Q:scope,F:frozen,must,same,hash,texts:render,bindingText:binding,validateObjects:objects});
+  async function review(input){
+    const {parent,objects:o,previousTargets:targets,operatorScopeSource:text,pins,ci,baseline:state,observedAt,createdAt}=input;
+    layout(state);objects(parent,o,text);
+    must(same(state,before)&&state.main===parent&&parent===source.publication.sourceCommit&&frozen.sourceCommit===parent&&
+      Number.isSafeInteger(observedAt)&&Number.isSafeInteger(createdAt)&&createdAt>=observedAt&&createdAt-observedAt<scope.snapshotMaxAgeMs&&
+      createdAt>=source.profile.observedBy&&createdAt<d.basis.expiresAt&&pins?.length>=20&&pins.every(p=>digest(p.sha256))&&new Set(pins.map(p=>p.file)).size===pins.length&&
+      ci?.sourceCommit===parent&&ci.testedSourceCommit===parent&&ci.attempt===1&&ci.status==='completed'&&ci.conclusion==='success'&&
+      same(targets?.map(x=>x.file),[scope.reusable,scope.caller,scope.bindingFile])&&targets.every(x=>sha(x.blob)&&digest(x.normalizedLfSha256))&&
+      targets[2].normalizedLfSha256===scope.bindingBeforeSha256,'BUYER_REVIEW_INPUT');
+    const bound=await bindBuyerWorkflowSource(template,o.caller.commit,o.reusable.commit),buyer=await prepareBuyerFromSource(bound,bundle,{now:()=>createdAt});
+    await createCycleComposition(bound,{buyer,buyerBundle:bundle,now:()=>createdAt,anchor:d.target});
+    const next=structuredClone(old);next.Resources.WorkerRole.Properties.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals[
+      'token.actions.githubusercontent.com:job_workflow_ref']=needle+o.reusable.commit;
+    const restored=structuredClone(next);restored.Resources.WorkerRole.Properties.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals[
+      'token.actions.githubusercontent.com:job_workflow_ref']=oldPin;must(same(restored,old),'BUYER_TRUST_ONLY');
+    const create={StackName:frozen.stackId,ChangeSetName:'buyer-publication-'+o.caller.commit.slice(0,24),ChangeSetType:'UPDATE',
+      TemplateBody:canonicalJson(next),Capabilities:['CAPABILITY_NAMED_IAM'],Description:'Reviewed buyer source and exact reusable trust pin only'};
+    must(Buffer.byteLength(create.TemplateBody)<=51200,'BUYER_TEMPLATE_SIZE');create.ClientToken='buyer-publication-create-'+hash(create).slice(0,40);
+    const body={schema:'techlong/buyer-source-publication-review/v1',...input,frozen,source:bound,publication:bound.publication,
+      permanentSlot:scope.slot,inspectSlot:scope.inspectSlot,riskFile:scope.riskFile,
+      expiresAt:Math.min(observedAt+scope.validMs,d.basis.expiresAt,bound.publication.factsApproval.expiresAt),
+      actions:{push:{remote:'github',refspec:o.caller.commit+':refs/heads/main',force:false},create,
+        execute:{StackName:frozen.stackId,ChangeSetName:'EXACT_ARN_RETURNED_BY_THIS_CREATE_ACK',DisableRollback:true,
+          ClientRequestToken:'buyer-publication-execute-'+hash(create).slice(0,40)},
+        trustChanges:[{claim:'job_workflow_ref',before:oldPin,after:needle+o.reusable.commit}],localFastForward:o.caller.commit},
+      effects:{gitPushAttempts:1,existingWorkflowUpdates:2,localOperatorSourceBindingUpdates:1,newWorkflowFiles:0,createChangeSetAttempts:1,
+        executeChangeSetAttempts:1,existingWorkerTrustUpdates:1,localMainFastForwards:1,independentInspectAttempts:1,iamPermissionExpansion:0,
+        newIamResources:0,environmentWrites:0,secretValueReads:0,pemReads:0,dispatches:0,sqlConnections:0,packageUploads:0,hostingRenewals:0,
+        workloadCreates:0,automaticWriteRetries:0},limits:{awsMetadata:scope.awsMetadataMax,githubGets:scope.githubGetsMax,
+        independentAwsMetadata:13,independentGithubGets:17,executionMs:1200000,snapshotPreparationMaxAgeMs:scope.snapshotMaxAgeMs},
+      risks:{crossServiceNonAtomic:true,concurrentChangesNotCas:true,disableFailureRollback:true,oldWorkflowPinLosesRoleAccess:true,
+        sourceBindingPublishedBeforeTrustMayRemain:true,partialPublishedWorkflowsOrTrustMayRemain:true,sourceLoginMayExpire:true,
+        noAutomaticRollbackDeleteOrReplay:true,permanentSlotsNeverReset:true,lowCostNotZero:true},preparationIsNotExecutionApproval:true};
+    return {...body,manifestSha256:await sha256Hex(body)};
+  }
+  const approve=async(m,sha,at,inspect=false,start=false)=>{must(same(m,await review(Object.fromEntries(Object.entries(m).filter(([k])=>
+    ['parent','objects','previousTargets','operatorScopeSource','pins','ci','baseline','observedAt','createdAt'].includes(k))))),'BUYER_MANIFEST_CHANGED');
+    if(!inspect)must(sha===m.manifestSha256&&at>=m.createdAt&&at<m.expiresAt&&(!start||at<m.expiresAt-1200000),'BUYER_APPROVAL_OR_TOO_LATE');};
+  const preflight=(p,m)=>{layout(p);must(same(p,m.baseline),'BUYER_FRESH_BASELINE_DRIFT');};
+  return Object.freeze({Q:scope,F:frozen,closure:buyerCompatibilityClosure,closureCount:111,sourceTemplate:()=>freeze(structuredClone(template)),
+    texts:render,bindingText:binding,validateLayout:layout,validateObjects:objects,...gitObjects,makeReview:review,validateApproval:approve,
+    validatePreflight:preflight,reconcile:(p,m,state,prior)=>{preflight(prior,m);return reconcilePublicationLayoutV6(p,{...m,prestate:prior},state);}});
+}

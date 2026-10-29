@@ -10,16 +10,36 @@ import {publishAppOnceV6} from '../platform-publication-v6/plan.mjs';
 import {assertEvidenceSafeV5} from '../cloud-worker/cloud-evidence-v5.mjs';
 import {cycleCloudClosure} from './closure.mjs';
 import {sourceTemplate,Q,F,FACTS,REFERENCE,must,same,hash,validateLayout,makeReview,validateApproval,validatePreflight,reconcile,
-  previousTargets,prepareObjects,verifyObjects} from './publication.mjs';
+  previousTargets,prepareObjects,verifyObjects,BUYER_PUBLICATION_SOURCE,createBuyerPublication} from './publication.mjs';
+import {prepareBuyerFromSource} from './buyer-compatibility.mjs';
 import {T} from './upload-plan.mjs';
 export const ROOTS=['ops/platform-reviewed-cycle-v1/publication-local.mjs','tests/platform-reviewed-cycle-publication-v1.test.mjs',Q.riskFile,
   Q.bindingFile,Q.caller,Q.reusable,'.github/workflows/platform-recovery-hosting-candidate.yml',
-  'package.json','package-lock.json','ops/cloud-worker/package.json','ops/cloud-worker/package-lock.json'];
+  'package.json','package-lock.json','ops/cloud-worker/package.json','ops/cloud-worker/package-lock.json','tests/buyer-publication-cycle-v1.test.mjs'];
 const json=async f=>JSON.parse(await readText(f,2000000)),write=async(f,v)=>{assertEvidenceSafeV5(v);await writeOnce(f,v);},collect=()=>pins({roots:ROOTS});
-export function profile(m,{readOnly=false,executionPrestate,capture=false}={}){
+const LEGACY={Q,F,validateLayout,makeReview,validateApproval,validatePreflight,reconcile,previousTargets,prepareObjects,verifyObjects};
+// Optional arguments are CODE/test capabilities, never CLI or manifest switches.
+export async function selectPublication({selection=BUYER_PUBLICATION_SOURCE,read=readText}={}){
+  if(selection===null)return null;
+  must(selection?.schema==='techlong/buyer-publication-selection/v1'&&
+    /^F:\/ChatGPT_workshop\/techlong-[A-Za-z0-9/_.-]+\.json$/.test(selection.file??'')&&!selection.file.includes('..')&&
+    /^[a-f0-9]{64}$/.test(selection.rawSha256??''),'BUYER_SELECTION');
+  const raw=await read(selection.file,2000000);must(hash(raw)===selection.rawSha256,'BUYER_SELECTION_BYTES');const m=JSON.parse(raw),p=m.uploadProof;
+  must(p?.outcome==='PACKAGE_UPLOADED_AND_INDEPENDENT_FIXED_VERSION_VERIFIED_NO_ACTIVATION'&&
+    same(p.packageReference,m.source?.publication?.packageReference)&&same(p.factsApproval,m.source.publication.factsApproval)&&
+    p.actualCounts?.conditionalPuts===1&&p.actualCounts.fixedVersionGets===1&&p.slots?.permanentlyConsumed===true&&
+    p.runtimeActivated===false,'BUYER_UPLOAD_RECEIPT');
+  // Reconstruction at its recorded observation is not a new fact window. The
+  // unchanged publisher checks real wall time again before every actual write.
+  const now=()=>m.source.profile.observedBy,compat=await prepareBuyerFromSource(m.source,m.bundle,{now});
+  return createBuyerPublication({...m,compat,now});
+}
+export function profile(m,{readOnly=false,executionPrestate,capture=false,publication=null}={}){
+  const {Q,F,verifyObjects,validateLayout,validateApproval,validatePreflight,reconcile}=publication??LEGACY;
   return {scope:Q,frozen:F,readOnly,executionPrestate,closure:cycleCloudClosure,closureCount:110,pins:collect,verifyObjects,validateSource:validateLayout,
     validateApproval,validatePreflight,reconcile,readCi,awsMetadataMax:readOnly?13:Q.awsMetadataMax,githubGetsMax:readOnly?17:Q.githubGetsMax,
     workflowId:file=>file===Q.caller?'390829326':'390829324',capture,
+    ...(publication?{closure:publication.closure,closureCount:publication.closureCount}:{}),
     async verifyExistingTargets(get,parent){must(m.parent===parent,'TARGET_PARENT');for(const o of m.previousTargets.filter(o=>o.file!==Q.bindingFile)){
       const c=await get('contents/'+o.file+'?ref='+parent),w=await get('actions/workflows/'+path.basename(o.file));
       must(c.type==='file'&&c.sha===o.blob&&c.encoding==='base64'&&hash(Buffer.from(c.content,'base64').toString('utf8'))===o.normalizedLfSha256&&
@@ -45,13 +65,15 @@ export function parseArgs(args){if(same(args,['--check']))return {mode:'Check'};
 export async function main(args=process.argv.slice(2)){
   const a=parseArgs(args);if(a.mode==='Check'){const r={outcome:'CYCLE_SOURCE_PUBLICATION_PREPARATION_ONLY_WITHOUT_EXACT_APPROVAL',awsCalls:0,
     privateContentReads:0,externalWrites:0,dispatches:0};console.log(JSON.stringify(r));return r;}
+  const publication=await selectPublication(),{Q,F,validateLayout,makeReview,validateApproval,previousTargets,prepareObjects}=publication??LEGACY;
+  const makeProfile=(m,options={})=>profile(m,{...options,publication});
   environment();must(process.platform==='win32'&&path.resolve(process.cwd()).toLowerCase()===path.resolve(ROOT).toLowerCase(),'ENVIRONMENT');await noLinks('F:/ChatGPT_workshop');
   const head=git(['rev-parse','HEAD']).trim(),clean=()=>must(git(['status','--porcelain']).trim()===''&&git(['branch','--show-current']).trim()==='main'&&git(['rev-parse','HEAD']).trim()===head,'CLEAN_SOURCE');
-  clean();await compatibility(head);const c=await cycleCloudClosure();must(c.pinCount===110&&c.closureSha256===F.closureSha256,'CLOSURE');
-  git(['diff','--exit-code','--quiet',F.sourceCommit,head,'--',...c.pins.map(p=>p.file)]);await savedPackage();await absent(a['--output']);
+  clean();await compatibility(head);const c=await (publication?.closure??cycleCloudClosure)();must(c.pinCount===(publication?.closureCount??110)&&c.closureSha256===F.closureSha256,'CLOSURE');
+  git(['diff','--exit-code','--quiet',F.sourceCommit,head,'--',...c.pins.map(p=>p.file)]);if(!publication)await savedPackage();await absent(a['--output']);
   if(a['--mode']==='CaptureReadiness'){
     const ci=await readCi(a['--ci-run'],head),targets=await previousTargets(head);await mkdir(a['--output']);
-    const io=await createAppPublicationIo(a['--output'],{profile:profile({parent:head,previousTargets:targets},{readOnly:true,capture:true})});
+    const io=await createAppPublicationIo(a['--output'],{profile:makeProfile({parent:head,previousTargets:targets},{readOnly:true,capture:true})});
     try{const startedAt=Date.now(),baseline=await io.preflight(head);validateLayout(baseline);clean();must(baseline.main===head,'CAPTURE_REMOTE_SOURCE');
       const r={sourceCommit:head,ci,startedAt,observedAt:startedAt,captureCompletedAt:Date.now(),baseline,previousTargets:targets,counts:io.counts(),githubCiGets:3,
         limits:{sts:1,awsServiceMetadata:12,githubGetsTotal:20},externalWrites:0,slotsConsumed:0};
@@ -73,7 +95,7 @@ export async function main(args=process.argv.slice(2)){
   }
   const m=await json(a['--manifest']);await validateApproval(m,a['--approved-sha'],Date.now(),a['--mode']==='Inspect',a['--mode']==='PublishReviewed');let prestate;
   const inspect=async out=>{await absent(Q.inspectSlot);await absent(out);await mkdir(out);
-    const io=await createAppPublicationIo(out,{profile:profile(m,{readOnly:true,executionPrestate:prestate})});
+    const io=await createAppPublicationIo(out,{profile:makeProfile(m,{readOnly:true,executionPrestate:prestate})});
     try{await write(Q.inspectSlot,{manifestSha256:m.manifestSha256,output:out,writesAuthorized:0,consumedAt:Date.now(),retryAllowed:false});
       const r=await io.inspect(m);await write(out+'/result.json',{...r,counts:io.counts()});return r;}finally{io.dispose();}};
   if(a['--mode']==='Inspect'){
@@ -81,9 +103,9 @@ export async function main(args=process.argv.slice(2)){
       /^F:\/ChatGPT_workshop\/techlong-reviewed-cycle-publication-[a-z0-9-]+$/.test(slot.output),'WRITER_SLOT');prestate=await json(slot.output+'/execution-preflight.json');
     must(hash(prestate)===slot.preflightSha256,'PREFLIGHT_ARCHIVE');const r=await inspect(a['--output']);console.log(JSON.stringify(r));return r;
   }
-  await absent(Q.slot);await absent(Q.inspectSlot);await mkdir(a['--output']);const io=await createAppPublicationIo(a['--output'],{profile:profile(m)});let result;
+  await absent(Q.slot);await absent(Q.inspectSlot);await mkdir(a['--output']);const io=await createAppPublicationIo(a['--output'],{profile:makeProfile(m)});let result;
   try{await io.ci(m.ci.runId,m.parent);await write(a['--output']+'/approved-manifest.json',m);
-    result=await publishAppOnceV6({manifest:m,approved:a['--approved-sha'],io,profile:profile(m)});await write(a['--output']+'/result.json',{...result,counts:io.counts()});
+    result=await publishAppOnceV6({manifest:m,approved:a['--approved-sha'],io,profile:makeProfile(m)});await write(a['--output']+'/result.json',{...result,counts:io.counts()});
   }finally{io.dispose();}
   if(result.outcome==='APP_WORKFLOWS_AND_TRUST_PUBLISHED_REQUIRES_INDEPENDENT_INSPECT'){
     const slot=await json(Q.slot);prestate=await json(a['--output']+'/execution-preflight.json');must(hash(prestate)===slot.preflightSha256,'PREFLIGHT_ARCHIVE');
