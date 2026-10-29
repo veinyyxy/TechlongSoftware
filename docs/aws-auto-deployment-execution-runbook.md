@@ -63,6 +63,8 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 **当前唯一动作：准备新的真实后端联调/CORS与有限业务验收窗口。** 复用现有请求/Review→RunOnce→Inspect能力、镜像/数据库和已发布客户端；先核对新合法请求/来源/期限及当前资源，实际读取/恢复/业务写仍准确另审。不更新已删旧UUID、不重放已消费job，不再改前端、扩执行器/探针/UI或复制固定任务代码分支；旧backend意图未延长、wholeProductAccepted=false。
 
+[本轮后端准备与停止点](aws-backend-integration-preparation.md)已记录：当前云材料把旧两项CORS固定在capsule哈希/冻结源码中，需受审地只追加真实CloudFront来源，不能临时绕过参数校验或改旧pin。原部署代码/材料/工作流未改，候选body差异哈希不是执行批准。本轮另允读取在20:39首个Source STS失败，STS1/其余AWS、GitHub、配置、TLS/SQL及写入/槽均0；原件 `F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-a/result.json`，raw SHA `ebd73a2a1d4dae7c2c2e7815dc209f6a6aa4e0fc3bc154f0622bfe12650c3548`。**下一唯一动作为Source刷新并新一次同范围读取许可后，使用新观察记录继续事实核对**；不重跑原失败命令，不把失败时间当新事实窗口，不先实现新固定任务分支或启动后端。
+
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 
 发布后CI40747653765的旧来源比较问题已仅在 `tests/platform-recovery-cloud-v1.test.mjs` 最小修复：保留历史发布SHA/a604 provenance，再识别已安装reviewed-cycle SOURCE、准确模板与原observedBy，完整比较workflow全文、reusable pin和本人门禁。352项相关本机回归、类型/lint/diff与110闭包核验通过；不改线上workflow/云代码/IAM、不重做发布，本轮生产调用/私密读取/SQL/云写/dispatch均0。原失败诊断 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-post-ci-20261028-a.json` 保留；准确源码/CI只在真实成功后封存 `F:/ChatGPT_workshop/techlong-reviewed-cycle-legacy-test-fix-verified-20261028-a.json`，未封存前先查同一提交CI，不开始生产准备。

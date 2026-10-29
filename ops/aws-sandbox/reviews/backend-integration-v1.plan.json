@@ -1,0 +1,65 @@
+{
+  "schema": "techlong/backend-integration-preparation/v1",
+  "status": "BLOCKED_SOURCE_REFRESH_REQUIRED_NO_CURRENT_FACTS",
+  "executionApprovalSha256": null,
+  "executionAuthorized": false,
+  "sourceAuditCommit": "75ca2225236166962aec6628497fb334fc49579f",
+  "appInstanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+  "deploymentId": "dep_7c99bd249470184852f0dc74",
+  "publishedClient": {
+    "sourceCommit": "602e543c03564898625618ec3327720d56be04e4",
+    "runId": 40799958045,
+    "origin": "https://d3a0kml1xanzgt.cloudfront.net",
+    "apiOrigin": "https://first-acceptance.sandbox.techlong.cloud",
+    "republishRequired": false,
+    "newHmacReadOrTransferPlanned": false
+  },
+  "corsDifference": {
+    "publicCapsulePath": "ops/cloud-worker/material/public-capsule-v5.json",
+    "currentFixedBodySha256": "5c7e5eeff2febef52b469487e0bd7d170e711fb2b26e3df81162b5b46c6e2e14",
+    "existingOrigins": ["https://first-acceptance.sandbox.techlong.cloud", "https://techlong.cloud"],
+    "additionalExactOrigin": "https://d3a0kml1xanzgt.cloudfront.net",
+    "candidateBodySha256": "c124b21accd6cd538e45c2cc43706583ad146ba0ded25067c0406e0c5d128ddc",
+    "candidateIsNotExecutionApproval": true,
+    "sourceMaterialOrFrozenClosureChanged": false,
+    "wildcardOrOriginBypassAllowed": false
+  },
+  "existingCloudBinding": {
+    "frozenCommit": "0e18a25e15af64010187c9870be3cfa6433aa5de",
+    "reusableCommit": "1120f5106079a006c5e1c455f7de4b70e9732e5b",
+    "selectedCompletedJobMustNotBeReplayed": "job_a00fc18c13a5d6c6616c8039",
+    "newJobId": null,
+    "newRequestId": null,
+    "newSourceDescriptor": null,
+    "newBackendExpiresAt": null,
+    "proposedAcceptanceIntentMinutesNotYetStarted": 120,
+    "necessaryMaterialSourceOrTrustChangeRequiresExactSeparateReview": true
+  },
+  "failedCapture": {
+    "path": "F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-a/result.json",
+    "rawSha256": "ebd73a2a1d4dae7c2c2e7815dc209f6a6aa4e0fc3bc154f0622bfe12650c3548",
+    "outcome": "STOPPED_NO_RETRY",
+    "errorCode": "SOURCE_UNAVAILABLE",
+    "counts": { "sourceSts": 1, "awsMetadata": 0, "githubGets": 0, "configReads": 0, "tlsConnections": 0, "sqlQueries": 0 },
+    "usableProductionFacts": false,
+    "oldCommandMayBeReplayed": false
+  },
+  "pendingNewObservationPermission": {
+    "status": "REQUESTED_PENDING_REFRESH_AND_RENEWED_EXPLICIT_SCOPE",
+    "sourceSts": 1,
+    "awsMetadata": 65,
+    "githubGets": 10,
+    "envLocalFullFileReads": 1,
+    "verifiedTlsNeonConnections": 1,
+    "readOnlySqlQueries": 45,
+    "ddbItemReads": 0,
+    "auroraConnections": 0,
+    "secretValueHmacOrPemReads": 0,
+    "configurationOrDatabaseWrites": 0,
+    "newOrCanceledJobs": 0,
+    "renewalsDispatchesOrExecutionSlots": 0,
+    "snapshotHoursAfterRealObservation": 5
+  },
+  "nextUniqueAction": "Refresh Source and receive a new same-scope read-only permission, then capture fresh facts in a new record while preserving failed attempt A. Do not replay, deploy, change CORS/source or invent new job state.",
+  "wholeProductAccepted": false
+}

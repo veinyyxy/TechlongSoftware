@@ -22,6 +22,8 @@
 
 **当前唯一动作：准备新的真实后端联调/CORS和有限业务验收窗口**，复用现有能力、镜像/数据库与已发布客户端；新读取、合法请求/来源和实际恢复/业务写仍具体另审。不更新旧已删UUID、不重放旧job/事实时刻，不再改前端、扩框架/探针/UI或复制固定任务代码分支。当前wholeProductAccepted=false，静态发布不等于整套业务可用。
 
+本轮[后端准备](aws-backend-integration-preparation.md)已定位必要单一CORS差异：原capsule/冻结源码仍仅两来源，新真实CF来源尚未纳入；没有改材料、旧pin或部署代码。另允读取在20:39第一次Source STS即失败，STS1/其他元数据、GitHub、配置、TLS、SQL及写入/执行槽均0。原件 `F:/ChatGPT_workshop/techlong-backend-integration-readiness-20261028-a/result.json`（raw SHA `ebd73a2a1d4dae7c2c2e7815dc209f6a6aa4e0fc3bc154f0622bfe12650c3548`）保留；**下一只在Source刷新及新的同范围许可后，用新记录继续限定事实核对**，不重跑原命令或虚构可执行SHA/任务。旧客户端发布仍完成，不再取HMAC/发布前端。
+
 ### 已完成历程与本轮准备沿革（以下不是重放指令）
 
 **同一a00任务的 Review → RunOnce → 独立 Inspect 已真实通过，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`。** 用户批准外层913ea70a…并本人完成三次GitHub环境审批；准确runs为[Review 40751073822](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40751073822)、[RunOnce 40751515012](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40751515012)、[Inspect 40752434574](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40752434574)。执行源码284f6ad/准确CI40748831700；一次建栈、两次认证GET，任务成功且租约清空，旧11job和14/9/9控制历史及保护保持。没有新增IAM、重试、清理或agent代批。

@@ -16,6 +16,8 @@
 
 **下一唯一动作是新的真实后端联调/CORS及有限业务验收窗口准备**，不是再改前端。新读取/合法请求/来源/恢复/业务操作另审；旧已删UUID不能UpdateStack、成功任务不重放。HMAC按受审设计可从公开Web提取，持久Secret/配置/IAM和对象继续保留；静态成功不代表访问租约、登录、订单或支付通过，wholeProductAccepted=false。
 
+新的[后端准备记录](aws-backend-integration-preparation.md)确认当前材料/冻结SOURCE尚未包含CF来源，必须只做受审最小适配，不能绕过旧哈希校验。当前新事实读取因Source不可用停在STS1，其他元数据/配置/TLS/SQL和写入均0；等待刷新及新一次同范围只读许可，不自动重试/续期。首轮业务联调拟先覆盖已有店铺/菜单和后端/数据库读路径，实际客户端访问租约/heartbeat等正常写需另批，不默认创建订单、支付或新业务数据。
+
 ## 已完成与本轮阻塞
 
 [同一 sandbox 的整轮恢复部署](aws-auto-deployment-reviewed-cycle-observed.md)已独立通过，不重跑 Review、RunOnce 或 Inspect，也不再扩部署框架。整套产品仍未验收。
