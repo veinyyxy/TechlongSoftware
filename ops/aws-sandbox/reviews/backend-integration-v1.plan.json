@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "TWO_EXISTING_ENTRY_WIRING_IMPLEMENTED_LOCAL_VERIFIED_PENDING_EXACT_CI",
+  "status": "TWO_MINIMAL_ENTRY_WIRING_AND_EXACT_CI_VERIFIED_NO_ACTIVATION",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
@@ -334,7 +334,13 @@
     "testSetsOverlap": true,
     "additionalTargetedTests": 11,
     "realSdkClassesWithSyntheticResponses": true,
-    "exactCiVerified": false,
+    "exactCiVerified": true,
+    "sourceCommit": "cfb14087efc25079e540e6631f802f003185c274",
+    "ciRunId": "40940078691",
+    "ciJobId": "123680823168",
+    "reportedStepsAllSuccessful": 16,
+    "checkpoint": "F:/ChatGPT_workshop/techlong-buyer-sdk-publication-wiring-code-verified-20261029-a.json",
+    "checkpointRawSha256": "84cb3a8627dffaa50047e45d9259276afa1b87b83f3a86e3df6e821f66d8db42",
     "oldCloudClosureSha256": "0c6f119def3b10efe592f559b29d4d8f929893a28dbc77a065c2746052aa308d",
     "candidate111Sha256": "52ae2ee335ecf9d6726c65c9aaa1c90776a10caabfd13decc0401fbeb1c276a0",
     "newSdkOrExecutorFramework": false,
@@ -344,6 +350,6 @@
     "productionCalls": 0,
     "executionAuthorized": false
   },
-  "nextUniqueAction": "Verify the exact source No-AWS CI and seal these two completed wiring repairs, then prepare the concentrated real request/upload/necessary SOURCE publication and reviewed deployment scope. Do not repeat historical supplement or expand code. The original 14:07 snapshot is expired; new fact reads and real request/readback/upload/version/source/trust/deployment effects remain separately reviewed. Defaults stay null, old 110 and original guards stay intact, missing receipts remain null, no cloud/private reads, renewal, window or dispatch by default.",
+  "nextUniqueAction": "Prepare concentrated fresh-fact, real request/readback, material upload/version, necessary existing SOURCE/workflow/trust-only publication and reviewed-cycle scope. These two code repairs and exact CI are complete at cfb1408/run40940078691; do not repeat code, historical supplement or expand frameworks. The original 14:07 snapshot is expired and basis retains its original deadline; new reads and all actual request/upload/publication/deployment effects remain separately reviewed. Defaults stay null, old 110 and original guards stay intact, missing receipts remain null, no cloud/private reads, renewal, window or dispatch by default.",
   "wholeProductAccepted": false
 }

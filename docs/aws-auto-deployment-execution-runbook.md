@@ -31,9 +31,9 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 ## 3. 当前唯一继续点：整轮真实部署闭环已完成，转向产品验收与AWS交付
 
-**本次获同意的两处代码接线已本机完成，下一只核对该提交的准确无AWS CI。** 三处既有源码接入buyer真实SDK端口和原发布器的SOURCE/template/prestate选择；默认BUYER_SOURCE/BUYER_PUBLICATION_SOURCE仍null，旧110与默认恢复路径保持。57项定向检查及122项相关检查（两组重叠）通过，类型/lint和发布入口--check通过；新增外部SDK/OIDC/S3/Secret响应均为明确合成，不是生产调用。111候选摘要现为52ae2ee3…，旧材料/code检查点继续保留，不冒称旧111仍是当前代码。
+**本次获同意的两处代码接线及准确无AWS CI已完成**：源码cfb1408/[CI40940078691](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40940078691) completed/success，16报告步骤全过。三处既有源码接入buyer真实SDK端口和原发布器SOURCE/template/prestate选择；默认BUYER_SOURCE/BUYER_PUBLICATION_SOURCE仍null，旧110与默认恢复保持。本机57定向/122相关检查（重叠）、类型/lint和--check通过；外部SDK响应为明确合成，不是生产验收。111现为52ae2ee3…。恢复F:/ChatGPT_workshop/techlong-buyer-sdk-publication-wiring-code-verified-20261029-a.json，raw SHA 84cb3a8627dffaa50047e45d9259276afa1b87b83f3a86e3df6e821f66d8db42；旧材料和失败记录保留，不重跑代码或补件。
 
-源码/准确CI收尾后，下一仅集中准备真实请求、上传和现有来源发布/整轮所需的准确范围，不再补件或扩代码。原14:07准备快照已到期，不自动重读生产或生成执行SHA；原basis 10月30日10:08:09.592 CDT不延长。真实请求/回读、上传版本、固定源码选择、发布与部署均未发生，仍按具体新范围另审，不先开窗。
+**下一唯一动作仅集中准备新事实核对、真实请求/回读、材料上传及现有来源发布/整轮所需的准确范围，不再补件或扩代码。** 原14:07快照已到期，不自动重读生产或生成执行SHA；basis 10月30日10:08:09.592 CDT不延长。真实请求/回读、上传版本、固定源码选择、发布与部署均未发生，仍按具体新范围另审，不先开窗；后续纯文档HEAD不是上述CI源码。
 
 **用户现已同意仅实施下述两处最小接线与定向测试。** 本轮范围为现有buyer SDK装配、publication/publication-local来源选择及对应测试/文档；保留旧110和默认恢复路径。不读取生产、私密配置或凭据，不执行发布/部署/调度；正常代码提交及无AWS CI按既有授权继续。下方“先取得同意”是本次批准前的停止记录，不重复征求同一代码范围。
 

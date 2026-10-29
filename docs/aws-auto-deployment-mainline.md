@@ -4,9 +4,9 @@
 
 ## 当前唯一继续点（2026-10-29，买家域名静态验收完成；回到后端联调）
 
-**最新：用户同意的三文件/两处接线已本机完成，正在核验准确无AWS CI。** buyer模块现在装配原SDK/固定Secret/窄Neon/provider/evidence/journal和V5执行根；原publication/local按CODE选择新SOURCE与当前prestate，复用原Git/CFN发布及独立核验。默认两个buyer选择仍null，旧110不变、111更新为52ae2ee3…。57项定向/122项相关检查通过（重叠，不相加），没有生产读取、私密读取、云/SQL写、上传、任务/槽、受保护workflow/IAM写或dispatch。[实现及剩余边界](aws-backend-integration-preparation.md#两处最小接线的代码验证)。
+**最新：三文件/两处接线及准确CI已完成**，源码cfb1408/[run40940078691](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40940078691)成功、16报告步骤全过。原SDK/固定Secret/窄Neon/provider/evidence/journal及V5执行根接到同一buyer context；原publication/local复用Git/CFN发布和独立核验。57项定向/122项相关检查（重叠）、类型/lint通过；旧110不变、111现52ae2ee3…。默认选择null、未发布装配，本轮生产读取/私密读取/云或SQL写/上传/任务/槽/IAM或受保护workflow改动/dispatch0。[实现与边界](aws-backend-integration-preparation.md#两处最小接线的代码验证)。恢复F:/ChatGPT_workshop/techlong-buyer-sdk-publication-wiring-code-verified-20261029-a.json，raw SHA 84cb3a8627dffaa50047e45d9259276afa1b87b83f3a86e3df6e821f66d8db42。
 
-准确源码/CI收尾后只准备真实请求/材料上传/必要来源发布及整轮的集中准确范围，不重复代码或补件。原14:07准备快照已过期，必要的新鲜读取和所有实际副作用仍另审；basis明天10:08:09.592不延长，不提前开窗或认为已部署。
+**下一只集中准备新事实、真实请求/材料上传/必要来源发布及整轮的准确范围，不重复代码或补件。** 原14:07快照已过期，必要新读取和所有实际副作用仍另审；basis明天10:08:09.592不延长，不提前开窗或认为已部署。后续文档提交不冒称重跑准确CI。
 
 **最新13:36 CDT：固定历史provider已补齐，真实accepted后继链、buyer上下文包及同一b236单INSERT草案重建通过；仍未创建任务、上传或发布。** 本轮实际仅另批STS1/S3固定版本GET1，余下均为本地原件核验；旧失败不覆盖，已有`providerPublicV5`处理完整报告的标准投影，无应用代码/旧110改动。[完整事实和剩余材料](aws-backend-integration-preparation.md#固定原件及真实buyer材料已重建10月29日1336-cdt)。恢复F:/ChatGPT_workshop/techlong-buyer-real-material-verified-20261029-a.json，raw SHA 16b1a0dff9deed74ee41d0a1e880fb7e412c6d675527bc3f13e4e2a68a9b9fb2。
 
