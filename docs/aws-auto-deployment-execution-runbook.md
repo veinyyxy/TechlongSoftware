@@ -69,7 +69,11 @@ Source刷新及新同范围许可后，20:56–20:59的B记录取得AWS/GitHub�
 
 **数据库补核已完成（23:29 CDT）**：用户确认下一步后，独立C记录配置1/TLS1/SQL15、AWS/GitHub及持久写均0。客户端TLSv1.3/证书验证及身份/只读全部匹配，本次唯一诊断差异为数据库侧TLS视图false；沿用原显式证书及完整catalog/准入/保护校验，没有改线上或降低身份/证书要求。12任务、17/12/12完整账本、deployment/admission及保护与上一轮封存Inspect snapshot逐字段完全一致，任务均终态/lease清空；纯投影可准备新held请求，但未编译或提交写入。
 
-恢复读 F:/ChatGPT_workshop/techlong-backend-integration-database-supplement-20261028-c/verified.json，raw SHA 21ac8c94e8cb851564e4923f6d4d81627a0a90ee113a2e92e84b6fa4bfefaae8；业务正文只在本地，原A/B不覆盖，AWS/GitHub原准备期限10月29日01:56:03 CDT不延长。**下一唯一动作：本地最小CORS固定来源/新合法请求接线与定向测试，集中备齐来源发布及整轮待审材料。** 复用现有请求编译器和执行器，不取消成功a00、不走旧pending两行handoff、不复制固定任务或扩框架；当前不再重复生产读取、不建任务、发布来源/trust、开租约或部署。执行SHA、真实新窗口和云/业务副作用仍另审。
+恢复读 F:/ChatGPT_workshop/techlong-backend-integration-database-supplement-20261028-c/verified.json，raw SHA 21ac8c94e8cb851564e4923f6d4d81627a0a90ee113a2e92e84b6fa4bfefaae8；业务正文只在本地，原A/B不覆盖，AWS/GitHub原准备期限10月29日01:56:03 CDT不延长。
+
+**用户已明确调整当前方向：先准备给已部署CDN绑定buyer.sandbox.techlong.cloud的方案。** 本地实际V5 Review测试发现除capsule固定哈希外，parameters.ts还强制CORS为techlong.cloud域内；直接追加cloudfront.net仍被拒绝，不能宣称最小接线已接通。未接通原型已撤回，没有改旧110文件内核、放宽校验或发布源码。新边界及既有单INSERT请求19项定向回归通过，已加入原无AWS CI，不新增部署工作流。
+
+**当前唯一继续点：完成[自定义域名候选](aws-buyer-web-custom-domain-plan.md)的准确CDN/证书/DNS差异、测试与待审材料。** 本地候选和原请求合计23项检查已通过，精确CI结果另据真实run封存。当前不批准ACM申请、DNS/CDN写入、新IAM或后端部署，不为绕过校验创建新执行器。复用原CDN/桶/角色、原请求编译器及7资源后端，后继CORS只追加准确buyer域名；新合法请求/材料/来源发布与整轮执行仍集中准备并另审，不取消成功a00、不走旧pending两行handoff或复制固定任务分支。
 
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 

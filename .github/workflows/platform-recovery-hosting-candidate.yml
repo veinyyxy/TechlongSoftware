@@ -18,6 +18,9 @@ on:
       - 'tests/platform-reviewed-cycle-package-v1.test.mjs'
       - 'tests/platform-reviewed-cycle-upload-v1.test.mjs'
       - 'tests/platform-reviewed-cycle-publication-v1.test.mjs'
+      - 'tests/buyer-origin-boundary-v1.test.mjs'
+      - 'ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-plan.json'
+      - 'ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-template-proposal.json'
       - 'docs/aws-auto-deployment-reviewed-cycle-package-upload.md'
       - 'docs/aws-auto-deployment-reviewed-cycle-source-publication.md'
       - 'docs/aws-auto-deployment-reviewed-cycle-handoff-v1.md'
@@ -79,6 +82,9 @@ on:
       - 'tests/platform-reviewed-cycle-package-v1.test.mjs'
       - 'tests/platform-reviewed-cycle-upload-v1.test.mjs'
       - 'tests/platform-reviewed-cycle-publication-v1.test.mjs'
+      - 'tests/buyer-origin-boundary-v1.test.mjs'
+      - 'ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-plan.json'
+      - 'ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-template-proposal.json'
       - 'docs/aws-auto-deployment-reviewed-cycle-package-upload.md'
       - 'docs/aws-auto-deployment-reviewed-cycle-source-publication.md'
       - 'docs/aws-auto-deployment-reviewed-cycle-handoff-v1.md'
@@ -162,6 +168,10 @@ jobs:
           node --experimental-strip-types ops/platform-reviewed-cycle-v1/upload-local.mjs --check
           node --experimental-strip-types ops/platform-reviewed-cycle-v1/publication-local.mjs --check
           node node_modules/eslint/bin/eslint.js ops/platform-reviewed-cycle-v1/ tests/platform-reviewed-cycle-v1.test.mjs tests/platform-reviewed-cycle-handoff-v1.test.mjs tests/platform-reviewed-cycle-package-v1.test.mjs tests/platform-reviewed-cycle-upload-v1.test.mjs tests/platform-reviewed-cycle-publication-v1.test.mjs --max-warnings 0
+      - name: Buyer origin boundary and existing request compiler - No AWS
+        run: |
+          node --experimental-strip-types --test tests/buyer-origin-boundary-v1.test.mjs tests/initialized-platform-v4.test.ts
+          node node_modules/eslint/bin/eslint.js tests/buyer-origin-boundary-v1.test.mjs --max-warnings 0
       - name: A604 package upload contracts - No AWS
         run: |
           node --experimental-strip-types --test tests/platform-recovery-package-v1.test.mjs tests/platform-a604-package-v1.test.mjs

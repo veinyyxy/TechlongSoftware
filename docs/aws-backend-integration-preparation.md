@@ -2,7 +2,7 @@
 
 2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)，承接[已完成的客户端静态发布](aws-buyer-web-sandbox-publication-observed.md)。本文件仅整理当前主线，不是新任务、数据库写入、私密读取、来源发布、IAM修改或付费后端部署授权。[机器准备摘要](../ops/aws-sandbox/reviews/backend-integration-v1.plan.json)执行SHA为null。
 
-## 已确定的主线差异
+## 初始差异核对（raw CloudFront方向已被下方域名方案取代）
 
 客户端602e543/准确run40799958045已发布，来源为https://d3a0kml1xanzgt.cloudfront.net；无需重建前端、再读HMAC、更新客户端Secret或再dispatch。API编译目标仍为first-acceptance.sandbox.techlong.cloud。
 
@@ -57,14 +57,14 @@ C补核执行源码e620a0f，于2026-10-28 23:29:16–23:29:22 CDT完成：配�
 
 原始result：F:/ChatGPT_workshop/techlong-backend-integration-database-supplement-20261028-c/result.json，raw SHA 16a4e43673dcb9003c62f11b942db2aafe31bfb0894e033759cb1dc25fd58395。完整业务快照仅保留该本地目录，不入Git。恢复先读该目录verified.json，raw SHA 21ac8c94e8cb851564e4923f6d4d81627a0a90ee113a2e92e84b6fa4bfefaae8；它绑定6份原件及上一轮Inspect快照，并核对了父B记录。C没有重采AWS/GitHub或延长期限，集中准备仍受较早的2026-10-29 01:56:03 CDT限制。
 
-## 当前唯一继续点：本地最小CORS/新合法请求接线与测试
+## 当前唯一继续点：自定义域名准备（用户明确调整）
 
-已有事实足够准备最小适配，不再重复只读核对或开前端支线；没有可重用的待审任务。下一步按以下顺序备齐整轮材料，实际副作用仍另批：
+本轮适配原型的实际V5 Review测试发现，除固定capsule哈希外，lib/deployments/execution/parameters.ts还拒绝techlong.cloud域外CORS。追加raw CloudFront来源会报“must use the techlong.cloud HTTPS boundary”，不能渲染实际请求。原型没有发布，未接通的新增适配文件已撤回，没有修改原校验器或旧110文件闭包。诊断保留在F:/ChatGPT_workshop/techlong-buyer-origin-adapter-stopped-20261028-a.json；不把23/25原型检查中的失败改称接线成功。
 
-1. 仅纳入前述准确CloudFront来源，保留原两个CORS来源。把差异绑定到新的受审配置材料/源码，不改写旧capsule/pin的历史含义，不放宽任意参数/来源/闭包；复用原执行器与7资源模板。
-2. 复用prepareInitializedPlatformRequest的一条新held请求编译能力；本机纯投影已证明expired且无活跃任务，可准备新请求。不得使用要求“旧pending取消+新建”的两行handoff，不取消或复活a00，不复制固定job目录或创建新的通用请求框架。当前尚未分配新job/request ID、编译或提交写入。
-3. 在开窗前集中备齐新请求、配置/来源与必要包引用、准确源码/CI、必要workflow/reusable trust-only差异、Review→RunOnce→Inspect累计副作用、本人GitHub审批点及时间预留。代码/测试不产生云权限；新任务写、上传、来源发布、IAM trust及付费部署各在准确清单列清，不能临时扩大。无需重发镜像、重读HMAC或重建前端。
-4. 新后端验收意图仅按2小时候选准备，实际起止仍null；当前不续旧TTL或启动任何资源。先备齐再审批，过期不重放；清理按准确资源另审，到期不等于停费。
-5. 后端独立Inspect通过后，才另按准确范围准备客户端启动、既有店铺/菜单读取及API/数据库连通。启动客户端会正常创建/更新访问租约并heartbeat，不能当纯只读；不默认创建商品/订单、重设商户密码或Stripe支付，数据不足先记录缺口。
+用户已明确选定“先准备自定义域名方案”。当前只推进[buyer.sandbox.techlong.cloud方案](aws-buyer-web-custom-domain-plan.md)及[模板差异候选](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-template-proposal.json)：复用现有CDN/桶/发布角色，只准备us-east-1证书、准确alias和DNS；不新增执行器，不放宽域边界，也不重发客户端。原始raw CloudFront候选c124b21a…被取代，后继准确buyer域名body候选为649c3077a5c1316e663f9765c10b4d79a9cc1bc673086de8e50d4ed1ddc92a62；两者都不是执行批准，原capsule仍未改变。
 
-本阶段只完成只读事实与本地差异/投影核对；没有修改部署代码、角色、材料、数据库或前端，也没有执行SHA或新事实执行授权。50 USD/月仍是整体目标而非硬停费，平台/共享Cell/数据库和静态版本可能持续收费；不扩F3c9、前端/探针/UI/调度平台，wholeProductAccepted=false。
+既有prepareInitializedPlatformRequest已支持一条新held请求，无需再实现取消/恢复框架。现状12条任务均终态、无lease，不能使用“取消旧pending+新建”的两行handoff。后继仍保留全部旧任务/账本/业务与保护；新job/request ID、真实新窗口和请求写入均未产生。
+
+本轮新增边界/域名候选回归与原请求回归合计23项通过，类型/lint及旧110文件闭包核对保持；这些不是AWS模板验证、域名安装、后端部署或业务验收。仅把检查加到原无AWS CI，没有新部署workflow或云副作用。
+
+**下一唯一动作：准确CI通过后，另获一次域名范围限定元数据读取许可，核对准确CDN/现有栈、DNS占用和证书选项，为证书阶段生成待审SHA。** 不沿用旧读取许可，不重采数据库，不申请证书、改DNS/CDN/IAM、创建任务、发布来源/trust、续租或调度。实际云变更、后继材料/来源与Review→RunOnce→Inspect仍分别按准确范围另审，GitHub环境由用户本人批准。先备齐整轮再开短窗口，到期不代表自动停费或清理；50 USD/月仍是目标，wholeProductAccepted=false。

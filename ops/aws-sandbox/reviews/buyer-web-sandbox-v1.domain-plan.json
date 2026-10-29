@@ -1,0 +1,82 @@
+{
+  "schema": "techlong/buyer-web-custom-domain-preparation/v1",
+  "status": "DRAFT_LOCAL_PREPARATION_ONLY",
+  "userSelectedPreparationDirection": true,
+  "executionAuthorized": false,
+  "executionApprovalSha256": null,
+  "domain": "buyer.sandbox.techlong.cloud",
+  "origin": "https://buyer.sandbox.techlong.cloud",
+  "accountId": "402010193138",
+  "hostingRegion": "ca-central-1",
+  "certificateRegion": "us-east-1",
+  "existingHostingStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-buyer-web-v1/71751190-d32e-11f1-9a09-06ffda7a3477",
+  "existingDistributionId": "EDJYJUKAZ12BO",
+  "existingDistributionDomain": "d3a0kml1xanzgt.cloudfront.net",
+  "existingBucket": "techlong-sandbox-buyer-web-402010193138-ca-central-1-v1",
+  "existingPublicHostedZoneId": "Z01473621BTTHKXBGOOEJ",
+  "allExistingIdentitiesRequireFreshPreflight": true,
+  "currentAliasOrCertificateOccupancyChecked": false,
+  "certificate": {
+    "actualArn": null,
+    "domainName": "buyer.sandbox.techlong.cloud",
+    "validationMethod": "DNS",
+    "keyAlgorithm": "RSA_2048",
+    "exportable": false,
+    "privateCaOrAcmeCertificateAllowed": false,
+    "requestAttemptsMaxAfterSeparateApproval": 1,
+    "issuedAndCoverageVerifiedBeforeDistributionUpdate": true,
+    "validationRecordNameAndValue": null,
+    "validationRecordActionIfProvedAbsent": "CREATE",
+    "blindUpsertOrDeleteAllowed": false
+  },
+  "templateProposal": "ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-template-proposal.json",
+  "expectedCloudFormationResourceChanges": [
+    { "logicalId": "BuyerDistribution", "action": "Modify", "replacementAllowed": false },
+    { "logicalId": "BuyerAliasIpv4", "action": "Add", "type": "AWS::Route53::RecordSet" },
+    { "logicalId": "BuyerAliasIpv6", "action": "Add", "type": "AWS::Route53::RecordSet" }
+  ],
+  "preserved": {
+    "allOtherSixResourceTemplateContent": true,
+    "publisherRoleTrustIdentityAndBoundary": true,
+    "privateVersionedBucketOacAndBucketPolicy": true,
+    "originalCloudFrontDomainStillExists": true,
+    "existingBuildObjectsApiBaseAndSecrets": true,
+    "backendFrozen110FilesAndParameterValidator": true
+  },
+  "futureReviewedDirectWriteLimitsNotAuthorizedNow": {
+    "requestCertificate": 1,
+    "validationDnsCreate": 1,
+    "createChangeSet": 1,
+    "executeChangeSet": 1,
+    "distributionModificationsByCfn": 1,
+    "newAliasRecordSetsByCfn": 2,
+    "newDistributionsBucketsOrIamResources": 0,
+    "privateReadsUploadsDispatchesOrBackendCreates": 0
+  },
+  "backendFollowup": {
+    "status": "NOT_IMPLEMENTED_NOT_PUBLISHED_NOT_AUTHORIZED",
+    "corsOrigins": "https://first-acceptance.sandbox.techlong.cloud,https://techlong.cloud,https://buyer.sandbox.techlong.cloud",
+    "candidatePublicCapsuleBodySha256": "649c3077a5c1316e663f9765c10b4d79a9cc1bc673086de8e50d4ed1ddc92a62",
+    "onlyCandidateDifferenceIsCors": true,
+    "oldBodySha256": "5c7e5eeff2febef52b469487e0bd7d170e711fb2b26e3df81162b5b46c6e2e14",
+    "rawCloudFrontCorsProposalSuperseded": true,
+    "existingSingleInsertRequestCompilerReusable": true,
+    "newJobId": null,
+    "backendWindowStartAndExpiry": null,
+    "oldSuccessMayBeCanceledOrReplayed": false
+  },
+  "nextUniqueAction": "After local checks and exact no-AWS CI, obtain one bounded metadata-only preflight for the existing CDN/stack, exact DNS names and certificate options; generate a separate certificate/DNS review. No writes, permissions, private reads or deployment are approved by this plan.",
+  "risks": [
+    "Public domain and certificate transparency disclosure",
+    "Certificate issuance and DNS/CDN propagation may remain pending",
+    "Cross-region and cross-service changes are not atomic",
+    "Concurrent aliases or DNS changes can invalidate a preflight",
+    "Certificate or DNS may remain after a later failure",
+    "CloudFormation may roll back its own partial update",
+    "No automatic user-level retry, deletion, rollback or cleanup",
+    "Persistent resources, traffic, validation queries and logs can cost money"
+  ],
+  "overallMonthlyBudgetTargetUsd": 50,
+  "budgetIsNotAHardCap": true,
+  "wholeProductAccepted": false
+}

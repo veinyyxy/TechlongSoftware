@@ -1,0 +1,60 @@
+{
+  "schema": "techlong/buyer-domain-template-proposal/v1",
+  "status": "DRAFT_NOT_A_CLOUDFORMATION_TEMPLATE_OR_EXECUTION_APPROVAL",
+  "executionAuthorized": false,
+  "executionApprovalSha256": null,
+  "baselineTemplate": "ops/aws-sandbox/cloudformation/buyer-web-sandbox-v1.candidate.template.json",
+  "baselineNormalizedLfSha256": "2a582f4d1e69c69fead459d921ed9ed35e62f9711d9d5e7f4d4fab7e666a6630",
+  "parametersToAdd": {
+    "SandboxBuyerCertificateArn": {
+      "Type": "String",
+      "Description": "Separately approved ISSUED non-exportable public ACM certificate for buyer.sandbox.techlong.cloud in us-east-1",
+      "AllowedPattern": "^arn:aws:acm:us-east-1:402010193138:certificate/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+      "ConstraintDescription": "Use the exact independently verified certificate ARN; this parameter has no default."
+    }
+  },
+  "distributionConfigFieldsToSet": {
+    "Comment": "Techlong isolated sandbox buyer Web; exact buyer alias, no API proxy",
+    "Aliases": ["buyer.sandbox.techlong.cloud"],
+    "ViewerCertificate": {
+      "AcmCertificateArn": { "Ref": "SandboxBuyerCertificateArn" },
+      "SslSupportMethod": "sni-only",
+      "MinimumProtocolVersion": "TLSv1.2_2021"
+    }
+  },
+  "resourcesToAdd": {
+    "BuyerAliasIpv4": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "HostedZoneId": "Z01473621BTTHKXBGOOEJ",
+        "Name": "buyer.sandbox.techlong.cloud.",
+        "Type": "A",
+        "AliasTarget": {
+          "DNSName": { "Fn::GetAtt": ["BuyerDistribution", "DomainName"] },
+          "HostedZoneId": "Z2FDTNDATAQYW2",
+          "EvaluateTargetHealth": false
+        }
+      }
+    },
+    "BuyerAliasIpv6": {
+      "Type": "AWS::Route53::RecordSet",
+      "Properties": {
+        "HostedZoneId": "Z01473621BTTHKXBGOOEJ",
+        "Name": "buyer.sandbox.techlong.cloud.",
+        "Type": "AAAA",
+        "AliasTarget": {
+          "DNSName": { "Fn::GetAtt": ["BuyerDistribution", "DomainName"] },
+          "HostedZoneId": "Z2FDTNDATAQYW2",
+          "EvaluateTargetHealth": false
+        }
+      }
+    }
+  },
+  "outputsToAdd": {
+    "BuyerCustomOrigin": { "Value": "https://buyer.sandbox.techlong.cloud" }
+  },
+  "actualCertificateArn": null,
+  "liveTemplateAndChangeSetVerified": false,
+  "certificateRequestOrDnsValidationIncludedInTemplate": false,
+  "allUnlistedTemplateFieldsMustRemainIdentical": true
+}

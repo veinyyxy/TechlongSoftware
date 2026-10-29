@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "READ_ONLY_FACTS_VERIFIED_READY_FOR_MINIMAL_CORS_AND_REQUEST_WIRING",
+  "status": "USER_SELECTED_CUSTOM_DOMAIN_PREPARATION_AFTER_RENDERER_BOUNDARY_BLOCK",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "66e9985dbb5d498dd49f3647f40efae62b3fec45",
@@ -18,8 +18,11 @@
     "publicCapsulePath": "ops/cloud-worker/material/public-capsule-v5.json",
     "currentFixedBodySha256": "5c7e5eeff2febef52b469487e0bd7d170e711fb2b26e3df81162b5b46c6e2e14",
     "existingOrigins": ["https://first-acceptance.sandbox.techlong.cloud", "https://techlong.cloud"],
-    "additionalExactOrigin": "https://d3a0kml1xanzgt.cloudfront.net",
-    "candidateBodySha256": "c124b21accd6cd538e45c2cc43706583ad146ba0ded25067c0406e0c5d128ddc",
+    "additionalExactOrigin": "https://buyer.sandbox.techlong.cloud",
+    "candidateBodySha256": "649c3077a5c1316e663f9765c10b4d79a9cc1bc673086de8e50d4ed1ddc92a62",
+    "supersededRawCloudFrontOrigin": "https://d3a0kml1xanzgt.cloudfront.net",
+    "supersededRawCloudFrontBodySha256": "c124b21accd6cd538e45c2cc43706583ad146ba0ded25067c0406e0c5d128ddc",
+    "rawCloudFrontOriginRejectedByExistingParameterBoundary": true,
     "candidateIsNotExecutionApproval": true,
     "sourceMaterialOrFrozenClosureChanged": false,
     "wildcardOrOriginBypassAllowed": false
@@ -137,6 +140,16 @@
     "necessaryMaterialSourceAndTrustPinsMustBeExplicitlyReviewed": true,
     "openPaidWindowBeforeSourceCiAndWholeCycleMaterialsReady": false
   },
-  "nextUniqueAction": "Implement and test only the exact CORS/material-source and legitimate new held-request wiring using existing compilers/executor; prepare the complete publication and Review-RunOnce-Inspect scope before any window. No further production reads in this code step, no old successful-job cancellation, fixed-job code branch, source/trust publication, renewal, dispatch or deployment without exact separate approval.",
+  "customDomainPreparation": {
+    "userSelectedDirection": true,
+    "plan": "ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-plan.json",
+    "templateProposal": "ops/aws-sandbox/reviews/buyer-web-sandbox-v1.domain-template-proposal.json",
+    "certificateArn": null,
+    "cloudWritesOrExecutionApproval": false,
+    "unconnectedAdapterPrototypeWithdrawn": true,
+    "old110FileClosureAndParameterValidatorUnchanged": true,
+    "existingSingleInsertRequestCompilerVerifiedWithoutNewFramework": true
+  },
+  "nextUniqueAction": "Finish the existing-CDN custom-domain candidate and exact no-AWS CI; then request one domain-scoped metadata-only preflight for the existing distribution/stack, exact DNS names and certificate options. Do not request a certificate, change DNS/CDN/IAM, create a task, publish source/trust, renew, dispatch or deploy without exact separate approval.",
   "wholeProductAccepted": false
 }
