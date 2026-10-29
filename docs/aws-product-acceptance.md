@@ -12,7 +12,7 @@
 
 恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json`（raw SHA `6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc`）；9原件和48调用已重建核对，安装标记永久消费，不重复安装。**下一只准备现有workflow的sandbox发布变量/私密来源与单次发布清单，并明确新的真实后端联调/CORS窗口**；私密使用、配置写、发布/dispatch或后端恢复另审，不改旧意图、不重放任务或扩框架。`wholeProductAccepted=false`，前端承载创建不等于已发布应用或完整产品验收。
 
-[静态客户端发布准备草案](aws-buyer-web-sandbox-publication-plan.md)已整理：五个准确sandbox变量、唯一固定版本HMAC及单次原workflow发布；尚无执行SHA，不读取私密值或配置、不dispatch。当前只请求新的元数据读取许可，用于核对门禁/变量空缺/固定版本和刚安装的承载；新后端联调/CORS及应用访问租约等业务副作用不在该读取范围或静态发布范围内。
+[静态客户端发布准备](aws-buyer-web-sandbox-publication-plan.md)已完成另允的STS1/AWS16/GitHub17元数据核对，零私密取值/DB/写入/dispatch；承载/权限/门禁/源码CI保持、目标配置空、固定版本及公有变量来源匹配。纯标准加密步骤本地3组合成测试通过。[清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.publication-execution.json) SHA `abf867cc61e01a9450763aec66fa7c5e27236b71967c5e39f966a0f73067ace7` 和[完整风险](aws-buyer-web-sandbox-publication-review.md)现已封存待新批准，尚未实际配置或发布；静态成功也不会代表新后端/CORS或访问租约、订单/支付等业务验收完成。
 
 ## 已完成与本轮阻塞
 

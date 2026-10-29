@@ -14,7 +14,7 @@
 
 原准备 `prepared-verified.json` 和三请求体保持原样，不改写PENDING标签或事实起点。恢复改读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json`（raw SHA `6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc`），绑定9原件与48调用；永久标记已消费，不重复安装/捕获/准备或复位标记。下一仅准备现有workflow所需准确sandbox变量、私密来源与发布清单，并明确新的后端联调/CORS窗口；仍须另审，不延长旧16:06意图或扩控制面。
 
-后继[发布最小准备表](aws-buyer-web-sandbox-publication-plan.md)已固定新输出、五变量和一个Secret来源，但尚无当前元数据/加密步骤的完整执行绑定，执行SHA为空。仅请求新的限定只读许可，不因“开始下一步”自动读Secret、写GitHub配置或调度；不修改本页保留的历史准备原件。
+后继[发布准备表](aws-buyer-web-sandbox-publication-plan.md)现已完成新限定元数据（STS1/AWS16/GitHub17、零私密/写入/调度）与标准LibSodium本地3组合成检查；[实际清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.publication-execution.json) SHA `abf867cc61e01a9450763aec66fa7c5e27236b71967c5e39f966a0f73067ace7` 已封存，等待用户另批[完整风险](aws-buyer-web-sandbox-publication-review.md)。本轮只读许可不授权取值/配置/发布；原草案及历史准备原件不改写，backend恢复/CORS仍另定范围。
 
 ## 15:35已核实的缺口（历史）
 

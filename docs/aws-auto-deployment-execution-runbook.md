@@ -55,7 +55,11 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 **下一唯一动作：准备现有workflow的sandbox客户端发布所需准确变量、私密输入来源与单次发布清单，并明确新的真实后端联调/CORS窗口。** 新CDN来源为https://d3a0kml1xanzgt.cloudfront.net；不新增运行器或固定任务代码分支。私密使用/变量Secret设置/发布dispatch及后端恢复仍具体另审，不自动读取、调度、续租或重放旧任务；先集中备齐材料再开短窗口。
 
-[最小发布准备表](aws-buyer-web-sandbox-publication-plan.md)及[机器草案](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.publication-plan.json)已固定五个环境变量、唯一固定版本HMAC来源、原workflow单次sandbox dispatch与后继CORS来源。仍是DRAFT、执行SHA为空：当前仅等待本轮1STS＋16AWS元数据＋20GitHub GET的限定读取许可，旧读取额度不延用。标准加密实现/依赖也须在最终批准前就绪；不先取秘密或把草案当可执行清单。先发布静态产物、再另定真实后端联调窗口，可避免在云构建等待期间浪费新的后端短租约；静态成功不冒充业务验收。
+[最小发布准备表](aws-buyer-web-sandbox-publication-plan.md)与原机器草案保留。用户另允的新元数据核对已于19:46:35–19:47:02完成，实用STS1/AWS元数据16/GitHub GET17；承载/IAM/门禁和602e543/CI匹配，五变量为空、目标Secret不存在，两个公有变量摘要匹配、无冲突发布运行，固定runtime版本仍AWSCURRENT，旧准确backend UUID仍DELETE_COMPLETE。私密值、DB、配置/云写、dispatch及执行槽消费均0。
+
+标准LibSodium 0.7.15仅安装在本轮本地目录，锁定官方tarball完整性及8个包文件摘要，3组合成测试通过；没有真实秘密或应用运行时依赖变更。五变量请求、固定接收公钥、单次sandbox调度与风险已集中封存。[完整执行范围/风险](aws-buyer-web-sandbox-publication-review.md)对应[机器清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.publication-execution.json) SHA **`abf867cc61e01a9450763aec66fa7c5e27236b71967c5e39f966a0f73067ace7`**，尚未批准/执行。**当前唯一动作是等待该准确SHA及完整风险的新确认**，不能把本轮只读许可当作私密取值、配置或发布批准。
+
+恢复先读 `F:/ChatGPT_workshop/techlong-buyer-web-publication-20261028-a/prepared-verified.json`（raw SHA `5e761dfef54c75906044fdcac7a0445da447ed54d36ba81d63477f52ea2d9a1c`），绑定真实观察原件（raw SHA `747dca413f92ebcff1a5e2f887cdec27ce92f7bf154a8ae4f6718ae47c696173`）、7输入、7本地文件及8依赖文件；不要重跑捕获/准备器。5小时准备到温尼伯10月29日00:46:35，最晚启动10月28日23:46:35；真实run本人门禁另提示15分钟截止。现有workflow没有绝对墙钟截止，本机退出不会自动取消已ACK的唯一run，异步越界风险已写入审批，不隐瞒或靠改时钟解决。旧backend窗口不延长，不恢复或重放任务；静态发布后才另定新后端联调/CORS与业务验收。
 
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 

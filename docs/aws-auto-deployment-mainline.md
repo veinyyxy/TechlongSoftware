@@ -14,7 +14,11 @@
 
 **下一唯一动作：准备现有workflow的sandbox客户端发布所需准确变量、私密来源及单次发布清单，并明确新的真实后端联调/CORS窗口。** 不先读HMAC/Secret/.env/PEM、写变量/Secret、发布/dispatch或恢复后端；仍按准确范围另审，先备齐再开窗口。不新增执行框架、UI或固定任务代码分支，wholeProductAccepted=false。
 
-本次[五变量/一个固定版本HMAC/原workflow发布顺序草案](aws-buyer-web-sandbox-publication-plan.md)已完成，机器executionApprovalSha256仍null；只读许可已请求但尚未使用（最多1STS＋16AWS元数据＋20GitHub GET）。下一只在用户明确允许后做这轮元数据核对并补齐标准加密实现/依赖绑定，才生成准确待审SHA；未获许可先停在本地草案，不读私密值、不写配置或dispatch。旧backend退役记录不改，静态发布和业务验收分开记录。
+本次[发布准备](aws-buyer-web-sandbox-publication-plan.md)已完成新限定核对：19:46:35–19:47:02实际STS1/AWS元数据16/GitHub GET17，承载/权限/门禁/源码CI保持、五变量和目标Secret空、固定runtime版本AWSCURRENT、公有变量原摘要相同、无冲突运行；旧准确backend UUID仍DELETE_COMPLETE。私密值/DB/云与配置写/dispatch/执行槽消费均0。标准LibSodium 0.7.15仅本地安装，3组合成检查及全部依赖摘要绑定通过，不改应用运行时。
+
+**当前唯一动作：等待[发布完整风险](aws-buyer-web-sandbox-publication-review.md)及[实际清单](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.publication-execution.json) SHA `abf867cc61e01a9450763aec66fa7c5e27236b71967c5e39f966a0f73067ace7` 的新确认**。拟5变量＋1固定版本HMAC转移/环境Secret＋1准确sandbox dispatch/独立静态核验；GitHub环境仍用户本人批准，HMAC进入公开Web可被提取，不隐藏这一风险。不含后端/CORS/DB/TTL或IAM扩展，尚未执行。
+
+恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-publication-20261028-a/prepared-verified.json`（raw SHA `5e761dfef54c75906044fdcac7a0445da447ed54d36ba81d63477f52ea2d9a1c`），7输入/7本地/8依赖与真实读取原件已封存，不重跑捕获或准备器。最晚启动温尼伯10月28日23:46:35，准备至10月29日00:46:35；原旧backend意图不延期。现有workflow无绝对截止、本机停止不自动取消已ACK run，异步越界及不自动清理风险见新清单；执行槽未创建。
 
 ### 已完成历程与本轮准备沿革（以下不是重放指令）
 
