@@ -33,7 +33,9 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 **本次获同意的两处代码接线及准确无AWS CI已完成**：源码cfb1408/[CI40940078691](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40940078691) completed/success，16报告步骤全过。三处既有源码接入buyer真实SDK端口和原发布器SOURCE/template/prestate选择；默认BUYER_SOURCE/BUYER_PUBLICATION_SOURCE仍null，旧110与默认恢复保持。本机57定向/122相关检查（重叠）、类型/lint和--check通过；外部SDK响应为明确合成，不是生产验收。111现为52ae2ee3…。恢复F:/ChatGPT_workshop/techlong-buyer-sdk-publication-wiring-code-verified-20261029-a.json，raw SHA 84cb3a8627dffaa50047e45d9259276afa1b87b83f3a86e3df6e821f66d8db42；旧材料和失败记录保留，不重跑代码或补件。
 
-**下一唯一动作仅集中准备新事实核对、真实请求/回读、材料上传及现有来源发布/整轮所需的准确范围，不再补件或扩代码。** 原14:07快照已到期，不自动重读生产或生成执行SHA；basis 10月30日10:08:09.592 CDT不延长。真实请求/回读、上传版本、固定源码选择、发布与部署均未发生，仍按具体新范围另审，不先开窗；后续纯文档HEAD不是上述CI源码。
+**最新只读阶段已完成（10月29日14:39–14:41 CDT）**：另获用户限定许可后，新d记录完成STS1/AWS元数据64/GitHub9/配置1/验证TLS1/只读SQL16；完整12任务及17/12/12账本、业务/保护摘要未变，候选b236及去重键不存在，准确拟上传键HEAD404，角色/策略/三Secret固定版本元数据及本人门禁匹配。独立本地核验和原单INSERT重新投影通过，未写业务或云资源；[公开去敏摘要](../ops/aws-sandbox/reviews/backend-integration-v1.readiness-20261029-d.json)不含业务正文。恢复F:/ChatGPT_workshop/techlong-buyer-backend-readiness-20261029-d/verified.json，raw SHA 0aa14e355472379e04400d1a47f77e7972ade773cbf094303faa41b280befe55。
+
+**下一唯一动作是准备同一b236请求登记/独立回读及准确材料上传的待审清单，再沿原双workflow/SOURCE/唯一trust pin发布和整轮联调继续。** 新准备事实仅至今天10月29日19:39:51.491 CDT（UTC次日00:39:51.491），不是请求/上传/来源发布或部署批准；原basis明天10:08:09.592 CDT不延长。实际请求、上传VersionId和发布回执仍null，两个源码选择仍null；本地草案不冒称可执行SHA，不开短窗口、不重复代码/补件或新增框架。以下旧快照期限及“先读取”的记录仅为沿革，不能重放；后续纯文档HEAD不是上述CI源码。
 
 **用户现已同意仅实施下述两处最小接线与定向测试。** 本轮范围为现有buyer SDK装配、publication/publication-local来源选择及对应测试/文档；保留旧110和默认恢复路径。不读取生产、私密配置或凭据，不执行发布/部署/调度；正常代码提交及无AWS CI按既有授权继续。下方“先取得同意”是本次批准前的停止记录，不重复征求同一代码范围。
 

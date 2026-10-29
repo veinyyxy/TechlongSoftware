@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "TWO_MINIMAL_ENTRY_WIRING_AND_EXACT_CI_VERIFIED_NO_ACTIVATION",
+  "status": "FRESH_READONLY_FACTS_AND_LOCAL_REQUEST_PROJECTION_VERIFIED_NO_EXECUTION_AUTHORITY",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
@@ -350,6 +350,27 @@
     "productionCalls": 0,
     "executionAuthorized": false
   },
-  "nextUniqueAction": "Prepare concentrated fresh-fact, real request/readback, material upload/version, necessary existing SOURCE/workflow/trust-only publication and reviewed-cycle scope. These two code repairs and exact CI are complete at cfb1408/run40940078691; do not repeat code, historical supplement or expand frameworks. The original 14:07 snapshot is expired and basis retains its original deadline; new reads and all actual request/upload/publication/deployment effects remain separately reviewed. Defaults stay null, old 110 and original guards stay intact, missing receipts remain null, no cloud/private reads, renewal, window or dispatch by default.",
+  "renewedReadOnlyPreparation": {
+    "observation": "ops/aws-sandbox/reviews/backend-integration-v1.readiness-20261029-d.json",
+    "checkpoint": "F:/ChatGPT_workshop/techlong-buyer-backend-readiness-20261029-d/verified.json",
+    "checkpointRawSha256": "0aa14e355472379e04400d1a47f77e7972ade773cbf094303faa41b280befe55",
+    "observedAt": "2026-10-29T19:39:51.491Z",
+    "preparationExpiresAt": "2026-10-30T00:39:51.491Z",
+    "originalBasisExpiresAt": "2026-10-30T15:08:09.592Z",
+    "actualCounts": {"sourceSts": 1, "awsMetadata": 64, "githubGets": 9, "configReads": 1, "tlsConnections": 1, "sqlQueries": 16},
+    "fullBusinessHistoryProtectionMatched": true,
+    "candidateJobAndRequestDedupeAbsent": true,
+    "candidateJobId": "job_b236b120d6406d3e296d341b",
+    "exactBundleObjectHead404": true,
+    "realAcceptedContextAndOriginalSingleInsertRebuilt": true,
+    "draftsOnly": true,
+    "configurationOrDatabaseWrites": 0,
+    "cloudWrites": 0,
+    "secretValuePemOrHmacReads": 0,
+    "uploadsJobsSlotsOrDispatches": 0,
+    "newExecutionApprovalSha256": null,
+    "executionAuthorized": false
+  },
+  "nextUniqueAction": "Prepare the precise same-b236 held-request/independent-full-readback and exact bundle-upload approval, followed by the original SOURCE/two-workflow/trust-only publication and same-job reviewed cycle. New limited readonly facts were captured at 2026-10-29T19:39:51.491Z and expire after five hours; original basis deadline is unchanged. No more code repair or historical supplement. Actual request/upload VersionId/publication proofs remain null; drafts are not executable approvals. Defaults stay null, old 110 and guards unchanged, no new framework, IAM expansion, historical replay, renewal, dispatch or early paid window.",
   "wholeProductAccepted": false
 }

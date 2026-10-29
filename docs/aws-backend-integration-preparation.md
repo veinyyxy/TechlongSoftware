@@ -1,8 +1,24 @@
 # 后端联调/CORS：当前最小准备与继续点
 
-**最新继续点（2026-10-29，两处代码接线和准确CI收尾后）**：三处既有源码及对应测试已完成，源码cfb1408/准确CI40940078691成功并封存。下一只集中准备新事实、真实请求/回读、材料上传/必要来源发布及整轮的准确范围，不重复代码或补件。默认两个buyer选择仍null，尚未发布或部署；原14:07快照已到期，新生产读取与实际副作用另审，不填假回执或先开窗口。
+**最新继续点（2026-10-29，14:41 CDT新只读事实已取得）**：代码cfb1408/准确CI40940078691已收尾；用户另允的新d记录及独立本地核验通过。下一只准备同一b236真实待审请求登记/独立回读及材料上传的准确清单，再沿原双workflow/SOURCE/唯一trust pin及整轮继续，不重复代码或历史补件。两个buyer选择仍null，真实请求/版本/发布证明未产生；新快照5小时至今天19:39:51.491 CDT，不延长basis或提前开付费窗口。
 
 2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)，承接[已完成的客户端静态发布](aws-buyer-web-sandbox-publication-observed.md)。本文件仅整理当前主线，不是新任务、数据库写入、私密读取、来源发布、IAM修改或付费后端部署授权。[机器准备摘要](../ops/aws-sandbox/reviews/backend-integration-v1.plan.json)执行SHA为null。
+
+## 新一轮限定只读事实与本地投影（10月29日14:39–14:41 CDT）
+
+用户本轮仅允许限定只读准备。实际用量为STS1/最多1、AWS元数据64/65、GitHub GET9/20、配置全文件读取1/1、验证TLS连接1/1、只读SQL16/45；没有第二次配置读取、额外生产补核或失败重试。旧栈准确UUID为DELETE_COMPLETE、同名栈不存在、ECS服务/运行任务均0；共享Cell/基础栈、角色策略、准确镜像/DNS和三Secret固定版本元数据保持。证据桶版本化/加密/公开阻断匹配，准确拟上传键HEAD404；这是已记录的不存在响应，不是权限403，也不是新写入。GitHub main当时bf3e8d9、原双工作流/固定reusable及本人门禁匹配，无未完成部署运行；准确无AWS CI仍绑定cfb1408，不把文档HEAD当CI源码。
+
+单次Neon连接验证客户端证书和TLSv1.3；事务只读并设置pg_catalog search_path，owner/database/只读身份全部匹配。完整12任务、17计划/12批准/12调度账本及业务/保护的规范摘要仍为fd0bfd96…，全部任务终态且lease清空。候选job_b236b120d6406d3e296d341b及其准确请求去重键在该次事务内均不存在；未登记、未改写旧记录。数据库侧TLS标志不被冒充为客户端证书证据。
+
+恢复读 `F:/ChatGPT_workshop/techlong-buyer-backend-readiness-20261029-d/verified.json`，raw SHA `0aa14e355472379e04400d1a47f77e7972ade773cbf094303faa41b280befe55`。它逐项核对实际调用档案/代码pin/旧基准，绑定原result raw SHA39b6cfb4…及三个私有本地投影输出。[公开去敏摘要](../ops/aws-sandbox/reviews/backend-integration-v1.readiness-20261029-d.json)只存计数/哈希/布尔值，不提交业务snapshot、SQL参数、bundle正文、私钥或凭据。配置/秘密/HMAC未在输出中打印；读取的原始业务档案保持在本地私有目录。
+
+新观察开始2026-10-29T19:39:51.491Z，结束19:41:23.338Z；5小时准备截止2026-10-30T00:39:51.491Z，即温尼伯今天19:39:51.491 CDT。原09:07快照期限不改；这次新事实来自新许可/新调用，不用本地重建时刻重计。原basis仍固定2026-10-30T15:08:09.592Z（明天10:08:09.592 CDT）。
+
+本地纯函数再次验证真实accepted链和相同bundle（canonical SHA f01f9489…），将buyer候选源码绑定到已受测cfb1408/111闭包52ae2ee3…。原单INSERT SQL及所有非时间参数与旧草案完全相同；请求时间仅按已保存的数据库时钟编译作投影，未来实际写前仍须在受审事务内核对完整基线并从真实数据库时钟派生，不能执行保存的旧时间参数。独立核验及投影没有新的配置、AWS、GitHub或SQL读取。
+
+**当前本地材料仍是DRAFT_NOT_EXECUTABLE**，位于F:/ChatGPT_workshop/techlong-buyer-backend-material-20261029-d。它不是新的执行器、已登记任务、上传版本或发布回执。下一审批材料只围绕同一候选：原编译器单次登记一条held请求及独立完整回读；准确现有私有桶/key条件上传及固定版本回读；随后原双workflow/六项派生/唯一trust claim发布及同任务整轮。实际每阶段完整调用上限、执行入口/来源pin、期限、永久槽、失败/未知不重试和风险须在可执行清单内备齐并新SHA审核，尚不以本草案请求执行批准。原12条历史任务和所有账本保持，不取消已成功a00、不补假VersionId、不扩IAM、不重发客户端、不读取HMAC、不先开收费窗口。
+
+本轮云写/DB写、Secret值/PEM/HMAC/DDB项读取、Aurora连接、上传、新任务/槽、受保护workflow/IAM改动及dispatch均0。普通文档提交不等于来源发布；wholeProductAccepted=false。
 
 ## 两处最小接线的代码验证
 
