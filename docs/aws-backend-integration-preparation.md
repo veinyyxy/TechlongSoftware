@@ -1,8 +1,24 @@
 # 后端联调/CORS：当前最小准备与继续点
 
-**最新继续点（2026-10-29 08:37 CDT）**：[buyer自定义域名已安装并独立静态验收通过](aws-buyer-web-domain-install-observed.md)。现在只准备新合法后端held请求、准确buyer域内CORS材料/必要来源与一次Review→RunOnce→独立Inspect的集中范围；不再申请证书、改CDN/DNS、重发客户端或读取HMAC。域名成功不等于业务连通，本轮没有JS/API/业务或后端部署。
+**最新继续点（2026-10-29 13:36 CDT）**：固定历史provider原件及真实buyer上下文/SOURCE材料已重建，下一只准备原双workflow/SOURCE/唯一trust pin的准确发布候选，先证明生产运输装配和六项派生。真实请求/回读、上传版本及事实/发布批准仍缺，不能生成可执行来源或先开部署窗口；新增云/数据库读取与实际写入继续具体另审。下方为完成事实及历史沿革，不重复代码/CI、补件、域名安装或客户端发布。
 
 2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)，承接[已完成的客户端静态发布](aws-buyer-web-sandbox-publication-observed.md)。本文件仅整理当前主线，不是新任务、数据库写入、私密读取、来源发布、IAM修改或付费后端部署授权。[机器准备摘要](../ops/aws-sandbox/reviews/backend-integration-v1.plan.json)执行SHA为null。
+
+## 固定原件及真实buyer材料已重建（10月29日13:36 CDT）
+
+用户在“仅新STS1＋准确版本GET1/≤1MB、成功后本地重建、无其他生产读取/写入”的明确范围下允许本次操作。新B于13:33:36–13:33:40 CDT完成：准确IAM用户通过，GET返回同一provider-after.json/VersionId `.geI7CLMRhzabh1lmey4OLkDHhy7JlaB`，1703字节完整范围、AES256及canonical/raw SHA `c2a78b3ee6dbb6b6d81aa7daadb91c574ac9fff8abc3db8efeebd328f16ed4ef`全部匹配。没有列桶或其他元数据查询；原A的CLI255失败保留，不能因本次成功倒推其原因。新result为F:/ChatGPT_workshop/techlong-buyer-provider-readonly-20261029-b/result.json，raw SHA `9cf0d18113e44f8c8c5e19382d55f8a1fefa12233b83eacb0c718713ecec0162`。
+
+后续仅用本地真实原件，验证54档案/11固定对象和13个代码文件pin，原basis/110闭包保持。第一次本地B把完整provider报告直接作为后继投影，原校验拒绝`SUCCESSOR_LINEAGE_NOT_PROVED`；停止原件raw SHA `3d138bc2b2d9b712549e1521808f8c3b04eeeed4a6a8efa0a3ef2bc8879c92b1`保留。独立C复用已有`providerPublicV5`取标准五字段，原始对象先独立校验，再经原`continueCloudContextV5`和`rebuildBuyerBundle`通过；不是修改receipt/hash、放宽guard或重试云调用，没有应用代码改动。
+
+已真实重建accepted a00链（manifest/receipt/provider/独立Inspect）、精确buyer capsule、当前完整12/17/12/12旧历史baseline及同一b236请求身份的单INSERT。新SOURCE上下文canonical SHA `ac041bc01c61c982a79aeec2200fdd4b08e1b2c2d8780d306dc7ccb41bf02bba`；bundle canonical 615808字节/SHA `f01f9489f1987c3517c858ed7a4cf81fbbf0fb502dea405b9c82336dbecc8b78`。物理前驱task-definition:9来自原件，不再推算；原stack UUID仅是已完成历史，不代表当前资源仍在。
+
+恢复先读F:/ChatGPT_workshop/techlong-buyer-real-material-verified-20261029-a.json，raw SHA `16b1a0dff9deed74ee41d0a1e880fb7e412c6d675527bc3f13e4e2a68a9b9fb2`。它绑定补件B、停止记录、本地C的result（raw SHA `c6c470e23e09fe7548a41ce5f16cdd40e1c709f64cb70ca03046f524715c54d4`）及五份材料。完整业务baseline、SQL和bundle只在F:/ChatGPT_workshop/techlong-buyer-backend-material-20261029-c/，不入Git。代码仍是4a62d74/准确CI40926305909，本轮没有代码变更或重跑CI，不将文档HEAD称为该CI源码。
+
+**仍为DRAFT_NOT_EXECUTABLE**：b236只是原草案，未查询当前库中不存在、未创建或占槽。真实请求事务/独立回读、上传VersionId、facts批准、caller/reusable commit、运输装配证明和trust-only Change Set均保持null；源码中的BUYER_SOURCE和生产绑定没有修改。不能用本地SQL投影构造真实请求回执或直接调用旧publication-local。
+
+**下一唯一动作**：只准备现有双workflow/SOURCE/唯一trust pin的准确发布候选，明确实际生产SDK/OIDC/S3组合及原四项＋buyer两项来源派生；必要代码缺口须先列最小差异，不再扩框架。实际请求/回读、上传及来源发布与新生产读取继续按准确范围审批，不利用本次补件许可做其他读取。没有新的部署SHA、TTL或执行窗口。
+
+原准备快照截至2026-10-29 14:07:12.204 CDT；原basis截至2026-10-30 10:08:09.592 CDT。13:36本地重建时刻不是新采样或事实批准，均不延期。到期后可整理本地材料，不据旧快照生成新执行批准。实际本阶段累计STS1、S3 GET1；项目配置/Secret值/PEM/HMAC/数据库/其他AWS/GitHub读取、云/SQL写、上传、IAM/工作流更新、任务/执行槽和dispatch全0，wholeProductAccepted=false。
 
 ## 初始差异核对（raw CloudFront方向已被下方域名方案取代）
 

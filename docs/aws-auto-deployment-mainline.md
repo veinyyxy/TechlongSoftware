@@ -4,6 +4,10 @@
 
 ## 当前唯一继续点（2026-10-29，买家域名静态验收完成；回到后端联调）
 
+**最新13:36 CDT：固定历史provider已补齐，真实accepted后继链、buyer上下文包及同一b236单INSERT草案重建通过；仍未创建任务、上传或发布。** 本轮实际仅另批STS1/S3固定版本GET1，余下均为本地原件核验；旧失败不覆盖，已有`providerPublicV5`处理完整报告的标准投影，无应用代码/旧110改动。[完整事实和剩余材料](aws-backend-integration-preparation.md#固定原件及真实buyer材料已重建10月29日1336-cdt)。恢复F:/ChatGPT_workshop/techlong-buyer-real-material-verified-20261029-a.json，raw SHA 16b1a0dff9deed74ee41d0a1e880fb7e412c6d675527bc3f13e4e2a68a9b9fb2。
+
+**下一只准备原双workflow/SOURCE/唯一trust pin的准确发布候选，并证明生产运输装配及六项派生；不再补件或重复代码阶段。** 真实新请求/回读、上传版本及新事实/发布批准尚缺，不伪造可执行SOURCE。09:07快照截止今天14:07:12.204、basis明天10:08:09.592均不延长；新生产读取、请求/上传/发布和整轮部署继续按准确范围另审，不自动执行或开窗。以下历史继续点不再重复执行。
+
 **截至10月29日08:37 CDT：buyer自定义域名已真实安装并独立静态验收通过。** 用户确认42f208d6…后，验证CNAME、严格三项Change Set及执行均完成；原栈UPDATE_COMPLETE、CDN Deployed、证书ISSUED、A/AAAA/CNAME准确，首页与manifest均HTTPS200/TLS通过，原六物理ID保持。实际STS3/AWS元数据53/公开DNS4/HTTPS2/直接写3；私密读取/SQL/IAM写/上传/dispatch/后端/重试/清理均0。[完整结果](aws-buyer-web-domain-install-observed.md)。恢复F:/ChatGPT_workshop/techlong-buyer-domain-install-20261029-a/executed-verified.json，raw SHA bf5a03fc9687e67084acff917c8eb8b980eb6844bde20d00e3ae9b977dff52f7；149原件已重建，永久槽消费，main冻结已结束，禁止重放。
 
 **下一只准备新的合法后端请求、准确buyer CORS材料/必要来源绑定及一次Review→RunOnce→独立Inspect的集中范围。** 不再改前端、重发客户端/HMAC、申请证书或重复域名安装；旧后端/Neon准备事实已过期，新生产读取/请求写/来源与部署仍另审，不开短窗口、不重放旧job或已删UUID。当前仅静态通过，未执行JS、API或真实业务，wholeProductAccepted=false。下方阶段沿革保留，不是重新执行指令。

@@ -31,6 +31,10 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 ## 3. 当前唯一继续点：整轮真实部署闭环已完成，转向产品验收与AWS交付
 
+**最新13:36 CDT（10月29日）：固定provider原件已另批补齐，真实buyer后继链和来源材料已本地重建，仍不可执行。** 新记录仅STS1＋准确版本S3 GET1/1703字节，版本/完整大小/SHA全部匹配；54原件、11固定对象和原basis重建通过。完整报告用已有`providerPublicV5`投影后经原后继链校验通过，未改原件、旧110或应用代码；本地B格式停止和旧STS失败均保留，无云重试。原b236请求身份保持，仅本地SQL编译，未创建/占槽/上传/发布/调度。[真实材料、缺口及下一范围](aws-backend-integration-preparation.md#固定原件及真实buyer材料已重建10月29日1336-cdt)。恢复F:/ChatGPT_workshop/techlong-buyer-real-material-verified-20261029-a.json，raw SHA 16b1a0dff9deed74ee41d0a1e880fb7e412c6d675527bc3f13e4e2a68a9b9fb2。
+
+**下一唯一动作只准备现有双workflow/SOURCE/唯一trust pin的准确发布候选，先证明生产运输装配及六项来源派生。** 真实请求/独立回读、上传VersionId、事实批准及发布证明仍为空，不编造或套用旧周期；具体读取与实际写入继续另审。本轮补件批准已用完，不再读取AWS/数据库或私密配置，不重复代码/CI或补件，不开短窗口。09:07事实仍只至今天14:07:12.204 CDT、原basis至10月30日10:08:09.592 CDT，重建和文档时间都不延长它们。以下为已完成沿革，不是重复执行指令。
+
 **最新08:37 CDT（10月29日）：buyer自定义域名安装及独立静态验收已通过，下一只准备新的合法后端请求/准确buyer CORS材料、必要来源绑定和Review→RunOnce→独立Inspect的集中范围。** [完整结果](aws-buyer-web-domain-install-observed.md)。实际STS3/AWS元数据53/公开DNS4/HTTPS2/直接写3，原六物理ID/IAM模板保持；证书ISSUED、原栈UPDATE_COMPLETE、CDN Deployed，CNAME/A/AAAA与两条静态HTTPS200/TLS均匹配。无私密读取、SQL、IAM写、上传、dispatch、后端或代理重试/清理；未执行JS/业务，wholeProductAccepted=false。
 
 恢复读F:/ChatGPT_workshop/techlong-buyer-domain-install-20261029-a/executed-verified.json，raw SHA bf5a03fc9687e67084acff917c8eb8b980eb6844bde20d00e3ae9b977dff52f7；149原件已本地重建，永久槽消费，独立验收/重建后main结束冻结。不再按下方历史待审段申请证书、写DNS或执行原Change Set，不重发前端/HMAC。后端/Neon旧事实已过期，新的必要读取、请求/材料/来源与云部署仍准确另审，不先开短窗口、不重放旧成功任务或已删栈UUID。
