@@ -1,0 +1,105 @@
+{
+  "schema": "techlong/buyer-web-sandbox-publication-plan/v1",
+  "status": "DRAFT_AWAITING_CURRENT_METADATA_AND_EXACT_EXECUTION_APPROVAL",
+  "executionApprovalSha256": null,
+  "runtimeWindowOpened": false,
+  "repository": "veinyyxy/speedfeast",
+  "existingBranch": "master",
+  "clientSource": "602e543c03564898625618ec3327720d56be04e4",
+  "workflowPath": ".github/workflows/web-deploy.yml",
+  "workflowSha256Utf8Lf": "55049e8f515a2d00e7dea00dabe43c34e5e5a27cc73fe0f95d63474b2f515fbd",
+  "sourceCiRun": 40789471388,
+  "hostingProof": {
+    "path": "F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json",
+    "rawSha256": "6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc",
+    "observedThrough": "2026-10-29T00:24:25.774Z",
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-buyer-web-v1/71751190-d32e-11f1-9a09-06ffda7a3477",
+    "roleId": "AROAV3GNMXTZCUU7ORDXB",
+    "policyId": "ANPAV3GNMXTZIWQQVOEAJ",
+    "oacId": "E2RCLW5N96SAFV",
+    "clientOrigin": "https://d3a0kml1xanzgt.cloudfront.net"
+  },
+  "githubEnvironment": {
+    "name": "techlong-sandbox-buyer-deploy",
+    "id": 25634086386,
+    "reviewerUserId": 14145707,
+    "canAdminsBypass": false,
+    "preventSelfReview": false,
+    "branchRuleId": 64728366,
+    "onlyBranch": "master",
+    "agentMayApproveRun": false
+  },
+  "proposedEnvironmentVariables": [
+    { "name": "AWS_ROLE_ARN", "value": "arn:aws:iam::402010193138:role/TechlongSandboxBuyerWebPublisherRole" },
+    { "name": "AWS_REGION", "value": "ca-central-1" },
+    { "name": "S3_BUCKET", "value": "techlong-sandbox-buyer-web-402010193138-ca-central-1-v1" },
+    { "name": "CLOUDFRONT_DISTRIBUTION_ID", "value": "EDJYJUKAZ12BO" },
+    { "name": "BUYER_API_BASE_URL", "value": "https://first-acceptance.sandbox.techlong.cloud" }
+  ],
+  "inheritedPublicRepositoryVariables": ["BUYER_CLIENT_ID", "BUYER_FIREBASE_WEB_VAPID_KEY"],
+  "proposedSecretTransfer": {
+    "sourceArn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+    "fixedVersionId": "0f45d29f-02d4-4117-99b1-c06645aa3c6e",
+    "field": "hmac_secret_key",
+    "destinationSecretName": "SANDBOX_BUYER_HMAC_SECRET_KEY",
+    "sourceMaximumGetSecretValueCalls": 1,
+    "plaintextPersistenceOrOutputAllowed": false,
+    "wholeSecretJsonEntersApprovedProcessMemory": true,
+    "destinationEncryption": "Standard LibSodium sealed box with the exact environment public key; implementation and dependency binding must be ready before execution approval",
+    "publicWebBuildExposesCompileTimeHmacToReaders": true,
+    "notAProductionSecretFallback": true
+  },
+  "proposedWriteSequence": [
+    { "method": "POST", "path": "/repos/veinyyxy/speedfeast/environments/techlong-sandbox-buyer-deploy/variables", "maximumCalls": 5, "bodiesFrom": "proposedEnvironmentVariables", "precondition": "All five target names absent; no PATCH, adoption or overwrite" },
+    { "method": "PUT", "path": "/repos/veinyyxy/speedfeast/environments/techlong-sandbox-buyer-deploy/secrets/SANDBOX_BUYER_HMAC_SECRET_KEY", "maximumCalls": 1, "precondition": "Exact target absent and encryption dependency verified; one fixed-version source read separately approved" },
+    { "method": "POST", "path": "/repos/veinyyxy/speedfeast/actions/workflows/web-deploy.yml/dispatches", "maximumCalls": 1, "body": { "ref": "master", "inputs": { "target": "sandbox" }, "return_run_details": true }, "precondition": "Independent configuration readback, unchanged exact master, real human ready to approve returned exact run" }
+  ],
+  "proposedCloudJobEffects": {
+    "awsAccount": "402010193138",
+    "region": "ca-central-1",
+    "oidcRoleSessionSeconds": 900,
+    "workflowTimeoutMinutes": 30,
+    "s3Upload": "Existing sync to the exact new bucket without --delete; multiple List/Head/Get/Put or multipart calls, not one AWS write",
+    "existingObjectDeletionAllowed": false,
+    "initialBucketMustBeIndependentlyObservedEmpty": true,
+    "cloudfrontCreateInvalidationMaximumCliInvocations": 1,
+    "invalidationDistributionId": "EDJYJUKAZ12BO",
+    "invalidationPaths": ["/*"],
+    "noUniversalObjectCountOrUnderlyingApiCallCapClaimed": true,
+    "unknownDeploymentWritesAreNotAutomaticallyRetried": true,
+    "workflowArtifactUploadNotPresentOrAssumed": true
+  },
+  "backendHandoff": {
+    "lastObservedStackStatus": "DELETE_COMPLETE",
+    "lastObservedAt": "2026-10-28T23:54:17.108Z",
+    "oldStackUpdateOrJobReplayAllowed": false,
+    "backendApiOriginForBuild": "https://first-acceptance.sandbox.techlong.cloud",
+    "newBackendAcceptanceWindowRequiredBeforeBusinessAcceptance": true,
+    "futureCorsOriginRequired": "https://d3a0kml1xanzgt.cloudfront.net",
+    "preserveAndRecheckOriginalCorsOrigins": ["https://first-acceptance.sandbox.techlong.cloud", "https://techlong.cloud"],
+    "corsOrBackendWritesInThisProposal": 0,
+    "staticPublicationDoesNotProveApiHealth": true
+  },
+  "currentMetadataPreparation": {
+    "status": "EXPLICIT_PERMISSION_REQUESTED_NOT_YET_USED",
+    "maximumSourceSts": 1,
+    "maximumAwsMetadata": 16,
+    "maximumGithubGets": 20,
+    "snapshotHours": 5,
+    "secretValueReads": 0,
+    "configurationWrites": 0,
+    "dispatches": 0
+  },
+  "executionManifestMustBind": [
+    "Fresh real observations, exact source/CI/workflow and hosting identities",
+    "Human gate, only-master rule, actual credential permissions and no conflicting publish runs",
+    "Target variable/Secret absence and environment public key metadata",
+    "Fixed source Secret version metadata without value reading during preparation",
+    "Sealed exact write inputs, reviewed encryption implementation/dependencies and no plaintext/ciphertext logging",
+    "Cumulative bounded execution/independent verification counts and real start/approval deadlines",
+    "One permanent attempt marker, no replay/reset/retry or automatic cleanup",
+    "HMAC public Web exposure and non-atomic partial deployment/cost risks"
+  ],
+  "exclusions": ["Production or repository variable/Secret edits", "New IAM or hosting resources", "Backend/CORS/DB/DNS/TTL mutations", "Private control package or PEM/.env reads", "Agent environment approval", "Browser JS, login, access lease, order or payment", "Automatic cleanup, rollback or retries"],
+  "wholeProductAccepted": false
+}

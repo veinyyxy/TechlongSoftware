@@ -55,6 +55,8 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 **下一唯一动作：准备现有workflow的sandbox客户端发布所需准确变量、私密输入来源与单次发布清单，并明确新的真实后端联调/CORS窗口。** 新CDN来源为https://d3a0kml1xanzgt.cloudfront.net；不新增运行器或固定任务代码分支。私密使用/变量Secret设置/发布dispatch及后端恢复仍具体另审，不自动读取、调度、续租或重放旧任务；先集中备齐材料再开短窗口。
 
+[最小发布准备表](aws-buyer-web-sandbox-publication-plan.md)及[机器草案](../ops/aws-sandbox/reviews/buyer-web-sandbox-v1.publication-plan.json)已固定五个环境变量、唯一固定版本HMAC来源、原workflow单次sandbox dispatch与后继CORS来源。仍是DRAFT、执行SHA为空：当前仅等待本轮1STS＋16AWS元数据＋20GitHub GET的限定读取许可，旧读取额度不延用。标准加密实现/依赖也须在最终批准前就绪；不先取秘密或把草案当可执行清单。先发布静态产物、再另定真实后端联调窗口，可避免在云构建等待期间浪费新的后端短租约；静态成功不冒充业务验收。
+
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 
 发布后CI40747653765的旧来源比较问题已仅在 `tests/platform-recovery-cloud-v1.test.mjs` 最小修复：保留历史发布SHA/a604 provenance，再识别已安装reviewed-cycle SOURCE、准确模板与原observedBy，完整比较workflow全文、reusable pin和本人门禁。352项相关本机回归、类型/lint/diff与110闭包核验通过；不改线上workflow/云代码/IAM、不重做发布，本轮生产调用/私密读取/SQL/云写/dispatch均0。原失败诊断 `F:/ChatGPT_workshop/techlong-reviewed-cycle-publication-post-ci-20261028-a.json` 保留；准确源码/CI只在真实成功后封存 `F:/ChatGPT_workshop/techlong-reviewed-cycle-legacy-test-fix-verified-20261028-a.json`，未封存前先查同一提交CI，不开始生产准备。

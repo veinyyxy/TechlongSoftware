@@ -12,6 +12,8 @@
 
 恢复读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json`（raw SHA `6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc`）；9原件和48调用已重建核对，安装标记永久消费，不重复安装。**下一只准备现有workflow的sandbox发布变量/私密来源与单次发布清单，并明确新的真实后端联调/CORS窗口**；私密使用、配置写、发布/dispatch或后端恢复另审，不改旧意图、不重放任务或扩框架。`wholeProductAccepted=false`，前端承载创建不等于已发布应用或完整产品验收。
 
+[静态客户端发布准备草案](aws-buyer-web-sandbox-publication-plan.md)已整理：五个准确sandbox变量、唯一固定版本HMAC及单次原workflow发布；尚无执行SHA，不读取私密值或配置、不dispatch。当前只请求新的元数据读取许可，用于核对门禁/变量空缺/固定版本和刚安装的承载；新后端联调/CORS及应用访问租约等业务副作用不在该读取范围或静态发布范围内。
+
 ## 已完成与本轮阻塞
 
 [同一 sandbox 的整轮恢复部署](aws-auto-deployment-reviewed-cycle-observed.md)已独立通过，不重跑 Review、RunOnce 或 Inspect，也不再扩部署框架。整套产品仍未验收。

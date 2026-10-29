@@ -14,6 +14,8 @@
 
 **下一唯一动作：准备现有workflow的sandbox客户端发布所需准确变量、私密来源及单次发布清单，并明确新的真实后端联调/CORS窗口。** 不先读HMAC/Secret/.env/PEM、写变量/Secret、发布/dispatch或恢复后端；仍按准确范围另审，先备齐再开窗口。不新增执行框架、UI或固定任务代码分支，wholeProductAccepted=false。
 
+本次[五变量/一个固定版本HMAC/原workflow发布顺序草案](aws-buyer-web-sandbox-publication-plan.md)已完成，机器executionApprovalSha256仍null；只读许可已请求但尚未使用（最多1STS＋16AWS元数据＋20GitHub GET）。下一只在用户明确允许后做这轮元数据核对并补齐标准加密实现/依赖绑定，才生成准确待审SHA；未获许可先停在本地草案，不读私密值、不写配置或dispatch。旧backend退役记录不改，静态发布和业务验收分开记录。
+
 ### 已完成历程与本轮准备沿革（以下不是重放指令）
 
 **同一a00任务的 Review → RunOnce → 独立 Inspect 已真实通过，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`。** 用户批准外层913ea70a…并本人完成三次GitHub环境审批；准确runs为[Review 40751073822](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40751073822)、[RunOnce 40751515012](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40751515012)、[Inspect 40752434574](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40752434574)。执行源码284f6ad/准确CI40748831700；一次建栈、两次认证GET，任务成功且租约清空，旧11job和14/9/9控制历史及保护保持。没有新增IAM、重试、清理或agent代批。

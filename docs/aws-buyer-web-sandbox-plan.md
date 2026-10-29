@@ -14,6 +14,8 @@
 
 原准备 `prepared-verified.json` 和三请求体保持原样，不改写PENDING标签或事实起点。恢复改读 `F:/ChatGPT_workshop/techlong-buyer-web-bootstrap-20261028-a/executed-verified.json`（raw SHA `6b174ae265ac4b2d9dda45ebcf5002d267654912b28a824d51df510fd1ee69fc`），绑定9原件与48调用；永久标记已消费，不重复安装/捕获/准备或复位标记。下一仅准备现有workflow所需准确sandbox变量、私密来源与发布清单，并明确新的后端联调/CORS窗口；仍须另审，不延长旧16:06意图或扩控制面。
 
+后继[发布最小准备表](aws-buyer-web-sandbox-publication-plan.md)已固定新输出、五变量和一个Secret来源，但尚无当前元数据/加密步骤的完整执行绑定，执行SHA为空。仅请求新的限定只读许可，不因“开始下一步”自动读Secret、写GitHub配置或调度；不修改本页保留的历史准备原件。
+
 ## 15:35已核实的缺口（历史）
 
 [上一实测](aws-product-acceptance.md)已确认旧客户端目标不存在、API配置不对应本次sandbox。客户端3ad0ea8的准确CI40755064679通过，现有Web构建步骤可复用，不再修部署控制器或重复租户部署。
