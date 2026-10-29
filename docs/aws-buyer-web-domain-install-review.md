@@ -35,4 +35,8 @@
 
 ## 本轮准备状态
 
-本地完整模板及准确 CNAME 已准备，25 项域名边界/原单 INSERT 请求定向检查全部通过（新增两项只检查真实模板和 CNAME，不新增执行器），类型/lint/diff 与原 110 文件云闭包核对通过。YAML 使用既有 js-yaml 验证；本机未安装 yaml 包的首次解析命令未执行解析，不安装新依赖。准确 CI、当前 AWS 事实与独立审批 SHA 只有实际完成后才封存，不提前声称通过或执行。当前尚未调用 AWS、公开 DNS、私密读取、SQL 或云写；等待本轮限定只读许可。
+完整模板及准确 CNAME 已准备，25 项域名边界/原单 INSERT 请求定向检查全部通过（新增两项只检查真实模板和 CNAME，不新增执行器），类型/lint/diff、177 个相对链接与原 110 文件云闭包核对通过。YAML 使用既有 js-yaml 验证；本机未安装 yaml 包的首次解析命令未执行解析，不安装新依赖。
+
+准确源码 `d869f47385ac691691a1afb8189c9374db6252a0` 的[CI 40875734305](https://github.com/veinyyxy/TechlongSoftware/actions/runs/40875734305) completed/success、attempt1；job123453944812 的全部16个步骤成功，无 AWS 身份。恢复读 `F:/ChatGPT_workshop/techlong-buyer-domain-install-code-verified-20261029-a.json`，raw SHA `306390108b9ac4aa5c9f6604833ba5fb2c18aa7c84fd148badbf93637ab9efbd`，绑定两份真实 CI 返回及七份源码 pin。实际 GitHub GET4、AWS/公开 DNS/私密读取/SQL/云写/执行槽/dispatch 均0；该证明不是云端更新或验收。
+
+**当前只等本轮限定只读准备许可**：最多1次STS＋14次AWS元数据/模板验证及4次公开DNS查询；不读私密值、不连数据库、不写云，不复用凌晨快照。新事实尚未核验，没有执行SHA，不得先写验证DNS、创建/执行Change Set或恢复后端。

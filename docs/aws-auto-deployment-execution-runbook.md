@@ -81,7 +81,7 @@ Source刷新及新同范围许可后，20:56–20:59的B记录取得AWS/GitHub�
 
 **下一唯一动作：准备准确验证CNAME、证书签发等待及现有CDN栈更新的集中审批清单。** 复用原CDN/桶/角色，不扩IAM、不重发客户端；实际新鲜读取和DNS/CDN/CFN写仍另审，不自动进入后端恢复。原00:05:04.864至05:05:04.864 CDT准备期限不重计，PENDING_VALIDATION不是域名可用或产品验收，wholeProductAccepted=false。
 
-10月29日早间仅展开[集中草案](aws-buyer-web-domain-install-review.md)：完整八资源模板等于原已测试差异、验证批次仅CREATE真实CNAME，25项定向检查通过，不新增执行器。准确CI与新一轮限定只读事实须真实通过后再生成5小时审批SHA；本地候选不是DNS/CDN写入许可，不重申证书或复用凌晨快照。
+10月29日早间仅展开[集中草案](aws-buyer-web-domain-install-review.md)：完整八资源模板等于原已测试差异、验证批次仅CREATE真实CNAME，25项定向检查及类型/lint/YAML/177相对链接/旧110闭包通过，不新增执行器。准确源码d869f47/CI40875734305全部成功；代码检查点F:/ChatGPT_workshop/techlong-buyer-domain-install-code-verified-20261029-a.json，raw SHA 306390108b9ac4aa5c9f6604833ba5fb2c18aa7c84fd148badbf93637ab9efbd。当前只等本轮限定只读许可，实际GitHub GET4、AWS/公开DNS/私密读取/SQL/云写/槽/dispatch均0；新事实真实通过后才生成5小时审批SHA，不重申证书或复用凌晨快照。
 
 ### 本轮旧测试与整轮准备历史（保留，不重复执行）
 

@@ -36,7 +36,7 @@
 
 **当前唯一动作：用已返回的准确ARN/CNAME，准备验证DNS与现有CDN栈更新的集中审批清单。** 仍不写DNS/CDN/CFN或恢复后端；后继新鲜读取/真实变更另按准确范围审批，不扩大IAM、重发客户端或读秘密/配置。原05:05:04.864 CDT准备截止不重计，证书pending不是域名上线，wholeProductAccepted=false。
 
-10月29日早间[集中清单草案](aws-buyer-web-domain-install-review.md)已展开为完整八资源模板与准确验证CNAME CREATE批次；25项本机定向检查通过，只新增两项候选原件回归并接入既有无AWS CI。不改原六资源候选/域名差异原件、旧110闭包或部署工作流，不重新申请证书。当前仅本地准备，准确CI/新鲜AWS与公开DNS事实尚待真实核验，无执行SHA或新云写授权。
+10月29日早间[集中清单草案](aws-buyer-web-domain-install-review.md)已展开为完整八资源模板与准确验证CNAME CREATE批次；源码d869f47/准确CI40875734305全部成功，25项本机定向检查、类型/lint/YAML/177相对链接及旧110闭包通过。不改原六资源候选/域名差异原件或部署工作流，不重新申请证书。代码检查点F:/ChatGPT_workshop/techlong-buyer-domain-install-code-verified-20261029-a.json，raw SHA 306390108b9ac4aa5c9f6604833ba5fb2c18aa7c84fd148badbf93637ab9efbd。GitHub GET4，AWS/公开DNS/私密读取/SQL/云写/槽/dispatch均0；当前只等本轮限定只读许可，新鲜事实尚未核验，无执行SHA或新云写授权。
 
 ### 已完成历程与本轮准备沿革（以下不是重放指令）
 
