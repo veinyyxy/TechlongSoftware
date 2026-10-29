@@ -16,8 +16,10 @@ import {createCycleComposition} from './composition.mjs';
 import {bindWorkflowSource,must,same,RISK} from './cycle.mjs';
 import {createWholeCycleFlow} from './whole.mjs';
 import {createWholeCycleIo} from './io.mjs';
+import {bindBuyerWorkflowSource,prepareBuyerFromSource} from './buyer-compatibility.mjs';
 const BASE='F:/ChatGPT_workshop',ROOTS=['ops/platform-reviewed-cycle-v1/local.mjs','ops/platform-reviewed-cycle-v1/live.mjs',
   'ops/platform-reviewed-cycle-v1/closure.mjs','ops/platform-operator-v6/key-metadata.ps1',RISK,'tests/platform-reviewed-cycle-v1.test.mjs',
+  'ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs','tests/buyer-publication-cycle-v1.test.mjs',
   '.github/workflows/platform-recovery-hosting-candidate.yml','package.json','package-lock.json'];
 const evidence=f=>{must(/^F:\/ChatGPT_workshop\/techlong-[A-Za-z0-9/_.-]+\.json$/.test(f??'')&&!f.includes('..'),'EVIDENCE_PATH');return f;};
 const json=async f=>JSON.parse(await readText(evidence(f),5000000));
@@ -35,8 +37,17 @@ export async function main(args=process.argv.slice(2)){
     !['DATABASE_URL','PGHOST','PGPORT','PGPASSWORD','PGOPTIONS','PGSERVICE'].some(k=>process.env[k]),'ENVIRONMENT');await noLinks(BASE);
   const head=git(['rev-parse','HEAD']).trim(),clean=()=>must(git(['rev-parse','HEAD']).trim()===head&&git(['branch','--show-current']).trim()==='main'&&
     git(['status','--porcelain']).trim()==='','CLEAN_SOURCE'),collect=()=>pins({roots:ROOTS});clean();await compatibility(head);
-  const source=SELECTED_CYCLE.publication.sourceCommit===null?await bindWorkflowSource(SELECTED_CYCLE,head,SELECTED_CYCLE.reusableCommit):SELECTED_CYCLE,
-    c=await createCycleComposition(source),flow=createWholeCycleFlow(c);must(c.publication.sourceCommit===head,'SOURCE_COMMIT');
+  const native=SELECTED_CYCLE.publication.schema==='techlong/buyer-context-publication/v1',
+    bind=native?bindBuyerWorkflowSource:bindWorkflowSource,
+    source=SELECTED_CYCLE.publication.sourceCommit===null?await bind(SELECTED_CYCLE,head,SELECTED_CYCLE.reusableCommit):SELECTED_CYCLE;
+  let buyer,buyerBundle;
+  if(native){
+    // The path is reviewed SOURCE, not a new CLI/env/manifest override. It is a
+    // public evidence bundle, never a config file or private control package.
+    const file=evidence(source.buyer?.bundleFile);await noLinks(file);const raw=await readText(file,1000000);
+    buyerBundle=JSON.parse(raw);buyer=await prepareBuyerFromSource(source,buyerBundle);
+  }
+  const c=await createCycleComposition(source,{buyer,buyerBundle}),flow=createWholeCycleFlow(c);must(c.publication.sourceCommit===head,'SOURCE_COMMIT');
   const write=async(f,v)=>{assertEvidenceSafeV5(v);await writeOnce(f,v);};
   for(const f of Object.values(c.slots))await absent(f);
   if(a['--mode']==='PrepareSaved'){

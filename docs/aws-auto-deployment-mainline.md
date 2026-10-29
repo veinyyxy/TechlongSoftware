@@ -18,6 +18,8 @@
 
 **最新集中草案已准备，仍不可执行**：09:57只用已存真实原件重建原basis、核对54档案/11对象记录，编译新单INSERT和buyer body；候选job_b236b120d6406d3e296d341b只是草案，未创建、未证明当前库中不存在、未占槽。已确认原package/发布/whole/live固定旧handoff/恢复信封，原native publisher也固定旧capsule，不能直接装候选。下一唯一代码动作仅在原发布/整轮组合补齐buyer绑定、保持旧110/原V5执行根，不新增框架或执行器。另批provider补件于10:03以STS尝试1/CLI255停止，GET0、其他生产读写/槽/调度0；原因未知，不重跑、不盲目刷新，需要时另批补件。恢复F:/ChatGPT_workshop/techlong-buyer-backend-material-prepared-20261029-a.json，raw SHA a362f39693f14d80d8f59fa788b0aa8b986f179fa16c02e0dd13b8f555a40223。[准确No-Go与集中范围](aws-backend-integration-preparation.md)。未生成部署SHA，原准备14:07:12.204不延期。
 
+**上述组合代码缺口已修复，当前收尾准确CI**：genuine buyer context接入原publisher、continuous、whole及capture/本地SOURCE入口，原两次三写与独立Inspect通过46定向＋81旧回归；旧110/默认恢复路径保持，不新增执行器。本轮没有生产读取、补件重试或写入。新SOURCE必须按原四项＋明确的buyer code/context hash两项规则派生，后继新SHA再审。下一只补齐固定provider原件、重建真实来源并集中准备原双workflow/trust候选，不能直接执行旧publication-local；生产SDK/OIDC/S3装配未发布，候选job尚不存在性未核、未创建，原事实期限不延长。[完成与剩余边界](aws-backend-integration-preparation.md)。
+
 **最新18:54限定只读结果：旧租户栈DELETE_COMPLETE、ECS INACTIVE/运行0，health/ready均404。** 根事件记录16:08:39开始删除、16:16:37完成，“User Initiated”不能确定操作者；本轮未删除或查询CloudTrail。不要更新已删UUID/CORS、重放成功任务或把下方14:41历史健康当现状；不宣称整体费用归零。
 
 **前端承载和GitHub本人门禁已安装并独立核验通过（19:19–19:24）**：用户确认e6654426…后，先两次GitHub配置写并独立证明门禁，再一次CreateStack/六项前端资源（含持久窄IAM）；新栈UUID71751190…/CREATE_COMPLETE，CloudFront EDJYJUKAZ12BO、来源https://d3a0kml1xanzgt.cloudfront.net。最终原模板/准确资源/策略/输出与门禁回读均通过。[完整实测与风险边界](aws-buyer-web-sandbox-bootstrap-observed.md)。实际GitHub GET11/配置写2、STS2/AWS元数据32/CreateStack1，私密值/DB/发布/dispatch/后端/CORS/TTL/重试/清理均0。

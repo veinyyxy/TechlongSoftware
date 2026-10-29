@@ -151,3 +151,18 @@ a00的manifest、成功回执、独立Inspect及固定provider引用均已找到
 准备顺序固定为：完成原组合兼容及准确CI → 取得缺失固定原件并验证accepted链 → 绑定真实完整状态/新请求与独立回读 → 准确新材料上传及必要原双workflow/SOURCE/trust-only差异 → 同任务Review→RunOnce→独立Inspect。前三项不齐就不占短窗口。实际请求写、上传、权限/来源发布、私钥/固定Secret使用及三次dispatch，仍须完整次数、资源、期限、派生规则和风险绑定到新SHA；本草案的批准SHA为null。
 
 云范围仍只考虑原ca-central-1租户名/原镜像、最多一次CreateStack/七承载资源、一次控制私密包读取/两次认证GET、同任务原子完成及独立验收；GitHub environment三次由用户本人批准，不再要求Web页面点击。50 USD/月仅目标、可能遗留收费资源、清理另审；不删除、不续旧TTL、不重发客户端/证书/CDN/HMAC，不通过新增IAM权限来迁就候选。具体预算及整轮上限须组合验证后再确定，不能把旧整轮SHA/635查询预算或上轮读取许可自动套给新周期。
+
+## 原发布/整轮组合兼容修复（代码阶段，未发布入口）
+
+本阶段只解决上一节源码组合No-Go，不再补件或读取生产。原 `createCycleComposition` 现在可由**不可序列化的genuine buyer能力＋准确bundle**选择已验证buyer context；不靠CLI/env/JSON开关。原V5执行根、owner SQL、三写publisher、连续Review及整轮流程继续复用；旧恢复流程是原默认路径，110冻结文件不改，没有新队列、云执行器或SDK包装层。
+
+最小差异包括：
+
+- buyer模块验证原生V6结果的精确字段、真实run/源码/版本引用、原V5 manifest/完整模板、同一安装绑定和独立Inspect；不把恢复信封改名冒充原生证据。恢复锚依旧由原编译器重建，当前全历史baseline另行核对，旧basis不得延期。
+- 原组合传入该context/完整旧baseline、合法单INSERT实际回执与严格proposer；原三写顺序及独立回读、旧业务/账本/保护核对不变。policy与实际步骤的到期均不超过原basis。
+- continuous、whole和实际capture适配器从同一个CODE能力取得真实原生manifest；旧路径仍读原innerManifest。原capture4/6/5对象上限、15分钟claim、8分钟RunOnce及12/10分钟Inspect预留保持，不以放宽字段/数量校验消除差异。
+- 既有本地入口仅在受审SOURCE选定buyer时读取其固定本地证据bundle，验证SHA并重建genuine能力；无新路径/目标/模式参数，默认未启用buyer。SOURCE派生保留原四个自引用规则，**另明确派生buyer的code.commitSha及buyerContextSha256两项**；非null模板/任意重复绑定拒绝。这六项规则必须进入后继准确发布审批，不能沿用旧“四项已批准”范围。
+
+本机46项定向检查通过（11项新发布/整轮检查、10项原buyer接线、15项域边界及10项原请求），另81项旧整轮/上传/发布/V5根回归通过；类型和lint结果及准确CI在收尾时据实际记录。新增测试运行真实编译器、证据验证、原三写和原整轮组合，cloud执行报告及外部端口为明确合成fixture；不把这些测试当实际CreateStack、AWS/Neon现状或部署证明。最初抽出fixture时遗漏normalizedState导入导致一次本机测试失败，已修正；不是生产错误或云重试。
+
+**仍未授权/未完成**：buyer SOURCE未选定、原受保护双workflow/role trust及SDK/OIDC/S3生产装配没有发布；真实provider原件仍缺、草案不是真实held任务，实际材料/新来源/部署均未发生。下一只在此代码准确CI后补齐缺失原件并重建真实SOURCE/bundle，集中生成原双workflow/SOURCE/唯一trust pin的受审候选；生产运输装配及六项派生必须在发布前有准确证明，不假设旧publication-local可直接执行。补件须另批新STS/GET，旧CLI255记录和原准备/basis期限均保留，不重试、不restamp，不先开短窗口。

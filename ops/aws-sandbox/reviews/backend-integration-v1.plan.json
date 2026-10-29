@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "CONCENTRATED_DRAFT_PREPARED_PUBLICATION_WIRING_REQUIRED_PROVIDER_ORIGINAL_PENDING",
+  "status": "BUYER_PUBLICATION_WHOLE_COMPOSITION_IMPLEMENTED_PENDING_EXACT_CI_AND_REAL_SOURCE",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
@@ -244,6 +244,25 @@
     "newExecutionApprovalSha256": null,
     "executionAuthorized": false
   },
-  "nextUniqueAction": "Only connect the existing publication/whole-cycle composition to the verified buyer context and legal single-INSERT request, preserving the original V5 execution root, old 110 pins, complete guards, human GitHub gate and default-closed behavior. Do not add an executor/framework or relabel native/recovery evidence. Keep all draft/failure originals. Any fresh provider STS/GET attempt requires separate exact approval; do not replay the stopped supplement, reuse unused GET authority or blindly demand refresh. No new production reads/writes, held job, upload, SOURCE/trust publication, renewal, window or dispatch by default.",
+  "publicationCompositionCode": {
+    "implemented": true,
+    "exactCiVerified": false,
+    "localTargetedTests": 46,
+    "localLegacyRegressionTests": 81,
+    "reusesOriginalThreeWritePublisherAndWholeFlow": true,
+    "realV5ManifestAndCompleteBusinessGuards": true,
+    "captureObjectLimitsUnchanged": [4, 6, 5],
+    "oldCloudFrozenFiles": 110,
+    "oldCloudFrozenFilesUnchanged": true,
+    "buyerSelectionIsGenuineCodeCapabilityOnly": true,
+    "selfReferenceDerivation": {"originalFields": 4, "additionalExplicitBuyerFields": ["buyer.source.code.commitSha", "publication.buyerContextSha256"], "approvedForPublication": false},
+    "productionSourceSelected": false,
+    "productionTransportAssemblyPublished": false,
+    "protectedWorkflowOrTrustUpdates": 0,
+    "providerSupplementRetried": false,
+    "productionCalls": 0,
+    "executionAuthorized": false
+  },
+  "nextUniqueAction": "Finish exact no-AWS CI, then separately approve the known fixed provider-original supplement, reconstruct the actual SOURCE/bundle and prepare concentrated original-workflow/SOURCE/trust-only publication candidates. Prove the production transport assembly and the four original plus two explicit buyer self-reference rules before publication; do not assume the old publication-local is executable for this candidate. Keep genuine capabilities, original V5 root, old 110 pins, human GitHub gate and default-closed behavior; do not add an executor/framework or relabel schemas. No stopped supplement replay, production reread, held job, upload, SOURCE/trust write, renewal, window or dispatch by default.",
   "wholeProductAccepted": false
 }

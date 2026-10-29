@@ -27,10 +27,11 @@ export function createA604Policy({publication,profile:rawProfile=A604_PROFILE,ba
   const D=capability?.definition??D_DEFAULT,oldHistory=capability?.history??oldHistoryDefault,
     assertA604Publication=capability?.assertPublication??assertPublicationDefault,assertA604PlanScope=capability?.assertScope??assertScopeDefault;
   const binding=freeze(structuredClone(publication)),profile=freeze(structuredClone(rawProfile));
+  const basisEnd=Math.min(profile.factsAt+profile.validMs,capability?.basisExpiresAt??Infinity);
   const seed=async at=>{await assertA604Publication(binding,profile,at);return validatePlan({schema:'techlong/platform-controller-plan/v6',
     instanceId:S.instanceId,deploymentId:S.deploymentId,jobId:D.jobId,mode:'Review',sourceCommit:binding.sourceCommit,
-    releaseSha256:await sha256Hex(binding.release),riskSha256:binding.release.riskSha256,preparedAt:at,expiresAt:Math.min(at+7200000,profile.factsAt+profile.validMs),
-    inputs:{mode:'Review',job:D.jobId,installation:canonicalJson(INSTALLATION),manifest:'',manifestSha:'',execution:'',lineage:canonicalJson(binding.packageReference)},predecessor:null},binding.release,at);};
+    releaseSha256:await sha256Hex(binding.release),riskSha256:binding.release.riskSha256,preparedAt:at,expiresAt:Math.min(at+7200000,basisEnd),
+    inputs:{mode:'Review',job:D.jobId,installation:canonicalJson(INSTALLATION),manifest:'',manifestSha:'',execution:'',lineage:capability?.lineageInput??canonicalJson(binding.packageReference)},predecessor:null},binding.release,at);};
   async function grant({sourceCommit,pins,ci,environment,history,key,auth,issuedAt}){
     await assertA604Publication(binding,profile,issuedAt);must(sourceCommit===binding.sourceCommit,'SOURCE');
     const ep=environmentProof({name:environment.name,protection_rules:environment.protectionRules,
@@ -40,7 +41,7 @@ export function createA604Policy({publication,profile:rawProfile=A604_PROFILE,ba
       auth?.contentRead===false&&auth.length>0&&auth.length<=131072&&digest(auth.aclSha256)&&key?.contentRead===false&&
       key.length>0&&key.length<=16000&&digest(key.protectionSha256),'GRANT_INPUT');
     const s=await seed(issuedAt),body={schema:D.schema,sourceCommit,pins,ci,binding,seed:s,environment:ep,history,key,auth,issuedAt,
-      expiresAt:Math.min(issuedAt+86400000,profile.factsAt+profile.validMs),reviewLatestStartAt:s.plan.expiresAt-D.runMs,
+      expiresAt:Math.min(issuedAt+86400000,basisEnd),reviewLatestStartAt:s.plan.expiresAt-D.runMs,
       baselineSha256,profileSha256:await sha256Hex(profile),riskFile:D.riskFile,delegatedActor:{kind:'local_operator',delegatorAdminId:D.admin,humanWebClick:false},
       policy:{jobId:D.jobId,modes:D.modes,dispatchesPerMode:1,githubEnvironmentApproval:'human-owner-required',approveGithubEnvironment:false,
         oldHostedLeaseRequired:false,extendWorkerDeadlines:false,createStackMax:1,resourcesMax:7,authenticatedGetsMax:2,newIam:0,deleteResources:0,

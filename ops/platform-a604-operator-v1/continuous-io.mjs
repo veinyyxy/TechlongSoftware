@@ -98,12 +98,12 @@ export function createContinuousIo({manifest:m,output,record,policy,assertSource
         const result=await read(resultReference);must(result.mode===ack.mode&&result.jobId===D.jobId&&result.run.runId===ack.runId,'CONTINUOUS_RESULT');
         const envelopeRef=ack.mode==='Review'?result.cloudReportReference:JSON.parse(ack.plan.inputs.manifest);
         assertReferenceV6(envelopeRef,`worker-v5/${S.instanceId}/${D.jobId}/${result.manifestSha256}/manifest.json`);
-        const envelope=await read(envelopeRef);
+        const envelope=await read(envelopeRef),inner=capability?.innerManifest?capability.innerManifest(envelope):envelope.innerManifest;
         // Preserve the original15m claim,8m execution and2m publication reserves.
-        if(ack.mode==='Review'){const timing=reviewTiming(envelope.innerManifest,g.binding.factsApproval.expiresAt,Date.now());
+        if(ack.mode==='Review'){const timing=reviewTiming(inner,g.binding.factsApproval.expiresAt,Date.now());
           must(timing.expiresAt>Date.now()+120000,'CONTINUOUS_PREPARE_WINDOW');}
         else{
-          assertReferenceV6(result.cloudReportReference,`worker-v5/${S.instanceId}/${D.jobId}/${envelope.innerManifest.manifestSha256}/run-${ack.runId}-1/${ack.mode==='RunOnce'?'run':'inspect'}.json`);
+          assertReferenceV6(result.cloudReportReference,`worker-v5/${S.instanceId}/${D.jobId}/${inner.manifestSha256}/run-${ack.runId}-1/${ack.mode==='RunOnce'?'run':'inspect'}.json`);
           await read(result.cloudReportReference);
           if(ack.mode==='RunOnce'){
             assertReferenceV6(result.executionReference,`worker-v5/${S.instanceId}/${D.jobId}/${result.manifestSha256}/execution-reference-${ack.runId}-v1.json`);

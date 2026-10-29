@@ -20,15 +20,15 @@ export function createA604PublisherOperations({publication:raw,profile:rawProfil
   const runtime=c?.runtime??createA604Runtime({publication,profile,now});
   const capability={schema:c?.publisherSchema??'techlong/a604-publisher-review/v1',assertBinding:check,assertScope:assertA604PlanScope,slot:c?.publishSlot??PUBLISH_SLOT,riskFile:c?.riskFile??RISK,allowEmptyHistory:true,
     validateRequestEvidence:async e=>must(same(e,requestEvidence),'HANDOFF_EVIDENCE'),
-    verifyRequestReadback:async(basis,input,at)=>{
+    verifyRequestReadback:c?.verifyRequestReadback??(async(basis,input,at)=>{
       // The held row predates the new basis: do not recompile it at a fabricated
       // later timestamp. Compare its REAL complete after-state and projection.
       const s=normalizedState(input),d=recoveryData(basis,basis.createdAt),j=s.jobs.find(j=>j.id===A604_JOB);
       must(at===requestEvidence.transactionAt&&j?.status==='pending'&&j.attempts===0&&j.max_attempts===1&&j.payload.requestedAt===at&&
         j.available_at===Number.MAX_SAFE_INTEGER&&j.payload.cloudExecutionAuthorized===false&&
         await sha256Hex(s)===requestEvidence.afterSha256&&same(normalizedState({...s,jobs:s.jobs.filter(j=>j.id!==A604_JOB)}),d.state),'REAL_HELD_BASELINE');
-    },
-    propose:args=>proposeReviewSuccessor({...args,rebuildPackage:runtime.rebuild},{assertBinding:check,assertScope:assertA604PlanScope})};
+    }),
+    propose:c?.proposeReview??(args=>proposeReviewSuccessor({...args,rebuildPackage:runtime.rebuild},{assertBinding:check,assertScope:assertA604PlanScope}))};
   return createPublisherOperations({historicalPlanShas:[],capability});
 }
 export function createA604InspectPublisherOperations({publication:raw,profile:rawProfile=A604_PROFILE,now=Date.now,capability:c,requestEvidence=REQUEST_EVIDENCE}={}){
@@ -39,6 +39,6 @@ export function createA604InspectPublisherOperations({publication:raw,profile:ra
     assertBinding:check,assertScope:assertA604PlanScope,slot:c?.inspectSlot??INSPECT_PUBLISH_SLOT,riskFile:c?.riskFile??RISK,actionName:'AdvanceRunOnce',nextMode:'Inspect',maxObjects:6,
     startReserveMs:12*60000,timingBudget:inspectTiming,resultOutcome:'DELEGATED_INSPECT_PUBLISHED_REQUIRES_SEPARATE_DISPATCH',
     verifyBaseline:async input=>{await check(input.binding);must(same(input.requestEvidence,requestEvidence),'HANDOFF_EVIDENCE');return verifyRunOnceBaseline(input,c);},
-    verifyProposal:(snapshot,proposal)=>verifyCompletionContent(snapshot,proposal,c),propose:createInspectProposer({publication,profile,now,capability:c}),
+    verifyProposal:(snapshot,proposal)=>verifyCompletionContent(snapshot,proposal,c),propose:c?.proposeInspect??createInspectProposer({publication,profile,now,capability:c}),
     guardBudget:async(m,proposal,at)=>must(proposal.successor.plan.expiresAt>at+10*60000,'INSPECT_PUBLICATION_RESERVE')}});
 }

@@ -46,7 +46,7 @@ export function createWholeCycleFlow(composition,{now=Date.now}={}){
   }
   async function finalProof({capture,inspectPlan,inspectAck,runCapture,inspectPublished,run}){
     await validateCapture(capture,inspectPlan,inspectAck);const s=normalizedState(capture.snapshot),id=inspectPlan.planSha256;
-    const business=completedBusiness(runCapture.basis,s,{jobId:cycle.profile.newJobId}),result=capturedObject(capture,capture.resultReference).value,
+    const business=completedBusiness(runCapture.basis,s,{jobId:cycle.profile.newJobId,beforeState:c.capability?.beforeState}),result=capturedObject(capture,capture.resultReference).value,
       report=capturedObject(capture,result.cloudReportReference).value;
     must(report.receiptSha256===await sha256Hex(business.receipt)&&report.providerObservationSha256===business.receipt.providerObservationSha256,'INSPECT_BUSINESS_RECEIPT');
     const approvals=s.ledger.approvals.filter(a=>a.plan_sha===id),attempts=s.ledger.attempts.filter(a=>a.plan_sha===id),a=attempts[0];
@@ -56,7 +56,8 @@ export function createWholeCycleFlow(composition,{now=Date.now}={}){
     inspectPublisher.verifyPublished(runCapture.snapshot,beforeInspectDispatch,runCapture.entry,
       {successor:inspectPlan,attestation:{proofSha256:inspectPublished.proofSha256}});
     const virtual={...structuredClone(capture.entry),attempt:{...capture.entry.attempt,state:'OBSERVED',status:'completed',conclusion:'success'}};let proofs=0;
-    const bridge=createRecoveryPublisher({basis:runCapture.basis,release:p.release,sourceCommit:p.sourceCommit,frozenSourceCommit:p.frozenSourceCommit,
+    const makePublisher=runtime.publisher??createRecoveryPublisher;
+    const bridge=makePublisher({basis:runCapture.basis,release:p.release,sourceCommit:p.sourceCommit,frozenSourceCommit:p.frozenSourceCommit,
       activation:p.activation,now,rebuildPackage:runtime.rebuild,ports:{guard:()=>runtime.guard(),
         loadPlan:async sha=>{must(sha===id,'FINAL_EXACT_PLAN');return virtual;},readRun:async rid=>{must(rid===inspectAck.runId,'FINAL_EXACT_RUN');return run;},
         readObject:async ref=>capturedObject(capture,ref),writeOwner:async query=>{must(++proofs===1&&query.text==='SELECT deployment_control_v6.attest_evidence($1,$2)'&&query.values[0]===id,'FINAL_MEMORY_PROOF_ONLY');}}});
@@ -69,7 +70,7 @@ export function createWholeCycleFlow(composition,{now=Date.now}={}){
     const started=now(),acks={};let phase='PREFLIGHT',claimed=false;
     const guard=async()=>{await verify(m,approved,now());must(now()>=started&&now()-started<WHOLE.maxRunMs,'WHOLE_DEADLINE');await io.assertSource();};
     const dispatch=async(mode,plan)=>{
-      const v=await validatePlan(plan.plan,p.release,now());assertScope(cycle,v.plan,p);must(same(v,plan),'DERIVED_PLAN_HASHES');
+      const v=await validatePlan(plan.plan,p.release,now());if(c.capability?.assertScope)c.capability.assertScope(v.plan,p);else assertScope(cycle,v.plan,p);must(same(v,plan),'DERIVED_PLAN_HASHES');
       await guard();const ack=await io.dispatch(mode,plan,guard);acks[mode]=ack;
       must(ack.outcome==='DELEGATED_DISPATCH_ACKNOWLEDGED_REQUIRES_USER_GITHUB_APPROVAL'&&ack.mode===mode&&ack.planSha256===plan.planSha256&&
         /^[1-9][0-9]{0,15}$/.test(ack.runId)&&!Object.entries(acks).some(([k,a])=>k!==mode&&a?.runId===ack.runId),'EXACT_DISPATCH_ACK');return ack;
@@ -86,10 +87,11 @@ export function createWholeCycleFlow(composition,{now=Date.now}={}){
       must(run.status==='completed'&&run.conclusion==='success'&&String(run.id)===ack.runId,'RUNONCE_NOT_SUCCESS');
       await guard();phase='CAPTURE_RUNONCE';const captured=await io.capture({...ack,plan:next.plan},run,guard);await validateCapture(captured,next,ack);
       const basis=await runtime.rebuild(capturedObject(captured,p.packageReference).value);captured.basis=basis;
-      const envelope=capturedObject(captured,JSON.parse(next.plan.inputs.manifest)).value;phase='DERIVE_INSPECT';
+      const envelope=capturedObject(captured,JSON.parse(next.plan.inputs.manifest)).value,
+        manifest=runtime.innerManifest?runtime.innerManifest(envelope):envelope.innerManifest;phase='DERIVE_INSPECT';
       const inner=await inspectPublisher.makeReview({binding:p,basis,baseline:captured.snapshot,reviewEntry:captured.entry,requestEvidence:cycle.requestEvidence,
         action:{operation:'AdvanceRunOnce',planSha256:next.planSha256,runId:ack.runId,resultReference:captured.resultReference},
-        timing:{preparedAt:envelope.innerManifest.jobPlan.preparedAt,claimBy:envelope.innerManifest.jobPlan.claimBy,workloadExpiresAt:envelope.innerManifest.workload.workloadExpiresAt},
+        timing:{preparedAt:manifest.jobPlan.preparedAt,claimBy:manifest.jobPlan.claimBy,workloadExpiresAt:manifest.workload.workloadExpiresAt},
         pins:m.grant.pins,ci:m.grant.ci,auth:m.grant.auth,createdAt:now()});
       must(inner.slot===slots.inspectPublish&&same(inner.binding,p)&&inner.action.operation==='AdvanceRunOnce','DERIVED_INSPECT_SCOPE');
       await io.record('derived-inspect-publisher',{outerSha256:approved,review:inner});await guard();phase='PUBLISH_INSPECT';

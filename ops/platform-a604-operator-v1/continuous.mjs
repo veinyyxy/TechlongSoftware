@@ -56,13 +56,14 @@ export function createContinuousReviewFlow({policy,publisher,runtime,profile=A60
         c.entry.attempt.state==='ACKNOWLEDGED'&&c.objects.length===4&&new Set(c.objects.map(o=>canonicalJson(o.reference))).size===4,'CAPTURE_SCOPE');
       const object=r=>{const found=c.objects.find(o=>same(o.reference,r));must(found,'EXACT_OBJECT');return structuredClone(found.object);};
       const basis=await runtime.rebuild(object(binding.packageReference).value);
-      const proposal=await proposeReviewSuccessor({binding,basis,entry:c.entry,run,resultReference:c.resultReference,
+      const propose=capability?.proposeReview??proposeReviewSuccessor;
+      const proposal=await propose({binding,basis,entry:c.entry,run,resultReference:c.resultReference,
         readObject:async r=>object(r),now,rebuildPackage:runtime.rebuild},
       {assertBinding:p=>assertA604Publication(p,profile,now()),assertScope:assertA604PlanScope});
-      const envelope=object(proposal.manifestReference).value;
+      const envelope=object(proposal.manifestReference).value,inner=runtime.innerManifest?runtime.innerManifest(envelope):envelope.innerManifest;
       phase='DERIVE';derived=await publisher.makeReview({binding,basis,baseline:c.snapshot,reviewEntry:c.entry,requestEvidence,
         action:{operation:'AdvanceReview',planSha256:g.seed.planSha256,runId:ack.runId,resultReference:c.resultReference},
-        timing:{preparedAt:envelope.innerManifest.jobPlan.preparedAt,claimBy:proposal.timing.claimBy,workloadExpiresAt:proposal.timing.workloadExpiresAt},
+        timing:{preparedAt:inner.jobPlan.preparedAt,claimBy:proposal.timing.claimBy,workloadExpiresAt:proposal.timing.workloadExpiresAt},
         pins:g.pins,ci:g.ci,auth:g.auth,createdAt:now()});
       must(derived.slot===PUBLISH_SLOT&&derived.action.operation==='AdvanceReview'&&derived.action.runId===ack.runId&&
         same(derived.binding,binding)&&same(derived.pins,g.pins)&&same(derived.auth,g.auth)&&same(derived.ci,g.ci)&&
