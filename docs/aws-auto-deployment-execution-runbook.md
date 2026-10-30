@@ -39,7 +39,9 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 本轮已将[集中顺序、复用点与硬No-Go](aws-backend-integration-preparation.md)收拢到原准备文档：旧buyer originalProfile硬截10:08，代码取min不会因新外层facts自动续期；退役指纹不是新完整准入/历史snapshot。先获得一次新限定只读事实，再由既有受审编译器证明新合法basis/上下文可用，过不了就在请求INSERT前停止给最小差异，不放宽旧expiry。当前执行SHA/新候选/请求/VersionId/发布证明均未产生，没有新运行代码或生产调用。
 
-下一仅等待一次限定只读准备许可：STS1/AWS元数据最多75（含既有前端元数据）、GitHub GET10、配置1/证书验证TLS1/只读SQL45；完整范围和风险见同一附表。不读Secret值/PEM/HMAC/S3正文/DDB业务项，不连Aurora，所有写/新槽/dispatch0。准备快照从真正新采样开始5小时，不提前开40分钟执行窗口；全部后继实际副作用仍按新准确SHA另批，GitHub环境由用户本人批准。
+用户已允许上述一次限定只读准备，10月30日14:30:28 CDT在首次官方SDK STS核对即返回CredentialsProviderError并停止；实际STS尝试1，其余AWS元数据/GitHub/配置/TLS/SQL全部0，未取得新的完整快照或合法basis，所有写/新槽/dispatch0。失败记录不重跑，未用预算不自动延用；恢复 `F:/ChatGPT_workshop/techlong-buyer-next-cycle-readonly-20261030-a/checkpoint.json`，raw SHA `1fd4f1c0f38e6688884d86732293a77579387625438a81aae376a4af12a905c1`。仅证明本次凭据提供器失败，不推断具体失效原因。
+
+下一唯一动作等待用户完成 `aws login --profile techlong-sandbox-user`，并明确允许新一轮同范围只读：STS1/AWS元数据最多75（含既有前端元数据）、GitHub GET10、配置1/证书验证TLS1/只读SQL45；完整范围和风险见同一附表。不读Secret值/PEM/HMAC/S3正文/DDB业务项，不连Aurora。新记录保留a，不重放其失败命令；准备快照只有真正取得新事实后才开始5小时有效性核验，失败时刻不当事实/basis续期。不提前开40分钟执行窗口，后继实际副作用仍按新准确SHA另批，GitHub环境由用户本人批准。
 
 该结果仅完成阻断收尾，未证明买家/后端真实业务连通或整套AWS上线，wholeProductAccepted=false；共享Cell、数据库、前端等保留，账号费用归零未证明。
 

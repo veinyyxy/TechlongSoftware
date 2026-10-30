@@ -12,7 +12,9 @@
 
 [本轮集中准备附表](aws-backend-integration-preparation.md)已明确：原basis10:08硬过期，单改新SOURCE/facts不够；需新完整13任务/19计划准入快照和真正合法的新basis/上下文，先过编译器再登记请求。不能用退役指纹推行或重计旧事实；如现有合同不承接，只给最小缺口，不扩框架。后继原单INSERT/条件上传、三文件/trust-only、整轮及有限店铺/菜单验收按准确新范围分门，材料先齐再开短窗。
 
-下一只等一次限定只读许可：Source STS1/AWS元数据75、GitHub GET10、.env.local读取1/验证TLS1/SQL45，不读Secret/PEM/HMAC/S3正文/DDB项，不连Aurora，写/新槽/dispatch均0。本轮仅本地核对/文档，没有调用该范围，无新候选任务或执行SHA。
+本次限定只读已获用户允许；14:30:28 CDT首次官方SDK STS即CredentialsProviderError停止，STS尝试1，其余AWS元数据/GitHub/配置/TLS/SQL0，所有写/新槽/dispatch0。未取得新完整快照、basis、候选任务或执行SHA。恢复 `F:/ChatGPT_workshop/techlong-buyer-next-cycle-readonly-20261030-a/checkpoint.json`，raw SHA `1fd4f1c0f38e6688884d86732293a77579387625438a81aae376a4af12a905c1`；不重跑a或自动使用剩余额度。
+
+下一仅等待Source登录刷新和明确的新一轮同范围许可：STS1/AWS元数据75、GitHub GET10、.env.local读取1/验证TLS1/SQL45，不读Secret/PEM/HMAC/S3正文/DDB项，不连Aurora。旧basis仍过期；新记录真实采样后再核验5小时，不以失败时间续期或先开执行窗口。
 
 以下b准备及旧停止沿革已完成，不重跑。
 
