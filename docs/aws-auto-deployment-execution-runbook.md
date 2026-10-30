@@ -29,7 +29,15 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：仅收尾最小时钟修正与准确CI（2026-10-30）
+## 3. 当前唯一继续点：仅准备新的独立单行退役清单（2026-10-30，不执行）
+
+时钟最小修正1df93f6及准确CI41110332862已封存，88项相关检查/类型/lint通过；检查点 `F:/ChatGPT_workshop/techlong-buyer-retirement-clock-fix-code-verified-20261030-a.json` raw SHA `cbc26cba387586b3d0d0be78c7bd619a09dad474d40f56b24f7883d3e4ca6acb`。用户已要求开始下一步，本轮只准备独立尝试b的准确审批清单，不读取生产或执行。旧2cddec6d清单、失败原件、目录和两个已消费槽全部保留，不重放或复位。
+
+仅派生本地固定配方的准备/证据根a→b一个字面量；原四条SQL/reader、真实DB指纹、准确资源及全部预算保持。工程运行代码仍为1df93f6，后续仅文档HEAD通过字节/pin及仅文档差异核对复用该代码CI，不冒称新HEAD已跑CI。本轮不重建云来源或扩框架，不先创建writer/inspect执行槽。
+
+准确新SHA只认 `F:/ChatGPT_workshop/techlong-buyer-retirement-execution-20261030-b/prepared-verified.json` 实际生成且绑定原件/修正源码/CI/配方后才有效；此前仍为null。范围仍STS1/AWS元数据4/云写0、配置2/TLS2/SQL最多80、最多原任务一行六字段canceled/清lease、独立只读回读。新一次独立永久尝试与所有实际读取/写入须用户对新SHA另批；旧批准及未用预算不延用。原12:47事实仍17:47:00.026 CDT硬截，最晚17:42启动，独立只读最多至17:52；13:38未变回读和13:53代码验证均不重计事实新鲜度或延期旧deadline/TTL/basis。生成后冻结main/本地配方，只等待新SHA确认。
+
+以下时钟修正和已停止a轮的事实保留追溯，不是再次执行指令。
 
 用户已明确批准2cddec6d…后，准确来源3925f5c（CI41107784637通过）于温尼伯13:38单次运行。STS1/元数据4证明准确e992栈DELETE_COMPLETE、准确ECS服务INACTIVE/desired/running/pending均0、任务空、目标组准确缺失。配置2/TLS2/SQL27；事务在BEGIN阶段取DB时钟后、进入LOCKED_STATE前停止，UPDATE提交0、写事务COMMIT提交0、云写/dispatch0。独立READ ONLY回读完整行、其余12任务、部署/outputs、19/14/14账本和保护摘要全部匹配原基准；b236仍running/1/1、旧lease未改、无成功回执。没有退役成功，不重跑清单或复位两个已消费新槽。
 

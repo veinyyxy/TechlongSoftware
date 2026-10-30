@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-30，仅收尾时钟最小修正与准确CI）
+## 当前唯一继续点（2026-10-30，仅准备新的独立单行退役清单，不执行）
+
+1df93f6/准确CI41110332862及88项相关检查已完成；代码检查点 `F:/ChatGPT_workshop/techlong-buyer-retirement-clock-fix-code-verified-20261030-a.json` raw SHA `cbc26cba387586b3d0d0be78c7bd619a09dad474d40f56b24f7883d3e4ca6acb`。本轮只准备独立b尝试的新SHA，保留旧2cddec6d失败目录/两个已消费槽；本地运行配方仅根a→b字面量变化，SQL/reader/业务范围不变，无工程运行代码改动、生产读取或执行槽消费。
+
+新清单恢复只认 `F:/ChatGPT_workshop/techlong-buyer-retirement-execution-20261030-b/prepared-verified.json` 真实存在并匹配后才算就绪；随后冻结main/配方并等待用户另批。原范围STS1/元数据4/云写0、配置2/TLS2/SQL80、最多一行六字段及独立回读不变；须明确批准一次新独立永久尝试，不复用旧批准。原事实17:47:00.026 CDT止/最晚17:42启动/只读17:52止均不重计；新文档HEAD不冒称已跑1df源码CI，不扩云权限或开启部署。
+
+以下为修正与a轮停止沿革，不重放。
 
 用户批准2cddec6d…后，来源3925f5c/准确CI41107784637于13:38单次执行：STS1/元数据4、配置2/TLS2/SQL27，准确栈已删、服务INACTIVE/0任务、目标准确缺失；在BEGIN阶段时序校验停止，UPDATE0/写事务COMMIT0/云写0。独立只读回读完整行、其他12任务、部署/outputs、账本/保护均保持，b236仍running/1/1、过期lease未清、无成功回执。两个新槽已消费，未用预算不能延用，不重放或复位。
 
