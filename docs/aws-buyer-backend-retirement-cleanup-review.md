@@ -1,6 +1,18 @@
-# b236过期任务退役与准确遗留栈清理：集中草案
+# b236单行退役准备：原栈清理草案已缩减
 
 2026-10-30，America/Winnipeg。遵守[执行手册](aws-auto-deployment-execution-runbook.md)。用户仅同意准备方向；**此文不是删除、SQL写入、发布或新周期批准，执行SHA为null**。不新建通用恢复/接管框架或固定任务分支。
+
+## 最新缩减：不再提出DeleteStack
+
+用户批准的补核于12:46–12:47 CDT实际完成：准确e992…栈DELETE_COMPLETE，原七物理资源全部DELETE_COMPLETE，Original模板匹配；本轮无任何删除提交。Stack.DeletionTime字段为10:08:38.422 CDT，不当作精确完成时间，也不推断删除操作者或一定由TTL触发。已删栈不重发DeleteStack，原下方删除范围只保留追溯。
+
+b236仍running/1/1、lease已过期、completed_at为空且无成功回执；payload/lease owner/dedupe匹配原受审plan。服务器端完整行、屏蔽六个拟变字段后的行、部署/outputs、其余任务及账本/保护SHA256已取得，不返回lease token/业务正文。其余12任务无活跃或租约；账本19/14/14，本任务原两尝试状态未变。九控制函数及jobs保护函数摘要匹配。实际STS1/CFN3/配置1/TLS1/只读SQL14，其他服务/HTTP读取及所有写/槽/调度0。
+
+本地检查点 `F:/ChatGPT_workshop/techlong-buyer-retirement-cleanup-supplement-readonly-20261030-a/checkpoint.json` raw SHA `acab79a91cb7caf62411739a1754d2cbe54f6b0d004e9fc651a47aa5dec17b6e`。只读事实5小时新鲜度不延期原deadline/TTL/basis。未读新的ECS/目标组缺失，CFN删除完成不是所有计费已停止的证明。
+
+**当前唯一后继**：仅准备并局部验证原任务单行退役小配方及执行材料。云写/新任务/新资源上限均0；只允许未来另批最多一行canceled/旧lease清空，不写成功回执，不改payload/attempts/错误字段、其他任务、部署outputs、旧账本/槽。新SHA必须包含执行前准确栈/服务停止核对、数据库锁后CAS和必要保护检查、一次提交及独立TLS回读；目前配方尚未绑定/验证，执行SHA仍null。不因已取得指纹就自动执行，不新建通用恢复入口。
+
+以下为原草案沿革，不构成当前DeleteStack或补核重放指令。
 
 ## 已核对事实
 
@@ -12,7 +24,7 @@
 
 私有原件：`F:/ChatGPT_workshop/techlong-buyer-existing-workload-state-readonly-20261030-a/checkpoint.json`，raw SHA `2720ce4b1c9a7e05d92185bf2f747f98043d5cff65401eccab935fbe6d164029`。本轮准备只复用已存证据，无新生产读取。
 
-## 准确拟议范围
+## 原集中范围（历史；DeleteStack已从后继移除）
 
 账号402010193138，区域ca-central-1；仅已有Source IAM用户，不新增权限。唯一拟删栈：
 
@@ -32,7 +44,7 @@
 
 **不删除**共享Cell/ALB/监听器/VPC、数据库/角色/Secret、前端CDN/桶、ECR镜像、其他栈或历史证据；不直接StopTask/删单项资源、不force、不RetainResources、不扩IAM。准确最新七个物理ID和完整模板仍须补核，不凭表格直接执行。
 
-## 顺序及停止边界
+## 原顺序及停止边界（需按单行退役重建，不可直接执行）
 
 1. 准备且固定准确新SHA、范围、源码/小配方pin、完整事实摘要、风险、写前复核和独立核验预算；未获SHA批准不占槽、不写。
 2. 实时核对准确Source和UUID、完整模板/七资源及删除保护/在途变更。只允许最多一次STANDARD DeleteStack（仅StackName、独立ClientRequestToken、DeletionMode；不指定新RoleARN）；复用栈已有角色。权限路径尚未证明，若拒绝则停止，不自行授权。
@@ -47,7 +59,7 @@
 
 `ops/platform-request-v6/transfer.mjs`只接受pending/attempt0/未租约请求，且原事务包含新任务INSERT，不适用于本任务。旧ready对账器固定其他job并会改三行业务/写成功回执，也不适用。只复用其已验证的指纹、锁、一次提交和独立回读模式；不得改旧断言、把SELECT伪装成INSERT来借用入口，或把只读Inspect当作接管。正式写入批准前，必须完成仅本清单的小配方绑定/局部验证，不新增通用执行器。
 
-## 当前还缺的必要补核（另待许可）
+## 已执行的补核范围（保留原申请，不可重放）
 
 - Source STS最多1次；准确UUID的DescribeStacks、GetTemplate Original、ListStackResources、ListChangeSets各最多1次，不翻页。核对仍存在、模板/七物理ID、角色引用、删除策略、保护和在途变更；不调IAM模拟或读取其他资源。
 - 既有.env.local内容读取1次；验证TLS Neon连接1条/最多20条只读SQL及事务控制，固定pg_catalog search_path和UTC。仅返回准确待退役行及其余任务、部署/outputs、控制账本的服务器端SHA256摘要、必要状态/来源投影、约束/触发器/函数/权限元数据；不返回lease token或业务正文，不连接Aurora。

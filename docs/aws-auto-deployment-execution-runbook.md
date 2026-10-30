@@ -29,7 +29,15 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：准备过期任务退役与准确遗留栈清理（2026-10-30，不执行）
+## 3. 当前唯一继续点：仅准备原任务单行退役（2026-10-30，不执行）
+
+本轮已批准补核于温尼伯12:46–12:47完成：准确e992…栈及原七物理资源的CFN状态均DELETE_COMPLETE，完整Original模板与受审版本一致；本轮DeleteStack为0，不追查或推断删除操作者。原删栈草案必须从后继范围移除，不重发删除。未进行新的ECS/目标组缺失核对，不据此声称账号零费用。
+
+准确b236仍running/1/1、旧lease过期且无成功回执，payload/dedupe/lease owner匹配原受审plan；其余12任务无活跃/租约。已取得服务器端完整行/六字段屏蔽行、部署/outputs、其他任务/账本/保护摘要，九控制函数及jobs保护函数摘要匹配。实际STS1/CFN3/配置1/TLS1/只读SQL14、零云或DB写/槽/dispatch。私有检查点 `F:/ChatGPT_workshop/techlong-buyer-retirement-cleanup-supplement-readonly-20261030-a/checkpoint.json` raw SHA `acab79a91cb7caf62411739a1754d2cbe54f6b0d004e9fc651a47aa5dec17b6e`。
+
+下一唯一动作只准备并局部验证单行退役小配方，再给准确新SHA：后继云写0、新任务/资源0，数据库最多改原任务一行至canceled并清旧lease；不补成功、不改payload/attempts/错误字段、部署/outputs、旧账本和永久槽。执行前实际停止核对、锁后CAS/保护检查及独立回读仍须在新SHA内明确批准。配方尚未绑定/验证，执行SHA仍null，当前补核许可不能当写授权。详见[缩减后的材料](aws-buyer-backend-retirement-cleanup-review.md)。
+
+### 已完成集中准备（旧删栈范围已移除，不重放）
 
 用户已同意进入这一准备方向。本阶段只准备[集中审核材料](aws-buyer-backend-retirement-cleanup-review.md)，不修改任务、不删除资源、不新建任务、重放旧整轮或扩恢复框架。已有09:22限定只读证明：准确b236任务running、attempts/max=1/1、lease于08:27:46.265过期且无成功回执；准确e992…栈CREATE_COMPLETE、一个健康任务、目标healthy、health/ready均200。私有检查点 `F:/ChatGPT_workshop/techlong-buyer-existing-workload-state-readonly-20261030-a/checkpoint.json` raw SHA `2720ce4b1c9a7e05d92185bf2f747f98043d5cff65401eccab935fbe6d164029`。
 

@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-30，准备退役原任务与清理准确遗留栈，不执行）
+## 当前唯一继续点（2026-10-30，仅准备原任务单行退役，不执行）
+
+12:46–12:47补核已完成：准确e992…栈及原七资源CFN均DELETE_COMPLETE，Original模板/物理ID匹配；本轮没有DeleteStack，后继云写范围缩减为0，不再准备重复删除。未查删除操作者或新的ECS/目标缺失，不能声称账号停费。b236仍running/1/1、过期lease存在、没有成功回执；来源与整行/账本/保护指纹已取得，九控制函数与jobs保护摘要匹配。
+
+实际STS1/CFN3/配置1/TLS1/只读SQL14，零写/槽/dispatch；检查点 `F:/ChatGPT_workshop/techlong-buyer-retirement-cleanup-supplement-readonly-20261030-a/checkpoint.json` raw SHA `acab79a91cb7caf62411739a1754d2cbe54f6b0d004e9fc651a47aa5dec17b6e`。下一只准备并验证[单行退役配方](aws-buyer-backend-retirement-cleanup-review.md)，最多改原任务一行、不补成功、不创建任务/资源或恢复旧槽；实际停止/CAS核对和SQL执行另审新SHA。配方及执行SHA尚未就绪，不复用这次只读许可写入。代码CI仍准确绑定90e7174，后续文档HEAD不冒称新代码CI。
+
+### 已完成集中准备（旧删栈草案范围已移除）
 
 用户已要求开始准备[集中审核材料](aws-buyer-backend-retirement-cleanup-review.md)。09:22限定只读证明：b236任务仍running、旧lease过期且没有成功回执；准确e992…栈/服务/任务/目标健康，health与ready均200。只读实际配置1/TLS1/SQL13、STS1/CFN1/ECS4/ELB1/HTTPS2，零写/槽/dispatch。私有检查点 `F:/ChatGPT_workshop/techlong-buyer-existing-workload-state-readonly-20261030-a/checkpoint.json` raw SHA `2720ce4b1c9a7e05d92185bf2f747f98043d5cff65401eccab935fbe6d164029`。
 
