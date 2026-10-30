@@ -1,5 +1,23 @@
 # 后端联调/CORS：当前最小准备与继续点
 
+## 2026-10-30：仅修复新旧任务投影摘要阶段绑定
+
+用户要求的本轮唯一代码修复已限定在现有 `buyer-compatibility.mjs`：复用原 `createCloudInitializedAwsV5` 同一实例、同一 `bindOnce/executeOnce` 和所有 SDK/资源/健康/租约/authority 检查，不复制建栈执行器、不改冻结110文件。原胶囊/前驱投影 SHA `1c976ac3…` 保留；受审buyer三来源投影 SHA `03b10989…` 是另一个准确源码pin，不在运行中学习或自动接受候选摘要。
+
+该准确摘要对来自已批准的只读核对：仅在内存将新任务CORS还原为原两来源后，投影SHA完全等于原pin，其他字段没有归一化。私有证据检查点 `F:/ChatGPT_workshop/techlong-buyer-ecs-readonly-20261030-a/checkpoint.json` raw SHA `490dc15ed4296641e625363315fe9ef9fd81be638f74034edcfe4924b5e88ae0`。这里只提交摘要/状态，不提交任务环境、Secret值或业务快照正文；这是已知固定配置差异的源码绑定，不是通用环境变更白名单。
+
+阶段规则：`inspectBefore`显式选择旧前驱pin；原执行器成功保存唯一 `create-ack.json` 后才选择新任务pin；独立 `inspectAfter`显式选择新pin且不产生创建。没有捕获错误后补跑、没有SDK响应改写或忽略字段。绑定快照与调用阶段私有，阶段并发/重入、未知证据名、错误前驱pin和ACK持久化失败均拒绝；完整任务投影仍须逐字节摘要相等。原镜像/环境/Secret引用/未知字段、服务稳定、目标健康及最终时效断言均保留。
+
+定向回归只用合成任务投影和窄provider替身验证原调用顺序，不访问AWS或生产档案。相邻归档workflow测试须区分“新候选代码”与“已安装52ae2ee3…版本”：以3d1e1bf已封存的adapter源码pin `a16eca0d…` 加冻结110 pins重建旧111闭包，再保持原来源/事实校验与双workflow全文比较；未知旧闭包或篡改事实仍拒绝，不能将候选代码冒称已部署。现有旧110闭包断言不放宽。
+
+原整轮仍停止，五个已消费永久槽保留，不恢复、重放、再次CreateStack或补写成功。目标健康查询未取得结果，不能称完整验收通过或唯一历史根因已证明。当前资源可能持续计费；原事实/TTL不延长。
+
+本轮只进行代码/测试/文档、main提交推送及无AWS CI。准确结果只在真实完成后封存 `F:/ChatGPT_workshop/techlong-buyer-task-hash-fix-verified-20261030-a.json`；文件不存在或不匹配即尚未收尾。修复通过后仅准备既有资源/未完成任务的准确受审继续或处置方案，新鲜读取、必要来源发布和业务/云副作用仍另审，不自动开新周期或扩恢复框架。
+
+本机最终结果：82项buyer/来源归档/准入回归、73项整轮回归、12项旧SDK/provider回归全部通过，共167项（不重复累计此前17项定向运行）；类型及3文件零警告lint通过。OpenSSL旧合成测试曾被Windows沙箱MSYS对象权限阻止，未改夹具或依赖，沙箱外12项通过；不将环境失败当作原先通过。云闭包实算旧110 `0c6f119d…` 保持、新候选111已变化；已安装111 `52ae2ee3…` 保持，不修改其受保护workflow或宣称已经发布。新7项回归全部为合成口，不是实际AWS/业务验收。
+
+以下为旧阶段沿革，不再重复执行。
+
 **当前来源准备已推进到明确门禁**：真实b236请求/版本经原编译器和历史投影重建为cycle d1fdfd0e…/profile f9319902…；SOURCE、facts及旧layout投影仅保存在F:/ChatGPT_workshop/techlong-buyer-publication-material-20261029-b，result raw SHA f49a8945a82d28642051546d83a52714e18caa7f7af28b227574087adfcc816b。[去敏摘要](../ops/aws-sandbox/reviews/backend-integration-v1.publication-material-20261029.json)。factsApproval仍null，旧D布局明确标记为历史投影，不把当前本地重建时间当新采样；没有生成可执行YAML、Git对象或发布批准。
 
 下一只等[显式本地SOURCE facts绑定＋原发布前限定只读](aws-auto-deployment-reviewed-cycle-source-publication.md#固定复用与最小差异)的准确准备清单确认：原basis终点不变，读范围仅STS1/现有worker基础栈元数据12/GitHub20，不需要配置、Secret/PEM/HMAC/S3正文或Neon。原上传许可不隐含facts批准，原PUB工厂必须等真实facts批准/新layout/最终准确CI再生成发布SHA。准备入口F:/ChatGPT_workshop/techlong-buyer-publication-preflight-20261029-a.mjs只调用原readOnly I/O，无新工程代码/SDK/执行器或生产副作用；清单/封存实际生成后冻结main，当前不能推定它们已存在。后继三文件/trust-only及整轮仍另审，不重登记/上传/复位。

@@ -3,13 +3,97 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {cycleCloudClosure} from '../ops/platform-reviewed-cycle-v1/closure.mjs';
-import {BUYER_SOURCE,BUYER_ORIGINS,BUYER_CAPSULE_SHA256,prepareBuyerCompatibility,runBuyerCompatibility} from '../ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs';
+import {BUYER_SOURCE,BUYER_ORIGINS,BUYER_CAPSULE_SHA256,BUYER_TASK_HASHES,bindBuyerTaskHashes,prepareBuyerCompatibility,runBuyerCompatibility} from '../ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs';
+import {cloudTaskProjectionV5} from '../ops/cloud-worker/aws-initialized-workload-v5.mjs';
 import {assertCloudManifestV5,createCloudWorkerRootV5} from '../ops/cloud-worker/cloud-worker-root-v5.mjs';
 import {prepareCloudContextV5} from '../ops/cloud-worker/cloud-context-v5.mjs';
 import {canonicalJson,sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {normalizedState} from '../ops/platform-request-v6/state-contract.mjs';
 
 import {buyerFixture as fixture} from './fixtures/buyer-compatibility-v1.mjs';
+
+// Synthetic full task projections, not archived business/runtime/secret values.
+async function hashPhaseFixture(){
+  const before={family:'synthetic-buyer-task',futureField:{retain:true},containerDefinitions:[{
+    name:'app',image:'fixture@sha256:'+ 'a'.repeat(64),environment:[{name:'CORS_ALLOWED_ORIGINS',value:'https://old.example'},
+      {name:'UNCHANGED',value:'fixture'}],secrets:[{name:'FIXTURE_SECRET',valueFrom:'arn:fixture-reference-only'}]}]},
+    after=structuredClone(before);after.containerDefinitions[0].environment[0].value='https://old.example,https://buyer.example';
+  const hashes={predecessor:await sha256Hex(cloudTaskProjectionV5(before)),created:await sha256Hex(cloudTaskProjectionV5(after))},
+    base={expectedTaskSha256:hashes.predecessor,keep:{unchanged:true}},events=[],state={before,after,saveFailure:null,pause:null};
+  let entered=false,created=0,disposed=0,constructed=0,scoped;
+  const check=async(definition)=>{const actual=await sha256Hex(cloudTaskProjectionV5(definition));
+    events.push(scoped.expectedTaskSha256);assert.equal(actual,scoped.expectedTaskSha256,'full projection mismatch');return actual;};
+  const provider=bindBuyerTaskHashes(base,hashes,b=>{scoped=b;constructed++;return {
+    readCell:async()=>({unchanged:true}),inspectBefore:()=>check(state.before),inspectAfter:()=>check(state.after),
+    bindOnce(_w,_p,consume,save){return {async executeOnce(){
+      assert.equal(entered,false,'one execution only');entered=true;await check(state.before);
+      await save('provider-before.json',{});await consume('create_workload','fixture');created++;
+      await save('create-ack.json',{stackId:'fixture-stack'});if(state.pause)await state.pause;
+      await check(state.after);await save('provider-after.json',{});return {stackId:'fixture-stack'};
+    }};},counts:()=>({createCalls:created}),dispose:()=>{disposed++;},
+  };});
+  const save=async(name)=>{events.push(name);if(state.saveFailure===name)throw Error('fixture save failed');};
+  return {provider,base,hashes,state,events,scoped:()=>scoped,constructed:()=>constructed,disposed:()=>disposed,
+    bind:()=>provider.bindOnce({}, {},async()=>events.push('consume'),save)};
+}
+
+test('buyer task pins are explicit source-bound old/new projections, historical capsule remains unchanged',async()=>{
+  const f=await fixture();assert.equal(f.compat.context.base.expectedTaskSha256,BUYER_TASK_HASHES.predecessor);
+  assert.notEqual(BUYER_TASK_HASHES.predecessor,BUYER_TASK_HASHES.created);
+  assert(Object.isFrozen(BUYER_TASK_HASHES));assert.deepEqual(f.events,[]);
+});
+
+test('same frozen provider checks old before create and new after persisted ACK; no extra executor or read',async()=>{
+  const f=await hashPhaseFixture(),original=canonicalJson(f.base),binding=f.bind();
+  assert.equal(f.constructed(),1);assert.equal(f.provider.counts().createCalls,0);
+  await binding.executeOnce({});
+  assert.deepEqual(f.events,[f.hashes.predecessor,'provider-before.json','consume','create-ack.json',f.hashes.created,'provider-after.json']);
+  assert.equal(f.provider.counts().createCalls,1);assert.equal(canonicalJson(f.base),original);
+  assert.throws(()=>f.scoped().expectedTaskSha256,/TASK_HASH_PHASE_REQUIRED/);
+  await assert.rejects(binding.executeOnce({}),/one execution only/);
+  assert.throws(()=>f.bind(),/TASK_HASH_BIND_ONCE/);f.provider.dispose();assert.equal(f.disposed(),1);
+});
+
+test('independent created-task Inspect selects new hash with zero creates; predecessor still requires old',async()=>{
+  const f=await hashPhaseFixture();assert.equal(await f.provider.inspectAfter(),f.hashes.created);
+  assert.equal(await f.provider.inspectBefore(),f.hashes.predecessor);assert.equal(f.provider.counts().createCalls,0);
+  f.state.before=structuredClone(f.state.after);await assert.rejects(f.provider.inspectBefore(),/full projection mismatch/);
+});
+
+test('buyer hash phases still reject image, env, secret reference, CORS and unknown-field drift',async()=>{
+  const f=await hashPhaseFixture(),original=structuredClone(f.state.after);
+  for(const mutate of [d=>{d.containerDefinitions[0].image='different';},d=>{d.containerDefinitions[0].environment[1].value='changed';},
+    d=>{d.containerDefinitions[0].secrets[0].valueFrom='different-reference';},d=>{d.containerDefinitions[0].environment[0].value='https://attacker.example';},
+    d=>{d.futureField.retain=false;},d=>{d.unknownAdditionalField=true;}]){
+    f.state.after=structuredClone(original);mutate(f.state.after);await assert.rejects(f.provider.inspectAfter(),/full projection mismatch/);
+  }
+  f.state.after=original;assert.equal(await f.provider.inspectAfter(),f.hashes.created);
+});
+
+test('failed ACK persistence cannot advance task hash, authorize a retry or leak a phase',async()=>{
+  const f=await hashPhaseFixture();f.state.saveFailure='create-ack.json';const binding=f.bind();
+  await assert.rejects(binding.executeOnce({}),/fixture save failed/);
+  assert(!f.events.includes(f.hashes.created));assert.throws(()=>f.scoped().expectedTaskSha256,/TASK_HASH_PHASE_REQUIRED/);
+  await assert.rejects(binding.executeOnce({}),/one execution only/);assert.equal(f.provider.counts().createCalls,1);
+});
+
+test('concurrent observation cannot change the pin during a bound execution',async()=>{
+  const f=await hashPhaseFixture();let release,acked;
+  f.state.pause=new Promise(resolve=>{release=resolve;});const ready=new Promise(resolve=>{acked=resolve;});
+  const binding=f.provider.bindOnce({}, {},async()=>{},async name=>{if(name==='create-ack.json')acked();});
+  const running=binding.executeOnce({});await ready;
+  try{await assert.rejects(f.provider.inspectBefore(),/TASK_HASH_PHASE_REENTRY/);}
+  finally{release();}await running;assert.equal(f.provider.counts().createCalls,1);
+});
+
+test('wrong predecessor pin or malformed phase binding fails before creating a provider',()=>{
+  let creations=0;const create=()=>{creations++;};
+  for(const hashes of [null,{}, {...BUYER_TASK_HASHES,extra:true},{...BUYER_TASK_HASHES,created:BUYER_TASK_HASHES.predecessor},
+    {...BUYER_TASK_HASHES,created:'invalid'}])
+    assert.throws(()=>bindBuyerTaskHashes({expectedTaskSha256:BUYER_TASK_HASHES.predecessor},hashes,create),/TASK_HASH_BINDING/);
+  assert.throws(()=>bindBuyerTaskHashes({expectedTaskSha256:'0'.repeat(64)},BUYER_TASK_HASHES,create),/TASK_HASH_BINDING/);
+  assert.equal(creations,0);
+});
 
 test('default SOURCE is closed before basis, credentials, configuration or any port',async()=>{
   assert.equal(BUYER_SOURCE,null);

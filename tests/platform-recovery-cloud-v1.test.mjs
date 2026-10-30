@@ -26,6 +26,7 @@ import {sourceTemplate,texts as cycleWorkflowTexts,F as CYCLE_FROZEN} from '../o
 import {bindBuyerWorkflowSource,assertBuyerPublicationSource,buyerCompatibilityClosure} from '../ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs';
 import {cloudWorkflowsV6} from '../ops/platform-cloud-v6/workflows.mjs';
 import {buyerFixture} from './fixtures/buyer-compatibility-v1.mjs';
+import {cycleCloudClosure} from '../ops/platform-reviewed-cycle-v1/closure.mjs';
 
 async function fixture(){
   const f=await recoveryFixture(),d=recoveryData(f.basis,f.at),events=[],puts=[];
@@ -163,7 +164,18 @@ async function installedCycleTexts(selected,head){
   }
   const bound=await bindBuyerWorkflowSource(selected,head,selected.reusableCommit);
   await assertBuyerPublicationSource(bound,bound.publication.factsApproval.observedBy,{anchor:bound.buyer.originalProfile});
-  assert.equal((await buyerCompatibilityClosure()).closureSha256,bound.publication.release.closureSha256);
+  const candidate=await buyerCompatibilityClosure();
+  if(candidate.closureSha256!==bound.publication.release.closureSha256){
+    // A code-only fix is not a new cloud publication. Rebuild the installed
+    // 3d1e1bf source closure from its archived adapter pin + unchanged 110 pins;
+    // do NOT relabel current code as already deployed or weaken workflow bytes.
+    const old=await cycleCloudClosure(),file='ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs',
+      archivedPin={file,normalizedLfSha256:'a16eca0d5aa5c6aa35084902fadb2d5e42a3cf7f29456d0c3eb1bff7566f5ac7'},
+      pins=[...old.pins,archivedPin].sort((a,b)=>a.file.localeCompare(b.file));
+    assert.equal(bound.publication.release.closureSha256,'52ae2ee335ecf9d6726c65c9aaa1c90776a10caabfd13decc0401fbeb1c276a0');
+    assert.equal(await sha256Hex(JSON.stringify(pins)),bound.publication.release.closureSha256);
+    assert.deepEqual(candidate.pins.filter(p=>p.file!==file),old.pins);
+  }
   const cloud=structuredClone(selected);delete cloud.reusableCommit;delete cloud.buyer.bundleFile;
   const p=selected.publication,base=cloudWorkflowsV6({...CYCLE_FROZEN,sourceCommit:p.frozenSourceCommit,
     closureSha256:p.release.closureSha256,reusableCommit:selected.reusableCommit}),
@@ -250,4 +262,7 @@ test('installed native buyer expectation preserves source/fact gates and rejects
   assert.equal(load(rendered.caller).jobs.reviewed.uses,'veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@'+s.reusableCommit);
   const changed=structuredClone(s);changed.publication.factsApproval.expiresAt++;
   await assert.rejects(installedCycleTexts(changed,'c'.repeat(40)),/LIVE_FACTS/);
+  const invented=structuredClone(s);invented.publication.release.closureSha256='0'.repeat(64);
+  invented.buyer.source.code.closureSha256='0'.repeat(64);
+  await assert.rejects(installedCycleTexts(invented,'c'.repeat(40)));
 });

@@ -35,9 +35,49 @@ export const BUYER_SOURCE=null; // A later reviewed publication must select it.
 export const BUYER_ORIGINS='https://first-acceptance.sandbox.techlong.cloud,https://techlong.cloud,https://buyer.sandbox.techlong.cloud';
 export const BUYER_CAPSULE_SHA256='649c3077a5c1316e663f9765c10b4d79a9cc1bc673086de8e50d4ed1ddc92a62';
 const originalOrigins='https://first-acceptance.sandbox.techlong.cloud,https://techlong.cloud';
+// Source-bound projection pair; never learn a pin from the runtime being checked.
+// Exact readback proved that reverting ONLY buyer CORS maps created -> predecessor.
+// Changing either projection requires a new reviewed source; no arbitrary env diff.
+export const BUYER_TASK_HASHES=Object.freeze({
+  predecessor:'1c976ac3e02ccb54720b2432a28c6bf83c5f21b1a20ba69cf37062e5a0d45c76',
+  created:'03b10989b5e648fe2734529485a8f65a9f4381faaf6e5412aa05fbdfdf74d14f',
+});
 const must=(v,c)=>{if(!v)throw Error('BUYER_COMPATIBILITY_'+c);};
 const same=(a,b)=>canonicalJson(a)===canonicalJson(b);
 const digest=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
+
+// Keep the frozen provider/executor unchanged. Its two full-projection equality
+// checks receive explicit phase-specific pins, never a normalized SDK response.
+// Only the existing, successfully persisted create ACK advances an execution.
+// Independent Inspect selects the created pin without creating anything.
+export function bindBuyerTaskHashes(base,hashes,createProvider){
+  must(base&&same(Object.keys(hashes??{}).sort(),['created','predecessor'])&&
+    digest(hashes.predecessor)&&digest(hashes.created)&&hashes.predecessor!==hashes.created&&
+    base.expectedTaskSha256===hashes.predecessor&&typeof createProvider==='function','TASK_HASH_BINDING');
+  const pins=Object.freeze({...hashes}),snapshot=freeze(structuredClone(base));let phase=null,bound=false;
+  const scoped=Object.freeze({...snapshot,get expectedTaskSha256(){
+    must(phase==='predecessor'||phase==='created','TASK_HASH_PHASE_REQUIRED');return pins[phase];
+  }}),provider=createProvider(scoped);
+  async function inPhase(next,run){
+    must(phase===null,'TASK_HASH_PHASE_REENTRY');phase=next;
+    try{return await run();}finally{phase=null;}
+  }
+  return Object.freeze({
+    readCell:(...args)=>provider.readCell(...args),
+    inspectBefore:(...args)=>inPhase('predecessor',()=>provider.inspectBefore(...args)),
+    inspectAfter:(...args)=>inPhase('created',()=>provider.inspectAfter(...args)),
+    bindOnce(workload,plan,consume,save){
+      must(!bound&&phase===null&&typeof save==='function','TASK_HASH_BIND_ONCE');bound=true;
+      const binding=provider.bindOnce(workload,plan,consume,async(name,value)=>{
+        must(['provider-before.json','create-ack.json','provider-after.json'].includes(name)&&
+          phase===(name==='provider-after.json'?'created':'predecessor'),'TASK_HASH_EVIDENCE_PHASE');
+        await save(name,value);if(name==='create-ack.json')phase='created';
+      });
+      return Object.freeze({executeOnce:args=>inPhase('predecessor',()=>binding.executeOnce(args))});
+    },
+    counts:()=>provider.counts(),dispose:()=>provider.dispose(),
+  });
+}
 const prepared=new WeakMap();
 export function buyerCompatibilityData(capability,at){
   const d=prepared.get(capability);must(d,'SOURCE_CAPABILITY_REQUIRED');recoveryData(d.basis,at);return d;
@@ -276,7 +316,8 @@ export async function createBuyerApplication({compat,installation:raw,code,run,c
   const contract=await loadNeonContractV5(),installation=await assertInstallationV5(raw,CLOUD_V6.installationSha256,contract),
     session=createCloudSessionV5({credentials,expected:{...run,roleId:installation.roleId},now}),cfg=session.clientConfig(),
     sm=new SecretsManagerClient({...cfg,endpoint:'https://secretsmanager.ca-central-1.amazonaws.com'}),
-    provider=createCloudInitializedAwsV5(d.context.base,session),evidence=createCloudEvidenceV5(session);
+    provider=bindBuyerTaskHashes(d.context.base,BUYER_TASK_HASHES,base=>createCloudInitializedAwsV5(base,session)),
+    evidence=createCloudEvidenceV5(session);
   let opened=false;
   const dispose=()=>{provider.dispose();evidence.dispose();sm.destroy();};
   const secretRead=(ref,signal)=>sm.send(new GetSecretValueCommand({SecretId:ref.arn,VersionId:ref.versionId,VersionStage:'AWSCURRENT'}),
