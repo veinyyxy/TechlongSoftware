@@ -29,7 +29,17 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：仅准备新的独立单行退役清单（2026-10-30，不执行）
+## 3. 当前唯一继续点：退役已完成，回到买家/后端联调整轮准备（2026-10-30）
+
+用户批准88851603…的新独立b尝试后，执行HEAD d3b1bd2（仅文档；运行源码1df93f6/准确CI41110332862）于温尼伯14:03:25.788用真实DB时钟单次提交退役；另一TLS READ ONLY连接及本地原件重建均通过。准确b236已canceled、三lease=NULL、updated_at/completed_at=实际退役时刻；仅一行六字段，payload/attempts/错误字段/dedupe、部署/outputs、其余12任务、19/14/14账本和保护摘要全保持，无新成功回执/任务。该部署13任务均终态、无租约；原失败不会被改写为部署成功。
+
+实际STS1/元数据4、配置2/TLS2/SQL40、UPDATE尝试1且COMMIT成功、AWS写/dispatch0。写前准确栈DELETE_COMPLETE、服务INACTIVE/0任务、目标组缺失；本轮没有删除云资源或新增权限。旧a目录/两个消费槽、全部旧记录及b的两个新消费槽永久保留，不重放/复位。恢复 `F:/ChatGPT_workshop/techlong-buyer-retirement-execution-20261030-b/executed-verified.json`，raw SHA `0b90ec1515f5a311e44a46a75a7e089727101e2a9565d8cae37b37bf05cffc14`；真实结果重建后结束来源冻结，仅正常记录结果，后续文档HEAD不冒称新代码CI。
+
+下一唯一动作回到主线：集中准备新的合法后端联调请求、原镜像/数据库/域名复用与必要来源绑定（含已写但未发布的buyer任务摘要阶段修正）、Review→RunOnce→独立Inspect及有限业务验收的范围和时序。当前不创建请求/资源、不读取生产、安装权限或部署；新的必要事实读取、业务写、来源发布和整轮仍准确另审。不再追加退役/时钟/探针/通用恢复框架或固定任务分支；不能复活已取消b236、使用已删UUID或把本次17:47退役窗口当新部署事实授权。旧deadline/TTL/basis不延长，新部署需新的受审事实/请求/来源和TTL。
+
+该结果仅完成阻断收尾，未证明买家/后端真实业务连通或整套AWS上线，wholeProductAccepted=false；共享Cell、数据库、前端等保留，账号费用归零未证明。
+
+下方独立b准备、时钟修正及a轮停止全部保留追溯，不再是待执行或待修复任务。
 
 时钟最小修正1df93f6及准确CI41110332862已封存，88项相关检查/类型/lint通过；检查点 `F:/ChatGPT_workshop/techlong-buyer-retirement-clock-fix-code-verified-20261030-a.json` raw SHA `cbc26cba387586b3d0d0be78c7bd619a09dad474d40f56b24f7883d3e4ca6acb`。用户已要求开始下一步，本轮只准备独立尝试b的准确审批清单，不读取生产或执行。旧2cddec6d清单、失败原件、目录和两个已消费槽全部保留，不重放或复位。
 

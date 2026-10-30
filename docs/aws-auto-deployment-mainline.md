@@ -2,7 +2,15 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-30，仅准备新的独立单行退役清单，不执行）
+## 当前唯一继续点（2026-10-30，退役完成，回到买家/后端联调准备）
+
+用户批准88851603…后，执行HEAD d3b1bd2/运行源码1df93f6（准确CI41110332862）于14:03:25.788 CDT单次提交原b236退役并独立TLS只读核验通过。原任务canceled、lease清空，仅六字段改变；其余12任务、部署/outputs、payload/attempts/错误/dedupe、19/14/14账本及保护全保持，无新任务或成功回执。实际STS1/元数据4、配置2/TLS2/SQL40、UPDATE1/业务COMMIT成功、AWS写/dispatch0；写前栈已删、服务INACTIVE/0任务、目标准确缺失。
+
+恢复 `F:/ChatGPT_workshop/techlong-buyer-retirement-execution-20261030-b/executed-verified.json`，raw SHA `0b90ec1515f5a311e44a46a75a7e089727101e2a9565d8cae37b37bf05cffc14`。旧a全部记录/槽及b两个新槽永久保留，不再重放/复位。结果重建后结束来源冻结，仅正常记录文档；新文档HEAD不是代码CI源码。
+
+下一只集中准备新的合法后端联调请求、必要来源发布及Review→RunOnce→独立Inspect/有限业务验收范围，不创建请求、不读生产或自动部署。新的事实/写入/发布仍准确另审，不再扩退役、时钟或通用恢复支线；已取消b236及已删UUID不复活，旧deadline/TTL/basis不延长，本次退役窗口不当作新部署事实授权。wholeProductAccepted=false，未证明整套上线或费用归零。
+
+以下b准备及旧停止沿革已完成，不重跑。
 
 1df93f6/准确CI41110332862及88项相关检查已完成；代码检查点 `F:/ChatGPT_workshop/techlong-buyer-retirement-clock-fix-code-verified-20261030-a.json` raw SHA `cbc26cba387586b3d0d0be78c7bd619a09dad474d40f56b24f7883d3e4ca6acb`。本轮只准备独立b尝试的新SHA，保留旧2cddec6d失败目录/两个已消费槽；本地运行配方仅根a→b字面量变化，SQL/reader/业务范围不变，无工程运行代码改动、生产读取或执行槽消费。
 

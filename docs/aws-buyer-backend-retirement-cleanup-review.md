@@ -1,6 +1,18 @@
-# b236单行退役：旧轮写前停止，新独立尝试仅准备
+# b236单行退役：独立b尝试已提交并核验通过
 
-2026-10-30，America/Winnipeg。遵守[执行手册](aws-auto-deployment-execution-runbook.md)。用户已批准下述准确2cddec6d…清单并已单次执行，但**没有完成退役，不能重跑**。当前只准备新的独立尝试；此文不是新读取、SQL写、删除或新周期批准，所有旧原件/槽保持。不新建通用恢复/接管框架或固定任务分支。
+2026-10-30，America/Winnipeg。遵守[执行手册](aws-auto-deployment-execution-runbook.md)。旧a轮2cddec6d…写前停止、不可重跑；新的独立b轮88851603…已另批单次执行并核验完成。此文不是再次读取、SQL写、删除或新周期批准，所有旧原件/槽保持。不新建通用恢复/接管框架或固定任务分支。
+
+## b轮完成记录（14:03 CDT，不重放）
+
+用户明确批准8885160390ea36d1d8c893f6f9dd79cb24b330e894b84802c829bc468565d56d及新独立永久尝试后，执行HEAD d3b1bd2（仅三文档差异，运行代码/CI仍准确1df93f6/41110332862）完成单次UPDATE/COMMIT；实际数据库退役时刻 `2026-10-30T19:03:25.788Z`，另一TLS READ ONLY回读通过，已存原件再次本地重建匹配。
+
+准确job_b236b120d6406d3e296d341b已canceled，lease_owner/lease_token/lease_expires_at均NULL，updated_at/completed_at同为1793387005788；这是新的真实退役时刻，不改写旧完成期限或伪造成功。仅一行六字段；六字段屏蔽SHA256仍匹配，payload、attempts/max=1/1、错误及dedupe保持。部署/outputs、其余12任务、完整19/14/14控制账本及九函数/业务保护摘要全保持；没有写成功回执或创建新任务。该部署13任务现均终态且无租约。
+
+实际STS1/AWS元数据4、现有配置读取2/验证TLS2/SQL40，UPDATE尝试1并确认提交，AWS写0、dispatch0。写前准确e992栈DELETE_COMPLETE、ECS服务INACTIVE/desired/running/pending=0、任务空、目标准确缺失；本次不删除/创建云资源、不改IAM/Secret/authority或业务其他行。未读取PEM、AWS Secrets Manager值或控制私密包；既有配置按批准整文件读取，未另取HMAC。
+
+检查点 `F:/ChatGPT_workshop/techlong-buyer-retirement-execution-20261030-b/executed-verified.json` raw SHA `0b90ec1515f5a311e44a46a75a7e089727101e2a9565d8cae37b37bf05cffc14`，绑定准备、准确清单、Source/资源、intent/precommit、成功writer回执、独立回读和final等原件。旧a全部记录和两个消费槽、b输出目录及两个新消费槽全部永久保留，不能重放、复位或另名自动重试。原件重建后只结束来源冻结用于正常收尾，不改写旧清单或代码CI事实。
+
+退役阻断已收尾，下一回到执行手册的买家/后端联调整轮集中准备，不再扩退役或时钟模块；新生产读取、请求/来源/部署另审。本次17:47退役窗口不是新部署basis授权，旧deadline/TTL/basis不延期，不复活已取消任务/已删UUID。尚未完成真实产品验收或整套AWS上线，不能宣称账号费用归零。下方“待审/准备/停止”全是历史，不是继续命令。
 
 ## 新独立尝试b（仅准备，另批才执行）
 
