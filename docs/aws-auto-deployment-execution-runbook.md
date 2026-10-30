@@ -29,7 +29,15 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：仅准备原任务单行退役（2026-10-30，不执行）
+## 3. 当前唯一继续点：本轮退役写前停止，待最小时钟修正（2026-10-30）
+
+用户已明确批准2cddec6d…后，准确来源3925f5c（CI41107784637通过）于温尼伯13:38单次运行。STS1/元数据4证明准确e992栈DELETE_COMPLETE、准确ECS服务INACTIVE/desired/running/pending均0、任务空、目标组准确缺失。配置2/TLS2/SQL27；事务在BEGIN阶段取DB时钟后、进入LOCKED_STATE前停止，UPDATE提交0、写事务COMMIT提交0、云写/dispatch0。独立READ ONLY回读完整行、其余12任务、部署/outputs、19/14/14账本和保护摘要全部匹配原基准；b236仍running/1/1、旧lease未改、无成功回执。没有退役成功，不重跑清单或复位两个已消费新槽。
+
+已存本地证据显示DB查询时刻18:38:21.435Z，比后续本机writer-result文件落盘18:38:21.215Z还晚约220.35ms，符合跨时钟比较误拒；原具体异常未单独记录，不冒称唯一错误分类或精确NTP偏移。只核对已保存证据，没有追加生产调用。恢复 `F:/ChatGPT_workshop/techlong-buyer-retirement-execution-20261030-a/stopped-verified.json`，raw SHA `7b0b7e0404f0fbf74f6f405cad98f04b495af41adcb83cc4750be1ce848c818f`；写前来源冻结已结束，仅允许正常收尾文档，旧批准/目录/槽保持不可重放。
+
+下一唯一动作只建议最小修正“本地经过时长与数据库绝对时刻分离”及其回归，先取得用户对该代码方向的确认；不放宽真实DB租约/CAS/30秒限制、不重计事实时间、不改系统时钟或先生成新尝试槽。修正、准确CI及新执行清单实际读取/单行写仍按新范围处理；本轮剩余调用预算不延用。当前不修运行代码、不申请更多探针/框架，也不恢复旧任务或建资源。
+
+下方为已完成的准备及历史，不能据其“待审/下一步”重放本轮清单。CFN/ECS停止不是账号费用归零证明，原deadline/TTL/basis仍不延长。
 
 本轮已批准补核于温尼伯12:46–12:47完成：准确e992…栈及原七物理资源的CFN状态均DELETE_COMPLETE，完整Original模板与受审版本一致；本轮DeleteStack为0，不追查或推断删除操作者。原删栈草案必须从后继范围移除，不重发删除。未进行新的ECS/目标组缺失核对，不据此声称账号零费用。
 
