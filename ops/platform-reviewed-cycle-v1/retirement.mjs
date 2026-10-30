@@ -108,9 +108,11 @@ export function createRetirementTransaction({client,readState,assertStopped,asse
         now()-stoppedCheckStarted<30000&&now()<Number(binding.expiresAt),'DEADLINE');
       timely();phase='LOCKED_STATE';
       must((await client.query(RETIREMENT_RULE_GUARD_SQL)).rows[0]?.unsafe_update_rule_count===0,'UPDATE_RULES');
-      const fresh=assertRetirementBefore(binding,await readState(client),at);
+      const fresh=await readState(client),snapshotAt=Number(fresh?.facts?.database_now_ms);
+      must(Number.isSafeInteger(snapshotAt)&&snapshotAt>=at&&snapshotAt<at+30000&&snapshotAt<=now(),'SNAPSHOT_TIME');
+      assertRetirementBefore(binding,fresh,snapshotAt);
       must(sameBefore(baseline,fresh),'STATE_DRIFT');
-      const p=compileRetirementUpdate(binding,fresh,at);
+      const p=compileRetirementUpdate(binding,fresh,snapshotAt);
       await assertApproved();timely();
       await record('retirement-intent',{jobId:binding.jobId,beforeRowSha256:fresh.facts.job_row_sha256,at});
       phase='UPDATE';const r=await client.query(p.text,p.values),row=r.rows?.[0];

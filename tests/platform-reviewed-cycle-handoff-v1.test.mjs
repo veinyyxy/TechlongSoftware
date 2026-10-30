@@ -93,15 +93,16 @@ function retirementHarness({fault,clockAdvance=0}={}){
     if(text===RETIREMENT_RULE_GUARD_SQL)return {rows:[{unsafe_update_rule_count:fault==='rules'?1:0}],rowCount:1};
     if(text.startsWith('WITH stamp')){
       if(fault==='cas')return {rows:[],rowCount:0};
-      state=structuredClone(f.after);clock+=clockAdvance;
+      state=structuredClone(f.after);state.facts.updated_at=state.facts.completed_at=String(clock);clock+=clockAdvance;
       if(fault==='post-drift')state.facts.other_jobs_sha256='f'.repeat(64);
-      return {rowCount:1,rows:[{id:f.binding.jobId,retired_at:String(f.at),job_row_sha256:f.after.facts.job_row_sha256}]};
+      return {rowCount:1,rows:[{id:f.binding.jobId,retired_at:state.facts.updated_at,job_row_sha256:f.after.facts.job_row_sha256}]};
     }
     if(text==='COMMIT'&&fault==='commit')throw Error('synthetic lost ACK');
     if(text==='ROLLBACK'&&fault==='rollback')throw Error('synthetic lost rollback ACK');
     return {rows:[],rowCount:0};}};
   let approvalCount=0;
   const run=createRetirementTransaction({client,now:()=>clock,readState:async()=>{
+    if(state.facts.status==='running'){state.facts.database_now_ms=String(f.at+(fault==='fresh-clock'?1:0));if(fault==='fresh-clock')clock=f.at+1;}
     if(fault==='pre-drift')state.facts.job_row_sha256='f'.repeat(64);
     return structuredClone(state);},
     assertStopped:async()=>{calls.push('EXACT_ABSENCE_CHECK');if(fault==='live')throw Error('synthetic live workload');},
@@ -149,6 +150,12 @@ test('retirement uses one serializable commit, pg_catalog/UTC, explicit locks an
   const checked=verifyRetirementReadback(f.binding,f.baseline,f.read(),r.retiredAt,r.jobRowSha256);
   assert.equal(checked.successReceiptWritten,false);assert.equal(checked.newTaskCreated,false);
   await assert.rejects(f.run({binding:f.binding,baseline:f.baseline}),/ONCE/);
+});
+test('retirement accepts a later genuine database snapshot clock without restamping the baseline or restarting the time budget',async()=>{
+  const f=retirementHarness({fault:'fresh-clock'}),r=await f.run({binding:f.binding,baseline:f.baseline});
+  assert.equal(r.outcome,'RETIREMENT_COMMITTED_REQUIRES_INDEPENDENT_READBACK');assert.equal(r.retiredAt,String(f.at+1));
+  assert.equal(f.baseline.facts.database_now_ms,String(f.at-1000));
+  verifyRetirementReadback(f.binding,f.baseline,f.read(),r.retiredAt,r.jobRowSha256);
 });
 test('retirement refuses missing explicit capability ports; live resources or denied approval cause zero SQL writes',async()=>{
   assert.throws(()=>createRetirementTransaction({client:{}}),/EXPLICIT_PORTS/);

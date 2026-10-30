@@ -37,7 +37,9 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 单行退役小配方已仅在本地实现/绑定已存指纹，83项相关测试（含10项退役回归）、类型/零警告lint通过；没有生产连接、AWS读取写入或槽消费。新增模块无CLI/凭据/连接器，旧110、转移器/provider/云来源均不改。准确源码CI只以 `F:/ChatGPT_workshop/techlong-buyer-retirement-recipe-code-verified-20261030-a.json` 实际封存为准，未存在或不匹配不算通过；不得使用旧90e7174的CI冒充本轮。
 
-下一唯一动作只收尾准确CI、绑定小配方/固定reader/持久单次槽及准确停止核对/独立回读，给原任务单行退役的准确新SHA：云写0、新任务/资源0，数据库最多改原任务一行至canceled并清旧lease；不补成功、不改payload/attempts/错误字段、部署/outputs、旧账本和永久槽。五表短暂写锁、实时UPDATE规则检查及一次提交/未知不重试风险必须写入新清单。执行SHA仍null，当前只读许可和代码批准不能当写授权。[配方、剩余门槛和风险](aws-buyer-backend-retirement-cleanup-review.md#单行配方代码与剩余执行门槛)。仅本地编译的事实新鲜度止于温尼伯17:47:00.026，不延长原deadline/TTL/basis，也不先开部署窗口。
+本轮仅装配[固定执行包和完整风险](aws-buyer-backend-retirement-cleanup-review.md#本次待审执行包与完整风险)，不执行。发现原事务会误拒正常前进的快照时钟，只修原校验并增加1项回归，原30秒起算及事实时刻不改；84项相关测试/类型/lint及6项本地绑定检查通过，实际新CI另据真实原件核对，不冒用22476fb。原四条SELECT、TLS/身份检查器和小配方复用，无新云执行根/任务/框架。
+
+下一唯一动作是封存准确新SHA后等待用户批准：STS1/AWS元数据4/云写0，配置2/TLS2/SQL最多80，最多改原任务一行六字段为canceled/清lease；五表短暂锁、规则检查、一次提交和独立只读回读均按新清单。准确恢复读 `F:/ChatGPT_workshop/techlong-buyer-retirement-execution-20261030-a/prepared-verified.json`；不存在或不匹配时执行SHA仍null。生成后冻结main/本地配方；不调度、不补成功、不改其他业务/账本/旧槽。当前只读许可和代码批准不能当写授权。已存事实温尼伯17:47:00.026硬截，最晚17:42启动；独立只读余量到17:52不延长写入或旧deadline/TTL/basis，不开新部署窗口。
 
 ### 已完成集中准备（旧删栈范围已移除，不重放）
 

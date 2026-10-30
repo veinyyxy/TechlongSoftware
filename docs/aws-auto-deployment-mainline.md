@@ -8,7 +8,9 @@
 
 补核实际STS1/CFN3/配置1/TLS1/只读SQL14，零写/槽/dispatch；检查点 `F:/ChatGPT_workshop/techlong-buyer-retirement-cleanup-supplement-readonly-20261030-a/checkpoint.json` raw SHA `acab79a91cb7caf62411739a1754d2cbe54f6b0d004e9fc651a47aa5dec17b6e`。
 
-本轮[单行退役小配方](aws-buyer-backend-retirement-cleanup-review.md#单行配方代码与剩余执行门槛)已本地实现并用已存真实指纹编译，83项相关检查（10项新增）、类型/零警告lint通过，无新生产读取或写/槽。旧110/转移器/云来源不改，没有CLI或默认连接。准确源码/CI恢复只认 `F:/ChatGPT_workshop/techlong-buyer-retirement-recipe-code-verified-20261030-a.json` 实际封存，不冒用旧CI。下一只收尾该CI并绑定固定reader/一次槽、精确资源停止及独立TLS回读，生成原任务单行退役的准确新SHA；最多一行六字段、不补成功、不创建任务/资源或恢复旧槽。五表短暂写锁及实时UPDATE规则检查必须另审，执行SHA仍null，当前不执行SQL。已存事实截至温尼伯17:47:00.026，不续原deadline/TTL/basis或开新部署窗口。
+小配方22476fb/准确CI41104868103已完成封存。本轮只准备[准确执行清单](aws-buyer-backend-retirement-cleanup-review.md#本次待审执行包与完整风险)：绑定原四条摘要SELECT、既有TLS/身份检查器、持久单次槽及独立回读；修正原事务误拒快照时钟自然前进的一处校验（不重计时），84项相关检查、类型/lint及6项本地绑定检查通过。新源码CI只据实际结果核对，不冒用22476fb；没有生产读取、写、执行槽或dispatch。
+
+下一只封存新SHA并等待批准，恢复 `F:/ChatGPT_workshop/techlong-buyer-retirement-execution-20261030-a/prepared-verified.json`；不存在/不匹配时SHA仍null。范围STS1/元数据4/云写0、配置2/TLS2/SQL80，最多原任务一行六字段；含五表短暂锁及实时规则核对，不补成功、不创建任务/资源、不改旧账本/槽或发布云来源。生成后冻结main和本地配方；本次事实温尼伯17:47:00.026止、最晚17:42启动，独立只读最多至17:52不延长写入/旧deadline/TTL/basis。
 
 ### 已完成集中准备（旧删栈草案范围已移除）
 

@@ -1,6 +1,6 @@
 # b236单行退役准备：原栈清理草案已缩减
 
-2026-10-30，America/Winnipeg。遵守[执行手册](aws-auto-deployment-execution-runbook.md)。用户仅同意准备方向；**此文不是删除、SQL写入、发布或新周期批准，执行SHA为null**。不新建通用恢复/接管框架或固定任务分支。
+2026-10-30，America/Winnipeg。遵守[执行手册](aws-auto-deployment-execution-runbook.md)。用户仅同意准备方向；**此文不是删除、SQL写入、发布或新周期批准**。真实待审SHA只认下述prepared-verified原件；未生成或不匹配时仍为null。不新建通用恢复/接管框架或固定任务分支。
 
 ## 最新缩减：不再提出DeleteStack
 
@@ -10,7 +10,33 @@ b236仍running/1/1、lease已过期、completed_at为空且无成功回执；pay
 
 本地检查点 `F:/ChatGPT_workshop/techlong-buyer-retirement-cleanup-supplement-readonly-20261030-a/checkpoint.json` raw SHA `acab79a91cb7caf62411739a1754d2cbe54f6b0d004e9fc651a47aa5dec17b6e`。只读事实5小时新鲜度不延期原deadline/TTL/basis。未读新的ECS/目标组缺失，CFN删除完成不是所有计费已停止的证明。
 
-**当前唯一后继**：只完成下述小配方的准确CI封存，再装配原任务单行退役的新执行清单。云写/新任务/新资源上限均0；只允许未来另批最多一行canceled/旧lease清空，不写成功回执，不改payload/attempts/错误字段、其他任务、部署outputs、旧账本/槽。执行SHA仍null，不因代码或指纹已就绪自动执行，不新建通用恢复入口。
+**当前唯一后继**：只完成下述准确执行包的封存并等待新SHA批准。云写/新任务/新资源上限均0；未来另批最多一行canceled/旧lease清空，不写成功回执，不改payload/attempts/错误字段、其他任务、部署outputs、旧账本/槽。不因代码或指纹已就绪自动执行，不新建通用恢复入口。
+
+## 本次待审执行包与完整风险
+
+本地固定配方复用原四条摘要SELECT及既有TLS/身份检查器，不新增生产入口或workflow。四条SQL由旧补核源码的模板AST按严格白名单提取，未执行该旧脚本；queries.json及本地reader/运行配方与准确源码CI一并固定SHA。装配时发现先取时钟、后取快照的正常时间前进会被误拒，已只修正原事务的快照时刻校验；原事实时间、首次停止核对起算及30秒总门槛不改。84项相关代码回归（11项退役，含这一项新增）、类型/lint及6项本地绑定检查通过；实际新CI必须另据真实结果封存，不冒用22476fb。
+
+本次完整上限：
+
+| 范围 | 准确上限与用途 |
+| --- | --- |
+| AWS身份 | Source IAM `arn:aws:iam::402010193138:user/techlong-sandbox-dev`，官方ca-central-1 STS核对1次；不接受assumed role |
+| AWS元数据 | 4次、不翻页：准确e992栈DescribeStacks；固定ECS服务DescribeServices及ListTasks；准确目标组DescribeTargetGroups。只接受栈DELETE_COMPLETE、服务准确MISSING或INACTIVE/desired/running/pending全0且任务空、目标准确缺失；任意错误不当缺失 |
+| AWS写/部署 | 0；不DeleteStack、不停任务、不改IAM/Secret/DNS/authority，不创建任何资源，不dispatch或续租 |
+| 配置/数据库 | `.env.local`整文件最多读取2次、验证TLS连接2条（原owner目标/OID与指纹）；两连接合计最多80条SQL/事务控制，含身份、四类摘要、规则检查、锁、一次UPDATE/COMMIT及独立READ ONLY回读 |
+| 唯一业务写 | `job_b236b120d6406d3e296d341b`，deployment `dep_7c99bd249470184852f0dc74`、app `app_e897a4377bce498b9c5ee9e64509dcad`；最多一行/六字段，status=canceled、三lease=NULL、updated_at/completed_at=实际DB时钟。无INSERT、成功回执、部署/outputs或控制账本写 |
+| 本地证据/槽 | 新准确SHA的固定输出目录、writer/inspect两单次标记及去敏回执；全部只写一次。保留旧目录/全部旧永久槽，前置失败也不自动重跑、复位或改名重试 |
+| 历史材料 | 只读本地原Review/原件和固定SQL；可能含Account ID/ARN和业务元数据，只进内存或本地私有证据，不提交正文到Git；不读取PEM、AWS Secret值、HMAC、控制私密包或Aurora/DDB业务项 |
+
+准确栈、服务和目标组ARN由旧模板/ACK及已核对七资源固定，账号402010193138、ca-central-1，不按名称搜索或接管别的UUID。调用资源缺失检查后，在原30秒门槛内执行锁后全基准/CAS；失败即停，不为了过门槛改采样时刻。五表短暂SHARE ROW EXCLUSIVE锁可能阻塞其他租户/控制器写；lock_timeout=1秒、每语句15秒，应用计时不等于数据库强制的全局事务超时。
+
+主要风险：owner权限比单行写范围宽，整份配置和连接凭据会进入进程内存；提供者/服务端可能记录连接、SQL及元数据。Source登录自动刷新可能失效，SQL提交/网络ACK可能不明；AWS与Neon不是跨服务CAS，资源或保护函数可能在检查后被其他主体改变。保护摘要/规则核对、行CAS和锁能拒绝观测到的差异，但不保证排除所有并发竞态；共享表锁有短暂可用性影响。退役取消会改变该任务状态和完成时间，但不是部署成功证明、客户业务恢复或账号停费证明。读调用和已有资源仍可能有低额非零费用。
+
+任何状态/权限/摘要差异、活跃资源、期限不足或凭据失败停止；无补齐/扩权/新任务。更新前或提交前失败只尝试一次正常ROLLBACK（不复位槽）；COMMIT一旦提交后ACK未知，不再ROLLBACK或重发写。正常成功或未知均在原连接关闭后用第二条TLS只读连接核验；独立回读失败/不明只保留现状，不自动恢复、清理或重试。无新权限安装/撤权；本地标记不是分布式锁，其他主体的并发仍是风险。
+
+原准备事实5小时硬截 `2026-10-30T22:47:00.026Z`（温尼伯10月30日17:47:00.026），最晚启动17:42:00.026；不重计12:47采样时间，不改旧deadline/TTL/basis。提交后独立只读回读另保留最多5分钟至17:52:00.026，**只读余量不延长写入时间或旧执行期限**。本次没有GitHub dispatch/environment审批，也无需操作Web；新SHA仅由用户在聊天明确批准后运行。
+
+恢复及准确清单：`F:/ChatGPT_workshop/techlong-buyer-retirement-execution-20261030-a/prepared-verified.json`。只有真实生成、源码/准确CI/本地配方/原件/manifest的SHA均匹配时才算就绪；生成后冻结main和本地配方，不再追加修改使批准失效。本轮准备生产读取/连接、业务或云写、执行槽消费及dispatch全部0。
 
 ## 单行配方代码与剩余执行门槛
 
