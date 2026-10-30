@@ -10,7 +10,7 @@
 
 - 复用已发布客户端/域名 `buyer.sandbox.techlong.cloud`、准确租户API `first-acceptance.sandbox.techlong.cloud`、现有镜像、数据库初始化结果、共享Cell、角色/Secret固定版本、GitHub本人门禁。以上目前仅有历史实测，不能当新的在线健康证明。不再构建客户端、搬运HMAC、升级数据库或重部署平台控制台；不要求用户再次点Web控制按钮，仍由用户本人批准GitHub environment。
 - 复用原单INSERT请求编译器、条件上传/固定版本Inspector、原三文件/trust-only发布器及连续Review→RunOnce→独立Inspect。普通main代码/文档提交与这些受保护来源发布是不同授权。新scope若需要扩大权限或资源，先停止另审，不默认安装。
-- **新完整基线缺失**：退役只返回服务器端指纹，不包含新周期所需完整业务准入和13任务/19计划历史正文。旧12任务/17计划的规范摘要不能当新基线；不得从指纹猜行或混用PG JSONB摘要与JS规范摘要。下一次真实读取须保留全部历史，并确认无新活动/租约或解释不了的漂移。
+- **新完整基线现已取得**：本轮c在14:45 CDT取得完整准入、13终态无租约任务及19/14/14账本；JS规范摘要为60f831ab…，并独立用服务器端JSONB指纹确认退役及旧记录保持。不能再拿旧12任务/17计划摘要当新基线，也不混用两种摘要。完整正文仅保存在本地私有目录；新候选/请求尚未产生。
 - **旧basis硬过期**：原 `source.buyer.originalProfile` 的事实终点为 `2026-10-30T15:08:09.592Z`（10:08:09.592 CDT），已早于本轮。`assertBuyerPublicationSource`明确取originalProfile与新profile有效期的较小值，`recoveryData`拒绝过期genuine basis；换job ID、仅批准新外层facts或把退役17:47窗口挪来均不能恢复它。必须用真实新事实/完整历史由现有受审编译器产生合法的新basis/上下文，先证明当前时刻可重建、可通过新来源校验；若现有合同无法承接，**在创建请求之前停止并给出最小缺口，不自行放宽min/expiry、重计旧采样或扩恢复框架**。
 - 已完成的buyer任务摘要阶段修正（90e7174代码，后续1df93f6包含它）尚未随新来源发布，不能只改本地就声称云端已修。需在必要来源发布中携带当前准确111闭包及旧110不变证明。旧operator-source仍绑定已取消b236，不能直接调用旧request-local/publication-local或重跑旧整轮。
 
@@ -40,7 +40,25 @@ Source失败即停止其余范围，不预先盲目要求刷新，不重跑旧ca
 
 检查点 `F:/ChatGPT_workshop/techlong-buyer-next-cycle-readonly-20261030-a/checkpoint.json`，raw SHA `1fd4f1c0f38e6688884d86732293a77579387625438a81aae376a4af12a905c1`，绑定本地固定采集配方、approved-scope及result原件。配方只编排上述现成读取器/元数据，不是新的运行时或执行框架，没有工程运行代码变化；本次未运行新的CI，不把文档HEAD冒称代码CI源码。
 
-下一唯一动作等待用户 `aws login --profile techlong-sandbox-user` 完成，并明确允许新一次同范围只读核对；另建观察记录保留a，不能重跑a或自动延用剩余额度。失败记录中的形式截止不代表已取得事实或延长旧basis，真实新事实取得后才核验5小时；不提前开40分钟执行窗口。以下旧测试/阶段均已结束或失效，不能当本轮指令。
+随后用户刷新Source并允许新b；b首次STS通用Error停止（STS尝试1、其余0），未保存具体message，不能断言登录仍过期。用户再单独批准一次官方STS诊断及成功后剩余同范围；c准确IAM身份通过后完成下节。本轮不重放a/b或自动延用旧失败许可，不预先要求再次刷新；c使用已批准的沙箱外网络环境，仍不推断a/b唯一原因。以下旧测试/阶段均已结束或失效，不能当本轮指令。
+
+### 新事实已取得但已验收续接仍No-Go（10月30日14:45 CDT）
+
+新c观察为2026-10-30T19:43:48.735Z至19:45:35.395Z，DB真实时刻1793389533980。准备5小时只至2026-10-31T00:43:48.735Z（温尼伯今天19:43:48.735），不是旧basis/Review/claim/TTL续期。实际STS1/HTTP1、AWS元数据72/75、GitHub GET7/10、配置整文件1/1、证书验证TLS1/1、只读SQL20/45；b+c合计STS尝试2，失败原件保留。云/数据库写、Secret值/PEM/HMAC/S3正文/DDB项读取、Aurora连接、执行槽/dispatch均0。
+
+恢复 `F:/ChatGPT_workshop/techlong-buyer-next-cycle-readonly-20261030-c/checkpoint.json`，raw SHA `39265446c789e878858776f6586b2b0c6f8b95c35f004bd2f3d2ca4a278458d2`。14原件绑定调用档案、完整快照/保护指纹、固定采集配方及本地兼容核对；业务正文不提交Git。当前运行源码仍1df93f6/准确CI41110332862，之后仅文档差异，没有新的代码CI或受保护来源发布。
+
+- 新完整snapshot规范SHA为 `60f831ab5e4a596dad2e41f54b120ed8cfaca55a9535608e9b45fb10ffa26def`；13任务均终态/无租约，准确b236 canceled且无成功回执。其完整行/六字段屏蔽行、其他12任务、部署/outputs、19/14/14账本和保护服务器摘要均与退役独立回读相符，完整准入及原九控制函数校验通过。
+- 准确b236及a00旧UUID均DELETE_COMPLETE，a00七资源均已删；同名栈不存在，固定cluster服务和运行任务为空。Cell、foundation、五角色/三managed policy、三固定Secret版本元数据、准确ECR manifest匹配；历史扫描COMPLETE且severity摘要为空，不冒称重新扫描。前端栈UPDATE_COMPLETE/八资源、原CDN Deployed/唯一buyer alias匹配。未证明全账号无资源/不计费。
+- GitHub准确main、原caller/reusable全文、本人门禁/OIDC及无未完成部署运行匹配；没有App私钥内容或environment代批。
+- 本地以真实DB时刻核对旧genuine basis，仍准确报 `RECOVERY_V1_UNVERIFIED_OR_EXPIRED_BASIS`。仅用历史createdAt重建归档溯源，再用原 `continueCloudContextV5` 验证已保存a00成功receipt/provider/独立Inspect链，匹配当前最新成功回执及准确已删UUID；没有用历史时刻打开运行root或生成新授权。
+- 另作纯本地负向兼容核对：原9db锚＋此次真实完整snapshot被旧编译器以 `RECOVERY_V1_LATEST_EXPIRED_RECEIPT` 拒绝。诊断未改原profile、创建新basis/候选或选择请求ID；证明不能靠新外层facts绕过已验收a00后继。当前可执行清单仍为null。
+
+**下一唯一代码范围提案（尚未获实现批准）**：仅在现有 `buyer-compatibility.mjs` 增加严格的已验收后继续接能力，必要时同步原 `composition.mjs`、`publication.mjs` 对有效期和来源的读取；对应现有 `buyer-compatibility-v1.test.mjs`、`buyer-publication-cycle-v1.test.mjs` 增回归并更新本附表/手册。不新增通用basis/恢复/执行框架或复制固定job分支；若最小范围无法保留原调用者约束，停止再说明，不继续扩文件/功能。
+
+新路径须完整重建历史原件及独立验收链，以当前最新成功receipt/准确退役、完整终态基线和明确另审的新事实范围建立独立受限能力；历史basis只作溯源，原expiry/min校验继续保护旧路径，不能把旧basis对象改成新expiry或删除时间判断。新事实/能力是否可编译先以纯本地证明通过，再准备真实请求/包/来源审批；缺独立Inspect、错误前驱、篡改原件、非终态/租约、基线漂移、未批/过期新事实均须拒绝，默认不开启生产来源。
+
+冻结110、原单INSERT/条件上传/三文件trust-only发布器、provider任务阶段pin、IAM权限、GitHub本人审批、永久槽、不重试/不自动清理全部保持。代码/回归完成前不再读取生产、不创建请求或槽、不安装/发布/调度；不会因这一修复直接恢复任何旧周期。后继实际读取、请求与上传、必要来源发布和整轮仍按准确新范围另审，wholeProductAccepted=false。
 
 ## 2026-10-30：仅修复新旧任务投影摘要阶段绑定
 

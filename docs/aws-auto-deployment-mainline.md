@@ -14,7 +14,11 @@
 
 本次限定只读已获用户允许；14:30:28 CDT首次官方SDK STS即CredentialsProviderError停止，STS尝试1，其余AWS元数据/GitHub/配置/TLS/SQL0，所有写/新槽/dispatch0。未取得新完整快照、basis、候选任务或执行SHA。恢复 `F:/ChatGPT_workshop/techlong-buyer-next-cycle-readonly-20261030-a/checkpoint.json`，raw SHA `1fd4f1c0f38e6688884d86732293a77579387625438a81aae376a4af12a905c1`；不重跑a或自动使用剩余额度。
 
-下一仅等待Source登录刷新和明确的新一轮同范围许可：STS1/AWS元数据75、GitHub GET10、.env.local读取1/验证TLS1/SQL45，不读Secret/PEM/HMAC/S3正文/DDB项，不连Aurora。旧basis仍过期；新记录真实采样后再核验5小时，不以失败时间续期或先开执行窗口。
+Source刷新后的新b首次STS仍通用Error停止（STS1，其余0，具体原因未知）。用户另允独立诊断和成功后剩余范围，新c于14:43:48–14:45:35 CDT真实通过：STS1/HTTP1、AWS元数据72、GitHub GET7、配置1/验证TLS1/只读SQL20，所有写/新槽/dispatch0；本次b+c共STS尝试2。完整13终态无租约任务、19/14/14账本、准入/保护和退役指纹保持，准确两个旧UUID已删/同名栈不存在/ECS空闲，原Cell/权限/固定Secret版本元数据/镜像/前端CDN匹配；不是整体产品验收或零费用证明。
+
+恢复 `F:/ChatGPT_workshop/techlong-buyer-next-cycle-readonly-20261030-c/checkpoint.json`，raw SHA `39265446c789e878858776f6586b2b0c6f8b95c35f004bd2f3d2ca4a278458d2`，14原件只在本地私有目录。观察准备5小时至今天19:43:48.735 CDT，旧basis/TTL不延长。仅本地证明：归档basis仍被当前expiry拒绝；独立验收a00链/当前最新回执匹配，旧9db编译器拒绝承接新完整状态。无合法新basis/候选/请求/执行SHA。
+
+下一只征求现有buyer适配和必要composition/publication校验的最小“已验收后继续接”修复/回归同意；完整差异见[集中附表](aws-backend-integration-preparation.md#新事实已取得但已验收续接仍no-go10月30日1445-cdt)。不改冻结110、旧expiry/历史或新增执行器，不再追加读取，不先创建任务/占槽/发布/部署；后继真实副作用仍准确另审。
 
 以下b准备及旧停止沿革已完成，不重跑。
 

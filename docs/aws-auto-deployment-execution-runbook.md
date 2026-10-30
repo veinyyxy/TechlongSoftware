@@ -41,7 +41,11 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 用户已允许上述一次限定只读准备，10月30日14:30:28 CDT在首次官方SDK STS核对即返回CredentialsProviderError并停止；实际STS尝试1，其余AWS元数据/GitHub/配置/TLS/SQL全部0，未取得新的完整快照或合法basis，所有写/新槽/dispatch0。失败记录不重跑，未用预算不自动延用；恢复 `F:/ChatGPT_workshop/techlong-buyer-next-cycle-readonly-20261030-a/checkpoint.json`，raw SHA `1fd4f1c0f38e6688884d86732293a77579387625438a81aae376a4af12a905c1`。仅证明本次凭据提供器失败，不推断具体失效原因。
 
-下一唯一动作等待用户完成 `aws login --profile techlong-sandbox-user`，并明确允许新一轮同范围只读：STS1/AWS元数据最多75（含既有前端元数据）、GitHub GET10、配置1/证书验证TLS1/只读SQL45；完整范围和风险见同一附表。不读Secret值/PEM/HMAC/S3正文/DDB业务项，不连Aurora。新记录保留a，不重放其失败命令；准备快照只有真正取得新事实后才开始5小时有效性核验，失败时刻不当事实/basis续期。不提前开40分钟执行窗口，后继实际副作用仍按新准确SHA另批，GitHub环境由用户本人批准。
+Source刷新后，另批新b仍在首次STS以通用Error停止；只有STS尝试1，其他读取/写/槽0，具体原因未保存，不能断言仍过期。用户随后明确允许独立一次官方STS诊断并在成功后继续剩余范围：新c于14:43:48–14:45:35 CDT通过准确IAM身份，实际STS1/STS HTTP1、AWS元数据72/75、GitHub GET7/10、配置1/TLS1/只读SQL20/45。b与c合计STS尝试2，不隐去失败、不重放a/b；c在获准的沙箱外网络环境运行，仍不推断此前错误的唯一原因。
+
+新完整13任务及19/14/14账本、准入与保护已核验，b236退役/其余旧记录指纹保持；准确两个旧UUID均DELETE_COMPLETE、同名栈不存在、ECS空闲，原Cell/角色策略/三固定Secret版本元数据/镜像及前端CDN匹配。没有Secret值/PEM/HMAC/S3正文/DDB项/Aurora读取，云/业务写、新槽、dispatch0。恢复 `F:/ChatGPT_workshop/techlong-buyer-next-cycle-readonly-20261030-c/checkpoint.json`，raw SHA `39265446c789e878858776f6586b2b0c6f8b95c35f004bd2f3d2ca4a278458d2`；14原件仅本地私有保留。真实观察准备5小时至今天19:43:48.735 CDT，不延长旧basis/TTL。
+
+**下一唯一动作先取得最小兼容代码范围的同意，不再追加在线核对或创建请求。** 本地旧genuine basis归档重建通过，但当前真实DB时刻被原expiry guard拒绝；完整已验收a00后继链及当前最新成功回执匹配，而将新完整状态交给旧9db锚编译器被LATEST_EXPIRED_RECEIPT拒绝。现有buyer路径强依赖仍有效的“未验收恢复basis”，不能合法承接已验收后继的新周期。只提议在现有buyer适配及必要composition/publication校验中区分“历史溯源”与“新已验收续接事实”，加对应现有回归；不删旧expiry/min保护、不重计原件、改冻结110或新增执行器。具体最小范围/停止条件见[集中附表](aws-backend-integration-preparation.md#新事实已取得但已验收续接仍no-go10月30日1445-cdt)。未获同意前不改运行代码；新候选/合法basis/请求/执行SHA仍null，后继实际副作用及三次本人GitHub审批另审，不提前开窗。
 
 该结果仅完成阻断收尾，未证明买家/后端真实业务连通或整套AWS上线，wholeProductAccepted=false；共享Cell、数据库、前端等保留，账号费用归零未证明。
 
