@@ -11,6 +11,8 @@ import {normalizedState} from '../ops/platform-request-v6/state-contract.mjs';
 import {createTransferTransaction} from '../ops/platform-request-v6/transfer.mjs';
 import {sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {REQUEST_ADMIN_V6 as ADMIN} from '../lib/deployments/reviewed-request-window-v6.ts';
+import {RETIREMENT_FIELDS,RETIREMENT_RULE_GUARD_SQL,assertRetirementBefore,compileRetirementUpdate,
+  createRetirementTransaction,verifyRetirementReadback} from '../ops/platform-reviewed-cycle-v1/retirement.mjs';
 async function fixture(){
   const f=await a604Fixture(),at=f.at+3*3600000,seed=await createA604Policy({publication:f.publication,profile:f.profile}).seed(f.at),
     before=normalizedState({...f.projection,jobs:f.observed.jobs});
@@ -66,4 +68,119 @@ test('check is zero-I/O and no CLI argument selects target/profile/source or cle
   for(const flag of ['--job','--profile','--source','--resume','--reset-slot'])assert.throws(()=>parseArgs(['--mode','RunReviewed','--manifest','x','--approved-sha','a'.repeat(64),flag,'override']));
   const r=spawnSync(process.execPath,['--experimental-strip-types','ops/platform-reviewed-cycle-v1/request-local.mjs','--check'],{encoding:'utf8',timeout:30000,windowsHide:true});
   assert.equal(r.status,0,r.stderr);const v=JSON.parse(r.stdout);assert.equal(v.productionReads+v.configContentReads+v.sqlConnections+v.awsCalls+v.dispatches,0);assert.equal(v.executionApproved,false);
+});
+
+// Deliberately synthetic server-hash responses, not SQL execution or cloud proof.
+function retirementFixture(){
+  const at=1800000000000,jobId='job_'+'1'.repeat(24),deploymentId='dep_'+'2'.repeat(24),appInstanceId='app_'+'3'.repeat(32),h=n=>String(n).repeat(64);
+  const binding={jobId,deploymentId,appInstanceId,originalDeadline:at-60000,expiresAt:at+3600000};
+  const baseline={facts:{deployment_id:deploymentId,app_instance_id:appInstanceId,job_id:jobId,database_now_ms:String(at-1000),read_only:'on',timezone:'UTC',
+    status:'running',attempts:1,max_attempts:1,updated_at:String(at-120000),completed_at:null,lease_expires_at:String(at-60000),
+    lease_owner_present:true,lease_token_present:true,lease_owner_matches_review:true,payload_matches_review:true,dedupe_matches_review:true,
+    job_row_sha256:h(1),job_unchanged_fields_sha256:h(2),deployment_row_sha256:h(3),outputs_sha256:h(4),job_success_receipt_present:false,
+    job_count:2,job_ids:[jobId,'job_'+'4'.repeat(24)],other_nonterminal_count:0,other_leased_count:0,other_jobs_sha256:h(5)},
+    ledger:{ledger_sha256:h(6),plan_count:3,approval_count:2,attempt_count:2,exact_job_states:[
+      {mode:'Review',runId:'123456789',state:'OBSERVED',proofPresent:true},{mode:'RunOnce',runId:'123456790',state:'ACKNOWLEDGED',proofPresent:false}]},
+    controlCatalogSha256:h(7),businessCatalogSha256:h(8),protectionSha256:h(9),controlFunctionsVerified:9,leaseTokenOrBusinessBodiesReturned:false};
+  const after=structuredClone(baseline);Object.assign(after.facts,{status:'canceled',lease_owner_present:false,lease_token_present:false,
+    lease_owner_matches_review:null,lease_expires_at:null,updated_at:String(at),completed_at:String(at),job_row_sha256:'a'.repeat(64)});
+  return {at,binding,baseline,after};
+}
+function retirementHarness({fault,clockAdvance=0}={}){
+  const f=retirementFixture(),calls=[],records=[];let state=structuredClone(f.baseline),clock=f.at;
+  const client={async query(text){calls.push(text);
+    if(text.startsWith('SELECT floor'))return {rows:[{at:f.at}],rowCount:1};
+    if(text===RETIREMENT_RULE_GUARD_SQL)return {rows:[{unsafe_update_rule_count:fault==='rules'?1:0}],rowCount:1};
+    if(text.startsWith('WITH stamp')){
+      if(fault==='cas')return {rows:[],rowCount:0};
+      state=structuredClone(f.after);clock+=clockAdvance;
+      if(fault==='post-drift')state.facts.other_jobs_sha256='f'.repeat(64);
+      return {rowCount:1,rows:[{id:f.binding.jobId,retired_at:String(f.at),job_row_sha256:f.after.facts.job_row_sha256}]};
+    }
+    if(text==='COMMIT'&&fault==='commit')throw Error('synthetic lost ACK');
+    if(text==='ROLLBACK'&&fault==='rollback')throw Error('synthetic lost rollback ACK');
+    return {rows:[],rowCount:0};}};
+  let approvalCount=0;
+  const run=createRetirementTransaction({client,now:()=>clock,readState:async()=>{
+    if(fault==='pre-drift')state.facts.job_row_sha256='f'.repeat(64);
+    return structuredClone(state);},
+    assertStopped:async()=>{calls.push('EXACT_ABSENCE_CHECK');if(fault==='live')throw Error('synthetic live workload');},
+    assertApproved:async()=>{calls.push('APPROVAL');if(fault==='approval'||(fault==='late-approval'&&++approvalCount>1))throw Error('synthetic denied');},
+    record:async(kind,value)=>{records.push({kind,value});if(fault==='record')throw Error('synthetic evidence failure');}});
+  return {...f,calls,records,run,read:()=>state};
+}
+test('retirement SQL is exactly one full-row CAS update of six fields; no transfer/receipt/lease takeover',()=>{
+  const f=retirementFixture(),p=compileRetirementUpdate(f.binding,f.baseline,f.at);
+  assert.deepEqual(RETIREMENT_FIELDS,['status','lease_owner','lease_token','lease_expires_at','updated_at','completed_at']);
+  const assignments=p.text.split(' SET ')[1].split(' FROM stamp')[0].split(',').map(v=>v.trim().split('=')[0]).sort();
+  assert.deepEqual(assignments,[...RETIREMENT_FIELDS].sort());assert.equal((p.text.match(/UPDATE public\.deployment_jobs/g)||[]).length,1);
+  assert(!/\b(?:INSERT|DELETE|CREATE|ALTER|DROP)\b/.test(p.text));assert(!p.text.includes('succeeded'));
+  assert(p.text.includes('clock_timestamp()')&&p.text.includes('pg_catalog.sha256')&&p.text.includes('MATERIALIZED'));
+  assert(p.text.includes('expressInitializedWorkerRunsV2')&&p.text.includes('j.lease_expires_at<stamp.at'));
+  assert.deepEqual(p.values,[f.binding.jobId,f.binding.deploymentId,f.binding.appInstanceId,f.baseline.facts.job_row_sha256,f.at,f.binding.expiresAt]);
+  assert(!JSON.stringify(p).includes('lease_000'));
+});
+test('retirement rejects changed identity, active lease, completed/receipted state and unsafe history before compiling',()=>{
+  const f=retirementFixture();for(const [key,value] of [['job_id','job_'+'0'.repeat(24)],['status','pending'],['attempts',2],['max_attempts',2],
+    ['completed_at',String(f.at)],['lease_expires_at',String(f.at)],['lease_owner_present',false],['lease_token_present',false],
+    ['payload_matches_review',false],['dedupe_matches_review',false],['job_success_receipt_present',true],
+    ['other_nonterminal_count',1],['other_leased_count',1],['job_row_sha256','not a server hash'],['job_ids',[]],['timezone','local']]){
+    const s=structuredClone(f.baseline);s.facts[key]=value;assert.throws(()=>compileRetirementUpdate(f.binding,s,f.at),/TASK_RETIREMENT_/);
+  }
+  for(const mutate of [s=>s.ledger.exact_job_states.pop(),s=>s.controlFunctionsVerified--,s=>s.protectionSha256='',s=>s.leaseTokenOrBusinessBodiesReturned=true]){
+    const s=structuredClone(f.baseline);mutate(s);assert.throws(()=>assertRetirementBefore(f.binding,s,f.at));
+  }
+});
+test('retirement five-hour facts and separately approved window never extend the old completion deadline',()=>{
+  const f=retirementFixture();assert.doesNotThrow(()=>assertRetirementBefore(f.binding,f.baseline,f.at));
+  for(const at of [f.binding.originalDeadline-1,f.binding.expiresAt,f.at+5*3600000,NaN])
+    assert.throws(()=>assertRetirementBefore(f.binding,f.baseline,at));
+  assert.throws(()=>assertRetirementBefore({...f.binding,expiresAt:f.at+5*3600000},f.baseline,f.at),/FACT_TIME/);
+  assert.throws(()=>assertRetirementBefore(f.binding,{...f.baseline,facts:{...f.baseline.facts,database_now_ms:String(f.at+1)}},f.at),/FACT_TIME/);
+});
+test('retirement uses one serializable commit, pg_catalog/UTC, explicit locks and in-transaction checks; still needs independent TLS readback',async()=>{
+  const f=retirementHarness(),r=await f.run({binding:f.binding,baseline:f.baseline});
+  assert.equal(r.outcome,'RETIREMENT_COMMITTED_REQUIRES_INDEPENDENT_READBACK');assert.equal(r.independentReadbackRequired,true);
+  assert.equal(r.retryAllowed,false);assert.equal(f.calls.filter(q=>q.startsWith('WITH stamp')).length,1);
+  assert.equal(f.calls.filter(q=>q==='COMMIT').length,1);assert(!f.calls.includes('ROLLBACK'));
+  assert(f.calls.indexOf("SET LOCAL TimeZone='UTC'")<f.calls.findIndex(q=>q.startsWith('SELECT floor')));
+  assert(f.calls.some(q=>q.includes('IN SHARE ROW EXCLUSIVE MODE')));assert.equal(f.calls.filter(q=>q===RETIREMENT_RULE_GUARD_SQL).length,2);
+  assert.deepEqual(f.records.map(r=>r.kind),['retirement-intent','retirement-precommit']);
+  const checked=verifyRetirementReadback(f.binding,f.baseline,f.read(),r.retiredAt,r.jobRowSha256);
+  assert.equal(checked.successReceiptWritten,false);assert.equal(checked.newTaskCreated,false);
+  await assert.rejects(f.run({binding:f.binding,baseline:f.baseline}),/ONCE/);
+});
+test('retirement refuses missing explicit capability ports; live resources or denied approval cause zero SQL writes',async()=>{
+  assert.throws(()=>createRetirementTransaction({client:{}}),/EXPLICIT_PORTS/);
+  for(const fault of ['approval','live']){const f=retirementHarness({fault}),r=await f.run({binding:f.binding,baseline:f.baseline});
+    assert.equal(r.committed,false);assert(!f.calls.some(q=>q.startsWith('BEGIN')||q.startsWith('WITH stamp')));}
+});
+test('retirement rejects unsafe rules, locked baseline drift, revoked approval and unsaved intent before update',async()=>{
+  for(const fault of ['rules','pre-drift','late-approval','record']){const f=retirementHarness({fault}),r=await f.run({binding:f.binding,baseline:f.baseline});
+    assert.equal(r.outcome,'RETIREMENT_STOPPED_REQUIRES_READBACK');assert(!f.calls.some(q=>q.startsWith('WITH stamp')));
+    assert.equal(f.calls.filter(q=>q==='ROLLBACK').length,1);assert(!f.calls.includes('COMMIT'));}
+});
+test('retirement zero-row CAS or changed post-state abort without committing or retrying the update',async()=>{
+  for(const fault of ['cas','post-drift']){const f=retirementHarness({fault}),r=await f.run({binding:f.binding,baseline:f.baseline});
+    assert.equal(r.committed,false);assert.equal(r.commitSubmissionAttempted,false);assert.equal(f.calls.filter(q=>q.startsWith('WITH stamp')).length,1);
+    assert(f.calls.includes('ROLLBACK'));assert(!f.calls.includes('COMMIT'));}
+});
+test('retirement lost COMMIT ACK is unknown and never rolled back/replayed; independent read is mandatory',async()=>{
+  const f=retirementHarness({fault:'commit'}),r=await f.run({binding:f.binding,baseline:f.baseline});
+  assert.equal(r.outcome,'RETIREMENT_COMMIT_UNKNOWN_REQUIRES_READBACK');assert.equal(r.commitSubmissionAttempted,true);
+  assert.equal(r.committed,false);assert.equal(r.independentReadbackRequired,true);assert(!f.calls.includes('ROLLBACK'));
+  assert.equal(verifyRetirementReadback(f.binding,f.baseline,f.read(),String(f.at),f.after.facts.job_row_sha256).retryAllowed,false);
+  await assert.rejects(f.run({binding:f.binding,baseline:f.baseline}),/ONCE/);
+});
+test('retirement 30-second transaction limit stops late completion; no automatic cleanup or retry',async()=>{
+  const f=retirementHarness({clockAdvance:30000}),r=await f.run({binding:f.binding,baseline:f.baseline});
+  assert.equal(r.committed,false);assert.equal(r.phase,'IN_TRANSACTION_READBACK');assert(f.calls.includes('ROLLBACK'));assert(!f.calls.includes('COMMIT'));
+});
+test('independent retirement readback rejects any protected drift or a fabricated successful task',()=>{
+  const f=retirementFixture();for(const mutate of [s=>s.facts.status='succeeded',s=>s.facts.completed_at=String(f.at-1),
+    s=>s.facts.lease_token_present=true,s=>s.facts.payload_matches_review=false,s=>s.facts.job_unchanged_fields_sha256='f'.repeat(64),
+    s=>s.facts.deployment_row_sha256='f'.repeat(64),s=>s.facts.outputs_sha256='f'.repeat(64),s=>s.facts.other_jobs_sha256='f'.repeat(64),
+    s=>s.ledger.ledger_sha256='f'.repeat(64),s=>s.businessCatalogSha256='f'.repeat(64),s=>s.facts.job_row_sha256='f'.repeat(64)]){
+    const after=structuredClone(f.after);mutate(after);assert.throws(()=>verifyRetirementReadback(f.binding,f.baseline,after,String(f.at),f.after.facts.job_row_sha256));
+  }
 });

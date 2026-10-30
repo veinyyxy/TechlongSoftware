@@ -10,7 +10,23 @@ b236仍running/1/1、lease已过期、completed_at为空且无成功回执；pay
 
 本地检查点 `F:/ChatGPT_workshop/techlong-buyer-retirement-cleanup-supplement-readonly-20261030-a/checkpoint.json` raw SHA `acab79a91cb7caf62411739a1754d2cbe54f6b0d004e9fc651a47aa5dec17b6e`。只读事实5小时新鲜度不延期原deadline/TTL/basis。未读新的ECS/目标组缺失，CFN删除完成不是所有计费已停止的证明。
 
-**当前唯一后继**：仅准备并局部验证原任务单行退役小配方及执行材料。云写/新任务/新资源上限均0；只允许未来另批最多一行canceled/旧lease清空，不写成功回执，不改payload/attempts/错误字段、其他任务、部署outputs、旧账本/槽。新SHA必须包含执行前准确栈/服务停止核对、数据库锁后CAS和必要保护检查、一次提交及独立TLS回读；目前配方尚未绑定/验证，执行SHA仍null。不因已取得指纹就自动执行，不新建通用恢复入口。
+**当前唯一后继**：只完成下述小配方的准确CI封存，再装配原任务单行退役的新执行清单。云写/新任务/新资源上限均0；只允许未来另批最多一行canceled/旧lease清空，不写成功回执，不改payload/attempts/错误字段、其他任务、部署outputs、旧账本/槽。执行SHA仍null，不因代码或指纹已就绪自动执行，不新建通用恢复入口。
+
+## 单行配方代码与剩余执行门槛
+
+本轮仅新增既有目录内的 `ops/platform-reviewed-cycle-v1/retirement.mjs`，没有CLI、连接器、凭据读取器、AWS调用或默认授权。旧pending两行转移器、110云闭包、provider和已安装云来源均不改；没有另建固定任务分支或执行框架。定向测试加入原handoff测试及现有无AWS CI，不新增workflow。
+
+配方只编译一个参数化UPDATE：准确job/deployment/app、running/1/1、旧lease已过期、无成功回执，以服务器端完整行SHA256作CAS。仅status改为canceled、三lease字段置NULL、updated_at/completed_at取同一次数据库clock_timestamp，六字段之外的屏蔽摘要必须保持。原deadline不改、不补成功、不创建或领取新任务。
+
+受审本地配方未来显式传入TLS client、固定服务器端摘要reader、准确资源停止核对、SHA/源码批准验证及本地持久证据端口，才可构造事务；本模块不会替它生成证明或授权。SERIALIZABLE事务固定pg_catalog/UTC、lock_timeout=1s及每语句statement_timeout=15s；五表（jobs、deployments、三控制表）短暂SHARE ROW EXCLUSIVE锁会阻塞其他控制/业务写，须纳入新批准。锁后重新匹配完整行、其他任务、部署/outputs、账本及保护摘要；另外明确检查五表UPDATE rewrite规则为0，旧catalog未覆盖该项，不能拿旧摘要冒充已证明无规则。函数/跨服务并发仍非全局CAS。
+
+正常路径：精确停止核对→锁后基准/CAS→一次UPDATE→事务内六字段/保留项核验→一次COMMIT→另一验证TLS只读连接独立回读。应用层在写前和提交前检查30秒时序（含资源停止核对耗时），不是数据库全局事务超时保证。持久单次槽、实际只读预算、限制SQL client/reader及其源码pin必须由新执行清单完整绑定，目前未接入生产。停止核对不能只相信CFN历史DELETE_COMPLETE，还须准确ECS无任务和目标组缺失；不读Secret值、PEM/HMAC、Aurora或DDB项。
+
+提交前失败尝试一次ROLLBACK，不自动重试；COMMIT一旦提交而ACK未知，不再ROLLBACK或重发UPDATE，关闭原连接并另审/按已批准范围独立回读。成功ACK也必须独立回读；取消结果不伪装成部署成功或账号停费。永久槽由后继受审本地配方一次领取，不能把模块内防重入标记当持久槽。
+
+本机83项相关测试通过（原73项及10项退役回归），类型检查、零警告lint通过。新测试均为合成客户端/服务器摘要响应，**没有执行真实SQL或查询承载**。仅在本地重建已封存17份补核原件及原Review，真实b236行指纹可被原样编译为单行SQL草案；不返回lease token，不改原件或采样时间。准备事实仍截至 `2026-10-30T22:47:00.026Z`（温尼伯17:47:00.026），不是原deadline/TTL/basis延期。
+
+真实本地草案：`F:/ChatGPT_workshop/techlong-buyer-retirement-recipe-prepared-20261030-a/draft.json`（PREPARED_NOT_EXECUTABLE）。准确源码/CI及原件恢复只认 `F:/ChatGPT_workshop/techlong-buyer-retirement-recipe-code-verified-20261030-a.json` 实际存在且摘要匹配；尚未封存就不能声称准确CI通过。下一仅绑定该小配方、固定reader、停止核对/独立回读和单次槽，生成准确新SHA供批准；不增加云删除、任务、权限、来源发布或下一部署周期。本轮生产配置/SQL连接、AWS、所有写/槽/dispatch为0。
 
 以下为原草案沿革，不构成当前DeleteStack或补核重放指令。
 
