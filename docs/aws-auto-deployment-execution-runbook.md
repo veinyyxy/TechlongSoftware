@@ -29,7 +29,17 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：仅修复 buyer 新旧任务摘要混用（2026-10-30）
+## 3. 当前唯一继续点：准备过期任务退役与准确遗留栈清理（2026-10-30，不执行）
+
+用户已同意进入这一准备方向。本阶段只准备[集中审核材料](aws-buyer-backend-retirement-cleanup-review.md)，不修改任务、不删除资源、不新建任务、重放旧整轮或扩恢复框架。已有09:22限定只读证明：准确b236任务running、attempts/max=1/1、lease于08:27:46.265过期且无成功回执；准确e992…栈CREATE_COMPLETE、一个健康任务、目标healthy、health/ready均200。私有检查点 `F:/ChatGPT_workshop/techlong-buyer-existing-workload-state-readonly-20261030-a/checkpoint.json` raw SHA `2720ce4b1c9a7e05d92185bf2f747f98043d5cff65401eccab935fbe6d164029`。
+
+摘要修复90e7174已推送，准确CI41067648595/41067648696成功；云端修复未发布。后续纯文档提交不能冒称跑过新HEAD的代码CI。原任务完成deadline09:00:41.818、TTL10:00:41、basis10:08:09.592均不延长；TTL不保证停止计费。
+
+当前草案最多一次准确ARN标准DeleteStack，独立证明移除后才允许一次准确单行退役事务（目标canceled、清空旧lease、用真实数据库时钟记录退役，不写成功回执）；保留部署业务行、旧账本/永久槽、数据库、共享Cell、前端、镜像和历史证据。AWS删除与数据库提交非原子，任一步失败/未知不自动补齐、重试或回滚；实际写入及删除仍需新的准确SHA批准。此草案不是写授权。
+
+现有pending转移器会插入新任务且拒绝running行，旧ready对账器还会改三行业务/写成功回执，均不能套用或放宽。仅复用其准确目标、服务器端SHA256指纹、锁、一次提交及独立回读模式来准备本清单的小配方；不新增通用执行器/接管入口。09:22快照不含整行/保护摘要及最新七资源模板，正式执行SHA仍为null。下一只等待另批一次必要只读补核（STS1/CFN4、配置1/TLS1/SQL20），完成窄配方验证后再给执行清单；不先开窗口。
+
+### 本轮已完成摘要修复（保留追溯）
 
 用户已明确要求“修复”，本轮只做阻断主线的最小摘要兼容修复、回归测试、文档、main提交/推送及无AWS CI；不读取生产、不发布workflow/trust、不安装权限、不恢复或重跑旧整轮。原b236整轮在provider阶段停止，不能复用旧批准或复位槽。
 

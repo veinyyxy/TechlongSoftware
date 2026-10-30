@@ -2,7 +2,15 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-30，仅修复 buyer 新旧任务摘要混用）
+## 当前唯一继续点（2026-10-30，准备退役原任务与清理准确遗留栈，不执行）
+
+用户已要求开始准备[集中审核材料](aws-buyer-backend-retirement-cleanup-review.md)。09:22限定只读证明：b236任务仍running、旧lease过期且没有成功回执；准确e992…栈/服务/任务/目标健康，health与ready均200。只读实际配置1/TLS1/SQL13、STS1/CFN1/ECS4/ELB1/HTTPS2，零写/槽/dispatch。私有检查点 `F:/ChatGPT_workshop/techlong-buyer-existing-workload-state-readonly-20261030-a/checkpoint.json` raw SHA `2720ce4b1c9a7e05d92185bf2f747f98043d5cff65401eccab935fbe6d164029`。
+
+摘要修复90e7174的两条准确CI已过，未发布云修复；不再重做代码阶段。原完成deadline已过，不能续跑。当前只准备准确栈最多一次标准删除、独立移除证明后单行退役任务的范围，保留数据库/共享Cell/前端/镜像/历史；不新建任务、不补成功、不动旧槽或扩恢复框架。正式执行SHA仍null，最新完整模板/资源及整行与保护指纹尚缺；下一只等待一次明确的补核许可，不直接执行删除或SQL。
+
+原TTL10:00:41和basis10:08:09.592不延长，计费可能继续。若补核时栈已被别的流程删除，只核对事实并缩减新待审范围，不重发DeleteStack、不默认停费。后续文档HEAD与已通过代码CI90e7174分别记录，不冒称新HEAD已跑CI。
+
+### 已完成摘要修复（保留追溯）
 
 用户已要求“修复”。本轮只改现有buyer适配层的摘要阶段绑定及对应回归/文档，正常main提交/推送、无AWS CI；不读取生产、不发布工作流/IAM、不恢复旧整轮或再次建栈。冻结110文件、历史capsule和旧前驱pin保持；新任务只接受已证明的准确buyer CORS投影pin，其他校验不放宽。
 
