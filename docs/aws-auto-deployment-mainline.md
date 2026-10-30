@@ -2,11 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-30，本轮退役写前停止，不重跑）
+## 当前唯一继续点（2026-10-30，仅收尾时钟最小修正与准确CI）
 
 用户批准2cddec6d…后，来源3925f5c/准确CI41107784637于13:38单次执行：STS1/元数据4、配置2/TLS2/SQL27，准确栈已删、服务INACTIVE/0任务、目标准确缺失；在BEGIN阶段时序校验停止，UPDATE0/写事务COMMIT0/云写0。独立只读回读完整行、其他12任务、部署/outputs、账本/保护均保持，b236仍running/1/1、过期lease未清、无成功回执。两个新槽已消费，未用预算不能延用，不重放或复位。
 
-恢复 `F:/ChatGPT_workshop/techlong-buyer-retirement-execution-20261030-a/stopped-verified.json`，raw SHA `7b0b7e0404f0fbf74f6f405cad98f04b495af41adcb83cc4750be1ce848c818f`。本地落盘时间与DB时刻有约220ms矛盾，符合跨时钟校验误拒，原异常分类未保存，不能断言唯一历史原因。下一仅建议经用户确认后做“本地经过时长/DB绝对时刻分离”的最小修正与回归，不改真实时刻、租约/CAS/30秒边界，不新增框架/探针或先开新槽。当前仅收尾文档，不实施新代码或生产读取写入；源码CI仍3925f5c，后续纯文档HEAD不冒称新代码CI。
+恢复 `F:/ChatGPT_workshop/techlong-buyer-retirement-execution-20261030-a/stopped-verified.json`，raw SHA `7b0b7e0404f0fbf74f6f405cad98f04b495af41adcb83cc4750be1ce848c818f`。本地落盘时间与DB时刻有约220ms矛盾，符合跨时钟校验误拒，原异常分类未保存，不能断言唯一历史原因。
+
+用户已确认仅做最小时钟修正与测试。本轮原模块分开performance.now经过时长与真实DB绝对时刻，保存的采样不重计，实时DB仍严格核对lease/deadline、五小时/写截止、前后快照30秒时序；原SQL/CAS/六字段、锁及未知不重试保持。原handoff文件21项及完整88项相关检查、类型/零警告lint通过，新增4项合成回归；无生产/配置读取、SQL连接、新清单/槽、部署或重跑。准确源码/CI恢复只认 `F:/ChatGPT_workshop/techlong-buyer-retirement-clock-fix-code-verified-20261030-a.json` 实际封存，不冒用3925f5c。结束后唯一后继是准备新的准确单行退役范围，读取/新槽/写另审，不延长原事实/deadline/TTL/basis，不扩框架。
 
 以下为已完成准备与历史，不是本轮重跑或新周期授权。
 

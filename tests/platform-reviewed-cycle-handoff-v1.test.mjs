@@ -86,14 +86,17 @@ function retirementFixture(){
     lease_owner_matches_review:null,lease_expires_at:null,updated_at:String(at),completed_at:String(at),job_row_sha256:'a'.repeat(64)});
   return {at,binding,baseline,after};
 }
-function retirementHarness({fault,clockAdvance=0}={}){
-  const f=retirementFixture(),calls=[],records=[];let state=structuredClone(f.baseline),clock=f.at;
+function retirementHarness({fault,clockAdvance=0,elapsedAdvance=clockAdvance,wallSkew=0,wallJump=0,stopAdvance=0}={}){
+  const f=retirementFixture(),calls=[],records=[];let state=structuredClone(f.baseline),clock=f.at+wallSkew,elapsedClock=0;
   const client={async query(text){calls.push(text);
-    if(text.startsWith('SELECT floor'))return {rows:[{at:f.at}],rowCount:1};
+    if(text.startsWith('SELECT floor'))return {rows:[{at:fault==='db-expired'?f.binding.expiresAt:f.at}],rowCount:1};
     if(text===RETIREMENT_RULE_GUARD_SQL)return {rows:[{unsafe_update_rule_count:fault==='rules'?1:0}],rowCount:1};
     if(text.startsWith('WITH stamp')){
       if(fault==='cas')return {rows:[],rowCount:0};
-      state=structuredClone(f.after);state.facts.updated_at=state.facts.completed_at=String(clock);clock+=clockAdvance;
+      const retiredAt=Number(state.facts.database_now_ms);state=structuredClone(f.after);
+      state.facts.updated_at=state.facts.completed_at=String(retiredAt);state.facts.database_now_ms=String(retiredAt+clockAdvance);
+      clock+=clockAdvance+wallJump;elapsedClock+=elapsedAdvance;
+      if(fault==='after-clock-back')state.facts.database_now_ms=String(retiredAt-1);
       if(fault==='post-drift')state.facts.other_jobs_sha256='f'.repeat(64);
       return {rowCount:1,rows:[{id:f.binding.jobId,retired_at:state.facts.updated_at,job_row_sha256:f.after.facts.job_row_sha256}]};
     }
@@ -101,11 +104,14 @@ function retirementHarness({fault,clockAdvance=0}={}){
     if(text==='ROLLBACK'&&fault==='rollback')throw Error('synthetic lost rollback ACK');
     return {rows:[],rowCount:0};}};
   let approvalCount=0;
-  const run=createRetirementTransaction({client,now:()=>clock,readState:async()=>{
-    if(state.facts.status==='running'){state.facts.database_now_ms=String(f.at+(fault==='fresh-clock'?1:0));if(fault==='fresh-clock')clock=f.at+1;}
+  const run=createRetirementTransaction({client,now:()=>clock,elapsedNow:()=>elapsedClock,readState:async()=>{
+    if(state.facts.status==='running'){
+      state.facts.database_now_ms=String(f.at+(fault==='fresh-clock'?1:fault==='snapshot-back'?-1:fault==='snapshot-late'?30000:0));
+      if(fault==='fresh-clock')clock=f.at+1+wallSkew;
+    }
     if(fault==='pre-drift')state.facts.job_row_sha256='f'.repeat(64);
     return structuredClone(state);},
-    assertStopped:async()=>{calls.push('EXACT_ABSENCE_CHECK');if(fault==='live')throw Error('synthetic live workload');},
+    assertStopped:async()=>{calls.push('EXACT_ABSENCE_CHECK');clock+=stopAdvance;elapsedClock+=stopAdvance;if(fault==='live')throw Error('synthetic live workload');},
     assertApproved:async()=>{calls.push('APPROVAL');if(fault==='approval'||(fault==='late-approval'&&++approvalCount>1))throw Error('synthetic denied');},
     record:async(kind,value)=>{records.push({kind,value});if(fault==='record')throw Error('synthetic evidence failure');}});
   return {...f,calls,records,run,read:()=>state};
@@ -156,6 +162,36 @@ test('retirement accepts a later genuine database snapshot clock without restamp
   assert.equal(r.outcome,'RETIREMENT_COMMITTED_REQUIRES_INDEPENDENT_READBACK');assert.equal(r.retiredAt,String(f.at+1));
   assert.equal(f.baseline.facts.database_now_ms,String(f.at-1000));
   verifyRetirementReadback(f.binding,f.baseline,f.read(),r.retiredAt,r.jobRowSha256);
+});
+test('retirement accepts either sign of local/DB wall-clock skew, keeping actual DB row epochs unchanged',async()=>{
+  for(const wallSkew of [-220,220]){
+    const f=retirementHarness({wallSkew,fault:'fresh-clock'});f.baseline.facts.database_now_ms=String(f.at-100);
+    const r=await f.run({binding:f.binding,baseline:f.baseline});
+    assert.equal(r.outcome,'RETIREMENT_COMMITTED_REQUIRES_INDEPENDENT_READBACK');assert.equal(r.retiredAt,String(f.at+1));
+    assert.equal(f.baseline.facts.database_now_ms,String(f.at-100));assert.equal(f.read().facts.updated_at,String(f.at+1));
+    verifyRetirementReadback(f.binding,f.baseline,f.read(),r.retiredAt,r.jobRowSha256);
+  }
+});
+test('local wall-clock jumps never shift database retirement timestamps or reset elapsed timing',async()=>{
+  for(const wallJump of [-60000,60000]){
+    const f=retirementHarness({wallJump}),r=await f.run({binding:f.binding,baseline:f.baseline});
+    assert.equal(r.outcome,'RETIREMENT_COMMITTED_REQUIRES_INDEPENDENT_READBACK');assert.equal(r.retiredAt,String(f.at));
+    assert.equal(f.read().facts.database_now_ms,String(f.at));assert.equal(f.calls.filter(q=>q.startsWith('WITH stamp')).length,1);
+  }
+});
+test('monotonic 30-second limit includes resource checks and cannot be bypassed by rewinding local UTC',async()=>{
+  for(const options of [{stopAdvance:30000},{elapsedAdvance:30000,wallJump:-60000},{elapsedAdvance:-1}]){
+    const f=retirementHarness(options),r=await f.run({binding:f.binding,baseline:f.baseline});
+    assert.equal(r.committed,false);assert(!f.calls.includes('COMMIT'));assert(f.calls.includes('ROLLBACK'));
+    if(options.stopAdvance)assert(!f.calls.some(q=>q.startsWith('WITH stamp')));
+  }
+});
+test('database epochs independently reject backwards/late snapshots, expired write windows and backwards readback',async()=>{
+  for(const fault of ['snapshot-back','snapshot-late','db-expired','after-clock-back']){
+    const f=retirementHarness({fault}),r=await f.run({binding:f.binding,baseline:f.baseline});
+    assert.equal(r.committed,false);assert(!f.calls.includes('COMMIT'));assert(f.calls.includes('ROLLBACK'));
+    if(fault!=='after-clock-back')assert(!f.calls.some(q=>q.startsWith('WITH stamp')));
+  }
 });
 test('retirement refuses missing explicit capability ports; live resources or denied approval cause zero SQL writes',async()=>{
   assert.throws(()=>createRetirementTransaction({client:{}}),/EXPLICIT_PORTS/);

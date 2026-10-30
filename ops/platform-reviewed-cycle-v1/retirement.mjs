@@ -1,6 +1,7 @@
 // One-row retirement recipe only. No connection, credential reader, CLI,
 // permanent-slot manager, AWS port or default approval is installed here.
 import {canonicalJson} from '../../lib/deployments/execution/hash.ts';
+import {performance} from 'node:perf_hooks';
 
 const must=(ok,code)=>{if(!ok)throw Error('TASK_RETIREMENT_'+code);};
 const same=(a,b)=>canonicalJson(a)===canonicalJson(b);
@@ -87,7 +88,7 @@ export function verifyRetirementReadback(binding,before,after,retiredAt,expected
 // a pinned server-hash reader, fresh exact-resource absence checks, approval
 // verification, a durable one-shot slot and an independent read-only connection.
 // This function neither manufactures those proofs nor grants their authority.
-export function createRetirementTransaction({client,readState,assertStopped,assertApproved,record,now=Date.now}){
+export function createRetirementTransaction({client,readState,assertStopped,assertApproved,record,now=Date.now,elapsedNow=()=>performance.now()}){
   must(client&&[readState,assertStopped,assertApproved,record].every(v=>typeof v==='function'),'EXPLICIT_PORTS');
   let used=false;
   return async({binding,baseline})=>{
@@ -95,8 +96,13 @@ export function createRetirementTransaction({client,readState,assertStopped,asse
     binding=structuredClone(binding);baseline=structuredClone(baseline);
     let started=false,committing=false,committed=false,phase='APPROVAL',at=null;
     try{
-      assertRetirementBefore(binding,baseline,now());await assertApproved();
-      phase='EXACT_RESOURCES_STOPPED';const stoppedCheckStarted=now();await assertStopped(binding);
+      // Validate the saved observation at its actual DB epoch. Freshness,
+      // lease expiry and the write cutoff are checked again at the live DB
+      // epoch below; local UTC is only the separate approval-window gate.
+      assertRetirementBefore(binding,baseline,Number(baseline?.facts?.database_now_ms));
+      must(Number.isSafeInteger(now())&&now()<Number(binding.expiresAt),'APPROVAL_TIME');await assertApproved();
+      phase='EXACT_RESOURCES_STOPPED';const stoppedCheckStarted=elapsedNow();
+      must(Number.isFinite(stoppedCheckStarted)&&stoppedCheckStarted>=0,'ELAPSED_CLOCK');await assertStopped(binding);
       phase='BEGIN';await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');started=true;
       await client.query('SET LOCAL search_path=pg_catalog');await client.query("SET LOCAL TimeZone='UTC'");
       await client.query("SET LOCAL lock_timeout='1s'");await client.query("SET LOCAL statement_timeout='15s'");
@@ -104,12 +110,14 @@ export function createRetirementTransaction({client,readState,assertStopped,asse
       // block unrelated controller/job writes; their scope must be approved.
       await client.query('LOCK TABLE deployment_control_v6.plans,deployment_control_v6.approvals,deployment_control_v6.dispatch_attempts,public.app_instance_deployments,public.deployment_jobs IN SHARE ROW EXCLUSIVE MODE');
       at=Number((await client.query('SELECT floor(extract(epoch FROM clock_timestamp())*1000)::bigint AS at')).rows[0]?.at);
-      const timely=()=>must(Number.isSafeInteger(at)&&now()>=at&&now()-at<30000&&now()>=stoppedCheckStarted&&
-        now()-stoppedCheckStarted<30000&&now()<Number(binding.expiresAt),'DEADLINE');
+      assertRetirementBefore(binding,baseline,at);
+      const timely=()=>{const elapsed=elapsedNow()-stoppedCheckStarted;
+        must(Number.isFinite(elapsed)&&elapsed>=0&&elapsed<30000,'ELAPSED_DEADLINE');
+        must(Number.isSafeInteger(now())&&now()<Number(binding.expiresAt),'APPROVAL_TIME');};
       timely();phase='LOCKED_STATE';
       must((await client.query(RETIREMENT_RULE_GUARD_SQL)).rows[0]?.unsafe_update_rule_count===0,'UPDATE_RULES');
       const fresh=await readState(client),snapshotAt=Number(fresh?.facts?.database_now_ms);
-      must(Number.isSafeInteger(snapshotAt)&&snapshotAt>=at&&snapshotAt<at+30000&&snapshotAt<=now(),'SNAPSHOT_TIME');
+      must(Number.isSafeInteger(snapshotAt)&&snapshotAt>=at&&snapshotAt<at+30000,'SNAPSHOT_TIME');
       assertRetirementBefore(binding,fresh,snapshotAt);
       must(sameBefore(baseline,fresh),'STATE_DRIFT');
       const p=compileRetirementUpdate(binding,fresh,snapshotAt);
@@ -119,6 +127,8 @@ export function createRetirementTransaction({client,readState,assertStopped,asse
       must(r.rowCount===1&&r.rows.length===1&&row.id===binding.jobId&&integer(row.retired_at)&&
         Number(row.retired_at)>=at&&Number(row.retired_at)<at+30000,'UPDATE_RESULT');
       phase='IN_TRANSACTION_READBACK';const after=await readState(client);
+      const afterAt=Number(after?.facts?.database_now_ms);
+      must(Number.isSafeInteger(afterAt)&&afterAt>=Number(row.retired_at)&&afterAt<at+30000&&afterAt<Number(binding.expiresAt),'READBACK_TIME');
       verifyRetirementReadback(binding,fresh,after,row.retired_at,row.job_row_sha256);
       must((await client.query(RETIREMENT_RULE_GUARD_SQL)).rows[0]?.unsafe_update_rule_count===0,'UPDATE_RULES');
       await record('retirement-precommit',{jobId:binding.jobId,retiredAt:row.retired_at,jobRowSha256:row.job_row_sha256});
