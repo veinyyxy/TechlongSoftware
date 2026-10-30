@@ -10,7 +10,7 @@ import {REQUEST_ADMIN_V6 as ADMIN} from '../../lib/deployments/reviewed-request-
 import {canonicalJson,sha256Hex} from '../../lib/deployments/execution/hash.ts';
 
 let closure;
-export async function buyerFixture(){
+export async function buyerFixture({accepted=false}={}){
   closure??=await buyerCompatibilityClosure();const f=await a604Fixture({closure}),worker=await f.ports.open({basis:f.basis});
   const prior=(await worker.review({jobId:f.profile.newJobId,signal:AbortSignal.timeout(10000)})).review.innerManifest;
   const done=f.at+1000,physical={...f.provider.physical,TenantTaskDefinition:f.provider.physical.TenantTaskDefinition.replace(':8',':9')},
@@ -29,21 +29,35 @@ export async function buyerFixture(){
     completed_at:done,updated_at:done,lease_owner:null,lease_token:null,lease_expires_at:null};
   const state=normalizedState({...f.projection,jobs:f.projection.jobs.concat(completed)});
   state.deployment.outputs=JSON.parse(completion.outputs);state.deployment.admissionSnapshot.predecessorJob=completed;
-  let at=prior.workload.workloadExpiresAt+1000;const now=()=>at,clientRequestId='11111111-2222-4333-8444-555555555555';
+  let at=accepted?f.basis.expiresAt+1000:prior.workload.workloadExpiresAt+1000;const now=()=>at,clientRequestId='11111111-2222-4333-8444-555555555555';
+  // Only the new synthetic observation has a current subscription. Historical
+  // package rows stay unchanged, just like a real later read of active service.
+  if(accepted)state.deployment.admissionSnapshot.subscription.current_period_end=at+6*3600000;
   const request=await prepareInitializedPlatformRequest({deployment:state.deployment,jobs:state.jobs,gateEnabled:true,
     body:{clientRequestId,deploymentId:S.deploymentId,intent:'restore_initialized_workload'},adminUserId:ADMIN,now:at});
   const code={commitSha:f.sourceCommit,closureSha256:closure.closureSha256};
   const source={schema:'techlong/buyer-compatibility-source/v1',basisSha256:f.basis.basisSha256,linksSha256:await sha256Hex(links),
     predecessor:{jobId:receipt.jobId,stackId:receipt.stackId,taskDefinitionArn:physical.TenantTaskDefinition,receiptSha256:await sha256Hex(receipt)},
     baselineSha256:await sha256Hex(state),code,request:{jobId:request.program.jobId,requestId:request.requestId,clientRequestId,adminUserId:ADMIN}};
+  if(accepted){
+    const retirement={stackId:source.predecessor.stackId,status:'DELETE_COMPLETE',deletionTime:new Date(at-2000).toISOString(),
+      resources:prior.workload.resourceInventory.map(r=>({LogicalResourceId:r.logicalId,ResourceType:r.type,
+        PhysicalResourceId:physical[r.logicalId],ResourceStatus:'DELETE_COMPLETE'}))},
+      facts={factsAt:at-1000,databaseCheckedAt:at,observedBy:at,expiresAt:at-1000+5*3600000},
+      commitment={historicalBasisSha256:f.basis.basisSha256,baselineSha256:source.baselineSha256,
+        predecessor:source.predecessor,facts,retirementSha256:await sha256Hex(retirement)};
+    source.acceptedContinuation={schema:'techlong/buyer-accepted-continuation/v1',...commitment,retirement,
+      approval:{state:'APPROVED',manifestSha256:'a'.repeat(64),factsSha256:await sha256Hex(commitment)}};
+  }
   const capsule=structuredClone(f.capsule);capsule.publicParameters.CorsAllowedOrigins=BUYER_ORIGINS;capsule.capsuleSha256=BUYER_CAPSULE_SHA256;
-  const options={source,basis:f.basis,capsule,links,now},compat=await prepareBuyerCompatibility(options),events=[],contract=await loadNeonContractV5();
+  const options={source,basis:f.basis,capsule,links,now,...(accepted?{baseline:state}:{})},compat=await prepareBuyerCompatibility(options),events=[],contract=await loadNeonContractV5();
   const row={id:request.program.jobId,deployment_id:S.deploymentId,job_type:'reconcile',dedupe_key:request.program.values[2],status:'pending',
     payload:canonicalJson(request.program.payload),attempts:0,max_attempts:1,available_at:Number.MAX_SAFE_INTEGER,created_at:at,updated_at:at,
     completed_at:null,lease_owner:null,lease_token:null,lease_expires_at:null};
   const observed={...structuredClone(f.observed),snapshot:{...structuredClone(f.observed.snapshot),
     deployment:{...f.observed.snapshot.deployment,outputs:canonicalJson(state.deployment.outputs)}},job:row,jobs:[...state.jobs,row],checkedAt:at};
-  const d=recoveryData(f.basis,at),dependencies={installation:f.installation,contract,code,run:f.run('123456799'),
+  if(accepted)observed.snapshot.subscription.current_period_end=state.deployment.admissionSnapshot.subscription.current_period_end;
+  const d=recoveryData(f.basis,accepted?f.basis.createdAt:at),dependencies={installation:f.installation,contract,code,run:f.run('123456799'),
     openDatabase:async()=>{events.push('database');return {verify:async()=>{},read:async()=>structuredClone(observed)};},
     provider:{readCell:async()=>({stackId:d.context.base.compute.stackId,outputs:Object.fromEntries(
       ['ClusterName','VpcId','SubnetIds','TaskSecurityGroupId','HttpsListenerArn','ControlListenerArn'].map(k=>[k,d.context.base.compute.outputs[k]])),

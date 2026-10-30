@@ -18,7 +18,9 @@ Source刷新后的新b首次STS仍通用Error停止（STS1，其余0，具体原
 
 恢复 `F:/ChatGPT_workshop/techlong-buyer-next-cycle-readonly-20261030-c/checkpoint.json`，raw SHA `39265446c789e878858776f6586b2b0c6f8b95c35f004bd2f3d2ca4a278458d2`，14原件只在本地私有目录。观察准备5小时至今天19:43:48.735 CDT，旧basis/TTL不延长。仅本地证明：归档basis仍被当前expiry拒绝；独立验收a00链/当前最新回执匹配，旧9db编译器拒绝承接新完整状态。无合法新basis/候选/请求/执行SHA。
 
-下一只征求现有buyer适配和必要composition/publication校验的最小“已验收后继续接”修复/回归同意；完整差异见[集中附表](aws-backend-integration-preparation.md#新事实已取得但已验收续接仍no-go10月30日1445-cdt)。不改冻结110、旧expiry/历史或新增执行器，不再追加读取，不先创建任务/占槽/发布/部署；后继真实副作用仍准确另审。
+用户已明确同意最小修复，本轮原buyer/composition/publication已接入独立已验收续接能力：旧basis仅作历史溯源且保持过期，新能力有不同SHA、另批的准确五小时事实、完整终态基线/最新回执、独立验收链和七资源退役校验。复用原单INSERT、发布器及三模式整轮，默认关闭；不改冻结110/旧expiry/历史或新增执行器。对应既有夹具/测试新增7项回归，本机167项检查、类型及六文件零警告lint通过。
+
+当前只提交并核验准确无AWS CI；恢复只认 `F:/ChatGPT_workshop/techlong-buyer-accepted-continuity-code-verified-20261030-a.json` 实际封存，未存在/不匹配不得冒用1df93f6的CI。下一只准备新的合法请求/不可变材料及必要来源发布的准确清单，不再扩功能；本轮生产/配置/Secret/PEM读取、业务/AWS写、请求/槽/dispatch均0，新真实facts approval/能力/候选/执行SHA仍null，14:43快照期限不重计。后继实际副作用仍另审；[实现边界](aws-backend-integration-preparation.md#本轮最小已验收续接修复实现与验证)。
 
 以下b准备及旧停止沿革已完成，不重跑。
 

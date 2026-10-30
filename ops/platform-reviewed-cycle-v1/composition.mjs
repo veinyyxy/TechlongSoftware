@@ -28,17 +28,19 @@ import {evidenceKeyV5} from '../cloud-worker/cloud-evidence-v5.mjs';
 async function buyerComposition(cycle,compat,bundle,now){
   const data=buyerCompatibilityData(compat,now()),rebuilt=await rebuildBuyerBundle(compat,bundle),
     beforeState=freeze(rebuilt.baseline),p=cycle.source.publication,job=cycle.profile.newJobId,
-    end=Math.min(data.basis.expiresAt,cycle.profile.factsAt+cycle.profile.validMs),packageSha=await sha256Hex(bundle);
+    end=Math.min(data.authorityExpiresAt,cycle.profile.factsAt+cycle.profile.validMs),packageSha=await sha256Hex(bundle);
   must(job===data.source.request.jobId&&cycle.profile.requestId===data.source.request.requestId&&
     cycle.profile.clientRequestId===data.source.request.clientRequestId&&cycle.profile.stateSha256===await sha256Hex(beforeState)&&
     same([...cycle.source.historicalJobIds].sort(),beforeState.jobs.map(j=>j.id).sort()),'BUYER_SOURCE_BASELINE');
+  if(data.source.acceptedContinuation)must(['factsAt','databaseCheckedAt','observedBy'].every(k=>
+    cycle.profile[k]===data.source.acceptedContinuation.facts[k]),'BUYER_ACCEPTED_PROFILE_FACTS');
   const assertNative=async(value,profile,at)=>{
     buyerCompatibilityData(compat,at);
     must(same(value,p)&&same(profile,cycle.profile)&&p.schema==='techlong/buyer-context-publication/v1'&&
       p.protocol==='platform-v6/buyer-context'&&p.riskFile===RISK&&p.state==='PUBLISHED'&&p.cycleId===cycle.cycleId&&releaseReady(p.release)&&
       p.sourceCommit===data.source.code.commitSha&&p.release.closureSha256===data.source.code.closureSha256&&
       p.release.installationSha256===CLOUD_V6.installationSha256&&/^[a-f0-9]{40}$/.test(p.frozenSourceCommit??'')&&
-      p.basisSha256===data.basis.basisSha256&&p.profileSha256===await sha256Hex(cycle.profile)&&
+      p.basisSha256===data.authority.basisSha256&&p.profileSha256===await sha256Hex(cycle.profile)&&
       p.buyerContextSha256===await sha256Hex(data.source)&&p.packageReference.sha256===packageSha,'BUYER_PUBLICATION');
     assertReferenceV6(p.packageReference,`worker-v5/${S.appInstanceId}/lineage/buyer-context-v1-${packageSha}.json`);
     const a=p.factsApproval;
@@ -54,10 +56,10 @@ async function buyerComposition(cycle,compat,bundle,now){
     plan.riskSha256===p.release.riskSha256&&plan.inputs.lineage==='','BUYER_PLAN_SCOPE');
   const guard=()=>assertNative(p,cycle.profile,now());
   const runtime={guard,innerManifest:value=>{must(value?.schema==='techlong/cloud-worker-review/v5','BUYER_NATIVE_MANIFEST');return value;},
-    rebuild:async value=>{await guard();must(await sha256Hex(value)===packageSha,'BUYER_BUNDLE_SHA');return (await rebuildBuyerBundle(compat,value)).basis;},
+    rebuild:async value=>{await guard();must(await sha256Hex(value)===packageSha,'BUYER_BUNDLE_SHA');return (await rebuildBuyerBundle(compat,value)).authority;},
     publisher:options=>createBuyerPublisher({compat,publication:p,ports:options.ports,now}),runtimeEnabled:false};
   const verifyRequestReadback=async(basis,input,at)=>{
-    await guard();must(basis.basisSha256===data.basis.basisSha256,'BUYER_HISTORICAL_BASIS');
+    await guard();must(basis.basisSha256===data.authority.basisSha256,'BUYER_AUTHORITY');
     const s=normalizedState(input),e=cycle.requestEvidence,j=s.jobs.find(j=>j.id===job),
       before=normalizedState({...s,jobs:s.jobs.filter(j=>j.id!==job)});
     must(same(before,beforeState)&&at===e.transactionAt&&await sha256Hex(s)===e.afterSha256&&

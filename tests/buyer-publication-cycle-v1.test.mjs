@@ -14,7 +14,7 @@ import {createReviewedCycle,RISK} from '../ops/platform-reviewed-cycle-v1/cycle.
 import {createCycleComposition,projectHistory} from '../ops/platform-reviewed-cycle-v1/composition.mjs';
 import {archivedControlHistory} from '../ops/platform-reviewed-cycle-v1/package.mjs';
 import {createWholeCycleFlow} from '../ops/platform-reviewed-cycle-v1/whole.mjs';
-import {createBuyerPublisher,bindBuyerWorkflowSource,prepareBuyerFromSource} from '../ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs';
+import {createBuyerPublisher,bindBuyerWorkflowSource,prepareBuyerFromSource,buyerCompatibilityData} from '../ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs';
 import {createDispatchOperation} from '../ops/platform-delegated-approval-v1/operation.mjs';
 import {INITIALIZED_PLATFORM_SCOPE as S} from '../lib/deployments/initialized-platform-request-v1.ts';
 import {INSTALLATION} from '../ops/platform-a604-operator-v1/policy.mjs';
@@ -33,12 +33,13 @@ import {rebuildRecoveryPackage} from '../ops/platform-recovery-v1/package.mjs';
 import {recoveryBasisCompiler} from '../ops/platform-recovery-v1/basis-core.mjs';
 import {prepareBuyerCompatibility} from '../ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs';
 
-async function fixture(fault){
-  const f=await buyerFixture(),now=f.options.now,at=now(),job=f.source.request.jobId,store=f.f.store,readObject=f.f.readObject,
+async function fixture(fault,{accepted=false}={}){
+  const f=await buyerFixture({accepted}),now=f.options.now,at=now(),job=f.source.request.jobId,store=f.f.store,readObject=f.f.readObject,
     events=[],writes=[],records=[],entries=new Map(),results=new Map();
   let state=normalizedState({...f.state,jobs:[...f.state.jobs,f.observed.job]});
   const profile={...f.f.profile,newJobId:job,clientRequestId:f.source.request.clientRequestId,requestId:f.source.request.requestId,
-    stateSha256:await sha256Hex(f.state),databaseCheckedAt:at,observedBy:at};
+    stateSha256:await sha256Hex(f.state),databaseCheckedAt:at,observedBy:at,
+    ...(accepted?{factsAt:f.source.acceptedContinuation.facts.factsAt}:{})};
   const history=archivedControlHistory(f.state,at),source={schema:'techlong/reviewed-cycle-source/v1',profile,
     historicalJobIds:f.state.jobs.map(j=>j.id),historicalPlanCount:history.length,
     requestEvidence:{schema:'techlong/reviewed-cycle-request-evidence/v1',jobId:job,requestId:profile.requestId,
@@ -47,8 +48,9 @@ async function fixture(fault){
   const bundle={schema:'techlong/buyer-context-bundle/v1',originalPackage:f.f.pkg,baseline:f.state,capsule:f.capsule,links:f.links},
     bundleSha=await sha256Hex(bundle),bundleRef=await store(`worker-v5/${S.appInstanceId}/lineage/buyer-context-v1-${bundleSha}.json`,bundle);
   const selected=await createReviewedCycle(source,{anchor:f.f.profile}),profileSha256=await sha256Hex(profile),
-    expiresAt=Math.min(f.f.basis.expiresAt,profile.factsAt+profile.validMs);
+    expiresAt=Math.min(accepted?f.source.acceptedContinuation.facts.expiresAt:f.f.basis.expiresAt,profile.factsAt+profile.validMs);
   const p={...structuredClone(f.f.publication),schema:'techlong/buyer-context-publication/v1',protocol:'platform-v6/buyer-context',
+    basisSha256:buyerCompatibilityData(f.compat,at).authority.basisSha256,
     cycleId:selected.cycleId,riskFile:RISK,profileSha256,buyerContextSha256:await sha256Hex(f.source),packageReference:bundleRef,
     factsApproval:{state:'APPROVED',manifestSha256:'7'.repeat(64),profileSha256,factsAt:profile.factsAt,
       databaseCheckedAt:at,observedBy:at,expiresAt,originalBasisExtended:false},
@@ -236,8 +238,8 @@ test('new live/publication default selection rejects before OIDC, file or creden
     assert.equal(BUYER_PUBLICATION_SOURCE,null);assert.equal(reads,0);
   }finally{fetch.mock.restore();}
 });
-async function publicationFixture(){
-  const f=await fixture(),s=structuredClone(f.source),now=f.f.options.now;
+async function publicationFixture(fixtureOptions={}){
+  const f=await fixture(undefined,fixtureOptions),s=structuredClone(f.source),now=f.f.options.now;
   // The older synthetic recovery fixture includes a LOCAL requestSlot. The
   // real cloud profile does not. Rebuild its genuine basis without that local
   // test coordinate rather than weakening the cloud-template path guard.
@@ -313,6 +315,36 @@ test('native source facts cannot extend historical basis or bypass the SDK sourc
   let calls=0;const fetch=mock.method(globalThis,'fetch',async()=>{calls++;throw Error('NO_OIDC');});
   try{await assert.rejects(runBuyerLive({},f.f.f.closure,{source:{}}));assert.equal(calls,0);}finally{fetch.mock.restore();}
 });
+
+test('accepted continuation rebuilds the original bundle and exact publication after archival basis expiry',async()=>{
+  const f=await publicationFixture({accepted:true}),before=canonicalJson(f.options.compat.source),at=f.now(),p=f.m.source.publication;
+  assert(at>f.f.f.f.basis.expiresAt);assert(p.factsApproval.expiresAt>at);
+  assert.equal(p.factsApproval.expiresAt,f.s.buyer.source.acceptedContinuation.facts.expiresAt);
+  await assertBuyerPublicationSource(f.s,at,{anchor:f.s.buyer.originalProfile});
+  const rebuilt=await prepareBuyerFromSource(f.s,f.options.bundle,{now:f.now});
+  assert.equal(rebuilt.context.predecessor.jobId,f.options.compat.context.predecessor.jobId);
+  assert.equal(canonicalJson(f.options.compat.source),before);assert.equal(f.m.effects.iamPermissionExpansion,0);
+  assert.equal(f.m.effects.dispatches,0);assert.equal(f.m.actions.trustChanges.length,1);
+  await f.p.validateApproval(f.m,f.m.manifestSha256,at);
+  const changed=structuredClone(f.s);changed.publication.factsApproval.expiresAt++;
+  await assert.rejects(assertBuyerPublicationSource(changed,at,{anchor:changed.buyer.originalProfile}),/LIVE_FACTS/);
+  await assert.rejects(assertBuyerPublicationSource(f.s,p.factsApproval.expiresAt,{anchor:f.s.buyer.originalProfile}),/ACCEPTED_FACT_WINDOW/);
+  const drift=structuredClone(f.s);drift.profile.factsAt++;
+  await assert.rejects(assertBuyerPublicationSource(drift,at,{anchor:drift.buyer.originalProfile}),/ACCEPTED_PROFILE_FACTS/);
+  const oldIdentity=structuredClone(f.s);oldIdentity.publication.basisSha256=f.f.f.f.basis.basisSha256;
+  await assert.rejects(assertBuyerPublicationSource(oldIdentity,at,{anchor:oldIdentity.buyer.originalProfile}),/LIVE_SOURCE/);
+});
+
+test('accepted facts feed the SAME three-mode whole flow with three human gates and unchanged write limits',async()=>{
+  const f=await fixture(undefined,{accepted:true}),r=await f.flow.run({manifest:f.outer,approved:f.outer.manifestSha256,io:f.io});
+  assert.equal(r.outcome,'WHOLE_CYCLE_INDEPENDENTLY_VERIFIED',JSON.stringify({r,events:f.events,
+    records:f.records.map(({n,v})=>({n,outcome:v.outcome,phase:v.phase,code:v.code,error:v.error}))}));
+  assert.deepEqual(f.writes,['observe','proof','publish','observe','proof','publish']);
+  for(const mode of ['Review','RunOnce','Inspect']){
+    assert.equal(f.events.filter(e=>e==='dispatch-'+mode).length,1);assert(f.events.includes('human-approval-'+mode));}
+  assert.equal(f.outer.policy.approveGithubEnvironment,false);assert.equal(f.outer.limits.appDispatchesMax,3);
+  assert.equal(f.outer.cloud.createStackMax,1);assert.equal(r.wholeProductAccepted,false);
+});
 test('native publication reuses original push/create/execute ordering and stops on unknown without retry',async()=>{
   for(const failure of [null,'create']){
     const {p,m,options,now}=await publicationFixture(),events=[];let layouts=0;
@@ -328,8 +360,8 @@ test('native publication reuses original push/create/execute ordering and stops 
     assert.equal(r.outcome,failure?'APP_PUBLICATION_PARTIAL_OR_UNKNOWN_INSPECT_ONLY_NO_RETRY':'APP_WORKFLOWS_AND_TRUST_PUBLISHED_REQUIRES_INDEPENDENT_INSPECT');
   }
 });
-for(const wrongVersion of [false,true])test('production buyer bootstrap uses exact OIDC/SDK ports and fixed Secret guard (wrong version='+wrongVersion+')',async()=>{
-  const f=await publicationFixture(),source=structuredClone(f.p.sourceTemplate()),p=f.s.publication,
+for(const accepted of [false,true])for(const wrongVersion of [false,true])test('production buyer bootstrap uses exact OIDC/SDK ports and fixed Secret guard (accepted='+accepted+', wrong version='+wrongVersion+')',async()=>{
+  const f=await publicationFixture({accepted}),source=structuredClone(f.p.sourceTemplate()),p=f.s.publication,
     env={...f.f.f.env,GITHUB_SHA:p.sourceCommit,TECHLONG_FROZEN_SOURCE_COMMIT:p.frozenSourceCommit,
       TECHLONG_REUSABLE_COMMIT:p.release.reusableCommit,TECHLONG_PLATFORM_CLOSURE_SHA:p.release.closureSha256,
       TECHLONG_PLATFORM_RELEASE_STATE:'PUBLISHED',TECHLONG_APP_IDENTITY_PROOF_SHA:p.release.identityProofSha256,

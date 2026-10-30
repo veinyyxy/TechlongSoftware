@@ -54,11 +54,25 @@ Source失败即停止其余范围，不预先盲目要求刷新，不重跑旧ca
 - 本地以真实DB时刻核对旧genuine basis，仍准确报 `RECOVERY_V1_UNVERIFIED_OR_EXPIRED_BASIS`。仅用历史createdAt重建归档溯源，再用原 `continueCloudContextV5` 验证已保存a00成功receipt/provider/独立Inspect链，匹配当前最新成功回执及准确已删UUID；没有用历史时刻打开运行root或生成新授权。
 - 另作纯本地负向兼容核对：原9db锚＋此次真实完整snapshot被旧编译器以 `RECOVERY_V1_LATEST_EXPIRED_RECEIPT` 拒绝。诊断未改原profile、创建新basis/候选或选择请求ID；证明不能靠新外层facts绕过已验收a00后继。当前可执行清单仍为null。
 
-**下一唯一代码范围提案（尚未获实现批准）**：仅在现有 `buyer-compatibility.mjs` 增加严格的已验收后继续接能力，必要时同步原 `composition.mjs`、`publication.mjs` 对有效期和来源的读取；对应现有 `buyer-compatibility-v1.test.mjs`、`buyer-publication-cycle-v1.test.mjs` 增回归并更新本附表/手册。不新增通用basis/恢复/执行框架或复制固定job分支；若最小范围无法保留原调用者约束，停止再说明，不继续扩文件/功能。
+**上述最小代码范围现已获用户明确同意并实现**：仅改现有 `buyer-compatibility.mjs`、`composition.mjs`、`publication.mjs`；对应现有 `buyer-compatibility-v1.test.mjs`、`buyer-publication-cycle-v1.test.mjs` 及原共享合成夹具增回归并更新本附表/手册。不新增模块、通用basis/恢复/执行框架或复制固定job分支。下述原“须”要求已按后节落实，不是新增在线授权。
 
 新路径须完整重建历史原件及独立验收链，以当前最新成功receipt/准确退役、完整终态基线和明确另审的新事实范围建立独立受限能力；历史basis只作溯源，原expiry/min校验继续保护旧路径，不能把旧basis对象改成新expiry或删除时间判断。新事实/能力是否可编译先以纯本地证明通过，再准备真实请求/包/来源审批；缺独立Inspect、错误前驱、篡改原件、非终态/租约、基线漂移、未批/过期新事实均须拒绝，默认不开启生产来源。
 
 冻结110、原单INSERT/条件上传/三文件trust-only发布器、provider任务阶段pin、IAM权限、GitHub本人审批、永久槽、不重试/不自动清理全部保持。代码/回归完成前不再读取生产、不创建请求或槽、不安装/发布/调度；不会因这一修复直接恢复任何旧周期。后继实际读取、请求与上传、必要来源发布和整轮仍按准确新范围另审，wholeProductAccepted=false。
+
+### 本轮最小已验收续接修复实现与验证
+
+旧路径仍按 `recoveryData(basis,at)` 及原originalProfile/新profile的min截止核验；没有修改任何历史basis、原件、采样或deadline。只有SOURCE显式携带 `acceptedContinuation` 才进入新路径；归档basis仍须原编译器genuine重建，历史createdAt只用于验证历史溯源，不作本轮执行时钟。
+
+新SOURCE必须绑定历史basis SHA、完整baseline SHA、准确已验收前驱、七资源退役原件SHA、事实时刻（factsAt≤databaseCheckedAt≤observedBy）及严格factsAt＋5小时的截止；另有APPROVED事实清单SHA和上述承诺的facts SHA。当前时刻必须落在新观察/截止内。原 `continueCloudContextV5` 验证完整manifest/成功receipt/provider/独立Inspect链，原 `assertRetirement` 核对准确UUID/全部七物理资源与删除时序；当前完整基线必须全终态、无租约，且最新过期成功回执恰为该已验收前驱，业务准入仍有效。
+
+验证后才在原buyer WeakMap能力内构造 `buyer-accepted-continuation-authority/v1`，独立SHA绑定上述事实及批准清单；旧basis对象/摘要/expiry保持不动。`authority`和`basis`明确分开：原publisher合同字段名`basisSha256`在新路径绑定的是新能力摘要，不能填旧basis摘要冒充；旧路径仍绑定原basis。原composition/rebuild仅把严格重建的新能力传给既有发布器的时序/读回接口，保留其同一三写、动态后继规则、40分钟/三次本人门禁、创建和认证GET上限。没有绕开或修改被冻结的通用发布器/执行器。
+
+本机149项buyer/整轮/包/上传/发布/退役等检查及18项旧云来源归档均通过，共167项；类型和六个改动源码/测试/夹具文件的零警告lint通过。新增7项检查覆盖：旧basis仍过期/新能力SHA不同、伪造genuine能力拒绝、新批准/五小时/来源绑定、基线漂移及非终态/租约、即使重新摘要仍错误的七资源/独立验收/前驱拒绝、完整来源/包/原发布器以及同一Review→RunOnce→Inspect整轮、生产SDK类的固定版本Secret门禁mock。先前合成测试因自身旧subscription过期与候选baseline参数遗漏停止，已只修对应夹具/原候选接线，准入校验不放宽；没有生产重试。
+
+准确源码/CI以 `F:/ChatGPT_workshop/techlong-buyer-accepted-continuity-code-verified-20261030-a.json` 实际生成并匹配为准，当前不冒称远端通过。旧110摘要保持 `0c6f119def3b10efe592f559b29d4d8f929893a28dbc77a065c2746052aa308d`；新111候选会随本次适配代码改变，不把已安装52ae2ee3…来源当本次已发布。原六项自引用派生、caller/reusable/operator与角色trust-only的必要另审发布边界保持。
+
+本轮仅代码/合成测试/文档和正常main提交、无AWS CI；生产读取、配置/Secret/PEM、数据库/云写、请求/执行槽、受保护来源发布与dispatch均0。没有生成真实新APPROVED facts、新能力、候选请求或执行SHA；合成材料不提交为真实审批原件。下一仅在准确CI后集中准备真实请求/材料/来源范围，若旧准备快照过期先另审必要新读，绝不重计时刻或给旧basis续命，不再扩本修复支线。
 
 ## 2026-10-30：仅修复新旧任务投影摘要阶段绑定
 

@@ -1,10 +1,10 @@
 // Exact buyer material adapter, not a new executor. No import-time I/O, env
 // selection, credential discovery, queue polling or production SOURCE enabled.
 import {canonicalJson,sha256Hex} from '../../lib/deployments/execution/hash.ts';
-import {INITIALIZED_PLATFORM_SCOPE as S,prepareInitializedPlatformRequest} from '../../lib/deployments/initialized-platform-request-v1.ts';
+import {INITIALIZED_PLATFORM_SCOPE as S,prepareInitializedPlatformRequest,projectInitializedDeployment} from '../../lib/deployments/initialized-platform-request-v1.ts';
 import {prepareCloudContextV5,PUBLIC_CAPSULE_SHA256_V5} from '../cloud-worker/cloud-context-v5.mjs';
 import {continueCloudContextV5,createCloudWorkerRootV5,assertInstallationV5,assertCloudManifestV5} from '../cloud-worker/cloud-worker-root-v5.mjs';
-import {recoveryData,freeze} from '../platform-recovery-v1/basis-core.mjs';
+import {recoveryData,freeze,assertRetirement} from '../platform-recovery-v1/basis-core.mjs';
 import {normalizedState,assertAdmissionSnapshot} from '../platform-request-v6/state-contract.mjs';
 import {runPlatformCloudV6} from '../platform-cloud-v6/runtime.mjs';
 import {CLOUD_V6,assertReferenceV6,exactRunV6,resultKeyV6} from '../platform-cloud-v6/contract.mjs';
@@ -79,8 +79,31 @@ export function bindBuyerTaskHashes(base,hashes,createProvider){
   });
 }
 const prepared=new WeakMap();
+const acceptedMode=s=>Object.hasOwn(s,'acceptedContinuation');
+function continuationTime(f,at){
+  must(same(Object.keys(f??{}).sort(),['databaseCheckedAt','expiresAt','factsAt','observedBy'])&&
+    Object.values(f).every(Number.isSafeInteger)&&f.factsAt<=f.databaseCheckedAt&&f.databaseCheckedAt<=f.observedBy&&
+    f.expiresAt===f.factsAt+5*3600000&&Number.isSafeInteger(at)&&at>=f.observedBy&&at<f.expiresAt,'ACCEPTED_FACT_WINDOW');
+}
+// An explicit, source-bound new approval; never extend the archived basis.
+async function continuationFacts(s,at,profile){
+  const c=s.acceptedContinuation;
+  must(c?.schema==='techlong/buyer-accepted-continuation/v1'&&same(Object.keys(c).sort(),
+    ['approval','baselineSha256','facts','historicalBasisSha256','predecessor','retirement','retirementSha256','schema'])&&
+    c.historicalBasisSha256===s.basisSha256&&c.baselineSha256===s.baselineSha256&&same(c.predecessor,s.predecessor)&&
+    digest(c.retirementSha256)&&await sha256Hex(c.retirement)===c.retirementSha256,'ACCEPTED_FACT_BINDING');
+  continuationTime(c.facts,at);
+  const commitment={historicalBasisSha256:c.historicalBasisSha256,baselineSha256:c.baselineSha256,
+    predecessor:c.predecessor,facts:c.facts,retirementSha256:c.retirementSha256};
+  must(same(Object.keys(c.approval??{}).sort(),['factsSha256','manifestSha256','state'])&&c.approval.state==='APPROVED'&&
+    digest(c.approval.manifestSha256)&&c.approval.factsSha256===await sha256Hex(commitment),'ACCEPTED_FACT_APPROVAL');
+  if(profile)must(profile.stateSha256===c.baselineSha256&&['factsAt','databaseCheckedAt','observedBy'].every(k=>profile[k]===c.facts[k]),'ACCEPTED_PROFILE_FACTS');
+  const body={schema:'techlong/buyer-accepted-continuation-authority/v1',...commitment,
+    approvalManifestSha256:c.approval.manifestSha256,createdAt:c.facts.observedBy,expiresAt:c.facts.expiresAt};
+  return freeze({...body,basisSha256:await sha256Hex(body)});
+}
 export function buyerCompatibilityData(capability,at){
-  const d=prepared.get(capability);must(d,'SOURCE_CAPABILITY_REQUIRED');recoveryData(d.basis,at);return d;
+  const d=prepared.get(capability);must(d,'SOURCE_CAPABILITY_REQUIRED');d.assertCurrent(at);return d;
 }
 // Preserve the old four self-reference rules; the two explicit buyer context
 // references below are the only additional derived fields, never free inputs.
@@ -96,9 +119,10 @@ export async function prepareBuyerFromSource(source,bundle,{now=Date.now}={}){
   must(source?.buyer?.schema==='techlong/buyer-context-selection/v1'&&source.publication?.schema==='techlong/buyer-context-publication/v1'&&
     source.publication.protocol==='platform-v6/buyer-context'&&await sha256Hex(bundle)===source.publication.packageReference?.sha256,'SELECTED_BUNDLE');
   const basis=await rebuildRecoveryPackage(bundle.originalPackage,recoveryBasisCompiler(source.buyer.originalProfile));
-  must(basis.basisSha256===source.publication.basisSha256&&source.buyer.source.code.commitSha===source.publication.sourceCommit&&
+  must(source.buyer.source.code.commitSha===source.publication.sourceCommit&&
     await sha256Hex(source.buyer.source)===source.publication.buyerContextSha256,'SELECTED_SOURCE_BINDING');
-  const compat=await prepareBuyerCompatibility({source:source.buyer.source,basis,capsule:bundle.capsule,links:bundle.links,now});
+  const compat=await prepareBuyerCompatibility({source:source.buyer.source,basis,capsule:bundle.capsule,links:bundle.links,baseline:bundle.baseline,now});
+  must(buyerCompatibilityData(compat,now()).authority.basisSha256===source.publication.basisSha256,'SELECTED_SOURCE_BINDING');
   await rebuildBuyerBundle(compat,bundle);return compat;
 }
 
@@ -119,9 +143,10 @@ export async function buyerCompatibilityClosure(){
 /** The serialized basis is never trusted: recoveryData requires the genuine
  * original compiler capability. Append independently accepted successors BEFORE
  * changing CORS, so the retired/unaccepted recovery gap cannot be skipped. */
-export async function prepareBuyerCompatibility({source=BUYER_SOURCE,basis,capsule,links,now=Date.now}){
+export async function prepareBuyerCompatibility({source=BUYER_SOURCE,basis,capsule,links,baseline,now=Date.now}){
   must(source?.schema==='techlong/buyer-compatibility-source/v1','SOURCE_NOT_CONFIGURED');
-  const s=freeze(structuredClone(source)),at=now(),d=recoveryData(basis,at),history=structuredClone(links);
+  const s=freeze(structuredClone(source)),at=now(),isAccepted=acceptedMode(s),
+    d=recoveryData(basis,isAccepted?basis?.createdAt:at),history=structuredClone(links);
   must(s.basisSha256===basis.basisSha256&&digest(s.linksSha256)&&Array.isArray(history)&&history.length>0&&
     await sha256Hex(history)===s.linksSha256,'HISTORICAL_BINDING');
   const {capsuleSha256,...body}=structuredClone(capsule??{});
@@ -145,11 +170,32 @@ export async function prepareBuyerCompatibility({source=BUYER_SOURCE,basis,capsu
     adminUserId:s.request.adminUserId,scope:S});
   must(requestId===s.request.requestId&&s.request.jobId==='job_'+(await sha256Hex({purpose:'express-initialized-job/v2',
     deploymentId:S.deploymentId,materialSha256:S.materialSha256,requestId})).slice(0,24),'DETERMINISTIC_REQUEST_SCOPE');
+  let authority=basis,acceptedBaseline;
+  if(isAccepted){
+    authority=await continuationFacts(s,at);must(baseline,'ACCEPTED_BASELINE_REQUIRED');acceptedBaseline=freeze(normalizedState(baseline));
+    assertAdmissionSnapshot(acceptedBaseline.deployment,at);
+    must(await sha256Hex(acceptedBaseline)===s.baselineSha256&&acceptedBaseline.jobs.every(j=>['succeeded','canceled'].includes(j.status)&&
+      ['lease_owner','lease_token','lease_expires_at'].every(k=>j[k]===null)),'ACCEPTED_TERMINAL_BASELINE');
+    const view=projectInitializedDeployment({deployment:acceptedBaseline.deployment,jobs:acceptedBaseline.jobs,gateEnabled:false,now:at}),
+      last=history.at(-1),receipt=acceptedBaseline.deployment.outputs.expressInitializedWorkerRunsV2?.[s.predecessor.jobId],
+      job=acceptedBaseline.jobs.find(j=>j.id===s.predecessor.jobId);
+    must(view.view.state==='expired'&&view.view.latest?.jobId===s.predecessor.jobId&&same(view.rawReceipt,receipt)&&
+      same(receipt,last.receipt)&&job?.status==='succeeded'&&job.attempts===1&&job.max_attempts===1&&
+      job.payload.planSha256===receipt.jobPlanSha256&&acceptedBaseline.deployment.admissionSnapshot.predecessorJob.id===job.id,
+      'ACCEPTED_LATEST_RECEIPT');
+    await assertRetirement(s.acceptedContinuation.retirement,{stackId:s.predecessor.stackId,retirementSha256:s.acceptedContinuation.retirementSha256},
+      last.providerObservation,last.manifest,s.acceptedContinuation.facts.observedBy);
+    must(Date.parse(s.acceptedContinuation.retirement.deletionTime)<=s.acceptedContinuation.facts.factsAt,'ACCEPTED_RETIREMENT_BEFORE_FACTS');
+  }
   const context=Object.freeze({...accepted,capsuleSha256:BUYER_CAPSULE_SHA256,publicParameters:freeze(body.publicParameters),
     currentCloudHealthProved:false,executionAuthorized:false,runtimeEnabled:false});
-  const guard=()=>{recoveryData(basis,now());return context;};
+  const assertCurrent=checkAt=>{
+    if(isAccepted){continuationTime(s.acceptedContinuation.facts,checkAt);assertAdmissionSnapshot(acceptedBaseline.deployment,checkAt);}
+    else recoveryData(basis,checkAt);
+  };
+  const guard=()=>{assertCurrent(now());return context;};
   async function prepareRequest(state){
-    guard();const snapshot=normalizedState(state),at=now();assertAdmissionSnapshot(snapshot.deployment,at);
+    guard();const snapshot=normalizedState(state),at=now();assertCurrent(at);assertAdmissionSnapshot(snapshot.deployment,at);
     must(await sha256Hex(snapshot)===s.baselineSha256&&snapshot.jobs.every(j=>['succeeded','canceled'].includes(j.status)&&
       ['lease_owner','lease_token','lease_expires_at'].every(k=>j[k]===null)),'FULL_TERMINAL_BASELINE');
     const receipt=snapshot.deployment.outputs.expressInitializedWorkerRunsV2?.[s.predecessor.jobId];
@@ -173,7 +219,7 @@ export async function prepareBuyerCompatibility({source=BUYER_SOURCE,basis,capsu
     });
   }
   const result=Object.freeze({context,prepareRequest,openRoot,source:s,runtimeEnabled:false,executionAuthorized:false});
-  prepared.set(result,Object.freeze({basis,target:d.target,context,source:s,now}));return result;
+  prepared.set(result,Object.freeze({basis,authority,target:d.target,context,source:s,now,assertCurrent,authorityExpiresAt:authority.expiresAt}));return result;
 }
 
 // Source-pinned public bundle only. Rebuild the genuine historical basis rather
@@ -185,10 +231,10 @@ export async function rebuildBuyerBundle(compat,bundle){
     same(Object.keys(bundle).sort(),['baseline','capsule','links','originalPackage','schema']),'BUNDLE_FIELDS');
   const basis=await rebuildRecoveryPackage(bundle.originalPackage,recoveryBasisCompiler(d.target));
   must(same(basis,d.basis),'BUNDLE_HISTORICAL_BASIS');
-  const rebuilt=await prepareBuyerCompatibility({source:s,basis,capsule:bundle.capsule,links:bundle.links,now:d.now});
+  const rebuilt=await prepareBuyerCompatibility({source:s,basis,capsule:bundle.capsule,links:bundle.links,baseline:bundle.baseline,now:d.now});
   const baseline=normalizedState(bundle.baseline);await rebuilt.prepareRequest(baseline);
   must(same(rebuilt.context.predecessor,d.context.predecessor),'BUNDLE_ACCEPTED_CONTEXT');
-  return {basis,baseline,compat:rebuilt};
+  return {basis,authority:buyerCompatibilityData(rebuilt,compatibilityNow(rebuilt)).authority,baseline,compat:rebuilt};
 }
 function compatibilityNow(c){const d=prepared.get(c);must(d,'SOURCE_CAPABILITY_REQUIRED');return d.now();}
 
@@ -202,7 +248,7 @@ export function createBuyerPublisher({compat,publication,ports,now=Date.now}){
     buyerCompatibilityData(compat,now());
     must(p.schema==='techlong/buyer-context-publication/v1'&&p.protocol==='platform-v6/buyer-context'&&p.state==='PUBLISHED'&&
       releaseReady(p.release)&&p.sourceCommit===d.source.code.commitSha&&p.release.closureSha256===d.source.code.closureSha256&&
-      /^[a-f0-9]{40}$/.test(p.frozenSourceCommit??'')&&p.basisSha256===d.basis.basisSha256&&
+      /^[a-f0-9]{40}$/.test(p.frozenSourceCommit??'')&&p.basisSha256===d.authority.basisSha256&&
       p.release.installationSha256===CLOUD_V6.installationSha256,'PUBLISHER_BINDING');
     await ports.guard();
   }
@@ -272,7 +318,7 @@ export function createBuyerPublisher({compat,publication,ports,now=Date.now}){
       await admitPlatformJobV4({root:d.context.root,predecessor:d.context.predecessor,observed:await ports.readHeldJob(job),now:now()});
       return publish({schema:'techlong/platform-controller-plan/v6',instanceId:S.appInstanceId,deploymentId:S.deploymentId,
         jobId:job,mode:'Review',sourceCommit:p.sourceCommit,releaseSha256:await sha256Hex(p.release),riskSha256:p.release.riskSha256,
-        preparedAt:at,expiresAt:Math.min(at+7200000,d.basis.expiresAt),predecessor:null,
+        preparedAt:at,expiresAt:Math.min(at+7200000,d.authorityExpiresAt),predecessor:null,
         inputs:{mode:'Review',job,installation:canonicalJson(installationReference),manifest:'',manifestSha:'',execution:'',lineage:''}});
     },
     async attestResult(sha,ref){const v=await verified(sha,ref);must(v.entry.attempt.proofSha256===null,'PUBLISHER_PROOF_OCCUPIED');
@@ -280,7 +326,7 @@ export function createBuyerPublisher({compat,publication,ports,now=Date.now}){
     async publishSuccessor(sha,ref){
       const v=await verified(sha,ref);must(v.entry.attempt.proofSha256===v.attestation.proofSha256&&v.entry.plan.mode!=='Inspect','PUBLISHER_PARENT');
       const plan=structuredClone(v.entry.plan),at=now();plan.mode=plan.mode==='Review'?'RunOnce':'Inspect';plan.inputs.mode=plan.mode;
-      plan.preparedAt=at;plan.expiresAt=Math.min(at+7200000,d.basis.expiresAt,v.manifest.workload.workloadExpiresAt);
+      plan.preparedAt=at;plan.expiresAt=Math.min(at+7200000,d.authorityExpiresAt,v.manifest.workload.workloadExpiresAt);
       plan.predecessor={planSha256:sha,runId:v.entry.attempt.runId,proofSha256:v.attestation.proofSha256};
       plan.inputs.manifest=canonicalJson(v.attestation.manifestReference);plan.inputs.manifestSha=v.manifest.manifestSha256;
       if(plan.mode==='RunOnce'){assertRunWindowV3(v.manifest,at);plan.expiresAt=Math.min(plan.expiresAt,v.manifest.jobPlan.claimBy-480000,v.manifest.workload.workloadExpiresAt-90*60000);}
@@ -293,9 +339,9 @@ export function createBuyerPublisher({compat,publication,ports,now=Date.now}){
 /** Candidate cloud mode wiring reuses the original V6 bridge and V5 root.
  * SDK/OIDC/S3 ports and a reviewed SOURCE must be supplied by a later publication;
  * no workflow, IAM trust, installed binding or historical protocol is changed. */
-export async function runBuyerCompatibility({source=BUYER_SOURCE,basis,capsule,links,now=Date.now,
+export async function runBuyerCompatibility({source=BUYER_SOURCE,basis,capsule,links,baseline,now=Date.now,
   env,binding,closure,ports,dependencies}){
-  const compat=await prepareBuyerCompatibility({source,basis,capsule,links,now}),s=compat.source;
+  const compat=await prepareBuyerCompatibility({source,basis,capsule,links,baseline,now}),s=compat.source;
   must(closure.schema==='techlong/buyer-compatibility-closure/v1'&&closure.pinCount===111&&
     closure.previousReviewedCycleClosureSha256==='0c6f119def3b10efe592f559b29d4d8f929893a28dbc77a065c2746052aa308d'&&
     env.GITHUB_SHA===s.code.commitSha&&closure.closureSha256===s.code.closureSha256&&
@@ -343,12 +389,14 @@ export async function createBuyerApplication({compat,installation:raw,code,run,c
 // Receipt values must already be source-bound; this function invents none.
 export async function assertBuyerPublicationSource(source,at,{anchor}={}){
   const cycle=await createReviewedCycle(source,{anchor}),p=source.publication,b=source.buyer,s=b?.source,a=p?.factsApproval,
-    end=Math.min(b?.originalProfile?.factsAt+b?.originalProfile?.validMs,cycle.profile.factsAt+cycle.profile.validMs);
+    accepted=s&&acceptedMode(s)?await continuationFacts(s,at,cycle.profile):null,
+    authorityEnd=accepted?.expiresAt??b?.originalProfile?.factsAt+b?.originalProfile?.validMs,
+    end=Math.min(authorityEnd,cycle.profile.factsAt+cycle.profile.validMs);
   must(b?.schema==='techlong/buyer-context-selection/v1'&&s?.schema==='techlong/buyer-compatibility-source/v1'&&
     p?.schema==='techlong/buyer-context-publication/v1'&&p.protocol==='platform-v6/buyer-context'&&p.state==='PUBLISHED'&&
     p.riskFile===RISK&&p.cycleId===cycle.cycleId&&releaseReady(p.release)&&/^[a-f0-9]{40}$/.test(p.frozenSourceCommit??'')&&
     p.release.installationSha256===CLOUD_V6.installationSha256&&p.profileSha256===await sha256Hex(cycle.profile)&&
-    p.basisSha256===s.basisSha256&&digest(p.basisSha256)&&p.sourceCommit===s.code?.commitSha&&
+    p.basisSha256===(accepted?.basisSha256??s.basisSha256)&&digest(p.basisSha256)&&p.sourceCommit===s.code?.commitSha&&
     p.release.closureSha256===s.code?.closureSha256&&await sha256Hex(s)===p.buyerContextSha256&&
     s.request?.jobId===cycle.profile.newJobId&&s.request.requestId===cycle.profile.requestId&&
     s.request.clientRequestId===cycle.profile.clientRequestId&&s.baselineSha256===cycle.profile.stateSha256,'LIVE_SOURCE');

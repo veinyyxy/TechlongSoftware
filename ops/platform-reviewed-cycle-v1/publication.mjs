@@ -114,7 +114,7 @@ export async function createBuyerPublication({compat,bundle,source,requestSnapsh
   await assertBuyerPublicationSource(source,now(),{anchor:d.target});
   must(same(source.buyer?.source,d.source)&&same(source.buyer.originalProfile,d.target),'BUYER_GENUINE_SOURCE');
   const composition=await createCycleComposition(source,{buyer:compat,buyerBundle:bundle,now,anchor:d.target});
-  await composition.capability.verifyRequestReadback(rebuilt.basis,requestSnapshot,source.requestEvidence.transactionAt);
+  await composition.capability.verifyRequestReadback(rebuilt.authority,requestSnapshot,source.requestEvidence.transactionAt);
   must(typeof operatorScopeSource==='string'&&operatorScopeSource.startsWith('// Local operator binding only;')&&
     operatorScopeSource.includes('export const SELECTED_CYCLE=Object.freeze('),'BUYER_BEFORE_BINDING');
   validatePublicationSourceV6(baseline);
@@ -168,7 +168,7 @@ export async function createBuyerPublication({compat,bundle,source,requestSnapsh
     layout(state);objects(parent,o,text);
     must(same(state,before)&&state.main===parent&&parent===source.publication.sourceCommit&&frozen.sourceCommit===parent&&
       Number.isSafeInteger(observedAt)&&Number.isSafeInteger(createdAt)&&createdAt>=observedAt&&createdAt-observedAt<scope.snapshotMaxAgeMs&&
-      createdAt>=source.profile.observedBy&&createdAt<d.basis.expiresAt&&pins?.length>=20&&pins.every(p=>digest(p.sha256))&&new Set(pins.map(p=>p.file)).size===pins.length&&
+      createdAt>=source.profile.observedBy&&createdAt<d.authorityExpiresAt&&pins?.length>=20&&pins.every(p=>digest(p.sha256))&&new Set(pins.map(p=>p.file)).size===pins.length&&
       ci?.sourceCommit===parent&&ci.testedSourceCommit===parent&&ci.attempt===1&&ci.status==='completed'&&ci.conclusion==='success'&&
       same(targets?.map(x=>x.file),[scope.reusable,scope.caller,scope.bindingFile])&&targets.every(x=>sha(x.blob)&&digest(x.normalizedLfSha256))&&
       targets[2].normalizedLfSha256===scope.bindingBeforeSha256,'BUYER_REVIEW_INPUT');
@@ -183,7 +183,7 @@ export async function createBuyerPublication({compat,bundle,source,requestSnapsh
     must(Buffer.byteLength(create.TemplateBody)<=51200,'BUYER_TEMPLATE_SIZE');create.ClientToken='buyer-publication-create-'+hash(create).slice(0,40);
     const body={schema:'techlong/buyer-source-publication-review/v1',...input,frozen,source:bound,publication:bound.publication,
       permanentSlot:scope.slot,inspectSlot:scope.inspectSlot,riskFile:scope.riskFile,
-      expiresAt:Math.min(observedAt+scope.validMs,d.basis.expiresAt,bound.publication.factsApproval.expiresAt),
+      expiresAt:Math.min(observedAt+scope.validMs,d.authorityExpiresAt,bound.publication.factsApproval.expiresAt),
       actions:{push:{remote:'github',refspec:o.caller.commit+':refs/heads/main',force:false},create,
         execute:{StackName:frozen.stackId,ChangeSetName:'EXACT_ARN_RETURNED_BY_THIS_CREATE_ACK',DisableRollback:true,
           ClientRequestToken:'buyer-publication-execute-'+hash(create).slice(0,40)},

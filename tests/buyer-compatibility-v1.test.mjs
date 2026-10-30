@@ -3,7 +3,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {cycleCloudClosure} from '../ops/platform-reviewed-cycle-v1/closure.mjs';
-import {BUYER_SOURCE,BUYER_ORIGINS,BUYER_CAPSULE_SHA256,BUYER_TASK_HASHES,bindBuyerTaskHashes,prepareBuyerCompatibility,runBuyerCompatibility} from '../ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs';
+import {BUYER_SOURCE,BUYER_ORIGINS,BUYER_CAPSULE_SHA256,BUYER_TASK_HASHES,bindBuyerTaskHashes,prepareBuyerCompatibility,runBuyerCompatibility,buyerCompatibilityData} from '../ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs';
+import {recoveryData} from '../ops/platform-recovery-v1/basis-core.mjs';
 import {cloudTaskProjectionV5} from '../ops/cloud-worker/aws-initialized-workload-v5.mjs';
 import {assertCloudManifestV5,createCloudWorkerRootV5} from '../ops/cloud-worker/cloud-worker-root-v5.mjs';
 import {prepareCloudContextV5} from '../ops/cloud-worker/cloud-context-v5.mjs';
@@ -187,4 +188,52 @@ test('even a SOURCE-matching active row or previously used request cannot compil
 test('old frozen cloud closure remains exactly 110 files and original SHA',async()=>{
   const c=await cycleCloudClosure();assert.equal(c.pinCount,110);
   assert.equal(c.closureSha256,'0c6f119def3b10efe592f559b29d4d8f929893a28dbc77a065c2746052aa308d');
+});
+
+test('accepted successor uses separately approved five-hour facts, never extends the archival basis',async()=>{
+  const f=await fixture({accepted:true}),before=canonicalJson(f.f.basis),at=f.options.now(),d=buyerCompatibilityData(f.compat,at);
+  assert(at>f.f.basis.expiresAt);assert.throws(()=>recoveryData(f.f.basis,at),/UNVERIFIED_OR_EXPIRED_BASIS/);
+  assert.equal(d.authorityExpiresAt,f.source.acceptedContinuation.facts.expiresAt);assert(d.authorityExpiresAt>at);
+  assert.equal(d.authority.schema,'techlong/buyer-accepted-continuation-authority/v1');assert.notEqual(d.authority.basisSha256,d.basis.basisSha256);
+  assert.equal(canonicalJson(d.basis),before);assert.equal(canonicalJson(f.f.basis),before);
+  const request=await f.compat.prepareRequest(f.state);assert.equal(request.program.jobId,f.source.request.jobId);
+  assert.equal((request.program.text.match(/INSERT INTO/g)||[]).length,1);assert.deepEqual(f.events,[]);
+  const legacy=structuredClone(f.source);delete legacy.acceptedContinuation;
+  await assert.rejects(prepareBuyerCompatibility({...f.options,source:legacy}),/UNVERIFIED_OR_EXPIRED_BASIS/);
+  await assert.rejects(prepareBuyerCompatibility({...f.options,basis:structuredClone(f.f.basis)}),/UNVERIFIED_OR_EXPIRED_BASIS/);
+  f.advance(5*3600000);assert.throws(()=>buyerCompatibilityData(f.compat,f.options.now()),/ACCEPTED_FACT_WINDOW/);
+  await assert.rejects(f.compat.prepareRequest(f.state),/ACCEPTED_FACT_WINDOW/);
+});
+
+test('accepted continuation rejects absent approval, expiry extension, drift and incomplete retirement before opening ports',async()=>{
+  const f=await fixture({accepted:true});
+  for(const mutate of [s=>{s.acceptedContinuation.approval.state='DRAFT';},s=>{s.acceptedContinuation.approval.factsSha256='0'.repeat(64);},
+    s=>{s.acceptedContinuation.facts.expiresAt++;},s=>{s.acceptedContinuation.facts.observedBy=f.options.now()+1;},
+    s=>{s.acceptedContinuation.predecessor.receiptSha256='0'.repeat(64);},s=>{s.acceptedContinuation.retirement.resources.pop();},
+    s=>{s.acceptedContinuation.unreviewed=true;}]){
+    const source=structuredClone(f.source);mutate(source);await assert.rejects(prepareBuyerCompatibility({...f.options,source}));
+  }
+  const changed=structuredClone(f.state);changed.protection.catalogSha256='0'.repeat(64);
+  await assert.rejects(prepareBuyerCompatibility({...f.options,baseline:changed}),/ACCEPTED_TERMINAL_BASELINE/);
+  await assert.rejects(prepareBuyerCompatibility({...f.options,links:[]}),/HISTORICAL_BINDING/);assert.deepEqual(f.events,[]);
+});
+
+test('even rehashed accepted evidence must match real independent lineage, terminal history and seven physical resources',async()=>{
+  const f=await fixture({accepted:true});
+  async function reapprove(source){const c=source.acceptedContinuation;c.retirementSha256=await sha256Hex(c.retirement);
+    c.approval.factsSha256=await sha256Hex(Object.fromEntries(['historicalBasisSha256','baselineSha256','predecessor','facts','retirementSha256'].map(k=>[k,c[k]])));}
+  for(const mutate of [r=>{r.resources.pop();},r=>{r.resources[0].PhysicalResourceId='wrong';},
+    r=>{r.stackId='wrong';},r=>{r.deletionTime=new Date(f.options.now()).toISOString();}]){
+    const source=structuredClone(f.source);mutate(source.acceptedContinuation.retirement);await reapprove(source);
+    await assert.rejects(prepareBuyerCompatibility({...f.options,source}),/EXACT_RETIRED_UUID_AND_INVENTORY|ACCEPTED_RETIREMENT_BEFORE_FACTS/);
+  }
+  const links=structuredClone(f.links);links[0].inspect.outcome='NOT_ACCEPTED';const source=structuredClone(f.source);source.linksSha256=await sha256Hex(links);
+  await assert.rejects(prepareBuyerCompatibility({...f.options,source,links}),/SUCCESSOR_LINEAGE_NOT_PROVED/);
+  for(const mutate of [s=>{s.jobs[0].status='running';},s=>{s.jobs[0].lease_owner='fixture';},
+    s=>{s.deployment.admissionSnapshot.predecessorJob.id=s.jobs[0].id;}]){
+    const baseline=structuredClone(f.state),source=structuredClone(f.source);mutate(baseline);source.baselineSha256=await sha256Hex(baseline);
+    source.acceptedContinuation.baselineSha256=source.baselineSha256;await reapprove(source);
+    await assert.rejects(prepareBuyerCompatibility({...f.options,source,baseline}),/ACCEPTED_TERMINAL_BASELINE|ACCEPTED_LATEST_RECEIPT/);
+  }
+  assert.deepEqual(f.events,[]);
 });

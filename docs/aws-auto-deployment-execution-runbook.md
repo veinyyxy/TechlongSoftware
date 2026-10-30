@@ -47,6 +47,12 @@ Source刷新后，另批新b仍在首次STS以通用Error停止；只有STS尝�
 
 **下一唯一动作先取得最小兼容代码范围的同意，不再追加在线核对或创建请求。** 本地旧genuine basis归档重建通过，但当前真实DB时刻被原expiry guard拒绝；完整已验收a00后继链及当前最新成功回执匹配，而将新完整状态交给旧9db锚编译器被LATEST_EXPIRED_RECEIPT拒绝。现有buyer路径强依赖仍有效的“未验收恢复basis”，不能合法承接已验收后继的新周期。只提议在现有buyer适配及必要composition/publication校验中区分“历史溯源”与“新已验收续接事实”，加对应现有回归；不删旧expiry/min保护、不重计原件、改冻结110或新增执行器。具体最小范围/停止条件见[集中附表](aws-backend-integration-preparation.md#新事实已取得但已验收续接仍no-go10月30日1445-cdt)。未获同意前不改运行代码；新候选/合法basis/请求/执行SHA仍null，后继实际副作用及三次本人GitHub审批另审，不提前开窗。
 
+**本轮用户已明确同意上述最小兼容修复与测试。** 仅改原buyer适配、必要composition/publication校验及对应现有回归/文档，保留旧basis/冻结110；不读取生产或私密材料、不创建新事实批准/请求/执行槽、不发布来源或部署。上段“先取得同意”现为批准前记录，不再次征求同一代码范围。准确源码/CI完成后只准备后继受审材料，不自动使用已过期快照。
+
+本轮已在原三个模块实现独立的 `buyer-accepted-continuation-authority/v1`，旧basis只重建历史溯源且原expiry保持；新能力有不同摘要、明确另批的五小时事实、完整终态基线/最新成功回执、原独立验收链和七资源准确退役校验。原组合把新能力传给既有发布器，不伪造旧basis的新expiry，不改冻结110、单INSERT或整轮执行器。缺批准/过期、篡改基线/验收/退役/来源或用旧摘要冒充新能力均拒绝；默认SOURCE与publication selection仍null。
+
+本机167项相关检查（149项buyer/整轮/包/发布/退役等＋18项旧云来源归档）、类型和六文件零警告lint通过，新增7项为合成回归，含原三模式整轮及真实SDK类的受限mock入口；不是线上部署验收。准确源码/无AWS CI只在实际通过后封存 `F:/ChatGPT_workshop/techlong-buyer-accepted-continuity-code-verified-20261030-a.json`，不存在/不匹配即尚未完成CI核验。下一只核对该CI并准备新的合法请求/材料的准确范围，不追加功能；尚无真实新facts approval/能力/候选/执行SHA，14:43准备快照至19:43仍不重计，实际读取/请求/上传/来源发布/整轮另审。
+
 该结果仅完成阻断收尾，未证明买家/后端真实业务连通或整套AWS上线，wholeProductAccepted=false；共享Cell、数据库、前端等保留，账号费用归零未证明。
 
 下方独立b准备、时钟修正及a轮停止全部保留追溯，不再是待执行或待修复任务。
