@@ -1,6 +1,6 @@
 {
   "schema": "techlong/backend-integration-preparation/v1",
-  "status": "PUBLICATION_SOURCE_AND_FACT_BINDING_DRAFT_FROM_REAL_ORIGINALS_AWAITING_PREPARATION_APPROVAL",
+  "status": "MINIMAL_LEGACY_SOURCE_TEST_COMPATIBILITY_FIX_AWAITING_EXACT_CI",
   "executionApprovalSha256": null,
   "executionAuthorized": false,
   "sourceAuditCommit": "53e7991fb942924c1b45513145cc4e8bcc6433fc",
@@ -433,6 +433,28 @@
     "sourceSelectionsOrCloudWrites": 0,
     "executionAuthorized": false
   },
-  "nextUniqueAction": "Prepare/freeze the exact local SOURCE fact-binding plus original publication read-only capture manifest, then request explicit approval for that SHA. Actual b236 request/upload evidence is complete; do not recreate/reupload/replay a839. Fact binding is not publication or runtime approval, and a839 must not be relabeled as facts approval. Read scope is Source STS1 + worker/foundation metadata12 + GitHub20; no config/Secret/PEM/HMAC/S3 body/DB or resource writes. Only approved facts, fresh layout and exact final-parent CI may feed the original three-file/one-trust-claim publication review; actual publication and whole cycle remain separately approved. Original basis endpoint unchanged, no framework/code expansion or early paid window.",
+  "legacySourceTestCompatibilityFix": {
+    "userExplicitlyApprovedTestDocsAndCiOnly": true,
+    "previousDeleteSuggestionWithdrawnByUser": true,
+    "onlyCodeFile": "tests/platform-recovery-cloud-v1.test.mjs",
+    "originalLegacyAssertionsAndFullWorkflowByteChecksPreserved": true,
+    "originalNativeBinderAndFactValidatorReused": true,
+    "newSyntheticRegressionCases": 1,
+    "localFileChecksPassed": 18,
+    "adjacentPublicationChecksPassed": 37,
+    "totalLocalChecksPassed": 55,
+    "typecheckAndScopedZeroWarningLintPassed": true,
+    "old110AndCandidate111Unchanged": true,
+    "runtimeOrPermissionChanges": 0,
+    "newFrameworkOrExecutor": false,
+    "exactCiNotAssumedBeforeCheckpoint": true,
+    "checkpointMustExistAndMatch": "F:/ChatGPT_workshop/techlong-buyer-legacy-source-test-fix-verified-20261029-a.json",
+    "githubReadBudget": 6,
+    "additionalAwsOrDatabaseReads": 0,
+    "existingAwsObservationAt": "2026-10-29T23:18:00.710Z",
+    "awsObservationNotRestamped": true,
+    "cloudWritesDispatchesOrDeletes": 0
+  },
+  "nextUniqueAction": "Complete this one existing legacy CI test compatibility fix, adjacent local checks and exact final-main CI using at most six GitHub GETs; then stop the test work and resume the original three-file/trust-only publication review preparation. Do not delete branches/resources/history or change runtime code. Reuse the already verified SOURCE facts and AWS snapshot without restamping or new AWS/DB reads. Old 658feef CI is historical, not new-parent CI; final main re-freezes after this narrow user-approved test/docs commit. Actual source publication/deployment remains separately approved.",
   "wholeProductAccepted": false
 }

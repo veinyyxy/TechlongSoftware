@@ -21,8 +21,11 @@ import {canonicalJson,sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {a604CloudWorkflows} from '../ops/platform-a604-cloud-v1/workflows.mjs';
 import {LOCAL_PUBLICATION,publicationAt} from '../ops/platform-a604-operator-v1/scope.mjs';
 import {SELECTED_CYCLE} from '../ops/platform-reviewed-cycle-v1/operator-source.mjs';
-import {bindWorkflowSource,createReviewedCycle,assertPublication} from '../ops/platform-reviewed-cycle-v1/cycle.mjs';
-import {sourceTemplate,texts as cycleWorkflowTexts} from '../ops/platform-reviewed-cycle-v1/publication.mjs';
+import {bindWorkflowSource,createReviewedCycle,assertPublication,RISK} from '../ops/platform-reviewed-cycle-v1/cycle.mjs';
+import {sourceTemplate,texts as cycleWorkflowTexts,F as CYCLE_FROZEN} from '../ops/platform-reviewed-cycle-v1/publication.mjs';
+import {bindBuyerWorkflowSource,assertBuyerPublicationSource,buyerCompatibilityClosure} from '../ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs';
+import {cloudWorkflowsV6} from '../ops/platform-cloud-v6/workflows.mjs';
+import {buyerFixture} from './fixtures/buyer-compatibility-v1.mjs';
 
 async function fixture(){
   const f=await recoveryFixture(),d=recoveryData(f.basis,f.at),events=[],puts=[];
@@ -149,6 +152,33 @@ test('new closure has no local capabilities and retains all 81 deployed files un
   assert.equal(r.status,0);const v=JSON.parse(r.stdout);assert.equal(v.state,'CANDIDATE_NOT_PUBLISHED');assert.equal(v.awsCalls+v.privateReads+v.sqlConnections,0);
 });
 
+// Test-only expected bytes. Historical checks below remain unconditional; the
+// native case validates the original source/facts contract at its recorded time.
+async function installedCycleTexts(selected,head){
+  if(selected.publication.protocol!=='platform-v6/buyer-context'){
+    assert.deepEqual(selected,{...sourceTemplate(),reusableCommit:selected.reusableCommit});
+    const source=await bindWorkflowSource(selected,head,selected.reusableCommit),cycle=await createReviewedCycle(source);
+    await assertPublication(cycle,source.publication,source.publication.factsApproval.observedBy);
+    return cycleWorkflowTexts(selected.reusableCommit);
+  }
+  const bound=await bindBuyerWorkflowSource(selected,head,selected.reusableCommit);
+  await assertBuyerPublicationSource(bound,bound.publication.factsApproval.observedBy,{anchor:bound.buyer.originalProfile});
+  assert.equal((await buyerCompatibilityClosure()).closureSha256,bound.publication.release.closureSha256);
+  const cloud=structuredClone(selected);delete cloud.reusableCommit;delete cloud.buyer.bundleFile;
+  const p=selected.publication,base=cloudWorkflowsV6({...CYCLE_FROZEN,sourceCommit:p.frozenSourceCommit,
+    closureSha256:p.release.closureSha256,reusableCommit:selected.reusableCommit}),
+    needle='      - run: node --experimental-strip-types ops/platform-cloud-v6/run.mjs',
+    code=["import {pathToFileURL} from 'node:url';","const load=rel=>import(pathToFileURL(process.cwd()+'/'+rel).href);",
+      "const {runBuyerLive,buyerCompatibilityClosure}=await load('ops/platform-reviewed-cycle-v1/buyer-compatibility.mjs');",
+      'const source='+JSON.stringify(cloud)+';',
+      "try { console.log(JSON.stringify(await runBuyerLive(process.env,await buyerCompatibilityClosure(),{source}))); }",
+      "catch { console.error('BUYER_CLOUD_STOPPED_NO_RETRY'); process.exitCode=1; }"];
+  assert.equal(base.reusable.split(needle).length,2);
+  const reusable=base.reusable.replace(needle,"      - run: |\n          node --experimental-strip-types --input-type=module <<'BUYER_BOOTSTRAP'\n"+
+    code.map(s=>'          '+s).join('\n')+'\n          BUYER_BOOTSTRAP');
+  assert(!/[EF]:\//.test(reusable));return {...base,reusable};
+}
+
 test('workflow renderer preserves archived publication; live files match the current reviewed SOURCE binding',async()=>{
   const f=await fixture(),w=recoveryCloudWorkflows(f.binding),caller=load(w.caller),job=load(w.reusable);
   assert.equal(Object.keys(caller.on.workflow_dispatch.inputs).length,7);assert.equal(caller.concurrency.group,'single-techlong-sandbox-cloud-worker-v5');
@@ -183,10 +213,7 @@ test('workflow renderer preserves archived publication; live files match the cur
   if(SELECTED_CYCLE!==null){
     // The newer installed SOURCE supersedes a604 only for current file bytes;
     // both older publication/provenance checks above remain mandatory.
-    assert.deepEqual(SELECTED_CYCLE,{...sourceTemplate(),reusableCommit:SELECTED_CYCLE.reusableCommit});
-    const source=await bindWorkflowSource(SELECTED_CYCLE,head,SELECTED_CYCLE.reusableCommit),cycle=await createReviewedCycle(source);
-    await assertPublication(cycle,source.publication,source.publication.factsApproval.observedBy);
-    active=cycleWorkflowTexts(SELECTED_CYCLE.reusableCommit);
+    active=await installedCycleTexts(SELECTED_CYCLE,head);
     assert.equal(load(active.caller).jobs.reviewed.uses,'veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@'+SELECTED_CYCLE.reusableCommit);
   }
   assert.equal(Object.keys(load(active.caller).on.workflow_dispatch.inputs).length,7);
@@ -196,4 +223,31 @@ test('workflow renderer preserves archived publication; live files match the cur
     assert.equal(current,text);
   }
   assert.equal(published.state.controllerActivated,false);assert.equal(published.state.workflowDispatched,false);
+});
+
+test('installed native buyer expectation preserves source/fact gates and rejects a changed fact deadline',async()=>{
+  // Existing synthetic fixture only; no private bundle or live publication proof.
+  const f=await buyerFixture(),at=f.options.now(),anchor={...f.f.profile};delete anchor.requestSlot;
+  const profile={...anchor,newJobId:f.source.request.jobId,clientRequestId:f.source.request.clientRequestId,
+    requestId:f.source.request.requestId,stateSha256:f.source.baselineSha256,databaseCheckedAt:at,observedBy:at},
+    profileSha256=await sha256Hex(profile),s={schema:'techlong/reviewed-cycle-source/v1',profile,
+      historicalJobIds:f.state.jobs.map(j=>j.id),historicalPlanCount:f.state.ledger.plans.length,historySha256:await sha256Hex(f.state.ledger),
+      requestEvidence:{schema:'techlong/reviewed-cycle-request-evidence/v1',jobId:profile.newJobId,requestId:profile.requestId,
+        transactionAt:at,independentObservedAt:at,afterSha256:await sha256Hex(f.observed.job),sealRawSha256:'1'.repeat(64)},
+      buyer:{schema:'techlong/buyer-context-selection/v1',source:{...f.source,code:{...f.source.code,commitSha:null}},
+        originalProfile:anchor,bundleFile:'F:/ChatGPT_workshop/techlong-synthetic-buyer.json'},reusableCommit:'b'.repeat(40)};
+  s.publication={...structuredClone(f.f.publication),schema:'techlong/buyer-context-publication/v1',protocol:'platform-v6/buyer-context',
+    riskFile:RISK,sourceCommit:null,profileSha256,buyerContextSha256:null,basisSha256:f.source.basisSha256,
+    release:{...f.f.publication.release,reusableCommit:null,closureSha256:f.closure.closureSha256},
+    packageReference:{key:'worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/lineage/buyer-context-v1-'+ 'a'.repeat(64)+'.json',versionId:'synthetic',sha256:'a'.repeat(64)},
+    factsApproval:{state:'APPROVED',manifestSha256:'7'.repeat(64),profileSha256,factsAt:profile.factsAt,databaseCheckedAt:at,observedBy:at,
+      expiresAt:Math.min(anchor.factsAt+anchor.validMs,profile.factsAt+profile.validMs),originalBasisExtended:false},
+    activation:{schema:'techlong/buyer-context-activation/v1',state:'PUBLISHED',protocol:'platform-v6/buyer-context',sourceCommit:null,
+      frozenSourceCommit:f.f.publication.frozenSourceCommit,releaseSha256:null}};
+  s.publication.cycleId=(await createReviewedCycle(s,{anchor})).cycleId;
+  const rendered=await installedCycleTexts(s,'c'.repeat(40));assert(rendered.reusable.includes('runBuyerLive'));
+  assert(!rendered.reusable.includes('F:/'));assert.equal(load(rendered.reusable).jobs.single.environment,'techlong-sandbox-deploy');
+  assert.equal(load(rendered.caller).jobs.reviewed.uses,'veinyyxy/TechlongSoftware/.github/workflows/cloud-worker-platform-job-v6.yml@'+s.reusableCommit);
+  const changed=structuredClone(s);changed.publication.factsApproval.expiresAt++;
+  await assert.rejects(installedCycleTexts(changed,'c'.repeat(40)),/LIVE_FACTS/);
 });

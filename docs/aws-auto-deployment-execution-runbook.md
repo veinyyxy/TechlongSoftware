@@ -31,6 +31,12 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 ## 3. 当前唯一继续点：整轮真实部署闭环已完成，转向产品验收与AWS交付
 
+**当前仅收尾一个旧CI测试兼容修复，不扩展发布支线。** 用户已明确同意只改 `tests/platform-recovery-cloud-v1.test.mjs`、必要文档并验证CI，撤回此前“太长就删除”的指令；不删除任何历史、资源或分支。原第186行强制当前来源等于旧a00模板，且硬接恢复信封校验/renderer，会拒绝新的b236/buyer来源。现在只在该测试中识别原生buyer协议，调用原六项绑定/来源事实校验，并用原基础workflow重建准确全文；旧历史发布断言和最终两个文件的逐字节比较全部保留。仅新增一个合成元数据回归，验证native路径及篡改事实期限拒绝，不改运行代码、权限或执行器。
+
+18项该文件检查及37项相邻发布回归均已通过（共55项），类型与该文件零警告lint通过；旧110/111摘要保持0c6f119d…/52ae2ee3…。准确CI只按实际结果封存。恢复读F:/ChatGPT_workshop/techlong-buyer-legacy-source-test-fix-verified-20261029-a.json；**文件未真实生成或不匹配时不能声称准确CI通过**。本次用户授权允许仅为这个测试/文档更新一次main；最终提交后重新冻结，不再追加文档使准确CI失效。旧658feef/CI40971833829及AWS读取仍保留为历史，不能冒称新HEAD已经核对。
+
+原事实绑定及限定只读已实际通过：检查点F:/ChatGPT_workshop/techlong-buyer-publication-preflight-20261029-a/capture/verified.json（raw SHA 0f2fe0e4d8d6010ab11ecacb6abadcc6fefda96e3aa1e29d5275a3cdf7e55773），实际STS1/其他AWS元数据9/GitHub15、无云写/配置/数据库读取；本地facts批准SHA27672b25…保持。只复用18:18 CDT实际AWS快照，不重计时间或重读；本次CI/main/双工作流核验最多6次GitHub GET，不调用AWS或Neon。准确CI完成即结束本测试修复，回到原三文件/单项trust发布清单准备；尚不生成或执行云变更，不重建请求/上传或开窗口。需要运行代码修改即停止另问，不借此扩功能。
+
 **最新完成（10月29日17:47–17:48 CDT）：请求登记＋材料上传已按a8393ad2…实际执行并独立核验成功。** 来源cc52401，准确COMMIT后新b236为pending/attempt0/max1、永久审核挂起、lease为空；独立TLS回读证明12条旧任务、17/12/12账本及业务/保护完全保持。原私有桶615808字节条件PUT1及固定版本GET1通过，真实VersionId ywA1SETga2C.2JIxiHXvTcLbXimP0n_4，bundle SHA f01f9489…。实际配置2/TLS2/SQL72/STS3/桶元数据6/HEAD2；IAM/工作流/秘密值/HMAC/PEM/DDB项/Aurora/续租/dispatch/承载/重试/清理均0。[去敏完成记录](../ops/aws-sandbox/reviews/backend-integration-v1.request-upload-observed.json)。
 
 恢复F:/ChatGPT_workshop/techlong-buyer-request-upload-executed-verified-20261029-a.json，raw SHA 4af3c72085a367a601120646fc4832315bd43946252be311585ab5d6df534a30；23份原件已本地重建，四个永久槽已消费，不再RunReviewed、重新登记/上传或复位。首次工具因额度无法完成自动审批而明确未启动；用户要求继续后核对全部槽/目录空缺，才唯一实际执行，未绕过审批。独立复核后本次来源冻结结束，允许正常记录结果，不重放已批准命令。

@@ -4,6 +4,10 @@
 
 ## 当前唯一继续点（2026-10-29，买家域名静态验收完成；回到后端联调）
 
+**当前只收尾旧来源测试的最小兼容修复及准确CI。** 用户已明确同意：只改tests/platform-recovery-cloud-v1.test.mjs与文档，不删除分支/资源/历史、不改运行代码。该测试的旧a00强制比较改为识别受审native buyer来源；原历史断言、六项绑定/事实校验及工作流全文比较保持，18项本机检查已通过。唯一新增回归为合成native元数据/期限篡改拒绝，不是新执行器或生产探针。
+
+本机18项定向＋37项相邻发布回归、类型/零警告lint已通过，旧110/111不变。准确远端结果只认F:/ChatGPT_workshop/techlong-buyer-legacy-source-test-fix-verified-20261029-a.json真实封存；最终提交CI通过后直接回到实际三文件/单trust发布清单，不继续扩测试支线。现有27672b25…facts及18:18 CDT的AWS元数据原件复用、不重计；本轮最多6次GitHub GET核对新CI/main/双workflow，AWS/配置/Secret/私钥/数据库/云写/调度均0。最终main提交后重新冻结；旧658feef CI不能替代新HEAD的准确CI，下方历史待审描述不重复执行。
+
 **最新：同一b236请求＋准确材料上传已真实完成，未激活或部署。** 用户批准a8393ad2…后，来源cc52401于17:47:07.486 CDT提交新held请求，17:47:13.475独立TLS回读通过；12旧任务及完整账本/业务/保护保持。原条件上传615808字节、固定版本回读成功，真实VersionId ywA1SETga2C.2JIxiHXvTcLbXimP0n_4。实际配置2/TLS2/SQL72/STS3/桶元数据6/HEAD2/PUT1/GET1，四槽已消费，23原件本地核对通过。[去敏完成记录](../ops/aws-sandbox/reviews/backend-integration-v1.request-upload-observed.json)；恢复F:/ChatGPT_workshop/techlong-buyer-request-upload-executed-verified-20261029-a.json，raw SHA 4af3c72085a367a601120646fc4832315bd43946252be311585ab5d6df534a30。
 
 **来源候选已重建，下一只确认“本地事实绑定＋原发布前限定只读”的准确准备清单。** 真实b236请求/VersionId及原basis已编译成cycle d1fdfd0e…/profile f9319902…，factsApproval仍null、SOURCE未发布；[去敏候选摘要](../ops/aws-sandbox/reviews/backend-integration-v1.publication-material-20261029.json)绑定F:/ChatGPT_workshop/techlong-buyer-publication-material-20261029-b/result.json（raw SHA f49a8945a82d28642051546d83a52714e18caa7f7af28b227574087adfcc816b）。本轮无新生产读取/代码改动/对象/槽，不能复用a839作为事实或来源批准。
