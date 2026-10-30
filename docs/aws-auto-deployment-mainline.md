@@ -10,6 +10,10 @@
 
 下一只集中准备新的合法后端联调请求、必要来源发布及Review→RunOnce→独立Inspect/有限业务验收范围，不创建请求、不读生产或自动部署。新的事实/写入/发布仍准确另审，不再扩退役、时钟或通用恢复支线；已取消b236及已删UUID不复活，旧deadline/TTL/basis不延长，本次退役窗口不当作新部署事实授权。wholeProductAccepted=false，未证明整套上线或费用归零。
 
+[本轮集中准备附表](aws-backend-integration-preparation.md)已明确：原basis10:08硬过期，单改新SOURCE/facts不够；需新完整13任务/19计划准入快照和真正合法的新basis/上下文，先过编译器再登记请求。不能用退役指纹推行或重计旧事实；如现有合同不承接，只给最小缺口，不扩框架。后继原单INSERT/条件上传、三文件/trust-only、整轮及有限店铺/菜单验收按准确新范围分门，材料先齐再开短窗。
+
+下一只等一次限定只读许可：Source STS1/AWS元数据75、GitHub GET10、.env.local读取1/验证TLS1/SQL45，不读Secret/PEM/HMAC/S3正文/DDB项，不连Aurora，写/新槽/dispatch均0。本轮仅本地核对/文档，没有调用该范围，无新候选任务或执行SHA。
+
 以下b准备及旧停止沿革已完成，不重跑。
 
 1df93f6/准确CI41110332862及88项相关检查已完成；代码检查点 `F:/ChatGPT_workshop/techlong-buyer-retirement-clock-fix-code-verified-20261030-a.json` raw SHA `cbc26cba387586b3d0d0be78c7bd619a09dad474d40f56b24f7883d3e4ca6acb`。本轮只准备独立b尝试的新SHA，保留旧2cddec6d失败目录/两个已消费槽；本地运行配方仅根a→b字面量变化，SQL/reader/业务范围不变，无工程运行代码改动、生产读取或执行槽消费。
