@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-30，退役完成，回到买家/后端联调准备）
+## 当前唯一继续点（2026-10-30，请求/上传材料收拢，等待新事实另审）
+
+当前依[受限调用配方与完整风险](aws-backend-integration-accepted-request-upload-review.md)继续。源码a221a24/准确CI41141437220通过；新候选36735d仅本地草案，bundle5485a0c9…/621945字节尚未上传。b补核19:40 CDT证明当时准确ID/dedupe/对象缺失、完整13任务/19/14/14账本及准入保护保持，实际STS1/HEAD1/配置1/TLS1/只读SQL17，零写/槽/调度；恢复 `F:/ChatGPT_workshop/techlong-buyer-accepted-target-readonly-20261030-b/checkpoint.json` raw SHA `28cff80bfbef9db6a9aa11b34436e954c3a6f034b837421435b2db64129c0691`。
+
+原14:43观察截止19:43:48.735、15分钟预留的最晚写启动19:28:48.735均不重计。当前只封存调用合同/风险及原件索引，不新增运行模块或生产调用；真实facts approval/authority/请求/上传VersionId/执行SHA仍null。下一唯一动作是在用户准备好继续时另批新限定只读事实，保持才绑定最终本机调用和准确请求/上传SHA；不直接运行历史b236脚本，不复用旧批准/补核许可、延期basis或TTL。来源发布/三次GitHub本人门禁整轮及有限业务验收仍在其后，wholeProductAccepted=false。
+
+### 已完成沿革（下方旧继续点不重放）
 
 用户批准88851603…后，执行HEAD d3b1bd2/运行源码1df93f6（准确CI41110332862）于14:03:25.788 CDT单次提交原b236退役并独立TLS只读核验通过。原任务canceled、lease清空，仅六字段改变；其余12任务、部署/outputs、payload/attempts/错误/dedupe、19/14/14账本及保护全保持，无新任务或成功回执。实际STS1/元数据4、配置2/TLS2/SQL40、UPDATE1/业务COMMIT成功、AWS写/dispatch0；写前栈已删、服务INACTIVE/0任务、目标准确缺失。
 
