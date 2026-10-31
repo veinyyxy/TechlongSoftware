@@ -1,0 +1,20 @@
+{
+  "schema": "techlong/temporary-idle/v1",
+  "temporary": true,
+  "enabled": false,
+  "expiresAt": null,
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "profile": "techlong-sandbox-user",
+  "services": [{"cluster": "REPLACE_WITH_PROJECT_CLUSTER", "service": "REPLACE_WITH_PROJECT_SERVICE"}],
+  "standaloneTasks": [],
+  "schedules": [],
+  "rules": [],
+  "vpcIds": [],
+  "natGatewayIds": [],
+  "endpointIds": [],
+  "allocationIds": [],
+  "requiredNetworkTags": {"Environment": "aws-sandbox"},
+  "acknowledgeNetworkRecreation": false,
+  "power": null
+}

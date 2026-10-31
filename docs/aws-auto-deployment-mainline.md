@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-最新人工止费操作：用户明确要求执行停止工具，另行同意暂停speedfeast-postgres-prod。实际StopDBCluster1/StopDBInstance1/DeleteLoadBalancer2均ACK，独立查询已确认ca-central-1两个项目ALB删除、两个数据库stopping，工具继续只读等待最终确认。恢复备份`F:/ChatGPT_workshop/aws-cost-backup-20261031-a`，具体状态见[实际停止记录](aws-resource-power-tools.md#本轮实际停止2026-10-31结果核验中)。未删除数据库、未装自动联动、不改IAM/CFN/DNS/ECS或设置主线暂停。
+当前用户指定的代码任务：按已同意的[临时止费方案](aws-temporary-idle.md)，独立实现剩余ECS/自动拉起来源/收费网络资源的停用与恢复；仅离线代码、合成测试及文档，默认关闭、正式上线后整体移除，不与正式部署/Janitor紧耦合。本轮不调用AWS或安装后台任务，不修改旧事实/TTL，不自动启用真实清理；原产品部署/验收目标保持。
+
+该临时代码任务已完成：新入口`aws-temporary-idle.mjs`及隔离目录支持停用/固定到期本地watch/分段恢复；54项合成测试、lint/typecheck/语法通过，111文件部署闭包保持。使用与最终移除步骤已记录；尚未启用watch或改变ECS/收费网络现状，不是云端自动止费验收。当前用户指定交付到此收尾，真实启用或恢复须另定准确范围，不自动沿用下方历史批准。
+
+最新人工止费操作：用户明确要求执行停止工具，另行同意暂停speedfeast-postgres-prod。实际StopDBCluster1/StopDBInstance1/DeleteLoadBalancer2均ACK；原进程于12:35:39.337 CDT完成`STOP_VERIFIED`/退出0，已确认ca-central-1两个项目ALB删除、两个数据库stopped。本轮仅从已存journal补记最终结果，未重跑或新增AWS查询。恢复备份`F:/ChatGPT_workshop/aws-cost-backup-20261031-a`，具体状态见[实际停止记录](aws-resource-power-tools.md#本轮实际停止2026-10-31已确认)。未删除数据库、未装自动联动、不改IAM/CFN/DNS/ECS或设置主线暂停。
 
 这次实际资源变化已经使原“ALB存在/数据库available”的旧AWS事实不再适用于直接部署，不能只因原五小时期限未到就沿用。以后恢复测试须先按准确范围恢复ALB/RDS并处理新CFN/DNS绑定，再准备真实新来源和租户栈；本轮不运行恢复工具或自动重放任何旧计划。
 
