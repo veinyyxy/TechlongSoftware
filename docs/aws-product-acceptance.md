@@ -6,6 +6,10 @@
 
 用户已取消改时间，恢复原主线。65f52068…的09:00标签保留提案**取消、未批准、未执行**，不创建/执行Change Set，不改标签、旧事实或回执。原件仍保留，取消不是资源清理。原01:34:42.313事实/01:47:54意图已经过期；本轮没有新的线上核对，当前栈/服务是否仍在保持未知，不能拿00:xx观察当08:xx现状。
 
+用户随后批准本次最小只读：固定Source STS1、准确Stack ARN的DescribeStacks/GetTemplate/ListStackResources及准确ECS service/task definition共最多5次元数据，稳定匹配才health/ready各1次；若栈已删/删除中即停，不恢复部署。新a在首次身份核对返回CREDENTIALS_EXPIRED，STS尝试1，其余元数据/HTTPS/私密值/数据库/业务与云写0，尚未取得新现状，未执行租约请求。记录 `F:/ChatGPT_workshop/techlong-buyer-device-state-20261031-a/run/result.json` raw SHA `f4bd01ffff26fe988a63da3e3cfa0f5ef6418c1036e22195bb0198a3f2e5fc8c`，包含准确调用、去敏错误分类和批准范围；不保存原始错误或凭据。本机入口语法通过不是线上验收，不重跑a或自动使用未用预算。
+
+当前只等待用户完成 `aws login --profile techlong-sandbox-user` 并另允新一轮同范围核对；不追加STS诊断、Secret读取、数据库、租约请求或部署。失败不能证明具体凭据链根因，也不证明承载已删除；原过期事实/意图仍不延长。
+
 ### 单一测试设备正常访问租约审批草案
 
 当前只完成本地范围准备，不使用凭据、AWS/HTTPS/数据库，不读私密值或执行JS，不产生业务/云写。**没有新的可执行批准SHA或短窗口**；待用户额度恢复、准备执行时，另批最小现状核对并绑定有效事实/窗口。若承载已删/删除中或原窗口不允许继续，就停止给出事实，不自动恢复部署、续期或另建任务。
