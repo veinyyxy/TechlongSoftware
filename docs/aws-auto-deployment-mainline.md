@@ -2,6 +2,10 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
+最新人工止费操作：用户明确要求执行停止工具，另行同意暂停speedfeast-postgres-prod。实际StopDBCluster1/StopDBInstance1/DeleteLoadBalancer2均ACK，独立查询已确认ca-central-1两个项目ALB删除、两个数据库stopping，工具继续只读等待最终确认。恢复备份`F:/ChatGPT_workshop/aws-cost-backup-20261031-a`，具体状态见[实际停止记录](aws-resource-power-tools.md#本轮实际停止2026-10-31结果核验中)。未删除数据库、未装自动联动、不改IAM/CFN/DNS/ECS或设置主线暂停。
+
+这次实际资源变化已经使原“ALB存在/数据库available”的旧AWS事实不再适用于直接部署，不能只因原五小时期限未到就沿用。以后恢复测试须先按准确范围恢复ALB/RDS并处理新CFN/DNS绑定，再准备真实新来源和租户栈；本轮不运行恢复工具或自动重放任何旧计划。
+
 本次用户单独指定：仅离线实现RDS停止/启动及ELB删除/重建工具，不调用AWS、不实际清理，也不暂停部署和验收主线。只交付代码、合成测试及文档；数据库不删除。完成后下方主线继续点保持，不为工具开发延长旧事实/批准/TTL；当前云资源状态与费用不因写代码改变。
 
 工具现已交付，见[操作说明](aws-resource-power-tools.md)：stop先备份ELB再停止RDS/删除ELB，resume启动RDS并重建ELB/监听器/规则/证书引用，默认离线预览且不自动处理CFN/DNS绑定。22项合成测试、语法、lint/typecheck通过；未调用实际入口或AWS，111部署闭包保持，无权限/工作流改变。该用户指定代码任务收尾，主线仍是下方原继续点，不自动开始实际清理。

@@ -1,6 +1,16 @@
 # RDS停止/启动与ELB删除/重建工具
 
-2026-10-31。按用户最新要求，**本次只交付程序、合成测试和文档，没有调用两个实际入口、AWS CLI或AWS账号API，没有停止/删除/创建任何云资源**。部署与验收主线不暂停，旧事实/批准/TTL不延期。当前费用不会因写好程序而停止。
+2026-10-31。最初按用户要求仅交付代码、合成测试和文档，未运行入口；用户随后明确要求执行停止工具，并另行同意暂停prod实例。本轮实际运行记录见下节，不能再把最初“未调用”的事实当作当前状态。部署与验收主线未设置暂停，旧事实/批准/TTL不延期。
+
+## 本轮实际停止（2026-10-31，结果核验中）
+
+区域`ca-central-1`，账号402010193138，执行源码`0fe85e5a0949d7a5b5e4272e27c4f8c8eaff3315`。先只读核对发现样例的techlong-sandbox-cell-sandbox-1数据库集群已不存在，本轮没有向该目标写入。实际目标为Aurora集群`techlong-sandbox-express-d001`、独立实例`speedfeast-postgres-prod`（用户本轮准确同意）、ALB `techlong-sandbox-cell-sandbox-1`及`techlong-sandbox-platform`。两ALB标签/准确ARN已核对、删除保护均false，本轮没有改保护、IAM或CFN/DNS/ECS。
+
+本地执行配置`F:/ChatGPT_workshop/techlong-aws-cost-stop-20261031-a.config.json`，明确记录本次删除ALB导致的CFN漂移及后续新ARN/DNS绑定影响。实际恢复备份目录 **`F:/ChatGPT_workshop/aws-cost-backup-20261031-a`**，snapshot保存3个监听器/1条非默认规则、证书和mTLS引用、全部属性/标签及两个数据库原运行状态；ACL仅当前用户/SYSTEM/Administrators。snapshot raw SHA `b64c8e29ff9aa8885180cbdc59988517815d12e20e6d1319b50956ae47c793df`，journal绑定的规范摘要`f2226a0262b9fc1900f3aba60fee1160b627ba46bdf265fc6020421918d760cc`已独立本地核对。
+
+12:26:47 CDT备份落盘后，StopDBCluster1、StopDBInstance1、DeleteLoadBalancer2均获ACK；独立只读查询随后确认本区域ALB列表为空、两个数据库均stopping。**还不能把stopping当作stopped或声称全账号零费用**，工具正在等待最多900秒的只读确认，不重发写请求。没有数据库/快照删除、业务或部署操作、自动联动安装或恢复。
+
+两个ALB已实际删除，旧ARN/DNS不能原样恢复；后续可使用这个备份重新创建并单独核对CFN/DNS引用。本次没有停止ECS等其他收费资源，RDS存储/备份也仍可能收费；自动到期停用/恢复联动尚未接好，不能宣称它已启用。
 
 ## 两个入口
 

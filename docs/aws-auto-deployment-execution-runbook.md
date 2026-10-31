@@ -8,6 +8,10 @@
 
 该辅助交付已完成：[两个入口、完整用法与限制](aws-resource-power-tools.md)。22项合成AWS/本地文件测试、入口语法检查、定向零警告lint及typecheck通过；未调用两个实际入口/AWS CLI/账号API，不读凭据或业务材料。工具默认离线预览，显式execute/账号确认才可运行，RDS写白名单无删除API；ELB先备份，重建后回读及输出映射，不改CFN/DNS。既有111部署闭包9f6ceb7c…保持，未改部署workflow/权限或暂停主线；不是实际停止、恢复或费用验证。
 
+用户随后要求“先执行停止工具，我自己查看效果”。本轮转为单次人工停止：先核对原配置中准确两Aurora集群及共享ALB，目标/身份一致、保护项得到确认后才执行；只停止RDS、不删除库/快照，只删除准确ALB及其监听器/规则，不删除父Cell栈、不扩IAM、不改DNS/ECS/业务数据，不执行恢复或安装尚未实现的自动联动。必须保存完整备份及真实journal，不能将提交ACK当已停费，CFN漂移/删除保护不绕过；原主线未被设置暂停状态，旧事实不延期。
+
+本轮新只读现状发现样例中的techlong-sandbox-cell-sandbox-1数据库集群已不存在，未对该目标写入；实际剩余Aurora为techlong-sandbox-express-d001，并有一个原先明确排除的speedfeast-postgres-prod独立实例。用户本轮再次明确批准也暂停该prod实例。实际停止清单仅这两个现存数据库及两个已核对标签/ARN的techlong-sandbox-cell-sandbox-1与techlong-sandbox-platform ALB；两ALB删除保护均为false，不修改保护。明确实际删除ALB的范围包含既已披露的CFN漂移/新ARN/DNS恢复影响，但不更新或删除CFN栈/DNS/ECS；本地配置F:/ChatGPT_workshop/techlong-aws-cost-stop-20261031-a.config.json，备份目录F:/ChatGPT_workshop/aws-cost-backup-20261031-a。自动到期联动仍未接入，本轮不得据此声称它已生效。
+
 ## 1. 唯一主线与完成标准
 
 按以下顺序交付，不以新增模块数量或测试数量代替结果：
