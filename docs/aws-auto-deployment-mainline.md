@@ -10,7 +10,9 @@
 
 **下一只准备买家客户端→准确后端→租户数据库的有限店铺/菜单验收，和单独清理安排。** 不扩部署工具、UI/F3c9/探针，不新任务/镜像/IAM或重部署。新网络/认证/私密读取/连接/业务写及删除仍具体另审；wholeProductAccepted=false、Inspect proof未额外导入账本，不为页面状态扩支线。
 
-该[最小API验收范围](aws-product-acceptance.md#当前状态与唯一继续点店铺菜单有限api读取待审)已从本地源码和封存结果准备：最多7次HTTPS（静态2/健康2/CORS OPTIONS1/签名店铺与菜单GET各1）、公有CLIENT_ID GitHub GET1、Source STS1及准确固定版本HMAC Secret GET1；无JS/设备ID/租约、登录、订单、数据库或云写。实际读取尚未获批，准确SHA只认F:/ChatGPT_workshop/techlong-buyer-business-read-20261031-a/prepared-verified.json真实生成并匹配。范围/风险和调用封存后只等该SHA批准，不先访问生产、扩框架或把空菜单当完整验收。原01:34事实/01:47意图均不延期，最晚启动保留10分钟。
+该[最小API验收](aws-product-acceptance.md)已按5353d319…明确批准实际执行：静态2/健康2均200、CORS预检204，店铺GET400后立即停止，菜单未调用。89字节/原SHA与源码的BUYER_DEVICE_ID_REQUIRED确定性响应完全匹配，设备检查早于route签名认证；当前不能据此断言HMAC成功或失败。实际STS1/Secret1/公有变量GET1/HTTPS6，无JS/直接DB/业务或云写/重试；没有进入租约写分支，未直接回读全局数据库。
+
+恢复 `F:/ChatGPT_workshop/techlong-buyer-business-read-20261031-a/stopped-verified.json`，raw SHA `0224e353c9c7fde39ffb0ef5020e06c0f857cf0d0302da59a3349ae9ae9c96ec`，22原件已封存。旧535清单和执行记录不重放/复位，未用第7次请求和Secret许可不延用。**下一只准备单一正常测试设备租约及店铺/菜单的准确范围，新的私密读取/认证和租约正常写另审。** 不改额度/绕门禁、不修代码/UI或重部署，不自动清理或添加商品，wholeProductAccepted=false。原01:34事实/01:47意图不延期；窗口过期则先另审状态/清理。
 
 原意图至温尼伯 **10月31日01:47:54 CDT**，源事实仍01:34:42.313，不延期；TTL不自动停费或销毁。共享Cell/数据库/前端仍保留，50 USD/月不是硬停费线。若恢复时窗口已过，先另审现状/清理，不自动续租或重部署。
 

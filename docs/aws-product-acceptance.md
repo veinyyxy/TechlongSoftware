@@ -2,7 +2,19 @@
 
 2026-10-31，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)；这是主线第二步的工作记录，不是新的云部署、私密读取或业务写入批准。
 
-## 当前状态与唯一继续点：店铺/菜单有限API读取待审
+## 当前状态与唯一继续点：设备门禁已确认，先准备正常单设备租约范围
+
+用户确认5353d319547d3e7b7071b7233079fd5dcd184e5073bd5502f35d0b2f3e2a5bed后，本轮已在温尼伯10月31日00:20:58–00:21:01单次执行并按规则停止：前端首页/manifest及后端health/ready均200，准确buyer Origin的CORS预检204通过；第一条签名店铺GET返回400，菜单GET没有发出。无重试、JS、登录或部署。
+
+原响应正文没有持久化，但其89字节/原始SHA `c08f126b797dcc3e46d240d6242fe02fd6783280d7beafe43f59e04ed9aeda8b` 与已固定源码中 `BUYER_DEVICE_ID_REQUIRED` 的完整确定性JSON序列化逐字节匹配（不是仅凭400猜测）。原middleware先检查设备/额度，再进入route签名验证；因此当前唯一已证实阻塞是正常设备门禁，尚未证明HMAC认证成功，也不应据此改HMAC或云代码。
+
+实际STS1/固定版本Secret GET1/公有CLIENT_ID GitHub GET1/HTTPS6，直接数据库连接/本机业务写/云写/重试均0；没有进入正常租约写分支。未直接回读数据库，不把本轮范围推成全局零变化/零费用保证。22原件已本地封存于 `F:/ChatGPT_workshop/techlong-buyer-business-read-20261031-a/stopped-verified.json`，raw SHA `0224e353c9c7fde39ffb0ef5020e06c0f857cf0d0302da59a3349ae9ae9c96ec`。原review、失败目录/单次执行记录及秘密不落地边界均保持，不再运行535清单或自动使用未用第7次请求。
+
+**下一唯一动作仅准备一个正常测试设备ID的有限访问租约与店铺/菜单范围，取得新的准确批准后才执行。** 不改并发额度、跳过设备/签名门禁、修UI、重部署或加IAM。必须明确现有middleware会对同一设备记录INSERT/UPDATE/复用租约，原期限/额度不改；必要的新的私密使用、认证请求和正常业务副作用均另审，不复用本次Secret或读取许可。租约过期不等于自动删除行，不默认清理。真实客户端JS/登录/订单支付仍未验收，wholeProductAccepted=false。
+
+原SOURCE事实01:34:42.313及工作负载意图01:47:54 CDT均不延期，TTL不自动停费；窗口不足或已过期先另审现状/清理，不自动续租/重部署。本轮源码冻结在停止证据封存后结束，仅正常记录文档；后续纯文档HEAD不是新运行代码/CI。
+
+### 首轮有限API读取准备沿革（已执行并停止，不重放）
 
 同一36735d后端已于10月31日通过Review41169905634 → RunOnce41170142255 → 独立Inspect41170837582，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`；[完整部署实测](aws-auto-deployment-reviewed-cycle-observed.md#2026-10-31买家来源后端整轮已独立通过)。准确新栈UUID64fe0920-d4e7-11f1-8866-0eb4b7868f6f、当前buyer域名/后端来源已接通受审部署材料，不再发布客户端、来源或重做整轮。59原件的执行证明93b96f9a…已封存；下方旧删除/待部署描述只保留追溯。
 
