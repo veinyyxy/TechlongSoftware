@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-31，补核b凭据提供器停止，等同上限CLI来源读取许可）
+## 当前唯一继续点（2026-10-31，补核c通过，只在本地封存请求/包写入审批）
+
+**c已按新许可完成且独立核对通过**：CLI凭据解析1/准确Source STS1/HEAD1、配置1/验证TLS只读连接1/SQL19；包键404无delete marker、6fb9…候选/去重键全库计数0，14任务22计划17批准17尝试及完整业务/保护不变。所有云/数据库写、Secret值/PEM/HMAC/S3正文、新job/槽/上传/来源/dispatch均0，不把本轮成功当旧SDK失败根因证明。完整结果/七原件见[补核c](aws-backend-integration-preparation.md#最新补核c已通过只准备写入审批)。
+
+**下一唯一动作仅本地装配原单INSERT→独立回读→条件上传→固定版本核验的准确写入清单**，不再追加生产/配置/凭据读取或执行。新请求/上传仍须准确SHA另批，当前事实批准/实际新job/VersionId/执行SHA均null；不改源码、建框架/分支或提前开部署短窗口。恢复 `F:/ChatGPT_workshop/techlong-backend-restore-target-readonly-20261031-c/checkpoint.json` raw SHA e26874d8…；原15:00:54.601 CDT终点不延长。以下a/b及候选沿革保留，不重跑旧读取或延用未用预算。
 
 用户已同意只准备恢复方案，[最小后端恢复部署计划](aws-backend-integration-preparation.md#当前最小后端恢复准备2026-10-31)仍只原七项租户资源，复用数据库/镜像/Cell/域名。新a在另批范围内通过集中读取：STS1/AWS元数据62/GitHub9、配置1/TLS验证连接1/只读SQL18；准确七资源退役、ECS空闲，既有布局/固定版本及14任务22计划17批准17尝试/保护与最终已验收基线相同。没有秘密值/PEM/HMAC/S3正文/DDB业务项/Aurora、业务或云写、新job/包/来源/调度；没有有效写入SHA或事实批准。
 

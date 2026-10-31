@@ -4,7 +4,17 @@
 
 用户已同意这个准备方向；执行仍遵守[手册](aws-auto-deployment-execution-runbook.md)。目的只是在已有自动部署能力上恢复一个可用的验收窗口，随后完成单设备正常访问租约及店铺/菜单，不重新开发部署工具。
 
-### 最新：集中只读事实通过，未创建请求或部署
+### 最新补核c已通过，只准备写入审批
+
+用户另允新记录、改用官方CLI解析同一Source后，c于温尼伯2026-10-31 **11:22:44.161–11:22:50.922 CDT**完成。实际CLI凭据解析1次（仅内存、不输出/落盘），准确IAM Source STS1/HTTP1、准确S3 HEAD1/HTTP1、`.env.local`整文件1次、验证证书TLS只读连接1条、SQL19条。准确包键404且无delete marker（不证明不存在历史版本），候选`job_6fb9d85ee3c3d0b9642d67df`及准确dedupe全库计数0；完整14任务/22计划/17批准/17尝试、业务准入/权限/保护与已封存基线逐字段及摘要相同。没有额外列桶/对象正文、Secret值/PEM/HMAC/DDB项、Aurora/GitHub/业务HTTP或重试。
+
+原件恢复`F:/ChatGPT_workshop/techlong-backend-restore-target-readonly-20261031-c/checkpoint.json`，raw SHA `e26874d808214dc83d8a8cc32ca814078253c2280e44aad4538df0d9d0527799`，绑定七份实际记录；result raw SHA `7aa929519be124f73edc8d608e37a7ae0de72132aec001bc2934a880c1890945`，database raw SHA `b6f5b0867dc0140ccd021cdd3726c76ead3d0afc6b707d740153eaa534fb8a78`。完整业务正文仅本地当前用户/SYSTEM/Administrators私有目录，不提交Git；凭据原文未保存。配方c raw SHA `ca53ad459bf27dbee8256ceb983c17b21336697898539a4fc0ffd5955438f23a`只改本机凭据解析，不改工程/云运行代码。原a/b均保留且未重跑，CLI这次成功不证明旧SDK失败的唯一原因。
+
+独立本地核对七原件大小/SHA、准确Source/HEAD、TLS、完整baseline、19条只读查询预算、原725384字节aed6bd22…包及111闭包全部通过；四个拟用永久执行槽仍未创建。所有云/数据库写、新job/占槽/上传/来源/调度均0；事实批准/实际新job/VersionId/执行SHA仍null。新DB真实采样`1793463770345`（16:22:50.345Z）单独保存，不重计最早10:00:54.601 CDT的factsAt；原准备仍只到**今天15:00:54.601 CDT**，未开部署短窗口。
+
+**下一唯一动作只纯本地装配原单INSERT、独立完整回读、条件PUT和固定版本GET的受限调用，封存准确新写入SHA。** 复用候选6fb9…和同一包字节/准确key，沿用原真实DB时钟、完整基线/保护、永久槽、未知提交停止/不自动重试和独立回读约束，不复制通用执行器或固定任务分支、不修改生产guard。不再读取生产/配置/凭据或连接数据库，不创建请求/占槽/上传/发布/调度；实际请求与包写、后继来源及整轮仍分别准确另批。以下旧“等待读取/未观察空位”的段落仅为当时沿革，不是再次读取许可或待办。
+
+### 前置集中只读事实通过，未创建请求或部署
 
 用户“开始下一步”已明确允许上一版集中只读范围。新a于温尼伯10:00:54.601–10:02:30.528完成：STS1、AWS元数据62/GitHub GET9、配置1/验证TLS连接1/只读SQL18。旧七资源准确Logical/Physical ID均DELETE_COMPLETE、同名栈不存在、ECS空闲；Cell输出/DNS/原角色策略/镜像digest和三固定Secret版本元数据匹配，Neon与最终Inspect所存14任务/22计划/17批准/17尝试及完整业务/保护基线一致。TLS证书验证/READ ONLY及pg_catalog/UTC均核对，无写、秘密/PEM/HMAC/S3正文/DDB项/Aurora或业务访问、候选任务、上传/来源/调度。历史准确CI只核对原b79615cd，不冒称当前纯文档HEAD跑过该CI。
 
