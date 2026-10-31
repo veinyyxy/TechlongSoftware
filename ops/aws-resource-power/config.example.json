@@ -1,0 +1,15 @@
+{
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "profile": "techlong-sandbox-user",
+  "rdsClusters": [
+    "techlong-sandbox-cell-sandbox-1",
+    "techlong-sandbox-express-d001"
+  ],
+  "rdsInstances": [],
+  "loadBalancerArns": [
+    "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86"
+  ],
+  "allowDisableDeletionProtection": false,
+  "acknowledgeCloudFormationDrift": false
+}
