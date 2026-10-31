@@ -2,7 +2,15 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-30，等待准确请求/上传SHA批准）
+## 当前唯一继续点（2026-10-30，请求/包已核验，准备必要来源发布）
+
+2bff9ccd…获明确批准并完成：同一36735d已单INSERT/COMMIT为永久held，另一TLS完整回读通过；全部13旧任务、部署/outputs、19/14/14账本及保护保持。实际requestedAt21:09:34.875 CDT、独立采样21:09:41.071；只新增pending/attempts0/max1、MAX_SAFE_INTEGER hold、无lease的一行，不启用普通队列或运行时。
+
+包5485a0c9…/621945字节已唯一条件PUT并独立GET实际版本 `B_vILxjLmVVu_WKDnoXmPDdq3HyndeZS`。实际STS4/桶元数据6/HEAD2、配置2/TLS2/SQL77、INSERT1/PUT1/GET1/四槽；无旧行/账本/IAM/Secret/工作流修改，无部署/dispatch/重试。恢复 `F:/ChatGPT_workshop/techlong-buyer-accepted-request-upload-20261030-a/executed-verified.json` raw SHA `d3379c834f474a5c100ed368557820b2a52d0a9c2529e43b68b50ca784709eba`；来源e7ff6e4和运行代码a221a24/CI41141437220分开保留。四槽不复位，本轮风险原字节及旧事实/basis不改，新事实仍01:34:42.313 CDT硬截。
+
+下一只用本地真实请求/approved来源/新authority/准确包版本准备原caller/reusable/operator及唯一trust pin的必要发布清单，不扩框架/权限或先部署。新增读取、实际发布及同任务整轮/有限买家验收仍准确另审；当前BUYER_SOURCE与BUYER_PUBLICATION_SOURCE为null、runtime未激活、wholeProductAccepted=false。结果证据重建后仅结束本轮冻结以记录文档，旧命令/验证器均不可重跑。
+
+### 请求/上传执行前的沿革（已完成，不重放）
 
 用户刷新Source并另允新b后，20:34:42.313–20:36:25 CDT真实核对通过：STS1/HTTP1、AWS元数据73（含HEAD）、GitHub GET9、配置1/TLS1/只读SQL21，写/槽/调度0。同一36735d候选/去重键和5485a0c9…对象仍不存在，完整13/19/14/14及业务保护基线保持，未选择来源/创建请求/上传。恢复新b检查点raw SHA `34a67ae565e2e2834615f2df59e538e8dd3b490b233fd7e83b6f101db5e61da1`。
 

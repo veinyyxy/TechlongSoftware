@@ -29,7 +29,19 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：等待新请求/上传准确清单批准（2026-10-30）
+## 3. 当前唯一继续点：请求/包已核验，准备必要来源发布（2026-10-30）
+
+用户明确批准2bff9ccd…后，执行来源e7ff6e4（工程运行代码a221a24/准确CI41141437220）已完成同一候选36735d的单次held请求及不可变buyer包。实际请求requestedAt为21:09:34.875 CDT，COMMIT明确成功；另一验证TLS连接于21:09:41.071采样独立回读通过。只有一条新pending/attempts0/max1/MAX_SAFE_INTEGER hold且无lease的请求，全部13旧任务/部署outputs/19计划14批准14尝试/保护保持，无新成功部署回执或控制账本写。
+
+随后一次IfNoneMatch条件PUT及独立准确版本GET通过：621945字节5485a0c9…包，真实VersionId `B_vILxjLmVVu_WKDnoXmPDdq3HyndeZS`。新能力SHA39a06e95…不同于历史basis，来源approved字段仅按已批准外层SHA明确派生；历史basis/事实/TTL不延期，新事实仍仅至10月31日01:34:42.313 CDT。
+
+实际STS4/桶安全元数据6/准确HEAD2、配置2/TLS2/SQL77（writer56＋独立21）、原INSERT1/PUT1/固定版本GET1、四个永久槽已消费；旧行更新、IAM/Secret/工作流改变、Secret值/PEM/HMAC读取、承载创建、dispatch及重试均0。运行时/BUYER_SOURCE/BUYER_PUBLICATION_SOURCE未启用，没有实际部署或整套产品验收；私有对象及既有资源可能计费，不自动清理。
+
+恢复只认 `F:/ChatGPT_workshop/techlong-buyer-accepted-request-upload-20261030-a/executed-verified.json`，raw SHA `d3379c834f474a5c100ed368557820b2a52d0a9c2529e43b68b50ca784709eba`，绑定实际writer/完整独立state/ACK/Inspector/四槽及本地approved来源重建。已批准风险原字节另存同目录approved-risk.md，与e7ff6e4版本一致。执行成功证据重建后结束本轮来源冻结，仅正常记录结果；不重放准备器、执行命令或验证器，不复位槽。
+
+**下一唯一动作只准备必要的原caller/reusable/operator来源和既有角色唯一trust pin发布清单**：使用实际请求/新authority/准确包VersionId及原111闭包，复用原发布器，不追加功能或权限。先从本地已存真实原件备齐材料；新增云/数据库读取、实际受保护发布、后续同任务Review→RunOnce→独立Inspect及有限买家验收均准确另审。当前不调度、不部署、不延长现有事实/TTL，wholeProductAccepted=false。
+
+### 请求/上传批准与执行前的沿革（已完成，不重放）
 
 Source刷新并另允同范围后，新独立b于20:34:42.313–20:36:25 CDT完成：STS1/HTTP1、AWS元数据73（含准确HEAD）、GitHub GET9、配置1/验证TLS1/只读SQL21，所有写/槽/调度0。候选36735d和去重键、准确包键仍缺失，完整13任务/19计划14批准14尝试/业务准入/保护与原完整基线一致；共享Cell、角色/固定Secret版本元数据/镜像/DNS/前端匹配，未证明全账号零费用或产品验收。
 

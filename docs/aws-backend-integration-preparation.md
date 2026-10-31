@@ -1,6 +1,14 @@
 # 后端联调/CORS：当前最小准备与继续点
 
-## 当前：新事实通过，仅待准确请求/上传执行SHA批准
+## 当前：新请求/不可变包已核验，只准备必要来源发布
+
+用户批准2bff9ccd…后，36735d已单INSERT并COMMIT为永久held，独立完整只读回读保持全部13旧任务/19计划14批准14尝试及业务保护；真实包5485a0c9…/621945字节已一次条件PUT并独立GET，准确VersionId `B_vILxjLmVVu_WKDnoXmPDdq3HyndeZS`。实际STS4/桶元数据6/HEAD2、配置2/TLS2/SQL77、INSERT1/PUT1/GET1、四槽；无旧行/账本/IAM/Secret/工作流修改、部署/dispatch或重试。
+
+恢复executed-verified.json raw SHA d3379c83…，完整位置见[执行手册当前继续点](aws-auto-deployment-execution-runbook.md)。新approved来源及authority从准确外层SHA和原件重建，不修改历史basis；新事实仍10月31日01:34:42.313 CDT截止。来源/运行时仍未选定，wholeProductAccepted=false。
+
+下一唯一动作只从已存真实原件准备必要的原caller/reusable/operator及既有角色唯一trust pin发布材料，复用原发布器、不扩功能或权限。新增事实读取与实际发布仍另审；材料和发布证据齐全后，才安排同任务Review→RunOnce→独立Inspect及有限买家验收。成功不授权重跑旧命令、复位槽、自动清理或延期TTL。
+
+### 请求/上传执行前沿革
 
 新独立b于20:34–20:36 CDT通过限定只读，完整13/19/14/14和准入保护保持，候选36735d/去重键/准确包键仍缺失。实际STS1、AWS元数据73、GitHub GET9、配置1/TLS1/SQL21，零写/槽/调度。新事实5小时至10月31日01:34:42.313 CDT，最晚写启动01:19:42.313，旧basis/事实/TTL不延期；原件检查点34a67ae5…及旧失败保留。
 
