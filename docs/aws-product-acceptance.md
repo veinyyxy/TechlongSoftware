@@ -2,7 +2,35 @@
 
 2026-10-31，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)；这是主线第二步的工作记录，不是新的云部署、私密读取或业务写入批准。
 
-## 当前状态与唯一继续点：设备门禁已确认，先准备正常单设备租约范围
+## 当前状态与唯一继续点：先准备现有承载保留至09:00
+
+### 保留至09点的最小准备（2026-10-31）
+
+用户已确认新的保留目标为**2026-10-31 09:00 America/Winnipeg（CDT）=2026-10-31T14:00:00.000Z**。这次只调整准备方向，尚未读取新云元数据或执行AWS写入；不能声称资源已续期。原SOURCE事实01:34:42.313、原部署意图01:47:54、任务/完成回执/535停止记录/永久槽均不改写或复用。09:00开始业务验收需新的现状与范围批准。
+
+本地真实原件仍为 `F:/ChatGPT_workshop/techlong-reviewed-cycle-run-2cb0a046744fadf20bbc3aa7060934c0f11adc3e96c5e283ede35fd0566785bf/runonce-captured-material.json` 内的实际V5 workload；新保留记录不得覆盖它。准确目标为 `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/64fe0920-d4e7-11f1-8866-0eb4b7868f6f`，不是仅按同名栈猜测对象。
+
+最小候选只允许将实际request的一个栈ExpiresAt及模板内TenantLogGroup、TenantService、TenantTargetGroup、TenantTaskDefinition四处ExpiresAt，从 `2026-10-31T06:47:54.000Z` 改为 `2026-10-31T14:00:00.000Z`。七资源数量、18参数、镜像/代码、角色、Secret版本、desired count、DNS/来源及其他模板内容全部保持。应以新元数据的原模板逐字段比对，恢复这五个值后必须等于原件；当前仅描述候选，未生成可执行批准SHA。
+
+本地已从上述实际原件完成一次内存草案检查：准确四个资源标签及一个栈标签匹配旧值，资源7/参数18，恢复五处标签后与原件深比较完全一致，Metadata中的legacyJanitorExpectedEnabled=true。原TemplateBody原始字节SHA `4269cf201210698bd3dd45c188f80323c018e6e3a7a188d659b548106ff043ca`；仅该内存候选JSON.stringify字节SHA `b6135c5aa77f0d17e6dde9f7c03f3aee94b18cd64bda62aab4f43cbbcf711e95`。这些是本地内容摘要，**不是执行清单SHA或新云事实**；未保存/提交模板正文、未发AWS请求，不能据此执行更新。
+
+AWS文档将[TaskDefinition.Tags更新标为No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ecs-taskdefinition.html#cfn-ecs-taskdefinition-tags)，但这不是本栈的执行证明。后续应以准确[UPDATE Change Set](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html)核对，拒绝新增/删除/替换、非标签改动或不明差异；创建/执行该Change Set本身也须新的准确云写批准，不能在只读准备中调用。
+
+必要的下一次只读准备须先另获许可：固定Source IAM身份STS最多1次及AWS元数据最多12次，无翻页/应用重试：
+
+| 准确对象 | 元数据范围与上限 |
+| --- | --- |
+| 上述租户Stack ARN | DescribeStacks、GetTemplate(Original)、ListStackResources各1 |
+| 原父Cell Stack ARN（b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1） | DescribeStacks 1 |
+| cell-sandbox-1 / tenant-9c5ee9e64509dcad-ecs-service | DescribeServices 1及其返回的准确TaskDefinition的DescribeTaskDefinition 1 |
+| techlong-sandbox-janitor、techlong-sandbox-cell-janitor | 各GetFunctionConfiguration/GetFunctionConcurrency 1；仅持久化去敏身份/代码哈希/状态/并发投影，不输出或持久化环境变量 |
+| techlong-sandbox/global-expired-stack-scan、techlong-sandbox-cell/techlong-sandbox-cell-global-janitor | Scheduler GetSchedule各1；不调用/修改schedule或函数 |
+
+不读取Secret值、PEM、.env、S3正文或DDB业务项，不连接数据库、请求业务API、写云/业务、占槽、dispatch或续期。仅生成准确新云变更材料；接受凭据进内存、网络/提供者日志及低额非零费用，准备快照最长5小时且不得越过本次目标或掩盖执行前状态变化。
+
+本地 `janitor.cjs` 确实有按栈ExpiresAt执行DeleteStack的路径，实际部署Metadata预期legacy Janitor启用，历史也观察到它删除租户；当前线上配置尚未新读取。旧01:47:54后可能被删除，不保证保留/及时清理/停费。只读发现UUID不符、删除中/已删除、非稳定状态、模板/角色/参数不符或存在其他到期机制即停止并报告，不自动重建/禁用清理器/扩IAM。09:00仍非硬停费线；保留期间费用继续，后续清理另审，不为此次等待创建自动化/新框架。
+
+### 单设备验收原继续点（保留准备完成后再继续）
 
 用户确认5353d319547d3e7b7071b7233079fd5dcd184e5073bd5502f35d0b2f3e2a5bed后，本轮已在温尼伯10月31日00:20:58–00:21:01单次执行并按规则停止：前端首页/manifest及后端health/ready均200，准确buyer Origin的CORS预检204通过；第一条签名店铺GET返回400，菜单GET没有发出。无重试、JS、登录或部署。
 
