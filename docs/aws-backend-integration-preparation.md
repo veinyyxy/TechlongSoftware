@@ -49,6 +49,16 @@
 
 本次拟读取仍有整文件进入内存、owner权限较宽、凭据/网络/提供者日志和低额非零费用风险，需用户单独允许；当前“开始下一步”仅完成本地材料，不代替这次许可。全部通过后才固定原调用配方与写入清单，另给准确SHA批准：拟保留原单INSERT1→独立完整回读→条件PUT1→准确版本GET1，配置2/TLS2/SQL最多160、STS4/桶安全元数据6/准确HEAD2；不改旧行/账本/IAM/工作流、不读秘密或创建承载，不自动重试/补齐/清理。该后继预算仅供准备，**不是写入授权或已经装配完的可执行清单**。
 
+### 补核a本地停止，未调用生产
+
+用户明确允许上述最小只读范围后，a仅执行到LOCAL_INPUTS，临时配方的首词检查以`EXISTING_PROTECTION_SELECTS_ONLY`停止。两条既有保护查询实际上以WITH开始、此前原只读采样已使用；这是本地新装配断言错误，不是数据库/权限失败。实际STS/HTTP、HEAD、配置内容读取、TLS连接、SQL、所有生产写、槽和调度均0；输出目录尚未创建，尚未取得候选/包空位证据。未重跑a，不要求用户刷新Source。
+
+原a源码保留在`F:/ChatGPT_workshop/techlong-backend-restore-target-readonly-20261031-a.mjs`，raw SHA `3fc679450befe4b40b7c99acdf41319b903d7d5729b92d7cc2762746ec1c22e3`。停止记录`F:/ChatGPT_workshop/techlong-backend-restore-target-readonly-stopped-20261031-a.json`，raw SHA `3a733fcb804a9fd39c5d98ad746ebc058403e27ea704760191c28a38933d5ea4`，保存实际工具结论、零计数及原件引用；精确启动时间未捕获，不用本地后续诊断时间冒充。
+
+仅为下一次独立记录准备b：把错误首词断言换成原查询文件SHA `057b154f6b5d0cc7102219cb759a87969ae5bc33f41af432d6ce61613a92c3bb`及两条查询准确字节SHA，未改SQL。正常文档提交允许是原main的后继、且与准确已测b79615cd相比只能docs变化；原111闭包、输入/目标/预算/只读事务/五小时截止全部保持，不放宽生产guard。`F:/ChatGPT_workshop/techlong-backend-restore-target-readonly-20261031-b.mjs` raw SHA `1ea3b92c24d5f6c88b034d9f2c59f9ceec9b956c872cfeb25766633f94dcf591`，只完成语法、原始SHA和最小差异核对，**未执行、不是运行代码修复或新增执行器**。
+
+下一唯一动作只申请新b同范围许可：STS1/准确S3 HEAD1、配置1/验证TLS Neon只读连接1/最多45查询，仍仅核对准确候选/去重键全库计数及14/22/17/17完整业务/保护，不读S3正文/Secret值/PEM/HMAC，不写或占槽/上传/调度。未用读取预算不自动沿用，全部旧记录保持。候选6fb9…和725384字节aed6bd22…包仍PENDING，事实批准/实际新job/VersionId/执行SHA均null；原事实终点**今天15:00:54.601 CDT**不延期。补核成功后才准备原调用的写入清单，不能把本次读取许可当SQL/S3写许可。
+
 ### 原本地方案准备阶段（集中预检前，保留追溯）
 
 - 前轮Review41169905634 → RunOnce41170142255 → Inspect41170837582真实独立通过，59原件仍完整；并不代表后端一直存在。
