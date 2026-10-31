@@ -8,6 +8,8 @@
 
 原14:43观察截止19:43:48.735、15分钟预留的最晚写启动19:28:48.735均不重计。当前只封存调用合同/风险及原件索引，不新增运行模块或生产调用；真实facts approval/authority/请求/上传VersionId/执行SHA仍null。下一唯一动作是在用户准备好继续时另批新限定只读事实，保持才绑定最终本机调用和准确请求/上传SHA；不直接运行历史b236脚本，不复用旧批准/补核许可、延期basis或TTL。来源发布/三次GitHub本人门禁整轮及有限业务验收仍在其后，wholeProductAccepted=false。
 
+上述新只读范围获用户允许后，a于19:54:27.758 CDT在Source凭据提供器停止：CredentialsProviderError、STS尝试1/HTTP0，AWS元数据/GitHub/配置/TLS/SQL及全部写/新槽/调度0，没有新快照。恢复 `F:/ChatGPT_workshop/techlong-buyer-accepted-facts-readonly-20261030-a/checkpoint.json` raw SHA `173f0f8ff9c3b3489f818e05e8437a2c5bc3a943ce08658ad67eb105f737d637`；有效事实截止=null，不把result候选五小时日期当有效事实。具体凭据失败原因未证明；下一只等Source登录及新一轮同范围许可，不重跑a、追加诊断或沿用余量。运行HEAD103b9ff、代码a221a24/CI41141437220分开保留。
+
 ### 已完成沿革（下方旧继续点不重放）
 
 用户批准88851603…后，执行HEAD d3b1bd2/运行源码1df93f6（准确CI41110332862）于14:03:25.788 CDT单次提交原b236退役并独立TLS只读核验通过。原任务canceled、lease清空，仅六字段改变；其余12任务、部署/outputs、payload/attempts/错误/dedupe、19/14/14账本及保护全保持，无新任务或成功回执。实际STS1/元数据4、配置2/TLS2/SQL40、UPDATE1/业务COMMIT成功、AWS写/dispatch0；写前栈已删、服务INACTIVE/0任务、目标准确缺失。
