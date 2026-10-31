@@ -1,8 +1,31 @@
 # 产品真实验收：当前最小继续点
 
-2026-10-28，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)；这是主线第二步的工作记录，不是新的云部署、私密读取或业务写入批准。
+2026-10-31，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)；这是主线第二步的工作记录，不是新的云部署、私密读取或业务写入批准。
 
-## 当前状态与唯一继续点（截至20:26）
+## 当前状态与唯一继续点：店铺/菜单有限API读取待审
+
+同一36735d后端已于10月31日通过Review41169905634 → RunOnce41170142255 → 独立Inspect41170837582，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`；[完整部署实测](aws-auto-deployment-reviewed-cycle-observed.md#2026-10-31买家来源后端整轮已独立通过)。准确新栈UUID64fe0920-d4e7-11f1-8866-0eb4b7868f6f、当前buyer域名/后端来源已接通受审部署材料，不再发布客户端、来源或重做整轮。59原件的执行证明93b96f9a…已封存；下方旧删除/待部署描述只保留追溯。
+
+本轮只完成本地源码及已保存证据核对、有限读取方案和一次性本机调用准备，没有生产读取/写入、Secret或配置值读取。客户端仍602e543；服务端a79ed89在app/routes/services/security/DB连接代码上与受审镜像来源10fe3c41无差异。服务端现有无设备ID路径只在并发额度为null时放行；有设备ID会进入访问租约写事务，所以本轮不打开页面执行JS，不伪装成“浏览器零写入”。服务端工作区已有用户.vscode/settings.json未跟踪文件，未修改或提交。
+
+当前仅等待以下准确范围的集中批准，不先发请求：
+
+| 有限调用 | 上限与停止边界 |
+| --- | --- |
+| 客户端静态 | `https://buyer.sandbox.techlong.cloud/`、`/manifest.json` 各1次GET，不下载JS/图片或执行应用 |
+| 后端健康 | `https://first-acceptance.sandbox.techlong.cloud/health`、`/ready` 各1次GET；ready由既有服务端连接Aurora读取，不直接连接数据库 |
+| CORS | 对准确 `/api/products/get_list` 1次OPTIONS，Origin必须为buyer域名，检查允许GET及签名/店铺请求头，不移除Origin绕过 |
+| 业务 | `/api/stores/bootstrap` 与准确默认店的 `/api/products/get_list` 各1次HMAC签名GET，均携带Origin，无Cookie/JWT/设备ID；总HTTPS最多7次，无重定向或重试 |
+| 公有客户端参数 | 既有Git凭据1次GitHub GET读取speedfeast仓库BUYER_CLIENT_ID，仅在SHA等于已发布记录b0911104…时使用，不读或改GitHub Secret |
+| 私密使用 | 固定Source IAM身份STS1、GetSecretValue1，Secret runtime/g1-T9CqN5、固定版本0f45d29f-02d4-4117-99b1-c06645aa3c6e/AWSCURRENT；整个JSON仅进内存，仅hmac_secret_key参与两个签名，不输出/落地或转发其他字段 |
+
+原中间件门禁、固定版本/来源、公有参数摘要、完成回执中的准确默认店及CORS任何不符就停止，不补设备ID、不改配置或另建数据。菜单为空只记录“读取路径可用、菜单为空”，不能声称非空可购买菜单或完整产品已验收，不自动添加商品。响应正文/签名/密钥不持久化，仅保存去敏状态、大小/哈希及计数；接受内存、DNS/并发、服务端/提供者日志及低额非零费用风险。
+
+一次性受审材料和完整风险位于 `F:/ChatGPT_workshop/techlong-buyer-business-read-20261031-a/README.md`，准确SHA只认该目录prepared-verified.json真实生成并匹配，不存在即尚未封存。仅本地调用，不新增工程运行模块、部署执行器/探针或UI改动；语法核对不是线上业务验收。清单生成后冻结本机调用/风险与main；实际私密读取、HTTPS及GitHub读取须另获该SHA批准。此前整轮剩余额度不延用。
+
+原SOURCE事实仍10月31日01:34:42.313 CDT、工作负载意图仍01:47:54；本轮取更早01:34为硬截止并保留10分钟，最晚01:24:42.313启动，单次最多3分钟，不续租/重部署/删除。TTL不自动停费，50 USD/月不是硬上限；若窗口不足先另审现状/清理。通过API路径后仍需另审真实客户端渲染及其正常租约/心跳副作用；订单支付和整套产品交付未通过，wholeProductAccepted=false。
+
+## 2026-10-28状态沿革（下方不是当前继续指令）
 
 新一轮经批准的限定只读已证明：原租户栈DELETE_COMPLETE，ECS INACTIVE/任务0，health/ready均404。根事件16:08:39.496开始删除、16:16:37.415完成；“User Initiated”不能确定具体操作者。本轮没有删除、查询CloudTrail或连接数据库；以下14:41健康和整轮成功均保留为历史，不代表当前可用或整体停费。
 
