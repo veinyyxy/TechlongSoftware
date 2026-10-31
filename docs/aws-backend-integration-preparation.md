@@ -1,6 +1,63 @@
 # 后端联调/CORS：当前最小准备与继续点
 
-## 当前：后端整轮已独立通过，仅准备有限买家业务验收
+## 当前：最小后端恢复部署方案已准备，尚未读取新事实或部署（2026-10-31）
+
+用户已同意这个准备方向；执行仍遵守[手册](aws-auto-deployment-execution-runbook.md)。目的只是在已有自动部署能力上恢复一个可用的验收窗口，随后完成单设备正常访问租约及店铺/菜单，不重新开发部署工具。
+
+### 已知事实与本轮零副作用
+
+- 前轮Review41169905634 → RunOnce41170142255 → Inspect41170837582真实独立通过，59原件仍完整；并不代表后端一直存在。
+- 温尼伯10月31日09:29:53的新b仅查准确Stack ARN，确认UUID64fe0920-d4e7-11f1-8866-0eb4b7868f6f为DELETE_COMPLETE，随后停止。没有查ECS/其他资源或删除原因，不证明所有资源已无/零费用。
+- 本轮仅重读本地原件：完整59记录逐份大小/SHA及b的3记录核对通过。执行证明raw SHA93b96f9a…、59记录目录摘要e93f4516…、已删观察raw SHAf1339960…；本地索引见 `F:/ChatGPT_workshop/techlong-backend-minimal-restore-plan-20261031-a/local-material-index.json`。不复制业务正文、设备ID、凭据或私密包到Git。
+- 新生产读取/配置或私密值读取/连接、任务、上传、来源发布、IAM、调度及部署全部0。**新job/候选/有效事实/执行SHA均未产生；本方案不是执行许可。** 09:00保留清单65f52068…保持取消，旧原件/时间/槽/成功结果不改写。
+
+### 恢复范围：仍是原七项租户资源
+
+| 资源 | 拟恢复数量与边界 |
+| --- | --- |
+| ECS TaskDefinition | 1；原0.5vCPU/1GiB、固定镜像digest及现有task/execution角色，无新镜像构建 |
+| ECS Service | 1；原cell-sandbox-1，desiredCount=1；不新增集群或扩容 |
+| TargetGroup | 1；复用现有共享ALB与监听器，不另建ALB/NAT/VPC |
+| ListenerRule | 3；原业务/控制及业务控制拒绝规则，保留原隔离，不改来源或DNS |
+| LogGroup | 1；沿用原日志/保留设置，不扩日志访问权限 |
+
+拟复用的非新增资产：已初始化的原Aurora租户库（原profile=`express_iam`）、Neon控制面、共享Cell/网络/HTTPS、`first-acceptance.sandbox.techlong.cloud`、已发布的`buyer.sandbox.techlong.cloud`、现有固定Secret版本及IAM布局。它们只是有证据的复用候选，当前状态须新核对；不连接Aurora、不做初始化POST/迁移/重置密码，不升级plan、不再发布客户端或为平台新建常驻一套承载。
+
+镜像候选固定为 `402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e`。原模板raw SHA `4269cf201210698bd3dd45c188f80323c018e6e3a7a188d659b548106ff043ca` 仅作结构/来源参考，**不能直接重发**：新任务、代际围栏、模板元数据、请求token和ExpiresAt必须经现有编译器按真实新周期生成；已删除UUID不能UpdateStack。
+
+### 最短受审路径：复用合同，不另造恢复入口
+
+1. **一次集中只读预检**，补齐准确七资源退役/命名空间空闲、复用资产与完整Neon准入/历史/保护。现有`assertRetirement`要求七条原Logical/Physical ID均DELETE_COMPLETE及真实时序；只有DescribeStacks的DELETE_COMPLETE不够，不能直接填成完整退役证明。只读通过不等于允许写入。
+2. **仅用现有编译器准备新请求/材料**：从最新成功36735d的完整已验收链续接，完整历史保留；原任务succeeded/attempts1/max1及槽永久保持，不能再次领取。若合同需要新held请求/不可变包，则把一次准确请求、一次条件上传与独立回读单独列审；这是必要的数据绑定，不新建按job分叉的执行器/框架。当前不分配新job或制造APPROVED事实。
+3. **必要来源绑定准备/发布**：复用`ops/platform-reviewed-cycle-v1`原组合、buyer accepted continuation和冻结111闭包。当前工作流仍绑定旧36735d及已过期事实，不能靠改dispatch输入重用。必要caller/reusable/operator来源、准确CI与已有角色唯一trust pin分别明确；若需要trust-only替换也属于另审IAM变更，不默认批准，更不顺带扩权限。角色能力不足或编译器不承接则给最小差异并停，不先开新功能支线。
+4. **新整轮批准后恢复**：沿用原Review → 单次RunOnce（CreateStack最多1/七资源/固定控制材料一次/认证GET两次）→ 独立Inspect，三次GitHub environment仍用户本人批准。不是重新证明工具功能，不重做数据库初始化；也不绕过journal/authority/幂等围栏直接复制旧CreateStack。
+5. **回到唯一验收目标**：先按[单设备租约草案](aws-product-acceptance.md#单一测试设备正常访问租约审批草案)另批一次正常访问（同一设备/店铺，可能写一条租约键；无HMAC秘密读取），核验后再另审店铺/菜单。店铺/菜单仍正常签名，其门禁也可能更新同一租约；不能算进阶段A一次写许可。菜单为空就如实记录，不自动造商品/订单/支付。
+
+### 集中只读预检的下一次待许可范围（本轮未执行）
+
+| 读取 | 明确上限和目的 |
+| --- | --- |
+| 固定Source身份 | STS最多1，必须为原账号402010193138的IAM user/techlong-sandbox-dev；仅实际凭据失败时处理刷新，不预先循环登录 |
+| AWS元数据 | 总计最多65次，无翻页/应用重试；准确旧Stack ARN/七资源/同名栈、现有Cell/ECS空闲、原网络/ALB/监听器/目标组、原ECR manifest与digest、DNS、既有CFN/task/worker角色trust/策略/boundary及其基础栈、固定Secret版本元数据、authority表布局和两套既有清理计划 |
+| GitHub | 最多10次认证GET，仅main/准确工作流与来源、已有CI、本人environment门禁/分支/OIDC及未完成运行；不读GitHub Secret值，不dispatch/重跑或改配置 |
+| Neon控制面 | AWS核对通过后，读取现有`.env.local`整文件1次，仅建立1条验证TLS的READ ONLY连接，最多45条查询（含事务/SET LOCAL search_path=pg_catalog/UTC）；核对准确实例完整任务、部署回执、控制账本、业务准入、角色/保护布局，明确保留原14任务及全部历史；数量/摘要以真实新采样为准，不把旧19/14/14账本当最新全集 |
+| 本地历史 | 复用已核验59＋3原件、原调用合同与来源，不再为已具备的历史对象追加S3 GET；只检查既有App认证文件/PEM的元数据与ACL，不读内容 |
+
+不读AWS Secret值/HMAC/PEM、S3正文或DDB业务项，不连接Aurora，不发业务HTTPS、不写AWS/数据库、不创建候选请求/占槽/上传/续期/发布或调度。`.env.local`及宽权限owner凭据只进受限进程内存，SQL事务只读；接受内存、网络/提供者日志、配置权限较宽及低额非零费用。所有快照正文只存本地私有证据目录，Git只记摘要。该许可即使取得，也不能把后续业务/云写或材料绑定自动标为APPROVED。
+
+新事实准备最长5小时，从真实最早采样起算，不改旧事实；历史索引/本方案本身不启动有效执行期。发生凭据/网络/权限/未知历史/残留资源/准入过期/布局变化或预算不足就保存并停，不自动重试、补齐、删除/取消旧记录或放宽保护。待用户准备执行再生成准确写入清单，不为休眠等待提前开短窗口。
+
+### 时序、费用与完成门槛
+
+- **先齐材料再开窗**：新事实、请求/包及必要来源/准确CI就绪，单设备与店铺菜单范围草案提前准备好；用户可连续配合约40分钟才开启整轮。部署前不临时追加离线框架/探针或无关测试。
+- 继承现有约2小时新租户窗口和RunOnce前至少90分钟剩余等合同，不修改冻结时序算法；这是未来独立新资源的新受审ExpiresAt，不是给旧UUID/旧批准延期。正式清单绑定当时绝对时间，部署/独立Inspect后留出业务验收及清理审批时间；不在已过期窗口执行。
+- 恢复预计仍为一个0.5vCPU/1GiB任务及原七资源，现有数据库/ALB/日志等也可能持续收费。**本轮未查价格或账单，不伪造增量费用报价**；50 USD/月仍是目标不是硬限。新清单按真实资源和公开价格补费用说明，不新建数据库/ALB/平台常驻资源解决本次联调。
+- 既有租户Janitor可能按新ExpiresAt清理，但不保证准时/成功/停费，也不关闭它或Cell清理器。验收结束后准确资源清理单独审核；未验收/未知/失败不自动重建或清理。
+- 完成必须分别具有新恢复的独立Inspect、设备租约结果、准确店铺/菜单结果；GitHub success或健康200均不足。不会因此宣称订单/支付/新租户首次初始化/整套AWS正式交付已通过，wholeProductAccepted仍false。
+
+## 前轮已完成事实（下方为沿革，不重放）
+
+### 后端整轮曾独立通过，随后转向有限买家业务验收
 
 2026-10-31，同一36735d任务的Review41169905634、RunOnce41170142255、独立Inspect41170837582已按整轮2cb0a046…批准真实完成，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`；准确源码b79615cd/CI41167545929，原111闭包与三来源buyer CORS来源已在本次真实执行中使用。[真实结果与边界](aws-auto-deployment-reviewed-cycle-observed.md#2026-10-31买家来源后端整轮已独立通过)。不是仅源码/合成测试或GitHub success。
 
