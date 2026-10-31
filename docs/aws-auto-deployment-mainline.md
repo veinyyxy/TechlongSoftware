@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-30，请求/上传材料收拢，等待新事实另审）
+## 当前唯一继续点（2026-10-30，等待准确请求/上传SHA批准）
+
+用户刷新Source并另允新b后，20:34:42.313–20:36:25 CDT真实核对通过：STS1/HTTP1、AWS元数据73（含HEAD）、GitHub GET9、配置1/TLS1/只读SQL21，写/槽/调度0。同一36735d候选/去重键和5485a0c9…对象仍不存在，完整13/19/14/14及业务保护基线保持，未选择来源/创建请求/上传。恢复新b检查点raw SHA `34a67ae565e2e2834615f2df59e538e8dd3b490b233fd7e83b6f101db5e61da1`。
+
+新事实只到10月31日01:34:42.313 CDT，最晚写启动01:19:42.313；不延旧事实/basis/TTL。下一只等待[准确执行包](aws-backend-integration-accepted-request-upload-review.md#本轮准确执行包待批)的新SHA批准，实际封存只认 `F:/ChatGPT_workshop/techlong-buyer-accepted-request-upload-20261030-a/prepared-verified.json`。本机调用复用原组件，21项局部合成边界检查通过，无新工程运行模块；a221a24/准确CI41141437220与纯文档HEAD区分。封存后冻结main/本机调用，不自动执行或继续读；请求+包通过才准备必要来源发布，后续三次本人GitHub门禁整轮及有限产品验收仍另审。
+
+### 新事实取得前的沿革（下方旧继续点不重放）
 
 当前依[受限调用配方与完整风险](aws-backend-integration-accepted-request-upload-review.md)继续。源码a221a24/准确CI41141437220通过；新候选36735d仅本地草案，bundle5485a0c9…/621945字节尚未上传。b补核19:40 CDT证明当时准确ID/dedupe/对象缺失、完整13任务/19/14/14账本及准入保护保持，实际STS1/HEAD1/配置1/TLS1/只读SQL17，零写/槽/调度；恢复 `F:/ChatGPT_workshop/techlong-buyer-accepted-target-readonly-20261030-b/checkpoint.json` raw SHA `28cff80bfbef9db6a9aa11b34436e954c3a6f034b837421435b2db64129c0691`。
 

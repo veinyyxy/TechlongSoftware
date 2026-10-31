@@ -1,6 +1,18 @@
 # 已验收续接：新请求与不可变材料的受限调用配方
 
-本文件服从[执行手册](aws-auto-deployment-execution-runbook.md)，仅覆盖主线第2步「新 held 请求、独立回读及 buyer bundle 条件上传」。它是待审调用设计，不是生产读取或写入授权；目前没有可执行清单 SHA。不得直接运行历史 `techlong-buyer-request-upload-20261029-a.mjs`：它绑定已取消 b236、旧 basis 和旧时钟逻辑。
+本文件服从[执行手册](aws-auto-deployment-execution-runbook.md)，仅覆盖主线第2步「新 held 请求、独立回读及 buyer bundle 条件上传」。它不是生产读取或写入授权；准确SHA只认下面实际封存的执行包，代码/文档提交和只读许可都不批准执行。不得直接运行历史 `techlong-buyer-request-upload-20261029-a.mjs`：它绑定已取消 b236、旧 basis 和旧时钟逻辑。
+
+## 本轮准确执行包（待批）
+
+Source刷新后用户另允同范围新b，10月30日20:34:42.313–20:36:25 CDT成功取得真实新事实：STS1/HTTP1、AWS元数据73（含准确HEAD）、GitHub GET9、配置1/TLS1/只读SQL21，写/槽/调度0。完整13任务、19/14/14账本、业务/保护与原基线相同，准确候选/去重键/对象缺失。新观察不是旧采样改时间；有效至10月31日01:34:42.313 CDT，最晚启动01:19:42.313。旧basis/事实/TTL不变，原失败和旧槽保留。
+
+新事实证明 `F:/ChatGPT_workshop/techlong-buyer-accepted-facts-readonly-20261030-b/checkpoint.json`，raw SHA `34a67ae565e2e2834615f2df59e538e8dd3b490b233fd7e83b6f101db5e61da1`。本次新PENDING来源复用同一候选、相同包正文和基线；原适配器依然拒绝PENDING，没有实际新authority或业务写入。原最小代码及准确CI仍是a221a24/41141437220，新增本机调用不冒称该CI已覆盖。
+
+本机调用 `F:/ChatGPT_workshop/techlong-buyer-accepted-request-upload-20261030-a.mjs` 只是既有编译器/TLS reader/条件上传及Inspector的准确装配，无新工程运行模块。对应 `.test.mjs` 的21项本地检查通过：单INSERT/pg_catalog/UTC、旧行漂移、零行/未知COMMIT、严格新行回读、准确ACK、原上传冲突不重试、单调30秒/DB倒退及明确事实派生/参数门禁；外部端口为合成，旧请求草案只用于本地检查，不作为真实新写时间。
+
+准确执行SHA、调用/测试字节、主源码/事实/风险pins和配置元数据只认 `F:/ChatGPT_workshop/techlong-buyer-accepted-request-upload-20261030-a/prepared-verified.json` 实际生成并匹配。`manifest.json` 的SHA是待批执行标识，生成不批准执行；最终值不写回本文件制造自引用。封存后冻结main/本机调用，仅等用户该SHA确认。批准后最多原单INSERT一行held、独立完整回读、一次条件PUT和固定版本GET，下面全部上限和风险保持；不写控制账本、不读PEM/Secret值、不发布来源或dispatch。
+
+独立检查最迟到新事实截止后10分钟（01:44:42.313 CDT），只读、不因此续写；重建能力若已过期仍须停止，不用历史时刻绕过真实执行校验。最终本机装配增加的写前STS包括在总上限4内，不另开身份/重试预算。任何未知提交停止后继写，不据独立观察自动补齐。
 
 ## 已经完成与尚未完成
 
@@ -9,7 +21,7 @@
 - 包规范字节621945，SHA `5485a0c9ded263c9da05aeb29e13bd06045c02c1c78a52632ef369d8a872c5f1`；准确键是私有证据桶 `techlong-sandbox-cloud-worker-evidence-402010193138` 中 `worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/lineage/buyer-context-v1-5485a0c9ded263c9da05aeb29e13bd06045c02c1c78a52632ef369d8a872c5f1.json`。尚未上传，VersionId=null。
 - 10月30日19:40 CDT的另批 b 补核证明当时准确候选/去重键和对象均不存在，完整13任务、19/14/14账本、准入及保护保持；实际 STS1、HEAD1、配置1/TLS1/只读SQL17，无写/槽/调度。这是当次观察，不是目前状态保证。
 - 原完整事实从14:43:48.735 CDT起仅5小时，19:43:48.735截止；预留15分钟后最晚写启动19:28:48.735。b 补核完成已晚于该启动点，不能借补核、代码CI、文档提交或本地封存重计原事实。历史 basis 的10:08截止也不变。
-- 真实 facts approval、新 authority、请求、上传、来源选定和执行 SHA 均未产生。PENDING 来源仍须被原适配器拒绝。新事实另审，旧草案/失败原件/永久槽全部保留。
+- 该旧准备没有产生真实 facts approval、新 authority、请求、上传或来源选定。PENDING来源仍须被原适配器拒绝；本轮新事实/待批执行包按上节区分，旧草案/失败原件/永久槽全部保留。
 
 ## 精确复用的调用顺序
 
@@ -68,4 +80,4 @@ AWS/数据库写与实际私密材料读取尚须新SHA批准；前面的新事�
 
 补核b：`F:/ChatGPT_workshop/techlong-buyer-accepted-target-readonly-20261030-b/checkpoint.json`（raw SHA `28cff80bfbef9db6a9aa11b34436e954c3a6f034b837421435b2db64129c0691`）。a的失败及b的真实时刻保留，不重跑。
 
-本轮材料封存只认 `F:/ChatGPT_workshop/techlong-buyer-accepted-invocation-material-20261030-a/checkpoint.json` 实际存在并匹配；材料摘要不是执行SHA。下一唯一动作是在用户准备好继续时，另批**一次新限定只读事实采样**，真实状态保持才绑定最终本机调用与准确外层执行SHA。不开短部署窗、不再扩兼容功能；请求/包通过后才进入必要来源发布，最后同任务整轮和有限买家业务验收。
+原材料封存 `F:/ChatGPT_workshop/techlong-buyer-accepted-invocation-material-20261030-a/checkpoint.json` 及其摘要保留追溯，不是执行SHA。新限定只读b现已完成，当前唯一动作是封存上节准确执行包并等待用户新SHA批准；不开部署短窗、不再扩兼容功能。请求/包通过后才进入必要来源发布，最后同任务整轮和有限买家业务验收。

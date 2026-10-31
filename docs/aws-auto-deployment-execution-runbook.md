@@ -29,7 +29,15 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：请求/上传材料收拢，等待新事实另审（2026-10-30）
+## 3. 当前唯一继续点：等待新请求/上传准确清单批准（2026-10-30）
+
+Source刷新并另允同范围后，新独立b于20:34:42.313–20:36:25 CDT完成：STS1/HTTP1、AWS元数据73（含准确HEAD）、GitHub GET9、配置1/验证TLS1/只读SQL21，所有写/槽/调度0。候选36735d和去重键、准确包键仍缺失，完整13任务/19计划14批准14尝试/业务准入/保护与原完整基线一致；共享Cell、角色/固定Secret版本元数据/镜像/DNS/前端匹配，未证明全账号零费用或产品验收。
+
+本次是新许可下的真实新观察：事实20:34:42.313 CDT起5小时，仅到10月31日01:34:42.313；最晚写启动01:19:42.313。旧14:43事实/旧basis/claim/TTL不延期，a失败和全部旧槽保留。恢复 `F:/ChatGPT_workshop/techlong-buyer-accepted-facts-readonly-20261030-b/checkpoint.json` raw SHA `34a67ae565e2e2834615f2df59e538e8dd3b490b233fd7e83b6f101db5e61da1`；新PENDING来源复用同一候选及621945字节5485a0c9…包，原适配器仍拒绝PENDING，没有创建实际APPROVED事实/能力或请求。
+
+最终本机调用仅装配原单INSERT/完整reader/条件上传器和独立Inspector，不新增工程运行模块或固定任务分支。21项本地调用边界检查通过（合成端口，不是线上验收）；明确新authority而非过期basis、pg_catalog/UTC、单调30秒、DB绝对时序、未知不继续。准确执行SHA只认[受限执行包](aws-backend-integration-accepted-request-upload-review.md#本轮准确执行包待批)对应 `F:/ChatGPT_workshop/techlong-buyer-accepted-request-upload-20261030-a/prepared-verified.json` 实际生成并匹配；不存在即尚未封存。封存后冻结main及本机调用，只等用户新SHA批准，不再追加读、开短部署窗口、扩兼容功能或自动执行。运行代码仍a221a24/准确CI41141437220，后续纯文档HEAD与本地调用检查分别记录，不冒称新HEAD已跑该CI。
+
+### 本轮新事实取得前的沿革（不重放）
 
 当前先读[受限调用配方、完整风险及停止规则](aws-backend-integration-accepted-request-upload-review.md)，下方旧“下一步/尚未”保留追溯，不重放。最小兼容源码a221a24及准确无AWS CI41141437220已通过；仅本地保存候选job_36735d0b9201afabd681b061与621945字节bundle（5485a0c9…），无真实请求/上传/来源选定。
 
