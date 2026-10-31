@@ -39,7 +39,9 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 用户另允后，已用Source STS1＋固定VersionId S3 GET1补齐1704字节provider-after原件（SHA061de4bc…），原assertRetirement及continueCloudContextV5的最新成功续接均真实通过；无其他生产读取或写入，不修代码/放宽guard。已仅本地生成725384字节canonical待审包数据候选aed6bd22…，PENDING/未上传/VersionId=null，运行编译仍待事实批准，不代表已创建请求或执行能力。
 
-**下一唯一动作仅纯本地准备一次新held请求＋不可变包的准确写入审批材料**，复用已有编译器/调用合同；不再读取生产、创建任务/占槽/上传、发布来源或部署。事实批准/新job/执行SHA仍null，原五小时准备截止今天15:00:54.601 CDT不因补件延长，不开短资源窗口。恢复 `F:/ChatGPT_workshop/techlong-backend-provider-original-20261031-a/checkpoint.json`，绑定原件/退役/历史续接及PENDING包；前置10份事实记录及旧缺件记录仍保留，不重跑任何读取。
+**本地候选已固定，下一唯一动作只等待一次最小空位补核许可**，具体准确目标、上限及风险见[本轮候选和补核范围](aws-backend-integration-preparation.md#本轮候选已固定仍缺一次最小空位补核)。候选 `job_6fb9d85ee3c3d0b9642d67df` 仅为数据绑定，不是已创建任务或新的固定任务执行分支；原单INSERT编译及PENDING拒绝校验通过，包仍725384字节/aed6bd22…/未上传。尚未观察全库候选/去重键缺失和准确新包键HEAD，不能封存可执行SHA。
+
+拟另批Source STS1＋准确S3 HEAD1、配置1/验证TLS Neon只读连接1/SQL最多45，核对候选空位及完整14/22/17/17基线保持；无S3正文/Secret值/PEM/HMAC、写入/槽/上传/来源/调度或部署。本轮纯本地准备上述实际副作用均0，事实批准/实际新job/执行SHA仍null；原五小时截止今天15:00:54.601 CDT不因候选生成延长，不开短资源窗口。恢复 `F:/ChatGPT_workshop/techlong-backend-restore-write-material-20261031-a/data/checkpoint.json`，前置事实/固定原件/全部旧记录保持，不重跑准备或读取。
 
 用户刷新Source并另允新一轮同范围后，**新b于温尼伯10月31日09:29:53实际确认准确Stack UUID64fe0920…为DELETE_COMPLETE**，已在栈查询后立即停止。实际STS1/元数据1，ECS/HTTPS/Secret或配置/数据库/业务与云写均0，不使用剩余4次元数据或两次GET继续排查。仅证明准确栈状态，不证明ECS/全账号资源全无或零费用，未查询删除操作者/原因。
 

@@ -2,13 +2,15 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-31，原件/历史续接已通过，只准备请求与包的写入审批）
+## 当前唯一继续点（2026-10-31，本地请求/包候选已固定，等一次最小空位补核许可）
 
 用户已同意只准备恢复方案，[最小后端恢复部署计划](aws-backend-integration-preparation.md#当前最小后端恢复准备2026-10-31)仍只原七项租户资源，复用数据库/镜像/Cell/域名。新a在另批范围内通过集中读取：STS1/AWS元数据62/GitHub9、配置1/TLS验证连接1/只读SQL18；准确七资源退役、ECS空闲，既有布局/固定版本及14任务22计划17批准17尝试/保护与最终已验收基线相同。没有秘密值/PEM/HMAC/S3正文/DDB业务项/Aurora、业务或云写、新job/包/来源/调度；没有有效写入SHA或事实批准。
 
 用户另允的固定补件已完成：Source STS1/S3 GET1，1704字节/SHA061de4bc…及原退役guard通过；纯本地原历史续接guard也通过，最新前驱为原成功36735d/准确已删UUID64fe0920…，没有修代码或制造过去观测。PENDING包数据候选已本地生成：canonical725384字节/SHA aed6bd22…（完整值见计划），未上传/VersionId=null、运行编译待事实批准，不是可执行发布材料。
 
-**下一唯一动作只纯本地准备一次新held请求及不可变包的准确写入清单**，实际SQL/S3写与之后来源/部署仍另审。没有事实批准、新job或执行SHA，不再读生产/秘密/.env/PEM、不连接数据库或上传/调度。当前快照仍只到今天15:00:54.601 CDT，未开部署窗口。恢复 `F:/ChatGPT_workshop/techlong-backend-provider-original-20261031-a/checkpoint.json`；旧前置快照和缺件记录均保留，不重放。
+本地候选 `job_6fb9d85ee3c3d0b9642d67df` 已用原单INSERT编译，PENDING仍被原适配器拒绝；只是数据候选，真实新job/事实批准/VersionId/执行SHA仍null。全部生产/配置/私密读取、连接、写/槽/上传/来源/调度为0，没有工程运行代码或执行器变化。
+
+**下一唯一动作只等[一次最小空位补核](aws-backend-integration-preparation.md#本轮候选已固定仍缺一次最小空位补核)的准确读取许可**：Source STS1＋准确S3 HEAD1、一次.env.local读取/一条验证TLS Neon只读连接/最多45查询，确认新候选及去重键全库缺失、准确包键无占用和完整基线未变；不读S3正文/Secret值/PEM/HMAC，不写、占槽、上传或调度。通过后才装配原调用并封存SQL/S3写入的另一份准确SHA，仍须另批。当前快照仍只到今天15:00:54.601 CDT，未开部署窗口。恢复 `F:/ChatGPT_workshop/techlong-backend-restore-write-material-20261031-a/data/checkpoint.json`；全部原件/旧槽保留，不重放。
 
 现有工具要求新受审执行绑定，不能重跑已成功36735d或复制旧CreateStack绕过围栏。新事实通过后，必要新held请求/包及来源/trust-only差异另列准确审批，再使用原整轮执行合同；本轮不启动短窗口、不安装权限或创建固定任务支线。后续单设备租约→店铺/菜单仍是恢复的唯一目的。
 

@@ -22,7 +22,32 @@
 
 恢复入口 `F:/ChatGPT_workshop/techlong-backend-provider-original-20261031-a/checkpoint.json`，绑定原GET回执、原退役/历史续接、真实link及待审包数据。原集中预检快照到**今天15:00:54.601 CDT**，补件/本地构造不重计时。没有新job/事实批准/执行SHA，没有SQL/S3写、来源发布或dispatch，未启动部署窗口；原失败/原件/全部永久槽和09:00取消记录保持。
 
-**下一唯一动作仅纯本地准备一次准确新held请求＋不可变包的写入审批材料**：复用既有请求/条件上传/独立回读合同，清楚区分候选ID与实际创建、PENDING事实与批准、准备/写入时钟。实际请求/上传、必要新读取/来源/trust-only和整轮部署仍按各自准确范围另审。不为缺件修代码，不追加API或连接，不新建固定任务分支/执行器。
+上述本地请求/包候选准备已完成，下一只等待下节最小空位补核的独立许可；未封存可执行写入SHA，不继续读取生产或创建请求/上传。
+
+### 本轮候选已固定，仍缺一次最小空位补核
+
+本轮仅从已存真实原件复用原请求编译器、历史续接与原buyer适配校验。原单INSERT草案通过；实际写入仍须在原SERIALIZABLE事务内用真实DB时钟重新编译，草案preview不是实际requestedAt。原适配器准确拒绝PENDING（`BUYER_COMPATIBILITY_ACCEPTED_FACT_APPROVAL`），没有制造APPROVED事实、新能力或成功回执。没有工程运行代码、工作流、来源选择或通用执行器变化；本机材料不是按job分叉的执行工具。
+
+| 固定数据候选（未执行） | 准确值 |
+| --- | --- |
+| jobId | `job_6fb9d85ee3c3d0b9642d67df` |
+| requestId | `8e47f7e663a912348ba332936940a86004235961558db266ab9b4a132b8a4bce` |
+| clientRequestId | `19a5a271-ddab-4e01-8d6b-2d1749d265ca`；本地随机生成，仅固定这份候选，不调用业务 |
+| dedupe | `express-initialized-v2:8e47f7e663a912348ba332936940a86004235961558db266ab9b4a132b8a4bce` |
+| 精确实例/部署 | `app_e897a4377bce498b9c5ee9e64509dcad` / `dep_7c99bd249470184852f0dc74` |
+| 前驱/完整历史 | 原成功36735d/UUID64fe0920…/TaskDefinition:11；14任务、22计划、17批准、17尝试全部保留 |
+| 包 | 上节725384字节/aed6bd224645f17ee6b59ed415a5c37d794bbd598d376f53b4b0be6d8fd2e24f及准确私有桶/key原样不变；VersionId=null |
+| 尚未产生 | 事实批准、实际新job、上传VersionId、执行manifest SHA、来源发布/整轮许可均null |
+
+恢复 `F:/ChatGPT_workshop/techlong-backend-restore-write-material-20261031-a/data/checkpoint.json`，raw SHA `6d8520d81d68e4af146dbb73d5d0d873054e016dd6cc6d671934009cd533a499`；本地summary raw SHA `3d085c3ec6a6011b85295f19f18d951dedcfad7d5d98bf0cb56c87dde5d3a732`，PENDING来源raw SHA `1f8438081b860af15c959511eecf8922fdc77ac30dd4fc5d6795718794fcc5d7`，原INSERT草案raw SHA `1293f836564df08a33a8ae55037c6d2a01b1c00322992e32d33fbb6b264220ce`。本地prepare-saved.mjs raw SHA `334975675c57d0816c4f0152c02c526e7fdc75273afd8e6ba0609438215f2198`，已完成后不可重跑；独立本地复核重编译草案、核对三记录和包字节/PENDING拒绝/111闭包/四空槽均通过，无网络。完整SQL/payload/业务正文只在本地私有目录，已限制ACL为当前用户/SYSTEM/Administrators，不提交Git。四个拟用执行槽仅确认未消费，未创建。实际生产读取、配置/私密内容读取、数据库连接、所有生产写、槽、上传/发布/dispatch均0；正常文档提交不冒称新HEAD已运行代码CI，原b79615cd/CI41167545929及111闭包保持。
+
+原10:00快照发生在本地分配此候选之前，不能声称已观察该候选/去重键全库不存在；准确新包键也没有HEAD原件。**不能用“草案本地不冲突”代替生产空位证明，当前执行SHA仍null。** 下一拟另批且只执行一次：
+
+- Source固定IAM身份：官方STS最多1次；准确上述私有桶/新内容key的S3 HEAD最多1次，无列桶/正文GET/翻页/应用重试。仅404且无delete marker可记缺失；存在、403、未知或身份错误即停，余下读取不自动继续。
+- 现有`.env.local`整文件读取最多1次，仅进内存；一条验证证书TLS的Neon READ ONLY连接、最多45条查询（含事务及pg_catalog/UTC设置）。复用原完整reader，核对14/22/17/17、准入/权限/保护与已封存完整基线完全一致，并在全库准确绑定jobId或dedupe仅查计数，必须为0；不读取其他候选业务值，不连接Aurora。
+- 不读AWS Secret值、PEM/HMAC、S3正文或DDB业务项；不调用GitHub/业务HTTP，不写AWS或数据库、不创建/取消任务、不批准事实、不消费执行槽、不上传/续租/发布/dispatch。失败保留新记录并停止，不重试或换候选绕过结果。新补核不改原factsAt及expiresAt，准备仍只到**今天15:00:54.601 CDT**。
+
+本次拟读取仍有整文件进入内存、owner权限较宽、凭据/网络/提供者日志和低额非零费用风险，需用户单独允许；当前“开始下一步”仅完成本地材料，不代替这次许可。全部通过后才固定原调用配方与写入清单，另给准确SHA批准：拟保留原单INSERT1→独立完整回读→条件PUT1→准确版本GET1，配置2/TLS2/SQL最多160、STS4/桶安全元数据6/准确HEAD2；不改旧行/账本/IAM/工作流、不读秘密或创建承载，不自动重试/补齐/清理。该后继预算仅供准备，**不是写入授权或已经装配完的可执行清单**。
 
 ### 原本地方案准备阶段（集中预检前，保留追溯）
 
