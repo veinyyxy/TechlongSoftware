@@ -2,7 +2,30 @@
 
 2026-10-31，America/Winnipeg。沿用[执行手册](aws-auto-deployment-execution-runbook.md)；这是主线第二步的工作记录，不是新的云部署、私密读取或业务写入批准。
 
-## 当前状态与唯一继续点：先准备现有承载保留至09:00
+## 当前状态与唯一继续点：只准备单一测试设备正常访问租约审批
+
+用户已取消改时间，恢复原主线。65f52068…的09:00标签保留提案**取消、未批准、未执行**，不创建/执行Change Set，不改标签、旧事实或回执。原件仍保留，取消不是资源清理。原01:34:42.313事实/01:47:54意图已经过期；本轮没有新的线上核对，当前栈/服务是否仍在保持未知，不能拿00:xx观察当08:xx现状。
+
+### 单一测试设备正常访问租约审批草案
+
+当前只完成本地范围准备，不使用凭据、AWS/HTTPS/数据库，不读私密值或执行JS，不产生业务/云写。**没有新的可执行批准SHA或短窗口**；待用户额度恢复、准备执行时，另批最小现状核对并绑定有效事实/窗口。若承载已删/删除中或原窗口不允许继续，就停止给出事实，不自动恢复部署、续期或另建任务。
+
+| 租约阶段A草案 | 待审约束（尚不执行） |
+| --- | --- |
+| 测试身份 | 最终清单固定一个新的非PII设备ID，长度12–200、平台web；只使用这一ID/同一租约键，不失败换ID或复用其他用户设备；原件本地保存，不将原始设备ID提交Git |
+| 店铺与来源 | 准确成功回执的existingDefaultStoreId，X-Store-Id显式绑定；Origin为https://buyer.sandbox.techlong.cloud，后端仅https://first-acceptance.sandbox.techlong.cloud，不猜店铺或切其他来源 |
+| 正常访问 | 最多一次GET /api/buyer/access，带X-Buyer-Device-Id、X-Buyer-Platform、X-Store-Id；不带Cookie/JWT，不登录、不创建用户，不运行客户端JS/定时heartbeat |
+| 正常数据库副作用 | 既有middleware的一次访问门禁事务：锁定准确实例、核对operational/license及并发额度，可能INSERT/UPDATE/复用同一个(instance_id, device_hash)租约；继承现有lease_seconds/heartbeat_seconds，不改配置或强行指定到期，不承诺GET零写 |
+| 私密与签名 | 本地routes/buyer_access.js只返回req.buyerAccess，没有route层verifySignature；阶段A无需为该GET读取HMAC/Secret/.env/PEM。200只证明正常租约路径，不证明HMAC认证；不改变任何认证代码，店铺/菜单仍须签名及另批私密使用 |
+| 执行前检查 | 后续清单另列最小新身份/准确资源/镜像与来源核对、health/ready及含设备/平台头的CORS预检；这不是本次准备的读取许可。旧TTL/事实不能因新设备或HTTP200而延期 |
+| 结果与失败 | 核对success/access.allowed/device_required及合法lease时间，只有去敏结果/状态/哈希落地；配额不足、非2xx、超时、响应不明即停，不换ID、扩额度、重试或补写。门禁在route认证前运行，后续签名失败也可能已有租约，不能把跨请求失败当作自动回滚 |
+| 后续与保留 | 该租约的额度占用/正常续期与费用/日志风险须准确批准；过期不保证删除行，不自动清理。阶段A成功后才另定店铺bootstrap/菜单各一次的验收范围，两者middleware也可能续期，不能沿用阶段A的一次写许可 |
+
+本地依据为固定镜像对应服务端app.js、routes/buyer_access.js、routes/stores.js、services/store_context.js、services/saas/buyer_access_service.js及签名实现；没有改这些文件。阶段A不触碰订单、支付、商品、商户登录或其他租约，亦不声称全局数据库/提供者无其他活动。源码/草案不是实际验收；wholeProductAccepted=false。
+
+### 09:00保留方案已取消
+
+以下保留提案/范围/时序仅供追溯，不是当前执行指令或待批许可。`F:/ChatGPT_workshop/techlong-tenant-retention-readonly-20261031-a/review/CANCELED.json` 追加记录取消；原manifest/请求/风险和读取原件不改写、不删除。CreateChangeSet、ExecuteChangeSet、标签写入均0，不再请求该SHA批准。
 
 ### 保留至09点的最小准备（2026-10-31）
 
@@ -12,7 +35,7 @@
 
 初次本地参数比对停止保留：18是原显式传参数，AWS实际返回20个，其中JwtExpiresIn/MerchantJwtExpiresIn取原模板默认，另两值为NoEcho遮罩。全部可见值/默认已本地核对匹配；不能证明遮罩后的底层内容，但不需解密，更新对20参数全部UsePreviousValue=true，避免重置。其后并发响应解析停止原件同样保留；只补完未发请求，累计STS1/元数据12，未重复任何API。规则依据：[参数默认值与NoEcho](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html)、[UsePreviousValue](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_Parameter.html)。
 
-**唯一待批执行清单raw SHA：`65f52068c4fdcd06c1e00a4ac7f9e829a17dca4ca94eb7618590f5899520ef4a`。** 本地 `F:/ChatGPT_workshop/techlong-tenant-retention-readonly-20261031-a/review/approval-manifest.json` 绑定准确CreateChangeSet请求、原件摘要、20个UsePreviousValue、严格Tags-only/无替换条件及独立核验。请求raw SHA `4eb88822bb97fc5506aaea76359ede64ef08a324cd465bb37171f9b1f1244e94`；同目录README.md完整风险raw SHA `cc82d653b0dfacfb6761437c6e263e76d065ba0fac2be3d3a3066bc62a443265`。本地材料已齐，不代表获准或已执行云写。
+**已取消、从未批准执行的清单raw SHA：`65f52068c4fdcd06c1e00a4ac7f9e829a17dca4ca94eb7618590f5899520ef4a`。** 本地 `F:/ChatGPT_workshop/techlong-tenant-retention-readonly-20261031-a/review/approval-manifest.json` 仍保留原绑定，仅供追溯。请求raw SHA `4eb88822bb97fc5506aaea76359ede64ef08a324cd465bb37171f9b1f1244e94`；同目录README.md原风险raw SHA `cc82d653b0dfacfb6761437c6e263e76d065ba0fac2be3d3a3066bc62a443265`。不会执行或刷新这份提案。
 
 待批总上限：准确栈CreateChangeSet1，严格核验后ExecuteChangeSet1；新STS2/元数据65（有限监控及另一进程独立核验），无写重试/清理。最晚01:27:54 CDT启动、写提交最迟01:42:54；必须在旧到期前完成标签更新，不是等到09:00再批准。接受正常CFN回滚、标签传播/托管API、非原子/并发/清理器竞态、凭据刷新/日志、持续费用、遗留Change Set/部分状态及未知不重试风险；不新增权限、修改清理器/业务、读秘密或重部署。严格Change Set不能证明仅标签/无替换时停止，不执行或自动删除。保留成功只增加新回执，旧事实/批准/回执不改；09:00不保证自动停费，清理另审。
 
@@ -40,7 +63,7 @@ AWS文档将[TaskDefinition.Tags更新标为No interruption](https://docs.aws.am
 
 本地 `janitor.cjs` 确实有按栈ExpiresAt执行DeleteStack的路径，本次元数据已核对函数Active/扫描计划ENABLED；未下载函数代码或证明其并发限制。旧01:47:54后可能被删除，不保证保留/及时清理/停费。发现UUID不符、删除中/已删除、非稳定状态、模板/角色/有效可见参数不符或存在其他到期机制即停止并报告，不自动重建/禁用清理器/扩IAM。09:00仍非硬停费线；保留期间费用继续，后续清理另审，不为此次等待创建自动化/新框架。
 
-### 单设备验收原继续点（保留准备完成后再继续）
+### 单设备验收原继续点（当前草案见顶部；下方为已执行事实）
 
 用户确认5353d319547d3e7b7071b7233079fd5dcd184e5073bd5502f35d0b2f3e2a5bed后，本轮已在温尼伯10月31日00:20:58–00:21:01单次执行并按规则停止：前端首页/manifest及后端health/ready均200，准确buyer Origin的CORS预检204通过；第一条签名店铺GET返回400，菜单GET没有发出。无重试、JS、登录或部署。
 
