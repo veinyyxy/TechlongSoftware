@@ -2,7 +2,17 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-30，等待来源事实衔接与只读准备SHA批准）
+## 当前唯一继续点（2026-10-31，整轮通过，准备有限买家业务验收）
+
+同一36735d任务已按2cb0a046…明确批准完成 Review [41169905634](https://github.com/veinyyxy/TechlongSoftware/actions/runs/41169905634) → RunOnce [41170142255](https://github.com/veinyyxy/TechlongSoftware/actions/runs/41170142255) → 独立Inspect [41170837582](https://github.com/veinyyxy/TechlongSoftware/actions/runs/41170837582)，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`；三次环境均用户本人批准。源码b79615cd/准确CI41167545929，一次建栈/7资源、两次认证GET，新任务成功/租约清空，13旧任务及19/14/14旧账本/业务保护保持。无新IAM、重试或清理；[完整真实结果](aws-auto-deployment-reviewed-cycle-observed.md#2026-10-31买家来源后端整轮已独立通过)。
+
+恢复先读 `F:/ChatGPT_workshop/techlong-reviewed-cycle-run-2cb0a046744fadf20bbc3aa7060934c0f11adc3e96c5e283ede35fd0566785bf/executed-verified.json`，raw SHA `93b96f9ac012cb2ecac3696e2ea598dd490aeaf2e05d3340f96fc51d7313bec8`。59原件/最终证明已重建；七槽永久消费，不再运行旧准备、读取、来源发布或整轮命令。本轮来源冻结已结束以便正常记录文档，后续文档HEAD不冒称新执行代码CI。
+
+**下一只准备买家客户端→准确后端→租户数据库的有限店铺/菜单验收，和单独清理安排。** 不扩部署工具、UI/F3c9/探针，不新任务/镜像/IAM或重部署。新网络/认证/私密读取/连接/业务写及删除仍具体另审；wholeProductAccepted=false、Inspect proof未额外导入账本，不为页面状态扩支线。
+
+原意图至温尼伯 **10月31日01:47:54 CDT**，源事实仍01:34:42.313，不延期；TTL不自动停费或销毁。共享Cell/数据库/前端仍保留，50 USD/月不是硬停费线。若恢复时窗口已过，先另审现状/清理，不自动续租或重部署。
+
+### 来源事实衔接与发布前准备沿革（已完成，不重放）
 
 来源材料已从实际36735d请求、包版本B_vILxj…及完整旧历史本地重建，检查点907e0b15…位于 `F:/ChatGPT_workshop/techlong-buyer-accepted-publication-material-20261030-a/checkpoint.json`；无新增线上/配置读取、连接、云/数据库/Git对象/ref写、槽或dispatch，SOURCE仍UNPUBLISHED/PENDING。
 

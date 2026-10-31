@@ -29,7 +29,19 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：来源材料已备齐，等待事实衔接及只读准备批准（2026-10-30）
+## 3. 当前唯一继续点：整轮已通过，转向有限买家业务验收（2026-10-31）
+
+用户批准整轮 `2cb0a046744fadf20bbc3aa7060934c0f11adc3e96c5e283ede35fd0566785bf` 并本人完成三次GitHub环境审批后，同一 `job_36735d0b9201afabd681b061` 的 Review `41169905634` → RunOnce `41170142255` → 独立Inspect `41170837582` 已真实通过，最终 `WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`。执行源码b79615cd、准确CI41167545929、reusable981c3af及111闭包9f6ceb7c…保持；没有新增IAM、重试、删除或再发布来源。
+
+本地从59份真实原件重建最终attestation、固定版本对象、完成业务及完整历史通过。恢复入口 `F:/ChatGPT_workshop/techlong-reviewed-cycle-run-2cb0a046744fadf20bbc3aa7060934c0f11adc3e96c5e283ede35fd0566785bf/executed-verified.json`，raw SHA `93b96f9ac012cb2ecac3696e2ea598dd490aeaf2e05d3340f96fc51d7313bec8`；[准确runs、资源、次数与费用边界](aws-auto-deployment-reviewed-cycle-observed.md#2026-10-31买家来源后端整轮已独立通过)。七个整轮槽永久消费，禁止再RunReviewed/重跑准备或旧读取、不复位槽。源码冻结在进程退出、最终证明及本地重建后结束，本轮后续仅正常记录文档；文档HEAD不是新的执行源码或CI。
+
+一次CreateStack/7资源、两次认证GET、同一任务succeeded/attempts1/max1且租约清空，13条旧任务/原19计划14批准14尝试及其他业务/保护保持。Inspect无云写、数据库写或控制私密包读取；最终证明未额外导入Inspect账本，`finalLedgerProofImported=false`。不为ACK标签扩UI或proof导入支线，`wholeProductAccepted=false`。
+
+**下一唯一动作：准备现有买家客户端、准确后端及租户数据库的有限店铺/菜单业务验收，并单独安排准确资源清理审核。** 复用buyer.sandbox.techlong.cloud与first-acceptance.sandbox.techlong.cloud，不新建任务/镜像/来源/部署框架，不重做已经通过的整轮。任何新HTTPS/认证、Secret或配置使用、数据库连接/业务写、清理仍按准确范围另审，不沿用整轮未用预算。订单、支付和完整产品上线尚未验收。
+
+工作负载意图至 **2026-10-31 01:47:54 America/Winnipeg（CDT）**；源事实仍至01:34:42.313，两者不互相延期。TTL/标签不会自动停止或销毁，资源可能持续计费，50 USD/月不是硬上限；恢复时若已过期先另审准确现状/清理，不自动续租、重部署或假定停费。
+
+### 来源发布前准备沿革（下方均已完成，不重放）
 
 本轮仅从d3379c83…实际请求/包执行证明重建36735d的来源草案和发布范围，无生产/凭据/配置读取、连接、Git对象/ref写入、来源选择、槽或dispatch。新SOURCE仍UNPUBLISHED/PENDING、publication authority/factsApproval/发布SHA均null，三文件/trust未改。候选材料只认 `F:/ChatGPT_workshop/techlong-buyer-accepted-publication-material-20261030-a/checkpoint.json` raw SHA `907e0b15423160438e451699f9121eec92d2368cbf0b01d4edf926f4ec5cb147`。
 

@@ -1,4 +1,28 @@
-# 已初始化 sandbox 自动部署整轮实测（2026-10-28）
+# 已初始化 sandbox 自动部署整轮实测
+
+## 2026-10-31：买家来源后端整轮已独立通过
+
+用户确认整轮 `2cb0a046744fadf20bbc3aa7060934c0f11adc3e96c5e283ede35fd0566785bf` 并本人完成三次GitHub环境审批，同一 `job_36735d0b9201afabd681b061` 最终为 **`WHOLE_CYCLE_INDEPENDENTLY_VERIFIED`**。执行源码 `b79615cd5bcd6d02898eb7309ece16b5e9e7e664`，准确[CI41167545929](https://github.com/veinyyxy/TechlongSoftware/actions/runs/41167545929)全部步骤通过；reusable `981c3af53a1a40999db715a10304562a69a0c4a3`，111闭包 `9f6ceb7ccca8ee542bf8cab4ec120ab79571d20fd97356ddbaa831b58e4c745b`。本次后继纯文档提交不是新的执行来源/CI或生产观测。
+
+| 阶段 | 准确run | 完成结论 |
+| --- | --- | --- |
+| Review | [41169905634](https://github.com/veinyyxy/TechlongSoftware/actions/runs/41169905634) | 四固定版本内容核验；RunOnce后继三写和独立回读通过 |
+| RunOnce | [41170142255](https://github.com/veinyyxy/TechlongSoftware/actions/runs/41170142255) | 同一任务成功、一次建栈；六固定版本、完成编译及业务回执通过；Inspect后继三写和独立回读通过 |
+| 独立Inspect | [41170837582](https://github.com/veinyyxy/TechlongSoftware/actions/runs/41170837582) | 不同run独立核对资源/健康、业务/历史；五固定版本和最终attestation通过；无云写、数据库写或控制私密包读取 |
+
+准确新栈：`arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/64fe0920-d4e7-11f1-8866-0eb4b7868f6f`。最终proof SHA `e65897df88c888dbc2505bb3a79dd41209597ca4aa919e63f43ab1e487393c6d`，业务回执SHA `308b6743adba725065c9efbad17f789d8947f7850403ae668f0412d9f7a6c39d`。独立云观察为温尼伯10月31日00:01:48.057 CDT，不冒充未来持续健康。
+
+实际云端报告CreateStack1、受审7项资源、认证HTTP2/token尝试2、完成读取18、claim/complete写事务2，provider SDK读取53＋辅助读取14。Secret与控制私密包使用按固定安装合同/版本，本报告没有单独列出托管Secret注入的完整传输次数，不将缺失计数说成0。Inspect报告明确云写/DB写/控制私密包读取均0。没有新IAM、初始化重做、重试、删除或自动清理。
+
+八份本机I/O报告合计：配置读取8/TLS13/SQL248/Source STS8、PEM/token/dispatch/撤销尝试各3、App HTTP27、审计模拟/条件PUT各3、固定版本S3 GET25、监控GitHub GET58、官方日志下载3、发布器run GET4、环境GET6；agent代批、未知dispatch及自动重试均0。准确CI GET保留原21上限，不伪造未单列的传输计数。新任务succeeded/attempts1/max1、三lease清空，initialized/effectiveConfiguration均验证true；其他13旧任务、原19计划/14批准/14尝试、其他业务和保护完全保持。
+
+恢复入口 `F:/ChatGPT_workshop/techlong-reviewed-cycle-run-2cb0a046744fadf20bbc3aa7060934c0f11adc3e96c5e283ede35fd0566785bf/executed-verified.json`，raw SHA `93b96f9ac012cb2ecac3696e2ea598dd490aeaf2e05d3340f96fc51d7313bec8`。共59份原件（含运行输出、七永久槽及准备/批准绑定）已本地重建；重建通过原内容attester且唯一proof查询仅在内存检查，无网络或生产写。七槽已消费，禁止重新RunReviewed、重放准备/读取/来源发布、复位槽或改旧历史。业务正文、配置/私钥、原始私密日志和签名下载URL不提交Git。
+
+`wholeProductAccepted=false`，最终Inspect证明没有额外写回账本（`finalLedgerProofImported=false`），不为ACK标签另开UI/proof支线。该结果证明已初始化sandbox且含准确buyer来源的一轮后端恢复，尚未验证真实买家客户端店铺/菜单、订单支付、新租户首次初始化、版本升级或整套AWS常驻交付。
+
+**下一唯一动作**按[执行手册](aws-auto-deployment-execution-runbook.md)准备买家→后端→租户数据库的有限业务验收，并将清理单独审核。原工作负载意图为 **2026-10-31 01:47:54 CDT**；SOURCE事实仍01:34:42.313，不延期。TTL不自动销毁/停费，既有及新增资源可能继续收费，50 USD/月不是硬上限；过期后先另审现状/清理，不自动续租/重部署。后继HTTPS/认证/私密读取/业务写/删除均具体另审。
+
+## 2026-10-28历史整轮（保留，不重放）
 
 ## 结果与准确来源
 
