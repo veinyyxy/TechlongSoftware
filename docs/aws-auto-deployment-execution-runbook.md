@@ -45,6 +45,8 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 
 用户已允许该补核，但a在LOCAL_INPUTS的临时本地断言停止：旧保护查询以WITH开头，配方错误要求首词SELECT；**STS/HEAD/配置/TLS/SQL及写/槽均0**，未取得空位事实、不重跑a。仅本地已改为既有查询文件和两条查询的准确SHA，SQL/工程运行代码/只读事务不改；b只语法和差异核对，未执行。下一唯一动作只请求新b同范围读取许可，不先调用生产或要求刷新。恢复 `F:/ChatGPT_workshop/techlong-backend-restore-target-readonly-stopped-20261031-a.json`；完整范围/原件见[补核停止记录](aws-backend-integration-preparation.md#补核a本地停止未调用生产)。候选/包/全部旧记录及原15:00:54.601截止保持。
 
+用户另允后，新b于11:16:36–11:16:37 CDT在SOURCE_STS的CredentialsProviderError停止：STS尝试1/HTTP0，HEAD/配置/TLS/SQL及所有写/槽/调度0。不能据此断言登录已过期或profile变化；a和b均保留、不重跑。恢复 `F:/ChatGPT_workshop/techlong-backend-restore-target-readonly-20261031-b/checkpoint.json`，raw SHA `c6a51f68781c789d881d2d28c02e6bbfaff87bfe33066350b84d5268acbcd8fd`。**下一唯一动作只请求新记录同上限、用官方CLI解析同一Source的读取许可**，不盲目重复SDK或刷新登录；具体凭据内存/端点边界见[本轮凭据停止及下一范围](aws-backend-integration-preparation.md#补核b凭据提供器停止未发出sts-http)。目前没有空位证明/事实批准/新job/写入SHA，不先读生产或改工程运行代码，原15:00:54.601截止不延长。
+
 用户刷新Source并另允新一轮同范围后，**新b于温尼伯10月31日09:29:53实际确认准确Stack UUID64fe0920…为DELETE_COMPLETE**，已在栈查询后立即停止。实际STS1/元数据1，ECS/HTTPS/Secret或配置/数据库/业务与云写均0，不使用剩余4次元数据或两次GET继续排查。仅证明准确栈状态，不证明ECS/全账号资源全无或零费用，未查询删除操作者/原因。
 
 当前无法生成或执行有效的设备租约清单；租约草案保留，用户已同意只准备最小后端恢复方案，仍须按具体资源/新窗口另审。原数据库/镜像/域名的当前状态未重新验证，不自动重建/续期、不重放已成功job或旧Review/整轮、不为此扩工具/F3c9/UI。此前部署成功事实不改写为失败，产品验收仍未完成。

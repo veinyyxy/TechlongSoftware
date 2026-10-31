@@ -59,6 +59,16 @@
 
 下一唯一动作只申请新b同范围许可：STS1/准确S3 HEAD1、配置1/验证TLS Neon只读连接1/最多45查询，仍仅核对准确候选/去重键全库计数及14/22/17/17完整业务/保护，不读S3正文/Secret值/PEM/HMAC，不写或占槽/上传/调度。未用读取预算不自动沿用，全部旧记录保持。候选6fb9…和725384字节aed6bd22…包仍PENDING，事实批准/实际新job/VersionId/执行SHA均null；原事实终点**今天15:00:54.601 CDT**不延期。补核成功后才准备原调用的写入清单，不能把本次读取许可当SQL/S3写许可。
 
+### 补核b凭据提供器停止，未发出STS HTTP
+
+用户另允后，b于2026-10-31 11:16:36.847–11:16:37.264 CDT单次运行，SOURCE_STS阶段返回CredentialsProviderError，实际STS尝试1/HTTP0。S3 HEAD/正文、配置读取、TLS/SQL、所有生产写/上传/槽/调度均0，尚未取得新空位证明。错误只保存去敏类型、未保存原始消息；不能证明具体过期/缺配置/刷新失败原因，不反复要求用户登录。独立本地核对两记录字节、原配方/包、四个未消费槽和原期限通过，未追加生产调用。
+
+恢复`F:/ChatGPT_workshop/techlong-backend-restore-target-readonly-20261031-b/checkpoint.json`，raw SHA `c6a51f68781c789d881d2d28c02e6bbfaff87bfe33066350b84d5268acbcd8fd`；result raw SHA `154746a96adc7eb419e0ceba36aee84ac179c1881f12ffd6c46821bdca6e1c98`。目录ACL仅当前用户/SYSTEM/Administrators；a原件/b失败和未用预算均不重放或自动延用。不是AWS服务拒绝/资源变化证明，也不把本地只读失败说成部署失败。
+
+本地SDK源码显示fromLoginCredentials只处理带login_session的登录配置，并可能因多种token/刷新问题抛出同一类型；没有读取当前profile内容，因此**不将代码推测当实际根因**。此前同Source官方CLI在10:20成功，但那不代表现在仍有效。下一只申请一次新记录同上限：由官方AWS CLI按`techlong-sandbox-user`解析现有Source凭据（若需export-credentials仅进内存，不输出/落盘，不新增AWS API），固定官方STS端点最多1次且必须仍为准确IAM用户；身份成功后才以同一份解析结果对准确新key做一次S3 HEAD，再执行尚未开始的配置1/TLS只读连接1/SQL最多45。HEAD仍只接受404且无delete marker，完整基线和全库候选/去重键计数保持原要求。
+
+新方式仅是这份本机只读采集配方的凭据适配，不改工程/云运行代码、身份权限、业务合同或SDK生产入口；不新建身份/框架，不自动登录，不读取Secret值/PEM/HMAC/S3正文，不写/占槽/续租/上传/dispatch。解析凭据及整份配置进入内存、宽权限Source/owner、网络/提供者日志和非零费用风险仍须另允；失败即保留新记录停止、不重试。原factsAt/五小时终点**15:00:54.601 CDT**不变，所有实际新job/事实批准/VersionId/执行SHA仍null。本轮仅提出这个下一读取范围，未运行CLI诊断、解析或额外读取。
+
 ### 原本地方案准备阶段（集中预检前，保留追溯）
 
 - 前轮Review41169905634 → RunOnce41170142255 → Inspect41170837582真实独立通过，59原件仍完整；并不代表后端一直存在。
