@@ -6,17 +6,27 @@
 
 ### 保留至09点的最小准备（2026-10-31）
 
-用户已确认新的保留目标为**2026-10-31 09:00 America/Winnipeg（CDT）=2026-10-31T14:00:00.000Z**。这次只调整准备方向，尚未读取新云元数据或执行AWS写入；不能声称资源已续期。原SOURCE事实01:34:42.313、原部署意图01:47:54、任务/完成回执/535停止记录/永久槽均不改写或复用。09:00开始业务验收需新的现状与范围批准。
+用户已确认新的保留目标为**2026-10-31 09:00 America/Winnipeg（CDT）=2026-10-31T14:00:00.000Z**，并另允一次STS1＋最多12次元数据核对。现已实际使用全部范围，无重复API、云写/私密值/数据库读取，尚未续期。原SOURCE事实01:34:42.313、原部署意图01:47:54、任务/完成回执/535停止记录/永久槽均不改写或复用。09:00开始业务验收需新的现状与范围批准。
+
+新只读事实：准确栈CREATE_COMPLETE/七资源稳定/原模板匹配，ECS任务定义11、desired/running/pending=1/1/0，PRIMARY COMPLETED；旧ExpiresAt仍06:47:54Z。租户Janitor函数Active、扫描计划ENABLED/rate(15 minutes)，Cell计划DISABLED。原父Cell仍稳定但标签早已过期，未续父Cell。一次租户并发请求退出0但响应未成功保存，限制保持UNKNOWN，不额外读取或据此断言清理器关闭。
+
+初次本地参数比对停止保留：18是原显式传参数，AWS实际返回20个，其中JwtExpiresIn/MerchantJwtExpiresIn取原模板默认，另两值为NoEcho遮罩。全部可见值/默认已本地核对匹配；不能证明遮罩后的底层内容，但不需解密，更新对20参数全部UsePreviousValue=true，避免重置。其后并发响应解析停止原件同样保留；只补完未发请求，累计STS1/元数据12，未重复任何API。规则依据：[参数默认值与NoEcho](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html)、[UsePreviousValue](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_Parameter.html)。
+
+**唯一待批执行清单raw SHA：`65f52068c4fdcd06c1e00a4ac7f9e829a17dca4ca94eb7618590f5899520ef4a`。** 本地 `F:/ChatGPT_workshop/techlong-tenant-retention-readonly-20261031-a/review/approval-manifest.json` 绑定准确CreateChangeSet请求、原件摘要、20个UsePreviousValue、严格Tags-only/无替换条件及独立核验。请求raw SHA `4eb88822bb97fc5506aaea76359ede64ef08a324cd465bb37171f9b1f1244e94`；同目录README.md完整风险raw SHA `cc82d653b0dfacfb6761437c6e263e76d065ba0fac2be3d3a3066bc62a443265`。本地材料已齐，不代表获准或已执行云写。
+
+待批总上限：准确栈CreateChangeSet1，严格核验后ExecuteChangeSet1；新STS2/元数据65（有限监控及另一进程独立核验），无写重试/清理。最晚01:27:54 CDT启动、写提交最迟01:42:54；必须在旧到期前完成标签更新，不是等到09:00再批准。接受正常CFN回滚、标签传播/托管API、非原子/并发/清理器竞态、凭据刷新/日志、持续费用、遗留Change Set/部分状态及未知不重试风险；不新增权限、修改清理器/业务、读秘密或重部署。严格Change Set不能证明仅标签/无替换时停止，不执行或自动删除。保留成功只增加新回执，旧事实/批准/回执不改；09:00不保证自动停费，清理另审。
+
+本次只读记录仍分阶段保留于上述目录run/result.json（raw SHA802a1c4b…）、remaining/result.json（885376fd…）及tail/result.json（`a6cad227e951e3b2f83830c9d3145df0826bfa11b4a1ba655e6bffed240f7900`）。最后结果明确APPROVED_CALLS_COMPLETE_LEGACY_CONCURRENCY_UNPROVED；不能改写为所有响应完整。prepared-verified.json绑定请求/清单/风险与本地候选验证；没有可重跑的读取许可，原始响应/模板不提交Git。
 
 本地真实原件仍为 `F:/ChatGPT_workshop/techlong-reviewed-cycle-run-2cb0a046744fadf20bbc3aa7060934c0f11adc3e96c5e283ede35fd0566785bf/runonce-captured-material.json` 内的实际V5 workload；新保留记录不得覆盖它。准确目标为 `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/64fe0920-d4e7-11f1-8866-0eb4b7868f6f`，不是仅按同名栈猜测对象。
 
-最小候选只允许将实际request的一个栈ExpiresAt及模板内TenantLogGroup、TenantService、TenantTargetGroup、TenantTaskDefinition四处ExpiresAt，从 `2026-10-31T06:47:54.000Z` 改为 `2026-10-31T14:00:00.000Z`。七资源数量、18参数、镜像/代码、角色、Secret版本、desired count、DNS/来源及其他模板内容全部保持。应以新元数据的原模板逐字段比对，恢复这五个值后必须等于原件；当前仅描述候选，未生成可执行批准SHA。
+最小候选只允许将实际request的一个栈ExpiresAt及模板内TenantLogGroup、TenantService、TenantTargetGroup、TenantTaskDefinition四处ExpiresAt，从 `2026-10-31T06:47:54.000Z` 改为 `2026-10-31T14:00:00.000Z`。七资源数量、18显式/20有效参数、镜像/代码、角色、Secret版本、desired count、DNS/来源及其他模板内容全部保持。已以新元数据原模板逐字段比对，恢复这五个值后等于原件；准确清单已产生但等待新批准。
 
 本地已从上述实际原件完成一次内存草案检查：准确四个资源标签及一个栈标签匹配旧值，资源7/参数18，恢复五处标签后与原件深比较完全一致，Metadata中的legacyJanitorExpectedEnabled=true。原TemplateBody原始字节SHA `4269cf201210698bd3dd45c188f80323c018e6e3a7a188d659b548106ff043ca`；仅该内存候选JSON.stringify字节SHA `b6135c5aa77f0d17e6dde9f7c03f3aee94b18cd64bda62aab4f43cbbcf711e95`。这些是本地内容摘要，**不是执行清单SHA或新云事实**；未保存/提交模板正文、未发AWS请求，不能据此执行更新。
 
 AWS文档将[TaskDefinition.Tags更新标为No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ecs-taskdefinition.html#cfn-ecs-taskdefinition-tags)，但这不是本栈的执行证明。后续应以准确[UPDATE Change Set](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html)核对，拒绝新增/删除/替换、非标签改动或不明差异；创建/执行该Change Set本身也须新的准确云写批准，不能在只读准备中调用。
 
-必要的下一次只读准备须先另获许可：固定Source IAM身份STS最多1次及AWS元数据最多12次，无翻页/应用重试：
+本次用户另允并实际使用的只读准备范围如下，已消费读取预算，不是未来重复读取许可。固定Source IAM身份STS1次及AWS元数据12次，无翻页/应用重试：
 
 | 准确对象 | 元数据范围与上限 |
 | --- | --- |
@@ -28,7 +38,7 @@ AWS文档将[TaskDefinition.Tags更新标为No interruption](https://docs.aws.am
 
 不读取Secret值、PEM、.env、S3正文或DDB业务项，不连接数据库、请求业务API、写云/业务、占槽、dispatch或续期。仅生成准确新云变更材料；接受凭据进内存、网络/提供者日志及低额非零费用，准备快照最长5小时且不得越过本次目标或掩盖执行前状态变化。
 
-本地 `janitor.cjs` 确实有按栈ExpiresAt执行DeleteStack的路径，实际部署Metadata预期legacy Janitor启用，历史也观察到它删除租户；当前线上配置尚未新读取。旧01:47:54后可能被删除，不保证保留/及时清理/停费。只读发现UUID不符、删除中/已删除、非稳定状态、模板/角色/参数不符或存在其他到期机制即停止并报告，不自动重建/禁用清理器/扩IAM。09:00仍非硬停费线；保留期间费用继续，后续清理另审，不为此次等待创建自动化/新框架。
+本地 `janitor.cjs` 确实有按栈ExpiresAt执行DeleteStack的路径，本次元数据已核对函数Active/扫描计划ENABLED；未下载函数代码或证明其并发限制。旧01:47:54后可能被删除，不保证保留/及时清理/停费。发现UUID不符、删除中/已删除、非稳定状态、模板/角色/有效可见参数不符或存在其他到期机制即停止并报告，不自动重建/禁用清理器/扩IAM。09:00仍非硬停费线；保留期间费用继续，后续清理另审，不为此次等待创建自动化/新框架。
 
 ### 单设备验收原继续点（保留准备完成后再继续）
 
