@@ -1,6 +1,14 @@
 # 后端联调/CORS：当前最小准备与继续点
 
-## 当前：新请求/不可变包已核验，只准备必要来源发布
+## 当前：来源草案已重建，先审批事实衔接及只读准备
+
+新请求/包执行证明d3379c83…已用于本地重建同一36735d的SOURCE、完整13旧任务/19旧计划及真实包版本。材料检查点 `F:/ChatGPT_workshop/techlong-buyer-accepted-publication-material-20261030-a/checkpoint.json` raw SHA907e0b15…；来源仍UNPUBLISHED/PENDING，当前无线上调用、配置/秘密读取、Git对象/ref写或任何执行槽。
+
+实际请求/独立读回晚于请求前事实；原guard按实拒绝，不需代码修复。新待批事实衔接只采用保存的独立DB时刻21:09:41.071，保留最早AWS观察20:34:42.313及10月31日01:34:42.313 CDT终点。原2bff request authority39a06e95…不改，新publication authority不能冒用它；须独立新SHA同时绑定acceptedContinuation.approval和publication.factsApproval，再由原编译器产生。没有新S3读取/上传或把旧观察改成现在。
+
+下一只封存[事实衔接和限定发布前只读清单](aws-auto-deployment-reviewed-cycle-source-publication.md#本轮36735d只批准事实衔接和只读准备)后等批准。该阶段最多STS1/元数据12/GitHub GET20，无.env/Secret/PEM/SQL/S3正文、云/数据库写、对象/ref写或dispatch；全部核对通过才保存本地事实批准。之后才用原工厂生成真实三文件对象和准确trust-only发布SHA，实际发布另审，不扩源码功能或开启部署窗口。
+
+### 请求/包完成沿革
 
 用户批准2bff9ccd…后，36735d已单INSERT并COMMIT为永久held，独立完整只读回读保持全部13旧任务/19计划14批准14尝试及业务保护；真实包5485a0c9…/621945字节已一次条件PUT并独立GET，准确VersionId `B_vILxjLmVVu_WKDnoXmPDdq3HyndeZS`。实际STS4/桶元数据6/HEAD2、配置2/TLS2/SQL77、INSERT1/PUT1/GET1、四槽；无旧行/账本/IAM/Secret/工作流修改、部署/dispatch或重试。
 

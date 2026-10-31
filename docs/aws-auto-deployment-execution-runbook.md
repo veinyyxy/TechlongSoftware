@@ -29,7 +29,17 @@ Neon 可继续用于已批准的过渡方案，不因本手册自动迁移；Aur
 - 代码验证：`F:/ChatGPT_workshop/techlong-a604-continuous-review-code-verified-20261027-a.json`，原始字节SHA `753ec16ae096f10d9615e7928dfe9dbb733d5870f1f66f145448c2a00638fe1c`。
 - [连续衔接实现、预算及完整风险](aws-auto-deployment-a604-continuous-review.md)。旧失败、原件和全部永久槽保留，文档归档不代表删除、撤权或云资源清理。
 
-## 3. 当前唯一继续点：请求/包已核验，准备必要来源发布（2026-10-30）
+## 3. 当前唯一继续点：来源材料已备齐，等待事实衔接及只读准备批准（2026-10-30）
+
+本轮仅从d3379c83…实际请求/包执行证明重建36735d的来源草案和发布范围，无生产/凭据/配置读取、连接、Git对象/ref写入、来源选择、槽或dispatch。新SOURCE仍UNPUBLISHED/PENDING、publication authority/factsApproval/发布SHA均null，三文件/trust未改。候选材料只认 `F:/ChatGPT_workshop/techlong-buyer-accepted-publication-material-20261030-a/checkpoint.json` raw SHA `907e0b15423160438e451699f9121eec92d2368cbf0b01d4edf926f4ec5cb147`。
+
+原编译器以REAL_REQUEST_EVIDENCE证明：20:36的请求前事实不能覆盖21:09的请求后独立回读；accepted路径又要求profile与acceptedContinuation的事实一致。**不改代码或guard**：另提明确待批的事实衔接证书，保留20:34:42.313事实起点与10月31日01:34:42.313 CDT五小时终点，只将databaseCheckedAt/observedBy绑定已保存的真实独立DB采样21:09:41.071。旧request/upload authority39a06e95…和已上传字节/版本不改，不把旧2bff批准当本次事实批准；PENDING新证书仍被原适配器拒绝。
+
+下一仅等[来源事实衔接＋发布前只读准备](aws-auto-deployment-reviewed-cycle-source-publication.md#本轮36735d只批准事实衔接和只读准备)的准确SHA确认：最多STS1＋AWS元数据12＋GitHub GET20、无.env/Secret值/PEM/HMAC/S3正文或SQL、无云/数据库写、无Git对象/ref写、槽或调度。实际读取全部通过后，才由该新SHA在本地派生两项事实批准并用原编译器重建不同的publication authority；原request authority不可重写，元数据新采样也不能延长原有效事实。
+
+准确待批准备SHA只认 `F:/ChatGPT_workshop/techlong-buyer-accepted-publication-preflight-20261030-a/prepared-verified.json` 实际生成并匹配。封存后冻结main/本机入口；当前源码/CI只是a221a24/41141437220，最终parent的准确无AWS CI尚待该许可中的GET核对。事实绑定及只读通过后，才生成原三文件未引用Git对象及唯一trust pin的**另一份实际发布清单**，仍另批；不提前发布、部署或扩功能。
+
+### 请求/包完成及来源准备沿革（不重放）
 
 用户明确批准2bff9ccd…后，执行来源e7ff6e4（工程运行代码a221a24/准确CI41141437220）已完成同一候选36735d的单次held请求及不可变buyer包。实际请求requestedAt为21:09:34.875 CDT，COMMIT明确成功；另一验证TLS连接于21:09:41.071采样独立回读通过。只有一条新pending/attempts0/max1/MAX_SAFE_INTEGER hold且无lease的请求，全部13旧任务/部署outputs/19计划14批准14尝试/保护保持，无新成功部署回执或控制账本写。
 

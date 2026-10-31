@@ -2,7 +2,15 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点（2026-10-30，请求/包已核验，准备必要来源发布）
+## 当前唯一继续点（2026-10-30，等待来源事实衔接与只读准备SHA批准）
+
+来源材料已从实际36735d请求、包版本B_vILxj…及完整旧历史本地重建，检查点907e0b15…位于 `F:/ChatGPT_workshop/techlong-buyer-accepted-publication-material-20261030-a/checkpoint.json`；无新增线上/配置读取、连接、云/数据库/Git对象/ref写、槽或dispatch，SOURCE仍UNPUBLISHED/PENDING。
+
+现有guard准确拒绝将20:36请求前事实当21:09请求后的证明；不改代码，另提PENDING事实衔接：DB时刻使用实际独立采样21:09:41.071，起点20:34:42.313及截止10月31日01:34:42.313 CDT不动，旧request authority39a06e95…/旧basis/包版本不改。新publication authority须新SHA另批后才派生，不沿用2bff批准或冒称新采样。
+
+下一只等待[事实衔接＋只读准备清单](aws-auto-deployment-reviewed-cycle-source-publication.md#本轮36735d只批准事实衔接和只读准备)准确SHA：STS1/AWS元数据12/GitHub GET20，无私密配置/Secret/PEM/SQL/S3正文或资源写。实际封存只认 `F:/ChatGPT_workshop/techlong-buyer-accepted-publication-preflight-20261030-a/prepared-verified.json`，不存在不算就绪；之后冻结main。CI/元数据全部通过才在本地形成新事实记录，实际三文件/trust-only发布和同任务整轮仍另审，wholeProductAccepted=false。
+
+### 请求/包完成沿革（不重放）
 
 2bff9ccd…获明确批准并完成：同一36735d已单INSERT/COMMIT为永久held，另一TLS完整回读通过；全部13旧任务、部署/outputs、19/14/14账本及保护保持。实际requestedAt21:09:34.875 CDT、独立采样21:09:41.071；只新增pending/attempts0/max1、MAX_SAFE_INTEGER hold、无lease的一行，不启用普通队列或运行时。
 

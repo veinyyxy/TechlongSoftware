@@ -1,6 +1,38 @@
 # 新周期来源发布：现有双工作流、本机绑定与一项trust pin
 
-这是[执行手册](aws-auto-deployment-execution-runbook.md)当前P4的风险附表。代码、测试、只读Capture和未引用Git对象只是在准备材料，不代表批准发布、信任变更、App操作或部署。只有用户确认新的准确SHA后才可PublishReviewed；旧a604及包上传SHA不能复用。
+这是[执行手册](aws-auto-deployment-execution-runbook.md)必要来源发布及其准备阶段的风险附表。代码、测试、只读Capture和未引用Git对象只是在准备材料，不代表批准发布、信任变更、App操作或部署。只有用户确认新的准确SHA后才可执行对应范围；旧a604、b236及包上传SHA不能复用。
+
+## 本轮36735d：只批准事实衔接和只读准备
+
+同一36735d已单次创建为永久held，并与真实不可变包5485a0c9…/621945字节、版本 `B_vILxjLmVVu_WKDnoXmPDdq3HyndeZS` 独立核验，全部13旧任务/19计划14批准14尝试及保护保持。执行证明d3379c83…、旧request authority39a06e95…、2bff批准与风险原件均保留，不重传包或改写历史。当前BUYER_SOURCE/BUYER_PUBLICATION_SOURCE仍null，未发布新工作流/trust或部署。
+
+本地材料 `F:/ChatGPT_workshop/techlong-buyer-accepted-publication-material-20261030-a/checkpoint.json`，raw SHA `907e0b15423160438e451699f9121eec92d2368cbf0b01d4edf926f4ec5cb147`。原createReviewedCycle要求事实观察不早于请求独立回读；现有20:36事实不能覆盖21:09请求，真实拒绝REAL_REQUEST_EVIDENCE。accepted模式还要求profile与其SOURCE事实一致。这里不改guard或运行代码、不追加恢复分支，只提出新的**待批事实绑定**。
+
+事实字段的唯一拟议变化：databaseCheckedAt/observedBy从请求前采样改绑到保存的请求后独立TLS完整采样 `2026-10-31T02:09:41.071Z`（10月30日21:09:41.071 CDT）。最早AWS采样 `2026-10-31T01:34:42.313Z`（20:34:42.313 CDT）和五小时终点 `2026-10-31T06:34:42.313Z`（10月31日01:34:42.313 CDT）完全不变；不把材料生成/批准时刻当新生产观察。原48小时profile结构和历史basis10:08截止保持，但accepted authority有效终点仍只取真实五小时。新profile SHA `aaae70f01a5db7479d904b35229d5f86ba2d0d95185dfe755f2ab6abc597423b`。
+
+用户批准下一准确**准备SHA**且下面实际CI/只读布局全部通过后，才在本地形成一条事实记录，其中两字段组分别是：新acceptedContinuation.approval（绑定新的事实commitment）和publication.factsApproval（绑定上述profile SHA），其manifestSha256均由该准备SHA派生。原编译器必须产生不同的新publication authority，不能把旧39a06e95…改名复用或修改其已保存内容；新SOURCE publication.basisSha256以后绑定该新authority。PENDING草案现在仍被原适配器拒绝，没有提前构造实际新APPROVED事实。
+
+包本身不含上述SOURCE事实证书，规范字节/准确VersionId不变。后继只把原已独立GET证明的包引用与新证书明确关联；不声称又做了GET、重新在新authority下核验了S3或上传新版本。这个重新绑定也包含在本次事实批准范围，不从2bff请求/上传批准推断。
+
+### 本次准备调用与上限
+
+仅复用原readOnly publication I/O和准确CI reader：最多1次Source STS＋12次其它AWS元数据（原I/O合计上限13），20次GitHub GET含CI定位/三GET核验。只核对现有准确foundation/模板/五资源、WorkerRole/trust/inline/boundary，以及最终main、原双workflow/准确ID、本人environment/主分支/OIDC和未完成caller运行。先核对准确无AWS CI；找不到最终clean parent的单次成功CI即停止，不用a221或旧b236 CI冒充。
+
+不读取.env、Secret值、PEM/HMAC或S3正文，不连接Neon/Aurora，不查询业务状态或DDB项；仅读取本地封存的请求/历史包。不开Git候选对象/新分支、不移动ref、不改工作区SOURCE/工作流、不创建/执行CFN、不安装/扩大IAM，不上传、续租、消费执行槽、App签名或dispatch。旧本机配方/失败记录不重跑；本次配方的新准备/捕获目录各只用一次，失败不补齐/复位/重试。
+
+本次准确SHA只认 `F:/ChatGPT_workshop/techlong-buyer-accepted-publication-preflight-20261030-a/prepared-verified.json` 实际存在并匹配。本机入口 `.mjs` 只在--prepare离线生成清单，--capture-reviewed精确匹配SHA后才做上述只读和本地事实记录；原writer被readOnly能力拒绝。语法/零调用--check及真实原件重建已核对，不为此次普通装配新增工程运行模块、恢复执行器或重跑大量模拟测试。最终parent准确CI尚未在线核实，属于下一许可范围。
+
+最晚开始本准备流程为10月31日01:14:42.313 CDT（原事实终点前20分钟），不延长现有事实或代替后继发布/整轮的各自预留。新元数据的5小时从其实际调用开始计算，但不得延长已绑定数据库/SOURCE五小时终点；保留组件原始时间，任一有效期或准备余量不足即停止，不先开部署短窗。
+
+### 本次准备的完整风险与停止规则
+
+既有Source/Git凭据会在SDK/credential helper进程内存使用，AWS Login可能自动刷新或失败；不会导出凭据/验证码。官方TLS网络、提供者/审计日志、Account ID/ARN/部署元数据保留及低额非零费用仍存在。多次读取不是跨服务CAS，核验后仍可能变化。只读成功和本地事实批准都不是发布/部署成功证明，已读布局不能延长数据库观察；CI或Source/布局失败即保留失败，不自动追加诊断、补用余量或重试。
+
+本地事实记录可能在后续落盘失败时部分保留，不能因此发布、选择SOURCE或重跑；仅实际完整验证后的记录才供后继使用。旧request authority/旧对象版本及其证明保持不动。普通Git文档提交可能包含已授权Account ID/ARN/部署状态摘要，业务正文/实际历史包仍只在本地私有目录及已批准私有对象，不提交Git。
+
+本阶段零云/数据库副作用，不保证整体账号不再计费；50 USD/月仍是目标，不是硬停费。没有自动删除、回滚、down、补偿或清理授权。通过后才生成原三文件未引用Git对象及现有角色唯一trust pin的**新准确发布清单**，实际push/CFN/本机快进与独立Inspect仍另批；六项自引用派生不增加，既有IAM权限/门禁/冻结110/当前111保持。再后面同任务Review→RunOnce→独立Inspect和有限买家验收另审，三次GitHub environment都由用户本人批准。
+
+## 历史准备与发布沿革（不重放）
 
 ## 固定复用与最小差异
 
