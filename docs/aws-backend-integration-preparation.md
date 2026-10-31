@@ -10,9 +10,19 @@
 
 恢复 `F:/ChatGPT_workshop/techlong-backend-restore-preflight-20261031-a/checkpoint.json`，绑定run/result.json raw SHA `f4ae8ff8be66dfef0d05272e0d83d399ac7b9961c6ad9f0e77b2f4a6a48f811f` 和10份实际记录；元数据/业务正文只在已限制ACL的本地目录。快照从真实最早10:00:54.601起5小时，到**今天10月31日15:00:54.601 CDT**，不延长旧事实/旧TTL，也未启动部署窗口。未用读取预算不授权后续调用；事实批准/新job/写入SHA仍null。
 
-**下一唯一动作：另批补齐一份准确历史原件，再仅本地准备请求/包审批材料。** 当前捕获链有RunOnce报告绑定的provider-after引用及独立Inspect摘要，但没有该provider-after正文；本地只能核对新七资源元数据，不能用它推导/冒充过去provider原件。原assertRetirement尚未对最新provider正文执行，这不是guard失败或代码缺陷，不新增修复/框架。
+### 固定原件已补齐，原退役/历史续接校验通过
 
-待补件仅：Source STS1＋固定版本S3 GET1（每份≤1MiB，无列桶/HEAD/翻页/重试）。准确桶 `techlong-sandbox-cloud-worker-evidence-402010193138`，key `worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/job_36735d0b9201afabd681b061/4d6d07fabd8b6cb99cbfad27e319b52546b001ba121fd30c843200f331b0f34d/run-41170142255-1/provider-after.json`，VersionId `8BksDCrIRDXXLCGnvckMi6RhFRmMD4.6`，内容SHA `061de4bc2531c6032fef451b70fb7919df10037722cdedda802303b9ebac4862`。引用来自已封存真实RunOnce报告，不猜key/版本。只存本地受限目录并核SHA；不读Secret/PEM/.env、不连数据库、查当前承载/其他S3正文、不写或调度。接受凭据进内存、提供者日志及低额非零费用；未批准就不读取，不延长这份新快照。不得凭59原件数量就假定已包含下轮需要的所有内层正文。
+用户明确批准后，10:20:42.658前完成Source STS1＋固定版本S3 GET1，返回1704字节且SHA/VersionId匹配；无列桶/HEAD/翻页/重试、其他元数据/秘密/配置/数据库或云/业务写。原件仅在限制ACL的本地目录。原providerPublicV5投影与原业务回执/独立Inspect摘要一致，原assertRetirement对新七资源退役数据通过；没有用当前观测推导过去provider，也未改guard。
+
+准确原件（已消费许可，不重读）：桶 `techlong-sandbox-cloud-worker-evidence-402010193138`，key `worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/job_36735d0b9201afabd681b061/4d6d07fabd8b6cb99cbfad27e319b52546b001ba121fd30c843200f331b0f34d/run-41170142255-1/provider-after.json`，VersionId `8BksDCrIRDXXLCGnvckMi6RhFRmMD4.6`，raw SHA `061de4bc2531c6032fef451b70fb7919df10037722cdedda802303b9ebac4862`。原缺件检查点保留为当时事实，不修改为从未缺件。
+
+随后仅本地用原rebuildRecoveryPackage/recoveryBasisCompiler在原createdAt重建历史溯源，再由原continueCloudContextV5验证两条真实成功续接。最新前驱准确为36735d/64fe0920…/TaskDefinition:11/回执308b6743…；links SHA `8fd7eac10b8c8a753111e7be1e15e00c86d1860d8eeda6a3c9ed17da1194c75a`。旧basis/截止仅作历史，未激活/续期、未生成新事实批准或执行能力。
+
+本地包数据候选已按真实新14/22/17/17基线＋两条已验收links准备，原capsule/originalPackage不改。canonical **725384字节**，SHA `aed6bd224645f17ee6b59ed415a5c37d794bbd598d376f53b4b0be6d8fd2e24f`，拟用原私有桶的准确新内容键 `worker-v5/app_e897a4377bce498b9c5ee9e64509dcad/lineage/buyer-context-v1-aed6bd224645f17ee6b59ed415a5c37d794bbd598d376f53b4b0be6d8fd2e24f.json`。**PENDING_NOT_UPLOADED_NOT_EXECUTABLE，VersionId=null，运行编译仍待新事实批准**；不是已验证的可发布能力，不能把null补成假版本或冒用旧包5485a0c9…。
+
+恢复入口 `F:/ChatGPT_workshop/techlong-backend-provider-original-20261031-a/checkpoint.json`，绑定原GET回执、原退役/历史续接、真实link及待审包数据。原集中预检快照到**今天15:00:54.601 CDT**，补件/本地构造不重计时。没有新job/事实批准/执行SHA，没有SQL/S3写、来源发布或dispatch，未启动部署窗口；原失败/原件/全部永久槽和09:00取消记录保持。
+
+**下一唯一动作仅纯本地准备一次准确新held请求＋不可变包的写入审批材料**：复用既有请求/条件上传/独立回读合同，清楚区分候选ID与实际创建、PENDING事实与批准、准备/写入时钟。实际请求/上传、必要新读取/来源/trust-only和整轮部署仍按各自准确范围另审。不为缺件修代码，不追加API或连接，不新建固定任务分支/执行器。
 
 ### 原本地方案准备阶段（集中预检前，保留追溯）
 
