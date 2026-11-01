@@ -2,6 +2,20 @@
 
 2026-10-31，America/Winnipeg。用户已同意本方案，并要求临时措施可追溯、与正式代码隔离。最初代码交付阶段没有调用AWS、启动watch或安装IAM；随后用户另行明确要求实际调用一次，真实结果见下节，不能继续用代码阶段的“未调用”代表当前状态。原部署/店铺菜单验收主线不变，旧事实、批准和TTL不延期，默认样例仍关闭。
 
+## 2026-11-01无自动到期恢复部分完成
+
+用户改变当前方向：产品测试由本人负责，只恢复原AWS环境，不新增到期时间，测试完成后本人通知停用。用户已集中确认原两数据库、两ALB/监听器、平台ECS1任务、租户原七资源及对应DNS/监听器引用；允许移除恢复配置的到期标签或必要的定向自动清理条件，不改JWT/MFA安全期限、不改业务数据、不新增IAM、不做产品测试，并接受持续费用及50USD/月目标不保证。该新确认不是旧Review/业务任务或历史期限的重放。
+
+新恢复根`F:/ChatGPT_workshop/manual-environment-restore-20261101-a`；源power备份raw SHA仍b64c8e29…不变，新派生power snapshot canonical SHA `079280757b3627f7bb95b0dd2e22b20c74a2281f4bca967858f166c1394f309b`，只从ALB/监听器/规则标签移除6个ExpiresAt/HostingExpiresAt项，原快照和历史时刻保持。原临时ECS备份已通过restore-network阶段；没有收费网络目标，所以此步无云写，计算仍归零。
+
+本次实际云写：Aurora techlong-sandbox-express-d001 Start1、RDS speedfeast-postgres-prod Start1均ACK，最新回读两库均available；仅首个Cell ALB已创建并达到active，新ARN尾部`241081ab25c73320`，新DNS为`techlong-sandbox-cell-sandbox-1-1508657029.ca-central-1.elb.amazonaws.com`。随后旧工具ModifyLoadBalancerAttributes回填整批属性时返回ValidationError，journal保留NEEDS_INSPECTION及UNKNOWN_OR_REJECTED，不重试写入。此ALB未创建监听器/规则，第二ALB尚未创建，ECS/DNS/租户栈尚未恢复。
+
+只读比较首ALB属性，只有idle_timeout.timeout_seconds当前60/目标30及routing.http.drop_invalid_header_fields.enabled当前false/目标true不同；旧请求也包含Describe返回的空日志桶/前缀字段，但原始ValidationError正文未保存，不把推测当唯一根因。后续若获准继续，应仅针对真实差异写入，不重发整批属性、不重新Create首ALB或启动已available数据库；原失败journal不覆盖、不复位。
+
+只读模板/DNS/既有执行角色材料已保存`inputs.json`。最初采集在错误的IAM区域endpoint读取时停止、云写0，修正为IAM官方全局endpoint后重新采集，保留这次失败事实，不冒称新增读取为旧采样。CFN旧租户角色`TechlongSandboxCloudFormationExecutionRole`的唯一附加策略也是其boundary：`TechlongSandboxCloudFormationExecutionBoundary`默认v8，另有非默认v7。它允许原工作负载动作，但C5gExactListenerRulesTags的DescribeTags资源仅指向已删除旧ALB/监听器。重建规则前需另批将这两条路径替换为本次新ALB下对应监听器规则路径；其余Statement/Action/Condition不变，版本槽位充足，无需删除v7/v8。不新增角色，不改用Source直接创建来绕过原执行角色边界。
+
+**下一步等待这项精确IAM更新及继续剩余恢复的确认；当前不是全部可测试环境。** 本轮IAM写、DNS写、业务数据访问/测试均0。检查点`checkpoint.json`绑定派生power journal、当前inputs摘要、真实3项成功写/1项失败写、映射与剩余步骤。继续前先读它，不重跑Prepare/restore-power或复位尝试。原已启动资源持续收费，没有安装新的watch/到期时间，不自动回滚或清理；暂停等待授权不等于停止计费。
+
 ## 随后单次实际停用（2026-10-31，已独立核验）
 
 用户明确要求“调用一次停止后面两项收费，试是否成功”。执行源码`c4afaf0b1009895b621afaaaf77516f9e97d74b0`，账号402010193138，区域ca-central-1；准确Source IAM身份核对通过。本轮只处理ECS/Fargate及VPC收费组件，不重跑已完成的ALB/RDS停止、不恢复或部署。

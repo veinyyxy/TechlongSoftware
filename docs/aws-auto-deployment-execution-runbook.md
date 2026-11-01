@@ -2,6 +2,18 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
+### 当前用户指定方向：恢复AWS环境，由用户测试并手工通知停止（2026-11-01）
+
+用户明确要求产品测试由本人进行，代理仅恢复原项目AWS环境，不新增过期时间，待用户通知后再停用。当前唯一继续点改为：核对两份停用备份和现有RDS/ALB/ECS、已删除租户栈的恢复差异及既有自动清理触发条件，集中落实恢复所需的准确资源/引用/权限范围。只做必要的AWS状态回读，不再代做店铺/菜单/下单或浏览器业务测试，不扩部署工具、UI、探针或恢复框架。
+
+不重放旧Review/任务/永久槽，不改写历史facts/批准/TTL来冒充新授权；不启动watch或设置新到期清理。实际重新创建已删资源、ALB新ARN/DNS及CFN/目标组绑定、取消现有清理条件或新增权限的准确差异须先列清，超出既有启动范围时另请确认。不读取Secret值/PEM/业务配置或改数据库业务状态，不为“全部环境”启动无关资源。原50USD/月为预算目标而非硬停费线，持续运行会收费，恢复前明确说明；下方旧准备点仅保留追溯。
+
+用户已集中确认原两数据库、两ALB/监听器、平台ECS恢复1任务、原七项租户资源及对应DNS/引用的无自动到期恢复范围，允许清除本次恢复配置中的到期标签及必要定向清理条件；不改JWT/MFA期限、不改业务数据、不新增IAM、不做产品测试，接受持续计费/50USD目标不保证。新私有恢复根F:/ChatGPT_workshop/manual-environment-restore-20261101-a，原两份停用备份保持；本次从原ALB备份派生去除6项到期标签的新副本，不改原历史。
+
+**本轮部分恢复后已停止，下一只等新的精确IAM范围确认，不重跑原恢复命令。** StartDBCluster1/StartDBInstance1均ACK，最新状态两者均available；新Cell ALB241081ab25c73320已创建并active，但ModifyLoadBalancerAttributes1返回ValidationError，原journal保留NEEDS_INSPECTION。未创建其监听器/第二ALB，未启动ECS/重建租户/改DNS；未新增IAM或产品测试。只读对照确认新ALB与备份仅idle timeout 60→30及drop invalid header false→true两项不同，旧请求还带有Describe返回的空日志桶字段，原始报错正文未保存，不能宣称唯一根因或直接重发整批属性。
+
+既有租户CFN角色附加并以boundary使用TechlongSandboxCloudFormationExecutionBoundary默认v8；C5gExactListenerRulesTags的DescribeTags仍只允许旧ALB/两监听器下的规则。需要另批将这两条资源路径替换为本次重建的新ALB/对应监听器路径，其余Action/Statement/条件保持；现有仅v7/v8，新增版本无需删除旧版本。不得改用无执行角色的Source创建路径绕过边界。恢复入口F:/ChatGPT_workshop/manual-environment-restore-20261101-a/checkpoint.json，实际模板/DNS/角色元数据inputs.json、部分写power/journal.json均保留。继续时只接续未完成动作，不重发RDS Start/已成功ALB Create、不复位旧尝试；已启动资源会持续收费，不自动回滚或清理。详细记录见[临时恢复状态](aws-temporary-idle.md#2026-11-01无自动到期恢复部分完成)。
+
 ### 当前用户指定任务：独立、可移除的临时闲置止费工具（2026-10-31）
 
 用户已同意“保留数据库及必要免费网络骨架，测试期间按需开关运行资源”的方案，要求文档追溯并只完成剩余临时措施。既有ALB/RDS工具保留；本轮离线实现ECS/Fargate归零/恢复、明确的自动拉起来源暂停/恢复，以及可恢复的NAT/接口端点/独立EIP清理。RDS网络骨架和被部署材料引用的ECR镜像不删除，独立一次性任务不自动重放。代码隔离在临时目录/入口，正式运行模块、部署workflow与Janitor不导入它；默认关闭，不创建永久后台服务，正式上线后整体移除。
