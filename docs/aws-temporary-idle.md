@@ -1,6 +1,20 @@
 # 临时测试止费与恢复方案（正式上线前移除）
 
-2026-10-31，America/Winnipeg。用户已同意本方案，并要求只完成临时措施、文档可追溯、与正式代码隔离。**本轮交付代码和合成测试，不调用 AWS、不盘点当前资源、不启动 watch、不安装云端调度或 IAM。默认关闭。** 原部署/店铺菜单验收主线不变，旧事实、批准和 TTL 不延期。
+2026-10-31，America/Winnipeg。用户已同意本方案，并要求临时措施可追溯、与正式代码隔离。最初代码交付阶段没有调用AWS、启动watch或安装IAM；随后用户另行明确要求实际调用一次，真实结果见下节，不能继续用代码阶段的“未调用”代表当前状态。原部署/店铺菜单验收主线不变，旧事实、批准和TTL不延期，默认样例仍关闭。
+
+## 随后单次实际停用（2026-10-31，已独立核验）
+
+用户明确要求“调用一次停止后面两项收费，试是否成功”。执行源码`c4afaf0b1009895b621afaaaf77516f9e97d74b0`，账号402010193138，区域ca-central-1；准确Source IAM身份核对通过。本轮只处理ECS/Fargate及VPC收费组件，不重跑已完成的ALB/RDS停止、不恢复或部署。
+
+只读盘点两个现有项目集群：`techlong-sandbox-platform`中仅`techlong-sandbox-platform-web`运行1个Fargate任务，`cell-sandbox-1`无service/任务。本区域NAT Gateway、VPC Endpoint、EIP均为空，没有网络删除目标；默认/项目VPC和数据库网络骨架保留。Scheduler的两个目标均为既有Janitor Lambda、默认EventBridge无rule/无其他bus，因此不修改这些来源；准确service没有已登记的扩缩容target。
+
+本地准确配置`F:/ChatGPT_workshop/techlong-temporary-idle-20261031-a.config.json`，新恢复备份 **`F:/ChatGPT_workshop/aws-temporary-idle-20261031-a`**。真实入口idle仅执行一次`UpdateService`：准确平台service的desiredCount从1改为0，ACK已保存。无StopTask、网络删除、IAM、Secret/数据库/业务访问、ALB/RDS写入或watch安装。snapshot先于云写落盘，保留原副本数/任务定义/目标组等恢复依据；raw SHA `b6673b0f2c8f04c240838a664f361e488cd21d8d80848812dfa7a7d066475759`，canonical SHA `d5852ae9fc70b31a16b4c5252ad3dcb4bdf1328a39e480662cc99ce9ef1bfb15`。
+
+最初入口回读数量已归零，但旧任务ENI仍带公网IP，真实journal保留`IDLE_WITH_PUBLIC_IP_RESIDUALS`及非零退出，不改写成当时已释放。随后仅对准确service、备份中的原task和ENI做独立只读核验，3轮后于 **19:19:47.973 CDT（2026-11-01T00:19:47.973Z）** 确认：desired/running/pending均0，原task `af47eb87bad548a79f58577116bd473a`的lastStatus/desiredStatus均STOPPED，原ENI `eni-0122c4d4c6bff5df7`无公网IP残留。最终证明`ECS_IDLE_AND_CAPTURED_PUBLIC_IP_RELEASE_VERIFIED`、writes0，位置`independent-readback.json`，raw SHA `1ca27b62ea76ed90cc7081f3e16f11a0041a633a1a93a6e54c8fa63e195cd73c`。本地原件已核对，备份锁已释放，不重跑idle。
+
+独立核验首次在Windows ESM绝对路径导入时本地退出，AWS调用0；仅修正本地配方的file URL后继续原范围只读验收，没有再次云写或修改工程停止代码。原journal与独立最终证明分别保留，不用后来的观察改写先前残留状态。
+
+**结论只覆盖本次准确Fargate任务与其公网IP；没有实际NAT/端点/EIP删除可测试。** 不能据此声称全账号零费用或账单立即归零，数据库存储/备份、镜像等仍可能收费。未来恢复需新确认准确范围：本轮ECS备份与既有ALB/RDS备份`F:/ChatGPT_workshop/aws-cost-backup-20261031-a`配合，先恢复依赖并核对新绑定，最后再启动计算；本轮未执行恢复，也没有设置常驻自动止费。
 
 ## 已确认的范围
 
@@ -37,7 +51,7 @@ VPC 本身不是要靠删除来节省的收费主体；重点是 NAT、接口端
 - `expiresAt` 是固定 UTC 时间，例如 `2026-11-01T01:00:00.000Z`，仅 watch 需要。不会延长业务 TTL 或改正式 Janitor 标签。
 - `power:null` 表示本轮只处理 ECS/收费网络；以后要一并停止 ALB/RDS，可嵌入[既有 power 配置](../ops/aws-resource-power/config.example.json)，账号/区域/profile 必须相同。必须使用当时真实新 ARN，不复制已删除的旧 ALB ARN冒充当前目标。
 
-## 操作顺序（本轮未执行以下入口）
+## 通用操作示例与恢复顺序
 
 以下路径是以后人工填好的配置与新备份目录示例，不是已经启用的任务。`idle`/`watch` 的 state 必须尚不存在；每个新周期都使用新目录、当时实际资源 ID 和准确范围。
 
@@ -97,8 +111,8 @@ node scripts/aws-temporary-idle.mjs resume-compute --state F:/ChatGPT_workshop/t
 4. ALB删除/RDS停止措施同样是临时政策，最终运行流程不能继续自动调用。若既有两个手动辅助工具也不再需要，在确认无其他使用方后一起移除；先移除单向引用它们的临时代码。
 5. 私有恢复备份、真实 journal 和历史决策文档保留追溯，不能把删除临时代码等同于删除数据库或审计证据。
 
-## 本轮验证
+## 最初代码交付阶段的验证
 
 使用合成 AWS 响应与本地临时文件测试，不启动真实 CLI/入口。覆盖停用顺序/持久备份、暂停回读、扩缩容及周期来源恢复、一次性不重放、收费网络删除/重建/新 ID、未知提交不重试、依赖与外部变更拦截、公网 IP 残留及正式代码隔离。
 
-本轮 `node --test --test-timeout=15000 tests/temporary-idle.test.mjs tests/aws-resource-power.test.mjs`：**54/54通过**（新增32项、原工具22项）。新代码定向 ESLint 零警告、`npm run typecheck`及三个新模块/入口的语法检查均通过。既有111文件部署闭包仍为 `9f6ceb7ccca8ee542bf8cab4ec120ab79571d20fd97356ddbaa831b58e4c745b`。未改正式运行模块、保护 workflow 或依赖；本轮 AWS 调用和实际新工具执行均0。合成测试不等于线上停止/恢复验收，没有启用自动止费。
+代码交付时 `node --test --test-timeout=15000 tests/temporary-idle.test.mjs tests/aws-resource-power.test.mjs`：**54/54通过**（新增32项、原工具22项）。新代码定向 ESLint 零警告、`npm run typecheck`及三个新模块/入口的语法检查均通过。既有111文件部署闭包仍为 `9f6ceb7ccca8ee542bf8cab4ec120ab79571d20fd97356ddbaa831b58e4c745b`。未改正式运行模块、保护 workflow 或依赖；代码阶段AWS调用和实际新工具执行均0。随后另批的单次实际停用见顶部；仍没有安装常驻自动止费。

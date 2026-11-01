@@ -4,7 +4,9 @@
 
 当前用户指定的代码任务：按已同意的[临时止费方案](aws-temporary-idle.md)，独立实现剩余ECS/自动拉起来源/收费网络资源的停用与恢复；仅离线代码、合成测试及文档，默认关闭、正式上线后整体移除，不与正式部署/Janitor紧耦合。本轮不调用AWS或安装后台任务，不修改旧事实/TTL，不自动启用真实清理；原产品部署/验收目标保持。
 
-该临时代码任务已完成：新入口`aws-temporary-idle.mjs`及隔离目录支持停用/固定到期本地watch/分段恢复；54项合成测试、lint/typecheck/语法通过，111文件部署闭包保持。使用与最终移除步骤已记录；尚未启用watch或改变ECS/收费网络现状，不是云端自动止费验收。当前用户指定交付到此收尾，真实启用或恢复须另定准确范围，不自动沿用下方历史批准。
+该临时代码任务已完成：新入口`aws-temporary-idle.mjs`及隔离目录支持停用/固定到期本地watch/分段恢复；54项合成测试、lint/typecheck/语法通过，111文件部署闭包保持。代码交付当时未改变ECS/收费网络；用户随后另批的实际停用结果见下一段。尚未启用watch或云端自动止费，未来恢复另审，不自动沿用下方历史批准。
+
+最新ECS/VPC人工止费：按用户“调用一次试是否成功”的明确要求，仅一次UpdateService将准确techlong-sandbox-platform-web从1归零；cell-sandbox-1已空闲，区域NAT/接口端点/EIP为空，所以没有网络删除。初次入口保留公网IP残留告警，随后准确service/task/ENI独立只读于19:19:47.973 CDT确认STOPPED、desired/running/pending均0、公网IP已释放。备份F:/ChatGPT_workshop/aws-temporary-idle-20261031-a，独立最终证明raw SHA 1ca27b62…；[完整结果与恢复边界](aws-temporary-idle.md#随后单次实际停用2026-10-31已独立核验)。无IAM、VPC骨架/数据库/镜像删除，无ALB/RDS重跑或watch安装，不保证全账号零费用；恢复使用本轮与此前ALB/RDS两个备份，先依赖/绑定后计算，实际恢复另审。
 
 最新人工止费操作：用户明确要求执行停止工具，另行同意暂停speedfeast-postgres-prod。实际StopDBCluster1/StopDBInstance1/DeleteLoadBalancer2均ACK；原进程于12:35:39.337 CDT完成`STOP_VERIFIED`/退出0，已确认ca-central-1两个项目ALB删除、两个数据库stopped。本轮仅从已存journal补记最终结果，未重跑或新增AWS查询。恢复备份`F:/ChatGPT_workshop/aws-cost-backup-20261031-a`，具体状态见[实际停止记录](aws-resource-power-tools.md#本轮实际停止2026-10-31已确认)。未删除数据库、未装自动联动、不改IAM/CFN/DNS/ECS或设置主线暂停。
 
