@@ -2,7 +2,32 @@
 
 2026-10-31，America/Winnipeg。用户已同意本方案，并要求临时措施可追溯、与正式代码隔离。最初代码交付阶段没有调用AWS、启动watch或安装IAM；随后用户另行明确要求实际调用一次，真实结果见下节，不能继续用代码阶段的“未调用”代表当前状态。原部署/店铺菜单验收主线不变，旧事实、批准和TTL不延期，默认样例仍关闭。
 
-## 2026-11-01手工测试环境已恢复
+## 2026-11-01按用户通知再次停用已独立核验
+
+用户明确“现在可以清理AWS资源，别忘动用额外资费工具，等下次要求启动”。仅按既有临时止费范围实际执行，没有新部署、业务测试、权限安装、读取Secret/PEM/.env、数据库连接或账本写入。执行源码仍为停用前main `9140c4a02c1d5d029cd808a997d675caab9fe90f`；工程运行模块/临时工具均未修改，本轮只更新操作文档。
+
+区域ca-central-1、账号402010193138及准确Source IAM用户核对通过；初次沙箱网络不能连接登录端点，网络获准后STS成功，不将沙箱错误误判为登录过期。额外只读预检先因tenant采用capacityProviderStrategy而非launchType停止、后因4个已分配EIP停止，均0云写。补核证明tenant是FARGATE，4个EIP全部是本次两ALB的ServiceManaged=alb/准确托管ENI；保留原诊断，不对这些IP直接ReleaseAddress或强删ENI。项目两VPC的NAT/接口端点为空，无独立EIP清理目标。
+
+新配置 `F:/ChatGPT_workshop/temporary-idle-20261101-b.config.json`，enabled=true/expiresAt=null，仅用于这次显式idle调用，不是后台计时器。新恢复备份 **`F:/ChatGPT_workshop/aws-temporary-idle-20261101-b`**，ALB/RDS备份在其`power/`子目录；两份旧停用/恢复备份均保留。两服务无scalable target，无新增来源暂停/恢复。
+
+实际入口 `scripts/aws-temporary-idle.mjs idle --execute` 单次运行，自动调用既有power stop，云写只有 **UpdateService2、StopDBCluster1、StopDBInstance1、DeleteLoadBalancer2**。所有请求各一次ACK，无重试或回滚；约18:09:41Z退出0，结果TEMPORARY_IDLE_VERIFIED，嵌套power为STOP_VERIFIED。独立新进程只读于 **2026-11-01T18:10:10.267Z** 完成MANUAL_IDLE_INDEPENDENTLY_VERIFIED：
+
+| 对象 | 独立最后回读 |
+| --- | --- |
+| 平台 techlong-sandbox-platform-web / 租户 tenant-9c5ee9e64509dcad-ecs-service | 两者desired/running/pending=0/0/0；TaskDefinition均保持:12；原task均STOPPED |
+| Aurora techlong-sandbox-express-d001 | stopped，原cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM保持，不删库 |
+| RDS speedfeast-postgres-prod | stopped，原db-MOOXGHRHTZM25V3I4NY25D4IEQ保持，PubliclyAccessible=false，不删库 |
+| Cell ALB241081ab25c73320 / 平台ALB92d54a44479fbc3a | 准确ARN均LoadBalancerNotFound，随附3监听器/4非默认规则删除，完整配置已备份 |
+| 项目NAT / 接口端点 | 均0，无需删除网络骨架 |
+| 公网IP | 原ALB4个托管EIP均已释放，区域已分配EIP数量0；原两个task网卡无公网IP残留 |
+
+独立原件 `F:/ChatGPT_workshop/aws-idle-independent-20261101-b/result.json` raw SHA `49284f9fae5f070ecf5401cf9d5ca41d79aa9ac7cf4f5f73e93fae52921fe2fd`。ECS snapshot raw SHA `6756e51ed3673cff050b546ca820d43c3c78ed9c025bd8549939da046e40a331`、canonical `fb6b1e04ab96237c96fa3e808d2a9382f1cb35d124e0a2f9852365e9a28a1726`；power snapshot raw SHA `f1471a4e4910fec9e7273da904d784cd23713a1d0da91df80e87077920f8215e`、canonical `336a9f9d1ee9b84b636ad52fd05a29f491260c81c9ca37c2def361cdd3e51955`。最终两journal raw SHA分别 `667b5cc9c6d55cd5bfd843ae7223f36508761f23c700832cdd7f8657d4842025`、`d1ed55343a35352bec752d79163677eed0caa2b14abed4f043b4b72bf6e6cf4f`。私有快照正文不提交GitHub。
+
+**当前只等用户通知恢复，不主动启动资源。** 未删CFN栈/目标组/数据库/Secret/ECR/CDN、未改IAM/DNS/业务记录、不装watch或持续停库守护。买家静态页面保留，但API和平台暂停；DB存储/备份、镜像、Secret、S3/CDN等仍可能收费，不能称全账号零费用。RDS/Aurora停止最多7天，AWS之后会自动启动，这是服务原生限制，不是本轮安装的恢复任务，见[AWS RDS规则](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_StopInstance.html)及[Aurora规则](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-cluster-stop-start.html)。
+
+下次启动先读本节及独立原件、新snapshot/journal；先恢复原两数据库/两ALB，再核对新ARN/DNS/listener/目标组/父子CFN drift，最后恢复原两ECS副本数1。平台仍按用户已选的关闭部署控制器模式，除非另有新批准。不要套用旧ARN、旧power state或重放业务任务；旧恢复器的空日志桶/双条件格式问题已在前次记录，恢复时只发规范且必要的请求，不复位失败槽或误删数据库。
+
+## 2026-11-01手工测试环境已恢复（停用前历史）
 
 用户集中批准完整无自动到期恢复，随后另批精确IAM路径调整，并明确同意平台先以关闭部署控制器模式常驻。恢复写入及分步AWS部署回读已完成；这是基础设施恢复，不是Review/RunOnce/Inspect新业务周期或产品验收，不重放旧任务、改写历史事实或伪造成功业务回执。
 

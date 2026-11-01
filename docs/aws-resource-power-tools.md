@@ -2,7 +2,13 @@
 
 2026-10-31。最初按用户要求仅交付代码、合成测试和文档，未运行入口；用户随后明确要求执行停止工具，并另行同意暂停prod实例。本轮实际运行记录见下节，不能再把最初“未调用”的事实当作当前状态。部署与验收主线未设置暂停，旧事实/批准/TTL不延期。
 
-## 本轮实际停止（2026-10-31，已确认）
+## 最新实际状态（2026-11-01，再次停用已完成）
+
+用户通知停止后，新临时idle入口单次组合调用本工具：两ECS服务归零、原Aurora及speedfeast-postgres-prod停止、准确新两ALB删除，独立只读核验均通过。额外VPC核对确认NAT/接口端点为空，4个ALB托管公网EIP随删除释放、区域已分配EIP0、原task公网IP无残留。
+
+**当前恢复备份为 `F:/ChatGPT_workshop/aws-temporary-idle-20261101-b/power`**，ECS备份在其父目录；原10月31日停止和本日恢复记录保留为历史，不再次运行旧state。数据库/数据/镜像/Secret/CDN和必要网络骨架保持，未安装自动恢复/持续停库守护。只在用户下次通知后准备恢复，注意RDS原生7天自动启动及存储等剩余费用。完整证据、摘要和下次顺序见[最新临时停用记录](aws-temporary-idle.md#2026-11-01按用户通知再次停用已独立核验)。
+
+## 本轮实际停止（2026-10-31，历史已确认）
 
 区域`ca-central-1`，账号402010193138，执行源码`0fe85e5a0949d7a5b5e4272e27c4f8c8eaff3315`。先只读核对发现样例的techlong-sandbox-cell-sandbox-1数据库集群已不存在，本轮没有向该目标写入。实际目标为Aurora集群`techlong-sandbox-express-d001`、独立实例`speedfeast-postgres-prod`（用户本轮准确同意）、ALB `techlong-sandbox-cell-sandbox-1`及`techlong-sandbox-platform`。两ALB标签/准确ARN已核对、删除保护均false，本轮没有改保护、IAM或CFN/DNS/ECS。
 

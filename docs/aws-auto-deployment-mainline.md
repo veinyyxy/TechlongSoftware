@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 最新状态：手工测试环境已恢复，等待用户测试或停用通知（2026-11-01）
+## 当前动作：用户已通知停用，待下次明确要求再启动（2026-11-01）
+
+按最新通知，只执行原环境的临时止费：两ECS服务归零、停止两数据库但不删除、删除准确两ALB，并核对额外VPC收费组件。使用最新恢复目标和新独立备份，不重用旧ALB ARN或永久槽；保留数据/镜像/必要网络骨架，不删CFN栈、不改DNS/业务记录、不安装自动恢复或watch。尚未得到新的AWS执行回读前，不称资源已停止。范围及边界见[执行手册](aws-auto-deployment-execution-runbook.md)。
+
+**已完成：6次停用写均ACK，独立只读核验通过。** 两服务0/0/0、原task STOPPED，两数据库stopped、原resource ID未变，两ALB已删；项目NAT/接口端点0、区域已分配EIP0、task公网IP残留0。新备份F:/ChatGPT_workshop/aws-temporary-idle-20261101-b，独立result raw SHA49284f9f…；[准确记录及下次恢复入口](aws-temporary-idle.md#2026-11-01按用户通知再次停用已独立核验)。现在不继续部署或恢复，等待用户下次启动通知；RDS原生7天自动启动及存储等剩余费用不能由本轮一次停用消除。下方“环境恢复/持续运行”均为本次停用前历史。
+
+## 停用前状态：手工测试环境已恢复（2026-11-01）
 
 原两数据库available；两ALB/三监听器已恢复，console/API两条DNS INSYNC。租户新栈5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13七资源CREATE_COMPLETE，ECS1运行/0待启动、目标healthy；平台按用户另批以关闭部署控制器模式使用同镜像TaskDefinition:12，ECS1运行/0待启动、rollout COMPLETED，控制器私钥/控制库Secret不挂载，网页登录及普通管理保留，批准/调度AWS功能关闭。IAM仅已批准的两条DescribeTags路径换为新监听器，v9默认、v7/v8保留。
 
