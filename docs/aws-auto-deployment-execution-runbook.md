@@ -4,6 +4,10 @@
 
 ### 当前用户指定方向：恢复AWS环境，由用户测试并手工通知停止（2026-11-01）
 
+**最新结果：获准的手工恢复已完成，当前唯一继续点是等待用户自行测试或通知停用，不再代做产品测试/继续扩工具。** 两数据库available、两ALB/原三监听器已恢复、两条DNS绑定INSYNC；租户新七资源栈5867e9c0…CREATE_COMPLETE，服务1/1/0及目标healthy；平台已按用户另批的关闭部署控制器模式切换同镜像TaskDefinition:12，服务1/1/0且rollout COMPLETED，两个控制器Secret挂载已移除，网页登录/普通管理保留，批准/调度AWS按钮保持关闭。没有设置新资源到期或watch；登录/JWT/MFA时限不改。持续收费，用户通知后再停。
+
+恢复先读F:/ChatGPT_workshop/manual-environment-restore-20261101-a/handoff-stepwise.json，raw SHA `6bdce23bcd8f91261ec80a1a1bf611cb68821b7db7f7092884801e469c871e01`。这是分步真实AWS部署回读汇总，不是产品验收；最后额外聚合读取在STS ExpiredToken即停、未读资源或写入，不能冒称额外独立汇总已通过，也不因此重做恢复。已运行资源不依赖本机Source登录保持有效。手工停用配置manual-stop.config.json默认关闭，届时按用户新通知核对新资源后执行；不用旧ALB ARN配置/旧永久槽。父CFN的旧物理ID/Outputs和平台TaskDefinition声明存在已披露的手工恢复drift，正式部署前再收敛，不为本次手工测试扩分支或改写业务账本。
+
 用户明确要求产品测试由本人进行，代理仅恢复原项目AWS环境，不新增过期时间，待用户通知后再停用。当前唯一继续点改为：核对两份停用备份和现有RDS/ALB/ECS、已删除租户栈的恢复差异及既有自动清理触发条件，集中落实恢复所需的准确资源/引用/权限范围。只做必要的AWS状态回读，不再代做店铺/菜单/下单或浏览器业务测试，不扩部署工具、UI、探针或恢复框架。
 
 不重放旧Review/任务/永久槽，不改写历史facts/批准/TTL来冒充新授权；不启动watch或设置新到期清理。实际重新创建已删资源、ALB新ARN/DNS及CFN/目标组绑定、取消现有清理条件或新增权限的准确差异须先列清，超出既有启动范围时另请确认。不读取Secret值/PEM/业务配置或改数据库业务状态，不为“全部环境”启动无关资源。原50USD/月为预算目标而非硬停费线，持续运行会收费，恢复前明确说明；下方旧准备点仅保留追溯。
@@ -13,6 +17,10 @@
 **本轮部分恢复后已停止，下一只等新的精确IAM范围确认，不重跑原恢复命令。** StartDBCluster1/StartDBInstance1均ACK，最新状态两者均available；新Cell ALB241081ab25c73320已创建并active，但ModifyLoadBalancerAttributes1返回ValidationError，原journal保留NEEDS_INSPECTION。未创建其监听器/第二ALB，未启动ECS/重建租户/改DNS；未新增IAM或产品测试。只读对照确认新ALB与备份仅idle timeout 60→30及drop invalid header false→true两项不同，旧请求还带有Describe返回的空日志桶字段，原始报错正文未保存，不能宣称唯一根因或直接重发整批属性。
 
 既有租户CFN角色附加并以boundary使用TechlongSandboxCloudFormationExecutionBoundary默认v8；C5gExactListenerRulesTags的DescribeTags仍只允许旧ALB/两监听器下的规则。需要另批将这两条资源路径替换为本次重建的新ALB/对应监听器路径，其余Action/Statement/条件保持；现有仅v7/v8，新增版本无需删除旧版本。不得改用无执行角色的Source创建路径绕过边界。恢复入口F:/ChatGPT_workshop/manual-environment-restore-20261101-a/checkpoint.json，实际模板/DNS/角色元数据inputs.json、部分写power/journal.json均保留。继续时只接续未完成动作，不重发RDS Start/已成功ALB Create、不复位旧尝试；已启动资源会持续收费，不自动回滚或清理。详细记录见[临时恢复状态](aws-temporary-idle.md#2026-11-01无自动到期恢复部分完成)。
+
+用户随后明确“同意这项调整”，已批准仅将C5gExactListenerRulesTags的两条DescribeTags资源前缀替换为本次新Cell ALB下对应新监听器规则前缀，其他权限/条件不变，保留旧策略版本；同时接续原已批准的剩余恢复。新接续使用独立动作记录，原ValidationError和已成功动作保持，不重放旧restore-power、不重置失败journal。不增加产品测试、业务写入或资源到期时间；其他新增权限仍另审。
+
+该IAM调整已实际完成为v9、v7/v8保留。后续规则创建首次因Values与PathPatternConfig双字段被拒；准确CloudTrail d8f743a2…与空非默认规则只读核对证明未创建，只规范同一规则输入后创建，保留失败动作。租户首次在本地NoEcho ARN引用缺失时停止、CreateStack0；只从原TaskDefinition:11/模板恢复两个Secret引用、不读Secret值，随后唯一CreateStack成功。启动时曾503后由AWS调度恢复healthy，未改readiness/业务数据。平台旧hosted-controller租约过期使容器退出，用户另批关闭控制器常驻模式后才注册/切换v12，未延长特权租约；详见[完整恢复记录](aws-temporary-idle.md#2026-11-01手工测试环境已恢复)。以下旧“待批准/下一步”只保留前置和失败沿革。
 
 ### 当前用户指定任务：独立、可移除的临时闲置止费工具（2026-10-31）
 

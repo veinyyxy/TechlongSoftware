@@ -2,6 +2,34 @@
 
 2026-10-31，America/Winnipeg。用户已同意本方案，并要求临时措施可追溯、与正式代码隔离。最初代码交付阶段没有调用AWS、启动watch或安装IAM；随后用户另行明确要求实际调用一次，真实结果见下节，不能继续用代码阶段的“未调用”代表当前状态。原部署/店铺菜单验收主线不变，旧事实、批准和TTL不延期，默认样例仍关闭。
 
+## 2026-11-01手工测试环境已恢复
+
+用户集中批准完整无自动到期恢复，随后另批精确IAM路径调整，并明确同意平台先以关闭部署控制器模式常驻。恢复写入及分步AWS部署回读已完成；这是基础设施恢复，不是Review/RunOnce/Inspect新业务周期或产品验收，不重放旧任务、改写历史事实或伪造成功业务回执。
+
+| 对象 | 最后完成的分步回读 |
+| --- | --- |
+| Aurora techlong-sandbox-express-d001 / RDS speedfeast-postgres-prod | 两者available；原resource ID保持，没有重建数据库 |
+| Cell ALB | active；新ARN尾241081ab25c73320，443监听器8fce768af0ff42f7、8443监听器576403dc1245139b，原共享拒绝规则已恢复 |
+| 平台ALB | active；新ARN尾92d54a44479fbc3a，443监听器0234243da966933a，保留原目标组 |
+| console/API DNS | 两A Alias单批改绑新ALB，ChangeId C06749462OS01RPUUTPGQ，INSYNC；买家CDN未修改 |
+| 租户API | 新栈UUID5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13，原7资源CREATE_COMPLETE；ECS desired/running/pending=1/1/0、rollout COMPLETED，目标组healthy |
+| SaaS平台 | 原镜像，TaskDefinition techlong-sandbox-platform-web-v1:12，ECS1/1/0且rollout COMPLETED；无hosted-controller启动参数，控制器关闭 |
+| IAM | TechlongSandboxCloudFormationExecutionBoundary默认v9；只替换C5gExactListenerRulesTags中两条规则读取资源路径，其他Action/Statement/Condition不变，v7/v8保留 |
+
+平台旧v11带已过期的30分钟控制器租约，恢复后容器退出，不能用延长/伪造永久授权绕过。按用户后续选择，使用现有镜像原有的普通Web启动路径，将CLOSED_BINDINGS全部保持关闭，移除TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY与TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL两个Secret挂载，仅保留原Web DATABASE_URL引用。未读取Secret值/PEM，未换镜像、改JWT/MFA/登录会话期限；批准/调度AWS部署功能有意保持关闭，不能说所有部署权限永久开通。
+
+旧恢复工具的首ALB属性批次ValidationError保留；只对真实两项差异写入后通过回读。接续中规则请求同时给Values/PathPatternConfig被拒，准确CloudTrail事件d8f743a2-ee2a-4efa-980d-6c1ea80a86cd给出明确错误；先核对该监听器仅默认规则，再规范为单一类型条件和省略空Transforms，以新动作记录完成同一规则，未重建已成功ALB/监听器，未复位原失败记录。租户本地首次因NoEcho隐藏两个ARN参数停止、CreateStack0；只读原TaskDefinition:11的Secret ValueFrom及原模板固定引用补齐ARN后，唯一CreateStack成功，没有GetSecretValue或新业务任务。
+
+租户启动过程中ALB曾报/ready 503、AWS更换任务，随后服务稳定、目标healthy；没有为此改readiness代码/数据库数据或放宽健康检查，也未读取应用业务日志。平台旧模式的原resume-compute读取等待超时记录保持；新模式注册/切换使用独立动作记录，不重跑旧恢复尝试。代理未执行店铺、菜单、下单、登录或浏览器JS测试，未主动连接数据库或改控制账本。
+
+私有恢复根仍为`F:/ChatGPT_workshop/manual-environment-restore-20261101-a`。最新入口 **handoff-stepwise.json**，raw SHA **6bdce23bcd8f91261ec80a1a1bf611cb68821b7db7f7092884801e469c871e01**；绑定continuation-b.json及各阶段实际完成时间、映射、7资源、IAM/DNS、新平台模式。最后额外汇总脚本在第一次STS返回ExpiredToken即停，没有获取额外资源状态或进行云写，因此没有ready-for-user-testing.json独立汇总证明；不把分步成功混称为这次额外聚合通过，也不为此重做已完成恢复。本机Source操作凭据过期不会触发停止工具，已运行资源不依赖这次CLI会话持续有效。
+
+本次新租户栈/新ALB/新平台任务定义配置不新增ExpiresAt或HostingExpiresAt，没有安装watch或新到期清理计划。旧父栈历史标签/模板仍可能显示旧期限，不能将它们改写成未来事实；Cell清理计划保持原DISABLED，新租户栈无ExpiresAt供既有扫描器触发到期删除。登录/JWT等安全期限不改。资源持续计费，待用户明确通知后再停；50USD/月目标不是硬上限。
+
+已准备 **manual-stop.config.json**：准确两个当前ECS服务、两个新ALB ARN及原两数据库，enabled=false、expiresAt=null，无自动运行。用户通知停用后先核对资源及身份、启用本次准确配置并使用新备份目录；不要用旧ARN配置或复用旧永久尝试。原停止快照、失败journal、各次源码和已完成阶段均保留。
+
+边界：直接重建ALB及平台任务定义切换造成的父CloudFormation物理ID/Outputs/template drift仍需正式部署前收敛，不能现在直接Update旧父栈模板；本次没有为此扩展导入/恢复框架。控制数据库中的历史部署/任务记录未改写为这次手工恢复，wholeProductAccepted仍false。当前只交由用户测试，未经新指示不再追加产品验证、重新开启控制器或清理资源。以下部分恢复/待批文字仅为沿革。
+
 ## 2026-11-01无自动到期恢复部分完成
 
 用户改变当前方向：产品测试由本人负责，只恢复原AWS环境，不新增到期时间，测试完成后本人通知停用。用户已集中确认原两数据库、两ALB/监听器、平台ECS1任务、租户原七资源及对应DNS/监听器引用；允许移除恢复配置的到期标签或必要的定向自动清理条件，不改JWT/MFA安全期限、不改业务数据、不新增IAM、不做产品测试，并接受持续费用及50USD/月目标不保证。该新确认不是旧Review/业务任务或历史期限的重放。

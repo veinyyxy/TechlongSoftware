@@ -2,6 +2,14 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
+## 最新状态：手工测试环境已恢复，等待用户测试或停用通知（2026-11-01）
+
+原两数据库available；两ALB/三监听器已恢复，console/API两条DNS INSYNC。租户新栈5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13七资源CREATE_COMPLETE，ECS1运行/0待启动、目标healthy；平台按用户另批以关闭部署控制器模式使用同镜像TaskDefinition:12，ECS1运行/0待启动、rollout COMPLETED，控制器私钥/控制库Secret不挂载，网页登录及普通管理保留，批准/调度AWS功能关闭。IAM仅已批准的两条DescribeTags路径换为新监听器，v9默认、v7/v8保留。
+
+当前不设置资源到期、不安装watch，不再执行产品测试或扩工具；等待用户测试结果/明确停用通知，资源持续计费。入口buyer.sandbox.techlong.cloud / console.sandbox.techlong.cloud，API为first-acceptance.sandbox.techlong.cloud。分步汇总F:/ChatGPT_workshop/manual-environment-restore-20261101-a/handoff-stepwise.json raw SHA 6bdce23b…；最后额外聚合在STS ExpiredToken停止，不混称独立最终聚合通过，不要求为了开始网页测试重做恢复。手工停用新配置默认关闭，不能用旧ALB ARN重跑旧停止/恢复。父CFN drift、旧部署账本未改写，正式控制器/自动部署另审收敛，不属于本次用户自行测试的扩展任务。[完整记录](aws-temporary-idle.md#2026-11-01手工测试环境已恢复)。
+
+以下本轮“等待IAM/尚未恢复”保留追溯，已由上述后续实际结果替代，不再作为当前继续指令。
+
 2026-11-01用户最新方向：产品测试交由用户本人，代理只恢复原项目AWS环境，不设置新过期时间，由用户完成测试后通知停用。当前只核对两份停用备份、现有资源及旧自动清理条件，集中准备并落实恢复；不再执行买家业务测试。已删租户栈、ALB新引用/CFN差异、清理条件和必要权限按准确范围处理，不重放旧任务或修改历史事实来续期；不启动无关资源。持续收费及50USD/月目标风险须说明，具体超出既有启动边界的变更另确认。下方原“唯一继续点”已被本次用户指示替代，保留追溯。
 
 本轮用户已集中确认上述完整恢复范围，但明确不新增IAM。本次StartDBCluster1/StartDBInstance1已ACK且两库均available；Cell ALB已重建为241081ab25c73320，属性回填ValidationError后工具停止，未重试。平台ALB/监听器、ECS、租户七资源和DNS尚未完成，不能说全部环境已启动；已启动资源会收费，无新增自动到期。只读又确认旧CFN执行角色的DescribeTags权限仍绑定旧ALB/listener路径，**下一只需另批这项精确IAM资源范围替换及基于已建状态继续，不扩大其他权限、不重跑已接受动作**。恢复F:/ChatGPT_workshop/manual-environment-restore-20261101-a/checkpoint.json；[完整状态与剩余步骤](aws-temporary-idle.md#2026-11-01无自动到期恢复部分完成)。不改用Source直接创建绕过执行角色，不增加产品测试或工具框架。
