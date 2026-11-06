@@ -1,0 +1,85 @@
+{
+  "UsePreviousTemplate": true,
+  "Parameters": [
+    {
+      "ParameterKey": "AppInstanceId",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "ClusterName",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "ControlIssuer",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "ControlListenerArn",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "ControlPublicKeyValueFrom",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "CorsAllowedOrigins",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "HttpsListenerArn",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "ImageUri",
+      "ParameterValue": "{{reviewedImageUri}}"
+    },
+    {
+      "ParameterKey": "JwtExpiresIn",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "MerchantJwtExpiresIn",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "StripeCancelUrl",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "StripePublishableKey",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "StripeSuccessUrl",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "SubnetIds",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "TaskExecutionRoleArn",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "TaskRoleArn",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "TaskSecurityGroupId",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "TenantHostname",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "TenantRuntimeSecretArn",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "VpcId",
+      "UsePreviousValue": true
+    }
+  ]
+}

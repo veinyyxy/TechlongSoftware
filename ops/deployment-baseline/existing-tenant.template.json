@@ -1,0 +1,132 @@
+{
+  "schema": "techlong/existing-tenant-update-baseline/v1",
+  "scope": "historical-sandbox-declarations-not-live",
+  "stacks": {
+    "platform": {
+      "name": "techlong-sandbox-platform-hosting-v1",
+      "templateSha256": "24e4dba31fdc422c263f703acb7ddda0b63fe179e2a9b5839d732255f4383e2f",
+      "resources": {
+        "AlbSecurityGroup": "AWS::EC2::SecurityGroup",
+        "Cluster": "AWS::ECS::Cluster",
+        "DnsRecord": "AWS::Route53::RecordSet",
+        "HttpsListener": "AWS::ElasticLoadBalancingV2::Listener",
+        "LoadBalancer": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "LogGroup": "AWS::Logs::LogGroup",
+        "Service": "AWS::ECS::Service",
+        "TargetGroup": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "TaskDefinition": "AWS::ECS::TaskDefinition",
+        "TaskIngress": "AWS::EC2::SecurityGroupIngress",
+        "TaskSecurityGroup": "AWS::EC2::SecurityGroup"
+      },
+      "parameters": [
+        "ControllerLease",
+        "HostingExpiresAt"
+      ],
+      "outputs": [
+        "HostingExpiresAt",
+        "Url"
+      ]
+    },
+    "cell": {
+      "name": "techlong-sandbox-cell-sandbox-1",
+      "templateSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892",
+      "resources": {
+        "BusinessControlDenyRule": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "BusinessHttpsListener": "AWS::ElasticLoadBalancingV2::Listener",
+        "CellCluster": "AWS::ECS::Cluster",
+        "CellGatewayAttachment": "AWS::EC2::VPCGatewayAttachment",
+        "CellInternetGateway": "AWS::EC2::InternetGateway",
+        "CellLoadBalancer": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "CellVpc": "AWS::EC2::VPC",
+        "ControlMtlsListener": "AWS::ElasticLoadBalancingV2::Listener",
+        "LoadBalancerSecurityGroup": "AWS::EC2::SecurityGroup",
+        "PublicDefaultRoute": "AWS::EC2::Route",
+        "PublicRouteTable": "AWS::EC2::RouteTable",
+        "PublicSubnetA": "AWS::EC2::Subnet",
+        "PublicSubnetB": "AWS::EC2::Subnet",
+        "PublicSubnetRouteAssociationA": "AWS::EC2::SubnetRouteTableAssociation",
+        "PublicSubnetRouteAssociationB": "AWS::EC2::SubnetRouteTableAssociation",
+        "TaskSecurityGroup": "AWS::EC2::SecurityGroup"
+      },
+      "parameters": [
+        "AvailabilityZoneA",
+        "AvailabilityZoneB",
+        "CertificateArn",
+        "ControlTrustStoreArn"
+      ],
+      "outputs": [
+        "CellExpiresAt",
+        "ClusterName",
+        "ControlListenerArn",
+        "HttpsListenerArn",
+        "SubnetIds",
+        "TaskSecurityGroupId",
+        "VpcId"
+      ]
+    },
+    "tenant": {
+      "name": "techlong-sandbox-tenant-9c5ee9e64509dcad",
+      "templateSha256": "d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779",
+      "resources": {
+        "TenantBusinessControlDenyRule": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "TenantControlListenerRule": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "TenantListenerRule": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "TenantLogGroup": "AWS::Logs::LogGroup",
+        "TenantService": "AWS::ECS::Service",
+        "TenantTargetGroup": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "TenantTaskDefinition": "AWS::ECS::TaskDefinition"
+      },
+      "parameters": [
+        "AppInstanceId",
+        "ClusterName",
+        "ControlIssuer",
+        "ControlListenerArn",
+        "ControlPublicKeyValueFrom",
+        "CorsAllowedOrigins",
+        "HttpsListenerArn",
+        "ImageUri",
+        "JwtExpiresIn",
+        "MerchantJwtExpiresIn",
+        "StripeCancelUrl",
+        "StripePublishableKey",
+        "StripeSuccessUrl",
+        "SubnetIds",
+        "TaskExecutionRoleArn",
+        "TaskRoleArn",
+        "TaskSecurityGroupId",
+        "TenantHostname",
+        "TenantRuntimeSecretArn",
+        "VpcId"
+      ],
+      "outputs": [
+        "ServiceName",
+        "TargetGroupArn",
+        "TenantHostname"
+      ]
+    }
+  },
+  "cellOutputsToTenantParameters": [
+    "ClusterName",
+    "VpcId",
+    "SubnetIds",
+    "TaskSecurityGroupId",
+    "HttpsListenerArn",
+    "ControlListenerArn"
+  ],
+  "tenantUpdate": {
+    "parameter": "ImageUri",
+    "repository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+    "usePreviousTemplate": true
+  },
+  "external": [
+    "Express database",
+    "standalone RDS",
+    "sandbox hosted zone and tenant API alias",
+    "ACM certificates and trust store",
+    "IAM roles and boundaries",
+    "versioned Secrets",
+    "ECR repositories",
+    "buyer CDN and bucket",
+    "Neon control database"
+  ]
+}
