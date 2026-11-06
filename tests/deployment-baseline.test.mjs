@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto';
 import b from '../ops/deployment-baseline/existing-tenant.template.json' with { type: 'json' };
 import detach from '../ops/deployment-baseline/cell-detach-draft.template.json' with { type: 'json' };
 import capture from '../ops/deployment-baseline/cell-preflight-20261106.json' with { type: 'json' };
+import execution from '../ops/deployment-baseline/cell-a1-execution-review.json' with { type: 'json' };
+import created from '../ops/deployment-baseline/cell-a1-created-20261106.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -56,4 +58,17 @@ test('A1 body is pinned, read-only evidence cannot authorize a change set or res
   assert.equal(capture.scope.awsWriteCalls,0);assert.equal(capture.scope.changeSetsCreated,0);
   assert.equal(capture.dependencies.cellCleanupSchedule,'DISABLED');
   assert.equal(capture.dependencies.globalTenantScan,'ENABLED');
+});
+test('execution review binds the existing A1, explicitly disables rollback and grants no extra action',()=>{
+  assert.equal(execution.status,'PREPARED_NOT_APPROVED');assert.equal(execution.executionAuthorized,false);
+  assert.equal(execution.request.StackName,created.stackId);assert.equal(execution.request.ChangeSetName,created.changeSetId);
+  assert.equal(execution.request.DisableRollback,true);assert.equal(execution.scope.executeChangeSetMax,1);
+  for(const field of ['createChangeSet','deleteChangeSet','updateStack','rollbackStack','continueUpdateRollback','iamWrites','dnsWrites','databaseOperations','imageUpdates','secretValueReads','lambdaInvocations','restoreAlbOrEcs','a2'])assert.equal(execution.scope[field],0,field);
+  assert.equal(execution.failurePolicy.replayAfterUnknownSubmission,false);
+  assert.equal(execution.failurePolicy.providerInternalResourceRecoveryMayStillOccur,true);
+  assert.equal(execution.failurePolicy.timeoutDoesNotCancelAwsOperation,true);
+  assert.equal(execution.expected.proposedTemplateSha256,created.proposedTemplateSha256);
+  assert.deepEqual([...execution.expected.removeLogicalIds].sort(),created.changes.map(x=>x.logicalId).sort());
+  assert.equal(Date.parse(execution.startBefore)-Date.parse(execution.dependencyFactsAt),5*3600000);
+  assert.match(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Winnipeg',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(execution.startBefore)),/^18:23$/);
 });

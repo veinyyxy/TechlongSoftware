@@ -1,0 +1,98 @@
+{
+  "schema": "techlong/cell-a1-execution-review/v1",
+  "status": "PREPARED_NOT_APPROVED",
+  "preparedFromSourceCommit": "768a5fa09a4fb5be63ba38798baa76dddb9fb832",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "profile": "techlong-sandbox-user",
+  "expectedPrincipalArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "observedAt": "2026-11-06T19:55:02.640Z",
+  "dependencyFactsAt": "2026-11-06T19:23:02.749Z",
+  "startBefore": "2026-11-07T00:23:02.749Z",
+  "startBeforeWinnipeg": "2026-11-06 18:23:02.749 CST",
+  "request": {
+    "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "ChangeSetName": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-cell-a1-detach-20261106t194714/2e95d3a1-8cdf-4948-a779-eff36394f627",
+    "ClientRequestToken": "techlong-cell-a1-exec-2e95d3a1-8cdf-4948-a779-eff36394f627-v1",
+    "DisableRollback": true
+  },
+  "expected": {
+    "changeSetStatus": "CREATE_COMPLETE",
+    "executionStatus": "AVAILABLE",
+    "stackStatus": "CREATE_COMPLETE",
+    "proposedTemplateSha256": "42fc857cbbce881c411ff03997805e2d38635bd498f5d2c6ba695fc884a1e355",
+    "originalTemplateSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892",
+    "executionRole": "arn:aws:iam::402010193138:role/TechlongSandboxFirstAcceptanceCellExecutionRole",
+    "removeLogicalIds": [
+      "BusinessControlDenyRule",
+      "BusinessHttpsListener",
+      "CellLoadBalancer",
+      "ControlMtlsListener"
+    ],
+    "addCount": 0,
+    "modifyCount": 0,
+    "removeCount": 4,
+    "onlyChangeSetOnStack": true,
+    "onStackFailureAbsent": true,
+    "noRollbackTriggers": true,
+    "namedAlbMustRemainAbsentBeforeSubmission": true,
+    "preserveOtherTwelvePhysicalIds": true
+  },
+  "scope": {
+    "executeChangeSetMax": 1,
+    "stsMax": 2,
+    "metadataReadMax": 80,
+    "readOnlyWaitMaxSeconds": 600,
+    "createChangeSet": 0,
+    "deleteChangeSet": 0,
+    "updateStack": 0,
+    "rollbackStack": 0,
+    "continueUpdateRollback": 0,
+    "iamWrites": 0,
+    "dnsWrites": 0,
+    "databaseOperations": 0,
+    "imageUpdates": 0,
+    "secretValueReads": 0,
+    "lambdaInvocations": 0,
+    "restoreAlbOrEcs": 0,
+    "a2": 0,
+    "allowedMetadataApis": [
+      "cloudformation:DescribeStacks",
+      "cloudformation:DescribeChangeSet",
+      "cloudformation:ListChangeSets",
+      "cloudformation:GetTemplate",
+      "cloudformation:ListStackResources",
+      "cloudformation:DescribeStackEvents",
+      "elasticloadbalancing:DescribeLoadBalancers",
+      "elasticloadbalancing:DescribeListeners",
+      "elasticloadbalancing:DescribeRules"
+    ]
+  },
+  "failurePolicy": {
+    "disableWholeStackAutomaticRollback": true,
+    "preservePartialState": true,
+    "automaticWriteRetries": false,
+    "replayAfterUnknownSubmission": false,
+    "automaticCompensation": false,
+    "automaticCleanup": false,
+    "providerInternalResourceRecoveryMayStillOccur": true,
+    "timeoutDoesNotCancelAwsOperation": true,
+    "readAndReportOnlyAfterFailure": true
+  },
+  "successRequires": [
+    "UPDATE_COMPLETE on exact stack",
+    "Original equals pinned A1 template; two listener outputs removed",
+    "twelve active retained resources keep their prior physical IDs",
+    "four removed declarations are not active owners; DELETE_COMPLETE history is not active ownership",
+    "Cell ALB remains absent; no A2 or service/database start"
+  ],
+  "risks": [
+    "CloudFormation may fail deleting already missing resource records",
+    "stack may be left UPDATE_FAILED or partially detached and require separately approved recovery",
+    "DisableRollback is not a guarantee of zero provider-internal resource recovery actions",
+    "any AWS submission timeout or ambiguous result consumes the one attempt; never replay",
+    "retained resources, databases and other account services can continue to incur charges"
+  ],
+  "executionAuthorized": false,
+  "codeRunnerImplementedByThisReview": false
+}

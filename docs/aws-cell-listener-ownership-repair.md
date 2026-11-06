@@ -4,7 +4,7 @@
 
 ## 2026-11-06：A 阶段只读前置核对与 A1 候选已完成
 
-用户要求“继续下一步”后，仅完成此范围的只读核验（Source STS 1、资源/权限元数据24次，包括预期 NotFound 回执），AWS 写、Lambda调用、Secret值/数据库读取、Change Set和镜像更新均为0。Cell Original 于19:23:02.749Z（温尼伯14:23:02.749 CST）保存到本轮内存，完整规范JSON摘要与工程基线相同；14:27:57 CST汇总[机器摘要](../ops/deployment-baseline/cell-preflight-20261106.json)，不是新的现场查询时刻，也不是批准SHA或完整原件执行包。
+用户要求“继续下一步”后，仅完成此范围的只读核验（Source STS 1、资源/权限元数据24次，包括预期 NotFound 回执），AWS 写、Lambda调用、Secret值/数据库读取、Change Set和镜像更新均为0。Cell Original 于19:23:02.749Z（温尼伯13:23:02.749 CST）保存到本轮内存，完整规范JSON摘要与工程基线相同；13:27:57 CST汇总[机器摘要](../ops/deployment-baseline/cell-preflight-20261106.json)，不是新的现场查询时刻，也不是批准SHA或完整原件执行包。
 
 | 核对项 | 本轮观测及边界 |
 | --- | --- |
@@ -22,13 +22,31 @@
 
 ## 起点与取舍
 
+### 本次执行审批：失败保留现场，不进入A2（待用户确认）
+
+本次只准备审批，实际ExecuteChangeSet仍为0。19:55:02.640Z新一轮STS1/元数据5确认同一A1仍CREATE_COMPLETE/AVAILABLE，原栈/角色未变、它是唯一变更集、四项Remove及模板SHA保持，同名ALB仍不存在。未追加完整25项预检或查询业务数据。
+
+准确[执行清单](../ops/deployment-baseline/cell-a1-execution-review.json)规范JSON SHA：
+
+`87a80dc7abd91501820ac1d48333613dc283429f40bbba4e0e8a974b7e5b3ed9`
+
+- 仅一次ExecuteChangeSet，绑定完整栈ARN、现有A1 ARN和固定ClientRequestToken；显式 `DisableRollback=true`。不创建/删除Change Set、不UpdateStack、不RollbackStack/ContinueUpdateRollback、不调用A2、恢复工具、数据库、IAM、DNS、镜像或Lambda。
+- 请求前复核准确身份、唯一A1仍AVAILABLE、四项Remove/旧物理ID和模板摘要未变、原12项物理ID及ALB仍缺失；若存在OnStackFailure或RollbackTriggers等冲突设置，停止，不能偷偷去掉DisableRollback重试。
+- 提交意图先持久化。失败或回执不明均消费唯一尝试，不自动重发，包括使用同token的重试；只有获准的只读查询可以继续确认真实状态。最多2次STS、80次限定元数据读取，等待最多600秒；等待超时不代表AWS停止操作，不发送取消或回滚。
+- 禁用的是整体失败回滚请求，不是“保证AWS绝无任何内部恢复”。[AWS说明](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stack-failure-options.html)更新/变更集保留成功资源时，失败资源仍可能恢复到其最后稳定状态。若发生此类处理，只读记录和报告，不由代理追加写入。该API支持显式DisableRollback，且不能与创建阶段OnStackFailure并用：[ExecuteChangeSet参数](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ExecuteChangeSet.html)。
+- 接受可能停在UPDATE_FAILED、只完成部分声明移除、输出不完整，以及之后需要另审恢复。成功须准确栈UPDATE_COMPLETE、Original等于A1、两个监听器输出消失、12个保留资源物理ID保持、四项不再是活动归属（不将DELETE_COMPLETE历史行算作活动资源），并确认无ALB重建。A1成功只解除旧声明，不意味着ALB/归属恢复或产品已上线。
+
+清单最晚启动为2026-11-07T00:23:02.749Z，即**温尼伯11月6日18:23:02.749 CST**，受原13:23依赖快照五小时限制，不从新一次窄核对重计全部依赖时间。这只是本次执行材料的事实新鲜度，不新增资源到期、不改旧ExpiresAt或JWT/MFA期限。过期不得执行本清单或只改日期，应另核必要差异。
+
+上述次数上限只约束代理直接调用的API，不约束CloudFormation资源提供者内部的并行或重试次数。七项离线数据/边界回归通过；没有新执行框架或runner。用户须明确批准上述SHA及失败策略后才实际执行。另更正前两段温尼伯显示：11月6日为UTC-6（CST），原14:23/14:47已改为13:23/13:47；所有原UTC观察、创建时间及回执不改。
+
 ### A1 Change Set 已创建并核对，未执行（2026-11-06）
 
 用户明确确认“仅创建、不执行A1 Change Set，核对四项Remove”后，本轮只提交一次 CreateChangeSet。变更集：
 
 `arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-cell-a1-detach-20261106t194714/2e95d3a1-8cdf-4948-a779-eff36394f627`
 
-AWS 创建时刻19:47:24.347Z（温尼伯14:47:24.347 CST），独立只读回读19:48:07.940Z确认 CREATE_COMPLETE / AVAILABLE，准确Cell栈仍CREATE_COMPLETE、旧两个输出保持，尚未执行A1。GetTemplate对该Change Set的Original回读与A1候选SHA完全一致；四个原参数和既有执行角色/标签保持。
+AWS 创建时刻19:47:24.347Z（温尼伯13:47:24.347 CST），独立只读回读19:48:07.940Z确认 CREATE_COMPLETE / AVAILABLE，准确Cell栈仍CREATE_COMPLETE、旧两个输出保持，尚未执行A1。GetTemplate对该Change Set的Original回读与A1候选SHA完全一致；四个原参数和既有执行角色/标签保持。
 
 变更明细恰为 BusinessControlDenyRule、BusinessHttpsListener、CellLoadBalancer、ControlMtlsListener 四项Remove，PolicyAction均Delete；Add=0、Modify=0，没有网络、ECS、数据库或镜像变更项。十二项保留资源未进入变更明细，两个输出的移除反映在候选模板而不另计资源变更行。完整准确ID/类型/物理引用见[已创建结果](../ops/deployment-baseline/cell-a1-created-20261106.json)。
 
