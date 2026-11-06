@@ -1,0 +1,35 @@
+{
+  "schema": "techlong/temporary-environment/v1",
+  "temporary": true,
+  "enabled": false,
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "profile": "techlong-sandbox-user",
+  "expectedPrincipalArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "stateDirectory": "F:/ChatGPT_workshop/aws-environment-state",
+  "awsCliExecutable": "D:/Amazon/AWSCLIV2/aws.exe",
+  "services": [
+    {"cluster":"techlong-sandbox-platform","service":"techlong-sandbox-platform-web","desiredCount":1,"requireControllerClosed":true},
+    {"cluster":"cell-sandbox-1","service":"tenant-9c5ee9e64509dcad-ecs-service","desiredCount":1,"requireControllerClosed":false}
+  ],
+  "databases": [
+    {"kind":"cluster","id":"techlong-sandbox-express-d001","resourceId":"cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM"},
+    {"kind":"instance","id":"speedfeast-postgres-prod","resourceId":"db-MOOXGHRHTZM25V3I4NY25D4IEQ"}
+  ],
+  "loadBalancers": [
+    {"name":"techlong-sandbox-cell-sandbox-1","vpcId":"vpc-0136b6ba92a72cbf9"},
+    {"name":"techlong-sandbox-platform","vpcId":"vpc-011dab69fff93972b"}
+  ],
+  "requiredLoadBalancerTags": {"Environment":"aws-sandbox"},
+  "network": {
+    "vpcIds":["vpc-0136b6ba92a72cbf9","vpc-011dab69fff93972b"],
+    "natGatewayIds":[],"endpointIds":[],"allocationIds":[],
+    "requiredNetworkTags":{"Environment":"aws-sandbox"},"acknowledgeNetworkRecreation":true
+  },
+  "dns": {"zoneId":"Z01473621BTTHKXBGOOEJ","records":[
+    {"name":"console.sandbox.techlong.cloud.","loadBalancerName":"techlong-sandbox-platform"},
+    {"name":"first-acceptance.sandbox.techlong.cloud.","loadBalancerName":"techlong-sandbox-cell-sandbox-1"}
+  ]},
+  "acknowledgeCloudFormationDrift":true,
+  "allowDisableDeletionProtection":true
+}

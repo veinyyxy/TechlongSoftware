@@ -30,6 +30,7 @@
 /stripe_sandbox/
 /.aws-sandbox/
 /.local-secrets/
+/ops/temporary-idle/environment.local.json
 
 # debug
 npm-debug.log*

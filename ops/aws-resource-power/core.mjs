@@ -57,6 +57,14 @@ export function listenerInput(listener,loadBalancerArn,tagValues=[]){
 export function ruleInput(rule,listenerArn,tagValues=[]){
   const input={...select(rule,['Conditions','Actions','Transforms']),ListenerArn:listenerArn,Priority:Number(rule.Priority)};
   ensure(Number.isInteger(input.Priority)&&input.Priority>=1&&input.Priority<=50000,'RULE_PRIORITY');
+  for(const condition of input.Conditions??[]){
+    const typed=['HostHeaderConfig','PathPatternConfig','HttpHeaderConfig','HttpRequestMethodConfig','SourceIpConfig'].map(k=>condition[k]).find(Boolean);
+    if(typed&&condition.Values){
+      ensure(Array.isArray(typed.Values)&&digest([...condition.Values].sort())===digest([...typed.Values].sort()),'RULE_CONDITION_REPRESENTATION_MISMATCH');
+      delete condition.Values;
+    }
+  }
+  if(input.Transforms?.length===0)delete input.Transforms;
   if(userTags(tagValues).length)input.Tags=userTags(tagValues);return input;
 }
 function lbInput(saved){
@@ -147,14 +155,18 @@ async function verifyRestoredAlb(config,io,saved,arn){
     }
   }
 }
-export async function stopResources({config,io,store,waitSeconds=1800}){
+export async function capturePowerSnapshot({config,io}){
   config=validateConfig(config);await identity(config,io);const databases=[];
   for(const [kind,ids]of [['cluster',config.rdsClusters],['instance',config.rdsInstances]])for(const id of ids){
     const db=await readDatabase(config,io,kind,id);ensure(['available','stopped'].includes(db.status),'DATABASE_NOT_STABLE');databases.push(db);
   }
   const loadBalancers=[];for(const arn of config.loadBalancerArns)loadBalancers.push(await readLoadBalancer(config,io,arn));
   await checkGroups(io,loadBalancers);
-  const snapshot={schema:SCHEMA,config,createdAt:io.now(),databases,loadBalancers},journal={schema:SCHEMA,snapshotSha256:digest(snapshot),status:'CAPTURED',actions:{},mapping:[]};
+  return {schema:SCHEMA,config,createdAt:io.now(),databases,loadBalancers};
+}
+export async function stopResources({config,io,store,waitSeconds=1800}){
+  const snapshot=await capturePowerSnapshot({config,io});config=snapshot.config;
+  const {databases,loadBalancers}=snapshot,journal={schema:SCHEMA,snapshotSha256:digest(snapshot),status:'CAPTURED',actions:{},mapping:[]};
   await store.createSnapshot(snapshot,journal); // All restore material is durable before the FIRST cloud write.
   for(const db of databases){if(db.status==='stopped')continue;
     await write(io,store,journal,`stop:${db.arn}`,'rds',db.kind==='cluster'?'stop-db-cluster':'stop-db-instance',db.kind==='cluster'?{DBClusterIdentifier:db.id}:{DBInstanceIdentifier:db.id});
@@ -172,6 +184,16 @@ export async function stopResources({config,io,store,waitSeconds=1800}){
   },deadline);
   journal.status=verified?'STOP_VERIFIED':'STOP_SUBMITTED_NOT_VERIFIED';journal.finishedAt=io.now();await store.saveJournal(journal);
   return {status:journal.status,verified,databases:databases.map(d=>d.id),deletedLoadBalancerArns:config.loadBalancerArns,warning:'RDS can auto-start after 7 days; storage/backups and other resources may still cost money.'};
+}
+async function restoreAttributes(io,store,journal,key,kind,id,wanted){
+  const lb=kind==='load-balancer',field=lb?'LoadBalancerArn':'ListenerArn',
+    current=(await io.call('elbv2',lb?'describe-load-balancer-attributes':'describe-listener-attributes',{[field]:id})).Attributes;
+  ensure(Array.isArray(current),'ATTRIBUTE_RESPONSE');
+  const diff=wanted.filter(a=>!current.some(b=>a.Key===b.Key&&a.Value===b.Value));
+  // Disabled log outputs are returned as empty strings. Do not replay those
+  // unchanged Describe fields as invalid Modify inputs on a newly created ALB.
+  ensure(diff.every(a=>a.Value!==''),'EMPTY_ATTRIBUTE_CHANGE_REQUIRES_REVIEW');
+  if(diff.length)await write(io,store,journal,key,'elbv2',lb?'modify-load-balancer-attributes':'modify-listener-attributes',{[field]:id,Attributes:diff});
 }
 export async function resumeResources({io,store,waitSeconds=1800}){
   const {snapshot,journal}=await store.load();ensure(snapshot.schema===SCHEMA&&journal.schema===SCHEMA&&digest(snapshot)===journal.snapshotSha256,'BACKUP_INTEGRITY');
@@ -198,11 +220,11 @@ export async function resumeResources({io,store,waitSeconds=1800}){
     ensure(active,'ALB_ACTIVE_TIMEOUT_INSPECT_SAVED_MAPPING');
     // ALB cross-zone is always true. Deletion protection is restored LAST, after listeners/rules.
     const attrs=saved.attributes.filter(a=>!['deletion_protection.enabled','load_balancing.cross_zone.enabled'].includes(a.Key));
-    if(attrs.length)await write(io,store,journal,`attrs:${lb.LoadBalancerArn}`,'elbv2','modify-load-balancer-attributes',{LoadBalancerArn:lb.LoadBalancerArn,Attributes:attrs});
+    await restoreAttributes(io,store,journal,`attrs:${lb.LoadBalancerArn}`,'load-balancer',lb.LoadBalancerArn,attrs);
     for(const entry of saved.listeners){
       const r=await write(io,store,journal,`listener:${entry.description.ListenerArn}`,'elbv2','create-listener',listenerInput(entry.description,lb.LoadBalancerArn,entry.tags)),arn=r.Listeners?.[0]?.ListenerArn;
       assertArn(arn,config,'elasticloadbalancing','listener/app/');mapping.listeners.push({oldArn:entry.description.ListenerArn,newArn:arn});await store.saveJournal(journal);
-      if(entry.attributes.length)await write(io,store,journal,`listener-attrs:${arn}`,'elbv2','modify-listener-attributes',{ListenerArn:arn,Attributes:entry.attributes});
+      await restoreAttributes(io,store,journal,`listener-attrs:${arn}`,'listener',arn,entry.attributes);
       const extra=entry.certificates.filter(c=>!c.IsDefault).map(c=>({CertificateArn:c.CertificateArn}));
       if(extra.length)await write(io,store,journal,`certificates:${arn}`,'elbv2','add-listener-certificates',{ListenerArn:arn,Certificates:extra});
       for(const rule of entry.rules){const r=await write(io,store,journal,`rule:${rule.description.RuleArn}`,'elbv2','create-rule',ruleInput(rule.description,arn,rule.tags)),newArn=r.Rules?.[0]?.RuleArn;
@@ -210,7 +232,7 @@ export async function resumeResources({io,store,waitSeconds=1800}){
       }
     }
     const protection=saved.attributes.find(a=>a.Key==='deletion_protection.enabled');
-    if(protection)await write(io,store,journal,`protect:${lb.LoadBalancerArn}`,'elbv2','modify-load-balancer-attributes',{LoadBalancerArn:lb.LoadBalancerArn,Attributes:[protection]});
+    if(protection)await restoreAttributes(io,store,journal,`protect:${lb.LoadBalancerArn}`,'load-balancer',lb.LoadBalancerArn,[protection]);
     await verifyRestoredAlb(config,io,saved,lb.LoadBalancerArn);
   }
   const verified=await until(io,async()=>{
