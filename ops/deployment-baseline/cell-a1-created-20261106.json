@@ -1,0 +1,65 @@
+{
+  "schema": "techlong/cell-a1-change-set-created/v1",
+  "status": "A1_CREATED_VERIFIED_NOT_EXECUTED",
+  "sourceCommit": "a22471cf86475fb47c02d6e05144a801faeaddf6",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+  "stackStatus": "CREATE_COMPLETE",
+  "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-cell-a1-detach-20261106t194714/2e95d3a1-8cdf-4948-a779-eff36394f627",
+  "creationTime": "2026-11-06T19:47:24.347000+00:00",
+  "independentObservedAt": "2026-11-06T19:48:07.940Z",
+  "changeSetStatus": "CREATE_COMPLETE",
+  "executionStatus": "AVAILABLE",
+  "originalTemplateSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892",
+  "proposedTemplateSha256": "42fc857cbbce881c411ff03997805e2d38635bd498f5d2c6ba695fc884a1e355",
+  "templateReadbackMatched": true,
+  "executionRole": "arn:aws:iam::402010193138:role/TechlongSandboxFirstAcceptanceCellExecutionRole",
+  "changes": [
+    {
+      "logicalId": "BusinessControlDenyRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "action": "Remove",
+      "policyAction": "Delete",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1/9851f4d18f9dbb6d"
+    },
+    {
+      "logicalId": "BusinessHttpsListener",
+      "type": "AWS::ElasticLoadBalancingV2::Listener",
+      "action": "Remove",
+      "policyAction": "Delete",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/469c2b642a33bfc1"
+    },
+    {
+      "logicalId": "CellLoadBalancer",
+      "type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "action": "Remove",
+      "policyAction": "Delete",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86"
+    },
+    {
+      "logicalId": "ControlMtlsListener",
+      "type": "AWS::ElasticLoadBalancingV2::Listener",
+      "action": "Remove",
+      "policyAction": "Delete",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/77888e84c19e8b86/bc69b195b69bc2d9"
+    }
+  ],
+  "addCount": 0,
+  "modifyCount": 0,
+  "removeCount": 4,
+  "counts": {
+    "sts": 1,
+    "writerMetadataReads": 7,
+    "independentMetadataReads": 2,
+    "createChangeSet": 1,
+    "executeChangeSet": 0,
+    "deleteChangeSet": 0,
+    "resourceCreateCalls": 0
+  },
+  "creationAuthorized": true,
+  "executionAuthorized": false,
+  "cloudFormationOwnershipRepaired": false,
+  "privateEvidenceDirectory": ".local-secrets/techlong-cell-a1-detach-20261106t194714",
+  "next": "Separate approval to execute only this exact Change Set. No A2, DNS, IAM or image changes."
+}

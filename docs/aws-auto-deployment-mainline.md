@@ -10,6 +10,8 @@
 
 最新：A只读预检（STS1/元数据24）完成，未云写。A1精确中间模板已派生，保留12资源，6项离线检查通过；当前仅等另审创建未执行的A1 Change Set。没有恢复收费ALB、启ECS/数据库、改IAM/清理器或镜像，不把预检/模板视为归属修复完成。
 
+后继实际结果：用户批准后A1已单次创建，独立回读确认四Remove/零Add/Modify、CREATE_COMPLETE/AVAILABLE，未执行，原栈仍CREATE_COMPLETE。下一仅单独审批准确A1 `2e95d3a1-8cdf-4948-a779-eff36394f627` 的执行及失败策略，不再创建A1或直接进入A2；[机器结果](../ops/deployment-baseline/cell-a1-created-20261106.json)。
+
 ## 已完成：离线固化现有临时环境启停工具（2026-11-06）
 
 用户明确要求以后用固定命令启动/停止整套原测试环境，避免临时写脚本。本轮只把现有临时ECS/网络/ALB/RDS能力收拢为隔离的stop/start/status入口，补齐已实测的ALB序列化及DNS/新ARN续接，合成验证后文档化/main提交推送。默认不执行AWS、不读取凭据或业务数据、不变更当前已恢复环境；不加入自动导入、到期/watch、新权限或正式部署支线。实际云调用仍按用户当次启停请求执行，不能把工具交付说成已经又停用/启动。见[执行手册](aws-auto-deployment-execution-runbook.md)。
