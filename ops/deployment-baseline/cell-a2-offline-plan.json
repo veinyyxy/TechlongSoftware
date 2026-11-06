@@ -1,0 +1,80 @@
+{
+  "schema": "techlong/cell-a2-offline-plan/v1",
+  "status": "OFFLINE_DRAFT_NOT_EXECUTABLE",
+  "preparedFromCommit": "e81f290c024ac7a358a304836d82e6d5d5c75f79",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+  "provenance": {
+    "originalTemplateArchive": "F:/ChatGPT_workshop/manual-environment-restore-20261101-a/inputs.json#stacks.techlong-sandbox-cell-sandbox-1.template",
+    "originalTemplateCanonicalSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892",
+    "a1ResultFile": "cell-a1-executed-20261106.json",
+    "a1AppliedTemplateCanonicalSha256": "42fc857cbbce881c411ff03997805e2d38635bd498f5d2c6ba695fc884a1e355",
+    "a1IndependentObservedAt": "2026-11-06T20:09:32.860Z",
+    "historicalDependencyObservedAt": "2026-11-06T19:23:02.749Z",
+    "historicalObservationsAreNotNewFacts": true
+  },
+  "candidate": {
+    "templateFile": "cell-reattach-draft.template.json",
+    "canonicalSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892",
+    "equalsPreA1Original": true,
+    "resourcesBefore": 12,
+    "resourcesAfter": 16,
+    "add": [
+      {"logicalId": "BusinessControlDenyRule", "type": "AWS::ElasticLoadBalancingV2::ListenerRule"},
+      {"logicalId": "BusinessHttpsListener", "type": "AWS::ElasticLoadBalancingV2::Listener"},
+      {"logicalId": "CellLoadBalancer", "type": "AWS::ElasticLoadBalancingV2::LoadBalancer"},
+      {"logicalId": "ControlMtlsListener", "type": "AWS::ElasticLoadBalancingV2::Listener"}
+    ],
+    "modify": [],
+    "remove": [],
+    "addOutputKeys": ["ControlListenerArn", "HttpsListenerArn"],
+    "retainedResourcePropertiesUnchanged": true,
+    "otherTemplateSectionsUnchanged": true,
+    "historicalExpiresAtPreserved": "2026-10-15T16:44:56.246Z"
+  },
+  "changeSetInputOutline": {
+    "ChangeSetType": "UPDATE",
+    "Parameters": [
+      {"ParameterKey": "AvailabilityZoneA", "UsePreviousValue": true},
+      {"ParameterKey": "AvailabilityZoneB", "UsePreviousValue": true},
+      {"ParameterKey": "CertificateArn", "UsePreviousValue": true},
+      {"ParameterKey": "ControlTrustStoreArn", "UsePreviousValue": true}
+    ]
+  },
+  "pendingReview": {
+    "newReadOnlyPermissionRequired": true,
+    "creationApprovalRequired": true,
+    "executionApprovalRequired": true,
+    "approvalManifestSha256": null,
+    "changeSetId": null,
+    "executionRequest": null,
+    "liveFactsAt": null,
+    "startBefore": null,
+    "preserveExistingExecutionRoleAndStackTags": true,
+    "executionFailurePolicyProposal": "DisableRollback=true; retain partial state; no agent write retry, active rollback or cleanup. Must be explicitly approved for the actual Change Set; provider internal recovery may still occur."
+  },
+  "acceptOnly": {
+    "addCount": 4,
+    "modifyCount": 0,
+    "removeCount": 0,
+    "importCount": 0,
+    "nestedStackCount": 0,
+    "preserveAllTwelveRetainedPhysicalIds": true,
+    "noHistoricalPhysicalArnAsInput": true
+  },
+  "thisPreparation": {
+    "awsCalls": 0,
+    "databaseConnections": 0,
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "executionSlotsConsumed": 0,
+    "changeSetsCreated": 0,
+    "githubDispatches": 0
+  },
+  "creationAuthorized": false,
+  "executionAuthorized": false,
+  "cloudFormationOwnershipRepaired": false,
+  "outOfScope": ["tenant-parameters-and-three-rules", "api-dns", "platform-alb", "database-or-ecs-start", "iam", "images", "expiry-or-cleanup-policy", "automatic-retry-or-cleanup"],
+  "next": "Separately authorize necessary read-only checks, then review creation of one unexecuted A2 Change Set. Actual execution and ALB restoration remain separate."
+}

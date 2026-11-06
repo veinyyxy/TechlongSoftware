@@ -2,6 +2,35 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；下方原“待审/未执行”只保留各阶段事实，最新结果如下。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
 
+## 当前准备：A2 四项 Add 离线候选已完成（2026-11-06）
+
+本轮按用户明确要求**仅离线准备**。已从封存原件提取 A1 前实际 Cell Original，核对其规范 SHA 与修复前基线一致，再证明：从该模板移除下表四项及两个输出，全文恰等于已执行 A1 模板。不是重新渲染默认模板，也没有用旧物理 ARN 填入新资源。
+
+- [完整 A2 候选模板](../ops/deployment-baseline/cell-reattach-draft.template.json)，规范 SHA `e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892`，与 A1 前 Original 相同；这是**内容指纹，不是执行批准 SHA**。
+- [机器方案与未授权边界](../ops/deployment-baseline/cell-a2-offline-plan.json)：`OFFLINE_DRAFT_NOT_EXECUTABLE`；尚无新现场快照、审批 SHA、A2 Change Set ID、执行请求或有效执行期限。
+
+| A2 唯一允许的资源差异 | 复用原声明的行为 |
+| --- | --- |
+| `CellLoadBalancer`，Add | 原名称的 internet-facing / IPv4 ALB；引用现有两个子网与 ALB SG；原默认路由依赖、三个属性及标签保持 |
+| `BusinessHttpsListener`，Add | HTTPS 443，原证书参数、TLS 策略，默认固定 404 |
+| `ControlMtlsListener`，Add | HTTPS 8443，原证书/TLS；mTLS `verify`、原 trust store 参数、`IgnoreClientCertificateExpiry=false`；默认固定 404 |
+| `BusinessControlDenyRule`，Add | 443 的优先级1，`/api/saas` 与 `/api/saas/*` 固定404，不接入任何租户目标组 |
+
+同时恢复 `HttpsListenerArn → Ref BusinessHttpsListener`、`ControlListenerArn → Ref ControlMtlsListener` 两输出，由 CFN 返回新 ARN。其余十二资源的全部声明、五输出、Metadata、Rules 和四参数定义均不变；四参数全部 `UsePreviousValue`，现有执行角色和栈标签须原样保留。预期仅四 Add、零 Modify/Remove/Import/嵌套栈，实际 Change Set 必须逐项证明，不能仅凭模板的本地差异判定云计划合格。
+
+### 后续集中顺序与停止条件（本轮不执行）
+
+1. **另获限定只读许可后补必要现状。** 准确 Source/账号/区域和同一 Cell UUID；提交前核对栈仍为 A1 `UPDATE_COMPLETE`、Original 摘要及十二保留物理 ID 匹配、无并发栈操作或未审变更集、同名 ALB 缺失。原证书/trust store、两子网/SG及 VPC、现有角色/trust/inline/boundary、已知租户空闲及两个清理计划的依赖事实，仍在原五小时内且未变化的继续复用，只补过期或明确变化项，不重跑整套旧预检。限既有资源元数据，不读 Secret、PEM、配置或数据库；不调用启停工具。旧 A1/依赖观察只保留真实时间，不从本次离线生成时间重新计算新鲜度。
+2. **据真实事实另审“只创建、不执行 A2”。** 准确清单绑定同一栈、候选 SHA、四个原参数、现有角色/标签及新的唯一变更集名称/请求 token；最多一次 CreateChangeSet，独立回读实际四 Add和候选正文。不能附带 Execute/UpdateStack/Delete/权限修改。无 Add 物理 ID 现在可填；若真实计划含保留资源变更、额外资源、参数漂移或 IAM 不足，立即停止报告，不绕角色、不导入/手工创建、不自动重试或删除失败变更集。
+3. **只有真实 A2 创建及独立核对通过后，再单独审批执行。** 绑定其完整 ARN、最新事实、费用、失败策略及独立验收范围。建议继续显式 `DisableRollback=true`、保留部分现场、代理不重发/主动回滚或清理，但该建议**尚未批准**，A1 的批准不沿用；CFN 提供者内部恢复仍可能发生。创建/执行阶段的配置必须无冲突，不能因冲突去掉该参数重试。执行后即使 ECS 为0，ALB仍可能持续收费；失败/超时也可能留下收费资源，停费或清理另审。
+4. **执行后独立验收是进入 B 的门槛。** 同一栈 `UPDATE_COMPLETE`、Original 与候选一致；十二保留物理 ID不变、四新 ID均由本栈管理；新 ALB active且 VPC/两子网/SG/属性匹配。准确回读443/8443端口、证书/TLS、两默认404、8443 mTLS各字段及共享拒绝规则；两输出分别等于新监听器物理 ID，并属于新 ALB。保存真实 ID/DNSName/CanonicalHostedZoneId，不从历史映射推导。未全部通过就不准备租户两参数/三规则或 API DNS 的实际更新。
+
+**历史到期风险明确保留：** 候选含原 `2026-10-15T16:44:56.246Z` 标签和 CellExpiresAt 输出，未添加、删除或延长到期时间。最近历史观察是 Cell 扫描关闭、全局 tenant 扫描开启，不能当作当前保证；A2 前必须核对。如果现有清理会触及新 ALB/栈，或用户要改标签/清理策略，需先单列准确差异另审，不能塞入“四 Add”修复，也不能声称本候选保证常驻。
+
+本轮 AWS/STS、数据库连接、Secret/PEM读取、槽消费、Change Set/资源创建和 dispatch 均为0；仅读取本地已存模板与公开摘要。12项本地基线检查（含4项 A2 差异、TLS/mTLS、引用及未授权边界回归）及定向零警告 lint 通过，不是 AWS ValidateTemplate、远程 CI 或真实云计划/恢复证明。未增加执行器、工作流或启停框架。
+
+**下一唯一动作：另审必要的限定只读核对，生成仅创建未执行 A2 Change Set 的准确审批材料。** 本轮到此收尾；不直接创建/执行 A2，不恢复 ALB/数据库/ECS，不改租户、DNS、IAM、镜像或到期清理。
+
 ## 最新结果：A1 已执行并独立核验（2026-11-06）
 
 用户确认清单 `87a80dc7abd91501820ac1d48333613dc283429f40bbba4e0e8a974b7e5b3ed9` 及失败策略后，仅一次执行原 A1 `2e95d3a1-8cdf-4948-a779-eff36394f627`，显式 `DisableRollback=true`。20:07:51.856Z 收到 ACK，20:08:04.483Z 观察到 Cell `UPDATE_COMPLETE`；另一进程于20:09:32.860Z（温尼伯14:09:32.860 CST）完成独立只读核验，结果 `A1_DETACHED_INDEPENDENTLY_VERIFIED`。执行源码为 `23aca56673631a75e5d242f85afc26391522f176`；此后的结果文档提交不冒充执行源码。
@@ -15,7 +44,7 @@
 
 收尾已在本地将公开摘要与已存独立原件逐项对齐（包括四参数/标签/角色），8项基线回归及定向零警告 lint 通过；这些测试只验证材料一致性，不替代上述真实云端独立核验，也不声称新文档提交已通过远程 CI。
 
-**下一唯一继续点：仅离线准备 A2 四项 Add 候选和审批材料。** 复用 A1 前的原四项属性/依赖/输出，不填历史物理 ARN；实际新鲜读取、创建/执行 A2 及恢复收费 ALB 仍另审。本轮在 A1 收尾，不进入 A2，不更新租户参数/三规则、API DNS 或镜像。
+**A1 收尾时的继续点为仅离线准备 A2 四项 Add 候选，现已按顶部完成。** A1 原件和审批记录保持；没有据 A1 批准创建/执行 A2、恢复收费 ALB 或更新租户参数/三规则、API DNS、镜像。
 
 ## 2026-11-06：A 阶段只读前置核对与 A1 候选已完成
 

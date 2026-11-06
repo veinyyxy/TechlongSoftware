@@ -7,6 +7,8 @@ import capture from '../ops/deployment-baseline/cell-preflight-20261106.json' wi
 import execution from '../ops/deployment-baseline/cell-a1-execution-review.json' with { type: 'json' };
 import created from '../ops/deployment-baseline/cell-a1-created-20261106.json' with { type: 'json' };
 import executed from '../ops/deployment-baseline/cell-a1-executed-20261106.json' with { type: 'json' };
+import reattach from '../ops/deployment-baseline/cell-reattach-draft.template.json' with { type: 'json' };
+import a2 from '../ops/deployment-baseline/cell-a2-offline-plan.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -94,4 +96,75 @@ test('A1 observed result is one execution and twelve retained owners, not A2 or 
   for(const key of ['retainedPhysicalIdsUnchanged','retainedOutputsUnchanged','tagsUnchanged','executionRoleUnchanged'])assert.equal(executed[key],true,key);
   assert.ok(Date.parse(executed.submissionIntentAt)<Date.parse(execution.startBefore));
   assert.ok(Date.parse(executed.independentlyVerifiedAt)>Date.parse(executed.updateCompleteObservedAt));
+});
+
+test('A2 is the pinned pre-A1 Original: exactly four Add and two outputs, no retained changes',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=createHash('sha256').update(JSON.stringify(canonical(reattach))).digest('hex');
+  assert.equal(sha,b.stacks.cell.templateSha256);assert.equal(sha,a2.candidate.canonicalSha256);
+  assert.equal(a2.provenance.a1AppliedTemplateCanonicalSha256,executed.appliedTemplateSha256);
+  assert.equal(a2.stackId,executed.stackId);
+  const added=Object.keys(reattach.Resources).filter(id=>!detach.Resources[id]).sort();
+  assert.deepEqual(added,executed.removedLogicalIds);
+  assert.deepEqual(a2.candidate.add,added.map(logicalId=>({logicalId,type:reattach.Resources[logicalId].Type})));
+  assert.deepEqual(a2.candidate.modify,[]);assert.deepEqual(a2.candidate.remove,[]);
+  const reverse=structuredClone(reattach);
+  for(const id of added)delete reverse.Resources[id];
+  for(const id of executed.removedOutputKeys)delete reverse.Outputs[id];
+  assert.deepEqual(reverse,detach,'including retained attributes, tags, Metadata, Rules and Parameters');
+  assert.equal(Object.keys(reattach.Resources).length,16);
+  assert.deepEqual(a2.candidate.addOutputKeys,executed.removedOutputKeys);
+});
+
+test('A2 restores only ALB routing infrastructure with original TLS and mTLS deny defaults',()=>{
+  const r=reattach.Resources,alb=r.CellLoadBalancer;
+  assert.deepEqual(alb.DependsOn,['PublicDefaultRoute']);assert.equal(alb.Properties.Type,'application');
+  assert.equal(alb.Properties.Scheme,'internet-facing');assert.equal(alb.Properties.IpAddressType,'ipv4');
+  assert.deepEqual(alb.Properties.SecurityGroups,[{Ref:'LoadBalancerSecurityGroup'}]);
+  assert.deepEqual(alb.Properties.Subnets,[{Ref:'PublicSubnetA'},{Ref:'PublicSubnetB'}]);
+  for(const [id,port] of [['BusinessHttpsListener',443],['ControlMtlsListener',8443]]){
+    const p=r[id].Properties;assert.equal(p.Port,port);assert.equal(p.Protocol,'HTTPS');
+    assert.equal(p.SslPolicy,'ELBSecurityPolicy-TLS13-1-2-2021-06');
+    assert.deepEqual(p.Certificates,[{CertificateArn:{Ref:'CertificateArn'}}]);
+    assert.deepEqual(p.LoadBalancerArn,{Ref:'CellLoadBalancer'});
+    assert.equal(p.DefaultActions.length,1);assert.equal(p.DefaultActions[0].Type,'fixed-response');
+    assert.equal(p.DefaultActions[0].FixedResponseConfig.StatusCode,'404');
+  }
+  assert.deepEqual(r.ControlMtlsListener.Properties.MutualAuthentication,{IgnoreClientCertificateExpiry:false,Mode:'verify',TrustStoreArn:{Ref:'ControlTrustStoreArn'}});
+  assert.equal(r.BusinessHttpsListener.Properties.MutualAuthentication,undefined);
+  const deny=r.BusinessControlDenyRule.Properties;
+  assert.equal(deny.Priority,1);assert.deepEqual(deny.ListenerArn,{Ref:'BusinessHttpsListener'});
+  assert.deepEqual(deny.Conditions,[{Field:'path-pattern',PathPatternConfig:{Values:['/api/saas','/api/saas/*']}}]);
+  assert.equal(deny.Actions[0].Type,'fixed-response');assert.equal(deny.Actions[0].FixedResponseConfig.StatusCode,'404');
+  assert.deepEqual(reattach.Outputs.HttpsListenerArn,{Value:{Ref:'BusinessHttpsListener'}});
+  assert.deepEqual(reattach.Outputs.ControlListenerArn,{Value:{Ref:'ControlMtlsListener'}});
+  assert.equal(alb.Properties.Tags.find(t=>t.Key==='ExpiresAt').Value,capture.dependencies.cellExpiresAt);
+});
+
+test('A2 references are declaration-based and closed, never historical physical listener IDs or database resources',()=>{
+  const names=new Set([...Object.keys(reattach.Resources),...Object.keys(reattach.Parameters)]);
+  const visit=v=>{
+    if(!v||typeof v!=='object')return;
+    if('Ref' in v)assert.ok(names.has(v.Ref)||v.Ref.startsWith('AWS::'),'unknown Ref '+v.Ref);
+    if('Fn::GetAtt' in v){const x=v['Fn::GetAtt'];assert.ok(names.has(Array.isArray(x)?x[0]:x.split('.')[0]));}
+    for(const x of Object.values(v))visit(x);
+  };
+  visit(reattach);
+  for(const r of Object.values(reattach.Resources)){
+    for(const id of typeof r.DependsOn==='string'?[r.DependsOn]:(r.DependsOn??[]))assert.ok(reattach.Resources[id]);
+    assert.ok(!r.Type.startsWith('AWS::RDS::'));assert.ok(!r.Type.startsWith('AWS::IAM::'));
+  }
+  assert.doesNotMatch(JSON.stringify(reattach),/arn:aws:elasticloadbalancing:[^" ]*:(?:loadbalancer|listener|listener-rule)\//);
+});
+
+test('A2 offline plan is not creation/execution authority and retains all four parameter bindings',()=>{
+  assert.equal(a2.status,'OFFLINE_DRAFT_NOT_EXECUTABLE');
+  assert.equal(a2.creationAuthorized,false);assert.equal(a2.executionAuthorized,false);
+  assert.equal(a2.cloudFormationOwnershipRepaired,false);
+  for(const count of Object.values(a2.thisPreparation))assert.equal(count,0);
+  for(const key of ['approvalManifestSha256','changeSetId','executionRequest','liveFactsAt','startBefore'])assert.equal(a2.pendingReview[key],null);
+  for(const key of ['newReadOnlyPermissionRequired','creationApprovalRequired','executionApprovalRequired'])assert.equal(a2.pendingReview[key],true);
+  assert.deepEqual(a2.changeSetInputOutline,{ChangeSetType:'UPDATE',Parameters:b.stacks.cell.parameters.map(ParameterKey=>({ParameterKey,UsePreviousValue:true}))});
+  assert.equal(a2.acceptOnly.addCount,4);assert.equal(a2.acceptOnly.modifyCount,0);assert.equal(a2.acceptOnly.removeCount,0);
+  assert.equal(a2.candidate.historicalExpiresAtPreserved,capture.dependencies.cellExpiresAt);
 });
