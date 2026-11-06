@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import b from '../ops/deployment-baseline/existing-tenant.template.json' with { type: 'json' };
+import detach from '../ops/deployment-baseline/cell-detach-draft.template.json' with { type: 'json' };
+import capture from '../ops/deployment-baseline/cell-preflight-20261106.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -32,4 +35,25 @@ test('image-only fragment retains all 19 other parameters and does not mutate te
     assert.deepEqual(r.changeSetFragment.Parameters.filter(p=>!p.UsePreviousValue),[{ParameterKey:'ImageUri',ParameterValue:z}]);
     assert.equal(r.unchangedParameters.length,19);assert.equal(r.changeSetFragment.Parameters.length,20);}
   for(const bad of [first,next+'\n',next.replace('speedfeast','other'),next.replace(/@.*/,':latest')])assert.throws(()=>imageChange(first,bad));
+});
+
+test('A1 is only four resource removals and two outputs, retaining the other declaration names',()=>{
+  const resources={...b.stacks.cell.resources};
+  for(const id of capture.a1.removeLogicalIds)delete resources[id];
+  assert.deepEqual(Object.fromEntries(Object.entries(detach.Resources).map(([k,v])=>[k,v.Type])),resources);
+  assert.equal(Object.keys(detach.Resources).length,12);
+  assert.deepEqual(Object.keys(detach.Parameters).sort(),b.stacks.cell.parameters);
+  assert.deepEqual(Object.keys(detach.Outputs).sort(),b.stacks.cell.outputs.filter(k=>!capture.a1.removeOutputs.includes(k)));
+  const body=JSON.stringify(detach);
+  for(const id of capture.a1.removeLogicalIds)assert.ok(!body.includes(id),'dangling removed reference: '+id);
+  assert.equal(detach.Outputs.CellExpiresAt.Value,capture.dependencies.cellExpiresAt,'do not restamp historical expiry');
+});
+test('A1 body is pinned, read-only evidence cannot authorize a change set or resource creation',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  assert.equal(createHash('sha256').update(JSON.stringify(canonical(detach))).digest('hex'),capture.a1.canonicalSha256);
+  assert.equal(capture.originalTemplateSha256,b.stacks.cell.templateSha256);
+  assert.equal(capture.executionAuthorized,false);assert.equal(capture.cloudFormationOwnershipRepaired,false);
+  assert.equal(capture.scope.awsWriteCalls,0);assert.equal(capture.scope.changeSetsCreated,0);
+  assert.equal(capture.dependencies.cellCleanupSchedule,'DISABLED');
+  assert.equal(capture.dependencies.globalTenantScan,'ENABLED');
 });

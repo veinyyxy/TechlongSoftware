@@ -1,0 +1,122 @@
+{
+  "schema": "techlong/cell-listener-repair-readonly/v1",
+  "phase": "A_PREFLIGHT_CAPTURED_A1_DRAFT_ONLY",
+  "observedFrom": "2026-11-06T19:23:02.749Z",
+  "account": "402010193138",
+  "region": "ca-central-1",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+  "stackStatus": "CREATE_COMPLETE",
+  "originalTemplateSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892",
+  "a1": {
+    "file": "cell-detach-draft.template.json",
+    "canonicalSha256": "42fc857cbbce881c411ff03997805e2d38635bd498f5d2c6ba695fc884a1e355",
+    "removeLogicalIds": [
+      "BusinessControlDenyRule",
+      "BusinessHttpsListener",
+      "ControlMtlsListener",
+      "CellLoadBalancer"
+    ],
+    "removeOutputs": [
+      "HttpsListenerArn",
+      "ControlListenerArn"
+    ],
+    "preservedResourceCount": 12,
+    "parameters": "UsePreviousValue for all four"
+  },
+  "absentReadback": [
+    {
+      "target": "old-8443",
+      "providerCode": "ListenerNotFound"
+    },
+    {
+      "target": "old-alb",
+      "providerCode": "LoadBalancerNotFound"
+    },
+    {
+      "target": "named-alb",
+      "providerCode": "LoadBalancerNotFound"
+    },
+    {
+      "target": "old-443",
+      "providerCode": "ListenerNotFound"
+    },
+    {
+      "target": "old-deny-rule",
+      "providerCode": "RuleNotFound"
+    }
+  ],
+  "network": {
+    "vpc": "vpc-0136b6ba92a72cbf9",
+    "securityGroups": [
+      "sg-0c6090493d3e41653",
+      "sg-0df75af0d0661492a"
+    ],
+    "subnets": [
+      "subnet-05b781276cc988b93",
+      "subnet-05729abe921410a75"
+    ],
+    "allInSameVpc": true,
+    "availabilityZones": [
+      "ca-central-1a",
+      "ca-central-1b"
+    ],
+    "available": true
+  },
+  "certificate": {
+    "arn": "arn:aws:acm:ca-central-1:402010193138:certificate/6d1f2880-9f83-449c-930a-6b17516ef49d",
+    "status": "ISSUED",
+    "validThrough": "2027-04-26T23:59:59Z"
+  },
+  "trustStore": {
+    "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:truststore/techlong-sandbox-control-v1/aa1771fd0469cc44",
+    "status": "ACTIVE",
+    "caCertificates": 1
+  },
+  "executionRole": {
+    "arn": "arn:aws:iam::402010193138:role/TechlongSandboxFirstAcceptanceCellExecutionRole",
+    "roleId": "AROAV3GNMXTZESNMKM56K",
+    "inline": "FirstAcceptanceCellResourcesV1",
+    "boundary": "TechlongSandboxFirstAcceptanceCellExecutionBoundary",
+    "boundaryDefaultVersion": "v1",
+    "attachedManagedPolicies": 0,
+    "staticAlbCreateDeleteActionsPresent": true,
+    "liveWriteAuthorizationProved": false
+  },
+  "dependencies": {
+    "cellOutputExports": 0,
+    "cellTemplateImports": 0,
+    "pendingChangeSets": 0,
+    "knownTenantStack": "5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+    "tenantDesired": 0,
+    "tenantRunning": 0,
+    "tenantPending": 0,
+    "clusterRunningTasks": 0,
+    "cellCleanupSchedule": "DISABLED",
+    "globalTenantScan": "ENABLED",
+    "cellExpiresAt": "2026-10-15T16:44:56.246Z",
+    "knownTenantHasExpiresAtTag": false
+  },
+  "scope": {
+    "stsCalls": 1,
+    "metadataCalls": 24,
+    "awsWriteCalls": 0,
+    "secretValueReads": 0,
+    "databaseConnections": 0,
+    "changeSetsCreated": 0,
+    "lambdaInvocations": 0,
+    "resourceRestoreCalls": 0,
+    "imageUpdates": 0
+  },
+  "notProved": [
+    "exhaustive-account-consumer-discovery",
+    "all-retained-network-route-properties",
+    "deployed-janitor-code-equivalence",
+    "Source-PassRole-and-SCP-effective-write-authorization",
+    "A1-ChangeSet-exact-removals",
+    "provider-delete-missing-resource-or-rollback-behavior"
+  ],
+  "executionAuthorized": false,
+  "cloudFormationOwnershipRepaired": false,
+  "next": "Separately approve A1 Change Set creation only; never execute from this record.",
+  "recordAssembledAt": "2026-11-06T19:27:57Z"
+}

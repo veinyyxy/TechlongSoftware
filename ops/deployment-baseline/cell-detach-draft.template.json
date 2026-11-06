@@ -1,0 +1,489 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Single-tenant Express compute/network candidate; reuses external Express database; separate exact approval required.",
+  "Metadata": {
+    "CleanupMode": "supervised-reviewed",
+    "CreatesDatabaseResources": false,
+    "CreatesOneShotLifecycleResources": false,
+    "DatabaseProfile": "express_iam",
+    "DeadlineDoesNotInstallAutomaticDeletion": true,
+    "DeliveryTrack": "single-tenant-acceptance",
+    "ExistingExpressBindingSha256": "41c1d3eac63d9277a6f6910cd4db3df29b85086f47ed07bf7c4a2e8a23820231",
+    "F3c9ParentProtocolNotSelected": true
+  },
+  "Outputs": {
+    "CellExpiresAt": {
+      "Value": "2026-10-15T16:44:56.246Z"
+    },
+    "ClusterName": {
+      "Value": {
+        "Ref": "CellCluster"
+      }
+    },
+    "SubnetIds": {
+      "Value": {
+        "Fn::Join": [
+          ",",
+          [
+            {
+              "Ref": "PublicSubnetA"
+            },
+            {
+              "Ref": "PublicSubnetB"
+            }
+          ]
+        ]
+      }
+    },
+    "TaskSecurityGroupId": {
+      "Value": {
+        "Ref": "TaskSecurityGroup"
+      }
+    },
+    "VpcId": {
+      "Value": {
+        "Ref": "CellVpc"
+      }
+    }
+  },
+  "Parameters": {
+    "AvailabilityZoneA": {
+      "AllowedPattern": "^ca-central-1[a-z]$",
+      "Type": "String"
+    },
+    "AvailabilityZoneB": {
+      "AllowedPattern": "^ca-central-1[a-z]$",
+      "Type": "String"
+    },
+    "CertificateArn": {
+      "AllowedPattern": "^arn:aws:acm:ca-central-1:402010193138:certificate/[0-9a-f-]{36}$",
+      "Type": "String"
+    },
+    "ControlTrustStoreArn": {
+      "AllowedPattern": "^arn:aws:elasticloadbalancing:ca-central-1:402010193138:truststore/[a-zA-Z0-9._-]+/[a-z0-9]+$",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "CellCluster": {
+      "Properties": {
+        "CapacityProviders": [
+          "FARGATE",
+          "FARGATE_SPOT"
+        ],
+        "ClusterName": "cell-sandbox-1",
+        "ClusterSettings": [
+          {
+            "Name": "containerInsights",
+            "Value": "disabled"
+          }
+        ],
+        "DefaultCapacityProviderStrategy": [
+          {
+            "Base": 0,
+            "CapacityProvider": "FARGATE_SPOT",
+            "Weight": 1
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "techlong-provisioner"
+          },
+          {
+            "Key": "CellId",
+            "Value": "cell-sandbox-1"
+          },
+          {
+            "Key": "ExpiresAt",
+            "Value": "2026-10-15T16:44:56.246Z"
+          },
+          {
+            "Key": "DeliveryTrack",
+            "Value": "single-tenant-acceptance"
+          },
+          {
+            "Key": "CleanupMode",
+            "Value": "supervised-reviewed"
+          }
+        ]
+      },
+      "Type": "AWS::ECS::Cluster"
+    },
+    "CellGatewayAttachment": {
+      "Properties": {
+        "InternetGatewayId": {
+          "Ref": "CellInternetGateway"
+        },
+        "VpcId": {
+          "Ref": "CellVpc"
+        }
+      },
+      "Type": "AWS::EC2::VPCGatewayAttachment"
+    },
+    "CellInternetGateway": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "techlong-provisioner"
+          },
+          {
+            "Key": "CellId",
+            "Value": "cell-sandbox-1"
+          },
+          {
+            "Key": "ExpiresAt",
+            "Value": "2026-10-15T16:44:56.246Z"
+          },
+          {
+            "Key": "Name",
+            "Value": "techlong-sandbox-cell-sandbox-1-igw"
+          },
+          {
+            "Key": "DeliveryTrack",
+            "Value": "single-tenant-acceptance"
+          },
+          {
+            "Key": "CleanupMode",
+            "Value": "supervised-reviewed"
+          }
+        ]
+      },
+      "Type": "AWS::EC2::InternetGateway"
+    },
+    "CellVpc": {
+      "Properties": {
+        "CidrBlock": "10.88.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "techlong-provisioner"
+          },
+          {
+            "Key": "CellId",
+            "Value": "cell-sandbox-1"
+          },
+          {
+            "Key": "ExpiresAt",
+            "Value": "2026-10-15T16:44:56.246Z"
+          },
+          {
+            "Key": "Name",
+            "Value": "techlong-sandbox-cell-sandbox-1"
+          },
+          {
+            "Key": "DeliveryTrack",
+            "Value": "single-tenant-acceptance"
+          },
+          {
+            "Key": "CleanupMode",
+            "Value": "supervised-reviewed"
+          }
+        ]
+      },
+      "Type": "AWS::EC2::VPC"
+    },
+    "LoadBalancerSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Sandbox Shared Cell ALB HTTPS ingress only",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": 443,
+            "IpProtocol": "tcp",
+            "ToPort": 443
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": 8443,
+            "IpProtocol": "tcp",
+            "ToPort": 8443
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "techlong-provisioner"
+          },
+          {
+            "Key": "CellId",
+            "Value": "cell-sandbox-1"
+          },
+          {
+            "Key": "ExpiresAt",
+            "Value": "2026-10-15T16:44:56.246Z"
+          },
+          {
+            "Key": "Name",
+            "Value": "techlong-sandbox-cell-sandbox-1-alb"
+          },
+          {
+            "Key": "DeliveryTrack",
+            "Value": "single-tenant-acceptance"
+          },
+          {
+            "Key": "CleanupMode",
+            "Value": "supervised-reviewed"
+          }
+        ],
+        "VpcId": {
+          "Ref": "CellVpc"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "PublicDefaultRoute": {
+      "DependsOn": [
+        "CellGatewayAttachment"
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "CellInternetGateway"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      },
+      "Type": "AWS::EC2::Route"
+    },
+    "PublicRouteTable": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "techlong-provisioner"
+          },
+          {
+            "Key": "CellId",
+            "Value": "cell-sandbox-1"
+          },
+          {
+            "Key": "ExpiresAt",
+            "Value": "2026-10-15T16:44:56.246Z"
+          },
+          {
+            "Key": "Name",
+            "Value": "techlong-sandbox-cell-sandbox-1-public"
+          },
+          {
+            "Key": "DeliveryTrack",
+            "Value": "single-tenant-acceptance"
+          },
+          {
+            "Key": "CleanupMode",
+            "Value": "supervised-reviewed"
+          }
+        ],
+        "VpcId": {
+          "Ref": "CellVpc"
+        }
+      },
+      "Type": "AWS::EC2::RouteTable"
+    },
+    "PublicSubnetA": {
+      "Properties": {
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZoneA"
+        },
+        "CidrBlock": "10.88.0.0/24",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "techlong-provisioner"
+          },
+          {
+            "Key": "CellId",
+            "Value": "cell-sandbox-1"
+          },
+          {
+            "Key": "ExpiresAt",
+            "Value": "2026-10-15T16:44:56.246Z"
+          },
+          {
+            "Key": "Name",
+            "Value": "techlong-sandbox-cell-sandbox-1-public-a"
+          },
+          {
+            "Key": "DeliveryTrack",
+            "Value": "single-tenant-acceptance"
+          },
+          {
+            "Key": "CleanupMode",
+            "Value": "supervised-reviewed"
+          }
+        ],
+        "VpcId": {
+          "Ref": "CellVpc"
+        }
+      },
+      "Type": "AWS::EC2::Subnet"
+    },
+    "PublicSubnetB": {
+      "Properties": {
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZoneB"
+        },
+        "CidrBlock": "10.88.1.0/24",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "techlong-provisioner"
+          },
+          {
+            "Key": "CellId",
+            "Value": "cell-sandbox-1"
+          },
+          {
+            "Key": "ExpiresAt",
+            "Value": "2026-10-15T16:44:56.246Z"
+          },
+          {
+            "Key": "Name",
+            "Value": "techlong-sandbox-cell-sandbox-1-public-b"
+          },
+          {
+            "Key": "DeliveryTrack",
+            "Value": "single-tenant-acceptance"
+          },
+          {
+            "Key": "CleanupMode",
+            "Value": "supervised-reviewed"
+          }
+        ],
+        "VpcId": {
+          "Ref": "CellVpc"
+        }
+      },
+      "Type": "AWS::EC2::Subnet"
+    },
+    "PublicSubnetRouteAssociationA": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetA"
+        }
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation"
+    },
+    "PublicSubnetRouteAssociationB": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnetB"
+        }
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation"
+    },
+    "TaskSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Sandbox tenant tasks accept traffic only from the Cell ALB",
+        "SecurityGroupIngress": [
+          {
+            "FromPort": 3000,
+            "IpProtocol": "tcp",
+            "SourceSecurityGroupId": {
+              "Ref": "LoadBalancerSecurityGroup"
+            },
+            "ToPort": 3000
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "ManagedBy",
+            "Value": "techlong-provisioner"
+          },
+          {
+            "Key": "CellId",
+            "Value": "cell-sandbox-1"
+          },
+          {
+            "Key": "ExpiresAt",
+            "Value": "2026-10-15T16:44:56.246Z"
+          },
+          {
+            "Key": "Name",
+            "Value": "techlong-sandbox-cell-sandbox-1-tasks"
+          },
+          {
+            "Key": "DeliveryTrack",
+            "Value": "single-tenant-acceptance"
+          },
+          {
+            "Key": "CleanupMode",
+            "Value": "supervised-reviewed"
+          }
+        ],
+        "VpcId": {
+          "Ref": "CellVpc"
+        }
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    }
+  },
+  "Rules": {
+    "DistinctAvailabilityZones": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Equals": [
+                  {
+                    "Ref": "AvailabilityZoneA"
+                  },
+                  {
+                    "Ref": "AvailabilityZoneB"
+                  }
+                ]
+              }
+            ]
+          },
+          "AssertDescription": "The Shared Cell must use two distinct availability zones."
+        }
+      ]
+    }
+  }
+}

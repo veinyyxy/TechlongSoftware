@@ -2,6 +2,24 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是执行授权，也没有创建 Change Set。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
 
+## 2026-11-06：A 阶段只读前置核对与 A1 候选已完成
+
+用户要求“继续下一步”后，仅完成此范围的只读核验（Source STS 1、资源/权限元数据24次，包括预期 NotFound 回执），AWS 写、Lambda调用、Secret值/数据库读取、Change Set和镜像更新均为0。Cell Original 于19:23:02.749Z（温尼伯14:23:02.749 CST）保存到本轮内存，完整规范JSON摘要与工程基线相同；14:27:57 CST汇总[机器摘要](../ops/deployment-baseline/cell-preflight-20261106.json)，不是新的现场查询时刻，也不是批准SHA或完整原件执行包。
+
+| 核对项 | 本轮观测及边界 |
+| --- | --- |
+| 准确 Cell 栈 | 原UUID/status保持；16项CFN记录；无现存Change Set |
+| 实际旧资源 | 准确名称和旧ALB ARN分别 LoadBalancerNotFound；两个旧监听器均 ListenerNotFound；旧共享拒绝规则 RuleNotFound |
+| 保留的网络依赖 | 两SG、两子网仍归属原Cell VPC，子网available、AZ分别a/b；CFN所有权标签匹配。未遍历其余路由/IGW属性，不称12项全部无漂移 |
+| TLS依赖 | 原证书ISSUED、覆盖sandbox及其子域、2027-04-26到期；原trust store ACTIVE、1张CA证书；未读CA正文或私钥 |
+| 执行角色 | 原RoleId/CFN信任保持；inline为FirstAcceptanceCellResourcesV1，boundary默认v1，未附加其他managed policy；静态Create/Delete/Tag的相应ALB路径存在。不等于证明Source PassRole、SCP或实际CFN调用一定允许 |
+| 现有消费方 | 已知租户准确UUID/两旧参数保持，服务desired/running/pending=0/0/0，Cell集群running task列表为空。Cell Outputs没有Export，模板无ImportValue；不把此有限范围称为全账号消费者穷举 |
+| 清理风险 | Cell的ExpiresAt仍为10月15日历史值；Cell扫描计划DISABLED。全局tenant扫描仍ENABLED，但准确租户当前Tags没有ExpiresAt。未验证部署中Lambda代码与仓库完全同源，未调用/关闭任何清理器 |
+
+[A1候选模板](../ops/deployment-baseline/cell-detach-draft.template.json)由本次Original精确删去四项和两个Outputs派生。规范JSON SHA `42fc857cbbce881c411ff03997805e2d38635bd498f5d2c6ba695fc884a1e355`，不是执行批准SHA。保留十二资源属性、四参数、其他输出/规则/历史标签，不删除网络、不重计旧到期。生成时逐项比较保留资源与原件一致、无悬空旧引用；六项离线回归通过。它是给未来A1审查的完整CFN模板正文，不是声称已从栈移除资源。
+
+**下一唯一动作：另审仅创建、不执行 A1 Change Set。** 执行前仍需核对源/身份、准确栈和并发状态；创建结果必须恰为四个Remove，其余资源无变化，才可另请执行批准。不得直接UpdateStack或同时创建A2。真实CFN删除缺失物理对象、回滚的提供者行为尚未证明；旧到期标签和现有清理状态在后继审查中明确保留或单列差异，不自动续期/关计划。有关创建/删除动作和标签授权的静态映射仅参考[AWS ELB V2授权表](https://docs.aws.amazon.com/service-authorization/latest/reference/list_elbv2.html)，没有做权限模拟或真实写入试探。
+
 ## 起点与取舍
 
 上轮只读回读：Cell 栈 UUID 尾段 `b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1` 为 CREATE_COMPLETE，CFN 的 ALB 和两个监听器物理 ID 属于代 `77888e84c19e8b86`；租户栈 UUID 尾段 `5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13` 的两个监听器参数及三个规则 ID 属于代 `241081ab25c73320`。ELB 按准确名称查询返回 LoadBalancerNotFound。11月6日手工恢复映射也是历史，不拿其中任何 ARN 填新参数。
