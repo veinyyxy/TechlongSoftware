@@ -4,6 +4,8 @@
 
 ## 哪个栈负责什么
 
+**A1 后当前中间态：** 2026-11-06 已[单次执行并独立核验](aws-cell-listener-ownership-repair.md#最新结果a1-已执行并独立核验2026-11-06)，共享 Cell 实际 Original 暂为12项，没有 ALB/两个监听器/共享拒绝规则或两个监听器输出；十二项保留物理ID未变。下表16项和机器基线保留为完整目标/修复前对照，不能拿它们冒称当前实况。A2尚未准备或执行，镜像更新仍不得开始。
+
 | 栈（现有名称） | 声明归属 | 不归它管理 |
 | --- | --- | --- |
 | 平台 `techlong-sandbox-platform-hosting-v1`，11 项 | 平台 Cluster、TaskDefinition、Service、LogGroup；ALB、443 Listener、目标组、两个安全组、TaskIngress、console 域名 A Alias | 所用 VPC/子网、证书、Web 数据库与执行角色。平台执行角色/boundary 在独立 access 栈；不属于平台版本更新 |

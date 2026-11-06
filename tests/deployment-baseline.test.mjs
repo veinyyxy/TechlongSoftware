@@ -6,6 +6,7 @@ import detach from '../ops/deployment-baseline/cell-detach-draft.template.json' 
 import capture from '../ops/deployment-baseline/cell-preflight-20261106.json' with { type: 'json' };
 import execution from '../ops/deployment-baseline/cell-a1-execution-review.json' with { type: 'json' };
 import created from '../ops/deployment-baseline/cell-a1-created-20261106.json' with { type: 'json' };
+import executed from '../ops/deployment-baseline/cell-a1-executed-20261106.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -71,4 +72,26 @@ test('execution review binds the existing A1, explicitly disables rollback and g
   assert.deepEqual([...execution.expected.removeLogicalIds].sort(),created.changes.map(x=>x.logicalId).sort());
   assert.equal(Date.parse(execution.startBefore)-Date.parse(execution.dependencyFactsAt),5*3600000);
   assert.match(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Winnipeg',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(execution.startBefore)),/^18:23$/);
+});
+
+test('A1 observed result is one execution and twelve retained owners, not A2 or restored ownership',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  assert.equal(executed.approvedManifestSha256,createHash('sha256').update(JSON.stringify(canonical(execution))).digest('hex'));
+  assert.equal(executed.stackId,created.stackId);assert.equal(executed.changeSetId,created.changeSetId);
+  assert.equal(executed.stage,'A1');assert.equal(executed.status,'A1_DETACHED_INDEPENDENTLY_VERIFIED');
+  assert.equal(executed.stackStatus,'UPDATE_COMPLETE');assert.equal(executed.changeSetExecutionStatus,'EXECUTE_COMPLETE');
+  assert.equal(executed.disableRollback,true);assert.equal(executed.counts.total.executeChangeSet,1);
+  assert.equal(executed.counts.otherDirectAwsWrites,0);assert.equal(executed.automaticWriteRetry,false);
+  assert.equal(executed.automaticRollback,false);assert.equal(executed.a2Authorized,false);
+  assert.equal(executed.cloudFormationOwnershipRepaired,false);assert.equal(executed.albAbsentCode,'LoadBalancerNotFound');
+  assert.equal(executed.appliedTemplateSha256,capture.a1.canonicalSha256);
+  assert.deepEqual(executed.removedLogicalIds,[...execution.expected.removeLogicalIds].sort());
+  assert.deepEqual(executed.removedOutputKeys,[...capture.a1.removeOutputs].sort());
+  assert.deepEqual(executed.retainedOutputKeys,Object.keys(detach.Outputs).sort());
+  assert.equal(executed.retainedPhysicalIds.length,12);
+  assert.equal(new Set(executed.retainedPhysicalIds.map(x=>x.logicalId)).size,12);
+  assert.deepEqual(Object.fromEntries(executed.retainedPhysicalIds.map(x=>[x.logicalId,x.type])),Object.fromEntries(Object.entries(detach.Resources).map(([id,v])=>[id,v.Type])));
+  for(const key of ['retainedPhysicalIdsUnchanged','retainedOutputsUnchanged','tagsUnchanged','executionRoleUnchanged'])assert.equal(executed[key],true,key);
+  assert.ok(Date.parse(executed.submissionIntentAt)<Date.parse(execution.startBefore));
+  assert.ok(Date.parse(executed.independentlyVerifiedAt)>Date.parse(executed.updateCompleteObservedAt));
 });

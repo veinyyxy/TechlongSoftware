@@ -1,6 +1,21 @@
-# Cell 与租户监听器归属修复方案（离线草案，不可执行）
+# Cell 与租户监听器归属修复方案及执行记录
 
-目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是执行授权，也没有创建 Change Set。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
+目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；下方原“待审/未执行”只保留各阶段事实，最新结果如下。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
+
+## 最新结果：A1 已执行并独立核验（2026-11-06）
+
+用户确认清单 `87a80dc7abd91501820ac1d48333613dc283429f40bbba4e0e8a974b7e5b3ed9` 及失败策略后，仅一次执行原 A1 `2e95d3a1-8cdf-4948-a779-eff36394f627`，显式 `DisableRollback=true`。20:07:51.856Z 收到 ACK，20:08:04.483Z 观察到 Cell `UPDATE_COMPLETE`；另一进程于20:09:32.860Z（温尼伯14:09:32.860 CST）完成独立只读核验，结果 `A1_DETACHED_INDEPENDENTLY_VERIFIED`。执行源码为 `23aca56673631a75e5d242f85afc26391522f176`；此后的结果文档提交不冒充执行源码。
+
+- 实际 Original 等于 A1 十二资源模板，规范 SHA `42fc857cbbce881c411ff03997805e2d38635bd498f5d2c6ba695fc884a1e355`；四项失效声明不再是活动归属，Change Set 为 `EXECUTE_COMPLETE`。
+- 十二项保留资源的逻辑 ID、类型及物理 ID 与执行前一致；`HttpsListenerArn`、`ControlListenerArn` 两输出移除，其余五输出、标签及执行角色保持。该比较不等于完整资源属性漂移扫描。
+- 准确名称 ALB 仍返回 `LoadBalancerNotFound`。没有重建 ALB、启动数据库/ECS、改 IAM/DNS/镜像或清理器；没有失败重发、主动回滚或清理。A1 只解除旧声明，**没有完成 Cell/租户归属恢复**，也不证明全账号停止计费。
+- 代理直接调用合计 STS2、元数据19、ExecuteChangeSet1、其他 AWS 写0（writer 1/13/1，独立 1/6/0）；不把 CFN 提供者内部调用算进代理次数。执行槽已永久消费，不重放。
+
+[公开结果摘要](../ops/deployment-baseline/cell-a1-executed-20261106.json)含准确栈/变更集、十二项物理 ID 和证据摘要。私有原件在 `.local-secrets/cell-a1-execute-87a80dc7`，独立 snapshot 规范 SHA `3e29d8e89d2d4ccad76a65c224e4e95b2aa685ff7e051f877fa63ce081ceba85`，不提交原始 API 响应。
+
+收尾已在本地将公开摘要与已存独立原件逐项对齐（包括四参数/标签/角色），8项基线回归及定向零警告 lint 通过；这些测试只验证材料一致性，不替代上述真实云端独立核验，也不声称新文档提交已通过远程 CI。
+
+**下一唯一继续点：仅离线准备 A2 四项 Add 候选和审批材料。** 复用 A1 前的原四项属性/依赖/输出，不填历史物理 ARN；实际新鲜读取、创建/执行 A2 及恢复收费 ALB 仍另审。本轮在 A1 收尾，不进入 A2，不更新租户参数/三规则、API DNS 或镜像。
 
 ## 2026-11-06：A 阶段只读前置核对与 A1 候选已完成
 
@@ -22,7 +37,7 @@
 
 ## 起点与取舍
 
-### 本次执行审批：失败保留现场，不进入A2（待用户确认）
+### 批准前执行审批记录：失败保留现场，不进入A2（现已执行，见顶部）
 
 本次只准备审批，实际ExecuteChangeSet仍为0。19:55:02.640Z新一轮STS1/元数据5确认同一A1仍CREATE_COMPLETE/AVAILABLE，原栈/角色未变、它是唯一变更集、四项Remove及模板SHA保持，同名ALB仍不存在。未追加完整25项预检或查询业务数据。
 
@@ -52,7 +67,7 @@ AWS 创建时刻19:47:24.347Z（温尼伯13:47:24.347 CST），独立只读回�
 
 实际次数：STS1、writer元数据读取7、独立读取2、CreateChangeSet1、ExecuteChangeSet0、DeleteChangeSet0。提交前核对了准确栈/角色、Original摘要、空变更集列表和同名ALB仍缺失；没有重跑前轮24项预检。私有请求/ACK/变更明细保存在工程内Git忽略目录 `.local-secrets/techlong-cell-a1-detach-20261106t194714`，不提交原请求或凭据。
 
-**当前下一步只等待对此准确Change Set执行的单独批准。** 此记录不是执行许可；不再创建另一份A1，不创建A2、不恢复ALB/数据库/ECS、不改IAM、DNS、标签或镜像。执行前核验它仍AVAILABLE、准确栈和现状未变，并在新执行范围中明确失败/回滚策略；本次创建批准不授权失败回滚重建收费资源、自动重试或清理。A1尚未执行，所以归属尚未解除、更没有修复完成。
+**创建阶段当时仅等待对此准确Change Set执行的单独批准，已由顶部执行结果替代。** 此创建记录不是额外执行许可；不再创建另一份A1，不创建A2、不恢复ALB/数据库/ECS、不改IAM、DNS、标签或镜像。当时要求执行前核验它仍AVAILABLE、准确栈和现状未变，并在新执行范围中明确失败/回滚策略；创建批准本身不授权失败回滚重建收费资源、自动重试或清理。原“尚未执行”只描述创建阶段，不描述当前结果。
 
 上轮只读回读：Cell 栈 UUID 尾段 `b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1` 为 CREATE_COMPLETE，CFN 的 ALB 和两个监听器物理 ID 属于代 `77888e84c19e8b86`；租户栈 UUID 尾段 `5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13` 的两个监听器参数及三个规则 ID 属于代 `241081ab25c73320`。ELB 按准确名称查询返回 LoadBalancerNotFound。11月6日手工恢复映射也是历史，不拿其中任何 ARN 填新参数。
 
