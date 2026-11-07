@@ -2,13 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：文档已收尾，等待 B 失败事件读取批准（2026-11-07）
+## 当前唯一继续点：B 查因已完成，后继仅离线准备最小恢复提案（2026-11-07）
 
-三份状态文档修正及本地验证已完成，仅正常提交/推送；本轮未调用AWS/数据库，未改模板、审批清单、证据、时限或永久槽，没有新云操作批准。唯一状态入口为[部署基线顶部](aws-deployment-baseline.md#current-state)，执行准则仍以手册为准；本页下方全部为折叠历史，旧“当前/唯一动作/下一步”不再作为执行指令。
+用户另允的单次查因已完成：STS1＋DescribeEvents1、无翻页/重试/云写/秘密读取/数据库连接，ResourceProperties未保存或显示。原审批、执行证据、时限和永久槽保持，不含实际修复授权。唯一状态入口为[部署基线顶部](aws-deployment-baseline.md#current-state)，执行准则仍以手册为准；下方旧“当前/唯一动作/下一步”全部为折叠历史。
 
-已存结果：Cell的A2四项归属已恢复；IAM最小修正已另批安装为v10。租户B按109627ce…已单次执行但UPDATE_FAILED/EXECUTE_FAILED：两监听器参数已新代，三规则CFN物理引用仍旧代且有资源级恢复，没有新规则验收；独立检查时服务0/0/0、任务定义:12、四保留ID及v10保持。参数对齐不等于修复完成，失败原因尚未取得；原执行槽已消费，不重试或重放。
+已存结果：Cell的A2四项归属已恢复；IAM最小修正已另批安装为v10。租户B按109627ce…已单次执行但UPDATE_FAILED/EXECUTE_FAILED：两参数新代、三规则物理引用仍旧代，没有新规则验收；独立检查时服务0/0/0、任务定义:12、四保留ID/v10保持。上述现状本次未重读，参数对齐不等于修复完成，原执行不重试或重放。
 
-**文档收尾后的唯一待批动作：** [固定失败事件读取](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)，限STS1＋准确OperationId的DescribeEvents1、FailedEvents=true、一页原因投影；ResourceProperties可能进入CLI内存但不输出/落盘。该读取未获批准、未执行，不能用剩余预算扩API。查明原因后另审最小恢复，不先改IAM/模板/DNS/镜像，不直接启停ECS/RDS或新建/执行Change Set，不扩UI、探针、F3c9或恢复框架。ALB可能持续收费，无新增自动停止，本次未刷新云端事实。
+**已取得直接原因：** [4条失败事件](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)中三规则均报禁用回滚不支持替换型更新；原 Replacement=True/DisableRollback=true 组合有误。本次只报告和记录，不实施恢复；后继仅离线准备 UPDATE_FAILED 的最小合法恢复及回滚影响，实际新读取/修复仍另批。不新增 IAM、重放执行、回滚/清理或直接启停ECS/RDS，不扩UI、探针、F3c9或恢复框架。DNS/镜像仍不动，ALB可能持续收费，无新增自动停止。
 
 初版基线为离线范围，A1/A2、IAM和B是后来分别批准的修复扩展，不由历史记录或本页自动授权。用户已测买家/卖家场景不再代测；归属、绑定和单列DNS核验未完成前，不进入镜像更新。
 

@@ -8,18 +8,18 @@
 
 ## 当前状态与唯一继续点
 
-**文档整理与本地验证已完成，当前只等待 B 失败事件读取批准；尚未批准新的 AWS 读取或写入。** 本次只修正文档并正常提交/推送。下列状态来自已保存的独立回读，没有刷新云端事实或延长任何期限。
+**B 失败事件已按用户限定许可读取，直接失败原因已确认；没有修复授权或实际修复。** 本轮仅 STS1＋DescribeEvents1、无翻页/重试/云写，结果见[只读查因回执](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)。下列资源状态仍来自此前独立回读，本次事件查询没有刷新资源现状或延长任何期限。
 
 | 对象 | 最新已存事实与边界 |
 | --- | --- |
 | Cell | [A2 结果](../ops/deployment-baseline/cell-a2-executed-20261107.json)于 2026-11-07T04:55:14.610Z 独立确认 UPDATE_COMPLETE/16 项，原十二物理 ID 保持，新 ALB、443/8443 监听器及共享拒绝规则由同一 Cell 管理；不等于平台和租户全部无漂移 |
-| 租户 B | [执行后独立检查](../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json)于 2026-11-07T14:09:45.640Z 确认为 UPDATE_FAILED / EXECUTE_FAILED；两监听器参数已变为 729e 代，但三规则 CFN 物理引用仍为旧代，状态为 UPDATE_ROLLBACK_COMPLETE；尚未验收到新租户规则，目标组未关联 ALB，初始失败原因未取得 |
+| 租户 B | [执行后独立检查](../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json)于 2026-11-07T14:09:45.640Z 确认为 UPDATE_FAILED / EXECUTE_FAILED；两监听器参数已变为 729e 代，但三规则 CFN 物理引用仍为旧代，状态为 UPDATE_ROLLBACK_COMPLETE；尚未验收到新租户规则，目标组未关联 ALB。该次检查没有包含初始原因，后续事件查询才取得，原回执不改写 |
 | 保留资源与权限 | B 独立检查时 Service/TaskDefinition/TargetGroup/LogGroup 四物理 ID 保持，服务 desired/running/pending 为 0/0/0、任务定义 :12，IAM 默认 v10 匹配；未查询瞬时任务历史，不能承诺整个操作期间从未启动任务 |
 | 已消费批准 | B 执行 SHA `109627ceccdbe813ebbbf2b80c176c9a1e60ed16dfc75cb1f740a04af2dd69c9` 已单次执行，STS2/元数据36/Execute1、其他直接写0；即使原时限未到也不能重放。观察到了提供者资源级恢复，没有代理主动回滚、重试或清理 |
 
-**文档收尾后的唯一待批动作：** 按[固定失败事件读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)，仅 STS1 + `DescribeEvents`1，绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，一页且只投影失败原因元数据。草案尚未获准、尚未执行；AWS CLI 可能在内存接收 ResourceProperties，但不得保存或输出该字段，实际读取须用户明确确认该范围。
+**已确认的直接原因：** 2026-11-07T14:53:08.255Z 完成的一页事件查询绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，返回根栈及三条规则共4条失败事件，无下一页。三规则均报 `Replacement type updates not supported on stack with disable-rollback.`。原执行清单把三项替换与 `DisableRollback=true` 组合，这是本次执行策略的不兼容，不是新的 IAM 缺口证明；也不能据此保证未来恢复必然成功。ResourceProperties 只可能进入 CLI 内存，未保存/输出；原[读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)保持准备时原文，不用于重复读取。
 
-读取原因前不推断根因；读取后也只按真实原因另审最小恢复。原执行许可及其剩余读取预算不含新增事件 API，不得重用为新读取授权。当前不创建/执行新 Change Set、不改 IAM/模板/DNS/镜像、不直接启停 ECS/RDS、不调用临时启停工具，不扩 UI、探针、F3c9、恢复框架或新固定任务分支。Cell ALB 可能仍持续收费，没有新增自动停止；本次未核对现时健康或费用。
+**唯一后继方向：** 用户继续时，仅离线准备这次失败的最小恢复提案，评估 UPDATE_FAILED 下的合法恢复路径及正常回滚影响；本次止于查因和记录，不提前改修复代码或生成新执行清单。新资源现状读取与实际恢复仍另审，不重放已消费执行，也不把“取消 DisableRollback 后再跑”视为已批准或已验证方案。当前不创建/执行新 Change Set、不改 IAM/模板/DNS/镜像、不直接启停 ECS/RDS、不调用临时启停工具，不扩 UI、探针、F3c9、恢复框架或新固定任务分支。Cell ALB 可能仍持续收费，没有新增自动停止；本次未核对现时健康或费用。
 
 ## 哪个栈负责什么
 
@@ -82,6 +82,7 @@ node scripts/check-deployment-baseline.mjs platform.json cell.json tenant.json b
 | B 预检 → IAM 修正 | [05:22Z 预检](../ops/deployment-baseline/tenant-b-preflight-20261107.json)、[v10 安装](../ops/deployment-baseline/tenant-b-iam-installed-20261107.json)；当时三旧规则缺失、参数仍旧代；IAM 修正已另批完成，不再待批 |
 | B 仅创建 | [95855d02… 创建结果](../ops/deployment-baseline/tenant-b-created-20261107.json)，当时为 AVAILABLE/三规则替换，无 Service 等变化；不是现在仍可执行的证明 |
 | 旧 B 执行清单过期 → 新只读刷新 | [过期停止](../ops/deployment-baseline/tenant-b-execution-expired-20261107.json)、[另批刷新](../ops/deployment-baseline/tenant-b-execution-refresh-20261107.json)；旧清单未执行，原事实/期限未改写，随后另批新 SHA |
-| B 单次执行 → 独立检查 | [失败/部分状态结果](../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json)；执行槽已消费、未验收，唯一待批动作见顶部 |
+| B 单次执行 → 独立检查 | [失败/部分状态结果](../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json)；执行槽已消费、未验收，不重放 |
+| B 单次失败事件读取 | [用户另允的查因结果](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)，STS1＋DescribeEvents1，确认禁用回滚与替换型更新不兼容；无写入/实际修复，唯一后继方向见顶部 |
 
 完整分阶段审批、原 SHA/期限与失败记录继续保留在[修复沿革](aws-cell-listener-ownership-repair.md)、执行手册/主线的折叠历史及 Git 历史中；本次未修改任何机器清单、模板、执行回执、私有原件或永久槽。历史中的“下一步/待批准/尚未执行”只适用于当时，不覆盖顶部状态，也不能作为重放入口。
