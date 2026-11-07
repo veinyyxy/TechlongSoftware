@@ -44,6 +44,7 @@ import bPostRollbackExecute from '../ops/deployment-baseline/tenant-b-post-rollb
 import bPostRollbackExecuted from '../ops/deployment-baseline/tenant-b-post-rollback-executed-20261107.json' with { type: 'json' };
 import apiAliasRead from '../ops/deployment-baseline/tenant-api-alias-preflight-20261107.json' with { type: 'json' };
 import apiAliasUpdate from '../ops/deployment-baseline/tenant-api-alias-update-review-20261107.json' with { type: 'json' };
+import apiAliasUpdated from '../ops/deployment-baseline/tenant-api-alias-updated-20261107.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -1015,4 +1016,25 @@ test('API Alias update review changes only exact DNSName once and preserves reco
   assert.equal(a.failurePolicy.preflightIsNotCompareAndSwap,true);
   for(const key of ['updateAuthorized','environmentStartAuthorized','publicAcceptanceAuthorized'])assert.equal(a[key],false,key);
   assert.equal(a.preparation.additionalAwsCallsToPrepareReview,0);assert.equal(a.preparation.awsWrites,0);
+});
+
+test('actual single Alias update is INSYNC and independently matched, closing only the bound Cell/tenant/DNS reference chain',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  const r=apiAliasUpdated,a=apiAliasUpdate;
+  assert.equal(r.approvedManifestCanonicalSha256,sha(a));assert.equal(r.userExplicitUpdateConfirmationRecorded,true);
+  assert.equal(r.status,'DNS_ALIAS_UPDATED_INDEPENDENTLY_VERIFIED');assert.equal(r.changeStatus,'INSYNC');assert.match(r.changeId,/^\/change\/[A-Z0-9]+$/);
+  assert.equal(r.zoneId,a.target.zoneId);assert.equal(r.zoneName,a.target.zoneName);assert.equal(r.name,a.target.name);assert.equal(r.type,'A');
+  assert.deepEqual(r.beforeRecord,a.currentRecord);assert.deepEqual(r.afterRecord,a.desiredRecord);assert.equal(r.afterRecordCanonicalSha256,sha(r.afterRecord));
+  assert.deepEqual(r.onlyChangedRecordFields,['AliasTarget.DNSName']);assert.equal(r.afterRecord.AliasTarget.EvaluateTargetHealth,r.beforeRecord.AliasTarget.EvaluateTargetHealth);
+  assert.equal(r.afterRecord.AliasTarget.DNSName,r.currentAlb.dnsName+'.');assert.equal(r.afterRecord.AliasTarget.HostedZoneId,r.currentAlb.canonicalHostedZoneId);
+  assert.deepEqual([r.currentAlb.arn],bPostRollbackExecuted.targetGroupLoadBalancerArns);assert.equal(r.ruleBindingReceiptCanonicalSha256,sha(bPostRollbackExecuted));
+  assert.equal(r.ruleBindingsVerifiedAt,bPostRollbackExecuted.independentlyVerifiedAt);assert.ok(Date.parse(r.independentlyVerifiedAt)>Date.parse(r.ruleBindingsVerifiedAt));
+  assert.deepEqual(r.counts.aggregate,{sts:2,metadata:11,changeResourceRecordSets:1});for(const key of ['sts','metadata','changeResourceRecordSets'])assert.equal(r.counts.aggregate[key],r.counts.writer[key]+r.counts.independent[key]);
+  assert.equal(r.executionSlotsConsumed,1);assert.equal(r.updateApprovalConsumed,true);assert.equal(r.counts.otherDirectAwsWrites,0);
+  assert.equal(r.exactAliasMatchesCurrentCellAlb,true);assert.equal(r.cellTenantApiReferenceConvergenceRecorded,true);assert.equal(r.combinedObservationsAreNotAtomic,true);
+  assert.equal(r.lastServiceObservation.observedAt,bPostRollbackExecuted.independentlyVerifiedAt);assert.deepEqual(r.lastServiceObservation.service,bPostRollbackExecuted.service);
+  for(const key of ['repeatUpdateAuthorized','automaticRetry','automaticRollbackOrOldRecordRestore','automaticCleanup','environmentStartedByThisRun','serviceStateReadThisPhase','publicResolutionOrApiHealthVerified','platformResourcesReadOrChanged','temporaryToolModified','imageUpdated','wholeSystemAccepted','formalThreeStackBaselineComplete','fullResourceDriftFreedomProved'])assert.equal(r[key],false,key);
+  for(const key of ['secretValueReads','privateKeyReads','configSecretFileReads','databaseConnections','publicDnsOrHttpCalls'])assert.equal(r[key],0,key);
+  assert.equal(r.noResourceExpiryOrLeaseChange,true);assert.deepEqual(r.differences,[]);
 });

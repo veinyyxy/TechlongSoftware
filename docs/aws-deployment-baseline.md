@@ -8,20 +8,20 @@
 
 ## 当前状态与唯一继续点
 
-**三规则已对齐；API Alias最新只读确认不一致，等待单条DNS审批。** 用户明确“允许下一步”后，[API Alias限定只读](../ops/deployment-baseline/tenant-api-alias-preflight-20261107.json)于21:22:05.127Z–21:22:09.660Z完成，实际STS1/元数据3、AWS写/秘密/配置/数据库/执行槽均0。固定公开zone与准确ALB身份匹配，但准确API A Alias仍指旧1584188584，当前Cell ALB真实DNS为1581133878，尚不对齐。没有自动修改DNS、启动环境或测试公网服务。
+**本轮Cell—租户—API Alias引用链已对齐并收口。** 用户明确确认0e2ad8ca…清单后，仅提交一次准确API A Alias UPSERT，并于21:37:50.709Z由另一进程独立核验通过。[实际结果](../ops/deployment-baseline/tenant-api-alias-updated-20261107.json)：变更/change/C006498723VT6A7LZFY4W为INSYNC，准确Alias指向当前729e Cell ALB，差异0。实际STS2/元数据11/DNS写1（写前3＋状态4＋独立4），其他直接写0；更新槽1/批准已消费，不重放。
 
 | 对象 | 最新已存事实与边界 |
 | --- | --- |
-| Cell与租户三规则 | 21:09已独立验证UPDATE_COMPLETE/EXECUTE_COMPLETE、DisableRollback=false、三个729e新规则及条件/动作/优先级正确；Original/四保留ID/18参数元数据/角色/标签/输出与验收时服务0/:12保持，5ab…批准已消费 |
-| API A Alias | 本次21:22准确读回仍指旧1584188584；真实当前ALB DNS为1581133878，zone为sandbox.techlong.cloud.，简单A Alias的EvaluateTargetHealth=false，未写DNS |
-| 运行/证明边界 | 本次只有DNS/ALB元数据读取，未重新查服务、启动环境、测试公网解析或API健康；ALB可能收费，未新增自动停止 |
-| 平台 | 历史手动漂移修复仍单列，本轮不读取/修改，不能因租户规则通过而声称三个栈全部已无漂移 |
+| Cell与租户三规则 | 21:09独立验收UPDATE_COMPLETE/EXECUTE_COMPLETE、DisableRollback=false、三个729e新规则归属/条件/动作/优先级正确，四保留ID/18参数元数据/角色/标签/输出及当时服务0/:12保持 |
+| API A Alias | 21:37独立读回已指向当前1581133878，准确change ID为INSYNC；只改目标DNSName，其他字段保持，0e2…批准已消费 |
+| 服务与证明边界 | DNS阶段未查或启动服务；最后服务观察为21:09的0/0/0/:12。没有公网解析/缓存、API健康或产品测试证明，ALB仍可能收费，未新增自动停止 |
+| 平台及停用漂移 | 平台11项历史手动恢复引用未作本轮核验；Service声明1/实况0仍登记，临时工具改造另待用户指示，不能称三个栈全部无漂移 |
 
-已直接备好[单条DNS更新清单](../ops/deployment-baseline/tenant-api-alias-update-review-20261107.json)，SHA 0e2ad8ca928f7cc99086dbedca0d149a0fb516eab15b05d41d5364aa5a1f2dbd：仅一次ChangeResourceRecordSets、一个准确A Alias UPSERT，只改AliasTarget.DNSName；名称/类型/目标zone/EvaluateTargetHealth=false保持。未来批准直接调用最多STS2/元数据17（写前3＋准确change ID状态最多10＋独立4）/DNS写1，其他写0；不启动服务或修改其他域名/栈/IAM/镜像/临时工具。
+只改AliasTarget.DNSName为当前1581133878，名称/类型/所属zone/目标zone/EvaluateTargetHealth=false保持。三规则归属在21:09已独立验收，本次DNS又独立匹配，组成特定Cell—租户—API Alias引用链的收口证据，不是同一时刻原子快照。最后服务观察仍为21:09的0/0/0/:12，本阶段没有重查或启动服务；INSYNC不证明公网缓存、API健康或产品验收。ALB实际active、可能持续收费，没有新增自动停机或续租。
 
-**当前唯一后继：等待上述SHA及单条DNS风险确认，不提前写入。** [范围与风险](aws-cell-listener-ownership-repair.md#tenant-api-alias-update-review)。写前比对准确旧记录摘要，非CAS/并发覆盖、凭据/网络日志、提交不明/传播和缓存风险保留，失败不重试/恢复旧值/清理。有效至温尼伯11月7日20:09:03.139 CST，最晚19:54:03.139启动；这是新DNS事实与21:09真实规则证明五小时的较早期限，不延长已消费CFN批准或20:37其他依赖事实，不是资源到期。
+**本轮收口完成，停止新增云调用或修复。** 不重复三规则/DNS、不自动启动环境、升级镜像、改临时工具或重做业务测试。若用户继续完成整套三栈正式基线，唯一剩余未核验管理范围是平台11项既有资源及历史手动恢复引用：先离线收敛必要只读范围，再单独批准读取；未知差异不自动变成修复/新建授权，不在本轮提前实施。
 
-三规则在21:09已按5ab…独立验收通过，四保留ID与验收时服务0/:12保持，本次不重新查询或改变。53项本地检查及定向lint通过；当前仅DNS不一致，未证明公网解析/健康或整套正式基线完成。ALB可能持续收费，无新增停机/续租；平台漂移修复单列，用户业务测试不重做。
+54项本地检查及定向lint通过。实际平台归属未在本轮核验，Service模板声明1/实况0仍是已登记测试停用差异，临时启停工具CFN统一编排原则留待未来；不能宣称三个栈全部无漂移、正式环境已运行或任意租户已通用验收。旧清单/SHA/事实时间/私有原件保持，不延长或重放已消费批准，也不用剩余预算扩查平台。
 
 **已确认的直接原因：** 2026-11-07T14:53:08.255Z 完成的一页事件查询绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，返回根栈及三条规则共4条失败事件，无下一页。三规则均报 `Replacement type updates not supported on stack with disable-rollback.`。原执行清单把三项替换与 `DisableRollback=true` 组合，这是本次执行策略的不兼容，不是新的 IAM 缺口证明；也不能据此保证未来恢复必然成功。ResourceProperties 只可能进入 CLI 内存，未保存/输出；原[读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)保持准备时原文，不用于重复读取。
 
@@ -46,7 +46,7 @@ Cell 六个输出按同名参数传给租户，并非租户栈自己查找资源
 | HttpsListenerArn / 443 | 77888e84c19e8b86 / 469c2b642a33bfc1 | 241081ab25c73320 / 8fce768af0ff42f7 | 706bcbbc89b8a673 / 9f91841ec135459f | 729e0854244ceff6 / 31e6577b666f0de1 |
 | ControlListenerArn / 8443 | 77888e84c19e8b86 / bc69b195b69bc2d9 | 241081ab25c73320 / 576403dc1245139b | 706bcbbc89b8a673 / ae460cdac1f0e971 | 729e0854244ceff6 / 864f7b1cd42d3f8d |
 
-上表的 A2 输出不是租户已接通的证明。A2 执行前 04:51:53.585Z 的租户参数仍为 241081 代；后来 B 执行虽已把两参数保存为 729e 代，三规则 CFN 物理引用仍旧代。**参数、CFN 记录和实际规则实体必须分开核验**，不得把创建时的 AVAILABLE 或参数对齐当修复成功。API Alias 在已存 B 预检中仍指向旧 ALB，本次修复没有写 DNS，现时解析未重查。
+上表的 A2 输出本身不是租户已接通的证明。A2 执行前 04:51:53.585Z 的租户参数仍为 241081 代；原 B 失败执行虽曾把两参数保存为 729e 代，三规则 CFN 物理引用当时仍旧代。之后回滚并另批执行的新 B，已于21:09独立核验三规则实体与归属；API Alias 又于21:37另批更新并独立核验，最新结果见顶部。**参数、CFN 记录和实际规则实体必须分开核验**，不得把创建时的 AVAILABLE 或参数对齐当修复成功；本轮未查询公网解析或API健康。
 
 平台也经历 ALB `92d54a44479fbc3a → a33cd1f8bed33cba`，443 监听器 `0234243da966933a → 253cde394d05f108`；两条 Alias 曾被直接切到重建后的 ALB。重建监听规则会产生新物理 ID，Cell 自有拒绝规则与租户三规则须分别对应到各自栈。**同名、同标签、DNS 曾经工作均不能证明 CFN 已接管。**
 

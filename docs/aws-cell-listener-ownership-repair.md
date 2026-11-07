@@ -2,6 +2,30 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；唯一状态与后继方向以[三栈基线顶部](aws-deployment-baseline.md#current-state)为准，下方阶段文字只供追溯。**
 
+<a id="tenant-api-alias-updated"></a>
+
+## 当前结果：API Alias已独立验收，本轮引用链修复收口
+
+用户明确确认0e2ad8ca…清单后，已于2026-11-07T21:36:10.180Z记录唯一DNS写入意图，21:36:11.676Z收到ChangeResourceRecordSets ACK；四次准确change ID状态查询后为INSYNC。另一进程于**21:37:50.709Z**独立验收通过，**DNS_ALIAS_UPDATED_INDEPENDENTLY_VERIFIED、差异0**。[实际结果与原件指纹](../ops/deployment-baseline/tenant-api-alias-updated-20261107.json)。
+
+- 准确变更ID为/change/C006498723VT6A7LZFY4W；first-acceptance.sandbox.techlong.cloud.的简单A Alias已指向当前Cell ALB的1581133878 DNS，目标zone ZQSVJUPU6J1EY匹配。只改AliasTarget.DNSName，名称/类型/所属公开zone/EvaluateTargetHealth=false保持，未改其他记录。
+- 实际**STS2/元数据11/DNS写1**：写前3＋准确状态查询4＋独立4；其他直接AWS写0。更新槽1/批准已消费，不能重放或用剩余预算扩查，没有自动重试/恢复旧值/清理。
+- 独立读回包含同一ALB的真实ARN/VPC/active/DNS/CanonicalHostedZoneId、准确公开zone、准确记录和同一change ID的INSYNC状态。与21:09三规则独立验收原件组合，记录本轮**Cell—租户—API A Alias引用链已对齐**；不是跨服务同一时刻原子证明。
+- 本阶段没有CFN/IAM/ELB/ECS/RDS写、服务启停、镜像/临时工具修改、Secret值/PEM/.env/数据库连接、公网DNS/HTTP/JS或业务测试。最后服务观察仍为21:09的0/0/0/:12，不重新起算其时间；INSYNC不证明客户端缓存、API健康或系统已启动。ALB实际active、仍可能收费，没有新增到期/停机或50USD硬上限。
+
+54项本地基线检查及定向lint通过。旧0e2…/5ab…/ae62…及旧失败/回滚清单、事实期限和私有配方均保留，已消费批准不重放。本轮三规则及API Alias修复完成，不再生成额外变更集、探针、镜像发布或重复测试。
+
+### 收口边界及后继方向
+
+这不是“整套三个栈全部无漂移”的结论：平台11项资源仍有历史手动恢复引用待单列核验；Service模板声明1/实况0是已登记测试停用差异，临时工具统一CFN编排原则留待用户以后要求修改时实施。本轮没有新平台读取或修复授权。
+
+当前停止在交付结果。若用户继续完成整套正式资源管理基线，后继仅离线准备平台既有归属的必要只读范围，再单独批准读取；查到差异后另审最小处理，不自动新建平台/启动收费环境/改IAM或扩框架。不得因本轮引用链通过而宣称任意租户通用验收或恢复旧特权窗口。
+
+<details>
+<summary>已完成DNS审批、三规则验收与历史阶段（保留追溯，不重放）</summary>
+
+下方旧“当前/待确认/下一步”、旧SHA及期限只适用于当时；实际已消费批准不能重复使用，不覆盖顶部，不构成新云读取或写入许可。
+
 <a id="tenant-api-alias-update-review"></a>
 
 ## 当前结果：API Alias仍指旧ALB，等待单条DNS更新批准
@@ -31,9 +55,6 @@
 **时间按新DNS阶段的相关事实约束：** DNS实际采样21:22:05.127Z的五小时至2026-11-08T02:22:05.127Z；真实三规则证明21:09:03.139Z的五小时至02:09:03.139Z。取较早值，故有效至温尼伯**11月7日20:09:03.139 CST**，最晚**19:54:03.139 CST**启动并预留15分钟读回；这是新的DNS操作范围，不延长已消费CFN执行许可或重计20:37其他依赖事实，不是资源到期。
 
 53项本地基线检查及定向lint通过。当前只等待上述SHA及风险确认，尚未写DNS。完成后只记录本轮Cell—租户—API Alias引用链，不宣称平台漂移、服务启动或整套上线验收通过；镜像/临时工具/产品测试不在本阶段。
-
-<details>
-<summary>已完成三规则验收、已消费域名读取与历史阶段（保留追溯，不重放）</summary>
 
 下方旧“当前/待确认/下一步”、旧SHA及期限只适用于当时；不覆盖本页顶部，已消费批准不能重放，也不构成DNS写入许可。
 

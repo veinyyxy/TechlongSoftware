@@ -1,0 +1,118 @@
+{
+  "schema": "techlong/tenant-api-alias-updated/v1",
+  "status": "DNS_ALIAS_UPDATED_INDEPENDENTLY_VERIFIED",
+  "approvedManifestFile": "tenant-api-alias-update-review-20261107.json",
+  "approvedManifestCanonicalSha256": "0e2ad8ca928f7cc99086dbedca0d149a0fb516eab15b05d41d5364aa5a1f2dbd",
+  "sourceCommit": "d23803ee505ea8f8ae4b1db1822b893ee05803c2",
+  "userExplicitUpdateConfirmationRecorded": true,
+  "zoneId": "Z01473621BTTHKXBGOOEJ",
+  "zoneName": "sandbox.techlong.cloud.",
+  "name": "first-acceptance.sandbox.techlong.cloud.",
+  "type": "A",
+  "changeId": "/change/C006498723VT6A7LZFY4W",
+  "changeStatus": "INSYNC",
+  "startedAt": "2026-11-07T21:36:03.455Z",
+  "submissionIntentAt": "2026-11-07T21:36:10.180Z",
+  "acknowledgedAt": "2026-11-07T21:36:11.676Z",
+  "writerFinishedAt": "2026-11-07T21:36:47.131Z",
+  "independentStartedAt": "2026-11-07T21:37:43.472Z",
+  "independentlyVerifiedAt": "2026-11-07T21:37:50.709Z",
+  "beforeRecord": {
+    "Name": "first-acceptance.sandbox.techlong.cloud.",
+    "Type": "A",
+    "AliasTarget": {
+      "HostedZoneId": "ZQSVJUPU6J1EY",
+      "DNSName": "techlong-sandbox-cell-sandbox-1-1584188584.ca-central-1.elb.amazonaws.com.",
+      "EvaluateTargetHealth": false
+    }
+  },
+  "afterRecord": {
+    "Name": "first-acceptance.sandbox.techlong.cloud.",
+    "Type": "A",
+    "AliasTarget": {
+      "HostedZoneId": "ZQSVJUPU6J1EY",
+      "DNSName": "techlong-sandbox-cell-sandbox-1-1581133878.ca-central-1.elb.amazonaws.com.",
+      "EvaluateTargetHealth": false
+    }
+  },
+  "beforeRecordCanonicalSha256": "5370be41c84cf4c89b27fca7ed393a6820e032a28e3513ce78f0e5275e9c912f",
+  "afterRecordCanonicalSha256": "779ad88a0c624040823ea7a7817645abd5d4c082bd9bdecc05640de85326474b",
+  "onlyChangedRecordFields": [
+    "AliasTarget.DNSName"
+  ],
+  "currentAlb": {
+    "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6",
+    "vpcId": "vpc-0136b6ba92a72cbf9",
+    "dnsName": "techlong-sandbox-cell-sandbox-1-1581133878.ca-central-1.elb.amazonaws.com",
+    "canonicalHostedZoneId": "ZQSVJUPU6J1EY",
+    "state": "active"
+  },
+  "exactAliasMatchesCurrentCellAlb": true,
+  "unchangedNameTypeZoneAndEvaluateTargetHealth": true,
+  "ruleBindingReceiptFile": "tenant-b-post-rollback-executed-20261107.json",
+  "ruleBindingReceiptCanonicalSha256": "b2f345ba76fe60b144a990fe011e764e115b618370f7687bb20ae476fe123a20",
+  "ruleBindingsVerifiedAt": "2026-11-07T21:09:03.139Z",
+  "cellTenantApiReferenceConvergenceRecorded": true,
+  "combinedObservationsAreNotAtomic": true,
+  "counts": {
+    "writer": {
+      "sts": 1,
+      "metadata": 7,
+      "changeResourceRecordSets": 1
+    },
+    "independent": {
+      "sts": 1,
+      "metadata": 4,
+      "changeResourceRecordSets": 0
+    },
+    "aggregate": {
+      "sts": 2,
+      "metadata": 11,
+      "changeResourceRecordSets": 1
+    },
+    "otherDirectAwsWrites": 0
+  },
+  "executionSlotsConsumed": 1,
+  "updateApprovalConsumed": true,
+  "repeatUpdateAuthorized": false,
+  "automaticRetry": false,
+  "automaticRollbackOrOldRecordRestore": false,
+  "automaticCleanup": false,
+  "secretValueReads": 0,
+  "privateKeyReads": 0,
+  "configSecretFileReads": 0,
+  "databaseConnections": 0,
+  "publicDnsOrHttpCalls": 0,
+  "environmentStartedByThisRun": false,
+  "serviceStateReadThisPhase": false,
+  "lastServiceObservation": {
+    "sourceFile": "tenant-b-post-rollback-executed-20261107.json",
+    "observedAt": "2026-11-07T21:09:03.139Z",
+    "service": {
+      "arn": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+      "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+      "desired": 0,
+      "running": 0,
+      "pending": 0
+    }
+  },
+  "publicResolutionOrApiHealthVerified": false,
+  "platformResourcesReadOrChanged": false,
+  "temporaryToolModified": false,
+  "imageUpdated": false,
+  "wholeSystemAccepted": false,
+  "formalThreeStackBaselineComplete": false,
+  "fullResourceDriftFreedomProved": false,
+  "originalFactTimesAndConsumedApprovalDeadlinesPreserved": true,
+  "noResourceExpiryOrLeaseChange": true,
+  "privateEvidenceDirectory": ".local-secrets/tenant-api-alias-update-d3fefb65-20261107-a",
+  "writerJournalRawSha256": "877278432aeff8eef76c07d503624a5c6518cdfd5c8320ce383d92b2d2b3cf9e",
+  "writerJournalCanonicalSha256": "320a53e5f2492fc4e96825f361f20c65a2f9d19ec23fe6a63dc85bdb48ff37d4",
+  "independentJournalRawSha256": "42c5fe0f3dd4383dbd9d1ee8c4461d5903067b8957cda8704fc5727b9f2633dc",
+  "independentJournalCanonicalSha256": "a25e7a77869205c3a472c36dae4d01403785dea577f4a9967edb056c2eca9386",
+  "recipeRawSha256": "600bcbcb8586bc0f7acc54239931e6356480fff6c4f1d2c388c88e317356547f",
+  "commonRawSha256": "d4818c644ffc0fbcf4c73c0e8287bfb3fd561f9bc2561ef5f682d6aefa7a5d72",
+  "attemptIntentRawSha256": "8eaf57307787e392b740fcb0e7f6d43badc939a61e9b85f33f39337aba368d6b",
+  "differences": [],
+  "next": "This Cell/tenant/API Alias reference repair is closed. Do not repeat rule or DNS mutations, start services, test products, update images or rewrite temporary cost tools. The remaining platform historical ownership/drift check is a separately scoped baseline work item, not authorized cloud work."
+}
