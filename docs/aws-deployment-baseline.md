@@ -18,6 +18,8 @@
 
 ## 跨栈绑定与恢复差异
 
+**B当前只读结果：** [准确事实](../ops/deployment-baseline/tenant-b-preflight-20261107.json)于05:22Z重新核对租户Original/七项CFN记录和两参数仍241081；三旧规则实体实际缺失，729e新监听器的所需优先级空闲。CFN任务定义物理ID和服务引用均:12，服务仍0/0/0、声明1的漂移未改，不能把“CFN记录CREATE_COMPLETE”说成全部实体存在。现行IAM v9的规则DescribeTags路径和API Alias均未对齐；下一只待[单次最小IAM修正](aws-cell-listener-ownership-repair.md#待批准仅现有-iam-policy-一次版本更新)准确批准。三规则计划、DNS和镜像均未写，旧离线阶段的“未读取/未知”保留追溯，不能替代这一新结果。
+
 Cell 六个输出按同名参数传给租户，并非租户栈自己查找资源。`ClusterName` 供 Service 使用，`VpcId` 供目标组使用，`SubnetIds` 和 `TaskSecurityGroupId` 用于任务网络。归档对照中这四项一致。另两项决定三条租户规则挂在哪个监听器上，历史材料中已不一致：
 
 | 引用（ARN尾段；前三数据列为历史） | 11月1日归档 Cell 输出 | 11月1日新租户建栈参数 | 11月6日手动恢复映射 | 本次A2独立核验的Cell输出 |

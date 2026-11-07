@@ -17,6 +17,9 @@ import a2Costs from '../ops/deployment-baseline/cell-a2-cost-estimate.json' with
 import a2Executed from '../ops/deployment-baseline/cell-a2-executed-20261107.json' with { type: 'json' };
 import listenerPlan from '../ops/deployment-baseline/tenant-b-offline-plan.json' with { type: 'json' };
 import listenerTemplate from '../ops/deployment-baseline/tenant-listener-change.template.json' with { type: 'json' };
+import bFacts from '../ops/deployment-baseline/tenant-b-preflight-20261107.json' with { type: 'json' };
+import bIamPolicy from '../ops/deployment-baseline/tenant-b-iam-policy-draft.json' with { type: 'json' };
+import bIamReview from '../ops/deployment-baseline/tenant-b-iam-review.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -360,4 +363,70 @@ test('B shape check rejects other resources, conditional replacements, wrong bin
     assert.equal(result.executionAuthorized,false);
   }
   assert.equal(reviewTenantListenerChangeSet().matchesProposedRuleReplacementShape,false);
+});
+
+test('B read-only facts distinguish CFN recorded resources from missing rules and resolve only task-definition drift',()=>{
+  assert.equal(bFacts.targetStackId,listenerPlan.targetStackId);
+  assert.equal(bFacts.templateSha256,listenerPlan.archivedTemplate.canonicalSha256);
+  assert.deepEqual(bFacts.newCellOutputs,a2Executed.cellOutputs);
+  assert.equal(bFacts.resourceCount,7);assert.equal(bFacts.cfnRecordedResources.length,7);
+  assert.equal(bFacts.cfnResourceCompleteStatusDoesNotProvePhysicalExistence,true);
+  assert.ok(bFacts.oldRules.every(x=>x.absent));assert.equal(bFacts.oldRules.length,3);
+  for(const r of bFacts.oldRules)assert.equal(bFacts.cfnRecordedResources.find(x=>x.logicalId===r.logicalId).physicalId,r.arn);
+  assert.ok(Object.values(bFacts.newRulePriorities).every(x=>x.occupiedRequestedPriorities.length===0));
+  assert.deepEqual([bFacts.service.desired,bFacts.service.running,bFacts.service.pending],[0,0,0]);
+  assert.equal(bFacts.service.taskDefinitionArn,bFacts.service.cfnTaskDefinitionPhysicalId);
+  assert.equal(bFacts.service.taskDefinitionMatchesCfn,true);
+  assert.equal(bFacts.service.archivedDesiredCount,1);assert.equal(bFacts.service.serviceDesiredCountDrift,true);
+  assert.equal(bFacts.servicePreservationProved,false);assert.equal(bFacts.otherFourCrossStackInputsMatch,true);
+  assert.deepEqual(bFacts.pendingChangeSets,[]);assert.equal(bFacts.targetGroup.loadBalancerArns.length,0);
+  assert.equal(bFacts.apiDns.unambiguousSimpleAlias,true);assert.equal(bFacts.apiDns.pointsToNewCell,false);
+  assert.notEqual(bFacts.apiDns.records[0].AliasTarget.DNSName.replace(/\.$/,''),a2Executed.alb.dnsName);
+  assert.deepEqual([bFacts.counts.sts,bFacts.counts.metadata],[1,22]);
+  for(const [key,count]of Object.entries(bFacts.counts))if(!['sts','metadata'].includes(key))assert.equal(count,0,key);
+  assert.equal(bFacts.effectiveFactsValidBefore,bFacts.reusedA2.dependencyValidBefore);
+  assert.ok(Date.parse(bFacts.newReadValidBefore)>Date.parse(bFacts.effectiveFactsValidBefore));
+});
+
+test('B IAM candidate adds only two authorization paths; optional Sid removal fits size without other permission changes',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  const restored=structuredClone(bIamPolicy),statement=restored.Statement.find(x=>x.Sid===bIamReview.exactDiff.statementSid);
+  assert.equal(restored.Statement.filter(x=>x.Sid===statement.Sid).length,1);
+  assert.deepEqual(statement.Action,['elasticloadbalancing:DescribeTags']);
+  assert.deepEqual(statement.Resource,[...bFacts.iam.currentRuleDescribeTagsResources,...bFacts.iam.newRuleDescribeTagsResourcesNotCovered]);
+  assert.deepEqual(bIamReview.exactDiff.appendResources,[listenerPlan.permissions.businessRuleNamespaceToCheck,listenerPlan.permissions.controlRuleNamespaceToCheck]);
+  assert.deepEqual(bIamReview.exactDiff.preserveResources,bFacts.iam.currentRuleDescribeTagsResources);
+  statement.Resource=statement.Resource.slice(0,2);
+  const removed=bIamReview.exactDiff.removedOptionalStatementIdsForSize;
+  assert.equal(removed.length,5);assert.equal(new Set(removed.map(x=>x.index)).size,5);
+  for(const x of removed){assert.equal(restored.Statement[x.index].Sid,undefined);restored.Statement[x.index].Sid=x.oldSid;}
+  assert.equal(sha(restored),bFacts.iam.policyCanonicalSha256,'reversing two additions and five optional labels exactly restores observed v9');
+  assert.equal(sha(restored),bIamReview.policyDocument.previousCanonicalSha256);
+  assert.equal(sha(bIamPolicy),bIamReview.policyDocument.canonicalSha256);
+  assert.equal(bIamReview.exactDiff.allAuthorizationElementsExceptTwoResourceAdditionsUnchanged,true);
+  assert.equal(JSON.stringify(restored).length,bIamReview.sizeCheck.sourceNonWhitespaceCharacters);
+  assert.equal(JSON.stringify(bIamPolicy).length,bIamReview.sizeCheck.candidateNonWhitespaceCharacters);
+  assert.equal(bIamReview.sizeCheck.candidateNonWhitespaceCharacters,6140);
+  assert.ok(bIamReview.sizeCheck.candidateNonWhitespaceCharacters<=bIamReview.sizeCheck.managedPolicyLimit);
+  assert.equal(bFacts.iam.attachmentCount,1);assert.equal(bFacts.iam.boundaryUsageCount,1);
+  assert.deepEqual(bFacts.iam.attachedPolicyArns,[bFacts.iam.boundaryArn]);assert.deepEqual(bFacts.iam.inlinePolicyNames,[]);
+});
+
+test('B IAM review binds exact facts and one new default version without version deletion or tenant deployment authority',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(bIamReview.evidence.find(x=>x.file==='tenant-b-preflight-20261107.json').canonicalSha256,sha(bFacts));
+  assert.equal(bIamReview.evidence.find(x=>x.file==='cell-a2-executed-20261107.json').canonicalSha256,sha(a2Executed));
+  assert.deepEqual(bIamReview.requestWithoutPolicyDocument,{PolicyArn:bFacts.iam.boundaryArn,SetAsDefault:true});
+  assert.equal(bIamReview.expected.defaultVersion,'v9');assert.equal(bIamReview.expected.policyId,bFacts.iam.policyId);
+  assert.deepEqual(bIamReview.expected.retainedVersions,['v7','v8','v9']);assert.equal(bIamReview.expected.maxExistingVersions,4);
+  assert.equal(bIamReview.scope.createPolicyVersionMax,1);assert.equal(bIamReview.scope.setDefaultThroughCreateOnly,true);
+  for(const [key,count]of Object.entries(bIamReview.scope))if(!['stsMax','metadataMax','createPolicyVersionMax','setDefaultThroughCreateOnly'].includes(key))assert.equal(count,0,key);
+  assert.equal(bIamReview.factsAt,bFacts.factsAt);assert.equal(bIamReview.factsValidBefore,bFacts.effectiveFactsValidBefore);
+  assert.equal(Date.parse(bIamReview.factsValidBefore)-Date.parse(bIamReview.startBefore),10*60000);
+  for(const key of ['automaticRetry','automaticRollback','automaticVersionDeletion','automaticPermissionRevoke','attemptResetAllowed'])assert.equal(bIamReview.failurePolicy[key],false);
+  assert.equal(bIamReview.status,'PREPARED_NOT_APPROVED');
+  for(const key of ['installationAuthorized','creationAuthorized','executionAuthorized'])assert.equal(bIamReview[key],false);
+  for(const key of ['creationAuthorized','executionAuthorized','iamInstallationAuthorized','apiDnsRepaired','wholeSystemAccepted'])assert.equal(bFacts[key],false);
 });

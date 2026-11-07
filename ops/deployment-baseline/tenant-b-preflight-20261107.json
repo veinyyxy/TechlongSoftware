@@ -1,0 +1,220 @@
+{
+  "schema": "techlong/tenant-b-preflight/v1",
+  "status": "READONLY_CAPTURED_IAM_AND_DNS_GAPS_NOT_REPAIRED",
+  "sourceCommit": "100e7fa6691c15dafbea4435dfd758425ab8c11d",
+  "factsAt": "2026-11-07T05:22:39.102Z",
+  "finishedAt": "2026-11-07T05:23:08.054Z",
+  "newReadValidBefore": "2026-11-07T10:22:39.102Z",
+  "effectiveFactsValidBefore": "2026-11-07T09:18:42.258Z",
+  "reusedA2": {
+    "resultSha256": "ebc875f6e832fd2e88c2def5a7a9457eceb3d4a98d5843c74d7623cfd5b042cd",
+    "independentlyVerifiedAt": "2026-11-07T04:55:14.610Z",
+    "dependencyFactsAt": "2026-11-07T04:18:42.258Z",
+    "dependencyValidBefore": "2026-11-07T09:18:42.258Z"
+  },
+  "targetStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+  "stackStatus": "CREATE_COMPLETE",
+  "templateSha256": "d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779",
+  "cfnRecordedResources": [
+    {
+      "logicalId": "TenantBusinessControlDenyRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/02eb1194bf042d4e",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantControlListenerRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b/77d3da2f728b3bcf",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantListenerRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/ce81bd294d025612",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantLogGroup",
+      "type": "AWS::Logs::LogGroup",
+      "physicalId": "/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantService",
+      "type": "AWS::ECS::Service",
+      "physicalId": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantTargetGroup",
+      "type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/5c3f443f78df9934",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantTaskDefinition",
+      "type": "AWS::ECS::TaskDefinition",
+      "physicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+      "status": "CREATE_COMPLETE"
+    }
+  ],
+  "resourceCount": 7,
+  "cfnResourceCompleteStatusDoesNotProvePhysicalExistence": true,
+  "sixCrossStackParameters": {
+    "ClusterName": "cell-sandbox-1",
+    "VpcId": "vpc-0136b6ba92a72cbf9",
+    "SubnetIds": "subnet-05b781276cc988b93,subnet-05729abe921410a75",
+    "TaskSecurityGroupId": "sg-0df75af0d0661492a",
+    "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7",
+    "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b"
+  },
+  "otherFourCrossStackInputsMatch": true,
+  "pendingChangeSets": [],
+  "service": {
+    "arn": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+    "desired": 0,
+    "running": 0,
+    "pending": 0,
+    "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+    "cfnTaskDefinitionPhysicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+    "taskDefinitionMatchesCfn": true,
+    "archivedDesiredCount": 1,
+    "serviceDesiredCountDrift": true
+  },
+  "newCellOutputs": {
+    "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d",
+    "VpcId": "vpc-0136b6ba92a72cbf9",
+    "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1",
+    "CellExpiresAt": "2026-10-15T16:44:56.246Z",
+    "TaskSecurityGroupId": "sg-0df75af0d0661492a",
+    "ClusterName": "cell-sandbox-1",
+    "SubnetIds": "subnet-05b781276cc988b93,subnet-05729abe921410a75"
+  },
+  "newAlb": {
+    "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6",
+    "dnsName": "techlong-sandbox-cell-sandbox-1-1581133878.ca-central-1.elb.amazonaws.com",
+    "canonicalHostedZoneId": "ZQSVJUPU6J1EY",
+    "state": "active"
+  },
+  "newRulePriorities": {
+    "HttpsListenerArn": {
+      "occupiedRequestedPriorities": [],
+      "ruleCount": 2
+    },
+    "ControlListenerArn": {
+      "occupiedRequestedPriorities": [],
+      "ruleCount": 1
+    }
+  },
+  "oldRules": [
+    {
+      "logicalId": "TenantBusinessControlDenyRule",
+      "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/02eb1194bf042d4e",
+      "absent": true
+    },
+    {
+      "logicalId": "TenantControlListenerRule",
+      "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b/77d3da2f728b3bcf",
+      "absent": true
+    },
+    {
+      "logicalId": "TenantListenerRule",
+      "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/ce81bd294d025612",
+      "absent": true
+    }
+  ],
+  "targetGroup": {
+    "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/5c3f443f78df9934",
+    "vpcId": "vpc-0136b6ba92a72cbf9",
+    "port": 3000,
+    "protocol": "HTTP",
+    "loadBalancerArns": []
+  },
+  "iam": {
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+    "roleId": "AROAV3GNMXTZKHYBCRSOE",
+    "trustSha256": "844eadf42b336a846c05147d7c08cce628afec209b72dafd821063cb4cffa1ec",
+    "inlinePolicyNames": [],
+    "attachedPolicyArns": [
+      "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary"
+    ],
+    "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+    "policyId": "ANPAV3GNMXTZOQPIXOKJ4",
+    "defaultVersion": "v9",
+    "policyCanonicalSha256": "cfeac9114e3f487855cab5bb5f0c7cc49b5a2291170dc30d2953338aac57e1b8",
+    "attachmentCount": 1,
+    "boundaryUsageCount": 1,
+    "versions": [
+      {
+        "id": "v9",
+        "isDefault": true
+      },
+      {
+        "id": "v8",
+        "isDefault": false
+      },
+      {
+        "id": "v7",
+        "isDefault": false
+      }
+    ],
+    "versionMetadataAt": "2026-11-07T05:24:51.788Z",
+    "statementSid": "C5gExactListenerRulesTags",
+    "currentRuleDescribeTagsResources": [
+      "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/*",
+      "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b/*"
+    ],
+    "newRuleDescribeTagsResourcesNotCovered": [
+      "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1/*",
+      "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d/*"
+    ],
+    "effectivePermissionsOrSourceWritePermissionNotProved": true
+  },
+  "apiDns": {
+    "zoneId": "Z01473621BTTHKXBGOOEJ",
+    "records": [
+      {
+        "Name": "first-acceptance.sandbox.techlong.cloud.",
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "ZQSVJUPU6J1EY",
+          "DNSName": "techlong-sandbox-cell-sandbox-1-1584188584.ca-central-1.elb.amazonaws.com.",
+          "EvaluateTargetHealth": false
+        }
+      }
+    ],
+    "unambiguousSimpleAlias": true,
+    "pointsToNewCell": false
+  },
+  "counts": {
+    "sts": 1,
+    "metadata": 22,
+    "awsWrites": 0,
+    "executionSlotsConsumed": 0,
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "configSecretFileReads": 0,
+    "databaseConnections": 0,
+    "changeSetsCreated": 0,
+    "taskDefinitionDetailsOrEnvironmentReads": 0
+  },
+  "evidence": [
+    {
+      "directory": ".local-secrets/tenant-b-readonly-20261107-a",
+      "journalRawSha256": "6520055974ae71000b345a6ac85f028bfce870a69783debf2f59204017d14967",
+      "recipeRawSha256": "bba15267f9016ff2e67a7dee7c1b044bde89887e30cdc2c5fd357543efce877d"
+    },
+    {
+      "directory": ".local-secrets/tenant-b-policy-versions-20261107-a",
+      "journalRawSha256": "321573679d13d4c15e15fc88f6b2cb66b95d2bec886221db6cb52697529d63b3"
+    }
+  ],
+  "servicePreservationProved": false,
+  "creationAuthorized": false,
+  "executionAuthorized": false,
+  "iamInstallationAuthorized": false,
+  "apiDnsRepaired": false,
+  "wholeSystemAccepted": false,
+  "next": "Separately approve the minimal existing IAM policy extension; preserve old two DescribeTags paths and append only the new two. No Change Set/DNS/service/image write is authorized."
+}

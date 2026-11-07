@@ -1,0 +1,274 @@
+{
+  "Statement": [
+    {
+      "Action": "ecs:RegisterTaskDefinition",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1",
+          "aws:RequestTag/Environment": "aws-sandbox",
+          "aws:RequestTag/ManagedBy": "techlong-provisioner"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-*:*"
+    },
+    {
+      "Action": [
+        "ecs:DeregisterTaskDefinition",
+        "ecs:DescribeTaskDefinition"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": "*"
+    },
+    {
+      "Action": [
+        "ecs:CreateService",
+        "ecs:DeleteService",
+        "ecs:DescribeServices",
+        "ecs:TagResource",
+        "ecs:UntagResource",
+        "ecs:UpdateService"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1",
+        "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-*",
+        "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-*:*"
+      ],
+      "Sid": "AllowTenantEcsLifecycle"
+    },
+    {
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:DeleteLogGroup",
+        "logs:ListTagsForResource",
+        "logs:PutRetentionPolicy",
+        "logs:TagResource",
+        "logs:UntagResource"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-*",
+      "Sid": "AllowTenantLogs"
+    },
+    {
+      "Action": "logs:DescribeLogGroups",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowDescribeTenantLogs"
+    },
+    {
+      "Action": "elasticloadbalancing:CreateTargetGroup",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1",
+          "aws:RequestTag/Environment": "aws-sandbox",
+          "aws:RequestTag/ManagedBy": "techlong-provisioner"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowTaggedTargetGroupCreation"
+    },
+    {
+      "Action": [
+        "elasticloadbalancing:AddTags",
+        "elasticloadbalancing:CreateRule",
+        "elasticloadbalancing:DeleteRule",
+        "elasticloadbalancing:DeleteTargetGroup",
+        "elasticloadbalancing:ModifyRule",
+        "elasticloadbalancing:ModifyTargetGroup",
+        "elasticloadbalancing:RemoveTags",
+        "elasticloadbalancing:SetRulePriorities"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-*/*/*",
+        "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-*/*/*/*",
+        "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-*/*"
+      ],
+      "Sid": "AllowTenantLoadBalancerChildren"
+    },
+    {
+      "Action": [
+        "elasticloadbalancing:DescribeListeners",
+        "elasticloadbalancing:DescribeRules",
+        "elasticloadbalancing:DescribeTargetGroups"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": "*"
+    },
+    {
+      "Action": [
+        "scheduler:CreateSchedule",
+        "scheduler:DeleteSchedule",
+        "scheduler:GetSchedule",
+        "scheduler:UpdateSchedule"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:scheduler:ca-central-1:402010193138:schedule/techlong-sandbox/tenant-*",
+      "Sid": "AllowTenantScheduleLifecycle"
+    },
+    {
+      "Action": [
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowReadCellNetworkMetadata"
+    },
+    {
+      "Action": "iam:GetRole",
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:iam::402010193138:role/TechlongSandboxSchedulerInvokeRole",
+        "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+        "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+      ],
+      "Sid": "AllowReadOnlySandboxRuntimeRoles"
+    },
+    {
+      "Action": "iam:PassRole",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "ecs-tasks.amazonaws.com"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:iam::402010193138:role/TechlongSandboxTaskExecutionRole",
+        "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+      ]
+    },
+    {
+      "Action": "iam:PassRole",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "scheduler.amazonaws.com"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": "arn:aws:iam::402010193138:role/TechlongSandboxSchedulerInvokeRole"
+    },
+    {
+      "Action": [
+        "ecs:ListServiceDeployments"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service"
+      ],
+      "Sid": "C5gExactServiceDeploymentsList"
+    },
+    {
+      "Action": [
+        "ecs:DescribeServiceDeployments"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+        "arn:aws:ecs:ca-central-1:402010193138:service-deployment/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service/*"
+      ],
+      "Sid": "C5gExactServiceDeploymentsRead"
+    },
+    {
+      "Action": [
+        "elasticloadbalancing:DescribeTargetGroupAttributes",
+        "elasticloadbalancing:DescribeTargetHealth",
+        "elasticloadbalancing:DescribeTags"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/*"
+      ],
+      "Sid": "C5gExactTargetGroupRead"
+    },
+    {
+      "Action": [
+        "elasticloadbalancing:DescribeTags"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/*",
+        "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b/*",
+        "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1/*",
+        "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d/*"
+      ],
+      "Sid": "C5gExactListenerRulesTags"
+    },
+    {
+      "Action": [
+        "logs:GetDataProtectionPolicy"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+        "arn:aws:logs:ca-central-1:402010193138:log-group:/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad:*"
+      ],
+      "Sid": "C5gExactLogPoliciesRead"
+    },
+    {
+      "Action": [
+        "logs:DescribeIndexPolicies",
+        "logs:DescribeResourcePolicies"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ca-central-1"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": [
+        "*"
+      ],
+      "Sid": "C5gRegionalLogPoliciesInventory"
+    }
+  ],
+  "Version": "2012-10-17"
+}

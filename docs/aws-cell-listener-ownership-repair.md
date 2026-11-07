@@ -2,7 +2,38 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；下方原“待审/未执行”只保留各阶段事实，最新结果如下。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
 
+## 当前事实：B 只读核对完成，仅待最小 IAM 修正审批
+
+用户批准上一轮明确的STS1＋元数据35上限后，本轮以源码 `100e7fa6691c15dafbea4435dfd758425ab8c11d` 完成准确Source身份及集中核对。新事实起点 **2026-11-07T05:22:39.102Z（温尼伯11月6日23:22:39.102 CST）**；实际STS1/元数据22（主记录21＋准确policy版本补读1），AWS写/秘密值/PEM/.env/数据库/任务定义环境/Change Set/执行槽均0，无自动重试。使用官方全球IAM/Route53端点并以us-east-1签名，不在美东创建资源。公开官方文档访问不计入账号API调用。
+
+[事实摘要及原件指纹](../ops/deployment-baseline/tenant-b-preflight-20261107.json)确认：
+
+- Cell仍为A2新729e输出，ALB active；租户Original SHA仍为归档d705…，两个参数仍241081，其余四跨栈输入匹配。CFN记录七项CREATE_COMPLETE，**不代表七实体都存在**：三旧规则分别返回RuleNotFound。新443优先级100/101、8443优先级100均空闲，原目标组仍在且没有ALB关联；无待执行租户Change Set。
+- CFN的TenantTaskDefinition物理ID和实际Service引用均为`:12`，此前这一项未知已消除。服务仍0/0/0，Original DesiredCount=1的漂移保持；没有读取任务定义内容/环境，也没有启动服务。三规则门禁、DependsOn及后续服务保持风险不放宽。
+- 租户执行角色只有一项附加托管policy，同一policy也是boundary，默认v9；现存v7/v8/v9，仅此一个role附加和一个boundary使用计数。`C5gExactListenerRulesTags` 的DescribeTags仅覆盖旧241081两条规则前缀，不覆盖729e。其他已读取创建/删除/标签动作声明覆盖新旧Cell子路径；这不是Source写权限、SCP或未来CFN运行成功的证明。
+- 准确API A Alias仍为 `techlong-sandbox-cell-sandbox-1-1584188584.ca-central-1.elb.amazonaws.com.`，并非新Cell的1581133878，EvaluateTargetHealth=false；未改DNS。B规则归属、API DNS及镜像仍须依次收敛，不能称API已恢复。
+
+### 待批准：仅现有 IAM policy 一次版本更新
+
+准确[审批清单](../ops/deployment-baseline/tenant-b-iam-review.json)规范JSON SHA：
+
+`e6b6b5fd1d391e7e28550210e03b30d1d8a03487a2acb53bdad5c008992f8e5b`
+
+仅一次 `iam:CreatePolicyVersion`，准确policy `TechlongSandboxCloudFormationExecutionBoundary`，`SetAsDefault=true`；[候选正文](../ops/deployment-baseline/tenant-b-iam-policy-draft.json) SHA `965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6`。向上述DescribeTags语句**追加新729e两个准确监听器下的规则ARN前缀，保留旧241081两条**，供CFN替换期间读取旧引用；不扩大Action，不用任意Cell/监听器通配符，不挂新policy或换角色/boundary。
+
+离线检查发现，v9去空白6086字符，直接追加会达6372，超出[官方托管policy 6144字符限额](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)。因此候选只额外去掉五个[可选Sid说明标识](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_sid.html)，最终6140字符；五项完整原名/索引在清单exactDiff中保留，目标C5g标签语句Sid保留。逆向加回五个Sid并移除新增两路径，规范SHA**精确还原实读v9** `cfeac9114e3f487855cab5bb5f0c7cc49b5a2291170dc30d2953338aac57e1b8`；所有Effect/Action/Condition、其他Resource和语句顺序不变。后续本地检查不能再假定那五个标签存在，不自动修改历史脚本。初稿63cd…因超限在本地废弃，未获批准/调用IAM，副本留在私有目录，不作为执行依据。
+
+**明确范围与风险：** 当前policy既附加给角色又充当其boundary，因此新默认版本会同时影响两处；只增加两个新前缀的DescribeTags读取，覆盖各前缀下未来生成的规则ID，不是只限已知三个旧ID。[IAM边界说明](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)解释了两者交集，其他SCP/显式拒绝仍可能影响实际权限。新覆盖持续保留，不是临时grant，不自动撤权。新增一个默认版本，v7/v8/v9全保留；[官方API](https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreatePolicyVersion.html)最多保留五版本，本次现有三版，不需要删除旧版；若执行前达到五版则停止，不能清旧版腾位。全程最多STS2/元数据20/CreatePolicyVersion1，其他IAM写、CFN/DNS/ECS/RDS/镜像/秘密/数据库/dispatch均0。
+
+写前须匹配准确身份、role ID/trust/空inline/单附加与boundary、policy ID/默认v9/正文摘要/版本及使用计数、Cell输出和监听器，再保存不可复用的单次意图；成功后另进程核验实际返回新版本为默认、候选SHA和旧版本/角色绑定保持。IAM没有这里需要的跨读写CAS：并发、传播、AWS Login刷新失败和提交不明风险仍在；失败不重发、不自动回滚/删除版本/补齐/撤权或复位槽，只在受审预算内只读确认。现有资源继续收费，本项不设置停费或资源到期。
+
+**最晚启动：温尼伯2026年11月7日03:08:42.258 CST（09:08:42.258Z）**。新读取自身五小时到10:22:39.102Z，但复用A2依赖的原五小时终点仍09:18:42.258Z，取较早者并预留十分钟，未重计旧事实。此为审批材料时限，不是资源到期/自动停止。24项本地检查与定向lint通过；**尚未安装IAM或获准任何写入**。本次读取批准不代替新SHA批准。
+
+**当前唯一继续点：只等待上述单次IAM修正及完整风险确认。** 不再重复成功核对、先创建CFN计划或改DNS。IAM经另批实际安装并独立核验后，再单独审仅创建未执行的租户三规则替换Change Set；依然拒绝Service/TaskDefinition/目标组/日志变化，不修改DesiredCount/DependsOn或镜像。DNS准确单条更新仍另审。以下离线计划及A2沿革保留原时刻，不重放。
+
 ## 当前准备：B 两参数／三规则离线方案已完成
+
+以下保留离线阶段原记录，当前只读结论及待批IAM修正见顶部；不再把这里的“待读取”当作当前指令。
 
 本轮只复用已存A2结果和租户归档，**账号AWS调用、数据库连接、Secret/PEM/.env读取、新执行槽、Change Set及云写均0**；公开资料仅核对CFN官方说明。新增[参数片段](../ops/deployment-baseline/tenant-listener-change.template.json)和[离线计划](../ops/deployment-baseline/tenant-b-offline-plan.json)，没有新执行器或云调用入口。
 
@@ -24,7 +55,7 @@
 
 本轮21项本地基线/片段/边界检查与定向lint通过；不是新的云核验或远程CI通过。ALB仍按上轮实际结果运行、可能持续收费，本轮不设新到期/自动停止，不调用临时止费工具；不启RDS/ECS、不改镜像。以下A2原件、时刻和历史待审文字全部保留。
 
-## 最新实际云结果：A2 已执行并独立核验，Cell 四项归属恢复
+## 最新结果：A2 已执行并独立核验，Cell 四项归属恢复
 
 用户明确确认执行清单 `a4c1b41b6b5d9fa3a9a1883994aeebbc4b514390e8b392964bf93b25f59512a9` 后，本轮仅一次ExecuteChangeSet，显式DisableRollback=true。执行源码 `5f1db521b57861272b035c5fa30fb7cfd923d09a`；04:52:04.090Z收到ACK、04:54:23.776Z观察到UPDATE_COMPLETE，另进程于 **2026-11-07T04:55:14.610Z（温尼伯11月6日22:55:14.610 CST）** 完成独立核验，结果 `A2_EXECUTED_CELL_FOUR_RESOURCES_INDEPENDENTLY_VERIFIED`。
 

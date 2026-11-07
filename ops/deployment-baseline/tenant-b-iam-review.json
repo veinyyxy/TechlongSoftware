@@ -1,0 +1,169 @@
+{
+  "schema": "techlong/tenant-b-iam-review/v1",
+  "status": "PREPARED_NOT_APPROVED",
+  "preparedFromCommit": "100e7fa6691c15dafbea4435dfd758425ab8c11d",
+  "accountId": "402010193138",
+  "expectedPrincipalArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "expectedPrincipalUserId": "AIDAV3GNMXTZEO7SHLC2X",
+  "factsAt": "2026-11-07T05:22:39.102Z",
+  "factsValidBefore": "2026-11-07T09:18:42.258Z",
+  "startBefore": "2026-11-07T09:08:42.258Z",
+  "evidence": [
+    {
+      "file": "tenant-b-preflight-20261107.json",
+      "canonicalSha256": "b58b1ab4b162a78fa1e23fa26992698efe76c42d4654be7ef6b406c80f4359ce"
+    },
+    {
+      "file": "cell-a2-executed-20261107.json",
+      "canonicalSha256": "ebc875f6e832fd2e88c2def5a7a9457eceb3d4a98d5843c74d7623cfd5b042cd"
+    }
+  ],
+  "requestWithoutPolicyDocument": {
+    "PolicyArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+    "SetAsDefault": true
+  },
+  "policyDocument": {
+    "file": "tenant-b-iam-policy-draft.json",
+    "canonicalSha256": "965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6",
+    "previousCanonicalSha256": "cfeac9114e3f487855cab5bb5f0c7cc49b5a2291170dc30d2953338aac57e1b8"
+  },
+  "expected": {
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+    "roleId": "AROAV3GNMXTZKHYBCRSOE",
+    "trustSha256": "844eadf42b336a846c05147d7c08cce628afec209b72dafd821063cb4cffa1ec",
+    "inlinePolicyNames": [],
+    "attachedPolicyArns": [
+      "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary"
+    ],
+    "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+    "policyId": "ANPAV3GNMXTZOQPIXOKJ4",
+    "defaultVersion": "v9",
+    "attachmentCount": 1,
+    "boundaryUsageCount": 1,
+    "retainedVersions": [
+      "v7",
+      "v8",
+      "v9"
+    ],
+    "maxExistingVersions": 4,
+    "cellStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "cellListenerOutputs": {
+      "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1",
+      "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d"
+    }
+  },
+  "exactDiff": {
+    "statementSid": "C5gExactListenerRulesTags",
+    "actionUnchanged": [
+      "elasticloadbalancing:DescribeTags"
+    ],
+    "preserveResources": [
+      "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/*",
+      "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b/*"
+    ],
+    "appendResources": [
+      "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1/*",
+      "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d/*"
+    ],
+    "removedOptionalStatementIdsForSize": [
+      {
+        "index": 12,
+        "oldSid": "AllowPassOnlySandboxSchedulerRoleToScheduler"
+      },
+      {
+        "index": 7,
+        "oldSid": "AllowDescribeSandboxLoadBalancerChildren"
+      },
+      {
+        "index": 0,
+        "oldSid": "AllowTaggedTaskDefinitionRegistration"
+      },
+      {
+        "index": 11,
+        "oldSid": "AllowPassOnlySandboxTaskRolesToEcs"
+      },
+      {
+        "index": 1,
+        "oldSid": "AllowTenantTaskDefinitionCleanup"
+      }
+    ],
+    "allAuthorizationElementsExceptTwoResourceAdditionsUnchanged": true,
+    "sourceStatementOrderAndAllConditionsUnchanged": true
+  },
+  "scope": {
+    "stsMax": 2,
+    "metadataMax": 20,
+    "createPolicyVersionMax": 1,
+    "setDefaultThroughCreateOnly": true,
+    "deletePolicyVersion": 0,
+    "otherIamWrites": 0,
+    "changeSetCreateOrExecute": 0,
+    "dnsWrites": 0,
+    "ecsWrites": 0,
+    "rdsOperations": 0,
+    "imageUpdates": 0,
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "configSecretFileReads": 0,
+    "databaseConnections": 0,
+    "dispatch": 0
+  },
+  "allowedMetadataApis": [
+    "cloudformation:DescribeStacks",
+    "elasticloadbalancing:DescribeListeners",
+    "iam:GetRole",
+    "iam:ListRolePolicies",
+    "iam:ListAttachedRolePolicies",
+    "iam:GetPolicy",
+    "iam:GetPolicyVersion",
+    "iam:ListPolicyVersions"
+  ],
+  "preconditions": [
+    "exact Source IAM identity",
+    "same role ID/trust/empty-inline/single attachment and boundary",
+    "same policy ID/default v9/document SHA/old versions and usage counts",
+    "fewer than five existing versions; never delete versions to make room",
+    "same two Cell outputs and accurate live listeners",
+    "record one immutable attempt intent before the sole mutation; do not reuse a prior attempt"
+  ],
+  "independentChecks": [
+    "returned new version is the policy default and candidate document SHA matches",
+    "all v7/v8/v9 versions retained; no unreviewed extra version",
+    "same role trust/inline/attachment/boundary and usage counts",
+    "other direct AWS writes zero; no tenant/DNS/service/image mutation"
+  ],
+  "failurePolicy": {
+    "automaticRetry": false,
+    "replayAfterUnknownSubmission": false,
+    "automaticRollback": false,
+    "automaticVersionDeletion": false,
+    "automaticPermissionRevoke": false,
+    "attemptResetAllowed": false,
+    "unknownSubmissionRequiresReadOnlyInspection": true,
+    "noCrossServiceOrIamCas": true
+  },
+  "risks": [
+    "This managed policy is both the roles identity policy and its permissions boundary; the same change affects both intersections.",
+    "Only DescribeTags extends to any rule ID under two exact new listener prefixes. Old two prefixes and every other statement/condition are retained.",
+    "New read coverage persists; this is not a temporary grant and will not be revoked automatically.",
+    "Metadata checks and mutation are not atomic/CAS. Concurrent role/policy/default changes remain possible; do not silently adopt a new baseline.",
+    "AWS Login automatic refresh can fail. Source write permission/SCP applicability is not proved by read success.",
+    "IAM CreatePolicyVersion has no reviewed retry here. A response failure may leave a new default version; preserve evidence and inspect, do not retry, rollback or delete.",
+    "IAM update does not create the three replacement rules, align DNS or prove ECS remains stopped during a future CFN update.",
+    "Provider logs/network and other existing resources can incur costs; no new automatic stop or fee cap is installed.",
+    "To stay within the 6144-character managed policy limit, remove exactly five optional Sid labels listed in exactDiff. No action/effect/condition/resource changes accompany these removals. Trace and future local policy checks must use the retained mapping, not assume those five labels remain."
+  ],
+  "installationAuthorized": false,
+  "creationAuthorized": false,
+  "executionAuthorized": false,
+  "next": "After separate approval and independently verified IAM update, prepare only one unexecuted tenant three-rule replacement Change Set for a separate approval. Actual Change Set must still exclude Service/TaskDefinition/TargetGroup/LogGroup changes. DNS and image remain separate.",
+  "sizeCheck": {
+    "sourceNonWhitespaceCharacters": 6086,
+    "rejectedAppendOnlyCharacters": 6372,
+    "candidateNonWhitespaceCharacters": 6140,
+    "managedPolicyLimit": 6144,
+    "whitespaceExcluded": true,
+    "recheckRequiredIfCandidateChanges": true
+  },
+  "supersedesUnapprovedSizeRejectedDraftSha256": "63cd815f526202e6c761a71b457c67e9a842b0a263bdeec3b94468b43a85cf84"
+}
