@@ -37,6 +37,8 @@ import bRollbackStop from '../ops/deployment-baseline/tenant-b-rollback-prefligh
 import bRollbackResume from '../ops/deployment-baseline/tenant-b-rollback-resume-review-20261107.json' with { type: 'json' };
 import bRolledBack from '../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json' with { type: 'json' };
 import bPostRollback from '../ops/deployment-baseline/tenant-b-post-rollback-offline-plan.json' with { type: 'json' };
+import bPostRollbackRead from '../ops/deployment-baseline/tenant-b-post-rollback-preflight-20261107.json' with { type: 'json' };
+import bPostRollbackCreate from '../ops/deployment-baseline/tenant-b-post-rollback-creation-review-20261107.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -844,4 +846,49 @@ test('new B material is not executable or authorized; future replacements requir
   for(const key of ['newLiveFactsAt','newFactsValidBefore','startBefore'])assert.equal(bPostRollback.factPolicy[key],null,key);
   assert.equal(bPostRollback.factPolicy.maxNewSnapshotAgeHours,5);
   for(const [key,value]of Object.entries(bPostRollback.thisPreparation))assert.equal(value,key==='newRuntimeOrRecoveryFramework'?false:0,key);
+});
+
+test('post-rollback fresh read binds actual stable tenant and Cell without writes or restamped old facts',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  const r=bPostRollbackRead,s=r.summary;
+  assert.equal(r.offlineDraftCanonicalSha256,sha(bPostRollback));assert.equal(r.status,'POST_ROLLBACK_READONLY_MATCHED_NO_WRITE');
+  assert.equal(r.userReadApprovalRecorded,true);assert.deepEqual(r.counts,{sts:1,metadata:27});
+  assert.ok(Date.parse(r.factsAt)>Date.parse(bRolledBack.independentlyVerifiedAt));assert.ok(Date.parse(r.factsAt)>Date.parse(bRefresh.factsValidBefore));
+  assert.equal(Date.parse(r.factsValidBefore)-Date.parse(r.factsAt),5*3600000);assert.equal(Date.parse(r.factsValidBefore)-Date.parse(r.startBefore),15*60000);
+  assert.equal(s.stackId,bRolledBack.stackId);assert.equal(s.stackStatus,'UPDATE_ROLLBACK_COMPLETE');assert.equal(s.operationId,bRolledBack.operationId);
+  assert.equal(s.disableRollbackObserved,true);assert.equal(s.tenantTemplateCanonicalSha256,bRolledBack.originalTemplateCanonicalSha256);
+  assert.equal(s.cellTemplateCanonicalSha256,a2Executed.appliedTemplateSha256);assert.deepEqual(s.cellOutputs,a2Executed.cellOutputs);
+  assert.deepEqual(s.tenantListenerParameters,bRolledBack.listenerParametersRestoredTo);assert.deepEqual(s.service,bRolledBack.service);
+  assert.equal(s.policyDefaultVersion,'v10');assert.equal(s.policyCanonicalSha256,bRolledBack.policyCanonicalSha256);
+  assert.equal(s.requiredPrioritiesVacant,true);assert.equal(s.threeOldRulesAbsent,true);assert.equal(s.listenerOwnershipTlsMtlsNetworkMatched,true);
+  assert.equal(r.tenantCfnPhysicalRecords.length,7);assert.deepEqual(r.tenantCfnPhysicalRecords.map(x=>x.physicalId).sort(),bInspected.cfnResourceRecords.map(x=>x.physicalId).sort());
+  for(const key of ['awsWrites','secretValueReads','privateKeyReads','configSecretFileReads','databaseConnections','executionSlotsConsumed'])assert.equal(r[key],0,key);
+  for(const key of ['creationAuthorized','executionAuthorized','dnsOrImageUpdated','wholeSystemAccepted'])assert.equal(r[key],false,key);
+  assert.equal(s.noEchoSecretValuesVerified,false);assert.equal(s.sourceWritePermissionProved,false);assert.equal(r.originalTemplateBodyNotPersisted,true);
+});
+
+test('new create-only review binds fresh facts and an unused request while keeping future normal rollback separate',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  const a=bPostRollbackCreate,r=a.requestWithoutTags;
+  const evidence={'tenant-b-post-rollback-preflight-20261107.json':bPostRollbackRead,'tenant-b-post-rollback-offline-plan.json':bPostRollback,
+    'tenant-b-rollback-observed-20261107.json':bRolledBack,'tenant-listener-change.template.json':listenerTemplate};
+  for(const e of a.evidence)assert.equal(e.canonicalSha256,sha(evidence[e.file]));
+  assert.equal(a.status,'PREPARED_NOT_APPROVED');for(const key of ['factsAt','factsValidBefore','startBefore'])assert.equal(a[key],bPostRollbackRead[key]);
+  assert.equal(r.StackName,bRolledBack.stackId);assert.equal(r.RoleARN,bPostRollback.executionRoleArn);assert.equal(r.ChangeSetType,'UPDATE');
+  assert.equal(r.UsePreviousTemplate,true);assert.equal(r.IncludeNestedStacks,false);assert.deepEqual(r.Parameters,listenerTemplate.Parameters);
+  for(const key of ['TemplateBody','TemplateURL','OnStackFailure','DisableRollback'])assert.ok(!Object.hasOwn(r,key));
+  assert.notEqual(r.ChangeSetName,bCreateReview.requestWithoutTags.ChangeSetName);assert.notEqual(r.ClientToken,bCreateReview.requestWithoutTags.ClientToken);
+  assert.equal(a.tagsFromBoundPrivateRecord.directory,bPostRollbackRead.privateEvidenceDirectory);assert.equal(a.tagsFromBoundPrivateRecord.journalRawSha256,bPostRollbackRead.journalRawSha256);
+  assert.equal(a.tagsFromBoundPrivateRecord.canonicalMapSha256,bPostRollbackRead.summary.tenantTagsCanonicalSha256);
+  assert.equal(a.expected.tenantRootStatus,'UPDATE_ROLLBACK_COMPLETE');assert.deepEqual(a.expected.tenantResourcePhysicalIds,bPostRollbackRead.tenantCfnPhysicalRecords);
+  assert.equal(a.expected.policyDefaultVersion,'v10');assert.equal(a.scope.stsMax,2);assert.equal(a.scope.createChangeSetMax,1);
+  assert.equal(a.scope.writerPreflightMetadataMax+a.scope.writerChangeSetStatusPollMax,a.scope.writerMetadataMax);
+  assert.equal(a.scope.writerMetadataMax+a.scope.independentMetadataReserve,a.scope.metadataReadMax);assert.equal(a.scope.metadataReadMax,31);
+  for(const schedule of [...a.writerReadSchedule,a.independentReadSchedule])assert.equal(Object.values(schedule.calls).reduce((sum,n)=>sum+n,0),schedule.metadataMax);
+  assert.equal(a.allowedMetadataApis.includes('iam:ListPolicyVersions'),false);assert.equal(a.futureExecutionPolicy.disableRollback,false);
+  for(const key of ['creationAuthorized','executionAuthorized','iamChangeAuthorized','apiDnsChangeAuthorized'])assert.equal(a[key],false,key);
+  for(const key of ['automaticRetry','replayAfterUnknownSubmission','automaticDeleteChangeSet','automaticExecute','automaticRollback','attemptResetAllowed'])assert.equal(a.failurePolicy[key],false,key);
+  assert.equal(a.preparation.additionalAwsCallsToAssembleManifest,0);assert.equal(a.preparation.changeSetsCreated,0);
 });
