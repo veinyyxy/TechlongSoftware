@@ -2,7 +2,26 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；下方原“待审/未执行”只保留各阶段事实，最新结果如下。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
 
+## 当前结果：B 已单次执行，但失败且未验收，停止写入
+
+用户确认新SHA `109627ceccdbe813ebbbf2b80c176c9a1e60ed16dfc75cb1f740a04af2dd69c9` 后，执行时HEAD为 `019ddce33006eae14efec26f132f5f7998fbf96c`。写前18项核对通过，**2026-11-07T14:07:56.251Z** 保存唯一意图，14:07:57.733Z收到Execute ACK；随后UPDATE_IN_PROGRESS→**UPDATE_FAILED**，停止写入、不重发。另进程于14:09:45.640Z完成受审独立读取，结果[未验收及原件指纹](../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json)。
+
+- 同一95855d02…为EXECUTE_FAILED，栈DisableRollback=true，Original仍d705…。两个监听器参数**已经保存为729e新值**，不能说失败后全无变化。
+- 三条规则CFN记录仍为241081旧物理ID、状态UPDATE_ROLLBACK_COMPLETE，理由仅“Rollback succeeded for the failed resources”；新729e监听器下未验收到租户三规则，目标组仍无ALB关联。说明已发生提供者资源级恢复，**不是代理发起回滚，也不能据此声称旧规则实体恢复存在或新实体从未短暂创建**。创建前已披露的资源级恢复风险实际出现，完整原始失败原因尚未取得。
+- 原Service/TaskDefinition/目标组/日志四物理ID保持；验收时服务0/0/0、仍:12，网络/目标配置保持。没有查询瞬时任务历史，不冒称证明整个期间绝无短暂运行。IAM默认v10/正文、角色trust/boundary/使用计数及版本匹配，writer另核对空inline/单附加保持。DNS/镜像/数据库未由本轮修改，API未恢复。
+- 实际STS2/元数据36/Execute1（writer 1/22/1、独立1/14/0），其他直接AWS写0。无重试、主动回滚、清理、停回任务、IAM撤权或新计划；**执行槽和本次授权已消费，即使时间尚未过也不能再用原SHA/同token执行**。私有根 `.local-secrets/tenant-b-execute-109627ce-20261107-a`，两journal及attempt-intent保持。现有ALB可能继续收费，无新自动停止。
+
+### 当前唯一继续点：只申请本次操作的失败事件读取
+
+现有DescribeStacks/ListStackResources只给出三规则失败及资源级恢复摘要，未给出最初错误；**不把“旧实体原先缺失”直接当成已证实根因**。当前执行清单特意没有事件API授权，剩余预算不等于可以扩API；本轮不读取事件或写恢复代码、不自行改IAM/模板/栈。
+
+已仅离线准备[准确只读范围](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)：Source STS最多1次，随后 **DescribeEvents一次**，准确OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、服务端 `Filters.FailedEvents=true`，核对准确栈和请求token；只一页/投影输出≤1MB、不翻页或失败重试。只处理这三规则及准确根栈的失败元数据，不扩到旧栈历史、CloudWatch/CloudTrail、任务定义、秘密、PEM/.env或数据库，不写或消费执行槽。
+
+[官方事件API](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeEvents.html)支持准确OperationId及[FailedEvents过滤](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_EventFilter.html)。必须明确额外风险：[事件模型](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_OperationEvent.html)可能含ResourceProperties，**AWS CLI进程可能在内存接收它**；只用白名单投影返回原因/状态，属性不输出、不进入Node审计文件或Git。若发现超出准确操作/栈/三规则的事件则停止；接受凭据内存、网络/提供者日志和低额非零费用。该历史失败原因查询没有新部署窗口，不延长旧事实/批准，也不执行/重建/回滚任何资源。35项本地检查及定向lint通过，仍待这一次新的读取许可；取得实际原因后才提出最小恢复范围，资源或权限变更另审。
+
 ## 当前最新：B 限定只读刷新通过，等待新执行 SHA 确认
+
+以下为成功刷新后、执行前的旧观察；已由顶部实际失败/部分状态接续，不能据此重放1096…或说计划仍AVAILABLE。
 
 用户另允同目标STS1/元数据30后，本轮身份核对成功，未要求重登。新记录从 **2026-11-07T13:46:46.440Z（温尼伯07:46:46.440 CST）** 开始实际读取，13:47:26.077Z完成；实际STS1/元数据28，所有AWS写/秘密/PEM/.env/数据库/任务环境读取/新计划/执行槽均0，无自动重试。[新鲜事实和原件](../ops/deployment-baseline/tenant-b-execution-refresh-20261107.json)与旧记录并存，不覆盖历史。
 

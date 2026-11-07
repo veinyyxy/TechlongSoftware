@@ -1,0 +1,138 @@
+{
+  "schema": "techlong/tenant-b-execution-inspected/v1",
+  "status": "B_EXECUTION_INDEPENDENTLY_INSPECTED_NOT_ACCEPTED",
+  "approvedManifestSha256": "109627ceccdbe813ebbbf2b80c176c9a1e60ed16dfc75cb1f740a04af2dd69c9",
+  "sourceCommit": "019ddce33006eae14efec26f132f5f7998fbf96c",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+  "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-tenant-b-listeners-20261107t053831/95855d02-9903-4d56-b042-959fb66cb232",
+  "clientRequestToken": "tenant-b-execute-7e15f0da230b440ebd117052e21e423b",
+  "operationId": "05dc971d-c8f7-46b9-ae85-d44ec357b009",
+  "startedAt": "2026-11-07T14:07:30.095Z",
+  "submissionIntentAt": "2026-11-07T14:07:56.251Z",
+  "acknowledgedAt": "2026-11-07T14:07:57.733Z",
+  "independentlyInspectedAt": "2026-11-07T14:09:45.640Z",
+  "executeAcknowledged": true,
+  "stackStatus": "UPDATE_FAILED",
+  "changeSetExecutionStatus": "EXECUTE_FAILED",
+  "effectiveDisableRollback": true,
+  "stackStatusReason": "The following resource(s) failed to update: [TenantControlListenerRule, TenantListenerRule, TenantBusinessControlDenyRule]. ",
+  "initialFailureCauseProved": false,
+  "appliedTemplateSha256": "d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779",
+  "listenerParametersNow": {
+    "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d",
+    "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1"
+  },
+  "listenerParametersChangedDespiteFailure": true,
+  "cfnResourceRecords": [
+    {
+      "logicalId": "TenantBusinessControlDenyRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/02eb1194bf042d4e",
+      "status": "UPDATE_ROLLBACK_COMPLETE",
+      "statusReason": "Rollback succeeded for the failed resources."
+    },
+    {
+      "logicalId": "TenantControlListenerRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b/77d3da2f728b3bcf",
+      "status": "UPDATE_ROLLBACK_COMPLETE",
+      "statusReason": "Rollback succeeded for the failed resources."
+    },
+    {
+      "logicalId": "TenantListenerRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/ce81bd294d025612",
+      "status": "UPDATE_ROLLBACK_COMPLETE",
+      "statusReason": "Rollback succeeded for the failed resources."
+    },
+    {
+      "logicalId": "TenantLogGroup",
+      "type": "AWS::Logs::LogGroup",
+      "physicalId": "/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantService",
+      "type": "AWS::ECS::Service",
+      "physicalId": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantTargetGroup",
+      "type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/5c3f443f78df9934",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantTaskDefinition",
+      "type": "AWS::ECS::TaskDefinition",
+      "physicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+      "status": "CREATE_COMPLETE"
+    }
+  ],
+  "ruleReferencesStillOld": true,
+  "newTenantRulesVerifiedAfterOperation": 0,
+  "newRuleEntitiesEverCreatedNotProved": true,
+  "resourceLevelRecoveryObserved": [
+    "TenantBusinessControlDenyRule",
+    "TenantControlListenerRule",
+    "TenantListenerRule"
+  ],
+  "retainedFourPhysicalIdsUnchanged": true,
+  "service": {
+    "arn": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+    "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+    "desired": 0,
+    "running": 0,
+    "pending": 0
+  },
+  "serviceZeroCountsAtInspection": true,
+  "noTransientRuntimeTaskHistoryQueried": true,
+  "targetGroupAlbAssociations": [],
+  "currentPolicyDefault": "v10",
+  "currentPolicyCanonicalSha256": "965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6",
+  "writerPostInlineAndAttachmentsUnchanged": true,
+  "differences": [
+    "stack-status-or-disable-rollback",
+    "change-set-not-execute-complete",
+    "rule:TenantBusinessControlDenyRule:NEW_RULE_RECORD_NOT_REPLACED",
+    "rule:TenantControlListenerRule:NEW_RULE_RECORD_NOT_REPLACED",
+    "rule:TenantListenerRule:NEW_RULE_RECORD_NOT_REPLACED",
+    "unreviewed-extra-or-incomplete-rules",
+    "target-group-or-new-alb-association"
+  ],
+  "counts": {
+    "writer": {
+      "sts": 1,
+      "metadata": 22,
+      "executeChangeSet": 1
+    },
+    "independent": {
+      "sts": 1,
+      "metadata": 14,
+      "executeChangeSet": 0
+    },
+    "total": {
+      "sts": 2,
+      "metadata": 36,
+      "executeChangeSet": 1
+    },
+    "otherDirectAwsWrites": 0
+  },
+  "executionSlotsConsumed": 1,
+  "executionApprovalConsumed": true,
+  "repeatExecutionAuthorized": false,
+  "automaticRetry": false,
+  "agentRollbackRequested": false,
+  "agentCleanupOrStopPerformed": false,
+  "tenantBindingsRepaired": false,
+  "apiDnsRepaired": false,
+  "imageUpdated": false,
+  "wholeSystemAccepted": false,
+  "privateEvidenceDirectory": ".local-secrets/tenant-b-execute-109627ce-20261107-a",
+  "journalRawSha256": "dc4eab2bf3025794d9b63c4271acc7c6149e2f3c6fd0799f836b5b40ada53a8f",
+  "independentJournalRawSha256": "6d56f82b3bddcc42fe82089628945c038c7c736e488dd20dba24a89946fe0b3e",
+  "independentJournalCanonicalSha256": "36e3c26f2984c9ee5d9c45a14367e22441e882b4449a620dbd37956f8d426f1a",
+  "attemptIntentRawSha256": "530b40102ef1e8071c51939c2ed234d32909224856343c1deb86b9eafacba457",
+  "next": "Separately approve one exact-operation failed-event read to obtain the original cause. Do not replay this failed execution, recreate a plan, rollback, repair IAM, stop tasks or update DNS/images without a new reviewed scope."
+}

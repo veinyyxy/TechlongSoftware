@@ -4,6 +4,8 @@
 
 ## 当前动作：既有实例标准更新的资源基线（2026-11-06）
 
+**当前唯一继续点：申请一次准确失败事件读取，不再执行。** [B真实结果](aws-cell-listener-ownership-repair.md#当前结果b-已单次执行但失败且未验收停止写入)：UPDATE_FAILED/EXECUTE_FAILED；两参数已729e，三旧规则记录资源级恢复，尚无新规则验收，服务仍0/:12，四保留ID/IAM v10保持。STS2/元数据36/Execute1、其他直接写0，槽已消费，不重试/主动回滚/清理。现有摘要无初始错误，不认定缺失规则就是根因；只请求STS1＋OperationId 05dc971d…的DescribeEvents1/FailedEvents=true、一页原因投影。CLI可能收到ResourceProperties内存、不保存/显示属性；新读取仍待许可，不用剩余预算扩API。35项检查及定向lint通过；不建新计划、改权限/模板/DNS/镜像，恢复范围待真实原因另审，ALB可能持续收费。
+
 **当前唯一动作：确认新执行SHA，不再重复已成功读取。** [B刷新结果](aws-cell-listener-ownership-repair.md#当前最新b-限定只读刷新通过等待新执行-sha-确认)：STS1/元数据28、云写/秘密/数据库/执行槽0；同一三规则计划AVAILABLE，服务0/:12、Cell16项/729e、IAM v10及网络/证书匹配，未重建或重装。新SHA `109627ceccdbe813ebbbf2b80c176c9a1e60ed16dfc75cb1f740a04af2dd69c9` 来自新文件，仅Execute原95855d02…一次/DisableRollback=true、旧范围及失败策略不变；风险接受已记录，实际动作仍需新SHA确认。新事实五小时到12:46 CST，最晚11月7日12:31:46.440 Winnipeg CST启动，不改旧期限/槽。33项检查及定向lint通过；ALB active可能持续收费，DNS/镜像不动，任务异常不自动停回，不扩支线。
 
 **当前唯一动作：申请同一B计划的一次限定只读刷新。** 用户已明确接受依赖风险，但07:36 Winnipeg CST启动检查发现旧清单03:03已过期，本轮AWS/配置/秘密/数据库/槽全部0，未执行。[停止点与范围](aws-cell-listener-ownership-repair.md#当前停止点b-执行清单已过期未调用-aws)：STS1＋元数据30，原计划/租户/Cell/监听规则/服务/IAM及必要网络/证书元数据；不写、不读秘密或任务环境、不连库，不重建95855d02…或重装IAM。事实通过后绑定新SHA再确认，不改旧期限/槽，不据旧05:55观察声称当前仍AVAILABLE或服务仍0。ALB可能仍收费，不自动停用；当前未验证Source，不预先要求刷新。

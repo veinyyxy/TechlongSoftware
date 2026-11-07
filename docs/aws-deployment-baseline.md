@@ -18,6 +18,8 @@
 
 ## 跨栈绑定与恢复差异
 
+**B执行后的真实部分状态：** [独立检查结果](../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json)为UPDATE_FAILED/未验收。参数虽已指向729e，三规则CFN物理引用仍旧代且显示资源级恢复；因此“参数对齐”不能当归属/实体已修复。服务验收时0/:12，四保留物理ID保持，目标组仍未关联ALB。下一只先另允准确失败事件读原因，不更新镜像/DNS、不重放已消费执行；下方AVAILABLE/待执行都是前置历史。
+
 **B实际计划已确认，但尚未应用：** [准确95855d02…结果](../ops/deployment-baseline/tenant-b-created-20261107.json)为三规则替换、Service等四资源不变的可用计划；创建后Original/七CFN记录/旧两参数保持、服务仍0/:12。下一只审同一计划的执行和失败策略，不能把Creation通过当租户已接上729e。特别保留Service声明1/实况0的依赖协调风险：未来若计数变化就不验收、不擅自修复或停用，须用户另决。实际DNS与镜像仍未改。
 
 **IAM差异已收敛，租户引用尚未应用：** [v10安装结果](../ops/deployment-baseline/tenant-b-iam-installed-20261107.json)已独立确认新旧规则标签读取前缀、旧三版/角色边界保持；本阶段只一次IAM版本写，未把租户241081参数改成729e。下一[准确清单](../ops/deployment-baseline/tenant-b-creation-review.json)只待批准创建三规则替换计划，不执行、启动服务或夹带DNS/镜像更新。下段待IAM文字为前置事实，不再是当前动作。

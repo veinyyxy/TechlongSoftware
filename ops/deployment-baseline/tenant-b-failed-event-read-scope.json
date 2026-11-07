@@ -1,0 +1,74 @@
+{
+  "schema": "techlong/tenant-b-failed-event-read-scope/v1",
+  "status": "PROPOSED_NOT_APPROVED",
+  "parentResultFile": "tenant-b-execution-inspected-20261107.json",
+  "parentResultCanonicalSha256": "85b0be4d8d1457003a7033ede0c322d1d26a8968048a771dc86f03fdbbe1e980",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "expectedPrincipalArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "expectedPrincipalUserId": "AIDAV3GNMXTZEO7SHLC2X",
+  "stsMax": 1,
+  "metadataMax": 1,
+  "operation": "cloudformation:DescribeEvents",
+  "request": {
+    "OperationId": "05dc971d-c8f7-46b9-ae85-d44ec357b009",
+    "Filters": {
+      "FailedEvents": true
+    }
+  },
+  "expectedStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+  "expectedClientRequestToken": "tenant-b-execute-7e15f0da230b440ebd117052e21e423b",
+  "expectedOperationType": "UPDATE_STACK",
+  "allowedLogicalRuleIds": [
+    "TenantBusinessControlDenyRule",
+    "TenantControlListenerRule",
+    "TenantListenerRule"
+  ],
+  "allowRootStackFailureMetadata": true,
+  "singlePageOnly": true,
+  "followNextToken": false,
+  "projectedOutputMaxBytes": 1048576,
+  "projectedEventFields": [
+    "EventId",
+    "StackId",
+    "OperationId",
+    "OperationType",
+    "OperationStatus",
+    "EventType",
+    "LogicalResourceId",
+    "PhysicalResourceId",
+    "ResourceType",
+    "Timestamp",
+    "ResourceStatus",
+    "ResourceStatusReason",
+    "ClientRequestToken",
+    "ValidationName",
+    "ValidationStatus",
+    "ValidationStatusReason",
+    "HookStatus",
+    "HookStatusReason"
+  ],
+  "excludedFields": [
+    "ResourceProperties"
+  ],
+  "rawEventPropertiesMayEnterAwsCliMemory": true,
+  "rawResourcePropertiesNotSavedOrPrinted": true,
+  "unexpectedStackOperationOrResourceStopsProcessing": true,
+  "unfilteredDescribeStackEvents": 0,
+  "taskDefinitionApiReads": 0,
+  "secretValueReads": 0,
+  "privateKeyReads": 0,
+  "configSecretFileReads": 0,
+  "databaseConnections": 0,
+  "awsWrites": 0,
+  "executionSlotsConsumed": 0,
+  "automaticRetry": false,
+  "automaticRepair": false,
+  "executionAuthorized": false,
+  "risks": [
+    "One fixed failed operation only; FailedEvents filter is server-side, but any returned ResourceProperties may enter AWS CLI memory. Use CLI output projection to omit ResourceProperties before the private Node journal and all displayed output.",
+    "Only approved three rules or the exact root stack may be processed. Do not expand to stack history, task-definition APIs, CloudWatch/CloudTrail, Secret values or private configuration.",
+    "Credential use in memory, network/provider logs and low nonzero costs remain. One page only; no pagination, retry, write, replay, rollback or remediation."
+  ],
+  "next": "After user grants this exact read scope, capture and classify the original failure metadata before proposing the smallest necessary recovery. No read or recovery action is authorized by this draft."
+}

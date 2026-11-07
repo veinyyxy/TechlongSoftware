@@ -27,6 +27,8 @@ import bExecuteReview from '../ops/deployment-baseline/tenant-b-execution-review
 import bExpired from '../ops/deployment-baseline/tenant-b-execution-expired-20261107.json' with { type: 'json' };
 import bRefresh from '../ops/deployment-baseline/tenant-b-execution-refresh-20261107.json' with { type: 'json' };
 import bRefreshedReview from '../ops/deployment-baseline/tenant-b-execution-review-refreshed-20261107.json' with { type: 'json' };
+import bInspected from '../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json' with { type: 'json' };
+import bFailureRead from '../ops/deployment-baseline/tenant-b-failed-event-read-scope.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -614,4 +616,42 @@ test('B refreshed approval carries the accepted unchanged risk but still needs a
   assert.equal(bRefreshedReview.executionAuthorized,false);assert.equal(bRefreshedReview.apiDnsChangeAuthorized,false);
   assert.equal(bRefreshedReview.preparation.newAccountAwsCallsDuringManifestAssembly,0);
   assert.equal(bRefreshedReview.preparation.executionSlotsConsumed,0);
+});
+
+test('B failed execution is recorded as partial state, never success or an unused retry slot',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(bInspected.approvedManifestSha256,sha(bRefreshedReview));
+  assert.equal(bInspected.status,'B_EXECUTION_INDEPENDENTLY_INSPECTED_NOT_ACCEPTED');
+  assert.equal(bInspected.stackStatus,'UPDATE_FAILED');assert.equal(bInspected.changeSetExecutionStatus,'EXECUTE_FAILED');
+  assert.equal(bInspected.effectiveDisableRollback,true);assert.equal(bInspected.executeAcknowledged,true);
+  assert.equal(bInspected.listenerParametersChangedDespiteFailure,true);
+  assert.deepEqual(bInspected.listenerParametersNow,bRefreshedReview.expected.newListenerParameters);
+  assert.equal(bInspected.newTenantRulesVerifiedAfterOperation,0);assert.equal(bInspected.ruleReferencesStillOld,true);
+  assert.equal(bInspected.resourceLevelRecoveryObserved.length,3);
+  assert.ok(bInspected.cfnResourceRecords.filter(x=>bRefreshedReview.expected.onlyRuleReplacements.some(y=>y.logicalId===x.logicalId)).every(x=>x.status==='UPDATE_ROLLBACK_COMPLETE'));
+  assert.equal(bInspected.retainedFourPhysicalIdsUnchanged,true);
+  assert.deepEqual([bInspected.service.desired,bInspected.service.running,bInspected.service.pending],[0,0,0]);
+  assert.equal(bInspected.service.taskDefinitionArn,bCreated.service.taskDefinitionArn);
+  assert.deepEqual(bInspected.targetGroupAlbAssociations,[]);
+  assert.equal(bInspected.currentPolicyDefault,'v10');assert.equal(bInspected.currentPolicyCanonicalSha256,bIamInstalled.installedPolicyCanonicalSha256);
+  assert.deepEqual(bInspected.counts.total,{sts:2,metadata:36,executeChangeSet:1});
+  assert.equal(bInspected.counts.otherDirectAwsWrites,0);assert.equal(bInspected.executionSlotsConsumed,1);
+  assert.equal(bInspected.executionApprovalConsumed,true);assert.equal(bInspected.initialFailureCauseProved,false);
+  for(const key of ['repeatExecutionAuthorized','automaticRetry','agentRollbackRequested','agentCleanupOrStopPerformed','tenantBindingsRepaired','apiDnsRepaired','imageUpdated','wholeSystemAccepted'])assert.equal(bInspected[key],false,key);
+});
+
+test('B failed-event followup needs separate narrow read permission and excludes persisted ResourceProperties',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(bFailureRead.parentResultCanonicalSha256,sha(bInspected));
+  assert.equal(bFailureRead.request.OperationId,bInspected.operationId);assert.deepEqual(bFailureRead.request.Filters,{FailedEvents:true});
+  assert.equal(bFailureRead.operation,'cloudformation:DescribeEvents');
+  assert.ok(!bRefreshedReview.allowedMetadataApis.includes(bFailureRead.operation),'do not use spare execution budget for an unapproved API');
+  assert.equal(bFailureRead.status,'PROPOSED_NOT_APPROVED');assert.equal(bFailureRead.stsMax,1);assert.equal(bFailureRead.metadataMax,1);
+  assert.equal(bFailureRead.followNextToken,false);assert.deepEqual(bFailureRead.excludedFields,['ResourceProperties']);
+  assert.ok(!bFailureRead.projectedEventFields.includes('ResourceProperties'));
+  assert.equal(bFailureRead.rawEventPropertiesMayEnterAwsCliMemory,true);assert.equal(bFailureRead.rawResourcePropertiesNotSavedOrPrinted,true);
+  for(const key of ['unfilteredDescribeStackEvents','taskDefinitionApiReads','secretValueReads','privateKeyReads','configSecretFileReads','databaseConnections','awsWrites','executionSlotsConsumed'])assert.equal(bFailureRead[key],0,key);
+  assert.equal(bFailureRead.executionAuthorized,false);assert.equal(bFailureRead.automaticRepair,false);
 });
