@@ -2,6 +2,30 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；下方原“待审/未执行”只保留各阶段事实，最新结果如下。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
 
+## 待批准：仅执行既有 A2，恢复 Cell 四项声明
+
+本轮仅用已存创建/独立原件准备执行审批，并核对公开AWS价格和失败策略说明；**账号AWS调用、云写、Secret/PEM/配置读取、数据库连接和新执行槽均为0**。不为准备材料重复资源预检，不重建A2，不把新材料时间当作新依赖事实。
+
+准确[执行清单](../ops/deployment-baseline/cell-a2-execution-review.json)规范JSON SHA：
+
+`a4c1b41b6b5d9fa3a9a1883994aeebbc4b514390e8b392964bf93b25f59512a9`
+
+- 仅一次ExecuteChangeSet，绑定完整Cell栈及现有A2 ARN `c51436f8-6086-413d-9b5e-a4897b8522c2`，固定ClientRequestToken，显式 `DisableRollback=true`。CFN按已核验模板恢复ALB、443/8443监听器、共享拒绝规则四项声明及两个输出；不直接调用ELB创建/修改，不新增IAM、不启动ECS/RDS、不改租户参数/三规则、API DNS或镜像。四项声明不等于AWS底层对象总数，ALB会有服务托管网络接口/公网IP及默认规则。
+- 获批后写前核对准确身份、A2仍是唯一CREATE_COMPLETE/AVAILABLE变更集、四Add/模板及A1十二物理ID/输入匹配、同名ALB仍缺失、原角色权限指纹及Cell扫描仍DISABLED、已知租户/集群仍空闲。其余必要依赖复用有效事实、提交前核对准确引用；事实变更或过期停止，不覆盖、不创建替代计划、不修改清理计划或旧到期标签。证据、费用和候选摘要均被执行清单显式绑定。
+- 代理直接API上限：Execute1、STS2、限定元数据80、只读等待最多600秒；只访问准确Cell/A2、已知租户、固定角色/依赖/清理计划及本栈返回的新物理ID，IAM全局端点用us-east-1签名。CFN提供者内部并行/重试不计入代理直接次数。等待超时不表示AWS停止创建或收费，不自行取消/清理。
+- **失败保留现场：** 意图先持久化，提交后失败或回执不明均不重发（包括同token），不主动Rollback/ContinueUpdateRollback/DeleteStack、补建、删除或复位槽。禁用整体失败回滚不等于所有资源级恢复绝不发生；失败资源仍可能被CFN恢复到稳定状态。与OnStackFailure或RollbackTriggers设置冲突就停止，不去掉DisableRollback后重试。[ExecuteChangeSet参数](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ExecuteChangeSet.html)、[AWS失败保留说明](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stack-failure-options.html)。可能停在UPDATE_FAILED或部分创建并持续收费，后续修复/清理另审。
+- **成功门槛：** 另一进程确认同栈UPDATE_COMPLETE、Original等于A2；十二保留物理ID不变、四新物理ID确由Cell拥有，ALB active且VPC/子网/SG/三属性匹配。独立回读443证书/TLS/默认404、8443 mTLS verify/准确trust store/不忽略到期/默认404、共享拒绝规则优先级1及两个路径；两输出必须等于新的实际监听器ARN，其余五输出、参数、标签、角色保持。只保存真实新ARN/DNSName/CanonicalHostedZoneId；不执行业务HTTP、不读取控制私密包。通过A2不代表租户三规则/DNS已接通或API已恢复。
+
+### 本轮增量费用与持续收费风险
+
+[公开费用估算及来源版本](../ops/deployment-baseline/cell-a2-cost-estimate.json)按2026-11-07T04:37公开目录观察（温尼伯11月6日22:37），ca-central-1：ALB **0.02475 USD/小时**、关联trust store **0.0055 USD/单位小时**、LCU **0.0088 USD/LCU小时**。来源为[AWS区域ELB价目](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/ca-central-1/index.json)（版本20261105220241）。公网IPv4 **0.005 USD/地址小时**，来源为[AWS区域VPC价目](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/ca-central-1/index.json)（版本20261105181945）。
+
+按1个ALB＋1个trust store关联单位＋2个公网IPv4的**场景推算**，固定项约0.04025 USD/小时，730小时约 **29.38 USD/月**；2小时约0.0805 USD。每持续1 LCU再约6.424 USD/月。此处2小时只作算例，不是新租约或自动停止时间。IPv4可能扩容，实际LCU、流量、税和其他资源不在固定项内，短时ALB还涉及整小时计费，不假设免费额度/折扣，**不是费用上限，也不保证全账号50 USD/月**。[ELB计费规则](https://aws.amazon.com/elasticloadbalancing/pricing/)、[公网IPv4规则](https://aws.amazon.com/vpc/pricing/)。本轮未读取账号账单或启动原数据库/平台/租户服务。
+
+旧 `ExpiresAt=2026-10-15T16:44:56.246Z` 和CellExpiresAt仍保留，不新增到期、不续期、不删除标签。执行前Cell扫描必须仍DISABLED，global tenant扫描仍ENABLED，已知租户不得新增ExpiresAt；部署中的清理器同源性及外部并发仍未证明，**不能保证永不被外部清理，也不能保证自动停费**。本轮不运行或并行使用临时启停工具、不安装到期定时器；失败留下ALB时报告收费状态，代理不自动删除。用户之后通知停止或准确清理批准另行处理。
+
+**最晚启动：温尼伯2026年11月7日03:03:42.258 CST（09:03:42.258Z）**。依赖仍取原04:18:42.258Z，五小时到09:18:42.258Z，预留15分钟用于本次受审执行/独立核验；材料和公开价格观察不延期资源事实。这是审批时限，不是资源寿命。16项本地基线/费用/审批边界检查通过；本轮未执行，准确SHA仍待用户确认。后继唯一方向为A2完成后另审B租户两参数/三规则及API DNS，不开始镜像更新。
+
 ## 最新结果：A2 已创建并独立核验，未执行
 
 用户确认清单 `23ee54ae7fdcd573f4895baa425276d0d8779c47f1a2b2341a69d8056f1dd0ac` 后，准确执行源码 `21cb21805103f2f9b3f6945a281c9b6c2604177c` 仅提交一次CreateChangeSet，并由另一进程完成独立只读回读。A2完整ARN：

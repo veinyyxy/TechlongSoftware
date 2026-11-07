@@ -12,6 +12,8 @@ import a2 from '../ops/deployment-baseline/cell-a2-offline-plan.json' with { typ
 import a2Facts from '../ops/deployment-baseline/cell-a2-preflight-20261107.json' with { type: 'json' };
 import a2Create from '../ops/deployment-baseline/cell-a2-creation-review.json' with { type: 'json' };
 import a2Created from '../ops/deployment-baseline/cell-a2-created-20261107.json' with { type: 'json' };
+import a2Execute from '../ops/deployment-baseline/cell-a2-execution-review.json' with { type: 'json' };
+import a2Costs from '../ops/deployment-baseline/cell-a2-cost-estimate.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -211,4 +213,38 @@ test('A2 created result is an available four-Add plan; applied stack remains twe
   assert.equal(a2Created.creationAuthorized,true);assert.equal(a2Created.executionAuthorized,false);
   assert.equal(a2Created.albRestored,false);assert.equal(a2Created.cloudFormationOwnershipRepaired,false);
   assert.ok(Date.parse(a2Created.submissionIntentAt)<Date.parse(a2Create.startBefore));
+});
+
+test('A2 execution proposal binds only the existing four-Add plan and an explicit new failure policy',()=>{
+  assert.equal(a2Execute.status,'PREPARED_NOT_APPROVED');assert.equal(a2Execute.executionAuthorized,false);
+  assert.equal(a2Execute.request.StackName,a2Created.stackId);assert.equal(a2Execute.request.ChangeSetName,a2Created.changeSetId);
+  assert.equal(a2Execute.request.DisableRollback,true);assert.equal(a2Execute.scope.executeChangeSetMax,1);
+  assert.equal(a2Execute.expected.currentTemplateSha256,a2Created.appliedTemplateSha256);
+  assert.equal(a2Execute.expected.proposedTemplateSha256,a2Created.proposedTemplateSha256);
+  assert.deepEqual(a2Execute.expected.addLogicalIds,a2Created.changes.map(x=>x.logicalId));
+  for(const key of ['createChangeSet','deleteChangeSet','createStack','updateStack','deleteStack','rollbackStack','continueUpdateRollback','directElbWrites','iamWrites','dnsWrites','databaseOperations','ecsWrites','imageUpdates','secretValueReads','privateKeyReads','configSecretFileReads','lambdaInvocations','cleanupOrExpiryChanges','tenantRuleChanges','dispatch'])assert.equal(a2Execute.scope[key],0,key);
+  assert.equal(a2Execute.failurePolicy.replayAfterUnknownSubmission,false);assert.equal(a2Execute.failurePolicy.automaticCleanup,false);
+  assert.equal(a2Execute.failurePolicy.providerInternalResourceRecoveryMayStillOccur,true);
+  assert.equal(a2Execute.expected.cellCleanupSchedule,'DISABLED');assert.equal(a2Execute.historicalCleanupRisk.oldTagNotRenewedOrRemoved,true);
+  assert.equal(a2Execute.preparationAccountAwsCalls,0);
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  for(const [file,data]of [['cell-a1-executed-20261106.json',executed],['cell-a2-preflight-20261107.json',a2Facts],['cell-a2-created-20261107.json',a2Created],['cell-a2-cost-estimate.json',a2Costs]]){
+    assert.equal(a2Execute.evidenceBindings.find(x=>x.file===file)?.canonicalSha256,createHash('sha256').update(JSON.stringify(canonical(data))).digest('hex'));
+  }
+  assert.equal(a2Execute.dependencyFactsAt,a2Facts.factsAt);
+  assert.equal(Date.parse(a2Execute.dependencyFactsValidBefore)-Date.parse(a2Execute.dependencyFactsAt),5*3600000);
+  assert.equal(Date.parse(a2Execute.dependencyFactsValidBefore)-Date.parse(a2Execute.startBefore),15*60000);
+});
+
+test('A2 public price scenario includes the mTLS trust store and IPv4, never promises a 50 USD cap',()=>{
+  assert.equal(a2Costs.region,'ca-central-1');assert.equal(a2Costs.scenario.albCount,1);
+  const hourly=a2Costs.rates.albHour.usd+a2Costs.rates.trustStoreAssociationUnitHour.usd*a2Costs.scenario.trustStoreAssociationUnits+a2Costs.rates.inUsePublicIpv4Hour.usd*a2Costs.scenario.publicIpv4CountAssumed;
+  assert.equal(Number(hourly.toFixed(5)),a2Costs.scenario.fixedHourlyUsd);
+  assert.equal(Number((hourly*730).toFixed(4)),a2Costs.scenario.fixedMonthlyUsd);
+  assert.equal(Number((hourly*2).toFixed(4)),a2Costs.scenario.fixedTwoHourUsd);
+  assert.equal(Number((a2Costs.rates.usedLcuHour.usd*730).toFixed(3)),a2Costs.scenario.oneLcuContinuousMonthlyAdditionalUsd);
+  assert.equal(a2Execute.costAcceptance.scenarioFixedMonthlyUsd,a2Costs.scenario.fixedMonthlyUsd);
+  assert.equal(a2Costs.notACap,true);assert.equal(a2Costs.monthly50UsdGoalNotGuaranteed,true);
+  assert.equal(a2Execute.costAcceptance.noNewAutomaticExpiryOrCleanupInstalled,true);
+  assert.equal(a2Execute.costAcceptance.notACostCap,true);assert.equal(a2Costs.createsOrExpiresResources,false);
 });

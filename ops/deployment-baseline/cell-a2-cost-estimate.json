@@ -1,0 +1,34 @@
+{
+  "schema": "techlong/cell-a2-cost-estimate/v1",
+  "status": "PUBLIC_LIST_PRICE_SCENARIO_NOT_BILLING_OR_COST_CAP",
+  "region": "ca-central-1",
+  "currency": "USD",
+  "checkedAt": "2026-11-07T04:37:49.226Z",
+  "sources": {
+    "elb": {"url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/ca-central-1/index.json", "version": "20261105220241", "publicationDate": "2026-11-05T22:02:41Z", "checkedAt": "2026-11-07T04:37:48.762Z"},
+    "vpc": {"url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/ca-central-1/index.json", "version": "20261105181945", "publicationDate": "2026-11-05T18:19:45Z", "checkedAt": "2026-11-07T04:37:49.226Z"}
+  },
+  "rates": {
+    "albHour": {"sku": "QMDFDZRE84T95832", "usageType": "CAN1-LoadBalancerUsage", "usd": 0.02475},
+    "trustStoreAssociationUnitHour": {"sku": "76U5VPHXTDFW8UAW", "usageType": "CAN1-TS-LoadBalancerUsage", "usd": 0.0055},
+    "usedLcuHour": {"sku": "4CB824Z6CRKPUBG4", "usageType": "CAN1-LCUUsage", "usd": 0.0088},
+    "inUsePublicIpv4Hour": {"sku": "4Q2UVHZNUYYAPGTD", "usageType": "CAN1-PublicIPv4:InUseAddress", "usd": 0.005}
+  },
+  "scenario": {
+    "albCount": 1,
+    "trustStoreAssociationUnits": 1,
+    "publicIpv4CountAssumed": 2,
+    "monthlyHoursAssumed": 730,
+    "fixedHourlyUsd": 0.04025,
+    "fixedTwoHourUsd": 0.0805,
+    "fixedMonthlyUsd": 29.3825,
+    "oneLcuContinuousMonthlyAdditionalUsd": 6.424
+  },
+  "exclusions": ["actual-LCU-usage", "data-transfer", "taxes", "existing-resources", "discounts-and-credits"],
+  "notACap": true,
+  "publicIpv4CountMayScaleAboveAssumption": true,
+  "partialAlbHourBilledAsFullHour": true,
+  "monthly50UsdGoalNotGuaranteed": true,
+  "noAccountBillingDataRead": true,
+  "createsOrExpiresResources": false
+}
