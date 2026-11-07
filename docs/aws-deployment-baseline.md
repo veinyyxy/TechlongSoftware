@@ -8,7 +8,7 @@
 
 ## 当前状态与唯一继续点
 
-**单次回滚已按新接续清单完成并独立核验，当前只离线准备新的 B 仅创建材料。** [实际结果](../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json)于18:12:05.152Z证明同一租户恢复UPDATE_ROLLBACK_COMPLETE；累计STS3/元数据20/RollbackStack1（含a失败1），其他直接写0。a/旧审批与原件保持，新b槽1及批准已消费，不重放；这不是规则实体/API恢复或三栈无漂移证明。
+**新 B 三规则离线材料已备，未创建或执行。** [不可执行草案](../ops/deployment-baseline/tenant-b-post-rollback-offline-plan.json)仅复用原模板/两参数片段并锚定[回滚实际结果](../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json)：18:12:05.152Z同一租户恢复UPDATE_ROLLBACK_COMPLETE，前阶段累计STS3/元数据20/RollbackStack1（含a失败1），其他直接写0。本离线阶段AWS调用/私密读取/数据库/槽消费均0；a/旧审批/原件保持，新b回滚槽1及批准已消费，不重放。这不是规则实体/API恢复或三栈无漂移证明。
 
 | 对象 | 最新已存事实与边界 |
 | --- | --- |
@@ -19,7 +19,7 @@
 
 **已确认的直接原因：** 2026-11-07T14:53:08.255Z 完成的一页事件查询绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，返回根栈及三条规则共4条失败事件，无下一页。三规则均报 `Replacement type updates not supported on stack with disable-rollback.`。原执行清单把三项替换与 `DisableRollback=true` 组合，这是本次执行策略的不兼容，不是新的 IAM 缺口证明；也不能据此保证未来恢复必然成功。ResourceProperties 只可能进入 CLI 内存，未保存/输出；原[读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)保持准备时原文，不用于重复读取。
 
-**当前唯一继续点：只离线准备新的 B 仅创建材料。** [回滚结果与移交边界](aws-cell-listener-ownership-repair.md#tenant-b-rollback-result)确认DisableRollback仍true，后继替换执行须显式false。复用原模板/两监听器片段，但用本次稳定控制状态准备新的三规则Change Set范围，不能重用失败95855d02…或已消费回滚批准/token；实际Cell输出/规则优先级等必要只读核对、创建与执行仍准确另审。当前不读取新AWS、不新建变更集或回到A1/A2/IAM支线，DNS/镜像仍不得更新。
+**当前唯一继续点：单独确认必要只读范围，再为新 B 准备准确“仅创建”清单。** [新材料与门槛](aws-cell-listener-ownership-repair.md#tenant-b-post-rollback-draft)限定同模板/两参数/三规则，其余四资源/18参数保留；729e监听器只是旧Cell事实中的候选，不冒充现时值。新读取、实际创建并独立核验、执行仍各准确另审；执行显式DisableRollback=false，不依赖当前栈仍true或SDK默认值。当前没有这些云操作许可，不重用失败95855d02…或已消费回滚批准/token，不回到A1/A2/IAM支线、不改Service/DependsOn/DNS/镜像，不扩平台修复。
 
 原回滚事实/最晚启动时间保留为已完成操作的历史，不延长为下一B许可。回滚后新观察也不刷新旧Cell事实或授权追加读取。没有直接启停ECS/RDS、运行临时工具或新增自动到期，ALB可能持续收费，本轮没有费用/健康核对；用户已测业务场景不重做。
 

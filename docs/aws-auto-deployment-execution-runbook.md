@@ -2,17 +2,17 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：回滚独立核验通过，只离线准备新 B 仅创建材料（2026-11-07）
+## 当前唯一继续点：新 B 三规则离线材料已备，实际核对/创建/执行仍另审（2026-11-07）
 
 用户刷新Source并明确确认412da1ab…接续清单后，b仅提交一次RollbackStack并独立核验通过；[实际结果](../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json)于18:12:05.152Z为UPDATE_ROLLBACK_COMPLETE、ROLLBACK操作80754a93…与ACK关联。累计STS3/元数据20/回滚1（a失败1/0/0＋b 1/11/1＋独立1/9/0），其他直接写0。a/配方/旧证据保持，新b槽1及批准已消费，不重放。当前状态统一看[基线顶部](aws-deployment-baseline.md#current-state)。
 
 回滚后Original d705…和七CFN物理ID保持，两个监听器参数恢复旧241081，其他18参数元数据/标签/输出/角色保持；独立验收时服务0/0/0/:12、网络/目标配置和IAM v10/角色布局匹配。DisableRollback仍true，三旧规则CFN记录不是实体存在证明；未查瞬时任务历史、Cell/规则实体/DNS/健康/费用，不称API恢复或期间绝无运行。ALB可能持续收费，无新自动停止。
 
-**直接原因及离线提案：** [查因回执](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)确认三规则替换与DisableRollback=true不兼容。[离线恢复方案](aws-cell-listener-ownership-repair.md#当前离线恢复提案先回到稳定状态再准备正常回滚的-b)现已备齐：先单独审批RollbackStack使同一租户回到上次稳定状态，独立核对后再另批新的三规则计划及显式正常回滚执行。RollbackStack作用于整栈而非三规则，缺少稳定状态可能删栈，原旧规则缺失/服务1对实况0有失败及运行收费风险；不得直接重放、跳过资源或自动补偿。
+**本轮仅离线完成：** 用户明确要求只准备新的三规则变更集材料。[新不可执行草案](../ops/deployment-baseline/tenant-b-post-rollback-offline-plan.json)绑定真实回滚结果，复用原模板及两监听器参数片段；只预期三规则Modify/Replacement=True、仅ListenerArn，其余四资源和18参数（含ImageUri）保留。没有模板/运行时代码修改、AWS调用、私密配置读取、数据库连接或槽消费，旧计划/批准/原件不改。
 
-**当前唯一后继：只离线准备新B仅创建材料。** [移交边界](aws-cell-listener-ownership-repair.md#tenant-b-rollback-result)：复用同模板/两监听器片段和本次真实稳定态，预期只三规则替换，其余四资源/18参数保留；不复用失败95855d02…、回滚批准/token或剩余预算。实际Cell输出/优先级等必要新只读、创建/执行仍各按准确范围另审，后续替换执行必须显式DisableRollback=false。没有新云调用/变更集授权，不重走A1/A2/IAM、改服务/DependsOn、DNS/镜像或扩框架。新租户观察不延长旧Cell事实、期限或授权。
+**当前唯一后继：为新B“仅创建”单独确认必要只读范围，再绑定新事实生成准确创建清单。** [材料及验收门槛](aws-cell-listener-ownership-repair.md#tenant-b-post-rollback-draft)：旧Cell 13:46事实/18:46期限原样保留，729e仅为待核对候选，不能用18:12租户回读刷新Cell。独立核对真实新Change Set恰为三项替换后，实际执行仍另审且必须显式DisableRollback=false；不在创建时混入OnStackFailure，不把形状匹配当参数保留/服务不启动/归属证明。Service声明1与实况0、旧规则缺失及正常回滚清理/依赖协调风险保留。当前没有新读取、创建或执行许可，不重放失败95855d02…或已消费回滚批准/token，不改服务/DependsOn、IAM/DNS/镜像、不扩框架或平台修复。
 
-初版基线只授权离线；A1/A2、最小IAM修正和B执行均为用户后来逐项批准的独立修复范围，不能把历史结果追加进文档后当作原基线授权。本次只按新限定读取核实事实并准备审批，不扩大或缩改旧批准的实际记录。
+初版基线只授权离线；A1/A2、最小IAM修正和B执行均为用户后来逐项批准的独立修复范围，不能把历史结果追加进文档后当作原基线授权。本次只离线准备，不新增读取许可，也不扩大或缩改旧批准的实际记录。
 
 <details>
 <summary>历史阶段记录：基线、A1/A2、B 与临时环境工具（只追溯，不执行）</summary>

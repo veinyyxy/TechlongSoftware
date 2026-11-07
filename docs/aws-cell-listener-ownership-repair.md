@@ -2,9 +2,33 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；唯一状态与后继方向以[三栈基线顶部](aws-deployment-baseline.md#current-state)为准，下方阶段文字只供追溯。**
 
+<a id="tenant-b-post-rollback-draft"></a>
+
+## 当前离线交付：新的 B 三规则仅创建材料，尚不可执行
+
+按用户“仅离线准备，实际创建/执行另审”的范围，新增[数据草案](../ops/deployment-baseline/tenant-b-post-rollback-offline-plan.json)，不改旧JSON、原模板、运行时代码或纯离线形状检查器。草案以18:12真实回滚回执及摘要为锚点，`UPDATE_ROLLBACK_COMPLETE`、旧241081参数、七CFN物理记录、服务0/0/0/:12和IAM v10都是已存观察，不是本轮新查询；NoEcho真值/业务状态未核验。
+
+复用[原两参数片段](../ops/deployment-baseline/tenant-listener-change.template.json)：`UsePreviousTemplate=true`，仅ControlListenerArn/HttpsListenerArn候选切至729e，其余18项（含ImageUri）全部`UsePreviousValue=true`，角色/标签保持。不改Service、TaskDefinition、TargetGroup、LogGroup和三个DependsOn；规则条件、动作、优先级和域名参数也不变。
+
+| 规则 | 目标监听器/优先级 | 保留的匹配与动作 |
+| --- | --- | --- |
+| TenantBusinessControlDenyRule | 443 / 100 | 准确租户host＋`/api/saas`及子路径 → 404 |
+| TenantControlListenerRule | 8443 mTLS / 100 | 同host＋控制路径 → 既有目标组 |
+| TenantListenerRule | 443 / 101 | 同host → 既有目标组 |
+
+未来新Change Set只接受**三项Modify、Replacement=True、仅ListenerArn**，Add/Remove/Import均0；非预期或无变化就停，不自动执行/删除。继续复用`review.mjs#reviewTenantListenerChangeSet`；形状通过不证明18项请求保留、服务不启动或实体归属，必须同时绑定准确请求和独立读回。
+
+**尚缺且必须另审的准备：** 必要元数据只读核对同UUID/稳定状态/Original/七记录与保留参数，Cell真实输出和ALB/443/8443/mTLS/网络关系、443优先级100/101与8443优先级100占用、旧规则实体/目标组关系、服务0/:12及角色v10。复用有效事实、不为离线草案提前查询；13:46 Cell事实及18:46原期限保留，18:12租户回读不能刷新它。新快照最多5小时，各对象以其真实采样时间约束，不静默续期。
+
+这些门槛通过后，才可形成另批的`CreateChangeSet(UPDATE)`一次清单：新名称/token、同模板、同角色/标签、恰两参数；只创建并独立核对`CREATE_COMPLETE/AVAILABLE`，Execute/Delete均0。当前草案的名称/token、实际Change Set ARN、批准SHA、新事实/启动期限均留空，不是待直接运行的命令；本轮无新读取/创建/执行许可。
+
+**后继执行风险明确保留，不在本轮执行：** 栈仍DisableRollback=true，替换执行必须显式`DisableRollback=false`，创建时不混入OnStackFailure。不依赖SDK默认值，也不重放旧95855d02…、已消费回滚token或剩余预算。正常提供者回滚可能删除替换规则/协调依赖，旧规则缺失仍可能导致更新或回滚失败；模板Service声明1对实况0，不能承诺后继执行不启动任务、托管Secret读取或数据库启动写入。保持失败停止、不自动重试/跳过/补偿；不借此改IAM、启停服务、查DNS或更新镜像，平台漂移修复另列。
+
+本阶段AWS/GitHub API/私密配置读取/数据库连接/云写入/执行槽均0，没有新运行时或恢复框架。ALB可能持续收费，未新增自动停止。46项本地基线检查（新增3项离线材料/事实来源/回滚策略回归）及定向lint通过；源码/检查通过不等于变更集已创建或API已恢复。
+
 <a id="tenant-b-rollback-result"></a>
 
-## 最新结果：单次回滚及独立核验通过，仅恢复 CFN 稳定控制状态
+## 最近云结果：单次回滚及独立核验通过，仅恢复 CFN 稳定控制状态
 
 用户报告Source刷新并明确“确认接续清单”后，已按412da1ab…仅启动新b，原a/配方/计数保持。18:10:35.739Z写入唯一提交意图，18:10:37.266Z收到RollbackStack ACK，OperationId `80754a93-34b7-4500-90b2-d9d460903751`；两次状态查询后为UPDATE_ROLLBACK_COMPLETE。另一进程于**2026-11-07T18:12:05.152Z**完成独立核验，无差异。[实际结果与原件指纹](../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json)。
 
@@ -13,9 +37,9 @@
 - **DisableRollback实际仍true**；RollbackStack没有重置它。未来替换型B执行必须显式DisableRollback=false，不回到原错误组合，不依赖默认值，创建时不混入OnStackFailure。
 - 累计**STS3/元数据20/RollbackStack1**：a失败1/0/0，b写前及状态查询1/11/1，独立1/9/0；其他直接AWS写0，没有创建/执行新变更集、修改IAM/DNS/镜像、直接启停ECS/RDS或自动补偿。原a槽0，新b回滚槽1/批准已消费，不能再用原批准/token或剩余预算。ALB可能持续收费，无新增自动停止。
 
-**当前唯一继续点：只离线准备新的B“仅创建”材料。** 复用原模板与两监听器参数片段，改用本次真实稳定状态，不复用失败95855d02…变更集或旧执行许可。只接受拟议的三规则替换、其余四资源/18参数保留；Cell真实输出、规则优先级等必要新现状和实际创建/执行仍另按准确范围审批。回滚后的租户/IAM观察不延长旧Cell事实或赋予新读取/写入权限；不重新走A1/A2、安装IAM、改服务/DependsOn、DNS/镜像、扩UI/探针/恢复框架。当前不调用新AWS、不启动短窗口。
+上述回滚结果是本页顶部新离线材料的事实锚点，不是新创建或执行许可。回滚后的租户/IAM观察不延长旧Cell事实；后继只按顶部材料门槛推进，不重走A1/A2/IAM、改服务/DependsOn/DNS/镜像或扩恢复框架。
 
-43项本地基线检查（新增1项真实回滚结果与累计计数/验收边界回归）及定向lint通过；这不替代后继三规则实体/归属和DNS核验。旧审批、停止记录和原件全部保留在下方历史与对应JSON中。
+回滚阶段43项本地基线检查（含真实回滚结果与累计计数/验收边界回归）及定向lint通过；这不替代后继三规则实体/归属和DNS核验。旧审批、停止记录和原件全部保留在下方历史与对应JSON中。
 
 <details>
 <summary>分阶段原始记录（旧当前/待批/下一步只适用于当时）</summary>

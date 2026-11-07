@@ -36,6 +36,7 @@ import bRollback from '../ops/deployment-baseline/tenant-b-rollback-review.json'
 import bRollbackStop from '../ops/deployment-baseline/tenant-b-rollback-preflight-stopped-20261107.json' with { type: 'json' };
 import bRollbackResume from '../ops/deployment-baseline/tenant-b-rollback-resume-review-20261107.json' with { type: 'json' };
 import bRolledBack from '../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json' with { type: 'json' };
+import bPostRollback from '../ops/deployment-baseline/tenant-b-post-rollback-offline-plan.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -788,4 +789,59 @@ test('B actual rollback restores only reviewed CFN control state and counts a, b
   assert.equal(bRolledBack.executionSlotsConsumed,1);assert.equal(bRolledBack.executionApprovalConsumed,true);assert.equal(bRolledBack.counts.otherDirectAwsWrites,0);
   for(const key of ['repeatExecutionAuthorized','automaticRetry','automaticCleanupOrCompensation','newChangeSetCreated','newChangeSetAuthorized','dnsUpdated','imageUpdated','noEchoSecretValuesVerified','liveRuleEntitiesRead','transientRuntimeHistoryRead','listenerOwnershipConvergenceVerified','apiRestorationVerified','wholeSystemAccepted'])assert.equal(bRolledBack[key],false,key);
   assert.deepEqual(bRolledBack.differences,[]);
+});
+
+test('new offline B binds actual restored control state without restamping older Cell facts or replaying a request',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  const evidence={'tenant-b-rollback-observed-20261107.json':bRolledBack,'tenant-b-execution-inspected-20261107.json':bInspected,
+    'tenant-b-execution-refresh-20261107.json':bRefresh,'tenant-b-offline-plan.json':listenerPlan,'tenant-listener-change.template.json':listenerTemplate};
+  for(const e of bPostRollback.evidence)assert.equal(e.canonicalSha256,sha(evidence[e.file]));
+  assert.equal(bPostRollback.targetStackId,bRolledBack.stackId);
+  const s=bPostRollback.savedStartingState,c=bPostRollback.savedCellCandidate;
+  assert.equal(s.observedAt,bRolledBack.independentlyVerifiedAt);assert.equal(s.stackStatus,'UPDATE_ROLLBACK_COMPLETE');
+  assert.equal(s.operationId,bRolledBack.operationId);assert.equal(s.operationType,'ROLLBACK');assert.equal(s.disableRollbackObserved,true);
+  assert.deepEqual(s.listenerParameters,bRolledBack.listenerParametersRestoredTo);
+  assert.equal(s.originalTemplateCanonicalSha256,bRolledBack.originalTemplateCanonicalSha256);
+  assert.equal(s.policyCanonicalSha256,bRolledBack.policyCanonicalSha256);assert.equal(s.liveRuleEntityExistenceProved,false);
+  for(const k of ['factsAt','factsValidBefore'])assert.equal(c[k],bRefresh[k]);
+  assert.ok(Date.parse(c.factsAt)<Date.parse(s.observedAt));assert.equal(c.tenantRollbackDoesNotRefreshCellFacts,true);
+  for(const [key,value]of Object.entries(c.listenerParameters))assert.equal(value,bRefresh.summary.cellOutputs[key]);
+  assert.equal(c.currentOwnershipOrPriorityVacancyProved,false);assert.equal(c.valuesMustMatchSeparatelyApprovedCurrentCellCheck,true);
+  assert.equal(bPostRollback.noReplay.failedChangeSetId,bInspected.changeSetId);
+  assert.equal(bPostRollback.noReplay.consumedRollbackToken,bRolledBack.clientRequestToken);
+  assert.equal(bPostRollback.noReplay.reuseOldApprovalOrSpareBudget,false);assert.equal(bPostRollback.noReplay.resetAttemptSlot,false);
+});
+
+test('new offline B retains the original two-parameter fragment, three-rule shape and four other physical IDs',()=>{
+  const c=bPostRollback.creationContract,r=bPostRollback.requiredChangeSetShape,g=bPostRollback.serviceGuard;
+  assert.equal(c.usePreviousTemplate,true);assert.equal(c.changeSetType,'UPDATE');assert.equal(c.includeNestedStacks,false);
+  assert.equal(c.parametersFragmentFile,'tenant-listener-change.template.json');assert.equal(c.unchangedParameterCount,18);
+  assert.deepEqual(c.changedParameters,listenerTemplate.Parameters.filter(p=>Object.hasOwn(p,'ParameterValue')).map(p=>p.ParameterKey));
+  for(const p of listenerTemplate.Parameters)assert.deepEqual(p,Object.hasOwn(bPostRollback.savedCellCandidate.listenerParameters,p.ParameterKey)?
+    {ParameterKey:p.ParameterKey,ParameterValue:bPostRollback.savedCellCandidate.listenerParameters[p.ParameterKey]}:{ParameterKey:p.ParameterKey,UsePreviousValue:true});
+  assert.equal(c.imageUriUsesPreviousValue,true);assert.equal(c.preserveExistingRoleAndTags,true);
+  assert.deepEqual(r.rules,listenerPlan.archivedTemplate.ruleProjection.map(x=>({logicalId:x.logicalId,listenerParameter:x.listenerParameter,priority:x.priority})));
+  assert.deepEqual([r.modifyCount,r.addCount,r.removeCount,r.importCount],[3,0,0,0]);assert.equal(r.eachRuleReplacement,'True');assert.equal(r.onlyProperty,'ListenerArn');
+  assert.equal(r.shapeMatchIsNotParameterPreservationOwnershipOrExecutionProof,true);
+  assert.deepEqual(bPostRollback.retainedResources,Object.fromEntries(bInspected.cfnResourceRecords.filter(x=>!x.logicalId.endsWith('Rule')).map(x=>[x.logicalId,x.physicalId])));
+  assert.equal(g.templateDesiredCount,1);assert.deepEqual(g.observedCounts,{desired:0,running:0,pending:0});
+  assert.equal(g.observedTaskDefinitionArn,bRolledBack.service.taskDefinitionArn);assert.deepEqual(g.unchangedDependsOn,listenerPlan.archivedTemplate.serviceDependsOn);
+  assert.equal(g.futureDependentServiceReconciliationOrTaskStartCannotBeExcluded,true);assert.equal(g.futureRuntimeMayReadManagedSecretsAndWriteDatabase,true);
+  assert.equal(g.automaticDesiredCountOrDependsOnFix,false);assert.equal(g.directServiceStartAuthorized,false);
+});
+
+test('new B material is not executable or authorized; future replacements require explicit normal rollback',()=>{
+  const c=bPostRollback.creationContract,f=bPostRollback.futureExecutionPolicy;
+  assert.equal(bPostRollback.status,'OFFLINE_DRAFT_NOT_EXECUTABLE');assert.equal(c.maxWritesAfterSeparateApproval,1);
+  assert.equal(c.executeChangeSetMax,0);assert.equal(c.deleteChangeSetOrStackMax,0);assert.equal(c.omitOnStackFailure,true);
+  assert.equal(c.changeSetName,null);assert.equal(c.clientToken,null);assert.equal(c.requestIsCompleteOrExecutable,false);
+  assert.equal(f.disableRollback,false);assert.equal(f.mustBeExplicitNotInferredFromStackOrSdkDefault,true);assert.equal(f.requiresSeparateExactChangeSetApproval,true);
+  assert.equal(f.providerAutomaticRollbackMayDeleteReplacementRulesOrReconcileDependents,true);assert.equal(f.missingOldRulesCanCauseUpdateOrRollbackFailure,true);
+  for(const key of ['automaticWriteRetryOrContinueUpdateRollback','automaticResourceSkipOrCleanup','executionAuthorized'])assert.equal(f[key],false,key);
+  for(const key of ['cloudReadAuthorized','creationAuthorized','executionAuthorized','iamDnsImageServiceOrDatabaseChangesAuthorized'])assert.equal(bPostRollback[key],false,key);
+  for(const key of ['approvalManifestSha256','changeSetId'])assert.equal(bPostRollback[key],null,key);
+  for(const key of ['newLiveFactsAt','newFactsValidBefore','startBefore'])assert.equal(bPostRollback.factPolicy[key],null,key);
+  assert.equal(bPostRollback.factPolicy.maxNewSnapshotAgeHours,5);
+  for(const [key,value]of Object.entries(bPostRollback.thisPreparation))assert.equal(value,key==='newRuntimeOrRecoveryFramework'?false:0,key);
 });

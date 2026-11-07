@@ -2,15 +2,15 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：回滚独立核验通过，只离线准备新 B 仅创建材料（2026-11-07）
+## 当前唯一继续点：新 B 三规则离线材料已备，实际核对/创建/执行仍另审（2026-11-07）
 
 用户刷新并明确确认412da1ab…后，b单次回滚及另一进程独立核验通过。[实际结果](../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json)于18:12:05.152Z为UPDATE_ROLLBACK_COMPLETE，累计STS3/元数据20/回滚1，含a失败1且其他直接写0。a/配方/旧回执保持，新b槽1/批准已消费，不重放；当前状态统一看[基线顶部](aws-deployment-baseline.md#current-state)。
 
 回滚后七物理ID/Original保持，两参数恢复旧241081，服务验收时0/0/0/:12、网络/目标配置及IAM v10/角色布局保持；DisableRollback仍true。三规则仍旧CFN引用，不代表实体恢复；无瞬时任务历史或Cell/规则实体/DNS/健康读取，不把CFN稳定态当API恢复或整体归属收敛，ALB仍可能收费。
 
-**离线最小恢复提案已完成：** [现有修复文档中的方案](aws-cell-listener-ownership-repair.md#当前离线恢复提案先回到稳定状态再准备正常回滚的-b)及[不可执行机器提案](../ops/deployment-baseline/tenant-b-recovery-offline-plan.json)只规划“同UUID回滚到稳定态并独立核对→新的三规则计划→显式DisableRollback=false执行”。整栈回滚不是三规则预览；无稳定状态可能删栈，旧规则缺失及Service声明1/实况0仍有失败、任务启动和费用风险。三步均须相应准确另批，不重放旧执行或自动跳过/补偿。
+**本轮仅离线材料已完成：** [新B不可执行草案](../ops/deployment-baseline/tenant-b-post-rollback-offline-plan.json)锚定真实UPDATE_ROLLBACK_COMPLETE；复用原模板和两监听器参数片段，预期三规则Modify/Replacement=True、仅ListenerArn，其余四物理ID/18参数及镜像保持。未改模板/运行时代码，AWS/私密读取/数据库/槽消费均0，旧JSON及原件保留。
 
-**下一唯一动作只离线准备新的B仅创建材料。** [完成移交](aws-cell-listener-ownership-repair.md#tenant-b-rollback-result)：同模板/两参数/三规则，保留其余四资源与18参数，使用真实稳定态而不是失败95855d02…旧计划。必要新Cell/监听器/优先级事实、实际创建/执行仍准确另审；替换执行须显式DisableRollback=false。当前无新云调用/变更集/IAM/DNS/镜像授权，不重走A1/A2或扩框架，不延长旧事实/批准/期限，不自动停费。
+**下一唯一动作：另审必要只读范围后，为新B绑定事实、准备准确“仅创建”清单。** [新材料门槛](aws-cell-listener-ownership-repair.md#tenant-b-post-rollback-draft)要求核对实际Cell/监听器/优先级及同租户状态，未授权现在读取或创建；旧Cell事实不被本轮租户观察刷新。后继实际创建/独立核验、执行分开批准，执行显式DisableRollback=false；Service声明1/实况0、依赖协调及回滚失败/遗留收费风险不隐去。不重走A1/A2/IAM、不改Service/DependsOn/DNS/镜像、不扩平台修复或工具，不重放旧批准、不自动停费。
 
 初版基线为离线范围，A1/A2、IAM和B是后来分别批准的修复扩展，不由历史记录或本页自动授权。用户已测买家/卖家场景不再代测；归属、绑定和单列DNS核验未完成前，不进入镜像更新。
 
