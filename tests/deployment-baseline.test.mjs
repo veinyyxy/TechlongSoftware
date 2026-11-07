@@ -24,6 +24,7 @@ import bIamInstalled from '../ops/deployment-baseline/tenant-b-iam-installed-202
 import bCreateReview from '../ops/deployment-baseline/tenant-b-creation-review.json' with { type: 'json' };
 import bCreated from '../ops/deployment-baseline/tenant-b-created-20261107.json' with { type: 'json' };
 import bExecuteReview from '../ops/deployment-baseline/tenant-b-execution-review.json' with { type: 'json' };
+import bExpired from '../ops/deployment-baseline/tenant-b-execution-expired-20261107.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -550,4 +551,23 @@ test('B future execution requires explicit dependent-service risk approval and n
   assert.ok(bExecuteReview.allowedMetadataApis.includes('cloudformation:ListChangeSets'));
   assert.ok(!bExecuteReview.allowedMetadataApis.includes('cloudformation:DescribeStackEvents'),'no task-definition environment via historical event ResourceProperties');
   assert.equal(bExecuteReview.polling.maxFailureEventReads,0);
+});
+
+test('late B risk acceptance cannot restamp an expired manifest or consume an execution slot',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(bExpired.manifestCanonicalSha256,sha(bExecuteReview));
+  assert.equal(bExpired.startBefore,bExecuteReview.startBefore);
+  assert.equal(bExpired.dependencyFactsValidBefore,bExecuteReview.dependencyFactsValidBefore);
+  assert.ok(Date.parse(bExpired.checkedAt)>Date.parse(bExpired.dependencyFactsValidBefore));
+  assert.equal(bExpired.changeSetId,bCreated.changeSetId);assert.equal(bExpired.stackId,bCreated.stackId);
+  assert.equal(bExpired.userExplicitServiceRiskAcceptanceRecorded,true);
+  assert.equal(bExpired.userAcceptanceDoesNotExtendExpiredDeadline,true);
+  assert.equal(bExpired.currentAwsStateNotQueried,true);assert.equal(bExpired.sourceCredentialValidityNotChecked,true);
+  assert.ok(Object.values(bExpired.counts).every(x=>x===0));assert.equal(bExpired.executionPerformed,false);
+  assert.equal(bExpired.oldManifestAndFactsUnmodified,true);assert.equal(bExpired.existingChangeSetPreservedByThisTurn,true);
+  assert.equal(bExpired.proposedReadOnlyRefresh.approvalRequired,true);
+  assert.equal(bExpired.proposedReadOnlyRefresh.newReadFactsValidityHours,5);
+  assert.equal(bExpired.proposedReadOnlyRefresh.awsWrites,0);
+  assert.equal(bExpired.proposedReadOnlyRefresh.actualExecutionNeedsFreshBoundApproval,true);
 });

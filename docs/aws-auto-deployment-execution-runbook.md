@@ -4,6 +4,8 @@
 
 ### 当前唯一继续点：既有实例的标准版本更新基线（2026-11-06）
 
+**当前停止点：用户风险接受已记录，但旧B执行清单过期，未调用AWS。** 本地时钟13:36:26Z（温尼伯11月7日07:36 CST）已超过旧7ec8…最晚09:03:42.258Z及事实09:18Z终点；STS/元数据/写/私密读取/数据库/执行槽全部0，不运行过期命令。[停止记录及准确刷新范围](aws-cell-listener-ownership-repair.md#当前停止点b-执行清单已过期未调用-aws)。同一95855d02…计划保留、不重建/删除，旧事实和槽不改；现状与Source凭据尚未查询。当前只请求新一轮STS1＋元数据30的同目标只读刷新，不读秘密/配置/任务环境、不连库、不写或占槽；通过后新执行SHA仍另确认。保留已接受风险，不重装IAM/扩分支，新事实五小时但不重计旧时刻。ALB可能继续收费，无自动停用；下方待执行SHA仅为已过期历史。
+
 **当前最新：租户B计划仅创建并独立核验通过，尚未执行。** 准确尾ID95855d02-9903-4d56-b042-959fb66cb232为CREATE_COMPLETE/AVAILABLE，STANDARD，恰三规则Modify/Replacement=True、仅ListenerArn，无Service等变化；原栈/七CFN记录/参数/17标签/角色及服务0/0/0/:12保持。STS2/元数据24/Create1、其他云写0，创建槽已消费、不重建。[结果与下一审批](aws-cell-listener-ownership-repair.md#最新结果租户-b-change-set-已创建并独立核验未执行)。已存原件备执行SHA `7ec89ebe5ae3b2852f3ac8246b3cf7695274cc9b180a7c0c74d8ad8251201858`，拟仅Execute原ARN1/DisableRollback=true；必须新明确接受模板Service=1/实况0的依赖协调风险，不能承诺执行后不启动任务，可能产生计算/托管Secret/数据库启动活动。仅Source直接写受限，若偏离0则不验收、不自动停用或扩Service修复。当前只等执行及该风险批准，不直接执行/改DNS/镜像/业务测试。最晚11月7日03:03:42.258 Winnipeg CST启动，旧事实不重计；30项本地检查及定向lint通过。ALB持续收费、无新自动停止，下方待创建文字为前置记录。
 
 **当前最新：B最小IAM修正已按e6b6…单次安装并独立核验。** 默认v10/受审SHA匹配，v7/v8/v9保留、角色/trust/附加/boundary/使用计数保持；STS2/元数据14/CreatePolicyVersion1、其他写0，槽已消费、不重放。[结果及后继清单](aws-cell-listener-ownership-repair.md#最新结果b-最小-iam-修正已安装并独立核验)。已存原件已备创建SHA `517850bfaaab521db0acff869dba7cac8759ff59dfee25be239115b111723f02`：仅CreateChangeSet1，独立核对恰三规则Modify/Replacement=True，仍不执行、改IAM/DNS、启ECS/RDS或更新镜像。两参数替换/18保留、原角色/私有标签保持；Service声明1/实况0与DependsOn风险不隐去。当前只等“仅创建”新批准，不提前调云。最晚11月7日03:08:42.258 Winnipeg CST启动，原事实终点不延期；27项本地检查及定向lint通过，ALB持续收费、无新自动停止。下方“待IAM批准”已完成，仅供追溯。
