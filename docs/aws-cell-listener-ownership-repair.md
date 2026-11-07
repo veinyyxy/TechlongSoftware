@@ -2,6 +2,12 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；下方原“待审/未执行”只保留各阶段事实，最新结果如下。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
 
+## 当前停止点：A2 只读准备在身份核对处停止
+
+用户允许最多1次STS＋30次元数据后，新记录a于2026-11-07T02:14:08.550Z开始，02:14:12.366Z停止（温尼伯11月6日20:14:12.366 CST）。官方CLI首次 `sts:get-caller-identity` 报告去敏分类 `CREDENTIALS_UNAVAILABLE`；准确身份未确认，不断言具体失效原因或HTTP是否已经发出。实际STS尝试1、资源元数据读取0、AWS写/Secret值/数据库连接/执行槽/Change Set均0，没有新的资源现状证明或待审SHA；旧依赖采样不延期。
+
+[公开停止摘要](../ops/deployment-baseline/cell-a2-readonly-20261107-a.json)；私有原件 `.local-secrets/cell-a2-readonly-20261107-a/journal.json`，原始字节SHA `05fd89e913d564dbcdf5461f8273ba95e385a558f74ae4b7147b6a65867cf55d`。a保留且不重跑，不自动沿用未使用的元数据次数。**下一只请用户完成 `aws login --profile techlong-sandbox-user`，并允许新一轮同范围只读核对**，再用新的记录继续；不额外诊断STS、不生成假新鲜清单、不创建或执行A2、不恢复ALB。下方离线候选保持可复用，但不是云执行许可。
+
 ## 当前准备：A2 四项 Add 离线候选已完成（2026-11-06）
 
 本轮按用户明确要求**仅离线准备**。已从封存原件提取 A1 前实际 Cell Original，核对其规范 SHA 与修复前基线一致，再证明：从该模板移除下表四项及两个输出，全文恰等于已执行 A1 模板。不是重新渲染默认模板，也没有用旧物理 ARN 填入新资源。

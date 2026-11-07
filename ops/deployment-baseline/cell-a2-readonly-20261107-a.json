@@ -1,0 +1,20 @@
+{
+  "schema": "techlong/cell-a2-readonly-stopped/v1",
+  "status": "A2_READONLY_PREPARATION_STOPPED",
+  "sourceCommit": "fc4133a7e5874cd415312f14eb79fe88688bbe8c",
+  "startedAt": "2026-11-07T02:14:08.550Z",
+  "stoppedAt": "2026-11-07T02:14:12.366Z",
+  "errorCode": "CREDENTIALS_UNAVAILABLE",
+  "operation": "sts:get-caller-identity",
+  "identityVerified": false,
+  "counts": {"stsAttempts": 1, "metadataReads": 0, "awsWrites": 0, "executionSlotsConsumed": 0, "secretValueReads": 0, "databaseConnections": 0},
+  "resourceFactsAt": null,
+  "newApprovalManifestSha256": null,
+  "changeSetCreated": false,
+  "creationAuthorized": false,
+  "executionAuthorized": false,
+  "automaticRetry": false,
+  "privateEvidenceDirectory": ".local-secrets/cell-a2-readonly-20261107-a",
+  "journalRawSha256": "05fd89e913d564dbcdf5461f8273ba95e385a558f74ae4b7147b6a65867cf55d",
+  "next": "Refresh Source login and obtain permission for a new same-scope read-only record. Preserve a; do not replay it or reuse its unused metadata allowance."
+}
