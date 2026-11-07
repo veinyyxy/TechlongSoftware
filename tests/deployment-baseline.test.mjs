@@ -22,6 +22,8 @@ import bIamPolicy from '../ops/deployment-baseline/tenant-b-iam-policy-draft.jso
 import bIamReview from '../ops/deployment-baseline/tenant-b-iam-review.json' with { type: 'json' };
 import bIamInstalled from '../ops/deployment-baseline/tenant-b-iam-installed-20261107.json' with { type: 'json' };
 import bCreateReview from '../ops/deployment-baseline/tenant-b-creation-review.json' with { type: 'json' };
+import bCreated from '../ops/deployment-baseline/tenant-b-created-20261107.json' with { type: 'json' };
+import bExecuteReview from '../ops/deployment-baseline/tenant-b-execution-review.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -487,4 +489,65 @@ test('B creation approval is separate and cannot execute, change IAM/DNS/service
   assert.equal(bCreateReview.serviceGuard.shapeMatchIsNotFutureExecutionOrServicePreservationProof,true);
   assert.equal(bCreateReview.serviceGuard.unexpectedServiceOrOtherResourceChangeIsNoGo,true);
   assert.equal(bCreateReview.preparation.newAccountAwsCalls,0);assert.equal(bCreateReview.preparation.changeSetsCreated,0);
+});
+
+test('B actual created plan has three replacements, while the applied stack and idle service remain unchanged',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(bCreated.approvedManifestSha256,sha(bCreateReview));
+  assert.equal(bCreated.status,'B_CHANGE_SET_CREATED_VERIFIED_NOT_EXECUTED');
+  assert.equal(bCreated.stackId,bCreateReview.requestWithoutTags.StackName);
+  assert.ok(bCreated.changeSetId.startsWith('arn:aws:cloudformation:ca-central-1:402010193138:changeSet/'+bCreateReview.requestWithoutTags.ChangeSetName+'/'));
+  assert.equal(bCreated.changeSetStatus,'CREATE_COMPLETE');assert.equal(bCreated.executionStatus,'AVAILABLE');
+  assert.equal(bCreated.observedDeploymentConfig.Mode,'STANDARD');
+  assert.deepEqual(bCreated.changes.map(x=>({logicalId:x.logicalId,type:x.type,action:x.action,replacement:x.replacement,onlyProperty:x.changedProperties[0]})),bCreateReview.expected.proposedChanges);
+  assert.ok(bCreated.changes.every(x=>x.policyAction==='ReplaceAndDelete'&&x.changedProperties.length===1));
+  assert.equal(bCreated.proposedTemplateSha256,bFacts.templateSha256);assert.equal(bCreated.appliedTemplateSha256,bFacts.templateSha256);
+  assert.equal(bCreated.submittedPreviousParameterCount,18);assert.equal(bCreated.unchangedReturnedParameterMetadataCompared,true);
+  assert.equal(bCreated.requestClientTokenRecorded,bCreateReview.requestWithoutTags.ClientToken);
+  assert.equal(bCreated.requestClientTokenVerifiedFromBoundRequest,true);assert.equal(bCreated.describeChangeSetClientTokenEchoed,false);
+  assert.equal(bCreated.noEchoValuesReadOrUnmasked,false);
+  assert.deepEqual(bCreated.cfnRecordedResources,bFacts.cfnRecordedResources);
+  assert.deepEqual([bCreated.service.desired,bCreated.service.running,bCreated.service.pending],[0,0,0]);
+  assert.equal(bCreated.service.taskDefinitionArn,bFacts.service.taskDefinitionArn);
+  assert.deepEqual(bCreated.counts.total,{sts:2,metadata:24,createChangeSet:1});
+  assert.equal(bCreated.counts.writer.metadata,18);assert.equal(bCreated.counts.independent.metadata,6);
+  for(const key of ['executeChangeSet','deleteChangeSet','otherDirectAwsWrites'])assert.equal(bCreated.counts[key],0,key);
+  assert.equal(bCreated.executionSlotsConsumed,1);assert.equal(bCreated.retainedTagCount,17);
+  for(const key of ['executionAuthorized','actualRulesReplaced','tenantBindingsRepaired','apiDnsRepaired','imageUpdated','wholeSystemAccepted','servicePreservationDuringFutureExecutionProved'])assert.equal(bCreated[key],false,key);
+});
+
+test('B execution proposal binds this existing ARN and a separately reviewed no-rollback policy without renewing facts',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  for(const [file,data]of [['tenant-b-created-20261107.json',bCreated],['tenant-b-iam-installed-20261107.json',bIamInstalled],['tenant-b-preflight-20261107.json',bFacts]]){
+    assert.equal(bExecuteReview.evidence.find(x=>x.file===file).canonicalSha256,sha(data));
+  }
+  assert.equal(bExecuteReview.request.StackName,bCreated.stackId);assert.equal(bExecuteReview.request.ChangeSetName,bCreated.changeSetId);
+  assert.equal(bExecuteReview.request.DisableRollback,true);
+  assert.match(bExecuteReview.request.ClientRequestToken,/^tenant-b-execute-[a-f0-9]{32}$/);
+  assert.equal(bExecuteReview.expected.currentTemplateSha256,bCreated.appliedTemplateSha256);
+  assert.equal(bExecuteReview.expected.proposedTemplateSha256,bCreated.proposedTemplateSha256);
+  assert.deepEqual(bExecuteReview.expected.onlyRuleReplacements,bCreated.changes);
+  assert.deepEqual(bExecuteReview.expected.retainedLogicalIds,['TenantLogGroup','TenantService','TenantTargetGroup','TenantTaskDefinition']);
+  assert.equal(bExecuteReview.dependencyFactsAt,bFacts.factsAt);
+  assert.equal(bExecuteReview.dependencyFactsValidBefore,bFacts.effectiveFactsValidBefore);
+  assert.equal(Date.parse(bExecuteReview.dependencyFactsValidBefore)-Date.parse(bExecuteReview.startBefore),15*60000);
+  assert.equal(bExecuteReview.preparation.newAccountAwsCalls,0);assert.equal(bExecuteReview.preparation.executionSlotsConsumed,0);
+});
+
+test('B future execution requires explicit dependent-service risk approval and never silently starts or stops tasks',()=>{
+  assert.equal(bExecuteReview.executionAuthorized,false);assert.equal(bExecuteReview.serviceRiskAccepted,false);
+  assert.equal(bExecuteReview.serviceRiskDisclosure.requiresExplicitNewApproval,true);
+  assert.equal(bExecuteReview.serviceRiskDisclosure.templateDesiredCount,1);
+  assert.deepEqual(bExecuteReview.serviceRiskDisclosure.observedDesiredRunningPending,[0,0,0]);
+  for(const key of ['cannotGuaranteeZeroServiceCountsAfterExecution','possibleAdditionalComputeOrPublicIpv4Cost','possibleNormalRuntimeSecretAndDatabaseAccessIfTaskStarts','noAutomaticStopOrScaleBack','serviceDeviationMustNotBeReportedAsSuccessfulConvergence'])assert.equal(bExecuteReview.serviceRiskDisclosure[key],true,key);
+  assert.equal(bExecuteReview.scope.executeChangeSetMax,1);
+  assert.equal(bExecuteReview.scope.metadataReadMax,bExecuteReview.scope.writerMetadataMax+bExecuteReview.scope.independentMetadataReserve);
+  for(const [key,value]of Object.entries(bExecuteReview.scope))if(!['stsMax','metadataReadMax','writerMetadataMax','independentMetadataReserve','executeChangeSetMax'].includes(key))assert.equal(value,0,key);
+  assert.equal(bExecuteReview.failurePolicy.disableRollback,true);
+  for(const key of ['automaticRetry','automaticRollback','automaticCleanup','automaticEcsScaleOrStop','automaticIamRevoke','attemptResetAllowed'])assert.equal(bExecuteReview.failurePolicy[key],false,key);
+  assert.ok(bExecuteReview.allowedMetadataApis.includes('cloudformation:ListChangeSets'));
+  assert.ok(!bExecuteReview.allowedMetadataApis.includes('cloudformation:DescribeStackEvents'),'no task-definition environment via historical event ResourceProperties');
+  assert.equal(bExecuteReview.polling.maxFailureEventReads,0);
 });

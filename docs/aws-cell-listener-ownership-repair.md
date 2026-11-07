@@ -2,6 +2,30 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；下方原“待审/未执行”只保留各阶段事实，最新结果如下。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
 
+## 最新结果：租户 B Change Set 已创建并独立核验，未执行
+
+用户确认创建清单 `517850bfaaab521db0acff869dba7cac8759ff59dfee25be239115b111723f02` 后，执行时工程HEAD为 `6a4f476ab585c05840213d278398f9db3678baf0`。05:54:19.536Z保存唯一创建意图，05:54:21.095Z收到ACK；另进程于 **2026-11-07T05:55:05.907Z** 完成独立核验。准确Change Set尾ID **95855d02-9903-4d56-b042-959fb66cb232**，完整ARN及原件指纹见[实际结果](../ops/deployment-baseline/tenant-b-created-20261107.json)。
+
+- CREATE_COMPLETE/AVAILABLE、STANDARD，恰TenantBusinessControlDenyRule、TenantControlListenerRule、TenantListenerRule三项Modify/Replacement=True、PolicyAction=ReplaceAndDelete，仅ListenerArn变化；无Service/TaskDefinition/目标组/日志变化或Add/Remove/Import。规则实体尚未重建，两个参数也尚未应用。
+- 提议Original与已应用Original均d705…；实际栈仍CREATE_COMPLETE，七项CFN物理记录、20项参数、17标签和原RoleARN保持，服务独立回读仍0/0/0、引用:12。CFN旧记录仍指向三条已知缺失的旧规则，不能称实体都存在或API已恢复。18项UsePreviousValue以提交请求审计为准，返回元数据已比较；未解密或读出NoEcho值。DescribeChangeSet不回显ClientToken，固定token由不可变提交请求/意图绑定，不伪造“响应已回显”证明。
+- 实际STS2/元数据24/CreateChangeSet1（writer 1/18/1，独立1/6/0），Execute/Delete/其他直接云写0；无IAM/DNS/镜像、ECS/RDS、秘密/数据库或业务HTTP操作，无重试或清理。私有根 `.local-secrets/tenant-b-create-517850bf-20261107-a`，创建槽已消费，不复位/重建/换名重试；此前IAM槽及旧事实原件保持。
+
+ALB仍运行收费，无新资源到期/自动停止。当前只完成“有一个准确、未执行的三规则计划”，不是资源归属已应用或整体验收通过。
+
+### 当前待审：仅执行这一份 B，必须明确依赖服务风险
+
+只用已存原件准备[执行清单及完整风险](../ops/deployment-baseline/tenant-b-execution-review.json)，本次新增账号读取/执行槽/写入0。规范JSON SHA：
+
+`7ec89ebe5ae3b2852f3ac8246b3cf7695274cc9b180a7c0c74d8ad8251201858`
+
+拟仅Execute准确95855d02…一次，显式 **DisableRollback=true**，失败保留现场、不主动回滚/重发/清理/撤权/复位；[官方Execute说明](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ExecuteChangeSet.html)允许在本次未设置OnStackFailure的情况下指定该策略。创建时回读的DeploymentConfig.DisableRollback=false只是现状，不是本次执行策略批准。CFN三项ReplaceAndDelete包括更换旧规则引用及其提供者删除步骤，不能把“无直接Delete API”理解为CFN不做替换清理；提供者级恢复/删除仍可能发生，执行也可能使同栈其他旧Change Set失效/被AWS移除。
+
+**必须新确认的风险：** Service不在计划内且Mode=STANDARD，但模板仍DesiredCount=1、实况0且DependsOn这三条规则。当前证据不能保证提供者依赖协调后仍为0，亦未证明必然启动。若出现任务启动，可能产生Fargate/公网IPv4费用，正常托管Secret注入及应用配置的数据库/启动活动也可能发生；这不是额外Source读取授权，但不能藏在“直接ECS/Secret/数据库操作0”后面。**不接受该可能性就不执行。** 代理不会自行改DesiredCount/DependsOn、注册任务定义或增加IAM围栏，也不会在任务数变化后擅自调用停用工具。服务计数/引用偏离即使CFN UPDATE_COMPLETE也标记未验收，恢复/停用须新批准。
+
+拟上限STS2/元数据48/Execute1，含写前准确计划/租户/Cell/规则/服务/目标组/IAM v10核对、限定状态等待及另一进程验收；不创建/删除Change Set、Stack，不直接写ELB/IAM/DNS/ECS/RDS，不更新镜像、读秘密/PEM/.env、连数据库、读任务定义环境或调度。为避免历史事件ResourceProperties携带环境内容，本清单不读DescribeStackEvents。成功门槛为同栈UPDATE_COMPLETE/DisableRollback=true、计划EXECUTE_COMPLETE、两参数对齐新Cell输出、三新规则物理ID及完整Host/path/priority/action正确、其余四物理ID/18参数/标签/角色和服务0/0/0/:12保持；CFN计划形状本身不是这些结果的证明。
+
+接受跨服务非CAS、并发、IAM传播、AWS Login刷新失败、Source/SCP/提供者兼容性、部分完成及收费遗留、网络/提供者日志等风险；失败或超时不重发，超时不取消AWS操作，不自动回滚/补齐/停费。最晚启动 **温尼伯11月7日03:03:42.258 CST（09:03:42.258Z）**，原依赖09:18:42.258Z终点不延期，为执行预留15分钟；不是资源到期。30项本地检查及定向lint通过。**当前仅等待这一份新的执行及依赖风险明确批准**；若不接受风险，停在此处等待方向，不自动扩大为Service修复。DNS单条更新与镜像仍分开，不进入业务测试。
+
 ## 最新结果：B 最小 IAM 修正已安装并独立核验
 
 用户确认准确清单 `e6b6b5fd1d391e7e28550210e03b30d1d8a03487a2acb53bdad5c008992f8e5b` 后，执行时工程HEAD为 `990ea7a3e9c77e5c1d94718c6bf48dfcc0f8b293`；私有配方由原件摘要绑定。写前匹配角色/边界/trust、v9正文/三版本/使用计数、Cell输出及443/8443。05:38:11.404Z保存单次意图，05:38:12.809Z收到ACK，另进程于 **2026-11-07T05:38:31.752Z（温尼伯11月6日23:38:31.752 CST）** 独立核验。

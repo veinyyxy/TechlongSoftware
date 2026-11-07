@@ -18,6 +18,8 @@
 
 ## 跨栈绑定与恢复差异
 
+**B实际计划已确认，但尚未应用：** [准确95855d02…结果](../ops/deployment-baseline/tenant-b-created-20261107.json)为三规则替换、Service等四资源不变的可用计划；创建后Original/七CFN记录/旧两参数保持、服务仍0/:12。下一只审同一计划的执行和失败策略，不能把Creation通过当租户已接上729e。特别保留Service声明1/实况0的依赖协调风险：未来若计数变化就不验收、不擅自修复或停用，须用户另决。实际DNS与镜像仍未改。
+
 **IAM差异已收敛，租户引用尚未应用：** [v10安装结果](../ops/deployment-baseline/tenant-b-iam-installed-20261107.json)已独立确认新旧规则标签读取前缀、旧三版/角色边界保持；本阶段只一次IAM版本写，未把租户241081参数改成729e。下一[准确清单](../ops/deployment-baseline/tenant-b-creation-review.json)只待批准创建三规则替换计划，不执行、启动服务或夹带DNS/镜像更新。下段待IAM文字为前置事实，不再是当前动作。
 
 **B当前只读结果：** [准确事实](../ops/deployment-baseline/tenant-b-preflight-20261107.json)于05:22Z重新核对租户Original/七项CFN记录和两参数仍241081；三旧规则实体实际缺失，729e新监听器的所需优先级空闲。CFN任务定义物理ID和服务引用均:12，服务仍0/0/0、声明1的漂移未改，不能把“CFN记录CREATE_COMPLETE”说成全部实体存在。现行IAM v9的规则DescribeTags路径和API Alias均未对齐；下一只待[单次最小IAM修正](aws-cell-listener-ownership-repair.md#待批准仅现有-iam-policy-一次版本更新)准确批准。三规则计划、DNS和镜像均未写，旧离线阶段的“未读取/未知”保留追溯，不能替代这一新结果。
