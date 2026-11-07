@@ -45,6 +45,7 @@ import bPostRollbackExecuted from '../ops/deployment-baseline/tenant-b-post-roll
 import apiAliasRead from '../ops/deployment-baseline/tenant-api-alias-preflight-20261107.json' with { type: 'json' };
 import apiAliasUpdate from '../ops/deployment-baseline/tenant-api-alias-update-review-20261107.json' with { type: 'json' };
 import apiAliasUpdated from '../ops/deployment-baseline/tenant-api-alias-updated-20261107.json' with { type: 'json' };
+import platformReadScope from '../ops/deployment-baseline/platform-ownership-read-scope.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -1037,4 +1038,33 @@ test('actual single Alias update is INSYNC and independently matched, closing on
   for(const key of ['repeatUpdateAuthorized','automaticRetry','automaticRollbackOrOldRecordRestore','automaticCleanup','environmentStartedByThisRun','serviceStateReadThisPhase','publicResolutionOrApiHealthVerified','platformResourcesReadOrChanged','temporaryToolModified','imageUpdated','wholeSystemAccepted','formalThreeStackBaselineComplete','fullResourceDriftFreedomProved'])assert.equal(r[key],false,key);
   for(const key of ['secretValueReads','privateKeyReads','configSecretFileReads','databaseConnections','publicDnsOrHttpCalls'])assert.equal(r[key],0,key);
   assert.equal(r.noResourceExpiryOrLeaseChange,true);assert.deepEqual(r.differences,[]);
+});
+
+test('platform ownership proposal covers only the eleven platform declarations and marks historical references as non-live',()=>{
+  const s=platformReadScope;
+  assert.equal(s.stackName,b.stacks.platform.name);assert.deepEqual(s.resourceLogicalIds,Object.keys(b.stacks.platform.resources));
+  assert.equal(s.historicalTemplateSha256,b.stacks.platform.templateSha256);
+  assert.equal(s.historicalStackReference.currentExistenceOrOwnershipProved,false);
+  assert.equal(s.previousRepairReceiptFile,'tenant-api-alias-updated-20261107.json');
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(s.baselineCanonicalSha256,sha(b));assert.equal(s.previousRepairReceiptCanonicalSha256,sha(apiAliasUpdated));
+  assert.match(s.stackId,/^arn:aws:cloudformation:ca-central-1:402010193138:stack\/techlong-sandbox-platform-hosting-v1\/[a-f0-9-]{36}$/);
+  assert.equal(s.fixedNames.recordName,'console.sandbox.techlong.cloud.');assert.equal(s.fixedNames.recordType,'A');
+  assert.equal(s.comparison.historicalRevisionIsNotCurrentAssertion,true);assert.equal(s.comparison.neverEnableControllerOrExtendControllerLease,true);
+  assert.equal(s.comparison.serviceDesiredCountDifferenceIsReportedNotCorrected,true);assert.equal(s.comparison.noClaimOfCompletePropertyDriftOrRuntimeHealth,true);
+});
+
+test('platform inspection is a bounded one-pass read proposal, not an execution, retry or repair authority',()=>{
+  const s=platformReadScope;
+  assert.equal(s.status,'PROPOSED_NOT_APPROVED');assert.equal(s.reads.filter(r=>r.operation==='sts:GetCallerIdentity').reduce((n,r)=>n+r.max,0),s.limits.stsMax);
+  assert.equal(s.reads.filter(r=>!r.operation.startsWith('sts:')).reduce((n,r)=>n+r.max,0),19);assert.equal(s.limits.metadataMax,19);
+  assert.equal(new Set(s.reads.map(r=>r.operation)).size,s.reads.length);
+  for(const r of s.reads){assert.match(r.operation,/^[a-z0-9]+:(Describe[A-Za-z]+|GetCallerIdentity|GetTemplate|ListStackResources|GetHostedZone|ListResourceRecordSets)$/);assert.ok(r.max>0&&r.max<=2);assert.ok(r.target.length>20);}
+  for(const key of ['githubCalls','iamReads','secretValueReads','privateKeyReads','configSecretFileReads','databaseConnections','publicDnsOrHttpCalls','awsWrites','executionSlotsConsumed'])assert.equal(s.limits[key],0,key);
+  for(const key of ['pagination','polling','independentSecondCapture'])assert.equal(s.limits[key],false,key);
+  assert.equal(s.limits.maxAttemptsPerRequest,1);assert.ok(Object.values(s.preparation).every(v=>v===0));
+  for(const key of ['readAuthorized','repairAuthorized','deploymentAuthorized','environmentStartAuthorized','automaticRetry','formalThreeStackBaselineComplete'])assert.equal(s[key],false,key);
+  assert.equal(s.timing.observedAt,null);assert.equal(s.timing.factsValidUntil,null);assert.equal(s.timing.futureSnapshotMaxAgeHours,5);assert.equal(s.timing.resourceExpiryLeaseOrAutomaticStopChanged,false);
+  assert.equal(s.evidence.rawTemplateAndTaskResponsesMayEnterCliMemory,true);assert.equal(s.evidence.rawEnvironmentCommandParametersAndProviderErrorsNotSavedOrPrinted,true);
 });

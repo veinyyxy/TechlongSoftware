@@ -19,9 +19,36 @@
 
 只改AliasTarget.DNSName为当前1581133878，名称/类型/所属zone/目标zone/EvaluateTargetHealth=false保持。三规则归属在21:09已独立验收，本次DNS又独立匹配，组成特定Cell—租户—API Alias引用链的收口证据，不是同一时刻原子快照。最后服务观察仍为21:09的0/0/0/:12，本阶段没有重查或启动服务；INSYNC不证明公网缓存、API健康或产品验收。ALB实际active、可能持续收费，没有新增自动停机或续租。
 
-**本轮收口完成，停止新增云调用或修复。** 不重复三规则/DNS、不自动启动环境、升级镜像、改临时工具或重做业务测试。若用户继续完成整套三栈正式基线，唯一剩余未核验管理范围是平台11项既有资源及历史手动恢复引用：先离线收敛必要只读范围，再单独批准读取；未知差异不自动变成修复/新建授权，不在本轮提前实施。
+**引用链修复已收口；用户要求继续后，本轮仅离线备齐平台11项归属核验范围。** [唯一待审范围及完整风险](#platform-readonly-scope)已固定为STS最多1次＋元数据最多19次，只核对准确平台栈的声明/物理绑定与实际ALB、443监听器、目标组、ECS、两SG/入站、日志组及console Alias。未调用AWS或读取私密配置，不重复Cell/租户/DNS修复、不启动环境、不改IAM/镜像/临时工具或代做业务测试。下一只等待用户单独批准这份只读清单；核对所得差异不是修复或新建授权。
 
-54项本地检查及定向lint通过。实际平台归属未在本轮核验，Service模板声明1/实况0仍是已登记测试停用差异，临时启停工具CFN统一编排原则留待未来；不能宣称三个栈全部无漂移、正式环境已运行或任意租户已通用验收。旧清单/SHA/事实时间/私有原件保持，不延长或重放已消费批准，也不用剩余预算扩查平台。
+56项本地检查及定向lint通过；新增两项仅核对离线范围，不是线上验收。实际平台归属未在本轮核验，Service模板声明1/实况0仍是已登记测试停用差异，临时启停工具CFN统一编排原则留待未来；不能宣称三个栈全部无漂移、正式环境已运行或任意租户已通用验收。旧清单/SHA/事实时间/私有原件保持，不延长或重放已消费批准，也不用剩余预算扩查平台。
+
+<a id="platform-readonly-scope"></a>
+
+### 平台归属：单次只读核验待审范围
+
+[机器清单](../ops/deployment-baseline/platform-ownership-read-scope.json)的规范JSON SHA-256：
+
+`cca2bc4432b27e33913f8d50e681fddb274b1a07821941819f6dd10574a526ce`
+
+本轮没有生成云快照或执行脚本，只固定下一次必要读取的目标和上限；`PROPOSED_NOT_APPROVED/readAuthorized=false`不表示已取得读取授权。目标为账号402010193138 / ca-central-1、原Source IAM用户及准确平台栈UUID `c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7`。UUID来源是已存W8k历史原件，不是现存证明；先查准确UUID，不存在/已删除/身份不同即停止，不按同名新栈继续。
+
+| 组别 | 最多次数及边界 |
+| --- | --- |
+| STS | 1，准确IAM用户ARN、UserId及账号 |
+| CloudFormation | 3：准确栈DescribeStacks、GetTemplate Original、ListStackResources各1 |
+| ELBv2 | 7：准确名称与不同旧CFN ARN的ALB/TG各最多2；现ALB监听器及不同旧CFN监听器最多2；四个以内已定位ALB/TG的标签批量1 |
+| ECS | 4：准确Cluster/Service各1；CFN记录与服务引用的不同TaskDefinition最多2，不列任务或查网卡 |
+| EC2/Logs | 3：两CFN SG及现ALB/Service所引SG最多四ID批量1；仅准确TaskIngress sgr-ID最多1；准确日志组前缀/limit2的一页元数据1，不读日志 |
+| Route53 | 2：准确公开zone1、console.sandbox.techlong.cloud.的A Alias一页1，不查API/buyer记录或公网DNS |
+
+合计**STS1＋元数据19、所有云写0**；每请求一次、无翻页/轮询/自动重试，不用未用预算扩查IAM、证书、Secret、Cell/租户、ECR或其他Region。准确NotFound只记录缺失、跳过依赖调用，余下独立读取仍不得越表；未知错误/凭据问题则停止，不自动刷新或诊断。模板/资源集有差异时保留差异、停止依赖遍历，不覆盖历史基准。
+
+交付只包含一张“CFN声明/物理绑定—实际资源—引用差异”表：11项存在和绑定；443/TLS/证书引用及转发目标；console Alias与实际ALB DNS/zone/原健康评估字段；Service的目标组/网络/任务版本；TaskDefinition的镜像/角色/端口/日志/固定Secret引用，以及控制器关闭布尔检查。`:12`、旧ALB/listener ARN均仅为历史，不能充当前值；Service声明1/实况0、关闭控制器模式等已知差异须如实列出，不因核验而修正或“恢复”特权。未检查所有属性、运行中任务或业务健康，不能据此声称完整漂移检测或正式上线完成。
+
+**完整风险与数据边界：** 使用既有Source凭据会进入内存，并有网络/提供者审计日志和低额非零费用。GetTemplate/DescribeTaskDefinition的原响应可能在CLI内存中含参数、Environment或Command；仅将白名单身份/引用、控制器布尔检查和摘要投影保存到私有ACL目录，原始环境/命令/参数值及原始错误不保存或输出。其他资源名、私网IP、Account ID/ARN与Secret版本引用可能进入核验元数据。禁止GetSecretValue、PEM/.env/HMAC、数据库连接、日志正文、公网HTTP/JS及GitHub读取；不提交凭据、秘密或业务正文。读取不是跨服务原子快照，资源可并发变化，缺页/未知/缺失须保留，不冒充完整归属证明。
+
+本清单是离线范围，不把材料生成时间冒充观测；`observedAt/factsValidUntil=null`。将来经批准实际读取后，准备事实从真实采样按5小时计算，不延长任何旧事实、批准、控制租约或资源到期时间。**不启停、重建、删栈、改DNS/IAM/镜像/临时工具，不安装自动清理。** 现存ALB、存储等可能持续收费，50USD/月仍不是硬上限。结果有差异时只提出必要的最小修复范围，实际修复另审；当前下一动作只等待这一次限定读取批准。
 
 **已确认的直接原因：** 2026-11-07T14:53:08.255Z 完成的一页事件查询绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，返回根栈及三条规则共4条失败事件，无下一页。三规则均报 `Replacement type updates not supported on stack with disable-rollback.`。原执行清单把三项替换与 `DisableRollback=true` 组合，这是本次执行策略的不兼容，不是新的 IAM 缺口证明；也不能据此保证未来恢复必然成功。ResourceProperties 只可能进入 CLI 内存，未保存/输出；原[读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)保持准备时原文，不用于重复读取。
 
@@ -58,7 +85,7 @@ Cell 六个输出按同名参数传给租户，并非租户栈自己查找资源
 
 ## 给下一次更新用的最小模板
 
-镜像更新仍被阻断：先查明 B 失败并另审最小恢复，完成租户规则归属/绑定及单列 DNS 收敛核验，才可准备镜像更新。[监听器参数片段](../ops/deployment-baseline/tenant-listener-change.template.json)是既有 B 计划的输入，不是新的可执行命令；其创建和单次执行已发生，不得按旧[离线计划](../ops/deployment-baseline/tenant-b-offline-plan.json)再创建或重放。离线阶段的“未读取/任务定义物理 ID 未知”只适用于当时；后续已核对 CFN/服务引用均为 :12，不能重新当作当前缺口。Service 声明1、执行后实况0的差异仍保留，不自行改 Service 或 DependsOn。
+原 B 失败已查明并经另批回滚/新 B 与DNS修复收口，不再作为待查因任务；当前只准备上述平台归属核验，不提前更新镜像。[监听器参数片段](../ops/deployment-baseline/tenant-listener-change.template.json)是既有 B 计划的输入，不是新的可执行命令；其创建和单次执行已发生，不得按旧[离线计划](../ops/deployment-baseline/tenant-b-offline-plan.json)再创建或重放。离线阶段的“未读取/任务定义物理 ID 未知”只适用于当时；后续已核对租户CFN/服务引用均为 :12，不能重新当作当前缺口。Service 声明1、执行后实况0的差异仍保留，不自行改 Service 或 DependsOn。
 
 [参数片段](../ops/deployment-baseline/tenant-image-change.template.json)按现有租户声明使用 `UsePreviousTemplate`，仅替换 `ImageUri`，其余 19 项均为 `UsePreviousValue`，不需要导出任何秘密值。镜像必须是同账号同区域指定仓库的新 SHA-256 digest，不能传 tag。此片段没有执行入口；不把监听器修复、DNS、平台任务、数据库迁移或角色改动夹带在版本更新里。
 
