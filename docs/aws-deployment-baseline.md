@@ -35,6 +35,8 @@ Cell 六个输出按同名参数传给租户，并非租户栈自己查找资源
 
 ## 给下一次更新用的最小模板
 
+当前先完成[租户B两监听器参数／三规则收敛](aws-cell-listener-ownership-repair.md#当前准备b-两参数三规则离线方案已完成)。新[监听器参数片段](../ops/deployment-baseline/tenant-listener-change.template.json)只使用A2已核验729e输出，其余18参数保留；[离线计划](../ops/deployment-baseline/tenant-b-offline-plan.json)记录Service声明1与已存实况0的差异、CFN任务定义物理ID未知及待核IAM路径，不把三规则形状匹配当执行证明。片段未应用，无新Change Set或生产读取；B及单列DNS收敛验证前，下列镜像片段仍不得执行。
+
 [参数片段](../ops/deployment-baseline/tenant-image-change.template.json)按现有租户声明使用 `UsePreviousTemplate`，仅替换 `ImageUri`，其余 19 项均为 `UsePreviousValue`，不需要导出任何秘密值。镜像必须是同账号同区域指定仓库的新 SHA-256 digest，不能传 tag。此片段没有执行入口；不把监听器修复、DNS、平台任务、数据库迁移或角色改动夹带在版本更新里。
 
 本地检查入口（Node 22.13+，JSON 模板正文；不是 CloudFormation API 的返回外壳）：

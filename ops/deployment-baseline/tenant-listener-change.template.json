@@ -1,0 +1,85 @@
+{
+  "UsePreviousTemplate": true,
+  "Parameters": [
+    {
+      "ParameterKey": "AppInstanceId",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "ClusterName",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "ControlIssuer",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "ControlListenerArn",
+      "ParameterValue": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d"
+    },
+    {
+      "ParameterKey": "ControlPublicKeyValueFrom",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "CorsAllowedOrigins",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "HttpsListenerArn",
+      "ParameterValue": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1"
+    },
+    {
+      "ParameterKey": "ImageUri",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "JwtExpiresIn",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "MerchantJwtExpiresIn",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "StripeCancelUrl",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "StripePublishableKey",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "StripeSuccessUrl",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "SubnetIds",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "TaskExecutionRoleArn",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "TaskRoleArn",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "TaskSecurityGroupId",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "TenantHostname",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "TenantRuntimeSecretArn",
+      "UsePreviousValue": true
+    },
+    {
+      "ParameterKey": "VpcId",
+      "UsePreviousValue": true
+    }
+  ]
+}

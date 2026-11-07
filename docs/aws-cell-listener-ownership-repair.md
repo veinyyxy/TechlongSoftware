@@ -2,7 +2,29 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；下方原“待审/未执行”只保留各阶段事实，最新结果如下。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
 
-## 最新结果：A2 已执行并独立核验，Cell 四项归属恢复
+## 当前准备：B 两参数／三规则离线方案已完成
+
+本轮只复用已存A2结果和租户归档，**账号AWS调用、数据库连接、Secret/PEM/.env读取、新执行槽、Change Set及云写均0**；公开资料仅核对CFN官方说明。新增[参数片段](../ops/deployment-baseline/tenant-listener-change.template.json)和[离线计划](../ops/deployment-baseline/tenant-b-offline-plan.json)，没有新执行器或云调用入口。
+
+准确目标仍为租户栈UUID `5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13`，不使用已删除的旧UUID。`UsePreviousTemplate=true`，仅把 `HttpsListenerArn`、`ControlListenerArn` 换成A2独立核验的Cell新输出；其余18参数全部 `UsePreviousValue=true`，含ImageUri。片段规范SHA `0b96f5a37a0aed5096cda0834e8f3ed0189b89b1b2215f58c6b95441dc830585` **是候选指纹，不是执行批准**；没有Change Set ARN、有效执行SHA或新的事实时刻。
+
+| 租户逻辑ID | 新监听器尾ID | 原优先级／动作（保持） |
+| --- | --- | --- |
+| TenantBusinessControlDenyRule | 443：31e6577b666f0de1 | 100；准确Host＋两控制路径，固定404 |
+| TenantListenerRule | 443：31e6577b666f0de1 | 101；准确Host转发原目标组 |
+| TenantControlListenerRule | 8443：864f7b1cd42d3f8d | 100；准确Host＋两控制路径转发原目标组 |
+
+三条均属于ALB新代 `729e0854244ceff6`。[官方ListenerRule说明](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-elasticloadbalancingv2-listenerrule.html)规定修改ListenerArn需要替换。后续实际计划必须恰三项 **Modify / Replacement="True"**，不能出现Add/Remove/Import/Conditional或Service、TaskDefinition、TargetGroup、LogGroup变化；规则优先级、Host/path、动作、目标组保持。现有离线review函数只检查传入数据的计划形状，**不证明执行权限、18参数实际保留、物理归属或服务不变**，也不代表已经创建过该计划。
+
+**服务漂移必须先核对，不暗改模板。** 归档Original SHA `d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779` 中Service仍为DesiredCount=1、TaskDefinition引用栈内定义，且DependsOn上述三条规则；04:51:55.105Z已存实况却是0/0/0、服务引用revision:12。CFN TaskDefinition实际物理ID本阶段未读取，不能断言它等于服务的:12。[官方DependsOn说明](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-attribute-dependson.html)称依赖更新资源的资源也会自动更新，但CFN不改变这些自动更新资源，相关更新权限仍可能需要。因此这**不是已证明会启动任务的故障**；也不能仅凭三规则计划形状，保证跨服务漂移和引用全部安全。下一步先比较真实Original、CFN物理ID与服务引用/数量。保持三规则门禁，不自行去掉DependsOn、把DesiredCount改0、注册新任务定义或扩大Service变更。
+
+**权限尚待证明。** 历史材料曾把执行boundary的两条规则DescribeTags路径绑定到241081代；本阶段没有读取现行租户role/inline/managed/boundary，不能称当前仍是旧版本或已确定只需两条替换。离线计划列出729e代两条准确规则ARN命名空间，后续只核对新监听器/规则的读取、创建、标签及旧规则删除路径，不安装权限。新443的100/101、8443的100是否空闲、三旧规则是否缺失、原目标组是否仍在均未刷新。API Alias另核对另审，不夹带DNS写；本轮不证明API恢复。
+
+**下一唯一动作：另审一次限定只读收敛核对。** 既有Source身份最多STS1＋AWS元数据35，只核对准确Cell/租户Original与物理ID、服务数量及任务定义ARN（不DescribeTaskDefinition或读环境变量）、新旧监听器/规则/目标组、现有执行角色策略和准确API DNS。复用仍有效A2原件，不全量重读；旧时刻不重计，变化或过期只补必要事实。不得读Secret值/PEM/.env、连接数据库、写AWS、创建Change Set、消费执行槽或调度。失败停止、不自动重试；接受凭据内存、网络/提供者日志及低额非零费用。读取通过后才准备准确创建审批；必要IAM差异单列，不在本次安装。
+
+本轮21项本地基线/片段/边界检查与定向lint通过；不是新的云核验或远程CI通过。ALB仍按上轮实际结果运行、可能持续收费，本轮不设新到期/自动停止，不调用临时止费工具；不启RDS/ECS、不改镜像。以下A2原件、时刻和历史待审文字全部保留。
+
+## 最新实际云结果：A2 已执行并独立核验，Cell 四项归属恢复
 
 用户明确确认执行清单 `a4c1b41b6b5d9fa3a9a1883994aeebbc4b514390e8b392964bf93b25f59512a9` 后，本轮仅一次ExecuteChangeSet，显式DisableRollback=true。执行源码 `5f1db521b57861272b035c5fa30fb7cfd923d09a`；04:52:04.090Z收到ACK、04:54:23.776Z观察到UPDATE_COMPLETE，另进程于 **2026-11-07T04:55:14.610Z（温尼伯11月6日22:55:14.610 CST）** 完成独立核验，结果 `A2_EXECUTED_CELL_FOUR_RESOURCES_INDEPENDENTLY_VERIFIED`。
 
@@ -17,7 +39,7 @@
 
 **ALB现已运行并可能持续收费。** 本轮不安装自动停止、不改历史ExpiresAt或原清理计划、不调用临时止费工具；原50USD/月仅目标，账单和折扣未读取，不能保证保留或自动停费。后续按用户通知/另审范围停用，不能把本轮成功当作停费证明。
 
-**当前唯一继续点：仅离线准备B租户收敛材料。** 本次执行前04:51:53.585Z读取的租户两个监听器参数仍为旧代241081，未改为Cell新代729e；这不是执行后额外查询。应以新Cell实际Outputs准备同一租户两参数/三规则的精确替换方案，保留镜像/服务数量等其余输入，核清必要权限路径，再另审实际变更；三规则实体和API DNS本轮未重新核对或更新。A2通过不等于租户API恢复，平台漂移、租户绑定及DNS仍未收敛，不做业务测试或直接开始镜像更新。原依赖04:18事实不因本轮成功重计期限。
+**A2完成时继续点为离线准备B，现已完成，见顶部。** 本次执行前04:51:53.585Z读取的租户两个监听器参数仍为旧代241081，未改为Cell新代729e；这不是执行后额外查询。三规则实体和API DNS本轮未重新核对或更新。A2通过不等于租户API恢复，平台漂移、租户绑定及DNS仍未收敛，不做业务测试或直接开始镜像更新。原依赖04:18事实不因本轮成功重计期限。
 
 ## 待批准：仅执行既有 A2，恢复 Cell 四项声明
 

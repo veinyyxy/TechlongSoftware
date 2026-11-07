@@ -15,7 +15,9 @@ import a2Created from '../ops/deployment-baseline/cell-a2-created-20261107.json'
 import a2Execute from '../ops/deployment-baseline/cell-a2-execution-review.json' with { type: 'json' };
 import a2Costs from '../ops/deployment-baseline/cell-a2-cost-estimate.json' with { type: 'json' };
 import a2Executed from '../ops/deployment-baseline/cell-a2-executed-20261107.json' with { type: 'json' };
-import { compareBindings, compareDeclarations, draftImageUpdate, imageChange } from '../ops/deployment-baseline/review.mjs';
+import listenerPlan from '../ops/deployment-baseline/tenant-b-offline-plan.json' with { type: 'json' };
+import listenerTemplate from '../ops/deployment-baseline/tenant-listener-change.template.json' with { type: 'json' };
+import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
 const cellOutputs={ClusterName:'cell-sandbox-1',VpcId:'vpc-aaaaaaaa',TaskSecurityGroupId:'sg-aaaaaaaa',SubnetIds:'subnet-aaaaaaaa,subnet-bbbbbbbb',
@@ -273,4 +275,89 @@ test('A2 executed result restores only Cell ownership with real outputs, not ten
   assert.ok(Date.parse(observed.observedAt)<Date.parse(a2Executed.submissionIntentAt));
   assert.notEqual(observed.HttpsListenerArn,a2Executed.cellOutputs.HttpsListenerArn);
   assert.notEqual(observed.ControlListenerArn,a2Executed.cellOutputs.ControlListenerArn);
+});
+
+test('B fragment changes only two real A2 outputs and retains template plus eighteen parameters',()=>{
+  assert.deepEqual(Object.keys(listenerTemplate).sort(),['Parameters','UsePreviousTemplate']);
+  assert.equal(listenerTemplate.UsePreviousTemplate,true);
+  assert.deepEqual(listenerTemplate.Parameters.map(p=>p.ParameterKey),b.stacks.tenant.parameters);
+  for(const p of listenerTemplate.Parameters){
+    assert.deepEqual(p,listenerPlan.fragment.changedParameters.includes(p.ParameterKey)?
+      {ParameterKey:p.ParameterKey,ParameterValue:a2Executed.cellOutputs[p.ParameterKey]}:
+      {ParameterKey:p.ParameterKey,UsePreviousValue:true});
+  }
+  assert.equal(listenerTemplate.Parameters.filter(p=>p.UsePreviousValue).length,18);
+  assert.equal(listenerTemplate.Parameters.find(p=>p.ParameterKey==='ImageUri').UsePreviousValue,true);
+});
+
+test('B binds saved observations without renewing them or hiding Service drift and pending IAM checks',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(listenerPlan.sourceCell.resultCanonicalSha256,sha(a2Executed));
+  assert.deepEqual(listenerPlan.sourceCell.outputs,a2Executed.cellOutputs);
+  assert.equal(listenerPlan.sourceCell.independentlyVerifiedAt,a2Executed.independentlyVerifiedAt);
+  assert.equal(listenerPlan.fragment.canonicalSha256,sha(listenerTemplate));
+  assert.equal(listenerPlan.archivedTemplate.canonicalSha256,b.stacks.tenant.templateSha256);
+  const old=listenerPlan.savedTenantObservation,oldListeners=a2Executed.tenantListenerParametersObservedBeforeExecute;
+  assert.equal(old.observedAt,oldListeners.observedAt);
+  for(const key of b.cellOutputsToTenantParameters){
+    if(listenerPlan.fragment.changedParameters.includes(key)){
+      assert.equal(old.sixCrossStackParameters[key],oldListeners[key]);
+      assert.notEqual(old.sixCrossStackParameters[key],a2Executed.cellOutputs[key]);
+    }else assert.equal(old.sixCrossStackParameters[key],a2Executed.cellOutputs[key]);
+  }
+  assert.equal(listenerPlan.archivedTemplate.serviceDesiredCount,1);
+  assert.deepEqual([old.desiredCount,old.runningCount,old.pendingCount],[0,0,0]);
+  assert.equal(old.cfnTaskDefinitionPhysicalIdNotRead,true);
+  assert.deepEqual([...listenerPlan.archivedTemplate.serviceDependsOn].sort(),listenerPlan.archivedTemplate.ruleProjection.map(r=>r.logicalId).sort());
+  assert.deepEqual(listenerPlan.archivedTemplate.ruleProjection.map(r=>[r.logicalId,r.listenerParameter,r.priority]),[
+    ['TenantBusinessControlDenyRule','HttpsListenerArn',100],['TenantControlListenerRule','ControlListenerArn',100],['TenantListenerRule','HttpsListenerArn',101]]);
+  for(const key of ['actualServicePreservationNotProved','noAutomaticDesiredCountOrDependsOnFix','noServiceOrTaskDefinitionScopeExpansion'])assert.equal(listenerPlan.serviceGuard[key],true);
+  assert.equal(listenerPlan.permissions.currentTenantRoleAndPoliciesNotReadThisPhase,true);
+  assert.equal(listenerPlan.permissions.proposedIamWrite,null);
+  for(const [field,parameter]of [['businessRuleNamespaceToCheck','HttpsListenerArn'],['controlRuleNamespaceToCheck','ControlListenerArn']]){
+    assert.equal(listenerPlan.permissions[field],a2Executed.cellOutputs[parameter].replace(':listener/',':listener-rule/')+'/*');
+  }
+  assert.equal(listenerPlan.thisPreparation.accountAwsCalls,0);assert.equal(listenerPlan.thisPreparation.executionSlotsConsumed,0);
+  for(const key of ['approvalManifestSha256','changeSetId','newLiveFactsAt','startBefore'])assert.equal(listenerPlan[key],null);
+  for(const key of ['creationAuthorized','executionAuthorized','liveOwnershipVerified'])assert.equal(listenerPlan[key],false);
+});
+
+function syntheticListenerChangeSet(){
+  return {StackId:listenerPlan.targetStackId,Status:'CREATE_COMPLETE',ExecutionStatus:'AVAILABLE',
+    Parameters:structuredClone(listenerTemplate.Parameters),
+    Changes:listenerPlan.archivedTemplate.ruleProjection.map(r=>({Type:'Resource',ResourceChange:{
+      LogicalResourceId:r.logicalId,ResourceType:r.type,Action:'Modify',Replacement:'True',Scope:['Properties'],
+      Details:[{Target:{Attribute:'Properties',Name:'ListenerArn',RequiresRecreation:'Always'}}]}}))};
+}
+
+test('B three-replacement shape match is never service, parameter preservation, ownership or execution proof',()=>{
+  const input=syntheticListenerChangeSet(),saved=structuredClone(input);
+  const result=reviewTenantListenerChangeSet(input);
+  assert.equal(result.matchesProposedRuleReplacementShape,true);assert.deepEqual(result.differences,[]);
+  for(const key of ['unchangedParameterPreservationProved','servicePreservationProved','liveOwnershipVerified','executionAuthorized'])assert.equal(result[key],false);
+  assert.deepEqual(input,saved);
+});
+
+test('B shape check rejects other resources, conditional replacements, wrong binding and incomplete evidence',()=>{
+  const changes=[
+    c=>{c.StackId+='-other';},c=>{c.ExecutionStatus='EXECUTE_COMPLETE';},c=>{c.NextToken='next';},
+    c=>{c.IncludeNestedStacks=true;},c=>{c.Changes.pop();},
+    c=>{c.Changes[0].ResourceChange.LogicalResourceId=c.Changes[1].ResourceChange.LogicalResourceId;},
+    c=>{c.Changes[0].ResourceChange.LogicalResourceId='TenantService';c.Changes[0].ResourceChange.ResourceType='AWS::ECS::Service';},
+    ...['Add','Remove','Import'].map(action=>c=>{c.Changes[0].ResourceChange.Action=action;}),
+    ...['Conditional','False',true].map(replacement=>c=>{c.Changes[0].ResourceChange.Replacement=replacement;}),
+    c=>{c.Changes[0].ResourceChange.Scope.push('Tags');},
+    c=>{c.Changes[0].ResourceChange.Details[0].Target.Name='Priority';},
+    c=>{delete c.Changes[0].ResourceChange.Details;},
+    c=>{c.Parameters.find(p=>p.ParameterKey==='HttpsListenerArn').ParameterValue='old';},
+    c=>{c.Parameters.push(c.Parameters[0]);},
+  ];
+  for(const mutate of changes){
+    const input=syntheticListenerChangeSet();mutate(input);
+    const result=reviewTenantListenerChangeSet(input);
+    assert.equal(result.matchesProposedRuleReplacementShape,false);assert.ok(result.differences.length>0);
+    assert.equal(result.executionAuthorized,false);
+  }
+  assert.equal(reviewTenantListenerChangeSet().matchesProposedRuleReplacementShape,false);
 });

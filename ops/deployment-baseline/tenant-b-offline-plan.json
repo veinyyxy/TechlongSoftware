@@ -1,0 +1,234 @@
+{
+  "schema": "techlong/tenant-b-offline-plan/v1",
+  "status": "OFFLINE_DRAFT_NOT_EXECUTABLE",
+  "preparedFromCommit": "596818015f41efdadd983eb4d47faf67e98986fb",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "targetStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+  "executionRoleObserved": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+  "sourceCell": {
+    "resultFile": "cell-a2-executed-20261107.json",
+    "resultCanonicalSha256": "ebc875f6e832fd2e88c2def5a7a9457eceb3d4a98d5843c74d7623cfd5b042cd",
+    "independentlyVerifiedAt": "2026-11-07T04:55:14.610Z",
+    "outputs": {
+      "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d",
+      "VpcId": "vpc-0136b6ba92a72cbf9",
+      "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1",
+      "CellExpiresAt": "2026-10-15T16:44:56.246Z",
+      "TaskSecurityGroupId": "sg-0df75af0d0661492a",
+      "ClusterName": "cell-sandbox-1",
+      "SubnetIds": "subnet-05b781276cc988b93,subnet-05729abe921410a75"
+    }
+  },
+  "fragment": {
+    "file": "tenant-listener-change.template.json",
+    "canonicalSha256": "0b96f5a37a0aed5096cda0834e8f3ed0189b89b1b2215f58c6b95441dc830585",
+    "usePreviousTemplate": true,
+    "changedParameters": [
+      "ControlListenerArn",
+      "HttpsListenerArn"
+    ],
+    "unchangedParameterCount": 18,
+    "imageUriUsesPreviousValue": true
+  },
+  "archivedTemplate": {
+    "source": "F:/ChatGPT_workshop/manual-environment-restore-20261101-a/tenant-create-request.json#TemplateBody",
+    "canonicalSha256": "d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779",
+    "resourceCount": 7,
+    "currentCloudOriginalNotReadThisPhase": true,
+    "ruleProjection": [
+      {
+        "logicalId": "TenantBusinessControlDenyRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "listenerParameter": "HttpsListenerArn",
+        "priority": 100,
+        "conditions": [
+          {
+            "Field": "host-header",
+            "HostHeaderConfig": {
+              "Values": [
+                {
+                  "Ref": "TenantHostname"
+                }
+              ]
+            }
+          },
+          {
+            "Field": "path-pattern",
+            "PathPatternConfig": {
+              "Values": [
+                "/api/saas",
+                "/api/saas/*"
+              ]
+            }
+          }
+        ],
+        "actions": [
+          {
+            "FixedResponseConfig": {
+              "ContentType": "application/json",
+              "MessageBody": "{\"success\":false,\"code\":\"NOT_FOUND\"}",
+              "StatusCode": "404"
+            },
+            "Type": "fixed-response"
+          }
+        ]
+      },
+      {
+        "logicalId": "TenantControlListenerRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "listenerParameter": "ControlListenerArn",
+        "priority": 100,
+        "conditions": [
+          {
+            "Field": "host-header",
+            "HostHeaderConfig": {
+              "Values": [
+                {
+                  "Ref": "TenantHostname"
+                }
+              ]
+            }
+          },
+          {
+            "Field": "path-pattern",
+            "PathPatternConfig": {
+              "Values": [
+                "/api/saas",
+                "/api/saas/*"
+              ]
+            }
+          }
+        ],
+        "actions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "TenantTargetGroup"
+            },
+            "Type": "forward"
+          }
+        ]
+      },
+      {
+        "logicalId": "TenantListenerRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "listenerParameter": "HttpsListenerArn",
+        "priority": 101,
+        "conditions": [
+          {
+            "Field": "host-header",
+            "HostHeaderConfig": {
+              "Values": [
+                {
+                  "Ref": "TenantHostname"
+                }
+              ]
+            }
+          }
+        ],
+        "actions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "TenantTargetGroup"
+            },
+            "Type": "forward"
+          }
+        ]
+      }
+    ],
+    "serviceDesiredCount": 1,
+    "serviceTaskDefinition": {
+      "Ref": "TenantTaskDefinition"
+    },
+    "serviceDependsOn": [
+      "TenantBusinessControlDenyRule",
+      "TenantListenerRule",
+      "TenantControlListenerRule"
+    ]
+  },
+  "savedTenantObservation": {
+    "observedAt": "2026-11-07T04:51:53.585Z",
+    "sixCrossStackParameters": {
+      "ClusterName": "cell-sandbox-1",
+      "VpcId": "vpc-0136b6ba92a72cbf9",
+      "SubnetIds": "subnet-05b781276cc988b93,subnet-05729abe921410a75",
+      "TaskSecurityGroupId": "sg-0df75af0d0661492a",
+      "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7",
+      "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b"
+    },
+    "targetGroupArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/5c3f443f78df9934",
+    "serviceObservedAt": "2026-11-07T04:51:55.105Z",
+    "serviceArn": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+    "desiredCount": 0,
+    "runningCount": 0,
+    "pendingCount": 0,
+    "serviceTaskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+    "cfnTaskDefinitionPhysicalIdNotRead": true
+  },
+  "requiredPlanShape": {
+    "modifyCount": 3,
+    "addCount": 0,
+    "removeCount": 0,
+    "importCount": 0,
+    "eachRuleReplacement": "True",
+    "onlyRulePropertyChange": "ListenerArn",
+    "unexpectedServiceTaskDefinitionTargetGroupOrLogGroupChangesAreNoGo": true
+  },
+  "serviceGuard": {
+    "archivedDesiredOneActualZeroDrift": true,
+    "dependentResourceUpdateMayOccur": true,
+    "automaticDependentUpdateDoesNotProveTaskStart": true,
+    "actualServicePreservationNotProved": true,
+    "changeSetShapeAloneIsNotExecutionProof": true,
+    "noAutomaticDesiredCountOrDependsOnFix": true,
+    "noServiceOrTaskDefinitionScopeExpansion": true
+  },
+  "permissions": {
+    "currentTenantRoleAndPoliciesNotReadThisPhase": true,
+    "businessRuleNamespaceToCheck": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1/*",
+    "controlRuleNamespaceToCheck": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d/*",
+    "checkNewAndOldRuleReadCreateDeleteTagPaths": true,
+    "proposedIamWrite": null,
+    "iamInstallationAuthorized": false
+  },
+  "pendingChecks": [
+    "current-tenant-Original-hash-and-seven-CFN-physical-ids",
+    "CFN-task-definition-physical-id-vs-live-service-task-definition-and-zero-counts",
+    "four-other-cross-stack-inputs-and-existing-target-group",
+    "new-listener-ownership-priority-100-101-vacancy-and-three-old-rule-absence",
+    "current-role-trust-inline-managed-boundary-and-rule-namespace-coverage",
+    "exact-API-alias-current-value-for-separate-DNS-review",
+    "actual-reviewed-unexecuted-three-replacement-Change-Set-and-Service-no-change-gate"
+  ],
+  "proposedReadOnlyScope": {
+    "approvalRequired": true,
+    "stsMax": 1,
+    "metadataMax": 35,
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "configSecretFileReads": 0,
+    "databaseConnections": 0,
+    "taskDefinitionDetailsOrEnvironmentReads": 0,
+    "awsWrites": 0,
+    "changeSetsCreated": 0,
+    "onlyKnownCellTenantRolesListenersAndExactApiDns": true,
+    "reuseStillValidA2EvidenceAndDoNotRestampOldFacts": true
+  },
+  "thisPreparation": {
+    "accountAwsCalls": 0,
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "databaseConnections": 0,
+    "executionSlotsConsumed": 0,
+    "changeSetsCreated": 0,
+    "publicDocumentationOnly": true
+  },
+  "approvalManifestSha256": null,
+  "changeSetId": null,
+  "newLiveFactsAt": null,
+  "startBefore": null,
+  "creationAuthorized": false,
+  "executionAuthorized": false,
+  "liveOwnershipVerified": false,
+  "next": "Separately approve one bounded read-only reconciliation; report Service/CFN drift and minimum IAM gap before any creation approval. Do not silently relax the three-rule-only gate, remove DependsOn, reset DesiredCount, alter images, write DNS or start tasks."
+}

@@ -3,6 +3,8 @@ import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import baseline from './existing-tenant.template.json' with { type: 'json' };
 import imageTemplate from './tenant-image-change.template.json' with { type: 'json' };
+import listenerPlan from './tenant-b-offline-plan.json' with { type: 'json' };
+import listenerTemplate from './tenant-listener-change.template.json' with { type: 'json' };
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
@@ -72,4 +74,32 @@ export function draftImageUpdate(templates, bindings, currentImage, proposedImag
     preserveTemplate: true, liveOwnershipVerified: false, executionAuthorized: false,
     blockers: ['verify-stack-physical-ownership', 'verify-cell-outputs-against-tenant-parameters-and-live-resources',
       'verify-service-revision-and-current-image', 'verify-proposed-ecr-digest', 'review-exact-change-set-and-approval'] };
+}
+
+// Shape check only, not an execution gate. DescribeChangeSet does not prove that
+// UsePreviousValue was submitted for the other parameters, or preserve ECS drift.
+export function reviewTenantListenerChangeSet(changeSet = {}) {
+  const differences = [];
+  if (changeSet.StackId !== listenerPlan.targetStackId) differences.push('tenant-stack-id');
+  if (changeSet.Status !== 'CREATE_COMPLETE' || changeSet.ExecutionStatus !== 'AVAILABLE') differences.push('unexecuted-available-plan');
+  if (changeSet.NextToken || changeSet.ParentChangeSetId || changeSet.RootChangeSetId || changeSet.IncludeNestedStacks === true) differences.push('nested-or-incomplete-plan');
+  const expectedIds = listenerPlan.archivedTemplate.ruleProjection.map(r => r.logicalId).sort();
+  const changes = Array.isArray(changeSet.Changes) ? changeSet.Changes : [];
+  if (!isDeepStrictEqual(changes.map(c => c?.ResourceChange?.LogicalResourceId).sort(), expectedIds)) differences.push('exact-three-rules');
+  for (const c of changes) {
+    const r = c?.ResourceChange;
+    if (!r || c.Type !== 'Resource' || r.ResourceType !== 'AWS::ElasticLoadBalancingV2::ListenerRule' ||
+      r.Action !== 'Modify' || r.Replacement !== 'True' || r.ChangeSetId) differences.push('rule-replacement-only');
+    if (!isDeepStrictEqual(r?.Scope, ['Properties']) || !Array.isArray(r?.Details) || !r.Details.length ||
+      r.Details.some(d => d?.Target?.Attribute !== 'Properties' || d.Target.Name !== 'ListenerArn')) differences.push('listener-property-only');
+  }
+  const parameters = Array.isArray(changeSet.Parameters) ? changeSet.Parameters : [];
+  if (!isDeepStrictEqual(parameters.map(p => p?.ParameterKey).sort(), baseline.stacks.tenant.parameters)) differences.push('parameter-names');
+  for (const expected of listenerTemplate.Parameters.filter(p => Object.hasOwn(p, 'ParameterValue'))) {
+    const actual = parameters.find(p => p?.ParameterKey === expected.ParameterKey);
+    if (actual?.ParameterValue !== expected.ParameterValue || actual.UsePreviousValue === true) differences.push('listener-value:' + expected.ParameterKey);
+  }
+  return { matchesProposedRuleReplacementShape: differences.length === 0, differences: [...new Set(differences)],
+    unchangedParameterPreservationProved: false, servicePreservationProved: false,
+    liveOwnershipVerified: false, executionAuthorized: false };
 }
