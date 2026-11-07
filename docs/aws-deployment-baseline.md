@@ -1,10 +1,27 @@
 # 既有租户版本更新：三栈资源基线
 
-2026-11-06，账号 402010193138 / ca-central-1。这里的“正式基线”指后续发布所遵守的**声明归属**，不是新生产环境或可执行部署包；初次整理为离线，后继实际云结果在下方明确标注。已验证的现有 sandbox 不等于任意租户。买家商品列表、登录、查看订单及卖家端所测功能由用户确认正常，不列为工程待测项。
+初版 2026-11-06；状态整理 2026-11-07。账号 402010193138 / ca-central-1。这里的“正式基线”指后续发布所遵守的**声明归属**，不是新生产环境、可执行部署包或云操作授权。初版仅离线整理；后来的 A1/A2、IAM 修正和租户 B 均是用户另行批准的独立修复范围，不能由追加的文档反向授权。
+
+本页分开记录当前状态、长期归属和历史阶段；只有下一节定义当前继续点。历史段落、旧审批 SHA、旧期限及机器清单中的准备状态均不构成新许可。已验证的现有 sandbox 不等于任意租户。买家商品列表、登录、查看订单及卖家端所测功能由用户确认正常，不列为工程待测项。
+
+<a id="current-state"></a>
+
+## 当前状态与唯一继续点
+
+**文档整理与本地验证已完成，当前只等待 B 失败事件读取批准；尚未批准新的 AWS 读取或写入。** 本次只修正文档并正常提交/推送。下列状态来自已保存的独立回读，没有刷新云端事实或延长任何期限。
+
+| 对象 | 最新已存事实与边界 |
+| --- | --- |
+| Cell | [A2 结果](../ops/deployment-baseline/cell-a2-executed-20261107.json)于 2026-11-07T04:55:14.610Z 独立确认 UPDATE_COMPLETE/16 项，原十二物理 ID 保持，新 ALB、443/8443 监听器及共享拒绝规则由同一 Cell 管理；不等于平台和租户全部无漂移 |
+| 租户 B | [执行后独立检查](../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json)于 2026-11-07T14:09:45.640Z 确认为 UPDATE_FAILED / EXECUTE_FAILED；两监听器参数已变为 729e 代，但三规则 CFN 物理引用仍为旧代，状态为 UPDATE_ROLLBACK_COMPLETE；尚未验收到新租户规则，目标组未关联 ALB，初始失败原因未取得 |
+| 保留资源与权限 | B 独立检查时 Service/TaskDefinition/TargetGroup/LogGroup 四物理 ID 保持，服务 desired/running/pending 为 0/0/0、任务定义 :12，IAM 默认 v10 匹配；未查询瞬时任务历史，不能承诺整个操作期间从未启动任务 |
+| 已消费批准 | B 执行 SHA `109627ceccdbe813ebbbf2b80c176c9a1e60ed16dfc75cb1f740a04af2dd69c9` 已单次执行，STS2/元数据36/Execute1、其他直接写0；即使原时限未到也不能重放。观察到了提供者资源级恢复，没有代理主动回滚、重试或清理 |
+
+**文档收尾后的唯一待批动作：** 按[固定失败事件读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)，仅 STS1 + `DescribeEvents`1，绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，一页且只投影失败原因元数据。草案尚未获准、尚未执行；AWS CLI 可能在内存接收 ResourceProperties，但不得保存或输出该字段，实际读取须用户明确确认该范围。
+
+读取原因前不推断根因；读取后也只按真实原因另审最小恢复。原执行许可及其剩余读取预算不含新增事件 API，不得重用为新读取授权。当前不创建/执行新 Change Set、不改 IAM/模板/DNS/镜像、不直接启停 ECS/RDS、不调用临时启停工具，不扩 UI、探针、F3c9、恢复框架或新固定任务分支。Cell ALB 可能仍持续收费，没有新增自动停止；本次未核对现时健康或费用。
 
 ## 哪个栈负责什么
-
-**最新已验证Cell实况：** [A2已执行并独立核验](aws-cell-listener-ownership-repair.md#最新结果a2-已执行并独立核验cell-四项归属恢复)，2026-11-07T04:55:14.610Z时为UPDATE_COMPLETE/16项，Original SHA与机器基线Cell目标一致；原十二物理ID保持，新ALB/两监听器/共享拒绝规则由同一Cell管理，两个输出已恢复。A1十二项/ALB缺失是之前中间态，不再是本次最新结果。只证明约定四项及属性，不称全部保留属性/平台/租户都无漂移。新物理ID、输出、ALB DNS与zone见[实际结果](../ops/deployment-baseline/cell-a2-executed-20261107.json)，下一只离线准备租户B收敛，镜像更新仍不得开始。
 
 | 栈（现有名称） | 声明归属 | 不归它管理 |
 | --- | --- | --- |
@@ -18,14 +35,6 @@
 
 ## 跨栈绑定与恢复差异
 
-**B执行后的真实部分状态：** [独立检查结果](../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json)为UPDATE_FAILED/未验收。参数虽已指向729e，三规则CFN物理引用仍旧代且显示资源级恢复；因此“参数对齐”不能当归属/实体已修复。服务验收时0/:12，四保留物理ID保持，目标组仍未关联ALB。下一只先另允准确失败事件读原因，不更新镜像/DNS、不重放已消费执行；下方AVAILABLE/待执行都是前置历史。
-
-**B实际计划已确认，但尚未应用：** [准确95855d02…结果](../ops/deployment-baseline/tenant-b-created-20261107.json)为三规则替换、Service等四资源不变的可用计划；创建后Original/七CFN记录/旧两参数保持、服务仍0/:12。下一只审同一计划的执行和失败策略，不能把Creation通过当租户已接上729e。特别保留Service声明1/实况0的依赖协调风险：未来若计数变化就不验收、不擅自修复或停用，须用户另决。实际DNS与镜像仍未改。
-
-**IAM差异已收敛，租户引用尚未应用：** [v10安装结果](../ops/deployment-baseline/tenant-b-iam-installed-20261107.json)已独立确认新旧规则标签读取前缀、旧三版/角色边界保持；本阶段只一次IAM版本写，未把租户241081参数改成729e。下一[准确清单](../ops/deployment-baseline/tenant-b-creation-review.json)只待批准创建三规则替换计划，不执行、启动服务或夹带DNS/镜像更新。下段待IAM文字为前置事实，不再是当前动作。
-
-**B当前只读结果：** [准确事实](../ops/deployment-baseline/tenant-b-preflight-20261107.json)于05:22Z重新核对租户Original/七项CFN记录和两参数仍241081；三旧规则实体实际缺失，729e新监听器的所需优先级空闲。CFN任务定义物理ID和服务引用均:12，服务仍0/0/0、声明1的漂移未改，不能把“CFN记录CREATE_COMPLETE”说成全部实体存在。现行IAM v9的规则DescribeTags路径和API Alias均未对齐；下一只待[单次最小IAM修正](aws-cell-listener-ownership-repair.md#待批准仅现有-iam-policy-一次版本更新)准确批准。三规则计划、DNS和镜像均未写，旧离线阶段的“未读取/未知”保留追溯，不能替代这一新结果。
-
 Cell 六个输出按同名参数传给租户，并非租户栈自己查找资源。`ClusterName` 供 Service 使用，`VpcId` 供目标组使用，`SubnetIds` 和 `TaskSecurityGroupId` 用于任务网络。归档对照中这四项一致。另两项决定三条租户规则挂在哪个监听器上，历史材料中已不一致：
 
 | 引用（ARN尾段；前三数据列为历史） | 11月1日归档 Cell 输出 | 11月1日新租户建栈参数 | 11月6日手动恢复映射 | 本次A2独立核验的Cell输出 |
@@ -33,9 +42,11 @@ Cell 六个输出按同名参数传给租户，并非租户栈自己查找资源
 | HttpsListenerArn / 443 | 77888e84c19e8b86 / 469c2b642a33bfc1 | 241081ab25c73320 / 8fce768af0ff42f7 | 706bcbbc89b8a673 / 9f91841ec135459f | 729e0854244ceff6 / 31e6577b666f0de1 |
 | ControlListenerArn / 8443 | 77888e84c19e8b86 / bc69b195b69bc2d9 | 241081ab25c73320 / 576403dc1245139b | 706bcbbc89b8a673 / ae460cdac1f0e971 | 729e0854244ceff6 / 864f7b1cd42d3f8d |
 
-本轮执行前04:51:53.585Z的租户DescribeStacks仍读到上述241081参数，来源及准确值已收入A2结果，未当作执行后重查；Cell新输出不能直接冒充租户已更新。三规则实体、其余跨栈参数和权限路径仍需B阶段准确核对，本轮未修改租户或API DNS。
+上表的 A2 输出不是租户已接通的证明。A2 执行前 04:51:53.585Z 的租户参数仍为 241081 代；后来 B 执行虽已把两参数保存为 729e 代，三规则 CFN 物理引用仍旧代。**参数、CFN 记录和实际规则实体必须分开核验**，不得把创建时的 AVAILABLE 或参数对齐当修复成功。API Alias 在已存 B 预检中仍指向旧 ALB，本次修复没有写 DNS，现时解析未重查。
 
-平台也经历 ALB `92d54a44479fbc3a → a33cd1f8bed33cba`，443 监听器 `0234243da966933a → 253cde394d05f108`；两条 Alias 曾被直接切到重建后的 ALB。重建监听规则会产生新物理 ID，Cell 自有拒绝规则与租户三规则须分别对应到各自栈。**同名、同标签、DNS 曾经工作均不能证明 CFN 已接管。** 既有租户执行角色的规则 ARN 限制也需比对，本轮不调整 IAM。
+平台也经历 ALB `92d54a44479fbc3a → a33cd1f8bed33cba`，443 监听器 `0234243da966933a → 253cde394d05f108`；两条 Alias 曾被直接切到重建后的 ALB。重建监听规则会产生新物理 ID，Cell 自有拒绝规则与租户三规则须分别对应到各自栈。**同名、同标签、DNS 曾经工作均不能证明 CFN 已接管。**
+
+初版离线阶段明确不调整 IAM。之后用户单独批准了[最小 IAM 修正](../ops/deployment-baseline/tenant-b-iam-review.json)，[安装结果](../ops/deployment-baseline/tenant-b-iam-installed-20261107.json)确认既有 policy 默认 v9→v10，保留 v7/v8/v9，仅新增两个准确新监听器规则前缀的 DescribeTags 读取覆盖；因长度上限去掉五个可选 Sid 标签，其余授权元素保持。它同时作为角色 identity policy 和 boundary，新读取覆盖持久保留，不是临时 grant。这是另批的范围扩展，不属于三栈资源归属或镜像更新，也不授权继续改 IAM。
 
 平台归档模板仍声明 hosted-controller/ControllerLease 与 HostingExpiresAt；手工恢复采用关闭控制器的任务定义 :12，无新资源到期。不可拿旧平台模板整体覆盖实际服务或重新挂载控制器凭据。之前11月6日stop核对发现两台ALB均不存在，那是A2之前事实；本次只由CFN恢复并核验了Cell，平台ALB现状没有重新查询。表中的11月6日恢复映射是历史，**不能再当下次参数来源**；未来使用新输出仍须提交前匹配实际状态。本基线不判断数据库现在是否已停，也不改动stop锁、journal或工具配置。
 
@@ -43,7 +54,7 @@ Cell 六个输出按同名参数传给租户，并非租户栈自己查找资源
 
 ## 给下一次更新用的最小模板
 
-当前先完成[租户B两监听器参数／三规则收敛](aws-cell-listener-ownership-repair.md#当前准备b-两参数三规则离线方案已完成)。新[监听器参数片段](../ops/deployment-baseline/tenant-listener-change.template.json)只使用A2已核验729e输出，其余18参数保留；[离线计划](../ops/deployment-baseline/tenant-b-offline-plan.json)记录Service声明1与已存实况0的差异、CFN任务定义物理ID未知及待核IAM路径，不把三规则形状匹配当执行证明。片段未应用，无新Change Set或生产读取；B及单列DNS收敛验证前，下列镜像片段仍不得执行。
+镜像更新仍被阻断：先查明 B 失败并另审最小恢复，完成租户规则归属/绑定及单列 DNS 收敛核验，才可准备镜像更新。[监听器参数片段](../ops/deployment-baseline/tenant-listener-change.template.json)是既有 B 计划的输入，不是新的可执行命令；其创建和单次执行已发生，不得按旧[离线计划](../ops/deployment-baseline/tenant-b-offline-plan.json)再创建或重放。离线阶段的“未读取/任务定义物理 ID 未知”只适用于当时；后续已核对 CFN/服务引用均为 :12，不能重新当作当前缺口。Service 声明1、执行后实况0的差异仍保留，不自行改 Service 或 DependsOn。
 
 [参数片段](../ops/deployment-baseline/tenant-image-change.template.json)按现有租户声明使用 `UsePreviousTemplate`，仅替换 `ImageUri`，其余 19 项均为 `UsePreviousValue`，不需要导出任何秘密值。镜像必须是同账号同区域指定仓库的新 SHA-256 digest，不能传 tag。此片段没有执行入口；不把监听器修复、DNS、平台任务、数据库迁移或角色改动夹带在版本更新里。
 
@@ -57,6 +68,20 @@ node scripts/check-deployment-baseline.mjs platform.json cell.json tenant.json b
 
 `bindings.json` 仅需 `cellOutputs` 与 `tenantParameters` 两个对象，各含上述六个公开键及其字符串值；SubnetIds 为逗号分隔串。三个原模板核对资源清单、参数/输出名及完整规范内容摘要（对象键顺序无关，数组顺序保留）。任何模板差异需审查；绑定不匹配时拒绝生成版本草案。即便全部一致，结果仍是 **liveOwnershipVerified=false / executionAuthorized=false**。
 
-**本轮实测：** 本机三份归档模板与清单匹配；同一批已存输出/参数比对准确报出两项监听器差异，版本草案被拒绝。这是预期的保护结果，不是云端修复完成。
+**初版离线检查（历史事实）：** 本机三份归档模板与清单匹配；同一批已存输出/参数比对准确报出两项监听器差异，版本草案被拒绝。这是当时的保护结果，不是当前实况或云端修复完成证明。
 
-**继续条件：** 真正发布前，另审必要的只读核对：准确栈 UUID、Original、物理资源与运行引用（包括域名、规则、服务 revision 和镜像），确定恢复/收敛方式。若资源缺失、执行权限绑定陈旧或归属不明，单列修复范围；不直接重建、不以名称认领。只有重新证明归属与绑定一致并核实新镜像后，才可准备只针对租户的镜像 Change Set，审查预期任务定义新 revision 和服务更新、拒绝无关资源变化。GitHub environment 仍由用户本人批准；此阶段没有启动收费环境或创建 Change Set。
+**未来镜像发布条件（不是当前执行许可）：** 真正发布前，另审必要的只读核对：准确栈 UUID、Original、物理资源与运行引用（包括域名、规则、服务 revision 和镜像），确定恢复/收敛方式。若资源缺失、执行权限绑定陈旧或归属不明，单列修复范围；不直接重建、不以名称认领。只有重新证明归属与绑定一致并核实新镜像后，才可准备只针对租户的镜像 Change Set，审查预期任务定义新 revision 和服务更新、拒绝无关资源变化。GitHub environment 仍由用户本人批准。初版“未启动收费环境/未创建 Change Set”只描述初版离线阶段；后继另批的 ALB 恢复与 Change Set 创建/执行已发生，不能继续写作当前事实。
+
+## 历史阶段索引（只追溯，不重放）
+
+| 阶段 | 当时结果与证据 |
+| --- | --- |
+| 初版离线基线 | `e2fb780`，仅声明/历史绑定对照，无云调用；不是后续云操作授权 |
+| A1 创建 → 执行 | [仅创建结果](../ops/deployment-baseline/cell-a1-created-20261106.json)、[单次执行及独立核验](../ops/deployment-baseline/cell-a1-executed-20261106.json)；四项失效声明移除，十二项保留，属于已完成中间态 |
+| A2 创建 → 执行 | [仅创建结果](../ops/deployment-baseline/cell-a2-created-20261107.json)、[单次执行及独立核验](../ops/deployment-baseline/cell-a2-executed-20261107.json)；Cell 恢复四项声明/两输出，不等于租户/API 恢复 |
+| B 预检 → IAM 修正 | [05:22Z 预检](../ops/deployment-baseline/tenant-b-preflight-20261107.json)、[v10 安装](../ops/deployment-baseline/tenant-b-iam-installed-20261107.json)；当时三旧规则缺失、参数仍旧代；IAM 修正已另批完成，不再待批 |
+| B 仅创建 | [95855d02… 创建结果](../ops/deployment-baseline/tenant-b-created-20261107.json)，当时为 AVAILABLE/三规则替换，无 Service 等变化；不是现在仍可执行的证明 |
+| 旧 B 执行清单过期 → 新只读刷新 | [过期停止](../ops/deployment-baseline/tenant-b-execution-expired-20261107.json)、[另批刷新](../ops/deployment-baseline/tenant-b-execution-refresh-20261107.json)；旧清单未执行，原事实/期限未改写，随后另批新 SHA |
+| B 单次执行 → 独立检查 | [失败/部分状态结果](../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json)；执行槽已消费、未验收，唯一待批动作见顶部 |
+
+完整分阶段审批、原 SHA/期限与失败记录继续保留在[修复沿革](aws-cell-listener-ownership-repair.md)、执行手册/主线的折叠历史及 Git 历史中；本次未修改任何机器清单、模板、执行回执、私有原件或永久槽。历史中的“下一步/待批准/尚未执行”只适用于当时，不覆盖顶部状态，也不能作为重放入口。
