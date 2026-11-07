@@ -1,0 +1,110 @@
+{
+  "schema": "techlong/tenant-b-iam-installed/v1",
+  "status": "B_IAM_MINIMAL_EXTENSION_INDEPENDENTLY_VERIFIED",
+  "approvedManifestSha256": "e6b6b5fd1d391e7e28550210e03b30d1d8a03487a2acb53bdad5c008992f8e5b",
+  "sourceCommit": "990ea7a3e9c77e5c1d94718c6bf48dfcc0f8b293",
+  "policyArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+  "policyId": "ANPAV3GNMXTZOQPIXOKJ4",
+  "previousDefaultVersion": "v9",
+  "installedDefaultVersion": "v10",
+  "installedPolicyCanonicalSha256": "965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6",
+  "policyDocumentFile": "tenant-b-iam-policy-draft.json",
+  "policyNonWhitespaceCharacters": 6140,
+  "startedAt": "2026-11-07T05:37:57.693Z",
+  "submissionIntentAt": "2026-11-07T05:38:11.404Z",
+  "acknowledgedAt": "2026-11-07T05:38:12.809Z",
+  "independentlyVerifiedAt": "2026-11-07T05:38:31.752Z",
+  "retainedVersions": [
+    "v7",
+    "v8",
+    "v9"
+  ],
+  "observedVersionIds": [
+    "v7",
+    "v8",
+    "v9",
+    "v10"
+  ],
+  "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+  "roleId": "AROAV3GNMXTZKHYBCRSOE",
+  "roleTrustSha256": "844eadf42b336a846c05147d7c08cce628afec209b72dafd821063cb4cffa1ec",
+  "roleTrustInlineAttachmentBoundaryAndUsageCountsUnchanged": true,
+  "policyIsBothIdentityAndBoundary": true,
+  "authorizationDelta": [
+    {
+      "action": "elasticloadbalancing:DescribeTags",
+      "resource": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1/*"
+    },
+    {
+      "action": "elasticloadbalancing:DescribeTags",
+      "resource": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d/*"
+    }
+  ],
+  "oldTagReadPathsRetained": [
+    "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/*",
+    "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b/*"
+  ],
+  "removedOptionalSidMapping": [
+    {
+      "index": 12,
+      "oldSid": "AllowPassOnlySandboxSchedulerRoleToScheduler"
+    },
+    {
+      "index": 7,
+      "oldSid": "AllowDescribeSandboxLoadBalancerChildren"
+    },
+    {
+      "index": 0,
+      "oldSid": "AllowTaggedTaskDefinitionRegistration"
+    },
+    {
+      "index": 11,
+      "oldSid": "AllowPassOnlySandboxTaskRolesToEcs"
+    },
+    {
+      "index": 1,
+      "oldSid": "AllowTenantTaskDefinitionCleanup"
+    }
+  ],
+  "allOtherAuthorizationElementsUnchanged": true,
+  "counts": {
+    "writer": {
+      "sts": 1,
+      "metadata": 8,
+      "createPolicyVersion": 1
+    },
+    "independent": {
+      "sts": 1,
+      "metadata": 6,
+      "createPolicyVersion": 0
+    },
+    "total": {
+      "sts": 2,
+      "metadata": 14,
+      "createPolicyVersion": 1
+    },
+    "otherDirectAwsWrites": 0
+  },
+  "executionSlotsConsumed": 1,
+  "writeAcknowledged": true,
+  "automaticRetry": false,
+  "automaticRollback": false,
+  "automaticVersionDeletion": false,
+  "automaticRevoke": false,
+  "newReadCoveragePersists": true,
+  "tenantChangeSetCreated": false,
+  "tenantBindingsRepaired": false,
+  "apiDnsRepaired": false,
+  "ecsOrRdsStarted": false,
+  "imageUpdated": false,
+  "wholeSystemAccepted": false,
+  "privateEvidenceDirectory": ".local-secrets/tenant-b-iam-e6b6b5fd-20261107-a",
+  "journalRawSha256": "f2823a20388553ea735b9c976a18fe6cdd56cc88fe6da70920e38c2ac546d822",
+  "independentJournalRawSha256": "66566e4d5accdd90039b930cbdd800dc563783c57c62d0a81898fa10214c4ce3",
+  "independentJournalCanonicalSha256": "2c0e3459a1269a4734d17f7390e853ac90171b8aef5d8844f5f8d1b79ba20f15",
+  "attemptIntentRawSha256": "0c4c0b765ab5fa882785573dec10ad7539fb41c48d696f7a094deb437006f1f2",
+  "installationApprovedAndVerified": true,
+  "tenantCreationAuthorized": false,
+  "tenantExecutionAuthorized": false,
+  "next": "Offline assembly of one create-only tenant listener Change Set approval from the still-valid stored facts. No replay of this IAM attempt, no CFN creation/execution, DNS or image change without separate approval."
+}

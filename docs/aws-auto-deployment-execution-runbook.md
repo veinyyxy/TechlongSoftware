@@ -4,6 +4,8 @@
 
 ### 当前唯一继续点：既有实例的标准版本更新基线（2026-11-06）
 
+**当前最新：B最小IAM修正已按e6b6…单次安装并独立核验。** 默认v10/受审SHA匹配，v7/v8/v9保留、角色/trust/附加/boundary/使用计数保持；STS2/元数据14/CreatePolicyVersion1、其他写0，槽已消费、不重放。[结果及后继清单](aws-cell-listener-ownership-repair.md#最新结果b-最小-iam-修正已安装并独立核验)。已存原件已备创建SHA `517850bfaaab521db0acff869dba7cac8759ff59dfee25be239115b111723f02`：仅CreateChangeSet1，独立核对恰三规则Modify/Replacement=True，仍不执行、改IAM/DNS、启ECS/RDS或更新镜像。两参数替换/18保留、原角色/私有标签保持；Service声明1/实况0与DependsOn风险不隐去。当前只等“仅创建”新批准，不提前调云。最晚11月7日03:08:42.258 Winnipeg CST启动，原事实终点不延期；27项本地检查及定向lint通过，ALB持续收费、无新自动停止。下方“待IAM批准”已完成，仅供追溯。
+
 **当前最新：B限定只读已完成，只等待最小IAM修正新SHA批准。** [事实与准确审批](aws-cell-listener-ownership-repair.md#当前事实b-只读核对完成仅待最小-iam-修正审批)：实际STS1/元数据22、所有写/秘密/数据库/槽0。CFN与服务任务定义均:12，服务0/0/0而Original=1；三旧规则缺失、新优先级空闲，其他四绑定/目标组保持。执行policy v9标签读取仍绑旧241081；API Alias仍指旧ALB。已准备SHA `e6b6b5fd1d391e7e28550210e03b30d1d8a03487a2acb53bdad5c008992f8e5b`，仅一次CreatePolicyVersion设默认：保留旧两路径、追加新两路径；为6144字符限额移除五个可选Sid说明（映射保留），其余授权不变，v7/v8/v9不删除。不是临时grant，不自动撤权；并发/无CAS/传播/提交不明不重试等风险详见清单。尚未写IAM或获写授权，不先创建CFN计划/改DNS/启动服务或更新镜像。最晚温尼伯11月7日03:08:42.258 CST启动，复用依赖原09:18Z终点不延期，ALB持续收费、无新自动停止。24项本地检查及定向lint通过，下方“待读取”已被本轮结果替代。
 
 **最新继续点（B离线材料已完成）：仅另审一次限定只读收敛核对，尚未获准读取。** [B两参数／三规则候选](aws-cell-listener-ownership-repair.md#当前准备b-两参数三规则离线方案已完成)已固定到A2真实729e输出，UsePreviousTemplate、其余18参数保留。账号AWS/私密读取/数据库/云写/新槽0，21项本地检查及定向lint通过。归档Service DesiredCount=1、实况0/0/0且服务引用:12，CFN任务定义物理ID未知；保留DependsOn，不自行修服务/定义或暗放宽三规则门禁。下一最多STS1＋AWS元数据35，准确核对租户/Cell归属、规则/目标组、服务引用、现行IAM及API DNS；不读Secret值/PEM/.env或任务定义环境，不连库、不创建/执行Change Set或安装权限，须另获限定读取许可。实际IAM/租户/DNS变更仍另审，镜像不动。ALB已运行持续收费，无新自动到期/停止；原事实时刻不重计。下方A1/A2沿革仅供追溯，不重放。

@@ -20,6 +20,8 @@ import listenerTemplate from '../ops/deployment-baseline/tenant-listener-change.
 import bFacts from '../ops/deployment-baseline/tenant-b-preflight-20261107.json' with { type: 'json' };
 import bIamPolicy from '../ops/deployment-baseline/tenant-b-iam-policy-draft.json' with { type: 'json' };
 import bIamReview from '../ops/deployment-baseline/tenant-b-iam-review.json' with { type: 'json' };
+import bIamInstalled from '../ops/deployment-baseline/tenant-b-iam-installed-20261107.json' with { type: 'json' };
+import bCreateReview from '../ops/deployment-baseline/tenant-b-creation-review.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -429,4 +431,60 @@ test('B IAM review binds exact facts and one new default version without version
   assert.equal(bIamReview.status,'PREPARED_NOT_APPROVED');
   for(const key of ['installationAuthorized','creationAuthorized','executionAuthorized'])assert.equal(bIamReview[key],false);
   for(const key of ['creationAuthorized','executionAuthorized','iamInstallationAuthorized','apiDnsRepaired','wholeSystemAccepted'])assert.equal(bFacts[key],false);
+});
+
+test('B IAM result is one acknowledged version write independently verified, not a tenant deployment',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(bIamInstalled.approvedManifestSha256,sha(bIamReview));
+  assert.equal(bIamInstalled.status,'B_IAM_MINIMAL_EXTENSION_INDEPENDENTLY_VERIFIED');
+  assert.equal(bIamInstalled.policyArn,bIamReview.expected.boundaryArn);assert.equal(bIamInstalled.policyId,bIamReview.expected.policyId);
+  assert.equal(bIamInstalled.previousDefaultVersion,'v9');assert.equal(bIamInstalled.installedDefaultVersion,'v10');
+  assert.deepEqual(bIamInstalled.retainedVersions,['v7','v8','v9']);assert.deepEqual(bIamInstalled.observedVersionIds,['v7','v8','v9','v10']);
+  assert.equal(bIamInstalled.installedPolicyCanonicalSha256,sha(bIamPolicy));assert.equal(bIamInstalled.policyNonWhitespaceCharacters,6140);
+  assert.deepEqual(bIamInstalled.authorizationDelta,bIamReview.exactDiff.appendResources.map(resource=>({action:'elasticloadbalancing:DescribeTags',resource})));
+  assert.deepEqual(bIamInstalled.removedOptionalSidMapping,bIamReview.exactDiff.removedOptionalStatementIdsForSize);
+  assert.deepEqual(bIamInstalled.counts.total,{sts:2,metadata:14,createPolicyVersion:1});
+  assert.equal(bIamInstalled.counts.writer.metadata,8);assert.equal(bIamInstalled.counts.independent.metadata,6);
+  assert.equal(bIamInstalled.counts.otherDirectAwsWrites,0);assert.equal(bIamInstalled.executionSlotsConsumed,1);
+  assert.equal(bIamInstalled.writeAcknowledged,true);assert.equal(bIamInstalled.roleTrustInlineAttachmentBoundaryAndUsageCountsUnchanged,true);
+  assert.ok(Date.parse(bIamInstalled.submissionIntentAt)<Date.parse(bIamReview.startBefore));
+  assert.ok(Date.parse(bIamInstalled.acknowledgedAt)<Date.parse(bIamInstalled.independentlyVerifiedAt));
+  for(const key of ['automaticRetry','automaticRollback','automaticVersionDeletion','automaticRevoke','tenantChangeSetCreated','tenantBindingsRepaired','apiDnsRepaired','ecsOrRdsStarted','imageUpdated','wholeSystemAccepted','tenantCreationAuthorized','tenantExecutionAuthorized'])assert.equal(bIamInstalled[key],false,key);
+});
+
+test('B create-only review binds the verified IAM result and pinned fragment without publishing private tags',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  for(const [file,data]of [['tenant-b-preflight-20261107.json',bFacts],['tenant-b-iam-installed-20261107.json',bIamInstalled],['tenant-listener-change.template.json',listenerTemplate]]){
+    assert.equal(bCreateReview.evidence.find(x=>x.file===file).canonicalSha256,sha(data));
+  }
+  const r=bCreateReview.requestWithoutTags;
+  assert.equal(r.StackName,bFacts.targetStackId);assert.equal(r.RoleARN,bIamInstalled.roleArn);
+  assert.equal(r.UsePreviousTemplate,true);assert.deepEqual(r.Parameters,listenerTemplate.Parameters);
+  assert.equal(r.ChangeSetType,'UPDATE');assert.equal(r.IncludeNestedStacks,false);
+  assert.equal(r.Tags,undefined);assert.equal(r.TemplateBody,undefined);assert.equal(r.TemplateURL,undefined);assert.equal(r.OnStackFailure,undefined);
+  assert.equal(bCreateReview.tagsFromBoundPrivateRecord.journalRawSha256,bFacts.evidence[0].journalRawSha256);
+  assert.match(bCreateReview.tagsFromBoundPrivateRecord.canonicalMapSha256,/^[a-f0-9]{64}$/);
+  assert.equal(bCreateReview.tagsFromBoundPrivateRecord.preserveAllValuesWithoutPublishingThem,true);
+  assert.equal(bCreateReview.expected.policyDefaultVersion,bIamInstalled.installedDefaultVersion);
+  assert.equal(bCreateReview.expected.policyCanonicalSha256,bIamInstalled.installedPolicyCanonicalSha256);
+  assert.deepEqual(bCreateReview.expected.policyVersionIds,bIamInstalled.observedVersionIds);
+  assert.deepEqual(bCreateReview.expected.tenantResourcePhysicalIds,bFacts.cfnRecordedResources);
+  assert.deepEqual(bCreateReview.expected.proposedChanges,listenerPlan.archivedTemplate.ruleProjection.map(x=>({logicalId:x.logicalId,type:x.type,action:'Modify',replacement:'True',onlyProperty:'ListenerArn'})));
+});
+
+test('B creation approval is separate and cannot execute, change IAM/DNS/service or renew existing facts',()=>{
+  assert.equal(bCreateReview.status,'PREPARED_NOT_APPROVED');
+  assert.equal(bCreateReview.scope.createChangeSetMax,1);assert.equal(bCreateReview.scope.stsMax,2);
+  assert.equal(bCreateReview.scope.metadataReadMax,bCreateReview.scope.writerMetadataMax+bCreateReview.scope.independentMetadataReserve);
+  for(const [key,value]of Object.entries(bCreateReview.scope))if(!['stsMax','metadataReadMax','writerMetadataMax','independentMetadataReserve','createChangeSetMax'].includes(key))assert.equal(value,0,key);
+  assert.equal(bCreateReview.factsAt,bFacts.factsAt);assert.equal(bCreateReview.factsValidBefore,bFacts.effectiveFactsValidBefore);
+  assert.equal(bCreateReview.iamVerifiedAt,bIamInstalled.independentlyVerifiedAt);
+  assert.equal(Date.parse(bCreateReview.factsValidBefore)-Date.parse(bCreateReview.startBefore),10*60000);
+  for(const key of ['automaticRetry','automaticDeleteChangeSet','automaticExecute','automaticRollback','attemptResetAllowed'])assert.equal(bCreateReview.failurePolicy[key],false,key);
+  for(const key of ['creationAuthorized','executionAuthorized','iamChangeAuthorized','apiDnsChangeAuthorized'])assert.equal(bCreateReview[key],false,key);
+  assert.equal(bCreateReview.serviceGuard.shapeMatchIsNotFutureExecutionOrServicePreservationProof,true);
+  assert.equal(bCreateReview.serviceGuard.unexpectedServiceOrOtherResourceChangeIsNoGo,true);
+  assert.equal(bCreateReview.preparation.newAccountAwsCalls,0);assert.equal(bCreateReview.preparation.changeSetsCreated,0);
 });

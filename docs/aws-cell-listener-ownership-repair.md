@@ -2,7 +2,33 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；下方原“待审/未执行”只保留各阶段事实，最新结果如下。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
 
+## 最新结果：B 最小 IAM 修正已安装并独立核验
+
+用户确认准确清单 `e6b6b5fd1d391e7e28550210e03b30d1d8a03487a2acb53bdad5c008992f8e5b` 后，执行时工程HEAD为 `990ea7a3e9c77e5c1d94718c6bf48dfcc0f8b293`；私有配方由原件摘要绑定。写前匹配角色/边界/trust、v9正文/三版本/使用计数、Cell输出及443/8443。05:38:11.404Z保存单次意图，05:38:12.809Z收到ACK，另进程于 **2026-11-07T05:38:31.752Z（温尼伯11月6日23:38:31.752 CST）** 独立核验。
+
+当前默认 **v10**，正文规范SHA `965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6`、6140字符，v7/v8/v9全保留。恰新增两条DescribeTags路径、移除受审五Sid，旧路径及其他授权保持；role ID/trust/空inline/单附加/boundary和使用计数不变。新读取覆盖持续保留，不自动撤权；不证明Source/SCP或未来CFN执行一定成功。
+
+实际STS2/元数据14/CreatePolicyVersion1（writer 1/8/1、独立1/6/0），其他直接写0。未创建/执行Change Set、改DNS/镜像、读秘密/数据库或调用ECS/RDS写；没有重试、回滚、删版本或清理。[安装结果](../ops/deployment-baseline/tenant-b-iam-installed-20261107.json)绑定两journal和唯一意图，私有根 `.local-secrets/tenant-b-iam-e6b6b5fd-20261107-a`。执行槽已消费、不复位或重放，旧只读事实/废弃草案/批准原件保持。IAM成功不等于规则或API已恢复。
+
+### 当前待批准：只创建未执行的租户 B Change Set
+
+仅用已存B事实、新IAM结果及参数片段，离线准备[准确创建清单及完整风险](../ops/deployment-baseline/tenant-b-creation-review.json)，新增账号读取/写入/创建槽均0。规范JSON SHA：
+
+`517850bfaaab521db0acff869dba7cac8759ff59dfee25be239115b111723f02`
+
+**仅CreateChangeSet一次，不执行：** 准确租户UUID5867e9c0…，名称 `techlong-tenant-b-listeners-20261107t053831` 和ClientToken固定，UPDATE/UsePreviousTemplate、两新监听器参数/其余18项UsePreviousValue，原RoleARN、IncludeNestedStacks=false，无TemplateBody/URL、新IAM能力或OnStackFailure。原17项标签只从绑定私有CFN原件提取，摘要/条数固定、不公开原值或改标签。[CFN官方说明](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html)明确计划不经执行不会应用资源变更，本阶段禁止Execute。
+
+上限STS2/元数据32/Create1，含写前核对、最多10次DescribeChangeSet/300秒只读等待及另一进程回读；Execute/Delete Change Set、Create/UpdateStack、IAM/DNS/ECS/RDS/镜像/秘密/数据库/dispatch均0。写前匹配身份、原租户Original/七项CFN记录/旧参数/标签/空待审列表、idle服务及:12引用、目标组/四其他输入、新输出/监听器/空优先级及IAM v10。只读CFN记录不代表三旧规则实体仍在，本次不会创建三条规则实体。
+
+**接受门槛：** 准确返回ARN为CREATE_COMPLETE/AVAILABLE，恰三条规则Modify/Replacement=True、仅ListenerArn变化；拒绝Add/Remove/Import/Conditional、嵌套/不完整计划或Service/TaskDefinition/目标组/日志变化。提交请求两参数/18保留、角色/标签保持，提议Original仍d705…；已应用Original、七CFN物理记录、参数/标签/角色和服务0/0/0/:12不变。形状匹配不证明未来执行许可或服务保持；声明1/实况0与DependsOn风险保留，不暗改模板。
+
+**完整风险及失败策略：** 跨服务/元数据读写无CAS，Source PassRole/SCP/提供者兼容性、AWS Login刷新和并发变化仍有风险。既有私有标签及含NoEcho占位的CFN元数据仅进入必要本机进程/私有证据，不读Secret值。接受网络/提供者日志、低额非零费用和未执行/失败计划遗留，ALB继续收费。提交前封存永久尝试；失败、未知提交、超时不重发同token/换名，不自动删除/执行/回滚/补齐/复位，只在预算内读取确认，超时不取消AWS内部动作。不自动撤销新IAM覆盖，不设置资源到期或停费。
+
+**最晚启动仍为温尼伯11月7日03:08:42.258 CST（09:08:42.258Z）**，原复用事实09:18:42.258Z终点不因IAM成功/材料生成延期；不是资源自动停止时间。27项本地检查及定向lint通过。**当前唯一继续点只等这份“仅创建”批准**，不重读整套事实或提前创建。实际执行该计划的失败/回滚策略、服务保持风险及准确DNS单条更新仍分别审批，镜像不动。
+
 ## 当前事实：B 只读核对完成，仅待最小 IAM 修正审批
+
+本节是IAM安装前原始事实/审批，已由顶部v10结果接续；下方“待批准IAM”不再是重放指令。
 
 用户批准上一轮明确的STS1＋元数据35上限后，本轮以源码 `100e7fa6691c15dafbea4435dfd758425ab8c11d` 完成准确Source身份及集中核对。新事实起点 **2026-11-07T05:22:39.102Z（温尼伯11月6日23:22:39.102 CST）**；实际STS1/元数据22（主记录21＋准确policy版本补读1），AWS写/秘密值/PEM/.env/数据库/任务定义环境/Change Set/执行槽均0，无自动重试。使用官方全球IAM/Route53端点并以us-east-1签名，不在美东创建资源。公开官方文档访问不计入账号API调用。
 
