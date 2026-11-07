@@ -2,7 +2,27 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；下方原“待审/未执行”只保留各阶段事实，最新结果如下。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
 
+## 最新结果：A2 已创建并独立核验，未执行
+
+用户确认清单 `23ee54ae7fdcd573f4895baa425276d0d8779c47f1a2b2341a69d8056f1dd0ac` 后，准确执行源码 `21cb21805103f2f9b3f6945a281c9b6c2604177c` 仅提交一次CreateChangeSet，并由另一进程完成独立只读回读。A2完整ARN：
+
+`arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-cell-a2-reattach-20261107t041842/c51436f8-6086-413d-9b5e-a4897b8522c2`
+
+AWS CreationTime原值为2026-11-07T04:30:39.203000+00:00；独立核验于04:32:19.826Z（温尼伯11月6日22:32:19.826 CST）完成，结果 `A2_CREATED_VERIFIED_NOT_EXECUTED`，Change Set为 `CREATE_COMPLETE / AVAILABLE`。
+
+- 真实计划恰为原四逻辑ID的Add，零Modify/Remove/Import；没有嵌套栈或已分配的新物理ID。Change Set Original的规范SHA为原候选 `e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892`；四原参数/六标签保持。
+- 栈仍 `UPDATE_COMPLETE`，已应用Original仍为A1的SHA `42fc857cbbce881c411ff03997805e2d38635bd498f5d2c6ba695fc884a1e355`；十二项保留物理ID、参数、标签、五输出和执行角色未变，两个监听器输出仍不存在。准确ALB名称仍返回LoadBalancerNotFound；**尚未恢复ALB或完成Cell归属修复**。
+- 本阶段实际STS2、元数据19、CreateChangeSet1；Execute/Delete/其他直接AWS写均0。writer为1/13/1，独立为1/6/0，不计CFN内部验证调用。没有IAM、DNS、数据库/ECS启动、镜像、清理器变更或dispatch；没有写重试、替代创建或自动清理。不以此推断数据库现状或全账号零费用。
+
+[公开创建结果](../ops/deployment-baseline/cell-a2-created-20261107.json)与私有证据根 `.local-secrets/cell-a2-create-20261107t041842` 保持；独立journal规范SHA `b0e8b929d3ffc3316e7e4250388d06bff6578cee7a9c28d98a9e00aa75e72573`。创建尝试已消费，原创建审批材料和a/b/c失败/补核记录保留，不重建A2、不复位目录。新文档提交不是上述执行源码。
+
+收尾逐项核对公开结果与两份私有journal/摘要一致，14项本地基线及结果边界检查、定向零警告lint通过。这些检查不代替云端独立回读，也不声称新提交已通过远程CI。
+
+**当前唯一继续点：单独审核执行这一份既有A2**，明确会创建收费ALB及其监听器/规则、历史标签/清理风险和失败/回滚策略，再给准确执行SHA；本次创建批准不包含这些动作。执行前须核对它仍AVAILABLE及必要事实仍有效，不因新ARN生成而重计原04:18:42.258Z依赖采样。不得自动执行、直接UpdateStack、替代创建或进入租户三规则/DNS/镜像；下一阶段的实际新读/写仍按准确范围审批。
+
 ## 当前审批：A2 仅创建未执行清单已准备
+
+以下是已获批且只执行过一次的创建阶段准备记录，现由顶部独立结果替代，不再等待创建批准或重放此清单。
 
 用户刷新 Source 并允许新一轮同范围读取后，b/c 联合核验已完成；a 失败记录保留，不重放。新事实从2026-11-07T04:18:42.258Z（温尼伯11月6日22:18:42.258 CST）计时，04:21:52.369Z完成，五小时事实终点固定为09:18:42.258Z；c补读没有重新起算。完整去敏[只读结果](../ops/deployment-baseline/cell-a2-preflight-20261107.json)和私有原件摘要已保存。
 

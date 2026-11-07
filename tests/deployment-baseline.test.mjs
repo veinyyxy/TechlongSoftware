@@ -11,6 +11,7 @@ import reattach from '../ops/deployment-baseline/cell-reattach-draft.template.js
 import a2 from '../ops/deployment-baseline/cell-a2-offline-plan.json' with { type: 'json' };
 import a2Facts from '../ops/deployment-baseline/cell-a2-preflight-20261107.json' with { type: 'json' };
 import a2Create from '../ops/deployment-baseline/cell-a2-creation-review.json' with { type: 'json' };
+import a2Created from '../ops/deployment-baseline/cell-a2-created-20261107.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -191,4 +192,23 @@ test('A2 creation review binds new facts and one unexecuted change set, never AL
   assert.equal(Date.parse(a2Create.factsValidBefore)-Date.parse(a2Create.factsAt),5*3600000);
   assert.equal(Date.parse(a2Create.factsValidBefore)-Date.parse(a2Create.startBefore),10*60000);
   assert.equal(a2Create.requestWithoutTemplateBody.Tags.find(x=>x.Key==='ExpiresAt').Value,a2.candidate.historicalExpiresAtPreserved);
+});
+
+test('A2 created result is an available four-Add plan; applied stack remains twelve-resource A1',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  assert.equal(a2Created.approvedManifestSha256,createHash('sha256').update(JSON.stringify(canonical(a2Create))).digest('hex'));
+  assert.equal(a2Created.status,'A2_CREATED_VERIFIED_NOT_EXECUTED');
+  assert.equal(a2Created.stackId,a2Create.requestWithoutTemplateBody.StackName);
+  assert.ok(a2Created.changeSetId.startsWith('arn:aws:cloudformation:ca-central-1:402010193138:changeSet/'+a2Create.requestWithoutTemplateBody.ChangeSetName+'/'));
+  assert.equal(a2Created.changeSetStatus,'CREATE_COMPLETE');assert.equal(a2Created.executionStatus,'AVAILABLE');
+  assert.equal(a2Created.proposedTemplateSha256,a2Create.templateSource.canonicalSha256);
+  assert.equal(a2Created.appliedTemplateSha256,executed.appliedTemplateSha256);
+  assert.deepEqual(a2Created.changes,a2.candidate.add.map(x=>({...x,action:'Add'})));
+  assert.equal(a2Created.counts.total.createChangeSet,1);assert.equal(a2Created.counts.total.executeChangeSet,0);
+  assert.equal(a2Created.counts.total.deleteChangeSet,0);assert.equal(a2Created.counts.total.otherDirectAwsWrites,0);
+  assert.equal(a2Created.retainedResourceCount,12);assert.equal(a2Created.retainedPhysicalIdsMatch,true);
+  assert.equal(a2Created.twoListenerOutputsStillAbsent,true);assert.equal(a2Created.namedAlbAbsentCode,'LoadBalancerNotFound');
+  assert.equal(a2Created.creationAuthorized,true);assert.equal(a2Created.executionAuthorized,false);
+  assert.equal(a2Created.albRestored,false);assert.equal(a2Created.cloudFormationOwnershipRepaired,false);
+  assert.ok(Date.parse(a2Created.submissionIntentAt)<Date.parse(a2Create.startBefore));
 });
