@@ -2,7 +2,27 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；唯一状态与后继方向以[三栈基线顶部](aws-deployment-baseline.md#current-state)为准，下方阶段文字只供追溯。**
 
-## 最新状态：写前凭据核对停止，等待 Source 刷新和接续清单确认
+<a id="tenant-b-rollback-result"></a>
+
+## 最新结果：单次回滚及独立核验通过，仅恢复 CFN 稳定控制状态
+
+用户报告Source刷新并明确“确认接续清单”后，已按412da1ab…仅启动新b，原a/配方/计数保持。18:10:35.739Z写入唯一提交意图，18:10:37.266Z收到RollbackStack ACK，OperationId `80754a93-34b7-4500-90b2-d9d460903751`；两次状态查询后为UPDATE_ROLLBACK_COMPLETE。另一进程于**2026-11-07T18:12:05.152Z**完成独立核验，无差异。[实际结果与原件指纹](../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json)。
+
+- 同UUID、Original d705…、七CFN物理ID保持；两个监听器参数恢复为旧241081代，其他18参数元数据、标签/输出/角色保持。三旧规则CFN状态仍UPDATE_ROLLBACK_COMPLETE，不代表实体存在；没有ELB实体/DNS/健康读取，不称API已恢复。
+- 服务在独立核验时仍0/0/0、任务定义:12，网络/目标配置保持；角色ID/trust/空inline/单附加/boundary、policy默认v10及正文匹配。没有瞬时任务历史或Secret/业务真值读取，不能据最终0承诺期间从未短暂运行或业务状态全不变。
+- **DisableRollback实际仍true**；RollbackStack没有重置它。未来替换型B执行必须显式DisableRollback=false，不回到原错误组合，不依赖默认值，创建时不混入OnStackFailure。
+- 累计**STS3/元数据20/RollbackStack1**：a失败1/0/0，b写前及状态查询1/11/1，独立1/9/0；其他直接AWS写0，没有创建/执行新变更集、修改IAM/DNS/镜像、直接启停ECS/RDS或自动补偿。原a槽0，新b回滚槽1/批准已消费，不能再用原批准/token或剩余预算。ALB可能持续收费，无新增自动停止。
+
+**当前唯一继续点：只离线准备新的B“仅创建”材料。** 复用原模板与两监听器参数片段，改用本次真实稳定状态，不复用失败95855d02…变更集或旧执行许可。只接受拟议的三规则替换、其余四资源/18参数保留；Cell真实输出、规则优先级等必要新现状和实际创建/执行仍另按准确范围审批。回滚后的租户/IAM观察不延长旧Cell事实或赋予新读取/写入权限；不重新走A1/A2、安装IAM、改服务/DependsOn、DNS/镜像、扩UI/探针/恢复框架。当前不调用新AWS、不启动短窗口。
+
+43项本地基线检查（新增1项真实回滚结果与累计计数/验收边界回归）及定向lint通过；这不替代后继三规则实体/归属和DNS核验。旧审批、停止记录和原件全部保留在下方历史与对应JSON中。
+
+<details>
+<summary>分阶段原始记录（旧当前/待批/下一步只适用于当时）</summary>
+
+以下保留各阶段原文与准确审批/风险，均不覆盖顶部结果，不构成新读取或写入许可，不重放已完成/停止的命令。
+
+## 历史：写前凭据核对停止与 b 接续确认
 
 用户明确批准 STS1＋DescribeEvents1 后，2026-11-07T14:53:08.255Z 完成准确 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009` 的 FailedEvents 查询：4条事件、无下一页。三条规则均报 `Replacement type updates not supported on stack with disable-rollback.`；说明原清单的替换型更新与 DisableRollback=true 不兼容，是本次执行策略问题。没有重试、写云、读取 Secret/配置/私钥或连接数据库；ResourceProperties 未输出/落盘。[实际回执与私有原件指纹](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)。
 
@@ -68,10 +88,7 @@
 
 身份是既有Source IAM用户，IAM使用全局官方端点，其余ca-central-1；单页、无翻页/重试/额外诊断。没有读取Secret值/PEM/.env、调用DescribeTaskDefinition、数据库连接、云写或新执行槽；Original正文仅进内存比对，未持久化或发布。新快照从15:52:42.347Z起5小时，不重计旧事实或资源期限。准确单次回滚清单已生成但未执行，下一只等顶部新SHA及整栈/运行时风险确认，不再重复准备读取。
 
-<details>
-<summary>分阶段原始记录（旧当前/待批/下一步只适用于当时）</summary>
-
-以下原文保留，不覆盖顶部查因结果，不构成新读取或写入许可，也不修改旧审批/回执。原“失败原因尚未取得”是本次查询前的事实，不再是当前阻塞。
+以下更早原文保留，原“失败原因尚未取得”仅描述查询前，不再是当前阻塞，不能覆盖顶部已验证回滚结果。
 
 ## 当前结果：B 已单次执行，但失败且未验收，停止写入
 

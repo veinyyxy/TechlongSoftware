@@ -35,6 +35,7 @@ import bRecoveryFacts from '../ops/deployment-baseline/tenant-b-recovery-preflig
 import bRollback from '../ops/deployment-baseline/tenant-b-rollback-review.json' with { type: 'json' };
 import bRollbackStop from '../ops/deployment-baseline/tenant-b-rollback-preflight-stopped-20261107.json' with { type: 'json' };
 import bRollbackResume from '../ops/deployment-baseline/tenant-b-rollback-resume-review-20261107.json' with { type: 'json' };
+import bRolledBack from '../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -769,4 +770,22 @@ test('B resume needs new approval and counts the stopped STS without changing th
   assert.equal(bRollbackResume.resumeOf.oldEvidenceAndRecipePreserved,true);
   assert.equal(bRollbackResume.status,'PREPARED_NOT_APPROVED');assert.equal(bRollbackResume.executionAuthorized,false);
   assert.equal(bRollbackResume.newChangeSetAuthorized,false);
+});
+
+test('B actual rollback restores only reviewed CFN control state and counts a, b and independent calls without authorizing next B',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(bRolledBack.approvedManifestCanonicalSha256,sha(bRollbackResume));
+  assert.equal(bRolledBack.stackId,bRollbackResume.request.StackName);assert.equal(bRolledBack.clientRequestToken,bRollbackResume.request.ClientRequestToken);
+  assert.equal(bRolledBack.status,'ROLLBACK_CONTROL_STATE_INDEPENDENTLY_VERIFIED');assert.equal(bRolledBack.stackStatus,'UPDATE_ROLLBACK_COMPLETE');
+  assert.equal(bRolledBack.operationType,'ROLLBACK');assert.equal(bRolledBack.disableRollbackObserved,true);
+  assert.deepEqual(bRolledBack.listenerParametersRestoredTo,bRecovery.historicalStableState.listenerParameters);
+  assert.equal(bRolledBack.originalTemplateCanonicalSha256,bInspected.appliedTemplateSha256);
+  assert.deepEqual(bRolledBack.service,bRecoveryFacts.service);assert.equal(bRolledBack.allSevenRecordedPhysicalIdsUnchanged,true);
+  assert.equal(bRolledBack.policyDefaultVersion,'v10');assert.equal(bRolledBack.policyCanonicalSha256,bRecoveryFacts.policyCanonicalSha256);
+  assert.deepEqual(bRolledBack.counts.aggregate,{sts:3,metadata:20,rollbackStack:1});assert.deepEqual(bRolledBack.counts.priorStoppedA,bRollbackStop.counts);
+  for(const key of ['sts','metadata','rollbackStack'])assert.equal(bRolledBack.counts.aggregate[key],bRolledBack.counts.priorStoppedA[key]+bRolledBack.counts.writerB[key]+bRolledBack.counts.independent[key]);
+  assert.equal(bRolledBack.executionSlotsConsumed,1);assert.equal(bRolledBack.executionApprovalConsumed,true);assert.equal(bRolledBack.counts.otherDirectAwsWrites,0);
+  for(const key of ['repeatExecutionAuthorized','automaticRetry','automaticCleanupOrCompensation','newChangeSetCreated','newChangeSetAuthorized','dnsUpdated','imageUpdated','noEchoSecretValuesVerified','liveRuleEntitiesRead','transientRuntimeHistoryRead','listenerOwnershipConvergenceVerified','apiRestorationVerified','wholeSystemAccepted'])assert.equal(bRolledBack[key],false,key);
+  assert.deepEqual(bRolledBack.differences,[]);
 });

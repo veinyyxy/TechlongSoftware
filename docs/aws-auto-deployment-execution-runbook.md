@@ -2,15 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：Source 写前凭据核对停止，等待刷新及接续确认（2026-11-07）
+## 当前唯一继续点：回滚独立核验通过，只离线准备新 B 仅创建材料（2026-11-07）
 
-用户确认9793…清单后，a于17:52:05–17:52:08Z在首次Source核对因CREDENTIALS_UNAVAILABLE停止；STS尝试1、元数据/回滚/秘密/数据库/执行槽0，未保存提交意图或调用RollbackStack。[原停止证据](../ops/deployment-baseline/tenant-b-rollback-preflight-stopped-20261107.json)及配方/a目录保持，不重跑。没有新身份/资源事实，不能断言具体失效原因。唯一状态入口仍为[基线顶部](aws-deployment-baseline.md#current-state)，一般准则与历史隔离保持。
+用户刷新Source并明确确认412da1ab…接续清单后，b仅提交一次RollbackStack并独立核验通过；[实际结果](../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json)于18:12:05.152Z为UPDATE_ROLLBACK_COMPLETE、ROLLBACK操作80754a93…与ACK关联。累计STS3/元数据20/回滚1（a失败1/0/0＋b 1/11/1＋独立1/9/0），其他直接写0。a/配方/旧证据保持，新b槽1及批准已消费，不重放。当前状态统一看[基线顶部](aws-deployment-baseline.md#current-state)。
 
-此前15:52的核对确认同UUID仍UPDATE_FAILED/DisableRollback=true且最后操作仍05dc971d…，Original/参数元数据/七CFN记录/标签/输出及服务0/0/0/:12、四保留ID和v10/角色布局匹配；17:52这轮未取得新资源事实。旧三规则CFN引用不等于实体存在，旧B执行槽已消费、不重放，本次回滚槽仍0；API/Cell/费用未新查，ALB可能持续收费，无新自动停止。
+回滚后Original d705…和七CFN物理ID保持，两个监听器参数恢复旧241081，其他18参数元数据/标签/输出/角色保持；独立验收时服务0/0/0/:12、网络/目标配置和IAM v10/角色布局匹配。DisableRollback仍true，三旧规则CFN记录不是实体存在证明；未查瞬时任务历史、Cell/规则实体/DNS/健康/费用，不称API恢复或期间绝无运行。ALB可能持续收费，无新自动停止。
 
 **直接原因及离线提案：** [查因回执](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)确认三规则替换与DisableRollback=true不兼容。[离线恢复方案](aws-cell-listener-ownership-repair.md#当前离线恢复提案先回到稳定状态再准备正常回滚的-b)现已备齐：先单独审批RollbackStack使同一租户回到上次稳定状态，独立核对后再另批新的三规则计划及显式正常回滚执行。RollbackStack作用于整栈而非三规则，缺少稳定状态可能删栈，原旧规则缺失/服务1对实况0有失败及运行收费风险；不得直接重放、跳过资源或自动补偿。
 
-**当前只等待Source刷新及新b确认：** 请运行`aws login --profile techlong-sandbox-user`。已从原件准备[接续清单与完整风险](aws-cell-listener-ownership-repair.md#tenant-b-rollback-resume-review)，SHA `412da1ab49d9607676a729a32661f7ccb2c913a28112366124ed595629f57dfb`，只额外增加1次STS并使用新b记录：累计STS≤3（a失败1＋b写前1＋独立1），元数据仍≤30，RollbackStack仍≤1。原准确请求/token未提交，资源/角色/风险/原五小时终点与14:37:42.347 CST最晚启动不变；不覆盖a或复位计数，不重做15:52准备轮。刷新不自动授权b，新SHA仍须确认；整栈/服务启动及数据库写入等原风险继续适用。不新增变更集、权限、DNS/镜像或自动清理，ALB可能持续收费。
+**当前唯一后继：只离线准备新B仅创建材料。** [移交边界](aws-cell-listener-ownership-repair.md#tenant-b-rollback-result)：复用同模板/两监听器片段和本次真实稳定态，预期只三规则替换，其余四资源/18参数保留；不复用失败95855d02…、回滚批准/token或剩余预算。实际Cell输出/优先级等必要新只读、创建/执行仍各按准确范围另审，后续替换执行必须显式DisableRollback=false。没有新云调用/变更集授权，不重走A1/A2/IAM、改服务/DependsOn、DNS/镜像或扩框架。新租户观察不延长旧Cell事实、期限或授权。
 
 初版基线只授权离线；A1/A2、最小IAM修正和B执行均为用户后来逐项批准的独立修复范围，不能把历史结果追加进文档后当作原基线授权。本次只按新限定读取核实事实并准备审批，不扩大或缩改旧批准的实际记录。
 

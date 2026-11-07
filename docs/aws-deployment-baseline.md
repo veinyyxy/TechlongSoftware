@@ -8,20 +8,20 @@
 
 ## 当前状态与唯一继续点
 
-**单次回滚已获确认，但写前 Source 凭据核对停止，尚未提交回滚。** [本轮停止](../ops/deployment-baseline/tenant-b-rollback-preflight-stopped-20261107.json)只有STS尝试1，元数据/回滚/秘密/数据库/执行槽0；原a和配方保留，不重跑。资源事实仍只来自15:52的[前置核对](../ops/deployment-baseline/tenant-b-recovery-preflight-20261107.json)，本轮没有新的资源状态或身份证明，不改写原回执/期限。
+**单次回滚已按新接续清单完成并独立核验，当前只离线准备新的 B 仅创建材料。** [实际结果](../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json)于18:12:05.152Z证明同一租户恢复UPDATE_ROLLBACK_COMPLETE；累计STS3/元数据20/RollbackStack1（含a失败1），其他直接写0。a/旧审批与原件保持，新b槽1及批准已消费，不重放；这不是规则实体/API恢复或三栈无漂移证明。
 
 | 对象 | 最新已存事实与边界 |
 | --- | --- |
 | Cell | [A2 结果](../ops/deployment-baseline/cell-a2-executed-20261107.json)于 2026-11-07T04:55:14.610Z 独立确认 UPDATE_COMPLETE/16 项，原十二物理 ID 保持，新 ALB、443/8443 监听器及共享拒绝规则由同一 Cell 管理；不等于平台和租户全部无漂移 |
-| 租户 B | 15:52:42.347Z起的新核对确认同UUID仍UPDATE_FAILED/DisableRollback=true、最后操作仍05dc971d…、Original与七CFN记录/参数元数据保持：两参数为729e，三规则仍旧物理引用/UPDATE_ROLLBACK_COMPLETE。之前14:09独立检查的EXECUTE_FAILED/目标组未关联仍是之前事实，本轮未重读变更集或目标组/规则实体，不冒充新验收 |
-| 保留资源与权限 | 本轮Service/TaskDefinition/TargetGroup/LogGroup四CFN物理ID保持，服务0/0/0、任务定义:12、网络/目标配置保持，IAM默认v10及角色布局匹配；没有瞬时任务历史或规则实体存在性证明 |
+| 租户 B | 18:12:05.152Z独立核验为UPDATE_ROLLBACK_COMPLETE，准确ROLLBACK操作80754a93…与ACK关联；Original d705…及七CFN物理ID保持，两监听器参数已恢复旧241081代。三旧规则CFN状态仍UPDATE_ROLLBACK_COMPLETE，没有规则实体存在性证明；旧EXECUTE_FAILED/目标组无关联只属之前事实，本轮未重查 |
+| 保留资源与权限 | 回滚后独立核验时四保留物理ID、服务0/0/0/:12、网络/目标配置及IAM v10/角色布局保持，其他18参数元数据/标签/输出不变；没有瞬时运行历史、NoEcho真值或业务状态全不变的证明 |
 | 已消费批准 | B 执行 SHA `109627ceccdbe813ebbbf2b80c176c9a1e60ed16dfc75cb1f740a04af2dd69c9` 已单次执行，STS2/元数据36/Execute1、其他直接写0；即使原时限未到也不能重放。观察到了提供者资源级恢复，没有代理主动回滚、重试或清理 |
 
 **已确认的直接原因：** 2026-11-07T14:53:08.255Z 完成的一页事件查询绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，返回根栈及三条规则共4条失败事件，无下一页。三规则均报 `Replacement type updates not supported on stack with disable-rollback.`。原执行清单把三项替换与 `DisableRollback=true` 组合，这是本次执行策略的不兼容，不是新的 IAM 缺口证明；也不能据此保证未来恢复必然成功。ResourceProperties 只可能进入 CLI 内存，未保存/输出；原[读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)保持准备时原文，不用于重复读取。
 
-**当前唯一继续点：等待 Source 刷新及新接续清单确认。** [准确b清单与完整风险](aws-cell-listener-ownership-repair.md#tenant-b-rollback-resume-review)，SHA `412da1ab49d9607676a729a32661f7ccb2c913a28112366124ed595629f57dfb`。只追加1次STS预算并使用独立b记录，累计STS≤3（含a失败1）、元数据≤30、RollbackStack≤1；请求/token从未提交、资源/角色/风险和原时间保持，不复位a、不重做准备轮。Source刷新本身不授权启动b，原9793…不能重跑，新b尚未确认或消费槽；后继变更集/IAM/DNS/镜像仍不动。
+**当前唯一继续点：只离线准备新的 B 仅创建材料。** [回滚结果与移交边界](aws-cell-listener-ownership-repair.md#tenant-b-rollback-result)确认DisableRollback仍true，后继替换执行须显式false。复用原模板/两监听器片段，但用本次稳定控制状态准备新的三规则Change Set范围，不能重用失败95855d02…或已消费回滚批准/token；实际Cell输出/规则优先级等必要只读核对、创建与执行仍准确另审。当前不读取新AWS、不新建变更集或回到A1/A2/IAM支线，DNS/镜像仍不得更新。
 
-新事实有效至2026-11-07T20:52:42.347Z/温尼伯14:52:42.347 CST，最晚20:37:42.347Z/14:37:42.347 CST启动，不是资源期限或停费保证。没有Source回滚写权证明，不自动扩IAM；新B创建/执行、DNS和镜像仍另审。不直接启停ECS/RDS、不运行临时工具、不扩框架；Cell ALB可能持续收费，未新增自动停止或重查现时费用。
+原回滚事实/最晚启动时间保留为已完成操作的历史，不延长为下一B许可。回滚后新观察也不刷新旧Cell事实或授权追加读取。没有直接启停ECS/RDS、运行临时工具或新增自动到期，ALB可能持续收费，本轮没有费用/健康核对；用户已测业务场景不重做。
 
 ## 哪个栈负责什么
 
@@ -86,5 +86,6 @@ node scripts/check-deployment-baseline.mjs platform.json cell.json tenant.json b
 | 旧 B 执行清单过期 → 新只读刷新 | [过期停止](../ops/deployment-baseline/tenant-b-execution-expired-20261107.json)、[另批刷新](../ops/deployment-baseline/tenant-b-execution-refresh-20261107.json)；旧清单未执行，原事实/期限未改写，随后另批新 SHA |
 | B 单次执行 → 独立检查 | [失败/部分状态结果](../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json)；执行槽已消费、未验收，不重放 |
 | B 单次失败事件读取 | [用户另允的查因结果](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)，STS1＋DescribeEvents1，确认禁用回滚与替换型更新不兼容；无写入/实际修复，唯一后继方向见顶部 |
+| 回滚 a 停止 → 新 b 回滚及独立核验 | [a凭据停止](../ops/deployment-baseline/tenant-b-rollback-preflight-stopped-20261107.json)、[b实际结果](../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json)；累计3/20/1，恢复CFN稳定控制态而非规则实体/API，回滚批准已消费 |
 
 完整分阶段审批、原 SHA/期限与失败记录继续保留在[修复沿革](aws-cell-listener-ownership-repair.md)、执行手册/主线的折叠历史及 Git 历史中；本次未修改任何机器清单、模板、执行回执、私有原件或永久槽。历史中的“下一步/待批准/尚未执行”只适用于当时，不覆盖顶部状态，也不能作为重放入口。

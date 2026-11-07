@@ -2,15 +2,15 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：Source 写前凭据核对停止，等待刷新及接续确认（2026-11-07）
+## 当前唯一继续点：回滚独立核验通过，只离线准备新 B 仅创建材料（2026-11-07）
 
-9793…清单已获确认，但实际a执行在首次Source核对因CREDENTIALS_UNAVAILABLE停止，只有STS尝试1；元数据/回滚/秘密/数据库/执行槽0，没有提交意图或RollbackStack调用。没有新身份或资源事实，a及其配方保持，不重跑。当前状态以[部署基线顶部](aws-deployment-baseline.md#current-state)为准，下方旧继续点仍全部为历史。
+用户刷新并明确确认412da1ab…后，b单次回滚及另一进程独立核验通过。[实际结果](../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json)于18:12:05.152Z为UPDATE_ROLLBACK_COMPLETE，累计STS3/元数据20/回滚1，含a失败1且其他直接写0。a/配方/旧回执保持，新b槽1/批准已消费，不重放；当前状态统一看[基线顶部](aws-deployment-baseline.md#current-state)。
 
-此前15:52的核对确认租户仍本次UPDATE_FAILED/DisableRollback=true、Original/七CFN记录与参数元数据保持，两参数新代而三规则物理引用仍旧代，服务0/0/0/:12、四保留ID/v10和角色布局匹配；17:52这轮未取得新资源事实。不把旧观察冒充现状或参数对齐当修复成功，原B执行不重放、本次回滚未提交。
+回滚后七物理ID/Original保持，两参数恢复旧241081，服务验收时0/0/0/:12、网络/目标配置及IAM v10/角色布局保持；DisableRollback仍true。三规则仍旧CFN引用，不代表实体恢复；无瞬时任务历史或Cell/规则实体/DNS/健康读取，不把CFN稳定态当API恢复或整体归属收敛，ALB仍可能收费。
 
 **离线最小恢复提案已完成：** [现有修复文档中的方案](aws-cell-listener-ownership-repair.md#当前离线恢复提案先回到稳定状态再准备正常回滚的-b)及[不可执行机器提案](../ops/deployment-baseline/tenant-b-recovery-offline-plan.json)只规划“同UUID回滚到稳定态并独立核对→新的三规则计划→显式DisableRollback=false执行”。整栈回滚不是三规则预览；无稳定状态可能删栈，旧规则缺失及Service声明1/实况0仍有失败、任务启动和费用风险。三步均须相应准确另批，不重放旧执行或自动跳过/补偿。
 
-**下一只等待Source刷新＋新接续确认：** [b清单与完整风险](aws-cell-listener-ownership-repair.md#tenant-b-rollback-resume-review)，SHA `412da1ab49d9607676a729a32661f7ccb2c913a28112366124ed595629f57dfb`。仅增加1次STS预算并用新b记录，累计STS≤3（含a失败1）、元数据≤30、回滚≤1，原请求/token未提交且不变；不复位a/计数，不重复资源准备轮。需`aws login --profile techlong-sandbox-user`刷新并确认新清单后才可启动b；原14:37:42.347 CST最晚启动/14:52:42.347事实截止不延长。整栈/提供者删除、服务及数据库启动写入等风险不变，无新变更集/IAM/DNS/镜像或自动清理；ALB可能持续收费。
+**下一唯一动作只离线准备新的B仅创建材料。** [完成移交](aws-cell-listener-ownership-repair.md#tenant-b-rollback-result)：同模板/两参数/三规则，保留其余四资源与18参数，使用真实稳定态而不是失败95855d02…旧计划。必要新Cell/监听器/优先级事实、实际创建/执行仍准确另审；替换执行须显式DisableRollback=false。当前无新云调用/变更集/IAM/DNS/镜像授权，不重走A1/A2或扩框架，不延长旧事实/批准/期限，不自动停费。
 
 初版基线为离线范围，A1/A2、IAM和B是后来分别批准的修复扩展，不由历史记录或本页自动授权。用户已测买家/卖家场景不再代测；归属、绑定和单列DNS核验未完成前，不进入镜像更新。
 
