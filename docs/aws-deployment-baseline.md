@@ -1,10 +1,10 @@
 # 既有租户版本更新：三栈资源基线
 
-2026-11-06，账号 402010193138 / ca-central-1。这里的“正式基线”指后续发布所遵守的**声明归属**，不是新生产环境、可执行部署包或实时盘点。本阶段没有云调用。已验证的现有 sandbox 不等于任意租户。买家商品列表、登录、查看订单及卖家端所测功能由用户确认正常，不列为工程待测项。
+2026-11-06，账号 402010193138 / ca-central-1。这里的“正式基线”指后续发布所遵守的**声明归属**，不是新生产环境或可执行部署包；初次整理为离线，后继实际云结果在下方明确标注。已验证的现有 sandbox 不等于任意租户。买家商品列表、登录、查看订单及卖家端所测功能由用户确认正常，不列为工程待测项。
 
 ## 哪个栈负责什么
 
-**A1 后已验证中间态：** 2026-11-06 已[单次执行并独立核验](aws-cell-listener-ownership-repair.md#最新结果a1-已执行并独立核验2026-11-06)，共享 Cell 实际 Original 暂为12项，没有 ALB/两个监听器/共享拒绝规则或两个监听器输出；十二项保留物理ID未变。下表16项和机器基线保留为完整目标/修复前对照，不能拿它们冒称当前实况。[A2 已单次创建并独立核验](aws-cell-listener-ownership-repair.md#最新结果a2-已创建并独立核验未执行)为AVAILABLE、四Add，但未执行；04:32:19.826Z回读仍为上述12项且ALB缺失。现只准备[准确A2执行及费用/失败策略审批](aws-cell-listener-ownership-repair.md#待批准仅执行既有-a2恢复-cell-四项声明)，不把计划当已恢复，镜像更新仍不得开始。
+**最新已验证Cell实况：** [A2已执行并独立核验](aws-cell-listener-ownership-repair.md#最新结果a2-已执行并独立核验cell-四项归属恢复)，2026-11-07T04:55:14.610Z时为UPDATE_COMPLETE/16项，Original SHA与机器基线Cell目标一致；原十二物理ID保持，新ALB/两监听器/共享拒绝规则由同一Cell管理，两个输出已恢复。A1十二项/ALB缺失是之前中间态，不再是本次最新结果。只证明约定四项及属性，不称全部保留属性/平台/租户都无漂移。新物理ID、输出、ALB DNS与zone见[实际结果](../ops/deployment-baseline/cell-a2-executed-20261107.json)，下一只离线准备租户B收敛，镜像更新仍不得开始。
 
 | 栈（现有名称） | 声明归属 | 不归它管理 |
 | --- | --- | --- |
@@ -20,14 +20,16 @@
 
 Cell 六个输出按同名参数传给租户，并非租户栈自己查找资源。`ClusterName` 供 Service 使用，`VpcId` 供目标组使用，`SubnetIds` 和 `TaskSecurityGroupId` 用于任务网络。归档对照中这四项一致。另两项决定三条租户规则挂在哪个监听器上，历史材料中已不一致：
 
-| 引用（仅历史 ARN 尾段） | 11月1日归档 Cell 输出 | 11月1日新租户建栈参数 | 11月6日手动恢复映射 |
-| --- | --- | --- | --- |
-| HttpsListenerArn / 443 | 77888e84c19e8b86 / 469c2b642a33bfc1 | 241081ab25c73320 / 8fce768af0ff42f7 | 706bcbbc89b8a673 / 9f91841ec135459f |
-| ControlListenerArn / 8443 | 77888e84c19e8b86 / bc69b195b69bc2d9 | 241081ab25c73320 / 576403dc1245139b | 706bcbbc89b8a673 / ae460cdac1f0e971 |
+| 引用（ARN尾段；前三数据列为历史） | 11月1日归档 Cell 输出 | 11月1日新租户建栈参数 | 11月6日手动恢复映射 | 本次A2独立核验的Cell输出 |
+| --- | --- | --- | --- | --- |
+| HttpsListenerArn / 443 | 77888e84c19e8b86 / 469c2b642a33bfc1 | 241081ab25c73320 / 8fce768af0ff42f7 | 706bcbbc89b8a673 / 9f91841ec135459f | 729e0854244ceff6 / 31e6577b666f0de1 |
+| ControlListenerArn / 8443 | 77888e84c19e8b86 / bc69b195b69bc2d9 | 241081ab25c73320 / 576403dc1245139b | 706bcbbc89b8a673 / ae460cdac1f0e971 | 729e0854244ceff6 / 864f7b1cd42d3f8d |
+
+本轮执行前04:51:53.585Z的租户DescribeStacks仍读到上述241081参数，来源及准确值已收入A2结果，未当作执行后重查；Cell新输出不能直接冒充租户已更新。三规则实体、其余跨栈参数和权限路径仍需B阶段准确核对，本轮未修改租户或API DNS。
 
 平台也经历 ALB `92d54a44479fbc3a → a33cd1f8bed33cba`，443 监听器 `0234243da966933a → 253cde394d05f108`；两条 Alias 曾被直接切到重建后的 ALB。重建监听规则会产生新物理 ID，Cell 自有拒绝规则与租户三规则须分别对应到各自栈。**同名、同标签、DNS 曾经工作均不能证明 CFN 已接管。** 既有租户执行角色的规则 ARN 限制也需比对，本轮不调整 IAM。
 
-平台归档模板仍声明 hosted-controller/ControllerLease 与 HostingExpiresAt；手工恢复采用关闭控制器的任务定义 :12，无新资源到期。不可拿旧平台模板整体覆盖实际服务或重新挂载控制器凭据。11月6日后一次 stop 核对已发现两台 ALB 均不存在；上述最右栏是历史恢复映射，**不是下次启动或更新时可使用的 ARN**。本基线不判断数据库现在是否已停，也不改动 stop 的锁或 journal。
+平台归档模板仍声明 hosted-controller/ControllerLease 与 HostingExpiresAt；手工恢复采用关闭控制器的任务定义 :12，无新资源到期。不可拿旧平台模板整体覆盖实际服务或重新挂载控制器凭据。之前11月6日stop核对发现两台ALB均不存在，那是A2之前事实；本次只由CFN恢复并核验了Cell，平台ALB现状没有重新查询。表中的11月6日恢复映射是历史，**不能再当下次参数来源**；未来使用新输出仍须提交前匹配实际状态。本基线不判断数据库现在是否已停，也不改动stop锁、journal或工具配置。
 
 证据来源：私有归档 `manual-environment-restore-20261101-a/inputs.json` 内两个父栈 Original 模板及 Cell Outputs；子栈用同期 `tenant-create-request.json` 的新建 TemplateBody/公开绑定，**不用已删除旧 UUID 的模板当新栈实况**；11月6日映射来自 `manual-environment-restore-20261106-b/journal.json`。原件位于 F 盘，不复制请求、完整参数、NoEcho 值或业务快照到 Git。[运行事实与已知漂移](aws-manual-test-environment-20261106.md)。
 

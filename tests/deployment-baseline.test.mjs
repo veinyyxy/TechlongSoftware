@@ -14,6 +14,7 @@ import a2Create from '../ops/deployment-baseline/cell-a2-creation-review.json' w
 import a2Created from '../ops/deployment-baseline/cell-a2-created-20261107.json' with { type: 'json' };
 import a2Execute from '../ops/deployment-baseline/cell-a2-execution-review.json' with { type: 'json' };
 import a2Costs from '../ops/deployment-baseline/cell-a2-cost-estimate.json' with { type: 'json' };
+import a2Executed from '../ops/deployment-baseline/cell-a2-executed-20261107.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -247,4 +248,29 @@ test('A2 public price scenario includes the mTLS trust store and IPv4, never pro
   assert.equal(a2Costs.notACap,true);assert.equal(a2Costs.monthly50UsdGoalNotGuaranteed,true);
   assert.equal(a2Execute.costAcceptance.noNewAutomaticExpiryOrCleanupInstalled,true);
   assert.equal(a2Execute.costAcceptance.notACostCap,true);assert.equal(a2Costs.createsOrExpiresResources,false);
+});
+
+test('A2 executed result restores only Cell ownership with real outputs, not tenant or API bindings',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  assert.equal(a2Executed.approvedManifestSha256,createHash('sha256').update(JSON.stringify(canonical(a2Execute))).digest('hex'));
+  assert.equal(a2Executed.status,'A2_EXECUTED_CELL_FOUR_RESOURCES_INDEPENDENTLY_VERIFIED');
+  assert.equal(a2Executed.stackId,a2Execute.request.StackName);assert.equal(a2Executed.changeSetId,a2Created.changeSetId);
+  assert.equal(a2Executed.disableRollback,true);assert.equal(a2Executed.activeResourceCount,16);assert.equal(a2Executed.retainedResourceCount,12);
+  assert.equal(a2Executed.appliedTemplateSha256,a2Execute.expected.proposedTemplateSha256);
+  assert.equal(a2Executed.retainedPhysicalIdsUnchanged,true);assert.equal(a2Executed.newPhysicalIds.length,4);
+  assert.deepEqual(a2Executed.newPhysicalIds.map(x=>x.logicalId),a2Execute.expected.addLogicalIds);
+  const id=key=>a2Executed.newPhysicalIds.find(x=>x.logicalId===key).physicalId;
+  assert.equal(a2Executed.cellOutputs.HttpsListenerArn,id('BusinessHttpsListener'));
+  assert.equal(a2Executed.cellOutputs.ControlListenerArn,id('ControlMtlsListener'));
+  assert.equal(a2Executed.alb.arn,id('CellLoadBalancer'));assert.equal(a2Executed.alb.state,'active');
+  assert.equal(a2Executed.counts.total.executeChangeSet,1);assert.equal(a2Executed.counts.total.otherDirectAwsWrites,0);
+  assert.ok(a2Executed.counts.total.metadata<=a2Execute.scope.metadataReadMax);
+  assert.equal(a2Executed.cellFourResourceOwnershipRestored,true);
+  for(const key of ['tenantBindingsRepaired','apiDnsRepaired','platformDriftRepaired','wholeSystemAccepted'])assert.equal(a2Executed[key],false,key);
+  assert.equal(a2Executed.listeners.find(x=>x.port===8443).mtls.ignoreClientCertificateExpiry,false);
+  assert.equal(a2Executed.billableAlbActive,true);assert.equal(a2Executed.automaticCleanup,false);
+  const observed=a2Executed.tenantListenerParametersObservedBeforeExecute;
+  assert.ok(Date.parse(observed.observedAt)<Date.parse(a2Executed.submissionIntentAt));
+  assert.notEqual(observed.HttpsListenerArn,a2Executed.cellOutputs.HttpsListenerArn);
+  assert.notEqual(observed.ControlListenerArn,a2Executed.cellOutputs.ControlListenerArn);
 });

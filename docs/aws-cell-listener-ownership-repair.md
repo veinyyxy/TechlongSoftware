@@ -2,7 +2,26 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；下方原“待审/未执行”只保留各阶段事实，最新结果如下。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
 
+## 最新结果：A2 已执行并独立核验，Cell 四项归属恢复
+
+用户明确确认执行清单 `a4c1b41b6b5d9fa3a9a1883994aeebbc4b514390e8b392964bf93b25f59512a9` 后，本轮仅一次ExecuteChangeSet，显式DisableRollback=true。执行源码 `5f1db521b57861272b035c5fa30fb7cfd923d09a`；04:52:04.090Z收到ACK、04:54:23.776Z观察到UPDATE_COMPLETE，另进程于 **2026-11-07T04:55:14.610Z（温尼伯11月6日22:55:14.610 CST）** 完成独立核验，结果 `A2_EXECUTED_CELL_FOUR_RESOURCES_INDEPENDENTLY_VERIFIED`。
+
+- 准确Cell栈UUID保持，实际Original等于A2的16项模板，SHA `e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892`，Change Set为EXECUTE_COMPLETE。十二项保留物理ID不变，四新物理ID由同一Cell栈返回；本次只证明这四项归属及约定属性，不称三栈或全部保留属性都已无漂移。
+- 新ALB代为 `729e0854244ceff6`，active，准确VPC/两子网/SG/三项ALB属性和声明标签匹配；只读观察到2个公网IPv4。443业务监听器尾ID `31e6577b666f0de1`，8443控制监听器尾ID `864f7b1cd42d3f8d`；证书/TLS及默认404均匹配，8443为mTLS verify、原trust store、IgnoreClientCertificateExpiry=false。共享拒绝规则尾ID `ec016710498b01e6` 在443优先级1，两控制路径返回固定404；没有新租户转发规则。
+- 两监听器Outputs已恢复且分别等于CFN新物理ARN，其余五输出、四参数、六标签和执行角色保持；新ALB DNS为 `techlong-sandbox-cell-sandbox-1-1581133878.ca-central-1.elb.amazonaws.com`，CanonicalHostedZoneId为 `ZQSVJUPU6J1EY`。完整准确ARN与新输出见[公开结果](../ops/deployment-baseline/cell-a2-executed-20261107.json)，不从旧代推导下一步参数。
+- 本阶段实际STS2/元数据50/Execute1，其他直接AWS写0（writer 1/35/1，独立 1/15/0）。未调用RDS、ECS写、IAM/DNS/镜像/清理器变更、Secret/PEM或业务HTTP；没有主动回滚、重试、清理或重建Change Set。CFN提供者内部动作不计作代理直接调用。
+
+私有证据根 `.local-secrets/cell-a2-execute-c51436f8`；独立journal规范SHA `4c7abb6a0d4bfc15d17ab69fbea1a14505aabf081ecc56c1fb6d40feceb5e2e9`。执行槽已消费，A1、A2创建/审批及a/b/c历史原件保持，不重放或复位；后续文档HEAD不是执行源码。
+
+公开结果已与writer/独立journal及执行前两项租户参数逐项对齐；17项本地基线/结果边界检查、定向零警告lint通过。这些检查不代替上述真实独立云核验，不声称新文档提交已跑远程CI。
+
+**ALB现已运行并可能持续收费。** 本轮不安装自动停止、不改历史ExpiresAt或原清理计划、不调用临时止费工具；原50USD/月仅目标，账单和折扣未读取，不能保证保留或自动停费。后续按用户通知/另审范围停用，不能把本轮成功当作停费证明。
+
+**当前唯一继续点：仅离线准备B租户收敛材料。** 本次执行前04:51:53.585Z读取的租户两个监听器参数仍为旧代241081，未改为Cell新代729e；这不是执行后额外查询。应以新Cell实际Outputs准备同一租户两参数/三规则的精确替换方案，保留镜像/服务数量等其余输入，核清必要权限路径，再另审实际变更；三规则实体和API DNS本轮未重新核对或更新。A2通过不等于租户API恢复，平台漂移、租户绑定及DNS仍未收敛，不做业务测试或直接开始镜像更新。原依赖04:18事实不因本轮成功重计期限。
+
 ## 待批准：仅执行既有 A2，恢复 Cell 四项声明
+
+以下为已获批且只执行一次的审批记录，由顶部真实结果替代，不再等待或重放此执行批准。
 
 本轮仅用已存创建/独立原件准备执行审批，并核对公开AWS价格和失败策略说明；**账号AWS调用、云写、Secret/PEM/配置读取、数据库连接和新执行槽均为0**。不为准备材料重复资源预检，不重建A2，不把新材料时间当作新依赖事实。
 
