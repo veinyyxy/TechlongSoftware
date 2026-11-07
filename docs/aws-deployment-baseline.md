@@ -8,7 +8,7 @@
 
 ## 当前状态与唯一继续点
 
-**回滚前最小只读核对已通过，当前只等待单次 RollbackStack 的准确批准，没有实际修复。** 本轮[新事实](../ops/deployment-baseline/tenant-b-recovery-preflight-20261107.json)为STS1＋元数据9、所有写/秘密/数据库/执行槽0；刷新准确租户/服务及现有IAM，不刷新Cell/实际规则/DNS，不验证NoEcho秘密真值。前一阶段[失败事件](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)仍只解释那次失败，原回执及期限不改写。
+**单次回滚已获确认，但写前 Source 凭据核对停止，尚未提交回滚。** [本轮停止](../ops/deployment-baseline/tenant-b-rollback-preflight-stopped-20261107.json)只有STS尝试1，元数据/回滚/秘密/数据库/执行槽0；原a和配方保留，不重跑。资源事实仍只来自15:52的[前置核对](../ops/deployment-baseline/tenant-b-recovery-preflight-20261107.json)，本轮没有新的资源状态或身份证明，不改写原回执/期限。
 
 | 对象 | 最新已存事实与边界 |
 | --- | --- |
@@ -19,7 +19,7 @@
 
 **已确认的直接原因：** 2026-11-07T14:53:08.255Z 完成的一页事件查询绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，返回根栈及三条规则共4条失败事件，无下一页。三规则均报 `Replacement type updates not supported on stack with disable-rollback.`。原执行清单把三项替换与 `DisableRollback=true` 组合，这是本次执行策略的不兼容，不是新的 IAM 缺口证明；也不能据此保证未来恢复必然成功。ResourceProperties 只可能进入 CLI 内存，未保存/输出；原[读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)保持准备时原文，不用于重复读取。
 
-**当前唯一继续点：只等待单次回滚清单批准。** [准确清单及完整风险](aws-cell-listener-ownership-repair.md#tenant-b-rollback-review)的SHA为`97938d9bd812276c30017329fc188c1b408c3a580ff926b1a5f393ed0b36163e`，仅RollbackStack1及STS≤2/元数据≤30的写前核对/状态查询/独立核验，不创建或执行新Change Set。回滚作用整个租户栈，没有三规则预览；旧规则缺失、无稳定态删栈、服务声明1/实况0可能启动任务及数据库写入、提供者正常删除/非原子等风险均须本次明确接受，旧批准不代替。当前未执行、未消费回滚槽。
+**当前唯一继续点：等待 Source 刷新及新接续清单确认。** [准确b清单与完整风险](aws-cell-listener-ownership-repair.md#tenant-b-rollback-resume-review)，SHA `412da1ab49d9607676a729a32661f7ccb2c913a28112366124ed595629f57dfb`。只追加1次STS预算并使用独立b记录，累计STS≤3（含a失败1）、元数据≤30、RollbackStack≤1；请求/token从未提交、资源/角色/风险和原时间保持，不复位a、不重做准备轮。Source刷新本身不授权启动b，原9793…不能重跑，新b尚未确认或消费槽；后继变更集/IAM/DNS/镜像仍不动。
 
 新事实有效至2026-11-07T20:52:42.347Z/温尼伯14:52:42.347 CST，最晚20:37:42.347Z/14:37:42.347 CST启动，不是资源期限或停费保证。没有Source回滚写权证明，不自动扩IAM；新B创建/执行、DNS和镜像仍另审。不直接启停ECS/RDS、不运行临时工具、不扩框架；Cell ALB可能持续收费，未新增自动停止或重查现时费用。
 

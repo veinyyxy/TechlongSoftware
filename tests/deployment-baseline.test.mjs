@@ -33,6 +33,8 @@ import bFailureObserved from '../ops/deployment-baseline/tenant-b-failed-events-
 import bRecovery from '../ops/deployment-baseline/tenant-b-recovery-offline-plan.json' with { type: 'json' };
 import bRecoveryFacts from '../ops/deployment-baseline/tenant-b-recovery-preflight-20261107.json' with { type: 'json' };
 import bRollback from '../ops/deployment-baseline/tenant-b-rollback-review.json' with { type: 'json' };
+import bRollbackStop from '../ops/deployment-baseline/tenant-b-rollback-preflight-stopped-20261107.json' with { type: 'json' };
+import bRollbackResume from '../ops/deployment-baseline/tenant-b-rollback-resume-review-20261107.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -738,4 +740,33 @@ test('B rollback permits only bounded preflight, status polls and independent re
   for(const key of ['automaticWriteRetry','automaticContinueUpdateRollback','automaticCleanupOrCompensation','replayConsumedExecution','attemptResetAllowed','sourceWritePermissionProved'])assert.equal(bRollback.failurePolicy[key],false,key);
   assert.deepEqual(bRollback.failurePolicy.resourcesToSkip,[]);assert.equal(bRollback.failurePolicy.unknownSubmissionRequiresIndependentRead,true);
   assert.equal(bRollback.failurePolicy.cloudFormationProviderRollbackActionsAreNotLimitedToOneApiCall,true);
+});
+
+test('B credential stop retains a failed Source attempt without pretending rollback or slot consumption',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(bRollbackStop.manifestCanonicalSha256,sha(bRollback));
+  assert.equal(bRollbackStop.status,'CREDENTIALS_UNAVAILABLE_NO_ROLLBACK_SUBMISSION');
+  assert.deepEqual(bRollbackStop.counts,{sts:1,metadata:0,rollbackStack:0});
+  assert.equal(bRollbackStop.code,'CREDENTIALS_UNAVAILABLE');assert.equal(bRollbackStop.userExplicitConfirmationRecorded,true);
+  for(const key of ['rollbackRequestSubmitted','submissionIntentPresent','newIdentityVerified','newResourceFactsObtained','automaticRetry','automaticCompensation'])assert.equal(bRollbackStop[key],false,key);
+  assert.equal(bRollbackStop.executionSlotsConsumed,0);assert.equal(bRollbackStop.earlierAmbiguousCommandLaunched,false);
+});
+
+test('B resume needs new approval and counts the stopped STS without changing the never-submitted request or deadlines',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(bRollbackResume.evidence.find(x=>x.file==='tenant-b-rollback-preflight-stopped-20261107.json').canonicalSha256,sha(bRollbackStop));
+  assert.equal(bRollbackResume.resumeOf.manifestCanonicalSha256,sha(bRollback));
+  assert.deepEqual(bRollbackResume.resumeOf.priorCounts,bRollbackStop.counts);
+  assert.deepEqual(bRollbackResume.request,bRollback.request);assert.deepEqual(bRollbackResume.expected,bRollback.expected);
+  assert.deepEqual(bRollbackResume.allowedMetadataApis,bRollback.allowedMetadataApis);
+  assert.deepEqual(bRollbackResume.failurePolicy,bRollback.failurePolicy);
+  assert.deepEqual(bRollbackResume.scope,{...bRollback.scope,stsMax:3});
+  assert.equal(bRollbackResume.scope.stsMax,bRollbackStop.counts.sts+2);
+  for(const key of ['factsAt','factsValidBefore','startBefore'])assert.equal(bRollbackResume[key],bRollback[key]);
+  assert.notEqual(bRollbackResume.executionEvidenceDirectory,bRollback.executionEvidenceDirectory);
+  assert.equal(bRollbackResume.resumeOf.oldEvidenceAndRecipePreserved,true);
+  assert.equal(bRollbackResume.status,'PREPARED_NOT_APPROVED');assert.equal(bRollbackResume.executionAuthorized,false);
+  assert.equal(bRollbackResume.newChangeSetAuthorized,false);
 });

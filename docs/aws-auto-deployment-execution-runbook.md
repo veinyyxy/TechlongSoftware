@@ -2,15 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：回滚前只读核对通过，只等待单次回滚批准（2026-11-07）
+## 当前唯一继续点：Source 写前凭据核对停止，等待刷新及接续确认（2026-11-07）
 
-用户另允的STS1＋元数据9已完成，新事实15:52:42.347Z起五小时；准确租户/服务/现有IAM匹配，所有写/秘密值/配置/数据库/执行槽0，未刷新Cell/规则实体/DNS。模板、原审批/回执及旧期限/永久槽保持。统一状态及授权边界以[部署基线顶部](aws-deployment-baseline.md#current-state)为准；本手册一般约束继续适用，折叠历史中的“当前/下一步/待批准”不构成新许可。
+用户确认9793…清单后，a于17:52:05–17:52:08Z在首次Source核对因CREDENTIALS_UNAVAILABLE停止；STS尝试1、元数据/回滚/秘密/数据库/执行槽0，未保存提交意图或调用RollbackStack。[原停止证据](../ops/deployment-baseline/tenant-b-rollback-preflight-stopped-20261107.json)及配方/a目录保持，不重跑。没有新身份/资源事实，不能断言具体失效原因。唯一状态入口仍为[基线顶部](aws-deployment-baseline.md#current-state)，一般准则与历史隔离保持。
 
-本轮确认同UUID仍UPDATE_FAILED/DisableRollback=true且最后操作仍05dc971d…，Original/参数元数据/七CFN记录/标签/输出及服务0/0/0/:12、四保留ID和v10/角色布局匹配。旧三规则CFN引用不等于实体存在，原执行槽已消费、不重放；API/Cell/费用未新查，ALB可能持续收费，无新自动停止。
+此前15:52的核对确认同UUID仍UPDATE_FAILED/DisableRollback=true且最后操作仍05dc971d…，Original/参数元数据/七CFN记录/标签/输出及服务0/0/0/:12、四保留ID和v10/角色布局匹配；17:52这轮未取得新资源事实。旧三规则CFN引用不等于实体存在，旧B执行槽已消费、不重放，本次回滚槽仍0；API/Cell/费用未新查，ALB可能持续收费，无新自动停止。
 
 **直接原因及离线提案：** [查因回执](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)确认三规则替换与DisableRollback=true不兼容。[离线恢复方案](aws-cell-listener-ownership-repair.md#当前离线恢复提案先回到稳定状态再准备正常回滚的-b)现已备齐：先单独审批RollbackStack使同一租户回到上次稳定状态，独立核对后再另批新的三规则计划及显式正常回滚执行。RollbackStack作用于整栈而非三规则，缺少稳定状态可能删栈，原旧规则缺失/服务1对实况0有失败及运行收费风险；不得直接重放、跳过资源或自动补偿。
 
-**当前只等待准确回滚清单批准：** [清单与完整风险](aws-cell-listener-ownership-repair.md#tenant-b-rollback-review)，SHA `97938d9bd812276c30017329fc188c1b408c3a580ff926b1a5f393ed0b36163e`。只RollbackStack1、额外STS≤2/元数据≤30（写前9、状态查询≤12、独立9），无新Change Set/IAM/DNS/镜像/直接ECS/RDS/事件读；必须新接受整栈/稳定态缺失可能删栈/旧规则漂移/服务启动和数据库写入、提供者正常删除、非原子/不重试等风险，不能当成三规则预览。尚未执行或消费回滚槽，Source写权未证明。最晚温尼伯11月7日14:37:42.347 CST启动，新事实14:52:42.347截止；不是资源租约或自动停费。只等批准，不再重复准备读取或扩支线。
+**当前只等待Source刷新及新b确认：** 请运行`aws login --profile techlong-sandbox-user`。已从原件准备[接续清单与完整风险](aws-cell-listener-ownership-repair.md#tenant-b-rollback-resume-review)，SHA `412da1ab49d9607676a729a32661f7ccb2c913a28112366124ed595629f57dfb`，只额外增加1次STS并使用新b记录：累计STS≤3（a失败1＋b写前1＋独立1），元数据仍≤30，RollbackStack仍≤1。原准确请求/token未提交，资源/角色/风险/原五小时终点与14:37:42.347 CST最晚启动不变；不覆盖a或复位计数，不重做15:52准备轮。刷新不自动授权b，新SHA仍须确认；整栈/服务启动及数据库写入等原风险继续适用。不新增变更集、权限、DNS/镜像或自动清理，ALB可能持续收费。
 
 初版基线只授权离线；A1/A2、最小IAM修正和B执行均为用户后来逐项批准的独立修复范围，不能把历史结果追加进文档后当作原基线授权。本次只按新限定读取核实事实并准备审批，不扩大或缩改旧批准的实际记录。
 

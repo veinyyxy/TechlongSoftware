@@ -2,23 +2,35 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；唯一状态与后继方向以[三栈基线顶部](aws-deployment-baseline.md#current-state)为准，下方阶段文字只供追溯。**
 
-## 最新状态：回滚前只读核对通过，等待单次回滚审批
+## 最新状态：写前凭据核对停止，等待 Source 刷新和接续清单确认
 
 用户明确批准 STS1＋DescribeEvents1 后，2026-11-07T14:53:08.255Z 完成准确 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009` 的 FailedEvents 查询：4条事件、无下一页。三条规则均报 `Replacement type updates not supported on stack with disable-rollback.`；说明原清单的替换型更新与 DisableRollback=true 不兼容，是本次执行策略问题。没有重试、写云、读取 Secret/配置/私钥或连接数据库；ResourceProperties 未输出/落盘。[实际回执与私有原件指纹](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)。
 
 上述查因只取历史事件。后继用户另允STS1＋元数据9后，本轮于15:52:42.347Z–15:52:55.171Z完成新的[回滚前只读核对](../ops/deployment-baseline/tenant-b-recovery-preflight-20261107.json)：同一UUID仍UPDATE_FAILED/DisableRollback=true且最后操作仍05dc971d…；Original、两新参数及其他参数元数据、17标签/输出、七CFN物理记录/状态、服务0/0/0/:12及网络/目标、原角色/trust/空inline/单附加/boundary和v10正文全部匹配。实际STS1/元数据9、所有写/秘密值/配置/数据库/执行槽0，不重放读取。
 
-仅CFN记录与服务/IAM实况被刷新，未新读Cell、实际监听规则或DNS，不验证NoEcho秘密真值，也未证明Source拥有RollbackStack写权限。原失败/批准/永久槽保持；ALB可能继续收费，无新自动停止。
+上述15:52只读事实不变。用户随后明确“确认清单”，但本轮实际执行于17:52:05.362Z–17:52:08.982Z在首次Source核对以CREDENTIALS_UNAVAILABLE停止；仅STS尝试1，元数据/回滚/秘密值/数据库/执行槽均0，未创建提交意图或发送RollbackStack。[停止证据](../ops/deployment-baseline/tenant-b-rollback-preflight-stopped-20261107.json)绑定原a目录和原配方指纹；前一次含糊“下一步开始”的命令被复核拦截、进程未启动。当前没有新的身份或资源状态证明，不断言具体凭据失效原因，不重跑a。
+
+<a id="tenant-b-rollback-resume-review"></a>
+
+## 当前待确认：刷新 Source 后，仅启动新的 b 接续记录
+
+请运行 `aws login --profile techlong-sandbox-user`，不要发送验证码或凭据。已只用存档准备[新接续清单](../ops/deployment-baseline/tenant-b-rollback-resume-review-20261107.json)，SHA **`412da1ab49d9607676a729a32661f7ccb2c913a28112366124ed595629f57dfb`**，尚未获准或执行；刷新身份本身不等于批准新清单。
+
+相对原9793…清单，只追加1次STS预算、使用新b证据目录并绑定旧停止记录/累计计数：**总STS≤3（a已失败1＋b写前1＋独立1）、元数据仍≤30、RollbackStack仍≤1**。资源、角色、未提交过的准确请求及token、风险和原截止时间不变；旧a与其配方不覆盖，不复位计数或槽，也不重做15:52的资源准备轮。b写前原9项和独立核验仍按清单执行，必须将a的STS尝试计入累计，不以b自身计数冒充总次数。
+
+本次没有新增AWS调用来准备接续，也没有回滚或b执行槽。收到“Source已刷新＋确认新接续清单及完整风险”后才可启动b；旧批准和未用预算不自动迁移。原事实仍于20:52:42.347Z/温尼伯14:52:42.347 CST到期，最晚20:37:42.347Z/14:37:42.347 CST启动，不因凭据刷新或b准备延期。整栈/提供者删除、服务启动及数据库启动写入、并发/非原子、凭据/日志/费用、不自动重试/补偿等完整风险见下方原清单及新清单risks；新b不创建变更集、不改权限/DNS/镜像，不运行启停工具。
+
+42项本地基线检查（新增2项停止/接续计数边界）及定向lint通过，旧审批/回执/事实时刻/配方和a记录保持；不能把本地验证或接续准备当作凭据恢复或云端成功。
 
 <a id="tenant-b-rollback-review"></a>
 
-## 当前待批：仅单次 RollbackStack 及独立核验
+## 原回滚清单：已确认但写前停止，不重跑
 
-准确[新执行清单](../ops/deployment-baseline/tenant-b-rollback-review.json)的规范JSON SHA为 **`97938d9bd812276c30017329fc188c1b408c3a580ff926b1a5f393ed0b36163e`**，尚未执行或获执行批准。它只绑定同一5867e9c0…租户栈、原执行角色、新token `tenant-b-rollback-221586dc1acf4b5e8c7e5fa188876da0`、RetainExceptOnCreate=false；不含DisableRollback参数、不声称回滚会重置该字段。
+原[执行清单](../ops/deployment-baseline/tenant-b-rollback-review.json)的规范JSON SHA为 **`97938d9bd812276c30017329fc188c1b408c3a580ff926b1a5f393ed0b36163e`**，用户已确认，但a在STS处停止，RollbackStack未提交，不能重跑该命令。它绑定同一5867e9c0…租户栈、原执行角色、未使用token `tenant-b-rollback-221586dc1acf4b5e8c7e5fa188876da0`、RetainExceptOnCreate=false；不含DisableRollback参数、不声称回滚会重置该字段。原JSON保持准备时原文，实际批准/停止由后继记录说明，不改写历史。
 
 本轮40项本地基线检查（新增3项只读结果/准确回滚请求/次数与失败边界回归）及定向零警告lint通过；原模板、旧审批/失败回执/永久槽不变。只是准备和本地验证，不是回滚或云验收通过。
 
-拟新批准范围为 **RollbackStack最多1次、额外STS最多2次/元数据最多30次**：写前重验原9项（最后核栈状态）、最多12次栈状态查询，另一进程9项独立核验。上轮准备的STS1/元数据9是已完成读取，不是本次写批准，不能重跑或偷偷增加API。直接Create/ExecuteChangeSet、DeleteStack、ContinueUpdateRollback、IAM/ELB/ECS/DNS/RDS/Secret/SQL写、事件读取及调度均0；本机不读.env、私钥或Secrets Manager值。提供者/运行时副作用不等于这份直接调用次数，见下方明确风险。复用既有CLI和私有记录器，不建新框架。
+原批准范围为 **RollbackStack最多1次、额外STS最多2次/元数据最多30次**：写前原9项、最多12次栈状态查询，另一进程9项独立核验。现已用其中STS尝试1、其余均0，不重跑；新b须另确认上方累计3次STS的新清单。直接Create/ExecuteChangeSet、DeleteStack、ContinueUpdateRollback、IAM/ELB/ECS/DNS/RDS/Secret/SQL写、事件读取及调度均0，本机不读.env、私钥或Secrets Manager值；提供者/运行时副作用另见完整风险。复用CLI/私有记录器，不建新框架。
 
 成功只指UPDATE_ROLLBACK_COMPLETE、原Original/七物理ID、旧两监听器参数、其他18项参数元数据/标签/输出/角色/IAM及服务0/:12按清单独立匹配；不是旧规则实体存在、API恢复或后续B执行授权。未知ACK、任一步失败/差异/超时均保留现场、不重发、不跳过/补偿/停回任务，实际部分状态如实报告。若回滚导致服务运行，不能验收，也没有自动停用授权。
 

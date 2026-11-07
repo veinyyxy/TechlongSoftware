@@ -2,15 +2,15 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：回滚前只读核对通过，只等待单次回滚批准（2026-11-07）
+## 当前唯一继续点：Source 写前凭据核对停止，等待刷新及接续确认（2026-11-07）
 
-本轮STS1＋元数据9只读核对已获准并通过，15:52:42.347Z起新事实五小时；准确租户/服务/现有IAM匹配，没有写/秘密/配置/数据库/新执行槽。原审批、执行证据和旧期限/永久槽保持，没有实际修复授权。唯一状态入口为[部署基线顶部](aws-deployment-baseline.md#current-state)，手册准则继续适用，下方旧“当前/唯一动作/下一步”全部为折叠历史。
+9793…清单已获确认，但实际a执行在首次Source核对因CREDENTIALS_UNAVAILABLE停止，只有STS尝试1；元数据/回滚/秘密/数据库/执行槽0，没有提交意图或RollbackStack调用。没有新身份或资源事实，a及其配方保持，不重跑。当前状态以[部署基线顶部](aws-deployment-baseline.md#current-state)为准，下方旧继续点仍全部为历史。
 
-新核对确认租户仍本次UPDATE_FAILED/DisableRollback=true、Original/七CFN记录与参数元数据保持，两参数新代而三规则物理引用仍旧代；服务0/0/0、任务定义:12、四保留ID/v10和角色布局匹配。未重读Cell、变更集或实际规则/DNS，不把历史EXECUTE_FAILED/目标组未关联说成这次新读取，也不把参数对齐当修复成功；原执行不重放。
+此前15:52的核对确认租户仍本次UPDATE_FAILED/DisableRollback=true、Original/七CFN记录与参数元数据保持，两参数新代而三规则物理引用仍旧代，服务0/0/0/:12、四保留ID/v10和角色布局匹配；17:52这轮未取得新资源事实。不把旧观察冒充现状或参数对齐当修复成功，原B执行不重放、本次回滚未提交。
 
 **离线最小恢复提案已完成：** [现有修复文档中的方案](aws-cell-listener-ownership-repair.md#当前离线恢复提案先回到稳定状态再准备正常回滚的-b)及[不可执行机器提案](../ops/deployment-baseline/tenant-b-recovery-offline-plan.json)只规划“同UUID回滚到稳定态并独立核对→新的三规则计划→显式DisableRollback=false执行”。整栈回滚不是三规则预览；无稳定状态可能删栈，旧规则缺失及Service声明1/实况0仍有失败、任务启动和费用风险。三步均须相应准确另批，不重放旧执行或自动跳过/补偿。
 
-**下一只等新回滚SHA批准：** [准确清单/完整风险](aws-cell-listener-ownership-repair.md#tenant-b-rollback-review)，`97938d9bd812276c30017329fc188c1b408c3a580ff926b1a5f393ed0b36163e`。只RollbackStack1＋额外STS≤2/元数据≤30及独立核验，不创建/执行新变更集；整栈、无稳定态删栈、旧规则漂移、服务可能启动/注入Secret/触发数据库写入/收费与非原子/不重试等风险须本次新接受。无实际执行/新槽或Source写权证明，14:37:42.347 CST最晚启动、14:52:42.347新事实截止，不延资源期限。后继B/DNS/镜像仍另审，不重复本轮准备读取或扩框架；ALB可能持续收费，无新自动停止。
+**下一只等待Source刷新＋新接续确认：** [b清单与完整风险](aws-cell-listener-ownership-repair.md#tenant-b-rollback-resume-review)，SHA `412da1ab49d9607676a729a32661f7ccb2c913a28112366124ed595629f57dfb`。仅增加1次STS预算并用新b记录，累计STS≤3（含a失败1）、元数据≤30、回滚≤1，原请求/token未提交且不变；不复位a/计数，不重复资源准备轮。需`aws login --profile techlong-sandbox-user`刷新并确认新清单后才可启动b；原14:37:42.347 CST最晚启动/14:52:42.347事实截止不延长。整栈/提供者删除、服务及数据库启动写入等风险不变，无新变更集/IAM/DNS/镜像或自动清理；ALB可能持续收费。
 
 初版基线为离线范围，A1/A2、IAM和B是后来分别批准的修复扩展，不由历史记录或本页自动授权。用户已测买家/卖家场景不再代测；归属、绑定和单列DNS核验未完成前，不进入镜像更新。
 
