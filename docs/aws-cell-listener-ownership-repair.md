@@ -2,6 +2,41 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；唯一状态与后继方向以[三栈基线顶部](aws-deployment-baseline.md#current-state)为准，下方阶段文字只供追溯。**
 
+<a id="tenant-api-alias-update-review"></a>
+
+## 当前结果：API Alias仍指旧ALB，等待单条DNS更新批准
+
+用户明确“允许下一步”后，2026-11-07T21:22:05.127Z–21:22:09.660Z完成限定只读，**实际STS1/元数据3、AWS写/Secret值/PEM/.env/数据库/执行槽均0**。[实际读回及私有原件指纹](../ops/deployment-baseline/tenant-api-alias-preflight-20261107.json)。固定zone为公开sandbox.techlong.cloud.，当前729e ALB身份/VPC/active匹配，但准确API A Alias仍指旧目标，不匹配；未自动修改或查询其他资源/公网服务。
+
+| 准确字段 | 当前实际值 | 待审目标 |
+| --- | --- | --- |
+| 名称/类型 | first-acceptance.sandbox.techlong.cloud. / A | 保持 |
+| AliasTarget.DNSName | techlong-sandbox-cell-sandbox-1-1584188584.ca-central-1.elb.amazonaws.com. | techlong-sandbox-cell-sandbox-1-1581133878.ca-central-1.elb.amazonaws.com. |
+| AliasTarget.HostedZoneId | ZQSVJUPU6J1EY | 保持 |
+| AliasTarget.EvaluateTargetHealth | false | 保持 |
+| 所属公开zone | Z01473621BTTHKXBGOOEJ / sandbox.techlong.cloud. | 保持，不创建/删除zone |
+
+已直接生成[准确DNS更新清单](../ops/deployment-baseline/tenant-api-alias-update-review-20261107.json)，canonical SHA：
+
+`0e2ad8ca928f7cc99086dbedca0d149a0fb516eab15b05d41d5364aa5a1f2dbd`
+
+**唯一待审操作：** ChangeResourceRecordSets最多1次，只有上述准确A Alias的一个UPSERT，只改AliasTarget.DNSName；不含其他域名或记录，不改健康评估、TTL/复杂路由，不执行CloudFormation或启动服务。租户API Alias按既有独立DNS范围处理，在这三个受审栈模板之外；本轮不迁移DNS归属、拆栈或扩临时工具。
+
+**未来准确预算：STS2＋元数据17＋DNS写1。** 写前3（准确ALB DescribeLoadBalancers、固定zone GetHostedZone、准确名的一页ListResourceRecordSets），新返回且绑定的ChangeInfo.Id最多10次GetChange；另一进程独立4（同ALB、zone、准确记录、该change ID各1）。Route53使用全球端点/us-east-1签名，不在其他区域创建资源；所有查询计数、一页不翻页。Source身份、ALB/公开zone或准确旧记录摘要5370be41…任一改变即停，不自动重新挑选目标/简化路由或覆盖观察到的新记录。
+
+**必须接受的风险：** UPSERT前的摘要核对不是CAS，读后并发修改仍可能被覆盖；变更会切换公开sandbox API流量，传播与外部缓存不保证立即更新。Source写权限/SCP、凭据刷新、网络/日志和部分/不明提交仍有风险；记录固定意图后不重发、不复位、不自动恢复旧值或清理。仅可轮询准确返回的change ID，ACK不明不授权枚举/猜测其他变更。INSYNC及元数据读回不代表公网客户端缓存或API健康；服务仍是此前验收时0，DNS修改不会启动它，ALB/zone/存储等费用可能继续，没有自动停机/续租或50USD硬上限。
+
+明确排除：其他DNS记录、HostedZone创建/删除、CFN/IAM/ELB/ECS/RDS/镜像写入，Secret值/PEM/.env、数据库连接、S3正文、公网DNS/HTTP/JS/业务测试和临时工具改造。未来只对这一条记录写入并独立核验，不借此重查整套环境。
+
+**时间按新DNS阶段的相关事实约束：** DNS实际采样21:22:05.127Z的五小时至2026-11-08T02:22:05.127Z；真实三规则证明21:09:03.139Z的五小时至02:09:03.139Z。取较早值，故有效至温尼伯**11月7日20:09:03.139 CST**，最晚**19:54:03.139 CST**启动并预留15分钟读回；这是新的DNS操作范围，不延长已消费CFN执行许可或重计20:37其他依赖事实，不是资源到期。
+
+53项本地基线检查及定向lint通过。当前只等待上述SHA及风险确认，尚未写DNS。完成后只记录本轮Cell—租户—API Alias引用链，不宣称平台漂移、服务启动或整套上线验收通过；镜像/临时工具/产品测试不在本阶段。
+
+<details>
+<summary>已完成三规则验收、已消费域名读取与历史阶段（保留追溯，不重放）</summary>
+
+下方旧“当前/待确认/下一步”、旧SHA及期限只适用于当时；不覆盖本页顶部，已消费批准不能重放，也不构成DNS写入许可。
+
 <a id="tenant-b-post-rollback-executed"></a>
 
 ## 当前结果：三规则实际归属已独立验收通过
@@ -29,9 +64,6 @@
 比较时只规范大小写/末尾点及可选dualstack前缀，Alias的目标DNS和ALB CanonicalHostedZoneId均须匹配；保留EvaluateTargetHealth等字段，不执行UPSERT。历史zone/旧Alias只作固定查询目标，不当作新事实。若已匹配，记录本轮Cell—租户引用链核对结果；不匹配则另备一份准确DNS写清单让用户确认。读成功不等于公网DNS解析或停用服务健康通过，也不表示平台漂移已处理。
 
 明确排除：所有AWS/GitHub写入、Secret值/PEM/.env/HMAC、数据库/S3正文、其他域名/平台资源、公网GET或JS、ECR/镜像更新、任务启动、续租/清理/启停工具修改和执行槽。接受既有凭据在内存使用、网络/提供者日志与低额非零费用风险。最多一次新记录，拒绝/非预期差异/不完整结果就停，不自动重试/扩大诊断；不使用本阶段剩余执行预算。此范围本身尚未获批准。
-
-<details>
-<summary>已完成执行审批、前置材料与分阶段原始记录（保留追溯，不重放）</summary>
 
 下方旧“当前/待确认/下一步”、旧SHA及期限只适用于当时；实际已消费批准不能重放，不覆盖本页顶部，不构成新许可。
 

@@ -42,6 +42,8 @@ import bPostRollbackCreate from '../ops/deployment-baseline/tenant-b-post-rollba
 import bPostRollbackCreated from '../ops/deployment-baseline/tenant-b-post-rollback-created-20261107.json' with { type: 'json' };
 import bPostRollbackExecute from '../ops/deployment-baseline/tenant-b-post-rollback-execution-review-20261107.json' with { type: 'json' };
 import bPostRollbackExecuted from '../ops/deployment-baseline/tenant-b-post-rollback-executed-20261107.json' with { type: 'json' };
+import apiAliasRead from '../ops/deployment-baseline/tenant-api-alias-preflight-20261107.json' with { type: 'json' };
+import apiAliasUpdate from '../ops/deployment-baseline/tenant-api-alias-update-review-20261107.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -972,4 +974,45 @@ test('actual new B execution proves three owned rule bindings and idle preserved
   for(const key of ['repeatExecutionAuthorized','automaticRetry','agentInitiatedRollback','automaticCleanup','automaticEcsStop','dnsRead','dnsUpdated','imageUpdated','temporaryToolModified','apiRestorationVerified','wholeSystemAccepted','formalThreeStackBaselineComplete','noEchoSecretValuesVerified','transientTaskHistoryRead'])assert.equal(r[key],false,key);
   assert.equal(r.tenantRuleOwnershipConvergenceVerified,true);assert.deepEqual(r.differences,[]);
   assert.equal(r.dependencyFactsAt,a.dependencyFactsAt);assert.equal(r.dependencyFactsValidBefore,a.dependencyFactsValidBefore);
+});
+
+test('minimal API Alias read records actual old target with one STS and three metadata reads, not DNS or runtime changes',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  const r=apiAliasRead,s=r.summary;
+  assert.equal(r.ruleBindingReceiptCanonicalSha256,sha(bPostRollbackExecuted));assert.equal(r.status,'API_ALIAS_MISMATCH_NO_WRITE');
+  assert.equal(r.userReadApprovalRecorded,true);assert.deepEqual(r.counts,{sts:1,metadata:3});
+  assert.equal(s.zoneId,'Z01473621BTTHKXBGOOEJ');assert.equal(s.zoneName,'sandbox.techlong.cloud.');assert.equal(s.zonePublic,true);
+  assert.equal(s.name,'first-acceptance.sandbox.techlong.cloud.');assert.equal(s.currentRecord.Type,'A');assert.equal(s.currentRecordCanonicalSha256,sha(s.currentRecord));
+  assert.equal(s.currentRecord.AliasTarget.EvaluateTargetHealth,false);assert.notEqual(s.currentRecord.AliasTarget.DNSName,s.alb.dnsName+'.');
+  assert.deepEqual([s.alb.arn],bPostRollbackExecuted.targetGroupLoadBalancerArns);assert.equal(s.matchesCurrentCellAlb,false);
+  assert.equal(Date.parse(r.factsValidBefore)-Date.parse(r.factsAt),5*3600000);
+  for(const key of ['awsWrites','executionSlotsConsumed','secretValueReads','privateKeyReads','configSecretFileReads','databaseConnections','publicDnsOrHttpCalls'])assert.equal(r[key],0,key);
+  for(const key of ['dnsWriteAuthorized','automaticRetry','dnsUpdated','serviceStarted','wholeSystemAccepted'])assert.equal(r[key],false,key);
+  assert.equal(s.publicResolutionOrApiHealthVerified,false);
+});
+
+test('API Alias update review changes only exact DNSName once and preserves record flags without inventing CAS or fresh dependency times',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  const a=apiAliasUpdate;
+  const evidence={'tenant-api-alias-preflight-20261107.json':apiAliasRead,'tenant-b-post-rollback-executed-20261107.json':bPostRollbackExecuted};
+  for(const e of a.evidence)assert.equal(e.canonicalSha256,sha(evidence[e.file]));
+  assert.equal(a.status,'PREPARED_NOT_APPROVED');assert.deepEqual(a.onlyChangedRecordFields,['AliasTarget.DNSName']);
+  assert.deepEqual(a.currentRecord,apiAliasRead.summary.currentRecord);assert.equal(a.currentRecordCanonicalSha256,sha(a.currentRecord));
+  assert.deepEqual(a.desiredRecord,{...a.currentRecord,AliasTarget:{...a.currentRecord.AliasTarget,DNSName:apiAliasRead.summary.alb.dnsName+'.'}});
+  assert.equal(a.desiredRecordCanonicalSha256,sha(a.desiredRecord));assert.deepEqual(Object.keys(a.request).sort(),['ChangeBatch','HostedZoneId']);
+  assert.equal(a.request.HostedZoneId,apiAliasRead.summary.zoneId);assert.deepEqual(a.request.ChangeBatch.Changes,[{Action:'UPSERT',ResourceRecordSet:a.desiredRecord}]);assert.equal(a.requestCanonicalSha256,sha(a.request));
+  assert.equal(a.route53Endpoint,'https://route53.amazonaws.com');assert.equal(a.route53SigningRegion,'us-east-1');assert.equal(a.resourceRegion,'ca-central-1');
+  assert.equal(a.dnsFactsAt,apiAliasRead.factsAt);assert.equal(a.dnsFactsValidBefore,apiAliasRead.factsValidBefore);assert.equal(a.ruleBindingsVerifiedAt,bPostRollbackExecuted.independentlyVerifiedAt);
+  assert.equal(Date.parse(a.ruleBindingsValidBefore)-Date.parse(a.ruleBindingsVerifiedAt),5*3600000);
+  assert.equal(Date.parse(a.effectiveFactsValidBefore),Math.min(Date.parse(a.dnsFactsValidBefore),Date.parse(a.ruleBindingsValidBefore)));
+  assert.equal(Date.parse(a.effectiveFactsValidBefore)-Date.parse(a.startBefore),15*60000);
+  assert.equal(a.scope.stsMax,2);assert.equal(a.scope.changeResourceRecordSetsMax,1);assert.equal(a.scope.metadataReadMax,17);
+  assert.equal(a.scope.writerPreflightMetadataMax+a.scope.writerGetChangePollMax,a.scope.writerMetadataMax);assert.equal(a.scope.writerMetadataMax+a.scope.independentMetadataReserve,a.scope.metadataReadMax);
+  for(const schedule of [...a.writerReadSchedule,a.independentReadSchedule])assert.equal(Object.values(schedule.calls).reduce((sum,n)=>sum+n,0),schedule.metadataMax);
+  for(const key of ['automaticWriteRetry','automaticRollbackOrOldRecordRestore','automaticCleanup','attemptResetAllowed'])assert.equal(a.failurePolicy[key],false,key);
+  assert.equal(a.failurePolicy.preflightIsNotCompareAndSwap,true);
+  for(const key of ['updateAuthorized','environmentStartAuthorized','publicAcceptanceAuthorized'])assert.equal(a[key],false,key);
+  assert.equal(a.preparation.additionalAwsCallsToPrepareReview,0);assert.equal(a.preparation.awsWrites,0);
 });

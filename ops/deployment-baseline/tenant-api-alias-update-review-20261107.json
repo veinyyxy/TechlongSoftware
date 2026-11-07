@@ -1,0 +1,200 @@
+{
+  "schema": "techlong/tenant-api-alias-update-review/v1",
+  "status": "PREPARED_NOT_APPROVED",
+  "preparedFromCommit": "ba251680dcebe62932854e874a45c1cbd04e40a2",
+  "accountId": "402010193138",
+  "resourceRegion": "ca-central-1",
+  "route53Endpoint": "https://route53.amazonaws.com",
+  "route53SigningRegion": "us-east-1",
+  "sourceProfile": "techlong-sandbox-user",
+  "expectedPrincipalArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "expectedPrincipalUserId": "AIDAV3GNMXTZEO7SHLC2X",
+  "evidence": [
+    {
+      "file": "tenant-api-alias-preflight-20261107.json",
+      "canonicalSha256": "0823e03fa264250621c49c76b86508cd693cdf0113098a6d5c13ad99d0147394"
+    },
+    {
+      "file": "tenant-b-post-rollback-executed-20261107.json",
+      "canonicalSha256": "b2f345ba76fe60b144a990fe011e764e115b618370f7687bb20ae476fe123a20"
+    }
+  ],
+  "dnsFactsAt": "2026-11-07T21:22:05.127Z",
+  "dnsFactsValidBefore": "2026-11-08T02:22:05.127Z",
+  "ruleBindingsVerifiedAt": "2026-11-07T21:09:03.139Z",
+  "ruleBindingsValidBefore": "2026-11-08T02:09:03.139Z",
+  "effectiveFactsValidBefore": "2026-11-08T02:09:03.139Z",
+  "startBefore": "2026-11-08T01:54:03.139Z",
+  "timePolicy": {
+    "maxSnapshotAgeHours": 5,
+    "minimumOfRelevantDnsAndRuleBindingDeadlines": true,
+    "newDnsFactsDoNotExtendConsumedCfnApproval": true,
+    "olderFullCellDependencyDeadlinePreservedForHistory": "2026-11-08T01:37:11.801Z",
+    "olderUnchangedCertificateIamAndNetworkFactsNotUsedAsNewDnsObservations": true,
+    "noResourceExpiryOrLeaseChange": true
+  },
+  "target": {
+    "name": "first-acceptance.sandbox.techlong.cloud.",
+    "type": "A",
+    "zoneId": "Z01473621BTTHKXBGOOEJ",
+    "zoneName": "sandbox.techlong.cloud.",
+    "zonePublic": true,
+    "alb": {
+      "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6",
+      "vpcId": "vpc-0136b6ba92a72cbf9",
+      "dnsName": "techlong-sandbox-cell-sandbox-1-1581133878.ca-central-1.elb.amazonaws.com",
+      "canonicalHostedZoneId": "ZQSVJUPU6J1EY",
+      "state": "active"
+    }
+  },
+  "currentRecord": {
+    "Name": "first-acceptance.sandbox.techlong.cloud.",
+    "Type": "A",
+    "AliasTarget": {
+      "HostedZoneId": "ZQSVJUPU6J1EY",
+      "DNSName": "techlong-sandbox-cell-sandbox-1-1584188584.ca-central-1.elb.amazonaws.com.",
+      "EvaluateTargetHealth": false
+    }
+  },
+  "currentRecordCanonicalSha256": "5370be41c84cf4c89b27fca7ed393a6820e032a28e3513ce78f0e5275e9c912f",
+  "desiredRecord": {
+    "Name": "first-acceptance.sandbox.techlong.cloud.",
+    "Type": "A",
+    "AliasTarget": {
+      "HostedZoneId": "ZQSVJUPU6J1EY",
+      "DNSName": "techlong-sandbox-cell-sandbox-1-1581133878.ca-central-1.elb.amazonaws.com.",
+      "EvaluateTargetHealth": false
+    }
+  },
+  "desiredRecordCanonicalSha256": "779ad88a0c624040823ea7a7817645abd5d4c082bd9bdecc05640de85326474b",
+  "onlyChangedRecordFields": [
+    "AliasTarget.DNSName"
+  ],
+  "request": {
+    "HostedZoneId": "Z01473621BTTHKXBGOOEJ",
+    "ChangeBatch": {
+      "Comment": "Tenant API Alias convergence to verified Cell ALB; no service start.",
+      "Changes": [
+        {
+          "Action": "UPSERT",
+          "ResourceRecordSet": {
+            "Name": "first-acceptance.sandbox.techlong.cloud.",
+            "Type": "A",
+            "AliasTarget": {
+              "HostedZoneId": "ZQSVJUPU6J1EY",
+              "DNSName": "techlong-sandbox-cell-sandbox-1-1581133878.ca-central-1.elb.amazonaws.com.",
+              "EvaluateTargetHealth": false
+            }
+          }
+        }
+      ]
+    }
+  },
+  "requestCanonicalSha256": "b1275efcff7b9fafcb29120a9d5d8c64023838eed0e5e5070dc9d6dd8f1e113a",
+  "scopeAppliesToDirectOperatorCalls": true,
+  "scope": {
+    "stsMax": 2,
+    "metadataReadMax": 17,
+    "writerPreflightMetadataMax": 3,
+    "writerGetChangePollMax": 10,
+    "writerMetadataMax": 13,
+    "independentMetadataReserve": 4,
+    "changeResourceRecordSetsMax": 1,
+    "createOrDeleteHostedZone": 0,
+    "otherRecordWrites": 0,
+    "cloudFormationWrites": 0,
+    "iamWrites": 0,
+    "directElbEcsRdsWrites": 0,
+    "imageUpdates": 0,
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "configSecretFileReads": 0,
+    "databaseConnections": 0,
+    "s3BodyReads": 0,
+    "publicDnsOrHttpCalls": 0,
+    "dispatch": 0,
+    "cleanupOrLeaseChanges": 0
+  },
+  "writerReadSchedule": [
+    {
+      "purpose": "preflight",
+      "metadataMax": 3,
+      "calls": {
+        "elasticloadbalancing:DescribeLoadBalancers": 1,
+        "route53:GetHostedZone": 1,
+        "route53:ListResourceRecordSets": 1
+      }
+    },
+    {
+      "purpose": "returned exact change ID status polling",
+      "metadataMax": 10,
+      "calls": {
+        "route53:GetChange": 10
+      }
+    }
+  ],
+  "independentReadSchedule": {
+    "newProcess": true,
+    "ownStsMax": 1,
+    "metadataMax": 4,
+    "calls": {
+      "elasticloadbalancing:DescribeLoadBalancers": 1,
+      "route53:GetHostedZone": 1,
+      "route53:ListResourceRecordSets": 1,
+      "route53:GetChange": 1
+    },
+    "noWrites": true
+  },
+  "polling": {
+    "maxGetChangeCalls": 10,
+    "intervalSeconds": 10,
+    "waitSecondsMax": 180,
+    "allPollsCounted": true
+  },
+  "preconditions": [
+    "exact Source IAM identity, immutable manifest and true fact/start deadlines",
+    "same exact active ALB ARN/VPC/DNSName/CanonicalHostedZoneId, same fixed public hosted zone",
+    "exact single simple A Alias with currentRecordCanonicalSha256 unchanged; no weighted/failover/geographic or same-name truncated records",
+    "only one UPSERT for the exact desiredRecord, preserving Name/Type/EvaluateTargetHealth/zone and all other fields",
+    "no writes if any prerequisite changed; no alternative resource/zone/name lookup, no environment start"
+  ],
+  "independentChecks": [
+    "same exact public zone and active ALB metadata",
+    "exact single A Alias equals desiredRecord and matches actual ALB DNSName/CanonicalHostedZoneId",
+    "only returned and bound Route53 ChangeInfo.Id read back, status INSYNC",
+    "record alignment is not public resolver/cache, API health, login or whole-system acceptance; no service start"
+  ],
+  "failurePolicy": {
+    "automaticWriteRetry": false,
+    "automaticRollbackOrOldRecordRestore": false,
+    "automaticCleanup": false,
+    "attemptResetAllowed": false,
+    "preflightIsNotCompareAndSwap": true,
+    "unknownSubmissionRequiresBoundedIndependentReadOnlyInspection": true,
+    "timeoutDoesNotCancelAwsOperation": true,
+    "noPollingWithoutBoundChangeId": true
+  },
+  "risks": [
+    "This changes routing of the existing public sandbox API name to the verified Cell ALB; DNS propagation and external caches need not update immediately. It does not start the stopped API service or prove API availability.",
+    "The one exact UPSERT is not a conditional CAS: a concurrent record change after preflight could still be overwritten. Stop on observed drift; do not simplify routing or modify another name.",
+    "Source write permission/SCP compatibility is not proved by prior reads; credential refresh/network/provider logs, partial or unknown submission, and a persistent changed or unchanged record remain possible.",
+    "After a durable fixed intent, do not resend, reset attempts, restore the old record, delete resources or use another change batch automatically. Only the exact returned change ID may be polled; unknown ACK does not authorize listing or guessing other changes.",
+    "GetChange INSYNC and metadata readback are not public-client cache or application-health acceptance. Existing ALB, hosted zone, storage and other charges may continue; no automatic stop, lease extension or 50 USD hard cap.",
+    "No CFN/IAM/ELB/ECS/RDS/image/other DNS record, Secret/PEM/.env/database/public HTTP change is included. This uses the existing independent tenant API DNS scope outside the three reviewed stack templates, not a new stack or temporary-tool implementation."
+  ],
+  "preparation": {
+    "readCounts": {
+      "sts": 1,
+      "metadata": 3
+    },
+    "additionalAwsCallsToPrepareReview": 0,
+    "awsWrites": 0,
+    "executionSlotsConsumed": 0
+  },
+  "executionAttemptKey": "tenant-api-alias-3ab82facaf266b832f0d83a0e4f657e0",
+  "updateAuthorized": false,
+  "environmentStartAuthorized": false,
+  "publicAcceptanceAuthorized": false,
+  "next": "After separate exact approval only: submit this one batch, wait within budget, and independently verify Alias metadata. Then record Cell/tenant/DNS convergence without claiming platform drift or public API/product acceptance.",
+  "newEvidenceDirectory": ".local-secrets/tenant-api-alias-update-d3fefb65-20261107-a"
+}

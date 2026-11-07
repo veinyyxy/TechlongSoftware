@@ -1,0 +1,68 @@
+{
+  "schema": "techlong/tenant-api-alias-preflight/v1",
+  "status": "API_ALIAS_MISMATCH_NO_WRITE",
+  "sourceCommit": "ba251680dcebe62932854e874a45c1cbd04e40a2",
+  "userReadApprovalRecorded": true,
+  "approvedScopeDocument": "docs/aws-cell-listener-ownership-repair.md#tenant-api-alias-read-scope",
+  "approvedScopeDocumentRawSha256": "322f35c5d88a5bdd1d8094e4ebaabb60690c152b2792d8b60e27bbf5996d7325",
+  "ruleBindingReceiptFile": "tenant-b-post-rollback-executed-20261107.json",
+  "ruleBindingReceiptCanonicalSha256": "b2f345ba76fe60b144a990fe011e764e115b618370f7687bb20ae476fe123a20",
+  "ruleBindingVerifiedAt": "2026-11-07T21:09:03.139Z",
+  "startedAt": "2026-11-07T21:22:03.025Z",
+  "factsAt": "2026-11-07T21:22:05.127Z",
+  "finishedAt": "2026-11-07T21:22:09.660Z",
+  "factsValidBefore": "2026-11-08T02:22:05.127Z",
+  "summary": {
+    "name": "first-acceptance.sandbox.techlong.cloud.",
+    "zoneId": "Z01473621BTTHKXBGOOEJ",
+    "zoneName": "sandbox.techlong.cloud.",
+    "zonePublic": true,
+    "alb": {
+      "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6",
+      "vpcId": "vpc-0136b6ba92a72cbf9",
+      "dnsName": "techlong-sandbox-cell-sandbox-1-1581133878.ca-central-1.elb.amazonaws.com",
+      "canonicalHostedZoneId": "ZQSVJUPU6J1EY",
+      "state": "active"
+    },
+    "currentRecord": {
+      "Name": "first-acceptance.sandbox.techlong.cloud.",
+      "Type": "A",
+      "AliasTarget": {
+        "HostedZoneId": "ZQSVJUPU6J1EY",
+        "DNSName": "techlong-sandbox-cell-sandbox-1-1584188584.ca-central-1.elb.amazonaws.com.",
+        "EvaluateTargetHealth": false
+      }
+    },
+    "currentRecordCanonicalSha256": "5370be41c84cf4c89b27fca7ed393a6820e032a28e3513ce78f0e5275e9c912f",
+    "matchesCurrentCellAlb": false,
+    "ruleBindingReceiptCanonicalSha256": "b2f345ba76fe60b144a990fe011e764e115b618370f7687bb20ae476fe123a20",
+    "ruleBindingVerifiedAt": "2026-11-07T21:09:03.139Z",
+    "publicResolutionOrApiHealthVerified": false,
+    "serviceStarted": false,
+    "dnsUpdated": false,
+    "dnsWriteAuthorized": false
+  },
+  "counts": {
+    "sts": 1,
+    "metadata": 3
+  },
+  "awsWrites": 0,
+  "executionSlotsConsumed": 0,
+  "secretValueReads": 0,
+  "privateKeyReads": 0,
+  "configSecretFileReads": 0,
+  "databaseConnections": 0,
+  "publicDnsOrHttpCalls": 0,
+  "dnsWriteAuthorized": false,
+  "privateEvidenceDirectory": ".local-secrets/tenant-api-alias-readonly-20261107-a",
+  "journalRawSha256": "6a2098c37e5edce76675f4c00275e6ced9c093b5f9d12f61444fdc7e19c9237d",
+  "journalCanonicalSha256": "4fb47cdcfa29fb0674c55db577a40f8f9ea6a8c5659ca865b27657e77f7bf2f1",
+  "snapshotRawSha256": "a795dedd6b57d280da5fb856d66b88f863ec80170ef8902106cfa74a13cf64bc",
+  "recipeRawSha256": "30dfc008c17bd86d4dd7ba6bdc6b4f124760af59291782382f09a9bf0cd303f6",
+  "commonRawSha256": "d4818c644ffc0fbcf4c73c0e8287bfb3fd561f9bc2561ef5f682d6aefa7a5d72",
+  "automaticRetry": false,
+  "dnsUpdated": false,
+  "serviceStarted": false,
+  "wholeSystemAccepted": false,
+  "next": "Separately approve exactly one A Alias UPSERT preserving the existing record except its AliasTarget.DNSName, followed by independent metadata readback; no environment start or public health test."
+}

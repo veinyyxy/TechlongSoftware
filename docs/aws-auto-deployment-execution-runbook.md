@@ -2,15 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：三规则归属独立验收通过，只准备API域名Alias核对（2026-11-07）
+## 当前唯一继续点：API Alias仍指旧ALB，等待单条DNS更新清单确认（2026-11-07）
 
-用户明确确认5ab93ad9…及正常回滚/依赖运行风险后，仅Execute新e8fb4b24…一次、显式DisableRollback=false，于21:09:03.139Z完成另一进程独立验收。[实际结果](../ops/deployment-baseline/tenant-b-post-rollback-executed-20261107.json)：UPDATE_COMPLETE/EXECUTE_COMPLETE、实际DisableRollback=false、三个新规则归属/条件/动作/优先级匹配，差异0。实际STS2/元数据34/Execute1（写前17＋状态2＋独立15），其他直接写0；执行槽1/批准已消费，不重放。 当前状态统一看[基线顶部](aws-deployment-baseline.md#current-state)。
+用户明确“允许下一步”后，[API Alias限定只读](../ops/deployment-baseline/tenant-api-alias-preflight-20261107.json)于21:22:05.127Z–21:22:09.660Z完成，实际STS1/元数据3、AWS写/秘密/配置/数据库/执行槽均0。固定公开zone与准确ALB身份匹配，但准确API A Alias仍指旧1584188584，当前Cell ALB真实DNS为1581133878，尚不对齐。没有自动修改DNS、启动环境或测试公网服务。
 
-验收时Original d705…、四保留ID、18参数元数据/17标签/角色/输出、服务0/0/0/:12及网络/目标保持；两个参数已对齐729e监听器，目标组关联当前Cell ALB。IAM v10/trust/空inline/单附加/boundary、Cell状态/输出、TLS/mTLS与共享规则均独立匹配。不证明NoEcho真值、瞬时任务历史、DNS/健康/费用，不称API运行或整套正式基线完成；ALB可能持续收费，无新自动停止。
+已直接备好[单条DNS更新清单](../ops/deployment-baseline/tenant-api-alias-update-review-20261107.json)，SHA 0e2ad8ca928f7cc99086dbedca0d149a0fb516eab15b05d41d5364aa5a1f2dbd：仅一次ChangeResourceRecordSets、一个准确A Alias UPSERT，只改AliasTarget.DNSName；名称/类型/目标zone/EvaluateTargetHealth=false保持。未来批准直接调用最多STS2/元数据17（写前3＋准确change ID状态最多10＋独立4）/DNS写1，其他写0；不启动服务或修改其他域名/栈/IAM/镜像/临时工具。
 
-**下一唯一动作：另确认API A Alias最小只读核对。** [准确范围](aws-cell-listener-ownership-repair.md#tenant-api-alias-read-scope)：STS最多1＋元数据3，仅准确ALB DescribeLoadBalancers、固定zone GetHostedZone、准确名称起始/最多5项的一页ListResourceRecordSets各1。正确则记录本轮Cell—租户引用链；不一致才另备准确DNS写清单，不自动UPSERT。不重查整套环境，不读秘密/配置或连库，不查公网健康/业务，不启服务、不改IAM/镜像/临时工具。
+**当前唯一后继：等待上述SHA及单条DNS风险确认，不提前写入。** [范围与风险](aws-cell-listener-ownership-repair.md#tenant-api-alias-update-review)。写前比对准确旧记录摘要，非CAS/并发覆盖、凭据/网络日志、提交不明/传播和缓存风险保留，失败不重试/恢复旧值/清理。有效至温尼伯11月7日20:09:03.139 CST，最晚19:54:03.139启动；这是新DNS事实与21:09真实规则证明五小时的较早期限，不延长已消费CFN批准或20:37其他依赖事实，不是资源到期。
 
-51项本地检查及定向lint通过，只完成本次三规则归属。旧5ab…/ae62…/回滚批准、时间/token/私有原件保持，已消费槽不复位，不用剩余预算读DNS或继续写入。本次结果不重计20:37完整依赖事实或原期限，不新增资源到期；平台手动漂移修复仍单列、未授权实施，已由用户完成的业务测试不重做。
+三规则在21:09已按5ab…独立验收通过，四保留ID与验收时服务0/:12保持，本次不重新查询或改变。53项本地检查及定向lint通过；当前仅DNS不一致，未证明公网解析/健康或整套正式基线完成。ALB可能持续收费，无新增停机/续租；平台漂移修复单列，用户业务测试不重做。
 
 初版基线只授权离线；A1/A2、最小IAM修正、B执行/回滚及本次只读均为用户后来逐项批准的独立范围，不能由文档追加反向授权。旧JSON、失败记录、回滚批准/token及配方保持，已消费槽不复位或重放。
 
