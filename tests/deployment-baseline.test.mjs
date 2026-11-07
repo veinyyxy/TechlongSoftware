@@ -29,6 +29,8 @@ import bRefresh from '../ops/deployment-baseline/tenant-b-execution-refresh-2026
 import bRefreshedReview from '../ops/deployment-baseline/tenant-b-execution-review-refreshed-20261107.json' with { type: 'json' };
 import bInspected from '../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json' with { type: 'json' };
 import bFailureRead from '../ops/deployment-baseline/tenant-b-failed-event-read-scope.json' with { type: 'json' };
+import bFailureObserved from '../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json' with { type: 'json' };
+import bRecovery from '../ops/deployment-baseline/tenant-b-recovery-offline-plan.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -654,4 +656,38 @@ test('B failed-event followup needs separate narrow read permission and excludes
   assert.equal(bFailureRead.rawEventPropertiesMayEnterAwsCliMemory,true);assert.equal(bFailureRead.rawResourcePropertiesNotSavedOrPrinted,true);
   for(const key of ['unfilteredDescribeStackEvents','taskDefinitionApiReads','secretValueReads','privateKeyReads','configSecretFileReads','databaseConnections','awsWrites','executionSlotsConsumed'])assert.equal(bFailureRead[key],0,key);
   assert.equal(bFailureRead.executionAuthorized,false);assert.equal(bFailureRead.automaticRepair,false);
+});
+
+test('B recovery is an offline proposal bound to a real prior stable state and this failed operation, never a replay',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  const evidence={'tenant-b-preflight-20261107.json':bFacts,'tenant-b-created-20261107.json':bCreated,'tenant-b-execution-inspected-20261107.json':bInspected,'tenant-b-failed-events-observed-20261107.json':bFailureObserved};
+  for(const e of bRecovery.evidence)assert.equal(e.canonicalSha256,sha(evidence[e.file]));
+  assert.equal(bRecovery.targetStackId,bInspected.stackId);assert.equal(bCreated.stackId,bRecovery.targetStackId);
+  assert.equal(bRecovery.historicalStableState.stackStatus,bCreated.appliedStackStatus);assert.equal(bCreated.appliedStackStatus,'CREATE_COMPLETE');
+  assert.equal(bRecovery.historicalStableState.observedAt,bCreated.independentlyVerifiedAt);
+  assert.equal(bRecovery.historicalStableState.templateCanonicalSha256,bInspected.appliedTemplateSha256);
+  assert.equal(bRecovery.status,'OFFLINE_PROPOSAL_NOT_EXECUTABLE');assert.equal(bRecovery.recoveryManifestSha256,null);
+  assert.equal(bRecovery.newReadsAuthorized,false);assert.equal(bRecovery.executionAuthorized,false);
+  assert.ok(Object.values(bRecovery.thisOfflinePhase).every(x=>x===0));
+  const [rollback,create,execute]=bRecovery.proposedSequence;
+  assert.equal(rollback.api,'cloudformation:RollbackStack');assert.equal(rollback.requiredStartingStatus,'UPDATE_FAILED');
+  assert.equal(rollback.requiredFailedOperationId,bFailureObserved.operationId);
+  assert.equal(rollback.wholeTenantStackOperationNotThreeRuleChangeSet,true);assert.equal(rollback.stableStateProofRequiredBeforeWrite,true);
+  assert.equal(rollback.noStableStateCanDeleteStack,true);assert.equal(rollback.clientRequestToken,null);
+  assert.equal(create.requiresIndependentlyVerifiedStableRollback,true);assert.equal(create.newChangeSetArn,null);
+  assert.equal(execute.disableRollback,false);assert.equal(execute.onStackFailureMustNotBeSpecifiedAtCreation,true);
+  assert.equal(execute.replayConsumedExecution,false);assert.ok(bRecovery.proposedSequence.every(x=>x.authorized===false&&x.maxWritesAfterSeparateApproval===1));
+});
+
+test('B recovery preserves dependent-service risks and proposes only nine metadata reads, not recovery permission',()=>{
+  const p=bRecovery.proposedNextReadOnlyPreparation,r=bRecovery.retentionAndRisks;
+  assert.equal(p.stsMax,1);assert.equal(p.metadataMax,9);assert.equal(p.calls.reduce((n,x)=>n+x.count,0),9);
+  assert.ok(p.calls.every(x=>/:(Describe|Get|List)/.test(x.api)));assert.equal(p.authorized,false);
+  assert.equal(p.readPermitDoesNotAuthorizeRollback,true);assert.equal(p.freshFactsAt,null);assert.equal(p.freshFactsValidBefore,null);
+  assert.equal(p.maxSnapshotAgeHours,5);assert.equal(p.noPaginationRetryOrExtraDiagnostic,true);
+  assert.deepEqual([...r.retainedLogicalIds].sort(),bInspected.cfnResourceRecords.filter(x=>!x.logicalId.endsWith('Rule')).map(x=>x.logicalId).sort());
+  assert.equal(r.templateDesiredCount,1);assert.equal(r.dependentServiceMayBeReconciledOrRun,true);
+  assert.equal(r.providerMayDeleteNewResourcesDuringRollback,true);assert.equal(r.missingOldResourcesCanCauseRollbackFailure,true);
+  assert.equal(r.automaticContinueUpdateRollback,false);assert.deepEqual(r.resourcesToSkip,[]);assert.equal(r.automaticCleanupOrCompensation,false);
 });

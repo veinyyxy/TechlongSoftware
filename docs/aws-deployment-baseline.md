@@ -8,7 +8,7 @@
 
 ## 当前状态与唯一继续点
 
-**B 失败事件已按用户限定许可读取，直接失败原因已确认；没有修复授权或实际修复。** 本轮仅 STS1＋DescribeEvents1、无翻页/重试/云写，结果见[只读查因回执](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)。下列资源状态仍来自此前独立回读，本次事件查询没有刷新资源现状或延长任何期限。
+**前阶段 B 失败事件已按用户限定许可读取，直接原因确认；当前离线恢复提案已完成，没有修复授权或实际修复。** 前阶段仅 STS1＋DescribeEvents1、无翻页/重试/云写，见[只读查因回执](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)；本阶段没有新增账号AWS调用。下列资源状态仍来自此前独立回读，事件查询或离线准备都没有刷新资源现状或延长任何期限。
 
 | 对象 | 最新已存事实与边界 |
 | --- | --- |
@@ -19,7 +19,9 @@
 
 **已确认的直接原因：** 2026-11-07T14:53:08.255Z 完成的一页事件查询绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，返回根栈及三条规则共4条失败事件，无下一页。三规则均报 `Replacement type updates not supported on stack with disable-rollback.`。原执行清单把三项替换与 `DisableRollback=true` 组合，这是本次执行策略的不兼容，不是新的 IAM 缺口证明；也不能据此保证未来恢复必然成功。ResourceProperties 只可能进入 CLI 内存，未保存/输出；原[读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)保持准备时原文，不用于重复读取。
 
-**唯一后继方向：** 用户继续时，仅离线准备这次失败的最小恢复提案，评估 UPDATE_FAILED 下的合法恢复路径及正常回滚影响；本次止于查因和记录，不提前改修复代码或生成新执行清单。新资源现状读取与实际恢复仍另审，不重放已消费执行，也不把“取消 DisableRollback 后再跑”视为已批准或已验证方案。当前不创建/执行新 Change Set、不改 IAM/模板/DNS/镜像、不直接启停 ECS/RDS、不调用临时启停工具，不扩 UI、探针、F3c9、恢复框架或新固定任务分支。Cell ALB 可能仍持续收费，没有新增自动停止；本次未核对现时健康或费用。
+**当前唯一继续点：离线恢复提案已备齐，只等待最小只读准备许可。** [方案与完整风险](aws-cell-listener-ownership-repair.md#当前离线恢复提案先回到稳定状态再准备正常回滚的-b)建议先另批同一租户RollbackStack并独立核对，再另批新的三规则Change Set/显式DisableRollback=false执行；不能直接在失败状态重放旧计划。回滚涉及整个租户栈、可能受旧规则缺失和服务声明1/实况0影响，不能保证只改两参数或不启动任务；无上次稳定状态会删栈，必须先绑定真实同UUID成功证据。新[机器提案](../ops/deployment-baseline/tenant-b-recovery-offline-plan.json)不可执行、执行SHA=null，本轮零账号AWS/秘密值/数据库/云写/新槽。
+
+下一仅待另允STS1＋准确租户/服务/现有角色policy元数据9，为单独回滚清单核实事实；范围和风险见方案。尚未获准或执行该读取，也未批准回滚、新Change Set或其他写入。现有事实时间和原执行槽不改；不改IAM/模板/DNS/镜像，不直接启停ECS/RDS、不运行临时工具，不扩UI、探针、F3c9或恢复框架。ALB可能仍收费，没有新增自动停止，本次未核对现时健康或费用。
 
 ## 哪个栈负责什么
 

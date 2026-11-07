@@ -6,7 +6,37 @@
 
 用户明确批准 STS1＋DescribeEvents1 后，2026-11-07T14:53:08.255Z 完成准确 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009` 的 FailedEvents 查询：4条事件、无下一页。三条规则均报 `Replacement type updates not supported on stack with disable-rollback.`；说明原清单的替换型更新与 DisableRollback=true 不兼容，是本次执行策略问题。没有重试、写云、读取 Secret/配置/私钥或连接数据库；ResourceProperties 未输出/落盘。[实际回执与私有原件指纹](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)。
 
-本次止于查因和记录，未重新核对资源现状，旧失败/部分状态及原 SHA/永久槽均不改写；不把查因成功当修复成功或重复执行授权。后继仅离线评估 UPDATE_FAILED 下的最小合法恢复路径与正常回滚影响，新的现状读取和实际恢复仍另批，不直接取消禁用回滚后重跑、扩 IAM 或改 DNS/镜像。ALB 可能持续收费，无新自动停止。
+本次查因未重新核对资源现状，旧失败/部分状态及原 SHA/永久槽均不改写；不把查因成功当修复成功或重复执行授权。后继离线提案如下，新的现状读取和实际恢复仍另批，不直接取消禁用回滚后重跑、扩 IAM 或改 DNS/镜像。ALB 可能持续收费，无新自动停止。
+
+## 当前离线恢复提案：先回到稳定状态，再准备正常回滚的 B
+
+用户要求开始下一步后，本轮仅查官方公开文档、使用已存原件，形成[不可执行的机器提案](../ops/deployment-baseline/tenant-b-recovery-offline-plan.json)，无账号 AWS 调用、凭据/私密文件读取、数据库连接、云写或新执行槽。没有新增执行器、模板或通用恢复框架；实际执行 SHA、请求 token、新变更集 ARN 和新事实时间均未生成。
+
+37项本地基线检查（含2项提案/风险边界回归）及定向零警告lint通过；这是离线材料核验，不是云端恢复、权限或当前资源状态的证明。
+
+**方案依据与推论：** AWS [失败处理文档](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stack-failure-options.html)说明，从 FAILED 状态继续更新仍须保留失败资源，而该模式不支持不可变替换；[ListenerRule 属性说明](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-elasticloadbalancingv2-listenerrule.html)将 ListenerArn 变更列为替换。因此本案不在失败状态直接重跑替换。建议先用 [RollbackStack](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_RollbackStack.html)回到上次稳定状态，再准备新的 B。这是依据已存失败和官方约束选择的恢复路径，不是云端验证通过或唯一可行性保证。
+
+| 顺序 | 未来另批的动作 | 必须满足的边界 |
+| --- | --- | --- |
+| 1 | 同一准确租户 UUID，最多一次 RollbackStack，沿用原 CFN 角色，RetainExceptOnCreate=false | 新前置事实仍为本次 UPDATE_FAILED；绑定同 UUID 在05:55:05.907Z为CREATE_COMPLETE的真实证明。完成后独立核对稳定状态、旧两监听器参数、Original、原四保留物理ID及服务0/:12；回滚不等于旧规则实体恢复或API可用 |
+| 2 | 回滚及独立核验通过后，最多一次新 CreateChangeSet，仅创建 | 同模板、两监听器参数来自重新核对的Cell输出、18参数保留；只接受三规则Modify/Replacement=True/仅ListenerArn。无变化或涉及Service/TaskDefinition/目标组/日志即停，不自动强制替换、改逻辑ID或补建 |
+| 3 | 严格核验并另批后，最多一次 ExecuteChangeSet，显式DisableRollback=false | [执行 API](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ExecuteChangeSet.html)的回滚开关必须明确，不依赖默认值；创建时不设OnStackFailure以避免参数冲突。新ARN/新token，不用旧已消费批准；接受正常失败回滚后仍独立核对三规则实体与四保留ID/服务，DNS和镜像继续另审 |
+
+这三步是审批顺序，不是本次合并写入许可。第一步获批也不自动批准后两步；后两步的准确范围以回滚后真实结果和实际 Change Set 为准。整体回滚不承诺把栈的 DisableRollback 配置改成 false，后续执行仍须显式设置和核对。
+
+### 回滚风险与停止条件
+
+- **RollbackStack 是整个租户栈操作，没有可先预览的“三规则 Change Set”。** 不能把“一个Source写调用”说成只有两参数受影响；原四资源是必须验收保持的条件，不是阻止提供者协调它们的技术围栏。若没有上次稳定状态，AWS 会删除栈；因此找不到同 UUID 的真实成功原件、出现不同操作/角色/模板/物理ID或新状态，均不得提交。
+- 上次稳定的 CFN 声明本身含已缺失的旧规则；回滚可能因这种漂移失败，不能保证重建旧监听器或修复API。提供者可能删除本次新建资源；RetainExceptOnCreate=false 不是禁止所有删除。若失败/提交不明，保留现场，不重发、不自动改用[ContinueUpdateRollback](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ContinueUpdateRollback.html)、跳过资源或删栈重建。
+- “不自动清理/补偿”限制的是代理，不是禁止另批后CloudFormation的正常回滚动作。[新的变更集执行](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ExecuteChangeSet.html)还可能清理同栈其他旧Change Set对象；历史本地回执/原件/永久槽仍保留，不人工删除或复位。
+- Service 声明仍1、最后回读实况0且依赖三规则；回滚/后续正常更新可能引起任务启动、托管 Secret 注入、数据库连接及计算费用。不能沿用旧风险接受作为新回滚批准，也不能保证只有路由变化。计数偏离0或四物理ID/任务定义:12改变即不验收、不继续下一写；不得自动停回、加IAM围栏或暗改Service。
+- 回滚与其他资源回读非原子，存在并发竞态。Source是否允许RollbackStack尚未证明；不足时只报准确差异，不先扩权限。Cell/平台、数据库、IAM、DNS、镜像和临时启停工具都不在本提案的直接变更范围。共享ALB可能持续收费，无新自动停止或费用硬上限。
+
+### 下一唯一动作：另允一次最小只读准备，尚未执行
+
+仅为第一步准备准确审批：**STS1＋元数据9**，不把该许可当回滚批准，不提前启动资源窗口。九读为准确租户 DescribeStacks/GetTemplate(Original)/ListStackResources 各1、准确服务 DescribeServices1，以及原执行角色 GetRole/ListRolePolicies/ListAttachedRolePolicies、原policy GetPolicy/GetPolicyVersion(v10)各1。只核对状态/本次OperationId、模板摘要、七CFN记录与保留ID、服务引用/计数和现有IAM布局，不刷新Cell或重查失败事件。
+
+身份固定为既有Source IAM用户；IAM使用全局官方端点，其余ca-central-1。单页、不翻页/重试，不读Secret值、PEM、.env或调用DescribeTaskDefinition，不连数据库、不写云/占槽；Original仅在内存比对，不发布正文。凭据进入内存、网络/提供者日志和低额非零费用仍存在。发现差异即停，不使用剩余预算扩查。新快照从真实读取计时、最多5小时，不重计旧事实或延长资源期限。全部匹配后才生成仅针对 RollbackStack 的新清单、正常回滚风险和准确SHA请用户确认；本轮没有执行SHA或实际回滚。
 
 <details>
 <summary>分阶段原始记录（旧当前/待批/下一步只适用于当时）</summary>

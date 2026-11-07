@@ -2,13 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：B 查因已完成，后继仅离线准备最小恢复提案（2026-11-07）
+## 当前唯一继续点：B 离线恢复提案已备齐，等待最小只读准备许可（2026-11-07）
 
-用户另允后，已完成仅 STS1＋DescribeEvents1 的固定操作失败事件查询，没有翻页/重试/云写/数据库连接。仅保存原因元数据，不保存或显示 ResourceProperties；未改模板、原审批/执行证据、期限或永久槽。统一状态及授权边界以[部署基线顶部](aws-deployment-baseline.md#current-state)为准；本手册的一般约束继续适用，下面折叠历史中的“当前/下一步/待批准”均只描述当时，不是另一条继续点。
+前阶段用户另允的 STS1＋DescribeEvents1 查因已完成，无翻页/重试/云写/数据库连接；ResourceProperties未保存/显示。本阶段仅离线准备最小恢复提案，没有新增账号AWS调用，模板、原审批/执行证据、期限和永久槽保持。统一状态及授权边界以[部署基线顶部](aws-deployment-baseline.md#current-state)为准；本手册的一般约束继续适用，下面折叠历史中的“当前/下一步/待批准”均只描述当时，不是另一条继续点。
 
 此前 B 独立结果仍为 UPDATE_FAILED/EXECUTE_FAILED，两参数已变729e但三规则物理引用仍旧代且有资源级恢复；未验收到新租户规则、目标组未关联 ALB，检查时服务0/0/0、任务定义:12、四保留ID/IAM v10保持。执行槽已消费、不重放。本次只读取历史失败事件，没有重新核对上述资源现状；ALB可能持续收费，无新自动停止。
 
-**直接原因已确认：** [本轮查因回执](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)返回4条失败事件、无下一页；三条规则均报 `Replacement type updates not supported on stack with disable-rollback.`。原执行策略将 Replacement=True 与 DisableRollback=true 组合不兼容；这是本次方案问题，不据此新增 IAM 或承诺恢复一定成功。本次到查因/记录收尾；用户继续时仅离线评估 UPDATE_FAILED 下的最小合法恢复及正常回滚影响。没有实际修复批准，不直接重放执行、回滚、清理或创建新计划；新的现状读取和写入仍按准确范围另审，不扩模板/服务/DNS/镜像或其他支线。
+**直接原因及离线提案：** [查因回执](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)确认三规则替换与DisableRollback=true不兼容。[离线恢复方案](aws-cell-listener-ownership-repair.md#当前离线恢复提案先回到稳定状态再准备正常回滚的-b)现已备齐：先单独审批RollbackStack使同一租户回到上次稳定状态，独立核对后再另批新的三规则计划及显式正常回滚执行。RollbackStack作用于整栈而非三规则，缺少稳定状态可能删栈，原旧规则缺失/服务1对实况0有失败及运行收费风险；不得直接重放、跳过资源或自动补偿。
+
+本轮仅官方公开文档/已存原件和本地检查，零账号AWS/秘密值/数据库/云写/新槽，不新增执行框架或模板。[机器提案](../ops/deployment-baseline/tenant-b-recovery-offline-plan.json)不可执行、执行SHA=null。**下一仅等待STS1＋元数据9的最小只读准备许可**，只核准确租户/服务和现有IAM，为单独回滚审批生成新事实；尚未批准读取或回滚。完整API列表、内存/日志风险和五小时事实边界见方案，不预先要求刷新Source，不新增IAM/启动服务/改DNS或镜像。
 
 初版基线只授权离线；A1/A2、最小IAM修正和B执行均为用户后来逐项批准的独立修复范围，不能把历史结果追加进文档后当作原基线授权。本次只按新限定许可查因和记录，不扩大或缩改旧批准的实际记录。
 

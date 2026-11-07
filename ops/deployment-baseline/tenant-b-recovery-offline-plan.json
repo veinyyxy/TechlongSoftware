@@ -1,0 +1,125 @@
+{
+  "schema": "techlong/tenant-b-recovery-offline-plan/v1",
+  "status": "OFFLINE_PROPOSAL_NOT_EXECUTABLE",
+  "preparedFromCommit": "28fdd9146768a693e9aff2e15a145bead69aa93c",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "targetStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+  "executionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+  "evidence": [
+    {"file": "tenant-b-preflight-20261107.json", "canonicalSha256": "b58b1ab4b162a78fa1e23fa26992698efe76c42d4654be7ef6b406c80f4359ce"},
+    {"file": "tenant-b-created-20261107.json", "canonicalSha256": "d68f909482241113becd226ac7087543b033182c551d8a4dcf97478a5664fee7"},
+    {"file": "tenant-b-execution-inspected-20261107.json", "canonicalSha256": "85b0be4d8d1457003a7033ede0c322d1d26a8968048a771dc86f03fdbbe1e980"},
+    {"file": "tenant-b-failed-events-observed-20261107.json", "canonicalSha256": "0731202ca8e9f272c00270dcf328e04107bb4bd756086784b9e3e8420a45a615"}
+  ],
+  "historicalStableState": {
+    "evidenceFile": "tenant-b-created-20261107.json",
+    "stackStatus": "CREATE_COMPLETE",
+    "observedAt": "2026-11-07T05:55:05.907Z",
+    "templateCanonicalSha256": "d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779",
+    "listenerParameters": {
+      "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b",
+      "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7"
+    },
+    "oldRuleEntitiesKnownMissingBeforeFailedOperation": true,
+    "oldRuleAbsenceEvidenceFile": "tenant-b-preflight-20261107.json",
+    "stableCfnStateIsNotHealthyApiProof": true
+  },
+  "proposedSequence": [
+    {
+      "step": "restore-stable-state",
+      "api": "cloudformation:RollbackStack",
+      "maxWritesAfterSeparateApproval": 1,
+      "requiredStartingStatus": "UPDATE_FAILED",
+      "requiredFailedOperationId": "05dc971d-c8f7-46b9-ae85-d44ec357b009",
+      "sameStackAndRoleOnly": true,
+      "retainExceptOnCreate": false,
+      "clientRequestToken": null,
+      "wholeTenantStackOperationNotThreeRuleChangeSet": true,
+      "stableStateProofRequiredBeforeWrite": true,
+      "noStableStateCanDeleteStack": true,
+      "postReadbackMustMatchHistoricalStableBindings": true,
+      "doesNotRepairMissingOldRules": true,
+      "authorized": false
+    },
+    {
+      "step": "prepare-corrected-b",
+      "api": "cloudformation:CreateChangeSet",
+      "maxWritesAfterSeparateApproval": 1,
+      "requiresIndependentlyVerifiedStableRollback": true,
+      "usePreviousTemplate": true,
+      "changedParameters": ["ControlListenerArn", "HttpsListenerArn"],
+      "unchangedParameterCount": 18,
+      "listenerValuesMustComeFromFreshCellOutputs": true,
+      "expectedRules": ["TenantBusinessControlDenyRule", "TenantControlListenerRule", "TenantListenerRule"],
+      "requiredChanges": {"add": 0, "modify": 3, "remove": 0, "replacement": "True", "property": "ListenerArn"},
+      "noOpOrDifferentShapeStops": true,
+      "newChangeSetArn": null,
+      "authorized": false
+    },
+    {
+      "step": "apply-corrected-b",
+      "api": "cloudformation:ExecuteChangeSet",
+      "maxWritesAfterSeparateApproval": 1,
+      "requiresNewAvailableChangeSetAndExplicitRollbackRiskApproval": true,
+      "disableRollback": false,
+      "retainExceptOnCreate": false,
+      "onStackFailureMustNotBeSpecifiedAtCreation": true,
+      "executionClientRequestToken": null,
+      "replayConsumedExecution": false,
+      "authorized": false
+    }
+  ],
+  "retentionAndRisks": {
+    "retainedLogicalIds": ["TenantService", "TenantTaskDefinition", "TenantTargetGroup", "TenantLogGroup"],
+    "expectedServiceCountsAtAcceptance": {"desired": 0, "running": 0, "pending": 0},
+    "expectedTaskDefinitionRevision": 12,
+    "templateDesiredCount": 1,
+    "dependentServiceMayBeReconciledOrRun": true,
+    "providerMayDeleteNewResourcesDuringRollback": true,
+    "providerMayRemoveOtherChangeSetsOnNewExecution": true,
+    "missingOldResourcesCanCauseRollbackFailure": true,
+    "sourceRollbackPermissionNotProved": true,
+    "noCrossServiceCas": true,
+    "serviceDeviationIsNotAcceptanceAndDoesNotAuthorizeStop": true,
+    "automaticWriteRetry": false,
+    "automaticContinueUpdateRollback": false,
+    "resourcesToSkip": [],
+    "automaticCleanupOrCompensation": false,
+    "cleanupProhibitionAppliesToAgentNotReviewedProviderRollback": true
+  },
+  "proposedNextReadOnlyPreparation": {
+    "authorized": false,
+    "stsMax": 1,
+    "metadataMax": 9,
+    "calls": [
+      {"api": "cloudformation:DescribeStacks", "count": 1, "target": "exact targetStackId; require same failed operation, role, parameters, tags and status"},
+      {"api": "cloudformation:GetTemplate", "count": 1, "target": "exact targetStackId Original; compare canonical digest in memory, do not publish body"},
+      {"api": "cloudformation:ListStackResources", "count": 1, "target": "exact targetStackId; one page, seven records and retained physical IDs"},
+      {"api": "ecs:DescribeServices", "count": 1, "target": "exact retained tenant service; counts, task-definition reference, network and target metadata only"},
+      {"api": "iam:GetRole", "count": 1, "target": "existing executionRoleArn, exact role ID/trust/boundary"},
+      {"api": "iam:ListRolePolicies", "count": 1, "target": "same execution role, one page, expect empty inline list"},
+      {"api": "iam:ListAttachedRolePolicies", "count": 1, "target": "same execution role, one page, expect single reviewed attachment"},
+      {"api": "iam:GetPolicy", "count": 1, "target": "existing TechlongSandboxCloudFormationExecutionBoundary; expect same policy ID/default v10/usage"},
+      {"api": "iam:GetPolicyVersion", "count": 1, "target": "same existing policy v10; expect reviewed canonical digest"}
+    ],
+    "noPaginationRetryOrExtraDiagnostic": true,
+    "stopOnAnyChangedFact": true,
+    "freshFactsAt": null,
+    "freshFactsValidBefore": null,
+    "maxSnapshotAgeHours": 5,
+    "readPermitDoesNotAuthorizeRollback": true
+  },
+  "thisOfflinePhase": {"accountAwsCalls": 0, "secretValueReads": 0, "privateKeyReads": 0, "configSecretFileReads": 0, "databaseConnections": 0, "cloudWrites": 0, "executionSlotsConsumed": 0},
+  "recoveryManifestSha256": null,
+  "newReadsAuthorized": false,
+  "executionAuthorized": false,
+  "scopeExclusions": ["new IAM", "Cell or platform updates", "DNS", "image", "database writes", "direct ECS/ELB writes", "DeleteStack", "resource import or rename", "REVERT_DRIFT", "retrying old change set", "new recovery framework"],
+  "officialReferences": [
+    "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stack-failure-options.html",
+    "https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_RollbackStack.html",
+    "https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ContinueUpdateRollback.html",
+    "https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ExecuteChangeSet.html",
+    "https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-elasticloadbalancingv2-listenerrule.html"
+  ]
+}
