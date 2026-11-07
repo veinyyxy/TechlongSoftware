@@ -41,6 +41,7 @@ import bPostRollbackRead from '../ops/deployment-baseline/tenant-b-post-rollback
 import bPostRollbackCreate from '../ops/deployment-baseline/tenant-b-post-rollback-creation-review-20261107.json' with { type: 'json' };
 import bPostRollbackCreated from '../ops/deployment-baseline/tenant-b-post-rollback-created-20261107.json' with { type: 'json' };
 import bPostRollbackExecute from '../ops/deployment-baseline/tenant-b-post-rollback-execution-review-20261107.json' with { type: 'json' };
+import bPostRollbackExecuted from '../ops/deployment-baseline/tenant-b-post-rollback-executed-20261107.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -941,4 +942,34 @@ test('new execution proposal targets only the new ARN with explicit normal rollb
   assert.deepEqual(a.failurePolicy.resourcesToSkip,[]);assert.equal(a.polling.maxFailureEventReads,0);
   for(const key of ['executionAuthorized','apiDnsChangeAuthorized','imageUpdateAuthorized','temporaryToolChangeAuthorized'])assert.equal(a[key],false,key);
   assert.equal(a.preparation.newAwsCallsForThisManifest,0);assert.equal(a.preparation.executionSlotsConsumed,0);
+});
+
+test('actual new B execution proves three owned rule bindings and idle preserved resources, not DNS or full environment acceptance',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  const r=bPostRollbackExecuted,a=bPostRollbackExecute;
+  assert.equal(r.approvedManifestCanonicalSha256,sha(a));assert.equal(r.status,'RULE_BINDINGS_INDEPENDENTLY_VERIFIED');
+  assert.equal(r.userExplicitExecutionAndNormalRollbackServiceRuntimeRiskAcceptanceRecorded,true);
+  assert.equal(r.stackId,a.request.StackName);assert.equal(r.changeSetId,a.request.ChangeSetName);assert.equal(r.clientRequestToken,a.request.ClientRequestToken);
+  assert.equal(r.requestedDisableRollback,false);assert.equal(r.observedDisableRollback,false);assert.equal(r.stackStatus,'UPDATE_COMPLETE');assert.equal(r.changeSetExecutionStatus,'EXECUTE_COMPLETE');
+  assert.equal(r.observedLastOperations[0].OperationType,'UPDATE_STACK');assert.notEqual(r.observedLastOperations[0].OperationId,bInspected.operationId);
+  assert.equal(r.appliedTemplateCanonicalSha256,a.expected.currentTemplateSha256);assert.equal(r.tenantCfnPhysicalRecords.length,7);assert.equal(r.newRules.length,3);
+  for(const id of a.expected.retainedLogicalIds){const old=a.expected.recordedPhysicalIdsBefore.find(x=>x.logicalId===id),now=r.tenantCfnPhysicalRecords.find(x=>x.logicalId===id);assert.equal(now.physicalId,old.physicalId);assert.equal(now.type,old.type);}
+  for(const expected of listenerPlan.archivedTemplate.ruleProjection){
+    const rule=r.newRules.find(x=>x.logicalId===expected.logicalId),row=r.tenantCfnPhysicalRecords.find(x=>x.logicalId===expected.logicalId),old=a.expected.recordedPhysicalIdsBefore.find(x=>x.logicalId===expected.logicalId);
+    assert.equal(row.physicalId,rule.physicalId);assert.notEqual(rule.physicalId,old.physicalId);assert.equal(rule.listenerArn,a.expected.newListenerParameters[expected.listenerParameter]);
+    assert.ok(rule.physicalId.startsWith(rule.listenerArn.replace(':listener/',':listener-rule/')+'/'));assert.equal(rule.priority,expected.priority);
+    assert.deepEqual(rule.conditions.find(x=>x.field==='host-header').values,[a.expected.tenantHostname]);
+    if(expected.logicalId==='TenantListenerRule')assert.equal(rule.conditions.length,1);else assert.deepEqual(rule.conditions.find(x=>x.field==='path-pattern').values,['/api/saas','/api/saas/*']);
+    if(expected.logicalId==='TenantBusinessControlDenyRule'){assert.equal(rule.action.type,'fixed-response');assert.equal(rule.action.config.StatusCode,'404');}
+    else assert.deepEqual(rule.action,{type:'forward',targetGroupArn:a.expected.targetGroupArn});
+  }
+  assert.deepEqual(r.newListenerParameters,a.expected.newListenerParameters);for(const [key,value]of Object.entries(r.newListenerParameters))assert.equal(value,r.cellOutputs[key]);
+  assert.deepEqual(r.service,bPostRollbackCreated.service);assert.equal(r.targetGroupLoadBalancerArns.length,1);assert.ok(r.targetGroupLoadBalancerArns[0].endsWith('/729e0854244ceff6'));
+  assert.equal(r.policyDefaultVersion,'v10');assert.equal(r.policyCanonicalSha256,a.expected.policyCanonicalSha256);assert.equal(r.roleTrustInlineAttachmentBoundaryAndPolicyIndependentlyMatched,true);
+  assert.deepEqual(r.counts.aggregate,{sts:2,metadata:34,executeChangeSet:1});for(const key of ['sts','metadata','executeChangeSet'])assert.equal(r.counts.aggregate[key],r.counts.writer[key]+r.counts.independent[key]);
+  assert.equal(r.executionSlotsConsumed,1);assert.equal(r.executionApprovalConsumed,true);assert.equal(r.counts.otherDirectAwsWrites,0);
+  for(const key of ['repeatExecutionAuthorized','automaticRetry','agentInitiatedRollback','automaticCleanup','automaticEcsStop','dnsRead','dnsUpdated','imageUpdated','temporaryToolModified','apiRestorationVerified','wholeSystemAccepted','formalThreeStackBaselineComplete','noEchoSecretValuesVerified','transientTaskHistoryRead'])assert.equal(r[key],false,key);
+  assert.equal(r.tenantRuleOwnershipConvergenceVerified,true);assert.deepEqual(r.differences,[]);
+  assert.equal(r.dependencyFactsAt,a.dependencyFactsAt);assert.equal(r.dependencyFactsValidBefore,a.dependencyFactsValidBefore);
 });

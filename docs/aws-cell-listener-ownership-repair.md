@@ -2,6 +2,39 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；唯一状态与后继方向以[三栈基线顶部](aws-deployment-baseline.md#current-state)为准，下方阶段文字只供追溯。**
 
+<a id="tenant-b-post-rollback-executed"></a>
+
+## 当前结果：三规则实际归属已独立验收通过
+
+用户在准确5ab93ad9…及正常回滚/依赖运行风险请求后明确“确认”。已于2026-11-07T21:07:51.312Z记录唯一执行意图，21:07:52.812Z收到ExecuteChangeSet ACK，显式DisableRollback=false；两次同栈状态查询后为UPDATE_COMPLETE。另一进程于**21:09:03.139Z**完成独立验收，**RULE_BINDINGS_INDEPENDENTLY_VERIFIED、差异0**。[实际结果与原件指纹](../ops/deployment-baseline/tenant-b-post-rollback-executed-20261107.json)。
+
+- 准确e8fb4b24…为EXECUTE_COMPLETE、同租户UPDATE_COMPLETE、实际DisableRollback=false；观察到UPDATE_STACK操作f1563830…，不把其操作ID描述为来自Execute ACK的字段。Original d705…不变，两监听器参数已与Cell真实729e输出一致。
+- 三条新规则在租户CFN七资源记录及ELB实际实体中一致，条件/动作/优先级/目标组匹配：443/100拒绝控制路径，8443/100转发控制路径，443/101转发业务；物理ID尾分别为2a324cb802f1f48d、9ddee07811205325、a059386198eb8922。四保留物理ID、18参数元数据/17标签/角色/输出保持，目标组已关联当前Cell ALB。
+- 独立验收时服务仍0/0/0/:12、网络/目标配置保持；IAM v10、角色ID/trust/空inline/单附加/boundary与正文均匹配，Cell状态/输出、两监听器TLS/mTLS、共享/默认规则保持。没有瞬时任务历史或NoEcho真值证明，不据最终0宣称期间绝无运行或数据库活动。
+- 实际**STS2/元数据34/Execute1**：写前17＋状态2＋独立15，其他直接AWS写0；执行槽1/批准已消费，不能重放5ab…或旧创建/回滚批准。没有额外Create/Delete、直接IAM/DNS/ELB/ECS/RDS写、Secret值/PEM/.env/数据库连接、启停工具或业务测试。CFN按受审替换执行的提供者行为不算Source另获删除权限；旧云端Change Set未额外查询/删除，不保证它们仍存在。
+
+51项本地基线检查及定向lint通过。只完成三规则归属，尚未核对API域名Alias/公网解析/健康/费用，服务验收时仍停用，不称API运行或整套正式基线已完成。20:37完整依赖事实与原期限保留，不因本次结果重计；ALB可能持续收费，未新增自动停止。
+
+<a id="tenant-api-alias-read-scope"></a>
+
+### 下一唯一动作：API域名Alias最小只读核对（待新确认，尚未调用）
+
+目的仅为核对first-acceptance.sandbox.techlong.cloud.的A Alias是否指向本次真实Cell ALB；不再重查整套环境、不启动服务或重复店铺/登录测试。新范围上限**STS1＋元数据3**，固定Source profile techlong-sandbox-user/准确IAM用户、账号402010193138。Route53使用官方全球端点及us-east-1签名，不代表在该区域创建资源。
+
+1. STS GetCallerIdentity最多1次，必须为准确Source IAM用户，失败立即停。
+2. ELBv2 DescribeLoadBalancers最多1次，仅本次729e准确ALB ARN，取得真实DNSName/CanonicalHostedZoneId并核对身份/VPC；不读其他ALB或目标健康。
+3. Route53 GetHostedZone最多1次，仅历史已绑定zone Z01473621BTTHKXBGOOEJ，核实为覆盖准确域名的公开zone，不枚举/切换zone。
+4. Route53 ListResourceRecordSets最多1次，仅该zone、StartRecordName为上述准确API名、StartRecordType=A、MaxItems=5，一页不翻页；只判断准确名的记录，必须恰一条简单A Alias。若同名多条、复杂路由或分页截断准确名则停止，不自动简化。
+
+比较时只规范大小写/末尾点及可选dualstack前缀，Alias的目标DNS和ALB CanonicalHostedZoneId均须匹配；保留EvaluateTargetHealth等字段，不执行UPSERT。历史zone/旧Alias只作固定查询目标，不当作新事实。若已匹配，记录本轮Cell—租户引用链核对结果；不匹配则另备一份准确DNS写清单让用户确认。读成功不等于公网DNS解析或停用服务健康通过，也不表示平台漂移已处理。
+
+明确排除：所有AWS/GitHub写入、Secret值/PEM/.env/HMAC、数据库/S3正文、其他域名/平台资源、公网GET或JS、ECR/镜像更新、任务启动、续租/清理/启停工具修改和执行槽。接受既有凭据在内存使用、网络/提供者日志与低额非零费用风险。最多一次新记录，拒绝/非预期差异/不完整结果就停，不自动重试/扩大诊断；不使用本阶段剩余执行预算。此范围本身尚未获批准。
+
+<details>
+<summary>已完成执行审批、前置材料与分阶段原始记录（保留追溯，不重放）</summary>
+
+下方旧“当前/待确认/下一步”、旧SHA及期限只适用于当时；实际已消费批准不能重放，不覆盖本页顶部，不构成新许可。
+
 <a id="tenant-b-post-rollback-execute-review"></a>
 
 ## 当前结果：新三规则Change Set已创建并独立核验，未执行
@@ -33,9 +66,6 @@
 **时间不延长：** 底层事实到2026-11-08T01:37:11.801Z，即温尼伯**11月7日19:37:11.801 CST**；最晚2026-11-08T01:22:11.801Z，即**19:22:11.801 CST**启动。创建独立回读时间不作为重新起算依据；这不是资源到期时间。
 
 50项本地检查及定向lint通过。当前只等执行SHA及上述风险的新明确批准，不调用Execute或用剩余预算补读；规则实际对齐之后才另审API DNS，镜像、临时启停工具、平台修复和业务测试不在本轮扩展。
-
-<details>
-<summary>前置仅创建审批、离线材料与分阶段原始记录（保留追溯，不重放）</summary>
 
 下方旧“当前/待确认/下一步”、旧SHA及期限只适用于当时；已消费批准不能重复使用，不覆盖顶部，不构成新许可。
 

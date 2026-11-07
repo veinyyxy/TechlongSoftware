@@ -2,15 +2,15 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：新 B 仅创建与独立核验通过，等待准确执行清单确认（2026-11-07）
+## 当前唯一继续点：三规则归属独立验收通过，只准备API域名Alias核对（2026-11-07）
 
-用户明确确认ae62c037…后，[本次仅创建](../ops/deployment-baseline/tenant-b-post-rollback-created-20261107.json)于20:52:53.314Z独立核验为CREATE_COMPLETE/AVAILABLE，准确新ARN尾e8fb4b24…、STANDARD、恰三规则替换/仅ListenerArn。实际STS2/元数据23/Create1、其他直接写0，创建槽1/批准已消费，不重放；当前状态统一看[基线顶部](aws-deployment-baseline.md#current-state)。
+用户明确确认5ab93ad9…及正常回滚/依赖运行风险后，仅Execute新e8fb4b24…一次、显式DisableRollback=false，于21:09:03.139Z完成另一进程独立验收。[实际结果](../ops/deployment-baseline/tenant-b-post-rollback-executed-20261107.json)：UPDATE_COMPLETE/EXECUTE_COMPLETE、实际DisableRollback=false、三个新规则归属/条件/动作/优先级匹配，差异0。实际STS2/元数据34/Execute1（写前17＋状态2＋独立15），其他直接写0；执行槽1/批准已消费，不重放。 当前状态统一看[基线顶部](aws-deployment-baseline.md#current-state)。
 
-独立核验时原栈仍稳定回滚态、Original/七物理记录/角色/17标签/参数/输出与服务0/0/0/:12保持；仅有计划，没有新规则应用或API恢复。DisableRollback仍true，依赖沿用20:37真实事实而不续期；写前IAM v10已核对，不声称独立读回又查IAM。ALB仍可能收费，无新自动停止。
+验收时Original d705…、四保留ID、18参数元数据/17标签/角色/输出、服务0/0/0/:12及网络/目标保持；两个参数已对齐729e监听器，目标组关联当前Cell ALB。IAM v10/trust/空inline/单附加/boundary、Cell状态/输出、TLS/mTLS与共享规则均独立匹配。不证明NoEcho真值、瞬时任务历史、DNS/健康/费用，不称API运行或整套正式基线完成；ALB可能持续收费，无新自动停止。
 
-**已用现有证据备好执行清单：** [机器清单](../ops/deployment-baseline/tenant-b-post-rollback-execution-review-20261107.json)，SHA `5ab93ad9b0549cffcc3c221ddd9d53b87dbd802d27c3b8d1254133a3b45b1f8e`。仅Execute该新ARN1、显式DisableRollback=false，STS2/元数据46含独立15；其他直接写0。50项检查及定向lint通过，尚未执行，不重建、不补读其他资源。
+**下一唯一动作：另确认API A Alias最小只读核对。** [准确范围](aws-cell-listener-ownership-repair.md#tenant-api-alias-read-scope)：STS最多1＋元数据3，仅准确ALB DescribeLoadBalancers、固定zone GetHostedZone、准确名称起始/最多5项的一页ListResourceRecordSets各1。正确则记录本轮Cell—租户引用链；不一致才另备准确DNS写清单，不自动UPSERT。不重查整套环境，不读秘密/配置或连库，不查公网健康/业务，不启服务、不改IAM/镜像/临时工具。
 
-**下一唯一动作：新明确批准该执行SHA及正常回滚/依赖运行风险。** [完整范围/风险](aws-cell-listener-ownership-repair.md#tenant-b-post-rollback-execute-review)。最晚温尼伯11月7日19:22:11.801 CST启动、底层事实19:37:11.801截止，创建读回不延长。CFN可执行替换/回滚删除；声明1/实况0可能协调Service、启动任务并发生运行时Secret/数据库活动及费用，偏离则不验收且不自动停回。当前未获执行许可，不借剩余预算扩查或重放；规则实际对齐后再核对DNS，不改IAM、镜像、服务/DependsOn或临时工具。
+51项本地检查及定向lint通过，只完成本次三规则归属。旧5ab…/ae62…/回滚批准、时间/token/私有原件保持，已消费槽不复位，不用剩余预算读DNS或继续写入。本次结果不重计20:37完整依赖事实或原期限，不新增资源到期；平台手动漂移修复仍单列、未授权实施，已由用户完成的业务测试不重做。
 
 初版基线为离线范围，A1/A2、IAM和B是后来分别批准的修复扩展，不由历史记录或本页自动授权。用户已测买家/卖家场景不再代测；归属、绑定和单列DNS核验未完成前，不进入镜像更新。
 

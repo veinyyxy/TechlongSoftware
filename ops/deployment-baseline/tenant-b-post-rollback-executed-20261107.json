@@ -1,0 +1,233 @@
+{
+  "schema": "techlong/tenant-b-post-rollback-executed/v1",
+  "status": "RULE_BINDINGS_INDEPENDENTLY_VERIFIED",
+  "approvedManifestFile": "tenant-b-post-rollback-execution-review-20261107.json",
+  "approvedManifestCanonicalSha256": "5ab93ad9b0549cffcc3c221ddd9d53b87dbd802d27c3b8d1254133a3b45b1f8e",
+  "sourceCommit": "920abc5bb3c85d3fd420515e29080811c7ccb780",
+  "userExplicitExecutionAndNormalRollbackServiceRuntimeRiskAcceptanceRecorded": true,
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+  "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-tenant-b-postrollback-20261107t203711/e8fb4b24-b8fc-4065-b666-a8e771164842",
+  "clientRequestToken": "tenant-b-postrollback-execute-0a53ab7b67507af65fa455bf36a98c74",
+  "requestedDisableRollback": false,
+  "observedDisableRollback": false,
+  "startedAt": "2026-11-07T21:07:25.772Z",
+  "submissionIntentAt": "2026-11-07T21:07:51.312Z",
+  "acknowledgedAt": "2026-11-07T21:07:52.812Z",
+  "writerFinishedAt": "2026-11-07T21:08:15.956Z",
+  "independentStartedAt": "2026-11-07T21:08:40.888Z",
+  "independentlyVerifiedAt": "2026-11-07T21:09:03.139Z",
+  "stackStatus": "UPDATE_COMPLETE",
+  "changeSetExecutionStatus": "EXECUTE_COMPLETE",
+  "observedLastOperations": [
+    {
+      "OperationType": "UPDATE_STACK",
+      "OperationId": "f1563830-c656-42ef-9e9a-065c4329af6b"
+    }
+  ],
+  "appliedTemplateCanonicalSha256": "d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779",
+  "tenantCfnPhysicalRecords": [
+    {
+      "logicalId": "TenantBusinessControlDenyRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1/2a324cb802f1f48d",
+      "status": "UPDATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantControlListenerRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d/9ddee07811205325",
+      "status": "UPDATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantListenerRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1/a059386198eb8922",
+      "status": "UPDATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantLogGroup",
+      "type": "AWS::Logs::LogGroup",
+      "physicalId": "/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantService",
+      "type": "AWS::ECS::Service",
+      "physicalId": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantTargetGroup",
+      "type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/5c3f443f78df9934",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantTaskDefinition",
+      "type": "AWS::ECS::TaskDefinition",
+      "physicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+      "status": "CREATE_COMPLETE"
+    }
+  ],
+  "newRules": [
+    {
+      "logicalId": "TenantBusinessControlDenyRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1/2a324cb802f1f48d",
+      "listenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1",
+      "priority": 100,
+      "conditions": [
+        {
+          "field": "host-header",
+          "values": [
+            "first-acceptance.sandbox.techlong.cloud"
+          ]
+        },
+        {
+          "field": "path-pattern",
+          "values": [
+            "/api/saas",
+            "/api/saas/*"
+          ]
+        }
+      ],
+      "action": {
+        "type": "fixed-response",
+        "config": {
+          "MessageBody": "{\"success\":false,\"code\":\"NOT_FOUND\"}",
+          "StatusCode": "404",
+          "ContentType": "application/json"
+        }
+      }
+    },
+    {
+      "logicalId": "TenantControlListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d/9ddee07811205325",
+      "listenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d",
+      "priority": 100,
+      "conditions": [
+        {
+          "field": "host-header",
+          "values": [
+            "first-acceptance.sandbox.techlong.cloud"
+          ]
+        },
+        {
+          "field": "path-pattern",
+          "values": [
+            "/api/saas",
+            "/api/saas/*"
+          ]
+        }
+      ],
+      "action": {
+        "type": "forward",
+        "targetGroupArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/5c3f443f78df9934"
+      }
+    },
+    {
+      "logicalId": "TenantListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1/a059386198eb8922",
+      "listenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1",
+      "priority": 101,
+      "conditions": [
+        {
+          "field": "host-header",
+          "values": [
+            "first-acceptance.sandbox.techlong.cloud"
+          ]
+        }
+      ],
+      "action": {
+        "type": "forward",
+        "targetGroupArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/5c3f443f78df9934"
+      }
+    }
+  ],
+  "newListenerParameters": {
+    "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d",
+    "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1"
+  },
+  "cellOutputs": {
+    "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d",
+    "VpcId": "vpc-0136b6ba92a72cbf9",
+    "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1",
+    "CellExpiresAt": "2026-10-15T16:44:56.246Z",
+    "TaskSecurityGroupId": "sg-0df75af0d0661492a",
+    "ClusterName": "cell-sandbox-1",
+    "SubnetIds": "subnet-05b781276cc988b93,subnet-05729abe921410a75"
+  },
+  "fourRetainedPhysicalIdsUnchanged": true,
+  "otherEighteenParameterMetadataMatched": true,
+  "roleTagsAndOutputsUnchanged": true,
+  "noEchoSecretValuesVerified": false,
+  "service": {
+    "arn": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+    "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+    "desired": 0,
+    "running": 0,
+    "pending": 0
+  },
+  "serviceNetworkAndTargetConfigurationUnchanged": true,
+  "transientTaskHistoryRead": false,
+  "targetGroupArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/5c3f443f78df9934",
+  "targetGroupLoadBalancerArns": [
+    "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6"
+  ],
+  "roleId": "AROAV3GNMXTZKHYBCRSOE",
+  "policyDefaultVersion": "v10",
+  "policyCanonicalSha256": "965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6",
+  "roleTrustInlineAttachmentBoundaryAndPolicyIndependentlyMatched": true,
+  "actualRuleConditionsPrioritiesActionsAndBindingsMatched": true,
+  "listenerTlsMtlsAndSharedRulesMatched": true,
+  "tenantRuleOwnershipConvergenceVerified": true,
+  "counts": {
+    "writer": {
+      "sts": 1,
+      "metadata": 19,
+      "executeChangeSet": 1
+    },
+    "independent": {
+      "sts": 1,
+      "metadata": 15,
+      "executeChangeSet": 0
+    },
+    "aggregate": {
+      "sts": 2,
+      "metadata": 34,
+      "executeChangeSet": 1
+    },
+    "otherDirectAwsWrites": 0
+  },
+  "executionSlotsConsumed": 1,
+  "executionApprovalConsumed": true,
+  "repeatExecutionAuthorized": false,
+  "automaticRetry": false,
+  "agentInitiatedRollback": false,
+  "automaticCleanup": false,
+  "automaticEcsStop": false,
+  "directSecretValueReads": 0,
+  "privateKeyReads": 0,
+  "configSecretFileReads": 0,
+  "directDatabaseConnections": 0,
+  "dnsRead": false,
+  "dnsUpdated": false,
+  "imageUpdated": false,
+  "temporaryToolModified": false,
+  "apiRestorationVerified": false,
+  "wholeSystemAccepted": false,
+  "formalThreeStackBaselineComplete": false,
+  "dependencyFactsAt": "2026-11-07T20:37:11.801Z",
+  "dependencyFactsValidBefore": "2026-11-08T01:37:11.801Z",
+  "oldFactTimesAndDeadlinesPreserved": true,
+  "privateEvidenceDirectory": ".local-secrets/tenant-b-postrollback-execute-b9b53503-20261107-a",
+  "writerJournalRawSha256": "7c1f8f3cef77ac61ea487b8f8608e67360eb19c475feb198a71de43db4ea933f",
+  "writerJournalCanonicalSha256": "fd5a3b1833d51345e42947ba57e6abaf78066537b8e371c88cd24aab5fc02cca",
+  "independentJournalRawSha256": "72291d413c81a6a6e95604492ccf4280d15702e4032ab125971c3c9ed4060152",
+  "independentJournalCanonicalSha256": "9d6a4dbe2adff57a19ee6a7364dde43379bbd7388f43330c3a1994065823322f",
+  "recipeRawSha256": "71fbb2db2f08d490ff7c54fcd422e1d5cada1a420d6052747528f4f9c889e1d2",
+  "normalizationHelperRawSha256": "03d3462392d8236f825905a5a4b205bc69855e2e6c0a6b3207d9d4d1ec2e66f7",
+  "commonHelperRawSha256": "d4818c644ffc0fbcf4c73c0e8287bfb3fd561f9bc2561ef5f682d6aefa7a5d72",
+  "attemptIntentRawSha256": "b9baac1545cd29bbe0149fef2e40b5f58412468937827450e06502810aada394",
+  "differences": [],
+  "next": "Only separately approve minimal API A Alias metadata reconciliation. If already bound to current Cell ALB, record without writing; otherwise prepare an exact DNS change for separate approval. Do not restart services, update images, repair platform drift or modify temporary cost tools."
+}
