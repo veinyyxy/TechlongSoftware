@@ -1,0 +1,416 @@
+{
+  "schema": "techlong/tenant-b-post-rollback-execute-review/v1",
+  "status": "PREPARED_NOT_APPROVED",
+  "preparedFromCommit": "a8040314199c4f1658ff8b0a82e37554d6c4db10",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "expectedPrincipalArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "expectedPrincipalUserId": "AIDAV3GNMXTZEO7SHLC2X",
+  "dependencyFactsAt": "2026-11-07T20:37:11.801Z",
+  "dependencyFactsValidBefore": "2026-11-08T01:37:11.801Z",
+  "planIndependentlyVerifiedAt": "2026-11-07T20:52:53.314Z",
+  "startBefore": "2026-11-08T01:22:11.801Z",
+  "evidence": [
+    {
+      "file": "tenant-b-post-rollback-created-20261107.json",
+      "canonicalSha256": "f27f881c102beaa23a91db2d00e23b5594a27aea1dac2fa60a1419ea373b55ae"
+    },
+    {
+      "file": "tenant-b-post-rollback-creation-review-20261107.json",
+      "canonicalSha256": "ae62c0377aa6e272cd5165d53daa10906ac7140b8ee04759cf98b2f121cb1baa"
+    },
+    {
+      "file": "tenant-b-post-rollback-preflight-20261107.json",
+      "canonicalSha256": "13ca738764918dd4900e909cd139123d8ba94a0fc71de6638b04d026091f4912"
+    },
+    {
+      "file": "tenant-b-post-rollback-offline-plan.json",
+      "canonicalSha256": "f6a06b77f5a459111048cba777406c7890c793f8d8041a6768a17fbdf23e0429"
+    },
+    {
+      "file": "tenant-listener-change.template.json",
+      "canonicalSha256": "0b96f5a37a0aed5096cda0834e8f3ed0189b89b1b2215f58c6b95441dc830585"
+    }
+  ],
+  "request": {
+    "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+    "ChangeSetName": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-tenant-b-postrollback-20261107t203711/e8fb4b24-b8fc-4065-b666-a8e771164842",
+    "DisableRollback": false,
+    "ClientRequestToken": "tenant-b-postrollback-execute-0a53ab7b67507af65fa455bf36a98c74"
+  },
+  "expected": {
+    "availableChangeSetCanonicalSha256": "857e18871ceb4e92d8f69fbf6473479494295de420a091a16f877e599d50cf98",
+    "currentTemplateSha256": "d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779",
+    "proposedTemplateSha256": "d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779",
+    "deploymentMode": "STANDARD",
+    "onlyRuleReplacements": [
+      {
+        "logicalId": "TenantBusinessControlDenyRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "action": "Modify",
+        "replacement": "True",
+        "policyAction": "ReplaceAndDelete",
+        "scope": [
+          "Properties"
+        ],
+        "changedProperties": [
+          "ListenerArn"
+        ],
+        "oldPhysicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/02eb1194bf042d4e"
+      },
+      {
+        "logicalId": "TenantControlListenerRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "action": "Modify",
+        "replacement": "True",
+        "policyAction": "ReplaceAndDelete",
+        "scope": [
+          "Properties"
+        ],
+        "changedProperties": [
+          "ListenerArn"
+        ],
+        "oldPhysicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b/77d3da2f728b3bcf"
+      },
+      {
+        "logicalId": "TenantListenerRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "action": "Modify",
+        "replacement": "True",
+        "policyAction": "ReplaceAndDelete",
+        "scope": [
+          "Properties"
+        ],
+        "changedProperties": [
+          "ListenerArn"
+        ],
+        "oldPhysicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/ce81bd294d025612"
+      }
+    ],
+    "recordedPhysicalIdsBefore": [
+      {
+        "logicalId": "TenantBusinessControlDenyRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/02eb1194bf042d4e",
+        "status": "UPDATE_ROLLBACK_COMPLETE"
+      },
+      {
+        "logicalId": "TenantControlListenerRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b/77d3da2f728b3bcf",
+        "status": "UPDATE_ROLLBACK_COMPLETE"
+      },
+      {
+        "logicalId": "TenantListenerRule",
+        "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/ce81bd294d025612",
+        "status": "UPDATE_ROLLBACK_COMPLETE"
+      },
+      {
+        "logicalId": "TenantLogGroup",
+        "type": "AWS::Logs::LogGroup",
+        "physicalId": "/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "logicalId": "TenantService",
+        "type": "AWS::ECS::Service",
+        "physicalId": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "logicalId": "TenantTargetGroup",
+        "type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/5c3f443f78df9934",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "logicalId": "TenantTaskDefinition",
+        "type": "AWS::ECS::TaskDefinition",
+        "physicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+        "status": "CREATE_COMPLETE"
+      }
+    ],
+    "retainedLogicalIds": [
+      "TenantLogGroup",
+      "TenantService",
+      "TenantTargetGroup",
+      "TenantTaskDefinition"
+    ],
+    "newListenerParameters": {
+      "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d",
+      "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1"
+    },
+    "originalFourOtherInputs": {
+      "ClusterName": "cell-sandbox-1",
+      "VpcId": "vpc-0136b6ba92a72cbf9",
+      "SubnetIds": "subnet-05b781276cc988b93,subnet-05729abe921410a75",
+      "TaskSecurityGroupId": "sg-0df75af0d0661492a"
+    },
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+    "roleId": "AROAV3GNMXTZKHYBCRSOE",
+    "trustSha256": "844eadf42b336a846c05147d7c08cce628afec209b72dafd821063cb4cffa1ec",
+    "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+    "inlinePolicyNames": [],
+    "attachedPolicyArns": [
+      "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary"
+    ],
+    "policyId": "ANPAV3GNMXTZOQPIXOKJ4",
+    "policyDefaultVersion": "v10",
+    "policyCanonicalSha256": "965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6",
+    "cellStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "cellListenerOutputs": {
+      "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1",
+      "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d"
+    },
+    "targetGroupArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/5c3f443f78df9934",
+    "tenantHostname": "first-acceptance.sandbox.techlong.cloud",
+    "tagsCanonicalSha256": "39ac318ad68e94fb684aca74df5e05f55e227974a9fc91407c3b268333918db8",
+    "tagCount": 17,
+    "preExecutionService": {
+      "arn": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+      "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+      "desired": 0,
+      "running": 0,
+      "pending": 0
+    },
+    "serviceSuccessCounts": {
+      "desired": 0,
+      "running": 0,
+      "pending": 0
+    },
+    "workloadTemplateDesiredCount": 1,
+    "workloadTemplateDependsOnUnchanged": true,
+    "taskDefinitionArnMustRemain": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+    "oldRulePhysicalIdsKnownAbsentFromPriorCapture": [
+      {
+        "logicalId": "TenantBusinessControlDenyRule",
+        "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/02eb1194bf042d4e",
+        "absent": true
+      },
+      {
+        "logicalId": "TenantControlListenerRule",
+        "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b/77d3da2f728b3bcf",
+        "absent": true
+      },
+      {
+        "logicalId": "TenantListenerRule",
+        "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/ce81bd294d025612",
+        "absent": true
+      }
+    ],
+    "newRuleConfigurationSource": "tenant-b-offline-plan.json#archivedTemplate.ruleProjection",
+    "oldRuleAbsenceRevalidatedAt": "2026-11-07T20:37:50.286Z",
+    "startingStackStatus": "UPDATE_ROLLBACK_COMPLETE",
+    "startingDisableRollbackObserved": true,
+    "startingLastOperations": [
+      {
+        "OperationType": "ROLLBACK",
+        "OperationId": "80754a93-34b7-4500-90b2-d9d460903751"
+      },
+      {
+        "OperationType": "UPDATE_STACK",
+        "OperationId": "05dc971d-c8f7-46b9-ae85-d44ec357b009"
+      }
+    ],
+    "expectedPostDisableRollback": false
+  },
+  "scope": {
+    "stsMax": 2,
+    "metadataReadMax": 46,
+    "writerPreflightMetadataMax": 17,
+    "writerStackStatusPollMax": 14,
+    "writerMetadataMax": 31,
+    "independentMetadataReserve": 15,
+    "executeChangeSetMax": 1,
+    "createChangeSet": 0,
+    "deleteChangeSet": 0,
+    "createStack": 0,
+    "updateStack": 0,
+    "deleteStack": 0,
+    "rollbackStack": 0,
+    "continueUpdateRollback": 0,
+    "directElbWrites": 0,
+    "iamWrites": 0,
+    "dnsWrites": 0,
+    "directEcsWrites": 0,
+    "rdsOperations": 0,
+    "imageUpdates": 0,
+    "directSecretValueReads": 0,
+    "privateKeyReads": 0,
+    "configSecretFileReads": 0,
+    "directDatabaseConnections": 0,
+    "taskDefinitionDetailsOrEnvironmentReads": 0,
+    "lambdaInvocations": 0,
+    "cleanupOrExpiryChanges": 0,
+    "dispatch": 0
+  },
+  "scopeAppliesToDirectOperatorCalls": true,
+  "allowedMetadataApis": [
+    "cloudformation:DescribeStacks",
+    "cloudformation:GetTemplate",
+    "cloudformation:ListStackResources",
+    "cloudformation:ListChangeSets",
+    "cloudformation:DescribeChangeSet",
+    "elasticloadbalancing:DescribeListeners",
+    "elasticloadbalancing:DescribeRules",
+    "elasticloadbalancing:DescribeTargetGroups",
+    "ecs:DescribeServices",
+    "iam:GetRole",
+    "iam:ListRolePolicies",
+    "iam:ListAttachedRolePolicies",
+    "iam:GetPolicy",
+    "iam:GetPolicyVersion"
+  ],
+  "writerReadSchedule": [
+    {
+      "purpose": "preflight",
+      "metadataMax": 17,
+      "calls": {
+        "cloudformation:DescribeChangeSet": 1,
+        "cloudformation:GetTemplate": 2,
+        "cloudformation:DescribeStacks": 2,
+        "cloudformation:ListStackResources": 1,
+        "cloudformation:ListChangeSets": 1,
+        "elasticloadbalancing:DescribeListeners": 1,
+        "elasticloadbalancing:DescribeRules": 2,
+        "elasticloadbalancing:DescribeTargetGroups": 1,
+        "ecs:DescribeServices": 1,
+        "iam:GetRole": 1,
+        "iam:ListRolePolicies": 1,
+        "iam:ListAttachedRolePolicies": 1,
+        "iam:GetPolicy": 1,
+        "iam:GetPolicyVersion": 1
+      }
+    },
+    {
+      "purpose": "same tenant stack status polls",
+      "metadataMax": 14,
+      "calls": {
+        "cloudformation:DescribeStacks": 14
+      }
+    }
+  ],
+  "independentReadSchedule": {
+    "newProcess": true,
+    "ownStsMax": 1,
+    "metadataMax": 15,
+    "calls": {
+      "cloudformation:DescribeStacks": 2,
+      "cloudformation:DescribeChangeSet": 1,
+      "cloudformation:GetTemplate": 1,
+      "cloudformation:ListStackResources": 1,
+      "elasticloadbalancing:DescribeListeners": 1,
+      "elasticloadbalancing:DescribeRules": 2,
+      "elasticloadbalancing:DescribeTargetGroups": 1,
+      "ecs:DescribeServices": 1,
+      "iam:GetRole": 1,
+      "iam:ListRolePolicies": 1,
+      "iam:ListAttachedRolePolicies": 1,
+      "iam:GetPolicy": 1,
+      "iam:GetPolicyVersion": 1
+    },
+    "noWrites": true
+  },
+  "polling": {
+    "maxDescribeStacksCalls": 14,
+    "intervalSeconds": 20,
+    "waitSecondsMax": 900,
+    "maxFailureEventReads": 0,
+    "metadataBudgetIncludesAllPolling": true
+  },
+  "privateMetadataSources": [
+    {
+      "directory": ".local-secrets/tenant-b-postrollback-create-3c111598-20261107-a",
+      "journalRawSha256": "10b7915ad2745b93cdf30332fd537e4c6a6e5edde01e952bf9b74fafd29d3bd9",
+      "pointer": "submittedRequest"
+    },
+    {
+      "directory": ".local-secrets/tenant-b-postrollback-create-3c111598-20261107-a/independent",
+      "journalRawSha256": "dd0dd09d64ad0314de5026cdf7086e29032ae476b9fbb58b2502a67f07536bdd",
+      "pointer": "data.changeSet and data.tenantStack"
+    },
+    {
+      "directory": ".local-secrets/tenant-b-post-rollback-readonly-20261107-a",
+      "journalRawSha256": "8adcaaf71f1b437ecb8f0652decb7fbb3ea569cc7616b2e13bd6d4f52ff106cf",
+      "pointer": "data and summary; true dependency fact timestamps"
+    }
+  ],
+  "preconditions": [
+    "exact Source identity and this new exact approval, within true dependency deadlines; old creation approval is consumed",
+    "only the exact e8fb4b24 Change Set, still CREATE_COMPLETE/AVAILABLE, STANDARD and identical bound shape/Original/parameters/private tags; no new plan",
+    "same tenant UPDATE_ROLLBACK_COMPLETE, DisableRollback observed true, same rollback operation/Original/seven records/old parameters/role/tags/service 0 and :12",
+    "same Cell outputs and 443/8443 listener TLS/mTLS/shared defaults, target priorities vacant, same target group and installed IAM default v10 layout",
+    "submit exactly once with explicit DisableRollback=false; never true or omitted, and no OnStackFailure was set when creating the plan",
+    "no Service, TaskDefinition, TargetGroup or LogGroup change in the plan; no DesiredCount or DependsOn edit; new explicit dependent-service/runtime risk approval required"
+  ],
+  "independentChecks": [
+    "same tenant UPDATE_COMPLETE with observed DisableRollback=false and exact Change Set EXECUTE_COMPLETE; report any contrary or unknown state, not a presumed success",
+    "Original d705 unchanged, listener parameters match real Cell outputs, eighteen other parameter metadata/tags/role/outputs preserved",
+    "four retained physical IDs unchanged and exactly three new CFN-owned rule physical IDs under the correct 729e listener ARNs",
+    "exact host/path/priority/action/target-group configurations, shared/default rules and listener TLS/mTLS preserved; no unexpected extra rules",
+    "Service 0/0/0 and :12/network/target configuration unchanged for acceptance; a deviation is NOT_ACCEPTED and does not authorize automatic scale-back or stop",
+    "existing role ID/trust/empty inline/single attachment/boundary/default-v10 policy body unchanged; target group associated with the current Cell ALB",
+    "DNS/image/product health are not part of this rule convergence acceptance"
+  ],
+  "failurePolicy": {
+    "disableRollback": false,
+    "providerAutomaticRollbackEnabled": true,
+    "preservePartialState": false,
+    "agentInitiatedRollback": false,
+    "automaticRetry": false,
+    "replayAfterUnknownSubmission": false,
+    "automaticCleanup": false,
+    "automaticEcsScaleOrStop": false,
+    "automaticIamRevoke": false,
+    "automaticContinueUpdateRollback": false,
+    "resourcesToSkip": [],
+    "attemptResetAllowed": false,
+    "providerMayDeleteReplacedOrNewResources": true,
+    "providerMayInvalidateOtherChangeSets": true,
+    "timeoutDoesNotCancelAwsOperation": true,
+    "unknownOrFailureRequiresIndependentReadbackAndNewAuthorityForRecovery": true
+  },
+  "serviceRiskDisclosure": {
+    "requiresExplicitNewApproval": true,
+    "noServiceResourceInPlan": true,
+    "templateDesiredCount": 1,
+    "observedDesiredRunningPending": [
+      0,
+      0,
+      0
+    ],
+    "serviceDependsOnThreeRules": true,
+    "providerDependentResourceReconciliationCannotBeExcluded": true,
+    "taskStartIsNotProvedOrPromised": true,
+    "cannotGuaranteeZeroServiceCountsAfterExecution": true,
+    "possibleAdditionalComputeOrPublicIpv4Cost": true,
+    "possibleNormalRuntimeSecretAndDatabaseAccessIfTaskStarts": true,
+    "providerRuntimeSideEffectsNotCoveredByDirectCallCounts": true,
+    "noAutomaticStopOrScaleBack": true,
+    "serviceDeviationMustNotBeReportedAsSuccessfulConvergence": true
+  },
+  "requiresExplicitNewServiceAndNormalRollbackRiskAcceptance": true,
+  "risks": [
+    "One ExecuteChangeSet applies the exact three replacement rule operations. Provider deletion of old rule resources is part of replacement, not a separate Source Delete API.",
+    "DisableRollback=false explicitly permits normal CloudFormation rollback on failure, including provider deletion of new replacement resources and dependent reconciliation. It is not preserve-partial-state mode. Missing old rule entities can still cause update/rollback failure or partial paid resources.",
+    "Template Service DesiredCount=1 and its three-rule DependsOn remain while actual is 0. Even a rule-only plan cannot guarantee no dependent Service reconciliation/task start, managed runtime Secret injection, database connections/startup writes, public IPv4 or compute fees. Explicitly accept these indirect effects; no automatic stop/scale-back.",
+    "CFN UPDATE_COMPLETE alone is not acceptance: service count/reference drift, wrong rule ownership or parameter drift must be reported as NOT_ACCEPTED, with no automatic correction or extra authority.",
+    "Source read success does not prove PassRole/SCP/provider write compatibility. Credentials may expire/refresh unsuccessfully; network/provider logs, concurrent changes and non-atomic/non-CAS observations remain.",
+    "A fixed attempt is consumed once intent is recorded; unknown/failed submission is not resent. Preserve private evidence, do not reset slots, change names, create another plan, automatically ContinueUpdateRollback/skip resources/revoke IAM/delete resources.",
+    "CloudFormation may invalidate/delete other associated Change Sets as part of execution. No direct DeleteChangeSet, DeleteStack, IAM, DNS, image, ECS or RDS write is allowed.",
+    "Only existing private deployment metadata is read by Source; no direct Secret value, PEM, .env, task environment or database connection. Provider/runtime side effects use existing roles and are outside direct API call counts. Existing ALB or unexpected tasks may keep charging; no new expiry/automatic stop or guaranteed 50 USD monthly cap."
+  ],
+  "preparation": {
+    "newAwsCallsForThisManifest": 0,
+    "usesBoundFreshFactsAndActualUnexecutedChangeSet": true,
+    "executionSlotsConsumed": 0,
+    "originalFactsNotRestamped": true
+  },
+  "executionAuthorized": false,
+  "apiDnsChangeAuthorized": false,
+  "imageUpdateAuthorized": false,
+  "temporaryToolChangeAuthorized": false,
+  "newExecutionEvidenceDirectory": ".local-secrets/tenant-b-postrollback-execute-b9b53503-20261107-a",
+  "next": "After separate exact execution and explicit normal rollback/service-runtime risk approval, execute only this Change Set once and independently verify rule convergence. Then separately review API DNS. Do not expand IAM, images, platform repair, temporary tools or product tests."
+}

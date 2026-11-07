@@ -2,15 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：新 B 只读核对通过，等待仅创建清单确认（2026-11-07）
+## 当前唯一继续点：新 B 仅创建与独立核验通过，等待准确执行清单确认（2026-11-07）
 
-用户明确“允许本轮限定只读核对”后，[新事实](../ops/deployment-baseline/tenant-b-post-rollback-preflight-20261107.json)于20:37:11.801Z–20:37:50.286Z完成，实际STS1/元数据27、云写/秘密值/配置/数据库/执行槽均0。准确Source、同UUID租户UPDATE_ROLLBACK_COMPLETE/Original d705…/七记录、Cell16项/e32…/真实729e监听器及443/8443/mTLS/网络、目标优先级空闲、三旧规则缺失、目标组无ALB关联、服务0/0/0/:12及IAM v10均匹配。当前状态统一看[基线顶部](aws-deployment-baseline.md#current-state)。
+用户明确确认ae62c037…清单后，仅CreateChangeSet一次，并于20:52:53.314Z由另一进程独立核验。[实际结果](../ops/deployment-baseline/tenant-b-post-rollback-created-20261107.json)：新ARN尾e8fb4b24…为CREATE_COMPLETE/AVAILABLE、STANDARD，恰三规则Modify/Replacement=True/仅ListenerArn；总STS2/元数据23/Create1（写前15＋状态2＋独立6），其他直接写0。创建槽1/批准已消费，不重放；当前状态统一看[基线顶部](aws-deployment-baseline.md#current-state)。
 
-租户两个参数仍旧241081、DisableRollback仍true；这次是新的真实观察，不重计旧事实。没有新变更集或新租户规则，不能称API恢复或整体归属已收敛；NoEcho真值、瞬时运行历史、DNS/健康/费用未核验。ALB实际active、仍可能持续收费，无新自动停止。
+独立回读时租户仍UPDATE_ROLLBACK_COMPLETE、Original/七物理记录/角色/标签/参数/输出和服务0/0/0/:12保持，拟议Original也为d705…；两个参数仍旧241081、DisableRollback仍true。这只是新计划，不是新规则或API恢复；写前IAM v10匹配，独立读回未另查IAM，不扩大证明。依赖仍用20:37只读事实及真实期限；ALB可能持续收费，无新自动停止。
 
-**已直接准备待审仅创建清单：** [机器清单](../ops/deployment-baseline/tenant-b-post-rollback-creation-review-20261107.json)，canonical SHA `ae62c0377aa6e272cd5165d53daa10906ac7140b8ee04759cf98b2f121cb1baa`。同模板/角色/17标签、两监听器参数更新/18项保留（含ImageUri），新固定名称/token；未来批准范围仅CreateChangeSet最多1、STS最多2/元数据最多31（写前15＋新计划状态最多10＋独立6），Execute/Delete/其他直接写均0。48项本地检查及定向lint通过，不等于已经创建/部署。
+**已直接准备新执行清单，尚未执行：** [机器清单](../ops/deployment-baseline/tenant-b-post-rollback-execution-review-20261107.json)，SHA `5ab93ad9b0549cffcc3c221ddd9d53b87dbd802d27c3b8d1254133a3b45b1f8e`。仅Execute新e8fb…一次，**显式DisableRollback=false**，无OnStackFailure混用；未来直接调用上限STS2/元数据46（写前17＋栈状态最多14＋独立15）/Execute1，Create/Delete/IAM/DNS/ELB/ECS/RDS直接写等均0。50项本地检查及定向lint通过，不等于规则已应用。
 
-**当前唯一后继：等待上述SHA“仅创建＋独立读回”明确批准。** [范围/风险](aws-cell-listener-ownership-repair.md#tenant-b-post-rollback-create-review)。事实五小时至温尼伯11月7日19:37:11.801 CST，最晚19:22:11.801启动；不是资源到期，不延长旧批准。只接受新计划恰三规则Modify/Replacement=True/仅ListenerArn，其他资源不变；创建后执行必须另审并显式DisableRollback=false。Service声明1/实况0、非原子/并发/凭据/日志、提交不明不重试/自动删除及持续费用风险保留。当前读取许可已使用，不用剩余预算扩查或提前创建，不改IAM/DNS/镜像/服务/DependsOn，不扩临时工具或平台支线。
+**当前唯一后继：等待准确执行SHA与正常回滚/依赖运行风险的新明确接受。** [完整范围/风险](aws-cell-listener-ownership-repair.md#tenant-b-post-rollback-execute-review)。底层事实有效至温尼伯11月7日19:37:11.801 CST，最晚19:22:11.801启动，创建完成不延长期限。正常CFN回滚可删除替换资源、旧规则缺失可导致恢复失败；Service声明1/实况0及DependsOn可能使依赖协调/任务启动/托管Secret注入/数据库启动写入与收费，Source直接计数不涵盖这些提供者行为，须明确接受。失败/提交不明只在批准预算内独立读回，不重试/主动回滚/跳过/自动停任务或清理；不借创建批准先执行。规则对齐后再另审DNS，不改镜像、临时工具或扩支线。
 
 初版基线只授权离线；A1/A2、最小IAM修正、B执行/回滚及本次只读均为用户后来逐项批准的独立范围，不能由文档追加反向授权。旧JSON、失败记录、回滚批准/token及配方保持，已消费槽不复位或重放。
 

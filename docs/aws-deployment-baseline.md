@@ -8,20 +8,20 @@
 
 ## 当前状态与唯一继续点
 
-**新 B 限定只读已通过，等待仅创建审批，未创建或执行。** 用户明确允许后，[本次事实](../ops/deployment-baseline/tenant-b-post-rollback-preflight-20261107.json)于20:37:50.286Z完成，实际STS1/元数据27、云写/秘密值/配置/数据库/执行槽均0。原离线草案及历史回滚记录保留，已消费批准/token不复位；这不是API恢复或三栈无漂移证明。
+**新 B Change Set已创建并独立核验，尚未执行。** 用户明确确认ae62c037…后，[实际结果](../ops/deployment-baseline/tenant-b-post-rollback-created-20261107.json)于20:52:53.314Z证明新ARN尾e8fb4b24…为CREATE_COMPLETE/AVAILABLE、STANDARD、恰三规则替换/仅ListenerArn。实际STS2/元数据23/Create1、其他直接写0，创建槽1/批准已消费，原件保持；这不是新规则/API恢复或三栈无漂移证明。
 
 | 对象 | 最新已存事实与边界 |
 | --- | --- |
-| Cell | 本次确认UPDATE_COMPLETE/16项/e32…及真实729e ALB、443/8443与mTLS/网络、共享拒绝规则、标签归属均匹配；目标443优先级100/101与8443优先级100空闲，不等于平台也已无漂移 |
-| 租户 B | 本次确认UPDATE_ROLLBACK_COMPLETE、ROLLBACK操作80754a93…、Original d705…及七物理记录保持，两个监听器参数仍旧241081；三旧规则实体缺失、目标组未关联ALB，尚未创建新规则或变更集 |
-| 保留资源与权限 | 本次四保留物理ID、服务0/0/0/:12、网络/目标配置及IAM v10/角色布局保持，其他18参数元数据/17标签/输出不变；没有瞬时运行历史、NoEcho真值或业务状态全不变的证明 |
+| Cell | 20:37依赖快照证明16项/e32…、729e ALB/443/8443/mTLS/网络/共享拒绝/标签归属匹配；本次写前再核关键输出/监听器/优先级，不把创建读回当整组依赖又采样或平台无漂移证明 |
+| 租户 B | 新未执行Change Set已独立核验；原栈仍UPDATE_ROLLBACK_COMPLETE、ROLLBACK操作80754a93…，Original d705…/七物理记录及旧241081参数保持；没有新租户规则应用 |
+| 保留资源与权限 | 独立回读时四保留ID、服务0/0/0/:12、网络/目标/18参数元数据/17标签/输出/栈角色保持；IAM v10/角色布局只在本次写前复核，独立阶段未另查IAM；不证明NoEcho真值或期间业务状态不变 |
 | 已消费批准 | B 执行 SHA `109627ceccdbe813ebbbf2b80c176c9a1e60ed16dfc75cb1f740a04af2dd69c9` 已单次执行，STS2/元数据36/Execute1、其他直接写0；即使原时限未到也不能重放。观察到了提供者资源级恢复，没有代理主动回滚、重试或清理 |
 
 **已确认的直接原因：** 2026-11-07T14:53:08.255Z 完成的一页事件查询绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，返回根栈及三条规则共4条失败事件，无下一页。三规则均报 `Replacement type updates not supported on stack with disable-rollback.`。原执行清单把三项替换与 `DisableRollback=true` 组合，这是本次执行策略的不兼容，不是新的 IAM 缺口证明；也不能据此保证未来恢复必然成功。ResourceProperties 只可能进入 CLI 内存，未保存/输出；原[读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)保持准备时原文，不用于重复读取。
 
-**当前唯一继续点：确认新“仅创建＋独立核验”清单。** [准确清单](../ops/deployment-baseline/tenant-b-post-rollback-creation-review-20261107.json)，SHA `ae62c0377aa6e272cd5165d53daa10906ac7140b8ee04759cf98b2f121cb1baa`；[范围/风险](aws-cell-listener-ownership-repair.md#tenant-b-post-rollback-create-review)。同模板/两参数/三规则，其他四资源/18参数保留；未来批准Create最多1＋STS2/元数据31，Execute/Delete及其他直接写0。事实五小时至温尼伯11月7日19:37:11.801 CST，最晚19:22:11.801启动；当前仅只读许可已使用，未获创建或执行批准。后续执行须另审并显式DisableRollback=false；不复用95855d02…/回滚token、不改IAM/Service/DependsOn/DNS/镜像或临时工具。
+**当前唯一继续点：另批准确执行清单及正常回滚/依赖运行风险。** [机器清单](../ops/deployment-baseline/tenant-b-post-rollback-execution-review-20261107.json)，SHA `5ab93ad9b0549cffcc3c221ddd9d53b87dbd802d27c3b8d1254133a3b45b1f8e`；[完整范围/风险](aws-cell-listener-ownership-repair.md#tenant-b-post-rollback-execute-review)。仅Execute新e8fb…1、显式DisableRollback=false，STS2/元数据46含独立15，其他直接写0；最晚温尼伯11月7日19:22:11.801 CST启动、依赖事实19:37:11.801截止，未获本次执行批准。正常提供者回滚/规则删除与Service声明1/实况0可能引发的任务/托管Secret/数据库启动活动及费用必须明确接受，不自动重试/回滚/停回或清理。规则对齐后再另审DNS，不改镜像、IAM或临时工具。
 
-本次为新的真实采样，不重计旧事实/批准；原回滚窗口仍只属历史。没有直接启停ECS/RDS、运行临时工具或新增自动到期，ALB实际active、仍可能持续收费；本轮未核对DNS/健康/费用，用户已测业务场景不重做。
+创建读回不延长20:37底层事实或旧批准，原回滚窗口仍只属历史。没有Execute、直接启停ECS/RDS、运行临时工具或新增自动到期，ALB仍可能持续收费；本轮未核对DNS/健康/费用，用户已测业务场景不重做。
 
 ## 哪个栈负责什么
 

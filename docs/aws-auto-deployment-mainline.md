@@ -2,15 +2,15 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：新 B 只读核对通过，等待仅创建清单确认（2026-11-07）
+## 当前唯一继续点：新 B 仅创建与独立核验通过，等待准确执行清单确认（2026-11-07）
 
-用户明确允许后，[本次只读](../ops/deployment-baseline/tenant-b-post-rollback-preflight-20261107.json)于20:37:50.286Z完成，实际STS1/元数据27，云写/秘密值/配置/数据库/槽消费均0。租户稳定态/Original/七记录、Cell实际729e监听器与优先级、服务0/0/0/:12及IAM v10匹配；当前状态统一看[基线顶部](aws-deployment-baseline.md#current-state)。
+用户明确确认ae62c037…后，[本次仅创建](../ops/deployment-baseline/tenant-b-post-rollback-created-20261107.json)于20:52:53.314Z独立核验为CREATE_COMPLETE/AVAILABLE，准确新ARN尾e8fb4b24…、STANDARD、恰三规则替换/仅ListenerArn。实际STS2/元数据23/Create1、其他直接写0，创建槽1/批准已消费，不重放；当前状态统一看[基线顶部](aws-deployment-baseline.md#current-state)。
 
-租户两参数仍旧241081，三旧规则实体缺失，目标组未关联ALB、待用优先级空闲，尚未创建新规则/变更集；不把稳定控制态当API已恢复。DisableRollback仍true，ALB实际active、可能持续收费，无新自动停止；未查NoEcho真值、DNS/健康或业务状态。
+独立核验时原栈仍稳定回滚态、Original/七物理记录/角色/17标签/参数/输出与服务0/0/0/:12保持；仅有计划，没有新规则应用或API恢复。DisableRollback仍true，依赖沿用20:37真实事实而不续期；写前IAM v10已核对，不声称独立读回又查IAM。ALB仍可能收费，无新自动停止。
 
-**已直接准备新仅创建清单：** [机器清单](../ops/deployment-baseline/tenant-b-post-rollback-creation-review-20261107.json)，SHA `ae62c0377aa6e272cd5165d53daa10906ac7140b8ee04759cf98b2f121cb1baa`。同模板/角色/17标签、两参数/18保留，只预期三规则Modify/Replacement=True/仅ListenerArn。未来批准最多Create1＋STS2/元数据31及独立核验，Execute/Delete/其他直接写0；48项检查及定向lint通过，不等于实际创建。
+**已用现有证据备好执行清单：** [机器清单](../ops/deployment-baseline/tenant-b-post-rollback-execution-review-20261107.json)，SHA `5ab93ad9b0549cffcc3c221ddd9d53b87dbd802d27c3b8d1254133a3b45b1f8e`。仅Execute该新ARN1、显式DisableRollback=false，STS2/元数据46含独立15；其他直接写0。50项检查及定向lint通过，尚未执行，不重建、不补读其他资源。
 
-**下一唯一动作：确认这份仅创建清单后创建并独立核验，不执行。** [完整范围/风险](aws-cell-listener-ownership-repair.md#tenant-b-post-rollback-create-review)。事实至温尼伯11月7日19:37:11.801 CST、最晚19:22:11.801启动，不延长资源/旧授权；新执行仍另批且显式DisableRollback=false，声明1/实况0风险不隐去。本次读取已使用，不扩查、重走A1/A2/IAM、改Service/DependsOn/DNS/镜像/临时工具，不复位或重放旧槽。
+**下一唯一动作：新明确批准该执行SHA及正常回滚/依赖运行风险。** [完整范围/风险](aws-cell-listener-ownership-repair.md#tenant-b-post-rollback-execute-review)。最晚温尼伯11月7日19:22:11.801 CST启动、底层事实19:37:11.801截止，创建读回不延长。CFN可执行替换/回滚删除；声明1/实况0可能协调Service、启动任务并发生运行时Secret/数据库活动及费用，偏离则不验收且不自动停回。当前未获执行许可，不借剩余预算扩查或重放；规则实际对齐后再核对DNS，不改IAM、镜像、服务/DependsOn或临时工具。
 
 初版基线为离线范围，A1/A2、IAM和B是后来分别批准的修复扩展，不由历史记录或本页自动授权。用户已测买家/卖家场景不再代测；归属、绑定和单列DNS核验未完成前，不进入镜像更新。
 

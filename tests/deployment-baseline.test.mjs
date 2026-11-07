@@ -39,6 +39,8 @@ import bRolledBack from '../ops/deployment-baseline/tenant-b-rollback-observed-2
 import bPostRollback from '../ops/deployment-baseline/tenant-b-post-rollback-offline-plan.json' with { type: 'json' };
 import bPostRollbackRead from '../ops/deployment-baseline/tenant-b-post-rollback-preflight-20261107.json' with { type: 'json' };
 import bPostRollbackCreate from '../ops/deployment-baseline/tenant-b-post-rollback-creation-review-20261107.json' with { type: 'json' };
+import bPostRollbackCreated from '../ops/deployment-baseline/tenant-b-post-rollback-created-20261107.json' with { type: 'json' };
+import bPostRollbackExecute from '../ops/deployment-baseline/tenant-b-post-rollback-execution-review-20261107.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -891,4 +893,52 @@ test('new create-only review binds fresh facts and an unused request while keepi
   for(const key of ['creationAuthorized','executionAuthorized','iamChangeAuthorized','apiDnsChangeAuthorized'])assert.equal(a[key],false,key);
   for(const key of ['automaticRetry','replayAfterUnknownSubmission','automaticDeleteChangeSet','automaticExecute','automaticRollback','attemptResetAllowed'])assert.equal(a.failurePolicy[key],false,key);
   assert.equal(a.preparation.additionalAwsCallsToAssembleManifest,0);assert.equal(a.preparation.changeSetsCreated,0);
+});
+
+test('new three-rule change set is actually created and independently verified, never execution or rule restoration proof',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  const r=bPostRollbackCreated;
+  assert.equal(r.approvedManifestCanonicalSha256,sha(bPostRollbackCreate));assert.equal(r.userExplicitCreateConfirmationRecorded,true);
+  assert.equal(r.status,'CHANGE_SET_CREATED_INDEPENDENTLY_VERIFIED_NOT_EXECUTED');assert.equal(r.stackId,bRolledBack.stackId);
+  assert.equal(r.changeSetName,bPostRollbackCreate.requestWithoutTags.ChangeSetName);assert.equal(r.clientToken,bPostRollbackCreate.requestWithoutTags.ClientToken);
+  assert.notEqual(r.changeSetId,bCreated.changeSetId);assert.ok(r.changeSetId.includes('/e8fb4b24-b8fc-4065-b666-a8e771164842'));
+  assert.equal(r.changeSetStatus,'CREATE_COMPLETE');assert.equal(r.executionStatus,'AVAILABLE');assert.equal(r.deploymentMode,'STANDARD');
+  assert.equal(r.appliedStackStatus,'UPDATE_ROLLBACK_COMPLETE');assert.equal(r.disableRollbackObserved,true);
+  assert.equal(r.appliedTemplateSha256,bRolledBack.originalTemplateCanonicalSha256);assert.equal(r.proposedTemplateSha256,r.appliedTemplateSha256);
+  assert.deepEqual(r.changes.map(x=>[x.logicalId,x.action,x.replacement,x.changedProperties]),bPostRollbackCreate.expected.proposedChanges.map(x=>[x.logicalId,x.action,x.replacement,[x.onlyProperty]]));
+  assert.deepEqual(r.tenantCfnPhysicalRecords,bPostRollbackRead.tenantCfnPhysicalRecords);assert.deepEqual(r.service,bRolledBack.service);
+  assert.deepEqual(r.counts.aggregate,{sts:2,metadata:23,createChangeSet:1});
+  for(const key of ['sts','metadata','createChangeSet'])assert.equal(r.counts.aggregate[key],r.counts.writer[key]+r.counts.independent[key]);
+  assert.equal(r.creationSlotsConsumed,1);assert.equal(r.creationApprovalConsumed,true);assert.equal(r.counts.otherDirectAwsWrites,0);
+  for(const key of ['repeatCreationAuthorized','executionAuthorized','automaticRetry','automaticCleanup','newRulesApplied','dnsOrImageUpdated','apiRestorationVerified','wholeSystemAccepted','noEchoSecretValuesVerified'])assert.equal(r[key],false,key);
+  assert.equal(r.postCreationIamNotIndependentlyRead,true);assert.equal(r.originalTemplateBodiesNotPersisted,true);
+  assert.equal(r.dependencyFactsAt,bPostRollbackRead.factsAt);assert.equal(r.dependencyFactsValidBefore,bPostRollbackRead.factsValidBefore);
+});
+
+test('new execution proposal targets only the new ARN with explicit normal rollback, direct-call budget and fresh risk approval',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  const a=bPostRollbackExecute;
+  const evidence={'tenant-b-post-rollback-created-20261107.json':bPostRollbackCreated,'tenant-b-post-rollback-creation-review-20261107.json':bPostRollbackCreate,
+    'tenant-b-post-rollback-preflight-20261107.json':bPostRollbackRead,'tenant-b-post-rollback-offline-plan.json':bPostRollback,'tenant-listener-change.template.json':listenerTemplate};
+  for(const e of a.evidence)assert.equal(e.canonicalSha256,sha(evidence[e.file]));
+  assert.equal(a.status,'PREPARED_NOT_APPROVED');assert.deepEqual(Object.keys(a.request).sort(),['ChangeSetName','ClientRequestToken','DisableRollback','StackName']);
+  assert.equal(a.request.StackName,bPostRollbackCreated.stackId);assert.equal(a.request.ChangeSetName,bPostRollbackCreated.changeSetId);assert.equal(a.request.DisableRollback,false);
+  assert.notEqual(a.request.ClientRequestToken,bRefreshedReview.request.ClientRequestToken);assert.equal(a.expected.availableChangeSetCanonicalSha256,bPostRollbackCreated.availableChangeSetCanonicalSha256);
+  assert.equal(a.expected.startingStackStatus,'UPDATE_ROLLBACK_COMPLETE');assert.equal(a.expected.startingDisableRollbackObserved,true);assert.equal(a.expected.expectedPostDisableRollback,false);
+  assert.deepEqual(a.expected.recordedPhysicalIdsBefore,bPostRollbackCreated.tenantCfnPhysicalRecords);
+  assert.equal(a.dependencyFactsAt,bPostRollbackRead.factsAt);assert.equal(a.dependencyFactsValidBefore,bPostRollbackRead.factsValidBefore);assert.equal(a.startBefore,bPostRollbackRead.startBefore);
+  assert.equal(a.planIndependentlyVerifiedAt,bPostRollbackCreated.independentlyVerifiedAt);assert.ok(Date.parse(a.planIndependentlyVerifiedAt)>Date.parse(a.dependencyFactsAt));
+  assert.equal(a.scope.stsMax,2);assert.equal(a.scope.executeChangeSetMax,1);assert.equal(a.scope.metadataReadMax,46);
+  assert.equal(a.scope.writerPreflightMetadataMax+a.scope.writerStackStatusPollMax,a.scope.writerMetadataMax);
+  assert.equal(a.scope.writerMetadataMax+a.scope.independentMetadataReserve,a.scope.metadataReadMax);
+  for(const schedule of [...a.writerReadSchedule,a.independentReadSchedule])assert.equal(Object.values(schedule.calls).reduce((sum,n)=>sum+n,0),schedule.metadataMax);
+  assert.equal(a.scopeAppliesToDirectOperatorCalls,true);assert.equal(a.failurePolicy.disableRollback,false);assert.equal(a.failurePolicy.providerAutomaticRollbackEnabled,true);assert.equal(a.failurePolicy.preservePartialState,false);
+  assert.equal(a.failurePolicy.providerMayDeleteReplacedOrNewResources,true);assert.equal(a.requiresExplicitNewServiceAndNormalRollbackRiskAcceptance,true);
+  assert.equal(a.serviceRiskDisclosure.cannotGuaranteeZeroServiceCountsAfterExecution,true);assert.equal(a.serviceRiskDisclosure.noAutomaticStopOrScaleBack,true);
+  for(const key of ['agentInitiatedRollback','automaticRetry','automaticCleanup','automaticEcsScaleOrStop','automaticIamRevoke','automaticContinueUpdateRollback','attemptResetAllowed'])assert.equal(a.failurePolicy[key],false,key);
+  assert.deepEqual(a.failurePolicy.resourcesToSkip,[]);assert.equal(a.polling.maxFailureEventReads,0);
+  for(const key of ['executionAuthorized','apiDnsChangeAuthorized','imageUpdateAuthorized','temporaryToolChangeAuthorized'])assert.equal(a[key],false,key);
+  assert.equal(a.preparation.newAwsCallsForThisManifest,0);assert.equal(a.preparation.executionSlotsConsumed,0);
 });
