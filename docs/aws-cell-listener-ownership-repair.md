@@ -2,15 +2,33 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；唯一状态与后继方向以[三栈基线顶部](aws-deployment-baseline.md#current-state)为准，下方阶段文字只供追溯。**
 
-## 最新结果：本次失败原因已只读确认，未实施修复
+## 最新状态：回滚前只读核对通过，等待单次回滚审批
 
 用户明确批准 STS1＋DescribeEvents1 后，2026-11-07T14:53:08.255Z 完成准确 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009` 的 FailedEvents 查询：4条事件、无下一页。三条规则均报 `Replacement type updates not supported on stack with disable-rollback.`；说明原清单的替换型更新与 DisableRollback=true 不兼容，是本次执行策略问题。没有重试、写云、读取 Secret/配置/私钥或连接数据库；ResourceProperties 未输出/落盘。[实际回执与私有原件指纹](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)。
 
-本次查因未重新核对资源现状，旧失败/部分状态及原 SHA/永久槽均不改写；不把查因成功当修复成功或重复执行授权。后继离线提案如下，新的现状读取和实际恢复仍另批，不直接取消禁用回滚后重跑、扩 IAM 或改 DNS/镜像。ALB 可能持续收费，无新自动停止。
+上述查因只取历史事件。后继用户另允STS1＋元数据9后，本轮于15:52:42.347Z–15:52:55.171Z完成新的[回滚前只读核对](../ops/deployment-baseline/tenant-b-recovery-preflight-20261107.json)：同一UUID仍UPDATE_FAILED/DisableRollback=true且最后操作仍05dc971d…；Original、两新参数及其他参数元数据、17标签/输出、七CFN物理记录/状态、服务0/0/0/:12及网络/目标、原角色/trust/空inline/单附加/boundary和v10正文全部匹配。实际STS1/元数据9、所有写/秘密值/配置/数据库/执行槽0，不重放读取。
+
+仅CFN记录与服务/IAM实况被刷新，未新读Cell、实际监听规则或DNS，不验证NoEcho秘密真值，也未证明Source拥有RollbackStack写权限。原失败/批准/永久槽保持；ALB可能继续收费，无新自动停止。
+
+<a id="tenant-b-rollback-review"></a>
+
+## 当前待批：仅单次 RollbackStack 及独立核验
+
+准确[新执行清单](../ops/deployment-baseline/tenant-b-rollback-review.json)的规范JSON SHA为 **`97938d9bd812276c30017329fc188c1b408c3a580ff926b1a5f393ed0b36163e`**，尚未执行或获执行批准。它只绑定同一5867e9c0…租户栈、原执行角色、新token `tenant-b-rollback-221586dc1acf4b5e8c7e5fa188876da0`、RetainExceptOnCreate=false；不含DisableRollback参数、不声称回滚会重置该字段。
+
+本轮40项本地基线检查（新增3项只读结果/准确回滚请求/次数与失败边界回归）及定向零警告lint通过；原模板、旧审批/失败回执/永久槽不变。只是准备和本地验证，不是回滚或云验收通过。
+
+拟新批准范围为 **RollbackStack最多1次、额外STS最多2次/元数据最多30次**：写前重验原9项（最后核栈状态）、最多12次栈状态查询，另一进程9项独立核验。上轮准备的STS1/元数据9是已完成读取，不是本次写批准，不能重跑或偷偷增加API。直接Create/ExecuteChangeSet、DeleteStack、ContinueUpdateRollback、IAM/ELB/ECS/DNS/RDS/Secret/SQL写、事件读取及调度均0；本机不读.env、私钥或Secrets Manager值。提供者/运行时副作用不等于这份直接调用次数，见下方明确风险。复用既有CLI和私有记录器，不建新框架。
+
+成功只指UPDATE_ROLLBACK_COMPLETE、原Original/七物理ID、旧两监听器参数、其他18项参数元数据/标签/输出/角色/IAM及服务0/:12按清单独立匹配；不是旧规则实体存在、API恢复或后续B执行授权。未知ACK、任一步失败/差异/超时均保留现场、不重发、不跳过/补偿/停回任务，实际部分状态如实报告。若回滚导致服务运行，不能验收，也没有自动停用授权。
+
+**批准必须包含的完整风险：** 回滚作用于整个租户栈而非三规则预览；没有稳定态会删栈，故同UUID真实CREATE_COMPLETE证明及本次失败状态不符即禁止提交。旧规则缺失可能使回滚失败；提供者可能删除新资源，RetainExceptOnCreate=false不禁止所有删除。Service声明1/实况0可能协调成运行任务、注入托管Secret、触发数据库启动活动（含写入）并产生费用，不能保证业务状态全不变；四资源保持只是验收条件，不是技术隔离。检查与写入非CAS，存在并发/既有清理器影响；Source写权/SCP/凭据自动刷新仍可能失败。网络/提供者日志、凭据内存和低额非零费用保留，ALB可能持续计费，无新自动停止/费用硬上限。失败/提交不明不自动重试、改IAM、回滚补偿、跳过资源、删栈重建或复位尝试。全部具体边界与原件索引以本次清单及下方风险说明为准，旧风险接受不代替这次批准。
+
+事实仅至 **2026-11-07T20:52:42.347Z / 温尼伯14:52:42.347 CST**；须在 **20:37:42.347Z / 14:37:42.347 CST** 前启动，保留15分钟，不延长旧事实/批准/TTL。这不是资源到期，也不保证届时停费；事实变化/过期则不执行。审批只针对回滚，后继新B计划、实际DNS和镜像仍分别另审。
 
 ## 当前离线恢复提案：先回到稳定状态，再准备正常回滚的 B
 
-用户要求开始下一步后，本轮仅查官方公开文档、使用已存原件，形成[不可执行的机器提案](../ops/deployment-baseline/tenant-b-recovery-offline-plan.json)，无账号 AWS 调用、凭据/私密文件读取、数据库连接、云写或新执行槽。没有新增执行器、模板或通用恢复框架；实际执行 SHA、请求 token、新变更集 ARN 和新事实时间均未生成。
+前阶段离线准备仅查官方公开文档、使用已存原件，形成[不可执行的机器提案](../ops/deployment-baseline/tenant-b-recovery-offline-plan.json)，当时无账号AWS调用、私密读取、数据库连接、云写或新执行槽。该提案保持原样、不反向改成已授权；当前新事实及待批回滚清单仅以顶部实际记录为准。没有新增执行器、模板或通用恢复框架，新B变更集仍未创建。
 
 37项本地基线检查（含2项提案/风险边界回归）及定向零警告lint通过；这是离线材料核验，不是云端恢复、权限或当前资源状态的证明。
 
@@ -32,11 +50,11 @@
 - Service 声明仍1、最后回读实况0且依赖三规则；回滚/后续正常更新可能引起任务启动、托管 Secret 注入、数据库连接及计算费用。不能沿用旧风险接受作为新回滚批准，也不能保证只有路由变化。计数偏离0或四物理ID/任务定义:12改变即不验收、不继续下一写；不得自动停回、加IAM围栏或暗改Service。
 - 回滚与其他资源回读非原子，存在并发竞态。Source是否允许RollbackStack尚未证明；不足时只报准确差异，不先扩权限。Cell/平台、数据库、IAM、DNS、镜像和临时启停工具都不在本提案的直接变更范围。共享ALB可能持续收费，无新自动停止或费用硬上限。
 
-### 下一唯一动作：另允一次最小只读准备，尚未执行
+### 已完成的最小只读准备范围（不重放）
 
-仅为第一步准备准确审批：**STS1＋元数据9**，不把该许可当回滚批准，不提前启动资源窗口。九读为准确租户 DescribeStacks/GetTemplate(Original)/ListStackResources 各1、准确服务 DescribeServices1，以及原执行角色 GetRole/ListRolePolicies/ListAttachedRolePolicies、原policy GetPolicy/GetPolicyVersion(v10)各1。只核对状态/本次OperationId、模板摘要、七CFN记录与保留ID、服务引用/计数和现有IAM布局，不刷新Cell或重查失败事件。
+本轮已按用户许可完成**STS1＋元数据9**，用于第一步审批准备而非回滚批准。九读为准确租户DescribeStacks/GetTemplate(Original)/ListStackResources各1、准确服务DescribeServices1，以及原执行角色GetRole/ListRolePolicies/ListAttachedRolePolicies、原policy GetPolicy/GetPolicyVersion(v10)各1；状态/本次OperationId、模板摘要、七CFN记录/保留ID、服务引用/计数与IAM布局匹配，没有刷新Cell或重查失败事件。
 
-身份固定为既有Source IAM用户；IAM使用全局官方端点，其余ca-central-1。单页、不翻页/重试，不读Secret值、PEM、.env或调用DescribeTaskDefinition，不连数据库、不写云/占槽；Original仅在内存比对，不发布正文。凭据进入内存、网络/提供者日志和低额非零费用仍存在。发现差异即停，不使用剩余预算扩查。新快照从真实读取计时、最多5小时，不重计旧事实或延长资源期限。全部匹配后才生成仅针对 RollbackStack 的新清单、正常回滚风险和准确SHA请用户确认；本轮没有执行SHA或实际回滚。
+身份是既有Source IAM用户，IAM使用全局官方端点，其余ca-central-1；单页、无翻页/重试/额外诊断。没有读取Secret值/PEM/.env、调用DescribeTaskDefinition、数据库连接、云写或新执行槽；Original正文仅进内存比对，未持久化或发布。新快照从15:52:42.347Z起5小时，不重计旧事实或资源期限。准确单次回滚清单已生成但未执行，下一只等顶部新SHA及整栈/运行时风险确认，不再重复准备读取。
 
 <details>
 <summary>分阶段原始记录（旧当前/待批/下一步只适用于当时）</summary>

@@ -31,6 +31,8 @@ import bInspected from '../ops/deployment-baseline/tenant-b-execution-inspected-
 import bFailureRead from '../ops/deployment-baseline/tenant-b-failed-event-read-scope.json' with { type: 'json' };
 import bFailureObserved from '../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json' with { type: 'json' };
 import bRecovery from '../ops/deployment-baseline/tenant-b-recovery-offline-plan.json' with { type: 'json' };
+import bRecoveryFacts from '../ops/deployment-baseline/tenant-b-recovery-preflight-20261107.json' with { type: 'json' };
+import bRollback from '../ops/deployment-baseline/tenant-b-rollback-review.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -690,4 +692,50 @@ test('B recovery preserves dependent-service risks and proposes only nine metada
   assert.equal(r.templateDesiredCount,1);assert.equal(r.dependentServiceMayBeReconciledOrRun,true);
   assert.equal(r.providerMayDeleteNewResourcesDuringRollback,true);assert.equal(r.missingOldResourcesCanCauseRollbackFailure,true);
   assert.equal(r.automaticContinueUpdateRollback,false);assert.deepEqual(r.resourcesToSkip,[]);assert.equal(r.automaticCleanupOrCompensation,false);
+});
+
+test('B recovery read result is nine new metadata observations, never a rollback approval or live rule proof',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(bRecoveryFacts.proposalCanonicalSha256,sha(bRecovery));
+  assert.equal(bRecoveryFacts.status,'RECOVERY_READONLY_MATCHED_NO_WRITE');assert.deepEqual(bRecoveryFacts.counts,{sts:1,metadata:9});
+  assert.equal(bRecoveryFacts.stackId,bInspected.stackId);assert.equal(bRecoveryFacts.failedOperationId,bInspected.operationId);
+  assert.equal(bRecoveryFacts.stackStatus,'UPDATE_FAILED');assert.equal(bRecoveryFacts.originalTemplateCanonicalSha256,bInspected.appliedTemplateSha256);
+  assert.equal(Date.parse(bRecoveryFacts.factsValidBefore)-Date.parse(bRecoveryFacts.factsAt),5*3600000);
+  assert.equal(Date.parse(bRecoveryFacts.factsValidBefore)-Date.parse(bRecoveryFacts.startBefore),15*60000);
+  assert.ok(Date.parse(bRecoveryFacts.factsAt)>Date.parse(bFailureObserved.finishedAt));
+  assert.deepEqual(bRecoveryFacts.service,bInspected.service);assert.equal(bRecoveryFacts.policyDefaultVersion,'v10');
+  for(const key of ['awsWrites','secretValueReads','privateKeyReads','configSecretFileReads','databaseConnections','executionSlotsConsumed'])assert.equal(bRecoveryFacts[key],0,key);
+  for(const key of ['rollbackAuthorized','sourceRollbackPermissionProved','cellOrLiveRuleEntitiesRefreshed','noEchoSecretValuesVerified'])assert.equal(bRecoveryFacts[key],false,key);
+  assert.equal(bRecoveryFacts.originalTemplateBodyNotPersisted,true);
+});
+
+test('B rollback proposal binds one exact request and current facts without unsupported flags or new change sets',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  const evidence={'tenant-b-recovery-preflight-20261107.json':bRecoveryFacts,'tenant-b-recovery-offline-plan.json':bRecovery,'tenant-b-created-20261107.json':bCreated,'tenant-b-execution-inspected-20261107.json':bInspected,'tenant-b-creation-review.json':bCreateReview};
+  for(const e of bRollback.evidence)assert.equal(e.canonicalSha256,sha(evidence[e.file]));
+  assert.deepEqual(Object.keys(bRollback.request).sort(),['ClientRequestToken','RetainExceptOnCreate','RoleARN','StackName']);
+  assert.equal(bRollback.request.StackName,bRecoveryFacts.stackId);assert.equal(bRollback.request.RoleARN,bRecoveryFacts.roleArn);
+  assert.equal(bRollback.request.RetainExceptOnCreate,false);assert.match(bRollback.request.ClientRequestToken,/^tenant-b-rollback-[a-f0-9]{32}$/);
+  assert.notEqual(bRollback.request.ClientRequestToken,bInspected.clientRequestToken);
+  for(const key of ['factsAt','factsValidBefore','startBefore'])assert.equal(bRollback[key],bRecoveryFacts[key]);
+  assert.equal(bRollback.scope.rollbackStackMax,1);assert.equal(bRollback.status,'PREPARED_NOT_APPROVED');
+  assert.equal(bRollback.operation,'cloudformation:RollbackStack');
+  assert.equal(bRollback.executionAuthorized,false);assert.equal(bRollback.newChangeSetAuthorized,false);
+  assert.equal(bRollback.expected.postRollbackStackStatus,'UPDATE_ROLLBACK_COMPLETE');
+  assert.equal(bRollback.expected.postRollbackDisableRollbackMayRemainTrue,true);
+  assert.equal(bRollback.expected.liveRuleEntityRestorationProvedByThisOperation,false);
+});
+
+test('B rollback permits only bounded preflight, status polls and independent reads; no retry, skip or compensation',()=>{
+  assert.equal(bRollback.scopeAppliesToDirectOperatorCalls,true);
+  assert.equal(bRollback.scope.directSecretValueReads,0);assert.equal(bRollback.scope.directDatabaseConnections,0);
+  assert.equal(bRollback.scope.stsMax,2);assert.equal(bRollback.scope.metadataMax,30);
+  assert.equal(bRollback.scope.writerPreflightMetadataMax+bRollback.scope.writerStackStatusPollMax+bRollback.scope.independentMetadataMax,30);
+  assert.deepEqual(bRollback.allowedMetadataApis,bRecovery.proposedNextReadOnlyPreparation.calls.map(x=>x.api));
+  for(const [key,value] of Object.entries(bRollback.scope))if(!['stsMax','metadataMax','writerPreflightMetadataMax','writerStackStatusPollMax','independentMetadataMax','rollbackStackMax'].includes(key))assert.equal(value,0,key);
+  for(const key of ['automaticWriteRetry','automaticContinueUpdateRollback','automaticCleanupOrCompensation','replayConsumedExecution','attemptResetAllowed','sourceWritePermissionProved'])assert.equal(bRollback.failurePolicy[key],false,key);
+  assert.deepEqual(bRollback.failurePolicy.resourcesToSkip,[]);assert.equal(bRollback.failurePolicy.unknownSubmissionRequiresIndependentRead,true);
+  assert.equal(bRollback.failurePolicy.cloudFormationProviderRollbackActionsAreNotLimitedToOneApiCall,true);
 });

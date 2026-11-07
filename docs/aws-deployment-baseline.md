@@ -8,20 +8,20 @@
 
 ## 当前状态与唯一继续点
 
-**前阶段 B 失败事件已按用户限定许可读取，直接原因确认；当前离线恢复提案已完成，没有修复授权或实际修复。** 前阶段仅 STS1＋DescribeEvents1、无翻页/重试/云写，见[只读查因回执](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)；本阶段没有新增账号AWS调用。下列资源状态仍来自此前独立回读，事件查询或离线准备都没有刷新资源现状或延长任何期限。
+**回滚前最小只读核对已通过，当前只等待单次 RollbackStack 的准确批准，没有实际修复。** 本轮[新事实](../ops/deployment-baseline/tenant-b-recovery-preflight-20261107.json)为STS1＋元数据9、所有写/秘密/数据库/执行槽0；刷新准确租户/服务及现有IAM，不刷新Cell/实际规则/DNS，不验证NoEcho秘密真值。前一阶段[失败事件](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)仍只解释那次失败，原回执及期限不改写。
 
 | 对象 | 最新已存事实与边界 |
 | --- | --- |
 | Cell | [A2 结果](../ops/deployment-baseline/cell-a2-executed-20261107.json)于 2026-11-07T04:55:14.610Z 独立确认 UPDATE_COMPLETE/16 项，原十二物理 ID 保持，新 ALB、443/8443 监听器及共享拒绝规则由同一 Cell 管理；不等于平台和租户全部无漂移 |
-| 租户 B | [执行后独立检查](../ops/deployment-baseline/tenant-b-execution-inspected-20261107.json)于 2026-11-07T14:09:45.640Z 确认为 UPDATE_FAILED / EXECUTE_FAILED；两监听器参数已变为 729e 代，但三规则 CFN 物理引用仍为旧代，状态为 UPDATE_ROLLBACK_COMPLETE；尚未验收到新租户规则，目标组未关联 ALB。该次检查没有包含初始原因，后续事件查询才取得，原回执不改写 |
-| 保留资源与权限 | B 独立检查时 Service/TaskDefinition/TargetGroup/LogGroup 四物理 ID 保持，服务 desired/running/pending 为 0/0/0、任务定义 :12，IAM 默认 v10 匹配；未查询瞬时任务历史，不能承诺整个操作期间从未启动任务 |
+| 租户 B | 15:52:42.347Z起的新核对确认同UUID仍UPDATE_FAILED/DisableRollback=true、最后操作仍05dc971d…、Original与七CFN记录/参数元数据保持：两参数为729e，三规则仍旧物理引用/UPDATE_ROLLBACK_COMPLETE。之前14:09独立检查的EXECUTE_FAILED/目标组未关联仍是之前事实，本轮未重读变更集或目标组/规则实体，不冒充新验收 |
+| 保留资源与权限 | 本轮Service/TaskDefinition/TargetGroup/LogGroup四CFN物理ID保持，服务0/0/0、任务定义:12、网络/目标配置保持，IAM默认v10及角色布局匹配；没有瞬时任务历史或规则实体存在性证明 |
 | 已消费批准 | B 执行 SHA `109627ceccdbe813ebbbf2b80c176c9a1e60ed16dfc75cb1f740a04af2dd69c9` 已单次执行，STS2/元数据36/Execute1、其他直接写0；即使原时限未到也不能重放。观察到了提供者资源级恢复，没有代理主动回滚、重试或清理 |
 
 **已确认的直接原因：** 2026-11-07T14:53:08.255Z 完成的一页事件查询绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，返回根栈及三条规则共4条失败事件，无下一页。三规则均报 `Replacement type updates not supported on stack with disable-rollback.`。原执行清单把三项替换与 `DisableRollback=true` 组合，这是本次执行策略的不兼容，不是新的 IAM 缺口证明；也不能据此保证未来恢复必然成功。ResourceProperties 只可能进入 CLI 内存，未保存/输出；原[读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)保持准备时原文，不用于重复读取。
 
-**当前唯一继续点：离线恢复提案已备齐，只等待最小只读准备许可。** [方案与完整风险](aws-cell-listener-ownership-repair.md#当前离线恢复提案先回到稳定状态再准备正常回滚的-b)建议先另批同一租户RollbackStack并独立核对，再另批新的三规则Change Set/显式DisableRollback=false执行；不能直接在失败状态重放旧计划。回滚涉及整个租户栈、可能受旧规则缺失和服务声明1/实况0影响，不能保证只改两参数或不启动任务；无上次稳定状态会删栈，必须先绑定真实同UUID成功证据。新[机器提案](../ops/deployment-baseline/tenant-b-recovery-offline-plan.json)不可执行、执行SHA=null，本轮零账号AWS/秘密值/数据库/云写/新槽。
+**当前唯一继续点：只等待单次回滚清单批准。** [准确清单及完整风险](aws-cell-listener-ownership-repair.md#tenant-b-rollback-review)的SHA为`97938d9bd812276c30017329fc188c1b408c3a580ff926b1a5f393ed0b36163e`，仅RollbackStack1及STS≤2/元数据≤30的写前核对/状态查询/独立核验，不创建或执行新Change Set。回滚作用整个租户栈，没有三规则预览；旧规则缺失、无稳定态删栈、服务声明1/实况0可能启动任务及数据库写入、提供者正常删除/非原子等风险均须本次明确接受，旧批准不代替。当前未执行、未消费回滚槽。
 
-下一仅待另允STS1＋准确租户/服务/现有角色policy元数据9，为单独回滚清单核实事实；范围和风险见方案。尚未获准或执行该读取，也未批准回滚、新Change Set或其他写入。现有事实时间和原执行槽不改；不改IAM/模板/DNS/镜像，不直接启停ECS/RDS、不运行临时工具，不扩UI、探针、F3c9或恢复框架。ALB可能仍收费，没有新增自动停止，本次未核对现时健康或费用。
+新事实有效至2026-11-07T20:52:42.347Z/温尼伯14:52:42.347 CST，最晚20:37:42.347Z/14:37:42.347 CST启动，不是资源期限或停费保证。没有Source回滚写权证明，不自动扩IAM；新B创建/执行、DNS和镜像仍另审。不直接启停ECS/RDS、不运行临时工具、不扩框架；Cell ALB可能持续收费，未新增自动停止或重查现时费用。
 
 ## 哪个栈负责什么
 
