@@ -2,7 +2,30 @@
 
 目的：恢复既有 CloudFormation 管理关系，不发布镜像、不启动业务服务。只涉及 ca-central-1 的共享 Cell 和准确租户；不是平台 ALB 修复。**本页不是新增执行授权；下方原“待审/未执行”只保留各阶段事实，最新结果如下。** [三栈基线](aws-deployment-baseline.md)继续保留作修复前对照。
 
+## 当前审批：A2 仅创建未执行清单已准备
+
+用户刷新 Source 并允许新一轮同范围读取后，b/c 联合核验已完成；a 失败记录保留，不重放。新事实从2026-11-07T04:18:42.258Z（温尼伯11月6日22:18:42.258 CST）计时，04:21:52.369Z完成，五小时事实终点固定为09:18:42.258Z；c补读没有重新起算。完整去敏[只读结果](../ops/deployment-baseline/cell-a2-preflight-20261107.json)和私有原件摘要已保存。
+
+- 准确 IAM Source 已核实；同一 Cell `UPDATE_COMPLETE`、Original 为 A1 的十二资源模板，十二项物理 ID与四参数/标签/五输出/角色保持；当前 Change Set 列表为空，同名 ALB缺失。
+- 原两子网/SG归属、443/8443及任务3000入口、证书ISSUED、trust store ACTIVE匹配；执行角色RoleId、trust、原inline及boundary v1匹配，无附加managed policy。
+- Cell扫描DISABLED、tenant扫描ENABLED，准确租户没有ExpiresAt标签，服务0/0/0、Cell运行及待启动任务0。未调用清理器，也未证明部署中的清理器代码与仓库完全一致。
+- 本轮实用STS1、元数据尝试22（21次成功/预期缺失＋1次失败）、所有云写/秘密值/数据库/执行槽均0。b的第10次元数据IAM GetRole因本地固定端点仍使用ca-central-1签名而返回SignatureDoesNotMatch；本地AWS SDK端点规则确认全局IAM签名区为us-east-1，c在同一30次总预算内仅补12次未完成项，未再STS或重读前九项资源。成功补读也只访问全球IAM，不是在美东创建资源。b的失败原件保持，没有修改云权限或持久AWS配置。
+
+准确[仅创建清单](../ops/deployment-baseline/cell-a2-creation-review.json)规范JSON SHA：
+
+`23ee54ae7fdcd573f4895baa425276d0d8779c47f1a2b2341a69d8056f1dd0ac`
+
+**待批准范围仅是一次 CreateChangeSet，不执行：** 准确同一Cell栈，名称 `techlong-cell-a2-reattach-20261107t041842`，固定ClientToken，原A2候选摘要、四参数UsePreviousValue、原角色及六标签原样保留；不附OnStackFailure，IncludeNestedStacks=false。写前保存唯一意图/尝试记录并核对身份、A1模板/十二物理ID、空变更集、ALB缺失及角色指纹。最多STS2/限定元数据30、只读等待300秒，独立回读准确新ARN、模板正文及四Add/零Modify、Remove、Import；栈本身仍须A1中间态，ALB仍不存在。次数不含CFN提供者内部动作；不模拟或声称已证明Source PassRole/SCP的有效创建权限。
+
+**停止与风险：** 创建请求提交失败、结果不明或超时后不重发（包括同token）、不删除或替换失败记录，不执行A2，不主动回滚/清理；仅在获准读取上限内独立确认。接受非原子/并发、凭据内存与AWS Login自动刷新失败、未执行记录可能遗留、提供者验证/日志及低额非零费用。永久尝试不复位。没有ALB恢复、数据库/ECS启动、IAM/DNS/镜像/标签期限变更或dispatch授权；完整风险见机器清单。本阶段不创建收费ALB，但不能据此宣称全账号零费用。实际ALB执行及其失败策略仍必须按将来的准确Change Set另审，A1的DisableRollback批准不沿用。
+
+**最晚启动：温尼伯2026年11月7日03:08:42.258 CST（09:08:42.258Z）**，在原五小时事实终点前预留10分钟，不因本地材料生成而延期；这是审批材料时限，不是资源到期。过期/事实变化就停止，不改日期重用。13项本地基线/清单一致性检查及定向零警告lint通过，尚未创建A2、没有实际四Add云计划或恢复证明。
+
+**当前唯一继续点：等待用户确认上述SHA，仅创建并独立核对这份未执行A2。** 不再次刷新Source或重复整个预检，不开始B租户规则、DNS或镜像。a/b/c、A1原件及离线候选不改写为新批准。
+
 ## 当前停止点：A2 只读准备在身份核对处停止
+
+以下是a的历史停止点，现已由顶部b/c核验和待审清单替代，不再等待重复刷新Source。
 
 用户允许最多1次STS＋30次元数据后，新记录a于2026-11-07T02:14:08.550Z开始，02:14:12.366Z停止（温尼伯11月6日20:14:12.366 CST）。官方CLI首次 `sts:get-caller-identity` 报告去敏分类 `CREDENTIALS_UNAVAILABLE`；准确身份未确认，不断言具体失效原因或HTTP是否已经发出。实际STS尝试1、资源元数据读取0、AWS写/Secret值/数据库连接/执行槽/Change Set均0，没有新的资源现状证明或待审SHA；旧依赖采样不延期。
 

@@ -9,6 +9,8 @@ import created from '../ops/deployment-baseline/cell-a1-created-20261106.json' w
 import executed from '../ops/deployment-baseline/cell-a1-executed-20261106.json' with { type: 'json' };
 import reattach from '../ops/deployment-baseline/cell-reattach-draft.template.json' with { type: 'json' };
 import a2 from '../ops/deployment-baseline/cell-a2-offline-plan.json' with { type: 'json' };
+import a2Facts from '../ops/deployment-baseline/cell-a2-preflight-20261107.json' with { type: 'json' };
+import a2Create from '../ops/deployment-baseline/cell-a2-creation-review.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -167,4 +169,26 @@ test('A2 offline plan is not creation/execution authority and retains all four p
   assert.deepEqual(a2.changeSetInputOutline,{ChangeSetType:'UPDATE',Parameters:b.stacks.cell.parameters.map(ParameterKey=>({ParameterKey,UsePreviousValue:true}))});
   assert.equal(a2.acceptOnly.addCount,4);assert.equal(a2.acceptOnly.modifyCount,0);assert.equal(a2.acceptOnly.removeCount,0);
   assert.equal(a2.candidate.historicalExpiresAtPreserved,capture.dependencies.cellExpiresAt);
+});
+
+test('A2 creation review binds new facts and one unexecuted change set, never ALB execution',()=>{
+  assert.equal(a2Facts.counts.sts,1);assert.equal(a2Facts.counts.metadataAttempts,22);
+  assert.equal(a2Facts.counts.awsWrites,0);assert.equal(a2Facts.retainedResourceCount,12);
+  assert.equal(a2Create.status,'PREPARED_NOT_APPROVED');assert.equal(a2Create.creationAuthorized,false);assert.equal(a2Create.executionAuthorized,false);
+  assert.equal(a2Create.requestWithoutTemplateBody.StackName,a2Facts.stackId);
+  assert.equal(a2Create.requestWithoutTemplateBody.ChangeSetType,'UPDATE');
+  assert.equal(a2Create.templateSource.canonicalSha256,a2.candidate.canonicalSha256);
+  assert.equal(a2Create.expected.currentTemplateSha256,executed.appliedTemplateSha256);
+  assert.deepEqual(a2Create.expected.iamSha256,a2Facts.iamSha256);
+  assert.deepEqual(a2Create.requestWithoutTemplateBody.Parameters,a2.changeSetInputOutline.Parameters);
+  assert.deepEqual(a2Create.expected.addLogicalIds,a2.candidate.add.map(x=>x.logicalId));
+  assert.equal(a2Create.scope.createChangeSetMax,1);
+  for(const key of ['executeChangeSet','deleteChangeSet','createStack','updateStack','rollbackStack','iamWrites','dnsWrites','databaseOperations','imageUpdates','secretValueReads','privateKeyReads','lambdaInvocations','restoreAlbOrEcs','dispatch'])assert.equal(a2Create.scope[key],0,key);
+  assert.equal(a2Create.requestWithoutTemplateBody.IncludeNestedStacks,false);
+  assert.equal(a2Create.requestWithoutTemplateBody.OnStackFailure,undefined);
+  assert.equal(a2Create.failurePolicy.replayAfterUnknownSubmission,false);assert.equal(a2Create.failurePolicy.attemptResetAllowed,false);
+  assert.equal(a2Create.scope.iamSigningRegion,'us-east-1');
+  assert.equal(Date.parse(a2Create.factsValidBefore)-Date.parse(a2Create.factsAt),5*3600000);
+  assert.equal(Date.parse(a2Create.factsValidBefore)-Date.parse(a2Create.startBefore),10*60000);
+  assert.equal(a2Create.requestWithoutTemplateBody.Tags.find(x=>x.Key==='ExpiresAt').Value,a2.candidate.historicalExpiresAtPreserved);
 });
