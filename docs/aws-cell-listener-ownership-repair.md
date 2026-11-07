@@ -26,6 +26,29 @@
 
 本阶段AWS/GitHub API/私密配置读取/数据库连接/云写入/执行槽均0，没有新运行时或恢复框架。ALB可能持续收费，未新增自动停止。46项本地基线检查（新增3项离线材料/事实来源/回滚策略回归）及定向lint通过；源码/检查通过不等于变更集已创建或API已恢复。
 
+<a id="tenant-b-post-rollback-read-scope"></a>
+
+### 下一步待确认：一次必要只读核对，直接准备仅创建清单
+
+2026-11-07，按用户要求集中完成三规则主线。本节仅把所需读取收敛成一次明确范围，**尚未获得该范围的读取许可，也未调用AWS**；不新增脚本、恢复框架或固定任务。目标账号402010193138/ca-central-1、Source profile `techlong-sandbox-user`及准确IAM用户沿用已存材料；IAM使用官方全球端点，不涉及其他区域资源创建。
+
+总上限：**STS身份核对1次＋AWS元数据27次**。STS必须匹配准确IAM用户，身份失败即停。元数据按下表逐项计数；任一拒绝、非预期差异、超限或分页即停，不自动重试/翻页/扩大诊断。三条旧规则各一次DescribeRules，仅准确RuleNotFound可记为该旧对象缺失，不重试或换目标。
+
+| 分组 | 准确API与次数 | 限定目标/目的 |
+| --- | --- | --- |
+| CloudFormation，7次 | DescribeStacks×2、GetTemplate(Original)×2、ListStackResources×2、ListChangeSets×1 | 仅草案绑定的同UUID租户栈及Cell栈；最后一项仅租户、一页。核对租户稳定状态/回滚操作、两栈Original/物理归属/输出、七租户记录/四保留ID、现有角色/标签及参数元数据。模板正文只在内存求摘要，不输出或保存；不验证NoEcho真值 |
+| ELBv2，10次 | DescribeLoadBalancers×1、DescribeListeners×1、DescribeRules×5、DescribeTargetGroups×1、DescribeTrustStores×1、DescribeTags×1 | 仅729e候选ALB、其两个监听器各一次规则列表、七记录中的三条旧规则各一次、既有目标组及固定trust store；标签一次批读限该ALB/两个监听器/共享拒绝规则/目标组。核对443/8443与mTLS、443优先级100/101及8443优先级100占用、共享拒绝规则及目标组关联，不查询健康或读取trust store对象正文 |
+| IAM，5次 | GetRole、ListRolePolicies、ListAttachedRolePolicies、GetPolicy、GetPolicyVersion各1 | 仅既有TechlongSandboxCloudFormationExecutionRole及其boundary/附加的同一policy；核对角色ID/trust/空inline/单附加/boundary及默认v10正文，不模拟/安装权限 |
+| ECS，1次 | DescribeServices×1 | 仅既有租户service；核对0/0/0、任务定义:12、网络/目标配置，不读任务定义正文/容器环境或任务历史 |
+| ACM，1次 | DescribeCertificate×1 | 仅已存Cell监听器绑定的准确证书，核对证书状态与域名元数据；不读私钥 |
+| EC2，3次 | DescribeVpcs、DescribeSubnets、DescribeSecurityGroups各1 | 仅Cell已有VPC、两个子网、ALB及任务安全组，核对已存网络绑定，不扫描全区域 |
+
+以上目标以[离线草案及其绑定原件](../ops/deployment-baseline/tenant-b-post-rollback-offline-plan.json)为准，先核对同UUID/原件摘要与已知候选；不把读取中的新对象自动纳入范围。完整Describe返回可能进入CLI/进程内存，仅保存必要元数据和去敏错误至本地私有证据，不提交模板正文、NoEcho值或原始业务配置。
+
+**明确排除：** AWS/GitHub写入、Create/Execute/DeleteChangeSet或DeleteStack、CloudFormation事件读取、Secret值/PEM/.env/HMAC、S3正文、数据库连接、DDB业务项、平台资源核对、DNS/公网健康/产品测试、ECR/镜像更新、启停工具改造、续租及执行槽消费。不会为取得创建材料而启动ECS/RDS，不更改现有资源到期机制。
+
+若核对通过，复用现有参数片段和形状检查器，直接生成**新名称/token、同模板/角色/标签、两参数/三替换规则的仅创建审批清单**，包含创建最多1次及独立读回的准确预算；不自动创建或转入执行。新事实按真实采样时间最多5小时，不延长旧事实/批准；未采样时不编造factsAt、启动期限或新执行SHA。接受的读取风险仅为既有凭据在内存使用、网络/提供者日志、资源/Account ID/ARN元数据进入私有证据及低额非零费用；确认读取不代表批准任何写入。
+
 <a id="tenant-b-rollback-result"></a>
 
 ## 最近云结果：单次回滚及独立核验通过，仅恢复 CFN 稳定控制状态
