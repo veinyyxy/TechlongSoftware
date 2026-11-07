@@ -25,6 +25,8 @@ import bCreateReview from '../ops/deployment-baseline/tenant-b-creation-review.j
 import bCreated from '../ops/deployment-baseline/tenant-b-created-20261107.json' with { type: 'json' };
 import bExecuteReview from '../ops/deployment-baseline/tenant-b-execution-review.json' with { type: 'json' };
 import bExpired from '../ops/deployment-baseline/tenant-b-execution-expired-20261107.json' with { type: 'json' };
+import bRefresh from '../ops/deployment-baseline/tenant-b-execution-refresh-20261107.json' with { type: 'json' };
+import bRefreshedReview from '../ops/deployment-baseline/tenant-b-execution-review-refreshed-20261107.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -570,4 +572,46 @@ test('late B risk acceptance cannot restamp an expired manifest or consume an ex
   assert.equal(bExpired.proposedReadOnlyRefresh.newReadFactsValidityHours,5);
   assert.equal(bExpired.proposedReadOnlyRefresh.awsWrites,0);
   assert.equal(bExpired.proposedReadOnlyRefresh.actualExecutionNeedsFreshBoundApproval,true);
+});
+
+test('B fresh read capture revalidates the same existing plan and dependencies without recreating or applying it',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(bRefresh.status,'B_EXECUTION_REFRESH_VERIFIED_NO_WRITE');
+  assert.equal(bRefresh.stackId,bCreated.stackId);assert.equal(bRefresh.changeSetId,bCreated.changeSetId);
+  assert.equal(bRefresh.changeSetStatus,'CREATE_COMPLETE');assert.equal(bRefresh.executionStatus,'AVAILABLE');
+  assert.equal(bRefresh.availableChangeSetCanonicalSha256,bExecuteReview.expected.availableChangeSetCanonicalSha256);
+  assert.equal(bRefresh.oldManifestCanonicalSha256,sha(bExecuteReview));assert.equal(bRefresh.oldExpiredRecordCanonicalSha256,sha(bExpired));
+  assert.ok(Date.parse(bRefresh.factsAt)>Date.parse(bExpired.checkedAt));
+  assert.equal(Date.parse(bRefresh.factsValidBefore)-Date.parse(bRefresh.factsAt),5*3600000);
+  assert.equal(Date.parse(bRefresh.factsValidBefore)-Date.parse(bRefresh.startBefore),15*60000);
+  assert.deepEqual(bRefresh.tenantCfnPhysicalRecords,bCreated.cfnRecordedResources);
+  assert.deepEqual(bRefresh.summary.serviceCounts,{desired:0,running:0,pending:0});
+  assert.equal(bRefresh.summary.serviceTaskDefinition,bCreated.service.taskDefinitionArn);
+  assert.equal(bRefresh.cellCfnPhysicalRecords.length,16);assert.deepEqual(bRefresh.summary.cellOutputs,a2Executed.cellOutputs);
+  for(const key of ['newRulePrioritiesVacant','threeOldRulesAbsent','networkOwnershipAndIngressMatched','certificateIssued','trustStoreActive'])assert.equal(bRefresh.summary[key],true,key);
+  assert.equal(bRefresh.summary.policyDefault,'v10');assert.equal(bRefresh.summary.policyCanonicalSha256,bIamInstalled.installedPolicyCanonicalSha256);
+  assert.deepEqual([bRefresh.counts.sts,bRefresh.counts.metadata],[1,28]);
+  for(const [key,value]of Object.entries(bRefresh.counts))if(!['sts','metadata'].includes(key))assert.equal(value,0,key);
+  assert.equal(bRefresh.executionAuthorized,false);assert.equal(bRefresh.originalManifestUnmodified,true);
+});
+
+test('B refreshed approval carries the accepted unchanged risk but still needs a fresh action SHA',()=>{
+  const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(bRefreshedReview.evidence.find(x=>x.file==='tenant-b-execution-refresh-20261107.json').canonicalSha256,sha(bRefresh));
+  assert.equal(bRefreshedReview.supersedesExpiredManifest.canonicalSha256,sha(bExecuteReview));
+  assert.equal(bRefreshedReview.supersedesExpiredManifest.oldStartBefore,bExecuteReview.startBefore);
+  assert.equal(bRefreshedReview.dependencyFactsAt,bRefresh.factsAt);assert.equal(bRefreshedReview.dependencyFactsValidBefore,bRefresh.factsValidBefore);
+  assert.equal(bRefreshedReview.startBefore,bRefresh.startBefore);
+  assert.deepEqual({...bRefreshedReview.request,ClientRequestToken:undefined},{...bExecuteReview.request,ClientRequestToken:undefined});
+  assert.notEqual(bRefreshedReview.request.ClientRequestToken,bExecuteReview.request.ClientRequestToken);
+  for(const key of ['scope','failurePolicy','serviceRiskDisclosure','risks','allowedMetadataApis','polling'])assert.deepEqual(bRefreshedReview[key],bExecuteReview[key],key);
+  assert.equal(bRefreshedReview.serviceRiskAccepted,true);assert.equal(bRefreshedReview.serviceRiskAcceptanceReference.recordCanonicalSha256,sha(bExpired));
+  assert.equal(bRefreshedReview.serviceRiskAcceptanceReference.scopeUnchanged,true);
+  assert.equal(bRefreshedReview.serviceRiskAcceptanceReference.doesNotAuthorizeTheNewExecutionWithoutConfirmation,true);
+  assert.ok(bRefreshedReview.privateMetadataSources.every(x=>x.journalRawSha256===bRefresh.journalRawSha256&&x.directory===bRefresh.privateEvidenceDirectory));
+  assert.equal(bRefreshedReview.executionAuthorized,false);assert.equal(bRefreshedReview.apiDnsChangeAuthorized,false);
+  assert.equal(bRefreshedReview.preparation.newAccountAwsCallsDuringManifestAssembly,0);
+  assert.equal(bRefreshedReview.preparation.executionSlotsConsumed,0);
 });

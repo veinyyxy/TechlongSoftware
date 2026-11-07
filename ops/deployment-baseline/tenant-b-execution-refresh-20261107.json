@@ -1,0 +1,262 @@
+{
+  "schema": "techlong/tenant-b-execution-refresh-verified/v1",
+  "status": "B_EXECUTION_REFRESH_VERIFIED_NO_WRITE",
+  "sourceCommit": "bdc6ce361fb3f3a71fd3d646d328ff2956710587",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "factsAt": "2026-11-07T13:46:46.440Z",
+  "finishedAt": "2026-11-07T13:47:26.077Z",
+  "factsValidBefore": "2026-11-07T18:46:46.440Z",
+  "startBefore": "2026-11-07T18:31:46.440Z",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+  "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-tenant-b-listeners-20261107t053831/95855d02-9903-4d56-b042-959fb66cb232",
+  "changeSetStatus": "CREATE_COMPLETE",
+  "executionStatus": "AVAILABLE",
+  "availableChangeSetCanonicalSha256": "e34279ecb8d3a694051980de809b32833bf0b2ecbc34f7f7316f2db839ce3b02",
+  "sourceIdentity": {
+    "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "userId": "AIDAV3GNMXTZEO7SHLC2X",
+    "account": "402010193138"
+  },
+  "summary": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+    "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-tenant-b-listeners-20261107t053831/95855d02-9903-4d56-b042-959fb66cb232",
+    "changeSetStatus": "CREATE_COMPLETE",
+    "executionStatus": "AVAILABLE",
+    "tenantOriginalSha256": "d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779",
+    "cellOriginalSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892",
+    "cellResourceCount": 16,
+    "cellOutputs": {
+      "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d",
+      "VpcId": "vpc-0136b6ba92a72cbf9",
+      "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1",
+      "CellExpiresAt": "2026-10-15T16:44:56.246Z",
+      "TaskSecurityGroupId": "sg-0df75af0d0661492a",
+      "ClusterName": "cell-sandbox-1",
+      "SubnetIds": "subnet-05b781276cc988b93,subnet-05729abe921410a75"
+    },
+    "tenantCrossStackParameters": {
+      "ClusterName": "cell-sandbox-1",
+      "VpcId": "vpc-0136b6ba92a72cbf9",
+      "SubnetIds": "subnet-05b781276cc988b93,subnet-05729abe921410a75",
+      "TaskSecurityGroupId": "sg-0df75af0d0661492a",
+      "HttpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7",
+      "ControlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b"
+    },
+    "tenantRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+    "tenantTagsCanonicalSha256": "39ac318ad68e94fb684aca74df5e05f55e227974a9fc91407c3b268333918db8",
+    "tenantTagCount": 17,
+    "serviceCounts": {
+      "desired": 0,
+      "running": 0,
+      "pending": 0
+    },
+    "serviceTaskDefinition": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+    "policyDefault": "v10",
+    "policyCanonicalSha256": "965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6",
+    "newRulePrioritiesVacant": true,
+    "threeOldRulesAbsent": true,
+    "networkOwnershipAndIngressMatched": true,
+    "certificateIssued": true,
+    "trustStoreActive": true,
+    "alb": {
+      "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6",
+      "dnsName": "techlong-sandbox-cell-sandbox-1-1581133878.ca-central-1.elb.amazonaws.com",
+      "canonicalHostedZoneId": "ZQSVJUPU6J1EY",
+      "state": "active"
+    },
+    "serviceDeclaredOneActualZeroRiskUnchanged": true,
+    "servicePreservationDuringExecutionProved": false,
+    "sourceWriteOrScpAuthorizationProved": false,
+    "allRetainedRoutePropertiesOrCleanupSchedulesNotRefreshed": true,
+    "creationAuthorized": false,
+    "executionAuthorized": false
+  },
+  "tenantCfnPhysicalRecords": [
+    {
+      "logicalId": "TenantBusinessControlDenyRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/02eb1194bf042d4e",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantControlListenerRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/576403dc1245139b/77d3da2f728b3bcf",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantListenerRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/241081ab25c73320/8fce768af0ff42f7/ce81bd294d025612",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantLogGroup",
+      "type": "AWS::Logs::LogGroup",
+      "physicalId": "/saas/cell-sandbox-1/tenant-9c5ee9e64509dcad",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantService",
+      "type": "AWS::ECS::Service",
+      "physicalId": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantTargetGroup",
+      "type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/tenant-9c5ee9e64509dcad-target-g/5c3f443f78df9934",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TenantTaskDefinition",
+      "type": "AWS::ECS::TaskDefinition",
+      "physicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+      "status": "CREATE_COMPLETE"
+    }
+  ],
+  "cellCfnPhysicalRecords": [
+    {
+      "logicalId": "BusinessControlDenyRule",
+      "type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener-rule/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1/ec016710498b01e6",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "BusinessHttpsListener",
+      "type": "AWS::ElasticLoadBalancingV2::Listener",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/31e6577b666f0de1",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "CellCluster",
+      "type": "AWS::ECS::Cluster",
+      "physicalId": "cell-sandbox-1",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "CellGatewayAttachment",
+      "type": "AWS::EC2::VPCGatewayAttachment",
+      "physicalId": "IGW|vpc-0136b6ba92a72cbf9",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "CellInternetGateway",
+      "type": "AWS::EC2::InternetGateway",
+      "physicalId": "igw-05cef33fecf6d93fc",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "CellLoadBalancer",
+      "type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "CellVpc",
+      "type": "AWS::EC2::VPC",
+      "physicalId": "vpc-0136b6ba92a72cbf9",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "ControlMtlsListener",
+      "type": "AWS::ElasticLoadBalancingV2::Listener",
+      "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6/864f7b1cd42d3f8d",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "LoadBalancerSecurityGroup",
+      "type": "AWS::EC2::SecurityGroup",
+      "physicalId": "sg-0c6090493d3e41653",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "PublicDefaultRoute",
+      "type": "AWS::EC2::Route",
+      "physicalId": "rtb-064ff7feff7e592b0|0.0.0.0/0",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "PublicRouteTable",
+      "type": "AWS::EC2::RouteTable",
+      "physicalId": "rtb-064ff7feff7e592b0",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "PublicSubnetA",
+      "type": "AWS::EC2::Subnet",
+      "physicalId": "subnet-05b781276cc988b93",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "PublicSubnetB",
+      "type": "AWS::EC2::Subnet",
+      "physicalId": "subnet-05729abe921410a75",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "PublicSubnetRouteAssociationA",
+      "type": "AWS::EC2::SubnetRouteTableAssociation",
+      "physicalId": "rtbassoc-02e2e2ed0edcb281c",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "PublicSubnetRouteAssociationB",
+      "type": "AWS::EC2::SubnetRouteTableAssociation",
+      "physicalId": "rtbassoc-0cf0401fb1ad49cb0",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "logicalId": "TaskSecurityGroup",
+      "type": "AWS::EC2::SecurityGroup",
+      "physicalId": "sg-0df75af0d0661492a",
+      "status": "CREATE_COMPLETE"
+    }
+  ],
+  "planShape": {
+    "matchesProposedRuleReplacementShape": true,
+    "differences": [],
+    "unchangedParameterPreservationProved": false,
+    "servicePreservationProved": false,
+    "liveOwnershipVerified": false,
+    "executionAuthorized": false
+  },
+  "proposedTemplateSha256": "d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779",
+  "appliedTemplateSha256": "d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779",
+  "counts": {
+    "sts": 1,
+    "metadata": 28,
+    "awsWrites": 0,
+    "executeChangeSet": 0,
+    "createChangeSet": 0,
+    "deleteChangeSet": 0,
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "configSecretFileReads": 0,
+    "databaseConnections": 0,
+    "taskDefinitionDetailsOrEnvironmentReads": 0,
+    "executionSlotsConsumed": 0
+  },
+  "newlyObservedFactsNotRestampedHistoricalFacts": true,
+  "originalManifestUnmodified": true,
+  "oldManifestCanonicalSha256": "7ec89ebe5ae3b2852f3ac8246b3cf7695274cc9b180a7c0c74d8ad8251201858",
+  "oldExpiredRecordCanonicalSha256": "2af5f8c84d35e9efaa6f18021c5be26fd9bcf44a9636765809f669be5d7eff7d",
+  "userRiskAcceptancePreviouslyRecorded": true,
+  "serviceRiskScopeUnchanged": true,
+  "executionAuthorized": false,
+  "privateEvidenceDirectory": ".local-secrets/tenant-b-execution-refresh-20261107-a",
+  "journalRawSha256": "5315a9ba9b025c84405ecf4b00f85c0c20f8efc0ef6477dcb1b0a64c9bc63a01",
+  "journalCanonicalSha256": "f04b70bcce7f06069a72bc4264b21b36b180896d6228ce5d635a449089bbcb4c",
+  "recipeRawSha256": "32c719a7475277bc7d1838784ea91a0bb816974432a942c305532ad3ce09ced2",
+  "commonRawSha256": "d4818c644ffc0fbcf4c73c0e8287bfb3fd561f9bc2561ef5f682d6aefa7a5d72",
+  "notProved": [
+    "Source-PassRole-SCP-effective-execute-authorization",
+    "all-retained-route-property-drift",
+    "current-cleanup-schedule-states",
+    "service-zero-counts-after-future-execution",
+    "API-DNS-alignment",
+    "application-or-business-acceptance"
+  ],
+  "next": "Bind a new approval SHA for the same existing Change Set using this new five-hour read capture; preserve prior explicit service-risk acceptance but do not execute without the fresh bound action approval."
+}
