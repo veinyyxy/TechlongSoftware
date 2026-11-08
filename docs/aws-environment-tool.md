@@ -6,7 +6,11 @@
 
 ## 当前实现与范围
 
-### 本轮最小修复已完成，待新只读计划（2026-11-08）
+### 本轮标签修复已通过，新的只读规划停在租户FARGATE表示检查（2026-11-08）
+
+标签修复源码`2c76428fbf3b5d2d9539dff960ea183ebfcd2247`及[准确CI 42499624616](https://github.com/veinyyxy/TechlongSoftware/actions/runs/42499624616)已通过。新只读规划于16:25:05.743Z—16:25:26.304Z通过平台标签检查，随后在租户服务原有`launchType==='FARGATE'`条件处停止。准确ECS与CFN服务ARN/任务定义:12匹配，服务0/0/0，但AWS返回`launchType=null`及`capacityProviderStrategy=[FARGATE,weight1,base1]`。官方API明确使用capacity provider时省略launchType；不是发现了EC2工作负载或云端归属丢失。[AWS说明](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_Service.html)。
+
+[新停止记录](../ops/temporary-idle/stop-readiness-after-tag-fix-20261108.json)保持旧标签阻塞原件。实际STS1/元数据17（含准确服务与CFN绑定诊断2），云写/Change Set/执行attempt/Secret值/PEM/.env/SQL均0；没有可执行停用SHA，持久配置仍关闭。此处不自动扩大标签批准去修另一条件，已询问用户是否仅兼容模板与实况准确一致的FARGATE provider并补回归。未获新方向前不改该条件、不再读取或生成假计划。两个ALB没有被本轮移除，可能持续收费。
 
 用户已批准仅修复ECS归属校验并测试，再生成新停用清单。原`liveService`现在以准确CFN记录的服务物理ARN为归属基础，保留任务定义/目标组/网络检查；系统标签若存在仍必须匹配准确栈ID、逻辑ID及栈名。缺少系统标签不再直接拒绝，但真实模板声明的业务标签必须逐项匹配；参数引用只比较`readStack`已有的非NoEcho参数摘要，不保存额外参数正文。重复标签、缺少/篡改声明标签、冲突归属、NoEcho和未支持表达式均拒绝。不改ALB归属检查、不写云端标签、不扩权限或改启停顺序。
 

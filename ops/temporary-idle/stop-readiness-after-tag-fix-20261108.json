@@ -1,0 +1,39 @@
+{
+  "schema": "techlong/temporary-environment-stop-readiness/v1",
+  "status": "BLOCKED_NOT_EXECUTABLE",
+  "executionApproved": false,
+  "planId": null,
+  "planSha256": null,
+  "sourceCommit": "2c76428fbf3b5d2d9539dff960ea183ebfcd2247",
+  "codeCi": {"runId": 42499624616, "conclusion": "success", "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/42499624616"},
+  "localTestsPassed": 149,
+  "scopedLintPassed": true,
+  "typecheckPassed": true,
+  "readOnlyPreparation": {
+    "startedAt": "2026-11-08T16:25:05.743Z",
+    "completedAt": "2026-11-08T16:25:26.304Z",
+    "stsCalls": 1,
+    "metadataCalls": 15,
+    "additionalExactDiagnosticCalls": 2,
+    "cloudWrites": 0,
+    "cloudChangeSetsCreated": 0,
+    "executionAttemptConsumed": false,
+    "failureCode": "SERVICE_TEMPLATE_BINDING_MISMATCH",
+    "originalPlatformTagCheckPassed": true,
+    "remainingDependenciesVerified": false
+  },
+  "diagnosis": {
+    "serviceArn": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+    "exactCfnPhysicalServiceArnMatches": true,
+    "taskDefinition": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+    "exactCfnTaskDefinitionMatches": true,
+    "launchType": null,
+    "capacityProviderStrategy": [{"capacityProvider": "FARGATE", "weight": 1, "base": 1}],
+    "desiredRunningPending": [0, 0, 0],
+    "incompatibleCheck": "liveService currently requires launchType === FARGATE, while AWS omits that field for capacity-provider services",
+    "providerDoc": "https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_Service.html"
+  },
+  "persistentConfigurationChanged": false,
+  "originalBlockedRecordPreserved": "ops/temporary-idle/stop-readiness-20261108.json",
+  "nextActionAtRecording": "Await explicit direction for the capacity-provider representation compatibility change. Do not relax or replay preparation automatically."
+}
