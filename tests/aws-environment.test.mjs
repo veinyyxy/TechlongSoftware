@@ -27,6 +27,19 @@ function capacityFixture(){
  const call=f.io.call;f.io.call=async(...args)=>{const r=await call(...args);if(args[1]==='describe-services')for(const x of r.services??[])if(x.serviceArn===f.stacks.tenant.service?.serviceArn){delete x.launchType;x.capacityProviderStrategy=copy(f.state.capacityStrategy??[{capacityProvider:'FARGATE',base:1,weight:1}]);}return r;};return f;
 }
 
+function networkListFixture(type){
+ const f=capacityFixture(),s=f.stacks.tenant;s.template.Parameters.SubnetIds.Type=type;s.template.Resources.TenantService.Properties.NetworkConfiguration={AwsvpcConfiguration:{Subnets:{Ref:'SubnetIds'},SecurityGroups:[{Ref:'TaskSecurityGroupId'}],AssignPublicIp:'ENABLED'}};f.config.stacks.tenant.templateSha256=hash(s.template);
+ const call=f.io.call;f.io.call=async(...args)=>{const r=await call(...args);if(args[1]==='describe-services')for(const x of r.services??[])if(x.serviceArn===f.stacks.tenant.service?.serviceArn)x.networkConfiguration={awsvpcConfiguration:{subnets:s.params.SubnetIds.split(',').reverse(),securityGroups:[s.params.TaskSecurityGroupId],assignPublicIp:'ENABLED',...f.state.networkOverride}};return r;};return f;
+}
+
+test('typed subnet-list and existing CommaDelimitedList parameters resolve to exact subnet sets through stop/start/stop',async()=>{
+ for(const type of ['List<AWS::EC2::Subnet::Id>','CommaDelimitedList']){const f=networkListFixture(type),stop=await plan(f,'stop');assert.equal(writes(f).length,0);assert.equal((await apply(f,stop)).status,'STOPPED');const start=await plan(f,'start',stop,'stopped');assert.equal((await apply(f,start)).status,'RUNNING');assert.equal((await apply(f,await plan(f,'stop',start,'running'))).status,'STOPPED');}
+});
+
+test('typed subnet-list compatibility still rejects changed subnet, security-group or public-IP settings',async()=>{
+ for(const override of [{subnets:['foreign-subnet']},{securityGroups:['foreign-sg']},{assignPublicIp:'DISABLED'}]){const f=networkListFixture('List<AWS::EC2::Subnet::Id>');f.state.networkOverride=override;await assert.rejects(plan(f,'stop'),/SERVICE_NETWORK_DRIFT/);assert.equal(writes(f).length,0);}
+});
+
 test('exact FARGATE capacity-provider strategy without launchType supports stop/start/stop alongside launch-type platform',async()=>{
  const f=capacityFixture(),stop=await plan(f,'stop');assert.equal(writes(f).length,0);assert.equal((await apply(f,stop)).status,'STOPPED');const start=await plan(f,'start',stop,'stopped');assert.equal((await apply(f,start)).status,'RUNNING');assert.equal((await apply(f,await plan(f,'stop',start,'running'))).status,'STOPPED');
 });

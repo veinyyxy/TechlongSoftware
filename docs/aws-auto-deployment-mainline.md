@@ -2,7 +2,9 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：仅补准确FARGATE provider兼容并测试，随后新只读停用清单（2026-11-08）
+## 当前唯一继续点：仅补已另批子网列表类型解析并测试，再准备停用SHA（2026-11-08）
+
+FARGATE兼容92f65a0/CI42504043779及153回归通过。新只读规划过了两处表示关卡，网络比较误拒`List<AWS::EC2::Subnet::Id>`字符串；准确三次补核证明云与模板子网/SG/公网IP一致，STS1/元数据18/写0，无SHA或attempt。用户已允许只补此列表类型，不改网络/匹配要求/API/IAM；准确CI后用原工具新建只读清单，实际停用仍另批。[保留原停止记录](../ops/temporary-idle/stop-readiness-after-capacity-fix-20261108.json)。
 
 用户已允许同一原函数内的最小表示兼容：唯一FARGATE provider且base/weight与模板一致，拒绝EC2/混合/Spot及双重声明。不增加API/权限或云写；准确CI通过后使用现有只读规划生成新SHA，实际停用仍另批，旧失败不重放。下方待同意状态仅供追溯。
 

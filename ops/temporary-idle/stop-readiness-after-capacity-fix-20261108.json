@@ -1,0 +1,31 @@
+{
+  "schema": "techlong/temporary-environment-stop-readiness/v1",
+  "status": "BLOCKED_NOT_EXECUTABLE",
+  "executionApproved": false,
+  "planId": null,
+  "planSha256": null,
+  "sourceCommit": "92f65a096bad3034469a2b9db16f2b6b18b1d663",
+  "codeCi": {"runId": 42504043779, "conclusion": "success", "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/42504043779"},
+  "localTestsPassed": 153,
+  "readOnlyPreparation": {
+    "startedAt": "2026-11-08T17:17:14.149Z",
+    "completedAt": "2026-11-08T17:17:37.120Z",
+    "stsCalls": 1,
+    "metadataCalls": 15,
+    "additionalExactNetworkDiagnosticCalls": 3,
+    "cloudWrites": 0,
+    "executionAttemptConsumed": false,
+    "failureCode": "SERVICE_NETWORK_DRIFT"
+  },
+  "diagnosis": {
+    "resource": "tenant-9c5ee9e64509dcad-ecs-service",
+    "declaredSubnetParameterType": "List<AWS::EC2::Subnet::Id>",
+    "actualAndDeclaredSubnetSetsEqual": true,
+    "actualAndDeclaredSecurityGroupsEqual": true,
+    "actualAndDeclaredAssignPublicIpEqual": true,
+    "cause": "resolveNetwork splits CommaDelimitedList but leaves the typed subnet-list parameter as a string; the set comparison then iterates its characters",
+    "cloudNetworkChanged": false
+  },
+  "originalRecordsPreserved": ["ops/temporary-idle/stop-readiness-20261108.json", "ops/temporary-idle/stop-readiness-after-tag-fix-20261108.json"],
+  "userApprovedNextScope": "Only add this exact subnet-list parameter type to the existing parser, keep exact network matching, test and prepare a new read-only stop plan. No AWS write or IAM expansion."
+}
