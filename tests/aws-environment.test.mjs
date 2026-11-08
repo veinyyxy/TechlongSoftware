@@ -45,6 +45,30 @@ test('initial tenant declaration1/live0 is explicitly aligned via CFN before sta
  const countTemplates=writes(f).filter(x=>x.operation==='create-change-set'&&x.input.StackName===f.stacks.tenant.id).map(x=>JSON.parse(x.input.TemplateBody).Resources.TenantService?.Properties.DesiredCount);assert.ok(countTemplates.includes(0)&&countTemplates.includes(1));assert.equal(f.stacks.tenant.service.desiredCount,1);
 });
 
+test('idle tasks and stopped databases still require ALB stop; only CFN removes dependencies and retained resource IDs survive',async()=>{
+ const f=fixture();
+ f.stacks.platform.template.Resources.Service.Properties.DesiredCount=0;
+ f.config.stacks.platform.templateSha256=hash(f.stacks.platform.template);
+ for(const role of ['platform','tenant'])Object.assign(f.stacks[role].service,{desiredCount:0,runningCount:0,pendingCount:0});
+ Object.assign(f.dbState,{cluster:'stopped',instance:'stopped'});
+ const retained=Object.fromEntries(ROLES.map(role=>[role,Object.fromEntries(Object.entries(f.stacks[role].bindings).filter(([id])=>!EDGE[role].includes(id)))]));
+ const p=await plan(f,'stop'),result=await apply(f,p);
+ assert.equal(result.status,'STOPPED');assert.equal(result.noWriteReplay,false);
+ assert.ok(writes(f).every(x=>x.service==='cloudformation'));
+ assert.equal(writes(f).filter(x=>x.operation==='execute-change-set').length,4);
+ const creates=writes(f).filter(x=>x.operation==='create-change-set');
+ assert.deepEqual(creates.map(x=>Object.values(f.stacks).find(s=>s.id===x.input.StackName).role),['tenant','tenant','platform','cell']);
+ assert.equal(JSON.parse(creates[0].input.TemplateBody).Resources.TenantService.Properties.DesiredCount,0);
+ for(const role of ROLES)assert.deepEqual(f.stacks[role].bindings,retained[role]);
+ assert.deepEqual(f.dbState,{cluster:'stopped',instance:'stopped'});
+ const sameState=await plan(f,'stop',p,'stopped'),before=writes(f).length;
+ assert.equal((await apply(f,sameState)).noWriteReplay,true);assert.equal(writes(f).length,before);
+ const start=await plan(f,'start',p,'stopped');assert.equal((await apply(f,start)).status,'RUNNING');
+ assert.deepEqual(f.dbState,{cluster:'available',instance:'available'});
+ for(const role of ROLES)for(const [id,physical]of Object.entries(retained[role]))assert.equal(f.stacks[role].bindings[id],physical);
+ const stopAgain=await plan(f,'stop',start,'running');assert.equal((await apply(f,stopAgain)).status,'STOPPED');
+});
+
 test('an already running freshly approved start performs verification but no cloud writes',async()=>{const f=fixture(),p=await plan(f,'start');const r=await apply(f,p);assert.equal(r.status,'RUNNING');assert.equal(r.noWriteReplay,true);assert.equal(writes(f).length,0);});
 
 test('wrong principal, database identity, ownership, active controller, foreign workloads/rules or scaling refuses before any cloud write',async()=>{

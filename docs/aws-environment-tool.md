@@ -6,6 +6,18 @@
 
 ## 当前实现与范围
 
+### 2026-11-08 首次真实只读接入结果：未通过，不能执行停费
+
+用户要求准备两个仍active的ALB停费变更并验证工具。本轮144项合成/私有文件/基线回归、定向lint和TypeScript通过；新增当前场景覆盖两库已停、两ECS为0而两个ALB仍存在，验证预计只需4组CFN创建/执行、0次数据库写，stop→start→stop保持保留资源ID和真实新引用。首次沙箱内回归因私有ACL目录清理EPERM失败，未改安全检查；同一套测试在正常权限环境144项全部通过，不涉及AWS。
+
+真实只读`plan-stop`使用现有入口、内存enabled:true且独立限制只读，持久local配置仍false。STS1＋元数据12后在平台服务归属标签检查停止；另一次准确DescribeServices确认ARN与该栈的Service物理绑定相同，服务0/0/0，但仅返回业务标签，没有代码强制要求的`aws:cloudformation:stack-id`和`aws:cloudformation:logical-id`。这是当前真实接入的兼容阻塞，不据此判定云端已失去归属。CFN系统标签的传播因资源类型而异，不能用合成fixture有这些标签来证明所有真实服务都有。[AWS说明](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-resource-tags.html)。
+
+**结论：工具尚未满足真实启停使用条件。** 本轮总计STS1/资源元数据13，云写、Change Set创建/执行、DB连接和Secret值/PEM/.env读取均0；没有生成planId/可执行SHA或消费执行attempt。新私有根只有根状态；不清锁/复位或重跑旧尝试。剩余ALB/DNS/数据库依赖及角色权限未被本次工具检查走完，前轮盘点不是这些检查的替代证明。
+
+[停费范围与阻塞记录](../ops/temporary-idle/stop-readiness-20261108.json)是**不可执行草案**：先将租户CFN声明1与实际0对齐，再依次移除租户Service/三规则、平台Service/ALB/443/console记录、Cell ALB/两监听器/共享拒绝规则；保留三栈及3/7/12项资源、两数据库和网络骨架。不能仅删除两个ALB，否则会再次制造漂移。已停止数据库跳过写，外部API Alias保留，停用时域名不可用属预期；仍可能有存储等费用。
+
+下一仅待最小代码修复方向确认：保留准确UUID＋CFN物理ARN＋任务定义/目标组/网络和冲突归属拒绝，按真实声明校验业务标签，不强制不存在的系统标签；不云端补标签、不扩IAM、不改其他启停逻辑。修复及测试后才能用同一入口新建只读计划，实际CFN停费仍另批该新SHA。本轮没有改运行代码或声称真实stop/start通过，两个ALB仍未被本轮移除，可能持续收费。
+
 沿用 `node scripts/aws-environment.mjs`，临时实现隔离在 `ops/temporary-idle/environment*.mjs`，正式应用、worker、Janitor不导入它。CFN所属资源只经原栈的受审UPDATE Change Set操作；不直接调用ELB创建/删除、ECS UpdateService，不DeleteStack，不扩IAM或更新镜像。
 
 | 所属栈 | stop | start |
