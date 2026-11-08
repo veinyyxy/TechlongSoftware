@@ -33,9 +33,21 @@ async function alias(c,io,recordName,missing=false){const r=await io.call('route
  ensure(!(r.IsTruncated&&name(r.NextRecordName)===name(recordName)&&r.NextRecordType==='A'),'ALIAS_PAGE_INCOMPLETE');if(missing&&rows.length===0)return null;ensure(rows.length===1&&rows[0].AliasTarget&&!rows[0].SetIdentifier,'EXACT_SIMPLE_ALIAS_REQUIRED');return rows[0];}
 function serviceScope(c,arn){const prefix=`arn:aws:ecs:${c.region}:${c.accountId}:service/`;ensure(arn?.startsWith(prefix),'SERVICE_ACCOUNT_REGION');const parts=arn.slice(prefix.length).split('/');ensure(parts.length===2&&parts.every(x=>/^[\w-]+$/.test(x)),'LONG_SERVICE_ARN_REQUIRED');return {cluster:parts[0],service:parts[1],arn};}
 function resolveNetwork(v,stack){if(Array.isArray(v))return v.map(x=>resolveNetwork(x,stack));if(!v||typeof v!=='object')return v;if(v.Ref){if(stack.bindings[v.Ref])return stack.bindings[v.Ref].physicalId;const x=stack.parameters[v.Ref];ensure(x!==undefined,'NETWORK_PARAMETER_BINDING_REQUIRED');return stack.template.Parameters[v.Ref].Type==='CommaDelimitedList'?x.split(','):x;}if(v['Fn::Split'])return String(resolveNetwork(v['Fn::Split'][1],stack)).split(v['Fn::Split'][0]);return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,resolveNetwork(x,stack)]));}
+function assertServiceTags(service,stack,role){
+ const rows=service.tags??[];ensure(Array.isArray(rows)&&rows.every(t=>typeof t.key==='string'&&typeof t.value==='string')&&new Set(rows.map(t=>t.key)).size===rows.length,'SERVICE_TAG_RESPONSE_INVALID');const tags=tagMap(rows);
+ // CFN's exact physical binding is authoritative; system-tag propagation varies by resource type.
+ for(const [key,value]of [['aws:cloudformation:stack-id',stack.stackId],['aws:cloudformation:logical-id',SERVICE[role]],['aws:cloudformation:stack-name',stack.stackId.split(':stack/')[1].split('/')[0]]])if(Object.hasOwn(tags,key))ensure(tags[key]===value,'SERVICE_NOT_OWNED_BY_EXACT_STACK');
+ const declared=stack.template.Resources[SERVICE[role]].Properties.Tags??[];ensure(Array.isArray(declared)&&declared.every(t=>typeof t.Key==='string')&&new Set(declared.map(t=>t.Key)).size===declared.length,'SERVICE_DECLARED_TAGS_INVALID');
+ for(const {Key,Value}of declared){
+  // Compare parameter hashes already captured by readStack; never retain extra parameter values or resolve NoEcho.
+  const expected=typeof Value==='string'?hash(Value):Value&&Object.keys(Value).length===1&&typeof Value.Ref==='string'?stack.parameterHashes[Value.Ref]:null;
+  ensure(typeof expected==='string'&&/^[a-f0-9]{64}$/.test(expected),'SERVICE_TAG_VALUE_UNSUPPORTED');
+  ensure(Object.hasOwn(tags,Key)&&hash(tags[Key])===expected,'SERVICE_DECLARED_TAG_DRIFT');
+ }
+}
 async function liveService(c,io,scope,stack,role){const r=await io.call('ecs','describe-services',{cluster:scope.cluster,services:[scope.arn],include:['TAGS']});ensure(!r.failures?.length&&r.services?.length===1,'SERVICE_LOOKUP_FAILED');const s=r.services[0];
- ensure(s.serviceArn===scope.arn&&s.status==='ACTIVE'&&s.launchType==='FARGATE'&&s.taskDefinition===stack.bindings[role==='platform'?'TaskDefinition':'TenantTaskDefinition'].physicalId,'SERVICE_TEMPLATE_BINDING_MISMATCH');
- const tags=tagMap(s.tags);ensure(tags['aws:cloudformation:stack-id']===stack.stackId&&tags['aws:cloudformation:logical-id']===SERVICE[role],'SERVICE_NOT_OWNED_BY_EXACT_STACK');
+ ensure(s.serviceArn===scope.arn&&s.serviceArn===stack.bindings[SERVICE[role]].physicalId&&stack.bindings[SERVICE[role]].type==='AWS::ECS::Service'&&s.status==='ACTIVE'&&s.launchType==='FARGATE'&&s.taskDefinition===stack.bindings[role==='platform'?'TaskDefinition':'TenantTaskDefinition'].physicalId,'SERVICE_TEMPLATE_BINDING_MISMATCH');
+ assertServiceTags(s,stack,role);
  ensure([0,c.stacks[role].desiredCount].includes(s.desiredCount),'UNREVIEWED_SERVICE_COUNT');const p=stack.template.Resources[SERVICE[role]].Properties,groups=s.loadBalancers??[],want=p.LoadBalancers??[],target=stack.bindings[role==='platform'?'TargetGroup':'TenantTargetGroup'].physicalId;
  ensure(groups.length===1&&want.length===1&&groups[0].targetGroupArn===target&&groups[0].containerName===want[0].ContainerName&&groups[0].containerPort===want[0].ContainerPort,'SERVICE_TARGET_BINDING_DRIFT');
  if(p.NetworkConfiguration){const n=resolveNetwork(p.NetworkConfiguration.AwsvpcConfiguration,stack),live=s.networkConfiguration?.awsvpcConfiguration;ensure(live&&same([...(live.subnets??[])].sort(),[...n.Subnets].sort())&&same([...(live.securityGroups??[])].sort(),[...n.SecurityGroups].sort())&&live.assignPublicIp===n.AssignPublicIp,'SERVICE_NETWORK_DRIFT');}

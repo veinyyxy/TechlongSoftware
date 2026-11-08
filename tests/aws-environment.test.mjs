@@ -17,6 +17,33 @@ const plan=(f,mode,previous,expectedMode)=>prepareEnvironmentPlan({config:f.conf
 const apply=(f,p,store=memoryStore())=>executeEnvironmentPlan({config:f.config,io:f.io,plan:p,approvedSha:hash(p),store});
 async function clean(dir){assert.equal(path.dirname(path.resolve(dir)),path.resolve(os.tmpdir()));assert.ok(path.basename(dir).startsWith('aws-env-v2-test-'));await rm(dir,{recursive:true});}
 
+function declaredTagFixture(){
+ const f=fixture();for(const role of ['platform','tenant']){const s=f.stacks[role],id=role==='platform'?'Service':'TenantService';s.template.Parameters.ReviewUntil={Type:'String'};s.params.ReviewUntil='synthetic-review-time';s.template.Resources[id].Properties.Tags=[{Key:'Environment',Value:'test'},{Key:'ReviewUntil',Value:{Ref:'ReviewUntil'}}];f.config.stacks[role].templateSha256=hash(s.template);}
+ const call=f.io.call;f.io.call=async(service,operation,input)=>{const r=await call(service,operation,input);if(operation==='describe-services')for(const s of r.services??[]){const stack=Object.values(f.stacks).find(x=>x.service?.serviceArn===s.serviceArn);s.tags=[{key:'Environment',value:'test'},{key:'ReviewUntil',value:stack.params.ReviewUntil}];}return r;};return f;
+}
+
+test('exact CFN service binding and literal/parameter-declared tags permit missing system tags through stop/start/stop',async()=>{
+ const f=declaredTagFixture(),stop=await plan(f,'stop');assert.equal(writes(f).length,0);assert.equal((await apply(f,stop)).status,'STOPPED');
+ const start=await plan(f,'start',stop,'stopped');assert.equal((await apply(f,start)).status,'RUNNING');assert.equal((await apply(f,await plan(f,'stop',start,'running'))).status,'STOPPED');
+});
+
+test('present conflicting CFN ownership tags reject both services even when declared tags match',async()=>{
+ for(const role of ['platform','tenant'])for(const key of ['stack-id','logical-id','stack-name']){const f=declaredTagFixture(),call=f.io.call;f.io.call=async(...args)=>{const r=await call(...args);if(args[1]==='describe-services')for(const s of r.services??[])if(s.serviceArn===f.stacks[role].service.serviceArn)s.tags.push({key:'aws:cloudformation:'+key,value:'foreign-owner'});return r;};await assert.rejects(plan(f,'stop'),/SERVICE_NOT_OWNED_BY_EXACT_STACK/);assert.equal(writes(f).length,0);}
+});
+
+test('missing, changed or duplicate declared service tags never pass the compatibility path',async()=>{
+ for(const kind of ['missing','literal','parameter','duplicate']){const f=declaredTagFixture(),call=f.io.call;f.io.call=async(...args)=>{const r=await call(...args);if(args[1]==='describe-services')for(const s of r.services??[]){if(kind==='missing')s.tags=[];else if(kind==='duplicate')s.tags.push(copy(s.tags[0]));else s.tags[kind==='literal'?0:1].value='changed';}return r;};await assert.rejects(plan(f,'stop'),/SERVICE_(DECLARED_TAG_DRIFT|TAG_RESPONSE_INVALID)/);assert.equal(writes(f).length,0);}
+});
+
+test('NoEcho or unsupported declared tag expressions refuse without reading secret parameter values',async()=>{
+ for(const kind of ['noecho','expression']){const f=declaredTagFixture(),s=f.stacks.platform;if(kind==='noecho')s.template.Parameters.ReviewUntil.NoEcho=true;else s.template.Resources.Service.Properties.Tags[1].Value={'Fn::Sub':'unsupported-${ReviewUntil}'};f.config.stacks.platform.templateSha256=hash(s.template);await assert.rejects(plan(f,'stop'),/SERVICE_TAG_VALUE_UNSUPPORTED/);assert.equal(writes(f).length,0);}
+});
+
+test('without system tags, exact ARN/task/target/network protections still reject unrelated services',async()=>{
+ for(const kind of ['arn','task','target','network']){const f=declaredTagFixture(),s=f.stacks.platform;if(kind==='network'){s.template.Resources.Service.Properties.NetworkConfiguration={AwsvpcConfiguration:{Subnets:['reviewed-subnet'],SecurityGroups:['reviewed-sg'],AssignPublicIp:'ENABLED'}};f.config.stacks.platform.templateSha256=hash(s.template);}
+ const call=f.io.call;f.io.call=async(...args)=>{const r=await call(...args);if(args[1]==='describe-services')for(const x of r.services??[]){if(kind==='arn')x.serviceArn='foreign-arn';if(kind==='task')x.taskDefinition='foreign-task';if(kind==='target')x.loadBalancers[0].targetGroupArn='foreign-target';}return r;};await assert.rejects(plan(f,'stop'),/SERVICE_(TEMPLATE_BINDING_MISMATCH|TARGET_BINDING_DRIFT|NETWORK_DRIFT)/);assert.equal(writes(f).length,0);}
+});
+
 test('idle variants retain the existing stacks and protected resources without dangling listeners or service dependencies',()=>{
  const f=fixture();for(const role of ROLES){const base=f.baseTemplates[role],idle=variant(base,role,'idle');assert.equal(Object.keys(base.Resources).length-Object.keys(idle.Resources).length,4);for(const id of EDGE[role])assert.equal(idle.Resources[id],undefined);for(const [id,r]of Object.entries(idle.Resources))assert.deepEqual(r,base.Resources[id]);assert.deepEqual(variant(base,role,'full',1),base);}
  assert.equal(Object.keys(variant(cell,'cell','idle').Resources).length,12);assert.equal(Object.keys(variant(platform,'platform','idle').Resources).length,7);assert.equal(variant(platform,'platform','full',1).Resources.Service.Properties.DesiredCount,1);
