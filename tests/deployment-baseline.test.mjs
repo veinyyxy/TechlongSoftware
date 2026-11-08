@@ -50,6 +50,7 @@ import platformObserved from '../ops/deployment-baseline/platform-ownership-obse
 import platformPlan from '../ops/deployment-baseline/platform-idle-convergence-offline-plan.json' with { type: 'json' };
 import platformCandidate from '../ops/deployment-baseline/platform-idle-convergence.template.json' with { type: 'json' };
 import platformCreateReview from '../ops/deployment-baseline/platform-idle-creation-review-20261108.json' with { type: 'json' };
+import platformCreated from '../ops/deployment-baseline/platform-idle-created-20261108.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet, draftPlatformIdleConvergence } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -1168,4 +1169,26 @@ test('platform create-only approval has aggregate read reserves, explicit manage
   assert.equal(a.failurePolicy.unknownSubmissionMustBeInspectedNotResent,true);assert.equal(a.failurePolicy.independentReadbackAfterAckOrUncertainResultWithinReservedBudget,true);
   for(const key of ['automaticWriteRetries','automaticReadRetries','repeatWholeCommand','attemptResetAllowed','automaticExecute','automaticDeleteRollbackOrCleanup'])assert.equal(a.failurePolicy[key],false,key);
   assert.equal(s.perRequestMaxAttempts,1);assert.equal(s.pagination,false);assert.ok(Object.values(a.preparation).every(x=>x===0));
+});
+
+test('real platform drift plan is independently created but unexecuted, with DNS unsupported comparison blocking automatic execution acceptance',()=>{
+  const r=platformCreated,a=platformCreateReview,c=v=>Array.isArray(v)?v.map(c):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,c(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(c(v))).digest('hex');
+  assert.equal(r.approvedManifestCanonicalSha256,sha(a));assert.equal(r.userExplicitCreateOnlyConfirmationRecorded,true);assert.equal(r.creationApprovalConsumed,true);
+  assert.equal(r.stackId,a.requestWithoutTemplateBody.StackName);assert.equal(r.changeSetName,a.requestWithoutTemplateBody.ChangeSetName);assert.ok(r.changeSetId.includes(':changeSet/'+r.changeSetName+'/'));
+  assert.equal(r.changeSetStatus,'CREATE_COMPLETE');assert.equal(r.executionStatus,'AVAILABLE');assert.equal(r.deploymentMode,'REVERT_DRIFT');
+  assert.deepEqual(r.counts.aggregate,{sts:2,metadata:14,createChangeSet:1});for(const key of ['sts','metadata','createChangeSet'])assert.equal(r.counts.aggregate[key],r.counts.writer[key]+r.counts.independent[key]);
+  assert.equal(r.counts.otherDirectAwsWrites,0);assert.equal(r.counts.providerManagedDriftReadsNotIncluded,true);assert.equal(r.executionSlotsConsumed,1);
+  assert.equal(r.proposedTemplateCanonicalSha256,a.templateSource.canonicalSha256);assert.deepEqual(r.resourceNames,platformPlan.resourceLogicalIds);
+  assert.deepEqual(r.changes.map(x=>x.logicalId).sort(),[...a.expected.onlyAllowedChangeLogicalIds].sort());assert.deepEqual([r.addCount,r.modifyCount,r.removeCount,r.importCount],[2,3,0,0]);
+  for(const id of ['LoadBalancer','HttpsListener']){const row=r.changes.find(x=>x.logicalId===id);assert.equal(row.action,'Add');assert.equal(row.resourceDriftStatus,'DELETED');}
+  assert.equal(r.changes.find(x=>x.logicalId==='TaskDefinition').replacement,'True');assert.equal(r.changes.find(x=>x.logicalId==='DnsRecord').resourceDriftStatus,'UNSUPPORTED');
+  assert.equal(r.initialProcessBasicScopeCheckPassed,true);assert.equal(r.fullExecutionScopeAccepted,false);assert.equal(r.requiresSeparateExecutionReview,true);
+  assert.deepEqual(r.executionReviewBlockers.map(x=>[x.logicalId,x.observedResourceDriftStatus,x.automaticAcceptance]),[['DnsRecord','UNSUPPORTED',false]]);
+  assert.equal(r.underlyingStackStatus,'UPDATE_COMPLETE');assert.equal(r.allElevenOldCfnPhysicalBindingsUnchanged,true);assert.equal(r.platformAlbStillAbsent,true);assert.equal(r.underlyingStackRoleRemainsUnset,true);
+  assert.equal(r.service.taskDefinition,a.expected.service.taskDefinitionArn);assert.deepEqual([r.service.desiredCount,r.service.runningCount,r.service.pendingCount],[0,0,0]);
+  assert.equal(r.candidateDesiredCount,0);assert.equal(r.candidateControllerEnabled,false);assert.equal(r.addRowsPhysicalIdsArePreexistingCfnRecordsNotNewResourceIds,true);
+  assert.equal(r.timing.originalSourceFactsAt,a.factsAt);assert.equal(r.timing.originalSourceFactsValidBefore,a.factsValidBefore);assert.ok(Date.parse(r.independentlyVerifiedAt)>Date.parse(r.writerFinishedAt));
+  for(const key of ['repeatCreateAuthorized','newTaskDefinitionRevisionPredicted','newAlbOrListenerPhysicalIdsAssigned','executionAuthorized','environmentStarted','automaticRetry','automaticRollbackOrCleanup','formalThreeStackBaselineComplete','fullPropertyDriftFreedomProved'])assert.equal(r[key],false,key);
+  assert.equal(r.executeChangeSetCalls,0);assert.equal(r.rawParametersEnvironmentCommandLeaseAndContextsPersisted,false);assert.ok(Object.values(r.exclusions).every(x=>x===0));
 });
