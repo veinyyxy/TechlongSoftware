@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：已批准仅修CFN请求/回读契约和测试，随后离线准备新受审继续方案（2026-11-08）
+## 当前唯一继续点：契约修复CI通过，限定准备因ExpiredToken停止，等待Source刷新及新同范围许可（2026-11-08）
+
+用户另允后的准备a于18:12:42.640Z—18:13:14.930Z在准确平台ALB的DescribeListeners返回ExpiredToken后停止。实际STS1/元数据24（含失败1），CloudTrail/云写/Secret值/PEM/.env/SQL0；旧计划/journal已按原scope只读检查，但尚未完成整组资源核验，未创建结案目录、未关闭pending、未生成新plan/SHA或消费新执行attempt。只有本进程正常锁/临时请求文件的创建释放，没有清残留锁或重置旧状态。[完整停止记录](../ops/temporary-idle/stop-continuation-preflight-stopped-20261108-a.json)。
+
+代码契约修复已真正完成：源码df5d476/准确CI42508461523成功，159回归/lint/类型通过；不要继续修同一API或重跑旧03d52073…。下一只等用户`aws login --profile techlong-sandbox-user`后明确新一轮同范围准备与本地结案（STS最多2/既有元数据70、原私有计划检查、全部谓词匹配才一次本地结案＋新只读plan）。保留a/原失败attempt，不自动沿用未用预算或以a开始时间作为有效五小时新快照；实际停用仍新SHA另批。下方已批准准备文字是a的范围，不是自动重试许可。
+
+源码df5d476/准确无AWS CI42508461523成功，159项回归/lint/类型通过。用户随后明确允许[离线草案](../ops/temporary-idle/stop-continuation-offline-20261108.json)中的一次准备：最多STS2/既有白名单元数据70及原私有计划/journal读取；仅在三栈/依赖仍原状、无原CS/ACK/执行、根pointer仍准确旧plan等全部条件匹配时，追加独立审计/保留旧文件原字节，一次关闭根pending引用，最后成功指针不变，再由原plan-stop生成新SHA并本地回读。不删锁、复位旧attempt或换根；失败不补齐/重试。AWS写/Change Set/Secret值/PEM/.env/SQL为0，内存/日志/本地迁移/并发风险已接受；实际新停用仍须新SHA另批。该新授权不复活03d52073…，只在本轮内按准确谓词执行。
 
 用户以“开始下一步”确认上一条最小建议。本轮仅修原创建请求/适配器/回读校验及fixture/SDK回归：普通请求省略DeploymentMode，不改传REVERT_DRIFT；回读接受字段缺失，DeploymentConfig仅接纳官方普通默认值而拒绝EXPRESS/禁用回滚/未知字段，避免混淆两个枚举。使用真实SDK序列化/反序列化与内存HTTP handler验证，不调用AWS或读取凭据。旧attempt/原SHA/root pending不修改；不重试停用、改IAM或云资源，实际新接续/读取仍另审。本轮交付限代码CI和离线具体继续材料，不把源码通过当停费完成。
 

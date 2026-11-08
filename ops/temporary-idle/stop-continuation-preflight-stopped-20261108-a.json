@@ -1,0 +1,53 @@
+{
+  "schema": "techlong/temporary-environment-continuation-preparation-stop/v1",
+  "preparationAttempt": "a",
+  "status": "PREPARATION_STOPPED_NO_CLOUD_WRITE",
+  "sourceCommit": "df5d4768f68d41a06b8cce10efe2b659b22f725f",
+  "codeCi": {
+    "runId": 42508461523,
+    "conclusion": "success",
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/42508461523"
+  },
+  "localTestsPassed": 159,
+  "scopedLintPassed": true,
+  "typecheckPassed": true,
+  "startedAt": "2026-11-08T18:12:42.640Z",
+  "completedAt": "2026-11-08T18:13:14.930Z",
+  "phase": "READ_ONLY_RESOURCE_INSPECTION",
+  "code": "ExpiredToken",
+  "operation": "describe-listeners",
+  "closureDirectory": null,
+  "oldPendingClosed": false,
+  "callCounts": {
+    "sts/get-caller-identity": 1,
+    "cloudformation/describe-stacks": 3,
+    "cloudformation/get-template": 3,
+    "cloudformation/list-stack-resources": 3,
+    "ecs/list-services": 2,
+    "application-autoscaling/describe-scalable-targets": 2,
+    "ecs/describe-services": 2,
+    "ecs/describe-task-definition": 1,
+    "elbv2/describe-load-balancers": 2,
+    "elbv2/describe-tags": 2,
+    "elbv2/describe-listeners": 2,
+    "elbv2/describe-rules": 2
+  },
+  "cloudWrites": 0,
+  "retry": false,
+  "totals": {
+    "stsCalls": 1,
+    "resourceMetadataCallsIncludingFailure": 24,
+    "cloudWrites": 0,
+    "localPendingClosures": 0,
+    "newCloudChangeSets": 0,
+    "secretPemEnvOrSqlReads": 0
+  },
+  "predecessorPlanId": "5625988f-48eb-4052-b41f-bce4202e635d",
+  "predecessorSha256": "03d52073ebec4788ea4133f847656a7e4e386d74fc0a56a17a6d26046361e618",
+  "predecessorAttemptRemainsConsumed": true,
+  "noOldStateReset": true,
+  "newPlanId": null,
+  "newPlanSha256": null,
+  "newValidSnapshotEstablished": false,
+  "nextAction": "Await Source refresh and a new explicit same-scope preparation/local-closure allowance; preserve this failure and do not reuse its unused read budget automatically."
+}

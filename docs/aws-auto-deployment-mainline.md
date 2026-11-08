@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：仅修CFN普通模式接口契约及测试，离线准备新受审继续方案（2026-11-08）
+## 当前唯一继续点：代码及CI完成，准备a因ExpiredToken停止，等待Source刷新和新同范围许可（2026-11-08）
+
+df5d476/CI42508461523成功，159回归/lint/类型通过。另批准备a于18:13:14.930Z在DescribeListeners的ExpiredToken停止，STS1/元数据24、云写/私密值/SQL0；pending未关闭、未建立有效整组快照/新plan/SHA，旧attempt不复位。[停止记录](../ops/temporary-idle/stop-continuation-preflight-stopped-20261108-a.json)。下一只等Source刷新并另允同范围STS2/元数据70及必要的受审本地结案、新只读计划；不重跑a或旧03d停用，不沿用未用预算。下方已批准范围为本次a经过，不是自动重试许可。
+
+df5d476/CI42508461523及159回归/lint/类型通过。用户另允STS2/既有元数据70＋原私有计划/journal，仅在原资源/旧拒绝提交和根pending全部精确匹配时，保留旧attempt/文件、追加审计并一次关闭根未决引用（成功周期不变），再用原plan-stop生成新SHA。不写AWS/创建CS、不读秘密或SQL，不删锁/复位/换根；未知即停不自动补齐。实际停用仍另批新SHA。下面代码/草案阶段已完成，不重跑旧03d计划。
 
 用户已要求开始上一最小建议。本轮只修原请求/适配器/回读与fixture、真实SDK无网络回归；不把DeploymentConfig.Mode的STANDARD误传为DeploymentMode，不启用REVERT_DRIFT/EXPRESS。不读AWS/凭据/私密值，不改旧pending或重跑03d52073…；准确CI后只形成离线新继续材料，实际接续/云操作另审，不扩框架。
 

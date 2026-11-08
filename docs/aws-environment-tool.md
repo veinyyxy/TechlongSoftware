@@ -6,6 +6,14 @@
 
 ## 当前实现与范围
 
+### 最新：契约修复及CI完成，准备a在Source过期处停止，旧pending未改
+
+最终源码`df5d4768f68d41a06b8cce10efe2b659b22f725f`的[准确无AWS CI42508461523](https://github.com/veinyyxy/TechlongSoftware/actions/runs/42508461523)成功，159项回归/lint/类型通过；已包含真实SDK无网络契约检查及旧pending/journal不自动修改回归，不再重复此修复。
+
+用户随后另批STS2/元数据70＋原私有计划/journal，完全匹配才本地结案和新只读计划。准备a于18:12:42.640Z—18:13:14.930Z在平台ALB DescribeListeners以ExpiredToken停止；STS1/元数据24含失败1，所有云写、秘密值/PEM/.env/SQL0。没有结案目录/根pending迁移、新plan/SHA或执行attempt；本进程锁正常释放，没有删除旧锁/复位旧attempt/另换根。[原停止记录](../ops/temporary-idle/stop-continuation-preflight-stopped-20261108-a.json)保留。
+
+下一仅待Source登录刷新并明确新一轮同范围准备许可，使用新记录保留a，不自动用剩余额度续读/重跑。新鲜整组事实未建立，不能按18:12开始时间声称五小时快照有效；原03d52073…已消费，不可重用。代码完成/CI成功不是停费完成，本轮没有删除ALB或暂停新的运行资源。下面草案/批准范围保留为经过，不是当前自动执行指令。
+
 ### 当前代码修复：普通CFN接口契约已纠正，离线接续待审
 
 用户以“开始下一步”确认只修请求/回读和对应测试。本轮原请求删除非法`DeploymentMode=STANDARD`，适配器禁止调用方显式传DeploymentMode或DeploymentConfig；没有改传REVERT_DRIFT。回读要求DeploymentMode缺失；若AWS返回另一独立的DeploymentConfig，只允许已知普通默认字段（Mode缺失或STANDARD、DisableRollback缺失或false），拒绝EXPRESS/禁用回滚/未知字段或模式。`DeploymentConfig.Mode`与`DeploymentMode`是不同枚举，不能相互代用。[普通部署配置](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DeploymentConfig.html)。
