@@ -19,9 +19,40 @@
 
 只改AliasTarget.DNSName为当前1581133878，名称/类型/所属zone/目标zone/EvaluateTargetHealth=false保持。三规则归属在21:09已独立验收，本次DNS又独立匹配，组成特定Cell—租户—API Alias引用链的收口证据，不是同一时刻原子快照。最后服务观察仍为21:09的0/0/0/:12，本阶段没有重查或启动服务；INSYNC不证明公网缓存、API健康或产品验收。ALB实际active、可能持续收费，没有新增自动停机或续租。
 
-**本轮离线候选已完成，下一仅准备“创建但不执行”单份REVERT_DRIFT变更集的准确审批材料。** 采用已核对原模板的最小差异，保留控制器关闭/DesiredCount=0；先经另批创建并看实际三向差异，再单独批准执行及收费ALB恢复，不提前创建、Execute或启动任务。原只读批准及剩余预算已结束，不重复Cell/租户/API DNS、不升级镜像、改临时工具或重做业务测试，不扩执行框架。
+**仅创建审批已备齐，下一只等待新SHA确认，不先调AWS。** [准确清单及完整风险](#platform-idle-create-review)：最多CreateChangeSet1/STS2/本机元数据24，另列CFN同栈及模板直接依赖元数据的托管读取与属性内存风险；只创建未执行UPDATE/REVERT_DRIFT记录，不Execute/恢复ALB/启ECS，不改IAM/DNS/数据库或镜像。旧00:13事实及05:13Z终点不延长，最晚2026-11-08T04:58:41.732Z（温尼伯11月7日22:58:41.732 CST）启动；过期不重放。实际执行、费用和正常CFN回滚仍另批。
 
-60项本地检查及定向lint通过；新增三项只验证固定模板差异、安全停用和未授权边界，不是AWS模板验证或实际变更集证明。平台差异已盘清但未收敛，临时工具CFN统一编排原则仍留待未来；不能宣称三个栈全部无漂移或环境已运行。旧清单/事实时间/私有原件保持；本轮AWS/配置秘密/数据库/云写/执行槽均0，不重计旧00:13采样或延长其5小时终点。
+62项本地检查及定向lint通过；新增两项核对请求/模板/SHA、聚合预算及原期限，不是AWS验证或真实计划证明。平台仍未修复，本轮AWS/私密配置/数据库/云写/执行槽均0，无新执行器，不改变临时工具原则、候选模板或旧原件。
+
+<a id="platform-idle-create-review"></a>
+
+### 待确认：仅创建平台REVERT_DRIFT变更集
+
+[准确机器清单](../ops/deployment-baseline/platform-idle-creation-review-20261108.json)的规范SHA-256：
+
+`25abd21269c43cda9c355bc80b23d4c8d1fba0edf47b938e8f682043f19c1fe5`
+
+已固定新名称`techlong-platform-idle-drift-20261108t020555-ae520bf3`、ClientToken和原c4bf36b0…栈、47ae4923…候选全文。TemplateBody使用递归对象键排序/数组顺序保持的JSON序列化（8,776字节），完整请求摘要9a7cb6b0…；没有S3上传或TemplateURL。保留原两个参数UsePreviousValue和原四标签，ImportExistingResources=false/IncludeNestedStacks=false，不带OnStackFailure或执行参数。请求和SHA均已备齐，尚未获创建批准、未生成执行槽或实际ChangeSet ARN。
+
+| 阶段 | 新批准后的直接调用上限 |
+| --- | --- |
+| 创建前 | STS1；准确栈DescribeStacks/GetTemplate Original/ListStackResources/ListChangeSets各1；准确平台ALB名称缺失核对1、原ECS服务0/:12核对1，共6元数据 |
+| 唯一提交 | CreateChangeSet1，仅UPDATE/REVERT_DRIFT，不Execute；提交前持久化唯一意图和准确请求摘要 |
+| 状态等待 | DescribeChangeSet最多12，准确返回ARN（ACK不明只用批准的新名称＋准确栈），含IncludePropertyValues；总只读等待最多180秒，间隔至少10秒，不是写入重试 |
+| 独立回读 | 另进程STS1＋6元数据：准确变更集含属性1、其候选GetTemplate1、原栈及11物理绑定各1、ALB仍缺失1、ECS仍0/:12为1 |
+
+合计**STS最多2＋元数据最多24＋CreateChangeSet最多1**。只读等待与独立预留不能相互挪作新资源查询；所有直接Execute/Delete/UpdateStack/IAM/ELB/ECS/RDS/DNS/Secret值/PEM/.env/数据库/镜像/GitHub/公网请求均0。ListChangeSets和属性结果均只允许完整一页：遇NextToken即停止，不能翻页；已有AVAILABLE/创建中计划或名称冲突也停止，不删除旧FAILED记录。旧栈RoleARN/模板/标签/输出/11物理绑定、ALB缺失或服务0/:12有变化则不提交，不以剩余预算查新原因。
+
+CFN生成漂移感知计划时可能更新自身DriftInformation；独立回读应把它单列为允许的提供者元数据变化，不能把它误判成运行资源被修改，也不能因此放宽原栈状态/角色/标签/输出或物理绑定保持要求。
+
+**额外必须接受的范围与风险：** CFN会用既有身份能力读取同栈11项实际配置，并可能验证绑定模板直接引用的VPC/两子网、HTTPS证书、任务执行角色、固定Secret引用及ECR镜像的元数据来生成漂移比较（不读Secret值/数据库），后台服务调用不能被本机24次元数据上限约束，也不是本机可逐条列出的读取次数。原采样没有显式RoleARN，本请求继续省略；若现场仍无关联角色，CFN按官方语义使用Source用户派生的临时会话，权限可能较宽，本次不安装或更换角色，若出现新RoleARN就停止。[官方角色规则](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html)。
+
+`IncludePropertyValues=true`和模板读取可能让原始参数、历史lease、Environment/Command和Secret固定版本**引用**进入CLI/必要核验进程内存；它们不是Secret值API，但仍有内存、网络/提供者审计日志和低额非零费用风险。仅把允许的身份/状态/属性名、摘要及安全引用投影保存到私有ACL目录，不保存/打印原始环境/命令/参数/lease/上下文或错误，不提交业务快照。写专用属性、IgnoredProperties、NOT_CHECKED或意外差异须如实记录，不以创建成功作为执行依据。[属性读取开关](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeChangeSet.html)。
+
+创建/核对非原子，并发变化和权限失效仍可能发生；ACK不明只按准确名称/栈独立核对，不重发Create。失败或超时可能遗留未执行记录，状态超时不取消后台处理；保留旧/新记录及已消费槽，不删除、补齐、复位、回滚、自动换STANDARD或安装权限。即使计划含超范围变化，也只记录不执行/删除。未来Execute可能注销旧CFN任务版本、恢复收费ALB和更新DNS，**这些都不在本次批准内**；创建后需实际计划通过并另批执行/失败策略和费用。
+
+沿用真实源事实`2026-11-08T00:13:41.732Z`至`05:13:41.732Z`，保留15分钟预留，必须在**温尼伯2026年11月7日22:58:41.732 CST / UTC次日04:58:41.732前启动**，本轮材料生成时间不续期。独立读取也不得超过原05:13Z；窗口不足/到期即停止，新范围另审。旧HostingExpiresAt标签/租约不续、不禁用清理；这不是资源到期或自动停机设置，其他资源仍可计费，50USD/月不是硬上限。本轮只离线封存清单，不事先探测Source登录或执行任何账号API。
+
+可确认语句：我确认按上述完整SHA，仅创建未执行平台REVERT_DRIFT变更集，批准清单内前置检查、CFN后台漂移读取、详细属性内存核验和独立回读；不执行、不恢复ALB、不启动环境、不改IAM/DNS/数据库，并接受本节完整风险。
 
 <a id="platform-idle-convergence"></a>
 
@@ -45,7 +76,7 @@
 
 原生`DeploymentMode=REVERT_DRIFT`可比较实际、旧声明、新声明，并恢复栈外删除的资源；这是本候选选择原逻辑ID而不增加拆除/重建两轮的依据。[AWS发布说明](https://aws.amazon.com/about-aws/whats-new/2025/11/configuration-drift-enhanced-cloudformation-sets/)。
 
-1. **另审仅创建**：对准确c4bf36b0…原栈提交一次UPDATE/REVERT_DRIFT候选，IncludeNestedStacks=false，旧两参数UsePreviousValue；不执行。CFN会自行读取资源进行三向比较，相关托管读取、敏感属性比较及本机回读须计入新批准范围，不能套用上轮19次预算。当前只存不完整请求片段，无新ChangeSetName、ClientToken或执行SHA。
+1. **另审仅创建**：对准确c4bf36b0…原栈提交一次UPDATE/REVERT_DRIFT候选，IncludeNestedStacks=false，旧两参数UsePreviousValue；不执行。CFN会自行读取资源进行三向比较，相关托管读取、敏感属性比较及本机回读须计入新批准范围，不能套用上轮19次预算。原离线计划中的不完整片段保持；后继完整新名称/ClientToken/请求摘要及创建审批已在[上节](#platform-idle-create-review)另存，仍未创建。
 2. **审查真实计划**：必须证明原LoadBalancer/HttpsListener缺失且将被CFN恢复，DnsRecord转向恢复后的ALB；TaskDefinition/Service仅闭控/停用及相应任务版本收敛。允许变化范围只含这五项，其他六项物理绑定必须保留；不得Import、改逻辑ID、增栈或夹带IAM/Cell/租户变化。不预先臆断缺失资源在API中一定显示Add；读完整属性/Drift/BeforeValueFrom及IgnoredProperties后判定。类型不支持、不可变漂移或未知额外变化就停止，不自动降为STANDARD或改走A1/A2。[官方限制与比较语义](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/drift-aware-change-sets.html)。
 3. **执行另批**：只有实际计划通过后，才请求一次Execute及正常CFN回滚、托管清理旧任务版本和独立回读的准确批准。模板ContainerDefinitions变化可能生成新的CFN所属revision，不能预测一定是:13，也不直接认领:12；Service仍引用CFN TaskDefinition，DesiredCount=0。现有依赖使ALB→443监听器/目标组→Service、ALB→DNS由CFN编排。不得先按旧:11启动服务。
 

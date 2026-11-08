@@ -49,6 +49,7 @@ import platformReadScope from '../ops/deployment-baseline/platform-ownership-rea
 import platformObserved from '../ops/deployment-baseline/platform-ownership-observed-20261107.json' with { type: 'json' };
 import platformPlan from '../ops/deployment-baseline/platform-idle-convergence-offline-plan.json' with { type: 'json' };
 import platformCandidate from '../ops/deployment-baseline/platform-idle-convergence.template.json' with { type: 'json' };
+import platformCreateReview from '../ops/deployment-baseline/platform-idle-creation-review-20261108.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet, draftPlatformIdleConvergence } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -1135,4 +1136,36 @@ test('native drift-aware proposal is create-only pending approval, requires real
   assert.equal(p.timing.sourceObservedAt,platformObserved.startedAt);assert.equal(p.timing.sourceFactsValidUntil,platformObserved.factsValidUntil);
   for(const key of ['readAuthorized','createAuthorized','executeAuthorized','environmentStartAuthorized','executionAuthorized','formalThreeStackBaselineComplete'])assert.equal(p[key],false,key);
   assert.ok(Object.values(p.preparation).every(x=>x===0));assert.deepEqual(p.stages.map(s=>s.authorized),[true,false,false]);
+});
+
+test('platform create-only review binds the exact idle template, previous parameters and original no-role stack without granting Execute',()=>{
+  const a=platformCreateReview,r=a.requestWithoutTemplateBody,canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex'),body=JSON.stringify(canonical(platformCandidate));
+  for(const [file,value]of [['platform-idle-convergence-offline-plan.json',platformPlan],['platform-idle-convergence.template.json',platformCandidate],['platform-ownership-observed-20261107.json',platformObserved]])assert.equal(a.evidence.find(e=>e.file===file)?.canonicalSha256,sha(value),file);
+  assert.equal(a.templateSource.canonicalSha256,sha(platformCandidate));assert.equal(a.templateSource.utf8Bytes,Buffer.byteLength(body));assert.ok(Buffer.byteLength(body)<51200);
+  assert.equal(a.materializedRequestCanonicalSha256,sha({...r,TemplateBody:body}));assert.equal(r.StackName,platformObserved.stackId);
+  assert.equal(r.ChangeSetType,'UPDATE');assert.equal(r.DeploymentMode,'REVERT_DRIFT');assert.equal(r.ImportExistingResources,false);assert.equal(r.IncludeNestedStacks,false);
+  assert.deepEqual(r.Parameters,platformPlan.futureCreateRequestFragment.Parameters);assert.equal(a.expected.stackTagMapCanonicalSha256,sha(Object.fromEntries(r.Tags.map(t=>[t.Key,t.Value]))));
+  assert.match(r.ChangeSetName,/^techlong-platform-idle-drift-[a-z0-9-]+$/);assert.match(r.ClientToken,/^platform-idle-create-[a-f0-9]{24}$/);
+  assert.equal(a.expected.noExplicitStackRoleArn,true);assert.equal(a.expected.sourceTemporarySessionForCfn,true);
+  assert.equal(a.expected.providerDriftInformationMayUpdateDuringCreation,true);
+  for(const key of ['RoleARN','ResourcesToImport','OnStackFailure','DisableRollback','TemplateURL','UsePreviousTemplate'])assert.equal(Object.hasOwn(r,key),false,key);
+  assert.deepEqual(a.expected.retainedCfnPhysicalBindings.map(x=>x.physicalId),platformObserved.resources.map(x=>x.cfnPhysicalId));
+  assert.deepEqual(a.expected.onlyAllowedChangeLogicalIds,platformPlan.reviewRequirements.onlyFiveLogicalResourcesMayChange);
+  for(const key of ['readAuthorized','creationAuthorized','executionAuthorized','environmentStartAuthorized','codeRunnerImplementedByThisReview'])assert.equal(a[key],false,key);
+});
+
+test('platform create-only approval has aggregate read reserves, explicit managed drift reads and original fact deadlines',()=>{
+  const a=platformCreateReview,s=a.scope;
+  assert.equal(s.createChangeSetMax,1);assert.equal(s.stsMax,2);assert.equal(s.metadataReadMax,24);
+  assert.equal(a.calls.writerPreflight.reduce((n,x)=>n+x.max,0),6);assert.equal(a.calls.writerStatus[0].max,12);assert.equal(a.calls.independent.reduce((n,x)=>n+x.max,0),6);
+  assert.equal(s.writerPreflightMetadataMax+s.writerDescribeChangeSetPollMax,s.writerMetadataMax);assert.equal(s.writerMetadataMax+s.independentMetadataReserve,s.metadataReadMax);
+  for(const key of ['executeChangeSet','deleteChangeSet','createStack','updateStack','rollbackStack','iamReads','iamWrites','dnsWrites','elbWrites','ecsWrites','rdsOperations','secretValueReads','privateKeyReads','configSecretFileReads','databaseConnections','imageUpdates','githubCalls','publicDnsOrHttpCalls','lambdaInvocations','dispatch'])assert.equal(s[key],0,key);
+  assert.equal(s.cloudFormationManagedReads.allowed,true);assert.equal(s.cloudFormationManagedReads.directApiBudgetDoesNotBoundProviderInternalReads,true);assert.equal(s.cloudFormationManagedReads.noUnderlyingResourceMutationAuthorized,true);
+  assert.equal(a.propertyReview.includePropertyValues,true);assert.equal(a.propertyReview.rawParametersAndBeforeAfterContextMayEnterCliMemory,true);assert.equal(a.propertyReview.noRawEnvironmentCommandParameterLeaseOrProviderErrorBodiesPersistedOrPrinted,true);
+  assert.equal(a.factsAt,platformObserved.startedAt);assert.equal(a.factsValidBefore,platformObserved.factsValidUntil);assert.equal(a.independentReadsBefore,a.factsValidBefore);assert.equal(Date.parse(a.factsValidBefore)-Date.parse(a.startBefore),15*60000);
+  assert.match(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Winnipeg',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(a.startBefore)),/^22:58$/);
+  assert.equal(a.failurePolicy.unknownSubmissionMustBeInspectedNotResent,true);assert.equal(a.failurePolicy.independentReadbackAfterAckOrUncertainResultWithinReservedBudget,true);
+  for(const key of ['automaticWriteRetries','automaticReadRetries','repeatWholeCommand','attemptResetAllowed','automaticExecute','automaticDeleteRollbackOrCleanup'])assert.equal(a.failurePolicy[key],false,key);
+  assert.equal(s.perRequestMaxAttempts,1);assert.equal(s.pagination,false);assert.ok(Object.values(a.preparation).every(x=>x===0));
 });

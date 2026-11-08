@@ -1,0 +1,371 @@
+{
+  "schema": "techlong/platform-idle-creation-review/v1",
+  "status": "PREPARED_NOT_APPROVED",
+  "preparedAt": "2026-11-08T02:05:55.202Z",
+  "preparedFromSourceCommit": "739e9e94b1df7a378ff3bd981727ae1966683ffa",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "profile": "techlong-sandbox-user",
+  "expectedPrincipalArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "expectedPrincipalUserId": "AIDAV3GNMXTZEO7SHLC2X",
+  "evidence": [
+    {
+      "file": "platform-idle-convergence-offline-plan.json",
+      "canonicalSha256": "86685d3e5a7600ac95ebf5de7590db2c65863509ae26f342dba2c1f6ad004746"
+    },
+    {
+      "file": "platform-idle-convergence.template.json",
+      "canonicalSha256": "47ae49231809b1cbe5859c0d5eebd4444c5795162a39ead51ba81964d557f3c1"
+    },
+    {
+      "file": "platform-ownership-observed-20261107.json",
+      "canonicalSha256": "15e85cf4220d58de4ffcf1bed9bc505f818a31a75f77442f892438934e83cf70"
+    }
+  ],
+  "factsAt": "2026-11-08T00:13:41.732Z",
+  "factsValidBefore": "2026-11-08T05:13:41.732Z",
+  "startBefore": "2026-11-08T04:58:41.732Z",
+  "startBeforeWinnipeg": "2026-11-07 22:58:41.732 CST",
+  "independentReadsBefore": "2026-11-08T05:13:41.732Z",
+  "templateSource": {
+    "file": "platform-idle-convergence.template.json",
+    "canonicalSha256": "47ae49231809b1cbe5859c0d5eebd4444c5795162a39ead51ba81964d557f3c1",
+    "requestField": "TemplateBody",
+    "serialization": "JSON.stringify(canonical(parsed template)); recursively sort object keys and preserve array order",
+    "utf8Bytes": 8776
+  },
+  "requestWithoutTemplateBody": {
+    "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "ChangeSetType": "UPDATE",
+    "DeploymentMode": "REVERT_DRIFT",
+    "IncludeNestedStacks": false,
+    "Parameters": [
+      {
+        "ParameterKey": "ControllerLease",
+        "UsePreviousValue": true
+      },
+      {
+        "ParameterKey": "HostingExpiresAt",
+        "UsePreviousValue": true
+      }
+    ],
+    "ChangeSetName": "techlong-platform-idle-drift-20261108t020555-ae520bf3",
+    "Description": "Review only: original platform eleven owners, controller disabled and desired zero. Do not execute.",
+    "ImportExistingResources": false,
+    "ClientToken": "platform-idle-create-ae520bf350159f2a90e4a210",
+    "Tags": [
+      {
+        "Key": "ReviewNonce",
+        "Value": "1e710b176bd5e31bcddae438ace7d772"
+      },
+      {
+        "Key": "Environment",
+        "Value": "aws-sandbox"
+      },
+      {
+        "Key": "Purpose",
+        "Value": "platform-web-two-hour"
+      },
+      {
+        "Key": "HostingExpiresAt",
+        "Value": "2026-10-23T20:58:42.592Z"
+      }
+    ]
+  },
+  "materializedRequestCanonicalSha256": "9a7cb6b0fb547c133e1310aeec206559ef921f8a4efd547e24644f3d2c1c1cb7",
+  "expected": {
+    "stackStatus": "UPDATE_COMPLETE",
+    "stackLastUpdatedTime": "2026-10-27T00:53:18.035000+00:00",
+    "originalTemplateCanonicalSha256": "24e4dba31fdc422c263f703acb7ddda0b63fe179e2a9b5839d732255f4383e2f",
+    "noExplicitStackRoleArn": true,
+    "roleArnMustRemainOmittedFromRequest": true,
+    "sourceTemporarySessionForCfn": true,
+    "providerDriftInformationMayUpdateDuringCreation": true,
+    "stackTagMapCanonicalSha256": "ae52c8f310d8ff7f786d2832531181f8517fbc2d51a99b45735b98b361b7b413",
+    "stackOutputs": [
+      {
+        "OutputKey": "HostingExpiresAt",
+        "OutputValue": "2026-10-23T20:58:42.592Z"
+      },
+      {
+        "OutputKey": "Url",
+        "OutputValue": "https://console.sandbox.techlong.cloud"
+      }
+    ],
+    "retainedCfnPhysicalBindings": [
+      {
+        "logicalId": "AlbSecurityGroup",
+        "type": "AWS::EC2::SecurityGroup",
+        "physicalId": "sg-0f9770a8e90b139c2",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "logicalId": "Cluster",
+        "type": "AWS::ECS::Cluster",
+        "physicalId": "techlong-sandbox-platform",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "logicalId": "DnsRecord",
+        "type": "AWS::Route53::RecordSet",
+        "physicalId": "console.sandbox.techlong.cloud",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "logicalId": "HttpsListener",
+        "type": "AWS::ElasticLoadBalancingV2::Listener",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-platform/23610822b0ae5c30/f5d6d689383d64c0",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "logicalId": "LoadBalancer",
+        "type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/23610822b0ae5c30",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "logicalId": "LogGroup",
+        "type": "AWS::Logs::LogGroup",
+        "physicalId": "/ecs/techlong-sandbox/platform-web",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "logicalId": "Service",
+        "type": "AWS::ECS::Service",
+        "physicalId": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+        "status": "UPDATE_COMPLETE"
+      },
+      {
+        "logicalId": "TargetGroup",
+        "type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "physicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/techlong-platform-web-v1/b29a8b9e4f95f6dd",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "logicalId": "TaskDefinition",
+        "type": "AWS::ECS::TaskDefinition",
+        "physicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:11",
+        "status": "UPDATE_COMPLETE"
+      },
+      {
+        "logicalId": "TaskIngress",
+        "type": "AWS::EC2::SecurityGroupIngress",
+        "physicalId": "sgr-009f70fee0c3b27c4",
+        "status": "CREATE_COMPLETE"
+      },
+      {
+        "logicalId": "TaskSecurityGroup",
+        "type": "AWS::EC2::SecurityGroup",
+        "physicalId": "sg-018de900b98bd3a35",
+        "status": "CREATE_COMPLETE"
+      }
+    ],
+    "service": {
+      "cluster": "techlong-sandbox-platform",
+      "name": "techlong-sandbox-platform-web",
+      "arn": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+      "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:12",
+      "desired": 0,
+      "running": 0,
+      "pending": 0
+    },
+    "namedPlatformAlb": "techlong-sandbox-platform",
+    "namedPlatformAlbMustRemainAbsent": true,
+    "noOtherAvailableOrCreatingChangeSets": true,
+    "newChangeSetNameMustNotAlreadyExist": true,
+    "createdStatus": "CREATE_COMPLETE",
+    "createdExecutionStatus": "AVAILABLE",
+    "deploymentMode": "REVERT_DRIFT",
+    "proposedTemplateCanonicalSha256": "47ae49231809b1cbe5859c0d5eebd4444c5795162a39ead51ba81964d557f3c1",
+    "onlyAllowedChangeLogicalIds": [
+      "LoadBalancer",
+      "HttpsListener",
+      "DnsRecord",
+      "TaskDefinition",
+      "Service"
+    ],
+    "otherSixChangesBlockAcceptance": true,
+    "deletedAlbAndListenerRecreationRequiresActualDriftProof": true,
+    "taskDefinitionRevisionNotPredicted": true,
+    "noAssumedActionAddForDeletedResource": true,
+    "noRemoveImportRenameOrNestedStack": true,
+    "creationSuccessNotExecutionApproval": true,
+    "stackServiceAndResourcesUnchangedAfterCreation": true
+  },
+  "scope": {
+    "createChangeSetMax": 1,
+    "stsMax": 2,
+    "metadataReadMax": 24,
+    "writerPreflightMetadataMax": 6,
+    "writerDescribeChangeSetPollMax": 12,
+    "independentMetadataReserve": 6,
+    "writerMetadataMax": 18,
+    "readOnlyWaitMaxSeconds": 180,
+    "minimumStatusPollIntervalSeconds": 10,
+    "perRequestMaxAttempts": 1,
+    "pagination": false,
+    "executeChangeSet": 0,
+    "deleteChangeSet": 0,
+    "createStack": 0,
+    "updateStack": 0,
+    "rollbackStack": 0,
+    "iamReads": 0,
+    "iamWrites": 0,
+    "dnsWrites": 0,
+    "elbWrites": 0,
+    "ecsWrites": 0,
+    "rdsOperations": 0,
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "configSecretFileReads": 0,
+    "databaseConnections": 0,
+    "imageUpdates": 0,
+    "githubCalls": 0,
+    "publicDnsOrHttpCalls": 0,
+    "lambdaInvocations": 0,
+    "dispatch": 0,
+    "cloudFormationManagedReads": {
+      "allowed": true,
+      "target": "The exact eleven resource platform stack and metadata of its directly referenced existing template dependencies only, using existing Source-derived permissions.",
+      "externalDependenciesBoundBy": "The exact templateSource SHA: VPC/two subnets, HTTPS certificate, task execution role, fixed database Secret reference and ECR image digest. Metadata only; no Secret values, SQL or other stacks.",
+      "directApiBudgetDoesNotBoundProviderInternalReads": true,
+      "resourceConfigurationAndDriftValidationMayBeRead": true,
+      "noUnderlyingResourceMutationAuthorized": true,
+      "noNewRoleOrPermissionInstallationAuthorized": true
+    }
+  },
+  "calls": {
+    "writerPreflight": [
+      {
+        "operation": "cloudformation:DescribeStacks",
+        "max": 1,
+        "target": "Exact stackId; compare UUID/status/last update/no explicit RoleARN/tags/outputs, parameter keys only; no parameter values persisted."
+      },
+      {
+        "operation": "cloudformation:GetTemplate",
+        "max": 1,
+        "target": "Exact stackId Original, hash must match original; no raw Environment/Command persisted."
+      },
+      {
+        "operation": "cloudformation:ListStackResources",
+        "max": 1,
+        "target": "Exact stackId, one complete page; compare all eleven existing CFN physical bindings."
+      },
+      {
+        "operation": "cloudformation:ListChangeSets",
+        "max": 1,
+        "target": "Exact stackId, one complete page; stop on AVAILABLE/creating plan, name collision or NextToken; retain FAILED/old records, do not delete."
+      },
+      {
+        "operation": "elasticloadbalancing:DescribeLoadBalancers",
+        "max": 1,
+        "target": "Exact Names [techlong-sandbox-platform], must return LoadBalancerNotFound."
+      },
+      {
+        "operation": "ecs:DescribeServices",
+        "max": 1,
+        "target": "Exact expected platform cluster/service only, compare ARN/0 counts/:12 reference with bound receipt."
+      }
+    ],
+    "writerStatus": [
+      {
+        "operation": "cloudformation:DescribeChangeSet",
+        "max": 12,
+        "target": "Only returned bound ARN; on uncertain ACK use exact new name plus exact stackId. IncludePropertyValues=true, no NextToken. Bounded state polling is not write retry."
+      }
+    ],
+    "independent": [
+      {
+        "operation": "cloudformation:DescribeChangeSet",
+        "max": 1,
+        "target": "Exact bound ARN or unique approved name+stack, IncludePropertyValues=true, one complete page; confirm mode/status/template input/changes/Drift/IgnoredProperties."
+      },
+      {
+        "operation": "cloudformation:GetTemplate",
+        "max": 1,
+        "target": "Exact stackId and newly bound ChangeSetName ARN, TemplateStage Original; proposed body SHA must equal candidate."
+      },
+      {
+        "operation": "cloudformation:DescribeStacks",
+        "max": 1,
+        "target": "Exact original stack identity/status/last update/RoleARN/tags/outputs unchanged; CFN-managed DriftInformation may update during creation and is recorded separately, not treated as a resource write."
+      },
+      {
+        "operation": "cloudformation:ListStackResources",
+        "max": 1,
+        "target": "Exact original stack, one complete page; all eleven old physical bindings remain unchanged."
+      },
+      {
+        "operation": "elasticloadbalancing:DescribeLoadBalancers",
+        "max": 1,
+        "target": "Exact platform name remains absent, no resource restoration."
+      },
+      {
+        "operation": "ecs:DescribeServices",
+        "max": 1,
+        "target": "Exact original platform service still same ARN/:12 and 0/0/0."
+      }
+    ]
+  },
+  "propertyReview": {
+    "includePropertyValues": true,
+    "rawParametersAndBeforeAfterContextMayEnterCliMemory": true,
+    "contextsMayContainHistoricalLeaseEnvironmentCommandAndSecretReferences": true,
+    "onlyAllowlistedResourceIdentityStatusPropertyNamesHashesAndSafeReferenceProjectionsSavedPrivately": true,
+    "noRawEnvironmentCommandParameterLeaseOrProviderErrorBodiesPersistedOrPrinted": true,
+    "noSecretValueApiOrConfigReads": true,
+    "writeOnlyIgnoredOrNotCheckedFieldsMustRemainExplicit": true,
+    "unrecognizedActualPlanRequiresManualReviewNotAutomaticExecution": true
+  },
+  "failurePolicy": {
+    "attemptDirectory": ".local-secrets/techlong-platform-idle-drift-20261108t020555-ae520bf3",
+    "executionAttemptKey": "ae520bf350159f2a90e4a210",
+    "submissionIntentSavedBeforeCreate": true,
+    "executionSlotConsumedOnlyImmediatelyBeforeSubmission": true,
+    "automaticWriteRetries": false,
+    "automaticReadRetries": false,
+    "repeatWholeCommand": false,
+    "attemptResetAllowed": false,
+    "automaticExecute": false,
+    "automaticDeleteRollbackOrCleanup": false,
+    "unknownSubmissionMustBeInspectedNotResent": true,
+    "independentReadbackAfterAckOrUncertainResultWithinReservedBudget": true,
+    "preflightFailureStopsWithoutCreateOrExtraDiagnostic": true,
+    "timeoutDoesNotCancelProviderWork": true,
+    "permissionOrUnsupportedModeStopsNoIamRepairOrStandardFallback": true,
+    "unexpectedPlanRemainsUnexecutedAndPreserved": true
+  },
+  "preparation": {
+    "accountAwsCalls": 0,
+    "cloudWrites": 0,
+    "privateConfigReads": 0,
+    "secretValueReads": 0,
+    "databaseConnections": 0,
+    "newExecutionSlots": 0
+  },
+  "risks": [
+    "Only one unexecuted UPDATE/REVERT_DRIFT change-set record is authorized after explicit approval. No ALB, listener, task, DNS, IAM or database change is authorized; creating a record is not repair or deployment success.",
+    "The exact stack has no associated execution RoleARN in the bound observation. The request deliberately omits RoleARN; if that fact remains true, CloudFormation uses a temporary session derived from the existing Source user. The effective credentials may be broader than the template scope; no role or permission installation is authorized. Stop if an explicit role appears.",
+    "CloudFormation reads actual configuration for the eleven-resource stack and may validate metadata of its bound external VPC/subnets, HTTPS certificate, task execution role, fixed Secret reference and ECR image, using underlying service APIs. These internal calls cannot be capped by the local 24 metadata-call budget; network/provider audit logs and low nonzero fees remain. Secret values and database access are excluded. Existing validation/hooks are provider-managed, not permission for an agent to invoke a Lambda or mutate resources.",
+    "Detailed change-set property review and GetTemplate may place historical lease/parameter/Environment/Command and fixed Secret reference metadata into process memory. Persist only allowlisted safe projections and hashes in a private ACL directory; no raw context, credentials, Secret values, private keys, configuration files or business snapshots are saved to Git or printed.",
+    "Preflight, Create and independent inspection are non-atomic. Concurrent updates or permission/schema changes may invalidate the plan. Unexpected diff/ignored/write-only fields or pagination prevent acceptance, never trigger automatic Execute, fallback, IAM repair, deletion or a new slot.",
+    "An uncertain/failed Create may leave an unexecuted record while other retained resources or audit facilities can continue charging. Preserve it and all old records; no automatic retry, replacement, rollback or cleanup. Status timeout does not cancel provider processing. If acknowledgement is uncertain, inspect only the exact approved name and stack within reserve.",
+    "Historical HostingExpiresAt tags and controller lease parameters are retained unchanged; this approval neither renews them nor disables existing cleanup. Source fact timestamps and five-hour endpoint are not reset. Resource billing can continue elsewhere and 50 USD/month is not a hard cap. Later paid ALB restoration, task-definition replacement/retirement and normal CFN rollback require separate execution approval."
+  ],
+  "sources": [
+    {
+      "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html",
+      "purpose": "Exact UPDATE request, omitted role behavior, tags and DeploymentMode."
+    },
+    {
+      "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeChangeSet.html",
+      "purpose": "Explicit IncludePropertyValues review and incomplete-page stop."
+    }
+  ],
+  "readAuthorized": false,
+  "creationAuthorized": false,
+  "executionAuthorized": false,
+  "environmentStartAuthorized": false,
+  "codeRunnerImplementedByThisReview": false,
+  "nextAfterCreation": "Independently classify the real unexecuted ARN and drift/property proof. A successful create does not authorize Execute; unexpected changes remain unexecuted and preserved. Prepare any execution/failure-policy/ALB-cost approval separately."
+}
