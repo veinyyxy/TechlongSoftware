@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：新停用只读计划通过，仅待准确SHA及完整风险批准（2026-11-08）
+## 当前唯一继续点：停用首个Create失败，独立核对后停止，待限定查因（2026-11-08）
+
+用户确认03d52073…后单次执行；第一tenant-drain CreateChangeSet返回ValidationError，ACK/Execute/停库0，attempt及原SHA消费、root保持NEEDS_INSPECTION。另一进程17:37Z只读证明三栈UPDATE_COMPLETE、准确名变更集单页无匹配、两个ALB仍active、两ECS0/0/0、两库stopped。合计STS2/元数据43/Create提交1、其他直接写0，**尚未停费**。[执行与独立记录](../ops/temporary-idle/stop-execution-20261108.json)。
+
+具体AWS原因未被原适配器保留，不能猜根因或重跑。已请求限定CloudTrail只读许可（STS1/LookupEvents最多3、间隔≥2分钟/最多10分钟，限本次准确事件/名称，只保存去敏原因），未答复前不增加读取/修复或云写。不清锁/复位pending，不换大角色或直接删CFN ALB。以下旧待批准段保留为前置记录。
 
 源码d60e190/CI42504572554及155回归/lint/类型通过。原工具新只读STS1/元数据29、云写/私密值/SQL/attempt0；三栈覆盖项/引用核对通过，两ECS0/0/0、两库stopped、两ALB仍active。本地独立核对私有plan和当前实现闭包通过，持久配置仍关闭，不是实际启停验收。
 

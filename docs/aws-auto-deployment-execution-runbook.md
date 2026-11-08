@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：新停用计划已只读准备并本地独立核验，仅等待准确SHA执行批准（2026-11-08）
+## 当前唯一继续点：停用首个CreateChangeSet被拒，已独立核对，停止写入待限定查因（2026-11-08）
+
+用户已在准确SHA及完整风险请求后回复“我确认”。原plan5625988f…于17:33:38.936Z—17:34:24.296Z单次调用，写前核对通过，首个tenant-drain CreateChangeSet返回ValidationError；ACK0、Execute0、停库/其他直接写0，工具NEEDS_INSPECTION，attempt/原SHA已消费，不重放或复位。原适配器只保留错误code，具体AWS原因尚未知，不猜IAM或模板根因。[完整执行及独立状态](../ops/temporary-idle/stop-execution-20261108.json)。
+
+17:37:23.316Z—17:37:37.973Z另一进程按原批准范围独立只读核对：三栈UPDATE_COMPLETE，完整单页没有本次准确名称变更集；两个ALB仍active，两ECS0/0/0、两库stopped且resource ID匹配。执行＋核对合计STS2/元数据43/Create提交1、其他直接写0。**没有停费成功，ALB可能继续收费。** 原私有attempt/root pending指针保持，没有主动回滚/清理、Source权限或代码更改，不把未到期清单当可再次执行。
+
+下一仅已向用户请求一次限定CloudTrail查因范围：官方STS最多1、准确CreateChangeSet事件/本次时间段/准确name，LookupEvents最多3次、间隔≥2分钟、最多等10分钟，只保存去敏原因/摘要，不保存模板/参数正文；未获新许可前不调用CloudTrail或额外读取。不重试Create、不新增权限/另建执行器或绕过CFN直接删ALB，取得真实原因后再定最小处置。下方待批准/已准备文字为执行前事实，不覆盖当前失败。
 
 逐项获准的最小兼容已完成，最终源码d60e190/准确无AWS CI42504572554成功，155回归/lint/类型通过。新原工具只读规划于17:23:12.125Z—17:23:51.530Z通过覆盖项，实际STS1/元数据29/全部云写和Secret值/PEM/.env/SQL0。两ECS0/0/0、两库stopped、两个CFN所属ALB仍active。私有plan `5625988f-48eb-4052-b41f-bce4202e635d`已由另一进程本地核对SHA/当前闭包/未消费attempt；不是实际stop/start验收。
 

@@ -6,6 +6,14 @@
 
 ## 当前实现与范围
 
+### 当前停用结果：首个Create被拒，实际未移除ALB（2026-11-08）
+
+用户确认完整03d52073…清单后，原入口于17:33:38.936Z启动、17:34:24.296Z停止。新鲜预检通过，但首个tenant-drain `CreateChangeSet`返回`ValidationError`，没有ACK/ChangeSet ARN，Execute与数据库写均0；journal为NEEDS_INSPECTION、actions为UNKNOWN_OR_REJECTED、无完成阶段。原尝试已消费，root pending保持；即使22:23Z未到期也不能再次执行。
+
+另一进程17:37:23.316Z—17:37:37.973Z按原范围独立读取三栈、准确变更集名、两ALB/服务/数据库：三栈仍UPDATE_COMPLETE，list-change-sets完整单页无`tl-env-d6b756a9833a541e02b7652c3236677c3075-plan`；两ALB active、两ECS0/0/0、两库stopped且ID匹配。执行读34（含STS1）/Create提交1，独立读11（含STS1）/写0，合计STS2/元数据43/Create提交1，其他直接写0。[执行回执](../ops/temporary-idle/stop-execution-20261108.json)未含私密模板/参数正文，不改写原准备清单或失败journal。
+
+**尚未达成停费，两个ALB未被本轮移除，可能持续收费。** 原错误适配器只保留code，不能据ValidationError推断唯一根因。已请求另一次限定CloudTrail事件查因（STS最多1＋LookupEvents最多3、间隔至少2分钟/最多10分钟，只投影准确本次名称/时间内的去敏原因/摘要，不保存事件模板或参数正文）。未获许可前不调用，不重试写、修原错误适配器、加权限、清锁/复位/换状态根或绕过CFN。后续修复/新写方案按真实原因另定；下面新清单待批文本属于执行前历史。
+
 <a id="stop-approval-20261108"></a>
 
 ### 当前：新只读停用计划已准备并独立本地回读，等待执行批准

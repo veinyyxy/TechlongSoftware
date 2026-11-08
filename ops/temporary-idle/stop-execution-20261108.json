@@ -1,0 +1,152 @@
+{
+  "schema": "techlong/temporary-environment-stop-execution/v1",
+  "status": "STOP_FAILED_INDEPENDENTLY_INSPECTED_NOT_STOPPED",
+  "executionApproved": true,
+  "approvalSource": "User confirmed immediately following the exact plan SHA and complete-risk request in this chat.",
+  "planId": "5625988f-48eb-4052-b41f-bce4202e635d",
+  "approvedPlanSha256": "03d52073ebec4788ea4133f847656a7e4e386d74fc0a56a17a6d26046361e618",
+  "sourceCommit": "d60e190643e004b197da6fb82d7f82a391a48b7d",
+  "execution": {
+    "startedAt": "2026-11-08T17:33:38.936Z",
+    "completedAt": "2026-11-08T17:34:24.296Z",
+    "errorCode": "ValidationError",
+    "operation": "create-change-set",
+    "callCounts": {
+      "sts/get-caller-identity": 1,
+      "cloudformation/describe-stacks": 4,
+      "cloudformation/get-template": 4,
+      "cloudformation/list-stack-resources": 4,
+      "ecs/list-services": 2,
+      "application-autoscaling/describe-scalable-targets": 2,
+      "ecs/describe-services": 2,
+      "ecs/describe-task-definition": 1,
+      "elbv2/describe-load-balancers": 2,
+      "elbv2/describe-tags": 2,
+      "elbv2/describe-listeners": 2,
+      "elbv2/describe-rules": 3,
+      "route53/list-resource-record-sets": 2,
+      "rds/describe-db-clusters": 1,
+      "rds/describe-db-instances": 1,
+      "cloudformation/list-change-sets": 1,
+      "cloudformation/create-change-set": 1
+    },
+    "counts": {
+      "reads": 34,
+      "writes": 1,
+      "cfnCreates": 1,
+      "cfnExecutes": 0,
+      "databases": 0,
+      "aliases": 0
+    },
+    "completedStages": [],
+    "changeSets": {},
+    "actions": {
+      "tenant-drain/create": {
+        "status": "UNKNOWN_OR_REJECTED",
+        "service": "cloudformation",
+        "operation": "create-change-set"
+      }
+    }
+  },
+  "independentInspection": {
+    "status": "STOP_FAILURE_INDEPENDENTLY_INSPECTED_NO_RETRY",
+    "startedAt": "2026-11-08T17:37:23.316Z",
+    "completedAt": "2026-11-08T17:37:37.973Z",
+    "planId": "5625988f-48eb-4052-b41f-bce4202e635d",
+    "rootStatus": "NEEDS_INSPECTION",
+    "stacks": {
+      "platform": {
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "status": "UPDATE_COMPLETE"
+      },
+      "cell": {
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+        "status": "UPDATE_COMPLETE"
+      },
+      "tenant": {
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+        "status": "UPDATE_COMPLETE"
+      }
+    },
+    "expectedChangeSetName": "tl-env-d6b756a9833a541e02b7652c3236677c3075-plan",
+    "changeSetPageComplete": true,
+    "matchingChangeSets": [],
+    "albs": {
+      "platform": [
+        {
+          "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/c06cdf93979f2406",
+          "state": "active"
+        }
+      ],
+      "cell": [
+        {
+          "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6",
+          "state": "active"
+        }
+      ]
+    },
+    "services": {
+      "platform": {
+        "failures": [],
+        "items": [
+          {
+            "arn": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+            "desired": 0,
+            "running": 0,
+            "pending": 0
+          }
+        ]
+      },
+      "tenant": {
+        "failures": [],
+        "items": [
+          {
+            "arn": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+            "desired": 0,
+            "running": 0,
+            "pending": 0
+          }
+        ]
+      }
+    },
+    "databases": [
+      {
+        "id": "techlong-sandbox-express-d001",
+        "status": "stopped",
+        "resourceIdMatches": true
+      },
+      {
+        "id": "speedfeast-postgres-prod",
+        "status": "stopped",
+        "resourceIdMatches": true
+      }
+    ],
+    "callCounts": {
+      "sts/get-caller-identity": 1,
+      "cloudformation/describe-stacks": 3,
+      "cloudformation/list-change-sets": 1,
+      "elbv2/describe-load-balancers": 2,
+      "ecs/describe-services": 2,
+      "rds/describe-db-clusters": 1,
+      "rds/describe-db-instances": 1
+    },
+    "cloudWrites": 0
+  },
+  "totals": {
+    "stsCalls": 2,
+    "resourceMetadataCalls": 43,
+    "createChangeSetSubmissions": 1,
+    "createAcknowledgements": 0,
+    "executeChangeSetSubmissions": 0,
+    "databaseWriteSubmissions": 0,
+    "otherDirectWrites": 0
+  },
+  "privateStateDirectory": "F:/ChatGPT_workshop/aws-environment-cfn-state/plan-5625988f-48eb-4052-b41f-bce4202e635d/attempt",
+  "permanentAttemptConsumed": true,
+  "rootPendingPlanId": "5625988f-48eb-4052-b41f-bce4202e635d",
+  "noRetryRollbackCleanupOrReset": true,
+  "sourceCodeChanged": false,
+  "zeroAccountCharges": false,
+  "knownFailureCause": null,
+  "nextAction": "Await separate narrowly scoped CloudTrail diagnostic approval; preserve the consumed plan and pending state. Do not re-run stop, change permissions or reset journals."
+}
