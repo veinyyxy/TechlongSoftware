@@ -51,6 +51,7 @@ import platformPlan from '../ops/deployment-baseline/platform-idle-convergence-o
 import platformCandidate from '../ops/deployment-baseline/platform-idle-convergence.template.json' with { type: 'json' };
 import platformCreateReview from '../ops/deployment-baseline/platform-idle-creation-review-20261108.json' with { type: 'json' };
 import platformCreated from '../ops/deployment-baseline/platform-idle-created-20261108.json' with { type: 'json' };
+import platformExecuteReview from '../ops/deployment-baseline/platform-idle-execution-review-20261108.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet, draftPlatformIdleConvergence } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -1191,4 +1192,33 @@ test('real platform drift plan is independently created but unexecuted, with DNS
   assert.equal(r.timing.originalSourceFactsAt,a.factsAt);assert.equal(r.timing.originalSourceFactsValidBefore,a.factsValidBefore);assert.ok(Date.parse(r.independentlyVerifiedAt)>Date.parse(r.writerFinishedAt));
   for(const key of ['repeatCreateAuthorized','newTaskDefinitionRevisionPredicted','newAlbOrListenerPhysicalIdsAssigned','executionAuthorized','environmentStarted','automaticRetry','automaticRollbackOrCleanup','formalThreeStackBaselineComplete','fullPropertyDriftFreedomProved'])assert.equal(r[key],false,key);
   assert.equal(r.executeChangeSetCalls,0);assert.equal(r.rawParametersEnvironmentCommandLeaseAndContextsPersisted,false);assert.ok(Object.values(r.exclusions).every(x=>x===0));
+});
+
+test('platform execution review keeps DNS unsupported explicit and accepts only a freshly checked single-alias native fallback after new approval',()=>{
+  const a=platformExecuteReview,d=a.dnsReview,c=v=>Array.isArray(v)?v.map(c):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,c(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(c(v))).digest('hex');
+  for(const [file,v]of [['platform-idle-created-20261108.json',platformCreated],['platform-idle-creation-review-20261108.json',platformCreateReview],['platform-idle-convergence.template.json',platformCandidate],['platform-ownership-observed-20261107.json',platformObserved]])assert.equal(a.evidence.find(e=>e.file===file)?.canonicalSha256,sha(v));
+  assert.equal(d.onlyLogicalId,'DnsRecord');assert.equal(d.observedDriftStatus,'UNSUPPORTED');assert.equal(d.notChangedToInSync,true);assert.equal(d.originalCreatedReceiptRemainsUnacceptedForExecution,true);assert.equal(platformCreated.fullExecutionScopeAccepted,false);
+  assert.equal(d.conditionalAcceptanceRequiresThisExactShaApproval,true);assert.equal(d.freshExactBeforeRecordHashRequired,true);assert.equal(d.independentAfterAliasEqualsNewManagedAlbRequired,true);assert.equal(d.otherUnsupportedNotCheckedIgnoredOrAdditionalChangesStillBlock,true);
+  assert.deepEqual(d.desiredTarget,platformCandidate.Resources.DnsRecord.Properties.AliasTarget);assert.equal(d.onlyChangedProperty,'AliasTarget');assert.equal(d.replacement,'False');assert.equal(d.noBroadGateRelaxation,true);assert.equal(d.noDirectRoute53WriteAuthorized,true);
+  assert.deepEqual(a.expected.aliasBefore,platformObserved.observations.consoleAlias);assert.equal(a.expected.aliasBeforeCanonicalSha256,sha(a.expected.aliasBefore));assert.equal(a.expected.serviceDesiredCountAfter,0);assert.equal(a.expected.controllerEnabledAfter,false);
+  assert.equal(a.request.StackName,platformCreated.stackId);assert.equal(a.request.ChangeSetName,platformCreated.changeSetId);assert.equal(a.request.DisableRollback,false);assert.equal(a.requestCanonicalSha256,sha(a.request));
+  assert.equal(a.expected.retainedPhysicalIds.length,6);assert.equal(a.expected.noOld236PhysicalIdAsNewTarget,true);assert.equal(a.expected.newTaskDefinitionRevisionNotPredicted,true);
+  for(const key of ['readAuthorized','executionAuthorized','paidAlbRestorationAuthorized','normalProviderRollbackAuthorized','codeRunnerImplementedByThisReview','formalThreeStackBaselineComplete'])assert.equal(a[key],false,key);
+});
+
+test('platform execute approval binds one write, fresh prerequisite reads and independent ownership/DNS verification without restarting compute or extending facts',()=>{
+  const a=platformExecuteReview,s=a.scope;
+  assert.equal(s.executeChangeSetMax,1);assert.equal(s.stsMax,2);assert.equal(s.metadataReadMax,59);assert.equal(a.calls.writerPreflight.length,18);assert.equal(a.calls.independent.length,17);
+  assert.equal(a.calls.writerPreflight.reduce((n,x)=>n+x.max,0)+a.calls.writerStatus[0].max+a.calls.independent.reduce((n,x)=>n+x.max,0),s.metadataReadMax);
+  assert.equal(s.writerMetadataMax+s.independentMetadataReserve,s.metadataReadMax);assert.equal(a.calls.writerPreflight.filter(x=>x.operation==='iam:GetRole').length,3);
+  for(const key of ['createChangeSet','deleteChangeSet','updateStack','rollbackStack','continueUpdateRollback','iamWrites','directElbWrites','directEcsWrites','directDnsWrites','rdsOperations','secretValueReads','privateKeyReads','configSecretFileReads','databaseConnections','imageUpdates','githubCalls','publicDnsOrBusinessHttpCalls'])assert.equal(s[key],0,key);
+  assert.equal(s.noIamCreationOrExpansionAuthorized,true);assert.equal(s.noTaskOrDatabaseStartIntended,true);assert.equal(s.transientProviderBehaviorNotGuaranteedZero,true);
+  assert.equal(a.failurePolicy.disableRollback,false);assert.equal(a.failurePolicy.normalCfnRollbackExplicitlyIncludedButNoAgentRollback,true);assert.equal(a.failurePolicy.previousManagedRevision11MayBeDeregistered,true);assert.equal(a.failurePolicy.unmanagedRevision12NotAutomaticallyDeleted,true);
+  assert.equal(a.historicalSourceFactsAt,platformCreateReview.factsAt);assert.equal(a.historicalSourceFactsValidBefore,platformCreateReview.factsValidBefore);
+  assert.equal(Date.parse(a.startBefore)-Date.parse(a.preparedAt),5*3600000);assert.equal(Date.parse(a.independentReadsBefore)-Date.parse(a.startBefore),30*60000);
+  assert.equal(a.freshness.newExecutionWindowRequiresThisExactShaApproval,true);assert.equal(a.freshness.historicalFactsAreTargetBindingsNotCurrentExecutionEvidence,true);assert.equal(a.freshness.maxPreflightElapsedSecondsBeforeExecute,600);assert.equal(a.freshness.freshBoundedPreflightMustObserveActualStateAfterApproval,true);assert.equal(a.freshness.independentReadReserveDoesNotAuthorizeNewWrites,true);
+  assert.equal(a.pricing.fixedHourlyUsd,a.pricing.albHourly+a.pricing.publicIpv4Hourly*a.pricing.publicIpv4CountAssumed);assert.ok(Math.abs(a.pricing.fixedMonthlyUsd-a.pricing.fixedHourlyUsd*a.pricing.monthlyHoursAssumed)<1e-9);
+  assert.equal(a.pricing.noAutomaticExpiryOrStop,true);assert.equal(a.pricing.monthly50UsdNotAHardCap,true);assert.equal(a.preparation.accountAwsCalls,0);assert.equal(a.preparation.accountCloudWrites,0);assert.equal(a.preparation.publicPricingHttpsGets,2);
+  assert.equal(a.lifecycle.temporaryCostToolNotModified,true);assert.equal(a.lifecycle.noExhaustiveLiveAutomationInventoryClaimed,true);
 });
