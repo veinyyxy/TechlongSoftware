@@ -6,6 +6,19 @@
 
 ## 当前实现与范围
 
+### 最新限定查因：确认非法STANDARD接口值，未修复或重试
+
+用户另批STS最多1/LookupEvents最多3（≥2分钟间隔/最多10分钟）后，17:51:20.990Z—17:57:23.959Z仅完成这些只读调用。三次准确CreateChangeSet时间段/名称的完整单页均返回0事件，无事件/模板/参数正文保存，无其他资源读取/云写/Secret值/PEM/.env/SQL。没有取得历史AWS拒绝原文，不能把空结果解释为未提交，或宣称CloudTrail已经证明本次唯一根因。[诊断摘要](../ops/temporary-idle/stop-cloudtrail-diagnostic-20261108.json)与旧执行/三个准备失败原件分别保留。
+
+已另由本地源码、官方API和已安装SDK确认确定的契约错误：
+
+- `environment-cfn.mjs:89`和`environment-cli.mjs:30`发送/强制`DeploymentMode=STANDARD`；[AWS CreateChangeSet](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html)及SDK3.1106.0的DeploymentMode枚举只有REVERT_DRIFT，STANDARD不是合法输入。普通非drift-aware请求应省略该参数，不能改传REVERT_DRIFT以绕过。
+- `environment-cfn.mjs:74`还错误要求普通回读含STANDARD，而[AWS DescribeChangeSet](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeChangeSet.html)说明该字段只在drift-aware响应出现。适配器/fixture同样虚构STANDARD，所以原155项合成测试通过不能证明API契约正确。
+
+本轮仅诊断，运行代码、权限、旧attempt/锁/root pending均未改。下一只建议同时修正原请求、回读、适配器和对应fixture/SDK契约回归；实际修复方向仍待用户确认，不加模式/框架/云调用。旧计划03d52073…已经消费，即使实现修复也不能继续旧SHA；后继须另审可追溯关闭旧pending并创建新计划的办法，保留旧失败/消费事实，不静默手改journal、复位槽或另换状态根。
+
+最后资源观测仍是17:37Z独立检查：两个ALB active、两ECS0/0/0、两库stopped；本次没有重新核对资源或实现停费，ALB可能仍收费。以下执行记录保留原状态，不将确定代码缺陷反写成当时已知的错误正文。
+
 ### 当前停用结果：首个Create被拒，实际未移除ALB（2026-11-08）
 
 用户确认完整03d52073…清单后，原入口于17:33:38.936Z启动、17:34:24.296Z停止。新鲜预检通过，但首个tenant-drain `CreateChangeSet`返回`ValidationError`，没有ACK/ChangeSet ARN，Execute与数据库写均0；journal为NEEDS_INSPECTION、actions为UNKNOWN_OR_REJECTED、无完成阶段。原尝试已消费，root pending保持；即使22:23Z未到期也不能再次执行。

@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：停用首个Create失败，独立核对后停止，待限定查因（2026-11-08）
+## 当前唯一继续点：查因完成，确认非法STANDARD接口值，待最小代码契约修复（2026-11-08）
+
+限定查因已获批并完成：STS1/CloudTrail LookupEvents3、≥2分钟间隔/不足10分钟、准确时间/名称三次均0事件，未恢复AWS错误正文，无其他资源读/写或私密值/SQL。[诊断](../ops/temporary-idle/stop-cloudtrail-diagnostic-20261108.json)。官方API＋本地SDK3.1106.0证明请求`DeploymentMode=STANDARD`非法（只接受REVERT_DRIFT），普通模式应省略字段，正常回读也不含它；原fixture自造STANDARD漏掉此契约错误。此为确定代码缺陷，不等于CloudTrail已证明历史唯一根因。
+
+本轮只读，未修代码或重试停用。下一仅待同意修原请求/回读/适配器/fixture及SDK契约回归；不切drift模式、扩IAM或资源。旧03d52073…/attempt消费、root pending保持，未来需保留旧记录的新受审接续/新SHA，不清锁、复位或另换目录。17:37最后独立观察两ALB仍active，当前没有停费成功。下方待查因是前置记录。
 
 用户确认03d52073…后单次执行；第一tenant-drain CreateChangeSet返回ValidationError，ACK/Execute/停库0，attempt及原SHA消费、root保持NEEDS_INSPECTION。另一进程17:37Z只读证明三栈UPDATE_COMPLETE、准确名变更集单页无匹配、两个ALB仍active、两ECS0/0/0、两库stopped。合计STS2/元数据43/Create提交1、其他直接写0，**尚未停费**。[执行与独立记录](../ops/temporary-idle/stop-execution-20261108.json)。
 

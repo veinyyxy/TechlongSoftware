@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：停用首个CreateChangeSet被拒，已独立核对，停止写入待限定查因（2026-11-08）
+## 当前唯一继续点：限定查因完成，确认CFN接口契约缺陷，待仅代码修复方向（2026-11-08）
+
+用户允许的限定CloudTrail查因已于17:51:20.990Z—17:57:23.959Z结束：实际STS1/LookupEvents3、三次完整单页均返回0，间隔均≥2分钟、总等待不足10分钟；未扩大事件/名称/时间范围、不翻页，没有其他资源查询或云写/Secret值/PEM/.env/SQL。**未恢复本次AWS错误原文，不能声称CloudTrail已证实唯一历史根因，也不能因查不到事件推断请求未发送。** [去敏诊断记录](../ops/temporary-idle/stop-cloudtrail-diagnostic-20261108.json)。
+
+同时确认一个确定的本地契约错误：原CFN创建器/适配器发送`DeploymentMode=STANDARD`，而[AWS CreateChangeSet API](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html)及本地SDK3.1106.0枚举仅接受REVERT_DRIFT；普通变更集应省略该字段。[DescribeChangeSet API](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeChangeSet.html)说明该字段只在drift-aware响应中出现，但原回读和fixture也错误强制STANDARD，故155项合成检查没有发现真实API错误。不要将其误报为用户登录/权限问题或为了绕过而切REVERT_DRIFT。
+
+下一只提议修正原请求/回读/适配器/fixture的同一契约并加入真实SDK枚举回归，不扩权限/资源/模式；本轮未修运行代码或重试写入。原03d52073…和attempt已消费、root仍pending，修复后不能重跑旧SHA，须另审保留原记录的状态接续和新计划，不能清锁/复位或换目录绕过。资源最后独立观察仍17:37Z两ALB active、两ECS0、两库stopped，本轮没有重查，ALB可能持续收费；不要冒称已停费。下方待查因段仅为先前记录。
 
 用户已在准确SHA及完整风险请求后回复“我确认”。原plan5625988f…于17:33:38.936Z—17:34:24.296Z单次调用，写前核对通过，首个tenant-drain CreateChangeSet返回ValidationError；ACK0、Execute0、停库/其他直接写0，工具NEEDS_INSPECTION，attempt/原SHA已消费，不重放或复位。原适配器只保留错误code，具体AWS原因尚未知，不猜IAM或模板根因。[完整执行及独立状态](../ops/temporary-idle/stop-execution-20261108.json)。
 

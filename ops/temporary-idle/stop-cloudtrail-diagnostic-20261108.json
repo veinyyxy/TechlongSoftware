@@ -1,0 +1,113 @@
+{
+  "schema": "techlong/temporary-environment-stop-diagnostic/v1",
+  "status": "CONTRACT_DEFECT_CONFIRMED_EXACT_CLOUDTRAIL_EVENT_NOT_OBSERVED",
+  "planId": "5625988f-48eb-4052-b41f-bce4202e635d",
+  "consumedPlanSha256": "03d52073ebec4788ea4133f847656a7e4e386d74fc0a56a17a6d26046361e618",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "authorizedScope": {
+    "stsMax": 1,
+    "lookupEventsMax": 3,
+    "minimumIntervalSeconds": 120,
+    "maxWaitSeconds": 600,
+    "eventName": "CreateChangeSet",
+    "startTime": "2026-11-08T17:33:38Z",
+    "endTime": "2026-11-08T17:34:25Z",
+    "exactChangeSetName": "tl-env-d6b756a9833a541e02b7652c3236677c3075-plan",
+    "maxResultsPerCall": 10,
+    "noPagination": true
+  },
+  "samples": [
+    {
+      "status": "NOT_YET_OBSERVED",
+      "startedAt": "2026-11-08T17:51:20.990Z",
+      "completedAt": "2026-11-08T17:51:24.087Z",
+      "counts": {
+        "sts": 1,
+        "lookupEvents": 1
+      },
+      "returnedEventCount": 0,
+      "pageComplete": true,
+      "matches": [],
+      "cloudWrites": 0,
+      "rawEventTemplateOrParameterBodySaved": false
+    },
+    {
+      "status": "NOT_YET_OBSERVED",
+      "startedAt": "2026-11-08T17:54:37.308Z",
+      "completedAt": "2026-11-08T17:54:38.701Z",
+      "lookupEventsCalls": 1,
+      "returnedEventCount": 0,
+      "pageComplete": true,
+      "matches": [],
+      "cloudWrites": 0,
+      "rawEventTemplateOrParameterBodySaved": false
+    },
+    {
+      "status": "NOT_YET_OBSERVED",
+      "startedAt": "2026-11-08T17:57:22.242Z",
+      "completedAt": "2026-11-08T17:57:23.959Z",
+      "lookupEventsCalls": 1,
+      "returnedEventCount": 0,
+      "pageComplete": true,
+      "matches": [],
+      "cloudWrites": 0,
+      "rawEventTemplateOrParameterBodySaved": false
+    }
+  ],
+  "totals": {
+    "sts": 1,
+    "lookupEvents": 3,
+    "returnedEvents": 0,
+    "cloudWrites": 0,
+    "otherResourceQueries": 0,
+    "secretPemEnvOrSqlReads": 0
+  },
+  "minimumObservedIntervalSeconds": 163.541,
+  "rawEventTemplateOrParameterBodySaved": false,
+  "confirmedLocalContractDefect": {
+    "requestField": "DeploymentMode",
+    "actualToolRequestValue": "STANDARD",
+    "allowedAwsApiValues": [
+      "REVERT_DRIFT"
+    ],
+    "standardChangeSetRequiresOmittingField": true,
+    "normalDescribeChangeSetOmitsField": true,
+    "installedSdkVersion": "3.1106.0",
+    "installedSdkEnumFile": "node_modules/@aws-sdk/client-cloudformation/dist-types/models/enums.d.ts",
+    "installedSdkEnumLine": 423,
+    "affectedCode": [
+      {
+        "file": "ops/temporary-idle/environment-cfn.mjs",
+        "line": 89,
+        "problem": "request sends unsupported STANDARD value"
+      },
+      {
+        "file": "ops/temporary-idle/environment-cfn.mjs",
+        "line": 74,
+        "problem": "review incorrectly requires STANDARD in normal response"
+      },
+      {
+        "file": "ops/temporary-idle/environment-cli.mjs",
+        "line": 30,
+        "problem": "adapter guard incorrectly requires unsupported request value"
+      },
+      {
+        "file": "tests/aws-environment-fixture.mjs",
+        "line": 67,
+        "problem": "synthetic response invents STANDARD and hides contract error"
+      }
+    ],
+    "sources": [
+      "https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html",
+      "https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeChangeSet.html"
+    ]
+  },
+  "historicalAwsErrorBodyRecovered": false,
+  "historicalFailureUniquelyProvenByCloudTrail": false,
+  "lastResourceObservationFrom": "ops/temporary-idle/stop-execution-20261108.json",
+  "sourceCodeChanged": false,
+  "permissionsChanged": false,
+  "oldAttemptOrPendingReset": false,
+  "nextAction": "Obtain direction for only the request/response/adapter/fixture API contract correction and SDK-based regression. Preserve the consumed attempt; any future pending-state resolution and new stop plan require explicit reviewed continuation, not replay or a new state-directory bypass."
+}
