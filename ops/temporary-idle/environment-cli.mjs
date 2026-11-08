@@ -27,7 +27,7 @@ export class EnvironmentAwsCli{
   ensure(read||write,'ENVIRONMENT_API_NOT_ALLOWED');ensure(!write||this.allowWrites,'ENVIRONMENT_WRITES_DISABLED');
   if(service==='cloudformation'){
    ensure(ROLES.some(r=>this.config.stacks[r].stackId===input.StackName),'EXACT_STACK_UUID_REQUIRED');
-   if(write)ensure(operation==='create-change-set'?input.ChangeSetType==='UPDATE'&&input.DeploymentMode==='STANDARD'&&!input.RoleARN&&!input.Capabilities?.length&&!input.ImportExistingResources&&!input.IncludeNestedStacks:/^arn:aws:cloudformation:/.test(input.ChangeSetName)&&input.ChangeSetName.includes(':changeSet/tl-env-')&&input.DisableRollback===false,'ONLY_REVIEWED_EXISTING_STACK_UPDATES');
+   if(write)ensure(operation==='create-change-set'?input.ChangeSetType==='UPDATE'&&!Object.hasOwn(input,'DeploymentMode')&&!Object.hasOwn(input,'DeploymentConfig')&&!input.RoleARN&&!input.Capabilities?.length&&!input.ImportExistingResources&&!input.IncludeNestedStacks:/^arn:aws:cloudformation:/.test(input.ChangeSetName)&&input.ChangeSetName.includes(':changeSet/tl-env-')&&input.DisableRollback===false,'ONLY_REVIEWED_EXISTING_STACK_UPDATES');
   }
   if(service==='rds'){
    const cluster=operation.includes('cluster'),id=cluster?input.DBClusterIdentifier:input.DBInstanceIdentifier;

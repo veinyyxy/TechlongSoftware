@@ -2,7 +2,9 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：查因完成，确认非法STANDARD接口值，待最小代码契约修复（2026-11-08）
+## 当前唯一继续点：仅修CFN普通模式接口契约及测试，离线准备新受审继续方案（2026-11-08）
+
+用户已要求开始上一最小建议。本轮只修原请求/适配器/回读与fixture、真实SDK无网络回归；不把DeploymentConfig.Mode的STANDARD误传为DeploymentMode，不启用REVERT_DRIFT/EXPRESS。不读AWS/凭据/私密值，不改旧pending或重跑03d52073…；准确CI后只形成离线新继续材料，实际接续/云操作另审，不扩框架。
 
 限定查因已获批并完成：STS1/CloudTrail LookupEvents3、≥2分钟间隔/不足10分钟、准确时间/名称三次均0事件，未恢复AWS错误正文，无其他资源读/写或私密值/SQL。[诊断](../ops/temporary-idle/stop-cloudtrail-diagnostic-20261108.json)。官方API＋本地SDK3.1106.0证明请求`DeploymentMode=STANDARD`非法（只接受REVERT_DRIFT），普通模式应省略字段，正常回读也不含它；原fixture自造STANDARD漏掉此契约错误。此为确定代码缺陷，不等于CloudTrail已证明历史唯一根因。
 

@@ -71,7 +71,9 @@ export function changeShape(from,to,overrides={}){
  for(const [id,r]of Object.entries(to.Resources))if(!from.Resources[id])changes[id]='Add';else if(hash(r)!==hash(from.Resources[id])||references(r).some(x=>Object.hasOwn(overrides,x)))changes[id]='Modify';return changes;
 }
 export function reviewChangeSet(p,{stackId,shape,role}){
- ensure(p.StackId===stackId&&p.Status==='CREATE_COMPLETE'&&p.ExecutionStatus==='AVAILABLE'&&p.DeploymentMode==='STANDARD'&&!p.NextToken&&!p.ParentChangeSetId&&!p.RootChangeSetId&&!p.IncludeNestedStacks&&!p.ImportExistingResources&&!p.Capabilities?.length,'CHANGE_SET_STATE_OR_MODE');
+ const d=p.DeploymentConfig,standard=d===undefined||d&&typeof d==='object'&&!Array.isArray(d)&&Object.keys(d).every(k=>['Mode','DisableRollback'].includes(k))&&(d.Mode===undefined||d.Mode==='STANDARD')&&(d.DisableRollback===undefined||d.DisableRollback===false);
+ // DeploymentMode is a drift-awareness flag, not DeploymentConfig.Mode. Ordinary responses omit it.
+ ensure(p.StackId===stackId&&p.Status==='CREATE_COMPLETE'&&p.ExecutionStatus==='AVAILABLE'&&p.DeploymentMode===undefined&&standard&&!p.NextToken&&!p.ParentChangeSetId&&!p.RootChangeSetId&&!p.IncludeNestedStacks&&!p.ImportExistingResources&&!p.Capabilities?.length,'CHANGE_SET_STATE_OR_MODE');
  const rows=p.Changes??[];ensure(rows.length===Object.keys(shape).length&&new Set(rows.map(x=>x.ResourceChange?.LogicalResourceId)).size===rows.length,'CHANGE_SET_SCOPE_COUNT');
  for(const x of rows){const r=x.ResourceChange;ensure(x.Type==='Resource'&&r&&shape[r.LogicalResourceId]===r.Action&&r.ResourceType===resourceTypes(role)[r.LogicalResourceId],'UNEXPECTED_CFN_RESOURCE_CHANGE');
   if(r.Action==='Modify')ensure(r.LogicalResourceId===SERVICE[role]&&r.Replacement==='False'&&(r.Scope??[]).every(s=>s==='Properties')&&(r.Details??[]).every(d=>d.Target?.Attribute==='Properties'&&d.Target?.Name==='DesiredCount'),'ONLY_SERVICE_COUNT_MODIFICATION_ALLOWED');
@@ -86,7 +88,7 @@ export async function applyStack({c,io,store,j,key,role,current,target,overrides
  const shape=changeShape(before.template,target,actualOverrides);for(const [id,action]of Object.entries(shape))ensure(action==='Modify'?id===SERVICE[role]:EDGE[role].includes(id),'LIFECYCLE_CHANGE_OUTSIDE_ALLOWED_IDS');
  const token='tl-env-'+hash([j.planSha256,key]).slice(0,36),name=token+'-plan',body=JSON.stringify(canonical(target));ensure(Buffer.byteLength(body)<=51200,'TEMPLATE_TOO_LARGE_FOR_INLINE_REVIEW');
  const list=await io.call('cloudformation','list-change-sets',{StackName:before.stackId});ensure(!list.NextToken&&!(list.Summaries??[]).some(x=>x.ExecutionStatus==='AVAILABLE'||['CREATE_PENDING','CREATE_IN_PROGRESS'].includes(x.Status)),'OTHER_AVAILABLE_CHANGE_SET_INSPECT');
- const request={StackName:before.stackId,ChangeSetName:name,ClientToken:token+'-create',ChangeSetType:'UPDATE',DeploymentMode:'STANDARD',IncludeNestedStacks:false,ImportExistingResources:false,TemplateBody:body,Tags:copy(before.stackTags),
+ const request={StackName:before.stackId,ChangeSetName:name,ClientToken:token+'-create',ChangeSetType:'UPDATE',IncludeNestedStacks:false,ImportExistingResources:false,TemplateBody:body,Tags:copy(before.stackTags),
   Parameters:Object.keys(target.Parameters??{}).sort().map(k=>Object.hasOwn(actualOverrides,k)?{ParameterKey:k,ParameterValue:actualOverrides[k]}:{ParameterKey:k,UsePreviousValue:true})};
  io.progress?.({stage:key,stackId:before.stackId,status:'CREATING_REVIEWED_CHANGE_SET'});
  const ack=await writeOnce(io,store,j,key+'/create','cloudformation','create-change-set',request);ensure(ack.StackId===before.stackId&&ack.Id?.startsWith(`arn:aws:cloudformation:${c.region}:${c.accountId}:changeSet/${name}/`),'CHANGE_SET_ACK_BINDING');j.changeSets[key]={id:ack.Id,shape};await store.saveJournal(j);

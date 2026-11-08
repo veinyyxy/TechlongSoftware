@@ -6,6 +6,16 @@
 
 ## 当前实现与范围
 
+### 当前代码修复：普通CFN接口契约已纠正，离线接续待审
+
+用户以“开始下一步”确认只修请求/回读和对应测试。本轮原请求删除非法`DeploymentMode=STANDARD`，适配器禁止调用方显式传DeploymentMode或DeploymentConfig；没有改传REVERT_DRIFT。回读要求DeploymentMode缺失；若AWS返回另一独立的DeploymentConfig，只允许已知普通默认字段（Mode缺失或STANDARD、DisableRollback缺失或false），拒绝EXPRESS/禁用回滚/未知字段或模式。`DeploymentConfig.Mode`与`DeploymentMode`是不同枚举，不能相互代用。[普通部署配置](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DeploymentConfig.html)。
+
+fixture不再伪造STANDARD响应，并按真实SDK枚举拒绝历史非法输入。159项本机回归通过，包括真实CloudFormation SDK通过内存HTTP handler序列化原创建请求、反序列化普通XML响应并交给原审查器；无AWS网络、凭据提供器或真实CLI调用。普通/非法/漂移/Express/未知配置均有拒绝回归，原stop→start→stop保持；定向lint/类型通过。另验证未决状态继续阻断新规划且不改根journal/attempt字节，不因接口修复自动解锁。
+
+[新受审继续草案](../ops/temporary-idle/stop-continuation-offline-20261108.json)仅离线、不可执行、新SHA仍null：先另批一次准确旧失败/三栈/变更集/依赖状态核对，再在完全匹配且获得明确批准时，保留旧plan/attempt/journal原字节并追加独立核验/结案回执，只单次关闭根pending引用。最后成功周期指针不能改指向失败计划，不删锁、不换根或复位旧attempt。此状态接续本轮没有实现或调用；之后仍用原plan-stop生成新五小时SHA，实际CFN停用再次另批，不重跑03d52073…。
+
+建议把下一次准备收拢为同一受审范围：最多STS2＋现有工具白名单元数据70；按原准确UUID/ID，核对三栈/完整单页变更集及原私有失败证据，必要局部根状态结案和新只读计划一起准备。AWS写、Change Set创建、Secret值/PEM/.env/SQL均0；未知或不匹配即停，不能用这份草案作为许可。没有新增云API、权限、资源、模式或通用恢复框架，本轮Source/AWS/私有生产状态操作均0；最后17:37Z观察不重计，ALB仍可能收费。
+
 ### 最新限定查因：确认非法STANDARD接口值，未修复或重试
 
 用户另批STS最多1/LookupEvents最多3（≥2分钟间隔/最多10分钟）后，17:51:20.990Z—17:57:23.959Z仅完成这些只读调用。三次准确CreateChangeSet时间段/名称的完整单页均返回0事件，无事件/模板/参数正文保存，无其他资源读取/云写/Secret值/PEM/.env/SQL。没有取得历史AWS拒绝原文，不能把空结果解释为未提交，或宣称CloudTrail已经证明本次唯一根因。[诊断摘要](../ops/temporary-idle/stop-cloudtrail-diagnostic-20261108.json)与旧执行/三个准备失败原件分别保留。

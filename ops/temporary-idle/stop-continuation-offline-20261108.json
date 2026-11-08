@@ -1,0 +1,60 @@
+{
+  "schema": "techlong/temporary-environment-stop-continuation-draft/v1",
+  "status": "OFFLINE_DRAFT_NOT_EXECUTABLE",
+  "executionApproved": false,
+  "newPlanId": null,
+  "newPlanSha256": null,
+  "requiresNewUserApproval": true,
+  "predecessor": {
+    "planId": "5625988f-48eb-4052-b41f-bce4202e635d",
+    "sha256": "03d52073ebec4788ea4133f847656a7e4e386d74fc0a56a17a6d26046361e618",
+    "createSubmissionAttempts": 1,
+    "acknowledgements": 0,
+    "executions": 0,
+    "permanentAttemptConsumed": true,
+    "pendingStateMustRemainUntilExplicitReviewedClosure": true
+  },
+  "factsNotRestamped": {
+    "preparationAt": "2026-11-08T17:23:50.824Z",
+    "independentInspectionAt": "2026-11-08T17:37:37.973Z",
+    "cloudtrailDiagnosticAt": "2026-11-08T17:57:23.959Z",
+    "exactCloudTrailEventObserved": false,
+    "lastKnownAlbs": "active",
+    "lastKnownEcsCounts": "0/0/0 for both services",
+    "lastKnownDatabases": "stopped"
+  },
+  "sameScopeOnly": {
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "stacks": ["techlong-sandbox-platform-hosting-v1", "techlong-sandbox-cell-sandbox-1", "techlong-sandbox-tenant-9c5ee9e64509dcad"],
+    "exactUuidsAndImmutableIdsFrom": "ops/temporary-idle/stop-approval-20261108.json",
+    "noNameOnlyAdoption": true
+  },
+  "proposedPreparationNotAuthorizedThisTurn": {
+    "stsMax": 2,
+    "awsReadOnlyMetadataMax": 70,
+    "readOnlyApiFamilies": ["existing environment tool metadata allowlist only"],
+    "firstVerify": [
+      "exact three UUIDs, original templates/physical bindings, roles/tags/parameter hashes and expected idle service counts",
+      "complete single-page change-set listings: no target pending/available change set or unaccepted operation",
+      "original plan and attempt hashes, recorded rejected create, zero ACK/Execute/completed stages, root pending points only to the consumed predecessor",
+      "existing ALB/DNS/dependencies and two immutable database IDs; do not treat the old 17:37 observation as current"
+    ],
+    "localPendingClosureRequiresSeparateExplicitApproval": true,
+    "closureRules": [
+      "preserve old plan, attempt, journal, consumption and failure receipts byte-for-byte",
+      "record fresh independent inspection plus an immutable local closure receipt; do not rewrite the failed plan as success or PREPARED",
+      "only after all exact predicates match, permit one separately approved root-journal transition closing that pending reference, under the existing private store lock and before/after digest checks",
+      "keep last successful completedPlanId/completedMode unchanged; do not point them at the failed predecessor",
+      "do not delete a lock, create another state root, migrate scope or reset the old permanent attempt",
+      "stop on any mismatch, unexpected change set, unresolved submission or partial local transition; no automatic replay"
+    ],
+    "closureImplementedThisTurn": false,
+    "then": "use the same plan-stop entry point to create a brand-new five-hour plan bound to the corrected code; independent local readback; actual CFN execution requires its fresh SHA approval",
+    "awsWrites": 0,
+    "cloudChangeSets": 0,
+    "secretPemEnvOrSqlReads": 0,
+    "noPermissionExpansionOrResourceRestart": true
+  },
+  "noClaim": ["actual stop completed", "fresh resource observation", "new executable approval SHA", "legacy pending closure already performed", "account zero charges"]
+}

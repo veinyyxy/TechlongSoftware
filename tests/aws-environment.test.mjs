@@ -5,9 +5,10 @@ import {mkdtemp,readdir,readFile,rm} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import {randomUUID} from 'node:crypto';
+import {CloudFormationClient,CreateChangeSetCommand,DescribeChangeSetCommand,DeploymentMode,DeploymentConfigMode} from '@aws-sdk/client-cloudformation';
 import {FileStore} from '../ops/aws-resource-power/cli.mjs';
 import {fixture,writes,memoryStore,copy,accountId} from './aws-environment-fixture.mjs';
-import {hash,variant,EDGE,ROLES} from '../ops/temporary-idle/environment-cfn.mjs';
+import {hash,variant,EDGE,ROLES,reviewChangeSet} from '../ops/temporary-idle/environment-cfn.mjs';
 import {configHash,validateEnvironment,prepareEnvironmentPlan,executeEnvironmentPlan} from '../ops/temporary-idle/environment.mjs';
 import {EnvironmentAwsCli,parseEnvironmentArgs,stateDirectory,executeEnvironmentCommand} from '../ops/temporary-idle/environment-cli.mjs';
 import cell from '../ops/deployment-baseline/cell-reattach-draft.template.json' with {type:'json'};
@@ -16,6 +17,33 @@ import platform from '../ops/deployment-baseline/platform-idle-convergence.templ
 const plan=(f,mode,previous,expectedMode)=>prepareEnvironmentPlan({config:f.config,io:f.io,mode,...(previous?{base:previous.base,expectedMode}:{}),waitSeconds:1});
 const apply=(f,p,store=memoryStore())=>executeEnvironmentPlan({config:f.config,io:f.io,plan:p,approvedSha:hash(p),store});
 async function clean(dir){assert.equal(path.dirname(path.resolve(dir)),path.resolve(os.tmpdir()));assert.ok(path.basename(dir).startsWith('aws-env-v2-test-'));await rm(dir,{recursive:true});}
+
+test('ordinary requests omit drift mode and their SDK-serialized form and normal XML response follow the real API contract',async()=>{
+ assert.deepEqual(Object.values(DeploymentMode),['REVERT_DRIFT']);assert.equal(DeploymentConfigMode.STANDARD,'STANDARD');
+ const f=fixture();await apply(f,await plan(f,'stop'));const inputs=writes(f).filter(x=>x.operation==='create-change-set').map(x=>x.input);assert.ok(inputs.length>0);for(const input of inputs){assert.equal(Object.hasOwn(input,'DeploymentMode'),false);assert.equal(Object.hasOwn(input,'DeploymentConfig'),false);}
+ const requests=[],stackId=f.config.stacks.tenant.stackId,client=new CloudFormationClient({region:f.config.region,endpoint:'https://cloudformation.ca-central-1.amazonaws.com',credentials:{accessKeyId:'synthetic',secretAccessKey:'synthetic'},maxAttempts:1,requestHandler:{handle:async request=>{
+  const body=typeof request.body==='string'?request.body:Buffer.from(request.body).toString('utf8'),form=new URLSearchParams(body);requests.push(form);const action=form.get('Action');
+  assert.ok(['CreateChangeSet','DescribeChangeSet'].includes(action));assert.equal(form.has('DeploymentMode'),false);assert.equal(form.has('DeploymentConfig.Mode'),false);
+  const result=action==='CreateChangeSet'?'<Id>synthetic-change-set</Id><StackId>'+stackId+'</StackId>':'<StackId>'+stackId+'</StackId><Status>CREATE_COMPLETE</Status><ExecutionStatus>AVAILABLE</ExecutionStatus><Changes><member><Type>Resource</Type><ResourceChange><LogicalResourceId>TenantService</LogicalResourceId><ResourceType>AWS::ECS::Service</ResourceType><Action>Remove</Action><PolicyAction>Delete</PolicyAction></ResourceChange></member></Changes>';
+  return {response:{statusCode:200,headers:{'content-type':'text/xml'},body:Buffer.from('<'+action+'Response xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/"><'+action+'Result>'+result+'</'+action+'Result><ResponseMetadata><RequestId>synthetic</RequestId></ResponseMetadata></'+action+'Response>')}};
+ }}});
+ try{await client.send(new CreateChangeSetCommand(inputs[0]));const described=await client.send(new DescribeChangeSetCommand({StackName:stackId,ChangeSetName:'synthetic-change-set'}));assert.equal(described.DeploymentMode,undefined);assert.doesNotThrow(()=>reviewChangeSet(described,{stackId,shape:{TenantService:'Remove'},role:'tenant'}));assert.equal(requests.length,2);}finally{client.destroy();}
+});
+
+test('ordinary response permits only documented standard defaults, rejecting drift, express, disabled rollback and unknown configurations',()=>{
+ const f=fixture(),stackId=f.config.stacks.tenant.stackId,p={StackId:stackId,Status:'CREATE_COMPLETE',ExecutionStatus:'AVAILABLE',Changes:[{Type:'Resource',ResourceChange:{LogicalResourceId:'TenantService',ResourceType:'AWS::ECS::Service',Action:'Remove',PolicyAction:'Delete'}}]},context={stackId,shape:{TenantService:'Remove'},role:'tenant'};
+ for(const extra of [{},{DeploymentConfig:{}},{DeploymentConfig:{Mode:DeploymentConfigMode.STANDARD,DisableRollback:false}}])assert.doesNotThrow(()=>reviewChangeSet({...p,...extra},context));
+ for(const extra of [{DeploymentMode:'STANDARD'},{DeploymentMode:DeploymentMode.REVERT_DRIFT},{DeploymentMode:'UNKNOWN'},{DeploymentMode:null},{DeploymentConfig:{Mode:DeploymentConfigMode.EXPRESS}},{DeploymentConfig:{Mode:'UNKNOWN'}},{DeploymentConfig:{DisableRollback:true}},{DeploymentConfig:{Unexpected:true}},{DeploymentConfig:null}])assert.throws(()=>reviewChangeSet({...p,...extra},context),/CHANGE_SET_STATE_OR_MODE/);
+});
+
+test('ordinary adapter rejects any explicit deployment mode/config before subprocess submission',async()=>{
+ const f=fixture(),calls=[],adapter=new EnvironmentAwsCli(f.config,'unused',{allowWrites:true,exec:async()=>{calls.push(true);return {stdout:'{}'};}}),input={StackName:f.config.stacks.tenant.stackId,ChangeSetType:'UPDATE'};
+ for(const extra of [{DeploymentMode:'STANDARD'},{DeploymentMode:DeploymentMode.REVERT_DRIFT},{DeploymentMode:undefined},{DeploymentConfig:{Mode:DeploymentConfigMode.STANDARD}},{DeploymentConfig:{Mode:DeploymentConfigMode.EXPRESS}}])await assert.rejects(adapter.call('cloudformation','create-change-set',{...input,...extra}),/ONLY_REVIEWED_EXISTING_STACK_UPDATES/);assert.equal(calls.length,0);
+});
+
+test('synthetic provider now rejects the historical invalid enum instead of inventing an accepted STANDARD response',async()=>{
+ const f=fixture();await assert.rejects(f.io.call('cloudformation','create-change-set',{StackName:f.config.stacks.tenant.stackId,DeploymentMode:'STANDARD'}),e=>e.code==='ValidationError');assert.equal(f.plans.size,0);
+});
 
 function declaredTagFixture(){
  const f=fixture();for(const role of ['platform','tenant']){const s=f.stacks[role],id=role==='platform'?'Service':'TenantService';s.template.Parameters.ReviewUntil={Type:'String'};s.params.ReviewUntil='synthetic-review-time';s.template.Resources[id].Properties.Tags=[{Key:'Environment',Value:'test'},{Key:'ReviewUntil',Value:{Ref:'ReviewUntil'}}];f.config.stacks[role].templateSha256=hash(s.template);}
@@ -188,6 +216,8 @@ test('real private plan files support stop/start/stop with synthetic CLI and pre
   assert.equal((await command('stop',p1)).status,'STOPPED');const before=f.calls.length;await assert.rejects(command('stop',p1),/PARENT_MISMATCH|NO_REPLAY/);assert.equal(f.calls.length,before);
   const p2=await command('plan-start');assert.equal((await command('start',p2)).status,'RUNNING');const p3=await command('plan-stop');assert.equal((await command('stop',p3)).status,'STOPPED');assert.notEqual(p1.planId,p3.planId);assert.ok((await readdir(c.stateDirectory)).includes('plan-'+p1.planId));
   const prior=writes(f).length;assert.equal((await command('status')).status,'STOPPED');assert.equal(writes(f).length,prior);
-  const failed=await command('plan-start');f.state.unknownExecute=true;await assert.rejects(command('start',failed));const failedWrites=writes(f).length,inspected=await command('status');assert.equal(inspected.status,'NEEDS_INSPECTION');assert.equal(inspected.readOnly,true);assert.equal(writes(f).length,failedWrites);await assert.rejects(command('plan-start'),/PREVIOUS_OPERATION_REQUIRES_INSPECTION/);
+  const failed=await command('plan-start');f.state.unknownExecute=true;await assert.rejects(command('start',failed));const failedWrites=writes(f).length,inspected=await command('status');assert.equal(inspected.status,'NEEDS_INSPECTION');assert.equal(inspected.readOnly,true);assert.equal(writes(f).length,failedWrites);
+  const rootBefore=await readFile(path.join(c.stateDirectory,'journal.json'),'utf8'),attemptFile=path.join(failed.privatePlanDirectory,'attempt','journal.json'),attemptBefore=await readFile(attemptFile,'utf8'),callsBefore=f.calls.length;
+  await assert.rejects(command('plan-start'),/PREVIOUS_OPERATION_REQUIRES_INSPECTION/);assert.equal(f.calls.length,callsBefore);assert.equal(await readFile(path.join(c.stateDirectory,'journal.json'),'utf8'),rootBefore);assert.equal(await readFile(attemptFile,'utf8'),attemptBefore);
  }finally{await clean(dir);}
 });

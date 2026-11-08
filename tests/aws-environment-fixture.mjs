@@ -2,6 +2,7 @@
 import baseline from '../ops/deployment-baseline/existing-tenant.template.json' with {type:'json'};
 import {copy,hash} from '../ops/temporary-idle/environment-cfn.mjs';
 import {ENV_SCHEMA} from '../ops/temporary-idle/environment.mjs';
+import {DeploymentMode} from '@aws-sdk/client-cloudformation';
 export {copy};
 export const accountId='111111111111',region='ca-central-1',prefix=`arn:aws:elasticloadbalancing:${region}:${accountId}:`,ecs=`arn:aws:ecs:${region}:${accountId}:`;
 export function memoryStore(){return {snapshot:null,journal:null,async createSnapshot(s,j){if(this.snapshot)throw Error('EEXIST');this.snapshot=copy(s);this.journal=copy(j);},async saveJournal(j){this.journal=copy(j);},async read(n){return copy(n==='snapshot.json'?this.snapshot:this.journal);}};}
@@ -61,10 +62,12 @@ export function fixture(){
    if(operation==='list-stack-resources')return {StackResourceSummaries:resources(s)};
    if(operation==='list-change-sets')return {Summaries:[...plans.values()].filter(p=>p.StackId===s.id).map(p=>({ChangeSetId:p.ChangeSetId,Status:p.Status,ExecutionStatus:p.ExecutionStatus}))};
    if(operation==='create-change-set'){
+    if(input.DeploymentMode!==undefined&&!Object.values(DeploymentMode).includes(input.DeploymentMode))throw Object.assign(Error('synthetic invalid AWS deployment-mode enum'),{code:'ValidationError'});
+    if(Object.hasOwn(input,'DeploymentMode')||Object.hasOwn(input,'DeploymentConfig'))throw Error('SYNTHETIC_ORDINARY_CHANGE_SET_ONLY');
     const template=JSON.parse(input.TemplateBody),params=copy(s.params);for(const p of input.Parameters)if(!p.UsePreviousValue)params[p.ParameterKey]=p.ParameterValue;const changes=[];
     for(const id of new Set([...Object.keys(s.template.Resources),...Object.keys(template.Resources)])){let Action;if(!s.template.Resources[id])Action='Add';else if(!template.Resources[id])Action='Remove';else if(hash(s.template.Resources[id])!==hash(template.Resources[id]))Action='Modify';if(Action)changes.push({Type:'Resource',ResourceChange:{LogicalResourceId:id,ResourceType:(template.Resources[id]??s.template.Resources[id]).Type,Action,...(Action==='Modify'?{Replacement:'False',Scope:['Properties'],Details:[{Target:{Attribute:'Properties',Name:'DesiredCount'}}]}:{})}});}
     if(state.unexpectedChange)changes.push({Type:'Resource',ResourceChange:{LogicalResourceId:'InjectedBucket',ResourceType:'AWS::S3::Bucket',Action:'Add'}});
-    const id=`arn:aws:cloudformation:${region}:${accountId}:changeSet/${input.ChangeSetName}/00000000-0000-4000-8000-${String(counter++).padStart(12,'0')}`,p={ChangeSetId:id,StackId:s.id,Status:'CREATE_COMPLETE',ExecutionStatus:'AVAILABLE',DeploymentMode:'STANDARD',Tags:copy(input.Tags),Changes:changes,...(s.roleArn?{RoleARN:s.roleArn}:{}),template,params};plans.set(id,p);return {Id:id,StackId:s.id};
+    const id=`arn:aws:cloudformation:${region}:${accountId}:changeSet/${input.ChangeSetName}/00000000-0000-4000-8000-${String(counter++).padStart(12,'0')}`,p={ChangeSetId:id,StackId:s.id,Status:'CREATE_COMPLETE',ExecutionStatus:'AVAILABLE',Tags:copy(input.Tags),Changes:changes,...(s.roleArn?{RoleARN:s.roleArn}:{}),template,params};plans.set(id,p);return {Id:id,StackId:s.id};
    }
    if(operation==='describe-change-set'){const p=plans.get(input.ChangeSetName);return copy(p);}
    if(operation==='execute-change-set'){const p=plans.get(input.ChangeSetName);s.template=copy(p.template);s.params=copy(p.params);clock++;s.last=new Date(clock).toISOString();bind(s);s.executed=true;p.ExecutionStatus='EXECUTE_COMPLETE';if(state.unknownExecute)throw Object.assign(Error('unknown response'),{code:'NetworkError'});return {};}
