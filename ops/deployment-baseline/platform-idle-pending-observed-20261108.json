@@ -1,0 +1,266 @@
+{
+  "schema": "techlong/platform-idle-pending-observed/v1",
+  "status": "ORIGINAL_PLATFORM_UPDATE_PENDING_ONLY_SERVICE_IN_RETURNED_CFN_RECORDS",
+  "userExplicitNewReadOnlyApprovalRecorded": true,
+  "userInstruction": "允许这次准确栈只读查因",
+  "relatedExecutionManifestSha256": "59b9b261b9233849cb92b55606025b2cf984282731bd7ac0314a829e1029caeb",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+  "startedAt": "2026-11-08T04:58:10.080Z",
+  "finishedAt": "2026-11-08T04:58:15.761Z",
+  "counts": {
+    "sts": 1,
+    "metadata": 3
+  },
+  "cloudWrites": 0,
+  "executionSlotsConsumed": 0,
+  "stack": {
+    "StackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "StackName": "techlong-sandbox-platform-hosting-v1",
+    "StackStatus": "UPDATE_IN_PROGRESS",
+    "LastUpdatedTime": "2026-11-08T04:41:09.832000+00:00",
+    "DisableRollback": false,
+    "reason": null,
+    "tagMapSha256": "ae52c8f310d8ff7f786d2832531181f8517fbc2d51a99b45735b98b361b7b413",
+    "outputMapSha256": "59496f78633dcb8be8ade74a5b93c6feaed9cffff9d68d9befceb03a1de04bec"
+  },
+  "resources": {
+    "nextTokenPresent": false,
+    "items": [
+      {
+        "LogicalResourceId": "AlbSecurityGroup",
+        "PhysicalResourceId": "sg-0f9770a8e90b139c2",
+        "ResourceType": "AWS::EC2::SecurityGroup",
+        "ResourceStatus": "CREATE_COMPLETE",
+        "LastUpdatedTimestamp": "2026-10-23T18:59:06.216000+00:00",
+        "reason": null
+      },
+      {
+        "LogicalResourceId": "Cluster",
+        "PhysicalResourceId": "techlong-sandbox-platform",
+        "ResourceType": "AWS::ECS::Cluster",
+        "ResourceStatus": "CREATE_COMPLETE",
+        "LastUpdatedTimestamp": "2026-10-23T18:58:52.488000+00:00",
+        "reason": null
+      },
+      {
+        "LogicalResourceId": "DnsRecord",
+        "PhysicalResourceId": "console.sandbox.techlong.cloud",
+        "ResourceType": "AWS::Route53::RecordSet",
+        "ResourceStatus": "UPDATE_COMPLETE",
+        "LastUpdatedTimestamp": "2026-11-08T04:43:54.690000+00:00",
+        "reason": null
+      },
+      {
+        "LogicalResourceId": "HttpsListener",
+        "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-platform/c06cdf93979f2406/8db555e0348e379b",
+        "ResourceType": "AWS::ElasticLoadBalancingV2::Listener",
+        "ResourceStatus": "CREATE_COMPLETE",
+        "LastUpdatedTimestamp": "2026-11-08T04:43:23.102000+00:00",
+        "reason": null
+      },
+      {
+        "LogicalResourceId": "LoadBalancer",
+        "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/c06cdf93979f2406",
+        "ResourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "ResourceStatus": "CREATE_COMPLETE",
+        "LastUpdatedTimestamp": "2026-11-08T04:43:20.503000+00:00",
+        "reason": null
+      },
+      {
+        "LogicalResourceId": "LogGroup",
+        "PhysicalResourceId": "/ecs/techlong-sandbox/platform-web",
+        "ResourceType": "AWS::Logs::LogGroup",
+        "ResourceStatus": "CREATE_COMPLETE",
+        "LastUpdatedTimestamp": "2026-10-23T18:58:57.665000+00:00",
+        "reason": null
+      },
+      {
+        "LogicalResourceId": "Service",
+        "PhysicalResourceId": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+        "ResourceType": "AWS::ECS::Service",
+        "ResourceStatus": "UPDATE_IN_PROGRESS",
+        "LastUpdatedTimestamp": "2026-11-08T04:43:25.226000+00:00",
+        "reason": null
+      },
+      {
+        "LogicalResourceId": "TargetGroup",
+        "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/techlong-platform-web-v1/b29a8b9e4f95f6dd",
+        "ResourceType": "AWS::ElasticLoadBalancingV2::TargetGroup",
+        "ResourceStatus": "CREATE_COMPLETE",
+        "LastUpdatedTimestamp": "2026-10-23T18:59:04.630000+00:00",
+        "reason": null
+      },
+      {
+        "LogicalResourceId": "TaskDefinition",
+        "PhysicalResourceId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:13",
+        "ResourceType": "AWS::ECS::TaskDefinition",
+        "ResourceStatus": "UPDATE_COMPLETE",
+        "LastUpdatedTimestamp": "2026-11-08T04:41:19.808000+00:00",
+        "reason": null
+      },
+      {
+        "LogicalResourceId": "TaskIngress",
+        "PhysicalResourceId": "sgr-009f70fee0c3b27c4",
+        "ResourceType": "AWS::EC2::SecurityGroupIngress",
+        "ResourceStatus": "CREATE_COMPLETE",
+        "LastUpdatedTimestamp": "2026-10-23T18:59:07.979000+00:00",
+        "reason": null
+      },
+      {
+        "LogicalResourceId": "TaskSecurityGroup",
+        "PhysicalResourceId": "sg-018de900b98bd3a35",
+        "ResourceType": "AWS::EC2::SecurityGroup",
+        "ResourceStatus": "CREATE_COMPLETE",
+        "LastUpdatedTimestamp": "2026-10-23T18:58:56.942000+00:00",
+        "reason": null
+      }
+    ]
+  },
+  "currentOperationEvents": {
+    "nextTokenPresent": true,
+    "totalReturned": 100,
+    "items": [
+      {
+        "StackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "EventId": "DnsRecord-UPDATE_COMPLETE-2026-11-08T04:43:54.690Z",
+        "LogicalResourceId": "DnsRecord",
+        "PhysicalResourceId": "console.sandbox.techlong.cloud",
+        "ResourceType": "AWS::Route53::RecordSet",
+        "ResourceStatus": "UPDATE_COMPLETE",
+        "Timestamp": "2026-11-08T04:43:54.690000+00:00",
+        "OperationId": "2c882241-a1f6-4895-8e81-c693b209ee2d",
+        "clientRequestTokenMatchesApproved": true,
+        "reason": null
+      },
+      {
+        "StackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "EventId": "Service-UPDATE_IN_PROGRESS-2026-11-08T04:43:25.226Z",
+        "LogicalResourceId": "Service",
+        "PhysicalResourceId": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+        "ResourceType": "AWS::ECS::Service",
+        "ResourceStatus": "UPDATE_IN_PROGRESS",
+        "Timestamp": "2026-11-08T04:43:25.226000+00:00",
+        "OperationId": "2c882241-a1f6-4895-8e81-c693b209ee2d",
+        "clientRequestTokenMatchesApproved": true,
+        "reason": null
+      },
+      {
+        "StackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "EventId": "HttpsListener-CREATE_COMPLETE-2026-11-08T04:43:23.102Z",
+        "LogicalResourceId": "HttpsListener",
+        "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-platform/c06cdf93979f2406/8db555e0348e379b",
+        "ResourceType": "AWS::ElasticLoadBalancingV2::Listener",
+        "ResourceStatus": "CREATE_COMPLETE",
+        "Timestamp": "2026-11-08T04:43:23.102000+00:00",
+        "OperationId": "2c882241-a1f6-4895-8e81-c693b209ee2d",
+        "clientRequestTokenMatchesApproved": true,
+        "reason": null
+      },
+      {
+        "StackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "EventId": "DnsRecord-UPDATE_IN_PROGRESS-2026-11-08T04:43:22.554Z",
+        "LogicalResourceId": "DnsRecord",
+        "PhysicalResourceId": "console.sandbox.techlong.cloud",
+        "ResourceType": "AWS::Route53::RecordSet",
+        "ResourceStatus": "UPDATE_IN_PROGRESS",
+        "Timestamp": "2026-11-08T04:43:22.554000+00:00",
+        "OperationId": "2c882241-a1f6-4895-8e81-c693b209ee2d",
+        "clientRequestTokenMatchesApproved": true,
+        "reason": null
+      },
+      {
+        "StackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "EventId": "LoadBalancer-CREATE_COMPLETE-2026-11-08T04:43:20.503Z",
+        "LogicalResourceId": "LoadBalancer",
+        "PhysicalResourceId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/c06cdf93979f2406",
+        "ResourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "ResourceStatus": "CREATE_COMPLETE",
+        "Timestamp": "2026-11-08T04:43:20.503000+00:00",
+        "OperationId": "2c882241-a1f6-4895-8e81-c693b209ee2d",
+        "clientRequestTokenMatchesApproved": true,
+        "reason": null
+      },
+      {
+        "StackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "EventId": "TaskDefinition-UPDATE_COMPLETE-2026-11-08T04:41:19.808Z",
+        "LogicalResourceId": "TaskDefinition",
+        "PhysicalResourceId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:13",
+        "ResourceType": "AWS::ECS::TaskDefinition",
+        "ResourceStatus": "UPDATE_COMPLETE",
+        "Timestamp": "2026-11-08T04:41:19.808000+00:00",
+        "OperationId": "2c882241-a1f6-4895-8e81-c693b209ee2d",
+        "clientRequestTokenMatchesApproved": true,
+        "reason": null
+      },
+      {
+        "StackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "EventId": "TaskDefinition-UPDATE_IN_PROGRESS-2026-11-08T04:41:19.203Z",
+        "LogicalResourceId": "TaskDefinition",
+        "PhysicalResourceId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:13",
+        "ResourceType": "AWS::ECS::TaskDefinition",
+        "ResourceStatus": "UPDATE_IN_PROGRESS",
+        "Timestamp": "2026-11-08T04:41:19.203000+00:00",
+        "OperationId": "2c882241-a1f6-4895-8e81-c693b209ee2d",
+        "clientRequestTokenMatchesApproved": true,
+        "reason": {
+          "sha256": "604af54f8143a05db0acfb1d1eda96d826168efeec3cf2284c3ddf49aca17761",
+          "safeText": "Resource creation Initiated",
+          "category": "LIFECYCLE_NOTICE",
+          "errorCode": null
+        }
+      },
+      {
+        "StackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "EventId": "TaskDefinition-UPDATE_IN_PROGRESS-2026-11-08T04:41:18.071Z",
+        "LogicalResourceId": "TaskDefinition",
+        "PhysicalResourceId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:11",
+        "ResourceType": "AWS::ECS::TaskDefinition",
+        "ResourceStatus": "UPDATE_IN_PROGRESS",
+        "Timestamp": "2026-11-08T04:41:18.071000+00:00",
+        "OperationId": "2c882241-a1f6-4895-8e81-c693b209ee2d",
+        "clientRequestTokenMatchesApproved": true,
+        "reason": {
+          "sha256": "37ba45f0d72800ebef8a331c7611be5098c67ddc238c6ac96f5cf7c5372c96a9",
+          "safeText": "Requested update requires the creation of a new physical resource; hence creating one.",
+          "category": "LIFECYCLE_NOTICE",
+          "errorCode": null
+        }
+      },
+      {
+        "StackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "EventId": "9e723760-db2e-11f1-a27e-06ffe9187525",
+        "LogicalResourceId": "techlong-sandbox-platform-hosting-v1",
+        "PhysicalResourceId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "ResourceType": "AWS::CloudFormation::Stack",
+        "ResourceStatus": "UPDATE_IN_PROGRESS",
+        "Timestamp": "2026-11-08T04:41:09.832000+00:00",
+        "OperationId": "2c882241-a1f6-4895-8e81-c693b209ee2d",
+        "clientRequestTokenMatchesApproved": true,
+        "reason": {
+          "sha256": "c74817c970daaffc70626a29ffe7ae6f6ab5a9938d8a650399dc7931c593bcc2",
+          "safeText": "User Initiated",
+          "category": "LIFECYCLE_NOTICE",
+          "errorCode": null
+        }
+      }
+    ]
+  },
+  "operationId": [
+    "2c882241-a1f6-4895-8e81-c693b209ee2d"
+  ],
+  "pendingLogicalIds": [
+    "Service"
+  ],
+  "failedLogicalIds": [],
+  "newAlbListenerDnsAndTaskDefinitionHaveCfnCompletedEvents": true,
+  "ecsStabilizationRootCauseNotProved": true,
+  "actualAlbListenerDnsAndServiceNotYetIndependentlyAccepted": true,
+  "noRetryOrRollbackPerformed": true,
+  "rawResourcePropertiesEnvironmentParametersOrOriginalErrorsSaved": false,
+  "originalReadWindowNotExtended": true,
+  "privateEvidenceDirectory": ".local-secrets/platform-idle-pending-inspect-20261108-a",
+  "journalRawSha256": "515c9eb4ec799ceb0c84823dc740a709bf9a00d9d4b9c2cb97f0f000ded99f9a",
+  "journalCanonicalSha256": "8200a64a94a7baa0997c9eb1753370c25cd5da6d4699c33b740afc166b58e062",
+  "recipeRawSha256": "40641f7430beedfd0433724ab05b131371422362ab37b1382b95fc9e985d3938",
+  "next": "Only a newly approved bounded read follow-up may observe ECS deployment metadata and wait for this original operation, then independently verify if UPDATE_COMPLETE. Never resend Execute or automatically repair/rollback/cleanup."
+}

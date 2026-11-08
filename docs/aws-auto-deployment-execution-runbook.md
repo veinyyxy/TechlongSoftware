@@ -2,11 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：平台最后执行审批已备齐，等待新SHA确认（2026-11-07 CST）
+## 当前唯一继续点：平台最后一段已独立核验完成，不自动进入下一阶段（2026-11-07 CST）
 
-用户要求“完成最后一段”后，已仅离线完成真实计划的DNS限制审查及集中执行材料：[最后一份执行范围、完整风险与时序](aws-deployment-baseline.md#platform-idle-execute-review)。新清单SHA `59b9b261b9233849cb92b55606025b2cf984282731bd7ac0314a829e1029caeb`，仍为PREPARED_NOT_APPROVED。收到该新SHA批准后才可执行“新鲜限定预检→原45588046…Execute最多1次→独立核验”；合计STS2/直接元数据59，不再创建计划或扩展分支。
+用户确认59b9b261…清单及完整风险后，原45588046…已单次Execute，最终于2026-11-08T05:03:19.699Z（温尼伯11月7日23:03:19.699 CST）独立核验通过：[最终物理基线、分段记录与边界](aws-deployment-baseline.md#platform-idle-verified)。UPDATE_COMPLETE/EXECUTE_COMPLETE、REVERT_DRIFT、候选47ae4923…已应用，平台11项归属及六项保留物理ID匹配；新ALB c06cdf93979f2406、443监听器8db555e0348e379b和console Alias对齐，Service与CFN同为新:13、desired/running/pending=0/0/0，控制器关闭。
 
-用户以“开始”确认25abd212…后，单次创建的45588046…变更集于2026-11-08T02:57:29.262Z独立回读通过：[实际结果](aws-deployment-baseline.md#platform-idle-created)。CREATE_COMPLETE/AVAILABLE、REVERT_DRIFT，两Add（ALB/443监听器、DELETED）＋三Modify（DNS/Service/TaskDefinition，任务定义Replacement=True）。直接STS2/元数据14/Create1，Execute/其他直接写0；原栈/11物理绑定/角色标签输出保持、平台ALB仍缺失、ECS仍0/:12。批准及唯一创建槽已消费，不重建或删除此记录。
+首次独立检查因根栈仍UPDATE_IN_PROGRESS而停止；用户另允准确栈查因及集中只读跟进后，原ECS部署自行COMPLETED并完成核验，没有补写/重试/回滚命令。三段分别为STS2/元数据43/Execute1、STS1/元数据3/写0、STS2/元数据19/写0；合计STS5/元数据65/Execute1，所有其他直接写0。旧待定回执保留，执行批准/永久槽已消费，不重放。本轮到此完成，不再查询AWS或自动开始镜像更新、任务/数据库启动、清理及临时工具改造。
+
+前置历史：用户以“开始”确认25abd212…后，单次创建的45588046…变更集于2026-11-08T02:57:29.262Z独立回读通过：[当时结果](aws-deployment-baseline.md#platform-idle-created)。当时CREATE_COMPLETE/AVAILABLE、REVERT_DRIFT，两Add＋三Modify，STS2/元数据14/Create1；原栈保持、平台ALB仍缺失、ECS仍0/:12。这不是现在仍未执行的描述；当前以顶部最终结果为准。创建记录及已消费槽保持。
 
 用户确认cca2bc44…只读范围后，已于2026-11-08T00:13:41.732Z—00:14:08.034Z（温尼伯11月7日18:13—18:14 CST）完成准确平台栈核对：[实际差异表与证据](aws-deployment-baseline.md#platform-ownership-observed)。实际STS1/元数据17/云写0，11项CFN记录中9项实体仍在，ALB与443监听器缺失；console Alias保留旧目标，Service实况0/0/0且引用控制器关闭的:12，而CFN仍记:11/声明1。原模板SHA匹配，未修复、启动环境或改动旧配置。
 
@@ -14,9 +16,9 @@
 
 只改AliasTarget.DNSName为当前1581133878，名称/类型/所属zone/目标zone/EvaluateTargetHealth=false保持。三规则归属在21:09已独立验收，本次DNS又独立匹配，组成特定Cell—租户—API Alias引用链的收口证据，不是同一时刻原子快照。最后服务观察仍为21:09的0/0/0/:12，本阶段没有重查或启动服务；INSYNC不证明公网缓存、API健康或产品验收。ALB实际active、可能持续收费，没有新增自动停机或续租。
 
-**仅创建阶段已结束，旧批准与剩余预算不复用；本轮执行仍待新确认。** DnsRecord的UNSUPPORTED原样保留，旧回执仍fullExecutionScopeAccepted=false。新审批仅允许这一个AliasTarget的原生旧/新模板回退比较：写前准确DNS摘要必须匹配，写后独立匹配同栈新ALB；其他未知/不支持项仍阻断。不切STANDARD，不重建计划或改旧门禁结果。正常CFN回滚、旧CFN任务版本托管清理及恢复收费ALB须随新SHA明确接受；不启ECS/RDS、不改IAM/镜像/数据库/临时工具或代测业务。
+DnsRecord的UNSUPPORTED及旧创建回执fullExecutionScopeAccepted=false未改写。用户另批的窄范围原生回退比较已按写前准确记录、写后独立新ALB/DNS匹配收口，没有切STANDARD或放宽其他未知差异。CFN正常回滚及旧版本托管清理曾获本次明确批准，不等于主动调用回滚或已查证所有旧版本注销；额外:12未直接导入/删除。没有改IAM/镜像/数据库/临时工具或代测业务。
 
-65项本地检查及定向lint通过；本轮AWS账号调用/写入/秘密读取/数据库/执行槽均0，仅2次无身份官方价格GET。原栈无显式RoleARN的历史事实保持，不安装权限；属性正文及Secret值/PEM/.env均不读取。新执行阶段提交期限为温尼伯11月8日03:23:52.889 CST（09:23:52.889Z），须另获本清单批准且以执行前10分钟内的新预检为事实，旧00:13观察及05:13Z终点不修改或充作新事实。仅独立读取保留至03:53:52.889 CST，不授权晚写/重试或资源续租。ALB固定费用情景约25.37USD/月另加LCU等，无新自动停止；不能保证50USD硬上限。候选/源码/检查通过不等于云收敛，当前尚未执行。
+68项本地检查及定向lint通过，旧审批/模板/回执和历史折叠正文保持；无Secret值、PEM/.env或数据库读取，元数据属性正文只在内存投影、不保存原文。实际预检约28秒、唯一提交在新阶段期限前，最终核验在原09:53Z读取终点前；旧00:13事实及05:13Z终点不修改，也没有资源续租或新自动停止。平台ALB已active并可能持续收费，固定费用情景约25.37USD/月另加LCU等，50USD不是硬上限。此处完成的是平台停用归属段；Cell/租户/API使用各自分段证据，租户声明1/实况0和旧启停工具债务仍明确保留，不冒称三个栈同时全属性无漂移、服务已运行或新业务验收通过。
 
 初版基线只授权离线；A1/A2、最小IAM修正、B执行/回滚及本次只读均为用户后来逐项批准的独立范围，不能由文档追加反向授权。旧JSON、失败记录、回滚批准/token及配方保持，已消费槽不复位或重放。
 

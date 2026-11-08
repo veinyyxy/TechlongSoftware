@@ -52,6 +52,9 @@ import platformCandidate from '../ops/deployment-baseline/platform-idle-converge
 import platformCreateReview from '../ops/deployment-baseline/platform-idle-creation-review-20261108.json' with { type: 'json' };
 import platformCreated from '../ops/deployment-baseline/platform-idle-created-20261108.json' with { type: 'json' };
 import platformExecuteReview from '../ops/deployment-baseline/platform-idle-execution-review-20261108.json' with { type: 'json' };
+import platformExecuted from '../ops/deployment-baseline/platform-idle-executed-20261108.json' with { type: 'json' };
+import platformPending from '../ops/deployment-baseline/platform-idle-pending-observed-20261108.json' with { type: 'json' };
+import platformFollowup from '../ops/deployment-baseline/platform-idle-followup-observed-20261108.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet, draftPlatformIdleConvergence } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -1221,4 +1224,38 @@ test('platform execute approval binds one write, fresh prerequisite reads and in
   assert.equal(a.pricing.fixedHourlyUsd,a.pricing.albHourly+a.pricing.publicIpv4Hourly*a.pricing.publicIpv4CountAssumed);assert.ok(Math.abs(a.pricing.fixedMonthlyUsd-a.pricing.fixedHourlyUsd*a.pricing.monthlyHoursAssumed)<1e-9);
   assert.equal(a.pricing.noAutomaticExpiryOrStop,true);assert.equal(a.pricing.monthly50UsdNotAHardCap,true);assert.equal(a.preparation.accountAwsCalls,0);assert.equal(a.preparation.accountCloudWrites,0);assert.equal(a.preparation.publicPricingHttpsGets,2);
   assert.equal(a.lifecycle.temporaryCostToolNotModified,true);assert.equal(a.lifecycle.noExhaustiveLiveAutomationInventoryClaimed,true);
+});
+
+test('platform Execute is consumed exactly once; a pending root is not an independent failure or ownership acceptance',()=>{
+  const r=platformExecuted,c=v=>Array.isArray(v)?v.map(c):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,c(v[k])])):v;
+  assert.equal(r.approvedManifestCanonicalSha256,createHash('sha256').update(JSON.stringify(c(platformExecuteReview))).digest('hex'));
+  assert.equal(r.stackId,platformExecuteReview.request.StackName);assert.equal(r.changeSetId,platformExecuteReview.request.ChangeSetName);assert.equal(r.requestCanonicalSha256,platformExecuteReview.requestCanonicalSha256);
+  assert.equal(r.status,'INDEPENDENT_PLATFORM_INSPECT_STOPPED');assert.equal(r.underlyingStackStatus,'UPDATE_IN_PROGRESS');assert.equal(r.platformIdleOwnershipAccepted,false);
+  assert.deepEqual(r.counts.aggregate,{sts:2,metadata:43,executeChangeSet:1});assert.equal(r.counts.writer.metadata,42);assert.equal(r.counts.independent.metadata,1);assert.equal(r.executionSlotsConsumed,1);assert.equal(r.replayAuthorized,false);
+  assert.equal(r.stackRoleRemainsUnset,true);assert.equal(r.stackTagMapSha256,platformExecuteReview.expected.stackTagMapSha256);assert.equal(r.stackOutputMapSha256,platformExecuteReview.expected.stackOutputMapSha256);
+  assert.equal(r.timing.preflightWasWithin600Seconds,true);assert.equal(r.timing.submittedBeforeNewStageDeadline,true);assert.equal(r.normalCfnRollbackExplicitlyAuthorized,true);assert.equal(r.disableRollback,false);assert.equal(r.rawParametersEnvironmentCommandLeaseContextsOrOriginalErrorsPersisted,false);
+  assert.ok(Object.values(r.exclusions).every(x=>x===0));assert.equal(r.proofBoundaries.platformSegmentIndependentlyAccepted,false);
+});
+
+test('newly approved exact-stack diagnostic records completed infrastructure but only Service pending, without retrying Execute',()=>{
+  const r=platformPending;
+  assert.equal(r.userExplicitNewReadOnlyApprovalRecorded,true);assert.equal(r.stackId,platformExecuteReview.request.StackName);assert.deepEqual(r.counts,{sts:1,metadata:3});assert.equal(r.cloudWrites,0);assert.equal(r.executionSlotsConsumed,0);
+  assert.equal(r.stack.StackStatus,'UPDATE_IN_PROGRESS');assert.deepEqual(r.pendingLogicalIds,['Service']);assert.deepEqual(r.failedLogicalIds,[]);assert.equal(r.resources.nextTokenPresent,false);
+  for(const id of ['LoadBalancer','HttpsListener','DnsRecord','TaskDefinition'])assert.ok(r.currentOperationEvents.items.some(x=>x.LogicalResourceId===id&&['CREATE_COMPLETE','UPDATE_COMPLETE'].includes(x.ResourceStatus)&&x.clientRequestTokenMatchesApproved));
+  assert.equal(r.operationId.length,1);assert.ok(r.currentOperationEvents.items.every(x=>x.OperationId===r.operationId[0]));assert.equal(r.ecsStabilizationRootCauseNotProved,true);assert.equal(r.actualAlbListenerDnsAndServiceNotYetIndependentlyAccepted,true);assert.equal(r.noRetryOrRollbackPerformed,true);assert.equal(r.rawResourcePropertiesEnvironmentParametersOrOriginalErrorsSaved,false);
+});
+
+test('fresh read-only follow-up independently closes platform ownership and console Alias on new CFN IDs with controller-off and zero tasks',()=>{
+  const r=platformFollowup,c=v=>Array.isArray(v)?v.map(c):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,c(v[k])])):v,sha=v=>createHash('sha256').update(JSON.stringify(c(v))).digest('hex');
+  assert.equal(r.relatedExecutionManifestSha256,sha(platformExecuteReview));assert.equal(r.relatedExecutedReceiptSha256,sha(platformExecuted));assert.equal(r.relatedPendingReceiptSha256,sha(platformPending));
+  assert.equal(r.status,'PLATFORM_IDLE_OWNERSHIP_AND_DNS_INDEPENDENTLY_VERIFIED');assert.equal(r.stackStatus,'UPDATE_COMPLETE');assert.equal(r.executionStatus,'EXECUTE_COMPLETE');assert.equal(r.deploymentMode,'REVERT_DRIFT');assert.equal(r.appliedTemplateCanonicalSha256,sha(platformCandidate));assert.equal(r.disableRollback,false);
+  assert.equal(r.newReadOnlyFollowupApprovalRecorded,true);assert.deepEqual(r.counts.followupAggregate,{sts:2,metadata:19,cloudWrites:0});assert.deepEqual(r.counts.allSeparatelyApprovedStages,{sts:5,metadata:65,executeChangeSet:1});
+  assert.equal(r.physicalBindings.length,11);assert.deepEqual(r.physicalBindings.map(x=>x.logicalId).sort(),Object.keys(platformCandidate.Resources).sort());for(const old of platformExecuteReview.expected.retainedPhysicalIds)assert.equal(r.physicalBindings.find(x=>x.logicalId===old.logicalId).physicalId,old.physicalId);
+  assert.equal(r.alb.LoadBalancerArn,r.newPhysicalBindings.LoadBalancer);assert.equal(r.listener.ListenerArn,r.newPhysicalBindings.HttpsListener);assert.equal(r.listener.LoadBalancerArn,r.alb.LoadBalancerArn);assert.equal(r.alb.State.Code,'active');assert.equal(r.listener.Port,443);assert.equal(r.listener.Protocol,'HTTPS');assert.ok(!r.alb.LoadBalancerArn.includes('23610822b0ae5c30'));
+  assert.equal(r.service.taskDefinition,r.newPhysicalBindings.TaskDefinition);assert.equal(r.taskDefinition.taskDefinitionArn,r.service.taskDefinition);assert.equal(r.service.taskDefinition.endsWith(':13'),true);assert.deepEqual([r.service.desiredCount,r.service.runningCount,r.service.pendingCount],[0,0,0]);assert.equal(r.controllerDisabledVerified,true);assert.equal(r.taskDefinition.controllerDisabled,true);assert.equal(r.followupDeploymentMetadata.deployments.length,1);assert.equal(r.followupDeploymentMetadata.deployments[0].rolloutState,'COMPLETED');
+  assert.equal(r.consoleAlias.Name,'console.sandbox.techlong.cloud.');assert.equal(r.consoleAlias.Type,'A');assert.equal(r.consoleAlias.AliasTarget.DNSName.replace(/\.$/,''),r.alb.DNSName);assert.equal(r.consoleAlias.AliasTarget.HostedZoneId,r.alb.CanonicalHostedZoneId);assert.equal(r.consoleAlias.AliasTarget.EvaluateTargetHealth,true);assert.equal(r.dnsReview.sourceDriftStatusRemainsUnsupported,true);assert.equal(r.dnsReview.originalCreatedReceiptUnchanged,true);
+  assert.equal(r.stackTagMapSha256,platformExecuteReview.expected.stackTagMapSha256);assert.equal(r.stackOutputMapSha256,platformExecuteReview.expected.stackOutputMapSha256);assert.equal(r.stackRoleRemainsUnset,true);assert.ok(Date.parse(r.independentlyVerifiedAt)<Date.parse(r.timing.readOnlyBefore));
+  assert.equal(r.execution.repeatExecuteAuthorized,false);assert.equal(r.execution.newReadOnlyRecordsDoNotResetExecutionSlot,true);assert.equal(r.originalExecuteRecordAndIntentNotModified,true);assert.ok(Object.values(r.exclusions).every(x=>x===0));assert.equal(r.rawEnvironmentCommandLeaseResourcePropertiesParametersOrOriginalErrorsSaved,false);
+  for(const key of ['notAtomicThreeStackSnapshot','notFullPropertyDriftFreedom','noRuntimeHealthOrBusinessAcceptanceClaim','tenantDesiredCount1VsActual0HistoricalExceptionNotChanged','temporaryPowerToolDriftDebtNotChanged','rdsCurrentStateNotQueried'])assert.equal(r.proofBoundaries[key],true,key);
+  assert.equal(r.costs.platformAlbIndependentlyObservedActive,true);assert.equal(r.costs.noNewAutomaticStop,true);assert.equal(r.costs.monthly50UsdNotHardCap,true);
 });

@@ -1,0 +1,176 @@
+{
+  "schema": "techlong/platform-idle-executed/v1",
+  "status": "INDEPENDENT_PLATFORM_INSPECT_STOPPED",
+  "platformIdleOwnershipAccepted": false,
+  "approvedManifestFile": "platform-idle-execution-review-20261108.json",
+  "approvedManifestCanonicalSha256": "59b9b261b9233849cb92b55606025b2cf984282731bd7ac0314a829e1029caeb",
+  "userExplicitExecutionAndFullRiskAcceptanceRecorded": true,
+  "userInstruction": "确认按此SHA执行并接受完整风险",
+  "sourceCommit": "c7a55b00e82403fe003177f2abe960db192f2beb",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+  "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-platform-idle-drift-20261108t020555-ae520bf3/45588046-6ce7-409d-9c47-504631f990e4",
+  "requestCanonicalSha256": "dec24ceb82d7b113395fd5ca63afc8e829a9deff7ce5560602b79f1017a2b520",
+  "evidence": [
+    {
+      "file": "platform-idle-created-20261108.json",
+      "canonicalSha256": "93dde024e023dfc90c305d0b87262cdfe4f250482ad4db3a7af7db5f380b416a"
+    },
+    {
+      "file": "platform-idle-creation-review-20261108.json",
+      "canonicalSha256": "25abd21269c43cda9c355bc80b23d4c8d1fba0edf47b938e8f682043f19c1fe5"
+    },
+    {
+      "file": "platform-idle-convergence.template.json",
+      "canonicalSha256": "47ae49231809b1cbe5859c0d5eebd4444c5795162a39ead51ba81964d557f3c1"
+    },
+    {
+      "file": "platform-ownership-observed-20261107.json",
+      "canonicalSha256": "15e85cf4220d58de4ffcf1bed9bc505f818a31a75f77442f892438934e83cf70"
+    }
+  ],
+  "startedAt": "2026-11-08T04:40:40.061Z",
+  "freshPreflightVerifiedAt": "2026-11-08T04:41:07.937Z",
+  "submissionIntentAt": "2026-11-08T04:41:07.972Z",
+  "acknowledgedAt": "2026-11-08T04:41:09.517Z",
+  "writerFinishedAt": "2026-11-08T04:47:29.356Z",
+  "writerLastStackStatus": "UPDATE_IN_PROGRESS",
+  "writerLastStackObservedAt": "2026-11-08T04:47:29.316Z",
+  "independentStartedAt": "2026-11-08T04:55:30.809Z",
+  "independentFinishedAt": "2026-11-08T04:55:34.531Z",
+  "independentError": {
+    "code": "STACK_STATE_ROLE_TAGS_OR_OUTPUTS_CHANGED",
+    "operation": null
+  },
+  "counts": {
+    "writer": {
+      "sts": 1,
+      "metadata": 42,
+      "executeChangeSet": 1
+    },
+    "independent": {
+      "sts": 1,
+      "metadata": 1,
+      "executeChangeSet": 0
+    },
+    "aggregate": {
+      "sts": 2,
+      "metadata": 43,
+      "executeChangeSet": 1
+    },
+    "otherDirectAwsWrites": 0,
+    "providerInternalCallsNotBoundByDirectBudget": true
+  },
+  "executionSlotsConsumed": 1,
+  "executionApprovalConsumed": true,
+  "replayAuthorized": false,
+  "automaticWriteOrReadRetries": false,
+  "automaticAgentRollbackOrCleanup": false,
+  "normalCfnRollbackExplicitlyAuthorized": true,
+  "disableRollback": false,
+  "underlyingStackStatus": "UPDATE_IN_PROGRESS",
+  "executionStatus": null,
+  "deploymentMode": null,
+  "appliedTemplateCanonicalSha256": null,
+  "stackRoleRemainsUnset": true,
+  "stackTagMapSha256": "ae52c8f310d8ff7f786d2832531181f8517fbc2d51a99b45735b98b361b7b413",
+  "stackOutputMapSha256": "59496f78633dcb8be8ade74a5b93c6feaed9cffff9d68d9befceb03a1de04bec",
+  "physicalBindings": [],
+  "retainedPhysicalBindingsVerified": [],
+  "newPhysicalBindings": null,
+  "alb": null,
+  "declaredAlbAttributes": null,
+  "listener": null,
+  "targetGroup": null,
+  "service": null,
+  "taskDefinition": null,
+  "dns": {
+    "logicalId": "DnsRecord",
+    "originalObservedDriftStatus": "UNSUPPORTED",
+    "explicitNarrowFallbackApproved": true,
+    "createdReceiptNotRewritten": true,
+    "sourceCreatedReceiptFullExecutionScopeAccepted": false,
+    "beforeRecord": {
+      "Name": "console.sandbox.techlong.cloud.",
+      "Type": "A",
+      "AliasTarget": {
+        "HostedZoneId": "ZQSVJUPU6J1EY",
+        "DNSName": "techlong-sandbox-platform-1535966359.ca-central-1.elb.amazonaws.com.",
+        "EvaluateTargetHealth": true
+      }
+    },
+    "independentlyObservedAfter": null,
+    "aliasEqualsNewManagedAlbVerified": false,
+    "dnsNameTypeZoneAndEvaluateTargetHealthPreserved": false,
+    "noDirectRoute53Write": true
+  },
+  "controllerDisabledVerified": false,
+  "serviceDesiredRunningPendingZeroVerified": false,
+  "declaredDesiredCount": 0,
+  "noTaskDefinitionRevisionPrediction": true,
+  "newIdsReadFromSameStackNotOld236Bindings": false,
+  "oldManagedRevision11MayBeDeregistered": true,
+  "deregistrationNotSeparatelyQueried": true,
+  "unmanagedRevision12NotDirectlyImportedOrDeleted": true,
+  "timing": {
+    "historicalSourceFactsAt": "2026-11-08T00:13:41.732Z",
+    "historicalSourceFactsValidBefore": "2026-11-08T05:13:41.732Z",
+    "oldFactTimesNotModified": true,
+    "newExecutionStageStartBefore": "2026-11-08T09:23:52.889Z",
+    "independentReadsBefore": "2026-11-08T09:53:52.889Z",
+    "preflightElapsedSeconds": 27.911,
+    "preflightWasWithin600Seconds": true,
+    "submittedBeforeNewStageDeadline": true,
+    "noResourceLeaseRenewalOrNewAutomaticStop": true
+  },
+  "exclusions": {
+    "createChangeSet": 0,
+    "deleteChangeSet": 0,
+    "updateStack": 0,
+    "agentRollbackStack": 0,
+    "continueUpdateRollback": 0,
+    "iamWrites": 0,
+    "directElbWrites": 0,
+    "directEcsWrites": 0,
+    "directDnsWrites": 0,
+    "rdsOperations": 0,
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "configSecretFileReads": 0,
+    "databaseConnections": 0,
+    "imageUpdates": 0,
+    "githubCalls": 0,
+    "publicDnsOrBusinessHttpCalls": 0,
+    "temporaryToolChanges": 0
+  },
+  "proofBoundaries": {
+    "platformSegmentIndependentlyAccepted": false,
+    "cellTenantAndApiUseSeparateHistoricalEvidence": true,
+    "notAtomicThreeStackSnapshot": true,
+    "fullPropertyDriftFreedomProved": false,
+    "runtimeHealthOrBusinessAcceptanceProved": false,
+    "tenantDesiredCountHistorical1Vs0NotChangedHere": true,
+    "temporaryPowerToolDriftDebtNotFixedHere": true,
+    "noExhaustiveLiveCleanupInventoryClaim": true,
+    "rdsCurrentRunningStateNotQueried": true,
+    "normalProviderTransientActivityNotGuaranteedAbsent": true
+  },
+  "costs": {
+    "platformAlbActiveIndependentlyObserved": false,
+    "noAutomaticStopInstalled": true,
+    "monthly50UsdIsNotHardCap": true,
+    "publicFixedPriceScenarioUsdPer730Hours": 25.3675,
+    "scenarioExcludesLcuTrafficLogsTaxAndExistingResources": true,
+    "notAnActualBillingQuery": true
+  },
+  "rawParametersEnvironmentCommandLeaseContextsOrOriginalErrorsPersisted": false,
+  "privateEvidenceDirectory": ".local-secrets/platform-idle-execute-39c2b757556e484d7cbfff71fac768a2",
+  "writerJournalRawSha256": "4e066e6f2bafb3bda807b834831e86993c730d1c2589578efa1bda1381278e57",
+  "writerJournalCanonicalSha256": "2732f3f51d27915a31029f392484c5285c0ad0574fafa69f48a0fe33e7ed326d",
+  "independentJournalRawSha256": "dce8316e8daceab1672dde3a1f9bab95b703cdbbd4fbceaf7cd6e36ca9abedfc",
+  "independentJournalCanonicalSha256": "9af0820bbc2aa2081e17c66613f81509d657d99c364debfbea95c3ceb6e42652",
+  "writerRecipeRawSha256": "bf0ec22c4014a719e384829b3b1cfd007075153b6e534d67a9873bfea06f9194",
+  "independentRecipeRawSha256": "7cebc42e249b464f0172324044244621a3e280ee57e4db2c5f9726ec2746e73c",
+  "commonRawSha256": "d4818c644ffc0fbcf4c73c0e8287bfb3fd561f9bc2561ef5f682d6aefa7a5d72",
+  "attemptIntentRawSha256": "9bdc6504173e2f376b6bd38c8ca4c50bf61a5fb6daeaa809b029e10b7ff2b18b",
+  "next": "The one Execute was submitted but independent acceptance is not proved. Preserve records and the consumed slot; no retry, cleanup or new permissions. Any additional state/event reads or recovery require a new exact scope."
+}
