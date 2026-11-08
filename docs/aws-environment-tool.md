@@ -83,6 +83,8 @@ aws-environment-cfn-state/
 
 **尚未证明：真实账号stop→start→stop、现有角色覆盖新ARN、当前资源/费用状态。** 本轮没有生成新实际云计划或启停环境。真实操作前先按当前唯一继续点另批必要只读及准确整轮SHA，不复用历史批准。旧 `aws-cost-*` / `aws-temporary-idle` 的CFN所属ALB/ECS/网络路径已阻断，旧CFN备份不能借drift acknowledgement重建；这些独立工具只保留其非CFN明确目标行为。
 
+远端验证留档：代码提交 `0251a135bd61a036d3a32935d114b04fdcf590a3` 的[无AWS CI 42454426128](https://github.com/veinyyxy/TechlongSoftware/actions/runs/42454426128)已completed/success，143项合成/基线回归、lint及TypeScript通过。这里只证明代码与合成流程，不证明实际云端启停或权限。
+
 正式上线移除本临时入口、`environment*.mjs`和配置/调用及对应临时CI；正式CFN模板/资源归属基线保留，私有备份按安全策略归档，正式业务无需导入临时层。
 
 <a id="future-lifecycle-principle"></a>

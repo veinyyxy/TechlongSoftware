@@ -8,6 +8,8 @@
 
 本轮账号AWS/数据库/凭据/Secret值/PEM/.env调用0，无实际云计划或启停，配置仍关闭。下一只在用户明确要求后，另审首次受限只读接入及角色新ARN权限，再给准确启停SHA；不把合成测试或人工review标志当权限证明，不自动读云/开窗/扩IAM或续租。旧云事实及已消费槽保持，下方平台段仍是前置收口证据，不自动开始版本更新。
 
+代码0251a13的[无AWS CI 42454426128](https://github.com/veinyyxy/TechlongSoftware/actions/runs/42454426128)已completed/success，143项回归、lint及类型检查通过；真实云端启停未执行。
+
 ### 已完成前置：平台最后一段独立核验（2026-11-07 CST）
 
 用户确认59b9b261…清单及完整风险后，原45588046…已单次Execute，最终于2026-11-08T05:03:19.699Z（温尼伯11月7日23:03:19.699 CST）独立核验通过：[最终物理基线、分段记录与边界](aws-deployment-baseline.md#platform-idle-verified)。UPDATE_COMPLETE/EXECUTE_COMPLETE、REVERT_DRIFT、候选47ae4923…已应用，平台11项归属及六项保留物理ID匹配；新ALB c06cdf93979f2406、443监听器8db555e0348e379b和console Alias对齐，Service与CFN同为新:13、desired/running/pending=0/0/0，控制器关闭。

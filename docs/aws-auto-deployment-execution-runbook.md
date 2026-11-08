@@ -10,6 +10,8 @@
 
 本轮到此收尾。下一仅在用户明确要求后，另批首次受限只读接入及所用角色权限核验，再准备准确stop或start整轮SHA；不自动读取云资源/私密配置或开短窗口。新监听器ARN可能不在现有精确授权中，工具不会改IAM或切换大角色绕过，恢复必须先另审该布局。真实云变更/正常CFN回滚/服务对象删除重建及运行费须按新范围确认；不自动触发启停、清理、部署、镜像更新或业务测试。
 
+代码0251a13的[无AWS CI 42454426128](https://github.com/veinyyxy/TechlongSoftware/actions/runs/42454426128)已completed/success，143项回归、lint及类型检查通过；未调度云发布、真实启停或权限修改。
+
 ### 已完成前置：平台最后一段独立核验（2026-11-07 CST）
 
 用户确认59b9b261…清单及完整风险后，原45588046…已单次Execute，最终于2026-11-08T05:03:19.699Z（温尼伯11月7日23:03:19.699 CST）独立核验通过：[最终物理基线、分段记录与边界](aws-deployment-baseline.md#platform-idle-verified)。UPDATE_COMPLETE/EXECUTE_COMPLETE、REVERT_DRIFT、候选47ae4923…已应用，平台11项归属及六项保留物理ID匹配；新ALB c06cdf93979f2406、443监听器8db555e0348e379b和console Alias对齐，Service与CFN同为新:13、desired/running/pending=0/0/0，控制器关闭。
