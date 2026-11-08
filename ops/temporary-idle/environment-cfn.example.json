@@ -1,0 +1,34 @@
+{
+  "schema": "techlong/temporary-environment/v2",
+  "temporary": true,
+  "enabled": false,
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "profile": "techlong-sandbox-user",
+  "expectedPrincipalArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "expectedPrincipalUserId": "AIDAV3GNMXTZEO7SHLC2X",
+  "stateDirectory": "F:/ChatGPT_workshop/aws-environment-cfn-state",
+  "awsCliExecutable": "D:/Amazon/AWSCLIV2/aws.exe",
+  "stacks": {
+    "platform": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+      "templateSha256": "47ae49231809b1cbe5859c0d5eebd4444c5795162a39ead51ba81964d557f3c1",
+      "desiredCount": 1
+    },
+    "cell": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+      "templateSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892"
+    },
+    "tenant": {
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+      "templateSha256": "d705b4d9b96fb5521e1564aaac0693ca4e2327dcf32dfb07e27c0efec8a98779",
+      "desiredCount": 1
+    }
+  },
+  "databases": [
+    {"kind":"cluster","id":"techlong-sandbox-express-d001","resourceId":"cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM"},
+    {"kind":"instance","id":"speedfeast-postgres-prod","resourceId":"db-MOOXGHRHTZM25V3I4NY25D4IEQ"}
+  ],
+  "externalApiAlias": {"zoneId":"Z01473621BTTHKXBGOOEJ","name":"first-acceptance.sandbox.techlong.cloud.","owner":"external"},
+  "acknowledgeRoleScopeReview": false
+}

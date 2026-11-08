@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,readFile,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {stopResources,resumeResources,validateConfig,listenerInput,ruleInput} from '../ops/aws-resource-power/core.mjs';
+import {stopResources,resumeResources,validateConfig,listenerInput,ruleInput,digest} from '../ops/aws-resource-power/core.mjs';
 import {AwsCli,FileStore,parseArgs,permittedOperations} from '../ops/aws-resource-power/cli.mjs';
 
 // Every AWS response below is synthetic. No production adapter/entry point is executed.
@@ -53,7 +53,7 @@ function fixture(options={}){
     if(operation==='describe-listener-certificates')return {Certificates:[{CertificateArn:certificate,IsDefault:true},{CertificateArn:extraCertificate,IsDefault:false}]};
     if(operation==='describe-rules')return {Rules:[{RuleArn:'default',IsDefault:true,Priority:'default',Actions:defaultActions},...(input.ListenerArn===oldListener?[copy(rule)]:copy(state.newRules))]};
     if(operation==='describe-target-groups')return {TargetGroups:[{TargetGroupArn:target,VpcId:'vpc-test'}]};
-    if(operation==='describe-tags'){const arn=input.ResourceArns[0];return {TagDescriptions:[{ResourceArn:arn,Tags:[...copy(userTag),...(arn===oldArn?[{Key:'aws:cloudformation:stack-id',Value:`arn:aws:cloudformation:ca-central-1:${account}:stack/test/one`}]:[])]}]};}
+    if(operation==='describe-tags'){const arn=input.ResourceArns[0];return {TagDescriptions:[{ResourceArn:arn,Tags:[...copy(userTag),...(options.cfnOwned&&arn===oldArn?[{Key:'aws:cloudformation:stack-id',Value:`arn:aws:cloudformation:ca-central-1:${account}:stack/test/one`}]:[])]}]};}
     if(operation==='delete-load-balancer'){state.deleted=true;return {};}
     if(operation==='create-load-balancer'){assert.equal(input.Name,'test-lb');assert.equal(input.LoadBalancerName,undefined);state.created=true;return {LoadBalancers:[{...copy(lb),LoadBalancerArn:newArn,DNSName:'new.example',CanonicalHostedZoneId:'NEWZONE'}]};}
     if(operation==='create-listener'){const value={...copy(input),ListenerArn:newListener};state.newListeners.push(value);return {Listeners:[value]};}
@@ -83,7 +83,9 @@ test('resume starts RDS and recreates ALB/mTLS/listeners/certificates/transforms
   const before=f.calls.length;await assert.rejects(resumeResources(f),/RESTORE_ALREADY_ATTEMPTED/);assert.equal(f.calls.length,before);
 });
 test('wrong account prevents every write',async()=>{const f=fixture({wrongAccount:true});await assert.rejects(stopResources({...f,config}),/SOURCE_ACCOUNT_MISMATCH/);assert.equal(writes(f).length,0);});
-test('CloudFormation drift acknowledgement is required before any mutation',async()=>{const f=fixture();await assert.rejects(stopResources({...f,config:{...config,acknowledgeCloudFormationDrift:false}}),/CLOUDFORMATION_DRIFT_ACK/);assert.equal(writes(f).length,0);});
+test('CFN ownership blocks legacy deletion even with the old drift acknowledgement',async()=>{for(const acknowledgeCloudFormationDrift of [false,true]){const f=fixture({cfnOwned:true});await assert.rejects(stopResources({...f,config:{...config,acknowledgeCloudFormationDrift}}),/CFN_OWNED_ALB_USE_ENVIRONMENT_V2/);assert.equal(writes(f).length,0);}});
+
+test('historical CFN-tagged backups cannot recreate resources or start databases through the legacy resume entry',async()=>{const f=fixture();await stopResources({...f,config});f.store.snapshot.loadBalancers[0].tags.push({Key:'aws:cloudformation:stack-id',Value:'historical-stack'});f.store.journal.snapshotSha256=digest(f.store.snapshot);f.calls.length=0;await assert.rejects(resumeResources(f),/CFN_BACKUP_RESTORE_REQUIRES_ENVIRONMENT_V2/);assert.equal(f.calls.length,0);});
 test('deletion protection is not silently disabled',async()=>{const f=fixture();await assert.rejects(stopResources({...f,config:{...config,allowDisableDeletionProtection:false}}),/DELETION_PROTECTION_ACK/);assert.equal(writes(f).length,0);});
 test('unexportable OIDC configuration refuses deletion while RDS is still running',async()=>{const f=fixture({oidc:true});await assert.rejects(stopResources({...f,config}),/OIDC_SECRET_NOT_EXPORTABLE/);assert.equal(writes(f).length,0);assert.equal(f.store.snapshot,null);});
 test('a failed write is journaled, not retried or followed by deletion',async()=>{const f=fixture({failOperation:'stop-db-cluster'});await assert.rejects(stopResources({...f,config}));assert.equal(writes(f).length,1);assert.equal(f.store.journal.status,'NEEDS_INSPECTION');assert.equal(Object.values(f.store.journal.actions)[0].status,'UNKNOWN_OR_REJECTED');});

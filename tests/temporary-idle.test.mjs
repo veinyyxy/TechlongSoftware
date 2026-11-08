@@ -70,6 +70,7 @@ function fixture(o={}){
   return {config:c,io,store,calls,svc,scaling,schedules,rule,ruleTargets,nats,endpoints,addresses,table,powerStop};
 }
 const mutations=f=>f.calls.filter(c=>c.mutation);
+test('legacy direct idle refuses CFN-owned ECS and paid network before every mutation',async()=>{for(const kind of ['service','network']){const f=fixture();if(kind==='service')f.svc.tags=[{key:'aws:cloudformation:stack-id',value:'owned-stack'}];else f.nats.get(nat).Tags=[...tags,{Key:'aws:cloudformation:stack-id',Value:'owned-stack'}];await assert.rejects(idle(f),/CFN_OWNED_/);assert.equal(mutations(f).length,0);}});
 async function stopped(o){const f=fixture(o);await idle(f);return f;}
 async function networkReady(o){const f=await stopped(o);await restoreNetwork(f);return f;}
 test('temporary stop backs up first, freezes every restart source, scales ECS to zero then removes paid network',async()=>{

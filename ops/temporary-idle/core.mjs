@@ -34,6 +34,7 @@ async function pages(io,service,operation,input,key,token='NextToken'){
 const clusterArn=(c,s)=>s.cluster.startsWith('arn:')?s.cluster:arn(c,'ecs',`cluster/${s.cluster}`);
 async function service(c,io,s){
   const r=await io.call('ecs','describe-services',{cluster:s.cluster,services:[s.service],include:['TAGS']});ensure(!r.failures?.length&&r.services?.length===1,'SERVICE_NOT_FOUND');const value=r.services[0];
+  ensure(!(value.tags??[]).some(t=>t.key==='aws:cloudformation:stack-id'),'CFN_OWNED_SERVICE_USE_ENVIRONMENT_V2');
   ensure(value.clusterArn===clusterArn(c,s),'SERVICE_CLUSTER_MISMATCH');checkArn(c,value.serviceArn,'ecs','service/');
   ensure(s.service.startsWith('arn:')?value.serviceArn===s.service:value.serviceName===s.service,'SERVICE_NAME_MISMATCH');
   ensure(value.status==='ACTIVE'&&(value.launchType==='FARGATE'||value.capacityProviderStrategy?.length&&value.capacityProviderStrategy.every(p=>['FARGATE','FARGATE_SPOT'].includes(p.capacityProvider))),'ONLY_ACTIVE_FARGATE_SERVICES');return value;
@@ -44,7 +45,7 @@ async function tasks(io,cluster,ids){if(!ids.length)return [];const r=await io.c
     eniIds:(t.attachments??[]).flatMap(a=>(a.details??[]).filter(d=>d.name==='networkInterfaceId').map(d=>d.value))};});}
 const scheduleInput=s=>pick(s,['Name','GroupName','ScheduleExpression','ScheduleExpressionTimezone','StartDate','EndDate','FlexibleTimeWindow','Target','KmsKeyArn','Description','ActionAfterCompletion','State']);
 function scheduledCluster(c,target){const allowed=new Set(c.services.map(s=>clusterArn(c,s)).concat(c.standaloneTasks.map(t=>arn(c,'ecs',`cluster/${t.cluster}`))));ensure(target?.EcsParameters&&allowed.has(target.Arn),'ONLY_DIRECT_SCOPED_ECS_SCHEDULES');}
-function networkOwner(c,v){ensure(Object.entries(c.requiredNetworkTags).every(([k,val])=>(v.Tags??[]).some(t=>t.Key===k&&t.Value===val)),'NETWORK_TAG_MISMATCH');}
+function networkOwner(c,v){ensure(!(v.Tags??[]).some(t=>t.Key==='aws:cloudformation:stack-id'),'CFN_OWNED_NETWORK_USE_STACK_LIFECYCLE');ensure(Object.entries(c.requiredNetworkTags).every(([k,val])=>(v.Tags??[]).some(t=>t.Key===k&&t.Value===val)),'NETWORK_TAG_MISMATCH');}
 const cleanTags=tags=>(tags??[]).filter(t=>!t.Key.toLowerCase().startsWith('aws:'));
 const routeKey=r=>['DestinationCidrBlock','DestinationIpv6CidrBlock','DestinationPrefixListId'].find(k=>r[k]);
 async function routeTables(io,id){return pages(io,'ec2','describe-route-tables',{Filters:[{Name:'route.nat-gateway-id',Values:[id]}]},'RouteTables');}
@@ -121,7 +122,7 @@ export async function idle({config,io,store,waitSeconds=1800,powerStop}){
   for(const a of s.addresses)ensure(await absent(io,'ec2','describe-addresses',{AllocationIds:[a.AllocationId]},'Addresses','InvalidAllocationID.NotFound'),'EIP_RELEASE_UNVERIFIED');
   j.publicIpResiduals=await publicIpResiduals(io,s);j.status=j.publicIpResiduals.length?'IDLE_WITH_PUBLIC_IP_RESIDUALS':'TEMPORARY_IDLE_VERIFIED';j.finishedAt=now(io);await store.saveJournal(j);return {status:j.status,computeIdle:true,publicIpResiduals:j.publicIpResiduals,zeroAccountCharges:false,standaloneTasksWillNotReplay:s.standalone.length};
 }
-async function loaded(store){const {snapshot:s,journal:j}=await store.load();ensure(s.schema===SCHEMA&&j.schema===SCHEMA&&digest(s)===j.snapshotSha256,'BACKUP_INTEGRITY');validateConfig(s.config);active(s.config);return {s,j,c:s.config};}
+async function loaded(store){const {snapshot:s,journal:j}=await store.load();ensure(s.schema===SCHEMA&&j.schema===SCHEMA&&digest(s)===j.snapshotSha256,'BACKUP_INTEGRITY');validateConfig(s.config);active(s.config);ensure(![...(s.nats??[]).map(x=>x.value),...(s.endpoints??[]),...(s.addresses??[])].some(x=>x.Tags?.some(t=>t.Key==='aws:cloudformation:stack-id')),'CFN_NETWORK_BACKUP_USE_STACK_LIFECYCLE');return {s,j,c:s.config};}
 const tagSpec=(type,tags)=>cleanTags(tags).length?[{ResourceType:type,Tags:cleanTags(tags)}]:[];
 export async function restoreNetwork({io,store,waitSeconds=1800}){
   const {s,j,c}=await loaded(store);ensure(['TEMPORARY_IDLE_VERIFIED','IDLE_WITH_PUBLIC_IP_RESIDUALS'].includes(j.status),'IDLE_NOT_COMPLETED');ensure(!Object.hasOwn(j,'networkRestoreStarted'),'NETWORK_RESTORE_ALREADY_ATTEMPTED');await identity(c,io);

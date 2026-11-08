@@ -94,7 +94,7 @@ async function readLoadBalancer(config,io,arn){
   ensure(lb.AvailabilityZones?.length&&lb.AvailabilityZones.every(z=>z.SubnetId&&!z.OutpostId),'ALB_UNSUPPORTED_SUBNET_LAYOUT');
   const saved={description:lb,tags:await tags(io,arn),attributes:(await io.call('elbv2','describe-load-balancer-attributes',{LoadBalancerArn:arn})).Attributes,listeners:[]};
   ensure(Array.isArray(saved.attributes),'ALB_ATTRIBUTES');
-  ensure(!saved.tags.some(t=>t.Key==='aws:cloudformation:stack-id')||config.acknowledgeCloudFormationDrift===true,'CLOUDFORMATION_DRIFT_ACK_REQUIRED');
+  ensure(!saved.tags.some(t=>t.Key==='aws:cloudformation:stack-id'),'CFN_OWNED_ALB_USE_ENVIRONMENT_V2');
   ensure(!saved.attributes.some(a=>a.Key==='deletion_protection.enabled'&&a.Value==='true')||config.allowDisableDeletionProtection===true,'DELETION_PROTECTION_ACK_REQUIRED');
   for(const listener of await pages(io,'describe-listeners',{LoadBalancerArn:arn},'Listeners')){
     assertArn(listener.ListenerArn,config,'elasticloadbalancing','listener/app/');checkActions(listener.DefaultActions,config);
@@ -197,6 +197,8 @@ async function restoreAttributes(io,store,journal,key,kind,id,wanted){
 }
 export async function resumeResources({io,store,waitSeconds=1800}){
   const {snapshot,journal}=await store.load();ensure(snapshot.schema===SCHEMA&&journal.schema===SCHEMA&&digest(snapshot)===journal.snapshotSha256,'BACKUP_INTEGRITY');
+  // Old backups stay immutable, but cannot act as a second creator for CFN-owned infrastructure.
+  ensure(!(snapshot.loadBalancers??[]).some(x=>x.tags?.some(t=>t.Key==='aws:cloudformation:stack-id')),'CFN_BACKUP_RESTORE_REQUIRES_ENVIRONMENT_V2');
   const config=validateConfig(snapshot.config);ensure(!Object.hasOwn(journal,'resumeStartedAt'),'RESTORE_ALREADY_ATTEMPTED_NO_REPLAY');await identity(config,io);
   for(const db of snapshot.databases){const current=await readDatabase(config,io,db.kind,db.id);
     ensure(current.arn===db.arn&&current.resourceId===db.resourceId,'DATABASE_REPLACED');ensure(['stopped','available','starting'].includes(current.status),'DATABASE_NOT_READY_TO_START');

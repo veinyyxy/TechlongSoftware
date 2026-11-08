@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：平台最后一段已独立核验完成，不自动进入下一阶段（2026-11-07 CST）
+## 当前唯一继续点：启停工具v2代码改造完成，首次真实接入与启停仍另审（2026-11-08）
+
+用户要求的[CFN归属一致临时启停v2](aws-environment-tool.md#cfn-lifecycle-implementation)代码已完成：原入口＋5小时整轮SHA、三栈CFN生命周期与ECS声明一致、数据库独立停启、真实Cell输出重接租户/API Alias，console DNS不再由工具直接改。旧CFN直接操作/旧备份重放已阻断，临时层可独立移除；没有扩框架或改正式业务。143项本地回归及lint/TypeScript/语法检查通过，新增无AWS身份测试CI；远端结论以具体提交运行结果为准。
+
+本轮账号AWS/数据库/凭据/Secret值/PEM/.env调用0，无实际云计划或启停，配置仍关闭。下一只在用户明确要求后，另审首次受限只读接入及角色新ARN权限，再给准确启停SHA；不把合成测试或人工review标志当权限证明，不自动读云/开窗/扩IAM或续租。旧云事实及已消费槽保持，下方平台段仍是前置收口证据，不自动开始版本更新。
+
+### 已完成前置：平台最后一段独立核验（2026-11-07 CST）
 
 用户确认59b9b261…清单及完整风险后，原45588046…已单次Execute，最终于2026-11-08T05:03:19.699Z（温尼伯11月7日23:03:19.699 CST）独立核验通过：[最终物理基线、分段记录与边界](aws-deployment-baseline.md#platform-idle-verified)。UPDATE_COMPLETE/EXECUTE_COMPLETE、REVERT_DRIFT、候选47ae4923…已应用，平台11项归属及六项保留物理ID匹配；新ALB c06cdf93979f2406、443监听器8db555e0348e379b和console Alias对齐，Service与CFN同为新:13、desired/running/pending=0/0/0，控制器关闭。
 

@@ -31,6 +31,7 @@
 /.aws-sandbox/
 /.local-secrets/
 /ops/temporary-idle/environment.local.json
+/ops/temporary-idle/environment-cfn.local.json
 
 # debug
 npm-debug.log*
