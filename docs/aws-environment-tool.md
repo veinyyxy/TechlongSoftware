@@ -6,6 +6,12 @@
 
 ## 当前实现与范围
 
+### 已批准的FARGATE表示兼容已编码，待准确CI及新只读计划（2026-11-08）
+
+用户另允后，仅在原服务校验增加capacity-provider等价路径：模板和实际均只能有一个`FARGATE`，base/weight准确匹配（省略按0），两侧均不得同时声明launchType；EC2、混合、Spot、被改动/未声明的策略拒绝。原直接launchType路径仍只允许FARGATE，准确CFN绑定、标签、任务/目标/网络保护保持。没有新增API、权限、云写或修改CFN生命周期。
+
+153项本地回归通过，新增4项覆盖等价表示完整stop→start→stop及上述拒绝边界；定向lint和类型检查通过。准确代码CI通过后，才按本次批准用原只读入口准备新五小时停用SHA；不创建或执行云Change Set、不停启数据库或任务。下面两次失败的原件保留，不复位或重放，不能据本地通过声称真实环境已停费。
+
 ### 本轮标签修复已通过，新的只读规划停在租户FARGATE表示检查（2026-11-08）
 
 标签修复源码`2c76428fbf3b5d2d9539dff960ea183ebfcd2247`及[准确CI 42499624616](https://github.com/veinyyxy/TechlongSoftware/actions/runs/42499624616)已通过。新只读规划于16:25:05.743Z—16:25:26.304Z通过平台标签检查，随后在租户服务原有`launchType==='FARGATE'`条件处停止。准确ECS与CFN服务ARN/任务定义:12匹配，服务0/0/0，但AWS返回`launchType=null`及`capacityProviderStrategy=[FARGATE,weight1,base1]`。官方API明确使用capacity provider时省略launchType；不是发现了EC2工作负载或云端归属丢失。[AWS说明](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_Service.html)。

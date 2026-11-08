@@ -22,6 +22,28 @@ function declaredTagFixture(){
  const call=f.io.call;f.io.call=async(service,operation,input)=>{const r=await call(service,operation,input);if(operation==='describe-services')for(const s of r.services??[]){const stack=Object.values(f.stacks).find(x=>x.service?.serviceArn===s.serviceArn);s.tags=[{key:'Environment',value:'test'},{key:'ReviewUntil',value:stack.params.ReviewUntil}];}return r;};return f;
 }
 
+function capacityFixture(){
+ const f=declaredTagFixture(),s=f.stacks.tenant;s.template.Resources.TenantService.Properties.CapacityProviderStrategy=[{CapacityProvider:'FARGATE',Base:1,Weight:1}];f.config.stacks.tenant.templateSha256=hash(s.template);
+ const call=f.io.call;f.io.call=async(...args)=>{const r=await call(...args);if(args[1]==='describe-services')for(const x of r.services??[])if(x.serviceArn===f.stacks.tenant.service?.serviceArn){delete x.launchType;x.capacityProviderStrategy=copy(f.state.capacityStrategy??[{capacityProvider:'FARGATE',base:1,weight:1}]);}return r;};return f;
+}
+
+test('exact FARGATE capacity-provider strategy without launchType supports stop/start/stop alongside launch-type platform',async()=>{
+ const f=capacityFixture(),stop=await plan(f,'stop');assert.equal(writes(f).length,0);assert.equal((await apply(f,stop)).status,'STOPPED');const start=await plan(f,'start',stop,'stopped');assert.equal((await apply(f,start)).status,'RUNNING');assert.equal((await apply(f,await plan(f,'stop',start,'running'))).status,'STOPPED');
+});
+
+test('EC2, mixed, spot, changed weights/base and missing capacity strategies refuse before writes',async()=>{
+ for(const actual of [[{capacityProvider:'EC2',base:1,weight:1}],[{capacityProvider:'FARGATE',base:1,weight:1},{capacityProvider:'EC2',weight:1}],[{capacityProvider:'FARGATE_SPOT',base:1,weight:1}],[{capacityProvider:'FARGATE',base:2,weight:1}],[{capacityProvider:'FARGATE',base:1,weight:2}],[]]){const f=capacityFixture();f.state.capacityStrategy=actual;await assert.rejects(plan(f,'stop'),/SERVICE_FARGATE_STRATEGY_DRIFT/);assert.equal(writes(f).length,0);}
+});
+
+test('capacity provider is not an unreviewed fallback for a launch-type template, nor is launchType a fallback for a provider template',async()=>{
+ for(const kind of ['undeclared','both','template-both','template-ec2']){const f=kind==='undeclared'?declaredTagFixture():capacityFixture(),s=f.stacks.tenant;if(kind==='template-both')s.template.Resources.TenantService.Properties.LaunchType='FARGATE';if(kind==='template-ec2')s.template.Resources.TenantService.Properties.CapacityProviderStrategy[0].CapacityProvider='EC2';f.config.stacks.tenant.templateSha256=hash(s.template);
+ const call=f.io.call;f.io.call=async(...args)=>{const r=await call(...args);if(args[1]==='describe-services')for(const x of r.services??[])if(x.serviceArn===f.stacks.tenant.service?.serviceArn){if(kind==='undeclared'){delete x.launchType;x.capacityProviderStrategy=[{capacityProvider:'FARGATE',base:1,weight:1}];}if(kind==='both')x.launchType='FARGATE';}return r;};await assert.rejects(plan(f,'stop'),/SERVICE_FARGATE_STRATEGY_DRIFT/);assert.equal(writes(f).length,0);}
+});
+
+test('omitted capacity-provider base is zero only when both template and actual strategy agree',async()=>{
+ const f=capacityFixture(),s=f.stacks.tenant;delete s.template.Resources.TenantService.Properties.CapacityProviderStrategy[0].Base;f.config.stacks.tenant.templateSha256=hash(s.template);f.state.capacityStrategy=[{capacityProvider:'FARGATE',weight:1}];await plan(f,'stop');assert.equal(writes(f).length,0);
+});
+
 test('exact CFN service binding and literal/parameter-declared tags permit missing system tags through stop/start/stop',async()=>{
  const f=declaredTagFixture(),stop=await plan(f,'stop');assert.equal(writes(f).length,0);assert.equal((await apply(f,stop)).status,'STOPPED');
  const start=await plan(f,'start',stop,'stopped');assert.equal((await apply(f,start)).status,'RUNNING');assert.equal((await apply(f,await plan(f,'stop',start,'running'))).status,'STOPPED');

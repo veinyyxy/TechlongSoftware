@@ -45,8 +45,17 @@ function assertServiceTags(service,stack,role){
   ensure(Object.hasOwn(tags,Key)&&hash(tags[Key])===expected,'SERVICE_DECLARED_TAG_DRIFT');
  }
 }
+function assertFargateService(service,properties){
+ const wanted=properties.CapacityProviderStrategy??[],actual=service.capacityProviderStrategy??[];ensure(Array.isArray(wanted)&&Array.isArray(actual),'SERVICE_FARGATE_STRATEGY_DRIFT');
+ if(!wanted.length){ensure((properties.LaunchType===undefined||properties.LaunchType==='FARGATE')&&service.launchType==='FARGATE'&&!actual.length,'SERVICE_FARGATE_STRATEGY_DRIFT');return;}
+ ensure(properties.LaunchType===undefined&&service.launchType==null&&wanted.length===1&&actual.length===1&&wanted[0].CapacityProvider==='FARGATE'&&actual[0].capacityProvider==='FARGATE','SERVICE_FARGATE_STRATEGY_DRIFT');
+ // AWS omits launchType for capacity-provider services. Compare the declared strategy, not just its name.
+ const expected=[wanted[0].Base??0,wanted[0].Weight??0],observed=[actual[0].base??0,actual[0].weight??0];
+ ensure(expected.every(x=>Number.isInteger(x)&&x>=0)&&same(expected,observed),'SERVICE_FARGATE_STRATEGY_DRIFT');
+}
 async function liveService(c,io,scope,stack,role){const r=await io.call('ecs','describe-services',{cluster:scope.cluster,services:[scope.arn],include:['TAGS']});ensure(!r.failures?.length&&r.services?.length===1,'SERVICE_LOOKUP_FAILED');const s=r.services[0];
- ensure(s.serviceArn===scope.arn&&s.serviceArn===stack.bindings[SERVICE[role]].physicalId&&stack.bindings[SERVICE[role]].type==='AWS::ECS::Service'&&s.status==='ACTIVE'&&s.launchType==='FARGATE'&&s.taskDefinition===stack.bindings[role==='platform'?'TaskDefinition':'TenantTaskDefinition'].physicalId,'SERVICE_TEMPLATE_BINDING_MISMATCH');
+ ensure(s.serviceArn===scope.arn&&s.serviceArn===stack.bindings[SERVICE[role]].physicalId&&stack.bindings[SERVICE[role]].type==='AWS::ECS::Service'&&s.status==='ACTIVE'&&s.taskDefinition===stack.bindings[role==='platform'?'TaskDefinition':'TenantTaskDefinition'].physicalId,'SERVICE_TEMPLATE_BINDING_MISMATCH');
+ assertFargateService(s,stack.template.Resources[SERVICE[role]].Properties);
  assertServiceTags(s,stack,role);
  ensure([0,c.stacks[role].desiredCount].includes(s.desiredCount),'UNREVIEWED_SERVICE_COUNT');const p=stack.template.Resources[SERVICE[role]].Properties,groups=s.loadBalancers??[],want=p.LoadBalancers??[],target=stack.bindings[role==='platform'?'TargetGroup':'TenantTargetGroup'].physicalId;
  ensure(groups.length===1&&want.length===1&&groups[0].targetGroupArn===target&&groups[0].containerName===want[0].ContainerName&&groups[0].containerPort===want[0].ContainerPort,'SERVICE_TARGET_BINDING_DRIFT');

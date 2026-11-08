@@ -2,7 +2,9 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：标签修复及CI通过，只读规划在FARGATE表示条件停止（2026-11-08）
+## 当前唯一继续点：仅补准确FARGATE provider兼容并测试，随后新只读停用清单（2026-11-08）
+
+用户已允许同一原函数内的最小表示兼容：唯一FARGATE provider且base/weight与模板一致，拒绝EC2/混合/Spot及双重声明。不增加API/权限或云写；准确CI通过后使用现有只读规划生成新SHA，实际停用仍另批，旧失败不重放。下方待同意状态仅供追溯。
 
 源码2c76428/CI42499624616、149项回归及lint/类型已通过；新规划过了平台标签关卡，租户服务实际用准确FARGATE capacity provider而非launchType字段，原另一条件拒绝。准确ARN/任务定义匹配、任务0/0/0；实际STS1/元数据17、写/私密值/SQL/新执行attempt均0，没有停用SHA。已询问用户是否仅补该等价表示兼容；答复前不改其他条件或继续云读取。旧阻塞保持，两个ALB未被本轮删除。[新记录](../ops/temporary-idle/stop-readiness-after-tag-fix-20261108.json)。
 
