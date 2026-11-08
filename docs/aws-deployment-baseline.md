@@ -8,7 +8,7 @@
 
 ## 当前状态与唯一继续点
 
-**最新：平台11项归属已另批只读盘清，仍有差异，未修复。** 00:14:08.034Z完成，实际STS1/元数据17/云写0；[完整11项表及证据](#platform-ownership-observed)。前一阶段Cell—租户—API Alias引用链已对齐并收口：用户明确确认0e2ad8ca…清单后，仅提交一次准确API A Alias UPSERT，并于21:37:50.709Z由另一进程独立核验通过。[实际结果](../ops/deployment-baseline/tenant-api-alias-updated-20261107.json)：变更/change/C006498723VT6A7LZFY4W为INSYNC，准确Alias指向当前729e Cell ALB，差异0。该阶段实际STS2/元数据11/DNS写1，其他直接写0；更新槽1/批准已消费，不重放。
+**最新：平台最小停用收敛候选已离线完成，尚未云修复。** [同11个逻辑ID、原生CFN漂移感知方案](#platform-idle-convergence)已备齐。此前平台归属另批只读于00:14:08.034Z完成，实际STS1/元数据17/云写0；[完整11项表及证据](#platform-ownership-observed)。前一阶段Cell—租户—API Alias引用链已对齐并收口：用户明确确认0e2ad8ca…清单后，仅提交一次准确API A Alias UPSERT，并于21:37:50.709Z由另一进程独立核验通过。[实际结果](../ops/deployment-baseline/tenant-api-alias-updated-20261107.json)：变更/change/C006498723VT6A7LZFY4W为INSYNC，准确Alias指向当前729e Cell ALB，差异0。该阶段实际STS2/元数据11/DNS写1，其他直接写0；更新槽1/批准已消费，不重放。
 
 | 对象 | 最新已存事实与边界 |
 | --- | --- |
@@ -19,9 +19,43 @@
 
 只改AliasTarget.DNSName为当前1581133878，名称/类型/所属zone/目标zone/EvaluateTargetHealth=false保持。三规则归属在21:09已独立验收，本次DNS又独立匹配，组成特定Cell—租户—API Alias引用链的收口证据，不是同一时刻原子快照。最后服务观察仍为21:09的0/0/0/:12，本阶段没有重查或启动服务；INSYNC不证明公网缓存、API健康或产品验收。ALB实际active、可能持续收费，没有新增自动停机或续租。
 
-**本轮只读范围已执行结束，不再等待同一批准或使用剩余预算。** 下一只离线准备平台最小声明/归属收敛方案：先明确如何保留控制器关闭、移除旧特权挂载及声明DesiredCount=0，再列出仅经CFN处理缺失ALB/监听器与console Alias的依赖顺序。不是现在恢复收费ALB或切回:11；实际模板/资源变更、新读取和费用仍另审。不重复Cell/租户规则/API DNS、不升级镜像、改临时工具或重做业务测试，不扩新框架。
+**本轮离线候选已完成，下一仅准备“创建但不执行”单份REVERT_DRIFT变更集的准确审批材料。** 采用已核对原模板的最小差异，保留控制器关闭/DesiredCount=0；先经另批创建并看实际三向差异，再单独批准执行及收费ALB恢复，不提前创建、Execute或启动任务。原只读批准及剩余预算已结束，不重复Cell/租户/API DNS、不升级镜像、改临时工具或重做业务测试，不扩执行框架。
 
-57项本地检查及定向lint通过；新增结果回归不等于云修复或业务验收。平台差异已盘清但未收敛，临时启停工具CFN统一编排原则留待未来；不能宣称三个栈全部无漂移、正式环境已运行或任意租户已通用验收。旧清单/SHA/事实时间/私有原件保持，不延长或重放已消费批准，也不用剩余预算扩查。新事实仅从真实00:13采样按5小时计算，不是资源到期/停机时间。
+60项本地检查及定向lint通过；新增三项只验证固定模板差异、安全停用和未授权边界，不是AWS模板验证或实际变更集证明。平台差异已盘清但未收敛，临时工具CFN统一编排原则仍留待未来；不能宣称三个栈全部无漂移或环境已运行。旧清单/事实时间/私有原件保持；本轮AWS/配置秘密/数据库/云写/执行槽均0，不重计旧00:13采样或延长其5小时终点。
+
+<a id="platform-idle-convergence"></a>
+
+### 平台最小停用收敛候选：同一栈、同11个逻辑ID
+
+交付为[完整候选模板](../ops/deployment-baseline/platform-idle-convergence.template.json)、[精确差异及分段计划](../ops/deployment-baseline/platform-idle-convergence-offline-plan.json)和现有离线review模块中的`draftPlatformIdleConvergence`；没有新云执行器/CLI或临时启停工具接线。候选模板规范SHA为`47ae49231809b1cbe5859c0d5eebd4444c5795162a39ead51ba81964d557f3c1`；计划SHA为`86685d3e5a7600ac95ebf5de7590db2c65863509ae26f342dba2c1f6ad004746`，**都不是实际云执行批准**。
+
+从已存11月1日Original完整正文派生，源SHA严格等于本次真实GetTemplate的24e4dba3…，不是重新调用早期默认渲染器。只改以下五个JSON路径，其余声明及11个逻辑ID不变：
+
+| 路径 | 候选变化 |
+| --- | --- |
+| Description | 明确关闭控制器、停用状态及历史标签不续期，避免把旧描述当新租约 |
+| Service.Properties.DesiredCount | 1→0，将当前停用意图写入CFN声明 |
+| TaskDefinition容器.Command | 去掉--hosted-controller，其余启动入口保持 |
+| TaskDefinition容器.Environment | controller enabled/hosted=false、lease空；其余现有环境项及顺序保持，worker/apply/request原开关仍false |
+| TaskDefinition容器.Secrets | 去掉控制器数据库/私钥挂载，只保留原DATABASE_URL固定版本引用 |
+
+镜像仍71e26893…，角色/CPU/内存/网络/目标组/证书引用、现有Service依赖及DNS的GetAtt表达式都保留。ControllerLease与HostingExpiresAt两个旧参数定义/标签和Metadata仍保留，未来用UsePreviousValue，不给旧租约续期；ControllerLease不再接入容器。Metadata只是历史版本溯源，不是本候选获批或已上线证明。
+
+#### 最短CFN顺序及门禁
+
+原生`DeploymentMode=REVERT_DRIFT`可比较实际、旧声明、新声明，并恢复栈外删除的资源；这是本候选选择原逻辑ID而不增加拆除/重建两轮的依据。[AWS发布说明](https://aws.amazon.com/about-aws/whats-new/2025/11/configuration-drift-enhanced-cloudformation-sets/)。
+
+1. **另审仅创建**：对准确c4bf36b0…原栈提交一次UPDATE/REVERT_DRIFT候选，IncludeNestedStacks=false，旧两参数UsePreviousValue；不执行。CFN会自行读取资源进行三向比较，相关托管读取、敏感属性比较及本机回读须计入新批准范围，不能套用上轮19次预算。当前只存不完整请求片段，无新ChangeSetName、ClientToken或执行SHA。
+2. **审查真实计划**：必须证明原LoadBalancer/HttpsListener缺失且将被CFN恢复，DnsRecord转向恢复后的ALB；TaskDefinition/Service仅闭控/停用及相应任务版本收敛。允许变化范围只含这五项，其他六项物理绑定必须保留；不得Import、改逻辑ID、增栈或夹带IAM/Cell/租户变化。不预先臆断缺失资源在API中一定显示Add；读完整属性/Drift/BeforeValueFrom及IgnoredProperties后判定。类型不支持、不可变漂移或未知额外变化就停止，不自动降为STANDARD或改走A1/A2。[官方限制与比较语义](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/drift-aware-change-sets.html)。
+3. **执行另批**：只有实际计划通过后，才请求一次Execute及正常CFN回滚、托管清理旧任务版本和独立回读的准确批准。模板ContainerDefinitions变化可能生成新的CFN所属revision，不能预测一定是:13，也不直接认领:12；Service仍引用CFN TaskDefinition，DesiredCount=0。现有依赖使ALB→443监听器/目标组→Service、ALB→DNS由CFN编排。不得先按旧:11启动服务。
+
+AWS公开支持表列出本平台所用资源类型的漂移检测能力，但不是本账号真实计划已经成功的证明。[类型支持表](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resource-import-supported-resources.html)。未来仍需必要的新鲜身份/栈/依赖/名称空位、权限和既有清理来源核对；本轮没有执行这些账号读取。原状态采样及05:13Z准备终点不重计，离线候选可以追溯保留，不能冒充执行时新事实。
+
+#### 风险与失败策略（实际执行仍另批）
+
+ECS=0不等于免费：未来执行会重建计费ALB及托管公网地址，不启动数据库/任务，也没有新增自动到期或停止机制，50USD/月不能保证。历史HostingExpiresAt标签仍过期；未来执行前必须核对既有清理来源，本候选不续标签或禁用清理。正常回滚拟DisableRollback=false，不能重复旧“替换更新＋禁用回滚”组合；这是待批失败策略，不是本轮自动回滚许可。官方描述漂移感知失败回到部署前实况，但部分完成、回滚失败和收费遗留仍可能发生；旧CFN所属:11可能被托管注销，额外:12不自动删除，详情须绑定真实计划和准确执行风险。未知提交/失败即保存现场并另审Inspect，不自动重试、补齐、手动回滚或清理。
+
+本轮只读已存模板/去敏证据与公开官方文档；没有AWS账号调用、Secret值/PEM/.env/HMAC、数据库、GitHub运行读取、云验证/写入、新槽或调度。只在main提交离线材料；不改正式运行内核、旧基线指纹、历史回执或临时工具。本节是原基线的候选附表，不另建平行手册。
 
 <a id="platform-ownership-observed"></a>
 
@@ -43,7 +77,7 @@
 | TaskIngress | 原sgr-009f70fee0c3b27c4存在，任务SG←ALB SG的TCP3000关系匹配 |
 | LogGroup | 原/ecs/techlong-sandbox/platform-web存在，保留期7天；未读日志流/正文 |
 
-**结论与最小后继：** 资源归属差异已明确，不再另开盘点分支。先离线形成保留关闭控制器/停用状态的声明收敛差异，列清ALB、443监听器、console Alias及Service/TaskDefinition之间的CFN依赖与分段方案；旧模板不能整体覆盖实际服务。实际创建/执行Change Set、恢复收费资源、改DNS/镜像或新权限均另审。当前没有实施修复，不能以本结果宣称正式三栈基线已全部收敛。
+**结论与最小后继：** 资源归属差异已明确，不再另开盘点分支。[保留关闭控制器/停用状态的候选及CFN顺序](#platform-idle-convergence)已离线完成；旧模板不能整体覆盖实际服务。实际创建/执行Change Set、恢复收费资源、改DNS/镜像或新权限均另审。当前没有实施修复，不能以本结果宣称正式三栈基线已全部收敛。
 
 私有去敏原件在`.local-secrets/platform-ownership-read-cca2bc44-20261107-a`；公开JSON只含必要物理引用/状态/布尔判断及原件指纹，没有原始Environment/Command/参数值、Secret值、PEM/.env或业务正文。所有云写、数据库连接、Secret/PEM/.env读取、IAM/GitHub/HTTP/公网DNS、新执行槽及环境启动均0。非原子快照、无第二次独立采样或完整属性漂移检测；原读取草案不改写为可重放的批准。事实准备到2026-11-08T05:13:41.732Z（温尼伯11月7日23:13:41.732 CST），不延长旧事实/租约、也不是资源自动停机；未核清其他资源当前费用，不保证50USD硬上限。
 
@@ -72,7 +106,7 @@
 
 **完整风险与数据边界：** 使用既有Source凭据会进入内存，并有网络/提供者审计日志和低额非零费用。GetTemplate/DescribeTaskDefinition的原响应可能在CLI内存中含参数、Environment或Command；仅将白名单身份/引用、控制器布尔检查和摘要投影保存到私有ACL目录，原始环境/命令/参数值及原始错误不保存或输出。其他资源名、私网IP、Account ID/ARN与Secret版本引用可能进入核验元数据。禁止GetSecretValue、PEM/.env/HMAC、数据库连接、日志正文、公网HTTP/JS及GitHub读取；不提交凭据、秘密或业务正文。读取不是跨服务原子快照，资源可并发变化，缺页/未知/缺失须保留，不冒充完整归属证明。
 
-原草案的`observedAt/factsValidUntil=null`保持；实际采样和5小时终点只记录于结果，不回填或改写准备材料。**不启停、重建、删栈、改DNS/IAM/镜像/临时工具，不安装自动清理。** 其他资源/存储等可能持续收费，50USD/月仍不是硬上限。已完成读取的剩余预算不重用；后继只离线准备必要的最小收敛范围，实际修复另审。
+原草案的`observedAt/factsValidUntil=null`保持；实际采样和5小时终点只记录于结果，不回填或改写准备材料。**不启停、重建、删栈、改DNS/IAM/镜像/临时工具，不安装自动清理。** 其他资源/存储等可能持续收费，50USD/月仍不是硬上限。已完成读取的剩余预算不重用；离线候选现已完成，下一只准备未执行变更集的新审批，实际修复另审。
 
 **已确认的直接原因：** 2026-11-07T14:53:08.255Z 完成的一页事件查询绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，返回根栈及三条规则共4条失败事件，无下一页。三规则均报 `Replacement type updates not supported on stack with disable-rollback.`。原执行清单把三项替换与 `DisableRollback=true` 组合，这是本次执行策略的不兼容，不是新的 IAM 缺口证明；也不能据此保证未来恢复必然成功。ResourceProperties 只可能进入 CLI 内存，未保存/输出；原[读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)保持准备时原文，不用于重复读取。
 
@@ -109,7 +143,7 @@ Cell 六个输出按同名参数传给租户，并非租户栈自己查找资源
 
 ## 给下一次更新用的最小模板
 
-原 B 失败已查明并经另批回滚/新 B 与DNS修复收口，不再作为待查因任务；平台归属盘点也已完成，后继只离线准备最小收敛方案，不提前更新镜像。[监听器参数片段](../ops/deployment-baseline/tenant-listener-change.template.json)是既有 B 计划的输入，不是新的可执行命令；其创建和单次执行已发生，不得按旧[离线计划](../ops/deployment-baseline/tenant-b-offline-plan.json)再创建或重放。离线阶段的“未读取/任务定义物理 ID 未知”只适用于当时；后续已核对租户CFN/服务引用均为 :12，不能重新当作当前缺口。Service 声明1、执行后实况0的差异仍保留，不自行改 Service 或 DependsOn。
+原 B 失败已查明并经另批回滚/新 B 与DNS修复收口，不再作为待查因任务；平台归属盘点和停用收敛候选也已完成，下一仅准备未执行变更集审批，不提前更新镜像。[监听器参数片段](../ops/deployment-baseline/tenant-listener-change.template.json)是既有 B 计划的输入，不是新的可执行命令；其创建和单次执行已发生，不得按旧[离线计划](../ops/deployment-baseline/tenant-b-offline-plan.json)再创建或重放。离线阶段的“未读取/任务定义物理 ID 未知”只适用于当时；后续已核对租户CFN/服务引用均为 :12，不能重新当作当前缺口。租户Service声明1、执行后实况0的差异仍保留，本次平台候选不改租户Service或DependsOn。
 
 [参数片段](../ops/deployment-baseline/tenant-image-change.template.json)按现有租户声明使用 `UsePreviousTemplate`，仅替换 `ImageUri`，其余 19 项均为 `UsePreviousValue`，不需要导出任何秘密值。镜像必须是同账号同区域指定仓库的新 SHA-256 digest，不能传 tag。此片段没有执行入口；不把监听器修复、DNS、平台任务、数据库迁移或角色改动夹带在版本更新里。
 

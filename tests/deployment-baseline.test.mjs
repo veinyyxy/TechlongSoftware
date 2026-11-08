@@ -47,7 +47,9 @@ import apiAliasUpdate from '../ops/deployment-baseline/tenant-api-alias-update-r
 import apiAliasUpdated from '../ops/deployment-baseline/tenant-api-alias-updated-20261107.json' with { type: 'json' };
 import platformReadScope from '../ops/deployment-baseline/platform-ownership-read-scope.json' with { type: 'json' };
 import platformObserved from '../ops/deployment-baseline/platform-ownership-observed-20261107.json' with { type: 'json' };
-import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
+import platformPlan from '../ops/deployment-baseline/platform-idle-convergence-offline-plan.json' with { type: 'json' };
+import platformCandidate from '../ops/deployment-baseline/platform-idle-convergence.template.json' with { type: 'json' };
+import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet, draftPlatformIdleConvergence } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
 const cellOutputs={ClusterName:'cell-sandbox-1',VpcId:'vpc-aaaaaaaa',TaskSecurityGroupId:'sg-aaaaaaaa',SubnetIds:'subnet-aaaaaaaa,subnet-bbbbbbbb',
@@ -1089,4 +1091,48 @@ test('actual platform read reports missing ALB/listener and intentional idle/con
   assert.equal(r.scopeReadCompleted,true);assert.equal(r.executionSlotsConsumed,0);assert.equal(r.expectedIdleAndControllerDisabledDifferencesNotCorrected,true);
   for(const key of ['fullPropertyDriftFreedomProved','runtimeOrBusinessHealthProved','formalThreeStackBaselineComplete','repairAuthorized','automaticRetry','automaticRepair','environmentStarted','resourceExpiryLeaseOrAutomaticStopChanged'])assert.equal(r[key],false,key);
   assert.ok(Object.values(r.excludedActivity).every(x=>x===0));
+});
+
+function platformOriginalFromFixedDiff(){
+  const t=structuredClone(platformCandidate);
+  for(const x of platformPlan.templateDifferences){const path=x.path.slice(1).split('/');let p=t;for(const k of path.slice(0,-1))p=p[k];p[path.at(-1)]=structuredClone(x.before);}
+  return t;
+}
+
+test('platform offline candidate rebuilds exact observed original with five bounded paths and the same eleven owners',()=>{
+  const original=platformOriginalFromFixedDiff(),result=draftPlatformIdleConvergence(original),r=result.template;
+  assert.deepEqual(r,platformCandidate);assert.deepEqual(Object.keys(r.Resources).sort(),Object.keys(b.stacks.platform.resources));
+  assert.equal(platformPlan.originalTemplateCanonicalSha256,platformObserved.templateCanonicalSha256);
+  assert.deepEqual(platformPlan.templateDifferences.map(x=>x.path),['/Description','/Resources/Service/Properties/DesiredCount','/Resources/TaskDefinition/Properties/ContainerDefinitions/0/Command','/Resources/TaskDefinition/Properties/ContainerDefinitions/0/Environment','/Resources/TaskDefinition/Properties/ContainerDefinitions/0/Secrets']);
+  for(const id of Object.keys(original.Resources).filter(x=>!['Service','TaskDefinition'].includes(x)))assert.deepEqual(r.Resources[id],original.Resources[id],id);
+  for(const key of ['Parameters','Outputs','Metadata'])assert.deepEqual(r[key],original[key],key);
+  assert.deepEqual(r.Resources.Service.DependsOn,original.Resources.Service.DependsOn);
+  assert.deepEqual(r.Resources.DnsRecord.Properties.AliasTarget.DNSName,{'Fn::GetAtt':['LoadBalancer','DNSName']});
+  assert.deepEqual(r.Resources.Service.Properties.TaskDefinition,{Ref:'TaskDefinition'});
+  assert.equal(result.awsCalls,0);assert.equal(result.executionAuthorized,false);assert.equal(result.liveOwnershipVerified,false);
+});
+
+test('platform convergence preserves current image, disables controller and declares idle instead of replaying old privileged revision',()=>{
+  const r=platformCandidate,c=r.Resources.TaskDefinition.Properties.ContainerDefinitions[0],env=Object.fromEntries(c.Environment.map(x=>[x.Name,x.Value]));
+  assert.equal(r.Resources.Service.Properties.DesiredCount,0);assert.equal(c.Image,platformObserved.observations.imageUri);
+  assert.deepEqual(c.Command,['node','ops/platform-hosting-v1/start.mjs']);assert.deepEqual(c.Secrets.map(x=>x.Name),['DATABASE_URL']);
+  for(const key of ['AWS_INITIALIZED_REQUESTS_ENABLED','DEPLOYMENT_WORKER_ENABLED','AWS_APPLY_ENABLED','TECHLONG_PLATFORM_CONTROLLER_ENABLED','TECHLONG_PLATFORM_CONTROL_LOCAL','TECHLONG_PLATFORM_CONTROL_HOSTED'])assert.equal(env[key],'false',key);
+  assert.equal(env.TECHLONG_PLATFORM_CONTROLLER_LEASE,'');assert.equal(env.TECHLONG_PLATFORM_REQUEST_WINDOW_V6,'');
+  assert.equal(platformPlan.intendedEffects.importExistingUnmanagedRevision12,false);assert.equal(platformPlan.intendedEffects.newTaskDefinitionRevisionAssignedByEcsNotPredicted,true);
+  assert.equal(platformPlan.intendedEffects.renewHistoricalLeaseOrHostingTags,false);
+  assert.throws(()=>draftPlatformIdleConvergence({...platformOriginalFromFixedDiff(),Description:'changed'}),/PLATFORM_ORIGINAL_TEMPLATE_CHANGED/);
+});
+
+test('native drift-aware proposal is create-only pending approval, requires real plan proof, and never silently falls back to STANDARD',()=>{
+  const p=platformPlan,f=p.futureCreateRequestFragment;
+  assert.equal(p.status,'OFFLINE_CANDIDATE_NOT_EXECUTABLE');assert.equal(f.StackName,platformObserved.stackId);assert.equal(f.ChangeSetType,'UPDATE');assert.equal(f.DeploymentMode,'REVERT_DRIFT');assert.equal(f.IncludeNestedStacks,false);
+  assert.deepEqual(f.Parameters,[{ParameterKey:'ControllerLease',UsePreviousValue:true},{ParameterKey:'HostingExpiresAt',UsePreviousValue:true}]);
+  assert.equal(p.futureUniqueChangeSetNameClientTokenAndExecutionSha,null);assert.equal(p.fragmentIsNotAnExecutableRequest,true);
+  assert.equal(p.reviewRequirements.deletedAlbAndListenerRecreationMustBeProvedByActualPlan,true);assert.equal(p.reviewRequirements.otherSixUnexpectedChangesBlockExecution,true);
+  assert.equal(p.reviewRequirements.noClaimThatMissingResourcesAreAutomaticallyAddActions,true);assert.equal(p.reviewRequirements.managedUnderlyingReadCountNotEqualToLocalApiCount,true);
+  assert.equal(p.futureFailurePolicy.disableRollback,false);assert.equal(p.futureFailurePolicy.normalProviderRollbackRequiresSeparateApproval,true);
+  assert.equal(p.futureFailurePolicy.unsupportedDriftModeOrUnexpectedPlanStopsNoAutomaticStandardFallback,true);
+  assert.equal(p.timing.sourceObservedAt,platformObserved.startedAt);assert.equal(p.timing.sourceFactsValidUntil,platformObserved.factsValidUntil);
+  for(const key of ['readAuthorized','createAuthorized','executeAuthorized','environmentStartAuthorized','executionAuthorized','formalThreeStackBaselineComplete'])assert.equal(p[key],false,key);
+  assert.ok(Object.values(p.preparation).every(x=>x===0));assert.deepEqual(p.stages.map(s=>s.authorized),[true,false,false]);
 });

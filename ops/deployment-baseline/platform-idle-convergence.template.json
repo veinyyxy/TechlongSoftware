@@ -1,0 +1,533 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Platform Web baseline convergence candidate: controller disabled, desired count zero; historical hosting tags are not renewed and no automatic stop is installed.",
+  "Metadata": {
+    "ExecutionRoleId": "AROAV3GNMXTZJ45S2ANZ7",
+    "ExecutionSource": "d098cfefd11c8839d5b00fee0701a71ed74aa73c",
+    "ImageConfigDigest": "sha256:23fbf299930cdd5883579d296adc40ff789d4acc9881587bbeb3a93f87a7ab90",
+    "ImageSource": "5fcbc23ccaccec2c6a0fab8e732728a55b0b7ffc",
+    "PreviousStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/2d7d45a0-ced0-11f1-acc8-0effedbce869",
+    "ReleaseSha256": "95ecceab51c79e580153cdeb0cec5e96ac092f30c3ea09c4d9edc030e21ce9b6",
+    "ReviewNonce": "1e710b176bd5e31bcddae438ace7d772",
+    "ReviewPhase": "W9p"
+  },
+  "Outputs": {
+    "HostingExpiresAt": {
+      "Value": {
+        "Ref": "HostingExpiresAt"
+      }
+    },
+    "Url": {
+      "Value": "https://console.sandbox.techlong.cloud"
+    }
+  },
+  "Parameters": {
+    "ControllerLease": {
+      "Description": "Public fixed-image/release lease derived immediately before CreateStack; at most 30 minutes",
+      "MaxLength": 2048,
+      "MinLength": 1,
+      "Type": "String"
+    },
+    "HostingExpiresAt": {
+      "AllowedPattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$",
+      "Description": "Derived at future approved CreateStack start plus two hours; tag is not an automatic stop",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "AlbSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Platform HTTPS public ingress; egress to Web task only",
+        "SecurityGroupEgress": [
+          {
+            "DestinationSecurityGroupId": {
+              "Ref": "TaskSecurityGroup"
+            },
+            "FromPort": 3000,
+            "IpProtocol": "tcp",
+            "ToPort": 3000
+          }
+        ],
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": 443,
+            "IpProtocol": "tcp",
+            "ToPort": 443
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "platform-web-two-hour"
+          },
+          {
+            "Key": "HostingExpiresAt",
+            "Value": {
+              "Ref": "HostingExpiresAt"
+            }
+          }
+        ],
+        "VpcId": "vpc-011dab69fff93972b"
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "Cluster": {
+      "Properties": {
+        "ClusterName": "techlong-sandbox-platform",
+        "ClusterSettings": [
+          {
+            "Name": "containerInsights",
+            "Value": "disabled"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "platform-web-two-hour"
+          },
+          {
+            "Key": "HostingExpiresAt",
+            "Value": {
+              "Ref": "HostingExpiresAt"
+            }
+          }
+        ]
+      },
+      "Type": "AWS::ECS::Cluster"
+    },
+    "DnsRecord": {
+      "Properties": {
+        "AliasTarget": {
+          "DNSName": {
+            "Fn::GetAtt": [
+              "LoadBalancer",
+              "DNSName"
+            ]
+          },
+          "EvaluateTargetHealth": true,
+          "HostedZoneId": {
+            "Fn::GetAtt": [
+              "LoadBalancer",
+              "CanonicalHostedZoneID"
+            ]
+          }
+        },
+        "HostedZoneId": "Z01473621BTTHKXBGOOEJ",
+        "Name": "console.sandbox.techlong.cloud.",
+        "Type": "A"
+      },
+      "Type": "AWS::Route53::RecordSet"
+    },
+    "HttpsListener": {
+      "Properties": {
+        "Certificates": [
+          {
+            "CertificateArn": "arn:aws:acm:ca-central-1:402010193138:certificate/6d1f2880-9f83-449c-930a-6b17516ef49d"
+          }
+        ],
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "TargetGroup"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "LoadBalancer"
+        },
+        "Port": 443,
+        "Protocol": "HTTPS",
+        "SslPolicy": "ELBSecurityPolicy-TLS13-1-2-2021-06"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener"
+    },
+    "LoadBalancer": {
+      "Properties": {
+        "IpAddressType": "ipv4",
+        "LoadBalancerAttributes": [
+          {
+            "Key": "deletion_protection.enabled",
+            "Value": "false"
+          },
+          {
+            "Key": "routing.http.drop_invalid_header_fields.enabled",
+            "Value": "true"
+          },
+          {
+            "Key": "routing.http.desync_mitigation_mode",
+            "Value": "strictest"
+          },
+          {
+            "Key": "routing.http.preserve_host_header.enabled",
+            "Value": "true"
+          }
+        ],
+        "Name": "techlong-sandbox-platform",
+        "Scheme": "internet-facing",
+        "SecurityGroups": [
+          {
+            "Ref": "AlbSecurityGroup"
+          }
+        ],
+        "Subnets": [
+          "subnet-023b1a81311709ed3",
+          "subnet-059d0bb14c42ff523"
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "platform-web-two-hour"
+          },
+          {
+            "Key": "HostingExpiresAt",
+            "Value": {
+              "Ref": "HostingExpiresAt"
+            }
+          }
+        ],
+        "Type": "application"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    },
+    "LogGroup": {
+      "Properties": {
+        "LogGroupName": "/ecs/techlong-sandbox/platform-web",
+        "RetentionInDays": 7,
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "platform-web-two-hour"
+          },
+          {
+            "Key": "HostingExpiresAt",
+            "Value": {
+              "Ref": "HostingExpiresAt"
+            }
+          }
+        ]
+      },
+      "Type": "AWS::Logs::LogGroup"
+    },
+    "Service": {
+      "DependsOn": [
+        "HttpsListener",
+        "TaskIngress"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "Cluster"
+        },
+        "DeploymentConfiguration": {
+          "DeploymentCircuitBreaker": {
+            "Enable": true,
+            "Rollback": false
+          },
+          "MaximumPercent": 100,
+          "MinimumHealthyPercent": 0
+        },
+        "DesiredCount": 0,
+        "EnableExecuteCommand": false,
+        "HealthCheckGracePeriodSeconds": 90,
+        "LaunchType": "FARGATE",
+        "LoadBalancers": [
+          {
+            "ContainerName": "web",
+            "ContainerPort": 3000,
+            "TargetGroupArn": {
+              "Ref": "TargetGroup"
+            }
+          }
+        ],
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "ENABLED",
+            "SecurityGroups": [
+              {
+                "Ref": "TaskSecurityGroup"
+              }
+            ],
+            "Subnets": [
+              "subnet-023b1a81311709ed3",
+              "subnet-059d0bb14c42ff523"
+            ]
+          }
+        },
+        "PlatformVersion": "1.4.0",
+        "PropagateTags": "SERVICE",
+        "ServiceName": "techlong-sandbox-platform-web",
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "platform-web-two-hour"
+          },
+          {
+            "Key": "HostingExpiresAt",
+            "Value": {
+              "Ref": "HostingExpiresAt"
+            }
+          }
+        ],
+        "TaskDefinition": {
+          "Ref": "TaskDefinition"
+        }
+      },
+      "Type": "AWS::ECS::Service"
+    },
+    "TargetGroup": {
+      "Properties": {
+        "HealthCheckEnabled": true,
+        "HealthCheckIntervalSeconds": 30,
+        "HealthCheckPath": "/api/health",
+        "HealthCheckProtocol": "HTTP",
+        "HealthCheckTimeoutSeconds": 5,
+        "HealthyThresholdCount": 2,
+        "Matcher": {
+          "HttpCode": "200"
+        },
+        "Name": "techlong-platform-web-v1",
+        "Port": 3000,
+        "Protocol": "HTTP",
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "platform-web-two-hour"
+          },
+          {
+            "Key": "HostingExpiresAt",
+            "Value": {
+              "Ref": "HostingExpiresAt"
+            }
+          }
+        ],
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": "30"
+          }
+        ],
+        "TargetType": "ip",
+        "UnhealthyThresholdCount": 2,
+        "VpcId": "vpc-011dab69fff93972b"
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup"
+    },
+    "TaskDefinition": {
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Command": [
+              "node",
+              "ops/platform-hosting-v1/start.mjs"
+            ],
+            "Environment": [
+              {
+                "Name": "AWS_INITIALIZED_REQUESTS_ENABLED",
+                "Value": "false"
+              },
+              {
+                "Name": "DEPLOYMENT_WORKER_ENABLED",
+                "Value": "false"
+              },
+              {
+                "Name": "AWS_APPLY_ENABLED",
+                "Value": "false"
+              },
+              {
+                "Name": "TECHLONG_PLATFORM_CONTROLLER_ENABLED",
+                "Value": "false"
+              },
+              {
+                "Name": "TECHLONG_PLATFORM_CONTROL_LOCAL",
+                "Value": "false"
+              },
+              {
+                "Name": "TECHLONG_PLATFORM_CONTROL_HOSTED",
+                "Value": "false"
+              },
+              {
+                "Name": "TECHLONG_PLATFORM_CONTROLLER_LEASE",
+                "Value": ""
+              },
+              {
+                "Name": "TECHLONG_PLATFORM_REQUEST_WINDOW_V6",
+                "Value": ""
+              },
+              {
+                "Name": "NODE_ENV",
+                "Value": "production"
+              },
+              {
+                "Name": "PORT",
+                "Value": "3000"
+              },
+              {
+                "Name": "AUTH_SESSION_DAYS",
+                "Value": "1"
+              },
+              {
+                "Name": "TECHLONG_PLATFORM_INGRESS",
+                "Value": "alb-https-v1"
+              },
+              {
+                "Name": "TECHLONG_PLATFORM_PUBLIC_ORIGIN",
+                "Value": "https://console.sandbox.techlong.cloud"
+              },
+              {
+                "Name": "TECHLONG_PLATFORM_HOSTED_SOURCE_COMMIT",
+                "Value": "d098cfefd11c8839d5b00fee0701a71ed74aa73c"
+              }
+            ],
+            "Essential": true,
+            "HealthCheck": {
+              "Command": [
+                "CMD-SHELL",
+                "node -e \"fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))\""
+              ],
+              "Interval": 30,
+              "Retries": 3,
+              "StartPeriod": 60,
+              "Timeout": 5
+            },
+            "Image": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-platform-web@sha256:71e268934bb1dbe8220f33cf68757cd48d74c89be35269ba583f6dd1b712e75a",
+            "LinuxParameters": {
+              "Capabilities": {
+                "Drop": [
+                  "ALL"
+                ]
+              },
+              "InitProcessEnabled": true
+            },
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "LogGroup"
+                },
+                "awslogs-region": "ca-central-1",
+                "awslogs-stream-prefix": "web",
+                "max-buffer-size": "1m",
+                "mode": "non-blocking"
+              }
+            },
+            "Name": "web",
+            "PortMappings": [
+              {
+                "AppProtocol": "http",
+                "ContainerPort": 3000,
+                "Protocol": "tcp"
+              }
+            ],
+            "ReadonlyRootFilesystem": false,
+            "Secrets": [
+              {
+                "Name": "DATABASE_URL",
+                "ValueFrom": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/neon-v1-UfFKVF:databaseUrl::6ea2ca59-9a24-4f3e-b16f-ec824f32bc5f"
+              }
+            ],
+            "User": "1000:1000"
+          }
+        ],
+        "Cpu": "512",
+        "ExecutionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxPlatformWebExecutionRoleV1",
+        "Family": "techlong-sandbox-platform-web-v1",
+        "Memory": "1024",
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "RuntimePlatform": {
+          "CpuArchitecture": "X86_64",
+          "OperatingSystemFamily": "LINUX"
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "platform-web-two-hour"
+          },
+          {
+            "Key": "HostingExpiresAt",
+            "Value": {
+              "Ref": "HostingExpiresAt"
+            }
+          }
+        ]
+      },
+      "Type": "AWS::ECS::TaskDefinition"
+    },
+    "TaskIngress": {
+      "Properties": {
+        "FromPort": 3000,
+        "GroupId": {
+          "Ref": "TaskSecurityGroup"
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Ref": "AlbSecurityGroup"
+        },
+        "ToPort": 3000
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress"
+    },
+    "TaskSecurityGroup": {
+      "Properties": {
+        "GroupDescription": "Platform Web: ingress only from reviewed ALB, outbound TLS",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": 443,
+            "IpProtocol": "tcp",
+            "ToPort": 443
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "aws-sandbox"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "platform-web-two-hour"
+          },
+          {
+            "Key": "HostingExpiresAt",
+            "Value": {
+              "Ref": "HostingExpiresAt"
+            }
+          }
+        ],
+        "VpcId": "vpc-011dab69fff93972b"
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    }
+  }
+}

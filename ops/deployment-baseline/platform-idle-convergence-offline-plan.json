@@ -1,0 +1,343 @@
+{
+  "schema": "techlong/platform-idle-convergence-offline-plan/v1",
+  "status": "OFFLINE_CANDIDATE_NOT_EXECUTABLE",
+  "sourceReceiptFile": "platform-ownership-observed-20261107.json",
+  "sourceReceiptCanonicalSha256": "15e85cf4220d58de4ffcf1bed9bc505f818a31a75f77442f892438934e83cf70",
+  "originalTemplateCanonicalSha256": "24e4dba31fdc422c263f703acb7ddda0b63fe179e2a9b5839d732255f4383e2f",
+  "candidateFile": "platform-idle-convergence.template.json",
+  "candidateCanonicalSha256": "47ae49231809b1cbe5859c0d5eebd4444c5795162a39ead51ba81964d557f3c1",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+  "strategy": "NATIVE_CFN_DRIFT_AWARE_SAME_LOGICAL_IDS",
+  "resourceLogicalIds": [
+    "AlbSecurityGroup",
+    "Cluster",
+    "DnsRecord",
+    "HttpsListener",
+    "LoadBalancer",
+    "LogGroup",
+    "Service",
+    "TargetGroup",
+    "TaskDefinition",
+    "TaskIngress",
+    "TaskSecurityGroup"
+  ],
+  "templateDifferences": [
+    {
+      "path": "/Description",
+      "before": "W8g hosted V6 controller; 30-minute control lease and two-hour hosting intent; separate cleanup required",
+      "after": "Platform Web baseline convergence candidate: controller disabled, desired count zero; historical hosting tags are not renewed and no automatic stop is installed."
+    },
+    {
+      "path": "/Resources/Service/Properties/DesiredCount",
+      "before": 1,
+      "after": 0
+    },
+    {
+      "path": "/Resources/TaskDefinition/Properties/ContainerDefinitions/0/Command",
+      "before": [
+        "node",
+        "ops/platform-hosting-v1/start.mjs",
+        "--hosted-controller"
+      ],
+      "after": [
+        "node",
+        "ops/platform-hosting-v1/start.mjs"
+      ]
+    },
+    {
+      "path": "/Resources/TaskDefinition/Properties/ContainerDefinitions/0/Environment",
+      "before": [
+        {
+          "Name": "AWS_INITIALIZED_REQUESTS_ENABLED",
+          "Value": "false"
+        },
+        {
+          "Name": "DEPLOYMENT_WORKER_ENABLED",
+          "Value": "false"
+        },
+        {
+          "Name": "AWS_APPLY_ENABLED",
+          "Value": "false"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_CONTROLLER_ENABLED",
+          "Value": "true"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_CONTROL_LOCAL",
+          "Value": "false"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_CONTROL_HOSTED",
+          "Value": "true"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_CONTROLLER_LEASE",
+          "Value": {
+            "Ref": "ControllerLease"
+          }
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_REQUEST_WINDOW_V6",
+          "Value": ""
+        },
+        {
+          "Name": "NODE_ENV",
+          "Value": "production"
+        },
+        {
+          "Name": "PORT",
+          "Value": "3000"
+        },
+        {
+          "Name": "AUTH_SESSION_DAYS",
+          "Value": "1"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_INGRESS",
+          "Value": "alb-https-v1"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_PUBLIC_ORIGIN",
+          "Value": "https://console.sandbox.techlong.cloud"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_HOSTED_SOURCE_COMMIT",
+          "Value": "d098cfefd11c8839d5b00fee0701a71ed74aa73c"
+        }
+      ],
+      "after": [
+        {
+          "Name": "AWS_INITIALIZED_REQUESTS_ENABLED",
+          "Value": "false"
+        },
+        {
+          "Name": "DEPLOYMENT_WORKER_ENABLED",
+          "Value": "false"
+        },
+        {
+          "Name": "AWS_APPLY_ENABLED",
+          "Value": "false"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_CONTROLLER_ENABLED",
+          "Value": "false"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_CONTROL_LOCAL",
+          "Value": "false"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_CONTROL_HOSTED",
+          "Value": "false"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_CONTROLLER_LEASE",
+          "Value": ""
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_REQUEST_WINDOW_V6",
+          "Value": ""
+        },
+        {
+          "Name": "NODE_ENV",
+          "Value": "production"
+        },
+        {
+          "Name": "PORT",
+          "Value": "3000"
+        },
+        {
+          "Name": "AUTH_SESSION_DAYS",
+          "Value": "1"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_INGRESS",
+          "Value": "alb-https-v1"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_PUBLIC_ORIGIN",
+          "Value": "https://console.sandbox.techlong.cloud"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_HOSTED_SOURCE_COMMIT",
+          "Value": "d098cfefd11c8839d5b00fee0701a71ed74aa73c"
+        }
+      ]
+    },
+    {
+      "path": "/Resources/TaskDefinition/Properties/ContainerDefinitions/0/Secrets",
+      "before": [
+        {
+          "Name": "DATABASE_URL",
+          "ValueFrom": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/neon-v1-UfFKVF:databaseUrl::6ea2ca59-9a24-4f3e-b16f-ec824f32bc5f"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_CONTROLLER_DATABASE_URL",
+          "ValueFrom": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-controller/neon-v6-M4A08E:databaseUrl::3574f24e-ecb3-476c-8f71-baa501fd129e"
+        },
+        {
+          "Name": "TECHLONG_PLATFORM_CONTROLLER_PRIVATE_KEY",
+          "ValueFrom": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-controller/github-app-v6-C58FqK:privateKey::0aee41e2-c4c3-4d4d-afca-9e68f66cd379"
+        }
+      ],
+      "after": [
+        {
+          "Name": "DATABASE_URL",
+          "ValueFrom": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/neon-v1-UfFKVF:databaseUrl::6ea2ca59-9a24-4f3e-b16f-ec824f32bc5f"
+        }
+      ]
+    }
+  ],
+  "intendedEffects": {
+    "recreateOnlyMissingResources": [
+      "LoadBalancer",
+      "HttpsListener"
+    ],
+    "reconcileOnly": [
+      "DnsRecord",
+      "TaskDefinition",
+      "Service"
+    ],
+    "retainOtherLogicalAndPhysicalBindings": [
+      "AlbSecurityGroup",
+      "Cluster",
+      "LogGroup",
+      "TargetGroup",
+      "TaskIngress",
+      "TaskSecurityGroup"
+    ],
+    "serviceDesiredCount": 0,
+    "controllerEnabled": false,
+    "imageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-platform-web@sha256:71e268934bb1dbe8220f33cf68757cd48d74c89be35269ba583f6dd1b712e75a",
+    "newTaskDefinitionRevisionAssignedByEcsNotPredicted": true,
+    "importExistingUnmanagedRevision12": false,
+    "renewHistoricalLeaseOrHostingTags": false,
+    "automaticEnvironmentStart": false
+  },
+  "futureCreateRequestFragment": {
+    "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "ChangeSetType": "UPDATE",
+    "DeploymentMode": "REVERT_DRIFT",
+    "IncludeNestedStacks": false,
+    "Parameters": [
+      {
+        "ParameterKey": "ControllerLease",
+        "UsePreviousValue": true
+      },
+      {
+        "ParameterKey": "HostingExpiresAt",
+        "UsePreviousValue": true
+      }
+    ]
+  },
+  "fragmentIsNotAnExecutableRequest": true,
+  "futureUniqueChangeSetNameClientTokenAndExecutionSha": null,
+  "futureTemplateBodyMustMatchCandidateSha256": true,
+  "stages": [
+    {
+      "id": "offline",
+      "action": "This candidate, exact diff and local tests only.",
+      "authorized": true
+    },
+    {
+      "id": "create-only",
+      "action": "Separately approve one drift-aware CreateChangeSet, CFN-managed underlying reads, bounded status/property review and independent readback; do not Execute.",
+      "authorized": false
+    },
+    {
+      "id": "execute",
+      "action": "Only after the actual plan proves this exact scope, separately approve Execute plus normal CFN rollback and independent checks; paid ALB restoration, no service start.",
+      "authorized": false
+    }
+  ],
+  "reviewRequirements": {
+    "sameStackUuidAndOriginalTemplate": true,
+    "freshResourceDependencyPermissionAndNameAvailabilityChecks": true,
+    "sameElevenLogicalIdsNoImportRenameRemoveOrNestedStacks": true,
+    "actualDeploymentModeMustBeRevertDrift": true,
+    "deletedAlbAndListenerRecreationMustBeProvedByActualPlan": true,
+    "onlyFiveLogicalResourcesMayChange": [
+      "LoadBalancer",
+      "HttpsListener",
+      "DnsRecord",
+      "TaskDefinition",
+      "Service"
+    ],
+    "otherSixUnexpectedChangesBlockExecution": true,
+    "controllerDisabledAndDesiredZeroMustBeProvedFromBoundTemplate": true,
+    "dnsMustDeriveFromNewCfnManagedAlb": true,
+    "resourceTypeSupportAndIgnoredOrWriteOnlyPropertiesMustBeReviewed": true,
+    "noClaimThatMissingResourcesAreAutomaticallyAddActions": true,
+    "includePropertyValuesReadNeedsExplicitScope": true,
+    "managedUnderlyingReadCountNotEqualToLocalApiCount": true
+  },
+  "futureFailurePolicy": {
+    "disableRollback": false,
+    "normalProviderRollbackRequiresSeparateApproval": true,
+    "taskDefinitionReplacementAndOldRevisionManagedCleanupMustBeDisclosed": true,
+    "oldRevision12NotAutomaticallyDeleted": true,
+    "noAgentRetryRollbackOrCleanup": true,
+    "partialStateOrRollbackFailureRequiresInspectNoReplay": true,
+    "unsupportedDriftModeOrUnexpectedPlanStopsNoAutomaticStandardFallback": true
+  },
+  "preparation": {
+    "accountAwsCalls": 0,
+    "privateConfigReads": 0,
+    "secretValueReads": 0,
+    "databaseConnections": 0,
+    "cloudWrites": 0,
+    "executionSlotsConsumed": 0
+  },
+  "timing": {
+    "sourceObservedAt": "2026-11-08T00:13:41.732Z",
+    "sourceFactsValidUntil": "2026-11-08T05:13:41.732Z",
+    "sourceTimesNotRestamped": true,
+    "offlineCandidateIsNotFreshExecutionFact": true,
+    "newResourceExpiryOrAutomaticStop": null
+  },
+  "exclusions": [
+    "IAM changes",
+    "Cell/tenant/API Alias mutation",
+    "RDS start/stop/delete or SQL",
+    "image update/build/publish",
+    "Secret value/PEM/.env reads",
+    "temporary cost-tool rewrite",
+    "product testing",
+    "controller lease extension",
+    "resource logical ID renaming",
+    "A1/A2 detach-reattach fallback"
+  ],
+  "sources": [
+    {
+      "url": "https://aws.amazon.com/about-aws/whats-new/2025/11/configuration-drift-enhanced-cloudformation-sets/",
+      "purpose": "Provider-supported recreation of resources deleted outside IaC."
+    },
+    {
+      "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/drift-aware-change-sets.html",
+      "purpose": "Three-way review, supported-type/immutable/write-only/ignored-property caveats and rollback semantics."
+    },
+    {
+      "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resource-import-supported-resources.html",
+      "purpose": "Public support table; not proof of this actual account change set."
+    },
+    {
+      "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html",
+      "purpose": "UPDATE plus DeploymentMode REVERT_DRIFT; create is not execute."
+    }
+  ],
+  "readAuthorized": false,
+  "createAuthorized": false,
+  "executeAuthorized": false,
+  "environmentStartAuthorized": false,
+  "executionAuthorized": false,
+  "formalThreeStackBaselineComplete": false,
+  "risks": [
+    "Historical HostingExpiresAt tags remain unchanged and may already be expired. Existing lifecycle automation must be checked before future execution; this candidate does not renew tags or disable any cleanup source.",
+    "Future execution recreates a billable ALB and managed public addresses even with DesiredCount=0; no resource expiry or automatic cleanup is introduced and 50 USD/month is not a hard cap.",
+    "CFN evaluates drift for the stack, not merely changed template paths; unexpected changes, ignored/write-only properties or unsupported types block execution rather than silently broadening scope.",
+    "TaskDefinition container edits can create a new CFN-owned revision and retire the old managed revision. Actual plan and provider cleanup/rollback must be separately approved; do not reuse old privileged revision 11 or directly adopt revision 12.",
+    "Cloud updates are asynchronous and non-atomic. DNS and service references may be partly updated; normal CFN rollback can fail or leave charged resources. No retry, manual rollback, cleanup or new permissions are authorized by this offline candidate."
+  ],
+  "next": "Prepare a fresh, exact create-only review for this single native drift-aware change set. Actual reads, Create and Execute remain separately scoped approvals; do not run a cloud command from this file."
+}

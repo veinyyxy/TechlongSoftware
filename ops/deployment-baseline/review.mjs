@@ -5,11 +5,34 @@ import baseline from './existing-tenant.template.json' with { type: 'json' };
 import imageTemplate from './tenant-image-change.template.json' with { type: 'json' };
 import listenerPlan from './tenant-b-offline-plan.json' with { type: 'json' };
 import listenerTemplate from './tenant-listener-change.template.json' with { type: 'json' };
+import platformPlan from './platform-idle-convergence-offline-plan.json' with { type: 'json' };
+import platformCandidate from './platform-idle-convergence.template.json' with { type: 'json' };
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
   if (!value || typeof value !== 'object') return value;
   return Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])]));
+}
+
+// Pure offline derivation of this exact platform candidate, not a CFN executor
+// or a review of the provider's future drift-aware change set.
+export function draftPlatformIdleConvergence(originalTemplate) {
+  const hash=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  if(hash(originalTemplate)!==platformPlan.originalTemplateCanonicalSha256)throw Error('PLATFORM_ORIGINAL_TEMPLATE_CHANGED');
+  const result=structuredClone(originalTemplate);
+  for(const change of platformPlan.templateDifferences){
+    const parts=change.path.slice(1).split('/');
+    let parent=result;
+    for(const key of parts.slice(0,-1))parent=parent?.[key];
+    const key=parts.at(-1);
+    if(!parent||!Object.hasOwn(parent,key)||!isDeepStrictEqual(parent[key],change.before))throw Error('PLATFORM_OFFLINE_DIFF_CHANGED');
+    parent[key]=structuredClone(change.after);
+  }
+  if(hash(result)!==platformPlan.candidateCanonicalSha256||!isDeepStrictEqual(result,platformCandidate))throw Error('PLATFORM_CANDIDATE_CHANGED');
+  return {template:result,templateCanonicalSha256:hash(result),
+    futureCreateRequestFragment:structuredClone(platformPlan.futureCreateRequestFragment),
+    awsCalls:0,executionAuthorized:false,liveOwnershipVerified:false,
+    blockers:['fresh-exact-create-only-approval','actual-drift-aware-plan-scope-proof','separate-execute-and-cost-approval','independent-physical-reference-verification']};
 }
 
 export function compareDeclarations(templates) {
