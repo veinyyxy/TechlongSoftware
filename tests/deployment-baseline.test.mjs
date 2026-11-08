@@ -46,6 +46,7 @@ import apiAliasRead from '../ops/deployment-baseline/tenant-api-alias-preflight-
 import apiAliasUpdate from '../ops/deployment-baseline/tenant-api-alias-update-review-20261107.json' with { type: 'json' };
 import apiAliasUpdated from '../ops/deployment-baseline/tenant-api-alias-updated-20261107.json' with { type: 'json' };
 import platformReadScope from '../ops/deployment-baseline/platform-ownership-read-scope.json' with { type: 'json' };
+import platformObserved from '../ops/deployment-baseline/platform-ownership-observed-20261107.json' with { type: 'json' };
 import { compareBindings, compareDeclarations, draftImageUpdate, imageChange, reviewTenantListenerChangeSet } from '../ops/deployment-baseline/review.mjs';
 
 const prefix='arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/aaaaaaaaaaaaaaaa/';
@@ -1067,4 +1068,25 @@ test('platform inspection is a bounded one-pass read proposal, not an execution,
   for(const key of ['readAuthorized','repairAuthorized','deploymentAuthorized','environmentStartAuthorized','automaticRetry','formalThreeStackBaselineComplete'])assert.equal(s[key],false,key);
   assert.equal(s.timing.observedAt,null);assert.equal(s.timing.factsValidUntil,null);assert.equal(s.timing.futureSnapshotMaxAgeHours,5);assert.equal(s.timing.resourceExpiryLeaseOrAutomaticStopChanged,false);
   assert.equal(s.evidence.rawTemplateAndTaskResponsesMayEnterCliMemory,true);assert.equal(s.evidence.rawEnvironmentCommandParametersAndProviderErrorsNotSavedOrPrinted,true);
+});
+
+test('actual platform read reports missing ALB/listener and intentional idle/controller differences without repairing them',()=>{
+  const r=platformObserved,s=platformReadScope,canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+  const sha=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
+  assert.equal(r.approvedScopeCanonicalSha256,sha(s));assert.equal(r.userExplicitReadConfirmationRecorded,true);assert.equal(r.status,'PLATFORM_OWNERSHIP_INSPECTED_WITH_DIFFERENCES');
+  assert.equal(r.stackId,s.stackId);assert.equal(r.stackStatus,'UPDATE_COMPLETE');assert.equal(r.templateCanonicalSha256,s.historicalTemplateSha256);
+  assert.equal(r.resourceCount,11);assert.equal(r.existingDeclaredPhysicalResources,9);assert.equal(r.missingDeclaredPhysicalResources,2);
+  assert.deepEqual(r.resources.map(x=>x.logicalId),s.resourceLogicalIds);assert.equal(r.resources.filter(x=>x.observed.startsWith('ABSENT_')).length,2);
+  assert.deepEqual(r.counts,{sts:1,metadata:17,awsWrites:0});assert.equal(r.requestResults.length,18);assert.equal(new Set(r.requestResults.map(x=>x.label)).size,18);
+  for(const op of s.reads)assert.ok(r.requestResults.filter(x=>x.operation===op.operation).length<=op.max);
+  assert.deepEqual(r.requestResults.filter(x=>x.outcome!=='OK').map(x=>x.outcome),['LoadBalancerNotFound','LoadBalancerNotFound','ListenerNotFound']);
+  assert.equal(Date.parse(r.factsValidUntil)-Date.parse(r.startedAt),5*3600000);assert.ok(Date.parse(r.finishedAt)>Date.parse(r.startedAt));
+  const o=r.observations;assert.equal(o.namedPlatformAlbAbsent,true);assert.equal(o.cfnPlatformAlbAbsent,true);assert.equal(o.cfnHttpsListenerAbsent,true);
+  assert.deepEqual(o.targetGroupLoadBalancerArns,[]);assert.deepEqual(o.serviceCounts,{desired:0,running:0,pending:0});assert.equal(o.declaredDesiredCount,1);
+  assert.ok(o.cfnTaskDefinitionArn.endsWith(':11'));assert.ok(o.actualServiceTaskDefinitionArn.endsWith(':12'));assert.ok(Object.values(o.declaredControllerChecks).every(x=>x===true));assert.ok(Object.values(o.serviceReferencedControllerChecks).every(x=>x===false));
+  assert.deepEqual(o.serviceReferencedSecretNames,['DATABASE_URL']);assert.equal(o.consoleAliasTargetMatchedToExistingAlb,false);assert.equal(o.consoleAlias.AliasTarget.EvaluateTargetHealth,true);
+  assert.equal(o.imageUnchangedBetweenObservedDefinitions,true);assert.equal(o.taskIngressRelationshipMatched,true);assert.equal(o.logRetentionDays,7);
+  assert.equal(r.scopeReadCompleted,true);assert.equal(r.executionSlotsConsumed,0);assert.equal(r.expectedIdleAndControllerDisabledDifferencesNotCorrected,true);
+  for(const key of ['fullPropertyDriftFreedomProved','runtimeOrBusinessHealthProved','formalThreeStackBaselineComplete','repairAuthorized','automaticRetry','automaticRepair','environmentStarted','resourceExpiryLeaseOrAutomaticStopChanged'])assert.equal(r[key],false,key);
+  assert.ok(Object.values(r.excludedActivity).every(x=>x===0));
 });

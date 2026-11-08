@@ -1,0 +1,325 @@
+{
+  "schema": "techlong/platform-ownership-observed/v1",
+  "status": "PLATFORM_OWNERSHIP_INSPECTED_WITH_DIFFERENCES",
+  "approvedScopeFile": "platform-ownership-read-scope.json",
+  "approvedScopeCanonicalSha256": "cca2bc4432b27e33913f8d50e681fddb274b1a07821941819f6dd10574a526ce",
+  "userExplicitReadConfirmationRecorded": true,
+  "sourceCommit": "83811d5fae55117f496b00250eba799a2cde3c92",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+  "stackStatus": "UPDATE_COMPLETE",
+  "templateCanonicalSha256": "24e4dba31fdc422c263f703acb7ddda0b63fe179e2a9b5839d732255f4383e2f",
+  "templateMatchesHistoricalDeclaration": true,
+  "startedAt": "2026-11-08T00:13:41.732Z",
+  "finishedAt": "2026-11-08T00:14:08.034Z",
+  "factsValidUntil": "2026-11-08T05:13:41.732Z",
+  "displayTimeZone": "America/Winnipeg",
+  "counts": {
+    "sts": 1,
+    "metadata": 17,
+    "awsWrites": 0
+  },
+  "executionSlotsConsumed": 0,
+  "resourceCount": 11,
+  "existingDeclaredPhysicalResources": 9,
+  "missingDeclaredPhysicalResources": 2,
+  "resources": [
+    {
+      "logicalId": "AlbSecurityGroup",
+      "type": "AWS::EC2::SecurityGroup",
+      "cfnPhysicalId": "sg-0f9770a8e90b139c2",
+      "cfnRecordedStatus": "CREATE_COMPLETE",
+      "observed": "PRESENT_BINDING_MATCHED"
+    },
+    {
+      "logicalId": "Cluster",
+      "type": "AWS::ECS::Cluster",
+      "cfnPhysicalId": "techlong-sandbox-platform",
+      "cfnRecordedStatus": "CREATE_COMPLETE",
+      "observed": "PRESENT_BINDING_MATCHED"
+    },
+    {
+      "logicalId": "DnsRecord",
+      "type": "AWS::Route53::RecordSet",
+      "cfnPhysicalId": "console.sandbox.techlong.cloud",
+      "cfnRecordedStatus": "CREATE_COMPLETE",
+      "observed": "PRESENT_ALIAS_TARGET_UNVERIFIABLE_ALB_ABSENT"
+    },
+    {
+      "logicalId": "HttpsListener",
+      "type": "AWS::ElasticLoadBalancingV2::Listener",
+      "cfnPhysicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-platform/23610822b0ae5c30/f5d6d689383d64c0",
+      "cfnRecordedStatus": "CREATE_COMPLETE",
+      "observed": "ABSENT_AT_CFN_ARN"
+    },
+    {
+      "logicalId": "LoadBalancer",
+      "type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "cfnPhysicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/23610822b0ae5c30",
+      "cfnRecordedStatus": "CREATE_COMPLETE",
+      "observed": "ABSENT_BY_EXACT_NAME_AND_CFN_ARN"
+    },
+    {
+      "logicalId": "LogGroup",
+      "type": "AWS::Logs::LogGroup",
+      "cfnPhysicalId": "/ecs/techlong-sandbox/platform-web",
+      "cfnRecordedStatus": "CREATE_COMPLETE",
+      "observed": "PRESENT_BINDING_RETENTION_MATCHED"
+    },
+    {
+      "logicalId": "Service",
+      "type": "AWS::ECS::Service",
+      "cfnPhysicalId": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+      "cfnRecordedStatus": "UPDATE_COMPLETE",
+      "observed": "PRESENT_TASK_REFERENCE_AND_IDLE_COUNT_DIFFERENCES"
+    },
+    {
+      "logicalId": "TargetGroup",
+      "type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "cfnPhysicalId": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/techlong-platform-web-v1/b29a8b9e4f95f6dd",
+      "cfnRecordedStatus": "CREATE_COMPLETE",
+      "observed": "PRESENT_BINDING_MATCHED_NO_ALB_ASSOCIATION"
+    },
+    {
+      "logicalId": "TaskDefinition",
+      "type": "AWS::ECS::TaskDefinition",
+      "cfnPhysicalId": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:11",
+      "cfnRecordedStatus": "UPDATE_COMPLETE",
+      "observed": "CFN_REVISION_11_PRESENT_SERVICE_USES_REVISION_12_OUTSIDE_THIS_BINDING"
+    },
+    {
+      "logicalId": "TaskIngress",
+      "type": "AWS::EC2::SecurityGroupIngress",
+      "cfnPhysicalId": "sgr-009f70fee0c3b27c4",
+      "cfnRecordedStatus": "CREATE_COMPLETE",
+      "observed": "PRESENT_EXACT_RULE_ID_AND_RELATION_MATCHED"
+    },
+    {
+      "logicalId": "TaskSecurityGroup",
+      "type": "AWS::EC2::SecurityGroup",
+      "cfnPhysicalId": "sg-018de900b98bd3a35",
+      "cfnRecordedStatus": "CREATE_COMPLETE",
+      "observed": "PRESENT_BINDING_MATCHED"
+    }
+  ],
+  "observations": {
+    "namedPlatformAlbAbsent": true,
+    "cfnPlatformAlbAbsent": true,
+    "cfnHttpsListenerAbsent": true,
+    "targetGroupArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:targetgroup/techlong-platform-web-v1/b29a8b9e4f95f6dd",
+    "targetGroupLoadBalancerArns": [],
+    "serviceArn": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+    "declaredDesiredCount": 1,
+    "serviceCounts": {
+      "desired": 0,
+      "running": 0,
+      "pending": 0
+    },
+    "cfnTaskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:11",
+    "actualServiceTaskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:12",
+    "imageUnchangedBetweenObservedDefinitions": true,
+    "imageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-platform-web@sha256:71e268934bb1dbe8220f33cf68757cd48d74c89be35269ba583f6dd1b712e75a",
+    "declaredControllerChecks": {
+      "hostedControllerArgumentPresent": true,
+      "controllerEnabledTrue": true,
+      "hostedControlTrue": true,
+      "controllerLeasePresent": true,
+      "privateControllerMaterialAttached": true
+    },
+    "serviceReferencedControllerChecks": {
+      "hostedControllerArgumentPresent": false,
+      "controllerEnabledTrue": false,
+      "hostedControlTrue": false,
+      "controllerLeasePresent": false,
+      "privateControllerMaterialAttached": false
+    },
+    "serviceReferencedSecretNames": [
+      "DATABASE_URL"
+    ],
+    "consoleAlias": {
+      "Name": "console.sandbox.techlong.cloud.",
+      "Type": "A",
+      "AliasTarget": {
+        "HostedZoneId": "ZQSVJUPU6J1EY",
+        "DNSName": "techlong-sandbox-platform-1535966359.ca-central-1.elb.amazonaws.com.",
+        "EvaluateTargetHealth": true
+      }
+    },
+    "consoleAliasCfnNameAndZoneMatch": true,
+    "consoleAliasTargetMatchedToExistingAlb": false,
+    "cfnStackStillRecordsMissingResourcesComplete": true,
+    "clusterRunningAndPendingTasks": 0,
+    "securityGroupIds": [
+      "sg-0f9770a8e90b139c2",
+      "sg-018de900b98bd3a35"
+    ],
+    "taskIngressId": "sgr-009f70fee0c3b27c4",
+    "taskIngressRelationshipMatched": true,
+    "logRetentionDays": 7
+  },
+  "differences": [
+    "LoadBalancer:CFN-binding-not-current-named-ALB",
+    "HttpsListener:CFN-binding-not-current-443-listener",
+    "Service:taskDefinition-differs-from-CFN",
+    "Service:desired-count-idle-difference",
+    "DnsRecord:not-provably-bound-to-current-platform-ALB"
+  ],
+  "expectedIdleAndControllerDisabledDifferencesNotCorrected": true,
+  "notCrossServiceAtomicSnapshot": true,
+  "fullPropertyDriftFreedomProved": false,
+  "runtimeOrBusinessHealthProved": false,
+  "formalThreeStackBaselineComplete": false,
+  "scopeReadCompleted": true,
+  "repairAuthorized": false,
+  "automaticRetry": false,
+  "automaticRepair": false,
+  "environmentStarted": false,
+  "resourceExpiryLeaseOrAutomaticStopChanged": false,
+  "excludedActivity": {
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "configSecretFileReads": 0,
+    "databaseConnections": 0,
+    "iamReads": 0,
+    "githubCalls": 0,
+    "publicDnsOrHttpCalls": 0,
+    "cloudWrites": 0,
+    "imageUpdates": 0,
+    "temporaryToolChanges": 0
+  },
+  "privateEvidenceDirectory": ".local-secrets/platform-ownership-read-cca2bc44-20261107-a",
+  "privateJournalRawSha256": "0faad62499965527c97384e80e850caf57a564cd31399fbd53e250f764d2c752",
+  "privateJournalCanonicalSha256": "7d5edc22a284ff669d2436ebbd211e0fd11aff9d6192d024d660ee6bd6a7e33f",
+  "scopeSnapshotRawSha256": "6e08626aed37c8365a95fa83a30f95a5a8d2b252dc4d817188df7cf3c899cffd",
+  "recipeRawSha256": "20a9b354b9d784904e77ab863d475678aa59ed189fc92b2d2f6d444df8d45f3c",
+  "requestResults": [
+    {
+      "label": "identity",
+      "operation": "sts:GetCallerIdentity",
+      "outcome": "OK",
+      "at": "2026-11-08T00:13:41.871Z",
+      "finishedAt": "2026-11-08T00:13:43.779Z"
+    },
+    {
+      "label": "stack",
+      "operation": "cloudformation:DescribeStacks",
+      "outcome": "OK",
+      "at": "2026-11-08T00:13:43.828Z",
+      "finishedAt": "2026-11-08T00:13:45.107Z"
+    },
+    {
+      "label": "template",
+      "operation": "cloudformation:GetTemplate",
+      "outcome": "OK",
+      "at": "2026-11-08T00:13:45.147Z",
+      "finishedAt": "2026-11-08T00:13:46.384Z"
+    },
+    {
+      "label": "bindings",
+      "operation": "cloudformation:ListStackResources",
+      "outcome": "OK",
+      "at": "2026-11-08T00:13:46.421Z",
+      "finishedAt": "2026-11-08T00:13:47.735Z"
+    },
+    {
+      "label": "namedAlb",
+      "operation": "elasticloadbalancing:DescribeLoadBalancers",
+      "outcome": "LoadBalancerNotFound",
+      "at": "2026-11-08T00:13:47.768Z",
+      "finishedAt": "2026-11-08T00:13:49.164Z"
+    },
+    {
+      "label": "cfnAlb",
+      "operation": "elasticloadbalancing:DescribeLoadBalancers",
+      "outcome": "LoadBalancerNotFound",
+      "at": "2026-11-08T00:13:49.223Z",
+      "finishedAt": "2026-11-08T00:13:50.471Z"
+    },
+    {
+      "label": "cfnListener",
+      "operation": "elasticloadbalancing:DescribeListeners",
+      "outcome": "ListenerNotFound",
+      "at": "2026-11-08T00:13:50.530Z",
+      "finishedAt": "2026-11-08T00:13:51.795Z"
+    },
+    {
+      "label": "namedTg",
+      "operation": "elasticloadbalancing:DescribeTargetGroups",
+      "outcome": "OK",
+      "at": "2026-11-08T00:13:51.857Z",
+      "finishedAt": "2026-11-08T00:13:53.374Z"
+    },
+    {
+      "label": "elbTags",
+      "operation": "elasticloadbalancing:DescribeTags",
+      "outcome": "OK",
+      "at": "2026-11-08T00:13:53.415Z",
+      "finishedAt": "2026-11-08T00:13:54.665Z"
+    },
+    {
+      "label": "cluster",
+      "operation": "ecs:DescribeClusters",
+      "outcome": "OK",
+      "at": "2026-11-08T00:13:54.710Z",
+      "finishedAt": "2026-11-08T00:13:56.124Z"
+    },
+    {
+      "label": "service",
+      "operation": "ecs:DescribeServices",
+      "outcome": "OK",
+      "at": "2026-11-08T00:13:56.164Z",
+      "finishedAt": "2026-11-08T00:13:57.515Z"
+    },
+    {
+      "label": "taskDefinition-0",
+      "operation": "ecs:DescribeTaskDefinition",
+      "outcome": "OK",
+      "at": "2026-11-08T00:13:57.557Z",
+      "finishedAt": "2026-11-08T00:13:59.011Z"
+    },
+    {
+      "label": "taskDefinition-1",
+      "operation": "ecs:DescribeTaskDefinition",
+      "outcome": "OK",
+      "at": "2026-11-08T00:13:59.057Z",
+      "finishedAt": "2026-11-08T00:14:00.399Z"
+    },
+    {
+      "label": "securityGroups",
+      "operation": "ec2:DescribeSecurityGroups",
+      "outcome": "OK",
+      "at": "2026-11-08T00:14:00.457Z",
+      "finishedAt": "2026-11-08T00:14:02.078Z"
+    },
+    {
+      "label": "taskIngress",
+      "operation": "ec2:DescribeSecurityGroupRules",
+      "outcome": "OK",
+      "at": "2026-11-08T00:14:02.110Z",
+      "finishedAt": "2026-11-08T00:14:03.551Z"
+    },
+    {
+      "label": "logGroup",
+      "operation": "logs:DescribeLogGroups",
+      "outcome": "OK",
+      "at": "2026-11-08T00:14:03.582Z",
+      "finishedAt": "2026-11-08T00:14:04.937Z"
+    },
+    {
+      "label": "zone",
+      "operation": "route53:GetHostedZone",
+      "outcome": "OK",
+      "at": "2026-11-08T00:14:04.989Z",
+      "finishedAt": "2026-11-08T00:14:06.648Z"
+    },
+    {
+      "label": "consoleAlias",
+      "operation": "route53:ListResourceRecordSets",
+      "outcome": "OK",
+      "at": "2026-11-08T00:14:06.722Z",
+      "finishedAt": "2026-11-08T00:14:07.993Z"
+    }
+  ],
+  "next": "Only offline preparation of minimal platform declaration/ownership convergence, preserving controller-disabled mode and idle DesiredCount=0. No cloud repair, ALB restoration, service start, IAM/image/DNS write or temporary-tool rewrite is authorized by this read result."
+}

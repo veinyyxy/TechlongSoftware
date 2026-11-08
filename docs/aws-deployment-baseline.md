@@ -8,30 +8,54 @@
 
 ## 当前状态与唯一继续点
 
-**本轮Cell—租户—API Alias引用链已对齐并收口。** 用户明确确认0e2ad8ca…清单后，仅提交一次准确API A Alias UPSERT，并于21:37:50.709Z由另一进程独立核验通过。[实际结果](../ops/deployment-baseline/tenant-api-alias-updated-20261107.json)：变更/change/C006498723VT6A7LZFY4W为INSYNC，准确Alias指向当前729e Cell ALB，差异0。实际STS2/元数据11/DNS写1（写前3＋状态4＋独立4），其他直接写0；更新槽1/批准已消费，不重放。
+**最新：平台11项归属已另批只读盘清，仍有差异，未修复。** 00:14:08.034Z完成，实际STS1/元数据17/云写0；[完整11项表及证据](#platform-ownership-observed)。前一阶段Cell—租户—API Alias引用链已对齐并收口：用户明确确认0e2ad8ca…清单后，仅提交一次准确API A Alias UPSERT，并于21:37:50.709Z由另一进程独立核验通过。[实际结果](../ops/deployment-baseline/tenant-api-alias-updated-20261107.json)：变更/change/C006498723VT6A7LZFY4W为INSYNC，准确Alias指向当前729e Cell ALB，差异0。该阶段实际STS2/元数据11/DNS写1，其他直接写0；更新槽1/批准已消费，不重放。
 
 | 对象 | 最新已存事实与边界 |
 | --- | --- |
 | Cell与租户三规则 | 21:09独立验收UPDATE_COMPLETE/EXECUTE_COMPLETE、DisableRollback=false、三个729e新规则归属/条件/动作/优先级正确，四保留ID/18参数元数据/角色/标签/输出及当时服务0/:12保持 |
 | API A Alias | 21:37独立读回已指向当前1581133878，准确change ID为INSYNC；只改目标DNSName，其他字段保持，0e2…批准已消费 |
 | 服务与证明边界 | DNS阶段未查或启动服务；最后服务观察为21:09的0/0/0/:12。没有公网解析/缓存、API健康或产品测试证明，ALB仍可能收费，未新增自动停止 |
-| 平台及停用漂移 | 平台11项历史手动恢复引用未作本轮核验；Service声明1/实况0仍登记，临时工具改造另待用户指示，不能称三个栈全部无漂移 |
+| 平台及停用漂移 | 00:14另批核对：9实体在、ALB/443监听器缺失；console Alias仍旧目标，Service引用:12/0而CFN记:11/声明1。临时工具未改，不能称三个栈全部无漂移 |
 
 只改AliasTarget.DNSName为当前1581133878，名称/类型/所属zone/目标zone/EvaluateTargetHealth=false保持。三规则归属在21:09已独立验收，本次DNS又独立匹配，组成特定Cell—租户—API Alias引用链的收口证据，不是同一时刻原子快照。最后服务观察仍为21:09的0/0/0/:12，本阶段没有重查或启动服务；INSYNC不证明公网缓存、API健康或产品验收。ALB实际active、可能持续收费，没有新增自动停机或续租。
 
-**引用链修复已收口；用户要求继续后，本轮仅离线备齐平台11项归属核验范围。** [唯一待审范围及完整风险](#platform-readonly-scope)已固定为STS最多1次＋元数据最多19次，只核对准确平台栈的声明/物理绑定与实际ALB、443监听器、目标组、ECS、两SG/入站、日志组及console Alias。未调用AWS或读取私密配置，不重复Cell/租户/DNS修复、不启动环境、不改IAM/镜像/临时工具或代做业务测试。下一只等待用户单独批准这份只读清单；核对所得差异不是修复或新建授权。
+**本轮只读范围已执行结束，不再等待同一批准或使用剩余预算。** 下一只离线准备平台最小声明/归属收敛方案：先明确如何保留控制器关闭、移除旧特权挂载及声明DesiredCount=0，再列出仅经CFN处理缺失ALB/监听器与console Alias的依赖顺序。不是现在恢复收费ALB或切回:11；实际模板/资源变更、新读取和费用仍另审。不重复Cell/租户规则/API DNS、不升级镜像、改临时工具或重做业务测试，不扩新框架。
 
-56项本地检查及定向lint通过；新增两项仅核对离线范围，不是线上验收。实际平台归属未在本轮核验，Service模板声明1/实况0仍是已登记测试停用差异，临时启停工具CFN统一编排原则留待未来；不能宣称三个栈全部无漂移、正式环境已运行或任意租户已通用验收。旧清单/SHA/事实时间/私有原件保持，不延长或重放已消费批准，也不用剩余预算扩查平台。
+57项本地检查及定向lint通过；新增结果回归不等于云修复或业务验收。平台差异已盘清但未收敛，临时启停工具CFN统一编排原则留待未来；不能宣称三个栈全部无漂移、正式环境已运行或任意租户已通用验收。旧清单/SHA/事实时间/私有原件保持，不延长或重放已消费批准，也不用剩余预算扩查。新事实仅从真实00:13采样按5小时计算，不是资源到期/停机时间。
+
+<a id="platform-ownership-observed"></a>
+
+### 平台归属实际结果：9项实体仍在，2项缺失
+
+用户另批cca2bc44…后，于**2026-11-08T00:13:41.732Z—00:14:08.034Z / 温尼伯11月7日18:13—18:14 CST**完成一次只读盘点。[机器结果与私有原件指纹](../ops/deployment-baseline/platform-ownership-observed-20261107.json)，状态`PLATFORM_OWNERSHIP_INSPECTED_WITH_DIFFERENCES`。实际**STS1＋元数据17、云写0**；未重试，未用的2次预算不再使用。准确c4bf36b0…栈仍UPDATE_COMPLETE，11项CFN记录完整，Original全文规范SHA仍24e4dba3…；这不证明实体齐全或无漂移。
+
+| 逻辑资源 | CFN绑定与实际结果 |
+| --- | --- |
+| LoadBalancer | CFN仍记23610822b0ae5c30；准确平台名称及此ARN均LoadBalancerNotFound。不是当前仍有a33cd… ALB的证明 |
+| HttpsListener | CFN仍记上述ALB下f5d6d689383d64c0；准确ARN返回ListenerNotFound。无实际443/TLS/转发配置可验收 |
+| DnsRecord | console A Alias存在，EvaluateTargetHealth=true，仍指1535966359旧ALB DNS；因ALB缺失，不能验收到现存承载 |
+| TargetGroup | b29a8b9e4f95f6dd实体及CFN绑定匹配，HTTP3000、/api/health；LoadBalancerArns为空，未查询目标健康 |
+| Cluster | 原techlong-sandbox-platform实体及CFN标记匹配，running/pending均0 |
+| Service | 原service ARN存在；desired/running/pending=0/0/0、目标组及任务SG/两子网引用保持。实际taskDefinition=:12，CFN绑定为:11；声明DesiredCount=1 |
+| TaskDefinition | CFN记录的:11仍ACTIVE，含旧hosted-controller启动及控制库/私钥Secret引用；实际服务引用:12也ACTIVE、同一镜像71e26893…，控制器五项检查均false，仅挂DATABASE_URL引用。不能切回旧:11或按旧模板重新注入特权 |
+| AlbSecurityGroup | sg-0f9770a8e90b139c2存在，准确栈/逻辑ID标签匹配；公网443入站、仅3000出站到任务SG |
+| TaskSecurityGroup | sg-018de900b98bd3a35存在，准确栈/逻辑ID标签匹配；仅ALB SG的3000入站及443出站 |
+| TaskIngress | 原sgr-009f70fee0c3b27c4存在，任务SG←ALB SG的TCP3000关系匹配 |
+| LogGroup | 原/ecs/techlong-sandbox/platform-web存在，保留期7天；未读日志流/正文 |
+
+**结论与最小后继：** 资源归属差异已明确，不再另开盘点分支。先离线形成保留关闭控制器/停用状态的声明收敛差异，列清ALB、443监听器、console Alias及Service/TaskDefinition之间的CFN依赖与分段方案；旧模板不能整体覆盖实际服务。实际创建/执行Change Set、恢复收费资源、改DNS/镜像或新权限均另审。当前没有实施修复，不能以本结果宣称正式三栈基线已全部收敛。
+
+私有去敏原件在`.local-secrets/platform-ownership-read-cca2bc44-20261107-a`；公开JSON只含必要物理引用/状态/布尔判断及原件指纹，没有原始Environment/Command/参数值、Secret值、PEM/.env或业务正文。所有云写、数据库连接、Secret/PEM/.env读取、IAM/GitHub/HTTP/公网DNS、新执行槽及环境启动均0。非原子快照、无第二次独立采样或完整属性漂移检测；原读取草案不改写为可重放的批准。事实准备到2026-11-08T05:13:41.732Z（温尼伯11月7日23:13:41.732 CST），不延长旧事实/租约、也不是资源自动停机；未核清其他资源当前费用，不保证50USD硬上限。
 
 <a id="platform-readonly-scope"></a>
 
-### 平台归属：单次只读核验待审范围
+### 平台归属：已执行只读范围与批准留档（不重放）
 
 [机器清单](../ops/deployment-baseline/platform-ownership-read-scope.json)的规范JSON SHA-256：
 
 `cca2bc4432b27e33913f8d50e681fddb274b1a07821941819f6dd10574a526ce`
 
-本轮没有生成云快照或执行脚本，只固定下一次必要读取的目标和上限；`PROPOSED_NOT_APPROVED/readAuthorized=false`不表示已取得读取授权。目标为账号402010193138 / ca-central-1、原Source IAM用户及准确平台栈UUID `c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7`。UUID来源是已存W8k历史原件，不是现存证明；先查准确UUID，不存在/已删除/身份不同即停止，不按同名新栈继续。
+以下保留原准备范围和风险；用户随后确认后已按顶部结果执行结束，不再等待或重放。机器草案的`PROPOSED_NOT_APPROVED/readAuthorized=false`保留准备时原文，实际批准和次数见结果JSON。目标为账号402010193138 / ca-central-1、原Source IAM用户及准确平台栈UUID `c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7`；未按同名其他UUID扩查。
 
 | 组别 | 最多次数及边界 |
 | --- | --- |
@@ -48,7 +72,7 @@
 
 **完整风险与数据边界：** 使用既有Source凭据会进入内存，并有网络/提供者审计日志和低额非零费用。GetTemplate/DescribeTaskDefinition的原响应可能在CLI内存中含参数、Environment或Command；仅将白名单身份/引用、控制器布尔检查和摘要投影保存到私有ACL目录，原始环境/命令/参数值及原始错误不保存或输出。其他资源名、私网IP、Account ID/ARN与Secret版本引用可能进入核验元数据。禁止GetSecretValue、PEM/.env/HMAC、数据库连接、日志正文、公网HTTP/JS及GitHub读取；不提交凭据、秘密或业务正文。读取不是跨服务原子快照，资源可并发变化，缺页/未知/缺失须保留，不冒充完整归属证明。
 
-本清单是离线范围，不把材料生成时间冒充观测；`observedAt/factsValidUntil=null`。将来经批准实际读取后，准备事实从真实采样按5小时计算，不延长任何旧事实、批准、控制租约或资源到期时间。**不启停、重建、删栈、改DNS/IAM/镜像/临时工具，不安装自动清理。** 现存ALB、存储等可能持续收费，50USD/月仍不是硬上限。结果有差异时只提出必要的最小修复范围，实际修复另审；当前下一动作只等待这一次限定读取批准。
+原草案的`observedAt/factsValidUntil=null`保持；实际采样和5小时终点只记录于结果，不回填或改写准备材料。**不启停、重建、删栈、改DNS/IAM/镜像/临时工具，不安装自动清理。** 其他资源/存储等可能持续收费，50USD/月仍不是硬上限。已完成读取的剩余预算不重用；后继只离线准备必要的最小收敛范围，实际修复另审。
 
 **已确认的直接原因：** 2026-11-07T14:53:08.255Z 完成的一页事件查询绑定 OperationId `05dc971d-c8f7-46b9-ae85-d44ec357b009`、`FailedEvents=true`，返回根栈及三条规则共4条失败事件，无下一页。三规则均报 `Replacement type updates not supported on stack with disable-rollback.`。原执行清单把三项替换与 `DisableRollback=true` 组合，这是本次执行策略的不兼容，不是新的 IAM 缺口证明；也不能据此保证未来恢复必然成功。ResourceProperties 只可能进入 CLI 内存，未保存/输出；原[读取草案](../ops/deployment-baseline/tenant-b-failed-event-read-scope.json)保持准备时原文，不用于重复读取。
 
@@ -79,13 +103,13 @@ Cell 六个输出按同名参数传给租户，并非租户栈自己查找资源
 
 初版离线阶段明确不调整 IAM。之后用户单独批准了[最小 IAM 修正](../ops/deployment-baseline/tenant-b-iam-review.json)，[安装结果](../ops/deployment-baseline/tenant-b-iam-installed-20261107.json)确认既有 policy 默认 v9→v10，保留 v7/v8/v9，仅新增两个准确新监听器规则前缀的 DescribeTags 读取覆盖；因长度上限去掉五个可选 Sid 标签，其余授权元素保持。它同时作为角色 identity policy 和 boundary，新读取覆盖持久保留，不是临时 grant。这是另批的范围扩展，不属于三栈资源归属或镜像更新，也不授权继续改 IAM。
 
-平台归档模板仍声明 hosted-controller/ControllerLease 与 HostingExpiresAt；手工恢复采用关闭控制器的任务定义 :12，无新资源到期。不可拿旧平台模板整体覆盖实际服务或重新挂载控制器凭据。之前11月6日stop核对发现两台ALB均不存在，那是A2之前事实；本次只由CFN恢复并核验了Cell，平台ALB现状没有重新查询。表中的11月6日恢复映射是历史，**不能再当下次参数来源**；未来使用新输出仍须提交前匹配实际状态。本基线不判断数据库现在是否已停，也不改动stop锁、journal或工具配置。
+平台归档模板仍声明 hosted-controller/ControllerLease 与 HostingExpiresAt；手工恢复采用关闭控制器的任务定义 :12，无新资源到期。不可拿旧平台模板整体覆盖实际服务或重新挂载控制器凭据。之前11月6日stop核对发现两台ALB均不存在，那是A2之前事实；A2阶段只由CFN恢复并核验了Cell。后继本次平台只读已再次确认准确平台名称/CFN ALB及监听器缺失，实际服务仍0/:12，详见顶部；没有因此恢复平台。表中的11月6日恢复映射是历史，**不能再当下次参数来源**；未来使用新输出仍须提交前匹配实际状态。本基线不判断数据库现在是否已停，也不改动stop锁、journal或工具配置。
 
 证据来源：私有归档 `manual-environment-restore-20261101-a/inputs.json` 内两个父栈 Original 模板及 Cell Outputs；子栈用同期 `tenant-create-request.json` 的新建 TemplateBody/公开绑定，**不用已删除旧 UUID 的模板当新栈实况**；11月6日映射来自 `manual-environment-restore-20261106-b/journal.json`。原件位于 F 盘，不复制请求、完整参数、NoEcho 值或业务快照到 Git。[运行事实与已知漂移](aws-manual-test-environment-20261106.md)。
 
 ## 给下一次更新用的最小模板
 
-原 B 失败已查明并经另批回滚/新 B 与DNS修复收口，不再作为待查因任务；当前只准备上述平台归属核验，不提前更新镜像。[监听器参数片段](../ops/deployment-baseline/tenant-listener-change.template.json)是既有 B 计划的输入，不是新的可执行命令；其创建和单次执行已发生，不得按旧[离线计划](../ops/deployment-baseline/tenant-b-offline-plan.json)再创建或重放。离线阶段的“未读取/任务定义物理 ID 未知”只适用于当时；后续已核对租户CFN/服务引用均为 :12，不能重新当作当前缺口。Service 声明1、执行后实况0的差异仍保留，不自行改 Service 或 DependsOn。
+原 B 失败已查明并经另批回滚/新 B 与DNS修复收口，不再作为待查因任务；平台归属盘点也已完成，后继只离线准备最小收敛方案，不提前更新镜像。[监听器参数片段](../ops/deployment-baseline/tenant-listener-change.template.json)是既有 B 计划的输入，不是新的可执行命令；其创建和单次执行已发生，不得按旧[离线计划](../ops/deployment-baseline/tenant-b-offline-plan.json)再创建或重放。离线阶段的“未读取/任务定义物理 ID 未知”只适用于当时；后续已核对租户CFN/服务引用均为 :12，不能重新当作当前缺口。Service 声明1、执行后实况0的差异仍保留，不自行改 Service 或 DependsOn。
 
 [参数片段](../ops/deployment-baseline/tenant-image-change.template.json)按现有租户声明使用 `UsePreviousTemplate`，仅替换 `ImageUri`，其余 19 项均为 `UsePreviousValue`，不需要导出任何秘密值。镜像必须是同账号同区域指定仓库的新 SHA-256 digest，不能传 tag。此片段没有执行入口；不把监听器修复、DNS、平台任务、数据库迁移或角色改动夹带在版本更新里。
 
@@ -117,4 +141,4 @@ node scripts/check-deployment-baseline.mjs platform.json cell.json tenant.json b
 | B 单次失败事件读取 | [用户另允的查因结果](../ops/deployment-baseline/tenant-b-failed-events-observed-20261107.json)，STS1＋DescribeEvents1，确认禁用回滚与替换型更新不兼容；无写入/实际修复，唯一后继方向见顶部 |
 | 回滚 a 停止 → 新 b 回滚及独立核验 | [a凭据停止](../ops/deployment-baseline/tenant-b-rollback-preflight-stopped-20261107.json)、[b实际结果](../ops/deployment-baseline/tenant-b-rollback-observed-20261107.json)；累计3/20/1，恢复CFN稳定控制态而非规则实体/API，回滚批准已消费 |
 
-完整分阶段审批、原 SHA/期限与失败记录继续保留在[修复沿革](aws-cell-listener-ownership-repair.md)、执行手册/主线的折叠历史及 Git 历史中；本次未修改任何机器清单、模板、执行回执、私有原件或永久槽。历史中的“下一步/待批准/尚未执行”只适用于当时，不覆盖顶部状态，也不能作为重放入口。
+完整分阶段审批、原 SHA/期限与失败记录继续保留在[修复沿革](aws-cell-listener-ownership-repair.md)、执行手册/主线的折叠历史及 Git 历史中；历史机器清单、模板、执行回执、私有原件及永久槽保持，本次平台观察另存新结果文件。历史中的“下一步/待批准/尚未执行”只适用于当时，不覆盖顶部状态，也不能作为重放入口。
