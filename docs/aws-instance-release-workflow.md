@@ -58,4 +58,50 @@ S3环境配置及HeadBucket仅是当前配置/桶存在性核对，不能证明�
 
 清单至少包括：三表/九函数实际安装者权限和窄LOGIN成员；三个控制Secret固定版本与KMS范围；准备/执行/核验OIDC角色和aud/sub；GitHub environment/reviewer ID及分支保护；准确初始化实例/版本/persistence证据导入；采样所需元数据白名单、GitHub Actions read与证据存储范围/预算。Describe/List有些只能较宽授权，须如实披露，应用固定目标校验不是IAM等价物。所有Secret/LOGIN/IAM/GitHub配置写、生产读取、恢复与实际更新继续分别按具体范围批准。
 
+<a id="installation-preflight"></a>
+
+## 一次性安装准备：对象已列明，集中只读核对待批准
+
+2026-11-13，用户要求下一步。状态为`LOCAL_SCOPE_ONLY / READ_APPROVAL_PENDING`。本节只整理已有实现的安装依赖，不添加执行器或另一套部署框架，不运行草案、不修改关闭配置。目标是集中核对一次后给准确安装清单，不逐个资源来回盘点；范围不足、冲突或读取失败则保存停止原因，不隐式补读/重试或要求先恢复承载。
+
+### 安装对象与明确不安装的对象
+
+| 对象 | 本地已确定的合同 | 尚需真实核对 |
+| --- | --- | --- |
+| 控制数据库结构 | `deployment_release` schema；`releases`、`instance_state`、`requests`三表；九函数，见下方两份原草案 | 名称占用、安装者CREATE/SET ROLE能力、PUBLIC/默认ACL和旧保护目录；不覆盖现有同名对象 |
+| 数据库角色 | NOLOGIN：`deployment_release_owner`、`deployment_release_planner`、`deployment_release_executor`、`deployment_release_verifier`；LOGIN：`deployment_release_planner_login`、`deployment_release_executor_login`、`deployment_release_verifier_login` | LOGIN各仅继承对应操作组，不属于owner/另两操作组，不具CREATE/CREATEROLE；管理员安装权不进入工作流。受托管角色规则影响的实际成员/ADMIN/SET/INHERIT选项必须列入最终清单 |
+| 控制Secret | 三个不同ARN、各自固定VersionId，正文仅对应窄LOGIN的Neon连接串；不复用owner或旧worker的宽数据库凭据 | 拟用名为`techlong/sandbox/instance-release/{planner,executor,verifier}-db-v1`，目前只是候选名；核对占用及KMS引用，不能用不存在/历史版本冒充新版本 |
+| AWS运行身份 | planner、executor、verifier三个不同角色，各自只读自身固定控制Secret；执行者不直接写ECS/ELB/RDS/IAM，核验者不能执行CFN | 候选角色名`TechlongSandboxInstanceReleasePlannerRole`、`TechlongSandboxInstanceReleaseExecutorRole`、`TechlongSandboxInstanceReleaseVerifierRole`；对应候选boundary名为相同名称去掉`Role`后加`BoundaryV1`。是否新增及完整policy/trust仍待真实核对，不修改旧worker或CFN执行角色来凑通过 |
+| GitHub/OIDC | 复用本仓库main、单一`techlong-sandbox-deploy`环境和本人review；工作流仍关闭 | repository/environment/reviewer ID、实际subject模板、分支/审批/bypass设置及现有provider。prepare无environment，executor/verifier均在唯一受保护job，不能假造三个互不相通的OIDC安全域 |
+| 证据存储 | 优先复用`techlong-sandbox-cloud-worker-evidence-402010193138`，候选独立前缀`instance-releases/` | 原桶账号/区域、版本化/加密/公共访问/所有权和桶策略；只有准确前缀条件写及固定版本回读。复用不代表已有权限覆盖新前缀 |
+| 实例/版本目录 | 未来只受审导入已有初始化实例、可信镜像证明和真实持久化证据 | 本轮不读业务行、不导入种子；停用态不能生成运行态摘要。缺少真实图片持久化证据必须保留阻断，不填合成SHA |
+
+安装对象计数不等于本轮写入授权。schema/grants原草案以独立事务安装，LOGIN/Secret/AWS安装属于后续准确范围；凭据不能提交Git，跨Neon/AWS不是原子事务，失败不自动补偿、回滚或补齐。若采用新基础栈，只管理这三类身份/Secret及其policy，不创建ALB/ECS/RDS/VPC或另一套业务承载；最终栈对象数和费用须在真实布局核对后列明，不能提前承诺复用或零费用。
+
+原草案本地文件SHA256（记录时HEAD `0e677fbda37a32196441d46228a5f615e4116608`）：
+
+- `ops/releases/schema.draft.sql`：`dec84fbb1ddca13f3167a1d287647a945b660840334a0f999f7351e5177159b0`。
+- `ops/releases/grants.draft.sql`：`28dd5eca563c017f265499b5e2d6b0fb938e6af8cc4b1f761985d4fafe90ef8c`。
+
+这些是文件完整性索引，不是用户批准SHA，也不是已应用证明；实际安装时须绑定最终代码和准确动作重新审批。
+
+### 下一轮请求的集中只读范围（尚未执行）
+
+| 来源/上限 | 准确目标与允许内容 | 不包含 |
+| --- | --- | --- |
+| Source STS最多1次 | 既有`techlong-sandbox-user`，官方endpoint，账号`402010193138`且准确IAM user `techlong-sandbox-dev` | 不切更大角色/其他profile；凭据失败即停，不在本许可内重试或诊断 |
+| AWS元数据总计最多40次 | 默认`ca-central-1`，IAM全局：原`TechlongSandboxGitHubDeploymentWorkerRole`与`TechlongSandboxCloudFormationExecutionRole`及实际关联policy/boundary；上述三个候选角色/boundary名称；既有`token.actions.githubusercontent.com` provider；原`techlong-sandbox-cloud-worker-foundation-v5`的DescribeStacks/GetTemplate；三个候选Secret的DescribeSecret元数据；准确证据桶的location/versioning/encryption/public-access/ownership/policy | 不全账号扫描角色/Secret或列桶正文；不读Secret值/固定历史对象正文、ECR镜像、承载栈/ECS/ALB/RDS/EC2/DNS/费用账单，不Validate/Create/Execute/Update/Delete |
+| GitHub认证GET最多12次 | `veinyyxy/TechlongSoftware`的main/已有准确CI、`instance-release.yml`、既有environment及其人工reviewer、main保护、OIDC subject设置、Actions token权限和未完成运行 | 不读Secret值/PEM，不创建/修改门禁、App或配置，不dispatch/approve/Re-run |
+| 本机配置读取最多1次；Neon连接最多1条；查询最多30条 | 现有`.env.local`全文件仅入内存，使用既有控制库URL经验证TLS；一个READ ONLY事务（含BEGIN/SET LOCAL search_path=pg_catalog/超时设置/COMMIT或ROLLBACK计入上限），仅系统目录核对当前安装者、角色名/成员/权限、schema/表/函数/触发器/RLS/默认ACL及现有保护定义的服务器端摘要 | 不输出连接串，不调用业务/安装函数，不读取账号、店铺、订单、任务/批准账本或fence业务行，不读pg_authid/密码hash，不连接Aurora，不CREATE/GRANT/INSERT/UPDATE/DELETE |
+
+AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及实际关联策略最多18、候选角色/boundary最多6、provider最多1、原foundation最多2、三个候选Secret最多3、准确桶最多6，共36，余4只供同表已列目标的必要策略元数据读取，不能扩目标。身份与元数据完整页分别核对；不翻页/自动重试/轮询，分页或权限不足如实标为未核验，不用剩余额度另开诊断。AWS先成功后才读取配置并连接Neon；GitHub在同一集中准备中核对，任一必要条件不满足便不生成可执行安装SHA。
+
+使用现有凭据/owner连接只用于这一轮目录核对，权限本身较宽；配置整文件、模板/策略响应会进入必要进程内存。仅保存允许的名称/ARN/版本元数据、权限布尔值、计数与摘要到本地私有证据目录，不输出/提交配置、模板环境正文、凭据、业务数据或原始错误。接受网络、内存、提供者日志及低额非零费用风险。成功快照按真实开始时间起最多5小时，不更改旧事实/期限，不启动资源租约。
+
+### 核对通过后的唯一交付
+
+据本轮真实状态列出：准确复用/新增对象、现有安装者权限、SQL/角色成员差异、三份Secret/KMS范围、IAM trust/inline/boundary、证据前缀和GitHub门禁绑定；给每个实际写入的次数上限、顺序、独立回读、跨服务部分失败处理及完整风险，再生成新的安装审批SHA。不得用候选名称、文件指纹或本节方向批准代替实际写入批准。
+
+安装后仍保持`enabled=false`，先独立核验空结构/权限及固定引用。目录导入和采样基线只能在另批恢复后基于真实资源/合法版本与持久化原件建立；不因安装完成自动恢复环境、派发工作流或开始D2-5。已有ECR路径可继续D2-6技术验收，不要求先扩镜像生产功能；买卖家业务验收仍由用户负责。
+
 官方依据：[GitHub review history GET](https://docs.github.com/en/rest/actions/workflow-runs#get-the-review-history-for-a-workflow-run)、[environment审批](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/review-deployments)、[OIDC claims及aud/sub](https://docs.github.com/en/actions/reference/security/oidc)。这些支持接口设计，不是已安装/已部署的证明。
