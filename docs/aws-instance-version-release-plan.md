@@ -1,8 +1,8 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-13，America/Winnipeg。状态：`PARTIALLY_IMPLEMENTED — D2-1 + D2-2 OFFLINE`。
+日期：2026-11-13，America/Winnipeg。状态：`PARTIALLY_IMPLEMENTED — D2-1 + D2-2 + D2-3 OFFLINE`。
 
-除下方明确交付的D2-1及D2-2离线部分外，本文其余部分仍是待审设计，不是完整功能已完成、数据库迁移、Secret/IAM安装、镜像发布、工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；环境继续停止，不自动进入D2-3。
+除下方明确交付的D2-1、D2-2和D2-3离线部分外，本文其余部分仍是待审设计，不是完整功能已完成、数据库迁移、Secret/IAM安装、镜像发布、部署工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；未启动收费环境，不自动进入D2-4。
 
 <a id="d2-1-delivered"></a>
 
@@ -51,6 +51,30 @@ node node_modules/typescript/bin/tsc --noEmit --incremental false
 ```
 
 本阶段没有生产读取、AWS调用、SQL/权限安装、工作流修改、云调度或恢复。后续下一阶段是D2-3已有ECR版本的离线执行闭环，不是立即启动真实发布；实际恢复/安装/部署仍按准确范围另审。
+
+<a id="d2-3-delivered"></a>
+
+## 阶段3交付状态：已有ECR版本的更新闭环离线完成
+
+本阶段按用户要求只串联已有ECR版本，不构建/晋升新镜像、不改临时工具或冻结部署工作流：
+
+- [`update.ts`](../lib/deployments/releases/update.ts)：计划/NO_CHANGE/阻断决定持久化；读取准确待审请求/SHA、原子领取、权威目录及源运行状态复核；一次Create/严格审查真实参数和Original候选模板、执行前源角色/更新时间/物理ID复核、一次Execute、有界状态读取，最后调用独立核验入口并消费已存证明完成CAS。
+- [`inspection.ts`](../lib/deployments/releases/inspection.ts)：不接收执行成功布尔值/缓存，重新读取请求与资源；核对栈/CS、TaskDefinition和Service归属、OCI索引到linux/amd64平台digest、主部署/任务数、保留配置/路由及技术端点。先条件写证据并回读准确版本，再以verifier身份登记；executor无法自行写核验。
+- 原repository/adapter和未安装草案只作本闭环必要增补：三表不增加，函数从7增至9；新增只读决定/终止登记及失败/回滚完成语义。NO_CHANGE的plan=null且无CFN写；核验失败保留旧版本/占用；受管回滚只有独立证明旧版健康后才释放占用，并revision+1废止旧事实。未知提交/进程重入/证据或回写不明均不重发云写、不自动清理或续期。
+
+新增18项整轮回归（含每项内多种失败变体），连同前两阶段及基线共123项本地通过，lint/全项目类型检查通过。两个不同实例、两个不同ECR索引/平台digest由同一代码运行；CFN/ECS/S3 SDK均使用固定合成凭据与内存HTTP handler，没有真正连接AWS。新测试并入原npm test；增加一条长期复用的普通无AWS CI，只需contents:read，无environment/id-token/Secret或部署调度，不是D2-4工作流。CI结果以准确源码run为准，不能由本地测试推定。
+
+**未跨过的边界**：SQL草案未应用，原生PG语法、真实双连接行锁和ACL仍须隔离库验证。资源采样是注入式固定目标端口，本轮只提供其合同/摘要与核验算法和SDK模拟来源，尚未接通生产采样器；真正的新进程/读凭据隔离也未在线验证。D2-4的受审运行接线必须落实这两项，不能把合成reader用于生产或仅凭SHA参数冒充GitHub批准。没有读取本地.env/Secret/PEM、连接Neon/Aurora、安装权限或启动环境，没有业务验收。
+
+[接口、状态及安装边界](../ops/releases/README.md)。复验：
+
+```text
+node --experimental-strip-types --test --test-timeout=30000 tests/instance-release-state.test.ts tests/instance-release-adapters.test.ts tests/instance-release-cycle.test.ts tests/deployment-plan.test.ts tests/deployment-baseline.test.mjs
+node node_modules/eslint/bin/eslint.js lib/deployments/releases tests/instance-release-*.ts --max-warnings 0
+node node_modules/typescript/bin/tsc --noEmit --incremental false
+```
+
+本轮到此收尾，下一阶段仅D2-4单审批工作流及必要正式接线；实际安装、真实元数据读取、恢复、更新仍按准确范围另批。
 
 ## 1. 要交付什么
 
@@ -207,7 +231,7 @@ tag只能用于人读；即使配置ECR tag不可变，执行仍绑定digest。�
 
 GitHub concurrency按实例＋组件分组、`cancel-in-progress:false`；控制面再用同实例CAS/唯一活动请求约束。GitHub组不是数据库锁，也不是云端全局CAS。
 
-审批等待不持有执行租约。批准后领取短执行锁并记录操作token/心跳；租约到期只意味着执行者不能继续写，不意味着AWS操作取消或可被另一个执行者重新提交。存在准确CS或未知提交时不自动抢占重发；只读确认后再按明确规则结案。
+审批等待不持有执行锁。首版批准后原子领取持久占用并记录操作token，以原事实writeBefore截止约束新云写，不新增心跳服务或可抢占lease；到期不意味着AWS操作取消或可被另一个执行者重新提交。存在准确CS或未知提交时不自动抢占重发；只读确认后再按明确规则结案。写入截止不等于资源自动到期，不会自动停库或删除承载资源。
 
 写前保存本次唯一意图与参数摘要，创建/执行分别只首次提交；SDK/CLI云写不进行自动网络重试。只读状态轮询在同一批准中预先包含次数和总等待预算，不再每轮聊天另批。预算耗尽停止，不扩大目标、不换endpoint、不自动重建CS或重派run；不使用GitHub Re-run恢复有副作用阶段。
 
@@ -315,7 +339,7 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 
 ## 14. 建议代码落点：薄业务层，复用执行组件
 
-下列前两项已在D2-1交付，其余为**拟新增/调整位置**，不代表已经实现或接入运行：
+合同/计划在D2-1、状态/适配在D2-2、更新/核验在D2-3离线交付；下表部署工作流仍待D2-4，不代表已接入生产：
 
 | 落点 | 职责 |
 | --- | --- |
@@ -335,7 +359,7 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 | --- | --- | --- | --- |
 | D2-1 合同与纯计划（离线已完成） | SoftwareRelease、InstanceBinding、请求/状态合同；digest/兼容/STOPPED/仅ImageUri planner | [交付记录](#d2-1-delivered)：88项相关回归、lint/类型通过；仅纯计划，不授权live | 无SQL/配置/凭据读取、AWS/工作流变更；线上能力仍未接线 |
 | D2-2 状态与适配（离线已完成） | 三表/七函数与窄授权草案、请求CAS、CFN/证据注入适配 | [交付记录](#d2-2-delivered)：新增17项合同模型/真实SDK内存回归，总105通过；原生PG行锁/ACL未验证 | 草案未应用；安装前隔离PG验证，实际DDL/角色/Secret/IAM/GitHub另审 |
-| D2-3 已有ECR版本执行闭环 | executor、隔离inspector、回写、NO_CHANGE/失败分类 | 用同一代码跑两个不同实例fixture/多个release，不改固定JSON；完整SDK模拟/无AWS CI通过 | 不在线更新、不启通用worker、不写旧账本 |
+| D2-3 已有ECR版本执行闭环（离线已完成） | executor、单独inspector入口、可信回写、NO_CHANGE/失败分类 | [交付记录](#d2-3-delivered)：不同实例/不同ECR版本、真实SDK内存模拟；相关123项本地通过，常规无AWS CI独立记录 | 不在线更新/启通用worker/写旧账本；生产采样、新进程身份接线及原生PG安装验证仍另审 |
 | D2-4 单审批工作流 | 一个正常入口、摘要、准确run/计划绑定、一个受保护job | 无AWS身份先验证参数/摘要/单门禁与流程；权限安装后再做受限技术预检 | 发布workflow/安装身份与真实资源写分开批准；不自动派发实际部署 |
 | D2-5 正常版本生产接入 | 构建产物→候选release→可选同轮ECR晋升→已验证版本 | 不绑定实例秘密；版本不可覆盖，产物与ECR索引/平台digest可核对，晋升失败不部署 | 已有ECR路径可先交付；新增晋升权限/仓库访问另审 |
 | D2-6 受控真实技术验收 | 一次明确恢复后两次独立正常版本切换，完成持久回写 | 第二次不改代码/复制workflow，单次发布一审批；实际镜像/归属/健康/记录一致 | 恢复/在线读/安装/每次发布及后续停费分别有明确授权；不执行买卖家业务测试 |
@@ -370,7 +394,7 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 4. 若增加ECR晋升，准确候选产物、仓库、授权及同轮失败留存策略。
 5. 每次真实发布的实例/版本/配置摘要、正常CFN回滚和技术核验/回写范围；不沿用旧SHA。
 
-以上是后续实施的审批边界，不要求现在逐项回答。**D2-1及D2-2离线交付完成，本轮到此结束；下一阶段D2-3只接已有ECR版本的离线执行/独立核验/结果分类，不自动应用SQL、改权限或启动环境。**
+以上是后续实施的审批边界，不要求现在逐项回答。**D2-1至D2-3离线交付完成，本轮到此结束；下一阶段D2-4只接单审批工作流与必要正式采样/隔离运行方式，不自动应用SQL、改权限或启动环境。**
 
 ## 17. 官方依据与证据边界
 
@@ -380,4 +404,4 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 - [CFN ECS TaskDefinition](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ecs-taskdefinition.html)、[ECS Service](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ecs-service.html)：任务版本与服务由原栈关联管理，不能把替换任务版本误认为重建Service。
 - [ECS部署熔断](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-circuit-breaker.html)：受管回退有前置条件，不等于代理可以自动另发回退部署。
 
-这些资料与本地源码支持设计，不证明完整发布闭环已实现、角色已安装、环境已运行或目标版本已实际发布。顶部明确区分D2-1纯计划与D2-2未接线端口/草案；没有AWS调用、生产数据库连接、私密配置/Secret/PEM读取、安装或业务验收。
+这些资料与本地源码支持设计，不证明完整正式交付已实现、角色已安装、环境已运行或目标版本已实际发布。顶部明确区分D2-1纯计划、D2-2端口/草案与D2-3离线闭环；没有AWS调用、生产数据库连接、私密配置/Secret/PEM读取、安装或业务验收。

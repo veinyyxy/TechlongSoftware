@@ -101,7 +101,8 @@ async function proofDocument(): Promise<ReleaseInspectionDocument> {
   const f = await releaseFixture(); return { requestId: f.plan.selection.requestId, planSha256: f.sha, runId: "123", runAttempt: 1,
     stackId: f.plan.changeSet.StackName, releaseId: f.plan.to.releaseId, imageUri: f.plan.to.imageUri,
     platformDigest: f.plan.to.platformDigest, templateSha256: f.plan.templateSha256,
-    configurationSha256: f.plan.configurationSha256, result: "SUCCEEDED" };
+    configurationSha256: f.plan.configurationSha256, result: "SUCCEEDED", changeSetId: f.changeSetId,
+    serviceArn: "synthetic-service", taskDefinitionArn: "synthetic-definition", observedAt: 2000, runtimeSha256: h("d") };
 }
 
 test("release S3 real SDK: conditional PUT, fixed version GET and SHA; unexpected sensitive extras never enter evidence", async () => {

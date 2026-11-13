@@ -1,5 +1,5 @@
 import { canonicalJson, sha256Hex } from "../execution/hash.ts";
-import type { ImageUpdatePlan, InstanceBinding, ReleaseRequestStatus, SoftwareRelease } from "./contract.ts";
+import type { ImageUpdatePlan, InstanceBinding, ReleaseRequestStatus, ReleaseSelection, SoftwareRelease } from "./contract.ts";
 
 export interface ReleaseEvidenceReference {
   bucket: string;
@@ -20,9 +20,26 @@ export interface ReleaseInspection {
   platformDigest: string;
   templateSha256: string;
   configurationSha256: string;
-  result: "SUCCEEDED";
+  result: "SUCCEEDED" | "FAILED_ROLLED_BACK_VERIFIED" | "FAILED_NEEDS_INSPECTION";
+  changeSetId: string;
+  serviceArn: string;
+  taskDefinitionArn: string;
+  observedAt: number;
+  runtimeSha256: string;
   evidence: ReleaseEvidenceReference;
 }
+
+export interface ReleaseDecision {
+  schema: "techlong/instance-release-decision/v1";
+  selection: ReleaseSelection;
+  status: "NO_CHANGE" | "BLOCKED" | "BLOCKED_RESTORE_REQUIRED";
+  reason: string;
+  expectedStateRevision: number;
+  currentReleaseId: string;
+}
+
+export type ReleaseStopStatus = "BLOCKED" | "BLOCKED_RESTORE_REQUIRED" | "EXPIRED" |
+  "REJECTED_CHANGE_SET" | "FAILED_NEEDS_INSPECTION" | "RECONCILIATION_REQUIRED";
 
 export interface StoredReleaseRequest {
   requestId: string;
@@ -30,7 +47,9 @@ export interface StoredReleaseRequest {
   planSha256: string;
   runId: string | null;
   runAttempt: number | null;
-  plan: ImageUpdatePlan;
+  plan: ImageUpdatePlan | null;
+  decision?: ReleaseDecision | null;
+  reason?: string | null;
   operations: Partial<Record<"create" | "execute", {
     phase: "INTENT" | "ACK" | "UNKNOWN";
     actionSha256: string;
@@ -93,6 +112,11 @@ export class PostgresReleaseRepository {
       [canonicalJson(plan), planSha256], true);
   }
 
+  async recordDecision(decision: ReleaseDecision): Promise<StoredReleaseRequest> {
+    return this.call("select deployment_release.record_decision($1::text,$2::text) as result",
+      [canonicalJson(decision), await sha256Hex(decision)], true);
+  }
+
   claim(plan: ImageUpdatePlan, planSha256: string, runId: string, runAttempt: number, token: string): Promise<StoredReleaseRequest> {
     return this.call("select deployment_release.claim_request($1::text,$2::text,$3::text,$4::integer,$5::text) as result",
       [plan.selection.requestId, planSha256, runId, runAttempt, token], true);
@@ -112,5 +136,10 @@ export class PostgresReleaseRepository {
   complete(claim: ReleaseClaim): Promise<StoredReleaseRequest> {
     return this.call("select deployment_release.complete_request($1::text,$2::text) as result",
       [claim.requestId, claim.token], true);
+  }
+
+  stop(claim: ReleaseClaim, status: ReleaseStopStatus, reason: string): Promise<StoredReleaseRequest> {
+    return this.call("select deployment_release.stop_request($1::text,$2::text,$3::text,$4::text) as result",
+      [claim.requestId, claim.token, status, reason], true);
   }
 }

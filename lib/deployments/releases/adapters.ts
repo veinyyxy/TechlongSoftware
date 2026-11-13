@@ -1,5 +1,5 @@
 import {
-  CreateChangeSetCommand, DescribeChangeSetCommand, ExecuteChangeSetCommand,
+  CreateChangeSetCommand, DescribeChangeSetCommand, ExecuteChangeSetCommand, DescribeStacksCommand, GetTemplateCommand,
   type CloudFormationClient, type DescribeChangeSetOutput,
 } from "@aws-sdk/client-cloudformation";
 import { GetObjectCommand, PutObjectCommand, type S3Client } from "@aws-sdk/client-s3";
@@ -15,6 +15,16 @@ export interface ReviewedReleaseChangeSet {
 
 export class ReleaseCloudSubmissionUnknown extends Error {
   constructor() { super("RELEASE_CLOUD_SUBMISSION_REQUIRES_INSPECTION"); }
+}
+
+/** Shared with the intent ledger: hash the exact API input, not an approximate action description. */
+export function createReleaseChangeSetInput(plan: ImageUpdatePlan, name: string, token: string) {
+  return { StackName: plan.changeSet.StackName, ChangeSetName: name, ChangeSetType: "UPDATE" as const,
+    UsePreviousTemplate: true, ClientToken: token, Parameters: plan.changeSet.Parameters.map(p => p.ParameterKey === "ImageUri" ?
+      { ParameterKey: "ImageUri", ParameterValue: plan.to.imageUri } : { ParameterKey: p.ParameterKey, UsePreviousValue: true }) };
+}
+export function executeReleaseChangeSetInput(reviewed: ReviewedReleaseChangeSet, token: string) {
+  return { StackName: reviewed.stackId, ChangeSetName: reviewed.changeSetId, ClientRequestToken: token, DisableRollback: false };
 }
 
 /** Scope review only. Fresh stack/template/role checks and durable intent belong to D2-3. */
@@ -50,12 +60,7 @@ export class ReleaseCloudFormationAdapter {
       p.ParameterKey === "ImageUri" ? !("ParameterValue" in p) || p.ParameterValue !== plan.to.imageUri :
         !("UsePreviousValue" in p) || p.UsePreviousValue !== true)) throw new Error("RELEASE_IMAGE_ONLY_REQUIRED");
     try {
-      const result = await this.client.send(new CreateChangeSetCommand({
-        StackName: plan.changeSet.StackName, ChangeSetName: name, ChangeSetType: "UPDATE",
-        UsePreviousTemplate: true, ClientToken: token,
-        Parameters: parameters.map(p => p.ParameterKey === "ImageUri" ?
-          { ParameterKey: "ImageUri", ParameterValue: plan.to.imageUri } : { ParameterKey: p.ParameterKey, UsePreviousValue: true }),
-      }));
+      const result = await this.client.send(new CreateChangeSetCommand(createReleaseChangeSetInput(plan, name, token)));
       if (result.StackId !== plan.changeSet.StackName || !result.Id?.startsWith(
         `arn:aws:cloudformation:${plan.region}:${plan.accountId}:changeSet/${name}/`)) throw new Error("RELEASE_CREATE_ACK_MISMATCH");
       return result.Id;
@@ -70,13 +75,31 @@ export class ReleaseCloudFormationAdapter {
     return reviewImageChangeSet(plan, planSha256, changeSetId, response);
   }
 
+  changes(plan: ImageUpdatePlan, changeSetId: string): Promise<DescribeChangeSetOutput> {
+    return this.client.send(new DescribeChangeSetCommand({ StackName: plan.changeSet.StackName, ChangeSetName: changeSetId }));
+  }
+
+  async template(plan: ImageUpdatePlan, changeSetId: string): Promise<unknown> {
+    const response = await this.client.send(new GetTemplateCommand({
+      StackName: plan.changeSet.StackName, ChangeSetName: changeSetId, TemplateStage: "Original",
+    }));
+    if (!response.TemplateBody) throw new Error("RELEASE_TEMPLATE_MISSING");
+    return JSON.parse(response.TemplateBody) as unknown;
+  }
+
+  async stackState(plan: ImageUpdatePlan): Promise<{ status: string; updatedAt: number }> {
+    const response = await this.client.send(new DescribeStacksCommand({ StackName: plan.changeSet.StackName }));
+    if (response.Stacks?.length !== 1 || response.Stacks[0].StackId !== plan.changeSet.StackName) throw new Error("RELEASE_STACK_MISMATCH");
+    const stack = response.Stacks[0];
+    const updatedAt = (stack.LastUpdatedTime ?? stack.CreationTime)?.getTime();
+    if (!stack.StackStatus || updatedAt === undefined) throw new Error("RELEASE_STACK_STATE_MISSING");
+    return { status: stack.StackStatus, updatedAt };
+  }
+
   async execute(reviewed: ReviewedReleaseChangeSet, token: string): Promise<void> {
     if (await this.client.config.maxAttempts() !== 1) throw new Error("RELEASE_RETRIES_MUST_BE_DISABLED");
     try {
-      await this.client.send(new ExecuteChangeSetCommand({
-        StackName: reviewed.stackId, ChangeSetName: reviewed.changeSetId, ClientRequestToken: token,
-        DisableRollback: false,
-      }));
+      await this.client.send(new ExecuteChangeSetCommand(executeReleaseChangeSetInput(reviewed, token)));
     } catch { throw new ReleaseCloudSubmissionUnknown(); }
   }
 }
@@ -99,7 +122,9 @@ export class ReleaseEvidenceAdapter {
     const body = canonicalJson({ requestId: proof.requestId, planSha256: proof.planSha256,
       runId: proof.runId, runAttempt: proof.runAttempt, stackId: proof.stackId, releaseId: proof.releaseId,
       imageUri: proof.imageUri, platformDigest: proof.platformDigest, templateSha256: proof.templateSha256,
-      configurationSha256: proof.configurationSha256, result: proof.result });
+      configurationSha256: proof.configurationSha256, result: proof.result, changeSetId: proof.changeSetId,
+      serviceArn: proof.serviceArn, taskDefinitionArn: proof.taskDefinitionArn, observedAt: proof.observedAt,
+      runtimeSha256: proof.runtimeSha256 });
     const sha256 = await sha256Hex(body);
     const key = `${this.target.prefix}/${proof.requestId}/inspection-${sha256}.json`;
     try {

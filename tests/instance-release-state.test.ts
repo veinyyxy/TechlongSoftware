@@ -3,81 +3,10 @@ import test from "node:test";
 import { readFile } from "node:fs/promises";
 import { canonicalJson } from "../lib/deployments/execution/hash.ts";
 import { PostgresReleaseRepository, ReleasePersistenceUnknown, ReleaseRequestRejected,
-  type ReleaseSqlClient, type ReleaseInspection, type StoredReleaseRequest } from "../lib/deployments/releases/repository.ts";
-import type { ImageUpdatePlan } from "../lib/deployments/releases/contract.ts";
+  type ReleaseInspection } from "../lib/deployments/releases/repository.ts";
 import { releaseFixture, h } from "./instance-release-fixture.ts";
 
-/** Serialized in-memory CONTRACT model of the SQL port, not a PostgreSQL emulator.
- * Native row locks/ACL/DDL must still be verified before the separately approved installation. */
-class MemoryReleaseSql implements ReleaseSqlClient {
-  now = 2000;
-  calls: string[] = [];
-  loseNextResponse = false;
-  states = new Map<string, { revision: number; current: string; active: string | null }>();
-  requests = new Map<string, { row: StoredReleaseRequest; plan: ImageUpdatePlan; text: string;
-    token?: string; operations: Map<string, { phase: string; sha: string }>; proof?: ReleaseInspection }>();
-
-  async query(statement: string, values: unknown[]) {
-    this.calls.push(statement);
-    const fn = /^select deployment_release\.([a-z_]+)\(/.exec(statement)?.[1];
-    const [id, token, kind, phase, sha, ref] = values as string[];
-    let result: unknown;
-    const require = (condition: unknown) => { if (!condition) throw new Error("synthetic constraint violation"); };
-    if (fn === "prepare_request") {
-      const plan = JSON.parse(id) as ImageUpdatePlan, key = plan.selection.requestId;
-      const old = this.requests.get(key);
-      if (old) { require(old.text === id && old.row.planSha256 === token); result = old.row; }
-      else {
-        const state = this.states.get(plan.selection.instanceId);
-        require(state && !state.active && state.revision === plan.expectedStateRevision &&
-          state.current === plan.from.releaseId && this.now < plan.writeBefore);
-        const row: StoredReleaseRequest = { requestId: key, planSha256: token, status: "AWAITING_APPROVAL", runId: null, runAttempt: null,
-          plan, operations: {}, inspection: null };
-        this.requests.set(key, { row, plan, text: id, operations: new Map() }); result = row;
-      }
-    } else if (fn === "read_request") result = this.requests.get(id)?.row ?? null;
-    else {
-      const r = this.requests.get(id); require(r);
-      const request = r!, state = this.states.get(request.plan.selection.instanceId)!;
-      if (fn === "claim_request") {
-        require(request.row.status === "AWAITING_APPROVAL" && !state.active && request.row.planSha256 === token &&
-          state.revision === request.plan.expectedStateRevision && state.current === request.plan.from.releaseId && this.now < request.plan.writeBefore);
-        state.active = id; request.token = values[4] as string;
-        request.row = { ...request.row, status: "CLAIMED", runId: kind, runAttempt: values[3] as number };
-      } else if (fn === "record_operation") {
-        require(state.active === id && request.token === token && !["SUCCEEDED", "RECONCILIATION_REQUIRED"].includes(request.row.status));
-        const old = request.operations.get(kind);
-        if (phase === "INTENT") {
-          require(!old && request.row.status === (kind === "create" ? "CLAIMED" : "CHANGE_SET_CREATED") && this.now < request.plan.writeBefore);
-          request.row.status = kind === "create" ? "CLAIMED" : "EXECUTING";
-        } else {
-          require(old?.phase === "INTENT" && old.sha === sha && (phase === "UNKNOWN" || ref));
-          request.row.status = phase === "UNKNOWN" ? "RECONCILIATION_REQUIRED" : kind === "create" ? "CHANGE_SET_CREATED" : "VERIFYING";
-        }
-        request.operations.set(kind, { phase, sha });
-        request.row.operations[kind as "create" | "execute"] = {
-          phase: phase as "INTENT" | "ACK" | "UNKNOWN", actionSha256: sha, providerReference: ref ?? null };
-      } else if (fn === "record_inspection") {
-        const proof = JSON.parse(token) as ReleaseInspection, p = request.plan;
-        require(state.active === id && request.row.status === "VERIFYING" && !request.proof &&
-          proof.requestId === id && proof.planSha256 === request.row.planSha256 && proof.runId === request.row.runId &&
-          proof.runAttempt === request.row.runAttempt && proof.stackId === p.changeSet.StackName && proof.releaseId === p.to.releaseId &&
-          proof.imageUri === p.to.imageUri && proof.platformDigest === p.to.platformDigest && proof.templateSha256 === p.templateSha256 &&
-          proof.configurationSha256 === p.configurationSha256 && proof.result === "SUCCEEDED" && proof.evidence.versionId !== "null");
-        request.proof = proof;
-        request.row.inspection = proof;
-      } else if (fn === "complete_request") {
-        require(state.active === id && request.token === token && request.row.status === "VERIFYING" && request.proof &&
-          state.revision === request.plan.expectedStateRevision && state.current === request.plan.from.releaseId);
-        state.current = request.plan.to.releaseId; state.revision++; state.active = null; request.row.status = "SUCCEEDED";
-      } else throw new Error("unexpected SQL function");
-      result = request.row;
-    }
-    if (this.loseNextResponse) { this.loseNextResponse = false; throw new Error("secret-canary-response-lost-after-commit"); }
-    return { rows: [{ result: structuredClone(result) }] };
-  }
-}
-
+import { MemoryReleaseSql } from "./instance-release-memory.ts";
 async function prepared(instance = "one") {
   const f = await releaseFixture(instance), sql = new MemoryReleaseSql(), repo = new PostgresReleaseRepository(sql);
   sql.states.set(f.plan.selection.instanceId, { revision: 3, current: "release_v1", active: null });
@@ -93,7 +22,8 @@ async function verifying() {
   const proof: ReleaseInspection = { requestId: f.claim.requestId, planSha256: f.sha, runId: "123", runAttempt: 1,
     stackId: f.plan.changeSet.StackName, releaseId: f.plan.to.releaseId, imageUri: f.plan.to.imageUri,
     platformDigest: f.plan.to.platformDigest, templateSha256: f.plan.templateSha256,
-    configurationSha256: f.plan.configurationSha256, result: "SUCCEEDED",
+    configurationSha256: f.plan.configurationSha256, result: "SUCCEEDED", changeSetId: f.changeSetId,
+    serviceArn: "synthetic-service", taskDefinitionArn: "synthetic-definition", observedAt: 2000, runtimeSha256: h("d"),
     evidence: { bucket: "private-test", key: "releases/proof", versionId: "fixed-version", sha256: h("c") } };
   return { ...f, proof };
 }
@@ -196,7 +126,7 @@ test("release SQL draft: three isolated tables, fixed search_path and no runtime
   const schema = await readFile(new URL("../ops/releases/schema.draft.sql", import.meta.url), "utf8");
   const grants = await readFile(new URL("../ops/releases/grants.draft.sql", import.meta.url), "utf8");
   assert.equal(schema.match(/CREATE TABLE deployment_release\./g)?.length, 3);
-  assert.equal(schema.match(/CREATE FUNCTION deployment_release\./g)?.length, 7);
+  assert.equal(schema.match(/CREATE FUNCTION deployment_release\./g)?.length, 9);
   assert.equal(schema.match(/CREATE FUNCTION deployment_release\./g)?.length,
     schema.match(/SECURITY DEFINER SET search_path = pg_catalog/g)?.length);
   assert.match(schema, /REVOKE ALL ON ALL FUNCTIONS IN SCHEMA deployment_release FROM PUBLIC/);

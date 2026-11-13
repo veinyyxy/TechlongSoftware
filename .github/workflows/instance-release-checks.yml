@@ -1,0 +1,34 @@
+name: Instance release regression - No AWS
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/instance-release-checks.yml'
+      - 'lib/deployments/releases/**'
+      - 'ops/releases/**'
+      - 'tests/instance-release-*.ts'
+      - 'tests/deployment-plan.test.ts'
+      - 'package*.json'
+permissions:
+  contents: read
+concurrency:
+  group: instance-release-checks-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Synthetic release cycle and adjacent regression
+        run: node --experimental-strip-types --test --test-timeout=30000 tests/instance-release-state.test.ts tests/instance-release-adapters.test.ts tests/instance-release-cycle.test.ts tests/deployment-plan.test.ts tests/deployment-baseline.test.mjs
+      - name: Scoped lint
+        run: node node_modules/eslint/bin/eslint.js lib/deployments/releases tests/instance-release-*.ts --max-warnings 0
+      - run: node node_modules/typescript/bin/tsc --noEmit --incremental false

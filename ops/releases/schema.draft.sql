@@ -1,4 +1,4 @@
--- D2-2 DRAFT_NOT_APPLIED. NOT an automatic migration; no existing schema/role is modified.
+-- D2-2/D2-3 DRAFT_NOT_APPLIED. NOT an automatic migration; no existing schema/role is modified.
 -- Installation must be reviewed separately, including role-name collisions and PG integration tests.
 -- Run in one transaction as an approved installer able to SET ROLE to this dedicated NOLOGIN owner.
 BEGIN;
@@ -37,7 +37,9 @@ CREATE TABLE deployment_release.requests (
   plan_text text NOT NULL,
   plan_sha256 text NOT NULL CHECK (plan_sha256 ~ '^[a-f0-9]{64}$'),
   status text NOT NULL CHECK (status IN ('AWAITING_APPROVAL','CLAIMED','CHANGE_SET_CREATED',
-    'EXECUTING','VERIFYING','SUCCEEDED','RECONCILIATION_REQUIRED')),
+    'EXECUTING','VERIFYING','SUCCEEDED','RECONCILIATION_REQUIRED','NO_CHANGE','BLOCKED',
+    'BLOCKED_RESTORE_REQUIRED','EXPIRED','REJECTED_CHANGE_SET','FAILED_ROLLED_BACK_VERIFIED','FAILED_NEEDS_INSPECTION')),
+  reason text,
   claim_token text,
   run_id text,
   run_attempt integer,
@@ -64,7 +66,9 @@ CREATE FUNCTION deployment_release.read_request(p_id text) RETURNS jsonb
 -- VOLATILE snapshot sees writes made earlier inside the calling mutation function.
 LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path = pg_catalog AS $$
   SELECT jsonb_build_object('requestId',id,'status',status,'planSha256',plan_sha256,
-    'runId',run_id,'runAttempt',run_attempt,'plan',plan_text::jsonb,'operations',operations,
+    'runId',run_id,'runAttempt',run_attempt,'reason',reason,
+    'plan',CASE WHEN plan_text::jsonb->>'schema' = 'techlong/instance-image-update-plan/v1' THEN plan_text::jsonb ELSE NULL END,
+    'decision',CASE WHEN plan_text::jsonb->>'schema' = 'techlong/instance-release-decision/v1' THEN plan_text::jsonb ELSE NULL END,'operations',operations,
     'inspection',inspection) FROM deployment_release.requests WHERE id = p_id
 $$;
 
@@ -107,6 +111,40 @@ BEGIN
   END IF;
   INSERT INTO deployment_release.requests(id,instance_id,target_release_id,plan_text,plan_sha256,status)
     VALUES(request_id,s.instance_id,c.id,p_text,p_sha,'AWAITING_APPROVAL');
+  RETURN deployment_release.read_request(request_id);
+END $$;
+
+-- Persist read-only planning outcomes without fabricating an executable ImageUpdatePlan.
+CREATE FUNCTION deployment_release.record_decision(p_text text,p_sha text) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+DECLARE d jsonb := p_text::jsonb; s deployment_release.instance_state; old deployment_release.requests;
+  c deployment_release.releases; request_id text := d#>>'{selection,requestId}';
+BEGIN
+  IF encode(sha256(convert_to(p_text,'UTF8')),'hex') IS DISTINCT FROM p_sha OR
+    d->>'schema' IS DISTINCT FROM 'techlong/instance-release-decision/v1' OR
+    coalesce(d->>'status','') NOT IN ('NO_CHANGE','BLOCKED','BLOCKED_RESTORE_REQUIRED') THEN
+    RAISE EXCEPTION 'RELEASE_DECISION_MISMATCH';
+  END IF;
+  SELECT * INTO STRICT s FROM deployment_release.instance_state WHERE instance_id = d#>>'{selection,instanceId}' FOR UPDATE;
+  SELECT * INTO old FROM deployment_release.requests WHERE id = request_id;
+  IF FOUND THEN
+    IF old.plan_text IS DISTINCT FROM p_text OR old.plan_sha256 IS DISTINCT FROM p_sha THEN RAISE EXCEPTION 'RELEASE_REQUEST_IMMUTABLE'; END IF;
+    RETURN deployment_release.read_request(request_id);
+  END IF;
+  SELECT * INTO STRICT c FROM deployment_release.releases WHERE id = d#>>'{selection,releaseId}';
+  IF s.active_request_id IS NOT NULL OR c.product_id IS DISTINCT FROM s.binding->>'productId' OR
+    d#>>'{selection,workspaceId}' IS DISTINCT FROM s.binding->>'workspaceId' OR
+    d#>>'{selection,environmentId}' IS DISTINCT FROM s.binding->>'environmentId' OR
+    (d->>'expectedStateRevision')::bigint IS DISTINCT FROM s.revision OR d->>'currentReleaseId' IS DISTINCT FROM s.current_release_id OR
+    (d->>'status' = 'NO_CHANGE' AND (c.status <> 'ecr_verified' OR NOT EXISTS (SELECT 1 FROM deployment_release.releases old_release
+      WHERE old_release.id = s.current_release_id AND
+        old_release.document#>>'{image,repository}' = c.document#>>'{image,repository}' AND
+        old_release.document#>>'{image,manifestDigest}' = c.document#>>'{image,manifestDigest}' AND
+        old_release.document#>>'{image,platformDigest}' = c.document#>>'{image,platformDigest}'))) THEN
+    RAISE EXCEPTION 'RELEASE_DECISION_BASELINE_CHANGED';
+  END IF;
+  INSERT INTO deployment_release.requests(id,instance_id,target_release_id,plan_text,plan_sha256,status,reason)
+    VALUES(request_id,s.instance_id,c.id,p_text,p_sha,d->>'status',d->>'reason');
   RETURN deployment_release.read_request(request_id);
 END $$;
 
@@ -175,11 +213,17 @@ BEGIN
     p_proof->>'requestId' IS DISTINCT FROM p_id OR p_proof->>'planSha256' IS DISTINCT FROM r.plan_sha256 OR
     p_proof->>'runId' IS DISTINCT FROM r.run_id OR (p_proof->>'runAttempt')::integer IS DISTINCT FROM r.run_attempt OR
     p_proof->>'stackId' IS DISTINCT FROM p#>>'{changeSet,StackName}' OR
-    p_proof->>'releaseId' IS DISTINCT FROM r.target_release_id OR p_proof->>'imageUri' IS DISTINCT FROM p#>>'{to,imageUri}' OR
-    p_proof->>'platformDigest' IS DISTINCT FROM p#>>'{to,platformDigest}' OR
-    p_proof->>'templateSha256' IS DISTINCT FROM p->>'templateSha256' OR
-    p_proof->>'configurationSha256' IS DISTINCT FROM p->>'configurationSha256' OR
-    p_proof->>'result' IS DISTINCT FROM 'SUCCEEDED' OR
+    p_proof->>'changeSetId' IS DISTINCT FROM r.operations#>>'{create,providerReference}' OR
+    (p_proof->>'observedAt')::numeric IS NULL OR (p_proof->>'observedAt')::numeric < (p->>'preparedAt')::numeric OR
+    coalesce(p_proof->>'runtimeSha256','') !~ '^[a-f0-9]{64}$' OR
+    coalesce(p_proof->>'result','') NOT IN ('SUCCEEDED','FAILED_ROLLED_BACK_VERIFIED','FAILED_NEEDS_INSPECTION') OR
+    (p_proof->>'result' <> 'FAILED_NEEDS_INSPECTION' AND (
+      p_proof->>'releaseId' IS DISTINCT FROM CASE WHEN p_proof->>'result' = 'SUCCEEDED' THEN r.target_release_id ELSE p#>>'{from,releaseId}' END OR
+      p_proof->>'imageUri' IS DISTINCT FROM CASE WHEN p_proof->>'result' = 'SUCCEEDED' THEN p#>>'{to,imageUri}' ELSE p#>>'{from,imageUri}' END OR
+      p_proof->>'platformDigest' IS DISTINCT FROM CASE WHEN p_proof->>'result' = 'SUCCEEDED' THEN p#>>'{to,platformDigest}' ELSE p#>>'{from,platformDigest}' END OR
+      p_proof->>'templateSha256' IS DISTINCT FROM p->>'templateSha256' OR
+      p_proof->>'configurationSha256' IS DISTINCT FROM p->>'configurationSha256' OR
+      coalesce(length(p_proof->>'serviceArn'),0) = 0 OR coalesce(length(p_proof->>'taskDefinitionArn'),0) = 0)) OR
     coalesce(p_proof#>>'{evidence,sha256}','') !~ '^[a-f0-9]{64}$' OR
     coalesce(length(p_proof#>>'{evidence,bucket}'),0) = 0 OR coalesce(length(p_proof#>>'{evidence,key}'),0) = 0 OR
     coalesce(p_proof#>>'{evidence,versionId}','') IN ('','null') THEN
@@ -202,9 +246,39 @@ BEGIN
     s.current_release_id IS DISTINCT FROM p#>>'{from,releaseId}' THEN
     RAISE EXCEPTION 'RELEASE_COMPLETION_CAS_CONFLICT';
   END IF;
-  UPDATE deployment_release.instance_state SET current_release_id = r.target_release_id,revision = revision+1,
-    active_request_id = NULL,last_evidence = r.inspection->'evidence' WHERE instance_id = s.instance_id;
-  UPDATE deployment_release.requests SET status = 'SUCCEEDED' WHERE id = p_id;
+  UPDATE deployment_release.instance_state SET
+    current_release_id = CASE WHEN r.inspection->>'result' = 'SUCCEEDED' THEN r.target_release_id ELSE current_release_id END,
+    revision = revision + CASE WHEN r.inspection->>'result' = 'FAILED_NEEDS_INSPECTION' THEN 0 ELSE 1 END,
+    active_request_id = CASE WHEN r.inspection->>'result' = 'FAILED_NEEDS_INSPECTION' THEN p_id ELSE NULL END,
+    last_evidence = r.inspection->'evidence' WHERE instance_id = s.instance_id;
+  UPDATE deployment_release.requests SET status = r.inspection->>'result' WHERE id = p_id;
+  RETURN deployment_release.read_request(p_id);
+END $$;
+
+CREATE FUNCTION deployment_release.stop_request(p_id text,p_token text,p_status text,p_reason text) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+DECLARE s deployment_release.instance_state; r deployment_release.requests;
+BEGIN
+  SELECT * INTO STRICT s FROM deployment_release.instance_state WHERE instance_id =
+    (SELECT instance_id FROM deployment_release.requests WHERE id = p_id) FOR UPDATE;
+  SELECT * INTO STRICT r FROM deployment_release.requests WHERE id = p_id FOR UPDATE;
+  IF r.status = 'AWAITING_APPROVAL' AND p_status = 'EXPIRED' AND s.active_request_id IS NULL AND
+    ((r.plan_text::jsonb)->>'writeBefore')::numeric <= extract(epoch FROM clock_timestamp())*1000 THEN
+    UPDATE deployment_release.requests SET status = 'EXPIRED',reason = 'ORIGINAL_WRITE_WINDOW_EXPIRED' WHERE id = p_id;
+    RETURN deployment_release.read_request(p_id);
+  END IF;
+  IF s.active_request_id IS DISTINCT FROM p_id OR r.claim_token IS DISTINCT FROM p_token OR p_token IS NULL OR
+    r.status NOT IN ('CLAIMED','CHANGE_SET_CREATED','EXECUTING','VERIFYING') OR
+    coalesce(p_status,'') NOT IN ('BLOCKED','BLOCKED_RESTORE_REQUIRED','EXPIRED','REJECTED_CHANGE_SET','FAILED_NEEDS_INSPECTION','RECONCILIATION_REQUIRED') OR
+    coalesce(p_reason,'') !~ '^[A-Z_]+$' OR
+    (p_status NOT IN ('FAILED_NEEDS_INSPECTION','RECONCILIATION_REQUIRED') AND
+      (r.operations ? 'execute' OR coalesce(r.operations#>>'{create,phase}','') IN ('INTENT','UNKNOWN'))) THEN
+    RAISE EXCEPTION 'RELEASE_STOP_CONFLICT';
+  END IF;
+  UPDATE deployment_release.requests SET status = p_status,reason = p_reason WHERE id = p_id;
+  IF p_status NOT IN ('FAILED_NEEDS_INSPECTION','RECONCILIATION_REQUIRED') THEN
+    UPDATE deployment_release.instance_state SET active_request_id = NULL WHERE instance_id = s.instance_id;
+  END IF;
   RETURN deployment_release.read_request(p_id);
 END $$;
 
