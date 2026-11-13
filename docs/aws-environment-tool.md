@@ -6,6 +6,16 @@
 
 ## 当前实现与范围
 
+### 当前实际执行：创建一个未执行CS后安全停止，ALB尚未移除（2026-11-13）
+
+用户确认本轮8045fffc…清单及风险后，13:49:25.862Z—13:50:49.350Z原入口已单次运行。tenant-drain创建请求得到准确ACK，CS达到CREATE_COMPLETE，随后CHANGE_SET_ROLE_TAGS_OR_ID_CHANGED保护停止；Create1/ACK1、Execute0、停库及其他直接写0。原plan/attempt为NEEDS_INSPECTION、根pending为4f1edc31…；准确CS保留为AVAILABLE，不因原12:30CST截止尚未到而允许重跑或直接执行。
+
+13:52:11.304Z—13:52:26.118Z另一进程按原范围独立读取：准确三栈UPDATE_COMPLETE，栈角色/标签与计划一致；两ALB active、两ECS0/0/0、两库stopped。准确CS的ID、标签摘要均匹配，资源范围仅TenantService Modify/不替换；唯一失败谓词是CS.RoleARN缺失而原租户栈角色非空。原根/attempt journal在独立核验期间未改。本轮执行＋核验合计STS2/资源元数据45/读取47/Create1，其他云写、Secret值/PEM/.env/SQL0。[完整可公开回执](../ops/temporary-idle/stop-execution-20261113.json)不含模板/参数或业务正文。
+
+官方[DescribeChangeSet响应结构](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeChangeSet.html)未声明RoleARN；[CreateChangeSet RoleARN语义](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html)说明省略参数时沿用原栈角色。原请求没有传新角色，现有栈角色也未变；原代码把响应字段缺失等同角色变化，是本地契约错误，不是凭据过期或IAM变更证据。本轮仅定位，没有修复或放宽校验，没有执行现存CS。
+
+**未完成停费，ALB仍可能收费。** 唯一下一建议是仅修这一角色回读契约、保留准确栈UUID/当前原角色/更新时间及执行前核对，补回归与文档；须用户批准该代码范围后实施。旧CS/失败/已消费attempt保留，代码通过也不授权原stop重跑、删除CS、关pending或后继执行；接续另给准确范围，不扩恢复框架。下方清单为执行前记录，不再等待同一SHA批准。
+
 <a id="stop-approval-20261113"></a>
 
 ### 当前：11月13日新停用计划通过，仅待准确SHA批准

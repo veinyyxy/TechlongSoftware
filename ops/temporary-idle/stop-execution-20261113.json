@@ -1,0 +1,268 @@
+{
+  "schema": "techlong/temporary-environment-stop-execution-receipt/v1",
+  "status": "STOP_INCOMPLETE_ALBS_ACTIVE",
+  "planId": "4f1edc31-e860-4321-aff3-70a49dac25fd",
+  "approvedPlanSha256": "8045fffc95ec1c9e1c6240ca9da5aa0a98730c345c4a483d7914acbef7a4602a",
+  "userConfirmedExecution": true,
+  "sourceCommit": "df5d4768f68d41a06b8cce10efe2b659b22f725f",
+  "runtimeUnchanged": true,
+  "execution": {
+    "schema": "techlong/temporary-environment-approved-execution-result/v1",
+    "startedAt": "2026-11-13T13:49:25.862Z",
+    "completedAt": "2026-11-13T13:50:49.350Z",
+    "recordDirectory": "F:\\ChatGPT_workshop\\aws-environment-cfn-state\\execution-20261113-a4c9f7a6-9e83-4bc6-bd82-745694ee3689",
+    "planId": "4f1edc31-e860-4321-aff3-70a49dac25fd",
+    "approvedPlanSha256": "8045fffc95ec1c9e1c6240ca9da5aa0a98730c345c4a483d7914acbef7a4602a",
+    "status": "STOPPED_FOR_INSPECTION",
+    "result": null,
+    "error": {
+      "code": "CHANGE_SET_ROLE_TAGS_OR_ID_CHANGED",
+      "operation": null
+    },
+    "lastProgress": {
+      "stage": "tenant-drain",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+      "status": "CREATE_COMPLETE"
+    },
+    "callCounts": {
+      "sts/get-caller-identity": 1,
+      "cloudformation/describe-stacks": 4,
+      "cloudformation/get-template": 4,
+      "cloudformation/list-stack-resources": 4,
+      "ecs/list-services": 2,
+      "application-autoscaling/describe-scalable-targets": 2,
+      "ecs/describe-services": 2,
+      "ecs/describe-task-definition": 1,
+      "elbv2/describe-load-balancers": 2,
+      "elbv2/describe-tags": 2,
+      "elbv2/describe-listeners": 2,
+      "elbv2/describe-rules": 3,
+      "route53/list-resource-record-sets": 2,
+      "rds/describe-db-clusters": 1,
+      "rds/describe-db-instances": 1,
+      "cloudformation/list-change-sets": 1,
+      "cloudformation/create-change-set": 1,
+      "cloudformation/describe-change-set": 2
+    },
+    "budgetCounts": {
+      "reads": 36,
+      "creates": 1,
+      "executes": 0,
+      "dbStops": 0,
+      "writes": 1
+    },
+    "planJournalStatus": "NEEDS_INSPECTION",
+    "attemptJournalStatus": "NEEDS_INSPECTION",
+    "completedStages": [],
+    "actions": {
+      "tenant-drain/create": {
+        "status": "ACKNOWLEDGED",
+        "service": "cloudformation",
+        "operation": "create-change-set",
+        "inputSha256": "0a5f09ab592785c1ec7a3a514f8024b93ca4922ff4f1b1e4fa5675e2e0fd4171",
+        "at": 1794577813783
+      }
+    },
+    "changeSets": {
+      "tenant-drain": {
+        "id": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/tl-env-8d48a2e5afb41feb643384157a2d883722f5-plan/b3fada7d-165a-45e0-9a78-04327921032a",
+        "shape": {
+          "TenantService": "Modify"
+        }
+      }
+    },
+    "rootPendingPlanId": "4f1edc31-e860-4321-aff3-70a49dac25fd",
+    "rootCompletedPlanId": null,
+    "rootCompletedMode": null,
+    "persistentConfigEnabled": false,
+    "secretPemEnvOrSqlReads": 0,
+    "noAutomaticWriteRetry": true,
+    "noAgentRollbackOrCleanup": true
+  },
+  "independentInspection": {
+    "schema": "techlong/temporary-environment-independent-inspection-result/v1",
+    "startedAt": "2026-11-13T13:52:11.304Z",
+    "planId": "4f1edc31-e860-4321-aff3-70a49dac25fd",
+    "stacks": {
+      "platform": {
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "status": "UPDATE_COMPLETE",
+        "roleArn": null,
+        "roleMatchesPlan": true,
+        "tagsHash": "ae52c8f310d8ff7f786d2832531181f8517fbc2d51a99b45735b98b361b7b413",
+        "tagsMatchPlan": true
+      },
+      "cell": {
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+        "status": "UPDATE_COMPLETE",
+        "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxFirstAcceptanceCellExecutionRole",
+        "roleMatchesPlan": true,
+        "tagsHash": "dcff8ac63cf30dca2de28124ca01f65d3d46761edf1830b444eb0bfe0df9c2ca",
+        "tagsMatchPlan": true
+      },
+      "tenant": {
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+        "status": "UPDATE_COMPLETE",
+        "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+        "roleMatchesPlan": true,
+        "tagsHash": "39ac318ad68e94fb684aca74df5e05f55e227974a9fc91407c3b268333918db8",
+        "tagsMatchPlan": true
+      }
+    },
+    "loadBalancers": {
+      "cell": {
+        "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6",
+        "state": "active"
+      },
+      "platform": {
+        "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/c06cdf93979f2406",
+        "state": "active"
+      }
+    },
+    "taskCounts": {
+      "platform": {
+        "desired": 0,
+        "running": 0,
+        "pending": 0
+      },
+      "tenant": {
+        "desired": 0,
+        "running": 0,
+        "pending": 0
+      }
+    },
+    "databases": [
+      {
+        "kind": "cluster",
+        "id": "techlong-sandbox-express-d001",
+        "resourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+        "status": "stopped"
+      },
+      {
+        "kind": "instance",
+        "id": "speedfeast-postgres-prod",
+        "resourceId": "db-MOOXGHRHTZM25V3I4NY25D4IEQ",
+        "status": "stopped"
+      }
+    ],
+    "changeSet": {
+      "expectedId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/tl-env-8d48a2e5afb41feb643384157a2d883722f5-plan/b3fada7d-165a-45e0-9a78-04327921032a",
+      "actualId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/tl-env-8d48a2e5afb41feb643384157a2d883722f5-plan/b3fada7d-165a-45e0-9a78-04327921032a",
+      "idMatches": true,
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+      "status": "CREATE_COMPLETE",
+      "executionStatus": "AVAILABLE",
+      "expectedRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+      "actualRoleArn": null,
+      "roleMatches": false,
+      "roleFieldPresent": false,
+      "expectedTagKeys": [
+        "AppInstanceId",
+        "CellId",
+        "CleanupMode",
+        "DeliveryTrack",
+        "DeploymentId",
+        "DeploymentProfile",
+        "Environment",
+        "EnvironmentKey",
+        "ExternalOperationEpoch",
+        "ExternalOperationHash",
+        "ExternalOperationIntent",
+        "ExternalOperationMarker",
+        "ManagedBy",
+        "PlanId",
+        "ProductId",
+        "ResourceGeneration",
+        "WorkspaceId"
+      ],
+      "actualTagKeys": [
+        "AppInstanceId",
+        "CellId",
+        "CleanupMode",
+        "DeliveryTrack",
+        "DeploymentId",
+        "DeploymentProfile",
+        "Environment",
+        "EnvironmentKey",
+        "ExternalOperationEpoch",
+        "ExternalOperationHash",
+        "ExternalOperationIntent",
+        "ExternalOperationMarker",
+        "ManagedBy",
+        "PlanId",
+        "ProductId",
+        "ResourceGeneration",
+        "WorkspaceId"
+      ],
+      "expectedTagHash": "39ac318ad68e94fb684aca74df5e05f55e227974a9fc91407c3b268333918db8",
+      "actualTagHash": "39ac318ad68e94fb684aca74df5e05f55e227974a9fc91407c3b268333918db8",
+      "tagsMatch": true,
+      "resourceChanges": [
+        {
+          "logicalId": "TenantService",
+          "type": "AWS::ECS::Service",
+          "action": "Modify",
+          "replacement": "False"
+        }
+      ]
+    },
+    "status": "INSPECTED_NOT_STOPPED",
+    "completedAt": "2026-11-13T13:52:26.118Z",
+    "callCounts": {
+      "sts/get-caller-identity": 1,
+      "cloudformation/describe-stacks": 3,
+      "cloudformation/describe-change-set": 1,
+      "elbv2/describe-load-balancers": 2,
+      "ecs/describe-services": 2,
+      "rds/describe-db-clusters": 1,
+      "rds/describe-db-instances": 1
+    },
+    "stsCalls": 1,
+    "resourceMetadataCalls": 10,
+    "cloudWrites": 0,
+    "secretPemEnvOrSqlReads": 0,
+    "rootJournalUnchanged": true,
+    "attemptJournalUnchanged": true,
+    "recordDirectory": "F:\\ChatGPT_workshop\\aws-environment-cfn-state\\execution-20261113-a4c9f7a6-9e83-4bc6-bd82-745694ee3689\\independent-status",
+    "noWriteReplay": true
+  },
+  "totals": {
+    "stsCalls": 2,
+    "resourceMetadataCalls": 45,
+    "readCalls": 47,
+    "createChangeSetSubmissions": 1,
+    "acknowledgedChangeSets": 1,
+    "executeChangeSetSubmissions": 0,
+    "databaseWrites": 0,
+    "otherCloudWrites": 0,
+    "secretPemEnvOrSqlReads": 0
+  },
+  "diagnosis": {
+    "failedPredicate": "change-set RoleARN equals existing stack RoleARN",
+    "changeSetIdMatches": true,
+    "changeSetTagsMatch": true,
+    "existingStackRolesMatch": true,
+    "describeChangeSetRoleArnFieldPresent": false,
+    "existingTenantStackRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+    "officialDescribeChangeSetResponseHasNoRoleArnField": true,
+    "requestDidNotSpecifyNewRoleArn": true,
+    "officialCreateChangeSetOmissionUsesExistingStackRole": true,
+    "notEvidenceOfIamChangeOrCredentialFailure": true,
+    "documentation": [
+      "https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeChangeSet.html",
+      "https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html"
+    ],
+    "codeFixPerformed": false
+  },
+  "statePolicy": {
+    "attemptConsumed": true,
+    "rootPendingPreserved": true,
+    "availableUnexecutedChangeSetPreserved": true,
+    "noReplay": true,
+    "noLockDeletion": true,
+    "noRoleOrIamChanges": true,
+    "noAutomaticRollbackRetryCleanup": true,
+    "noFeeStopClaim": true
+  },
+  "nextAction": "Await approval for only the minimal role-readback contract fix, regression tests and documentation; preserve the current unexecuted change set and consumed attempt. Any continuation is separately reviewed, never rerun the old stop command."
+}

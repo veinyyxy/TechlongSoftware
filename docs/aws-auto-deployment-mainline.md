@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：新停用计划通过，等待准确SHA执行批准（2026-11-13）
+## 当前唯一继续点：停用被角色回读契约误拒，待单点修复方向批准（2026-11-13）
+
+用户确认8045fffc…后已单次执行，13:50:49.350Z在首个tenant-drain CS创建成功后停止；仅Create1/ACK1，Execute/停库/其他云写0。独立回读确认CS为CREATE_COMPLETE/AVAILABLE、仅TenantService Modify，准确ID/标签匹配，栈角色未变；DescribeChangeSet没有RoleARN字段，原工具错误强制比较而误拒。两ALB仍active、两ECS0、两库stopped，尚未停费。[完整回执](../ops/temporary-idle/stop-execution-20261113.json)。
+
+旧plan/attempt保持NEEDS_INSPECTION、根pending保持，未执行CS保留；本轮合计STS2/元数据45/读47/Create1，无秘密值/SQL或其他写。下一仅建议单点角色契约修复、回归和文档，须用户批准后再实现，不重跑原SHA、不自动清理/改权限。后继云接续另审，不扩支线。
+
+### 以下新清单待批准文字为执行前历史
 
 11月8日b计划已过期、未消费执行attempt；旧失败的本地审计结案已完成，根pending为空且无锁，不重做结案/修复或重放旧SHA。实现仍为已通过159回归及准确CI42508461523的df5d476。本次先补录上次未提交的摘要/文档与过期说明；用户另允STS1＋原元数据40的新只读准备，原入口保存新五小时计划，不读Secret值/PEM/.env/SQL、不写AWS或消费执行attempt。实际停用待新SHA另批。详见[当前手册](aws-auto-deployment-execution-runbook.md)。
 

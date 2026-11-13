@@ -2,7 +2,17 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：新只读停用计划通过，等待新SHA执行批准（2026-11-13）
+## 当前唯一继续点：停用因角色回读契约误拒而中止，待单点修复方向批准（2026-11-13）
+
+用户确认8045fffc…清单后，原入口于13:49:25.862Z—13:50:49.350Z单次执行：写前核验通过，首个tenant-drain Change Set创建成功/CREATE_COMPLETE，但CHANGE_SET_ROLE_TAGS_OR_ID_CHANGED保护停止。实际Create1/ACK1，Execute0、数据库及其他云写0；原plan/attempt均NEEDS_INSPECTION，根pending准确指向4f1edc31…，不可因原期限尚未到而重跑、复位或直接执行未完成审查的CS。
+
+按原批准范围，另一进程13:52:11.304Z—13:52:26.118Z独立读取准确三栈/新CS/两ALB/ECS/数据库：三栈UPDATE_COMPLETE，原栈角色与标签仍匹配；CS仅TenantService Modify、ID及标签均匹配，CREATE_COMPLETE/AVAILABLE、RoleARN字段缺失，而租户原栈角色仍为TechlongSandboxCloudFormationExecutionRole。两ALB仍active，两ECS0/0/0、两库stopped。执行＋独立核验合计STS2/元数据45/读47、Create1、其他写0，均在原上限内；原失败/根journal未因核验改写。[执行及独立回执](../ops/temporary-idle/stop-execution-20261113.json)。
+
+根因已由本次原件和官方接口定位：DescribeChangeSet响应结构不含RoleARN，原工具却将该缺失字段与原栈角色比较，属于本地契约误拒，不是已证明的云角色/标签/权限变化。CreateChangeSet未传新RoleARN；官方说明省略时沿用既有栈角色。没有修改代码、IAM、原attempt或执行CS；没有完成停费，ALB仍可能收费。
+
+唯一下一建议是仅修正此处角色回读契约、保持准确原栈角色与执行前状态复核，补回归和文档；待用户批准该代码范围再做。现存未执行CS/旧attempt保留，修复不等于允许重跑原stop，后继接续须单独受审。不扩框架或绕过CFN直接删资源。下方新清单待批文字为执行前历史。
+
+### 以下为本次执行前准备记录
 
 本地恢复已确认：11月8日准备b仍为PREPARED且没有执行attempt，但其23:19:08.358Z写截止已过，原SHA/事实时间不改、不执行；旧失败attempt的审计结案已完成，根pending和最后成功指针均为null、无运行锁，不再结案或复位。实现与已验证源码df5d476完全相同，159回归及准确CI42508461523成功事实沿用，不为文档变更重复改工具或测试。上次自动批准审核额度中断前仅保存了b摘要/文档，Git收尾尚未执行；本次补录过期状态并正常提交。
 
