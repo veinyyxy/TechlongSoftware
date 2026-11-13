@@ -90,6 +90,8 @@ node node_modules/typescript/bin/tsc --noEmit --incremental false
 
 [D2-4运行接口、来源限制和安装前清单](aws-instance-release-workflow.md)。本阶段没有生产读取、IAM/Secret/SQL/GitHub配置安装或实际部署调度，也没有恢复环境。源代码接线不代表真实身份/资源已安装验证。当前后继应先另审最小只读核实并准备一次性精确安装范围；已有ECR路径不必先扩D2-5新镜像生产，实际发布仍单独授权。
 
+收尾已确认源码fa2c97ed92515831cb51e5a7985ddcb36468bf5a的[准确无AWS CI43501418601](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43501418601) attempt1 completed/success，head SHA及offline/PG两job匹配；137相关回归/lint/类型通过，隔离PG16草案/真实ACL/双连接锁/CAS与回滚/失败围栏5测试通过、skip0。首次CI43498845469的草案IF/CASE语法问题已单行修正并保留失败证据。真实Neon安装者/LOGIN成员与AWS身份仍未安装或验证，默认关闭不变。
+
 ```text
 node --experimental-strip-types --test --test-timeout=30000 tests/instance-release-state.test.ts tests/instance-release-adapters.test.ts tests/instance-release-cycle.test.ts tests/instance-release-workflow.test.ts tests/deployment-plan.test.ts tests/deployment-baseline.test.mjs
 node node_modules/eslint/bin/eslint.js lib/deployments/releases ops/releases/*.ts scripts/instance-release.ts tests/instance-release-*.ts tests/instance-release-postgres.test.mjs tests/fixtures/instance-release-inspector.mjs --max-warnings 0

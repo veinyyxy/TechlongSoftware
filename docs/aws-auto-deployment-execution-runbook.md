@@ -2,13 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：D2-4代码/离线接线完成，CI与隔离PG验证收尾（2026-11-13）
+## 当前唯一继续点：D2-4代码及CI完成，保持关闭；后续安装范围另审（2026-11-13）
 
-用户要求开始D2-4。本轮只实现普通实例/版本入口、准确run/源码/计划摘要绑定、唯一受保护部署job、生产元数据采样接线及单独verifier子进程；复用D2-3闭环。默认配置关闭，新增工作流仅发布不调度；不安装schema/LOGIN/Secret/IAM/OIDC或修改GitHub审批设置，不读取生产凭据/调用AWS或恢复环境，不构建/晋升镜像，不扩临时工具。合成/内存SDK/子进程回归及常规无AWS CI后正常main提交推送。实际启用前须另审精确资源、固定Secret与权限及人工门禁布局，不能把工作流文件视为安装/部署授权。
+用户要求开始D2-4。本轮只实现普通实例/版本入口、准确run/源码/计划摘要绑定、唯一受保护部署job、生产元数据采样接线及单独verifier子进程；复用D2-3闭环。默认配置关闭，新增工作流仅发布不调度；不在既有控制库安装schema/LOGIN，不创建Secret/IAM/OIDC或修改GitHub审批设置，不读取生产凭据/调用AWS或恢复环境，不构建/晋升镜像，不扩临时工具。合成/内存SDK/子进程回归及常规无AWS CI后正常main提交推送。实际启用前须另审精确资源、固定Secret与权限及人工门禁布局，不能把工作流文件视为安装/部署授权。
 
 已实现单一environment job、真实review history GET/人类ID校验、OIDC/run/workflow_ref/源码绑定、元数据CLI白名单、固定控制Secret/窄数据库身份和清除执行/OIDC/GitHub凭据的真实子进程接线。默认runtime.json关闭、无真实部署派发；新增14项及相关137项本地通过，lint/类型检查收尾。普通无AWS CI新增临时PostgreSQL16服务测试草案DDL/ACL/双连接锁/CAS，不连接现有数据库、不需要本地Docker；当前本地该测试skip，只有准确CI运行后才能认定原生验证通过。[D2-4接口与安装边界](aws-instance-release-workflow.md)。本轮不启用；后继唯一方向是另审最小只读核实并准备一次性精确安装清单，不直接启动环境或扩镜像生产支线。
 
 源码68a3b603…已推送；准确无AWS CI43498845469的offline回归/lint/类型成功，临时PG测试在草案DDL解析时报42601（record_operation的IF条件内CASE缺少括号）。原run保留失败，不Re-run；仅对该一处补括号，137回归仍通过，提交新源码自动验证。没有在现有库安装、没有云调用/真实槽消费。当前仍是本阶段CI收尾，不扩其他功能或越过关闭配置。
+
+收尾完成：修正源码fa2c97ed92515831cb51e5a7985ddcb36468bf5a已推送main，[准确CI43501418601](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43501418601) attempt1 completed/success，head SHA匹配。offline回归/lint/类型成功；临时PG16真实DDL/ACL/两连接锁/CAS/回滚与失败围栏共5测试通过、skip0。此证明仅针对隔离CI服务，不证明目标Neon安装者/LOGIN权限或AWS实际身份已启用。runtime.json保持disabled，未调度Instance API release，无生产Secret/SQL/AWS调用。本轮结束；下一唯一继续点是另审最小只读核实现有控制库/权限/Secret/GitHub门禁后，准备一次性精确安装清单，不自动安装、恢复或进入D2-5。
 
 ### D2-3已完成记录
 

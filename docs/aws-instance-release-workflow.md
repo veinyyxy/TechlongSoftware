@@ -1,6 +1,8 @@
 # D2-4：单审批发布工作流与运行接线
 
-2026-11-13，America/Winnipeg。状态：代码/离线回归已实现，`runtime.json.enabled=false`；未安装、未调度，不代表AWS已可实际发布。
+2026-11-13，America/Winnipeg。状态：代码/离线回归/隔离PG16 CI已通过，`runtime.json.enabled=false`；未在既有系统安装、未调度，不代表AWS已可实际发布。
+
+准确证据：源码`fa2c97ed92515831cb51e5a7985ddcb36468bf5a`的[无AWS CI43501418601](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43501418601) attempt1 completed/success；137项本地相关回归及CI offline/lint/类型通过，隔离PG16原生5项通过、skip0。首个CI43498845469暴露草案IF/CASE括号语法，已单行修正，原失败保留。本轮没有读取或安装生产数据库/角色、没有AWS资源API调用或部署派发。
 
 ## 日常入口与一次批准
 
