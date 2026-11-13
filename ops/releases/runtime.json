@@ -1,0 +1,6 @@
+{
+  "schema": "techlong/instance-release-runtime/v1",
+  "enabled": false,
+  "repository": "veinyyxy/TechlongSoftware",
+  "environments": {}
+}

@@ -82,7 +82,7 @@ export async function executeInstanceRelease(input: ApprovedReleaseRun, dependen
       const startedAt = now(), facts = await reader.capture(plan);
       if (now() >= input.readBefore) throw new Error("RELEASE_READ_BUDGET_EXPIRED");
       if (facts.openChangeSetIds.some(id => id !== allowedChangeSetId)) throw new Error("RELEASE_OTHER_CHANGE_SET_EXISTS");
-      await assertReleaseArtifact(plan, facts);
+      await assertReleaseArtifact(plan.to, facts);
       const observation = await assertReleaseRuntime(plan, facts, "from", startedAt, now());
       const live = await planInstanceRelease({ selection: plan.selection, binding: context.binding, release, observation, now: now() });
       if (live.status !== "PLANNED" || await materialHash(live.plan) !== await materialHash(plan)) throw new Error("RELEASE_CONTEXT_CHANGED");

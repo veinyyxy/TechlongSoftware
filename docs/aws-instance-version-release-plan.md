@@ -1,8 +1,8 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-13，America/Winnipeg。状态：`PARTIALLY_IMPLEMENTED — D2-1 + D2-2 + D2-3 OFFLINE`。
+日期：2026-11-13，America/Winnipeg。状态：`PARTIALLY_IMPLEMENTED — D2-1..D2-4 CODE / ACTIVATION DISABLED`。
 
-除下方明确交付的D2-1、D2-2和D2-3离线部分外，本文其余部分仍是待审设计，不是完整功能已完成、数据库迁移、Secret/IAM安装、镜像发布、部署工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；未启动收费环境，不自动进入D2-4。
+除下方明确交付的D2-1至D2-4代码/离线部分外，本文其余部分仍是待审设计，不是完整功能已完成、生产数据库迁移、Secret/IAM安装、镜像发布、部署工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；D2-4启用配置仍关闭，不启动收费环境或自动派发。
 
 <a id="d2-1-delivered"></a>
 
@@ -77,6 +77,24 @@ node node_modules/typescript/bin/tsc --noEmit --incremental false
 本轮到此收尾，下一阶段仅D2-4单审批工作流及必要正式接线；实际安装、真实元数据读取、恢复、更新仍按准确范围另批。
 
 收尾证据：源码`0ec8acbd7d704c360aefe7db5bc5020e975a3f1e`已推送main，[无AWS CI 43489154147](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43489154147) attempt1 completed/success；已独立GET核对准确head SHA及回归、lint、类型各步骤成功。这证明本离线实现可回归，不证明真实PG权限、生产身份隔离或AWS实际更新已验收。
+
+<a id="d2-4-delivered"></a>
+
+## 阶段4交付状态：单审批工作流/运行接线已编码，尚未启用
+
+[`instance-release.yml`](../.github/workflows/instance-release.yml)只接受已登记实例/已有ECR版本/sandbox选择。prepare生成准确摘要和只指向控制库原请求的run-bound handoff，唯一deploy job绑定既有environment；先确认本run由指定人类reviewer批准，才取得执行身份，内部串联D2-3及独立verifier子进程。main/原attempt1/源码/workflow_ref/actor/请求/原截止均校验，不复制旧job材料、不从Web批准、不改旧部署工作流。
+
+新增[`handoff.ts`](../lib/deployments/releases/handoff.ts)、[`workflow.ts`](../lib/deployments/releases/workflow.ts)、[`sampling.ts`](../lib/deployments/releases/sampling.ts)、运行/进程适配及固定CLI入口。采样从真实固定目标读取CFN/ECS/Cell/ALB/三规则/DNS/RDS/Secret版本/ECR，不让布尔默认值代替来源；metadata传输只允许白名单读，应用Secret只读版本元数据。控制库使用各自固定Secret版本及窄LOGIN，子进程不继承执行凭据/OIDC/GitHub令牌，实际STS身份不符也拒绝。S3持久化证据与schema版本仍来自受审初始化权威记录，不能靠配置或SHA宣称历史数据已迁移。
+
+默认[`runtime.json`](../ops/releases/runtime.json)为enabled=false/environments={}。实际默认入口已离线执行验证：无凭据、数据库、AWS使用，deploy job跳过。新增14项流程/采样/审批/真实子进程回归，相关137项本地通过；普通无AWS CI扩展这些回归并新增临时PG16测试（草案DDL/原生锁/函数权限/CAS），不连接现有Neon/Aurora，本地未设置专用CI地址时明确skip。CI成功须按准确run确认，不能由本地结果推断。
+
+[D2-4运行接口、来源限制和安装前清单](aws-instance-release-workflow.md)。本阶段没有生产读取、IAM/Secret/SQL/GitHub配置安装或实际部署调度，也没有恢复环境。源代码接线不代表真实身份/资源已安装验证。当前后继应先另审最小只读核实并准备一次性精确安装范围；已有ECR路径不必先扩D2-5新镜像生产，实际发布仍单独授权。
+
+```text
+node --experimental-strip-types --test --test-timeout=30000 tests/instance-release-state.test.ts tests/instance-release-adapters.test.ts tests/instance-release-cycle.test.ts tests/instance-release-workflow.test.ts tests/deployment-plan.test.ts tests/deployment-baseline.test.mjs
+node node_modules/eslint/bin/eslint.js lib/deployments/releases ops/releases/*.ts scripts/instance-release.ts tests/instance-release-*.ts tests/instance-release-postgres.test.mjs tests/fixtures/instance-release-inspector.mjs --max-warnings 0
+node node_modules/typescript/bin/tsc --noEmit --incremental false
+```
 
 ## 1. 要交付什么
 
@@ -341,7 +359,7 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 
 ## 14. 建议代码落点：薄业务层，复用执行组件
 
-合同/计划在D2-1、状态/适配在D2-2、更新/核验在D2-3离线交付；下表部署工作流仍待D2-4，不代表已接入生产：
+合同/计划在D2-1、状态/适配在D2-2、更新/核验在D2-3离线交付；D2-4工作流/接线已编码且默认关闭，不代表已接入生产：
 
 | 落点 | 职责 |
 | --- | --- |
@@ -362,7 +380,7 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 | D2-1 合同与纯计划（离线已完成） | SoftwareRelease、InstanceBinding、请求/状态合同；digest/兼容/STOPPED/仅ImageUri planner | [交付记录](#d2-1-delivered)：88项相关回归、lint/类型通过；仅纯计划，不授权live | 无SQL/配置/凭据读取、AWS/工作流变更；线上能力仍未接线 |
 | D2-2 状态与适配（离线已完成） | 三表/七函数与窄授权草案、请求CAS、CFN/证据注入适配 | [交付记录](#d2-2-delivered)：新增17项合同模型/真实SDK内存回归，总105通过；原生PG行锁/ACL未验证 | 草案未应用；安装前隔离PG验证，实际DDL/角色/Secret/IAM/GitHub另审 |
 | D2-3 已有ECR版本执行闭环（离线已完成） | executor、单独inspector入口、可信回写、NO_CHANGE/失败分类 | [交付记录](#d2-3-delivered)：不同实例/不同ECR版本、真实SDK内存模拟；相关123项本地通过，常规无AWS CI独立记录 | 不在线更新/启通用worker/写旧账本；生产采样、新进程身份接线及原生PG安装验证仍另审 |
-| D2-4 单审批工作流 | 一个正常入口、摘要、准确run/计划绑定、一个受保护job | 无AWS身份先验证参数/摘要/单门禁与流程；权限安装后再做受限技术预检 | 发布workflow/安装身份与真实资源写分开批准；不自动派发实际部署 |
+| D2-4 单审批工作流（代码完成/未启用） | 普通入口/摘要/准确run计划、一个受保护job、真实采样/隔离进程接线 | [交付记录](#d2-4-delivered)：14新增/137相关本地回归，真实子进程及默认关闭验证；无AWS CI/临时PG16结果独立记录 | runtime关闭；安装身份、生产读取及真实写分别批准，不自动调度 |
 | D2-5 正常版本生产接入 | 构建产物→候选release→可选同轮ECR晋升→已验证版本 | 不绑定实例秘密；版本不可覆盖，产物与ECR索引/平台digest可核对，晋升失败不部署 | 已有ECR路径可先交付；新增晋升权限/仓库访问另审 |
 | D2-6 受控真实技术验收 | 一次明确恢复后两次独立正常版本切换，完成持久回写 | 第二次不改代码/复制workflow，单次发布一审批；实际镜像/归属/健康/记录一致 | 恢复/在线读/安装/每次发布及后续停费分别有明确授权；不执行买卖家业务测试 |
 
@@ -396,7 +414,7 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 4. 若增加ECR晋升，准确候选产物、仓库、授权及同轮失败留存策略。
 5. 每次真实发布的实例/版本/配置摘要、正常CFN回滚和技术核验/回写范围；不沿用旧SHA。
 
-以上是后续实施的审批边界，不要求现在逐项回答。**D2-1至D2-3离线交付完成，本轮到此结束；下一阶段D2-4只接单审批工作流与必要正式采样/隔离运行方式，不自动应用SQL、改权限或启动环境。**
+以上是后续实施的审批边界，不要求现在逐项回答。**D2-1至D2-4代码/离线交付已实施，启用关闭；下一只准备一次性精确安装范围，不自动应用生产SQL、改权限、启动环境或派发实际部署。**
 
 ## 17. 官方依据与证据边界
 

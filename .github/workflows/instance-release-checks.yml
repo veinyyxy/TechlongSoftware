@@ -4,9 +4,13 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/instance-release-checks.yml'
+      - '.github/workflows/instance-release.yml'
       - 'lib/deployments/releases/**'
       - 'ops/releases/**'
       - 'tests/instance-release-*.ts'
+      - 'tests/instance-release-postgres.test.mjs'
+      - 'tests/fixtures/instance-release-inspector.mjs'
+      - 'scripts/instance-release.ts'
       - 'tests/deployment-plan.test.ts'
       - 'package*.json'
 permissions:
@@ -28,7 +32,34 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Synthetic release cycle and adjacent regression
-        run: node --experimental-strip-types --test --test-timeout=30000 tests/instance-release-state.test.ts tests/instance-release-adapters.test.ts tests/instance-release-cycle.test.ts tests/deployment-plan.test.ts tests/deployment-baseline.test.mjs
+        run: node --experimental-strip-types --test --test-timeout=30000 tests/instance-release-state.test.ts tests/instance-release-adapters.test.ts tests/instance-release-cycle.test.ts tests/instance-release-workflow.test.ts tests/deployment-plan.test.ts tests/deployment-baseline.test.mjs
       - name: Scoped lint
-        run: node node_modules/eslint/bin/eslint.js lib/deployments/releases tests/instance-release-*.ts --max-warnings 0
+        run: node node_modules/eslint/bin/eslint.js lib/deployments/releases ops/releases/*.ts scripts/instance-release.ts tests/instance-release-*.ts tests/instance-release-postgres.test.mjs tests/fixtures/instance-release-inspector.mjs --max-warnings 0
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
+  postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: instance_release_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: synthetic-ci-only
+        ports: ['5432/tcp']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d instance_release_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Draft DDL and minimal real PostgreSQL role/transaction regression
+        run: node --experimental-strip-types --test --test-timeout=30000 tests/instance-release-postgres.test.mjs
+        env:
+          INSTANCE_RELEASE_TEST_DATABASE_URL: postgresql://postgres:synthetic-ci-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/instance_release_ci

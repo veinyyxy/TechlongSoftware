@@ -61,14 +61,14 @@ export async function releaseRuntimeDigests(f: ReleaseRuntimeFacts) {
   }) };
 }
 
-export async function assertReleaseArtifact(plan: ImageUpdatePlan, f: ReleaseRuntimeFacts) {
-  if (`${f.artifact.repository}@sha256:${await sha256Hex(f.artifact.manifest)}` !== plan.to.imageUri) {
+export async function assertReleaseArtifact(target: Pick<ImageUpdatePlan["to"], "imageUri" | "platformDigest">, f: ReleaseRuntimeFacts) {
+  if (`${f.artifact.repository}@sha256:${await sha256Hex(f.artifact.manifest)}` !== target.imageUri) {
     throw new Error("RELEASE_ARTIFACT_MISMATCH");
   }
   const manifest = JSON.parse(f.artifact.manifest) as { manifests?: { digest: string; platform?: { os: string; architecture: string } }[] };
   const amd64 = manifest.manifests?.filter(m => m.platform?.os === "linux" && m.platform.architecture === "amd64");
-  if (manifest.manifests ? amd64?.length !== 1 || amd64[0].digest !== plan.to.platformDigest :
-    plan.to.platformDigest !== `sha256:${await sha256Hex(f.artifact.manifest)}`) throw new Error("RELEASE_PLATFORM_DIGEST_MISMATCH");
+  if (manifest.manifests ? amd64?.length !== 1 || amd64[0].digest !== target.platformDigest :
+    target.platformDigest !== `sha256:${await sha256Hex(f.artifact.manifest)}`) throw new Error("RELEASE_PLATFORM_DIGEST_MISMATCH");
 }
 
 /** Technical facts only; no login, order, payment, message or database-write checks. */
@@ -154,7 +154,7 @@ export async function inspectInstanceRelease(input: IndependentInspectionInput, 
   if (cs?.ChangeSetId !== input.changeSetId || cs.StackId !== p.changeSet.StackName || cs.NextToken) throw new Error("RELEASE_INSPECTION_CHANGE_SET_MISMATCH");
   let result: ReleaseInspection["result"] = "FAILED_NEEDS_INSPECTION", expected: "from" | "to" = "to";
   try {
-    await assertReleaseArtifact(p, f);
+    await assertReleaseArtifact(p.to, f);
     if (f.stackStatus === "UPDATE_COMPLETE" && cs.ExecutionStatus === "EXECUTE_COMPLETE") {
       await assertReleaseRuntime(p, f, "to", readStartedAt, now(), true); result = "SUCCEEDED";
     } else if (f.stackStatus === "UPDATE_ROLLBACK_COMPLETE" && ["EXECUTE_COMPLETE", "EXECUTE_FAILED"].includes(cs.ExecutionStatus ?? "")) {

@@ -177,7 +177,7 @@ export async function cycleFixture(instance = "one", targetId = "release_v2") {
     now: () => sql.now, pause: async (ms: number) => { sql.now += ms; } };
   const planningInput = { selection: plan.selection, binding, release, now: sql.now,
     observation: await assertReleaseRuntime(plan, facts(), "from", sql.now, sql.now) };
-  return { plan, sha, input, sql, deps, controls, events, documents, facts, planningInput, plannerRepo, executorRepo, verifierRepo,
+  return { plan, sha, input, sql, deps, controls, events, documents, facts, planningInput, plannerRepo, executorRepo, verifierRepo, evidence,
     stats: () => ({ created, executed, executorReads, inspectorReads, stackReads }),
     prepare: (i: typeof planningInput) => prepareInstanceRelease(i, plannerRepo), destroy: () => { cfn.destroy(); s3.destroy(); ecs.destroy(); } };
 }

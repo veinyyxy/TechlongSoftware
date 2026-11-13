@@ -1,0 +1,80 @@
+name: Instance API release
+on:
+  workflow_dispatch:
+    inputs:
+      instance_id:
+        description: Registered instance ID
+        type: string
+        required: true
+      release_id:
+        description: Existing ECR-verified release ID
+        type: string
+        required: true
+      environment:
+        description: Installed deployment environment
+        type: choice
+        options: [sandbox]
+        default: sandbox
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: instance-release-${{ inputs.environment }}-${{ inputs.instance_id }}
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.repository == 'veinyyxy/TechlongSoftware' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      status: ${{ steps.prepare.outputs.status }}
+      enabled: ${{ steps.prepare.outputs.enabled }}
+      handoff: ${{ steps.prepare.outputs.handoff }}
+      handoff_sha: ${{ steps.prepare.outputs.handoff_sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - id: prepare
+        run: node --experimental-strip-types scripts/instance-release.ts prepare
+        env:
+          RELEASE_INSTANCE_ID: ${{ inputs.instance_id }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+  deploy:
+    needs: prepare
+    if: needs.prepare.outputs.enabled == 'true' && needs.prepare.outputs.status == 'PLANNED' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: techlong-sandbox-deploy
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --experimental-strip-types scripts/instance-release.ts deploy
+        env:
+          RELEASE_INSTANCE_ID: ${{ inputs.instance_id }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+          RELEASE_HANDOFF: ${{ needs.prepare.outputs.handoff }}
+          RELEASE_HANDOFF_SHA: ${{ needs.prepare.outputs.handoff_sha }}
+          RELEASE_GITHUB_READ_TOKEN: ${{ github.token }}

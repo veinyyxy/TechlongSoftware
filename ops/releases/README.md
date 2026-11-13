@@ -1,6 +1,8 @@
-# D2-2/D2-3：版本发布闭环与安装草案
+# D2-2至D2-4：版本发布闭环、运行接线与安装草案
 
-状态：`DRAFT_NOT_APPLIED`。本目录不在自动迁移目录中，不被启动脚本或工作流调用。没有执行安装、目录导入或云操作。
+状态：`DRAFT_NOT_APPLIED`。本目录SQL不在自动迁移目录中，不被启动脚本或发布工作流执行。运行接线默认关闭；没有在现有控制库执行安装、目录导入或云操作。
+
+D2-4已新增默认关闭的runtime配置、真实元数据/凭据适配及验收子进程；完整范围见[单审批工作流说明](../../docs/aws-instance-release-workflow.md)。工作流不执行本目录SQL草案；新增CI仅在全新临时PostgreSQL16中验证，不安装到现有控制库。本地137项相关回归通过，原生PG结果以准确CI为准。
 
 - `schema.draft.sql`：独立 `deployment_release` schema、三表、专用 NOLOGIN owner 与九个窄函数；D2-3增加只读决定/终止结果登记，扩展核验与完成结果。
 - `grants.draft.sql`：三个 NOLOGIN 操作角色，仅授予准确函数；无登录、密码、Secret、IAM、表DML或角色成员关系。
@@ -45,15 +47,15 @@ CFN适配只发准确UPDATE/UsePreviousTemplate与ImageUri参数更新，其余�
 
 `releaseRuntimeDigests`定义绑定摘要算法：Original模板canonical SHA；另对非镜像参数、栈角色/标签、保留资源物理ID、稳定服务/任务配置及Cell/platform/DNS/Secret等关联绑定计算配置SHA。只排除API容器image和任务revision/注册时间等运行字段；环境正文仅参与内存摘要，不进入输出或证据。新目录导入必须按此算法从真实状态建立绑定，不能把历史任意SHA当作新算法事实。
 
-`ReleaseRuntimeReader`仍是待受审生产接线的固定目标采样端口，必须从真实白名单来源取得完整单页资源/任务/Change Set及关联元数据，不能用用户输入、手工布尔值或缓存替代。**本轮未实现/启动生产采样接线，也未证明真实操作系统进程/凭据隔离。** 离线fixture通过真实CFN/ECS/S3 SDK内存HTTP编解码驱动同一闭环；D2-4须完成真实reader接线、新进程且清除写凭据的inspector运行方式及人工门禁，实际身份安装/读取与D2-6实测另审。
+`ReleaseRuntimeReader`必须从真实白名单来源取得完整单页资源/任务/Change Set及关联元数据，不能用用户输入、手工布尔值或缓存替代。D2-3交付时只有端口；D2-4现已实现采样与独立进程接线、真实子进程凭据清除测试，但配置关闭，未用真实身份/资源运行，不能宣称已证明生产隔离。CFN/ECS/S3 SDK内存编解码与合成流程是离线证据，实际身份安装/读取和D2-6验收另审。
 
 常规[`instance-release-checks.yml`](../../.github/workflows/instance-release-checks.yml)只运行无AWS身份的回归/lint/类型检查，无environment、id-token、Secrets或部署调度，不是D2-4发布工作流。没有新增自动对账/恢复守护进程；未决只提供持久查询供后续准确审查。
 
 ## 安装前仍须单独完成
 
-- 在隔离原生PostgreSQL测试库执行草案，核对语法、两连接真实行锁与提交可见性、角色/SET ROLE/函数ACL正反用例。本轮只有序列化内存合同模型及静态SQL检查，**没有证明原生PG锁/权限已生效**。
+- D2-4无AWS CI已增加隔离原生PG16草案/两连接锁/角色ACL/CAS测试，结果以准确run为准；本地未提供CI专用URL时skip。即使CI成功，也不证明目标Neon安装者权限、LOGIN成员或生产布局已验证。
 - 结合真实控制库检查schema/角色名冲突、旧保护布局和installer权限；草案故意不使用IF NOT EXISTS/CREATE OR REPLACE，冲突应停止而非覆盖。
 - 明确安装者可创建并SET ROLE到专用owner；schema和grants分别事务安装，后者失败时前者仍是无运行授权的闭锁结构，不自动补齐/清理。实际安装/业务目录导入/LOGIN、Secret及IAM都需准确范围另审。
-- D2-3离线逻辑已覆盖失败/NO_CHANGE、写前/执行前事实校验、独立核验和可信回写；D2-4再完成受审真实采样/进程凭据接线与单一GitHub人工门禁，D2-6做实际技术验收。当前不改旧部署工作流，也不恢复收费环境。
+- D2-3离线闭环及D2-4默认关闭的采样/进程/单审批工作流已编码；后继只准备真实一次性安装清单，D2-6才做受审实际技术验收。当前不改旧部署工作流，也不恢复收费环境。
 
 依据：[PG SECURITY DEFINER与search_path](https://www.postgresql.org/docs/16/sql-createfunction.html)、[PG行锁](https://www.postgresql.org/docs/16/explicit-locking.html)、[PG原生SHA256](https://www.postgresql.org/docs/16/functions-binarystring.html)、[CFN DescribeChangeSet](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeChangeSet.html)、[CFN ExecuteChangeSet](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ExecuteChangeSet.html)、[S3条件PUT](https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html)。这些是接口依据，不是线上成功证据。
