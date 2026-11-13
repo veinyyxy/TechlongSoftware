@@ -1,0 +1,214 @@
+{
+  "schema": "techlong/temporary-environment-stop-approval/v1",
+  "status": "PREPARED_NOT_EXECUTED",
+  "executionApproved": false,
+  "preparationAttempt": "b",
+  "planId": "eac98465-b570-4f41-b267-4d8eac5bd964",
+  "planSha256": "8b70421a3325b6b4dded3abc123969911d827033ab7b0e74ec36dbb88cd59426",
+  "implementationSha256": "48683ce4e9a0444b8324e2e9c1953b2c53432068abff7e7e7fc98340df93415d",
+  "sourceCommit": "df5d4768f68d41a06b8cce10efe2b659b22f725f",
+  "codeCi": {
+    "runId": 42508461523,
+    "conclusion": "success",
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/42508461523"
+  },
+  "localTestsPassed": 159,
+  "scopedLintPassed": true,
+  "typecheckPassed": true,
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "stackIds": {
+    "platform": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "cell": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "tenant": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13"
+  },
+  "preparedAt": "2026-11-08T18:19:08.358Z",
+  "writeBefore": "2026-11-08T23:19:08.358Z",
+  "writeBeforeWinnipeg": "2026-11-08 17:19:08.358 CST",
+  "privatePlanDirectory": "F:/ChatGPT_workshop/aws-environment-cfn-state/plan-eac98465-b570-4f41-b267-4d8eac5bd964",
+  "approvalShaIsPrivateToolPlanHashNotThisPublicFile": true,
+  "preparation": {
+    "startedAt": "2026-11-08T18:17:45.492Z",
+    "completedAt": "2026-11-08T18:19:08.991Z",
+    "callCounts": {
+      "sts/get-caller-identity": 2,
+      "cloudformation/describe-stacks": 6,
+      "cloudformation/get-template": 6,
+      "cloudformation/list-stack-resources": 6,
+      "ecs/list-services": 4,
+      "application-autoscaling/describe-scalable-targets": 4,
+      "ecs/describe-services": 4,
+      "ecs/describe-task-definition": 2,
+      "elbv2/describe-load-balancers": 4,
+      "elbv2/describe-tags": 4,
+      "elbv2/describe-listeners": 4,
+      "elbv2/describe-rules": 6,
+      "route53/list-resource-record-sets": 4,
+      "rds/describe-db-clusters": 2,
+      "rds/describe-db-instances": 2,
+      "cloudformation/list-change-sets": 3
+    },
+    "stsCalls": 2,
+    "resourceMetadataCalls": 61,
+    "cloudWrites": 0,
+    "cloudChangeSetsCreated": 0,
+    "secretPemEnvOrSqlReads": 0,
+    "newExecutionAttemptConsumed": false
+  },
+  "localClosure": {
+    "predecessorPlanId": "5625988f-48eb-4052-b41f-bce4202e635d",
+    "predecessorSha256": "03d52073ebec4788ea4133f847656a7e4e386d74fc0a56a17a6d26046361e618",
+    "recordDirectory": "F:/ChatGPT_workshop/aws-environment-cfn-state/pending-closure-1fd34c91-1298-4048-87f5-4741bdc0c9f7",
+    "closedAt": "2026-11-08T18:18:29.913Z",
+    "snapshotSha256": "46d7f3e923b7c0716e47640368de6639b37c9ce4314c2d278950e41c493b5000",
+    "oldFilesUnchanged": true,
+    "oldAttemptStillConsumed": true,
+    "completedCycleUnchanged": true,
+    "rootPendingPlanId": null,
+    "independentLocalReadbackPassed": true,
+    "oldAttemptNotReopened": true
+  },
+  "observed": {
+    "taskCounts": {
+      "platform": {
+        "desired": 0,
+        "running": 0,
+        "pending": 0
+      },
+      "tenant": {
+        "desired": 0,
+        "running": 0,
+        "pending": 0
+      }
+    },
+    "databases": [
+      {
+        "kind": "cluster",
+        "id": "techlong-sandbox-express-d001",
+        "resourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+        "status": "stopped"
+      },
+      {
+        "kind": "instance",
+        "id": "speedfeast-postgres-prod",
+        "resourceId": "db-MOOXGHRHTZM25V3I4NY25D4IEQ",
+        "status": "stopped"
+      }
+    ],
+    "loadBalancers": {
+      "cell": {
+        "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6",
+        "dnsName": "techlong-sandbox-cell-sandbox-1-1581133878.ca-central-1.elb.amazonaws.com",
+        "zoneId": "ZQSVJUPU6J1EY"
+      },
+      "platform": {
+        "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/c06cdf93979f2406",
+        "dnsName": "techlong-sandbox-platform-1829777331.ca-central-1.elb.amazonaws.com",
+        "zoneId": "ZQSVJUPU6J1EY"
+      }
+    }
+  },
+  "observationsDerivedFromNewPrivatePlanAndIndependentlyReadBack": true,
+  "expectedStages": [
+    {
+      "stage": "tenant-drain",
+      "role": "tenant",
+      "changes": {
+        "TenantService": "Modify"
+      },
+      "candidateSha256": "69a7d58fd4f231a3110a91f55a84737a3005cbf6d721318f25fa46f23327e96e"
+    },
+    {
+      "stage": "tenant-idle",
+      "role": "tenant",
+      "changes": {
+        "TenantBusinessControlDenyRule": "Remove",
+        "TenantControlListenerRule": "Remove",
+        "TenantListenerRule": "Remove",
+        "TenantService": "Remove"
+      },
+      "candidateSha256": "91540d1a1d8c8140d11adba0490ae09e9e98eb9847dfaec34b5a0929808c974d",
+      "retainedResources": 3
+    },
+    {
+      "stage": "platform-idle",
+      "role": "platform",
+      "changes": {
+        "DnsRecord": "Remove",
+        "HttpsListener": "Remove",
+        "LoadBalancer": "Remove",
+        "Service": "Remove"
+      },
+      "candidateSha256": "cd0a829365af8e1b2a6a993448866237d0ea3b0920eb43b783c6f5aa380437e1",
+      "retainedResources": 7
+    },
+    {
+      "stage": "cell-idle",
+      "role": "cell",
+      "changes": {
+        "BusinessControlDenyRule": "Remove",
+        "BusinessHttpsListener": "Remove",
+        "CellLoadBalancer": "Remove",
+        "ControlMtlsListener": "Remove"
+      },
+      "candidateSha256": "42fc857cbbce881c411ff03997805e2d38635bd498f5d2c6ba695fc884a1e355",
+      "retainedResources": 12
+    }
+  ],
+  "stagesIndependentlyDerivedAndComparedToNewPrivatePlan": true,
+  "expectedCfnCreates": 4,
+  "expectedCfnExecutes": 4,
+  "expectedDatabaseWrites": 0,
+  "enforcedPlanLimits": {
+    "cfnChangeSetsMax": 5,
+    "cfnExecutionsMax": 5,
+    "databaseWritesMax": 2,
+    "externalAliasWritesMax": 0,
+    "totalWritesMax": 12,
+    "readCallsMax": 1561
+  },
+  "retainedResourceCounts": {
+    "tenant": 3,
+    "platform": 7,
+    "cell": 12
+  },
+  "independentReadback": {
+    "planShaMatches": true,
+    "journalShaMatches": true,
+    "journalPrepared": true,
+    "implementationMatches": true,
+    "noNewExecutionAttempt": true,
+    "rootHasNoPending": true,
+    "oldFilesUnchanged": true,
+    "oldClosureVerified": true,
+    "completedCycleUnchanged": true,
+    "unexpiredAtInspection": true
+  },
+  "scope": {
+    "sameThreeStackUuidsOnly": true,
+    "cfnOrdinaryUpdateChangeSetsOnly": true,
+    "illegalDeploymentModeOmitted": true,
+    "noExplicitDeploymentConfig": true,
+    "normalCfnRollback": true,
+    "noDirectElbEcsWrites": true,
+    "noDeleteStack": true,
+    "noDatabaseDeletion": true,
+    "noIamChange": true,
+    "noImageUpdate": true,
+    "noNewExpiryOrLease": true,
+    "noExternalApiAliasWrite": true,
+    "noAutomaticRetryRollbackCleanup": true
+  },
+  "persistentConfigurationChanged": false,
+  "roleScopeReviewRequiredBeforeStart": true,
+  "iamPolicyEffectivenessNotProven": true,
+  "actualCloudStopStartStopVerified": false,
+  "zeroAccountChargesClaimed": false,
+  "risksDocument": "docs/aws-environment-tool.md#stop-approval-20261108-b",
+  "priorRecordsPreserved": [
+    "ops/temporary-idle/stop-approval-20261108.json",
+    "ops/temporary-idle/stop-execution-20261108.json",
+    "ops/temporary-idle/stop-cloudtrail-diagnostic-20261108.json",
+    "ops/temporary-idle/stop-continuation-preflight-stopped-20261108-a.json"
+  ]
+}

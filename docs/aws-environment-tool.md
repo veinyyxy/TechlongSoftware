@@ -6,6 +6,82 @@
 
 ## 当前实现与范围
 
+<a id="stop-approval-20261113"></a>
+
+### 当前：11月13日新停用计划通过，仅待准确SHA批准
+
+用户另允后，原工具于2026-11-13T13:29:56.108Z—13:30:42.609Z完成STS1/元数据32（含三栈各一次完整变更集单页，均0项），无云写/变更集创建/Secret值/PEM/.env/SQL/执行attempt。原三栈准确UUID/模板/角色/绑定/参数、ALB/监听器/规则/mTLS、服务任务/网络、DNS和两库不可变ID通过原覆盖项校验；两个ALB仍active，两ECS0/0/0、两库stopped。不是全账号/全属性漂移扫描或真实停用完成。
+
+[准确摘要](../ops/temporary-idle/stop-approval-20261113.json)绑定新私有工具计划；**批准对象为完整plan SHA，而非公开摘要文件的SHA：**
+
+```text
+planId: 4f1edc31-e860-4321-aff3-70a49dac25fd
+planSha256: 8045fffc95ec1c9e1c6240ca9da5aa0a98730c345c4a483d7914acbef7a4602a
+implementationSha256: 48683ce4e9a0444b8324e2e9c1953b2c53432068abff7e7e7fc98340df93415d
+preparedAt: 2026-11-13T13:30:41.674Z
+writeBefore: 2026-11-13T18:30:41.674Z
+温尼伯写截止: 2026-11-13 12:30:41.674 CST
+```
+
+13:31:05.596Z另一进程仅本地核对新plan/journal SHA、PREPARED、当前实现闭包、无新attempt、根pending为空/无锁、旧失败attempt仍消费及旧文件准备期间原字节未改。持久配置仍disabled、恢复权限review=false；没有重复11月8日已完成结案。源码与已通过159回归及准确CI42508461523的df5d476未变，不重复代码修复。
+
+#### 本次准确范围、失败策略与完整风险
+
+- 仅账号402010193138、ca-central-1，摘要中的原三栈UUID及原两数据库不可变ID。预计4组普通UPDATE Change Set：租户DesiredCount声明1→0；租户移除Service/三规则保留3项；平台移除Service/ALB/443监听器/console DNS保留7项；Cell移除ALB/两监听器/共享拒绝规则保留12项。平台已声明0，跳过无变化归零。全部由所属CFN栈管理，不DeleteStack、不直接写ELB/ECS/EC2。
+- 两库本次stopped，预计停库写0；执行时若准确原库已available，仍仅允许停止，禁止启动/删除。强制上限CreateChangeSet5、ExecuteChangeSet5、停库2，总直接写12，外部API Alias写0；只读1561含写前与独立核验及每阶段1800秒轮询预留，不要求用满。每组创建后严格审查准确变更/模板/参数/角色/标签才执行；不切drift-aware/EXPRESS、导入/嵌套或IAM能力。
+- 停用后平台动态控制台/API与路由不可用；保留三栈、数据库/业务数据、VPC/子网/SG/集群、任务定义/目标组/日志、镜像、Secret与静态买家站。外部API Alias保留但不保证目标可用；不更镜像/IAM/数据/租约，不恢复资源。
+- 跨服务非原子且无全局CAS；预检和SDK测试不证明实际写权限。创建/执行可能使同栈其他变更集失效。允许正常CFN失败回滚（DisableRollback=false），回滚本身也可能失败/部分恢复、遗留收费资源，甚至恢复旧租户声明1并启动任务、托管Secret注入/应用连接与费用。不能保证失败后仍为0；不自动再次停止、主动回滚、补齐、重试或清理。未知提交即停，永久attempt不复位。
+- 计划/模板/元数据进入内存及私有ACL目录；不输出或提交凭据、私钥或业务正文。代理不读Secret值/PEM/.env或SQL；正常回滚若启动任务，AWS仍可能使用既有运行时Secret引用。网络与提供者日志、并发变化和部分状态风险保留。
+- RDS停止仍有存储/备份费用，约7天原生自动启动限制不变，无再停守护；日志/ECR/Secrets/S3/CDN/DNS等仍可能收费。不能保证全账号零费用或50USD硬上限，范围外独立任务/其他区域不扫描。恢复另批新start计划及新ARN权限，工具不自动扩权。
+- 成功后按原合同独立回读三栈归属、ALB/服务移除与两库stopped；失败保留现场。实现闭包或准确事实变化即拒绝，写截止后不执行、不延期。旧b/旧03d/结案原件不改或重放。
+
+本轮唯一下一动作是用户确认本节新SHA与完整风险，随后执行并独立核验；尚未执行停用或证明真实stop→start→stop。下方11月8日段仅作历史。
+
+### 2026-11-13恢复：旧b已过期，结案完成，不重放
+
+本地只读回读确认b仍PREPARED/无attempt，原写截止2026-11-08T23:19:08.358Z已过；保留其原摘要/时间/SHA，不把它改为新清单。根pending/最后成功指针均null，无运行锁；旧结案PENDING_CLOSED_OLD_ATTEMPT_PRESERVED已经完成，不重复结案或复位。实现闭包文件与df5d476未变，沿用159回归和准确无AWS CI42508461523成功证据；实际停用尚未验证。
+
+上次额度中断时b摘要与三份文档已保存，但Git收尾未执行，本次补录。用户另允本轮一次STS最多1＋原元数据最多40的只读准备（原三栈/变更集、ALB/ECS、两库和DNS、私有工具记录/新五小时计划），无云写/变更集创建、旧状态修改或执行槽消费，无Secret值/PEM/.env/SQL。实际停用须新SHA批准。以下b段只保留历史，不能将其11月8日观测当作当前资源状态。
+
+<a id="stop-approval-20261108-b"></a>
+
+### 当前：新准备b与本地结案完成，仅待新SHA停用批准
+
+用户另允新同范围准备后，b于2026-11-08T18:17:45.492Z—18:19:08.991Z完成；实际STS2/元数据61，AWS写/Change Set创建/Secret值/PEM/.env/SQL均0，未重用a的未用预算或失败事实。准确三栈、原模板/角色/绑定/参数/输出/最后更新时间、两服务/网络/任务定义、ALB/规则/mTLS、DNS及两库与旧受审原状匹配，三栈变更集完整单页没有原准确名或AVAILABLE/执行中项。新鲜核对仍两ALB active、两ECS0/0/0、两库stopped，未达成停费。
+
+根据用户明确的本地结案授权，18:18:29.913Z仅一次关闭原root pending引用，追加私有审计回执；原plan/attempt/journal及root snapshot共五文件SHA原样保持，旧尝试仍消费/失败，最后成功周期指针均保持null。独立本地进程确认旧文件未变、根新摘要匹配结案回执、pending为null；这不是复位旧attempt、删除锁或更换状态根。a失败记录和所有旧批准/时间保持，不改写为成功。
+
+```text
+closureDirectory: F:/ChatGPT_workshop/aws-environment-cfn-state/pending-closure-1fd34c91-1298-4048-87f5-4741bdc0c9f7
+closureSnapshotSha256: 46d7f3e923b7c0716e47640368de6639b37c9ce4314c2d278950e41c493b5000
+newPlanId: eac98465-b570-4f41-b267-4d8eac5bd964
+newPlanSha256: 8b70421a3325b6b4dded3abc123969911d827033ab7b0e74ec36dbb88cd59426
+implementationSha256: 48683ce4e9a0444b8324e2e9c1953b2c53432068abff7e7e7fc98340df93415d
+privatePlanDirectory: F:/ChatGPT_workshop/aws-environment-cfn-state/plan-eac98465-b570-4f41-b267-4d8eac5bd964
+preparedAt: 2026-11-08T18:19:08.358Z
+writeBefore: 2026-11-08T23:19:08.358Z
+温尼伯截止: 2026年11月8日17:19:08.358 CST
+```
+
+由原plan-stop生成的[新清单摘要](../ops/temporary-idle/stop-approval-20261108-b.json)已在另一进程独立核对plan SHA、journal PREPARED、当前实现闭包、未消费新attempt和结案证据。SHA批准对象是新私有工具plan，不是公开摘要文件SHA。最终代码df5d476/准确无AWS CI42508461523成功、159回归/lint/类型通过；普通请求省略非法DeploymentMode，回读不再要求虚构STANDARD。没有实际调用修复后的云CreateChangeSet，不能把SDK/只读核验当权限有效或真实停用通过。
+
+#### 本次b准确范围及完整风险
+
+仅账号402010193138、ca-central-1，原三栈准确UUID、原ALB代c06c/729e及两数据库不可变ID，继续使用配置中的原角色/标签/其余参数。预计四组普通UPDATE Change Set：租户DesiredCount声明1→0并核对0/0/0；租户移除Service及三规则保留3项；平台移除Service/ALB/443/console DNS保留7项；Cell移除ALB/两监听器/共享拒绝规则保留12项。平台已声明0，跳过无变化归零。数据库当前stopped，预计写0；若执行过程中原准确数据库被AWS启动，原边界最多只允许再次停止，不允许启动/删除。
+
+强制保守上限仍为CreateChangeSet5、ExecuteChangeSet5、准确StopDB2，总直接写12，外部API Alias写0；只读上限1561含身份和每阶段1800秒轮询预留，不要求用满。每个子变更集创建后严格核对精确范围/普通模式/原模板、参数、角色和标签才执行；不切REVERT_DRIFT或EXPRESS、不启用导入/嵌套/IAM capabilities。新的5小时只属于本次实际新计划，不是重计旧03d的时间，也不是资源自动到期。
+
+本次沿用以下[完整共同风险](#stop-shared-risk-policy)，逐条适用于新b而不复活旧批准：
+
+- 服务/路由/平台DNS和两个ALB由所属栈移除，动态控制台与API将不可达；保留三栈、数据库/数据、VPC/子网/SG/集群、任务定义/目标组/日志、镜像、Secret和静态买家站。不DeleteStack、不直接写ELB/ECS/IAM/EC2、不改业务/镜像/租约；外部API Alias保留，恢复不在本次范围。
+- 跨服务非原子、无全局CAS，额外变化/权限拒绝/未知请求停止，不能因只读或SDK通过宣称所有实际写权限有效。Create/Execute可使其他同栈变更集失效，旧证据仍保留。
+- 显式正常CFN失败回滚DisableRollback=false，可能失败/部分恢复并遗留收费资源，甚至把旧租户声明1恢复、启动任务/托管Secret注入/应用连接并计费；不承诺失败后仍0，也不自动停回或清理。未知提交/超时不重试、主动回滚或补齐；固定attempt不复位。
+- 计划/模板/元数据进入内存与私有ACL目录，不输出或提交秘密、私钥、业务正文。代理不读Secret值/PEM/.env或SQL；若正常回滚拉起任务，AWS仍可能使用既有运行时Secret引用。
+- 停库不消除存储/备份费，约7天原生自动启动限制保持，没有安装再停守护。日志/ECR/Secret/S3/CDN/DNS等仍可能收费，不能保证全账号零费用或50USD硬上限；覆盖范围之外的独立任务/全账号不扫描。
+- 完成后用原工具新回读归属、ALB/服务移除与两库stopped，失败则保留现场。恢复需另审新start计划及新ARN权限，恢复review标志仍false。代码闭包或资源变化使旧计划失效；23:19:08.358Z后不得写，不自动延长或重放。
+
+下一唯一动作是用户确认本节完整新SHA、资源范围和风险；获准前不运行stop/start、不再重复生产读取。持久local配置仍disabled，实际获批调用才内存启用并核验相同配置；旧03d即使尚未到原截止也永远不能重跑。仅文档提交不改变实现闭包或新准备时刻。
+
 ### 最新：契约修复及CI完成，准备a在Source过期处停止，旧pending未改
 
 最终源码`df5d4768f68d41a06b8cce10efe2b659b22f725f`的[准确无AWS CI42508461523](https://github.com/veinyyxy/TechlongSoftware/actions/runs/42508461523)成功，159项回归/lint/类型通过；已包含真实SDK无网络契约检查及旧pending/journal不自动修改回归，不再重复此修复。
@@ -82,6 +158,8 @@ writeBefore: 2026-11-08T22:23:50.824Z
 当前预计4次CreateChangeSet＋4次ExecuteChangeSet、数据库写0。原工具强制整轮上限为各5次CFN创建/执行、准确数据库停止最多2次、外部API Alias写0，总直接写最多12次；这是保守上限，不要求用满。不修改这些预算来扩大代码任务。只读调用总上限1561含身份与每阶段最多1800秒的轮询预留，实际按完成状态结束，不自动延长五小时写入期限。
 
 不DeleteStack，不直接写ELB/ECS/IAM/EC2，不修改镜像、Secret、业务数据或租约，不删除VPC/子网/SG/目标组/任务定义/日志/静态买家站。外部API Alias保留旧目标、不在stop写入范围；停用期间API不可访问属预期。恢复不包含在这份批准中，需新start计划和新监听器ARN权限审查，当前恢复review标志仍false。
+
+<a id="stop-shared-risk-policy"></a>
 
 #### 本次完整风险与失败策略
 

@@ -2,7 +2,17 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：代码及CI完成，准备a因ExpiredToken停止，等待Source刷新和新同范围许可（2026-11-08）
+## 当前唯一继续点：新停用计划通过，等待准确SHA执行批准（2026-11-13）
+
+11月8日b计划已过期、未消费执行attempt；旧失败的本地审计结案已完成，根pending为空且无锁，不重做结案/修复或重放旧SHA。实现仍为已通过159回归及准确CI42508461523的df5d476。本次先补录上次未提交的摘要/文档与过期说明；用户另允STS1＋原元数据40的新只读准备，原入口保存新五小时计划，不读Secret值/PEM/.env/SQL、不写AWS或消费执行attempt。实际停用待新SHA另批。详见[当前手册](aws-auto-deployment-execution-runbook.md)。
+
+新读取13:29:56.108Z—13:30:42.609Z通过，实际STS1/元数据32、云写0：两ALB仍active，两ECS0/0/0、两库stopped，三栈均无变更集。新SHA `8045fffc95ec1c9e1c6240ca9da5aa0a98730c345c4a483d7914acbef7a4602a`及独立本地回读通过；[新摘要](../ops/temporary-idle/stop-approval-20261113.json)/[完整风险](aws-environment-tool.md#stop-approval-20261113)，写截止温尼伯11月13日12:30:41.674 CST。唯一下一动作是新SHA停用批准；预计4组CFN创建/执行、停库写0，强制上限各5＋停库2/总12、读取1561，不直接删ELB/改ECS、不DeleteStack/删库/改IAM或恢复，尚未停止ALB收费。
+
+### 以下11月8日准备b为历史，不得继续执行
+
+新授权b于18:17:45Z—18:19:08Z完成STS2/元数据61、AWS写/秘密值/SQL0；准确资源仍原状，两ALB active、两ECS0、两库stopped。按用户明确授权18:18:29Z一次本地结案，旧plan/attempt/journal五文件原字节、已消费失败事实及成功周期指针保持；原工具新只读计划与结案均独立本地读回通过。a停止与03d旧批准均保留，不重跑。
+
+唯一下一动作：确认新SHA `8b70421a3325b6b4dded3abc123969911d827033ab7b0e74ec36dbb88cd59426`及[本次完整范围/风险](aws-environment-tool.md#stop-approval-20261108-b)，[新摘要](../ops/temporary-idle/stop-approval-20261108-b.json)。代码df5d476/CI42508461523、159回归通过；预计4组CFN、保守各5创建/执行＋停库2/总12、读1561，不删栈/数据/网络、不直接写ELB/ECS或扩IAM，正常CFN回滚/可能拉起旧声明1及遗留费用风险保留。新窗口至温尼伯11月8日17:19:08.358 CST（23:19Z），不是资源到期；未执行停用，持久配置仍关，获批前不重复读取/开窗。
 
 df5d476/CI42508461523成功，159回归/lint/类型通过。另批准备a于18:13:14.930Z在DescribeListeners的ExpiredToken停止，STS1/元数据24、云写/私密值/SQL0；pending未关闭、未建立有效整组快照/新plan/SHA，旧attempt不复位。[停止记录](../ops/temporary-idle/stop-continuation-preflight-stopped-20261108-a.json)。下一只等Source刷新并另允同范围STS2/元数据70及必要的受审本地结案、新只读计划；不重跑a或旧03d停用，不沿用未用预算。下方已批准范围为本次a经过，不是自动重试许可。
 
