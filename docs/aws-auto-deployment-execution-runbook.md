@@ -2,11 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：单点角色契约修复及本地回归完成，待准确无AWS CI（2026-11-13）
+## 当前唯一继续点：单点修复及准确无AWS CI通过，本轮结束，云接续另审（2026-11-13）
 
 用户已同意本轮仅修这一处接口校验并测试：不再要求DescribeChangeSet返回不存在的RoleARN，保留创建请求不传新角色、准确原栈角色及执行前UUID/标签/更新时间检查；纠正合成响应并补回归和文档。仅代码/无AWS测试及正常main提交推送，不读生产配置/私有状态或凭据，不调用AWS、不改IAM、不处理现存CS/失败attempt/pending，不生成或执行新云清单。后继接续仍须单独受审，不能重跑8045fffc…。
 
 已仅删除变更集回读中的错误角色比较，保留准确CS ID/标签及所有原栈角色/时间/UUID检查；没有新传RoleARN或增加API/权限。夹具不再虚构RoleARN；新真实SDK内存HTTP解码贯穿原停用路径的回归先准确复现旧错误，修复后162项相关回归/lint/类型通过。另覆盖原栈角色新增/移除/更换、ID/标签/时间/状态变化及CS ID/标签变化仍拦截Execute。仅余正常main提交/推送与准确无AWS CI核验，不dispatch任何部署。当前云状态仍以上次13:52Z观察为准，不能把本地修复说成停费完成；现存CS/失败attempt/pending未读取或改写，原计划既已消费又因实现变更不能重放。
+
+收尾已完成：源码`27b7a028533aaa5568c1a8fe6eee65f428886478`已推送main，[准确无AWS CI43439591040](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43439591040) completed/success，核对head SHA及回归/lint/类型各步骤成功。本轮不再修改工具、读取生产或准备新的云清单；若用户要求下一步，只另审现存未执行CS与失败pending的准确接续范围，保留原件，不重放旧SHA/复位attempt/删除锁或换根。
 
 用户确认8045fffc…清单后，原入口于13:49:25.862Z—13:50:49.350Z单次执行：写前核验通过，首个tenant-drain Change Set创建成功/CREATE_COMPLETE，但CHANGE_SET_ROLE_TAGS_OR_ID_CHANGED保护停止。实际Create1/ACK1，Execute0、数据库及其他云写0；原plan/attempt均NEEDS_INSPECTION，根pending准确指向4f1edc31…，不可因原期限尚未到而重跑、复位或直接执行未完成审查的CS。
 
