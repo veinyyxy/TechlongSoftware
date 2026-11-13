@@ -62,7 +62,7 @@ S3环境配置及HeadBucket仅是当前配置/桶存在性核对，不能证明�
 
 ## 一次性安装准备：对象已列明，集中只读核对待批准
 
-2026-11-13，用户要求下一步。状态为`LOCAL_SCOPE_ONLY / READ_APPROVAL_PENDING`。本节只整理已有实现的安装依赖，不添加执行器或另一套部署框架，不运行草案、不修改关闭配置。目标是集中核对一次后给准确安装清单，不逐个资源来回盘点；范围不足、冲突或读取失败则保存停止原因，不隐式补读/重试或要求先恢复承载。
+2026-11-13，用户要求下一步。初始提案为`LOCAL_SCOPE_ONLY / READ_APPROVAL_PENDING`，之后已获明确许可并完成下方一轮读取；当前以[真实结果](#installation-readonly-result)为准，不再等待或重放本次读取。本节只整理已有实现的安装依赖，不添加执行器或另一套部署框架，不运行草案、不修改关闭配置。目标是集中核对一次后给准确安装清单，不逐个资源来回盘点；范围不足、冲突或读取失败则保存停止原因，不隐式补读/重试或要求先恢复承载。
 
 ### 安装对象与明确不安装的对象
 
@@ -85,7 +85,7 @@ S3环境配置及HeadBucket仅是当前配置/桶存在性核对，不能证明�
 
 这些是文件完整性索引，不是用户批准SHA，也不是已应用证明；实际安装时须绑定最终代码和准确动作重新审批。
 
-### 下一轮请求的集中只读范围（尚未执行）
+### 本轮集中只读范围（已获准并完成；不重放）
 
 | 来源/上限 | 准确目标与允许内容 | 不包含 |
 | --- | --- | --- |
@@ -103,5 +103,44 @@ AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及�
 据本轮真实状态列出：准确复用/新增对象、现有安装者权限、SQL/角色成员差异、三份Secret/KMS范围、IAM trust/inline/boundary、证据前缀和GitHub门禁绑定；给每个实际写入的次数上限、顺序、独立回读、跨服务部分失败处理及完整风险，再生成新的安装审批SHA。不得用候选名称、文件指纹或本节方向批准代替实际写入批准。
 
 安装后仍保持`enabled=false`，先独立核验空结构/权限及固定引用。目录导入和采样基线只能在另批恢复后基于真实资源/合法版本与持久化原件建立；不因安装完成自动恢复环境、派发工作流或开始D2-5。已有ECR路径可继续D2-6技术验收，不要求先扩镜像生产功能；买卖家业务验收仍由用户负责。
+
+<a id="installation-readonly-result"></a>
+
+## 集中只读核对结果：空位/门禁已确认，安装草案尚需一处权限顺序修正
+
+用户明确回复“允许”后，本轮使用源码`2c3e52fea8993926c66066e10935a26a868ace0f`的已批准范围，于2026-11-13T21:10:40.091Z开始，21:14:08.892Z结束。状态`READONLY_PREPARATION_COMPLETE`只表示读取完成，不表示可安装、已授权安装或功能已启用。
+
+实际调用：**STS1 / AWS元数据29 / GitHub GET10 / 配置读取1 / TLS连接1 / SQL16**（含事务控制）；没有自动重试、翻页或额外诊断。AWS/数据库/GitHub写、业务行/Secret值/PEM读取、Aurora连接、工作流dispatch及执行槽消费全部0。只访问已列基础身份/桶/目录，未查询ALB/ECS/RDS状态或技术HTTP，也未启动收费环境。
+
+| 事实 | 实测结果与限制 |
+| --- | --- |
+| Source与基础栈 | 准确IAM user `arn:aws:iam::402010193138:user/techlong-sandbox-dev`。原worker foundation栈UUID308174f0…为UPDATE_COMPLETE；模板SHA `3f6d354f163cb558dba33353d91b4c5a32b29b8534c6703197e5847722cabd3f`。这是身份基础栈，不是业务承载可用证明 |
+| 新名称 | 三个候选AWS角色、三个boundary、三个控制Secret均准确NotFound；Neon无deployment_release schema及上述7个角色。未创建占位或生成密码 |
+| 原角色可复用性 | 原worker角色包含CreateStack/DDB/旧前缀证据写等能力并绑定旧流程，不把它当本日常更新的三类分离身份；原CFN执行角色ID `AROAV3GNMXTZKHYBCRSOE`、boundary默认v10。本轮保持原角色和边界，不为新流程扩大它们 |
+| 证据桶 | 准确账号/ca-central-1、Versioning=Enabled、AES256、四项BlockPublicAccess=true、BucketOwnerEnforced。既有条件写/不删除约束只覆盖旧worker前缀；新`instance-releases/`不能宣称已受同样桶策略保护，后续新角色policy/boundary须明确条件PUT及无删除。未读取任何对象正文 |
+| GitHub人工门禁 | repository ID1323312747，environment ID24613410405；required reviewer为人类veinyyxy/ID14145707；can_admins_bypass=false、prevent_self_review=false，environment只允许main分支。既有设置无需为本轮更改，批准仍由用户本人完成 |
+| main/OIDC/工作流 | main保护端点404，记录为未取得保护配置，不声称main已有分支保护或必为权限错误。默认token只读/不可批PR；OIDC使用immutable前缀`repo:veinyyxy@14145707/TechlongSoftware@1323312747`、provider含aud sts.amazonaws.com。新角色trust须使用真实前缀而非旧普通仓库名；没有取得真实新job token或验证新角色trust。Instance API release运行总数0；源码fa2c97e的准确CI43501418601仍success |
+| Neon身份与只读 | PostgreSQL18.7，current/session user均neondb_owner，非superuser、CREATEROLE=true、CREATE schema=true；连接TLSv1.3且证书验证通过，READ ONLY事务。目录包含3个非系统schema、43个表/视图/序列等关系、51函数、23个definer、402触发器（其中58非内部），没有读取这些对象的业务行 |
+
+### 唯一需先处理的安装前提
+
+现有同类自建角色对neondb_owner的成员记录均为`ADMIN=true / INHERIT=false / SET=false`。两份原草案的适配缺口是：
+
+1. `schema.draft.sql`创建NOLOGIN owner后立即`CREATE SCHEMA ... AUTHORIZATION deployment_release_owner`，随后`SET LOCAL ROLE`，却未显式赋予安装者切换新owner的能力。
+2. `grants.draft.sql`另一个事务由安装者创建操作角色后，直接授予owner所属schema/函数权限；没有切换到有权授予这些对象权限的owner。
+
+官方PG18说明，非超级用户CREATEROLE创建角色时会取得ADMIN，但自动取得SET/INHERIT另受`createrole_self_grant`影响；CREATE SCHEMA指定另一owner也要求能SET ROLE到该owner。[角色创建设置](https://www.postgresql.org/docs/18/runtime-config-client.html#GUC-CREATEROLE-SELF-GRANT)、[角色授权/SET与对象所有权](https://www.postgresql.org/docs/18/sql-grant.html)。因此，现有PG16超级用户CI通过不能证明原安装顺序适用于这位非超级用户；这是从实测成员布局、草案及官方规则得到的安装前提判断，不是本轮实际尝试CREATE/SET后失败。没有查询当前createrole_self_grant，也不假称已证明新角色创建后的具体选项。
+
+**下一唯一最小建议（代码范围待确认）：** 在原两份SQL草案内显式处理安装者对新owner的必要授权/切换和收尾，既有隔离PG CI改用具CREATEROLE但无SUPERUSER/owner SET/INHERIT的安装者执行相同草案，验证owner归属和原运行角色ACL不放宽。保持九函数/三表及运行角色能力不变，不改全局PG设置、Neon hook、旧保护、其他角色/旧工作流，不新增探针/框架。没有这段隔离验证前，不封存可执行安装SHA，不以半成品清单要求云写授权。本轮没有修改SQL或运行代码。
+
+### 原件与恢复点
+
+私有目录：`E:/NodejsProject/TechlongSoftware/.local-secrets/d2-4-install-readonly-20261113-a/`，ACL仅用户、SYSTEM及Administrators，Git已忽略；内容只有固定配方及去敏权限/目录元数据，没有配置正文、连接串、密码或业务快照。读取配方一次性标记已保存，不能重跑；不把剩余预算用于重新连接或补读。
+
+- `aws.result.json` raw SHA256：`096d626fe0a9a70695679d15c5f25eef6b6aaed0d0f75433c5433d7d8a2b4fe6`。
+- `combined.result.json` raw SHA256：`1d799101f54650d1c2386973493183b016907dcd5afd5657bc25ee7fa07b71ad`。
+- Neon目录投影SHA256：`346c20991972b9b2ba7805e1f5a748b1605028b17fd3fff97e6039037ea4d679`。它只描述本次目录，不是业务行/历史账本保持或新运行身份已验证的证明。
+
+准备事实五小时上限仍从真实开始计，到2026-11-14T02:10:40.091Z（温尼伯11月13日20:10:40.091 CST）；后续本地检查/文档提交不重计。它不是资源租约、写入授权或自动费用守护。过期时只在确有必要且新范围另允后补读，不重放本次脚本；runtime继续`enabled=false/environments={}`，无新安装/调度或收费环境恢复。
 
 官方依据：[GitHub review history GET](https://docs.github.com/en/rest/actions/workflow-runs#get-the-review-history-for-a-workflow-run)、[environment审批](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/review-deployments)、[OIDC claims及aud/sub](https://docs.github.com/en/actions/reference/security/oidc)。这些支持接口设计，不是已安装/已部署的证明。

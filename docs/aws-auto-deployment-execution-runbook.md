@@ -2,7 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：D2-4安装前最小只读核对待批准，配置保持关闭（2026-11-13）
+## 当前唯一继续点：D2-4集中只读核对完成，先审最小安装授权修正（2026-11-13）
+
+用户明确允许上轮集中读取后，本轮于21:10:40.091Z—21:14:08.892Z完成：STS1/AWS元数据29/GitHub GET10、配置读取1/验证TLS Neon只读连接1/含事务控制16查询；全部远端写、Secret值/PEM/业务行读取、执行槽和dispatch为0。新角色/boundary/Secret名称、deployment_release schema及7个数据库角色均未占用；证据桶版本化/加密/公共保护及本人GitHub门禁已核对。固定源码CI仍成功、Instance API release运行数0，runtime保持false；没有读取承载状态或恢复收费环境。[集中事实、原件摘要及唯一最小缺口](aws-instance-release-workflow.md#installation-readonly-result)。
+
+实际Neon为18.7，安装者neondb_owner有CREATEROLE/CREATE schema但非超级用户，同类既有自建角色对安装者仅ADMIN=true、SET/INHERIT=false。原草案未显式取得新owner的SET资格即CREATE SCHEMA AUTHORIZATION/SET ROLE，grants事务也未切owner；隔离CI以超级用户执行，不能证明这段能在当前安装身份下成功。本轮没有尝试CREATE/SET或证明新角色必然失败，也未读取createrole_self_grant；这是需消除的安装前提缺口，不是线上安装失败。尚不生成可执行安装SHA、不改SQL或扩大读取。
+
+下一只建议用户批准最小代码范围：补齐原两份草案对新owner的显式授权/切换顺序与收尾，使用既有隔离PG CI增加非超级用户CREATEROLE、无SET/INHERIT初态的回归；不改变九函数/运行角色能力、旧保护或全局PG设置，不新建框架/探针、不读生产或安装。完成后复用本轮未过期事实准备精确安装清单；五小时仅到2026-11-14T02:10:40.091Z（温尼伯11月13日20:10:40.091 CST），不重计原时刻或自动补读。下方“待读取批准”为本轮执行前记录，不重复核对或重跑私有脚本。
+
+### 本轮集中核对前的范围（已完成，不重放）
 
 用户要求开始下一步。本轮先从已交付源码整理[一次性安装对象及集中只读核对提案](aws-instance-release-workflow.md#installation-preflight)，只改文档；尚无新生产读取或安装许可。下一只请求一轮STS1/AWS元数据40/GitHub GET12、现有.env.local读取1/验证TLS Neon只读连接1/含事务控制最多30查询：核对安装者与schema/角色/旧保护目录、现有worker/CFN身份及拟用名称、证据桶/OIDC和本人environment门禁。不读取业务行、Secret值/PEM/HMAC，不查询承载健康或启动收费环境，不写数据库/AWS/GitHub、不消费执行槽或调度。通过后据真实事实准备精确安装SHA；当前离线对象表/文件指纹不是执行批准，不能直接启用runtime或跳入D2-5。后继安装与实例/版本导入、恢复和实际更新仍按准确范围另审。
 

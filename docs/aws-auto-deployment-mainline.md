@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：D2-4安装前集中只读范围待批准，默认关闭（2026-11-13）
+## 当前唯一继续点：D2-4只读事实已取得，待最小owner授权顺序修正，默认关闭（2026-11-13）
+
+本轮已按用户许可完成STS1/元数据29/GitHub GET10、配置1/TLS只读连接1/查询16；远端写/业务行/Secret值/私钥/槽/调度0。[真实事实与原件](aws-instance-release-workflow.md#installation-readonly-result)：新名称均空闲，证据桶可复用，本人main-only environment门禁存在且admin bypass=false，部署工作流尚无run。目标Neon18.7安装者非超级用户，旧自建角色仅ADMIN而无SET/INHERIT；两份草案缺少新owner的显式SET授权/授权事务切换，超级用户CI未覆盖该前提。没有实际安装失败或运行代码修复、没有可执行安装SHA；runtime仍false，未查询或启动承载。
+
+下一只建议另确认对原草案owner授权顺序及既有PG CI非超级用户回归的最小修正，不扩角色运行能力、全局配置或新框架；之后再据本轮有效事实准备安装清单。快照截至2026-11-14T02:10:40.091Z，不重复读取或重放本次私有配方，旧SQL/CI与所有历史保持。下方待审批提案为本轮执行前范围。
 
 用户已要求下一步。本轮只整理[一次性安装对象/集中核对范围](aws-instance-release-workflow.md#installation-preflight)，不增加运行代码或安装器。候选为独立schema/三表九函数、4个NOLOGIN角色及3个窄LOGIN、各自控制Secret与3类OIDC身份；实际复用/新增和ARN/VersionId必须由新核对确定。待读取上限STS1＋AWS元数据40＋GitHub GET12、配置1/TLS只读连接1/SQL30；只目录/权限和固定元数据，不读取业务行或Secret值，不恢复ALB/ECS/RDS、不写云或数据库、不启用/调度。尚未获本轮读取许可、未产生真实快照或可执行安装SHA；通过后才给精确安装审批，不扩D2-5或临时工具。
 
