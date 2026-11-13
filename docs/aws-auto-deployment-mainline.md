@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：D2-4空结构安装清单已备，仅待新SHA批准（2026-11-13）
+## 当前唯一继续点：D2-4连接握手停止、SQL0；新连接清单待批准（2026-11-13）
+
+已批准9dfad976…唯一执行于22:23:33.842Z在CONFIG握手返回08P01停止，配置1/连接1、SQL/DDL/COMMIT及所有AWS/GitHub/调度0。[回执](aws-instance-release-schema-install-stopped-20261113.json)。未提交任何安装SQL、原attempt消费/原字节保持，不重跑或要求Source刷新，未获得新生产事实。仅本地对照后去除新增startup options、复用URL＋验证TLS，原显式只读事务/SQL/权限/预算不改；历史唯一原因尚未证明，连接更正未在线测试。
+
+新[精确清单](aws-instance-release-schema-install-continuation-review.json) SHA `2a0cd1794b6437de66fb44ad2549b70d72a3c8546aaad483cc56bdf8f2ab9217`，绑定旧0写证据/新私有调用SHA及独立未消费attempt。每轮仍配置1/TLS3/SQL90/两DDL批次；原失败合计保守配置2/TLS4，其他范围和旧02:10:40.091Z事实终点保持。只等待用户对新SHA及[接续完整风险](aws-instance-release-workflow.md#schema-install-continuation)确认，不自动重连/重读/安装或开新功能。runtime仍false；下方9df…待批文字为旧准备沿革。
+
+用户已确认准确SHA9dfad976…，本轮转为该唯一一次两DDL事务和独立核验；仍只NOLOGIN空结构，不含LOGIN/Secret/IAM或承载。固定SQL、原目录SELECT及本地校验已通过、未消费attempt；后续严格配置1/TLS3/SQL90，全部AWS/GitHub/调度0，失败不重发/补齐/down。空表由零字节普通heap且无继承的独立元数据证明，不扩大安装者SELECT权。本段是执行前记录，真实结果尚待追加。
 
 已封存[新清单](aws-instance-release-schema-install-review.json)，批准SHA `9dfad9765217b835d95708ef5358b48d3c3d0008bf0bff2b687f0b589479b9cb`，只包含两份727affe已测SQL的两个事务、schema/三空表九函数/四NOLOGIN及独立核验；不含LOGIN/密码/Secret/IAM/运行配置/承载/种子/调度。配置读1、TLS3、客户端SQL90；AWS/STS/GitHub调用0，永久attempt尚未创建。artifact、九签名、四角色、原期限/回执及361本地链接静态核对通过，无新生产读取/写入、无运行代码变更，不重复CI。下一只等用户按该SHA接受[完整风险](aws-instance-release-workflow.md#schema-install-review)，最晚温尼伯11月13日20:00:40.091 CST开始，原事实终点不延期；当前未安装、未启用。
 

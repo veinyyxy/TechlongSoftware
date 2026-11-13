@@ -157,6 +157,8 @@ AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及�
 
 ## 精确安装审批材料：本次只安装空结构及NOLOGIN权限
 
+**最新实际状态：原9dfad976…已获批并唯一调用，但连接握手08P01、SQL/DDL0即停止；不能再执行旧清单。** 新的连接方式续接仍需另一份SHA批准，见[原结果及唯一接续点](#schema-install-continuation)。本节下方原清单说明保留为范围/风险依据，不将“AWAITING_APPROVAL”视为旧槽仍可用。
+
 2026-11-13，本轮只离线准备，未新增生产/私密读取或远端写入。完整安装差异收拢在本节，不复制工作流或新建安装/恢复框架。**本次可批准对象是[机器清单](aws-instance-release-schema-install-review.json)，不是对下表全部后续工作的笼统批准。** 两份准确SQL已由727affe的非超级用户CI43513493163验证；这不自动覆盖尚未编制验证的LOGIN/Secret/IAM安装。
 
 准确批准SHA：`9dfad9765217b835d95708ef5358b48d3c3d0008bf0bff2b687f0b589479b9cb`，计算为机器清单对象的SHA256/规范JSON（递归按属性名字典序排序，数组顺序保持），不含另行推导/替换。当前AWAITING_APPROVAL，未执行；本地已核对两份artifact与727affe逐字一致（仅CRLF规范为LF）、九签名/四角色及两事务范围、原回执/目录摘要、原五小时终点/10分钟预留、runtime关闭和attempt不存在，361条本地链接有效。这是材料校验，不是新的数据库或CI运行，也不是将源码CI扩大成实际Neon安装证明。
@@ -208,6 +210,24 @@ AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及�
 
 后继AWS材料必须继续遵循CFN归属原则。官方支持模板创建不含值的Secret，但本次明确不创建空Secret；[空Secret及默认AWS-managed KMS语义](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-secretsmanager-secret.html)、[Secret固定版本授权条件](https://docs.aws.amazon.com/service-authorization/latest/reference/list_secretsmanager.html)、[KMS转发与加密上下文](https://docs.aws.amazon.com/secretsmanager/latest/userguide/security-encryption.html)只是后继模板依据，不是额外安装授权。
 
-本轮到此只封存清单。收到该清单准确SHA及上述风险的新确认后，才可按两批SQL执行并独立核验；不启用runtime、不派发工作流、不恢复ALB/ECS/RDS。成功也只称“发布控制空结构/NOLOGIN授权安装完成”，不称日常发布或SaaS自动交付已完成。
+原准备只封存清单，后经用户批准才首次调用；当前已在握手停止，不因其期限未到而再次执行该清单。不启用runtime、不派发工作流、不恢复ALB/ECS/RDS。未来另批成功也只称“发布控制空结构/NOLOGIN授权安装完成”，不称日常发布或SaaS自动交付已完成。
+
+<a id="schema-install-continuation"></a>
+
+### 原握手失败与新独立连接清单（待新批准）
+
+准确[停止摘要](aws-instance-release-schema-install-stopped-20261113.json)：2026-11-13T22:23:32.751Z开始、22:23:33.842Z结束，CONFIG阶段POSTGRES_08P01；配置读取1/连接尝试1、SQL提交0/DDL提交0/COMMIT ACK0及所有云/私钥/Secret/GitHub/dispatch0。没有提交CREATE/GRANT等安装语句，不需要本轮down；不是已安装或已独立验证新目录状态。原始错误正文未保存，不声称唯一根因是凭据/网络/代理配置，也不因此要求刷新AWS Source。
+
+实际本地差异是本次调用在startup options里加入了default_transaction_read_only、statement_timeout和lock_timeout，而旧成功reader使用URL和验证TLS、只在事务里SET LOCAL超时。本轮没有追加诊断连接或读取配置，只新建另一份私有调用：复用URL＋严格TLS，删除连接URL的TLS/启动option覆盖，不发送startup options；原11条SELECT、明确BEGIN READ ONLY及SET LOCAL、准确两份SQL和检查保持。写前只读检查现有会话默认default_transaction_read_only必须off，不用修改角色/全局设置来补齐。
+
+新的[续接机器清单](aws-instance-release-schema-install-continuation-review.json)批准SHA为 **`2a0cd1794b6437de66fb44ad2549b70d72a3c8546aaad483cc56bdf8f2ab9217`**，仍按规范JSON/SHA256计算。ID5162f4e3-000f-4ff5-bd4a-1e846ca14bed，绑定原准确manifest、attempt/result原字节SHA，以及新私有调用`execute.mjs` raw SHA `c84fe4ae3b7c7d3f099f2c8d8ca42c1821dd7136d7d15f1d4ebe09c933010538`。它只在用户新批准后消费自己的create-only attempt；原261fcc66…目录三个文件原字节保持，不复位/删除/覆盖，不使用旧命令。
+
+两份SQL artifact、NOLOGIN四角色/三表九函数、运行权限、步骤/独立核验和本节完整风险保持；仍无LOGIN/密码/Secret/IAM/业务行/云写/恢复/派发。新一次上限配置1/TLS3/SQL90（两DDL批次），与已用失败合计保守配置2/TLS4/SQL90/DDL2。0写证据仅用于允许另审新尝试，不能变成自动重跑许可。
+
+**新增须接受的实际限制：** 连接更正尚未在线证明；先前08P01的唯一提供者原因未知。去除startup选项后，准确DDL批次不插入额外SET语句，客户端只等待最多20秒；超时或断线不证明服务器已经取消/回滚，必须停止更多写并在已批剩余预算内独立记未知，不重发。只读事务仍有SET LOCAL的查询/锁时限；新捕获仅保存SQLSTATE及白名单错误分类，不保存URL、密码或原始错误。任何再次失败均停止，不开连续诊断/试错连接。
+
+本地已核对：旧attempt/result/调用的原字节、新脚本指纹/语法、两个清单的artifact/对象/权限/预算/原窗口相同；合成pg客户端构造不带startup options、证书验证仍true，固定配方check-local通过（11条目录SELECT/9函数体），新attempt不存在。全部是离线检查，配置/连接/SQL新增0，不能说Neon连接已恢复。
+
+原事实仍到2026-11-14T02:10:40.091Z，最晚开始02:00:40.091Z＝温尼伯11月13日20:00:40.091 CST；新准备时刻和本地代码更改不延长它们。当前只请求用户按新SHA允许一次独立尝试并接受本节完整风险，未再次连接或执行SQL。后继实际结果必须保留原失败与新回执；成功才继续LOGIN/Secret/IAM材料，不能把本次批准扩大到启用整个功能。
 
 官方依据：[GitHub review history GET](https://docs.github.com/en/rest/actions/workflow-runs#get-the-review-history-for-a-workflow-run)、[environment审批](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/review-deployments)、[OIDC claims及aud/sub](https://docs.github.com/en/actions/reference/security/oidc)。这些支持接口设计，不是已安装/已部署的证明。

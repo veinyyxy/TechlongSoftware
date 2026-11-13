@@ -2,7 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：D2-4空schema/NOLOGIN安装清单已备，只等准确SHA批准（2026-11-13）
+## 当前唯一继续点：D2-4握手停止/SQL0，新连接续接清单只待新SHA批准（2026-11-13）
+
+本次已批准9dfad976…于2026-11-13T22:23:32.751Z—22:23:33.842Z唯一调用，在CONFIG/连接握手以POSTGRES_08P01停止。实际配置1/连接1、SQL0/DDL0/COMMIT0、AWS/GitHub/Secret值/私钥/调度0；没有提交建库/建表/角色语句，也没有取得新目录快照。[停止摘要与原件SHA](aws-instance-release-schema-install-stopped-20261113.json)。原attempt已消费，原manifest/execute/result及原事实原字节保持，不重放原SHA/原命令，不需要AWS Source刷新；原错误正文未保存，不能认定唯一提供者原因或把此错误说成SQL安装失败。
+
+本地仅对照成功reader与本次客户端配置：新增了启动时default_transaction_read_only/statement_timeout/lock_timeout options，尚未在线证明其为唯一原因。已只在新的私有配方中改为既有URL＋验证TLS、取消startup options；preflight/独立检查仍用明确READ ONLY事务和原SET LOCAL，写前要求既有default_transaction_read_only=off，不改全局/角色设置。原两份SQL、九函数、权限、全部上限和原终点均不改；DDL保持准确文件，只用客户端响应超时，不能将超时当服务端取消/回滚证明。去敏错误只保存SQLSTATE及白名单分类，不保存原文。
+
+已本地备新[续接清单](aws-instance-release-schema-install-continuation-review.json)，新批准SHA `2a0cd1794b6437de66fb44ad2549b70d72a3c8546aaad483cc56bdf8f2ab9217`，绑定原0SQL/0DDL回执及新调用文件SHA；独立attempt5162f4e3…尚未消费，只在新明确批准后允许这一次尝试。每轮仍配置1/TLS3/SQL90/DDL批次2，合计原失败保守配置2/TLS4/SQL90/DDL2，AWS/GitHub等始终0；不借旧剩余额度或新记录自动续跑。新连接方式仅离线对象构造/源码差异/字节校验通过，没有新生产连接。唯一下一动作只等这个新SHA与[完整接续风险](aws-instance-release-workflow.md#schema-install-continuation)确认，当前不重读/写生产或追加功能。原最晚开始02:00:40.091Z、原终点02:10:40.091Z不延长。下段已批准9df…为旧执行前记录，不再等待或使用该批准。
+
+用户已对准确SHA9dfad976…及完整风险回复“确认”。本轮只执行该新清单一次：原两份727affe SQL，各自身BEGIN/COMMIT；配置最多1、TLS连接3、客户端SQL90，AWS/STS/GitHub/Secret值/私钥/调度0。已完成本地SHA/两批SQL/11条原目录SELECT/九函数体解析、runtime关闭及新attempt缺失检查，尚未读取配置或消费attempt。独立空表核验使用准确三张普通heap的零字节存储且无继承关系证明无存储行，不为安装者补SELECT权限；安装后SET/INHERIT仍必须关闭。失败/未知停止后续写，保留原件，不重发、重放读取或自动down；执行与实际结果在本次完成后追加，不把本段当已成功。
 
 离线材料已完成：[机器清单](aws-instance-release-schema-install-review.json)，批准SHA为`9dfad9765217b835d95708ef5358b48d3c3d0008bf0bff2b687f0b589479b9cb`（SHA256/规范JSON，不是文件换行字节SHA）。固定727affe两份已测SQL、原真实回执/目录摘要、两事务/1schema/3表/9函数/4NOLOGIN及完整停止规则/风险；配置读1、TLS连接3、客户端SQL提交90（含两份多语句DDL批次），AWS/STS/GitHub/Secret值/私钥/调度0。没有LOGIN/密码或实例/版本种子，不启用runtime、安装云权限或恢复资源。原artifact/九签名/四角色/窗口及361条本地链接核对通过，SQL/运行代码未改，执行槽未消费；本轮没有新生产读取/写入，只正常main文档提交。
 

@@ -1,0 +1,36 @@
+{
+  "schema": "techlong/instance-release-schema-install-stop-summary/v1",
+  "approvedManifestSha256": "9dfad9765217b835d95708ef5358b48d3c3d0008bf0bff2b687f0b589479b9cb",
+  "attemptId": "261fcc66-95a7-4d34-a061-525293471016",
+  "status": "STOPPED_BEFORE_SQL",
+  "startedAt": "2026-11-13T22:23:32.751Z",
+  "finishedAt": "2026-11-13T22:23:33.842Z",
+  "phase": "CONFIG",
+  "errorCode": "POSTGRES_08P01",
+  "rawProviderErrorPreserved": false,
+  "uniqueRootCauseProved": false,
+  "counts": {
+    "configReads": 1,
+    "connections": 1,
+    "sqlSubmissions": 0,
+    "ddlSubmissions": 0,
+    "ddlCommitAcks": 0,
+    "awsCalls": 0,
+    "githubCalls": 0,
+    "secretValueReads": 0,
+    "keyReads": 0,
+    "dispatches": 0
+  },
+  "privateRoot": ".local-secrets/instance-release-schema-install/261fcc66-95a7-4d34-a061-525293471016",
+  "originalFiles": {
+    "attempt.json": "330b2a2742e4d73112bc1df0861608420be8321a57e831db5b466ebb21915b18",
+    "execute.mjs": "385f96887eb71ab458f57ee89445ad876323abfd11e4f72b33f0185229832123",
+    "result.json": "851d51025d8515989258286c649de65bcc3b1346623ca568092b2922d161cb49"
+  },
+  "runtimeEnabled": false,
+  "oldAttemptConsumed": true,
+  "retryAllowed": false,
+  "automaticRollbackOrDownPerformed": false,
+  "newProductionSnapshotObtained": false,
+  "nextAction": "New locally prepared connection-only invocation and independent attempt require new approval; old attempt and original facts remain unchanged"
+}
