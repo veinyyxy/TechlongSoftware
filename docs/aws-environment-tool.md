@@ -6,6 +6,18 @@
 
 ## 当前实现与范围
 
+### 最新实际结果：本次停用、独立验证与本地结案成功（2026-11-13）
+
+用户确认外层d9d0cf7f…后，14:29:24.394Z—14:39:47.717Z一次性编排复用现有导出函数完成4阶段：原准确CS只首次Execute、没有重复Create或重跑旧stop；另外创建3份并严格审查/执行。总Create3/Execute4/停库0，7次云写，均获ACK，无重试/主动回滚/补齐或清理。两库原已stopped，因此没有重复停止，也没有启动/删除。CFN所属平台/Cell两ALB、平台/租户服务、三监听器/四规则及平台DNS由所属栈移除，三栈本身保留。
+
+另一进程14:40:43.412Z—14:41:17.310Z独立回读：两个原ALB准确ARN均返回LoadBalancerNotFound（同时按原名检查无遗留），原平台和租户ECS服务均INACTIVE，desired/running/pending全部0；准确Aurora techlong-sandbox-express-d001和独立RDS speedfeast-postgres-prod均stopped，数据保留。平台7/Cell12/租户3项保留资源的物理ID、栈角色/标签/参数均匹配；网络/集群、任务定义/目标组/日志、镜像/Secret及静态买家站不删。执行＋独立核验读取142（STS3/元数据139）、7写，未用满预算。代理Secret值/PEM/.env/SQL读取0，不改IAM/镜像/业务/租约，不直接写ELB/ECS/EC2或DeleteStack。
+
+14:42:02.100Z在已批准成功条件下，一次本地结案：归档原root journal字节、保留旧plan/attempt和root snapshot等五文件原字节，旧失败继续NEEDS_INSPECTION/已消费；根只追加结案引用、completedPlanId推进到本新390534a1…、mode=stopped、pending=null。14:42:40.310Z另一进程本地核对新plan/attempt摘要及三journal STOPPED、旧原件/归档、结案摘要及无锁通过。不是把旧失败改成成功或换状态根；当前新周期可供后继受审恢复引用。
+
+[可公开成功回执](../ops/temporary-idle/stop-continuation-execution-20261113.json)只含授权的账号/ARN/状态/摘要，不含私有模板、参数/业务正文或凭据。私有审计目录为原状态根下pending-closure-05562c6e-e347-4d46-b5ae-ae788cfe10ac；源root指针的改变有完整原字节归档。旧外层批准已消费，即使原期限未到也不能再次执行。
+
+本轮停用任务到此结束，不自动恢复或继续云读取。动态平台/API不可达，重建必须经所属CFN模板，物理ID/监听器ARN会变化；start及所需新ARN范围仍须另审，持久配置保持disabled/review=false。没有安装定时恢复/再停守护；数据库停止仍计存储/备份费，且原生约7天可能自动启动，其余持久资源仍有费用，不保证全账号零费或50USD硬上限。下方准备/待批准文字均为历史，不覆盖本次成功事实。
+
 <a id="stop-continuation-20261113"></a>
 
 ### 当前：同一停用的一次性接续已准备，等待新外层SHA

@@ -1,0 +1,396 @@
+{
+  "schema": "techlong/temporary-environment-stop-continuation-execution-receipt/v1",
+  "status": "STOPPED_VERIFIED_AND_CLOSED",
+  "approvedManifestSha256": "d9d0cf7f3c2a5bde1940bfcaf5faa51fec22e72f17c9b22f0e1617bd1dc5fb41",
+  "completedPlanId": "390534a1-0d8d-4fc6-ba01-5c70752f26fa",
+  "sourceCommit": "27b7a028533aaa5568c1a8fe6eee65f428886478",
+  "codeCi": {
+    "id": 43439591040,
+    "conclusion": "success"
+  },
+  "execution": {
+    "schema": "techlong/temporary-environment-stop-continuation-execution-result/v1",
+    "startedAt": "2026-11-13T14:29:24.394Z",
+    "completedAt": "2026-11-13T14:39:47.717Z",
+    "planId": "390534a1-0d8d-4fc6-ba01-5c70752f26fa",
+    "approvedManifestSha256": "d9d0cf7f3c2a5bde1940bfcaf5faa51fec22e72f17c9b22f0e1617bd1dc5fb41",
+    "status": "CLOUD_STOPPED_AWAITING_INDEPENDENT_INSPECTION",
+    "result": {
+      "status": "STOPPED",
+      "stackIds": {
+        "platform": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "cell": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+        "tenant": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13"
+      },
+      "taskCounts": {
+        "platform": null,
+        "tenant": null
+      },
+      "databases": [
+        {
+          "kind": "cluster",
+          "id": "techlong-sandbox-express-d001",
+          "resourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+          "status": "stopped"
+        },
+        {
+          "kind": "instance",
+          "id": "speedfeast-postgres-prod",
+          "resourceId": "db-MOOXGHRHTZM25V3I4NY25D4IEQ",
+          "status": "stopped"
+        }
+      ],
+      "loadBalancers": {
+        "cell": null,
+        "platform": null
+      },
+      "zeroAccountCharges": false,
+      "noProductAcceptanceClaim": true
+    },
+    "error": null,
+    "lastProgress": {
+      "stage": "cell-idle",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+      "status": "UPDATE_COMPLETE"
+    },
+    "callCounts": {
+      "sts/get-caller-identity": 2,
+      "cloudformation/describe-stacks": 33,
+      "cloudformation/get-template": 17,
+      "cloudformation/list-stack-resources": 13,
+      "ecs/list-services": 4,
+      "application-autoscaling/describe-scalable-targets": 4,
+      "ecs/describe-services": 4,
+      "ecs/describe-task-definition": 2,
+      "elbv2/describe-load-balancers": 4,
+      "elbv2/describe-tags": 2,
+      "elbv2/describe-listeners": 2,
+      "elbv2/describe-rules": 3,
+      "route53/list-resource-record-sets": 4,
+      "rds/describe-db-clusters": 3,
+      "rds/describe-db-instances": 3,
+      "cloudformation/list-change-sets": 6,
+      "cloudformation/describe-change-set": 11,
+      "cloudformation/execute-change-set": 4,
+      "cloudformation/create-change-set": 3
+    },
+    "counts": {
+      "reads": 117,
+      "writes": 7,
+      "cfnCreates": 3,
+      "cfnExecutes": 4,
+      "databases": 0,
+      "aliases": 0
+    },
+    "completedStages": [
+      "reuse-tenant-drain",
+      "tenant-idle",
+      "platform-idle",
+      "cell-idle"
+    ],
+    "actions": {
+      "reuse-tenant-drain/execute": {
+        "status": "ACKNOWLEDGED",
+        "service": "cloudformation",
+        "operation": "execute-change-set",
+        "inputSha256": "a59821ce69db649c18d46f59b7a1a0ba6996c0db9993972db6c92bb927375528",
+        "at": 1794580214362
+      },
+      "tenant-idle/create": {
+        "status": "ACKNOWLEDGED",
+        "service": "cloudformation",
+        "operation": "create-change-set",
+        "inputSha256": "dc5a3a6e27dc933b1451646ee6c42ee9d29408de9fc3bcfdbecdbd2529ae8339",
+        "at": 1794580293864
+      },
+      "tenant-idle/execute": {
+        "status": "ACKNOWLEDGED",
+        "service": "cloudformation",
+        "operation": "execute-change-set",
+        "inputSha256": "b7091c565a39926b7610ef139cbdd641ec420a53f26c3d4eaa375d6e3d67cca6",
+        "at": 1794580330881
+      },
+      "platform-idle/create": {
+        "status": "ACKNOWLEDGED",
+        "service": "cloudformation",
+        "operation": "create-change-set",
+        "inputSha256": "73d0f3c2ce480ed8ef53d4064aaf30b2ff5ff7059ff4bf97d8ca50819ab22b61",
+        "at": 1794580376178
+      },
+      "platform-idle/execute": {
+        "status": "ACKNOWLEDGED",
+        "service": "cloudformation",
+        "operation": "execute-change-set",
+        "inputSha256": "85d2b2d8b8a32b4501538e8274960467604371246a1a43ff4edc39ce63f2e48a",
+        "at": 1794580413158
+      },
+      "cell-idle/create": {
+        "status": "ACKNOWLEDGED",
+        "service": "cloudformation",
+        "operation": "create-change-set",
+        "inputSha256": "900f2cc6adb5468c8e14f402e10098e24929649ba7f25c34fc23d3ec1d67556d",
+        "at": 1794580584873
+      },
+      "cell-idle/execute": {
+        "status": "ACKNOWLEDGED",
+        "service": "cloudformation",
+        "operation": "execute-change-set",
+        "inputSha256": "23b63e22ddf26a9f4cabc29582f9601a0ef2c6d425aded396e4be03b9912fc61",
+        "at": 1794580622167
+      }
+    },
+    "changeSets": {
+      "reuse-tenant-drain": {
+        "id": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/tl-env-8d48a2e5afb41feb643384157a2d883722f5-plan/b3fada7d-165a-45e0-9a78-04327921032a",
+        "shape": {
+          "TenantService": "Modify"
+        },
+        "createdInPlan": "4f1edc31-e860-4321-aff3-70a49dac25fd",
+        "creationNotRepeated": true
+      },
+      "tenant-idle": {
+        "id": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/tl-env-db4f4c2b9f5a182192f9d9a5e69f955b015e-plan/2a2de0e8-6af4-4367-a025-4743551795c8",
+        "shape": {
+          "TenantBusinessControlDenyRule": "Remove",
+          "TenantControlListenerRule": "Remove",
+          "TenantListenerRule": "Remove",
+          "TenantService": "Remove"
+        }
+      },
+      "platform-idle": {
+        "id": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/tl-env-c27cd6e780d0762ba079430bb1d56dccfc74-plan/f7a90a58-1ceb-4c2a-a368-3d8fda9f07f7",
+        "shape": {
+          "DnsRecord": "Remove",
+          "HttpsListener": "Remove",
+          "LoadBalancer": "Remove",
+          "Service": "Remove"
+        }
+      },
+      "cell-idle": {
+        "id": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/tl-env-af3ea8b11eadca2488b45aec15b889d022c9-plan/f0c2ba20-33c0-4ce3-b76a-50326bf609c2",
+        "shape": {
+          "BusinessControlDenyRule": "Remove",
+          "BusinessHttpsListener": "Remove",
+          "CellLoadBalancer": "Remove",
+          "ControlMtlsListener": "Remove"
+        }
+      }
+    },
+    "stateRoot": "F:\\ChatGPT_workshop\\aws-environment-cfn-state",
+    "privateAttemptDirectory": "F:\\ChatGPT_workshop\\aws-environment-cfn-state\\plan-390534a1-0d8d-4fc6-ba01-5c70752f26fa\\attempt",
+    "oldPendingPlanId": "4f1edc31-e860-4321-aff3-70a49dac25fd",
+    "oldCompletedPlanId": null,
+    "oldFilesUnchanged": true,
+    "localClosurePerformed": false,
+    "persistentConfigEnabled": false,
+    "secretPemEnvOrSqlReads": 0,
+    "noAutomaticRetryRollbackCleanup": true
+  },
+  "independentInspection": {
+    "schema": "techlong/temporary-environment-independent-stop-inspection/v1",
+    "status": "INDEPENDENT_STOP_VERIFIED",
+    "startedAt": "2026-11-13T14:40:43.412Z",
+    "planId": "390534a1-0d8d-4fc6-ba01-5c70752f26fa",
+    "manifestSha256": "d9d0cf7f3c2a5bde1940bfcaf5faa51fec22e72f17c9b22f0e1617bd1dc5fb41",
+    "toolPlanSha256": "527f8ef6430819bb8bf9e13f5cbdb37451a41d0d84c8fad3cfa67f4dd72b3761",
+    "mainReads": 117,
+    "readCalls": 25,
+    "callCounts": {
+      "sts/get-caller-identity": 1,
+      "cloudformation/describe-stacks": 3,
+      "cloudformation/get-template": 3,
+      "cloudformation/list-stack-resources": 3,
+      "ecs/list-services": 2,
+      "application-autoscaling/describe-scalable-targets": 2,
+      "ecs/describe-task-definition": 1,
+      "elbv2/describe-load-balancers": 4,
+      "route53/list-resource-record-sets": 2,
+      "rds/describe-db-clusters": 1,
+      "rds/describe-db-instances": 1,
+      "ecs/describe-services": 2
+    },
+    "cloudWrites": 0,
+    "physicalAlbs": {
+      "platform": {
+        "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/c06cdf93979f2406",
+        "absent": true,
+        "providerCode": "LoadBalancerNotFound"
+      },
+      "cell": {
+        "arn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-cell-sandbox-1/729e0854244ceff6",
+        "absent": true,
+        "providerCode": "LoadBalancerNotFound"
+      }
+    },
+    "physicalServices": {
+      "platform": {
+        "arn": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+        "state": "INACTIVE",
+        "desired": 0,
+        "running": 0,
+        "pending": 0
+      },
+      "tenant": {
+        "arn": "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service",
+        "state": "INACTIVE",
+        "desired": 0,
+        "running": 0,
+        "pending": 0
+      }
+    },
+    "oldPendingPreserved": true,
+    "secretPemEnvOrSqlReads": 0,
+    "completedAt": "2026-11-13T14:41:17.310Z",
+    "publicStatus": {
+      "status": "STOPPED",
+      "stackIds": {
+        "platform": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "cell": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+        "tenant": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13"
+      },
+      "taskCounts": {
+        "platform": null,
+        "tenant": null
+      },
+      "databases": [
+        {
+          "kind": "cluster",
+          "id": "techlong-sandbox-express-d001",
+          "resourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+          "status": "stopped"
+        },
+        {
+          "kind": "instance",
+          "id": "speedfeast-postgres-prod",
+          "resourceId": "db-MOOXGHRHTZM25V3I4NY25D4IEQ",
+          "status": "stopped"
+        }
+      ],
+      "loadBalancers": {
+        "cell": null,
+        "platform": null
+      },
+      "zeroAccountCharges": false,
+      "noProductAcceptanceClaim": true
+    },
+    "retainedResourceCounts": {
+      "platform": 7,
+      "cell": 12,
+      "tenant": 3
+    },
+    "oldFilesUnchanged": true,
+    "mainJournalUnchanged": true,
+    "recordDirectory": "F:\\ChatGPT_workshop\\aws-environment-cfn-state\\continuation-390534a1-0d8d-4fc6-ba01-5c70752f26fa\\independent-inspection",
+    "totalExecutionAndInspectionReads": 142,
+    "finalProofSha256": "054ba3536cd266612d31dcce3ba0c1498307186bc09ec1d8365340935d31aae4"
+  },
+  "localClosure": {
+    "status": "CONTINUATION_STOP_VERIFIED_AND_PENDING_CLOSED",
+    "closedAt": "2026-11-13T14:42:02.100Z",
+    "directory": "F:/ChatGPT_workshop/aws-environment-cfn-state/pending-closure-05562c6e-e347-4d46-b5ae-ae788cfe10ac",
+    "snapshotSha256": "131aca22ad60a67b83fbde77b45336c7fb8e60adffb7f2f8aae4c9d3321fa80f",
+    "rootJournalBeforeSha256": "bf5924292747488609786ba06167845dd8a404851e7ccdee46748c50fa327fdf",
+    "rootJournalAfterSha256": "c46d9c949bf680a3fd97f1918558ee211ad88415d553dc33fba17a972fa665ee",
+    "independentProofSha256": "8e76839de3949b5d1faf7f6b822a8666ece20735eb8999e8941e12ad3f9e2781",
+    "oldRootBytesArchived": true,
+    "oldNonRootBytesPreserved": true,
+    "oldFailedAttemptNotMarkedSuccessful": true,
+    "newCompletedPlanId": "390534a1-0d8d-4fc6-ba01-5c70752f26fa",
+    "newCompletedMode": "stopped",
+    "pendingPlanId": null,
+    "cloudCalls": 0,
+    "cloudWrites": 0
+  },
+  "finalIndependentLocalReadback": {
+    "at": "2026-11-13T14:42:40.310Z",
+    "status": "STOPPED_AND_LOCAL_CLOSURE_VERIFIED",
+    "allNewJournalsStopped": true,
+    "planAndAttemptHashesMatch": true,
+    "oldAttemptStillFailedAndConsumed": true,
+    "oldNonRootBytesPreserved": true,
+    "originalRootBytesArchivedAndVerified": true,
+    "closureSnapshotHashMatches": true,
+    "closureCommitted": true,
+    "noRootLock": true,
+    "cloudCalls": 0,
+    "stateWrites": 0
+  },
+  "totals": {
+    "scope": "this approved continuation, including independent inspection; excludes predecessor creation/preparation",
+    "readCalls": 142,
+    "stsCalls": 3,
+    "resourceMetadataCalls": 139,
+    "writes": 7,
+    "createChangeSets": 3,
+    "executeChangeSets": 4,
+    "databaseWrites": 0,
+    "aliasWrites": 0,
+    "callCounts": {
+      "sts/get-caller-identity": 3,
+      "cloudformation/describe-stacks": 36,
+      "cloudformation/get-template": 20,
+      "cloudformation/list-stack-resources": 16,
+      "ecs/list-services": 6,
+      "application-autoscaling/describe-scalable-targets": 6,
+      "ecs/describe-services": 6,
+      "ecs/describe-task-definition": 3,
+      "elbv2/describe-load-balancers": 8,
+      "elbv2/describe-tags": 2,
+      "elbv2/describe-listeners": 2,
+      "elbv2/describe-rules": 3,
+      "route53/list-resource-record-sets": 6,
+      "rds/describe-db-clusters": 4,
+      "rds/describe-db-instances": 4,
+      "cloudformation/list-change-sets": 6,
+      "cloudformation/describe-change-set": 11,
+      "cloudformation/execute-change-set": 4,
+      "cloudformation/create-change-set": 3
+    }
+  },
+  "final": {
+    "loadBalancersPhysicallyAbsent": 2,
+    "ecsServicesInactive": 2,
+    "desiredTasks": 0,
+    "runningTasks": 0,
+    "pendingTasks": 0,
+    "databases": [
+      {
+        "kind": "cluster",
+        "id": "techlong-sandbox-express-d001",
+        "resourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+        "status": "stopped"
+      },
+      {
+        "kind": "instance",
+        "id": "speedfeast-postgres-prod",
+        "resourceId": "db-MOOXGHRHTZM25V3I4NY25D4IEQ",
+        "status": "stopped"
+      }
+    ],
+    "retainedResourceCounts": {
+      "platform": 7,
+      "cell": 12,
+      "tenant": 3
+    },
+    "retainedPhysicalIdsVerified": true,
+    "stacksRetained": true,
+    "networkAndDataRetained": true,
+    "normalCfnOwnershipPreserved": true,
+    "persistentConfigEnabled": false,
+    "restorationRequiresNewApproval": true,
+    "zeroAccountCharges": false,
+    "remainingChargesPossible": [
+      "database storage/backups",
+      "ECR",
+      "Secrets",
+      "logs",
+      "S3/CloudFront",
+      "DNS"
+    ],
+    "rdsNativeAutoStartAfterStopLimitUnchanged": true,
+    "noAutomaticRestartStopOrCleanupInstalled": true
+  },
+  "secretPemEnvOrSqlReads": 0,
+  "noOldAttemptReplay": true,
+  "noAutomaticRetryRollbackCleanup": true
+}
