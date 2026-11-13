@@ -76,6 +76,8 @@ node node_modules/typescript/bin/tsc --noEmit --incremental false
 
 本轮到此收尾，下一阶段仅D2-4单审批工作流及必要正式接线；实际安装、真实元数据读取、恢复、更新仍按准确范围另批。
 
+收尾证据：源码`0ec8acbd7d704c360aefe7db5bc5020e975a3f1e`已推送main，[无AWS CI 43489154147](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43489154147) attempt1 completed/success；已独立GET核对准确head SHA及回归、lint、类型各步骤成功。这证明本离线实现可回归，不证明真实PG权限、生产身份隔离或AWS实际更新已验收。
+
 ## 1. 要交付什么
 
 把“已初始化租户的一次固定sandbox成功部署”整理成可重复的版本更新能力：管理员选择**实例＋已验证的软件版本**，系统自动核对准确目标和变更，管理员在GitHub批准一次明确范围，程序更新既有服务、独立进行部署技术核验，再把可信结果写回控制面。
