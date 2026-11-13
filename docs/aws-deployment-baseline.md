@@ -10,6 +10,8 @@
 
 ## 当前状态与唯一继续点
 
+**2026-11-13状态说明：** 下方11月8日运行态归属收口是历史成功基线；随后用户明确批准节费停用，平台/Cell两ALB及相关服务/路由已由各自所属CFN栈移除，三栈和平台7/Cell12/租户3项资源保留，并已独立验证/结案。[停用成功回执](../ops/temporary-idle/stop-continuation-execution-20261113.json)。这是受审的idle模板转换，不是再次直接删除ELB造成的新漂移；历史ALB/监听器ARN不能作为当前值。日常发布必须区分RUNNING与STOPPED：停用态拒绝版本执行、不得顺便恢复环境；恢复另审并取新输出。当前仅编写[缺口2详细方案](aws-instance-version-release-plan.md)，不重开A1/A2或运行收费资源。
+
 **最新：平台最后一段已实际执行并独立核验完成。** [新物理基线、只读接续与证明边界](#platform-idle-verified)：原45588046…只Execute1次，平台11项归属、ALB/443、console Alias和闭控停用声明匹配，Service/CFN同为:13、任务0/0/0。首次检查时仍处理中，原更新随后自行完成；所有旧创建/待定回执保持，未重试写入。此前平台归属另批只读及旧差异见[前置11项表](#platform-ownership-observed)。前一阶段Cell—租户—API Alias引用链已对齐并收口：用户明确确认0e2ad8ca…清单后，仅提交一次准确API A Alias UPSERT，并于21:37:50.709Z由另一进程独立核验通过。[实际结果](../ops/deployment-baseline/tenant-api-alias-updated-20261107.json)：变更/change/C006498723VT6A7LZFY4W为INSYNC，准确Alias指向当前729e Cell ALB，差异0。该阶段实际STS2/元数据11/DNS写1，其他直接写0；更新槽1/批准已消费，不重放。
 
 | 对象 | 最新已存事实与边界 |
