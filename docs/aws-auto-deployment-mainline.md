@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：停用被角色回读契约误拒，待单点修复方向批准（2026-11-13）
+## 当前唯一继续点：单点修复及本地测试通过，待准确无AWS CI（2026-11-13）
+
+用户同意仅修这一处接口校验并测试；本轮不改权限、不调用AWS、不读取生产配置/私有状态或凭据，不执行/删除现存CS、不改失败attempt/pending，也不重跑8045fffc…。准确原栈角色和执行前UUID/标签/更新时间保护保留，纠正夹具虚构字段并做无AWS回归，正常提交推送main。后继云接续另审。
+
+修复仅删除DescribeChangeSet不存在的RoleARN比较，保留原栈角色/UUID/标签/更新时间和CS ID/标签保护；夹具纠正并新增完整SDK解码停用与拒绝路径回归。旧错误先复现，162项相关测试/lint/类型通过；当前只收尾main提交推送及准确无AWS CI，不调度部署或处理旧CS/槽。上次云状态13:52Z不重计，ALB仍可能收费，代码通过不等于停费或真实启停通过。
 
 用户确认8045fffc…后已单次执行，13:50:49.350Z在首个tenant-drain CS创建成功后停止；仅Create1/ACK1，Execute/停库/其他云写0。独立回读确认CS为CREATE_COMPLETE/AVAILABLE、仅TenantService Modify，准确ID/标签匹配，栈角色未变；DescribeChangeSet没有RoleARN字段，原工具错误强制比较而误拒。两ALB仍active、两ECS0、两库stopped，尚未停费。[完整回执](../ops/temporary-idle/stop-execution-20261113.json)。
 

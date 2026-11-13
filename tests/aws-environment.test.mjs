@@ -20,14 +20,43 @@ async function clean(dir){assert.equal(path.dirname(path.resolve(dir)),path.reso
 
 test('ordinary requests omit drift mode and their SDK-serialized form and normal XML response follow the real API contract',async()=>{
  assert.deepEqual(Object.values(DeploymentMode),['REVERT_DRIFT']);assert.equal(DeploymentConfigMode.STANDARD,'STANDARD');
- const f=fixture();await apply(f,await plan(f,'stop'));const inputs=writes(f).filter(x=>x.operation==='create-change-set').map(x=>x.input);assert.ok(inputs.length>0);for(const input of inputs){assert.equal(Object.hasOwn(input,'DeploymentMode'),false);assert.equal(Object.hasOwn(input,'DeploymentConfig'),false);}
+ const f=fixture();await apply(f,await plan(f,'stop'));const inputs=writes(f).filter(x=>x.operation==='create-change-set').map(x=>x.input);assert.ok(inputs.length>0);for(const input of inputs){assert.equal(Object.hasOwn(input,'DeploymentMode'),false);assert.equal(Object.hasOwn(input,'DeploymentConfig'),false);assert.equal(Object.hasOwn(input,'RoleARN'),false);}
  const requests=[],stackId=f.config.stacks.tenant.stackId,client=new CloudFormationClient({region:f.config.region,endpoint:'https://cloudformation.ca-central-1.amazonaws.com',credentials:{accessKeyId:'synthetic',secretAccessKey:'synthetic'},maxAttempts:1,requestHandler:{handle:async request=>{
   const body=typeof request.body==='string'?request.body:Buffer.from(request.body).toString('utf8'),form=new URLSearchParams(body);requests.push(form);const action=form.get('Action');
-  assert.ok(['CreateChangeSet','DescribeChangeSet'].includes(action));assert.equal(form.has('DeploymentMode'),false);assert.equal(form.has('DeploymentConfig.Mode'),false);
+  assert.ok(['CreateChangeSet','DescribeChangeSet'].includes(action));assert.equal(form.has('DeploymentMode'),false);assert.equal(form.has('DeploymentConfig.Mode'),false);assert.equal(form.has('RoleARN'),false);
   const result=action==='CreateChangeSet'?'<Id>synthetic-change-set</Id><StackId>'+stackId+'</StackId>':'<StackId>'+stackId+'</StackId><Status>CREATE_COMPLETE</Status><ExecutionStatus>AVAILABLE</ExecutionStatus><Changes><member><Type>Resource</Type><ResourceChange><LogicalResourceId>TenantService</LogicalResourceId><ResourceType>AWS::ECS::Service</ResourceType><Action>Remove</Action><PolicyAction>Delete</PolicyAction></ResourceChange></member></Changes>';
   return {response:{statusCode:200,headers:{'content-type':'text/xml'},body:Buffer.from('<'+action+'Response xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/"><'+action+'Result>'+result+'</'+action+'Result><ResponseMetadata><RequestId>synthetic</RequestId></ResponseMetadata></'+action+'Response>')}};
  }}});
- try{await client.send(new CreateChangeSetCommand(inputs[0]));const described=await client.send(new DescribeChangeSetCommand({StackName:stackId,ChangeSetName:'synthetic-change-set'}));assert.equal(described.DeploymentMode,undefined);assert.doesNotThrow(()=>reviewChangeSet(described,{stackId,shape:{TenantService:'Remove'},role:'tenant'}));assert.equal(requests.length,2);}finally{client.destroy();}
+ try{await client.send(new CreateChangeSetCommand(inputs[0]));const described=await client.send(new DescribeChangeSetCommand({StackName:stackId,ChangeSetName:'synthetic-change-set'}));assert.equal(described.DeploymentMode,undefined);assert.equal(Object.hasOwn(described,'RoleARN'),false);assert.doesNotThrow(()=>reviewChangeSet(described,{stackId,shape:{TenantService:'Remove'},role:'tenant'}));assert.equal(requests.length,2);}finally{client.destroy();}
+});
+
+test('SDK-decoded change sets without RoleARN complete the original stop path while existing stack roles stay unchanged',async()=>{
+ const f=fixture(),roles=Object.fromEntries(ROLES.map(r=>[r,f.stacks[r].roleArn]));assert.ok(roles.tenant&&roles.cell);assert.equal(roles.platform,null);
+ const call=f.io.call;let response,decoded=0;
+ const client=new CloudFormationClient({region:f.config.region,endpoint:'https://cloudformation.ca-central-1.amazonaws.com',credentials:{accessKeyId:'synthetic',secretAccessKey:'synthetic'},maxAttempts:1,requestHandler:{handle:async request=>{
+  assert.equal(new URLSearchParams(String(request.body)).get('Action'),'DescribeChangeSet');assert.equal(Object.hasOwn(response,'RoleARN'),false);
+  const tags=response.Tags.map(t=>'<member><Key>'+t.Key+'</Key><Value>'+t.Value+'</Value></member>').join('');
+  const changes=response.Changes.map(({ResourceChange:r})=>'<member><Type>Resource</Type><ResourceChange><LogicalResourceId>'+r.LogicalResourceId+'</LogicalResourceId><ResourceType>'+r.ResourceType+'</ResourceType><Action>'+r.Action+'</Action>'+(r.Replacement?'<Replacement>'+r.Replacement+'</Replacement>':'')+'</ResourceChange></member>').join('');
+  const xml='<DescribeChangeSetResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/"><DescribeChangeSetResult><ChangeSetId>'+response.ChangeSetId+'</ChangeSetId><StackId>'+response.StackId+'</StackId><Status>'+response.Status+'</Status><ExecutionStatus>'+response.ExecutionStatus+'</ExecutionStatus><Tags>'+tags+'</Tags><Changes>'+changes+'</Changes></DescribeChangeSetResult></DescribeChangeSetResponse>';
+  return {response:{statusCode:200,headers:{'content-type':'text/xml'},body:Buffer.from(xml)}};
+ }}});
+ f.io.call=async(...args)=>{const r=await call(...args);if(args[0]!=='cloudformation'||args[1]!=='describe-change-set')return r;response=r;const described=await client.send(new DescribeChangeSetCommand(args[2]));assert.equal(Object.hasOwn(described,'RoleARN'),false);decoded++;return described;};
+ try{assert.equal((await apply(f,await plan(f,'stop'))).status,'STOPPED');assert.ok(decoded>0);assert.deepEqual(Object.fromEntries(ROLES.map(r=>[r,f.stacks[r].roleArn])),roles);for(const x of writes(f).filter(x=>x.operation==='create-change-set'))assert.equal(Object.hasOwn(x.input,'RoleARN'),false);}finally{client.destroy();}
+});
+
+test('missing change-set RoleARN never bypasses fresh stack role, UUID, tags, timestamp or status protection',async()=>{
+ const cases=[...ROLES.map(role=>({role,field:'RoleARN',value:`arn:aws:iam::${accountId}:role/foreign-execution`})),{role:'tenant',field:'RoleARN',value:undefined},{role:'tenant',field:'StackId',value:'foreign-stack'},{role:'tenant',field:'Tags',value:[{Key:'Project',Value:'changed'}]},{role:'tenant',field:'LastUpdatedTime',value:'changed-time'},{role:'tenant',field:'StackStatus',value:'UPDATE_IN_PROGRESS'}];
+ for(const {role,field,value}of cases){const f=fixture(),p=await plan(f,'stop'),store=memoryStore(),call=f.io.call;let armed=false;
+  f.io.call=async(...args)=>{const r=await call(...args);if(args[0]==='cloudformation'&&args[2].StackName===f.stacks[role].id){if(args[1]==='describe-change-set')armed=true;else if(args[1]==='describe-stacks'&&armed)r.Stacks[0][field]=value;}return r;};
+  await assert.rejects(apply(f,p,store),/STACK_CHANGED_BEFORE_EXECUTE/,role+'/'+field);assert.ok(armed);assert.equal(writes(f).filter(x=>x.operation==='execute-change-set'&&x.input.StackName===f.stacks[role].id).length,0);assert.equal(store.journal.status,'NEEDS_INSPECTION');
+ }
+});
+
+test('change-set ID and tag differences still block Execute when RoleARN is absent',async()=>{
+ for(const field of ['ChangeSetId','Tags']){const f=fixture(),p=await plan(f,'stop'),store=memoryStore(),call=f.io.call;
+  f.io.call=async(...args)=>{const r=await call(...args);if(args[1]==='describe-change-set')r[field]=field==='Tags'?[{Key:'Project',Value:'changed'}]:'foreign-change-set';return r;};
+  await assert.rejects(apply(f,p,store),/CHANGE_SET_TAGS_OR_ID_CHANGED/);assert.equal(writes(f).filter(x=>x.operation==='create-change-set').length,1);assert.equal(writes(f).filter(x=>x.operation==='execute-change-set').length,0);assert.equal(store.journal.status,'NEEDS_INSPECTION');
+ }
 });
 
 test('ordinary response permits only documented standard defaults, rejecting drift, express, disabled rollback and unknown configurations',()=>{

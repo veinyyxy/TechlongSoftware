@@ -6,6 +6,14 @@
 
 ## 当前实现与范围
 
+### 当前代码：仅角色回读契约已修复，本地162回归通过（2026-11-13）
+
+用户明确允许仅这一处接口校验修复与测试。本轮运行代码只移除DescribeChangeSet响应中不存在的RoleARN比较，保留CS ID/标签和准确原栈角色/UUID/标签/更新时间及执行前、执行后校验；创建请求仍省略RoleARN，适配器仍禁止指定新角色，没有新增API、权限、模式或恢复入口。依据仍是下节已核对的官方Create/Describe接口契约。
+
+原合成夹具删除虚构的RoleARN响应。新增使用真实SDK、固定合成凭据和内存HTTP handler解码XML并贯穿原完整停用路径的回归：修复前准确复现CHANGE_SET_ROLE_TAGS_OR_ID_CHANGED，修复后通过；没有真实网络/凭据提供器或AWS CLI调用。另证明原栈角色被更换/移除/新增，或栈UUID、标签、时间、状态改变，及CS ID/标签不符，仍在Execute前拒绝。相关162项测试、定向lint、类型检查通过，准确无AWS CI待提交后核验。
+
+本轮不读生产配置/私有状态或凭据、不调用AWS，不改现存未执行CS、失败attempt、锁或pending；原8045fffc…不能重跑，源码改变也使旧实现闭包不匹配。云端最近观察仍为13:52Z两ALB active/两ECS0/两库stopped，本地修复不构成实际停费。仅提交/推送和CI收尾，之后如需接续，须另审保留现存CS及旧失败记录的准确范围，不能自动清理、复位或换根。
+
 ### 当前实际执行：创建一个未执行CS后安全停止，ALB尚未移除（2026-11-13）
 
 用户确认本轮8045fffc…清单及风险后，13:49:25.862Z—13:50:49.350Z原入口已单次运行。tenant-drain创建请求得到准确ACK，CS达到CREATE_COMPLETE，随后CHANGE_SET_ROLE_TAGS_OR_ID_CHANGED保护停止；Create1/ACK1、Execute0、停库及其他直接写0。原plan/attempt为NEEDS_INSPECTION、根pending为4f1edc31…；准确CS保留为AVAILABLE，不因原12:30CST截止尚未到而允许重跑或直接执行。
