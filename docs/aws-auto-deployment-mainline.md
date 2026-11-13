@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：单点修复及准确CI已通过，本轮收尾，云接续另审（2026-11-13）
+## 当前唯一继续点：接续只读核对通过，等待外层新SHA执行批准（2026-11-13）
+
+用户要求停费并明确允许STS1＋原元数据40，核对原三栈/资源、现存准确未执行CS与工具记录，保存新接续材料，不写AWS。保留旧失败/pending/已消费attempt，不重跑8045fffc…、换根或扩CLI/框架；未来首次执行现存CS及剩余CFN停用仍须新SHA批准。本轮仅准备，事实失败即停、不自动重试。
+
+14:16:37Z—14:17:24Z通过，实际STS1/元数据34、云写0：两ALB active、两ECS0/两库stopped；原CS仍准确AVAILABLE，模板/参数/标签/输入摘要及栈角色等通过，旧六文件/pending未变。新外层SHA `d9d0cf7f3c2a5bde1940bfcaf5faa51fec22e72f17c9b22f0e1617bd1dc5fb41`及独立本地回读通过，[摘要](../ops/temporary-idle/stop-continuation-approval-20261113.json)/[完整风险](aws-environment-tool.md#stop-continuation-20261113)。首次Execute原CS，再建/执行剩余3组；强制Create3/Execute4/停库2/总9/读取1561，不删库/栈/网络或扩IAM。只待该新外层批准；原温尼伯12:30:41.674 CST截止不延长。成功独立验证后才审计关闭旧pending并推进新成功指针，旧失败不改为成功；失败不重试或清理。当前尚未停费。
 
 用户同意仅修这一处接口校验并测试；本轮不改权限、不调用AWS、不读取生产配置/私有状态或凭据，不执行/删除现存CS、不改失败attempt/pending，也不重跑8045fffc…。准确原栈角色和执行前UUID/标签/更新时间保护保留，纠正夹具虚构字段并做无AWS回归，正常提交推送main。后继云接续另审。
 

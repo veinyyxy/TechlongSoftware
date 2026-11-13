@@ -6,6 +6,39 @@
 
 ## 当前实现与范围
 
+<a id="stop-continuation-20261113"></a>
+
+### 当前：同一停用的一次性接续已准备，等待新外层SHA
+
+用户在已修复代码/准确CI通过后要求调用工具，并明确允许本轮STS1＋元数据40的只读准备。14:16:37.485Z—14:17:24.924Z实际STS1/元数据34，通过原三栈/ALB/ECS/两库/DNS及准确未执行CS核对；AWS写、Secret值/PEM/.env/SQL/执行attempt0。原三栈模板、角色、参数、物理ID、更新时间及服务/DNS匹配；租户只有原准确CS AVAILABLE，平台/Cell无CS，单页完整不翻页。修复后的角色来源检查及CS ID/标签/参数、候选模板、原Create输入摘要全部匹配。两ALB仍active、两ECS0/0/0、两库stopped，未停费。
+
+只新增同一私有根下的只读新plan与接续manifest，不扩运行CLI/框架或API，不修改原工具实现；准确源码27b7a02/CI43439591040及162回归沿用。旧root/plan/attempt六文件原字节保持、旧pending及失败槽未动。14:18:14.112Z另一进程独立核对新manifest/plan SHA、当前实现闭包、未批准/未消费槽、原字节/pending及期限通过。
+
+批准对象为下列**外层接续manifest SHA**，不是旧8045…、内层plan或公开摘要文件SHA：[准确摘要](../ops/temporary-idle/stop-continuation-approval-20261113.json)。
+
+```text
+continuationPlanId: 390534a1-0d8d-4fc6-ba01-5c70752f26fa
+manifestSha256: d9d0cf7f3c2a5bde1940bfcaf5faa51fec22e72f17c9b22f0e1617bd1dc5fb41
+toolPlanSha256: 527f8ef6430819bb8bf9e13f5cbdb37451a41d0d84c8fad3cfa67f4dd72b3761
+implementationSha256: 245661b52bca97c25bc13f32db269735b61d165308e0590bbb9edd19ca9f1d43
+preparedAt: 2026-11-13T14:17:17.526Z
+writeBefore: 2026-11-13T18:30:41.674Z = 温尼伯11月13日12:30:41.674 CST
+```
+
+准备快照五小时本到19:17:17.526Z；本次仍取与原CS绑定的18:30:41.674Z较早上限，不延长旧事实/写期。原8045…已消费，普通stop CLI仍被pending/闭包校验阻断，不能拿本外层SHA直接重跑旧CLI。
+
+#### 获新批准后的一次性准确范围与完整风险
+
+1. 只在原私有状态根中锁定、核对旧六文件/失败/pending及当前实现/资源，消费一个新接续attempt；不删已有锁、换根、复位旧attempt或改写旧成功事实。本次只是待审编排，不新增通用接续入口。
+2. 只首次Execute准确原租户CS `arn:aws:cloudformation:ca-central-1:402010193138:changeSet/tl-env-8d48a2e5afb41feb643384157a2d883722f5-plan/b3fada7d-165a-45e0-9a78-04327921032a`。重新严格核对原栈/CS ID、完整变更、模板、参数、标签、原栈角色及时间后，正常CFN失败回滚；不再次Create，不执行旧stop，不重放任何写。等准确模板DesiredCount0/保留物理ID与服务0通过才进入后续。
+3. 复用现有applyStack/writeOnce等导出校验，按租户、平台、Cell顺序仅创建/严格审查/首次执行剩余三份UPDATE CS。租户移除Service/三规则保留3项；平台移除Service/ALB/443/console DNS保留7项；Cell移除ALB/两监听器/共享拒绝规则保留12项。数据库已停预计0写，若准确原库available才仅停止，不启动或删除。仅账号402010193138/ca-central-1及摘要原UUID/不可变ID。
+4. 强制上限新Create3、总Execute4、准确停库2，总直接写9，读取1561/每阶段最多1800秒轮询；不用满预算，无外部API Alias写。不得直接写ELB/ECS/EC2、DeleteStack、删除网络/数据库、改IAM/镜像/Secret/业务/租约、启控制器或产品测试。
+5. 用独立进程按原合同回读STOPPED和准确物理资源移除/保留、服务0及两库stopped。只有全部成功后，保留原root journal审计副本、追加不可改写结案引用，最后成功指针移到本新plan/stopped并清旧pending；旧plan/attempt继续保留失败，不改为成功。此本地状态推进也属待批准范围，不是本轮已执行操作。失败或未知提交保持旧pending与所有新旧消费记录，不自动重试、回滚、补齐、结案或清理。
+
+共同风险全部保留：跨服务/本地与云非原子、无全局CAS、并发变化；执行可能使同栈其他CS失效。正常CFN回滚也可能失败、部分遗留收费资源或恢复旧租户声明1，启动任务/托管Secret注入/应用连接并计费，不保证失败后仍0。本代理不读取秘密值/私钥/业务正文，但计划/模板/元数据会进入内存、私有ACL目录及提供者日志；既有运行时Secret仍可能由AWS使用。受审一次性接续不是已云验证的成功流程，已有162测试/CI只覆盖既有函数合同，不能保证此次云权限或时序效果。永久新attempt不复位；实际调用前必须核对同一manifest/实现SHA及旧状态。
+
+完成会中断动态控制台/API，保留静态买家站、三栈、数据库/数据、网络/集群、目标组/任务定义/日志、ECR/Secret。RDS停止仍有存储/备份费且约7天可能自动启动，无再停守护；其他持久资源仍可能收费，不承诺全账号零费或50USD硬上限。恢复仍另审。窗口不足或事实/实现不匹配即停，不能延期/自动换CS；当前唯一动作仅等待本外层新SHA批准。
+
 ### 当前代码：仅角色回读契约已修复，162回归及准确CI通过（2026-11-13）
 
 用户明确允许仅这一处接口校验修复与测试。本轮运行代码只移除DescribeChangeSet响应中不存在的RoleARN比较，保留CS ID/标签和准确原栈角色/UUID/标签/更新时间及执行前、执行后校验；创建请求仍省略RoleARN，适配器仍禁止指定新角色，没有新增API、权限、模式或恢复入口。依据仍是下节已核对的官方Create/Describe接口契约。
