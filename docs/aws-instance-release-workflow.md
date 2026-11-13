@@ -133,11 +133,15 @@ AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及�
 
 **本轮读取后的最小建议（现已另获代码范围同意）：** 在原两份SQL草案内显式处理安装者对新owner的必要授权/切换和收尾，既有隔离PG CI改用具CREATEROLE但无SUPERUSER/owner SET/INHERIT的安装者执行相同草案，验证owner归属和原运行角色ACL不放宽。保持九函数/三表及运行角色能力不变，不改全局PG设置、Neon hook、旧保护、其他角色/旧工作流，不新增探针/框架。读取轮没有修改SQL或运行代码；后继最小修正见下段，不封存未经验证的可执行安装SHA。
 
-### 已获准的最小修正：本地完成，准确原生CI待核对
+### 最小修正已完成：准确非超级用户原生CI通过
 
 仅修改原两份草案及既有测试。安装使用获批的真实SESSION_USER：临时授予owner SET、明确INHERIT=false，schema事务在CREATE SCHEMA AUTHORIZATION之前取得必要能力；grants事务创建三个NOLOGIN角色后切换owner再授予原准确函数权限。两事务最后SET LOCAL ROLE NONE、把安装者owner SET关闭后才COMMIT，失败随事务回滚。创建者原ADMIN不撤销，也不声称这种管理身份从此不能重新授权自己；可能保留显式无SET/INHERIT的成员记录，日常运行三角色没有owner成员关系或表DML。
 
-九函数正文、三表定义及三类运行角色的原授权保持，runtime仍false。137项本地回归、lint和全项目类型检查通过；新增原生子测试先以独立非超级用户LOGIN证明仅ADMIN时CREATE SCHEMA/SET ROLE被拒，再由该LOGIN执行两份原草案，检查安装后归属/临时权限关闭，并继续原ACL/行锁/CAS/失败围栏测试。只复用既有PG16临时服务，无新workflow/权限；本地没有专用CI数据库，原生测试明确skip。是否真实通过只按新源码准确CI记录，不能沿用fa2c97e的超级用户安装结果。本轮生产配置/数据库/AWS读取写入均0，未应用草案或启动承载。
+九函数正文、三表定义及三类运行角色的原授权保持，runtime仍false。137项本地回归、lint和全项目类型检查通过；新增原生子测试先以独立非超级用户LOGIN证明仅ADMIN时CREATE SCHEMA/SET ROLE被拒，再由该LOGIN执行两份原草案，检查安装后归属/临时权限关闭，并继续原ACL/行锁/CAS/失败围栏测试。只复用既有PG16临时服务，无新workflow/权限；本地没有专用CI数据库，原生测试明确skip。本轮生产配置/数据库/AWS读取写入均0，未应用草案或启动承载。
+
+最终证据：修正源码`727affe9b5736e3c52f744cde92d14c29a14af52`的[CI43513493163](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43513493163) attempt1 completed/success，head SHA与offline/postgres两job均核对；postgres job132189394526日志确认原生6测试全过、fail0/skip0，其中明确包含非超级用户真实登录执行两份草案及关闭临时owner权限。此结果不沿用旧fa2c97e的超级用户测试，也不证明现有Neon18托管安装已执行。后续纯文档HEAD不是新的已测运行源码。
+
+本阶段结束。唯一后继是复用本节原真实事实（原截止保持）与本次源码/CI，在本地准备精确一次性安装清单；安装、凭据生成/Secret使用、IAM/数据库写、恢复及实际发布仍按准确对象/风险另批。当前无新的可执行安装SHA，不重跑已消费读取配方，不开新短窗口或扩镜像生产功能。
 
 ### 原件与恢复点
 
