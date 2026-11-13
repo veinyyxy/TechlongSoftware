@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：D2-4 owner修正/非超级用户CI完成，下一只准备安装清单（2026-11-13）
+## 当前唯一继续点：D2-4空结构安装清单已备，仅待新SHA批准（2026-11-13）
+
+已封存[新清单](aws-instance-release-schema-install-review.json)，批准SHA `9dfad9765217b835d95708ef5358b48d3c3d0008bf0bff2b687f0b589479b9cb`，只包含两份727affe已测SQL的两个事务、schema/三空表九函数/四NOLOGIN及独立核验；不含LOGIN/密码/Secret/IAM/运行配置/承载/种子/调度。配置读1、TLS3、客户端SQL90；AWS/STS/GitHub调用0，永久attempt尚未创建。artifact、九签名、四角色、原期限/回执及361本地链接静态核对通过，无新生产读取/写入、无运行代码变更，不重复CI。下一只等用户按该SHA接受[完整风险](aws-instance-release-workflow.md#schema-install-review)，最晚温尼伯11月13日20:00:40.091 CST开始，原事实终点不延期；当前未安装、未启用。
+
+本轮按用户“开始下一步”仅离线整理[安装差异表及本次准确范围](aws-instance-release-workflow.md#schema-install-review)，不重新盘点。已测可执行材料只覆盖新schema/三表九函数/4个NOLOGIN角色、两个事务；LOGIN/Secret/IAM尚未有完整已审安装材料，本次明确排除，不能把本次批准扩成整个功能启用。只准备新清单/完整风险及本地校验，SQL和工作流均不改；实际安装须新SHA确认，云与数据库读取写入0，收费环境不恢复。
 
 源码727affe9b5736e3c52f744cde92d14c29a14af52已推送，[准确CI43513493163](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43513493163) attempt1 completed/success、head匹配；137相关回归/lint/类型及隔离PG16真实非超级用户安装/关闭owner SET、原ACL/锁/CAS等6测试通过、skip0。九函数/三表及运行角色授权不变，两个事务都仅给安装者临时SET；不是现有Neon安装证明。无新生产读取/云写/安装/调度，runtime仍false。本轮结束；下一只以已存事实和新代码/CI本地准备精确安装清单，不重复盘点/恢复或扩D2-5，原事实截止不延长。下方代码范围与待读取记录均为前置历史。
 

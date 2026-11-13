@@ -153,4 +153,61 @@ AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及�
 
 准备事实五小时上限仍从真实开始计，到2026-11-14T02:10:40.091Z（温尼伯11月13日20:10:40.091 CST）；后续本地检查/文档提交不重计。它不是资源租约、写入授权或自动费用守护。过期时只在确有必要且新范围另允后补读，不重放本次脚本；runtime继续`enabled=false/environments={}`，无新安装/调度或收费环境恢复。
 
+<a id="schema-install-review"></a>
+
+## 精确安装审批材料：本次只安装空结构及NOLOGIN权限
+
+2026-11-13，本轮只离线准备，未新增生产/私密读取或远端写入。完整安装差异收拢在本节，不复制工作流或新建安装/恢复框架。**本次可批准对象是[机器清单](aws-instance-release-schema-install-review.json)，不是对下表全部后续工作的笼统批准。** 两份准确SQL已由727affe的非超级用户CI43513493163验证；这不自动覆盖尚未编制验证的LOGIN/Secret/IAM安装。
+
+准确批准SHA：`9dfad9765217b835d95708ef5358b48d3c3d0008bf0bff2b687f0b589479b9cb`，计算为机器清单对象的SHA256/规范JSON（递归按属性名字典序排序，数组顺序保持），不含另行推导/替换。当前AWAITING_APPROVAL，未执行；本地已核对两份artifact与727affe逐字一致（仅CRLF规范为LF）、九签名/四角色及两事务范围、原回执/目录摘要、原五小时终点/10分钟预留、runtime关闭和attempt不存在，361条本地链接有效。这是材料校验，不是新的数据库或CI运行，也不是将源码CI扩大成实际Neon安装证明。
+
+### 总安装差异及本次边界
+
+| 对象 | 当前已知/准备的差异 | 本次执行清单 |
+| --- | --- | --- |
+| 控制结构 | 新deployment_release；三张空表releases/instance_state/requests；九个原准确签名函数 | 包含，两份固定SQL，两个事务，不导入记录 |
+| NOLOGIN | 新deployment_release_owner/planner/executor/verifier；只授予原函数；临时owner SET在各事务结尾关闭 | 包含；不改变旧角色/保护或全局PG设置，创建者ADMIN仍可能保留 |
+| LOGIN | 后续新deployment_release_{planner,executor,verifier}_login，只继承对应操作组，无ADMIN/owner或跨组能力 | 不包含；本次不设置密码/LOGIN、不建立新认证入口 |
+| 控制Secret | 后续三个已核对未占用的techlong/sandbox/instance-release/{planner,executor,verifier}-db-v1，只存对应窄LOGIN连接串；各自固定版本 | 不包含；不生成/读取密码，不提前创建收费占位 |
+| IAM角色与boundary | 后续三个TechlongSandboxInstanceRelease{Planner,Executor,Verifier}Role及对应BoundaryV1，由CFN管理；不扩大或复用旧worker宽身份 | 不包含；目前只有对象/能力合同，未形成完整可执行模板，不把草案当已审权限 |
+| OIDC与GitHub | 后续trust用已观测immutable仓库前缀及aud；planner按main、executor/verifier按唯一environment；保留本人审批 | 不包含设置写入，不复制旧角色的其他claim；本次不代批/派发或启用配置 |
+| 证据桶 | 后续复用已核对的既有桶，新instance-releases/前缀需独立条件写/固定版本读且不允许删除 | 不包含桶/policy/对象写；不把旧前缀约束说成新前缀已有保护 |
+| 实例/版本种子 | 后续从合法初始化/镜像/持久化原件导入，停用态不伪造运行摘要 | 不包含；本次三表必须保持空，不创建发布请求或业务任务 |
+
+未来常规IAM职责保持：planner只采样/自身固定控制Secret/SQL准备；executor只准确既有租户栈Create/Execute及回写，不能直接写ECS/ELB/RDS/IAM；verifier只采样/自身固定控制Secret、证据窄写和验收登记，不能执行CFN或推进版本。Describe/List有些只能较宽授权、KMS/Secret固定版本条件及确切资源ARN须在后继完整policy中明确，不能用软件白名单宣称IAM已隔离。本次不会申请这些云权限。
+
+将已验证的空结构单独作为本次批准对象，是为了不把缺少实际权限模板/凭据处理材料的写入混进同一SHA；不是已经完成整个一次性安装，也不是新功能支线。后继LOGIN/Secret/IAM仍在这份总表内集中准备，不开启新的generation探针或要求用户配合Web短窗口。
+
+### 本次准确动作与技术核验
+
+机器清单ID `261fcc66-95a7-4d34-a061-525293471016`。目标仍是现有`.env.local`的DATABASE_URL所指Neon控制库`neondb`，真实SESSION_USER必须为neondb_owner、验证TLS；不使用AWS Secret/本地PG/Aurora或其他配置回退。审批只允许一次读取该整文件，URL/密码只在必要进程内存使用，不打印或保存。
+
+执行前验证本清单SHA、原始真实回执SHA及两份SQL的UTF-8/LF规范化SHA；SQL必须等于727affe版本，不接受临时替换对象名/函数/语句。再以READ ONLY事务核对安装者、七个候选角色均缺失、目标schema缺失，以及完整旧目录/保护投影与已存基准一致。若事实或能力不匹配，在任何DDL前停止；不自动修正基准或补权限。
+
+“旧目录保持”按原始身份逐项核对，不是把新增对象直接混入旧全量摘要再误拒，也不忽略整个名称前缀：仅允许准确新schema/四角色/安装者成员、三表/九函数、SQL自动生成的约束/索引/内部外键触发器及本次明确的ACL/default ACL增量。旧对象缺失或原权限/定义变化均拒绝；新函数还须将服务器端prosrc摘要与批准SQL原函数体逐项匹配，并核对owner/签名/SECURITY DEFINER/search_path，不打印函数正文或变更旧基线。
+
+1. 固定提交schema.draft.sql一次。它有自身BEGIN/COMMIT，不能外包另一个事务或拆开/改写批次。新owner/schema/三表九函数及PUBLIC撤销在本事务内完成。
+2. 独立新只读连接验证准确归属、三张表均空、九函数/固定search_path/PUBLIC权限、安装者owner SET/INHERIT关闭；完整旧目录保持。只有COMMIT ACK明确且独立核验通过才允许下一步。
+3. 固定提交grants.draft.sql一次。新建三操作NOLOGIN组并在临时owner身份下授予原准确函数，结尾关闭安装者SET。
+4. 另一独立只读连接核对四角色属性、准确函数ACL、运行角色无owner成员/表DML、三表仍空及旧目录保持；只保存允许状态/OID/ACL摘要/哈希，不保存密码、连接串或业务行。
+
+上限：**配置读取1次、验证TLS连接3条、客户端SQL提交90次，其中含DDL批次2次/事务2次**。两份批次各包含多条DDL及权限语句，不能把“两个批次”说成只改两个对象或只执行两条SQL。独立只读核验查询在90次内；不读取旧表/任务/账本业务行，不调用旧保护或业务函数。AWS/STS/GitHub/API调度/Secret值/私钥读取均0，无需为本次先刷新Source；本次批准也不包含未来IAM/Secret写入。
+
+第一次DDL前须在唯一私有attempt路径以create-only创建标记，不覆盖已有标记；无自动重跑、换根或复位。允许在已批剩余连接/查询/时间预算内独立记录不明状态，但任一未知后不得继续提交grants或重发SQL。脚本/进程失败若仍有未提交事务，可按连接关闭/数据库原生事务语义回滚；COMMIT响应丢失不能直接当作回滚成功。
+
+### 时间、部分失败及完整风险
+
+原事实仍仅有效至**2026-11-14T02:10:40.091Z＝温尼伯11月13日20:10:40.091 CST**。本次最晚开始为02:00:40.091Z＝20:00:40.091 CST，预留10分钟；单次总时长最多10分钟且不得越原终点。不因新清单、代码/文档提交、额度恢复而重计，不新增资源TTL。过期只保留材料，必要新事实读取另审，不重放本轮只读配方。
+
+- 安装者有宽管理能力、配置整文件进入内存，TLS验证不消除网络、内存或服务商日志风险；本次不创建新密码，但现有认证凭据仍会用于准确Neon连接。
+- CREATE ROLE/schema/函数会产生系统目录锁及保护约束，Neon提供者的角色管理hook可能拒绝；PG16隔离回归不是Neon18安装已成功的证明，不关闭hook或改全局设置来绕过。
+- 两事务及跨连接核验不是整体原子。第一事务提交后第二步失败，可能留下一套无LOGIN/无数据的结构或部分NOLOGIN授权；失败保留现场，不自动删除、down、补齐或补偿式回滚。
+- 原创建者ADMIN能力可能保留；关闭SET/INHERIT不是移除管理员重新授权自己的能力。运行三组不因此获得owner、表DML或新登录权限。
+- 并发旧目录变化、权限变化、提交ACK不明或预算耗尽都停止后续写入；永久尝试标记不自动复位，不以原SHA尚未到期重跑。
+- 本清单不创建AWS收费资源，但不能据此声称原账号已经零费；Neon使用及已有存储/日志等仍可能计费。后续若创建三个Secret，按[AWS官方价格示例](https://aws.amazon.com/secrets-manager/pricing/)每项0.40 USD/月估算约1.20 USD/月另加API/地区税费，此处不是ca-central-1实际账单报价，更不在本次许可内。
+
+后继AWS材料必须继续遵循CFN归属原则。官方支持模板创建不含值的Secret，但本次明确不创建空Secret；[空Secret及默认AWS-managed KMS语义](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-secretsmanager-secret.html)、[Secret固定版本授权条件](https://docs.aws.amazon.com/service-authorization/latest/reference/list_secretsmanager.html)、[KMS转发与加密上下文](https://docs.aws.amazon.com/secretsmanager/latest/userguide/security-encryption.html)只是后继模板依据，不是额外安装授权。
+
+本轮到此只封存清单。收到该清单准确SHA及上述风险的新确认后，才可按两批SQL执行并独立核验；不启用runtime、不派发工作流、不恢复ALB/ECS/RDS。成功也只称“发布控制空结构/NOLOGIN授权安装完成”，不称日常发布或SaaS自动交付已完成。
+
 官方依据：[GitHub review history GET](https://docs.github.com/en/rest/actions/workflow-runs#get-the-review-history-for-a-workflow-run)、[environment审批](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/review-deployments)、[OIDC claims及aud/sub](https://docs.github.com/en/actions/reference/security/oidc)。这些支持接口设计，不是已安装/已部署的证明。

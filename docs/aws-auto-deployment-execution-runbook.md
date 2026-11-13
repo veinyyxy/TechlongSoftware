@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：D2-4 owner修正及非超级用户CI已通过，下一只准备精确安装清单（2026-11-13）
+## 当前唯一继续点：D2-4空schema/NOLOGIN安装清单已备，只等准确SHA批准（2026-11-13）
+
+离线材料已完成：[机器清单](aws-instance-release-schema-install-review.json)，批准SHA为`9dfad9765217b835d95708ef5358b48d3c3d0008bf0bff2b687f0b589479b9cb`（SHA256/规范JSON，不是文件换行字节SHA）。固定727affe两份已测SQL、原真实回执/目录摘要、两事务/1schema/3表/9函数/4NOLOGIN及完整停止规则/风险；配置读1、TLS连接3、客户端SQL提交90（含两份多语句DDL批次），AWS/STS/GitHub/Secret值/私钥/调度0。没有LOGIN/密码或实例/版本种子，不启用runtime、安装云权限或恢复资源。原artifact/九签名/四角色/窗口及361条本地链接核对通过，SQL/运行代码未改，执行槽未消费；本轮没有新生产读取/写入，只正常main文档提交。
+
+唯一下一动作是用户对该SHA和[完整风险](aws-instance-release-workflow.md#schema-install-review)的新确认，再按两事务及独立只读核验执行；尚未授权执行或应用SQL。最晚开始2026-11-14T02:00:40.091Z＝温尼伯11月13日20:00:40.091 CST，核验终点仍原02:10:40.091Z，不续事实或开新资源TTL。过期不重放/重计，确有必要才另审补读；不在等待期间追加功能或盘点。下段为本轮准备范围，后续LOGIN/Secret/IAM仍按同一总安装差异表另审。
+
+用户要求下一步。本轮只复用已存读取结果、727affe源码/准确CI及原两份SQL，准备[精确安装范围与完整风险](aws-instance-release-workflow.md#schema-install-review)及机器清单；不重读生产或实现新的安装框架。实际可绑定到已测字节的本次执行范围限定为两个独立DDL事务：新deployment_release schema、三表九函数、owner及三操作NOLOGIN角色。三LOGIN/密码、三个Secret、三类IAM/boundary/OIDC最终材料尚未完成，列入同一安装差异表但明确不在本次执行批准内，不用候选名代替已审模板或悄悄扩大权限。当前仅准备，不应用SQL、不创建收费资源、不启用runtime/派发或恢复环境；实际两事务仍按本轮新SHA另批，原事实02:10:40.091Z截止不变。
 
 最小修正已完成并推送main，源码`727affe9b5736e3c52f744cde92d14c29a14af52`的[准确无AWS CI43513493163](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43513493163) attempt1 completed/success，head SHA已匹配。137项本地及CI offline回归、lint/全项目类型通过；原临时PG16中非超级用户真实登录安装、临时owner SET关闭、原ACL/双连接锁/CAS及失败围栏共6测试通过、skip0。三表/九函数正文及运行角色原授权未改，没有新增工作流或依赖。不是Neon18实装或生产身份已验证的证明。
 
