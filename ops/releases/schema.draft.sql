@@ -183,7 +183,7 @@ BEGIN
   END IF;
   op := r.operations->p_kind;
   IF p_phase = 'INTENT' THEN
-    IF op IS NOT NULL OR r.status <> CASE WHEN p_kind = 'create' THEN 'CLAIMED' ELSE 'CHANGE_SET_CREATED' END OR
+    IF op IS NOT NULL OR r.status <> (CASE WHEN p_kind = 'create' THEN 'CLAIMED' ELSE 'CHANGE_SET_CREATED' END) OR
       ((r.plan_text::jsonb)->>'writeBefore')::numeric <= extract(epoch FROM clock_timestamp())*1000 THEN
       RAISE EXCEPTION 'RELEASE_OPERATION_ALREADY_USED_OR_EXPIRED';
     END IF;
