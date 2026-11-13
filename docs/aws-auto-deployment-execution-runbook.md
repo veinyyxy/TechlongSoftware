@@ -2,7 +2,9 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：D2-4集中只读核对完成，先审最小安装授权修正（2026-11-13）
+## 当前唯一继续点：D2-4最小owner授权顺序修正及非超级用户回归，仅离线（2026-11-13）
+
+用户已明确同意上轮建议。本轮仅修改原schema/grants两份草案的安装者新owner授权/切换/收尾，以及既有SQL合同和隔离PG CI回归；不改九函数、三表、运行角色能力或全局PG设置，不新增安装器/框架/探针，不读取生产/.env/Secret或调用AWS，不实际安装或恢复环境。使用独立CI登录安装者（CREATEROLE但非SUPERUSER、owner SET/INHERIT初态false）验证两份原草案，不以超级用户代执行；原实际读取和快照截止保持，代码/文档正常main提交推送。下面“建议批准”已获本条同意，不重复征求同一代码范围。
 
 用户明确允许上轮集中读取后，本轮于21:10:40.091Z—21:14:08.892Z完成：STS1/AWS元数据29/GitHub GET10、配置读取1/验证TLS Neon只读连接1/含事务控制16查询；全部远端写、Secret值/PEM/业务行读取、执行槽和dispatch为0。新角色/boundary/Secret名称、deployment_release schema及7个数据库角色均未占用；证据桶版本化/加密/公共保护及本人GitHub门禁已核对。固定源码CI仍成功、Instance API release运行数0，runtime保持false；没有读取承载状态或恢复收费环境。[集中事实、原件摘要及唯一最小缺口](aws-instance-release-workflow.md#installation-readonly-result)。
 

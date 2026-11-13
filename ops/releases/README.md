@@ -5,7 +5,7 @@
 D2-4已新增默认关闭的runtime配置、真实元数据/凭据适配及验收子进程；完整范围见[单审批工作流说明](../../docs/aws-instance-release-workflow.md)。工作流不执行本目录SQL草案；新增CI仅在全新临时PostgreSQL16中验证，不安装到现有控制库。本地137项相关回归通过，原生PG结果以准确CI为准。
 
 - `schema.draft.sql`：独立 `deployment_release` schema、三表、专用 NOLOGIN owner 与九个窄函数；D2-3增加只读决定/终止结果登记，扩展核验与完成结果。
-- `grants.draft.sql`：三个 NOLOGIN 操作角色，仅授予准确函数；无登录、密码、Secret、IAM、表DML或角色成员关系。
+- `grants.draft.sql`：三个 NOLOGIN 操作角色，仅授予准确函数；无登录、密码、Secret、IAM、表DML或运行角色的owner成员关系。安装者临时owner SET处理见下段。
 - [`repository.ts`](../../lib/deployments/releases/repository.ts)：注入SQL连接，参数化调用；不加载生产连接信息，不自动重试。
 - [`adapters.ts`](../../lib/deployments/releases/adapters.ts)：注入既有CFN/S3客户端；不是执行器，不创建默认客户端，不读取凭据。
 
@@ -22,6 +22,8 @@ D2-4已新增默认关闭的runtime配置、真实元数据/凭据适配及验�
 | verifier | 读取、record_inspection | 领取、记云操作、完成或改当前版本 |
 
 九个函数均由专用owner拥有，固定search_path=pg_catalog，表名全限定，撤销PUBLIC执行，没有动态SQL。planner另可record_decision登记非可执行结果，executor另可stop_request登记拒绝/未决，不授予自行写验收证明的能力。运行角色不是客户行级隔离：它们是同环境受信操作身份，具有该环境release元数据读取范围。未来实际登录身份/Secret映射必须保持三类职责分开，不能把owner或三种角色合并给日常执行者。SQL本身不证明GitHub人工批准，也不代替应用授权/准确实例校验。
+
+安装必须使用经另审的真实登录身份（SESSION_USER），具CREATEROLE及数据库CREATE；不是由运行角色调用草案。两事务都显式授予该安装者对新owner的SET、禁止INHERIT，在owner身份下建对象/授予原窄ACL，最后SET LOCAL ROLE NONE并关闭该安装者的owner SET，整个顺序随事务提交或回滚。不改变全局createrole_self_grant；创建者原有ADMIN管理能力保留，不把ADMIN误称为SET/继承权。运行三角色始终不是owner成员，日常工作流仍不持有安装者凭据。隔离PG16回归现使用独立非超级用户LOGIN、CREATEROLE及数据库CREATE实际执行两份草案，先证明无SET时CREATE SCHEMA/SET ROLE被拒，再验证安装后归属、SET/INHERIT关闭及原ACL；结果以准确新CI为准，不用旧超级用户CI替代Neon实装证明。
 
 ## 操作顺序
 

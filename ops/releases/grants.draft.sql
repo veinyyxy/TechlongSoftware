@@ -4,6 +4,9 @@ BEGIN;
 CREATE ROLE deployment_release_planner NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 CREATE ROLE deployment_release_executor NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
 CREATE ROLE deployment_release_verifier NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+GRANT deployment_release_owner TO SESSION_USER WITH INHERIT FALSE;
+GRANT deployment_release_owner TO SESSION_USER WITH SET TRUE;
+SET LOCAL ROLE deployment_release_owner;
 GRANT USAGE ON SCHEMA deployment_release TO deployment_release_planner,deployment_release_executor,deployment_release_verifier;
 GRANT EXECUTE ON FUNCTION deployment_release.read_context(text),deployment_release.read_request(text)
   TO deployment_release_planner,deployment_release_executor,deployment_release_verifier;
@@ -13,7 +16,9 @@ GRANT EXECUTE ON FUNCTION deployment_release.claim_request(text,text,text,intege
   deployment_release.stop_request(text,text,text,text)
   TO deployment_release_executor;
 GRANT EXECUTE ON FUNCTION deployment_release.record_inspection(text,jsonb) TO deployment_release_verifier;
--- No table DML, role memberships, owner grants or DEFAULT PRIVILEGES for runtime identities.
+-- No table DML, owner memberships or DEFAULT PRIVILEGES for runtime identities.
 -- These are per-environment operators, NOT row-level customer isolation. Future LOGIN bindings
 -- must keep planner/executor/verifier credentials independent; the executor cannot attest its own result.
+SET LOCAL ROLE NONE;
+GRANT deployment_release_owner TO SESSION_USER WITH SET FALSE;
 COMMIT;

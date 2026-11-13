@@ -131,7 +131,13 @@ AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及�
 
 官方PG18说明，非超级用户CREATEROLE创建角色时会取得ADMIN，但自动取得SET/INHERIT另受`createrole_self_grant`影响；CREATE SCHEMA指定另一owner也要求能SET ROLE到该owner。[角色创建设置](https://www.postgresql.org/docs/18/runtime-config-client.html#GUC-CREATEROLE-SELF-GRANT)、[角色授权/SET与对象所有权](https://www.postgresql.org/docs/18/sql-grant.html)。因此，现有PG16超级用户CI通过不能证明原安装顺序适用于这位非超级用户；这是从实测成员布局、草案及官方规则得到的安装前提判断，不是本轮实际尝试CREATE/SET后失败。没有查询当前createrole_self_grant，也不假称已证明新角色创建后的具体选项。
 
-**下一唯一最小建议（代码范围待确认）：** 在原两份SQL草案内显式处理安装者对新owner的必要授权/切换和收尾，既有隔离PG CI改用具CREATEROLE但无SUPERUSER/owner SET/INHERIT的安装者执行相同草案，验证owner归属和原运行角色ACL不放宽。保持九函数/三表及运行角色能力不变，不改全局PG设置、Neon hook、旧保护、其他角色/旧工作流，不新增探针/框架。没有这段隔离验证前，不封存可执行安装SHA，不以半成品清单要求云写授权。本轮没有修改SQL或运行代码。
+**本轮读取后的最小建议（现已另获代码范围同意）：** 在原两份SQL草案内显式处理安装者对新owner的必要授权/切换和收尾，既有隔离PG CI改用具CREATEROLE但无SUPERUSER/owner SET/INHERIT的安装者执行相同草案，验证owner归属和原运行角色ACL不放宽。保持九函数/三表及运行角色能力不变，不改全局PG设置、Neon hook、旧保护、其他角色/旧工作流，不新增探针/框架。读取轮没有修改SQL或运行代码；后继最小修正见下段，不封存未经验证的可执行安装SHA。
+
+### 已获准的最小修正：本地完成，准确原生CI待核对
+
+仅修改原两份草案及既有测试。安装使用获批的真实SESSION_USER：临时授予owner SET、明确INHERIT=false，schema事务在CREATE SCHEMA AUTHORIZATION之前取得必要能力；grants事务创建三个NOLOGIN角色后切换owner再授予原准确函数权限。两事务最后SET LOCAL ROLE NONE、把安装者owner SET关闭后才COMMIT，失败随事务回滚。创建者原ADMIN不撤销，也不声称这种管理身份从此不能重新授权自己；可能保留显式无SET/INHERIT的成员记录，日常运行三角色没有owner成员关系或表DML。
+
+九函数正文、三表定义及三类运行角色的原授权保持，runtime仍false。137项本地回归、lint和全项目类型检查通过；新增原生子测试先以独立非超级用户LOGIN证明仅ADMIN时CREATE SCHEMA/SET ROLE被拒，再由该LOGIN执行两份原草案，检查安装后归属/临时权限关闭，并继续原ACL/行锁/CAS/失败围栏测试。只复用既有PG16临时服务，无新workflow/权限；本地没有专用CI数据库，原生测试明确skip。是否真实通过只按新源码准确CI记录，不能沿用fa2c97e的超级用户安装结果。本轮生产配置/数据库/AWS读取写入均0，未应用草案或启动承载。
 
 ### 原件与恢复点
 

@@ -2,7 +2,9 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：D2-4只读事实已取得，待最小owner授权顺序修正，默认关闭（2026-11-13）
+## 当前唯一继续点：D2-4 owner安装顺序最小修正及隔离回归，默认关闭（2026-11-13）
+
+用户已同意仅修两份SQL草案并补既有隔离CI非超级用户回归。本轮不增加真实读取/云写或安装，不改九函数/运行角色权限，不启用runtime或扩框架；保留已存快照及原期限。下面待确认文字为本次代码批准前记录，当前先完成修正与准确CI。
 
 本轮已按用户许可完成STS1/元数据29/GitHub GET10、配置1/TLS只读连接1/查询16；远端写/业务行/Secret值/私钥/槽/调度0。[真实事实与原件](aws-instance-release-workflow.md#installation-readonly-result)：新名称均空闲，证据桶可复用，本人main-only environment门禁存在且admin bypass=false，部署工作流尚无run。目标Neon18.7安装者非超级用户，旧自建角色仅ADMIN而无SET/INHERIT；两份草案缺少新owner的显式SET授权/授权事务切换，超级用户CI未覆盖该前提。没有实际安装失败或运行代码修复、没有可执行安装SHA；runtime仍false，未查询或启动承载。
 

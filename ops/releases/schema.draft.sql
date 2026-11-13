@@ -1,8 +1,11 @@
 -- D2-2/D2-3 DRAFT_NOT_APPLIED. NOT an automatic migration; no existing schema/role is modified.
 -- Installation must be reviewed separately, including role-name collisions and PG integration tests.
--- Run in one transaction as an approved installer able to SET ROLE to this dedicated NOLOGIN owner.
+-- Run as the approved authenticated installer with CREATEROLE and CREATE on this database.
+-- Creator ADMIN is not SET/INHERIT. Only this installer temporarily gains owner SET.
 BEGIN;
 CREATE ROLE deployment_release_owner NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+GRANT deployment_release_owner TO SESSION_USER WITH INHERIT FALSE;
+GRANT deployment_release_owner TO SESSION_USER WITH SET TRUE;
 CREATE SCHEMA deployment_release AUTHORIZATION deployment_release_owner;
 SET LOCAL ROLE deployment_release_owner;
 REVOKE ALL ON SCHEMA deployment_release FROM PUBLIC;
@@ -284,4 +287,6 @@ END $$;
 
 REVOKE ALL ON ALL TABLES IN SCHEMA deployment_release FROM PUBLIC;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA deployment_release FROM PUBLIC;
+SET LOCAL ROLE NONE;
+GRANT deployment_release_owner TO SESSION_USER WITH SET FALSE;
 COMMIT;

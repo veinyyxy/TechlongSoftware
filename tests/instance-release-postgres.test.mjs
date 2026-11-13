@@ -8,19 +8,49 @@ import {releaseFixture,h} from './instance-release-fixture.ts';
 
 // Never falls back to DATABASE_URL or local/production configuration. No DROP/reset/cleanup SQL.
 const testUrl=process.env.INSTANCE_RELEASE_TEST_DATABASE_URL;
-test('release native PostgreSQL 16: draft DDL, narrow roles, real row-lock claim and verified CAS outcomes', {skip:!testUrl,timeout:30000},async t=>{
+test('release native PostgreSQL 16: non-superuser draft install, narrow roles, real row-lock claim and verified CAS outcomes', {skip:!testUrl,timeout:30000},async t=>{
  const url=new URL(testUrl);
  assert.equal(process.env.GITHUB_ACTIONS,'true');assert.equal(process.env.CI,'true');
  assert.equal(url.hostname,'127.0.0.1');assert.equal(url.pathname,'/instance_release_ci');assert.equal(url.username,'postgres');
  const clients=[];
- const connect=async(name,role)=>{const c=new pg.Client({connectionString:testUrl,application_name:name,statement_timeout:5000});await c.connect();clients.push(c);if(role)await c.query('SET ROLE '+role);return c;};
+ const connect=async(name,role,connectionString=testUrl)=>{const c=new pg.Client({connectionString,application_name:name,statement_timeout:5000});await c.connect();clients.push(c);if(role)await c.query('SET ROLE '+role);return c;};
  try{
   const admin=await connect('release-native-admin');
   const pre=await admin.query("select current_database() as db,current_setting('server_version_num')::int as version,(select count(*)::int from pg_catalog.pg_tables where schemaname not in ('pg_catalog','information_schema')) as tables");
   assert.equal(pre.rows[0].db,'instance_release_ci');assert.ok(pre.rows[0].version>=160000&&pre.rows[0].version<170000);assert.equal(pre.rows[0].tables,0);
   assert.equal((await admin.query("select count(*)::int as n from pg_catalog.pg_roles where rolname like 'deployment_release_%'")).rows[0].n,0);
-  await admin.query(await readFile(new URL('../ops/releases/schema.draft.sql',import.meta.url),'utf8'));
-  await admin.query(await readFile(new URL('../ops/releases/grants.draft.sql',import.meta.url),'utf8'));
+  // Only the new disposable CI database uses this synthetic LOGIN. Never a production installer.
+  await admin.query("CREATE ROLE release_ci_installer LOGIN CREATEROLE NOSUPERUSER NOCREATEDB NOREPLICATION NOBYPASSRLS PASSWORD 'synthetic-ci-only'");
+  await admin.query('GRANT CREATE ON DATABASE instance_release_ci TO release_ci_installer');
+  const installerUrl=new URL(testUrl);installerUrl.username='release_ci_installer';
+  const installer=await connect('release-native-installer',undefined,installerUrl.toString());
+  await t.test('non-superuser creator ADMIN is not SET; both drafts install as the real login and close temporary owner access',async()=>{
+   const initial=(await installer.query("SELECT current_user,session_user,rolsuper,rolcreaterole,current_setting('createrole_self_grant') AS self_grant FROM pg_roles WHERE rolname=current_user")).rows[0];
+   assert.equal(initial.current_user,'release_ci_installer');assert.equal(initial.session_user,initial.current_user);
+   assert.equal(initial.rolsuper,false);assert.equal(initial.rolcreaterole,true);assert.equal(initial.self_grant,'');
+   await installer.query('CREATE ROLE release_ci_owner_control NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION');
+   const rights=async role=>(await installer.query("SELECT pg_has_role(current_user,$1,'SET') AS can_set,pg_has_role(current_user,$1,'USAGE') AS inherit",[role])).rows[0];
+   assert.deepEqual(await rights('release_ci_owner_control'),{can_set:false,inherit:false});
+   assert.equal((await installer.query("SELECT bool_or(m.admin_option) AS admin FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.roleid WHERE r.rolname='release_ci_owner_control' AND m.member=current_user::regrole")).rows[0].admin,true);
+   await assert.rejects(installer.query('CREATE SCHEMA release_ci_denied AUTHORIZATION release_ci_owner_control'),e=>e.code==='42501');
+   await assert.rejects(installer.query('SET ROLE release_ci_owner_control'),e=>e.code==='42501');
+   await installer.query(await readFile(new URL('../ops/releases/schema.draft.sql',import.meta.url),'utf8'));
+   assert.deepEqual(await rights('deployment_release_owner'),{can_set:false,inherit:false});
+   assert.equal((await installer.query('SELECT current_user')).rows[0].current_user,'release_ci_installer');
+   await assert.rejects(installer.query('GRANT USAGE ON SCHEMA deployment_release TO release_ci_owner_control'),e=>e.code==='42501');
+   await installer.query(await readFile(new URL('../ops/releases/grants.draft.sql',import.meta.url),'utf8'));
+   assert.deepEqual(await rights('deployment_release_owner'),{can_set:false,inherit:false});
+   await assert.rejects(installer.query('SET ROLE deployment_release_owner'),e=>e.code==='42501');
+   await assert.rejects(installer.query('SELECT * FROM deployment_release.requests'),e=>e.code==='42501');
+   const membership=(await admin.query("SELECT bool_or(m.admin_option) AS admin,bool_or(m.set_option) AS can_set,bool_or(m.inherit_option) AS inherit FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.roleid WHERE r.rolname='deployment_release_owner' AND m.member='release_ci_installer'::regrole")).rows[0];
+   assert.deepEqual(membership,{admin:true,can_set:false,inherit:false});
+   assert.equal((await admin.query("SELECT pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname='deployment_release'")).rows[0].owner,'deployment_release_owner');
+   assert.deepEqual((await admin.query("SELECT count(*)::int AS n,bool_and(c.relowner='deployment_release_owner'::regrole) AS owned FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='deployment_release' AND c.relkind='r'")).rows[0],{n:3,owned:true});
+   assert.deepEqual((await admin.query("SELECT count(*)::int AS n,bool_and(p.proowner='deployment_release_owner'::regrole AND p.prosecdef) AS owned FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='deployment_release'")).rows[0],{n:9,owned:true});
+   for(const role of ['deployment_release_planner','deployment_release_executor','deployment_release_verifier']){
+    assert.equal((await admin.query("SELECT pg_has_role($1,'deployment_release_owner','MEMBER') AS member",[role])).rows[0].member,false);
+   }
+  });
   const f=await releaseFixture(),p=f.plan;
   p.observedAt=Date.now();p.preparedAt=p.observedAt;p.writeBefore=p.observedAt+300000;const sha=await sha256Hex(p);
   const document=(id,version,imageUri,platformDigest)=>({id,version,productId:p.productId,component:'tenant_api',status:'ecr_verified',

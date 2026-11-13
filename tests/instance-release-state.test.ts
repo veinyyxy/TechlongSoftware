@@ -131,7 +131,19 @@ test("release SQL draft: three isolated tables, fixed search_path and no runtime
     schema.match(/SECURITY DEFINER SET search_path = pg_catalog/g)?.length);
   assert.match(schema, /REVOKE ALL ON ALL FUNCTIONS IN SCHEMA deployment_release FROM PUBLIC/);
   assert.doesNotMatch(schema, /CREATE OR REPLACE|\bpublic\.|deployment_jobs|plan_only|CREATE EXTENSION|\bEXECUTE\s+format/i);
-  assert.doesNotMatch(grants, /GRANT\s+(?:SELECT|UPDATE|INSERT|DELETE|ALL)\b|GRANT\s+deployment_release_owner|\bPASSWORD\b/i);
+  assert.doesNotMatch(grants, /GRANT\s+(?:SELECT|UPDATE|INSERT|DELETE|ALL)\b|\bPASSWORD\b/i);
+  for (const draft of [schema, grants]) {
+    assert.deepEqual(draft.match(/^GRANT deployment_release_owner[^;]*;/gm), [
+      'GRANT deployment_release_owner TO SESSION_USER WITH INHERIT FALSE;',
+      'GRANT deployment_release_owner TO SESSION_USER WITH SET TRUE;',
+      'GRANT deployment_release_owner TO SESSION_USER WITH SET FALSE;',
+    ]);
+    assert.ok(draft.indexOf('WITH SET TRUE;') < draft.indexOf('SET LOCAL ROLE deployment_release_owner;'));
+    assert.match(draft, /SET LOCAL ROLE NONE;\s*GRANT deployment_release_owner TO SESSION_USER WITH SET FALSE;\s*COMMIT;/);
+    assert.doesNotMatch(draft, /ALTER SYSTEM|SET\s+(?:LOCAL\s+)?createrole_self_grant/i);
+  }
+  assert.ok(schema.indexOf('WITH SET TRUE;') < schema.indexOf('CREATE SCHEMA deployment_release AUTHORIZATION'));
+  assert.ok(grants.indexOf('SET LOCAL ROLE deployment_release_owner;') < grants.indexOf('GRANT USAGE ON SCHEMA'));
   assert.match(grants, /record_inspection\(text,jsonb\) TO deployment_release_verifier/);
   assert.match(schema, /sha256\(convert_to\(p_text,'UTF8'\)\)/);
   assert.equal(canonicalJson({ b: 2, a: 1 }), '{"a":1,"b":2}');
