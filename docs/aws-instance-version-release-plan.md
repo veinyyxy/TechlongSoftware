@@ -1,8 +1,32 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-13，America/Winnipeg。状态：`PROPOSED_NOT_IMPLEMENTED`。
+日期：2026-11-13，America/Winnipeg。状态：`PARTIALLY_IMPLEMENTED — D2-1 ONLY`。
 
-本文是待审设计，不是运行代码已完成、数据库迁移、Secret/IAM安装、镜像发布、工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；本轮只编写文档，环境继续停止。
+除下节明确交付的D2-1外，本文其余部分仍是待审设计，不是完整功能已完成、数据库迁移、Secret/IAM安装、镜像发布、工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；本轮经用户明确许可只完成阶段1离线代码/回归，环境继续停止。
+
+<a id="d2-1-delivered"></a>
+
+## 阶段1交付状态：合同、纯计划器与离线回归已完成
+
+用户随后明确批准D2-1，且要求不扩支线、不过度防守编程。实际变更仅两个业务模块与既有测试/文档：
+
+- [`contract.ts`](../lib/deployments/releases/contract.ts)：版本、实例绑定、观察快照、请求/状态和计划结果的TypeScript合同；数据库模式复用既有express_iam/full_password类型。
+- [`planning.ts`](../lib/deployments/releases/planning.ts)：`planInstanceRelease(input)`纯函数，复用现有SHA工具，不读环境变量/文件、数据库或AWS，不提供apply接口。输入时间显式传入，不从当前时钟生成隐藏状态。
+- [`deployment-plan.test.ts`](../tests/deployment-plan.test.ts)：16项新增回归并入原有npm test所列文件，没有另加package脚本、工作流或通用测试框架。20项部署计划＋68项相邻基线=88项通过，定向lint和全项目类型检查通过。
+
+成功结果`PLANNED`包含计划与确定性SHA；CFN片段只为ImageUri传新digest，其他键为UsePreviousValue，预期TaskDefinition替换、Service不替换。计划绑定源/目标版本、实例/环境/栈、模板/配置摘要、CAS revision、兼容状态及准确原观察五小时截止；不会因较晚生成计划而给旧事实续期。参数顺序改变不改变计划SHA，不同实例不共用固定ID。ECR索引与平台digest分别保留。
+
+停止/部分停止/依赖缺失返回BLOCKED_RESTORE_REQUIRED；源状态变化、错误实例/产品/版本、兼容性、迁移/启动写、上传持久化等必要条件不符则阻断。相同已核验镜像返回NO_CHANGE，不输出CFN片段、不推进当前版本指针。所有结果都带executionAuthorized=false、requiresLivePreflight=true。
+
+这是供内部计划器使用的最小类型化数据投影，不是任意JSON解析器，也没有在线证明catalog.status或观察快照的真实性。D2-2及后续阶段才接权威数据加载、持久化/权限和实时预检；本轮没有数据库对象、AWS SDK客户端、凭据读取、执行端口或生产调用。不实现完整状态机/恢复框架，不改临时启停工具或旧控制账本。除本节记录的D2-1外，下文未实施内容仍是方案。
+
+离线复验命令（仓库根目录）：
+
+```text
+node --experimental-strip-types --test --test-timeout=30000 tests/deployment-plan.test.ts tests/deployment-baseline.test.mjs
+node node_modules/eslint/bin/eslint.js lib/deployments/releases/contract.ts lib/deployments/releases/planning.ts tests/deployment-plan.test.ts --max-warnings 0
+node node_modules/typescript/bin/tsc --noEmit --incremental false
+```
 
 ## 1. 要交付什么
 
@@ -267,7 +291,7 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 
 ## 14. 建议代码落点：薄业务层，复用执行组件
 
-以下均是**拟新增/调整位置**，本轮未创建代码：
+下列前两项已在D2-1交付，其余为**拟新增/调整位置**，不代表已经实现或接入运行：
 
 | 落点 | 职责 |
 | --- | --- |
@@ -285,7 +309,7 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 
 | 阶段 | 交付物 | 通过标准 | 云/安装边界 |
 | --- | --- | --- | --- |
-| D2-1 合同与纯计划 | SoftwareRelease、InstanceBinding、请求/状态合同；digest/兼容/STOPPED/仅ImageUri planner | 合成输入下可生成准确计划，错误实例/版本、停止状态、schema迁移等全拒绝；运行代码无默认live能力 | 仅本地代码/无AWS CI，无SQL/配置/凭据读取 |
+| D2-1 合同与纯计划（离线已完成） | SoftwareRelease、InstanceBinding、请求/状态合同；digest/兼容/STOPPED/仅ImageUri planner | [交付记录](#d2-1-delivered)：88项相关回归、lint/类型通过；仅纯计划，不授权live | 无SQL/配置/凭据读取、AWS/工作流变更；线上能力仍未接线 |
 | D2-2 状态与适配 | 三表迁移草案、窄授权草案、请求CAS、CFN/证据接口适配 | 内存/本地测试库验证并发、提交不明和无重复写；真实SDK合同覆盖字段与CFN TaskDefinition替换 | 草案不应用；未来安装按准确DDL/角色/Secret/IAM/GitHub范围另审 |
 | D2-3 已有ECR版本执行闭环 | executor、隔离inspector、回写、NO_CHANGE/失败分类 | 用同一代码跑两个不同实例fixture/多个release，不改固定JSON；完整SDK模拟/无AWS CI通过 | 不在线更新、不启通用worker、不写旧账本 |
 | D2-4 单审批工作流 | 一个正常入口、摘要、准确run/计划绑定、一个受保护job | 无AWS身份先验证参数/摘要/单门禁与流程；权限安装后再做受限技术预检 | 发布workflow/安装身份与真实资源写分开批准；不自动派发实际部署 |
@@ -322,7 +346,7 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 4. 若增加ECR晋升，准确候选产物、仓库、授权及同轮失败留存策略。
 5. 每次真实发布的实例/版本/配置摘要、正常CFN回滚和技术核验/回写范围；不沿用旧SHA。
 
-以上是后续实施的审批边界，不要求现在逐项回答。**本轮唯一交付是本方案与主线文档。若接受方向，下一步只做D2-1合同及纯计划器代码/回归，不启动环境。**
+以上是后续实施的审批边界，不要求现在逐项回答。**D2-1合同、纯计划器和离线回归已经交付，本轮到此结束。若用户继续下一阶段，再按D2-2范围做状态/适配及安装草案，不自动应用SQL、改权限或启动环境。**
 
 ## 17. 官方依据与证据边界
 
@@ -332,4 +356,4 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 - [CFN ECS TaskDefinition](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ecs-taskdefinition.html)、[ECS Service](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-ecs-service.html)：任务版本与服务由原栈关联管理，不能把替换任务版本误认为重建Service。
 - [ECS部署熔断](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-circuit-breaker.html)：受管回退有前置条件，不等于代理可以自动另发回退部署。
 
-这些资料与本地源码支持设计，不证明此功能已经实现、角色已经安装、环境已运行或目标版本已实际发布。本轮无AWS调用、生产数据库连接、私密配置/Secret/PEM读取、业务验收或运行代码更改。
+这些资料与本地源码支持设计，不证明完整发布闭环已实现、角色已安装、环境已运行或目标版本已实际发布。D2-1只有顶部列出的两个模块及离线测试；没有AWS调用、生产数据库连接、私密配置/Secret/PEM读取或业务验收，也没有安装/执行端口。
