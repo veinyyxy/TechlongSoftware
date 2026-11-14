@@ -2,11 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：D2-5同审批候选晋升接线，仅代码与CI（2026-11-13）
+## 当前唯一继续点：D2-5同审批晋升代码/CI已收尾，未启用（2026-11-13）
 
 用户明确要求开始同审批自动晋升。本轮只复用既有构建原件校验、不可变目录、单一GitHub environment、CFN仅ImageUri更新和独立核验/回写，增加候选批准意图→同一受保护job发布准确app归档→回读ECR→窄目录确认→按原意图派生更新计划的接线与回归。不伪造审批前未知的registry digest，不调用旧两镜像发布工作流或增加第二个environment审批，不重建发布/恢复框架。默认仍关闭；正常main提交/无AWS CI允许，真实产物采集、跨仓库凭据、SQL/LOGIN/Secret/IAM安装、ECR写/工作流调度及部署/恢复均未获本条授权。需要的窄权限只交付独立草案，不改已安装SQL或原身份材料；不重做买卖家业务测试。
 
 [同审批晋升接线与启用缺项](aws-instance-release-promotion.md)已编码：原三输入/唯一门禁不变，候选原件与基线意图先批准，真实ECR结果后派生计划，原期限不增长；S3条件审计/候选push槽、单app push、目录确认、原CFN/独立核验/CAS串联。新增7项离线回归，本地171中170pass/1 WindowsZIP skip，lint/类型通过；新增PG16子测试验证独立publisher真实LOGIN及意图窄准备函数。当前只正常main提交与准确无AWS CI核验；没有真实来源/配置/Secret/PEM读取、SQL/IAM安装、发布/调度或恢复。原runtime仍false、身份三材料未动，CI之后只收尾，不自动盘点/安装。
+
+收尾完成：源码2659d7a9c4f1d6ba589f8e596ffef463ca457d1f的[准确CI43561305617](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43561305617) attempt1 completed/success，head/两job/步骤和日志一致；171回归/实际LinuxZIP及原生PG16的9项全过、fail0/skip0，lint/类型通过。[去敏证据](aws-instance-release-promotion-ci-20261113.json)。原43561098564的offline通过、native仅因测试漏导入异常类而失败，保留原记录，仅补导入后新push验证，未重跑旧run/槽。Docker/GitHub/ECR transport为注入响应，未实际推送；生产源读取/配置/SQL/Secret/IAM、dispatch、ECR写/恢复/部署均0，runtime仍false。当前代码/CI工作结束，不自动进入安装/读取；后继只在用户要求时集中准备真实候选准入及原三身份＋publisher/增量SQL的缺项，实际安装、发布和D2-6技术验收另审，不扩UI/旧工具或重新搭框架。
 
 ### 以下为上一轮真实来源入口代码与CI收尾记录
 

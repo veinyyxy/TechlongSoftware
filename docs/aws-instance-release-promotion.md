@@ -47,7 +47,7 @@
 
 - 校验严格 IMMUTABLE 现有仓库，先查准确 tag；若已存在，仍需真实 manifest/config匹配，匹配时不推送。缺失时才 load原归档、检查真实config ID/amd64/revision标签、tag和一次push。
 - ECR只读/auth至多8次；一次 push是命令/镜像上限，底层层上传及 manifest 写可能多次，**不是只写一次AWS API**。Docker可能内部执行网络协议重试，不声称所有底层请求恰好一次；应用不重新调用push。
-- AWS临时凭据只给固定 AWS CLI；Docker子进程剥离 AWS/GitHub/数据库凭据。ECR密码仅stdin给login，DOCKER_CONFIG在本 job新私有目录，finally仅移除本机准确 auth config；不删云资源。
+- AWS临时凭据只给固定 AWS CLI；Docker子进程剥离 AWS/GitHub/数据库凭据。ECR密码仅stdin给login，Docker正常会把短时认证存到本 job新私有DOCKER_CONFIG；finally尽力移除准确 auth config，中断/移除失败时不能保证已清除。不删云资源，不将私有目录上传artifact。
 - S3最多4次版本化条件 PUT：本请求intent、必要时候选全局push槽、published、derived。任一 ACK不明即停；全局push槽占用后不自动复位或再推送。镜像已存在且核验通过可复用，不因占槽就声称镜像失败。
 - publisher用独立受保护 OIDC角色及窄数据库身份确认版本，再接回原 executor。一个 GitHub job可取得这些分工身份；这是代码/凭据分工，不冒称对被攻陷 runner 的绝对隔离。
 
@@ -71,3 +71,9 @@ runtime全局仍 `enabled:false/environments:{}`；未配置 promotion。未来�
 新增离线回归覆盖：审批意图无伪digest、运行/兼容/并发拒绝、S3/push/catalog未知不重试、发布后基线漂移及原期限、同job接回真实SDK内存CFN/独立核验/回写、具体Docker/AWS命令序列及凭据stdin/环境隔离、草案/单门禁结构。这里的Docker/GitHub/ECR响应是合成/注入，不是实际Docker推送或云发布证明。
 
 原隔离PG16 CI增加真实publisher LOGIN：验证草案可由非超级用户安装、owner收尾、只有publisher可确认候选、只有executor可准备同intent派生请求、错误来源/期限/重放拒绝、原候选沿革和审批SHA保留。本地未有隔离PG时明确skip，不拿模型通过冒充数据库验证。后续准确CI回执另附。
+
+## 已完成的准确 CI
+
+源码 `2659d7a9c4f1d6ba589f8e596ffef463ca457d1f` 的 [CI43561305617](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43561305617) attempt1 completed/success，head/两job/各步骤和原生日志均核对。Linux171回归通过/0失败/0跳过，含原ZIP实测；PG16的9项通过/0失败/0跳过，含本轮publisher真实LOGIN及窄确认/准备权限。[机器摘要](aws-instance-release-promotion-ci-20261113.json)。原首个CI的数据库子测试因漏导入异常类而停止，仅补该导入后由新push验证，保留旧失败；不是生产SQL执行失败。
+
+实际GitHub后端读取、ZIP下载、Docker load/push、Source/ECR、生产DB/配置/Secret/PEM、权限安装、部署或恢复均未执行。原三身份材料、已安装SQL和关闭runtime保持。本轮代码/CI至此收尾；下一只在用户要求时集中准备真实候选准入、缺失身份/增量SQL和准确启用范围，实际副作用仍另审，不自动补读/开环境。

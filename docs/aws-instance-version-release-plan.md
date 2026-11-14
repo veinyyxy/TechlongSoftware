@@ -1,12 +1,14 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-13，America/Winnipeg。状态：`PARTIALLY_IMPLEMENTED — D2-1..D2-4 CODE + D2-5 EXISTING-ECR OFFLINE INGESTION / ACTIVATION DISABLED`。
+日期：2026-11-13，America/Winnipeg。状态：`PARTIALLY_IMPLEMENTED — D2-1..D2-5 CODE/CI; SAME-APPROVAL PROMOTION WIRED / ACTIVATION DISABLED`。
 
 除下方明确交付的D2-1至D2-4代码/离线部分及D2-5已有ECR路线离线接入外，本文其余部分仍是待审设计，不是完整功能已完成、生产数据库迁移、Secret/IAM安装、镜像发布、部署工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
 最新D2-5接线：[具体来源采集与受审目录命令](aws-instance-release-import.md)已完成代码/准确无AWS CI（164回归＋8原生PG测试）；用户选择仅代码与CI，真实采集/登记未执行。同审批自动晋升现为明确后继需求，不再按“可选”跳过，但不扩大这轮已有ECR路径或提前发布。
 
 当前按用户新要求补[同审批候选晋升](aws-instance-release-promotion.md)：同一environment批准候选原件与更新派生约束，job发布一份app、回读ECR并窄目录确认，再复用原CFN/独立核验/回写。原件、实例和范围固定；审批前不编造digest。只代码/增量SQL草案/CI，未安装、启用或实际发布。
+
+该代码收尾已完成：[CI43561305617](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43561305617) 对应2659d7a，171回归＋9原生PG16全过/无skip。只证明合成来源/命令和隔离数据库，不是实际ECR晋升或部署已开启。后继仍需真实候选准入、必要身份/SQL安装及两次正常技术更新验收，不重复业务测试。
 
 <a id="d2-1-delivered"></a>
 
@@ -389,7 +391,7 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 | D2-2 状态与适配（离线已完成） | 三表/七函数与窄授权草案、请求CAS、CFN/证据注入适配 | [交付记录](#d2-2-delivered)：新增17项合同模型/真实SDK内存回归，总105通过；原生PG行锁/ACL未验证 | 草案未应用；安装前隔离PG验证，实际DDL/角色/Secret/IAM/GitHub另审 |
 | D2-3 已有ECR版本执行闭环（离线已完成） | executor、单独inspector入口、可信回写、NO_CHANGE/失败分类 | [交付记录](#d2-3-delivered)：不同实例/不同ECR版本、真实SDK内存模拟；相关123项本地通过，常规无AWS CI独立记录 | 不在线更新/启通用worker/写旧账本；生产采样、新进程身份接线及原生PG安装验证仍另审 |
 | D2-4 单审批工作流（代码完成/未启用） | 普通入口/摘要/准确run计划、一个受保护job、真实采样/隔离进程接线 | [交付记录](#d2-4-delivered)：14新增/137相关本地回归，真实子进程及默认关闭验证；无AWS CI/临时PG16结果独立记录 | runtime关闭；安装身份、生产读取及真实写分别批准，不自动调度 |
-| D2-5 正常版本生产接入（已有ECR路线接线已编码） | 构建产物→候选release→已发布ECR原始回读→不可变版本登记；同轮晋升未接入 | [具体入口与交付边界](aws-instance-release-import.md)：不绑定实例秘密；不覆盖版本，区分config/index/platform digest；真实生产采集/导入未执行 | 不改旧两镜像发布器；同审批晋升是明确后继需求，实际发布与新增权限另审，不宣称审批已合并 |
+| D2-5 正常版本生产接入（已有ECR与同审批晋升代码/CI完成） | 构建产物→候选release→同门禁内单app晋升/ECR原文验证→窄目录确认→原更新器 | [具体边界](aws-instance-release-promotion.md)：171回归＋9原生PG16，准确原件/派生规则固定，不伪造digest；真实生产采集/登记/晋升未执行 | 原唯一environment，未改旧两镜像发布器；新增SQL/身份尚未安装，runtime关闭，实际发布仍另审 |
 | D2-6 受控真实技术验收 | 一次明确恢复后两次独立正常版本切换，完成持久回写 | 第二次不改代码/复制workflow，单次发布一审批；实际镜像/归属/健康/记录一致 | 恢复/在线读/安装/每次发布及后续停费分别有明确授权；不执行买卖家业务测试 |
 
 最快顺序：D2-1→D2-2→D2-3，离线把整轮材料与失败分支备齐；再D2-4，已有ECR版本可先安排真实验收；D2-5不要求重写既有构建器。具体阶段以可运行交付为单位，不把一项实现拆成许多聊天审批，也不承诺一段固定时间能完成尚未核对的外部权限。

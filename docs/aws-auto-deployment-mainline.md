@@ -2,11 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：D2-5同审批候选晋升接线，仅代码与CI（2026-11-13）
+## 当前唯一继续点：D2-5同审批晋升代码/CI已收尾，未启用（2026-11-13）
 
 按用户新要求实现：一处GitHub人工门禁批准准确候选与更新派生规则，受保护job发布同一app归档、ECR回读、窄目录确认，再复用原CFN/独立核验/回写。不在审批前伪造digest，不调用旧两镜像发布器或增加第二审批。只代码/独立权限草案/回归及普通无AWS CI，runtime保持false；真实来源、安装身份/SQL、发布/恢复/部署各另审，不扩UI或临时工具。
 
 [接线代码及独立SQL草案](aws-instance-release-promotion.md)已完成，本地171回归中170pass/1 Windows解包skip、lint/类型通过；PG16追加publisher真实LOGIN/不可变晋升/同intent准备测试。仅等待准确CI及文档收尾，不读取生产或执行发布；普通已有ECR路径仍不依赖新publisher配置。
+
+收尾：源码2659d7a的[准确CI43561305617](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43561305617) attempt1 completed/success；171回归＋9原生PG16全过/无skip、lint/类型通过，[证据](aws-instance-release-promotion-ci-20261113.json)。首个native CI漏导入已单点修复，原失败保留。只完成代码/CI，真实候选登记/新增身份或SQL安装/发布/恢复/部署未执行，runtime关闭。当前到此结束，后继真实启用依赖集中准备及执行均须新明确范围，不自动补读或调度。
 
 ### 以下为上一轮代码/CI收尾
 
