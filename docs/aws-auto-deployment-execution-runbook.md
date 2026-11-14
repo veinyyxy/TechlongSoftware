@@ -2,7 +2,17 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：集中补核在首个STS停止，诊断须新许可（2026-11-14）
+## 当前唯一继续点：集中读取已结束，仅提请两份IAM草案五处ARN校验修复（2026-11-14）
+
+另批b官方STS诊断已返回准确IAM；随后累计STS1/AWS元数据63/GitHub GET12/配置1/验证TLS Neon READ ONLY连接1/SQL22，远端写/Secret值/PEM/HMAC/ZIP/新凭据/执行槽/恢复/dispatch全部0。主段读取完成，补核第一条GetHostedZone因SignatureDoesNotMatch停止，没有重试或继续使用剩余预算。原a和b全部原件保留，不重跑。成功事实至18:00:57.231Z（温尼伯11月14日12:00:57.231 CST），只部分可复用，不是完整安装预检或安装能力证明。[完整事实、缺项和唯一修复](aws-instance-release-activation.md#7-新诊断及集中核对的实际结果2026-11-14停止后只整理材料) / [去敏回执](aws-instance-release-activation-preflight-observed-20261114.json)。
+
+新名称空位、Neon原OID/ACL/保护及空目录保持、本人GitHub门禁已确认；最新合格后端38803364109的artifact列表为空，不能仅用ECR冒充原ZIP。原两ALB缺失/准确旧服务MISSING，但两数据库现在available，不是仍stopped，本轮没有启动或查询其启动原因，可能持续计费，不在只读许可下自动停库。DNS/既有三个Secret版本独立元数据及Source组策略等补核未完成；不恢复环境来填缺项。
+
+本地证明两IAM草案共五个Secret ARN AllowedPattern误写`:secret/`，真实格式`:secret:`；ValidateTemplate通过不验证实际参数值。**当前只建议另准两份草案五处分隔符、对应必要回归、指纹/文档与无AWS CI的最小代码修复**；尚未修改模板或获新代码批准，不扩权限Action/Resource、安装框架或生产读取。之后只另审未完成小范围，不重读整个AWS/Neon；token供给、新产物、实际安装/目录绑定/恢复和D2-6仍准确另审。runtime.json保持false/environments={}，无可执行安装SHA。
+
+### 以下为本轮执行前及分段记录（已结束，不重放或据旧文字继续读取）
+
+用户另允一次新记录官方STS去敏诊断及成功后的原未用范围。私有b于13:00:57.231Z—13:00:58.768Z仅一次STS提交成功返回准确IAM用户，未要求重复登录，a原件保持。当前可继续该b的AWS元数据75/GitHub GET12/配置1/TLS只读1/SQL45，不再提交STS；不读Secret/PEM/HMAC/ZIP/业务正文、不安装/恢复/调度。成功并不证明a失败的唯一根因或所有安装权限；后续结果统一记录。本次事实最晚18:00:57.231Z（温尼伯12:00:57.231 CST），原a不续期。
 
 用户明确允许本轮集中只读范围：固定Source身份STS最多1＋AWS元数据75、GitHub GET12、现有.env.local读取1/验证TLS Neon READ ONLY连接1/含事务最多45查询。只绑定总启用材料中的现有布局/新名称/准确实例与release目录/保护元数据；不读Secret值/PEM/HMAC/ZIP或业务正文、不连Aurora、不生成凭据、不写资源/数据库、不占执行槽、恢复或dispatch。使用新私有记录，不重跑旧读取配方；身份失败/分页不完整/超预算停止，不擅自重试或追加许可。事实5小时从真实开始算，不给旧事实续期。本轮先一次官方STS核对，再继续其余已批范围，实际次数及结果完成后追加。
 

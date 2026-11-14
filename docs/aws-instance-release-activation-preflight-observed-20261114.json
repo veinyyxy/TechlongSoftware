@@ -1,0 +1,132 @@
+{
+  "schema": "techlong/instance-release-activation-preflight-observed/v1",
+  "status": "PARTIAL_FACTS_PRESERVED_NOT_INSTALLABLE",
+  "startedAt": "2026-11-14T13:00:57.231Z",
+  "controlReadCompletedAt": "2026-11-14T13:20:53.124Z",
+  "stoppedAt": "2026-11-14T13:22:48.258Z",
+  "successfulFactsNotAfter": "2026-11-14T18:00:57.231Z",
+  "successfulFactsAreNotCompleteInstallationPreflight": true,
+  "source": {
+    "profile": "techlong-sandbox-user",
+    "endpoint": "https://sts.ca-central-1.amazonaws.com",
+    "accountId": "402010193138",
+    "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "identityVerified": true,
+    "originalFailureCauseProven": false,
+    "installationPermissionProven": false
+  },
+  "limits": { "stsSubmissions": 1, "awsMetadata": 75, "githubGets": 12, "configReads": 1, "neonConnections": 1, "sqlSubmissions": 45 },
+  "actualCounts": { "stsSubmissions": 1, "awsMetadata": 63, "githubGets": 12, "configReads": 1, "neonConnections": 1, "sqlSubmissions": 22, "writes": 0, "executionSlots": 0 },
+  "priorFailedAttempt": {
+    "receipt": "aws-instance-release-activation-preflight-stopped-20261114.json",
+    "preservedNotReplayed": true,
+    "stsSubmissions": 1,
+    "allOtherProviderCalls": 0
+  },
+  "observations": {
+    "retainedStacks": {
+      "platform": { "status": "UPDATE_COMPLETE", "retainedResourceCount": 7 },
+      "cell": { "status": "UPDATE_COMPLETE", "retainedResourceCount": 12 },
+      "tenant": { "status": "UPDATE_COMPLETE", "retainedResourceCount": 3 }
+    },
+    "historicalExactServiceLookups": { "platform": "MISSING", "tenant": "MISSING", "accountWideEcsInventoryPerformed": false },
+    "historicalExactAlbLookups": { "platform": "LoadBalancerNotFound", "cell": "LoadBalancerNotFound" },
+    "databases": [
+      { "id": "techlong-sandbox-express-d001", "status": "available", "resourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM" },
+      { "id": "speedfeast-postgres-prod", "status": "available", "resourceId": "db-MOOXGHRHTZM25V3I4NY25D4IEQ" }
+    ],
+    "databaseStartupActorOrCauseQueried": false,
+    "newNameVacancies": { "stacks": 4, "roles": 4, "managedPolicies": 4, "secrets": 5, "allAbsentAtObservation": true },
+    "secretsManagerDefaultKey": { "arn": "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570", "manager": "AWS", "state": "Enabled" },
+    "evidenceBucket": { "versioning": "Enabled", "encryption": "AES256", "blockPublicAccess": true, "ownership": "BucketOwnerEnforced", "promotionPrefixImmutabilityAgainstOtherAdministratorsProven": false },
+    "existingEcr": {
+      "repository": "techlong-sandbox-speedfeast", "tagMutability": "IMMUTABLE",
+      "manifestDigest": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+      "tag": "app-sha10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2-r38803364109-a1",
+      "rawManifestDigestVerified": true,
+      "candidateZipProven": false
+    },
+    "newTemplatesValidatedByAws": ["promotion-secrets.draft.template.json", "promotion-identity.draft.template.json"],
+    "validateTemplateProvesActualParameterValuesOrIamAuthorization": false,
+    "github": {
+      "observedMain": "fb5cb19dfe9da8ac0368c965d638234f7003306e",
+      "workflowSha256": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff",
+      "environment": "techlong-sandbox-deploy", "requiredHumanReviewerId": 14145707,
+      "adminBypass": false, "deploymentBranches": ["main"],
+      "oidcImmutablePrefix": "repo:veinyyxy@14145707/TechlongSoftware@1323312747",
+      "exactCi": { "runId": 43596568223, "sourceCommit": "375b0e20db3297b842d36ce5e61044f43814cf9c", "attempt": 1, "status": "completed", "conclusion": "success" },
+      "instanceReleaseWorkflowRuns": 0,
+      "mainBranchProtectionHttpStatus": 404,
+      "branchProtectionConfirmed": false,
+      "backendRepositoryId": 1064124445,
+      "latestEligibleSuccessfulMainBuild": { "runId": 38803364109, "sourceCommit": "10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2", "attempt": 1, "createdAt": "2026-10-15T20:36:48Z", "listedArtifacts": 0 },
+      "backendRunSampleLimit": 10,
+      "olderBackendRunsNotRead": true,
+      "artifactDownloaded": false
+    },
+    "neon": {
+      "tlsVerified": true, "tlsProtocol": "TLSv1.3", "readOnlyTransaction": true, "serverVersionNum": "180007",
+      "installedCatalogCategoriesCompared": 11, "allCategoriesUnchanged": true,
+      "schemaOid": 237571, "tables": 3, "functions": 9, "installedNoLoginRoles": 4,
+      "newRoleVacancies": 5, "newRoleNamesAllAbsent": true,
+      "releaseTablesEmptyByZeroByteRegularHeapsWithoutInheritance": true,
+      "runtimeRolesHaveTableOrColumnDml": false,
+      "installerEffectiveSetOrInheritOfReleaseRoles": false,
+      "installerStillHasCreateRoleCreateDbAndBypassRls": true,
+      "installerStillHasAdminManagementAuthority": true,
+      "instanceInitializedActive": true, "subscriptionActive": true,
+      "productId": "prd_restaurant_order_system", "sourceTemplateDeploymentDriver": "manual",
+      "legacyReadyDeploymentRecords": 1, "environmentApplyEnabled": false,
+      "newReleaseInstanceOrVersionBindingPresent": false,
+      "businessBodiesRead": false
+    }
+  },
+  "stop": {
+    "operation": "route53:GetHostedZone",
+    "zoneId": "Z01473621BTTHKXBGOOEJ",
+    "providerCode": "SignatureDoesNotMatch",
+    "rawProviderErrorSaved": false,
+    "requestRegion": "ca-central-1",
+    "documentedSigningRegion": "us-east-1",
+    "localRequestContractMismatchProven": true,
+    "historicalUniqueProviderCauseProven": false,
+    "retryPerformed": false,
+    "unusedBudgetIsNotAutomaticNewPermission": true
+  },
+  "notCompleted": [
+    "Exact hosted-zone and current API alias metadata",
+    "Three existing Secret fixed-version metadata lookups; task definition references alone are not independent Secret version proof",
+    "Source group policy layout and remaining original CFN inline policy body projection",
+    "Backend read-token origin, exact scope, expiration and secure supply",
+    "New checked app artifact; latest eligible successful build lists zero artifacts",
+    "Five Secret ARN AllowedPattern defects across the two IAM drafts",
+    "Live service physical IDs after separately approved restoration, image persistence and version compatibility declarations",
+    "Actual installation, seed registration, runtime enablement, restoration and D2-6 technical deployment acceptance"
+  ],
+  "materialDefect": {
+    "files": ["ops/releases/identities.draft.template.json", "ops/releases/promotion-identity.draft.template.json"],
+    "affectedAllowedPatterns": 5,
+    "observedIncorrectArnDelimiter": ":secret/",
+    "actualArnDelimiter": ":secret:",
+    "runtimeOrTemplateFixPerformed": false
+  },
+  "privateEvidence": {
+    "directory": ".local-secrets/activation-preflight-20261114-b",
+    "identityScriptRawSha256": "2936ee0dee022982416dca5e56599ff3571614c9d1800aa995de77d4af00fb1c",
+    "identityResultRawSha256": "7ad75e370311e9dc507ddf3263f1e2cd9defb9d8fc919ba564f5ebe6cc943a38",
+    "awsScriptRawSha256": "2c1bd892d0965350b434cd155bd20a80cb5f17f58a383ab331cb7572b14b5d8e",
+    "awsResultRawSha256": "bd1d2b8c67d7336b1c546594f97b1dd626338843dd76b23a4f15f07df6a36096",
+    "controlScriptRawSha256": "70129d5f9c33f3de446c03dabb6851e5e7279cda5adae5ac90763de57f360174",
+    "combinedResultRawSha256": "b617827c4f06aee33bdc4920643fd134a3ccb42260bc58d1677584c03cf0d7c5",
+    "remainingScriptRawSha256": "6853d1be1e54e5e6252df00a48988ea301f3da8ca09ea485c0b28f288263245c",
+    "finalResultRawSha256": "981f6ced935996f8ab51b3417961ef4686cc4afd0f0b834a577fa3e356e3edf7",
+    "rawCredentialsOrPrivateConfigStored": false,
+    "fullMetadataSnapshotCommitted": false
+  },
+  "installationManifestSha256": null,
+  "executionAuthorized": false,
+  "runtimeEnabled": false,
+  "secretsOrCredentialsGenerated": false,
+  "resourcesRestoredOrInstalled": false,
+  "nextProposedAction": "Approve only the five ARN pattern corrections across the two IAM drafts, focused regression and documentation/CI; no new production reads or installation. Preserve all captured facts and failed attempts."
+}

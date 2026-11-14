@@ -2,7 +2,17 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：集中补核在首个STS停止，诊断须新许可（2026-11-14）
+## 当前唯一继续点：集中读取已结束，仅提请五处Secret ARN校验修复（2026-11-14）
+
+b新官方STS身份通过后，累计STS1/AWS元数据63/GitHub GET12、配置1/验证TLS Neon READ ONLY连接1/SQL22、所有远端写与执行槽0。AWS主段/GitHub/Neon已完成；补核GetHostedZone因本地全球服务签名区域契约差异返回SignatureDoesNotMatch停止，没有重试或消耗余下范围。a/b原件全部保持，部分成功事实只到18:00:57.231Z＝温尼伯12:00:57.231 CST，不是完整安装预检通过。[事实、缺项与下一范围](aws-instance-release-activation.md#7-新诊断及集中核对的实际结果2026-11-14停止后只整理材料) / [去敏回执](aws-instance-release-activation-preflight-observed-20261114.json)。
+
+新名字空位、原schema/OID/ACL/保护/空release目录、本人门禁确认；最新合格后端构建无artifact，真实新ZIP/版本和token供给未落实。原两ALB缺失、准确旧服务MISSING，**两数据库现为available，可能计费**；本轮未Start/Stop或查启动原因，不自动恢复/停库。未完成的DNS/固定Secret版本/Source组策略仅标缺项，不拿历史ARN顶替。
+
+两IAM草案五个Secret ARN AllowedPattern写错为`:secret/`，实际应为`:secret:`。下一只提请这五处和必要测试/指纹/文档/无AWS CI的最小修复许可，尚未改草案；不扩权限或重新搭框架、不再追加生产读取。修复后只另审未完成的最小补核，不全量再盘点；安装/目录/恢复/D2-6仍另批，runtime关闭、安装SHA=null。
+
+### 以下为本轮执行前及分段记录（已结束，不据旧文字追加调用）
+
+新许可的一次官方STS诊断于13:00:58.768Z返回准确IAM用户，a失败原件保持；无须先重复登录。当前只继续b原未用AWS75/GitHub12/配置1/TLS只读1/SQL45，不重复STS/读私密值/写入或恢复。b事实终点18:00:57.231Z，成功不等于已证明a根因或安装可行。
 
 新许可仅STS1/AWS元数据75/GitHub GET12、配置读取1/TLS Neon只读连接1/SQL45，按[总清单第5节](aws-instance-release-activation.md)核对现有布局和准确实例/保护，不读Secret/PEM/HMAC/ZIP、写入/生成凭据、消费执行槽或恢复/调度。新记录、失败即停，不重放旧命令，事实5小时不续旧；尚未批准任何安装。
 

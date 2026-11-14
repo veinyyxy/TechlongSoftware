@@ -70,7 +70,7 @@ Secret→Neon→IAM跨服务非原子，两段DB事务之间也非原子。拟�
 - 真实产品/version/兼容声明、原当前基准与初始化实例绑定证据。控制库空结构不等于已具备实例/版本种子，也不能凭历史成功job自动编一条新可信版本。
 - 五个Secret实际ARN/VersionId与最终runtime映射尚不存在；本轮不生成启用配置值或执行SHA。
 
-## 5. 下一轮集中只读范围提案（尚未授权）
+## 5. 集中只读范围（已获准，结果见第7节；不得重放）
 
 材料和准确CI通过后仅请求一次：Source STS最多1＋AWS元数据最多75、GitHub GET最多12；随后 `.env.local` 全文件读取1，经验证TLS的Neon READ ONLY连接1，最多45条查询（含事务/SET LOCAL）。准备快照仍5小时，从真实读取开始计；材料文件可长期保留，不重计旧事实。
 
@@ -91,3 +91,31 @@ Secret→Neon→IAM跨服务非原子，两段DB事务之间也非原子。拟�
 用户随后允许第5节范围。本次于2026-11-14T12:54:17.908Z开始，仅提交一次固定Source profile/官方ca-central-1 STS查询；12:54:21.108Z以CLI255/SOURCE_READ_FAILED停止，没有身份返回。没有保存原始提供者错误，不据此判断必为过期或网络；本地CLI路径可解析、环境无显式AWS配置文件/代理覆盖，但这不是联网或认证成功证据。
 
 其余AWS元数据、GitHub GET、配置读取、Neon连接/SQL、写入与执行槽均0。未取得可用新快照、未生成安装批准SHA，旧a记录不改不重跑。[去敏回执/原件SHA](aws-instance-release-activation-preflight-stopped-20261114.json)。下一仅建议另准一次带去敏错误类别的新STS诊断；身份准确后才续原未用范围，不要求先盲目重复登录，不自动恢复环境。
+
+## 7. 新诊断及集中核对的实际结果（2026-11-14，停止后只整理材料）
+
+用户另允新记录官方STS诊断及准确身份后的剩余原范围。b于13:00:57.231Z开始，13:00:58.768Z返回原准确IAM用户；无需重复登录，不能反推a失败的唯一原因。AWS前段62次读取完成，GitHub12次和配置1次/验证TLS Neon READ ONLY连接1条/SQL22条于13:20:53.124Z完成。随后原预算内的补核在第63次AWS元数据、第一条准确GetHostedZone于13:22:48.258Z返回SignatureDoesNotMatch即停，未重试。没有Secret值/PEM/HMAC/ZIP、Aurora连接、凭据生成、远端写或执行槽消费。
+
+[去敏事实及原件SHA](aws-instance-release-activation-preflight-observed-20261114.json)。成功部分的事实最多到18:00:57.231Z（温尼伯11月14日12:00:57.231 CST），不因后续记录或失败延期；这是**部分事实，不是完整安装预检通过**。私有完整投影只在.local-secrets中保留，未提交Git。a、b所有原件保持，不重跑任何已执行脚本。
+
+### 已证实的事实
+
+- 新四栈/四角色/四策略/五Secret名称全部缺失；默认AWS-managed Secrets Manager Key为3af8de5c…且Enabled，证据桶版本化/AES256/公共访问阻断保持。两新增模板ValidateTemplate成功，仅证明模板可解析，不证明实际参数、权限或安装可行。
+- 原三栈UPDATE_COMPLETE，各保留平台7/Cell12/租户3项；两个准确旧ALB均LoadBalancerNotFound，两个准确旧服务查询返回MISSING。不据此证明全账号ECS/ALB全空、无旁路资源或零费用。
+- **两数据库均为available**：techlong-sandbox-express-d001和speedfeast-postgres-prod，resource ID未变。与11月13日停止回执不同，本轮Start/Stop为0、未查询启动操作者或原因；不能把原stopped当现状，也不能据此猜自动启动。可能持续计费，停库必须另获具体授权，当前不自动调用节费工具。
+- 本人人工environment、main部署规则、immutable OIDC前缀及工作流字节匹配；精确CI43596568223仍success，日常更新workflow尚无运行。main分支保护API返回404，只记“未取得保护配置”，不将它当作已启用；environment门禁与分支保护分别记录。
+- Neon18.7/TLS1.3/证书验证/只读事务通过；11类catalog与已安装原件完全一致，原schema/三表/九函数/四NOLOGIN及保护不变。五个待建DB角色名均缺失，三表均为零字节普通heap且无继承，证明版本目录/请求/实例绑定尚空；没有临时GRANT/SET ROLE或尝试写库。运行角色无表/列DML、安装者对四组有效SET/INHERIT仍关闭，但安装者仍是宽权限owner（含CREATEROLE/BYPASSRLS和管理能力），不宣称已最小化。
+- 准确实例及订阅active、已有ready部署元数据，但原客户模板driver=manual、环境apply=0，无新的release绑定。历史ready不等于当前服务正在运行，不自动改客户模板或填造版本种子。
+- 后端仓库ID1064124445；最近10条成功main构建中最新合格attempt1为38803364109/10fe3c41…，该run完整artifact列表为0。既有ECR的不可变tag和manifest字节匹配，但这不能代替已删除的原ZIP/扫描回执；未下载ZIP、未挑更旧构建或自动触发新build。
+
+### 本地材料缺陷与尚未补齐项
+
+补核配方对全球Route53 endpoint传了ca-central-1。官方要求此Route53 API使用us-east-1签名，[AWS端点/签名区域说明](https://docs.aws.amazon.com/general/latest/gr/r53.html)。已由本地请求证明契约错误；没有保留原始提供者错误正文，不能把它当作唯一历史原因，尤其不能说Source必然过期。原失败脚本不改字节、不在线重试。
+
+此外，本地材料核对发现两份IAM草案的**五个Secret ARN AllowedPattern误写为`:secret/`，真实ARN为`:secret:`**（原三身份3处、publisher2处）。真实task definition元数据已包含标准冒号格式；新模板的ValidateTemplate成功不会校验尚未传入的实际参数值。这会阻挡后续安装，当前未修改模板、原指纹或测试，也未创建任何Secret/IAM。
+
+DNS/当前API Alias、三个既有Secret固定版本独立元数据、Source组策略和余下原CFN inline正文没有取得，不用历史引用补成“已验证”。backend只读token供给及有效期、可用新checked app产物、图片持久化/无迁移兼容声明和恢复后的物理ID仍需落实；不因此恢复收费环境或把新Secret ARN/VersionId填成假值。
+
+### 当前唯一建议
+
+先征得**仅修两份IAM草案五处ARN分隔符、相应必要回归、指纹/文档及无AWS CI**的代码范围；不改授权Action/Resource范围、不扩框架、不读取生产或安装。批准后才修改，不能继续使用旧材料指纹冒充修正稿。其后最多只另审本次未完成的小范围元数据，不重复75次全量盘点或重读Neon；已成功事实未过期且未变化时复用，过期只补主线必需项。实际身份安装、token供给、新构建、目录/实例登记、恢复和D2-6部署仍各按准确范围另审，runtime继续关闭。
