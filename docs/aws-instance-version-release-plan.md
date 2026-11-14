@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-14，America/Winnipeg。状态：`D2-6 OFFLINE READINESS PREPARATION — ACTIVATION DISABLED / NO REAL UPDATE RUNS`。
+日期：2026-11-14，America/Winnipeg。状态：`D2-6 APP ORIGINAL VERIFIED / READ-ONLY FACTS PARTIAL — ACTIVATION DISABLED / NO REAL UPDATE RUNS`。
 
 除下方明确交付的D2-1至D2-4代码/离线部分及D2-5已有ECR路线离线接入外，本文其余部分仍是待审设计，不是完整功能已完成、生产数据库迁移、Secret/IAM安装、镜像发布、部署工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -16,6 +16,8 @@
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
+**当前实际结果（取代下方早期轮次状态）：** [新g/h/i核对](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留)已完成真实app原件校验、STS1/AWS元数据55和另批剩余Neon READ ONLY22条查询；保留两次停止和新续段，未重复成功读取或产生远端写入。下一只收口第二个原CFN角色详细策略缺项及一次性启用准确清单，不扩框架；图片持久化缺项另列准确范围，不混入版本更新。runtime仍关、两次真实更新仍0。机器事实见[回执](aws-instance-release-d2-6-readiness-observed-20261114.json)，以下旧轮次“仅离线/未读”不覆盖本次批准结果。
+
 最新代码前置（2026-11-14）：用户已另准仅修三处运行ARN校验及现有fixture/回归，修正源码7c80b9817bb95d2607b9adbe96a7641a8cee7b01的[准确CI43602498436](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43602498436) attempt1 completed/success，180 Linux回归＋9原生PG16全过/无skip，lint/类型通过，[回执](aws-instance-release-runtime-arn-fix-ci-20261114.json)。handoff两处与sampling一处均已改为标准冒号，旧斜杠拒绝，其他条件及默认关闭不变。本次未做此前被选择“只离线准备”的在线补核，未安装/启用或恢复；本轮到此收尾。下面“未改运行代码”的表述属于原离线准备轮，不覆盖这次明确批准且已完成的最小修复。
 
 本节是原第15节D2-6的执行细化，不另建阶段体系、运行工具或工作流。首个对象仍为`app_e897a4377bce498b9c5ee9e64509dcad`的tenant_api，账号402010193138/ca-central-1；用户负责业务验收，代理只做部署技术核验。本轮只有离线材料和合成重现，无新的AWS/GitHub生产读取、私密读取、SQL、凭据生成、安装、恢复或dispatch。用户对STS1/元数据16最小补核选择了“本轮只离线准备”，因此该提案未执行，也不延用旧许可。
@@ -26,11 +28,12 @@
 | --- | --- | --- |
 | 真实Secret ARN可被现有运行入口接受 | 两模板五参数及三处运行校验/现有fixture均已修；准确CI成功 | 新3项回归和原整轮/隔离PG回归通过；仅格式/代码验证，不等于真实Secret已创建或权限已生效 |
 | 一次性运行身份 | 原schema/3表/9函数/4 NOLOGIN已装；4 LOGIN、5 Secret、4 IAM角色/4策略、promotion增量未装 | 复用[启用清单](aws-instance-release-activation.md)，先补真实缺项，按准确SHA另批原四CFN栈及两SQL事务；保持runtime关闭至独立验证通过 |
-| 真实版本及可信实例绑定 | 上次只读证明release三表为空；最新合格后端run38803364109无artifact | 用现有构建/原件校验/目录端口建立两个合格版本及准确基准绑定；明确兼容/无迁移与持久化，不用旧ECR标签、过期扫描或合成SHA代替证据 |
-| 可运行的准确目标 | 上次原三栈保留，准确旧ALB缺失/旧服务MISSING；两库available；不是当前健康或零费保证 | 材料与身份齐备后，另批原启停工具的必要恢复；CFN所属资源只经CFN，使用新实际输出/物理ID核对引用，不在release中恢复 |
+| 真实版本及可信实例绑定 | 新成功run43630231572的app原ZIP/四文件与既有验证器通过，尚未产品绑定/发布；新Neon只读证明release三表仍空 | 复用已存原件/目录端口建立两个合格不同digest版本及准确基准绑定，不重复构建/下载，不用旧ECR标签、过期扫描或合成SHA代替证据 |
+| 可运行的准确目标 | 本轮三栈UPDATE_COMPLETE、资源7/12/3，但未读实际ECS/ALB/RDS运行或DNS；历史两库available不充当前值 | 材料与身份齐备后，另批原启停工具的必要恢复；CFN所属资源只经CFN，使用新实际输出/物理ID核对引用，不在release中恢复 |
+| 图片持久化 | 新取得租户模板仍IMAGE_STORAGE_PROVIDER=local；现有S3 gate无通过证据，没有查询实际task volumes | 不放宽PERSISTENCE_NOT_READY；必要存储对齐先列准确独立范围，不暗中变更或夹入只改镜像的release |
 | 单审批入口及回写 | instance-release.yml和独立verifier已有准确无AWS CI，runtime.json仍false/environments={} | 按真实版本/Secret固定版本/资源清单准备受审运行配置及种子；不把旧业务ready记录改成当前release成功 |
 
-现有成功事实只到2026-11-14T18:00:57.231Z，仍只部分可复用：DNS/三个旧Secret版本独立元数据、Source组策略等没有取得。过期不自动重取；未来只另审主线所需最小补核，不能重新排一轮无差别75次盘点。上次available不代表本轮查过数据库，也不据此推断启动原因。
+本轮新事实只到2026-11-15T00:18:33.301Z（温尼伯11月14日18:18:33.301 CST），不延长旧快照；三个旧Secret固定版本与Source组策略已核对，第二个原CFN角色详细策略投影不完整，DNS/ECS/RDS本轮未读。原包到期2026-11-15T19:07Z不能续元数据时效。未来只另审明确缺项，不再整批无差别盘点或借旧available推断当前数据库状态/启动原因。
 
 ### 2. 三处运行校验的离线证据及最小范围
 

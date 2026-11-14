@@ -1,0 +1,98 @@
+{
+  "schema": "techlong/instance-release-d2-6-readiness-observed/v1",
+  "status": "APP_ORIGINAL_VERIFIED_NEON_COMPLETE_AWS_PARTIAL_NOT_INSTALLABLE",
+  "startedAt": "2026-11-14T19:18:33.301Z",
+  "completedAt": "2026-11-14T19:31:03.262Z",
+  "factsValidUntil": "2026-11-15T00:18:33.301Z",
+  "factsValidUntilWinnipeg": "2026-11-14T18:18:33.301-06:00",
+  "oldFactsExtended": false,
+  "target": { "accountId": "402010193138", "region": "ca-central-1", "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad" },
+  "authorizationAndStops": {
+    "g": { "status": "STOPPED_AT_LOCAL_GITHUB_CONNECTOR_ROUTE", "successfulRunGet": 1, "artifactRouteRejectedLocally": true, "providerCredentialFailureProven": false, "preservedNotReplayed": true },
+    "h": { "continuationSeparatelyApproved": true, "usedSupportedRunArtifactsEndpoint": true, "status": "APP_VERIFIED_AWS_STOPPED_AT_METADATA_BUDGET", "awsCallsFailed": 0, "awsCall56Submitted": false, "preservedNotReplayed": true },
+    "i": { "neonOnlyContinuationSeparatelyApproved": true, "status": "NEON_READINESS_COMPLETE", "additionalAwsCalls": 0, "preservedNotReplayed": true }
+  },
+  "actualCounts": {
+    "successfulGitHubMetadataGets": 2, "localConnectorRejections": 1,
+    "artifactDownloadOperations": 1, "returnedSignedFileGets": 1,
+    "stsSubmissions": 1, "awsMetadataReads": 55,
+    "configFileReads": 1, "verifiedTlsNeonReadOnlyConnections": 1,
+    "sqlSubmissionsIncludingTransactionControls": 22,
+    "patFileReads": 0, "pemReads": 0, "awsSecretValueReads": 0, "auroraConnections": 0,
+    "remoteMutations": 0, "executionSlots": 0, "dispatches": 0, "realVersionUpdates": 0
+  },
+  "appOriginal": {
+    "repository": "veinyyxy/SpeedFeast_Backend_main", "repositoryId": 1064124445,
+    "workflowPath": ".github/workflows/backend-image-candidate.yml",
+    "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+    "runId": 43630231572, "attempt": 1, "conclusion": "success",
+    "artifactId": 14128140862,
+    "artifactName": "checked-app-b9ca2138738900afc23a6a2ddce141b37a1f0a31-43630231572-1",
+    "artifactExpiresAt": "2026-11-15T19:07:00Z",
+    "zipBytes": 72663114,
+    "zipSha256": "6d1214fad4c035175b389b5f2920397bea99ec33bb6dd932e74f000a38b1e152",
+    "exactFourFileExtractionVerified": true, "existingBackendBuildVerifierPassed": true,
+    "imageArchiveBytes": 72660633,
+    "imageArchiveSha256": "1631d0ae65f1bb8b629e64322287ad41977e3c5bb48593af89b9ad44a8784cb9",
+    "imageConfigDigest": "sha256:c894fe72356d12c22a9c3f9c81eded2f043907bf12e449ffa681488256acda7c",
+    "imageConfigDigestIsEcrManifestDigest": false,
+    "receiptSha256": "fc004a7337ababefcc05a44a69ff6f4cdc4c7bf3de5e417b6e85cbedafda53bf",
+    "selfCheckSha256": "23249b0906fd1bf22342f98c70a72cd05512178ef1051805d3835aae6b8f0f7e",
+    "securityReportSha256": "d5cd33a17b3ce4fda085088bce2c62b759df27959e15c95122c2552c0208b303",
+    "scannerDatabaseSha256": "39f64e2ce29dba2cab51984a7975b0c3fe9cdef5905b6f4bf43ba0019271005a",
+    "productBound": false, "catalogWritten": false, "ecrPublished": false, "secondQualifiedVersionProven": false
+  },
+  "aws": {
+    "sourceProfile": "techlong-sandbox-user",
+    "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "exactSourceIamUserVerified": true,
+    "retainedStacks": {
+      "platform": { "status": "UPDATE_COMPLETE", "resources": 7 },
+      "cell": { "status": "UPDATE_COMPLETE", "resources": 12 },
+      "tenant": { "status": "UPDATE_COMPLETE", "resources": 3 }
+    },
+    "newNameVacancies": { "stacks": 4, "roles": 4, "managedPolicies": 4, "secrets": 5, "allAbsentAtRead": true },
+    "existingOidcMetadataRead": true,
+    "defaultKey": { "manager": "AWS", "state": "Enabled" },
+    "evidenceBucket": { "versioning": "Enabled", "encryption": "AES256", "blockPublicAccess": true, "ownership": "BucketOwnerEnforced", "allPromotionPrefixesImmutableAgainstOtherAdministratorsProven": false },
+    "existingFixedSecretVersions": { "checked": 3, "present": 3, "awscurrent": 3, "valuesRead": 0 },
+    "sourceGroupAdministratorAccessObserved": true, "effectiveInstallationAuthorizationSimulated": false,
+    "cellCfnExecutionRoleDetailsCaptured": true,
+    "tenantCfnExecutionRole": {
+      "arn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+      "getRoleAndListAttachedCallsSucceeded": true, "returnedPayloadProjectionPersisted": false,
+      "remainingPolicyDetailsNotRead": true, "installationAuthorizationVerified": false
+    },
+    "workloadRunningStateReadThisRound": false, "databaseRunningStateReadThisRound": false,
+    "dnsReadThisRound": false, "ecrReadThisRound": false,
+    "tenantTemplateImageStorageProvider": "local", "persistentUploadsReadyProven": false,
+    "actualTaskVolumesReadThisRound": false
+  },
+  "neon": {
+    "tlsVerified": true, "tlsProtocol": "TLSv1.3", "readOnlyTransaction": true,
+    "transactionLocalSearchPath": "pg_catalog",
+    "installedCatalogCategoriesCompared": 11, "allCategoriesUnchanged": true,
+    "releaseSchemaOid": 237571, "originalReleaseTables": 3, "originalReleaseFunctions": 9, "originalNoLoginRoles": 4,
+    "fiveNewRoleNamesAbsent": true, "releaseDirectoryState": "EMPTY_BY_ZERO_BYTE_HEAP_PROOF",
+    "releaseBindingPresent": false, "instanceActive": true, "subscriptionActive": true,
+    "instanceTemplateDeploymentDriver": "manual", "environmentApplyEnabled": false, "businessBodiesRead": false
+  },
+  "remainingGaps": [
+    "Tenant CFN execution role policy projection is incomplete; no installation approval SHA is issued from partial facts.",
+    "Prepared LOGIN, five Secrets, four IAM roles/policies and promotion SQL remain uninstalled.",
+    "One app original is verified, but product/catalog/baseline binding and two qualified distinct versions are not established.",
+    "Tenant template uses local image storage; existing S3 persistence gate has no passing evidence. Do not silently change storage during an ImageUri-only release.",
+    "Runtime activation and necessary environment restoration still require exact separate approval; no current health or zero-charge claim."
+  ],
+  "runtimeEnabled": false, "installationManifestSha256": null,
+  "privateEvidence": [
+    { "path": ".local-secrets/d2-6-readiness-20261114-g/stopped.json", "sha256": "4089f5a47fcee2fcaf77edcb5df64afcdb0072b21dbb7def687f4adcfe2c0ac9" },
+    { "path": ".local-secrets/d2-6-readiness-20261114-h/artifact.result.json", "sha256": "f4c5552b2a5b77305c1573e00c419845038b508f417b1faab2ba7e08ee4b9ff7" },
+    { "path": ".local-secrets/d2-6-readiness-20261114-h/aws.calls.ndjson", "sha256": "0ebbad873669c1ed8ca22e63ae6ba729155ef411300f33ebd352bc60e91f20ab" },
+    { "path": ".local-secrets/d2-6-readiness-20261114-h/aws.outcomes.ndjson", "sha256": "cd2817cd030cb8557c95fce6ac820ea01b193348de0fd5e8d221d77a17df1ec6" },
+    { "path": ".local-secrets/d2-6-readiness-20261114-h/aws.result.json", "sha256": "e8188cd305179731607ad9cb0435185757354077b75e48252f6f7156b6191d24" },
+    { "path": ".local-secrets/d2-6-readiness-20261114-i/calls.ndjson", "sha256": "e1496d45339ace46962397949a0469a7599e06b1fa8c023b9fda7a1d2f6264ed" },
+    { "path": ".local-secrets/d2-6-readiness-20261114-i/result.json", "sha256": "bf06279253a9ef982e7d45539ba3effcb42f50763cfc03c279f86127e7e97875" }
+  ],
+  "publication": { "rawZipOrPrivateEvidenceCommitted": false, "credentialsOrBusinessSnapshotsCommitted": false, "onlySanitizedProjectionAndEvidenceHashes": true }
+}

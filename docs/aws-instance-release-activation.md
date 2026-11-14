@@ -2,6 +2,8 @@
 
 2026-11-14，America/Winnipeg。**仅材料与隔离回归，未安装、未恢复、未启用。** 复用 D2-4/D2-5，不另建安装器/工作流，不重做业务验收。机器索引：[activation.prepared.json](../ops/releases/activation.prepared.json)，`executionAuthorized=false`、`installationManifestSha256=null`；材料指纹不是执行批准。
 
+**最新事实：** [第11节](#11-d2-6真实app原件与neon核对完成aws部分事实保留)已验证真实app原件及原Neon结构，AWS55次成功后触及预算。仍有明确缺项，不是安装/恢复或两次更新已完成；前面各历史“下一步”不覆盖本节结论。
+
 ## 1. 已完成与本轮增量
 
 已安装的基座只沿用[真实完成回执](aws-instance-release-schema-install-completed-20261113.json)：`deployment_release` schema OID237571、三表九函数、owner及三操作 NOLOGIN。不得重放 `schema.draft.sql` / `grants.draft.sql` 或旧 attempt。原三身份材料中SQL/Secret模板保持；IAM草案同日另准仅修三处ARN分隔符，旧/新指纹分别记录，见[既有材料](aws-instance-release-identity-installation.md)。同审批晋升的代码/CI见[上一轮交付](aws-instance-release-promotion.md)。这些记录不是新的存活/空位证明。
@@ -164,3 +166,29 @@ d仅按新批准用[官方file://传参方式](https://docs.aws.amazon.com/cli/l
 两job均在`Gate high and critical production dependency advisories`失败。准确app日志报告9项（3 high/2 moderate/4 low），三项high分别为body-parser、follow-redirects、multer；deepmerge/SendGrid链及ip-address/qs也出现在诊断，但未据此扩全量依赖升级。镜像build、隔离容器/安全自检及候选保存均skipped；artifact0，不是镜像运行自检失败，更不是AWS部署失败。日志提出`npm audit fix --force`的破坏性SendGrid变更，不执行或作为默认方案。[去敏停止回执及私有原件SHA](aws-instance-release-d2-6-backend-build-20261114.json)。
 
 本轮按“失败不重试”结束，既有意图/ACK/失败和日志摘要保持；下一仅建议另准这三项high及必要直接关联依赖/回归的最小后端修复，不降低门槛、不新建工作流或框架。当前没有后端代码修改/推送或新构建批准，不自动修复、Re-run、下载ZIP、晋升/登记或创建资源。云构建不是D2-6实际更新，不启用runtime或恢复环境。原资源快照18:00:57.231Z已到期，不因新PAT/构建记录续期，后续安装只按必要新事实与准确审批处理。
+
+## 11. D2-6真实app原件与Neon核对完成，AWS部分事实保留
+
+2026-11-14新g/h/i三段均按分别批准的范围执行并保留原件。[去敏事实、计数及私有原件SHA](aws-instance-release-d2-6-readiness-observed-20261114.json)。本节取代旧执行卡中“最新成功构建无artifact”的当前结论；不改旧失败、旧快照时间或既有安装索引。
+
+### 已完成，不重复读取
+
+- **真实app原件：** 后端main b9ca213…的成功run43630231572/attempt1、准确artifact14128140862原ZIP已下载一次，72,663,114字节，SHA256 `6d1214fad4c035175b389b5f2920397bea99ec33bb6dd932e74f000a38b1e152`。复用原四文件解包器与`verifyBackendBuildEvidence`核对原包/回执/自检/扫描及来源通过，没有运行镜像、改门槛或放行lifecycle。config digest不是ECR manifest digest；尚未绑定产品、登记目录或发布ECR。
+- **AWS：** 精确Source IAM用户核对成功；55次元数据均成功或得到预期不存在结果，未提交第56次。新四栈/五Secret/四角色四策略名称均空；三保留栈UPDATE_COMPLETE（资源7/12/3）、OIDC/默认AWS-managed Key/私有证据桶及三个固定Secret版本元数据已核对。Source组AdministratorAccess和原Cell CFN角色完整策略投影取得，不等于实际安装权限已模拟通过。本轮没有查询ECS/ALB/RDS运行状态、DNS或ECR，不把栈完成状态解释成服务在线或零费用。
+- **Neon：** 后继单独获准且只执行剩余配置读取1/验证TLS READ ONLY连接1，实际22条SQL。TLSv1.3授权验证、事务内`search_path=pg_catalog`；原catalog/ACL/保护11类摘要全部不变，原3表/9函数/4 NOLOGIN保持。五个拟新增角色仍不存在；release三空堆无继承，目录/请求/实例基准绑定仍为空。准确实例与订阅active，但旧template driver仍manual、环境apply_enabled=0；未据此自动改绑定或启用。
+
+g使用单artifact通用URL被连接器本地拒绝，尚未发生提供者响应；另批h才替换为受支持的run/artifacts入口，不重复run GET。h在第二个原CFN角色策略采集前触及55次预算而停，**不是AWS失败或登录过期**；另批i只做剩余Neon，无追加STS/AWS。合计成功GitHub元数据GET2、原包下载操作1（含返回文件GET1）、STS1/AWS元数据55、配置1/TLS只读1/SQL22。PAT/PEM/Secret值/Aurora/远端写/执行槽/dispatch均0。
+
+### 尚未闭合，不能据此生成执行批准
+
+| 缺项 | 事实与边界 | 下一步最小处理 |
+| --- | --- | --- |
+| 第二个原CFN执行角色详细授权 | `TechlongSandboxCloudFormationExecutionRole`的GetRole/ListAttached已成功，但本地中间赋值在后续预算检查前未完成，结果投影未封存；只留下调用成功日志和输入摘要。不能用旧策略或推导值顶替 | 仅对这个角色另列必要补核范围，不重复三栈/55次整批、ZIP或Neon。当前Neon续段不含此许可 |
+| 一次性身份/增量安装 | 新四栈13资源（五Secret、四角色四策略）、四LOGIN和promotion增量仍未装；原schema/grants不重放 | 复用原模板/两SQL事务，补齐准确输入后再出安装SHA；不借只读许可生成密码/写Secret或安装 |
+| 真实版本/实例基准 | 已有一份验证通过且未发布的app原件，不是两个登记版本；版本目录和实例基准为空 | 复用既有单app晋升/目录入口，产品绑定、两个不同digest合格版本及基准按准确范围另审；旧ECR tag不是新构建原件，NO_CHANGE不计验收 |
+| 上传图片持久化 | 本次租户CFN模板`IMAGE_STORAGE_PROVIDER=local`；未读当前task volumes，不能仅凭该值断言所有文件已丢失。但现有采样器只在准确S3 provider/bucket匹配且HeadBucket通过时标记ready，当前无通过证据 | 保留`PERSISTENCE_NOT_READY`门槛；最小存储对齐须独立列具体范围，不扩大更新器、静默切存储或混入ImageUri-only变更 |
+| 运行/恢复与两次更新 | runtime仍false/environments={}，没有新目录/请求/run；此次未核对收费运行状态 | 只在前置备齐并另准后复用原工具恢复必要依赖，再按原执行卡两次技术更新；不重做业务测试，不默认为资源已停或自动清理 |
+
+下一唯一动作是**依据已存原件整理上述缺项中的最小授权补核及一次性启用清单**；不再补工具或改框架。云/数据库/存储变更仍各按准确范围确认，不在本轮实施。新事实终点固定为`2026-11-15T00:18:33.301Z`＝温尼伯11月14日18:18:33.301 CST；artifact原期限为`2026-11-15T19:07:00Z`，两者不能互相续期。过期停止使用，不自动大盘点或重复构建。
+
+本轮最后仅提交去敏文档/回执并校验本地原件指纹、JSON与差异；不为文档重复运行应用CI，不追加生产读取。真实更新仍0次，未签发可执行安装SHA。

@@ -2,11 +2,21 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：候选隔离及准确CI已完成，回到D2-6真实来源/启用前置（2026-11-14）
+## 当前唯一继续点：D2-6只读准备已收尾，补齐明确缺项后才审批安装（2026-11-14）
+
+[最新结果与唯一后继](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留) / [去敏机器回执](aws-instance-release-d2-6-readiness-observed-20261114.json)。真实app run43630231572/artifact14128140862原ZIP及四文件已验证，尚未产品绑定/登记或发布。AWS STS1＋55次元数据成功，预算前停；第二个原CFN角色详细策略投影不完整，明确留缺项。另批续段只读Neon已完成：配置1/TLS验证READ ONLY连接1/SQL22，原catalog/ACL/保护11类相同，新增身份仍不存在、release目录/实例基准仍空；没有追加AWS。
+
+下一仅据已存原件整理**该CFN角色最小补核及一次性启用准确清单**；新读取仍需具体批准，不重复55次/ZIP/Neon。租户模板图片provider仍local，现有S3持久化门槛无通过证据，后续存储对齐须独立准确范围，不混进镜像更新或扩大工具。runtime关闭，安装/恢复/ECR/dispatch/云或DB写/真实更新均0；不声称本轮核对了数据库/ECS运行或零费用。事实终点2026-11-15T00:18:33.301Z＝温尼伯今天18:18:33.301 CST不延长；artifact原截止11月15日19:07Z单独保留。
+
+### 以下为本轮已执行的集中只读批准范围（不重跑）
+
+用户现已明确批准本轮集中范围：既有GitHub连接GET最多8/准确run43630231572与artifact14128140862原ZIP下载一次（≤500MiB）/复用原解包与验证器；固定Source官方STS1＋AWS元数据55，仅原三栈/新四栈五Secret四角色及策略名称、相关OIDC/Key/桶/权限及固定Secret版本；配置读取1/验证TLS Neon READ ONLY连接1/SQL45，仅原结构/角色/保护、准确实例与版本绑定。新私有记录，失败即停不重试，必要投影/摘要与原包私有封存，不读PAT/PEM/Secret值或业务正文，不连Aurora/写云或DB/生成凭据/占执行槽/调度/恢复。准备事实从真实新读取起最多5小时，不续旧事实；实际安装/原件登记/发布仍另审。只执行本轮已准范围，不重跑历史脚本或重复构建。
+
+### 以下为已完成的构建前置（不重做）
 
 [按清单编码与最终证据](aws-instance-release-candidate-isolation-plan.md#准确ci最终结果隔离完成)已收尾。后端main b9ca2138738900afc23a6a2ddce141b37a1f0a31的[CI43630231573](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43630231573) success（322/14 Python/容器smoke），同源码[app候选43630231572](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43630231572)整个run success、唯一app job、OS HIGH0/CRITICAL0及候选保存成功。平台main 4dfb7cee3695be92e22f8a51f3702fdf0dd61dc8的[无AWS CI43630305302](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43630305302) success，Linux180/原生PG16九项均全过/skip0、lint/类型通过。[去敏机器回执](aws-instance-release-candidate-isolation-ci-20261114.json)。
 
-新checked-app artifact14128140862（到期2026-11-15T19:07:00Z）只核对元数据，没有读取原包、登记目录或发布。新lifecycle手动工作流不曾调度，61项未改；两workflow执行步骤与原稿一致，production.ts/import-source.ts/runtime/发布workflow/旧双发布器保持，失败run及lifecycle来源继续拒绝。此隔离缺口完成，不再扩构建框架/工具链。
+该构建前置收尾时，checked-app artifact14128140862（到期2026-11-15T19:07:00Z）只核对元数据；其后已另批取得并验证原包，以上最新结果为准，目录/ECR仍未写入。新lifecycle手动工作流不曾调度，61项未改；两workflow执行步骤与原稿一致，production.ts/import-source.ts/runtime/发布workflow/旧双发布器保持，失败run及lifecycle来源继续拒绝。此隔离缺口完成，不再扩构建框架/工具链。
 
 下一唯一动作是沿原D2-6准备新成功app候选的真实原件验证及既有启用清单，不重复构建/恢复环境或大盘点。必要ZIP/私密读取、目录及身份安装、恢复/实际发布仍须准确范围另审；当前未获执行许可。本轮AWS/生产配置/Secret/PAT/生产库/手动dispatch/安装/恢复/ECR0，runtime关闭、实际更新0；新构建不续旧AWS/Neon事实，文档收尾HEAD不冒充上述源码CI。
 

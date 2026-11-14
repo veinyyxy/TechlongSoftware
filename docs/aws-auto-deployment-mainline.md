@@ -2,11 +2,21 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：候选隔离及准确CI已完成，回到D2-6真实来源/启用前置（2026-11-14）
+## 当前唯一继续点：D2-6只读准备已收尾，补齐明确缺项后才审批安装（2026-11-14）
+
+[最新结果/缺项](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留) / [回执](aws-instance-release-d2-6-readiness-observed-20261114.json)：真实app原ZIP/四文件验证通过，未产品绑定/登记或ECR发布。STS1/AWS元数据55均成功，预算前停止，第二个原CFN角色策略投影未完整取得。另准的Neon-only续段已完成配置1/验证TLS READ ONLY连接1/SQL22，原11类结构权限保护摘要不变，新身份不存在、release目录/实例基准为空；没有追加AWS或写入。
+
+下一只整理**这个CFN角色最小补核与一次性启用清单**，不重复已完成整批读取/原包/Neon，不改工具框架。模板仍local图片存储，既有S3持久化门槛无通过证据，另列必要存储对齐，不混入ImageUri-only更新。新读取/身份安装/目录写/必要恢复和发布均准确另审；runtime关闭、真实更新0，不声称本轮验证过收费运行状态。新事实只到2026-11-15T00:18:33.301Z（今天温尼伯18:18:33.301 CST），原件到期另为11月15日19:07Z，均不延期。
+
+### 以下为本轮已执行的集中只读批准范围（不重跑）
+
+本轮已准：GitHub GET8/准确43630231572的artifact14128140862原ZIP1（≤500MiB），官方Source STS1/AWS元数据55及原配置1/验证TLS Neon READ ONLY1/SQL45的集中限定核对。只原三栈/拟装身份与Secret等必要布局、原结构保护及准确实例/版本；新私有记录，失败不重试，旧事实不续。不读PAT/PEM/Secret值/业务正文或连Aurora，不云/DB写、生成凭据/占执行槽、安装/恢复/调度。准备完只出真实缺项与准确待审材料，不能当两次更新批准；runtime关闭、实际更新0。
+
+### 以下为已完成的构建前置（不重做）
 
 后端main b9ca213已推，[CI43630231573](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43630231573)322测试/14 Python/容器smoke全成功；同源码[app候选43630231572](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43630231572)整个run success，只有app，OS HIGH0/CRITICAL0且保存候选。平台main 4dfb7ce的[无AWS CI43630305302](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43630305302) Linux180/原生PG16九项全过/skip0，lint/类型成功。[机器证据](aws-instance-release-candidate-isolation-ci-20261114.json) / [最终说明](aws-instance-release-candidate-isolation-plan.md#准确ci最终结果隔离完成)。均原push/attempt1，原件/旧失败保持。
 
-隔离已完成，runtime/校验器/采集器/原安全门槛不改，新lifecycle未调度、61项未修。新app artifact14128140862到期11月15日19:07:00Z，仅元数据核验，尚未原ZIP验证/目录登记或ECR发布。下一只准备这个新成功候选的真实证据及原D2-6启用前置，实际读取/安装/恢复/更新仍准确另审；不再扩构建工具或重复构建。AWS/生产读取/私密值/手动dispatch/安装/恢复0，runtime关闭、实际更新0，旧事实不续。
+隔离已完成，runtime/校验器/采集器/原安全门槛不改，新lifecycle未调度、61项未修。该构建收尾时新app artifact14128140862仅核对元数据；随后已另批验证原ZIP，以上最新结果为准，目录登记/ECR仍未执行。实际安装/恢复/更新仍准确另审；不再扩构建工具或重复构建。这里记录的零生产读取只指当时构建收尾，不抹去后来已准只读事实；runtime关闭、实际更新0，旧事实不续。
 
 ### 以下为本次已完成的实施范围（不重做）
 
