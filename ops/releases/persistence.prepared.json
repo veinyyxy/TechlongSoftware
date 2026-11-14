@@ -1,0 +1,48 @@
+{
+  "schema": "techlong/instance-release-persistence-prepared/v1",
+  "status": "OFFLINE_CANDIDATES_PREPARED_NOT_INSTALLED",
+  "preparedOn": "2026-11-14",
+  "executionAuthorized": false,
+  "installationManifestSha256": null,
+  "target": { "accountId": "402010193138", "region": "ca-central-1", "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad" },
+  "artifacts": [
+    { "path": "ops/releases/persistence.draft.template.json", "sha256": "01eee63435ec5cd490a671ddcd1f4f817526724f2fe59020ab0235b437529743" },
+    { "path": "ops/releases/persistence.ts", "sha256": "1b9197525170cfe9b90779fc52732f7732844a96b6c8a8d2b8800298d18b0e13" }
+  ],
+  "artifactHashNormalization": "UTF-8, CRLF to LF only",
+  "proposedMediaStack": {
+    "name": "techlong-sandbox-media-9c5ee9e64509dcad-v1", "resources": 5,
+    "requiredStackTerminationProtection": true,
+    "terminationProtectionMetadataIsNotProviderEnforcement": true,
+    "publicProductImagesOnly": true,
+    "notInTemporaryThreeStackStopSet": true,
+    "outputKeys": ["MediaBucketName", "MediaBucketArn", "MediaDistributionId", "MediaPublicBaseUrl"],
+    "bucketNameVacancyVerified": false, "awsTemplateValidationPerformed": false
+  },
+  "pureDerivations": {
+    "module": "ops/releases/persistence.ts",
+    "iam": "draftPersistenceIam(originalTemplate, {role: originalLogicalId, boundary: originalLogicalId}, actualMediaOutputs)",
+    "tenant": "draftPersistenceTenant(originalTemplate, actualMediaOutputs)",
+    "cloudClientsOrExecutionEntry": false,
+    "liveOwnershipVerifiedByDerivation": false,
+    "iamOwnerRequired": "Original role/boundary owner only; do not create a second owner or replay historical IAM installers.",
+    "iamChangesOnly": ["one exact application-role image-write inline policy", "one exact-principal boundary allow statement"],
+    "taskRoleDatabaseBindingAndPassRoleChanged": false,
+    "tenantChangesOnly": ["IMAGE_STORAGE_PROVIDER", "IMAGE_S3_BUCKET", "IMAGE_PUBLIC_BASE_URL", "ALLOW_EPHEMERAL_IMAGE_STORAGE"],
+    "tenantServiceImageParametersSecretsNetworkAndResourceSetChanged": false,
+    "servicePresentRequiresSeparateRuntimeDeploymentReview": true
+  },
+  "remainingFactsOrApprovals": [
+    "New bucket/stack/OAC/headers policy name occupancy and actual ownership/output metadata.",
+    "Exact original IAM owner template, role and shared boundary current policies; preserve all effective DB/Secret constraints and check version capacity.",
+    "Exact current tenant Original template and stopped/running shape; actual provider change plan and rollback policy.",
+    "Old image references and file availability, approved public-data classification, exact migration scope if required.",
+    "Actual installation, bound outputs, technical evidence and original activation parameters; no placeholder outputs or verification digest."
+  ],
+  "previousFactsNotAfterUnchanged": "2026-11-15T00:18:33.301Z",
+  "artifactExpiresAtUnchanged": "2026-11-15T19:07:00Z",
+  "productionReadOrWriteAuthorizedByThisIndex": false,
+  "persistentUploadsReady": false,
+  "runtimeEnabled": false,
+  "realVersionUpdates": 0
+}

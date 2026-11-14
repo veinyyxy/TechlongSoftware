@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：D2-6持久化方案已备，下一仅离线候选与回归（2026-11-14）
+## 当前唯一继续点：D2-6持久化离线编码完成，仅核验准确无AWS CI（2026-11-14）
+
+[交付与边界](aws-instance-release-persistence-plan.md#9-已批准的离线编码交付)：五资源CFN候选、IAM两处追加/四环境值纯派生、材料指纹及13回归已完成；本地总193为192pass/1 Windows原包skip，lint/类型通过。只在原CI加入测试，无部署/OIDC权限或新框架；未读生产/写云或DB、未安装/恢复，runtime关、真实更新0。当前仅main提交和对应Linux/PG16无AWS CI核验，之后结项，不自动继续事实采样或执行。
+
+### 以下为本次编码的方案与批准范围（已执行，不重做）
 
 [最小离线方案](aws-instance-release-persistence-plan.md) / [摘要](aws-instance-release-persistence-prepared-20261114.json)：拟独立五资源图片CFN栈，私有S3＋OAC/CDN公开商品图片读取；不改买家静态栈/DNS/证书或后端镜像。原S3模块已有写/删但无读取代理，不能只切provider。保持原TaskRole/Express绑定；准确图片权限在原IAM归属内修改，边界Allow限制准确应用主体，不扩共享角色权限。旧图片迁移按实际来源另审，不假定无数据。
 

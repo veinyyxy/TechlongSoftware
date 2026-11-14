@@ -1,6 +1,6 @@
 # D2-6持久化前置：上传桶与安装参数的最小离线方案
 
-2026-11-14，America/Winnipeg。**仅离线方案，未编码、未部署、未批准新读取。** 本文只解决原D2第10节的图片持久化门槛及原IAM模板必填`UploadBucketArns`，不新增发布框架、图片业务功能或验收支线。[机器摘要](aws-instance-release-persistence-prepared-20261114.json)。真实更新仍0，runtime仍关闭。
+2026-11-14，America/Winnipeg。**离线候选与纯派生已编码，未部署、未批准新读取。** 本文只解决原D2第10节的图片持久化门槛及原IAM模板必填`UploadBucketArns`，不新增发布框架、图片业务功能或验收支线。[原方案摘要](aws-instance-release-persistence-prepared-20261114.json)保留设计时状态；[最新编码材料](../ops/releases/persistence.prepared.json)不含执行批准。真实更新仍0，runtime仍关闭。
 
 ## 1. 已确认的源码事实
 
@@ -116,3 +116,18 @@ AWS_REGION保持ca-central-1、APP_RUNTIME_MODE保持原值，不新增或轮换
 实际安装、配置、必要迁移及原一次性启用可集中编制受审顺序和准确外层范围，但不得隐藏增加的五项存储/CDN资源、原IAM修改和业务数据副作用。当前未生成密码、读私钥/Secret/.env、调用AWS账号或数据库，未恢复环境/调度/上传对象；只本地源码/已存去敏资料和公开规范。原事实截至2026-11-15T00:18:33.301Z、原件到期11月15日19:07Z保持，不由本方案续期；没有更改50USD目标或承诺零费用。
 
 本轮本地校验通过：机器JSON/五资源计数/7份源码LF指纹/必填桶参数与默认关闭保持；隔离执行现有image_storage模块，仅合成配置、URL编码和两次mock SDK命令（Put/Delete），未加载app/db/任何.env、真实SDK或网络。不把该合成核对冒充真实S3上传/CDN/业务验收，不为纯方案文档重跑应用CI。
+
+## 9. 已批准的离线编码交付
+
+本次用户已要求实施第8节的唯一动作，交付仅为：
+
+- [五资源CFN候选](../ops/releases/persistence.draft.template.json)：固定sandbox名称、私有版本化Retain桶、OAC、准确CDN桶读策略、HTTPS默认域名及CORS。没有IAM/计算/网络/数据库资源，没有实际输出。终止保护是未来栈创建/设置操作的要求，Metadata不等于已替提供者启用保护。
+- [两项纯派生函数](../ops/releases/persistence.ts)：`draftPersistenceIam(original, {role, boundary}, actualMediaOutputs)`只向原角色/边界各追加一项；`draftPersistenceTenant(original, actualMediaOutputs)`只改四个环境值。输入不变、输出保持执行未授权/现场归属未验证，均无I/O、凭据或执行入口；不代表自动取得了当前Original、核实了模板与实际IAM一致或证明了输出来源。
+- [材料指纹与待核对项](../ops/releases/persistence.prepared.json)：两份候选原件固定LF SHA；UploadBucketArns/真实迁移核验结果仍未产生，不签发安装SHA。
+- [13项合成回归](../tests/instance-release-persistence.test.ts)：五资源/保留/私有读及CORS、原IAM两处精确追加/其他消费者不变、四环境值之外完整保持、错误目标和重复派生拒绝、现有full/idle变换保留S3配置。临时工具只在测试中使用，正式派生代码不依赖临时工具。
+
+候选复用原sandbox CloudFront标准distribution的ForwardedValues配置形态，对三个CORS头逐值转发并分缓存，MaxTTL固定86400；该字段[已标弃用但标准distribution仍支持](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-properties-cloudfront-distribution-forwardedvalues.html)。本轮明确不加入额外CachePolicy/OriginRequestPolicy资源，保持五资源范围，不把它称作多租户distribution或云验证通过。
+
+当前本地：新增13项全过，相关总193项为192通过/1个既有Windows原包解包skip；定向lint/全项目类型通过。原无AWS CI仅在已有测试命令中加入此文件，无新工作流或部署入口、无AWS/OIDC权限；准确远端Linux/PG16结果完成后单独记录。仅代码/文档main提交推送和该CI核验，不读取生产/.env/Secret/PEM、不AWS或数据库读写、不构建后端/晋升/安装/恢复。
+
+下一唯一动作是核验该准确源码的既有无AWS CI并结项；之后才按第8节集中准备必要新事实与实际审批。不能用旧18:18:33准备期限或旧批准自动追加调用，也不能用这次代码测试冒充图片迁移或D2-6真实更新。
