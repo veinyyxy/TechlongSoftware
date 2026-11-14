@@ -1,0 +1,117 @@
+{
+  "schema": "techlong/instance-release-identity-installation-prepared/v1",
+  "status": "OFFLINE_MATERIALS_COMPLETE_BINDINGS_PENDING",
+  "executionAuthorized": false,
+  "stage": "ONE_TIME_ACTIVATION_DEPENDENCIES_NOT_D2_4_FEATURE_WORK",
+  "preparedAt": "2026-11-14T01:15:36.558Z",
+  "target": {
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "databaseProvider": "Neon",
+    "database": "neondb",
+    "installer": "neondb_owner",
+    "repository": "veinyyxy/TechlongSoftware",
+    "repositoryId": "1323312747",
+    "environment": "techlong-sandbox-deploy",
+    "environmentId": 24613410405,
+    "humanReviewerId": 14145707
+  },
+  "existingInstallation": {
+    "receipt": "docs/aws-instance-release-schema-install-completed-20261113.json",
+    "approvedManifestSha256": "a79ea11bac284f2d949ca15ac22dca214b228aa528787a5f1928db6b9ecb2e0b",
+    "schemaOid": 237571,
+    "tables": 3,
+    "functions": 9,
+    "noLoginRoles": 4,
+    "replaySchemaOrGrants": false
+  },
+  "savedFacts": {
+    "originalStartedAt": "2026-11-13T21:10:40.091Z",
+    "originalValidUntil": "2026-11-14T02:10:40.091Z",
+    "originalReceiptRawSha256": "1d799101f54650d1c2386973493183b016907dcd5afd5657bc25ee7fa07b71ad",
+    "newAwsOrDatabaseRead": false,
+    "factTimeExtended": false,
+    "oidcSubjectPrefixObserved": "repo:veinyyxy@14145707/TechlongSoftware@1323312747",
+    "fullJwtObserved": false,
+    "oidcProviderArn": "arn:aws:iam::402010193138:oidc-provider/token.actions.githubusercontent.com"
+  },
+  "artifacts": [
+    {
+      "path": "ops/releases/login-roles.draft.sql",
+      "normalization": "UTF-8 / CRLF to LF only",
+      "sha256": "fc2a63332de852fd19d9cd9a6c1d7451df31df3330358779f7e3e19740d3075a"
+    },
+    {
+      "path": "ops/releases/control-secrets.draft.template.json",
+      "normalization": "UTF-8 / CRLF to LF only",
+      "sha256": "cdb09f734416a8fa5810948dad03d4184941a4b63155626eb6d8ea5619290b22"
+    },
+    {
+      "path": "ops/releases/identities.draft.template.json",
+      "normalization": "UTF-8 / CRLF to LF only",
+      "sha256": "ce403675d49cea849173c0a76ef24f8392e9e9efa86ac84d89f5188f2a04b683"
+    }
+  ],
+  "futureWritesNotApproved": {
+    "secretStack": "techlong-sandbox-instance-release-secrets-v1",
+    "secretResources": 3,
+    "secretNames": [
+      "techlong/sandbox/instance-release/planner-db-v1",
+      "techlong/sandbox/instance-release/executor-db-v1",
+      "techlong/sandbox/instance-release/verifier-db-v1"
+    ],
+    "databaseTransactionFragments": 1,
+    "newLoginRoles": [
+      "deployment_release_planner_login",
+      "deployment_release_executor_login",
+      "deployment_release_verifier_login"
+    ],
+    "iamStack": "techlong-sandbox-instance-release-identities-v1",
+    "iamRoles": 3,
+    "managedPoliciesUsedAsIdentityAndBoundary": 3,
+    "additionalInlinePolicies": 0,
+    "newOidcProviders": 0,
+    "newKmsKeys": 0,
+    "newComputeOrDatabaseResources": 0,
+    "runtimeEnabled": false,
+    "dispatches": 0
+  },
+  "credentialContract": {
+    "purposeSeparation": true,
+    "passwordFormat": "Three independently generated distinct 64-character lowercase hexadecimal passwords; generate only after actual approval",
+    "secretPayload": "JSON with one connectionString key; matching deployment_release_<purpose>_login, existing verified Neon host/neondb, sslmode=verify-full",
+    "cfnParameters": "Three required NoEcho JSON strings; never commit/log values or put them in argv; NoEcho is not an absolute secrecy boundary",
+    "sqlInput": "Three bound set_config values local to the reviewed BEGIN/COMMIT; exact SQL fragment once",
+    "versionBinding": "Use only created Secret stack outputs plus the independently read matching VersionIds; no invented suffix, default AWSCURRENT or secret rotation",
+    "existingPublicPrivileges": "New roles still share database PUBLIC rights; not row-level tenant isolation; do not modify old ACLs to force acceptance"
+  },
+  "requiredBeforeExecution": [
+    "Accurate source CI must validate the new SQL with actual PostgreSQL LOGIN authentication; local skip/static checks are not that proof",
+    "A separately authorized current preflight must bind installer capabilities, the existing schema/OIDs/ACL, three LOGIN name vacancies and unchanged old protection metadata",
+    "New CFN stack names, IAM role/policy names and Secret names must be checked for collisions; old absence observations do not authorize overwrite/import",
+    "Exact ReadStackArns/ReleaseStackArns, ECS service/cluster/task prefix, DB ARNs, application Secret ARNs, ECR repository ARNs, hosted zone ARNs and upload bucket ARNs must be bound from trusted current state or an explicitly approved stable naming scope; never reuse historical physical IDs as current facts",
+    "Exact default Secrets Manager KMS key ARN and existing bucket policy compatibility must be bound; no new key/policy mutation is included",
+    "Installer Source identity and its ability to create these CFN/IAM/Secret resources must be verified; the narrow runtime roles are not installation identities",
+    "Actual approval must state credential generation/transport, CFN secret/identity changes, DB writes, independent read and optional bounded LOGIN checks, API/query ceilings, original stop window, rollback/retention and partial-failure policy",
+    "One outer review may pin the three artifacts and exact output-derivation rules for newly created Secret ARN/VersionId; this preparation is not that approval or a consumed execution slot"
+  ],
+  "futureOrder": [
+    "Obtain new exact approval, then create/review/execute only the three-Secret CFN stack and independently capture complete ARN/VersionId/KMS metadata; no IAM role installed yet",
+    "Under the same explicit approved credential scope read only those fixed Secret versions; submit the one LOGIN transaction and independently verify roles/memberships/ACL plus approved bounded LOGIN checks",
+    "Only after DB verification use the bound created ARN/VersionIds and approved resource allowlists to create/review/execute the six-resource IAM stack and independently inspect trust, identity attachment and boundary",
+    "Close installation with runtime still disabled; activation, instance/release seeding, workload recovery and real releases remain separately reviewed"
+  ],
+  "failurePolicy": {
+    "crossServiceAtomic": false,
+    "secretRetention": "Retain on delete/replacement; failures may leave chargeable Secrets",
+    "proposedCfnExecuteDisableRollback": true,
+    "automaticWriteRetry": false,
+    "automaticCompensationOrCleanup": false,
+    "automaticSlotReset": false,
+    "unknownCommitMeansRollback": false
+  },
+  "productionCallsThisPreparation": 0,
+  "passwordsGenerated": 0,
+  "secretOrPrivateKeyReads": 0,
+  "runtimeConfigChanged": false
+}

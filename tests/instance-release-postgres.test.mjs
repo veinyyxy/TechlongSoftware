@@ -51,6 +51,29 @@ test('release native PostgreSQL 16: non-superuser draft install, narrow roles, r
     assert.equal((await admin.query("SELECT pg_has_role($1,'deployment_release_owner','MEMBER') AS member",[role])).rows[0].member,false);
    }
   });
+  await t.test('separately reviewed LOGIN fragment: three real logins inherit only their own operation group',async()=>{
+   const purposes=['planner','executor','verifier'],passwords=purposes.map((_,i)=>String(i+1).repeat(64));
+   await installer.query('BEGIN');
+   await installer.query("SELECT set_config('techlong_release.planner_password',$1,true),set_config('techlong_release.executor_password',$2,true),set_config('techlong_release.verifier_password',$3,true)",passwords);
+   await installer.query(await readFile(new URL('../ops/releases/login-roles.draft.sql',import.meta.url),'utf8'));
+   await installer.query('COMMIT');
+   for(const [i,purpose] of purposes.entries()){
+    const role='deployment_release_'+purpose+'_login',loginUrl=new URL(testUrl);loginUrl.username=role;loginUrl.password=passwords[i];
+    const login=await connect('release-native-'+purpose+'-login',undefined,loginUrl.toString());
+    const identity=(await login.query("SELECT current_user,session_user,current_setting('search_path') AS search_path")).rows[0];
+    assert.deepEqual(identity,{current_user:role,session_user:role,search_path:'pg_catalog'});
+    const memberships=(await admin.query("SELECT p.rolname,m.inherit_option,m.set_option,m.admin_option FROM pg_auth_members m JOIN pg_roles p ON p.oid=m.roleid WHERE m.member=$1::regrole ORDER BY p.rolname",[role])).rows;
+    assert.deepEqual(memberships,[{rolname:'deployment_release_'+purpose,inherit_option:true,set_option:false,admin_option:false}]);
+    assert.equal((await login.query("SELECT has_function_privilege(current_user,'deployment_release.read_context(text)','EXECUTE') AS allowed")).rows[0].allowed,true);
+    assert.equal((await login.query("SELECT has_function_privilege(current_user,'deployment_release.record_inspection(text,jsonb)','EXECUTE') AS allowed")).rows[0].allowed,purpose==='verifier');
+    assert.equal((await login.query("SELECT has_function_privilege(current_user,'deployment_release.claim_request(text,text,text,integer,text)','EXECUTE') AS allowed")).rows[0].allowed,purpose==='executor');
+    assert.equal((await login.query("SELECT has_function_privilege(current_user,'deployment_release.prepare_request(text,text)','EXECUTE') AS allowed")).rows[0].allowed,purpose==='planner');
+    await assert.rejects(login.query('SET ROLE deployment_release_owner'),e=>e.code==='42501');
+    await assert.rejects(login.query('SELECT * FROM deployment_release.requests'),e=>e.code==='42501');
+    const rights=(await installer.query("SELECT pg_has_role(current_user,$1,'SET') AS can_set,pg_has_role(current_user,$1,'USAGE') AS inherit",[role])).rows[0];
+    assert.deepEqual(rights,{can_set:false,inherit:false});
+   }
+  });
   const f=await releaseFixture(),p=f.plan;
   p.observedAt=Date.now();p.preparedAt=p.observedAt;p.writeBefore=p.observedAt+300000;const sha=await sha256Hex(p);
   const document=(id,version,imageUri,platformDigest)=>({id,version,productId:p.productId,component:'tenant_api',status:'ecr_verified',

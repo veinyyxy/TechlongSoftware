@@ -5,6 +5,7 @@ import { spawn, execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Readable } from "node:stream";
 import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
 import { STSClient } from "@aws-sdk/client-sts";
 import type { HttpRequest } from "@smithy/types";
 import { assertReleaseJob, releaseEnvironment, releaseRequestId, encodeReleaseHandoff, decodeReleaseHandoff } from "../lib/deployments/releases/handoff.ts";
@@ -23,6 +24,94 @@ const config = () => ({ schema: "techlong/instance-release-runtime/v1" as const,
   repository: "veinyyxy/TechlongSoftware", environments: { sandbox: workflowEnvironment() } });
 const credentials = () => ({ accessKeyId: "synthetic-verifier", secretAccessKey: "synthetic-secret", sessionToken: "synthetic-token", expiresAt: Date.now() + 3600_000 });
 const fetchJson = (value: unknown): typeof fetch => async () => new Response(JSON.stringify(value), { headers: { "Content-Type": "application/json" } });
+
+const installationJson = async (name: string) => JSON.parse(await readFile(new URL(`../ops/releases/${name}`, import.meta.url), "utf8"));
+
+test("release installation materials: three Secrets are CFN-owned, NoEcho, retained and never supplied in the repository", async () => {
+  const template = await installationJson("control-secrets.draft.template.json");
+  assert.equal(Object.keys(template.Resources).length, 3);
+  for (const purpose of ["Planner", "Executor", "Verifier"]) {
+    const resource = template.Resources[purpose + "Secret"], parameter = template.Parameters[purpose + "SecretJson"];
+    assert.equal(resource.Type, "AWS::SecretsManager::Secret");
+    assert.equal(resource.DeletionPolicy, "Retain"); assert.equal(resource.UpdateReplacePolicy, "Retain");
+    assert.deepEqual(resource.Properties.SecretString, { Ref: purpose + "SecretJson" });
+    assert.equal(parameter.NoEcho, true); assert.equal(parameter.Default, undefined);
+    assert.equal(resource.Properties.KmsKeyId, undefined); assert.equal(resource.Properties.GenerateSecretString, undefined);
+    assert.deepEqual(template.Outputs[purpose + "SecretArn"].Value, { Ref: purpose + "Secret" });
+  }
+});
+
+test("release installation materials: existing immutable OIDC subjects and distinct attached policy boundaries", async () => {
+  const template = await installationJson("identities.draft.template.json");
+  assert.equal(Object.keys(template.Resources).length, 6);
+  for (const purpose of ["Planner", "Executor", "Verifier"]) {
+    const role = template.Resources[purpose + "Role"].Properties;
+    assert.equal(role.RoleName, `TechlongSandboxInstanceRelease${purpose}Role`);
+    assert.deepEqual(role.PermissionsBoundary, { Ref: purpose + "Boundary" });
+    assert.deepEqual(role.ManagedPolicyArns, [{ Ref: purpose + "Boundary" }]);
+    assert.equal(role.MaxSessionDuration, 3600);
+    const trust = role.AssumeRolePolicyDocument.Statement;
+    assert.equal(trust.length, 1); assert.equal(trust[0].Action, "sts:AssumeRoleWithWebIdentity");
+    assert.equal(trust[0].Condition.StringEquals["token.actions.githubusercontent.com:aud"], "sts.amazonaws.com");
+    assert.equal(trust[0].Condition.StringEquals["token.actions.githubusercontent.com:sub"],
+      "repo:veinyyxy@14145707/TechlongSoftware@1323312747" + (purpose === "Planner" ? ":ref:refs/heads/main" : ":environment:techlong-sandbox-deploy"));
+    const policy = template.Resources[purpose + "Boundary"].Properties.PolicyDocument;
+    assert.ok(JSON.stringify(policy).length < 6144, "IAM managed policy character limit");
+    const secret = policy.Statement.find((s: { Sid: string }) => s.Sid === "OwnFixedControlSecret");
+    assert.deepEqual(secret.Resource, { Ref: purpose + "SecretArn" });
+    assert.deepEqual(secret.Condition.StringEquals["secretsmanager:VersionId"], { Ref: purpose + "SecretVersionId" });
+    const kms = policy.Statement.find((s: { Sid: string }) => s.Sid === "OnlyForwardedOwnSecretDecrypt");
+    assert.deepEqual(kms.Resource, { Ref: "SecretsManagerKeyArn" });
+    assert.equal(kms.Condition.StringEquals["kms:ViaService"], "secretsmanager.ca-central-1.amazonaws.com");
+    assert.deepEqual(kms.Condition.StringEquals["kms:EncryptionContext:SecretARN"], { Ref: purpose + "SecretArn" });
+    assert.deepEqual(kms.Condition.StringEquals["kms:EncryptionContext:SecretVersionId"], { Ref: purpose + "SecretVersionId" });
+  }
+});
+
+test("release installation materials: only executor can change CFN, only verifier writes inspection evidence", async () => {
+  const template = await installationJson("identities.draft.template.json");
+  for (const purpose of ["Planner", "Executor", "Verifier"]) {
+    const statements = template.Resources[purpose + "Boundary"].Properties.PolicyDocument.Statement as { Sid: string; Action: string[]; Resource: unknown }[];
+    const writes = statements.flatMap(s => s.Action).filter(a => ["cloudformation:CreateChangeSet", "cloudformation:ExecuteChangeSet"].includes(a));
+    assert.deepEqual(writes, purpose === "Executor" ? ["cloudformation:CreateChangeSet", "cloudformation:ExecuteChangeSet"] : []);
+    for (const s of statements.filter(s => s.Sid.endsWith("ChangeSet"))) assert.deepEqual(s.Resource, { Ref: "ReleaseStackArns" });
+    const actions = statements.flatMap(s => s.Action);
+    assert.equal(actions.includes("s3:PutObject"), purpose === "Verifier");
+    assert.equal(actions.includes("s3:GetObjectVersion"), purpose === "Verifier");
+    assert.equal(actions.some(a => /^(iam:|ecs:(Update|Run|Stop|Register)|elasticloadbalancing:(Create|Delete|Modify)|rds:(Start|Stop|Modify)|secretsmanager:(Put|Create|Update|Delete))/.test(a)), false);
+    assert.equal(actions.some(a => a.includes("*") || ["s3:GetObject", "cloudformation:CreateStack", "cloudformation:DeleteStack", "iam:PassRole"].includes(a)), false);
+  }
+});
+
+test("release installation materials: LOGIN SQL changes only three new roles and accepts no embedded password", async () => {
+  const sql = await readFile(new URL("../ops/releases/login-roles.draft.sql", import.meta.url), "utf8");
+  assert.equal((sql.match(/^CREATE ROLE /gm) ?? []).length, 3);
+  assert.equal((sql.match(/LOGIN PASSWORD %L/g) ?? []).length, 3);
+  for (const purpose of ["planner", "executor", "verifier"]) {
+    assert(sql.includes(`CREATE ROLE deployment_release_${purpose}_login NOLOGIN INHERIT NOSUPERUSER`));
+    for (const option of ["INHERIT TRUE", "SET FALSE", "ADMIN FALSE"]) {
+      assert(sql.includes(`GRANT deployment_release_${purpose} TO deployment_release_${purpose}_login WITH ${option};`));
+    }
+    assert(sql.includes(`techlong_release.${purpose}_password`));
+  }
+  assert.equal(/^(?:(?:BEGIN|COMMIT)\s*;|(?:CREATE (?:SCHEMA|FUNCTION|TABLE)|GRANT CONNECT|ALTER ROLE deployment_release_owner|INSERT|UPDATE|DELETE)\b)/m.test(sql), false);
+  assert(sql.includes("SET LOCAL password_encryption = 'scram-sha-256'"));
+});
+
+test("release installation materials: unresolved real references are not approval, activation or generated credentials", async () => {
+  const prepared = await installationJson("identity-installation.prepared.json");
+  assert.equal(prepared.executionAuthorized, false); assert.equal(prepared.status, "OFFLINE_MATERIALS_COMPLETE_BINDINGS_PENDING");
+  assert.ok(prepared.requiredBeforeExecution.length > 0);
+  assert.equal(prepared.productionCallsThisPreparation, 0); assert.equal(prepared.passwordsGenerated, 0);
+  for (const artifact of prepared.artifacts as { path: string; sha256: string }[]) {
+    const text = (await readFile(new URL("../" + artifact.path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
+    assert.equal(createHash("sha256").update(text).digest("hex"), artifact.sha256);
+  }
+  const template = await installationJson("identities.draft.template.json");
+  for (const parameter of Object.values(template.Parameters) as { Default?: unknown }[]) assert.equal(parameter.Default, undefined);
+  const runtime = JSON.parse(await readFile(new URL("../ops/releases/runtime.json", import.meta.url), "utf8"));
+  assert.deepEqual(runtime.environments, {}); assert.equal(runtime.enabled, false);
+});
 
 test("release job: default activation is closed and only a complete, separated sandbox installation can enable it", async () => {
   const current = JSON.parse(await readFile(new URL("../ops/releases/runtime.json", import.meta.url), "utf8"));

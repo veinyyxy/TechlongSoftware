@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：D2-4空结构/NOLOGIN安装已核验，下一仅准备剩余身份材料（2026-11-13）
+## 当前唯一继续点：D2-4代码结项；仅离线准备剩余LOGIN/Secret/IAM安装材料（2026-11-13）
+
+本轮按用户明确要求只编制一次性启用依赖的SQL/模板/风险及离线验证，实际安装另审。D2-4编码已结项，不再把身份安装算作功能扩展；复用已存事实，不读配置/Secret/私钥、不新连库或调用AWS/GitHub资源API，不生成密码、不安装、不启用runtime或恢复收费环境，缺失真实ARN/VersionId如实标缺项。下方完成记录继续有效，不重放旧槽或延长事实期限。
+
+[材料已备](aws-instance-release-identity-installation.md)：三LOGIN事务片段、3Secret及3角色/3托管策略的两份CFN模板、机器指纹与准确缺项；不是执行批准。142项本地回归、lint/类型通过，既有PG16 CI新增真实LOGIN测试，本地明确skip。当前只提交及准确无AWS CI收尾；后续如需实际安装，集中补齐真实引用/占用和安装权限后另给准确外层SHA，不自动补读、生成密码或部署。
 
 明确确认a79ea11b…后，00:52:42.954Z—00:52:47.734Z完成已有schema独立核验→原grants唯一COMMIT→另一READ ONLY连接最终核验。实际配置1/TLS2/SQL44/DDL1/ACK1，AWS/GitHub/Secret值/私钥/调度0；schema未重建，三空表/九函数OID不变、四NOLOGIN及原ACL/角色有效权限/旧目录通过。[完成回执](aws-instance-release-schema-install-completed-20261113.json)。三attempt及所有原件保持，不重放或复位；原name[]兼容修正已通过此次线上读取。
 

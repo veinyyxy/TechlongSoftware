@@ -82,6 +82,8 @@ node node_modules/typescript/bin/tsc --noEmit --incremental false
 
 ## 阶段4交付状态：单审批工作流/运行接线已编码，尚未启用
 
+**阶段边界更正（2026-11-13）：D2-4代码交付已结项。** 后续另批的控制库空结构/NOLOGIN已[安装并独立核验](aws-instance-release-schema-install-completed-20261113.json)；剩余[LOGIN/Secret/IAM精确安装材料](aws-instance-release-identity-installation.md)属于一次性启用依赖，不继续算作D2-4功能编码。实际安装/启用/恢复/发布仍另审，旧阶段交付时刻的“未安装”记录保留追溯。
+
 [`instance-release.yml`](../.github/workflows/instance-release.yml)只接受已登记实例/已有ECR版本/sandbox选择。prepare生成准确摘要和只指向控制库原请求的run-bound handoff，唯一deploy job绑定既有environment；先确认本run由指定人类reviewer批准，才取得执行身份，内部串联D2-3及独立verifier子进程。main/原attempt1/源码/workflow_ref/actor/请求/原截止均校验，不复制旧job材料、不从Web批准、不改旧部署工作流。
 
 新增[`handoff.ts`](../lib/deployments/releases/handoff.ts)、[`workflow.ts`](../lib/deployments/releases/workflow.ts)、[`sampling.ts`](../lib/deployments/releases/sampling.ts)、运行/进程适配及固定CLI入口。采样从真实固定目标读取CFN/ECS/Cell/ALB/三规则/DNS/RDS/Secret版本/ECR，不让布尔默认值代替来源；metadata传输只允许白名单读，应用Secret只读版本元数据。控制库使用各自固定Secret版本及窄LOGIN，子进程不继承执行凭据/OIDC/GitHub令牌，实际STS身份不符也拒绝。S3持久化证据与schema版本仍来自受审初始化权威记录，不能靠配置或SHA宣称历史数据已迁移。

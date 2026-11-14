@@ -2,7 +2,11 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：D2-4空结构/NOLOGIN安装已核验，下一仅准备剩余身份材料（2026-11-13）
+## 当前唯一继续点：D2-4代码结项；仅离线准备剩余LOGIN/Secret/IAM安装材料（2026-11-13）
+
+用户明确要求本轮仅准备剩余LOGIN、Secret、IAM精确材料，实际安装另审。D2-4单审批工作流及离线代码交付已结项；下述空结构/NOLOGIN实际安装属于另批的一次性启用依赖，不继续算作D2-4功能编码。当前只复用已保存事实及源码，编制三窄LOGIN的SQL、Secret/角色/boundary/trust模板与准确缺项、安装顺序/风险和离线回归；不读取.env/Secret/PEM、不连接数据库、不调用AWS/GitHub资源API、不生成密码/消费安装槽/应用模板，不启用runtime或调度。不扩D2-5、UI、恢复框架或新工作流；旧事实过期也不自动补读，不把未来生成的Secret ARN/VersionId写成既有事实。
+
+已交付[剩余身份材料](aws-instance-release-identity-installation.md)及[文件指纹/真实缺项](../ops/releases/identity-installation.prepared.json)：三个LOGIN的单一事务片段，三Secret CFN模板，三IAM角色＋三独立托管策略模板（每份同时作身份授权/boundary，无另三inline）。范围/顺序和跨服务失败/NoEcho/PUBLIC/宽只读风险均列明；Secret ARN/VersionId/Key及资源allowlist未绑定，executionAuthorized=false，无可执行安装SHA。新增5项静态材料回归，相关142本地通过、lint/类型通过；原生LOGIN测试只加入既有隔离PG16 CI，本地skip，不把静态检查说成真实认证通过。当前只正常main提交、核对准确无AWS CI和文档收尾；不执行身份安装或请求新的生产读取。
 
 用户明确确认a79ea11b…及完整范围/风险后，本轮于2026-11-14T00:52:42.954Z—00:52:47.734Z（温尼伯11月13日18:52）唯一执行：已有schema独立核验通过，00:52:45.761Z取得原grants事务COMMIT ACK，再由另一READ ONLY连接完成最终核验。状态SCHEMA_NOLOGIN_INSTALLATION_INDEPENDENTLY_VERIFIED；实际配置1/TLS2/SQL44/DDL1/ACK1，AWS/GitHub/Secret值/私钥/调度0。没有重建schema/表/函数，只新增三NOLOGIN。[完成摘要与原件SHA](aws-instance-release-schema-install-completed-20261113.json)。本轮此前的安全拒绝没有启动命令或消费槽，不算一次数据库调用。
 

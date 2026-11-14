@@ -1,11 +1,14 @@
 # D2-2至D2-4：版本发布闭环、运行接线与安装草案
 
-状态：`DRAFT_NOT_APPLIED`。本目录SQL不在自动迁移目录中，不被启动脚本或发布工作流执行。运行接线默认关闭；没有在现有控制库执行安装、目录导入或云操作。
+状态：D2-4编码已结项，运行接线默认关闭。`schema.draft.sql`与`grants.draft.sql`已在另批的一次性安装中提交并独立核验，见[完成回执](../../docs/aws-instance-release-schema-install-completed-20261113.json)，不得重放；文件名/原注释为追溯保留，不代表仍待应用。三窄LOGIN/Secret/IAM尚未安装，当前仅[离线准备材料](../../docs/aws-instance-release-identity-installation.md)。本目录SQL不在自动迁移目录中，不被启动脚本或发布工作流执行。
 
 D2-4已新增默认关闭的runtime配置、真实元数据/凭据适配及验收子进程；完整范围见[单审批工作流说明](../../docs/aws-instance-release-workflow.md)。工作流不执行本目录SQL草案；新增CI仅在全新临时PostgreSQL16中验证，不安装到现有控制库。本地137项相关回归通过，原生PG结果以准确CI为准。
 
 - `schema.draft.sql`：独立 `deployment_release` schema、三表、专用 NOLOGIN owner 与九个窄函数；D2-3增加只读决定/终止结果登记，扩展核验与完成结果。
 - `grants.draft.sql`：三个 NOLOGIN 操作角色，仅授予准确函数；无登录、密码、Secret、IAM、表DML或运行角色的owner成员关系。安装者临时owner SET处理见下段。
+- `login-roles.draft.sql`：三个新LOGIN/对应操作组成员的未应用事务片段，无密码正文；未来另批后由调用方BEGIN、参数绑定三个事务内设置、执行一次及COMMIT，不是独立安装器。
+- `control-secrets.draft.template.json` / `identities.draft.template.json`：仅安装材料，分别管理三个Secret及三个角色/三个托管策略；策略同时作为身份授权和boundary，不复制另一套inline权限。真实Secret ARN/VersionId与资源allowlist必须另行绑定，不自动部署或启用。
+- `identity-installation.prepared.json`：固定文件指纹、对象数/顺序和真实缺项；`executionAuthorized=false`，不是实际安装批准SHA。
 - [`repository.ts`](../../lib/deployments/releases/repository.ts)：注入SQL连接，参数化调用；不加载生产连接信息，不自动重试。
 - [`adapters.ts`](../../lib/deployments/releases/adapters.ts)：注入既有CFN/S3客户端；不是执行器，不创建默认客户端，不读取凭据。
 
@@ -53,11 +56,11 @@ CFN适配只发准确UPDATE/UsePreviousTemplate与ImageUri参数更新，其余�
 
 常规[`instance-release-checks.yml`](../../.github/workflows/instance-release-checks.yml)只运行无AWS身份的回归/lint/类型检查，无environment、id-token、Secrets或部署调度，不是D2-4发布工作流。没有新增自动对账/恢复守护进程；未决只提供持久查询供后续准确审查。
 
-## 安装前仍须单独完成
+## 后继身份安装前仍须单独完成
 
 - D2-4无AWS CI已增加隔离原生PG16草案/两连接锁/角色ACL/CAS测试，结果以准确run为准；本地未提供CI专用URL时skip。即使CI成功，也不证明目标Neon安装者权限、LOGIN成员或生产布局已验证。
-- 结合真实控制库检查schema/角色名冲突、旧保护布局和installer权限；草案故意不使用IF NOT EXISTS/CREATE OR REPLACE，冲突应停止而非覆盖。
-- 明确安装者可创建并SET ROLE到专用owner；schema和grants分别事务安装，后者失败时前者仍是无运行授权的闭锁结构，不自动补齐/清理。实际安装/业务目录导入/LOGIN、Secret及IAM都需准确范围另审。
+- schema/grants已安装并独立核验，不重放；后继按新批准核对三个LOGIN名、旧保护布局、PUBLIC固有权限和installer能力，冲突应停止而非覆盖。
+- 新LOGIN片段及两份身份模板尚未应用；必须取得准确CI中的真实LOGIN认证证据及缺失资源/Secret版本绑定。实际LOGIN、Secret/IAM安装与业务目录导入都需准确范围另审，不自动补齐/清理。
 - D2-3离线闭环及D2-4默认关闭的采样/进程/单审批工作流已编码；后继只准备真实一次性安装清单，D2-6才做受审实际技术验收。当前不改旧部署工作流，也不恢复收费环境。
 
 依据：[PG SECURITY DEFINER与search_path](https://www.postgresql.org/docs/16/sql-createfunction.html)、[PG行锁](https://www.postgresql.org/docs/16/explicit-locking.html)、[PG原生SHA256](https://www.postgresql.org/docs/16/functions-binarystring.html)、[CFN DescribeChangeSet](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_DescribeChangeSet.html)、[CFN ExecuteChangeSet](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_ExecuteChangeSet.html)、[S3条件PUT](https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html)。这些是接口依据，不是线上成功证据。

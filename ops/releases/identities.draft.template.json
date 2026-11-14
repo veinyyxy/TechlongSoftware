@@ -1,0 +1,1007 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "PREPARATION ONLY - three release roles + three attached managed-policy boundaries, no compute/Secret changes.",
+  "Metadata": {
+    "PreparationOnly": true,
+    "TargetAccount": "402010193138",
+    "TargetRegion": "ca-central-1",
+    "TargetStackName": "techlong-sandbox-instance-release-identities-v1",
+    "RequiredCapabilities": [
+      "CAPABILITY_NAMED_IAM"
+    ],
+    "ExistingOidcProviderOnly": true,
+    "SameManagedPolicyAttachedAsIdentityAndBoundary": true
+  },
+  "Parameters": {
+    "ReadStackArns": {
+      "Type": "CommaDelimitedList",
+      "Description": "Exact current tenant + shared Cell + platform stack UUID ARNs; not historical IDs."
+    },
+    "ReleaseStackArns": {
+      "Type": "CommaDelimitedList",
+      "Description": "Exact existing tenant stack UUID ARN allowlist for Create/Execute; subset of ReadStackArns."
+    },
+    "EcsServiceArns": {
+      "Type": "CommaDelimitedList",
+      "Description": "Exact existing tenant service ARNs."
+    },
+    "EcsClusterArn": {
+      "Type": "String",
+      "Description": "Exact shared cluster ARN for ECS ListTasks/DescribeTasks conditions."
+    },
+    "EcsTaskArnPattern": {
+      "Type": "String",
+      "Description": "Exact cluster-qualified task ARN prefix with final /* for tasks replaced during release."
+    },
+    "DatabaseArns": {
+      "Type": "CommaDelimitedList",
+      "Description": "Exact approved database cluster and/or instance ARNs; describe only."
+    },
+    "ApplicationSecretArns": {
+      "Type": "CommaDelimitedList",
+      "Description": "Exact application/runtime Secret ARNs, metadata only; no value access."
+    },
+    "EcrRepositoryArns": {
+      "Type": "CommaDelimitedList",
+      "Description": "Exact existing API ECR repository ARNs; manifest read only."
+    },
+    "HostedZoneArns": {
+      "Type": "CommaDelimitedList",
+      "Description": "Exact existing public hosted-zone ARN; no DNS writes."
+    },
+    "UploadBucketArns": {
+      "Type": "CommaDelimitedList",
+      "Description": "Exact existing persistent upload bucket ARNs. ListBucket required for HeadBucket; no object value access."
+    },
+    "SecretsManagerKeyArn": {
+      "Type": "String",
+      "Description": "Verified exact AWS-managed aws/secretsmanager KMS key ARN in ca-central-1; do not create or change a key."
+    },
+    "PlannerSecretArn": {
+      "Type": "String",
+      "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret/techlong/sandbox/instance-release/planner-db-v1-[A-Za-z0-9]{6}",
+      "Description": "Full ARN returned by the separately approved Secret stack; do not synthesize suffix."
+    },
+    "PlannerSecretVersionId": {
+      "Type": "String",
+      "AllowedPattern": "[A-Za-z0-9-]{32,64}",
+      "Description": "Exact nonsecret immutable VersionId observed after creation; no AWSCURRENT fallback."
+    },
+    "ExecutorSecretArn": {
+      "Type": "String",
+      "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret/techlong/sandbox/instance-release/executor-db-v1-[A-Za-z0-9]{6}",
+      "Description": "Full ARN returned by the separately approved Secret stack; do not synthesize suffix."
+    },
+    "ExecutorSecretVersionId": {
+      "Type": "String",
+      "AllowedPattern": "[A-Za-z0-9-]{32,64}",
+      "Description": "Exact nonsecret immutable VersionId observed after creation; no AWSCURRENT fallback."
+    },
+    "VerifierSecretArn": {
+      "Type": "String",
+      "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret/techlong/sandbox/instance-release/verifier-db-v1-[A-Za-z0-9]{6}",
+      "Description": "Full ARN returned by the separately approved Secret stack; do not synthesize suffix."
+    },
+    "VerifierSecretVersionId": {
+      "Type": "String",
+      "AllowedPattern": "[A-Za-z0-9-]{32,64}",
+      "Description": "Exact nonsecret immutable VersionId observed after creation; no AWSCURRENT fallback."
+    }
+  },
+  "Resources": {
+    "PlannerBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxInstanceReleasePlannerBoundaryV1",
+        "Description": "Exact planner allowlist used as both identity policy and ceiling; not an installation/admin identity.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "SelfIdentity",
+              "Effect": "Allow",
+              "Action": [
+                "sts:GetCallerIdentity"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "ReadBoundStacks",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DescribeStacks",
+                "cloudformation:GetTemplate",
+                "cloudformation:ListStackResources",
+                "cloudformation:ListChangeSets",
+                "cloudformation:DescribeChangeSet"
+              ],
+              "Resource": {
+                "Ref": "ReadStackArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadTenantServices",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:DescribeServices"
+              ],
+              "Resource": {
+                "Ref": "EcsServiceArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ListClusterTasks",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:ListTasks"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                },
+                "ArnEquals": {
+                  "ecs:cluster": {
+                    "Ref": "EcsClusterArn"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "ReadClusterTasks",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:DescribeTasks"
+              ],
+              "Resource": {
+                "Ref": "EcsTaskArnPattern"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                },
+                "ArnEquals": {
+                  "ecs:cluster": {
+                    "Ref": "EcsClusterArn"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "TaskDefinitionRegionalRead",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:DescribeTaskDefinition"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "LoadBalancerRegionalMetadata",
+              "Effect": "Allow",
+              "Action": [
+                "elasticloadbalancing:DescribeListeners",
+                "elasticloadbalancing:DescribeLoadBalancers",
+                "elasticloadbalancing:DescribeTargetGroups",
+                "elasticloadbalancing:DescribeTargetHealth",
+                "elasticloadbalancing:DescribeRules"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadDatabaseMetadata",
+              "Effect": "Allow",
+              "Action": [
+                "rds:DescribeDBClusters",
+                "rds:DescribeDBInstances"
+              ],
+              "Resource": {
+                "Ref": "DatabaseArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadApplicationSecretMetadata",
+              "Effect": "Allow",
+              "Action": [
+                "secretsmanager:DescribeSecret"
+              ],
+              "Resource": {
+                "Ref": "ApplicationSecretArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadImageManifest",
+              "Effect": "Allow",
+              "Action": [
+                "ecr:BatchGetImage"
+              ],
+              "Resource": {
+                "Ref": "EcrRepositoryArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadApiDns",
+              "Effect": "Allow",
+              "Action": [
+                "route53:ListResourceRecordSets"
+              ],
+              "Resource": {
+                "Ref": "HostedZoneArns"
+              }
+            },
+            {
+              "Sid": "HeadUploadBucketsAlsoAllowsListingKeys",
+              "Effect": "Allow",
+              "Action": [
+                "s3:ListBucket"
+              ],
+              "Resource": {
+                "Ref": "UploadBucketArns"
+              }
+            },
+            {
+              "Sid": "OwnFixedControlSecret",
+              "Effect": "Allow",
+              "Action": [
+                "secretsmanager:GetSecretValue"
+              ],
+              "Resource": {
+                "Ref": "PlannerSecretArn"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1",
+                  "secretsmanager:VersionId": {
+                    "Ref": "PlannerSecretVersionId"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "OnlyForwardedOwnSecretDecrypt",
+              "Effect": "Allow",
+              "Action": [
+                "kms:Decrypt"
+              ],
+              "Resource": {
+                "Ref": "SecretsManagerKeyArn"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "kms:CallerAccount": "402010193138",
+                  "kms:ViaService": "secretsmanager.ca-central-1.amazonaws.com",
+                  "kms:EncryptionContext:SecretARN": {
+                    "Ref": "PlannerSecretArn"
+                  },
+                  "kms:EncryptionContext:SecretVersionId": {
+                    "Ref": "PlannerSecretVersionId"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "PlannerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "TechlongSandboxInstanceReleasePlannerRole",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": {
+          "Ref": "PlannerBoundary"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Ref": "PlannerBoundary"
+          }
+        ],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "arn:aws:iam::402010193138:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:ref:refs/heads/main"
+                }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "Techlong"
+          },
+          {
+            "Key": "Environment",
+            "Value": "sandbox"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "instance-release"
+          }
+        ]
+      }
+    },
+    "ExecutorBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxInstanceReleaseExecutorBoundaryV1",
+        "Description": "Exact executor allowlist used as both identity policy and ceiling; not an installation/admin identity.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "SelfIdentity",
+              "Effect": "Allow",
+              "Action": [
+                "sts:GetCallerIdentity"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "ReadBoundStacks",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DescribeStacks",
+                "cloudformation:GetTemplate",
+                "cloudformation:ListStackResources",
+                "cloudformation:ListChangeSets",
+                "cloudformation:DescribeChangeSet"
+              ],
+              "Resource": {
+                "Ref": "ReadStackArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadTenantServices",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:DescribeServices"
+              ],
+              "Resource": {
+                "Ref": "EcsServiceArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ListClusterTasks",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:ListTasks"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                },
+                "ArnEquals": {
+                  "ecs:cluster": {
+                    "Ref": "EcsClusterArn"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "ReadClusterTasks",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:DescribeTasks"
+              ],
+              "Resource": {
+                "Ref": "EcsTaskArnPattern"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                },
+                "ArnEquals": {
+                  "ecs:cluster": {
+                    "Ref": "EcsClusterArn"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "TaskDefinitionRegionalRead",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:DescribeTaskDefinition"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "LoadBalancerRegionalMetadata",
+              "Effect": "Allow",
+              "Action": [
+                "elasticloadbalancing:DescribeListeners",
+                "elasticloadbalancing:DescribeLoadBalancers",
+                "elasticloadbalancing:DescribeTargetGroups",
+                "elasticloadbalancing:DescribeTargetHealth",
+                "elasticloadbalancing:DescribeRules"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadDatabaseMetadata",
+              "Effect": "Allow",
+              "Action": [
+                "rds:DescribeDBClusters",
+                "rds:DescribeDBInstances"
+              ],
+              "Resource": {
+                "Ref": "DatabaseArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadApplicationSecretMetadata",
+              "Effect": "Allow",
+              "Action": [
+                "secretsmanager:DescribeSecret"
+              ],
+              "Resource": {
+                "Ref": "ApplicationSecretArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadImageManifest",
+              "Effect": "Allow",
+              "Action": [
+                "ecr:BatchGetImage"
+              ],
+              "Resource": {
+                "Ref": "EcrRepositoryArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadApiDns",
+              "Effect": "Allow",
+              "Action": [
+                "route53:ListResourceRecordSets"
+              ],
+              "Resource": {
+                "Ref": "HostedZoneArns"
+              }
+            },
+            {
+              "Sid": "HeadUploadBucketsAlsoAllowsListingKeys",
+              "Effect": "Allow",
+              "Action": [
+                "s3:ListBucket"
+              ],
+              "Resource": {
+                "Ref": "UploadBucketArns"
+              }
+            },
+            {
+              "Sid": "OwnFixedControlSecret",
+              "Effect": "Allow",
+              "Action": [
+                "secretsmanager:GetSecretValue"
+              ],
+              "Resource": {
+                "Ref": "ExecutorSecretArn"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1",
+                  "secretsmanager:VersionId": {
+                    "Ref": "ExecutorSecretVersionId"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "OnlyForwardedOwnSecretDecrypt",
+              "Effect": "Allow",
+              "Action": [
+                "kms:Decrypt"
+              ],
+              "Resource": {
+                "Ref": "SecretsManagerKeyArn"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "kms:CallerAccount": "402010193138",
+                  "kms:ViaService": "secretsmanager.ca-central-1.amazonaws.com",
+                  "kms:EncryptionContext:SecretARN": {
+                    "Ref": "ExecutorSecretArn"
+                  },
+                  "kms:EncryptionContext:SecretVersionId": {
+                    "Ref": "ExecutorSecretVersionId"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "CreateImageUpdateChangeSet",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:CreateChangeSet"
+              ],
+              "Resource": {
+                "Ref": "ReleaseStackArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                },
+                "StringLike": {
+                  "cloudformation:ChangeSetName": "release-*"
+                }
+              }
+            },
+            {
+              "Sid": "ExecuteBoundReleaseChangeSet",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:ExecuteChangeSet"
+              ],
+              "Resource": {
+                "Ref": "ReleaseStackArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                },
+                "StringLike": {
+                  "cloudformation:ChangeSetName": [
+                    "release-*",
+                    "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/release-*/*"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ExecutorRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "TechlongSandboxInstanceReleaseExecutorRole",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": {
+          "Ref": "ExecutorBoundary"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Ref": "ExecutorBoundary"
+          }
+        ],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "arn:aws:iam::402010193138:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy"
+                }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "Techlong"
+          },
+          {
+            "Key": "Environment",
+            "Value": "sandbox"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "instance-release"
+          }
+        ]
+      }
+    },
+    "VerifierBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxInstanceReleaseVerifierBoundaryV1",
+        "Description": "Exact verifier allowlist used as both identity policy and ceiling; not an installation/admin identity.",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "SelfIdentity",
+              "Effect": "Allow",
+              "Action": [
+                "sts:GetCallerIdentity"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Sid": "ReadBoundStacks",
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DescribeStacks",
+                "cloudformation:GetTemplate",
+                "cloudformation:ListStackResources",
+                "cloudformation:ListChangeSets",
+                "cloudformation:DescribeChangeSet"
+              ],
+              "Resource": {
+                "Ref": "ReadStackArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadTenantServices",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:DescribeServices"
+              ],
+              "Resource": {
+                "Ref": "EcsServiceArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ListClusterTasks",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:ListTasks"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                },
+                "ArnEquals": {
+                  "ecs:cluster": {
+                    "Ref": "EcsClusterArn"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "ReadClusterTasks",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:DescribeTasks"
+              ],
+              "Resource": {
+                "Ref": "EcsTaskArnPattern"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                },
+                "ArnEquals": {
+                  "ecs:cluster": {
+                    "Ref": "EcsClusterArn"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "TaskDefinitionRegionalRead",
+              "Effect": "Allow",
+              "Action": [
+                "ecs:DescribeTaskDefinition"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "LoadBalancerRegionalMetadata",
+              "Effect": "Allow",
+              "Action": [
+                "elasticloadbalancing:DescribeListeners",
+                "elasticloadbalancing:DescribeLoadBalancers",
+                "elasticloadbalancing:DescribeTargetGroups",
+                "elasticloadbalancing:DescribeTargetHealth",
+                "elasticloadbalancing:DescribeRules"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadDatabaseMetadata",
+              "Effect": "Allow",
+              "Action": [
+                "rds:DescribeDBClusters",
+                "rds:DescribeDBInstances"
+              ],
+              "Resource": {
+                "Ref": "DatabaseArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadApplicationSecretMetadata",
+              "Effect": "Allow",
+              "Action": [
+                "secretsmanager:DescribeSecret"
+              ],
+              "Resource": {
+                "Ref": "ApplicationSecretArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadImageManifest",
+              "Effect": "Allow",
+              "Action": [
+                "ecr:BatchGetImage"
+              ],
+              "Resource": {
+                "Ref": "EcrRepositoryArns"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1"
+                }
+              }
+            },
+            {
+              "Sid": "ReadApiDns",
+              "Effect": "Allow",
+              "Action": [
+                "route53:ListResourceRecordSets"
+              ],
+              "Resource": {
+                "Ref": "HostedZoneArns"
+              }
+            },
+            {
+              "Sid": "HeadUploadBucketsAlsoAllowsListingKeys",
+              "Effect": "Allow",
+              "Action": [
+                "s3:ListBucket"
+              ],
+              "Resource": {
+                "Ref": "UploadBucketArns"
+              }
+            },
+            {
+              "Sid": "OwnFixedControlSecret",
+              "Effect": "Allow",
+              "Action": [
+                "secretsmanager:GetSecretValue"
+              ],
+              "Resource": {
+                "Ref": "VerifierSecretArn"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:RequestedRegion": "ca-central-1",
+                  "secretsmanager:VersionId": {
+                    "Ref": "VerifierSecretVersionId"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "OnlyForwardedOwnSecretDecrypt",
+              "Effect": "Allow",
+              "Action": [
+                "kms:Decrypt"
+              ],
+              "Resource": {
+                "Ref": "SecretsManagerKeyArn"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "kms:CallerAccount": "402010193138",
+                  "kms:ViaService": "secretsmanager.ca-central-1.amazonaws.com",
+                  "kms:EncryptionContext:SecretARN": {
+                    "Ref": "VerifierSecretArn"
+                  },
+                  "kms:EncryptionContext:SecretVersionId": {
+                    "Ref": "VerifierSecretVersionId"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "VersionedInspectionEvidence",
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObjectVersion"
+              ],
+              "Resource": "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/instance-releases/release_*/inspection-*.json"
+            }
+          ]
+        }
+      }
+    },
+    "VerifierRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "TechlongSandboxInstanceReleaseVerifierRole",
+        "MaxSessionDuration": 3600,
+        "PermissionsBoundary": {
+          "Ref": "VerifierBoundary"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Ref": "VerifierBoundary"
+          }
+        ],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "arn:aws:iam::402010193138:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy"
+                }
+              }
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "Techlong"
+          },
+          {
+            "Key": "Environment",
+            "Value": "sandbox"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "instance-release"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "PlannerRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "PlannerRole",
+          "Arn"
+        ]
+      }
+    },
+    "PlannerBoundaryArn": {
+      "Value": {
+        "Ref": "PlannerBoundary"
+      }
+    },
+    "ExecutorRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "ExecutorRole",
+          "Arn"
+        ]
+      }
+    },
+    "ExecutorBoundaryArn": {
+      "Value": {
+        "Ref": "ExecutorBoundary"
+      }
+    },
+    "VerifierRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "VerifierRole",
+          "Arn"
+        ]
+      }
+    },
+    "VerifierBoundaryArn": {
+      "Value": {
+        "Ref": "VerifierBoundary"
+      }
+    }
+  }
+}
