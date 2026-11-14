@@ -129,3 +129,5 @@ DNS/当前API Alias、三个既有Secret固定版本独立元数据、Source组�
 只提交main、运行既有无AWS CI并核对准确run/job/log；不调用AWS、Neon、后端产物或读取.env/Secret/PEM。实际部署/安装、尚缺的DNS/权限元数据、token供给及新构建均不在本轮内。准确CI完成后仅记录结果，runtime保持false，不自动进入下一步。
 
 本地相关177项中176pass/1 Windows真实ZIP处理skip，新增ARN回归通过；定向lint/全项目类型检查通过。远端Linux177项及原生PG16只在准确提交CI实际完成后记录，不把本地skip当已验证。
+
+**本轮已收尾：** 修正源码501b7f128fddd7f529c19e5af003c95fb32b0900的[准确CI43600705621](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43600705621) attempt1 completed/success，head/两job/步骤及日志匹配；Linux177项及原生PG16的9项全通过、fail0/skip0，lint/类型通过。[去敏验证回执](aws-instance-release-arn-pattern-fix-ci-20261114.json)。不改旧预检回执、原事实时间或旧失败脚本；本轮AWS/生产读取与安装/恢复/dispatch0，修正稿没有在线模板验证或IAM安装。当前结束，不自动开始新的读取/安装，后继真实缺项仍按明确范围另审。

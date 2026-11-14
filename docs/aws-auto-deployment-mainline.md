@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：仅修五处Secret ARN校验及回归/准确CI（2026-11-14）
+## 当前唯一继续点：五处ARN校验修复及准确CI完成，本轮结束（2026-11-14）
+
+修正源码501b7f1已推main，[CI43600705621](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43600705621) attempt1 completed/success，head/两job/步骤/日志已核对；177 Linux回归＋9原生PG16全通过/无skip，lint/类型通过，[回执](aws-instance-release-arn-pattern-fix-ci-20261114.json)。只改五个参数的分隔符及必要测试/指纹/文档，原权限/trust/SQL/工作流/运行配置不变。
+
+本轮生产/AWS/Neon/Secret或私钥读取及安装/恢复/部署0，runtime仍关闭。当前收尾，不自动开始补核/安装或D2-6；剩余缺项未来按准确范围另审，不重读已验证大盘点或扩框架。旧事实原期限和失败回执保持，文档HEAD不冒充修正源码CI。
+
+### 以下为已完成的修复阶段记录（不是新的待执行项）
 
 用户已批准只修改两份IAM草案五处分隔符和必要测试/指纹/文档，正常main提交及无AWS CI核验。不改策略/trust/运行配置，不追加生产读取、AWS/数据库写或云部署；旧事实/失败原件保持，完成即收尾，不自动补核或安装。下方“下一提请”保留为批准前沿革。
 

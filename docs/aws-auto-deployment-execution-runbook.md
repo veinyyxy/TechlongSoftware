@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：仅修两份IAM草案五处ARN校验及回归/准确CI（2026-11-14）
+## 当前唯一继续点：五处ARN校验修复及准确CI已完成，本轮收尾（2026-11-14）
+
+仅五参数修复源码501b7f128fddd7f529c19e5af003c95fb32b0900已推main，[准确无AWS CI43600705621](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43600705621) attempt1 completed/success；head/两job/步骤及原日志匹配，Linux177及PG16原生9项全过/fail0/skip0，lint/类型通过。[修复及验证回执](aws-instance-release-arn-pattern-fix-ci-20261114.json)。新增测试先复现旧拒绝，再证明五处之外整模板字节不变；旧/新SHA分别保留，SQL、策略Resources/Action/trust、运行代码/配置与工作流未改。
+
+本轮AWS/Neon/生产配置/Secret/PEM/后端产物读取、安装/恢复/dispatch全部0，只有正常main提交/推送和该准确CI读取。旧预检/失败回执及事实原期限不变；修正稿未在线ValidateTemplate或安装，不能说真实发布已启用。当前到此结束，不自动补核、安装、停启数据库或运行D2-6；后继只按用户新明确范围处理剩余真实缺项，不重复大盘点或扩功能。后续纯文档提交不是新的已测运行源码。
+
+### 以下为本次已完成的修复阶段记录（不再作为待执行项）
 
 用户明确批准本轮只修两份IAM草案五个Secret ARN分隔符、对应必要测试及准确无AWS CI。本轮不修改Action/Resource/trust或运行代码，不新增框架/权限/工作流，不读取生产配置、AWS/Neon/后端产物，不安装/恢复/调度；仅正常main提交推送及该提交的无AWS CI run/job/log核验。同步当前材料指纹并保留旧指纹/事实/失败回执，不能把旧ValidateTemplate/CI说成修正稿实测；runtime保持关闭。完成后收尾，不自动进入补核或安装。下段“提请修复”为本次批准前记录。
 
