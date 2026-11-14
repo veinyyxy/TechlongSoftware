@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：三处运行ARN校验最小修复及准确CI（2026-11-14）
+## 当前唯一继续点：三处运行ARN修复及准确CI已完成（2026-11-14）
+
+修正源码7c80b98已推main，[CI43602498436](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43602498436) attempt1 completed/success，head/两job/步骤/日志已核对；180 Linux回归＋9原生PG16全过/无skip，lint/类型通过，[回执](aws-instance-release-runtime-arn-fix-ci-20261114.json)。只改运行三处分隔符和现有fixture/回归，IAM/SQL/模板/工作流/启用配置未改，旧格式及原约束仍拒绝。
+
+本轮生产读取、AWS/Neon、安装/恢复/dispatch0，runtime关闭，D2-6真实更新仍0次。当前结束，不自动执行用户之前未允的补核；后继仍按原执行卡准备真实一次性启用、版本和实例绑定，读取/安装/恢复/每次发布须新准确范围，不重建框架或业务验收。文档收尾提交不冒充新的运行源码CI。
+
+### 以下为本次已完成的修复阶段记录（不再待执行）
 
 用户已同意仅修handoff两处/sampling一处分隔符和既有fixture/必要测试，并验证准确无AWS CI；不改模板/权限/SQL/工作流或启用配置，不生产读取、安装/恢复/调度。旧斜杠拒绝、其他检查保持，正常main提交推送后收尾；D2-6真实双更新未启动，之前未获准的在线补核仍不执行。下方为本次批准前记录。
 

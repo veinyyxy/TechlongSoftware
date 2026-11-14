@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：仅修D2-6三处运行ARN校验与现有回归/准确CI（2026-11-14）
+## 当前唯一继续点：三处运行ARN修复及准确CI已完成，等待后继明确范围（2026-11-14）
+
+源码7c80b9817bb95d2607b9adbe96a7641a8cee7b01已推main，[准确无AWS CI43602498436](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43602498436) attempt1 completed/success；head/两job/步骤与日志匹配，Linux180及PG16原生9项全通过、fail0/skip0，lint/类型通过。[去敏验证回执](aws-instance-release-runtime-arn-fix-ci-20261114.json)。运行源码仅handoff两处/sampling一处分隔符，fixture两处字符串及3新回归；还原三处分隔符后的整文件恰等于旧源码，其他检查不变。
+
+本轮AWS/Neon/生产配置/Secret/PEM/后端产物读取、权限/SQL安装、恢复/dispatch全部0，runtime仍false/environments={}。只完成D2-6开跑前代码阻塞，不是实际双更新已验收；当前收尾，不自动继续曾被选择“只离线”的补核或启动收费环境。唯一后继仍为原D2-6执行卡的真实身份/版本/实例绑定前置，必要新读取与安装须用户另准准确范围；不复用旧读取许可、旧事实或扩框架。后续文档HEAD不是新的运行源码CI。
+
+### 以下为本次已完成的修复阶段记录（不重做）
 
 用户已同意上轮提出的最小范围：仅改handoff.ts两处/sampling.ts一处Secret ARN分隔符及现有fixture/必要回归，正常main提交推送并核对准确无AWS CI。不改IAM/SQL/模板/工作流/运行配置，不新增框架或通用验证器；不读取生产/.env/Secret/PEM、不调用AWS/Neon/后端产物，不安装/恢复/dispatch。默认关闭及原账号/区域/固定版本/用户名/角色分离检查保持，错误旧斜杠拒绝，不兼容放行。旧事实/失败记录不改，不把原提议的STS1/元数据16当已获准；代码CI完成即收尾。下方为前置离线记录。
 
