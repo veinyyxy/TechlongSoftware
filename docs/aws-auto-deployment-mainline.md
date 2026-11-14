@@ -2,7 +2,17 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：单次后端构建已结束，待最小依赖修复批准（2026-11-14）
+## 当前唯一继续点：三项依赖修复已收尾；候选另被OS门槛阻止（2026-11-14）
+
+后端main 11ec9bb已推，仅三项依赖/必需两传递锁项及8项隔离回归，工作流和业务不改；本地相关20项/类型/原high audit通过。准确[Backend CI43625892859](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43625892859)原push/attempt1 success：319单元测试、14 Python、容器构建/启动成功。[去敏证据](aws-instance-release-backend-dependency-fix-ci-20261114.json)。没有顺带修余下低/中危，用户.vscode未改未提交。
+
+候选43625892768的原依赖门槛/两镜像构建和运行自检均成功，后续OS扫描阻止候选保存：app HIGH2、lifecycle HIGH61，checked-app归档仍无。三项修复已完成，不把候选或D2-6说成完成；当前唯一建议是另准准确app扫描报告最小只读诊断，未下载ZIP/修OS/扩生命周期线，不降低门槛或Re-run。AWS/生产配置/Secret/PAT/生产库/手动dispatch/安装/恢复/ECR0；runtime关闭、实际更新0，旧事实不续。
+
+### 以下为本次三项修复的原批准范围（已完成，不重做）
+
+已获用户批准，只修body-parser/follow-redirects/multer及必要隔离回归、文档/main提交和准确无AWS CI。保留audit门槛及业务/权限/部署流程，不读PAT/.env/Secret、不生产连接/AWS/安装/恢复或dispatch，不Re-run旧run、不扩分支。原后端.vscode/settings.json属于用户，保持不提交。旧资源事实不续、runtime关闭、D2-6实际更新仍0；本轮代码通过不等于候选/真实更新通过。
+
+### 以下为三项修复的批准前记录（不重复请求）
 
 [构建43624344472](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43624344472)已按批准仅POST一次，main a79ed89c…/attempt1/原工作流字节匹配；两job均在生产依赖audit失败，镜像与自检未执行、artifact0。app日志显示三项high：body-parser、follow-redirects、multer。[去敏停止回执](aws-instance-release-d2-6-backend-build-20261114.json)。未降低门槛/强制升级或重跑，AWS/ECR/部署/私密值读取0。下一只建议另准这三项及直接相关依赖/回归的最小后端修复，尚未获准或修改；不扩框架/恢复环境。PAT验证已完成、没有写Secret；旧AWS/Neon事实已到期且不续，runtime关闭、D2-6真实更新仍0。
 

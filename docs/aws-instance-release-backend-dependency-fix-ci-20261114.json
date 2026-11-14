@@ -1,0 +1,504 @@
+{
+  "schema": "techlong/instance-release-backend-dependency-fix/v1",
+  "status": "THREE_DEPENDENCY_FIXES_VERIFIED_OS_GATE_SEPARATELY_BLOCKED",
+  "source": {
+    "repository": "veinyyxy/SpeedFeast_Backend_main",
+    "commit": "11ec9bbdef4b76a2f7824afdd3d3fabcb505c8a9",
+    "branch": "main",
+    "files": [
+      "package.json",
+      "package-lock.json",
+      "test/dependency_security_regression.test.js"
+    ],
+    "userVscodeSettingPreserved": true
+  },
+  "versions": {
+    "body-parser": {
+      "before": "2.3.0",
+      "after": "2.4.0"
+    },
+    "follow-redirects": {
+      "before": "1.16.0",
+      "after": "1.16.3"
+    },
+    "multer": {
+      "before": "2.4.0",
+      "after": "2.5.0"
+    }
+  },
+  "necessaryTransitiveChanges": {
+    "body-parser/content-type": {
+      "before": "2.0.0",
+      "after": "2.1.0"
+    },
+    "qs": {
+      "before": "6.16.0",
+      "after": "6.17.1"
+    }
+  },
+  "local": {
+    "oldInstalledDependencies": {
+      "pass": 3,
+      "fail": 5
+    },
+    "newRegressions": {
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0
+    },
+    "focusedContainerAndGateTests": {
+      "pass": 20,
+      "fail": 0,
+      "skipped": 0
+    },
+    "typecheck": "success",
+    "audit": {
+      "command": "npm audit --omit=dev --audit-level=high",
+      "exitCode": 0,
+      "critical": 0,
+      "high": 0,
+      "moderate": 1,
+      "low": 4
+    }
+  },
+  "backendCi": {
+    "id": 43625892859,
+    "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43625892859",
+    "head": "11ec9bbdef4b76a2f7824afdd3d3fabcb505c8a9",
+    "attempt": 1,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-11-14T18:18:50Z",
+    "updatedAt": "2026-11-14T18:19:28Z",
+    "nodeVersion": "24.18.0",
+    "unitTests": {
+      "pass": 319,
+      "fail": 0,
+      "skipped": 0
+    },
+    "pythonManifestTests": {
+      "pass": 14
+    },
+    "dockerBuildAndProductionSmoke": "success",
+    "jobs": [
+      {
+        "id": 132541488564,
+        "name": "docker",
+        "status": "completed",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out repository",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build Docker image",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Inspect Docker image",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Smoke test production container",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Check out repository",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 132541488763,
+        "name": "check",
+        "status": "completed",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out repository",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Set up Node.js",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install dependencies",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check and test",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check migration script syntax",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check tenant bootstrap manifest policy",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Set up Node.js",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Check out repository",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ]
+  },
+  "imageCandidate": {
+    "id": 43625892768,
+    "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43625892768",
+    "head": "11ec9bbdef4b76a2f7824afdd3d3fabcb505c8a9",
+    "attempt": 1,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "failure",
+    "createdAt": "2026-11-14T18:18:49Z",
+    "updatedAt": "2026-11-14T18:19:51Z",
+    "dependencyAuditBothKinds": "success",
+    "imageBuildBothKinds": "success",
+    "isolatedAndRuntimeChecksBothKinds": "success",
+    "failedStep": "Gate operating-system HIGH and CRITICAL before retaining candidates",
+    "osScan": {
+      "app": {
+        "schemaVersion": 1,
+        "outcome": "HIGH_CRITICAL_FINDINGS",
+        "scanner": "Trivy",
+        "scannerVersion": "0.75.0",
+        "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+        "scope": "os",
+        "imageConfigDigest": "sha256:98f072a6b860c6075902f2e977b1163726efd5fe15bcaa642eff57f82688dcef",
+        "os": {
+          "Family": "debian",
+          "Name": "13.7"
+        },
+        "packageCount": 14,
+        "findingSeverityCounts": {
+          "HIGH": 2,
+          "CRITICAL": 0
+        },
+        "databaseUpdatedAt": "2026-11-14T13:05:54.014761714Z",
+        "ignoredFindingsAllowed": false,
+        "ignoreUnfixedAllowed": false,
+        "ecrScanPerformed": false,
+        "cloudMutationPerformed": false,
+        "reportSha256": "09ec4e564e525e84822876e0977c99969ebd582145de6fe28159dad0ad44e13d",
+        "databaseMetadataSha256": "452a99a78747ab9194e2d3d03a26eadcf2b95326dd484b9f158e25edb935009b",
+        "databaseSha256": "39f64e2ce29dba2cab51984a7975b0c3fe9cdef5905b6f4bf43ba0019271005a"
+      },
+      "lifecycle": {
+        "schemaVersion": 1,
+        "outcome": "HIGH_CRITICAL_FINDINGS",
+        "scanner": "Trivy",
+        "scannerVersion": "0.75.0",
+        "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+        "scope": "os",
+        "imageConfigDigest": "sha256:0105d074c2a9bf0fa408fd5b959280a1dd4f19e76fe8f319a52ab4c5c329aa41",
+        "os": {
+          "Family": "debian",
+          "Name": "13.7"
+        },
+        "packageCount": 32,
+        "findingSeverityCounts": {
+          "HIGH": 61,
+          "CRITICAL": 0
+        },
+        "databaseUpdatedAt": "2026-11-14T13:05:54.014761714Z",
+        "ignoredFindingsAllowed": false,
+        "ignoreUnfixedAllowed": false,
+        "ecrScanPerformed": false,
+        "cloudMutationPerformed": false,
+        "reportSha256": "714192f4a7ad92b8b6c620d29508fc362ef0f5d8889c217502f6dfba01e01f01",
+        "databaseMetadataSha256": "c1f41e1a05ea0dece56b0f34b30c30b52dc40992f217ac51ccfbd680d2ec7570",
+        "databaseSha256": "39f64e2ce29dba2cab51984a7975b0c3fe9cdef5905b6f4bf43ba0019271005a"
+      }
+    },
+    "jobs": [
+      {
+        "id": 132541488917,
+        "name": "Build and self-check app",
+        "status": "completed",
+        "conclusion": "failure",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out exact source",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate self-check entrypoints",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Gate high and critical production dependency advisories",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build local linux/amd64 candidate",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run isolated container self-check",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check Aurora dual-mode connection support without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check reserved-role continuation V4 without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check exact Express uuid extension owner V5 without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check Express minimum application policy candidate V6 without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check tenant bootstrap and initialized readiness wiring without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Gate operating-system HIGH and CRITICAL before retaining candidates",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "name": "Record the exact checked and scanned image",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Preserve OS scan diagnosis on success or failure",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Export the exact checked image",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Retain promotion candidate and small receipts",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Check out exact source",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 132541489140,
+        "name": "Build and self-check lifecycle",
+        "status": "completed",
+        "conclusion": "failure",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out exact source",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate self-check entrypoints",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Gate high and critical production dependency advisories",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Build local linux/amd64 candidate",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run isolated container self-check",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check Aurora dual-mode connection support without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check reserved-role continuation V4 without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check exact Express uuid extension owner V5 without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check Express minimum application policy candidate V6 without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Self-check tenant bootstrap and initialized readiness wiring without network",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Gate operating-system HIGH and CRITICAL before retaining candidates",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "name": "Record the exact checked and scanned image",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Preserve OS scan diagnosis on success or failure",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Export the exact checked image",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Retain promotion candidate and small receipts",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Check out exact source",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ],
+    "artifacts": [
+      {
+        "id": 14126415408,
+        "name": "os-scan-lifecycle-11ec9bbdef4b76a2f7824afdd3d3fabcb505c8a9-43625892768-1",
+        "digest": "sha256:7f955a64999c495226c3ac416a7d5eb17f134df70b70b49063690f4a5c1a788e",
+        "bytes": 27424,
+        "expired": false,
+        "expiresAt": "2026-11-21T18:19:48Z"
+      },
+      {
+        "id": 14125858964,
+        "name": "os-scan-app-11ec9bbdef4b76a2f7824afdd3d3fabcb505c8a9-43625892768-1",
+        "digest": "sha256:0840ba9964a9647eebc31a91f4c2798ace48aefb66924ed3939db5f6729e42c5",
+        "bytes": 18180,
+        "expired": false,
+        "expiresAt": "2026-11-21T18:19:29Z"
+      }
+    ],
+    "artifactCount": 2,
+    "checkedAppArchiveAvailable": false,
+    "onlyScanDiagnosticsRetained": true,
+    "archiveDownloads": 0
+  },
+  "materialLfNormalizedSha256": {
+    "package.json": "3b55b687e60e6bc37ed89f9c77305742d45fae3ed738ce935febcaac2c9fe00e",
+    "package-lock.json": "b4896e24e5d172b5d4579067d88292742eb15a4e0122956fc76af6360680390c",
+    "test/dependency_security_regression.test.js": "42d2ff0fd00c7ddd868a58b09c2e1d20727bf743a03a6dabcd4affa55b771662",
+    "unchangedCandidateWorkflow": "1d7fd99db80d03d8261e268d656045d5a89d0f28efa5a1f8e2e4471b92670aa8"
+  },
+  "boundaries": {
+    "applicationLogicChanged": false,
+    "dockerfilesChanged": false,
+    "workflowsChanged": false,
+    "permissionsChanged": false,
+    "auditThresholdChanged": false,
+    "auditForceFixUsed": false,
+    "awsCalls": 0,
+    "secretOrPatFileReads": 0,
+    "productionConfigReads": 0,
+    "productionDatabaseConnections": 0,
+    "manualDispatches": 0,
+    "reruns": 0,
+    "ecrPublished": false,
+    "environmentRestored": false,
+    "runtimeEnabled": false,
+    "realVersionUpdates": 0,
+    "oldResourceFactsExtended": false,
+    "osRemediationImplementedOrAuthorized": false
+  },
+  "nextScope": "Only propose a focused app OS scan diagnosis; do not fix or bypass the OS gate within this change."
+}
