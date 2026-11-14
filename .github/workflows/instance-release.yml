@@ -7,7 +7,7 @@ on:
         type: string
         required: true
       release_id:
-        description: Existing ECR-verified release ID
+        description: Registered ECR version or checked app candidate ID (promotion must be installed)
         type: string
         required: true
       environment:
@@ -52,7 +52,7 @@ jobs:
           RELEASE_ENVIRONMENT: ${{ inputs.environment }}
   deploy:
     needs: prepare
-    if: needs.prepare.outputs.enabled == 'true' && needs.prepare.outputs.status == 'PLANNED' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    if: needs.prepare.outputs.enabled == 'true' && (needs.prepare.outputs.status == 'PLANNED' || needs.prepare.outputs.status == 'PROMOTION_PLANNED') && github.ref == 'refs/heads/main' && github.run_attempt == 1
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     environment: techlong-sandbox-deploy

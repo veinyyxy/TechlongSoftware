@@ -19,6 +19,189 @@ import { sha256Hex } from "../lib/deployments/execution/hash.ts";
 import { catalogSourceReaders, collectCatalogSource, catalogSourceIdentity, type CatalogSourceScope } from "../ops/releases/import-source.ts";
 import { prepareCatalogRegistration, importCodeFiles } from "../ops/releases/import-review.ts";
 import { writeCatalogRelease, inspectCatalogRelease } from "../ops/releases/catalog-transaction.ts";
+import { sealReleaseCandidate, preparePromotionIntent, promoteApprovedCandidate, assertPromotionBaseline,
+  decodePromotionHandoff, derivePromotedPlan, type ReleasePromotionIntent } from "../lib/deployments/releases/promotion.ts";
+import { prepareReleaseWorkflowJob, deployReleaseWorkflowJob } from "../lib/deployments/releases/workflow.ts";
+import { releasePromotionPublisher, type PromotionCommand } from "../ops/releases/promotion-runtime.ts";
+import { inspectInstanceRelease } from "../lib/deployments/releases/inspection.ts";
+import { releaseReader } from "../lib/deployments/releases/sampling.ts";
+import type { ReleaseEnvironmentConfig } from "../lib/deployments/releases/handoff.ts";
+
+async function promotionFixture() {
+  const f = await workflowFixture(), c = f.cycle, b = f.binding, p = await releaseProductionFixture();
+  p.now = c.sql.now; p.artifact.expires_at = new Date(p.now + 86400_000).toISOString();
+  p.receipt.osSecurityScan.databaseUpdatedAt = new Date(p.now - 3600_000).toISOString(); p.registry.observedAt = p.now; await p.repack();
+  p.policy.repository = b.sourceRepository; p.run.repository.full_name = b.sourceRepository;
+  const candidate = await sealReleaseCandidate(p.policy, p.run, p.artifact, p.files, p.now);
+  f.job.releaseId = candidate.id;
+  f.config.promotion = { roleArn: `arn:aws:iam::${b.accountId}:role/publisher`, database: { arn: "synthetic-publisher", versionId: "fixed", username: "deployment_release_publisher_login" },
+    artifactToken: { arn: "synthetic-build-token", versionId: "fixed" }, sourceRepository: b.sourceRepository, sourceRepositoryId: p.policy.repositoryId, imageRepository: b.imageRepository };
+  const context = c.sql.contexts.get(b.instanceId)!;
+  context.releases = [context.releases.find(r => r.id === b.currentRelease!.id)!, candidate as unknown as SoftwareRelease];
+  const baselineManifest = JSON.stringify({ schemaVersion: 2, config: { digest: "sha256:" + h("a") }, layers: [] });
+  const baselineDigest = "sha256:" + await sha256Hex(baselineManifest);
+  Object.assign(b.currentRelease!, { manifestDigest: baselineDigest, platformDigest: baselineDigest });
+  Object.assign(context.releases[0].image, { manifestDigest: baselineDigest, platformDigest: baselineDigest });
+  Object.assign(c.plan.from, { imageUri: b.imageRepository + "@" + baselineDigest, platformDigest: baselineDigest });
+  const api = { ...f.api, read: async <T>(service: string, operation: string, input: Record<string, unknown>): Promise<T> => {
+    if (operation !== "batch-get-image") return f.api.read<T>(service, operation, input);
+    const ids = input.imageIds as { imageDigest: string }[];
+    return (ids[0].imageDigest === baselineDigest ? { images: [{ imageId: { imageDigest: baselineDigest }, imageManifest: baselineManifest }] } : p.registry.root) as T;
+  } };
+  const repository = { context: c.plannerRepo.context.bind(c.plannerRepo), prepare: c.plannerRepo.prepare.bind(c.plannerRepo),
+    recordDecision: c.plannerRepo.recordDecision.bind(c.plannerRepo), candidate: async () => candidate };
+  const audit: string[] = [], controls = { failPublish: false, failConfirm: false, failAudit: "", pushes: 0 };
+  const ports = { audit: async (kind: "intent" | "push" | "published" | "derived") => { audit.push(kind); if (kind === controls.failAudit) throw new Error("RELEASE_AUDIT_UNKNOWN"); },
+    publish: async () => { controls.pushes++; if (controls.failPublish) throw new Error("RELEASE_PUSH_UNKNOWN"); return p.registry; },
+    confirm: async (_sha: string, release: SoftwareRelease) => { if (controls.failConfirm) throw new Error("RELEASE_CATALOG_UNKNOWN");
+      context.releases[1] = release; return release; } };
+  return { ...f, api, p, candidate, repository, audit, promotionControls: controls, ports,
+    sourceFacts: () => sampleInstanceRelease(b, context.releases[0], api, () => c.sql.now) };
+}
+
+test("release promotion: one preapproval intent binds checked bytes and baseline, without a fake registry digest or cloud mutation", async () => {
+  const f = await promotionFixture();
+  try {
+    const previousRequests = f.cycle.sql.requests.size;
+    const out = await prepareReleaseWorkflowJob(f.job, f.config, { repository: f.repository, api: f.api, now: () => f.cycle.sql.now });
+    assert.equal(out.outputs.status, "PROMOTION_PLANNED"); assert.equal(f.cycle.sql.requests.size, previousRequests); assert.equal(f.audit.length, 0);
+    const intent = await decodePromotionHandoff(out.outputs.handoff, out.outputs.handoff_sha, f.job, f.cycle.sql.now);
+    assert.equal(intent.target.imageConfigDigest, f.candidate.build.imageConfigDigest);
+    assert.equal("manifestDigest" in intent.target, false); assert.equal("platformDigest" in intent.target, false);
+    assert.equal(intent.writeBefore, f.cycle.sql.now + 5 * 3600_000);
+    assert.match(out.summary, /ONE environment approval/); assert.doesNotMatch(out.summary, /selfCheck|password|secret-canary/);
+    await assert.rejects(decodePromotionHandoff(out.outputs.handoff, out.outputs.handoff_sha, { ...f.job, runId: "999" }, f.cycle.sql.now), /HANDOFF_REJECTED/);
+    await assert.rejects(decodePromotionHandoff(out.outputs.handoff, out.outputs.handoff_sha, f.job, intent.writeBefore), /HANDOFF_REJECTED/);
+  } finally { f.cycle.destroy(); }
+});
+
+test("release promotion: stopped, busy, incompatible or changed candidate baseline refuses all push/catalog/audit writes", async () => {
+  for (const mode of ["stopped", "busy", "incompatible", "changed"]) {
+    const f = await promotionFixture();
+    try {
+      if (mode === "stopped") f.controls.stopped = true;
+      if (mode === "busy") f.cycle.sql.states.get(f.job.instanceId)!.active = "older-request";
+      if (mode === "incompatible") f.candidate.policy.compatibility = { ...f.candidate.policy.compatibility, applicationPort: 9000 };
+      if (mode === "changed") f.candidate.build.source.commit = "a".repeat(40);
+      await assert.rejects(prepareReleaseWorkflowJob(f.job, f.config, { repository: f.repository, api: f.api, now: () => f.cycle.sql.now }), /RELEASE_/);
+      assert.equal(f.promotionControls.pushes, 0); assert.equal(f.audit.length, 0); assert.equal(f.cycle.events.length, 0);
+    } finally { f.cycle.destroy(); }
+  }
+});
+
+test("release promotion: unknown audit/push/catalog ACK and wrong manifest stop before CFN, without upload retries", async () => {
+  for (const mode of ["intent", "published", "push", "confirm", "manifest"]) {
+    const f = await promotionFixture();
+    try {
+      const intent = await preparePromotionIntent(f.job, f.candidate, f.binding, await f.sourceFacts(), f.cycle.sql.now);
+      if (["intent", "published"].includes(mode)) f.promotionControls.failAudit = mode;
+      if (mode === "push") f.promotionControls.failPublish = true;
+      if (mode === "confirm") f.promotionControls.failConfirm = true;
+      if (mode === "manifest") f.p.image.imageManifest += "changed";
+      await assert.rejects(promoteApprovedCandidate(f.candidate, intent, f.ports, () => f.cycle.sql.now));
+      assert.equal(f.promotionControls.pushes, mode === "intent" ? 0 : 1); assert.equal(f.cycle.events.includes("CreateChangeSet"), false);
+    } finally { f.cycle.destroy(); }
+  }
+});
+
+test("release promotion: post-push source drift blocks the derived update; original approval deadline cannot grow", async () => {
+  const f = await promotionFixture();
+  try {
+    const facts = await f.sourceFacts(), intent = await preparePromotionIntent(f.job, f.candidate, f.binding, facts, f.cycle.sql.now);
+    const release = await promoteApprovedCandidate(f.candidate, intent, f.ports, () => f.cycle.sql.now);
+    const plan = await derivePromotedPlan(intent, release, f.binding, facts, f.cycle.sql.now + 1000);
+    assert.equal(plan.writeBefore, intent.writeBefore); assert.equal(plan.to.imageUri, `${release.image.repository}@${release.image.manifestDigest}`);
+    await assert.rejects(derivePromotedPlan(intent, release, { ...f.binding, stateRevision: 99 }, facts, f.cycle.sql.now), /BASELINE_CHANGED/);
+    await assert.rejects(assertPromotionBaseline(intent, f.candidate, f.binding, { ...facts, roleArn: "changed-role" }, f.cycle.sql.now), /CHANGED/);
+    await assert.rejects(derivePromotedPlan(intent, release, f.binding, facts, intent.writeBefore), /EXPIRED/);
+  } finally { f.cycle.destroy(); }
+});
+
+test("release promotion workflow: same protected-job path promotes, derives, updates, independently verifies and writes back", async () => {
+  const f = await promotionFixture(), c = f.cycle;
+  try {
+    const prepared = await prepareReleaseWorkflowJob(f.job, f.config, { repository: f.repository, api: f.api, now: () => c.sql.now });
+    const release = await verifyPublishedRelease(f.candidate.build, f.p.registry, c.sql.now);
+    const api = f.api;
+    const resolve = async (plan: typeof c.plan) => ({ binding: (await c.executorRepo.context(plan.selection.instanceId))!.binding, release });
+    const reader = releaseReader(resolve, () => api, () => c.sql.now);
+    let inspectionError = "";
+    const result = await deployReleaseWorkflowJob(f.job, f.config, prepared.outputs.handoff, prepared.outputs.handoff_sha,
+      { ...c.deps, reader, inspector: { inspect: async input => {
+        try { return await inspectInstanceRelease(input, { repository: c.verifierRepo, reader: releaseReader(resolve, () => api, () => c.sql.now), evidence: c.evidence, now: () => c.sql.now }); }
+        catch (error) { inspectionError = error instanceof Error ? error.message : "unknown"; throw error; }
+      } } },
+      { ports: f.ports, api: () => api, repository: { candidate: async () => f.candidate, preparePromoted: async (plan, sha) => {
+        Object.assign(c.plan, plan); c.input.requestId = plan.selection.requestId;
+        const params = f.raw().parameters;
+        c.controls.changeSetPatch = cs => { for (const p of cs.Parameters ?? []) if (p.ParameterKey !== "ImageUri") p.ParameterValue = params[p.ParameterKey!]; };
+        return c.plannerRepo.prepare(plan, sha);
+      } } });
+    assert.equal(result.status, "SUCCEEDED", JSON.stringify({ result, events: c.events, inspectionError })); assert.equal(f.promotionControls.pushes, 1);
+    assert.deepEqual(f.audit, ["intent", "published", "derived"]);
+    assert.equal(c.events.filter(e => e === "CreateChangeSet").length, 1); assert.equal(c.events.filter(e => e === "ExecuteChangeSet").length, 1);
+    assert.equal((await c.executorRepo.context(f.job.instanceId))!.binding.currentRelease!.id, release.id);
+  } finally { c.destroy(); }
+});
+
+test("release promotion runtime: real command serialization loads exact checked bytes, sends password only via stdin and pushes once", async () => {
+  for (const mode of ["publish", "existing", "bad-load", "push-unknown", "bad-source", "used-slot"]) {
+    const f = await sourceFixture();
+    const candidate = await sealReleaseCandidate(f.policy, f.run, f.artifact, f.files, f.now);
+    const calls: { binary: string; args: string[]; input?: string }[] = [], audits: string[] = [];
+    let hasImage = mode === "existing";
+    const execute: PromotionCommand = async (binary, args, env, input) => {
+      calls.push({ binary, args, input });
+      if (binary === "docker") {
+        assert.equal(env.AWS_ACCESS_KEY_ID, undefined); assert.equal(env.GITHUB_TOKEN, undefined);
+        assert.equal(["build", "run"].includes(args[0]), false);
+        if (args[0] === "login") { assert.equal(input, "synthetic-ecr-password"); assert.equal(args.includes(input!), false); }
+        if (args[0] === "push") { if (mode === "push-unknown") throw new Error("RELEASE_PUSH_UNKNOWN"); hasImage = true; }
+        if (args[0] === "image") return JSON.stringify([{ Id: mode === "bad-load" ? "wrong" : candidate.build.imageConfigDigest,
+          Os: "linux", Architecture: "amd64", Config: { Labels: { "org.opencontainers.image.revision": candidate.build.source.commit } } }]);
+        return "";
+      }
+      assert.equal(env.AWS_MAX_ATTEMPTS, "1"); assert.equal(env.AWS_PROFILE, undefined);
+      if (args[1] === "describe-repositories") return JSON.stringify({ repositories: [{ registryId: "402010193138", repositoryName: "techlong-sandbox-speedfeast", imageTagMutability: "IMMUTABLE" }] });
+      if (args[1] === "get-login-password") { assert.equal(args.includes("--cli-input-json"), false); return "synthetic-ecr-password\n"; }
+      assert.equal(args[1], "batch-get-image");
+      if (!hasImage) return JSON.stringify({ images: [], failures: [{ failureCode: "ImageNotFound" }] });
+      return JSON.stringify({ images: [{ ...f.image, imageId: { ...f.image.imageId, imageTag: f.controls.tag } }], failures: [] });
+    };
+    const config = { accountId: "402010193138", region: "ca-central-1", promotion: { sourceRepository: f.policy.repository,
+      sourceRepositoryId: f.policy.repositoryId, imageRepository: f.policy.imageRepository }, evidence: { prefix: "releases" } } as ReleaseEnvironmentConfig;
+    const intent = { candidateId: candidate.id, candidateSha256: candidate.candidateSha256, requestId: "test-request", writeBefore: f.now + 3600_000,
+      target: { repository: f.policy.imageRepository, tag: f.controls.tag } } as ReleasePromotionIntent;
+    const fetcher = (async (url: string | URL | Request, init?: RequestInit) => {
+      const name = String(url);
+      if (name.endsWith(`/runs/${f.run.id}`)) return Response.json(mode === "bad-source" ? { ...f.run, run_attempt: 2 } : f.run);
+      if (name.endsWith(`/artifacts/${f.artifact.id}`)) return Response.json(f.artifact);
+      if (name.endsWith("/zip")) return new Response(null, { status: 302, headers: { location: "https://test.blob.core.windows.net/original" } });
+      assert.equal(init?.headers, undefined); return new Response("synthetic-zip");
+    }) as typeof fetch;
+    await temporarySource(async root => {
+      const publisher = releasePromotionPublisher(config, { accessKeyId: "synthetic", secretAccessKey: "synthetic", sessionToken: "synthetic", expiresAt: f.now + 7200_000 }, root,
+        { token: async () => "synthetic-read-token", put: async key => { audits.push(key); if (mode === "used-slot") throw new Error("RELEASE_SLOT_USED"); } }, execute, fetcher, () => f.now, async () => f.files);
+      if (["publish", "existing"].includes(mode)) assert.equal((await publisher.publish(candidate, intent)).root.images![0].imageId.imageDigest, f.image.imageId.imageDigest);
+      else await assert.rejects(publisher.publish(candidate, intent), /RELEASE_/);
+      assert.equal(calls.filter(c => c.binary === "docker" && c.args[0] === "push").length, ["publish", "push-unknown"].includes(mode) ? 1 : 0);
+      assert.equal(audits.length, ["publish", "push-unknown", "used-slot"].includes(mode) ? 1 : 0);
+      await assert.rejects(publisher.publish(candidate, intent), /SCOPE_REJECTED/);
+    });
+  }
+});
+
+test("release promotion installation: additive draft has no LOGIN, passwords, DML grants or expansion of the executor into catalog publisher", async () => {
+  const raw = await readFile(new URL("../ops/releases/promotion.draft.sql", import.meta.url), "utf8");
+  assert.equal((raw.match(/CREATE FUNCTION /g) ?? []).length, 3);
+  assert.match(raw, /confirm_promotion\(text,text\) TO deployment_release_publisher/);
+  assert.match(raw, /prepare_promoted_request\(text,text,text,text\) TO deployment_release_executor/);
+  assert.doesNotMatch(raw, /CREATE ROLE \S+ LOGIN|PASSWORD '|GRANT (?:INSERT|UPDATE|DELETE|ALL)|DROP |TRUNCATE /);
+  assert.match(raw, /SET FALSE;\s*COMMIT/);
+  const yaml = await readFile(new URL("../.github/workflows/instance-release.yml", import.meta.url), "utf8");
+  assert.equal((yaml.match(/environment: techlong-sandbox-deploy/g) ?? []).length, 1);
+  assert.match(yaml, /PROMOTION_PLANNED/); assert.doesNotMatch(yaml, /workflow_call|workflow_run|backend-reviewed-ecr-publish/);
+});
 
 async function checked() {
   const f = await releaseProductionFixture();

@@ -22,6 +22,10 @@ export interface ReleaseEnvironmentConfig {
   database: { planner: ReleaseSecretReference; executor: ReleaseSecretReference; verifier: ReleaseSecretReference };
   evidence: { bucket: string; owner: string; prefix: string };
   maxMetadataCallsPerSnapshot: number;
+  promotion?: {
+    roleArn: string; database: ReleaseSecretReference; artifactToken: { arn: string; versionId: string };
+    sourceRepository: string; sourceRepositoryId: number; imageRepository: string;
+  };
 }
 export interface ReleaseRuntimeConfig {
   schema: "techlong/instance-release-runtime/v1"; enabled: boolean; repository: string;
@@ -57,6 +61,14 @@ export function releaseEnvironment(config: ReleaseRuntimeConfig, job: ReleaseJob
       !/^[a-zA-Z0-9-]{32,64}$/.test(secret.versionId) || secret.username !== `deployment_release_${role}_login`) throw new Error("RELEASE_DATABASE_IDENTITY_REJECTED");
   }
   if (new Set(Object.values(e.database).map(s => s.arn)).size !== 3) throw new Error("RELEASE_DATABASE_IDENTITY_REJECTED");
+  if (e.promotion) {
+    const p = e.promotion;
+    if (roles.includes(p.roleArn) || !p.roleArn.startsWith(`arn:aws:iam::${e.accountId}:role/`) ||
+      p.database.username !== "deployment_release_publisher_login" || Object.values(e.database).some(s => s.arn === p.database.arn) ||
+      ![p.database, p.artifactToken].every(s => s.arn.startsWith(`arn:aws:secretsmanager:${e.region}:${e.accountId}:secret/`) && /^[a-zA-Z0-9-]{32,64}$/.test(s.versionId)) ||
+      p.sourceRepository !== "veinyyxy/SpeedFeast_Backend_main" || !Number.isSafeInteger(p.sourceRepositoryId) || p.sourceRepositoryId < 1 ||
+      p.imageRepository !== `${e.accountId}.dkr.ecr.${e.region}.amazonaws.com/techlong-sandbox-speedfeast`) throw new Error("RELEASE_PROMOTION_ACTIVATION_INCOMPLETE");
+  }
   return e;
 }
 

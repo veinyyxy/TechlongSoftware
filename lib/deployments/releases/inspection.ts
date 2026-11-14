@@ -72,9 +72,12 @@ export async function assertReleaseArtifact(target: Pick<ImageUpdatePlan["to"], 
 }
 
 /** Technical facts only; no login, order, payment, message or database-write checks. */
-export async function assertReleaseRuntime(plan: ImageUpdatePlan, f: ReleaseRuntimeFacts,
-  expected: "from" | "to", readStartedAt: number, now: number, requireHttp = false): Promise<InstanceReleaseObservation> {
-  const hashes = await releaseRuntimeDigests(f), image = plan[expected];
+export type ReleaseRuntimeExpectation = Pick<ImageUpdatePlan, "selection" | "changeSet" | "templateSha256" | "configurationSha256" | "desiredCount" | "compatibility"> & {
+  image: { imageUri: string; platformDigest: string };
+};
+export async function assertBoundReleaseRuntime(plan: ReleaseRuntimeExpectation, f: ReleaseRuntimeFacts,
+  readStartedAt: number, now: number, requireHttp = false): Promise<InstanceReleaseObservation> {
+  const hashes = await releaseRuntimeDigests(f), image = plan.image;
   if (f.observedAt < readStartedAt || f.observedAt > now || !Number.isSafeInteger(f.observedAt)) throw new Error("RELEASE_STALE_RUNTIME_FACTS");
   if (!f.albPresent || !f.databaseAvailable || !f.service.serviceArn || !f.service.desiredCount) throw new Error("RELEASE_RESTORE_REQUIRED");
   if (f.stackId !== plan.changeSet.StackName || hashes.templateSha256 !== plan.templateSha256 ||
@@ -121,6 +124,10 @@ export async function assertReleaseRuntime(plan: ImageUpdatePlan, f: ReleaseRunt
     databaseSchemaVersion: f.databaseSchemaVersion, desiredCount: plan.desiredCount, runningCount: f.service.runningCount!,
     pendingCount: f.service.pendingCount!, operationInProgress: false, persistentUploadsReady: f.persistentUploadsReady };
 }
+
+export const assertReleaseRuntime = (plan: ImageUpdatePlan, f: ReleaseRuntimeFacts, expected: "from" | "to",
+  readStartedAt: number, now: number, requireHttp = false) =>
+  assertBoundReleaseRuntime({ ...plan, image: plan[expected] }, f, readStartedAt, now, requireHttp);
 
 export interface IndependentInspectionInput {
   requestId: string; planSha256: string; runId: string; runAttempt: number;

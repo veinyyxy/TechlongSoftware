@@ -83,6 +83,8 @@ export function catalogSourceReaders(scope: CatalogSourceScope, token: () => Pro
       return { accountId: value.Account, arn: value.Arn };
     },
     runs: () => json<{ workflow_runs: ReleaseBuildRun[] }>("actions/workflows/backend-image-candidate.yml/runs?branch=main&status=success&per_page=10"),
+    run: (id: number) => { must(Number.isSafeInteger(id) && id > 0, "RELEASE_SOURCE_RUN_ID"); return json<ReleaseBuildRun>(`actions/runs/${id}`); },
+    artifact: (id: number) => { must(Number.isSafeInteger(id) && id > 0, "RELEASE_SOURCE_ARTIFACT_ID"); return json<ReleaseBuildArtifact>(`actions/artifacts/${id}`); },
     artifacts: (id: number) => { must(Number.isSafeInteger(id) && id > 0, "RELEASE_SOURCE_RUN_ID"); return json<{ total_count: number; artifacts: ReleaseBuildArtifact[] }>(`actions/runs/${id}/artifacts?per_page=100`); },
     repository: async () => {
       const value = await aws<{ repositories: { registryId: string; repositoryName: string; imageTagMutability: string }[] }>("ecr", "describe-repositories", { registryId: scope.accountId, repositoryNames: [scope.ecrRepository] });

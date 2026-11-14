@@ -31,7 +31,7 @@ export async function requireHumanReview(job: ReleaseJobContext, config: Release
 }
 
 export async function assumeReleaseIdentity(job: ReleaseJobContext, config: ReleaseEnvironmentConfig,
-  purpose: "planner" | "executor" | "verifier", environment: NodeJS.ProcessEnv, fetcher: typeof fetch = fetch,
+  purpose: "planner" | "executor" | "verifier" | "publisher", environment: NodeJS.ProcessEnv, fetcher: typeof fetch = fetch,
   createClient = (region: string) => new STSClient({ region, maxAttempts: 1, endpoint: `https://sts.${region}.amazonaws.com` })): Promise<ReleaseCredentials> {
   const url = new URL(environment.ACTIONS_ID_TOKEN_REQUEST_URL ?? "");
   if (url.protocol !== "https:" || !url.hostname.endsWith(".actions.githubusercontent.com") || !environment.ACTIONS_ID_TOKEN_REQUEST_TOKEN) throw new Error("RELEASE_OIDC_UNAVAILABLE");
@@ -49,7 +49,7 @@ export async function assumeReleaseIdentity(job: ReleaseJobContext, config: Rele
   const client = createClient(config.region);
   try {
     const result = await client.send(new AssumeRoleWithWebIdentityCommand({
-      RoleArn: purpose === "planner" ? config.prepareRoleArn : purpose === "executor" ? config.executionRoleArn : config.inspectionRoleArn,
+      RoleArn: purpose === "planner" ? config.prepareRoleArn : purpose === "executor" ? config.executionRoleArn : purpose === "publisher" ? config.promotion?.roleArn : config.inspectionRoleArn,
       RoleSessionName: `release-${job.runId}-${purpose}`, WebIdentityToken: token, DurationSeconds: 3600,
     }));
     const c = result.Credentials;
@@ -58,8 +58,9 @@ export async function assumeReleaseIdentity(job: ReleaseJobContext, config: Rele
   } catch { throw new Error("RELEASE_CREDENTIALS_UNAVAILABLE"); } finally { client.destroy(); }
 }
 
-export function assertReleaseIdentity(identity: { Account?: string; Arn?: string }, config: ReleaseEnvironmentConfig, purpose: "planner" | "executor" | "verifier") {
-  const role = purpose === "planner" ? config.prepareRoleArn : purpose === "executor" ? config.executionRoleArn : config.inspectionRoleArn;
+export function assertReleaseIdentity(identity: { Account?: string; Arn?: string }, config: ReleaseEnvironmentConfig, purpose: "planner" | "executor" | "verifier" | "publisher") {
+  const role = purpose === "planner" ? config.prepareRoleArn : purpose === "executor" ? config.executionRoleArn : purpose === "publisher" ? config.promotion?.roleArn : config.inspectionRoleArn;
+  if (!role) throw new Error("RELEASE_PROMOTION_NOT_ACTIVATED");
   if (identity.Account !== config.accountId || !identity.Arn?.startsWith(`arn:aws:sts::${config.accountId}:assumed-role/${role.split("/").at(-1)}/`)) {
     throw new Error("RELEASE_ACCOUNT_OR_ROLE_MISMATCH");
   }
@@ -74,8 +75,9 @@ export function releaseDatabaseUrl(reference: ReleaseSecretReference, value: { A
   return connectionString;
 }
 
-export async function releaseRepository(config: ReleaseEnvironmentConfig, purpose: "planner" | "executor" | "verifier", credentials: ReleaseCredentials) {
-  const reference: ReleaseSecretReference = config.database[purpose];
+export async function releaseRepository(config: ReleaseEnvironmentConfig, purpose: "planner" | "executor" | "verifier" | "publisher", credentials: ReleaseCredentials) {
+  const reference = purpose === "publisher" ? config.promotion?.database : config.database[purpose];
+  if (!reference) throw new Error("RELEASE_PROMOTION_NOT_ACTIVATED");
   if (credentials.expiresAt <= Date.now()) throw new Error("RELEASE_CREDENTIALS_EXPIRED");
   const sts = new STSClient({ region: config.region, credentials, maxAttempts: 1, endpoint: `https://sts.${config.region}.amazonaws.com` });
   const secrets = new SecretsManagerClient({ region: config.region, credentials, maxAttempts: 1, endpoint: `https://secretsmanager.${config.region}.amazonaws.com` });

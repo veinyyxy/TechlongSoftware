@@ -7,6 +7,9 @@ import {canonicalJson,sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {releaseFixture,releaseProductionFixture,h} from './instance-release-fixture.ts';
 import {buildReleaseCandidate,verifyPublishedRelease} from '../lib/deployments/releases/production.ts';
 import {writeCatalogRelease,inspectCatalogRelease} from '../ops/releases/catalog-transaction.ts';
+import {sealReleaseCandidate,registerReleaseCandidate} from '../lib/deployments/releases/promotion.ts';
+import {releaseRequestId} from '../lib/deployments/releases/handoff.ts';
+import {workflowJob} from './instance-release-workflow-fixture.ts';
 
 // Never falls back to DATABASE_URL or local/production configuration. No DROP/reset/cleanup SQL.
 const testUrl=process.env.INSTANCE_RELEASE_TEST_DATABASE_URL;
@@ -156,6 +159,53 @@ test('release native PostgreSQL 16: non-superuser draft install, narrow roles, r
     const after=await executor.context(binding.instanceId);assert.equal(after.binding.currentRelease.id,p.to.releaseId);assert.equal(after.binding.stateRevision,5);
     assert.equal(after.activeRequestId,result==='FAILED_NEEDS_INSPECTION'?next.selection.requestId:null);
    }
+  });
+  await t.test('same approval promotion SQL: separate real publisher login, immutable candidate confirmation and intent-bound executor preparation',async()=>{
+   await installer.query(await readFile(new URL('../ops/releases/promotion.draft.sql',import.meta.url),'utf8'));
+   assert.deepEqual((await installer.query("SELECT pg_has_role(current_user,'deployment_release_owner','SET') AS can_set,pg_has_role(current_user,'deployment_release_owner','USAGE') AS inherit")).rows[0],{can_set:false,inherit:false});
+   await admin.query("CREATE ROLE release_ci_publisher_login LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD 'synthetic-ci-only'");
+   await admin.query('GRANT deployment_release_publisher TO release_ci_publisher_login WITH INHERIT TRUE');
+   await admin.query('GRANT deployment_release_publisher TO release_ci_publisher_login WITH SET FALSE');
+   const publisherUrl=new URL(testUrl);publisherUrl.username='release_ci_publisher_login';
+   const publisherClient=await connect('release-native-publisher',undefined,publisherUrl.toString()),publisher=new PostgresReleaseRepository(publisherClient);
+   const v=await releaseProductionFixture();v.now=Date.now();v.policy.productId='promotion_ci_product';
+   v.artifact.expires_at=new Date(v.now+3600000).toISOString();v.receipt.osSecurityScan.databaseUpdatedAt=new Date(v.now-3600000).toISOString();v.registry.observedAt=v.now;await v.repack();
+   const candidate=await sealReleaseCandidate(v.policy,v.run,v.artifact,v.files,v.now),target=await verifyPublishedRelease(candidate.build,v.registry,v.now);
+   assert.equal(await registerReleaseCandidate(admin,candidate,v.now),'CANDIDATE_REGISTERED');
+   assert.equal((await planner.candidate(candidate.id)).candidateSha256,candidate.candidateSha256);
+   await assert.rejects(executor.confirmPromotion(candidate.candidateSha256,target),ReleasePersistenceUnknown);
+   await assert.rejects(publisherClient.query('SELECT * FROM deployment_release.releases'),e=>e.code==='42501');
+   await assert.rejects(publisher.confirmPromotion('0'.repeat(64),target),ReleaseRequestRejected);
+   await assert.rejects(publisher.confirmPromotion(candidate.candidateSha256,{...target,compatibility:{...target.compatibility,applicationPort:9999}}),ReleaseRequestRejected);
+   assert.deepEqual(await publisher.confirmPromotion(candidate.candidateSha256,target),target);
+   assert.deepEqual(await publisher.confirmPromotion(candidate.candidateSha256,target),target);
+   await assert.rejects(publisher.confirmPromotion(candidate.candidateSha256,{...target,image:{...target.image,manifestDigest:'sha256'+h('d')}}),ReleaseRequestRejected);
+   const origin=(await admin.query('SELECT promotion_origin FROM deployment_release.releases WHERE id=$1',[candidate.id])).rows[0].promotion_origin;
+   assert.deepEqual(origin,candidate);
+   const previous={...target,id:'ci_promotion_baseline',version:'1.0.0',image:{...target.image,manifestDigest:p.from.imageUri.split('@')[1],platformDigest:p.from.platformDigest}};
+   await admin.query("INSERT INTO deployment_release.releases(id,product_id,component,version,status,document) VALUES($1,$2,'tenant_api','1.0.0','ecr_verified',$3::jsonb)",[previous.id,previous.productId,canonicalJson(previous)]);
+   const job={...workflowJob(),instanceId:'ci_promotion_instance',releaseId:target.id},requestId=await releaseRequestId(job);
+   const next=structuredClone(p);Object.assign(next,{productId:target.productId,observedAt:v.now,preparedAt:v.now,writeBefore:v.now+300000,expectedStateRevision:0});
+   Object.assign(next.selection,{instanceId:job.instanceId,requestId,releaseId:target.id});
+   next.from={releaseId:previous.id,imageUri:previous.image.repository+'@'+previous.image.manifestDigest,platformDigest:previous.image.platformDigest};
+   Object.assign(next.to,{releaseId:target.id,version:target.version,imageUri:target.image.repository+'@'+target.image.manifestDigest,platformDigest:target.image.platformDigest,
+    sourceRepository:target.source.repository,sourceCommit:target.source.commit,buildRunId:target.source.buildRunId,artifactSha256:target.source.artifactSha256,imageVerificationSha256:target.image.verificationSha256});
+   next.changeSet.Parameters=next.changeSet.Parameters.map(p=>p.ParameterKey==='ImageUri'?{ParameterKey:'ImageUri',ParameterValue:next.to.imageUri}:p);
+   const newBinding={...binding,instanceId:job.instanceId,productId:target.productId};
+   await admin.query('INSERT INTO deployment_release.instance_state(instance_id,binding,current_release_id,revision) VALUES($1,$2::jsonb,$3,0)',[job.instanceId,canonicalJson(newBinding),previous.id]);
+   const intent={schema:'techlong/instance-release-promotion-intent/v1',job,requestId,candidateId:candidate.id,candidateSha256:candidate.candidateSha256,
+    bindingSha256:h('a'),sourceSha256:h('b'),observedAt:v.now,writeBefore:next.writeBefore,target:{repository:target.image.repository,tag:'app-sha'+target.source.commit+'-r'+target.source.buildRunId+'-a1',
+     imageConfigDigest:candidate.build.imageConfigDigest,artifactSha256:target.source.artifactSha256,archiveSha256:candidate.build.artifact.archiveSha256,version:target.version},
+    limits:{images:1,pushSubmissions:1,createChangeSets:1,executeChangeSets:1,restore:false,migration:false}};
+   const nextSha=await sha256Hex(next);
+   await assert.rejects(publisher.preparePromoted(next,nextSha,intent),ReleasePersistenceUnknown);
+   await assert.rejects(executor.preparePromoted(next,nextSha,{...intent,job:{...job,runAttempt:2}}),ReleaseRequestRejected);
+   await assert.rejects(executor.preparePromoted(next,nextSha,{...intent,candidateSha256:h('d')}),ReleaseRequestRejected);
+   await assert.rejects(executor.preparePromoted(next,nextSha,{...intent,writeBefore:v.now+6*3600000}),ReleaseRequestRejected);
+   assert.equal((await executor.preparePromoted(next,nextSha,intent)).status,'AWAITING_APPROVAL');
+   assert.equal((await admin.query('SELECT approval_intent_sha256 FROM deployment_release.requests WHERE id=$1',[requestId])).rows[0].approval_intent_sha256,await sha256Hex(intent));
+   await assert.rejects(executor.preparePromoted(next,nextSha,intent),ReleaseRequestRejected);
+   await assert.rejects(writer.query('SELECT deployment_release.prepare_request($1,$2)',[canonicalJson(next),nextSha]),e=>e.code==='42501');
   });
  }finally{await Promise.all(clients.map(c=>c.end()));}
 });

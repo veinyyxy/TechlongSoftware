@@ -1,5 +1,6 @@
 import { canonicalJson, sha256Hex } from "../execution/hash.ts";
 import type { ImageUpdatePlan, InstanceBinding, ReleaseRequestStatus, ReleaseSelection, SoftwareRelease } from "./contract.ts";
+import type { StoredReleaseCandidate, ReleasePromotionIntent } from "./promotion.ts";
 
 export interface ReleaseEvidenceReference {
   bucket: string;
@@ -100,6 +101,19 @@ export class PostgresReleaseRepository {
 
   context(instanceId: string): Promise<{ binding: InstanceBinding; releases: SoftwareRelease[]; activeRequestId: string | null } | null> {
     return this.call("select deployment_release.read_context($1::text) as result", [instanceId]);
+  }
+
+  candidate(id: string): Promise<StoredReleaseCandidate | null> {
+    return this.call("select deployment_release.read_candidate($1::text) as result", [id]);
+  }
+
+  confirmPromotion(candidateSha: string, release: SoftwareRelease): Promise<SoftwareRelease> {
+    return this.call("select deployment_release.confirm_promotion($1::text,$2::text) as result", [candidateSha, canonicalJson(release)], true);
+  }
+
+  preparePromoted(plan: ImageUpdatePlan, sha: string, intent: ReleasePromotionIntent): Promise<StoredReleaseRequest> {
+    return this.call("select deployment_release.prepare_promoted_request($1::text,$2::text,$3::text,$4::text) as result",
+      [canonicalJson(plan), sha, canonicalJson(intent), canonicalJson(intent.job)], true);
   }
 
   request(requestId: string): Promise<StoredReleaseRequest | null> {

@@ -8,6 +8,9 @@ import { prepareReleaseWorkflowJob, deployReleaseWorkflowJob } from "../lib/depl
 import { assumeReleaseIdentity, releaseRepository, releaseMetadataApi, requireHumanReview, releaseCloud, releaseEvidence } from "../ops/releases/aws-runtime.ts";
 import { runReleaseInspector, type ReleaseInspectorPacket } from "../ops/releases/inspector-process.ts";
 import type { ImageUpdatePlan } from "../lib/deployments/releases/contract.ts";
+import { decodePromotionHandoff } from "../lib/deployments/releases/promotion.ts";
+import { releasePromotionPublisher, releasePromotionServices } from "../ops/releases/promotion-runtime.ts";
+import path from "node:path";
 
 const root = new URL("../", import.meta.url);
 const configFile = new URL("../ops/releases/runtime.json", import.meta.url);
@@ -46,7 +49,9 @@ async function main() {
   }
   if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === "0") throw new Error("RELEASE_VERIFIED_TLS_REQUIRED");
   await assertCheckout(job.sourceSha);
-  const handoff = mode === "deploy" ? await decodeReleaseHandoff(process.env.RELEASE_HANDOFF ?? "", process.env.RELEASE_HANDOFF_SHA ?? "", job, Date.now()) : null;
+  const encoded = process.env.RELEASE_HANDOFF ?? "", approvedSha = process.env.RELEASE_HANDOFF_SHA ?? "";
+  const promotion = mode === "deploy" && encoded.length <= 16384 && JSON.parse(Buffer.from(encoded, "base64").toString("utf8")).schema === "techlong/instance-release-promotion-intent/v1";
+  const handoff = mode === "deploy" ? await (promotion ? decodePromotionHandoff : decodeReleaseHandoff)(encoded, approvedSha, job, Date.now()) : null;
   if (mode === "deploy") await requireHumanReview(job, e, process.env.RELEASE_GITHUB_READ_TOKEN ?? "");
   const credentials = packet?.credentials ?? await assumeReleaseIdentity(job, e, mode === "prepare" ? "planner" : "executor", process.env);
   const repository = await releaseRepository(e, mode === "prepare" ? "planner" : mode === "inspect" ? "verifier" : "executor", credentials);
@@ -71,7 +76,18 @@ async function main() {
   }
   if (!handoff) throw new Error("RELEASE_HANDOFF_REQUIRED");
   const transport = releaseCloud(e, credentials);
+  let promotionServices: ReturnType<typeof releasePromotionServices> | undefined;
   try {
+    let promotionDependencies: Parameters<typeof deployReleaseWorkflowJob>[5];
+    if (promotion) {
+      if (!e.promotion || !process.env.RUNNER_TEMP || !path.isAbsolute(process.env.RUNNER_TEMP)) throw new Error("RELEASE_PROMOTION_NOT_ACTIVATED");
+      const publisherCredentials = await assumeReleaseIdentity(job, e, "publisher", process.env);
+      const publisherRepository = await releaseRepository(e, "publisher", publisherCredentials);
+      promotionServices = releasePromotionServices(e, publisherCredentials);
+      const publisher = releasePromotionPublisher(e, publisherCredentials, path.join(process.env.RUNNER_TEMP, "release-promotion-" + handoff.requestId), promotionServices);
+      promotionDependencies = { repository, api: () => releaseMetadataApi(e, credentials),
+        ports: { ...publisher, confirm: publisherRepository.confirmPromotion.bind(publisherRepository) } };
+    }
     const result = await deployReleaseWorkflowJob(job, e, process.env.RELEASE_HANDOFF ?? "", process.env.RELEASE_HANDOFF_SHA ?? "", {
       repository, cloud: transport.cloud, reader, now: Date.now, pause: ms => new Promise(resolve => setTimeout(resolve, ms)),
       inspector: { inspect: async input => {
@@ -80,11 +96,11 @@ async function main() {
         if (Date.now() >= input.readBefore) throw new Error("RELEASE_INSPECTION_EXPIRED");
         return runReleaseInspector({ job, input, credentials: verifierCredentials });
       } },
-    });
+    }, promotionDependencies);
     await summary("## Instance API release result\n\n```json\n" + JSON.stringify(result, null, 2) + "\n```\n");
     console.log(JSON.stringify(result));
     if (!["SUCCEEDED", "NO_CHANGE"].includes(result.status)) process.exitCode = 1;
-  } finally { transport.destroy(); }
+  } finally { transport.destroy(); promotionServices?.destroy(); }
 }
 
 main().catch(() => { console.error("INSTANCE_RELEASE_STOPPED_NO_RETRY"); process.exitCode = 1; });
