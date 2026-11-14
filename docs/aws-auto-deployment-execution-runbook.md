@@ -2,7 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：D2-4 schema已提交；仅剩余授权清单待新SHA批准（2026-11-13）
+## 当前唯一继续点：D2-4空结构/NOLOGIN安装已核验，下一仅准备剩余身份材料（2026-11-13）
+
+用户明确确认a79ea11b…及完整范围/风险后，本轮于2026-11-14T00:52:42.954Z—00:52:47.734Z（温尼伯11月13日18:52）唯一执行：已有schema独立核验通过，00:52:45.761Z取得原grants事务COMMIT ACK，再由另一READ ONLY连接完成最终核验。状态SCHEMA_NOLOGIN_INSTALLATION_INDEPENDENTLY_VERIFIED；实际配置1/TLS2/SQL44/DDL1/ACK1，AWS/GitHub/Secret值/私钥/调度0。没有重建schema/表/函数，只新增三NOLOGIN。[完成摘要与原件SHA](aws-instance-release-schema-install-completed-20261113.json)。本轮此前的安全拒绝没有启动命令或消费槽，不算一次数据库调用。
+
+三表仍为零字节普通heap且无继承，原schema/三表/九函数OID和函数体/owner/SECURITY DEFINER/search_path不变；四NOLOGIN及准确ACL通过，PUBLIC无函数执行权，三操作角色无表/列DML或owner成员，有效安装者SET/INHERIT均关闭，原旧目录逐项保持。安装者创建者ADMIN管理能力仍在，不把本次说成已消除管理员权。两个旧attempt及本次attempt/原件全部保留，不重放已消费a79…或再运行其check-local。本轮仅本地核对已保存回执和文档收尾，不再读取生产。
+
+此完成仅是D2-4控制库空结构及NOLOGIN授权，不是日常发布已启用。runtime仍false/environments={}；没有LOGIN/密码/Secret/IAM、实例/版本种子、工作流派发或收费环境恢复。唯一后继是沿[同一总安装差异表](aws-instance-release-workflow.md#schema-install-review)，复用已存事实本地准备三个窄LOGIN/固定Secret和三类IAM的精确材料；不新增框架/分支或进入D2-5。新读取/安装仍另审，原事实02:10:40.091Z不延长，过期材料不能直接执行。本轮至此收尾，不自动安装后继对象。
+
+### 以下为本次剩余授权的执行前准备，已完成且不得重放
 
 用户批准2a0cd179…后，于22:39:02.337Z唯一调用；schema事务在22:39:04.967Z收到COMMIT ACK，随后独立核验在成员数组校验处停止，22:39:06.818Z结束。实际配置1/TLS2/SQL38/DDL1/ACK1，AWS/GitHub/Secret值/私钥/调度0。新schema、三表九函数及owner已有提交记录，三操作角色及grants事务未提交；完整独立核验和空heap证明尚未完成，不能声称安装成功。[部分提交回执与原件SHA](aws-instance-release-schema-partial-20261113.json)。两份旧attempt已消费且原字节保持，不重放任一旧命令或重建schema。
 

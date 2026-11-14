@@ -1,6 +1,6 @@
 # D2-4：单审批发布工作流与运行接线
 
-2026-11-13，America/Winnipeg。状态：代码/离线回归/隔离PG16 CI已通过，`runtime.json.enabled=false`；现有Neon的schema事务已提交，剩余grants未提交、完整独立核验未通过。[当前唯一接续点](#grants-install-continuation)；未调度，不代表AWS已可实际发布。
+2026-11-13，America/Winnipeg。状态：代码/离线回归/隔离PG16 CI已通过；现有Neon的空结构及NOLOGIN授权已提交并通过独立核验。[实际完成记录及剩余边界](#schema-install-completed)。`runtime.json.enabled=false`，未配置LOGIN/Secret/IAM或调度，不代表AWS已可实际发布。
 
 准确证据：源码`fa2c97ed92515831cb51e5a7985ddcb36468bf5a`的[无AWS CI43501418601](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43501418601) attempt1 completed/success；137项本地相关回归及CI offline/lint/类型通过，隔离PG16原生5项通过、skip0。首个CI43498845469暴露草案IF/CASE括号语法，已单行修正，原失败保留。本轮没有读取或安装生产数据库/角色、没有AWS资源API调用或部署派发。
 
@@ -157,7 +157,7 @@ AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及�
 
 ## 精确安装审批材料：本次只安装空结构及NOLOGIN权限
 
-**最新实际状态：原9dfad976…握手停止后，另获批2a0cd179…已有schema COMMIT，grants尚未提交。** 两个旧槽均已消费；[仅剩余授权](#grants-install-continuation)须新SHA批准。本节下方原清单说明保留为范围/风险依据，不将文件中的“AWAITING_APPROVAL”视为旧槽仍可用。
+**最新实际状态：原9dfad976…握手停止、2a0cd179…schema部分提交后，另获批a79ea11b…已完成剩余grants与独立核验。** 三个槽均已消费，见[完成记录](#schema-install-completed)。本节下方原清单说明保留为范围/风险依据，不将文件中的“AWAITING_APPROVAL”视为旧槽仍可用。
 
 2026-11-13，本轮只离线准备，未新增生产/私密读取或远端写入。完整安装差异收拢在本节，不复制工作流或新建安装/恢复框架。**本次可批准对象是[机器清单](aws-instance-release-schema-install-review.json)，不是对下表全部后续工作的笼统批准。** 两份准确SQL已由727affe的非超级用户CI43513493163验证；这不自动覆盖尚未编制验证的LOGIN/Secret/IAM安装。
 
@@ -234,7 +234,9 @@ AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及�
 
 <a id="grants-install-continuation"></a>
 
-## 当前仅剩余授权：先验证已有schema，不重建（待新SHA批准）
+## 剩余授权审批与原风险（已消费，以下为执行前材料）
+
+本节a79ea11b…已获用户明确确认并唯一成功执行，不能再运行。最新状态见[完成记录](#schema-install-completed)；下文的“待批/未消费”均是原准备时刻，不是当前许可。
 
 ### 已发生的提交与停止
 
@@ -268,5 +270,19 @@ AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及�
 - 所有旧槽/原件保留，新槽也永久一次，不复位或自动恢复。现有AWS存储等仍可能收费；本次不新建AWS计费资源，但不能承诺所有费用为零。
 
 最晚开始仍2026-11-14T02:00:40.091Z＝温尼伯11月13日20:00:40.091 CST；结束不晚于开始后10分钟且不晚于原02:10:40.091Z。准备/中断续接不重计事实时间；过期不执行，必要补读另审。不需要AWS Source刷新。后续LOGIN/Secret/IAM属于原总安装差异表，仍另审，不借本次新SHA自动启用日常发布功能。
+
+<a id="schema-install-completed"></a>
+
+## 空结构及NOLOGIN权限安装完成：不等于功能已启用
+
+用户对上一条准确a79ea11b…清单/风险明确回复“确认”，本轮于2026-11-14T00:52:42.954Z开始，00:52:45.643Z完成已有schema核验；00:52:45.761Z收到原grants.draft.sql的COMMIT ACK；00:52:47.672Z完成另一READ ONLY连接核验，00:52:47.734Z关闭结束。完整结果为SCHEMA_NOLOGIN_INSTALLATION_INDEPENDENTLY_VERIFIED。[完成摘要](aws-instance-release-schema-install-completed-20261113.json)记录实际计数、原件SHA及已消费attempt；原握手和schema部分提交记录均保留。此前一次本机安全审批拒绝未启动命令、未读取配置或连接/消费槽；明确确认后才进行了这一次实际执行。
+
+实际配置读取1、验证TLS连接2、客户端SQL44（含原完整grants一批）、DDL提交1/COMMIT ACK1，AWS/STS/GitHub/Secret值/私钥/派发0；schema提交0。三次实际尝试总计配置3/连接5/SQL82/DDL2/ACK2。仅创建三个操作NOLOGIN角色，没有重复运行schema或改九函数正文。
+
+独立核验确认：schema237571、三表237590/237572/237611及九函数原OID保持；九函数体SHA/owner/SECURITY DEFINER/search_path与727affe准确原文相符。四NOLOGIN均无SUPERUSER/CREATEROLE/CREATEDB/REPLICATION/BYPASSRLS，schema和逐函数ACL符合原分工，无PUBLIC函数执行；三操作角色无owner成员或表/列DML。有效安装者SET/INHERIT均false、四角色的父角色均空；创建者ADMIN仍可管理授权，不声称宽管理身份已收窄。三普通heap主fork均0字节且无继承，以元数据证明空表，没有业务行SELECT。原旧目录投影逐项保持，未将新对象替换为新基准掩盖旧差异。
+
+本轮只在获批两条连接内完成这些验证，后续仅读取已封存本地回执并记录文档，未追加生产检查。原SQL/运行代码及工作流未改，不重跑CI；实际Neon验证由本次原件证明，而非沿用隔离PG16结果推断。新attempt及原件永久保留，禁止重放a79…和check-local/复位槽；runtime仍enabled=false/environments={}。
+
+当前尚无三窄LOGIN/密码、固定控制Secret、三类IAM/boundary/OIDC的本阶段安装，也没有实例/版本种子、真实日常更新或ALB/ECS/RDS恢复。唯一后继沿原总安装差异表准备这些剩余精确材料，不另起框架/探针或D2-5支线；当前只本地复用已存事实，新生产读取/Secret值/私钥使用或安装仍按准确范围另审。原事实2026-11-14T02:10:40.091Z不延长；本次已完成回执永久可追溯，不等于未来仍可拿过期快照执行。当前阶段到此收尾，不自动进行后继写入。
 
 官方依据：[GitHub review history GET](https://docs.github.com/en/rest/actions/workflow-runs#get-the-review-history-for-a-workflow-run)、[environment审批](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/review-deployments)、[OIDC claims及aud/sub](https://docs.github.com/en/actions/reference/security/oidc)。这些支持接口设计，不是已安装/已部署的证明。

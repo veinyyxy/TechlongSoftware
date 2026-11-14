@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：D2-4 schema已提交，剩余授权待新SHA批准（2026-11-13）
+## 当前唯一继续点：D2-4空结构/NOLOGIN安装已核验，下一仅准备剩余身份材料（2026-11-13）
+
+明确确认a79ea11b…后，00:52:42.954Z—00:52:47.734Z完成已有schema独立核验→原grants唯一COMMIT→另一READ ONLY连接最终核验。实际配置1/TLS2/SQL44/DDL1/ACK1，AWS/GitHub/Secret值/私钥/调度0；schema未重建，三空表/九函数OID不变、四NOLOGIN及原ACL/角色有效权限/旧目录通过。[完成回执](aws-instance-release-schema-install-completed-20261113.json)。三attempt及所有原件保持，不重放或复位；原name[]兼容修正已通过此次线上读取。
+
+本轮只安装了控制空结构及NOLOGIN权限，runtime仍false/environments={}，未创建LOGIN/密码/Secret/IAM或实例版本种子，未恢复ALB/ECS/RDS、未派发更新。下一唯一方向是复用已存事实，按原总安装差异表本地准备剩余窄LOGIN/Secret/IAM精确材料；新读写另审、原事实截止不延长，不扩D2-5或框架。本轮到此收尾。
+
+### 以下为剩余授权的执行前记录，已完成且不得重放
 
 已批准2a0cd179…于22:39:04.967Z取得schema事务COMMIT ACK，独立核验因本地name[]数组类型误判停止；实际配置1/TLS2/SQL38/DDL1/ACK1，云/Secret值/私钥/派发0。grants未提交，三操作NOLOGIN角色未创建，完整独立核验尚未通过；[部分回执](aws-instance-release-schema-partial-20261113.json)与旧attempt均保留，不重建schema或重跑旧SHA。仅本地text[]转换回归通过，未放宽有效权限/父角色检查，未新连库或改运行SQL。
 
