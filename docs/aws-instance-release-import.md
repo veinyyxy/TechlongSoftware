@@ -61,3 +61,5 @@ node --experimental-strip-types scripts/instance-release-import.ts register <私
 既有 PG16 CI 将目录测试改为真正的非超级用户 LOGIN（CREATEROLE、初始 owner SET/INHERIT=false）执行写入，再由新 LOGIN 连接独立核验，检查冲突/撤销及收尾权限；不再用管理员 `SET ROLE owner` 代替安装者可行性证明。本地没有隔离 PG 时明确 skip；只有准确 Linux CI 原生日志通过才记为该路径实测，不等于 Neon 生产安装验证。
 
 本轮只完成代码、离线回归、普通无 AWS CI 与文档。**真实采集/真实登记仍未执行；同审批自动晋升仍未实现，但已确立为这项底座之后的需求，不作为“可选”跳过。** 不扩临时工具/UI或重做业务测试，不进入 D2-6 实际更新。
+
+收尾证据：源码 `b6ed643fc9a74a54a544d39162d11ab05619c5d1` 的 [CI43558430448](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43558430448) attempt1 completed/success，head/两 job/各步骤和原生日志已核对。Linux 回归164通过/0失败/0跳过，含实际 Python ZIP；PG16原生8通过/0失败/0跳过，含真正非超级用户写入及独立连接权限收尾。[机器摘要](aws-instance-release-import-ci-20261113.json)。这是合成 GitHub/ECR响应和隔离文件/数据库证明，不是实际后端来源或 Neon 导入结果。本轮至此结束。
