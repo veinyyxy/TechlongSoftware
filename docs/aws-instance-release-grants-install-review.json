@@ -1,0 +1,255 @@
+{
+  "schema": "techlong/instance-release-schema-install-review/v1",
+  "id": "9ce8f77a-fed4-4d3f-a8c0-4f7893d38925",
+  "status": "AWAITING_APPROVAL",
+  "scope": "EXISTING_CONTROL_SCHEMA_GRANTS_ONLY",
+  "preparedAt": "2026-11-13T22:47:49.775Z",
+  "approvalRequired": true,
+  "executor": "Existing pg client independently verifies the already committed schema, then submits only the pinned grants.draft.sql once; no schema replay",
+  "source": {
+    "sqlCommit": "727affe9b5736e3c52f744cde92d14c29a14af52",
+    "ciRunId": 43513493163,
+    "ciAttempt": 1,
+    "ciConclusion": "success",
+    "nativePostgresMajor": 16,
+    "nativeTestsPassed": 6,
+    "productionInstallationProved": false
+  },
+  "facts": {
+    "startedAt": "2026-11-13T21:10:40.091Z",
+    "readCompletedAt": "2026-11-13T21:14:08.892Z",
+    "validUntil": "2026-11-14T02:10:40.091Z",
+    "privateReceipt": ".local-secrets/d2-4-install-readonly-20261113-a/combined.result.json",
+    "receiptRawSha256": "1d799101f54650d1c2386973493183b016907dcd5afd5657bc25ee7fa07b71ad",
+    "oldCatalogSha256": "346c20991972b9b2ba7805e1f5a748b1605028b17fd3fff97e6039037ea4d679",
+    "readAgainDuringPreparation": false
+  },
+  "window": {
+    "startBefore": "2026-11-14T02:00:40.091Z",
+    "finishBefore": "2026-11-14T02:10:40.091Z",
+    "maxExecutionMs": 600000,
+    "resourceTtlCreated": false,
+    "automaticExtension": false
+  },
+  "target": {
+    "configPath": ".env.local",
+    "configKey": "DATABASE_URL",
+    "provider": "Neon",
+    "database": "neondb",
+    "sessionUser": "neondb_owner",
+    "endpointRule": "Existing control URL only; verified TLS to .neon.tech; no Aurora/local database or alternate config fallback",
+    "bindingRule": "Exact existing schema/table/function OIDs and owner attributes from the partial-installation receipt, unchanged old catalog and no runtime/LOGIN role collision must match before the remaining grants batch",
+    "schema": "deployment_release"
+  },
+  "artifacts": [
+    {
+      "path": "ops/releases/schema.draft.sql",
+      "normalization": "UTF-8; CRLF converted to LF; no other substitution",
+      "sha256": "167ad6a2d75c1126fa291fd7124c3957602ec100368c9f563ce59e91a75648ac",
+      "utf8Bytes": 19973
+    },
+    {
+      "path": "ops/releases/grants.draft.sql",
+      "normalization": "UTF-8; CRLF converted to LF; no other substitution",
+      "sha256": "7b7bc2eeff34c114cffc741e074b3c3bd449028eba2b11555445826312f25b8e",
+      "utf8Bytes": 1889
+    }
+  ],
+  "objects": {
+    "tables": [
+      "releases",
+      "instance_state",
+      "requests"
+    ],
+    "functions": [
+      "read_context(text)",
+      "read_request(text)",
+      "prepare_request(text,text)",
+      "record_decision(text,text)",
+      "claim_request(text,text,text,integer,text)",
+      "record_operation(text,text,text,text,text,text)",
+      "record_inspection(text,jsonb)",
+      "complete_request(text,text)",
+      "stop_request(text,text,text,text)"
+    ],
+    "noLoginRoles": [
+      "deployment_release_owner",
+      "deployment_release_planner",
+      "deployment_release_executor",
+      "deployment_release_verifier"
+    ],
+    "implicitObjects": "Retain and verify existing schema-generated constraints, indexes and internal foreign-key triggers; the remaining grants batch creates no schema, table or function",
+    "loginRolesCreated": [],
+    "businessRowsImported": 0,
+    "catalogRowsSeeded": 0,
+    "existingNoLoginRoles": [
+      "deployment_release_owner"
+    ],
+    "newNoLoginRoles": [
+      "deployment_release_planner",
+      "deployment_release_executor",
+      "deployment_release_verifier"
+    ]
+  },
+  "catalogVerification": {
+    "oldObjects": "Compare every saved old schema/role-membership/relation/function/trigger/RLS/default-ACL/database-ACL entry by its original identity and definition/ACL summary; reject any missing or modified old entry",
+    "allowedAdditionsAfterSchema": "Only deployment_release_owner and its installer memberships, the exact new schema/three tables/nine functions, their SQL-generated internal objects and owner default ACL",
+    "allowedAdditionsAfterGrants": "Also allow only the exact planner/executor/verifier NOLOGIN roles, their implicit creator memberships and the exact scoped function/schema grants",
+    "unexpectedObjectsOrMemberships": "Stop; never discard changed old entries, ignore a whole name prefix or replace the saved baseline",
+    "functionDefinitions": "Match each exact signature, owner, SECURITY DEFINER, fixed search_path and server-side prosrc SHA256 against the corresponding approved SQL function body; source body never printed"
+  },
+  "runtimePrivileges": {
+    "allThree": [
+      "schema USAGE",
+      "read_context(text)",
+      "read_request(text)"
+    ],
+    "plannerOnly": [
+      "prepare_request(text,text)",
+      "record_decision(text,text)"
+    ],
+    "executorOnly": [
+      "claim_request(text,text,text,integer,text)",
+      "record_operation(text,text,text,text,text,text)",
+      "complete_request(text,text)",
+      "stop_request(text,text,text,text)"
+    ],
+    "verifierOnly": [
+      "record_inspection(text,jsonb)"
+    ],
+    "tableDml": false,
+    "ownerMembershipForRuntimeRoles": false,
+    "installerOwnerMembership": "Only in the remaining grants transaction temporarily SET=true, INHERIT=false; SET=false on completion; original creator ADMIN may remain"
+  },
+  "steps": [
+    "Validate the new SHA, exact invocation/SQL artifacts and both preserved old attempts; prove the first schema COMMIT and zero grants submission from saved originals; consume only this new independent attempt",
+    "Read the fixed config once; on a fresh verified TLS connection use READ ONLY to inspect the exact existing schema, fixed object OIDs, function bodies/ACL, empty regular heaps, explicit/effective owner rights and old catalog; parents is explicitly text[] and role checks remain strict",
+    "Only after all existing-schema checks and writer default-read-only capability check pass, commit the read-only transaction and submit only the exact grants.draft.sql once with its own BEGIN/COMMIT; never execute schema.draft.sql",
+    "Use one independent new READ ONLY connection to verify four total NOLOGIN roles, exact original runtime function ACL, no owner/table privileges for runtime roles, unchanged existing schema/table/function OIDs, empty tables and unchanged old catalog",
+    "Save safe metadata/role observations and hashes locally, keep all old records/slots, leave runtime disabled; stop on mismatch/unknown without retry, down, compensation or expanded privilege"
+  ],
+  "limits": {
+    "configReads": 1,
+    "verifiedTlsConnections": 2,
+    "totalClientSqlSubmissions": 50,
+    "ddlBatchSubmissions": 1,
+    "committedDdlTransactions": 1,
+    "sqlBudgetCountsWholePinnedBatchAsOneClientSubmissionNotOneStatement": true,
+    "newSchema": 0,
+    "newTables": 0,
+    "newFunctions": 0,
+    "newNoLoginRoles": 3,
+    "sts": 0,
+    "awsCalls": 0,
+    "githubCalls": 0,
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "deploymentDispatches": 0
+  },
+  "attempt": {
+    "path": ".local-secrets/instance-release-schema-install/9ce8f77a-fed4-4d3f-a8c0-4f7893d38925/attempt.json",
+    "createOnly": true,
+    "resetAllowed": false,
+    "retryAllowed": false,
+    "automaticResume": false
+  },
+  "stopRules": [
+    "No approval, expired original facts, changed files/target or existing schema OIDs/definitions/owner rights, old catalog changes or unexpected role names: no grants DDL",
+    "Existing schema verification failure: do not submit grants; no automatic schema recreation, permission adjustment or baseline replacement",
+    "Lost grants/COMMIT ACK: preserve UNKNOWN; do not resubmit and do not infer rollback; only preapproved remaining independent reads may record uncertainty",
+    "Any final mismatch or budget exhaustion stops; already committed schema/grants remain, no automatic cleanup/down/rollback or new connection",
+    "Old attempts and this attempt are create-only, never reset, overwrite or replay; no automatic use of earlier unused budgets"
+  ],
+  "excluded": [
+    "LOGIN/password creation or mutation",
+    "Secret, KMS, IAM, OIDC or GitHub setting changes",
+    "ALB, ECS, RDS, Cell, network or DNS start/create/update/delete",
+    "Old schema/role/trigger/fence mutations or business-row reads",
+    "Instance/release seeding, business task creation or workflow dispatch",
+    "Enabling ops/releases/runtime.json, image publication, database migration or automatic cleanup"
+  ],
+  "risks": [
+    "Installer credentials are broad and the entire existing config file enters process memory; verified TLS does not eliminate network/provider-log or process-memory risks",
+    "Catalog DDL/role changes can briefly lock system catalogs and provider role-management hooks may reject installation; isolated PostgreSQL 16 CI is not Neon 18 installation proof",
+    "Two committed transactions and cross-connection observations are not atomic as a whole; concurrent old-catalog changes or partial installation can require later separately approved inspection",
+    "Creator ADMIN authority is retained; closing SET/INHERIT does not remove the installer administrator's ability to grant future access",
+    "Unknown submissions are not retried; committed objects are not automatically removed, reset or down-migrated",
+    "No new AWS billable resource is requested, but existing AWS storage and other resources can still incur fees and Neon usage may apply",
+    "The first schema transaction is already committed and is not replayed. A pg name[] decoding incompatibility is locally reproduced; casting to text[] does not prove every effective role check will pass online. Failure before/after the remaining grants must preserve the committed schema and stop without changing its privileges."
+  ],
+  "previousAttempt": {
+    "approvedManifestSha256": "9dfad9765217b835d95708ef5358b48d3c3d0008bf0bff2b687f0b589479b9cb",
+    "attemptPath": ".local-secrets/instance-release-schema-install/261fcc66-95a7-4d34-a061-525293471016/attempt.json",
+    "attemptRawSha256": "330b2a2742e4d73112bc1df0861608420be8321a57e831db5b466ebb21915b18",
+    "resultPath": ".local-secrets/instance-release-schema-install/261fcc66-95a7-4d34-a061-525293471016/result.json",
+    "resultRawSha256": "851d51025d8515989258286c649de65bcc3b1346623ca568092b2922d161cb49",
+    "code": "POSTGRES_08P01",
+    "phase": "CONFIG",
+    "configReads": 1,
+    "connections": 1,
+    "sqlSubmissions": 0,
+    "ddlSubmissions": 0,
+    "commits": 0,
+    "preserveOriginalBytes": true,
+    "oldAttemptRetryAuthorized": false
+  },
+  "connectionChange": {
+    "previous": "Explicit connection fields plus startup options for default_transaction_read_only, statement_timeout and lock_timeout",
+    "next": "Reuse the existing connection URL and verified TLS, omit startup options; all preflight/independent queries use explicit READ ONLY transactions with the original SET LOCAL query/lock timeouts",
+    "writerDefaultRule": "Before DDL, require the session default_transaction_read_only to already be off; do not change a global or role setting",
+    "ddlTimeoutRule": "Pinned DDL is not modified. The client has a 20-second response timeout; this does not prove server-side cancellation or rollback, so unknown submission stops without retry",
+    "historicalRootCauseProved": false,
+    "errorRecording": "Only SQLSTATE plus allowlisted startup-parameter/error categories; no raw diagnostics or credentials"
+  },
+  "aggregateLimitsIncludingPrevious": {
+    "configReads": 3,
+    "connections": 5,
+    "clientSqlSubmissions": 88,
+    "ddlBatchSubmissions": 2,
+    "awsCalls": 0,
+    "githubCalls": 0
+  },
+  "executorArtifact": {
+    "path": ".local-secrets/instance-release-schema-install/9ce8f77a-fed4-4d3f-a8c0-4f7893d38925/execute.mjs",
+    "sha256": "6302f0f4a9bf605d0a5446bc130a553baf79cc45d3e142e4074976e88204d328",
+    "normalization": "Exact UTF-8 bytes; one-off grants-only invocation, not a runtime installer"
+  },
+  "partialInstallation": {
+    "approvedManifestSha256": "2a0cd1794b6437de66fb44ad2549b70d72a3c8546aaad483cc56bdf8f2ab9217",
+    "privateRoot": ".local-secrets/instance-release-schema-install/5162f4e3-000f-4ff5-bd4a-1e846ca14bed/",
+    "resultRawSha256": "f6543093c3293b25488db9e90bd3ccd79a47d7b56e4e49ae73004d52c5e766ff",
+    "attemptRawSha256": "8763955b792870d306290063535723adb1e7f46317ce1b85b4b0e72bf252a583",
+    "schemaAckRawSha256": "7afa7f217c48aa9d7fb37bc5afb0a14cd1dcf35c44bbd75dfed44b739a496e0c",
+    "schemaCatalogRawSha256": "b122577dd56f9d9a4e2e6566c35fa7338ccb6198e3f9696552bb06d2ea248935",
+    "schemaCommitAcknowledgedAt": "2026-11-13T22:39:04.967Z",
+    "grantsSubmitted": false,
+    "preserveOriginalBytes": true,
+    "objects": {
+      "schemaOid": 237571,
+      "tables": {
+        "instance_state": 237590,
+        "releases": 237572,
+        "requests": 237611
+      },
+      "functions": {
+        "claim_request": 237649,
+        "complete_request": 237652,
+        "prepare_request": 237647,
+        "read_context": 237645,
+        "read_request": 237646,
+        "record_decision": 237648,
+        "record_inspection": 237651,
+        "record_operation": 237650,
+        "stop_request": 237653
+      }
+    }
+  },
+  "inspectionTypeCorrection": {
+    "field": "parents",
+    "originalType": "name[] / OID 1003",
+    "originalDecoder": "pg returns an unparsed string, including empty array as two-character {}",
+    "correctedType": "text[] / OID 1009 via pr.rolname::text",
+    "guard": "Still requires zero parents AND installer SET=false/INHERIT=false; no membership or privilege is ignored",
+    "onlineCorrectedVerificationProved": false
+  }
+}

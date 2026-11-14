@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：D2-4连接握手停止、SQL0；新连接清单待批准（2026-11-13）
+## 当前唯一继续点：D2-4 schema已提交，剩余授权待新SHA批准（2026-11-13）
+
+已批准2a0cd179…于22:39:04.967Z取得schema事务COMMIT ACK，独立核验因本地name[]数组类型误判停止；实际配置1/TLS2/SQL38/DDL1/ACK1，云/Secret值/私钥/派发0。grants未提交，三操作NOLOGIN角色未创建，完整独立核验尚未通过；[部分回执](aws-instance-release-schema-partial-20261113.json)与旧attempt均保留，不重建schema或重跑旧SHA。仅本地text[]转换回归通过，未放宽有效权限/父角色检查，未新连库或改运行SQL。
+
+下一只等[剩余授权清单](aws-instance-release-grants-install-review.json) SHA `a79ea11bac284f2d949ca15ac22dca214b228aa528787a5f1928db6b9ecb2e0b`及[完整风险](aws-instance-release-workflow.md#grants-install-continuation)的新批准：核验已有准确OID/空结构/权限→原grants一次→独立最终核验；配置1/TLS2/SQL50/DDL1，仅新增三NOLOGIN，无AWS/LOGIN/Secret/承载或调度。新attempt未消费，runtime仍false，不自动重连或进入D2-5。原最晚开始温尼伯11月13日20:00:40.091 CST、事实终点20:10:40.091不延长；无需Source刷新。
+
+### 以下为旧尝试及准备沿革，非当前执行许可
 
 已批准9dfad976…唯一执行于22:23:33.842Z在CONFIG握手返回08P01停止，配置1/连接1、SQL/DDL/COMMIT及所有AWS/GitHub/调度0。[回执](aws-instance-release-schema-install-stopped-20261113.json)。未提交任何安装SQL、原attempt消费/原字节保持，不重跑或要求Source刷新，未获得新生产事实。仅本地对照后去除新增startup options、复用URL＋验证TLS，原显式只读事务/SQL/权限/预算不改；历史唯一原因尚未证明，连接更正未在线测试。
 

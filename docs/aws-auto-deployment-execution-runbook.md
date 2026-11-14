@@ -2,7 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：D2-4握手停止/SQL0，新连接续接清单只待新SHA批准（2026-11-13）
+## 当前唯一继续点：D2-4 schema已提交；仅剩余授权清单待新SHA批准（2026-11-13）
+
+用户批准2a0cd179…后，于22:39:02.337Z唯一调用；schema事务在22:39:04.967Z收到COMMIT ACK，随后独立核验在成员数组校验处停止，22:39:06.818Z结束。实际配置1/TLS2/SQL38/DDL1/ACK1，AWS/GitHub/Secret值/私钥/调度0。新schema、三表九函数及owner已有提交记录，三操作角色及grants事务未提交；完整独立核验和空heap证明尚未完成，不能声称安装成功。[部分提交回执与原件SHA](aws-instance-release-schema-partial-20261113.json)。两份旧attempt已消费且原字节保持，不重放任一旧命令或重建schema。
+
+仅本地重现并修正私有元数据配方：pg将name[]空值返回为字符串"{}"，原length===0会误拒；只将ARRAY内rolname转text，零父角色/有效SET与INHERIT关闭等检查保持。已存两条显式owner成员的SET/INHERIT都false，但原有效权限查询结果未保存，不能据此排除其他线上差异。空/非空数组及额外权限拒绝回归通过，新配方仅grants一次提交、本地校验通过；本轮新增配置/连接/SQL均0，无运行SQL或工作流修改。
+
+唯一下一动作是批准[仅剩余授权清单](aws-instance-release-grants-install-review.json) SHA `a79ea11bac284f2d949ca15ac22dca214b228aa528787a5f1928db6b9ecb2e0b`及[完整风险/顺序](aws-instance-release-workflow.md#grants-install-continuation)：新连接先独立证明已提交schema的准确OID/函数体/ACL/空heap与旧目录，再只提交原grants.draft.sql一次，最后另一只读连接核验。最多配置1/TLS2/SQL50/DDL1，仅新增三NOLOGIN；不重建schema/表/函数，不LOGIN/Secret/IAM/AWS/启用runtime或派发，不失败补齐/重试/down。新attempt9ce8f77a…未消费，当前无新连接许可；不需要Source刷新。最晚开始仍2026-11-14T02:00:40.091Z＝温尼伯11月13日20:00:40.091 CST，原终点02:10:40.091Z不延长。
+
+### 以下为旧两次尝试的准备沿革，非当前执行许可
 
 本次已批准9dfad976…于2026-11-13T22:23:32.751Z—22:23:33.842Z唯一调用，在CONFIG/连接握手以POSTGRES_08P01停止。实际配置1/连接1、SQL0/DDL0/COMMIT0、AWS/GitHub/Secret值/私钥/调度0；没有提交建库/建表/角色语句，也没有取得新目录快照。[停止摘要与原件SHA](aws-instance-release-schema-install-stopped-20261113.json)。原attempt已消费，原manifest/execute/result及原事实原字节保持，不重放原SHA/原命令，不需要AWS Source刷新；原错误正文未保存，不能认定唯一提供者原因或把此错误说成SQL安装失败。
 

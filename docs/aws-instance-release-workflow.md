@@ -1,6 +1,6 @@
 # D2-4：单审批发布工作流与运行接线
 
-2026-11-13，America/Winnipeg。状态：代码/离线回归/隔离PG16 CI已通过，`runtime.json.enabled=false`；未在既有系统安装、未调度，不代表AWS已可实际发布。
+2026-11-13，America/Winnipeg。状态：代码/离线回归/隔离PG16 CI已通过，`runtime.json.enabled=false`；现有Neon的schema事务已提交，剩余grants未提交、完整独立核验未通过。[当前唯一接续点](#grants-install-continuation)；未调度，不代表AWS已可实际发布。
 
 准确证据：源码`fa2c97ed92515831cb51e5a7985ddcb36468bf5a`的[无AWS CI43501418601](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43501418601) attempt1 completed/success；137项本地相关回归及CI offline/lint/类型通过，隔离PG16原生5项通过、skip0。首个CI43498845469暴露草案IF/CASE括号语法，已单行修正，原失败保留。本轮没有读取或安装生产数据库/角色、没有AWS资源API调用或部署派发。
 
@@ -157,7 +157,7 @@ AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及�
 
 ## 精确安装审批材料：本次只安装空结构及NOLOGIN权限
 
-**最新实际状态：原9dfad976…已获批并唯一调用，但连接握手08P01、SQL/DDL0即停止；不能再执行旧清单。** 新的连接方式续接仍需另一份SHA批准，见[原结果及唯一接续点](#schema-install-continuation)。本节下方原清单说明保留为范围/风险依据，不将“AWAITING_APPROVAL”视为旧槽仍可用。
+**最新实际状态：原9dfad976…握手停止后，另获批2a0cd179…已有schema COMMIT，grants尚未提交。** 两个旧槽均已消费；[仅剩余授权](#grants-install-continuation)须新SHA批准。本节下方原清单说明保留为范围/风险依据，不将文件中的“AWAITING_APPROVAL”视为旧槽仍可用。
 
 2026-11-13，本轮只离线准备，未新增生产/私密读取或远端写入。完整安装差异收拢在本节，不复制工作流或新建安装/恢复框架。**本次可批准对象是[机器清单](aws-instance-release-schema-install-review.json)，不是对下表全部后续工作的笼统批准。** 两份准确SQL已由727affe的非超级用户CI43513493163验证；这不自动覆盖尚未编制验证的LOGIN/Secret/IAM安装。
 
@@ -214,7 +214,9 @@ AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及�
 
 <a id="schema-install-continuation"></a>
 
-### 原握手失败与新独立连接清单（待新批准）
+### 原握手失败与连接续接清单（已消费，保留执行前记录）
+
+下述2a0cd179…已经获批并唯一执行，schema已提交、grants未提交；不是当前待批清单。真实结果与新边界见[仅剩余授权](#grants-install-continuation)，不重放本节命令。
 
 准确[停止摘要](aws-instance-release-schema-install-stopped-20261113.json)：2026-11-13T22:23:32.751Z开始、22:23:33.842Z结束，CONFIG阶段POSTGRES_08P01；配置读取1/连接尝试1、SQL提交0/DDL提交0/COMMIT ACK0及所有云/私钥/Secret/GitHub/dispatch0。没有提交CREATE/GRANT等安装语句，不需要本轮down；不是已安装或已独立验证新目录状态。原始错误正文未保存，不声称唯一根因是凭据/网络/代理配置，也不因此要求刷新AWS Source。
 
@@ -229,5 +231,42 @@ AWS所有读取（含NotFound）都计入40次：预算分配为原两角色及�
 本地已核对：旧attempt/result/调用的原字节、新脚本指纹/语法、两个清单的artifact/对象/权限/预算/原窗口相同；合成pg客户端构造不带startup options、证书验证仍true，固定配方check-local通过（11条目录SELECT/9函数体），新attempt不存在。全部是离线检查，配置/连接/SQL新增0，不能说Neon连接已恢复。
 
 原事实仍到2026-11-14T02:10:40.091Z，最晚开始02:00:40.091Z＝温尼伯11月13日20:00:40.091 CST；新准备时刻和本地代码更改不延长它们。当前只请求用户按新SHA允许一次独立尝试并接受本节完整风险，未再次连接或执行SQL。后继实际结果必须保留原失败与新回执；成功才继续LOGIN/Secret/IAM材料，不能把本次批准扩大到启用整个功能。
+
+<a id="grants-install-continuation"></a>
+
+## 当前仅剩余授权：先验证已有schema，不重建（待新SHA批准）
+
+### 已发生的提交与停止
+
+用户批准2a0cd179…后，2026-11-13T22:39:02.337Z开始唯一调用；22:39:04.967Z收到原schema批次COMMIT ACK，22:39:06.818Z在SCHEMA_INDEPENDENT_INSPECTION以UNEXPECTED_ROLE_MEMBERSHIP停止。实际配置1/TLS2/SQL38/DDL1/ACK1，AWS/GitHub/Secret值/私钥/dispatch0；没有grants提交记录，没有创建三操作角色。[部分提交摘要](aws-instance-release-schema-partial-20261113.json)保存全部原件指纹；原9df…握手attempt和本次2a0…attempt均不可重放、改写或复位。
+
+已存目录中deployment_release schema OID237571；releases237572、instance_state237590、requests237611，九函数OID和owner绑定见新清单。owner为NOLOGIN，无SUPERUSER/CREATEROLE/CREATEDB/REPLICATION/BYPASSRLS；两条安装者成员记录的显式SET/INHERIT均false。**这不是完整独立核验通过：** 原有效权限查询结果没有持久化，空heap证明也未运行到，不能断言没有其他差异或已安装成功。
+
+### 唯一局部修正及离线回归
+
+私有一次性配方在ARRAY里选择pg_roles.rolname，实际得到name[]（OID1003）。当前已安装pg驱动把空值解析为字符串`"{}"`（length2），导致原`parents.length===0`确定误拒。只改为`ARRAY(SELECT pr.rolname::text ...)`，得到text[]（OID1009）；零父角色、有效SET/INHERIT关闭、原ACL与旧目录要求全部保留，不忽略角色或修改数据库授权来绕过检查。新配方在断言前保存去敏角色观察，避免再次丢失这一元数据结果。
+
+本地回归直接使用已安装pg解析器，证明原空name[]误拒、空text[]通过、非空父角色或有效SET/INHERIT为true仍拒绝，并核对唯一DDL入口只能submit(1,'grants')、不能submit schema。回归和固定check-local均通过；本轮配置/连接/SQL新增0。重现文件在新清单ID对应的私有目录type-regression.mjs，未形成新运行框架或工作流。原两份727affe SQL/权限和CI证据不变，未为文档重跑CI，也不把离线转换测试当线上校验结果。
+
+### 新批准对象与执行顺序
+
+[仅剩余授权机器清单](aws-instance-release-grants-install-review.json)，规范JSON/SHA256批准值 **`a79ea11bac284f2d949ca15ac22dca214b228aa528787a5f1928db6b9ecb2e0b`**。独立ID9ce8f77a-fed4-4d3f-a8c0-4f7893d38925；私有调用raw SHA `6302f0f4a9bf605d0a5446bc130a553baf79cc45d3e142e4074976e88204d328`，绑定原事实、schema ACK/目录/attempt/result原件SHA及准确已有OID。新attempt未创建，当前只是材料准备，不获准自动重连。
+
+1. 本地核对新SHA、原两SQL、runtime关闭及两旧attempt原件；只消费这个新的create-only槽。读取固定.env.local整文件一次，只使用既有Neon URL/验证TLS，无替代凭据或端点。
+2. 一条新的独立连接先在READ ONLY事务验证准确已有OID、九函数体SHA/owner/ACL、显式与有效角色权限、三张普通heap零字节且无继承，以及原旧目录逐项不变。只允许原已批准schema增量，不替换基准或将整个前缀忽略；任一差异即停，不提交授权。
+3. 只有已有schema核验全过、会话默认只读原本off，才COMMIT只读事务并在同一连接提交原grants.draft.sql一次（其自带BEGIN/COMMIT）。仅创建planner/executor/verifier三NOLOGIN组及原schema/函数权限，结束关闭临时owner SET；schema.draft.sql仅作函数体指纹依据，绝不再次提交。
+4. 另一条独立READ ONLY连接核验四角色总集、原运行ACL、运行角色无owner成员/表DML、原schema/table/function OID不变、空heap及旧目录不变。只有ACK与最终核验都通过，才能称空结构/NOLOGIN安装完成；仍不启用runtime或派发。
+
+本次上限配置1/TLS2/客户端SQL50（含一个完整DDL批次）/DDL提交1/DDL COMMIT1，新schema/表/函数0、三NOLOGIN；AWS/STS/GitHub/Secret值/PEM/dispatch均0。包括原握手和schema提交两次尝试的保守总上限配置3/TLS5/SQL88/DDL2；不是把旧剩余额度自动转入本次。无LOGIN/密码/Secret/IAM、实例版本种子、业务行读取或ALB/ECS/RDS恢复。
+
+### 本次须接受的完整风险与停止规则
+
+- 安装者是宽管理身份，现有配置整文件进入内存；验证TLS不消除进程内存、网络或提供者日志风险。新方案不读取Secret值/私钥，也不保存密码正文。
+- 原schema已经提交，后续授权与独立观察并非一个跨连接原子操作。系统目录锁、Neon角色hook或并发变化都可能停止；text[]修正不能保证所有线上权限检查通过，PG16 CI也不是Neon18成功证明。
+- 三NOLOGIN角色创建后，提供者可能保留创建者ADMIN成员；安装者管理能力不被本次撤销。只在事务内临时owner SET，结束要求SET/INHERIT关闭，不向运行角色开放owner或表DML。
+- DDL客户端20秒超时不证明服务器取消/回滚；丢失提交ACK须保留UNKNOWN，只可在本次剩余预算内用已批准独立读取记事实，绝不重发。失败可能保留已提交schema及部分/全部授权，不自动down、补齐、改权限、清理或新开连接。
+- 所有旧槽/原件保留，新槽也永久一次，不复位或自动恢复。现有AWS存储等仍可能收费；本次不新建AWS计费资源，但不能承诺所有费用为零。
+
+最晚开始仍2026-11-14T02:00:40.091Z＝温尼伯11月13日20:00:40.091 CST；结束不晚于开始后10分钟且不晚于原02:10:40.091Z。准备/中断续接不重计事实时间；过期不执行，必要补读另审。不需要AWS Source刷新。后续LOGIN/Secret/IAM属于原总安装差异表，仍另审，不借本次新SHA自动启用日常发布功能。
 
 官方依据：[GitHub review history GET](https://docs.github.com/en/rest/actions/workflow-runs#get-the-review-history-for-a-workflow-run)、[environment审批](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/review-deployments)、[OIDC claims及aud/sub](https://docs.github.com/en/actions/reference/security/oidc)。这些支持接口设计，不是已安装/已部署的证明。
