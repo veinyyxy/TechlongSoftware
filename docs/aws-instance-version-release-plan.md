@@ -18,6 +18,8 @@
 
 **当前实际结果（取代下方早期轮次状态）：** [新g/h/i核对](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留)已完成真实app原件校验、STS1/AWS元数据55和另批剩余Neon READ ONLY22条查询；保留两次停止和新续段，未重复成功读取或产生远端写入。下一只收口第二个原CFN角色详细策略缺项及一次性启用准确清单，不扩框架；图片持久化缺项另列准确范围，不混入版本更新。runtime仍关、两次真实更新仍0。机器事实见[回执](aws-instance-release-d2-6-readiness-observed-20261114.json)，以下旧轮次“仅离线/未读”不覆盖本次批准结果。
 
+**后续j补核已完成：** 另准STS1＋IAM5取得准确原租户CFN角色/唯一boundary，角色ID/信任/策略ID/v10及规范摘要均与正式基线匹配，[回执与安装参数状态](aws-instance-release-d2-6-role-supplement-20261114.json)。该角色不再是待读缺项。现只离线收口必填UploadBucketArns与现有持久化门槛：模板仍local、没有已验证S3绑定，不伪填、不改发布门槛或模板，不重复整批生产读取；一次性安装SHA仍为空，runtime仍关，事实原截止不变。
+
 最新代码前置（2026-11-14）：用户已另准仅修三处运行ARN校验及现有fixture/回归，修正源码7c80b9817bb95d2607b9adbe96a7641a8cee7b01的[准确CI43602498436](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43602498436) attempt1 completed/success，180 Linux回归＋9原生PG16全过/无skip，lint/类型通过，[回执](aws-instance-release-runtime-arn-fix-ci-20261114.json)。handoff两处与sampling一处均已改为标准冒号，旧斜杠拒绝，其他条件及默认关闭不变。本次未做此前被选择“只离线准备”的在线补核，未安装/启用或恢复；本轮到此收尾。下面“未改运行代码”的表述属于原离线准备轮，不覆盖这次明确批准且已完成的最小修复。
 
 本节是原第15节D2-6的执行细化，不另建阶段体系、运行工具或工作流。首个对象仍为`app_e897a4377bce498b9c5ee9e64509dcad`的tenant_api，账号402010193138/ca-central-1；用户负责业务验收，代理只做部署技术核验。本轮只有离线材料和合成重现，无新的AWS/GitHub生产读取、私密读取、SQL、凭据生成、安装、恢复或dispatch。用户对STS1/元数据16最小补核选择了“本轮只离线准备”，因此该提案未执行，也不延用旧许可。
@@ -33,7 +35,7 @@
 | 图片持久化 | 新取得租户模板仍IMAGE_STORAGE_PROVIDER=local；现有S3 gate无通过证据，没有查询实际task volumes | 不放宽PERSISTENCE_NOT_READY；必要存储对齐先列准确独立范围，不暗中变更或夹入只改镜像的release |
 | 单审批入口及回写 | instance-release.yml和独立verifier已有准确无AWS CI，runtime.json仍false/environments={} | 按真实版本/Secret固定版本/资源清单准备受审运行配置及种子；不把旧业务ready记录改成当前release成功 |
 
-本轮新事实只到2026-11-15T00:18:33.301Z（温尼伯11月14日18:18:33.301 CST），不延长旧快照；三个旧Secret固定版本与Source组策略已核对，第二个原CFN角色详细策略投影不完整，DNS/ECS/RDS本轮未读。原包到期2026-11-15T19:07Z不能续元数据时效。未来只另审明确缺项，不再整批无差别盘点或借旧available推断当前数据库状态/启动原因。
+本轮新事实只到2026-11-15T00:18:33.301Z（温尼伯11月14日18:18:33.301 CST），不延长旧快照；三个旧Secret固定版本与Source组策略已核对，第二个原CFN角色已由j单独补齐；DNS/ECS/RDS本轮未读。原包到期2026-11-15T19:07Z不能续元数据时效。未来只另审明确缺项，不再整批无差别盘点或借旧available推断当前数据库状态/启动原因。
 
 ### 2. 三处运行校验的离线证据及最小范围
 

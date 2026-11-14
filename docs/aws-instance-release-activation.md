@@ -2,7 +2,7 @@
 
 2026-11-14，America/Winnipeg。**仅材料与隔离回归，未安装、未恢复、未启用。** 复用 D2-4/D2-5，不另建安装器/工作流，不重做业务验收。机器索引：[activation.prepared.json](../ops/releases/activation.prepared.json)，`executionAuthorized=false`、`installationManifestSha256=null`；材料指纹不是执行批准。
 
-**最新事实：** [第11节](#11-d2-6真实app原件与neon核对完成aws部分事实保留)已验证真实app原件及原Neon结构，AWS55次成功后触及预算。仍有明确缺项，不是安装/恢复或两次更新已完成；前面各历史“下一步”不覆盖本节结论。
+**最新事实：** [第12节](#12-单角色补核完成安装输入按来源收口)已补齐第11节未完成的原CFN角色策略，未重复整批/Neon。真实app原件及原Neon结构已验证，但安装参数仍未全部绑定，不是安装/恢复或两次更新已完成；历史“下一步”不覆盖本节结论。
 
 ## 1. 已完成与本轮增量
 
@@ -192,3 +192,22 @@ g使用单artifact通用URL被连接器本地拒绝，尚未发生提供者响�
 下一唯一动作是**依据已存原件整理上述缺项中的最小授权补核及一次性启用清单**；不再补工具或改框架。云/数据库/存储变更仍各按准确范围确认，不在本轮实施。新事实终点固定为`2026-11-15T00:18:33.301Z`＝温尼伯11月14日18:18:33.301 CST；artifact原期限为`2026-11-15T19:07:00Z`，两者不能互相续期。过期停止使用，不自动大盘点或重复构建。
 
 本轮最后仅提交去敏文档/回执并校验本地原件指纹、JSON与差异；不为文档重复运行应用CI，不追加生产读取。真实更新仍0次，未签发可执行安装SHA。
+
+## 12. 单角色补核完成，安装输入按来源收口
+
+用户另准j段仅STS1＋IAM5；2026-11-14T20:03:31.552Z完成，无额外AWS/Neon/配置/Secret值/PEM读取、写入或执行槽。[去敏回执与参数状态](aws-instance-release-d2-6-role-supplement-20261114.json)。五次IAM分别为准确原角色的GetRole、ListAttachedRolePolicies、ListRolePolicies及准确唯一boundary的GetPolicy/GetPolicyVersion，各一次，不翻页/重试。成功响应逐份立即封存，g/h/i原件保持。
+
+角色ID `AROAV3GNMXTZKHYBCRSOE`、CFN信任和SourceAccount条件、唯一附加/边界策略、空inline名单均与既有基线一致。策略ID `ANPAV3GNMXTZOQPIXOKJ4`、默认v10，递归排序对象键后的文档SHA为`965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6`，与11月7日保存的正式基线一致；数组顺序保持。不能拿未排序JSON的不同摘要推断云端策略变化。此项缺口关闭，不再补读该角色，也没有新增或修改权限。
+
+本轮同时只在本地核对原四份模板参数及指纹，将一次性启用输入分清：
+
+| 参数来源 | 当前处理 |
+| --- | --- |
+| 已存新快照可证实 | 三栈UUID可填ReadStackArns，准确租户UUID可填ReleaseStackArns；已有默认Key可填SecretsManagerKeyArn。复用h，不重读 |
+| 安装后才出现 | 五Secret完整ARN/固定VersionId必须按另批准的真实输出派生；现在不生成后缀、版本UUID或凭据。原四栈13资源/两SQL事务的范围不变 |
+| 其余资源读白名单 | ECS service/cluster/task、数据库、应用Secret、ECR和zone参数仍需形成准确输入；本轮不把历史资源ARN冒充当前运行事实，也不为填参数启动环境 |
+| 明确仍阻塞的必填项 | `identities.draft.template.json`要求UploadBucketArns为**现有持久化上传桶**，无默认；当前模板仍local、没有已验证S3绑定。因此角色补核成功不等于完整安装材料可执行 |
+
+下一只收口**上传图片持久化/桶归属的最小离线对齐方案及该安装参数**，复用既有后端S3能力，不扩图片产品功能、通用部署器或恢复框架。既有桶先证明归属；若需要新桶/权限/迁移/配置变更，先列具体范围另审，不把任意证据桶顶作上传桶，不绕过原PERSISTENCE_NOT_READY门槛，不混进ImageUri-only更新。该项是原D2方案第10节和已存在的安装参数，不是新增验收支线。
+
+本轮只完善参数状态与去敏结果，没有生成可执行安装SHA、密码或版本种子，没有安装、恢复或实际更新。原事实终点仍`2026-11-15T00:18:33.301Z`（今天温尼伯18:18:33.301 CST）；不因j成功延长h/i或artifact期限。runtime继续关闭，不为文档重跑应用CI。

@@ -1,0 +1,58 @@
+{
+  "schema": "techlong/instance-release-d2-6-role-supplement/v1",
+  "status": "SINGLE_CFN_ROLE_METADATA_COMPLETE_INSTALLATION_BINDINGS_PENDING",
+  "completedAt": "2026-11-14T20:03:31.552Z",
+  "factsValidUntil": "2026-11-15T00:18:33.301Z",
+  "deadlineExtended": false,
+  "baseReceipt": "aws-instance-release-d2-6-readiness-observed-20261114.json",
+  "originalRecordsPreserved": ["g", "h", "i"],
+  "supplementRecord": "j",
+  "actualCounts": { "sts": 1, "iamMetadata": 5, "otherAws": 0, "configReads": 0, "neonConnections": 0, "secretValueReads": 0, "pemReads": 0, "writes": 0, "executionSlots": 0 },
+  "source": { "profile": "techlong-sandbox-user", "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev", "officialEndpoint": "https://sts.ca-central-1.amazonaws.com", "verified": true },
+  "role": {
+    "arn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+    "id": "AROAV3GNMXTZKHYBCRSOE",
+    "trustCanonicalSha256": "844eadf42b336a846c05147d7c08cce628afec209b72dafd821063cb4cffa1ec",
+    "trustedService": "cloudformation.amazonaws.com",
+    "trustSourceAccount": "402010193138",
+    "attachedPolicyArns": ["arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary"],
+    "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+    "inlinePolicyNames": [],
+    "allFiveIamResponsesPersistedImmediately": true
+  },
+  "policy": {
+    "arn": "arn:aws:iam::402010193138:policy/TechlongSandboxCloudFormationExecutionBoundary",
+    "id": "ANPAV3GNMXTZOQPIXOKJ4",
+    "defaultVersion": "v10",
+    "canonicalSha256": "965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6",
+    "canonicalization": "Recursively sort object keys; preserve array order; UTF-8 JSON without whitespace.",
+    "matchesSavedBaseline": "ops/deployment-baseline/tenant-b-post-rollback-creation-review-20261107.json",
+    "roleIdTrustLayoutPolicyIdVersionAndCanonicalDocumentMatch": true,
+    "effectiveInstallationPermissionsSimulated": false
+  },
+  "installationBindingStatus": {
+    "unchangedPreparedMaterialIndex": "ops/releases/activation.prepared.json",
+    "installationScopeUnchanged": { "cloudFormationStacks": 4, "resources": 13, "secrets": 5, "iamRoles": 4, "managedPolicies": 4, "sqlTransactions": 2 },
+    "verifiedFromExistingSnapshot": ["ReadStackArns", "ReleaseStackArns", "SecretsManagerKeyArn"],
+    "derivedOnlyAfterSeparatelyApprovedCreation": ["PlannerSecretArn", "PlannerSecretVersionId", "ExecutorSecretArn", "ExecutorSecretVersionId", "VerifierSecretArn", "VerifierSecretVersionId", "PublisherSecretArn", "PublisherSecretVersionId", "BackendBuildTokenSecretArn", "BackendBuildTokenVersionId"],
+    "otherResourceAllowlistBindingsStillRequireExactApprovedInputs": ["EcsServiceArns", "EcsClusterArn", "EcsTaskArnPattern", "DatabaseArns", "ApplicationSecretArns", "EcrRepositoryArns", "HostedZoneArns"],
+    "blockingUnboundParameter": "UploadBucketArns",
+    "uploadParameterContract": "Required exact existing persistent upload bucket ARN; no default or placeholder.",
+    "tenantTemplateImageStorageProvider": "local",
+    "persistentUploadsReadyProven": false,
+    "remainingBindingsFilledFromHistoricalArnsOrFabricated": false,
+    "newSecretValuesGeneratedOrRead": false,
+    "runtimeEnabled": false,
+    "installationManifestSha256": null
+  },
+  "privateEvidence": [
+    { "path": ".local-secrets/d2-6-readiness-20261114-j/cfn-role-read.mjs", "sha256": "e2eec3dee47a381d54a137bafbc7c6ec01cb6afafae47d6565bdd4ff249bd227" },
+    { "path": ".local-secrets/d2-6-readiness-20261114-j/started.json", "sha256": "d3d6a4cc0a866a6cef17881a674528094f7a22d9a894f7769024317a9a9051cf" },
+    { "path": ".local-secrets/d2-6-readiness-20261114-j/calls.ndjson", "sha256": "a6691205139579002872f044502cd340c9436e9781c9f3b35adb2fedcb2952c7" },
+    { "path": ".local-secrets/d2-6-readiness-20261114-j/outcomes.ndjson", "sha256": "4d9ca93ccc9925006eae0054b8bd908f0347bbc73ee818ec71646e43536abe39" },
+    { "path": ".local-secrets/d2-6-readiness-20261114-j/result.json", "sha256": "4b4dfcde804c24ec9fc5d82b433a4db3a73c490c59582afb119e528717428a4f" }
+  ],
+  "publication": { "rawPolicyOrPrivateEvidenceCommitted": false, "credentialsOrBusinessSnapshotsCommitted": false, "onlySanitizedProjectionAndHashes": true },
+  "installationOrRestoreAuthorized": false,
+  "realUpdateRuns": 0
+}
