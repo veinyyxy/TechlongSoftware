@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：集中读取已结束，仅提请五处Secret ARN校验修复（2026-11-14）
+## 当前唯一继续点：仅修五处Secret ARN校验及回归/准确CI（2026-11-14）
+
+用户已批准只修改两份IAM草案五处分隔符和必要测试/指纹/文档，正常main提交及无AWS CI核验。不改策略/trust/运行配置，不追加生产读取、AWS/数据库写或云部署；旧事实/失败原件保持，完成即收尾，不自动补核或安装。下方“下一提请”保留为批准前沿革。
+
+修正稿本地相关177项为176pass/1 Windows ZIP skip，新增回归先复现旧错误并验证五处之外整模板字节不变；lint/类型通过。当前只main提交/准确无AWS CI核验，未调用生产或安装，旧/新材料SHA分别保留，不沿用旧CI为新稿证明。
 
 b新官方STS身份通过后，累计STS1/AWS元数据63/GitHub GET12、配置1/验证TLS Neon READ ONLY连接1/SQL22、所有远端写与执行槽0。AWS主段/GitHub/Neon已完成；补核GetHostedZone因本地全球服务签名区域契约差异返回SignatureDoesNotMatch停止，没有重试或消耗余下范围。a/b原件全部保持，部分成功事实只到18:00:57.231Z＝温尼伯12:00:57.231 CST，不是完整安装预检通过。[事实、缺项与下一范围](aws-instance-release-activation.md#7-新诊断及集中核对的实际结果2026-11-14停止后只整理材料) / [去敏回执](aws-instance-release-activation-preflight-observed-20261114.json)。
 

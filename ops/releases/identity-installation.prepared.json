@@ -49,7 +49,8 @@
     {
       "path": "ops/releases/identities.draft.template.json",
       "normalization": "UTF-8 / CRLF to LF only",
-      "sha256": "ce403675d49cea849173c0a76ef24f8392e9e9efa86ac84d89f5188f2a04b683"
+      "sha256": "1b41f5a361378312d9269282a2010be4345bdc61e532914fca42f4285ca0e78b",
+      "previousSha256": "ce403675d49cea849173c0a76ef24f8392e9e9efa86ac84d89f5188f2a04b683"
     }
   ],
   "futureWritesNotApproved": {

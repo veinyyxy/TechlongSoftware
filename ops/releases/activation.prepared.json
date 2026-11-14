@@ -10,11 +10,11 @@
   "artifacts": [
     { "path": "ops/releases/login-roles.draft.sql", "sha256": "fc2a63332de852fd19d9cd9a6c1d7451df31df3330358779f7e3e19740d3075a", "reusedUnchanged": true },
     { "path": "ops/releases/control-secrets.draft.template.json", "sha256": "cdb09f734416a8fa5810948dad03d4184941a4b63155626eb6d8ea5619290b22", "reusedUnchanged": true },
-    { "path": "ops/releases/identities.draft.template.json", "sha256": "ce403675d49cea849173c0a76ef24f8392e9e9efa86ac84d89f5188f2a04b683", "reusedUnchanged": true },
+    { "path": "ops/releases/identities.draft.template.json", "sha256": "1b41f5a361378312d9269282a2010be4345bdc61e532914fca42f4285ca0e78b", "reusedUnchanged": false, "previousSha256": "ce403675d49cea849173c0a76ef24f8392e9e9efa86ac84d89f5188f2a04b683" },
     { "path": "ops/releases/promotion.draft.sql", "sha256": "1c588056413f30e5ec0b8f0243a6af0fbbc5635ac7682f397156b5034f75aa3c", "reusedUnchanged": true },
     { "path": "ops/releases/publisher-login.draft.sql", "sha256": "7d5cffe51a44e8e40ab3c736ec56d5a4399df552d098caf9534e9a51ac66bb27", "reusedUnchanged": false },
     { "path": "ops/releases/promotion-secrets.draft.template.json", "sha256": "87979f865177e12456fcbb3699864b8fd28c150ff6d98426c3a010b34f211394", "reusedUnchanged": false },
-    { "path": "ops/releases/promotion-identity.draft.template.json", "sha256": "2c943c00248094eb49affd0f3ee20d692e6bce92bd104ff92320c942c1f90d38", "reusedUnchanged": false }
+    { "path": "ops/releases/promotion-identity.draft.template.json", "sha256": "d13bcee6db397ebda961e587ad20641eb96377588a384eb7a835a82b8b130ace", "reusedUnchanged": false, "previousSha256": "2c943c00248094eb49affd0f3ee20d692e6bce92bd104ff92320c942c1f90d38" }
   ],
   "artifactHashNormalization": "UTF-8, CRLF to LF only",
   "futureInstallationNotApproved": {

@@ -59,7 +59,7 @@
     },
     "PlannerSecretArn": {
       "Type": "String",
-      "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret/techlong/sandbox/instance-release/planner-db-v1-[A-Za-z0-9]{6}",
+      "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/planner-db-v1-[A-Za-z0-9]{6}",
       "Description": "Full ARN returned by the separately approved Secret stack; do not synthesize suffix."
     },
     "PlannerSecretVersionId": {
@@ -69,7 +69,7 @@
     },
     "ExecutorSecretArn": {
       "Type": "String",
-      "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret/techlong/sandbox/instance-release/executor-db-v1-[A-Za-z0-9]{6}",
+      "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/executor-db-v1-[A-Za-z0-9]{6}",
       "Description": "Full ARN returned by the separately approved Secret stack; do not synthesize suffix."
     },
     "ExecutorSecretVersionId": {
@@ -79,7 +79,7 @@
     },
     "VerifierSecretArn": {
       "Type": "String",
-      "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret/techlong/sandbox/instance-release/verifier-db-v1-[A-Za-z0-9]{6}",
+      "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/verifier-db-v1-[A-Za-z0-9]{6}",
       "Description": "Full ARN returned by the separately approved Secret stack; do not synthesize suffix."
     },
     "VerifierSecretVersionId": {

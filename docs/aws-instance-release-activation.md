@@ -4,7 +4,7 @@
 
 ## 1. 已完成与本轮增量
 
-已安装的基座只沿用[真实完成回执](aws-instance-release-schema-install-completed-20261113.json)：`deployment_release` schema OID237571、三表九函数、owner及三操作 NOLOGIN。不得重放 `schema.draft.sql` / `grants.draft.sql` 或旧 attempt。原三身份材料及其指纹保持，见[既有材料](aws-instance-release-identity-installation.md)。同审批晋升的代码/CI见[上一轮交付](aws-instance-release-promotion.md)。这些记录不是新的存活/空位证明。
+已安装的基座只沿用[真实完成回执](aws-instance-release-schema-install-completed-20261113.json)：`deployment_release` schema OID237571、三表九函数、owner及三操作 NOLOGIN。不得重放 `schema.draft.sql` / `grants.draft.sql` 或旧 attempt。原三身份材料中SQL/Secret模板保持；IAM草案同日另准仅修三处ARN分隔符，旧/新指纹分别记录，见[既有材料](aws-instance-release-identity-installation.md)。同审批晋升的代码/CI见[上一轮交付](aws-instance-release-promotion.md)。这些记录不是新的存活/空位证明。
 
 本轮只补 publisher LOGIN / Secret / IAM 缺项，汇总顺序及精确真实缺口：
 
@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | 原控制Secret栈 `techlong-sandbox-instance-release-secrets-v1` | [control-secrets](../ops/releases/control-secrets.draft.template.json)，原字节 | planner/executor/verifier 三Secret |
 | 晋升Secret栈 `techlong-sandbox-instance-release-promotion-secrets-v1` | [promotion-secrets](../ops/releases/promotion-secrets.draft.template.json) | publisher-db、backend-build-read-token 两Secret |
-| 原IAM栈 `techlong-sandbox-instance-release-identities-v1` | [identities](../ops/releases/identities.draft.template.json)，原字节 | 三角色＋三策略；每份策略同时附加为身份授权和boundary |
+| 原IAM栈 `techlong-sandbox-instance-release-identities-v1` | [identities](../ops/releases/identities.draft.template.json)，仅三处ARN校验修正 | 三角色＋三策略；每份策略同时附加为身份授权和boundary |
 | 晋升IAM栈 `techlong-sandbox-instance-release-promotion-identity-v1` | [promotion-identity](../ops/releases/promotion-identity.draft.template.json) | 一publisher角色＋一策略/边界，无inline |
 | Neon事务1 | [promotion.draft.sql](../ops/releases/promotion.draft.sql)，上一轮已测字节 | 一个NOLOGIN组、两列、三函数；无新表/业务行 |
 | Neon事务2 | [原三LOGIN片段](../ops/releases/login-roles.draft.sql)＋[publisher片段](../ops/releases/publisher-login.draft.sql) | 四个独立窄LOGIN，在同一外层事务执行；四密码分别绑定，不写在文件内 |
@@ -119,3 +119,13 @@ DNS/当前API Alias、三个既有Secret固定版本独立元数据、Source组�
 ### 当前唯一建议
 
 先征得**仅修两份IAM草案五处ARN分隔符、相应必要回归、指纹/文档及无AWS CI**的代码范围；不改授权Action/Resource范围、不扩框架、不读取生产或安装。批准后才修改，不能继续使用旧材料指纹冒充修正稿。其后最多只另审本次未完成的小范围元数据，不重复75次全量盘点或重读Neon；已成功事实未过期且未变化时复用，过期只补主线必需项。实际身份安装、token供给、新构建、目录/实例登记、恢复和D2-6部署仍各按准确范围另审，runtime继续关闭。
+
+## 8. 已批准的五处ARN校验修复（仅代码与CI）
+
+用户随后明确批准仅修这五处及测试/准确CI，不增加生产读取或云部署。本轮只将两IAM草案的5个参数AllowedPattern由`:secret/`改为`:secret:`；Resources、Action、权限范围、trust、所有SQL、运行代码/配置和部署工作流不变。不是新增授权或安装。
+
+新增一项既有测试文件内的回归，先在旧稿上真实复现标准ARN被拒绝，再验证五参数接受标准格式、继续拒绝旧斜杠/错账号区域/错名称/错后缀/附加前缀。将五处分隔符还原后，整份模板LF-normalized SHA须恰好等于旧指纹，证明除此之外未改模板字节。同步两份材料索引的当前SHA并保留previousSha256：identities由ce403675…改为1b41f5a3…，promotion-identity由2c943c00…改为d13bcee6…；旧预检/失败回执不改、事实时间不延长，旧ValidateTemplate不能冒称验证修正稿。
+
+只提交main、运行既有无AWS CI并核对准确run/job/log；不调用AWS、Neon、后端产物或读取.env/Secret/PEM。实际部署/安装、尚缺的DNS/权限元数据、token供给及新构建均不在本轮内。准确CI完成后仅记录结果，runtime保持false，不自动进入下一步。
+
+本地相关177项中176pass/1 Windows真实ZIP处理skip，新增ARN回归通过；定向lint/全项目类型检查通过。远端Linux177项及原生PG16只在准确提交CI实际完成后记录，不把本地skip当已验证。

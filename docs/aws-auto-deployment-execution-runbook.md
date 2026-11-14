@@ -2,7 +2,11 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：集中读取已结束，仅提请两份IAM草案五处ARN校验修复（2026-11-14）
+## 当前唯一继续点：仅修两份IAM草案五处ARN校验及回归/准确CI（2026-11-14）
+
+用户明确批准本轮只修两份IAM草案五个Secret ARN分隔符、对应必要测试及准确无AWS CI。本轮不修改Action/Resource/trust或运行代码，不新增框架/权限/工作流，不读取生产配置、AWS/Neon/后端产物，不安装/恢复/调度；仅正常main提交推送及该提交的无AWS CI run/job/log核验。同步当前材料指纹并保留旧指纹/事实/失败回执，不能把旧ValidateTemplate/CI说成修正稿实测；runtime保持关闭。完成后收尾，不自动进入补核或安装。下段“提请修复”为本次批准前记录。
+
+五处已修，新增一项标准ARN正/反例与整模板还原旧SHA的回归；旧稿先复现失败，修正稿本地177项中176pass/1 Windows ZIP skip，lint/全项目类型通过。当前只提交main并核验准确无AWS CI的Linux177项及原生PG16结果，不改CI/运行代码，不生产读取/安装；旧事实/回执/指纹历史保持，当前索引显式保留previousSha256。
 
 另批b官方STS诊断已返回准确IAM；随后累计STS1/AWS元数据63/GitHub GET12/配置1/验证TLS Neon READ ONLY连接1/SQL22，远端写/Secret值/PEM/HMAC/ZIP/新凭据/执行槽/恢复/dispatch全部0。主段读取完成，补核第一条GetHostedZone因SignatureDoesNotMatch停止，没有重试或继续使用剩余预算。原a和b全部原件保留，不重跑。成功事实至18:00:57.231Z（温尼伯11月14日12:00:57.231 CST），只部分可复用，不是完整安装预检或安装能力证明。[完整事实、缺项和唯一修复](aws-instance-release-activation.md#7-新诊断及集中核对的实际结果2026-11-14停止后只整理材料) / [去敏回执](aws-instance-release-activation-preflight-observed-20261114.json)。
 

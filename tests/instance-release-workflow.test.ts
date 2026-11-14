@@ -41,7 +41,7 @@ test("release installation materials: three Secrets are CFN-owned, NoEcho, retai
   }
 });
 
-test("release activation materials: seven fixed artifacts preserve the original three identity files and never authorize execution", async () => {
+test("release activation materials: seven pinned artifacts track the ARN-only correction and never authorize execution", async () => {
   const prepared = await installationJson("activation.prepared.json"), original = await installationJson("identity-installation.prepared.json");
   assert.equal(prepared.executionAuthorized, false); assert.equal(prepared.installationManifestSha256, null);
   assert.equal(prepared.artifacts.length, 7); assert.equal(prepared.savedFacts.freshSnapshot, null); assert.equal(prepared.savedFacts.extended, false);
@@ -49,11 +49,40 @@ test("release activation materials: seven fixed artifacts preserve the original 
     const text = (await readFile(new URL("../" + artifact.path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
     assert.equal(createHash("sha256").update(text).digest("hex"), artifact.sha256);
   }
-  for (const old of original.artifacts) assert.deepEqual(prepared.artifacts.find((a: { path: string }) => a.path === old.path), { path: old.path, sha256: old.sha256, reusedUnchanged: true });
+  for (const old of original.artifacts) assert.deepEqual(prepared.artifacts.find((a: { path: string }) => a.path === old.path), {
+    path: old.path, sha256: old.sha256, reusedUnchanged: !old.previousSha256,
+    ...(old.previousSha256 ? { previousSha256: old.previousSha256 } : {}),
+  });
   const scope = prepared.futureInstallationNotApproved;
   assert.equal(scope.cloudFormationStacks.reduce((n: number, s: { resourceCount: number }) => n + s.resourceCount, 0), 13);
   assert.equal(scope.secrets, 5); assert.equal(scope.iamRoles, 4); assert.equal(scope.managedPoliciesUsedAsIdentityAndBoundary, 4);
   for (const flag of ["catalogOrInstanceSeedsIncluded", "runtimeActivationIncluded", "dispatchIncluded", "restoreIncluded"]) assert.equal(scope[flag], false);
+});
+
+test("release IAM materials: all five Secret ARN patterns accept real ARN syntax and reject wrong delimiters or scope", async () => {
+  const cases = [
+    ["identities.draft.template.json", [["PlannerSecretArn", "planner-db-v1"], ["ExecutorSecretArn", "executor-db-v1"], ["VerifierSecretArn", "verifier-db-v1"]]],
+    ["promotion-identity.draft.template.json", [["PublisherSecretArn", "publisher-db-v1"], ["BackendBuildTokenSecretArn", "backend-build-read-token-v1"]]],
+  ] as const;
+  const prepared = await installationJson("activation.prepared.json");
+  for (const [file, parameters] of cases) {
+    const text = (await readFile(new URL(`../ops/releases/${file}`, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
+    const template = JSON.parse(text);
+    for (const [parameter, name] of parameters) {
+      const pattern = new RegExp(`^(?:${template.Parameters[parameter].AllowedPattern})$`);
+      // Synthetic ARN syntax fixtures, not created Secret references or credential values.
+      const arn = `arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/${name}-Aa0Bb1`;
+      assert.ok(pattern.test(arn), `${parameter}: standard ARN delimiter`);
+      for (const wrong of [arn.replace(":secret:", ":secret/"), arn.replace("402010193138", "111111111111"),
+        arn.replace("ca-central-1", "us-east-1"), arn.replace(name, "another-secret-v1"), arn.slice(0, -1), arn + "2", "prefix" + arn]) {
+        assert.equal(pattern.test(wrong), false, `${parameter}: reject wrong delimiter, name, region, account or suffix`);
+      }
+    }
+    const artifact = prepared.artifacts.find((a: { path: string }) => a.path === `ops/releases/${file}`);
+    const restoredOldText = text.replaceAll(":secret:techlong/sandbox/instance-release/", ":secret/techlong/sandbox/instance-release/");
+    assert.equal(createHash("sha256").update(restoredOldText).digest("hex"), artifact.previousSha256,
+      "Only the reviewed parameter delimiters changed; Resources, actions, trust and all other bytes remain unchanged");
+  }
 });
 
 test("release activation materials: exactly two retained publisher Secrets, no token/password samples or generated credentials", async () => {

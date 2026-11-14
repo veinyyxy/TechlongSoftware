@@ -2,7 +2,7 @@
 
 2026-11-13，America/Winnipeg。`OFFLINE_MATERIALS_COMPLETE_BINDINGS_PENDING / executionAuthorized=false`。本轮只准备材料和离线回归，**没有安装、生成密码、读取生产配置/Secret/PEM、连接数据库或调用AWS资源API**。D2-4单审批工作流的编码交付已结项；本文件是原方案另列的一次性启用依赖，不扩D2-4功能、D2-5、UI或恢复框架，不新增安装器/工作流。
 
-11月14日已将本文件的原三材料原字节纳入[统一启用清单](aws-instance-release-activation.md)，并补齐同审批晋升的publisher独立材料；以该总清单为当前继续入口。这里保留原交付和风险，不代表允许重放旧读取/安装。
+11月14日已将本文件的三材料纳入[统一启用清单](aws-instance-release-activation.md)，并补齐同审批晋升的publisher独立材料；同日另按用户批准仅修正IAM草案三处Secret ARN参数分隔符，SQL/Secret模板保持原字节。当前指纹及previousSha256见机器索引，旧指纹/安装回执仍属原版本，不是修正稿的实际安装或AWS验证。以总清单为当前继续入口，这里保留原交付和风险，不代表允许重放旧读取/安装。
 
 ## 1. 已完成与这次仅准备的增量
 

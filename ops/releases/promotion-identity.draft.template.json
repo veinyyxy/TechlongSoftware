@@ -7,9 +7,9 @@
     "RequiredCapabilities": ["CAPABILITY_NAMED_IAM"], "SameManagedPolicyAttachedAsIdentityAndBoundary": true
   },
   "Parameters": {
-    "PublisherSecretArn": { "Type": "String", "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret/techlong/sandbox/instance-release/publisher-db-v1-[A-Za-z0-9]{6}" },
+    "PublisherSecretArn": { "Type": "String", "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/publisher-db-v1-[A-Za-z0-9]{6}" },
     "PublisherSecretVersionId": { "Type": "String", "AllowedPattern": "[A-Za-z0-9-]{32,64}" },
-    "BackendBuildTokenSecretArn": { "Type": "String", "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret/techlong/sandbox/instance-release/backend-build-read-token-v1-[A-Za-z0-9]{6}" },
+    "BackendBuildTokenSecretArn": { "Type": "String", "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/backend-build-read-token-v1-[A-Za-z0-9]{6}" },
     "BackendBuildTokenVersionId": { "Type": "String", "AllowedPattern": "[A-Za-z0-9-]{32,64}" },
     "SecretsManagerKeyArn": { "Type": "String", "AllowedPattern": "arn:aws:kms:ca-central-1:402010193138:key/[a-f0-9-]{36}", "Description": "Exact existing default Secrets Manager key from metadata; no new KMS key or key policy change." }
   },
