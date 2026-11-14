@@ -163,11 +163,21 @@ test('release native PostgreSQL 16: non-superuser draft install, narrow roles, r
   await t.test('same approval promotion SQL: separate real publisher login, immutable candidate confirmation and intent-bound executor preparation',async()=>{
    await installer.query(await readFile(new URL('../ops/releases/promotion.draft.sql',import.meta.url),'utf8'));
    assert.deepEqual((await installer.query("SELECT pg_has_role(current_user,'deployment_release_owner','SET') AS can_set,pg_has_role(current_user,'deployment_release_owner','USAGE') AS inherit")).rows[0],{can_set:false,inherit:false});
-   await admin.query("CREATE ROLE release_ci_publisher_login LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD 'synthetic-ci-only'");
-   await admin.query('GRANT deployment_release_publisher TO release_ci_publisher_login WITH INHERIT TRUE');
-   await admin.query('GRANT deployment_release_publisher TO release_ci_publisher_login WITH SET FALSE');
-   const publisherUrl=new URL(testUrl);publisherUrl.username='release_ci_publisher_login';
+   const publisherPassword='4'.repeat(64);
+   const publisherFragment=await readFile(new URL('../ops/releases/publisher-login.draft.sql',import.meta.url),'utf8');
+   await installer.query('BEGIN');
+   await installer.query("SELECT set_config('techlong_release.publisher_password',$1,true),set_config('techlong_release.planner_password',$1,true)",[publisherPassword]);
+   await assert.rejects(installer.query(publisherFragment),e=>e.code==='22023');await installer.query('ROLLBACK');
+   assert.equal((await admin.query("SELECT count(*)::int AS n FROM pg_roles WHERE rolname='deployment_release_publisher_login'")).rows[0].n,0);
+   await installer.query('BEGIN');
+   await installer.query("SELECT set_config('techlong_release.publisher_password',$1,true)",[publisherPassword]);
+   await installer.query(publisherFragment);
+   await installer.query('COMMIT');
+   const publisherUrl=new URL(testUrl);publisherUrl.username='deployment_release_publisher_login';publisherUrl.password=publisherPassword;
    const publisherClient=await connect('release-native-publisher',undefined,publisherUrl.toString()),publisher=new PostgresReleaseRepository(publisherClient);
+   assert.deepEqual((await publisherClient.query("SELECT current_user,current_setting('search_path') AS search_path,pg_has_role(current_user,'deployment_release_publisher','USAGE') AS inherit,pg_has_role(current_user,'deployment_release_publisher','SET') AS can_set,pg_has_role(current_user,'deployment_release_owner','MEMBER') AS owner")).rows[0],
+    {current_user:'deployment_release_publisher_login',search_path:'pg_catalog',inherit:true,can_set:false,owner:false});
+   assert.deepEqual((await installer.query("SELECT pg_has_role(current_user,'deployment_release_publisher_login','SET') AS can_set,pg_has_role(current_user,'deployment_release_publisher_login','USAGE') AS inherit")).rows[0],{can_set:false,inherit:false});
    const v=await releaseProductionFixture();v.now=Date.now();v.policy.productId='promotion_ci_product';
    v.artifact.expires_at=new Date(v.now+3600000).toISOString();v.receipt.osSecurityScan.databaseUpdatedAt=new Date(v.now-3600000).toISOString();v.registry.observedAt=v.now;await v.repack();
    const candidate=await sealReleaseCandidate(v.policy,v.run,v.artifact,v.files,v.now),target=await verifyPublishedRelease(candidate.build,v.registry,v.now);

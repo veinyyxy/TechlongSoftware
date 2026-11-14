@@ -41,6 +41,76 @@ test("release installation materials: three Secrets are CFN-owned, NoEcho, retai
   }
 });
 
+test("release activation materials: seven fixed artifacts preserve the original three identity files and never authorize execution", async () => {
+  const prepared = await installationJson("activation.prepared.json"), original = await installationJson("identity-installation.prepared.json");
+  assert.equal(prepared.executionAuthorized, false); assert.equal(prepared.installationManifestSha256, null);
+  assert.equal(prepared.artifacts.length, 7); assert.equal(prepared.savedFacts.freshSnapshot, null); assert.equal(prepared.savedFacts.extended, false);
+  for (const artifact of prepared.artifacts) {
+    const text = (await readFile(new URL("../" + artifact.path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
+    assert.equal(createHash("sha256").update(text).digest("hex"), artifact.sha256);
+  }
+  for (const old of original.artifacts) assert.deepEqual(prepared.artifacts.find((a: { path: string }) => a.path === old.path), { path: old.path, sha256: old.sha256, reusedUnchanged: true });
+  const scope = prepared.futureInstallationNotApproved;
+  assert.equal(scope.cloudFormationStacks.reduce((n: number, s: { resourceCount: number }) => n + s.resourceCount, 0), 13);
+  assert.equal(scope.secrets, 5); assert.equal(scope.iamRoles, 4); assert.equal(scope.managedPoliciesUsedAsIdentityAndBoundary, 4);
+  for (const flag of ["catalogOrInstanceSeedsIncluded", "runtimeActivationIncluded", "dispatchIncluded", "restoreIncluded"]) assert.equal(scope[flag], false);
+});
+
+test("release activation materials: exactly two retained publisher Secrets, no token/password samples or generated credentials", async () => {
+  const t = await installationJson("promotion-secrets.draft.template.json");
+  assert.equal(Object.keys(t.Resources).length, 2);
+  for (const [name, r] of Object.entries(t.Resources) as [string, { Type: string; DeletionPolicy: string; UpdateReplacePolicy: string; Properties: Record<string, unknown> }][]) {
+    assert.equal(r.Type, "AWS::SecretsManager::Secret"); assert.equal(r.DeletionPolicy, "Retain"); assert.equal(r.UpdateReplacePolicy, "Retain");
+    assert.equal(r.Properties.KmsKeyId, undefined); assert.equal(r.Properties.GenerateSecretString, undefined);
+    assert.deepEqual(t.Outputs[name + "Arn"].Value, { Ref: name });
+    const ref = (r.Properties.SecretString as { Ref: string }).Ref;
+    assert.equal(t.Parameters[ref].NoEcho, true); assert.equal(t.Parameters[ref].Default, undefined);
+  }
+});
+
+test("release activation materials: publisher allows only one repository, two fixed secrets and four conditionally written evidence paths", async () => {
+  const t = await installationJson("promotion-identity.draft.template.json"), role = t.Resources.PublisherRole.Properties;
+  assert.equal(Object.keys(t.Resources).length, 2);
+  assert.deepEqual(role.PermissionsBoundary, { Ref: "PublisherBoundary" }); assert.deepEqual(role.ManagedPolicyArns, [{ Ref: "PublisherBoundary" }]);
+  assert.equal(role.Policies, undefined);
+  const policy = t.Resources.PublisherBoundary.Properties.PolicyDocument, statements = policy.Statement;
+  assert.ok(JSON.stringify(policy).length < 6144);
+  const image = statements.find((s: { Sid: string }) => s.Sid === "OneExistingApiRepository");
+  assert.equal(image.Resource, "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast");
+  assert.deepEqual(image.Action, ["ecr:DescribeRepositories", "ecr:BatchGetImage", "ecr:BatchCheckLayerAvailability", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage"]);
+  const actions = statements.flatMap((s: { Action: string[] }) => s.Action);
+  assert.equal(actions.some((a: string) => a.includes("*") || /^(iam:|cloudformation:|ecs:|rds:|elasticloadbalancing:|ec2:)/.test(a)), false);
+  assert.equal(actions.some((a: string) => /Delete|CreateRepository|SetRepository|GetObject|ListBucket|StartImageScan/.test(a)), false);
+  const evidence = statements.find((s: { Sid: string }) => s.Sid === "ConditionalPromotionEvidenceOnly");
+  assert.equal(evidence.Resource.length, 4); assert.deepEqual(evidence.Condition, { Null: { "s3:if-none-match": "false" } });
+  for (const [sid, arn, version] of [["FixedPublisherDbVersion", "PublisherSecretArn", "PublisherSecretVersionId"], ["FixedBackendReadTokenVersion", "BackendBuildTokenSecretArn", "BackendBuildTokenVersionId"]]) {
+    const secret = statements.find((s: { Sid: string }) => s.Sid === sid);
+    assert.deepEqual(secret.Resource, { Ref: arn }); assert.deepEqual(secret.Condition.StringEquals["secretsmanager:VersionId"], { Ref: version });
+  }
+});
+
+test("release activation materials: publisher trust reuses the saved immutable environment subject, not an extra GitHub approval or arbitrary session", async () => {
+  const t = await installationJson("promotion-identity.draft.template.json"), role = t.Resources.PublisherRole.Properties;
+  assert.equal(role.MaxSessionDuration, 3600);
+  assert.equal(role.RoleName, "TechlongSandboxInstanceReleasePublisherRole");
+  const trust = role.AssumeRolePolicyDocument.Statement;
+  assert.equal(trust.length, 1); assert.equal(trust[0].Action, "sts:AssumeRoleWithWebIdentity");
+  assert.deepEqual(trust[0].Condition.StringEquals, {
+    "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+    "token.actions.githubusercontent.com:sub": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy",
+  });
+  assert.equal(Object.values(t.Parameters).some(p => (p as { Default?: unknown }).Default !== undefined), false);
+});
+
+test("release activation materials: publisher LOGIN is a bound-password fragment without owner/table rights or alteration of older logins", async () => {
+  const sql = await readFile(new URL("../ops/releases/publisher-login.draft.sql", import.meta.url), "utf8");
+  assert.equal((sql.match(/CREATE ROLE /g) ?? []).length, 1); assert.match(sql, /publisher_login NOLOGIN INHERIT NOSUPERUSER/);
+  for (const option of ["INHERIT TRUE", "SET FALSE", "ADMIN FALSE"]) assert.ok(sql.includes("GRANT deployment_release_publisher TO deployment_release_publisher_login WITH " + option));
+  assert.match(sql, /current_setting\('techlong_release.publisher_password',true\)/);
+  assert.match(sql, /publisher_password',true\) = ANY/);
+  assert.doesNotMatch(sql, /\bBEGIN;|\bCOMMIT;|PASSWORD '|GRANT deployment_release_owner|GRANT (SELECT|INSERT|UPDATE|DELETE|ALL)|ALTER ROLE deployment_release_(planner|executor|verifier)/);
+});
+
 test("release installation materials: existing immutable OIDC subjects and distinct attached policy boundaries", async () => {
   const template = await installationJson("identities.draft.template.json");
   assert.equal(Object.keys(template.Resources).length, 6);

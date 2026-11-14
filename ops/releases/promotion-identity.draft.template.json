@@ -1,0 +1,79 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "PREPARATION ONLY - one publisher role and one attached policy/boundary. No CFN/IAM/runtime resource mutation permissions.",
+  "Metadata": {
+    "PreparationOnly": true, "TargetAccount": "402010193138", "TargetRegion": "ca-central-1",
+    "TargetStackName": "techlong-sandbox-instance-release-promotion-identity-v1",
+    "RequiredCapabilities": ["CAPABILITY_NAMED_IAM"], "SameManagedPolicyAttachedAsIdentityAndBoundary": true
+  },
+  "Parameters": {
+    "PublisherSecretArn": { "Type": "String", "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret/techlong/sandbox/instance-release/publisher-db-v1-[A-Za-z0-9]{6}" },
+    "PublisherSecretVersionId": { "Type": "String", "AllowedPattern": "[A-Za-z0-9-]{32,64}" },
+    "BackendBuildTokenSecretArn": { "Type": "String", "AllowedPattern": "arn:aws:secretsmanager:ca-central-1:402010193138:secret/techlong/sandbox/instance-release/backend-build-read-token-v1-[A-Za-z0-9]{6}" },
+    "BackendBuildTokenVersionId": { "Type": "String", "AllowedPattern": "[A-Za-z0-9-]{32,64}" },
+    "SecretsManagerKeyArn": { "Type": "String", "AllowedPattern": "arn:aws:kms:ca-central-1:402010193138:key/[a-f0-9-]{36}", "Description": "Exact existing default Secrets Manager key from metadata; no new KMS key or key policy change." }
+  },
+  "Resources": {
+    "PublisherBoundary": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "ManagedPolicyName": "TechlongSandboxInstanceReleasePublisherBoundaryV1",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            { "Sid": "SelfIdentity", "Effect": "Allow", "Action": ["sts:GetCallerIdentity"], "Resource": "*" },
+            { "Sid": "RegistryAuthenticationNotRepositoryWrite", "Effect": "Allow", "Action": ["ecr:GetAuthorizationToken"], "Resource": "*", "Condition": { "StringEquals": { "aws:RequestedRegion": "ca-central-1" } } },
+            {
+              "Sid": "OneExistingApiRepository", "Effect": "Allow",
+              "Action": ["ecr:DescribeRepositories", "ecr:BatchGetImage", "ecr:BatchCheckLayerAvailability", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage"],
+              "Resource": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast",
+              "Condition": { "StringEquals": { "aws:RequestedRegion": "ca-central-1" } }
+            },
+            {
+              "Sid": "FixedPublisherDbVersion", "Effect": "Allow", "Action": ["secretsmanager:GetSecretValue"], "Resource": { "Ref": "PublisherSecretArn" },
+              "Condition": { "StringEquals": { "aws:RequestedRegion": "ca-central-1", "secretsmanager:VersionId": { "Ref": "PublisherSecretVersionId" } } }
+            },
+            {
+              "Sid": "FixedBackendReadTokenVersion", "Effect": "Allow", "Action": ["secretsmanager:GetSecretValue"], "Resource": { "Ref": "BackendBuildTokenSecretArn" },
+              "Condition": { "StringEquals": { "aws:RequestedRegion": "ca-central-1", "secretsmanager:VersionId": { "Ref": "BackendBuildTokenVersionId" } } }
+            },
+            {
+              "Sid": "ForwardedPublisherDbDecrypt", "Effect": "Allow", "Action": ["kms:Decrypt"], "Resource": { "Ref": "SecretsManagerKeyArn" },
+              "Condition": { "StringEquals": { "kms:CallerAccount": "402010193138", "kms:ViaService": "secretsmanager.ca-central-1.amazonaws.com", "kms:EncryptionContext:SecretARN": { "Ref": "PublisherSecretArn" }, "kms:EncryptionContext:SecretVersionId": { "Ref": "PublisherSecretVersionId" } } }
+            },
+            {
+              "Sid": "ForwardedBackendTokenDecrypt", "Effect": "Allow", "Action": ["kms:Decrypt"], "Resource": { "Ref": "SecretsManagerKeyArn" },
+              "Condition": { "StringEquals": { "kms:CallerAccount": "402010193138", "kms:ViaService": "secretsmanager.ca-central-1.amazonaws.com", "kms:EncryptionContext:SecretARN": { "Ref": "BackendBuildTokenSecretArn" }, "kms:EncryptionContext:SecretVersionId": { "Ref": "BackendBuildTokenVersionId" } } }
+            },
+            {
+              "Sid": "ConditionalPromotionEvidenceOnly", "Effect": "Allow", "Action": ["s3:PutObject"],
+              "Resource": [
+                "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/instance-releases/promotions/release_*/intent.json",
+                "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/instance-releases/promotions/release_*/published.json",
+                "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/instance-releases/promotions/release_*/derived.json",
+                "arn:aws:s3:::techlong-sandbox-cloud-worker-evidence-402010193138/instance-releases/promotions/candidate-*/push.json"
+              ],
+              "Condition": { "Null": { "s3:if-none-match": "false" } }
+            }
+          ]
+        }
+      }
+    },
+    "PublisherRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "TechlongSandboxInstanceReleasePublisherRole", "MaxSessionDuration": 3600,
+        "PermissionsBoundary": { "Ref": "PublisherBoundary" }, "ManagedPolicyArns": [{ "Ref": "PublisherBoundary" }],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17", "Statement": [{ "Effect": "Allow", "Principal": { "Federated": "arn:aws:iam::402010193138:oidc-provider/token.actions.githubusercontent.com" }, "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": { "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com", "token.actions.githubusercontent.com:sub": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy" } } }]
+        },
+        "Tags": [{ "Key": "Project", "Value": "Techlong" }, { "Key": "Environment", "Value": "sandbox" }, { "Key": "Purpose", "Value": "instance-release" }]
+      }
+    }
+  },
+  "Outputs": {
+    "PublisherRoleArn": { "Value": { "Fn::GetAtt": ["PublisherRole", "Arn"] } },
+    "PublisherBoundaryArn": { "Value": { "Ref": "PublisherBoundary" } }
+  }
+}

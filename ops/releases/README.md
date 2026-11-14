@@ -2,6 +2,8 @@
 
 状态：D2-4编码已结项，运行接线默认关闭。`schema.draft.sql`与`grants.draft.sql`已在另批的一次性安装中提交并独立核验，见[完成回执](../../docs/aws-instance-release-schema-install-completed-20261113.json)，不得重放；文件名/原注释为追溯保留，不代表仍待应用。三窄LOGIN/Secret/IAM尚未安装，当前仅[离线准备材料](../../docs/aws-instance-release-identity-installation.md)。本目录SQL不在自动迁移目录中，不被启动脚本或发布工作流执行。
 
+最新启用材料合并入口：[一次性启用总清单](../../docs/aws-instance-release-activation.md)及[七份指纹/真实缺项](activation.prepared.json)。原三身份材料原字节保留；新增publisher LOGIN/两Secret/角色边界独立草案，与已测`promotion.draft.sql`汇总。五Secret/四LOGIN/四角色策略尚未安装，无可执行SHA，runtime关闭；不得直接执行本目录SQL或旧安装器。真实来源采集/候选登记和实例种子也仍待准确范围批准。
+
 D2-4已新增默认关闭的runtime配置、真实元数据/凭据适配及验收子进程；完整范围见[单审批工作流说明](../../docs/aws-instance-release-workflow.md)。工作流不执行本目录SQL草案；新增CI仅在全新临时PostgreSQL16中验证，不安装到现有控制库。本地137项相关回归通过，原生PG结果以准确CI为准。
 
 - `schema.draft.sql`：独立 `deployment_release` schema、三表、专用 NOLOGIN owner 与九个窄函数；D2-3增加只读决定/终止结果登记，扩展核验与完成结果。
