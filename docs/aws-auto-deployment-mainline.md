@@ -10,6 +10,8 @@
 
 本地155通过/1个Windows原ZIP解包skip（相关总156），lint/类型通过；原PG16 CI追加目录唯一键/重复登记/冲突/撤销测试，源码push后核对准确CI。仅编码和CI收尾，未调用真实后台GitHub/ECR、未安装或导入目录，部署仍关闭；不能据此说同审批晋升或D2-6线上验收已完成。
 
+收尾完成：源码5f697ff的[CI43547953988](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43547953988) attempt1 completed/success，156离线/真实ZIP全过无skip、PG16原生8通过无skip，lint/类型通过，[证据](aws-instance-release-production-ci-20261113.json)。已有ECR路线的离线接入本轮结项；生产采集/目录写/身份安装/启用/恢复/发布均未做，同轮自动晋升仍未实现。后继只在用户要求时另审真实来源及必要身份/目录权限的集中准备，实际执行另批，不扩UI/发布器或重开旧读取窗口。
+
 ### 以下为已收尾的身份材料及旧安装记录
 
 本轮按用户明确要求只编制一次性启用依赖的SQL/模板/风险及离线验证，实际安装另审。D2-4编码已结项，不再把身份安装算作功能扩展；复用已存事实，不读配置/Secret/私钥、不新连生产库或调用AWS/GitHub部署配置API，仅常规无AWS CI的run/job/log只读核验；不生成生产密码、不安装、不启用runtime或恢复收费环境，缺失真实ARN/VersionId如实标缺项。下方完成记录继续有效，不重放旧槽或延长事实期限。

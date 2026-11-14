@@ -61,3 +61,7 @@ releaseId由product/component/version确定，不绑定实例；相同版本不�
 新增14项离线测试：来源/ZIP/receipt/扫描拒绝、config与单manifest/OCI index映射、严格ECR只读调用、相同版本冲突/撤销/丢ACK、同版本用于两个实例的原计划器及原ZIP解包。Windows本地解包测试明确skip，在既有Linux CI使用Python标准库实测；不是本地Docker构建或真实GitHub/ECR读取。
 
 既有PG16临时CI增加一个子测试，使用真实唯一约束验证管理员导入、相同原文重复登记、不同ID/字节冲突和撤销拒绝，不连接现有库。常规CI扩展原测试列表，未新增部署工作流/依赖。本轮只完成这些代码/CI和文档收尾，runtime始终false/environments={}；后继实际读取/凭据/SQL写/发布/部署均未授权。
+
+最终证据：[源码5f697ff3e7ee85a7033ecc198021c109105493b3的CI43547953988](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43547953988) attempt1 completed/success，head SHA、两job/步骤及原生日志已核对。Linux共156测试全过、skip0，实际Python ZIP解包通过；原生PG16共8测试pass/fail0/skip0，含不可变目录导入子测试。[证据摘要](aws-instance-release-production-ci-20261113.json)。Windows本地156中155pass/1解包skip，不能把本地skip当成原件验证；上述CI弥补的是合成原ZIP和隔离库验证，不是真实后端artifact或ECR发布验证。
+
+package测试列表变更也触发仓库其他既有push候选CI，未修改它们的权限/门禁；不能把这些自动CI称为本轮主动调度后端镜像构建或AWS部署。本轮只验收上述准确D2-5 run，不扩修其他流程。当前已有ECR路线离线代码到此结项；后续回到必要身份/目录权限和真实版本来源的集中受审准备，实际安装/导入/恢复/更新另批，可选同轮晋升不作为该路线的前置阻塞。

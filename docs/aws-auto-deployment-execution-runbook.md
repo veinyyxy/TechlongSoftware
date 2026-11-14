@@ -10,6 +10,8 @@
 
 本地相关156项中155通过/1个真实Python解包在Windows明确skip，定向lint和全项目类型通过。既有无AWS CI增加Linux原ZIP实测和PG16管理员不可变目录登记子测试，尚须准确源码run证明；不以skip/内存模型代替。旧已安装SQL/身份材料、runtime和部署job未改，生产读取/写入/镜像发布/目录导入0。当前只正常main提交及准确CI核验，之后本轮收尾；后继启用依赖、真实版本来源/导入和恢复/技术更新仍另审。
 
+收尾已完成：源码5f697ff3e7ee85a7033ecc198021c109105493b3的[准确CI43547953988](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43547953988) attempt1 completed/success，head/两job/步骤匹配；156离线全过/skip0（含真实Python ZIP处理），原生PG16日志8pass/fail0/skip0（含不可变目录导入）。[去敏摘要](aws-instance-release-production-ci-20261113.json)。这是合成来源/registry响应＋真实隔离文件/PG验证，不是实际后端下载、ECR回读或Neon导入；生产读写/凭据安装/恢复/部署0、runtime关闭。package变更自动触发其他原有无AWS push候选CI，未改其权限或扩修，不能说所有镜像候选CI都未触发；未主动调度后端镜像/ECR发布或AWS部署。本轮到此结束，已有ECR路线离线交付不等于全部D2-5生产启用。唯一后继是用户需要继续实际路径时，另审集中准备必要身份/目录写权限和真实版本来源/导入，再按原D2-6受审恢复与技术更新；不为可选同轮晋升另开框架或自动补读过期事实。
+
 ### 以下为已收尾的身份材料与旧安装记录，非本轮执行许可
 
 用户明确要求本轮仅准备剩余LOGIN、Secret、IAM精确材料，实际安装另审。D2-4单审批工作流及离线代码交付已结项；下述空结构/NOLOGIN实际安装属于另批的一次性启用依赖，不继续算作D2-4功能编码。当前只复用已保存事实及源码，编制三窄LOGIN的SQL、Secret/角色/boundary/trust模板与准确缺项、安装顺序/风险和离线回归；不读取.env/Secret/PEM、不连接生产数据库、不调用AWS或GitHub部署/配置API（只允许常规无AWS CI的准确run/job/log只读核验），不生成生产密码/消费安装槽/应用模板，不启用runtime或调度。不扩D2-5、UI、恢复框架或新工作流；旧事实过期也不自动补读，不把未来生成的Secret ARN/VersionId写成既有事实。
