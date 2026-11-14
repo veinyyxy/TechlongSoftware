@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import pg from 'pg';
-import {PostgresReleaseRepository,ReleaseRequestRejected} from '../lib/deployments/releases/repository.ts';
+import {PostgresReleaseRepository,ReleaseRequestRejected,ReleasePersistenceUnknown} from '../lib/deployments/releases/repository.ts';
 import {canonicalJson,sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {releaseFixture,releaseProductionFixture,h} from './instance-release-fixture.ts';
 import {buildReleaseCandidate,verifyPublishedRelease} from '../lib/deployments/releases/production.ts';
