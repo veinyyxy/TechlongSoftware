@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-13，America/Winnipeg。状态：`PARTIALLY_IMPLEMENTED — D2-1..D2-5 CODE/CI; SAME-APPROVAL PROMOTION WIRED / ACTIVATION DISABLED`。
+日期：2026-11-14，America/Winnipeg。状态：`D2-6 OFFLINE READINESS PREPARATION — ACTIVATION DISABLED / NO REAL UPDATE RUNS`。
 
 除下方明确交付的D2-1至D2-4代码/离线部分及D2-5已有ECR路线离线接入外，本文其余部分仍是待审设计，不是完整功能已完成、生产数据库迁移、Secret/IAM安装、镜像发布、部署工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -10,7 +10,50 @@
 
 该代码收尾已完成：[CI43561305617](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43561305617) 对应2659d7a，171回归＋9原生PG16全过/无skip。只证明合成来源/命令和隔离数据库，不是实际ECR晋升或部署已开启。后继仍需真实候选准入、必要身份/SQL安装及两次正常技术更新验收，不重复业务测试。
 
-一次性启用材料已集中到[总清单](aws-instance-release-activation.md)，含原三身份及publisher独立材料；源码375b0e2的准确CI43596568223验证176回归＋9原生PG16全过。真实绑定/产物/凭据仍未采集或安装，当前只等待一次集中只读补核许可，不继续扩D2-5或提前恢复环境。
+一次性启用材料集中到[总清单](aws-instance-release-activation.md)，原空结构/NOLOGIN已安装，其余LOGIN/Secret/IAM及增量SQL未安装。用户现要求进入D2-6，并明确本轮只离线准备；以下执行卡是当前继续入口，不重做D2-1至D2-5或把代码/CI当真实更新。修正稿501b7f1的准确CI43600705621为177回归＋9原生PG16全过，尚未启用。上轮部分真实核对及五处模板修复沿革继续保留，不自动追加生产读取。
+
+<a id="d2-6-readiness"></a>
+
+## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
+
+本节是原第15节D2-6的执行细化，不另建阶段体系、运行工具或工作流。首个对象仍为`app_e897a4377bce498b9c5ee9e64509dcad`的tenant_api，账号402010193138/ca-central-1；用户负责业务验收，代理只做部署技术核验。本轮只有离线材料和合成重现，无新的AWS/GitHub生产读取、私密读取、SQL、凭据生成、安装、恢复或dispatch。用户对STS1/元数据16最小补核选择了“本轮只离线准备”，因此该提案未执行，也不延用旧许可。
+
+### 1. 开跑条件与当前缺项（只收口主线）
+
+| 必要项 | 当前已知事实 | 最小完成方式 |
+| --- | --- | --- |
+| 真实Secret ARN可被现有运行入口接受 | 两模板五参数已修；但handoff.ts两处、sampling.ts一处仍使用`:secret/` | 仅修这3处并把现有合成fixture改为标准`:secret:`，补入口正例/旧格式拒绝与零网络回归；需明确代码范围，不扩验证器或权限 |
+| 一次性运行身份 | 原schema/3表/9函数/4 NOLOGIN已装；4 LOGIN、5 Secret、4 IAM角色/4策略、promotion增量未装 | 复用[启用清单](aws-instance-release-activation.md)，先补真实缺项，按准确SHA另批原四CFN栈及两SQL事务；保持runtime关闭至独立验证通过 |
+| 真实版本及可信实例绑定 | 上次只读证明release三表为空；最新合格后端run38803364109无artifact | 用现有构建/原件校验/目录端口建立两个合格版本及准确基准绑定；明确兼容/无迁移与持久化，不用旧ECR标签、过期扫描或合成SHA代替证据 |
+| 可运行的准确目标 | 上次原三栈保留，准确旧ALB缺失/旧服务MISSING；两库available；不是当前健康或零费保证 | 材料与身份齐备后，另批原启停工具的必要恢复；CFN所属资源只经CFN，使用新实际输出/物理ID核对引用，不在release中恢复 |
+| 单审批入口及回写 | instance-release.yml和独立verifier已有准确无AWS CI，runtime.json仍false/environments={} | 按真实版本/Secret固定版本/资源清单准备受审运行配置及种子；不把旧业务ready记录改成当前release成功 |
+
+现有成功事实只到2026-11-14T18:00:57.231Z，仍只部分可复用：DNS/三个旧Secret版本独立元数据、Source组策略等没有取得。过期不自动重取；未来只另审主线所需最小补核，不能重新排一轮无差别75次盘点。上次available不代表本轮查过数据库，也不据此推断启动原因。
+
+### 2. 三处运行校验的离线证据及最小范围
+
+仅合成内存输入已重现：标准冒号ARN分别被现有控制库配置、publisher配置和采样绑定拒绝，错误为`RELEASE_DATABASE_IDENTITY_REJECTED`、`RELEASE_PROMOTION_ACTIVATION_INCOMPLETE`、`RELEASE_SAMPLING_BINDING_REQUIRED`。采样API mock调用数0，没有生产访问。源码位置：
+
+- `lib/deployments/releases/handoff.ts`两条Secret前缀检查。
+- `lib/deployments/releases/sampling.ts`一条应用Secret前缀检查。
+- 现有`tests/instance-release-workflow-fixture.ts`仍构造斜杠ARN，解释了为何原合成回归没有覆盖真实格式；对应workflow/production现有测试需切标准fixture并覆盖旧格式拒绝。
+
+本轮不改这些运行代码或fixture。后继若准最小修复：不兼容接纳错误旧斜杠，不放宽账号/区域/版本/用户名/角色分离/默认关闭；不用原五处模板修复授权代替本次范围。通过现有无AWS CI后收尾，不顺便改Route53运输、安装器、策略或启停工具。
+
+### 3. 实际执行顺序（均未获本轮执行许可）
+
+1. **不开运行环境，先闭合入口/身份/证据。** 完成上述最小代码修复；既有四栈/两SQL事务和准确Secret版本按总清单受审安装，独立核验后再准备目录/实例种子与运行配置。需要的backend token供给/仓库范围/有效期由用户明确，不复制本机Git凭据上云，不新增刷新服务。原schema/grants不重放。
+2. **准备两个真版本A、B和回退证据。** 优先A→B→A，第二次是新请求、新run和新GitHub批准；只有A、B均合法登记、digest不同且兼容/持久化证明齐备才采用。A来源未闭合时不伪造基准，也不自动扩大为三个版本或改应用代码。最新构建无artifact，不能生成虚假可执行晋升SHA；新build/下载/发布分别按具体范围确认。
+3. **再仅恢复验收必需依赖。** 复用现有工具，不重写；只恢复该tenant API需要的Cell ALB/监听器/租户服务等及确有必要的数据库运行状态，具体数量/新物理ID/权限差异按当时清单确认。不为GitHub审批启动平台Web或独立prod库，不默认全环境恢复；不新增自动到期/清理。恢复后用实际事实建立ImageUri之外的配置基线，确认/health、/ready技术核验可用。
+4. **第一正常更新A→B。** 复用原工作流三输入：instance_id=上述实例、release_id=已登记B或其候选ID、environment=sandbox。新run先准备，用户本人只批准该run一次environment；原受保护job内按批准路线晋升准确单app（若目标为候选）、ECR原文核对、仅ImageUri变更集、执行、独立进程核验、CAS回写。源码/版本/配置/兼容和原期限均固定，无Web页面批准步骤。
+5. **第二正常更新B→A。** 第一条必须真实SUCCEEDED/回写/释放占用后，使用相同代码/工作流/运行配置发起新请求；重新取实际源版本与revision，不复用第一条计划/SHA/领取token或旧事实。第二次只换选择的已登记release_id，再由本人批准一次environment。不得以NO_CHANGE、Re-run、仅更新账本或重放首个请求充数。
+6. **结案及独立停费选择。** 两次均核对镜像平台digest、CFN归属/参数、原服务数量/健康、配置/路由/Secret固定引用保持，S3固定版本证据与请求/run/plan一致；当前版本回到A、revision比初始增加2、无活跃请求，才记D2-6通过。若失败/未知，保留真实状态，不二次apply或为了完成验收自动回滚。两次结束后先回报结果，停费由用户另批既有工具；不启动守护或自动删除。
+
+恢复与身份/版本登记不是日常更新中的隐藏动作。材料、权限或图片持久化不满足时，不以“专用测试”口头绕过既有持久化硬门槛；如需最小S3/证据准备，先列准确范围另审。正式数据安全、客户端业务和全SaaS上线不计入本阶段成功。
+
+### 4. 交付与停止规则
+
+本轮交付仅为本节与启用总清单的对应关系，runtime/模板/SQL/测试/工作流未改，未生成安装SHA、版本ID、请求ID或真实验收结果。唯一后继建议先明确上述三处运行校验的最小修复范围；没有新的生产读取许可，不继续补核或要求刷新Source。后续两次真实run都必须用修复后同一份准确源码及对应CI，不能把501b7f1的模板修复CI冒充运行修复已验证。
 
 <a id="d2-1-delivered"></a>
 
