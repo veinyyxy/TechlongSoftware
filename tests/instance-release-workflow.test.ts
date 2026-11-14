@@ -10,7 +10,7 @@ import { STSClient } from "@aws-sdk/client-sts";
 import type { HttpRequest } from "@smithy/types";
 import { assertReleaseJob, releaseEnvironment, releaseRequestId, encodeReleaseHandoff, decodeReleaseHandoff } from "../lib/deployments/releases/handoff.ts";
 import { prepareReleaseWorkflowJob, deployReleaseWorkflowJob } from "../lib/deployments/releases/workflow.ts";
-import { sampleInstanceRelease, releaseReader, sampledObservation } from "../lib/deployments/releases/sampling.ts";
+import { sampleInstanceRelease, releaseReader, sampledObservation, samplingBinding } from "../lib/deployments/releases/sampling.ts";
 import { inspectInstanceRelease } from "../lib/deployments/releases/inspection.ts";
 import { releaseChildEnvironment, requireHumanReview, assertReleaseIdentity, releaseDatabaseUrl,
   releaseMetadataApi, assumeReleaseIdentity } from "../ops/releases/aws-runtime.ts";
@@ -219,6 +219,66 @@ test("release job: default activation is closed and only a complete, separated s
   const shared = config(); shared.environments.sandbox.inspectionRoleArn = shared.environments.sandbox.executionRoleArn;
   assert.throws(() => releaseEnvironment(shared, workflowJob()), /ROLE_SEPARATION/);
   assert.throws(() => releaseEnvironment({ ...config(), environments: {} }, workflowJob()), /ACTIVATION_INCOMPLETE/);
+});
+
+test("release runtime ARN: control database identities accept standard colon ARNs, not slash or changed identity", () => {
+  const good = config();
+  assert.equal(releaseEnvironment(good, workflowJob()), good.environments.sandbox);
+  for (const purpose of ["planner", "executor", "verifier"] as const) {
+    for (const mutation of ["slash", "account", "region", "version", "username"]) {
+      const bad = config(), secret = bad.environments.sandbox.database[purpose];
+      if (mutation === "slash") secret.arn = secret.arn.replace(":secret:", ":secret/");
+      if (mutation === "account") secret.arn = secret.arn.replace("111111111111", "222222222222");
+      if (mutation === "region") secret.arn = secret.arn.replace("ca-central-1", "us-east-1");
+      if (mutation === "version") secret.versionId = "AWSCURRENT";
+      if (mutation === "username") secret.username = "neondb_owner";
+      assert.throws(() => releaseEnvironment(bad, workflowJob()), /RELEASE_DATABASE_IDENTITY_REJECTED/);
+    }
+  }
+});
+
+test("release runtime ARN: publisher database and artifact token accept colon ARNs with original separation and version checks", () => {
+  const good = config(), e = good.environments.sandbox;
+  e.promotion = {
+    roleArn: "arn:aws:iam::111111111111:role/release-publisher",
+    database: { arn: "arn:aws:secretsmanager:ca-central-1:111111111111:secret:publisher-test", versionId: "00000000-0000-4000-8000-000000000001", username: "deployment_release_publisher_login" },
+    artifactToken: { arn: "arn:aws:secretsmanager:ca-central-1:111111111111:secret:backend-token-test", versionId: "00000000-0000-4000-8000-000000000001" },
+    sourceRepository: "veinyyxy/SpeedFeast_Backend_main", sourceRepositoryId: 1234,
+    imageRepository: "111111111111.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+  };
+  assert.equal(releaseEnvironment(good, workflowJob()), e);
+  for (const purpose of ["database", "artifactToken"] as const) {
+    for (const mutation of ["slash", "account", "region", "version"]) {
+      const bad = structuredClone(good), secret = bad.environments.sandbox.promotion![purpose];
+      if (mutation === "slash") secret.arn = secret.arn.replace(":secret:", ":secret/");
+      if (mutation === "account") secret.arn = secret.arn.replace("111111111111", "222222222222");
+      if (mutation === "region") secret.arn = secret.arn.replace("ca-central-1", "us-east-1");
+      if (mutation === "version") secret.versionId = "AWSCURRENT";
+      assert.throws(() => releaseEnvironment(bad, workflowJob()), /RELEASE_PROMOTION_ACTIVATION_INCOMPLETE/);
+    }
+  }
+  const shared = structuredClone(good); shared.environments.sandbox.promotion!.roleArn = e.executionRoleArn;
+  assert.throws(() => releaseEnvironment(shared, workflowJob()), /RELEASE_PROMOTION_ACTIVATION_INCOMPLETE/);
+  assert.equal(releaseEnvironment({ ...good, enabled: false }, workflowJob()), null);
+});
+
+test("release runtime ARN: standard application Secret binding works; invalid prefixes stop before metadata or technical requests", async () => {
+  const f = await workflowFixture();
+  try {
+    assert.equal(samplingBinding(f.binding), f.binding.sampling);
+    for (const mutation of ["slash", "account", "region", "version"]) {
+      const bad = structuredClone(f.binding), secret = bad.sampling.secrets[0];
+      if (mutation === "slash") secret.arn = secret.arn.replace(":secret:", ":secret/");
+      if (mutation === "account") secret.arn = secret.arn.replace("111111111111", "222222222222");
+      if (mutation === "region") secret.arn = secret.arn.replace("ca-central-1", "us-east-1");
+      if (mutation === "version") secret.versionId = "";
+      let calls = 0;
+      const api = { read: async <T>(): Promise<T> => { calls++; throw new Error("Unexpected metadata call"); },
+        getTechnical: async () => { calls++; throw new Error("Unexpected technical call"); } };
+      await assert.rejects(sampleInstanceRelease(bad, f.cycle.planningInput.release, api, () => f.cycle.sql.now), /RELEASE_SAMPLING_BINDING_REQUIRED/);
+      assert.equal(calls, 0);
+    }
+  } finally { f.cycle.destroy(); }
 });
 
 test("release job: rerun, branch/event changes and arbitrary target syntax are rejected", () => {

@@ -12,7 +12,7 @@ export function workflowEnvironment(): ReleaseEnvironmentConfig {
     environmentName: "techlong-sandbox-deploy", environmentId: 42, reviewerId: 100, prepareRoleArn: "arn:aws:iam::111111111111:role/release-planner",
     executionRoleArn: "arn:aws:iam::111111111111:role/release-executor", inspectionRoleArn: "arn:aws:iam::111111111111:role/release-verifier",
     prepareSubject: "repo:veinyyxy/TechlongSoftware:ref:refs/heads/main", deploySubject: "repo:veinyyxy/TechlongSoftware:environment:techlong-sandbox-deploy",
-    database: Object.fromEntries(["planner", "executor", "verifier"].map(role => [role, { arn: `arn:aws:secretsmanager:ca-central-1:111111111111:secret/release-${role}-test`,
+    database: Object.fromEntries(["planner", "executor", "verifier"].map(role => [role, { arn: `arn:aws:secretsmanager:ca-central-1:111111111111:secret:release-${role}-test`,
       versionId: "00000000-0000-4000-8000-000000000001", username: `deployment_release_${role}_login` }])) as ReleaseEnvironmentConfig["database"],
     evidence: { bucket: "synthetic-private", owner: "111111111111", prefix: "releases" }, maxMetadataCallsPerSnapshot: 40 };
 }
@@ -22,7 +22,7 @@ export async function workflowFixture() {
   const binding = cycle.sql.contexts.get(job.instanceId)!.binding as InstanceBinding & { sampling: ReleaseSamplingBinding };
   const listener = "arn:aws:elasticloadbalancing:ca-central-1:111111111111:listener/app/shared/lb-id/https-id";
   const control = listener.replace("https-id", "control-id");
-  const secret = { arn: "arn:aws:secretsmanager:ca-central-1:111111111111:secret/runtime-test", versionId: "fixed-runtime-version" };
+  const secret = { arn: "arn:aws:secretsmanager:ca-central-1:111111111111:secret:runtime-test", versionId: "fixed-runtime-version" };
   binding.sampling = { cellStackId: binding.stackId.replace("tenant-one", "shared-cell"), platformStackId: binding.stackId.replace("tenant-one", "platform"),
     hostedZoneId: "ZTEST", apiHostname: "api.sandbox.techlong.cloud", cellOutputParameters: {
       ClusterName: "ClusterName", HttpsListenerArn: "HttpsListenerArn", ControlListenerArn: "ControlListenerArn" },

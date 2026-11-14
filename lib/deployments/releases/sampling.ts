@@ -30,7 +30,7 @@ export function samplingBinding(binding: InstanceBinding): ReleaseSamplingBindin
     !s.database.identifier || !s.database.schemaVersion || !["cluster", "instance"].includes(s.database.kind) ||
     !s.persistence.bucket || !s.persistence.providerVariable || !s.persistence.bucketVariable || !/^[a-f0-9]{64}$/.test(s.persistence.verificationSha256) ||
     !["HttpsListenerArn", "ControlListenerArn", "ClusterName"].every(k => Object.values(s.cellOutputParameters).includes(k)) ||
-    !s.secrets.length || s.secrets.some(r => !r.arn.startsWith(`arn:aws:secretsmanager:${binding.region}:${binding.accountId}:secret/`) || !r.versionId)) {
+    !s.secrets.length || s.secrets.some(r => !r.arn.startsWith(`arn:aws:secretsmanager:${binding.region}:${binding.accountId}:secret:`) || !r.versionId)) {
     throw new Error("RELEASE_SAMPLING_BINDING_REQUIRED");
   }
   return s;
