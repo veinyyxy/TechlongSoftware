@@ -85,3 +85,9 @@ Secret→Neon→IAM跨服务非原子，两段DB事务之间也非原子。拟�
 本轮不修改D2-4/D2-5运行代码、原schema/grants/三身份材料或启停工具；没有生产读取、密码生成或安装。没有新的短窗口或可执行安装SHA。下一动作仅是用户允许后进行上述集中只读准备；不是恢复收费环境。
 
 准确源码 `375b0e20db3297b842d36ce5e61044f43814cf9c` 的 [CI43596568223](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43596568223) attempt1 completed/success，head/两job/各步骤及日志均已核对。Linux176回归通过/0失败/0跳过，原生PG16共9通过/0失败/0跳过，含本轮实际publisher LOGIN草案、同密码拒绝/无角色和真实认证/权限核验。[机器证据](aws-instance-release-activation-ci-20261114.json)。这是隔离库/模板静态验证，不是线上Neon安装或AWS ValidateTemplate/IAM请求成功。材料已推送，当前只等待下一轮集中只读范围确认，不启动收费环境或请求安装批准。
+
+### 已批准补核的实际停止记录
+
+用户随后允许第5节范围。本次于2026-11-14T12:54:17.908Z开始，仅提交一次固定Source profile/官方ca-central-1 STS查询；12:54:21.108Z以CLI255/SOURCE_READ_FAILED停止，没有身份返回。没有保存原始提供者错误，不据此判断必为过期或网络；本地CLI路径可解析、环境无显式AWS配置文件/代理覆盖，但这不是联网或认证成功证据。
+
+其余AWS元数据、GitHub GET、配置读取、Neon连接/SQL、写入与执行槽均0。未取得可用新快照、未生成安装批准SHA，旧a记录不改不重跑。[去敏回执/原件SHA](aws-instance-release-activation-preflight-stopped-20261114.json)。下一仅建议另准一次带去敏错误类别的新STS诊断；身份准确后才续原未用范围，不要求先盲目重复登录，不自动恢复环境。

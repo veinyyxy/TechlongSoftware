@@ -1,0 +1,23 @@
+{
+  "schema": "techlong/instance-release-activation-preflight-stopped/v1",
+  "status": "STOPPED_BEFORE_IDENTITY_NO_RETRY",
+  "startedAt": "2026-11-14T12:54:17.908Z",
+  "completedAt": "2026-11-14T12:54:21.108Z",
+  "source": { "profile": "techlong-sandbox-user", "endpoint": "https://sts.ca-central-1.amazonaws.com", "identityReturned": false, "code": "SOURCE_READ_FAILED", "cliExitCode": 255, "causeProven": false, "credentialsExpiredProven": false },
+  "counts": { "stsSubmissions": 1, "awsMetadata": 0, "githubGets": 0, "configReads": 0, "neonConnections": 0, "sqlSubmissions": 0, "writes": 0, "executionSlots": 0 },
+  "localChecks": { "awsExecutableResolved": true, "awsConfigFileEnvironmentOverride": false, "awsSharedCredentialsFileEnvironmentOverride": false, "explicitHttpOrHttpsProxyEnvironment": false, "rawCredentialFileRead": false },
+  "privateEvidence": {
+    "directory": ".local-secrets/activation-preflight-20261114-a",
+    "identityScriptRawSha256": "04721bf97cf2b66c692b9cfd04d44e1a5b7bdeeff83a124bcddef66d6bbb1258",
+    "identityResultRawSha256": "672bcff6b84c8294d9221e55dd15de0ce0f1cc4b577d5f0f34a0727917377f20",
+    "rawProviderErrorOrCredentialsSaved": false,
+    "preservedNotReplayed": true
+  },
+  "freshSnapshotAvailable": false,
+  "installationManifestSha256": null,
+  "credentialsGeneratedOrSecretValuesRead": false,
+  "runtimeEnabled": false,
+  "resourcesRestoredOrInstalled": false,
+  "automaticRetry": false,
+  "nextActionRequiresNewPermission": "One sanitized official STS diagnostic in a new record; if accurate IAM identity succeeds, continue only the original unused bounded metadata/GitHub/config/Neon-read scope. No new production call currently authorized."
+}
