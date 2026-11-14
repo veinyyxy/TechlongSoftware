@@ -1,12 +1,12 @@
 # D2-6：app / lifecycle 候选构建最小隔离方案
 
-2026-11-14，America/Winnipeg。状态：**用户已确认清单，最小源码/回归已实现，准确CI核验中**。以下方案正文保留编制时的范围，文末记录后继实施结果；平台运行合同仍未修改。这是原D2“已有实例API版本更新”的构建前置收口，不新增部署工具、数据库对象或阶段分支。
+2026-11-14，America/Winnipeg。状态：**最小编码与三条准确CI均已通过，构建隔离完成；未启用发布或部署**。以下方案正文保留编制时的范围，文末记录后继实施结果；平台运行合同仍未修改。这是原D2“已有实例API版本更新”的构建前置收口，不新增部署工具、数据库对象或阶段分支。
 
 ## 目标与当前事实
 
 app（买家/商家共用API）和lifecycle（数据库初始化/恢复工具）是不同镜像，应分别取得自己的构建成功和安全证据。日常API更新不使用lifecycle，不应要求它同时通过；但lifecycle仍须通过自己的完整检查，才能成为合格工具镜像。
 
-后端当前源码为`fe8273899d4251267666807cf965ce52970a13e9`。准确候选run43627155229中app job已成功、OS HIGH0/CRITICAL0并保存checked-app；lifecycle失败使整个run为failure，平台因此正确拒绝这个app来源。61条lifecycle结果已经归并为Kerberos56、SQLite3、旧zlib2；本方案不裁剪这些功能、不删除库存或增加漏洞例外。[上一轮原证据](aws-instance-release-app-zlib-fix-ci-20261114.json)保持。
+方案编制时后端源码为`fe8273899d4251267666807cf965ce52970a13e9`。准确候选run43627155229中app job已成功、OS HIGH0/CRITICAL0并保存checked-app；lifecycle失败使整个run为failure，平台因此正确拒绝这个app来源。61条lifecycle结果已经归并为Kerberos56、SQLite3、旧zlib2；本方案不裁剪这些功能、不删除库存或增加漏洞例外。[上一轮原证据](aws-instance-release-app-zlib-fix-ci-20261114.json)保持。
 
 当前源码确认两处固定来源：
 
@@ -69,9 +69,9 @@ D2已有同审批晋升代码明确不调用旧双镜像发布工作流，使用
 
 技术成功的判据是：lifecycle不运行或失败都不再影响**另一个app run**的结论；与此同时，lifecycle自己的失败仍不能生成/发布合格工具镜像，任何失败app run也仍不能导入。
 
-## 本轮交付及停止点
+## 方案编制轮的交付及停止点（历史）
 
-本轮仅只读本地源码/原证据并完成本文与手册；没有修改后端或平台运行代码/测试/工作流，没有GitHub API或AWS调用、私密配置/值读取、数据库连接、构建调度、安装/恢复或云发布。文档提交/推送沿用既有授权，文档不重复跑CI。下一唯一动作是确认上述最小编码范围后实施，不重新盘点过期AWS快照或打开收费环境等待。
+该轮仅只读本地源码/原证据并完成本文与手册；没有修改后端或平台运行代码/测试/工作流，没有GitHub API或AWS调用、私密配置/值读取、数据库连接、构建调度、安装/恢复或云发布。文档提交/推送沿用既有授权，文档不重复跑CI。当时的下一唯一动作是确认上述最小编码范围后实施，不重新盘点过期AWS快照或打开收费环境等待。
 
 ## 后继已批准的编码实施
 
@@ -80,3 +80,19 @@ D2已有同审批晋升代码明确不调用旧双镜像发布工作流，使用
 旧编排在更新后的相关测试上先得到7通过/4失败，确认测试能检出旧双kind与缺失新文件；拆分后相关23项全过/skip0，后端类型检查通过。平台只在原错误来源表加入独立lifecycle路径；定向29项本地28通过/1 Windows ZIP skip、lint和全项目类型通过，Linux CI验证该ZIP路径。production.ts/import-source.ts、runtime/SQL/IAM/Secret及部署workflow原字节保持。
 
 当前只按正常main push核验准确后端Backend CI、app候选及平台原无AWS CI；未手动dispatch新lifecycle工作流，也不Re-run旧失败。准确run/结论完成后另记，不把本地静态通过当成实际构建成功；无生产读取、AWS、私密值、目录写或发布/恢复/部署，D2-6真实更新仍0。
+
+## 准确CI最终结果：隔离完成
+
+[去敏源码/run/job/扫描和产物引用](aws-instance-release-candidate-isolation-ci-20261114.json)。以下全部是对应源码的原push/attempt1，不是文档HEAD的CI，也不是重跑：
+
+| 仓库/源码 | 准确run | 实际结果 |
+| --- | --- | --- |
+| 后端b9ca2138738900afc23a6a2ddce141b37a1f0a31 | [Backend CI43630231573](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43630231573) | completed/success；322测试/0失败/0跳过，14项Python，容器构建/启动smoke成功 |
+| 同一后端源码 | [app候选43630231572](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43630231572) | 整个run completed/success，只有app job；全部自检/扫描/保存成功，OS HIGH0/CRITICAL0 |
+| 平台4dfb7cee3695be92e22f8a51f3702fdf0dd61dc8 | [无AWS CI43630305302](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43630305302) | completed/success；Linux180及原生PG16共9项全过/skip0，lint/类型成功，含新增lifecycle路径拒绝例 |
+
+新app候选artifact14128140862：`checked-app-b9ca2138738900afc23a6a2ddce141b37a1f0a31-43630231572-1`，72,663,114字节，GitHub ZIP digest为6d1214fad4c035175b389b5f2920397bea99ec33bb6dd932e74f000a38b1e152，到期2026-11-15T19:07:00Z；仅回读准确元数据，未下载ZIP/核对原包内容。config digest为c894fe72…，与原始扫描/构建日志绑定；不能当作ECR manifest digest。另有准确os-scan-app诊断，没有lifecycle产物或该源码lifecycle运行。新手动工作流未调度，旧61项没有因此被修好或发布。
+
+平台验证器/采集器/runtime/发布workflow与原方案基线逐字节一致。旧失败run仍不合格，旧双镜像发布器的同run双产物要求未放宽；只是新的app工作流能够独立形成整体成功。至此构建隔离任务完成，不再扩工作流、框架或工具链。
+
+下一回到原D2-6：根据这份新成功候选准备准确的原件读取/验证和既有一次性启用材料；实际ZIP读取、目录登记、LOGIN/Secret/IAM/SQL安装、恢复或ECR/版本更新均按范围另审。本轮没有这些副作用，runtime仍关闭、真实更新0，旧AWS/Neon事实不续期；不要再重复构建或启动收费环境等材料。

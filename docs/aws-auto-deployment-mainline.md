@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：按已确认清单编码候选隔离并核验准确CI（2026-11-14）
+## 当前唯一继续点：候选隔离及准确CI已完成，回到D2-6真实来源/启用前置（2026-11-14）
+
+后端main b9ca213已推，[CI43630231573](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43630231573)322测试/14 Python/容器smoke全成功；同源码[app候选43630231572](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43630231572)整个run success，只有app，OS HIGH0/CRITICAL0且保存候选。平台main 4dfb7ce的[无AWS CI43630305302](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43630305302) Linux180/原生PG16九项全过/skip0，lint/类型成功。[机器证据](aws-instance-release-candidate-isolation-ci-20261114.json) / [最终说明](aws-instance-release-candidate-isolation-plan.md#准确ci最终结果隔离完成)。均原push/attempt1，原件/旧失败保持。
+
+隔离已完成，runtime/校验器/采集器/原安全门槛不改，新lifecycle未调度、61项未修。新app artifact14128140862到期11月15日19:07:00Z，仅元数据核验，尚未原ZIP验证/目录登记或ECR发布。下一只准备这个新成功候选的真实证据及原D2-6启用前置，实际读取/安装/恢复/更新仍准确另审；不再扩构建工具或重复构建。AWS/生产读取/私密值/手动dispatch/安装/恢复0，runtime关闭、实际更新0，旧事实不续。
+
+### 以下为本次已完成的实施范围（不重做）
 
 用户已批准[清单](aws-instance-release-candidate-isolation-plan.md)的最小源码与回归实现/准确CI。只改后端两编排/原两测试，平台原错误来源表加lifecycle路径拒绝，不改验证器/采集器/部署/权限或扫描门槛。正常main提交，新的lifecycle手动工作流不调度、不修61项；不生产读取/私密值/AWS/ECR/安装/恢复/部署，runtime仍关闭、实际更新0、旧事实不续。
 

@@ -1,0 +1,229 @@
+{
+  "schema": "techlong/instance-release-candidate-isolation/v1",
+  "status": "IMPLEMENTED_AND_EXACT_CI_VERIFIED_NO_AWS",
+  "backend": {
+    "repository": "veinyyxy/SpeedFeast_Backend_main",
+    "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+    "files": [
+      ".github/workflows/backend-image-candidate.yml",
+      ".github/workflows/backend-lifecycle-image-candidate.yml",
+      "test/image_candidate_workflow.test.js",
+      "test/image_security_gate.test.js"
+    ],
+    "ci": {
+      "id": 43630231573,
+      "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43630231573",
+      "path": ".github/workflows/backend-ci.yml",
+      "status": "completed",
+      "conclusion": "success",
+      "commit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+      "event": "push",
+      "attempt": 1,
+      "createdAt": "2026-11-14T19:06:04Z",
+      "completedAt": "2026-11-14T19:06:34Z",
+      "tests": {
+        "pass": 322,
+        "fail": 0,
+        "skipped": 0
+      },
+      "pythonManifestTests": 14,
+      "dockerBuildAndSmoke": "success",
+      "jobs": [
+        {
+          "id": 132554976314,
+          "name": "docker",
+          "status": "completed",
+          "conclusion": "success",
+          "failedSteps": []
+        },
+        {
+          "id": 132554976594,
+          "name": "check",
+          "status": "completed",
+          "conclusion": "success",
+          "failedSteps": []
+        }
+      ]
+    },
+    "appCandidate": {
+      "id": 43630231572,
+      "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43630231572",
+      "path": ".github/workflows/backend-image-candidate.yml",
+      "status": "completed",
+      "conclusion": "success",
+      "commit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+      "event": "push",
+      "attempt": 1,
+      "createdAt": "2026-11-14T19:06:04Z",
+      "completedAt": "2026-11-14T19:07:04Z",
+      "jobs": [
+        {
+          "id": 132554976516,
+          "name": "Build and self-check app",
+          "status": "completed",
+          "conclusion": "success",
+          "failedSteps": []
+        }
+      ],
+      "scan": {
+        "schemaVersion": 1,
+        "outcome": "OS_HIGH_CRITICAL_ZERO",
+        "scanner": "Trivy",
+        "scannerVersion": "0.75.0",
+        "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+        "scope": "os",
+        "imageConfigDigest": "sha256:c894fe72356d12c22a9c3f9c81eded2f043907bf12e449ffa681488256acda7c",
+        "os": {
+          "Family": "debian",
+          "Name": "13.7"
+        },
+        "packageCount": 14,
+        "findingSeverityCounts": {
+          "HIGH": 0,
+          "CRITICAL": 0
+        },
+        "databaseUpdatedAt": "2026-11-14T13:05:54.014761714Z",
+        "ignoredFindingsAllowed": false,
+        "ignoreUnfixedAllowed": false,
+        "ecrScanPerformed": false,
+        "cloudMutationPerformed": false,
+        "reportSha256": "d5cd33a17b3ce4fda085088bce2c62b759df27959e15c95122c2552c0208b303",
+        "databaseMetadataSha256": "a127971baf7f4f15885dc0a73138be19d786052ecff5e3fa15b3f5f86347c230",
+        "databaseSha256": "39f64e2ce29dba2cab51984a7975b0c3fe9cdef5905b6f4bf43ba0019271005a"
+      },
+      "artifacts": [
+        {
+          "id": 14128140862,
+          "name": "checked-app-b9ca2138738900afc23a6a2ddce141b37a1f0a31-43630231572-1",
+          "sha256": "sha256:6d1214fad4c035175b389b5f2920397bea99ec33bb6dd932e74f000a38b1e152",
+          "bytes": 72663114,
+          "expired": false,
+          "expiresAt": "2026-11-15T19:07:00Z"
+        },
+        {
+          "id": 14128070878,
+          "name": "os-scan-app-b9ca2138738900afc23a6a2ddce141b37a1f0a31-43630231572-1",
+          "sha256": "sha256:41ca036ac1b701704c927775a49785aede3b15cb99fcef9a2eee6cd0907de7df",
+          "bytes": 16368,
+          "expired": false,
+          "expiresAt": "2026-11-21T19:06:54Z"
+        }
+      ],
+      "eligibleRunMetadataObserved": true,
+      "archiveContentVerified": false,
+      "archiveDownloaded": false
+    },
+    "lifecycle": {
+      "path": ".github/workflows/backend-lifecycle-image-candidate.yml",
+      "trigger": "workflow_dispatch only",
+      "kind": "lifecycle",
+      "hasSeparateConcurrencyGroup": true,
+      "originalExecutionStepsPreserved": true,
+      "dispatched": false,
+      "workflowRunCountForThisCommit": 0,
+      "securityFindingsRemediated": false
+    },
+    "userVscodeSettingPreserved": true
+  },
+  "platform": {
+    "repository": "veinyyxy/TechlongSoftware",
+    "sourceCommit": "4dfb7cee3695be92e22f8a51f3702fdf0dd61dc8",
+    "runtimeCodeChanged": false,
+    "testChange": "Add the exact new lifecycle workflow path to the existing rejected-source table",
+    "ci": {
+      "id": 43630305302,
+      "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/43630305302",
+      "path": ".github/workflows/instance-release-checks.yml",
+      "status": "completed",
+      "conclusion": "success",
+      "commit": "4dfb7cee3695be92e22f8a51f3702fdf0dd61dc8",
+      "event": "push",
+      "attempt": 1,
+      "createdAt": "2026-11-14T19:06:52Z",
+      "completedAt": "2026-11-14T19:07:41Z",
+      "linuxTests": {
+        "pass": 180,
+        "fail": 0,
+        "skipped": 0
+      },
+      "nativePostgres16Tests": {
+        "pass": 9,
+        "fail": 0,
+        "skipped": 0
+      },
+      "lint": "success",
+      "typecheck": "success",
+      "jobs": [
+        {
+          "id": 132555206546,
+          "name": "offline",
+          "status": "completed",
+          "conclusion": "success",
+          "failedSteps": []
+        },
+        {
+          "id": 132555206782,
+          "name": "postgres",
+          "status": "completed",
+          "conclusion": "success",
+          "failedSteps": []
+        }
+      ]
+    }
+  },
+  "local": {
+    "backendFocusedTests": {
+      "pass": 23,
+      "fail": 0,
+      "skipped": 0
+    },
+    "oldWorkflowRedTest": {
+      "pass": 7,
+      "fail": 4
+    },
+    "platformProductionTests": {
+      "pass": 28,
+      "fail": 0,
+      "skipped": 1,
+      "skipReason": "Original ZIP extraction is Linux CI-only on this Windows host"
+    },
+    "backendAndPlatformTypecheck": "success",
+    "platformScopedLint": "success",
+    "bothWorkflowExecutionStepBytesMatchOriginal": true
+  },
+  "lfNormalizedSha256": {
+    "previousCombinedWorkflow": "1d7fd99db80d03d8261e268d656045d5a89d0f28efa5a1f8e2e4471b92670aa8",
+    "backendAppWorkflow": "ec2d5aa094bf92a1bd7edfaba29d2a77386f8d3df65df35cb75b423578f31910",
+    "backendLifecycleWorkflow": "9037ee0eca070b2e0f5d97038dfb0082c4c2e35a26ae89a86c5225a2fc065955",
+    "backendWorkflowTests": "d9d637c222cf86062181c20ad0a68cd6604066dbe729261247376619cd793d2c",
+    "backendSecurityGateTests": "dd243e5d8529ae7e66cebf19800f6f2e2f1136d22e20787d21dd1fc397f85ab9",
+    "platformProductionTests": "76d051e7274ee54b519d7adae0bcf01c15f4bdf9fff0e96f87682a1b88483602",
+    "unchangedPlatformVerifier": "9913def1603c3f46077b49757c5922d3f226132f3918a74b7642e6d23fe65e48",
+    "unchangedSourceReader": "b1b97f4869f5baecf82266b7fbfe0e9358274b6338c6f398b5e0aa503dec42f6",
+    "unchangedRuntimeConfig": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6"
+  },
+  "preservedBoundaries": {
+    "appWorkflowPathAndNameUnchanged": true,
+    "wholeAppRunSuccessStillRequired": true,
+    "failedHistoricRunStillRejected": true,
+    "newLifecyclePathStillRejectedAsTenantApi": true,
+    "securityThresholdsAndScriptsUnchanged": true,
+    "dockerfilesAndDependenciesUnchanged": true,
+    "legacyDualImagePublisherUnchanged": true,
+    "legacyDualImagePublisherCannotConsumeNewAppOnlyRun": true,
+    "secretOrPatFileReads": 0,
+    "productionConfigReads": 0,
+    "productionDatabaseConnections": 0,
+    "awsCalls": 0,
+    "manualDispatches": 0,
+    "reruns": 0,
+    "catalogWrites": 0,
+    "iamOrSqlOrSecretInstallation": false,
+    "ecrPublished": false,
+    "environmentRestored": false,
+    "runtimeEnabled": false,
+    "d2_6RealVersionUpdates": 0,
+    "oldResourceFactsExtended": false
+  },
+  "next": "Return to D2-6: separately reviewed collection/verification of the new original app candidate and existing activation prerequisites; no automatic ZIP download, installation, restore, publication or deployment."
+}

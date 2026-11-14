@@ -2,7 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：按已确认清单编码候选隔离并核验准确CI（2026-11-14）
+## 当前唯一继续点：候选隔离及准确CI已完成，回到D2-6真实来源/启用前置（2026-11-14）
+
+[按清单编码与最终证据](aws-instance-release-candidate-isolation-plan.md#准确ci最终结果隔离完成)已收尾。后端main b9ca2138738900afc23a6a2ddce141b37a1f0a31的[CI43630231573](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43630231573) success（322/14 Python/容器smoke），同源码[app候选43630231572](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43630231572)整个run success、唯一app job、OS HIGH0/CRITICAL0及候选保存成功。平台main 4dfb7cee3695be92e22f8a51f3702fdf0dd61dc8的[无AWS CI43630305302](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43630305302) success，Linux180/原生PG16九项均全过/skip0、lint/类型通过。[去敏机器回执](aws-instance-release-candidate-isolation-ci-20261114.json)。
+
+新checked-app artifact14128140862（到期2026-11-15T19:07:00Z）只核对元数据，没有读取原包、登记目录或发布。新lifecycle手动工作流不曾调度，61项未改；两workflow执行步骤与原稿一致，production.ts/import-source.ts/runtime/发布workflow/旧双发布器保持，失败run及lifecycle来源继续拒绝。此隔离缺口完成，不再扩构建框架/工具链。
+
+下一唯一动作是沿原D2-6准备新成功app候选的真实原件验证及既有启用清单，不重复构建/恢复环境或大盘点。必要ZIP/私密读取、目录及身份安装、恢复/实际发布仍须准确范围另审；当前未获执行许可。本轮AWS/生产配置/Secret/PAT/生产库/手动dispatch/安装/恢复/ECR0，runtime关闭、实际更新0；新构建不续旧AWS/Neon事实，文档收尾HEAD不冒充上述源码CI。
+
+### 以下为本次已完成的实施范围（不重做）
 
 用户已明确要求按清单编码并验证CI。本轮仅实施后端原app工作流裁剪、新独立手动lifecycle工作流、原两测试及平台原错误来源表的一条拒绝例，正常main提交推送/准确无AWS CI。原执行步骤/脚本/门槛、平台production.ts/import-source.ts和旧双发布器保持，不放宽失败run，不读PAT/.env/Secret或调用AWS/生产库，不手动dispatch lifecycle、ECR/安装/恢复/部署。保留用户.vscode文件；旧事实/失败原件不改，runtime关闭，真实更新仍0。按[已确认方案](aws-instance-release-candidate-isolation-plan.md)一次实现，不扩框架或工具链。
 
