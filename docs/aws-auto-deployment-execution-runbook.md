@@ -2,7 +2,17 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：推进D2-6真实更新前的一次性启用，待最小补核与凭据方式确认（2026-11-14）
+## 当前唯一继续点：D2-6最小补核完成，等待PAT安全供给以准备安装审批（2026-11-14）
+
+c补核已完成准确IAM/DNS/3固定Secret版本/Source组及原CFN inline读取；首份模板验证因CLI传参失败停止，未重跑。用户另准后，d仅以本地file://引用执行两次ValidateTemplate，均通过，未再STS或重读资源。[两段去敏事实及原件SHA](aws-instance-release-d2-6-minimal-preflight-20261114.json)，[PAT供给说明与安装边界](aws-instance-release-activation.md#9-d2-6最小补核已完成等待pat安全供给不先恢复环境)。c/d原件全部保持；合计STS1/元数据操作14（13成功＋1本机失败）、所有生产私密/数据库/GitHub读取和云写/槽/安装/恢复/dispatch0，原18:00:57.231Z＝今天温尼伯12:00:57.231 CST事实终点不延长。
+
+本地同长度参数已复现ENAMETOOLONG，d使用官方文件传输规避；原异常code/HTTP尝试数没有保存，不冒称已还原唯一提供者根因。两修正IAM草案当前SHA及CAPABILITY_NAMED_IAM已验证，但不等于安装参数/有效权限实测。Source是Administrators组/AdministratorAccess v1；DNS仍旧ALB目标，不是后端已恢复。三个引用版本均存在且AWSCURRENT，无Secret值或解密调用。
+
+用户已选单后端仓库Actions只读fine-grained PAT；尚未创建/读取/写入Secret。下一唯一动作是用户自行保存到指定私密文件并仅报告路径/到期日，之后再准确批准私密供给与一次性安装。当前不调用补核脚本、重读Neon/大盘点、不生成假的安装SHA或恢复资源等token。真实版本/实例/持久化兼容和恢复/两次发布仍按原执行卡集中落实，不扩框架或业务测试。
+
+### 以下为本轮已执行范围（不重跑）
+
+用户现明确允许这一次最小补核，并选择backend单仓Actions只读fine-grained PAT供给方式。本轮仅新记录官方Source STS1/AWS元数据16，补准确DNS、3旧Secret固定版本元数据、Source组/原CFN inline、2修正模板ValidateTemplate；复用旧成功事实，18:00:57.231Z原终点保持。新配方对IAM/Route53明确使用各自正确全球签名区域，不改/重跑旧失败脚本。失败即停、不重试，不重读Neon/.env/GitHub或读Secret/PEM/HMAC，不生成/读取PAT，不写资源/安装/恢复/调度。token方式确认不等于已获创建、私密文件读取或Secret供给许可；实际安装仍待准确范围另审。
 
 用户明确要求下一步执行D2-6两次真实更新。本轮回到既有执行卡的真实前置，不再扩代码：先复用已存成功事实，只请求STS1/AWS元数据16的未完成项补核（准确DNS、三个旧Secret固定版本、Source组/原CFN inline、两份修正模板验证）及backend单仓Actions只读token供给方式。提案尚待答复，不将这次目标指令当作新增IAM/Secret/SQL、目录/配置、恢复或dispatch的具体批准。旧只离线选择与所有旧读取/执行批准不自动重用，事实仍至18:00:57.231Z＝今天温尼伯12:00:57.231 CST。先集中备齐一次性启用和真实版本/实例绑定的准确材料，再另批执行；不启动环境等材料，不重开Web窗口或重做业务验收。
 

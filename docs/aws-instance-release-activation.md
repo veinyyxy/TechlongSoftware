@@ -131,3 +131,24 @@ DNS/当前API Alias、三个既有Secret固定版本独立元数据、Source组�
 本地相关177项中176pass/1 Windows真实ZIP处理skip，新增ARN回归通过；定向lint/全项目类型检查通过。远端Linux177项及原生PG16只在准确提交CI实际完成后记录，不把本地skip当已验证。
 
 **本轮已收尾：** 修正源码501b7f128fddd7f529c19e5af003c95fb32b0900的[准确CI43600705621](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43600705621) attempt1 completed/success，head/两job/步骤及日志匹配；Linux177项及原生PG16的9项全通过、fail0/skip0，lint/类型通过。[去敏验证回执](aws-instance-release-arn-pattern-fix-ci-20261114.json)。不改旧预检回执、原事实时间或旧失败脚本；本轮AWS/生产读取与安装/恢复/dispatch0，修正稿没有在线模板验证或IAM安装。当前结束，不自动开始新的读取/安装，后继真实缺项仍按明确范围另审。
+
+## 9. D2-6最小补核已完成；等待PAT安全供给，不先恢复环境
+
+用户另准最小补核、选定后端单仓Actions只读fine-grained PAT，并在c停止后另准仅两次模板验证。c于15:39:34.641Z—15:39:50.215Z完成准确IAM、DNS、3固定Secret版本及Source组/原CFN inline元数据；随后第一份ValidateTemplate在本机CLI调用处失败，未重跑c。传入完整模板的JSON参数达34,445字符，本地无网络同长度调用复现ENAMETOOLONG；原具体异常code/HTTP尝试数未保存，不冒称原提供者错误已恢复。
+
+d仅按新批准用[官方file://传参方式](https://docs.aws.amazon.com/cli/latest/reference/cloudformation/validate-template.html)提交两次ValidateTemplate，均成功；未重复STS或资源读取，未上传S3。两份修正IAM模板当前SHA分别1b41f5a3…/d13bcee6…，能力均为CAPABILITY_NAMED_IAM；这仍不验证实际参数/权限或创建资源。c原件不改，d记录独立保留。[去敏事实、调用数和原件SHA](aws-instance-release-d2-6-minimal-preflight-20261114.json)。
+
+两段合计STS1、元数据操作提交14（13成功＋1本机失败），其中另批Validate2；GitHub/.env/Neon/SQL/Secret值/PAT/PEM读取、云写、执行槽、恢复和dispatch均0。复用的成功事实仍只到18:00:57.231Z（今天温尼伯12:00:57.231 CST），不因c/d延期。
+
+已补齐的真实值：准确zone Z01473621BTTHKXBGOOEJ及API A Alias仍指旧1581133878；3个现有引用VersionId均存在且AWSCURRENT；Source属于Administrators组、附加AdministratorAccess v1且无组inline；原Cell执行角色inline摘要已取得。组策略布局不等于SCP/会话条件下安装权限已模拟通过；固定版本存在不等于已经读取/解密Secret；DNS记录存在也不是后端恢复或健康证明。其余成功元数据和名称空位只复用原b，不重新盘点。
+
+### PAT由用户自行准备；本轮不代建、不读取
+
+用户已选择此方式，以下是供给说明，不是代理获得创建/读取/写入Secret的批准：
+
+1. 打开[GitHub fine-grained PAT创建页](https://github.com/settings/personal-access-tokens/new)，名称可为`techlong-backend-build-reader`，资源owner选veinyyxy。
+2. Repository access选择Only select repositories，仅勾选`SpeedFeast_Backend_main`；Repository permissions只增加Actions: Read-only，保留固有Metadata read；不选写权限、全仓授权、Administration或environment批准权限。设置有限到期日，并记下该日。[GitHub创建与到期说明](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)、[artifact读取权限](https://docs.github.com/en/rest/actions/artifacts)。GitHub固有公共仓只读访问仍可能存在，不宣称该PAT绝对看不到其他公共资源。
+3. 用户在本地编辑器中将token单独一行保存到`E:/NodejsProject/TechlongSoftware/.local-secrets/d2-6-backend-actions-read-token.txt`，不要粘贴聊天、提交Git或作为shell参数传入；该建议路径在本次准备时不存在，不覆盖其他文件。
+4. 完成后仅回复文件路径和到期日。届时再明确一次私密读取/验证及准确AWS Secret供给范围；当前文件内容未读、AWS中也没有新token Secret。不把本机现有Git凭据复制上云。
+
+本轮不生成可执行安装SHA、不创建Secret/LOGIN/IAM、不登记候选/基准或实例、不启用runtime。后继仍按第3节固定对象和顺序集中准备准确安装范围；真实版本/持久化兼容、恢复后的物理ID及两次更新仍按D2-6执行卡落实，不能因为模板验证成功就跳过。若原事实到期，停止使用，不自动全量重读或开收费环境等待。

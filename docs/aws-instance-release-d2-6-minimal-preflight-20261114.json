@@ -1,0 +1,113 @@
+{
+  "schema": "techlong/instance-release-d2-6-minimal-preflight/v1",
+  "status": "REQUESTED_METADATA_AND_CORRECTED_TEMPLATES_VERIFIED_INSTALLATION_PENDING",
+  "primaryStartedAt": "2026-11-14T15:39:34.641Z",
+  "primaryStoppedAt": "2026-11-14T15:39:50.215Z",
+  "reusedFactsNotAfter": "2026-11-14T18:00:57.231Z",
+  "oldFactsExtended": false,
+  "source": {
+    "profile": "techlong-sandbox-user",
+    "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "accountId": "402010193138",
+    "officialStsRegion": "ca-central-1",
+    "stsSubmissions": 1,
+    "group": "Administrators",
+    "managedPolicy": "arn:aws:iam::aws:policy/AdministratorAccess",
+    "policyVersion": "v1",
+    "groupInlinePolicyCount": 0,
+    "policyLayoutObserved": true,
+    "effectiveInstallationAuthorizationSimulatedOrProven": false
+  },
+  "counts": {
+    "stsSubmissions": 1,
+    "metadataOperationSubmissions": 14,
+    "successfulMetadataReads": 13,
+    "failedCliValidationSubmissions": 1,
+    "separatelyApprovedValidateTemplateCalls": 2,
+    "githubGets": 0,
+    "configReads": 0,
+    "neonConnections": 0,
+    "sqlSubmissions": 0,
+    "secretValueReads": 0,
+    "privateKeyReads": 0,
+    "tokenReads": 0,
+    "writes": 0,
+    "executionSlots": 0
+  },
+  "dns": {
+    "zoneId": "Z01473621BTTHKXBGOOEJ",
+    "zoneName": "sandbox.techlong.cloud.",
+    "privateZone": false,
+    "recordName": "first-acceptance.sandbox.techlong.cloud.",
+    "recordType": "A",
+    "aliasDnsName": "techlong-sandbox-cell-sandbox-1-1581133878.ca-central-1.elb.amazonaws.com.",
+    "aliasTargetZone": "ZQSVJUPU6J1EY",
+    "evaluateTargetHealth": false,
+    "exactTypeMetadataOnly": true,
+    "targetHealthOrResolutionVerified": false,
+    "serviceRestoredOrAligned": false
+  },
+  "fixedSecretMetadata": [
+    { "purpose": "existing-platform-db", "versionId": "6ea2ca59-9a24-4f3e-b16f-ec824f32bc5f", "present": true, "stages": ["AWSCURRENT"] },
+    { "purpose": "existing-tenant-runtime", "versionId": "0f45d29f-02d4-4117-99b1-c06645aa3c6e", "present": true, "stages": ["AWSCURRENT"] },
+    { "purpose": "existing-control-public-key", "versionId": "75d8da0af103e1e10e6d3341cbd50226fea7ce5e5aac8d150ab9e447b6340680", "present": true, "stages": ["AWSCURRENT"] }
+  ],
+  "secretValuesOrDecryptCapabilityVerified": false,
+  "originalCfnInline": {
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxFirstAcceptanceCellExecutionRole",
+    "name": "FirstAcceptanceCellResourcesV1",
+    "documentSha256": "795789c8f9939e7921ca6ac53c053150b9cb51e705718a15f20dd0f05e5a2e84"
+  },
+  "templateValidation": [
+    { "path": "ops/releases/identities.draft.template.json", "sha256": "1b41f5a361378312d9269282a2010be4345bdc61e532914fca42f4285ca0e78b", "awsValidated": true, "capabilities": ["CAPABILITY_NAMED_IAM"] },
+    { "path": "ops/releases/promotion-identity.draft.template.json", "sha256": "d13bcee6db397ebda961e587ad20641eb96377588a384eb7a835a82b8b130ace", "awsValidated": true, "capabilities": ["CAPABILITY_NAMED_IAM"] }
+  ],
+  "validationTransport": {
+    "primaryCliInputCharacters": 34445,
+    "primarySafeCode": "CLI_READ_FAILED",
+    "primaryRawErrorNotSaved": true,
+    "localOnlySameLengthArgvDiagnostic": "ENAMETOOLONG",
+    "originalExceptionCodeOrHttpAttemptCountProven": false,
+    "continuationUsedLocalFileReferences": true,
+    "continuationSeparatelyApproved": true,
+    "stsOrSuccessfulMetadataRepeated": false,
+    "s3Upload": false,
+    "oldAttemptReplayedOrChanged": false
+  },
+  "tokenSupply": {
+    "userSelected": "FINE_GRAINED_PAT",
+    "selectedRepository": "veinyyxy/SpeedFeast_Backend_main",
+    "selectedRepositoryId": 1064124445,
+    "repositoryPermission": "Actions:read",
+    "inherentPublicRepositoryReadAccessMayStillExist": true,
+    "createdOrRead": false,
+    "expiry": null,
+    "proposedPrivatePath": ".local-secrets/d2-6-backend-actions-read-token.txt",
+    "fileObservedAtPreparation": "ABSENT",
+    "awsSecretSupplyApproved": false
+  },
+  "privateEvidence": {
+    "reusedSuccessfulFactsRawSha256": "b617827c4f06aee33bdc4920643fd134a3ccb42260bc58d1677584c03cf0d7c5",
+    "primaryDirectory": ".local-secrets/d2-6-enablement-preflight-20261114-c",
+    "primaryScriptRawSha256": "e6557ed39472312505eff35696883aae6869c0846892deee48bae5efef7d5376",
+    "primaryResultRawSha256": "427b2681130045dfe3a9f16ae61a9b5e741a8ebf0befec5c85a7ffa123173f14",
+    "validationDirectory": ".local-secrets/d2-6-template-validation-20261114-d",
+    "validationScriptRawSha256": "86304aa09437fbe5445d0dcb4914d9ce829eb3831a1369f4ebf1b456281dc63a",
+    "validationResultRawSha256": "da8c1ec9360a2925bcf504c8faefc4b4ae1572ddc386ecaf31a4dc39e2706798",
+    "fullMetadataOrCredentialsCommitted": false
+  },
+  "runtimeEnabled": false,
+  "newIamSecretLoginOrSqlInstalled": false,
+  "catalogOrInstanceBindingSeeded": false,
+  "workloadRestored": false,
+  "dispatchPerformed": false,
+  "d2_6RealVersionUpdatesCompleted": 0,
+  "executionAuthorized": false,
+  "installationManifestSha256": null,
+  "remaining": [
+    "User supplies the selected read-only PAT privately and states its expiration; content read and AWS supply remain separately approved",
+    "Exact installation plan with approved future Secret output/version derivation and resource allowlists; current stopped-resource references are not live service proof",
+    "Two genuinely verified versions and initialized instance/persistence/compatibility binding",
+    "Separately approved one-time installation, necessary restoration, runtime enablement and two GitHub-approved normal updates"
+  ]
+}
