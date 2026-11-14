@@ -2,7 +2,17 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：三项依赖修复已收尾；候选另被OS门槛阻止（2026-11-14）
+## 当前唯一继续点：app两个OS高危已清零；待确定共享构建衔接范围（2026-11-14）
+
+后端main fe827389已推，仅app基础层固定digest及原两测试；[CI43627155472](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43627155472)原push/attempt1 success，320测试/14 Python/容器smoke成功。候选43627155229的app job成功，OS HIGH0/CRITICAL0且已保存checked-app；但整个run仍因lifecycle HIGH61失败，原导入合同因此拒绝该app归档。[去敏证据](aws-instance-release-app-zlib-fix-ci-20261114.json)，不是可发布版本或D2-6实际更新。
+
+lifecycle只补读原扫描诊断/核对SHA并归并：Kerberos四包共56、SQLite3、zlib2；前59报告未列修复版本，不推断全生态无补丁。未改其源码/功能，未放松门槛/合同。下一只建议另确认离线最小构建隔离方案，避免API版本更新强依赖数据库工具镜像，同时保留双方安全门槛；实改工作流/合同或裁剪工具链仍未授权。当前收尾，AWS/生产读取/私密值/手动dispatch/安装/恢复/ECR0，runtime关闭、真实更新0，旧事实不续。
+
+### 以下为本次app排错的原范围（已完成，不重做）
+
+用户要求继续排错，只处理准确app扫描原件中的两个HIGH及必要基础镜像/原测试，不改业务/IAM/扫描门槛，不读生产配置/Secret/PAT，不AWS/恢复/部署。先核对原报告SHA/镜像再用官方修复，不猜CVE或换新框架；暂不扩lifecycle61项，只记录共用基础层自然影响。实际更新0，旧事实不续；原代码/失败/扫描摘要保持。
+
+### 以下为三项依赖修复收尾（不重做）
 
 后端main 11ec9bb已推，仅三项依赖/必需两传递锁项及8项隔离回归，工作流和业务不改；本地相关20项/类型/原high audit通过。准确[Backend CI43625892859](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43625892859)原push/attempt1 success：319单元测试、14 Python、容器构建/启动成功。[去敏证据](aws-instance-release-backend-dependency-fix-ci-20261114.json)。没有顺带修余下低/中危，用户.vscode未改未提交。
 

@@ -1,0 +1,236 @@
+{
+  "schema": "techlong/instance-release-app-zlib-fix/v1",
+  "status": "APP_OS_GATE_CLEARED_WHOLE_CANDIDATE_STILL_BLOCKED_BY_LIFECYCLE",
+  "source": {
+    "repository": "veinyyxy/SpeedFeast_Backend_main",
+    "commit": "fe8273899d4251267666807cf965ce52970a13e9",
+    "changedFiles": [
+      "Dockerfile",
+      "test/container_artifact.test.js",
+      "test/image_security_gate.test.js"
+    ],
+    "userVscodeSettingPreserved": true
+  },
+  "originalAppDiagnostic": {
+    "runId": 43625892768,
+    "artifactId": 14125858964,
+    "zipSha256": "0840ba9964a9647eebc31a91f4c2798ace48aefb66924ed3939db5f6729e42c5",
+    "reportSha256": "09ec4e564e525e84822876e0977c99969ebd582145de6fe28159dad0ad44e13d",
+    "imageConfigDigest": "sha256:98f072a6b860c6075902f2e977b1163726efd5fe15bcaa642eff57f82688dcef",
+    "package": "zlib1g",
+    "installed": "1:1.3.dfsg+really1.3.1-1+b1",
+    "vendorFixed": "1:1.3.dfsg+really1.3.1-1+deb13u1",
+    "cves": [
+      "CVE-2026-76844",
+      "CVE-2026-85091"
+    ],
+    "cveTitleDiscrepancyPreserved": true
+  },
+  "officialBase": {
+    "repository": "gcr.io/distroless/cc-debian13",
+    "variant": "nonroot",
+    "oldIndex": "sha256:e792ab3d241a468a4fd7519ddbbebe66b49b5f365771716ea688ad40b6c6f1c2",
+    "newIndex": "sha256:cb87acc574abe719b6e5c547384defa2f7b1f24af9605d3f618cf852495d8be2",
+    "amd64Manifest": "sha256:de02e95a878d4662f7a0f93bffb3799e08e04cc5a53f6a9c0593a20eaf4dc80e",
+    "config": "sha256:d6f64fa799667e9af6c4c841910b7c10cfe146b580027b2187779bf95932eb32",
+    "user": "65532",
+    "architecture": "amd64",
+    "os": "linux",
+    "zlibLayer": "sha256:208bf18bfcdc726b93ead2fc48fe5c02345604d3f4654a96b9d809618f0f5025",
+    "zlibLayerBytes": 95974,
+    "exactDpkgVersion": "1:1.3.dfsg+really1.3.1-1+deb13u1",
+    "actualLibraryAndDpkgMetadataObserved": true,
+    "registryContentDigestsVerified": true,
+    "cosignVerificationPerformed": false
+  },
+  "local": {
+    "focusedTests": {
+      "pass": 21,
+      "fail": 0,
+      "skipped": 0
+    },
+    "typecheck": "success"
+  },
+  "backendCi": {
+    "id": 43627155472,
+    "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43627155472",
+    "status": "completed",
+    "conclusion": "success",
+    "sourceCommit": "fe8273899d4251267666807cf965ce52970a13e9",
+    "event": "push",
+    "attempt": 1,
+    "createdAt": "2026-11-14T18:32:23Z",
+    "completedAt": "2026-11-14T18:32:57Z",
+    "tests": {
+      "pass": 320,
+      "fail": 0,
+      "skipped": 0
+    },
+    "pythonManifestTests": 14,
+    "dockerBuildAndSmoke": "success"
+  },
+  "candidate": {
+    "id": 43627155229,
+    "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43627155229",
+    "status": "completed",
+    "conclusion": "failure",
+    "sourceCommit": "fe8273899d4251267666807cf965ce52970a13e9",
+    "event": "push",
+    "attempt": 1,
+    "createdAt": "2026-11-14T18:32:23Z",
+    "completedAt": "2026-11-14T18:33:20Z",
+    "appJob": {
+      "id": 132545522243,
+      "conclusion": "success",
+      "audit": "success",
+      "build": "success",
+      "runtimeChecks": "success",
+      "scan": {
+        "schemaVersion": 1,
+        "outcome": "OS_HIGH_CRITICAL_ZERO",
+        "scanner": "Trivy",
+        "scannerVersion": "0.75.0",
+        "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+        "scope": "os",
+        "imageConfigDigest": "sha256:f8e7eb4c99a8ddcf760631a8e461ecebfae3c79e6ea500fbc5c4eb73814d9c3f",
+        "os": {
+          "Family": "debian",
+          "Name": "13.7"
+        },
+        "packageCount": 14,
+        "findingSeverityCounts": {
+          "HIGH": 0,
+          "CRITICAL": 0
+        },
+        "databaseUpdatedAt": "2026-11-14T13:05:54.014761714Z",
+        "ignoredFindingsAllowed": false,
+        "ignoreUnfixedAllowed": false,
+        "ecrScanPerformed": false,
+        "cloudMutationPerformed": false,
+        "reportSha256": "cf098d8c5d19128132758f12e01612a220214b5d5e46284e700d6aba7ce3207f",
+        "databaseMetadataSha256": "98cf081a1f0180da26a6abaeef5af1f1e1e56f5624fe6efef3a6bec9cbd1df4e",
+        "databaseSha256": "39f64e2ce29dba2cab51984a7975b0c3fe9cdef5905b6f4bf43ba0019271005a"
+      },
+      "archiveRetained": true
+    },
+    "lifecycleJob": {
+      "id": 132545521909,
+      "conclusion": "failure",
+      "failedStep": "Gate operating-system HIGH and CRITICAL before retaining candidates",
+      "scan": {
+        "schemaVersion": 1,
+        "outcome": "HIGH_CRITICAL_FINDINGS",
+        "scanner": "Trivy",
+        "scannerVersion": "0.75.0",
+        "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+        "scope": "os",
+        "imageConfigDigest": "sha256:b602b784264dcd60dae2296ee5ae33bfd9bd2a1a87bac172095dfb89ee89a9c6",
+        "os": {
+          "Family": "debian",
+          "Name": "13.7"
+        },
+        "packageCount": 32,
+        "findingSeverityCounts": {
+          "HIGH": 61,
+          "CRITICAL": 0
+        },
+        "databaseUpdatedAt": "2026-11-14T13:05:54.014761714Z",
+        "ignoredFindingsAllowed": false,
+        "ignoreUnfixedAllowed": false,
+        "ecrScanPerformed": false,
+        "cloudMutationPerformed": false,
+        "reportSha256": "eddd9856e811d2b57b9e086d45d688544df0656fdc347aa09358c68e01d15642",
+        "databaseMetadataSha256": "86581438652ef347f092c79e427ba4f1c8eabd7e5bb3028873e5923068054423",
+        "databaseSha256": "39f64e2ce29dba2cab51984a7975b0c3fe9cdef5905b6f4bf43ba0019271005a"
+      }
+    },
+    "artifacts": [
+      {
+        "id": 14126731918,
+        "name": "os-scan-app-fe8273899d4251267666807cf965ce52970a13e9-43627155229-1",
+        "sha256": "sha256:312716df0b6b4043635c594be42f2fa186bd11019fe8585b72778bdecd77ef59",
+        "bytes": 16357,
+        "expiresAt": "2026-11-21T18:33:08Z",
+        "expired": false
+      },
+      {
+        "id": 14126707042,
+        "name": "checked-app-fe8273899d4251267666807cf965ce52970a13e9-43627155229-1",
+        "sha256": "sha256:93715836f4a28bcc31d647f6c6bebd114da5f0afc8381ceee65af1edd65dbf46",
+        "bytes": 72654081,
+        "expiresAt": "2026-11-15T18:33:13Z",
+        "expired": false
+      },
+      {
+        "id": 14126681971,
+        "name": "os-scan-lifecycle-fe8273899d4251267666807cf965ce52970a13e9-43627155229-1",
+        "sha256": "sha256:912fcf0570c0319a1c0be812256e1611122326b324f15c6a70c95694e569794e",
+        "bytes": 27421,
+        "expiresAt": "2026-11-21T18:33:15Z",
+        "expired": false
+      }
+    ],
+    "wholeSuccessfulRunRequirement": "lib/deployments/releases/production.ts:61",
+    "eligibleForExistingImportContract": false,
+    "archiveContentDownloadedOrVerified": false
+  },
+  "remainingLifecycleDiagnostic": {
+    "artifactId": 14126681971,
+    "zipSha256": "912fcf0570c0319a1c0be812256e1611122326b324f15c6a70c95694e569794e",
+    "reportSha256": "eddd9856e811d2b57b9e086d45d688544df0656fdc347aa09358c68e01d15642",
+    "groups": [
+      {
+        "packages": [
+          "libgssapi-krb5-2",
+          "libk5crypto3",
+          "libkrb5-3",
+          "libkrb5support0"
+        ],
+        "findings": 56,
+        "installed": "1.21.3-5+deb13u1",
+        "fixedVersionInReport": null
+      },
+      {
+        "packages": [
+          "libsqlite3-0"
+        ],
+        "findings": 3,
+        "installed": "3.46.1-7+deb13u2",
+        "fixedVersionInReport": null
+      },
+      {
+        "packages": [
+          "zlib1g"
+        ],
+        "findings": 2,
+        "installed": "1:1.3.dfsg+really1.3.1-1+b1",
+        "fixedVersionInReport": "1:1.3.dfsg+really1.3.1-1+deb13u1"
+      }
+    ],
+    "missingFixedVersionDoesNotProveNoVendorFixAnywhere": true,
+    "codeOrFeaturesChanged": false
+  },
+  "materialLfNormalizedSha256": {
+    "Dockerfile": "16b92ca959d38030d0b252e252901677ee63432fd98641c7c97f785e33201652",
+    "test/container_artifact.test.js": "a34c20bcbcebd8236b520fc4fb351e5330bbf76c4b9c89b268838894dba147ba",
+    "test/image_security_gate.test.js": "9bb25ae2520bd04faeed5ef32b5616344a62b0be0c5295beb3aa6263993f34ab",
+    "unchangedCandidateWorkflow": "1d7fd99db80d03d8261e268d656045d5a89d0f28efa5a1f8e2e4471b92670aa8",
+    "unchangedLifecycleDockerfile": "acb250453f538ece427ce35ecf39d7a0e9ba2db5e573435e7a1832792fe2ab9c"
+  },
+  "boundaries": {
+    "awsCalls": 0,
+    "productionConfigOrSecretReads": 0,
+    "patFileReads": 0,
+    "productionDatabaseConnections": 0,
+    "manualDispatches": 0,
+    "reruns": 0,
+    "ecrPublished": false,
+    "environmentRestored": false,
+    "scannerThresholdOrExceptionsChanged": false,
+    "importContractRelaxed": false,
+    "lifecycleToolchainChanged": false,
+    "runtimeEnabled": false,
+    "realVersionUpdates": 0,
+    "oldResourceFactsExtended": false
+  }
+}

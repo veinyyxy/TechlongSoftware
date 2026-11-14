@@ -2,7 +2,19 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：三项依赖修复已收尾；候选另被OS门槛阻止（2026-11-14）
+## 当前唯一继续点：app两个OS高危已清零；待确定共享构建衔接范围（2026-11-14）
+
+后端main fe8273899d4251267666807cf965ce52970a13e9已推，仅app最终基础层digest及原两测试文件（10行增加/2行删除）。原报告ZIP/内层SHA已核对，两HIGH均zlib1g；官方同系列nonroot新digest的真实库和dpkg修复版本已核对。原扫描门槛/库存/工具版本、工作流及lifecycle源码保持。[准确CI43627155472](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43627155472) push/attempt1 success，320测试/14 Python/容器build与smoke成功；[候选43627155229](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43627155229)的app job全成功，OS HIGH0/CRITICAL0，并保存checked-app（到11月15日18:33:13Z）。[去敏证据](aws-instance-release-app-zlib-fix-ci-20261114.json)、[最小变更/来源](aws-instance-release-app-zlib-fix-20261114.md)。
+
+整个候选run仍failure，因未改的lifecycle HIGH61；production.ts原合同要求整个run成功，当前app归档因此仍不可导入，不伪称已取得可发布版本。为定位此必要耦合，另仅核对同run准确lifecycle扫描ZIP/报告SHA并归并：四Kerberos包各14条共56、SQLite3、旧zlib2；前59条报告FixedVersion空，不等同于已证明整个生态无修复。没有裁剪功能、改生命周期工具链或放松合同。
+
+本轮到此收尾。下一只建议另确认离线最小app/lifecycle构建隔离方案，使API版本更新只依赖自身严格检查而非数据库工具镜像；保留各自安全门槛，不默认新工作流/改导入合同或继续生命周期修复。若用户选择继续工具链方案，也先明确功能/兼容边界，不自行扩大。AWS/私密值/生产配置/生产库/手动dispatch/安装/恢复/ECR0，runtime关闭、真实更新0，旧事实不续。
+
+### 以下为本次app排错的原范围（已完成，不重做）
+
+用户要求继续排除错误。本轮只读取准确app扫描诊断原件、绑定原SHA/镜像后定位两个HIGH，并在有官方修复且不扩大运行/权限范围时做必要基础镜像/对应回归最小修改，正常main提交及准确无AWS CI。保持扫描门槛/库存与原失败，不新建框架、不读PAT/.env/Secret或调用AWS/恢复/部署；暂不扩lifecycle其余61项修复。若是共同基础镜像自然一并消除仅记录，不借此改生命周期工具链或放行其失败。原快照不续，实际更新仍0。
+
+### 以下为三项依赖修复收尾（不重做）
 
 后端main 11ec9bbdef4b76a2f7824afdd3d3fabcb505c8a9已推送，仅package.json/lock及一个隔离回归文件。body-parser2.4.0/follow-redirects1.16.3/multer2.5.0；补丁必需content-type/qs两锁项同改，无其他依赖或生产逻辑/工作流变化。新增8回归及相关20项/类型检查本地通过，原high audit退出0（0 high/critical，余1 moderate/4 low不扩修）。[准确Backend CI43625892859](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43625892859)原push/attempt1 completed/success，319测试/14 Python检查/容器构建与启动smoke成功；[去敏证据](aws-instance-release-backend-dependency-fix-ci-20261114.json)、[范围与回归说明](aws-instance-release-backend-dependency-fix-20261114.md)。用户.vscode文件保持未提交。
 
