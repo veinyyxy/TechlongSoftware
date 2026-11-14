@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：app两个OS高危已清零；待确定共享构建衔接范围（2026-11-14）
+## 当前唯一继续点：最小候选构建隔离方案已备，待确认编码（2026-11-14）
+
+已按用户继续指示完成[离线最小方案](aws-instance-release-candidate-isolation-plan.md)：原工作流路径/名称保留，仅app；lifecycle移到独立手动工作流，双方全部原安全检查保留。平台继续要求准确app整个run success，不改production.ts/import-source.ts或放行历史失败。旧双镜像发布器不再能拿新app-only run使用，此限制已明确；D2单app晋升不依赖它，不扩旧发布器/权限或lifecycle修复。
+
+当前仅文档，未改工作流/代码/测试，未调用GitHub API/AWS或读取私密值/生产库/调度/安装/恢复。后继只待确认方案列出的最小编码范围后一次实现及准确无AWS CI，不重新大盘点、开环境或新建阶段分支；runtime关闭、真实更新0、旧事实不续。
+
+### 以下为本次方案的前置排错结果（不重做）
 
 后端main fe827389已推，仅app基础层固定digest及原两测试；[CI43627155472](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43627155472)原push/attempt1 success，320测试/14 Python/容器smoke成功。候选43627155229的app job成功，OS HIGH0/CRITICAL0且已保存checked-app；但整个run仍因lifecycle HIGH61失败，原导入合同因此拒绝该app归档。[去敏证据](aws-instance-release-app-zlib-fix-ci-20261114.json)，不是可发布版本或D2-6实际更新。
 

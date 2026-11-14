@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：app两个OS高危已清零；待确定共享构建衔接范围（2026-11-14）
+## 当前唯一继续点：最小候选构建隔离方案已备，待确认编码（2026-11-14）
+
+用户同意继续“准备最小app/lifecycle构建隔离方案”；本轮仅本地只读及文档，不改工作流/运行合同，不主动调度CI或调用AWS。[精确方案](aws-instance-release-candidate-isolation-plan.md)：保留原backend-image-candidate.yml路径/名称只构建app，新lifecycle独立手动工作流，双方原安全/自检/回执门槛全保留。平台仍只接受准确原路径整个run success，production.ts/import-source.ts等运行代码不改；不放行旧失败run或增加来源白名单。
+
+方案明确旧双镜像发布器不能消费新app-only run，保留其原同run双产物拒绝；D2单app晋升不依赖该旧入口，故不扩发布器/权限。后继仅拟改后端两工作流（新增一个）及原两测试、平台原错误来源测试加一例/文档，正常main提交和准确无AWS CI；新增lifecycle不在本轮调度、不修61项或工具链。当前仅方案收尾，编码尚未执行；AWS/生产读取/私密值/生产库/API/手动dispatch/安装/恢复/ECR0，runtime关闭、真实更新0、旧事实不续期。
+
+### 以下为本次方案的前置排错结果（不重做）
 
 后端main fe8273899d4251267666807cf965ce52970a13e9已推，仅app最终基础层digest及原两测试文件（10行增加/2行删除）。原报告ZIP/内层SHA已核对，两HIGH均zlib1g；官方同系列nonroot新digest的真实库和dpkg修复版本已核对。原扫描门槛/库存/工具版本、工作流及lifecycle源码保持。[准确CI43627155472](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43627155472) push/attempt1 success，320测试/14 Python/容器build与smoke成功；[候选43627155229](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43627155229)的app job全成功，OS HIGH0/CRITICAL0，并保存checked-app（到11月15日18:33:13Z）。[去敏证据](aws-instance-release-app-zlib-fix-ci-20261114.json)、[最小变更/来源](aws-instance-release-app-zlib-fix-20261114.md)。
 
