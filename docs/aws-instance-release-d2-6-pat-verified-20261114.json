@@ -1,0 +1,42 @@
+{
+  "schema": "techlong/instance-release-d2-6-pat-verification/v1",
+  "status": "TOKEN_ACCEPTED_FOR_TWO_REQUESTED_METADATA_READS",
+  "startedAt": "2026-11-14T16:14:53.365Z",
+  "completedAt": "2026-11-14T16:14:54.223Z",
+  "repository": "veinyyxy/SpeedFeast_Backend_main",
+  "repositoryId": 1064124445,
+  "counts": {
+    "tokenFileReads": 1,
+    "githubGets": 2,
+    "artifactDownloads": 0,
+    "awsCalls": 0,
+    "configReads": 0,
+    "neonConnections": 0,
+    "writes": 0,
+    "dispatches": 0
+  },
+  "userDeclaredExpirationDate": "2027-02-12",
+  "providerExpirationAt": "2027-02-12T16:04:56Z",
+  "providerExpirationDateMatchesUser": true,
+  "endpointRequiredPermission": "actions=read",
+  "fullTokenPermissionScopeIndependentlyProven": false,
+  "exclusiveRepositoryScopeIndependentlyProven": false,
+  "latestSuccessfulMainRun": {
+    "id": 38803364109,
+    "sourceCommit": "10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2",
+    "attempt": 1,
+    "artifactCount": 0,
+    "availableCheckedAppArtifact": false
+  },
+  "tokenValueOrTokenFileFingerprintPublished": false,
+  "resourceFactsExtended": false,
+  "originalResourceFactsNotAfter": "2026-11-14T18:00:57.231Z",
+  "privateEvidence": [
+    { "path": ".local-secrets/d2-6-pat-validation-20261114-e/read.mjs", "sha256": "1cf9fa37d0aad2ef56cda54fb1d034251a9d385c4ed9c10d8af380a559b952cf" },
+    { "path": ".local-secrets/d2-6-pat-validation-20261114-e/result.json", "sha256": "fe0307ebe0f7e7eb447282f5ac6f89f10a6f48f1f55d03837f38600891e67679" },
+    { "path": ".local-secrets/d2-6-pat-validation-20261114-e/calls.ndjson", "sha256": "a3dd4f2d6b30ed47a0a29d9a8ee55b6a357bd7229ecbad9bdb83b0968cd174e3" },
+    { "path": ".local-secrets/d2-6-pat-validation-20261114-e/started.json", "sha256": "62c52901c87e5b800fe994b2eab7612baa1c7fde2a9bd983185d7c9ac8609af5" }
+  ],
+  "secretSupplyOrInstallationAuthorizedByThisRead": false,
+  "retry": false
+}

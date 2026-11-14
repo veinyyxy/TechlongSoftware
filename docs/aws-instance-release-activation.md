@@ -152,3 +152,15 @@ d仅按新批准用[官方file://传参方式](https://docs.aws.amazon.com/cli/l
 4. 完成后仅回复文件路径和到期日。届时再明确一次私密读取/验证及准确AWS Secret供给范围；当前文件内容未读、AWS中也没有新token Secret。不把本机现有Git凭据复制上云。
 
 本轮不生成可执行安装SHA、不创建Secret/LOGIN/IAM、不登记候选/基准或实例、不启用runtime。后继仍按第3节固定对象和顺序集中准备准确安装范围；真实版本/持久化兼容、恢复后的物理ID及两次更新仍按D2-6执行卡落实，不能因为模板验证成功就跳过。若原事实到期，停止使用，不自动全量重读或开收费环境等待。
+
+## 10. PAT已验证；另批单次后端构建，不恢复收费环境
+
+用户自行供给文件后，另批的一次读取/两次GitHub官方GET于2026-11-14T16:14:53.365Z—16:14:54.223Z完成。两端点成功，提供者返回到期时间2027-02-12T16:04:56Z，与用户声明日期一致；endpoint permission header是actions=read，不是完整token权限/单仓范围证明。私密原件和文件指纹仅保留本机，Git只保存[去敏验证回执](aws-instance-release-d2-6-pat-verified-20261114.json)，不再读取或复制该PAT，也未写AWS Secret。最新成功main构建38803364109的完整artifact列表为空，不能拿旧ECR tag冒充可用原包。
+
+用户因此另准一次现有backend-image-candidate.yml main构建与自检：既有Git凭据仅内存，最多30次GitHub GET核对main/工作流字节及准确run/步骤/artifact元数据，最多一次POST和35分钟跟进；不改源码/权限、不读新PAT/.env/Secret、不下载ZIP、不调用AWS/ECR/迁移/部署、不Re-run或失败重试。原app＋lifecycle矩阵不改，只使用app。已审工作流LF-normalized SHA256为1d7fd99db80d03d8261e268d656045d5a89d0f28efa5a1f8e2e4471b92670aa8。
+
+本地没有旧调度记录；新f记录先核对远端main a79ed89cdb5dc788ec880d8dcbeeb875f1f19159及工作流字节一致，再仅POST一次，收到[run43624344472](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43624344472)准确ACK（2026-11-14T18:02:21Z创建）。该run原attempt1于18:02:33Z completed/failure；f于18:03:36.728Z完成准确run/两job步骤/空artifact回读，8次GitHub API GET、POST1。随后在本轮30次GET预算内仅另取一次准确app job日志（既有connector认证，另跟随一次日志签名重定向），合计API GET9/含日志重定向GET10；未重跑runner或修改其原结果。
+
+两job均在`Gate high and critical production dependency advisories`失败。准确app日志报告9项（3 high/2 moderate/4 low），三项high分别为body-parser、follow-redirects、multer；deepmerge/SendGrid链及ip-address/qs也出现在诊断，但未据此扩全量依赖升级。镜像build、隔离容器/安全自检及候选保存均skipped；artifact0，不是镜像运行自检失败，更不是AWS部署失败。日志提出`npm audit fix --force`的破坏性SendGrid变更，不执行或作为默认方案。[去敏停止回执及私有原件SHA](aws-instance-release-d2-6-backend-build-20261114.json)。
+
+本轮按“失败不重试”结束，既有意图/ACK/失败和日志摘要保持；下一仅建议另准这三项high及必要直接关联依赖/回归的最小后端修复，不降低门槛、不新建工作流或框架。当前没有后端代码修改/推送或新构建批准，不自动修复、Re-run、下载ZIP、晋升/登记或创建资源。云构建不是D2-6实际更新，不启用runtime或恢复环境。原资源快照18:00:57.231Z已到期，不因新PAT/构建记录续期，后续安装只按必要新事实与准确审批处理。

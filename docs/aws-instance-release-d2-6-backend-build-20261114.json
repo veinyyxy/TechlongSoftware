@@ -1,0 +1,82 @@
+{
+  "schema": "techlong/instance-release-d2-6-backend-build/v1",
+  "status": "DEPENDENCY_AUDIT_FAILED_NO_CANDIDATE_NO_RETRY",
+  "startedAt": "2026-11-14T18:02:17.481Z",
+  "runnerCompletedAt": "2026-11-14T18:03:36.728Z",
+  "repository": "veinyyxy/SpeedFeast_Backend_main",
+  "repositoryId": 1064124445,
+  "workflow": {
+    "id": 377674976,
+    "path": ".github/workflows/backend-image-candidate.yml",
+    "localAndRemoteLfNormalizedSha256": "1d7fd99db80d03d8261e268d656045d5a89d0f28efa5a1f8e2e4471b92670aa8",
+    "bytesMatchedBeforeOnlyPost": true,
+    "permissionsDeclared": { "contents": "read" }
+  },
+  "run": {
+    "id": 43624344472,
+    "url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43624344472",
+    "sourceCommit": "a79ed89cdb5dc788ec880d8dcbeeb875f1f19159",
+    "branch": "main",
+    "event": "workflow_dispatch",
+    "attempt": 1,
+    "createdAt": "2026-11-14T18:02:21Z",
+    "completedAt": "2026-11-14T18:02:33Z",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "jobs": [
+    { "id": 132536748630, "kind": "lifecycle", "conclusion": "failure", "failedStep": "Gate high and critical production dependency advisories", "imageBuild": "skipped", "candidateRetention": "skipped" },
+    { "id": 132536748905, "kind": "app", "conclusion": "failure", "failedStep": "Gate high and critical production dependency advisories", "imageBuild": "skipped", "candidateRetention": "skipped" }
+  ],
+  "appLogDiagnosis": {
+    "jobId": 132536748905,
+    "command": "npm audit --omit=dev --audit-level=high",
+    "exitCode": 1,
+    "reportedVulnerabilities": { "total": 9, "high": 3, "moderate": 2, "low": 4 },
+    "highPackagesObserved": [ "body-parser", "follow-redirects", "multer" ],
+    "otherChainsObservedNotAddedToFixScope": [ "deepmerge / @sendgrid", "ip-address", "qs" ],
+    "forceFixOrAuditThresholdChangePerformed": false,
+    "dependencyFixImplemented": false,
+    "dependencyFixAuthorizationPending": true
+  },
+  "artifactCount": 0,
+  "checkedAppArchiveAvailable": false,
+  "counts": {
+    "runnerGitCredentialReads": 1,
+    "runnerGithubGets": 8,
+    "additionalAccurateJobLogApiGets": 1,
+    "signedLogRedirectGets": 1,
+    "totalGetsIncludingLogRedirect": 10,
+    "getBudget": 30,
+    "dispatches": 1,
+    "repeatedDispatches": 0,
+    "awsCalls": 0,
+    "patFileReads": 0,
+    "configReads": 0,
+    "secretValueReads": 0,
+    "artifactZipDownloads": 0,
+    "sourceEdits": 0
+  },
+  "privateEvidenceRoot": ".local-secrets/d2-6-backend-build-20261114-f/",
+  "privateEvidenceSha256": {
+    "run.mjs": "7317e4c6535a51a24d764a5ff7af570bfab802dee68c6ebb16fa51183b76cb2d",
+    "started.json": "46468692cf4c204b53f34084796da30dd22db9914e910d101df5869990d3a1e6",
+    "preflight.json": "78a1b11e3c411048c74beeabf00845616714e7ee561c41a365feaed72993ad04",
+    "dispatch-intent.json": "d81b045416e04df9041feb0d82b35b55890f300e0e623ecd36f6d354f6503f7e",
+    "dispatch-ack.json": "d03f79f7843406deb83d8e4039762d606b1ae43f82db8fdbb8961c914014d8ba",
+    "result.json": "039474e8d1064ebf7270a353bb1cc55550788a842a19817d0680a6785cc9eb4e",
+    "calls.ndjson": "13521c9dbff94f27aa070d0d80ad306a71a32097a980ac397876cc7afca3f233",
+    "jobs.json": "b82374eccccf2360411dcdb9d19f0cbcd500730da746423177a284b967e3b481",
+    "artifacts.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "app-audit-excerpt.txt": "66b257e3dd6b9a68dcace03a7be7ce2064935bed1d4d8ae1bb2da7ae23a6253f",
+    "log-read-receipt.json": "789baab6cc58b39c1a1e5065b4fb4cab00d75d8bd133bf5c274d9fefdc2506db"
+  },
+  "runtimeEnabled": false,
+  "ecrPublished": false,
+  "awsDeployedOrRestored": false,
+  "d2_6RealVersionUpdates": 0,
+  "originalResourceFactsNotAfter": "2026-11-14T18:00:57.231Z",
+  "originalResourceFactsNowExpired": true,
+  "resourceFactsExtended": false,
+  "retry": false
+}

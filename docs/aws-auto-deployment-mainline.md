@@ -2,7 +2,17 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：最小补核及两模板验证完成，等待PAT供给（2026-11-14）
+## 当前唯一继续点：单次后端构建已结束，待最小依赖修复批准（2026-11-14）
+
+[构建43624344472](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43624344472)已按批准仅POST一次，main a79ed89c…/attempt1/原工作流字节匹配；两job均在生产依赖audit失败，镜像与自检未执行、artifact0。app日志显示三项high：body-parser、follow-redirects、multer。[去敏停止回执](aws-instance-release-d2-6-backend-build-20261114.json)。未降低门槛/强制升级或重跑，AWS/ECR/部署/私密值读取0。下一只建议另准这三项及直接相关依赖/回归的最小后端修复，尚未获准或修改；不扩框架/恢复环境。PAT验证已完成、没有写Secret；旧AWS/Neon事实已到期且不续，runtime关闭、D2-6真实更新仍0。
+
+### 以下为本次构建及PAT验证的原批准记录（已结束，不重跑）
+
+PAT一次读取/两次GET已验证成功，到期2027-02-12T16:04:56Z；最新成功main构建38803364109无artifact，尚无真实可用新版本。用户另准既有backend-image-candidate.yml main的一次调度：既有Git凭据仅内存、GET最多30/POST仅1/跟进最多35分钟，先核对远端工作流字节一致，再核对准确run/步骤/artifact元数据。仅构建原app＋lifecycle候选、使用app；不改代码/权限、不再读PAT/.env/Secret、不AWS/ECR/部署/ZIP下载或重试。旧资源事实到期不续，runtime仍关闭，D2-6实际更新仍0。当前只完成这项真实来源前置，安装/目录/恢复/更新均仍需准确另批。
+
+### 以下为已完成PAT验证的原批准记录（不重跑）
+
+用户报告已保存PAT、到期2027-02-12；文件元数据/ACL/Git忽略已确认、此前未读内容。现只准一次内容读取/最多2次GitHub官方认证GET核对后端最新成功main及artifact元数据，不AWS/Neon/.env/Secret、ZIP/构建/dispatch或写入。只保存去敏信息，失败不重试；资源事实原终点不变，Secret供给和实际安装仍待新准确批准。
 
 仅新c/d记录完成准确DNS/3既有Secret固定版本/Source组和原CFN inline/两修正IAM模板验证；合计STS1/元数据操作14（含本机失败1，另批文件方式验证2），写/私密值/PAT/Neon/GitHub读取/恢复/dispatch0。[回执](aws-instance-release-d2-6-minimal-preflight-20261114.json)。原失败未重跑、成功事实终点18:00:57.231Z不延长；模板验证不是安装/真实更新证明。
 

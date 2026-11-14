@@ -2,7 +2,17 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：D2-6最小补核完成，等待PAT安全供给以准备安装审批（2026-11-14）
+## 当前唯一继续点：单次后端构建已结束，待最小依赖修复批准（2026-11-14）
+
+已批准构建只POST一次：[43624344472](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/43624344472)，main a79ed89c…、原attempt1、工作流字节一致。app和lifecycle均在npm audit生产依赖门槛失败，尚未构建镜像/自检或保留候选；artifact为0。准确app日志显示9项（3 high/2 moderate/4 low），high为body-parser、follow-redirects、multer。未重跑、改代码/门槛/权限、发布ECR或部署；只保存去敏[构建停止回执](aws-instance-release-d2-6-backend-build-20261114.json)。当前唯一建议是另准后端这三项high及必要直接关联依赖/回归的最小修复，不执行npm audit fix --force、不新建框架或恢复收费环境；当前尚无该代码批准。原AWS/Neon快照已过18:00:57.231Z，不续期、不自动重新大盘点；D2-6实际更新仍0。
+
+### 以下为本次构建及PAT验证的原批准记录（已结束，不重跑）
+
+PAT只读验证已完成：一次文件读取/两次GitHub GET均成功，GitHub返回到期时间2027-02-12T16:04:56Z；最新成功main构建38803364109的artifact列表为空。仅证明两条读取端点可用，不声称独立证明了token全部权限/单仓范围；不再读取PAT。用户现另准一次既有backend-image-candidate.yml的main构建：用既有Git凭据仅进内存，最多30次GitHub GET核对main/工作流字节及准确run/步骤/产物，只在远端与已审本地工作流一致时POST一次，最多跟进35分钟。原app＋lifecycle矩阵保持，只使用app，不改源码或权限、不下载ZIP、不运行迁移，不AWS/ECR/部署/.env/Secret或重跑；失败即停。先查本地调度记录，ACK不明不重发。此项是D2-6真实来源前置，不扩构建框架，收费环境不恢复。原资源事实18:00:57.231Z到期后不再用于安装，不被新PAT/构建事实续期；实际Secret/IAM/SQL、版本登记、恢复和两次更新仍另批。
+
+### 以下为已完成PAT验证的原批准记录（不重跑）
+
+用户已报告PAT保存至建议私密文件、到期日2027-02-12；本地仅元数据核对93字节、非重解析点、Git忽略，ACL仅本人/Administrators/SYSTEM。用户另允一次文件内容读取（仅内存）和最多两次api.github.com认证GET，核对准确后端最新成功main及其artifact元数据/到期header（若有）。失败即停不重试，不下载ZIP/读.env或AWS Secret、不调用AWS/Neon、不写GitHub/Secret或构建/dispatch。到期日先记用户声明，不假定精确时刻或只读验证能证明全部token权限；旧资源事实仍18:00:57.231Z不延长。验证后才准备准确私密供给/安装审批，不借此授权写入。
 
 c补核已完成准确IAM/DNS/3固定Secret版本/Source组及原CFN inline读取；首份模板验证因CLI传参失败停止，未重跑。用户另准后，d仅以本地file://引用执行两次ValidateTemplate，均通过，未再STS或重读资源。[两段去敏事实及原件SHA](aws-instance-release-d2-6-minimal-preflight-20261114.json)，[PAT供给说明与安装边界](aws-instance-release-activation.md#9-d2-6最小补核已完成等待pat安全供给不先恢复环境)。c/d原件全部保持；合计STS1/元数据操作14（13成功＋1本机失败）、所有生产私密/数据库/GitHub读取和云写/槽/安装/恢复/dispatch0，原18:00:57.231Z＝今天温尼伯12:00:57.231 CST事实终点不延长。
 
