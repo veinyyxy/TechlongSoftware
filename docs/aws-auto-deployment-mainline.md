@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：最小候选构建隔离方案已备，待确认编码（2026-11-14）
+## 当前唯一继续点：按已确认清单编码候选隔离并核验准确CI（2026-11-14）
+
+用户已批准[清单](aws-instance-release-candidate-isolation-plan.md)的最小源码与回归实现/准确CI。只改后端两编排/原两测试，平台原错误来源表加lifecycle路径拒绝，不改验证器/采集器/部署/权限或扫描门槛。正常main提交，新的lifecycle手动工作流不调度、不修61项；不生产读取/私密值/AWS/ECR/安装/恢复/部署，runtime仍关闭、实际更新0、旧事实不续。
+
+### 以下为已确认的离线方案记录（不重复准备）
 
 已按用户继续指示完成[离线最小方案](aws-instance-release-candidate-isolation-plan.md)：原工作流路径/名称保留，仅app；lifecycle移到独立手动工作流，双方全部原安全检查保留。平台继续要求准确app整个run success，不改production.ts/import-source.ts或放行历史失败。旧双镜像发布器不再能拿新app-only run使用，此限制已明确；D2单app晋升不依赖它，不扩旧发布器/权限或lifecycle修复。
 

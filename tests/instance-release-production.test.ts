@@ -400,7 +400,8 @@ test("release production: exact existing backend app artifact becomes a product 
 });
 
 test("release production: failed/wrong/fork/rerun builds and wrong artifact source/ZIP/expiry are rejected", async () => {
-  for (const patch of [{ conclusion: "failure" }, { run_attempt: 2 }, { path: ".github/workflows/backend-release.yml" }, { head_branch: "unreviewed" },
+  for (const patch of [{ conclusion: "failure" }, { run_attempt: 2 }, { path: ".github/workflows/backend-release.yml" },
+    { path: ".github/workflows/backend-lifecycle-image-candidate.yml" }, { head_branch: "unreviewed" },
     { repository: { id: 43, full_name: "other/backend" } }, { head_repository: { id: 43 } }]) {
     const f = await releaseProductionFixture();
     await assert.rejects(buildReleaseCandidate(f.policy, { ...f.run, ...patch }, f.artifact, f.files, f.now), /RUN_REJECTED/);

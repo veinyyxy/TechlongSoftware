@@ -2,7 +2,11 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：最小候选构建隔离方案已备，待确认编码（2026-11-14）
+## 当前唯一继续点：按已确认清单编码候选隔离并核验准确CI（2026-11-14）
+
+用户已明确要求按清单编码并验证CI。本轮仅实施后端原app工作流裁剪、新独立手动lifecycle工作流、原两测试及平台原错误来源表的一条拒绝例，正常main提交推送/准确无AWS CI。原执行步骤/脚本/门槛、平台production.ts/import-source.ts和旧双发布器保持，不放宽失败run，不读PAT/.env/Secret或调用AWS/生产库，不手动dispatch lifecycle、ECR/安装/恢复/部署。保留用户.vscode文件；旧事实/失败原件不改，runtime关闭，真实更新仍0。按[已确认方案](aws-instance-release-candidate-isolation-plan.md)一次实现，不扩框架或工具链。
+
+### 以下为已确认的离线方案记录（不重复准备）
 
 用户同意继续“准备最小app/lifecycle构建隔离方案”；本轮仅本地只读及文档，不改工作流/运行合同，不主动调度CI或调用AWS。[精确方案](aws-instance-release-candidate-isolation-plan.md)：保留原backend-image-candidate.yml路径/名称只构建app，新lifecycle独立手动工作流，双方原安全/自检/回执门槛全保留。平台仍只接受准确原路径整个run success，production.ts/import-source.ts等运行代码不改；不放行旧失败run或增加来源白名单。
 
