@@ -1,0 +1,75 @@
+{
+  "schema": "techlong/instance-release-persistence-preparation/v1",
+  "status": "OFFLINE_DESIGN_ONLY_NOT_CODED_NOT_INSTALLABLE",
+  "preparedOn": "2026-11-14",
+  "plan": "docs/aws-instance-release-persistence-plan.md",
+  "executionAuthorized": false,
+  "installationManifestSha256": null,
+  "target": { "accountId": "402010193138", "region": "ca-central-1", "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad" },
+  "proposedNamesNotVerifiedVacant": {
+    "stack": "techlong-sandbox-media-9c5ee9e64509dcad-v1",
+    "bucket": "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad"
+  },
+  "route": "Existing backend S3 writer -> private durable bucket; anonymous HTTPS product-image reads via dedicated CloudFront/OAC.",
+  "newCfnResourcesProposed": {
+    "MediaBucket": "AWS::S3::Bucket",
+    "MediaOriginAccessControl": "AWS::CloudFront::OriginAccessControl",
+    "MediaResponseHeadersPolicy": "AWS::CloudFront::ResponseHeadersPolicy",
+    "MediaDistribution": "AWS::CloudFront::Distribution",
+    "MediaBucketPolicy": "AWS::S3::BucketPolicy"
+  },
+  "resourceCountProposed": 5,
+  "bucketLifecycle": { "versioning": true, "sse": "AES256", "deletionPolicy": "Retain", "updateReplacePolicy": "Retain", "automaticObjectExpiration": false, "includedInTemporaryIdleThreeStacks": false },
+  "publicDataClass": "Approved public product images only; OAC is origin protection, not viewer authentication.",
+  "imagePrefix": "products/",
+  "dnsOrCertificateChanges": false,
+  "buyerWebCdnOrBucketChanges": false,
+  "backendApplicationCodeChange": false,
+  "candidateSourceCommitPreserved": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+  "iamProposedDelta": {
+    "newTaskRole": false,
+    "taskRoleArnChanged": false,
+    "databaseBindingChanged": false,
+    "taskExecutionRoleChanged": false,
+    "cloudFormationPassRoleChanged": false,
+    "applicationIdentityActions": ["s3:PutObject", "s3:DeleteObject"],
+    "resources": "Actual verified media bucket ARN + /products/* only",
+    "sharedBoundaryAllowRequiresExactApplicationPrincipalArn": true,
+    "otherBoundaryConsumersNotGrantedByNewStatement": true,
+    "applyThroughOriginalIamOwnerOnly": true,
+    "existingRuntimeIamMetadataAndOwnerVerifiedThisRound": false
+  },
+  "tenantConfigurationOnly": {
+    "IMAGE_STORAGE_PROVIDER": "s3",
+    "IMAGE_S3_BUCKET": { "fromActualOutput": "MediaBucketName" },
+    "IMAGE_PUBLIC_BASE_URL": { "fromActualOutput": "MediaPublicBaseUrl" },
+    "ALLOW_EPHEMERAL_IMAGE_STORAGE": "false"
+  },
+  "tenantImageDatabaseSecretsParametersAndResourceSetUnchanged": true,
+  "updateWhileIdleMustNotStartService": true,
+  "existingUploadedFilesInventoried": false,
+  "migrationApprovalRequiredIfLocalReferencesExist": true,
+  "businessDatabaseMigrationNotIncludedInNeonInstallation": true,
+  "futureD2Bindings": {
+    "UploadBucketArns": { "fromVerifiedActualOutput": "MediaBucketArn" },
+    "providerVariable": "IMAGE_STORAGE_PROVIDER",
+    "bucketVariable": "IMAGE_S3_BUCKET",
+    "verificationSha256": null,
+    "persistentUploadsReady": false
+  },
+  "unchangedReadinessFactsNotAfter": "2026-11-15T00:18:33.301Z",
+  "unchangedArtifactExpiresAt": "2026-11-15T19:07:00Z",
+  "productionReadsWritesAndDispatchesThisPreparation": 0,
+  "offlineValidation": { "sourceFingerprintsChecked": 7, "isolatedExistingModuleUrlCheck": true, "mockS3CommandsChecked": ["PutObject", "DeleteObject"], "mockCommandCount": 2, "appDatabaseOrDotenvLoaded": false, "sdkOrNetworkLoaded": false, "applicationCiRerunForDocs": false },
+  "runtimeEnabled": false,
+  "realVersionUpdates": 0,
+  "sourceEvidenceLfSha256": {
+    "SpeedFeast_Backend_main/services/image_storage.js": "74285b9a89d3a612fe7ff8904508755b9df32f203c291feef8e91b4bc4d91d8d",
+    "SpeedFeast_Backend_main/services/runtime_config.js": "03d77556b5e632ab21933645ff73e262123524878e7f79d8e9ba9f73c1abbc4d",
+    "SpeedFeast_Backend_main/routes/merchant_assets.js": "eb290b64c473fbe1befeeca67598f0b2da07485c2e413f8320cd3be190f07d76",
+    "SpeedFeast_Backend_main/app.js": "85ae16389c24214f976c80073f22bc2aabd55ab0716e7e9620188f469a6b2a1f",
+    "TechlongSoftware/lib/deployments/cloudformation/express-single-tenant-workload-v1.ts": "23cedcbc0809959834c98c47bdebf9a5cc72b92772acfde9a3e5550cbed4382d",
+    "TechlongSoftware/lib/deployments/releases/sampling.ts": "0cf7b386d5618954adc3285ac23e780821dba13922c26bd785d9f673bca45231",
+    "TechlongSoftware/ops/releases/identities.draft.template.json": "1b41f5a361378312d9269282a2010be4345bdc61e532914fca42f4285ca0e78b"
+  }
+}

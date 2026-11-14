@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：D2-6角色补核完成，只收口持久化桶安装参数（2026-11-14）
+## 当前唯一继续点：D2-6持久化方案已备，下一仅离线候选与回归（2026-11-14）
+
+[最小离线方案](aws-instance-release-persistence-plan.md) / [摘要](aws-instance-release-persistence-prepared-20261114.json)：拟独立五资源图片CFN栈，私有S3＋OAC/CDN公开商品图片读取；不改买家静态栈/DNS/证书或后端镜像。原S3模块已有写/删但无读取代理，不能只切provider。保持原TaskRole/Express绑定；准确图片权限在原IAM归属内修改，边界Allow限制准确应用主体，不扩共享角色权限。旧图片迁移按实际来源另审，不假定无数据。
+
+下一只离线编码五资源候选、两处IAM最小差异规格、四个存储环境值及回归，不重搭框架、不读生产配置/AWS/数据库或原包、不安装/恢复/调度。保留原持久化门槛及ImageUri-only合同，runtime关闭、实际更新0；旧事实/原件期限不续。方案本身无可执行SHA，后继实际副作用均准确另审。
+
+### 以下为角色补核与安装输入收口记录（已完成，不重读）
 
 [最新参数状态](aws-instance-release-activation.md#12-单角色补核完成安装输入按来源收口) / [j回执](aws-instance-release-d2-6-role-supplement-20261114.json)：另准STS1＋IAM5全部成功，原租户CFN角色身份/信任/附件/边界/空inline及v10规范摘要与正式基线一致，缺项关闭。此前原包验证及Neon核对全部复用，不重读三栈/ZIP/Neon，g/h/i原件保持。只有只读元数据与本地材料，无云/DB写或执行槽；真实更新仍0。
 

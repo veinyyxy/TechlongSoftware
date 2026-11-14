@@ -4,6 +4,8 @@
 
 **最新事实：** [第12节](#12-单角色补核完成安装输入按来源收口)已补齐第11节未完成的原CFN角色策略，未重复整批/Neon。真实app原件及原Neon结构已验证，但安装参数仍未全部绑定，不是安装/恢复或两次更新已完成；历史“下一步”不覆盖本节结论。
 
+上传桶参数的[最小离线方案](aws-instance-release-persistence-plan.md)现已完成：拟五资源独立图片栈及原角色窄权限，保留后端镜像/数据库绑定；明确旧图迁移与真实输出派生，未编码或安装。下一仅离线候选/必要回归，不把方案摘要当UploadBucketArns存在或persistentUploadsReady证明。
+
 ## 1. 已完成与本轮增量
 
 已安装的基座只沿用[真实完成回执](aws-instance-release-schema-install-completed-20261113.json)：`deployment_release` schema OID237571、三表九函数、owner及三操作 NOLOGIN。不得重放 `schema.draft.sql` / `grants.draft.sql` 或旧 attempt。原三身份材料中SQL/Secret模板保持；IAM草案同日另准仅修三处ARN分隔符，旧/新指纹分别记录，见[既有材料](aws-instance-release-identity-installation.md)。同审批晋升的代码/CI见[上一轮交付](aws-instance-release-promotion.md)。这些记录不是新的存活/空位证明。

@@ -233,6 +233,8 @@ ECS=0不等于免费：未来执行会重建计费ALB及托管公网地址，不
 
 ## 哪个栈负责什么
 
+**D2-6待审增量，不是已安装归属：** [持久化方案](aws-instance-release-persistence-plan.md)拟将商品图片桶/桶策略及图片CloudFront/OAC/CORS共5项归独立`techlong-sandbox-media-9c5ee9e64509dcad-v1`栈，桶Retain，不加入临时三栈停用集合。原运行TaskRole及其boundary仍由原IAM归属管理，不由图片栈接管；运行三栈的资源集合不变。候选、实际安装和新输出仍待另审，不能把以下历史三栈基线改称已包含这个数据栈。
+
 | 栈（现有名称） | 声明归属 | 不归它管理 |
 | --- | --- | --- |
 | 平台 `techlong-sandbox-platform-hosting-v1`，11 项 | 平台 Cluster、TaskDefinition、Service、LogGroup；ALB、443 Listener、目标组、两个安全组、TaskIngress、console 域名 A Alias | 所用 VPC/子网、证书、Web 数据库与执行角色。平台执行角色/boundary 在独立 access 栈；不属于平台版本更新 |
