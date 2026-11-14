@@ -6,7 +6,7 @@ import {PostgresReleaseRepository,ReleaseRequestRejected} from '../lib/deploymen
 import {canonicalJson,sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {releaseFixture,releaseProductionFixture,h} from './instance-release-fixture.ts';
 import {buildReleaseCandidate,verifyPublishedRelease} from '../lib/deployments/releases/production.ts';
-import {registerVerifiedRelease} from '../lib/deployments/releases/catalog.ts';
+import {writeCatalogRelease,inspectCatalogRelease} from '../ops/releases/catalog-transaction.ts';
 
 // Never falls back to DATABASE_URL or local/production configuration. No DROP/reset/cleanup SQL.
 const testUrl=process.env.INSTANCE_RELEASE_TEST_DATABASE_URL;
@@ -76,19 +76,25 @@ test('release native PostgreSQL 16: non-superuser draft install, narrow roles, r
     assert.deepEqual(rights,{can_set:false,inherit:false});
    }
   });
-  await t.test('normal version import: unique version bytes, repeat import and revocation are enforced by real PostgreSQL',async()=>{
+  await t.test('normal version import: real non-superuser writer and independent login close owner SET; immutable conflicts remain enforced',async()=>{
    const f=await releaseProductionFixture();f.policy.productId='catalog_ci_product';
    const candidate=await buildReleaseCandidate(f.policy,f.run,f.artifact,f.files,f.now),release=await verifyPublishedRelease(candidate,f.registry,f.now);
-   await admin.query('SET ROLE deployment_release_owner');
-   try{
-    assert.equal(await registerVerifiedRelease(admin,release),'REGISTERED');
-    assert.equal(await registerVerifiedRelease(admin,release),'ALREADY_REGISTERED');
-    await assert.rejects(registerVerifiedRelease(admin,{...release,id:'different_catalog_id'}),/VERSION_CONFLICT/);
-    await assert.rejects(registerVerifiedRelease(admin,{...release,image:{...release.image,platformDigest:'sha256:'+h('a')}}),/VERSION_CONFLICT/);
-    await admin.query("UPDATE deployment_release.releases SET status='revoked' WHERE id=$1",[release.id]);
-    await assert.rejects(registerVerifiedRelease(admin,release),/VERSION_CONFLICT/);
-    assert.equal((await admin.query('SELECT count(*)::int AS n FROM deployment_release.releases WHERE product_id=$1',[release.productId])).rows[0].n,1);
-   }finally{await admin.query('RESET ROLE');}
+   const ids=(await admin.query("SELECT n.oid::int AS schema_oid,c.oid::int AS releases_oid FROM pg_namespace n JOIN pg_class c ON c.relnamespace=n.oid WHERE n.nspname='deployment_release' AND c.relname='releases'")).rows[0];
+   const target={installer:'release_ci_installer',schemaOid:ids.schema_oid,releasesOid:ids.releases_oid};
+   assert.equal((await writeCatalogRelease(installer,release,target)).status,'REGISTERED');
+   const independent=await connect('release-catalog-independent',undefined,installerUrl.toString());
+   assert.equal((await inspectCatalogRelease(independent,release,target)).status,'INDEPENDENTLY_VERIFIED');
+   assert.equal((await writeCatalogRelease(installer,release,target)).status,'ALREADY_REGISTERED');
+   await assert.rejects(writeCatalogRelease(installer,{...release,id:'different_catalog_id'},target),/VERSION_CONFLICT/);
+   await assert.rejects(writeCatalogRelease(installer,{...release,image:{...release.image,platformDigest:'sha256:'+h('a')}},target),/VERSION_CONFLICT/);
+   await admin.query("UPDATE deployment_release.releases SET status='revoked' WHERE id=$1",[release.id]);
+   await assert.rejects(writeCatalogRelease(installer,release,target),/VERSION_CONFLICT/);
+   await assert.rejects(inspectCatalogRelease(independent,release,target),/READBACK_MISMATCH/);
+   assert.equal((await admin.query('SELECT count(*)::int AS n FROM deployment_release.releases WHERE product_id=$1',[release.productId])).rows[0].n,1);
+   for(const client of [installer,independent]){
+    assert.deepEqual((await client.query("SELECT pg_has_role(current_user,'deployment_release_owner','SET') AS can_set,pg_has_role(current_user,'deployment_release_owner','USAGE') AS inherit")).rows[0],{can_set:false,inherit:false});
+    await assert.rejects(client.query('SELECT * FROM deployment_release.releases'),e=>e.code==='42501');
+   }
   });
   const f=await releaseFixture(),p=f.plan;
   p.observedAt=Date.now();p.preparedAt=p.observedAt;p.writeBefore=p.observedAt+300000;const sha=await sha256Hex(p);

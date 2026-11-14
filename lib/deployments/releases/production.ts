@@ -33,6 +33,8 @@ export interface ReleaseBuildCandidate {
   checks: { receiptSha256: string; selfCheckSha256: string; securityReportSha256: string; scannerDatabaseSha256: string };
   compatibility: SoftwareRelease["compatibility"];
 }
+export type BackendBuildProfile = Pick<ReleaseBuildPolicy, "repository" | "repositoryId" | "nodeVersion" | "scannerVersion" | "scannerArchiveSha256">;
+export type BackendBuildEvidence = Pick<ReleaseBuildCandidate, "source" | "imageConfigDigest" | "validUntil" | "artifact" | "checks">;
 const hash = (s: string) => /^[a-f0-9]{64}$/.test(s);
 const digest = (s: string) => /^sha256:[a-f0-9]{64}$/.test(s);
 const must = (value: unknown, code: string) => { if (!value) throw new Error(code); };
@@ -51,11 +53,8 @@ function compatibility(c: SoftwareRelease["compatibility"]): SoftwareRelease["co
 
 /** Reuses backend-image-candidate.yml's existing app receipt/SHA256SUMS; never builds/pushes.
  * Run/artifact metadata must be obtained by an authenticated source reader. Hashes are not authentication. */
-export async function buildReleaseCandidate(policy: ReleaseBuildPolicy, run: ReleaseBuildRun,
-  artifact: ReleaseBuildArtifact, files: CheckedBuildFiles, now: number): Promise<ReleaseBuildCandidate> {
-  must(policy.productId && /^[A-Za-z0-9][A-Za-z0-9.+_-]{0,99}$/.test(policy.version) &&
-    /^\d{12}\.dkr\.ecr\.[a-z]{2}-[a-z]+-\d\.amazonaws\.com\/[a-z0-9][a-z0-9._/-]*$/.test(policy.imageRepository), "RELEASE_BUILD_PRODUCT_INVALID");
-  const c = compatibility(policy.compatibility);
+export async function verifyBackendBuildEvidence(policy: BackendBuildProfile, run: ReleaseBuildRun,
+  artifact: ReleaseBuildArtifact, files: CheckedBuildFiles, now: number): Promise<BackendBuildEvidence> {
   must(Number.isSafeInteger(now) && run.repository.full_name === policy.repository && run.repository.id === policy.repositoryId &&
     run.head_repository.id === policy.repositoryId && Number.isSafeInteger(run.id) && run.id > 0 && run.run_attempt === 1 &&
     /^[a-f0-9]{40}$/.test(run.head_sha) && run.head_branch === "main" && run.path === ".github/workflows/backend-image-candidate.yml" &&
@@ -99,19 +98,28 @@ export async function buildReleaseCandidate(policy: ReleaseBuildPolicy, run: Rel
     Number.isSafeInteger(scan.packageCount) && scan.packageCount >= 10 && scan.findingSeverityCounts.HIGH === 0 && scan.findingSeverityCounts.CRITICAL === 0 &&
     scan.ignoredFindingsAllowed === false && scan.ignoreUnfixedAllowed === false && scan.ecrScanPerformed === false && scan.cloudMutationPerformed === false &&
     age >= -300000 && age <= 48 * 3600_000 && [scan.reportSha256, scan.databaseMetadataSha256, scan.databaseSha256].every(hash), "RELEASE_BUILD_SCAN_REJECTED");
-  const id = "release_" + (await sha256Hex({ productId: policy.productId, component: "tenant_api", version: policy.version })).slice(0, 32);
-  return { schema: "techlong/release-build-candidate/v1", status: "candidate", executionAuthorized: false,
-    id, productId: policy.productId, component: "tenant_api", version: policy.version,
+  return {
     source: { repository: policy.repository, commit: run.head_sha, buildRunId: String(run.id), buildAttempt: 1, artifactSha256: files.zipSha256 },
-    imageRepository: policy.imageRepository, imageConfigDigest: r.imageConfigDigest,
+    imageConfigDigest: r.imageConfigDigest,
     validUntil: Math.min(expiresAt, Date.parse(scan.databaseUpdatedAt) + 48 * 3600_000),
     artifact: { id: artifact.id, name: artifact.name, expiresAt, archiveSha256: files.archiveSha256 },
-    checks: { receiptSha256: receiptSha, selfCheckSha256: checkSha, securityReportSha256: scan.reportSha256, scannerDatabaseSha256: scan.databaseSha256 },
-    compatibility: c };
+    checks: { receiptSha256: receiptSha, selfCheckSha256: checkSha, securityReportSha256: scan.reportSha256, scannerDatabaseSha256: scan.databaseSha256 } };
+}
+
+/** Bind verified source evidence to an explicitly reviewed product/version, never a fake placeholder. */
+export async function buildReleaseCandidate(policy: ReleaseBuildPolicy, run: ReleaseBuildRun,
+  artifact: ReleaseBuildArtifact, files: CheckedBuildFiles, now: number): Promise<ReleaseBuildCandidate> {
+  must(policy.productId && /^[A-Za-z0-9][A-Za-z0-9.+_-]{0,99}$/.test(policy.version) &&
+    /^\d{12}\.dkr\.ecr\.[a-z]{2}-[a-z]+-\d\.amazonaws\.com\/[a-z0-9][a-z0-9._/-]*$/.test(policy.imageRepository), "RELEASE_BUILD_PRODUCT_INVALID");
+  const c = compatibility(policy.compatibility), source = await verifyBackendBuildEvidence(policy, run, artifact, files, now);
+  const id = "release_" + (await sha256Hex({ productId: policy.productId, component: "tenant_api", version: policy.version })).slice(0, 32);
+  return { schema: "techlong/release-build-candidate/v1", status: "candidate", executionAuthorized: false,
+    id, productId: policy.productId, component: "tenant_api", version: policy.version, ...source,
+    imageRepository: policy.imageRepository, compatibility: c };
 }
 
 export interface RegistryImage {
-  registryId: string; repositoryName: string; imageId: { imageDigest: string }; imageManifest: string;
+  registryId: string; repositoryName: string; imageId: { imageDigest: string; imageTag?: string }; imageManifest: string;
 }
 export interface RegistryReadback {
   observedAt: number;
@@ -121,8 +129,9 @@ export interface RegistryReadback {
 
 /** Accept only actual ECR BatchGetImage original bytes, not a publisher's success boolean.
  * Config digest, single-platform manifest digest and OCI-index digest stay distinct. */
-export async function verifyPublishedRelease(candidate: ReleaseBuildCandidate, readback: RegistryReadback, now: number): Promise<SoftwareRelease> {
-  must(candidate.status === "candidate" && candidate.executionAuthorized === false && digest(candidate.imageConfigDigest) &&
+export type RegistryBuildTarget = Pick<ReleaseBuildCandidate, "imageRepository" | "imageConfigDigest" | "validUntil">;
+export async function verifyRegistryBuild(candidate: RegistryBuildTarget, readback: RegistryReadback, now: number) {
+  must(digest(candidate.imageConfigDigest) &&
     Number.isSafeInteger(candidate.validUntil) && now < candidate.validUntil &&
     Number.isSafeInteger(now) && Number.isSafeInteger(readback.observedAt) && readback.observedAt <= now &&
     now < readback.observedAt + RELEASE_SNAPSHOT_MAX_AGE_MS, "RELEASE_REGISTRY_FACTS_REJECTED");
@@ -149,18 +158,23 @@ export async function verifyPublishedRelease(candidate: ReleaseBuildCandidate, r
   const platformManifest = parse<{ schemaVersion: number; config?: { digest: string }; manifests?: unknown }>(platform.imageManifest);
   must(platformManifest.schemaVersion === 2 && !platformManifest.manifests && platformManifest.config?.digest === candidate.imageConfigDigest,
     "RELEASE_REGISTRY_CONFIG_MISMATCH");
-  const imageProof = { candidate, manifestDigest: root.imageId.imageDigest, platformDigest: platform.imageId.imageDigest };
+  return { manifestDigest: root.imageId.imageDigest, platformDigest: platform.imageId.imageDigest };
+}
+
+export async function verifyPublishedRelease(candidate: ReleaseBuildCandidate, readback: RegistryReadback, now: number): Promise<SoftwareRelease> {
+  must(candidate.status === "candidate" && candidate.executionAuthorized === false, "RELEASE_REGISTRY_FACTS_REJECTED");
+  const digests = await verifyRegistryBuild(candidate, readback, now), imageProof = { candidate, ...digests };
   return { id: candidate.id, productId: candidate.productId, component: "tenant_api", version: candidate.version, status: "ecr_verified",
     source: { repository: candidate.source.repository, commit: candidate.source.commit, buildRunId: candidate.source.buildRunId,
       buildAttempt: candidate.source.buildAttempt, artifactSha256: candidate.source.artifactSha256 },
-    image: { repository: candidate.imageRepository, manifestDigest: root.imageId.imageDigest, platformDigest: platform.imageId.imageDigest,
+    image: { repository: candidate.imageRepository, ...digests,
       verificationSha256: await sha256Hex(imageProof), runtimePlatform: "linux/amd64" }, compatibility: compatibility(candidate.compatibility) };
 }
 
 /** Read-only adapter over the existing fixed ecr:BatchGetImage metadata port. At most two reads.
  * The root digest is from separately trusted publication evidence, never a mutable tag. */
-export async function readPublishedRelease(candidate: ReleaseBuildCandidate, manifestDigest: string,
-  api: Pick<ReleaseMetadataApi, "read">, now: () => number): Promise<SoftwareRelease> {
+export async function readRegistryBuild(candidate: RegistryBuildTarget, manifestDigest: string,
+  api: Pick<ReleaseMetadataApi, "read">, now: () => number) {
   must(digest(manifestDigest) && now() < candidate.validUntil, "RELEASE_REGISTRY_REFERENCE_REJECTED");
   const target = /^(\d{12})\.dkr\.ecr\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com\/(.+)$/.exec(candidate.imageRepository);
   must(target, "RELEASE_REGISTRY_REPOSITORY_REJECTED");
@@ -175,5 +189,12 @@ export async function readPublishedRelease(candidate: ReleaseBuildCandidate, man
   const children = manifest.manifests?.filter(m => m.platform?.os === "linux" && m.platform.architecture === "amd64");
   if (children) must(children.length === 1 && digest(children[0].digest), "RELEASE_REGISTRY_PLATFORM_REJECTED");
   const platform = children ? await read(children[0].digest) : undefined;
-  return verifyPublishedRelease(candidate, { observedAt: now(), root, platform }, now());
+  const readback = { observedAt: now(), root, platform };
+  return { readback, digests: await verifyRegistryBuild(candidate, readback, now()) };
+}
+
+export async function readPublishedRelease(candidate: ReleaseBuildCandidate, manifestDigest: string,
+  api: Pick<ReleaseMetadataApi, "read">, now: () => number): Promise<SoftwareRelease> {
+  const result = await readRegistryBuild(candidate, manifestDigest, api, now);
+  return verifyPublishedRelease(candidate, result.readback, now());
 }

@@ -11,6 +11,7 @@ on:
       - 'tests/instance-release-postgres.test.mjs'
       - 'tests/fixtures/instance-release-inspector.mjs'
       - 'scripts/instance-release.ts'
+      - 'scripts/instance-release-import.ts'
       - 'tests/deployment-plan.test.ts'
       - 'package*.json'
 permissions:
@@ -34,7 +35,7 @@ jobs:
       - name: Synthetic release cycle and adjacent regression
         run: node --experimental-strip-types --test --test-timeout=30000 tests/instance-release-state.test.ts tests/instance-release-adapters.test.ts tests/instance-release-cycle.test.ts tests/instance-release-workflow.test.ts tests/instance-release-production.test.ts tests/deployment-plan.test.ts tests/deployment-baseline.test.mjs
       - name: Scoped lint
-        run: node node_modules/eslint/bin/eslint.js lib/deployments/releases ops/releases/*.ts scripts/instance-release.ts tests/instance-release-*.ts tests/instance-release-postgres.test.mjs tests/fixtures/instance-release-inspector.mjs --max-warnings 0
+        run: node node_modules/eslint/bin/eslint.js lib/deployments/releases ops/releases/*.ts scripts/instance-release.ts scripts/instance-release-import.ts tests/instance-release-*.ts tests/instance-release-postgres.test.mjs tests/fixtures/instance-release-inspector.mjs --max-warnings 0
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
   postgres:
     runs-on: ubuntu-24.04
