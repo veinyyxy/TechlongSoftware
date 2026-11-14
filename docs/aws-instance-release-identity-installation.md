@@ -78,7 +78,7 @@ CFN读用准确ReadStackArns，写用其子集ReleaseStackArns；不拿旧UUID�
 - 三份Secret内容/完整ARN/VersionId尚不存在，准确AWS-managed Key ARN尚未绑定；不伪造或先行生成凭据。
 - IAM模板的ReadStackArns、ReleaseStackArns、ECS service/cluster/task前缀、数据库/应用Secret/ECR/zone/图片桶ARN全部是必填参数、无默认历史值。当前没有本轮承载快照，不把旧物理ID写进去；也不为补参数自动恢复环境。
 - 新栈名及新角色/策略/Secret名的占用、安装者云权限、桶策略兼容、原库三LOGIN空位/权限/保护和当前OIDC门禁，需要在**实际执行准备获准后集中核对一次**；旧缺失记录不是永久不存在证明。
-- 本轮原生LOGIN回归只在既有隔离PG16 CI运行，本地无该CI库时skip；必须看准确源码CI结果，不能把静态文本检查当成PG16/Neon18认证成功或CFN ValidateTemplate通过。
+- 本轮原生LOGIN回归已在下述准确PG16 CI通过；本地无该CI库时skip。该结果不证明Neon18认证或CFN ValidateTemplate通过，仍需未来已批准实际核验。
 
 原读取事实仍截至2026-11-14T02:10:40.091Z；材料文件和既有完成回执可长期保存，不因用户额度中断报废。事实过期不延长、不自动补读、不催用户趁窗口安装；后续需要时才另审一次准确预检与安装清单。本文件没有可供直接执行的安装SHA，没有新永久尝试槽。
 
@@ -94,3 +94,5 @@ CFN读用准确ReadStackArns，写用其子集ReleaseStackArns；不拿旧UUID�
 ## 本轮验证记录
 
 新增5项材料合同回归，连同原状态/适配/更新/工作流及正式基线共142项本地通过，定向lint与全项目类型通过。既有PG16临时CI新增子测试，以原非超级用户安装者执行LOGIN片段，再用三个真实LOGIN及独立密码建立连接，核对身份/默认search_path/精确继承、原函数分工和表/owner拒绝；本地没有CI专用库，原生测试明确skip，没有连接本地/Neon/Aurora或读取其配置。CI结果以准确源码run追加，不将本地skip或JSON解析当成原生SQL/云模板已验证。
+
+最终收尾：[源码407ddab2f2a3c780acf21ac503204545d57b3d3f的CI43540624913](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43540624913) attempt1 completed/success，已核对head SHA、offline/postgres两job及步骤；原生job132280083732日志确认7测试pass、fail0/skip0，包含三个真实LOGIN认证子测试。[证据摘要](aws-instance-release-identity-materials-ci-20261113.json)。本轮生产读写/密码生成/安装均0，runtime关闭，既有NOLOGIN安装原件保持。材料阶段到此结束；只有用户后续要求实际执行时，才另审一次集中核对、绑定准确参数和外层安装SHA，不在本轮继续读生产或安装。
