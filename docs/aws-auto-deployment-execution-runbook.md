@@ -2,7 +2,9 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：三处运行ARN修复及准确CI已完成，等待后继明确范围（2026-11-14）
+## 当前唯一继续点：推进D2-6真实更新前的一次性启用，待最小补核与凭据方式确认（2026-11-14）
+
+用户明确要求下一步执行D2-6两次真实更新。本轮回到既有执行卡的真实前置，不再扩代码：先复用已存成功事实，只请求STS1/AWS元数据16的未完成项补核（准确DNS、三个旧Secret固定版本、Source组/原CFN inline、两份修正模板验证）及backend单仓Actions只读token供给方式。提案尚待答复，不将这次目标指令当作新增IAM/Secret/SQL、目录/配置、恢复或dispatch的具体批准。旧只离线选择与所有旧读取/执行批准不自动重用，事实仍至18:00:57.231Z＝今天温尼伯12:00:57.231 CST。先集中备齐一次性启用和真实版本/实例绑定的准确材料，再另批执行；不启动环境等材料，不重开Web窗口或重做业务验收。
 
 源码7c80b9817bb95d2607b9adbe96a7641a8cee7b01已推main，[准确无AWS CI43602498436](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43602498436) attempt1 completed/success；head/两job/步骤与日志匹配，Linux180及PG16原生9项全通过、fail0/skip0，lint/类型通过。[去敏验证回执](aws-instance-release-runtime-arn-fix-ci-20261114.json)。运行源码仅handoff两处/sampling一处分隔符，fixture两处字符串及3新回归；还原三处分隔符后的整文件恰等于旧源码，其他检查不变。
 

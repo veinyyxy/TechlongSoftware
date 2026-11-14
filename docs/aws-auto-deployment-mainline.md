@@ -2,7 +2,9 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：三处运行ARN修复及准确CI已完成（2026-11-14）
+## 当前唯一继续点：D2-6真实更新前一次性启用准备，尚未部署（2026-11-14）
+
+用户要求继续两次真实更新；当前代码阻塞已收尾，不再扩功能。只待新一轮STS1/元数据16未完成项补核许可，以及backend单仓Actions只读凭据供给方式；尚未新增生产读取或取得安装/恢复/发布批准。复用原18:00:57.231Z截止的成功事实，不延旧或重新全量盘点；身份/真实版本/实例绑定落实后再恢复必要环境，两次run仍由用户本人批准GitHub environment，不重新业务测试。
 
 修正源码7c80b98已推main，[CI43602498436](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43602498436) attempt1 completed/success，head/两job/步骤/日志已核对；180 Linux回归＋9原生PG16全过/无skip，lint/类型通过，[回执](aws-instance-release-runtime-arn-fix-ci-20261114.json)。只改运行三处分隔符和现有fixture/回归，IAM/SQL/模板/工作流/启用配置未改，旧格式及原约束仍拒绝。
 
