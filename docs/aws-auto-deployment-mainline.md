@@ -2,11 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：集中准备一次性启用材料，不安装/恢复（2026-11-14）
+## 当前唯一继续点：启用材料与CI已备，集中只读补核待批准（2026-11-14）
 
 只复用原三身份与已测D2-4/D2-5，补publisher剩余材料、汇总对象/顺序/真实缺项和必要回归；不重写发布器/安装框架，不改原已安装SQL或旧身份材料。新事实读取/凭据生成与使用/安装/目录登记/启用/恢复/发布仍分别另审，runtime关闭。完成材料和准确无AWS CI后，集中请求一次限定只读核对，不自动开收费环境、续旧事实或填假ARN。
 
 [总清单](aws-instance-release-activation.md)/[指纹索引](../ops/releases/activation.prepared.json)已备：四CFN栈、五Secret、四LOGIN/角色/策略及两SQL事务，原三材料不动；没有可执行安装SHA，token来源与真实版本/资源引用待核对。本地175pass/1skip（共176）、lint/类型通过，只待准确PG16/无AWS CI。下一仅请求一轮集中限定只读准备，尚未许可，不提前恢复收费环境或安装。
+
+收尾：源码375b0e2的[CI43596568223](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43596568223) attempt1 completed/success，176回归＋9原生PG16全通过/无skip，含实际publisher LOGIN片段与认证，[证据](aws-instance-release-activation-ci-20261114.json)。没有生产读取/生成凭据/安装/启用/恢复。当前唯一下一动作是另准一次集中只读补核以绑定真实缺项，不继续扩草案或框架；旧事实不续期。
 
 ### 以下为同审批晋升代码/CI收尾
 

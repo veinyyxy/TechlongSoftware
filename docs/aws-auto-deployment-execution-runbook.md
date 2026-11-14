@@ -2,11 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：集中准备一次性启用材料，不安装/恢复（2026-11-14）
+## 当前唯一继续点：启用材料与CI已备，集中只读补核待批准（2026-11-14）
 
 用户要求开始下一步。本轮仅汇总已测D2-4/D2-5与原三身份材料，补publisher LOGIN、两Secret及角色/boundary的独立草案、集中对象/时序/缺项清单和必要隔离回归；不重放原schema/grants，不改旧身份原件，不新建安装器或扩业务/启停工具。先复用已存材料，真实新读取、密码/token生成或使用、SQL/IAM/Secret/目录安装、启用/恢复/发布均未授权；运行保持关闭。旧快照原期限不延长，缺失当前物理ID及Secret版本如实留空，不能凭历史ARN生成可执行安装SHA。材料与准确无AWS CI完成后，只请求一轮集中限定只读核对以绑定真实缺项，不自行恢复收费环境或循环盘点。
 
 [集中启用材料](aws-instance-release-activation.md)与[七份指纹/缺项索引](../ops/releases/activation.prepared.json)已备：四CFN栈13项（5Secret/4角色/4策略）、增量SQL和四LOGIN两事务。原三身份材料原字节保持；新增publisher固定权限、LOGIN与两Secret草案，暂无实际token供给或Secret版本/当前物理ID。材料不等于可执行清单，executionAuthorized=false、安装SHA=null；停止状态只核对不恢复。本地176项中175pass/1 Windows ZIP skip，lint/类型通过；PG16原子子测试改为实际执行publisher草案，准确CI待核对。当前无生产读取/凭据/安装/启用，下一只按文档统一范围请求STS1＋AWS元数据75/GitHub GET12、配置1/TLS只读1/SQL45的集中准备，不默认获准或重用旧读取。
+
+材料阶段收尾：源码375b0e20db3297b842d36ce5e61044f43814cf9c的[准确CI43596568223](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43596568223) attempt1 completed/success，head/两job/步骤及原生日志已核对；176回归、实际LinuxZIP和PG16的9测试全过/fail0/skip0，含非超级用户执行publisher LOGIN片段、重复密码事务拒绝且不建角色、真实LOGIN与权限关闭。[证据](aws-instance-release-activation-ci-20261114.json)。未在线ValidateTemplate或验证AWS权限，不把JSON/隔离库等同Neon/IAM实装。生产读取/密码与token生成/安装/恢复/dispatch0，旧材料及runtime保持；当前只请求前段统一范围的新只读许可，不重复实现或先开环境。
 
 ### 以下为同审批晋升代码/CI收尾记录
 
