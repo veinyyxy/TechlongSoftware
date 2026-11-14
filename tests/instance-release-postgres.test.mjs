@@ -4,7 +4,9 @@ import {readFile} from 'node:fs/promises';
 import pg from 'pg';
 import {PostgresReleaseRepository,ReleaseRequestRejected} from '../lib/deployments/releases/repository.ts';
 import {canonicalJson,sha256Hex} from '../lib/deployments/execution/hash.ts';
-import {releaseFixture,h} from './instance-release-fixture.ts';
+import {releaseFixture,releaseProductionFixture,h} from './instance-release-fixture.ts';
+import {buildReleaseCandidate,verifyPublishedRelease} from '../lib/deployments/releases/production.ts';
+import {registerVerifiedRelease} from '../lib/deployments/releases/catalog.ts';
 
 // Never falls back to DATABASE_URL or local/production configuration. No DROP/reset/cleanup SQL.
 const testUrl=process.env.INSTANCE_RELEASE_TEST_DATABASE_URL;
@@ -73,6 +75,20 @@ test('release native PostgreSQL 16: non-superuser draft install, narrow roles, r
     const rights=(await installer.query("SELECT pg_has_role(current_user,$1,'SET') AS can_set,pg_has_role(current_user,$1,'USAGE') AS inherit",[role])).rows[0];
     assert.deepEqual(rights,{can_set:false,inherit:false});
    }
+  });
+  await t.test('normal version import: unique version bytes, repeat import and revocation are enforced by real PostgreSQL',async()=>{
+   const f=await releaseProductionFixture();f.policy.productId='catalog_ci_product';
+   const candidate=await buildReleaseCandidate(f.policy,f.run,f.artifact,f.files,f.now),release=await verifyPublishedRelease(candidate,f.registry,f.now);
+   await admin.query('SET ROLE deployment_release_owner');
+   try{
+    assert.equal(await registerVerifiedRelease(admin,release),'REGISTERED');
+    assert.equal(await registerVerifiedRelease(admin,release),'ALREADY_REGISTERED');
+    await assert.rejects(registerVerifiedRelease(admin,{...release,id:'different_catalog_id'}),/VERSION_CONFLICT/);
+    await assert.rejects(registerVerifiedRelease(admin,{...release,image:{...release.image,platformDigest:'sha256:'+h('a')}}),/VERSION_CONFLICT/);
+    await admin.query("UPDATE deployment_release.releases SET status='revoked' WHERE id=$1",[release.id]);
+    await assert.rejects(registerVerifiedRelease(admin,release),/VERSION_CONFLICT/);
+    assert.equal((await admin.query('SELECT count(*)::int AS n FROM deployment_release.releases WHERE product_id=$1',[release.productId])).rows[0].n,1);
+   }finally{await admin.query('RESET ROLE');}
   });
   const f=await releaseFixture(),p=f.plan;
   p.observedAt=Date.now();p.preparedAt=p.observedAt;p.writeBefore=p.observedAt+300000;const sha=await sha256Hex(p);

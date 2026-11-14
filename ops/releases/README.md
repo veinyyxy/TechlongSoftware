@@ -11,6 +11,7 @@ D2-4已新增默认关闭的runtime配置、真实元数据/凭据适配及验�
 - `identity-installation.prepared.json`：固定文件指纹、对象数/顺序和真实缺项；`executionAuthorized=false`，不是实际安装批准SHA。
 - [`repository.ts`](../../lib/deployments/releases/repository.ts)：注入SQL连接，参数化调用；不加载生产连接信息，不自动重试。
 - [`adapters.ts`](../../lib/deployments/releases/adapters.ts)：注入既有CFN/S3客户端；不是执行器，不创建默认客户端，不读取凭据。
+- D2-5已有ECR路线：[production.ts](../../lib/deployments/releases/production.ts)接原构建候选/registry回读，[catalog.ts](../../lib/deployments/releases/catalog.ts)为另审管理员提供不可变版本INSERT；[原ZIP文件读取](build-artifact.ts)不下载/加载凭据/调用Docker。本轮不启用同job晋升，完整边界见[说明](../../docs/aws-instance-release-production.md)，不为运行角色补表DML或改已安装SQL。
 
 ## 数据和权限边界
 
