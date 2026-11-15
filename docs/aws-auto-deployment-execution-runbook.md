@@ -4,6 +4,8 @@
 
 ## 当前唯一继续点：D2-6持久化代码与CI已收尾，下一仅另审限定事实准备（2026-11-14）
 
+**本次只读准备停在Source：** 用户已另准STS1＋元数据30的本存储前置范围；新a记录唯一官方STS于04:37:31.984Z以CLI255/CREDENTIALS_UNAVAILABLE停止，身份未验证，其他AWS元数据/配置/图片/ZIP/Secret/数据库/写入/槽均0。[停止回执](aws-instance-release-persistence-preflight-stopped-20261114.json)。未重试或取得可用新快照，旧事实不续；不据分类声称已还原唯一提供者根因。当前只待用户登录刷新并另允新一轮同范围后另建记录，不重跑a、不增加诊断或安装；代码/CI保持已完成，不重新测试或构建。
+
 源码6d49bec58b520d6f092cd808b2febe093e3ddbdf已推main，[准确无AWS CI43676484668](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43676484668)原push/attempt1 completed/success；run/head/两job/步骤及测试日志匹配，Linux193与原生隔离PG16九项全过/skip0，lint/类型成功。[去敏回执](aws-instance-release-persistence-ci-20261114.json)。本轮中断只影响未执行的push，恢复后复用原提交完成，不重做或扩大源码。
 
 持久化离线编码到此结项，不重复测试/构建或完善工具。下一唯一动作仅另审一次本存储前置所需的集中限定事实准备：拟议名称、准确原IAM/边界归属、租户Original及必要媒体来源，用来形成实际安装材料；当前尚无此读取或安装许可。不重读旧ZIP/Neon基座/重跑55次大盘点，不据CI恢复环境或自动迁图。原生产快照00:18:33.301Z已过期且不续，runtime关闭、真实更新0；仅候选通过，不称实际S3/CloudFront已建或D2-6完成。文档HEAD不是新的运行源码CI。

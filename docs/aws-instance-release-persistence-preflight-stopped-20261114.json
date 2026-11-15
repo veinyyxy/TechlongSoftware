@@ -1,0 +1,29 @@
+{
+  "schema": "techlong/instance-release-persistence-preflight-stop/v1",
+  "status": "SOURCE_CREDENTIALS_UNAVAILABLE_NO_METADATA_READ",
+  "startedAt": "2026-11-15T04:37:29.153Z",
+  "stoppedAt": "2026-11-15T04:37:31.984Z",
+  "attemptReadDeadline": "2026-11-15T09:37:29.153Z",
+  "successfulFactsValidUntil": null,
+  "source": { "profile": "techlong-sandbox-user", "endpoint": "https://sts.ca-central-1.amazonaws.com", "identityVerified": false },
+  "approvedLimits": { "sts": 1, "awsMetadataIncludingTemplateValidation": 30, "inlinePoliciesOfExactApplicationRoleMax": 4 },
+  "approvedObjects": [
+    "Proposed media stack/bucket/OAC/response-headers policy names and the five-resource candidate template validation.",
+    "Exact original application TaskRole and ServiceRoleBoundary, their original common CFN owner, and exact current tenant stack/ECS configuration."
+  ],
+  "actualCounts": { "sts": 1, "awsMetadata": 0, "configFileReads": 0, "neonOrAuroraConnections": 0, "secretValueReads": 0, "patOrPemReads": 0, "originalZipReads": 0, "mediaReads": 0, "writes": 0, "executionSlots": 0, "dispatchesOrRestores": 0 },
+  "error": { "safeClassification": "CREDENTIALS_UNAVAILABLE", "cliExitCode": 255, "rawErrorSaved": false, "uniqueProviderRootCauseProven": false },
+  "retryPerformed": false,
+  "oldCommandReplayed": false,
+  "oldSnapshotsExtended": false,
+  "newInstallationEvidenceAvailable": false,
+  "privateEvidence": [
+    { "path": ".local-secrets/d2-6-persistence-readonly-20261114-a/begin.mjs", "sha256": "cc69cda8c128194e10b2fd94a6202007933046c45bcad90059ea6110d1c8e0b0" },
+    { "path": ".local-secrets/d2-6-persistence-readonly-20261114-a/started.json", "sha256": "dfdeedb610e07b22281e80f84dfca47cc1aed80b8c5d857d84030adc950c6abc" },
+    { "path": ".local-secrets/d2-6-persistence-readonly-20261114-a/source-result.json", "sha256": "4fe7602adfa4f3c83303800dc4d902fd299a00b9dbf5dff4c4223bdc9a71103c" }
+  ],
+  "nextAction": "User refreshes the existing Source login and explicitly permits a new record with the same narrow read scope; preserve this failed attempt. No extra diagnosis/retry/install is authorized by this receipt.",
+  "localDeploymentRuntimeEnabled": false,
+  "installationManifestSha256": null,
+  "realVersionUpdates": 0
+}

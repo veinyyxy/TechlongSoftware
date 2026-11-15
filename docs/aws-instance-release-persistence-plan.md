@@ -139,3 +139,5 @@ AWS_REGION保持ca-central-1、APP_RUNTIME_MODE保持原值，不新增或轮换
 [CI43676484668](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43676484668)为准确main/push/原attempt1，completed/success，04:23:20Z（温尼伯11月14日22:23:20 CST）更新完成。Linux job132697644531的193项全过、fail0/skip0，包含新增13项；lint/类型成功。原生隔离PG16 job132697644280的9项全过、fail0/skip0。准确run源码/两job步骤及原日志中的测试统计已核对，[去敏证据与源码指纹](aws-instance-release-persistence-ci-20261114.json)。初次CI元数据入口被连接器本地拒绝后，只改用已支持的run集合GET定位准确源码，不是凭据过期或CI失败，没有重跑工作流。
 
 **本次代码/CI阶段完成。** 五资源仍是候选，纯派生不证明当前IAM归属、桶空位或真实输出；未做AWS ValidateTemplate、生产读取/写入、图片迁移、身份安装、恢复或发布。原生产事实已过`2026-11-15T00:18:33.301Z`，不因为本次CI重新有效。下一只另审本存储前置所需的一次限定事实补齐以生成实际安装材料，不再重读旧ZIP/Neon基座或重新大盘点；当前不执行该读取。文档收尾HEAD不冒充新的运行源码CI。
+
+后继只读范围已另获准（STS1/元数据30，原应用IAM/同一原Owner/租户配置及拟议名称、候选验证，不读媒体/数据库）；新a记录仅STS失败即停，其他读取及写入均0，[停止结果与原件指纹](aws-instance-release-persistence-preflight-stopped-20261114.json)。凭据当前不可用，尚无成功新快照；不重跑原命令，待用户刷新及新同范围许可。准备意图的5小时截止不是已取得的生产事实有效期，不据此生成安装SHA或启动环境。

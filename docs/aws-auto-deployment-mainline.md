@@ -4,6 +4,8 @@
 
 ## 当前唯一继续点：D2-6持久化代码与CI已收尾，下一仅另审限定事实准备（2026-11-14）
 
+本次已准STS1/元数据30只读准备，在唯一STS返回CREDENTIALS_UNAVAILABLE/CLI255时停止；身份未取得，其余AWS/私密配置/媒体/数据库读取、写入和槽消费均0。[独立a停止记录](aws-instance-release-persistence-preflight-stopped-20261114.json)，不重试/延旧事实，也没有新安装材料。当前仅待Source刷新及新同范围许可后另建记录；不要求重做代码/CI或启动环境。
+
 源码6d49bec已推，[CI43676484668](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43676484668)准确push/main/attempt1 success，Linux193及隔离PG16九项均全过/skip0，lint/类型成功；head/job/步骤/测试日志已核对，[机器回执](aws-instance-release-persistence-ci-20261114.json)。本次持久化候选/13新回归的代码阶段收尾，不继续扩工具；上次只是push未执行，恢复后复用同一提交完成。
 
 下一只另审本存储前置的一次限定事实准备，形成实际安装材料；当前不读AWS/生产配置/媒体或数据库、不安装/恢复/调度，不重复旧ZIP/Neon基座或整批盘点。原生产事实已过00:18:33.301Z、不续期；runtime关、真实更新0，不把候选/CI说成真实存储或D2-6已完成。文档收尾不是新运行源码CI。
