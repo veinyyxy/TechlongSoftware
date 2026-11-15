@@ -232,3 +232,11 @@ AWS_REGION保持ca-central-1、APP_RUNTIME_MODE保持原值，不新增或轮换
 4. 该持久化安装不替代原D2一次性身份/实例启用、可信版本登记和两次真实更新；这些后继仍沿原主线及各自准确审批，不重建发布框架。
 
 新采样从真实读取起最多5小时；第12节完整Original仍仅到2026-11-15T19:44:49.040Z，不随新采样续期，旧其他事实也不改时间。必须以各项事实较早终点约束实际材料，超时或发现变化停下另审；不自动刷新、不自动扩大读取以维持窗口。当前仅本地材料与文档修改，没有本节AWS调用、生产私密配置/媒体读取、数据库连接或云写入，尚不签发执行SHA。
+
+## 14. 集中读取a停止于本地参数；仅修正续段待批
+
+用户另准第13节范围后，a于15:33:57.803Z启动：STS1身份通过，原IAM栈DescribeStacks/ListStackResources两项成功，UPDATE_COMPLETE、六参数摘要/无RoleARN及两目标/模板桶归属匹配。第三项ListChangeSets以ParamValidation停止；未执行剩余IAM、图片、租户或模板桶查询，私密配置/数据库/云写/槽/恢复/调度均0。[去敏停止回执](aws-instance-release-persistence-install-preflight-stopped-20261115.json)。失败命令保守计入元数据尝试3，不据此称提供者已接收三次读取。
+
+**原因已离线证实，不是重新登录问题：** 当前CLI的ListChangeSets输入模型只有StackName/NextToken，不接受本次私有命令误传的MaxResults。使用`--generate-cli-skeleton output`、loopback endpoint和`--no-sign-request`本地复现，原输入252/Unknown MaxResults，移除该字段后0；没有使用AWS endpoint或凭据，也没有再查云。
+
+原a命令、结果、成功投影及journal原字节保留。仅准备新b续段：两处ListChangeSets输入去掉MaxResults；复用a的STS和原栈两项成功读取，不再STS、不重读原栈或完整Original；其余仍是第13节未完成白名单、最多26次元数据，a+b至多29次尝试，不扩大原30上限。Node语法检查通过，无运行源码/正式工具改动或重复CI。b尚未执行，**须用户新续段许可**；原19:44:49.040Z较早终点不延，发生新错误即停、不自动重试。当前仍无实际安装SHA，不能用本次部分成功准备冒称权限/名称已全部核实。

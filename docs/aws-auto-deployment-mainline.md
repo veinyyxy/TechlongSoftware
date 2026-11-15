@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：待批一次集中最小补核，形成实际安装清单（2026-11-15）
+## 当前唯一继续点：参数问题已离线修正，待批完成未用只读范围（2026-11-15）
+
+[a停止与b续段](aws-instance-release-persistence-plan.md#14-集中读取a停止于本地参数仅修正续段待批)：Source成功、原栈两项元数据匹配；第三项ListChangeSets的MaxResults不在CLI输入模型中，参数校验停止。离线无签名/loopback复现原252、修正0，不是Source刷新问题。无云写/数据库/槽，旧记录原字节保留，[回执](aws-instance-release-persistence-install-preflight-stopped-20261115.json)。
+
+下一仅待新许可执行已准备b：不再STS/重读原栈或完整Original，复用两项成功结果，仅两处输入移除MaxResults，完成原未用白名单最多26项。a+b至多29次元数据尝试、不扩原30；19:44:49.040Z终点不延，失败停、不自动重试。正式源码/模板不改，不重跑CI或安装；runtime关、D2-6真实更新0。
+
+### 以下为本次集中范围提案（已批准，a已停止，不能重跑）
 
 [集中补核范围及安装顺序](aws-instance-release-persistence-plan.md#13-实际安装材料的集中最小补核范围待单独批准)已列明，待用户另准STS1＋元数据最多30，仅原IAM/租户、图片名称及既有模板桶。复用已取完整Original和已有代码/CI，不补全框架、不读数据库/Secret值/私密配置/媒体/原包；当前没有本节生产读取或云写。
 

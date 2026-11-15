@@ -1,0 +1,69 @@
+{
+  "schema": "techlong/instance-release-persistence-install-preflight-stopped/v1",
+  "status": "STOPPED_LOCAL_LIST_CHANGESETS_INPUT_CORRECTION_PREPARED_NO_WRITE",
+  "startedAt": "2026-11-15T15:33:57.803Z",
+  "completedAt": "2026-11-15T15:34:03.458Z",
+  "sourceVerified": true,
+  "source": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "counts": {
+    "sts": 1, "metadataCommandAttempts": 3,
+    "completedProviderMetadataReads": 2, "failedMetadataCommands": 1,
+    "configSecretValuePemPatMediaZipReads": 0,
+    "databaseConnections": 0, "cloudWrites": 0, "executionSlots": 0,
+    "restoresOrDispatches": 0, "automaticRetries": 0
+  },
+  "successfulReads": {
+    "ownerStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+    "describeStacks": 1, "listStackResources": 1,
+    "stackStatus": "UPDATE_COMPLETE",
+    "stackLastUpdatedAt": "2026-09-20T19:13:07.274000+00:00",
+    "parametersAndNoExecutionRoleMatchExistingBaseline": true,
+    "taskRoleBoundaryAndTemplateBucketOwnershipMatches": true,
+    "wholeOriginalReread": false
+  },
+  "failure": {
+    "operation": "cloudformation:list-change-sets",
+    "classification": "ParamValidation",
+    "incompatibleInputField": "MaxResults",
+    "failedCommandProviderRequestProven": false,
+    "localCliInputModelIncludesOnly": ["StackName", "NextToken"],
+    "offlineOriginalInputExit": 252,
+    "offlineUnknownMaxResultsConfirmed": true,
+    "offlineCorrectedInputExit": 0,
+    "offlineChecksUsedLoopbackEndpointAndNoSignRequest": true,
+    "offlineChecksUsedAwsEndpointOrCredentials": false,
+    "rawErrorsOrProviderBodiesCommitted": false,
+    "notEvidenceOfSourceLoginFailure": true
+  },
+  "preparedContinuationNotExecuted": {
+    "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-b/prepare.mjs",
+    "sha256": "f25bc7a814d83c8c412dac0745e7c677057929b3b9d328fbfa7ba2e434365d16",
+    "freshPermissionRequired": true,
+    "sts": 0, "metadataMax": 26,
+    "reusesSuccessfulStsAndTwoOwnerReads": true,
+    "bothListChangeSetsInputsRemoveOnlyMaxResults": true,
+    "oldRecordAndScriptPreserved": true,
+    "aggregateOldAndProposedMetadataAttemptsMax": 29,
+    "originalApprovedMetadataLimitNotExpanded": true,
+    "noNewCredentialRefreshRequested": true,
+    "nodeSyntaxCheckPassed": true,
+    "executionPerformed": false
+  },
+  "newReadFactsNotAfter": "2026-11-15T20:33:57.803Z",
+  "originalWholeTemplateFactsNotAfterUnchanged": "2026-11-15T19:44:49.040Z",
+  "combinedEarlierDeadlineUnchanged": "2026-11-15T19:44:49.040Z",
+  "remainingIamMediaTenantAndBucketFactsObtained": false,
+  "privateEvidence": [
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-a/prepare.mjs", "sha256": "b3b5f38ee423c7ef607aa4a13eed41483905e332df9ff613accede68036a2383" },
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-a/result.json", "sha256": "d4148308cd838e937b6095d84dfad5e6a23c88094f8ea34849ed57beacc7b42c" },
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-a/calls.ndjson", "sha256": "b72c2b038aeae529e9f210e7a0e3161fe8e5190d41c3c1be13507b7a943cfc74" },
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-a/outcomes.ndjson", "sha256": "c6afa2741ae77270ec443e390cc74aa4e28b988c931b0eb873da18681962343d" },
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-a/owner-stack.json", "sha256": "22b421f103155db9987186dbe54ff8a4c688ac7e1593257a50b028c4c0bdbf01" },
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-a/owner-resources.json", "sha256": "29855f43ef4d363aea7a51ac9948bd994cb5455c16a1b511dd114efbcb262662" }
+  ],
+  "runtimeSourceOrWorkflowsChanged": false,
+  "installationManifestSha256": null,
+  "executionAuthorized": false,
+  "runtimeEnabled": false,
+  "realVersionUpdates": 0
+}

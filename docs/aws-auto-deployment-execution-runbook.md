@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：待批一次集中最小补核，形成实际安装清单（2026-11-15）
+## 当前唯一继续点：参数问题已离线修正，待批完成未用只读范围（2026-11-15）
+
+[集中读取a结果与修正续段](aws-instance-release-persistence-plan.md#14-集中读取a停止于本地参数仅修正续段待批) / [去敏回执](aws-instance-release-persistence-install-preflight-stopped-20261115.json)：Source STS1成功，原栈状态/参数/归属两读取成功，第三项ListChangeSets误传MaxResults发生本地ParamValidation即停。CLI本地模型/loopback无签名校验已证实去掉该字段可通过；不归咎Source、不要求再登录，无云写/数据库/槽。
+
+下一唯一动作仅另准新b完成未用范围：复用已成功STS与两项原栈元数据，不再STS或重读原栈/完整Original，两处ListChangeSets只删MaxResults，最多26项剩余白名单读取，a+b尝试最多29不扩原30。b仅私有准备/语法检查，未执行；a原字节保留，19:44:49.040Z较早截止不延，失败再停不自动重试。正式代码/模板/CI保持，不新增框架、安装或恢复。
+
+### 以下为本次集中范围提案（已批准，a已停止，不能重跑）
 
 [唯一下一范围](aws-instance-release-persistence-plan.md#13-实际安装材料的集中最小补核范围待单独批准)已离线列清：Source官方STS1＋AWS元数据最多30（固定表28项，只有准确既有服务引用时可多1项），仅原IAM/租户状态与当前权限、图片名称、既有模板桶。完整IAM Original不重取，不读Neon/Aurora、Secret值、配置/PAT/PEM/ZIP/媒体，不GitHub读取或重复CI；本节尚未调用AWS/写云或占槽，需用户另准才启动。
 
