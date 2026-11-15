@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：存储事实已核对，仅离线收口原两项IAM声明差异（2026-11-14 CST）
+## 当前唯一继续点：两资源声明对齐已编码，仅验证准确无AWS CI（2026-11-15）
+
+[交付](aws-instance-release-persistence-plan.md#11-原两资源声明对齐已编码未执行云修改)：原模块只补原TaskRole/ServiceRoleBoundary已生效的1份inline/3语句，图片入口必须先对齐，保留其他表达式/属性并拒绝未知缺项。新增7项、持久化20项全过，相关本地200项为199pass/1原Windows skip；真实已存投影仅本地生成两资源片段，无云I/O/配置或媒体读取。片段不是完整模板或安装授权，不改其他资源/参数/身份及发布合同。
+
+定向lint与全项目类型检查已过，当前仅main提交/准确无AWS CI收尾，不继续读生产/补工具或部署。原b/c事实09:47:35.203Z保持，不因编码续期；runtime关、真实更新0，完整Original/实际输出绑定及云修改仍具体另审。
+
+### 以下为已完成的事实准备与本轮编码范围（不重做）
 
 [b/c结果与下一范围](aws-instance-release-persistence-plan.md#10-新只读事实名称与模板已核对原iam声明需先保留现有运行授权)：STS1/元数据22，无写入/私密或媒体/数据库读取。原模板YAML已用既有解析器补读成功；先前是本地处理失败，不是Source失效。图片名称空位/ValidateTemplate、租户三资源local配置及原应用IAM归属已确认。[回执](aws-instance-release-persistence-preflight-observed-20261114.json)，原09:47:35.203Z（温尼伯11月15日03:47:35）终点保持。
 

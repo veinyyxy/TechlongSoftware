@@ -4,21 +4,28 @@ import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import candidate from "../ops/releases/persistence.draft.template.json" with { type: "json" };
 import baseline from "../ops/deployment-baseline/existing-tenant.template.json" with { type: "json" };
-import { draftPersistenceIam, draftPersistenceTenant, type PersistenceTemplate } from "../ops/releases/persistence.ts";
+import { alignPersistenceRuntimeIam, draftPersistenceIam, draftPersistenceTenant, type ExistingRuntimeIam, type PersistenceTemplate } from "../ops/releases/persistence.ts";
 import { variant } from "../ops/temporary-idle/environment-cfn.mjs";
 
 const outputs = { MediaBucketName: candidate.Resources.MediaBucket.Properties.BucketName,
   MediaBucketArn: `arn:aws:s3:::${candidate.Resources.MediaBucket.Properties.BucketName}`,
   MediaPublicBaseUrl: "https://dsynthetic123.cloudfront.net" };
 const ids = { role: "ApplicationRole", boundary: "RuntimeBoundary" };
+const runtimeStatements = () => [
+  { Sid: "C4eAppConnect", Effect: "Allow", Action: "rds-db:connect", Resource: "synthetic-db-user",
+    Condition: { ArnEquals: { "aws:PrincipalArn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole" } } },
+  { Sid: "C4eMgmtConnect", Effect: "Allow", Action: "rds-db:connect", Resource: "synthetic-management-user",
+    Condition: { ArnEquals: { "aws:PrincipalArn": "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole" } } },
+  { Sid: "C4eOtherSecretVersion", Effect: "Deny", Action: "secretsmanager:GetSecretValue", Resource: "synthetic-runtime-secret",
+    Condition: { StringNotEquals: { "secretsmanager:VersionId": "synthetic-version" } } },
+];
 const iam = (): PersistenceTemplate => ({ Parameters: { Original: { Type: "String" } }, Metadata: { original: true }, Resources: {
   RuntimeBoundary: { Type: "AWS::IAM::ManagedPolicy", Properties: { ManagedPolicyName: "TechlongSandboxServiceRoleBoundary",
     PolicyDocument: { Version: "2012-10-17", Statement: [{ Sid: "ExistingDatabaseCeiling", Effect: "Allow", Action: "rds-db:connect", Resource: "synthetic-db-user" },
-      { Sid: "ExistingDeny", Effect: "Deny", Action: "secretsmanager:GetSecretValue", Resource: "synthetic-management-secret" }] } } },
+      { Sid: "ExistingDeny", Effect: "Deny", Action: "secretsmanager:GetSecretValue", Resource: "synthetic-management-secret" }, ...runtimeStatements()] } } },
   ApplicationRole: { Type: "AWS::IAM::Role", Properties: { RoleName: "TechlongSandboxTaskRole", PermissionsBoundary: { Ref: "RuntimeBoundary" },
     AssumeRolePolicyDocument: { Version: "2012-10-17", Statement: [{ Effect: "Allow", Principal: { Service: "ecs-tasks.amazonaws.com" }, Action: "sts:AssumeRole" }] },
-    Policies: [{ PolicyName: "OriginalDatabaseConnect", PolicyDocument: { Version: "2012-10-17",
-      Statement: [{ Effect: "Allow", Action: "rds-db:connect", Resource: "synthetic-db-user" }] } }] } },
+    Policies: [{ PolicyName: "ConnectExactExpressTenantC4e", PolicyDocument: { Version: "2012-10-17", Statement: [runtimeStatements()[0]] } }] } },
   OtherRole: { Type: "AWS::IAM::Role", Properties: { RoleName: "OtherSyntheticRole", PermissionsBoundary: { Ref: "RuntimeBoundary" } } },
 }, Outputs: { Original: { Value: "preserved" } } });
 const tenant = (): PersistenceTemplate => {
@@ -37,6 +44,19 @@ const tenant = (): PersistenceTemplate => {
 type Container = { Environment: { Name: string; Value: unknown }[] };
 const container = (t: PersistenceTemplate) => (t.Resources.TenantTaskDefinition.Properties.ContainerDefinitions as Container[])[0];
 const statements = (t: PersistenceTemplate) => (t.Resources.RuntimeBoundary.Properties.PolicyDocument as { Statement: Record<string, unknown>[] }).Statement;
+const runtimeFrom = (t: PersistenceTemplate): ExistingRuntimeIam => ({
+  roleArn: "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole",
+  boundaryArn: "arn:aws:iam::402010193138:policy/TechlongSandboxServiceRoleBoundary",
+  inlinePolicies: structuredClone(t.Resources.ApplicationRole.Properties.Policies) as ExistingRuntimeIam["inlinePolicies"],
+  boundaryDocument: structuredClone(t.Resources.RuntimeBoundary.Properties.PolicyDocument) as Record<string, unknown>,
+});
+const runtime = () => runtimeFrom(iam());
+const draftIam = (t: PersistenceTemplate, o = outputs) => draftPersistenceIam(t, ids, o, runtime());
+const missingRuntimeDeclarations = () => {
+  const t = iam(); t.Resources.ApplicationRole.Properties.Policies = [];
+  (t.Resources.RuntimeBoundary.Properties.PolicyDocument as { Statement: unknown[] }).Statement = statements(t).slice(0, 2);
+  return t;
+};
 
 test("persistence stack has exactly five resources, retained private versioned storage and no compute or IAM", () => {
   assert.deepEqual(Object.values(candidate.Resources).map(r => r.Type).sort(), ["AWS::S3::Bucket", "AWS::S3::BucketPolicy",
@@ -78,7 +98,7 @@ test("bucket policy exposes only product-image reads to its exact distribution, 
 });
 
 test("IAM candidate changes exactly one role policy and one boundary statement without mutating original", () => {
-  const original = iam(), before = structuredClone(original), result = draftPersistenceIam(original, ids, outputs);
+  const original = iam(), before = structuredClone(original), result = draftIam(original);
   assert.deepEqual(original, before); assert.equal(result.executionAuthorized, false); assert.equal(result.liveOwnershipVerified, false);
   const restored = structuredClone(result.template);
   (restored.Resources.ApplicationRole.Properties.Policies as unknown[]).pop(); statements(restored).pop();
@@ -90,11 +110,77 @@ test("IAM candidate changes exactly one role policy and one boundary statement w
 });
 
 test("shared boundary image allow is restricted to original application principal and keeps all old protection", () => {
-  const original = iam(), t = draftPersistenceIam(original, ids, outputs).template;
+  const original = iam(), t = draftIam(original).template;
   assert.deepEqual(statements(t).slice(0, -1), statements(original));
   assert.deepEqual(statements(t).at(-1), { Sid: "D2ProductImagesWrite", Effect: "Allow", Action: ["s3:PutObject", "s3:DeleteObject"],
     Resource: outputs.MediaBucketArn + "/products/*", Condition: { ArnEquals: { "aws:PrincipalArn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole" } } });
   assert.deepEqual(t.Resources.OtherRole, original.Resources.OtherRole);
+});
+
+test("runtime alignment fills only the one inline and three boundary declarations, without mutating any other resource", () => {
+  const original = missingRuntimeDeclarations();
+  for (let i = 0; i < 21; i++) original.Resources["Other" + i] = { Type: "AWS::Logs::LogGroup", Properties: { LogGroupName: "synthetic-" + i } };
+  const before = structuredClone(original), observed = runtime();
+  const aligned = alignPersistenceRuntimeIam(original, ids, observed);
+  assert.deepEqual(original, before); assert.equal(Object.keys(aligned.template.Resources).length, 24);
+  assert.deepEqual(aligned.template.Resources.ApplicationRole.Properties.Policies, observed.inlinePolicies);
+  assert.deepEqual(statements(aligned.template).slice(-3), runtimeStatements());
+  const restored = structuredClone(aligned.template);
+  restored.Resources.ApplicationRole.Properties.Policies = [];
+  statements(restored).splice(-3); assert.deepEqual(restored, original);
+  assert.equal(aligned.executionAuthorized, false); assert.equal(aligned.otherIntrinsicPolicyEquivalenceVerified, false);
+  assert.deepEqual(alignPersistenceRuntimeIam(aligned.template, ids, observed).template, aligned.template);
+});
+
+test("image candidate automatically aligns existing connect/deny permissions before appending its own two changes", () => {
+  const original = missingRuntimeDeclarations(), r = draftIam(original), s = statements(r.template);
+  assert.equal(s.length, 6); assert.deepEqual(s.slice(2, 5), runtimeStatements());
+  const policies = r.template.Resources.ApplicationRole.Properties.Policies as { PolicyName: string }[];
+  assert.deepEqual(policies.map(p => p.PolicyName), ["ConnectExactExpressTenantC4e", "WriteExactTenantProductImagesD2"]);
+  assert.equal(s.find(s => s.Sid === "C4eOtherSecretVersion")?.Effect, "Deny");
+  assert.equal(r.executionAuthorized, false); assert.equal(r.otherIntrinsicPolicyEquivalenceVerified, false);
+});
+
+test("conflicting existing runtime declarations are rejected instead of overwritten", () => {
+  const policyConflict = iam();
+  const policies = policyConflict.Resources.ApplicationRole.Properties.Policies as { PolicyDocument: unknown }[];
+  policies[0].PolicyDocument = { Version: "2012-10-17", Statement: [] };
+  assert.throws(() => draftIam(policyConflict), /PERSISTENCE_RUNTIME_DECLARATION_CONFLICT/);
+  const boundaryConflict = iam(); statements(boundaryConflict).find(s => s.Sid === "C4eAppConnect")!.Resource = "different-db-user";
+  assert.throws(() => draftIam(boundaryConflict), /PERSISTENCE_RUNTIME_DECLARATION_CONFLICT/);
+});
+
+test("runtime reconciliation refuses unknown extra grants, missing required statements and duplicate Sids", () => {
+  const extraBoundary = runtime();
+  (extraBoundary.boundaryDocument.Statement as unknown[]).push({ Sid: "UnreviewedGrant", Effect: "Allow", Action: "*", Resource: "*" });
+  assert.throws(() => alignPersistenceRuntimeIam(missingRuntimeDeclarations(), ids, extraBoundary), /PERSISTENCE_UNREVIEWED_BOUNDARY_GAP/);
+  const extraInline = runtime(); extraInline.inlinePolicies.push({ PolicyName: "Unreviewed", PolicyDocument: {} });
+  assert.throws(() => alignPersistenceRuntimeIam(missingRuntimeDeclarations(), ids, extraInline), /PERSISTENCE_UNREVIEWED_INLINE_GAP/);
+  const missing = runtime(); (missing.boundaryDocument.Statement as unknown[]).pop();
+  assert.throws(() => alignPersistenceRuntimeIam(missingRuntimeDeclarations(), ids, missing), /PERSISTENCE_RUNTIME_STATEMENT_REQUIRED/);
+  const duplicate = runtime(); (duplicate.boundaryDocument.Statement as unknown[]).push(runtimeStatements()[0]);
+  assert.throws(() => alignPersistenceRuntimeIam(missingRuntimeDeclarations(), ids, duplicate), /PERSISTENCE_UNREVIEWED_BOUNDARY_GAP/);
+});
+
+test("missing or wrong-role runtime observations cannot bypass reconciliation", () => {
+  assert.throws(() => draftPersistenceIam(iam(), ids, outputs, undefined as unknown as ExistingRuntimeIam), /PERSISTENCE_RUNTIME_IAM_REQUIRED/);
+  for (const observed of [{ ...runtime(), roleArn: "arn:aws:iam::402010193138:role/OtherRole" },
+    { ...runtime(), boundaryArn: "arn:aws:iam::402010193138:policy/OtherBoundary" }]) {
+    assert.throws(() => draftPersistenceIam(iam(), ids, outputs, observed), /PERSISTENCE_RUNTIME_IAM_REQUIRED/);
+  }
+});
+
+test("alignment preserves original intrinsic expressions and does not claim full effective-policy equivalence", () => {
+  const original = missingRuntimeDeclarations();
+  statements(original)[0].Resource = { "Fn::Sub": "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:synthetic/user" };
+  const result = alignPersistenceRuntimeIam(original, ids, runtime());
+  assert.deepEqual(statements(result.template).slice(0, 2), statements(original));
+  assert.equal(result.otherIntrinsicPolicyEquivalenceVerified, false);
+});
+
+test("projected current boundary plus image grant must fit the managed-policy size limit", () => {
+  const observed = runtime(); (observed.boundaryDocument.Statement as Record<string, unknown>[])[0].Resource = "x".repeat(6200);
+  assert.throws(() => draftPersistenceIam(iam(), ids, outputs, observed), /PERSISTENCE_BOUNDARY_SIZE_LIMIT/);
 });
 
 test("IAM candidate rejects another role/boundary layout rather than changing scope or creating a second owner", () => {
@@ -102,13 +188,13 @@ test("IAM candidate rejects another role/boundary layout rather than changing sc
     (t: PersistenceTemplate) => { t.Resources.ApplicationRole.Properties.RoleName = "OtherRole"; },
     (t: PersistenceTemplate) => { t.Resources.ApplicationRole.Properties.PermissionsBoundary = { Ref: "DifferentBoundary" }; },
     (t: PersistenceTemplate) => { t.Resources.RuntimeBoundary.Properties.ManagedPolicyName = "AnotherBoundary"; },
-  ]) { const t = iam(); mutate(t); assert.throws(() => draftPersistenceIam(t, ids, outputs), /PERSISTENCE_IAM_SCOPE/); }
+  ]) { const t = iam(); mutate(t); assert.throws(() => draftIam(t), /PERSISTENCE_IAM_SCOPE/); }
 });
 
 test("already present image policies are not silently overwritten or treated as a new attempt", () => {
-  const t = draftPersistenceIam(iam(), ids, outputs).template;
-  assert.throws(() => draftPersistenceIam(t, ids, outputs), /PERSISTENCE_BOUNDARY_ALREADY_PRESENT/);
-  statements(t).pop(); assert.throws(() => draftPersistenceIam(t, ids, outputs), /PERSISTENCE_ROLE_POLICY_ALREADY_PRESENT/);
+  const t = draftIam(iam()).template;
+  assert.throws(() => draftPersistenceIam(t, ids, outputs, runtimeFrom(t)), /PERSISTENCE_BOUNDARY_ALREADY_PRESENT/);
+  statements(t).pop(); assert.throws(() => draftPersistenceIam(t, ids, outputs, runtimeFrom(t)), /PERSISTENCE_ROLE_POLICY_ALREADY_PRESENT/);
 });
 
 test("idle tenant derivation changes exactly four environment values, leaving image/database/secrets/resources untouched", () => {
@@ -140,7 +226,7 @@ test("ambiguous containers/environment or an already S3 baseline are rejected, n
 test("another bucket, wildcard ARN, insecure URL or non-CDN origin cannot enter either candidate", () => {
   for (const change of [{ MediaBucketName: "other-bucket" }, { MediaBucketArn: "arn:aws:s3:::*" },
     { MediaPublicBaseUrl: "http://dsynthetic123.cloudfront.net" }, { MediaPublicBaseUrl: "https://other.example" }]) {
-    assert.throws(() => draftPersistenceIam(iam(), ids, { ...outputs, ...change }), /PERSISTENCE_OUTPUT_SCOPE/);
+    assert.throws(() => draftIam(iam(), { ...outputs, ...change }), /PERSISTENCE_OUTPUT_SCOPE/);
     assert.throws(() => draftPersistenceTenant(tenant(), { ...outputs, ...change }), /PERSISTENCE_OUTPUT_SCOPE/);
   }
 });

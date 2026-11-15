@@ -122,7 +122,7 @@ AWS_REGION保持ca-central-1、APP_RUNTIME_MODE保持原值，不新增或轮换
 本次用户已要求实施第8节的唯一动作，交付仅为：
 
 - [五资源CFN候选](../ops/releases/persistence.draft.template.json)：固定sandbox名称、私有版本化Retain桶、OAC、准确CDN桶读策略、HTTPS默认域名及CORS。没有IAM/计算/网络/数据库资源，没有实际输出。终止保护是未来栈创建/设置操作的要求，Metadata不等于已替提供者启用保护。
-- [两项纯派生函数](../ops/releases/persistence.ts)：`draftPersistenceIam(original, {role, boundary}, actualMediaOutputs)`只向原角色/边界各追加一项；`draftPersistenceTenant(original, actualMediaOutputs)`只改四个环境值。输入不变、输出保持执行未授权/现场归属未验证，均无I/O、凭据或执行入口；不代表自动取得了当前Original、核实了模板与实际IAM一致或证明了输出来源。
+- [纯派生函数](../ops/releases/persistence.ts)：后继第11节已将`draftPersistenceIam(original, {role, boundary}, actualMediaOutputs, approvedExistingRuntimeIam)`改为必须先保留已知运行授权，再追加两项图片差异；历史三参数调用不再可用。`draftPersistenceTenant(original, actualMediaOutputs)`仍只改四个环境值。输入不变、输出保持执行未授权/现场归属未验证，均无I/O、凭据或执行入口；不代表自动取得了当前Original、核实了模板与实际IAM一致或证明了输出来源。
 - [材料指纹与待核对项](../ops/releases/persistence.prepared.json)：两份候选原件固定LF SHA；UploadBucketArns/真实迁移核验结果仍未产生，不签发安装SHA。
 - [13项合成回归](../tests/instance-release-persistence.test.ts)：五资源/保留/私有读及CORS、原IAM两处精确追加/其他消费者不变、四环境值之外完整保持、错误目标和重复派生拒绝、现有full/idle变换保留S3配置。临时工具只在测试中使用，正式派生代码不依赖临时工具。
 
@@ -159,3 +159,26 @@ AWS_REGION保持ca-central-1、APP_RUNTIME_MODE保持原值，不新增或轮换
 **具体必要差异只有先明确这一组：** 原TaskRole声明未登记已生效的ConnectExactExpressTenantC4e；原boundary声明缺C4eAppConnect、C4eMgmtConnect、C4eOtherSecretVersion。前两条承载数据库连接范围，后一条保留其他Secret版本的拒绝约束。原声明没有literal rds-db:connect Allow；直接对它调用图片追加函数，不能称为“只增图片、不影响现有授权”。此处不是以未解析的Fn::Sub/Ref造成的整个文档摘要差异来推断漂移；上述是明确缺失的inline名称和Sid，其他引用/语句尚未完整展开比对。
 
 下一唯一建议是**仅离线编制原TaskRole/ServiceRoleBoundary两资源的声明对齐补丁与回归**：先保留现有实际Express授权，再叠加原图片差异；所有其他资源/参数/角色身份和权限不动，不重整整个IAM基线。对未核实的其余语句不自动推断或修改，也不以当前仓库bootstrap全文替换实际Original。当前只记录事实/下一最小范围，没有实施该补丁、签发执行SHA或改变云授权。实际创建/执行和任何额外读取仍另审，旧图来源/迁移亦未被本轮证明。
+
+## 11. 原两资源声明对齐已编码，未执行云修改
+
+用户明确要求继续后，仅修改原`ops/releases/persistence.ts`、原持久化测试和材料索引，不新增框架/工作流、云客户端或执行入口。五资源图片模板、租户配置派生、D2发布合同、数据库/Secret/角色身份和临时工具均保持。
+
+`alignPersistenceRuntimeIam(original, {role, boundary}, approvedExistingRuntimeIam)`只在原两资源内补记：
+
+| 声明 | 最小操作 |
+| --- | --- |
+| TaskRole.Policies | 仅补缺失的ConnectExactExpressTenantC4e，正文逐值取自已审当前inline投影；已经相同则保持，有冲突则停止 |
+| ServiceRoleBoundary.PolicyDocument.Statement | 仅补C4eAppConnect、C4eMgmtConnect、C4eOtherSecretVersion，保留原语句顺序/表达式及Deny；重复、冲突或其他未知缺项不自动接纳 |
+
+图片入口现在必须接收第四参数`approvedExistingRuntimeIam`，内部先完成上述对齐再加原图片权限；没有快照或角色/边界不符不能绕过。这个输入只能来自外层核准的准确角色/策略投影，函数不自行获取或认证它，不接收任意Web/workflow策略正文。原19条语句中的其他Fn::Sub/Ref**不自动展开或改写**，返回`otherIntrinsicPolicyEquivalenceVerified=false`，不能借此声称整个IAM有效权限已证明等价。
+
+现有真实b/c投影已仅在本地通过新函数推导：19→22条边界声明、1份inline，其他目标属性完整保持；私有补丁仅含TaskRole/ServiceRoleBoundary两资源片段，没有整栈模板。文件`.local-secrets/persistence-iam-alignment-20261115-a/resource-patch.json`的SHA256为`9f6804516c475f326bf31cdd5833aa58597ee14e0e2be99b653accf0ceedc319`，派生结果摘要SHA为`2b95ab359e52662a2832b34d191acfbf0ed6d4929dc0f11f2cf982c54bbf8b8c`。正文不入Git，不伪造CDN输出、不调图片追加器生成假真实发布材料。
+
+资源片段**不能直接作为CFN TemplateBody**；未来必须在另审流程中核对并取得准确完整Original，验证其规范摘要/两目标前态后才能合并，保持其他22资源和参数等内容不变。不得拿工程bootstrap旧全文补齐缺失部分。私有补丁不会自动生成Create/Execute或安装SHA，也不是权限安装已发生。
+
+图片追加前，使用当前实测boundary正文计算紧凑UTF-8预测体积并作保守6144上限检查；保存样本中预测6044，不删除旧语句腾空间。[IAM官方限制](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)按6144字符且不计空白定义，代码的UTF-8字节计数是保守界限，不是对任意表达式展开或未来服务接纳的证明；原版本容量/有效权限仍在实际审批内核对。
+
+新增7项回归覆盖：仅填已证实4缺项且24资源不变、对齐幂等/图片路径不能绕过、未知差异/冲突拒绝、错误或缺失快照、原intrinsic保持、预测体积超限。原13项保持，全持久化20项通过；相关本地总200项199pass/1既有Windows原包解包skip，定向lint与全项目类型检查通过，准确无AWS CI随后记录。测试只合成对象/已存本地投影，不新读生产配置/AWS/数据库或图片。
+
+当前唯一继续点是本次准确源码的原无AWS CI及文档收尾，不追加事实采样或资源变更。原b/c事实仍到2026-11-15T09:47:35.203Z，不因编码/派生/CI续期；没有新生产读取、安装或恢复，runtime关闭、真实更新0。材料与完整Original/实际输出的执行绑定、额外读取和实际云变更仍具体另审。
