@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：D2-6持久化代码与CI已收尾，下一仅另审限定事实准备（2026-11-14）
+## 当前唯一继续点：存储事实已核对，仅离线收口原两项IAM声明差异（2026-11-14 CST）
+
+[b/c结果与下一范围](aws-instance-release-persistence-plan.md#10-新只读事实名称与模板已核对原iam声明需先保留现有运行授权)：STS1/元数据22，无写入/私密或媒体/数据库读取。原模板YAML已用既有解析器补读成功；先前是本地处理失败，不是Source失效。图片名称空位/ValidateTemplate、租户三资源local配置及原应用IAM归属已确认。[回执](aws-instance-release-persistence-preflight-observed-20261114.json)，原09:47:35.203Z（温尼伯11月15日03:47:35）终点保持。
+
+下一仅离线准备原TaskRole/ServiceRoleBoundary两资源的声明对齐补丁及回归：补记实际已有1份Express inline/3条boundary语句，再叠加原图片差异，不能用旧声明覆盖当前数据库授权。不改其他资源/参数、角色身份或整个IAM基线，不拿仓库bootstrap全文当实际Original。当前补丁/实际安装未执行，runtime关、真实更新0；额外读取/云修改/迁图仍另审。
+
+### 以下为前置读取与停止记录（已保留，不重跑）
 
 本次已准STS1/元数据30只读准备，在唯一STS返回CREDENTIALS_UNAVAILABLE/CLI255时停止；身份未取得，其余AWS/私密配置/媒体/数据库读取、写入和槽消费均0。[独立a停止记录](aws-instance-release-persistence-preflight-stopped-20261114.json)，不重试/延旧事实，也没有新安装材料。当前仅待Source刷新及新同范围许可后另建记录；不要求重做代码/CI或启动环境。
 

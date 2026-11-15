@@ -1,0 +1,90 @@
+{
+  "schema": "techlong/instance-release-persistence-preflight-observed/v1",
+  "status": "READONLY_FACTS_CAPTURED_IAM_DECLARATION_RECONCILIATION_REQUIRED",
+  "sourceStartedAt": "2026-11-15T04:47:35.203Z",
+  "metadataBStoppedAt": "2026-11-15T04:51:56.068Z",
+  "templateSupplementCompletedAt": "2026-11-15T05:00:42.539Z",
+  "factsValidUntil": "2026-11-15T09:47:35.203Z",
+  "factsValidUntilWinnipeg": "2026-11-15T03:47:35.203-06:00",
+  "previousARecordPreserved": "aws-instance-release-persistence-preflight-stopped-20261114.json",
+  "newBAndSeparatelyApprovedCCounts": { "sts": 1, "awsMetadataSubmissions": 22, "configFileReads": 0, "secretValueReads": 0, "patOrPemReads": 0, "originalZipReads": 0, "mediaReads": 0, "databaseConnections": 0, "writes": 0, "executionSlots": 0, "dispatchesOrRestores": 0 },
+  "readBoundaries": {
+    "bApprovedMetadataMax": 30, "bSubmitted": 21,
+    "bCapturedOutcomes": { "expectedAbsent": 2, "normalSuccess": 18 },
+    "bLastProviderReturnedSuccessfullyButLocalProjectionFailed": true,
+    "bFailureRawClassification": "READ_STOP_iam_owner_template_CLI_READ_FAILED",
+    "rawBTemplateBodyRetained": false,
+    "cSeparatelyApprovedGetTemplate": 1, "cStsOrOtherAwsReads": 0,
+    "oldAttemptsReplayed": false, "unusedBudgetExpandedToOtherReads": false
+  },
+  "source": { "profile": "techlong-sandbox-user", "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev", "verified": true, "anotherLoginRequiredByTheseResults": false },
+  "mediaNamesAtRead": {
+    "stack": "techlong-sandbox-media-9c5ee9e64509dcad-v1", "stackExists": false,
+    "bucket": "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad", "bucketExists": false,
+    "sameNamedOac": 0, "sameNamedCustomResponseHeadersPolicy": 0,
+    "cloudFrontNameListsComplete": true, "namesReservedAgainstRaces": false
+  },
+  "candidateValidation": {
+    "sha256Lf": "01eee63435ec5cd490a671ddcd1f4f817526724f2fe59020ab0235b437529743",
+    "awsValidateTemplateSucceeded": true, "capabilities": [], "parameters": [],
+    "provesResourceCreationOrEffectivePermissions": false
+  },
+  "currentApplicationIam": {
+    "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole",
+    "roleId": "AROAV3GNMXTZLH2AU5I5G", "attachedManagedPolicies": [],
+    "inlinePolicyNames": ["ConnectExactExpressTenantC4e"],
+    "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxServiceRoleBoundary",
+    "boundaryPolicyId": "ANPAV3GNMXTZHXSTCQBZC", "boundaryDefaultVersion": "v4",
+    "boundaryVersionsObserved": ["v4", "v3"], "boundaryConsumers": 7,
+    "currentCompactBoundaryJsonBytes": 5750,
+    "prospectiveCompactJsonBytesWithPlannedImageStatement": 6044,
+    "prospectiveSizeIsNotAnExecutableCandidateOrEffectivePermissionSimulation": true
+  },
+  "currentTenant": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+    "status": "UPDATE_COMPLETE", "parameterCount": 20, "retainedResourceCount": 3,
+    "serviceInCurrentTemplate": false, "accountWideServiceInventoryPerformed": false,
+    "taskDefinitionRevision": 12,
+    "taskRoleMatchesApprovedApplicationRole": true,
+    "imageProvider": "local", "allowEphemeralImageStorage": "true",
+    "taskDefinitionVolumeCount": 0, "imageContainerMountCount": 0,
+    "existingImageFilesOrMediaRowsInspected": false,
+    "databaseRunningStateReadThisRound": false
+  },
+  "originalIamOwnership": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+    "status": "UPDATE_COMPLETE", "sameOriginalOwnerOfBothResourcesProven": true,
+    "roleLogicalId": "TaskRole", "boundaryLogicalId": "ServiceRoleBoundary",
+    "templateResourceCount": 24, "templateFormat": "YAML_STRING",
+    "templateCanonicalSha256": "ccf14717e1fa8ec1ccfe453b2d96211022e0df4bf060105b7f4c3a6b98cd745a",
+    "existingJsonYamlParserUsed": "ops/aws-sandbox/scripts/cloudformation-template-document.mjs",
+    "bJsonOnlyAssumptionCompatibleWithCurrentTemplate": false,
+    "wholeLocalBootstrapTemplateMatchesActual": false,
+    "wholeOwnerStackDriftAuditPerformed": false
+  },
+  "demonstratedDeclarationGaps": {
+    "declaredApplicationInlinePolicies": [],
+    "actualApplicationInlinePoliciesMissingFromDeclaration": ["ConnectExactExpressTenantC4e"],
+    "declaredBoundaryStatementCount": 19, "actualBoundaryStatementCount": 22,
+    "actualBoundaryStatementSidsMissingFromDeclaration": ["C4eAppConnect", "C4eMgmtConnect", "C4eOtherSecretVersion"],
+    "declaredBoundaryHasLiteralRdsDbConnectAllow": false,
+    "allOtherIntrinsicReferencesResolvedAndCompared": false,
+    "safeToBlindlyAddImagesToOldDeclaration": false,
+    "automaticReconciliationOrIamUpdatePerformed": false
+  },
+  "privateEvidence": [
+    { "path": ".local-secrets/d2-6-persistence-readonly-20261114-b/source-result.json", "sha256": "9efcd392df85b7d9b85d0f6bb62d06de5ec53ccd9d4f81640b339a60aa0f6fef" },
+    { "path": ".local-secrets/d2-6-persistence-readonly-20261114-b/read-metadata.mjs", "sha256": "2f6ec11758a87c3bb0dea8e68536240588af3f88a6402854eb62a8210b9b8904" },
+    { "path": ".local-secrets/d2-6-persistence-readonly-20261114-b/calls.ndjson", "sha256": "a9529fa17211e816eed5727c530e574d779404bb452fe6eba13bd9539166ba68" },
+    { "path": ".local-secrets/d2-6-persistence-readonly-20261114-b/outcomes.ndjson", "sha256": "47ec7cb678b7151e625204e5b436813fdbd1d10733dd446f447264c24f40dc00" },
+    { "path": ".local-secrets/d2-6-persistence-readonly-20261114-b/metadata-result.json", "sha256": "cd7860b3ee1c269d135f1bf802e000293878739215e196ceeb87acf8313954ce" },
+    { "path": ".local-secrets/d2-6-persistence-readonly-20261114-c/read-owner-template.mjs", "sha256": "24ad49a203d212e6e5fbf99ddeeff0c4a424460d7d1288a09ff0e9beb9d872be" },
+    { "path": ".local-secrets/d2-6-persistence-readonly-20261114-c/owner-projection.json", "sha256": "d90b8c775f86cf1e1abd7c1f983c1b19f46a705e0154e928679f931275242f06" },
+    { "path": ".local-secrets/d2-6-persistence-readonly-20261114-c/result.json", "sha256": "9e698d743579cc6ebf2c1642ff2c5076b0fa5580e84e210bd37d9623af79c5fe" }
+  ],
+  "rawPolicyTemplatesCredentialsOrBusinessBodiesCommitted": false,
+  "installationManifestSha256": null,
+  "localDeploymentRuntimeEnabled": false,
+  "realVersionUpdates": 0,
+  "nextMinimalScopeNotExecuted": "Offline reconciliation patch for only original TaskRole and ServiceRoleBoundary, preserving already-effective Express permissions before the planned image delta. No whole-IAM-baseline replacement, cloud writes or new production reads."
+}

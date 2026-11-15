@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：D2-6持久化代码与CI已收尾，下一仅另审限定事实准备（2026-11-14）
+## 当前唯一继续点：存储事实已核对，仅离线收口原两项IAM声明差异（2026-11-14 CST）
+
+[新b/c只读结果](aws-instance-release-persistence-plan.md#10-新只读事实名称与模板已核对原iam声明需先保留现有运行授权) / [去敏回执](aws-instance-release-persistence-preflight-observed-20261114.json)：Source已通过，b元数据21（20结果保存，第21提供者成功/本地JSON-only处理失败），另准c仅GetTemplate1，复用已有解析器确认Original为YAML；不再要求登录或重读整批。名称空位、候选ValidateTemplate、当前租户idle三资源/local无挂载、原应用IAM及其共同CFN归属已核对，生产私密/媒体/SQL/云写/槽0。事实截止09:47:35.203Z＝温尼伯11月15日03:47:35.203 CST，不续旧/新事实。
+
+真正待收口是原TaskRole声明缺已生效的ConnectExactExpressTenantC4e，原ServiceRoleBoundary声明缺实际v4中的3个C4e语句；直接套旧声明加图片可能覆盖数据库连接授权。下一只离线准备**原这两资源的最小声明对齐补丁/回归**，保留现有授权后再加图片，其他资源/参数/身份不动，不扩整个IAM基线；当前尚未编码或云修改。实际24资源Original与仓库bootstrap全文不一致，不拿旧文件覆盖。runtime关、真实更新0；新读取/安装/恢复/迁图仍具体另审。
+
+### 以下为前置读取与停止记录（已保留，不重跑）
 
 **本次只读准备停在Source：** 用户已另准STS1＋元数据30的本存储前置范围；新a记录唯一官方STS于04:37:31.984Z以CLI255/CREDENTIALS_UNAVAILABLE停止，身份未验证，其他AWS元数据/配置/图片/ZIP/Secret/数据库/写入/槽均0。[停止回执](aws-instance-release-persistence-preflight-stopped-20261114.json)。未重试或取得可用新快照，旧事实不续；不据分类声称已还原唯一提供者根因。当前只待用户登录刷新并另允新一轮同范围后另建记录，不重跑a、不增加诊断或安装；代码/CI保持已完成，不重新测试或构建。
 

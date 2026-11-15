@@ -141,3 +141,21 @@ AWS_REGION保持ca-central-1、APP_RUNTIME_MODE保持原值，不新增或轮换
 **本次代码/CI阶段完成。** 五资源仍是候选，纯派生不证明当前IAM归属、桶空位或真实输出；未做AWS ValidateTemplate、生产读取/写入、图片迁移、身份安装、恢复或发布。原生产事实已过`2026-11-15T00:18:33.301Z`，不因为本次CI重新有效。下一只另审本存储前置所需的一次限定事实补齐以生成实际安装材料，不再重读旧ZIP/Neon基座或重新大盘点；当前不执行该读取。文档收尾HEAD不冒充新的运行源码CI。
 
 后继只读范围已另获准（STS1/元数据30，原应用IAM/同一原Owner/租户配置及拟议名称、候选验证，不读媒体/数据库）；新a记录仅STS失败即停，其他读取及写入均0，[停止结果与原件指纹](aws-instance-release-persistence-preflight-stopped-20261114.json)。凭据当前不可用，尚无成功新快照；不重跑原命令，待用户刷新及新同范围许可。准备意图的5小时截止不是已取得的生产事实有效期，不据此生成安装SHA或启动环境。
+
+## 10. 新只读事实：名称与模板已核对，原IAM声明需先保留现有运行授权
+
+用户刷新并另准新b轮后，唯一STS身份通过。b提交21次元数据：20项结果封存（其中两项预期不存在），第21次GetTemplate提供者已返回，但旧本地JSON-only处理失败；没有重试。另准c仅补这一份Original，复用已有JSON/YAML解析器成功，确认返回体为YAML，未新增框架或修改运行代码。a/b停止原件保留，不能把b的通用CLI分类当作AWS拒绝或登录失效。[综合去敏事实/私有原件SHA](aws-instance-release-persistence-preflight-observed-20261114.json)。
+
+合计新b＋另批c为**STS1、元数据22**，不是重做整批读取；没有再List资源或复用多余预算。配置/Secret/PAT/PEM/ZIP/图片/数据库、云写、安装/恢复/调度均0。事实终点仍2026-11-15T09:47:35.203Z（温尼伯11月15日03:47:35.203 CST），c不续期。
+
+| 已核实项 | 结果与边界 |
+| --- | --- |
+| 新图片名称 | 拟议CFN栈/桶不存在；完整OAC及自定义响应头策略列表无同名对象。只证明采样时状态，不保留名称或消除并发竞态 |
+| 五资源模板 | 官方ValidateTemplate已通过，无参数/额外capability；不等于实际创建、资源级属性验证或安装授权 |
+| 租户 | 原UUID、UPDATE_COMPLETE、20参数、三项保留资源；模板无Service，当前任务定义:12、local图片配置、无volume/mount。未做账号级服务清点，未查图片文件或数据库状态，不声称所有收费已停止 |
+| 应用IAM | 原TaskRole身份保持，唯一inline为ConnectExactExpressTenantC4e；共享边界默认v4，v3保留，共7个boundary消费者。声明19条、实际22条；实际已有Express授权不能被旧模板覆盖 |
+| 归属 | TaskRole与ServiceRoleBoundary均由原techlong-s3-bootstrap/8afbe1e0…栈管理，逻辑ID不变。该栈24资源，实际Original规范SHA为ccf14717…；工程当前bootstrap全文及该路径11个本地历史版本均未匹配，不能拿仓库旧全文覆盖它 |
+
+**具体必要差异只有先明确这一组：** 原TaskRole声明未登记已生效的ConnectExactExpressTenantC4e；原boundary声明缺C4eAppConnect、C4eMgmtConnect、C4eOtherSecretVersion。前两条承载数据库连接范围，后一条保留其他Secret版本的拒绝约束。原声明没有literal rds-db:connect Allow；直接对它调用图片追加函数，不能称为“只增图片、不影响现有授权”。此处不是以未解析的Fn::Sub/Ref造成的整个文档摘要差异来推断漂移；上述是明确缺失的inline名称和Sid，其他引用/语句尚未完整展开比对。
+
+下一唯一建议是**仅离线编制原TaskRole/ServiceRoleBoundary两资源的声明对齐补丁与回归**：先保留现有实际Express授权，再叠加原图片差异；所有其他资源/参数/角色身份和权限不动，不重整整个IAM基线。对未核实的其余语句不自动推断或修改，也不以当前仓库bootstrap全文替换实际Original。当前只记录事实/下一最小范围，没有实施该补丁、签发执行SHA或改变云授权。实际创建/执行和任何额外读取仍另审，旧图来源/迁移亦未被本轮证明。
