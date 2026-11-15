@@ -1,0 +1,66 @@
+{
+  "schema": "techlong/instance-release-persistence-ci/v1",
+  "status": "OFFLINE_CODE_AND_EXACT_CI_VERIFIED_NO_AWS",
+  "sourceCommit": "6d49bec58b520d6f092cd808b2febe093e3ddbdf",
+  "repository": "veinyyxy/TechlongSoftware",
+  "verifiedAt": "2026-11-15T04:25:10Z",
+  "ci": {
+    "id": 43676484668,
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/43676484668",
+    "workflowPath": ".github/workflows/instance-release-checks.yml",
+    "event": "push", "attempt": 1, "branch": "main",
+    "status": "completed", "conclusion": "success",
+    "createdAt": "2026-11-15T04:22:29Z", "updatedAt": "2026-11-15T04:23:20Z",
+    "runHeadMatchesSourceCommit": true,
+    "jobLogsIncludeSourceCommit": true,
+    "offline": {
+      "jobId": 132697644531, "status": "completed", "conclusion": "success",
+      "tests": 193, "pass": 193, "fail": 0, "skipped": 0,
+      "newPersistenceTestsIncluded": 13,
+      "lint": "success", "typecheck": "success", "failedSteps": []
+    },
+    "postgres": {
+      "jobId": 132697644280, "status": "completed", "conclusion": "success",
+      "engine": "postgres:16", "isolatedGitHubServiceOnly": true,
+      "tests": 9, "pass": 9, "fail": 0, "skipped": 0, "failedSteps": []
+    },
+    "sourceRunJobsStepsAndTestLogSummariesChecked": true,
+    "workflowDispatchesOrReruns": 0,
+    "localUnsupportedMetadataRouteRejections": 1,
+    "rejectionDoesNotProveCredentialFailure": true,
+    "rawLogsOrProviderResponsesCommitted": false
+  },
+  "localPriorValidation": {
+    "tests": 193, "pass": 192, "fail": 0, "skipped": 1,
+    "skip": "Existing Windows original-artifact extraction check; Linux CI passed without skips.",
+    "newPersistenceTests": { "tests": 13, "pass": 13, "fail": 0, "skipped": 0 },
+    "lint": "success", "typecheck": "success"
+  },
+  "artifactsLfSha256": {
+    "ops/releases/persistence.draft.template.json": "01eee63435ec5cd490a671ddcd1f4f817526724f2fe59020ab0235b437529743",
+    "ops/releases/persistence.ts": "1b9197525170cfe9b90779fc52732f7732844a96b6c8a8d2b8800298d18b0e13",
+    "tests/instance-release-persistence.test.ts": "afca3075b29a1ca6e9a4ab26f29b1a95bd3146893e68e322d3518a3e51e3e7bf",
+    ".github/workflows/instance-release-checks.yml": "73744ea8ecbf52a14a241485a0ebcd8606e6eba1ff8dd66954acf01655c77e02"
+  },
+  "unchangedLfSha256": {
+    "lib/deployments/releases/sampling.ts": "0cf7b386d5618954adc3285ac23e780821dba13922c26bd785d9f673bca45231",
+    "lib/deployments/releases/planning.ts": "7ccdfa2a94c51be003e545bf0b8365b218aa58d5e4992ff67ea765200f23e3ac",
+    ".github/workflows/instance-release.yml": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff",
+    "ops/releases/runtime.json": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6"
+  },
+  "deploymentState": {
+    "candidateResources": 5, "installedByThisWork": 0,
+    "newInstallerOrDeploymentWorkflow": false,
+    "cloudTemplateValidationPerformed": false,
+    "liveOwnershipOrNameVacancyProvenByCi": false,
+    "imageMigrationPerformed": false,
+    "persistentUploadsReadyProven": false,
+    "localDeploymentRuntimeEnabled": false,
+    "installationManifestSha256": null,
+    "productionAwsOrDatabaseReadsWrites": 0,
+    "productionConfigSecretPemOrOriginalZipReads": 0,
+    "restoresOrRealVersionUpdates": 0,
+    "previousProductionFactsExpiredNotExtended": true,
+    "previousFactsNotAfter": "2026-11-15T00:18:33.301Z"
+  }
+}

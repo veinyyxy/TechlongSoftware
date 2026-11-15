@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：D2-6持久化离线编码完成，仅核验准确无AWS CI（2026-11-14）
+## 当前唯一继续点：D2-6持久化代码与CI已收尾，下一仅另审限定事实准备（2026-11-14）
+
+源码6d49bec已推，[CI43676484668](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43676484668)准确push/main/attempt1 success，Linux193及隔离PG16九项均全过/skip0，lint/类型成功；head/job/步骤/测试日志已核对，[机器回执](aws-instance-release-persistence-ci-20261114.json)。本次持久化候选/13新回归的代码阶段收尾，不继续扩工具；上次只是push未执行，恢复后复用同一提交完成。
+
+下一只另审本存储前置的一次限定事实准备，形成实际安装材料；当前不读AWS/生产配置/媒体或数据库、不安装/恢复/调度，不重复旧ZIP/Neon基座或整批盘点。原生产事实已过00:18:33.301Z、不续期；runtime关、真实更新0，不把候选/CI说成真实存储或D2-6已完成。文档收尾不是新运行源码CI。
+
+### 以下为本次已完成的代码与CI范围（不重做）
 
 [交付与边界](aws-instance-release-persistence-plan.md#9-已批准的离线编码交付)：五资源CFN候选、IAM两处追加/四环境值纯派生、材料指纹及13回归已完成；本地总193为192pass/1 Windows原包skip，lint/类型通过。只在原CI加入测试，无部署/OIDC权限或新框架；未读生产/写云或DB、未安装/恢复，runtime关、真实更新0。当前仅main提交和对应Linux/PG16无AWS CI核验，之后结项，不自动继续事实采样或执行。
 
