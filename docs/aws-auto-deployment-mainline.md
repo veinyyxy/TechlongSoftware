@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：集中只读已完成，待审仅五资源图片栈创建（2026-11-15）
+## 当前唯一继续点：图片栈创建验收已完成，仅离线准备原IAM/租户变更（2026-11-15）
+
+[已真实完成](aws-instance-release-persistence-plan.md#16-五资源已真实创建独立技术核验通过)：fc8b…获准后CreateStack1，五项图片资源CREATE_COMPLETE，独立进程核对模板/物理ID/实际输出、CDN/OAC/CORS、私有版本化加密桶均通过。[证据](aws-instance-release-persistence-media-installed-20261115.json)。实际STS1/元数据19，无IAM/租户/数据库或Secret值操作、图片或业务测试、恢复/清理；槽已消费，不重放。资源可能持续计费且不自动停删。
+
+下一仅离线用真实输出派生原IAM两资源与idle租户四环境值，列清准确差异、模板上传位置与竞态/失败策略；不重读整批、扩工具或重跑CI，实际云写另审。其他资源/参数、原镜像/角色/数据库不变；19:44:49.040Z较早期限不延，应用尚未接入桶、旧图未迁、runtime关、PERSISTENCE_NOT_READY保持，D2-6真实更新0。
+
+### 以下为已执行的五资源批准与前置准备（不重做）
 
 [b完成与准确待审范围](aws-instance-release-persistence-plan.md#15-集中补核已完成下一仅审批固定五资源创建)：剩余26项查询完成，a+b为STS1/元数据尝试29；Source与两项原栈结果复用，旧失败保留，不重读完整IAM模板。当前权限与完整对齐候选匹配、名称空闲，租户仍idle三资源/local。[回执](aws-instance-release-persistence-install-preflight-observed-20261115.json)。本轮没有生产配置/媒体/数据库或Secret值读取、云写或槽消费。
 

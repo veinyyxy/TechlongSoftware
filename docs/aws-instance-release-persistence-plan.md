@@ -252,3 +252,21 @@ AWS_REGION保持ca-central-1、APP_RUNTIME_MODE保持原值，不新增或轮换
 本次新栈将同时启用终止保护和DisableRollback，接受部分失败/持续费用/不自动清理；与原IAM更新的失败策略分开，不能隐藏风险。模板及请求精确指纹、固定目标/类型/ClientRequestToken、一次性规则、调用与等待上限均写在待审清单，实际写入必须再由用户确认该SHA。runtime仍关，持久化未安装、真实更新0；不把读取完成当D2-6完成。
 
 待审JSON清单的规范SHA256为`fc8b164fbcef03c209f92b758b63eafab2cbce92941d2ac62c1dc6fc643a6f3f`（对象键递归排序、数组顺序保持、UTF-8无空白JSON）；[精确清单](aws-instance-release-persistence-media-install-review-20261115.json)绑定完整风险LF摘要、请求原字节和模板原件。只在用户新确认后执行；到2026-11-15T19:44:49.040Z（温尼伯13:44:49.040）未执行/观察完就按边界停下，不续期或自动清理。
+
+## 16. 五资源已真实创建，独立技术核验通过
+
+用户确认第15节准确SHA后，16:11:15.604Z启动，Source STS与准确名称/桶不存在预检均通过；16:11:20.551Z仅提交一次CreateStack，返回可信ARN。第四次观察于16:14:23.333Z确认CREATE_COMPLETE及终止保护/DisableRollback。随后独立只读进程16:15:04.349Z至16:15:20.763Z完成原清单全部配置核验，[真实结果与私有原件SHA](aws-instance-release-persistence-media-installed-20261115.json)。合计STS1、元数据19（CFN7/S3 9/CloudFront3）、CreateStack1，低于批准上限；没有重试、模板上传、IAM/租户写、数据库/Secret值读取、对象上传/读取、HTTP/业务测试、恢复或清理。
+
+| 真实归属/输出 | 已核验值 |
+| --- | --- |
+| 新栈 | `techlong-sandbox-media-9c5ee9e64509dcad-v1/333757a0-e10f-11f1-b693-06fff1b686eb`，准确5项CREATE_COMPLETE |
+| 图片桶 | `techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad`，私有、AES256、版本启用、owner-enforced、四项公共访问阻断 |
+| Distribution | `E2H9SBE05EMLAN`，Deployed；真实HTTPS图片基址`https://d3t5c71ibx9h97.cloudfront.net`，不是另一个API或买家应用地址 |
+| OAC / CORS策略 | `E2MZAGJ8QH0GVC` / `349acf52-8e4f-4acb-853d-762deae959ca`，准确来源签名和买家域名CORS匹配 |
+| 桶策略 | 仅该distribution可读products/*，拒绝不安全传输；未写任何图片对象 |
+
+完整模板规范摘要、逻辑/物理ID与四输出、声明配置、来源/OAC、CORS/响应策略、桶版本/加密/私有访问和栈标签均已通过技术核对；没有据此宣称应用上传或旧图迁移已通过。批准manifest/风险原字节保留，永久尝试槽已消费，不再重放fc8b…或重复CreateStack。新持久资源可能持续计费，不因清单过期自动停/删，不归入临时三栈计算节费删除集。
+
+**下一唯一动作只离线派生原IAM两资源和原idle租户四环境值的准确变更清单**：复用实际已核验输出、已存完整原IAM/租户模板与最新权限投影，保持其他22项/root参数及租户idle资源集合、原镜像/数据库/角色不变；不再搭框架、重新盘点、读业务/媒体或重跑代码CI。原IAM模板S3存放/条件上传及其非强不可变风险、两栈各自Change Set差异/失败策略须明确写进后继待审清单，实际云写另准；不能偷偷更新原模板桶策略或启用运行时。
+
+完整Original/本次较早期限仍19:44:49.040Z，不由新创建或回读续期。原IAM/租户尚未变更，应用仍未接入新桶；PERSISTENCE_NOT_READY保持，旧图来源/迁移和原D2身份/实例启用仍未闭合，D2-6真实更新0。新栈成功不是整个自动交付已完成，本轮在此收尾。

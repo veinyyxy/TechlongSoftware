@@ -1,0 +1,96 @@
+{
+  "schema": "techlong/persistence-media-installed/v1",
+  "status": "FIVE_RESOURCE_MEDIA_STACK_INDEPENDENTLY_VERIFIED",
+  "approvedManifestCanonicalSha256": "fc8b164fbcef03c209f92b758b63eafab2cbce92941d2ac62c1dc6fc643a6f3f",
+  "approvedManifest": "docs/aws-instance-release-persistence-media-install-review-20261115.json",
+  "sourceCodeCommitUnchanged": "850ba8d626946188fe3547a95e5ea280623c5472",
+  "runStartedAt": "2026-11-15T16:11:15.604Z",
+  "createSubmittedAt": "2026-11-15T16:11:20.551Z",
+  "createCompleteObservedAt": "2026-11-15T16:14:23.333Z",
+  "independentInspectionStartedAt": "2026-11-15T16:15:04.349Z",
+  "independentInspectionCompletedAt": "2026-11-15T16:15:20.763Z",
+  "source": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "region": "ca-central-1",
+  "stack": {
+    "id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-media-9c5ee9e64509dcad-v1/333757a0-e10f-11f1-b693-06fff1b686eb",
+    "status": "CREATE_COMPLETE",
+    "trustedCreateAck": true,
+    "terminationProtection": true,
+    "disableRollback": true,
+    "stackTagsMatchRequest": true,
+    "templateCanonicalSha256": "339d8049dfaafc1087fe05d7c0df805bb098634a6f30448da62d9ff196261a1e",
+    "logicalResourceCount": 5,
+    "bucketDeletionAndUpdateReplacementPolicy": "Retain"
+  },
+  "resources": [
+    { "id": "MediaBucket", "type": "AWS::S3::Bucket", "physicalId": "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad", "status": "CREATE_COMPLETE" },
+    { "id": "MediaBucketPolicy", "type": "AWS::S3::BucketPolicy", "physicalId": "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad", "status": "CREATE_COMPLETE" },
+    { "id": "MediaDistribution", "type": "AWS::CloudFront::Distribution", "physicalId": "E2H9SBE05EMLAN", "status": "CREATE_COMPLETE" },
+    { "id": "MediaOriginAccessControl", "type": "AWS::CloudFront::OriginAccessControl", "physicalId": "E2MZAGJ8QH0GVC", "status": "CREATE_COMPLETE" },
+    { "id": "MediaResponseHeadersPolicy", "type": "AWS::CloudFront::ResponseHeadersPolicy", "physicalId": "349acf52-8e4f-4acb-853d-762deae959ca", "status": "CREATE_COMPLETE" }
+  ],
+  "actualOutputs": {
+    "MediaBucketName": "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad",
+    "MediaBucketArn": "arn:aws:s3:::techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad",
+    "MediaDistributionId": "E2H9SBE05EMLAN",
+    "MediaPublicBaseUrl": "https://d3t5c71ibx9h97.cloudfront.net"
+  },
+  "independentChecks": {
+    "separateProcess": true,
+    "exactTemplateLogicalResourcesAndPhysicalOutputBindings": true,
+    "cloudFrontStatusDeployedAndDefaultHttpsDomain": true,
+    "exactS3OriginAndAlwaysSigV4Oac": true,
+    "privateVersionedAes256BucketWithOwnerEnforced": true,
+    "allFourPublicAccessBlocks": true,
+    "onlyExactDistributionProductsReadAndDenyInsecureTransport": true,
+    "exactBuyerOriginCorsAndNoCredentialsResponsePolicy": true,
+    "applicationUploadOrImageContentOrOldMigrationVerified": false,
+    "allAccountBillingOrServiceInventoryPerformed": false
+  },
+  "actualCallerCounts": {
+    "sts": 1, "metadata": 19, "cloudformationMetadata": 7,
+    "s3Metadata": 9, "cloudfrontMetadata": 3, "createStack": 1,
+    "stackPolls": 4, "automaticRetries": 0,
+    "secretsConfigPemPatZipOrMediaFileReads": 0,
+    "imageObjectWritesOrReads": 0, "httpOrBusinessTests": 0,
+    "databaseConnections": 0, "existingIamOrTenantWrites": 0,
+    "templateUploads": 0, "runtimeRestoresOrGitHubDispatches": 0,
+    "rollbackDeleteOrCleanup": 0,
+    "cloudFormationInternalNativeOperationsNotCountedAsOneWrite": true
+  },
+  "singleUseState": {
+    "attemptConsumed": true, "createAttempts": 1,
+    "attemptMustNotBeResetOrReplayed": true,
+    "approvedReadDeadlineNotExtended": "2026-11-15T19:44:49.040Z",
+    "otherOriginalAndPreflightFactsNotExtended": true
+  },
+  "privateEvidence": [
+    { "path": ".local-secrets/d2-6-persistence-media-install-20261115-a/run-media-once.mjs", "sha256": "9f277a66a5771fbb38e14a45d6c94a05f850f776acf4d6eb175a0e85fccbb5e9" },
+    { "path": ".local-secrets/d2-6-persistence-media-install-20261115-a/attempt.json", "sha256": "5020ae15b304574db6a10c72de82f4acbee0ddd3fa9a7a5bae20f93ea7072e88" },
+    { "path": ".local-secrets/d2-6-persistence-media-install-20261115-a/run-create-ack.json", "sha256": "241920b24937e032419d86290d16184d1501b5d3b7efc64ef6385cbbe300ae6b" },
+    { "path": ".local-secrets/d2-6-persistence-media-install-20261115-a/run-result.json", "sha256": "9d7fe0e18a4a4a1ddf97af36229b539e0ed153432088a9a9278f925a618f1a97" },
+    { "path": ".local-secrets/d2-6-persistence-media-install-20261115-a/run-calls.ndjson", "sha256": "0593eebecee6f14871311fe41c5baa2393402cb4601ffe2d9f21edeb64720d6c" },
+    { "path": ".local-secrets/d2-6-persistence-media-install-20261115-a/run-outcomes.ndjson", "sha256": "d31a8ca36ca50950d31c6e105f973ad5082c3f741dce147a337ad4a85d488207" },
+    { "path": ".local-secrets/d2-6-persistence-media-install-20261115-a/inspect-result.json", "sha256": "8ac674ae3ea50746bc0dc218c238e52de27ed4ac7f4752764e20c14bbf06dfa6" },
+    { "path": ".local-secrets/d2-6-persistence-media-install-20261115-a/inspect-calls.ndjson", "sha256": "fd4e89dd7e57ea6f0cb9f8fe53da15cd112828be7885da5ede3b5232d8284ad5" },
+    { "path": ".local-secrets/d2-6-persistence-media-install-20261115-a/inspect-outcomes.ndjson", "sha256": "884679c852d585bda4dbe9de39a9ed92da269befc91360156d8c9b7244d07cce" },
+    { "path": ".local-secrets/d2-6-persistence-media-install-20261115-a/verified-media-outputs.json", "sha256": "6b692795c4e7c622b16fd2f70bb9610c2ea32d8404c9b026e747e84807bc2891" }
+  ],
+  "rawProviderTemplatePolicyOrBusinessBodiesCommitted": false,
+  "runtimeCodeOrWorkflowsChanged": false,
+  "costState": {
+    "newPersistentResourcesMayContinueCharging": true,
+    "noAutomaticExpiryOrCleanup": true,
+    "notInTemporaryThreeStackComputeStopSet": true,
+    "monthly50UsdTargetNotAHardCap": true
+  },
+  "remainingState": {
+    "applicationStorageStillNotSwitched": true,
+    "existingIamStillUnmodified": true,
+    "tenantIdleConfigurationStillUnmodified": true,
+    "oldImageSourcesOrMigrationNotProven": true,
+    "receiptAloneDoesNotProveCompletePersistenceReadiness": true,
+    "persistentUploadsReady": false, "runtimeEnabled": false, "realVersionUpdates": 0,
+    "followOnIamTenantActivationOrRestoreRequiresSeparateApproval": true
+  }
+}
