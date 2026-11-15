@@ -1,0 +1,130 @@
+{
+  "schema": "techlong/persistence-media-create-review/v1",
+  "status": "AWAITING_USER_CONFIRMATION_NOT_EXECUTED",
+  "preparedAt": "2026-11-15T15:59:02Z",
+  "scope": "Create only the already-reviewed five-resource image stack, then independent bounded technical inspection.",
+  "sourceCodeCommitUnchanged": "850ba8d626946188fe3547a95e5ea280623c5472",
+  "approval": {
+    "requiresExplicitConfirmationOfThisCanonicalJsonSha256": true,
+    "canonicalization": "Sort object keys recursively, preserve array order, UTF-8 JSON without whitespace.",
+    "riskDocument": "docs/aws-instance-release-persistence-media-install-review-20261115.md",
+    "riskDocumentLfSha256": "c0bdcba3465d8b420e0bd076346ad7b32513bf027cac3e3ffb3135eb3dd70df0",
+    "codePushOrPriorReadApprovalIsNotCreatePermission": true
+  },
+  "facts": {
+    "receipt": "docs/aws-instance-release-persistence-install-preflight-observed-20261115.json",
+    "receiptLfSha256": "4a50a530a418a460a55b717bb91a57b7a4f3e3714ee13de7fbbcf7284850cc3e",
+    "originalWholeTemplateNotAfterUnchanged": "2026-11-15T19:44:49.040Z",
+    "newResourcesObservedAbsentNotReserved": true
+  },
+  "target": {
+    "accountId": "402010193138", "region": "ca-central-1",
+    "profile": "techlong-sandbox-user",
+    "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "stackName": "techlong-sandbox-media-9c5ee9e64509dcad-v1",
+    "bucketName": "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad",
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "cloudFrontIsGlobalNoOtherRegionalCompute": true
+  },
+  "create": {
+    "operation": "cloudformation:CreateStack", "maxAttempts": 1,
+    "requestFile": ".local-secrets/d2-6-persistence-media-install-20261115-a/create-stack-input.json",
+    "requestFileSha256": "22ffdfd49b33faa2211f4c43d5bf4597ba44127ba5d869b1923c6df02634fb17",
+    "templatePath": "ops/releases/persistence.draft.template.json",
+    "templateLfSha256": "01eee63435ec5cd490a671ddcd1f4f817526724f2fe59020ab0235b437529743",
+    "templateCanonicalSha256": "339d8049dfaafc1087fe05d7c0df805bb098634a6f30448da62d9ff196261a1e",
+    "templateBytes": 6398,
+    "templateBodyInline": true,
+    "clientRequestToken": "d2-media-install-20261115-a",
+    "disableRollback": true,
+    "enableTerminationProtection": true,
+    "roleArnProvided": false, "parametersProvided": false, "capabilitiesProvided": false,
+    "resourceTypesOnly": [
+      "AWS::CloudFront::Distribution", "AWS::CloudFront::OriginAccessControl",
+      "AWS::CloudFront::ResponseHeadersPolicy", "AWS::S3::Bucket", "AWS::S3::BucketPolicy"
+    ],
+    "logicalResources": [
+      { "id": "MediaBucket", "type": "AWS::S3::Bucket" },
+      { "id": "MediaOriginAccessControl", "type": "AWS::CloudFront::OriginAccessControl" },
+      { "id": "MediaResponseHeadersPolicy", "type": "AWS::CloudFront::ResponseHeadersPolicy" },
+      { "id": "MediaDistribution", "type": "AWS::CloudFront::Distribution" },
+      { "id": "MediaBucketPolicy", "type": "AWS::S3::BucketPolicy" }
+    ],
+    "localModelValidation": { "exit": 0, "noSignRequest": true, "endpoint": "loopback", "awsCalls": 0 },
+    "attemptFile": ".local-secrets/d2-6-persistence-media-install-20261115-a/attempt.json",
+    "attemptConsumedOnlyAfterSuccessfulPrechecksBeforeCreate": true,
+    "attemptFileExclusiveCreateNoReset": true,
+    "cloudFormationServiceInternalOperationsAreNotLimitedToOneWrite": true
+  },
+  "prechecks": {
+    "stsGetCallerIdentity": 1,
+    "cloudFormationDescribeStacksByExactNewName": 1,
+    "s3HeadExactNewBucketExpectedOwner": 1,
+    "mustBeAbsentDoNotTreat403AsAbsent": true,
+    "unexpectedStateOrPermissionFailureStopsWithoutNewGrant": true
+  },
+  "postCreateObservation": {
+    "describeStacksMax": 31, "minimumPollIntervalSeconds": 60, "maximumOverallWaitMinutes": 30,
+    "targetOnlyTrustedCreateAckStackArn": true,
+    "uncertainCreateResponseAllowsOnlyExactNameStatusObservationNoRetryOrFollowOnDerivation": true,
+    "createCompleteRequiredBeforeIndependentConfigurationInspection": true,
+    "noEventsOrAccountWideSearchAdded": true
+  },
+  "independentInspection": {
+    "separateReadOnlyProcess": true,
+    "cloudFormationGetTemplateOriginal": 1,
+    "cloudFormationListStackResources": 1,
+    "cloudFrontGetDistribution": 1,
+    "cloudFrontGetOriginAccessControl": 1,
+    "cloudFrontGetResponseHeadersPolicy": 1,
+    "s3HeadBucket": 1, "s3GetBucketLocation": 1, "s3GetBucketVersioning": 1,
+    "s3GetBucketEncryption": 1, "s3GetPublicAccessBlock": 1,
+    "s3GetBucketOwnershipControls": 1, "s3GetBucketPolicy": 1, "s3GetBucketCors": 1,
+    "actualIdsOnlyFromPinnedStackResources": true,
+    "expectedTemplateCanonicalSha256": "339d8049dfaafc1087fe05d7c0df805bb098634a6f30448da62d9ff196261a1e",
+    "expectedLogicalResourceCount": 5,
+    "mustCheckTerminationProtectionAndExactProperties": true,
+    "requiredActualOutputs": ["MediaBucketName", "MediaBucketArn", "MediaDistributionId", "MediaPublicBaseUrl"],
+    "bucketAndArnMustMatchExactTarget": true,
+    "distributionIdAndDomainMustMatchProviderAndPinnedResources": true,
+    "defaultHttpsCloudFrontUrlOnly": true,
+    "doesNotProveApplicationUploadOrOldImageMigration": true
+  },
+  "aggregateLimits": {
+    "sts": 1, "awsMetadata": 46,
+    "cloudFormationMetadata": 34, "s3Metadata": 9, "cloudFrontMetadata": 3,
+    "createStack": 1, "templateUploads": 0, "imageObjectWritesOrReads": 0,
+    "secretValuesConfigPemPatOrZipReads": 0, "databaseConnections": 0,
+    "iamOrTenantWrites": 0, "runtimeRestoresOrGitHubDispatches": 0
+  },
+  "timeBounds": {
+    "createAndReadNotAfter": "2026-11-15T19:44:49.040Z",
+    "winnipeg": "2026-11-15T13:44:49.040-06:00",
+    "noExtensionOrAutomaticRefresh": true,
+    "expirationDoesNotStopOrDeleteResources": true
+  },
+  "failureAndCostPolicy": {
+    "preservePartialResourcesWithDisableRollback": true,
+    "automaticDeleteRollbackRepairRetryOrSlotReset": false,
+    "missingAckOrIncompleteInspectionMustNotBeCalledVerifiedSuccess": true,
+    "persistentBucketRetainAndStackTerminationProtection": true,
+    "notInTemporaryThreeStackComputeCleanupSet": true,
+    "ongoingNonZeroCostsAndPartialResourcesAcceptedOnlyByNewConfirmation": true,
+    "monthly50UsdTargetIsNotAHardCap": true,
+    "futureCleanupRequiresSeparateApproval": true
+  },
+  "excluded": [
+    "existing IAM stacks, roles, boundaries or policies",
+    "tenant configuration, image version or service updates",
+    "ALB, ECS/Fargate, RDS, VPC or runtime restoration",
+    "Secret values or changes, credentials generation, SQL or image migration",
+    "S3 template uploads or existing bucket policy changes",
+    "custom DNS/certificate, webpage/business testing or GitHub workflow dispatch",
+    "automatic cleanup, rollback or retry"
+  ],
+  "stateAtPreparation": {
+    "createStackCalled": false, "executionSlotConsumed": false,
+    "persistentUploadsReady": false, "runtimeEnabled": false, "realVersionUpdates": 0,
+    "followOnIamTenantOrD2ActivationRequiresSeparateApproval": true
+  }
+}

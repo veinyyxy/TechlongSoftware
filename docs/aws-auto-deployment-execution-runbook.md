@@ -2,7 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：参数问题已离线修正，待批完成未用只读范围（2026-11-15）
+## 当前唯一继续点：集中只读已完成，待审仅五资源图片栈创建（2026-11-15）
+
+[最终补核与待审材料](aws-instance-release-persistence-plan.md#15-集中补核已完成下一仅审批固定五资源创建) / [去敏事实](aws-instance-release-persistence-install-preflight-observed-20261115.json)：用户另准b后，26项剩余查询全完成；复用原STS/两项成功读取，a+b仅STS1/元数据尝试29，不重读原IAM全文，不增加生产配置/数据库/Secret/媒体读取，云写/槽0。当前IAM与完整对齐候选匹配，图片名称空闲，租户3资源/no Service/:12/local保持；模板桶未版本化且B5保护不适用于新D2键，不冒称不可变。
+
+下一唯一动作是审[固定五资源创建及完整风险](aws-instance-release-persistence-media-install-review-20261115.md)与同名JSON SHA，不再补读或改代码：原候选6398 bytes，请求已离线验证，最多CreateStack1、启用终止保护及DisableRollback，独立只读核验，不含IAM/租户配置/模板S3上传/迁图/恢复。真实输出后才另批原IAM/租户变更。19:44:49.040Z较早截止不延，过期不执行；资源不会自动到期停止，可能遗留费用。无新安装框架/工作流或重复CI，runtime关、D2-6真实更新0。
+
+本次唯一待审规范SHA：`fc8b164fbcef03c209f92b758b63eafab2cbce92941d2ac62c1dc6fc643a6f3f`，[准确JSON](aws-instance-release-persistence-media-install-review-20261115.json)已绑定风险/请求/模板指纹，尚未收到写入确认、未消费尝试槽。不要重跑a/b读取或沿用它们的只读批准创建资源。
+
+### 以下为a停止及b提案（b现已另批完成，不重跑）
 
 [集中读取a结果与修正续段](aws-instance-release-persistence-plan.md#14-集中读取a停止于本地参数仅修正续段待批) / [去敏回执](aws-instance-release-persistence-install-preflight-stopped-20261115.json)：Source STS1成功，原栈状态/参数/归属两读取成功，第三项ListChangeSets误传MaxResults发生本地ParamValidation即停。CLI本地模型/loopback无签名校验已证实去掉该字段可通过；不归咎Source、不要求再登录，无云写/数据库/槽。
 

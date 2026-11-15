@@ -240,3 +240,15 @@ AWS_REGION保持ca-central-1、APP_RUNTIME_MODE保持原值，不新增或轮换
 **原因已离线证实，不是重新登录问题：** 当前CLI的ListChangeSets输入模型只有StackName/NextToken，不接受本次私有命令误传的MaxResults。使用`--generate-cli-skeleton output`、loopback endpoint和`--no-sign-request`本地复现，原输入252/Unknown MaxResults，移除该字段后0；没有使用AWS endpoint或凭据，也没有再查云。
 
 原a命令、结果、成功投影及journal原字节保留。仅准备新b续段：两处ListChangeSets输入去掉MaxResults；复用a的STS和原栈两项成功读取，不再STS、不重读原栈或完整Original；其余仍是第13节未完成白名单、最多26次元数据，a+b至多29次尝试，不扩大原30上限。Node语法检查通过，无运行源码/正式工具改动或重复CI。b尚未执行，**须用户新续段许可**；原19:44:49.040Z较早终点不延，发生新错误即停、不自动重试。当前仍无实际安装SHA，不能用本次部分成功准备冒称权限/名称已全部核实。
+
+## 15. 集中补核已完成；下一仅审批固定五资源创建
+
+用户另准b后，15:46:09.779Z至15:46:43.311Z完成剩余26项；复用a的STS和两项成功结果，无再STS/原栈读取或原IAM全文重取。a+b为STS1、元数据命令尝试29（已保存提供者结果28、旧本地参数失败1），未扩原30、未自动重试。[完整去敏事实与私有原件指纹](aws-instance-release-persistence-install-preflight-observed-20261115.json)。
+
+确认原IAM/租户无待执行变更集，当前inline及完整boundary逐Sid与对齐候选一致；v4/v3和7个消费者保持。原五项图片名称仍空闲，租户保留3资源/no Service、:12任务/local存储和参数均未变。模板桶私有/AES256/owner-enforced但未版本化，历史不可变策略只保护B5前缀，不能把它当新D2模板路径的强不可变保障。没有读取媒体、数据库或Secret值，不保证账户所有收费为0。事实仍采用较早19:44:49.040Z终点，未重新续期完整Original。
+
+**实际创建请求与风险已备齐，下一不再采样或改代码：** 只审[五资源创建范围与完整风险](aws-instance-release-persistence-media-install-review-20261115.md)及同名JSON清单。先取得真实CDN输出，再给原IAM/租户各自准确变更；本次仅一次CreateStack创建原五项存储/CDN资源并独立技术回读，不包含IAM、租户配置、S3模板上传、迁图或运行恢复。请求文件已在本机私有目录生成，现有CLI在无签名/loopback离线模式验证通过；没有真实CreateStack、执行槽消费、新安装器/工作流、源码变更或重复CI。
+
+本次新栈将同时启用终止保护和DisableRollback，接受部分失败/持续费用/不自动清理；与原IAM更新的失败策略分开，不能隐藏风险。模板及请求精确指纹、固定目标/类型/ClientRequestToken、一次性规则、调用与等待上限均写在待审清单，实际写入必须再由用户确认该SHA。runtime仍关，持久化未安装、真实更新0；不把读取完成当D2-6完成。
+
+待审JSON清单的规范SHA256为`fc8b164fbcef03c209f92b758b63eafab2cbce92941d2ac62c1dc6fc643a6f3f`（对象键递归排序、数组顺序保持、UTF-8无空白JSON）；[精确清单](aws-instance-release-persistence-media-install-review-20261115.json)绑定完整风险LF摘要、请求原字节和模板原件。只在用户新确认后执行；到2026-11-15T19:44:49.040Z（温尼伯13:44:49.040）未执行/观察完就按边界停下，不续期或自动清理。

@@ -2,7 +2,15 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：参数问题已离线修正，待批完成未用只读范围（2026-11-15）
+## 当前唯一继续点：集中只读已完成，待审仅五资源图片栈创建（2026-11-15）
+
+[b完成与准确待审范围](aws-instance-release-persistence-plan.md#15-集中补核已完成下一仅审批固定五资源创建)：剩余26项查询完成，a+b为STS1/元数据尝试29；Source与两项原栈结果复用，旧失败保留，不重读完整IAM模板。当前权限与完整对齐候选匹配、名称空闲，租户仍idle三资源/local。[回执](aws-instance-release-persistence-install-preflight-observed-20261115.json)。本轮没有生产配置/媒体/数据库或Secret值读取、云写或槽消费。
+
+下一仅审[五资源新栈创建](aws-instance-release-persistence-media-install-review-20261115.md)及同名JSON清单；实际IAM/租户写与模板上传、迁图/恢复均不在本次范围。请求已离线通过CLI输入模型检查，尚未调用CreateStack；终止保护/DisableRollback、费用/失败遗留及独立核验上限已列清。较早19:44:49.040Z不延，无额外采样/改代码/重复CI；runtime关、D2-6真实更新0。
+
+待审[JSON](aws-instance-release-persistence-media-install-review-20261115.json)规范SHA为`fc8b164fbcef03c209f92b758b63eafab2cbce92941d2ac62c1dc6fc643a6f3f`，仅该范围等待用户新确认，不把读许可视作创建许可；尝试槽未消费。
+
+### 以下为a停止及b提案（b现已另批完成，不重跑）
 
 [a停止与b续段](aws-instance-release-persistence-plan.md#14-集中读取a停止于本地参数仅修正续段待批)：Source成功、原栈两项元数据匹配；第三项ListChangeSets的MaxResults不在CLI输入模型中，参数校验停止。离线无签名/loopback复现原252、修正0，不是Source刷新问题。无云写/数据库/槽，旧记录原字节保留，[回执](aws-instance-release-persistence-install-preflight-stopped-20261115.json)。
 

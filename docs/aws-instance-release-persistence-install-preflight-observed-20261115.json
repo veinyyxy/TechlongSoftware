@@ -1,0 +1,77 @@
+{
+  "schema": "techlong/instance-release-persistence-install-preflight-observed/v1",
+  "status": "CONCENTRATED_READONLY_PREFLIGHT_COMPLETE_NO_WRITES",
+  "sourceCommitUnchanged": "850ba8d626946188fe3547a95e5ea280623c5472",
+  "continuationStartedAt": "2026-11-15T15:46:09.779Z",
+  "completedAt": "2026-11-15T15:46:43.311Z",
+  "reusedSourceAndTwoOwnerReads": "aws-instance-release-persistence-install-preflight-stopped-20261115.json",
+  "source": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "continuationCounts": { "sts": 0, "metadata": 26, "normalOutcomes": 24, "expectedAbsentOutcomes": 2 },
+  "aggregateWithA": {
+    "sts": 1, "metadataCommandAttempts": 29,
+    "completedMetadataOutcomes": 28, "localParameterFailurePreserved": 1,
+    "originalMetadataLimit": 30, "automaticRetries": 0,
+    "configSecretValuePemPatMediaZipReads": 0, "databaseConnections": 0,
+    "cloudWrites": 0, "executionSlots": 0, "restoresOrDispatches": 0
+  },
+  "factsNotAfter": "2026-11-15T19:44:49.040Z",
+  "factsNotAfterWinnipeg": "2026-11-15T13:44:49.040-06:00",
+  "originalWholeTemplateDeadlineNotExtended": true,
+  "owner": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+    "status": "UPDATE_COMPLETE", "pendingChangeSets": 0,
+    "parametersAndTargetOwnershipUnchanged": true,
+    "originalWholeTemplateReread": false
+  },
+  "iam": {
+    "roleId": "AROAV3GNMXTZLH2AU5I5G", "roleTrustAndBoundaryUnchanged": true,
+    "attachedPolicies": 0, "inlinePolicyNames": ["ConnectExactExpressTenantC4e"],
+    "boundaryPolicyId": "ANPAV3GNMXTZHXSTCQBZC", "defaultVersion": "v4",
+    "versions": ["v4", "v3"], "boundaryConsumers": 7,
+    "fullAlignedBoundaryMatchesLatestActualBySid": true,
+    "fullAlignedRoleInlineMatchesLatestActual": true,
+    "allAccountEffectivePermissionsSimulated": false,
+    "imagePermissionInstalled": false
+  },
+  "mediaNames": {
+    "stack": "techlong-sandbox-media-9c5ee9e64509dcad-v1", "stackExists": false,
+    "bucket": "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad", "bucketExists": false,
+    "sameNamedOac": 0, "sameNamedResponseHeadersPolicy": 0,
+    "listsComplete": true, "namesReserved": false
+  },
+  "tenant": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+    "status": "UPDATE_COMPLETE", "pendingChangeSets": 0, "parametersUnchanged": true,
+    "retainedResources": 3, "serviceInCurrentTemplate": false,
+    "taskDefinitionRevision": 12, "taskConfigurationUnchanged": true,
+    "imageProvider": "local", "oldImagesInspected": false,
+    "accountWideServiceOrBillingInventoryPerformed": false,
+    "wholeTenantTemplateCapturedPrivately": true
+  },
+  "templateBucket": {
+    "name": "techlong-sandbox-build-source-402010193138-ca-central-1",
+    "ownerAndRegionMatched": true, "allFourPublicAccessBlocksEnabled": true,
+    "encryption": "AES256", "ownership": "BucketOwnerEnforced", "aclOwnerOnly": true,
+    "versioning": "UNCONFIGURED",
+    "existingImmutablePolicyPrefixesAreOnlyHistoricalB5": true,
+    "newD2TemplatePrefixImmutabilityOrActualWriteAuthorizationProven": false,
+    "policyOrBucketSettingsChanged": false,
+    "notRequiredForFirstFiveResourceInlineTemplateCreate": true
+  },
+  "privateEvidence": [
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-b/prepare.mjs", "sha256": "f25bc7a814d83c8c412dac0745e7c677057929b3b9d328fbfa7ba2e434365d16" },
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-b/result.json", "sha256": "61f40ce4f7af39f1fa85cb597e4ca566b54b63392f6db78f098c5a6fa925fa1e" },
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-b/calls.ndjson", "sha256": "c177f4f66948402c04ec101bc24bcc8f7b3924d93659c335a0c96ebcb48d86c8" },
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-b/outcomes.ndjson", "sha256": "59d501e1632d013bdc2d9273052465591f2468048c0b1446ad65ef19d0290f64" },
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-b/tenant-original.json", "sha256": "54069d3d1ec9407ce0ad20b9336899b62690e40edd3278e20a28fb6a2f4fd66c" },
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-b/boundary-document.json", "sha256": "182f7ef9da9769dd00f38718420aa7e51d00ac4e199efb6ab2ef4daffb99ea3b" },
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-b/application-inline.json", "sha256": "8ca1ccd4696b80778f1cd60b4e985c3669ae4b3b6685850c9a5148fe6dfbf0f9" },
+    { "path": ".local-secrets/d2-6-persistence-install-preflight-20261115-b/template-bucket-policy.json", "sha256": "3def1044ec2d7427e5c7dbbe8108019e817cb5c3adbf9feef194493afe49c449" }
+  ],
+  "rawProviderTemplatePolicyOrBusinessBodiesCommitted": false,
+  "runtimeCodeOrWorkflowsChanged": false,
+  "installationPerformed": false,
+  "runtimeEnabled": false,
+  "persistentUploadsReady": false,
+  "realVersionUpdates": 0
+}
