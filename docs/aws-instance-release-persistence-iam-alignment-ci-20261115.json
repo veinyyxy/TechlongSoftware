@@ -1,0 +1,73 @@
+{
+  "schema": "techlong/instance-release-persistence-iam-alignment-ci/v1",
+  "status": "OFFLINE_ALIGNMENT_AND_EXACT_CI_VERIFIED_NO_AWS",
+  "sourceCommit": "850ba8d626946188fe3547a95e5ea280623c5472",
+  "repository": "veinyyxy/TechlongSoftware",
+  "verifiedAt": "2026-11-15T05:34:59Z",
+  "scope": "Existing TaskRole/ServiceRoleBoundary declaration gaps only, before the existing image grant; no general IAM synchronization or new executor.",
+  "ci": {
+    "id": 43681618329,
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/43681618329",
+    "workflowPath": ".github/workflows/instance-release-checks.yml",
+    "event": "push", "attempt": 1, "branch": "main",
+    "status": "completed", "conclusion": "success",
+    "createdAt": "2026-11-15T05:33:54Z", "updatedAt": "2026-11-15T05:34:37Z",
+    "runHeadMatchesSourceCommit": true,
+    "jobLogsIncludeSourceCommit": true,
+    "offline": {
+      "jobId": 132713264037, "tests": 200, "pass": 200, "fail": 0, "skipped": 0,
+      "persistenceTests": 20, "newAlignmentTests": 7,
+      "newTestTitlesAndResultsChecked": true,
+      "lint": "success", "typecheck": "success", "failedSteps": []
+    },
+    "postgres": {
+      "jobId": 132713264340, "engine": "postgres:16", "isolatedGitHubServiceOnly": true,
+      "tests": 9, "pass": 9, "fail": 0, "skipped": 0, "failedSteps": []
+    },
+    "sourceRunJobsStepsAndTestLogSummariesChecked": true,
+    "workflowChanged": false,
+    "workflowDispatchesOrReruns": 0,
+    "rawProviderResponsesOrLogsCommitted": false
+  },
+  "localValidation": {
+    "tests": 200, "pass": 199, "fail": 0, "skipped": 1,
+    "skip": "Existing Windows original-artifact extraction check; exact Linux CI passed without skips.",
+    "persistenceTests": 20, "persistencePass": 20,
+    "scopedLint": "success", "wholeProjectTypecheck": "success",
+    "finalModuleMatchesPreviouslyDerivedPrivateResourcePatch": true
+  },
+  "artifactsLfSha256": {
+    "ops/releases/persistence.ts": "c3ed3d5253c219a5a8d95ad774033bcb6dbb0806b0604621406d6095a916cbe3",
+    "tests/instance-release-persistence.test.ts": "d2e2ffea4c286c4a8f1e572fcb3df8b6754f4f6548b740eb2e88df3408e1a726",
+    "ops/releases/persistence.draft.template.json": "01eee63435ec5cd490a671ddcd1f4f817526724f2fe59020ab0235b437529743",
+    ".github/workflows/instance-release-checks.yml": "73744ea8ecbf52a14a241485a0ebcd8606e6eba1ff8dd66954acf01655c77e02"
+  },
+  "unchangedLfSha256": {
+    "lib/deployments/releases/sampling.ts": "0cf7b386d5618954adc3285ac23e780821dba13922c26bd785d9f673bca45231",
+    "lib/deployments/releases/planning.ts": "7ccdfa2a94c51be003e545bf0b8365b218aa58d5e4992ff67ea765200f23e3ac",
+    ".github/workflows/instance-release.yml": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff",
+    "ops/releases/runtime.json": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6"
+  },
+  "privateOfflineDerivation": {
+    "patchSha256": "9f6804516c475f326bf31cdd5833aa58597ee14e0e2be99b653accf0ceedc319",
+    "resultSha256": "2b95ab359e52662a2832b34d191acfbf0ed6d4929dc0f11f2cf982c54bbf8b8c",
+    "changedLogicalIds": ["TaskRole", "ServiceRoleBoundary"],
+    "knownInlineGapAligned": 1, "knownBoundaryGapsAligned": 3,
+    "originalNineteenStatementsAndOtherTargetPropertiesUnchanged": true,
+    "wholeOriginalTemplateIncluded": false,
+    "resourceFragmentsAreNotAnExecutableTemplate": true,
+    "otherIntrinsicPolicyEquivalenceVerified": false,
+    "imageOutputsFabricated": false,
+    "bodiesCommitted": false
+  },
+  "deploymentState": {
+    "executionAuthorized": false, "installationManifestSha256": null,
+    "newProductionAwsOrDatabaseReadsWrites": 0,
+    "productionConfigSecretPemMediaOrZipReads": 0,
+    "restoresOrRealVersionUpdates": 0,
+    "runtimeEnabled": false, "persistentUploadsReady": false,
+    "originalObservationReceipt": "docs/aws-instance-release-persistence-preflight-observed-20261114.json",
+    "originalObservationDeadlineNotExtended": "2026-11-15T09:47:35.203Z",
+    "liveInstallationAndOutputBindingStillRequireSeparateApproval": true
+  }
+}

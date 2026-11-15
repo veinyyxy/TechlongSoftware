@@ -181,4 +181,6 @@ AWS_REGION保持ca-central-1、APP_RUNTIME_MODE保持原值，不新增或轮换
 
 新增7项回归覆盖：仅填已证实4缺项且24资源不变、对齐幂等/图片路径不能绕过、未知差异/冲突拒绝、错误或缺失快照、原intrinsic保持、预测体积超限。原13项保持，全持久化20项通过；相关本地总200项199pass/1既有Windows原包解包skip，定向lint与全项目类型检查通过，准确无AWS CI随后记录。测试只合成对象/已存本地投影，不新读生产配置/AWS/数据库或图片。
 
-当前唯一继续点是本次准确源码的原无AWS CI及文档收尾，不追加事实采样或资源变更。原b/c事实仍到2026-11-15T09:47:35.203Z，不因编码/派生/CI续期；没有新生产读取、安装或恢复，runtime关闭、真实更新0。材料与完整Original/实际输出的执行绑定、额外读取和实际云变更仍具体另审。
+**本次代码已结项：** 源码`850ba8d626946188fe3547a95e5ea280623c5472`推main；[原无AWS CI43681618329](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43681618329)准确push/main/attempt1 completed/success。Linux200项与隔离PG16九项全过、零skip，原Windows跳过项在Linux通过；lint/全项目类型成功。run/head、两job/步骤、日志中的测试数及7个新测试结果均核对；[去敏机器回执](aws-instance-release-persistence-iam-alignment-ci-20261115.json)。最终模块用已存原件重算后与私有两资源补丁一致。未手动dispatch、Re-run、改工作流或读生产。
+
+下一只准备实际安装的精确材料：首先另审最小只读补齐准确完整Original全文，不能用两资源片段或工程旧全文替代，再在原归属上绑定本次差异；真实媒体输出只能来自另批创建后的结果。当前不自动执行这项读取或云变更，也不继续扩工具/回归。原b/c事实仍到2026-11-15T09:47:35.203Z，不因编码/派生/CI续期；runtime关闭、D2-6真实更新0，持久化尚未安装。完整Original/实际输出的执行绑定、额外读取、实际云修改和迁图仍具体另审。
