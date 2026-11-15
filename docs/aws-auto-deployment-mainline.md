@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：图片栈创建验收已完成，仅离线准备原IAM/租户变更（2026-11-15）
+## 当前唯一继续点：接线离线材料已齐，待审一次集中五写（2026-11-15）
+
+[离线两候选/准确请求已备齐](aws-instance-release-persistence-plan.md#17-原iamidle租户接线的离线材料已齐实际操作另审)，真实输出已绑定；原IAM仅两资源、租户仅4环境值且仍idle，其他资源/根字段/参数及镜像/角色/数据库不变。往返解析、精确差异及5个CLI模型通过，无新源码/框架/CI或生产/凭据读取，云写/槽0。
+
+唯一下一动作是审[集中范围与风险](aws-instance-release-persistence-wiring-review-20261115.md)/[JSON](aws-instance-release-persistence-wiring-review-20261115.json)，规范SHA `79314fb548053a17c3853a3e920bd0a7728fb466de18316429b7c8042f93ef33`。提议模板条件PUT1＋两个CS创建/严格核验/Execute和独立核验（调用方写5、STS1/元数据84），不启动ECS/RDS、不更换镜像。须接受IAM失败仍可能回退授权、租户正常回滚/旧revision清理、源模板非强不可变及费用/部分遗留；实际操作另准，19:44:49.040Z不延。runtime关、PERSISTENCE_NOT_READY保持、D2-6真实更新0。
+
+### 以下为已完成的图片栈创建及原接线范围（不重做）
 
 [已真实完成](aws-instance-release-persistence-plan.md#16-五资源已真实创建独立技术核验通过)：fc8b…获准后CreateStack1，五项图片资源CREATE_COMPLETE，独立进程核对模板/物理ID/实际输出、CDN/OAC/CORS、私有版本化加密桶均通过。[证据](aws-instance-release-persistence-media-installed-20261115.json)。实际STS1/元数据19，无IAM/租户/数据库或Secret值操作、图片或业务测试、恢复/清理；槽已消费，不重放。资源可能持续计费且不自动停删。
 

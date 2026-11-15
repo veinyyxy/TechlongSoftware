@@ -1,0 +1,278 @@
+{
+  "schema": "techlong/persistence-wiring-review/v1",
+  "status": "AWAITING_USER_CONFIRMATION_OFFLINE_ONLY",
+  "preparedAt": "2026-11-15T17:00:12Z",
+  "sourceCodeCommitUnchanged": "850ba8d626946188fe3547a95e5ea280623c5472",
+  "approval": {
+    "requiresNewExplicitCanonicalSha256Confirmation": true,
+    "canonicalization": "Recursively sorted object keys, preserved array order, UTF-8 JSON without whitespace.",
+    "riskDocument": "docs/aws-instance-release-persistence-wiring-review-20261115.md",
+    "riskDocumentLfSha256": "47bd25a120615ffb42c7b534028d95480ea17a9f71eb6441d67036e4a9d86938"
+  },
+  "target": {
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "profile": "techlong-sandbox-user",
+    "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad"
+  },
+  "inputEvidence": {
+    "mediaReceipt": "docs/aws-instance-release-persistence-media-installed-20261115.json",
+    "mediaReceiptLfSha256": "aacd05ef147a25ed99b8409cbdc5fba27ca539d3510cdecca91ed4754ade5d89",
+    "preflightReceipt": "docs/aws-instance-release-persistence-install-preflight-observed-20261115.json",
+    "preflightReceiptLfSha256": "4a50a530a418a460a55b717bb91a57b7a4f3e3714ee13de7fbbcf7284850cc3e",
+    "mediaStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-media-9c5ee9e64509dcad-v1/333757a0-e10f-11f1-b693-06fff1b686eb",
+    "verifiedMediaOutputsPath": ".local-secrets/d2-6-persistence-media-install-20261115-a/verified-media-outputs.json",
+    "verifiedMediaOutputsSha256": "6b692795c4e7c622b16fd2f70bb9610c2ea32d8404c9b026e747e84807bc2891",
+    "currentIamAndTenantProjectionPath": ".local-secrets/d2-6-persistence-install-preflight-20261115-b/result.json",
+    "currentIamAndTenantProjectionSha256": "61f40ce4f7af39f1fa85cb597e4ca566b54b63392f6db78f098c5a6fa925fa1e",
+    "iamOriginalPath": ".local-secrets/d2-6-persistence-original-20261115-a/original.parsed.json",
+    "iamOriginalRawSha256": "e9b9292872b1894959ae2865c2224dd7b7ac8bcfecc871c989342de1e98b540e"
+  },
+  "actualStorageValues": {
+    "IMAGE_STORAGE_PROVIDER": "s3",
+    "IMAGE_S3_BUCKET": "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad",
+    "IMAGE_PUBLIC_BASE_URL": "https://d3t5c71ibx9h97.cloudfront.net",
+    "ALLOW_EPHEMERAL_IMAGE_STORAGE": "false"
+  },
+  "upload": {
+    "operation": "s3:PutObject",
+    "maxAttempts": 1,
+    "bucket": "techlong-sandbox-build-source-402010193138-ca-central-1",
+    "key": "d2-instance-releases/persistence/templates/sha256/6804ce7defa5e38e3b4bd17903971698a4c977bf47fd89afd688a507435f5aaf.yaml",
+    "optionsPath": ".local-secrets/d2-6-persistence-wiring-20261115-a/iam-upload-options.json",
+    "optionsSha256": "d041bfc06673998cbc6d8168d93ee087c304b3c1d81b5e2d79d9aa1fdf8e7386",
+    "bodyPath": ".local-secrets/d2-6-persistence-wiring-20261115-a/iam.candidate.yaml",
+    "bodySha256": "6804ce7defa5e38e3b4bd17903971698a4c977bf47fd89afd688a507435f5aaf",
+    "bodyBytes": 52411,
+    "expectedBucketOwner": "402010193138",
+    "ifNoneMatch": "*",
+    "serverSideEncryption": "AES256",
+    "checksumAlgorithm": "SHA256",
+    "requireAckChecksumAndBeforeExecuteHeadChecksumMatchBody": true,
+    "existingKey409Or412StopsNoOverwriteReuseOrRetry": true,
+    "bucketUnversionedAndNewPrefixNotStronglyImmutable": true,
+    "bucketPolicyVersioningOrHistoricalB5GrantChangesAuthorized": false
+  },
+  "iam": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+    "originalCanonicalSha256": "ccf14717e1fa8ec1ccfe453b2d96211022e0df4bf060105b7f4c3a6b98cd745a",
+    "candidateCanonicalSha256": "cb957826528166537a3e2ac21d1353d0f2939f67e88dc61486c079bf6cbeb96f",
+    "createRequestPath": ".local-secrets/d2-6-persistence-wiring-20261115-a/iam-create-change-set.json",
+    "createRequestSha256": "8d5801d0a08ec40d0cb1eba6422554ead4f38616a3acc31340e85e01184152bc",
+    "changeSetName": "techlong-s3-d2-media-iam-6804ce7defa5e38e",
+    "changeSetType": "UPDATE",
+    "createClientToken": "d2-media-iam-6804ce7defa5e38e-create",
+    "usePreviousParameters": 6,
+    "capabilities": [
+      "CAPABILITY_NAMED_IAM"
+    ],
+    "resourceTypesParameterOmitted": true,
+    "roleArnParameterOmitted": true,
+    "resourceCount": 24,
+    "expectedChanges": [
+      {
+        "logicalId": "ServiceRoleBoundary",
+        "action": "Modify",
+        "replacement": "False"
+      },
+      {
+        "logicalId": "TaskRole",
+        "action": "Modify",
+        "replacement": "False"
+      }
+    ],
+    "requiredPropertyChangesOnly": {
+      "TaskRole": [
+        "Policies"
+      ],
+      "ServiceRoleBoundary": [
+        "PolicyDocument"
+      ]
+    },
+    "other22ResourcesAndAllRootFieldsUnchanged": true,
+    "retainsExistingC4eInlineAndAll22BoundaryStatements": true,
+    "newInlinePolicyName": "WriteExactTenantProductImagesD2",
+    "finalInlinePolicyCount": 2,
+    "finalBoundaryStatementCount": 23,
+    "projectedCompactBoundaryBytes": 6044,
+    "newAllowOnly": {
+      "actions": [
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "resource": "arn:aws:s3:::techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad/products/*",
+      "boundaryPrincipalArn": "arn:aws:iam::402010193138:role/TechlongSandboxTaskRole"
+    },
+    "noRoleReplacementTrustBoundaryDatabaseBindingOrOtherConsumerImageGrant": true,
+    "executeClientRequestToken": "d2-media-iam-6804ce7defa5e38e-execute",
+    "executeDisableRollback": true,
+    "failedResourceMayStillRevertAndLoseExistingPermissions": true,
+    "requireUpdateCompleteAndIndependentIamVerificationBeforeTenant": true
+  },
+  "tenant": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+    "originalCanonicalSha256": "91540d1a1d8c8140d11adba0490ae09e9e98eb9847dfaec34b5a0929808c974d",
+    "candidateCanonicalSha256": "dab17b240c8fe7e272b549c305b2990c7c949507e1f58d19f7fbd8aea90bc57b",
+    "createRequestPath": ".local-secrets/d2-6-persistence-wiring-20261115-a/tenant-create-change-set.json",
+    "createRequestSha256": "09bc808eb8e73028b57bd2178becd3718e28d8f5c225c1f931f600626b9f0ba7",
+    "templatePath": ".local-secrets/d2-6-persistence-wiring-20261115-a/tenant.candidate.yaml",
+    "templateRawSha256": "b386bec731fe3f9ed72b6f7064b79ae0a8f987719c1588e60132c4942a2c4c91",
+    "templateBytes": 10233,
+    "changeSetName": "techlong-sandbox-d2-media-tenant-b386bec731fe3f9e",
+    "changeSetType": "UPDATE",
+    "createClientToken": "d2-media-tenant-b386bec731fe3f9e-create",
+    "usePreviousParameters": 20,
+    "capabilitiesParameterOmitted": true,
+    "resourceTypes": [
+      "AWS::ECS::TaskDefinition",
+      "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "AWS::Logs::LogGroup"
+    ],
+    "roleArnParameterOmittedAndExistingAssociationMustRemain": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+    "resourceCount": 3,
+    "expectedChanges": [
+      {
+        "logicalId": "TenantTaskDefinition",
+        "action": "Modify",
+        "replacement": "True"
+      }
+    ],
+    "requiredPropertyChangesOnly": {
+      "TenantTaskDefinition": [
+        "ContainerDefinitions"
+      ]
+    },
+    "environmentValuesOnlyFromActualStorageValues": true,
+    "noServiceAddedAndOther2ResourcesAndRootFieldsUnchanged": true,
+    "imageRoleSecretNetworkDatabaseBindingsUnchanged": true,
+    "oldTaskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:12",
+    "oldUpdateReplacePolicy": "Delete (default)",
+    "cloudFormationMayDeregisterOrCleanOldRevision": true,
+    "newRevisionMustComeFromVerifiedStackResourcesNotGuessed": true,
+    "executeClientRequestToken": "d2-media-tenant-b386bec731fe3f9e-execute",
+    "executeDisableRollback": false,
+    "normalCloudFormationRollbackAndManagedRevisionCleanupAcceptedOnlyOnConfirmation": true
+  },
+  "executionRules": {
+    "order": [
+      "prechecks",
+      "one conditional template PUT",
+      "IAM create/strictly inspect/execute/independently verify",
+      "tenant create/strictly inspect/execute/independently verify"
+    ],
+    "eachCreateChangeSetMax": 1,
+    "eachExecuteChangeSetMax": 1,
+    "executeChangeSetNameMustBeTrustedCreateAckFullArnWithExactReviewedNameAndStack": true,
+    "finalExecuteInputsMustBindReviewedFieldsAndRuntimeArnNoGuessedArn": true,
+    "requireCurrentStackStatusRoleParametersPhysicalIdsAndLatestPoliciesToMatchSavedPrestate": true,
+    "noUnexpectedChangeSetBeforeCreationOrOtherChangeSetsBeforeExecution": true,
+    "rejectAnyAddRemoveReplacementOutsideReviewedTargetsOrNestedStack": true,
+    "currentAndChangeSetAndResultTemplateCanonicalHashesRequired": true,
+    "doNotRequireUnavailableDescribeChangeSetRoleArnEcho": true,
+    "parametersMustMatchUsePreviousRequestAndCurrentStackValues": true,
+    "sourcePermissionsNotProvenByOfflineModelsAndNoAutomaticGrant": true,
+    "noTemporaryStackPolicyOverrideRollbackConfigurationTagsOrRoleAssociationChange": true,
+    "nativeExecuteMayDeleteConcurrentlyCreatedOtherChangeSetsDespitePrecheck": true,
+    "nativeIamPolicyVersionAndEcsRevisionCleanupArePartOfReviewedCfnExecution": true,
+    "noCallerDirectIamWritesOrEcsRegisterDeregisterWrites": true,
+    "perWriteExclusivePermanentAttemptRecordPrefix": ".local-secrets/d2-6-persistence-wiring-20261115-a/attempt-",
+    "attemptFilesConsumedBeforeEachWriteNoResetOrReplay": true,
+    "unknownAckOrFailedReadStateOrPermissionsStopsNoFollowOnWrites": true,
+    "noAutomaticRetryCompensationRollbackInvocationOrCleanup": true,
+    "independentPostMutationInspectionInSeparateReadOnlyProcesses": true
+  },
+  "bounds": {
+    "sourceSts": 1,
+    "awsMetadata": 84,
+    "cloudFormationMetadata": 64,
+    "iamMetadata": 17,
+    "s3HeadObject": 2,
+    "ecsDescribeTaskDefinition": 1,
+    "sourceTemplatePutObject": 1,
+    "createChangeSet": 2,
+    "executeChangeSet": 2,
+    "totalCallerWrites": 5,
+    "perStackCreatePrechecks": {
+      "describeStacks": 1,
+      "listStackResources": 1,
+      "listChangeSets": 1
+    },
+    "perStackBeforeExecute": {
+      "describeStacks": 1,
+      "listChangeSets": 1
+    },
+    "perStackChangeSetOriginal": 1,
+    "perStackAfterUpdate": {
+      "getTemplateOriginal": 1,
+      "listStackResources": 1
+    },
+    "perChangeSetDescribeMax": 8,
+    "changeSetPollsMax": 7,
+    "changeSetPollIntervalSecondsMin": 5,
+    "perStackDescribeUpdateObservationsMax": 16,
+    "stackPollIntervalSecondsMin": 60,
+    "iamPreReads": [
+      "GetRole",
+      "ListAttachedRolePolicies",
+      "ListRolePolicies",
+      "GetRolePolicy:C4e",
+      "GetPolicy",
+      "GetPolicyVersion:default",
+      "ListPolicyVersions",
+      "ListEntitiesForPolicy"
+    ],
+    "iamIndependentPostReads": [
+      "GetRole",
+      "ListAttachedRolePolicies",
+      "ListRolePolicies",
+      "GetRolePolicy:C4e",
+      "GetRolePolicy:image",
+      "GetPolicy",
+      "GetPolicyVersion:default",
+      "ListPolicyVersions",
+      "ListEntitiesForPolicy"
+    ],
+    "noPaginationRetryOrBroaderInventory": true,
+    "maximumWholeOperationMinutes": 40,
+    "writeAndReadNotAfter": "2026-11-15T19:44:49.040Z",
+    "winnipeg": "2026-11-15T13:44:49.040-06:00",
+    "noExtensionOrAutomaticRefresh": true,
+    "deadlineDoesNotCancelSubmittedCloudFormationOperationsOrStopResources": true
+  },
+  "offlineVerification": {
+    "noNewAwsOrDatabaseCalls": true,
+    "noCredentialConfigSecretPemPatZipOrMediaFileReads": true,
+    "sourceModuleUnchangedLfSha256": "c3ed3d5253c219a5a8d95ad774033bcb6dbb0806b0604621406d6095a916cbe3",
+    "derivationPath": ".local-secrets/d2-6-persistence-wiring-20261115-a/derive.mjs",
+    "derivationSha256": "2cb2b5f6749079550bc3bbfb5dda88c2df35f90bb64e837a3d5bcc15750b65fe",
+    "preparedResultPath": ".local-secrets/d2-6-persistence-wiring-20261115-a/prepared.json",
+    "preparedResultSha256": "04c69bee34c5698d588910670c9dcf067351eb101e97ade93f0d1895e82297b3",
+    "modelResultPath": ".local-secrets/d2-6-persistence-wiring-20261115-a/model-result.json",
+    "modelResultSha256": "a0fc3ecd5bb90e455b922aded7aac3d6aedbb33ee6717dae5a9da86e45c82582",
+    "fullTemplateRoundTripsAndOnlyReviewedDifferencesProven": true,
+    "allFiveCliRequestModelsPassedWithoutSigningOrAwsEndpoint": true,
+    "executeModelNamesAreShapeChecksNotProviderAckArns": true,
+    "ciOrBuildReruns": 0,
+    "newFrameworkWorkflowOrFormalRuntimeCode": false
+  },
+  "excluded": [
+    "new stacks, IAM roles, buckets or KMS keys; existing template bucket setting changes",
+    "EC2/VPC/ALB/ECS service/task or RDS startup, stopping or restore",
+    "new image version, build, ECR promotion, trusted catalog, SQL/Neon/Aurora or control ledger changes",
+    "Secret values, .env/PAT/PEM/HMAC, business/media/ZIP data reads or migration",
+    "HTTP probes, webpage or buyer/merchant testing, GitHub dispatch or environment approval",
+    "direct IAM compensation, caller deletion, automatic cleanup, retries, slot resets or deadline extensions"
+  ],
+  "stateAtPreparation": {
+    "cloudWrites": 0,
+    "cloudReads": 0,
+    "executionSlotsConsumed": 0,
+    "actualUpdateComplete": false,
+    "executionAuthorized": false,
+    "runtimeEnabled": false,
+    "persistentUploadsReady": false,
+    "realVersionUpdates": 0,
+    "receiptAloneMustNotClearPersistenceNotReady": true
+  }
+}

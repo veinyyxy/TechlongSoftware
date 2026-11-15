@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：图片栈创建验收已完成，仅离线准备原IAM/租户变更（2026-11-15）
+## 当前唯一继续点：接线离线材料已齐，待审一次集中五写（2026-11-15）
+
+[本次离线交付](aws-instance-release-persistence-plan.md#17-原iamidle租户接线的离线材料已齐实际操作另审)：原函数用真实输出派生完整两候选，只改原IAM两资源及idle租户四环境值，其他资源/根字段/参数/镜像/角色/数据库保持；模板往返/差异及5项CLI模型通过，无运行代码或工作流改动、不重跑CI，AWS/SQL/凭据/媒体读取/云写/槽0。完整候选和请求只私有存放，不伪造CSet ARN。
+
+下一唯一动作仅审[风险](aws-instance-release-persistence-wiring-review-20261115.md)/[准确JSON](aws-instance-release-persistence-wiring-review-20261115.json)规范SHA `79314fb548053a17c3853a3e920bd0a7728fb466de18316429b7c8042f93ef33`：最多条件模板PUT1、CS创建2/严格核验、Execute2及独立核验，STS1/元数据84；不启动服务/数据库或改版本。IAM保留成功资源但失败仍可能回退C4e；租户正常回滚并允许旧TaskDefinition托管注销/清理，非跨栈原子。源桶新D2前缀非强不可变、原生CFN清理及费用/部分遗留风险均明确，失败/ACK不明停、不自动补偿/重试/清理。当前没有该写入确认；19:44:49.040Z期限不延，runtime关、旧图未迁、PERSISTENCE_NOT_READY保持、D2-6真实更新0。
+
+### 以下为已完成的图片栈创建及原接线范围（不重做）
 
 [本次真实创建及独立核验](aws-instance-release-persistence-plan.md#16-五资源已真实创建独立技术核验通过) / [结果证据](aws-instance-release-persistence-media-installed-20261115.json)：用户确认fc8b…后，仅CreateStack1创建准确五项S3/CloudFront资源，栈333757a0…CREATE_COMPLETE；独立进程已核对完整模板/归属、实际四输出、CDN Deployed/OAC/CORS及私有版本化加密桶。STS1/元数据19，没有IAM/租户写、图片/业务测试、数据库或Secret值读取、恢复/清理；永久槽已消费，不重放该批准。真实输出仅用于下一离线派生，不伪造值。
 
