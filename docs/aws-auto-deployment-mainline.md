@@ -2,11 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：接线已真实完成，仅离线收口原D2-6启用输入（2026-11-15）
+## 当前唯一继续点：原D2-6输入已离线收口，集中准备原身份启用清单（2026-11-15）
 
-[79314f…接线已完成](aws-instance-release-persistence-plan.md#19-原iam与idle租户接线已完成独立核验通过)：用户刷新后新轮完成5写，两栈UPDATE_COMPLETE并独立通过；IAM准确图片权/旧C4e保持、默认v5(v4保留)，租户实际`:13`且4值S3配置、无Service，其他资源/参数/镜像/角色/数据库保持。[证据](aws-instance-release-persistence-wiring-installed-20261115.json)。STS1/元数据47，旧a失败不改，5写槽已消费，不重放；未启动ECS/RDS或做业务/图片/数据库/Secret值操作。
+[原D2输入/缺项表](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已收口：真实桶ARN、`:13`/四值、两模板摘要及CFN/IAM归属直接复用[已核验接线](aws-instance-release-persistence-wiring-installed-20261115.json)，不重建图片资源或重放79314f…5写。其余允许列表、Secret输出及安装/版本/实例/恢复缺项已区分；原七草案/runtime/工作流不改、不重跑CI，本轮新云/SQL/凭据读取和写入均0，没有可执行安装SHA。
 
-下一仅离线收口原D2-6启用输入及缺项表：真实UploadBucketArns、当前`:13`/S3配置与CFN/IAM归属，不扩大图片支线或重读/跑CI。旧图未迁，不伪造持久化就绪或启用runtime；身份/实例启用、可信版本登记、恢复和两次更新仍另批，真实更新0。旧基准19条/`:12`已非现值，原19:44:49.040Z、artifact19:07Z不延，持久资源仍可能计费。
+下一仅提出原四栈13资源/两SQL事务身份安装所必需的集中最小补核范围，另准才读并生成安装SHA，不复盘整批或自动恢复。ECS无Service，缺失允许列表不得假填；旧图迁移不阻断先安装控制身份，但持久化证据仍未齐，不能绕过PERSISTENCE_NOT_READY。原身份/目录与实例登记、必要恢复及两次真实更新仍另批；旧事实各自期限/19:44:49.040Z/artifact19:07Z不延，runtime关、真实更新0，持久资源可能计费。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 

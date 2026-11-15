@@ -1,10 +1,10 @@
 # 日常版本更新：一次性启用材料总清单
 
-2026-11-14，America/Winnipeg。**仅材料与隔离回归，未安装、未恢复、未启用。** 复用 D2-4/D2-5，不另建安装器/工作流，不重做业务验收。机器索引：[activation.prepared.json](../ops/releases/activation.prepared.json)，`executionAuthorized=false`、`installationManifestSha256=null`；材料指纹不是执行批准。
+2026-11-14建立，2026-11-15离线收口，America/Winnipeg。**原D2身份启用仍未安装、未恢复、未启用；图片栈及原IAM/idle租户接线已另批完成。** 复用 D2-4/D2-5，不另建安装器/工作流，不重做业务验收。原七份安装草案的指纹索引仍为[activation.prepared.json](../ops/releases/activation.prepared.json)，`executionAuthorized=false`、`installationManifestSha256=null`；最新输入/缺项见第13节，材料指纹不是执行批准。
 
-**最新事实：** [第12节](#12-单角色补核完成安装输入按来源收口)已补齐第11节未完成的原CFN角色策略，未重复整批/Neon。真实app原件及原Neon结构已验证，但安装参数仍未全部绑定，不是安装/恢复或两次更新已完成；历史“下一步”不覆盖本节结论。
+**当前结论：** [第13节](#13-接线完成后的原d2-6启用输入与缺项)已将真实上传桶ARN、任务定义`:13`、四项S3配置和原CFN/IAM归属填回本材料。桶参数缺口已关闭；原身份安装、版本/实例登记、必要恢复和两次真实更新仍未完成。第1—12节为准备沿革，其旧“下一步”、历史空位/运行状态和期限不是当前指令或新许可。
 
-上传桶参数的[最小离线方案](aws-instance-release-persistence-plan.md)现已完成：拟五资源独立图片栈及原角色窄权限，保留后端镜像/数据库绑定；明确旧图迁移与真实输出派生，未编码或安装。下一仅离线候选/必要回归，不把方案摘要当UploadBucketArns存在或persistentUploadsReady证明。
+图片前置的[真实完成记录](aws-instance-release-persistence-plan.md#19-原iam与idle租户接线已完成独立核验通过)已取代此前“仅方案/未安装”的状态；不再重建图片栈或重放接线。旧图来源/必要迁移和运行采样尚未证明，不以组件完成回执生成持久化就绪摘要或绕过`PERSISTENCE_NOT_READY`。
 
 ## 1. 已完成与本轮增量
 
@@ -213,3 +213,53 @@ g使用单artifact通用URL被连接器本地拒绝，尚未发生提供者响�
 下一只收口**上传图片持久化/桶归属的最小离线对齐方案及该安装参数**，复用既有后端S3能力，不扩图片产品功能、通用部署器或恢复框架。既有桶先证明归属；若需要新桶/权限/迁移/配置变更，先列具体范围另审，不把任意证据桶顶作上传桶，不绕过原PERSISTENCE_NOT_READY门槛，不混进ImageUri-only更新。该项是原D2方案第10节和已存在的安装参数，不是新增验收支线。
 
 本轮只完善参数状态与去敏结果，没有生成可执行安装SHA、密码或版本种子，没有安装、恢复或实际更新。原事实终点仍`2026-11-15T00:18:33.301Z`（今天温尼伯18:18:33.301 CST）；不因j成功延长h/i或artifact期限。runtime继续关闭，不为文档重跑应用CI。
+
+## 13. 接线完成后的原D2-6启用输入与缺项
+
+本节只读取工程内已提交的去敏材料，离线将原启用参数收口；没有AWS/GitHub API、配置/凭据/媒体读取、数据库连接、执行槽消费或安装。没有修改七份安装草案、运行配置、工作流或发布合同，也没有重跑应用CI。原机器索引的历史`savedFacts`不改成新快照；以下是输入来源表，不是可执行安装清单，不签发安装SHA。
+
+### 13.1 已有真实值，直接复用，不再搭图片工具
+
+来源为[五资源独立核验回执](aws-instance-release-persistence-media-installed-20261115.json)及[原IAM/idle租户独立核验回执](aws-instance-release-persistence-wiring-installed-20261115.json)。前者核验于`2026-11-15T16:15:20.763Z`，后者最终核验于`2026-11-15T17:41:48.654Z`；原事实终点仍`2026-11-15T19:44:49.040Z`，本节整理不续期、不证明此后未变。
+
+| 原启用输入 | 真实值或处理 | 归属及限制 |
+| --- | --- | --- |
+| `UploadBucketArns` | `arn:aws:s3:::techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad` | 来自媒体栈`MediaBucketArn`；类型`CommaDelimitedList`，本实例仅一个值，CFN的`ParameterValue`即左侧单个ARN，不加`/products/*`，不替换成证据桶 |
+| 媒体资源所有者 | `techlong-sandbox-media-9c5ee9e64509dcad-v1/333757a0-e10f-11f1-b693-06fff1b686eb` | 原五资源栈；桶、桶策略、CDN/OAC/CORS由此栈管理，不归新D2身份栈或临时计算删除集 |
+| `ReleaseStackArns`的准确租户候选 | `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13` | 原UUID未变；也是`ReadStackArns`的租户项。其他两个读栈项仍须沿各自原事实来源，不能用本次租户回执替它们续期 |
+| 当前任务定义 | `arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:13` | 原租户栈实际物理ID，不再以`:12`作当前值；仍为idle三资源、没有Service。定义ACTIVE仅表示已注册，不是任务运行或健康通过 |
+| `IMAGE_STORAGE_PROVIDER` / `IMAGE_S3_BUCKET` | `s3` / `techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad` | 已在`:13`实际容器环境核对；与采样绑定中的`providerVariable`、`bucketVariable`名称对应，不写入尚未启用的runtime |
+| `IMAGE_PUBLIC_BASE_URL` / `ALLOW_EPHEMERAL_IMAGE_STORAGE` | `https://d3t5c71ibx9h97.cloudfront.net` / `false` | 这是图片CDN基址，不是买家应用/API地址；没有因此查询或验收图片内容 |
+| 原应用TaskRole | `arn:aws:iam::402010193138:role/TechlongSandboxTaskRole` | 仍属`techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917`；原C4e数据库授权保留，只加准确`products/*`的Put/Delete |
+| 原应用boundary | `arn:aws:iam::402010193138:policy/TechlongSandboxServiceRoleBoundary`，默认`v5`，`v4`保留，23语句 | 7个共享消费者绑定未变；图片Allow限定原应用角色，不把它当新D2 planner/executor/verifier/publisher授权，也不重放旧19条模板 |
+| 原租户CFN执行角色关联 | `arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole` | 关联保持；它不是上面的应用TaskRole，也不是拟安装的D2四身份。其完整策略的历史核验期限不因本次关联确认而延期 |
+
+当前原IAM模板规范SHA为`cb957826528166537a3e2ac21d1353d0f2939f67e88dc61486c079bf6cbeb96f`，租户模板规范SHA为`dab17b240c8fe7e272b549c305b2990c7c949507e1f58d19f7fbd8aea90bc57b`；原件在上述回执绑定的私有目录中。后继恢复必须保留四项存储配置及原角色/数据库绑定，仍经所属CFN栈，不覆盖回旧模板；日常版本更新仍只改镜像，不夹带存储/网络/权限变更。
+
+### 13.2 原安装参数的剩余来源，不以历史值补齐
+
+| 参数组 | 已有来源与剩余缺口 | 后继处理，不在本轮执行 |
+| --- | --- | --- |
+| `ReadStackArns`其余项 | 原平台/Cell UUID有历史投影；本次只证明租户/IAM/媒体归属 | 仅核对安装必需的准确平台/Cell状态与UUID，不重做整个账号盘点或把空栈当运行中 |
+| `EcsServiceArns`、`EcsClusterArn`、`EcsTaskArnPattern` | 本次租户无Service，不能拿已删除服务ARN当当前物理资源；cluster/task范围仍需原Cell来源 | 列为未绑定。未来按准确恢复输出绑定，或由用户明确批准稳定命名授权范围；不能自行放宽成账号通配，也不为填IAM参数自动启动计算 |
+| `DatabaseArns`、`ApplicationSecretArns`、`EcrRepositoryArns`、`HostedZoneArns` | 原引用/允许列表有历史材料，接线仅证实数据库、镜像及Secret引用未改 | 复用准确候选，仅对实际安装必需且过期的元数据集中补核；不读取Secret值、数据库业务或旧图片，不据此声称运行健康 |
+| `SecretsManagerKeyArn`、证据桶及OIDC/人工门禁 | 原默认Key、桶策略/版本化、subject和本人审批曾核对；不属于本次完整新预检 | 原事实已到期的项须新范围确认，不新建Key/OIDC/桶或更改人工门禁 |
+| `PlannerSecretArn` / `PlannerSecretVersionId`、`ExecutorSecretArn` / `ExecutorSecretVersionId`、`VerifierSecretArn` / `VerifierSecretVersionId` | 原三控制Secret仍未安装，没有真实输出 | 未来准确批准后只从原控制Secret栈真实Outputs及独立版本元数据派生；现在不填假后缀/UUID或AWSCURRENT，也不生成密码 |
+| `PublisherSecretArn` / `PublisherSecretVersionId`、`BackendBuildTokenSecretArn` / `BackendBuildTokenVersionId` | publisher/token两Secret仍未安装，没有真实输出 | 同样只在另准安装后按真实输出派生，不用本地PAT验证结果冒充已存在的AWS版本 |
+| 后端token供给 | 已选单仓Actions只读fine-grained PAT，11月14日两次GET接受，提供者到期`2027-02-12T16:04:56Z`，见[原验证](aws-instance-release-d2-6-pat-verified-20261114.json) | 不再要求用户重新选择供给方式；不是已证明今天仍有效/完整单仓权限或已写AWS。文件读取、必要验证和指定Secret供给仍须新准确批准，不读PEM替代、不扩token刷新服务 |
+
+原一次性安装范围不变：**四栈13资源（五Secret、四角色、四托管策略）和两段Neon事务**，继续第3节顺序及非原子/失败停止策略，不重放原schema/grants。Neon的原结构/角色空位/保护核对只到`2026-11-15T00:18:33.301Z`，不是当前新证明；新名称空位也不是永久预留。必要的Source/名称/Neon/元数据补核须集中另准，不能用本节离线许可读取生产或生成密码。
+
+### 13.3 安装、登记、恢复及两次更新分开收口
+
+| 主线项 | 当前状态 | 完成前仍缺什么 |
+| --- | --- | --- |
+| 原D2身份安装 | 七份草案及原回归已有；`UploadBucketArns`现有真实值，仍无可执行安装SHA | 上表准确允许列表/必要新事实；五Secret真实输出、四LOGIN认证及四IAM身份独立核验。图片旧文件迁移不是安装这些控制身份的前置条件，不再先扩图片分支 |
+| 版本目录/实例基准 | 原三表目录与绑定最后核对为空；本次没有SQL或种子写入 | 准确产品/兼容声明、已观察基准与实例绑定，使用原入口另批登记；历史ready或一次成功job不能冒充可信种子 |
+| 构建产物与晋升 | 原app run`43630231572`/artifact`14128140862`已下载验证、未发布ECR或登记，原到期`2026-11-15T19:07:00Z` | 保留本地原包与证据，不重下/重建。后继须按原合同检查有效期及绑定；不因本地有ZIP就绕过过期规则。第二个合格不同digest版本仍未证明，config digest不当ECR manifest digest |
+| 持久化与实例运行绑定 | 图片基础设施/权限/四值接线已通过；旧图来源/必要迁移及恢复后采样未证明 | `persistentUploadsReady=false`、采样绑定的持久化`verificationSha256`仍未填写；组件回执SHA不能代填。必要范围另审，不把尚缺的证明当已通过，也不新增图片产品测试 |
+| 恢复及两次真实更新 | runtime仍`enabled=false`、`environments={}`，租户没有Service，真实更新0 | 仅在安装/登记及必要事实备齐并另准后复用原CFN启停流程恢复；停止环境拒绝发布，不在更新中自动恢复。两次使用同一发布代码及本人GitHub审批，不重复买家/卖家业务验收，NO_CHANGE不计更新 |
+
+**本次输入表到此结项。下一唯一动作回到原D2一次性启用清单：集中提出上述安装必需且已过期/未绑定项的最小补核范围，获准后才读取并生成准确安装SHA。** 不再修改持久化模块/安装工具、重建图片栈、重跑CI或延长旧事实；没有该新读取或安装许可时停在材料，不自行开启短窗口。资源恢复、目录/实例写入、晋升及实际更新不偷并入身份安装。
+
+本轮仅本地文档更新/差异与已存去敏值校对，无云/数据库/私密读取或写入。已建持久图片资源和模板对象可能继续计费，不因本节结束自动停止或删除；不据历史stopped回执声称全账号停费。
