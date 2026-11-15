@@ -2,13 +2,19 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：声明对齐代码与CI结项，下一仅准备实际安装材料（2026-11-15）
+## 当前唯一继续点：完整Original已补齐，集中准备实际安装精确清单（2026-11-15）
+
+[本次唯一交付](aws-instance-release-persistence-plan.md#12-完整original已单次补齐整栈离线候选已生成) / [去敏证据](aws-instance-release-persistence-original-observed-20261115.json)：另准STS1＋准确原栈GetTemplate1成功，完整Original规范SHA与之前一致、24资源。已本地生成完整对齐候选，仅原TaskRole/ServiceRoleBoundary变化，其余22资源和根字段/参数不变，原件/候选只私有保存。未新读有效IAM、租户或数据库，未云写/占槽/恢复/调度，不更改代码或重复CI。
+
+下一只集中准备实际安装精确清单；完整模板缺口已关闭，不再读它。必要状态/有效权限/名称及S3模板存放位置另审最小补核，实际图片五资源、原IAM/租户配置和后继原D2启用必须列清，不混入版本更新或新框架。新模板单项19:44:49.040Z截止，其他旧事实09:47:35.203Z不续；YAML51848 bytes所需TemplateURL上传未获准或执行。runtime关、D2-6真实更新0，实际安装/迁图/恢复仍另审。
+
+### 以下为声明对齐代码与CI结项记录（不重做）
 
 [交付](aws-instance-release-persistence-plan.md#11-原两资源声明对齐已编码未执行云修改)：原模块只补原TaskRole/ServiceRoleBoundary已生效的1份inline/3语句，图片入口必须先对齐，保留其他表达式/属性并拒绝未知缺项。新增7项、持久化20项全过，相关本地200项为199pass/1原Windows skip；真实已存投影仅本地生成两资源片段，无云I/O/配置或媒体读取。片段不是完整模板或安装授权，不改其他资源/参数/身份及发布合同。
 
 源码850ba8d已推main，[准确CI43681618329](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43681618329)原push/main/attempt1 success；Linux200和隔离PG16九项全过/skip0、lint/类型成功。run/head/jobs/步骤/测试日志与最终私有补丁一致性均已核对，[回执](aws-instance-release-persistence-iam-alignment-ci-20261115.json)。本轮仅本地代码/已存投影与无AWS CI，新增生产读取/云修改0，不再扩代码或重复测试。
 
-下一仅准备实际安装精确材料；首先另审补齐准确完整Original全文，不能拿两资源片段或工程旧全文当实际模板，然后再按原归属及真实输出形成准确变更。新读取、安装、恢复与迁图均仍另审，不据本次CI自动执行。原b/c事实09:47:35.203Z保持；runtime关、D2-6真实更新0，文档HEAD不冒称新源码CI。
+当时所缺完整Original现已按顶部新批准补齐，不能用旧片段或工程旧全文代替；其他读取/安装/恢复/迁图仍具体另审，旧b/c其他事实不续。文档HEAD不冒称新的运行源码CI。
 
 ### 以下为已完成的事实准备与本轮编码范围（不重做）
 

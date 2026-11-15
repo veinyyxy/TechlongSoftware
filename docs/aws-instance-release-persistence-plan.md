@@ -184,3 +184,25 @@ AWS_REGION保持ca-central-1、APP_RUNTIME_MODE保持原值，不新增或轮换
 **本次代码已结项：** 源码`850ba8d626946188fe3547a95e5ea280623c5472`推main；[原无AWS CI43681618329](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43681618329)准确push/main/attempt1 completed/success。Linux200项与隔离PG16九项全过、零skip，原Windows跳过项在Linux通过；lint/全项目类型成功。run/head、两job/步骤、日志中的测试数及7个新测试结果均核对；[去敏机器回执](aws-instance-release-persistence-iam-alignment-ci-20261115.json)。最终模块用已存原件重算后与私有两资源补丁一致。未手动dispatch、Re-run、改工作流或读生产。
 
 下一只准备实际安装的精确材料：首先另审最小只读补齐准确完整Original全文，不能用两资源片段或工程旧全文替代，再在原归属上绑定本次差异；真实媒体输出只能来自另批创建后的结果。当前不自动执行这项读取或云变更，也不继续扩工具/回归。原b/c事实仍到2026-11-15T09:47:35.203Z，不因编码/派生/CI续期；runtime关闭、D2-6真实更新0，持久化尚未安装。完整Original/实际输出的执行绑定、额外读取、实际云修改和迁图仍具体另审。
+
+## 12. 完整Original已单次补齐，整栈离线候选已生成
+
+用户另准固定Source STS1及准确原栈GetTemplate(Original)1；于2026-11-15T14:44:47.216Z启动，14:44:50.454Z完成，两次成功、无重试或其他AWS读取。原IAM栈仍准确指定`techlong-s3-bootstrap/8afbe1e0…`，返回全文用原JSON/YAML解析器处理；凭据筛查通过后仅私有保存，没有提交模板、策略正文或原始响应。[去敏结果和原件指纹](aws-instance-release-persistence-original-observed-20261115.json)。
+
+完整模板的规范摘要仍为`ccf14717e1fa8ec1ccfe453b2d96211022e0df4bf060105b7f4c3a6b98cd745a`、24资源，两目标声明与之前已审投影一致。已补上“只有两资源片段、没有整栈全文”的缺口，不再拿仓库旧bootstrap或重复读取模板来补它。新**模板这一项事实**截至19:44:49.040Z（温尼伯11月15日13:44:49.040 CST）；其他IAM实测、栈状态/参数、租户和名称事实没有刷新，原09:47:35.203Z已过期终点保持，不称整批事实重新有效。
+
+本地复用已测试的纯函数，将第11节已审两资源补丁合入新取得全文，并与原私有片段逐值核对：
+
+| 核对项 | 结果 |
+| --- | --- |
+| 资源集 | 保持24项，仅TaskRole/ServiceRoleBoundary声明变化，其他22项完整不变 |
+| 根字段与参数 | 逐值完整保持；不改角色身份、已有网络/数据库/其他资源声明 |
+| 对齐内容 | 已审1份inline/3条C4e语句；采用历史实际权限投影仅作离线输入，没有重新证明当前生效权限 |
+| 图片/租户差异 | 本候选尚未追加图片权限或租户环境值；没有真实CDN输出时不伪造 |
+| 序列化 | 原renderer输出YAML再解析与候选逐值一致，不改原模块/工作流或搭新安装器 |
+
+完整对齐候选只在`.local-secrets/d2-6-persistence-original-20261115-a/`，JSON正文88230 bytes、SHA`f69893264d585f7df8fb793b158ceb7d679965e3134b8e08234ce6e2b40aab8c`；YAML51848 bytes、SHA`0b60218665c534ece32e9e0c12a6ca6cb28ae5887299f0bee71e0377a4de4212`。它现在是完整模板候选，但**不是安装批准或已创建Change Set**；现有权限其余intrinsic等价仍未被完整验证。
+
+后续提交方式也已提前列清：紧凑JSON仍53932 bytes、原renderer YAML为51848 bytes，均超过[CreateChangeSet官方TemplateBody的51200-byte上限](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html)。实际方案应沿用既有私有S3模板对象＋TemplateURL方式，将准确桶/键、条件上传、CFN读取范围及费用写入安装审批；本轮没有上传或验证该路径，不为节省几百字节改渲染框架、删声明或覆盖其他资源。
+
+**下一唯一动作：集中准备图片栈与原IAM/租户必要配置的实际安装精确清单。** 完整模板原件已闭合；只补实际执行仍必需且已过期的准确状态/有效权限/名称及模板存放位置事实，范围另审，不再整批盘点、重下载原包或重做代码回归。清单需分清五项图片资源、原IAM两资源修改、真实输出后的四环境值及其余原D2启用，不能夹入ImageUri-only版本更新；实际云写、配置/数据迁移、恢复和调度仍另批。本次云写/数据库连接/私密配置读取/槽消费/恢复/调度均0，runtime仍关、D2-6真实更新0，不声称持久化已安装。

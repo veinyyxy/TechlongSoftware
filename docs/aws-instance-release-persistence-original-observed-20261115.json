@@ -1,0 +1,70 @@
+{
+  "schema": "techlong/instance-release-persistence-original-observed/v1",
+  "status": "EXACT_WHOLE_ORIGINAL_CAPTURED_OFFLINE_ALIGNMENT_DERIVED_NO_WRITES",
+  "sourceCommitUnchanged": "850ba8d626946188fe3547a95e5ea280623c5472",
+  "readStartedAt": "2026-11-15T14:44:47.216Z",
+  "originalObservedAt": "2026-11-15T14:44:49.040Z",
+  "readCompletedAt": "2026-11-15T14:44:50.454Z",
+  "originalOnlyFactsValidUntil": "2026-11-15T19:44:49.040Z",
+  "originalOnlyFactsValidUntilWinnipeg": "2026-11-15T13:44:49.040-06:00",
+  "previousOtherFactsNotAfterUnchanged": "2026-11-15T09:47:35.203Z",
+  "otherFactsRefreshed": false,
+  "source": {
+    "profile": "techlong-sandbox-user", "accountId": "402010193138",
+    "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev", "verified": true
+  },
+  "counts": {
+    "sts": 1, "getTemplateOriginal": 1, "otherAwsReads": 0,
+    "configSecretValuePemPatMediaOrZipReads": 0,
+    "databaseConnections": 0, "cloudWrites": 0, "executionSlots": 0,
+    "restoresOrDispatches": 0, "retries": 0
+  },
+  "original": {
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+    "stage": "Original", "resourceCount": 24,
+    "canonicalSha256": "ccf14717e1fa8ec1ccfe453b2d96211022e0df4bf060105b7f4c3a6b98cd745a",
+    "matchesPreviousCanonicalSha256": true,
+    "taskRoleAndBoundaryDeclarationsMatchPreviousProjection": true,
+    "existingCredentialScreenPassed": true,
+    "fullTemplateStoredPrivately": true,
+    "repositoryOldBootstrapUsedInstead": false,
+    "liveStackStatusParametersOrEffectiveIamReadThisRound": false
+  },
+  "offlineCandidate": {
+    "status": "FULL_TEMPLATE_ALIGNMENT_ONLY_NOT_AN_INSTALLATION_APPROVAL",
+    "generatedAt": "2026-11-15T14:45:45.535Z",
+    "resourceCount": 24,
+    "changedLogicalIds": ["ServiceRoleBoundary", "TaskRole"],
+    "otherResourcesUnchanged": 22,
+    "nonResourceRootFieldsAndParametersUnchanged": true,
+    "matchesPreviousReviewedTwoResourcePatch": true,
+    "existingJsonYamlParserAndRendererReused": true,
+    "renderedYamlReparsesToExactCandidate": true,
+    "runtimeProjectionUsedAsHistoricalOfflineInputOnly": true,
+    "otherEffectiveIamPermissionsVerified": false,
+    "imagePermissionOrTenantConfigurationAdded": false,
+    "imageOutputsFabricated": false,
+    "compactJsonBytes": 53932,
+    "renderedYamlBytes": 51848,
+    "fitsInlineTemplateBodyLimit": false,
+    "futureTemplateUrlStorageRequiresSeparateApproval": true,
+    "templateUploadedOrProviderValidated": false
+  },
+  "privateEvidence": [
+    { "path": ".local-secrets/d2-6-persistence-original-20261115-a/read-original.mjs", "sha256": "8caceb6def9683d5aee48f1f0e0a7a7625d52a6983ecb37dfdfd19c8df66d939" },
+    { "path": ".local-secrets/d2-6-persistence-original-20261115-a/result.json", "sha256": "db3d70059e8bb4b3f244793df56fef6ce8831a93e08578e8f4ff749394989eea" },
+    { "path": ".local-secrets/d2-6-persistence-original-20261115-a/original-template-body.json", "sha256": "e9951d32fc355b678d23dc81df78ff232e10baa7cb9094356c1c0d1197f1fb97" },
+    { "path": ".local-secrets/d2-6-persistence-original-20261115-a/original.parsed.json", "sha256": "e9b9292872b1894959ae2865c2224dd7b7ac8bcfecc871c989342de1e98b540e" },
+    { "path": ".local-secrets/d2-6-persistence-original-20261115-a/derive-full-candidate.mjs", "sha256": "7d464e32ec2091d014d6bd7a7c4fc1b6897ba1ec46ae797d7c8a35678eb0c5f7" },
+    { "path": ".local-secrets/d2-6-persistence-original-20261115-a/candidate-result.json", "sha256": "ec0edcc5a3f2089f0494d0e18eacf34ac1a5effddcb655e5e4b4632e6b626d3b" },
+    { "path": ".local-secrets/d2-6-persistence-original-20261115-a/iam-aligned.original.json", "sha256": "f69893264d585f7df8fb793b158ceb7d679965e3134b8e08234ce6e2b40aab8c" },
+    { "path": ".local-secrets/d2-6-persistence-original-20261115-a/iam-aligned.original.yaml", "sha256": "0b60218665c534ece32e9e0c12a6ca6cb28ae5887299f0bee71e0377a4de4212" }
+  ],
+  "templatePolicyOrBusinessBodiesCommitted": false,
+  "runtimeCodeOrWorkflowsChanged": false,
+  "installationManifestSha256": null,
+  "executionAuthorized": false,
+  "persistentUploadsReady": false,
+  "runtimeEnabled": false,
+  "realVersionUpdates": 0
+}
