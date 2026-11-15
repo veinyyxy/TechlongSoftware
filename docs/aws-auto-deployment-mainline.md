@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：完整Original已补齐，集中准备实际安装精确清单（2026-11-15）
+## 当前唯一继续点：待批一次集中最小补核，形成实际安装清单（2026-11-15）
+
+[集中补核范围及安装顺序](aws-instance-release-persistence-plan.md#13-实际安装材料的集中最小补核范围待单独批准)已列明，待用户另准STS1＋元数据最多30，仅原IAM/租户、图片名称及既有模板桶。复用已取完整Original和已有代码/CI，不补全框架、不读数据库/Secret值/私密配置/媒体/原包；当前没有本节生产读取或云写。
+
+原19语句与历史实测已仅本地逐值确认一致，无新intrinsic解析器。新事实不延完整模板19:44:49.040Z或其他旧事实；实际五资源创建、原IAM两资源修改、真实输出后的四环境值及模板S3上传均仍另批，当前无执行SHA、runtime关、D2-6真实更新0。
+
+### 以下为完整Original补件与整栈候选（不重做）
 
 [本次唯一交付](aws-instance-release-persistence-plan.md#12-完整original已单次补齐整栈离线候选已生成) / [去敏证据](aws-instance-release-persistence-original-observed-20261115.json)：另准STS1＋准确原栈GetTemplate1成功，完整Original规范SHA与之前一致、24资源。已本地生成完整对齐候选，仅原TaskRole/ServiceRoleBoundary变化，其余22资源和根字段/参数不变，原件/候选只私有保存。未新读有效IAM、租户或数据库，未云写/占槽/恢复/调度，不更改代码或重复CI。
 

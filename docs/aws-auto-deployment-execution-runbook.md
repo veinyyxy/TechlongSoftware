@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：完整Original已补齐，集中准备实际安装精确清单（2026-11-15）
+## 当前唯一继续点：待批一次集中最小补核，形成实际安装清单（2026-11-15）
+
+[唯一下一范围](aws-instance-release-persistence-plan.md#13-实际安装材料的集中最小补核范围待单独批准)已离线列清：Source官方STS1＋AWS元数据最多30（固定表28项，只有准确既有服务引用时可多1项），仅原IAM/租户状态与当前权限、图片名称、既有模板桶。完整IAM Original不重取，不读Neon/Aurora、Secret值、配置/PAT/PEM/ZIP/媒体，不GitHub读取或重复CI；本节尚未调用AWS/写云或占槽，需用户另准才启动。
+
+已存原19条boundary与历史实际v4逐Sid逐值一致，无需新增intrinsic解析器；不把历史比较当新有效权限证明。审批提案明确五项图片资源→原IAM两资源与私有TemplateURL→真实输出后的租户四环境值，实际S3/CFN/IAM/配置写及迁图/恢复仍另审。完整Original单项19:44:49.040Z截止不延，新读取不替它或其他旧事实续期；runtime关、D2-6真实更新0，不扩工具/框架或业务测试。
+
+### 以下为完整Original补件与整栈候选（不重做）
 
 [完整Original结果与整栈离线候选](aws-instance-release-persistence-plan.md#12-完整original已单次补齐整栈离线候选已生成) / [去敏回执](aws-instance-release-persistence-original-observed-20261115.json)：用户另准STS1＋准确GetTemplate(Original)1，两次成功，其余读取/云写/数据库/槽0。全文规范SHA仍ccf14717…、24资源；现有纯函数已将原两资源已审补丁合入完整模板，其他22资源及根字段/参数完整不变。JSON/YAML仅私有保存，不伪造媒体输出、不改运行源码，不再补读该全文或重复回归。
 

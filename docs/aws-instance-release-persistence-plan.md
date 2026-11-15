@@ -206,3 +206,29 @@ AWS_REGION保持ca-central-1、APP_RUNTIME_MODE保持原值，不新增或轮换
 后续提交方式也已提前列清：紧凑JSON仍53932 bytes、原renderer YAML为51848 bytes，均超过[CreateChangeSet官方TemplateBody的51200-byte上限](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html)。实际方案应沿用既有私有S3模板对象＋TemplateURL方式，将准确桶/键、条件上传、CFN读取范围及费用写入安装审批；本轮没有上传或验证该路径，不为节省几百字节改渲染框架、删声明或覆盖其他资源。
 
 **下一唯一动作：集中准备图片栈与原IAM/租户必要配置的实际安装精确清单。** 完整模板原件已闭合；只补实际执行仍必需且已过期的准确状态/有效权限/名称及模板存放位置事实，范围另审，不再整批盘点、重下载原包或重做代码回归。清单需分清五项图片资源、原IAM两资源修改、真实输出后的四环境值及其余原D2启用，不能夹入ImageUri-only版本更新；实际云写、配置/数据迁移、恢复和调度仍另批。本次云写/数据库连接/私密配置读取/槽消费/恢复/调度均0，runtime仍关、D2-6真实更新0，不声称持久化已安装。
+
+## 13. 实际安装材料的集中最小补核范围（待单独批准）
+
+本节只列下一次读取提案，不构成批准。复用第12节完整Original及完整对齐候选，不再取其全文、不改源码/模板或重跑CI。额外本地比较已存原件确认：原boundary的19条语句逐Sid与历史实际v4逐值一致、根Version一致；这组原件中的19条没有待解析的CFN引用。剩余3条C4e仍逐值来自已审实际投影，因此不需要为此新增intrinsic解析器。该结论只对已存历史原件成立，不是重新核验当前IAM或整账号有效权限。
+
+建议一次集中许可：固定Source官方STS最多1次；通过准确IAM用户核对后，AWS元数据最多30次，不翻页、不重试；依顺序读取下表28项，额外最多1次准确ECS服务状态读取仅在旧材料已有准确cluster/service引用时使用，总量不超过29，未用预算不移作其他查询。任何目标不符、状态变化、未知策略/附件、分页或明文凭据即停止，保留新记录，不扩搜索或自动修复。
+
+| 固定对象 | 最多调用 | 仅核对内容 |
+| --- | --- | --- |
+| 原IAM栈`techlong-s3-bootstrap/8afbe1e0…` | DescribeStacks、ListStackResources、ListChangeSets各1，共3 | 原UUID/稳定状态、更新时间与已取Original时点、六参数摘要、RoleARN、两资源/模板桶归属和未完成Change Set；只保存必要元数据。更新时间表明新模板已变则停止，不自动GetTemplate |
+| 原`TechlongSandboxTaskRole` | GetRole、ListAttachedRolePolicies、ListRolePolicies各1；准确`ConnectExactExpressTenantC4e`的GetRolePolicy最多1，共4 | 角色ID、trust/boundary、附件/inline名单与准确inline正文；异常不继续读取其他策略 |
+| 原`TechlongSandboxServiceRoleBoundary` | GetPolicy、ListPolicyVersions、GetPolicyVersion（刚返回的default）、ListEntitiesForPolicy各1，共4 | 原policy ID、当前默认版本正文、版本容量及共享消费者；与本地完整候选逐Sid比对，确保不覆盖现有授权，不做IAM模拟或权限变更 |
+| 拟议图片名称`techlong-sandbox-media-9c5ee9e64509dcad-v1`及准确图片桶 | DescribeStacks、HeadBucket、ListOriginAccessControls、ListResponseHeadersPolicies各1，共4 | 栈/桶与同名OAC/CORS占用；列表只看该名称且要求首批完整。不是账户资源盘点，不自动接管已有对象 |
+| 原租户栈`techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0…` | DescribeStacks、GetTemplate(Original)、ListStackResources、ListChangeSets各1，按返回的准确task-definition ARN再DescribeTaskDefinition1，共5 | 最新整份租户配置及归属、idle形态、四存储值、原镜像/角色/网络/Secret版本引用和保留的任务定义；不GetSecretValue、不查询业务项或恢复服务 |
+| 既有模板桶`techlong-sandbox-build-source-402010193138-ca-central-1` | HeadBucket、GetBucketLocation、GetPublicAccessBlock、GetBucketVersioning、GetBucketEncryption、GetBucketPolicy、GetBucketOwnershipControls、GetBucketAcl各1，共8 | 准确账号/区域、私有性、加密、版本/对象归属及模板存放约束；正文仅进内存/私有必要投影，不列对象或读S3正文，不据bucket元数据冒称Source/CFN写读授权已证明 |
+
+若有确切旧服务引用，可追加一次DescribeServices，仅查询该服务状态、不List服务或任务；若无准确引用就列“未核对”，不猜测名称。模板/任务配置和IAM/bucket策略可能含敏感字段，仅进内存及本机私有目录；发现明文凭据即停，不保存正文或原始错误，不读`.env`、Secret值、PAT/PEM/HMAC、ZIP、图片文件、Neon/Aurora或DDB业务项。不做GitHub读取、ValidateTemplate重跑、S3上传、CreateChangeSet、安装、恢复、业务验收、账本写入或槽消费。
+
+读取所得只用于以下安装清单，**本次不执行**：
+
+1. 新图片栈：仍是原五资源候选，单独列创建、栈终止保护和技术回读，采用真实返回输出；不创建计算/数据库或自定义DNS。
+2. 原IAM栈：基于准确完整Original，在原TaskRole/ServiceRoleBoundary内保留现有C4e授权并追加准确图片写权；其他22项及参数保持。完整模板超过内联上限，沿用私有模板桶/内容寻址键/条件上传＋TemplateURL；准确键或按真实输出派生的固定规则、覆盖竞态、模板上传/CFN读取和严格Change Set差异核对必须列入实际审批，不将旧B5 grant作为D2授权。
+3. 原租户栈：只在真实媒体输出核对后派生四环境值，保持ImageUri/数据库/角色及idle资源集合；不偷偷恢复ECS或启动数据库。必要旧图迁移仍单列，不能把没有扫描媒体当作“没有旧图片”。
+4. 该持久化安装不替代原D2一次性身份/实例启用、可信版本登记和两次真实更新；这些后继仍沿原主线及各自准确审批，不重建发布框架。
+
+新采样从真实读取起最多5小时；第12节完整Original仍仅到2026-11-15T19:44:49.040Z，不随新采样续期，旧其他事实也不改时间。必须以各项事实较早终点约束实际材料，超时或发现变化停下另审；不自动刷新、不自动扩大读取以维持窗口。当前仅本地材料与文档修改，没有本节AWS调用、生产私密配置/媒体读取、数据库连接或云写入，尚不签发执行SHA。
