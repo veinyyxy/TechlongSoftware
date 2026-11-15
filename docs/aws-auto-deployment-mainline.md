@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：接线已获准但停在Source，待刷新及新一轮预检许可（2026-11-15）
+## 当前唯一继续点：接线已真实完成，仅离线收口原D2-6启用输入（2026-11-15）
+
+[79314f…接线已完成](aws-instance-release-persistence-plan.md#19-原iam与idle租户接线已完成独立核验通过)：用户刷新后新轮完成5写，两栈UPDATE_COMPLETE并独立通过；IAM准确图片权/旧C4e保持、默认v5(v4保留)，租户实际`:13`且4值S3配置、无Service，其他资源/参数/镜像/角色/数据库保持。[证据](aws-instance-release-persistence-wiring-installed-20261115.json)。STS1/元数据47，旧a失败不改，5写槽已消费，不重放；未启动ECS/RDS或做业务/图片/数据库/Secret值操作。
+
+下一仅离线收口原D2-6启用输入及缺项表：真实UploadBucketArns、当前`:13`/S3配置与CFN/IAM归属，不扩大图片支线或重读/跑CI。旧图未迁，不伪造持久化就绪或启用runtime；身份/实例启用、可信版本登记、恢复和两次更新仍另批，真实更新0。旧基准19条/`:12`已非现值，原19:44:49.040Z、artifact19:07Z不延，持久资源仍可能计费。
+
+### 以下为已解决的Source停止与原接线批准（不重跑）
 
 [Source停止结果](aws-instance-release-persistence-wiring-source-stopped-20261115.json)：用户接受79314f…后唯一STS凭据获取失败即停，身份响应/元数据/PUT/CS创建执行/写槽均0；未自动重试/追加诊断。原清单、候选与记录不改，不重做代码/模型或CI，不称已完成接线。
 
