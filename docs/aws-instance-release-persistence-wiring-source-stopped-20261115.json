@@ -1,0 +1,57 @@
+{
+  "schema": "techlong/persistence-wiring-source-stopped/v1",
+  "status": "SOURCE_CREDENTIALS_UNAVAILABLE_BEFORE_METADATA_OR_WRITES",
+  "acceptedManifestCanonicalSha256": "79314fb548053a17c3853a3e920bd0a7728fb466de18316429b7c8042f93ef33",
+  "acceptedManifest": "docs/aws-instance-release-persistence-wiring-review-20261115.json",
+  "startedAt": "2026-11-15T17:19:04.866Z",
+  "completedAt": "2026-11-15T17:19:08.180Z",
+  "oldStoppedRoundNotAfterUnchanged": "2026-11-15T17:59:04.867Z",
+  "originalAbsoluteDeadlineNotExtended": "2026-11-15T19:44:49.040Z",
+  "counts": {
+    "stsCommandAttempts": 1, "stsProviderResponseCaptured": false,
+    "sourceIdentityVerified": false,
+    "awsMetadata": 0, "sourceTemplatePut": 0,
+    "createChangeSet": 0, "executeChangeSet": 0,
+    "writeSlotsConsumed": 0, "newStacksOrRuntimeRestores": 0,
+    "configSecretValuePemPatZipOrMediaReads": 0,
+    "databaseConnections": 0, "automaticRetries": 0
+  },
+  "failure": {
+    "operation": "sts:GetCallerIdentity",
+    "classification": "CREDENTIALS_UNAVAILABLE",
+    "rawErrorsOrCredentialsSaved": false,
+    "underlyingCredentialProviderRootCauseDiagnosed": false,
+    "notAnAwsIamOrTemplateValidationFailure": true
+  },
+  "preservedState": {
+    "acceptedManifestRiskAndRequestBytesUnchanged": true,
+    "oldSourceAttemptAndLogsRetained": true,
+    "templateAndCandidatesNeedNoRebuildOrCiRerun": true,
+    "originalFiveWriteAttemptFilesAbsent": true,
+    "installedMediaStackNotStoppedOrDeleted": true
+  },
+  "proposedContinuationNotExecuted": {
+    "userMustRefreshProfile": "techlong-sandbox-user",
+    "freshPermissionForNewRoundRequired": true,
+    "additionalStsCommandMax": 1,
+    "originalRemainingMetadataLimit": 84,
+    "originalRemainingPutCreateExecuteLimits": { "put": 1, "create": 2, "execute": 2 },
+    "allTargetsRequestsRollbackPoliciesAndAbsoluteDeadlineUnchanged": true,
+    "newAuditRecordOnlyDoNotReplayOldPrecheckOrResetWriteSlots": true,
+    "newRoundStillMaximum40MinutesAndBoundByOriginalAbsoluteDeadline": true,
+    "noAutomaticRefreshFactExtensionOrPermissionGrant": true
+  },
+  "privateEvidence": [
+    { "path": ".local-secrets/d2-6-persistence-wiring-20261115-a/wiring-io.mjs", "sha256": "09df74ec3da7a80a952aba0ed3dd5d4bdca59f04a35ef467e745daeb60b74204" },
+    { "path": ".local-secrets/d2-6-persistence-wiring-20261115-a/precheck.mjs", "sha256": "8819ae967f0001f558cd3e90cf93eaafe726d1b2255d60294db8d5dbee651c64" },
+    { "path": ".local-secrets/d2-6-persistence-wiring-20261115-a/precheck-started.json", "sha256": "8733ba6616235478ddfd0e2c5609d04ac4a9e4ceccb1b6e4c64bf396c7022de8" },
+    { "path": ".local-secrets/d2-6-persistence-wiring-20261115-a/precheck-result.json", "sha256": "10934f0383bd059bf067740319d695a077c8de61b78fde51a8b8f01250a0632c" },
+    { "path": ".local-secrets/d2-6-persistence-wiring-20261115-a/precheck-calls.ndjson", "sha256": "973b84d4b10987214b53d3a1a4ccec1797599692e316e252d9d202b3123adc39" },
+    { "path": ".local-secrets/d2-6-persistence-wiring-20261115-a/precheck-outcomes.ndjson", "sha256": "ed75ee2d4fdc36418f78a9e93247c5e03c090477e9ec677a8ae806ef9c969e73" }
+  ],
+  "runtimeSourceOrWorkflowsChanged": false,
+  "wiringInstalled": false,
+  "persistentUploadsReady": false,
+  "runtimeEnabled": false,
+  "realVersionUpdates": 0
+}
