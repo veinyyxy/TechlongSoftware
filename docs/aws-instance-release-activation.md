@@ -2,7 +2,7 @@
 
 2026-11-14建立，2026-11-15离线收口，America/Winnipeg。**原D2身份启用仍未安装、未恢复、未启用；图片栈及原IAM/idle租户接线已另批完成。** 复用 D2-4/D2-5，不另建安装器/工作流，不重做业务验收。原七份安装草案的指纹索引仍为[activation.prepared.json](../ops/releases/activation.prepared.json)，`executionAuthorized=false`、`installationManifestSha256=null`；最新输入/缺项见第13节，材料指纹不是执行批准。
 
-**当前结论：** [第13节](#13-接线完成后的原d2-6启用输入与缺项)已将真实上传桶ARN、任务定义`:13`、四项S3配置和原CFN/IAM归属填回本材料。桶参数缺口已关闭；原身份安装、版本/实例登记、必要恢复和两次真实更新仍未完成。第1—12节为准备沿革，其旧“下一步”、历史空位/运行状态和期限不是当前指令或新许可。
+**当前结论：** [第13节](#13-接线完成后的原d2-6启用输入与缺项)已填回真实上传桶/`:13`/S3配置与归属；[第14节](#14-原身份安装的集中最小补核范围待批准)现已列齐一次集中只读补核，尚未获准或执行。它只服务原四栈13资源/两SQL事务身份安装，不包含版本晋升、恢复或两次更新。历史“下一步”、空位/运行状态和期限不是当前指令或新许可。
 
 图片前置的[真实完成记录](aws-instance-release-persistence-plan.md#19-原iam与idle租户接线已完成独立核验通过)已取代此前“仅方案/未安装”的状态；不再重建图片栈或重放接线。旧图来源/必要迁移和运行采样尚未证明，不以组件完成回执生成持久化就绪摘要或绕过`PERSISTENCE_NOT_READY`。
 
@@ -263,3 +263,56 @@ g使用单artifact通用URL被连接器本地拒绝，尚未发生提供者响�
 **本次输入表到此结项。下一唯一动作回到原D2一次性启用清单：集中提出上述安装必需且已过期/未绑定项的最小补核范围，获准后才读取并生成准确安装SHA。** 不再修改持久化模块/安装工具、重建图片栈、重跑CI或延长旧事实；没有该新读取或安装许可时停在材料，不自行开启短窗口。资源恢复、目录/实例写入、晋升及实际更新不偷并入身份安装。
 
 本轮仅本地文档更新/差异与已存去敏值校对，无云/数据库/私密读取或写入。已建持久图片资源和模板对象可能继续计费，不因本节结束自动停止或删除；不据历史stopped回执声称全账号停费。
+
+## 14. 原身份安装的集中最小补核范围（待批准）
+
+本节把第13节剩余安装输入合并成**一次只读准备**，不再按缺项逐条开新阶段。不增加执行器、工作流、测试或安装草案；只从已有去敏回执及已保存`:13`任务定义中提取非秘密资源引用，没有读取任何凭据值或调用生产。下列范围等待用户明确批准；“开始下一步”仅用于编制本节，不视为生产读取许可。
+
+### 14.1 总上限与顺序
+
+固定`techlong-sandbox-user`、准确IAM用户`arn:aws:iam::402010193138:user/techlong-sandbox-dev`。**官方STS 1次＋AWS元数据最多51次＋GitHub GET最多8次；之后才读取现有`.env.local`全文件1次，建立1条经验证TLS的Neon READ ONLY连接，最多45条查询（含事务控制和事务内`SET LOCAL search_path=pg_catalog`）。** 不生成密码或安装SHA前的执行槽，不要求用户连续在线40分钟；准备材料齐备后再单独审批实际安装。
+
+| AWS白名单（每个具体请求至多一次） | 准确目标或受限派生 | 最多次数 |
+| --- | --- | ---: |
+| DescribeStacks＋ListStackResources | 原platform `c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7`、Cell `b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1`、tenant `5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13`，均使用原完整ARN，不扫栈名 | 6 |
+| GetTemplate(Original)＋ListChangeSets | 仅准确原tenant栈；核对仍为`:13`接线后的idle声明及未决变更 | 2 |
+| DescribeStacks | 第1节四个拟安装栈的准确名称，仅核对不存在，不ListStacks | 4 |
+| GetRole＋GetPolicy | 原identities/promotion-identity草案内准确四角色、四托管策略名称，仅核对空位；不枚举IAM | 8 |
+| DescribeSecret | 原control-secrets/promotion-secrets草案内准确五名称，仅核对空位；不ListSecrets或GetSecretValue | 5 |
+| GetRole、ListAttachedRolePolicies、ListRolePolicies、GetPolicy、GetPolicyVersion | 仅`TechlongSandboxCloudFormationExecutionRole`与`TechlongSandboxCloudFormationExecutionBoundary`；期望原角色布局/已存策略v10，不转查Cell执行角色或应用boundary | 5 |
+| ListGroupsForUser、ListAttachedGroupPolicies、ListGroupPolicies、GetPolicy、GetPolicyVersion | 仅准确Source用户、已存`Administrators`组及其`arn:aws:iam::aws:policy/AdministratorAccess`；核对已知组布局，不声称已模拟SCP/全部有效安装能力 | 5 |
+| DescribeKey | `arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570`，原AWS-managed Secrets Manager Key | 1 |
+| GetBucketVersioning、GetBucketEncryption、GetPublicAccessBlock、GetBucketOwnershipControls、GetBucketPolicy | 仅`techlong-sandbox-cloud-worker-evidence-402010193138`，保存必要兼容结论/摘要，不列键或取对象正文 | 5 |
+| GetOpenIDConnectProvider | `arn:aws:iam::402010193138:oidc-provider/token.actions.githubusercontent.com` | 1 |
+| DescribeRepositories | `ca-central-1/402010193138/techlong-sandbox-speedfeast`；仅绑定仓库，不重新读镜像manifest或发布 | 1 |
+| GetHostedZone | 仅`Z01473621BTTHKXBGOOEJ`，Route53使用既定us-east-1签名；不查Alias/公网解析或改DNS | 1 |
+| DescribeDBClusters | 仅`techlong-sandbox-express-d001`及已存resource ID，取ARN/引擎/状态等必要元数据，不连接数据库或另查prod实例 | 1 |
+| DescribeClusters | 仅本次准确Cell输出/资源返回的唯一既有cluster；无唯一项即停，不ListClusters/ListTasks或查任务日志 | 1 |
+| DescribeTaskDefinition | 仅本次tenant物理绑定，必须仍等于已保存`:13`；投影镜像、角色、四环境值和Secret版本引用，不保存环境正文 | 1 |
+| DescribeSecret | 仅下述`:13`两个既有Secret ARN/固定版本元数据，不读取平台Web DB Secret | 2 |
+| DescribeStacks＋HeadBucket | 仅已建媒体栈`333757a0-e10f-11f1-b693-06fff1b686eb`和第13节真实图片桶；只核对归属/输出/桶可达，不重读CDN/OAC/CORS或原应用IAM | 2 |
+| **合计（不含STS）** | 无备用次数可移作其他查询 | **51** |
+
+原三栈完整ARN采用[停用回执的固定stackIds](../ops/temporary-idle/stop-continuation-execution-20261113.json)与[本次租户回执](aws-instance-release-persistence-wiring-installed-20261115.json)交叉约束；回执用于准确寻址，不冒充当前状态。新资源名称及七份草案必须先在本地与原[指纹索引](../ops/releases/activation.prepared.json)匹配，不能边核对边换草案。GetTemplate返回若与`dab17b24…`不符，或预期布局/分页/名称结果不匹配即停，不接纳新基准；明确的目标不存在是预期空位结果，其他ValidationError/认证错误不归类为空位。
+
+既有两个准确Secret为：
+
+- `arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5`，固定版本`0f45d29f-02d4-4117-99b1-c06645aa3c6e`。
+- `arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/control-public-key-first-acceptance-PfBjiq`，固定版本`75d8da0af103e1e10e6d3341cbd50226fea7ce5e5aac8d150ab9e447b6340680`。
+
+### 14.2 GitHub与Neon，仅补安装所需事实
+
+GitHub使用既有认证连接，仅在内存认证，最多8次GET：准确平台repo元数据、main、`.github/workflows/instance-release.yml`字节、`techlong-sandbox-deploy` environment、其deployment branch policies、OIDC subject配置、该准确工作流的单页run列表（最多100项，核对未完成运行）及准确后端repo元数据，各一次。核对平台repo ID `1323312747`、本人reviewer `14145707`、原main门禁/不可绕过设置、immutable subject和后端repo ID `1064124445`；未完成结果不完整或需要翻页则停，不追加页、读取日志/artifact/ZIP、JWT、PAT、PEM或dispatch。仍由用户本人批准未来GitHub environment，本次不替用户审批或修改门禁。
+
+AWS与GitHub通过后才执行尚未使用的配置1次/TLS只读连接1条/SQL45上限：复用原catalog/权限/保护摘要核对方式，核对已安装`deployment_release`原OID237571、三表/九函数/四NOLOGIN、拟建publisher组及四LOGIN的五名称空位；确认有效函数/表列权限与保护未变、版本目录/实例绑定的真实状态。仅准确实例`app_e897a4377bce498b9c5ee9e64509dcad`的产品/环境/订阅/初始化与release绑定元数据，不读取账号密码、店铺、图片、订单、支付、历史业务正文或全租户任务账本。不临时GRANT/SET ROLE、改保护基准或执行草案；只读事务及search_path均计入45次，不把失败查询自动重试。
+
+### 14.3 不再让缺失服务或产物期限诱发支线
+
+- 若tenant仍无Service，就保存明确ABSENT；cluster及原声明只用于列出未来允许列表候选，不能填成当前活跃service。需要稳定命名授权时，将**准确未来ARN及其声明来源**放进之后的IAM安装清单，由用户连同该安装范围明确批准；本次读许可既不批准该IAM权限，也不授权恢复计算。
+- 五Secret真实ARN/VersionId仍只在另批安装后按固定输出规则取得，不为预检读取PAT、生成密码或先创建Secret。历史PAT选择/到期来源保留，实际凭据验证/供给另列安装范围。
+- 原app artifact于`2026-11-15T19:07:00Z`（温尼伯13:07）到期，但**此次身份补核不使用或要求该artifact**。不催用户在它到期前安装、不重复下载/构建，也不延长原件期限；之后版本晋升单独按原合同处理。
+- 本轮新事实从真实采样起最多5小时，混用事实取各自较早截止。旧接线事实`19:44:49.040Z`、旧Neon及其他历史终点不因本提案续期；只核了媒体栈/桶存在，不等于刷新整套CDN/应用IAM或持久化验收事实。没有40分钟资源租约、恢复或自动清理。
+
+仅新建本地只读结果/去敏摘要，旧记录和永久槽保留。每个请求一次、禁自动重试；Source失败即停，不追加STS诊断或要求盲目刷新。任何失败/预算不足/不完整结果停止后续，保留已完成读取，不扩大范围、安装或自行补齐。模板/策略/任务配置可能含敏感字段，只进内存，若发现明文凭据停止且不保存正文；配置全文件进入内存、宽权限owner使用、网络/提供者日志及低额非零费用风险须接受。只保存必要非秘密投影/摘要，原业务/策略/模板正文不提交GitHub。
+
+**待确认措辞：允许第14节这一次集中只读补核，并接受上述内存、宽权限owner、网络/日志和低额费用风险。** 不含AWS/SQL写、密码生成、PAT/PEM/Secret值/媒体/私密包读取、ECR推送、候选或实例登记、安装/恢复/续租、任何任务创建领取、GitHub调度或执行槽消费。成功只准备原身份安装准确SHA及仍缺的输入，不宣称实际安装或D2-6两次更新已完成。
