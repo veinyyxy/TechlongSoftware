@@ -2,7 +2,7 @@
 
 2026-11-14建立，2026-11-15离线收口，America/Winnipeg。**原D2身份启用仍未安装、未恢复、未启用；图片栈及原IAM/idle租户接线已另批完成。** 复用 D2-4/D2-5，不另建安装器/工作流，不重做业务验收。原七份安装草案的指纹索引仍为[activation.prepared.json](../ops/releases/activation.prepared.json)，`executionAuthorized=false`、`installationManifestSha256=null`；最新输入/缺项见第13节，材料指纹不是执行批准。
 
-**当前结论：** 用户刷新并另允新轮后，b已完成第14节全部集中补核：STS1/AWS51/GitHub8、配置1/TLS READ ONLY1/SQL22，全部通过且无写，见[第16节](#16-新b集中补核完成下一仅编制原身份安装审批清单)。原a和中断记录保留，不重复读取或重跑CI；下一只离线形成原四栈13资源/两SQL事务安装清单，把未来service/task授权和凭据/真实输出派生规则一并列审。实际安装/凭据供给/恢复与两次更新仍未授权执行。
+**当前结论：** [第17节集中安装审批包](#17-原身份安装集中审批包仅编制未获准未执行)及[准确JSON](aws-instance-release-activation-installation-review-20261116.json)已离线备齐，规范SHA `08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2`。只复用第16节结果/七份原草案，本轮没有线上/凭据读取、密码生成、槽消费或安装；下一仅待用户另批此安装范围，不再重复盘点或扩框架。实际凭据供给/安装、后继恢复与两次更新均尚未执行。
 
 图片前置的[真实完成记录](aws-instance-release-persistence-plan.md#19-原iam与idle租户接线已完成独立核验通过)已取代此前“仅方案/未安装”的状态；不再重建图片栈或重放接线。旧图来源/必要迁移和运行采样尚未证明，不以组件完成回执生成持久化就绪摘要或绕过`PERSISTENCE_NOT_READY`。
 
@@ -353,3 +353,72 @@ service名称来源是[原TenantService历史绑定](../ops/deployment-baseline/
 **下一唯一动作：只离线形成原四栈13资源/两SQL事务的一份集中安装审批材料**，复用本次输入及七份原草案；明确接受上述稳定未来service/task范围、四独立DB密码/PAT供给与五Secret真实固定输出派生、各栈预期Add/禁回滚风险、SQL提交/独立认证顺序和部分失败停止边界。不能把本轮只读批准转成安装，实际凭据读取/生成、云/SQL写与后继目录/恢复各另列准确范围；不新建安装框架或重读整批事实。当前没有安装SHA，既有实例/版本目录仍未登记，runtime关、真实版本更新0。
 
 本轮新事实最晚`2026-11-17T00:51:38.241Z`＝温尼伯**11月16日18:51:38.241 CST**，取真实Source开始后的5小时，不因文档/提交延长。原artifact的11月15日19:07Z已过，只记原期限且不用于身份安装；旧CDN/应用IAM完整核验等历史事实也没有被这次局部补核续期。窗口不足时保留材料，不为赶期限恢复资源、重复构建或自动补读。
+
+## 17. 原身份安装集中审批包（仅编制，未获准、未执行）
+
+本轮只编制这一份[机器清单](aws-instance-release-activation-installation-review-20261116.json)，不再建立阶段分支或安装框架。它钉住第16节回执LF摘要、原七份文件、完整允许列表、五Secret派生规则和以下总限额；`executionAuthorized=false`。**本次“只编制”指示不是下面任何读取/生成/写入的批准。** 原SQL/CFN/runtime/工作流和旧永久槽均不变，未重跑CI。
+
+规范SHA：**`08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2`**。算法为递归排序对象键、保持数组顺序、UTF-8紧凑JSON；不能把文件排版SHA当规范SHA。清单JSON是准确范围及完整风险正文，以下为人读摘要。
+
+### 17.1 只新增原四栈13资源
+
+| 栈名 | 固定原模板 | 唯一允许的变更 |
+| --- | --- | --- |
+| `techlong-sandbox-instance-release-secrets-v1` | `control-secrets.draft.template.json` | PlannerSecret、ExecutorSecret、VerifierSecret，恰3项Add |
+| `techlong-sandbox-instance-release-promotion-secrets-v1` | `promotion-secrets.draft.template.json` | PublisherSecret、BackendBuildTokenSecret，恰2项Add |
+| `techlong-sandbox-instance-release-identities-v1` | `identities.draft.template.json` | planner/executor/verifier各一Role＋一ManagedPolicy，恰6项Add |
+| `techlong-sandbox-instance-release-promotion-identity-v1` | `promotion-identity.draft.template.json` | publisher一Role＋一ManagedPolicy，恰2项Add |
+
+合计五Secret、四Role、四ManagedPolicy（各同时作为身份授权与boundary），无额外inline。两IAM栈需CAPABILITY_NAMED_IAM；不创建Key/OIDC/桶/计算/网络/数据库，不修改原三栈、原应用角色/边界或原CFN角色。原模板均小于51,200 UTF-8 bytes，经内存SDK TemplateBody发送，不上传S3模板，不把NoEcho值放CLI参数/文件。
+
+未来service/task权限也纳入这一次**新审批**，不是现有服务证明：
+
+- `EcsServiceArns`：`arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service`。
+- `EcsTaskArnPattern`：`arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/*`；cluster严格为本次核对的`cell-sandbox-1`。
+
+其他ReadStackArns/ReleaseStackArns、Aurora、两应用Secret元数据、ECR、zone、图片桶和Key全部取JSON中的准确字面值。当前service仍ABSENT；批准上述未来IAM范围也不允许恢复或新建服务。原应用Secret值不读，prod数据库不操作。
+
+### 17.2 凭据、五Secret和固定输出派生
+
+以下只在未来批准后进行，本轮没有读取或生成：
+
+1. `.env.local`全文件读取1次，仅取原Neon owner连接并在内存验证TLS/目标/原OID与保护；owner密码不复制到新Secret。选定PAT文件`.local-secrets/d2-6-backend-actions-read-token.txt`只读1次，仅向GitHub官方做准确后端repo和`backend-image-candidate.yml`元数据GET各1次，不读ZIP/旧构建、不dispatch。过期/撤销/身份不符即停，不扩权限。
+2. 在内存一次生成四个互异的32-byte随机hex DB密码，分别只用于四个新LOGIN；四个Secret正文各仅`connectionString`，token Secret各仅`token`，每份≤4096 UTF-8 bytes。内存SDK＋NoEcho供给，不放argv/参数文件/日志/Git；不读PEM、HMAC或旧Secret值。
+3. 两Secret栈成功后只取实际Outputs完整ARN，核对准确名称/标签/原AWS-managed Key。对五个新ARN各DescribeSecret1次，必须只有一个初始版本；读取该键值形式的真实VersionId，不能用AWSCURRENT作为请求版本、拼后缀或UUID。
+4. 对这**五个新ARN＋固定VersionId**各GetSecretValue1次，要求返回标识及完整正文与刚供给的内存值一致；SQL四密码只取这批经核对的固定版本。任何多版本/不明/不一致即停。随后IAM参数只能按本清单规则绑定这五组真实ARN/VersionId，不再为正常生成的ID另开聊天批准，也不允许换Secret或Key。
+
+### 17.3 固定顺序与两次数据库修改提交
+
+**新批准/时限/文件与Source核验 → 有界写前必要检查/PAT验证及Neon只读前置 → 两Secret栈各创建/严格核验/首次执行/独立回读 → 五新固定版本正文核对 → promotion事务 → 四LOGIN事务 → 独立owner及四LOGIN认证 → 两IAM栈各创建/严格核验/首次执行/独立核验 → 保持runtime关闭结案。**
+
+- 写前只有清单列明的20项必要元数据（17名称空位、原Key、tenant栈/未决CS）及原catalog/准入核对，不回放51项整批盘点。Source必须仍是原准确IAM用户，失败不盲目刷新或自动重试。
+- `promotion.draft.sql`原字节只提交1次，**它自行BEGIN/COMMIT，不再外包事务**：新增publisher NOLOGIN、两列和三函数及原窄授权，临时owner SET由原脚本在提交前关闭。原schema/grants不重放，旧表/函数不重建。
+- 第二个外层事务只BEGIN1次、绑定四个密码设置，再依次原字节提交`login-roles.draft.sql`和`publisher-login.draft.sql`各1次；核对新角色/成员/权限后COMMIT1次。只新增四LOGIN，不改旧LOGIN/密码、PUBLIC/数据库ACL、业务/目录/实例行。
+- 使用固定短锁/语句超时（1秒/15秒）、验证TLS并拒绝不安全启动覆盖。独立owner只读核验后，四个新LOGIN各一次独立TLS READ ONLY身份/权限认证；不调用promotion/request函数，不读业务数据。最多6条连接，2次**修改事务**之外的只读核验事务明确计入总查询上限。
+- 创建者ADMIN和原owner宽管理能力保留；四运行LOGIN只继承各自原组，SET/ADMIN关闭、无owner成员/表列DML。不能把这种分工说成全库PUBLIC能力已消除或行级租户隔离已证明。
+
+### 17.4 CFN严格门槛、总上限及失败边界
+
+四次CREATE Change Set只使用原模板，名称按本清单SHA派生，真实StackId/ChangeSetId只取可信ACK。必须逐一证明逻辑ID/类型及Add集合完全匹配、模板规范内容一致、所有非秘密参数准确且无其他待执行CS，才Execute该完整ARN一次；不能用NoEcho回读的`****`证明秘密正文。两IAM栈绑定实际五版本后才允许创建。
+
+Execute明确`DisableRollback=true`、`RetainExceptOnCreate=false`，Create不同时设置OnStackFailure；不设置RoleARN/ResourceTypes，不擅自调用删除或回滚API。保留成功资源不保证失败资源不受CFN原生清理。只读轮询为每栈DescribeChangeSet最多10次/间隔15秒、执行后DescribeStacks最多10次/间隔30秒，不是写入重试；异步失败/超时/ACK不明立即停止后继写。
+
+| 全轮限额 | 上限与单位 |
+| --- | --- |
+| 调用方云写 | CreateChangeSet4＋ExecuteChangeSet4＝8；不代表CFN底层仅8个API |
+| AWS读取 | STS2、白名单元数据160（含有界等待及独立核验，JSON分项合计）、新固定版本GetSecretValue5；无可转用的备用读取 |
+| 私密/GitHub | 配置全文件1、PAT文件1、GitHub官方认证GET2、密码生成4；PEM/应用或旧Secret值/ZIP/媒体读取0 |
+| Neon | 6条验证TLS连接、2个修改事务、最多120次client.query提交（含只读/事务控制、三份完整SQL脚本提交）；脚本及DO内有多条服务端语句，不冒称全库仅120条SQL |
+| 其他写 | 无S3审计/镜像推送/版本与实例种子/业务写；无controller/全局apply、恢复/启停、GitHub调度或人工门禁修改 |
+
+每次新栈Create/Execute和两个修改事务在未来执行时各有独占尝试记录，首次变更前才消费本清单SHA命名的安装槽；**本轮不创建这些槽**。单次记录不是分布式CAS，名称并非预留。网络/凭据刷新/传播失败、并发变化或提交不明均停，不自动补齐、撤权、删除、down、重放或复位；只允许同连接上明确仍打开且未提交的事务ROLLBACK释放，不对已提交/不明结果自动补偿。
+
+完整风险在JSON的`risks`：跨服务/双提交非原子；NoEcho/SDK/SCRAM不保证提供者日志绝不暴露；五Retain Secret及部分身份可能长期遗留收费/授权；新IAM安装即有能力，runtime关闭不是权限锁，CFN/固定ECR权限不由IAM强制成“只能一份镜像”；OIDC不绑定具体run/源码、部分Describe/桶List能力有较宽可见面；SCP/有效能力未模拟且传播不保证；创建者ADMIN/PUBLIC旧能力保留；没有自动回滚/撤权/清理。原Aurora上次观测available，本次既不复查也不启停，50USD目标不是硬费用上限。
+
+### 17.5 时间、交付标准与待确认方式
+
+原新快照仍截至**温尼伯11月16日18:51:38.241 CST**（`2026-11-17T00:51:38.241Z`）。为整轮预留最多60分钟，**最晚17:51:38.241 CST启动**；收到独立批准才启动，不需要用户连续配合40分钟或使用Web窗口。截止约束调用方请求，不会取消已提交CFN或自动删除收费资源。过期保留材料并停止，不延旧事实/旧artifact或自行补读；过期artifact与本次身份安装无关。
+
+成功标准仅为四新栈13资源和两事务独立核验、四新LOGIN认证及原对象/保护保持；保存非秘密ARN/VersionId/角色ID与结果。runtime/apply仍关闭，目录/实例绑定不写、service不恢复、持久化全门槛不解除，两次真实版本更新仍0；不把本次安装当作D2-6或整套上线完成。
+
+如将来决定执行，应由用户另行明确确认：**“我确认按安装清单 `08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2` 执行原四栈13资源及两SQL修改事务，接受未来准确service/task范围、清单内凭据读取/生成与五新固定版本使用、DisableRollback及完整风险；保持runtime关闭，不恢复环境或发布版本。”** 当前没有收到这项批准，本轮在材料结项；不另建框架、重跑CI或执行任何上述生产动作。

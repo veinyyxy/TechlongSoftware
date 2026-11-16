@@ -1,0 +1,627 @@
+{
+  "schema": "techlong/instance-release-activation-installation-review/v1",
+  "status": "PREPARED_NOT_AUTHORIZED_NOT_EXECUTED",
+  "preparedOn": "2026-11-16",
+  "executionAuthorized": false,
+  "purpose": "仅原D2身份一次性安装：四栈13资源、promotion增量及四LOGIN。不是日常发布、首次开通或环境恢复。",
+  "evidence": {
+    "preflightReceipt": "docs/aws-instance-release-activation-preflight-observed-20261116.json",
+    "preflightReceiptLfSha256": "a8e5eb7927a2f94635f670b63ad90a770b738b249af5cafd0d67ab44470d3820",
+    "materialIndex": "ops/releases/activation.prepared.json",
+    "materialIndexLfSha256": "31abe7b7f63f79bfa6aa2f0b2ee56fb53a123be78ed498643c1ba50e558b1ecd",
+    "artifacts": [
+      {
+        "path": "ops/releases/login-roles.draft.sql",
+        "lfSha256": "fc2a63332de852fd19d9cd9a6c1d7451df31df3330358779f7e3e19740d3075a"
+      },
+      {
+        "path": "ops/releases/control-secrets.draft.template.json",
+        "lfSha256": "cdb09f734416a8fa5810948dad03d4184941a4b63155626eb6d8ea5619290b22"
+      },
+      {
+        "path": "ops/releases/identities.draft.template.json",
+        "lfSha256": "1b41f5a361378312d9269282a2010be4345bdc61e532914fca42f4285ca0e78b"
+      },
+      {
+        "path": "ops/releases/promotion.draft.sql",
+        "lfSha256": "1c588056413f30e5ec0b8f0243a6af0fbbc5635ac7682f397156b5034f75aa3c"
+      },
+      {
+        "path": "ops/releases/publisher-login.draft.sql",
+        "lfSha256": "7d5cffe51a44e8e40ab3c736ec56d5a4399df552d098caf9534e9a51ac66bb27"
+      },
+      {
+        "path": "ops/releases/promotion-secrets.draft.template.json",
+        "lfSha256": "87979f865177e12456fcbb3699864b8fd28c150ff6d98426c3a010b34f211394"
+      },
+      {
+        "path": "ops/releases/promotion-identity.draft.template.json",
+        "lfSha256": "d13bcee6db397ebda961e587ad20641eb96377588a384eb7a835a82b8b130ace"
+      }
+    ],
+    "factsNotExtended": true
+  },
+  "target": {
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "sourceProfile": "techlong-sandbox-user",
+    "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "neonDatabase": "neondb",
+    "neonInstaller": "neondb_owner",
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad"
+  },
+  "timing": {
+    "factsValidUntil": "2026-11-17T00:51:38.241Z",
+    "factsValidUntilWinnipeg": "2026-11-16T18:51:38.241-06:00",
+    "startNotAfter": "2026-11-16T23:51:38.241Z",
+    "startNotAfterWinnipeg": "2026-11-16T17:51:38.241-06:00",
+    "maxOperationMinutes": 60,
+    "requiresNewExplicitApproval": true,
+    "startsOnlyAfterApproval": true,
+    "automaticExpiryExtension": false,
+    "resourceExpiryOrCleanup": false,
+    "backendArtifactRequired": false,
+    "oldArtifactExpiresAtUnchanged": "2026-11-15T19:07:00Z"
+  },
+  "proposedAwsResources": {
+    "stacks": [
+      {
+        "purpose": "controlSecrets",
+        "name": "techlong-sandbox-instance-release-secrets-v1",
+        "template": "ops/releases/control-secrets.draft.template.json",
+        "templateLfSha256": "cdb09f734416a8fa5810948dad03d4184941a4b63155626eb6d8ea5619290b22",
+        "templateLfBytes": 3784,
+        "expectedAdds": {
+          "PlannerSecret": "AWS::SecretsManager::Secret",
+          "ExecutorSecret": "AWS::SecretsManager::Secret",
+          "VerifierSecret": "AWS::SecretsManager::Secret"
+        },
+        "requiredParameterNames": [
+          "PlannerSecretJson",
+          "ExecutorSecretJson",
+          "VerifierSecretJson"
+        ],
+        "requiredOutputs": [
+          "PlannerSecretArn",
+          "ExecutorSecretArn",
+          "VerifierSecretArn"
+        ],
+        "capabilities": []
+      },
+      {
+        "purpose": "promotionSecrets",
+        "name": "techlong-sandbox-instance-release-promotion-secrets-v1",
+        "template": "ops/releases/promotion-secrets.draft.template.json",
+        "templateLfSha256": "87979f865177e12456fcbb3699864b8fd28c150ff6d98426c3a010b34f211394",
+        "templateLfBytes": 2179,
+        "expectedAdds": {
+          "PublisherSecret": "AWS::SecretsManager::Secret",
+          "BackendBuildTokenSecret": "AWS::SecretsManager::Secret"
+        },
+        "requiredParameterNames": [
+          "PublisherSecretJson",
+          "BackendBuildTokenJson"
+        ],
+        "requiredOutputs": [
+          "PublisherSecretArn",
+          "BackendBuildTokenSecretArn"
+        ],
+        "capabilities": []
+      },
+      {
+        "purpose": "identities",
+        "name": "techlong-sandbox-instance-release-identities-v1",
+        "template": "ops/releases/identities.draft.template.json",
+        "templateLfSha256": "1b41f5a361378312d9269282a2010be4345bdc61e532914fca42f4285ca0e78b",
+        "templateLfBytes": 31555,
+        "expectedAdds": {
+          "PlannerBoundary": "AWS::IAM::ManagedPolicy",
+          "PlannerRole": "AWS::IAM::Role",
+          "ExecutorBoundary": "AWS::IAM::ManagedPolicy",
+          "ExecutorRole": "AWS::IAM::Role",
+          "VerifierBoundary": "AWS::IAM::ManagedPolicy",
+          "VerifierRole": "AWS::IAM::Role"
+        },
+        "requiredParameterNames": [
+          "ReadStackArns",
+          "ReleaseStackArns",
+          "EcsServiceArns",
+          "EcsClusterArn",
+          "EcsTaskArnPattern",
+          "DatabaseArns",
+          "ApplicationSecretArns",
+          "EcrRepositoryArns",
+          "HostedZoneArns",
+          "UploadBucketArns",
+          "SecretsManagerKeyArn",
+          "PlannerSecretArn",
+          "PlannerSecretVersionId",
+          "ExecutorSecretArn",
+          "ExecutorSecretVersionId",
+          "VerifierSecretArn",
+          "VerifierSecretVersionId"
+        ],
+        "requiredOutputs": [
+          "PlannerRoleArn",
+          "PlannerBoundaryArn",
+          "ExecutorRoleArn",
+          "ExecutorBoundaryArn",
+          "VerifierRoleArn",
+          "VerifierBoundaryArn"
+        ],
+        "capabilities": [
+          "CAPABILITY_NAMED_IAM"
+        ]
+      },
+      {
+        "purpose": "publisherIdentity",
+        "name": "techlong-sandbox-instance-release-promotion-identity-v1",
+        "template": "ops/releases/promotion-identity.draft.template.json",
+        "templateLfSha256": "d13bcee6db397ebda961e587ad20641eb96377588a384eb7a835a82b8b130ace",
+        "templateLfBytes": 6093,
+        "expectedAdds": {
+          "PublisherBoundary": "AWS::IAM::ManagedPolicy",
+          "PublisherRole": "AWS::IAM::Role"
+        },
+        "requiredParameterNames": [
+          "PublisherSecretArn",
+          "PublisherSecretVersionId",
+          "BackendBuildTokenSecretArn",
+          "BackendBuildTokenVersionId",
+          "SecretsManagerKeyArn"
+        ],
+        "requiredOutputs": [
+          "PublisherRoleArn",
+          "PublisherBoundaryArn"
+        ],
+        "capabilities": [
+          "CAPABILITY_NAMED_IAM"
+        ]
+      }
+    ],
+    "totals": {
+      "stacks": 4,
+      "resources": 13,
+      "secrets": 5,
+      "iamRoles": 4,
+      "managedPolicies": 4,
+      "newInlinePolicies": 0,
+      "newKmsKeys": 0,
+      "newOidcProviders": 0,
+      "newComputeNetworkDatabaseOrBuckets": 0
+    }
+  },
+  "iamParameterBindings": {
+    "ReadStackArns": [
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13"
+    ],
+    "ReleaseStackArns": [
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13"
+    ],
+    "EcsServiceArns": [
+      "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service"
+    ],
+    "EcsClusterArn": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1",
+    "EcsTaskArnPattern": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/*",
+    "DatabaseArns": [
+      "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001"
+    ],
+    "ApplicationSecretArns": [
+      "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+      "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/control-public-key-first-acceptance-PfBjiq"
+    ],
+    "EcrRepositoryArns": [
+      "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast"
+    ],
+    "HostedZoneArns": [
+      "arn:aws:route53:::hostedzone/Z01473621BTTHKXBGOOEJ"
+    ],
+    "UploadBucketArns": [
+      "arn:aws:s3:::techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad"
+    ],
+    "SecretsManagerKeyArn": "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570"
+  },
+  "futureScopeAcceptanceRequired": {
+    "parameters": [
+      "EcsServiceArns",
+      "EcsTaskArnPattern"
+    ],
+    "serviceCurrentlyPresent": false,
+    "source": "ops/deployment-baseline/tenant-b-post-rollback-offline-plan.json",
+    "sourceLfSha256": "508694e446238d058651be47e07813a44f9c46b7e1276b8f6f75e556e0e1e8d8",
+    "approvedByThisPreparation": false,
+    "acceptanceMustBeIncludedInInstallationApproval": true,
+    "grantsNoCreateOrRestorePermission": true
+  },
+  "credentialSources": {
+    "ownerConnection": {
+      "file": ".env.local",
+      "fileReadsMax": 1,
+      "field": "DATABASE_URL",
+      "wholeFileInMemoryOnly": true,
+      "allowedHostSuffix": ".neon.tech",
+      "requiredUser": "neondb_owner",
+      "requiredDatabase": "neondb",
+      "beforeMutationRequireExactOriginalCatalog": true
+    },
+    "backendToken": {
+      "file": ".local-secrets/d2-6-backend-actions-read-token.txt",
+      "fileReadsMax": 1,
+      "oneLineOnly": true,
+      "repository": "veinyyxy/SpeedFeast_Backend_main",
+      "repositoryId": 1064124445,
+      "declaredPermission": "Actions read and inherent Metadata read",
+      "declaredExpiration": "2027-02-12T16:04:56Z",
+      "authenticationGetRoutes": [
+        "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main",
+        "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/workflows/backend-image-candidate.yml"
+      ],
+      "githubGetMax": 2,
+      "onlyOfficialHttpsNoRedirect": true,
+      "fullTokenScopeNotIndependentlyProven": true
+    },
+    "databasePasswords": {
+      "count": 4,
+      "generator": "crypto.randomBytes(32).toString('hex')",
+      "generationOnlyAfterApproval": true,
+      "distinct": true,
+      "memoryOnly": true,
+      "copyOriginalOwnerPassword": false
+    },
+    "secretBindings": [
+      {
+        "purpose": "Planner",
+        "stack": "controlSecrets",
+        "resource": "PlannerSecret",
+        "expectedName": "techlong/sandbox/instance-release/planner-db-v1",
+        "payloadParameter": "PlannerSecretJson",
+        "payloadKeys": [
+          "connectionString"
+        ],
+        "databaseLogin": "deployment_release_planner_login",
+        "arnOutput": "PlannerSecretArn",
+        "versionParameter": "PlannerSecretVersionId"
+      },
+      {
+        "purpose": "Executor",
+        "stack": "controlSecrets",
+        "resource": "ExecutorSecret",
+        "expectedName": "techlong/sandbox/instance-release/executor-db-v1",
+        "payloadParameter": "ExecutorSecretJson",
+        "payloadKeys": [
+          "connectionString"
+        ],
+        "databaseLogin": "deployment_release_executor_login",
+        "arnOutput": "ExecutorSecretArn",
+        "versionParameter": "ExecutorSecretVersionId"
+      },
+      {
+        "purpose": "Verifier",
+        "stack": "controlSecrets",
+        "resource": "VerifierSecret",
+        "expectedName": "techlong/sandbox/instance-release/verifier-db-v1",
+        "payloadParameter": "VerifierSecretJson",
+        "payloadKeys": [
+          "connectionString"
+        ],
+        "databaseLogin": "deployment_release_verifier_login",
+        "arnOutput": "VerifierSecretArn",
+        "versionParameter": "VerifierSecretVersionId"
+      },
+      {
+        "purpose": "Publisher",
+        "stack": "promotionSecrets",
+        "resource": "PublisherSecret",
+        "expectedName": "techlong/sandbox/instance-release/publisher-db-v1",
+        "payloadParameter": "PublisherSecretJson",
+        "payloadKeys": [
+          "connectionString"
+        ],
+        "databaseLogin": "deployment_release_publisher_login",
+        "arnOutput": "PublisherSecretArn",
+        "versionParameter": "PublisherSecretVersionId"
+      },
+      {
+        "purpose": "BackendBuildToken",
+        "stack": "promotionSecrets",
+        "resource": "BackendBuildTokenSecret",
+        "expectedName": "techlong/sandbox/instance-release/backend-build-read-token-v1",
+        "payloadParameter": "BackendBuildTokenJson",
+        "payloadKeys": [
+          "token"
+        ],
+        "databaseLogin": null,
+        "arnOutput": "BackendBuildTokenSecretArn",
+        "versionParameter": "BackendBuildTokenVersionId"
+      }
+    ],
+    "payloadMaxUtf8Bytes": 4096,
+    "transport": "In-memory AWS SDK NoEcho parameters; never argv, parameter files, logs or repository",
+    "creationVersionDerivation": [
+      "Only trusted stack creation/execute ACKs and exact template Outputs may identify the five new Secret ARNs; expected names/tags/Key must match.",
+      "Describe each exact new ARN once. Require exactly one initial version with AWSCURRENT stage, record its actual32-64 character VersionId, and thereafter never use a stage alias as the request VersionId.",
+      "GetSecretValue exactly once per new ARN+VersionId, require returned ARN/VersionId and complete payload equal the originally supplied in-memory payload; token/connectionString have no extra keys.",
+      "Four SQL password bindings come from these verified fixed-version payloads. Any ambiguity, additional version, mismatch, deletion or missing metadata stops; no invented suffix or UUID."
+    ],
+    "oldOrApplicationSecretValueReads": 0,
+    "privateKeyReads": 0
+  },
+  "cloudFormationRules": {
+    "changeSetType": "CREATE",
+    "templateTransport": "TemplateBody from the four unchanged pinned files; all under51200 UTF8 bytes; no S3 upload",
+    "nameRule": "d2-activation-{purpose}-{approvedCanonicalSha256First12}",
+    "createAttemptsPerStack": 1,
+    "executeAttemptsPerStack": 1,
+    "requiredCreateOmissions": [
+      "OnStackFailure",
+      "RoleARN",
+      "ResourceTypes"
+    ],
+    "clientTokenRule": "SHA256 of approved canonical manifest SHA, stack purpose and create/execute label; identity only, never permission to retry",
+    "sdkMaxAttempts": 1,
+    "executeParameters": {
+      "DisableRollback": true,
+      "RetainExceptOnCreate": false
+    },
+    "stackTags": [
+      {
+        "Key": "Project",
+        "Value": "Techlong"
+      },
+      {
+        "Key": "Environment",
+        "Value": "sandbox"
+      },
+      {
+        "Key": "Purpose",
+        "Value": "instance-release"
+      }
+    ],
+    "strictGate": [
+      "Use the trusted full CreateChangeSet ACK ARN and returned exact new StackId; never synthesize UUIDs.",
+      "DescribeChangeSet must be CREATE_COMPLETE/AVAILABLE with exactly the listed Add logical IDs/types. No Remove/Modify/Import or extra resources; template canonical content must equal the pinned file.",
+      "NoEcho returned mask is not a secret-payload proof. Verify static and derived nonsecret parameters; secret bodies are checked against actual fixed-version GetSecretValue before any SQL write.",
+      "Before Execute reject other pending/available sets and require the exact newly reserved REVIEW_IN_PROGRESS stack. Execute only this ACK once.",
+      "Await CREATE_COMPLETE and exact Outputs/resource ownership; any failure, ambiguous ACK, timeout or unexpected status stops subsequent mutations."
+    ],
+    "polling": {
+      "describeChangeSetPerStackMax": 10,
+      "changeSetIntervalSeconds": 15,
+      "describeStacksPostExecutePerStackMax": 10,
+      "stackIntervalSeconds": 30,
+      "notAutomaticWriteRetries": true
+    },
+    "directIamOrEcsMutationApis": false,
+    "terminationProtectionMutation": false
+  },
+  "databaseRules": {
+    "installedBase": {
+      "schema": "deployment_release",
+      "schemaOid": 237571,
+      "tables": 3,
+      "functions": 9,
+      "noLoginRoles": 4
+    },
+    "newNoLoginRole": "deployment_release_publisher",
+    "newLoginRoles": [
+      "deployment_release_planner_login",
+      "deployment_release_executor_login",
+      "deployment_release_verifier_login",
+      "deployment_release_publisher_login"
+    ],
+    "addedColumns": [
+      "deployment_release.releases.promotion_origin jsonb",
+      "deployment_release.requests.approval_intent_sha256 text with original CHECK"
+    ],
+    "addedFunctions": [
+      "deployment_release.read_candidate(text)",
+      "deployment_release.confirm_promotion(text,text)",
+      "deployment_release.prepare_promoted_request(text,text,text,text)"
+    ],
+    "transactions": [
+      {
+        "name": "promotion",
+        "rawFile": "ops/releases/promotion.draft.sql",
+        "submitFileExactlyOnce": true,
+        "fileHasOwnBeginAndCommit": true,
+        "wrapInAnotherTransaction": false,
+        "ownerSetClosedBeforeCommitByPinnedSql": true
+      },
+      {
+        "name": "four-login-passwords",
+        "callerBegin": true,
+        "boundSettings": [
+          "techlong_release.planner_password",
+          "techlong_release.executor_password",
+          "techlong_release.verifier_password",
+          "techlong_release.publisher_password"
+        ],
+        "rawFilesInOrder": [
+          "ops/releases/login-roles.draft.sql",
+          "ops/releases/publisher-login.draft.sql"
+        ],
+        "submitEachFileExactlyOnce": true,
+        "verifyBeforeCallerCommit": true
+      }
+    ],
+    "writeTransactionsMax": 2,
+    "verifiedTlsConnectionsMax": 6,
+    "connectionRoles": {
+      "installer": 1,
+      "independentOwnerVerifier": 1,
+      "independentNewLoginAuthentication": 4
+    },
+    "readOnlyVerificationTransactionsMax": 6,
+    "sqlSubmissionsIncludingControlMax": 120,
+    "sqlCountUnit": "client.query submissions; pinned raw files and DO bodies contain multiple server-side statements, not a claim of120 total server statements",
+    "allowedReadScope": "Original catalog/roles/ACL/protection, exact instance admission metadata, new role/function/column/privilege metadata; no business bodies or invoking promotion/request functions",
+    "fixedConnectionOptions": {
+      "lockTimeoutMilliseconds": 1000,
+      "statementTimeoutMilliseconds": 15000,
+      "rejectUnauthorized": true
+    },
+    "preMutationChecks": [
+      "Original11 catalog categories and protected state match saved base; five new role names absent; release directory remains empty/unbound.",
+      "Only verified target Neon database/user and exact account/region; reject TLS/startup overrides from config.",
+      "Do not run schema.draft.sql/grants.draft.sql, seed rows, alter old LOGIN/password/PUBLIC/database ACL or execute release functions."
+    ],
+    "verification": [
+      "Original objects/protection retained; exactly1 NOLOGIN group,2 columns,3 functions and4 LOGIN additions.",
+      "Four new LOGINs each inherit only their matching operation group, with SET=false/ADMIN=false; no direct table/column DML or owner role membership.",
+      "Creator ADMIN/owner management ability is disclosed and retained; original four groups and new LOGIN creator SET/INHERIT remain closed as in the pinned SQL. Do not silently change provider-created memberships.",
+      "Each new LOGIN gets one independent verified-TLS READ ONLY authentication/metadata session; no business data or application function execution."
+    ],
+    "rollbackRule": "Only release an explicitly still-open uncommitted transaction on that same connection. Never auto down/undo a completed or uncertain commit."
+  },
+  "sequence": [
+    "Check exact new approval/time/artifact hashes and disabled runtime; Source STS; bounded20 entry metadata and original Neon READ ONLY preconditions, validate selected PAT with exactly2 GETs before writes.",
+    "Generate four passwords once in memory; create/strictly inspect/execute the two Secret stacks sequentially; independently inspect outputs and read/compare the five exact fixed-version payloads.",
+    "Submit original promotion SQL transaction once; require known commit and expected postmetadata. Then one outer transaction binds four passwords and submits the three-LOGIN and publisher fragments once each; verify and commit.",
+    "Use an independent owner READ ONLY verifier plus four narrow LOGIN authentication sessions. If anything fails or commit is uncertain, do not start IAM stacks.",
+    "Bind all literal allowlists plus five real ARN/version pairs; create/strictly inspect/execute identities6-Add and publisher2-Add stacks. Independently verify both templates/resources and all four trust/attachment/boundary/policy documents.",
+    "Read only original3-stack ownership and exact tenant template, verify runtime/workflow unchanged and close with installed references only. No version seeds, restore, ECR publication or workflow dispatch."
+  ],
+  "budgets": {
+    "sourceStsMax": 2,
+    "awsMetadataMax": 160,
+    "metadataAllocation": [
+      {
+        "scope": "new stack/role/policy/Secret exact-name vacancy checks",
+        "max": 17
+      },
+      {
+        "scope": "existing key DescribeKey plus tenant DescribeStacks/ListChangeSets",
+        "max": 3
+      },
+      {
+        "scope": "DescribeChangeSet: 4 sets, at most10 polls each",
+        "max": 40
+      },
+      {
+        "scope": "GetTemplate bound to 4 exact ChangeSet ARNs",
+        "max": 4
+      },
+      {
+        "scope": "ListChangeSets for 4 newly reserved stacks before Execute",
+        "max": 4
+      },
+      {
+        "scope": "DescribeStacks on 4 new stacks before Execute",
+        "max": 4
+      },
+      {
+        "scope": "DescribeStacks after Execute: 4 stacks, at most10 polls each",
+        "max": 40
+      },
+      {
+        "scope": "post-execute ListStackResources on 4 new stacks",
+        "max": 4
+      },
+      {
+        "scope": "independent DescribeStacks/GetTemplate/ListStackResources: 4 stacks",
+        "max": 12
+      },
+      {
+        "scope": "DescribeSecret: only5 new exact output ARNs",
+        "max": 5
+      },
+      {
+        "scope": "GetRole/ListAttachedRolePolicies/ListRolePolicies/GetPolicy/GetPolicyVersion: 4 new identities",
+        "max": 20
+      },
+      {
+        "scope": "original3 stacks DescribeStacks/ListStackResources plus tenant GetTemplate",
+        "max": 7
+      }
+    ],
+    "newSecretFixedVersionGetValueMax": 5,
+    "githubGetMax": 2,
+    "configFileReadsMax": 1,
+    "patFileReadsMax": 1,
+    "privateKeyReads": 0,
+    "cloudFormationCreateChangeSetMax": 4,
+    "cloudFormationExecuteChangeSetMax": 4,
+    "totalCallerCloudMutationMax": 8,
+    "sqlWriteTransactionsMax": 2,
+    "sqlSubmissionsMax": 120,
+    "verifiedTlsNeonConnectionsMax": 6,
+    "automaticRequestRetries": 0,
+    "unusedBudgetMayBeRepurposed": false,
+    "cloudFormationInternalApiCallsNotCountedAsOneCallerWrite": true
+  },
+  "fencing": {
+    "onlyAfterFutureApproval": true,
+    "directoryRule": ".local-secrets/d2-release-activation-install/{approvedCanonicalSha256}/",
+    "exclusiveAttemptFile": "attempt.json before the first mutation",
+    "perMutationFences": "One create/execute record per stack and one per database write transaction",
+    "resetDeleteRenameReplayOrUnknownWriteRetry": false,
+    "localFenceIsNotDistributedCas": true
+  },
+  "invariants": {
+    "runtimeFile": "ops/releases/runtime.json",
+    "runtimeLfSha256": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6",
+    "workflowFile": ".github/workflows/instance-release.yml",
+    "workflowLfSha256": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff",
+    "runtimeEnabledAfterSuccess": false,
+    "instanceOrVersionCatalogWrites": 0,
+    "oldStackOrIamModifications": 0,
+    "appSecretChanges": 0,
+    "newIamRoleSessionAssumptionsOrOidcMinting": 0,
+    "gitHubEnvironmentApprovalDelegated": false,
+    "workloadRestoreOrStop": 0
+  },
+  "risks": [
+    "四栈CFN与Neon跨服务、两次数据库修改提交均非原子；失败可能遗留收费Secret、已LOGIN角色或已生效IAM。提交不明不等于回滚，不自动补齐、down、撤权、删除或重试。",
+    "ExecuteChangeSet使用DisableRollback=true且不同时指定OnStackFailure；保留成功资源不保证失败资源不受CFN原生清理。只允许四份原模板的准确Add，不更新旧栈/IAM或清理旧policy版本。",
+    "配置全文件、四密码、PAT及五个新Secret固定版本正文会进入受审进程内存，经TLS送相应AWS/GitHub/Neon服务。SDK/NoEcho/SCRAM不能保证客户端、服务端或提供者日志绝不暴露；不保存原文或原始异常。",
+    "安装者是宽权限Source/Neon owner，CREATEROLE、BYPASSRLS及创建者ADMIN管理能力不消除；新LOGIN只授原组继承并关闭SET/ADMIN，PUBLIC固有能力仍存在，不承诺全库行级隔离。",
+    "新D2 IAM角色一旦安装即有模板列明能力，runtime=false并非IAM锁。CFN写可间接使用原租户service role，IAM不强制仅改ImageUri；publisher可写固定仓库其他tag，准确候选限制依赖受保护代码。",
+    "OIDC信任只固定原repo/main或本人environment及aud，不等于绑定具体run/源码/工作流，不改变或代批GitHub环境。某些Describe为区域级可见；图片HeadBucket所需ListBucket也能列键，未授权实际列对象。",
+    "名称空位不是预留，本地单次槽不是分布式CAS。五个新Secret版本只取真实输出和独立版本元数据，逐份固定版本GetSecretValue核对；跨查询并发及权限传播仍可能导致停止，不自动换对象或重试。",
+    "两个DDL/角色事务可能短暂阻塞写入。使用固定短锁/语句超时，原promotion脚本自行BEGIN/COMMIT，LOGIN两片段同一外层事务；仅明确仍打开未提交事务可ROLLBACK清理，不能对已提交或提交不明结果执行补偿down。",
+    "五个Secret Retain并采用既有AWS-managed Key，无自动过期/清理/轮换或失败撤销；可能持续计费。没有启动计算或数据库，但既有Aurora在上次观测为available，50USD目标不是费用硬上限。",
+    "PAT单仓Actions只读范围由用户选择；两认证GET仅证明所请求端点可读，不独立证明完整权限或只能读取该私有仓库。过期/撤销或验证不一致即停，不扩权限、不代建token，不下载或要求新构建。",
+    "本清单复用真实5小时快照而非资源预约；SCP、有效权限、IAM传播及实际API成功未模拟保证。异步超时/审批额度中断一律保留进度，未知写入不重放，旧事实与旧artifact期限不延长。",
+    "安装与正式交付不同：不登记版本/实例，不改runtime/apply，不恢复Cell/ECS/ALB/RDS，不迁图、不解除PERSISTENCE_NOT_READY，不执行两次真实版本更新或业务验收。"
+  ],
+  "approvalMustExplicitlyAccept": [
+    "Four specified stacks/13 resources and two specified SQL write transactions only, including DisableRollback and possible paid/auth leftovers.",
+    "One owner config read, one selected PAT read/two official authentication GETs, four password generations and five new fixed-version Secret body reads in memory.",
+    "Exact future ECS service/task scope in this packet as an IAM allowlist, not a claim that the service exists and not restore permission.",
+    "All listed risks, bounds, fixed output derivation and failure/no-retry rules."
+  ],
+  "failurePolicy": {
+    "stopFurtherMutations": true,
+    "uncertainCommitIsNotRollback": true,
+    "automaticCompensationRevocationCleanupDownRetryOrSlotReset": false,
+    "fullProviderErrorsOrSensitiveBodiesSaved": false
+  },
+  "thisPreparation": {
+    "awsOrGithubCalls": 0,
+    "configPatPemOrSecretValueReads": 0,
+    "databaseConnections": 0,
+    "passwordsGenerated": 0,
+    "executionSlots": 0,
+    "cloudOrSqlWrites": 0,
+    "originalSevenArtifactsRuntimeWorkflowChanged": false,
+    "applicationCiRepeated": false
+  },
+  "offlineMaterialChecks": {
+    "allSevenOriginalLfHashesMatch": true,
+    "fourTemplatesUnder51200Utf8Bytes": true,
+    "secretInputsNoEchoNoDefaultsAndRetain": true,
+    "staticAndDeferredIamParameterCoverageComplete": true,
+    "conservativePolicyValidationOnly": "Actual bound ARNs plus maximum64-character future VersionIds/six-character ARN suffix lengths; no actual Secret ARN/VersionId was fabricated or used in a request",
+    "resolvedPolicyUpperBoundUtf8Bytes": {
+      "PlannerBoundary": 4376,
+      "ExecutorBoundary": 5200,
+      "VerifierBoundary": 4605,
+      "PublisherBoundary": 3238
+    },
+    "localSdkExecuteDisableRollbackRequiresOmittingCreateOnStackFailure": true,
+    "newAwsValidationSimulationOrExecutionPerformed": false
+  },
+  "completionBoundary": "After a separate approved successful install: identity components only. Runtime remains disabled, catalog empty, service absent unless another separately approved workflow restores it. D2-6 real updates still0."
+}

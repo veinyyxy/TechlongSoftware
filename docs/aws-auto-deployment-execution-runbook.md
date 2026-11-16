@@ -2,11 +2,11 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：集中补核已通过，仅离线编制原身份安装审批清单（2026-11-16）
+## 当前唯一继续点：原身份集中安装审批包已齐，仅待独立新批准（2026-11-16）
 
 [原启用材料第13节](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已离线填入真实UploadBucketArns、`:13`/S3四值、当前两模板摘要及原CFN/IAM归属，并把其余参数和安装/登记/恢复/两次更新缺项分开。复用[媒体结果](aws-instance-release-persistence-media-installed-20261115.json)和[接线结果](aws-instance-release-persistence-wiring-installed-20261115.json)，没有新生产/凭据读取、数据库/云写或槽消费；原七份草案/runtime/工作流/已存原件不改，不重跑CI。此输入表不是安装SHA，不重放已消费的5写。
 
-[第16节新b完成与准确下一范围](aws-instance-release-activation.md#16-新b集中补核完成下一仅编制原身份安装审批清单) / [去敏结果](aws-instance-release-activation-preflight-observed-20261116.json)：Source成功后全部AWS51/GitHub8/配置1/TLS READ ONLY1/SQL22通过，11类原catalog/保护一致、新17项AWS名称及5个DB角色名空闲，实例目录仍未初始化；三栈7/12/3、tenant `:13`/idle、原CFN角色v10及人类门禁保持。没有云/SQL写、Secret值/PAT/PEM/ZIP读取或恢复/调度；a和宿主执行前中断记录保留，未重试已执行请求。下一只离线用真实允许列表、准确未来service/task授权候选及五Secret输出/凭据规则，编制原四栈13资源/两事务集中安装审批；实际读取凭据/生成/安装仍另批，不扩框架/图片或重跑CI。新事实截至00:51:38.241Z（温尼伯11月16日18:51:38.241），旧事实/产物不续；Aurora当前available可能计费，本轮未启停，runtime关、真实更新0。
+[第17节集中安装摘要/完整风险](aws-instance-release-activation.md#17-原身份安装集中审批包仅编制未获准未执行) / [准确JSON](aws-instance-release-activation-installation-review-20261116.json)已离线备齐，规范SHA `08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2`，仅复用第16节51/8/22真实结果与七份原草案，无新生产/私密读取、密码生成、写槽或安装，未改模板/runtime/工作流、未重跑CI。待用户另准：四栈13资源、两SQL修改事务及独立核验，未来service/task准确范围、配置1/PAT1/四密码/五新固定版本、最多8次调用方云写/STS2/元数据160/GitHub2/TLS6/SQL提交120均明列。未获准不执行；最多60分钟且最晚温尼伯11月16日17:51:38.241启动/18:51:38.241结束，旧事实不延。失败不重试、补齐、撤权/down或清理，可能遗留收费/授权；runtime仍关，不恢复或晋升/登记版本，真实更新0。过期仅停，不能借文档或旧读许可刷新事实。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 
