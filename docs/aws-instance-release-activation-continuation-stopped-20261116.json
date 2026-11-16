@@ -1,0 +1,88 @@
+{
+  "schema": "techlong/identity-installation-continuation-stopped/v1",
+  "status": "STOPPED_BEFORE_MUTATION_NEON_CONNECT_08P01",
+  "parentManifestCanonicalSha256": "08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2",
+  "continuationManifestCanonicalSha256": "b15b45561c94b8801085bb85ef6bb928f574763714298dbc2d4bfcd8c07b721f",
+  "userApprovedContinuation": true,
+  "startedAt": "2026-11-16T21:29:29.395Z",
+  "stoppedAt": "2026-11-16T21:29:33.724Z",
+  "operationNotAfterUnchanged": "2026-11-16T22:29:29.395Z",
+  "parentFactsNotAfterUnchanged": "2026-11-17T00:51:38.241Z",
+  "startedWithinApprovedWindow": true,
+  "phase": "CREDENTIAL_READS_AND_NEON_PRECONDITIONS",
+  "actualCurrentRoundCounts": {
+    "sourceSts": 1,
+    "awsMetadata": 0,
+    "githubGet": 2,
+    "configFileReads": 1,
+    "patFileReads": 1,
+    "neonConnectionAttempts": 1,
+    "completedNeonSessions": 0,
+    "sqlSubmissions": 0,
+    "secretValueReads": 0,
+    "passwordsGenerated": 0,
+    "createChangeSet": 0,
+    "executeChangeSet": 0,
+    "sqlWriteTransactions": 0,
+    "executionSlots": 0
+  },
+  "cumulativeCountsIncludingOriginalAttempt": {
+    "sourceSts": 2,
+    "awsMetadata": 20,
+    "githubGet": 2,
+    "configFileReads": 1,
+    "patFileReads": 1,
+    "neonConnectionAttempts": 1,
+    "sqlSubmissions": 0,
+    "cloudOrSqlWrites": 0
+  },
+  "sourceIdentityMatched": true,
+  "retained20EntryChecksReplayed": false,
+  "patAclMetadataCheckPassed": true,
+  "patRepositoryAndActionsAuthenticationPassed": true,
+  "rawProviderErrorSaved": false,
+  "safeErrorCode": "POSTGRES_08P01",
+  "localOnlyDiagnosis": {
+    "newProductionCalls": 0,
+    "newConfigPatOrSecretContentReads": 0,
+    "observedDifference": "Installer catalog.open adds lock_timeout and statement_timeout to PostgreSQL startup options; the successful same-day preflight connected without these startup options and used SET LOCAL after BEGIN.",
+    "offlinePgSerializerConfirmedOptionsAreInStartupPacket": true,
+    "providerDocumentsUnsupportedPooledStartupOptions": "https://github.com/neondatabase/website/blob/main/content/docs/connect/connection-errors.md#unsupported-startup-parameter",
+    "interpretation": "Consistent with unsupported startup parameters, not a uniquely proven provider cause: only SQLSTATE08P01 was retained, not the original error message.",
+    "connectionFixImplemented": false,
+    "productionReconnectOrWriteRetry": false
+  },
+  "privateEvidence": [
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/continue-b.mjs",
+      "sha256": "310c58bf10a3e27b5a58a75c4e36fe059b9a5c2ef470fde93b581c6ddd76b9f6"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/continuation-started.json",
+      "sha256": "b1dca6120e2fe47e6ac79ccdecf9ab3517be373e9401fa6bd71770898b2abba3"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/continuation-result.json",
+      "sha256": "1827f5a4c175175ba2a111e74edf24902dcd7b1e37535df12f5aa832bf99dce4"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/continuation-parent-calls.ndjson",
+      "sha256": "5803bb0a4f117bc01b7a9617b7fdf348eb55fef50494949fa526971fb4b67997"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/continuation-parent-outcomes.ndjson",
+      "sha256": "cf5836c0b78cdc64e2d751479ab6dff171888c63c1f4bee778a073ed2f6ec1a3"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/continuation-progress.ndjson",
+      "sha256": "592f1f6376d6103c18165c312831a14d680292ee69e90d45b549385211dcdd79"
+    }
+  ],
+  "originalProgramsAndFirstStopEvidenceUnchanged": true,
+  "mutationSlotUnconsumed": true,
+  "runtimeEnabled": false,
+  "environmentRestored": false,
+  "versionPublished": false,
+  "realVersionUpdates": 0,
+  "nextProposedScopeNotAuthorized": "Only a minimal installer connection-options fix with offline regression: use the successful preflight startup form, retain verified TLS and enforce bounded timeouts within each existing transaction. Do not reconnect, repeat credential reads, change endpoint or install without a separately reviewed continuation."
+}

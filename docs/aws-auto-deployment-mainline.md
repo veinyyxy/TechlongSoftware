@@ -2,11 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：安装写前ACL适配停止，仅待精确接续批准（2026-11-16）
+## 当前唯一继续点：接续停于Neon连接，仅提议最小启动参数修正与离线回归（2026-11-16）
 
 [原D2输入/缺项表](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已收口：真实桶ARN、`:13`/四值、两模板摘要及CFN/IAM归属直接复用[已核验接线](aws-instance-release-persistence-wiring-installed-20261115.json)，不重建图片资源或重放79314f…5写。其余允许列表、Secret输出及安装/版本/实例/恢复缺项已区分；原七草案/runtime/工作流不改、不重跑CI，本轮新云/SQL/凭据读取和写入均0，没有可执行安装SHA。
 
 [获准后停止及接续](aws-instance-release-activation.md#18-安装获准后停在本地acl读取未发生任何安装)：Source1/写前20项通过，旧PowerShell安全模块读取失败被误分类为空ACL/权限过宽，实际文件只有本人/Admin/SYSTEM；PAT/配置/密码/Secret值、云SQL写和槽均0。原件保留，本地pwsh元数据修正通过但未续跑。下一仅待接续SHA `b15b45561c94b8801085bb85ef6bb928f574763714298dbc2d4bfcd8c07b721f`批准额外Source1（累计3），复用20项/原剩余范围，新journal不回放旧命令。原失败轮次温尼伯16:03:41.314终点原样保留；提议新批准后一次至多60分钟接续，仍限11月16日17:51:38.241前启动、最晚18:51:38.241结束，父事实不延。原资源/身份未新增、runtime关、真实更新0，不改ACL或扩框架/依赖。
+
+**最新：b15已获准且执行停止，不再待批或重放。** [第19节](aws-instance-release-activation.md#19-接续获准后neon连接停止仍未安装) / [回执](aws-instance-release-activation-continuation-stopped-20261116.json)：Source/ACL/PAT认证通过，Neon连接08P01；配置1/PAT1/GitHub2/连接尝试1，SQL/Secret值/密码/云写/槽0。仅本地比对发现安装启动options不同于成功预检，候选原因与Neon池化限制相符，未保存原错误不作唯一确诊。下一只提议最小连接参数修正及离线回归，实际修正/生产重连或安装须另准；不要求刷新Source/PAT，不复位记录或延期限，不扩框架。runtime关、未恢复/发布，真实更新0。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 
