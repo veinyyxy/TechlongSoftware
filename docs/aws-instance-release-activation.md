@@ -2,7 +2,7 @@
 
 2026-11-14建立，2026-11-15离线收口，America/Winnipeg。**原D2身份启用仍未安装、未恢复、未启用；图片栈及原IAM/idle租户接线已另批完成。** 复用 D2-4/D2-5，不另建安装器/工作流，不重做业务验收。原七份安装草案的指纹索引仍为[activation.prepared.json](../ops/releases/activation.prepared.json)，`executionAuthorized=false`、`installationManifestSha256=null`；最新输入/缺项见第13节，材料指纹不是执行批准。
 
-**当前结论：** 获准的单次只读核对已定位本次快照的行序误报，见[第23节](#23-限定只读核对完成当前差异仅为授权记录行序)：原12条授权记录的完整内容及其余10类保护catalog均一致，只是两行互换。实用配置1/TLS只读连接1/SQL14，AWS/Secret/PAT/写入0；没有修比较器或改基准。两Secret栈/两SQL事务仍为已完成部分，四LOGIN独立认证及IAM余8资源尚未完成，runtime关。下一仅提议该比较器单点修正/离线回归，须用户同意，不重放安装。
+**当前结论：** 用户已同意比较器单点修正，已完成第24节代码/离线回归及原快照离线复核；只忽略membership行序，完整字段与重复次数仍严格比较，保护基准不变。此轮无新生产/凭据读取、连接或写入，未重放事务、补装IAM或恢复环境，runtime关。源码CI与后继独立核验/剩余IAM安装分开记录，不以修复通过冒称安装完成。
 
 图片前置的[真实完成记录](aws-instance-release-persistence-plan.md#19-原iam与idle租户接线已完成独立核验通过)已取代此前“仅方案/未安装”的状态；不再重建图片栈或重放接线。旧图来源/必要迁移和运行采样尚未证明，不以组件完成回执生成持久化就绪摘要或绕过`PERSISTENCE_NOT_READY`。
 
@@ -543,3 +543,17 @@ Execute明确`DisableRollback=true`、`RetainExceptOnCreate=false`，Create不�
 结论只覆盖本次真实快照：之前22:01失败时的catalog行没有保存，不能倒造其逐行证据或断言不存在任何瞬时变化。本次复现和集合等价证明足以定位当前比较器的顺序缺陷，不代表新增角色认证、列/函数ACL最终核验或IAM安装已完成，更不代表业务验收或D2-6通过。
 
 下一唯一建议仅离线修这一处membership比较，使其按完整记录稳定比较并保留所有字段/重复次数；新增回归必须证明重排行通过，而修改role/member/grantor或ADMIN/INHERIT/SET、缺/多/重复行仍失败，其他catalog比较保持原样。当前未获代码修正许可、未实施；须用户同意后只做该修正、离线回归与正常main提交，不新增生产读取、凭据读取、SQL/云写或安装入口。实际后继独立核验及剩余IAM仍须单独新范围，禁止重放已提交的两事务、两Secret栈或复位槽。
+
+## 24. membership顺序比较单点修正，离线回归通过
+
+用户已明确同意只修比较器与离线回归。本次新增一个[安装目录纯比较函数](../ops/releases/installation-catalog-comparison.mjs)，只对membership完整记录作稳定排序后继续原`isDeepStrictEqual`比较；role/member/grantor、ADMIN/INHERIT/SET、未知字段、类型及重复次数全部保留。其他10类catalog及其数组顺序仍按原规则精确比较，输入不变，不写新基准，不修改查询SQL或新增查询、重试/回滚/恢复框架。
+
+原`catalog-connection-fixed.mjs`及所有失败/执行文件保持原字节。新私有`catalog-membership-order-fixed.mjs`只添加该函数import、替换同一组件中安装前/安装后两次catalog相等判断，既有新增角色/函数/成员资格检查不改。没有生成或运行新安装入口，不让旧26246…或七永久fences重新可用。
+
+[13项新增回归](../tests/instance-release-installation-catalog.test.mjs)全部通过：重排行通过；单独改变role/member/grantor或ADMIN/INHERIT/SET仍失败；缺/多/重复行、同长度但重复计数变化、缺字段/错误类型/未知字段变化均失败；其他catalog内容/数组顺序变化仍失败；两侧输入均不改。原无AWS回归仅追加此测试和定向lint，不新建工作流/权限/依赖。相邻227项本地226pass/1原Windows ZIP解包skip，类型检查、定向lint、YAML和diff检查通过。
+
+仅使用第23节已封存的本地快照作离线复核：旧校验器仍能复现`OLD_PROTECTED_CATALOG_CHANGED`，新适配器的原目录比较通过；在内存副本中故意把owner一条原grant的SET改为true，仍以同类保护错误拒绝。安装前基准副本仅重排行也通过，不改真实基准。原38安装证据、八份诊断/证明文件及`grants-catalog.json`的`ade599…`指纹保持，未连接数据库、读取.env/PAT/Secret/PEM或调用AWS；没有运行open/capture/query或独立LOGIN认证。
+
+公开模块LF SHA `1937b40a4f9f7cd91e17018080d5c9c14b9b1dcbabec90eb7ae08ef9ac705191`，新增测试LF SHA `173fc68dc78e6c3aa27598091fc0bc12e035efb2fb3bbef61b73abdfad84bfbb`，私有新适配器原始SHA `68f2408e16fb7e93351e6e86174b7fab29d509a299c58d511e0160b3177c20b1`。原安装SQL/四模板、runtime与实际部署工作流不改，只有原无AWS检查工作流纳入新测试；对应push CI只核对此准确源码，不重跑或调度发布。
+
+本轮只代码/CI收尾。四窄LOGIN独立认证、列/函数ACL最终核验和IAM余8资源仍待单独受审继续，不重放两Secret栈或两已提交事务；runtime关，未恢复/发布、真实版本更新0。原事实/旧周期期限与已用预算均不续期/复位，不能借本次修复自动生产读取或安装。

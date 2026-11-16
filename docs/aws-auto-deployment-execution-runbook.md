@@ -2,7 +2,7 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：已定位当前catalog行序误报，仅待比较器单点修正许可（2026-11-16）
+## 当前唯一继续点：比较器单点修复已完成，仅代码回归与CI收尾（2026-11-16）
 
 [原启用材料第13节](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已离线填入真实UploadBucketArns、`:13`/S3四值、当前两模板摘要及原CFN/IAM归属，并把其余参数和安装/登记/恢复/两次更新缺项分开。复用[媒体结果](aws-instance-release-persistence-media-installed-20261115.json)和[接线结果](aws-instance-release-persistence-wiring-installed-20261115.json)，没有新生产/凭据读取、数据库/云写或槽消费；原七份草案/runtime/工作流/已存原件不改，不重跑CI。此输入表不是安装SHA，不重放已消费的5写。
 
@@ -17,6 +17,8 @@
 **最新实际执行覆盖上段待批：** 用户已批准26246…，[第22节](aws-instance-release-activation.md#22-获准接续已部分安装独立catalog比较失败后停止) / [部分执行回执](aws-instance-release-activation-installation-partial-20261116.json)：21:59:59.141Z启动，22:01:44.450Z停在独立`OLD_PROTECTED_CATALOG_CHANGED`。两Secret栈五资源/五固定版本已独立核验，两SQL事务均确认提交，四LOGIN已提交但未独立认证；IAM两栈/余8资源未创建，不称安装通过。实用STS2/元数据27/SQL36/连接2/新Secret值5/配置PAT各1/认证GET2/四密码/CFN Create2 Execute2/SQL两已知提交；加旧失败累计Source4/元数据47/连接3。七永久fences及38原件保留，runtime关、未恢复/发布，五Secret可能计费。实际差异字段未保存，不能臆判误报或越权；停止后仅本地核对，没有额外生产调用。下一只提议另准配置全文1＋验证TLS Neon READ ONLY连接1/最多20查询，核对同11类catalog及准确新增元数据并保存私有字段差异；不AWS/Secret/PAT/PEM、不改基准/写云DB/重放事务/补IAM，失败停。不因未用额度或旧22:59终点尚余而自动续跑，不扩支线。
 
 **最新诊断覆盖上段待读：** 用户已准且本次只读完成，[第23节](aws-instance-release-activation.md#23-限定只读核对完成当前差异仅为授权记录行序) / [诊断回执](aws-instance-release-protected-catalog-diagnosis-20261116.json)。22:22:42.817Z快照仅配置1/验证TLS READ ONLY连接1/SQL14，无AWS/Secret/PAT/持久写/新mutation槽。原查询仅按role/member排序，同一owner/member的两个不同grantor行互换下标，形成4处admin_option/grantor表面差异；保留全部字段及重复次数比较，原12行完整集合和其余10类catalog均相同，不改基准或忽略权限。原38安装证据保持，原失败快照未留不能倒造。本轮只定位、不修比较器或继续安装；下一仅提议该category稳定完整行比较和离线回归，须用户同意，不新读生产/扩框架/重放SQL/Secret栈/补IAM。runtime关、窄LOGIN认证及IAM8资源仍未完成，五Secret可能收费，旧期限与槽不变。
+
+**最新单点修复结项：** 用户已同意，[第24节](aws-instance-release-activation.md#24-membership顺序比较单点修正离线回归通过)完成单一纯比较模块及原新私有适配器两处相等判断接入；只处理membership顺序，完整字段/类型/重复次数和其他catalog数组顺序仍严格，基准/旧源/原件不改。13新增全过，相邻227项226pass/1原Windows skip，类型/lint/YAML/diff过；已存快照离线旧失败/新通过，故意改真实SET权限仍拒绝。没有新生产/凭据读取、连接、写入、槽或安装入口，原38证据/诊断原件/七fences保持。本轮只正常main提交推送并核对准确无AWS CI；不重放事务/Secret栈/补IAM，四LOGIN独立认证和IAM8资源仍另审，runtime关，旧期限/预算不重置，不扩支线。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 
