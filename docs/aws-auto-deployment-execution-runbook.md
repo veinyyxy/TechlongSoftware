@@ -2,13 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：接续停于Neon连接，仅提议最小启动参数修正与离线回归（2026-11-16）
+## 当前唯一继续点：最小连接修正及离线回归完成，本轮仅代码收尾（2026-11-16）
 
 [原启用材料第13节](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已离线填入真实UploadBucketArns、`:13`/S3四值、当前两模板摘要及原CFN/IAM归属，并把其余参数和安装/登记/恢复/两次更新缺项分开。复用[媒体结果](aws-instance-release-persistence-media-installed-20261115.json)和[接线结果](aws-instance-release-persistence-wiring-installed-20261115.json)，没有新生产/凭据读取、数据库/云写或槽消费；原七份草案/runtime/工作流/已存原件不改，不重跑CI。此输入表不是安装SHA，不重放已消费的5写。
 
 [第18节停止/最小接续范围](aws-instance-release-activation.md#18-安装获准后停在本地acl读取未发生任何安装)：08ceb8…已获准且Source/写前20项通过，但21:03:48.314Z停于旧PowerShell ACL模块读取误判，PAT/配置/Secret值/密码/云SQL写/槽全0。[原件与回执](aws-instance-release-activation-installation-stopped-20261116.json)保留，当前ACL仍三主体，只验证了pwsh本地元数据修正，没有改权限/依赖或重跑安装。仅待[接续JSON](aws-instance-release-activation-installation-continuation-review-20261116.json)SHA `b15b45561c94b8801085bb85ef6bb928f574763714298dbc2d4bfcd8c07b721f`新批准：保留20项、不重复盘点，额外Source1使累计STS3，原140剩余元数据及8云写/2事务等额度不加；新journal不改旧程序或槽。原失败轮次16:03:41.314终点保留；新批准才可开始一次至多60分钟接续，仍须温尼伯11月16日17:51:38.241前启动、最晚18:51:38.241结束，父事实不延。未批准不续跑；runtime关、真实更新0，未创建新资源。
 
 **最新覆盖上述待批状态：** 用户已批准b15接续，21:29:29.395Z有效期内启动；Source/ACL/PAT认证通过，不重读原20项。首次Neon连接报08P01，21:29:33.724Z停止，本次配置1/PAT1/GitHub2/连接尝试1、SQL/Secret值/密码/云写/槽0。[第19节及下一最小范围](aws-instance-release-activation.md#19-接续获准后neon连接停止仍未安装) / [去敏回执](aws-instance-release-activation-continuation-stopped-20261116.json)。仅本地比对定位启动options与成功预检不同，符合官方池化参数限制的候选原因，未留原错误不能唯一确诊；未修连接或再次生产读取。下一只提议连接启动参数最小修正/离线回归，须用户同意；不重连、重读凭据或安装，新接续实际范围仍另审，旧期限/程序/记录/槽保持，runtime关、真实更新0。
+
+**最新代码收尾覆盖上段修复待批：** 用户仅准单点修正/离线回归，[第20节](aws-instance-release-activation.md#20-连接启动参数最小修正与离线回归完成未重连)已完成：不传锁/语句超时startup参数，既有BEGIN后SET LOCAL保留1秒锁/15秒事务内语句超时及验证TLS；无新框架/工作流/权限。14新增全过，相关214项213pass/1原Windows skip、类型/lint/YAML/diff通过，原17证据/七草案/runtime/部署工作流不改。promotion提交正文现为精确派生文本，不再称原文件逐字提交；事务外仅原20秒客户端超时，未来准确接续须披露并另批，不自动安装。此轮无凭据/生产读取或数据库连接、槽/云SQL写0，未生成新执行入口/清单；只正常main提交推送，后继实际读取/安装仍另审，旧期限不延、runtime关。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 

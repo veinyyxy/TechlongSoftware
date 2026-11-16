@@ -2,7 +2,7 @@
 
 2026-11-14建立，2026-11-15离线收口，America/Winnipeg。**原D2身份启用仍未安装、未恢复、未启用；图片栈及原IAM/idle租户接线已另批完成。** 复用 D2-4/D2-5，不另建安装器/工作流，不重做业务验收。原七份安装草案的指纹索引仍为[activation.prepared.json](../ops/releases/activation.prepared.json)，`executionAuthorized=false`、`installationManifestSha256=null`；最新输入/缺项见第13节，材料指纹不是执行批准。
 
-**当前结论：** 用户已批准08ceb8…及b15b455…接续；ACL修正通过，Source/PAT认证成功，但首次Neon连接报08P01，在密码生成、SQL或云写前停止，详见[第19节](#19-接续获准后neon连接停止仍未安装)。本接续配置1/PAT1/GitHub2/连接尝试1，SQL/Secret值/密码/云写/槽0；未安装、恢复或发布。原记录保留，不自动重连；下一仅提议连接启动参数最小修正与离线回归，实际新读取及安装仍另审。
+**当前结论：** b15接续已在Neon连接08P01处停止；用户随后仅批准最小连接参数修正/离线回归，现已完成，详见[第20节](#20-连接启动参数最小修正与离线回归完成未重连)。本次修复没有凭据/生产读取、数据库连接、安装或槽消费；原失败证据与原七草案保持。修复不是重连/安装许可，也不证明08P01服务端原因已唯一确诊；runtime仍关，未恢复或发布。
 
 图片前置的[真实完成记录](aws-instance-release-persistence-plan.md#19-原iam与idle租户接线已完成独立核验通过)已取代此前“仅方案/未安装”的状态；不再重建图片栈或重放接线。旧图来源/必要迁移和运行采样尚未证明，不以组件完成回执生成持久化就绪摘要或绕过`PERSISTENCE_NOT_READY`。
 
@@ -445,3 +445,25 @@ Execute明确`DisableRollback=true`、`RetainExceptOnCreate=false`，Create不�
 停止后仅本地比对发现：安装`catalog.open`把`lock_timeout`/`statement_timeout`放入连接启动options；同日成功预检不传这些启动项，而是在BEGIN后SET LOCAL。无网络的真实pg序列化检查确认这两个值会进入StartupMessage。[Neon官方说明](https://github.com/neondatabase/website/blob/main/content/docs/connect/connection-errors.md#unsupported-startup-parameter)指出池化连接会拒绝不支持的启动参数；这是与08P01相符的候选原因，**原始提供者错误消息未保留，不能宣称已唯一确诊**。未再次读取配置/PAT或连接数据库，未修改线上参数、切换endpoint或实施连接修复，不要求刷新已成功的Source/PAT。
 
 下一唯一建议仅先修安装连接启动参数，复用成功预检形式并在原事务内保持锁/语句超时、验证TLS及原SQL/连接限额，补离线回归；本轮没有这项额外修正或新连接的批准，故仅记录建议。不扩运行框架或降低超时保护，不改四模板/权限/数据库业务；修正后实际新读取和安装仍需准确新接续范围，不能借b15批准重复已用配置/PAT/GitHub或连接额度。旧相对/绝对期限均不自动延长，D2-6真实更新仍0。
+
+## 20. 连接启动参数最小修正与离线回归完成，未重连
+
+用户明确只批准这处连接修正与离线回归，不重连/安装或扩支线。本次仅新增一个安装专用的[纯连接/SQL派生模块](../ops/releases/installation-connection.mjs)及[14项定向测试](../tests/instance-release-installation-connection.test.mjs)，复用原无AWS回归工作流纳入测试/lint，没有新工作流、执行命令、权限或依赖。它不读取配置/凭据、不创建连接或自动运行安装。原运行时/部署工作流、四模板/三SQL原件及17份已封存失败证据全部指纹保持。
+
+准确修正：
+
+- 不把锁/语句超时放进StartupMessage；URL里的同名启动参数也被移除，客户端配置显式关闭其启动包形式。相同endpoint、数据库和账号不被替换；验证TLS与10秒连接/20秒客户端query超时保留，原私有适配器的目标/PGOPTIONS/TLS环境拒绝仍在。
+- 仅在既有三种BEGIN形式及promotion文件的顶层BEGIN后插入`SET LOCAL lock_timeout = '1s'`与`SET LOCAL statement_timeout = '15s'`。不增加事务或client.query提交，不改SELECT/占位符、LOGIN片段、函数/DO内BEGIN、COMMIT/ROLLBACK。事务外单句仍只有原20秒客户端query超时，**不声称SET LOCAL跨COMMIT保留或客户端超时等价于服务端取消**；未来接续必须明确这一区别，不能声称所有会话语句仍有全局服务端15秒设置。
+- 原SQL文件字节不改，但BEGIN提交正文和promotion提交正文会增加两条SET LOCAL，**不再等于父清单的逐字原文件提交合同**。未来新接续必须绑定这项精确差异及派生正文SHA，不得直接借旧08/b15批准执行。SQL预算单位仍是client.query提交，不伪称服务端语句数量未增加。
+- 新私有`catalog-connection-fixed.mjs`仅接入这两个纯函数，query审计同时记录源SQL及实际提交SQL摘要；只通过语法/差异检查，没有加载其历史catalog或运行open/query。旧`catalog.mjs`及两个已停止入口/记录不改；未生成新的可执行接续入口或审批SHA。
+
+本地验证：新增14/14通过；原无AWS相邻套件214项、213pass/1原Windows ZIP解包skip，类型检查、定向lint、YAML及diff检查通过。用真实pg客户端构造/StartupMessage序列化和Query协议选择验证，不调用connect、不读取.env/PAT/Secret/PEM、不用生产快照正文，不运行PostgreSQL测试连接。对应push会触发既有无AWS CI；本地通过不是云端CI或实际安装成功。
+
+离线指纹（公开源码及promotion按LF规范文本；私有适配器按原始字节SHA）：
+
+- `ops/releases/installation-connection.mjs`：`8ce210d535644581ea9db9f164e2d42dda4b3450408bc9b33be8da952530bc40`
+- `tests/instance-release-installation-connection.test.mjs`：`f268718f1eca456ce7f00146724b407631bd3e0506b15d2328ea2ee707290ca9`
+- 私有新适配器：`4087027ca607e81a0a1f4f0a58f48d4d229330d2f6c8b3d36b3b3c3cecf923aa`
+- promotion派生提交正文：`59ca631d3c4a99cfb2239ef71ef32ce9beb310fcea3a98cd9ce9b2b0c2c2e17a`；原文件SHA仍`1c588056413f30e5ec0b8f0243a6af0fbbc5635ac7682f397156b5034f75aa3c`。
+
+本轮在代码/文档收尾，不编制新安装清单、不补读取或重复凭据使用、不消费槽。后继只有用户要求继续后再集中列明必要新读取/凭据及派生SQL合同、原已用计数/剩余范围和期限，准确另审；旧事实终点与失败周期不变。runtime关、安装0、真实版本更新0，不恢复环境或发布版本。
