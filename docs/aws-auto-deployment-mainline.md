@@ -2,7 +2,7 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：修复CI已通过，新安装接续清单仅待另审（2026-11-16）
+## 当前唯一继续点：身份部分安装后核验停止，仅待一次限定只读差异许可（2026-11-16）
 
 [原D2输入/缺项表](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已收口：真实桶ARN、`:13`/四值、两模板摘要及CFN/IAM归属直接复用[已核验接线](aws-instance-release-persistence-wiring-installed-20261115.json)，不重建图片资源或重放79314f…5写。其余允许列表、Secret输出及安装/版本/实例/恢复缺项已区分；原七草案/runtime/工作流不改、不重跑CI，本轮新云/SQL/凭据读取和写入均0，没有可执行安装SHA。
 
@@ -13,6 +13,8 @@
 **最新代码结项：** 用户已仅批准最小修复，[第20节](aws-instance-release-activation.md#20-连接启动参数最小修正与离线回归完成未重连)完成：单一安装纯模块移除超时启动项、原事务BEGIN后SET LOCAL；原记录/SQL原件不改，实际promotion提交会派生新SHA，事务外仅原客户端20秒，不混称原逐字提交/全局15秒。新增14过，相关214项213pass/1原Windows skip，类型/lint/YAML/diff过；无生产/凭据读取、重连、安装或新清单，不扩运行框架。此轮只main提交推送；源码通过不等于08P01已唯一确诊或安装通过，后继实际新读取/安装须准确另审，旧期限不延、runtime关、真实更新0。
 
 **当前待批材料：** [第21节](aws-instance-release-activation.md#21-准确ci通过新的安装接续清单仅待另审) / [接续C JSON](aws-instance-release-activation-installation-continuation-c-review-20261116.json) SHA `26246abec9dc219d6276c4cbb1985ab8487049a254512f73a958729aebf53a5d`；已核对准确4cd621f/CI43962796707原push/attempt1、214＋9全过及lint/类型。原四栈13资源/两事务不扩，20项复用；拟议Source2累计4、配置/PAT各1累计各2、官方认证GET2累计4、连接6累计7（含旧失败），元数据140累计160/写8/SQL120保持，派生SQL及非事务语句仅客户端超时差异已明列。只有新批准后才开启≤60分钟，仍须温尼伯11月16日17:51:38.241前启动、18:51:38.241前结束；旧事实与失败记录不延/复位。此轮只GitHub GET4/本地核对，AWS、凭据正文、生产连接与写槽均0，不实际安装/恢复/发布，runtime关、真实更新0；下一仅另审该SHA，不再盘点或扩支线。
+
+**最新实际状态：** 用户批准26246…后已执行，[第22节](aws-instance-release-activation.md#22-获准接续已部分安装独立catalog比较失败后停止) / [回执](aws-instance-release-activation-installation-partial-20261116.json)。两Secret栈/五Secret及固定版本独立通过，两SQL事务已知提交；随后受保护catalog整体比较失败，四窄LOGIN未独立认证，IAM两栈8资源未创建，安装未通过。当前实用Source2/元数据27/SQL36/连接2/4次CFN写/两已知提交，累计Source4/元数据47/连接3；原20项不重读，七永久fences/38原件保留。没有失败后新生产读取/重试，runtime关、不恢复/发布，五Secret仍可能收费。下一仅另审配置1/TLS Neon READ ONLY连接1/最多20查询的字段差异核对，不能凭错误标签改比较器/保护基准或重放SQL/补IAM；无AWS/Secret/PAT/PEM及写入，旧期限/已用额度不复位，不扩框架或业务测试。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 

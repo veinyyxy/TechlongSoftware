@@ -2,7 +2,7 @@
 
 2026-11-14建立，2026-11-15离线收口，America/Winnipeg。**原D2身份启用仍未安装、未恢复、未启用；图片栈及原IAM/idle租户接线已另批完成。** 复用 D2-4/D2-5，不另建安装器/工作流，不重做业务验收。原七份安装草案的指纹索引仍为[activation.prepared.json](../ops/releases/activation.prepared.json)，`executionAuthorized=false`、`installationManifestSha256=null`；最新输入/缺项见第13节，材料指纹不是执行批准。
 
-**当前结论：** 连接修正源码4cd621f的准确CI已成功；新接续清单已按原四栈13资源/两事务集中备齐，仅待实际安装另审，见[第21节](#21-准确ci通过新的安装接续清单仅待另审)。本轮只读GitHub4次并核对已存原件，AWS/凭据正文/生产数据库连接/写入/槽0，不取新快照。原七草案和失败记录保持，runtime关闭，未安装、恢复或发布。
+**当前结论：** 用户已批准26246…并在有效期内执行：两Secret栈/五资源及五固定版本独立核验通过，两SQL事务均确认提交；随后原受保护catalog比较失败，停止在IAM创建之前，见[第22节](#22-获准接续已部分安装独立catalog比较失败后停止)。四LOGIN已提交但未独立认证，不能称安装完成。runtime关，未恢复或发布；原记录/槽保持，不重放事务或继续IAM。下一仅提议一次限定只读差异核对，须另批。
 
 图片前置的[真实完成记录](aws-instance-release-persistence-plan.md#19-原iam与idle租户接线已完成独立核验通过)已取代此前“仅方案/未安装”的状态；不再重建图片栈或重放接线。旧图来源/必要迁移和运行采样尚未证明，不以组件完成回执生成持久化就绪摘要或绕过`PERSISTENCE_NOT_READY`。
 
@@ -501,3 +501,28 @@ Execute明确`DisableRollback=true`、`RetainExceptOnCreate=false`，Create不�
 新私有C入口及数据库检查器仅完成语法、与原件精确差异及本地绑定/预算核验；公开CI只证明源码模块与原回归，不冒称执行过这份私有入口。新入口会在获准后先核对本清单SHA、两停止回执/17原件、准确CI回执及九份执行文件，再以新Source身份推进从未写入的原步骤；原global `attempt.json`尚不存在，C started/result也未生成，旧文件不覆写。
 
 当前准备中只有GitHub4次只读及本地原件核对，AWS/配置PAT正文/Neon或Aurora连接/密码生成/云SQL写/槽全0，没有准备新版本、恢复环境或运行时授权。成功标准仍只为身份组件独立核验，runtime=false/目录不写/真实更新0；本轮在待批材料结项，不执行该入口。下一只有用户明确批准本SHA、表中额外读取与连接、派生SQL合同及全部风险后，且仍未过期，才允许安装。
+
+## 22. 获准接续已部分安装，独立catalog比较失败后停止
+
+用户已明确批准26246…接续及新增读取/连接、派生SQL与完整风险。21:59:59.141Z在原有效期内启动，仅执行这一轮；22:01:44.450Z在独立数据库核验中停止，没有重跑C或旧入口。[准确部分执行回执](aws-instance-release-activation-installation-partial-20261116.json)绑定38份私有执行/代码证据索引、原始结果、两次COMMIT ACK、实际ARN/VersionId和七个已消费永久mutation fences；不保存凭据正文。
+
+| 部分 | 实际结果 |
+| --- | --- |
+| 控制Secret栈（3资源） | `CREATE_COMPLETE`，准确模板/归属/输出独立核验通过 |
+| 晋升Secret栈（2资源） | `CREATE_COMPLETE`，准确模板/归属/输出独立核验通过 |
+| 五个新Secret | 实际固定VersionId已独立取得，各一次GetSecretValue与原内存输入匹配 |
+| promotion事务 | 22:01:42.096Z已知提交成功；实际提交为获准派生SHA59ca631d… |
+| 四LOGIN/密码事务 | 22:01:42.602Z已知提交成功，提交前四角色能力检查通过 |
+| 独立数据库核验 | owner验证TLS只读连接/13次SQL后，报`OLD_PROTECTED_CATALOG_CHANGED` |
+| 四窄LOGIN独立认证 | 尚未尝试，不能称四密码登录/最终权限已验证 |
+| 两IAM栈（余8资源） | 未发起Create/Execute，未新增这四IAM角色/四policy |
+
+错误发生在`verifyAfter`去除已批准新增角色/函数和publisher schema ACL之后，与原受保护catalog整体比较的最后一步。只保留了安全错误类别，没有保存该次catalog行或差异字段；**这既不能证明旧对象未变，也不能仅凭错误标签断言发生了哪一项非预期变更**。不直接放宽比较、重写旧保护基准或当作误报跳过。后续列/函数ACL细核与四窄角色认证均未完成，故身份安装仍未通过。
+
+本轮实用Source2/元数据27/新固定Secret正文5/配置1/PAT1/官方认证GET2/四密码/Neon连接2/SQL提交36、Create2＋Execute2、SQL修改事务2且COMMIT ACK2。包含两次旧失败的累计为Source4/元数据47/配置2/PAT2/认证GET4/连接尝试3/SQL36，写仍4次CFN调用＋两事务。原20项没有重读；新连接修正已在本次实际会话通过，不再出现08P01，但这不替代整个安装验收。
+
+两个Secret栈ID分别为`153f5090…`、`31373240…`，五个实际Secret ARN/固定版本见回执；五Secret可能持续计费，四LOGIN密码及LOGIN状态已提交。runtime=false不是凭据撤销。没有启动计算/数据库或恢复环境，没有版本/实例目录seed、业务行DML或版本发布；原七草案、原失败证据、runtime与部署工作流指纹保持，真实版本更新0。不自动删除Secret、重置密码、down/撤权、重放SQL或补装IAM；源程序、C started/result及global/六动作fence保持原字节。
+
+停止后只核对本地已存结果、源码和摘要，新增AWS/生产数据库连接/配置PAT或Secret正文读取/写入均0。C轮次原终点22:59:59.141Z、父事实00:51:38.241Z均保留，**未用额度或尚余时间不构成失败后继续的授权**。
+
+下一唯一提案（尚未获准）：读取现有`.env.local`全文一次，仅进入内存；一条验证TLS的Neon READ ONLY连接，最多20次client.query（含事务控制），只采集同11类catalog及准确新增对象元数据，保存私有catalog和具体字段路径/摘要差异，与旧基准逐字段比较。接受现有owner凭据较宽、整文件进内存及网络/提供者日志风险。无业务行、AWS/Secret/PAT/PEM读取，不连接Aurora，不写数据库/云、不消费新槽、不安装IAM或重试两事务，不修改保护基准；失败即停。先取得这一次限定只读许可，再准备最小核对，不另搭框架或提前修比较器。

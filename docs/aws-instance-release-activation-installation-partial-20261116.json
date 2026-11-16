@@ -1,0 +1,260 @@
+{
+  "schema": "techlong/identity-installation-partial-observed/v1",
+  "status": "PARTIAL_INSTALLATION_STOPPED_PROTECTED_CATALOG_MISMATCH",
+  "parentCanonicalSha256": "08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2",
+  "approvedContinuationCanonicalSha256": "26246abec9dc219d6276c4cbb1985ab8487049a254512f73a958729aebf53a5d",
+  "userApprovalReceived": true,
+  "startedAt": "2026-11-16T21:59:59.141Z",
+  "stoppedAt": "2026-11-16T22:01:44.450Z",
+  "operationNotAfterUnchanged": "2026-11-16T22:59:59.141Z",
+  "parentFactsNotAfterUnchanged": "2026-11-17T00:51:38.241Z",
+  "startedWithinApprovedWindow": true,
+  "stopPhase": "INDEPENDENT_DATABASE_AUTHENTICATION",
+  "operatorStatus": "STOPPED_PARTIAL_OR_UNKNOWN_NO_RETRY",
+  "error": {
+    "code": "INDEPENDENT_VERIFICATION_STOPPED",
+    "httpStatus": null
+  },
+  "independentDatabaseError": {
+    "code": "OLD_PROTECTED_CATALOG_CHANGED",
+    "httpStatus": null
+  },
+  "currentRoundCounts": {
+    "metadata": 27,
+    "sts": 2,
+    "secretValue": 5,
+    "create": 2,
+    "execute": 2,
+    "sql": 36,
+    "connections": 2,
+    "configReads": 1,
+    "patReads": 1,
+    "github": 2,
+    "passwordsGenerated": 4,
+    "sqlWriteTransactions": 2,
+    "sqlCommitAcks": 2
+  },
+  "cumulativeInstallationCountsIncludingTwoEarlierFailures": {
+    "metadata": 47,
+    "sts": 4,
+    "secretValue": 5,
+    "create": 2,
+    "execute": 2,
+    "sql": 36,
+    "connections": 3,
+    "configReads": 2,
+    "patReads": 2,
+    "github": 4,
+    "passwordsGenerated": 4,
+    "sqlWriteTransactions": 2,
+    "sqlCommitAcks": 2
+  },
+  "completedSecretStacks": [
+    {
+      "purpose": "controlSecrets",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-instance-release-secrets-v1/153f5090-e209-11f1-b1ae-06ffced96645",
+      "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/d2-activation-controlSecrets-08ceb8edcc01/7db6d5de-7e72-4825-84d8-96c2d4e533bd",
+      "status": "CREATE_COMPLETE",
+      "resources": 3,
+      "independentlyVerified": true
+    },
+    {
+      "purpose": "promotionSecrets",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-instance-release-promotion-secrets-v1/31373240-e209-11f1-a589-0235049d7ab7",
+      "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/d2-activation-promotionSecrets-08ceb8edcc01/3b1ccbe7-6030-4ffb-92dc-d8b709f02a2c",
+      "status": "CREATE_COMPLETE",
+      "resources": 2,
+      "independentlyVerified": true
+    }
+  ],
+  "secretFixedReferences": {
+    "Planner": {
+      "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/planner-db-v1-HPepzU",
+      "versionId": "fa0b55bd-fd3f-6ade-921f-86cb3ec49f48",
+      "name": "techlong/sandbox/instance-release/planner-db-v1",
+      "keyArn": "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570",
+      "coreTagsMatch": true
+    },
+    "Executor": {
+      "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/executor-db-v1-8Nxk1p",
+      "versionId": "0e0c3551-91ec-fa50-d332-cb450ddd0fb1",
+      "name": "techlong/sandbox/instance-release/executor-db-v1",
+      "keyArn": "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570",
+      "coreTagsMatch": true
+    },
+    "Verifier": {
+      "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/verifier-db-v1-LXqDKu",
+      "versionId": "2bf43efd-e425-c3a8-df7f-d4d8094feebc",
+      "name": "techlong/sandbox/instance-release/verifier-db-v1",
+      "keyArn": "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570",
+      "coreTagsMatch": true
+    },
+    "Publisher": {
+      "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/publisher-db-v1-DpSdD3",
+      "versionId": "97c8332f-36d0-37e5-cb6d-6c126a9dbcf8",
+      "name": "techlong/sandbox/instance-release/publisher-db-v1",
+      "keyArn": "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570",
+      "coreTagsMatch": true
+    },
+    "BackendBuildToken": {
+      "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/backend-build-read-token-v1-zjIXrv",
+      "versionId": "a8a64f33-c9bc-7525-48ec-1f50b972f426",
+      "name": "techlong/sandbox/instance-release/backend-build-read-token-v1",
+      "keyArn": "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570",
+      "coreTagsMatch": true
+    }
+  },
+  "secretProof": {
+    "status": "NEW_SECRET_STACKS_AND_FIXED_VERSIONS_INDEPENDENTLY_VERIFIED",
+    "completedAt": "2026-11-16T22:01:41.421Z",
+    "sourceAndIndependentTemplatesOwnershipMetadataMatch": true,
+    "fiveActualFixedVersionPayloadsComparedInMemory": true,
+    "credentialBodiesPersisted": false
+  },
+  "committedDatabaseChanges": {
+    "promotion": {
+      "committed": true,
+      "at": "2026-11-16T22:01:42.096Z",
+      "derivedSubmittedSqlMatchesApproval": true,
+      "sourceFile": "ops/releases/promotion.draft.sql",
+      "sourceLfSha256": "1c588056413f30e5ec0b8f0243a6af0fbbc5635ac7682f397156b5034f75aa3c",
+      "submittedLfSha256": "59ca631d3c4a99cfb2239ef71ef32ce9beb310fcea3a98cd9ce9b2b0c2c2e17a",
+      "expectedNewGroup": "deployment_release_publisher",
+      "expectedNewFunctions": 3,
+      "expectedNewColumns": 2,
+      "fullIndependentPostVerification": false
+    },
+    "fourLogins": {
+      "committed": true,
+      "at": "2026-11-16T22:01:42.602Z",
+      "preCommitFourRoleCapabilityCheckPassed": true,
+      "roles": [
+        "deployment_release_planner_login",
+        "deployment_release_executor_login",
+        "deployment_release_verifier_login",
+        "deployment_release_publisher_login"
+      ],
+      "loginAndPasswordChangesCommitted": true,
+      "narrowLoginAuthenticationSessionsAttempted": 0,
+      "independentlyAuthenticated": false
+    }
+  },
+  "independentDatabaseCheck": {
+    "status": "STOPPED_NO_RETRY",
+    "startedAt": "2026-11-16T22:01:42.928Z",
+    "completedAt": "2026-11-16T22:01:44.416Z",
+    "verifiedTlsOwnerSession": true,
+    "readOnlyCaptureSqlSubmissions": 13,
+    "errorClass": "OLD_PROTECTED_CATALOG_CHANGED",
+    "fourNarrowLoginsAttempted": false,
+    "columnsFunctionAclAndFinalGrantChecksCompleted": false,
+    "differenceFieldsNotRetained": true,
+    "catalogRowsNotRetained": true,
+    "doesNotByItselfProveSpecificUnapprovedChange": true
+  },
+  "notAttempted": {
+    "iamStackCreates": 0,
+    "iamStackExecutes": 0,
+    "iamRolesCreatedByThisRun": 0,
+    "managedPoliciesCreatedByThisRun": 0,
+    "remainingExpectedIamResources": 8,
+    "environmentRestoration": false,
+    "versionPublication": false,
+    "versionOrInstanceCatalogSeeding": false,
+    "committedTransactionRollbackOrDown": false,
+    "automaticWriteRetryOrCleanup": false
+  },
+  "runtime": {
+    "enabled": false,
+    "originalRuntimeHashUnchanged": true,
+    "originalDeploymentWorkflowHashUnchanged": true,
+    "realVersionUpdates": 0,
+    "computeOrDatabaseResourceStartsByThisRun": 0
+  },
+  "evidenceIndex": {
+    "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/continuation-c-evidence-index.json",
+    "sha256": "a31767198aca13c015fc094821854f1c6f86a4de52f653f72671c8694e7e8171",
+    "files": 38
+  },
+  "keyPrivateEvidence": [
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/continuation-c-started.json",
+      "sha256": "328998dec31c321b756890cb9282d09565918c0e00ff98a17396ea3094ed2c88"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/continuation-c-result.json",
+      "sha256": "42f8dfb42440022100e4c032a5a53ec33d5d79251d641a3e63c22cfa06dcf611"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/inspect-secrets-result.json",
+      "sha256": "2df41c4f3af43a1d514bdf5957ae5087c7f13256b5226ca45dc6ce598fff240d"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/inspect-db-result.json",
+      "sha256": "f53bcf786e5ece028a917b4dc919ce6536be90a041b13ca52daa3e93825f38eb"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/ack-sql-promotion.json",
+      "sha256": "6b8e79b4fb566ac9d1e86a7b20713a4d754df90e8a5d311810d706ee6e34543c"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/ack-sql-logins.json",
+      "sha256": "2bc0ccb8e451cf6b75eedf8bbb42d5a83b367b614f31849a04a0752e7db07f27"
+    }
+  ],
+  "permanentMutationFences": [
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt.json",
+      "sha256": "46862462db0f6cdebeaef008ac869cee9bb706a1373dc5cec5eb6b7b1b802ffb"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt-controlSecrets-create.json",
+      "sha256": "284f5f2a43101ba83ccdbea88ca287d930605f85bcd772d24fc7b916b2ce025e"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt-controlSecrets-execute.json",
+      "sha256": "1e7cf48b8419378825206402d4119e76e17955193103e562f2dacf6bf887a5ef"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt-promotionSecrets-create.json",
+      "sha256": "0b6a600ea5c825ac5feffe6246e6a6aab9a0ad1f9db73319d97540e881735aff"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt-promotionSecrets-execute.json",
+      "sha256": "fb69fbfcd15c9559bffccb50682d22846c89f7b2fde46c834c0f3568d3eb0c88"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt-sql-promotion.json",
+      "sha256": "7c22dd7eaa0f34731de568d4f58c78ee47c08660099dfa9b0b9bc795c43dcbd4"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt-sql-logins.json",
+      "sha256": "0d9e0c263262ac9701de32be46ae18097060a16bb90440023ed4df57b9874627"
+    }
+  ],
+  "oldSourcesManifestsEvidenceAndSevenArtifactsUnchanged": true,
+  "afterStop": {
+    "awsCalls": 0,
+    "productionDatabaseConnections": 0,
+    "configPatPemOrSecretValueReads": 0,
+    "cloudOrSqlWrites": 0,
+    "onlyLocalSavedMetadataCodeAndHashChecks": true,
+    "protectionBaselineModified": false
+  },
+  "costsAndAuthorization": "Five Retain Secrets may continue to charge; four LOGIN roles have committed credentials. Runtime disabled is not revocation. No automatic delete, password reset, down migration or IAM continuation.",
+  "nextProposalNotAuthorized": {
+    "purpose": "Identify the exact protected-catalog difference before any fix or remaining IAM installation.",
+    "configFileReadsMax": 1,
+    "verifiedTlsNeonReadOnlyConnectionAttemptsMax": 1,
+    "sqlSubmissionsIncludingControlsMax": 20,
+    "scope": "Only the same11 catalog categories and expected-added-object metadata; compare to retained baseline and save exact field paths/digests plus catalog metadata in the local private directory, no business rows.",
+    "awsCalls": 0,
+    "secretValuePatOrPemReads": 0,
+    "readRisks": "The existing broad owner credential and full config file enter process memory; verified TLS does not eliminate network/provider logging risks. Read-only checks are catalog metadata only, not business rows.",
+    "auroraConnections": 0,
+    "cloudOrSqlWrites": 0,
+    "executionSlotConsumption": 0,
+    "repeatTransactionsOrReseedBaseline": false,
+    "failureRule": "Stop on failure; do not expand scope, retry, normalize an unexplained difference into acceptance, install IAM, revoke or clean up."
+  }
+}
