@@ -1,0 +1,300 @@
+{
+  "schema": "techlong/instance-release-activation-preflight-observed/v2",
+  "status": "CONCENTRATED_PREFLIGHT_COMPLETE_INSTALLATION_REVIEW_REQUIRED",
+  "scopeDocument": "docs/aws-instance-release-activation.md#14",
+  "scopeAtCommit": "43620eb55bb05c32830a4256b59398850f923c96",
+  "freshRoundExplicitlyApproved": true,
+  "startedAt": "2026-11-16T19:51:38.241Z",
+  "awsCompletedAt": "2026-11-16T19:56:23.106Z",
+  "githubCompletedAt": "2026-11-16T19:57:49.149Z",
+  "completedAt": "2026-11-16T19:59:03.732Z",
+  "factsValidUntil": "2026-11-17T00:51:38.241Z",
+  "factsValidUntilWinnipeg": "2026-11-16T18:51:38.241-06:00",
+  "oldFactsOrArtifactDeadlinesExtended": false,
+  "previousSourceFailureReceipt": "docs/aws-instance-release-activation-preflight-stopped-20261116.json",
+  "oldAttemptRetainedNotReplayed": true,
+  "hostApprovalFailureBeforeBExecutionDidNotRunSts": true,
+  "source": {
+    "profile": "techlong-sandbox-user",
+    "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "accountId": "402010193138",
+    "successfulStsResponses": 1,
+    "installationPermissionsSimulated": false
+  },
+  "actualCounts": {
+    "stsCommandAttemptsThisSuccessfulRound": 1,
+    "awsMetadata": 51,
+    "githubGet": 8,
+    "configFileReads": 1,
+    "verifiedTlsNeonReadOnlyConnections": 1,
+    "sqlIncludingTransactionControls": 22,
+    "secretValueReads": 0,
+    "patFileReads": 0,
+    "pemReads": 0,
+    "artifactZipDownloads": 0,
+    "auroraConnections": 0,
+    "remoteWrites": 0,
+    "executionSlots": 0,
+    "restoreInstallPublishOrDispatch": 0,
+    "automaticRetries": 0
+  },
+  "aws": {
+    "originalStacks": {
+      "platform": {
+        "id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+        "status": "UPDATE_COMPLETE",
+        "retainedResources": 7
+      },
+      "cell": {
+        "id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+        "status": "UPDATE_COMPLETE",
+        "retainedResources": 12
+      },
+      "tenant": {
+        "id": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+        "status": "UPDATE_COMPLETE",
+        "retainedResources": 3
+      }
+    },
+    "newNameVacancies": {
+      "stacks": 4,
+      "roles": 4,
+      "managedPolicies": 4,
+      "secrets": 5,
+      "allAbsent": true,
+      "reservationsCreated": false
+    },
+    "tenantTemplateCanonicalSha256": "dab17b240c8fe7e272b549c305b2990c7c949507e1f58d19f7fbd8aea90bc57b",
+    "taskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:13",
+    "taskImageRoleSecretAndStorageBindingsUnchanged": true,
+    "tenantServiceState": "ABSENT",
+    "fixedApplicationSecrets": {
+      "checked": 2,
+      "fixedVersionsPresent": 2,
+      "valuesRead": 0
+    },
+    "tenantCfnRole": {
+      "arn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+      "id": "AROAV3GNMXTZKHYBCRSOE",
+      "defaultPolicyVersion": "v10",
+      "policyCanonicalSha256": "965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6",
+      "baselineMatches": true
+    },
+    "sourceKnownAdministratorsGroupLayoutMatches": true,
+    "evidenceBucket": {
+      "versioning": "Enabled",
+      "encryption": [
+        "AES256"
+      ],
+      "ownerEnforced": true,
+      "allFourPublicAccessBlocks": true,
+      "policyCanonicalSha256": "818a51232d0ecb8fa6d8f6f548b1465e72101be305225b0829e3555bf7dbaf1a",
+      "effectiveFutureWritesOrAllAdministratorImmutabilityProven": false
+    },
+    "oidcExisting": true,
+    "ecrRepositoryMetadataRead": true,
+    "newManifestReads": 0,
+    "mediaStackAndBucketIdentityRechecked": true,
+    "fullCloudFrontOrApplicationIamStateRefreshed": false,
+    "expressDatabase": {
+      "arn": "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001",
+      "id": "techlong-sandbox-express-d001",
+      "resourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+      "status": "available",
+      "engine": "aurora-postgresql",
+      "iamAuthentication": true
+    },
+    "standaloneProdDatabaseRead": false,
+    "zeroAccountChargesClaimed": false
+  },
+  "installationInputBindings": {
+    "readStackArns": [
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13"
+    ],
+    "releaseStackArns": [
+      "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13"
+    ],
+    "clusterArn": "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1",
+    "ecsServiceArns": null,
+    "serviceState": "ABSENT",
+    "serviceFutureScopeNotApproved": true,
+    "applicationSecretArns": [
+      "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+      "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/control-public-key-first-acceptance-PfBjiq"
+    ],
+    "databaseArns": [
+      "arn:aws:rds:ca-central-1:402010193138:cluster:techlong-sandbox-express-d001"
+    ],
+    "ecrRepositoryArns": [
+      "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast"
+    ],
+    "hostedZoneArns": [
+      "arn:aws:route53:::hostedzone/Z01473621BTTHKXBGOOEJ"
+    ],
+    "uploadBucketArns": [
+      "arn:aws:s3:::techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad"
+    ],
+    "secretsManagerKeyArn": "arn:aws:kms:ca-central-1:402010193138:key/3af8de5c-dbb7-451a-83f3-983fb1673570"
+  },
+  "futureScopeProposalNotAuthorized": {
+    "ecsServiceArns": [
+      "arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service"
+    ],
+    "ecsTaskArnPattern": "arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/*",
+    "sourceHistoricalFile": "ops/deployment-baseline/tenant-b-post-rollback-offline-plan.json",
+    "sourceHistoricalLfSha256": "508694e446238d058651be47e07813a44f9c46b7e1276b8f6f75e556e0e1e8d8",
+    "serviceArnObservedCurrentlyExisting": false,
+    "requiresExplicitAcceptanceInInstallationReview": true,
+    "noCreateOrRestorePermissionFromThisProposal": true
+  },
+  "github": {
+    "mainAtRead": "38fff332cacc2290a30ed46060393041523a8876",
+    "repositoryId": 1323312747,
+    "backendRepositoryId": 1064124445,
+    "workflowLfSha256": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff",
+    "workflowMatchesLocal": true,
+    "humanEnvironmentUnchanged": true,
+    "reviewerId": 14145707,
+    "adminBypass": false,
+    "deploymentBranches": [
+      "main"
+    ],
+    "oidc": {
+      "use_default": true,
+      "use_immutable_subject": true,
+      "sub_claim_prefix": "repo:veinyyxy@14145707/TechlongSoftware@1323312747"
+    },
+    "releaseWorkflowRuns": 0,
+    "newCiRunOrDispatch": false
+  },
+  "neon": {
+    "tlsVerified": true,
+    "tlsProtocol": "TLSv1.3",
+    "readOnly": true,
+    "transactionLocalSearchPath": "pg_catalog",
+    "catalogCategories": 11,
+    "allCatalogCategoriesEqual": true,
+    "originalSchemaOid": 237571,
+    "originalTables": 3,
+    "originalFunctions": 9,
+    "originalNoLoginRoles": 4,
+    "newRoleNamesAbsent": {
+      "deployment_release_publisher": true,
+      "deployment_release_planner_login": true,
+      "deployment_release_executor_login": true,
+      "deployment_release_verifier_login": true,
+      "deployment_release_publisher_login": true
+    },
+    "operatorRolesHaveTableOrColumnDml": false,
+    "ownerRetainsManagementAndTableAuthority": true,
+    "installerSetOrInheritOfOriginalFourRoles": false,
+    "releaseDirectoryState": "EMPTY_BY_ZERO_BYTE_HEAP_PROOF",
+    "releaseInstanceBindingPresent": false,
+    "instance": {
+      "id": "app_e897a4377bce498b9c5ee9e64509dcad",
+      "productId": "prd_restaurant_order_system",
+      "status": "active",
+      "subscriptionStatus": "active",
+      "templateDriver": "manual"
+    },
+    "environmentApplyEnabled": false,
+    "businessBodiesRead": false
+  },
+  "remaining": {
+    "originalInstallation": {
+      "stacks": 4,
+      "resources": 13,
+      "secrets": 5,
+      "iamRoles": 4,
+      "managedPolicies": 4,
+      "sqlTransactions": 2,
+      "installed": false
+    },
+    "newSecretArnsAndVersions": "Derive only from separately approved real creation and independent metadata; none invented",
+    "futureServiceAndTaskScopeNeedsInstallationApproval": true,
+    "backendTokenSupplyNeedsSeparatePrivateReadAndProvisioningApproval": true,
+    "artifactExpiresAtNotExtended": "2026-11-15T19:07:00Z",
+    "oldArtifactNowPastRecordedExpiry": true,
+    "artifactNotUsedForThisIdentityPreflight": true,
+    "versionAndInstanceCatalogNotSeeded": true,
+    "oldMediaSourceOrMigrationNotProven": true,
+    "persistentUploadsReady": false,
+    "runtimeEnabled": false,
+    "realVersionUpdates": 0,
+    "installationManifestSha256": null
+  },
+  "privateEvidence": [
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/source.mjs",
+      "sha256": "8e200778d099810bb6768d883c1ddbe060c6cebf0a40a3eada6128967d97cb71"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/source-started.json",
+      "sha256": "3999eb663d63d7ccb6495ca9cba6e96be73ed04d95e4da8df1f41d76117d231a"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/source-result.json",
+      "sha256": "50688d80f7a74f8d5aac8a9f53714fe2af429c504833ec05de7a71ba088b7b03"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/aws-read.mjs",
+      "sha256": "c5207d01b6fbb6ccc104c0e2ff6bb8eec472e4905102929d8981f040a4ee1a0f"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/aws-started.json",
+      "sha256": "f64d8f1ba508a8c903ad65e0fdd340760c67900f35b6669c459b4f4a43bb5af2"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/aws-result.json",
+      "sha256": "e82c7cdc31741abf076224c64075b8040d82a0ac4f84fb7495a7618e89e58627"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/aws-calls.ndjson",
+      "sha256": "d089a9a83df3e63d840590a681802225a04c1d4fb1f4215a554b13ab7979f41b"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/aws-outcomes.ndjson",
+      "sha256": "07a267194f1a5d624810abac26d4bf9d7852d73420b62b0109ce834bbe6e54d2"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/github-read.mjs",
+      "sha256": "5977943bf43eef26de8a10f56ba87a4f07d698b4eb79a112da40b3839d282ce4"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/github-started.json",
+      "sha256": "66eadaec875e92bbfca17334f1891397d0d138ac4f43d9f0a37a73a2103de376"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/github-result.json",
+      "sha256": "877aa55383e7bcd32b9a3d0636c8b29308d9528087a2bc5954cd5883132a2386"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/github-calls.ndjson",
+      "sha256": "8dfbf8546064709881da50ad85ecfaca173ba9f7406485eb51c9ac604368bc59"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/neon-read.mjs",
+      "sha256": "bd93b92f0b05b5267ad570faab75eff8c7ab1e79782fd5bd78a3c958dc88f830"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/started.json",
+      "sha256": "224d48f2aeb9a87bc82143dd3b7007ba7c0ab2ec53289e2b77e65a85a027d1d4"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/result.json",
+      "sha256": "1e10d711262c0e0fd0f0aea5c005af3b1f4fdcd7f7e906d65bda8c7675538665"
+    },
+    {
+      "path": ".local-secrets/d2-6-activation-preflight-20261116-b/calls.ndjson",
+      "sha256": "df9a41ad000f8e9f8ef2e57fc6ffe3db66cb6ef4bd975a62732e8bc328f399e3"
+    }
+  ],
+  "publication": {
+    "rawPoliciesTemplatesSqlCatalogOrBusinessSnapshotsCommitted": false,
+    "credentialsOrConfigBodiesStored": false,
+    "onlySanitizedProjectionAndHashes": true
+  },
+  "nextOnly": "Offline consolidate the original four-stack/two-transaction installation review, with explicit future service/task scopes and bound credential/output rules. No additional reads, CI, restore or installation without approval."
+}

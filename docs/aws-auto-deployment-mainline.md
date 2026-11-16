@@ -2,11 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：集中补核已获准但Source不可用，等待刷新及新轮许可（2026-11-16）
+## 当前唯一继续点：集中补核已通过，仅离线编制原身份安装审批清单（2026-11-16）
 
 [原D2输入/缺项表](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已收口：真实桶ARN、`:13`/四值、两模板摘要及CFN/IAM归属直接复用[已核验接线](aws-instance-release-persistence-wiring-installed-20261115.json)，不重建图片资源或重放79314f…5写。其余允许列表、Secret输出及安装/版本/实例/恢复缺项已区分；原七草案/runtime/工作流不改、不重跑CI，本轮新云/SQL/凭据读取和写入均0，没有可执行安装SHA。
 
-[第15节Source停止](aws-instance-release-activation.md#15-集中补核已批准但source不可用未取得新事实) / [去敏回执](aws-instance-release-activation-preflight-stopped-20261116.json)：第14节已准，11月16日新a仅STS命令1次，凭据不可用/身份响应0即停，余下所有生产读取、写入和槽0，无有效新快照。下一只待刷新并新许可后另建轮次STS1＋原未用AWS51/GitHub8/配置1/TLS READ ONLY1/SQL45，不重跑a或扩大范围/重做代码CI；安装、恢复仍未获准。名义期限不当成功事实，旧期限不延，runtime关、真实更新0，持久资源仍可能计费。
+[新b集中补核完成](aws-instance-release-activation.md#16-新b集中补核完成下一仅编制原身份安装审批清单) / [结果与输入](aws-instance-release-activation-preflight-observed-20261116.json)：STS1/AWS51/GitHub8、配置1/TLS READ ONLY1/SQL22全部通过，旧结构权限/保护保持、五DB角色名空位、目录/实例绑定仍空，原资源与本人门禁匹配。无写入、安装、恢复、私钥/PAT/Secret值读取或调度，旧a不重跑。下一仅离线形成原四栈13资源/两事务安装审批，明确未来service/task范围及凭据/真实输出派生；不重盘点或扩框架。新事实最晚温尼伯11月16日18:51:38.241，旧期限不延；Aurora当前available可能计费、未启停，runtime关、真实更新0，实际安装仍另批。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 

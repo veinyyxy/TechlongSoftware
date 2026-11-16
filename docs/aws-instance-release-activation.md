@@ -2,7 +2,7 @@
 
 2026-11-14建立，2026-11-15离线收口，America/Winnipeg。**原D2身份启用仍未安装、未恢复、未启用；图片栈及原IAM/idle租户接线已另批完成。** 复用 D2-4/D2-5，不另建安装器/工作流，不重做业务验收。原七份安装草案的指纹索引仍为[activation.prepared.json](../ops/releases/activation.prepared.json)，`executionAuthorized=false`、`installationManifestSha256=null`；最新输入/缺项见第13节，材料指纹不是执行批准。
 
-**当前结论：** 第14节集中只读范围已获准，但11月16日新a在唯一Source命令即停止，未取得身份响应，其余读取/写入/槽均0，见[第15节](#15-集中补核已批准但source不可用未取得新事实)。不重做第13节输入表或七份草案，不重跑a；刷新并另允新轮后才继续原未用范围。原身份安装、版本晋升、恢复与两次更新仍未执行。
+**当前结论：** 用户刷新并另允新轮后，b已完成第14节全部集中补核：STS1/AWS51/GitHub8、配置1/TLS READ ONLY1/SQL22，全部通过且无写，见[第16节](#16-新b集中补核完成下一仅编制原身份安装审批清单)。原a和中断记录保留，不重复读取或重跑CI；下一只离线形成原四栈13资源/两SQL事务安装清单，把未来service/task授权和凭据/真实输出派生规则一并列审。实际安装/凭据供给/恢复与两次更新仍未授权执行。
 
 图片前置的[真实完成记录](aws-instance-release-persistence-plan.md#19-原iam与idle租户接线已完成独立核验通过)已取代此前“仅方案/未安装”的状态；不再重建图片栈或重放接线。旧图来源/必要迁移和运行采样尚未证明，不以组件完成回执生成持久化就绪摘要或绕过`PERSISTENCE_NOT_READY`。
 
@@ -324,3 +324,32 @@ AWS与GitHub通过后才执行尚未使用的配置1次/TLS只读连接1条/SQL4
 其余AWS元数据/GitHub/配置/Neon/SQL/Secret值/PAT/PEM读取、远端写入和执行槽均0；没有可用新快照或安装SHA。私有记录中的5小时名义终点`21:23:07.668Z`只属于这次失败尝试，不能当作成功事实有效期，也不延旧事实/产物终点。旧a原字节、七份草案、runtime/工作流均保持，不重复测试或重做材料，真实版本更新仍0。
 
 下一仅请用户完成`aws login --profile techlong-sandbox-user`，不要发送凭据或验证码；回复“Source已刷新，允许新一轮同范围只读补核”后才另建记录，补STS最多1次并继续原未用AWS51/GitHub8/配置1/TLS READ ONLY1/SQL45。目标/限制/失败策略不变，不重跑a，不扩大权限或恢复；再次失败仍停，不擅自增加诊断。原已建持久资源未被本轮停/删，仍可能计费。
+
+## 16. 新b集中补核完成，下一仅编制原身份安装审批清单
+
+用户刷新并另准新轮后，b曾在进程创建前因宿主审批额度限制未执行；本次恢复先证实b没有started/result、a指纹不变，才运行该未执行命令。`2026-11-16T19:51:38.241Z`启动，19:51:40.800Z准确Source成功，AWS 51项于19:56:23.106Z完成，GitHub 8项于19:57:49.149Z完成，最后Neon于19:59:03.732Z完成。[去敏事实、准确输入及私有原件指纹](aws-instance-release-activation-preflight-observed-20261116.json)。没有重放a，没有第二次STS或单个请求重试。
+
+| 核对项 | 本次真实结果 |
+| --- | --- |
+| 原资源/名称 | 三栈均UPDATE_COMPLETE，保留资源7/12/3；原tenant模板摘要与`:13`接线结果一致，无Service/未决CS。新四栈、四IAM角色/四策略、五Secret均空位，不是永久名称预留 |
+| 安装允许列表 | 三栈UUID、cluster `arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1`、准确数据库/两应用Secret/ECR/zone/图片桶/原Key均已绑定，见回执`installationInputBindings`；没有虚填当前service |
+| 原执行角色与Source | 原租户CFN角色/信任/唯一boundary、空inline及v10文档匹配；Source已知Administrators组布局匹配。未模拟SCP/所有有效安装权限，不称必然可写成功 |
+| 存储与费用 | 证据桶版本/加密/公共访问阻断/ownership及策略投影、媒体栈输出/桶存在通过；未刷新完整CDN/应用IAM或图片内容。Aurora `techlong-sandbox-express-d001`当前available，可能持续计费；本轮没有启停它，未读取prod实例现状 |
+| GitHub | main、工作流字节、repo ID、本人reviewer/main environment、禁admin绕过和immutable OIDC均匹配；日常发布workflow运行数0。未读PAT/PEM/JWT、产物或dispatch |
+| Neon | TLS1.3且证书验证、READ ONLY/search_path正确；11类原catalog/ACL/保护摘要全部一致，原3表/9函数/4 NOLOGIN保持，五新角色名均不存在。三操作角色无表列DML，owner仍有管理/表访问能力；原四组对安装者SET/INHERIT关闭 |
+| 实例与目录 | 准确实例及订阅active，原模板driver=manual、environment apply=0；三release表仍为空堆且无继承，没有版本/实例种子。未读店铺/订单/支付/图片或其他业务正文 |
+
+实际总量：本成功轮STS1＋AWS元数据51＋GitHub GET8、配置全文件读取1/验证TLS Neon READ ONLY连接1/SQL22；其余Secret值/PAT/PEM/ZIP/媒体读取、Aurora连接、远端写/槽消费/安装/恢复/ECR推送/调度均0。schema/grants和七份安装草案、runtime/工作流不改，不为文档重跑CI；旧a仅另有一次已封存的凭据失败命令，不合并成自动重试。
+
+### 安装清单中必须明示的未来资源范围
+
+当前`EcsServiceArns=null`、service明确ABSENT。只拟把以下准确范围放入**后续安装清单**，与IAM安装一并请求用户新批准：
+
+- service候选：`arn:aws:ecs:ca-central-1:402010193138:service/cell-sandbox-1/tenant-9c5ee9e64509dcad-ecs-service`。
+- task前缀候选：`arn:aws:ecs:ca-central-1:402010193138:task/cell-sandbox-1/*`，限定已核对cluster，不扩为全账号task。
+
+service名称来源是[原TenantService历史绑定](../ops/deployment-baseline/tenant-b-post-rollback-offline-plan.json)，cluster来源是本次真实输出；文件指纹及“未授权未来范围”在回执中分开记录。这不是声称旧service尚存，也不是本次已获IAM授权/恢复许可。不为填参数提前启动环境，不修改草案来绕过缺项。
+
+**下一唯一动作：只离线形成原四栈13资源/两SQL事务的一份集中安装审批材料**，复用本次输入及七份原草案；明确接受上述稳定未来service/task范围、四独立DB密码/PAT供给与五Secret真实固定输出派生、各栈预期Add/禁回滚风险、SQL提交/独立认证顺序和部分失败停止边界。不能把本轮只读批准转成安装，实际凭据读取/生成、云/SQL写与后继目录/恢复各另列准确范围；不新建安装框架或重读整批事实。当前没有安装SHA，既有实例/版本目录仍未登记，runtime关、真实版本更新0。
+
+本轮新事实最晚`2026-11-17T00:51:38.241Z`＝温尼伯**11月16日18:51:38.241 CST**，取真实Source开始后的5小时，不因文档/提交延长。原artifact的11月15日19:07Z已过，只记原期限且不用于身份安装；旧CDN/应用IAM完整核验等历史事实也没有被这次局部补核续期。窗口不足时保留材料，不为赶期限恢复资源、重复构建或自动补读。
