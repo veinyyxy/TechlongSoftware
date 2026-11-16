@@ -1,0 +1,57 @@
+{
+  "schema": "techlong/instance-release-activation-preflight-stopped/v1",
+  "status": "STOPPED_AT_SOURCE_CREDENTIALS_NO_RETRY",
+  "scopeDocument": "docs/aws-instance-release-activation.md#14",
+  "approvedScopeAtCommit": "43620eb55bb05c32830a4256b59398850f923c96",
+  "approvedScopeDocumentLfSha256": "e35fa7fd01947f1e2e863cef51bf3f875a053292a5d6607bf79a160705a46e7d",
+  "explicitReadApprovalReceived": true,
+  "startedAt": "2026-11-16T16:23:07.668Z",
+  "stoppedAt": "2026-11-16T16:23:11.336Z",
+  "source": {
+    "profile": "techlong-sandbox-user",
+    "endpoint": "https://sts.ca-central-1.amazonaws.com",
+    "requiredArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "identityResponseReceived": false,
+    "safeErrorClass": "CREDENTIALS_UNAVAILABLE",
+    "cliExitCode": 255,
+    "uniqueUnderlyingCauseOrExpiryProven": false,
+    "rawStderrOrCredentialsSaved": false
+  },
+  "actualCounts": {
+    "stsCommandAttempts": 1,
+    "successfulStsResponses": 0,
+    "awsMetadata": 0,
+    "githubGet": 0,
+    "configFileReads": 0,
+    "neonConnections": 0,
+    "sql": 0,
+    "secretValuePatOrPemReads": 0,
+    "remoteWrites": 0,
+    "executionSlots": 0,
+    "automaticRetriesOrDiagnostics": 0
+  },
+  "usableSnapshotCreated": false,
+  "usableFactsValidUntil": null,
+  "nominalAttemptDeadlineNotUsableFacts": "2026-11-16T21:23:07.668Z",
+  "oldFactsOrArtifactDeadlinesExtended": false,
+  "remainingReadScopeNotAutomaticallyAuthorizedForReplay": {
+    "awsMetadata": 51,
+    "githubGet": 8,
+    "configFileReads": 1,
+    "verifiedTlsNeonReadOnlyConnections": 1,
+    "sqlIncludingTransactionControl": 45,
+    "freshSourceStsRequiresNewRoundApproval": true
+  },
+  "privateEvidence": [
+    { "path": ".local-secrets/d2-6-activation-preflight-20261116-a/source.mjs", "sha256": "41fd14f438403f5f1d88c53afefec8cf81cd1e6c753a525938d07390b6e5b266" },
+    { "path": ".local-secrets/d2-6-activation-preflight-20261116-a/source-started.json", "sha256": "11a107bd7a54f744c3b215930461843a0622af8a979f513f40bf352071580e35" },
+    { "path": ".local-secrets/d2-6-activation-preflight-20261116-a/source-result.json", "sha256": "b378eb8085f5fa8fa13f995d6a30516c2e30f60f82515d1c4d20a2f3ce7004c4" }
+  ],
+  "originalAttemptRetainedNotReplayed": true,
+  "formalCodeDraftsWorkflowAndRuntimeUnchanged": true,
+  "runtimeEnabled": false,
+  "installationManifestSha256": null,
+  "realVersionUpdates": 0,
+  "restoreInstallPublishOrDispatchPerformed": false,
+  "existingPersistentResourcesMayStillCharge": true
+}

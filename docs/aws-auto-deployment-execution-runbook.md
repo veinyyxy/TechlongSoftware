@@ -2,11 +2,11 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：原身份集中补核范围已齐，等待一次只读批准（2026-11-15）
+## 当前唯一继续点：集中补核已获准但Source不可用，等待刷新及新轮许可（2026-11-16）
 
 [原启用材料第13节](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已离线填入真实UploadBucketArns、`:13`/S3四值、当前两模板摘要及原CFN/IAM归属，并把其余参数和安装/登记/恢复/两次更新缺项分开。复用[媒体结果](aws-instance-release-persistence-media-installed-20261115.json)和[接线结果](aws-instance-release-persistence-wiring-installed-20261115.json)，没有新生产/凭据读取、数据库/云写或槽消费；原七份草案/runtime/工作流/已存原件不改，不重跑CI。此输入表不是安装SHA，不重放已消费的5写。
 
-已在[原启用材料第14节](aws-instance-release-activation.md#14-原身份安装的集中最小补核范围待批准)列齐原四栈13资源/两SQL事务安装所需的一轮只读范围：Source STS1＋固定AWS元数据51、GitHub GET8、配置1/TLS Neon READ ONLY1/SQL45，未执行。仅待本次新批准，不重复编材料或提前读生产；成功才准备安装SHA，安装/凭据供给/恢复仍另批。ECS无Service则明确ABSENT，未来准确命名候选只放后续IAM清单另审，不自动启动。原artifact不用于本次身份补核，不因将到期重复构建或催安装；旧事实终点各自不延，新实际采样最多5小时。图片/版本支线不扩，runtime关、真实更新0，持久资源可能计费。
+[本轮停止及下一范围](aws-instance-release-activation.md#15-集中补核已批准但source不可用未取得新事实) / [回执](aws-instance-release-activation-preflight-stopped-20261116.json)：第14节获准后，11月16日16:23:07.668Z新a唯一官方STS取凭据失败即停；身份响应0，其余AWS/GitHub/配置/Neon读取、远端写/槽均0，未自动重试或诊断，无新事实。下一只待用户登录刷新并另允新一轮同范围：另记STS1，继续原未用AWS51/GitHub8/配置1/TLS READ ONLY1/SQL45，目标限制不变；不重跑a、不重做材料/CI、不恢复或安装。失败尝试名义5小时不是有效快照，旧事实/产物不续；runtime关、真实更新0，持久资源仍可能计费。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 
