@@ -1,0 +1,132 @@
+{
+  "schema": "techlong/protected-catalog-readonly-diagnosis-observed/v1",
+  "status": "CURRENT_PROTECTED_CATALOG_DIFFERENCE_IS_ROW_ORDER_ONLY",
+  "userApprovedLimitedRead": true,
+  "startedAt": "2026-11-16T22:22:40.435Z",
+  "capturedAt": "2026-11-16T22:22:42.817Z",
+  "completedAt": "2026-11-16T22:22:43.023Z",
+  "actualCounts": {
+    "configReads": 1,
+    "connections": 1,
+    "sql": 14,
+    "awsCalls": 0,
+    "secretPatPemReads": 0,
+    "writes": 0
+  },
+  "verifiedTls": true,
+  "transactionReadOnly": true,
+  "sessionClosed": true,
+  "retryPerformed": false,
+  "failedInstallationReceipt": "docs/aws-instance-release-activation-installation-partial-20261116.json",
+  "failedInstallationApproval": "26246abec9dc219d6276c4cbb1985ab8487049a254512f73a958729aebf53a5d",
+  "originalFailureSnapshotNotRetained": true,
+  "conclusionBoundary": "The new read-only snapshot reproduces the positional mismatch and proves its membership rows are the same complete multiset after the already-approved additions are excluded. It does not reconstruct the earlier snapshot or complete the pending post-installation verification.",
+  "difference": {
+    "catalogCategory": "memberships",
+    "queryOrdersOnlyBy": [
+      "role",
+      "member"
+    ],
+    "sameRole": "deployment_release_owner",
+    "sameMember": "neondb_owner",
+    "distinctGrantors": [
+      "cloud_admin",
+      "neondb_owner"
+    ],
+    "rawPositionalDifferencePaths": [
+      "$.memberships[1].admin_option",
+      "$.memberships[1].grantor",
+      "$.memberships[2].admin_option",
+      "$.memberships[2].grantor"
+    ],
+    "swappedIndices": [
+      1,
+      2
+    ],
+    "completeRowsAndDuplicatesPreserved": true,
+    "rowCount": 12,
+    "adminInheritSetAndGrantorValuesUnchangedAsMultiset": true,
+    "otherTenCategoriesUnchanged": true
+  },
+  "exactEqualityProof": {
+    "membershipExpectedSha256": "aef15d8350196c7905695f7765dfb31d899468feccaa3b7b6954300ae219d657",
+    "membershipActualSha256": "aef15d8350196c7905695f7765dfb31d899468feccaa3b7b6954300ae219d657",
+    "otherTenCategoriesSha256": "fb75ded6f4bfb91fb16b12961f3d8370f4265a6223da2c32c47314de46f3e6ca",
+    "expectedProjectedSemanticSha256": "e8fce0ea3c0d61737a56cf5cab2e06d4ae6fb51db6b7a1fdb875b7a76b083ac5",
+    "actualProjectedSemanticSha256": "e8fce0ea3c0d61737a56cf5cab2e06d4ae6fb51db6b7a1fdb875b7a76b083ac5"
+  },
+  "baseline": {
+    "path": ".local-secrets/instance-release-schema-install/9ce8f77a-fed4-4d3f-a8c0-4f7893d38925/grants-catalog.json",
+    "rawSha256": "ade59973301ebbc18036982dbb4df2ebe5f81ae48fba634f377504e0df196aef",
+    "receipt": "docs/aws-instance-release-schema-install-completed-20261113.json"
+  },
+  "privateEvidence": [
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/readonly-catalog-difference-20261116.mjs",
+      "sha256": "e4055c882b5a2ebcb4da48b653513098271897d78f585a5bfdb5691f3580daff"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/readonly-catalog-diff-started.json",
+      "sha256": "b8c5c635dc0d3f4270865d31e14ce950bbdd1d3665aa3718c2ccb4c3f32da554"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/readonly-catalog-diff-result.json",
+      "sha256": "157359f6af0604639f1506f017fd5e83fc8e8c00e424dee4684a444afa9f736a"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/readonly-catalog-diff-actual.json",
+      "sha256": "807c481e90a0dedf45ed11548d139d5cc6cde55f4a23bd2bf3cdcc35f5e72f1d"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/readonly-catalog-diff-projection.json",
+      "sha256": "9b631c017217eb12892caca9dd35b4c297b0d5a59fd424e344f18f52c59c3b79"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/readonly-catalog-diff-fields.json",
+      "sha256": "895b14f62562e2b1c8111e567d0d4a08ba89475f2e7f213c433e258ccfb7c511"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/readonly-catalog-diff-query-calls.ndjson",
+      "sha256": "e2bcf9bbe3d49b44d6df49ae82e6b8a7935e81fc85e7cb4e7bb416fb51bfc470"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/readonly-catalog-order-proof.json",
+      "sha256": "3403a3f3de8c7a5cdea6d57ce772d5c906593f479318f07d19a5b77e4fec7bf6"
+    }
+  ],
+  "protectionBaselineChanged": false,
+  "comparatorChanged": false,
+  "installationSourceOrTemplatesChanged": false,
+  "original38InstallationEvidenceAndFencesUnchanged": true,
+  "noUnapprovedAction": {
+    "awsCalls": 0,
+    "secretPatPemReads": 0,
+    "persistentSqlOrCloudWrites": 0,
+    "iamInstallation": 0,
+    "sqlReplay": 0,
+    "newMutationSlotConsumption": 0,
+    "environmentRestoration": false,
+    "versionPublication": false,
+    "runtimeEnabled": false
+  },
+  "pending": {
+    "fourNewLoginIndependentAuthentications": 4,
+    "postInstallColumnFunctionAclAndGrantChecks": true,
+    "iamResourcesNotCreated": 8,
+    "installationAccepted": false,
+    "realVersionUpdates": 0
+  },
+  "nextProposalNotAuthorized": {
+    "scope": "Only make membership comparison order-independent using the complete row including role/member/grantor and all ADMIN/INHERIT/SET flags, preserving duplicate counts; do not change baseline or drop fields.",
+    "regressionCases": [
+      "Same complete membership records in different order pass",
+      "Changing any role/member/grantor or ADMIN/INHERIT/SET value fails",
+      "Missing, extra or duplicated records fail",
+      "Other catalog categories retain exact comparison"
+    ],
+    "productionReads": 0,
+    "cloudOrSqlWrites": 0,
+    "credentialReads": 0,
+    "installOrReplay": false
+  }
+}

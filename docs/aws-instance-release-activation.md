@@ -2,7 +2,7 @@
 
 2026-11-14建立，2026-11-15离线收口，America/Winnipeg。**原D2身份启用仍未安装、未恢复、未启用；图片栈及原IAM/idle租户接线已另批完成。** 复用 D2-4/D2-5，不另建安装器/工作流，不重做业务验收。原七份安装草案的指纹索引仍为[activation.prepared.json](../ops/releases/activation.prepared.json)，`executionAuthorized=false`、`installationManifestSha256=null`；最新输入/缺项见第13节，材料指纹不是执行批准。
 
-**当前结论：** 用户已批准26246…并在有效期内执行：两Secret栈/五资源及五固定版本独立核验通过，两SQL事务均确认提交；随后原受保护catalog比较失败，停止在IAM创建之前，见[第22节](#22-获准接续已部分安装独立catalog比较失败后停止)。四LOGIN已提交但未独立认证，不能称安装完成。runtime关，未恢复或发布；原记录/槽保持，不重放事务或继续IAM。下一仅提议一次限定只读差异核对，须另批。
+**当前结论：** 获准的单次只读核对已定位本次快照的行序误报，见[第23节](#23-限定只读核对完成当前差异仅为授权记录行序)：原12条授权记录的完整内容及其余10类保护catalog均一致，只是两行互换。实用配置1/TLS只读连接1/SQL14，AWS/Secret/PAT/写入0；没有修比较器或改基准。两Secret栈/两SQL事务仍为已完成部分，四LOGIN独立认证及IAM余8资源尚未完成，runtime关。下一仅提议该比较器单点修正/离线回归，须用户同意，不重放安装。
 
 图片前置的[真实完成记录](aws-instance-release-persistence-plan.md#19-原iam与idle租户接线已完成独立核验通过)已取代此前“仅方案/未安装”的状态；不再重建图片栈或重放接线。旧图来源/必要迁移和运行采样尚未证明，不以组件完成回执生成持久化就绪摘要或绕过`PERSISTENCE_NOT_READY`。
 
@@ -526,3 +526,20 @@ Execute明确`DisableRollback=true`、`RetainExceptOnCreate=false`，Create不�
 停止后只核对本地已存结果、源码和摘要，新增AWS/生产数据库连接/配置PAT或Secret正文读取/写入均0。C轮次原终点22:59:59.141Z、父事实00:51:38.241Z均保留，**未用额度或尚余时间不构成失败后继续的授权**。
 
 下一唯一提案（尚未获准）：读取现有`.env.local`全文一次，仅进入内存；一条验证TLS的Neon READ ONLY连接，最多20次client.query（含事务控制），只采集同11类catalog及准确新增对象元数据，保存私有catalog和具体字段路径/摘要差异，与旧基准逐字段比较。接受现有owner凭据较宽、整文件进内存及网络/提供者日志风险。无业务行、AWS/Secret/PAT/PEM读取，不连接Aurora，不写数据库/云、不消费新槽、不安装IAM或重试两事务，不修改保护基准；失败即停。先取得这一次限定只读许可，再准备最小核对，不另搭框架或提前修比较器。
+
+## 23. 限定只读核对完成，当前差异仅为授权记录行序
+
+用户明确批准一次配置读取、一次验证TLS Neon READ ONLY连接、最多20查询，其他动作禁止。本次22:22:40.435Z启动，22:22:42.817Z取得快照，22:22:43.023Z完成并关闭连接；实际配置1/连接1/client.query14（含事务控制），未用的6次不再调用。AWS、Secret/PAT/PEM、业务行、持久SQL/云写、新mutation槽、安装或恢复均0。[去敏诊断及精确证据](aws-instance-release-protected-catalog-diagnosis-20261116.json)。原始catalog、原校验器投影、具体差异和完整记录集合等价证明仅私有保存，不提交GitHub；旧38份安装原件/七永久fences全部保持，旧事实与C轮次期限不改。
+
+这次重现了`OLD_PROTECTED_CATALOG_CHANGED`，四处按数组下标定位的表面差异是`memberships[1/2].admin_option/grantor`。原因已在本次快照确定：原查询只`ORDER BY role,member`，以下两行的这两个排序字段相同，未以grantor区分；返回先后变化后，逐项数组比较把另一行的ADMIN/授权来源当作字段被改。
+
+| role / member（两行均相同） | grantor | ADMIN | INHERIT / SET | 行位置 |
+| --- | --- | --- | --- | --- |
+| deployment_release_owner / neondb_owner | cloud_admin | true | false / false | 旧下标1 → 当前2 |
+| deployment_release_owner / neondb_owner | neondb_owner | false | false / false | 旧下标2 → 当前1 |
+
+本地保留每行所有字段及重复次数作完整多重集合比较后，排除获批新增项的原12条membership精确相同；其余10类catalog也逐字段完全相同。没有删grantor、忽略ADMIN/SET/INHERIT、去重或写入新保护基准。原基准`grants-catalog.json`原字节SHA仍`ade5997330…`，与11月13日完成回执相符。授权多重集合摘要两侧均`aef15d8350196c7905695f7765dfb31d899468feccaa3b7b6954300ae219d657`，整个预期/实际保护投影的语义摘要两侧均`e8fce0ea3c0d61737a56cf5cab2e06d4ae6fb51db6b7a1fdb875b7a76b083ac5`。原校验器仍保留且会误报，诊断没有修改它。
+
+结论只覆盖本次真实快照：之前22:01失败时的catalog行没有保存，不能倒造其逐行证据或断言不存在任何瞬时变化。本次复现和集合等价证明足以定位当前比较器的顺序缺陷，不代表新增角色认证、列/函数ACL最终核验或IAM安装已完成，更不代表业务验收或D2-6通过。
+
+下一唯一建议仅离线修这一处membership比较，使其按完整记录稳定比较并保留所有字段/重复次数；新增回归必须证明重排行通过，而修改role/member/grantor或ADMIN/INHERIT/SET、缺/多/重复行仍失败，其他catalog比较保持原样。当前未获代码修正许可、未实施；须用户同意后只做该修正、离线回归与正常main提交，不新增生产读取、凭据读取、SQL/云写或安装入口。实际后继独立核验及剩余IAM仍须单独新范围，禁止重放已提交的两事务、两Secret栈或复位槽。

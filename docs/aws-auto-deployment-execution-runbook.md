@@ -2,7 +2,7 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：身份部分安装后核验停止，仅待一次限定只读差异许可（2026-11-16）
+## 当前唯一继续点：已定位当前catalog行序误报，仅待比较器单点修正许可（2026-11-16）
 
 [原启用材料第13节](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已离线填入真实UploadBucketArns、`:13`/S3四值、当前两模板摘要及原CFN/IAM归属，并把其余参数和安装/登记/恢复/两次更新缺项分开。复用[媒体结果](aws-instance-release-persistence-media-installed-20261115.json)和[接线结果](aws-instance-release-persistence-wiring-installed-20261115.json)，没有新生产/凭据读取、数据库/云写或槽消费；原七份草案/runtime/工作流/已存原件不改，不重跑CI。此输入表不是安装SHA，不重放已消费的5写。
 
@@ -15,6 +15,8 @@
 **当前材料结项：** 用户仅准核对CI及准备接续。[第21节范围/完整风险](aws-instance-release-activation.md#21-准确ci通过新的安装接续清单仅待另审) / [准确JSON](aws-instance-release-activation-installation-continuation-c-review-20261116.json)规范SHA `26246abec9dc219d6276c4cbb1985ab8487049a254512f73a958729aebf53a5d`；准确源码4cd621f/[CI43962796707](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43962796707) main/push/attempt1 success，214＋9全部pass、无skip，lint/类型成功。GitHub只读4次、AWS/凭据正文/生产DB/写槽0；17旧证据/七草案保持，不重做盘点。拟议仍四栈13资源/两事务，复用20项，另批Source2（累计4）、配置1/PAT1/认证GET2（累计2/2/4）、连接6加旧失败1（累计7），元数据140/累计160及写8/SQL120不增。BEGIN及promotion派生正文/事务外仅客户端超时差异显式纳入批准；私有一次性入口只做离线语法/差异/绑定核验。新批准才可开启至多60分钟，仍限温尼伯11月16日17:51:38.241前开始、最晚18:51:38.241结束，不延事实或旧失败轮次。当前不执行安装、恢复或发布，runtime关；下一仅待新SHA及准确额外范围/风险批准，逾期即停不自动补读。
 
 **最新实际执行覆盖上段待批：** 用户已批准26246…，[第22节](aws-instance-release-activation.md#22-获准接续已部分安装独立catalog比较失败后停止) / [部分执行回执](aws-instance-release-activation-installation-partial-20261116.json)：21:59:59.141Z启动，22:01:44.450Z停在独立`OLD_PROTECTED_CATALOG_CHANGED`。两Secret栈五资源/五固定版本已独立核验，两SQL事务均确认提交，四LOGIN已提交但未独立认证；IAM两栈/余8资源未创建，不称安装通过。实用STS2/元数据27/SQL36/连接2/新Secret值5/配置PAT各1/认证GET2/四密码/CFN Create2 Execute2/SQL两已知提交；加旧失败累计Source4/元数据47/连接3。七永久fences及38原件保留，runtime关、未恢复/发布，五Secret可能计费。实际差异字段未保存，不能臆判误报或越权；停止后仅本地核对，没有额外生产调用。下一只提议另准配置全文1＋验证TLS Neon READ ONLY连接1/最多20查询，核对同11类catalog及准确新增元数据并保存私有字段差异；不AWS/Secret/PAT/PEM、不改基准/写云DB/重放事务/补IAM，失败停。不因未用额度或旧22:59终点尚余而自动续跑，不扩支线。
+
+**最新诊断覆盖上段待读：** 用户已准且本次只读完成，[第23节](aws-instance-release-activation.md#23-限定只读核对完成当前差异仅为授权记录行序) / [诊断回执](aws-instance-release-protected-catalog-diagnosis-20261116.json)。22:22:42.817Z快照仅配置1/验证TLS READ ONLY连接1/SQL14，无AWS/Secret/PAT/持久写/新mutation槽。原查询仅按role/member排序，同一owner/member的两个不同grantor行互换下标，形成4处admin_option/grantor表面差异；保留全部字段及重复次数比较，原12行完整集合和其余10类catalog均相同，不改基准或忽略权限。原38安装证据保持，原失败快照未留不能倒造。本轮只定位、不修比较器或继续安装；下一仅提议该category稳定完整行比较和离线回归，须用户同意，不新读生产/扩框架/重放SQL/Secret栈/补IAM。runtime关、窄LOGIN认证及IAM8资源仍未完成，五Secret可能收费，旧期限与槽不变。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 
