@@ -1,0 +1,66 @@
+{
+  "schema": "techlong/identity-installation-continuation-review/v1",
+  "status": "PREPARED_NOT_AUTHORIZED_NOT_EXECUTED",
+  "executionAuthorized": false,
+  "parentManifest": "docs/aws-instance-release-activation-installation-review-20261116.json",
+  "parentCanonicalSha256": "08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2",
+  "stoppedReceipt": "docs/aws-instance-release-activation-installation-stopped-20261116.json",
+  "retainedResultPath": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/run-result.json",
+  "retainedResultRawSha256": "e303948c515c01667b7ad388fa68ef16022b9f4f0eee8c314f282b4d67d56391",
+  "localFix": {
+    "helper": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/acl-check-b.mjs",
+    "helperRawSha256": "6af8034f6e9212a2fdb0dbd218e8308629dd31bb43220b8952a07343348edb9d",
+    "scope": "Only current pwsh and terminating module/metadata errors instead of treating a failed legacy Get-Acl as broad ACL. Preserve the same three-principal allowlist. No ACL modification, dependency install or formal code/template changes."
+  },
+  "reuse": {
+    "sourceSuccessfulAtOriginalAttempt": true,
+    "entryMetadataChecks": 20,
+    "proof": "Pinned stopped result, phase transition and original script hashes; do not replay these20 provider requests.",
+    "privateOrMutationAttempts": 0,
+    "oldRecordsAndUnconsumedSlotNotReset": true
+  },
+  "timing": {
+    "originalStartedAt": "2026-11-16T21:03:41.314Z",
+    "originalFailedOperationNotAfterRetained": "2026-11-16T22:03:41.314Z",
+    "newRoundOnlyAfterExplicitApproval": true,
+    "newRoundMaxMinutes": 60,
+    "newRoundStartNotAfter": "2026-11-16T23:51:38.241Z",
+    "newRoundStartNotAfterWinnipeg": "2026-11-16T17:51:38.241-06:00",
+    "parentFactsValidUntil": "2026-11-17T00:51:38.241Z",
+    "newRoundEndRule": "min(new actual approved-round start plus60 minutes, unchanged parent absolute facts deadline)",
+    "noOriginalDeadlineFactOrSlotRewriting": true
+  },
+  "extraReadApprovalRequired": {
+    "additionalSourceStsBeyondParent": 1,
+    "cumulativeSourceStsMax": 3,
+    "remainingSourceStsMax": 2,
+    "reason": "One fresh Source identity after the stopped process lost its in-memory credentials, plus the original planned independent Source check. No identity assumption from old profile state."
+  },
+  "remainingBounds": {
+    "awsMetadataMax": 140,
+    "cumulativeAwsMetadataMax": 160,
+    "githubGetMax": 2,
+    "configFileReadsMax": 1,
+    "patFileReadsMax": 1,
+    "generatedPasswordsMax": 4,
+    "newSecretFixedVersionGetValueMax": 5,
+    "verifiedTlsNeonConnectionsMax": 6,
+    "sqlSubmissionsMax": 120,
+    "sqlWriteTransactionsMax": 2,
+    "createChangeSetMax": 4,
+    "executeChangeSetMax": 4,
+    "resourceCount": 13,
+    "stacks": 4,
+    "allOtherParentInvariantsRisksAndNoRetryRulesUnchanged": true
+  },
+  "executionRule": "Only after a new explicit approval, create a new continuation journal, verify original result/script hashes and time, do the one newly-approved Source check, skip the completed20 entry requests and proceed only to untouched parent stages. Never run the stopped original command again. Stop if any mismatch or failure; no compensation/retry/cleanup.",
+  "runtimeEnabledAfterwards": false,
+  "restorePublishSeedDispatchOrBusinessWritesAllowed": false,
+  "thisPreparation": {
+    "providerReads": 0,
+    "credentialContentReads": 0,
+    "cloudOrSqlWrites": 0,
+    "slotConsumption": 0,
+    "localAclMetadataOnly": true
+  }
+}

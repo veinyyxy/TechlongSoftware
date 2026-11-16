@@ -1,0 +1,93 @@
+{
+  "schema": "techlong/identity-installation-stopped/v1",
+  "status": "STOPPED_BEFORE_MUTATION_LOCAL_ACL_READER_FAILURE",
+  "parentManifestCanonicalSha256": "08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2",
+  "parentManifest": "docs/aws-instance-release-activation-installation-review-20261116.json",
+  "parentApprovalReceived": true,
+  "startedAt": "2026-11-16T21:03:41.314Z",
+  "stoppedAt": "2026-11-16T21:03:48.314Z",
+  "originalOperationNotAfterUnchanged": "2026-11-16T22:03:41.314Z",
+  "phase": "CREDENTIAL_READS_AND_NEON_PRECONDITIONS",
+  "actualCounts": {
+    "sourceSts": 1,
+    "awsMetadata": 20,
+    "githubGet": 0,
+    "configFileReads": 0,
+    "patFileReads": 0,
+    "secretValueReads": 0,
+    "passwordsGenerated": 0,
+    "neonConnections": 0,
+    "sql": 0,
+    "createChangeSet": 0,
+    "executeChangeSet": 0,
+    "executionSlots": 0
+  },
+  "initialErrorClass": "PAT_ACL_TOO_BROAD",
+  "actualBroadPatAclProven": false,
+  "localDiagnosis": {
+    "credentialContentRead": false,
+    "aclModified": false,
+    "currentAclOnlyCurrentUserAdministratorsSystem": true,
+    "legacyPowerShellGetAclModuleAutoloadReproducedFailure": true,
+    "originalGuardMisclassifiedEmptyAclAsTooBroad": true,
+    "initialRawStderrNotSavedOrReconstructed": true,
+    "currentPwshMetadataOnlyFixVerified": true,
+    "privacyAllowlistNotRelaxed": true,
+    "helper": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/acl-check-b.mjs",
+    "helperSha256": "6af8034f6e9212a2fdb0dbd218e8308629dd31bb43220b8952a07343348edb9d"
+  },
+  "successfulSourceAnd20EntryChecksRetained": true,
+  "originalScriptsAndRecordsUnchanged": true,
+  "installationSlotNotConsumed": true,
+  "automaticReplayOrContinuationPerformed": false,
+  "runtimeEnabled": false,
+  "realVersionUpdates": 0,
+  "noExistingCloudResourceMutationByThisCaller": true,
+  "privateEvidence": [
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/common.mjs",
+      "sha256": "fdff700b57beac66671c0b5b9dde57491dc34532fe376df66b0c850ea2387cb3"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/catalog.mjs",
+      "sha256": "8fd5f31c6269c89861f9e8070cbae594a395f434c7f927038fc10420fe175e44"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/aws-inspect.mjs",
+      "sha256": "683381356a191e41c9117b3f867f52b94187a7babba4c9195f978d14b709890f"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/db-inspect.mjs",
+      "sha256": "cf5c4edca3ee50c7c9b95e11a81c8089d3fc07e19fd12fd7aa76608ee31d4150"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/install.mjs",
+      "sha256": "062feaf62cadad77fd4978ebd86610fbc76445e2b2da2bb74dfd777b0e886009"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/acl-check-b.mjs",
+      "sha256": "6af8034f6e9212a2fdb0dbd218e8308629dd31bb43220b8952a07343348edb9d"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/run-started.json",
+      "sha256": "9bc41940002cd87662777a8d590c6ea5480774db541b93acdbcd182050ba3d5c"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/run-result.json",
+      "sha256": "e303948c515c01667b7ad388fa68ef16022b9f4f0eee8c314f282b4d67d56391"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/parent-calls.ndjson",
+      "sha256": "37f1e0ccd054fc7cefe6970545f2ef38a41680961bfaea386013570d346ccbc4"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/parent-outcomes.ndjson",
+      "sha256": "07f50767c25f354ff7cb49c0d97a808822ebbed351db0f8569841574e0134e1a"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/progress.ndjson",
+      "sha256": "79d42bc056ca90715c28dd104444bc4cff456673fcc36b165ade121e20c96a92"
+    }
+  ],
+  "nextRequiresExplicitResumeApproval": true
+}

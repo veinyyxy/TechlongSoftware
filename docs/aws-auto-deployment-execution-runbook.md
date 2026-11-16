@@ -2,11 +2,11 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：原身份集中安装审批包已齐，仅待独立新批准（2026-11-16）
+## 当前唯一继续点：安装写前ACL适配停止，仅待精确接续批准（2026-11-16）
 
 [原启用材料第13节](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已离线填入真实UploadBucketArns、`:13`/S3四值、当前两模板摘要及原CFN/IAM归属，并把其余参数和安装/登记/恢复/两次更新缺项分开。复用[媒体结果](aws-instance-release-persistence-media-installed-20261115.json)和[接线结果](aws-instance-release-persistence-wiring-installed-20261115.json)，没有新生产/凭据读取、数据库/云写或槽消费；原七份草案/runtime/工作流/已存原件不改，不重跑CI。此输入表不是安装SHA，不重放已消费的5写。
 
-[第17节集中安装摘要/完整风险](aws-instance-release-activation.md#17-原身份安装集中审批包仅编制未获准未执行) / [准确JSON](aws-instance-release-activation-installation-review-20261116.json)已离线备齐，规范SHA `08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2`，仅复用第16节51/8/22真实结果与七份原草案，无新生产/私密读取、密码生成、写槽或安装，未改模板/runtime/工作流、未重跑CI。待用户另准：四栈13资源、两SQL修改事务及独立核验，未来service/task准确范围、配置1/PAT1/四密码/五新固定版本、最多8次调用方云写/STS2/元数据160/GitHub2/TLS6/SQL提交120均明列。未获准不执行；最多60分钟且最晚温尼伯11月16日17:51:38.241启动/18:51:38.241结束，旧事实不延。失败不重试、补齐、撤权/down或清理，可能遗留收费/授权；runtime仍关，不恢复或晋升/登记版本，真实更新0。过期仅停，不能借文档或旧读许可刷新事实。
+[第18节停止/最小接续范围](aws-instance-release-activation.md#18-安装获准后停在本地acl读取未发生任何安装)：08ceb8…已获准且Source/写前20项通过，但21:03:48.314Z停于旧PowerShell ACL模块读取误判，PAT/配置/Secret值/密码/云SQL写/槽全0。[原件与回执](aws-instance-release-activation-installation-stopped-20261116.json)保留，当前ACL仍三主体，只验证了pwsh本地元数据修正，没有改权限/依赖或重跑安装。仅待[接续JSON](aws-instance-release-activation-installation-continuation-review-20261116.json)SHA `b15b45561c94b8801085bb85ef6bb928f574763714298dbc2d4bfcd8c07b721f`新批准：保留20项、不重复盘点，额外Source1使累计STS3，原140剩余元数据及8云写/2事务等额度不加；新journal不改旧程序或槽。原失败轮次16:03:41.314终点保留；新批准才可开始一次至多60分钟接续，仍须温尼伯11月16日17:51:38.241前启动、最晚18:51:38.241结束，父事实不延。未批准不续跑；runtime关、真实更新0，未创建新资源。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 

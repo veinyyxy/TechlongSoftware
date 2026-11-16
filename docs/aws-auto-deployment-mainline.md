@@ -2,11 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：原身份集中安装审批包已齐，仅待独立新批准（2026-11-16）
+## 当前唯一继续点：安装写前ACL适配停止，仅待精确接续批准（2026-11-16）
 
 [原D2输入/缺项表](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已收口：真实桶ARN、`:13`/四值、两模板摘要及CFN/IAM归属直接复用[已核验接线](aws-instance-release-persistence-wiring-installed-20261115.json)，不重建图片资源或重放79314f…5写。其余允许列表、Secret输出及安装/版本/实例/恢复缺项已区分；原七草案/runtime/工作流不改、不重跑CI，本轮新云/SQL/凭据读取和写入均0，没有可执行安装SHA。
 
-[集中安装清单](aws-instance-release-activation.md#17-原身份安装集中审批包仅编制未获准未执行) / [JSON](aws-instance-release-activation-installation-review-20261116.json)规范SHA `08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2`；只复用已存结果/七草案，本轮线上/凭据/密码/写槽/安装均0，无模板或运行代码/CI改动。下一仅待用户独立新批准四栈13资源/两事务、未来service/task范围及凭据/固定输出派生；实际写8/元数据160/新Secret固定值5等上限和部分失败风险已齐，不自动执行。最晚温尼伯11月16日17:51:38.241启动、18:51:38.241截止，旧事实不延；runtime关、目录不写、环境不恢复、真实更新0，持久资源及上次available的Aurora仍可能计费。
+[获准后停止及接续](aws-instance-release-activation.md#18-安装获准后停在本地acl读取未发生任何安装)：Source1/写前20项通过，旧PowerShell安全模块读取失败被误分类为空ACL/权限过宽，实际文件只有本人/Admin/SYSTEM；PAT/配置/密码/Secret值、云SQL写和槽均0。原件保留，本地pwsh元数据修正通过但未续跑。下一仅待接续SHA `b15b45561c94b8801085bb85ef6bb928f574763714298dbc2d4bfcd8c07b721f`批准额外Source1（累计3），复用20项/原剩余范围，新journal不回放旧命令。原失败轮次温尼伯16:03:41.314终点原样保留；提议新批准后一次至多60分钟接续，仍限11月16日17:51:38.241前启动、最晚18:51:38.241结束，父事实不延。原资源/身份未新增、runtime关、真实更新0，不改ACL或扩框架/依赖。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 
