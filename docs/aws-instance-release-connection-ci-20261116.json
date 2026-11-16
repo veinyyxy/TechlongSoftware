@@ -1,0 +1,90 @@
+{
+  "schema": "techlong/instance-release-connection-ci-observed/v1",
+  "verifiedAt": "2026-11-16T21:48:36Z",
+  "repository": "veinyyxy/TechlongSoftware",
+  "sourceCommit": "4cd621f2cc0c4f8f0c92bf51af34cc921a6d33bd",
+  "run": {
+    "id": 43962796707,
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/43962796707",
+    "workflowPath": ".github/workflows/instance-release-checks.yml",
+    "event": "push",
+    "branch": "main",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-11-16T21:42:32Z",
+    "updatedAt": "2026-11-16T21:43:17Z"
+  },
+  "jobs": [
+    {
+      "id": 133634349610,
+      "name": "offline",
+      "status": "completed",
+      "conclusion": "success",
+      "tests": 214,
+      "passed": 214,
+      "failed": 0,
+      "skipped": 0,
+      "newConnectionCases": 14,
+      "lint": "success",
+      "typecheck": "success"
+    },
+    {
+      "id": 133634349158,
+      "name": "postgres",
+      "status": "completed",
+      "conclusion": "success",
+      "tests": 9,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "database": "isolated synthetic CI PostgreSQL16, not Neon or Aurora"
+    }
+  ],
+  "allJobStepsSuccessful": true,
+  "githubGetsThisVerification": 4,
+  "rerunDispatchOrWorkflowModification": false,
+  "sourceArtifacts": [
+    {
+      "path": "ops/releases/installation-connection.mjs",
+      "normalization": "LF",
+      "sha256": "8ce210d535644581ea9db9f164e2d42dda4b3450408bc9b33be8da952530bc40"
+    },
+    {
+      "path": "tests/instance-release-installation-connection.test.mjs",
+      "normalization": "LF",
+      "sha256": "f268718f1eca456ce7f00146724b407631bd3e0506b15d2328ea2ee707290ca9"
+    },
+    {
+      "path": ".github/workflows/instance-release-checks.yml",
+      "normalization": "LF",
+      "sha256": "c9868458ec9ef671dd1a85fff9dd30777f626f7779ccf13aa1991f7a6cc87eb0"
+    }
+  ],
+  "privateEvidence": [
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/ci-code-run.json",
+      "sha256": "a165f83d158b1d5258d35dabf76c23397790d990b5fa039a6884145f09e779fd"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/ci-code-jobs.json",
+      "sha256": "26d1c35bf29b09227a2c3936fefa012e6dc9cbb56a7e75a142788483b84c19a4"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/ci-code-offline.log",
+      "sha256": "6e6452a0a40dbf3778d31f6184cd501bc616428fddb1dd5eb9a8323cd20a0a5c"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/ci-code-postgres.log",
+      "sha256": "c793bc13c70531c8cf97d7f7e85dd1ff3d697e3879143b90e8d844f1a46c8c46"
+    }
+  ],
+  "proves": "Exact code regression only. Not live Neon compatibility, identity installation, environment restoration or D2-6 deployment acceptance.",
+  "thisVerification": {
+    "awsCalls": 0,
+    "productionDatabaseConnections": 0,
+    "configPatPemOrSecretValueReads": 0,
+    "cloudOrSqlWrites": 0,
+    "executionSlots": 0
+  }
+}
