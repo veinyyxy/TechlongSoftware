@@ -1,0 +1,93 @@
+{
+  "schema": "techlong/installation-catalog-order-fix-ci-observed/v1",
+  "sourceCommit": "007199da5dd63eafce4a7a59d43aef2db726d01b",
+  "run": {
+    "id": 43973628548,
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/43973628548",
+    "workflowPath": ".github/workflows/instance-release-checks.yml",
+    "event": "push",
+    "branch": "main",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-11-16T22:49:03Z",
+    "updatedAt": "2026-11-16T22:49:53Z"
+  },
+  "verifiedAt": "2026-11-16T22:50:44Z",
+  "githubGets": 6,
+  "jobs": [
+    {
+      "id": 133671896127,
+      "name": "offline",
+      "conclusion": "success",
+      "tests": 227,
+      "passed": 227,
+      "failed": 0,
+      "skipped": 0,
+      "newCatalogCases": 13,
+      "lint": "success",
+      "typecheck": "success"
+    },
+    {
+      "id": 133671895533,
+      "name": "postgres",
+      "conclusion": "success",
+      "tests": 9,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "database": "isolated synthetic CI PostgreSQL16 only"
+    }
+  ],
+  "allStepsSuccessful": true,
+  "sourceArtifacts": [
+    {
+      "path": "ops/releases/installation-catalog-comparison.mjs",
+      "lfSha256": "1937b40a4f9f7cd91e17018080d5c9c14b9b1dcbabec90eb7ae08ef9ac705191"
+    },
+    {
+      "path": "tests/instance-release-installation-catalog.test.mjs",
+      "lfSha256": "173fc68dc78e6c3aa27598091fc0bc12e035efb2fb3bbef61b73abdfad84bfbb"
+    },
+    {
+      "path": ".github/workflows/instance-release-checks.yml",
+      "lfSha256": "a06df570f4e3952b21225403ad51d7ee84052f8659f8131a34986eec61e177a5"
+    }
+  ],
+  "privateEvidence": [
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/membership-order-ci-run.json",
+      "sha256": "abe288dcad16b3f768622a492e244cdfe8580996557f591eee64235e94d6fb12"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/membership-order-ci-jobs.json",
+      "sha256": "1b9f6adc54f3b655adc2ba0d8dfbca3ae726e8723d7803a9bec1fc00b83cb1af"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/membership-order-ci-offline.log",
+      "sha256": "50f8e9402a91e4096500e5eb2dbe472df42cad80bde597a0371d7bd5590cc015"
+    },
+    {
+      "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/membership-order-ci-postgres.log",
+      "sha256": "02d600e462713a78065db283cdcf0a1ccfcc01d0a255190b9ae93fa6c27f55a1"
+    }
+  ],
+  "offlineSavedSnapshotReplay": {
+    "originalDiagnosis": "docs/aws-instance-release-protected-catalog-diagnosis-20261116.json",
+    "oldVerifierReproducesOrderFalsePositive": true,
+    "repairedProtectedCatalogComparisonPasses": true,
+    "deliberateSetPrivilegeChangeStillRejected": true,
+    "baselineAndOriginalInstallationAndDiagnosisEvidenceUnchanged": true,
+    "oldFailedRunNotReclassified": true,
+    "fullPostInstallationVerificationNotClaimed": true
+  },
+  "liveActionsThisCodeTask": {
+    "awsCalls": 0,
+    "productionDatabaseConnections": 0,
+    "configSecretPatPemReads": 0,
+    "persistentSqlOrCloudWrites": 0,
+    "installationOrRestoreOrPublish": false,
+    "runtimeEnabled": false
+  },
+  "remaining": "Four narrow LOGIN authentications and final DB inspection plus8 IAM resources still require a separately reviewed continuation; no replay of committed transactions or Secret stacks."
+}

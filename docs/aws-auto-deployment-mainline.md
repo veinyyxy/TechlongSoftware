@@ -2,7 +2,7 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：比较器单点修复已完成，仅代码回归与CI收尾（2026-11-16）
+## 当前唯一继续点：比较器修复及准确CI已结项，后继接续另审（2026-11-16）
 
 [原D2输入/缺项表](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已收口：真实桶ARN、`:13`/四值、两模板摘要及CFN/IAM归属直接复用[已核验接线](aws-instance-release-persistence-wiring-installed-20261115.json)，不重建图片资源或重放79314f…5写。其余允许列表、Secret输出及安装/版本/实例/恢复缺项已区分；原七草案/runtime/工作流不改、不重跑CI，本轮新云/SQL/凭据读取和写入均0，没有可执行安装SHA。
 
@@ -19,6 +19,8 @@
 **最新诊断完成：** [第23节](aws-instance-release-activation.md#23-限定只读核对完成当前差异仅为授权记录行序) / [回执](aws-instance-release-protected-catalog-diagnosis-20261116.json)。本次授权配置1/验证TLS Neon READ ONLY连接1/SQL14，无AWS/Secret/PAT/写入；原12条授权完整内容及其余10类保护catalog均相同，仅两个grantor不同、role/member相同的行互换位置；原排序未包含grantor，导致按下标比较误报。未改比较器/基准或安装，原38证据/七fences保持，不能倒造未保存的旧失败快照。下一只建议该单点稳定比较和离线回归，待用户同意；不追加生产读取、重放事务或补IAM，runtime关、独立认证及IAM余8项尚未完成，旧期限不延。
 
 **最新修复完成：** 用户已同意，[第24节](aws-instance-release-activation.md#24-membership顺序比较单点修正离线回归通过)：只稳定比较完整membership行，保留权限/授权来源/类型/重复次数，其他catalog仍严格；13新增和相邻227项通过（原Windows skip1），类型/lint/YAML/diff通过，已封存快照离线新比较通过、真实权限变更仍拒绝。基准、原38证据、诊断原件及七fences保持；本轮只代码提交与准确无AWS CI收尾，不新增生产/凭据读取、连接、SQL/云写或安装入口。四LOGIN独立认证及IAM8资源仍未完成，runtime关，不重放已提交事务或Secret栈，不续期限/复位预算，实际继续另审。
+
+**准确CI结项：** 007199d/CI43973628548原main/push/attempt1 success，Linux227＋隔离PG16九项全过、skip0，lint/类型/所有步骤成功，[回执](aws-instance-release-catalog-order-fix-ci-20261116.json)；本轮GitHub只读6次，生产/AWS/凭据/写槽0。此修复完成，不再重做；下一仅在用户要求时准备剩余独立核验和两IAM栈的集中接续材料，复用已建/已提交证据，不重放/复位/扩框架，必要读取与实际安装仍另审。runtime关、未恢复/发布，真实更新0，原事实不延。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 

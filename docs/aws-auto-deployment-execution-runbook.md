@@ -2,7 +2,7 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：比较器单点修复已完成，仅代码回归与CI收尾（2026-11-16）
+## 当前唯一继续点：比较器修复及准确CI已结项，后继接续另审（2026-11-16）
 
 [原启用材料第13节](aws-instance-release-activation.md#13-接线完成后的原d2-6启用输入与缺项)已离线填入真实UploadBucketArns、`:13`/S3四值、当前两模板摘要及原CFN/IAM归属，并把其余参数和安装/登记/恢复/两次更新缺项分开。复用[媒体结果](aws-instance-release-persistence-media-installed-20261115.json)和[接线结果](aws-instance-release-persistence-wiring-installed-20261115.json)，没有新生产/凭据读取、数据库/云写或槽消费；原七份草案/runtime/工作流/已存原件不改，不重跑CI。此输入表不是安装SHA，不重放已消费的5写。
 
@@ -19,6 +19,8 @@
 **最新诊断覆盖上段待读：** 用户已准且本次只读完成，[第23节](aws-instance-release-activation.md#23-限定只读核对完成当前差异仅为授权记录行序) / [诊断回执](aws-instance-release-protected-catalog-diagnosis-20261116.json)。22:22:42.817Z快照仅配置1/验证TLS READ ONLY连接1/SQL14，无AWS/Secret/PAT/持久写/新mutation槽。原查询仅按role/member排序，同一owner/member的两个不同grantor行互换下标，形成4处admin_option/grantor表面差异；保留全部字段及重复次数比较，原12行完整集合和其余10类catalog均相同，不改基准或忽略权限。原38安装证据保持，原失败快照未留不能倒造。本轮只定位、不修比较器或继续安装；下一仅提议该category稳定完整行比较和离线回归，须用户同意，不新读生产/扩框架/重放SQL/Secret栈/补IAM。runtime关、窄LOGIN认证及IAM8资源仍未完成，五Secret可能收费，旧期限与槽不变。
 
 **最新单点修复结项：** 用户已同意，[第24节](aws-instance-release-activation.md#24-membership顺序比较单点修正离线回归通过)完成单一纯比较模块及原新私有适配器两处相等判断接入；只处理membership顺序，完整字段/类型/重复次数和其他catalog数组顺序仍严格，基准/旧源/原件不改。13新增全过，相邻227项226pass/1原Windows skip，类型/lint/YAML/diff过；已存快照离线旧失败/新通过，故意改真实SET权限仍拒绝。没有新生产/凭据读取、连接、写入、槽或安装入口，原38证据/诊断原件/七fences保持。本轮只正常main提交推送并核对准确无AWS CI；不重放事务/Secret栈/补IAM，四LOGIN独立认证和IAM8资源仍另审，runtime关，旧期限/预算不重置，不扩支线。
+
+**准确CI已完成，不再等待或重跑：** 源码007199d/[CI43973628548](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43973628548) 原main/push/attempt1 success，Linux227＋隔离PG16九项全过/skip0，lint/类型及全部步骤成功；[回执](aws-instance-release-catalog-order-fix-ci-20261116.json)。代码任务仅GitHub6次只读、生产/AWS/凭据/写槽0。修复阶段在此结束；后续若用户要求继续，只准备四LOGIN独立核验及剩余两IAM栈的集中准确接续材料，已建Secret/已提交SQL与原槽不得重放，原事实不续期，必要读取/实际执行仍另审。不再扩修或借CI恢复环境、发布版本、开启runtime。
 
 ### 以下为已解决的Source停止与原接线批准（不重跑）
 

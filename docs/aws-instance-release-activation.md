@@ -2,7 +2,7 @@
 
 2026-11-14建立，2026-11-15离线收口，America/Winnipeg。**原D2身份启用仍未安装、未恢复、未启用；图片栈及原IAM/idle租户接线已另批完成。** 复用 D2-4/D2-5，不另建安装器/工作流，不重做业务验收。原七份安装草案的指纹索引仍为[activation.prepared.json](../ops/releases/activation.prepared.json)，`executionAuthorized=false`、`installationManifestSha256=null`；最新输入/缺项见第13节，材料指纹不是执行批准。
 
-**当前结论：** 用户已同意比较器单点修正，已完成第24节代码/离线回归及原快照离线复核；只忽略membership行序，完整字段与重复次数仍严格比较，保护基准不变。此轮无新生产/凭据读取、连接或写入，未重放事务、补装IAM或恢复环境，runtime关。源码CI与后继独立核验/剩余IAM安装分开记录，不以修复通过冒称安装完成。
+**当前结论：** 第24节比较器单点修正及准确CI均已结项：源码007199d/CI43973628548，227＋9全过。只忽略membership行序，完整字段与重复次数仍严格，保护基准不变；已存快照离线复核通过、真实权限变化仍拒绝。此轮无新生产/凭据读取、连接或写入，未重放事务、补装IAM或恢复环境，runtime关。后继独立核验/剩余IAM接续须另审，不以源码通过冒称安装完成。
 
 图片前置的[真实完成记录](aws-instance-release-persistence-plan.md#19-原iam与idle租户接线已完成独立核验通过)已取代此前“仅方案/未安装”的状态；不再重建图片栈或重放接线。旧图来源/必要迁移和运行采样尚未证明，不以组件完成回执生成持久化就绪摘要或绕过`PERSISTENCE_NOT_READY`。
 
@@ -557,3 +557,7 @@ Execute明确`DisableRollback=true`、`RetainExceptOnCreate=false`，Create不�
 公开模块LF SHA `1937b40a4f9f7cd91e17018080d5c9c14b9b1dcbabec90eb7ae08ef9ac705191`，新增测试LF SHA `173fc68dc78e6c3aa27598091fc0bc12e035efb2fb3bbef61b73abdfad84bfbb`，私有新适配器原始SHA `68f2408e16fb7e93351e6e86174b7fab29d509a299c58d511e0160b3177c20b1`。原安装SQL/四模板、runtime与实际部署工作流不改，只有原无AWS检查工作流纳入新测试；对应push CI只核对此准确源码，不重跑或调度发布。
 
 本轮只代码/CI收尾。四窄LOGIN独立认证、列/函数ACL最终核验和IAM余8资源仍待单独受审继续，不重放两Secret栈或两已提交事务；runtime关，未恢复/发布、真实版本更新0。原事实/旧周期期限与已用预算均不续期/复位，不能借本次修复自动生产读取或安装。
+
+**准确CI已核对成功并结项：** 源码`007199da5dd63eafce4a7a59d43aef2db726d01b`已推main，[run43973628548](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43973628548)为原main/push/attempt1、completed/success；Linux227与隔离PostgreSQL16九项全部pass/skip0，13项新比较器回归、lint/类型及全部job步骤成功。[CI去敏回执及原件指纹](aws-instance-release-catalog-order-fix-ci-20261116.json)已保存；仅6次GitHub只读GET，没有Re-run或dispatch。文档收尾提交不冒称新的代码CI，私有适配器只按上述差异/语法/快照离线复核，不声称曾在CI连接生产验证。
+
+本阶段到此结束，不再次测试/读取生产或编制新的安装清单。下一若用户要求继续，仅集中准备既有四LOGIN独立核验及剩余两IAM栈的准确接续范围，复用已完成Secret/SQL的真实证据，不重建/重放或复位槽；必要凭据/元数据读取和实际后继操作仍准确另批，原事实时间与预算保留。没有启用runtime或恢复/发布授权。
