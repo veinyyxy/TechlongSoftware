@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 A PUBLISHED / A-B REGISTERED / STEP4 EXECUTION STOPPED AT LOCAL YAML DECODING — ZERO PROVIDER WRITES / CONTINUATION AWAITING APPROVAL`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 A PUBLISHED / A-B REGISTERED / YAML RESOLVED / FIRST AURORA CONNECTION STOPPED BEFORE SQL — ZERO PROVIDER WRITES`。
 
 已交付代码、一次性身份安装及本轮两次真实app构建，以各自最新准确回执为准，不把原设计或离线验证当实际部署完成。本文其他待审范围不是新增生产读取、SQL/Secret/IAM修改、ECR发布、部署调度或AWS操作授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -15,6 +15,8 @@
 <a id="d2-6-readiness"></a>
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
+
+**最新第21节覆盖原YAML继续点：** 获准接续已复用六返回/补读同八输入，累计STS2/元数据13/输入16，原资源/策略/任务配置/两数据库成员available前置通过；首次Aurora连接在SQL前失败，具体原因尚未确认。[结果](aws-instance-release-step4-continuation-stopped-20261117.json)。图片/CFN/DNS/Neon/runtime写和恢复均0，旧记录/槽/原17:05:01温尼伯截止保留。下一仅提议一次固定端点只读连接诊断，已请求许可但未执行，不重盘点或擅自改IAM/连接网络/恢复；正常版本更新仍0/2。
 
 **最新第20节覆盖下方原待批状态：** 用户已批489…，执行在Source1/元数据6/八固定派生输入后，被租户成功返回的YAML与既有JSON-only解析假定阻断；[停止回执](aws-instance-release-step4-execution-stopped-20261117.json)。云SQL写/恢复/图片/配置/Neon/runtime均0，非权限或登录错误。仅本地解析兼容验证完成，不改正式代码/复位旧槽；[准确接续](../ops/releases/d2-6-step4-continuation.review.json) SHA `1d5af10a6f51bd854c5f7af007123da287c9609e9e42dc4a466a677f53553363`另待批准，明确同八输入各额外读1次、复用6返回、不增加资源/权限/原总API写上限。原本轮操作截止今天17:05:01温尼伯，不重开90分钟；D2正常更新仍0/2。
 
@@ -640,6 +642,14 @@ JSON已集中列出一次必要补核提案：STS1＋AWS元数据最多51（各�
 **唯一待批接续**为[`d2-6-step4-continuation.review.json`](../ops/releases/d2-6-step4-continuation.review.json)，规范SHA `1d5af10a6f51bd854c5f7af007123da287c9609e9e42dc4a466a677f53553363`。它继承原完整资源/媒体/SQL/权限和风险范围，只明确额外许可：失败进程退出后，同八份准确SHA派生输入各额外读取1次（两轮累计16）；六个成功返回与旧journal在本地复用，不重发它们来修格式。剩余Source STS≤2、AWS元数据≤314及原未用写预算不增加；后继正常实时写前/独立核验仍按原合同计数，不把cache当新鲜独立证据。原失败原件/槽保留，新接续记录独立，不能重跑旧入口或伪称内存对象未丢失而超读。
 
 本次原90分钟操作截止23:05:01.678Z（**今天17:05:01温尼伯**），不因接续重新计时；原准备事实18:53:21、artifact/扫描截止保持。新接续尚未执行，窗口不足就停在收费恢复前，不扩大资源/权限、恢复平台/prod、启动/停止RDS或重建版本。无需先让用户重复登录；只有获批真实身份核验失败才处理。D2正常更新仍0/2，下一只待这个准确接续批准，不再盘点/新建工具。
+
+### 21. 接续通过格式/资源前置，首次数据库连接仍未建立
+
+用户明确批准原1d5af10a…接续后，21:54:45.825–21:55:43.726Z实际新增STS1/元数据7、同八固定派生输入各补读一次，原六成功返回仅本地复用不重发。累计STS2/元数据13/输入16。原Cell/tenant模板/归属/参数/输出/角色、未决CS空、原Aurora及writer available、旧task/S3/严格readiness配置、既有tenant v10策略均通过；YAML解析阻塞已闭合，不再重复修它或重装身份。[真实回执](aws-instance-release-step4-continuation-stopped-20261117.json)固定新journal及七个准确新响应SHA，正文仅在私有目录。
+
+首次Aurora TLS/IAM连接尝试1、IAM token请求1，**SQL提交0**。客户端在connect完成前终止，捕获安全字段只有Error/UNCLASSIFIED_STOP，没有足够信息区分连接参数、认证、超时或其他传输失败；不凭此认定Source失效、VPC不通、需新IAM或数据库已停。失败进程已退出，没有自动连接第二次，也没有保存token或原始错误。整个步骤4累计图片读取/上传、CFN创建/执行、DNS、配置/Neon、SQL写、runtime数据写及资源恢复均0，原Source身份与资源元数据通过不等于数据库兼容/九图证明通过。
+
+下一只请求一次最小只读诊断：固定Source STS1，同端点/数据库/用户名/ATS-SNI证书验证的IAM连接1次，最多4次SQL提交（BEGIN READ ONLY、事务局部设置、仅身份SELECT、COMMIT）；唯一诊断参数差异为移除startup options，改在只读事务内设置局部超时/路径。记录TCP/TLS/认证/连接阶段和去敏错误类别，不保存原始错误、凭据或业务值；不读配置/Secret/原八输入、不做IAM盘点、网络/权限/资源修改，不自动重连或继续恢复。该范围已明确提问，**当前尚未获准或执行**，不能把本节当授权。采用原剩余预算和17:05:01温尼伯截止，不重新计时，不生成另一套恢复框架；正常D2更新仍0/2。
 
 ## 阶段1交付状态：合同、纯计划器与离线回归已完成
 

@@ -1,0 +1,90 @@
+{
+  "schema": "techlong/d2-6-step4-continuation-stopped/v1",
+  "status": "STOPPED_DURING_FIRST_AURORA_CONNECTION_BEFORE_SQL_NO_PROVIDER_WRITES",
+  "continuationApprovalSha256": "1d5af10a6f51bd854c5f7af007123da287c9609e9e42dc4a466a677f53553363",
+  "originalApprovalSha256": "4891563c4c103ba1ea1beef5ce8bc32b2923305179e793c806354ea8589198a6",
+  "originalStartedAt": "2026-11-17T21:35:01.678Z",
+  "continuationAcceptedAt": "2026-11-17T21:54:45.825Z",
+  "stoppedAt": "2026-11-17T21:55:43.726Z",
+  "originalOperationDeadlineUnchanged": "2026-11-17T23:05:01.678Z",
+  "factsDeadlineUnchanged": "2026-11-18T00:53:21.305Z",
+  "cumulativeCounts": {
+    "sourceSts": 2,
+    "awsMetadata": 13,
+    "fixedPrivateInputReads": 16,
+    "auroraConnectionsAttempted": 1,
+    "auroraIamTokensRequested": 1,
+    "auroraSql": 0,
+    "imageReads": 0,
+    "imagePuts": 0,
+    "imageVersionGets": 0,
+    "publicImageGets": 0,
+    "templatePuts": 0,
+    "createChangeSet": 0,
+    "executeChangeSet": 0,
+    "dnsUpserts": 0,
+    "configReads": 0,
+    "neonConnections": 0,
+    "sqlWrites": 0,
+    "githubCalls": 0,
+    "runtimeCommits": 0
+  },
+  "thisContinuation": {
+    "newSourceSts": 1,
+    "newMetadata": 7,
+    "rereadFixedInputs": 8,
+    "savedSuccessfulResponsesReused": 6,
+    "oldSuccessfulRequestsReissuedForFormatFix": 0,
+    "oldJournalOrSlotsReset": false
+  },
+  "verifiedBeforeConnection": {
+    "exactSourceIamUser": true,
+    "originalCellAndTenantTemplateResourcesParametersOutputsAndRolesUnchanged": true,
+    "noAvailableOriginalChangeSet": true,
+    "originalAuroraStatus": "available",
+    "originalWriterStatus": "available",
+    "originalRetainedTaskAndS3WiringUnchanged": true,
+    "strictReadinessConfigurationPresent": true,
+    "originalTenantPolicyDefaultAndDocumentUnchanged": true,
+    "yamlFormatBlockResolved": true
+  },
+  "unproved": {
+    "auroraSessionAuthenticatedAndConnected": false,
+    "databaseIdentityOrInitializationRead": false,
+    "liveMediaRowsOrCompatibilityProven": false,
+    "causeConfirmed": false
+  },
+  "error": {
+    "name": "Error",
+    "safeCode": "UNCLASSIFIED_STOP",
+    "httpStatus": null,
+    "causeCode": null,
+    "limitation": "The captured safe error fields do not distinguish authentication, connection parameters, timeout or other transport failure. No raw error/token was retained; do not infer missing IAM permissions or expired Source login."
+  },
+  "privateEvidence": {
+    "directory": ".local-secrets/d2-6-step4-continuation-1d5af10a6f51bd85",
+    "journalRawSha256": "471f14a5f41565dfb91ba76f4046a05eca0cb92024d1c4a909ab7874b173bfae",
+    "responses": [
+      { "name": "response-001.json", "rawSha256": "d3e048bfcf31e83ed61fed262233ca89fa03bab75045b34f28b6e848bde79044" },
+      { "name": "response-002.json", "rawSha256": "482fe48798ccafa5611fb03487659498dcba73cd281abd24ad93d3a9c8bcb831" },
+      { "name": "response-003.json", "rawSha256": "a45671e19ac24e93bd79c8a27dd293181c41a1f7abb02f7f66ee100f8bd0aedd" },
+      { "name": "response-004.json", "rawSha256": "5a863821f6f04e9b81924360e01445024db4791ef8e7fcc1b3dd35c59fdde696" },
+      { "name": "response-005.json", "rawSha256": "18a5dd3d20e07fce431e111b30151fd1f3b0f07d28b0cbcb990659f5222b7198" },
+      { "name": "response-006.json", "rawSha256": "48c3eb79a0a2e23dcd9c1f9dded3c780f9c6af71674e0633f16c50aaa5619952" },
+      { "name": "response-007.json", "rawSha256": "b76bc125970ebdd455fbf634f1cf6c8fc023a0892ad3a6226bd026cd310a7261" }
+    ],
+    "failedProcessExited": true,
+    "recordsPreserved": true,
+    "credentialsOrBusinessBodiesPublished": false
+  },
+  "environmentRestoredByThisAttempt": false,
+  "runtimeEnabled": false,
+  "normalUpdatesAccepted": 0,
+  "nextOnlyProposal": {
+    "authorized": false,
+    "scope": "One exact Source STS and one same-endpoint/database verified-TLS IAM connection with stage/safe-error capture, at most4 read-only SQL submissions; omit PostgreSQL startup options only as an explicit compatibility diagnostic, set transaction-local settings after BEGIN READ ONLY. No config/Secret/eight-input reads, IAM metadata inventory or changes, resources or business writes, reconnect or automatic restoration.",
+    "usesOriginalRemainingBudgets": true,
+    "originalDeadlineRequired": "2026-11-17T23:05:01.678Z",
+    "requiresExplicitUserPermission": true
+  }
+}

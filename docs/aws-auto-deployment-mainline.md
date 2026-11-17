@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：原步骤4因本机模板格式停止，零云写；仅待准确接续批准（2026-11-17）
+## 当前唯一继续点：模板兼容已通过，首个Aurora连接终止；只待一次连接诊断许可（2026-11-17）
+
+[接续真实结果](aws-instance-release-step4-continuation-stopped-20261117.json)：用户批准1d5…后仅复用旧6返回、同8输入各补读一次；新增Source1/元数据7，累计2/13/16，原栈/策略/任务S3配置及Aurora/writer available通过。首次TLS/IAM连接在SQL前终止，错误分类不足以判定原因，失败进程已退出，不要求用户盲目再登录或扩权。数据库尝试1/token1/SQL0，所有图片/CFN/DNS/Neon/runtime写和恢复仍0。
+
+下一唯一提议是原预算/截止内一次只读连接诊断（STS1/相同TLS-IAM连接1/最多4 SQL，只去掉startup options后在只读事务设局部参数），不新增生产盘点、私密配置/八输入或权限/资源写，不继续恢复；已请求许可，尚未批准/执行。原17:05:01温尼伯操作截止不变，旧失败/永久槽保留，D2正常更新0/2。下方旧“等待接续”已实际执行并停止，不再重放。
+
+### 原YAML停止与接续沿革（保留，不重放）
 
 原489清单已获批准并实际开始，[回执](aws-instance-release-step4-execution-stopped-20261117.json)：STS1成功/元数据6成功/固定派生输入8，租户GetTemplate成功返回YAML，被既有JSON-only辅助函数误拒。本轮Aurora/SQL、图片、CFN/DNS、Neon/配置、runtime写或恢复均0；不是AWS权限/Source失效，未重试请求或复位槽，失败进程已退出。
 

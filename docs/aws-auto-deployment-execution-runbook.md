@@ -2,7 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：步骤4在本机YAML解析停止；未写资源，待准确接续批准（2026-11-17）
+## 当前唯一继续点：接续已在首次Aurora连接前后停止，SQL/云写0；只待一次连接诊断许可（2026-11-17）
+
+用户明确批准1d5af10a…后，本轮21:54:45.825–21:55:43.726Z执行：[准确回执](aws-instance-release-step4-continuation-stopped-20261117.json)。六个旧成功返回仅在本地复用，八输入各补读一次；新增STS1/元数据7，累计Source2/元数据13/输入16。原栈/参数/归属、原Aurora及writer available、retained task/S3/严格readiness配置和既有v10策略均通过，YAML已正常处理。随后首次Aurora TLS/IAM连接在任何SQL前终止，去敏结果只有Error/UNCLASSIFIED_STOP，**不能判定权限、Source过期或具体网络原因**。失败进程已退出，未自动重连或继续任何阶段；原记录/槽/截止不改。
+
+累计数据库连接尝试1/IAM token请求1/SQL0，图片、CFN Create/Execute、DNS、Neon/配置、runtime写/恢复均0，不能称已证明数据库/媒体或已恢复。当前唯一提议是原余量内的一次最小只读连接诊断：STS1＋同一端点/库验证TLS/IAM连接1＋最多4次只读SQL提交，仅去掉startup options作兼容探测并在BEGIN READ ONLY后设局部超时，记录阶段/去敏错误；不读Secret/配置/八输入、不新盘点/改权限/资源，不自动恢复。已向用户请求明确许可，**尚未执行或假定批准**；不再重复整轮材料或新建框架。原操作截止仍今天17:05:01温尼伯，窗口不足停止，不重开90分钟；D2正常更新0/2。
+
+### 已批准的接续及停止沿革（保留，不重放）
+
+**接续已明确获准，覆盖待批状态：** 用户现确认按`1d5af10a6f51bd854c5f7af007123da287c9609e9e42dc4a466a677f53553363`执行；仅同八派生输入各补读一次、复用原六成功返回，保持原90分钟23:05:01.678Z截止及全部累计资源/API/写上限。新接续记录独立，旧失败/槽/journal及原清单不改，不重新计时、不扩大范围；任一真实失败/未知仍立即停止。
 
 用户已批准原4891563c…，本轮真实执行于21:35:01.678Z启动、21:38:02.370Z停止：[停止回执](aws-instance-release-step4-execution-stopped-20261117.json)。Source STS1通过，原Cell四读/tenant DescribeStacks和GetTemplate共元数据6成功，八份固定派生输入已各读取一次。租户模板返回YAML，既有`readStack`仅JSON.parse的本地假定导致SyntaxError；不是AWS拒绝/Source过期。实际Aurora连接/SQL、图片读取/上传、CFN Create/Execute、DNS、配置/Neon、runtime写均0，失败进程已退出，旧INTENT/journal保留不复位。先前零云调用的本机摘要函数误用也保留，清单指定sha256Hex始终匹配，原清单字节未改。
 
