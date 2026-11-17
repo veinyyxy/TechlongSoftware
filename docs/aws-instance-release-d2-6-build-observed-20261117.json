@@ -1,0 +1,569 @@
+{
+  "schema": "techlong/instance-release-d2-6-build-observed/v1",
+  "status": "TWO_DISTINCT_APP_BUILD_ORIGINALS_VERIFIED_NOT_PUBLISHED",
+  "approvedScope": {
+    "path": "ops/releases/d2-6-build.review.json",
+    "canonicalSha256": "7a4350731179972bcd7695203a8f763aee09033abde2df68f0b4cd5f1cfce773",
+    "originalScopeUnchanged": true
+  },
+  "approvalObservedAt": "2026-11-17T16:37:45.000Z",
+  "approvalTimestampMeaning": "First clock reading during explicit approval turn, not a user-message timestamp",
+  "startedAt": "2026-11-17T16:41:09.402Z",
+  "completedAt": "2026-11-17T16:47:26.228Z",
+  "firstMetadataAt": "2026-11-17T16:41:09.565Z",
+  "factsValidUntil": "2026-11-17T21:41:09.565Z",
+  "timezone": "America/Winnipeg",
+  "source": {
+    "repository": "veinyyxy/SpeedFeast_Backend_main",
+    "repositoryId": 1064124445,
+    "commit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+    "workflowId": 377674976,
+    "workflowPath": ".github/workflows/backend-image-candidate.yml",
+    "workflowGitRawSha256": "ec2d5aa094bf92a1bd7edfaba29d2a77386f8d3df65df35cb75b423578f31910",
+    "workflowChanged": false,
+    "appOnly": true
+  },
+  "buildProfile": {
+    "nodeVersion": "v24.18.0",
+    "scannerVersion": "0.75.0",
+    "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f"
+  },
+  "builds": [
+    {
+      "label": "A",
+      "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+      "runId": 44128576107,
+      "runUrl": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/44128576107",
+      "runAttempt": 1,
+      "runStatus": "completed",
+      "runConclusion": "success",
+      "workflowPath": ".github/workflows/backend-image-candidate.yml",
+      "artifactId": 14347858874,
+      "artifactName": "checked-app-b9ca2138738900afc23a6a2ddce141b37a1f0a31-44128576107-1",
+      "artifactExpiresAt": "2026-11-18T16:42:02Z",
+      "artifactZipSha256": "a42b4aba36ca0c3bbfa03321820ab9ec6ef06d019d1e48c8e2381ba81615a2cb",
+      "artifactZipBytes": 72661917,
+      "imageArchiveSha256": "7d318ce76a346ad433b17ad67228824ac568fa9b511ec03e0e2f3bcfc208d6a5",
+      "imageArchiveBytes": 72659437,
+      "imageConfigDigest": "sha256:ad65fdf4dd998f960274adf308a9f7b8baeba6d845309ad21529062b50b4d2eb",
+      "registryManifestDigest": null,
+      "platformDigest": null,
+      "releaseId": null,
+      "validUntil": "2026-11-18T16:42:02.000Z",
+      "checks": {
+        "receiptSha256": "3be737c1e5cbd3a7f5f5661268cadda83711b0fb801ff972199a39bca20376ec",
+        "selfCheckSha256": "23249b0906fd1bf22342f98c70a72cd05512178ef1051805d3835aae6b8f0f7e",
+        "securityReportSha256": "d095e0ce88116180beacda418049d4c754b244f3b5e676fcd0f2e9e7770b2f8c",
+        "scannerDatabaseSha256": "c071fb0ffef9587397244b24410916d3da718d65798a02d4888b00d765d0d5c0"
+      },
+      "selfCheck": {
+        "schemaVersion": 1,
+        "outcome": "APP_CONTAINER_SMOKE_VERIFIED",
+        "nodeVersion": "v24.18.0",
+        "uid": 65532,
+        "platform": "linux/amd64",
+        "healthStatus": 200,
+        "readyStatus": 503,
+        "network": "none",
+        "cloudMutationPerformed": false
+      },
+      "securityScan": {
+        "schemaVersion": 1,
+        "outcome": "OS_HIGH_CRITICAL_ZERO",
+        "scanner": "Trivy",
+        "scannerVersion": "0.75.0",
+        "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+        "scope": "os",
+        "imageConfigDigest": "sha256:ad65fdf4dd998f960274adf308a9f7b8baeba6d845309ad21529062b50b4d2eb",
+        "os": {
+          "Family": "debian",
+          "Name": "13.7"
+        },
+        "packageCount": 14,
+        "findingSeverityCounts": {
+          "HIGH": 0,
+          "CRITICAL": 0
+        },
+        "databaseUpdatedAt": "2026-11-17T13:00:16.23116094Z",
+        "ignoredFindingsAllowed": false,
+        "ignoreUnfixedAllowed": false,
+        "ecrScanPerformed": false,
+        "cloudMutationPerformed": false,
+        "reportSha256": "d095e0ce88116180beacda418049d4c754b244f3b5e676fcd0f2e9e7770b2f8c",
+        "databaseMetadataSha256": "867122aa25fae9b4c75e6f2b3492fbad86beb5f55654d4121f5e8cfa82fbd163",
+        "databaseSha256": "c071fb0ffef9587397244b24410916d3da718d65798a02d4888b00d765d0d5c0"
+      },
+      "verifiedAt": "2026-11-17T16:44:19.132Z"
+    },
+    {
+      "label": "B",
+      "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+      "runId": 44129167654,
+      "runUrl": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/44129167654",
+      "runAttempt": 1,
+      "runStatus": "completed",
+      "runConclusion": "success",
+      "workflowPath": ".github/workflows/backend-image-candidate.yml",
+      "artifactId": 14349965129,
+      "artifactName": "checked-app-b9ca2138738900afc23a6a2ddce141b37a1f0a31-44129167654-1",
+      "artifactExpiresAt": "2026-11-18T16:45:19Z",
+      "artifactZipSha256": "813f7803af5eb8a8ecfe579dda0a24a6a78f850bf349eaa410214af5a2373228",
+      "artifactZipBytes": 72662028,
+      "imageArchiveSha256": "6e4abe379ebe6aa022346174f3a6171e42cc5d79ada071ebd2486456e9d1345a",
+      "imageArchiveBytes": 72659548,
+      "imageConfigDigest": "sha256:fee49b1473042adb987cf0acaef4fd443b6166b65aab1cc389c53403a2afed6b",
+      "registryManifestDigest": null,
+      "platformDigest": null,
+      "releaseId": null,
+      "validUntil": "2026-11-18T16:45:19.000Z",
+      "checks": {
+        "receiptSha256": "f72a81fc64333b065b5d607ef3e7a9c2404d2c71b59b31e1c8ab33b69038f672",
+        "selfCheckSha256": "23249b0906fd1bf22342f98c70a72cd05512178ef1051805d3835aae6b8f0f7e",
+        "securityReportSha256": "64bb22cb15abf85da8fc536cbf242ba622f7068b522c01bc441072598c85dab1",
+        "scannerDatabaseSha256": "c071fb0ffef9587397244b24410916d3da718d65798a02d4888b00d765d0d5c0"
+      },
+      "selfCheck": {
+        "schemaVersion": 1,
+        "outcome": "APP_CONTAINER_SMOKE_VERIFIED",
+        "nodeVersion": "v24.18.0",
+        "uid": 65532,
+        "platform": "linux/amd64",
+        "healthStatus": 200,
+        "readyStatus": 503,
+        "network": "none",
+        "cloudMutationPerformed": false
+      },
+      "securityScan": {
+        "schemaVersion": 1,
+        "outcome": "OS_HIGH_CRITICAL_ZERO",
+        "scanner": "Trivy",
+        "scannerVersion": "0.75.0",
+        "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+        "scope": "os",
+        "imageConfigDigest": "sha256:fee49b1473042adb987cf0acaef4fd443b6166b65aab1cc389c53403a2afed6b",
+        "os": {
+          "Family": "debian",
+          "Name": "13.7"
+        },
+        "packageCount": 14,
+        "findingSeverityCounts": {
+          "HIGH": 0,
+          "CRITICAL": 0
+        },
+        "databaseUpdatedAt": "2026-11-17T13:00:16.23116094Z",
+        "ignoredFindingsAllowed": false,
+        "ignoreUnfixedAllowed": false,
+        "ecrScanPerformed": false,
+        "cloudMutationPerformed": false,
+        "reportSha256": "64bb22cb15abf85da8fc536cbf242ba622f7068b522c01bc441072598c85dab1",
+        "databaseMetadataSha256": "cfbe763e14935332f639cfbc816ac2c4807be837f9f2207dbc55a34593744e0f",
+        "databaseSha256": "c071fb0ffef9587397244b24410916d3da718d65798a02d4888b00d765d0d5c0"
+      },
+      "verifiedAt": "2026-11-17T16:47:26.227Z"
+    }
+  ],
+  "counts": {
+    "githubApiGets": 18,
+    "workflowDispatchPosts": 2,
+    "officialArtifactBlobGets": 2,
+    "officialFailureLogBlobGets": 0,
+    "githubCredentialHelperReads": 1,
+    "originalAppZipDownloads": 2,
+    "downloadedBytes": 145323945,
+    "awsCalls": 0,
+    "ecrCalls": 0,
+    "registryPushes": 0,
+    "databaseConnectionsOrQueries": 0,
+    "configPatPemSecretReads": 0,
+    "catalogOrBindingWrites": 0,
+    "environmentRestoreOrEcsDeploy": 0,
+    "environmentApprovalsByAgent": 0,
+    "failedJobLogDownloads": 0,
+    "newDispatchIntents": 2,
+    "workflowOrApplicationCodeChanges": 0
+  },
+  "apiCalls": {
+    "repository": 1,
+    "workflow-bytes": 1,
+    "source-refs": 2,
+    "before-dispatch-ids": 2,
+    "dispatch": 2,
+    "bind-new-run": 2,
+    "exact-run-monitor": 4,
+    "exact-run-jobs": 2,
+    "app-artifact": 2,
+    "original-zip": 2
+  },
+  "result": {
+    "bothExactRunsSuccessful": true,
+    "twoOriginalZipDigestsVerified": true,
+    "originalFourFileExtractionAndChecksumsPassed": true,
+    "originalBuildAndSecurityVerifierPassed": true,
+    "localReverificationPassed": true,
+    "differentImageConfigDigests": true,
+    "qualifiedEcrReleaseAvailable": false,
+    "registryManifestsVerified": false,
+    "catalogWritten": false,
+    "instanceBindingWritten": false,
+    "runtimeEnabled": false,
+    "liveDatabaseCompatibilityProven": false,
+    "livePersistenceProven": false,
+    "realVersionUpdatesCompleted": 0,
+    "retried": false,
+    "thirdBuild": false,
+    "automaticCleanup": false
+  },
+  "localEvidence": {
+    "root": ".local-secrets/d2-6-build-20261117-a",
+    "artifacts": [
+      { "label": "A", "originalZip": ".local-secrets/d2-6-build-20261117-a/A-artifact.zip", "extractedDirectory": ".local-secrets/d2-6-build-20261117-a/A-checked", "verification": ".local-secrets/d2-6-build-20261117-a/A-original-verified.json" },
+      { "label": "B", "originalZip": ".local-secrets/d2-6-build-20261117-a/B-artifact.zip", "extractedDirectory": ".local-secrets/d2-6-build-20261117-a/B-checked", "verification": ".local-secrets/d2-6-build-20261117-a/B-original-verified.json" }
+    ],
+    "private": true,
+    "rawZipsAndReceiptsNotCommitted": true,
+    "proofCount": 68,
+    "proofs": [
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/001-credential-intent.json",
+        "bytes": 317,
+        "rawSha256": "43bfe20b6bab941e6f91f3dca38203af78f269fbfbdd9e6564bca4c095b3d2f3"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/002-api-intent.json",
+        "bytes": 325,
+        "rawSha256": "2b551ee7f9a93fbd50846e4c730968a79741df5f7a99da7232ab60f101c60503"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/003-api-response.json",
+        "bytes": 309,
+        "rawSha256": "5a1ba70f0b44bcef3caf5192175d2bc8969f597d2b364f9b02a8637faf9e80e3"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/004-api-metadata.json",
+        "bytes": 7600,
+        "rawSha256": "c9f9e077e48e001ccd554017b4788754880a7c92390708ade983bbf6a7bf6a3e"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/005-api-intent.json",
+        "bytes": 429,
+        "rawSha256": "b91ae3a859f54e857e36fdc66b354f8999f19508c72c5e1790834186c7b4ae3e"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/006-api-response.json",
+        "bytes": 313,
+        "rawSha256": "9a128e15d6fd4352d232d79aa81faa44fcfb1472f7d680b3e8b870e7925db9b1"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/007-api-metadata.json",
+        "bytes": 11427,
+        "rawSha256": "6c166b893d6472143b69838aa8a35393c4d6955fb9bb634ef27165cc9d2ecca5"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/008-api-intent.json",
+        "bytes": 345,
+        "rawSha256": "03aebf563a1fc776eb9ff323838feea25f1ac954fbfcfde783177de1166ab5d9"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/009-api-response.json",
+        "bytes": 310,
+        "rawSha256": "1feded7388cd9c2e6e492ed457fa10d48fb25a4e469163687706d33591479861"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/010-api-metadata.json",
+        "bytes": 724,
+        "rawSha256": "8d4163d2b5d2782616385cab4fa6e72b52f337a5c262c465724d137446a9cb66"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/011-api-intent.json",
+        "bytes": 416,
+        "rawSha256": "c295435d60274d5122bf19d800b465bf4fe0210f219d65fc7a46161e9d611fe3"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/012-api-response.json",
+        "bytes": 318,
+        "rawSha256": "587ff323dd22e3ce6f45a17f6b4a4e34c01590fea2fc0e9c82c08c5b8bb35bd7"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/013-api-metadata.json",
+        "bytes": 16266,
+        "rawSha256": "aaad256fd13140ba931996a9ed62dad49790285def7d3ac6ca87262ff2d79edf"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/014-api-intent.json",
+        "bytes": 363,
+        "rawSha256": "fe1a265da1801626d6feb1a1d620d4a457cc81839e06b971f961d84aa38219d2"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/015-api-response.json",
+        "bytes": 307,
+        "rawSha256": "f114659ed50b7ba28eea3633f7cd09303276576bfd6525b155bdd3ba9c11296a"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/016-api-intent.json",
+        "bytes": 409,
+        "rawSha256": "ed3e3ff5a0d7d862134034581d275a0e3eae814185c67aa2a1ecb12b3913cb11"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/017-api-response.json",
+        "bytes": 311,
+        "rawSha256": "fc28b3624d826a198cb6e356f29161c8304b61a02e4f71927ce3d562bb88b2fe"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/018-api-metadata.json",
+        "bytes": 32153,
+        "rawSha256": "e3633b3a90b9f632a49feeab2675ebb2586540a6b8e8d38ae36ccab241534005"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/019-api-intent.json",
+        "bytes": 357,
+        "rawSha256": "711fc0380e7c1c4aa4e7fa8ae3568d610740cb02b3fbcb752bc2318bbfdd6de3"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/020-api-response.json",
+        "bytes": 316,
+        "rawSha256": "1988a2d20623ef2ec084e7c75edd1ee17f2fa4f5891eb07b99edc27e8960464c"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/021-api-metadata.json",
+        "bytes": 15306,
+        "rawSha256": "cdb129ac90d1962ec1210aadb1e1fca210ca6e06d7934d09b40b23273396fce3"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/022-api-intent.json",
+        "bytes": 357,
+        "rawSha256": "8df9c353603bcf7a890d992ca3e3480c59c2fc4b872a8bfffd33124af52eb29f"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/023-api-response.json",
+        "bytes": 316,
+        "rawSha256": "d9342ca3a8df65aceb7d3f06f907a3dcba2daeb13ce675b3998d617387b2d533"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/024-api-metadata.json",
+        "bytes": 15309,
+        "rawSha256": "2d02a74767da9370d2778a7da5dddb2cbc0216429c02f98d3d81ee6389fd8c68"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/025-api-intent.json",
+        "bytes": 371,
+        "rawSha256": "603b6837affb7169fc59133fd0c76585940b5447367386909fdd349a1a465935"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/026-api-response.json",
+        "bytes": 313,
+        "rawSha256": "6caad4a193287325ac9334eec347e42b7e7ff74d8fda8795262ba34bdbc4c7b0"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/027-api-metadata.json",
+        "bytes": 6863,
+        "rawSha256": "5ad45b7a3f70b6d9b9d96aed69d2109bdb0ae6122ad3547fc0955cbdf2545fad"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/028-api-intent.json",
+        "bytes": 375,
+        "rawSha256": "190dbed0a09f0b3274e47914d1d82aa2d888772541e8d4426f6db5818e823205"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/029-api-response.json",
+        "bytes": 311,
+        "rawSha256": "812b958a399046909ac5f6eee38ee266472c6994533c6a38b418e7472d224805"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/030-api-metadata.json",
+        "bytes": 2283,
+        "rawSha256": "8fde27009b18debc9a6c839fb8534ec02e28096677f324211266515a259da77f"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/031-api-intent.json",
+        "bytes": 362,
+        "rawSha256": "a38922653fc7aaa5ed8ef7523074dae57ca06c200966b35e73b80a99660ef587"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/032-api-response.json",
+        "bytes": 312,
+        "rawSha256": "cf0f445655795d9a5307afc5bc85688ea7543aa75434c8301031c7c0bdb9ffae"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/033-api-intent.json",
+        "bytes": 353,
+        "rawSha256": "beaa07a7ee6c715798046d34eea94cb5ff9b570bb35e8be8b87503e00e92278c"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/034-api-response.json",
+        "bytes": 318,
+        "rawSha256": "c6488ccbbeac73b8b8b79122bf8d84f7966079413205c43d819a8bee89cdacbf"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/035-api-metadata.json",
+        "bytes": 732,
+        "rawSha256": "19705c719152936e494f284a15337d0482e6ffe60168c12cbd9b74b52ef7bcba"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/036-api-intent.json",
+        "bytes": 424,
+        "rawSha256": "eaab772c6cd859c5ec4df0e1374546a2b610cf07f998224fad4482cae7eeea09"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/037-api-response.json",
+        "bytes": 326,
+        "rawSha256": "372cf7e5859db2160fab06a24759d6557a7dc9fe6a60239ab8004e61a7d5897f"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/038-api-metadata.json",
+        "bytes": 32171,
+        "rawSha256": "35e074997ff6a3ac70be29a2bfb80550e4088cdfe91173bfa37fc4c983fc79a9"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/039-api-intent.json",
+        "bytes": 371,
+        "rawSha256": "6ac3317f710154677ecb705e21667657c6d3bc27d921ab338375dc72134f2ff5"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/040-api-response.json",
+        "bytes": 315,
+        "rawSha256": "80e761d6351affa50d08b9fa3d53320691a7b4d0f0165cd0ce78aaeb7b9cbb13"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/041-api-intent.json",
+        "bytes": 417,
+        "rawSha256": "a9f5b6e0c7c180072053f4c5c79acd9686a7d4a2f8ce281500f2c57ad22bacee"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/042-api-response.json",
+        "bytes": 319,
+        "rawSha256": "62739ac166f586d392d5845940f16d2f7a425c7d56b2d9af5865a28469d05904"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/043-api-metadata.json",
+        "bytes": 48058,
+        "rawSha256": "6e683a5eaa93fe2006ae050c65dd1f2d4395ced7859b56f51a91c2d4eee7b6c7"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/044-api-intent.json",
+        "bytes": 365,
+        "rawSha256": "ac6b6189cc73ef076b85ae826c9e2d2b2707ed480c8d41b057da5200c269c137"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/045-api-response.json",
+        "bytes": 324,
+        "rawSha256": "2fbeb224a2ab1307917cebe05e58a78a44e99aca83f3033857eb95dfc40c894d"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/046-api-metadata.json",
+        "bytes": 15314,
+        "rawSha256": "28f2806a30079e3575517eda7438336f202c26a1422b6d3e6ae637830ecf7350"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/047-api-intent.json",
+        "bytes": 365,
+        "rawSha256": "6fe5498886fb239932a68e54fc5a99d240b50ff75395acbd32ea03467afbd7db"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/048-api-response.json",
+        "bytes": 324,
+        "rawSha256": "c8ff8d315e0742f38bc8910163282bfc3b76db2e998caeb0cffcb4b6d096c2c1"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/049-api-metadata.json",
+        "bytes": 15317,
+        "rawSha256": "aec5f2dc310f4fdf35fcfc6662fd6a492203a16fc5272cad4dfa824bdef7f034"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/050-api-intent.json",
+        "bytes": 379,
+        "rawSha256": "8a68cf8db5b9f018ccf371a27bb3099c0cdb4078beee9876fbfebaaccf80d1b6"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/051-api-response.json",
+        "bytes": 321,
+        "rawSha256": "b9a18782caff41e2e892716e889fb2279ae00453c267b1c672b07daa6c5f76a4"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/052-api-metadata.json",
+        "bytes": 6871,
+        "rawSha256": "77cbe425287b26a87ceca145cd7516e1ff60f73ea5b5abdcfacc2ca7ad9d398c"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/053-api-intent.json",
+        "bytes": 383,
+        "rawSha256": "a213f29994304bfc0f6940033869ade108849aba78ef7c3fae615d2887ddf780"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/054-api-response.json",
+        "bytes": 319,
+        "rawSha256": "bc3a5f9b2f6f806135fddd67c754a148904aab6782afcbf2adbc0fe191a4c321"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/055-api-metadata.json",
+        "bytes": 2291,
+        "rawSha256": "12204316f9f94d709200122309d8d638f06425d5b0fc14a054865574d5ac27f3"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/056-api-intent.json",
+        "bytes": 369,
+        "rawSha256": "a5e52fbda03a158d590289c3e4e386001e45765d758f845dafc0bdac20d235f0"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/057-api-response.json",
+        "bytes": 319,
+        "rawSha256": "a5f35a50b96993db4d594b8dd8182caf393ce8444079e95865ceba71a7015a57"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/A-dispatch-ack.json",
+        "bytes": 51,
+        "rawSha256": "5ba7f5a3f840f3fe41a395044b0c6cfb0ca92e19dc356ac5e9f771bd3f85222f"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/A-dispatch-intent.json",
+        "bytes": 275,
+        "rawSha256": "18e6a24dea5988ef3a311b82b60146d88250048e9d96ad4ab6b3461ed262fed4"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/A-original-verified.json",
+        "bytes": 19858,
+        "rawSha256": "4c34450362456561ed9dd9287aba698c5ad38694e278edc394fb40361eaa502a"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/A-run-binding.json",
+        "bytes": 15106,
+        "rawSha256": "3da3d189a988af8a008f3b120a2defffbbe8e6f2536c224e104cd9f1c2338414"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/B-dispatch-ack.json",
+        "bytes": 51,
+        "rawSha256": "5da0c6f38791dbdf46e7c9002bf072acf63d7e43fd50959fcf6532127c8ea7b2"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/B-dispatch-intent.json",
+        "bytes": 292,
+        "rawSha256": "0cf2da4ceca0708ff78c61c6e2bd5331cd5a6b63f8b7b67a4afe8e182e5cf0e8"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/B-original-verified.json",
+        "bytes": 19858,
+        "rawSha256": "f11e5f61d182494995024c3fc1457e83049638ec3890bf21bd8c977c12f2bfa7"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/B-run-binding.json",
+        "bytes": 15106,
+        "rawSha256": "0fd2df266acb358554fead008213fa8ba059881642401b3b6e6b6791678f71c7"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/completed.json",
+        "bytes": 3447,
+        "rawSha256": "1219810ceeec3d0e81cfb445cd66e4e1f3ac2fd1d38dcc810b8c1e59dc3c0561"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a/started.json",
+        "bytes": 419,
+        "rawSha256": "ff078f5136253af4eb459f661b77e260e2f6cca999cd40e882abc0c4b96181ae"
+      },
+      {
+        "path": ".local-secrets/d2-6-build-20261117-a.operator.mjs",
+        "bytes": 15483,
+        "rawSha256": "d2d1828c99bbcae2cccfb990cd3c36ccafb9fd5db6349273b3a0bb6fcb5ab0ac"
+      }
+    ]
+  },
+  "nextStep": "Reuse these exact original artifacts to prepare necessary ECR publication and trusted catalog scopes. New remote reads/publication/catalog operations require separate approval; no restore or runtime activation in this round."
+}

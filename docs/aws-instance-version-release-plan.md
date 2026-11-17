@@ -1,8 +1,8 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 STEP3 EXISTING APP BUILD SCOPE PREPARED / BUILD NOT APPROVED — RUNTIME DISABLED / NO REAL UPDATE RUNS`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 STEP3 TWO DISTINCT APP BUILD ORIGINALS VERIFIED / NOT PUBLISHED — RUNTIME DISABLED / NO REAL UPDATE RUNS`。
 
-除下方明确交付的D2-1至D2-4代码/离线部分及D2-5已有ECR路线离线接入外，本文其余部分仍是待审设计，不是完整功能已完成、生产数据库迁移、Secret/IAM安装、镜像发布、部署工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
+已交付代码、一次性身份安装及本轮两次真实app构建，以各自最新准确回执为准，不把原设计或离线验证当实际部署完成。本文其他待审范围不是新增生产读取、SQL/Secret/IAM修改、ECR发布、部署调度或AWS操作授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
 最新D2-5接线：[具体来源采集与受审目录命令](aws-instance-release-import.md)已完成代码/准确无AWS CI（164回归＋8原生PG测试）；用户选择仅代码与CI，真实采集/登记未执行。同审批自动晋升现为明确后继需求，不再按“可选”跳过，但不扩大这轮已有ECR路径或提前发布。
 
@@ -16,7 +16,7 @@
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
-**2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第7小节路线](#d2-6-execution-route)的步骤0/1和步骤2离线输入已收口；[第10节](#d2-6-build-prepared)已复用现有app-only工作流备齐两次真实构建的待审范围，尚未构建或取得合格A/B。下一仅待实际构建范围另审；不读凭据/新生产状态，不恢复环境、发布ECR、写目录/绑定或开启runtime，不重装身份或扩Full/媒体工具。当前云持久化/绑定仍未通过，真实更新仍0。
+**2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第11节](#d2-6-build-observed)记录已获准完成的两次app构建和原件核验，同一b9ca…/原工作流、不同真实config digest；未发布ECR或写目录。下一仅复用两份原件准备必要ECR/可信目录集中范围，实际新读取/发布/登记另审；不继续构建、不恢复环境或启用runtime，不重装身份或扩支线。当前云持久化/绑定仍未通过，真实更新仍0/2。
 
 **当前实际结果（取代下方早期轮次状态）：** [新g/h/i核对](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留)已完成真实app原件校验、STS1/AWS元数据55和另批剩余Neon READ ONLY22条查询；保留两次停止和新续段，未重复成功读取或产生远端写入。下一只收口第二个原CFN角色详细策略缺项及一次性启用准确清单，不扩框架；图片持久化缺项另列准确范围，不混入版本更新。runtime仍关、两次真实更新仍0。机器事实见[回执](aws-instance-release-d2-6-readiness-observed-20261114.json)，以下旧轮次“仅离线/未读”不覆盖本次批准结果。
 
@@ -221,7 +221,7 @@
 | 0 复用已完成项 | 已完成 | 身份结项及原准备/runtime/workflow摘要保持，本轮无生产调用 |
 | 1 一次集中取证 | 已获准并完成 | STS1/GitHub15/固定回执1，两个匹配app原件均缺失；不再查询旧构建 |
 | 2 兼容/持久化 | 离线输入已收口；云端证明未完成 | 五应用源码树不变，原9图全部找到并哈希（根5/products4）；兼容契约提案和私有迁移输入准备完毕，尚未上传/改库/写绑定 |
-| 3 合格A/B目录 | 构建准备完成；实际构建/目录未执行 | [第10节](#d2-6-build-prepared)固定b9ca…和原app-only工作流，两次构建及原包核验待另批；ECR/目录仍分清范围另审，不循环查旧产物 |
+| 3 合格A/B目录 | 两份真实不同app原件已通过；ECR/目录未执行 | [第11节](#d2-6-build-observed)原工作流A/B success/attempt1、原包核验通过；下一只准备必要ECR/目录集中范围，实际另审，不重构建/查旧产物 |
 | 4 首次启用 | 未执行 | 收费环境不恢复，runtime仍关闭，种子/实际操作另审 |
 | 5 两次正常更新 | 0／2 | 不以初始恢复/对齐、NO_CHANGE或模拟结果充数 |
 | 6 结案 | 未完成 | 必须有两次真实成功及最终一致回写 |
@@ -344,7 +344,30 @@
 
 本地JSON/9项Git来源、8项复用摘要、YAML的app-only/原权限/原超时/原保留期、调用上限求和、空版本字段及实际runtime关闭共**85项断言通过**；未改运行代码，所以未触发构建来验证本准备文档，也不把本地断言称作真实构建CI通过。正式runtime仍false/environments={}，部署workflow保持原SHA；D2-6真实更新0/2。
 
-**当前停止点：步骤3的构建准备完成，只待实际构建另审。** 不提前调度、要求刷新Source或追加原环境/身份核对；构建合格后再按原步骤3明确必要ECR/可信目录与后继首次启用范围，不恢复环境等产物、不新增工作流或扩支线。
+**该准备轮停止点（后已另准并完成实际构建，见第11节）：** 当时只待实际构建另审，未提前调度或要求刷新Source/追加环境盘点；原JSON保留编制字节，不改授权标志或重放。必要ECR/可信目录及首次启用仍准确另审，不恢复环境等产物、不新增工作流或扩支线。
+
+<a id="d2-6-build-observed"></a>
+
+### 11. 两次真实app构建与原件核验完成：未发布ECR、未写目录或恢复环境
+
+用户明确批准第10节SHA `7a4350731179972bcd7695203a8f763aee09033abde2df68f0b4cd5f1cfce773`及原风险后，本轮只执行该范围。复用既有Git认证helper、原app-only工作流、原四文件解包脚本及`verifyBackendBuildEvidence`，在新私有目录保存调度INTENT/204 ACK/准确run绑定和原包，不新增正式执行模块、工作流、依赖或云权限。
+
+真实窗口**2026-11-17T16:41:09.402Z–16:47:26.228Z**，约6分17秒，结果`TWO_DISTINCT_APP_BUILD_ORIGINALS_VERIFIED_NOT_PUBLISHED`；[去敏回执](aws-instance-release-d2-6-build-observed-20261117.json)保存准确来源、计数及68份私有JSON/操作脚本指纹。认证、原ZIP、解包目录和回执正文不提交GitHub；原范围、旧记录和已消费的两个新INTENT保持，不Re-run/重放。
+
+| 构建 | 真实run / app artifact | 实际imageConfigDigest |
+| --- | --- | --- |
+| A | [44128576107](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/44128576107) / `14347858874` | `sha256:ad65fdf4dd998f960274adf308a9f7b8baeba6d845309ad21529062b50b4d2eb` |
+| B | [44129167654](https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/44129167654) / `14349965129` | `sha256:fee49b1473042adb987cf0acaef4fd443b6166b65aab1cc389c53403a2afed6b` |
+
+两run均准确仓库/main/workflow_dispatch/本人actor/attempt1/success，源码同`b9ca2138738900afc23a6a2ddce141b37a1f0a31`。远端工作流原字节与批准Git对象一致；每次调度前核对main不变，以有限调度前样本/时间区间绑定唯一新run，不取另一历史run。A原件核验成功后才启动B；没有第三次构建或提交不明/失败重试。
+
+实际使用：**GitHub API GET18、POST dispatch2、官方ZIP blob GET2、helper读取1、原ZIP下载2，共145,323,945字节**；没有失败日志下载。每份ZIP大小/原SHA均与认证GitHub artifact元数据一致，原解包器确认四文件清单/限额，校验和、Node24.18.0/非root/隔离health及offline ready、Trivy0.75.0/OS HIGH与CRITICAL均0和48小时DB新鲜度全部通过。随后仅本地再次运行原证据验证器及A/B不同摘要检查，通过；未新增provider调用。构建CI是真实成功，不是只通过本机合成测试。
+
+**真实通过范围仅为两份app构建原件。** 这些config digest不是ECR root/platform manifest digest；尚无本轮ECR推送/回读、可信目录ID或初始实例绑定。兼容元数据提案未被本轮采纳成当前云事实，九图尚未上传/改库，完整持久化门槛不变。实际runtime仍false/environments={}，部署workflow保持原SHA；AWS/ECR、配置/PAT/PEM/Secret、数据库连接/SQL、目录/绑定写入、恢复环境和真实版本更新全部0。
+
+新元数据从首次真实读取16:41:09.565Z计5小时，截止**2026-11-17T21:41:09.565Z（温尼伯15:41:09.565）**；A原件到期2026-11-18T16:42:02Z、B到期16:45:19Z，即次日温尼伯10:42:02/10:45:19。扫描DB48小时与这两个期限分别保持原值；本机留存不能刷新artifact/扫描或旧事实时间，后继不足时只处理真实必要缺项，不默认重建全部材料或重跑构建。
+
+本轮到此收尾，仅提交结果。**下一唯一动作仍在步骤3：复用这些原件准备必要ECR发布与可信目录的集中范围，实际新读取/发布/登记另审。** 不提前恢复环境，不重复身份安装/云盘点或再查旧构建，不增加Web审批/运行框架；初始绑定/runtime启用仍属后继步骤4，两次A→B→A真实更新仍0/2。
 
 <a id="d2-1-delivered"></a>
 
