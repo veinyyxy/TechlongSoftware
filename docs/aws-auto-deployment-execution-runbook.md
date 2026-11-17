@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：最小补核已通过，仅待四LOGIN核验及两IAM栈新SHA批准（2026-11-16）
+## 当前唯一继续点：四LOGIN/八IAM已完成，最后三栈时间比较停止；仅提议单点修正及只读收尾（2026-11-16）
+
+用户已批准2cd402…并实际执行；[第27节](aws-instance-release-activation.md#27-获准接续已完成四login与八iam资源最后三栈时间比较停止) / [真实回执](aws-instance-release-identity-completion-executed-20261116.json)。04:08:42.837Z开始、04:11:30.581Z停止：四LOGIN/原目录/函数权限全部独立通过，两IAM栈8资源CREATE_COMPLETE且新角色/策略/归属26读通过；最后原platform时间比较报ORIGINAL_STACK_TIME_CHANGED，原三栈完整保护未完，不标总验收通过。实际Source1/元数据45/Secret值4/配置1/TLS5/SQL34/Create2 Execute2，Secret/SQL写及密码/PAT/PEM/恢复/发布/dispatch0。34新原件/五新fences、38旧原件/七旧槽保留，不能重装或重放执行。
+
+仅离线重现Date.parse(SDK Date)会丢失毫秒，而CLI ISO保留；同一基准时间也会误拒。实际失败返回时间未留，不能据此证明真实未变。当前没有修代码或新增生产调用；下一仅提议这一处精确比较修正/离线回归，及另批STS1＋原三栈7次元数据收尾，不再读Secret/配置/数据库或重做新IAM26读，不扩盘点。未经新明确批准不继续；原05:08:42.837Z轮次/08:24:36.704Z事实终点不延，runtime关、真实更新0，不恢复/发布或清理。
+
+### 以下为本次已执行的准确批准（不再待批或重放）
 
 用户已单独批准STS1＋AWS元数据37＋GitHub GET4，本轮全部完成且无重试；[新事实/原件指纹](aws-instance-release-identity-completion-preflight-20261116.json)证明两IAM栈名称空闲、五Secret固定元数据/两原栈、三idle栈和必需CFN/Key/OIDC/GitHub人工门禁匹配。配置/Secret值/PAT/PEM/数据库/写槽/恢复/发布均0。当前只交付[第26节范围/完整风险](aws-instance-release-activation.md#26-最小补核完成剩余身份安装只待新sha另审)及[准确接续JSON](aws-instance-release-identity-completion-review-20261116.json)，规范SHA `2cd402ae5b952942b85b16fce3af6e3618d1873d8c918fab8ebf8538e053929b`，尚未获安装批准。
 

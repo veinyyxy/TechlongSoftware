@@ -648,3 +648,31 @@ Execute明确`DisableRollback=true`、`RetainExceptOnCreate=false`，Create不�
 完整风险在新JSON的`risks`并继承第17/21/25节相关原风险：owner/config/四Secret进内存与提供者日志、原creator ADMIN/PUBLIC能力保留、新IAM立即可用而runtime关闭不是权限锁、原准确未来service/task授权、OIDC不绑定单run/源码、Source登录刷新可能失效、组织权限未模拟、非原子/并发非CAS/传播失败、DisableRollback及未知提交可能遗留权限和费用、截止不取消AWS工作。失败即停，无自动补齐、重试、rollback/down、撤权、删除或清理。五Retain Secret仍可能计费；不读取过期artifact或把旧只读诊断重新标为当前完整数据库验收。
 
 下一唯一动作：只等待用户对新SHA及上述读取/安装范围、完整风险明确批准；没有该批准不调用新入口。可用确认语：**“我确认按接续清单 `2cd402ae5b952942b85b16fce3af6e3618d1873d8c918fab8ebf8538e053929b` 执行四LOGIN独立核验及原两IAM栈8资源，接受配置1、四固定Secret值、5条验证TLS只读连接/SQL34、Source1/元数据81、Create2/Execute2、准确未来service/task授权及完整风险；仅未过期时执行，不重建Secret或重放SQL，保持runtime关闭，不恢复环境、不发布版本。”**
+
+## 27. 获准接续已完成四LOGIN与八IAM资源，最后三栈时间比较停止
+
+用户已明确批准2cd402…、凭据/上限、未来准确service/task及完整风险，仅未过期时执行。`2026-11-17T04:08:42.837Z`在原有效期内开始，`04:11:30.581Z`停止；实际轮次终点仍05:08:42.837Z、父事实08:24:36.704Z，不延长、不重跑。[准确执行回执](aws-instance-release-identity-completion-executed-20261116.json)绑定34份新私有原件与五个新永久fences；原38安装原件/七旧fences、五执行文件与所有模板/SQL/保护基准保持原字节。
+
+| 部分 | 实际结果 |
+| --- | --- |
+| 四LOGIN与数据库核验 | 独立owner＋四窄LOGIN共5条验证TLS READ ONLY连接/SQL34全部通过；原11类目录保持、已提交列/函数正文与ACL正确，四角色各自认证/授权正确，无表列或owner能力 |
+| identities栈 | 新准确StackId `98ca35a0…`，6项Add/Create/Execute各一次，CREATE_COMPLETE；独立模板/输出/归属核验通过 |
+| publisherIdentity栈 | 新准确StackId `c6f842f0…`，2项Add/Create/Execute各一次，CREATE_COMPLETE；独立模板/输出/归属核验通过 |
+| 四IAM Role/Policy | 20次IAM读取全部通过：实际RoleId/PolicyId、trust、唯一附加policy=boundary、v1/完整策略摘要、标签和输出物理绑定匹配，记录实际ID而非推造 |
+| 最后原三栈保护 | 独立检查在第一项原platform DescribeStacks返回后，报`ORIGINAL_STACK_TIME_CHANGED`；尚未完成参数/物理归属及其余三栈检查，不能把整个安装验收标成功 |
+
+本轮实际Source1/元数据45（父18＋独立27）/四固定Secret正文/配置1/连接5/SQL34、Create2 Execute2；密码生成、Secret写、SQL修改事务、PAT/PEM/GitHub API/dispatch均0。五个旧Secret与两次已知提交未重做；两IAM栈/八资源已真实安装，不因最后核验失败当作“未创建”重装。runtime仍false/environments={}，没有恢复服务/数据库或发布版本，D2-6真实更新仍0。新IAM有效授权保留，runtime关闭不是撤权；原Secret费用仍可能存在。
+
+### 27.1 仅本地复现发现SDK Date的毫秒比较缺陷
+
+已批准并原样保留的检查器用`Date.parse(s[0].LastUpdatedTime ?? s[0].CreationTime)`与保存的CLI ISO比较。SDK返回Date对象时，`Date.parse(Date对象)`经不含毫秒的字符串表示再解析。仅用已存三个基准时刻离线重现：platform的`.307`、Cell的`.255`、tenant的`.260`均丢失，**同一时刻也被旧比较拒绝**；`Date.getTime()`则保持原毫秒，未改变的时间能精确相等。这是明确的本地表示比较缺陷，不是允许忽略时间或取整放宽保护。
+
+本次失败返回的SDK时间未在断言前保存，因此离线复现**不能证明实际新返回时间未变，更不能替代原三栈完整核验**；不倒造失败响应、不把错误直接改标成功。只保存[私有离线诊断及摘要](aws-instance-release-identity-completion-executed-20261116.json)，没有修改检查器/新旧清单、追加云/数据库读取、重试执行、回滚/down/撤权或清理。未用36次元数据额度及原轮次尚余时间都不构成失败后继续权限。
+
+### 27.2 下一唯一最小提案（尚未批准）
+
+只修这一处SDK Date/ISO的毫秒精确比较，做离线相同瞬时/毫秒变化/无效值回归，保持其他条件和原件不变；**不重装IAM、不重读四Secret/配置或连接数据库，也不重做已通过的26次新IAM归属/权限读取**。原五已消费fences永久保留，不运行原`execute-reviewed`或改写旧失败结果。
+
+修正后，最终三栈检查需新一次明确只读批准：**Source STS1＋AWS元数据7**，仅原platform/Cell/tenant各DescribeStacks＋ListStackResources六读、原tenant GetTemplate(Original)一读。第一项Describe需要补读，因为失败返回时间未保留；随后复用原未做的六项，不另查服务/事件/Secret/IAM或扩大盘点。保存允许的实际时间/参数摘要/归属后再比较，差异/异常即停，不自动补偿。凭据只用于既有Source内存认证，存在网络/提供者日志及低额费用风险；不读.env/PAT/PEM/Secret值、不连库、不写云或业务、不续期、恢复、发布或调度。
+
+本轮只在真实停止及离线诊断结项；没有上述额外修正或新读的批准，故没有实现该修正、新生成可执行接续或调用剩余检查。全部完成后才可将身份安装正式收口并回到原D2-6版本/绑定准备，不扩框架或支线。

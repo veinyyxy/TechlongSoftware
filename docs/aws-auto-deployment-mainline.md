@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：最小补核已通过，仅待四LOGIN核验及两IAM栈新SHA批准（2026-11-16）
+## 当前唯一继续点：四LOGIN/八IAM已完成，最后三栈时间比较停止；仅提议单点修正及只读收尾（2026-11-16）
+
+[本次获准执行结果](aws-instance-release-identity-completion-executed-20261116.json) / [第27节](aws-instance-release-activation.md#27-获准接续已完成四login与八iam资源最后三栈时间比较停止)：四LOGIN独立认证/权限及原catalog通过；原两IAM栈6/2资源均CREATE_COMPLETE，新Role/Policy/归属独立核验通过。最后原platform更新时间比较报ORIGINAL_STACK_TIME_CHANGED后立即停止，原三栈保护未完全通过，不能称安装最终验收完成。实际Source1/元数据45/固定Secret值4/配置1/连接5/SQL34/Create2 Execute2，无Secret/SQL写、密码/PAT/PEM读取或恢复/发布，runtime关。34新原件/五新fences及原38/七保持，不重装、不重跑2cd402…。
+
+本地已复现Date.parse(Date对象)丢毫秒导致ISO/SDK同一时间也误拒；本次实际返回未留，不能倒造或据此改标成功。没有修检查器或新增云读。下一仅提议单点毫秒精确比较修正与离线回归，再另批STS1＋原三栈7次只读完成最后保护；不重做新IAM26读、不再读取Secret/配置/数据库，不扩支线。未获准不执行，旧时间/计数/槽不重置，D2-6真实更新0。
+
+### 以下为本次已批准且执行的清单（不重放）
 
 本轮已按用户新批准完成STS1/AWS元数据37/GitHub GET4，全部匹配、无重试；[事实回执](aws-instance-release-identity-completion-preflight-20261116.json)。没有Secret值/配置/私钥读取或数据库连接、云写/槽、恢复/版本发布。剩余四LOGIN只读独立核验与原两IAM栈6/2项Add已集中到[第26节](aws-instance-release-activation.md#26-最小补核完成剩余身份安装只待新sha另审)及[新JSON](aws-instance-release-identity-completion-review-20261116.json)，准确SHA `2cd402ae5b952942b85b16fce3af6e3618d1873d8c918fab8ebf8538e053929b`；实际安装尚未批准，不自动执行。
 

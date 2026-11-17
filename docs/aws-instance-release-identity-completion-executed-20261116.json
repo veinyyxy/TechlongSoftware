@@ -1,0 +1,329 @@
+{
+  "schema": "techlong/instance-release-identity-completion-execution-observed/v1",
+  "status": "FOUR_LOGINS_AND_NEW_IAM_VERIFIED_FINAL_ORIGINAL_STACK_CHECK_PENDING",
+  "approvedCanonicalSha256": "2cd402ae5b952942b85b16fce3af6e3618d1873d8c918fab8ebf8538e053929b",
+  "userExplicitApprovalReceived": true,
+  "approvalRecord": ".local-secrets/d2-identity-completion-install-20261116-a/approval-received.json",
+  "startedAt": "2026-11-17T04:08:42.837Z",
+  "stoppedAt": "2026-11-17T04:11:30.581Z",
+  "operationNotAfterUnchanged": "2026-11-17T05:08:42.837Z",
+  "factsNotAfterUnchanged": "2026-11-17T08:24:36.704Z",
+  "startedWithinApprovedWindow": true,
+  "operatorStatus": "STOPPED_NO_RETRY_NO_AUTOMATIC_ROLLBACK",
+  "stopPhase": "INDEPENDENT_IAM_VERIFICATION",
+  "parentError": {
+    "code": "INDEPENDENT_VERIFICATION_STOPPED",
+    "httpStatus": null
+  },
+  "independentError": {
+    "code": "ORIGINAL_STACK_TIME_CHANGED",
+    "httpStatus": null
+  },
+  "actualCounts": {
+    "metadata": 45,
+    "sts": 1,
+    "secretValue": 4,
+    "create": 2,
+    "execute": 2,
+    "sql": 34,
+    "connections": 5,
+    "configReads": 1,
+    "patReads": 0,
+    "pemReads": 0,
+    "passwordsGenerated": 0,
+    "sqlWriteTransactions": 0
+  },
+  "completed": {
+    "database": {
+      "status": "PROMOTION_AND_FOUR_LOGINS_INDEPENDENTLY_VERIFIED",
+      "completedAt": "2026-11-17T04:08:50.791Z",
+      "verifiedTlsConnections": 5,
+      "readOnlySqlSubmissions": 34,
+      "originalCatalogUnchanged": true,
+      "addedColumns": [
+        {
+          "relname": "releases",
+          "attname": "promotion_origin",
+          "type": "jsonb"
+        },
+        {
+          "relname": "requests",
+          "attname": "approval_intent_sha256",
+          "type": "text"
+        }
+      ],
+      "functionBodiesAndAclsMatch": true,
+      "logins": [
+        {
+          "name": "deployment_release_planner_login",
+          "verifiedTls": true,
+          "readOnly": true,
+          "functionGrantsMatch": true,
+          "noTableOrOwnerCapability": true
+        },
+        {
+          "name": "deployment_release_executor_login",
+          "verifiedTls": true,
+          "readOnly": true,
+          "functionGrantsMatch": true,
+          "noTableOrOwnerCapability": true
+        },
+        {
+          "name": "deployment_release_verifier_login",
+          "verifiedTls": true,
+          "readOnly": true,
+          "functionGrantsMatch": true,
+          "noTableOrOwnerCapability": true
+        },
+        {
+          "name": "deployment_release_publisher_login",
+          "verifiedTls": true,
+          "readOnly": true,
+          "functionGrantsMatch": true,
+          "noTableOrOwnerCapability": true
+        }
+      ],
+      "creatorAdminDisclosed": true,
+      "sqlWrites": 0
+    },
+    "newIamStacks": [
+      {
+        "purpose": "identities",
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-instance-release-identities-v1/98ca35a0-e23c-11f1-b162-020ac730bb29",
+        "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/d2-activation-identities-2cd402ae5b95/de9476b5-1af6-4b6d-81a3-2e56cea7bfae",
+        "status": "CREATE_COMPLETE",
+        "independentlyVerifiedNewStack": true,
+        "resources": [
+          {
+            "logicalId": "ExecutorBoundary",
+            "type": "AWS::IAM::ManagedPolicy",
+            "id": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleaseExecutorBoundaryV1"
+          },
+          {
+            "logicalId": "ExecutorRole",
+            "type": "AWS::IAM::Role",
+            "id": "TechlongSandboxInstanceReleaseExecutorRole"
+          },
+          {
+            "logicalId": "PlannerBoundary",
+            "type": "AWS::IAM::ManagedPolicy",
+            "id": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleasePlannerBoundaryV1"
+          },
+          {
+            "logicalId": "PlannerRole",
+            "type": "AWS::IAM::Role",
+            "id": "TechlongSandboxInstanceReleasePlannerRole"
+          },
+          {
+            "logicalId": "VerifierBoundary",
+            "type": "AWS::IAM::ManagedPolicy",
+            "id": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleaseVerifierBoundaryV1"
+          },
+          {
+            "logicalId": "VerifierRole",
+            "type": "AWS::IAM::Role",
+            "id": "TechlongSandboxInstanceReleaseVerifierRole"
+          }
+        ]
+      },
+      {
+        "purpose": "publisherIdentity",
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-instance-release-promotion-identity-v1/c6f842f0-e23c-11f1-b2be-06ffe014a43b",
+        "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/d2-activation-publisherIdentity-2cd402ae5b95/b2dbcce9-fcaf-4b66-b13b-3aad11ed84f6",
+        "status": "CREATE_COMPLETE",
+        "independentlyVerifiedNewStack": true,
+        "resources": [
+          {
+            "logicalId": "PublisherBoundary",
+            "type": "AWS::IAM::ManagedPolicy",
+            "id": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleasePublisherBoundaryV1"
+          },
+          {
+            "logicalId": "PublisherRole",
+            "type": "AWS::IAM::Role",
+            "id": "TechlongSandboxInstanceReleasePublisherRole"
+          }
+        ]
+      }
+    ],
+    "fourRolesAndPolicies": {
+      "PlannerRole": {
+        "arn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleasePlannerRole",
+        "id": "AROAV3GNMXTZAAZBJG6YJ",
+        "boundary": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleasePlannerBoundaryV1",
+        "policyId": "ANPAV3GNMXTZKNOXL7MC2",
+        "defaultVersion": "v1",
+        "policySha256": "aca0d09e392eb98c85e413f25e5e074fc6901d9b578cb3ab0d4d1164be211ce5",
+        "trustSha256": "8e51c7982871aade54d4c4d1e50b7ae4d487c9e494ea2a5e113f6c6d88f912b3"
+      },
+      "ExecutorRole": {
+        "arn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleaseExecutorRole",
+        "id": "AROAV3GNMXTZEJ2BDJXHG",
+        "boundary": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleaseExecutorBoundaryV1",
+        "policyId": "ANPAV3GNMXTZAEHN63XLG",
+        "defaultVersion": "v1",
+        "policySha256": "a06ee64465bb472a17eb4af97ab5e3f17b8b87792f712a4268e5c9810c418980",
+        "trustSha256": "9c5ed51d51547fb309db009263a042918154230e6b5f3161c9590f52836d4d9d"
+      },
+      "VerifierRole": {
+        "arn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleaseVerifierRole",
+        "id": "AROAV3GNMXTZGO75L3MG2",
+        "boundary": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleaseVerifierBoundaryV1",
+        "policyId": "ANPAV3GNMXTZP7EKOJYEU",
+        "defaultVersion": "v1",
+        "policySha256": "36e08da5452d0c3968284f7b81cdfdf08c74319d117bc1484f0d14ada7f9fce8",
+        "trustSha256": "9c5ed51d51547fb309db009263a042918154230e6b5f3161c9590f52836d4d9d"
+      },
+      "PublisherRole": {
+        "arn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleasePublisherRole",
+        "id": "AROAV3GNMXTZA2DT2FTQA",
+        "boundary": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleasePublisherBoundaryV1",
+        "policyId": "ANPAV3GNMXTZPHKCDOYZO",
+        "defaultVersion": "v1",
+        "policySha256": "45d079261d655c3d7d4134b9fcd5b747f5edf702dffc470ff8cf0531806e4626",
+        "trustSha256": "9c5ed51d51547fb309db009263a042918154230e6b5f3161c9590f52836d4d9d"
+      }
+    },
+    "newIamResources": 8,
+    "originalFiveSecretsNotRecreated": true,
+    "originalTwoSqlCommitsNotReplayed": true
+  },
+  "unfinished": {
+    "originalThreeStacksFinalProtectionCheck": true,
+    "stoppedAt": "First original-platform DescribeStacks response, after identity/status/role gate and at timestamp comparison, before parameter hashes/resource checks.",
+    "allNewIamChecksAlreadyPassed": true,
+    "actualFailedSdkTimestampNotRetained": true,
+    "remainingResourceQueriesNotAttempted": 6,
+    "fullInstallationAcceptance": false,
+    "realVersionUpdates": 0
+  },
+  "localDiagnosis": {
+    "evidence": ".local-secrets/d2-identity-completion-install-20261116-a/date-comparison-offline-diagnosis.json",
+    "status": "DATE_OBJECT_PARSE_LOSES_MILLISECONDS_REPRODUCED_OFFLINE",
+    "rows": [
+      {
+        "stack": "platform",
+        "savedExpectedIso": "2026-11-13T14:33:34.307000+00:00",
+        "expectedMilliseconds": 1794580414307,
+        "directDateParseMilliseconds": 1794580414000,
+        "getTimeMilliseconds": 1794580414307,
+        "legacyEquality": false,
+        "correctInstantEquality": true,
+        "lostMilliseconds": 307
+      },
+      {
+        "stack": "cell",
+        "savedExpectedIso": "2026-11-13T14:37:03.255000+00:00",
+        "expectedMilliseconds": 1794580623255,
+        "directDateParseMilliseconds": 1794580623000,
+        "getTimeMilliseconds": 1794580623255,
+        "legacyEquality": false,
+        "correctInstantEquality": true,
+        "lostMilliseconds": 255
+      },
+      {
+        "stack": "tenant",
+        "savedExpectedIso": "2026-11-15T17:40:03.260000+00:00",
+        "expectedMilliseconds": 1794764403260,
+        "directDateParseMilliseconds": 1794764403000,
+        "getTimeMilliseconds": 1794764403260,
+        "legacyEquality": false,
+        "correctInstantEquality": true,
+        "lostMilliseconds": 260
+      }
+    ],
+    "defect": "Date.parse(Date object) stringifies through a representation without milliseconds, whereas the saved CLI ISO retains them. Use of this comparison can reject an unchanged instant.",
+    "boundary": "Unchanged stored instants represented as SDK Date objects reproduce the old comparison failure. This proves a local comparison defect, not that the actual newly returned timestamp or all three original stacks were unchanged.",
+    "newProductionCalls": 0,
+    "fixApplied": false,
+    "oldApprovedFilesChanged": false
+  },
+  "evidenceIndex": {
+    "path": ".local-secrets/d2-identity-completion-install-20261116-a/execution-evidence-index.json",
+    "sha256": "ce80a449fd515ae7d005eb826d04a9a019bb7c9ba556e6f943f3a60368469a74",
+    "files": 34,
+    "fences": [
+      {
+        "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt-identities-create.json",
+        "sha256": "c5bb399e0a3df0b9471ede723387fa3926913f366937083d92169729a3be1280"
+      },
+      {
+        "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt-identities-execute.json",
+        "sha256": "509b8b82cf9f7508b301b9f6ba71d4ba611618fee8f2f40a0fccaa962058c9ae"
+      },
+      {
+        "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt-publisherIdentity-create.json",
+        "sha256": "b67a54e0ff8b268c0212c295896eee2e97189094f4edf1ffe74e07c4441849b8"
+      },
+      {
+        "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt-publisherIdentity-execute.json",
+        "sha256": "468550b23721b299a45f02877827e85020776885bcfccbbe022c619b68b2cb95"
+      },
+      {
+        "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt.json",
+        "sha256": "1b25b75332903f0f0dcce4bbcbddf655ff42cea0c54eeca5f6296a9759db1970"
+      }
+    ]
+  },
+  "newPermanentMutationFences": [
+    {
+      "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt-identities-create.json",
+      "sha256": "c5bb399e0a3df0b9471ede723387fa3926913f366937083d92169729a3be1280"
+    },
+    {
+      "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt-identities-execute.json",
+      "sha256": "509b8b82cf9f7508b301b9f6ba71d4ba611618fee8f2f40a0fccaa962058c9ae"
+    },
+    {
+      "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt-publisherIdentity-create.json",
+      "sha256": "b67a54e0ff8b268c0212c295896eee2e97189094f4edf1ffe74e07c4441849b8"
+    },
+    {
+      "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt-publisherIdentity-execute.json",
+      "sha256": "468550b23721b299a45f02877827e85020776885bcfccbbe022c619b68b2cb95"
+    },
+    {
+      "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt.json",
+      "sha256": "1b25b75332903f0f0dcce4bbcbddf655ff42cea0c54eeca5f6296a9759db1970"
+    }
+  ],
+  "originalSources38EvidenceAndSevenFencesUnchanged": true,
+  "runtime": {
+    "enabled": false,
+    "environments": {},
+    "restoredEnvironment": false,
+    "publishedVersion": false,
+    "githubDispatch": false
+  },
+  "afterStop": {
+    "localResultsSourceAndHashesOnly": true,
+    "newCloudOrDatabaseCalls": 0,
+    "newCredentialReads": 0,
+    "retries": 0,
+    "rollbackRevokeDeleteOrCleanup": false
+  },
+  "costsAndAuthorization": "The two IAM stacks/four roles/four policies remain installed and effective under their approved scopes. Existing five Retain Secrets may keep charging; runtime=false is not revocation. No compute/database environment was restored or new Secret created.",
+  "nextProposalNotAuthorized": {
+    "scope": "Only correct the single SDK-Date-versus-ISO millisecond comparison and offline regression, then separately approve a fresh narrow read-only completion of the original three-stack checks. Never rerun the installation or reread credentials/database.",
+    "proposedNewReads": {
+      "sts": 1,
+      "awsMetadata": 7,
+      "configSecretPatPemReads": 0,
+      "databaseConnections": 0,
+      "writes": 0
+    },
+    "exactMetadata": [
+      "DescribeStacks original platform ARN",
+      "ListStackResources original platform ARN",
+      "DescribeStacks original Cell ARN",
+      "ListStackResources original Cell ARN",
+      "DescribeStacks original tenant ARN",
+      "ListStackResources original tenant ARN",
+      "GetTemplate Original original tenant ARN"
+    ],
+    "reasonFirstDescribeMustBeReadAgain": "The failed inspector did not retain the returned timestamp. Do not infer a current value from local reproduction.",
+    "noRepeatNewIam26Reads": true,
+    "noOldApprovalOrCountersReset": true,
+    "noOldFactsExtended": true
+  }
+}
