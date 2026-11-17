@@ -1,4 +1,765 @@
 {
   "schema": "techlong/instance-release-bootstrap-review/v1",
-  "enabled": false
+  "enabled": true,
+  "repository": "veinyyxy/TechlongSoftware",
+  "environment": {
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "repositoryId": "1323312747",
+    "controlEnvironmentId": "env_aws_sandbox_ca_central_1",
+    "environmentName": "techlong-sandbox-deploy",
+    "environmentId": 24613410405,
+    "reviewerId": 14145707,
+    "prepareRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleasePlannerRole",
+    "executionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleaseExecutorRole",
+    "inspectionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleaseVerifierRole",
+    "prepareSubject": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:ref:refs/heads/main",
+    "deploySubject": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy",
+    "database": {
+      "planner": {
+        "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/planner-db-v1-HPepzU",
+        "versionId": "fa0b55bd-fd3f-6ade-921f-86cb3ec49f48",
+        "username": "deployment_release_planner_login"
+      },
+      "executor": {
+        "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/executor-db-v1-8Nxk1p",
+        "versionId": "0e0c3551-91ec-fa50-d332-cb450ddd0fb1",
+        "username": "deployment_release_executor_login"
+      },
+      "verifier": {
+        "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/verifier-db-v1-LXqDKu",
+        "versionId": "2bf43efd-e425-c3a8-df7f-d4d8094feebc",
+        "username": "deployment_release_verifier_login"
+      }
+    },
+    "evidence": {
+      "bucket": "techlong-sandbox-cloud-worker-evidence-402010193138",
+      "owner": "402010193138",
+      "prefix": "instance-releases"
+    },
+    "maxMetadataCallsPerSnapshot": 40,
+    "promotion": {
+      "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleasePublisherRole",
+      "database": {
+        "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/publisher-db-v1-DpSdD3",
+        "versionId": "97c8332f-36d0-37e5-cb6d-6c126a9dbcf8",
+        "username": "deployment_release_publisher_login"
+      },
+      "artifactToken": {
+        "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/backend-build-read-token-v1-zjIXrv",
+        "versionId": "a8a64f33-c9bc-7525-48ec-1f50b972f426"
+      },
+      "sourceRepository": "veinyyxy/SpeedFeast_Backend_main",
+      "sourceRepositoryId": 1064124445,
+      "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast"
+    }
+  },
+  "observedAt": 1794941181276,
+  "writeBefore": 1794959181276,
+  "codeArtifacts": [
+    {
+      "path": ".github/workflows/instance-release-bootstrap.yml",
+      "sha256": "0b36c94e01f324b5c3e11375f83f57a4f6a1281e0b7504c6d1c383da35c2ad1f"
+    },
+    {
+      "path": "scripts/instance-release-bootstrap.ts",
+      "sha256": "f0b9bb5fd86538247e22b04594a3e214be36f877df8d09940bfb48246501761d"
+    },
+    {
+      "path": "ops/releases/bootstrap.ts",
+      "sha256": "74e8a81fdb8de0a97d152a4c6722024b163ae53a762da05627d52b44b94b97c3"
+    },
+    {
+      "path": "ops/releases/promotion-runtime.ts",
+      "sha256": "b310ee4f505d3e07ad595b392f61f3fb6486a14be22a0883aee8a304d547a947"
+    },
+    {
+      "path": "ops/releases/aws-runtime.ts",
+      "sha256": "04e7429f7af770bfba395f420c3277e8c00e916b76079f9fa9a20296ff593249"
+    },
+    {
+      "path": "ops/releases/import-source.ts",
+      "sha256": "b1b97f4869f5baecf82266b7fbfe0e9358274b6338c6f398b5e0aa503dec42f6"
+    },
+    {
+      "path": "ops/releases/build-artifact.ts",
+      "sha256": "e21b05c2f25f519955d50355802d1b6c4f35af93cbe9ac1b90a4c38789d0a8a3"
+    },
+    {
+      "path": "ops/releases/extract-build-artifact.py",
+      "sha256": "2cbe38b6b10c47dc86c586e6ee95d7ee6c9c6048b51d4e468709b107680d6f71"
+    },
+    {
+      "path": "lib/deployments/releases/production.ts",
+      "sha256": "9913def1603c3f46077b49757c5922d3f226132f3918a74b7642e6d23fe65e48"
+    },
+    {
+      "path": "lib/deployments/releases/promotion.ts",
+      "sha256": "e0c887b2fad9fa5a27f940b1bd7437c4931cd78e6e417b910e7b4b0940067f86"
+    },
+    {
+      "path": "lib/deployments/releases/catalog.ts",
+      "sha256": "dc68b4612d9395525b4f2ee56888e1d5657d1ff110f0e22742b650e212d9aaba"
+    },
+    {
+      "path": "lib/deployments/execution/hash.ts",
+      "sha256": "3205a7d79369d7d70653bbb91983762b93b97f11a32972ba2b9c54bcfed0cdce"
+    },
+    {
+      "path": "ops/releases/catalog-transaction.ts",
+      "sha256": "fffe91db25c30a9867be53355d2b5d61c10dd2abd1aa4b0449ebbee5fa9c0102"
+    },
+    {
+      "path": "scripts/instance-release-import.ts",
+      "sha256": "eb552430d20cd8cfd664a3060f6a2b35c3c08a9ee5b47cd789f2172a484779b1"
+    },
+    {
+      "path": "ops/releases/installation-connection.mjs",
+      "sha256": "8ce210d535644581ea9db9f164e2d42dda4b3450408bc9b33be8da952530bc40"
+    }
+  ],
+  "a": {
+    "schema": "techlong/stored-release-candidate/v1",
+    "id": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+    "productId": "prd_restaurant_order_system",
+    "component": "tenant_api",
+    "version": "d2-6-a-b9ca2138-r44128576107",
+    "status": "candidate",
+    "policy": {
+      "productId": "prd_restaurant_order_system",
+      "version": "d2-6-a-b9ca2138-r44128576107",
+      "repository": "veinyyxy/SpeedFeast_Backend_main",
+      "repositoryId": 1064124445,
+      "nodeVersion": "v24.18.0",
+      "scannerVersion": "0.75.0",
+      "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+      "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+      "compatibility": {
+        "databaseProfiles": [
+          "express_iam"
+        ],
+        "schemaVersions": [
+          "speedfeast-saas-control-v1"
+        ],
+        "clientApiVersions": [
+          "speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144"
+        ],
+        "applicationPort": 3000,
+        "requiresMigration": false,
+        "startupWrites": false
+      }
+    },
+    "run": {
+      "id": 44128576107,
+      "name": "Backend Image Candidates - Build and Self Check Only",
+      "node_id": "WFR_kwLOP21AHc8AAAAKRkSiaw",
+      "head_branch": "main",
+      "head_sha": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+      "path": ".github/workflows/backend-image-candidate.yml",
+      "display_title": "Backend Image Candidates - Build and Self Check Only",
+      "run_number": 34,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_id": 377674976,
+      "check_suite_id": 119459006160,
+      "check_suite_node_id": "CS_kwDOP21AHc8AAAAb0E_G0A",
+      "url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/44128576107",
+      "html_url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/44128576107",
+      "pull_requests": [],
+      "created_at": "2026-11-17T16:41:13Z",
+      "updated_at": "2026-11-17T16:42:07Z",
+      "actor": {
+        "login": "veinyyxy",
+        "id": 14145707,
+        "node_id": "MDQ6VXNlcjE0MTQ1NzA3",
+        "avatar_url": "https://avatars.githubusercontent.com/u/14145707?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/veinyyxy",
+        "html_url": "https://github.com/veinyyxy",
+        "followers_url": "https://api.github.com/users/veinyyxy/followers",
+        "following_url": "https://api.github.com/users/veinyyxy/following{/other_user}",
+        "gists_url": "https://api.github.com/users/veinyyxy/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/veinyyxy/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/veinyyxy/subscriptions",
+        "organizations_url": "https://api.github.com/users/veinyyxy/orgs",
+        "repos_url": "https://api.github.com/users/veinyyxy/repos",
+        "events_url": "https://api.github.com/users/veinyyxy/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/veinyyxy/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "run_attempt": 1,
+      "referenced_workflows": [],
+      "run_started_at": "2026-11-17T16:41:13Z",
+      "triggering_actor": {
+        "login": "veinyyxy",
+        "id": 14145707,
+        "node_id": "MDQ6VXNlcjE0MTQ1NzA3",
+        "avatar_url": "https://avatars.githubusercontent.com/u/14145707?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/veinyyxy",
+        "html_url": "https://github.com/veinyyxy",
+        "followers_url": "https://api.github.com/users/veinyyxy/followers",
+        "following_url": "https://api.github.com/users/veinyyxy/following{/other_user}",
+        "gists_url": "https://api.github.com/users/veinyyxy/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/veinyyxy/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/veinyyxy/subscriptions",
+        "organizations_url": "https://api.github.com/users/veinyyxy/orgs",
+        "repos_url": "https://api.github.com/users/veinyyxy/repos",
+        "events_url": "https://api.github.com/users/veinyyxy/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/veinyyxy/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "jobs_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/44128576107/jobs",
+      "logs_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/44128576107/logs",
+      "check_suite_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/check-suites/119459006160",
+      "artifacts_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/44128576107/artifacts",
+      "cancel_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/44128576107/cancel",
+      "rerun_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/44128576107/rerun",
+      "previous_attempt_url": null,
+      "workflow_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/workflows/377674976",
+      "head_commit": {
+        "id": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+        "tree_id": "b08c3c7efb503affd1de5a58135a9f6b4d6b0ae4",
+        "message": "ci: isolate app candidate from manual lifecycle build",
+        "timestamp": "2026-11-14T19:05:59Z",
+        "author": {
+          "name": "veinyyxy",
+          "email": "VeinyYang@gmail.com"
+        },
+        "committer": {
+          "name": "veinyyxy",
+          "email": "VeinyYang@gmail.com"
+        }
+      },
+      "repository": {
+        "id": 1064124445,
+        "node_id": "R_kgDOP21AHQ",
+        "name": "SpeedFeast_Backend_main",
+        "full_name": "veinyyxy/SpeedFeast_Backend_main",
+        "private": false,
+        "owner": {
+          "login": "veinyyxy",
+          "id": 14145707,
+          "node_id": "MDQ6VXNlcjE0MTQ1NzA3",
+          "avatar_url": "https://avatars.githubusercontent.com/u/14145707?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/veinyyxy",
+          "html_url": "https://github.com/veinyyxy",
+          "followers_url": "https://api.github.com/users/veinyyxy/followers",
+          "following_url": "https://api.github.com/users/veinyyxy/following{/other_user}",
+          "gists_url": "https://api.github.com/users/veinyyxy/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/veinyyxy/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/veinyyxy/subscriptions",
+          "organizations_url": "https://api.github.com/users/veinyyxy/orgs",
+          "repos_url": "https://api.github.com/users/veinyyxy/repos",
+          "events_url": "https://api.github.com/users/veinyyxy/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/veinyyxy/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "html_url": "https://github.com/veinyyxy/SpeedFeast_Backend_main",
+        "description": null,
+        "fork": false,
+        "url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main",
+        "forks_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/forks",
+        "keys_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/keys{/key_id}",
+        "collaborators_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/collaborators{/collaborator}",
+        "teams_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/teams",
+        "hooks_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/hooks",
+        "issue_events_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/issues/events{/number}",
+        "events_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/events",
+        "assignees_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/assignees{/user}",
+        "branches_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/branches{/branch}",
+        "tags_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/tags",
+        "blobs_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/blobs{/sha}",
+        "git_tags_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/tags{/sha}",
+        "git_refs_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/refs{/sha}",
+        "trees_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/trees{/sha}",
+        "statuses_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/statuses/{sha}",
+        "languages_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/languages",
+        "stargazers_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/stargazers",
+        "contributors_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/contributors",
+        "subscribers_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/subscribers",
+        "subscription_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/subscription",
+        "commits_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/commits{/sha}",
+        "git_commits_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/commits{/sha}",
+        "comments_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/comments{/number}",
+        "issue_comment_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/issues/comments{/number}",
+        "contents_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/contents/{+path}",
+        "compare_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/compare/{base}...{head}",
+        "merges_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/merges",
+        "archive_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/{archive_format}{/ref}",
+        "downloads_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/downloads",
+        "issues_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/issues{/number}",
+        "pulls_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/pulls{/number}",
+        "milestones_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/milestones{/number}",
+        "notifications_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/notifications{?since,all,participating}",
+        "labels_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/labels{/name}",
+        "releases_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/releases{/id}",
+        "deployments_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/deployments"
+      },
+      "head_repository": {
+        "id": 1064124445,
+        "node_id": "R_kgDOP21AHQ",
+        "name": "SpeedFeast_Backend_main",
+        "full_name": "veinyyxy/SpeedFeast_Backend_main",
+        "private": false,
+        "owner": {
+          "login": "veinyyxy",
+          "id": 14145707,
+          "node_id": "MDQ6VXNlcjE0MTQ1NzA3",
+          "avatar_url": "https://avatars.githubusercontent.com/u/14145707?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/veinyyxy",
+          "html_url": "https://github.com/veinyyxy",
+          "followers_url": "https://api.github.com/users/veinyyxy/followers",
+          "following_url": "https://api.github.com/users/veinyyxy/following{/other_user}",
+          "gists_url": "https://api.github.com/users/veinyyxy/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/veinyyxy/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/veinyyxy/subscriptions",
+          "organizations_url": "https://api.github.com/users/veinyyxy/orgs",
+          "repos_url": "https://api.github.com/users/veinyyxy/repos",
+          "events_url": "https://api.github.com/users/veinyyxy/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/veinyyxy/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "html_url": "https://github.com/veinyyxy/SpeedFeast_Backend_main",
+        "description": null,
+        "fork": false,
+        "url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main",
+        "forks_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/forks",
+        "keys_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/keys{/key_id}",
+        "collaborators_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/collaborators{/collaborator}",
+        "teams_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/teams",
+        "hooks_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/hooks",
+        "issue_events_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/issues/events{/number}",
+        "events_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/events",
+        "assignees_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/assignees{/user}",
+        "branches_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/branches{/branch}",
+        "tags_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/tags",
+        "blobs_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/blobs{/sha}",
+        "git_tags_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/tags{/sha}",
+        "git_refs_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/refs{/sha}",
+        "trees_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/trees{/sha}",
+        "statuses_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/statuses/{sha}",
+        "languages_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/languages",
+        "stargazers_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/stargazers",
+        "contributors_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/contributors",
+        "subscribers_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/subscribers",
+        "subscription_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/subscription",
+        "commits_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/commits{/sha}",
+        "git_commits_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/commits{/sha}",
+        "comments_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/comments{/number}",
+        "issue_comment_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/issues/comments{/number}",
+        "contents_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/contents/{+path}",
+        "compare_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/compare/{base}...{head}",
+        "merges_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/merges",
+        "archive_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/{archive_format}{/ref}",
+        "downloads_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/downloads",
+        "issues_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/issues{/number}",
+        "pulls_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/pulls{/number}",
+        "milestones_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/milestones{/number}",
+        "notifications_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/notifications{?since,all,participating}",
+        "labels_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/labels{/name}",
+        "releases_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/releases{/id}",
+        "deployments_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/deployments"
+      }
+    },
+    "artifact": {
+      "id": 14347858874,
+      "node_id": "MDg6QXJ0aWZhY3QxNDM0Nzg1ODg3NA==",
+      "name": "checked-app-b9ca2138738900afc23a6a2ddce141b37a1f0a31-44128576107-1",
+      "size_in_bytes": 72661917,
+      "url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/artifacts/14347858874",
+      "archive_download_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/artifacts/14347858874/zip",
+      "expired": false,
+      "digest": "sha256:a42b4aba36ca0c3bbfa03321820ab9ec6ef06d019d1e48c8e2381ba81615a2cb",
+      "created_at": "2026-11-17T16:42:04Z",
+      "updated_at": "2026-11-17T16:42:04Z",
+      "expires_at": "2026-11-18T16:42:02Z",
+      "workflow_run": {
+        "id": 44128576107,
+        "repository_id": 1064124445,
+        "head_repository_id": 1064124445,
+        "head_branch": "main",
+        "head_sha": "b9ca2138738900afc23a6a2ddce141b37a1f0a31"
+      }
+    },
+    "build": {
+      "schema": "techlong/release-build-candidate/v1",
+      "status": "candidate",
+      "executionAuthorized": false,
+      "id": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+      "productId": "prd_restaurant_order_system",
+      "component": "tenant_api",
+      "version": "d2-6-a-b9ca2138-r44128576107",
+      "source": {
+        "repository": "veinyyxy/SpeedFeast_Backend_main",
+        "commit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+        "buildRunId": "44128576107",
+        "buildAttempt": 1,
+        "artifactSha256": "a42b4aba36ca0c3bbfa03321820ab9ec6ef06d019d1e48c8e2381ba81615a2cb"
+      },
+      "imageConfigDigest": "sha256:ad65fdf4dd998f960274adf308a9f7b8baeba6d845309ad21529062b50b4d2eb",
+      "validUntil": 1795020122000,
+      "artifact": {
+        "id": 14347858874,
+        "name": "checked-app-b9ca2138738900afc23a6a2ddce141b37a1f0a31-44128576107-1",
+        "expiresAt": 1795020122000,
+        "archiveSha256": "7d318ce76a346ad433b17ad67228824ac568fa9b511ec03e0e2f3bcfc208d6a5"
+      },
+      "checks": {
+        "receiptSha256": "3be737c1e5cbd3a7f5f5661268cadda83711b0fb801ff972199a39bca20376ec",
+        "selfCheckSha256": "23249b0906fd1bf22342f98c70a72cd05512178ef1051805d3835aae6b8f0f7e",
+        "securityReportSha256": "d095e0ce88116180beacda418049d4c754b244f3b5e676fcd0f2e9e7770b2f8c",
+        "scannerDatabaseSha256": "c071fb0ffef9587397244b24410916d3da718d65798a02d4888b00d765d0d5c0"
+      },
+      "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+      "compatibility": {
+        "databaseProfiles": [
+          "express_iam"
+        ],
+        "schemaVersions": [
+          "speedfeast-saas-control-v1"
+        ],
+        "clientApiVersions": [
+          "speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144"
+        ],
+        "applicationPort": 3000,
+        "requiresMigration": false,
+        "startupWrites": false
+      }
+    },
+    "candidateSha256": "056efacd8630445670e7dfe55ae46e577e097f28909df6038d18440442e95172"
+  },
+  "b": {
+    "schema": "techlong/stored-release-candidate/v1",
+    "id": "release_afcc95f9eaa20785265300c801fd7618",
+    "productId": "prd_restaurant_order_system",
+    "component": "tenant_api",
+    "version": "d2-6-b-b9ca2138-r44129167654",
+    "status": "candidate",
+    "policy": {
+      "productId": "prd_restaurant_order_system",
+      "version": "d2-6-b-b9ca2138-r44129167654",
+      "repository": "veinyyxy/SpeedFeast_Backend_main",
+      "repositoryId": 1064124445,
+      "nodeVersion": "v24.18.0",
+      "scannerVersion": "0.75.0",
+      "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+      "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+      "compatibility": {
+        "databaseProfiles": [
+          "express_iam"
+        ],
+        "schemaVersions": [
+          "speedfeast-saas-control-v1"
+        ],
+        "clientApiVersions": [
+          "speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144"
+        ],
+        "applicationPort": 3000,
+        "requiresMigration": false,
+        "startupWrites": false
+      }
+    },
+    "run": {
+      "id": 44129167654,
+      "name": "Backend Image Candidates - Build and Self Check Only",
+      "node_id": "WFR_kwLOP21AHc8AAAAKRk2pJg",
+      "head_branch": "main",
+      "head_sha": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+      "path": ".github/workflows/backend-image-candidate.yml",
+      "display_title": "Backend Image Candidates - Build and Self Check Only",
+      "run_number": 35,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_id": 377674976,
+      "check_suite_id": 119460616197,
+      "check_suite_node_id": "CS_kwDOP21AHc8AAAAb0GhYBQ",
+      "url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/44129167654",
+      "html_url": "https://github.com/veinyyxy/SpeedFeast_Backend_main/actions/runs/44129167654",
+      "pull_requests": [],
+      "created_at": "2026-11-17T16:44:21Z",
+      "updated_at": "2026-11-17T16:45:25Z",
+      "actor": {
+        "login": "veinyyxy",
+        "id": 14145707,
+        "node_id": "MDQ6VXNlcjE0MTQ1NzA3",
+        "avatar_url": "https://avatars.githubusercontent.com/u/14145707?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/veinyyxy",
+        "html_url": "https://github.com/veinyyxy",
+        "followers_url": "https://api.github.com/users/veinyyxy/followers",
+        "following_url": "https://api.github.com/users/veinyyxy/following{/other_user}",
+        "gists_url": "https://api.github.com/users/veinyyxy/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/veinyyxy/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/veinyyxy/subscriptions",
+        "organizations_url": "https://api.github.com/users/veinyyxy/orgs",
+        "repos_url": "https://api.github.com/users/veinyyxy/repos",
+        "events_url": "https://api.github.com/users/veinyyxy/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/veinyyxy/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "run_attempt": 1,
+      "referenced_workflows": [],
+      "run_started_at": "2026-11-17T16:44:21Z",
+      "triggering_actor": {
+        "login": "veinyyxy",
+        "id": 14145707,
+        "node_id": "MDQ6VXNlcjE0MTQ1NzA3",
+        "avatar_url": "https://avatars.githubusercontent.com/u/14145707?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/veinyyxy",
+        "html_url": "https://github.com/veinyyxy",
+        "followers_url": "https://api.github.com/users/veinyyxy/followers",
+        "following_url": "https://api.github.com/users/veinyyxy/following{/other_user}",
+        "gists_url": "https://api.github.com/users/veinyyxy/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/veinyyxy/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/veinyyxy/subscriptions",
+        "organizations_url": "https://api.github.com/users/veinyyxy/orgs",
+        "repos_url": "https://api.github.com/users/veinyyxy/repos",
+        "events_url": "https://api.github.com/users/veinyyxy/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/veinyyxy/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "jobs_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/44129167654/jobs",
+      "logs_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/44129167654/logs",
+      "check_suite_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/check-suites/119460616197",
+      "artifacts_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/44129167654/artifacts",
+      "cancel_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/44129167654/cancel",
+      "rerun_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/44129167654/rerun",
+      "previous_attempt_url": null,
+      "workflow_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/workflows/377674976",
+      "head_commit": {
+        "id": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+        "tree_id": "b08c3c7efb503affd1de5a58135a9f6b4d6b0ae4",
+        "message": "ci: isolate app candidate from manual lifecycle build",
+        "timestamp": "2026-11-14T19:05:59Z",
+        "author": {
+          "name": "veinyyxy",
+          "email": "VeinyYang@gmail.com"
+        },
+        "committer": {
+          "name": "veinyyxy",
+          "email": "VeinyYang@gmail.com"
+        }
+      },
+      "repository": {
+        "id": 1064124445,
+        "node_id": "R_kgDOP21AHQ",
+        "name": "SpeedFeast_Backend_main",
+        "full_name": "veinyyxy/SpeedFeast_Backend_main",
+        "private": false,
+        "owner": {
+          "login": "veinyyxy",
+          "id": 14145707,
+          "node_id": "MDQ6VXNlcjE0MTQ1NzA3",
+          "avatar_url": "https://avatars.githubusercontent.com/u/14145707?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/veinyyxy",
+          "html_url": "https://github.com/veinyyxy",
+          "followers_url": "https://api.github.com/users/veinyyxy/followers",
+          "following_url": "https://api.github.com/users/veinyyxy/following{/other_user}",
+          "gists_url": "https://api.github.com/users/veinyyxy/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/veinyyxy/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/veinyyxy/subscriptions",
+          "organizations_url": "https://api.github.com/users/veinyyxy/orgs",
+          "repos_url": "https://api.github.com/users/veinyyxy/repos",
+          "events_url": "https://api.github.com/users/veinyyxy/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/veinyyxy/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "html_url": "https://github.com/veinyyxy/SpeedFeast_Backend_main",
+        "description": null,
+        "fork": false,
+        "url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main",
+        "forks_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/forks",
+        "keys_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/keys{/key_id}",
+        "collaborators_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/collaborators{/collaborator}",
+        "teams_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/teams",
+        "hooks_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/hooks",
+        "issue_events_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/issues/events{/number}",
+        "events_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/events",
+        "assignees_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/assignees{/user}",
+        "branches_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/branches{/branch}",
+        "tags_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/tags",
+        "blobs_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/blobs{/sha}",
+        "git_tags_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/tags{/sha}",
+        "git_refs_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/refs{/sha}",
+        "trees_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/trees{/sha}",
+        "statuses_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/statuses/{sha}",
+        "languages_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/languages",
+        "stargazers_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/stargazers",
+        "contributors_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/contributors",
+        "subscribers_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/subscribers",
+        "subscription_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/subscription",
+        "commits_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/commits{/sha}",
+        "git_commits_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/commits{/sha}",
+        "comments_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/comments{/number}",
+        "issue_comment_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/issues/comments{/number}",
+        "contents_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/contents/{+path}",
+        "compare_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/compare/{base}...{head}",
+        "merges_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/merges",
+        "archive_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/{archive_format}{/ref}",
+        "downloads_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/downloads",
+        "issues_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/issues{/number}",
+        "pulls_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/pulls{/number}",
+        "milestones_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/milestones{/number}",
+        "notifications_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/notifications{?since,all,participating}",
+        "labels_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/labels{/name}",
+        "releases_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/releases{/id}",
+        "deployments_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/deployments"
+      },
+      "head_repository": {
+        "id": 1064124445,
+        "node_id": "R_kgDOP21AHQ",
+        "name": "SpeedFeast_Backend_main",
+        "full_name": "veinyyxy/SpeedFeast_Backend_main",
+        "private": false,
+        "owner": {
+          "login": "veinyyxy",
+          "id": 14145707,
+          "node_id": "MDQ6VXNlcjE0MTQ1NzA3",
+          "avatar_url": "https://avatars.githubusercontent.com/u/14145707?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/veinyyxy",
+          "html_url": "https://github.com/veinyyxy",
+          "followers_url": "https://api.github.com/users/veinyyxy/followers",
+          "following_url": "https://api.github.com/users/veinyyxy/following{/other_user}",
+          "gists_url": "https://api.github.com/users/veinyyxy/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/veinyyxy/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/veinyyxy/subscriptions",
+          "organizations_url": "https://api.github.com/users/veinyyxy/orgs",
+          "repos_url": "https://api.github.com/users/veinyyxy/repos",
+          "events_url": "https://api.github.com/users/veinyyxy/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/veinyyxy/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "html_url": "https://github.com/veinyyxy/SpeedFeast_Backend_main",
+        "description": null,
+        "fork": false,
+        "url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main",
+        "forks_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/forks",
+        "keys_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/keys{/key_id}",
+        "collaborators_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/collaborators{/collaborator}",
+        "teams_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/teams",
+        "hooks_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/hooks",
+        "issue_events_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/issues/events{/number}",
+        "events_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/events",
+        "assignees_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/assignees{/user}",
+        "branches_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/branches{/branch}",
+        "tags_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/tags",
+        "blobs_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/blobs{/sha}",
+        "git_tags_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/tags{/sha}",
+        "git_refs_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/refs{/sha}",
+        "trees_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/trees{/sha}",
+        "statuses_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/statuses/{sha}",
+        "languages_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/languages",
+        "stargazers_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/stargazers",
+        "contributors_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/contributors",
+        "subscribers_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/subscribers",
+        "subscription_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/subscription",
+        "commits_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/commits{/sha}",
+        "git_commits_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/git/commits{/sha}",
+        "comments_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/comments{/number}",
+        "issue_comment_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/issues/comments{/number}",
+        "contents_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/contents/{+path}",
+        "compare_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/compare/{base}...{head}",
+        "merges_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/merges",
+        "archive_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/{archive_format}{/ref}",
+        "downloads_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/downloads",
+        "issues_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/issues{/number}",
+        "pulls_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/pulls{/number}",
+        "milestones_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/milestones{/number}",
+        "notifications_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/notifications{?since,all,participating}",
+        "labels_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/labels{/name}",
+        "releases_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/releases{/id}",
+        "deployments_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/deployments"
+      }
+    },
+    "artifact": {
+      "id": 14349965129,
+      "node_id": "MDg6QXJ0aWZhY3QxNDM0OTk2NTEyOQ==",
+      "name": "checked-app-b9ca2138738900afc23a6a2ddce141b37a1f0a31-44129167654-1",
+      "size_in_bytes": 72662028,
+      "url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/artifacts/14349965129",
+      "archive_download_url": "https://api.github.com/repos/veinyyxy/SpeedFeast_Backend_main/actions/artifacts/14349965129/zip",
+      "expired": false,
+      "digest": "sha256:813f7803af5eb8a8ecfe579dda0a24a6a78f850bf349eaa410214af5a2373228",
+      "created_at": "2026-11-17T16:45:21Z",
+      "updated_at": "2026-11-17T16:45:21Z",
+      "expires_at": "2026-11-18T16:45:19Z",
+      "workflow_run": {
+        "id": 44129167654,
+        "repository_id": 1064124445,
+        "head_repository_id": 1064124445,
+        "head_branch": "main",
+        "head_sha": "b9ca2138738900afc23a6a2ddce141b37a1f0a31"
+      }
+    },
+    "build": {
+      "schema": "techlong/release-build-candidate/v1",
+      "status": "candidate",
+      "executionAuthorized": false,
+      "id": "release_afcc95f9eaa20785265300c801fd7618",
+      "productId": "prd_restaurant_order_system",
+      "component": "tenant_api",
+      "version": "d2-6-b-b9ca2138-r44129167654",
+      "source": {
+        "repository": "veinyyxy/SpeedFeast_Backend_main",
+        "commit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+        "buildRunId": "44129167654",
+        "buildAttempt": 1,
+        "artifactSha256": "813f7803af5eb8a8ecfe579dda0a24a6a78f850bf349eaa410214af5a2373228"
+      },
+      "imageConfigDigest": "sha256:fee49b1473042adb987cf0acaef4fd443b6166b65aab1cc389c53403a2afed6b",
+      "validUntil": 1795020319000,
+      "artifact": {
+        "id": 14349965129,
+        "name": "checked-app-b9ca2138738900afc23a6a2ddce141b37a1f0a31-44129167654-1",
+        "expiresAt": 1795020319000,
+        "archiveSha256": "6e4abe379ebe6aa022346174f3a6171e42cc5d79ada071ebd2486456e9d1345a"
+      },
+      "checks": {
+        "receiptSha256": "f72a81fc64333b065b5d607ef3e7a9c2404d2c71b59b31e1c8ab33b69038f672",
+        "selfCheckSha256": "23249b0906fd1bf22342f98c70a72cd05512178ef1051805d3835aae6b8f0f7e",
+        "securityReportSha256": "64bb22cb15abf85da8fc536cbf242ba622f7068b522c01bc441072598c85dab1",
+        "scannerDatabaseSha256": "c071fb0ffef9587397244b24410916d3da718d65798a02d4888b00d765d0d5c0"
+      },
+      "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+      "compatibility": {
+        "databaseProfiles": [
+          "express_iam"
+        ],
+        "schemaVersions": [
+          "speedfeast-saas-control-v1"
+        ],
+        "clientApiVersions": [
+          "speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144"
+        ],
+        "applicationPort": 3000,
+        "requiresMigration": false,
+        "startupWrites": false
+      }
+    },
+    "candidateSha256": "de1cfdb8b2a431efeb4241f71f70cd602587badf4470b797dc85c043f73dbf52"
+  }
 }
