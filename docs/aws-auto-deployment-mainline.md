@@ -2,7 +2,9 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：步骤4只读补核已齐；仅待旧测试最小适配，不恢复环境（2026-11-17）
+## 当前唯一继续点：旧测试最小适配已获准；准确CI通过后直接生成集中执行SHA（2026-11-17）
+
+用户已批准只改旧测试及验证现有CI，禁止新增生产读取、恢复或启用runtime。单一测试文件已用合成关闭配置隔离真实CLI，生产入口/工作流/权限不改；本机238通过/1平台相关跳过、lint/类型通过。下一仅核对同一提交现有Linux/隔离PG CI，通过后复用已存事实定稿一份原步骤4执行SHA，不再盘点或扩支线；下方“待同意修测试”现仅为沿革，原期限不变。
 
 [真实回执](aws-instance-release-step4-read-observed-20261117.json)/[第18节](aws-instance-version-release-plan.md#d2-6-step4-read-observed)：原集中核对及两项另批续段全部完成，STS1/AWS62/GitHub5/helper1/四原件/配置1/只读TLS1/SQL14；无Secret值/图片/Aurora连接、云SQL写/槽/dispatch。A/B目录、空初始绑定、九目标空和两恢复模板已核对。原IAM栈24项归属已取得，未来只需其中既有ManagedPolicy窄修正，不能直接改policy制造漂移。
 

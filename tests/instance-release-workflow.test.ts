@@ -208,13 +208,18 @@ test("release installation materials: unresolved real references are not approva
   }
   const template = await installationJson("identities.draft.template.json");
   for (const parameter of Object.values(template.Parameters) as { Default?: unknown }[]) assert.equal(parameter.Default, undefined);
-  const runtime = JSON.parse(await readFile(new URL("../ops/releases/runtime.json", import.meta.url), "utf8"));
-  assert.deepEqual(runtime.environments, {}); assert.equal(runtime.enabled, false);
 });
 
-test("release job: default activation is closed and only a complete, separated sandbox installation can enable it", async () => {
+test("release job: disabled fixtures stay closed and checked-in activation requires a complete, separated sandbox", async () => {
   const current = JSON.parse(await readFile(new URL("../ops/releases/runtime.json", import.meta.url), "utf8"));
-  assert.equal(releaseEnvironment(current, workflowJob()), null);
+  assert.equal(typeof current.enabled, "boolean");
+  assert.equal(current.repository, "veinyyxy/TechlongSoftware");
+  if (current.enabled) assert.deepEqual(Object.keys(current.environments), ["sandbox"]);
+  const currentJob = { ...workflowJob(), repositoryId: current.environments.sandbox?.repositoryId ?? workflowJob().repositoryId };
+  assert.equal(releaseEnvironment(current, currentJob), current.enabled ? current.environments.sandbox : null);
+  for (const disabled of [{ ...config(), enabled: false, environments: {} }, { ...config(), enabled: false }]) {
+    assert.equal(releaseEnvironment(disabled, workflowJob()), null);
+  }
   assert.equal(releaseEnvironment(config(), workflowJob())?.controlEnvironmentId, "sandbox");
   const shared = config(); shared.environments.sandbox.inspectionRoleArn = shared.environments.sandbox.executionRoleArn;
   assert.throws(() => releaseEnvironment(shared, workflowJob()), /ROLE_SEPARATION/);
@@ -442,14 +447,35 @@ test("release inspector: a real child receives only verifier credentials over st
   assert.equal(reference.versionId, "fixed-version");
 });
 
-test("release CLI: the actual default-disabled entry exits without AWS, database or credential use", async () => {
+test("release CLI: an isolated disabled config exits without AWS, database or credential use regardless of repository activation", async () => {
   const job = workflowJob();
+  const configUrl = new URL("../ops/releases/runtime.json", import.meta.url);
+  const runtimeBefore = await readFile(configUrl, "utf8");
+  // Test-only preload supplies the fixture to the unchanged CLI. Never overwrite
+  // repository activation data or add a production config override for a test.
+  const preload = `
+    import fs from "node:fs";
+    import { syncBuiltinESMExports } from "node:module";
+    const original = fs.promises.readFile;
+    let configReads = 0;
+    fs.promises.readFile = async (file, ...args) => {
+      if (file instanceof URL && file.href === ${JSON.stringify(configUrl.href)}) {
+        configReads++;
+        if (args[0] !== "utf8") throw new Error("SYNTHETIC_CONFIG_ENCODING_CHANGED");
+        return ${JSON.stringify(JSON.stringify({ ...config(), enabled: false, environments: {} }))};
+      }
+      return original(file, ...args);
+    };
+    syncBuiltinESMExports();
+    process.on("exit", () => { if (configReads !== 1) process.exitCode = 1; });
+  `;
   const result = await new Promise<string>((resolve, reject) => execFile(process.execPath,
-    ["--experimental-strip-types", "scripts/instance-release.ts", "prepare"], { cwd: fileURLToPath(new URL("../", import.meta.url)), windowsHide: true, timeout: 20_000,
+    ["--experimental-strip-types", "--import", "data:text/javascript;base64," + Buffer.from(preload).toString("base64"), "scripts/instance-release.ts", "prepare"], { cwd: fileURLToPath(new URL("../", import.meta.url)), windowsHide: true, timeout: 20_000,
       env: { ...releaseChildEnvironment(process.env), GITHUB_REPOSITORY: job.repository, GITHUB_REPOSITORY_ID: job.repositoryId,
         GITHUB_RUN_ID: job.runId, GITHUB_RUN_ATTEMPT: "1", GITHUB_SHA: job.sourceSha, GITHUB_REF: job.ref, GITHUB_EVENT_NAME: job.event,
         GITHUB_ACTOR: job.actor, GITHUB_WORKFLOW_REF: job.workflowRef, RELEASE_INSTANCE_ID: job.instanceId, RELEASE_ID: job.releaseId, RELEASE_ENVIRONMENT: job.environment,
         AWS_ACCESS_KEY_ID: "secret-canary-not-used", DATABASE_URL: "secret-canary-not-used" } },
     (error, stdout) => error ? reject(new Error("disabled CLI failed")) : resolve(stdout)));
   assert.deepEqual(JSON.parse(result), { status: "DISABLED", cloudWrites: 0 }); assert.doesNotMatch(result, /canary/);
+  assert.equal(await readFile(configUrl, "utf8"), runtimeBefore);
 });
