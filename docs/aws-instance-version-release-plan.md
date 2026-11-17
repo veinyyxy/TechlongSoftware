@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-16，America/Winnipeg。状态：`D2-6 IDENTITIES ACCEPTED / VERSION AND INSTANCE BINDING PENDING — RUNTIME DISABLED / NO REAL UPDATE RUNS`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 A/B AND INITIAL BINDING PREPARED OFFLINE / INPUT GAPS EXPLICIT — RUNTIME DISABLED / NO REAL UPDATE RUNS`。
 
 除下方明确交付的D2-1至D2-4代码/离线部分及D2-5已有ECR路线离线接入外，本文其余部分仍是待审设计，不是完整功能已完成、生产数据库迁移、Secret/IAM安装、镜像发布、部署工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -16,7 +16,7 @@
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
-**2026-11-16当前唯一动作覆盖下方历史“下一步”：** [第30节](aws-instance-release-activation.md#30-新一轮七项只读全部通过一次性身份安装正式收口)已完成最后STS1＋7项，身份安装正式收口；下一只准备真实版本A/B、准确初始实例绑定及关闭态运行配置材料，复用可用证据、过期与门槛缺项如实列清。Secret/SQL不重做、IAM不重装，runtime关、真实更新0。本轮不追加生产读取/构建/目录写/恢复或发布，均准确另审。
+**2026-11-17当前唯一动作覆盖下方历史“下一步”：** 用户仅批准离线准备，现已集中完成[第5小节](#d2-6-offline-inputs)的A/B原件盘点、初始绑定缺项和关闭态运行配置。身份安装正式通过，不重做Secret/SQL/IAM；历史云事实已于2026-11-17T08:24:36.704Z到期，只供定位。下一只按已列缺项准备准确新读取/操作范围，不重做整批盘点；本轮不读生产/凭据、不构建/登记/恢复/发布或开启runtime，不开短窗口、不编造可执行SHA，真实更新仍0。
 
 **当前实际结果（取代下方早期轮次状态）：** [新g/h/i核对](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留)已完成真实app原件校验、STS1/AWS元数据55和另批剩余Neon READ ONLY22条查询；保留两次停止和新续段，未重复成功读取或产生远端写入。下一只收口第二个原CFN角色详细策略缺项及一次性启用准确清单，不扩框架；图片持久化缺项另列准确范围，不混入版本更新。runtime仍关、两次真实更新仍0。机器事实见[回执](aws-instance-release-d2-6-readiness-observed-20261114.json)，以下旧轮次“仅离线/未读”不覆盖本次批准结果。
 
@@ -65,6 +65,53 @@
 ### 4. 交付与停止规则
 
 原离线准备轮交付为本节与启用总清单的对应关系，没有安装SHA、版本ID、请求ID或真实验收结果。三处运行修复现已另获明确批准，完成准确CI后只收尾；仍没有新的生产读取许可，不继续补核或要求刷新Source。后续两次真实run都必须用修复后同一份准确源码及对应CI，不能把501b7f1的模板修复CI冒充运行修复已验证；模板/SQL/工作流和runtime.json本次保持不变。
+
+<a id="d2-6-offline-inputs"></a>
+
+### 5. 2026-11-17离线集中输入：真实A/B、初始绑定和关闭态配置
+
+本小节是原D2-6的材料收口，不新增阶段、工具或工作流。机器材料为[`d2-6.prepared.json`](../ops/releases/d2-6.prepared.json)；它是含明确缺项的准备信封，不是可导入的`SoftwareRelease`、`InstanceBinding`、SQL种子或执行清单。`executionAuthorized=false`、`readyForInsert=false`，未知字段保留`null`。本轮只读源码及已封存的必要元数据/原件，重新计算本机ZIP、image archive和receipt摘要；未读取任何新凭据或生产状态。
+
+#### 5.1 可复用与不可充作当前值的证据
+
+| 对象 | 已存真实值/证据 | 本轮结论与缺项 |
+| --- | --- | --- |
+| 一次性身份 | [四栈13资源、两SQL、四LOGIN及独立核验结项](aws-instance-release-identity-installation-accepted-20261116.json) | 已完成部分不重做；历史验收不是未来调用或当前健康授权 |
+| 旧声明镜像A0 | ECR root `sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e`；后端源码`10fe3c41…`、run38803364109/attempt1 | 只有历史manifest/tag，原构建ZIP未证明，不能直接登记为受信A/currentRelease |
+| 已存app候选 | 后端源码`b9ca2138…`、run43630231572、artifact14128140862；ZIP与archive现重算均匹配原SHA | 原包2026-11-15T19:07Z到期，扫描DB2026-11-14T13:05:54Z＋48小时也已过期；只能追溯，不以旧`now`重新验证或改日期 |
+| 候选镜像digest | config为`sha256:c894fe72…`，原receipt明确尚未发布ECR | config digest不是registry root/platform digest；A/B的releaseId、root/platform digest仍为空，不伪造版本 |
+| 图片接线 | [已装S3/IAM/idle task四环境值](aws-instance-release-persistence-wiring-installed-20261115.json)，桶`techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad` | 不重建图片设施；旧图来源/迁移和完整持久内容路径仍未证明，`verificationSha256=null`，不得拿接线回执SHA冒充全门槛 |
+| 实例/原栈定位 | instance`app_e897…`、workspace`ws_ac46…`、product`prd_restaurant_order_system`；原三栈精确UUID保留在JSON | 历史active/业务deployment ready不等于release绑定；历史idle模板SHA`dab17b24…`不能用作恢复后运行模板/配置摘要 |
+
+已存候选继续遵守原校验器的产物到期与扫描48小时规则，不与用户选定的“准备快照5小时”混用：5小时是新事实准备上限，不延长artifact、扫描、运行请求或旧事实的期限。后继优先寻找确实合格的已有版本证据；没有才单独审批正常构建/发布，不为凑A/B增加应用功能。重复构建同一源码不保证不同digest，不能只改版本标签冒充两次更新。
+
+#### 5.2 初始绑定的真实输入与缺项
+
+目标不变：`tenant_api`、account402010193138/ca-central-1、`env_aws_sandbox_ca_central_1`。历史task端口3000、数据库`techlong-sandbox-express-d001`/`express_iam`；准确原tenant/Cell/platform Stack ARN、zone/API域名及两应用Secret固定版本引用均直接复用保存到准备JSON。**没有读取Secret正文或复制HMAC。**
+
+当前不能执行种子，尚缺：
+
+- 合格的A目录原文与ECR root/amd64平台证明；实际运行镜像必须等于A。B可为已核验ECR版本或合格候选，不能用过期候选。
+- 来自初始化/兼容记录及受审产品策略的真实`schemaVersions`、`clientApiVersions`，以及A/B不迁移/不启动写入的明确声明；fixture的`schema-v1`/`v1`不能默认套用。当前Express环境不自动证明Full兼容。
+- 完整持久化证据；已安装桶和接线不等于迁图/内容可持续可用。不新做买卖家业务测试、不借此扩媒体工具。
+- 另批恢复后的真实Cell输出→tenant参数映射、物理ID/路由/Secret固定引用、稳定服务/健康和ImageUri之外的配置。用原`releaseRuntimeDigests`派生运行模板/配置SHA，不手算替换、也不引用旧ALB ARN。
+- 另批新鲜控制库状态核对后才确定首次种子revision（新行确实不存在才为0）、当前版本和active_request；不把旧空表证明当作现在仍空。由受审管理员进行一次准确目录/绑定登记，运行角色不新增自注册或表DML权限，不重放schema/grants/promotion/password SQL。
+
+**初始A的依赖不能隐藏：** 如果A0原件无法合格，需先获得合格A，并另批一次原CFN栈的初始ImageUri对齐，使真实承载运行A，之后才可绑定。它不是A→B或B→A任一次验收。现有启停工具明确`noImageChange`，本轮不改该约束、不把镜像变化夹入恢复；日常更新也不能在未绑定/idle实例上代替初始化。此处只标明准确依赖，未新增初始对齐执行器、清单或云调用；未来可先准备停用栈仅TaskDefinition镜像差异，再单独审核执行及正常恢复，不预判Change Set实际内容。
+
+#### 5.3 可检查但不会生效的关闭态运行配置
+
+[`d2-6-runtime.disabled.json`](../ops/releases/d2-6-runtime.disabled.json)按原`ReleaseRuntimeConfig`字段填入实际已安装四角色、五Secret ARN/固定VersionId、四窄用户名、GitHub仓库/环境/人工reviewer ID、immutable OIDC subjects和ECR来源。S3 prefix固定`instance-releases`，与既有IAM的`instance-releases/release_*`和`instance-releases/promotions/…`一致，不使用测试fixture的prefix。每快照40项元数据是候选运行配置预算，不是本轮读取授权。
+
+该文件`enabled=false`且**没有被任何入口加载**；真正入口仍只读[`runtime.json`](../ops/releases/runtime.json)，原文件仍`false/environments={}`，LF SHA`765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6`。部署workflow LF SHA仍`b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff`。本轮仅离线验证候选字段及关闭态早退，不更改真实配置、工作流、权限或Secret，不证明未来真实OIDC/SM/数据库访问可用。后继启用仍须绑定完整、准确范围另审及用户本人GitHub environment批准。
+
+#### 5.4 集中推进顺序与本轮停止点
+
+1. 下一只围绕**合格A/B及兼容/持久化原件的缺项**准备一次准确读取范围；先复用可用本地原件，不再盘点已验收身份或索要新安装。当前无新读取许可，不自行刷新Source或下载/构建。
+2. 有合格输入后复用既有`collect/prepare/register`及候选登记接口；实际构建、ECR发布、目录/初始绑定写入、必要初始镜像对齐、最小依赖恢复和runtime启用均按具体资源/副作用另审，不开窗等材料。若需新A，先解决初始对齐，再确定运行绑定；B候选可由第一次受审job晋升，无需另造发布框架。
+3. 首次正常更新A→B在一次GitHub人工批准内完成准确晋升（如需）、仅ImageUri更新、独立技术核验和CAS。成功回写/释放占用后，第二次B→A使用相同部署源码/工作流/配置、新请求/run/批准；两次成功且revision＋2才通过D2-6。恢复/初始对齐、NO_CHANGE或单纯账本更新不计数。
+
+本轮只改上述材料和状态文档；本机原ZIP/archive/receipt摘要匹配，原运行文件/工作流摘要保持，候选关闭态与字段合同离线检查通过。无运行源码/模板/SQL改变，不主动调度或重跑CI；正常main推送仍可触发既有无AWS检查，不据此声称实际发布通过。不产生执行槽或发布SHA；AWS/GitHub新读取、生产配置/Secret/PAT/PEM读取、数据库连接/写入、构建/ECR/恢复/dispatch均0。到此收尾，不自动进入读取或实际执行。
 
 <a id="d2-1-delivered"></a>
 

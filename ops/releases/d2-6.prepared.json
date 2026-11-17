@@ -1,0 +1,186 @@
+{
+  "schema": "techlong/instance-release-d2-6-preparation/v1",
+  "status": "OFFLINE_INPUTS_PREPARED_NOT_EXECUTABLE",
+  "preparedOn": "2026-11-17",
+  "timezone": "America/Winnipeg",
+  "executionAuthorized": false,
+  "approvalSha256": null,
+  "newFactsCollected": false,
+  "historicalFactsNotAfter": "2026-11-17T08:24:36.704Z",
+  "historicalFactsExtended": false,
+  "realUpdateRuns": 0,
+  "target": {
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "workspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+    "productId": "prd_restaurant_order_system",
+    "component": "tenant_api",
+    "controlEnvironmentId": "env_aws_sandbox_ca_central_1",
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "sourceRepository": "veinyyxy/SpeedFeast_Backend_main",
+    "sourceRepositoryId": 1064124445,
+    "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast"
+  },
+  "reusedEvidence": [
+    {
+      "path": "docs/aws-instance-release-identity-installation-accepted-20261116.json",
+      "lfSha256": "09245bb5ff14be79dd850d8e71bded042f356830716d23d26f348c8a92f83e7d",
+      "use": "Accepted historical installation: four stacks, thirteen resources, two known SQL commits and four independent LOGIN checks. Do not reinstall."
+    },
+    {
+      "path": "docs/aws-instance-release-d2-6-readiness-observed-20261114.json",
+      "lfSha256": "d7ca84f740a048b1b671fee01b7380057c2cb25241fb5666b1ceee0363f41128",
+      "use": "Historical app ZIP, build receipt and source authentication; expiry is retained, not renewed."
+    },
+    {
+      "path": "docs/aws-instance-release-activation-preflight-observed-20261114.json",
+      "lfSha256": "7a61c1129fa230bebc7a289501cfe50b744237dac1e20a7a2ebd97415dc040f2",
+      "use": "Historical A0 ECR root manifest/tag only; original candidate ZIP not proven."
+    },
+    {
+      "path": "docs/aws-instance-release-persistence-wiring-installed-20261115.json",
+      "lfSha256": "2d11eecdd3493e1aebaa0ab218bc8fc71ed51089c517c45a0673a574676fdaf1",
+      "use": "Installed S3/IAM/idle task wiring only; not full persistent upload readiness or media migration evidence."
+    }
+  ],
+  "versionInventory": {
+    "historicalA0": {
+      "eligibleAsTrustedA": false,
+      "sourceCommit": "10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2",
+      "runId": "38803364109",
+      "runAttempt": 1,
+      "immutableTag": "app-sha10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2-r38803364109-a1",
+      "manifestDigest": "sha256:0dc34eda11fba65ca217aaa589ea527d88402991864b8bfbac6da00f4496f15e",
+      "platformDigest": null,
+      "originalBuildZipProven": false,
+      "catalogEntryProven": false,
+      "reason": "Declared historical image is not a verified SoftwareRelease; tag/root digest alone cannot initialize currentRelease."
+    },
+    "savedAppCandidate": {
+      "eligibleNow": false,
+      "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+      "runId": "43630231572",
+      "runAttempt": 1,
+      "artifactId": 14128140862,
+      "artifactName": "checked-app-b9ca2138738900afc23a6a2ddce141b37a1f0a31-43630231572-1",
+      "artifactExpiresAt": "2026-11-15T19:07:00Z",
+      "scannerDatabaseUpdatedAt": "2026-11-14T13:05:54.014761714Z",
+      "scannerMaxAgeHours": 48,
+      "candidateValidUntil": "2026-11-15T19:07:00Z",
+      "eligibilityFailures": ["ARTIFACT_EXPIRED", "SCANNER_DATABASE_TOO_OLD", "PRODUCT_COMPATIBILITY_NOT_BOUND"],
+      "zip": {
+        "privatePath": ".local-secrets/d2-6-readiness-20261114-h/checked-app-43630231572.zip",
+        "bytes": 72663114,
+        "sha256": "6d1214fad4c035175b389b5f2920397bea99ec33bb6dd932e74f000a38b1e152",
+        "localBytesRehashedThisPreparation": true
+      },
+      "imageArchive": {
+        "privatePath": ".local-secrets/d2-6-readiness-20261114-h/checked-app-files/image.tar.gz",
+        "bytes": 72660633,
+        "sha256": "1631d0ae65f1bb8b629e64322287ad41977e3c5bb48593af89b9ad44a8784cb9",
+        "localBytesRehashedThisPreparation": true
+      },
+      "receiptSha256": "fc004a7337ababefcc05a44a69ff6f4cdc4c7bf3de5e417b6e85cbedafda53bf",
+      "imageConfigDigest": "sha256:c894fe72356d12c22a9c3f9c81eded2f043907bf12e449ffa681488256acda7c",
+      "manifestDigest": null,
+      "platformDigest": null,
+      "ecrPublished": false,
+      "catalogWritten": false,
+      "revalidatedAtHistoricalTime": false,
+      "use": "Traceability only; local byte integrity is not present eligibility or registry proof."
+    },
+    "selectedA": { "releaseId": null, "version": null, "manifestDigest": null, "platformDigest": null, "ready": false },
+    "selectedB": { "releaseId": null, "version": null, "manifestDigest": null, "platformDigest": null, "ready": false },
+    "selectionRule": "Two qualified distinct digests; prefer existing eligible evidence, otherwise separately approve normal builds. Rebuilding identical source does not prove a distinct digest."
+  },
+  "compatibilityPreparation": {
+    "historicalBuildProfile": {
+      "nodeVersion": "v24.18.0",
+      "scannerVersion": "0.75.0",
+      "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+      "approvedForFutureBuilds": false
+    },
+    "historicalApplicationPort": 3000,
+    "historicalDatabaseProfile": "express_iam",
+    "schemaVersions": null,
+    "clientApiVersions": null,
+    "fullPasswordCompatibilityProven": false,
+    "requiresMigrationMustBe": false,
+    "startupWritesMustBe": false,
+    "approvedBuildPolicy": null,
+    "rule": "Derive compatibility from authoritative initialization/source evidence and reviewed product policy, never fixture values. Do not silently upgrade Node/scanner policy to match a future artifact."
+  },
+  "initialBindingPreparation": {
+    "readyForInsert": false,
+    "historicalBusinessStatus": "active",
+    "historicalDeploymentReadyIsReleaseBinding": false,
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+    "historicalIdleTemplateSha256": "dab17b240c8fe7e272b549c305b2990c7c949507e1f58d19f7fbd8aea90bc57b",
+    "runningTemplateSha256": null,
+    "runningConfigurationSha256": null,
+    "stateRevision": null,
+    "currentRelease": null,
+    "runtimePlatform": "linux/amd64",
+    "desiredCountAfterApprovedRestore": 1,
+    "bindingWritten": false,
+    "samplingPreparation": {
+      "cellStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+      "platformStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+      "hostedZoneId": "Z01473621BTTHKXBGOOEJ",
+      "apiHostname": "first-acceptance.sandbox.techlong.cloud",
+      "cellOutputParameters": null,
+      "requiredOutputNames": ["HttpsListenerArn", "ControlListenerArn", "ClusterName"],
+      "database": { "kind": "cluster", "identifier": "techlong-sandbox-express-d001", "profile": "express_iam", "schemaVersion": null },
+      "secrets": [
+        {
+          "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+          "versionId": "0f45d29f-02d4-4117-99b1-c06645aa3c6e"
+        },
+        {
+          "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/control-public-key-first-acceptance-PfBjiq",
+          "versionId": "75d8da0af103e1e10e6d3341cbd50226fea7ce5e5aac8d150ab9e447b6340680"
+        }
+      ],
+      "secretReferencesAreHistoricalMetadataOnly": true,
+      "persistence": {
+        "bucket": "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad",
+        "providerVariable": "IMAGE_STORAGE_PROVIDER",
+        "bucketVariable": "IMAGE_S3_BUCKET",
+        "verificationSha256": null,
+        "persistentUploadsReady": false,
+        "remainingProof": "Old media source/migration and actual persistent content path are not established by the wiring receipt; do not substitute its hash for full readiness."
+      }
+    },
+    "insertionRule": "Separately reviewed admin seed only after qualified A equals the actual stable running image, compatibility/persistence proofs are complete, and fresh absence/revision facts match; use releaseRuntimeDigests on restored facts. No executable INSERT or new grants here."
+  },
+  "runtimePreparation": {
+    "candidatePath": "ops/releases/d2-6-runtime.disabled.json",
+    "loadedByWorkflow": false,
+    "enabled": false,
+    "activePath": "ops/releases/runtime.json",
+    "activeLfSha256": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6",
+    "workflowPath": ".github/workflows/instance-release.yml",
+    "workflowLfSha256": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff",
+    "metadataLimitIsConfigurationNotReadAuthorization": true,
+    "activationAuthorized": false
+  },
+  "nextSequenceNotAuthorized": [
+    "Close only missing authoritative compatibility/persistence source evidence and A/B availability under separately approved reads; do not repeat accepted identity installation or inventory entire AWS.",
+    "Qualify/register A as ecr_verified and B as either ecr_verified or a valid candidate through existing import/promotion contracts. New builds, ECR writes and catalog writes each require an exact approved scope.",
+    "If historical A0 cannot qualify, prepare a separately reviewed CFN baseline ImageUri alignment to qualified A. This is initial bootstrap, not either daily update; existing stop/start tool remains noImageChange.",
+    "Only when inputs are ready, approve the minimum tenant dependencies restore, then sample actual running outputs/physical IDs, technical health and configuration digests; separately approve initial binding and runtime activation. No platform Web or unrelated prod DB is required by default.",
+    "First independent GitHub approval: A to B, including exact candidate promotion if B is a valid candidate. Complete independent technical verification and CAS before proceeding.",
+    "Second independent GitHub approval: B to verified A using identical deployment code/workflow/config, a new request/run and fresh revision. Two successful actual updates and revision plus two are required."
+  ],
+  "thisPreparationCounts": {
+    "awsCalls": 0,
+    "githubReads": 0,
+    "configCredentialReads": 0,
+    "databaseConnections": 0,
+    "cloudOrDatabaseWrites": 0,
+    "buildsOrEcrPublications": 0,
+    "dispatches": 0,
+    "executionSlotsConsumed": 0
+  },
+  "notIncluded": ["new frameworks or workflows", "identity reinstallation", "expired evidence renewal", "business tests", "environment restoration", "runtime activation", "version publication", "automatic cleanup or retry"]
+}
