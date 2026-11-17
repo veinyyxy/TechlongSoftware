@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-16，America/Winnipeg。状态：`D2-6 IDENTITIES PARTIALLY INSTALLED / COMPLETION OFFLINE PREPARED — ACTIVATION DISABLED / NO REAL UPDATE RUNS`。
+日期：2026-11-16，America/Winnipeg。状态：`D2-6 IDENTITIES PARTIALLY INSTALLED / MINIMAL REFRESH VERIFIED / COMPLETION APPROVAL PENDING — ACTIVATION DISABLED / NO REAL UPDATE RUNS`。
 
 除下方明确交付的D2-1至D2-4代码/离线部分及D2-5已有ECR路线离线接入外，本文其余部分仍是待审设计，不是完整功能已完成、生产数据库迁移、Secret/IAM安装、镜像发布、部署工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -10,13 +10,13 @@
 
 该代码收尾已完成：[CI43561305617](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43561305617) 对应2659d7a，171回归＋9原生PG16全过/无skip。只证明合成来源/命令和隔离数据库，不是实际ECR晋升或部署已开启。后继仍需真实候选准入、必要身份/SQL安装及两次正常技术更新验收，不重复业务测试。
 
-一次性启用材料集中到[总清单第25节](aws-instance-release-activation.md#25-按d2原计划集中准备四login核验与两iam栈仅离线)。最新[部分安装回执](aws-instance-release-activation-installation-partial-20261116.json)确认两Secret栈/五固定版本已独立核验，promotion及四LOGIN事务已提交；尚欠四LOGIN独立认证/最终权限核验与两IAM栈八资源。不得重做Secret/已提交SQL；比较器修复及准确CI已通过。用户本轮只集中离线准备这些剩余项，[材料](../ops/releases/identity-completion.prepared.json)无可执行SHA；旧事实已到期，必要新读取与安装仍另审，不恢复或发布。以下执行卡保留阶段沿革，不重做D2-1至D2-5或把代码/CI当真实更新。
+一次性启用材料集中到[总清单第26节](aws-instance-release-activation.md#26-最小补核完成剩余身份安装只待新sha另审)。最新[部分安装回执](aws-instance-release-activation-installation-partial-20261116.json)确认两Secret栈/五固定版本已独立核验，promotion及四LOGIN事务已提交；尚欠四LOGIN独立认证/最终权限核验与两IAM栈八资源。不得重做Secret/已提交SQL；比较器修复及准确CI已通过。本轮已另准完成最小元数据补核，[新准确安装清单](aws-instance-release-identity-completion-review-20261116.json)只待安装批准；旧事实仅追溯，不恢复或发布。以下执行卡保留阶段沿革，不重做D2-1至D2-5或把代码/CI当真实更新。
 
 <a id="d2-6-readiness"></a>
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
-**2026-11-16当前唯一动作覆盖下方历史“下一步”：** 仅集中准备四LOGIN独立核验＋两IAM栈接续，原五Secret和两SQL提交不重放；旧事实仅追溯，实际新读取/安装另批，runtime关、真实更新0。此卡后续目录/恢复/两次更新仍是原D2目标，不在本轮夹带执行。
+**2026-11-16当前唯一动作覆盖下方历史“下一步”：** 已另准完成STS1/元数据37/GitHub GET4最小补核，[第26节新接续清单](aws-instance-release-activation.md#26-最小补核完成剩余身份安装只待新sha另审)只待准确新SHA批准：四LOGIN独立核验＋两IAM栈6/2项Add，原五Secret和两SQL提交不重放。本轮未读取配置/Secret值/私钥或连接数据库，没有实际安装、恢复或发布；runtime关、真实更新0。此卡后续目录/恢复/两次更新仍是原D2目标，不在本轮夹带执行。
 
 **当前实际结果（取代下方早期轮次状态）：** [新g/h/i核对](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留)已完成真实app原件校验、STS1/AWS元数据55和另批剩余Neon READ ONLY22条查询；保留两次停止和新续段，未重复成功读取或产生远端写入。下一只收口第二个原CFN角色详细策略缺项及一次性启用准确清单，不扩框架；图片持久化缺项另列准确范围，不混入版本更新。runtime仍关、两次真实更新仍0。机器事实见[回执](aws-instance-release-d2-6-readiness-observed-20261114.json)，以下旧轮次“仅离线/未读”不覆盖本次批准结果。
 

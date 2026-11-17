@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：按D2原计划离线准备剩余身份核验与两IAM栈，实际读取/安装另审（2026-11-16）
+## 当前唯一继续点：最小补核已通过，仅待四LOGIN核验及两IAM栈新SHA批准（2026-11-16）
+
+本轮已按用户新批准完成STS1/AWS元数据37/GitHub GET4，全部匹配、无重试；[事实回执](aws-instance-release-identity-completion-preflight-20261116.json)。没有Secret值/配置/私钥读取或数据库连接、云写/槽、恢复/版本发布。剩余四LOGIN只读独立核验与原两IAM栈6/2项Add已集中到[第26节](aws-instance-release-activation.md#26-最小补核完成剩余身份安装只待新sha另审)及[新JSON](aws-instance-release-identity-completion-review-20261116.json)，准确SHA `2cd402ae5b952942b85b16fce3af6e3618d1873d8c918fab8ebf8538e053929b`；实际安装尚未批准，不自动执行。
+
+新待批配置1/四固定Secret正文/验证TLS只读5连接/SQL34，Source1/元数据81/Create2 Execute2；五Secret和两SQL已完成部分不重做，旧38原件/七槽及保护基准不变。私有五文件仅离线绑定/语法/来源差异与check-local通过，未运行安装，公开模板/SQL/runtime/workflow不变。真实新事实截至温尼伯11月17日02:24:36.704，最晚01:24:36.704启动最多60分钟，旧事实不延；下一只待新SHA及完整风险批准，runtime仍关、D2-6真实更新0，不恢复/发布或扩支线。
+
+### 以下为补核前离线准备（本轮已获准补核，不重读）
 
 用户已明确本轮只集中准备D2剩余四LOGIN独立核验与两IAM栈，不重做Secret/已提交SQL；读取、安装另审，runtime关闭，不恢复/发布或扩支线。不恢复误编号草稿；原事实已在温尼伯11月16日18:51:38.241 CST到期，本轮只作历史引用并列必要补核，不续期或自动执行。
 

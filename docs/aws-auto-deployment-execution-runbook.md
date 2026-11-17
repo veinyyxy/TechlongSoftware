@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：按D2原计划离线准备剩余身份核验与两IAM栈，实际读取/安装另审（2026-11-16）
+## 当前唯一继续点：最小补核已通过，仅待四LOGIN核验及两IAM栈新SHA批准（2026-11-16）
+
+用户已单独批准STS1＋AWS元数据37＋GitHub GET4，本轮全部完成且无重试；[新事实/原件指纹](aws-instance-release-identity-completion-preflight-20261116.json)证明两IAM栈名称空闲、五Secret固定元数据/两原栈、三idle栈和必需CFN/Key/OIDC/GitHub人工门禁匹配。配置/Secret值/PAT/PEM/数据库/写槽/恢复/发布均0。当前只交付[第26节范围/完整风险](aws-instance-release-activation.md#26-最小补核完成剩余身份安装只待新sha另审)及[准确接续JSON](aws-instance-release-identity-completion-review-20261116.json)，规范SHA `2cd402ae5b952942b85b16fce3af6e3618d1873d8c918fab8ebf8538e053929b`，尚未获安装批准。
+
+剩余固定为四LOGIN独立READ ONLY核验＋两IAM栈6/2项Add，不重建五Secret/重放两SQL提交。新待批Source1/元数据81/配置1/四固定Secret正文/连接5/SQL34/Create2 Execute2；原计数/七旧槽保留。私有接续仅复用原流程并绑定新事实，五文件语法/离线差异/check-local通过，无实际run-started或新mutation槽，公开代码/模板/SQL/runtime/workflow未改。新事实截止温尼伯11月17日02:24:36.704 CST，最晚01:24:36.704启动60分钟；旧事实/周期不延。下一仅等新SHA及准确范围/完整风险另批，未批准不再读生产或执行，runtime关、真实更新0，不恢复/发布或扩支线。
+
+### 以下为本次补核前的离线范围（现已获准完成补核，不重读）
 
 用户已明确重新回到D2原计划：本轮只集中准备四LOGIN独立核验及余下两IAM栈接续，不重做已建Secret或已提交SQL，实际读取/安装另审，不恢复环境/发布或扩支线。这不是恢复已取消的误编号草稿。旧事实已于2026-11-17T00:51:38.241Z（温尼伯11月16日18:51:38.241 CST）过期，只能作历史证据；本轮不自动补读或生成可执行安装批准SHA，先列最小新鲜事实缺项与准确待审范围。
 

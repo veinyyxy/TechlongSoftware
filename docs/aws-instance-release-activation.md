@@ -609,3 +609,42 @@ Execute明确`DisableRollback=true`、`RetainExceptOnCreate=false`，Create不�
 任一步失败/提交不明立即停止后续，不自动补齐、重试、撤权、回滚、down或删除。旧七fences/旧journal原字节不变；未来新批准仅能为从未尝试的IAM动作建新记录，不复位旧global或重跑旧入口。成功仅标记“四LOGIN独立核验＋IAM八资源”，不标D2-6真实更新完成，runtime仍false/environments={}、两次真实更新仍0。目录/实例种子与版本发布/恢复依旧另审。
 
 本轮只编制JSON与同步手册/主线/原D2方案：原七草案、38安装证据、七fences及诊断/准确CI源码指纹、参数覆盖/策略大小、JSON/diff均离线核对；不改运行代码、模板、SQL、工作流或启用配置，不主动重跑既有回归/CI。AWS/API读取、配置/Secret/PAT/PEM正文读取、数据库连接、云SQL写与槽消费均**0**。代码/文档沿既有授权正常提交推送main，可能自动触发现有无AWS检查，不是workflow dispatch/Re-run或新的CI结果声明。下一只有用户另准上面最小新鲜补核，才准备可执行准确接续SHA；本材料自身不是读取或安装许可。
+
+## 26. 最小补核完成，剩余身份安装只待新SHA另审
+
+用户本轮明确批准STS1＋AWS元数据37＋GitHub GET4，只准备新安装接续、不安装。实际在`2026-11-17T03:24:36.704Z`开始，全部读取按上限完成、无重试，[去敏事实及53份私有原件指纹](aws-instance-release-identity-completion-preflight-20261116.json)已保存。配置/Secret值/PAT/PEM读取、数据库连接/SQL、云写、槽消费、恢复/发布/dispatch均**0**。既有Git认证仅用于四项官方GET，不读backend PAT文件。
+
+### 26.1 本次真正取得的事实
+
+- Source仍为准确原IAM用户；两待建IAM栈、四Role、四Policy名称均空闲，不是已预留。
+- 原两Secret栈仍CREATE_COMPLETE，模板/输出/归属与实际创建证据相同；五Secret仍只有原准确固定VersionId、AWSCURRENT/Key/标签匹配，未读取正文。
+- 原平台/Cell/租户三栈仍UPDATE_COMPLETE，保留7/12/3资源；原UUID、角色、参数/更新时间及物理归属均相同。平台/Cell用原已审启停工具的纯`variant`从保存基线还原idle模板，与此次Original完整规范SHA相同；没有调用启停流程或读其配置。租户Original仍`dab17b24…`、`:13`/idle声明保持。不从CFN状态推断当前ECS/RDS健康或零费用，本轮未查它们。
+- 原租户CFN执行RoleId、唯一boundary v10/策略摘要及trust不变，Key/OIDC必需元数据匹配。Source有效组织/SCP写权限未模拟，不冒称全部能力已证明。
+- GitHub原部署工作流字节、本人审批者、不允许admin bypass、仅main及immutable OIDC subject均匹配。没有批准environment、调度或查新CI；原007199d/43973628548成功证据继续复用。
+
+### 26.2 准确接续清单与未批准副作用
+
+唯一新[准确安装接续JSON](aws-instance-release-identity-completion-review-20261116.json)，规范SHA：
+
+**`2cd402ae5b952942b85b16fce3af6e3618d1873d8c918fab8ebf8538e053929b`**
+
+| 接续阶段 | 新批准才可发生的范围 |
+| --- | --- |
+| Source/现有凭据 | 新STS1；现有`.env.local`全文1次；只读取Planner/Executor/Verifier/Publisher各一个已建准确Secret固定版本，共4次GetSecretValue。BackendBuildToken正文、本机PAT/PEM、旧应用Secret均不读，不生成或写凭据 |
+| 数据库独立核验 | 原owner1＋四LOGIN各1，共5条验证TLS READ ONLY连接/至多34次client.query；原catalog/列/函数正文哈希与ACL/角色权限及四角色独立认证。保存已返回的私有元数据便于查差异，不增加查询。任何不符即停在IAM前，不重放两次已知提交 |
+| 两IAM栈 | 原identities三Role/三Policy＝6项Add，再原publisher Role/Policy＝2项Add；最多CreateChangeSet2＋ExecuteChangeSet2，保留原严格完整ACK/参数/模板/归属门禁及DisableRollback/RetainExceptOnCreate=false。只用两原模板，不改SQL/Secret/运行配置 |
+| 独立IAM核验与结案 | 原独立进程核对实际RoleId/PolicyId/trust/defaultVersion/唯一附加policy=boundary及CFN归属，原三栈/租户模板保持。新元数据总上限81（父48＋独立33），不重复本轮37项全盘读取。不种版本/实例、不恢复/发布或dispatch，runtime保持false/environments={} |
+
+新一次性私有入口为`.local-secrets/d2-identity-completion-install-20261116-a/complete.mjs`，连同common、catalog、db-inspect、aws-inspect共五文件逐字节绑定在新JSON；不是新部署框架或线上工作流。复用原Create/Execute/poll严格流程，公共连接/完整membership比较器不变；独立数据库检查只接修正catalog、限额34，并在比较前保存已返回目录/列/函数/权限投影。新common只绑定新清单/事实/目录与两次create/execute上限；IAM独立检查改用本次新快照，旧源/基准、38安装原件、八诊断证据和七旧fences全部保留。原Secret/PAT/密码/SQL修改执行分支不在新入口内。
+
+本地五文件语法、来源精确差异/原CFN流程、固定文件/参数摘要和`check-local`通过，运行输出`LOCAL_ONLY_COMPLETION_CHECK_PASSED`：2模板/8资源/11类catalog、生产调用/Secret配置读取/槽消费0。**没有执行`execute-reviewed`，未创建run-started/新attempt，也不声称私有接续入口经过CI或生产验证。** 原公开代码/模板/SQL/runtime/工作流不改，不重跑CI或扩大读取范围。
+
+### 26.3 时间、累计范围与风险
+
+此次新事实按真实开始至多5小时，截止**2026-11-17T08:24:36.704Z＝温尼伯11月17日02:24:36.704 CST**。为接续保留完整60分钟，**最晚同日01:24:36.704 CST启动**；只有新SHA明确批准且未过期才开始。父事实00:51:38.241Z、旧C轮次22:59:59.141Z及所有旧记录原样保留，不“延期旧事实”。提交到AWS的工作不会随截止自动取消或删除。
+
+新待批上限仅本节表内：Source1/元数据81/四固定Secret正文/配置1/连接5/SQL34/4次CFN调用/8IAM资源，SQL修改事务、密码生成、Secret写、GitHub API和dispatch均0。原安装（含两次失败）实际元数据47，加本轮37及拟议81，累计最多165，比旧160多5，必须由新批准接受，不能重置旧计数；旧两SQL提交及旧Secret各仍只做过一次。四LOGIN未独立认证前不标身份成功，身份完成也不标D2-6两次真实更新通过。
+
+完整风险在新JSON的`risks`并继承第17/21/25节相关原风险：owner/config/四Secret进内存与提供者日志、原creator ADMIN/PUBLIC能力保留、新IAM立即可用而runtime关闭不是权限锁、原准确未来service/task授权、OIDC不绑定单run/源码、Source登录刷新可能失效、组织权限未模拟、非原子/并发非CAS/传播失败、DisableRollback及未知提交可能遗留权限和费用、截止不取消AWS工作。失败即停，无自动补齐、重试、rollback/down、撤权、删除或清理。五Retain Secret仍可能计费；不读取过期artifact或把旧只读诊断重新标为当前完整数据库验收。
+
+下一唯一动作：只等待用户对新SHA及上述读取/安装范围、完整风险明确批准；没有该批准不调用新入口。可用确认语：**“我确认按接续清单 `2cd402ae5b952942b85b16fce3af6e3618d1873d8c918fab8ebf8538e053929b` 执行四LOGIN独立核验及原两IAM栈8资源，接受配置1、四固定Secret值、5条验证TLS只读连接/SQL34、Source1/元数据81、Create2/Execute2、准确未来service/task授权及完整风险；仅未过期时执行，不重建Secret或重放SQL，保持runtime关闭，不恢复环境、不发布版本。”**
