@@ -1,0 +1,288 @@
+{
+  "schema": "techlong/d2-6-publication-read-observed/v1",
+  "status": "FOCUSED_READS_VERIFIED_NO_PUBLICATION",
+  "startedAt": "2026-11-17T18:46:21.274Z",
+  "completedAt": "2026-11-17T18:46:40.789Z",
+  "observedAt": "2026-11-17T18:46:21.276Z",
+  "factsValidUntil": "2026-11-17T23:46:21.276Z",
+  "counts": {
+    "stsAttempts": 1,
+    "successfulSts": 1,
+    "awsMetadata": 11,
+    "githubGets": 10,
+    "gitCredentialHelperReads": 1,
+    "secretValueReads": 0,
+    "configReads": 0,
+    "patPemReads": 0,
+    "zipDownloads": 0,
+    "databaseConnections": 0,
+    "writes": 0,
+    "executionSlots": 0
+  },
+  "data": {
+    "sourceDiagnostic": {
+      "successResponse": true,
+      "rawErrorSaved": false
+    },
+    "source": {
+      "accountId": "402010193138",
+      "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev"
+    },
+    "role": {
+      "arn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleasePublisherRole",
+      "id": "AROAV3GNMXTZA2DT2FTQA",
+      "boundary": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleasePublisherBoundaryV1",
+      "trustSha256": "9c5ed51d51547fb309db009263a042918154230e6b5f3161c9590f52836d4d9d",
+      "maxSessionDuration": 3600
+    },
+    "policy": {
+      "policyArn": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleasePublisherBoundaryV1",
+      "policyId": "ANPAV3GNMXTZPHKCDOYZO",
+      "defaultVersion": "v1",
+      "policySha256": "45d079261d655c3d7d4134b9fcd5b747f5edf702dffc470ff8cf0531806e4626",
+      "attachedCount": 1,
+      "inlineCount": 0
+    },
+    "repository": {
+      "arn": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast",
+      "uri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+      "tagMutability": "IMMUTABLE"
+    },
+    "aTagAbsent": true,
+    "artifactSecret": {
+      "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/backend-build-read-token-v1-zjIXrv",
+      "versionId": "a8a64f33-c9bc-7525-48ec-1f50b972f426",
+      "stages": [
+        "AWSCURRENT"
+      ],
+      "valueRead": false
+    },
+    "audit": {
+      "bucket": "techlong-sandbox-cloud-worker-evidence-402010193138",
+      "versioning": "Enabled",
+      "pushKey": "instance-releases/promotions/candidate-056efacd8630445670e7dfe55ae46e577e097f28909df6038d18440442e95172/push.json",
+      "pushSlotAbsent": true
+    },
+    "code": {
+      "mainSha": "3ebaecc21c1bb5e3a948e96f513e2dde262d3bb0",
+      "implementationSha": "b1e1ebd773e2b110129a2307bfcb55aae52bbaa5",
+      "ciRunId": 44139556595,
+      "ciSuccess": true,
+      "workflowSha256": "0b36c94e01f324b5c3e11375f83f57a4f6a1281e0b7504c6d1c383da35c2ad1f",
+      "workflowBlobSha": "bd3013fb4a1bc48f7f52dd9f037e2a4e9fca8ff7"
+    },
+    "githubGate": {
+      "environmentId": 24613410405,
+      "name": "techlong-sandbox-deploy",
+      "reviewerId": 14145707,
+      "adminsBypass": false,
+      "preventSelfReview": false,
+      "branches": [
+        "main"
+      ],
+      "oidc": {
+        "use_default": true,
+        "use_immutable_subject": true,
+        "sub_claim_prefix": "repo:veinyyxy@14145707/TechlongSoftware@1323312747"
+      }
+    },
+    "builds": [
+      {
+        "label": "A",
+        "runId": 44128576107,
+        "artifactId": 14347858874,
+        "sourceSha": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+        "attempt": 1,
+        "success": true,
+        "zipSha256": "a42b4aba36ca0c3bbfa03321820ab9ec6ef06d019d1e48c8e2381ba81615a2cb",
+        "zipBytes": 72661917,
+        "expiresAt": "2026-11-18T16:42:02Z"
+      },
+      {
+        "label": "B",
+        "runId": 44129167654,
+        "artifactId": 14349965129,
+        "sourceSha": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+        "attempt": 1,
+        "success": true,
+        "zipSha256": "813f7803af5eb8a8ecfe579dda0a24a6a78f850bf349eaa410214af5a2373228",
+        "zipBytes": 72662028,
+        "expiresAt": "2026-11-18T16:45:19Z"
+      }
+    ]
+  },
+  "calls": [
+    {
+      "label": "source",
+      "service": "sts",
+      "operation": "get-caller-identity",
+      "inputSha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "at": "2026-11-17T18:46:21.277Z",
+      "response": "OK"
+    },
+    {
+      "label": "publisher-role",
+      "service": "iam",
+      "operation": "get-role",
+      "inputSha256": "00f53fab4288f8c14ecd96438ee902b84a30748df18151c399ef03db59da574e",
+      "at": "2026-11-17T18:46:23.955Z",
+      "response": "OK"
+    },
+    {
+      "label": "publisher-attached",
+      "service": "iam",
+      "operation": "list-attached-role-policies",
+      "inputSha256": "7098efd2861b44601c0c071298c3e7ea32b7cad2dcddd701576d3ddc6cc5630e",
+      "at": "2026-11-17T18:46:25.342Z",
+      "response": "OK"
+    },
+    {
+      "label": "publisher-inline",
+      "service": "iam",
+      "operation": "list-role-policies",
+      "inputSha256": "7098efd2861b44601c0c071298c3e7ea32b7cad2dcddd701576d3ddc6cc5630e",
+      "at": "2026-11-17T18:46:26.595Z",
+      "response": "OK"
+    },
+    {
+      "label": "publisher-policy",
+      "service": "iam",
+      "operation": "get-policy",
+      "inputSha256": "7d1965b8bdc925adc5a1d2ab863416d794bd77c4419da8482c53477cbcf38f09",
+      "at": "2026-11-17T18:46:27.843Z",
+      "response": "OK"
+    },
+    {
+      "label": "publisher-policy-document",
+      "service": "iam",
+      "operation": "get-policy-version",
+      "inputSha256": "5b43f48e1ce1e9aadd3f53381e3a6be023c814013f531821f6fd83a647fa60b9",
+      "at": "2026-11-17T18:46:29.078Z",
+      "response": "OK"
+    },
+    {
+      "label": "ecr-repository",
+      "service": "ecr",
+      "operation": "describe-repositories",
+      "inputSha256": "4e5cde5cabf58545d8cddfeeac97c28ab54eff82c850eca47df0846169b5da66",
+      "at": "2026-11-17T18:46:30.432Z",
+      "response": "OK"
+    },
+    {
+      "label": "a-tag",
+      "service": "ecr",
+      "operation": "batch-get-image",
+      "inputSha256": "86d7cf7c62b5c72048d9863a83501b6ebf2a8d30c7e0e79e950e380d74d76a77",
+      "at": "2026-11-17T18:46:31.778Z",
+      "response": "OK"
+    },
+    {
+      "label": "artifact-secret",
+      "service": "secretsmanager",
+      "operation": "describe-secret",
+      "inputSha256": "8954506ba9934abda0a6ceec9ae3bef6b85e492bcce4b575bec3d544d4bef602",
+      "at": "2026-11-17T18:46:32.973Z",
+      "response": "OK"
+    },
+    {
+      "label": "artifact-secret-versions",
+      "service": "secretsmanager",
+      "operation": "list-secret-version-ids",
+      "inputSha256": "2fce389a436843829b0449ed710262c9f3533f373aa330d076f2362be1f545f3",
+      "at": "2026-11-17T18:46:34.270Z",
+      "response": "OK"
+    },
+    {
+      "label": "audit-versioning",
+      "service": "s3api",
+      "operation": "get-bucket-versioning",
+      "inputSha256": "e2702b8370974a19bb88ad6baa9b274a8a632d00b839ca824a0c40d77039fd3a",
+      "at": "2026-11-17T18:46:35.479Z",
+      "response": "OK"
+    },
+    {
+      "label": "a-push-slot",
+      "service": "s3api",
+      "operation": "head-object",
+      "inputSha256": "c90200c5960a4c19dfcb9ebaed08be1bc099f17f37aff92fef4282b6957b8625",
+      "at": "2026-11-17T18:46:36.704Z",
+      "response": "EXPECTED_ABSENT"
+    },
+    {
+      "label": "main",
+      "service": "github",
+      "path": "veinyyxy/TechlongSoftware/git/ref/heads/main",
+      "at": "2026-11-17T18:46:38.078Z"
+    },
+    {
+      "label": "workflow",
+      "service": "github",
+      "path": "veinyyxy/TechlongSoftware/contents/.github/workflows/instance-release-bootstrap.yml?ref=3ebaecc21c1bb5e3a948e96f513e2dde262d3bb0",
+      "at": "2026-11-17T18:46:38.579Z"
+    },
+    {
+      "label": "ci",
+      "service": "github",
+      "path": "veinyyxy/TechlongSoftware/actions/runs/44139556595",
+      "at": "2026-11-17T18:46:38.807Z"
+    },
+    {
+      "label": "environment",
+      "service": "github",
+      "path": "veinyyxy/TechlongSoftware/environments/techlong-sandbox-deploy",
+      "at": "2026-11-17T18:46:39.070Z"
+    },
+    {
+      "label": "branches",
+      "service": "github",
+      "path": "veinyyxy/TechlongSoftware/environments/techlong-sandbox-deploy/deployment-branch-policies?per_page=100",
+      "at": "2026-11-17T18:46:39.317Z"
+    },
+    {
+      "label": "oidc",
+      "service": "github",
+      "path": "veinyyxy/TechlongSoftware/actions/oidc/customization/sub",
+      "at": "2026-11-17T18:46:39.509Z"
+    },
+    {
+      "label": "A-run",
+      "service": "github",
+      "path": "veinyyxy/SpeedFeast_Backend_main/actions/runs/44128576107",
+      "at": "2026-11-17T18:46:39.694Z"
+    },
+    {
+      "label": "A-artifact",
+      "service": "github",
+      "path": "veinyyxy/SpeedFeast_Backend_main/actions/artifacts/14347858874",
+      "at": "2026-11-17T18:46:39.985Z"
+    },
+    {
+      "label": "B-run",
+      "service": "github",
+      "path": "veinyyxy/SpeedFeast_Backend_main/actions/runs/44129167654",
+      "at": "2026-11-17T18:46:40.234Z"
+    },
+    {
+      "label": "B-artifact",
+      "service": "github",
+      "path": "veinyyxy/SpeedFeast_Backend_main/actions/artifacts/14349965129",
+      "at": "2026-11-17T18:46:40.537Z"
+    }
+  ],
+  "oldRecordsChanged": false,
+  "automaticRetry": false,
+  "privateRecord": ".local-secrets/d2-6-publication-read-20261117-c/verified.json",
+  "historicalFailuresPreserved": [
+    "docs/aws-instance-release-publication-preflight-stopped-20261117.json",
+    "docs/aws-instance-release-publication-source-diagnostic-20261117.json"
+  ],
+  "boundaries": {
+    "publication": false,
+    "catalogRegistration": false,
+    "restore": false,
+    "runtimeEnabled": false,
+    "newIam": false,
+    "currentDatabaseOrPersistenceProved": false
+  },
+  "next": "One concentrated actual A publication plus A verified/B candidate catalog approval; no more implementation or inventory."
+}

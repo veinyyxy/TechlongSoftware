@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：Source诊断要求刷新，原11/10仍未读；不重做代码（2026-11-17）
+## 当前唯一继续点：c轮最小核对通过，只待一份A发布/A-B登记集中批准（2026-11-17）
+
+[成功c回执](aws-instance-release-publication-preflight-verified-20261117.json)：Source刷新后STS1/AWS元数据11/GitHub GET10全部通过；原publisher权限、ECR、固定token版本、审计与本人environment匹配，A tag/push槽未占用。其余私密/ZIP/SQL/写槽/发布/恢复0，a/b不覆盖。新事实至温尼伯今天17:46:21，原产物/扫描期限不改。
+
+下一只待[准确外层范围](../ops/releases/d2-6-publication-catalog.review.json)及[完整风险](aws-instance-release-initial-publication-review.md)另批：现有A单app发布、真实digest核验、A verified/B未发布candidate登记；一次GitHub环境批准由本人完成，内部登记SHA只能固定规则派生。材料及本地合同已齐，不继续编码、重跑CI/构建或整批盘点。bootstrap/daily runtime实际仍关，未恢复环境/绑定；两次真实更新仍0/2，不能将本次准备称为D2完成。
+
+### 之前a/b停止及刷新请求（已由成功c轮取代）
 
 [新b诊断](aws-instance-release-publication-source-diagnostic-20261117.json)已按另准执行：`LOGIN_REFRESH_REQUIRED`/退出255，未取得身份；两轮Source尝试2，后继元数据/GitHub/私密/SQL/写槽/发布/恢复0，a/b保留不重试。下一等待用户自行刷新Source并允许新一轮STS1＋原11/10只读，成功核对准确IAM身份才继续；不需新构建/CI或改变代码，刷新不延期/授权实际发布登记。当前尚无新事实或集中操作SHA。
 

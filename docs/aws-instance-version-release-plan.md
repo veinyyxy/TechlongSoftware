@@ -16,7 +16,7 @@
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
-**最新停止覆盖下段继续点：** [第14节](#d2-6-publication-read-stopped)的b单次诊断已另获准并执行，安全类别LOGIN_REFRESH_REQUIRED/退出255、无身份，原11/10仍未读。下一等待用户自行刷新Source并明确允许新一轮STS1＋原11/10，失败即停；原a/b保留，不重复诊断、编码/CI/构建，不恢复/发布/登记或延长旧事实。
+**最新继续点覆盖历史停止：** [第15节](#d2-6-publication-read-verified)的新c轮已获准并通过STS1/元数据11/GitHub10，a/b保留。下一只另批[集中执行范围](../ops/releases/d2-6-publication-catalog.review.json)及[完整风险](aws-instance-release-initial-publication-review.md)，完成A发布及A verified/B candidate登记，不再编码/盘点。新事实至2026-11-17T23:46:21.276Z（温尼伯17:46:21），原件/扫描不延期；当前发布/登记/恢复仍0，daily runtime关，真实更新仍0/2。
 
 **2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第13节](#d2-6-bootstrap-implementation)的最小入口及准确CI已完成，源码b1e1ebd/[CI44139556595](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595)成功：Linux239＋隔离PG16十项全过/无skip，lint/类型通过；[结果](aws-instance-release-bootstrap-code-ci-20261117.json)。两处代码接线不再是缺项，不重复实现/回归或重装身份。初始发布review与daily runtime仍关闭，生产读取/私密原件/发布/登记/恢复0；本轮到此收尾。下一仅回到同一集中草案更新新代码指纹并另审必要当前事实与真实操作SHA，不提前启动环境、重构建A/B或扩支线，真实更新仍0/2。
 
@@ -469,6 +469,18 @@ register先核对批准SHA、当前代码、私有输入raw SHA及完整派生�
 原提案后已获准并完成单次诊断：新b于2026-11-17T18:39:35.477–18:39:36.808Z执行固定Source/官方STS，CLI安全分类为`LOGIN_REFRESH_REQUIRED`、退出255；没有HTTP/身份响应，原始错误和凭据未保存，[回执](aws-instance-release-publication-source-diagnostic-20261117.json)。未继续任何11/10对象，两轮计Source尝试2/成功0，其余读取、写入和执行槽仍0，a/b全部保留。没有把未知HTTP状态/网络次数编造成已取得AWS响应。
 
 下一只待用户自行运行`aws login --profile techlong-sandbox-user`并允许新一轮STS1＋原未用11/10，只读身份正确才继续，失败即停；不要发送验证码/凭据。当前不再追加诊断或修代码，不重做已通过CI/构建，不授权发布/登记/恢复，不延旧事实或原件期限；成功后直接收口原集中审批。
+
+<a id="d2-6-publication-read-verified"></a>
+
+### 15. 新c最小只读全部通过：直接收口真实A发布/A-B登记集中审批
+
+用户明确刷新Source并准新一轮STS1＋元数据11/GitHub GET10。[c真实回执](aws-instance-release-publication-preflight-verified-20261117.json)18:46:21.274–18:46:40.789Z通过，helper1；准确IAM身份、原publisher角色/trust/唯一v1策略、IMMUTABLE仓库、固定token版本、S3版本控制及本人environment/main/OIDC均匹配，A目标tag与候选全局push槽不存在。未扩大对象、重试错误或追加诊断；a/b保留。Secret值/配置/PAT/PEM/ZIP/SQL/云写/执行槽/dispatch/恢复均0。
+
+复用原两份验证回执（原raw SHA一致）及产品策略重新seal，A/B ID/candidate/完整StoredCandidate SHA保持；15项代码与准确CI一致，既有BootstrapReview验证通过。没有新实现/回归或重读ZIP。已备[唯一可审批外层JSON](../ops/releases/d2-6-publication-catalog.review.json)、本机准确内部review以及[完整步骤/调用上限/风险](aws-instance-release-initial-publication-review.md)；旧prepared草案继续保留，不当新执行合同。
+
+外层只覆盖本次单A镜像、A ecr_verified与原B candidate两行，准确review数据main激活/关闭，单次本人GitHub environment门禁，已验证函数按真实A proof确定性派生内部登记SHA并一次运行。只有外层另批后才可读固定Secret/配置、dispatch/push或SQL登记；不先执行，不给B预推、不重装权限/身份，不恢复、绑定或启用daily runtime。真实registry/platform digest尚未知，只能由实际manifest派生；兼容/持久化准入保持后续门槛。
+
+新事实五小时自18:46:21.276Z至23:46:21.276Z；集中执行最多60分钟，最晚22:46:21.276Z（温尼伯16:46:21）启动，内部登记最多10分钟且不越共同截止。它不是资源自动到期，也不延期旧扫描/产物或数据库事实。本轮仅准备，到此停在请求准确外层审批；无实际发布/登记/恢复，真实更新仍0/2。
 
 <a id="d2-1-delivered"></a>
 

@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：已获准诊断指向Source登录需刷新，原11/10未读；等待用户刷新及新轮许可（2026-11-17）
+## 当前唯一继续点：最小只读c轮通过；只待集中批准A发布及A/B登记，不再编码或盘点（2026-11-17）
+
+用户已刷新Source并明确准许新c轮；[真实结果](aws-instance-release-publication-preflight-verified-20261117.json)于18:46:21.274–18:46:40.789Z完成STS1/元数据11/GitHub GET10/helper1，准确身份、原publisher权限/ECR/固定token版本/S3及本人门禁通过，A tag/push槽未占用。配置/Secret值/PAT/PEM/ZIP/数据库/写入/槽/dispatch/恢复0；a/b保留，不重试旧记录。新事实仅覆盖本次实际读取对象，至23:46:21.276Z（温尼伯17:46:21），旧构建/扫描/数据库期限不延。
+
+已复用两原件及准确CI完成[集中执行范围](../ops/releases/d2-6-publication-catalog.review.json)和[完整风险/时序](aws-instance-release-initial-publication-review.md)。原15项代码不变、纯合同通过；下一唯一动作是另批这一份准确外层SHA，然后单次A发布→真实manifest证明→A verified/B candidate两行登记及独立核验。外层明确包括准确bootstrap数据main激活/关闭、一次本人GitHub门禁及固定规则内部SQL清单派生；**尚未批准/执行**。不追加工具/编码/盘点，不恢复环境、写绑定或开daily runtime，真实更新仍0/2。新轮最晚温尼伯16:46:21启动，总计最多60分钟；不为等待聊天延长。
+
+### a/b停止与刷新沿革（现已由成功c轮取代，不重放）
 
 用户另准一次去敏STS诊断及成功后继续原未用11/10；新b于18:39:35.477–18:39:36.808Z停在Source，安全类别`LOGIN_REFRESH_REQUIRED`、退出255，无STS身份响应，[诊断回执](aws-instance-release-publication-source-diagnostic-20261117.json)。两轮累计Source尝试2/身份0，AWS元数据/GitHub/helper/私密或数据库读取/写槽/发布/恢复均0；a原件保留，b不重跑，原始stderr/凭据未保存。此次诊断没有调用后继对象或修代码。
 
