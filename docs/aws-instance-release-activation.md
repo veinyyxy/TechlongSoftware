@@ -561,3 +561,51 @@ Execute明确`DisableRollback=true`、`RetainExceptOnCreate=false`，Create不�
 **准确CI已核对成功并结项：** 源码`007199da5dd63eafce4a7a59d43aef2db726d01b`已推main，[run43973628548](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43973628548)为原main/push/attempt1、completed/success；Linux227与隔离PostgreSQL16九项全部pass/skip0，13项新比较器回归、lint/类型及全部job步骤成功。[CI去敏回执及原件指纹](aws-instance-release-catalog-order-fix-ci-20261116.json)已保存；仅6次GitHub只读GET，没有Re-run或dispatch。文档收尾提交不冒称新的代码CI，私有适配器只按上述差异/语法/快照离线复核，不声称曾在CI连接生产验证。
 
 本阶段到此结束，不再次测试/读取生产或编制新的安装清单。下一若用户要求继续，仅集中准备既有四LOGIN独立核验及剩余两IAM栈的准确接续范围，复用已完成Secret/SQL的真实证据，不重建/重放或复位槽；必要凭据/元数据读取和实际后继操作仍准确另批，原事实时间与预算保留。没有启用runtime或恢复/发布授权。
+
+## 25. 按D2原计划集中准备四LOGIN核验与两IAM栈（仅离线）
+
+2026-11-16，America/Winnipeg。用户本轮明确只准备以下剩余范围；实际读取、安装另审，不恢复环境、不发布版本或扩支线。集中材料为[identity-completion.prepared.json](../ops/releases/identity-completion.prepared.json)，状态`OFFLINE_PREPARED_FRESH_FACTS_AND_EXECUTION_APPROVAL_REQUIRED`。这不是恢复已取消的C2–6/C4–6草稿，也不是新框架、可执行命令或新审批SHA。
+
+### 25.1 已完成部分只引用，不重做
+
+以[部分安装回执](aws-instance-release-activation-installation-partial-20261116.json)为准：两Secret栈已独立核验，五个准确ARN/VersionId已取得；promotion与四LOGIN事务分别在22:01:42.096Z、22:01:42.602Z明确提交。四LOGIN状态/密码已生效不等于四窄会话独立认证通过。原七草案、38份安装原件、八份诊断证据和七个永久fences保持；源SQL不重放、密码不重新生成、Secret不重建或改版本、基准不重写。
+
+材料逐项绑定五Secret历史固定引用及原模板参数，含真实UploadBucketArns，不填合成ARN或把历史物理ID称作当前状态。BackendBuildToken仅作publisher IAM固定版本参数，本次剩余核验不需要读它的正文或本机PAT。已知两次提交也不因原比较错误被改成“未提交”。
+
+### 25.2 后继一次性集中范围（尚未批准执行）
+
+顺序为**最小新鲜元数据补核 → 单份准确接续SHA另批 → 四LOGIN及数据库独立核验 → 两IAM栈各创建/严格核验/执行/独立核验 → 身份安装结案**。不在中间夹入恢复、目录登记、镜像更新或业务验收。
+
+| 剩余部分 | 准确范围 | 成功门槛 |
+| --- | --- | --- |
+| 数据库独立核验 | 现有`.env.local`全文1次；固定Planner/Executor/Verifier/Publisher Secret各1次GetSecretValue；owner只读连接1＋四窄LOGIN连接各1，共5条验证TLS连接/至多34次client.query | 原11类catalog/保护、原schema OID、已提交列/函数正文与ACL/角色权限符合原合同；四LOGIN分别认证、仅继承对应操作组，无直接表列DML或owner成员资格；三release表仍空，不执行发布函数或读业务正文 |
+| `techlong-sandbox-instance-release-identities-v1` | 原`identities.draft.template.json`，仅Planner/Executor/Verifier三Role与对应三ManagedPolicy，共6项Add | 完整参数/模板和可信ACK一致，准确CREATE_COMPLETE/AVAILABLE，只有6项Add；执行后独立核对RoleId、trust、唯一附加policy=boundary、策略正文/default version及CFN归属 |
+| `techlong-sandbox-instance-release-promotion-identity-v1` | 原`promotion-identity.draft.template.json`，仅PublisherRole/PublisherBoundary，共2项Add | 同上，仅2项Add，保留原窄publisher及后端构建token固定版本范围 |
+
+数据库owner18次提交（catalog采集13＋空表/列/函数ACL/角色权限各1＋COMMIT1），四窄会话每条4次（BEGIN、事务内search_path与timeout设置、单次身份/能力SELECT、COMMIT），共34；多条SQL合并提交仍按client.query计，不称服务端只有34条语句。复用已通过CI的连接模块与membership完整行多重集合比较器，其他10类仍精确比较；原1秒锁/15秒事务内语句超时、10秒连接/20秒客户端query和验证TLS保留，事务外没有全局15秒保证。已经返回的目录/差异只存私有证据，不额外查询、不丢弃失败差异或放宽基准。
+
+两IAM栈只使用原文件TemplateBody、`CAPABILITY_NAMED_IAM`，不上传S3。保留原CREATE参数省略规则、可信完整ACK及预执行准确栈/其他变更集门禁；Execute用`DisableRollback=true`、`RetainExceptOnCreate=false`。最多CreateChangeSet2＋ExecuteChangeSet2（调用方4写；CFN内部实际创建8资源，不混称只有4个资源）。其余元数据最多81次＝两栈原流程48＋独立IAM/原三栈归属核验33，Source1另计；单请求maxAttempts=1，CS/栈读取仍各最多10轮及原15/30秒间隔。无直接IAM API修改、Secret/SQL写、终止保护更改或权限扩围。
+
+四份展开后ManagedPolicy正文分别4320、5144、4549、3126 UTF-8 bytes，均低于6144；这些只是离线参数/大小与摘要检查，不是AWS模板验证或有效权限证明。完整固定参数、两模板LF指纹、四Role/Policy名称和策略规范摘要见JSON，不另造模板或程序。
+
+### 25.3 事实过期：先另审最小补核，不重开全环境盘点
+
+父事实实际截止仍为`2026-11-17T00:51:38.241Z`＝温尼伯11月16日**18:51:38.241 CST**，本轮准备时已过期；原C轮次终点22:59:59.141Z亦不变。因此`installationManifestSha256=null`、`freshFacts=null`、`executionAuthorized=false`，没有可拿去执行的安装SHA或短窗口，不接受旧26246…/08ceb8…重放。
+
+只提议未来**Source STS1＋AWS元数据37＋GitHub GET4**：
+
+- 两待建栈/四Role/四Policy名称空闲10；两已建Secret栈准确归属/Original各三读共6；五Secret版本/Key/标签/删除状态元数据5。
+- 原三个准确栈ID的状态/Original/资源各三读共9；原租户CFN执行Role及唯一boundary五读5；现有Key/OIDC各1。合计37。模板/配置正文可能敏感，仅进内存，存允许投影/摘要，发现明文凭据即停。
+- GitHub只读现有部署工作流字节、environment、main分支门禁、OIDC subject各1；沿用原本人审批者/不允许admin bypass/固定仓库不可变subject。不重查已存准确CI，不使用本机backend PAT。
+
+不查ECS/ALB/RDS/DNS/ECR整批状态、不ValidateTemplate未改模板、不读配置/数据库/Secret值/PEM、不dispatch或写资源；不翻页、不自动重试或扩大找对象。新UUID、名称占用、版本/权限变化或未知均停，不能自动接受新基准。此37项不是本轮已获读取许可。以后获准真实读取成功才形成至多5小时新事实；最终安装60分钟窗口必须完整落在该真实期限内，不把保存时间当采集时间，也不要求用户现在刷新Source或在线等候。
+
+原安装含两失败累计Source4/元数据47/Secret值5/配置2/PAT2/认证GET4/连接3/SQL36；另准诊断实际配置1/连接1/SQL14单列保留。提议补核37加未来安装81后元数据累计165，比原160多5，**必须另批这项新读范围，不能靠重置旧额度或“剩余额度”隐式执行**。最终新SHA须绑定真实新事实、具体一次性入口/独立核验文件与准确新增上限；本轮不生成这些执行文件或消费槽。
+
+### 25.4 风险与本轮结项
+
+继承第17/21节及父/接续JSON的完整风险；剩余动作尤其包括配置/四Secret进内存与提供者日志、owner权限较宽/原creator ADMIN和PUBLIC能力保留、新IAM立即有能力且runtime关闭不是锁、OIDC并不绑定某run/源码、名称检查非预约/跨服务非CAS、传播不保证、`DisableRollback`可能遗留部分身份及费用。父清单已接受的准确未来service/task范围仍固定，不据此证明服务存在或允许恢复；不宣称现有SCP/有效权限已经模拟。五个Retain Secret可能持续收费；截止不会取消已提交CFN或自动清理。
+
+任一步失败/提交不明立即停止后续，不自动补齐、重试、撤权、回滚、down或删除。旧七fences/旧journal原字节不变；未来新批准仅能为从未尝试的IAM动作建新记录，不复位旧global或重跑旧入口。成功仅标记“四LOGIN独立核验＋IAM八资源”，不标D2-6真实更新完成，runtime仍false/environments={}、两次真实更新仍0。目录/实例种子与版本发布/恢复依旧另审。
+
+本轮只编制JSON与同步手册/主线/原D2方案：原七草案、38安装证据、七fences及诊断/准确CI源码指纹、参数覆盖/策略大小、JSON/diff均离线核对；不改运行代码、模板、SQL、工作流或启用配置，不主动重跑既有回归/CI。AWS/API读取、配置/Secret/PAT/PEM正文读取、数据库连接、云SQL写与槽消费均**0**。代码/文档沿既有授权正常提交推送main，可能自动触发现有无AWS检查，不是workflow dispatch/Re-run或新的CI结果声明。下一只有用户另准上面最小新鲜补核，才准备可执行准确接续SHA；本材料自身不是读取或安装许可。
