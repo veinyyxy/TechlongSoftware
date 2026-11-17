@@ -2,7 +2,7 @@
 
 状态（2026-11-17）：D2-1至D2-5编码与一次性身份安装已结项，运行接线默认关闭。`schema.draft.sql`与`grants.draft.sql`已在另批的一次性安装中提交并独立核验，见[完成回执](../../docs/aws-instance-release-schema-install-completed-20261113.json)，不得重放；promotion增量、四窄LOGIN、五Secret及两IAM栈亦已[独立验收](../../docs/aws-instance-release-identity-installation-accepted-20261116.json)。文件名/旧注释为追溯保留，不表示待重装。本目录SQL不被启动脚本或发布工作流执行。
 
-当前唯一材料入口：[原D2-6执行卡第5小节](../../docs/aws-instance-version-release-plan.md#d2-6-offline-inputs)、[`d2-6.prepared.json`](d2-6.prepared.json)及[`d2-6-runtime.disabled.json`](d2-6-runtime.disabled.json)。仅离线复用已存证据，过期产物/扫描、兼容/完整持久化及恢复后绑定缺项如实保留；无可执行SHA或新读取/发布授权。新关闭态文件不是运行入口，实际`runtime.json`仍false/environments={}。下方/原[一次性总清单](../../docs/aws-instance-release-activation.md)及[旧指纹草案](activation.prepared.json)保留历史，不重放SQL/Secret/IAM安装；真实来源采集/目录及实例种子、恢复/启用/发布仍另审。
+当前唯一材料入口：[原D2-6执行卡第5小节](../../docs/aws-instance-version-release-plan.md#d2-6-offline-inputs)、[`d2-6.prepared.json`](d2-6.prepared.json)及[`d2-6-runtime.disabled.json`](d2-6-runtime.disabled.json)。新[第6小节准确只读范围](../../docs/aws-instance-version-release-plan.md#d2-6-evidence-read-review)/[`d2-6-evidence-read.review.json`](d2-6-evidence-read.review.json)仅编制待审，不执行读取，也不是可交collect的参数或部署批准。过期产物/扫描、兼容/完整持久化及恢复后绑定缺项如实保留；新关闭态文件不是运行入口，实际`runtime.json`仍false/environments={}。下方/原[一次性总清单](../../docs/aws-instance-release-activation.md)及[旧指纹草案](activation.prepared.json)保留历史，不重放SQL/Secret/IAM安装；真实来源采集/目录及实例种子、恢复/启用/发布仍另审。
 
 D2-4已新增默认关闭的runtime配置、真实元数据/凭据适配及验收子进程；完整范围见[单审批工作流说明](../../docs/aws-instance-release-workflow.md)。工作流不执行本目录SQL草案；新增CI仅在全新临时PostgreSQL16中验证，不安装到现有控制库。本地137项相关回归通过，原生PG结果以准确CI为准。
 

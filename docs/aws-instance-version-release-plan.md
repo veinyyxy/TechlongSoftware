@@ -16,7 +16,7 @@
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
-**2026-11-17当前唯一动作覆盖下方历史“下一步”：** 用户仅批准离线准备，现已集中完成[第5小节](#d2-6-offline-inputs)的A/B原件盘点、初始绑定缺项和关闭态运行配置。身份安装正式通过，不重做Secret/SQL/IAM；历史云事实已于2026-11-17T08:24:36.704Z到期，只供定位。下一只按已列缺项准备准确新读取/操作范围，不重做整批盘点；本轮不读生产/凭据、不构建/登记/恢复/发布或开启runtime，不开短窗口、不编造可执行SHA，真实更新仍0。
+**2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第5小节](#d2-6-offline-inputs)已完成上轮离线输入，本轮仅按用户要求编制[第6小节只读范围](#d2-6-evidence-read-review)，实际读取另审。身份安装正式通过，不重做Secret/SQL/IAM；历史云事实2026-11-17T08:24:36.704Z到期，只供定位。不重做整批盘点、不获取凭据或下载、不构建/登记/恢复/发布或开启runtime，不开短窗口，真实更新仍0。
 
 **当前实际结果（取代下方早期轮次状态）：** [新g/h/i核对](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留)已完成真实app原件校验、STS1/AWS元数据55和另批剩余Neon READ ONLY22条查询；保留两次停止和新续段，未重复成功读取或产生远端写入。下一只收口第二个原CFN角色详细策略缺项及一次性启用准确清单，不扩框架；图片持久化缺项另列准确范围，不混入版本更新。runtime仍关、两次真实更新仍0。机器事实见[回执](aws-instance-release-d2-6-readiness-observed-20261114.json)，以下旧轮次“仅离线/未读”不覆盖本次批准结果。
 
@@ -112,6 +112,45 @@
 3. 首次正常更新A→B在一次GitHub人工批准内完成准确晋升（如需）、仅ImageUri更新、独立技术核验和CAS。成功回写/释放占用后，第二次B→A使用相同部署源码/工作流/配置、新请求/run/批准；两次成功且revision＋2才通过D2-6。恢复/初始对齐、NO_CHANGE或单纯账本更新不计数。
 
 本轮只改上述材料和状态文档；本机原ZIP/archive/receipt摘要匹配，原运行文件/工作流摘要保持，候选关闭态与字段合同离线检查通过。无运行源码/模板/SQL改变，不主动调度或重跑CI；正常main推送仍可触发既有无AWS检查，不据此声称实际发布通过。不产生执行槽或发布SHA；AWS/GitHub新读取、生产配置/Secret/PAT/PEM读取、数据库连接/写入、构建/ECR/恢复/dispatch均0。到此收尾，不自动进入读取或实际执行。
+
+<a id="d2-6-evidence-read-review"></a>
+
+### 6. 2026-11-17准确只读核对清单：仅待另审，不读取
+
+用户本轮只要求编制范围。清单为[`d2-6-evidence-read.review.json`](../ops/releases/d2-6-evidence-read.review.json)，`readAuthorized=false`，不是安装、目录登记或部署批准，也不是可直接交给`collect`的输入。本轮不编新读取器/框架或修改原校验器；实际获准后只能逐项复用现有只读运输、四文件/扫描/registry验证。不得两次调用`collect`而重复STS/整批元数据，或借清单自动生成发布/恢复执行。
+
+待审清单规范JSON SHA256：`9e0db5b519509022613279e0ff0adda620655bd85b001d87252515191b6d6de8`。只读范围求和、父准备原件摘要、实际runtime/workflow保持和JSON检查通过；未执行上述读取、未创建执行槽或消费读取次数。此SHA仅绑定读取范围，不是发布/安装SHA，用户尚未批准实际读取。
+
+#### 6.1 一轮限定范围与累计上限
+
+| 范围 | 准确对象与规则 | 上限 |
+| --- | --- | --- |
+| Source身份 | 固定profile `techlong-sandbox-user`、官方ca-central-1 STS；必须为原IAM用户，不AssumeRole、不改profile | STS 1 |
+| A/B构建发现 | `veinyyxy/SpeedFeast_Backend_main`原`backend-image-candidate.yml`的成功main构建第一页10条；仅原attempt1、正确repo ID及事件，确定性选择至多两个不同源码提交；每run只查其artifact第一页 | GitHub GET 1＋2 |
+| 兼容来源 | 每个所选commit只读六个固定路径：workflow、package.json、app.js、runtime_config、image_storage、merchant_assets；不跟随import扩查、不执行源码 | GitHub GET最多12，每解码文件≤1MiB |
+| 已发布镜像 | 准确`techlong-sandbox-speedfeast`仓库须严格IMMUTABLE；只查由所选run/commit派生的两准确tag原manifest，以及必要时各一个linux/amd64子manifest | ECR最多5：仓库1＋root2＋child2 |
+| 构建原ZIP | 仅所选run内未过期、准确认证API元数据/大小/digest的app artifact；不取lifecycle。原官方API302后一个官方blob GET，不向blob传认证或保存签名URL；沿用四文件校验 | API GET最多2＋blob GET最多2；ZIP最多2份/各500MiB，合计1000MiB |
+| 持久化历史缺项 | 只拟读固定旧导入回执`F:/ChatGPT_workshop/test-data-import-20261106-b/independent-result.json`一次，先匹配原raw SHA `62671074…`，只投影目标/媒体数量、URL分类和文件迁移证据。引用文件/URL不跟读 | 私有JSON1份≤1MiB；无S3/业务SQL |
+
+**合计：STS1＋ECR5＋GitHub API GET17＋官方blob GET2＋固定私有回执读取1。** Git凭据helper最多1次、仅内存认证，必须在Source身份通过后使用；不读取token/PAT文件、PEM、`.env.local`或AWS Secret值，不连接Neon/Aurora/本地库，不生成密码。失败无SDK/应用重试或诊断额外调用；原始响应/产物只进新的本机私有目录，不提交GitHub。普通代码/文档提交推送仍沿用既有授权，不算读取清单获准。
+
+“至多两个”是固定第一页抽样，不声称查遍所有版本。缺少合格run/原包、产物过期或tag未发布只记缺项；不翻页换找旧构建、不调度新构建/扫描、不推镜像。若一个版本仅有合格未发布候选，标为`candidate-only`，不能当ECR已核验A；相同digest不能组成A/B。Node/scanner只与旧明确profile比较，差异记待审，不自动升级策略或把新源码认作产品已批准兼容。
+
+#### 6.2 兼容与持久化的结论边界
+
+兼容只核对明确schema/API/Express与Full声明、启动/迁移行为及存储语义。原初始化摘要可复用，但不是当前schema查询；未见的启动import、缺少的schema/API版本或Full声明仍是不足，不默认填fixture值，不从smoke健康推导兼容。本轮不读取原私密初始化包、不调用provision/readiness/control接口，原初始化不能重放。
+
+持久化有更具体的历史缺项：[11月6日导入记录](aws-manual-test-environment-20261106.md)明确只复制9条本地媒体记录，未同步文件。图片栈/IAM/idle四环境值的安装已证明，**不再查桶、角色、CloudFront或承载来重复证明安装**。只对原导入回执核对其归因和已有证据引用；整份受限JSON可能在投影前进入内存，客户/订单/支付行不输出或落新正文。原回执不存在或SHA不符就停止，不找替代路径。
+
+这不能证明当前全部媒体引用、文件字节映射或端到端持久化，仍保留`persistentUploadsReady=false`、`verificationSha256=null`。若原件没有文件清单，不扩目录遍历、S3 listing/对象下载或租户业务SQL；后续只有拿到准确来源/键/查询范围并另批才补证，不为本次读取启动数据库。用户负责业务验收，本阶段不代做图片上传/菜单等业务测试。
+
+#### 6.3 期限、风险与停止交付
+
+现在不开读取窗口、没有新的观测时间或deadline。未来只有用户明确批准本清单后，才可在批准后最多5小时内启动一次最多30分钟读取，且不得越过批准后5小时；实际新快照从首次远程读取计最多5小时。artifact、扫描DB48小时及其他原证据期限各自独立，不因这5小时规则延长；旧事实/旧执行槽保持，无资源租约或自动到期变更。用户不需现在刷新Source，只有获准真实调用失败才报告，不预先试凭据。
+
+实际风险：现有凭据权限可能较宽；认证仅内存/官方服务使用仍有网络和提供者日志；原ZIP/源码进入私有内存/磁盘，历史回执可能含业务字段；API/传输/存储有低额非零费用；跨服务并非原子快照，第一页可能漏掉可用版本。鉴权/完整性/分页/越界/意外网络错误停止，不加诊断或重试、不换凭据；预期的缺项可继续剩余相互独立的白名单项，但不能用未用额度扩对象。所有旧原件/记录保留，不覆盖、复位或清理。
+
+未来本轮读取的交付只允许“只读证据及明确缺项”或“停止”，不直接判发布/持久化就绪。登记版本/绑定、启用runtime、构建/ECR/镜像对齐、恢复、调度或任何云/SQL写仍另审。**本次只交付待审JSON与本节，不执行上述读取；没有新reader、执行入口、生产凭据/数据读取或运行源码修改。**
 
 <a id="d2-1-delivered"></a>
 

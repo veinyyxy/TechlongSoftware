@@ -1,0 +1,189 @@
+{
+  "schema": "techlong/instance-release-d2-6-evidence-read-review/v1",
+  "status": "PREPARED_READ_ONLY_NOT_APPROVED",
+  "readAuthorized": false,
+  "scopeOnly": true,
+  "executionEntrypoint": null,
+  "purpose": "Only determine A/B evidence availability, source compatibility declarations and the specific old-media evidence gap. No installation or deployment readiness claim.",
+  "preparedOn": "2026-11-17",
+  "basis": {
+    "path": "ops/releases/d2-6.prepared.json",
+    "lfSha256": "be9ca49b6edfc1818dba03a845d7c74d194aa42c8b1d50ed63079a1e8b59e9ad",
+    "historicalFactsNotAfterUnchanged": "2026-11-17T08:24:36.704Z",
+    "historicalFactsAreCurrent": false
+  },
+  "target": {
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "workspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+    "productId": "prd_restaurant_order_system",
+    "component": "tenant_api",
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "sourceProfile": "techlong-sandbox-user",
+    "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "sourceRepository": "veinyyxy/SpeedFeast_Backend_main",
+    "sourceRepositoryId": 1064124445,
+    "ecrRepository": "techlong-sandbox-speedfeast"
+  },
+  "timing": {
+    "windowStarted": false,
+    "absoluteReadDeadline": null,
+    "startWithinSecondsOfFutureExplicitApprovalMax": 18000,
+    "durationSecondsMax": 1800,
+    "freshSnapshotAgeSecondsMax": 18000,
+    "freshSnapshotStartsAt": "Actual first remote read, not preparation or a later successful continuation.",
+    "effectiveDeadline": "Earlier of actual start plus 1800 seconds and approval time plus 18000 seconds. Stop if insufficient time remains.",
+    "evidenceValidity": "Each artifact expiry, scanner DB 48-hour age and original evidence deadline remains independent; earliest applicable bound controls. No workload lease or resource TTL is opened."
+  },
+  "authentication": {
+    "aws": "Existing fixed Source profile, official ca-central-1 STS/ECR endpoints, no profile/config changes or AssumeRole.",
+    "github": "Existing Git credential helper once, after exact STS identity succeeds; credential held only in memory and sent only to api.github.com.",
+    "awsSecretValueReads": 0,
+    "configFileReads": 0,
+    "patFileReads": 0,
+    "pemReads": 0,
+    "operatorInitiatedLoginOrDiagnosticRetryAuthorized": false
+  },
+  "remoteReadOperations": [
+    {
+      "id": "source",
+      "service": "sts",
+      "operation": "GetCallerIdentity",
+      "endpoint": "https://sts.ca-central-1.amazonaws.com",
+      "attemptsMax": 1,
+      "accept": "Exact account and IAM user ARN only; failure or another identity stops before Git authentication."
+    },
+    {
+      "id": "runs",
+      "service": "github",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/actions/workflows/backend-image-candidate.yml/runs?branch=main&status=success&per_page=10",
+      "attemptsMax": 1,
+      "selection": "Only returned first page. Filter exact repository/head_repository ID, completed/success, main, workflow path, original attempt 1, event push or workflow_dispatch. Order by created_at descending then numeric run ID descending; select at most two runs with distinct source commits. No second page or fallback to historical A0/expired run. This is a bounded sample, not proof no other versions exist."
+    },
+    {
+      "id": "artifacts",
+      "service": "github",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/{selectedRunId}/artifacts?per_page=100",
+      "attemptsMax": 2,
+      "binding": "At most once per selected run. Require unique checked-app-{selectedCommit}-{selectedRunId}-1, exact workflow_run/repository/source, nonexpired and positive size at most 500 MiB, authenticated ZIP digest. Incomplete artifact page stops; absent or expired app records a build-needed gap, not permission to rebuild."
+    },
+    {
+      "id": "source-files",
+      "service": "github",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/contents/{allowlistedPath}?ref={selectedCommit}",
+      "attemptsMax": 12,
+      "pathsPerCommit": [
+        ".github/workflows/backend-image-candidate.yml",
+        "package.json",
+        "app.js",
+        "services/runtime_config.js",
+        "services/image_storage.js",
+        "routes/merchant_assets.js"
+      ],
+      "binding": "At most these six files for each selected commit. Verify exact path/ref and blob bytes/SHA; no branch-head fetch, recursive tree, extra imported files, code execution or dependency installation. Per decoded file at most 1 MiB. Missing file is a compatibility evidence gap; no expanded search. Inspect only build/startup/DB-profile/schema/API/storage declarations, not business records. Unexpected credential literals stop without persisting source bodies."
+    },
+    {
+      "id": "repository",
+      "service": "ecr",
+      "operation": "DescribeRepositories",
+      "input": { "registryId": "402010193138", "repositoryNames": ["techlong-sandbox-speedfeast"] },
+      "attemptsMax": 1,
+      "condition": "Only if at least one eligible app artifact exists; exact repository and strict IMMUTABLE required. No account-wide image listing or scan request."
+    },
+    {
+      "id": "root-manifests",
+      "service": "ecr",
+      "operation": "BatchGetImage",
+      "registryId": "402010193138",
+      "repositoryName": "techlong-sandbox-speedfeast",
+      "attemptsMax": 2,
+      "imageIds": "One exact app-sha{selectedCommit}-r{selectedRunId}-a1 tag per eligible app. Missing/unpublished is retained as candidate-only; never push or search another tag. Hash original manifest bytes against returned imageDigest."
+    },
+    {
+      "id": "platform-manifests",
+      "service": "ecr",
+      "operation": "BatchGetImage",
+      "registryId": "402010193138",
+      "repositoryName": "techlong-sandbox-speedfeast",
+      "attemptsMax": 2,
+      "imageIds": "Only if a root index contains exactly one linux/amd64 descriptor: its exact returned digest, once per root. Single-platform root needs no extra call. Verify raw bytes/config digest with existing registry verifier; no descendant scan."
+    },
+    {
+      "id": "zip-requests",
+      "service": "github",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/actions/artifacts/{eligibleArtifactId}/zip",
+      "attemptsMax": 2,
+      "condition": "Only eligible authenticated API artifact metadata within the selected runs; at most one original app ZIP each, no lifecycle ZIP. Reuse existing fixed-four-file parser/build/scan verifier. Compare existing historical Node/scanner profile; a profile difference remains PROFILE_REVIEW_REQUIRED, not automatic policy change. No product binding or catalog write."
+    }
+  ],
+  "downloadHandling": {
+    "officialBlobGetsMax": 2,
+    "maxZipBytesEach": 524288000,
+    "maxCombinedZipBytes": 1048576000,
+    "maxImageArchiveBytesEach": 471859200,
+    "metadataResponseBytesMaxEach": 2097152,
+    "redirectPolicy": "Use the existing catalogSourceReaders official blob-host allowlist. Only the original API 302 and one official blob GET; never forward GitHub Authorization to the blob host, save signed URLs or follow extra redirects.",
+    "destination": "A fresh create-only private child of E:/NodejsProject/TechlongSoftware/.local-secrets; never commit ZIP, extracted originals or provider source bodies.",
+    "originals": "Preserve earlier originals/stops; no overwrite, fence reset, deletion or automatic retry. Reuse validators, not two collect invocations that repeat STS/runs/repository reads. This review is not a CatalogSourceScope CLI input and adds no reader implementation."
+  },
+  "compatibilityAcceptance": {
+    "knownHistoricalPort": 3000,
+    "knownHistoricalProfile": "express_iam",
+    "inspect": ["Explicit Express/Full support", "Authoritative schema and client API version declarations", "Migration/startup behavior", "Existing persistent image provider and URL semantics"],
+    "rule": "Source observations plus old initialization receipt are preparation evidence, not current DB state or an approved compatibility policy. Unseen startup imports, missing schema/API versions or unsupported Full remain unproven; do not substitute fixture values or infer compatibility from a smoke pass.",
+    "initializationSummaryReused": "ops/aws-sandbox/reviews/aurora-dual-mode-k2b-initialization-recovery.executed.json",
+    "noPrivateInitializationPackageOrControlMaterialRead": true,
+    "tenantOrControlDatabaseConnections": 0
+  },
+  "persistenceRead": {
+    "savedEvidenceOnly": true,
+    "reusedPublicDocuments": [
+      "docs/aws-manual-test-environment-20261106.md",
+      "docs/aws-instance-release-persistence-media-installed-20261115.json",
+      "docs/aws-instance-release-persistence-wiring-installed-20261115.json"
+    ],
+    "futureFixedPrivateReceiptRead": {
+      "path": "F:/ChatGPT_workshop/test-data-import-20261106-b/independent-result.json",
+      "rawSha256": "62671074927b2d71db8acd18e70a2a3281820a14198e8f8bfe7e07de58082ab5",
+      "attemptsMax": 1,
+      "maxBytes": 1048576,
+      "projection": "Only target identity, media row count/provider/URL classification and file-copy/migration evidence references or booleans. Whole bounded JSON may enter memory; do not retain customer/order/payment rows or follow referenced files/URLs. Missing file/hash mismatch stops this read, no alternate path search."
+    },
+    "knownGap": "Historical test-data import copied nine local-media records but not their files. Bucket/IAM/idle task wiring already accepted; do not query them again merely to re-prove installation.",
+    "notAuthorized": ["S3 object listing/HEAD/GET", "image/source-directory enumeration", "image bytes or arbitrary URL fetch", "tenant media SQL", "database startup", "migration/upload or public content test"],
+    "resultLimit": "Can classify the exact historical media-evidence gap only. No full current reference inventory, byte mapping or end-to-end persistence proof; keep persistentUploadsReady=false and verificationSha256=null. Any later media/tenant read needs its exact source/key/query scope separately approved."
+  },
+  "countsMax": {
+    "sts": 1,
+    "ecrMetadata": 5,
+    "githubApiGets": 17,
+    "githubCredentialHelperReads": 1,
+    "officialBlobGets": 2,
+    "appZipDownloads": 2,
+    "fixedPrivateImportReceiptReads": 1,
+    "awsOtherMetadata": 0,
+    "awsSecretValueReads": 0,
+    "configPatPemReads": 0,
+    "databaseConnectionsAndQueries": 0,
+    "remoteWrites": 0,
+    "buildPublishRestoreDispatch": 0
+  },
+  "failureAndOutput": {
+    "unexpectedErrors": "Stop on authentication, identity, integrity, incomplete selected-run artifact page, attempted extra page, unexpected scope or transport failure. The deliberately bounded ten-run sample may have a next link but it is never followed. No diagnostic request, retry, alternative credential/profile or extra read from unused budget.",
+    "expectedGaps": "No eligible run/artifact, unpublished tag, insufficient distinct digests or missing declaration is recorded as a gap; only remaining independent allowlisted evidence may be collected, never substitute data or build automatically.",
+    "privateOutput": "Fresh create-only records with actual times, exact selected IDs/commits, original provenance, digests, counts, source declarations and gap list. Preserve failures. Only sanitized summary/hashes may later be committed.",
+    "publicStatus": "READ_ONLY_EVIDENCE_COLLECTED_WITH_EXPLICIT_GAPS or STOPPED; not RELEASE_READY, not persistence acceptance and not authorization to register a release/seed, enable runtime or deploy.",
+    "thisTurnActualExternalReadsAndWrites": 0
+  },
+  "risks": [
+    "Existing AWS/Git credentials may be broader than these reads; credentials are used only in memory and sent only to fixed official services, but provider/network/audit logs remain possible.",
+    "Up to two original app ZIPs and source/metadata enter private memory/disk; media receipt may contain business fields before projection. Do not print credentials, signed URLs, business bodies or private source originals.",
+    "Version/root/platform/config digests and historical/current evidence are distinct. No single snapshot is cross-service atomic; selected first-page sample may not find all available versions.",
+    "Network, API, artifact transfer/storage and ordinary provider access logs can have low nonzero cost; no resource restoration or ongoing environment window is started.",
+    "Failure stops without compensation, cleanup, replay or auto-renewal. Missing persistence or schema evidence remains missing; this read cannot guarantee that later build/restore/update will be possible."
+  ]
+}
