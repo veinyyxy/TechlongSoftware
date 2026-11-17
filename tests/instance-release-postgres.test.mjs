@@ -6,7 +6,8 @@ import {PostgresReleaseRepository,ReleaseRequestRejected,ReleasePersistenceUnkno
 import {canonicalJson,sha256Hex} from '../lib/deployments/execution/hash.ts';
 import {releaseFixture,releaseProductionFixture,h} from './instance-release-fixture.ts';
 import {buildReleaseCandidate,verifyPublishedRelease} from '../lib/deployments/releases/production.ts';
-import {writeCatalogRelease,inspectCatalogRelease} from '../ops/releases/catalog-transaction.ts';
+import {writeCatalogRelease,inspectCatalogRelease,writeCatalogCandidate,inspectCatalogCandidate} from '../ops/releases/catalog-transaction.ts';
+import {registerBootstrapCatalog} from '../ops/releases/bootstrap.ts';
 import {sealReleaseCandidate,registerReleaseCandidate} from '../lib/deployments/releases/promotion.ts';
 import {releaseRequestId} from '../lib/deployments/releases/handoff.ts';
 import {workflowJob} from './instance-release-workflow-fixture.ts';
@@ -78,6 +79,28 @@ test('release native PostgreSQL 16: non-superuser draft install, narrow roles, r
     const rights=(await installer.query("SELECT pg_has_role(current_user,$1,'SET') AS can_set,pg_has_role(current_user,$1,'USAGE') AS inherit",[role])).rows[0];
     assert.deepEqual(rights,{can_set:false,inherit:false});
    }
+  });
+  await t.test('bootstrap A/B import: two fresh non-superuser connections close owner access and preserve candidate bytes',async()=>{
+   const f=await releaseProductionFixture();f.policy.productId='bootstrap_ci_product';f.policy.version='bootstrap-a';
+   const a=await verifyPublishedRelease(await buildReleaseCandidate(f.policy,f.run,f.artifact,f.files,f.now),f.registry,f.now);
+   const b=await sealReleaseCandidate({...f.policy,version:'bootstrap-b'},f.run,f.artifact,f.files,f.now);
+   const ids=(await admin.query("SELECT n.oid::int AS schema_oid,c.oid::int AS releases_oid FROM pg_namespace n JOIN pg_class c ON c.relnamespace=n.oid WHERE n.nspname='deployment_release' AND c.relname='releases'")).rows[0];
+   const target={installer:'release_ci_installer',schemaOid:ids.schema_oid,releasesOid:ids.releases_oid};
+   let connections=0,queries=0,writerClosed=false;
+   const open=async label=>{
+    if(label==='inspection')assert.equal(writerClosed,true);connections++;
+    const c=await connect('bootstrap-'+label,undefined,installerUrl.toString());
+    return{sql:{query:(s,v)=>{queries++;return c.query(s,v);}},close:async()=>{
+     assert.deepEqual((await c.query("SELECT pg_has_role(current_user,'deployment_release_owner','SET') AS can_set,pg_has_role(current_user,'deployment_release_owner','USAGE') AS inherit")).rows[0],{can_set:false,inherit:false});
+     if(label==='writer')writerClosed=true;await c.end();
+    }};
+   };
+   const result=await registerBootstrapCatalog(a,b,target,open,()=>f.now);
+   assert.equal(result.status,'A_AND_B_CATALOG_INDEPENDENTLY_VERIFIED');assert.equal(connections,2);assert.ok(queries<=64);
+   assert.equal((await admin.query('SELECT count(*)::int AS n FROM deployment_release.releases WHERE product_id=$1',[f.policy.productId])).rows[0].n,2);
+   await assert.rejects(writeCatalogCandidate(installer,b,target,()=>f.now),/CANDIDATE_CONFLICT/);
+   assert.equal((await inspectCatalogCandidate(installer,b,target)).status,'INDEPENDENTLY_VERIFIED');
+   assert.equal((await inspectCatalogRelease(installer,a,target)).status,'INDEPENDENTLY_VERIFIED');
   });
   await t.test('normal version import: real non-superuser writer and independent login close owner SET; immutable conflicts remain enforced',async()=>{
    const f=await releaseProductionFixture();f.policy.productId='catalog_ci_product';

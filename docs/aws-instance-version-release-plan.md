@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 STEP3 A/B PUBLICATION/CATALOG SCOPE PREPARED / MINIMAL BOOTSTRAP ENTRY PENDING — RUNTIME DISABLED / NO REAL UPDATE RUNS`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 MINIMAL BOOTSTRAP ENTRIES IMPLEMENTED / ACCURATE CI PENDING — BOOTSTRAP AND DAILY RUNTIME DISABLED`。
 
 已交付代码、一次性身份安装及本轮两次真实app构建，以各自最新准确回执为准，不把原设计或离线验证当实际部署完成。本文其他待审范围不是新增生产读取、SQL/Secret/IAM修改、ECR发布、部署调度或AWS操作授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -16,7 +16,7 @@
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
-**2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第12节](#d2-6-publication-catalog-prepared)已复用第11节两份真实原件，集中准备“A发布并登记ecr_verified、B只登记candidate”的范围、派生规则及风险。没有新生产/凭据读取、发布、登记或恢复。已有单app/目录端口不等于独立引导入口完整：不启动环境的初始A发布、B候选批次登记接线尚缺，已明确列出，故可执行审批SHA保持null，不让用户批准一个不存在的执行器。下一只就这项引导入口最小接线取得代码/测试方向确认；实际新读取/发布/登记仍另审，不重构框架/重装身份或扩Full/媒体支线。真实更新仍0/2。
+**2026-11-17当前唯一动作覆盖下方历史“下一步”：** 用户已单独批准仅最小代码/回归/CI；[第13节](#d2-6-bootstrap-implementation)已补初始A发布及B候选登记入口，默认关闭，本地238通过/1项Linux-only ZIP待CI、lint/类型通过，准确CI结果尚待真实核对。只完成这轮代码验收，不新读生产/私密原件、不发布/登记、恢复或开启runtime，不重建A/B/身份或扩支线。第12节草案仍不可执行；实际发布/登记的代码指纹/新鲜事实和审批SHA后续另审，真实更新仍0/2。
 
 **当前实际结果（取代下方早期轮次状态）：** [新g/h/i核对](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留)已完成真实app原件校验、STS1/AWS元数据55和另批剩余Neon READ ONLY22条查询；保留两次停止和新续段，未重复成功读取或产生远端写入。下一只收口第二个原CFN角色详细策略缺项及一次性启用准确清单，不扩框架；图片持久化缺项另列准确范围，不混入版本更新。runtime仍关、两次真实更新仍0。机器事实见[回执](aws-instance-release-d2-6-readiness-observed-20261114.json)，以下旧轮次“仅离线/未读”不覆盖本次批准结果。
 
@@ -221,7 +221,7 @@
 | 0 复用已完成项 | 已完成 | 身份结项及原准备/runtime/workflow摘要保持，本轮无生产调用 |
 | 1 一次集中取证 | 已获准并完成 | STS1/GitHub15/固定回执1，两个匹配app原件均缺失；不再查询旧构建 |
 | 2 兼容/持久化 | 离线输入已收口；云端证明未完成 | 五应用源码树不变，原9图全部找到并哈希（根5/products4）；兼容契约提案和私有迁移输入准备完毕，尚未上传/改库/写绑定 |
-| 3 合格A/B目录 | 原件已通过，集中草案已备；实际发布/登记未执行 | [第12节](#d2-6-publication-catalog-prepared)固定A发布/B候选、两行目录及最小接线缺口；不重构建/查旧产物，入口/CI与必要当前事实齐备后再给真实执行SHA |
+| 3 合格A/B目录 | 最小入口已编码；准确CI待核对，实际发布/登记未执行 | [第13节](#d2-6-bootstrap-implementation)默认关闭、原端口复用和有界A/B事务；本轮仅代码CI，必要新鲜事实/真实操作SHA另审，不重构建/恢复 |
 | 4 首次启用 | 未执行 | 收费环境不恢复，runtime仍关闭，种子/实际操作另审 |
 | 5 两次正常更新 | 0／2 | 不以初始恢复/对齐、NO_CHANGE或模拟结果充数 |
 | 6 结案 | 未完成 | 必须有两次真实成功及最终一致回写 |
@@ -414,6 +414,43 @@ GitHub操作提案总GET43上限包含限定预检、一次run定位/最多24次
 后继风险已集中列入JSON：ECR/GitHub/审计存储费用与部分遗留；固定PAT/OIDC凭据及archive进入云端内存/私有磁盘；owner配置全文件进内存/提供者日志与较宽ADMIN权限；两行及跨服务非原子/并发/提交不明；固定槽不自动复位/重试/回滚/删除。不修改Key/Secret/IAM、业务/图片/实例绑定、运行状态或超时；当前云持久化与实例初始化仍由步骤4另审，不能让目录采纳替代这些真实证明。
 
 **本轮交付到此：集中草案、准确A/B策略/ID/原件绑定和最小缺口已齐；实际新读取/发布/登记均0。下一只待用户确认上述最小引导入口的编码/测试方向。** 不先调用新读取、不恢复环境，不重装一次性身份或扩支线；通过后仍按同一草案收口一份真实操作SHA，不再并行增加手册/框架。
+
+<a id="d2-6-bootstrap-implementation"></a>
+
+### 13. 初始A发布与B候选目录最小入口：仅代码、离线回归与无AWS CI
+
+用户另准本轮仅完成最小接线、回归和CI，不新增生产读取或实际操作。第12节的两个入口缺口现已编码；不是恢复环境、初始实例绑定、runtime启用或真实ECR/SQL结果。既有身份、SQL schema、Secret、日常workflow三输入及其active/initialized/持久化资格门槛保持。没有读取本机`.env`/PAT/PEM、AWS Secret、既有数据库/资源或两份真实ZIP/回执，也未重新构建A/B。
+
+#### 13.1 初始A：仅单app发布，不伪造实例或打开daily runtime
+
+- [`bootstrap.ts`](../ops/releases/bootstrap.ts)只提供有界合同/派生/编排；发布意图只有review/job、准确A源/摘要/tag/截止时间，没有虚构的instanceId、currentRelease或CFN计划。
+- [`instance-release-bootstrap.ts`](../scripts/instance-release-bootstrap.ts)与[单job工作流](../.github/workflows/instance-release-bootstrap.yml)复用原单app publisher、原ZIP/自检/扫描/ECR字节校验、现有OIDC/本人environment核验和已安装publisher身份。只加载/inspect/tag/push原A，拒绝已占tag，不build/run应用或发布B，不访问控制数据库、CFN/ECS/RDS。
+- 新入口仅读[`bootstrap.review.json`](../ops/releases/bootstrap.review.json)，提交值为`enabled=false`。默认/check/关闭态publish在获取认证前返回；实际daily [`runtime.json`](../ops/releases/runtime.json)仍false/environments={}，原`instance-release.yml`的LF SHA继续`b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff`。
+- 后继启用必须另有准确review SHA、原A/B候选摘要、代码文件指纹、真实事实/原件截止、本人批准的准确GitHub run及OIDC绑定。review只含候选摘要/来源元数据，不把ZIP或原receipt正文写进仓库；publisher在受保护job中取回准确A原件后复用原验证器，正常同审批晋升仍保留更严格的完整files比较。
+- intent/push/published最多3次条件审计PUT，S3 ACK中的准确key/VersionId/body SHA被保存；成功与部分失败都留小回执，未知不重推。无需旧app+lifecycle Grant、生产build workflow、本地Docker、新IAM或资源到期逻辑。此工作流仅manual dispatch，代码push不会调度它。
+
+#### 13.2 目录：A ecr_verified＋B candidate，原事务与新鲜独立连接
+
+`catalog-transaction.ts`保留原已验证版本路径，只添加`writeCatalogCandidate/inspectCatalogCandidate`，复用原`registerReleaseCandidate`及相同owner临时SET/INHERIT关闭、目标OID/身份、提交不明和不可变INSERT管控。不新增数据库对象或DML授权，不把B伪装为ECR版本。
+
+原[`instance-release-import.ts`](../scripts/instance-release-import.ts)只加两个模式：
+
+```text
+node --experimental-strip-types scripts/instance-release-import.ts prepare-bootstrap <私有input.json> <新私有review.json>
+node --experimental-strip-types scripts/instance-release-import.ts register-bootstrap <私有review.json> <准确批准SHA>
+```
+
+input包含原BootstrapReview及其SHA、来自认证固定S3版本的A真实publication结果、已核验完整B StoredReleaseCandidate。prepare只本地重建manifest/config关系及原候选，不自行采集/发布、读取配置或连接数据库；结果未自动获准。外层实际操作批准未来只有明确覆盖固定派生和登记范围时，才允许使用运行时派生登记SHA，不以调用prepare当成写授权。
+
+register先核对批准SHA、当前代码、私有输入raw SHA及完整派生，再创建一次性私有attempt；之后最多读取配置1次、验证TLS连接2条/SQL64/INSERT2行。writer分别提交A/B后关闭，再新建inspection连接核验两条完整原文；连接参数复用已修正的纯`installationConnectionOptions`。A失败/未知就不尝试B，只有已批准的独立回读；已知写与核验结果即时保存，不能用回读匹配把未知COMMIT改成成功。角色临时成员写和宽owner ADMIN风险照旧，非原子/并发及部分A/B结果如实保留；不UPDATE/DELETE、复位/重试/自动清理或写实例绑定。
+
+#### 13.3 本轮代码验收与明确停止点
+
+新增8组现有测试体系回归覆盖：关闭态早退/环境canary；review/源码/角色/不同A/B/期限；无实例A发布及真实manifest派生；未知审计/推送不重试；原publisher摘要路径/占tag拒绝；两连接/SQL64及未知A/B提交/冲突；仅manual本人environment工作流；目录prepare本地完成和错误SHA在配置/attempt前拒绝。相邻本地全组239项中238通过、0失败、1项原Linux ZIP实测本机skip；lint及完整类型检查通过。
+
+原无AWS CI仅扩现有测试/路径/lint列表；同一CI的全新PostgreSQL16增加非超级用户两连接A/B实测，核对owner权限关闭、B候选冲突不变及独立完整回读。不连接本地/Neon/Aurora或把CI数据库测试算生产安装。准确main提交/CI run与Linux ZIP/原生PG结果只在真实完成后记入本节，当前尚待核对，不以本机通过代替。
+
+本轮完成准确CI后收尾，下一回到同一集中草案更新实际代码指纹并另审必要最小生产补核/发布/登记；不扩框架、重复盘点或启动收费环境。`d2-6-publication-catalog.prepared.json`保留其编制时旧代码/缺口沿革，不能直接执行或用它的旧指纹启用新代码；没有给任何原事实、产物/扫描或旧执行期限续期。
 
 <a id="d2-1-delivered"></a>
 

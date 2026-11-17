@@ -2,7 +2,9 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：ECR/目录集中草案已备，先确认最小引导接线；实际操作另审（2026-11-17）
+## 当前唯一继续点：仅最小引导接线、离线回归与无AWS CI（2026-11-17）
+
+本轮已获准补初始A单app发布和B候选目录接线，复用现有模块、默认关闭。只代码、合成回归和准确CI，不生产读取/凭据/私密原件/既有数据库，不实际发布/登记、恢复或开启runtime，不新增IAM/schema/恢复框架。GitHub environment仍本人批准，原daily workflow/资格边界不变；完成代码验证后回到同一集中范围另审实际操作。
 
 [第12节](aws-instance-version-release-plan.md#d2-6-publication-catalog-prepared)/[集中草案](../ops/releases/d2-6-publication-catalog.prepared.json)已固定原A/B、拟议版本ID、A一次发布/ecr_verified＋B只candidate、现有publisher/固定版本/目录OIDs、拟议副作用/派生/预算/风险。只本地复用验证回执及原纯candidate端口，生产/凭据/SQL/新ZIP读取、发布/登记/恢复0，runtime仍关。原事实/扫描/产物不续期，不改已安装身份或原scope。
 

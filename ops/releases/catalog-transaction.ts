@@ -1,6 +1,7 @@
 import { canonicalJson, sha256Hex } from "../../lib/deployments/execution/hash.ts";
 import type { SoftwareRelease } from "../../lib/deployments/releases/contract.ts";
 import { registerVerifiedRelease } from "../../lib/deployments/releases/catalog.ts";
+import { registerReleaseCandidate, type StoredReleaseCandidate } from "../../lib/deployments/releases/promotion.ts";
 import type { ReleaseSqlClient } from "../../lib/deployments/releases/repository.ts";
 
 export interface CatalogTarget { installer: string; schemaOid: number; releasesOid: number }
@@ -8,7 +9,7 @@ export class CatalogTransactionUnknown extends Error { constructor() { super("RE
 
 /** Fixed one-row import/inspection only. Owner SET is temporary inside each transaction.
  * Inspection SELECT is read-only, but its enclosing transaction performs these same role writes. */
-async function transact(sql: ReleaseSqlClient, release: SoftwareRelease, target: CatalogTarget, write: boolean) {
+async function transact(sql: ReleaseSqlClient, release: SoftwareRelease | StoredReleaseCandidate, target: CatalogTarget, write: boolean, now: () => number = Date.now) {
   const run = (text: string, values: unknown[] = []) => sql.query(text, values);
   let commitAttempted = false;
   await run("BEGIN");
@@ -31,7 +32,7 @@ async function transact(sql: ReleaseSqlClient, release: SoftwareRelease, target:
     await run("GRANT deployment_release_owner TO SESSION_USER WITH SET TRUE");
     await run("SET LOCAL ROLE deployment_release_owner");
     let status: string;
-    if (write) status = await registerVerifiedRelease(sql, release);
+    if (write) status = "candidateSha256" in release ? await registerReleaseCandidate(sql, release, now()) : await registerVerifiedRelease(sql, release);
     else {
       const result = await run(`select document || jsonb_build_object('status',status) as result from deployment_release.releases
         where id=$1 and product_id=$2 and component='tenant_api' and version=$3`, [release.id, release.productId, release.version]);
@@ -54,3 +55,5 @@ async function transact(sql: ReleaseSqlClient, release: SoftwareRelease, target:
 
 export const writeCatalogRelease = (sql: ReleaseSqlClient, release: SoftwareRelease, target: CatalogTarget) => transact(sql, release, target, true);
 export const inspectCatalogRelease = (sql: ReleaseSqlClient, release: SoftwareRelease, target: CatalogTarget) => transact(sql, release, target, false);
+export const writeCatalogCandidate = (sql: ReleaseSqlClient, release: StoredReleaseCandidate, target: CatalogTarget, now: () => number = Date.now) => transact(sql, release, target, true, now);
+export const inspectCatalogCandidate = (sql: ReleaseSqlClient, release: StoredReleaseCandidate, target: CatalogTarget) => transact(sql, release, target, false);

@@ -2,7 +2,9 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：ECR/目录集中草案已备，先确认最小引导接线；实际操作另审（2026-11-17）
+## 当前唯一继续点：实施初始A发布/B候选登记最小接线、离线回归和无AWS CI（2026-11-17）
+
+用户已明确批准本轮仅编码与验证：复用单app发布器、原构建/ECR校验、不可变目录端口和owner事务，补齐受本人environment保护且默认关闭的初始A发布入口，以及原目录CLI的A/B候选批次适配。只允许合成API/命令/SQL与全新CI PostgreSQL测试，不读生产配置/凭据、AWS/既有数据库或真实构建原件，不发布/登记、恢复、启用runtime或新增权限/schema。正常main推送及准确无AWS CI结果核对在本轮代码验收内；不调度发布workflow，实际新生产读取与云/SQL写仍按最终SHA另审。下方草案“待确认代码”保留为沿革，不覆盖本次明确许可。
 
 用户本轮只要求准备，已完成[第12节](aws-instance-version-release-plan.md#d2-6-publication-catalog-prepared)/[集中JSON](../ops/releases/d2-6-publication-catalog.prepared.json)：A单app发布并登记ecr_verified、B只登记candidate，保留以后A→B同审批晋升，不多推B/造digest。两原验证回执raw SHA及本地ZIP大小复核，原candidate纯端口对拟议版本/兼容策略通过；未重读ZIP/图片、未新读云/GitHub/凭据/数据库，不发布/登记或恢复，正式代码/模板/SQL/workflow/runtime不改。
 

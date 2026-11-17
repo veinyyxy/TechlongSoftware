@@ -11,6 +11,8 @@ import { importCodeFiles, prepareCatalogRegistration, type CatalogRegistrationRe
 import { writeCatalogRelease, inspectCatalogRelease } from "../ops/releases/catalog-transaction.ts";
 import type { ReleaseBuildPolicy } from "../lib/deployments/releases/production.ts";
 import type { ReleaseSqlClient } from "../lib/deployments/releases/repository.ts";
+import { bootstrapCodeFiles, validateBootstrapReview, prepareBootstrapRegistration, registerBootstrapCatalog, type BootstrapCatalogInput } from "../ops/releases/bootstrap.ts";
+import { installationConnectionOptions } from "../ops/releases/installation-connection.mjs";
 
 const workspace = fileURLToPath(new URL("../", import.meta.url));
 const privateRoot = path.join(workspace, ".local-secrets");
@@ -22,8 +24,59 @@ function privatePath(file: string) {
   return absolute;
 }
 async function json<T>(file: string): Promise<T> { return JSON.parse(await readFile(file, "utf8")) as T; }
-async function codeArtifacts() {
-  return Promise.all(importCodeFiles.map(async file => ({ path: file, sha256: rawHash((await readFile(path.join(workspace, file), "utf8")).replaceAll("\r\n", "\n")) })));
+async function codeArtifacts(files = importCodeFiles) {
+  return Promise.all(files.map(async file => ({ path: file, sha256: rawHash((await readFile(path.join(workspace, file), "utf8")).replaceAll("\r\n", "\n")) })));
+}
+
+async function bootstrapInput(file: string) {
+  const sourcePath = privatePath(file), raw = await readFile(sourcePath, "utf8"), input = JSON.parse(raw) as BootstrapCatalogInput;
+  await validateBootstrapReview(input.review, input.reviewSha256, await codeArtifacts(bootstrapCodeFiles), Date.now());
+  return prepareBootstrapRegistration(input, { path: sourcePath, rawSha256: rawHash(raw) }, Date.now());
+}
+async function registerBootstrap(file: string, sha: string) {
+  const review = await approved<Awaited<ReturnType<typeof prepareBootstrapRegistration>>>(file, sha);
+  must(review.schema === "techlong/bootstrap-catalog-review/v1" && review.status === "AWAITING_APPROVAL" &&
+    /^release_[a-f0-9]{32}$/.test(review.id) && Date.now() < review.writeBefore, "RELEASE_BOOTSTRAP_CATALOG_REVIEW_REJECTED");
+  const rebuilt = await bootstrapInput(review.sourceInput.path);
+  must(canonicalJson(rebuilt) === canonicalJson(review), "RELEASE_BOOTSTRAP_CATALOG_DERIVATION_CHANGED");
+  const root = privatePath(path.join(path.dirname(path.resolve(file)), "bootstrap-registration-" + review.id));
+  await mkdir(root, { mode: 0o700 });
+  const startedAt = Date.now(), deadline = Math.min(review.writeBefore, startedAt + review.limits.maxExecutionMs);
+  const counts = { configReads: 0, connections: 0, sqlSubmissions: 0 }, clients: ImportPgClient[] = [];
+  const save = (name: string, value: unknown) => writeFile(path.join(root, name), JSON.stringify(value, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+  const closed = new WeakSet<ImportPgClient>();
+  const close = async (c: ImportPgClient) => { if (!closed.has(c)) { closed.add(c); await c.end().catch(() => {}); } };
+  await save("attempt.json", { startedAt, approvedSha256: sha, requestId: review.id, retryAllowed: false });
+  let outcome: unknown = null, code: string | null = null;
+  try {
+    must(process.env.NODE_TLS_REJECT_UNAUTHORIZED !== "0" && !process.env.PGOPTIONS, "RELEASE_IMPORT_TLS_OR_OPTIONS_REJECTED");
+    counts.configReads++;
+    let values: ReturnType<typeof parseEnv> | undefined = parseEnv(await readFile(path.join(workspace, review.target.configPath), "utf8"));
+    const connectionString = values[review.target.configKey]; values = undefined;
+    must(connectionString, "RELEASE_IMPORT_DATABASE_CONFIG_MISSING");
+    const url = new URL(connectionString!);
+    must(["postgres:", "postgresql:"].includes(url.protocol) && url.hostname.endsWith(".neon.tech") &&
+      decodeURIComponent(url.username) === review.target.installer && decodeURIComponent(url.pathname.slice(1)) === review.target.database && url.password, "RELEASE_IMPORT_DATABASE_TARGET_REJECTED");
+    const driver = createRequire(import.meta.url)("pg") as { Client: new (c: unknown) => ImportPgClient };
+    const connect = async (label: string) => {
+      must(Date.now() < deadline && ++counts.connections <= review.limits.connections, "RELEASE_IMPORT_CONNECTION_BUDGET");
+      const client = new driver.Client(installationConnectionOptions(url.toString(), "techlong-bootstrap-" + label));
+      clients.push(client); await client.connect();
+      must(client.connection.stream.encrypted && client.connection.stream.authorized, "RELEASE_IMPORT_TLS_NOT_VERIFIED");
+      return { sql: { query: async (statement: string, parameters: unknown[] = []) => {
+        must(Date.now() < deadline && ++counts.sqlSubmissions <= review.limits.sqlSubmissions, "RELEASE_IMPORT_SQL_BUDGET");
+        return client.query(statement, parameters);
+      } }, close: () => close(client) };
+    };
+    const result = await registerBootstrapCatalog(review.a, review.b, review.target, connect, Date.now, save);
+    outcome = result; code = result.code;
+  } catch (e) { code = e instanceof Error && /^[A-Z][A-Z0-9_]+$/.test(e.message) ? e.message : "RELEASE_BOOTSTRAP_CATALOG_UNKNOWN"; }
+  finally {
+    await Promise.all(clients.map(close));
+    await save("result.json", { startedAt, completedAt: Date.now(), approvedSha256: sha, counts, outcome, code, automaticRetry: false, runtimeEnabled: false });
+  }
+  console.log(JSON.stringify({ status: code ? "STOPPED_REQUIRES_INSPECTION" : "A_AND_B_CATALOG_INDEPENDENTLY_VERIFIED", code, counts, result: path.join(root, "result.json") }));
+  if (code) process.exitCode = 1;
 }
 async function approved<T>(file: string, sha: string) {
   const value = await json<T>(privatePath(file)); must(/^[a-f0-9]{64}$/.test(sha) && await sha256Hex(value) === sha, "RELEASE_IMPORT_EXPLICIT_SHA_REQUIRED"); return value;
@@ -97,6 +150,13 @@ async function register(file: string, sha: string) {
 async function main() {
   const [mode = "check", file, shaOrPolicy, output] = process.argv.slice(2);
   if (mode === "check") { console.log(JSON.stringify({ status: "CATALOG_IMPORT_DISABLED", credentialsUsed: false, productionCalls: 0 })); return; }
+  if (mode === "prepare-bootstrap") {
+    must(file && shaOrPolicy && !output, "RELEASE_IMPORT_ARGUMENTS_REQUIRED");
+    const review = await bootstrapInput(file);
+    await writeFile(privatePath(shaOrPolicy), JSON.stringify(review, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+    console.log(JSON.stringify({ status: "AWAITING_BOOTSTRAP_REGISTRATION_APPROVAL", manifestSha256: await sha256Hex(review), productionCalls: 0 })); return;
+  }
+  if (mode === "register-bootstrap") { must(file && shaOrPolicy && !output, "RELEASE_IMPORT_ARGUMENTS_REQUIRED"); await registerBootstrap(file, shaOrPolicy); return; }
   if (mode === "collect") {
     must(file && shaOrPolicy && output, "RELEASE_IMPORT_ARGUMENTS_REQUIRED");
     const scope = await approved<CatalogSourceScope>(file, shaOrPolicy), root = privatePath(output);

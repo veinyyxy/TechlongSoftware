@@ -11,12 +11,13 @@ import type { ReleaseEnvironmentConfig, ReleaseJobContext, ReleaseSecretReferenc
 import type { ReleaseMetadataApi } from "../../lib/deployments/releases/sampling.ts";
 
 export interface ReleaseCredentials { accessKeyId: string; secretAccessKey: string; sessionToken: string; expiresAt: number }
+export type ReleaseIdentityJob = Pick<ReleaseJobContext, "repository" | "repositoryId" | "runId" | "runAttempt" | "sourceSha" | "ref" | "event" | "actor" | "workflowRef">;
 
 export function releaseChildEnvironment(parent: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return { NODE_ENV: "production", ...Object.fromEntries(["PATH", "Path", "SystemRoot", "WINDIR", "TEMP", "TMP", "LANG", "TZ"].filter(k => parent[k] !== undefined).map(k => [k, parent[k]])) };
 }
 
-export async function requireHumanReview(job: ReleaseJobContext, config: ReleaseEnvironmentConfig, token: string, fetcher: typeof fetch = fetch) {
+export async function requireHumanReview(job: ReleaseIdentityJob, config: ReleaseEnvironmentConfig, token: string, fetcher: typeof fetch = fetch) {
   if (!token) throw new Error("RELEASE_GITHUB_REVIEW_TOKEN_MISSING");
   const response = await fetcher(`https://api.github.com/repos/${job.repository}/actions/runs/${job.runId}/approvals`, {
     method: "GET", redirect: "error", signal: AbortSignal.timeout(30_000),
@@ -30,7 +31,7 @@ export async function requireHumanReview(job: ReleaseJobContext, config: Release
   }
 }
 
-export async function assumeReleaseIdentity(job: ReleaseJobContext, config: ReleaseEnvironmentConfig,
+export async function assumeReleaseIdentity(job: ReleaseIdentityJob, config: ReleaseEnvironmentConfig,
   purpose: "planner" | "executor" | "verifier" | "publisher", environment: NodeJS.ProcessEnv, fetcher: typeof fetch = fetch,
   createClient = (region: string) => new STSClient({ region, maxAttempts: 1, endpoint: `https://sts.${region}.amazonaws.com` })): Promise<ReleaseCredentials> {
   const url = new URL(environment.ACTIONS_ID_TOKEN_REQUEST_URL ?? "");
