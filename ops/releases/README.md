@@ -4,6 +4,8 @@
 
 当前唯一材料入口：[原D2-6执行卡第5小节](../../docs/aws-instance-version-release-plan.md#d2-6-offline-inputs)、[`d2-6.prepared.json`](d2-6.prepared.json)及[`d2-6-runtime.disabled.json`](d2-6-runtime.disabled.json)。新[第6小节准确只读范围](../../docs/aws-instance-version-release-plan.md#d2-6-evidence-read-review)/[`d2-6-evidence-read.review.json`](d2-6-evidence-read.review.json)仅编制待审，不执行读取，也不是可交collect的参数或部署批准。过期产物/扫描、兼容/完整持久化及恢复后绑定缺项如实保留；新关闭态文件不是运行入口，实际`runtime.json`仍false/environments={}。下方/原[一次性总清单](../../docs/aws-instance-release-activation.md)及[旧指纹草案](activation.prepared.json)保留历史，不重放SQL/Secret/IAM安装；真实来源采集/目录及实例种子、恢复/启用/发布仍另审。
 
+最新实际状态覆盖上段“待审”：用户已明确批准原9e0db5…，[步骤1真实回执](../../docs/aws-instance-release-d2-6-evidence-observed-20261117.json)完成STS1/GitHub15/固定回执1，两原构建无匹配app产物，未查ECR/下载或写云DB，runtime仍关。原scope JSON保持编制时字节，不再重放该轮；下一只按[执行路线/步骤2](../../docs/aws-instance-version-release-plan.md#d2-6-step1-observed)收口schema/API及媒体来源/映射，再另审必要正常新构建，不循环查旧产物或重装身份。
+
 D2-4已新增默认关闭的runtime配置、真实元数据/凭据适配及验收子进程；完整范围见[单审批工作流说明](../../docs/aws-instance-release-workflow.md)。工作流不执行本目录SQL草案；新增CI仅在全新临时PostgreSQL16中验证，不安装到现有控制库。本地137项相关回归通过，原生PG结果以准确CI为准。
 
 - `schema.draft.sql`：独立 `deployment_release` schema、三表、专用 NOLOGIN owner 与九个窄函数；D2-3增加只读决定/终止结果登记，扩展核验与完成结果。

@@ -1,0 +1,206 @@
+{
+  "schema": "techlong/instance-release-d2-6-evidence-observed/v1",
+  "status": "READ_ONLY_EVIDENCE_COLLECTED_WITH_EXPLICIT_GAPS",
+  "approvedCanonicalSha256": "9e0db5b519509022613279e0ff0adda620655bd85b001d87252515191b6d6de8",
+  "userExplicitApprovalReceived": true,
+  "startedAt": "2026-11-17T15:19:29.756Z",
+  "completedAt": "2026-11-17T15:19:38.874Z",
+  "freshSnapshotNotAfter": "2026-11-17T20:19:29.756Z",
+  "readOperationNotAfter": "2026-11-17T15:49:29.756Z",
+  "historicalFactsNotAfterUnchanged": "2026-11-17T08:24:36.704Z",
+  "oldFactsExtended": false,
+  "target": {
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "workspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+    "productId": "prd_restaurant_order_system",
+    "component": "tenant_api",
+    "controlEnvironmentId": "env_aws_sandbox_ca_central_1",
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "sourceRepository": "veinyyxy/SpeedFeast_Backend_main",
+    "sourceRepositoryId": 1064124445,
+    "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast"
+  },
+  "source": {
+    "profile": "techlong-sandbox-user",
+    "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "exactIamIdentityVerified": true
+  },
+  "controlledCallCounts": {
+    "sts": 1,
+    "identityResponses": 1,
+    "ecrMetadata": 0,
+    "githubApiGets": 15,
+    "githubCredentialHelperReads": 1,
+    "officialBlobGets": 0,
+    "appZipDownloads": 0,
+    "fixedPrivateImportReceiptReads": 1,
+    "configPatPemSecretReads": 0,
+    "databaseConnections": 0,
+    "remoteWrites": 0,
+    "buildsPublishesRestoresDispatches": 0
+  },
+  "countLimitChecksPassed": true,
+  "operatorRetries": 0,
+  "unusedBudgetNotReused": true,
+  "builds": [
+    {
+      "runId": 43630231572,
+      "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+      "createdAt": "2026-11-14T19:06:04Z",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "artifactCountReturned": 1,
+      "matchingAppArtifactPresent": false,
+      "freshBuildApprovalRequired": true
+    },
+    {
+      "runId": 38803364109,
+      "sourceCommit": "10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2",
+      "createdAt": "2026-10-15T20:36:48Z",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "artifactCountReturned": 0,
+      "matchingAppArtifactPresent": false,
+      "freshBuildApprovalRequired": true
+    }
+  ],
+  "versionResult": {
+    "qualifiedSourceVersions": 0,
+    "verifiedRegistryVersions": 0,
+    "catalogRowsWritten": 0,
+    "selectedA": null,
+    "selectedB": null,
+    "ecrSkippedBecauseNoEligibleAppArtifact": true,
+    "historicalZipNotRedownloaded": true,
+    "oldBuildSearchClosed": true
+  },
+  "sourceEvidence": {
+    "fixedFilesVerified": 12,
+    "gitBlobSha1AndRawSha256Verified": true,
+    "applicationFileComparisons": [
+      {
+        "path": "app.js",
+        "sha256": "85ae16389c24214f976c80073f22bc2aabd55ab0716e7e9620188f469a6b2a1f",
+        "bothSelectedCommitsMatch": true
+      },
+      {
+        "path": "services/runtime_config.js",
+        "sha256": "03d77556b5e632ab21933645ff73e262123524878e7f79d8e9ba9f73c1abbc4d",
+        "bothSelectedCommitsMatch": true
+      },
+      {
+        "path": "services/image_storage.js",
+        "sha256": "74285b9a89d3a612fe7ff8904508755b9df32f203c291feef8e91b4bc4d91d8d",
+        "bothSelectedCommitsMatch": true
+      },
+      {
+        "path": "routes/merchant_assets.js",
+        "sha256": "eb290b64c473fbe1befeeca67598f0b2da07485c2e413f8320cd3be190f07d76",
+        "bothSelectedCommitsMatch": true
+      }
+    ],
+    "packageAndWorkflowDifferBetweenSelectedCommits": true,
+    "sourceBodiesNotPersisted": true,
+    "declarationProjectionCount": 0,
+    "projectionLimit": "No schema/API numeric-string declaration captured in the six-file projection; not proof that no declaration exists elsewhere. Startup imports and actual DB schema were not inspected.",
+    "runtimeConfigMentionsBothDatabaseProfiles": true,
+    "fullCompatibilityTested": false,
+    "compatibilityPolicyApproved": false
+  },
+  "persistence": {
+    "fixedImportReceiptSha256": "62671074927b2d71db8acd18e70a2a3281820a14198e8f8bfe7e07de58082ab5",
+    "readOnceAndHashMatches": true,
+    "newMediaReferenceToFileMappingProven": false,
+    "historicalMediaGapSource": "docs/aws-manual-test-environment-20261106.md",
+    "historicalLocalMediaRows": 9,
+    "historicalFilesNotCopied": true,
+    "storedReceiptProjectionDidNotEstablishMapping": true,
+    "currentTenantMediaOrS3NotRead": true,
+    "persistentUploadsReady": false,
+    "verificationSha256": null
+  },
+  "gaps": [
+    {
+      "code": "APP_ARTIFACT_ABSENT",
+      "runId": 43630231572,
+      "commit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+      "freshBuildApprovalNeeded": true
+    },
+    {
+      "code": "APP_ARTIFACT_ABSENT",
+      "runId": 38803364109,
+      "commit": "10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2",
+      "freshBuildApprovalNeeded": true
+    },
+    {
+      "code": "COMPATIBILITY_POLICY_AND_SCHEMA_API_PROOF_NOT_APPROVED"
+    },
+    {
+      "code": "MEDIA_MAPPING_AND_PERSISTENT_CONTENT_PROOF_STILL_REQUIRED"
+    }
+  ],
+  "privateEvidence": [
+    {
+      "path": ".local-secrets/d2-6-evidence-read-20261117-a/started.json",
+      "rawSha256": "be336cad09c045cf8e93f8542254193e331d9c26b752d6019a37f26dd844f227"
+    },
+    {
+      "path": ".local-secrets/d2-6-evidence-read-20261117-a/source.json",
+      "rawSha256": "ab94e1880f40d394e91d7f1797a4254af2f9b59f9e3787ca17950b3ef61e462a"
+    },
+    {
+      "path": ".local-secrets/d2-6-evidence-read-20261117-a/run-metadata.json",
+      "rawSha256": "4f795777c25f50594ee9280a295f94af7b7e118ada855579c25b806ea3452d37"
+    },
+    {
+      "path": ".local-secrets/d2-6-evidence-read-20261117-a/selected-runs.json",
+      "rawSha256": "1f4b379e7eafa401c0cf294cab9bd2e7a389490c72e2219f458a3c20a5bd2601"
+    },
+    {
+      "path": ".local-secrets/d2-6-evidence-read-20261117-a/artifacts-43630231572.json",
+      "rawSha256": "2024053a9a510958563ee3c50f94d8333cbb6f4ab4662c592efae3f0106b99f3"
+    },
+    {
+      "path": ".local-secrets/d2-6-evidence-read-20261117-a/artifacts-38803364109.json",
+      "rawSha256": "f7417e1fb877d3f5934f143cc38ad9e2905476e8f5ac6776507d09441efcd6f6"
+    },
+    {
+      "path": ".local-secrets/d2-6-evidence-read-20261117-a/result.json",
+      "rawSha256": "e73cf6d2771ff5601f80b26b0bb49af2f4edf3956ebdba0dc2041b4880aafa9a"
+    },
+    {
+      "path": ".local-secrets/d2-6-evidence-read-20261117-a/calls.ndjson",
+      "rawSha256": "bf12143d31bc32cd1bc72b37cd740ec9b0c49fade11a0620ff8f326eb877fdf6"
+    }
+  ],
+  "privateComposition": {
+    "path": ".local-secrets/d2-6-step1-20261117-a.mjs",
+    "rawSha256": "ff0e76a76ca8bf6e2f1d7b5a9acd80f80d77a9aaa2600ee01fcd631e5f5bad8e",
+    "defaultAndCheckDoNotReadRemote": true,
+    "committedToGit": false,
+    "formalReaderOrRuntimeChanged": false,
+    "originalExtractorKept": true,
+    "pythonRuntimeResolvedLocally": true,
+    "extractorActuallyInvoked": 0
+  },
+  "runtime": {
+    "enabled": false,
+    "environments": {},
+    "activeLfSha256": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6",
+    "workflowLfSha256": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff",
+    "unchanged": true,
+    "restoredEnvironment": false,
+    "realUpdateRuns": 0
+  },
+  "resultLimits": {
+    "sourceSamplingOnly": true,
+    "identityInstallationNotRepeated": true,
+    "environmentHealthOrZeroChargesNotProven": true,
+    "compatibilityOrPersistenceNotAccepted": true,
+    "noCustomerOrderPaymentOrCredentialBodiesCommitted": true
+  },
+  "nextOnly": "Step 2: close explicit schema/API compatibility and media-source/mapping inputs using existing evidence and precise separately approved missing sources. Old run artifact search is finished. Fresh normal builds are necessary before version registration but must be separately approved and sequenced to avoid expiring while blocked. No environment restoration or publication is authorized."
+}
