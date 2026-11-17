@@ -18,6 +18,8 @@ D2-4已新增默认关闭的runtime配置、真实元数据/凭据适配及验�
 
 最新[最小引导代码第13节](../../docs/aws-instance-version-release-plan.md#d2-6-bootstrap-implementation)仅补齐初始A单app发布和B候选批次目录入口：`bootstrap.ts`复用原publisher/registry/immutable insert/owner事务，`scripts/instance-release-bootstrap.ts`及manual-only受保护workflow不加载实例/CFN；[`bootstrap.review.json`](bootstrap.review.json)默认false。原import CLI新增`prepare-bootstrap/register-bootstrap`，最多配置1/TLS2/SQL64/目录2行，先完整本地派生/批准核对，再允许配置读取。没有新schema/IAM、实际生产读取或发布/登记/恢复；本地238通过/1项原Linux ZIP待CI、lint/类型通过，准确CI结果待核对。原daily runtime/workflow不变，旧集中草案不是新代码的执行批准，代码验收后仍另审。
 
+上述待CI状态已收口：源码b1e1ebd/[CI44139556595](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595)准确main/push/attempt1成功，Linux239＋隔离PG16十项全部通过/无skip，原ZIP实测、lint/类型及新增非超级用户候选事务通过，[去敏结果](../../docs/aws-instance-release-bootstrap-code-ci-20261117.json)。两个代码接线缺口已闭合，不再实现/测试一遍；BootstrapReview和daily runtime继续关闭。下一只更新原集中操作材料，必要新鲜事实及实际发布/登记仍准确另审，不恢复或真实dispatch。
+
 - `schema.draft.sql`：独立 `deployment_release` schema、三表、专用 NOLOGIN owner 与九个窄函数；D2-3增加只读决定/终止结果登记，扩展核验与完成结果。
 - `grants.draft.sql`：三个 NOLOGIN 操作角色，仅授予准确函数；无登录、密码、Secret、IAM、表DML或运行角色的owner成员关系。安装者临时owner SET处理见下段。
 - `login-roles.draft.sql`：三个新LOGIN/对应操作组成员的未应用事务片段，无密码正文；未来另批后由调用方BEGIN、参数绑定三个事务内设置、执行一次及COMMIT，不是独立安装器。

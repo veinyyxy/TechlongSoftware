@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：实施初始A发布/B候选登记最小接线、离线回归和无AWS CI（2026-11-17）
+## 当前唯一继续点：最小引导接线/准确CI完成，下一回到原集中操作材料；实际另审（2026-11-17）
+
+[第13节](aws-instance-version-release-plan.md#d2-6-bootstrap-implementation)/[CI回执](aws-instance-release-bootstrap-code-ci-20261117.json)：代码b1e1ebd已完成，准确main/push/attempt1 [CI44139556595](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595) success，Linux239＋临时PG16十项全过/无skip，lint/类型通过。只新增薄的manual-only受本人门禁保护入口与候选事务分支，复用既有publisher/校验/不可变INSERT；默认BootstrapReview=false，daily runtime/workflow不变。两处代码缺口已闭合，不重复实现/重跑相同回归；实际生产/私密原件读取、发布/登记/绑定/恢复0，真实更新仍0/2。
+
+本轮止于代码/CI收尾。下一只复用已验证原件和本CI更新同一集中草案的新代码指纹，必要当轮事实与真实操作SHA准确另审；不重复身份/全环境盘点、不先恢复或实际dispatch。旧草案的“入口待实现”和旧指纹仅作追溯，不作为新代码执行许可；没有给原事实、扫描/产物或执行期限续期。
+
+### 已完成的最小代码批准（保留，不重做）
 
 用户已明确批准本轮仅编码与验证：复用单app发布器、原构建/ECR校验、不可变目录端口和owner事务，补齐受本人environment保护且默认关闭的初始A发布入口，以及原目录CLI的A/B候选批次适配。只允许合成API/命令/SQL与全新CI PostgreSQL测试，不读生产配置/凭据、AWS/既有数据库或真实构建原件，不发布/登记、恢复、启用runtime或新增权限/schema。正常main推送及准确无AWS CI结果核对在本轮代码验收内；不调度发布workflow，实际新生产读取与云/SQL写仍按最终SHA另审。下方草案“待确认代码”保留为沿革，不覆盖本次明确许可。
 

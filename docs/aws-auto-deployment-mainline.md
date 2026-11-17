@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：仅最小引导接线、离线回归与无AWS CI（2026-11-17）
+## 当前唯一继续点：最小引导接线及CI完成，回到原集中操作材料；实际另审（2026-11-17）
+
+代码b1e1ebd的[准确CI44139556595](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595)已成功：[结果](aws-instance-release-bootstrap-code-ci-20261117.json)/[第13节](aws-instance-version-release-plan.md#d2-6-bootstrap-implementation)。Linux239＋隔离PG16十项全过/无skip，lint/类型和两行非超级用户独立事务/权限闭合通过。初始A无环境发布、B候选登记的最小接线不再是代码缺项；新入口默认关闭，daily runtime/workflow/权限/schema保持，无实际生产读取、发布/登记、恢复或真实更新。
+
+本轮仅代码/CI，到此收尾。下一只在同一集中草案更新新代码指纹并另审必要当前事实/实际操作SHA，不重跑已过回归、不重装身份/查旧包或预先恢复环境。旧草案不可执行、旧事实/扫描/产物不续期；GitHub environment始终本人批准。
+
+### 已完成的最小代码批准（保留，不重做）
 
 本轮已获准补初始A单app发布和B候选目录接线，复用现有模块、默认关闭。只代码、合成回归和准确CI，不生产读取/凭据/私密原件/既有数据库，不实际发布/登记、恢复或开启runtime，不新增IAM/schema/恢复框架。GitHub environment仍本人批准，原daily workflow/资格边界不变；完成代码验证后回到同一集中范围另审实际操作。
 

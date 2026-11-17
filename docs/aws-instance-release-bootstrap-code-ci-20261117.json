@@ -1,0 +1,211 @@
+{
+  "schema": "techlong/instance-release-bootstrap-code-ci/v1",
+  "codeSha": "b1e1ebd773e2b110129a2307bfcb55aae52bbaa5",
+  "repository": "veinyyxy/TechlongSoftware",
+  "runId": 44139556595,
+  "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595",
+  "event": "push",
+  "branch": "main",
+  "attempt": 1,
+  "status": "completed",
+  "conclusion": "success",
+  "observedAt": "2026-11-17T17:41:28.642Z",
+  "ciEvidenceReads": {
+    "githubApiGets": 8,
+    "logBlobGets": 2,
+    "credentialHelperReads": 1,
+    "rawLogsCommitted": false
+  },
+  "jobs": [
+    {
+      "id": 134238283132,
+      "name": "offline",
+      "status": "completed",
+      "conclusion": "success",
+      "tests": 239,
+      "passed": 239,
+      "failed": 0,
+      "skipped": 0,
+      "lintPassed": true,
+      "typesPassed": true,
+      "originalLinuxZipTestPassed": true,
+      "rawLogBytes": 127665,
+      "rawLogSha256": "29cab2d0eb001621039fef58a0e45b930b3d49ef83d6d8405f5ce6dc306d91b3"
+    },
+    {
+      "id": 134238283664,
+      "name": "postgres",
+      "status": "completed",
+      "conclusion": "success",
+      "tests": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0,
+      "isolatedFreshPg16": true,
+      "loopbackOnly": true,
+      "nonSuperuserCatalogPairAndIndependentInspectionPassed": true,
+      "ownerSetInheritClosed": true,
+      "rawLogBytes": 50853,
+      "rawLogSha256": "dffc7185ecf23d53fb53424510a49fdfd5aeb091495dc1defa89d29a41bbb876"
+    }
+  ],
+  "local": {
+    "newBootstrapTestGroups": 8,
+    "relatedTotal": 239,
+    "passed": 238,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "Original Linux-only Python ZIP extraction; passed in exact Linux CI",
+    "lintPassed": true,
+    "typesPassed": true
+  },
+  "implementation": {
+    "publisherEntry": "scripts/instance-release-bootstrap.ts",
+    "workflow": ".github/workflows/instance-release-bootstrap.yml",
+    "reviewConfig": "ops/releases/bootstrap.review.json",
+    "defaultDisabled": true,
+    "manualOnly": true,
+    "userEnvironmentApprovalRequired": true,
+    "usesExistingPublisherAndManifestVerifier": true,
+    "initialPublicationHasNoInstanceBindingOrCfnPlan": true,
+    "catalogEntry": "scripts/instance-release-import.ts prepare-bootstrap/register-bootstrap",
+    "candidateBranchUsesExistingOwnerTransaction": true,
+    "catalogLimits": {
+      "configReads": 1,
+      "tlsConnections": 2,
+      "sqlSubmissions": 64,
+      "insertSubmissions": 2,
+      "rows": 2
+    },
+    "unknownCommitDoesNotRetryOrInsertNextRow": true,
+    "partialProofsPreserved": true,
+    "noNewSchemaOrIam": true,
+    "realPublicationOrRegistrationVerified": false
+  },
+  "implementedCodeArtifacts": {
+    "format": "sha256-utf8-lf",
+    "files": [
+      {
+        "path": ".github/workflows/instance-release-bootstrap.yml",
+        "lfSha256": "0b36c94e01f324b5c3e11375f83f57a4f6a1281e0b7504c6d1c383da35c2ad1f"
+      },
+      {
+        "path": "scripts/instance-release-bootstrap.ts",
+        "lfSha256": "f0b9bb5fd86538247e22b04594a3e214be36f877df8d09940bfb48246501761d"
+      },
+      {
+        "path": "ops/releases/bootstrap.ts",
+        "lfSha256": "74e8a81fdb8de0a97d152a4c6722024b163ae53a762da05627d52b44b94b97c3"
+      },
+      {
+        "path": "ops/releases/promotion-runtime.ts",
+        "lfSha256": "b310ee4f505d3e07ad595b392f61f3fb6486a14be22a0883aee8a304d547a947"
+      },
+      {
+        "path": "ops/releases/aws-runtime.ts",
+        "lfSha256": "04e7429f7af770bfba395f420c3277e8c00e916b76079f9fa9a20296ff593249"
+      },
+      {
+        "path": "ops/releases/import-source.ts",
+        "lfSha256": "b1b97f4869f5baecf82266b7fbfe0e9358274b6338c6f398b5e0aa503dec42f6"
+      },
+      {
+        "path": "ops/releases/build-artifact.ts",
+        "lfSha256": "e21b05c2f25f519955d50355802d1b6c4f35af93cbe9ac1b90a4c38789d0a8a3"
+      },
+      {
+        "path": "ops/releases/extract-build-artifact.py",
+        "lfSha256": "2cbe38b6b10c47dc86c586e6ee95d7ee6c9c6048b51d4e468709b107680d6f71"
+      },
+      {
+        "path": "lib/deployments/releases/production.ts",
+        "lfSha256": "9913def1603c3f46077b49757c5922d3f226132f3918a74b7642e6d23fe65e48"
+      },
+      {
+        "path": "lib/deployments/releases/promotion.ts",
+        "lfSha256": "e0c887b2fad9fa5a27f940b1bd7437c4931cd78e6e417b910e7b4b0940067f86"
+      },
+      {
+        "path": "lib/deployments/releases/catalog.ts",
+        "lfSha256": "dc68b4612d9395525b4f2ee56888e1d5657d1ff110f0e22742b650e212d9aaba"
+      },
+      {
+        "path": "lib/deployments/execution/hash.ts",
+        "lfSha256": "3205a7d79369d7d70653bbb91983762b93b97f11a32972ba2b9c54bcfed0cdce"
+      },
+      {
+        "path": "ops/releases/catalog-transaction.ts",
+        "lfSha256": "fffe91db25c30a9867be53355d2b5d61c10dd2abd1aa4b0449ebbee5fa9c0102"
+      },
+      {
+        "path": "scripts/instance-release-import.ts",
+        "lfSha256": "eb552430d20cd8cfd664a3060f6a2b35c3c08a9ee5b47cd789f2172a484779b1"
+      },
+      {
+        "path": "ops/releases/installation-connection.mjs",
+        "lfSha256": "8ce210d535644581ea9db9f164e2d42dda4b3450408bc9b33be8da952530bc40"
+      }
+    ]
+  },
+  "actualProductionEffects": {
+    "awsCalls": 0,
+    "secretConfigPatPemReads": 0,
+    "existingDatabaseConnections": 0,
+    "realBuildOriginalReads": 0,
+    "newBackendBuilds": 0,
+    "publicationWorkflowDispatches": 0,
+    "ecrPushes": 0,
+    "catalogWrites": 0,
+    "instanceBindings": 0,
+    "runtimeEnables": 0,
+    "environmentRestores": 0,
+    "realVersionUpdates": 0
+  },
+  "earlierValidatedImplementation": {
+    "codeSha": "6ca3c1ecd923e6eb52f5d859fb2e4497fd6abd2a",
+    "runId": 44138581747,
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/44138581747",
+    "observedAt": "2026-11-17T17:35:54.398Z",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 134234798123,
+        "name": "offline",
+        "status": "completed",
+        "conclusion": "success",
+        "tests": 239,
+        "passed": 239,
+        "failed": 0,
+        "skipped": 0,
+        "lintPassed": true,
+        "typesPassed": true,
+        "originalLinuxZipTestPassed": true,
+        "rawLogBytes": 127581,
+        "rawLogSha256": "89d9bc6c2f01c0e10761195a4552198e202ba7e73e6c041706a133bbc0e46b78"
+      },
+      {
+        "id": 134234797269,
+        "name": "postgres",
+        "status": "completed",
+        "conclusion": "success",
+        "tests": 10,
+        "passed": 10,
+        "failed": 0,
+        "skipped": 0,
+        "isolatedFreshPg16": true,
+        "loopbackOnly": true,
+        "nonSuperuserCatalogPairAndIndependentInspectionPassed": true,
+        "ownerSetInheritClosed": true,
+        "rawLogBytes": 50750,
+        "rawLogSha256": "1fb91589ff811b571bc2859c3cc8ab0ab49ff4908b50ca627364d22d1104761f"
+      }
+    ],
+    "changeAfterwards": "Only make the newly added CLI test safe for a future separately approved activation; no production-code or configuration change."
+  },
+  "totalCiEvidenceReads": {
+    "githubApiGets": 16,
+    "logBlobGets": 4,
+    "credentialHelperReads": 2,
+    "productionProviderReads": 0
+  }
+}

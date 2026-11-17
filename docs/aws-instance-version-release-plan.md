@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 MINIMAL BOOTSTRAP ENTRIES IMPLEMENTED / ACCURATE CI PENDING — BOOTSTRAP AND DAILY RUNTIME DISABLED`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 MINIMAL BOOTSTRAP ENTRIES AND EXACT NO-AWS CI COMPLETE — BOOTSTRAP AND DAILY RUNTIME DISABLED / NO REAL PUBLICATION OR REGISTRATION`。
 
 已交付代码、一次性身份安装及本轮两次真实app构建，以各自最新准确回执为准，不把原设计或离线验证当实际部署完成。本文其他待审范围不是新增生产读取、SQL/Secret/IAM修改、ECR发布、部署调度或AWS操作授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -16,7 +16,7 @@
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
-**2026-11-17当前唯一动作覆盖下方历史“下一步”：** 用户已单独批准仅最小代码/回归/CI；[第13节](#d2-6-bootstrap-implementation)已补初始A发布及B候选登记入口，默认关闭，本地238通过/1项Linux-only ZIP待CI、lint/类型通过，准确CI结果尚待真实核对。只完成这轮代码验收，不新读生产/私密原件、不发布/登记、恢复或开启runtime，不重建A/B/身份或扩支线。第12节草案仍不可执行；实际发布/登记的代码指纹/新鲜事实和审批SHA后续另审，真实更新仍0/2。
+**2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第13节](#d2-6-bootstrap-implementation)的最小入口及准确CI已完成，源码b1e1ebd/[CI44139556595](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595)成功：Linux239＋隔离PG16十项全过/无skip，lint/类型通过；[结果](aws-instance-release-bootstrap-code-ci-20261117.json)。两处代码接线不再是缺项，不重复实现/回归或重装身份。初始发布review与daily runtime仍关闭，生产读取/私密原件/发布/登记/恢复0；本轮到此收尾。下一仅回到同一集中草案更新新代码指纹并另审必要当前事实与真实操作SHA，不提前启动环境、重构建A/B或扩支线，真实更新仍0/2。
 
 **当前实际结果（取代下方早期轮次状态）：** [新g/h/i核对](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留)已完成真实app原件校验、STS1/AWS元数据55和另批剩余Neon READ ONLY22条查询；保留两次停止和新续段，未重复成功读取或产生远端写入。下一只收口第二个原CFN角色详细策略缺项及一次性启用准确清单，不扩框架；图片持久化缺项另列准确范围，不混入版本更新。runtime仍关、两次真实更新仍0。机器事实见[回执](aws-instance-release-d2-6-readiness-observed-20261114.json)，以下旧轮次“仅离线/未读”不覆盖本次批准结果。
 
@@ -221,7 +221,7 @@
 | 0 复用已完成项 | 已完成 | 身份结项及原准备/runtime/workflow摘要保持，本轮无生产调用 |
 | 1 一次集中取证 | 已获准并完成 | STS1/GitHub15/固定回执1，两个匹配app原件均缺失；不再查询旧构建 |
 | 2 兼容/持久化 | 离线输入已收口；云端证明未完成 | 五应用源码树不变，原9图全部找到并哈希（根5/products4）；兼容契约提案和私有迁移输入准备完毕，尚未上传/改库/写绑定 |
-| 3 合格A/B目录 | 最小入口已编码；准确CI待核对，实际发布/登记未执行 | [第13节](#d2-6-bootstrap-implementation)默认关闭、原端口复用和有界A/B事务；本轮仅代码CI，必要新鲜事实/真实操作SHA另审，不重构建/恢复 |
+| 3 合格A/B目录 | 最小入口和准确CI通过，实际发布/登记未执行 | [第13节](#d2-6-bootstrap-implementation)源码b1e1ebd/CI44139556595，Linux239＋PG16十项无skip；下一仅更新集中操作材料/另审必要事实，不重做代码或恢复 |
 | 4 首次启用 | 未执行 | 收费环境不恢复，runtime仍关闭，种子/实际操作另审 |
 | 5 两次正常更新 | 0／2 | 不以初始恢复/对齐、NO_CHANGE或模拟结果充数 |
 | 6 结案 | 未完成 | 必须有两次真实成功及最终一致回写 |
@@ -448,9 +448,13 @@ register先核对批准SHA、当前代码、私有输入raw SHA及完整派生�
 
 新增8组现有测试体系回归覆盖：关闭态早退/环境canary；review/源码/角色/不同A/B/期限；无实例A发布及真实manifest派生；未知审计/推送不重试；原publisher摘要路径/占tag拒绝；两连接/SQL64及未知A/B提交/冲突；仅manual本人environment工作流；目录prepare本地完成和错误SHA在配置/attempt前拒绝。相邻本地全组239项中238通过、0失败、1项原Linux ZIP实测本机skip；lint及完整类型检查通过。
 
-原无AWS CI仅扩现有测试/路径/lint列表；同一CI的全新PostgreSQL16增加非超级用户两连接A/B实测，核对owner权限关闭、B候选冲突不变及独立完整回读。不连接本地/Neon/Aurora或把CI数据库测试算生产安装。准确main提交/CI run与Linux ZIP/原生PG结果只在真实完成后记入本节，当前尚待核对，不以本机通过代替。
+原无AWS CI仅扩现有测试/路径/lint列表；同一CI的全新PostgreSQL16增加非超级用户两连接A/B实测，核对owner权限关闭、B候选冲突不变及独立完整回读。不连接本地/Neon/Aurora或把CI数据库测试算生产安装。
 
-本轮完成准确CI后收尾，下一回到同一集中草案更新实际代码指纹并另审必要最小生产补核/发布/登记；不扩框架、重复盘点或启动收费环境。`d2-6-publication-catalog.prepared.json`保留其编制时旧代码/缺口沿革，不能直接执行或用它的旧指纹启用新代码；没有给任何原事实、产物/扫描或旧执行期限续期。
+**准确CI已真实完成：** main/push/attempt1源码`b1e1ebd773e2b110129a2307bfcb55aae52bbaa5`的[run44139556595](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595) completed/success；offline job134238283132：239pass/0fail/0skip、Linux原ZIP测试/lint/类型通过；postgres job134238283664：10pass/0fail/0skip，含新非超级用户A/B独立连接/owner闭合测试。两job全部报告步骤成功，已认证核对准确run/步骤/原始日志和摘要；最终CI核对GitHub GET8＋日志blob2/helper1，两轮代码CI合计GET16/blob4/helper2，无生产读取或云调用。[去敏CI回执](aws-instance-release-bootstrap-code-ci-20261117.json)保存原日志SHA/计数，不提交原日志、凭据或业务内容。本机唯一skip已由准确Linux CI闭合，不再要求一轮同类测试。
+
+首个实现提交6ca3c1e/CI44138581747也已全部成功；之后仅调整新增CLI测试，使未来另审启用review时只验证无效批准被拒绝、不会实际发布或误拒合法数据配置，最终b1e1ebd/CI44139556595再次全过。两轮原日志摘要/准确来源均保留在同一去敏回执，不把旧观察改写为新观察，没有改实际关闭态配置。
+
+本轮已完成准确CI，到此收尾；下一回到同一集中草案更新实际代码指纹并另审必要最小生产补核/发布/登记，不扩框架、重复盘点或启动收费环境。`d2-6-publication-catalog.prepared.json`保留其编制时旧代码/缺口沿革，不能直接执行或用它的旧指纹启用新代码；没有给任何原事实、产物/扫描或旧执行期限续期。新BootstrapReview与真正daily runtime仍均关闭，旧两份构建原件/九图输入/安装证据未读写，未实际调度初始发布、登记目录、写绑定或恢复环境。
 
 <a id="d2-1-delivered"></a>
 
