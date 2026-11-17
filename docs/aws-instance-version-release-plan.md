@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 A PUBLISHED / A-B REGISTERED / YAML AND EXACT AURORA READONLY CONNECTION VERIFIED — NO RESTORE / ACTIVATION CONTINUATION NOT APPROVED`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 A PUBLISHED / A-B REGISTERED / VERIFIED CONNECTION REUSED / REMAINING ACTIVATION SCOPE PREPARED — NEW WINDOW AND BUDGET NOT APPROVED / NO RESTORE`。
 
 已交付代码、一次性身份安装及本轮两次真实app构建，以各自最新准确回执为准，不把原设计或离线验证当实际部署完成。本文其他待审范围不是新增生产读取、SQL/Secret/IAM修改、ECR发布、部署调度或AWS操作授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -15,6 +15,8 @@
 <a id="d2-6-readiness"></a>
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
+
+**最新第23节是唯一继续点：** 复用已存成功通道/资源/版本证据，已离线完成[剩余激活新接续](../ops/releases/d2-6-step4-activation-continuation.review.json)/[增量、时序与风险](aws-instance-release-step4-activation-continuation-review.md)，SHA `a33833df78d2e9457da3c47ad3a4ab499e8d03bf339bcedeb66a92b483976d58`。本轮无生产读取/四输入正文/连接/恢复，既有enabled形状合成28项全过、真实runtime未动。旧17:05:01窗口保持，新独立90分钟与STS/连接/四输入明确增量仍另待批准，不从“开始下一步”推定；原事实18:53:21.305到期、最晚17:23:21.305启动。完整私有调用编排未就绪不读凭据/消耗新槽，不以只有前置模块开窗，不声称一键入口已实现；正常更新仍0/2。
 
 **最新第22节覆盖旧连接阻塞：** 用户允许的单次诊断已真实通过TLS1.3/证书/SNI、IAM、准确库/用户/版本及只读提交，[结果](aws-instance-release-step4-connect-diagnostic-observed-20261117.json)。仅新增STS1/连接1/只读SQL4，无配置/Secret/八输入或生产写/恢复；去除startup options后的通道可复用，不唯一归因旧失败，不再申请IAM/网络支线。累计Source3/元数据13/输入16/数据库尝试2，余量不足原样重跑完整恢复；下一只离线准备必要连接参数适配和精确激活接续，实际新读取/操作/任何新窗口仍另审，原17:05:01操作截止及18:53:21事实截止不延，D2正常更新0/2。
 
@@ -662,6 +664,20 @@ Source准确IAM用户通过；DNS/TCP/证书主机名验证完成，TLS1.3 autho
 整轮累计Source STS3、元数据13、固定输入16、数据库尝试2/token2/SQL4（均只读）；图片/CFN/DNS/Neon/运行配置写和资源恢复仍0。原两次失败及诊断均独立保留，未复位任何槽/journal、改原清单或重计时。当前Source原额度余0、DB连接余1、固定输入余0，不能以诊断成功为理由默默增加连接/重读或重跑整个入口。
 
 下一唯一动作只离线复用已存成功通道/原资源、版本、映射及CI证据，编制必要连接参数适配与剩余激活的准确接续增量/完整时序；不新增生产读取、重复身份/整批盘点/连接探针或权限/网络框架，实际新调用和恢复仍另批。原操作截止今天17:05:01温尼伯、事实18:53:21及artifact/扫描时限保持；若无法在剩余窗口完成整轮，不开收费ALB等待，不给旧周期续期；如确需新窗口，必须明确单独批准且不延旧事实。D2正常更新仍0/2。
+
+### 23. 只离线收口剩余激活：不再盘点，明确新窗口与最小读取增量
+
+用户要求“开始下一步”，本轮按唯一继续点只离线准备。未调用AWS/GitHub API、获取凭据/生产配置、重读四份待补输入正文、连接数据库、消费新槽、恢复资源或启用runtime；未改正式代码/模板/工作流。另在测试进程内将公开候选配置注入enabled形状，既有`instance-release-workflow.test.ts`28项全过/无skip，真实runtime仍原disabled字节，无生产调用；源码/既有准确CI不变，不重复跑新云CI或连接探针。
+
+交付[机器接续清单](../ops/releases/d2-6-step4-activation-continuation.review.json)，规范SHA **`a33833df78d2e9457da3c47ad3a4ab499e8d03bf339bcedeb66a92b483976d58`**；[原范围继承、预算对比、顺序和风险](aws-instance-release-step4-activation-continuation-review.md)。目标/全部资源、四CFN变更形状、唯一ManagedPolicy修正、九图五列CAS/variants/NULL归属/关联、初始A绑定和最后runtime保持原合同；平台/prod/RDS启动停止、镜像构建发布、旧目录重插、IAM身份/网络/新框架、正常release dispatch和业务测试排除。动态物理ID及哈希仅按原固定规则真实派生，0/2正常更新不冒充通过。
+
+原实际累计STS3/元数据13/输入16/数据库尝试2、token2、SQL4，因此新窗口精确请求STS2（执行与独立核验身份）、Aurora连接/token各2、固定派生输入四份各一次；累计上限5/4/4/20。连接/token相比原上限3只增加1，本次两条包含原剩余1；其余原累计元数据320/SQL60/图片PUT9/模板PUT1/CFN4Create4Execute/DNS1/Neon配置1连接2/SQL40/绑定1/runtime提交1等不重新发放。四输入为原cloud snapshot、九图sealed映射和两恢复候选，不再8份全读。13个成功返回及两个失败journal/诊断结果各最多本地复用一次，全部原SHA固定，不当新独立事实，不追读其他私密文件。原IAM Original在实际修改前按旧白名单准确回读，不重复其旧私有副本。
+
+本机管理连接采用已成功的无startup options/事务内设置方式，拟连接超时30→60秒，TLS/ATS/SNI/身份不降级、无重连，不改数据库服务或应用镜像。第一新物理连接只读证明后COMMIT，再用同一有效会话开启独立明确READ WRITE九行CAS事务；第二新连接独立READ ONLY回读，不能继续已中止事务、冲淡未知COMMIT或增加行列范围。实际兼容/当前媒体仍须在获批过程证明，不能把身份诊断当迁图证明。
+
+原21:35开始的90分钟截止**今天17:05:01.678温尼伯**不改，其失败/槽保留；原窗口已不足整轮，不在余下时间先恢复ALB。本次只提出**需另批的新独立最多90分钟窗口**，实际首次执行（含受审凭据/输入读取）时记录新开始，截止`min(新开始+90分钟，原事实18:53:21.305)`，最晚**17:23:21.305**启动；原采样时刻、B产物/扫描到期不延。完整私有数据/CFN/独立核验/绑定/配置调用必须先离线备齐及无网络检查；当前交付是范围/时序信封，不把尚未完整接线的私有编排声称为已实现一键命令。未齐/来不及，则不发Source或连接、不创建新INTENT；不自动刷新事实或另开窗口。
+
+下一只待这个SHA、新窗口、最小读取增量及原完整风险的明确批准，再依就绪条件启动。不重放旧489/1d5或已完成诊断；迟到旧诊断问答只作已用许可的回执，不增加一次连接授权。
 
 ## 阶段1交付状态：合同、纯计划器与离线回归已完成
 

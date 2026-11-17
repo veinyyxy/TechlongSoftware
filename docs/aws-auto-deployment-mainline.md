@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：Aurora只读连接已验证，下一只编制必要激活接续（2026-11-17）
+## 当前唯一继续点：剩余激活集中接续已准备，等待新窗口与准确增量批准（2026-11-17）
+
+[新接续JSON](../ops/releases/d2-6-step4-activation-continuation.review.json)/[完整增量与风险](aws-instance-release-step4-activation-continuation-review.md)，SHA **`a33833df78d2e9457da3c47ad3a4ab499e8d03bf339bcedeb66a92b483976d58`**。只离线复用连接/资源/版本/CI证据，无新生产读取/四输入正文/连接/写入或恢复；enabled形状合成28项回归全过，实际runtime仍关、正式代码/workflow未改，不重复盘点/试连或安装身份。
+
+待批新执行量：STS2/连接与token各2/固定四输入各1，累计5/4/4/20，其余原元数据/写入总预算不增；原同一九图、A对齐、Cell/tenant、单ManagedPolicy/API、独立证明、初始绑定/runtime范围不扩。旧17:05:01窗口不改，新独立最多90分钟需明确另批；原事实18:53:21.305不延，最晚17:23:21.305启动。全轮私有调用接线须先备齐才开窗，不能把此操作清单当作已实现的一键工具；未齐/来不及不执行或消费新槽。下一只待准确新SHA及新窗口/增量批准，旧单次诊断迟到回复不重放；D2正常更新0/2。
+
+### 已完成的通道验证与准备沿革（保留，不重放）
 
 [单次诊断真实结果](aws-instance-release-step4-connect-diagnostic-observed-20261117.json)：22:22:25–22:22:48Z约23.6秒，STS1/连接1/只读SQL4，通过TLS1.3/证书/SNI、IAM、准确库/用户名/17.9、read_only和backend_tls、只读提交；无配置/Secret/八输入读取、资源/业务写或恢复。移除startup options后的通道可用，不需要为此新建IAM/网络；不能据一条对比唯一归因旧失败，也不是数据库兼容/媒体验收通过。
 

@@ -1,0 +1,732 @@
+{
+  "schema": "techlong/d2-6-step4-activation-continuation-review/v1",
+  "status": "AWAITING_EXPLICIT_NEW_WINDOW_AND_BUDGET_APPROVAL",
+  "readyForScopeApproval": true,
+  "executionApproved": false,
+  "executionPerformed": false,
+  "preparedAt": "2026-11-17T22:52:04.112Z",
+  "timezone": "America/Winnipeg",
+  "purpose": "Finish the same original step4 only, reusing successful connection and resource evidence; no new inventory, probe, resource or identity branch.",
+  "originalGoal": {
+    "path": "ops/releases/d2-6-step4-execution.review.json",
+    "canonicalSha256": "4891563c4c103ba1ea1beef5ce8bc32b2923305179e793c806354ea8589198a6",
+    "allTargetsAndBoundedActionsInherited": true,
+    "originalContinuation": {
+      "path": "ops/releases/d2-6-step4-continuation.review.json",
+      "canonicalSha256": "1d5af10a6f51bd854c5f7af007123da287c9609e9e42dc4a466a677f53553363"
+    },
+    "precedence": "Only explicit window/read-budget and local connection adaptations below override the original. All original resource/write/SQL/row/column/ownership limits, deterministic derivations, risk and exclusions remain. Old approval statuses are history, not replay authority."
+  },
+  "evidence": [
+    {
+      "path": "docs/aws-instance-release-step4-read-observed-20261117.json",
+      "lfSha256": "e9aedfa3743c0c00b11854b5229cb870ff81019663bf3f783d5ec9c36e942e72",
+      "observedAt": "2026-11-17T19:53:21.305Z",
+      "validUntil": "2026-11-18T00:53:21.305Z"
+    },
+    {
+      "path": "docs/aws-instance-release-step4-test-ci-20261117.json",
+      "lfSha256": "f62e08a6b5c6c840ee4e2b2bb2a375dbb948571eb37342f4924dbb437a0d8993"
+    },
+    {
+      "path": "docs/aws-instance-release-step4-execution-stopped-20261117.json",
+      "lfSha256": "624e5c7bbaff4a2ba785cbebc6f04f67dab88cc6c5b35aec8da2e9201be4e4a6"
+    },
+    {
+      "path": "docs/aws-instance-release-step4-continuation-stopped-20261117.json",
+      "lfSha256": "3f61301f95de6f8d559f412679c7ccb1b69113b28e339489dfa2e89820bec55b"
+    },
+    {
+      "path": "docs/aws-instance-release-step4-connect-diagnostic-observed-20261117.json",
+      "lfSha256": "507170e0ef5d77924a894d100a854149141e73a787449341f81d099db1807345"
+    }
+  ],
+  "window": {
+    "newIndependentWindowRequiresExplicitApproval": true,
+    "newIntentMax": 1,
+    "directoryRule": ".local-secrets/d2-6-step4-activation-after-connect-<this-SHA-prefix>",
+    "operationMinutesMax": 90,
+    "earliestActualStart": "Only after explicit new approval and complete local invocation assembly/validation",
+    "latestActualStart": "2026-11-17T23:23:21.305Z",
+    "factsValidUntilUnchanged": "2026-11-18T00:53:21.305Z",
+    "actualDeadlineRule": "min(actualNewStart+90min, original factsValidUntil); require full90min remaining at start",
+    "oldAttemptStartedAt": "2026-11-17T21:35:01.678Z",
+    "oldAttemptDeadlineUnchanged": "2026-11-17T23:05:01.678Z",
+    "oldAttemptClockOrJournalModified": false,
+    "bArtifactExpiresAtUnchanged": "2026-11-18T16:45:19Z",
+    "scannerRulesUnchanged": true,
+    "noAutomaticResourceExpiry": true
+  },
+  "invocationReadinessGate": {
+    "completePrivateInvocationAssemblyBeforeFirstProviderCall": true,
+    "allStages": [
+      "source/code/time/input guards",
+      "existing-data read-only proof",
+      "conditional nine-image persistence and bounded CAS",
+      "fresh independent media readback",
+      "idle A CFN alignment",
+      "Cell CFN restore",
+      "original IAM ManagedPolicy-only CFN correction",
+      "tenant CFN restore and exact API Alias",
+      "separate-process independent technical sampling",
+      "Neon initial binding and readback",
+      "runtime data commit"
+    ],
+    "assemblyAlreadyImplementedClaim": false,
+    "entrypointIsNotGenericOneClickTool": true,
+    "noCredentialReadOrNewIntentIfNotReadyOrLate": true,
+    "doNotRunStoppedOperatorsOrDiagnosticAgain": true,
+    "noFormalCodeWorkflowOrFrameworkChanges": true
+  },
+  "target": {
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "workspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+    "productId": "prd_restaurant_order_system",
+    "controlEnvironmentId": "env_aws_sandbox_ca_central_1",
+    "region": "ca-central-1",
+    "accountId": "402010193138",
+    "aReleaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+    "bReleaseId": "release_afcc95f9eaa20785265300c801fd7618",
+    "aImageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+    "cellStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "tenantStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+    "iamOwnerStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+    "auroraId": "techlong-sandbox-express-d001",
+    "databaseName": "tenant_a0da1748bc4d5419_db",
+    "apiHostname": "first-acceptance.sandbox.techlong.cloud",
+    "hostedZoneId": "Z01473621BTTHKXBGOOEJ"
+  },
+  "versions": {
+    "a": {
+      "compatibility": {
+        "applicationPort": 3000,
+        "clientApiVersions": [
+          "speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144"
+        ],
+        "databaseProfiles": [
+          "express_iam"
+        ],
+        "requiresMigration": false,
+        "schemaVersions": [
+          "speedfeast-saas-control-v1"
+        ],
+        "startupWrites": false
+      },
+      "component": "tenant_api",
+      "id": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+      "image": {
+        "manifestDigest": "sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+        "platformDigest": "sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+        "repository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+        "runtimePlatform": "linux/amd64",
+        "verificationSha256": "9baca303996a371b4568cf6677651342273c240ee5d41225ba8a66c4dafc31b2"
+      },
+      "productId": "prd_restaurant_order_system",
+      "source": {
+        "artifactSha256": "a42b4aba36ca0c3bbfa03321820ab9ec6ef06d019d1e48c8e2381ba81615a2cb",
+        "buildAttempt": 1,
+        "buildRunId": "44128576107",
+        "commit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+        "repository": "veinyyxy/SpeedFeast_Backend_main"
+      },
+      "status": "ecr_verified",
+      "version": "d2-6-a-b9ca2138-r44128576107"
+    },
+    "b": {
+      "id": "release_afcc95f9eaa20785265300c801fd7618",
+      "status": "candidate",
+      "candidateSha256": "de1cfdb8b2a431efeb4241f71f70cd602587badf4470b797dc85c043f73dbf52",
+      "publishInThisStep": false,
+      "artifactId": 14349965129,
+      "artifactExpiresAt": "2026-11-18T16:45:19Z"
+    },
+    "republishA": false,
+    "reinsertCatalog": false
+  },
+  "reviewedCode": {
+    "sourceSha": "6f84f14f7ee38dd8b9bf650f5b39a43bebcba9d0",
+    "ciRunId": 44173152522,
+    "ciEvidence": {
+      "path": "docs/aws-instance-release-step4-test-ci-20261117.json",
+      "lfSha256": "f62e08a6b5c6c840ee4e2b2bb2a375dbb948571eb37342f4924dbb437a0d8993"
+    },
+    "format": "sha256-utf8-lf",
+    "files": [
+      {
+        "path": "tests/instance-release-workflow.test.ts",
+        "sha256": "cbc32a6c15ddcfecae873fb9d61de31a9bcd6101d3a3bb7d84b5ccc14e9dc9c4"
+      },
+      {
+        "path": ".github/workflows/instance-release-checks.yml",
+        "sha256": "278aa8a8cb013ac19945c9aa0cea9248cf75530a1f92c331addd441679a64cd5"
+      },
+      {
+        "path": "scripts/instance-release.ts",
+        "sha256": "ee807b99ea23f6d7157e7518ca469984d2cc3277984b7cb34db09dc7daeeb64f"
+      },
+      {
+        "path": "lib/deployments/releases/handoff.ts",
+        "sha256": "1c49c1bfb71b51a74b59bfa1d0bea822c0fdf0199412c7ccb9468a9f0263ce05"
+      },
+      {
+        "path": "ops/releases/d2-6-compatibility.prepared.json",
+        "sha256": "30cf6d5063636e41b409bd1c2b7024564c92d9e1d22ff13d9a195f0b8268deb8"
+      },
+      {
+        "path": "ops/releases/d2-6.prepared.json",
+        "sha256": "be9ca49b6edfc1818dba03a845d7c74d194aa42c8b1d50ed63079a1e8b59e9ad"
+      },
+      {
+        "path": "ops/releases/d2-6-runtime.disabled.json",
+        "sha256": "11ac5ee1b7744539b95f6161e2caaaa25084ffc470169246e7dae2a5fa9008b2"
+      },
+      {
+        "path": "ops/temporary-idle/stop-continuation-execution-20261113.json",
+        "sha256": "21d8c4bd6518099ee4b4a5acf9b4857dc5121db3dc979ff0a01a8dd8686cc62b"
+      },
+      {
+        "path": "ops/releases/runtime.json",
+        "sha256": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6"
+      },
+      {
+        "path": "ops/releases/bootstrap.review.json",
+        "sha256": "93f78ef45a6b4ea940e1c7b113cb53290e5333f28c7c16501d28825721bad2e7"
+      },
+      {
+        "path": ".github/workflows/instance-release.yml",
+        "sha256": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff"
+      },
+      {
+        "path": "lib/deployments/releases/contract.ts",
+        "sha256": "9dc445b45b228b26d8c645ea03e870ab3e830ce8b5211c1a25f92dab8188bcf6"
+      },
+      {
+        "path": "lib/deployments/releases/sampling.ts",
+        "sha256": "0cf7b386d5618954adc3285ac23e780821dba13922c26bd785d9f673bca45231"
+      },
+      {
+        "path": "lib/deployments/releases/inspection.ts",
+        "sha256": "35783c24cfa717ca43e5a5fcf1d97c135d6e18d63e694e39ab5dab81feb61315"
+      },
+      {
+        "path": "ops/releases/schema.draft.sql",
+        "sha256": "167ad6a2d75c1126fa291fd7124c3957602ec100368c9f563ce59e91a75648ac"
+      },
+      {
+        "path": "ops/releases/catalog-transaction.ts",
+        "sha256": "fffe91db25c30a9867be53355d2b5d61c10dd2abd1aa4b0449ebbee5fa9c0102"
+      },
+      {
+        "path": "ops/temporary-idle/environment-cfn.mjs",
+        "sha256": "60db64fb4a036aed122ca60c636a2ef09b46e67ceb00bf1e607a0a89f09094f6"
+      },
+      {
+        "path": "ops/temporary-idle/environment-lifecycle.mjs",
+        "sha256": "3dfc72d3d258c07e2ea3814d4c7106479d11c29d3788917c55b1c05a5931cd2d"
+      }
+    ],
+    "permittedLaterDescendants": [
+      "docs/aws-auto-deployment-execution-runbook.md",
+      "docs/aws-auto-deployment-mainline.md",
+      "docs/aws-instance-version-release-plan.md",
+      "docs/aws-instance-release-step4-test-ci-20261117.json",
+      "docs/aws-instance-release-step4-execution-review.md",
+      "ops/releases/d2-6-step4-execution.review.json"
+    ],
+    "checkoutRule": "Require CI source to be an ancestor and the listed code bytes unchanged; only the exact listed documentation/review descendants may differ before execution. Runtime data stays original disabled until final approved stage; no new code/workflow difference accepted.",
+    "additionalPermittedDocumentationDescendants": [
+      "docs/aws-instance-release-step4-execution-stopped-20261117.json",
+      "ops/releases/d2-6-step4-continuation.review.json",
+      "docs/aws-instance-release-step4-continuation-stopped-20261117.json",
+      "docs/aws-instance-release-step4-connect-diagnostic-observed-20261117.json",
+      "docs/aws-instance-release-step4-activation-continuation-review.md",
+      "ops/releases/d2-6-step4-activation-continuation.review.json"
+    ],
+    "unchangedProductionAndWorkflowBytesRequired": true,
+    "outerApprovalHashAlgorithm": "lib/deployments/execution/hash.ts#sha256Hex",
+    "cfnPolicyAndTemplateComparisonHashAlgorithm": "ops/temporary-idle/environment-cfn.mjs#hash",
+    "rawInputHashAlgorithm": "SHA256 exact raw bytes",
+    "templateNormalization": {
+      "path": ".local-secrets/d2-6-step4-template-format-4891563c.mjs",
+      "lfSha256": "b8aa88b85b050e3acf961a74180c355ea82d19d36b554b45d6f31571387372c0"
+    },
+    "runtimeBindingHashRule": "Derive actual template/configuration fingerprints using lib/deployments/releases/inspection.ts#releaseRuntimeDigests; never substitute the lifecycle comparison hash or idle/historical hashes."
+  },
+  "offlineValidation": {
+    "enabledShapedSyntheticConfigTests": 28,
+    "passed": 28,
+    "failed": 0,
+    "skipped": 0,
+    "actualRuntimeFileUnchanged": true,
+    "actualRuntimeEnabled": false,
+    "providerCalls": 0,
+    "productionReads": 0,
+    "ciSourceAndWorkflowUnchanged": true
+  },
+  "privateInputs": {
+    "directory": ".local-secrets/d2-6-step4-read-20261117-a",
+    "files": [
+      {
+        "name": "cloud-verified-snapshot.json",
+        "rawSha256": "ceb104c70e667497debe8562a3e9cc702cf4aca27c7481a60f8733b35d1c5f9e"
+      },
+      {
+        "name": "sealed-input-projections.json",
+        "rawSha256": "ff4e15b2d638d5b8424ff45954ba07ec773c7e36b7448990647e1d7f9dee83d6"
+      },
+      {
+        "name": "cell-restore-candidate.json",
+        "rawSha256": "0b4c976fbdac13c87e7bfd74f6b28a4f4d5758420a51b7cc694b1fdb722d555e"
+      },
+      {
+        "name": "tenant-restore-candidate.json",
+        "rawSha256": "b36d65724ed04e502455d105ddf9cd4b9a6aff640b62862e6e516af1f9074d16"
+      }
+    ],
+    "additionalReadMax": 4,
+    "readsPerFileMax": 1,
+    "maximumBytesPerFile": 8388608,
+    "cumulativeReadsAlreadyUsed": 16,
+    "cumulativeReadsMax": 20,
+    "otherFourOriginalInputsNotRead": true,
+    "rule": "Only the four exact pinned derived inputs; never old F: backups, full business export, ZIP, credential or new private package. New current-run evidence may be retained privately without credentials; do not present retained/cached data as new independent provider facts."
+  },
+  "cachedProviderEvidence": [
+    {
+      "directory": ".local-secrets/d2-6-step4-execution-4891563c",
+      "files": [
+        {
+          "name": "response-001.json",
+          "rawSha256": "4bf7f7059d75b7248ac5a48759c69879a0c2f11bb14537f0fa31c46853fb2178"
+        },
+        {
+          "name": "response-002.json",
+          "rawSha256": "37992adb5ffc5dc19b74d75238939abf62268b828e770b28a458845ee7aecaad"
+        },
+        {
+          "name": "response-003.json",
+          "rawSha256": "60516e49982383624af26db0ccc187b6a1989746b83a71c6fde3bbc61a19e436"
+        },
+        {
+          "name": "response-004.json",
+          "rawSha256": "482fe48798ccafa5611fb03487659498dcba73cd281abd24ad93d3a9c8bcb831"
+        },
+        {
+          "name": "response-005.json",
+          "rawSha256": "780dcede22031303794d9e370e1f92f29dcc24f638496ba0ecce170da5f50676"
+        },
+        {
+          "name": "response-006.json",
+          "rawSha256": "a1d83fddde6bbf9940acd53dbf6eb7120e641fa7aa2e06a0c53116d7e42d84d9"
+        }
+      ]
+    },
+    {
+      "directory": ".local-secrets/d2-6-step4-continuation-1d5af10a6f51bd85",
+      "files": [
+        {
+          "name": "response-001.json",
+          "rawSha256": "d3e048bfcf31e83ed61fed262233ca89fa03bab75045b34f28b6e848bde79044"
+        },
+        {
+          "name": "response-002.json",
+          "rawSha256": "482fe48798ccafa5611fb03487659498dcba73cd281abd24ad93d3a9c8bcb831"
+        },
+        {
+          "name": "response-003.json",
+          "rawSha256": "a45671e19ac24e93bd79c8a27dd293181c41a1f7abb02f7f66ee100f8bd0aedd"
+        },
+        {
+          "name": "response-004.json",
+          "rawSha256": "5a863821f6f04e9b81924360e01445024db4791ef8e7fcc1b3dd35c59fdde696"
+        },
+        {
+          "name": "response-005.json",
+          "rawSha256": "18a5dd3d20e07fce431e111b30151fd1f3b0f07d28b0cbcb990659f5222b7198"
+        },
+        {
+          "name": "response-006.json",
+          "rawSha256": "48c3eb79a0a2e23dcd9c1f9dded3c780f9c6af71674e0633f16c50aaa5619952"
+        },
+        {
+          "name": "response-007.json",
+          "rawSha256": "b76bc125970ebdd455fbf634f1cf6c8fc023a0892ad3a6226bd026cd310a7261"
+        }
+      ]
+    }
+  ],
+  "cachedResponseLocalReadsMax": 13,
+  "connectionAdaptation": {
+    "successfulProofPath": "docs/aws-instance-release-step4-connect-diagnostic-observed-20261117.json",
+    "verifiedSourceEndpointAndTlsInherited": true,
+    "endpoint": "techlong-sandbox-express-d001.cluster-cn8aaekuqf1r.ca-central-1.rds.amazonaws.com",
+    "port": 5432,
+    "database": "tenant_a0da1748bc4d5419_db",
+    "username": "postgres",
+    "profile": "express_iam",
+    "startupOptionsOmitted": true,
+    "transactionLocalSettingsOnly": true,
+    "connectionTimeoutMillis": 60000,
+    "previousConnectionTimeoutMillis": 30000,
+    "maxAttemptsPerPhysicalConnection": 1,
+    "newConnectionsMax": 2,
+    "newIamTokensMax": 2,
+    "firstConnection": "First explicitly READ ONLY identity/schema/initialization/exact-media transaction; after COMMIT and original bounded S3 work, same live connection may begin a distinct explicitly READ WRITE transaction only for approved nine-row CAS. Never continue an aborted transaction.",
+    "secondConnection": "Fresh independent verified-TLS READ ONLY media/relationship/content-reference verification; no write or reconnect.",
+    "databaseSourceCodeHashes": [
+      {
+        "path": "ops/aws-sandbox/scripts/express-live-database-observer-v1.mjs",
+        "lfSha256": "6b0b6754397b3ca9f618e3e276d0c3116f1a4519fc1f944da8a6a74b0a1eaf52"
+      },
+      {
+        "path": "E:/NodejsProject/SpeedFeast_Backend_main/services/saas/aurora_connections_v2.js",
+        "lfSha256": "983c4068bae384b3492b1fa66a0bf0de7912e8b4951e5b613457d441e18b5e96"
+      },
+      {
+        "path": "E:/NodejsProject/SpeedFeast_Backend_main/services/saas/tenant-readiness-v1.cjs",
+        "lfSha256": "a5ff7a6970c426c749d522887519ecefde659087796ba893db5f0f3c086c025f"
+      },
+      {
+        "path": "E:/NodejsProject/SpeedFeast_Backend_main/db/product_image_assets_migration.sql",
+        "lfSha256": "beff60b7c6853939c9f9b6d040d7be6541099602d4f09e0c0d0b7c5d8d041dfc"
+      }
+    ],
+    "previousFailureUniqueCauseClaim": false,
+    "noDatabaseNetworkOrIamConnectChange": true,
+    "successfulTransportPattern": {
+      "path": ".local-secrets/d2-6-step4-connect-diagnostic-20261117-a.operator.mjs",
+      "lfSha256": "dfe6ff1e8fce4f9d6e48612f9117e28aa268d2528ae2ff65aa83c83036a5f3bf",
+      "use": "Reuse the verified fixed-target TLS/IAM and clean startup parameter pattern only; never rerun the diagnostic entry."
+    }
+  },
+  "budget": {
+    "meaning": "Cumulative over both stopped attempts, diagnostic and this new execution. Remaining budgets are not replenished except the explicit small deltas.",
+    "used": {
+      "sourceSts": 3,
+      "awsMetadata": 13,
+      "derivedInputReads": 16,
+      "auroraConnections": 2,
+      "auroraIamTokens": 2,
+      "auroraSqlSubmissions": 4,
+      "resourceOrBusinessWrites": 0
+    },
+    "explicitNewReadDeltas": {
+      "sourceSts": 2,
+      "auroraConnections": 2,
+      "auroraIamTokens": 2,
+      "derivedInputReads": 4
+    },
+    "cumulativeMax": {
+      "sourceSts": 5,
+      "awsMetadata": 320,
+      "derivedInputReads": 20,
+      "auroraConnections": 4,
+      "auroraIamTokens": 4,
+      "auroraSqlSubmissions": 60,
+      "githubGets": 6,
+      "explicitGitCredentialReads": 1,
+      "imageFileReads": 9,
+      "imagePuts": 9,
+      "imageVersionGets": 9,
+      "publicImageGets": 9,
+      "templatePuts": 1,
+      "createChangeSet": 4,
+      "executeChangeSet": 4,
+      "dnsUpserts": 1,
+      "apiTechnicalGets": 6,
+      "configurationFullFileReads": 1,
+      "neonConnections": 2,
+      "neonSqlSubmissions": 40,
+      "mediaCasTransactions": 1,
+      "mediaCasRows": 9,
+      "bindingInserts": 1,
+      "runtimeCommits": 1,
+      "runtimePushes": 1
+    },
+    "remainingForThisExecution": {
+      "sourceSts": 2,
+      "awsMetadata": 307,
+      "derivedInputReads": 4,
+      "auroraConnections": 2,
+      "auroraIamTokens": 2,
+      "auroraSqlSubmissions": 56
+    },
+    "sourceChecks": "Only execution Source identity and separate verifier Source identity; same fixed login profile/IAM user, no role probes/permission expansion or third identity attempt.",
+    "metadataScope": "Original whitelist/targets only: necessary current write guards, CFN stabilization and fresh independent sampling. Use the13 saved replies for continuity/calculation, not a broad new snapshot and not as fresh independent runtime evidence.",
+    "githubScope": "Only main/accurate CI run and jobs/existing human environment and main branch policy/exact B artifact metadata. No ZIP download, new PAT/PEM read, environment change, POST or dispatch.",
+    "cfnPollingMaxPerPhase": 24,
+    "cfnPollingPhasesMax": 8,
+    "cfnPollingMinimumIntervalSeconds": 15,
+    "providerRetries": 0,
+    "pagination": 0,
+    "unusedBudgetNotNewObjects": true,
+    "additionalOverPreviousCumulativeCaps": {
+      "sourceSts": 2,
+      "auroraConnections": 1,
+      "auroraIamTokens": 1,
+      "derivedInputReads": 4
+    },
+    "fixedInputCountDoesNotHideOwnEvidenceReads": "Cumulative20 only covers the original pinned derived inputs. The13 cached replies and3 exact own ledgers are separately bounded local evidence reuse, one read each; no arbitrary private file following."
+  },
+  "actions": {
+    "order": [
+      "data_before_paid_edges",
+      "bounded_media",
+      "idle_a_alignment",
+      "cell_restore",
+      "one_existing_managed_policy",
+      "tenant_restore",
+      "independent_proof",
+      "initial_binding",
+      "runtime_last"
+    ],
+    "privateScopeReference": {
+      "precedence": "Only the nine listed action IDs from the concentrated prepared scope are incorporated. This review's explicit budgets/exclusions take precedence; the original offline next-read proposal, optional DB start and obsolete local-gate text are not authority.",
+      "path": "ops/releases/d2-6-step4-execution.prepared.json",
+      "lfSha256": "55cf6a47a2f16b9476f6fc2d2b9b7a6f3a5630d33035beb0706b4844699b37a2",
+      "originalPath": "ops/releases/d2-6-step4-activation.prepared.json",
+      "originalLfSha256": "2f8e4dc62a0b6c4d92af4bcfc286ce78ace102b994214dad4e2130ce998e1dbb",
+      "actionIds": [
+        "data_before_paid_edges",
+        "bounded_media",
+        "idle_a_alignment",
+        "cell_restore",
+        "one_existing_managed_policy",
+        "tenant_restore",
+        "independent_proof",
+        "initial_binding",
+        "runtime_last"
+      ],
+      "meaning": "The referenced bounded actions are included only upon explicit approval of this outer SHA. Their old pending/unauthorized labels remain historical. This review fixes all provider budgets and overrides the obsolete local gate only with the exact successful CI; no new action may be inferred."
+    },
+    "media": {
+      "mappingRawSha256": "4817d5765c2f6b4dbfaf9158ad8f419104f9ab8b8903c98f5b382824ef4be213",
+      "migrationInputRawSha256": "792be56aa53b633765cf2b37478bdac70d4d70b7a54871659e3c1d2b9c00eee8",
+      "sourceRoot": "E:/NodejsProject/SpeedFeast_Backend_main/images",
+      "exactFilesFrom": "sealed-input-projections.json migration.rows only",
+      "rows": 9,
+      "sourceBytesExpected": 1233239,
+      "eachFileBytesMax": 5242880,
+      "totalFileBytesMax": 47185920,
+      "bucket": "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad",
+      "distributionId": "E2H9SBE05EMLAN",
+      "publicBase": "https://d3t5c71ibx9h97.cloudfront.net",
+      "conditionalPutsMax": 9,
+      "fixedVersionGetsMax": 9,
+      "publicGetsMax": 9,
+      "casWriteTransactionsMax": 1,
+      "casRowsMax": 9,
+      "writableColumns": [
+        "storage_provider",
+        "bucket",
+        "object_key",
+        "public_url",
+        "variants"
+      ],
+      "preserve": "asset_id/store_id (all historical NULL)/product_images relations/time columns and all other fields",
+      "variantsRule": "Only JSON string leaves exactly equal to the same row old public_url become that row proposed public_url; preserve other values. Other referenced local assets/variants, changed original rows, unknown triggers or unexpected writes stop before paid ALB.",
+      "sqlRule": "Parameter-bound exact-ID/old-values-and-variants CAS, exactly one matching row per image and nine total, one transaction. Independent fresh verified-TLS readback required; no upsert/bulk URL rewrite, DDL, initialization, queue or other business write.",
+      "publicContentRiskAcceptedOnlyUponApproval": true
+    },
+    "cloudFormation": {
+      "ownerOnly": true,
+      "maxCreateChangeSet": 4,
+      "maxExecuteChangeSet": 4,
+      "disableRollback": false,
+      "noDirectElbEcsOrIamMutation": true,
+      "stages": [
+        {
+          "id": "idle_a_alignment",
+          "action": "One CFN UPDATE on exact tenant UUID, UsePreviousTemplate, ImageUri=A only, all other parameters UsePreviousValue; strict CS allows only TenantTaskDefinition Modify/Replacement=True. Still three resources/no Service/tasks. Existing applyStack does not permit this modification, so use existing lower-level CFN transport without broadening that helper.",
+          "maximumCreateChangeSet": 1,
+          "maximumExecuteChangeSet": 1
+        },
+        {
+          "id": "cell_restore",
+          "candidateCanonicalSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892",
+          "action": "Existing CFN primitive restores only CellLoadBalancer, BusinessHttpsListener, ControlMtlsListener, BusinessControlDenyRule on the same stack; preserve other twelve resources, 443/8443, certificate and verify-mode trust store. Read actual new physical outputs.",
+          "maximumCreateChangeSet": 1,
+          "maximumExecuteChangeSet": 1
+        },
+        {
+          "id": "one_existing_managed_policy",
+          "action": "Only through exact original IAM owner stack: preserve other23 resources and all other root/parameter/tag fields. For ExecutionRoleBoundary PolicyDocument use observed effective v10 as baseline, replace only the two rule ARN prefixes corresponding to current captured tenant listener parameters with two prefixes deterministically derived from independently verified new Cell outputs. Preserve two earlier historical prefixes and every other action/resource/condition/statement. CS must be exactly one ManagedPolicy Modify, no replacement, role/trust/attachment/principal/action additions or direct IAM mutation.",
+          "newPrefixRule": "verifiedListenerArn.replace(':listener/', ':listener-rule/') + '/*'",
+          "deferredTemplate": "No fake physical ARN. Compile exact derived template and SHA only from verified Cell outputs under an explicit outer approval; any other difference stops.",
+          "effectivePolicyBaselineCanonicalSha256": "965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6",
+          "oldTemplatePolicyCanonicalSha256": "26bb382e338351c38a7b1dc5e0b39321b16e2f8b4ac6bc41fbffec09fe630816",
+          "declarationReconciliation": "Template policy declaration and actual effective v10 differ. The future one-resource change explicitly adopts exact effective v10 plus the two listener-prefix substitutions; it is not described as only two textual edits to the old template. No effective actions, principals or unrelated resources are added.",
+          "templateTransport": "Original compact body is54521 bytes; if derived body exceeds51200 use at most one conditional content-hash-key template PUT to existing techlong-sandbox-build-source-402010193138-ca-central-1, validate and bind exact bytes before Create/Execute. This is not Object Lock or a blanket bucket write.",
+          "maximumTemplatePuts": 1,
+          "maximumCreateChangeSet": 1,
+          "maximumExecuteChangeSet": 1,
+          "capabilities": [
+            "CAPABILITY_NAMED_IAM"
+          ]
+        },
+        {
+          "id": "tenant_restore",
+          "candidateCanonicalSha256": "4de52645c3ac71fd2d61b25d31e8e27801e9af3970212343dc382e3c9d8e0c07",
+          "action": "Restore TenantService and three existing rule declarations, preserve three retained resources/S3 wiring and A-aligned ImageUri; bind only actual six Cell outputs and desired1. Then one accurate externally-owned API A Alias UPSERT if required. Never reuse old listener/ALB physical IDs.",
+          "cellOutputParameters": [
+            "ClusterName",
+            "VpcId",
+            "SubnetIds",
+            "TaskSecurityGroupId",
+            "HttpsListenerArn",
+            "ControlListenerArn"
+          ],
+          "maximumCreateChangeSet": 1,
+          "maximumExecuteChangeSet": 1,
+          "maximumDnsUpserts": 1
+        }
+      ],
+      "validate": "Every CS has a unique name/token, exact original stack UUID and approved role/parameters/tags. Verify complete resource change set and exact GetTemplate Original/ChangeSet body before each one-time Execute. Unknown ACK or extra/paginated changes stop, no DeleteChangeSet or second submission.",
+      "iamTemplateTransport": {
+        "bucket": "techlong-sandbox-build-source-402010193138-ca-central-1",
+        "keyRule": "d2-6-step4/managed-policy/<sha256-of-exact-canonical-template-bytes>.template.json",
+        "conditionalPutMax": 1,
+        "ifNoneMatch": "*",
+        "encryption": "AES256",
+        "validateTemplateMax": 1,
+        "requireChangeSetTemplateHashMatch": true,
+        "objectLockClaim": false
+      }
+    },
+    "managedRuntimeInjection": {
+      "agentSecretValueReads": 0,
+      "secrets": [
+        {
+          "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/tenant/a4377bce498b9c5ee9e64509dcad_a0da1748bc/runtime/g1-T9CqN5",
+          "versionId": "0f45d29f-02d4-4117-99b1-c06645aa3c6e"
+        },
+        {
+          "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/control-public-key-first-acceptance-PfBjiq",
+          "versionId": "75d8da0af103e1e10e6d3341cbd50226fea7ce5e5aac8d150ab9e447b6340680"
+        }
+      ],
+      "rule": "Existing ECS execution role may perform normal managed fixed-version injections and provider task restarts. Agent does not call GetSecretValue or read HMAC/PEM/PAT; no Secret update, password or role changes."
+    },
+    "finalProof": {
+      "separateProcess": true,
+      "required": [
+        "original CFN ownership and exact Cell output-to-tenant bindings",
+        "stable ECS desired1/running1/pending0 and exact verified A digest",
+        "target health and exact DNS/443/8443 verify-mode mTLS",
+        "strict initialized Express readiness with no startup migration",
+        "nine persisted actual contents/rows/relationships and S3 runtime configuration",
+        "actual releaseRuntimeDigests and full persistence evidence hash"
+      ],
+      "technicalOrigin": "https://first-acceptance.sandbox.techlong.cloud",
+      "technicalPaths": [
+        "/health",
+        "/ready"
+      ],
+      "maxGetsPerPath": 3,
+      "tlsVerified": true,
+      "followRedirects": false,
+      "businessTests": false
+    },
+    "controlBinding": {
+      "configPath": ".env.local",
+      "fullFileReadsMax": 1,
+      "verifiedTlsConnectionsMax": 2,
+      "sqlSubmissionsMax": 40,
+      "writerTransactionsMax": 1,
+      "independentReadOnlyTransactionsMax": 1,
+      "schemaOid": "237571",
+      "instanceStateOid": "237590",
+      "insertMax": 1,
+      "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+      "currentReleaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+      "revision": 0,
+      "activeRequestId": null,
+      "derive": "Only from actual complete independent proof: original product/workspace/environment IDs, active+initialized truth, actual stack/template/config hashes, sampling/persistence references, current A root/platform digest; canonical binding/evidence hashes are derived under this fixed outer rule, not free-form input.",
+      "membership": "Reuse original owner transaction temporary SET/INHERIT FALSE closure, no standing privilege/role/schema change. Independent connection uses already-proven direct SELECT in READ ONLY without extra owner membership grant.",
+      "noExistingBindingUpdate": true,
+      "noRequestOrCatalogWrite": true,
+      "unknownCommitStops": true
+    },
+    "runtimeActivation": {
+      "path": "ops/releases/runtime.json",
+      "candidatePath": "ops/releases/d2-6-runtime.disabled.json",
+      "candidateLfSha256": "11ac5ee1b7744539b95f6161e2caaaa25084ffc470169246e7dae2a5fa9008b2",
+      "beforeLfSha256": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6",
+      "enabledCanonicalSha256": "ed815edf557e9e5fcf080c0636622532a73d5d542b177e09168fe0e88c342ec8",
+      "commitsMax": 1,
+      "pushesMax": 1,
+      "derive": "Copy installed candidate JSON, change enabled false to true only; verify expected canonical hash. No activation before complete independent proof and initial A binding readback.",
+      "bootstrapRemainsDisabled": true,
+      "dailyWorkflowUnchanged": true,
+      "workflowDispatches": 0,
+      "normalUpdatesAcceptedByThisStep": 0
+    },
+    "clarifications": [
+      "No RDS start/stop: original available cluster/writer and observed exact endpoint only; change or inability to connect stops before paid restore.",
+      "Current trigger metadata is checked against source-owned declarations and approved row/column effects; unknown/extra effects stop. Do not require zero triggers as an invented prerequisite.",
+      "The IAM owner fresh Original is read through the already-approved exact CFN target/metadata budget and matched to the saved original canonical hash; do not reread its old private body or directly mutate IAM.",
+      "New physical listener/ALB IDs, policy/template hash and actual binding/proof hashes are only deterministic original-rule derivations. No fake ARN, arbitrary patch or second chat approval for a fully matching derived value.",
+      "This administrative step does not dispatch normal releases or count initial A alignment as either of the two normal updates."
+    ]
+  },
+  "failure": {
+    "oldIntentsJournalsAndManifestsUnchanged": true,
+    "newIndependentIntentOnlyAfterApprovalAndReadiness": true,
+    "stopOnAnyIdentityTimeBudgetOrScopeViolation": true,
+    "unknownSubmissionOrCommitStops": true,
+    "noAutomaticRetryCompensationRollbackOrCleanup": true,
+    "nativeCfnRollbackOldRevisionAndPolicyVersionManagementRisksInherited": true,
+    "noAutoFreshSnapshotBuildOrNewWindowOnExpiry": true
+  },
+  "risks": {
+    "original": {
+      "path": "docs/aws-instance-release-step4-execution-review.md",
+      "lfSha256": "97bb60f3a99656a6ec0de9de96d8ac77cc65fe1658f87b9a034e0ab76aca0182",
+      "requireExplicitAcceptance": true
+    },
+    "addendum": {
+      "path": "docs/aws-instance-release-step4-activation-continuation-review.md",
+      "lfSha256": "fb8d7b0af9e584e388e4cb9078d2f1049ceb92434da3aa9cb46ace9713fb46fc"
+    },
+    "explicitAcceptanceOfNewWindowAndReadDeltasRequired": true
+  },
+  "exclusions": [
+    "Platform Web or its ALB restoration",
+    "speedfeast-postgres-prod query/start/stop",
+    "Aurora start/stop or new proxy/network/maintenance task",
+    "New IAM role/attachment/trust/action, new Secret, LOGIN/schema or password",
+    "Direct ELB/ECS/IAM resource mutations outside the one original CFN ManagedPolicy stage",
+    "A/B build, ECR publication, ZIP download or catalog re-insertion",
+    "Business login/order/payment/message tests or old initialization replay",
+    "Full mode, automatic expiry, automatic cleanup/compensation or generic tool changes",
+    "Normal A-to-B/B-to-A dispatch or self-approval of a GitHub environment"
+  ],
+  "thisPreparation": {
+    "providerCalls": 0,
+    "credentialConfigOrSecretReads": 0,
+    "privateInputBodiesRead": 0,
+    "auroraOrNeonConnections": 0,
+    "resourceOrDatabaseWrites": 0,
+    "runtimeEnabled": false,
+    "normalUpdatesAccepted": 0
+  },
+  "ownLedgerEvidence": [
+    {
+      "directory": ".local-secrets/d2-6-step4-execution-4891563c",
+      "name": "journal.json",
+      "rawSha256": "2d0ad9be8fe64c159fb2a1f8f36efd009121893c326939d43e5a1f76c074d435"
+    },
+    {
+      "directory": ".local-secrets/d2-6-step4-continuation-1d5af10a6f51bd85",
+      "name": "journal.json",
+      "rawSha256": "471f14a5f41565dfb91ba76f4046a05eca0cb92024d1c4a909ab7874b173bfae"
+    },
+    {
+      "directory": ".local-secrets/d2-6-step4-connect-diagnostic-20261117-a",
+      "name": "result.json",
+      "rawSha256": "bd08c8af2bcb93ba58db0ed685cecaeb7a5fa2bf673357537b1a41dc71b59c6c"
+    }
+  ],
+  "ownLedgerEvidenceReadMax": 3,
+  "ownLedgerEvidenceReadsPerFileMax": 1
+}
