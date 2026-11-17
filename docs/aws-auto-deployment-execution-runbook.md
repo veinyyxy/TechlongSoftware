@@ -2,7 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：最小只读c轮通过；只待集中批准A发布及A/B登记，不再编码或盘点（2026-11-17）
+## 当前唯一继续点：步骤3真实收口；下一仅准备步骤4必要恢复/初始绑定/runtime集中范围（2026-11-17）
+
+用户按外层SHA `126422f9a3bfc18c80376163f8e4c70af8ea9202b5a507b7bc20bbbce4e1f7b6`批准，本轮19:03:34.191–19:10:45.068Z约7分11秒实际完成：[结果](aws-instance-release-initial-publication-observed-20261117.json)、[准确run44154605425](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44154605425)。只dispatch1，用户亲自批准environment；A已发布且原始ECR manifest真实digest为`sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0`。固定S3版本2次回读/摘要及来源核验通过；A已REGISTERED/ecr_verified、B已CANDIDATE_REGISTERED/未发布，独立连接核对两行均通过，四事务owner权限闭合。实际配置读1/TLS2/SQL52，无业务/绑定写。
+
+本地包装器曾将GitHub成功HTTP200误拒为只接受204；保留原停止和已发POST，用户另准helper1＋原剩余33 GET后，只定位/继续同一run，没有重派。整轮Source STS2/GitHub GET11/helper2（含另批1）/proof ZIP1/S3 GET2；原件/旧失败/永久槽保留。引导review已恢复disabled，daily runtime仍关；本轮未恢复环境、改IAM/Secret/schema/正式代码或做业务测试，两次真实更新仍0/2。
+
+下一只复用这次A真实digest/两行目录和原图片/兼容材料，集中准备原步骤4必要恢复、准确初始A绑定、持久化/兼容证明及runtime启用；实际新读取/恢复/SQL/配置操作另审。**不再发布A、重复登记A/B或重装身份，不新增工具/框架。** B仍是未晋升候选，原artifact于2026-11-18T16:45:19Z（温尼伯10:45:19）到期，扫描规则独立；不延长旧日期、不用本次目录结果冒充当前运行/持久化通过，不先启动环境等待材料。
+
+### 已完成的c轮准备与集中待审沿革（现已执行，不重放）
 
 用户已刷新Source并明确准许新c轮；[真实结果](aws-instance-release-publication-preflight-verified-20261117.json)于18:46:21.274–18:46:40.789Z完成STS1/元数据11/GitHub GET10/helper1，准确身份、原publisher权限/ECR/固定token版本/S3及本人门禁通过，A tag/push槽未占用。配置/Secret值/PAT/PEM/ZIP/数据库/写入/槽/dispatch/恢复0；a/b保留，不重试旧记录。新事实仅覆盖本次实际读取对象，至23:46:21.276Z（温尼伯17:46:21），旧构建/扫描/数据库期限不延。
 

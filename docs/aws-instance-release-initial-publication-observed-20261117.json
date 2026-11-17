@@ -1,0 +1,210 @@
+{
+  "schema": "techlong/d2-6-publication-catalog-accepted/v1",
+  "status": "A_PUBLISHED_A_AND_B_CATALOG_INDEPENDENTLY_VERIFIED",
+  "approvedOuterSha256": "126422f9a3bfc18c80376163f8e4c70af8ea9202b5a507b7bc20bbbce4e1f7b6",
+  "innerPublicationSha256": "dae31dff39270cf12b0a841ca60180e4c99506714fcd1f15d87ffacba8177fa9",
+  "startedAt": "2026-11-17T19:03:34.191Z",
+  "completedAt": "2026-11-17T19:10:45.068Z",
+  "elapsedSeconds": 430.877,
+  "originalDeadline": "2026-11-17T20:03:34.191Z",
+  "factsDeadlineUnchanged": "2026-11-17T23:46:21.276Z",
+  "github": {
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/44154605425",
+    "runId": 44154605425,
+    "attempt": 1,
+    "conclusion": "success",
+    "activationSha": "8a04a487f60f4394fdf7f26943b49b9fa3fb8e51",
+    "job": {
+      "repository": "veinyyxy/TechlongSoftware",
+      "repositoryId": "1323312747",
+      "runId": "44154605425",
+      "runAttempt": 1,
+      "sourceSha": "8a04a487f60f4394fdf7f26943b49b9fa3fb8e51",
+      "ref": "refs/heads/main",
+      "event": "workflow_dispatch",
+      "actor": "veinyyxy",
+      "actorId": "14145707",
+      "workflowRef": "veinyyxy/TechlongSoftware/.github/workflows/instance-release-bootstrap.yml@refs/heads/main"
+    },
+    "environment": {
+      "name": "techlong-sandbox-deploy",
+      "id": 24613410405,
+      "approvedByUser": true,
+      "approverId": 14145707,
+      "assistantApproved": false
+    },
+    "workflowDispatches": 1,
+    "noRerun": true
+  },
+  "localCounts": {
+    "sourceSts": 2,
+    "githubCredentialHelperReads": 2,
+    "githubGets": 11,
+    "dispatches": 1,
+    "runStatusPolls": 3,
+    "pendingDeploymentGets": 1,
+    "proofZipDownloads": 1,
+    "fixedVersionS3Gets": 2
+  },
+  "credentialCounterMeaning": "Explicit sourceGitHubCredential resolutions for API transport only; ordinary separately approved Git push authentication is not measured by this operator counter.",
+  "additionalUserApproval": {
+    "reason": "Successful HTTP200 dispatch response was rejected by the private wrapper's 204-only check; original run not yet bound and in-memory credential was released.",
+    "allowedExtraCredentialHelperReads": 1,
+    "allowedOriginalRemainingGitHubGets": 33,
+    "actualNewPosts": 0,
+    "originalFailureRetained": true,
+    "originalDeadlineExtended": false
+  },
+  "localImportIssue": {
+    "classification": "ERR_MODULE_NOT_FOUND_BEFORE_PREFLIGHT",
+    "scope": "Private wrapper switched from nonexistent credential-providers umbrella to existing credential-provider-ini export; no formal code/dependency change.",
+    "providerCallsBeforeCorrection": 0,
+    "attemptCreatedBeforeCorrection": false,
+    "recordPreserved": true
+  },
+  "publication": {
+    "publishedAt": "2026-11-17T19:08:06.483Z",
+    "requestId": "release_116f08b35fb7d1d0350e096c9751908c",
+    "appImagesPublished": 1,
+    "lifecycleImages": 0,
+    "bImagesPublished": 0,
+    "a": {
+      "compatibility": {
+        "applicationPort": 3000,
+        "clientApiVersions": [
+          "speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144"
+        ],
+        "databaseProfiles": [
+          "express_iam"
+        ],
+        "requiresMigration": false,
+        "schemaVersions": [
+          "speedfeast-saas-control-v1"
+        ],
+        "startupWrites": false
+      },
+      "component": "tenant_api",
+      "id": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+      "image": {
+        "manifestDigest": "sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+        "platformDigest": "sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+        "repository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+        "runtimePlatform": "linux/amd64",
+        "verificationSha256": "9baca303996a371b4568cf6677651342273c240ee5d41225ba8a66c4dafc31b2"
+      },
+      "productId": "prd_restaurant_order_system",
+      "source": {
+        "artifactSha256": "a42b4aba36ca0c3bbfa03321820ab9ec6ef06d019d1e48c8e2381ba81615a2cb",
+        "buildAttempt": 1,
+        "buildRunId": "44128576107",
+        "commit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+        "repository": "veinyyxy/SpeedFeast_Backend_main"
+      },
+      "status": "ecr_verified",
+      "version": "d2-6-a-b9ca2138-r44128576107"
+    },
+    "manifestDigestIsActualRegistryProof": true,
+    "rawManifestBodiesCommitted": false,
+    "evidenceBucket": "techlong-sandbox-cloud-worker-evidence-402010193138",
+    "evidence": [
+      {
+        "key": "instance-releases/promotions/release_116f08b35fb7d1d0350e096c9751908c/intent.json",
+        "versionId": "OwV5u_I_PkNIEg8g8C65.PxB4d8XvHVk",
+        "bodySha256": "ba294d981daa63b606d3c3aeb1ef20d65bd84c51b74cb45486e8b0cc7be488d2",
+        "independentlyFetchedFixedVersion": true
+      },
+      {
+        "key": "instance-releases/promotions/candidate-056efacd8630445670e7dfe55ae46e577e097f28909df6038d18440442e95172/push.json",
+        "versionId": "Bk090LPkAUN5aB.VsvbJBhip1bbJFlIE",
+        "bodySha256": "ccdf15290fadddffaaafebc1f07e86112a4959fb3294763d24825ac623e1cb33",
+        "independentlyFetchedFixedVersion": false
+      },
+      {
+        "key": "instance-releases/promotions/release_116f08b35fb7d1d0350e096c9751908c/published.json",
+        "versionId": "SvPu0HDej0kTJIovjBRCYJxYTBB6bQC_",
+        "bodySha256": "4b25fe37b2e2fc34a75ceb6a6a7e2e1420337f36dd779ba56081b75d293249d4",
+        "independentlyFetchedFixedVersion": true
+      }
+    ],
+    "postJobLiveEcrReads": 0,
+    "evidenceVerification": "Authenticated exact fixed S3 versions, body SHA plus run/source/intent/candidate binding, existing raw-manifest verifier."
+  },
+  "catalog": {
+    "status": "A_AND_B_CATALOG_INDEPENDENTLY_VERIFIED",
+    "registrationSha256": "46964e21239addb0287de17e173dd67150d158f2883dcede7770ea640f3f7e4b",
+    "target": {
+      "database": "neondb",
+      "schema": "deployment_release",
+      "table": "releases",
+      "schemaOid": 237571,
+      "releasesOid": 237572
+    },
+    "counts": {
+      "configReads": 1,
+      "connections": 2,
+      "sqlSubmissions": 52
+    },
+    "insertAttempts": 2,
+    "a": {
+      "id": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+      "status": "ecr_verified",
+      "write": {
+        "status": "REGISTERED",
+        "releaseSha256": "b7aa3406a88a30cc9d38d88809dde6bfd8ee231784c5188ad11c43da62662702",
+        "temporaryOwnerAccessClosed": true,
+        "businessRowsChanged": 0
+      },
+      "independentInspection": {
+        "status": "INDEPENDENTLY_VERIFIED",
+        "releaseSha256": "b7aa3406a88a30cc9d38d88809dde6bfd8ee231784c5188ad11c43da62662702",
+        "temporaryOwnerAccessClosed": true,
+        "businessRowsChanged": 0
+      }
+    },
+    "b": {
+      "id": "release_afcc95f9eaa20785265300c801fd7618",
+      "version": "d2-6-b-b9ca2138-r44129167654",
+      "status": "candidate",
+      "published": false,
+      "write": {
+        "status": "CANDIDATE_REGISTERED",
+        "releaseSha256": "910246ac67d137fd2da1c5cd70614815bf1fa69a583d98a3f8c73a54e244f536",
+        "temporaryOwnerAccessClosed": true,
+        "businessRowsChanged": 0
+      },
+      "independentInspection": {
+        "status": "INDEPENDENTLY_VERIFIED",
+        "releaseSha256": "910246ac67d137fd2da1c5cd70614815bf1fa69a583d98a3f8c73a54e244f536",
+        "temporaryOwnerAccessClosed": true,
+        "businessRowsChanged": 0
+      }
+    },
+    "inspectionIncludedTemporaryMembershipWrites": true,
+    "creatorAdminPreserved": true,
+    "configOrCredentialContentCommitted": false,
+    "businessRowsChanged": 0
+  },
+  "closure": {
+    "bootstrapPath": "ops/releases/bootstrap.review.json",
+    "bootstrapEnabled": false,
+    "localClosedCheckPassed": true,
+    "dailyRuntimeEnabled": false,
+    "closingCommit": "See this receipt's containing main commit; no self-referential hash."
+  },
+  "unchanged": {
+    "formalImplementationOrWorkflowChanged": false,
+    "iamOrSecretOrSchemaChanged": false,
+    "environmentRestored": false,
+    "instanceBindingWritten": false,
+    "auroraConnected": false,
+    "mediaMigrated": false,
+    "dailyRuntimeEnabled": false,
+    "businessTestsRun": false,
+    "actualD2VersionUpdates": 0,
+    "requiredD2VersionUpdates": 2
+  },
+  "noAutomaticRetryRollbackCleanup": true,
+  "oldRecordsAndSlotsPreserved": true,
+  "privateEvidenceRoot": ".local-secrets/d2-6-publication-catalog-20261117/attempt-126422f9a3bf",
+  "next": "Prepare step 4 using these originals: necessary restore, persistence/compatibility proof, initial A binding and runtime activation. Actual new reads/writes/restore remain separately approved; do not republish A/reinsert A/B or expand tooling."
+}

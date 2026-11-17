@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：c轮最小核对通过，只待一份A发布/A-B登记集中批准（2026-11-17）
+## 当前唯一继续点：A发布及A/B登记真实完成，下一准备原步骤4（2026-11-17）
+
+[本轮结果](aws-instance-release-initial-publication-observed-20261117.json)：获准确外层SHA批准后，[run44154605425](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44154605425) success，约7分11秒完成；A单app已发布/真实manifest已核验，A verified及B未发布candidate两行已实际登记，两个固定S3版本及独立TLS连接回读通过，配置1/TLS2/SQL52，owner权限均闭合。单次POST的HTTP200曾被本机误拒；用户另准额外helper1及原剩余GET后只接续原run，dispatch总数仍1，停止记录保留。
+
+引导review已关闭，daily runtime仍关，无环境恢复、绑定/业务/媒体写或IAM/schema变化；真实版本更新仍0/2，不等于D2-6完成。下一只复用真实A digest、两行目录及原图片/兼容输入准备步骤4集中恢复/初始绑定/runtime范围，必要新读取和实际操作另审。不重复A发布/目录/身份或扩工具，不先启动收费环境；B产物原到期11月18日10:45:19温尼伯，日期/扫描规则不变。
+
+### c轮准备和待批记录（已执行收口，不重放）
 
 [成功c回执](aws-instance-release-publication-preflight-verified-20261117.json)：Source刷新后STS1/AWS元数据11/GitHub GET10全部通过；原publisher权限、ECR、固定token版本、审计与本人environment匹配，A tag/push槽未占用。其余私密/ZIP/SQL/写槽/发布/恢复0，a/b不覆盖。新事实至温尼伯今天17:46:21，原产物/扫描期限不改。
 

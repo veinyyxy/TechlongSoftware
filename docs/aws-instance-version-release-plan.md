@@ -16,7 +16,7 @@
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
-**最新继续点覆盖历史停止：** [第15节](#d2-6-publication-read-verified)的新c轮已获准并通过STS1/元数据11/GitHub10，a/b保留。下一只另批[集中执行范围](../ops/releases/d2-6-publication-catalog.review.json)及[完整风险](aws-instance-release-initial-publication-review.md)，完成A发布及A verified/B candidate登记，不再编码/盘点。新事实至2026-11-17T23:46:21.276Z（温尼伯17:46:21），原件/扫描不延期；当前发布/登记/恢复仍0，daily runtime关，真实更新仍0/2。
+**最新结果覆盖历史待批：** [第16节](#d2-6-publication-catalog-observed)/[实际回执](aws-instance-release-initial-publication-observed-20261117.json)已按准确外层批准完成A单app发布、真实manifest核验及A verified/B candidate两行登记/独立回读，约7分11秒、dispatch1、配置1/TLS2/SQL52。引导review已关闭，daily runtime仍关，未恢复环境或写绑定；真实更新仍0/2。下一只准备原步骤4的必要恢复/持久化兼容证明/初始A绑定/runtime集中范围，实际新读取和写入另审，不再发布A或登记A/B、重装身份/扩工具。B产物原到期11月18日16:45:19Z，扫描/事实期限不延期。
 
 **2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第13节](#d2-6-bootstrap-implementation)的最小入口及准确CI已完成，源码b1e1ebd/[CI44139556595](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595)成功：Linux239＋隔离PG16十项全过/无skip，lint/类型通过；[结果](aws-instance-release-bootstrap-code-ci-20261117.json)。两处代码接线不再是缺项，不重复实现/回归或重装身份。初始发布review与daily runtime仍关闭，生产读取/私密原件/发布/登记/恢复0；本轮到此收尾。下一仅回到同一集中草案更新新代码指纹并另审必要当前事实与真实操作SHA，不提前启动环境、重构建A/B或扩支线，真实更新仍0/2。
 
@@ -223,7 +223,7 @@
 | 0 复用已完成项 | 已完成 | 身份结项及原准备/runtime/workflow摘要保持，本轮无生产调用 |
 | 1 一次集中取证 | 已获准并完成 | STS1/GitHub15/固定回执1，两个匹配app原件均缺失；不再查询旧构建 |
 | 2 兼容/持久化 | 离线输入已收口；云端证明未完成 | 五应用源码树不变，原9图全部找到并哈希（根5/products4）；兼容契约提案和私有迁移输入准备完毕，尚未上传/改库/写绑定 |
-| 3 合格A/B目录 | 最小入口和准确CI通过，实际发布/登记未执行 | [第13节](#d2-6-bootstrap-implementation)源码b1e1ebd/CI44139556595，Linux239＋PG16十项无skip；下一仅更新集中操作材料/另审必要事实，不重做代码或恢复 |
+| 3 合格A/B目录 | 真实完成：A已发布/ecr_verified、B已登记未晋升candidate，独立回读通过 | [第16节](#d2-6-publication-catalog-observed)原run44154605425 success，dispatch1/配置1/TLS2/SQL52；复用准确原件及代码，入口已关闭，不重复发布/登记 |
 | 4 首次启用 | 未执行 | 收费环境不恢复，runtime仍关闭，种子/实际操作另审 |
 | 5 两次正常更新 | 0／2 | 不以初始恢复/对齐、NO_CHANGE或模拟结果充数 |
 | 6 结案 | 未完成 | 必须有两次真实成功及最终一致回写 |
@@ -481,6 +481,20 @@ register先核对批准SHA、当前代码、私有输入raw SHA及完整派生�
 外层只覆盖本次单A镜像、A ecr_verified与原B candidate两行，准确review数据main激活/关闭，单次本人GitHub environment门禁，已验证函数按真实A proof确定性派生内部登记SHA并一次运行。只有外层另批后才可读固定Secret/配置、dispatch/push或SQL登记；不先执行，不给B预推、不重装权限/身份，不恢复、绑定或启用daily runtime。真实registry/platform digest尚未知，只能由实际manifest派生；兼容/持久化准入保持后续门槛。
 
 新事实五小时自18:46:21.276Z至23:46:21.276Z；集中执行最多60分钟，最晚22:46:21.276Z（温尼伯16:46:21）启动，内部登记最多10分钟且不越共同截止。它不是资源自动到期，也不延期旧扫描/产物或数据库事实。本轮仅准备，到此停在请求准确外层审批；无实际发布/登记/恢复，真实更新仍0/2。
+
+<a id="d2-6-publication-catalog-observed"></a>
+
+### 16. 原步骤3真实收口：A发布、A/B登记及独立核验全部通过
+
+用户批准外层SHA126422f9…及完整风险，19:03:34.191–19:10:45.068Z约7分11秒完成。[去敏实际回执](aws-instance-release-initial-publication-observed-20261117.json)保留准确原件、状态、S3引用及计数；[run44154605425](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44154605425) main/manual/attempt1、源码8a04a48…、用户本人environment批准后success。代码仍原b1e1ebd对应15指纹，未重构建、改正式实现/工作流/权限或恢复环境。
+
+- A `release_00b9c5cfa6bceedc5fd05aa451dca811`已发布到原准确tag；真实root/platform digest同为 `sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0`，不是原config digest。原始manifest通过既有校验器，精确S3 published/intent两版本及SHA、run/source/候选绑定独立回读通过，未额外查询当前ECR。
+- 固定规则派生内部登记SHA `46964e21239addb0287de17e173dd67150d158f2883dcede7770ea640f3f7e4b`，外层已委托且未另扩范围。A实际REGISTERED/ecr_verified；B `release_afcc95f9eaa20785265300c801fd7618`实际CANDIDATE_REGISTERED，完整候选SHA仍910246ac…、未下载/推送B。单writer两事务及新TLS inspection两事务全过，均证明临时owner SET/INHERIT关闭；创建者ADMIN保留。实际配置读1/TLS2/SQL52，目录INSERT2，业务/实例绑定写0。
+- 首次私有wrapper在模块加载阶段引用不存在的umbrella包，尚无请求/attempt，改用项目已安装同名provider导出并保留安全记录，不新增依赖/正式代码。原单次POST返回HTTP200后，被本地204-only条件误拒；停止/意图不覆盖。用户明确另准helper1＋原剩余33 GET后只继续这一run，不发第二POST/不Re-run，原deadline不延。
+- 最终Source STS2、GitHub GET11/helper2（其中1另批）、run状态轮询3、门禁读1、proof ZIP1、固定S3 GET2。发布审计3项条件写均有VersionId/SHA，真实A单镜像发布，旧push槽不复位；云底层层/manifest请求数不冒充一次API写，也未额外查询提供者调用计量。
+- 引导review恢复原disabled；daily runtime仍关。不改IAM/Secret/schema，不连Aurora/迁图/做业务验收、不恢复收费环境；原件/a/b/包装器停止/永久槽保留，无自动回滚/清理。外层原JSON不改为已执行，实际结果单独记录；真实D2更新仍0/2。
+
+下一只准备原步骤4：复用A真实digest及A/B目录、原九图输入和兼容提案，集中明确必要恢复、持久化/兼容证明、初始实例A绑定和runtime启用。实际新读取/恢复/媒体或SQL/配置操作另审，不先恢复等待材料、不重做第3步或身份安装，不扩Full/媒体工具/新部署框架。A已发布镜像不因构建ZIP到期自动消失；B仍须原artifact在11月18日16:45:19Z前有效且扫描符合原规则，旧日期不延。
 
 <a id="d2-1-delivered"></a>
 
