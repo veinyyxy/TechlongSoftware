@@ -2,7 +2,17 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：旧测试与准确CI已通过；步骤4集中执行SHA待批，不执行恢复（2026-11-17）
+## 当前唯一继续点：步骤4在本机YAML解析停止；未写资源，待准确接续批准（2026-11-17）
+
+用户已批准原4891563c…，本轮真实执行于21:35:01.678Z启动、21:38:02.370Z停止：[停止回执](aws-instance-release-step4-execution-stopped-20261117.json)。Source STS1通过，原Cell四读/tenant DescribeStacks和GetTemplate共元数据6成功，八份固定派生输入已各读取一次。租户模板返回YAML，既有`readStack`仅JSON.parse的本地假定导致SyntaxError；不是AWS拒绝/Source过期。实际Aurora连接/SQL、图片读取/上传、CFN Create/Execute、DNS、配置/Neon、runtime写均0，失败进程已退出，旧INTENT/journal保留不复位。先前零云调用的本机摘要函数误用也保留，清单指定sha256Hex始终匹配，原清单字节未改。
+
+只对已存第6响应做本机诊断，既有js-yaml可解析为3资源；私有薄适配的4项格式检查通过，正式CFN辅助函数/生产代码/workflow/runtime不改，无新增云读取。**不重跑原入口，不静默补读已用八文件。** 已准备[唯一接续清单](../ops/releases/d2-6-step4-continuation.review.json)，SHA `1d5af10a6f51bd854c5f7af007123da287c9609e9e42dc4a466a677f53553363`：仅请求同八份固定SHA派生输入各补读1次（累计16），复用本轮六个成功返回，保留全部原资源/写入上限；Source余2/元数据余314，不新增对象、配置/Secret/图片读取类别或生产修复。实际执行仍另待用户批准此接续范围，不由原失败自动重试。
+
+接续不得重开90分钟：原本轮操作截止**23:05:01.678Z＝今天17:05:01温尼伯**保持；事实18:53:21与B产物原到期也不延。窗口不够则在收费恢复前停止，不能以新接续文件给旧周期续期。旧489清单/失败槽与全环境停用状态原件保留，平台/prod、RDS写、正常release dispatch仍排除；D2正常更新0/2。下方待批/已批准描述仅为原轮沿革。
+
+### 原步骤4集中批准与执行沿革（保留，不重放）
+
+**本轮明确批准覆盖“待批”：** 用户已确认按SHA `4891563c4c103ba1ea1beef5ce8bc32b2923305179e793c806354ea8589198a6`执行并接受完整风险，仅在原期限内、不扩大范围。先在新私有单次记录核验SHA/代码/截止，随后严格按该集中清单连续执行；原清单字节不改、旧槽/journal不复位。实际阶段/计数以本轮新回执为准，任一超界/失败/未知即停；没有额外Start、权限扩张、重试或清理许可。
 
 用户批准的唯一旧测试修复已完成，源码`6f84f14f7ee38dd8b9bf650f5b39a43bebcba9d0`、[准确CI44173152522](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44173152522)的offline/隔离PG两个job及lint/类型全success：[真实回执](aws-instance-release-step4-test-ci-20261117.json)。只改此测试文件，生产CLI/工作流/实际runtime仍保持；CI核对仅既有Git认证和准确GitHub run/步骤，无AWS/生产配置/数据库/Secret读取或恢复。
 

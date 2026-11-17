@@ -1,0 +1,68 @@
+{
+  "schema": "techlong/d2-6-step4-execution-stopped/v1",
+  "status": "STOPPED_AT_LOCAL_TENANT_TEMPLATE_DECODING_NO_PROVIDER_WRITES",
+  "approvedManifestSha256": "4891563c4c103ba1ea1beef5ce8bc32b2923305179e793c806354ea8589198a6",
+  "startedAt": "2026-11-17T21:35:01.678Z",
+  "stoppedAt": "2026-11-17T21:38:02.370Z",
+  "originalOperationDeadline": "2026-11-17T23:05:01.678Z",
+  "originalFactsDeadline": "2026-11-18T00:53:21.305Z",
+  "deadlinesExtended": false,
+  "sourceIdentityVerified": true,
+  "actual": {
+    "sourceSts": 1,
+    "awsMetadata": 6,
+    "fixedPrivateInputReads": 8,
+    "auroraConnections": 0,
+    "auroraIamTokens": 0,
+    "auroraSql": 0,
+    "imageReads": 0,
+    "s3PutsOrGets": 0,
+    "createChangeSet": 0,
+    "executeChangeSet": 0,
+    "dnsWrites": 0,
+    "configReads": 0,
+    "neonConnections": 0,
+    "sqlWrites": 0,
+    "githubCalls": 0,
+    "runtimeEnabled": false,
+    "environmentRestoredByThisAttempt": false
+  },
+  "cause": {
+    "component": "Temporary one-off orchestration using existing readStack",
+    "failure": "Existing readStack JSON.parse rejected the successfully returned tenant GetTemplate Original YAML string",
+    "providerRequestSucceeded": true,
+    "notAnAwsPermissionOrSourceExpiryFailure": true,
+    "lastResponseService": "cloudformation",
+    "lastResponseOperation": "get-template",
+    "savedYamlParsedWithExistingJsYaml": true,
+    "parsedResources": 3,
+    "parsedCanonicalTemplateSha256": "dab17b240c8fe7e272b549c305b2990c7c949507e1f58d19f7fbd8aea90bc57b",
+    "localAdapterChecks": 4,
+    "formalCodeWorkflowOrRuntimeModified": false,
+    "extraProviderCallsForDiagnosis": 0
+  },
+  "earlierLocalPreexecutionStop": {
+    "cause": "One-off guard initially used lifecycle hash instead of the manifest's existing sha256Hex canonicalization",
+    "actualApprovedShaVerifiedUnchanged": true,
+    "providerCallsAtThatPoint": 0,
+    "permanentAttemptAtThatPoint": false,
+    "recordPreserved": true
+  },
+  "privateEvidence": {
+    "directory": ".local-secrets/d2-6-step4-execution-4891563c",
+    "journalRawSha256": "2d0ad9be8fe64c159fb2a1f8f36efd009121893c326939d43e5a1f76c074d435",
+    "lastResponse": "response-006.json",
+    "lastResponseRawSha256": "a1d83fddde6bbf9940acd53dbf6eb7120e641fa7aa2e06a0c53116d7e42d84d9",
+    "localTemplateAdapter": ".local-secrets/d2-6-step4-template-format-4891563c.mjs",
+    "localTemplateAdapterLfSha256": "b8aa88b85b050e3acf961a74180c355ea82d19d36b554b45d6f31571387372c0"
+  },
+  "preservation": {
+    "failedOperatorExited": true,
+    "journalOrPermanentIntentReset": false,
+    "successfulRequestsReissued": false,
+    "wholeEnvironmentStopJournalModified": false,
+    "originalApprovedManifestModified": false
+  },
+  "next": "Prepare only an exact continuation: normalize the saved YAML response locally, reuse all six successful returns, request explicit permission for one reread of the same eight fixed derived inputs after process termination; preserve original total provider/write budgets and original operation deadline. Do not rerun original operator or assume a new window.",
+  "normalReleaseAcceptances": 0
+}

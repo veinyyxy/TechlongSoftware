@@ -1,0 +1,130 @@
+{
+  "schema": "techlong/d2-6-step4-continuation-review/v1",
+  "status": "AWAITING_EXPLICIT_CONTINUATION_APPROVAL",
+  "executionApproved": false,
+  "executionPerformed": false,
+  "originalApprovalSha256": "4891563c4c103ba1ea1beef5ce8bc32b2923305179e793c806354ea8589198a6",
+  "originalManifestPath": "ops/releases/d2-6-step4-execution.review.json",
+  "stoppedEvidence": {
+    "path": "docs/aws-instance-release-step4-execution-stopped-20261117.json",
+    "lfSha256": "624e5c7bbaff4a2ba785cbebc6f04f67dab88cc6c5b35aec8da2e9201be4e4a6"
+  },
+  "purpose": "Continue only the unused original step4 scope after local JSON-only template decoding stopped; no resource/permission/SQL/media expansion.",
+  "writeBefore": "2026-11-17T23:05:01.678Z",
+  "factsValidUntilUnchanged": "2026-11-18T00:53:21.305Z",
+  "originalAttemptStartedAt": "2026-11-17T21:35:01.678Z",
+  "newNinetyMinuteWindowAuthorized": false,
+  "oldFactsOrArtifactTimesExtended": false,
+  "deadlineRule": "This continuation shares the original attempt's 90-minute total deadline; do not restart its clock. Insufficient time for remaining operations stops before paid restoration.",
+  "localCorrection": {
+    "path": ".local-secrets/d2-6-step4-template-format-4891563c.mjs",
+    "lfSha256": "b8aa88b85b050e3acf961a74180c355ea82d19d36b554b45d6f31571387372c0",
+    "tests": 4,
+    "formalCodeWorkflowOrRuntimeChanges": false,
+    "rule": "Existing js-yaml/JSON parser normalizes an already-returned TemplateBody into an object before unchanged readStack. No cloud call for parsing, no changed template semantics; use sha256Hex for approval guard, lifecycle hash only where original snapshot uses it."
+  },
+  "reuse": {
+    "directory": ".local-secrets/d2-6-step4-execution-4891563c",
+    "journalRawSha256": "2d0ad9be8fe64c159fb2a1f8f36efd009121893c326939d43e5a1f76c074d435",
+    "successfulReplies": [
+      {
+        "name": "response-001.json",
+        "rawSha256": "4bf7f7059d75b7248ac5a48759c69879a0c2f11bb14537f0fa31c46853fb2178"
+      },
+      {
+        "name": "response-002.json",
+        "rawSha256": "37992adb5ffc5dc19b74d75238939abf62268b828e770b28a458845ee7aecaad"
+      },
+      {
+        "name": "response-003.json",
+        "rawSha256": "60516e49982383624af26db0ccc187b6a1989746b83a71c6fde3bbc61a19e436"
+      },
+      {
+        "name": "response-004.json",
+        "rawSha256": "482fe48798ccafa5611fb03487659498dcba73cd281abd24ad93d3a9c8bcb831"
+      },
+      {
+        "name": "response-005.json",
+        "rawSha256": "780dcede22031303794d9e370e1f92f29dcc24f638496ba0ecce170da5f50676"
+      },
+      {
+        "name": "response-006.json",
+        "rawSha256": "a1d83fddde6bbf9940acd53dbf6eb7120e641fa7aa2e06a0c53116d7e42d84d9"
+      }
+    ],
+    "cachedRepliesReadMax": 6,
+    "journalReadMax": 1,
+    "rule": "Replay these six saved replies only inside initial preflight, not the provider requests; subsequent real fresh pre-write/independent guards remain subject to original metadata budget. Preserve original stopped journal/intent and script; never rerun original entry."
+  },
+  "additionalPermissionRequested": {
+    "exactFiles": "Same eight pinned derived files in originalManifest.privateInputs.files, unchanged SHA and size limits",
+    "readsPerFileMax": 1,
+    "additionalReadsMax": 8,
+    "totalOriginalAndContinuationPrivateInputReadsMax": 16,
+    "reason": "Failed process exited and did not retain the eight objects in a reusable continuation file; do not falsely claim they remain in memory or silently exceed the original once-per-file cap.",
+    "newCredentialsConfigImagesOrPrivateOriginalFiles": 0
+  },
+  "cumulativeBudget": {
+    "sourceStsMax": 3,
+    "alreadyUsedSts": 1,
+    "remainingStsMax": 2,
+    "awsMetadataMax": 320,
+    "alreadyUsedMetadata": 6,
+    "remainingMetadataMax": 314,
+    "auroraConnectionsMax": 3,
+    "auroraIamTokensMax": 3,
+    "auroraSqlMax": 60,
+    "imageReadsMax": 9,
+    "imagePutsMax": 9,
+    "imageVersionGetsMax": 9,
+    "publicImageGetsMax": 9,
+    "templatePutsMax": 1,
+    "cfnCreateMax": 4,
+    "cfnExecuteMax": 4,
+    "dnsUpsertsMax": 1,
+    "configReadsMax": 1,
+    "neonConnectionsMax": 2,
+    "neonSqlMax": 40,
+    "bindingInsertsMax": 1,
+    "githubGetsMax": 6,
+    "gitCredentialReadsMax": 1,
+    "runtimeCommitsMax": 1
+  },
+  "newPrivateIntent": {
+    "maximum": 1,
+    "directoryRule": ".local-secrets/d2-6-step4-continuation-<this-continuation-SHA-prefix>",
+    "oldSlotsReset": false,
+    "oldProviderWritesReplayed": false
+  },
+  "sourceGuard": {
+    "originalReviewedSourceSha": "6f84f14f7ee38dd8b9bf650f5b39a43bebcba9d0",
+    "ciRunId": 44173152522,
+    "originalAllCodeHashesRequired": true,
+    "additionalPermittedDocumentationDescendants": [
+      "docs/aws-instance-release-step4-execution-stopped-20261117.json",
+      "ops/releases/d2-6-step4-continuation.review.json"
+    ]
+  },
+  "risks": {
+    "originalRiskPath": "docs/aws-instance-release-step4-execution-review.md",
+    "originalRiskLfSha256": "97bb60f3a99656a6ec0de9de96d8ac77cc65fe1658f87b9a034e0ab76aca0182",
+    "originalFullRiskUnchanged": true,
+    "additionalRisk": "The exact same eight derived metadata/media inputs enter memory once more; no Secret/PAT/PEM/.env or original business export read is added. Partial writes/ongoing fees and unknown-result stop rules remain unchanged."
+  },
+  "unchangedExclusions": [
+    "RDS start/stop",
+    "platform/prod restore",
+    "new IAM identity/action or direct IAM mutation",
+    "new Secret/schema/password",
+    "ECR/build/catalog re-insertion",
+    "business tests/Full/automatic cleanup",
+    "normal release dispatch or user GitHub approval bypass"
+  ],
+  "thisPreparation": {
+    "providerCalls": 0,
+    "configReads": 0,
+    "databaseConnections": 0,
+    "resourceOrSqlWrites": 0,
+    "runtimeEnabled": false
+  }
+}

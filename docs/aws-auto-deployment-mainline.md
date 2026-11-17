@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：旧测试/准确CI已完成，原步骤4集中执行SHA待批准（2026-11-17）
+## 当前唯一继续点：原步骤4因本机模板格式停止，零云写；仅待准确接续批准（2026-11-17）
+
+原489清单已获批准并实际开始，[回执](aws-instance-release-step4-execution-stopped-20261117.json)：STS1成功/元数据6成功/固定派生输入8，租户GetTemplate成功返回YAML，被既有JSON-only辅助函数误拒。本轮Aurora/SQL、图片、CFN/DNS、Neon/配置、runtime写或恢复均0；不是AWS权限/Source失效，未重试请求或复位槽，失败进程已退出。
+
+只读已保存返回的本地诊断/4项格式验证已通过，正式代码/运行配置不改。[接续JSON](../ops/releases/d2-6-step4-continuation.review.json) SHA `1d5af10a6f51bd854c5f7af007123da287c9609e9e42dc4a466a677f53553363`仅拟：同8份固定派生输入各补读一次、复用6个成功返回、使用原未用范围/上限；实际接续另批，不静默超读。原本轮90分钟截止今天17:05:01温尼伯不延，不重新启动计时；后继CFN实时核对仍按原预算，平台/prod和RDS写排除，D2正常更新0/2。下一只等待这个接续批准，不重发旧入口或再开修复支线。
+
+### 原集中清单沿革（保留，不重放）
 
 单一旧测试修复源码`6f84f14`的[CI44173152522](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44173152522)两job及lint/类型已真实成功，[结果](aws-instance-release-step4-test-ci-20261117.json)；无新增AWS/生产配置/数据库读取，不恢复或启用runtime。已复用原事实完成[集中清单](../ops/releases/d2-6-step4-execution.review.json)/[完整风险](aws-instance-release-step4-execution-review.md)，SHA **`4891563c4c103ba1ea1beef5ce8bc32b2923305179e793c806354ea8589198a6`**。下一只待该准确范围另批，不再修测试、盘点或补工具。
 

@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 A PUBLISHED / A-B REGISTERED / STEP4 FACTS AND TEST-CI COMPLETE / CONCENTRATED EXECUTION AWAITING APPROVAL — NO RESTORE`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 A PUBLISHED / A-B REGISTERED / STEP4 EXECUTION STOPPED AT LOCAL YAML DECODING — ZERO PROVIDER WRITES / CONTINUATION AWAITING APPROVAL`。
 
 已交付代码、一次性身份安装及本轮两次真实app构建，以各自最新准确回执为准，不把原设计或离线验证当实际部署完成。本文其他待审范围不是新增生产读取、SQL/Secret/IAM修改、ECR发布、部署调度或AWS操作授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -15,6 +15,8 @@
 <a id="d2-6-readiness"></a>
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
+
+**最新第20节覆盖下方原待批状态：** 用户已批489…，执行在Source1/元数据6/八固定派生输入后，被租户成功返回的YAML与既有JSON-only解析假定阻断；[停止回执](aws-instance-release-step4-execution-stopped-20261117.json)。云SQL写/恢复/图片/配置/Neon/runtime均0，非权限或登录错误。仅本地解析兼容验证完成，不改正式代码/复位旧槽；[准确接续](../ops/releases/d2-6-step4-continuation.review.json) SHA `1d5af10a6f51bd854c5f7af007123da287c9609e9e42dc4a466a677f53553363`另待批准，明确同八输入各额外读1次、复用6返回、不增加资源/权限/原总API写上限。原本轮操作截止今天17:05:01温尼伯，不重开90分钟；D2正常更新仍0/2。
 
 **最新第19节覆盖下方历史继续点：** [唯一旧测试和准确CI](aws-instance-release-step4-test-ci-20261117.json)已通过，未新增生产读取/恢复或启用runtime。已复用原事实定稿[步骤4执行清单](../ops/releases/d2-6-step4-execution.review.json)/[完整风险](aws-instance-release-step4-execution-review.md)，SHA `4891563c4c103ba1ea1beef5ce8bc32b2923305179e793c806354ea8589198a6`，下一只待该集中范围另批；不重复盘点、编码或回到已完成步骤。事实仍11月17日18:53:21温尼伯到期，90分钟整轮最晚17:23:21启动；运行入口仍关、真实正常更新0/2。
 
@@ -624,6 +626,20 @@ JSON已集中列出一次必要补核提案：STS1＋AWS元数据最多51（各�
 拟有界复用：先在已运行原Aurora完成准确九图/兼容和独立回读，再做原tenant停用态A对齐、Cell恢复、原IAM栈单ManagedPolicy窄修正、tenant/API恢复、独立技术证明、唯一初始A绑定/回读，最后才runtime数据启用。最多CFN4Create/4Execute、媒体PUT9/模板PUT1/CAS9/绑定INSERT1/DNS UPSERT1；原有ECS固定Secret托管注入/正常CFN回滚与旧版本管理明确披露。RDS写0、无平台/prod恢复、新角色/Secret/schema、A/B再发布/登记、工作流dispatch、业务测试或自动清理，后续两次正常更新仍各待本人GitHub门禁。
 
 准备事实从真实19:53:21.305Z起5小时不变，截止**11月17日18:53:21温尼伯**，总执行≤90分钟，最晚**17:23:21**启动；B原artifact仍11月18日10:45:19到期、扫描独立时限不变。当前Git main只允许准确CI源码之后的这批文档/审批JSON后继，不允许其他代码变化混入；实际runtime在最后受审阶段前仍为原disabled摘要。生成/提交本清单不启动任何时钟或执行槽、不延旧日期。下一只请求这一个SHA及完整风险的实际执行批准，不追加生产补核或重复已有回归；本轮实际恢复/SQL写/runtime启用均0，D2正常更新0/2。
+
+<a id="d2-6-step4-execution-stopped"></a>
+
+### 20. 原集中执行停止：仅本地模板格式兼容，无云写或恢复
+
+用户明确批准4891563c…且原清单未过期。本轮21:35:01.678Z启动，21:38:02.370Z停止。准确Source身份通过，取得原Cell DescribeStacks/GetTemplate/ListStackResources/ListChangeSets四项与tenant DescribeStacks/GetTemplate两项，八份固定派生输入各读一次。租户第6返回是合法YAML字符串，现有`readStack`只JSON.parse的假定在本机抛SyntaxError；请求成功，不能解释成AWS拒绝、权限变化或Source失效，也不能称整个环境已核对/恢复。
+
+[公开回执](aws-instance-release-step4-execution-stopped-20261117.json)封存新失败journal及最后响应raw SHA，原始正文留私有目录。实际数据库连接/SQL、图片读取/上传、CFN创建/执行、DNS、配置/Neon、runtime写和业务测试均0，失败进程已退出。零云调用的更早本机摘要误用已用指定`sha256Hex`验证清单始终匹配，单独保留；未重放任何成功云请求、修改清单字节或复位已创建的本地INTENT。
+
+仅解析已保存YAML的本机诊断确认3项资源、无Transform、规范SHA `dab17b240c8fe7e272b549c305b2990c7c949507e1f58d19f7fbd8aea90bc57b`。私有薄适配用既有JSON/js-yaml将响应正文转成对象再交给未改的`readStack`，四项格式检查通过；不改正式辅助函数、代码/CI/workflow、运行配置或模板语义，不为诊断重新GetTemplate。
+
+**唯一待批接续**为[`d2-6-step4-continuation.review.json`](../ops/releases/d2-6-step4-continuation.review.json)，规范SHA `1d5af10a6f51bd854c5f7af007123da287c9609e9e42dc4a466a677f53553363`。它继承原完整资源/媒体/SQL/权限和风险范围，只明确额外许可：失败进程退出后，同八份准确SHA派生输入各额外读取1次（两轮累计16）；六个成功返回与旧journal在本地复用，不重发它们来修格式。剩余Source STS≤2、AWS元数据≤314及原未用写预算不增加；后继正常实时写前/独立核验仍按原合同计数，不把cache当新鲜独立证据。原失败原件/槽保留，新接续记录独立，不能重跑旧入口或伪称内存对象未丢失而超读。
+
+本次原90分钟操作截止23:05:01.678Z（**今天17:05:01温尼伯**），不因接续重新计时；原准备事实18:53:21、artifact/扫描截止保持。新接续尚未执行，窗口不足就停在收费恢复前，不扩大资源/权限、恢复平台/prod、启动/停止RDS或重建版本。无需先让用户重复登录；只有获批真实身份核验失败才处理。D2正常更新仍0/2，下一只待这个准确接续批准，不再盘点/新建工具。
 
 ## 阶段1交付状态：合同、纯计划器与离线回归已完成
 
