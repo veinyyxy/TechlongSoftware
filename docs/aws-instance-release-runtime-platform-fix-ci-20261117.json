@@ -1,0 +1,225 @@
+{
+  "schema": "techlong/d2-6-runtime-platform-compatibility-fix/v1",
+  "status": "CODE_AND_EXACT_CI_VERIFIED_NO_PRODUCTION_EXECUTION",
+  "verifiedAt": "2026-11-17T23:52:27Z",
+  "sourceSha": "29398e301bd29d1b935d2f46054983bc69dde66c",
+  "priorExecution": {
+    "path": "docs/aws-instance-release-step4-activation-partial-20261117.json",
+    "replayed": false,
+    "resourceFactsRenewed": false
+  },
+  "change": {
+    "productionFiles": [
+      "lib/deployments/releases/inspection.ts"
+    ],
+    "testFiles": [
+      "tests/instance-release-cycle.test.ts"
+    ],
+    "rule": "Preserve explicitly declared X86_64/LINUX behavior. Infer omitted/partial Fargate defaults only when every actual task proves launchType FARGATE, platformFamily Linux, and ecs.cpu-architecture x86_64.",
+    "explicitArmWindowsRejected": true,
+    "missingOrConflictingProofRejected": true,
+    "ec2DefaultsNotInferred": true,
+    "rawFactsUnchanged": true,
+    "releaseRuntimeDigestsUnchanged": true,
+    "templatesSamplingWorkflowAndPermissionsUnchanged": true,
+    "providerReference": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html"
+  },
+  "localValidation": {
+    "regressionGroupsAdded": 5,
+    "regressionReproducedBeforeFix": true,
+    "focusedGroupsPassed": 5,
+    "fullRegression": {
+      "tests": 244,
+      "passed": 243,
+      "failed": 0,
+      "skipped": 1,
+      "skip": "Existing platform-specific test"
+    },
+    "scopedLint": "passed",
+    "typecheck": "passed",
+    "existingSavedFailedTaskProjectionMatchesRule": true,
+    "savedTaskProjection": {
+      "launchType": "FARGATE",
+      "platformFamily": "Linux",
+      "cpuAttribute": "x86_64"
+    }
+  },
+  "ci": {
+    "headSha": "29398e301bd29d1b935d2f46054983bc69dde66c",
+    "id": 44202919107,
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/44202919107",
+    "status": "completed",
+    "conclusion": "success",
+    "attempt": 1,
+    "createdAt": "2026-11-17T23:51:05Z",
+    "updatedAt": "2026-11-17T23:51:56Z",
+    "jobs": [
+      {
+        "id": 134461350959,
+        "name": "postgres",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-11-17T23:51:07Z",
+        "completedAt": "2026-11-17T23:51:47Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Initialize containers",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Draft DDL and minimal real PostgreSQL role/transaction regression",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Stop containers",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 134461351761,
+        "name": "offline",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-11-17T23:51:09Z",
+        "completedAt": "2026-11-17T23:51:55Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run npm ci --ignore-scripts --no-audit --no-fund",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Synthetic release cycle and adjacent regression",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Scoped lint",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run node node_modules/typescript/bin/tsc --noEmit --incremental false",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Run actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ],
+    "workflow": ".github/workflows/instance-release-checks.yml",
+    "event": "push",
+    "branch": "main",
+    "awsIdentity": false,
+    "postgres": "Isolated GitHub service, PostgreSQL16; no Neon/Aurora connection"
+  },
+  "files": [
+    {
+      "path": "lib/deployments/releases/inspection.ts",
+      "lfSha256": "4693405a0f4e2f104e32b36492d4754af1a23ba63c97b240b9512ff40dbd314f"
+    },
+    {
+      "path": "tests/instance-release-cycle.test.ts",
+      "lfSha256": "24204c43791de5ec2b056c8c285854269dbd864d7b29578d94f019e7eeebf423"
+    },
+    {
+      "path": ".github/workflows/instance-release-checks.yml",
+      "lfSha256": "278aa8a8cb013ac19945c9aa0cea9248cf75530a1f92c331addd441679a64cd5"
+    },
+    {
+      "path": "ops/releases/runtime.json",
+      "lfSha256": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6"
+    }
+  ],
+  "thisTurn": {
+    "awsCalls": 0,
+    "productionDatabaseConnections": 0,
+    "productionResourceOrSqlWrites": 0,
+    "configurationReads": 0,
+    "secretValuePemPatReads": 0,
+    "privateOriginalInputReads": 0,
+    "previouslySavedTaskMetadataProjectionReads": 1,
+    "runtimeChanged": false,
+    "actualRuntimeEnabled": false,
+    "releaseOrDeployDispatches": 0,
+    "businessTests": 0,
+    "gitHubReads": "Exact source CI discovery, run and job metadata only; connector-managed authentication, no explicit credential helper read.",
+    "localConnectorNormalizationError": "One job-helper result was not unpacked locally; generic GET to the same CI jobs confirmed completion. No resource retry or scope expansion."
+  },
+  "nextOnly": "Prepare the remaining independent technical proof, initial A binding/readback and runtime data activation from saved successful originals and this exact CI. Actual new production reads and remaining writes need exact separate approval. Do not re-restore, replay four CFN updates, image uploads or media CAS, or do broad inventory.",
+  "unchangedDeadlines": {
+    "originalOperation": "2026-11-18T00:50:04.215Z",
+    "originalFacts": "2026-11-18T00:53:21.305Z",
+    "rule": "CI verification is not resource resampling or a new execution window."
+  },
+  "normalUpdatesAccepted": 0,
+  "normalUpdatesRequired": 2
+}
