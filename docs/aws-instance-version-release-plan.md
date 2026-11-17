@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 CODE/CI COMPLETE / FOCUSED READ STOPPED AT SOURCE — NO REAL PUBLICATION OR REGISTRATION`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 A PUBLISHED / A-B REGISTERED / STEP4 READS COMPLETE / LOCAL TEST ACTIVATION GATE — NO RESTORE`。
 
 已交付代码、一次性身份安装及本轮两次真实app构建，以各自最新准确回执为准，不把原设计或离线验证当实际部署完成。本文其他待审范围不是新增生产读取、SQL/Secret/IAM修改、ECR发布、部署调度或AWS操作授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -15,6 +15,8 @@
 <a id="d2-6-readiness"></a>
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
+
+**最新步骤4补核已完成，覆盖下方历史待读表述：** [第18节](#d2-6-step4-read-observed)/[真实回执](aws-instance-release-step4-read-observed-20261117.json)记录原集中读取及两项另批续段，共STS1/元数据62/GitHub5/配置1/Neon只读TLS1/SQL14，无云SQL写或恢复。现只在同一[集中接续材料](../ops/releases/d2-6-step4-execution.prepared.json)中收口准确既有ManagedPolicy修正、最小恢复/媒体/初始绑定/runtime，不重做读取、发布A或登记A/B。唯一新增本地门槛为既有测试把实际runtime关闭写死；未改代码，下一仅待最小测试fixture适配及既有CI许可。执行SHA仍null、runtime仍关、真实更新0/2；事实11月17日18:53:21温尼伯到期不延。
 
 **最新结果覆盖历史待批：** [第16节](#d2-6-publication-catalog-observed)/[实际回执](aws-instance-release-initial-publication-observed-20261117.json)已按准确外层批准完成A单app发布、真实manifest核验及A verified/B candidate两行登记/独立回读，约7分11秒、dispatch1、配置1/TLS2/SQL52。引导review已关闭，daily runtime仍关，未恢复环境或写绑定；真实更新仍0/2。下一只准备原步骤4的必要恢复/持久化兼容证明/初始A绑定/runtime集中范围，实际新读取和写入另审，不再发布A或登记A/B、重装身份/扩工具。B产物原到期11月18日16:45:19Z，扫描/事实期限不延期。
 
@@ -553,6 +555,59 @@ JSON已集中列出一次必要补核提案：STS1＋AWS元数据最多51（各�
 本轮只新增这一份非执行JSON及文档，未实现新代码/模板/SQL/工作流，不重跑无关CI；40项本地一致性检查通过，含19份原证据SHA、A真实digest/B状态、CFN资源/六输出边界、未来读取求和、runtime候选摘要和实际两配置关闭。本地材料校验不等于当前资源/媒体/数据库或上线验收。下一唯一动作是另审上述必要的一次集中事实核对，收费环境不先恢复。
 
 <a id="d2-1-delivered"></a>
+
+<a id="d2-6-step4-read-observed"></a>
+
+### 18. 步骤4只读补核完成：按实际事实收口，不再整批盘点
+
+本节与[真实回执](aws-instance-release-step4-read-observed-20261117.json)、[集中接续材料](../ops/releases/d2-6-step4-execution.prepared.json)取代第17节中已过时的“待读”状态；原草案、停止记录和批准沿革保留，不改写成执行许可。原集中范围及两项明确续段已全部使用完毕，**没有剩余授权需要继续调用**。实际操作、测试修复及新读取仍另审，执行SHA为null。
+
+#### 18.1 本轮真实结果与限制
+
+- 实际STS1、AWS元数据62（原51＋角色/丢失投影续段7＋原IAM归属4）、GitHub GET5/helper1、四份私有原件、配置1/验证TLS的Neon READ ONLY连接1/SQL14。Secret值/图片/Aurora连接、云SQL写、槽和dispatch均0；未恢复或启用runtime。
+- A的真实ECR digest及A verified/B candidate目录匹配；初始绑定不存在、活跃release请求0，B artifact14349965129仍可用。九个准确媒体目标HEAD均不存在，但**没有读取当前Aurora媒体行、文件内容或证明完整兼容/持久化**。
+- 原Cell/tenant均UPDATE_COMPLETE、保留12/3项；两份完整恢复候选已ValidateTemplate通过。平台只通过原稳定性判定，不把丢失的初轮原始投影编造补齐，也不称平台已经重新做过健康验收。
+- 原Aurora和writer实际为available，17.9/IAM enabled，**本轮没有调用Start**；原因未查询，可能已经持续计费。writer的PubliclyAccessible=false不能单独证明Express原访问通道不可用。独立prod库没有查询/恢复；本次读许可也不授权停库。
+- 已从既有源码定位Source IAM→准确Express endpoint→ATS根/SNI/证书验证的原连接方法；仅复用运输规则，不调用旧“空库八查询”观察器、读取旧私密包、创建代理/维护task或修改网络。真实TLS可达/身份仍留给实际获批执行证明，未在本轮偷偷连接。
+- 原私有核对器把Cell角色误限定为“附加1份policy、无inline”，已停止并保留；另批取得其真实inline/边界布局后续行。没有修改正式代码、权限或旧结果。原始证据正文留私有目录，公开只保存必要元数据/摘要。
+
+新事实从19:53:21.305Z起计5小时，**2026-11-18T00:53:21.305Z，即11月17日18:53:21温尼伯截止**；完成时间20:22:11.200Z不重开计时。B原artifact仍11月18日16:45:19Z（温尼伯10:45:19）到期，扫描有效期独立，不延长旧时间。
+
+#### 18.2 归属与唯一必要IAM差异
+
+用户另准的原IAM栈四读已完成：`techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917`，UPDATE_COMPLETE、24项资源、未决Change Set0；ManagedPolicy `TechlongSandboxCloudFormationExecutionBoundary`归逻辑ID`ExecutionRoleBoundary`所有。
+
+现有效v10中`C5gExactListenerRulesTags`的DescribeTags仍限定四个旧规则ARN前缀，其中准确两项对应当前tenant参数中的监听器；新恢复监听器的物理ID不会相同。因此未来集中审批须明确：
+
+1. 保留其余23项资源、栈参数/标签/其他根字段，以原CFN栈更新这一ManagedPolicy；不直接CreatePolicyVersion、改role/trust/attachment或重装身份。
+2. 以本轮真实有效v10（规范SHA `965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6`）为权限基准，只将上述两项替换成独立核验后真实Cell监听器导出的`listener-rule/.../*`前缀。其他两项历史前缀、所有有效Action/Condition/Statement保持。
+3. **原模板声明与实际有效v10摘要不同**，故包含这一资源声明向真实v10的收敛，不能谎称仅在原模板文字上替换两行。实际有效权限没有额外Action/Principal/无关资源扩张；原声明SHA与真实v10均封存。实际Change Set仍必须恰为一项ManagedPolicy Modify、无替换，其他变更拒绝。
+4. 新物理ARN只按固定规则运行时派生，不填假ARN。原完整IAM模板compact为54,521字节，超过TemplateBody上限；未来清单须包含最多一次原构建桶条件模板PUT、准确内容SHA/模板验证及CAPABILITY_NAMED_IAM，不冒称Object Lock。CFN可能管理旧policy version生命周期，风险明确纳入，不单独删除版本。
+
+以上仅是审批材料，没有创建Change Set、上传模板或修改IAM。Cell现有角色规则范围已按实际布局核对，不为它新增角色/策略。
+
+#### 18.3 集中实际顺序：先数据证明，后收费边缘，最后启用
+
+下列均**尚未批准执行**，完整资源、派生规则与拟议上限见同一机器材料；实际执行总读/轮询与时间预算在本地门槛通过后一次定稿，不再插入新的准备分支。
+
+1. 只做准确身份/原状态前置核对；Aurora保持已available，不把Start包含进来。先用既有IAM/验证TLS连接核对兼容及九行媒体和实际引用；若停库/身份或网络不符就停止，不追加访问方案。
+2. 仅历史九图仍准确匹配且无其他被引用本地依赖时：读取九个已固定源文件、S3准确键条件PUT≤9，固定版本/内容验证；同一事务CAS≤9行，独立连接回读。`store_id=NULL`、ID、product_images关系及其他业务字段不动。`variants`仅替换与该行旧public_url完全相等的字符串值，其他本地变体依赖停止；不做整库URL替换/目录迁移。若失败，先不创建收费ALB。
+3. 原tenant停用态仅ImageUri对齐A：一个CS，只允许TaskDefinition Modify/Replacement=True，其他参数UsePreviousValue、仍3项/无Service。现有`applyStack`只接受Add/Remove或DesiredCount，**不适用于这一初始镜像对齐**；只复用现有底层CFN运输，不扩大该辅助函数，也不绕用日常发布器在未运行/未绑定环境中更新。
+4. 原Cell一个CS恢复4项Add，保持12项与443/8443/mTLS，核验真实输出；再按18.2经原IAM栈一个CS完成唯一ManagedPolicy差异。
+5. 原tenant一个CS恢复Service＋三规则4项Add，保留已装S3/已对齐A，从真实Cell输出绑定六参数；必要时准确API A Alias UPSERT一次。平台Web/ALB、prod库不恢复，资源仍由原CFN UUID唯一管理。
+6. 独立进程验证实际7项/ECS稳定digest A、归属/路由/Secret固定引用、健康/严格Express readiness、持久化和兼容，并调用原`releaseRuntimeDigests`派生真实基线。只做部署技术核验，不重复买卖家测试。
+7. 仅证明通过且初始绑定仍不存在时，原owner事务INSERT一条A/revision0/无active request/真实sampling绑定；关闭临时SET成员权限，独立READ ONLY回读。已证明owner可直接SELECT，不为独立回读再多做一次无必要GRANT；不重插A/B或修改旧业务状态。
+8. 最后才将已有关闭态运行配置的数据启用提交main；bootstrap仍关闭，原日常workflow不改、不dispatch。然后另批两次正常A→B→A，各只一次本人GitHub environment审批，第二次不改代码/复制工作流。
+
+拟合计最多四Create/fourExecute（停用A/Cell/原IAM/tenant）、媒体PUT9/模板PUT1/DNS UPSERT1/媒体CAS9/绑定INSERT1；RDS写0、新角色/Secret/schema0、自动重试/删除/清理0。Aurora与媒体/CFN/SQL/Git并非原子；部分收费资源、公开图片、policy或绑定可能遗留，正常CFN受管回滚/旧revision清理不等于代理有权再发回滚。普通ECS可托管注入准确两固定Secret版本，代理Secret值读取仍0。旧全环境工具不支持本次部分恢复状态，不伪造其全环境RUNNING/新成功周期，不借机改造它。
+
+#### 18.4 唯一未改的本地门槛：旧测试固定关闭态
+
+源码检查定位`tests/instance-release-workflow.test.ts`：212行强制真实`runtime.json`的environments为空且enabled=false，217行要求真实运行配置返回null，454行CLI测试也依赖真实关闭态。实际runtime启用后，前两组会误报，CLI测试不再保证走合成的关闭路径。**这是源码结论，不是已运行启用态CI或发生生产失败；本轮未改测试或运行配置。**
+
+下一唯一动作只提议：获同意后在这一既有测试文件隔离明确关闭的合成fixture，真实仓库配置按disabled/enabled两种受审状态做结构核对；保持默认关闭、完整配置/角色分离检查及离线CLI零AWS/凭据调用，验证启用形状合成用例和原无AWS回归/准确CI。不得为测试新增CLI配置入口、生产fallback、放宽验收、修改workflow/IAM或读取生产。
+
+通过后复用本轮已封存事实直接编成一份实际执行SHA，实际恢复/媒体/窄IAM/绑定/runtime仍集中另审；不再整批核对或追加工具。若届时事实真的过期，准确披露而不改日期，但**本轮不预先申请/执行刷新**。初始A对齐不计两次正常更新；当前仍0/2。
 
 ## 阶段1交付状态：合同、纯计划器与离线回归已完成
 

@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：步骤4集中材料已备；先另审一次必要事实核对，不恢复环境（2026-11-17）
+## 当前唯一继续点：步骤4只读补核已齐；仅待旧测试最小适配，不恢复环境（2026-11-17）
+
+[真实回执](aws-instance-release-step4-read-observed-20261117.json)/[第18节](aws-instance-version-release-plan.md#d2-6-step4-read-observed)：原集中核对及两项另批续段全部完成，STS1/AWS62/GitHub5/helper1/四原件/配置1/只读TLS1/SQL14；无Secret值/图片/Aurora连接、云SQL写/槽/dispatch。A/B目录、空初始绑定、九目标空和两恢复模板已核对。原IAM栈24项归属已取得，未来只需其中既有ManagedPolicy窄修正，不能直接改policy制造漂移。
+
+[集中接续材料](../ops/releases/d2-6-step4-execution.prepared.json)已按实际情况收口：Aurora/writer本来已available（非本轮启动、可能持续计费），先做受审数据库/九图证明再恢复Cell、窄IAM、租户及API，最后绑定A/runtime；平台和prod不恢复，不新建工具。实际执行SHA仍null：一处旧测试文件的三组断言仍硬编码实际runtime关闭，需先单独同意仅合成fixture适配及既有无AWS回归/CI。本轮没改测试，不追加生产读取。事实原截止11月17日18:53:21温尼伯不延，后继通过后直接准备集中执行SHA，不再盘点；运行入口仍关、真实更新0/2。
+
+### 已完成的步骤4离线草案（保留，下列待读提案不再执行）
 
 [步骤4材料](../ops/releases/d2-6-step4-activation.prepared.json)/[详细顺序](aws-instance-version-release-plan.md#d2-6-step4-prepared)已离线完成：复用19份已存证据/代码合同；只拟Aurora＋Cell＋租户API最小恢复、必要九图持久化/兼容、初始A绑定和最后runtime启用。平台Web/ALB与独立prod RDS排除，不改全环境启停工具、不重建图片设施/身份或重复A发布/A-B目录。
 

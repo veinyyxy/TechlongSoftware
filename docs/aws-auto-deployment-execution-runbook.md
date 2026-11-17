@@ -2,7 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：步骤4集中材料已备，实际新读取和恢复仍另审（2026-11-17）
+## 当前唯一继续点：步骤4必要只读已完成；仅待一处旧测试适配，集中执行尚未批准（2026-11-17）
+
+用户批准的原集中读取及两次准确续段已全部完成：[真实回执](aws-instance-release-step4-read-observed-20261117.json)/[第18节](aws-instance-version-release-plan.md#d2-6-step4-read-observed)。累计STS1/元数据62（原51＋另批7＋原IAM栈4）/GitHub5/helper1/四私有原件/配置1/Neon READ ONLY TLS1/SQL14；Secret值/图片/Aurora连接、云SQL写、dispatch和执行槽均0。Cell/tenant恢复候选已由AWS验证，A及B目录匹配、B原产物仍可用，初始绑定不存在，九个准确媒体目标均空；这些不等于已证明当前Aurora媒体/兼容或服务可运行。
+
+原IAM栈24项归属已证明，必要窄差异仅为`ExecutionRoleBoundary`中旧监听器规则ARN前缀；未来须由同一CFN栈修改，真实新前缀只能从恢复后Cell输出派生，不能直接写IAM或伪填物理ID。[集中接续材料](../ops/releases/d2-6-step4-execution.prepared.json)只准备、执行SHA仍null，原离线草案及失败原件不覆盖。**Aurora和writer已是available，并非本轮启动，可能已在计费；prod未查询，不由本次读许可自动停库。** 因此实际链路调整为先证明现有数据库/九图，再恢复收费ALB，不新增网络、代理或维护任务；平台Web/ALB和prod仍排除。
+
+本地源审查发现唯一启用前代码门槛：`tests/instance-release-workflow.test.ts`三处把实际runtime永久关闭写死，启用数据后会误报；本轮未改测试或正式入口。下一仅待用户同意将这一文件的关闭行为断言改为合成fixture隔离，并验证既有无AWS回归/准确CI；不改生产CLI/工作流/权限，不再生产读取或恢复。通过后复用本轮事实收口同一份实际执行SHA，不追加工具、重构建或重新盘点。事实原截止2026-11-18T00:53:21.305Z（11月17日18:53:21温尼伯），B仍11月18日10:45:19温尼伯到期，均不延长；真实D2更新仍0/2。
+
+### 已完成的步骤4离线准备（保留；下列“下一只读”已执行，不重放）
 
 用户只批准离线准备。本轮[步骤4机器材料](../ops/releases/d2-6-step4-activation.prepared.json)/[详细顺序第17节](aws-instance-version-release-plan.md#d2-6-step4-prepared)已集中复用19份已存记录/合同指纹，固定A真实digest、A/B目录、已装S3/CDN/权限/四环境值、九图原映射引用与原CFN UUID。没有新生产事实，执行SHA为null；AWS/GitHub API、凭据/配置/私有映射备份/图片读取、数据库连接/写入/槽、恢复和runtime启用均0。正式代码/SQL/模板/工作流和实际两个关闭配置不改，不重构建或重复身份安装。
 

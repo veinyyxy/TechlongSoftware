@@ -1,0 +1,140 @@
+{
+  "schema": "techlong/d2-6-step4-concentrated-execution-preparation/v1",
+  "status": "FACTS_COMPLETE_LOCAL_TEST_GATE_PENDING_SEPARATE_EXECUTION_APPROVAL",
+  "preparedOn": "2026-11-17",
+  "timezone": "America/Winnipeg",
+  "executionAuthorized": false,
+  "readyForExecutionApproval": false,
+  "executionApprovalSha256": null,
+  "factsReceipt": "docs/aws-instance-release-step4-read-observed-20261117.json",
+  "originalOfflineScope": "ops/releases/d2-6-step4-activation.prepared.json",
+  "factsValidUntil": "2026-11-18T00:53:21.305Z",
+  "bArtifactExpiresAt": "2026-11-18T16:45:19Z",
+  "oldDeadlinesExtended": false,
+  "target": {
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "region": "ca-central-1",
+    "accountId": "402010193138",
+    "aReleaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+    "bReleaseId": "release_afcc95f9eaa20785265300c801fd7618",
+    "aImageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+    "cellStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "tenantStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+    "iamOwnerStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+    "auroraId": "techlong-sandbox-express-d001",
+    "databaseName": "tenant_a0da1748bc4d5419_db",
+    "apiHostname": "first-acceptance.sandbox.techlong.cloud",
+    "hostedZoneId": "Z01473621BTTHKXBGOOEJ"
+  },
+  "localGateNotYetAuthorized": {
+    "onlyFile": "tests/instance-release-workflow.test.ts",
+    "change": "Use synthetic explicitly disabled config/test fixture for disabled behavior; verify repository runtime structurally in both approved states instead of asserting actual runtime is permanently false",
+    "mustPreserve": ["zero provider/credential calls in offline CLI tests", "role separation and complete real config validation", "default-disabled behavior", "production CLI/config/workflow unchanged"],
+    "verification": "Existing no-AWS release regression and accurate CI only, including enabled-shaped synthetic config without AWS calls",
+    "executed": false,
+    "newProductionReads": 0
+  },
+  "futureConcentratedSequenceNotApproved": [
+    {
+      "id": "data_before_paid_edges",
+      "action": "Fresh exact identity/unchanged-state check, then reuse existing Source IAM + ATS/SNI verified TLS transport against original already-available Aurora. No DB start, proxy/task/network creation, business initialization or frozen observer replay. Check required compatibility and exact live media rows/references before restoring ALB.",
+      "onChangedOrStoppedDatabase": "Stop; do not silently add a start or new access method"
+    },
+    {
+      "id": "bounded_media",
+      "action": "Only if nine historical media rows still match and no other referenced local assets need preservation: read nine pinned local files, conditional PUT exact absent products/* keys, verify fixed object versions/content, CAS exactly nine media rows in one transaction, then independently read back. Preserve store_id NULL, IDs, product_images relations and unrelated fields. Replace variants string leaves only when exactly equal to that row's old public_url; unknown local variants/dependencies stop.",
+      "maximumFiles": 9,
+      "maximumBytesPerFile": 5242880,
+      "maximumTotalBytes": 47185920,
+      "maximumConditionalPuts": 9,
+      "maximumCasRows": 9,
+      "noDeleteOverwriteOrBulkUrlReplacement": true
+    },
+    {
+      "id": "idle_a_alignment",
+      "action": "One CFN UPDATE on exact tenant UUID, UsePreviousTemplate, ImageUri=A only, all other parameters UsePreviousValue; strict CS allows only TenantTaskDefinition Modify/Replacement=True. Still three resources/no Service/tasks. Existing applyStack does not permit this modification, so use existing lower-level CFN transport without broadening that helper.",
+      "maximumCreateChangeSet": 1,
+      "maximumExecuteChangeSet": 1
+    },
+    {
+      "id": "cell_restore",
+      "candidateCanonicalSha256": "e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892",
+      "action": "Existing CFN primitive restores only CellLoadBalancer, BusinessHttpsListener, ControlMtlsListener, BusinessControlDenyRule on the same stack; preserve other twelve resources, 443/8443, certificate and verify-mode trust store. Read actual new physical outputs.",
+      "maximumCreateChangeSet": 1,
+      "maximumExecuteChangeSet": 1
+    },
+    {
+      "id": "one_existing_managed_policy",
+      "action": "Only through exact original IAM owner stack: preserve other23 resources and all other root/parameter/tag fields. For ExecutionRoleBoundary PolicyDocument use observed effective v10 as baseline, replace only the two rule ARN prefixes corresponding to current captured tenant listener parameters with two prefixes deterministically derived from independently verified new Cell outputs. Preserve two earlier historical prefixes and every other action/resource/condition/statement. CS must be exactly one ManagedPolicy Modify, no replacement, role/trust/attachment/principal/action additions or direct IAM mutation.",
+      "newPrefixRule": "verifiedListenerArn.replace(':listener/', ':listener-rule/') + '/*'",
+      "deferredTemplate": "No fake physical ARN. Compile exact derived template and SHA only from verified Cell outputs under an explicit outer approval; any other difference stops.",
+      "effectivePolicyBaselineCanonicalSha256": "965641d5116d7cbf843e7de070d84c17fc010d1cb2606f459edf463d172180f6",
+      "oldTemplatePolicyCanonicalSha256": "26bb382e338351c38a7b1dc5e0b39321b16e2f8b4ac6bc41fbffec09fe630816",
+      "declarationReconciliation": "Template policy declaration and actual effective v10 differ. The future one-resource change explicitly adopts exact effective v10 plus the two listener-prefix substitutions; it is not described as only two textual edits to the old template. No effective actions, principals or unrelated resources are added.",
+      "templateTransport": "Original compact body is54521 bytes; if derived body exceeds51200 use at most one conditional content-hash-key template PUT to existing techlong-sandbox-build-source-402010193138-ca-central-1, validate and bind exact bytes before Create/Execute. This is not Object Lock or a blanket bucket write.",
+      "maximumTemplatePuts": 1,
+      "maximumCreateChangeSet": 1,
+      "maximumExecuteChangeSet": 1,
+      "capabilities": ["CAPABILITY_NAMED_IAM"]
+    },
+    {
+      "id": "tenant_restore",
+      "candidateCanonicalSha256": "4de52645c3ac71fd2d61b25d31e8e27801e9af3970212343dc382e3c9d8e0c07",
+      "action": "Restore TenantService and three existing rule declarations, preserve three retained resources/S3 wiring and A-aligned ImageUri; bind only actual six Cell outputs and desired1. Then one accurate externally-owned API A Alias UPSERT if required. Never reuse old listener/ALB physical IDs.",
+      "cellOutputParameters": ["ClusterName", "VpcId", "SubnetIds", "TaskSecurityGroupId", "HttpsListenerArn", "ControlListenerArn"],
+      "maximumCreateChangeSet": 1,
+      "maximumExecuteChangeSet": 1,
+      "maximumDnsUpserts": 1
+    },
+    {
+      "id": "independent_proof",
+      "action": "Separate process verifies actual CFN ownership/parameters, ECS steady digest A, route/health/443/8443 mTLS/DNS, strict Express tenant readiness and full media persistence. Use existing releaseRuntimeDigests/sample binding rules, not idle hashes, bucket HEAD alone or historical ready metadata. Only technical health/ready GETs, no buyer/merchant tests. Credentials remain in memory; ECS may perform ordinary managed injection of the two exact previously pinned runtime/public-key Secret versions, agent Secret-value GET remains zero."
+    },
+    {
+      "id": "initial_binding",
+      "action": "One config read/two verified-TLS Neon connections. After proof and fresh absence, one owner transaction inserts exactly one instance_state row: A, revision0, no active request and actual verified sampling/config/template/persistence references. Close temporary owner SET membership; independently READ ONLY select full row using already-proven direct SELECT rights, without unnecessary second membership grant. No release reinsertion or old business changes.",
+      "maximumConfigReads": 1,
+      "maximumNeonConnections": 2,
+      "maximumNeonSqlSubmissions": 40,
+      "maximumBindingInserts": 1
+    },
+    {
+      "id": "runtime_last",
+      "action": "Only after independent proofs/binding pass and approved local regression gate: main data-only activation from installed d2-6-runtime.disabled.json with enabled=true. Keep bootstrap disabled and daily workflow unchanged/manual; no dispatch in step4. Later A-to-B and B-to-A each retain user environment approval.",
+      "maximumRuntimeDataCommits": 1,
+      "expectedEnabledRuntimeCanonicalSha256": "ed815edf557e9e5fcf080c0636622532a73d5d542b177e09168fe0e88c342ec8"
+    }
+  ],
+  "futureTotalsNotApproved": {
+    "createChangeSetMax": 4,
+    "executeChangeSetMax": 4,
+    "rdsStartStopWrites": 0,
+    "newRolesSecretsOrSchema": 0,
+    "auroraIamTokenGenerationsMax": 3,
+    "auroraVerifiedTlsConnectionsMax": 3,
+    "auroraSqlSubmissionsMax": 60,
+    "auroraMediaWriteTransactionsMax": 1,
+    "objectVersionGetsMax": 9,
+    "publicImageGetsMax": 9,
+    "automaticRestoresRetriesOrCleanup": 0,
+    "workflowDispatches": 0,
+    "normalReleaseAcceptances": 0,
+    "providerReadAndPollingBudgets": "Finalize in execution review after local test gate; this draft has no executable approval SHA"
+  },
+  "failureAndCostBoundary": [
+    "Aurora is already available; this round did not start it and does not authorize stopping it. Charges may already accrue.",
+    "Normal CloudFormation managed rollback and old revision/policy-version lifecycle may occur; no separate rollback, delete, retry, compensation or automatic cleanup is authorized.",
+    "Cross-service media/SQL/CFN/DNS/binding/Git writes are not atomic; partial public objects, policies, resources or rows may remain on failure/unknown submission.",
+    "IAM token/config and templates may enter process/provider logs; no credentials/private snapshots are committed. Published images are publicly retrievable.",
+    "Do not restore platform Web/ALB or prod RDS, add resource TTL or call generic all-environment start. Existing temporary stop/start state is preserved; do not mark a partial restore as a verified whole-environment cycle.",
+    "No claim of two accepted normal updates: step4 only creates an accurate initial running A baseline. Both subsequent normal workflow runs remain separate approvals.",
+    "Five-hour facts, artifact and scanner limits remain independent; no restamp or expiry extension. Insufficient remaining time stops before paid restore."
+  ],
+  "thisPreparation": {
+    "additionalProviderCallsAfterApprovedReads": 0,
+    "formalCodeOrTestsChanged": false,
+    "cloudOrSqlWrites": 0,
+    "environmentRestored": false,
+    "runtimeEnabled": false
+  }
+}
