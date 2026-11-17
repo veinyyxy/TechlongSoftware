@@ -2,7 +2,21 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：步骤1集中取证已完成，按步骤2收口明确输入，不再查询旧构建（2026-11-17）
+## 当前唯一继续点：步骤2离线输入已收口，下一准备步骤3正常新构建；云端门槛仍未通过（2026-11-17）
+
+[步骤2真实结果第9节](aws-instance-version-release-plan.md#d2-6-step2-observed) / [回执](aws-instance-release-d2-6-step2-observed-20261117.json)：同SHA补读已另获明确批准，b成功解析JSON字符串行；累计源读2，准确原图读9/1,233,239字节，全9存在，根测试图5/上传图4，store_id全NULL保持不推归属。a无效投影/停止保留，14项合成检查通过，无额外源重读或目录枚举。服务端本地main仍b9ca…；与旧10fe…的routes/services/db/bin/public五树相同，启动与迁移入口分离；原readiness mock8项、存储注入断言7项及既有候选纯合同检查通过，不是云验收。
+
+[兼容提案](../ops/releases/d2-6-compatibility.prepared.json)仅沿用source-owned schema contract及源树派生API契约标识，未登记/写绑定、不是发现的当前云版本号，不造版本表或新API。私有9项迁移输入已按实际文件SHA派生，全部目标在既有products/*内，尚无PUT/SQL/current-cloud读；实际云媒体引用/NULL归属、冲突及variants须在另批首次启用时准确核对，不拿本机映射SHA当完整持久化通过。源码/图片/数据库/Secret/IAM/runtime/部署工作流保持，AWS/GitHub/DB连接/云SQL写/恢复/发布0。
+
+下一仅按步骤3复用这些固定输入准备正常app-only新构建/可信目录与必要首次启用的集中操作范围，实际构建/读取/上传/CAS/恢复仍另审。不再查旧产物、重装图片栈/身份或扩Full/媒体工具，PERSISTENCE_NOT_READY不绕过；所有当前云证明在两次ImageUri更新前必须完成，旧事实/槽不改。
+
+### 已完成的步骤2限定批准与失败沿革（保留，不重放）
+
+用户已要求实施步骤2，随后明确批准固定历史导出`source-data-v2.json`（SHA3089ec…）一次，只投影9条media_assets及其准确本地原图最多9个/单个5MiB/合计45MiB的大小SHA核对。只在已给images根下按引用定位，不枚举/预览/联网取图，不读.env/Secret/PAT/PEM、不连库或调用AWS，不复制/迁移/改业务数据。与源码/既有文档形成兼容及存储契约；不新建正式工具、Full实现、版本表或媒体框架。实际当前云引用/持久化及后续上传SQL写仍另审，runtime保持关闭。步骤1已结束、不重放，所有旧事实和槽保持。
+
+首a读取SHA通过，但媒体行包装未解导致无效空字段投影，已保留停止记录，图片读取0、不改标成功；随后用户明确另准一次同文件补读（累计源读取最多2），继续原未用9图/45MiB范围，不复位a。九项合成解包/拒绝检查已通过，补读须新b记录，仅读取同SHA一次，映射验证前不丢弃媒体行包装；异常不再自动重读或扩搜。
+
+### 已完成的步骤1结果（保留，不重读）
 
 [步骤1真实结果第8小节](aws-instance-version-release-plan.md#d2-6-step1-observed) / [回执](aws-instance-release-d2-6-evidence-observed-20261117.json)：用户批准原9e0db5…后，15:19:29.756–15:19:38.874Z实际完成STS1/GitHub GET15/helper1/准确旧回执1。两所选原run均无匹配app artifact，因此ECR/ZIP/blob0；不再查这些旧产物，不用未用预算补请求。12源码文件hash通过，四指定应用文件两版字节相同；不能据此推定所有启动依赖/数据库兼容。旧导入回执SHA匹配，但未形成媒体文件映射，完整持久化仍未过。所有配置/Secret/PAT/PEM/连接/云DB写/恢复/发布/dispatch0，runtime/workflow不改；只封存新证据，不重装身份或重复取证。
 

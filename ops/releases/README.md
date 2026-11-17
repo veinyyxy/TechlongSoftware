@@ -6,6 +6,8 @@
 
 最新实际状态覆盖上段“待审”：用户已明确批准原9e0db5…，[步骤1真实回执](../../docs/aws-instance-release-d2-6-evidence-observed-20261117.json)完成STS1/GitHub15/固定回执1，两原构建无匹配app产物，未查ECR/下载或写云DB，runtime仍关。原scope JSON保持编制时字节，不再重放该轮；下一只按[执行路线/步骤2](../../docs/aws-instance-version-release-plan.md#d2-6-step1-observed)收口schema/API及媒体来源/映射，再另审必要正常新构建，不循环查旧产物或重装身份。
 
+步骤2离线输入现已收口：[结果](../../docs/aws-instance-release-d2-6-step2-observed-20261117.json)/[第9节边界](../../docs/aws-instance-version-release-plan.md#d2-6-step2-observed)。新[`d2-6-compatibility.prepared.json`](d2-6-compatibility.prepared.json)仅是有源证据的兼容元数据提案，不能作为实际schema/API测量或直接登记输入；九图全部映射/哈希但尚未上传、改库或证明当前云持久化。后续只集中准备步骤3正常构建及必要后继范围，运行门槛不变，不加载本提案或启用runtime。
+
 D2-4已新增默认关闭的runtime配置、真实元数据/凭据适配及验收子进程；完整范围见[单审批工作流说明](../../docs/aws-instance-release-workflow.md)。工作流不执行本目录SQL草案；新增CI仅在全新临时PostgreSQL16中验证，不安装到现有控制库。本地137项相关回归通过，原生PG结果以准确CI为准。
 
 - `schema.draft.sql`：独立 `deployment_release` schema、三表、专用 NOLOGIN owner 与九个窄函数；D2-3增加只读决定/终止结果登记，扩展核验与完成结果。

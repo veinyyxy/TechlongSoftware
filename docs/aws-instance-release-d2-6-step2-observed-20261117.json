@@ -1,0 +1,147 @@
+{
+  "schema": "techlong/instance-release-d2-6-step2-observed/v1",
+  "status": "OFFLINE_SOURCE_COMPATIBILITY_AND_MEDIA_INPUTS_READY_LIVE_PROOF_PENDING",
+  "step": 2,
+  "scope": {
+    "formalRuntimeCodeSqlOrWorkflowsChanged": false,
+    "backendWorkspaceReadOnly": true,
+    "fullFeatureDevelopment": false,
+    "mediaToolOrFrameworkAdded": false
+  },
+  "sourceCompatibility": {
+    "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+    "comparisonCommit": "10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2",
+    "unchangedSourceTrees": {
+      "routes": {
+        "oldGitTree": "de49fc9bfcb8004849536e31635fda21e0ce2b26",
+        "currentGitTree": "de49fc9bfcb8004849536e31635fda21e0ce2b26",
+        "unchanged": true
+      },
+      "services": {
+        "oldGitTree": "074a3980b1e09a9c3266f0f7093b710b771439db",
+        "currentGitTree": "074a3980b1e09a9c3266f0f7093b710b771439db",
+        "unchanged": true
+      },
+      "db": {
+        "oldGitTree": "aa7d38d97992d5b68dcee2f8247fd4a1a5b5239b",
+        "currentGitTree": "aa7d38d97992d5b68dcee2f8247fd4a1a5b5239b",
+        "unchanged": true
+      },
+      "bin": {
+        "oldGitTree": "54db663efec6eb8782e82b41fa433124398046fb",
+        "currentGitTree": "54db663efec6eb8782e82b41fa433124398046fb",
+        "unchanged": true
+      },
+      "public": {
+        "oldGitTree": "6523cd5504caccc33597711f786a35f95128683b",
+        "currentGitTree": "6523cd5504caccc33597711f786a35f95128683b",
+        "unchanged": true
+      }
+    },
+    "applicationEntrypointUnchanged": true,
+    "startCommand": "node ./bin/www",
+    "migrationCommandSeparate": "node db/apply_saas_control.js",
+    "businessOrSchemaChangeIntroducedByTheseSourceCommits": false,
+    "binaryDependencyChangesNotEquivalentToVerifiedNewImage": true,
+    "compatibilityProposal": "ops/releases/d2-6-compatibility.prepared.json",
+    "proposalRegistrationOrBindingAdoptionAuthorized": false
+  },
+  "verification": {
+    "mediaProjectionSyntheticChecks": 14,
+    "existingReadinessTests": {
+      "pass": 8,
+      "fail": 0,
+      "skip": 0,
+      "onlyInjectedMockPool": true,
+      "realDatabase": false
+    },
+    "storageContractAssertions": {
+      "pass": 7,
+      "injectedS3ClientOnly": true,
+      "realS3": false
+    },
+    "existingPureCandidateAcceptsProposedContractLabels": true,
+    "syntheticAcceptanceDoesNotValidateAnyExpiredRealArtifact": true
+  },
+  "media": {
+    "schema": "techlong/d2-6-offline-media-observed/v1",
+    "status": "HISTORICAL_MEDIA_TO_LOCAL_FILES_VERIFIED_NOT_MIGRATED",
+    "startedAt": "2026-11-17T15:49:23.315Z",
+    "completedAt": "2026-11-17T15:52:15.574Z",
+    "sourceDataSha256": "3089ec9e093118d9f3a791573d64fec7432880fb5b3f9902f75bb70f51b39b5b",
+    "firstProjectionFailedAndPreserved": true,
+    "additionalSourceReadExplicitlyApproved": true,
+    "cumulativeSourceReads": 2,
+    "validMediaRows": 9,
+    "matchedLocalFiles": 9,
+    "missingFiles": 0,
+    "totalImageBytes": 1233239,
+    "classification": {
+      "legacyRootRows": 5,
+      "merchantProductsRows": 4,
+      "storeIdNullRows": 9,
+      "storeOwnershipNotInferred": true
+    },
+    "counts": {
+      "archiveReads": 1,
+      "cumulativeArchiveReads": 2,
+      "imageContentReads": 9,
+      "imageBytes": 1233239,
+      "databaseConnections": 0,
+      "awsCalls": 0,
+      "configSecretReads": 0,
+      "writesToSourceOrCloud": 0
+    },
+    "proposedTargetKeys": 9,
+    "allProposedTargetKeysUnderProducts": true,
+    "currentCloudMediaAndObjectStateNotRead": true,
+    "objectsUploaded": 0,
+    "mediaSqlWrites": 0,
+    "persistentUploadsReady": false,
+    "privateEvidence": [
+      {
+        "path": ".local-secrets/d2-6-step2-media-20261117-a/started.json",
+        "rawSha256": "eec45af1c5d973cd132e990b751c4969627875c6e24d67efe202145ff92847b4"
+      },
+      {
+        "path": ".local-secrets/d2-6-step2-media-20261117-a/source-media.json",
+        "rawSha256": "5b861f423592339bcb82e80f55e593816765ca6493d60e94673b9f109d6ff8a1"
+      },
+      {
+        "path": ".local-secrets/d2-6-step2-media-20261117-a/projection-stopped.json",
+        "rawSha256": "01d7a88cc9173b0a573ca4acb5df2e7aee05b773129640effcfbe4b7ba91d41a"
+      },
+      {
+        "path": ".local-secrets/d2-6-step2-media-20261117-b/started.json",
+        "rawSha256": "c6a3832e88d5e655e40904b000e5217a854e49fe348adc7999eb135c53765cca"
+      },
+      {
+        "path": ".local-secrets/d2-6-step2-media-20261117-b/source-media.json",
+        "rawSha256": "99e5841b7aeea66bce14801c0d72699db549d96ec411e1b4e8833243c2ab4442"
+      },
+      {
+        "path": ".local-secrets/d2-6-step2-media-20261117-b/mapping.json",
+        "rawSha256": "4817d5765c2f6b4dbfaf9158ad8f419104f9ab8b8903c98f5b382824ef4be213"
+      },
+      {
+        "path": ".local-secrets/d2-6-step2-media-20261117-b/migration-inputs.prepared.json",
+        "rawSha256": "792be56aa53b633765cf2b37478bdac70d4d70b7a54871659e3c1d2b9c00eee8"
+      }
+    ]
+  },
+  "formalState": {
+    "runtimeEnabled": false,
+    "versionDirectoryOrInstanceBindingWritten": false,
+    "restoredEnvironment": false,
+    "ecrPublication": false,
+    "realUpdateRuns": 0,
+    "fullPersistenceAccepted": false
+  },
+  "remainingBeforeActualUpdate": [
+    "Exact release policy and initial binding must explicitly adopt reviewed source-backed contract identifiers; they are not discovered current-cloud schema/client version facts.",
+    "Read actual target media rows/references after separately approved necessary restoration; preserve NULL store_id and existing variants/other fields, detect additional currently referenced local assets or changed rows rather than assuming historical nine are exhaustive.",
+    "Separately approve the exact existing-bucket target keys/conditional uploads/current-row CAS and independent verification; no media copy, upload or SQL was performed here.",
+    "Real A/B build, scan, ECR provenance, initial image alignment/restoration/binding and runtime technical checks remain required; no ordinary image update may bypass PERSISTENCE_NOT_READY."
+  ],
+  "nextOnly": "Proceed to step 3 preparation using this fixed source compatibility proposal and the private nine-file mapping; no more history search or directory inventory. Batch exact fresh-build/catalog/necessary first-activation operations for separate approval, and complete live persistence/current binding proof before applying either actual version update."
+}

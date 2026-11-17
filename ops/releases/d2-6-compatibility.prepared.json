@@ -1,0 +1,174 @@
+{
+  "schema": "techlong/instance-release-source-compatibility-preparation/v1",
+  "status": "SOURCE_COMPATIBILITY_AND_POLICY_PROPOSAL_READY_NOT_ACTIVATED",
+  "registrationAuthorized": false,
+  "instanceBindingWritten": false,
+  "runtimeEnabled": false,
+  "target": {
+    "productId": "prd_restaurant_order_system",
+    "component": "tenant_api",
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "repository": "veinyyxy/SpeedFeast_Backend_main",
+    "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+    "comparisonBaselineCommit": "10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2"
+  },
+  "sourceAssessment": {
+    "localHeadAndBranchVerified": true,
+    "branch": "main",
+    "businessSqlRoutesServicesEntrypointAndPublicTreesUnchanged": true,
+    "trees": {
+      "routes": {
+        "oldGitTree": "de49fc9bfcb8004849536e31635fda21e0ce2b26",
+        "currentGitTree": "de49fc9bfcb8004849536e31635fda21e0ce2b26",
+        "unchanged": true
+      },
+      "services": {
+        "oldGitTree": "074a3980b1e09a9c3266f0f7093b710b771439db",
+        "currentGitTree": "074a3980b1e09a9c3266f0f7093b710b771439db",
+        "unchanged": true
+      },
+      "db": {
+        "oldGitTree": "aa7d38d97992d5b68dcee2f8247fd4a1a5b5239b",
+        "currentGitTree": "aa7d38d97992d5b68dcee2f8247fd4a1a5b5239b",
+        "unchanged": true
+      },
+      "bin": {
+        "oldGitTree": "54db663efec6eb8782e82b41fa433124398046fb",
+        "currentGitTree": "54db663efec6eb8782e82b41fa433124398046fb",
+        "unchanged": true
+      },
+      "public": {
+        "oldGitTree": "6523cd5504caccc33597711f786a35f95128683b",
+        "currentGitTree": "6523cd5504caccc33597711f786a35f95128683b",
+        "unchanged": true
+      }
+    },
+    "appStartupCommand": "node ./bin/www",
+    "migrationIsSeparateCommand": "node db/apply_saas_control.js",
+    "noMigrationRequestedByThisRelease": true,
+    "noNewStartupMutationIntroducedByApplicationSourceChange": true,
+    "binaryDependenciesAndBaseImageChanged": true,
+    "runtimeBinaryCompatibilityStillRequiresNewBuildAndTechnicalVerification": true
+  },
+  "compatibilityProposal": {
+    "databaseProfiles": [
+      "express_iam"
+    ],
+    "schemaVersions": [
+      "speedfeast-saas-control-v1"
+    ],
+    "clientApiVersions": [
+      "speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144"
+    ],
+    "applicationPort": 3000,
+    "requiresMigration": false,
+    "startupWrites": false
+  },
+  "identifierMeaning": {
+    "schemaRequirement": "Existing source-owned MIGRATION_CONTRACT from services/saas/tenant_lifecycle_service.js; expected application schema contract, not a fresh measurement of installed cloud schema or PostgreSQL engine version.",
+    "clientApiContract": "Proposed control-plane compatibility identifier computed from full routes/services source-tree IDs and app raw SHA256. Not a newly invented vendor semver, request header, client implementation or SaaS control_api_version.",
+    "clientApiMaterial": {
+      "routesTree": "de49fc9bfcb8004849536e31635fda21e0ce2b26",
+      "servicesTree": "074a3980b1e09a9c3266f0f7093b710b771439db",
+      "appSha256": "368687f6090f3d294dba6db556cd766b2eeb95ec5fba9531e99779d044776e6c"
+    },
+    "saasControlApiVersion": "1.2",
+    "saasControlVersionIsClientApiVersion": false,
+    "newApiOrSchemaVersionTableCreated": false
+  },
+  "adoptionConditions": [
+    "Explicitly adopt these source-backed contract labels in the later exact release policy/initial binding approval; this preparation does not register or change metadata.",
+    "Before initial binding, verify actual initialized Express target and strict tenant-v1 readiness, exact existing configuration/roles/Secret references and absence of a required separate schema change.",
+    "Do not assign an unmeasured current database fingerprint or stamp a lifecycle migration marker; do not rerun initialization or SQL to manufacture the expected contract.",
+    "Existing live client/DB labels, if any, cannot be overwritten to match this proposal; conflicting bindings require a separately reviewed decision.",
+    "New app build/self-check/scanner/ECR provenance and healthy deployment are still mandatory; unchanged source is not a successful image update.",
+    "Only Express is claimed; Full is not enabled or accepted by these local tests.",
+    "Full S3 persistence and current media CAS proof remain pending actual separately approved operations; keep runtime/planner gate unchanged."
+  ],
+  "localVerification": {
+    "mediaProjectionSyntheticCasesPassed": 14,
+    "existingTenantReadinessTestsPassed": 8,
+    "tenantReadinessTestsFailed": 0,
+    "tenantReadinessTestsSkipped": 0,
+    "localAndInjectedS3StorageAssertionsPassed": 7,
+    "liveDatabaseConnections": 0,
+    "awsCalls": 0,
+    "sourceFilesChanged": 0,
+    "formalRuntimeCodeOrSqlChanged": false
+  },
+  "sourceFiles": [
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/app.js",
+      "rawSha256": "368687f6090f3d294dba6db556cd766b2eeb95ec5fba9531e99779d044776e6c"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/bin/www",
+      "rawSha256": "43ad13ffe6c45563f0f0b98662520d28592252c16a601b75cb73e0a3684b8a95"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/Dockerfile",
+      "rawSha256": "16b92ca959d38030d0b252e252901677ee63432fd98641c7c97f785e33201652"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/package.json",
+      "rawSha256": "bc383d869f688ec814a2e34612b006a73de6bead8f9dd05496f2bef05dcc5da9"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/.dockerignore",
+      "rawSha256": "e4535f5490e64bf706d8384d007e3f4e316420fc60497191f37867fd08ffdd76"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/CONTAINER_RUNTIME.md",
+      "rawSha256": "c9c026812192aae94f567d8c8426d2725dfe02f6798da0122e327c56abbc7bbe"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/SAAS_CONTROL.md",
+      "rawSha256": "b2b23c70b3e1d796c8df4e5ac53a8ea5985ce110dfc107346526dea1a44872a3"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/services/runtime_config.js",
+      "rawSha256": "6f5e9ad1debee3682b85c324e09812d91588d95de0759e7aa520eada623ce47c"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/services/image_storage.js",
+      "rawSha256": "74285b9a89d3a612fe7ff8904508755b9df32f203c291feef8e91b4bc4d91d8d"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/routes/merchant_assets.js",
+      "rawSha256": "eb290b64c473fbe1befeeca67598f0b2da07485c2e413f8320cd3be190f07d76"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/services/saas/tenant-readiness-v1.cjs",
+      "rawSha256": "a5ff7a6970c426c749d522887519ecefde659087796ba893db5f0f3c086c025f"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/services/saas/control_service.js",
+      "rawSha256": "0fbc97c0be34df9c46e24ff394606177cd9bc828373939154b9b6884bdf9f787"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/db/product_image_assets_migration.sql",
+      "rawSha256": "beff60b7c6853939c9f9b6d040d7be6541099602d4f09e0c0d0b7c5d8d041dfc"
+    },
+    {
+      "path": "E:/NodejsProject/SpeedFeast_Backend_main/db/stores.sql",
+      "rawSha256": "5d22df303fd7513f1043719580d3447e62bcbf7fb7d454e43d1538c7e3033e56"
+    }
+  ],
+  "additionalEvidenceSourceFiles": [
+  {
+    "path": "E:/NodejsProject/SpeedFeast_Backend_main/services/saas/tenant_lifecycle_service.js",
+    "rawSha256": "40fbb8b4d36cb8629d8c69cdb913e98a22a8e9ab9e6ec980624fe1ce9f12862e"
+  },
+  {
+    "path": "E:/NodejsProject/SpeedFeast_Backend_main/test/tenant_readiness_v1.test.js",
+    "rawSha256": "6ad0579635f32fc5215bf036f8482fa0c1757edf54818daf7084f6d9a9ec32c6"
+  },
+  {
+    "path": "E:/NodejsProject/SpeedFeast_Backend_main/.github/workflows/backend-image-candidate.yml",
+    "rawSha256": "ec2d5aa094bf92a1bd7edfaba29d2a77386f8d3df65df35cb75b423578f31910"
+  }
+],
+  "notADeployableBuildPolicy": true,
+  "versionAndBuildRunNotSelected": true,
+  "currentCloudSchemaOrMediaNotRead": true
+}
