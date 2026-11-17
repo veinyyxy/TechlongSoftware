@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：最小引导接线及CI完成，回到原集中操作材料；实际另审（2026-11-17）
+## 当前唯一继续点：只读核对已停，下一仅另准一次去敏STS诊断；不重做代码（2026-11-17）
+
+[新a停止回执](aws-instance-release-publication-preflight-stopped-20261117.json)：已准的最小核对在首次Source CLI调用通用失败，身份响应0，AWS元数据11/GitHub10/认证helper额度全部未用，其他私密/数据库/写槽/发布/恢复0。原a不覆盖/重试；本机CLI解析与本地version成功，不证明会话过期。代码及准确CI保持，不再补工具/测试；下一只请求单次官方STS去敏诊断，身份准确才继续原未用11/10，尚未批准或执行。没有新事实/操作SHA或旧期限延期，不自动要求刷新后重跑原命令。
+
+### 已完成的代码/CI收尾（保留，不重做）
 
 代码b1e1ebd的[准确CI44139556595](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595)已成功：[结果](aws-instance-release-bootstrap-code-ci-20261117.json)/[第13节](aws-instance-version-release-plan.md#d2-6-bootstrap-implementation)。Linux239＋隔离PG16十项全过/无skip，lint/类型和两行非超级用户独立事务/权限闭合通过。初始A无环境发布、B候选登记的最小接线不再是代码缺项；新入口默认关闭，daily runtime/workflow/权限/schema保持，无实际生产读取、发布/登记、恢复或真实更新。
 

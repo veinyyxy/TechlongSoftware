@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 MINIMAL BOOTSTRAP ENTRIES AND EXACT NO-AWS CI COMPLETE — BOOTSTRAP AND DAILY RUNTIME DISABLED / NO REAL PUBLICATION OR REGISTRATION`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 CODE/CI COMPLETE / FOCUSED READ STOPPED AT SOURCE — NO REAL PUBLICATION OR REGISTRATION`。
 
 已交付代码、一次性身份安装及本轮两次真实app构建，以各自最新准确回执为准，不把原设计或离线验证当实际部署完成。本文其他待审范围不是新增生产读取、SQL/Secret/IAM修改、ECR发布、部署调度或AWS操作授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -15,6 +15,8 @@
 <a id="d2-6-readiness"></a>
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
+
+**最新停止覆盖下段继续点：** [第14节](#d2-6-publication-read-stopped)获准只读轮次已在Source首次CLI调用停止，其他读取/写入均0；未证实会话过期，下一仅等单次去敏STS诊断的新许可，成功才继续原未用11/10。原代码/CI不重做，不恢复/发布/登记或延长旧事实。
 
 **2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第13节](#d2-6-bootstrap-implementation)的最小入口及准确CI已完成，源码b1e1ebd/[CI44139556595](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595)成功：Linux239＋隔离PG16十项全过/无skip，lint/类型通过；[结果](aws-instance-release-bootstrap-code-ci-20261117.json)。两处代码接线不再是缺项，不重复实现/回归或重装身份。初始发布review与daily runtime仍关闭，生产读取/私密原件/发布/登记/恢复0；本轮到此收尾。下一仅回到同一集中草案更新新代码指纹并另审必要当前事实与真实操作SHA，不提前启动环境、重构建A/B或扩支线，真实更新仍0/2。
 
@@ -455,6 +457,16 @@ register先核对批准SHA、当前代码、私有输入raw SHA及完整派生�
 首个实现提交6ca3c1e/CI44138581747也已全部成功；之后仅调整新增CLI测试，使未来另审启用review时只验证无效批准被拒绝、不会实际发布或误拒合法数据配置，最终b1e1ebd/CI44139556595再次全过。两轮原日志摘要/准确来源均保留在同一去敏回执，不把旧观察改写为新观察，没有改实际关闭态配置。
 
 本轮已完成准确CI，到此收尾；下一回到同一集中草案更新实际代码指纹并另审必要最小生产补核/发布/登记，不扩框架、重复盘点或启动收费环境。`d2-6-publication-catalog.prepared.json`保留其编制时旧代码/缺口沿革，不能直接执行或用它的旧指纹启用新代码；没有给任何原事实、产物/扫描或旧执行期限续期。新BootstrapReview与真正daily runtime仍均关闭，旧两份构建原件/九图输入/安装证据未读写，未实际调度初始发布、登记目录、写绑定或恢复环境。
+
+<a id="d2-6-publication-read-stopped"></a>
+
+### 14. 获准的最小只读核对停在Source首次请求：不归因登录过期、不自动重试
+
+用户另准既定STS1/AWS元数据11/GitHub GET10。本轮仅本机核对新代码15项指纹、沿用原安装的JSON键排序摘要算法后，在新a记录执行；18:32:10.083–18:32:11.495Z，首次官方ca-central-1 STS CLI调用返回通用`AWS_CLI_UNAVAILABLE`，尚无IAM身份响应。按范围立即停下，[去敏回执及5份私有记录指纹](aws-instance-release-publication-preflight-stopped-20261117.json)已保存。元数据、GitHub/helper、Secret值/配置/PAT/PEM/ZIP/数据库/写入/云执行槽/dispatch/恢复均0，不能自动消费未用额度。
+
+随后只本地`Get-Command`与`aws --version`证明命令存在于D:/Amazon/AWSCLIV2/aws.exe、版本2.36.19；这两项没有STS/网络/认证读取，也没有证明原失败就是会话过期。没有修代码、换身份、重放a、追加AWS调用或改变原期限；新BootstrapReview和daily runtime仍关闭，原件/CI结果保持，不生成虚假的可执行发布SHA。
+
+下一仅提议用户另准**一次固定Source/官方endpoint STS去敏诊断**，保存安全的错误类别/code/cause及退出状态、不保留原始错误/凭据；准确IAM身份成功才继续尚未使用的元数据11/GitHub10，其他范围完全不增。未批准不诊断、不要求盲目重复登录、不恢复/发布/登记；失败即停。若成功，再直接收口原集中审批，不新建框架或测试支线。
 
 <a id="d2-1-delivered"></a>
 

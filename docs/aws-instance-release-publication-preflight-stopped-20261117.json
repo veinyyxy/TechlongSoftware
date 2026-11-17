@@ -1,0 +1,74 @@
+{
+  "schema": "techlong/instance-release-publication-preflight-stopped/v1",
+  "status": "STOPPED_NO_RETRY",
+  "startedAt": "2026-11-17T18:32:10.083Z",
+  "stoppedAt": "2026-11-17T18:32:11.495Z",
+  "code": "READ_STS_GET_CALLER_IDENTITY_FAILED",
+  "sanitizedProviderCode": "AWS_CLI_UNAVAILABLE",
+  "expectedSourceProfile": "techlong-sandbox-user",
+  "callerIdentity": null,
+  "counts": {
+    "stsAttempts": 1,
+    "successfulSts": 0,
+    "awsMetadata": 0,
+    "githubGets": 0,
+    "gitCredentialHelperReads": 0,
+    "secretValueReads": 0,
+    "configReads": 0,
+    "patPemReads": 0,
+    "zipDownloads": 0,
+    "databaseConnections": 0,
+    "writes": 0,
+    "executionSlots": 0
+  },
+  "localOnlyCheck": {
+    "awsExecutable": "D:/Amazon/AWSCLIV2/aws.exe",
+    "version": "aws-cli/2.36.19 Python/3.14.6 Windows/11 exe/AMD64",
+    "versionCommandSucceeded": true,
+    "networkRequestsInLocalCheck": 0
+  },
+  "sessionExpiryProven": false,
+  "newProductionFacts": false,
+  "executablePublicationApprovalSha256": null,
+  "automaticRetry": false,
+  "oldFactsExtended": false,
+  "codeAndCiUnchanged": true,
+  "privateEvidence": [
+    {
+      "path": ".local-secrets/d2-6-publication-read-20261117-a/started.json",
+      "bytes": 586,
+      "rawSha256": "97d1822e03aef74cbe4f9518dd3a8a3b82ec6c574c0aa053a9ce5efde45cfd06"
+    },
+    {
+      "path": ".local-secrets/d2-6-publication-read-20261117-a/001-aws-intent.json",
+      "bytes": 511,
+      "rawSha256": "b7d338b880263d71f227d130634336482b4578730ffff1b679c524d371f34aaf"
+    },
+    {
+      "path": ".local-secrets/d2-6-publication-read-20261117-a/002-aws-response.json",
+      "bytes": 405,
+      "rawSha256": "6c3ca7b83863b5e3e08a8135aff8be63c90ff54a2897dce55cb6aa8c93dd4120"
+    },
+    {
+      "path": ".local-secrets/d2-6-publication-read-20261117-a/stopped.json",
+      "bytes": 857,
+      "rawSha256": "6d74bf5520c1beac77931035e17bb8606b6089ca5c221ca520983f5d435712eb"
+    },
+    {
+      "path": ".local-secrets/d2-6-publication-read-20261117-a.operator.mjs",
+      "bytes": 14307,
+      "rawSha256": "2a188fd50c0c2cf1a5a3b0204e8123853048d4fa2a0b8fd5df2248a3d2661064"
+    }
+  ],
+  "nextProposedNotApproved": {
+    "diagnosticStsMax": 1,
+    "continueOnlyAfterExactIdentity": true,
+    "remainingAwsMetadataMax": 11,
+    "remainingGithubGetsMax": 10,
+    "secretOrConfigReads": 0,
+    "databaseConnections": 0,
+    "writes": 0,
+    "publishDispatches": 0,
+    "restore": false
+  }
+}

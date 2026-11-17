@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：最小引导接线/准确CI完成，下一回到原集中操作材料；实际另审（2026-11-17）
+## 当前唯一继续点：最小只读核对已停在Source首次调用，单次去敏STS诊断须另准（2026-11-17）
+
+用户已准STS1/AWS元数据11/GitHub GET10，本轮新a于18:32:10.083–18:32:11.495Z停止：[回执](aws-instance-release-publication-preflight-stopped-20261117.json)。Source尝试1/成功身份0、元数据/GitHub/helper/Secret值/配置/PAT/PEM/ZIP/SQL/写入/执行槽/dispatch/恢复均0；原四停止记录及私有operator保留，不重跑a。仅本机命令解析/`aws --version`证明CLI可用（2.36.19），没有追加STS或网络诊断，不能把通用AWS_CLI_UNAVAILABLE认定为登录过期。
+
+未取得新生产事实、未生成发布/登记执行SHA；旧事实/原件/代码/CI/关闭态保持。下一仅提议另准一次固定官方Source STS去敏诊断（只保存错误类别/code/cause、退出状态，不存原始错误或凭据）；若准确身份成功，再继续原未用11/10范围，不新增对象/读取配置/改代码/重构建或恢复。诊断仍另批，不先要求用户重复登录或自动重试；最终仍只收口一份集中真实操作审批。
+
+### 已完成的代码/CI收尾（保留，不重做）
 
 [第13节](aws-instance-version-release-plan.md#d2-6-bootstrap-implementation)/[CI回执](aws-instance-release-bootstrap-code-ci-20261117.json)：代码b1e1ebd已完成，准确main/push/attempt1 [CI44139556595](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595) success，Linux239＋临时PG16十项全过/无skip，lint/类型通过。只新增薄的manual-only受本人门禁保护入口与候选事务分支，复用既有publisher/校验/不可变INSERT；默认BootstrapReview=false，daily runtime/workflow不变。两处代码缺口已闭合，不重复实现/重跑相同回归；实际生产/私密原件读取、发布/登记/绑定/恢复0，真实更新仍0/2。
 
