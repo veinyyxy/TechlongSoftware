@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 A PUBLISHED / A-B REGISTERED / YAML RESOLVED / FIRST AURORA CONNECTION STOPPED BEFORE SQL — ZERO PROVIDER WRITES`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 A PUBLISHED / A-B REGISTERED / YAML AND EXACT AURORA READONLY CONNECTION VERIFIED — NO RESTORE / ACTIVATION CONTINUATION NOT APPROVED`。
 
 已交付代码、一次性身份安装及本轮两次真实app构建，以各自最新准确回执为准，不把原设计或离线验证当实际部署完成。本文其他待审范围不是新增生产读取、SQL/Secret/IAM修改、ECR发布、部署调度或AWS操作授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -15,6 +15,8 @@
 <a id="d2-6-readiness"></a>
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
+
+**最新第22节覆盖旧连接阻塞：** 用户允许的单次诊断已真实通过TLS1.3/证书/SNI、IAM、准确库/用户/版本及只读提交，[结果](aws-instance-release-step4-connect-diagnostic-observed-20261117.json)。仅新增STS1/连接1/只读SQL4，无配置/Secret/八输入或生产写/恢复；去除startup options后的通道可复用，不唯一归因旧失败，不再申请IAM/网络支线。累计Source3/元数据13/输入16/数据库尝试2，余量不足原样重跑完整恢复；下一只离线准备必要连接参数适配和精确激活接续，实际新读取/操作/任何新窗口仍另审，原17:05:01操作截止及18:53:21事实截止不延，D2正常更新0/2。
 
 **最新第21节覆盖原YAML继续点：** 获准接续已复用六返回/补读同八输入，累计STS2/元数据13/输入16，原资源/策略/任务配置/两数据库成员available前置通过；首次Aurora连接在SQL前失败，具体原因尚未确认。[结果](aws-instance-release-step4-continuation-stopped-20261117.json)。图片/CFN/DNS/Neon/runtime写和恢复均0，旧记录/槽/原17:05:01温尼伯截止保留。下一仅提议一次固定端点只读连接诊断，已请求许可但未执行，不重盘点或擅自改IAM/连接网络/恢复；正常版本更新仍0/2。
 
@@ -650,6 +652,16 @@ JSON已集中列出一次必要补核提案：STS1＋AWS元数据最多51（各�
 首次Aurora TLS/IAM连接尝试1、IAM token请求1，**SQL提交0**。客户端在connect完成前终止，捕获安全字段只有Error/UNCLASSIFIED_STOP，没有足够信息区分连接参数、认证、超时或其他传输失败；不凭此认定Source失效、VPC不通、需新IAM或数据库已停。失败进程已退出，没有自动连接第二次，也没有保存token或原始错误。整个步骤4累计图片读取/上传、CFN创建/执行、DNS、配置/Neon、SQL写、runtime数据写及资源恢复均0，原Source身份与资源元数据通过不等于数据库兼容/九图证明通过。
 
 下一只请求一次最小只读诊断：固定Source STS1，同端点/数据库/用户名/ATS-SNI证书验证的IAM连接1次，最多4次SQL提交（BEGIN READ ONLY、事务局部设置、仅身份SELECT、COMMIT）；唯一诊断参数差异为移除startup options，改在只读事务内设置局部超时/路径。记录TCP/TLS/认证/连接阶段和去敏错误类别，不保存原始错误、凭据或业务值；不读配置/Secret/原八输入、不做IAM盘点、网络/权限/资源修改，不自动重连或继续恢复。该范围已明确提问，**当前尚未获准或执行**，不能把本节当授权。采用原剩余预算和17:05:01温尼伯截止，不重新计时，不生成另一套恢复框架；正常D2更新仍0/2。
+
+### 22. 一次连接诊断成功：复用已证明通道，不再扩IAM/网络排查
+
+用户明确允许一次最小只读连接诊断，22:22:25.065–22:22:48.652Z实际完成，详见[去敏回执](aws-instance-release-step4-connect-diagnostic-observed-20261117.json)。仅Source STS1、固定端点/库/用户名的TLS-IAM连接1、SQL提交4：BEGIN READ ONLY、合并事务局部路径/超时设置、仅身份SELECT、COMMIT；不读.env/Secret/PAT/八份输入，无其他AWS元数据调用、业务/权限/资源写、重连或自动恢复。仍使用原ATS/SNI/证书验证，去掉startup options，不降低TLS或鉴权要求。
+
+Source准确IAM用户通过；DNS/TCP/证书主机名验证完成，TLS1.3 authorized；IAM token仅内存发送准确数据库，连接返回库`tenant_a0da1748bc4d5419_db`、current/session user=postgres、version170009、transaction_read_only=on、backend_tls=true，事务已提交。连接建立约22.2秒，token就绪至服务端Ready约21.5秒。**一次移除options的成功不能唯一证明先前失败原因**，先前未有足够阶段数据，认证延迟也可能变化；准确结论只是现存Source与通道在本次配置下可以连接，不需新增连接IAM/网络资源。它不证明schema/初始化/九图、应用角色权限或恢复后技术验收通过，也不消除原既有ManagedPolicy监听器引用修正。
+
+整轮累计Source STS3、元数据13、固定输入16、数据库尝试2/token2/SQL4（均只读）；图片/CFN/DNS/Neon/运行配置写和资源恢复仍0。原两次失败及诊断均独立保留，未复位任何槽/journal、改原清单或重计时。当前Source原额度余0、DB连接余1、固定输入余0，不能以诊断成功为理由默默增加连接/重读或重跑整个入口。
+
+下一唯一动作只离线复用已存成功通道/原资源、版本、映射及CI证据，编制必要连接参数适配与剩余激活的准确接续增量/完整时序；不新增生产读取、重复身份/整批盘点/连接探针或权限/网络框架，实际新调用和恢复仍另批。原操作截止今天17:05:01温尼伯、事实18:53:21及artifact/扫描时限保持；若无法在剩余窗口完成整轮，不开收费ALB等待，不给旧周期续期；如确需新窗口，必须明确单独批准且不延旧事实。D2正常更新仍0/2。
 
 ## 阶段1交付状态：合同、纯计划器与离线回归已完成
 

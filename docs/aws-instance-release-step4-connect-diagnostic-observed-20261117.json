@@ -1,0 +1,144 @@
+{
+  "schema": "techlong/d2-6-step4-connect-diagnostic-observed/v1",
+  "status": "READONLY_CONNECTION_VERIFIED_NO_RESTORE",
+  "startedAt": "2026-11-17T22:22:25.065Z",
+  "completedAt": "2026-11-17T22:22:48.652Z",
+  "deadlineUnchanged": "2026-11-17T23:05:01.678Z",
+  "durationMs": 23587,
+  "authorization": "User explicitly allowed one fixed Source STS, one same-endpoint verified-TLS IAM connection and at most4 read-only SQL submissions; no reconnect or automatic restoration",
+  "actual": {
+    "sts": 1,
+    "connections": 1,
+    "iamTokens": 1,
+    "sqlSubmissions": 4,
+    "awsMetadata": 0,
+    "configurationOrSecretReads": 0,
+    "oldPrivateInputReads": 0,
+    "resourceOrBusinessWrites": 0
+  },
+  "sourceVerified": true,
+  "tls": {
+    "encrypted": true,
+    "authorized": true,
+    "servernameMatches": true,
+    "protocol": "TLSv1.3"
+  },
+  "identity": {
+    "database": "tenant_a0da1748bc4d5419_db",
+    "username": "postgres",
+    "session_username": "postgres",
+    "read_only": "on",
+    "server_version": 170009,
+    "backend_tls": true
+  },
+  "connectionEstablished": true,
+  "startupOptionsOmitted": true,
+  "readOnlyTransactionCommitted": true,
+  "events": [
+    {
+      "phase": "SOURCE_IDENTITY",
+      "elapsedMs": 19
+    },
+    {
+      "phase": "SOURCE_VERIFIED",
+      "elapsedMs": 856
+    },
+    {
+      "phase": "CONNECT_STARTED",
+      "elapsedMs": 976
+    },
+    {
+      "phase": "DNS_LOOKUP_COMPLETED",
+      "elapsedMs": 1410
+    },
+    {
+      "phase": "TCP_CONNECTED",
+      "elapsedMs": 1464
+    },
+    {
+      "phase": "PG_SSL_TRANSPORT_CREATED",
+      "elapsedMs": 1526
+    },
+    {
+      "phase": "TLS_HANDSHAKE_COMPLETED",
+      "elapsedMs": 1618,
+      "encrypted": true,
+      "authorized": true,
+      "servernameMatches": true,
+      "protocol": "TLSv1.3"
+    },
+    {
+      "phase": "SERVER_AUTHENTICATIONCLEARTEXTPASSWORD",
+      "elapsedMs": 1669
+    },
+    {
+      "phase": "IAM_TOKEN_REQUESTED",
+      "elapsedMs": 1670
+    },
+    {
+      "phase": "IAM_TOKEN_READY",
+      "elapsedMs": 1674
+    },
+    {
+      "phase": "SERVER_READY_FOR_QUERY",
+      "elapsedMs": 23148
+    },
+    {
+      "phase": "CONNECTION_ESTABLISHED",
+      "elapsedMs": 23149
+    },
+    {
+      "phase": "READONLY_TRANSACTION_STARTED",
+      "elapsedMs": 23205
+    },
+    {
+      "phase": "READONLY_TRANSACTION_COMMITTED",
+      "elapsedMs": 23586
+    }
+  ],
+  "timing": {
+    "connectToEstablishedMs": 22173,
+    "tokenReadyToServerReadyMs": 21474
+  },
+  "conclusion": {
+    "fixedSourceAndEndpointCanEstablishVerifiedTlsIamSession": true,
+    "accurateDatabaseAndReadOnlyIdentityVerified": true,
+    "newIamOrNetworkResourcesNeededForThisConnection": false,
+    "omittedStartupOptionsWorked": true,
+    "uniqueCauseOfPreviousFailureProven": false,
+    "reason": "One variant succeeded; prior failure lacked detailed phases and authentication may vary. Do not claim the option difference uniquely caused the earlier timeout.",
+    "applicationCompatibilityOrMediaProven": false,
+    "restorationAuthorizedByDiagnostic": false
+  },
+  "cumulativeForStoppedStep4": {
+    "sourceSts": 3,
+    "awsMetadata": 13,
+    "fixedPrivateInputReads": 16,
+    "auroraConnectionAttempts": 2,
+    "auroraIamTokens": 2,
+    "auroraSqlSubmissions": 4,
+    "providerOrBusinessWrites": 0,
+    "runtimeEnabled": false,
+    "normalReleaseAcceptances": 0
+  },
+  "remainingOriginalBudgets": {
+    "sourceSts": 0,
+    "awsMetadata": 307,
+    "auroraConnectionAttempts": 1,
+    "auroraIamTokens": 1,
+    "auroraSqlSubmissions": 56,
+    "fixedPrivateInputReads": 0
+  },
+  "privacy": {
+    "configurationSecretOrPrivateKeyReads": 0,
+    "eightFixedInputReads": 0,
+    "rawErrorsOrCredentialsPublished": false
+  },
+  "evidence": {
+    "privateDirectory": ".local-secrets/d2-6-step4-connect-diagnostic-20261117-a",
+    "rawResultSha256": "bd08c8af2bcb93ba58db0ed685cecaeb7a5fa2bf673357537b1a41dc71b59c6c",
+    "operatorPath": ".local-secrets/d2-6-step4-connect-diagnostic-20261117-a.operator.mjs",
+    "operatorLfSha256": "dfe6ff1e8fce4f9d6e48612f9117e28aa268d2528ae2ff65aa83c83036a5f3bf"
+  },
+  "next": "Reuse this successful transport/identity proof and all saved metadata. Only prepare the minimum activation continuation with explicit remaining/new-call budgets and timing; no more inventory, IAM/network changes, reconnection or restore under this diagnostic approval. Original operation/fact/artifact deadlines and failed journals remain unchanged."
+}
