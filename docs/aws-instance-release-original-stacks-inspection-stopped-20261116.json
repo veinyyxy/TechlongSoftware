@@ -1,0 +1,75 @@
+{
+  "schema": "techlong/instance-release-original-stack-inspection-stopped/v1",
+  "status": "SOURCE_CREDENTIAL_EXPORT_FAILED_NO_RESOURCE_METADATA_READ",
+  "approvedScopeSha256": "273d8d05a34dad9a289336bd75d7847565622bc1c0beddd88b58554495b394f3",
+  "userExplicitApprovalReceived": true,
+  "startedAt": "2026-11-17T04:53:18.516Z",
+  "stoppedAt": "2026-11-17T04:53:20.092Z",
+  "operationNotAfterUnchanged": "2026-11-17T04:58:18.516Z",
+  "factsNotAfterUnchanged": "2026-11-17T08:24:36.704Z",
+  "originalScopeLatestStartUnchanged": "2026-11-17T08:19:36.704Z",
+  "attemptedWithinApprovedWindow": true,
+  "actualCounts": {
+    "stsAttempts": 1,
+    "successfulStsIdentityResponses": 0,
+    "awsResourceMetadata": 0,
+    "secretValueReads": 0,
+    "appConfigReads": 0,
+    "patPemReads": 0,
+    "databaseConnections": 0,
+    "cloudWrites": 0,
+    "executionSlotConsumption": 0,
+    "automaticRetries": 0
+  },
+  "error": {
+    "code": "SOURCE_CREDENTIAL_EXPORT_FAILED",
+    "httpStatus": null
+  },
+  "classificationBoundary": "The standard AWS CLI credential-export child returned nonzero before a Source STS identity response. Raw credential-export error/stdout was not retained, so this does not uniquely prove session expiry, a network issue or an IAM denial.",
+  "pending": {
+    "originalStackReadsNotStarted": 7,
+    "finalIdentityInstallationAcceptance": false,
+    "realVersionUpdates": 0
+  },
+  "previousCompletedWorkUnchanged": "Four LOGIN independent authentications and new IAM26 checks remain proved by the original immutable execution receipt; no Secret/SQL replay or IAM recreation.",
+  "privateEvidence": [
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-a/read.mjs",
+      "sha256": "9da40d162812944909c099af03236b7909dc8f1b9bcc96e1b3a4a4f06ddc76ab"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-a/read-approval-received.json",
+      "sha256": "dbbd3197b818f2b30531003b763a56d54119f381c0ec07718a6e19aab2398a9f"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-a/read-started.json",
+      "sha256": "5a217015a23fb68c01b7ffce8c03c8f3c2b7d6466c64bc856074b10dae49ed78"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-a/read-result.json",
+      "sha256": "c65d94ad2c8a77c5f962d252f78d01d0d137c97f82c3b0b15f262931469c0a35"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-a/calls.ndjson",
+      "sha256": "8c61aca5fe6f7575c03a24c04161081e5bc252ee4c0e6745bc7ec122d1a8184c"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-a/outcomes.ndjson",
+      "sha256": "f2a60c49e71fd7289d2e043814771bbc1a52df209d1c16eba222dd3f683d210a"
+    }
+  ],
+  "approvedReaderAndPreviousExecutionEvidenceUnchanged": true,
+  "runtime": {
+    "enabled": false,
+    "restoredEnvironment": false,
+    "publishedVersion": false
+  },
+  "afterStop": {
+    "localResultsAndHashesOnly": true,
+    "newAwsOrDatabaseCalls": 0,
+    "newSecretConfigPatPemReads": 0,
+    "writes": 0,
+    "retryOrCleanup": false
+  },
+  "nextOnly": "Ask the user to refresh the fixed Source login and explicitly permit one new bounded STS1+same7 original-stack-only metadata round, before the unchanged deadline. Preserve a, use a distinct record, do not rerun/overwrite the failed command or reuse the old read approval implicitly. No broader inventory, credential bodies, database or cloud mutations."
+}
