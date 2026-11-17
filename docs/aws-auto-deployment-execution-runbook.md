@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：步骤2离线输入已收口，下一准备步骤3正常新构建；云端门槛仍未通过（2026-11-17）
+## 当前唯一继续点：步骤3构建准备完成，实际构建另审（2026-11-17）
+
+用户本轮仅批准步骤3构建准备，不批准实际dispatch、凭据/新生产读取、ECR发布或环境恢复。只复用服务端main已存源码、原app-only `backend-image-candidate.yml`、步骤2兼容/九图输入；从本地Git对象固定真实源码/工作流/校验脚本字节，拟两次独立正常构建并用真实产物摘要判定A/B，不保证重复构建必然不同、不捏造manifest/release ID。此轮只编制原工作流调度/跟进/原包取证的准确待审范围及离线校验，不修改工作流/业务代码/SQL或扩框架；新GitHub调用/构建须另批，不查旧产物/云资源、不读取图片或重复历史导出。
+
+已交付[原方案第10节](aws-instance-version-release-plan.md#d2-6-build-prepared)/[构建范围JSON](../ops/releases/d2-6-build.review.json)，审批SHA `7a4350731179972bcd7695203a8f763aee09033abde2df68f0b4cd5f1cfce773`。本地85断言通过，后端/部署workflow与实际runtime保持；本轮GitHub/AWS/凭据/下载/构建/写槽均0。拟同一b9ca…顺序app构建2次、GET67（含两run监测）/dispatch2/原ZIP2，首失败日志准确1份≤4MiB；原workflow无environment，不改变后继发布的本人门禁。下一仅待这个实际构建范围及风险另批，不开启窗口/恢复收费资源；ECR、目录/绑定、媒体或runtime操作仍不在本SHA内，不重做已完成盘点。
+
+### 已完成的步骤2输入（保留，不重做）
 
 [步骤2真实结果第9节](aws-instance-version-release-plan.md#d2-6-step2-observed) / [回执](aws-instance-release-d2-6-step2-observed-20261117.json)：同SHA补读已另获明确批准，b成功解析JSON字符串行；累计源读2，准确原图读9/1,233,239字节，全9存在，根测试图5/上传图4，store_id全NULL保持不推归属。a无效投影/停止保留，14项合成检查通过，无额外源重读或目录枚举。服务端本地main仍b9ca…；与旧10fe…的routes/services/db/bin/public五树相同，启动与迁移入口分离；原readiness mock8项、存储注入断言7项及既有候选纯合同检查通过，不是云验收。
 

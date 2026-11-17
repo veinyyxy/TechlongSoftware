@@ -1,0 +1,375 @@
+{
+  "schema": "techlong/instance-release-d2-6-build-review/v1",
+  "status": "PREPARED_EXISTING_APP_WORKFLOW_BUILD_NOT_APPROVED",
+  "preparedOn": "2026-11-17",
+  "timezone": "America/Winnipeg",
+  "buildAuthorized": false,
+  "dispatchAuthorized": false,
+  "downloadAuthorized": false,
+  "publicationAuthorized": false,
+  "restoreAuthorized": false,
+  "scopeOnly": true,
+  "executionEntrypoint": null,
+  "purpose": "Prepare two independently built app candidates A/B from one fixed reviewed source using the existing workflow. No ECR/registry publication, catalog insertion, environment restore or release deployment.",
+  "source": {
+    "repository": "veinyyxy/SpeedFeast_Backend_main",
+    "repositoryId": 1064124445,
+    "ref": "refs/heads/main",
+    "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+    "workflowPath": ".github/workflows/backend-image-candidate.yml",
+    "workflowId": 377674976,
+    "actorId": 14145707,
+    "workflowGitRawSha256": "ec2d5aa094bf92a1bd7edfaba29d2a77386f8d3df65df35cb75b423578f31910",
+    "workflowGitBlobSha1": "2c21082367e952a65752eec714c55f7b2542589c",
+    "remoteMainOrWorkflowReadThisPreparation": false,
+    "localBranchAndNormalizedFilesMatchGit": true,
+    "gitFiles": [
+      {
+        "path": ".github/workflows/backend-image-candidate.yml",
+        "gitRawSha256": "ec2d5aa094bf92a1bd7edfaba29d2a77386f8d3df65df35cb75b423578f31910",
+        "localLfSha256": "ec2d5aa094bf92a1bd7edfaba29d2a77386f8d3df65df35cb75b423578f31910",
+        "gitBlobSha1": "2c21082367e952a65752eec714c55f7b2542589c"
+      },
+      {
+        "path": "Dockerfile",
+        "gitRawSha256": "16b92ca959d38030d0b252e252901677ee63432fd98641c7c97f785e33201652",
+        "localLfSha256": "16b92ca959d38030d0b252e252901677ee63432fd98641c7c97f785e33201652",
+        "gitBlobSha1": "d63fef7d86c103451206536c74942899c2ce8c04"
+      },
+      {
+        "path": ".dockerignore",
+        "gitRawSha256": "0fa4bcc1c76cef1046416a011b6b6fea5d96ddeac9c2c04be45eba13a863eecc",
+        "localLfSha256": "0fa4bcc1c76cef1046416a011b6b6fea5d96ddeac9c2c04be45eba13a863eecc",
+        "gitBlobSha1": "7703565b2cade490191e241873c45110cacf5b97"
+      },
+      {
+        "path": "scripts/ci/check-image-candidate.sh",
+        "gitRawSha256": "40b0e5b4ff10032eec211a3d4ae75a93c7b37cc1afffec3dbc9b9d5a5ff4d2ee",
+        "localLfSha256": "40b0e5b4ff10032eec211a3d4ae75a93c7b37cc1afffec3dbc9b9d5a5ff4d2ee",
+        "gitBlobSha1": "bacd30052f0175f287e8b0afb3ce214953f7218c"
+      },
+      {
+        "path": "scripts/ci/check-image-security.sh",
+        "gitRawSha256": "52f18ec9470d43d8e0387aca195d0014c90801ca6980369cee2aedfb710a85a8",
+        "localLfSha256": "52f18ec9470d43d8e0387aca195d0014c90801ca6980369cee2aedfb710a85a8",
+        "gitBlobSha1": "154a0196fe7dc0232d96a7096d2447a2bc7d9d7e"
+      },
+      {
+        "path": "scripts/ci/record-image-candidate.js",
+        "gitRawSha256": "b68a547f84575fc6781bf694b4421870c7c904455d60aea0fcd755c33bb1f0a4",
+        "localLfSha256": "b68a547f84575fc6781bf694b4421870c7c904455d60aea0fcd755c33bb1f0a4",
+        "gitBlobSha1": "9c547193a9ab08ff0ca992495e7a13ae36338d5f"
+      },
+      {
+        "path": "scripts/ci/verify-image-security.js",
+        "gitRawSha256": "e6b520f8eacea53a640efc6a57dee330316830e46649e422e37147ba27350d6a",
+        "localLfSha256": "e6b520f8eacea53a640efc6a57dee330316830e46649e422e37147ba27350d6a",
+        "gitBlobSha1": "6a6df4323cf7a5afda8aa999fd464b56e888be74"
+      },
+      {
+        "path": "package.json",
+        "gitRawSha256": "3b55b687e60e6bc37ed89f9c77305742d45fae3ed738ce935febcaac2c9fe00e",
+        "localLfSha256": "3b55b687e60e6bc37ed89f9c77305742d45fae3ed738ce935febcaac2c9fe00e",
+        "gitBlobSha1": "cf55089c3b0e54299a207757d0b630243ea27c4a"
+      },
+      {
+        "path": "package-lock.json",
+        "gitRawSha256": "b4896e24e5d172b5d4579067d88292742eb15a4e0122956fc76af6360680390c",
+        "localLfSha256": "b4896e24e5d172b5d4579067d88292742eb15a4e0122956fc76af6360680390c",
+        "gitBlobSha1": "5912d1d623a42302d8980d1b5d7f9d210357d33b"
+      }
+    ]
+  },
+  "existingWorkflow": {
+    "jobs": [
+      "image"
+    ],
+    "kinds": [
+      "app"
+    ],
+    "permissions": {
+      "contents": "read"
+    },
+    "environment": null,
+    "oidc": false,
+    "awsCredentials": false,
+    "dockerPush": false,
+    "databaseMigrations": false,
+    "hostedRunner": "ubuntu-24.04",
+    "perJobTimeoutMinutes": 25,
+    "concurrency": {
+      "group": "backend-image-candidates-${{ github.ref }}",
+      "cancel-in-progress": false
+    },
+    "newWorkflowOrCodeChanges": false
+  },
+  "inputsReused": [
+    {
+      "path": "ops/releases/d2-6-compatibility.prepared.json",
+      "lfSha256": "30cf6d5063636e41b409bd1c2b7024564c92d9e1d22ff13d9a195f0b8268deb8"
+    },
+    {
+      "path": "docs/aws-instance-release-d2-6-step2-observed-20261117.json",
+      "lfSha256": "4753ccc5131cf061b7a468ee8b568d854e1347c32d3c26cf4b0d93b5a69a5f70"
+    },
+    {
+      "path": "ops/releases/runtime.json",
+      "lfSha256": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6"
+    },
+    {
+      "path": ".github/workflows/instance-release.yml",
+      "lfSha256": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff"
+    },
+    {
+      "path": "ops/releases/import-source.ts",
+      "lfSha256": "b1b97f4869f5baecf82266b7fbfe0e9358274b6338c6f398b5e0aa503dec42f6"
+    },
+    {
+      "path": "ops/releases/build-artifact.ts",
+      "lfSha256": "e21b05c2f25f519955d50355802d1b6c4f35af93cbe9ac1b90a4c38789d0a8a3"
+    },
+    {
+      "path": "ops/releases/extract-build-artifact.py",
+      "lfSha256": "2cbe38b6b10c47dc86c586e6ee95d7ee6c9c6048b51d4e468709b107680d6f71"
+    },
+    {
+      "path": "lib/deployments/releases/production.ts",
+      "lfSha256": "9913def1603c3f46077b49757c5922d3f226132f3918a74b7642e6d23fe65e48"
+    }
+  ],
+  "buildProfile": {
+    "nodeVersion": "v24.18.0",
+    "scannerVersion": "0.75.0",
+    "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f"
+  },
+  "artifactContract": {
+    "nameTemplate": "checked-app-{sourceCommit}-{runId}-1",
+    "retentionDays": 1,
+    "osDiagnosticRetentionDays": 7,
+    "requiredFiles": [
+      "image.tar.gz",
+      "candidate-receipt.json",
+      "self-check.json",
+      "SHA256SUMS"
+    ],
+    "maxZipBytesEach": 524288000,
+    "maxCombinedZipBytes": 1048576000,
+    "maxImageArchiveBytesEach": 471859200,
+    "nodeUid": 65532,
+    "platform": "linux/amd64",
+    "smokeNetwork": "none",
+    "expectedHealth": 200,
+    "expectedOfflineReady": 503,
+    "dependencyAuditLevel": "high",
+    "osHighCriticalCount": 0,
+    "ignoreUnfixedAllowed": false,
+    "scannerDatabaseAgeSecondsMax": 172800
+  },
+  "slots": [
+    {
+      "label": "A",
+      "order": 1,
+      "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+      "runId": null,
+      "artifactId": null,
+      "imageConfigDigest": null,
+      "registryManifestDigest": null,
+      "platformDigest": null,
+      "releaseId": null,
+      "status": "NOT_BUILT"
+    },
+    {
+      "label": "B",
+      "order": 2,
+      "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+      "runId": null,
+      "artifactId": null,
+      "imageConfigDigest": null,
+      "registryManifestDigest": null,
+      "platformDigest": null,
+      "releaseId": null,
+      "status": "NOT_BUILT"
+    }
+  ],
+  "sequence": [
+    "Verify unchanged local scope/verifier hashes; after explicit approval create fresh private records, then read the existing Git credential helper once in memory. No AWS credentials or Source login check.",
+    "Read exact repository identity/default branch, main ref and workflow bytes at the pinned commit. Any mismatch stops before dispatch; do not fetch another commit or change code.",
+    "For A, save the one bounded pre-dispatch run-ID sample and create a fresh dispatch INTENT; POST the original workflow once with ref=main and no inputs. Never retry an unknown or failed POST.",
+    "Use only bounded read-only discovery to bind one exact new run, then poll only that run. Preserve an unknown dispatch ACK as unknown even if a run is found; do not dispatch B in that case.",
+    "On completed/success, obtain that run's one exact checked-app artifact, download the original ZIP, and reuse original extraction/checksum/build/security validators at actual current time. No Docker Desktop, lifecycle image or registry access.",
+    "Only after A passes original-artifact verification, recheck main is still the pinned source and follow the same independently recorded baseline/INTENT/one POST/run/artifact sequence for B.",
+    "Require different run IDs, valid current artifacts and different verified imageConfigDigest values. Record source-compatible A/B candidates only; leave ECR root/platform digests and release directory IDs unset.",
+    "If either build fails, capture the exact job/step metadata and at most one bounded failing-job log, then stop without repair, cancel, rerun or additional build. If digests are identical, report DISTINCT_IMAGE_REQUIRED; do not forge a tag/digest or launch a third build."
+  ],
+  "operatorApiCalls": [
+    {
+      "id": "repository",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main",
+      "maxCalls": 1,
+      "accept": "repository.id=1064124445, owner.id=14145707, default_branch=main; no redirect to another owner/repository"
+    },
+    {
+      "id": "source-refs",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/git/ref/heads/main",
+      "maxCalls": 2,
+      "when": "Before A and immediately before B, object.sha must equal the pinned source; no ref writes"
+    },
+    {
+      "id": "workflow-bytes",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/contents/.github/workflows/backend-image-candidate.yml?ref=b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+      "maxCalls": 1,
+      "accept": "Decoded Git raw bytes SHA256 and blob SHA1 equal the approved immutable local Git object; this is not Windows working-tree CRLF bytes"
+    },
+    {
+      "id": "before-dispatch-ids",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/actions/workflows/377674976/runs?branch=main&event=workflow_dispatch&per_page=100",
+      "maxCalls": 2,
+      "when": "One first-page sample immediately before each POST, no pagination"
+    },
+    {
+      "id": "dispatch",
+      "method": "POST",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/actions/workflows/377674976/dispatches",
+      "maxCalls": 2,
+      "body": {
+        "ref": "main"
+      },
+      "accept": "Exactly one request per slot; HTTP204 is the expected ACK. Uncertain submission is never reposted, never clears its intent and never permits B automatically."
+    },
+    {
+      "id": "bind-new-run",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/actions/workflows/377674976/runs?branch=main&event=workflow_dispatch&per_page=100",
+      "maxCalls": 6,
+      "perSlotMax": 3,
+      "minIntervalSeconds": 20,
+      "accept": "One unique new run absent from that slot's prior ID sample, created within the recorded bounded dispatch interval, exact repository/workflow/source/main/event/actor and attempt1. Do not follow another candidate or page; ambiguity/absence stops."
+    },
+    {
+      "id": "exact-run-monitor",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/{boundRunId}",
+      "maxCalls": 48,
+      "perSlotMax": 24,
+      "minIntervalSeconds": 90,
+      "perSlotMonitorMinutesMax": 35,
+      "accept": "Only the two bound run IDs, their pinned source/workflow/repository/event/main/actor and attempt1; no Re-run or polling unrelated runs"
+    },
+    {
+      "id": "exact-run-jobs",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/{boundRunId}/jobs?per_page=10",
+      "maxCalls": 2,
+      "accept": "Once on each terminal run, one original app job; capture status/failed step only, incomplete page stops"
+    },
+    {
+      "id": "app-artifact",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/actions/runs/{successfulBoundRunId}/artifacts?per_page=100",
+      "maxCalls": 2,
+      "accept": "Exactly one matching nonexpired checked-app for this source/run/attempt1; exact artifact.workflow_run IDs/SHA and original ZIP digest/size. Incomplete artifact page stops; no historical or lifecycle fallback."
+    },
+    {
+      "id": "original-zip",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/actions/artifacts/{boundAppArtifactId}/zip",
+      "maxCalls": 2,
+      "accept": "Only original API302 then one allowed official blob GET per artifact; never forward Authorization to blob or store signed URL"
+    },
+    {
+      "id": "failure-log-only",
+      "method": "GET",
+      "path": "/repos/veinyyxy/SpeedFeast_Backend_main/actions/jobs/{exactFailedAppJobId}/logs",
+      "maxCalls": 1,
+      "when": "Only first failing bound app job; at most one official signed text-body GET of at most4MiB, private/redacted evidence only. No broad run logs, OS diagnostic ZIP or extra artifact downloads."
+    }
+  ],
+  "transport": {
+    "githubCredentialHelperReadsMax": 1,
+    "credentialUse": "Existing Git credential only in memory, sent only to api.github.com; do not read PAT/PEM/.env/AWS Secret or copy credentials to files.",
+    "githubApiVersion": "2022-11-28",
+    "apiEndpoint": "https://api.github.com",
+    "metadataBytesMaxEach": 2097152,
+    "officialBlobHostRule": "Existing allowlist: HTTPS *.blob.core.windows.net or *.actions.githubusercontent.com; no userinfo, forwarded Authorization or extra redirects",
+    "officialArtifactBlobGetsMax": 2,
+    "officialFailureLogBlobGetsMax": 1,
+    "maxFailureLogBytes": 4194304,
+    "maxPubliclyCommittedRawLogs": 0,
+    "localDestination": "A fresh create-only private child of E:/NodejsProject/TechlongSoftware/.local-secrets; keep original ZIP/receipts and safe hashes, no old directory/fence reset.",
+    "localExtractor": "Original ops/releases/extract-build-artifact.py via the already available bundled Python; do not use broken Windows python3 alias or install software."
+  },
+  "timing": {
+    "windowStarted": false,
+    "approvalObservedAt": null,
+    "startWithinSecondsOfExplicitApprovalMax": 18000,
+    "totalOperationSecondsMax": 4800,
+    "operationEndRule": "Earlier of actual start plus80min and actual explicit approval plus5h; do not start when insufficient planned reserve remains.",
+    "newMetadataAgeSecondsMax": 18000,
+    "metadataAgeStartsAt": "Actual first GitHub preflight read; not completion of B or later preparation.",
+    "oldFactTimesExtended": false,
+    "artifactAndScanExpiryUnchanged": true,
+    "resourceOrControlLeaseOpened": false
+  },
+  "countsMax": {
+    "githubApiGets": 67,
+    "workflowDispatchPosts": 2,
+    "officialArtifactBlobGets": 2,
+    "officialFailureLogBlobGets": 1,
+    "originalAppZipDownloads": 2,
+    "githubCredentialHelperReads": 1,
+    "buildJobs": 2,
+    "nominalHostedJobTimeoutMinutesTotal": 50,
+    "awsCalls": 0,
+    "ecrCalls": 0,
+    "registryPushes": 0,
+    "databaseConnectionsOrQueries": 0,
+    "configPatPemSecretReads": 0,
+    "catalogOrBindingWrites": 0,
+    "environmentRestoreOrEcsDeploy": 0,
+    "environmentApprovalsPerformedByAgent": 0
+  },
+  "outputAcceptance": {
+    "expectedStatus": "TWO_DISTINCT_APP_BUILD_ORIGINALS_VERIFIED_NOT_PUBLISHED",
+    "bothExactRunsSuccessful": true,
+    "unexpiredOriginalsVerifiedAtActualCurrentTime": true,
+    "nodeScannerAndChecksumsMatchApprovedProfile": true,
+    "twoImageConfigDigestsMustDiffer": true,
+    "configDigestIsEcrManifestDigest": false,
+    "manifestOrReleaseIdsMayBeInvented": false,
+    "qualifiedEcrReleaseAvailableNow": false,
+    "sourceCompatibilityAdoptionOrLivePersistenceProvenByBuild": false,
+    "actualRunIdsAssignedOnlyAfterExactRemoteBinding": true,
+    "noAutomaticPromotionOrDirectoryRegistration": true
+  },
+  "stopRules": [
+    "No retries after HTTP/transport/authentication/integrity/ID mismatch errors; normal status polling of a healthy unchanged run is monitoring, not an error retry.",
+    "Fresh intent records are create-only. Unknown POST retains its state; allow only the listed discovery reads, no automatic B or replacement POST.",
+    "First build failure, ambiguous run, missing/expired artifact, scanner/security failure, budget/deadline or identical config digests stops this round. No automatic repair, downgrade, cancel, Re-run, third build or resource cleanup.",
+    "Queued/running GitHub jobs may continue after local interruption; preserve exact run IDs and evidence, never dispatch again to recover. No cancellation is approved. Subsequent reads must fit remaining original scope/time or be approved separately.",
+    "A/B qualification here is build-source evidence only. ECR publication, actual root/platform digest verification, trusted catalog, initial binding, media operations, runtime activation/restoration and two real updates remain separately approved."
+  ],
+  "risks": [
+    "Up to two existing GitHub-hosted app jobs, each timeout25min, may consume Actions minutes, dependency/OS downloads and artifact/log storage or incur GitHub fees; no plan/billing upgrade or AWS resource startup is approved.",
+    "Original workflow downloads public npm/apt/base-image/CA/scanner databases and runs isolated CI containers with fixture configuration; these normal runner requests are not the operator API-call budget. No real tenant DB/Secret or AWS-account identity is provided to the jobs.",
+    "Artifacts contain app binaries/source and enter private memory/disk; failing-job logs may contain provider details. Store raw originals/logs privately, do not commit credentials, signed URLs or customer data.",
+    "Same source rebuilt twice does not guarantee a distinct image; only real verified config digests can establish a distinct pair. Root/platform manifests remain unverified until later registry publication.",
+    "API/ref checks are not cross-service CAS. Another actor/main update or run can race; reject mismatched source/ambiguous runs without using their output or silently broadening scope.",
+    "Artifact retention1day and scanner DB freshness48h are independent of the5h preparation snapshot; expiration is never restamped or ignored. Historical media/source evidence is reused, not renewed by this build."
+  ],
+  "thisPreparation": {
+    "githubApiReads": 0,
+    "credentialReads": 0,
+    "dispatches": 0,
+    "builds": 0,
+    "artifactDownloads": 0,
+    "awsOrDatabaseCalls": 0,
+    "sourceOrImageWrites": 0,
+    "executionSlotsConsumed": 0,
+    "workflowOrApplicationCodeChanged": false,
+    "localYamlSourceAndContractChecksPassed": true
+  }
+}

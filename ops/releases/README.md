@@ -8,6 +8,8 @@
 
 步骤2离线输入现已收口：[结果](../../docs/aws-instance-release-d2-6-step2-observed-20261117.json)/[第9节边界](../../docs/aws-instance-version-release-plan.md#d2-6-step2-observed)。新[`d2-6-compatibility.prepared.json`](d2-6-compatibility.prepared.json)仅是有源证据的兼容元数据提案，不能作为实际schema/API测量或直接登记输入；九图全部映射/哈希但尚未上传、改库或证明当前云持久化。后续只集中准备步骤3正常构建及必要后继范围，运行门槛不变，不加载本提案或启用runtime。
 
+当前步骤3构建准备已完成：[第10节范围/风险](../../docs/aws-instance-version-release-plan.md#d2-6-build-prepared)/[`d2-6-build.review.json`](d2-6-build.review.json)，canonical SHA `7a4350731179972bcd7695203a8f763aee09033abde2df68f0b4cd5f1cfce773`。它固定原app-only工作流和两次独立构建/原包核验，不是执行命令、runtime输入或已获准操作；不新建构建器、不修改原workflow。85本地断言通过，GitHub/AWS/凭据/构建/下载/写入0。下一仅实际构建另审，ECR/目录/绑定/媒体写和环境恢复不在本清单内；两份真实digest不同才能形成A/B，不能从相同源码或两个run推断。
+
 D2-4已新增默认关闭的runtime配置、真实元数据/凭据适配及验收子进程；完整范围见[单审批工作流说明](../../docs/aws-instance-release-workflow.md)。工作流不执行本目录SQL草案；新增CI仅在全新临时PostgreSQL16中验证，不安装到现有控制库。本地137项相关回归通过，原生PG结果以准确CI为准。
 
 - `schema.draft.sql`：独立 `deployment_release` schema、三表、专用 NOLOGIN owner 与九个窄函数；D2-3增加只读决定/终止结果登记，扩展核验与完成结果。

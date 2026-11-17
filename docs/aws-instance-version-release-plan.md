@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 A/B AND INITIAL BINDING PREPARED OFFLINE / INPUT GAPS EXPLICIT — RUNTIME DISABLED / NO REAL UPDATE RUNS`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 STEP3 EXISTING APP BUILD SCOPE PREPARED / BUILD NOT APPROVED — RUNTIME DISABLED / NO REAL UPDATE RUNS`。
 
 除下方明确交付的D2-1至D2-4代码/离线部分及D2-5已有ECR路线离线接入外，本文其余部分仍是待审设计，不是完整功能已完成、生产数据库迁移、Secret/IAM安装、镜像发布、部署工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -16,7 +16,7 @@
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
-**2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第7小节路线](#d2-6-execution-route)的步骤0/1和步骤2离线输入已收口，[第9节](#d2-6-step2-observed)记录源码兼容、9图匹配及受审契约提案；实际云持久化/当前绑定未通过，不改runtime或数据。下一只按步骤3准备正常app-only新构建与后继必要范围，实际操作另审；不重查旧包、不重装身份或扩Full/媒体工具，真实更新仍0。
+**2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第7小节路线](#d2-6-execution-route)的步骤0/1和步骤2离线输入已收口；[第10节](#d2-6-build-prepared)已复用现有app-only工作流备齐两次真实构建的待审范围，尚未构建或取得合格A/B。下一仅待实际构建范围另审；不读凭据/新生产状态，不恢复环境、发布ECR、写目录/绑定或开启runtime，不重装身份或扩Full/媒体工具。当前云持久化/绑定仍未通过，真实更新仍0。
 
 **当前实际结果（取代下方早期轮次状态）：** [新g/h/i核对](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留)已完成真实app原件校验、STS1/AWS元数据55和另批剩余Neon READ ONLY22条查询；保留两次停止和新续段，未重复成功读取或产生远端写入。下一只收口第二个原CFN角色详细策略缺项及一次性启用准确清单，不扩框架；图片持久化缺项另列准确范围，不混入版本更新。runtime仍关、两次真实更新仍0。机器事实见[回执](aws-instance-release-d2-6-readiness-observed-20261114.json)，以下旧轮次“仅离线/未读”不覆盖本次批准结果。
 
@@ -221,7 +221,7 @@
 | 0 复用已完成项 | 已完成 | 身份结项及原准备/runtime/workflow摘要保持，本轮无生产调用 |
 | 1 一次集中取证 | 已获准并完成 | STS1/GitHub15/固定回执1，两个匹配app原件均缺失；不再查询旧构建 |
 | 2 兼容/持久化 | 离线输入已收口；云端证明未完成 | 五应用源码树不变，原9图全部找到并哈希（根5/products4）；兼容契约提案和私有迁移输入准备完毕，尚未上传/改库/写绑定 |
-| 3 合格A/B目录 | 未执行，下一准备 | 使用固定b9ca…源码、现有app-only工作流及上述输入，集中审批正常构建/发布/登记，不循环查旧产物 |
+| 3 合格A/B目录 | 构建准备完成；实际构建/目录未执行 | [第10节](#d2-6-build-prepared)固定b9ca…和原app-only工作流，两次构建及原包核验待另批；ECR/目录仍分清范围另审，不循环查旧产物 |
 | 4 首次启用 | 未执行 | 收费环境不恢复，runtime仍关闭，种子/实际操作另审 |
 | 5 两次正常更新 | 0／2 | 不以初始恢复/对齐、NO_CHANGE或模拟结果充数 |
 | 6 结案 | 未完成 | 必须有两次真实成功及最终一致回写 |
@@ -264,7 +264,7 @@
 
 #### 9.1 已完成的源码兼容证据
 
-本地服务端HEAD为`b9ca2138738900afc23a6a2ddce141b37a1f0a31`/main且tracked工作树未改。与旧部署源码`10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2`比较，`routes`、`services`、`db`、`bin`、`public`五个Git tree逐一相同；app.js也与步骤1认证取回的摘要一致。变化在依赖/基础镜像、构建发布及测试/记录文件，不是新的业务路由或数据库SQL需求。
+本地服务端HEAD为`b9ca2138738900afc23a6a2ddce141b37a1f0a31`/main且tracked工作树未改。与旧部署源码`10fe3c41b97941f5c7755bdcd9f43aee2d5a0ea2`比较，`routes`、`services`、`db`、`bin`、`public`五个Git tree逐一相同；app.js两版内容不变。Windows工作树的CRLF摘要与Git/GitHub原始LF字节摘要分开记录，不混称同一raw SHA；步骤3远端工作流固定使用Git对象原字节。变化在依赖/基础镜像、构建发布及测试/记录文件，不是新的业务路由或数据库SQL需求。
 
 - `package.json`的正常入口仍`node ./bin/www`；`node db/apply_saas_control.js`是独立迁移入口，不在Web启动时调用。D2不重跑初始化、restore或migration来更新镜像。
 - 图片上传实现确实写入`storage_provider/bucket/object_key/public_url`；切换provider只影响新上传，不能自动迁移旧记录。
@@ -297,6 +297,54 @@
 步骤2的**源码与本地输入准备已经完成**，不是完整云持久化或版本更新验收通过。`persistentUploadsReady=false`、运行配置关闭和原PERSISTENCE_NOT_READY门槛不变；尚缺实际新镜像、当时云端媒体引用/对象/CAS与初始运行绑定证明。
 
 下一按步骤3准备正常app-only构建、真实目录登记和必要首次启用的集中操作范围，使用上述源码证明和已封存9文件输入，不再重找旧artifact、重建图片设施或追加通用框架。实际构建/ECR/目录/媒体写/恢复仍另审；所有当前兼容及持久化门槛必须在A→B/B→A之前通过。实际媒体处理若需先启动原数据库，明确作为首次启用中单独受审的数据动作，不能夹进日常只ImageUri更新。没有给旧事实或过期扫描续期，也没有开启资源/授权短窗口等材料。
+
+<a id="d2-6-build-prepared"></a>
+
+### 10. 步骤3构建准备：复用现有工作流，实际构建另审
+
+本次交付为[`d2-6-build.review.json`](../ops/releases/d2-6-build.review.json)，按原`sha256Hex(JSON对象)`计算的审批摘要为：
+
+```text
+7a4350731179972bcd7695203a8f763aee09033abde2df68f0b4cd5f1cfce773
+```
+
+这是**范围清单，不是已获准的构建、可交给release命令的运行配置或新执行器**。全部授权标志为false，A/B的run、artifact、镜像/registry摘要与release ID均为null。本轮只做本地源码/契约校验及文档/JSON提交，不取凭据、不调用GitHub API/AWS、不构建/下载、不连数据库、不读取图片或旧导出，不修改后端代码、工作流、SQL、镜像或runtime。以后真正执行前仍须用户明确批准本SHA及范围。
+
+#### 10.1 已有构建能力与固定输入
+
+| 项目 | 本次固定值/边界 |
+| --- | --- |
+| 服务端 | `E:/NodejsProject/SpeedFeast_Backend_main`，main，源码`b9ca2138738900afc23a6a2ddce141b37a1f0a31`；tracked工作树干净 |
+| 原工作流 | `veinyyxy/SpeedFeast_Backend_main/.github/workflows/backend-image-candidate.yml`；历史workflow ID `377674976`，未来先核对准确仓库/main/工作流原字节，不把本地HEAD当当前远端值 |
+| 工作流原字节SHA256 | `ec2d5aa094bf92a1bd7edfaba29d2a77386f8d3df65df35cb75b423578f31910`，取Git对象原LF字节；另固定Dockerfile、锁文件及原自检/扫描脚本等共9个Git文件 |
+| 既有job | 只有app；`ubuntu-24.04`，单job最长25分钟，`contents:read`；无environment、OIDC、AWS身份、docker push或数据库迁移 |
+| 原自检 | linux/amd64、非root65532、无网络容器、health200/offline ready503，既有Aurora/readiness自检；生产依赖audit及OS HIGH/CRITICAL为0，不放宽unfixed/忽略规则 |
+| 原产物 | `checked-app-{commit}-{runId}-1`；四文件image.tar.gz、candidate-receipt.json、self-check.json、SHA256SUMS，保留1天；镜像archive≤450MiB |
+| 复用输入 | 步骤2兼容提案/真实回执、原解包/候选验证模块、部署workflow及关闭态runtime共8项LF摘要，不重读9图或历史导出 |
+
+**本构建工作流没有GitHub environment门禁**，所以另批构建后不需要用户再找“Review deployments”。这不改变后继ECR发布或日常更新的本人environment批准要求；本轮也不修改仓库保护或权限设置。
+
+#### 10.2 获准后连续执行的唯一序列（当前未执行）
+
+1. 一次使用既有Git凭据helper，仅在内存向`api.github.com`认证；不读取另存PAT、PEM、.env或AWS Secret。先核对仓库ID/main仍为上述固定提交、工作流Git原字节一致；不符即停，不临时换版本或修代码。
+2. 为A保存一次有限的调度前run ID样本和新私有INTENT，仅POST一次原workflow_dispatch，`ref=main`、无额外inputs。只绑定符合准确仓库/workflow/SHA/main/事件/actor/attempt1与时间区间的唯一新run；不靠“最新run”猜测归属。提交不明保留UNKNOWN，不补POST或自动启动B。
+3. 只跟进该run；成功后取唯一准确app原ZIP，复用原四文件解包、校验和、receipt/自检/扫描验证器，按真实当前时间核验。原`python3`在本机是不可用别名，使用已安装的内置Python调用**同一解包脚本**，不安装Docker/Python或改正式模块。
+4. A原件验证成功后，再核对main未改变；B按相同源码/工作流独立记录、单次调度和验证。任何一份失败就停止，不自动修复、Re-run、cancel或第三次构建。
+5. 两份run必须不同且原件有效，**实际验证出的imageConfigDigest也必须不同**。重复同一源码并不保证不同digest；相同就记`DISTINCT_IMAGE_REQUIRED`，不改标签/摘要或业务代码凑数。
+
+通过只表示取得两份不同的真实app构建原件。config digest不是ECR root/platform digest；后者仍须后继实际发布/回读证明，目录与初始绑定不由这次构建自动写入。兼容标签仍是待采纳提案，云持久化也不能由扫描成功替代。
+
+#### 10.3 集中的实际构建范围、费用与停止边界
+
+后继若批准本SHA，拟合计**GitHub API GET最多67、workflow_dispatch POST最多2、原ZIP/blob GET最多2**；另仅首个失败准确app job允许1次日志API GET（已计入67）及1次官方文本blob GET、≤4MiB。GET上限主要是两准确run的正常状态跟进（每份最多24次、间隔≥90秒、各≤35分钟），不是新增资源盘点。其他GET仅核对准确仓库/ref/工作流、两次有限run定位及成功原件/失败步骤；不翻页或搜索历史构建。
+
+每ZIP≤500MiB、两份合计≤1000MiB，原件和必要去敏日志仅存本机新建私有目录、不提交GitHub；下载只跟随允许的官方HTTPS blob，凭据不转发给blob、不保存签名URL。错误请求不自动重试；正常queued/in_progress跟进与错误重试分开。没有Source/AWS/ECR、SQL、配置/PAT/PEM/Secret读取、目录/绑定写入、环境恢复或ECS部署。
+
+本轮**没有开启时间窗口**。未来明确批准后5小时内启动；整轮最长80分钟且不超过批准后5小时，预留不足不启动。新准备事实从首次真实预检计时最多5小时，不在B结束时重置；旧步骤1快照、产物1天和扫描DB48小时均不续期，不开启资源/控制租约。两个原job合计上限50 runner分钟，排队会额外耗时；原工作流的依赖/基础镜像/扫描数据库下载及artifact/log存储可能消耗GitHub额度或收费，不升级plan/改账单设置。代理中断后已调度job可能继续，保存准确ID，不重新调度“恢复”。
+
+本地JSON/9项Git来源、8项复用摘要、YAML的app-only/原权限/原超时/原保留期、调用上限求和、空版本字段及实际runtime关闭共**85项断言通过**；未改运行代码，所以未触发构建来验证本准备文档，也不把本地断言称作真实构建CI通过。正式runtime仍false/environments={}，部署workflow保持原SHA；D2-6真实更新0/2。
+
+**当前停止点：步骤3的构建准备完成，只待实际构建另审。** 不提前调度、要求刷新Source或追加原环境/身份核对；构建合格后再按原步骤3明确必要ECR/可信目录与后继首次启用范围，不恢复环境等产物、不新增工作流或扩支线。
 
 <a id="d2-1-delivered"></a>
 
