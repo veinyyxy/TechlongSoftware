@@ -4,6 +4,10 @@
 
 ## 当前唯一继续点：步骤4恢复与九图持久化完成；只待一处运行平台默认值核验兼容（2026-11-17）
 
+用户现要求“开始下一步”，批准范围仅为下述单点默认表示兼容、必要回归和现有CI验证。先在`inspection.ts`保留显式Linux/x86_64路径；只有实际运行任务同时证明Fargate、Linux及x86_64时才接受缺省字段，不补写采样事实或改变指纹算法。显式ARM/Windows、非Fargate缺省及缺乏实际证明仍拒绝。本轮不新增生产读取/凭据或配置读取、不改CFN/数据库、不重做恢复/媒体，也不启用runtime；修复通过不是步骤4真实验收通过。
+
+该单点修复现已编码：正式源码只改`lib/deployments/releases/inspection.ts`的一个内部条件，不改digest/采样或任何模板/工作流。现有cycle测试加入5组缺省/部分缺省、ARM/Windows、缺失实际证明及镜像/持久化/schema/HTTP隔离回归；先复现误拒再修复，本地244项中243通过/1既有平台跳过，定向lint与全量类型检查通过。额外只核对同一已存失败响应的launchType/OS/CPU投影，匹配新条件，无网络或新生产事实。下一只核对这次源码的既有无AWS CI；通过后再准备剩余独立证明/绑定/runtime的准确接续，未据此读取生产或执行。
+
 用户在完整SHA/范围/费用说明后再次“确认”，同一a338入口获准实际启动。真实执行23:20:04.215–23:29:03.243Z约8分59秒：[准确结果](aws-instance-release-step4-activation-partial-20261117.json)。九图条件PUT/准确版本及公开内容校验、九行CAS明确提交和独立新连接回读均通过；停用态A对齐、Cell恢复、原IAM栈单ManagedPolicy修正、tenant恢复四份CS均EXECUTE_COMPLETE，API Alias一次对齐。Cell443/8443/证书/verify mTLS、原23项IAM物理归属保持；ECS desired1/running1/pending0，A实际digest匹配、目标healthy。**这不是最终验收成功。**
 
 独立进程止于`RELEASE_IMAGE_OR_COMPATIBILITY_CHANGED`；本机仅分析同轮已存响应，未新增生产读取。准确原因：原模板和实际TaskDefinition都省略可选`runtimePlatform`，而`inspection.ts#assertBoundReleaseRuntime`强制要求字段显式存在。实际任务`platformFamily=Linux`、`ecs.cpu-architecture=x86_64`、A digest和运行状态均已留存；[AWS Fargate官方默认值](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html)说明这不是实际架构不兼容。没有静默改事实、放宽核验或重试。两个技术GET已经发出，但状态码未留存，**不能补称HTTP验收通过**。

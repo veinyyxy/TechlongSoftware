@@ -75,6 +75,18 @@ export async function assertReleaseArtifact(target: Pick<ImageUpdatePlan["to"], 
 export type ReleaseRuntimeExpectation = Pick<ImageUpdatePlan, "selection" | "changeSet" | "templateSha256" | "configurationSha256" | "desiredCount" | "compatibility"> & {
   image: { imageUri: string; platformDigest: string };
 };
+
+function isLinuxAmd64Runtime(f: ReleaseRuntimeFacts): boolean {
+  const platform = f.taskDefinition.runtimePlatform;
+  if (platform?.cpuArchitecture === "X86_64" && platform.operatingSystemFamily === "LINUX") return true;
+  // Fargate can omit its Linux/x86_64 defaults. Require actual task proof, without
+  // normalizing raw facts or changing releaseRuntimeDigests (including for EC2).
+  return (platform?.cpuArchitecture ?? "X86_64") === "X86_64" &&
+    (platform?.operatingSystemFamily ?? "LINUX") === "LINUX" && f.tasks.every(task =>
+      task.launchType === "FARGATE" && task.platformFamily === "Linux" &&
+      task.attributes?.some(a => a.name === "ecs.cpu-architecture" && a.value === "x86_64"));
+}
+
 export async function assertBoundReleaseRuntime(plan: ReleaseRuntimeExpectation, f: ReleaseRuntimeFacts,
   readStartedAt: number, now: number, requireHttp = false): Promise<InstanceReleaseObservation> {
   const hashes = await releaseRuntimeDigests(f), image = plan.image;
@@ -98,7 +110,7 @@ export async function assertBoundReleaseRuntime(plan: ReleaseRuntimeExpectation,
   const name = f.service.loadBalancers[0].containerName;
   const api = f.taskDefinition.containerDefinitions?.filter(c => c.name === name);
   if (api?.length !== 1 || api[0].image !== image.imageUri || f.parameters.ImageUri !== image.imageUri ||
-    f.taskDefinition.runtimePlatform?.cpuArchitecture !== "X86_64" || f.taskDefinition.runtimePlatform.operatingSystemFamily !== "LINUX" ||
+    !isLinuxAmd64Runtime(f) ||
     !f.persistentUploadsReady || f.databaseProfile !== plan.compatibility.databaseProfile ||
     f.databaseSchemaVersion !== plan.compatibility.databaseSchemaVersion) throw new Error("RELEASE_IMAGE_OR_COMPATIBILITY_CHANGED");
   const ips: string[] = [];

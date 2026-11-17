@@ -4,6 +4,10 @@
 
 ## 当前唯一继续点：恢复与持久化已完成，只处理一处核验默认值兼容（2026-11-17）
 
+用户已准进入这项最小修复及回归/CI；仅兼容有实际Fargate/Linux/x86_64证明的默认字段省略，不改原始事实或指纹，不默认接受ARM/Windows/EC2。生产读取、资源/数据库写和runtime启用均不在本轮范围。
+
+该内部条件及5组回归已完成，本地244项（243通过/1既有跳过）、lint/类型通过；正式digest、模板/采样/工作流和关闭runtime未改。同轮已存失败响应的FARGATE/Linux/x86_64投影匹配，无新生产读取。下一只验证准确源码的现有CI，不重放恢复、媒体或原核验入口；通过也不等于实际绑定或runtime完成。
+
 用户完整范围确认后，a338于23:20:04–23:29:03Z实际执行：[结果与原件](aws-instance-release-step4-activation-partial-20261117.json)。九图实际持久化/CAS及独立回读通过；A对齐、Cell、原IAM单ManagedPolicy、tenant四段CFN完成，API Alias已对齐；实际A/Linux/x86_64任务1、目标healthy。独立核验因旧TaskDefinition省略`runtimePlatform`、检查器要求显式字段而误拒；仅分析同轮已存响应定位，没有新增生产读取或修代码/重试。HTTP两次请求的状态码未留存，不称完整验收通过。
 
 初始绑定和runtime均未写，runtime仍关、正常更新0/2；平台/prod/RDS启停未操作。Cell ALB、租户ECS及本来可用的Aurora可能持续计费；不自动清理。下一仅另批这一处默认值兼容和必要回归/CI，然后准备不重做恢复的独立证明/初始绑定/runtime接续；新增读取和剩余操作另审，不重放四个CS/九图/CAS，不扩盘点或身份分支，旧槽/窗口不复位。

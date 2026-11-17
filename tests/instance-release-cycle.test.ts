@@ -1,11 +1,81 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { executeInstanceRelease } from "../lib/deployments/releases/update.ts";
+import { assertReleaseRuntime, releaseRuntimeDigests, type ReleaseRuntimeFacts } from "../lib/deployments/releases/inspection.ts";
 import { cycleFixture } from "./instance-release-cycle-fixture.ts";
 
 const run = (f: Awaited<ReturnType<typeof cycleFixture>>) => executeInstanceRelease(f.input, f.deps);
 const count = (f: Awaited<ReturnType<typeof cycleFixture>>, action: string) => f.events.filter(e => e === action).length;
 const state = (f: Awaited<ReturnType<typeof cycleFixture>>) => f.sql.states.get(f.plan.selection.instanceId)!;
+
+function defaultedFargate(facts: ReleaseRuntimeFacts) {
+  delete facts.taskDefinition.runtimePlatform;
+  for (const task of facts.tasks) Object.assign(task, { launchType: "FARGATE", platformFamily: "Linux",
+    attributes: [{ name: "ecs.cpu-architecture", value: "x86_64" }] });
+}
+const assertFacts = async (f: Awaited<ReturnType<typeof cycleFixture>>, facts: ReleaseRuntimeFacts) =>
+  assertReleaseRuntime({ ...f.plan, ...await releaseRuntimeDigests(facts) }, facts, "from", f.sql.now, f.sql.now, true);
+
+test("release runtime: omitted Fargate platform accepts actual Linux/x86_64 proof without rewriting facts or fingerprints", async () => {
+  const f = await cycleFixture();
+  try {
+    const facts = f.facts(); defaultedFargate(facts);
+    const before = structuredClone(facts), digests = await releaseRuntimeDigests(facts);
+    assert.equal((await assertFacts(f, facts)).state, "RUNNING");
+    assert.deepEqual(facts, before); assert.equal(Object.hasOwn(facts.taskDefinition, "runtimePlatform"), false);
+    assert.deepEqual(await releaseRuntimeDigests(facts), digests);
+  } finally { f.destroy(); }
+});
+
+test("release runtime: empty or partially omitted Fargate platform uses the same actual task proof", async () => {
+  const f = await cycleFixture();
+  try {
+    for (const platform of [{}, { cpuArchitecture: "X86_64" as const }, { operatingSystemFamily: "LINUX" as const }]) {
+      const facts = f.facts(); defaultedFargate(facts); facts.taskDefinition.runtimePlatform = platform;
+      assert.equal((await assertFacts(f, facts)).state, "RUNNING");
+    }
+  } finally { f.destroy(); }
+});
+
+test("release runtime: explicit ARM or Windows is not replaced by Fargate defaults", async () => {
+  const f = await cycleFixture();
+  try {
+    for (const platform of [{ cpuArchitecture: "ARM64" as const }, { operatingSystemFamily: "WINDOWS_SERVER_2022_CORE" as const }]) {
+      const facts = f.facts(); defaultedFargate(facts); facts.taskDefinition.runtimePlatform = platform;
+      await assert.rejects(assertFacts(f, facts), /RELEASE_IMAGE_OR_COMPATIBILITY_CHANGED/);
+    }
+  } finally { f.destroy(); }
+});
+
+test("release runtime: missing or conflicting actual Fargate/OS/CPU proof cannot justify omitted platform", async () => {
+  const f = await cycleFixture();
+  try {
+    for (const mode of ["ec2", "launch-type-missing", "windows", "os-missing", "arm", "cpu-missing"]) {
+      const facts = f.facts(); defaultedFargate(facts); const task = facts.tasks[0];
+      if (mode === "ec2") task.launchType = "EC2";
+      if (mode === "launch-type-missing") delete task.launchType;
+      if (mode === "windows") task.platformFamily = "Windows Server 2022 Core";
+      if (mode === "os-missing") delete task.platformFamily;
+      if (mode === "arm") task.attributes![0].value = "arm64";
+      if (mode === "cpu-missing") task.attributes = [];
+      await assert.rejects(assertFacts(f, facts), /RELEASE_IMAGE_OR_COMPATIBILITY_CHANGED/);
+    }
+  } finally { f.destroy(); }
+});
+
+test("release runtime: default platform compatibility does not bypass image, persistence, schema or HTTP checks", async () => {
+  const f = await cycleFixture();
+  try {
+    for (const mode of ["image", "persistence", "schema", "http"]) {
+      const facts = f.facts(); defaultedFargate(facts);
+      if (mode === "image") facts.taskDefinition.containerDefinitions![0].image = f.plan.to.imageUri;
+      if (mode === "persistence") facts.persistentUploadsReady = false;
+      if (mode === "schema") facts.databaseSchemaVersion = "different-schema";
+      if (mode === "http") facts.checks = [];
+      await assert.rejects(assertFacts(f, facts), mode === "http" ? /RELEASE_TECHNICAL_ENDPOINTS_NOT_VERIFIED/ : /RELEASE_IMAGE_OR_COMPATIBILITY_CHANGED/);
+    }
+  } finally { f.destroy(); }
+});
 
 test("release cycle: same code deploys two instances/registered ECR versions; independent evidence precedes CAS", async () => {
   const images: string[] = [];
