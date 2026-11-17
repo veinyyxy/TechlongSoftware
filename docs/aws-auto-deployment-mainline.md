@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：两次app构建已完成，下一仅准备必要ECR/目录范围，实际另审（2026-11-17）
+## 当前唯一继续点：ECR/目录集中草案已备，先确认最小引导接线；实际操作另审（2026-11-17）
+
+[第12节](aws-instance-version-release-plan.md#d2-6-publication-catalog-prepared)/[集中草案](../ops/releases/d2-6-publication-catalog.prepared.json)已固定原A/B、拟议版本ID、A一次发布/ecr_verified＋B只candidate、现有publisher/固定版本/目录OIDs、拟议副作用/派生/预算/风险。只本地复用验证回执及原纯candidate端口，生产/凭据/SQL/新ZIP读取、发布/登记/恢复0，runtime仍关。原事实/扫描/产物不续期，不改已安装身份或原scope。
+
+已如实标出初始A发布与B候选事务的最小入口缺口：已有端口不等于独立无环境引导流程，可执行SHA仍null。下一仅待用户确认薄的受本人门禁保护引导/原事务candidate接线与必要回归；本轮没有实施或授权该代码/新读取。实际ECR/目录仍另审，不提前打开daily runtime、伪造绑定或扩恢复框架/Full/媒体支线。
+
+### 已完成的两次真实构建（保留，不重放）
 
 [本轮真实结果](aws-instance-release-d2-6-build-observed-20261117.json)/[第11节](aws-instance-version-release-plan.md#d2-6-build-observed)：用户批准原7a435073…后约6分钟完成A run44128576107及B run44129167654，两原app ZIP/四文件/自检/扫描核验通过、config digest不同，本机再次原验证器通过。实际GET18/dispatch2/helper1/blob2，ZIP2/145,323,945字节；源码/workflow不改，无第三构建/重试/失败日志，68份私有证据指纹保留。
 

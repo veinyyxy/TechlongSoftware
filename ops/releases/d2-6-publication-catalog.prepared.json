@@ -1,0 +1,529 @@
+{
+  "schema": "techlong/instance-release-d2-6-publication-catalog-preparation/v1",
+  "status": "CONCENTRATED_SCOPE_PREPARED_MINIMAL_ENTRYPOINTS_PENDING",
+  "preparedAt": "2026-11-17T17:00:46.011Z",
+  "timezone": "America/Winnipeg",
+  "planningOnly": true,
+  "executionAuthorized": false,
+  "newProviderReadsAuthorized": false,
+  "publicationAuthorized": false,
+  "catalogWritesAuthorized": false,
+  "restoreAuthorized": false,
+  "readyForExecutionApproval": false,
+  "executionApprovalSha256": null,
+  "purpose": "Publish only initial app A, verify actual ECR manifests and register A as ecr_verified plus B as an unpromoted candidate. B publication remains inside the later approved A-to-B update. No restore, binding or runtime activation.",
+  "buildEvidence": {
+    "path": "docs/aws-instance-release-d2-6-build-observed-20261117.json",
+    "lfSha256": "745390f8785b85a5001a8a1c35ad59cc1b61f82de45c80f6f7e994e81b0cccb2",
+    "observedAt": "2026-11-17T16:41:09.565Z",
+    "metadataValidUntil": "2026-11-17T21:41:09.565Z"
+  },
+  "compatibilitySource": {
+    "path": "ops/releases/d2-6-compatibility.prepared.json",
+    "lfSha256": "30cf6d5063636e41b409bd1c2b7024564c92d9e1d22ff13d9a195f0b8268deb8"
+  },
+  "candidates": [
+    {
+      "label": "A",
+      "policy": {
+        "productId": "prd_restaurant_order_system",
+        "version": "d2-6-a-b9ca2138-r44128576107",
+        "repository": "veinyyxy/SpeedFeast_Backend_main",
+        "repositoryId": 1064124445,
+        "nodeVersion": "v24.18.0",
+        "scannerVersion": "0.75.0",
+        "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+        "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+        "compatibility": {
+          "databaseProfiles": [
+            "express_iam"
+          ],
+          "schemaVersions": [
+            "speedfeast-saas-control-v1"
+          ],
+          "clientApiVersions": [
+            "speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144"
+          ],
+          "applicationPort": 3000,
+          "requiresMigration": false,
+          "startupWrites": false
+        }
+      },
+      "releaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+      "candidateSha256": "056efacd8630445670e7dfe55ae46e577e097f28909df6038d18440442e95172",
+      "storedCandidateCanonicalSha256": "21cb56226b63db31437986e38fc0bb2dd154c4396a2a12ef12155e1f648d3dbf",
+      "desiredCatalogStatus": "ecr_verified",
+      "registerNow": false,
+      "runId": 44128576107,
+      "artifactId": 14347858874,
+      "originalVerification": {
+        "path": ".local-secrets/d2-6-build-20261117-a/A-original-verified.json",
+        "rawSha256": "4c34450362456561ed9dd9287aba698c5ad38694e278edc394fb40361eaa502a"
+      },
+      "originalZip": {
+        "path": ".local-secrets/d2-6-build-20261117-a/A-artifact.zip",
+        "bytes": 72661917,
+        "sha256": "a42b4aba36ca0c3bbfa03321820ab9ec6ef06d019d1e48c8e2381ba81615a2cb"
+      },
+      "checkedArchive": {
+        "path": ".local-secrets/d2-6-build-20261117-a/A-checked/image.tar.gz",
+        "bytes": 72659437,
+        "sha256": "7d318ce76a346ad433b17ad67228824ac568fa9b511ec03e0e2f3bcfc208d6a5"
+      },
+      "imageConfigDigest": "sha256:ad65fdf4dd998f960274adf308a9f7b8baeba6d845309ad21529062b50b4d2eb",
+      "tag": "app-shab9ca2138738900afc23a6a2ddce141b37a1f0a31-r44128576107-a1",
+      "artifactExpiresAt": "2026-11-18T16:42:02Z",
+      "scanDatabaseUpdatedAt": "2026-11-17T13:00:16.23116094Z",
+      "validUntil": "2026-11-18T16:42:02.000Z",
+      "registryManifestDigest": null,
+      "platformDigest": null,
+      "registryVerificationSha256": null,
+      "sourcePolicyIsProposedMetadataNotLiveDbFacts": true
+    },
+    {
+      "label": "B",
+      "policy": {
+        "productId": "prd_restaurant_order_system",
+        "version": "d2-6-b-b9ca2138-r44129167654",
+        "repository": "veinyyxy/SpeedFeast_Backend_main",
+        "repositoryId": 1064124445,
+        "nodeVersion": "v24.18.0",
+        "scannerVersion": "0.75.0",
+        "scannerArchiveSha256": "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f",
+        "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+        "compatibility": {
+          "databaseProfiles": [
+            "express_iam"
+          ],
+          "schemaVersions": [
+            "speedfeast-saas-control-v1"
+          ],
+          "clientApiVersions": [
+            "speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144"
+          ],
+          "applicationPort": 3000,
+          "requiresMigration": false,
+          "startupWrites": false
+        }
+      },
+      "releaseId": "release_afcc95f9eaa20785265300c801fd7618",
+      "candidateSha256": "de1cfdb8b2a431efeb4241f71f70cd602587badf4470b797dc85c043f73dbf52",
+      "storedCandidateCanonicalSha256": "910246ac67d137fd2da1c5cd70614815bf1fa69a583d98a3f8c73a54e244f536",
+      "desiredCatalogStatus": "candidate",
+      "registerNow": false,
+      "runId": 44129167654,
+      "artifactId": 14349965129,
+      "originalVerification": {
+        "path": ".local-secrets/d2-6-build-20261117-a/B-original-verified.json",
+        "rawSha256": "f11e5f61d182494995024c3fc1457e83049638ec3890bf21bd8c977c12f2bfa7"
+      },
+      "originalZip": {
+        "path": ".local-secrets/d2-6-build-20261117-a/B-artifact.zip",
+        "bytes": 72662028,
+        "sha256": "813f7803af5eb8a8ecfe579dda0a24a6a78f850bf349eaa410214af5a2373228"
+      },
+      "checkedArchive": {
+        "path": ".local-secrets/d2-6-build-20261117-a/B-checked/image.tar.gz",
+        "bytes": 72659548,
+        "sha256": "6e4abe379ebe6aa022346174f3a6171e42cc5d79ada071ebd2486456e9d1345a"
+      },
+      "imageConfigDigest": "sha256:fee49b1473042adb987cf0acaef4fd443b6166b65aab1cc389c53403a2afed6b",
+      "tag": "app-shab9ca2138738900afc23a6a2ddce141b37a1f0a31-r44129167654-a1",
+      "artifactExpiresAt": "2026-11-18T16:45:19Z",
+      "scanDatabaseUpdatedAt": "2026-11-17T13:00:16.23116094Z",
+      "validUntil": "2026-11-18T16:45:19.000Z",
+      "registryManifestDigest": null,
+      "platformDigest": null,
+      "registryVerificationSha256": null,
+      "sourcePolicyIsProposedMetadataNotLiveDbFacts": true
+    }
+  ],
+  "policyAdoption": {
+    "proposedNotInstalled": true,
+    "productId": "prd_restaurant_order_system",
+    "component": "tenant_api",
+    "versionLabels": "Proposed D2-6 acceptance labels derived from exact build run IDs, not an existing application semver.",
+    "compatibilityMeaning": "Source-backed Express schema/API requirement labels from step2, not live measured database/client versions. Adoption into catalog policy must be explicit in the later approval.",
+    "overwriteExistingCatalogOrBindings": false,
+    "provesLiveCompatibilityOrPersistence": false
+  },
+  "target": {
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+    "ecrRepositoryArn": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-speedfeast",
+    "publisherHistoricalIdentity": {
+      "arn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleasePublisherRole",
+      "id": "AROAV3GNMXTZA2DT2FTQA",
+      "boundary": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleasePublisherBoundaryV1",
+      "policyId": "ANPAV3GNMXTZPHKCDOYZO",
+      "defaultVersion": "v1",
+      "policySha256": "45d079261d655c3d7d4134b9fcd5b747f5edf702dffc470ff8cf0531806e4626",
+      "trustSha256": "9c5ed51d51547fb309db009263a042918154230e6b5f3161c9590f52836d4d9d"
+    },
+    "historicalIdentityStack": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-instance-release-promotion-identity-v1/c6f842f0-e23c-11f1-b2be-06ffe014a43b",
+    "historicalIdentityIsCurrentProof": false,
+    "protectedGitHub": {
+      "repository": "veinyyxy/TechlongSoftware",
+      "repositoryId": 1323312747,
+      "branch": "main",
+      "environment": "techlong-sandbox-deploy",
+      "environmentId": 24613410405,
+      "reviewerId": 14145707,
+      "subject": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy",
+      "humanApprovalByUserOnly": true,
+      "publishOnlyWorkflowPath": null,
+      "publishOnlyWorkflowSha256": null,
+      "matchingCiRunId": null
+    },
+    "artifactToken": {
+      "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/backend-build-read-token-v1-zjIXrv",
+      "versionId": "a8a64f33-c9bc-7525-48ec-1f50b972f426",
+      "cloudReadsMax": 1,
+      "localPatFileReads": 0,
+      "publisherDbSecretReads": 0,
+      "use": "Only GitHub official exact A run/artifact API in the protected cloud job; never output or forward to signed blob host."
+    },
+    "evidence": {
+      "bucket": "techlong-sandbox-cloud-worker-evidence-402010193138",
+      "owner": "402010193138",
+      "prefix": "instance-releases",
+      "conditionalPutsMax": 3,
+      "keys": {
+        "intent": "instance-releases/promotions/{exactDerivedReleaseRequestId}/intent.json",
+        "push": "instance-releases/promotions/candidate-056efacd8630445670e7dfe55ae46e577e097f28909df6038d18440442e95172/push.json",
+        "published": "instance-releases/promotions/{exactDerivedReleaseRequestId}/published.json"
+      },
+      "derivation": "The release_* request ID must bind the actual approved GitHub run/attempt/source through reviewed code; not known or fabricated before dispatch. No derived CFN-plan object.",
+      "fixedVersionGetsMax": 2,
+      "maxObjectBytesEach": 4194304
+    },
+    "catalog": {
+      "configPath": ".env.local",
+      "configKey": "DATABASE_URL",
+      "database": "neondb",
+      "installer": "neondb_owner",
+      "schema": "deployment_release",
+      "table": "releases",
+      "schemaOid": 237571,
+      "releasesOid": 237572,
+      "role": "deployment_release_owner",
+      "configReadsMax": 1,
+      "verifiedTlsConnectionsMax": 2,
+      "sqlSubmissionsMax": 64,
+      "insertSubmissionsMax": 2,
+      "catalogRowsMax": 2,
+      "writerTransactionsMax": 2,
+      "independentInspectionTransactionsMax": 2,
+      "tableUpdateOrDelete": 0,
+      "bindingOrBusinessWrites": 0,
+      "temporaryOwnerSetInEachTransaction": true,
+      "inspectionHasRoleMembershipWrites": true,
+      "ownerSetAndInheritMustEndFalse": true,
+      "creatorAdminRemains": true,
+      "sharedBatchEntryImplemented": false
+    }
+  },
+  "existingComponents": {
+    "candidateSeal": "lib/deployments/releases/promotion.ts#sealReleaseCandidate",
+    "candidateInsert": "lib/deployments/releases/promotion.ts#registerReleaseCandidate",
+    "verifiedInsert": "lib/deployments/releases/catalog.ts#registerVerifiedRelease",
+    "registryProof": "lib/deployments/releases/production.ts#readRegistryBuild / verifyPublishedRelease",
+    "publisherTransport": "ops/releases/promotion-runtime.ts#releasePromotionPublisher",
+    "verifiedCatalogTransaction": "ops/releases/catalog-transaction.ts",
+    "verifiedCatalogCli": "scripts/instance-release-import.ts",
+    "connectionCompatibility": "ops/releases/installation-connection.mjs",
+    "exactCurrentSourceHashes": [
+      {
+        "path": ".github/workflows/instance-release.yml",
+        "lfSha256": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff"
+      },
+      {
+        "path": "scripts/instance-release.ts",
+        "lfSha256": "ee807b99ea23f6d7157e7518ca469984d2cc3277984b7cb34db09dc7daeeb64f"
+      },
+      {
+        "path": "scripts/instance-release-import.ts",
+        "lfSha256": "dc9d66027ff429fc804f735ab999792e43f2080c706ac7cd212598e4c5431ef8"
+      },
+      {
+        "path": "ops/releases/promotion-runtime.ts",
+        "lfSha256": "109cfefc852a9d98d523056e0584822b9de6b090932e263b7fc5fe2643ee177f"
+      },
+      {
+        "path": "ops/releases/import-review.ts",
+        "lfSha256": "c3a2e501bf683cc500833407f5830a71309e64b81589a9c210c93f8da7ea9ced"
+      },
+      {
+        "path": "ops/releases/catalog-transaction.ts",
+        "lfSha256": "382e79da2913c9cf005d9dbc7b72d07592ee29e4fd4198130fdc127a52d0981f"
+      },
+      {
+        "path": "lib/deployments/releases/promotion.ts",
+        "lfSha256": "e0c887b2fad9fa5a27f940b1bd7437c4931cd78e6e417b910e7b4b0940067f86"
+      },
+      {
+        "path": "lib/deployments/releases/production.ts",
+        "lfSha256": "9913def1603c3f46077b49757c5922d3f226132f3918a74b7642e6d23fe65e48"
+      },
+      {
+        "path": "lib/deployments/releases/catalog.ts",
+        "lfSha256": "dc68b4612d9395525b4f2ee56888e1d5657d1ff110f0e22742b650e212d9aaba"
+      },
+      {
+        "path": "ops/releases/promotion-identity.draft.template.json",
+        "lfSha256": "d13bcee6db397ebda961e587ad20641eb96377588a384eb7a835a82b8b130ace"
+      },
+      {
+        "path": "ops/releases/installation-connection.mjs",
+        "lfSha256": "8ce210d535644581ea9db9f164e2d42dda4b3450408bc9b33be8da952530bc40"
+      },
+      {
+        "path": "ops/releases/runtime.json",
+        "lfSha256": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6"
+      }
+    ]
+  },
+  "executionGaps": [
+    {
+      "id": "INITIAL_A_PUBLISH_ONLY_ENTRY",
+      "confirmedBy": "scripts/instance-release.ts modes prepare/deploy/inspect, runtime-disabled early return; promotion.ts eligible requires active initialized binding/currentRelease/runtime proof.",
+      "missing": "No protected publish-only bootstrap entry for initial A while runtime/binding/workload remain disabled. Existing publication primitives do not make an end-to-end standalone workflow.",
+      "minimalFutureScope": "A thin initial-A-only protected cloud entry reusing current single-app validation/push/registry proof and installed publisher role, without calling daily update/CFN/database/runtime paths. Pin exact code and no-AWS CI before execution approval.",
+      "notAuthorizedThisTurn": true
+    },
+    {
+      "id": "CANDIDATE_CATALOG_BATCH_ENTRY",
+      "confirmedBy": "registerReleaseCandidate exists; current catalog transaction calls registerVerifiedRelease and current import-review/CLI only accept source-and-ECR-verified input.",
+      "missing": "The checked B candidate and two-row shared-config/independent-inspection path have no reviewed CLI/transaction adapter yet.",
+      "minimalFutureScope": "Reuse current immutable insert ports and temporary-owner transactions, adding the candidate branch and bounded A/B orchestration only. No schema/grants/LOGIN/Secret changes, UPDATE/DELETE, direct runtime DML or generic importer.",
+      "notAuthorizedThisTurn": true
+    }
+  ],
+  "excludedShortcuts": [
+    "Do not dispatch the existing daily instance-release workflow to bootstrap A; do not fabricate active binding, currentRelease or persistence evidence.",
+    "Do not rerun collect/latest-build discovery or fabricate a CatalogSourceEvidence identity, registry readback or observation time to satisfy an importer. Bind only the exact saved A/B and separately approved authentic new projections.",
+    "Do not use old backend-reviewed-ecr-publish: it requires app plus lifecycle and old temporary IAM grant/revoke. No extra lifecycle build, image or IAM change.",
+    "Do not use backend-ecr-publish/production or unrelated platform publishers: they rebuild or target different source/roles. No production configuration or trust changes.",
+    "Do not install Docker Desktop or publish from this Windows host. Only an explicitly reviewed GitHub protected job may load/tag/push the already-built A archive."
+  ],
+  "proposedConcentratedSequence": [
+    "Before any new production read: separately approve only the two minimal entry adaptations and existing regression/CI; this preparation does not implement them. Keep daily runtime/workflow behavior and IAM/schema unchanged.",
+    "After code/CI and separate permission, perform only the focused publisher/ECR/artifact/environment read proposal below; reuse original A/B bytes and installed identity history. Do not inventory hosting/Cell/tenant/RDS/ALB/ECS/DNS.",
+    "Generate a real outer execution SHA binding exact new entry code/CI, the A/B policies and hashes, unchanged authority, actual expiration and all phase limits. Missing code/CI or current facts block this SHA; the preparation's hash is not that authorization.",
+    "Only after that outer approval, dispatch one publish-only protected job. User personally approves its environment. Verify unchanged exact A original, assume installed publisher role by OIDC, write conditional audit and at most one A docker push; read original ECR root/amd64 manifests and verify original config relationship.",
+    "Independently read at most two exact versioned A audit objects after the job; re-run the existing ECR verifier at actual time, deriving A's SoftwareRelease from only this build/policy/registry proof. B remains the exact sealed unpublished candidate; no B push.",
+    "Read the owner config once after all source/proof checks. One TLS writer performs bounded separate A/B catalog INSERT transactions via existing ports; close writer, one fresh TLS connection verifies both exact complete documents with the same temporary-owner closure. Any unknown write stops further insertion; only its preapproved independent inspection is allowed.",
+    "Record actual status/source/digests/counts/commit results. No restore, instance binding, runtime activation, daily workflow dispatch, CFN call or business test; stop without automatic rollback/cleanup/retry."
+  ],
+  "focusedReadProposal": {
+    "authorized": false,
+    "sourceProfile": "techlong-sandbox-user",
+    "sourceIdentityChecksMax": 1,
+    "awsMetadataCallsMax": 11,
+    "githubGetsMax": 10,
+    "githubCredentialHelperReadsMax": 1,
+    "secretValueConfigPatPemReads": 0,
+    "databaseConnections": 0,
+    "writes": 0,
+    "aws": [
+      {
+        "service": "iam",
+        "operation": "GetRole",
+        "target": "TechlongSandboxInstanceReleasePublisherRole",
+        "maxCalls": 1
+      },
+      {
+        "service": "iam",
+        "operation": "ListAttachedRolePolicies",
+        "target": "TechlongSandboxInstanceReleasePublisherRole",
+        "maxCalls": 1
+      },
+      {
+        "service": "iam",
+        "operation": "ListRolePolicies",
+        "target": "TechlongSandboxInstanceReleasePublisherRole",
+        "maxCalls": 1,
+        "expectedInlineCount": 0
+      },
+      {
+        "service": "iam",
+        "operation": "GetPolicy",
+        "target": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleasePublisherBoundaryV1",
+        "maxCalls": 1
+      },
+      {
+        "service": "iam",
+        "operation": "GetPolicyVersion",
+        "target": "arn:aws:iam::402010193138:policy/TechlongSandboxInstanceReleasePublisherBoundaryV1@v1",
+        "maxCalls": 1
+      },
+      {
+        "service": "ecr",
+        "operation": "DescribeRepositories",
+        "target": "techlong-sandbox-speedfeast",
+        "maxCalls": 1,
+        "requireImmutable": true
+      },
+      {
+        "service": "ecr",
+        "operation": "BatchGetImage",
+        "target": "app-shab9ca2138738900afc23a6a2ddce141b37a1f0a31-r44128576107-a1",
+        "maxCalls": 1,
+        "expected": "A tag absent; any occupied tag stops for a separately reviewed decision, no overwrite/delete"
+      },
+      {
+        "service": "secretsmanager",
+        "operation": "DescribeSecret",
+        "target": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/backend-build-read-token-v1-zjIXrv",
+        "maxCalls": 1
+      },
+      {
+        "service": "secretsmanager",
+        "operation": "ListSecretVersionIds",
+        "target": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/backend-build-read-token-v1-zjIXrv",
+        "maxCalls": 1,
+        "requireVersion": "a8a64f33-c9bc-7525-48ec-1f50b972f426"
+      },
+      {
+        "service": "s3",
+        "operation": "GetBucketVersioning",
+        "target": "techlong-sandbox-cloud-worker-evidence-402010193138",
+        "maxCalls": 1
+      },
+      {
+        "service": "s3",
+        "operation": "HeadObject",
+        "target": "techlong-sandbox-cloud-worker-evidence-402010193138/instance-releases/promotions/candidate-056efacd8630445670e7dfe55ae46e577e097f28909df6038d18440442e95172/push.json",
+        "maxCalls": 1,
+        "expected": "Absent; no occupied-slot reset"
+      }
+    ],
+    "github": [
+      {
+        "target": "TechlongSoftware exact main ref",
+        "maxCalls": 1
+      },
+      {
+        "target": "reviewed publish-only workflow exact Git bytes after it exists",
+        "maxCalls": 1
+      },
+      {
+        "target": "matching no-AWS CI run metadata",
+        "maxCalls": 1
+      },
+      {
+        "target": "techlong-sandbox-deploy environment/reviewer metadata",
+        "maxCalls": 1
+      },
+      {
+        "target": "environment branch-policy metadata",
+        "maxCalls": 1
+      },
+      {
+        "target": "repository immutable OIDC subject template",
+        "maxCalls": 1
+      },
+      {
+        "target": "exact backend A/B run metadata",
+        "maxCalls": 2
+      },
+      {
+        "target": "exact backend A/B artifact metadata only, no ZIP download",
+        "maxCalls": 2
+      }
+    ],
+    "paginationOrErrorRetries": false,
+    "newIamOrGeneralInventory": false
+  },
+  "proposedExecutionLimits": {
+    "finalizedAndApproved": false,
+    "localSourceStsMax": 2,
+    "focusedAwsMetadataMax": 11,
+    "fixedVersionS3ResultGetsMax": 2,
+    "githubApiGetsAcrossOperatorAndJobMax": 43,
+    "publishWorkflowDispatchMax": 1,
+    "githubRunMonitorsMax": 24,
+    "monitorIntervalSecondsMin": 90,
+    "publishJobMinutesMax": 25,
+    "cloudSourceArtifactGetsMax": 3,
+    "cloudOriginalAZipDownloadsMax": 1,
+    "cloudOriginalAZipBytesMax": 524288000,
+    "cloudOriginalBDownloads": 0,
+    "failingPublicationJobLogsMax": 1,
+    "failingLogBytesMax": 4194304,
+    "cloudOidcAssumeRoleMax": 1,
+    "cloudStsIdentityMax": 1,
+    "cloudArtifactSecretVersionReadsMax": 1,
+    "cloudEcrCliCallsMax": 8,
+    "dockerLoadCommandsMax": 1,
+    "dockerImageInspectMax": 1,
+    "dockerLoginCommandsMax": 1,
+    "dockerTagCommandsMax": 1,
+    "dockerPushCommandsMax": 1,
+    "dockerLowLevelLayerRequestsAreNotOneCloudWrite": true,
+    "conditionalAuditPutsMax": 3,
+    "catalogConfigReadsMax": 1,
+    "catalogTlsConnectionsMax": 2,
+    "catalogSqlSubmissionsMax": 64,
+    "catalogInsertSubmissionsMax": 2,
+    "catalogRowsMax": 2,
+    "newIamWrites": 0,
+    "cfnCalls": 0,
+    "otherSecretsOrPrivateKeys": 0,
+    "awsEnvironmentRestores": 0,
+    "runtimeEnables": 0,
+    "workloadTests": 0,
+    "workflowReRuns": 0
+  },
+  "derivationAfterPublication": {
+    "aManifestDigestNow": null,
+    "aPlatformDigestNow": null,
+    "aSoftwareReleaseSha256Now": null,
+    "rule": "Use exact A sealed build plus authenticated original ECR manifest bytes through verifyPublishedRelease. Only those actual manifest/platform/verification fields may be filled; all approved product/version/source/compatibility fields stay fixed.",
+    "bRule": "Only the exact B StoredReleaseCandidate with the recorded build/candidate hashes; status candidate, no registry digest invented or promotion performed.",
+    "mayChangeApprovedScopeOrSource": false,
+    "mayRegisterAnExistingConflict": false
+  },
+  "timing": {
+    "noWindowOpened": true,
+    "oldBuildMetadataNotRestamped": true,
+    "readinessSnapshotMaxAgeSeconds": 18000,
+    "minimumInputValidUntil": "2026-11-18T16:42:02.000Z",
+    "aArtifactExpiresAt": "2026-11-18T16:42:02Z",
+    "bArtifactExpiresAt": "2026-11-18T16:45:19Z",
+    "finalExecutionWriteBefore": null,
+    "outerOperationSecondsProposedMax": 3600,
+    "catalogPhaseSecondsProposedMax": 600,
+    "finalDeadlineRule": "Only after real code/CI and separately approved current facts exist, bind the earliest actual artifact/scan/fact/credential deadline. Leave adequate user-environment and execution reserve; never extend or automatically rebuild after expiration."
+  },
+  "risks": [
+    "ECR app layers/manifests, audit objects and GitHub Actions/artifact storage may incur fees; no workload restoration or 50 USD hard spending guarantee.",
+    "One docker push may cause multiple ECR layer/manifest requests and Docker-internal transport retries. A failed/unknown push is never reissued by the operator; partial uploads/images/audits may remain.",
+    "The fixed backend-read token is read only in the cloud job, used only with GitHub official API; AWS/OIDC credentials and bounded artifacts enter memory/runner-private storage. Never forward credentials to signed blob hosts or commit raw tokens/logs.",
+    "Catalog registration uses the broad existing owner config once; whole config enters memory and PostgreSQL/provider logs may retain statements or credential material. Temporary owner membership writes occur even in independent inspection transactions; creator ADMIN is not removed.",
+    "Publication, A/B registration and independent inspection are not one atomic operation. A may publish/register while B remains absent; COMMIT ACK unknown is not made successful by a matching readback, and no INSERT/push/grant/cleanup is automatically retried.",
+    "Only two immutable release records are in scope. Existing document, status, revocation or ownership conflicts stop; no UPDATE/DELETE, role/Secret recreation, schema replay or business/binding writes.",
+    "No product/API/current database or full-media persistence proof is created by catalog policy adoption. Required runtime facts/persistence remain a later separately approved initial activation prerequisite.",
+    "Unknown code entry, CI, current role/registry/environment state or actual derived manifest prevents an executable approval SHA; this planning document itself grants no reads or writes."
+  ],
+  "thisPreparation": {
+    "originalVerificationHashesMatched": 2,
+    "typedCandidateSealsPassed": 2,
+    "localZipSizeChecks": 2,
+    "zipContentsReread": 0,
+    "credentialsRead": 0,
+    "providerCalls": 0,
+    "codeChanges": 0,
+    "catalogWrites": 0,
+    "newGithubCalls": 0,
+    "newAwsCalls": 0,
+    "databaseConnections": 0,
+    "secretOrConfigReads": 0,
+    "newImageBuilds": 0,
+    "registryPushes": 0,
+    "formalCodeOrSqlChanges": false,
+    "newExecutorsOrWorkflows": false,
+    "executionSlotsConsumed": 0
+  }
+}

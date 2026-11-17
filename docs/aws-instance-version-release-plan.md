@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 STEP3 TWO DISTINCT APP BUILD ORIGINALS VERIFIED / NOT PUBLISHED — RUNTIME DISABLED / NO REAL UPDATE RUNS`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 STEP3 A/B PUBLICATION/CATALOG SCOPE PREPARED / MINIMAL BOOTSTRAP ENTRY PENDING — RUNTIME DISABLED / NO REAL UPDATE RUNS`。
 
 已交付代码、一次性身份安装及本轮两次真实app构建，以各自最新准确回执为准，不把原设计或离线验证当实际部署完成。本文其他待审范围不是新增生产读取、SQL/Secret/IAM修改、ECR发布、部署调度或AWS操作授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -16,7 +16,7 @@
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
-**2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第11节](#d2-6-build-observed)记录已获准完成的两次app构建和原件核验，同一b9ca…/原工作流、不同真实config digest；未发布ECR或写目录。下一仅复用两份原件准备必要ECR/可信目录集中范围，实际新读取/发布/登记另审；不继续构建、不恢复环境或启用runtime，不重装身份或扩支线。当前云持久化/绑定仍未通过，真实更新仍0/2。
+**2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第12节](#d2-6-publication-catalog-prepared)已复用第11节两份真实原件，集中准备“A发布并登记ecr_verified、B只登记candidate”的范围、派生规则及风险。没有新生产/凭据读取、发布、登记或恢复。已有单app/目录端口不等于独立引导入口完整：不启动环境的初始A发布、B候选批次登记接线尚缺，已明确列出，故可执行审批SHA保持null，不让用户批准一个不存在的执行器。下一只就这项引导入口最小接线取得代码/测试方向确认；实际新读取/发布/登记仍另审，不重构框架/重装身份或扩Full/媒体支线。真实更新仍0/2。
 
 **当前实际结果（取代下方早期轮次状态）：** [新g/h/i核对](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留)已完成真实app原件校验、STS1/AWS元数据55和另批剩余Neon READ ONLY22条查询；保留两次停止和新续段，未重复成功读取或产生远端写入。下一只收口第二个原CFN角色详细策略缺项及一次性启用准确清单，不扩框架；图片持久化缺项另列准确范围，不混入版本更新。runtime仍关、两次真实更新仍0。机器事实见[回执](aws-instance-release-d2-6-readiness-observed-20261114.json)，以下旧轮次“仅离线/未读”不覆盖本次批准结果。
 
@@ -221,7 +221,7 @@
 | 0 复用已完成项 | 已完成 | 身份结项及原准备/runtime/workflow摘要保持，本轮无生产调用 |
 | 1 一次集中取证 | 已获准并完成 | STS1/GitHub15/固定回执1，两个匹配app原件均缺失；不再查询旧构建 |
 | 2 兼容/持久化 | 离线输入已收口；云端证明未完成 | 五应用源码树不变，原9图全部找到并哈希（根5/products4）；兼容契约提案和私有迁移输入准备完毕，尚未上传/改库/写绑定 |
-| 3 合格A/B目录 | 两份真实不同app原件已通过；ECR/目录未执行 | [第11节](#d2-6-build-observed)原工作流A/B success/attempt1、原包核验通过；下一只准备必要ECR/目录集中范围，实际另审，不重构建/查旧产物 |
+| 3 合格A/B目录 | 原件已通过，集中草案已备；实际发布/登记未执行 | [第12节](#d2-6-publication-catalog-prepared)固定A发布/B候选、两行目录及最小接线缺口；不重构建/查旧产物，入口/CI与必要当前事实齐备后再给真实执行SHA |
 | 4 首次启用 | 未执行 | 收费环境不恢复，runtime仍关闭，种子/实际操作另审 |
 | 5 两次正常更新 | 0／2 | 不以初始恢复/对齐、NO_CHANGE或模拟结果充数 |
 | 6 结案 | 未完成 | 必须有两次真实成功及最终一致回写 |
@@ -368,6 +368,52 @@
 新元数据从首次真实读取16:41:09.565Z计5小时，截止**2026-11-17T21:41:09.565Z（温尼伯15:41:09.565）**；A原件到期2026-11-18T16:42:02Z、B到期16:45:19Z，即次日温尼伯10:42:02/10:45:19。扫描DB48小时与这两个期限分别保持原值；本机留存不能刷新artifact/扫描或旧事实时间，后继不足时只处理真实必要缺项，不默认重建全部材料或重跑构建。
 
 本轮到此收尾，仅提交结果。**下一唯一动作仍在步骤3：复用这些原件准备必要ECR发布与可信目录的集中范围，实际新读取/发布/登记另审。** 不提前恢复环境，不重复身份安装/云盘点或再查旧构建，不增加Web审批/运行框架；初始绑定/runtime启用仍属后继步骤4，两次A→B→A真实更新仍0/2。
+
+<a id="d2-6-publication-catalog-prepared"></a>
+
+### 12. 复用A/B原件的集中发布与目录草案：不恢复环境
+
+本轮按用户要求只编制[`d2-6-publication-catalog.prepared.json`](../ops/releases/d2-6-publication-catalog.prepared.json)，不执行新增生产/凭据读取、构建、发布或数据库登记。复用第11节原件和步骤2兼容提案，只读取两份已存验证回执并匹配原raw SHA、检查两个已存ZIP大小，未重读ZIP/图片/旧业务导出。原`sealReleaseCandidate`在真实当前时间对两份原件与拟议产品策略均验证通过；另有61项本地来源摘要/策略ID/上限求和/未授权标志/实际runtime关闭和文档关联检查通过。这不是目录已写入或当前云兼容/持久化通过。正式代码、SQL、模板、workflow与runtime均未改，不重跑CI来验证一份文档。
+
+#### 12.1 固定最少发布量，保留同审批晋升路径
+
+| 对象 | 拟议版本标签与派生ID（未登记） | 本次后继批准拟覆盖 |
+| --- | --- | --- |
+| A / run44128576107 | `d2-6-a-b9ca2138-r44128576107` → `release_00b9c5cfa6bceedc5fd05aa451dca811` | 仅这份app archive发布一次准确不可变tag、核验真实ECR root/amd64 manifest，再INSERT为ecr_verified |
+| B / run44129167654 | `d2-6-b-b9ca2138-r44129167654` → `release_afcc95f9eaa20785265300c801fd7618` | 只INSERT为原StoredReleaseCandidate，不推送B、不填registry digest；以后A→B的那次本人environment批准才覆盖B晋升和更新 |
+
+这些标签是本次待审验收元数据，不冒称应用原有semver；ID由既有product/component/version规则计算。两个candidate SHA、原ZIP/archive/receipt SHA、原run/artifact和期限均已固定到JSON；实际目录行存在性本轮未查询，不能凭派生ID声称空位或已经登记。schema/API标签仅沿用步骤2有源码支持的Express策略，采纳须包含在后继明确批准中，不写数据库标记、不修改现有绑定来凑兼容。这里不把两次不同构建误称两次真实更新。
+
+#### 12.2 已确认的入口边界：只缺最小引导接线，不扩部署引擎
+
+**目前还不能诚实地生成可直接执行的发布＋登记SHA。** 原件、单app推送/registry校验和不可变INSERT端口已有，但当前端到端入口不覆盖本轮全部动作：
+
+1. `scripts/instance-release.ts`只支持prepare/deploy/inspect，先检查实际runtime；同审批promotion又要求active/initialized/currentRelease和真实运行基线。它不能在关闭环境/未绑定时发布初始A。不能伪造binding/事实、打开runtime或提前恢复收费资源绕过此依赖。
+2. `registerReleaseCandidate`端口已有，但`catalog-transaction.ts`当前writer只调`registerVerifiedRelease`，`instance-release-import.ts`的prepare/register也只接受已核验ECR来源。它不能直接完成B候选登记或拟议的一配置/两连接A/B批次，不能把candidate冒充ecr_verified或临时使用无事务直接SQL。
+
+**后继最小代码范围，只在用户同意后实施：** 薄的、受GitHub本人environment保护的初始A发布入口，复用原单app验证/推送/ECR原文核验及已安装publisher role；同一既有目录事务增加candidate分支和有界A/B编排。保留日常workflow三输入/资格门槛和默认关闭，不增加schema、LOGIN、Secret、IAM、通用importer/恢复框架或另一套部署引擎。连接兼容复用已有经验证的纯参数规范化，不再次调查或修改数据库配置。本轮未写这些代码，未来准确文件/hash/CI/run值仍为null；当前JSON是**集中审批草案，不是操作批准SHA**。
+
+不使用旧`backend-reviewed-ecr-publish`：其代码强制app＋lifecycle及旧Grant/Revoke，和本轮单app范围不同；也不使用production rebuild工作流或无关平台publisher。不上本地Docker，不重构建A/B、不跑collect选择“最新包”，不拼假SourceEvidence/manifest/observation来满足已有CLI。
+
+#### 12.3 拟议集中序列与真实副作用（当前全部未执行）
+
+1. **先闭合上述最小代码与现有回归/无AWS CI**，仍不读生产；用户没有在本轮批准实现这些入口。准确代码通过后，才另审一次限定当前事实核对，不重复三栈/Cell/ALB/ECS/RDS/DNS/Neon盘点。
+2. **一次必要补核提案已并入同一JSON，而非另建清单：** Source STS1＋元数据11，限publisher role/唯一attached boundary/inline为空、准确ECR仓库与A tag、固定backend token Secret版本元数据、证据桶versioning及准确A push槽HEAD；GitHub GET10，限main/新准确入口与CI、现有environment/reviewer/branch/OIDC元数据、准确A/B run/artifact。不取Secret正文/.env/PAT/PEM或ZIP、不连库/写资源；本轮未申请执行，也不要求现在刷新Source。
+3. **生成一份真实外层执行SHA后另审**，绑定当时准确代码/CI、A/B和兼容策略、当前权限、完整预算与writeBefore。它可明确批准A实际ECR证明的固定派生，不必等manifest出现后再来回批准一次；不存在的代码/当前事实不能用本草案替代。GitHub environment始终用户本人批准。
+4. **仅一个受保护发布job、一次A push：** 只加载/inspect/tag已构建A，不build/run应用；云端只读一次已安装backend-read-token固定版本，经官方GitHub API重取准确A原件并核对原SHA，B不重新下载/推送。用既有publisher OIDC身份，最多8次ECR CLI调用、3次条件审计PUT（intent/push/published），不写CFN/derived计划或读publisher DB Secret。Docker一次push仍包含多次层/manifest请求及可能的内部传输重试，不谎称只有一次AWS写。
+5. **独立证明后才写目录：** Source最多再核对STS1和两个准确VersionId审计对象GET（各≤4MiB），复用`verifyPublishedRelease`检查A的registry root/amd64/config关系；只有其实际manifest/platform/verification字段能派生，批准的产品/版本/来源/兼容字段不得改变。B必须等于本轮封存候选，不造registry digest。
+6. **目录总上限提案：** 一次读取既有`.env.local`，一条验证TLS writer连接中分别提交A/B最多两次INSERT事务，关闭writer后由一条新的验证TLS连接分别核验完整原文；合计SQL64/最多两行、writer事务2/核验事务2。每事务临时owner SET、关闭SET/INHERIT及收尾检查沿用原管控，实际最小适配/测试须证明预算可达后才固定执行SHA。独立核验事务也有角色成员写，**不是纯READ ONLY**；创建者ADMIN仍保留。
+7. A推送/登记、B登记和独立核验并非跨服务原子。提交不明停止后继INSERT，只允许预先批准的独立回读，不把回读匹配当COMMIT ACK成功；存在不同目录/status/revocation冲突就停，不UPDATE/DELETE/复位槽、补推、重放SQL或自动清理。允许形成“A已发布/登记而B未完成”的真实部分结果，不把两行强说成全有或全无。
+
+GitHub操作提案总GET43上限包含限定预检、一次run定位/最多24次准确run监测（间隔90秒）、终态job/首失败日志及云端A原件3次API GET；仅dispatch1/云端A ZIP1（≤500MiB），失败日志最多一份≤4MiB。都是**待代码/CI和新事实闭合后固定的上限，不是本轮授权**；不额外调度Review/RunOnce/Inspect或已有日常发布workflow。
+
+#### 12.4 不开窗口、风险与本轮停止点
+
+历史publisher RoleId/PolicyId/v1及摘要复用11月16日安装回执，仅用于以后准确比较，不冒充本轮现状。准备时间17:00:46.011Z不是新生产采样；第11节事实仍在21:41:09.565Z到期，A/B原件与扫描时限不改。不生成“从现在起再5小时”的旧事实；未来新准备快照最多5小时，整轮拟最多60分钟/目录10分钟，只有准确代码/当前事实与最早期限预留充分才生成writeBefore/执行SHA，当前二者均null。额度或等待导致过期不自动刷新、构建、重新登记或恢复。
+
+后继风险已集中列入JSON：ECR/GitHub/审计存储费用与部分遗留；固定PAT/OIDC凭据及archive进入云端内存/私有磁盘；owner配置全文件进内存/提供者日志与较宽ADMIN权限；两行及跨服务非原子/并发/提交不明；固定槽不自动复位/重试/回滚/删除。不修改Key/Secret/IAM、业务/图片/实例绑定、运行状态或超时；当前云持久化与实例初始化仍由步骤4另审，不能让目录采纳替代这些真实证明。
+
+**本轮交付到此：集中草案、准确A/B策略/ID/原件绑定和最小缺口已齐；实际新读取/发布/登记均0。下一只待用户确认上述最小引导入口的编码/测试方向。** 不先调用新读取、不恢复环境，不重装一次性身份或扩支线；通过后仍按同一草案收口一份真实操作SHA，不再并行增加手册/框架。
 
 <a id="d2-1-delivered"></a>
 

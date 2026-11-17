@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：两次app构建已完成，下一仅准备必要ECR/目录范围，实际另审（2026-11-17）
+## 当前唯一继续点：ECR/目录集中草案已备，先确认最小引导接线；实际操作另审（2026-11-17）
+
+用户本轮只要求准备，已完成[第12节](aws-instance-version-release-plan.md#d2-6-publication-catalog-prepared)/[集中JSON](../ops/releases/d2-6-publication-catalog.prepared.json)：A单app发布并登记ecr_verified、B只登记candidate，保留以后A→B同审批晋升，不多推B/造digest。两原验证回执raw SHA及本地ZIP大小复核，原candidate纯端口对拟议版本/兼容策略通过；未重读ZIP/图片、未新读云/GitHub/凭据/数据库，不发布/登记或恢复，正式代码/模板/SQL/workflow/runtime不改。
+
+草案明确真实缺口：现有daily入口要求已运行绑定，不能无环境发布初始A；现有目录事务/CLI只支持ecr_verified，没有B candidate及有界批次接线。只拟薄的受本人environment保护引导入口和原事务candidate分支，不新部署框架/权限/schema，不用旧app+lifecycle Grant发布器或伪造active绑定。入口代码/CI/当前事实未齐，可执行SHA为null；下一仅待用户确认这项最小编码/测试方向，实际限定补核、发布/登记仍准确另审，不重复盘点或先恢复环境。
+
+### 已完成的两次真实构建（保留，不重放）
 
 用户已按原7a435073…批准，本轮A/B两次构建及原产物全部真实通过：[第11节](aws-instance-version-release-plan.md#d2-6-build-observed)/[去敏回执](aws-instance-release-d2-6-build-observed-20261117.json)。16:41:09.402–16:47:26.228Z约6分钟；run44128576107/artifact14347858874、run44129167654/artifact14349965129均同b9ca…/main/attempt1/app-only/success，两个真实config digest不同。实用GitHub GET18/dispatch2/blob2/helper1/原ZIP2共145,323,945字节，原四文件/校验和/自检/扫描及本地再次验证通过；无失败日志/第三构建/重试，68份私有JSON/脚本指纹保留。原清单不改、不重放dispatch。
 

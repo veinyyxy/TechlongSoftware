@@ -12,6 +12,8 @@
 
 以上是原准备状态，**本轮已获准并真实完成两次构建**：[第11节](../../docs/aws-instance-version-release-plan.md#d2-6-build-observed)/[去敏回执](../../docs/aws-instance-release-d2-6-build-observed-20261117.json)。A run44128576107/artifact14347858874，B run44129167654/artifact14349965129，均同固定源码/原app-only工作流/attempt1/success；两份ZIP/四文件/自检/扫描验证及本地复核通过，config digest不同。实用GET18/dispatch2/helper1/blob2/ZIP2，不重放；AWS/ECR/SQL/目录/恢复0，runtime关。下一只复用这些原件准备必要ECR/目录范围，实际新读取/发布/登记另审；本轮原件不是已发布ECR版本或完整持久化证明。
 
+当前已完成[发布/目录集中草案第12节](../../docs/aws-instance-version-release-plan.md#d2-6-publication-catalog-prepared)/[`d2-6-publication-catalog.prepared.json`](d2-6-publication-catalog.prepared.json)：A先单次发布/ecr_verified，B仅登记候选，实际读取/发布/登记未授权。草案记录两份真实原件、拟议策略/ID和必要风险，正式代码/SQL/runtime不改；`executionApprovalSha256=null`，不能交给register或workflow。现有daily promotion需要active/currentRelease，原目录CLI又只接ecr_verified，尚缺无环境初始A发布及candidate批次入口；下一仅确认这项最小代码/测试接线，不新建框架/权限或先恢复环境，不重跑collect/旧构建。
+
 D2-4已新增默认关闭的runtime配置、真实元数据/凭据适配及验收子进程；完整范围见[单审批工作流说明](../../docs/aws-instance-release-workflow.md)。工作流不执行本目录SQL草案；新增CI仅在全新临时PostgreSQL16中验证，不安装到现有控制库。本地137项相关回归通过，原生PG结果以准确CI为准。
 
 - `schema.draft.sql`：独立 `deployment_release` schema、三表、专用 NOLOGIN owner 与九个窄函数；D2-3增加只读决定/终止结果登记，扩展核验与完成结果。
