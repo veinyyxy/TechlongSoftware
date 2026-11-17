@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：A发布及A/B登记真实完成，下一准备原步骤4（2026-11-17）
+## 当前唯一继续点：步骤4集中材料已备；先另审一次必要事实核对，不恢复环境（2026-11-17）
+
+[步骤4材料](../ops/releases/d2-6-step4-activation.prepared.json)/[详细顺序](aws-instance-version-release-plan.md#d2-6-step4-prepared)已离线完成：复用19份已存证据/代码合同；只拟Aurora＋Cell＋租户API最小恢复、必要九图持久化/兼容、初始A绑定和最后runtime启用。平台Web/ALB与独立prod RDS排除，不改全环境启停工具、不重建图片设施/身份或重复A发布/A-B目录。
+
+本轮新云/GitHub API、私密配置/映射/图片、数据库、槽或写入均0，两个实际入口仍关，执行SHA为null。下一只另审机器材料中的一次必要补核（STS1＋AWS51＋GitHub5、配置1/Neon只读TLS1/25查询、四固定私有原件），以补当前资源/权限、准确B原件可用性和初始绑定缺项；未执行。当前媒体实际投影和Aurora访问通道/新监听器权限不能假装已证明，必要准确差异仍另审，不自动扩权/迁图或先启动收费资源等材料；真实D2更新仍0/2。
+
+### 步骤3已完成结果（保留，不重放）
 
 [本轮结果](aws-instance-release-initial-publication-observed-20261117.json)：获准确外层SHA批准后，[run44154605425](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44154605425) success，约7分11秒完成；A单app已发布/真实manifest已核验，A verified及B未发布candidate两行已实际登记，两个固定S3版本及独立TLS连接回读通过，配置1/TLS2/SQL52，owner权限均闭合。单次POST的HTTP200曾被本机误拒；用户另准额外helper1及原剩余GET后只接续原run，dispatch总数仍1，停止记录保留。
 

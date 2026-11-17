@@ -1,0 +1,623 @@
+{
+  "schema": "techlong/d2-6-step4-activation-preparation/v1",
+  "status": "OFFLINE_CONCENTRATED_SCOPE_PREPARED_FRESH_FACTS_REQUIRED",
+  "preparedOn": "2026-11-17",
+  "timezone": "America/Winnipeg",
+  "planningOnly": true,
+  "newFactsObservedAt": null,
+  "executionAuthorized": false,
+  "newReadsAuthorized": false,
+  "restoreAuthorized": false,
+  "mediaWritesAuthorized": false,
+  "bindingWritesAuthorized": false,
+  "runtimeActivationAuthorized": false,
+  "readyForExecutionApproval": false,
+  "executionApprovalSha256": null,
+  "writeBefore": null,
+  "target": {
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "workspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+    "productId": "prd_restaurant_order_system",
+    "component": "tenant_api",
+    "controlEnvironmentId": "env_aws_sandbox_ca_central_1",
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "sourceRepository": "veinyyxy/SpeedFeast_Backend_main",
+    "sourceRepositoryId": 1064124445,
+    "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+    "cellStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "platformStackReadOnly": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "apiHostname": "first-acceptance.sandbox.techlong.cloud",
+    "hostedZoneId": "Z01473621BTTHKXBGOOEJ",
+    "database": {
+      "kind": "cluster",
+      "id": "techlong-sandbox-express-d001",
+      "resourceId": "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM",
+      "databaseName": "tenant_a0da1748bc4d5419_db",
+      "profile": "express_iam",
+      "source": "docs/aws-manual-test-environment-20261106.md"
+    }
+  },
+  "alreadyComplete": {
+    "installationAccepted": true,
+    "doNotReinstallIdentities": true,
+    "publicationRunId": 44154605425,
+    "aRelease": {
+      "compatibility": {
+        "applicationPort": 3000,
+        "clientApiVersions": [
+          "speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144"
+        ],
+        "databaseProfiles": [
+          "express_iam"
+        ],
+        "requiresMigration": false,
+        "schemaVersions": [
+          "speedfeast-saas-control-v1"
+        ],
+        "startupWrites": false
+      },
+      "component": "tenant_api",
+      "id": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+      "image": {
+        "manifestDigest": "sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+        "platformDigest": "sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+        "repository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+        "runtimePlatform": "linux/amd64",
+        "verificationSha256": "9baca303996a371b4568cf6677651342273c240ee5d41225ba8a66c4dafc31b2"
+      },
+      "productId": "prd_restaurant_order_system",
+      "source": {
+        "artifactSha256": "a42b4aba36ca0c3bbfa03321820ab9ec6ef06d019d1e48c8e2381ba81615a2cb",
+        "buildAttempt": 1,
+        "buildRunId": "44128576107",
+        "commit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+        "repository": "veinyyxy/SpeedFeast_Backend_main"
+      },
+      "status": "ecr_verified",
+      "version": "d2-6-a-b9ca2138-r44128576107"
+    },
+    "b": {
+      "id": "release_afcc95f9eaa20785265300c801fd7618",
+      "version": "d2-6-b-b9ca2138-r44129167654",
+      "status": "candidate",
+      "published": false,
+      "write": {
+        "status": "CANDIDATE_REGISTERED",
+        "releaseSha256": "910246ac67d137fd2da1c5cd70614815bf1fa69a583d98a3f8c73a54e244f536",
+        "temporaryOwnerAccessClosed": true,
+        "businessRowsChanged": 0
+      },
+      "independentInspection": {
+        "status": "INDEPENDENTLY_VERIFIED",
+        "releaseSha256": "910246ac67d137fd2da1c5cd70614815bf1fa69a583d98a3f8c73a54e244f536",
+        "temporaryOwnerAccessClosed": true,
+        "businessRowsChanged": 0
+      },
+      "artifactId": 14349965129,
+      "runId": 44129167654,
+      "artifactExpiresAt": "2026-11-18T16:45:19Z",
+      "registryDigest": null,
+      "doNotPublishInStep4": true
+    },
+    "media": {
+      "MediaBucketName": "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad",
+      "MediaBucketArn": "arn:aws:s3:::techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad",
+      "MediaDistributionId": "E2H9SBE05EMLAN",
+      "MediaPublicBaseUrl": "https://d3t5c71ibx9h97.cloudfront.net",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-media-9c5ee9e64509dcad-v1/333757a0-e10f-11f1-b693-06fff1b686eb",
+      "installedResourceCount": 5,
+      "taskS3WiringInstalled": true,
+      "fullPersistenceProven": false
+    },
+    "originalMapping": {
+      "path": ".local-secrets/d2-6-step2-media-20261117-b/mapping.json",
+      "rawSha256": "4817d5765c2f6b4dbfaf9158ad8f419104f9ab8b8903c98f5b382824ef4be213"
+    },
+    "migrationInputs": {
+      "path": ".local-secrets/d2-6-step2-media-20261117-b/migration-inputs.prepared.json",
+      "rawSha256": "792be56aa53b633765cf2b37478bdac70d4d70b7a54871659e3c1d2b9c00eee8"
+    },
+    "mediaInputSummary": {
+      "rows": 9,
+      "files": 9,
+      "bytes": 1233239,
+      "legacyRoot": 5,
+      "merchantUploaded": 4,
+      "storeIdNull": 9,
+      "sourceImagesNotReadThisTurn": true
+    }
+  },
+  "reusedEvidence": [
+    {
+      "path": "docs/aws-instance-release-initial-publication-observed-20261117.json",
+      "lfSha256": "656a841c8c548870c38806f0ec50c4b4a4e7ebba06484593dbf87a97ee24f89c"
+    },
+    {
+      "path": "docs/aws-instance-release-identity-installation-accepted-20261116.json",
+      "lfSha256": "09245bb5ff14be79dd850d8e71bded042f356830716d23d26f348c8a92f83e7d"
+    },
+    {
+      "path": "docs/aws-instance-release-persistence-media-installed-20261115.json",
+      "lfSha256": "aacd05ef147a25ed99b8409cbdc5fba27ca539d3510cdecca91ed4754ade5d89"
+    },
+    {
+      "path": "docs/aws-instance-release-persistence-wiring-installed-20261115.json",
+      "lfSha256": "2d11eecdd3493e1aebaa0ab218bc8fc71ed51089c517c45a0673a574676fdaf1"
+    },
+    {
+      "path": "docs/aws-instance-release-d2-6-step2-observed-20261117.json",
+      "lfSha256": "4753ccc5131cf061b7a468ee8b568d854e1347c32d3c26cf4b0d93b5a69a5f70"
+    },
+    {
+      "path": "ops/releases/d2-6-compatibility.prepared.json",
+      "lfSha256": "30cf6d5063636e41b409bd1c2b7024564c92d9e1d22ff13d9a195f0b8268deb8"
+    },
+    {
+      "path": "ops/releases/d2-6.prepared.json",
+      "lfSha256": "be9ca49b6edfc1818dba03a845d7c74d194aa42c8b1d50ed63079a1e8b59e9ad"
+    },
+    {
+      "path": "ops/releases/d2-6-runtime.disabled.json",
+      "lfSha256": "11ac5ee1b7744539b95f6161e2caaaa25084ffc470169246e7dae2a5fa9008b2"
+    },
+    {
+      "path": "ops/temporary-idle/stop-continuation-execution-20261113.json",
+      "lfSha256": "21d8c4bd6518099ee4b4a5acf9b4857dc5121db3dc979ff0a01a8dd8686cc62b"
+    },
+    {
+      "path": "ops/releases/runtime.json",
+      "lfSha256": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6"
+    },
+    {
+      "path": "ops/releases/bootstrap.review.json",
+      "lfSha256": "93f78ef45a6b4ea940e1c7b113cb53290e5333f28c7c16501d28825721bad2e7"
+    },
+    {
+      "path": ".github/workflows/instance-release.yml",
+      "lfSha256": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff"
+    },
+    {
+      "path": "lib/deployments/releases/contract.ts",
+      "lfSha256": "9dc445b45b228b26d8c645ea03e870ab3e830ce8b5211c1a25f92dab8188bcf6"
+    },
+    {
+      "path": "lib/deployments/releases/sampling.ts",
+      "lfSha256": "0cf7b386d5618954adc3285ac23e780821dba13922c26bd785d9f673bca45231"
+    },
+    {
+      "path": "lib/deployments/releases/inspection.ts",
+      "lfSha256": "35783c24cfa717ca43e5a5fcf1d97c135d6e18d63e694e39ab5dab81feb61315"
+    },
+    {
+      "path": "ops/releases/schema.draft.sql",
+      "lfSha256": "167ad6a2d75c1126fa291fd7124c3957602ec100368c9f563ce59e91a75648ac"
+    },
+    {
+      "path": "ops/releases/catalog-transaction.ts",
+      "lfSha256": "fffe91db25c30a9867be53355d2b5d61c10dd2abd1aa4b0449ebbee5fa9c0102"
+    },
+    {
+      "path": "ops/temporary-idle/environment-cfn.mjs",
+      "lfSha256": "60db64fb4a036aed122ca60c636a2ef09b46e67ceb00bf1e607a0a89f09094f6"
+    },
+    {
+      "path": "ops/temporary-idle/environment-lifecycle.mjs",
+      "lfSha256": "3dfc72d3d258c07e2ea3814d4c7106479d11c29d3788917c55b1c05a5931cd2d"
+    }
+  ],
+  "implementationReuse": {
+    "cfnPrimitives": "ops/temporary-idle/environment-cfn.mjs: readStack/assertSameStack/variant/changeShape/applyStack/writeOnce",
+    "resourceOwnership": "Existing CFN UUID remains sole owner; never direct CreateLoadBalancer/CreateListener/RegisterTaskDefinition/UpdateService or DeleteStack.",
+    "restoreCliBoundary": "Existing aws-environment start requires all three stacks and two databases; do not invoke it for this minimum scope or modify its validator. Only separately reviewed one-off orchestration of its existing CFN primitives for Cell/tenant.",
+    "oldStateBoundary": "Nov13 stop backup predates installed Nov15 S3/task-definition wiring. Preserve old root/plan/journal byte identity; do not pass its old base through noImageChange or reset pending/last success.",
+    "initialImageAlignment": "Distinct approved initial CFN ImageUri-only alignment while tenant is idle; not a daily update and not hidden in noImageChange stop/start.",
+    "binding": "Use installed deployment_release.instance_state schema and one separately reviewed owner transaction. Catalog CLI currently handles releases only; it is not a binding-seed command. No new general importer/service/schema/runtime DML grant.",
+    "fingerprint": "lib/deployments/releases/inspection.ts#releaseRuntimeDigests on actual post-restore facts.",
+    "sampling": "lib/deployments/releases/sampling.ts#sampleInstanceRelease, exact existing ReleaseSamplingBinding. Bucket HEAD/S3 env alone does not prove old files migrated.",
+    "runtime": "Only later copy the reviewed d2-6-runtime.disabled.json environment into runtime.json with enabled=true; keep bootstrap disabled and workflows/roles unchanged."
+  },
+  "proposedSequence": [
+    {
+      "id": "facts",
+      "action": "Separately approved concentrated metadata/Neon preflight below; reuse accepted installation, A publication and private fixed mapping. Prepare exact CFN bodies and accepted data-access descriptors before any paid restore.",
+      "effectNow": "none"
+    },
+    {
+      "id": "idle_a_alignment",
+      "action": "Only if current stopped tenant ImageUri differs from verified A, create/strictly inspect/execute one UPDATE using UsePreviousTemplate and ImageUri=A; other parameters UsePreviousValue. Expected only TenantTaskDefinition Modify/Replacement=True, still3 resources/no Service/no task.",
+      "futureCfnCreateMax": 1,
+      "futureCfnExecuteMax": 1
+    },
+    {
+      "id": "minimum_dependencies",
+      "action": "If stopped, start only original Aurora cluster; restore exactly4 Cell edge resources through one CFN UPDATE. Preserve12 retained resources/network/cluster and existing TLS/mTLS. Return and verify actual fresh outputs before tenant routing.",
+      "futureStartDbClusterMax": 1,
+      "futureCfnCreateMax": 1,
+      "futureCfnExecuteMax": 1
+    },
+    {
+      "id": "compatibility_and_media",
+      "action": "After approved DB start, reuse original verified-CA/SNI/TLS+temporary-IAM connection approach; strictly read initialization/schema and exact current media/reference projection. If historical nine still match and no other referenced local assets exist, conditionally upload only needed bound objects, verify actual content, then exact-row CAS in one DB transaction and one fresh independent readback. Conflicting/new refs stop, no bulk migration.",
+      "futureMediaPutMax": 9,
+      "futureMediaCasRowsMax": 9
+    },
+    {
+      "id": "tenant_restore",
+      "action": "Reconstruct the exact saved full tenant edge declaration on fresh current idle Original, preserving installed S3 four-value wiring and verified A. Add only Service and three listener rules, desired1; bind six exact actual Cell outputs. Then exact externally-owned API A Alias UPSERT only if needed. No platform/prod restoration.",
+      "futureCfnCreateMax": 1,
+      "futureCfnExecuteMax": 1,
+      "futureDnsUpsertMax": 1
+    },
+    {
+      "id": "technical_evidence",
+      "action": "Separate process captures stable CFN7/ECS1/0 and actual task digest A, target healthy, 443/8443 mTLS/DNS, initialized Express readiness, complete persistence/compatibility proof; only technical /health and /ready, never buyer/merchant login/order tests or new HMAC/bypass."
+    },
+    {
+      "id": "initial_binding",
+      "action": "Only after actual proofs and fresh absence, insert exactly one initial instance_state row with currentRelease=A, proposed revision0 and no active request, binding actual template/configuration hashes/sampling references. Independently read complete row and membership closure. Never update an existing binding, catalog or historical business/deployment record.",
+      "futureBindingRowsMax": 1
+    },
+    {
+      "id": "runtime_enable",
+      "action": "Last: publish only accurate runtime data activation on main after binding/readback success. No bootstrap reopen, workflow dispatch, new role/Secret/schema or timer. Existing daily workflow stays manual and requires user environment approval for each subsequent actual update."
+    }
+  ],
+  "expectedCfnChanges": {
+    "initialAlignment": {
+      "kind": "UPDATE",
+      "usePreviousTemplate": true,
+      "onlyParameter": "ImageUri",
+      "value": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+      "resourceChanges": [
+        {
+          "logicalId": "TenantTaskDefinition",
+          "action": "Modify",
+          "replacement": "True"
+        }
+      ],
+      "idleResourceCount": 3,
+      "servicePresent": false
+    },
+    "cellRestore": {
+      "kind": "UPDATE",
+      "add": [
+        "CellLoadBalancer",
+        "BusinessHttpsListener",
+        "ControlMtlsListener",
+        "BusinessControlDenyRule"
+      ],
+      "retainedResources": 12,
+      "finalResources": 16,
+      "templateFrom": "Fresh exact idle Original plus exact removed edge declarations from sealed CFN stop/full backup; not renderer defaults.",
+      "newPhysicalOutputs": null
+    },
+    "tenantRestore": {
+      "kind": "UPDATE",
+      "add": [
+        "TenantService",
+        "TenantBusinessControlDenyRule",
+        "TenantControlListenerRule",
+        "TenantListenerRule"
+      ],
+      "retainedResources": 3,
+      "finalResources": 7,
+      "desiredCount": 1,
+      "cellOutputParameters": [
+        "ClusterName",
+        "VpcId",
+        "SubnetIds",
+        "TaskSecurityGroupId",
+        "HttpsListenerArn",
+        "ControlListenerArn"
+      ],
+      "templateFrom": "Fresh S3-wired/A-aligned idle Original plus exact saved edge declarations; no copying old TaskDefinition/local env or old listener ARNs.",
+      "newPhysicalBindings": null
+    },
+    "rollback": "Normal CloudFormation rollback/DisableRollback=false, allowing normal task-definition cleanup; no separate caller rollback/retry.",
+    "proposedBoundsNotAuthorization": {
+      "createChangeSet": 3,
+      "executeChangeSet": 3,
+      "startDbCluster": 1,
+      "externalAliasUpsert": 1,
+      "templateConditionalPutMax": 2,
+      "templateSourceBucket": "techlong-sandbox-build-source-402010193138-ca-central-1",
+      "templateBodyRule": "UsePreviousTemplate for A; compact TemplateBody <=51200 bytes for restores, otherwise exact content-addressed conditional TemplateURL upload separately bound by final approval."
+    }
+  },
+  "persistenceProof": {
+    "ready": false,
+    "verificationSha256": null,
+    "recordedInputsOnly": true,
+    "currentAuroraRowsAndProductReferences": null,
+    "oldFileReadsNotRepeatedNow": true,
+    "agentMediaDirectoryEnumeration": false,
+    "exactBucket": "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad",
+    "exactDistributionId": "E2H9SBE05EMLAN",
+    "publicBaseUrl": "https://d3t5c71ibx9h97.cloudfront.net",
+    "targetPrefix": "products/",
+    "futureFileScope": {
+      "root": "E:/NodejsProject/SpeedFeast_Backend_main/images",
+      "maxFiles": 9,
+      "maxFileBytes": 5242880,
+      "maxTotalBytes": 47185920,
+      "expectedTotalBytes": 1233239,
+      "requiredShaSource": "4817d5765c2f6b4dbfaf9158ad8f419104f9ab8b8903c98f5b382824ef4be213"
+    },
+    "futureObjectScope": {
+      "conditionalPutMax": 9,
+      "headMax": 9,
+      "fixedVersionGetMax": 9,
+      "bodyBytesEachMax": 5242880,
+      "bodyBytesTotalMax": 47185920,
+      "ifNoneMatch": "*",
+      "overwriteDeleteAllowed": false,
+      "existingSameContentRule": "Reuse only if actual fixed-version contents and required metadata match SHA/size; ETag is not a SHA256 proof."
+    },
+    "futureAuroraScope": {
+      "verifiedTlsConnectionsMax": 3,
+      "sqlSubmissionsProposedMax": 60,
+      "readTransactionMax": 1,
+      "mediaWriteTransactionsMax": 1,
+      "independentReadTransactionsMax": 1,
+      "mediaRowsUpdatedMax": 9,
+      "columns": "storage_provider, bucket, object_key, public_url; only actual approved reference/variant paths, if any, may be added to the final exact row/column list.",
+      "identity": "Original exact tenant database/user/endpoint and IAM/TLS descriptor must be recovered and proven before approval, not guessed; no new SG/proxy/Fargate task or password/role change.",
+      "preserve": [
+        "asset IDs",
+        "NULL store_id",
+        "product relationships",
+        "unaffected variants and fields",
+        "local original files",
+        "old rows and initialization markers"
+      ],
+      "unknownReferencesOrAdditionalTables": "Stop and report exact difference; never silently add rows/tables or full-table URL replacement."
+    },
+    "acceptance": [
+      "All currently referenced local media accounted for, not just nine historical rows assumed exhaustive.",
+      "Each approved public image exists in the correct existing versioned bucket with matching real content and CloudFront path.",
+      "CAS commits and fresh readback match exact current row/variant/reference expectations; unapproved fields unchanged.",
+      "Running tenant A keeps S3 provider/bucket/public base and ALLOW_EPHEMERAL_IMAGE_STORAGE=false; no unique referenced file remains only in container.",
+      "Persistence evidence hash covers actual scope, versions/content/CAS/readback and live configuration, not the old wiring receipt alone."
+    ],
+    "productImagesBecomePublic": true,
+    "httpImageVerificationProposedMax": 9,
+    "executeWebJs": false
+  },
+  "compatibility": {
+    "policy": {
+      "applicationPort": 3000,
+      "clientApiVersions": [
+        "speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144"
+      ],
+      "databaseProfiles": [
+        "express_iam"
+      ],
+      "requiresMigration": false,
+      "schemaVersions": [
+        "speedfeast-saas-control-v1"
+      ],
+      "startupWrites": false
+    },
+    "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+    "sourceEvidence": "ops/releases/d2-6-compatibility.prepared.json",
+    "initializedDatabaseProvenNow": false,
+    "currentSchemaOrClientLabels": null,
+    "newMigrationsOrMarkers": 0,
+    "requireAfterRestore": [
+      "Original Express IAM database identity, existing initialized state and strict tenant-v1 readiness.",
+      "Explicit adoption of source-backed schema/API compatibility labels as requirements, never claim newly measured schema/client semantic version.",
+      "Actual A healthy at expected port3000; no startup migration, seed, import, business call or disabled protection.",
+      "Conflicting actual binding/schema/labels stop; no overwrite or stamp to force match."
+    ],
+    "technicalHttpsGetsProposedMax": 4,
+    "paths": [
+      "/health",
+      "/ready"
+    ],
+    "technicalAuthentication": "Use existing endpoint contract only. If 401/403 or otherwise unavailable, report/block; do not read HMAC or add a public bypass."
+  },
+  "initialBinding": {
+    "schema": "deployment_release",
+    "table": "instance_state",
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "currentReleaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+    "proposedRevision": 0,
+    "activeRequestId": null,
+    "proposedInitializedAfterProof": true,
+    "proposedBusinessStatusAfterProof": "active",
+    "instanceStateOid": null,
+    "fullRuntimeBindingSha256": null,
+    "persistenceVerificationSha256": null,
+    "templateSha256": null,
+    "configurationSha256": null,
+    "currentCellOutputValues": null,
+    "currentTaskDefinitionArn": null,
+    "initialRowInsertOnly": true,
+    "proposedSql": "INSERT INTO deployment_release.instance_state(instance_id,component,binding,current_release_id,revision,active_request_id,last_evidence) VALUES($1,'tenant_api',$2::jsonb,$3,0,NULL,$4::jsonb) ON CONFLICT DO NOTHING RETURNING instance_id;",
+    "writerRule": "One separately reviewed owner transaction verifies installed OIDs/roles, exact registered A/B and fresh row absence; existing temporary owner SET/INHERIT closure. Expect exactly1 RETURNING row, never treat unknown commit or collision as seed success. One fresh connection independently inspects.",
+    "futureControlDbScope": {
+      "configReadsMax": 1,
+      "verifiedTlsConnectionsMax": 2,
+      "sqlSubmissionsProposedMax": 40,
+      "insertSubmissionsMax": 1,
+      "instanceRowsMax": 1,
+      "owner": "deployment_release_owner",
+      "installer": "neondb_owner",
+      "inspectionHasTemporaryMembershipWrites": true,
+      "creatorAdminRemains": true,
+      "existingReleaseRowsChanged": 0,
+      "businessRowsChanged": 0,
+      "newSchemaRolesOrFunctions": 0
+    },
+    "provenance": "Derive template/config hashes only with releaseRuntimeDigests(actual post-restore facts); revision0 is proposed initial seed, not a claimed existing revision. Sampling gets real Cell outputs/Secret metadata and actual persistence proof hash."
+  },
+  "runtimeActivation": {
+    "activePath": "ops/releases/runtime.json",
+    "currentlyEnabled": false,
+    "candidatePath": "ops/releases/d2-6-runtime.disabled.json",
+    "candidateLoaded": false,
+    "futurePatch": "Only enabled=true plus the existing reviewed sandbox environment from the disabled candidate, after successful initial binding/readback.",
+    "futureEnabledRuntimeCanonicalSha256": "ed815edf557e9e5fcf080c0636622532a73d5d542b177e09168fe0e88c342ec8",
+    "codeOrWorkflowChanges": 0,
+    "githubWorkflowDispatchesInStep4": 0,
+    "bootstrapEnabled": false,
+    "runtimeEnableIsNotLiveUpdateValidation": true,
+    "actualUpdatesAfterStep4": 0,
+    "expectedActualUpdatesInStep5": 2
+  },
+  "unresolvedBeforeExecutionApproval": [
+    {
+      "id": "CURRENT_RESOURCE_BASELINE",
+      "needed": "One fresh targeted metadata batch and exact saved stopped/full declarations/current private state; do not treat Nov13 stop or Nov15 wiring as current."
+    },
+    {
+      "id": "RESTORE_ROLE_LISTENER_SCOPE",
+      "needed": "Prove exact existing Cell/tenant CFN role scope can manage fresh ALB/listener/rule IDs. No IAM mutation is included by default. If insufficient, stop and separately bind the exact permission correction; no Source bypass or reinstall."
+    },
+    {
+      "id": "CURRENT_MEDIA_AND_DB_CHANNEL",
+      "needed": "Recover the existing verified IAM/TLS DB access descriptor and approve post-start strict current schema/media projection. Historical nine alone are not complete live persistence proof."
+    },
+    {
+      "id": "SEED_AND_FINAL_CONFIG_FACTS",
+      "needed": "Actual post-restore IDs, readiness, persistence hash and releaseRuntimeDigests plus fresh instance_state absence/OID; never prefill from idle template or catalog approval."
+    }
+  ],
+  "nextReadProposal": {
+    "authorized": false,
+    "executed": false,
+    "scope": "Only fresh facts needed for this initial activation. No repeated installed LOGIN/Secret verification or broad inventory.",
+    "sourceStsMax": 1,
+    "awsMetadataMax": 51,
+    "awsGroups": [
+      {
+        "id": "cfn",
+        "maxCalls": 12,
+        "scope": "Exact Cell and tenant: DescribeStacks/GetTemplate(Original)/ListStackResources/ListChangeSets each once (8); platform DescribeStacks only (1); installed media stack DescribeStacks/GetTemplate(Original)/ListStackResources (3). No write/Change Set creation."
+      },
+      {
+        "id": "aurora",
+        "maxCalls": 2,
+        "scope": "DescribeDBClusters exact techlong-sandbox-express-d001 and DescribeDBInstances for its returned existing writer ID only. No prod RDS query/start."
+      },
+      {
+        "id": "ecs",
+        "maxCalls": 3,
+        "scope": "Exact Cell cluster ListServices/ListTasks and exact retained tenant TaskDefinition DescribeTaskDefinition. No task execution, logs or environment Secret values."
+      },
+      {
+        "id": "ecr",
+        "maxCalls": 1,
+        "scope": "BatchGetImage exact already verified A root digest. No tags/latest/build/artifact discovery or B publication."
+      },
+      {
+        "id": "existing_iam",
+        "maxCalls": 13,
+        "scope": "At most two unique CFN roles from exact Cell/tenant RoleARN: GetRole/ListAttachedRolePolicies/ListRolePolicies/GetPolicy/GetPolicyVersion, at most5 each; exact TechlongSandboxTaskRole GetRole/GetRolePolicy WriteExactTenantProductImagesD2 and known boundary v5 GetPolicyVersion, at most3. Unexpected inline/default/attachment stops; no search or reinstall."
+      },
+      {
+        "id": "runtime_secret_metadata",
+        "maxCalls": 2,
+        "scope": "DescribeSecret for the exact historical tenant runtime and control public-key references only. No values; installed four release LOGINs/five identity Secrets are not re-read or retested."
+      },
+      {
+        "id": "api_dns",
+        "maxCalls": 1,
+        "scope": "ListResourceRecordSets exact hosted zone and API A name, one bounded page; no DNS writes."
+      },
+      {
+        "id": "tls_mtls",
+        "maxCalls": 2,
+        "scope": "DescribeCertificate and DescribeTrustStores for exact references returned by Cell only, one each; no certificate/trust-store content or change."
+      },
+      {
+        "id": "media_configuration",
+        "maxCalls": 4,
+        "scope": "Exact media bucket HeadBucket/GetBucketVersioning/GetBucketPolicy and exact CloudFront GetDistribution. Only safe metadata/policy digest saved."
+      },
+      {
+        "id": "fixed_media_keys",
+        "maxCalls": 9,
+        "scope": "HeadObject at most one per nine target keys bound by the saved migration-input raw SHA. No list, body GET or file-content read."
+      },
+      {
+        "id": "template_validation",
+        "maxCalls": 2,
+        "scope": "ValidateTemplate for offline-derived full Cell/tenant restore templates only, using file input. No uploads or cloud resources."
+      }
+    ],
+    "githubGetsMax": 5,
+    "githubTargets": [
+      "main ref",
+      "exact current instance-release.yml bytes",
+      "existing environment/reviewer metadata",
+      "environment main branch policy",
+      "backend exact B artifact14349965129 metadata/digest/availability/expiry only; no original ZIP or latest-build lookup"
+    ],
+    "explicitGitCredentialReadsMax": 1,
+    "controlDb": {
+      "existingConfigPath": ".env.local",
+      "fullFileReadsMax": 1,
+      "verifiedTlsReadOnlyConnectionsMax": 1,
+      "sqlSubmissionsMax": 25,
+      "scope": "Exact A/B immutable directory projections; instance_state row/active request absence; exact existing sandbox business eligibility/initialization references, schema/instance-state OIDs and required owner membership. No entire business history/catalog rescan, values beyond necessary metadata or writes."
+    },
+    "sealedPrivateMaterials": "After separate approval, only the four exact files below. Do not follow other private references, read whole business export/image files or load Secret/PAT/PEM. Existing Aurora access descriptor remains an explicit unresolved input, not an implicit file-read authorization.",
+    "privateFilesMax": 4,
+    "exactPrivateFiles": [
+      { "path": ".local-secrets/d2-6-step2-media-20261117-b/mapping.json", "rawSha256": "4817d5765c2f6b4dbfaf9158ad8f419104f9ab8b8903c98f5b382824ef4be213", "bytesMax": 1048576, "use": "Nine already sealed media inputs only, not current rows or source image reads." },
+      { "path": ".local-secrets/d2-6-step2-media-20261117-b/migration-inputs.prepared.json", "rawSha256": "792be56aa53b633765cf2b37478bdac70d4d70b7a54871659e3c1d2b9c00eee8", "bytesMax": 1048576, "use": "Nine fixed target object keys only; HeadObject references, no object bodies or migration." },
+      { "path": "F:/ChatGPT_workshop/aws-environment-cfn-state/journal.json", "historicalRawSha256": "c46d9c949bf680a3fd97f1918558ee211ad88415d553dc33fba17a972fa665ee", "bytesMax": 1048576, "use": "Verify original completed stopped pointer/pending state; changed bytes stop, never reset it." },
+      { "path": "F:/ChatGPT_workshop/aws-environment-cfn-state/plan-390534a1-0d8d-4fc6-ba01-5c70752f26fa/snapshot.json", "expectedPlanCanonicalSha256": "527f8ef6430819bb8bf9e13f5cbdb37451a41d0d84c8fad3cfa67f4dd72b3761", "hashAlgorithm": "ops/temporary-idle/environment-cfn.mjs#hash on snapshot.plan", "bytesMax": 8388608, "use": "Recover removed Cell/tenant CFN-owned edge declarations only; do not use old task/storage/image or mutate snapshot." }
+    ],
+    "secretValueOrPatPemReads": 0,
+    "auroraConnections": 0,
+    "imageFileReads": 0,
+    "objectBodyGets": 0,
+    "cloudOrSqlWrites": 0,
+    "executionSlots": 0,
+    "freshFactsMaxAgeSeconds": 18000,
+    "paidRestoreReadiness": "Before paid restore, prove original B artifact remains available and enough time remains for the planned activation plus both actual updates. Otherwise do not restore waiting for a replacement build; new B construction/promotion is not authorized here.",
+    "effectiveDeadlineRule": "Earliest actual applicable fact observation +5h, B artifact expiry, unchanged scanner validity and credential/write deadlines. No date restamp or automatic extension.",
+    "oldTimesExtended": false,
+    "readErrorsStop": true,
+    "unusedBudgetNotExtraScope": true
+  },
+  "risks": [
+    "Starting Aurora, one Cell ALB and one Fargate API task resumes ongoing charges; 50USD is a target, not a hard cap. No platform/prod restore or automatic TTL.",
+    "CFN is sole resource owner. New physical IDs/outputs/routing are unknown until true restore and cannot be taken from historical ARNs. New rights are not silently approved.",
+    "Normal CFN rollback can leave partial resources or roll old declarations back; external DB start, images, SQL, binding and Git activation are not atomic or automatically compensated.",
+    "Conditional image uploads and database CAS are separate services; uploaded public files may remain on row failure. Original files/rows remain, no delete/overwrite/down/automatic retry.",
+    "Database IAM credentials and owner config enter memory; raw templates/private metadata and SQL may be visible to providers/logs. No credential/body publication to GitHub.",
+    "Initial owner seed/independent inspection use temporary membership writes, not read-only transactions; creator ADMIN remains and unknown commit stops.",
+    "Runtime activation is a real later authorization, not implied by this preparation. It enables installed OIDC/workflow capabilities but does not itself prove both normal release runs."
+  ],
+  "thisPreparation": {
+    "providerCalls": 0,
+    "credentialConfigOrSecretReads": 0,
+    "privateMediaMapsOrBackupsRead": 0,
+    "imageFileReads": 0,
+    "zipReads": 0,
+    "databaseConnections": 0,
+    "cloudSqlOrBusinessWrites": 0,
+    "executionSlotsConsumed": 0,
+    "environmentRestored": false,
+    "runtimeEnabled": false,
+    "formalCodeTemplateSqlOrWorkflowChanged": false
+  },
+  "exclusions": [
+    "Platform Web/ALB restoration",
+    "speedfeast-postgres-prod start",
+    "new Cell/VPC/database/media bucket",
+    "new IAM/LOGIN/Secret/schema by default",
+    "A re-publication/A-B catalog re-insertion",
+    "B publication in step4",
+    "new generic tools/recovery/media framework",
+    "business tests/transactions",
+    "Full mode",
+    "schedule/automatic expiry",
+    "legacy direct-resource v1 or old write replay"
+  ]
+}

@@ -2,7 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：步骤3真实收口；下一仅准备步骤4必要恢复/初始绑定/runtime集中范围（2026-11-17）
+## 当前唯一继续点：步骤4集中材料已备，实际新读取和恢复仍另审（2026-11-17）
+
+用户只批准离线准备。本轮[步骤4机器材料](../ops/releases/d2-6-step4-activation.prepared.json)/[详细顺序第17节](aws-instance-version-release-plan.md#d2-6-step4-prepared)已集中复用19份已存记录/合同指纹，固定A真实digest、A/B目录、已装S3/CDN/权限/四环境值、九图原映射引用与原CFN UUID。没有新生产事实，执行SHA为null；AWS/GitHub API、凭据/配置/私有映射备份/图片读取、数据库连接/写入/槽、恢复和runtime启用均0。正式代码/SQL/模板/工作流和实际两个关闭配置不改，不重构建或重复身份安装。
+
+唯一拟实际链路是停用态A对齐→原Aurora/Cell最小恢复→完整媒体/兼容证明→租户7项及API→初始A绑定/独立回读→最后runtime数据启用，全部仍待准确批准。平台Web/ALB及prod RDS不恢复；不能调用要求三栈/两库的普通start或修改其校验来扩支线，也不能从旧stop备份覆盖掉后来S3接线。初始对齐不计两次正常更新；CloudFormation始终唯一资源创建者。
+
+下一只另审JSON已列的一次最小集中补核：STS1/AWS元数据51/GitHub GET5/helper1（含准确B artifact可用性1次）、配置1/Neon READ ONLY TLS1/查询25、四份固定旧映射/已完成stop文件；没有执行或读取授权。不重复LOGIN/Secret安装核验、旧业务历史或全账号盘点。当前物理输出、原Aurora访问通道、当前媒体引用和绑定不存在尚未证明；新监听器所需既有权限不足时，准确缺口另审，不暗加IAM/直接创建绕过。事实真正读到后才按5小时计时，旧期限不延；B原件11月18日10:45:19温尼伯到期保持。材料不齐或无足够时间完成整轮，不恢复收费环境等待新构建；D2真实更新仍0/2。
+
+### 已完成的步骤3及后继准备要求（保留，不重放）
 
 用户按外层SHA `126422f9a3bfc18c80376163f8e4c70af8ea9202b5a507b7bc20bbbce4e1f7b6`批准，本轮19:03:34.191–19:10:45.068Z约7分11秒实际完成：[结果](aws-instance-release-initial-publication-observed-20261117.json)、[准确run44154605425](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44154605425)。只dispatch1，用户亲自批准environment；A已发布且原始ECR manifest真实digest为`sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0`。固定S3版本2次回读/摘要及来源核验通过；A已REGISTERED/ecr_verified、B已CANDIDATE_REGISTERED/未发布，独立连接核对两行均通过，四事务owner权限闭合。实际配置读1/TLS2/SQL52，无业务/绑定写。
 

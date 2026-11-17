@@ -18,6 +18,8 @@
 
 **最新结果覆盖历史待批：** [第16节](#d2-6-publication-catalog-observed)/[实际回执](aws-instance-release-initial-publication-observed-20261117.json)已按准确外层批准完成A单app发布、真实manifest核验及A verified/B candidate两行登记/独立回读，约7分11秒、dispatch1、配置1/TLS2/SQL52。引导review已关闭，daily runtime仍关，未恢复环境或写绑定；真实更新仍0/2。下一只准备原步骤4的必要恢复/持久化兼容证明/初始A绑定/runtime集中范围，实际新读取和写入另审，不再发布A或登记A/B、重装身份/扩工具。B产物原到期11月18日16:45:19Z，扫描/事实期限不延期。
 
+**步骤4集中准备已交付：** [第17节](#d2-6-step4-prepared)/[机器材料](../ops/releases/d2-6-step4-activation.prepared.json)复用19份公开记录/合同及固定私有映射的引用，不读其正文；只准备最小Aurora＋Cell＋租户API范围。实际新读取、恢复、媒体CAS、绑定及runtime启用仍未批准，执行SHA为null。不调用三栈/两库全量start、不扩工具，不把旧输出/持久化假设填成当前事实；下一只另审所列一次集中缺项补核，不启动环境等待材料。
+
 **2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第13节](#d2-6-bootstrap-implementation)的最小入口及准确CI已完成，源码b1e1ebd/[CI44139556595](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595)成功：Linux239＋隔离PG16十项全过/无skip，lint/类型通过；[结果](aws-instance-release-bootstrap-code-ci-20261117.json)。两处代码接线不再是缺项，不重复实现/回归或重装身份。初始发布review与daily runtime仍关闭，生产读取/私密原件/发布/登记/恢复0；本轮到此收尾。下一仅回到同一集中草案更新新代码指纹并另审必要当前事实与真实操作SHA，不提前启动环境、重构建A/B或扩支线，真实更新仍0/2。
 
 **当前实际结果（取代下方早期轮次状态）：** [新g/h/i核对](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留)已完成真实app原件校验、STS1/AWS元数据55和另批剩余Neon READ ONLY22条查询；保留两次停止和新续段，未重复成功读取或产生远端写入。下一只收口第二个原CFN角色详细策略缺项及一次性启用准确清单，不扩框架；图片持久化缺项另列准确范围，不混入版本更新。runtime仍关、两次真实更新仍0。机器事实见[回执](aws-instance-release-d2-6-readiness-observed-20261114.json)，以下旧轮次“仅离线/未读”不覆盖本次批准结果。
@@ -224,7 +226,7 @@
 | 1 一次集中取证 | 已获准并完成 | STS1/GitHub15/固定回执1，两个匹配app原件均缺失；不再查询旧构建 |
 | 2 兼容/持久化 | 离线输入已收口；云端证明未完成 | 五应用源码树不变，原9图全部找到并哈希（根5/products4）；兼容契约提案和私有迁移输入准备完毕，尚未上传/改库/写绑定 |
 | 3 合格A/B目录 | 真实完成：A已发布/ecr_verified、B已登记未晋升candidate，独立回读通过 | [第16节](#d2-6-publication-catalog-observed)原run44154605425 success，dispatch1/配置1/TLS2/SQL52；复用准确原件及代码，入口已关闭，不重复发布/登记 |
-| 4 首次启用 | 未执行 | 收费环境不恢复，runtime仍关闭，种子/实际操作另审 |
+| 4 首次启用 | 集中材料已准备，未执行 | [第17节](#d2-6-step4-prepared)最小恢复/九图证明/初始A绑定/runtime范围已明确；新读/实际操作另审，不先恢复环境 |
 | 5 两次正常更新 | 0／2 | 不以初始恢复/对齐、NO_CHANGE或模拟结果充数 |
 | 6 结案 | 未完成 | 必须有两次真实成功及最终一致回写 |
 
@@ -495,6 +497,60 @@ register先核对批准SHA、当前代码、私有输入raw SHA及完整派生�
 - 引导review恢复原disabled；daily runtime仍关。不改IAM/Secret/schema，不连Aurora/迁图/做业务验收、不恢复收费环境；原件/a/b/包装器停止/永久槽保留，无自动回滚/清理。外层原JSON不改为已执行，实际结果单独记录；真实D2更新仍0/2。
 
 下一只准备原步骤4：复用A真实digest及A/B目录、原九图输入和兼容提案，集中明确必要恢复、持久化/兼容证明、初始实例A绑定和runtime启用。实际新读取/恢复/媒体或SQL/配置操作另审，不先恢复等待材料、不重做第3步或身份安装，不扩Full/媒体工具/新部署框架。A已发布镜像不因构建ZIP到期自动消失；B仍须原artifact在11月18日16:45:19Z前有效且扫描符合原规则，旧日期不延。
+
+<a id="d2-6-step4-prepared"></a>
+
+### 17. 步骤4集中审批准备：最小恢复→持久化/兼容证明→初始A绑定→runtime
+
+用户本轮只要求准备，并明确新读取及实际操作另审、不先恢复环境、不扩支线。[机器材料](../ops/releases/d2-6-step4-activation.prepared.json)绑定19份已存公开回执、配置候选和原合同的LF SHA；不读取`.env`/Secret/PAT/PEM、四份私有映射/停用备份、九图文件或ZIP，没有云/GitHub API/数据库/执行槽/恢复调用。旧事实和日期不重写；**readyForExecutionApproval=false、executionApprovalSha256=null**，不得把准备文件SHA当恢复批准。
+
+#### 17.1 直接复用，不再重做
+
+- 原实例 `app_e897a4377bce498b9c5ee9e64509dcad`，原workspace/product/environment、ca-central-1和三个原CFN UUID保持；只接受Express原库 `techlong-sandbox-express-d001` / `tenant_a0da1748bc4d5419_db`。
+- A `release_00b9c5cfa6bceedc5fd05aa451dca811`已发布/登记；目标必须是实际digest URI `402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0`。B继续是原未晋升candidate，不在本步骤发布或重新登记。
+- 四LOGIN/五Secret/原发布身份安装已验收，不再重装或重复认证。五资源图片栈、S3/OAC/CloudFront、原TaskRole窄写及租户S3四值接线已安装；本步骤不重建。公开base是 `https://d3t5c71ibx9h97.cloudfront.net`，桶为 `techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad`；这些是历史已验证输出，不是本轮新查状态。
+- 九图映射及目标key沿用已封存文件SHA：根目录早期图5＋上传图4、1,233,239字节、store_id均NULL。只引用私有映射，不重读原全业务导出或遍历images。历史九条不自动等于当前云库全部被引用图片。
+
+#### 17.2 最小资源范围与依次放行
+
+| 顺序 | 拟实际动作（全部仍待批准） | 成功后才可进入下一项 |
+| --- | --- | --- |
+| 1 停用态A对齐 | 若ImageUri尚非A，原租户UUID仅一次普通UPDATE CS，UsePreviousTemplate、只改ImageUri，其余UsePreviousValue | 预计仅TaskDefinition Modify/Replacement=True；仍3保留资源、无Service/运行任务，S3配置/参数保持 |
+| 2 必要依赖恢复 | 原Aurora若stopped才Start1；原Cell CFN只加回ALB、443、8443 mTLS、共享拒绝规则4项 | 保留12项/最终16项；实际新输出和TLS/mTLS正确，不使用旧ALB/监听器ARN |
+| 3 兼容/必要媒体 | 原验证IAM＋CA/SNI/TLS通道读取准确初始化/schema/媒体引用；只在原九项仍匹配且无额外local依赖时，条件上传必要对象并原子CAS，随后独立回读 | 完整来源/对象内容/行与variant引用证明通过；有额外/变化引用即停，不扩成全量媒体迁移 |
+| 4 租户API恢复 | 当前S3/A声明上只加Service和三条规则4项，desired1；六参数绑定本轮实际Cell输出；必要时准确API外部A Alias UPSERT1 | 原租户CFN最终7项，任务稳定运行A、目标健康、API域名和443/8443路由正确；平台不启动 |
+| 5 初始绑定 | 独立技术采样通过后，准确owner事务只INSERT原instance_state一行，以A为currentRelease、拟初始revision0、无active request；另连接核验 | 真实template/config摘要由releaseRuntimeDigests派生，持久化证明hash非空且真实，权限闭合、无旧绑定冲突 |
+| 6 runtime启用 | 最后只提交受审sandbox配置到runtime.json；原workflow/代码/身份不改，bootstrap保持关闭 | read_context返回完整实际A绑定及A/B目录；没有自动dispatch、环境到期或业务测试，真正两次更新仍留步骤5 |
+
+**默认不恢复平台Web/平台ALB、不启动独立 `speedfeast-postgres-prod`。** release sampler只要求原平台栈稳定/引用一致，不要求平台网页运行。现有 `aws-environment start` 校验严格要求三栈/两库，不能把它当这个最小范围的入口或悄悄删它的校验；只拟受审一次性编排复用其现有 `applyStack/writeOnce/variant` 等CFN导出能力，不新增工具/恢复框架，也不回到直接创建ALB/ECS。
+
+11月13日已完成stop的备份早于11月15日S3接线。后继只从原封存full声明取被移除的边缘资源，保留**当前**idle TaskDefinition及S3环境和A参数，不把旧local TaskDefinition覆盖回来。原根/plan/journal/失败/永久槽不改、不复位、不换根凑通过；后继节费工具与新基线再接续的事实差异如实留档，不在本步骤扩工具。初始A对齐是单独的明确CFN变更，不夹在noImageChange启停中，也不算A→B／B→A。
+
+#### 17.3 持久化、兼容和初始绑定的真实准入
+
+媒体只拟处理固定9个本地原图，单个≤5MiB、合计≤45MiB并重验原SHA，不遍历/预览/抓取其他URL。准确products/*对象最多9次条件PUT，不覆盖/删除；现有同内容对象只有验证真实版本内容/摘要后才可复用，ETag不充当SHA。Aurora拟最多3条验证TLS连接/60次SQL：初次只读核对、单次准确九行CAS事务、独立只读回读。asset_id、NULL store_id、商品关系和未批准字段/variant保持；当前出现额外依赖、不同字段或需要更多表时，报告准确差异，不默许全表URL替换。原文件不删，图片会通过公开CDN可访问，费用和公开分类须在实际批准中明确接受。
+
+持久化hash必须绑定当前引用全集、准确对象版本和内容SHA、CAS/独立回读、实际运行S3配置；不能用旧安装回执、HeadBucket或模板的s3字符串替代。代码原sampler的bucket检查是运行期必要检查，不是迁图证明生成器；本轮不改它或绕PERSISTENCE_NOT_READY。
+
+兼容只沿用已审核Express要求：`speedfeast-saas-control-v1`与已登记源树派生client API标签、3000端口、无迁移/启动写。启动后须证明原初始化/strict tenant-v1 readiness和实际A技术状态；这不是发现了新的DB语义版本，不写marker/重跑初始化来凑匹配，不扩Full。技术HTTP仅现有 `/health`、`/ready`，不登录/查订单/支付/推送；若现有端点需要未批准凭据则报告阻断，不取客户端HMAC或加旁路。
+
+初始Neon绑定拟一次`.env.local`读取、writer＋独立inspection两条验证TLS连接/最多40条SQL，只INSERT `deployment_release.instance_state` 一行（精确参数化片段见JSON），不UPDATE已有行或重插A/B。先验证实际OID、A/B目录和行不存在；`revision=0`是待批准的初次种子值，不是声称发现了现有版本。复用既有临时owner权限闭合方式；inspection也含membership写、创建者ADMIN保留。现有目录CLI只处理releases，**没有实例绑定seed命令**，不虚称已接通；未来只执行这一份受审admin事务，不新增通用seed函数、DML权限或导入器。
+
+#### 17.4 新事实缺项和下一次读取边界（尚未授权）
+
+尚缺当前idle/归属与原封存声明、**新监听器ID对应的既有CFN权限**、准确原Aurora IAM/TLS访问描述符和恢复后媒体/初始化证明、真实配置摘要及instance_state不存在/OID。任何新IAM写均不在默认范围；如果既有角色无法管理新物理ID，只提出准确缺口另审，不改Source直写绕过，也不重装发布身份。
+
+JSON已集中列出一次必要补核提案：STS1＋AWS元数据最多51（各组目标/次数相加），GitHub GET5/helper1（包括准确B artifact元数据1次，不下载ZIP/找新构建），现有`.env.local`1次/Neon验证TLS READ ONLY连接1/查询25；四份固定已存私有映射/完成stop状态文件按原SHA或原plan规范摘要核对。只读取本步骤必要的资源/角色和目录/初始行，不重做LOGIN认证、整批安装盘点或旧业务历史；不读取Secret值/PAT/PEM/图片/对象正文，不连Aurora、不写资源/配置/SQL、不消费执行槽。私有Aurora访问描述符尚未定位/证明，不隐含授予扩搜私有目录或读runtime Secret的权限。
+
+这次补核也必须用户另批，当前没有运行。新事实最多5小时，自实际首次取证计时；旧证据/扫描/产物期限不变。B候选原artifact截止仍为**11月18日10:45:19温尼伯**，不是本轮资源自动停止时间；实际还须有足够时间完成首次启用及两次正常更新，否则不启动收费环境等待另行构建。完全相符后才生成实际操作的集中外层SHA，包含准确模板/变化、权限充分性、原通道及媒体/owner副作用、轮询/等待上限和正常CFN回滚；恢复后只允许按已批准固定规则派生新物理引用/绑定摘要，不以未知值提前声称可执行。
+
+#### 17.5 成本与失败边界
+
+拟最多三份CFN UPDATE CS（初始A1、Cell1、租户1）、各只一次Create/Execute；直接StartDBCluster最多1、外部API Alias最多1。A对齐使用UsePreviousTemplate；恢复正文仅若超过TemplateBody上限，才在最终批准中绑定原模板桶最多2次条件上传/TemplateURL。本轮不上传、不新增IAM/Secret/栈/桶或使用旧批准。
+
+启动Aurora、一个Cell ALB和一个Fargate API任务后持续计费，50USD/月不是硬限额；不新增自动到期/守护。使用正常CFN回滚（DisableRollback=false），它可能清理revision、失败或遗留收费资源；RDS启动、对象上传、CAS、绑定和Git启用不是跨服务原子事务，失败保留现场、不自动删/补偿/重试。涉及owner和IAM token的内存、原模板/提供者日志风险在实际清单中再次明确；不把暂停等待批准称为已停费。
+
+本轮只新增这一份非执行JSON及文档，未实现新代码/模板/SQL/工作流，不重跑无关CI；40项本地一致性检查通过，含19份原证据SHA、A真实digest/B状态、CFN资源/六输出边界、未来读取求和、runtime候选摘要和实际两配置关闭。本地材料校验不等于当前资源/媒体/数据库或上线验收。下一唯一动作是另审上述必要的一次集中事实核对，收费环境不先恢复。
 
 <a id="d2-1-delivered"></a>
 
