@@ -50,12 +50,21 @@ async function fixture(currentNow?: number) {
 }
 
 test("bootstrap: closed default/check/publish never uses ambient canaries or changes daily runtime", async () => {
+  const activation = JSON.parse(await readFile("ops/releases/bootstrap.review.json", "utf8"));
+  const runtimeBefore = await readFile("ops/releases/runtime.json", "utf8");
   for (const args of [[], ["check"], ["publish"]]) {
-    const r = await promisify(execFile)(process.execPath, ["--experimental-strip-types", "scripts/instance-release-bootstrap.ts", ...args],
+    const invoke = () => promisify(execFile)(process.execPath, ["--experimental-strip-types", "scripts/instance-release-bootstrap.ts", ...args],
       { env: { ...process.env, DATABASE_URL: "canary", AWS_ACCESS_KEY_ID: "canary", RELEASE_BOOTSTRAP_REVIEW_SHA: "canary" }, timeout: 10000 });
-    assert.deepEqual(JSON.parse(r.stdout), { status: "BOOTSTRAP_PUBLICATION_NOT_EXECUTED", enabled: false, credentialsUsed: false, productionCalls: 0 });
+    // A later separately approved activation must not turn a code-regression test
+    // into a publication attempt or make a legitimate data-only review fail CI.
+    if (args[0] === "publish" && activation.enabled === true) {
+      await assert.rejects(invoke(), (e: unknown) => { assert.match((e as { stderr: string }).stderr, /RELEASE_BOOTSTRAP_APPROVAL_REQUIRED/); return true; });
+    } else {
+      const r = await invoke();
+      assert.deepEqual(JSON.parse(r.stdout), { status: "BOOTSTRAP_PUBLICATION_NOT_EXECUTED", enabled: activation.enabled === true, credentialsUsed: false, productionCalls: 0 });
+    }
   }
-  const runtime = JSON.parse(await readFile("ops/releases/runtime.json", "utf8")); assert.equal(runtime.enabled, false); assert.deepEqual(runtime.environments, {});
+  assert.equal(await readFile("ops/releases/runtime.json", "utf8"), runtimeBefore);
   assert.equal(await sha256Hex((await readFile(".github/workflows/instance-release.yml", "utf8")).replaceAll("\r\n", "\n")), "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff");
 });
 
