@@ -676,3 +676,25 @@ Execute明确`DisableRollback=true`、`RetainExceptOnCreate=false`，Create不�
 修正后，最终三栈检查需新一次明确只读批准：**Source STS1＋AWS元数据7**，仅原platform/Cell/tenant各DescribeStacks＋ListStackResources六读、原tenant GetTemplate(Original)一读。第一项Describe需要补读，因为失败返回时间未保留；随后复用原未做的六项，不另查服务/事件/Secret/IAM或扩大盘点。保存允许的实际时间/参数摘要/归属后再比较，差异/异常即停，不自动补偿。凭据只用于既有Source内存认证，存在网络/提供者日志及低额费用风险；不读.env/PAT/PEM/Secret值、不连库、不写云或业务、不续期、恢复、发布或调度。
 
 本轮只在真实停止及离线诊断结项；没有上述额外修正或新读的批准，故没有实现该修正、新生成可执行接续或调用剩余检查。全部完成后才可将身份安装正式收口并回到原D2-6版本/绑定准备，不扩框架或支线。
+
+## 28. 毫秒比较修正与准确CI完成，最后七项只读清单待批
+
+用户要求开始下一步，本轮只落实第27.2节单点修正/离线回归与只读材料，不把这条回复当作新的生产读取批准。新[纯时间比较模块](../ops/releases/installation-time-comparison.mjs)对SDK Date取`getTime()`、对CLI ISO取`Date.parse()`，只在两者有限且毫秒完全相等时通过；不取整、不忽略时间变化、不重写原基准。无效/缺失值不相等，输入Date不改。
+
+原已批准检查器及五执行文件、34新原件/五新fences、38旧原件/七旧fences保持原字节。修正只用于新私有的原三栈只读收尾入口，**不修改/重跑旧安装器、不重装八IAM或重读四Secret/数据库**；原失败仍为失败，CI不能代替实际原三栈保护核验。无新增工作流/依赖/权限或通用时间/恢复框架；既有无AWS检查仅追加新测试/lint，实际部署workflow、runtime、SQL与四模板不改。
+
+### 28.1 修复证据及CI
+
+[4项新回归](../tests/instance-release-installation-time.test.mjs)覆盖三种非零毫秒、真正±1毫秒/1秒变化仍拒、Date/ISO/时区等价及无效值/不变输入；与原连接/catalog回归合计31项全过，定向lint、类型及现有js-yaml解析通过。均未读取.env/Secret/PAT/PEM或连接生产数据库。
+
+修正源码`e3666c4723da8572819ad9e9c978a9c8cfa0fa02`已推main，[准确CI44018475190](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44018475190)为main/push/attempt1、completed/success：Linux231项、隔离PostgreSQL16九项全部pass/skip0，全部步骤含lint/类型成功。[去敏CI回执及已存解码日志指纹](aws-instance-release-time-comparison-fix-ci-20261116.json)已保存。5次GitHub只读操作核对原run/jobs/两日志，另一次连接器在请求前拒绝工作流集合URL，改用受支持的准确commit runs入口；没有Re-run、dispatch或云调用。隔离合成CI数据库不是Neon/Aurora，也不重做业务验收。
+
+### 28.2 最后七项只读范围及执行边界
+
+[新只读清单](aws-instance-release-original-stacks-inspection-review-20261116.json)，规范SHA **`273d8d05a34dad9a289336bd75d7847565622bc1c0beddd88b58554495b394f3`**，`PREPARED_READ_ONLY_NOT_APPROVED`。入口`.local-secrets/d2-identity-original-stacks-inspect-20261116-a/read.mjs`只含STS与CFN三种读取Command；已做语法、原件/修正源码/CI摘要绑定及`check-local`，没有运行`read-reviewed`、创建read-started或消费任何mutation槽。私有入口未声称经过CI/生产执行。
+
+另批后总上限仍只**Source STS1＋元数据7**：原platform/Cell/tenant准确UUID各DescribeStacks与ListStackResources，最后tenant GetTemplate(Original)；不查新IAM、Secret、服务/数据库、事件/DNS或扩大盘点。保留原状态/执行角色、完整参数摘要、逻辑/类型/物理ID和租户模板比较，仅修时间表示。先保存实际时间的类型/ISO/毫秒及允许摘要，再判断相等，避免再次遗失失败时间；无分页、自动重试、写入或补偿。以原四LOGIN＋新IAM26项已通过证据为输入，不重复它们。
+
+仍受原事实`2026-11-17T08:24:36.704Z`＝温尼伯11月17日**02:24:36.704 CST**约束，最多5分钟读取，最晚**02:19:36.704 CST**开始；不是延长旧05:08安装轮次、工作负载或事实。过期停止，不自动补盘点/续期。凭据只用于既有Source内存认证/正常登录刷新，元数据/模板进入内存但只存允许投影/摘要，存在网络/提供者日志、并发非CAS及低额费用风险；不读配置/Secret值/PAT/PEM、不连数据库、不重装、恢复/发布/调度或清理，runtime始终关闭。
+
+本轮代码/文档正常提交推送；AWS、生产配置/Secret/私钥读取、生产DB连接、云SQL写与mutation槽均0。下一唯一动作是另行批准上述限定只读核验，可回复：**“允许按清单273d8d05…完成最后STS1＋原三栈7项只读核验；不读Secret或配置、不连库、不写资源、不恢复或发布，接受清单风险，旧事实不延。”** 未批准不运行；成功后才正式收口身份安装，不将本轮代码/CI标成D2-6两次真实更新成功。

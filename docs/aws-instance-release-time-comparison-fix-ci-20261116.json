@@ -1,0 +1,95 @@
+{
+  "schema": "techlong/installation-time-comparison-fix-ci-observed/v1",
+  "sourceCommit": "e3666c4723da8572819ad9e9c978a9c8cfa0fa02",
+  "run": {
+    "id": 44018475190,
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/44018475190",
+    "workflowPath": ".github/workflows/instance-release-checks.yml",
+    "event": "push",
+    "branch": "main",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-11-17T04:37:33Z",
+    "updatedAt": "2026-11-17T04:38:22Z"
+  },
+  "githubReadOperations": 5,
+  "connectorLocalRouteRejections": 1,
+  "jobs": [
+    {
+      "id": 133821994278,
+      "name": "offline",
+      "conclusion": "success",
+      "allStepsSuccessful": true,
+      "tests": 231,
+      "passed": 231,
+      "failed": 0,
+      "skipped": 0,
+      "newTimeCases": 4,
+      "lint": "success",
+      "typecheck": "success"
+    },
+    {
+      "id": 133821994612,
+      "name": "postgres",
+      "conclusion": "success",
+      "allStepsSuccessful": true,
+      "tests": 9,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "database": "isolated synthetic GitHub CI PostgreSQL16, not Neon/Aurora"
+    }
+  ],
+  "sourceArtifacts": [
+    {
+      "path": "ops/releases/installation-time-comparison.mjs",
+      "lfSha256": "1204f35d118f1c153ff14b80b3c513523c96ff303a1d2e164b2859c7a6211a57"
+    },
+    {
+      "path": "tests/instance-release-installation-time.test.mjs",
+      "lfSha256": "d1a5ec0ede94573c067a470346f64280c589804d561be5b74d7bb1ddda3a7f47"
+    },
+    {
+      "path": ".github/workflows/instance-release-checks.yml",
+      "lfSha256": "e82b5b0331eefd51493aea83f65bcfff828d73bb737c8b48f016ff57c7df4c0a"
+    }
+  ],
+  "privateEvidence": [
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-a/ci-run.json",
+      "sha256": "19e6211e897c0ac56c8d6c0c5f4160f69f977e19ea25cf93dad38f870bd2b08a"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-a/ci-jobs.json",
+      "sha256": "7c20afccfa2c6a069d83b09228aa717ccfed299c2af729b0a6fd17ba33116b15"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-a/ci-offline.log",
+      "sha256": "a513aa6409f1afffa1616b74ccbf82cfb2afbaa3c65a902b66dcdff606f42d17"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-a/ci-postgres.log",
+      "sha256": "08d7ac2f66b567bbd335c392361d6b73bd1078477473e697ad71fdd4d27eec45"
+    }
+  ],
+  "fixBoundary": "Only SDK Date/CLI ISO millisecond comparison. Real1ms differences and invalid values still fail. No installed inspector or previously approved source/evidence changed.",
+  "localValidation": {
+    "newAndAdjacentTests": 31,
+    "passed": 31,
+    "skipped": 0,
+    "lint": "success",
+    "typecheck": "success",
+    "workflowYaml": "success"
+  },
+  "productionActions": {
+    "awsCalls": 0,
+    "productionConfigSecretPatPemReads": 0,
+    "productionDatabaseConnections": 0,
+    "cloudOrSqlWrites": 0,
+    "mutationFenceConsumption": 0,
+    "restorePublishDispatch": false,
+    "runtimeEnabled": false
+  },
+  "pending": "The future original-three-stack-only reader is syntax/material-checked locally; it has not made a cloud request and is not claimed to have run in this CI."
+}

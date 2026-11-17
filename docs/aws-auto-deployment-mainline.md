@@ -2,9 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：仅修时间比较、离线回归及七项只读收尾材料；云读取另审（2026-11-16）
+## 当前唯一继续点：时间比较修复/准确CI已通过，仅待STS1与七项只读批准（2026-11-16）
 
 用户要求开始下一步：本轮仅修SDK Date/ISO毫秒比较、离线回归及准备原三栈7项只读收尾。保留旧检查器/清单/记录和五新/七旧永久槽，不重装IAM/重放SQL/重建Secret，不读配置/Secret值/私钥或数据库，不恢复/发布；实际Source1＋AWS元数据7仍另审。四LOGIN及新八IAM已通过部分不重做，原事实不延、保护基准不改、不扩支线。
+
+本轮已完成[单点修复和待审材料第28节](aws-instance-release-activation.md#28-毫秒比较修正与准确ci完成最后七项只读清单待批)。源码e3666c4/[CI44018475190](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44018475190)成功：4新回归、Linux231＋隔离PG16九项全过/无skip，lint/类型通过。原部署workflow/SQL/模板/runtime及旧执行文件不改；新私有7读入口只做语法/摘要/check-local，未调用AWS/生产数据库或凭据/写槽。下一只待新[只读清单](aws-instance-release-original-stacks-inspection-review-20261116.json)SHA `273d8d05a34dad9a289336bd75d7847565622bc1c0beddd88b58554495b394f3`批准Source1＋原三栈7次读；不重做新IAM26读，旧事实仍11月17日02:24:36.704 CST到期，最晚02:19:36.704开始5分钟读取，不续期/恢复/发布，不扩支线。
 
 ### 以下为已真实执行的结果与停止原因（不重放）
 

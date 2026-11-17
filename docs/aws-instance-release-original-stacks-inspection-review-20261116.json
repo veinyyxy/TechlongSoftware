@@ -1,0 +1,250 @@
+{
+  "schema": "techlong/instance-release-original-stack-inspection-review/v1",
+  "status": "PREPARED_READ_ONLY_NOT_APPROVED",
+  "readAuthorized": false,
+  "purpose": "Complete only the original three-stack protection checks that remain after four LOGIN and eight new IAM resource checks already passed. Never rerun installation.",
+  "sourceFix": {
+    "commit": "e3666c4723da8572819ad9e9c978a9c8cfa0fa02",
+    "ciRunId": 44018475190,
+    "ciConclusion": "success",
+    "ciReceipt": "docs/aws-instance-release-time-comparison-fix-ci-20261116.json"
+  },
+  "target": {
+    "accountId": "402010193138",
+    "region": "ca-central-1",
+    "sourceProfile": "techlong-sandbox-user",
+    "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev"
+  },
+  "timing": {
+    "originalFactsNotAfterUnchanged": "2026-11-17T08:24:36.704Z",
+    "factsNotAfter": "2026-11-17T08:24:36.704Z",
+    "factsNotAfterWinnipeg": "2026-11-17T02:24:36.704-06:00",
+    "startNotAfter": "2026-11-17T08:19:36.704Z",
+    "startNotAfterWinnipeg": "2026-11-17T02:19:36.704-06:00",
+    "readDurationSecondsMax": 300,
+    "oldInstallationWindowNotExtended": true,
+    "oldFactTimesRestamped": false
+  },
+  "stackIds": [
+    "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13"
+  ],
+  "calls": [
+    {
+      "service": "sts",
+      "operation": "GetCallerIdentity",
+      "endpoint": "https://sts.ca-central-1.amazonaws.com",
+      "attemptsMax": 1
+    },
+    {
+      "service": "cloudformation",
+      "operation": "DescribeStacks",
+      "input": {
+        "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7"
+      },
+      "attemptsMax": 1
+    },
+    {
+      "service": "cloudformation",
+      "operation": "ListStackResources",
+      "input": {
+        "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7"
+      },
+      "attemptsMax": 1
+    },
+    {
+      "service": "cloudformation",
+      "operation": "DescribeStacks",
+      "input": {
+        "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1"
+      },
+      "attemptsMax": 1
+    },
+    {
+      "service": "cloudformation",
+      "operation": "ListStackResources",
+      "input": {
+        "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1"
+      },
+      "attemptsMax": 1
+    },
+    {
+      "service": "cloudformation",
+      "operation": "DescribeStacks",
+      "input": {
+        "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13"
+      },
+      "attemptsMax": 1
+    },
+    {
+      "service": "cloudformation",
+      "operation": "ListStackResources",
+      "input": {
+        "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13"
+      },
+      "attemptsMax": 1
+    },
+    {
+      "service": "cloudformation",
+      "operation": "GetTemplate",
+      "input": {
+        "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+        "TemplateStage": "Original"
+      },
+      "attemptsMax": 1
+    }
+  ],
+  "budgets": {
+    "sts": 1,
+    "awsMetadata": 7,
+    "githubGet": 0,
+    "configReads": 0,
+    "secretValueReads": 0,
+    "patPemReads": 0,
+    "databaseConnections": 0,
+    "writes": 0,
+    "newIamReads": 0,
+    "mutationFences": 0
+  },
+  "evidence": {
+    "lfFiles": [
+      {
+        "path": "ops/releases/installation-time-comparison.mjs",
+        "lfSha256": "1204f35d118f1c153ff14b80b3c513523c96ff303a1d2e164b2859c7a6211a57"
+      },
+      {
+        "path": "tests/instance-release-installation-time.test.mjs",
+        "lfSha256": "d1a5ec0ede94573c067a470346f64280c589804d561be5b74d7bb1ddda3a7f47"
+      },
+      {
+        "path": ".github/workflows/instance-release-checks.yml",
+        "lfSha256": "e82b5b0331eefd51493aea83f65bcfff828d73bb737c8b48f016ff57c7df4c0a"
+      },
+      {
+        "path": "docs/aws-instance-release-time-comparison-fix-ci-20261116.json",
+        "lfSha256": "a807cb926600459a7bff195e42a96109a8409c65de437d3229dc4b57104079a4"
+      },
+      {
+        "path": "docs/aws-instance-release-identity-completion-executed-20261116.json",
+        "lfSha256": "739ebbd6d0a0da6603e82fe819f791060cb19261e307dc0e44c068b2616f9083"
+      },
+      {
+        "path": "docs/aws-instance-release-identity-completion-preflight-20261116.json",
+        "lfSha256": "77a6c5eb6632ec485847933fd047047b1d25efc520019c4edaf2336c30f4074c"
+      },
+      {
+        "path": "ops/releases/runtime.json",
+        "lfSha256": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6"
+      },
+      {
+        "path": ".github/workflows/instance-release.yml",
+        "lfSha256": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff"
+      }
+    ],
+    "rawFiles": [
+      {
+        "path": ".local-secrets/d2-identity-completion-preflight-20261116-a/aws-result.json",
+        "sha256": "e750e57ce2a243f64336e117cc2d6ffeed6c4287425755fddecbec1845917801"
+      },
+      {
+        "path": ".local-secrets/d2-identity-completion-install-20261116-a/execution-evidence-index.json",
+        "sha256": "ce80a449fd515ae7d005eb826d04a9a019bb7c9ba556e6f943f3a60368469a74"
+      },
+      {
+        "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt.json",
+        "sha256": "46862462db0f6cdebeaef008ac869cee9bb706a1373dc5cec5eb6b7b1b802ffb"
+      },
+      {
+        "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt-controlSecrets-create.json",
+        "sha256": "284f5f2a43101ba83ccdbea88ca287d930605f85bcd772d24fc7b916b2ce025e"
+      },
+      {
+        "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt-controlSecrets-execute.json",
+        "sha256": "1e7cf48b8419378825206402d4119e76e17955193103e562f2dacf6bf887a5ef"
+      },
+      {
+        "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt-promotionSecrets-create.json",
+        "sha256": "0b6a600ea5c825ac5feffe6246e6a6aab9a0ad1f9db73319d97540e881735aff"
+      },
+      {
+        "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt-promotionSecrets-execute.json",
+        "sha256": "fb69fbfcd15c9559bffccb50682d22846c89f7b2fde46c834c0f3568d3eb0c88"
+      },
+      {
+        "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt-sql-promotion.json",
+        "sha256": "7c22dd7eaa0f34731de568d4f58c78ee47c08660099dfa9b0b9bc795c43dcbd4"
+      },
+      {
+        "path": ".local-secrets/d2-release-activation-install/08ceb8edcc0166bc1680d7af84b60626960b95b67e6dd7eb1c6019b3b281edc2/attempt-sql-logins.json",
+        "sha256": "0d9e0c263262ac9701de32be46ae18097060a16bb90440023ed4df57b9874627"
+      }
+    ],
+    "sourceSnapshot": {
+      "path": ".local-secrets/d2-identity-completion-preflight-20261116-a/aws-result.json",
+      "sha256": "e750e57ce2a243f64336e117cc2d6ffeed6c4287425755fddecbec1845917801"
+    },
+    "completedExecutionIndex": {
+      "path": ".local-secrets/d2-identity-completion-install-20261116-a/execution-evidence-index.json",
+      "sha256": "ce80a449fd515ae7d005eb826d04a9a019bb7c9ba556e6f943f3a60368469a74",
+      "files": 34,
+      "fences": [
+        {
+          "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt-identities-create.json",
+          "sha256": "c5bb399e0a3df0b9471ede723387fa3926913f366937083d92169729a3be1280"
+        },
+        {
+          "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt-identities-execute.json",
+          "sha256": "509b8b82cf9f7508b301b9f6ba71d4ba611618fee8f2f40a0fccaa962058c9ae"
+        },
+        {
+          "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt-publisherIdentity-create.json",
+          "sha256": "b67a54e0ff8b268c0212c295896eee2e97189094f4edf1ffe74e07c4441849b8"
+        },
+        {
+          "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt-publisherIdentity-execute.json",
+          "sha256": "468550b23721b299a45f02877827e85020776885bcfccbbe022c619b68b2cb95"
+        },
+        {
+          "path": ".local-secrets/d2-identity-completion-install-20261116-a/attempt.json",
+          "sha256": "1b25b75332903f0f0dcce4bbcbddf655ff42cea0c54eeca5f6296a9759db1970"
+        }
+      ]
+    }
+  },
+  "entry": {
+    "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-a/read.mjs",
+    "rawSha256": "9da40d162812944909c099af03236b7909dc8f1b9bcc96e1b3a4a4f06ddc76ab"
+  },
+  "executionModes": {
+    "checkLocal": "check-local <this scope canonical SHA>",
+    "readOnlyAfterNewApproval": "read-reviewed <this scope canonical SHA>"
+  },
+  "validationRules": [
+    "Exact original platform/Cell/tenant UUID ARNs, UPDATE_COMPLETE status and original execution roles only.",
+    "Compare each actual SDK Date by getTime() and saved ISO by Date.parse at exact millisecond precision; never round or ignore time changes.",
+    "Original complete parameter hashes and active logical/type/physical resource bindings match the saved real preflight. No new baseline or physical ID adoption.",
+    "Tenant Original template canonical hash remains the saved exact value.",
+    "Save actual timestamp type/ISO/milliseconds and safe parameter hashes before comparison, as well as resource projections/template hash. Do not lose a mismatch response again.",
+    "No pagination, command retries, events/drift inventory, new IAM26 reads or privilege/configuration changes."
+  ],
+  "sourceCredentialUse": "Existing fixed Source profile's standard AWS credential resolution/refresh in memory only; no app config/.env, Secret, backend PAT, PEM or GitHub App access.",
+  "localEvidenceOnly": "New read-started/result/call files are write-once in this new private directory. They are not cloud mutations or resettable execution slots. Preserve old34 execution files/five new and seven old mutation fences.",
+  "failurePolicy": "Stop at the first unexpected identity/time/status/layout/template, error or timeout. Keep the captured response projection; no retry, compensation, rollback, delete, restore or publication.",
+  "successBoundary": "Only original three-stack protection is newly verified. Combine with the immutable prior four-LOGIN and new IAM26 successful evidence to close identity installation; not a new deployment, not two real version updates or product acceptance.",
+  "risks": [
+    "Source credentials enter memory and official AWS network/provider logs; authentication refresh can fail. No private credential value is output or persisted.",
+    "DescribeStacks/GetTemplate may contain sensitive parameters or template fields in memory; persist only identity/time/type/parameter hashes/resource IDs and a template digest, never full parameter/environment/resource-property bodies.",
+    "These independent reads are not a cross-service CAS/reservation and can race. Real millisecond changes remain a stop, not something to normalize away.",
+    "Read failure or lost response does not authorize another request; no paging or automatic retry. A read deadline does not extend old facts or any workload lease.",
+    "Low nonzero network/provider fees are possible. Previously installed LOGIN/IAM permissions and retained Secrets remain; disabled runtime is not revocation or proof of zero charges."
+  ],
+  "thisPreparation": {
+    "newAwsCalls": 0,
+    "productionConfigSecretPatPemReads": 0,
+    "productionDatabaseConnections": 0,
+    "cloudOrSqlWrites": 0,
+    "oldApprovedFilesChanged": false,
+    "readerExecuted": false
+  }
+}
