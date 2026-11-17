@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：四LOGIN/八IAM已完成，最后三栈时间比较停止；仅提议单点修正及只读收尾（2026-11-16）
+## 当前唯一继续点：仅修时间比较、离线回归及七项只读收尾材料；云读取另审（2026-11-16）
+
+用户要求开始下一步：本轮仅修SDK Date/ISO毫秒比较、离线回归及准备原三栈7项只读收尾。保留旧检查器/清单/记录和五新/七旧永久槽，不重装IAM/重放SQL/重建Secret，不读配置/Secret值/私钥或数据库，不恢复/发布；实际Source1＋AWS元数据7仍另审。四LOGIN及新八IAM已通过部分不重做，原事实不延、保护基准不改、不扩支线。
+
+### 以下为已真实执行的结果与停止原因（不重放）
 
 [本次获准执行结果](aws-instance-release-identity-completion-executed-20261116.json) / [第27节](aws-instance-release-activation.md#27-获准接续已完成四login与八iam资源最后三栈时间比较停止)：四LOGIN独立认证/权限及原catalog通过；原两IAM栈6/2资源均CREATE_COMPLETE，新Role/Policy/归属独立核验通过。最后原platform更新时间比较报ORIGINAL_STACK_TIME_CHANGED后立即停止，原三栈保护未完全通过，不能称安装最终验收完成。实际Source1/元数据45/固定Secret值4/配置1/连接5/SQL34/Create2 Execute2，无Secret/SQL写、密码/PAT/PEM读取或恢复/发布，runtime关。34新原件/五新fences及原38/七保持，不重装、不重跑2cd402…。
 
