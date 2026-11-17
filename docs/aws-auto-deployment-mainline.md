@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：最后只读停在Source凭据获取；刷新并另准新一次同范围（2026-11-16）
+## 当前唯一继续点：一次性身份安装已收口，下一回到原D2-6真实版本/绑定准备（2026-11-16）
+
+[第30节](aws-instance-release-activation.md#30-新一轮七项只读全部通过一次性身份安装正式收口) / [最终验收](aws-instance-release-identity-installation-accepted-20261116.json)：用户刷新并另准后，新b逐字节同程序/新记录于05:00:59.207Z完成STS1＋7读，三原栈精确毫秒、参数/CFN归属和租户模板全过；a失败、所有旧原件/槽和事实时间保留。合并四LOGIN/原目录、五Secret/两已知提交、新八IAM及26项独立证明，一次性身份安装正式收口，不再重装/重读这些已完成部分。
+
+本轮无Secret/配置/私钥/数据库读取或资源写、恢复/版本发布，runtime仍false/environments={}，D2-6两次真实更新仍0。下一只回到原D2-6真实版本A/B、初始实例绑定及关闭态运行配置材料，先复用可用证据、列明过期/兼容/持久化缺项；实际新读取/构建/ECR/目录写/runtime启用/恢复/更新均另审，不自动推进或扩支线。
+
+### 以下为已保留的a停止（b已新批准并通过，不重放）
 
 本轮STS1＋原三栈7读已获用户批准，但标准AWS CLI凭据导出失败：[停止回执](aws-instance-release-original-stacks-inspection-stopped-20261116.json) / [第29节](aws-instance-release-activation.md#29-最后只读获准后停在source凭据获取资源读取仍为零)。Source尝试1、身份响应0，原7项元数据/Secret值/配置/私钥/数据库/资源写/槽/恢复/发布全0；保留失败，不自动重试/追加诊断或把它断言成唯一登录过期。
 

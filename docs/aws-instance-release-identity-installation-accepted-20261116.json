@@ -1,0 +1,231 @@
+{
+  "schema": "techlong/instance-release-identity-installation-accepted/v1",
+  "status": "IDENTITY_INSTALLATION_INDEPENDENTLY_ACCEPTED_RUNTIME_DISABLED",
+  "approvedFixedReadScopeSha256": "273d8d05a34dad9a289336bd75d7847565622bc1c0beddd88b58554495b394f3",
+  "newUserApprovalAfterSourceRefresh": true,
+  "round": "b",
+  "startedAt": "2026-11-17T05:00:56.933Z",
+  "completedAt": "2026-11-17T05:00:59.207Z",
+  "completedAtWinnipeg": "2026-11-16T23:00:59.207-06:00",
+  "operationNotAfter": "2026-11-17T05:05:56.933Z",
+  "factsNotAfterUnchanged": "2026-11-17T08:24:36.704Z",
+  "originalLatestStartUnchanged": "2026-11-17T08:19:36.704Z",
+  "oldFailedReadOperationNotAfterUnchanged": "2026-11-17T04:58:18.516Z",
+  "originalCodeArtifact": ".local-secrets/d2-identity-original-stacks-inspect-20261116-a/read.mjs",
+  "executedByteIdenticalReplica": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/read.mjs",
+  "approvedReaderRawSha256": "9da40d162812944909c099af03236b7909dc8f1b9bcc96e1b3a4a4f06ddc76ab",
+  "thisRoundCounts": {
+    "sts": 1,
+    "metadata": 7,
+    "writes": 0,
+    "secretValueReads": 0,
+    "configReads": 0,
+    "patPemReads": 0,
+    "databaseConnections": 0
+  },
+  "bothFinalReadRounds": {
+    "stsAttempts": 2,
+    "successfulIdentityResponses": 1,
+    "awsResourceMetadata": 7,
+    "cloudWrites": 0,
+    "oldFailedAttemptDiscardedOrReset": false
+  },
+  "source": {
+    "accountId": "402010193138",
+    "arn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev"
+  },
+  "originalStackVerification": [
+    {
+      "name": "platform",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+      "status": "UPDATE_COMPLETE",
+      "executionRoleArn": null,
+      "actualTimestampType": "SDK_DATE",
+      "actualUpdatedAtIso": "2026-11-13T14:33:34.307Z",
+      "actualUpdatedAtMilliseconds": 1794580414307,
+      "millisecondTimeMatches": true,
+      "parameterHashesMatch": true,
+      "cfnPhysicalBindingsMatch": true,
+      "retainedResourceCount": 7
+    },
+    {
+      "name": "cell",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+      "status": "UPDATE_COMPLETE",
+      "executionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxFirstAcceptanceCellExecutionRole",
+      "actualTimestampType": "SDK_DATE",
+      "actualUpdatedAtIso": "2026-11-13T14:37:03.255Z",
+      "actualUpdatedAtMilliseconds": 1794580623255,
+      "millisecondTimeMatches": true,
+      "parameterHashesMatch": true,
+      "cfnPhysicalBindingsMatch": true,
+      "retainedResourceCount": 12
+    },
+    {
+      "name": "tenant",
+      "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+      "status": "UPDATE_COMPLETE",
+      "executionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole",
+      "actualTimestampType": "SDK_DATE",
+      "actualUpdatedAtIso": "2026-11-15T17:40:03.260Z",
+      "actualUpdatedAtMilliseconds": 1794764403260,
+      "millisecondTimeMatches": true,
+      "parameterHashesMatch": true,
+      "cfnPhysicalBindingsMatch": true,
+      "retainedResourceCount": 3
+    }
+  ],
+  "tenantTemplate": {
+    "canonicalSha256": "dab17b240c8fe7e272b549c305b2990c7c949507e1f58d19f7fbd8aea90bc57b",
+    "originalTemplateMatches": true
+  },
+  "combinedInstallationAcceptance": {
+    "sourceReceipts": [
+      {
+        "path": "docs/aws-instance-release-activation-installation-partial-20261116.json",
+        "lfSha256": "33828f7f3bf3df72d2234be14f9c1c70ef7bff0c0be5105dc137c33f09d837a2"
+      },
+      {
+        "path": "docs/aws-instance-release-identity-completion-executed-20261116.json",
+        "lfSha256": "739ebbd6d0a0da6603e82fe819f791060cb19261e307dc0e44c068b2616f9083"
+      },
+      {
+        "path": "docs/aws-instance-release-original-stacks-inspection-stopped-20261116.json",
+        "lfSha256": "a72f1f2cebaa2ae7887ef9fa8e3e36e545343ec91c4e7bec5605a1e14296ecfb"
+      },
+      {
+        "path": "docs/aws-instance-release-original-stacks-inspection-review-20261116.json",
+        "lfSha256": "66cbeaaff19078f6231e0a8c8b86836cfa5322c5b7386fd08833823e0e3c9ea8"
+      }
+    ],
+    "existingSecretStacks": [
+      {
+        "purpose": "controlSecrets",
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-instance-release-secrets-v1/153f5090-e209-11f1-b1ae-06ffced96645",
+        "resourceCount": 3,
+        "verifiedAtOriginalInstallation": true,
+        "recreated": false
+      },
+      {
+        "purpose": "promotionSecrets",
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-instance-release-promotion-secrets-v1/31373240-e209-11f1-a589-0235049d7ab7",
+        "resourceCount": 2,
+        "verifiedAtOriginalInstallation": true,
+        "recreated": false
+      }
+    ],
+    "newIamStacks": [
+      {
+        "purpose": "identities",
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-instance-release-identities-v1/98ca35a0-e23c-11f1-b162-020ac730bb29",
+        "resourceCount": 6,
+        "status": "CREATE_COMPLETE",
+        "independentlyVerifiedAtPriorExecution": true,
+        "recreatedInThisRound": false
+      },
+      {
+        "purpose": "publisherIdentity",
+        "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-instance-release-promotion-identity-v1/c6f842f0-e23c-11f1-b2be-06ffe014a43b",
+        "resourceCount": 2,
+        "status": "CREATE_COMPLETE",
+        "independentlyVerifiedAtPriorExecution": true,
+        "recreatedInThisRound": false
+      }
+    ],
+    "totalCfnStacks": 4,
+    "totalNewIdentityResourcesAcrossApprovedInstallations": 13,
+    "knownSqlCommitTimes": {
+      "promotion": "2026-11-16T22:01:42.096Z",
+      "fourLoginPasswords": "2026-11-16T22:01:42.602Z"
+    },
+    "sqlCommitsReplayed": false,
+    "fourLoginAuthenticationAndPrivilegesVerified": true,
+    "originalProtectedCatalogUnchangedVerified": true,
+    "addedColumnsAndFunctionBodiesAclsVerified": true,
+    "newIamFourRoleIdsPolicyTrustBoundaryAndOwnershipVerified": true,
+    "originalThreeStackFinalChecksNowVerified": true,
+    "priorIam26ReadsRepeated": false,
+    "priorSecretOrDatabaseReadsRepeated": false,
+    "sequentialEvidenceNotAtomicSingleInstantSnapshot": true,
+    "identitiesAccepted": true,
+    "realVersionUpdates": 0,
+    "originalFailureRecordsRemainFailures": true
+  },
+  "privateEvidence": [
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/calls.ndjson",
+      "sha256": "35549141f8b6308d33cd58e5ed98a3a83314bc77fa97a2eb939e391808d9d081"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/cell-resources.json",
+      "sha256": "f75c897456cb42d88f866dd554ddb19c1ec2e4ef9a8efdf256471fb1e04a30bf"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/cell-stack.json",
+      "sha256": "23c28a9cc3c3befe1ffc94ef2c0c3052a7c1aa909c5c0fa088e8e092a3ca0df3"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/outcomes.ndjson",
+      "sha256": "e72b5044ee00eac7d350f34d30f4e4521626638fb1f6512ab5d50adaab8c44d5"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/platform-resources.json",
+      "sha256": "50d15178ab2237d5a659ec71da7d7b162cdd7619ca96d648bf7c860952f42060"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/platform-stack.json",
+      "sha256": "e9cc0d9cc7882091cb3ca1b7c105c5b5ee857704b7bbae6f85e5800095279f54"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/read-approval-received.json",
+      "sha256": "033aee8213373cc0e2075a962fa27d89c6fa32cc9bb92775071aca4314f8376e"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/read-result.json",
+      "sha256": "a0cc6c0b9fae670a071e19338589fb0aad41d23ac2a863a4d9d44dd4e18b2830"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/read-started.json",
+      "sha256": "2a89ea14f3eb9e472f9bbbd0e76b0ef825027f9ebab102a7bca55bb532b004cd"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/read.mjs",
+      "sha256": "9da40d162812944909c099af03236b7909dc8f1b9bcc96e1b3a4a4f06ddc76ab"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/source.json",
+      "sha256": "588312f6700e20e6a5f6dec01c399acdc247926d0cbb670b9cf82834291603eb"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/tenant-resources.json",
+      "sha256": "bfbfe24588ad8047e464c84109729ce0fe3639e99e77ee27c0e9a3aa5a060525"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/tenant-stack.json",
+      "sha256": "5f5777f03afae3c95ae9835a4c9e8917ad5e96b18f178da59a07245319e3543e"
+    },
+    {
+      "path": ".local-secrets/d2-identity-original-stacks-inspect-20261116-b/tenant-template.json",
+      "sha256": "c5f23213fa8ac2e57b5201098aa11db4d5ef5345e8ce209fb1f1f76963caf2f3"
+    }
+  ],
+  "approvedOriginalFilesEvidenceAndMutationFencesUnchanged": true,
+  "noAddedMutationFence": true,
+  "runtime": {
+    "enabled": false,
+    "environments": {},
+    "versionDirectorySeeded": false,
+    "restoredEnvironment": false,
+    "publishedVersion": false,
+    "githubDispatch": false
+  },
+  "boundaries": {
+    "onlyCfnMetadataReadThisRound": true,
+    "environmentHealthEcsAlbRdsDnsNotQueried": true,
+    "cloudFormationDriftDetectionNotPerformed": true,
+    "zeroAccountChargesNotClaimed": true,
+    "runtimeDisabledIsNotPermissionRevocation": true,
+    "noNewResourceOrWorkloadLease": true
+  },
+  "nextOnly": "Return to original D2-6 version/initial-instance binding and runtime-configuration preparation, reusing existing evidence and marking expired build/scan materials as missing. No further cloud/database/Secret reads, builds, ECR publication, directory writes, restoration, runtime enablement or release dispatch is authorized by this successful read. Real new operations require their own exact scope approval."
+}

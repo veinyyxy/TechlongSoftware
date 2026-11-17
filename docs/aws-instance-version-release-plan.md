@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-16，America/Winnipeg。状态：`D2-6 FOUR LOGINS AND IAM INSTALLED/VERIFIED / FINAL ORIGINAL-STACK CHECK PENDING — ACTIVATION DISABLED / NO REAL UPDATE RUNS`。
+日期：2026-11-16，America/Winnipeg。状态：`D2-6 IDENTITIES ACCEPTED / VERSION AND INSTANCE BINDING PENDING — RUNTIME DISABLED / NO REAL UPDATE RUNS`。
 
 除下方明确交付的D2-1至D2-4代码/离线部分及D2-5已有ECR路线离线接入外，本文其余部分仍是待审设计，不是完整功能已完成、生产数据库迁移、Secret/IAM安装、镜像发布、部署工作流调度或AWS部署授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -10,13 +10,13 @@
 
 该代码收尾已完成：[CI43561305617](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43561305617) 对应2659d7a，171回归＋9原生PG16全过/无skip。只证明合成来源/命令和隔离数据库，不是实际ECR晋升或部署已开启。后继仍需真实候选准入、必要身份/SQL安装及两次正常技术更新验收，不重复业务测试。
 
-一次性启用材料集中到[总清单第28节](aws-instance-release-activation.md#28-毫秒比较修正与准确ci完成最后七项只读清单待批)。用户已批准2cd402…并实际执行，[新回执](aws-instance-release-identity-completion-executed-20261116.json)确认四LOGIN/目录/权限独立通过、原两IAM栈8资源已装且自身核验通过；最后原三栈保护停在本地时间比较。毫秒比较修正与准确CI现已通过，下一只待STS1＋原三栈七项只读批准，尚未正式最终验收通过。五旧Secret/两SQL提交不重做，不重装IAM或再读凭据/数据库，不恢复/发布。以下执行卡保留阶段沿革，不重做D2-1至D2-5或把代码/CI当真实更新。
+一次性启用按[总清单第30节](aws-instance-release-activation.md#30-新一轮七项只读全部通过一次性身份安装正式收口)及[最终回执](aws-instance-release-identity-installation-accepted-20261116.json)正式验收通过：四CFN栈13身份资源、两已知SQL提交、四LOGIN独立认证、原目录/权限、新IAM和原三栈保护证据全部闭合。五Secret/两SQL不重做，不重装IAM或重复身份核验。runtime仍关闭，下一只按原D2-6准备真实版本/准确初始实例绑定及运行配置，实际读取/构建/登记/恢复/发布仍另审；不将身份收口当两次真实更新或全部D2完成。以下执行卡保留阶段沿革，不重做D2-1至D2-5。
 
 <a id="d2-6-readiness"></a>
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
-**2026-11-16当前唯一动作覆盖下方历史“下一步”：** 四LOGIN和两IAM栈8资源已按新SHA获准安装/核验，时间修复及准确CI通过。最后原三栈只读已另获批准，但[第29节](aws-instance-release-activation.md#29-最后只读获准后停在source凭据获取资源读取仍为零)停止于Source凭据导出，原7项全未读取；下一只待Source刷新并新一次同范围批准，不重跑旧记录或延事实。Secret/SQL不重做、IAM不重装，runtime关、真实更新0。此卡后续目录/恢复/两次更新仍是原D2目标，不在本轮夹带执行。
+**2026-11-16当前唯一动作覆盖下方历史“下一步”：** [第30节](aws-instance-release-activation.md#30-新一轮七项只读全部通过一次性身份安装正式收口)已完成最后STS1＋7项，身份安装正式收口；下一只准备真实版本A/B、准确初始实例绑定及关闭态运行配置材料，复用可用证据、过期与门槛缺项如实列清。Secret/SQL不重做、IAM不重装，runtime关、真实更新0。本轮不追加生产读取/构建/目录写/恢复或发布，均准确另审。
 
 **当前实际结果（取代下方早期轮次状态）：** [新g/h/i核对](aws-instance-release-activation.md#11-d2-6真实app原件与neon核对完成aws部分事实保留)已完成真实app原件校验、STS1/AWS元数据55和另批剩余Neon READ ONLY22条查询；保留两次停止和新续段，未重复成功读取或产生远端写入。下一只收口第二个原CFN角色详细策略缺项及一次性启用准确清单，不扩框架；图片持久化缺项另列准确范围，不混入版本更新。runtime仍关、两次真实更新仍0。机器事实见[回执](aws-instance-release-d2-6-readiness-observed-20261114.json)，以下旧轮次“仅离线/未读”不覆盖本次批准结果。
 
@@ -33,10 +33,10 @@
 | 必要项 | 当前已知事实 | 最小完成方式 |
 | --- | --- | --- |
 | 真实Secret ARN可被现有运行入口接受 | 两模板五参数及三处运行校验/现有fixture均已修；准确CI成功 | 新3项回归和原整轮/隔离PG回归通过；仅格式/代码验证，不等于真实Secret已创建或权限已生效 |
-| 一次性运行身份 | 原schema/3表/9函数/4 NOLOGIN已装；4 LOGIN、5 Secret、4 IAM角色/4策略、promotion增量未装 | 复用[启用清单](aws-instance-release-activation.md)，先补真实缺项，按准确SHA另批原四CFN栈及两SQL事务；保持runtime关闭至独立验证通过 |
-| 真实版本及可信实例绑定 | 新成功run43630231572的app原ZIP/四文件与既有验证器通过，尚未产品绑定/发布；新Neon只读证明release三表仍空 | 复用已存原件/目录端口建立两个合格不同digest版本及准确基准绑定，不重复构建/下载，不用旧ECR标签、过期扫描或合成SHA代替证据 |
+| 一次性运行身份 | 四LOGIN、五Secret、四IAM角色/四策略及已提交promotion增量已按原合同安装并独立验收通过，见最终回执 | 不再重装或重复读取身份；runtime继续关闭，后续启用按真实版本/绑定和准确范围另审 |
+| 真实版本及可信实例绑定 | 已存app原件/验证代码保留，尚未登记两个合格不同digest版本和准确初始绑定；04:08Z已准只读曾确认三release表为空 | 先复用仍合格的已存证据，过期产物/扫描列缺项；按原目录端口准备真实版本A/B及绑定，不用旧ECR标签、过期扫描或合成SHA代替证据，新采集/构建/登记另审 |
 | 可运行的准确目标 | 本轮三栈UPDATE_COMPLETE、资源7/12/3，但未读实际ECS/ALB/RDS运行或DNS；历史两库available不充当前值 | 材料与身份齐备后，另批原启停工具的必要恢复；CFN所属资源只经CFN，使用新实际输出/物理ID核对引用，不在release中恢复 |
-| 图片持久化 | 新取得租户模板仍IMAGE_STORAGE_PROVIDER=local；现有S3 gate无通过证据，没有查询实际task volumes | 不放宽PERSISTENCE_NOT_READY；必要存储对齐先列准确独立范围，不暗中变更或夹入只改镜像的release |
+| 图片持久化 | 五资源图片栈与原IAM/idle租户S3四值接线已有[独立记录](aws-instance-release-persistence-wiring-installed-20261115.json)，不再称模板仍local；本轮未新查运行任务或迁图，完整持久化门槛仍须按证据判断 | 复用已装接线，不重建图片设施或放宽PERSISTENCE_NOT_READY；只列真实缺项，必要新操作另审，不夹入只改镜像的release |
 | 单审批入口及回写 | instance-release.yml和独立verifier已有准确无AWS CI，runtime.json仍false/environments={} | 按真实版本/Secret固定版本/资源清单准备受审运行配置及种子；不把旧业务ready记录改成当前release成功 |
 
 本轮新事实只到2026-11-15T00:18:33.301Z（温尼伯11月14日18:18:33.301 CST），不延长旧快照；三个旧Secret固定版本与Source组策略已核对，第二个原CFN角色已由j单独补齐；DNS/ECS/RDS本轮未读。原包到期2026-11-15T19:07Z不能续元数据时效。未来只另审明确缺项，不再整批无差别盘点或借旧available推断当前数据库状态/启动原因。
