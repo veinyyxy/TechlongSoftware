@@ -2,7 +2,17 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：新接续已获批准；先完成整轮编排门槛，才可开窗（2026-11-17）
+## 当前唯一继续点：步骤4恢复与九图持久化完成；只待一处运行平台默认值核验兼容（2026-11-17）
+
+用户在完整SHA/范围/费用说明后再次“确认”，同一a338入口获准实际启动。真实执行23:20:04.215–23:29:03.243Z约8分59秒：[准确结果](aws-instance-release-step4-activation-partial-20261117.json)。九图条件PUT/准确版本及公开内容校验、九行CAS明确提交和独立新连接回读均通过；停用态A对齐、Cell恢复、原IAM栈单ManagedPolicy修正、tenant恢复四份CS均EXECUTE_COMPLETE，API Alias一次对齐。Cell443/8443/证书/verify mTLS、原23项IAM物理归属保持；ECS desired1/running1/pending0，A实际digest匹配、目标healthy。**这不是最终验收成功。**
+
+独立进程止于`RELEASE_IMAGE_OR_COMPATIBILITY_CHANGED`；本机仅分析同轮已存响应，未新增生产读取。准确原因：原模板和实际TaskDefinition都省略可选`runtimePlatform`，而`inspection.ts#assertBoundReleaseRuntime`强制要求字段显式存在。实际任务`platformFamily=Linux`、`ecs.cpu-architecture=x86_64`、A digest和运行状态均已留存；[AWS Fargate官方默认值](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html)说明这不是实际架构不兼容。没有静默改事实、放宽核验或重试。两个技术GET已经发出，但状态码未留存，**不能补称HTTP验收通过**。
+
+本轮配置/Neon读取及SQL、初始绑定、runtime提交/启用和正常release调度均0，真实runtime仍关闭，D2正常更新0/2；所有旧记录/槽/截止和原操作信封不改。累计STS5/元数据124/固定输入20/Aurora连接4/SQL32，来源及连接预算已消费，不自动再查/重连或重放旧入口。**恢复的Cell ALB和租户ECS可能持续计费，Aurora本来已在运行；未自动清理或加资源到期。**
+
+下一唯一建议须另获批准：只兼容这一处Fargate默认平台表示、补最小回归并验证既有CI，不改CFN模板/资源、指纹算法或原事实，不把ARM/Windows/EC2默认视为合格。随后复用本次成功持久化/恢复证据，集中准备“独立技术核验→初始A绑定/回读→runtime最后启用”的准确接续；新增读取及剩余写仍另审，**不再恢复/重建、上传九图、重放CAS或盘点整套环境**。原00:50:04.215Z操作截止及00:53:21.305Z事实截止不延。
+
+### 本次批准前的编排和权限记录（保留，不重放）
 
 用户已对 SHA `a33833df78d2e9457da3c47ad3a4ab499e8d03bf339bcedeb66a92b483976d58` 回复“同意”，覆盖下方待批措辞。批准仅包括该清单的新独立90分钟窗口、明确读取增量及原资源/写入范围；不复活旧窗口、重放诊断或复位旧槽。仍须先备齐并离线检查全部私有阶段，且在23:23:21.305Z前启动、保留完整90分钟；未齐或迟到不开窗。本轮先完成这一前置，不把批准本身记为已恢复、已绑定或runtime已启用。
 
