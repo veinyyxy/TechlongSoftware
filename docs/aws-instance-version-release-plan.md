@@ -16,7 +16,7 @@
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
 
-**最新停止覆盖下段继续点：** [第14节](#d2-6-publication-read-stopped)获准只读轮次已在Source首次CLI调用停止，其他读取/写入均0；未证实会话过期，下一仅等单次去敏STS诊断的新许可，成功才继续原未用11/10。原代码/CI不重做，不恢复/发布/登记或延长旧事实。
+**最新停止覆盖下段继续点：** [第14节](#d2-6-publication-read-stopped)的b单次诊断已另获准并执行，安全类别LOGIN_REFRESH_REQUIRED/退出255、无身份，原11/10仍未读。下一等待用户自行刷新Source并明确允许新一轮STS1＋原11/10，失败即停；原a/b保留，不重复诊断、编码/CI/构建，不恢复/发布/登记或延长旧事实。
 
 **2026-11-17当前唯一动作覆盖下方历史“下一步”：** [第13节](#d2-6-bootstrap-implementation)的最小入口及准确CI已完成，源码b1e1ebd/[CI44139556595](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44139556595)成功：Linux239＋隔离PG16十项全过/无skip，lint/类型通过；[结果](aws-instance-release-bootstrap-code-ci-20261117.json)。两处代码接线不再是缺项，不重复实现/回归或重装身份。初始发布review与daily runtime仍关闭，生产读取/私密原件/发布/登记/恢复0；本轮到此收尾。下一仅回到同一集中草案更新新代码指纹并另审必要当前事实与真实操作SHA，不提前启动环境、重构建A/B或扩支线，真实更新仍0/2。
 
@@ -466,7 +466,9 @@ register先核对批准SHA、当前代码、私有输入raw SHA及完整派生�
 
 随后只本地`Get-Command`与`aws --version`证明命令存在于D:/Amazon/AWSCLIV2/aws.exe、版本2.36.19；这两项没有STS/网络/认证读取，也没有证明原失败就是会话过期。没有修代码、换身份、重放a、追加AWS调用或改变原期限；新BootstrapReview和daily runtime仍关闭，原件/CI结果保持，不生成虚假的可执行发布SHA。
 
-下一仅提议用户另准**一次固定Source/官方endpoint STS去敏诊断**，保存安全的错误类别/code/cause及退出状态、不保留原始错误/凭据；准确IAM身份成功才继续尚未使用的元数据11/GitHub10，其他范围完全不增。未批准不诊断、不要求盲目重复登录、不恢复/发布/登记；失败即停。若成功，再直接收口原集中审批，不新建框架或测试支线。
+原提案后已获准并完成单次诊断：新b于2026-11-17T18:39:35.477–18:39:36.808Z执行固定Source/官方STS，CLI安全分类为`LOGIN_REFRESH_REQUIRED`、退出255；没有HTTP/身份响应，原始错误和凭据未保存，[回执](aws-instance-release-publication-source-diagnostic-20261117.json)。未继续任何11/10对象，两轮计Source尝试2/成功0，其余读取、写入和执行槽仍0，a/b全部保留。没有把未知HTTP状态/网络次数编造成已取得AWS响应。
+
+下一只待用户自行运行`aws login --profile techlong-sandbox-user`并允许新一轮STS1＋原未用11/10，只读身份正确才继续，失败即停；不要发送验证码/凭据。当前不再追加诊断或修代码，不重做已通过CI/构建，不授权发布/登记/恢复，不延旧事实或原件期限；成功后直接收口原集中审批。
 
 <a id="d2-1-delivered"></a>
 

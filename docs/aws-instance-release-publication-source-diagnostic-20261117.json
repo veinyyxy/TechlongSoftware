@@ -1,0 +1,74 @@
+{
+  "schema": "techlong/instance-release-publication-source-diagnostic/v1",
+  "status": "STOPPED_SOURCE_LOGIN_REFRESH_REQUIRED",
+  "startedAt": "2026-11-17T18:39:35.477Z",
+  "stoppedAt": "2026-11-17T18:39:36.808Z",
+  "sourceProfile": "techlong-sandbox-user",
+  "callerIdentity": null,
+  "diagnostic": {
+    "category": "LOGIN_REFRESH_REQUIRED",
+    "exitCode": 255,
+    "errorClass": "Error",
+    "awsErrorCode": null,
+    "causeCode": null,
+    "killed": false,
+    "httpStatus": null,
+    "networkAttempts": null,
+    "rawErrorSaved": false
+  },
+  "thisRound": {
+    "stsAttempts": 1,
+    "successfulSts": 0,
+    "awsMetadata": 0,
+    "githubGets": 0,
+    "gitCredentialHelperReads": 0,
+    "secretValueReads": 0,
+    "configReads": 0,
+    "patPemReads": 0,
+    "zipDownloads": 0,
+    "databaseConnections": 0,
+    "writes": 0,
+    "executionSlots": 0
+  },
+  "bothReadRounds": {
+    "stsAttempts": 2,
+    "successfulSts": 0,
+    "awsMetadata": 0,
+    "githubGets": 0,
+    "writes": 0,
+    "executionSlots": 0
+  },
+  "rawErrorOrCredentialsSaved": false,
+  "oldAFailureRetained": true,
+  "automaticRetry": false,
+  "newFactsOrApprovalSha": false,
+  "codeCiRuntimeAndArtifactsUnchanged": true,
+  "privateEvidence": [
+    {
+      "path": ".local-secrets/d2-6-publication-read-20261117-b/started.json",
+      "bytes": 702,
+      "rawSha256": "59af452ffe5133e9af32546a01bcbd1aa3f9c1b13dc62ec6cc5d21524575c57b"
+    },
+    {
+      "path": ".local-secrets/d2-6-publication-read-20261117-b/sts-diagnostic.json",
+      "bytes": 226,
+      "rawSha256": "54ec7bd4439e0bfbfbc5e7b618c5bf1d5f0d6bb9844792d4b732d495a3b99fd3"
+    },
+    {
+      "path": ".local-secrets/d2-6-publication-read-20261117-b/001-aws-intent.json",
+      "bytes": 511,
+      "rawSha256": "6790c3395684766b73ccbfe955779883faf5f5287f53257ba1b4f7860fbec126"
+    },
+    {
+      "path": ".local-secrets/d2-6-publication-read-20261117-b/002-aws-response.json",
+      "bytes": 405,
+      "rawSha256": "01ecf24139070c06f9abb131b125ac7c92f436e82cdb195089773044c41bd8f4"
+    },
+    {
+      "path": ".local-secrets/d2-6-publication-read-20261117-b/stopped.json",
+      "bytes": 1150,
+      "rawSha256": "0ce7357c9d4e13045950a5212641edcbc540eaf8ae386f89889118313da6ed94"
+    }
+  ],
+  "nextRequiresUserLoginAndFreshReadPermission": true
+}

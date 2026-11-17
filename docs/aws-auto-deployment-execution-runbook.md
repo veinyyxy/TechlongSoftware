@@ -2,7 +2,13 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：最小只读核对已停在Source首次调用，单次去敏STS诊断须另准（2026-11-17）
+## 当前唯一继续点：已获准诊断指向Source登录需刷新，原11/10未读；等待用户刷新及新轮许可（2026-11-17）
+
+用户另准一次去敏STS诊断及成功后继续原未用11/10；新b于18:39:35.477–18:39:36.808Z停在Source，安全类别`LOGIN_REFRESH_REQUIRED`、退出255，无STS身份响应，[诊断回执](aws-instance-release-publication-source-diagnostic-20261117.json)。两轮累计Source尝试2/身份0，AWS元数据/GitHub/helper/私密或数据库读取/写槽/发布/恢复均0；a原件保留，b不重跑，原始stderr/凭据未保存。此次诊断没有调用后继对象或修代码。
+
+下一只待用户自行`aws login --profile techlong-sandbox-user`并明确允许新一轮STS1＋原元数据11/GitHub10只读；不要发送验证码/凭据。刷新不延旧事实/产物期限，不授权发布/登记/恢复；新轮只在新记录核对准确IAM用户，再继续原未用对象，失败即停。原代码/CI已完成，不重构建/重测试或新建框架。
+
+### 已保留的首次停止及诊断提案（现已诊断，不重放）
 
 用户已准STS1/AWS元数据11/GitHub GET10，本轮新a于18:32:10.083–18:32:11.495Z停止：[回执](aws-instance-release-publication-preflight-stopped-20261117.json)。Source尝试1/成功身份0、元数据/GitHub/helper/Secret值/配置/PAT/PEM/ZIP/SQL/写入/执行槽/dispatch/恢复均0；原四停止记录及私有operator保留，不重跑a。仅本机命令解析/`aws --version`证明CLI可用（2.36.19），没有追加STS或网络诊断，不能把通用AWS_CLI_UNAVAILABLE认定为登录过期。
 

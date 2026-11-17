@@ -2,7 +2,11 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：只读核对已停，下一仅另准一次去敏STS诊断；不重做代码（2026-11-17）
+## 当前唯一继续点：Source诊断要求刷新，原11/10仍未读；不重做代码（2026-11-17）
+
+[新b诊断](aws-instance-release-publication-source-diagnostic-20261117.json)已按另准执行：`LOGIN_REFRESH_REQUIRED`/退出255，未取得身份；两轮Source尝试2，后继元数据/GitHub/私密/SQL/写槽/发布/恢复0，a/b保留不重试。下一等待用户自行刷新Source并允许新一轮STS1＋原11/10只读，成功核对准确IAM身份才继续；不需新构建/CI或改变代码，刷新不延期/授权实际发布登记。当前尚无新事实或集中操作SHA。
+
+### 已保留的a停止（诊断已完成，不再请求重复诊断）
 
 [新a停止回执](aws-instance-release-publication-preflight-stopped-20261117.json)：已准的最小核对在首次Source CLI调用通用失败，身份响应0，AWS元数据11/GitHub10/认证helper额度全部未用，其他私密/数据库/写槽/发布/恢复0。原a不覆盖/重试；本机CLI解析与本地version成功，不证明会话过期。代码及准确CI保持，不再补工具/测试；下一只请求单次官方STS去敏诊断，身份准确才继续原未用11/10，尚未批准或执行。没有新事实/操作SHA或旧期限延期，不自动要求刷新后重跑原命令。
 
