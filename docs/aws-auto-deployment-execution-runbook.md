@@ -2,7 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：已准旧测试最小适配；核对同一提交CI后生成集中执行SHA（2026-11-17）
+## 当前唯一继续点：旧测试与准确CI已通过；步骤4集中执行SHA待批，不执行恢复（2026-11-17）
+
+用户批准的唯一旧测试修复已完成，源码`6f84f14f7ee38dd8b9bf650f5b39a43bebcba9d0`、[准确CI44173152522](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44173152522)的offline/隔离PG两个job及lint/类型全success：[真实回执](aws-instance-release-step4-test-ci-20261117.json)。只改此测试文件，生产CLI/工作流/实际runtime仍保持；CI核对仅既有Git认证和准确GitHub run/步骤，无AWS/生产配置/数据库/Secret读取或恢复。
+
+已复用原事实定稿[步骤4集中执行清单](../ops/releases/d2-6-step4-execution.review.json)/[完整风险](aws-instance-release-step4-execution-review.md)，规范SHA **`4891563c4c103ba1ea1beef5ce8bc32b2923305179e793c806354ea8589198a6`**。下一唯一动作是用户对这一SHA和完整范围另行批准，然后才连续执行“原已运行Aurora九图/兼容证明→停用态A对齐→Cell恢复→原IAM栈单ManagedPolicy窄修正→tenant/API恢复→独立技术证明→初始A绑定/回读→runtime数据启用”。最多CFN4Create/4Execute、图片PUT9/模板PUT1/媒体CAS9/绑定INSERT1/DNS UPSERT1；不新增IAM身份、不重发A/B、不dispatch或做业务测试。RDS写0，平台/prod不恢复；不是两次正常更新，D2仍0/2。
+
+事实原截止**2026-11-18T00:53:21.305Z＝11月17日18:53:21温尼伯**，整轮最多90分钟，因此最晚17:23:21启动；不为本轮CI/生成/提交重计时间。新物理ID、模板/持久化/绑定SHA只能按清单固定规则从真实输出派生，超界即停；正常CFN受管回滚、旧revision/policy版本托管清理与部分收费/公开对象遗留风险须明确接受。当前只是待批，不调用任何执行入口或提前恢复，原prepared/失败原件与全环境journal不变。下面的“待修测试/待CI”全部是已完成沿革，不再走回去。
+
+### 已完成的旧测试批准与本机验证（保留，不重做）
 
 用户已明确同意只修正这一处旧测试并验证现有CI，不新增生产读取、不恢复环境或启用runtime，通过后复用当前事实生成集中执行SHA。本轮仅改`tests/instance-release-workflow.test.ts`：关闭行为使用明确合成配置，仓库配置可在两种受审状态下接受完整校验；真实CLI通过测试进程内preload替换准确配置读取，仓库文件不改、生产CLI不加配置入口。原角色分离/完整性检查保留，本机239项中238通过/1平台相关跳过，lint/类型通过；准确Linux/隔离PG CI尚待同一提交真实结果，不先称通过。下一只核对这次CI并编制原集中材料，不重复生产盘点、扩工具或提前执行。
 

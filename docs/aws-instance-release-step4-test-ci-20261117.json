@@ -1,0 +1,54 @@
+{
+  "schema": "techlong/d2-6-step4-test-ci/v1",
+  "status": "FOCUSED_TEST_FIX_AND_EXISTING_CI_VERIFIED",
+  "sourceSha": "6f84f14f7ee38dd8b9bf650f5b39a43bebcba9d0",
+  "changedExecutableFiles": ["tests/instance-release-workflow.test.ts"],
+  "testLfSha256": "cbc32a6c15ddcfecae873fb9d61de31a9bcd6101d3a3bb7d84b5ccc14e9dc9c4",
+  "change": "Replace permanently-disabled real-config assertions with explicit synthetic disabled fixtures and full checked-in config validation; test-only preload intercepts exactly one runtime-config read in the unchanged CLI without changing repository activation data",
+  "local": {
+    "focusedTests": 28,
+    "focusedPassed": 28,
+    "existingRegressionTests": 239,
+    "passed": 238,
+    "failed": 0,
+    "skipped": 1,
+    "lint": "passed",
+    "typecheck": "passed",
+    "runtimeUnchanged": true
+  },
+  "ci": {
+    "repository": "veinyyxy/TechlongSoftware",
+    "workflow": ".github/workflows/instance-release-checks.yml",
+    "workflowLfSha256": "278aa8a8cb013ac19945c9aa0cea9248cf75530a1f92c331addd441679a64cd5",
+    "runId": 44173152522,
+    "url": "https://github.com/veinyyxy/TechlongSoftware/actions/runs/44173152522",
+    "event": "push",
+    "attempt": 1,
+    "headSha": "6f84f14f7ee38dd8b9bf650f5b39a43bebcba9d0",
+    "createdAt": "2026-11-17T20:48:22Z",
+    "completedAt": "2026-11-17T20:49:15Z",
+    "conclusion": "success",
+    "jobs": [
+      { "id": 134357341475, "name": "offline", "conclusion": "success", "regression": "success", "lint": "success", "typecheck": "success" },
+      { "id": 134357341881, "name": "postgres", "conclusion": "success", "database": "isolated CI PostgreSQL16", "roleAndTransactionRegression": "success" }
+    ],
+    "evidenceLevel": "Exact run and job/step metadata verified; no log download or invented per-job test counts"
+  },
+  "verificationAccess": {
+    "connectorCombinedStatusCalls": 2,
+    "connectorStatuses": "empty; not used as proof of Actions success",
+    "directGithubCiGets": 2,
+    "explicitGitCredentialReads": 1,
+    "workflowDispatches": 0,
+    "awsCalls": 0,
+    "productionConfigReads": 0,
+    "secretValuesOrPrivateKeysRead": 0,
+    "productionDatabaseConnections": 0,
+    "environmentRestores": 0,
+    "runtimeEnabled": false
+  },
+  "reusedFacts": "docs/aws-instance-release-step4-read-observed-20261117.json",
+  "factsValidUntilUnchanged": "2026-11-18T00:53:21.305Z",
+  "executionApproved": false,
+  "normalUpdatesAccepted": 0
+}

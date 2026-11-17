@@ -1,6 +1,6 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 A PUBLISHED / A-B REGISTERED / STEP4 READS COMPLETE / LOCAL TEST ACTIVATION GATE — NO RESTORE`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 A PUBLISHED / A-B REGISTERED / STEP4 FACTS AND TEST-CI COMPLETE / CONCENTRATED EXECUTION AWAITING APPROVAL — NO RESTORE`。
 
 已交付代码、一次性身份安装及本轮两次真实app构建，以各自最新准确回执为准，不把原设计或离线验证当实际部署完成。本文其他待审范围不是新增生产读取、SQL/Secret/IAM修改、ECR发布、部署调度或AWS操作授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
 
@@ -15,6 +15,8 @@
 <a id="d2-6-readiness"></a>
 
 ## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
+
+**最新第19节覆盖下方历史继续点：** [唯一旧测试和准确CI](aws-instance-release-step4-test-ci-20261117.json)已通过，未新增生产读取/恢复或启用runtime。已复用原事实定稿[步骤4执行清单](../ops/releases/d2-6-step4-execution.review.json)/[完整风险](aws-instance-release-step4-execution-review.md)，SHA `4891563c4c103ba1ea1beef5ce8bc32b2923305179e793c806354ea8589198a6`，下一只待该集中范围另批；不重复盘点、编码或回到已完成步骤。事实仍11月17日18:53:21温尼伯到期，90分钟整轮最晚17:23:21启动；运行入口仍关、真实正常更新0/2。
 
 **最新步骤4补核已完成，覆盖下方历史待读表述：** [第18节](#d2-6-step4-read-observed)/[真实回执](aws-instance-release-step4-read-observed-20261117.json)记录原集中读取及两项另批续段，共STS1/元数据62/GitHub5/配置1/Neon只读TLS1/SQL14，无云SQL写或恢复。现只在同一[集中接续材料](../ops/releases/d2-6-step4-execution.prepared.json)中收口准确既有ManagedPolicy修正、最小恢复/媒体/初始绑定/runtime，不重做读取、发布A或登记A/B。唯一新增本地门槛为既有测试把实际runtime关闭写死；未改代码，下一仅待最小测试fixture适配及既有CI许可。执行SHA仍null、runtime仍关、真实更新0/2；事实11月17日18:53:21温尼伯到期不延。
 
@@ -610,6 +612,18 @@ JSON已集中列出一次必要补核提案：STS1＋AWS元数据最多51（各�
 下一唯一动作只提议：获同意后在这一既有测试文件隔离明确关闭的合成fixture，真实仓库配置按disabled/enabled两种受审状态做结构核对；保持默认关闭、完整配置/角色分离检查及离线CLI零AWS/凭据调用，验证启用形状合成用例和原无AWS回归/准确CI。不得为测试新增CLI配置入口、生产fallback、放宽验收、修改workflow/IAM或读取生产。
 
 通过后复用本轮已封存事实直接编成一份实际执行SHA，实际恢复/媒体/窄IAM/绑定/runtime仍集中另审；不再整批核对或追加工具。若届时事实真的过期，准确披露而不改日期，但**本轮不预先申请/执行刷新**。初始A对齐不计两次正常更新；当前仍0/2。
+
+<a id="d2-6-step4-execution-review"></a>
+
+### 19. 旧测试/准确CI完成，步骤4集中执行清单已定稿
+
+用户本轮只批准旧测试与原CI及后继材料编制，未批准任何恢复/写入。仅修改`tests/instance-release-workflow.test.ts`，关闭行为使用明确合成配置，实际CLI由测试进程内preload仅拦截配置读取；未改生产CLI、工作流、运行配置或默认关闭逻辑。源码`6f84f14f7ee38dd8b9bf650f5b39a43bebcba9d0`的[CI44173152522](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44173152522)为main/push/attempt1/success，offline回归/lint/类型和隔离PG16角色事务两个job均success；本机238通过/1平台相关跳过。未下载CI日志或编造云端逐项数量，详见[真实回执](aws-instance-release-step4-test-ci-20261117.json)。CI核对用既有Git认证一次、准确run/steps的API GET2，另两次connector status为空未作为Actions成功证据；无AWS、生产配置/数据库/Secret读取。
+
+[集中执行JSON](../ops/releases/d2-6-step4-execution.review.json)规范SHA：**`4891563c4c103ba1ea1beef5ce8bc32b2923305179e793c806354ea8589198a6`**；[完整顺序/预算/风险](aws-instance-release-step4-execution-review.md)。它绑定原只读回执、八份派生私有输入的原SHA、唯一修复源码/准确CI、未改生产代码/后端TLS与readiness/source合同指纹、原范围与固定的动态派生规则，不新建生产执行器。`readyForExecutionApproval=true`只表示材料可审，不是用户已批准；`executionApproved=false/executionPerformed=false`。
+
+拟有界复用：先在已运行原Aurora完成准确九图/兼容和独立回读，再做原tenant停用态A对齐、Cell恢复、原IAM栈单ManagedPolicy窄修正、tenant/API恢复、独立技术证明、唯一初始A绑定/回读，最后才runtime数据启用。最多CFN4Create/4Execute、媒体PUT9/模板PUT1/CAS9/绑定INSERT1/DNS UPSERT1；原有ECS固定Secret托管注入/正常CFN回滚与旧版本管理明确披露。RDS写0、无平台/prod恢复、新角色/Secret/schema、A/B再发布/登记、工作流dispatch、业务测试或自动清理，后续两次正常更新仍各待本人GitHub门禁。
+
+准备事实从真实19:53:21.305Z起5小时不变，截止**11月17日18:53:21温尼伯**，总执行≤90分钟，最晚**17:23:21**启动；B原artifact仍11月18日10:45:19到期、扫描独立时限不变。当前Git main只允许准确CI源码之后的这批文档/审批JSON后继，不允许其他代码变化混入；实际runtime在最后受审阶段前仍为原disabled摘要。生成/提交本清单不启动任何时钟或执行槽、不延旧日期。下一只请求这一个SHA及完整风险的实际执行批准，不追加生产补核或重复已有回归；本轮实际恢复/SQL写/runtime启用均0，D2正常更新0/2。
 
 ## 阶段1交付状态：合同、纯计划器与离线回归已完成
 

@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：旧测试最小适配已获准；准确CI通过后直接生成集中执行SHA（2026-11-17）
+## 当前唯一继续点：旧测试/准确CI已完成，原步骤4集中执行SHA待批准（2026-11-17）
+
+单一旧测试修复源码`6f84f14`的[CI44173152522](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44173152522)两job及lint/类型已真实成功，[结果](aws-instance-release-step4-test-ci-20261117.json)；无新增AWS/生产配置/数据库读取，不恢复或启用runtime。已复用原事实完成[集中清单](../ops/releases/d2-6-step4-execution.review.json)/[完整风险](aws-instance-release-step4-execution-review.md)，SHA **`4891563c4c103ba1ea1beef5ce8bc32b2923305179e793c806354ea8589198a6`**。下一只待该准确范围另批，不再修测试、盘点或补工具。
+
+拟一次连续完成必要九图/兼容、停用A/Cell/tenant与原ManagedPolicy窄修正、API、独立证明、初始A绑定及最后runtime；CFN4Create/4Execute上限、RDS写0，平台/prod/B发布/正常release dispatch排除。事实仍今天18:53:21温尼伯截止，90分钟整轮最晚17:23:21启动，不延期；本轮实际写入/恢复/runtime启用0、正常更新仍0/2。Aurora本轮只读时已available，可能持续计费，未由本轮启动或获准停止。
+
+### 已完成的旧测试批准（保留，不重新执行）
 
 用户已批准只改旧测试及验证现有CI，禁止新增生产读取、恢复或启用runtime。单一测试文件已用合成关闭配置隔离真实CLI，生产入口/工作流/权限不改；本机238通过/1平台相关跳过、lint/类型通过。下一仅核对同一提交现有Linux/隔离PG CI，通过后复用已存事实定稿一份原步骤4执行SHA，不再盘点或扩支线；下方“待同意修测试”现仅为沿革，原期限不变。
 
