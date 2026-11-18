@@ -11,6 +11,12 @@ import {
 } from "./environment";
 import { prepareDeploymentJobInsert } from "./jobs";
 import {
+  buildFirstOnboardingJob,
+  firstOnboardingInsertBindings,
+  INSERT_FIRST_ONBOARDING,
+  isFirstOnboardingScope,
+} from "./first-onboarding";
+import {
   isDeploymentProfileKey,
   type DeploymentProfileKey,
 } from "./profiles";
@@ -258,7 +264,7 @@ export async function ensurePlannedAppInstanceDeployment(input: {
   deploymentProfileKey: DeploymentProfileKey;
   configurationSnapshot: unknown;
   now?: number;
-}): Promise<AppInstanceDeploymentView> {
+}): Promise<AppInstanceDeploymentView | null> {
   const environment = await getConfiguredDeploymentEnvironment();
   const driver = new AwsEcsCellPlanOnlyDriver({
     region: environment.region,
@@ -276,10 +282,26 @@ export async function ensurePlannedAppInstanceDeployment(input: {
   });
   const desiredPlanJson = canonicalJson(desiredPlan);
   const planHash = await sha256(desiredPlanJson);
-  const configurationHash = await sha256(
-    canonicalJson(input.configurationSnapshot),
-  );
+  const configuration = canonicalJson(input.configurationSnapshot);
+  const configurationHash = await sha256(configuration);
   const artifactRef = deploymentBinding("AWS_SANDBOX_IMAGE_URI") ?? null;
+  const firstWorkspaceId = deploymentBinding("AWS_SANDBOX_FIRST_ONBOARDING_WORKSPACE_ID");
+  const firstReleaseId = deploymentBinding("AWS_SANDBOX_FIRST_ONBOARDING_RELEASE_ID");
+  if (firstWorkspaceId === input.workspaceId && isFirstOnboardingScope(environment, input.productId, input.deploymentProfileKey)) {
+    if (!firstReleaseId) return null;
+    const held = await buildFirstOnboardingJob({
+      appInstanceId: input.appInstanceId, workspaceId: input.workspaceId, subscriptionId: input.subscriptionId,
+      environmentId: environment.id, planId: input.planId, templateVersionId: input.templateVersionId,
+      tenantKey: input.tenantKey, planHash, configurationHash, releaseId: firstReleaseId,
+      artifactRef, accountId: environment.expectedAccountId,
+    });
+    if (!held) return null; // Never fall back to an ordinary apply when a first-open configuration is invalid.
+    const result = await getDatabase().prepare(INSERT_FIRST_ONBOARDING)
+      .bind(...firstOnboardingInsertBindings(held, { configuration, desiredPlan: desiredPlanJson, purchaseOrderId: input.purchaseOrderId }))
+      .first<{ id: string }>();
+    // An already recorded first request, stale subscription or old plan is left untouched.
+    return result ? readDeploymentByIdempotencyKey(held.idempotencyKey) : null;
+  }
   const idempotencyKey = await sha256(
     canonicalJson({
       appInstanceId: input.appInstanceId,
@@ -342,6 +364,12 @@ export async function ensurePlannedAppInstanceDeployment(input: {
     job.statement,
   ]);
 
+  const deployment = await readDeploymentByIdempotencyKey(idempotencyKey);
+  if (!deployment) throw new Error("无法保存应用实例部署计划。");
+  return deployment;
+}
+
+async function readDeploymentByIdempotencyKey(idempotencyKey: string): Promise<AppInstanceDeploymentView | null> {
   const row = await getDatabase()
     .prepare(
       `SELECT id, app_instance_id, subscription_id, purchase_order_id,
@@ -357,6 +385,5 @@ export async function ensurePlannedAppInstanceDeployment(input: {
     )
     .bind(idempotencyKey)
     .first<DeploymentRow>();
-  if (!row) throw new Error("无法保存应用实例部署计划。");
-  return toView(row);
+  return row ? toView(row) : null;
 }

@@ -1,4 +1,5 @@
 import type { DeploymentJobType } from "./state-machine.ts";
+import { ordinaryDeploymentJobsOnly } from "./first-onboarding.ts";
 
 export interface DeploymentClaimStatement {
   sql: string;
@@ -50,6 +51,7 @@ export function buildDeploymentClaimStatement(input: {
           FROM deployment_jobs AS allowed_sibling
           WHERE allowed_sibling.deployment_id = deployment_jobs.deployment_id
             AND allowed_sibling.id <> deployment_jobs.id
+            AND ${ordinaryDeploymentJobsOnly("allowed_sibling.dedupe_key")}
             AND allowed_sibling.job_type = ?
             AND allowed_sibling.attempts < allowed_sibling.max_attempts
             AND (
@@ -108,6 +110,7 @@ export function buildDeploymentClaimStatement(input: {
           END
       FROM db_clock
       WHERE status = 'running' AND lease_expires_at <= db_clock.now_ms
+        AND ${ordinaryDeploymentJobsOnly("deployment_jobs.dedupe_key")}
         ${releasedTypeClause}
         ${releasedAllowedSiblingClause}
       RETURNING id, deployment_id, job_type, status
@@ -123,6 +126,7 @@ export function buildDeploymentClaimStatement(input: {
           updated_at = db_clock.now_ms, completed_at = db_clock.now_ms
       FROM db_clock
       WHERE status = 'running' AND lease_expires_at <= db_clock.now_ms
+        AND ${ordinaryDeploymentJobsOnly("deployment_jobs.dedupe_key")}
         AND attempts >= max_attempts
         ${exhaustedTypeClause}
       RETURNING id, deployment_id, job_type, status
@@ -165,6 +169,7 @@ export function buildDeploymentClaimStatement(input: {
           OR candidate_job.lease_expires_at <= db_clock.now_ms
         )
         AND candidate_job.attempts < candidate_job.max_attempts
+        AND ${ordinaryDeploymentJobsOnly("candidate_job.dedupe_key")}
         ${candidateTypeClause}
         AND NOT EXISTS (
           SELECT 1

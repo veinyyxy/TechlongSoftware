@@ -13,6 +13,7 @@ import type {
 } from "../state-machine.ts";
 import { assertSafeDeploymentOutput, normalizeDeploymentError } from "../safety.ts";
 import { createDeploymentLeaseToken } from "../lease.ts";
+import { ordinaryDeploymentJobsOnly } from "../first-onboarding.ts";
 import type {
   ClaimedDeploymentJob,
   DeploymentCleanupSchedule,
@@ -647,6 +648,7 @@ export class NeonDeploymentExecutionRepository
         FROM db_clock
         WHERE blocked.status = 'running'
           AND blocked.lease_expires_at <= db_clock.now_ms
+          AND ${ordinaryDeploymentJobsOnly("blocked.dedupe_key")}
           AND blocked.job_type <> ALL($1::text[])
           AND ${singleDeploymentClaimPredicate("blocked")}
           AND EXISTS (
@@ -654,6 +656,7 @@ export class NeonDeploymentExecutionRepository
             FROM deployment_jobs AS allowed_sibling
             WHERE allowed_sibling.deployment_id = blocked.deployment_id
               AND allowed_sibling.id <> blocked.id
+              AND ${ordinaryDeploymentJobsOnly("allowed_sibling.dedupe_key")}
               AND allowed_sibling.job_type = ANY($1::text[])
               AND allowed_sibling.attempts < allowed_sibling.max_attempts
               AND (
@@ -678,6 +681,7 @@ export class NeonDeploymentExecutionRepository
         FROM db_clock
         WHERE exhausted_job.status = 'running'
           AND exhausted_job.lease_expires_at <= db_clock.now_ms
+          AND ${ordinaryDeploymentJobsOnly("exhausted_job.dedupe_key")}
           AND exhausted_job.attempts >= exhausted_job.max_attempts
           AND exhausted_job.job_type = ANY($1::text[])
           AND ${singleDeploymentClaimPredicate("exhausted_job")}
@@ -721,6 +725,7 @@ export class NeonDeploymentExecutionRepository
             )
           )
           AND candidate_job.attempts < candidate_job.max_attempts
+          AND ${ordinaryDeploymentJobsOnly("candidate_job.dedupe_key")}
           AND candidate_job.job_type = ANY($1::text[])
           AND ${singleDeploymentClaimPredicate("candidate_job")}
           AND NOT EXISTS (
