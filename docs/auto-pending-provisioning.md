@@ -180,7 +180,46 @@
 - [独立验收](../lib/deployments/execution/first-onboarding-reader.ts)复用现有事实采样，约束独立身份与元数据 API；比对栈、监听器、DNS、运行镜像、媒体配置、数据库物理归属/OID 及 TLS `/health`、`/ready`，数据库探测为只读。`HeadBucket` 和任务配置只提供作用域/存在性事实，不替代准确应用角色与 CDN 访问权限的安装证明。
 - [Neon 完成入口](../lib/deployments/execution/first-onboarding-completion-entry.ts)只生成候选 DDL，运行者和独立回读者各用不同窄函数，函数 owner 为专用 `NOLOGIN`；一次原子提交实例激活、部署 ready、任务成功和 D2 `revision 0`。提交已确认而回读不明时停止，不补写、不重试。隔离 PostgreSQL 回归覆盖真实受限角色、越界/过期拒绝和完成回读，不是 Neon 权限已安装的证明。
 
-**下一步仅准备实际就绪差异。** 生产端口、准确 SQL/Secret/IAM/存储/DNS 权限仍需审定，不能把注入测试或候选 DDL 当成已安装。只复用已有事实，缺项必要时另批；原 Express/Cell 恢复、权限安装、测试购买与单条首开执行都须分别审核。本轮未连接 AWS、Aurora、Neon 或 Stripe，未启动资源、登记任务或启用 runtime。
+**实际就绪差异见下方两份清单。** 生产端口、准确 SQL/Secret/IAM/存储/DNS 权限仍需审定，不能把注入测试或候选 DDL 当成已安装。缺项补核、权限安装、原 Express/Cell 恢复、测试购买与单条首开执行分别审核。
+
+<a id="first-onboarding-step4-installation"></a>
+
+#### 第 4 步清单一：最小权限、存储和 DNS 安装（离线待审）
+
+**2026-11-18（温尼伯）｜`NO_GO`，不是可执行清单，不签发 SHA。** 依据 [06:40 CST 已存去敏摘要](#first-onboarding-step4-readonly-result)、源码 `4985c68` 与[离线及隔离 PostgreSQL CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44309450151)。不重新采样或刷新证据期限：旧应用角色只覆盖旧数据库登录，旧桶/分发仅作隔离部署样板，D2 核验角色有 Secret 正文读取及证据写入，不复用。只针对同一 sandbox 首开任务和 g1，不改普通 worker、旧租户、D2 角色、版本目录或队列开关。
+
+| 项目 | 拟安装的最小差异 | 锁定对象与独立验收 |
+| --- | --- | --- |
+| **首开执行身份及控制面** | 一次性执行器只调用准确任务的 `SELECT_FIRST_ONBOARDING` / `CLAIM_FIRST_ONBOARDING`，只操作该任务的租约、外部围栏、步骤和技术证据；一次配置写入只给该实例。AWS 建栈提交侧只读准确新栈及最多一次 `CreateStack`，`iam:PassRole` 限准确 CFN 服务角色及 `cloudformation.amazonaws.com`。CFN 角色只覆盖初始 7 项承载资源所需动作及另批的托管回滚；ECS 两个 PassRole 严格限定给 `ecs-tasks.amazonaws.com`。 | 源码、运行入口、调用者／trust／边界、准确栈名、任务角色、日志组、外部围栏键及实际监听器 ARN 固定后才出策略。不授予直接 `UpdateStack`/`DeleteStack`、任意日志内容读取或 IAM 写，不以通配监听器 ARN 等待恢复。若共享角色不能只收敛到首开范围，停止该项，不把宽权限挂到现有 worker。 |
+| **Express 生命周期与应用角色** | 复用可证实的 `TechlongSandboxTenantLifecycleTaskRole` 管理连接；只访问 `cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM/postgres`，并在受审入口限定 V3 程序、固定空基线恢复、迁移及激活，管理凭据不进应用。若缺固定基线权限，仅候选两条准确 `s3:GetObjectVersion`（archive/manifest，分别固定键、VersionId 和 SHA；如需 KMS，仅准确加密对象所需范围）。每租户应用 TaskRole `TechlongSandboxFirstOpen-<租户摘要前16位>` 只给 `rds-db:connect` 到该物理集群的准确新租户 SQL 登录及本桶商品动作。 | 由实际实例/工作区/产品/环境/Cell 派生新库与角色，审管理和应用的有效权限，锁定基线工具及 PG17.9 兼容证据。`CREATEDB`/`CREATEROLE` 或等效管理能力不下发给应用；V3 临时 NOLOGIN guard、库/角色创建和应用 `LOGIN` 是将来首开动作，不是本次安装副作用。不改别的库的 PUBLIC ACL 来换取隔离，不借旧登录或默认 Full。 |
+| **g1 Secret 供给与 ECS 执行角色** | 供给权限仅覆盖该代际派生的完整 Secret 名、归属标签和批准的加密路径；将来只用确定性版本 token 调用一次初始 `CreateSecret`，不用 `PutSecretValue`、轮换或删除。ECS 执行侧仅现有 ECR repo 拉取需用的能力、本栈日志流，以及控制公钥和新 g1 各自所需的固定版本注入。 | 固定控制公钥的 ARN＋VersionId。g1 只接受本次创建 ACK 的准确 ARN/初始 VersionId，并由独立元数据确认唯一版本。如在安装时 ARN 尚未生成，实际政策须把批准的完整名称推导边界、AWS 随机后缀的限制及固定 VersionId 的有效性写明；不能用全 Secret 通配或 `AWSCURRENT` 代替。若不能证实 ECS 固定版本请求受此约束，或确需取得 ACK 后再绑定权限，不放行首开、不领取后停等。只有已审客户托管 KMS 路径才列准确 key/服务/上下文及所需操作，不默认安装新 key 或宽解密。 |
+| **独立只读核验** | 单独的 `TechlongSandboxFirstOpenInspector`；上限沿用[首开读取适配](../lib/deployments/execution/first-onboarding-reader.ts)的 24 次 AWS 元数据，限定原 Cell/平台和新租户的 CFN/ECS/ELB、Express 集群、ECR 镜像、指定 zone/name、桶拥有者和两个 Secret 的版本元数据。允许另审的准确 TLS `/health`、`/ready` 和仅目标库的 SQL 只读身份/版本/schema 元数据，不读业务行。 | 核对独立会话、实际 allowed actions、目标资源和必须使用 `Resource: *` 的只读例外，写清受限查询参数及无分页规则；不授予 `GetSecretValue`、S3 对象读写、CFN/ECS 写或 Neon 完成权。只读 DB 登录路径须另证，不用执行者、应用或 D2 核验凭据。 |
+| **Neon 完成／回读** | 先审核供给一个 `NOLOGIN` definer 和互相独立、无角色成员资格的写／读 LOGIN；生成器只校验这些角色，不负责创建或供给凭据。再以一份原子 DDL 安装专用 schema `techlong_first_onboarding`、`complete`/`inspect` 各 1 个；列级读/锁及精确 DML 仅给 definer，撤销 PUBLIC，LOGIN 只有对应函数调用权。密码、托管和供给须另批，不进仓库。 | 按[生成器](../lib/deployments/execution/first-onboarding-completion-entry.ts)固定真实 job/deployment/instance、最终首开审批 SHA 和 `writeBefore`；在测试购买另批登记 held 任务、其余材料确定后，才能派生这份 DDL，且在任何领取前另批安装。安装后独立核对 owner、权限和函数正文摘要；真实运行一次提交 3 条状态更新＋1 条 revision 0 绑定，不允许拿执行入口做试写。独立读回用另一登录，既有 D2 角色、数据库 owner 和普通 worker 均不代替。 |
+| **新租户私有图片存储** | 若无已证实合格的本租户设施，候选仅一个独立 CFN 存储栈、5 个资源：`MediaBucket`、`MediaBucketPolicy`、`MediaOriginAccessControl`、`MediaDistribution`、`MediaResponseHeadersPolicy`。桶名 `techlong-sandbox-tenant-images-402010193138-<租户摘要前16位>`；版本化、四项 Public Access Block、BucketOwnerEnforced、SSE-S3、保留桶，不设自动到期。OAC 签名；桶策略仅给准确分发 `GetObject` 到 `products/*` 并拒绝非 TLS；应用仅同前缀 `PutObject`，现有图片替换和失败补偿需 `DeleteObject` 时明确审入，不给 `DeleteObjectVersion`、列桶或其它桶权限。 | 沿用[五资源布局](aws-instance-release-persistence-plan.md)，不借旧桶/OAC/分发；CORS 仅准确买家来源，不改 API CORS。验收精确桶拥有者和 CFN 归属、保留/阻隔/加密、OAC/SourceArn 和对象范围、分发 `Deployed` 与真实 HTTPS 域名，以及 `s3`／地址／无本地降级。CDN 商品图片公开读取，不放业务私件；不搬图、不上传探针。 |
+| **准确 API DNS** | 仅在原 Cell 恢复且实际新 ALB 经回读后，对准确公共 sandbox zone 的 `<实例 slug>.sandbox.techlong.cloud.` 提交最多一条 `CREATE` A Alias；权限候选限定准确 hosted zone、normalized name、类型 `A`、动作 `CREATE`，目标锁定真实 ALB DNS 和其 canonical hosted zone。 | 精确记录已存在且等于真实目标时不写；同名冲突、非预期类型/归属/目标即停。不 `UPSERT`、不改通配或其它别名，不能从旧模板填目标。核对 change 状态和准确别名回读；443 优先级 100（拒绝）/101（业务）、8443 优先级 100（控制）必须实际空闲，不挪旧规则。 |
+
+**编成执行材料前要补齐的只有三组事实（新读取全部另审）：**
+
+1. 围绕唯一拟验收实例：工作区/受信首版镜像、购买后 held 任务与租约范围、派生名称是否占用、准确 public zone/域名和新桶/角色名称；若对象尚未产生，明确标为未绑定。记录固定 archive/manifest 元数据与已有兼容证据，不列桶搜对象，不读正文。只对实际采用的角色补有效 trust/边界/相关策略、准确 ECR 与 Secret/KMS 版本元数据；不重复旧应用角色、旧桶或 D2 身份检查。
+2. 围绕本次身份安装：明确每个注入端口的真实调用者、部署入口、SQL 事务/证据与准确 API 集合；Neon 只读目录、Express SQL 兼容/隔离、实际固定正文或私密登录验证若确有必要，单列连接和对象上限另审，不包含在元数据核对内。未证明的真实适配不由 CI 替代，也不通过给 owner/管理员运行权限绕过。
+3. 围绕恢复后的新物理值：只从[清单二](#first-onboarding-step4-restoration)的独立回执派生两条监听器、ALB/Alias；若需 IAM 补差异只列实际 ARN。实例标识、Secret 派生、DNS/权限或完成 DDL 迟迟无法绑定时，保持任务待审，不先开始短领取窗口。
+
+安装批准不含恢复、付款、领取、正式 `CreateStack`、首开配置写入或原子完成。将来实际安装须按准确对象及模板／SQL 摘要、上限、独立回读和失败策略审批；跨 AWS 与 Neon 非原子，失败可遗留收费资源或角色，未知结果不自动重提、补齐或清理。
+
+<a id="first-onboarding-step4-restoration"></a>
+
+#### 第 4 步清单二：只恢复原 Express 和共享 Cell（离线待审）
+
+**共享准备边界：** 仅 `402010193138 / ca-central-1`，使用已存对象标识，不把 06:40 的 `stopped`/缺输出当当前事实。新读取另审，只需原 Express 集群和 writer 定向元数据、原 Cell Stack 状态/Original/一页资源和活动变更集；只有用于判断严格四项差异时才补已知的证书、mTLS trust store、实际监听器或角色关联。不盘点其它栈、区域、数据库，不探测 API、查私密配置或连接 SQL。
+
+| 恢复对象 | 允许提请审批的写入上限 | 执行前门槛／成功回执 |
+| --- | --- | --- |
+| **原 Express** `techlong-sandbox-express-d001`，物理 `cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM`，writer `techlong-sandbox-express-d001-instance-1` | 最多一次对原集群 `StartDBCluster`；不对 writer 单独写，不新建、替换或修改参数。 | 新事实确认原集群、writer、PG17.9、IAM auth、端点归属一致且确实 `stopped` 才提交；已 `available` 且匹配则不写。随后只读核对集群与原 writer 均 `available`，身份和端点不变；这不是应用或 SQL 验收。不明确、出现过渡/失败且超预算或 ACK 不明即停，不重发。 |
+| **原 Cell** `arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1` | 原栈上 `CreateChangeSet(UPDATE)` 最多 1 次、对该准确 ARN `ExecuteChangeSet` 最多 1 次。仅 Add `CellLoadBalancer`、`BusinessHttpsListener`、`ControlMtlsListener`、`BusinessControlDenyRule` 及恢复相应输出；无直接 ELB 创建。 | 当前 Original 与归属必须证明 12 项保留且四项确实缺失，无竞争操作；逐项核对精确四 Add、无余下资源/参数/标签或角色更改。以[历史 A2 形状](../ops/deployment-baseline/cell-a2-executed-20261107.json)为参照，绝不复制 ARN、Change Set 或回滚选择。成功须独立证明同一栈 `UPDATE_COMPLETE`、12 个保留物理 ID 不变、总计 16、ALB active，443/8443 属同一 ALB，证书和 8443 `verify` mTLS/准确 trust store、443 共享拒绝规则正确，输出匹配真实 ARN。若已完整恢复，仅接受同等独立证明并跳过写；若仅缺输出或差异不是四 Add，停下另审。 |
+
+**开窗和失败策略：** 先备齐可离线的安装、首版和验收材料，再另批窄恢复；只有 Cell 恢复模板和实际权限就绪才开窗，避免 Express 或 ALB 无谓提前计费。Cell 执行前须明确批准回滚选择；候选优先采用 CFN 托管回滚，不继承历史 `DisableRollback=true`，不授权主动回滚、删除 Change Set/资源或重试。未知提交、部分恢复、并发变化或窗口不足时只保留原记录，另批独立回读；不继续另一条写入来凑齐结果。恢复有持续费用，窗口结束不自动停费。**不恢复平台、旧租户、独立 RDS `speedfeast-postgres-prod`、整环境或全队列；不并入新 IAM/DNS 变更。**
+
+本轮两份材料均只编辑本地文档；AWS、Aurora、Neon、Stripe、Secret 值、调度、任务/槽写入均为 0。下一唯一动作是按以上缺项合并一次必要的定向只读补核并先确认范围；未批准前不执行。后续只围绕真实值完成两份准确可执行材料，安装、恢复、测试购买及首开执行各自批准，旧事实期限及已用槽不变。
 
 ## 当前操作说明（实施计划不改变现有流程）
 
