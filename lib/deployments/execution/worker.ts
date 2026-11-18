@@ -11,6 +11,7 @@ import { createFirstOnboardingWorkloadStrategy, type SupervisedCleanupReadinessP
 import { reviewFirstOnboarding, SELECT_FIRST_ONBOARDING, CLAIM_FIRST_ONBOARDING, firstOnboardingClaimBindings,
   isFirstOnboardingScope, type FirstOnboardingReview, type FirstOnboardingReviewRow } from "../first-onboarding.ts";
 import { verifyFirstOnboardingRuntime, type FirstOnboardingRuntimeReader } from "./first-onboarding-inspection.ts";
+import { COMPLETE_FIRST_ONBOARDING, type FirstOnboardingCompletionApproval, type FirstOnboardingCompletionWriter } from "./first-onboarding-completion.ts";
 import type { SoftwareRelease } from "../releases/contract.ts";
 import { randomUUID } from "node:crypto";
 import { setTimeout as wait } from "node:timers/promises";
@@ -1762,6 +1763,7 @@ export interface FirstOnboardingExecutionApproval {
   hostname: string;
   dnsTarget: string;
   writeBefore: number;
+  completion?: FirstOnboardingCompletionApproval;
 }
 
 /** One held job through the existing stages. There is intentionally no CLI,
@@ -1779,6 +1781,7 @@ export async function runReviewedFirstOnboarding(input: {
     Promise<{ profile: "express_iam"; emptyDatabaseInitializationVerified: true; evidenceSha256: string } | null>;
   cleanupReadiness: SupervisedCleanupReadinessPort;
   independentReader: FirstOnboardingRuntimeReader;
+  completeFirstOnboarding?: FirstOnboardingCompletionWriter;
 }) {
   const a = structuredClone(input.approval), now = input.dependencies.now ?? Date.now;
   const checkWindow = () => {
@@ -1790,6 +1793,10 @@ export async function runReviewedFirstOnboarding(input: {
     !/^job_[a-f0-9]{24}$/.test(a.jobId) || ![a.reviewSha256, a.capabilitySha256, a.baselineDigest].every(hash => /^[a-f0-9]{64}$/.test(hash)) ||
     !/^[a-zA-Z0-9._-]{1,100}$/.test(a.databaseSchemaVersion) || !/^[a-z0-9][a-z0-9.-]{2,252}$/.test(a.dnsTarget) ||
     await sha256Hex(a) !== input.approvedSha256) throw Error("FIRST_ONBOARDING_APPROVAL_MISMATCH");
+  if (Boolean(a.completion) !== Boolean(input.completeFirstOnboarding) || (a.completion &&
+    (!/^[a-zA-Z0-9._-]{1,100}$/.test(a.completion.clientApiVersion) || !/^[a-f0-9]{64}$/.test(a.completion.samplingSha256)))) {
+    throw Error("FIRST_ONBOARDING_COMPLETION_SCOPE_MISMATCH");
+  }
   const row = await input.readJob(SELECT_FIRST_ONBOARDING, [a.jobId]);
   if (!row || row.job.id !== a.jobId || row.job.status !== "pending" || row.job.attempts !== 0 ||
     !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(row.slug) || `${row.slug}.sandbox.techlong.cloud` !== a.hostname ||
@@ -1805,6 +1812,9 @@ export async function runReviewedFirstOnboarding(input: {
     templateVersionId: row.templateVersionId, accountId: row.accountId }, release });
   if (!review || review.reviewSha256 !== a.reviewSha256 || release?.compatibility.applicationPort !== 3000 ||
     !release.compatibility.schemaVersions.includes(a.databaseSchemaVersion) || !scope.artifactRef) throw Error("FIRST_ONBOARDING_REVIEW_CHANGED");
+  if (a.completion && !release.compatibility.clientApiVersions.includes(a.completion.clientApiVersion)) {
+    throw Error("FIRST_ONBOARDING_D2_BINDING_UNPROVED");
+  }
   const capability = await input.verifyEmptyExpressCapability({ review, baselineDigest: a.baselineDigest, databaseSchemaVersion: a.databaseSchemaVersion });
   if (capability?.profile !== "express_iam" || capability.emptyDatabaseInitializationVerified !== true ||
     capability.evidenceSha256 !== a.capabilitySha256) throw Error("FIRST_ONBOARDING_EMPTY_EXPRESS_UNPROVED");
@@ -1844,17 +1854,37 @@ export async function runReviewedFirstOnboarding(input: {
   if (!applied) throw Error("FIRST_ONBOARDING_CREATE_NOT_PROVED");
   await handleReconcile({ ...base, context: await loadContext(), aws, stack: applied.stack, firstOnboarding: { stackId: applied.stackId } });
   context = await loadContext();
-  const receipt = await checkpoint({ ...base, context, stepKey: "first_onboarding_independent_inspection", stepInput: {
+  const stepInput = {
     approvalSha256: input.approvedSha256, reviewSha256: review.reviewSha256, stackId: applied.stackId,
-  }, execute: async signal => {
-    const runtime = await verifyFirstOnboardingRuntime({ context, ...applied, dnsTarget: a.dnsTarget, baselineDigest: a.baselineDigest,
-      databaseSchemaVersion: a.databaseSchemaVersion, platformDigest: review.platformDigest, reader: input.independentReader, now, signal });
+  };
+  let initialBindingText: string | undefined;
+  const receipt = await checkpoint({ ...base, context, stepKey: "first_onboarding_independent_inspection", stepInput, execute: async signal => {
+    const checked = await verifyFirstOnboardingRuntime({ context, ...applied, dnsTarget: a.dnsTarget, baselineDigest: a.baselineDigest,
+      databaseSchemaVersion: a.databaseSchemaVersion, platformDigest: review.platformDigest, reader: input.independentReader, now, signal,
+      completion: a.completion ? { approved: a.completion, review, release } : undefined });
+    initialBindingText = checked.initialBindingText;
     return { outcome: "TECHNICALLY_VERIFIED" as const, jobId: a.jobId, deploymentId: scope.deploymentId, instanceId: scope.appInstanceId,
       releaseId: scope.releaseId, approvalSha256: input.approvedSha256, reviewSha256: review.reviewSha256,
-      hostname: applied.stack.parameters.TenantHostname, runtime, customerActivated: false as const };
+      hostname: applied.stack.parameters.TenantHostname, runtime: checked.runtime, customerActivated: false as const,
+      ...(initialBindingText ? { initialBindingSha256: await sha256Hex(initialBindingText) } : {}) };
   } });
+  if (!a.completion || !input.completeFirstOnboarding) { checkWindow(); return receipt; }
+  const fence = context.tenantExternalOperation, resource = context.tenantResources;
+  if (!initialBindingText || !receipt.initialBindingSha256 || !fence || !resource) throw Error("FIRST_ONBOARDING_FRESH_COMPLETION_PROOF_REQUIRED");
+  const request = canonicalJson({ jobId: a.jobId, jobPayload: review.payload, desiredPlan: row.desiredPlan, configuration: row.configuration,
+    catalog: release, writeBefore: a.writeBefore, baselineDigest: a.baselineDigest, receipt, inspectionInputHash: await sha256Hex(stepInput),
+    fence: { ownershipMarker: resource.ownershipMarker, marker: fence.marker, operationHash: fence.operationHash } });
   checkWindow();
-  return receipt;
+  let committed;
+  try {
+    committed = await input.completeFirstOnboarding(COMPLETE_FIRST_ONBOARDING, [request, initialBindingText, leaseToken]);
+  } catch {
+    // Unknown submission outcomes must be reconciled by an independent read.
+    throw Error("FIRST_ONBOARDING_COMPLETION_UNCONFIRMED");
+  }
+  if (!committed) throw Error("FIRST_ONBOARDING_COMPLETION_REJECTED");
+  if (committed.instanceId !== scope.appInstanceId || committed.committed !== 1) throw Error("FIRST_ONBOARDING_COMPLETION_UNCONFIRMED");
+  return { ...receipt, outcome: "ACTIVATED" as const, customerActivated: true as const, revision: 0 as const };
 }
 
 async function handleDelete(input: {

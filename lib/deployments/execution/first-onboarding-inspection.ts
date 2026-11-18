@@ -2,6 +2,8 @@ import type { DeploymentExecutionContext } from "./contracts.ts";
 import type { WorkerTenantStack } from "./single-tenant-workload-strategy.ts";
 import { canonicalJson } from "./hash.ts";
 import { assertFirstOnboardingTechnicalRuntime, assertReleaseArtifact, releaseRuntimeDigests, type ReleaseRuntimeFacts } from "../releases/inspection.ts";
+import { buildFirstOnboardingBinding } from "./first-onboarding-completion.ts";
+import type { ReleaseSamplingBinding } from "../releases/sampling.ts";
 
 /** In an approved live composition this must be a separate read-only reader,
  * not the executor or its cached CreateStack response. No live reader is wired. */
@@ -10,12 +12,15 @@ export interface FirstOnboardingRuntimeReader {
     facts: ReleaseRuntimeFacts;
     dns: { hostname: string; target: string };
     database: { name: string; roleName: string; ownershipMarker: string; baselineDigest: string };
+    /** Only supplied by a reviewed independent D2-compatible reader. */
+    sampling?: ReleaseSamplingBinding;
   }>;
 }
 
 export async function verifyFirstOnboardingRuntime(input: {
   context: DeploymentExecutionContext; stack: WorkerTenantStack; stackId: string; dnsTarget: string; databaseSchemaVersion: string;
   baselineDigest: string; platformDigest: string; reader: FirstOnboardingRuntimeReader; now: () => number; signal: AbortSignal;
+  completion?: Pick<Parameters<typeof buildFirstOnboardingBinding>[0], "approved" | "review" | "release">;
 }) {
   const { context, stack, stackId, reader, signal, now } = input;
   const hostname = stack.parameters.TenantHostname;
@@ -26,7 +31,7 @@ export async function verifyFirstOnboardingRuntime(input: {
     throw Error("FIRST_ONBOARDING_INSPECTION_SCOPE_MISMATCH");
   }
   const startedAt = now();
-  const { facts, dns, database } = await reader.capture({ stackId, hostname, databaseName: resource.identity.databaseName, signal });
+  const { facts, dns, database, sampling } = await reader.capture({ stackId, hostname, databaseName: resource.identity.databaseName, signal });
   signal.throwIfAborted();
   const normalize = (parameters: Record<string, string>) => ({ ...parameters,
     SubnetIds: parameters.SubnetIds?.split(",").map(x => x.trim()).sort().join(",") });
@@ -42,8 +47,11 @@ export async function verifyFirstOnboardingRuntime(input: {
   const { configurationSha256 } = await releaseRuntimeDigests(facts);
   // The first-open technical check can report ephemeral storage truthfully.
   // The ordinary D2 verifier still requires persistent uploads by default.
-  return assertFirstOnboardingTechnicalRuntime({ selection: { instanceId: context.appInstance.id }, changeSet: { StackName: stackId },
+  const runtime = await assertFirstOnboardingTechnicalRuntime({ selection: { instanceId: context.appInstance.id }, changeSet: { StackName: stackId },
     templateSha256: stack.templateSha256, configurationSha256, desiredCount: 1, image,
     compatibility: { databaseProfile: "express_iam", databaseSchemaVersion: input.databaseSchemaVersion, applicationPort: 3000 },
   }, facts, startedAt, now());
+  return { runtime, initialBindingText: input.completion
+    ? await buildFirstOnboardingBinding({ ...input.completion, runtime, facts, sampling, hostname })
+    : undefined };
 }

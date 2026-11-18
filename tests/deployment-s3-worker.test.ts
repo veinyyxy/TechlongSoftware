@@ -45,6 +45,8 @@ import { finalizeSupervisedTenantStack } from "../lib/deployments/execution/sing
 import { renderSingleTenantAcceptanceWorkload } from "../lib/deployments/cloudformation/single-tenant-acceptance-workload.ts";
 import { buildFirstOnboardingJob, CLAIM_FIRST_ONBOARDING, SELECT_FIRST_ONBOARDING, reviewFirstOnboarding, type FirstOnboardingReviewRow } from "../lib/deployments/first-onboarding.ts";
 import { cycleFixture } from "./instance-release-cycle-fixture.ts";
+import { COMPLETE_FIRST_ONBOARDING } from "../lib/deployments/execution/first-onboarding-completion.ts";
+import type { ReleaseSamplingBinding } from "../lib/deployments/releases/sampling.ts";
 
 const now = Date.UTC(2026, 7, 9);
 const workerRoleArn =
@@ -208,7 +210,7 @@ async function firstOpenFixture() {
     job: { id: held.jobId, deploymentId: held.deploymentId, status: "pending", jobType: "apply", payload: held.payload, dedupeKey: held.dedupeKey,
       attempts: 0, maxAttempts: 1, availableAt: held.availableAt, leaseOwner: null, leaseToken: null, leaseExpiresAt: null, completedAt: null } };
   const review = (await reviewFirstOnboarding({ ...row, scope, release }))!;
-  const approval = { jobId: held.jobId, reviewSha256: review.reviewSha256, capabilitySha256: "c".repeat(64),
+  const approval: Parameters<typeof runReviewedFirstOnboarding>[0]["approval"] = { jobId: held.jobId, reviewSha256: review.reviewSha256, capabilitySha256: "c".repeat(64),
     baselineDigest: "b".repeat(64), databaseSchemaVersion: "schema-v1", hostname: "tenant-one.sandbox.techlong.cloud",
     dnsTarget: "shared.elb.amazonaws.com", writeBefore: now + 120000 };
   let applied: SupervisedTenantStack | undefined, stackId = "", consumed = false;
@@ -289,6 +291,79 @@ test("reviewed first-open runs one held job to independent technical proof, not 
   assert.equal(context.deployment.status, "verifying");
   await assert.rejects(runReviewedFirstOnboarding(options), /FIRST_ONBOARDING_CLAIM_NOT_PROVED/);
   assert.equal(calls.filter(call => call === "create").length, 1);
+});
+
+async function authorizeFirstOpenCompletion(options: Parameters<typeof runReviewedFirstOnboarding>[0],
+  mismatch?: "bucket" | "sampling" | "ephemeral") {
+  const root = "arn:aws:cloudformation:ca-central-1:402010193138:stack/";
+  const suffix = "/11111111-2222-3333-4444-555555555555";
+  const ref = { arn: tenantRuntimeSecretRef, versionId: "00000000-0000-4000-8000-000000000001" };
+  const sampling: ReleaseSamplingBinding = {
+    cellStackId: root + "sandbox-cell" + suffix, platformStackId: root + "sandbox-platform" + suffix, hostedZoneId: "ZTEST",
+    apiHostname: options.approval.hostname, cellOutputParameters: {
+      ClusterName: "ClusterName", HttpsListenerArn: "HttpsListenerArn", ControlListenerArn: "ControlListenerArn",
+    }, database: { kind: "cluster", identifier: "sandbox-express", profile: "express_iam", schemaVersion: "schema-v1" },
+    secrets: [ref], persistence: { bucket: "sandbox-test-images", providerVariable: "IMAGE_STORAGE_PROVIDER", bucketVariable: "IMAGE_S3_BUCKET",
+      verificationSha256: "5".repeat(64) },
+  };
+  options.approval.completion = { clientApiVersion: "v1", samplingSha256: await sha256Hex(sampling) };
+  options.approvedSha256 = await sha256Hex(options.approval);
+  const reader = options.independentReader;
+  options.independentReader = { capture: async req => {
+    const result = await reader.capture(req), { facts } = result;
+    facts.persistentUploadsReady = mismatch !== "ephemeral";
+    const api = facts.taskDefinition.containerDefinitions![0];
+    api.environment = [{ name: "IMAGE_STORAGE_PROVIDER", value: "s3" },
+      { name: "IMAGE_S3_BUCKET", value: mismatch === "bucket" ? "wrong-bucket" : sampling.persistence.bucket }];
+    api.secrets = [{ name: "JWT_SECRET", valueFrom: `${ref.arn}:jwt::${ref.versionId}` }];
+    facts.relatedBindings = { database: sampling.database.identifier, schemaVersion: sampling.database.schemaVersion,
+      persistenceEvidence: sampling.persistence.verificationSha256, cell: "1".repeat(64), platform: "2".repeat(64), dns: "3".repeat(64),
+      [ref.arn]: ref.versionId };
+    return { ...result, sampling: { ...sampling, hostedZoneId: mismatch === "sampling" ? "ZOTHER" : sampling.hostedZoneId } };
+  } };
+}
+
+test("authorized completion sends exactly one proof-bound statement after independent inspection", async () => {
+  const { options, calls, row } = await firstOpenFixture();
+  await authorizeFirstOpenCompletion(options);
+  options.completeFirstOnboarding = async (sql, [material, bindingText, token]) => {
+    assert.equal(sql, COMPLETE_FIRST_ONBOARDING);
+    assert.equal(calls.at(-1), "receipt");
+    calls.push("atomic");
+    const request = JSON.parse(material), binding = JSON.parse(bindingText);
+    assert.match(token, /^lease_[a-f0-9]{32}$/);
+    assert.equal(request.jobId, row.job.id);
+    assert.deepEqual(request.jobPayload, row.job.payload);
+    assert.equal(request.receipt.initialBindingSha256, await sha256Hex(bindingText));
+    assert.equal(request.receipt.runtime.configurationSha256, binding.configurationSha256);
+    assert.equal(binding.initialized, true); assert.equal(binding.stateRevision, 0);
+    assert.equal(binding.currentRelease.id, request.receipt.releaseId);
+    assert.equal(binding.sampling.apiHostname, options.approval.hostname);
+    return { instanceId: row.appInstanceId, committed: 1 };
+  };
+  const outcome = await runReviewedFirstOnboarding(options);
+  assert.equal(outcome.outcome, "ACTIVATED");
+  assert.equal(outcome.customerActivated, true);
+  assert.equal(calls.filter(c => c === "atomic").length, 1);
+});
+
+test("D2 proof mismatches do not activate; unknown commit is not retried", async () => {
+  for (const mismatch of ["bucket", "sampling", "ephemeral"] as const) {
+    const { options, context } = await firstOpenFixture();
+    await authorizeFirstOpenCompletion(options, mismatch);
+    options.completeFirstOnboarding = async () => assert.fail("must not write");
+    await assert.rejects(runReviewedFirstOnboarding(options), /FIRST_ONBOARDING_D2_/);
+    assert.equal(context.appInstance.status, "pending");
+  }
+  const { options, calls } = await firstOpenFixture();
+  await authorizeFirstOpenCompletion(options);
+  await assert.rejects(runReviewedFirstOnboarding(options), /COMPLETION_SCOPE_MISMATCH/);
+  assert.deepEqual(calls, []);
+  let writes = 0;
+  options.completeFirstOnboarding = async () => { writes++; throw Error("connection lost"); };
+  await assert.rejects(runReviewedFirstOnboarding(options), /COMPLETION_UNCONFIRMED/);
+  await assert.rejects(runReviewedFirstOnboarding(options), /CLAIM_NOT_PROVED/);
+  assert.equal(writes, 1);
 });
 
 test("missing empty-Express proof or changed/expired review stops before claim", async () => {
