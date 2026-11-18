@@ -33,15 +33,18 @@ export function firstPurchaseSourceContext() {
     publicReviewFile:'docs/evidence/sandbox-first-purchase-activation-consolidated.review.json',
     intentFile:'techlong-sandbox-first-purchase-ecr-b344a2e3.intent.json'});
 }
-// Only the combined Dahlia activation uses these exact, checked CI pins.
+export const dahliaSealedSizeFix=Object.freeze({reusableCommit:'d169811bfdb68f62bc1e3fad7dcea9f58f8a0423',reusableCiRun:44423446449});
+// The size correction has its own fixed slot; the first Dahlia slot is not reset.
 export function dahliaFirstPurchaseSourceContext({reusableCommit,reusableCiRun}) {
   must(/^[a-f0-9]{40}$/.test(reusableCommit??'')&&Number.isSafeInteger(reusableCiRun)&&reusableCiRun>0,'DAHLIA_REUSABLE_PINS');
+  const corrected=reusableCommit===dahliaSealedSizeFix.reusableCommit;
+  must(!corrected||reusableCiRun===dahliaSealedSizeFix.reusableCiRun,'DAHLIA_SIZE_FIX_CI_PIN');
   return overlayContext(dahliaFirstPurchaseProtocol,{
     reusableCommit,reusableCiRun,
     schema:'techlong/sandbox-first-purchase-dahlia-image-source-review/v1',tokenPrefix:'first-purchase-overlay-cdfa2e16',
     riskFile:'docs/evidence/sandbox-first-purchase-dahlia.prepared.json',
-    publicReviewFile:'docs/evidence/sandbox-first-purchase-dahlia-activation.review.json',
-    intentFile:'techlong-sandbox-first-purchase-ecr-cdfa2e16.intent.json'});
+    publicReviewFile:corrected?'docs/evidence/sandbox-first-purchase-dahlia-size-fix-activation.review.json':'docs/evidence/sandbox-first-purchase-dahlia-activation.review.json',
+    intentFile:corrected?'techlong-sandbox-first-purchase-ecr-cdfa2e16-size-fix.intent.json':'techlong-sandbox-first-purchase-ecr-cdfa2e16.intent.json'});
 }
 const dir='ops/platform-registration-publish-v1';
 const cloudRoots=[`${dir}/cloud.mjs`,`${dir}/artifact.mjs`,`${dir}/preflight.sh`,`${dir}/extract.py`,

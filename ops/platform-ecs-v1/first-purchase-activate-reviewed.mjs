@@ -8,7 +8,7 @@ import { ROOT, EVIDENCE, absent, directory, environment, git, noLinks, pins, rea
 import { createAws, verifySnapshot } from '../platform-image-source-v2/aws.mjs';
 import { createGithub } from '../platform-image-source-v2/github.mjs';
 import { runControlled, errorCode } from '../platform-image-source-v2/runner.mjs';
-import { dahliaFirstPurchaseSourceContext } from '../platform-registration-publish-v1/source.mjs';
+import { dahliaFirstPurchaseSourceContext, dahliaSealedSizeFix } from '../platform-registration-publish-v1/source.mjs';
 import { dahliaFirstPurchaseProtocol as firstPurchaseProtocol } from '../platform-registration-publish-v1/contract.mjs';
 import { canonical, hash, same } from './contract.mjs';
 import { buildFirstPurchaseActivationTemplates, scope, draft } from './first-purchase-activation.mjs';
@@ -16,8 +16,9 @@ import { firstPurchaseAws } from './first-purchase-activation-aws.mjs';
 import { firstPurchaseDatabase } from './first-purchase-activation-db.mjs';
 import { validSandboxPurchaseScope } from '../../lib/purchases/sandbox-first-purchase-config.ts';
 
-const reviewPath='docs/evidence/sandbox-first-purchase-dahlia-activation.review.json';
-const riskDoc='docs/aws-sandbox-first-purchase-dahlia-activation-review.md';
+const reviewPath='docs/evidence/sandbox-first-purchase-dahlia-size-fix-activation.review.json';
+const riskDoc='docs/aws-sandbox-first-purchase-dahlia-size-fix-activation-review.md';
+const ciPath='docs/evidence/sandbox-first-purchase-dahlia-size-fix-publisher.observed.json';
 const approvalDocChanges=[reviewPath,'docs/aws-auto-deployment-execution-runbook.md','docs/aws-auto-deployment-mainline.md',
   'docs/aws-sandbox-first-purchase-activation-preparation.md'];
 const checkoutScopeHash='7359ccf32c3bebd4c4b754caac4cdfbdd471a8202c9206f67a298a8f020ca0fc';
@@ -25,13 +26,22 @@ const code=(ok,g)=>{if(!ok)throw Error('FIRST_PURCHASE_REVIEW_'+g);};
 const local=path.join(ROOT,'.local-secrets');
 const privateName='sandbox-first-purchase-stripe-test.json', signingName='sandbox-first-purchase-stripe-webhook-test.json';
 const prefix='techlong-platform-recovery-image-v1';
-const slot=path.join(local,'sandbox-first-purchase-dahlia-14480476839.intent.json');
+const slot=path.join(local,'sandbox-first-purchase-dahlia-14480476839-size-fix.intent.json');
 const previous=Object.freeze({
   approvedSha256:'8b35a3584a5b71e3eb74d7950e66a403cfe2ce3806db434febc04edee0abf25d',
   resultPath:'techlong-platform-recovery-image-v1-74c452f0d964045a2928105f22d2a34b/activation-result.json',
   resultSha256:'b6cb5a44db47c77f6605f422dba0df1a64564b0f0645f2e2f6459826262104e0',
   intentFile:'sandbox-first-purchase-activation-v1.intent.json',
   publisherIntentFile:'techlong-sandbox-first-purchase-ecr-b344a2e3.intent.json',
+});
+const stoppedDahlia=Object.freeze({
+  approvedSha256:'a237b03defde391c17b5471422303090fd3c2bd9333a9fb6d8a6cf39c55f5040',
+  receipt:'docs/evidence/sandbox-first-purchase-dahlia-activation-stopped.json',
+  receiptSha256:'800af4a4f560a3d84a0e34f553a2be440c89a249b2d517b56680960fa61d2c33',
+  resultPath:'techlong-platform-recovery-image-v1-c020226941a9213629cdae255ddcb9d8/activation-result.json',
+  intentFile:'sandbox-first-purchase-dahlia-14480476839.intent.json',
+  publisherIntentFile:'techlong-sandbox-first-purchase-ecr-cdfa2e16.intent.json',
+  runId:44421699935,
 });
 const total=95*60000, approvalWindow=24*3600000, preflightMax=10*60000;
 export const dahliaEndpoint=Object.freeze({
@@ -47,35 +57,37 @@ const writes={publisherGrantUpdates:1,publisherRevokeUpdates:1,protectedDispatch
   neonInstallTransactions:1,newEmptySecret:1,newPolicy:1,newSecretVersion:1,accessChangeSetCreate:1,accessChangeSetExecute:1,
   hostingChangeSetCreate:1,hostingChangeSetExecute:1,checkoutOrTaskBusinessWrites:0,repeats:0,deletes:0};
 const candidate=firstPurchaseProtocol.P;
-const ciEvidence=JSON.parse(readFileSync(path.join(ROOT,'docs/evidence/sandbox-first-purchase-dahlia-publisher.observed.json'),'utf8'));
-code(ciEvidence.status==='NO_AWS_PUBLISHER_AND_CALLER_CI_VERIFIED'&&ciEvidence.repositoryId===candidate.repositoryId&&
-  ciEvidence.workflowId===422828156&&ciEvidence.callerWorkflowId===422829965&&ciEvidence.publishDispatched===false&&
-  ['reusable','caller'].every(k=>/^[a-f0-9]{40}$/.test(ciEvidence[k]?.commit??'')&&Number.isSafeInteger(ciEvidence[k]?.runId)&&
-    ciEvidence[k].runId>0&&ciEvidence[k].conclusion==='success'&&ciEvidence[k].headBranch==='main'&&
-    ciEvidence[k].event==='push'&&ciEvidence[k].attempt===1),'CI_PINS');
-const pub=dahliaFirstPurchaseSourceContext({reusableCommit:ciEvidence.reusable.commit,reusableCiRun:ciEvidence.reusable.runId});
+const pub=dahliaFirstPurchaseSourceContext(dahliaSealedSizeFix);
 const normalize=t=>t.replaceAll('\r\n','\n');
 const fingerprint=x=>hash(canonical(x));
 
-export function makeFirstPurchaseReview({implementationCommit,nonce,issuedAt,riskSha256}){
+export function makeFirstPurchaseReview({implementationCommit,nonce,issuedAt,riskSha256},ciEvidence){
+  code(ciEvidence?.status==='NO_AWS_PUBLISHER_AND_CALLER_CI_VERIFIED'&&ciEvidence.repositoryId===candidate.repositoryId&&
+    ciEvidence.workflowId===422828156&&ciEvidence.callerWorkflowId===422829965&&ciEvidence.publishDispatched===false&&
+    ciEvidence.awsIdentity===false&&ciEvidence.executionAuthorized===false&&
+    ciEvidence.reusable?.commit===pub.S.reusableCommit&&ciEvidence.reusable.runId===pub.S.reusableCiRun&&
+    ['reusable','caller'].every(k=>/^[a-f0-9]{40}$/.test(ciEvidence[k]?.commit??'')&&Number.isSafeInteger(ciEvidence[k].runId)&&
+      ciEvidence[k].runId>0&&ciEvidence[k].conclusion==='success'&&ciEvidence[k].headBranch==='main'&&
+      ciEvidence[k].event==='push'&&ciEvidence[k].attempt===1),'CI_PINS');
   const issued=Date.parse(issuedAt);
   const artifactEnd=Date.parse(candidate.artifactExpiresAt);
   const hardStop=Math.min(issued+approvalWindow+total,artifactEnd);
   const latestStart=hardStop-total;
   code(/^[a-f0-9]{40}$/.test(implementationCommit)&&/^[a-f0-9]{32}$/.test(nonce)&&/^[a-f0-9]{64}$/.test(riskSha256)&&
     Number.isFinite(issued)&&issued>=Date.parse(ciEvidence.observedAtUtc)&&issued<latestStart,'REVIEW_WINDOW');
-  return {schema:'techlong/sandbox-first-purchase-activation-reviewed/v3',implementationCommit,nonce,issuedAt,riskSha256,
+  return {schema:'techlong/sandbox-first-purchase-activation-reviewed/v4',implementationCommit,nonce,issuedAt,riskSha256,
     latestStartUtc:new Date(latestStart).toISOString(),hardStopUtc:new Date(hardStop).toISOString(),totalMinutesMax:95,
     preflight:{freshReadbacksAfterApprovalAndBeforeFirstRemoteWrite:true,maxMinutesBeforeFirstRemoteWrite:10,
       originalSnapshotEndedUtc:draft.originalSnapshot.usableBeforeUtc,originalSnapshotUse:'expected baseline only, never current authority',
       exactTenantImageManifestAndExistingKmsPolicy:true},
     artifactExpiresAtUtc:candidate.artifactExpiresAt,
     priorAttempt:{...previous,requireNoRemoteWriteAndNoPublisherIntent:true},
+    stoppedDahlia:{...stoppedDahlia,requireSkippedPushAndLocked:true,preserveBothUsedSlots:true},
     sourceCi:{publisherRun:ciEvidence.caller.runId,publisherCommit:ciEvidence.caller.commit,reusableRun:pub.S.reusableCiRun,
       reusableCommit:pub.S.reusableCommit,callerWorkflowId:ciEvidence.callerWorkflowId,postgres18Run:44374702186},
     target:{...scope,workspaceIdSha256:checkoutScopeHash,originalNeonProjectionSha256:draft.originalSnapshot.privateReceiptSha256.neon,
       originalAwsProjectionSha256:draft.originalSnapshot.privateReceiptSha256.aws},
-    candidate:{buildRun:candidate.runId,attempt:1,artifact:candidate.artifactId,zipSha256:candidate.artifactDigest,
+    candidate:{buildRun:candidate.runId,attempt:1,artifact:candidate.artifactId,zipSha256:candidate.artifactDigest,archiveBytes:candidate.archiveBytes,
       configDigest:candidate.imageConfigDigest,recipe:candidate.sourceRecipeSha256,tree:candidate.sourceTreeOid,
       exactTag:candidate.targetTag,repository:candidate.ecrRepository,publisherStack:candidate.stackId,environment:candidate.environment},
     stripe:{endpoint:dahliaEndpoint.url,events:dahliaEndpoint.events,apiVersion:dahliaEndpoint.apiVersion,firstPurchasePaymentMethod:'card',
@@ -84,11 +96,11 @@ export function makeFirstPurchaseReview({implementationCommit,nonce,issuedAt,ris
     limits:meta,writes,safety:'Only this one window; always revoke the temporary ECR Grant after any possible submission. Keep managed CFN rollback; no additional recovery, write retry, payment, job claim or full worker.'};
 }
 
-export function validateFirstPurchaseReview(text,approvedSha,now=Date.now()){
+export function validateFirstPurchaseReview(text,approvedSha,now=Date.now(),ciEvidence=JSON.parse(readFileSync(path.join(ROOT,ciPath),'utf8'))){
   code(/^[a-f0-9]{64}$/.test(approvedSha??'')&&hash(normalize(text))===approvedSha,'APPROVAL_SHA');
   const m=JSON.parse(text);
-  code(m?.schema==='techlong/sandbox-first-purchase-activation-reviewed/v3','REVIEW_FORMAT');
-  code(same(m,makeFirstPurchaseReview(m))&&Date.parse(m.issuedAt)<=now&&now<Date.parse(m.latestStartUtc)&&
+  code(m?.schema==='techlong/sandbox-first-purchase-activation-reviewed/v4','REVIEW_FORMAT');
+  code(same(m,makeFirstPurchaseReview(m,ciEvidence))&&Date.parse(m.issuedAt)<=now&&now<Date.parse(m.latestStartUtc)&&
     now+total<Date.parse(m.artifactExpiresAtUtc),'REVIEW_EXPIRED_OR_CHANGED');
   return m;
 }
@@ -154,6 +166,26 @@ async function verifyPriorNoRemoteWrite(){
     result.outcome==='STOPPED_REQUIRES_INSPECTION'&&result.stage==='necessary-preflight'&&
     result.code==='FIRST_PURCHASE_REVIEW_STRIPE_EXACT_ENDPOINT'&&result.aws?.writes===0&&result.retry===false,'EARLIER_ATTEMPT_NOT_PROVED');
   await absent(path.join(EVIDENCE,previous.publisherIntentFile));
+}
+async function readDahliaStop(){
+  const raw=normalize(await readText(path.join(ROOT,stoppedDahlia.receipt)));
+  code(hash(raw)===stoppedDahlia.receiptSha256,'DAHLIA_STOP_RECEIPT_CHANGED');
+  const s=JSON.parse(raw),p=s.publisher;
+  code(s.approvalSha256===stoppedDahlia.approvedSha256&&p.runId===stoppedDahlia.runId&&p.buildArtifactId===candidate.artifactId&&
+    p.awsPublisherSessionAndPushStep==='skipped'&&p.revokeAcknowledged&&p.revokedRoleReadBackLocked&&
+    !p.newEcrManifestVerified&&!s.neonInstallExecuted&&!s.newSecretWritten&&!s.platformUpdated&&!s.retryAllowed,'DAHLIA_STOP_NOT_PROVED');
+  return s;
+}
+async function verifyStoppedDahlia(){
+  const s=await readDahliaStop();
+  const priorSlot=await privateJson(path.join(local,stoppedDahlia.intentFile));
+  const priorPublish=await privateJson(path.join(EVIDENCE,stoppedDahlia.publisherIntentFile));
+  const final=await privateJson(path.join(EVIDENCE,stoppedDahlia.resultPath),s.finalResultSha256);
+  code(priorSlot.approvedSha===s.approvalSha256&&priorSlot.retry===false&&priorPublish.retryAllowed===false&&
+    hash(priorPublish.innerReview)===priorPublish.innerSha256&&priorPublish.head===s.publisher.head&&
+    JSON.parse(priorPublish.innerReview).candidate.artifactId===candidate.artifactId&&
+    final.approvedSha===s.approvalSha256&&final.stage==='publish-and-lock'&&final.outcome==='STOPPED_REQUIRES_INSPECTION'&&
+    final.retry===false,'DAHLIA_PRIOR_ATTEMPT_NOT_PROVED');
 }
 export function verifyDahliaStripeEndpoint(rows,endpointId){
   code(rows.object==='list'&&rows.has_more===false&&Array.isArray(rows.data),'STRIPE_ENDPOINT_LIST');
@@ -278,6 +310,7 @@ async function execute(approvedSha,notify){
   heads();code(hash(normalize(await readText(path.join(ROOT,riskDoc))))===m.riskSha256,'RISK_CHANGED');
   const tf=path.join(local,privateName),sf=path.join(local,signingName),config=path.join(ROOT,'.env.local');
   await verifyPriorNoRemoteWrite();
+  await verifyStoppedDahlia();
   await absent(slot);await absent(path.join(EVIDENCE,pub.S.intentFile));
   for(const f of [tf,sf,config]){excluded(f);await noLinks(f);}
   privateAcl(local,tf,sf);
@@ -329,10 +362,12 @@ async function cli([mode,value,...extra]){
   if(mode==='PrepareOffline'&&!value&&!extra.length){
     const implementationCommit=git(['rev-parse','HEAD']).trim();
     code(git(['status','--porcelain']).trim()===''&&git(['branch','--show-current']).trim()==='main','PREPARE_CLEAN_MAIN');
-    await verifyPriorNoRemoteWrite();
+    await readDahliaStop();
     await absent(slot);await absent(path.join(EVIDENCE,pub.S.intentFile));
     const riskSha256=hash(normalize(await readText(path.join(ROOT,riskDoc))));
-    const m=makeFirstPurchaseReview({implementationCommit,nonce:randomBytes(16).toString('hex'),issuedAt:new Date().toISOString(),riskSha256});
+    const ciEvidence=JSON.parse(await readText(path.join(ROOT,ciPath)));
+    const m=makeFirstPurchaseReview({implementationCommit,nonce:randomBytes(16).toString('hex'),issuedAt:new Date().toISOString(),riskSha256},ciEvidence);
+    sourceGuard(m);
     await writeOnce(path.join(ROOT,reviewPath),m);
     const approvedSha=hash(normalize(await readText(path.join(ROOT,reviewPath))));
     return {mode,approvalSha256:approvedSha,latestStartUtc:m.latestStartUtc,executed:false};

@@ -29,7 +29,7 @@ jobs:
       contents: read
       actions: read
       id-token: write
-    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-registration-image-publish-job-v1.yml@b38a713d9e2f67bacde1ecdd7ef29f0bea86988b
+    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-registration-image-publish-job-v1.yml@d169811bfdb68f62bc1e3fad7dcea9f58f8a0423
     with:
       review_json: ${{ inputs.review_json }}
       review_sha: ${{ inputs.review_sha }}

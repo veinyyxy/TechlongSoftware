@@ -7,7 +7,7 @@ import { load } from 'js-yaml';
 import { C, FIRST_PURCHASE_CANDIDATE as F, DAHLIA_FIRST_PURCHASE_CANDIDATE as D,
   protocol, firstPurchaseProtocol, dahliaFirstPurchaseProtocol, selectOverlayPublication, verifyImageReceipt } from '../ops/platform-registration-publish-v1/contract.mjs';
 import { verifyLoaded } from '../ops/platform-registration-publish-v1/artifact.mjs';
-import { dahliaFirstPurchaseSourceContext, firstPurchaseSourceContext, sourceContext } from '../ops/platform-registration-publish-v1/source.mjs';
+import { dahliaFirstPurchaseSourceContext, dahliaSealedSizeFix, firstPurchaseSourceContext, sourceContext } from '../ops/platform-registration-publish-v1/source.mjs';
 import { hash } from '../ops/platform-image-publication-v2/plan.mjs';
 import { C as oldPlatform, RETAINED } from '../ops/platform-recovery-image-v1/candidate.mjs';
 
@@ -116,9 +116,13 @@ test('only the replacement seal can select the first-purchase publisher; retain 
 test('the original manual caller routes each fixed artifact to its own reviewed reusable pin',()=>{
   const selector=load(read(`../.github/workflows/${C.callerFile}`));
   const old=sourceContext(),historical=firstPurchaseSourceContext();
-  const next=dahliaFirstPurchaseSourceContext({reusableCommit:'b38a713d9e2f67bacde1ecdd7ef29f0bea86988b',reusableCiRun:1});
+  const stopped=dahliaFirstPurchaseSourceContext({reusableCommit:'b38a713d9e2f67bacde1ecdd7ef29f0bea86988b',reusableCiRun:44420760016});
+  const next=dahliaFirstPurchaseSourceContext(dahliaSealedSizeFix);
   assert.equal(old.P,C);assert.equal(next.P,D);assert.notEqual(next.S.intentFile,old.S.intentFile);
   assert.notEqual(next.S.intentFile,historical.S.intentFile);
+  assert.notEqual(next.S.intentFile,stopped.S.intentFile);
+  assert.notEqual(next.S.publicReviewFile,stopped.S.publicReviewFile);
+  assert.throws(()=>dahliaFirstPurchaseSourceContext({...dahliaSealedSizeFix,reusableCiRun:stopped.S.reusableCiRun}),/CI_PIN/);
   assert.deepEqual(Object.keys(selector.on),['workflow_dispatch']);
   assert.deepEqual(Object.keys(selector.jobs),['reviewed-publication','reviewed-first-purchase-publication']);
   const reusable=`${C.repository}/.github/workflows/${C.reusableFile}@`;
