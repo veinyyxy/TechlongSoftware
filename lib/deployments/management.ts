@@ -14,6 +14,7 @@ import {
   buildFirstOnboardingJob,
   firstOnboardingInsertBindings,
   INSERT_FIRST_ONBOARDING,
+  firstOnboardingExpressNames,
   isFirstOnboardingScope,
 } from "./first-onboarding";
 import {
@@ -280,14 +281,20 @@ export async function ensurePlannedAppInstanceDeployment(input: {
     tenantKey: input.tenantKey,
     deploymentProfileKey: input.deploymentProfileKey,
   });
+  const firstWorkspaceId = deploymentBinding("AWS_SANDBOX_FIRST_ONBOARDING_WORKSPACE_ID");
+  const firstOpen = firstWorkspaceId === input.workspaceId &&
+    isFirstOnboardingScope(environment, input.productId, input.deploymentProfileKey);
+  if (firstOpen) {
+    const { databaseName, roleName } = await firstOnboardingExpressNames({ ...input, environmentId: environment.id, cellKey: environment.cellKey });
+    Object.assign(desiredPlan.resources.tenant.database, { databaseName, roleName });
+  }
   const desiredPlanJson = canonicalJson(desiredPlan);
   const planHash = await sha256(desiredPlanJson);
   const configuration = canonicalJson(input.configurationSnapshot);
   const configurationHash = await sha256(configuration);
   const artifactRef = deploymentBinding("AWS_SANDBOX_IMAGE_URI") ?? null;
-  const firstWorkspaceId = deploymentBinding("AWS_SANDBOX_FIRST_ONBOARDING_WORKSPACE_ID");
   const firstReleaseId = deploymentBinding("AWS_SANDBOX_FIRST_ONBOARDING_RELEASE_ID");
-  if (firstWorkspaceId === input.workspaceId && isFirstOnboardingScope(environment, input.productId, input.deploymentProfileKey)) {
+  if (firstOpen) {
     if (!firstReleaseId) return null;
     const held = await buildFirstOnboardingJob({
       appInstanceId: input.appInstanceId, workspaceId: input.workspaceId, subscriptionId: input.subscriptionId,

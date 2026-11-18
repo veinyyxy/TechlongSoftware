@@ -4,6 +4,7 @@ import type { ApplyReadyTenantStack, AwsDeploymentPort, DeploymentExecutionConte
 import { canonicalJson, sha256Hex } from "./hash.ts";
 import { validateExternalParameter } from "./parameters.ts";
 import { validateSingleDeploymentScope, type SingleDeploymentClaimScope } from "./single-deployment-scope.ts";
+import type { FirstOnboardingExpressComposition } from "./first-onboarding-express.ts";
 
 type Rendered = Awaited<ReturnType<typeof renderSingleTenantAcceptanceWorkload>>;
 export interface SupervisedTenantStack extends Omit<Rendered, "safety"> {
@@ -49,13 +50,18 @@ function freeze<T>(value: T): T {
 const externalNames = ["ClusterName", "VpcId", "SubnetIds", "TaskSecurityGroupId", "OneShotTaskSecurityGroupId",
   "HttpsListenerArn", "ControlListenerArn", "TaskExecutionRoleArn", "TaskRoleArn", "ControlPublicKeyValueFrom",
   "ControlIssuer", "CorsAllowedOrigins", "StripePublishableKey", "StripeSuccessUrl", "StripeCancelUrl"];
-function validateBinding(context: DeploymentExecutionContext): void {
+function validateBinding(context: DeploymentExecutionContext, express?: FirstOnboardingExpressComposition): void {
   const binding = context.binding;
   if (!binding || binding.status !== "active" || binding.environmentId !== context.environment.id ||
     binding.workerRoleArn !== "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole" ||
     binding.cloudFormationRoleArn !== "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole" ||
     canonicalJson(Object.keys(binding.tenantStackParameters).sort()) !== canonicalJson([...externalNames].sort())) fail("SUPERVISED_PARAMETER_SET_INVALID");
-  for (const name of externalNames) validateExternalParameter({ name, value: binding.tenantStackParameters[name], environment: context.environment });
+  for (const name of externalNames) {
+    const value = binding.tenantStackParameters[name];
+    if (express && name === "ControlPublicKeyValueFrom" &&
+      (value === express.controlRef || value === express.controlRef.split(":::")[0])) continue;
+    validateExternalParameter({ name, value, environment: context.environment });
+  }
   if (binding.tenantStackParameters.HttpsListenerArn === binding.tenantStackParameters.ControlListenerArn) fail("SUPERVISED_LISTENERS_NOT_SEPARATED");
 }
 export function assertFinalizedSupervisedTenantStack(stack: SupervisedTenantStack): void {
@@ -74,9 +80,10 @@ export function finalizeSupervisedTenantStack(input: {
 
 function finalizeRenderedStack(input: {
   rendered: Rendered; context: DeploymentExecutionContext; expectedRuntimeSecretName: string;
+  express?: FirstOnboardingExpressComposition;
 }): SupervisedTenantStack {
   const { rendered, context } = input, binding = context.binding;
-  validateBinding(context);
+  validateBinding(context, input.express);
   if (!binding || binding.status !== "active" || binding.environmentId !== context.environment.id ||
     binding.workerRoleArn !== "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole" ||
     binding.cloudFormationRoleArn !== "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole" ||
@@ -86,10 +93,19 @@ function finalizeRenderedStack(input: {
     rendered.tags.AppInstanceId !== context.appInstance.id || rendered.tags.DeploymentId !== context.deployment.id ||
     rendered.parameters.ImageUri !== context.deployment.artifactRef) fail("SUPERVISED_STACK_SCOPE_INVALID");
   const parameters = structuredClone(binding.tenantStackParameters);
+  if (input.express) {
+    if (rendered.parameters.TaskRoleArn !== input.express.applicationRoleArn ||
+      ![input.express.controlRef, input.express.controlRef.split(":::")[0]].includes(parameters.ControlPublicKeyValueFrom)) {
+      fail("FIRST_ONBOARDING_EXPRESS_REFERENCE_CHANGED");
+    }
+    delete parameters.TaskRoleArn;
+    parameters.ControlPublicKeyValueFrom = input.express.controlRef;
+  }
   const runtimeOnly = "OneShotTaskSecurityGroupId";
   if (canonicalJson(Object.keys(parameters).filter(key => key !== runtimeOnly).sort()) !==
     canonicalJson([...rendered.requiredExternalParameters].sort())) fail("SUPERVISED_PARAMETER_SET_INVALID");
   for (const name of [...rendered.requiredExternalParameters, runtimeOnly]) {
+    if (input.express && name === "ControlPublicKeyValueFrom") continue;
     validateExternalParameter({ name, value: parameters[name], environment: context.environment });
   }
   if (parameters.HttpsListenerArn === parameters.ControlListenerArn) fail("SUPERVISED_LISTENERS_NOT_SEPARATED");
@@ -103,7 +119,8 @@ function finalizeRenderedStack(input: {
   return stack;
 }
 
-async function renderFirstOnboardingStack(input: AwsSandboxTenantStackInput, context: DeploymentExecutionContext, reviewedImage: string) {
+async function renderFirstOnboardingStack(input: AwsSandboxTenantStackInput, context: DeploymentExecutionContext, reviewedImage: string,
+  express?: FirstOnboardingExpressComposition) {
   if (input.imageUri !== reviewedImage || input.resourceGeneration !== 1 ||
     !/^402010193138\.dkr\.ecr\.ca-central-1\.amazonaws\.com\/techlong-sandbox-speedfeast@sha256:[a-f0-9]{64}$/.test(reviewedImage) ||
     input.environment.policy.budgetLimitCents !== 5000 || input.environment.policy.maxTaskCount !== 1 ||
@@ -112,8 +129,10 @@ async function renderFirstOnboardingStack(input: AwsSandboxTenantStackInput, con
   }
   // Reuse the unchanged pinned renderer's data-only transform. This entry
   // validates the new digest before privately finalizing that exact output.
-  return finalizeRenderedStack({ rendered: await renderSupervisedTenantWorkloadBase(input), context,
-    expectedRuntimeSecretName: input.runtimeSecretName });
+  const rendered = express
+    ? { ...await express.render(input, context), protocol: "single-tenant-supervised-workload" as const }
+    : await renderSupervisedTenantWorkloadBase(input);
+  return finalizeRenderedStack({ rendered, context, express, expectedRuntimeSecretName: input.runtimeSecretName });
 }
 
 /** Wired into the existing Worker without changing its lease, epoch, database,
@@ -129,12 +148,13 @@ export function createSingleTenantWorkloadStrategy(input: {
 /** Not reachable via flags or the ordinary worker composition. */
 export function createFirstOnboardingWorkloadStrategy(input: {
   scope: SingleDeploymentClaimScope; cleanupReadiness: SupervisedCleanupReadinessPort;
+  express?: FirstOnboardingExpressComposition;
 }): TenantWorkloadExecutionStrategy {
-  return createSupervisedStrategy(Object.freeze(structuredClone(input.scope)), input.cleanupReadiness, true);
+  return createSupervisedStrategy(Object.freeze(structuredClone(input.scope)), input.cleanupReadiness, true, input.express);
 }
 
 function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, cleanup: SupervisedCleanupReadinessPort,
-  firstOnboarding: boolean): TenantWorkloadExecutionStrategy {
+  firstOnboarding: boolean, express?: FirstOnboardingExpressComposition): TenantWorkloadExecutionStrategy {
   if (!cleanup || typeof cleanup.verify !== "function") fail("SUPERVISED_CLEANUP_VERIFIER_MISSING");
   const assertScope = (context: DeploymentExecutionContext) => {
     if (context.deployment.id !== scope.deploymentId || context.deployment.appInstanceId !== scope.appInstanceId ||
@@ -147,7 +167,7 @@ function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, c
       context.environment.baseDomain !== "sandbox.techlong.cloud" || context.environment.policy.budgetLimitCents !== 5000) {
       fail("SUPERVISED_DEPLOYMENT_SCOPE_MISMATCH");
     }
-    if (!["cleanup", "rollback"].includes(context.job.jobType)) validateBinding(context);
+    if (!["cleanup", "rollback"].includes(context.job.jobType)) validateBinding(context, express);
   };
   const strategy: TenantWorkloadExecutionStrategy = { mode: "single-tenant-supervised", assertScope,
     async ensureCleanup({ context, signal, now }) {
@@ -176,7 +196,7 @@ function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, c
         stackInput.externalOperation.epoch !== context.tenantExternalOperation?.epoch ||
         stackInput.externalOperation.marker !== context.tenantExternalOperation?.marker ||
         stackInput.externalOperation.operationHash !== context.tenantExternalOperation?.operationHash) fail("SUPERVISED_RENDER_CONTEXT_MISMATCH");
-      if (firstOnboarding) return renderFirstOnboardingStack(stackInput, context, scope.artifactRef);
+      if (firstOnboarding) return renderFirstOnboardingStack(stackInput, context, scope.artifactRef, express);
       return finalizeSupervisedTenantStack({ rendered: await renderSingleTenantAcceptanceWorkload(stackInput), context,
         expectedRuntimeSecretName: stackInput.runtimeSecretName });
     },

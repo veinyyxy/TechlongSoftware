@@ -14,6 +14,16 @@ const digest = /^[a-f0-9]{64}$/;
 const id = /^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/;
 const releaseIdPattern = /^release_[a-f0-9]{32}$/;
 
+/** Express V3 uses these names, only for newly registered held first opens. */
+export async function firstOnboardingExpressNames(scope: {
+  appInstanceId: string; workspaceId: string; productId: string; environmentId: string; cellKey: string;
+}) {
+  const { appInstanceId, workspaceId, productId, environmentId, cellKey } = scope;
+  const stableIdentity = await sha256Hex({ appInstanceId, workspaceId, productId, environmentId, cellKey });
+  const prefix = `tenant_${stableIdentity.slice(0, 16)}`;
+  return { stableIdentity, databaseName: `${prefix}_db`, roleName: `${prefix}_role` };
+}
+
 export function isFirstOnboardingScope(environment: Pick<DeploymentEnvironment, "key" | "kind" | "region" | "cellKey">, product: string, profile: string) {
   return environment.key === environmentKey && environment.kind === "aws_sandbox" && environment.region === "ca-central-1" &&
     environment.cellKey === "cell-sandbox-1" && product === productId && profile === "standard-v1";

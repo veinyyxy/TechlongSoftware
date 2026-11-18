@@ -43,10 +43,13 @@ import { FIRST_ACCEPTANCE_APP_IMAGE } from "../lib/deployments/execution/single-
 import { createSingleTenantWorkloadStrategy, type SupervisedTenantStack } from "../lib/deployments/execution/single-tenant-workload-strategy.ts";
 import { finalizeSupervisedTenantStack } from "../lib/deployments/execution/single-tenant-workload-strategy.ts";
 import { renderSingleTenantAcceptanceWorkload } from "../lib/deployments/cloudformation/single-tenant-acceptance-workload.ts";
-import { buildFirstOnboardingJob, CLAIM_FIRST_ONBOARDING, SELECT_FIRST_ONBOARDING, reviewFirstOnboarding, type FirstOnboardingReviewRow } from "../lib/deployments/first-onboarding.ts";
+import { buildFirstOnboardingJob, CLAIM_FIRST_ONBOARDING, SELECT_FIRST_ONBOARDING, firstOnboardingExpressNames, reviewFirstOnboarding, type FirstOnboardingReviewRow } from "../lib/deployments/first-onboarding.ts";
 import { cycleFixture } from "./instance-release-cycle-fixture.ts";
 import { COMPLETE_FIRST_ONBOARDING } from "../lib/deployments/execution/first-onboarding-completion.ts";
 import type { ReleaseSamplingBinding } from "../lib/deployments/releases/sampling.ts";
+import type { FirstOnboardingDatabaseIdentity } from "../lib/deployments/execution/first-onboarding-express.ts";
+import { FIRST_ONBOARDING_COMPLETE_ENTRY, FIRST_ONBOARDING_READ_ENTRY } from "../lib/deployments/execution/first-onboarding-completion-entry.ts";
+import type { TenantSecretInspection, TenantDatabaseLifecycleState } from "../lib/deployments/execution/contracts.ts";
 
 const now = Date.UTC(2026, 7, 9);
 const workerRoleArn =
@@ -185,7 +188,7 @@ test("supervised SDK accepts only finalized immutable material and rechecks prov
   assert.throws(() => finalizeSupervisedTenantStack({ rendered, context, expectedRuntimeSecretName: tenantRuntimeSecretName }));
 });
 
-async function firstOpenFixture() {
+async function firstOpenFixture(expressPlan = false) {
   const { context, readiness } = await supervisedFixture(), cycle = await cycleFixture();
   const calls: string[] = [], transitions: string[] = [];
   const release = structuredClone(cycle.planningInput.release);
@@ -194,6 +197,12 @@ async function firstOpenFixture() {
   release.image.repository = "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast";
   context.environment.applyEnabled = false;
   context.deployment.artifactRef = `${release.image.repository}@${release.image.manifestDigest}`;
+  if (expressPlan) {
+    const { databaseName, roleName } = await firstOnboardingExpressNames({ appInstanceId: context.appInstance.id, workspaceId: context.workspace.id,
+      productId: context.appInstance.productId, environmentId: context.environment.id, cellKey: context.environment.cellKey });
+    Object.assign(context.deployment.desiredPlan.resources.tenant.database, { databaseName, roleName });
+    context.deployment.planHash = await sha256Hex(context.deployment.desiredPlan);
+  }
   const scope = { appInstanceId: context.appInstance.id, workspaceId: context.workspace.id, tenantKey: context.appInstance.tenantKey,
     subscriptionId: context.subscription!.id, templateVersionId: context.appInstance.templateVersionId, environmentId: context.environment.id,
     accountId: context.environment.expectedAccountId, planId: "plan_basic", releaseId: release.id, artifactRef: context.deployment.artifactRef,
@@ -277,7 +286,7 @@ async function firstOpenFixture() {
       now: () => now,
     },
   };
-  return { options, context, calls, transitions, row };
+  return { options, context, calls, transitions, row, stack: () => ({ applied: applied!, stackId }) };
 }
 
 test("reviewed first-open runs one held job to independent technical proof, not active/ready", async () => {
@@ -308,7 +317,7 @@ async function authorizeFirstOpenCompletion(options: Parameters<typeof runReview
   };
   options.approval.completion = { clientApiVersion: "v1", samplingSha256: await sha256Hex(sampling) };
   options.approvedSha256 = await sha256Hex(options.approval);
-  const reader = options.independentReader;
+  const reader = options.independentReader!;
   options.independentReader = { capture: async req => {
     const result = await reader.capture(req), { facts } = result;
     facts.persistentUploadsReady = mismatch !== "ephemeral";
@@ -366,6 +375,218 @@ test("D2 proof mismatches do not activate; unknown commit is not retried", async
   assert.equal(writes, 1);
 });
 
+async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | "late-version" | "database-oid" | "old-bucket" | "grant" | "readback") {
+  const f = await firstOpenFixture(true), { options, context, calls } = f, { approval } = options;
+  const templateReader = options.independentReader!;
+  delete options.independentReader;
+  const n = await firstOnboardingExpressNames({ appInstanceId: context.appInstance.id, workspaceId: context.workspace.id,
+    productId: context.appInstance.productId, environmentId: environment.id, cellKey: environment.cellKey });
+  const archiveSha256 = "1a65288b4628018932a8d9af4658db5702b6cf49966a2032bc2d919bc591d70a";
+  const manifestSha256 = "62b5dc8cadcf276df140be86e002a08b64d9b713bd0257e14ac515c12a996971";
+  const cell = "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/11111111-2222-3333-4444-555555555555";
+  const control = { arn: context.binding!.tenantStackParameters.ControlPublicKeyValueFrom, versionId: "f".repeat(64) };
+  const s = n.stableIdentity.slice(0,16);
+  const cluster = "techlong-sandbox-express-d001", resourceId = "cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM";
+  const mediaUrl = "https://firstopensynthetic.cloudfront.net";
+  const bucket = `techlong-sandbox-tenant-images-402010193138-${s}`;
+  const appRole = `arn:aws:iam::402010193138:role/TechlongSandboxFirstOpen-${s}`;
+  const approvedBucket = negative === "old-bucket" ? "techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad" : bucket;
+  const clusterArn = "arn:aws:ecs:ca-central-1:402010193138:cluster/cell-sandbox-1";
+  approval.baselineDigest = archiveSha256;
+  approval.completion = { clientApiVersion: "v1", deriveG1Secret: true };
+  approval.express = {
+    target: { schema: "techlong/express-management-target/v3", clusterArn: "arn:aws:rds:ca-central-1:402010193138:cluster:" + cluster,
+      clusterResourceId: resourceId, endpoint: "synthetic.ca-central-1.rds.amazonaws.com", port: 5432, observedEngineVersion: "17.9",
+      managementDatabase: "postgres", managementUsername: "postgres", stableIdentity: n.stableIdentity, resourceGeneration: 1,
+      tenantDatabase: n.databaseName, tenantUsername: n.roleName },
+    nonce: "a".repeat(32), baseline: { contract: "speedfeast-pg16.14-tenant-baseline-v1", archiveS3Uri: "s3://synthetic-baselines/_migration/schema.dump",
+      archiveSha256, approvedArchiveSha256: archiveSha256, manifestS3Uri: "s3://synthetic-baselines/_migration/schema.manifest.json", manifestSha256,
+      sourceDatabase: "speedfeast", archiveVersionId: "archive-pinned", manifestVersionId: "manifest-pinned" },
+    independentRoleArn: "arn:aws:iam::402010193138:role/TechlongSandboxFirstOpenInspector",
+    lifecycleRoleArn: "arn:aws:iam::402010193138:role/TechlongSandboxTenantLifecycleTaskRole", applicationRoleArn: appRole,
+    mediaPublicBaseUrl: mediaUrl, environmentParametersSha256: await sha256Hex(context.binding!.tenantStackParameters),
+    sampling: { cellStackId: cell, platformStackId: cell.replace("cell-sandbox-1","platform-hosting-v1"), hostedZoneId: "ZSYNTHETIC", apiHostname: approval.hostname,
+      cellOutputParameters: Object.fromEntries(["ClusterName","VpcId","SubnetIds","HttpsListenerArn","ControlListenerArn"].map(k=>[k,k])),
+      database: { kind: "cluster", profile: "express_iam", identifier: cluster, schemaVersion: approval.databaseSchemaVersion },
+      secrets: [control], persistence: { bucket: approvedBucket, providerVariable: "IMAGE_STORAGE_PROVIDER", bucketVariable: "IMAGE_S3_BUCKET",
+        verificationSha256: "5".repeat(64) } },
+  };
+  options.approvedSha256 = await sha256Hex(approval);
+  options.dependencies.tenantDatabase = { ensureTenantDatabase: async () => assert.fail("generic lifecycle"),
+    migrateTenantDatabase: async () => assert.fail("generic lifecycle") };
+  let stage: TenantDatabaseLifecycleState = "missing", runtime: TenantSecretInspection | undefined;
+  const databaseIdentity = (): FirstOnboardingDatabaseIdentity => ({ name: n.databaseName, roleName: n.roleName,
+    ownershipMarker: context.tenantResources!.ownershipMarker, baselineDigest: archiveSha256, schemaVersion: approval.databaseSchemaVersion,
+    clusterResourceId: resourceId, databaseOid: "50001", roleOid: "50002", otherConnectableDatabases: 0 });
+  const technical: string[] = [];
+  const raw = async () => {
+    const { applied, stackId } = f.stack();
+    const { facts } = await templateReader.capture({ stackId, hostname: approval.hostname, databaseName: n.databaseName, signal: signal() });
+    facts.service.clusterArn = clusterArn;
+    facts.service.loadBalancers![0].containerName = "speedfeast-backend";
+    const td = (applied.template.Resources as Record<string, { Properties: {
+      ContainerDefinitions: { Environment: { Name: string; Value: unknown }[]; Secrets: { Name: string; ValueFrom: unknown }[] }[];
+    } }>).TenantTaskDefinition.Properties.ContainerDefinitions[0];
+    const api = facts.taskDefinition.containerDefinitions![0];
+    api.name = "speedfeast-backend";
+    api.environment = td.Environment.filter(x => typeof x.Value === "string").map(x => ({ name: x.Name, value: x.Value as string }));
+    api.secrets = td.Secrets.map(x => ({ name: x.Name, valueFrom: typeof x.ValueFrom === "string" ? x.ValueFrom : applied.parameters.ControlPublicKeyValueFrom }));
+    facts.taskDefinition.taskRoleArn = applied.parameters.TaskRoleArn;
+    facts.taskDefinition.executionRoleArn = applied.parameters.TaskExecutionRoleArn;
+    facts.tasks[0].containers![0].name = "speedfeast-backend";
+    const output = context.binding!.tenantStackParameters;
+    for (const [i, key] of ["TenantBusinessControlDenyRule","TenantListenerRule","TenantControlListenerRule"].entries()) {
+      const listener = i===2 ? output.ControlListenerArn : output.HttpsListenerArn;
+      facts.resources[key].physicalId = listener.replace(":listener/",":listener-rule/") + "/rule" + i;
+    }
+    return facts;
+  };
+  type Facts = Awaited<ReturnType<typeof raw>>;
+  let observed: Facts | undefined;
+  let runtimeSecretReads = 0;
+  options.expressPorts = {
+    secret: {
+      inspectRuntimeSecret: async x => runtime ?? { fence: x.fence, externalFence: x.externalFence, state: "missing", secretRef: null,
+        versionRef: null, ownershipMarker: null },
+      createInitial: async x => {
+        calls.push("secret-create"); assert.equal(x.requestSha256, x.initialVersionId);
+        runtime = { fence: x.fence, externalFence: x.externalFence, state: "present", secretRef:
+          "arn:aws:secretsmanager:ca-central-1:402010193138:secret:" + x.name + "-abcDEF",
+          versionRef: x.initialVersionId, ownershipMarker: x.fence.ownershipMarker };
+        return { requestSha256: x.requestSha256, metadata: runtime };
+      },
+    },
+    database: {
+      inspect: async x => ({ fence: x.fence, externalFence: x.externalFence, state: stage,
+        databaseExists: stage !== "missing", roleExists: stage !== "missing", databaseOwnershipMarker: stage === "missing" ? null : x.fence.ownershipMarker,
+        roleOwnershipMarker: stage === "missing" ? null : x.fence.ownershipMarker,
+        baselineDigest: ["missing", "empty"].includes(stage) ? null : archiveSha256,
+        migrationContract: ["saas_migrated","verified"].includes(stage) ? "speedfeast-saas-control-v1" : null, evidenceHash: "a".repeat(64) }),
+      prepare: async x => {
+        calls.push("prepare-v3"); stage = "empty";
+        assert.equal(x.program.target.tenantDatabase, n.databaseName); assert.equal(x.program.statementCount, 15);
+        return { fence: x.fence, externalFence: x.externalFence, operation: "prepare_empty_database", outcome: "applied", resultingState: stage, evidenceHash: "b".repeat(64) };
+      },
+      restore: async x => {
+        calls.push("restore-baseline"); stage = "baseline_restored"; assert.equal(x.archiveVersionId, "archive-pinned"); assert.equal(x.manifestVersionId, "manifest-pinned");
+        return { fence: x.fence, externalFence: x.externalFence, operation: "restore_approved_baseline", outcome: "applied", resultingState: stage, evidenceHash: "b".repeat(64) };
+      },
+      migrateSaas: async x => {
+        calls.push("migrate-saas"); stage = "saas_migrated";
+        return { fence: x.fence, externalFence: x.externalFence, operation: "migrate_saas", outcome: "applied", resultingState: stage, evidenceHash: "b".repeat(64) };
+      },
+      activateApplication: async x => {
+        calls.push("activate-db-role"); assert.equal(x.migrationEvidenceSha256, "b".repeat(64));
+        return { fence: x.fence, externalFence: x.externalFence, outcome: "applied", evidenceHash: "f".repeat(64),
+          databaseName: negative === "grant" ? "postgres" : x.target.tenantDatabase, roleName: x.target.tenantUsername,
+          applicationRoleArn: x.applicationRoleArn, otherConnectableDatabases: 0 };
+      },
+      verify: async x => {
+        calls.push("verify-db"); stage = "verified";
+        return { receipt: { fence: x.fence, externalFence: x.externalFence, operation: "verify", outcome: "applied", resultingState: stage,
+          evidenceHash: "b".repeat(64), applicationAccess: { policy: "speedfeast-application-access/v1", databaseLoginVerified: true, evidenceHash: "a".repeat(64) } },
+          identity: databaseIdentity() };
+      },
+    },
+    independent: {
+      caller: async () => ({ accountId: "402010193138", arn: negative === "caller" ? workerRoleArn :
+        "arn:aws:sts::402010193138:assumed-role/TechlongSandboxFirstOpenInspector/first-open" }),
+      database: async () => ({ ...databaseIdentity(), ...(negative === "database-oid" ? { databaseOid: "117" } : {}),
+        tlsVerified: true, transactionReadOnly: true }),
+      getTechnical: async path => { technical.push(path); return { status: 200, tlsVerified: true, checkedAt: now }; },
+      async read<T>(service: string, op: string, parameters: Record<string, unknown>) {
+        if (op === "describe-secret") {
+          const first = parameters.SecretId === runtime?.secretRef;
+          assert(first || parameters.SecretId === control.arn);
+          if (first) runtimeSecretReads++;
+          const id = first ? runtime!.versionRef! : control.versionId;
+          return { ARN: parameters.SecretId, VersionIdsToStages: { [id]: ["AWSCURRENT"],
+            ...(first && (negative === "second-version" || (negative === "late-version" && runtimeSecretReads > 1))
+              ? { ["c".repeat(64)]: ["AWSPREVIOUS"] } : {}) } } as T;
+        }
+        const facts = observed ??= await raw();
+        const { applied, stackId } = f.stack(), output = context.binding!.tenantStackParameters;
+        const alb = output.HttpsListenerArn.replace(":listener/",":loadbalancer/").split("/").slice(0,-1).join("/");
+        const awsPairs = (r: Record<string,string>, key: string, value: string) => Object.entries(r).map(([k,v])=>({[key]:k,[value]:v}));
+        let result: unknown;
+        switch (service + ":" + op) {
+          case "cloudformation:describe-stacks": result = { Stacks: [{ StackId: parameters.StackName, StackStatus: "CREATE_COMPLETE",
+            RoleARN: cloudFormationRoleArn, CreationTime: new Date(now).toISOString(), Tags: awsPairs(applied.tags,"Key","Value"),
+            Parameters: awsPairs(applied.parameters,"ParameterKey","ParameterValue"),
+            Outputs: parameters.StackName === cell ? awsPairs(output,"OutputKey","OutputValue") : [] }] }; break;
+          case "cloudformation:get-template": assert.equal(parameters.StackName,stackId); result = { TemplateBody: applied.template }; break;
+          case "cloudformation:list-stack-resources": result = { StackResourceSummaries: Object.entries(facts.resources).map(([LogicalResourceId,r]) =>
+            ({LogicalResourceId,ResourceType:r.type,PhysicalResourceId:r.physicalId,ResourceStatus:"CREATE_COMPLETE"})) }; break;
+          case "cloudformation:list-change-sets": result = { Summaries: [] }; break;
+          case "rds:describe-db-clusters": result = { DBClusters: [{ DBClusterIdentifier: cluster, Status: "available", Engine: "aurora-postgresql", IAMDatabaseAuthenticationEnabled: true }] }; break;
+          case "ecs:describe-services": result = { services: [facts.service] }; break;
+          case "ecs:describe-task-definition": result = { taskDefinition: facts.taskDefinition }; break;
+          case "ecs:list-tasks": result = { taskArns: facts.tasks.map(t=>t.taskArn) }; break;
+          case "ecs:describe-tasks": result = { tasks: facts.tasks }; break;
+          case "elbv2:describe-listeners": result = { Listeners: [{ ListenerArn: output.HttpsListenerArn, LoadBalancerArn: alb, Port:443,Protocol:"HTTPS" },
+            { ListenerArn: output.ControlListenerArn, LoadBalancerArn: alb, Port:8443,Protocol:"HTTPS",MutualAuthentication:{Mode:"verify"}}] }; break;
+          case "elbv2:describe-load-balancers": result = { LoadBalancers: [{ LoadBalancerArn: alb, DNSName: approval.dnsTarget, State:{Code:"active"}}] }; break;
+          case "elbv2:describe-target-groups": result = { TargetGroups:[{TargetGroupArn:facts.targets.groupArn,VpcId:output.VpcId,Port:3000}] }; break;
+          case "elbv2:describe-target-health": result = { TargetHealthDescriptions:facts.targets.targets.map(t=>({Target:{Id:t.ip},TargetHealth:{State:t.state}})) }; break;
+          case "elbv2:describe-rules": result = { Rules:["TenantBusinessControlDenyRule","TenantListenerRule","TenantControlListenerRule"].map(k=>({
+            RuleArn:facts.resources[k].physicalId,Conditions:[{Field:"host-header",HostHeaderConfig:{Values:[approval.hostname]}}],
+            Actions:k==="TenantBusinessControlDenyRule"?[{Type:"fixed-response"}]:[{Type:"forward",TargetGroupArn:facts.targets.groupArn}]})) }; break;
+          case "route53:list-resource-record-sets": result={ResourceRecordSets:[{Name:approval.hostname+".",Type:"A",AliasTarget:{DNSName:approval.dnsTarget+"."}}]}; break;
+          case "s3api:head-bucket": assert.equal(parameters.Bucket,bucket); result = {}; break;
+          case "ecr:batch-get-image": result={images:[{imageManifest:facts.artifact.manifest,imageId:{imageDigest:context.deployment.artifactRef.split("@")[1]}}]}; break;
+          default: assert.fail(service+":"+op);
+        }
+        return result as T;
+      },
+    },
+    completionClient: { query: async (statement, [request, binding]) => {
+      calls.push("limited-sql"); assert.equal(statement, FIRST_ONBOARDING_COMPLETE_ENTRY);
+      assert.equal(JSON.parse(request).receipt.approvalSha256,options.approvedSha256);
+      const document=JSON.parse(binding); assert.equal(document.stateRevision,0);
+      assert.deepEqual(document.sampling.secrets,[control,{arn:runtime!.secretRef,versionId:runtime!.versionRef}]);
+      return { rows: [{ instanceId: context.appInstance.id, committed: 1 }] };
+    } },
+    completionReadClient: { query: async (statement, [hash]) => {
+      calls.push("readback-sql"); assert.equal(statement, FIRST_ONBOARDING_READ_ENTRY); assert.match(hash, /^[a-f0-9]{64}$/);
+      return { rows: negative === "readback" ? [] : [{ instanceId: context.appInstance.id, revision: "0" }] };
+    } },
+  };
+  return { ...f, technical, bucket, appRole };
+}
+
+test("new first-open: V3 empty DB to one create-only Express/S3 workload, independent D2 proof and scoped RPC", async () => {
+  const f = await derivedFirstOpenFixture();
+  const result = await runReviewedFirstOnboarding(f.options);
+  assert.equal(result.outcome, "ACTIVATED");
+  assert.deepEqual(f.technical, ["/health","/ready"]);
+  const steps = ["secret-create","prepare-v3","restore-baseline","migrate-saas","activate-db-role","verify-db","create","receipt","limited-sql","readback-sql"];
+  assert.deepEqual(f.calls.filter(s=>steps.includes(s)), steps);
+  const { applied } = f.stack();
+  assert.equal(applied.parameters.TaskRoleArn, f.appRole);
+  assert.equal(applied.templateBody.includes("DATABASE_URL"), false);
+  assert.ok(applied.templateBody.includes(f.bucket) && applied.templateBody.includes("/bootstrap-ready"));
+});
+
+test("new first-open stops on non-independent caller, old bucket, second Secret version, wrong application grant or wrong observed DB OID", async () => {
+  for (const [x, expected] of [["caller", /INDEPENDENT_ROLE_REQUIRED/], ["old-bucket", /EXPRESS_SCOPE_CHANGED/],
+    ["second-version", /SECRET_VERSION_CHANGED/], ["late-version", /SECRET_VERSION_CHANGED/],
+    ["grant", /APPLICATION_GRANT_CHANGED/], ["database-oid", /INDEPENDENT_DATABASE_CHANGED/]] as const) {
+    const f = await derivedFirstOpenFixture(x);
+    await assert.rejects(runReviewedFirstOnboarding(f.options), expected);
+    assert.equal(f.calls.includes("limited-sql"), false);
+    if (x === "caller" || x === "old-bucket") assert.deepEqual(f.calls, []);
+    if (x === "second-version") assert.equal(f.calls.includes("prepare-v3"), false);
+    if (x === "grant") assert.equal(f.calls.includes("create"), false);
+  }
+});
+
+test("new first-open failed independent readback does not resubmit an acknowledged completion", async () => {
+  const f = await derivedFirstOpenFixture("readback");
+  await assert.rejects(runReviewedFirstOnboarding(f.options), /COMPLETION_COMMITTED_READBACK_UNCONFIRMED/);
+  assert.equal(f.calls.filter(x => x === "limited-sql").length, 1);
+  assert.equal(f.calls.filter(x => x === "readback-sql").length, 1);
+});
+
 test("missing empty-Express proof or changed/expired review stops before claim", async () => {
   const { options, calls, row } = await firstOpenFixture();
   await assert.rejects(runReviewedFirstOnboarding({ ...options, verifyEmptyExpressCapability: async () => null }), /EMPTY_EXPRESS_UNPROVED/);
@@ -381,7 +602,7 @@ test("first-open refuses initialized DB and holds activation on independent DNS,
   await assert.rejects(runReviewedFirstOnboarding(base.options), /DATABASE_NOT_EMPTY/);
   assert.equal(base.calls.includes("create"), false);
   for (const mismatch of ["dns", "database", "digest"]) {
-    const { options, context, calls } = await firstOpenFixture(), reader = options.independentReader;
+    const { options, context, calls } = await firstOpenFixture(), reader = options.independentReader!;
     options.independentReader = { capture: async request => {
       const result = await reader.capture(request);
       if (mismatch === "dns") result.dns.target = "another.elb.amazonaws.com";

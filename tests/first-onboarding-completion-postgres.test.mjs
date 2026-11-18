@@ -3,6 +3,7 @@ import test from "node:test";
 import pg from "pg";
 import { buildFirstOnboardingJob } from "../lib/deployments/first-onboarding.ts";
 import { COMPLETE_FIRST_ONBOARDING, READ_FIRST_ONBOARDING_COMPLETION } from "../lib/deployments/execution/first-onboarding-completion.ts";
+import { FIRST_ONBOARDING_COMPLETE_ENTRY, firstOnboardingCompletionDdl, readFirstOnboardingCompletion } from "../lib/deployments/execution/first-onboarding-completion-entry.ts";
 import { canonicalJson, sha256Hex } from "../lib/deployments/execution/hash.ts";
 import { PostgresReleaseRepository } from "../lib/deployments/releases/repository.ts";
 
@@ -15,6 +16,7 @@ test("native PostgreSQL: first-open writes all four records or none and D2 can r
   assert.equal(url.hostname, "127.0.0.1"); assert.equal(url.pathname, "/instance_release_ci"); assert.equal(url.username, "postgres");
   const connect = () => new pg.Client({ connectionString: testUrl, statement_timeout: 5000 });
   const db = connect(), reader = connect();
+  const separate = [];
   await db.connect(); await reader.connect();
   try {
     await db.query(`CREATE TABLE public.workspaces (id text PRIMARY KEY,status text);
@@ -121,5 +123,39 @@ test("native PostgreSQL: first-open writes all four records or none and D2 can r
       WHEN (OLD.deployment_id = '${failed.h.deploymentId}') EXECUTE FUNCTION public.ci_suppress_job_update()`);
     await assert.rejects(failed.attempt(),{code:"22012"});
     assert.deepEqual(await failed.state(),pending); assert.equal((await failed.read()).rowCount,0);
-  } finally { await db.end(); await reader.end(); }
+
+    const scoped=await seed("scoped"), foreign=await seed("foreign");
+    const roles={definer:"first_onboarding_ci_definer",writer:"first_onboarding_ci_writer",reader:"first_onboarding_ci_reader"};
+    await db.query(`CREATE ROLE ${roles.definer} NOLOGIN NOINHERIT;
+      CREATE ROLE ${roles.writer} LOGIN NOINHERIT PASSWORD 'synthetic-ci-only';
+      CREATE ROLE ${roles.reader} LOGIN NOINHERIT PASSWORD 'synthetic-ci-only';`);
+    await db.query(firstOnboardingCompletionDdl({jobId:scoped.h.jobId,deploymentId:scoped.h.deploymentId,
+      instanceId:scoped.scope.appInstanceId,approvalSha256:scoped.req.receipt.approvalSha256,writeBefore:scoped.req.writeBefore},roles));
+    const login=async name=>{
+      const u=new URL(testUrl); u.username=name;
+      const c=new pg.Client({connectionString:u.toString(),statement_timeout:5000}); separate.push(c); await c.connect(); return c;
+    };
+    const limited=await login(roles.writer), audit=await login(roles.reader);
+    const token="lease_"+"d".repeat(32);
+    const submit=(c,f,req=f.req)=>c.query(FIRST_ONBOARDING_COMPLETE_ENTRY,[canonicalJson(req),f.bindingText,token]);
+    await assert.rejects(limited.query("SELECT * FROM public.deployment_jobs"),{code:"42501"});
+    await assert.rejects(limited.query("UPDATE public.app_instances SET status='active'"),{code:"42501"});
+    await assert.rejects(limited.query("SET ROLE "+roles.definer),{code:"42501"});
+    await assert.rejects(submit(audit,scoped),{code:"42501"});
+    await assert.rejects(readFirstOnboardingCompletion(limited,scoped.req.receipt.initialBindingSha256),{code:"42501"});
+    assert.equal((await submit(limited,foreign)).rowCount,0);
+    assert.deepEqual(await foreign.state(),pending);
+    await db.query("UPDATE public.deployment_jobs SET lease_expires_at=0 WHERE id=$1",[scoped.h.jobId]);
+    assert.equal((await submit(limited,scoped)).rowCount,0);
+    await db.query("UPDATE public.deployment_jobs SET lease_expires_at=$2 WHERE id=$1",[scoped.h.jobId,t+60000]);
+    await db.query("UPDATE public.deployment_step_runs SET status='failed' WHERE job_id=$1",[scoped.h.jobId]);
+    assert.equal((await submit(limited,scoped)).rowCount,0);
+    assert.deepEqual(await scoped.state(),pending);
+    await db.query("UPDATE public.deployment_step_runs SET status='succeeded' WHERE job_id=$1",[scoped.h.jobId]);
+    assert.equal((await submit(limited,scoped,{...scoped.req,writeBefore:scoped.req.writeBefore+1000})).rowCount,0);
+    assert.equal((await submit(limited,scoped)).rowCount,1);
+    assert.equal((await submit(limited,scoped)).rowCount,0);
+    assert.equal((await readFirstOnboardingCompletion(audit,scoped.req.receipt.initialBindingSha256)).rowCount,1);
+    assert.equal((await readFirstOnboardingCompletion(audit,foreign.req.receipt.initialBindingSha256)).rowCount,0);
+  } finally { await Promise.all([db.end(),reader.end(),...separate.map(c=>c.end())]); }
 });

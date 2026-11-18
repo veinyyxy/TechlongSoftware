@@ -12,6 +12,9 @@ import { reviewFirstOnboarding, SELECT_FIRST_ONBOARDING, CLAIM_FIRST_ONBOARDING,
   isFirstOnboardingScope, type FirstOnboardingReview, type FirstOnboardingReviewRow } from "../first-onboarding.ts";
 import { verifyFirstOnboardingRuntime, type FirstOnboardingRuntimeReader } from "./first-onboarding-inspection.ts";
 import { COMPLETE_FIRST_ONBOARDING, type FirstOnboardingCompletionApproval, type FirstOnboardingCompletionWriter } from "./first-onboarding-completion.ts";
+import { firstOnboardingCompletionWriter, readFirstOnboardingCompletion } from "./first-onboarding-completion-entry.ts";
+import { composeFirstOnboardingExpress, type FirstOnboardingExpressApproval, type FirstOnboardingExpressPorts } from "./first-onboarding-express.ts";
+import { firstOnboardingReadOnlyBoundary, type FirstOnboardingReadOnlyPort } from "./first-onboarding-reader.ts";
 import type { SoftwareRelease } from "../releases/contract.ts";
 import { randomUUID } from "node:crypto";
 import { setTimeout as wait } from "node:timers/promises";
@@ -1763,7 +1766,8 @@ export interface FirstOnboardingExecutionApproval {
   hostname: string;
   dnsTarget: string;
   writeBefore: number;
-  completion?: FirstOnboardingCompletionApproval;
+  completion?: FirstOnboardingCompletionApproval | { clientApiVersion: string; deriveG1Secret: true };
+  express?: FirstOnboardingExpressApproval;
 }
 
 /** One held job through the existing stages. There is intentionally no CLI,
@@ -1780,8 +1784,11 @@ export async function runReviewedFirstOnboarding(input: {
   verifyEmptyExpressCapability: (input: { review: FirstOnboardingReview; baselineDigest: string; databaseSchemaVersion: string }) =>
     Promise<{ profile: "express_iam"; emptyDatabaseInitializationVerified: true; evidenceSha256: string } | null>;
   cleanupReadiness: SupervisedCleanupReadinessPort;
-  independentReader: FirstOnboardingRuntimeReader;
+  independentReader?: FirstOnboardingRuntimeReader;
   completeFirstOnboarding?: FirstOnboardingCompletionWriter;
+  expressPorts?: FirstOnboardingExpressPorts & { independent: FirstOnboardingReadOnlyPort;
+    completionClient: Parameters<typeof firstOnboardingCompletionWriter>[0];
+    completionReadClient: Parameters<typeof readFirstOnboardingCompletion>[0] };
 }) {
   const a = structuredClone(input.approval), now = input.dependencies.now ?? Date.now;
   const checkWindow = () => {
@@ -1789,12 +1796,19 @@ export async function runReviewedFirstOnboarding(input: {
   };
   checkWindow();
   if (input.config.workerEnabled || input.config.applyEnabled || !input.dependencies.tenantExternalOperationCoordinator ||
-    !input.verifyEmptyExpressCapability || !input.independentReader || a.writeBefore > now() + 60 * 60_000 ||
+    !input.verifyEmptyExpressCapability || a.writeBefore > now() + 60 * 60_000 ||
     !/^job_[a-f0-9]{24}$/.test(a.jobId) || ![a.reviewSha256, a.capabilitySha256, a.baselineDigest].every(hash => /^[a-f0-9]{64}$/.test(hash)) ||
     !/^[a-zA-Z0-9._-]{1,100}$/.test(a.databaseSchemaVersion) || !/^[a-z0-9][a-z0-9.-]{2,252}$/.test(a.dnsTarget) ||
     await sha256Hex(a) !== input.approvedSha256) throw Error("FIRST_ONBOARDING_APPROVAL_MISMATCH");
-  if (Boolean(a.completion) !== Boolean(input.completeFirstOnboarding) || (a.completion &&
-    (!/^[a-zA-Z0-9._-]{1,100}$/.test(a.completion.clientApiVersion) || !/^[a-f0-9]{64}$/.test(a.completion.samplingSha256)))) {
+  const derived = a.completion && "deriveG1Secret" in a.completion ? a.completion : undefined;
+  const fixed = a.completion && "samplingSha256" in a.completion ? a.completion : undefined;
+  if ((a.completion && !/^[a-zA-Z0-9._-]{1,100}$/.test(a.completion.clientApiVersion)) ||
+    (fixed && !/^[a-f0-9]{64}$/.test(fixed.samplingSha256)) ||
+    (derived && derived.deriveG1Secret !== true) ||
+    Boolean(derived) !== Boolean(a.express) || Boolean(derived) !== Boolean(input.expressPorts) ||
+    (input.expressPorts && input.expressPorts.completionClient === input.expressPorts.completionReadClient) ||
+    (derived ? Boolean(input.independentReader || input.completeFirstOnboarding || fixed) :
+      Boolean(fixed) !== Boolean(input.completeFirstOnboarding) || !input.independentReader)) {
     throw Error("FIRST_ONBOARDING_COMPLETION_SCOPE_MISMATCH");
   }
   const row = await input.readJob(SELECT_FIRST_ONBOARDING, [a.jobId]);
@@ -1818,11 +1832,25 @@ export async function runReviewedFirstOnboarding(input: {
   const capability = await input.verifyEmptyExpressCapability({ review, baselineDigest: a.baselineDigest, databaseSchemaVersion: a.databaseSchemaVersion });
   if (capability?.profile !== "express_iam" || capability.emptyDatabaseInitializationVerified !== true ||
     capability.evidenceSha256 !== a.capabilitySha256) throw Error("FIRST_ONBOARDING_EMPTY_EXPRESS_UNPROVED");
-  const strategy = createFirstOnboardingWorkloadStrategy({ cleanupReadiness: input.cleanupReadiness, scope: {
+  const readOnly = a.express && input.expressPorts
+    ? firstOnboardingReadOnlyBoundary(input.expressPorts.independent, a.express.independentRoleArn, now, a.writeBefore) : undefined;
+  const express = a.express && input.expressPorts && readOnly ? await composeFirstOnboardingExpress({
+    approval: a.express, approvalSha256: input.approvedSha256, review, hostname: a.hostname, schemaVersion: a.databaseSchemaVersion,
+    baselineDigest: a.baselineDigest, plan: row.desiredPlan as DeploymentExecutionContext["deployment"]["desiredPlan"],
+    ports: input.expressPorts, now, deadline: a.writeBefore, readSecretMetadata: readOnly.secret,
+  }) : undefined;
+  const independentReader = express && readOnly && derived && a.express ? readOnly.runtimeReader({
+    material: express.material, release, review, clientApiVersion: derived.clientApiVersion,
+    mediaPublicBaseUrl: a.express.mediaPublicBaseUrl, applicationRoleArn: express.applicationRoleArn,
+  }) : input.independentReader!;
+  const completionWriter = input.expressPorts ? firstOnboardingCompletionWriter(input.expressPorts.completionClient) : input.completeFirstOnboarding;
+  if (readOnly) await readOnly.checkIdentity(new AbortController().signal);
+  const strategy = createFirstOnboardingWorkloadStrategy({ cleanupReadiness: input.cleanupReadiness, express, scope: {
     deploymentId: scope.deploymentId, appInstanceId: scope.appInstanceId, environmentId: scope.environmentId,
     planHash: scope.planHash, configurationHash: scope.configurationHash, artifactRef: scope.artifactRef,
   } });
-  const dependencies = { ...input.dependencies, tenantWorkloadStrategy: strategy }, repository = dependencies.repository;
+  const dependencies = { ...input.dependencies, tenantWorkloadStrategy: strategy,
+    ...(express ? { tenantDatabase: express.database } : {}) }, repository = dependencies.repository;
   const workerId = `first-onboarding:${a.jobId}`, leaseToken = `lease_${randomUUID().replaceAll("-", "")}`;
   const config = { ...input.config, firstOnboardingDeadline: a.writeBefore, firstOnboardingHostname: a.hostname };
   checkWindow();
@@ -1838,6 +1866,7 @@ export async function runReviewedFirstOnboarding(input: {
     assertContextIntegrity(context, { destructive: false });
     await assertHashes(context, { configuration: true });
     assertFirstOnboardingContext(config, context);
+    await express?.assertContext(context);
     strategy.assertScope(context);
     if (context.job.id !== job.id || context.job.leaseToken !== job.leaseToken || context.job.attempt !== 1) {
       throw Error("FIRST_ONBOARDING_CONTEXT_CHANGED");
@@ -1859,16 +1888,18 @@ export async function runReviewedFirstOnboarding(input: {
   };
   let initialBindingText: string | undefined;
   const receipt = await checkpoint({ ...base, context, stepKey: "first_onboarding_independent_inspection", stepInput, execute: async signal => {
+    const completion = express && derived ?
+      { clientApiVersion: derived.clientApiVersion, samplingSha256: await sha256Hex(express.material().sampling) } : fixed;
     const checked = await verifyFirstOnboardingRuntime({ context, ...applied, dnsTarget: a.dnsTarget, baselineDigest: a.baselineDigest,
-      databaseSchemaVersion: a.databaseSchemaVersion, platformDigest: review.platformDigest, reader: input.independentReader, now, signal,
-      completion: a.completion ? { approved: a.completion, review, release } : undefined });
+      databaseSchemaVersion: a.databaseSchemaVersion, platformDigest: review.platformDigest, reader: independentReader, now, signal,
+      completion: completion ? { approved: completion, review, release } : undefined });
     initialBindingText = checked.initialBindingText;
     return { outcome: "TECHNICALLY_VERIFIED" as const, jobId: a.jobId, deploymentId: scope.deploymentId, instanceId: scope.appInstanceId,
       releaseId: scope.releaseId, approvalSha256: input.approvedSha256, reviewSha256: review.reviewSha256,
       hostname: applied.stack.parameters.TenantHostname, runtime: checked.runtime, customerActivated: false as const,
       ...(initialBindingText ? { initialBindingSha256: await sha256Hex(initialBindingText) } : {}) };
   } });
-  if (!a.completion || !input.completeFirstOnboarding) { checkWindow(); return receipt; }
+  if (!a.completion || !completionWriter) { checkWindow(); return receipt; }
   const fence = context.tenantExternalOperation, resource = context.tenantResources;
   if (!initialBindingText || !receipt.initialBindingSha256 || !fence || !resource) throw Error("FIRST_ONBOARDING_FRESH_COMPLETION_PROOF_REQUIRED");
   const request = canonicalJson({ jobId: a.jobId, jobPayload: review.payload, desiredPlan: row.desiredPlan, configuration: row.configuration,
@@ -1877,13 +1908,26 @@ export async function runReviewedFirstOnboarding(input: {
   checkWindow();
   let committed;
   try {
-    committed = await input.completeFirstOnboarding(COMPLETE_FIRST_ONBOARDING, [request, initialBindingText, leaseToken]);
+    committed = await completionWriter(COMPLETE_FIRST_ONBOARDING, [request, initialBindingText, leaseToken]);
   } catch {
     // Unknown submission outcomes must be reconciled by an independent read.
     throw Error("FIRST_ONBOARDING_COMPLETION_UNCONFIRMED");
   }
   if (!committed) throw Error("FIRST_ONBOARDING_COMPLETION_REJECTED");
   if (committed.instanceId !== scope.appInstanceId || committed.committed !== 1) throw Error("FIRST_ONBOARDING_COMPLETION_UNCONFIRMED");
+  if (input.expressPorts) {
+    try {
+      checkWindow();
+      const { rows } = await readFirstOnboardingCompletion(input.expressPorts.completionReadClient, receipt.initialBindingSha256);
+      const row = rows[0] as { instanceId?: string; revision?: string | number } | undefined;
+      if (rows.length !== 1 || row?.instanceId !== scope.appInstanceId || (row.revision !== 0 && row.revision !== "0")) {
+        throw Error("FIRST_ONBOARDING_COMPLETION_READBACK_CHANGED");
+      }
+    } catch {
+      // The write was acknowledged. A failed readback does not undo it or authorize another submission.
+      throw Error("FIRST_ONBOARDING_COMPLETION_COMMITTED_READBACK_UNCONFIRMED");
+    }
+  }
   return { ...receipt, outcome: "ACTIVATED" as const, customerActivated: true as const, revision: 0 as const };
 }
 
