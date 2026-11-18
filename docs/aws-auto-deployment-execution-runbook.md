@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，等待同一平台的一次首开启用审批。** [集中范围与完整风险](aws-sandbox-first-purchase-activation-review.md)／[固定清单](evidence/sandbox-first-purchase-activation-consolidated.review.json) SHA `f90d46880a9e60a33982f06dd50881a115662a7ae32068f54400da23ef961715`。接线已完成：固定产物 `14457164929` 发布、立即撤权并独立核验、原 Neon 窄安装、新固定 Secret、原 Access/Hosting 更新和独立技术回读。完成签名私密供给且用户批准后才运行；最晚 2026-11-18 15:31:18.005 CST（温尼伯）前开始。GitHub environment 用户本人批准。不开单独 Stripe 测试轮，不延旧期限，不购买或执行首开任务；准备未读凭据、发布、安装、更新平台或恢复 Cell/Express。
+**当前唯一继续点：缺口 3 第 4 步，等待同一平台的新一轮首开启用审批。** [集中范围与完整风险](aws-sandbox-first-purchase-activation-renewed-review.md)／[新清单](evidence/sandbox-first-purchase-activation-renewed.review.json) SHA `8b35a3584a5b71e3eb74d7950e66a403cfe2ce3806db434febc04edee0abf25d`。签名已供给；原批准窗口错过，旧清单未执行、原槽未消费，保留不续期。本轮新获批后，在第一次远程写入前一次核对必要现状，通过才发布固定产物 `14457164929`、立即撤权并核验、原 Neon 窄安装、新固定 Secret、原 Access/Hosting 更新及独立技术回读。最晚 2026-11-19 16:14:13.352 CST（温尼伯）前启动，最长 95 分钟，GitHub environment 用户本人批准。不开单独 Stripe 测试轮，不新建或改动回调，不购买、执行首开任务或恢复 Cell/Express；准备阶段未读凭据或做云侧操作。
 
 **测试分工：** 工程侧先交付功能，只做必要的代码回归及部署技术核验。用户亲自做界面、测试购买和其他业务验收；不代测、不重复跑用户已验收的场景、不为细节拆出额外阶段。影响是否可安全部署的账户/目标/版本和健康核对保留，合并进一次准确审批。
 

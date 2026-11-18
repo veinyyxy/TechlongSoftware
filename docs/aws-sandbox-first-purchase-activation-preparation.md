@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：[集中启用审批已编好，未执行](aws-sandbox-first-purchase-activation-review.md)。** 2026-11-18（温尼伯）。用户已更正账户 ID，不另开 Stripe 测试轮；[测试分工](#sandbox-first-purchase-delivery-boundary)不变。以下是保留的准备沿革，不是审批。未读取凭据、发布镜像、安装权限、创建 Secret/回调端点或更新平台。
+**状态：[新一轮集中启用审批待批准，未执行](aws-sandbox-first-purchase-activation-renewed-review.md)。** 2026-11-18（温尼伯）。旧窗口结束前未启动，用户已私密供给签名；旧快照只作比对基准，现状核对跟新启用合并另批。不另开 Stripe 测试轮；[测试分工](#sandbox-first-purchase-delivery-boundary)不变。以下是保留的准备沿革，不是当前审批。工程侧未读取新凭据、发布镜像、安装权限、创建 Secret/回调端点或更新平台。
 
 ## 固定范围
 
