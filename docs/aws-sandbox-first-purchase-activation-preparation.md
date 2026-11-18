@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：[修正版候选已在一次无 AWS 构建中封存并核验](#sandbox-first-purchase-dahlia-build-observed)，未启用。** [上一轮启用](aws-sandbox-first-purchase-activation-renewed-review.md)在匹配检查停下，未做云侧写入；签名保持已供给，不改回调，也不另开 Stripe 测试轮。[测试分工](#sandbox-first-purchase-delivery-boundary)不变。以下不授权实际发布、安装或启用。
+**状态：[修正版单次启用已备审](aws-sandbox-first-purchase-dahlia-activation-review.md)，未执行。** [上一轮启用](aws-sandbox-first-purchase-activation-renewed-review.md)在匹配检查停下，未做云侧写入；保留原 Dahlia 签名和回调，不另开 Stripe 测试轮。[测试分工](#sandbox-first-purchase-delivery-boundary)不变。以下不授权实际发布、安装或启用。
 
 ## 固定范围
 
@@ -203,3 +203,5 @@ Stripe 的另批范围不包含 AWS、Neon 或 GitHub 运行读取，也不刷�
 用户批准后核对远端 `main` 提交 `15a687f` 和工作流字节，仅调度 [run 44418072086](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44418072086) 一次，attempt 1 成功。准确 job 的封存和独立产物元数据均与配方、树、非 root／关闭控制器和 worker、禁网注册及合成 Dahlia 回调、HIGH/CRITICAL 扫描通过的结果匹配。
 
 [去敏回执](evidence/sandbox-first-purchase-dahlia.observed.json)绑定唯一产物 `14480476839`，截止 **2026-11-21 17:09:39（温尼伯 CST）**。实际调度 1、GET 12、Re-run 0。未下载镜像包、访问 AWS/Stripe/Neon、发布、安装、启用或发起支付。封存 config digest 不是 ECR manifest digest。下一步只准备绑定该新产物以及原 Dahlia 版本、五个事件和签名的单次启用，不重跑旧清单或重新构建。
+
+[单次启用范围](aws-sandbox-first-purchase-dahlia-activation-review.md)及[机器清单](evidence/sandbox-first-purchase-dahlia-activation.review.json)已固定；准备只核验两个确切的无 AWS CI、23 个 reusable 文件与本机 32 项回归，没有读取私密配置、外部事实核对、发布调度或启用。
