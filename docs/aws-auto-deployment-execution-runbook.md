@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，[另审一次 19 文件候选的无 AWS 构建](aws-sandbox-first-purchase-activation-preparation.md#sandbox-first-purchase-build-dispatch-review)。** 已固定合成来源树并通过本机构建，原手动无 AWS 入口已接线但未调度，没有镜像证据。候选通过后再按准确范围另审线上只读，齐全后只出一次实际启用审批；不发布、不安装、不更新平台、不购买、不恢复 Cell/Express。
+**当前唯一继续点：缺口 3 第 4 步，[另审一次限定只读](aws-sandbox-first-purchase-activation-preparation.md#需要另批的最小补齐)。** [单次候选构建](aws-sandbox-first-purchase-activation-preparation.md#sandbox-first-purchase-candidate-observed)成功，原产物 `14454594785` 已按元数据/封印核验，不重跑。AWS/Neon 现状尚未核对；材料齐全后只出一次实际启用审批。不发布、不安装、不更新平台、不购买、不恢复 Cell/Express。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 
