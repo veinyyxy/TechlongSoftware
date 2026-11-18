@@ -1,0 +1,195 @@
+{
+  "schema": "techlong/platform-register-restore-create-review/v1",
+  "status": "PREPARED_NOT_APPROVED",
+  "preparedFromSourceCommit": "0bb6f5d9d496f218ec086f87bee8016e34ecdca1",
+  "accountId": "402010193138",
+  "region": "ca-central-1",
+  "profile": "techlong-sandbox-user",
+  "expectedPrincipalArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "factsReference": "docs/auto-pending-provisioning.md#first-onboarding-step4-register-platform-facts",
+  "factsAt": "2026-11-18T14:17:53.956Z",
+  "factsValidBefore": "2026-11-18T19:17:53.956Z",
+  "startBefore": "2026-11-18T19:07:53.956Z",
+  "startBeforeWinnipeg": "2026-11-18 13:07:53.956 CST",
+  "templateSource": {
+    "file": "ops/deployment-baseline/platform-idle-convergence.template.json",
+    "canonicalSha256": "47ae49231809b1cbe5859c0d5eebd4444c5795162a39ead51ba81964d557f3c1",
+    "singleEdit": {
+      "pointer": "/Resources/Service/Properties/DesiredCount",
+      "oldValue": 0,
+      "newValue": 1
+    },
+    "materialization": "TemplateBody is canonicalJson(edited JSON object), not the unedited source or a new stack template upload.",
+    "candidateCanonicalSha256": "6b982ae4027bf583793f6be6e2a1631994f5c2aca0b548309e81a55b5dd5e036",
+    "templateBodyUtf8Bytes": 8776
+  },
+  "requestWithoutTemplateBody": {
+    "StackName": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "ChangeSetName": "techlong-platform-register-restore-20261118t141753z",
+    "ChangeSetType": "UPDATE",
+    "Description": "Review only: add four original platform resources for sandbox registration; controller disabled; execution requires separate approval.",
+    "Parameters": [
+      {
+        "ParameterKey": "ControllerLease",
+        "UsePreviousValue": true
+      },
+      {
+        "ParameterKey": "HostingExpiresAt",
+        "UsePreviousValue": true
+      }
+    ],
+    "Tags": [
+      {
+        "Key": "ReviewNonce",
+        "Value": "1e710b176bd5e31bcddae438ace7d772"
+      },
+      {
+        "Key": "Environment",
+        "Value": "aws-sandbox"
+      },
+      {
+        "Key": "Purpose",
+        "Value": "platform-web-two-hour"
+      },
+      {
+        "Key": "HostingExpiresAt",
+        "Value": "2026-10-23T20:58:42.592Z"
+      }
+    ],
+    "IncludeNestedStacks": false,
+    "ImportExistingResources": false,
+    "ClientToken": "techlong-platform-register-create-20261118t141753z-v1"
+  },
+  "materializedRequestCanonicalSha256": "583fbccd10f2d13c851c90521f25b793af4cfe0dcef83d0597838bf90d6dadea",
+  "expected": {
+    "stackStatus": "UPDATE_COMPLETE",
+    "currentOriginalTemplateCanonicalSha256": "cd0a829365af8e1b2a6a993448866237d0ea3b0920eb43b783c6f5aa380437e1",
+    "stackLastUpdatedAt": "2026-11-13T14:33:34.307Z",
+    "stackTagMapCanonicalSha256": "ae52c8f310d8ff7f786d2832531181f8517fbc2d51a99b45735b98b361b7b413",
+    "stackRoleArnUnset": true,
+    "pendingChangeSetCountBefore": 0,
+    "platformAlbNameMustBeAbsent": "techlong-sandbox-platform",
+    "consoleRecordNameMustBeAbsent": "console.sandbox.techlong.cloud.",
+    "consoleHostedZoneId": "Z01473621BTTHKXBGOOEJ",
+    "retainedPhysicalIdsSource": "ops/deployment-baseline/platform-idle-followup-observed-20261108.json#physicalBindings",
+    "retainedLogicalIds": [
+      "AlbSecurityGroup",
+      "Cluster",
+      "LogGroup",
+      "TargetGroup",
+      "TaskDefinition",
+      "TaskIngress",
+      "TaskSecurityGroup"
+    ],
+    "retainedTaskDefinition": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:13",
+    "expectedChanges": [
+      {
+        "LogicalResourceId": "DnsRecord",
+        "ResourceType": "AWS::Route53::RecordSet",
+        "Action": "Add"
+      },
+      {
+        "LogicalResourceId": "HttpsListener",
+        "ResourceType": "AWS::ElasticLoadBalancingV2::Listener",
+        "Action": "Add"
+      },
+      {
+        "LogicalResourceId": "LoadBalancer",
+        "ResourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "Action": "Add"
+      },
+      {
+        "LogicalResourceId": "Service",
+        "ResourceType": "AWS::ECS::Service",
+        "Action": "Add"
+      }
+    ],
+    "modifyRemoveImportOrReplaceCount": 0,
+    "createdStatus": "CREATE_COMPLETE",
+    "createdExecutionStatus": "AVAILABLE",
+    "originalStackTemplateAndSevenPhysicalIdsRemainUnchanged": true,
+    "effectiveChangeSetMode": "STANDARD"
+  },
+  "scope": {
+    "createChangeSetMax": 1,
+    "stsMax": 2,
+    "metadataReadMax": 12,
+    "readOnlyWaitMaxSeconds": 180,
+    "beforeCreation": [
+      {
+        "operation": "cloudformation:DescribeStacks",
+        "max": 1,
+        "target": "Exact stack, last update, tags, parameter keys and unset RoleARN"
+      },
+      {
+        "operation": "cloudformation:ListChangeSets",
+        "max": 1,
+        "target": "One page for exact stack; refuse pending or exact candidate name collision"
+      },
+      {
+        "operation": "elasticloadbalancing:DescribeLoadBalancers",
+        "max": 1,
+        "target": "Exact original platform ALB name only; require provider LoadBalancerNotFound"
+      },
+      {
+        "operation": "route53:ListResourceRecordSets",
+        "max": 1,
+        "target": "Exact zone, console name as inclusive start, at most one record, no additional page"
+      }
+    ],
+    "independentReadbackAfterAcknowledgement": [
+      {
+        "operation": "cloudformation:DescribeChangeSet",
+        "max": 4,
+        "target": "Exact acknowledged ARN, one page, require complete/available and exact four Adds"
+      },
+      {
+        "operation": "cloudformation:GetTemplate",
+        "max": 2,
+        "target": "Original for exact stack and for acknowledged Change Set, once each"
+      },
+      {
+        "operation": "cloudformation:DescribeStacks",
+        "max": 1,
+        "target": "Same unmodified original stack"
+      },
+      {
+        "operation": "cloudformation:ListStackResources",
+        "max": 1,
+        "target": "One page, same seven physical IDs"
+      }
+    ],
+    "executeChangeSet": 0,
+    "deleteChangeSet": 0,
+    "otherAwsWrites": 0,
+    "secretValueReads": 0,
+    "databaseConnections": 0,
+    "resourceStarts": 0,
+    "registration": 0,
+    "purchases": 0
+  },
+  "stopPolicy": {
+    "recordIntentBeforeSubmitting": true,
+    "permanentAttemptSlot": ".local-secrets/platform-register-restore-20261118t141753z/create",
+    "noRetryResetCancelOrCleanup": true,
+    "unknownAcknowledgementRequiresNewReadApproval": true,
+    "noAutomaticExecution": true,
+    "factsAreNotExtended": true
+  },
+  "approvalNotes": [
+    "No explicit RoleARN, IAM capability acknowledgements, OnStackFailure or RollbackConfiguration is supplied. Where CloudFormation uses the existing caller-derived temporary session, its privileges are not made narrower by this manifest; no IAM change is authorized.",
+    "The extra precise name-collision read for the ALB has not been made. DNS and other facts can change asynchronously; CreateChangeSet is not an atomic lock on the preflight.",
+    "The candidate preserves the old tags and template metadata; a historical HostingExpiresAt is not renewed or a resource expiry guarantee. DesiredCount=1 is in the proposed Service Add only and cannot start a task without a separately approved execution.",
+    "Provider background validation and logs can create low nonzero costs. Failed or unknown submissions can leave AWS records and permanently consume the local slot; no implicit delete, replay, replacement or slot reset.",
+    "The readback does not prove later execution permissions, pull/start or database readiness. Independent HTTPS/TLS checks and personal registration are later, separately scoped actions.",
+    "No DeploymentMode or DeploymentConfig is passed; this is an ordinary UPDATE, not drift-aware. Readback must not return REVERT_DRIFT."
+  ],
+  "creationAuthorized": false,
+  "executionAuthorized": false,
+  "changeSetArn": null,
+  "supersedesUnsubmittedManifest": {
+    "path": "ops/deployment-baseline/platform-register-restore-create.review.json",
+    "canonicalSha256": "1b39fab237fa130f9b4abe7968105c71ea67ede2b92bdae851621e2b085f2d6f",
+    "reason": "CreateChangeSet DeploymentMode is a drift-awareness setting accepting REVERT_DRIFT only; omit it for a standard change set. No account AWS request or slot consumption occurred."
+  }
+}

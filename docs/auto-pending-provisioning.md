@@ -328,7 +328,7 @@
 
 #### 第 4 步：原平台四项恢复变更集——仅创建审批材料
 
-**`PREPARED_NOT_APPROVED`。** [准确待审清单](../ops/deployment-baseline/platform-register-restore-create.review.json)规范 SHA **`1b39fab237fa130f9b4abe7968105c71ea67ede2b92bdae851621e2b085f2d6f`**，是「只创建、不执行」的审批指纹，不是可执行的 Change Set 或执行授权。唯一候选 `techlong-platform-register-restore-20261118t141753z`；仅 `UPDATE / STANDARD`，原平台栈，不导入或包含嵌套栈。
+**原清单已批准，提交前停止，不可重放。** [原清单](../ops/deployment-baseline/platform-register-restore-create.review.json)规范 SHA **`1b39fab237fa130f9b4abe7968105c71ea67ede2b92bdae851621e2b085f2d6f`**仅供追溯，见[更正清单](#first-onboarding-step4-register-create-standard)。候选为 `techlong-platform-register-restore-20261118t141753z`；仅普通 `UPDATE`，原平台栈，不导入或包含嵌套栈。
 
 | 核心项 | 准确范围 |
 | --- | --- |
@@ -338,6 +338,14 @@
 | **失败与禁止** | 提交前写单次意图并占永久槽；超时、响应不明、变更集不符或事实变化即停，不自动重发、删除未执行记录、回滚、补齐或消费新槽。API/provider 验证与日志可能有低额非零费用；并发或 AWS 后台验证不是跨资源原子操作。`ExecuteChangeSet`、其它云写、ALB/ECS/DNS 实际恢复、注册、购买、队列、Cell 和数据库操作均为 0。 |
 
 **原事实时限不延长。** 若未来获准，最晚 **2026-11-18 13:07:53.956 CST（温尼伯）**启动本轮创建核对，事实 **13:17:53.956 CST** 截止；超过任一门槛不提交、不重放。取得并独立核对准确 Change Set ARN 后，再另报执行与失败策略审批；注册页当前仍未恢复。本轮本地复算清单、物化请求和模板三份 SHA 并核对四 Add、保留配置与边界，仅提交审批材料；没有执行工具接线、AWS 读取或写入，没有创建记录或消费槽。
+
+<a id="first-onboarding-step4-register-create-standard"></a>
+
+#### 提交前停止：更正普通变更集 API 参数
+
+用户批准原 `1b39fab2…` 后，提交前对照既有生命周期工具和 [AWS CreateChangeSet API](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html#API_CreateChangeSet_RequestParameters) 发现：请求字段 `DeploymentMode` 只接受 `REVERT_DRIFT`，而 `STANDARD` 是普通变更集的验收语义。**不把 `STANDARD` 发给 AWS，也不擅自改成漂移修复。** 本轮 STS、AWS API、写入、变更集、槽消费和启动均为 0；原记录保留。
+
+**[更正后的仅创建清单](../ops/deployment-baseline/platform-register-restore-create-standard.review.json)规范 SHA `665738dfae20643d7f0fc0dbf1660ccf26b776e7b792fcf1d59ec20e5a290932` 待重新批准。** 物化请求规范 SHA `583fbccd10f2d13c851c90521f25b793af4cfe0dcef83d0597838bf90d6dadea`；实际请求唯一变化是省略 `DeploymentMode`，也不加 `DeploymentConfig`。模板、四 Add、七项保留、目标栈、候选名称、未使用的永久槽、有限前置读取（含准确 ALB 名）与独立回读边界均未变。原最晚启动 **2026-11-18 13:07:53.956 CST**，13:17:53.956 CST 事实截止，不延期。仅重新批准新 SHA 才提交；执行仍另审，不恢复或注册。
 
 ## 当前操作说明（实施计划不改变现有流程）
 
