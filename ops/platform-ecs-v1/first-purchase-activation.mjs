@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { validSandboxPurchaseScope } from '../../lib/purchases/sandbox-first-purchase-config.ts';
 import { P, canonical, hash, handoffPolicy } from './contract.mjs';
 import { suppliedTemplate, versionId } from '../platform-hosted-access-v6/contract.mjs';
+import { DAHLIA_FIRST_PURCHASE_CANDIDATE } from '../platform-registration-publish-v1/contract.mjs';
 
 const json = path => JSON.parse(readFileSync(new URL(`../../${path}`,import.meta.url),'utf8'));
 const evidence = 'docs/evidence/';
@@ -42,8 +43,8 @@ export function firstPurchaseOriginalTemplates(){
 export function buildFirstPurchaseActivationTemplates({workspaceId,planId,publisher,secret}){
   const purchaseScope={workspaceId,planId,releaseId:scope.tenantReleaseId,imageUri:scope.tenantReleaseImage};
   check(validSandboxPurchaseScope(purchaseScope),'BINDING');
-  const expected=draft.candidate;
-  check(publisher?.locked===true && publisher.artifactId===expected.artifactId && publisher.sourceRecipeSha256===expected.recipeSha256 &&
+  const expected=DAHLIA_FIRST_PURCHASE_CANDIDATE;
+  check(publisher?.locked===true && publisher.artifactId===expected.artifactId && publisher.sourceRecipeSha256===expected.sourceRecipeSha256 &&
     publisher.sourceTreeOid===expected.sourceTreeOid && publisher.imageConfigDigest===expected.imageConfigDigest &&
     typeof publisher.manifestDigest==='string' && digest.test(publisher.manifestDigest) &&
     ![scope.observedWebRegistryManifest,expected.imageConfigDigest].includes(publisher.manifestDigest),'PUBLISHER_RECEIPT');

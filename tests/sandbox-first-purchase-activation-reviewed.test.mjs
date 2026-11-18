@@ -2,14 +2,18 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { makeFirstPurchaseReview, validateFirstPurchaseReview, runFirstPurchaseStages } from '../ops/platform-ecs-v1/first-purchase-activate-reviewed.mjs';
+import { dahliaEndpoint, makeFirstPurchaseReview, validateFirstPurchaseReview, verifyDahliaStripeEndpoint,
+  runFirstPurchaseStages } from '../ops/platform-ecs-v1/first-purchase-activate-reviewed.mjs';
 import { buildFirstPurchaseActivationTemplates, draft } from '../ops/platform-ecs-v1/first-purchase-activation.mjs';
+import { DAHLIA_FIRST_PURCHASE_CANDIDATE as candidate, FIRST_PURCHASE_CANDIDATE as oldCandidate } from '../ops/platform-registration-publish-v1/contract.mjs';
 
 test('approved envelope binds scope and stops on changed bytes or expired window',()=>{
-  const now=Date.parse('2026-11-18T23:10:00.000Z');
+  const now=Date.parse('2026-11-18T23:30:00.000Z');
   const m=makeFirstPurchaseReview({implementationCommit:'a'.repeat(40),nonce:'b'.repeat(32),riskSha256:'c'.repeat(64),issuedAt:new Date(now).toISOString()});
   const hash=s=>createHash('sha256').update(s).digest('hex'),text=JSON.stringify(m);
-  assert.equal(validateFirstPurchaseReview(text,hash(text),now).candidate.artifact,14457164929);
+  assert.equal(validateFirstPurchaseReview(text,hash(text),now).candidate.artifact,14480476839);
+  assert.equal(m.priorAttempt.requireNoRemoteWriteAndNoPublisherIntent,true);
+  assert.equal(m.stripe.firstPurchasePaymentMethod,'card');
   assert.equal(m.preflight.originalSnapshotEndedUtc,draft.originalSnapshot.usableBeforeUtc);
   assert.equal(m.preflight.freshReadbacksAfterApprovalAndBeforeFirstRemoteWrite,true);
   assert.equal(m.limits.operatorStripeDashboardEndpointCreatesIfAbsent,0);
@@ -19,7 +23,10 @@ test('approved envelope binds scope and stops on changed bytes or expired window
   assert.ok(Date.parse(m.hardStopUtc)<=Date.parse(m.artifactExpiresAtUtc));
   const prior=readFileSync(new URL('../docs/evidence/sandbox-first-purchase-activation-consolidated.review.json',import.meta.url),'utf8').replaceAll('\r\n','\n');
   assert.equal(hash(prior),'f90d46880a9e60a33982f06dd50881a115662a7ae32068f54400da23ef961715');
-  assert.throws(()=>validateFirstPurchaseReview(prior,hash(prior),now),/CHANGED/);
+  assert.throws(()=>validateFirstPurchaseReview(prior,hash(prior),now),/FORMAT/);
+  const oldV2=readFileSync(new URL('../docs/evidence/sandbox-first-purchase-activation-renewed.review.json',import.meta.url),'utf8').replaceAll('\r\n','\n');
+  assert.equal(hash(oldV2),'8b35a3584a5b71e3eb74d7950e66a403cfe2ce3806db434febc04edee0abf25d');
+  assert.throws(()=>validateFirstPurchaseReview(oldV2,hash(oldV2),now),/FORMAT/);
   assert.throws(()=>validateFirstPurchaseReview(text,hash(text),Date.parse(m.latestStartUtc)),/EXPIRED/);
   const changed=JSON.stringify({...m,writes:{...m.writes,accessChangeSetExecute:2}});
   assert.throws(()=>validateFirstPurchaseReview(changed,hash(changed),now),/CHANGED/);
@@ -41,14 +48,26 @@ test('one sequence: no downstream writes if fresh preflight or publisher lock pr
 });
 
 test('Hosting pins the new version and retains the old Web connection and closed worker',()=>{
-  const p=draft.candidate, versionId='12345678-abcd-4123-8123-123456789abc';
+  const versionId='12345678-abcd-4123-8123-123456789abc';
   const arn='arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/first-purchase-v1-A1B2C3';
-  const t=buildFirstPurchaseActivationTemplates({workspaceId:'wsp_'+'a'.repeat(24),planId:'pln_'+'b'.repeat(32),
-    publisher:{locked:true,artifactId:p.artifactId,sourceRecipeSha256:p.recipeSha256,sourceTreeOid:p.sourceTreeOid,
-      imageConfigDigest:p.imageConfigDigest,manifestDigest:'sha256:'+'a'.repeat(64)},secret:{arn,versionId}});
+  const fixture={workspaceId:'wsp_'+'a'.repeat(24),planId:'pln_'+'b'.repeat(32),secret:{arn,versionId}};
+  const publisher={...candidate,locked:true,manifestDigest:'sha256:'+'a'.repeat(64)};
+  const t=buildFirstPurchaseActivationTemplates({...fixture,publisher});
+  assert.throws(()=>buildFirstPurchaseActivationTemplates({...fixture,publisher:{...publisher,...oldCandidate}}),/PUBLISHER_RECEIPT/);
   const web=t.hosting.template.Resources.TaskDefinition.Properties.ContainerDefinitions[0];
   assert.equal(web.Secrets.length,4);assert.equal(web.Secrets[0].Name,'DATABASE_URL');
   assert.ok(web.Secrets.slice(1).every(x=>x.ValueFrom.startsWith(arn+':')&&x.ValueFrom.endsWith('::'+versionId)));
   assert.equal(web.Environment.find(e=>e.Name==='TECHLONG_SANDBOX_FIRST_PURCHASE').Value,'true');
   assert.ok(web.Environment.filter(x=>/ENABLE.*(?:WORKER|CONTROLLER)|(?:WORKER|CONTROLLER).*ENABLED/.test(x.Name)).every(x=>x.Value==='false'));
+});
+
+test('only the existing signed Dahlia destination and five unchanged events qualify',()=>{
+  const endpoint={id:'we_syntheticOnly',url:dahliaEndpoint.url,object:'webhook_endpoint',livemode:false,status:'enabled',
+    application:null,api_version:'2026-05-27.dahlia',enabled_events:[...dahliaEndpoint.events].reverse()};
+  const list=(...data)=>({object:'list',has_more:false,data});
+  assert.doesNotThrow(()=>verifyDahliaStripeEndpoint(list(endpoint),endpoint.id));
+  assert.throws(()=>verifyDahliaStripeEndpoint(list({...endpoint,api_version:'2026-10-28.endive'}),endpoint.id),/ENDPOINT_VERSION/);
+  assert.throws(()=>verifyDahliaStripeEndpoint(list({...endpoint,enabled_events:['checkout.session.completed']}),endpoint.id),/ENDPOINT_EVENTS/);
+  assert.throws(()=>verifyDahliaStripeEndpoint(list(endpoint,{...endpoint,id:'we_other'}),endpoint.id),/ENDPOINT_IDENTITY/);
+  assert.throws(()=>verifyDahliaStripeEndpoint(list(endpoint),'we_other'),/ENDPOINT_IDENTITY/);
 });
