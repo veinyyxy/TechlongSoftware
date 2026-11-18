@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import {mkdtemp,readFile,rm,stat} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import test from 'node:test';
+import {load} from 'js-yaml';
+import {buildCandidateArchive,FIRST_PURCHASE,FIRST_PURCHASE_TREE} from '../ops/platform-registration-candidate-v1/candidate.mjs';
+
+const file=filepath=>new URL('../'+filepath,import.meta.url);
+test('same no-AWS manual workflow admits only the two pinned recipes and never publishes',async()=>{
+  const workflow=load(await readFile(file('.github/workflows/sandbox-registration-candidate-v1.yml'),'utf8'));
+  assert.deepEqual(Object.keys(workflow.on),['workflow_dispatch']);
+  assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs),['recipe_sha','orchestration_sha']);
+  assert.deepEqual(workflow.permissions,{contents:'read'});
+  const job=workflow.jobs.candidate;
+  assert.equal(job.environment,undefined);
+  assert.equal(job.permissions,undefined);
+  assert.equal(job['timeout-minutes'],25);
+  for(const gate of ["github.ref == 'refs/heads/main'","github.run_attempt == 1","github.repository_id == '1323312747'",
+    'github.sha == inputs.orchestration_sha',FIRST_PURCHASE,'06d91b3eb875568af5d3f9b9a9015d9a949571dc0ec8427b0ad2e764bbd8c720']) {
+    assert.ok(job.if.includes(gate),gate);
+  }
+  assert.deepEqual(job.env,{REVIEWED_RECIPE_SHA:'${{ inputs.recipe_sha }}'});
+  const shell=job.steps.map(x=>x.run??'').join('\n');
+  assert.doesNotMatch(shell,/docker push|docker login|aws login|aws sts|gh workflow run|secrets\./);
+  assert.equal((shell.match(/docker build --platform/g)??[]).length,1);
+  const smoke=job.steps.find(x=>x.name?.startsWith('First-purchase signed-callback'));
+  assert.equal(smoke.if,`inputs.recipe_sha == '${FIRST_PURCHASE}'`);
+  for(const pin of ['--network none','--read-only','--cap-drop ALL','DEPLOYMENT_WORKER_ENABLED=false','whsec_synthetic_only','first-purchase-smoke.json'] )
+    assert.ok(smoke.run.includes(pin));
+  const upload=job.steps.find(x=>x.uses?.startsWith('actions/upload-artifact@'));
+  assert.match(upload.with.name,/sandbox-first-purchase-overlay-258c7766.*sandbox-registration-overlay-06d91b3e/);
+  assert.equal(upload.with['retention-days'],3);
+  assert.equal(upload.with.overwrite,false);
+});
+
+test('exact 19-blob archive is reachable while the original two-file recipe remains byte-bound',async()=>{
+  const temp=await mkdtemp(path.join(tmpdir(),'techlong-candidate-wiring-test-'));
+  try {
+    await assert.rejects(buildCandidateArchive(path.join(temp,'wrong'),'0'.repeat(64)),/reviewed recipe ID/);
+    const staged=path.join(temp,'first-purchase');
+    const [old,next]=await Promise.all([buildCandidateArchive(path.join(temp,'registration')),buildCandidateArchive(staged,FIRST_PURCHASE)]);
+    assert.equal(old.sourceTreeOid,'131fc5f0fd491e642916723ea0206cd0b03f413f');
+    assert.equal(old.sourceRecipe.overlay.length,2);
+    assert.equal(next.sourceRecipeSha256,FIRST_PURCHASE);
+    assert.equal(next.sourceRecipe.overlay.length,19);
+    assert.equal(next.sourceRecipe.base,old.sourceRecipe.base);
+    assert.equal(next.sourceTreeOid,FIRST_PURCHASE_TREE);
+    for(const row of old.sourceRecipe.overlay) {
+      assert.equal(next.sourceRecipe.overlay.find(x=>x.path===row.path)?.sha256,row.sha256);
+    }
+    const proof=await readFile(path.join(staged,'source-proof.json'),'utf8');
+    assert.ok(Buffer.byteLength(proof)<8192);
+    assert.deepEqual(JSON.parse(proof),next);
+    assert.ok((await stat(path.join(staged,'source.tar'))).size>0);
+    await assert.rejects(buildCandidateArchive(staged,FIRST_PURCHASE),{code:'EEXIST'});
+  } finally {
+    // Only the unique test fixture created above, not a checkout or existing directory.
+    assert.equal(path.dirname(temp),tmpdir().replace(/[\\/]$/,''));
+    assert.match(path.basename(temp),/^techlong-candidate-wiring-test-[A-Za-z0-9]+$/);
+    await rm(temp,{recursive:true,force:true});
+  }
+});

@@ -12,7 +12,15 @@
 
 机器索引核实了 **19 个确切 Git blob**（含已上线的两份注册源码），每份有来源 commit、blob ID 与原始字节 SHA-256。以同一个实际基底 `5fcbc23c…` 重建；加入购买 Web/API/Node 接线、一个既有首开合同及其类型依赖，并取已通过的两处普通领取排除规则（仅使用 `a8b57b3…`，不顺带复制后来修改的 heartbeat）。不把整个 `main`、后续 Worker、D2 模块、SQL 安装草稿、测试数据或证书/密钥打进运行镜像；依赖锁不换。
 
-合成来源摘要 `258c77666a802b08f3052f1082c279104ee45c9f643e174089f9e630110c1e9c` **不是执行批准或镜像摘要**。上一轮 18 项隔离回归和本机构建只证明已提交接线，不是据本配方构建出的镜像证据。后续仅在另批后复用原无 AWS 构建/非 root 禁网自检/扫描/封存原件路径，验证精确叠加、保留注册、默认闭控和签名回调路径；待真正取到 run、artifact、ZIP/manifest/config 摘要后再绑定。默认候选工作流归档整个 HEAD，旧注册构建/发布入口只接受旧两文件配方及固定原产物，**不能原样用于本次**；允许的后续改动只限这份新来源及产物的窄绑定，不能替换历史 V6 指纹、重放旧槽或放宽保护。
+合成来源摘要 `258c77666a802b08f3052f1082c279104ee45c9f643e174089f9e630110c1e9c` **不是执行批准或镜像摘要**。本轮重建并本机构建了具体 19 文件归档，Git 树为 `33c035176b7a2decc4e595ac61c6ce888872d57f`；5 项接线/原发布合同回归通过。仅在本机 loopback 用合成配置启动这个编译产物，禁用外部 fetch，实际回调路由通过四项合成检查后关闭。以上不等于 GitHub 容器镜像、扫描或 registry 证据。默认候选工作流归档整个 HEAD，不用于此候选；已为[同一个手动无 AWS 工作流](../.github/workflows/sandbox-registration-candidate-v1.yml)增加固定的 19 文件入口，旧两文件配方仍重建原树。旧发布入口继续只接受旧的已固定原产物，**本轮不改发布工作流、审批门禁、IAM 或旧槽**。
+
+<a id="sandbox-first-purchase-build-dispatch-review"></a>
+
+### 下一步仅审批单次候选构建
+
+- `veinyyxy/TechlongSoftware` 的 `sandbox-registration-candidate-v1.yml`，只对 `main` 调度一次 `workflow_dispatch`，输入仅上述 `recipe_sha` 和审批时确认的完整 `orchestration_sha`。先核对远端 head、工作流字节与本机已审版本，任何差异则不调度；只接受原尝试 1、同仓库和同一 run。没有 GitHub environment 或 OIDC，不改变设置。
+- 单 job 最多 25 分钟：构建一份 Linux/amd64 Web 镜像，非 root、只读且禁网自检。包含匿名注册表单和四个合成回调：正确签名但不属于本订单、真实模式、错误签名、带查询串的路径。合成凭据只在容器内使用，不接触实际 Stripe/Neon 或购买。通过新鲜 HIGH/CRITICAL OS 扫描后，仅在 GitHub 保留名为 `sandbox-first-purchase-overlay-258c7766-<runId>` 的一份候选产物，保留 3 天。只封存源码树、档案/配置和扫描摘要，不推 ECR。
+- 批准范围可同时覆盖本次同一 run 的认证 GitHub GET 最多 40 次（调度前确认 2、定位 4、观察 29、job/去敏日志/产物元数据 5），候选档案不得下载。只使用既有 GitHub 身份、仅在内存处理认证；调度 ACK 不明只按准确输入定位原 run，不再次 POST、不 Re-run。GitHub 运行与存储有潜在费用。其他 GitHub 读取、AWS、Stripe、Neon 及实际启用不在此范围。
 
 ## 集中启用顺序与拟议上限
 
@@ -32,7 +40,7 @@
 
 ## 需要另批的最小补齐
 
-1. **候选来源与产物。** 先核对精确无 AWS CI、候选入口的窄绑定及必要一次构建范围；未经批准不调度、不下载完整产物。没有真实的新 Web manifest 及发布门禁证明不进入启用。
+1. **候选来源与产物。** [单次无 AWS 构建范围](#sandbox-first-purchase-build-dispatch-review)已备。未经批准不调度、不下载完整产物；真实候选的源码、扫描和 artifact 未核验前不进入实际启用。Registry manifest 只能在实际发布后独立派生，当前不预填。
 2. **一次集中限定只读。** 拟限 Source STS 1 次、AWS 元数据 41 次（原 Hosting/Access/发布栈 12，原 ECS 4，ALB 3，两原角色及 boundary 12，固定旧 DB Secret/新 Secret 名占用及 KMS 5，Web ECR 及 A digest 4，原 OIDC 1），确切 GitHub run/artifact/本人门禁 GET 最多 12 次。Neon 拟限一条验证 TLS 的只读连接、最多 16 条 SQL（含事务控制），仅核对准确 workspace/Owner、餐饮套餐和模板/正价及币种、空订单/订阅/实例/任务、A 未撤销、环境 `admission_state=open / apply_enabled=0`、窄函数角色和实际约束/触发器依赖。不查其他区域/资源或业务正文，不读邮箱、口令、Secret 值或完整镜像产物；确切认证路径、调用上限和去敏输出随读取许可一次确认。Stripe 仅需测试账户、精准端点及事件类型的证明，不从旧密钥推定账户。
 3. **只出一份实际启用审批。** 上述真实值、未使用的新槽和独立验收上限齐全后才定执行 SHA。快照按真实观测五小时有效，旧期限不续；按原发布截止与撤权预留反推开窗，不先部署等材料。当前套餐 ID、端点/Secret 实际身份、安装者有效权限及执行窗口均未绑定。
 
