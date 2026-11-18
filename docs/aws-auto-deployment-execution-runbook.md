@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，先由用户核对本机 `accountId` 与两把测试密钥是否同一 Sandbox。** [第一次 Stripe 限定只读](aws-sandbox-first-purchase-activation-preparation.md#sandbox-first-purchase-stripe-readonly-stopped)在运行密钥账户匹配处停止，只读本机文件 1 次、Stripe GET 1 次，不自动重试或刷新事实。固定产物 `14457164929` 和隔离 PG18 证据不重做。不先安装、发布、更新平台、购买或恢复 Cell/Express；实际启用仍单份另审。
+**当前唯一继续点：缺口 3 第 4 步，先由用户用本机对照文件确认 Stripe Sandbox 账户。** [单请求诊断](aws-sandbox-first-purchase-activation-preparation.md#sandbox-first-purchase-stripe-account-diagnostic)证实运行密钥返回的账户编号与原文件不同，保存在本机私有文件，未改原文件。确认后再另批读取，不自动重试或刷新事实。固定产物 `14457164929` 和隔离 PG18 证据不重做。不先安装、发布、更新平台、购买或恢复 Cell/Express；实际启用仍单份另审。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 

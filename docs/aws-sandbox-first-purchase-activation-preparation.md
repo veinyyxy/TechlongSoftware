@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：Stripe 限定只读在运行密钥的账户匹配处停止，启用不可执行。** 2026-11-18（温尼伯）。[集中草案](#sandbox-first-purchase-consolidated-preparation)已绑定替代产物和原栈模板；[两项离线前置](#sandbox-first-purchase-offline-prerequisites-observed)已有准确 CI。先由用户核对同一 Sandbox 的账户和密钥，[第一次读取已消费，不自动重试](#sandbox-first-purchase-stripe-readonly-stopped)。未发布镜像、安装权限、创建 Secret/回调端点或更新平台。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
+**状态：单请求已确认运行密钥返回的账户编号不同，等待用户核对，启用不可执行。** 2026-11-18（温尼伯）。[集中草案](#sandbox-first-purchase-consolidated-preparation)已绑定替代产物和原栈模板；[两项离线前置](#sandbox-first-purchase-offline-prerequisites-observed)已有准确 CI。[账户编号对照文件只存本机](#sandbox-first-purchase-stripe-account-diagnostic)，未覆盖原文件、不自动重试。未发布镜像、安装权限、创建 Secret/回调端点或更新平台。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
 
 ## 固定范围
 
@@ -161,3 +161,11 @@ Stripe 的另批范围不包含 AWS、Neon 或 GitHub 运行读取，也不刷�
 用户明确批准后，固定文件的独占范围、ACL、Git 排除及两把不相同的 `rk_test_` 格式通过。只读取文件 **1** 次，运行密钥只请求 **1** 次 `GET /v1/account`；返回 200 后未通过账户对象与预填 `accountId` 的匹配，记 `STRIPE_ACCOUNT_NOT_MATCHED`。未记录 Stripe 实际返回的账户信息、请求凭据或正文，因此不猜测是预填 ID 不正确还是密钥来自另一个 Sandbox。检查密钥调用、余额、端点列表/详情、签名密钥读取及云/数据库/支付写全为 **0**。尚未证明同一测试账户、测试模式或端点情况。
 
 去敏本机回执 `sandbox-first-purchase-stripe-readonly-20261118.result.json` SHA-256 `c9310d87289b5531446a25847113ea06d8dc3959b0caf66474269efb5987e919`，单次意图 SHA-256 `bf39e371fb7431d51e1425d653050e7ebf3beaaf7b0f463e939181205d465ec1`。实际观测从 `19:47:55.045Z` 至 `19:47:56.773Z`，无重试或刷新原快照。下一步仅在 Dashboard 选中创建运行密钥的那个 Sandbox，核对本机 `accountId` 与两把键是否出自同一环境。若能确认，只在私有文件更正，绝不将 API 返回值自动覆盖用户锁定 ID；不能确认则停待用户决定诊断方式。更正不等于批准再次读取，不创建端点、不购买、不发布、不安装。
+
+<a id="sandbox-first-purchase-stripe-account-diagnostic"></a>
+
+### Stripe 单请求账户编号诊断（2026-11-18，13:58 温尼伯）
+
+用户单独明确批准后，未重放前次只读；只读原文件 **1** 次，使用 `runtimeKey` 请求官方 `GET /v1/account` **1** 次。HTTP 200、返回对象和 `acct_` 格式均通过，**明确确认返回编号与原文件不同**。仅把返回编号与布尔比较结果写入本机 `.local-secrets/sandbox-first-purchase-stripe-account-comparison.json`；不打印、不提交 Git、不修改原凭据文件。未使用核对密钥、未查余额、测试模式或 webhook，也未执行其他 API、云写入、部署或购买。
+
+去敏诊断回执 SHA-256 `848577590ea5120c06ced9b4b21764f43e773d0b24d64488105107e646510324`，单次意图 SHA-256 `09a438eddb566e8dfbb7caa23d03c1a68373dcb143924460c68e270a098de0cb`，观测 `19:58:34.625Z–19:58:36.109Z`。用户须先核对对照文件中的 `accountIdReturnedByStripe` 与 Dashboard 所选 Sandbox；只有确认是预期账户才自行更正原文件的 `accountId`。随后是否再次限定只读须另批，不能自动替用户确认 Sandbox 或把本诊断当作启用依据。
