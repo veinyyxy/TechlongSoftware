@@ -1,0 +1,25 @@
+name: Sandbox registration single ECR publication v1
+run-name: Sandbox registration ECR ${{ inputs.review_sha }}
+on:
+  workflow_dispatch:
+    inputs:
+      review_json:
+        description: Exact Source-generated publication review
+        required: true
+        type: string
+      review_sha:
+        description: SHA256 of exact review JSON bytes
+        required: true
+        type: string
+permissions: {}
+jobs:
+  reviewed-publication:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747'
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-registration-image-publish-job-v1.yml@0b076037eaf04f9a47957548ebe36a454546d641
+    with:
+      review_json: ${{ inputs.review_json }}
+      review_sha: ${{ inputs.review_sha }}
