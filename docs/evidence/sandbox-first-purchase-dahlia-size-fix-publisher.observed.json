@@ -1,0 +1,34 @@
+{
+  "schema": "techlong/sandbox-first-purchase-dahlia-publisher-ci/v1",
+  "status": "NO_AWS_PUBLISHER_AND_CALLER_CI_VERIFIED",
+  "repositoryId": 1323312747,
+  "workflow": ".github/workflows/sandbox-registration-publication-checks.yml",
+  "workflowId": 422828156,
+  "callerWorkflowId": 422829965,
+  "observedAtUtc": "2026-11-18T23:53:23.494Z",
+  "githubGetRequests": 3,
+  "reusable": {
+    "commit": "d169811bfdb68f62bc1e3fad7dcea9f58f8a0423",
+    "runId": 44423446449,
+    "jobId": 135222068769,
+    "conclusion": "success",
+    "headBranch": "main",
+    "event": "push",
+    "attempt": 1
+  },
+  "caller": {
+    "commit": "d90930cfc70b82aacf682641e37857451ca4797f",
+    "runId": 44424440732,
+    "jobId": 135225514675,
+    "conclusion": "success",
+    "headBranch": "main",
+    "event": "push",
+    "attempt": 1,
+    "completedAtUtc": "2026-11-18T23:53:21Z",
+    "contractsStep": "success",
+    "preflightParseStep": "success"
+  },
+  "publishDispatched": false,
+  "awsIdentity": false,
+  "executionAuthorized": false
+}
