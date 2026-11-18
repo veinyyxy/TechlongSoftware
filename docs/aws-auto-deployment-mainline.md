@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证，[Stripe 测试购买到一条挂起任务](auto-pending-provisioning.md#first-onboarding-step4-purchase-offline)已离线通过。旧启用窗口已错过、从未运行。签名已私密供给；[新一份审批](aws-sandbox-first-purchase-activation-renewed-review.md)合并获批后的必要现状核对与原启用，待新 SHA 确认。无独立 Stripe 测试；用户本人批准 GitHub 门禁并在启用后独自做测试购买。未发布、购买或实际开通。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证，[Stripe 测试购买到一条挂起任务](auto-pending-provisioning.md#first-onboarding-step4-purchase-offline)已离线通过。[已批准的启用轮](aws-sandbox-first-purchase-activation-renewed-review.md)在 Stripe 回调精确匹配处停止，无远程写入，未发布、安装、更新平台或购买；启用槽保留，不重放。当前只定位回调配置差异，不另跑 Stripe 测试。启用通过后由用户自己测试购买。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 

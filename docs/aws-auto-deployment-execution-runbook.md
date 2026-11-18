@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，等待同一平台的新一轮首开启用审批。** [集中范围与完整风险](aws-sandbox-first-purchase-activation-renewed-review.md)／[新清单](evidence/sandbox-first-purchase-activation-renewed.review.json) SHA `8b35a3584a5b71e3eb74d7950e66a403cfe2ce3806db434febc04edee0abf25d`。签名已供给；原批准窗口错过，旧清单未执行、原槽未消费，保留不续期。本轮新获批后，在第一次远程写入前一次核对必要现状，通过才发布固定产物 `14457164929`、立即撤权并核验、原 Neon 窄安装、新固定 Secret、原 Access/Hosting 更新及独立技术回读。最晚 2026-11-19 16:14:13.352 CST（温尼伯）前启动，最长 95 分钟，GitHub environment 用户本人批准。不开单独 Stripe 测试轮，不新建或改动回调，不购买、执行首开任务或恢复 Cell/Express；准备阶段未读凭据或做云侧操作。
+**当前唯一继续点：缺口 3 第 4 步，先定位已保存的同一 Stripe Sandbox 回调配置差异。** [已批准启用](aws-sandbox-first-purchase-activation-renewed-review.md) SHA `8b35a358…` 于 2026-11-18 16:28:26 CST（温尼伯）在首次写入前停于 `FIRST_PURCHASE_REVIEW_STRIPE_EXACT_ENDPOINT`。AWS 原平台与 Neon 只读核对、Stripe 两键同账户及测试模式通过；端点组合检查未通过，回执未保留失败字段。AWS 1 STS／28 项元数据／0 写入，Neon 1 条只读连接／14 条 SQL，未进入发布、未占发布槽、未派发 GitHub run，未安装、启用或测试购买。启用尝试槽已消费，保留不复位、不重跑。私有去敏结果 SHA-256 `b6cb5a44db47c77f6605f422dba0df1a64564b0f0645f2e2f6459826262104e0`。下一步先由用户在 Dashboard 只查看准确端点的配置（不发密钥、不修改）；不另跑 Stripe 测试，不由本记录授权新执行。
 
 **测试分工：** 工程侧先交付功能，只做必要的代码回归及部署技术核验。用户亲自做界面、测试购买和其他业务验收；不代测、不重复跑用户已验收的场景、不为细节拆出额外阶段。影响是否可安全部署的账户/目标/版本和健康核对保留，合并进一次准确审批。
 
