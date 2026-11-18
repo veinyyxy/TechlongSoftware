@@ -12,9 +12,10 @@ import { scope, draft, firstPurchaseOriginalTemplates, exactSecretArn, firstPurc
 
 const require=createRequire(new URL('../cloud-worker/package.json',import.meta.url));
 const codes={cfn:['cloudformation','cloudformation'],ecs:['ecs','ecs'],elb:['elastic-load-balancing-v2','elasticloadbalancing'],
-  iam:['iam','iam','us-east-1'],dns:['route-53','route53','us-east-1'],sm:['secrets-manager','secretsmanager'],sts:['sts','sts']};
+  iam:['iam','iam','us-east-1'],dns:['route-53','route53','us-east-1'],sm:['secrets-manager','secretsmanager'],sts:['sts','sts'],
+  ecr:['ecr','api.ecr']};
 const libs=Object.fromEntries(Object.entries(codes).map(([k,[pkg]])=>[k,require('@aws-sdk/client-'+pkg)]));
-const clients={cfn:'CloudFormation',ecs:'ECS',elb:'ElasticLoadBalancingV2',iam:'IAM',dns:'Route53',sm:'SecretsManager',sts:'STS'};
+const clients={cfn:'CloudFormation',ecs:'ECS',elb:'ElasticLoadBalancingV2',iam:'IAM',dns:'Route53',sm:'SecretsManager',sts:'STS',ecr:'ECR'};
 const stable=['CREATE_COMPLETE','UPDATE_COMPLETE'];
 const sha=v=>hash(canonical(v));
 const check=(ok,code)=>{if(!ok)throw Error('FIRST_PURCHASE_AWS_'+code);};
@@ -133,6 +134,21 @@ export function firstPurchaseAws({deadline,nonce,versionId,prior,record}){
     try{await c.send('sm','DescribeSecret',{SecretId:draft.runtimeMaterial.newSecretName});}
     catch(e){if(e.name==='ResourceNotFoundException')return;throw e;}check(false,'SECRET_NAME_IN_USE');
   }
+  function keyMetadata(operation,args=[]){
+    check(++counts.metadata<=185&&Date.now()+20000<deadline,'KMS_WINDOW');
+    return JSON.parse(execFileSync('aws.exe',['kms',operation,'--key-id',P.kmsArn,...args,'--profile',P.profile,'--region',P.region,
+      '--endpoint-url','https://kms.ca-central-1.amazonaws.com','--output','json','--no-cli-pager'],{encoding:'utf8',windowsHide:true,
+      timeout:20000,stdio:['ignore','pipe','ignore'],env:{...process.env,AWS_MAX_ATTEMPTS:'1',AWS_PAGER:''}}));
+  }
+  async function verifyTenantImage(c){
+    const [uri,digest]=scope.tenantReleaseImage.split('@'),repositoryName=uri.split('/').at(-1);
+    const r=await c.send('ecr','BatchGetImage',{registryId:P.account,repositoryName,imageIds:[{imageDigest:digest}]});
+    const image=r.images?.[0];
+    check(!r.failures?.length&&r.images?.length===1&&image.registryId===P.account&&image.repositoryName===repositoryName&&
+      image.imageId?.imageDigest===digest&&typeof image.imageManifest==='string'&&'sha256:'+hash(image.imageManifest)===digest&&
+      prior.images?.tenantA?.manifestDigest===digest,'TENANT_A_MANIFEST');
+    check(JSON.parse(image.imageManifest).config?.digest===prior.images.tenantA.configDigest,'TENANT_A_CONFIG_DIGEST');
+  }
   let before,secret;
   return {counts,close:()=>writer.close(),
     async preflight(){
@@ -141,11 +157,11 @@ export function firstPurchaseAws({deadline,nonce,versionId,prior,record}){
       check(!(await list(writer,names.access)).length&&!(await list(writer,names.hosting)).length,'ACTIVE_CHANGE_SET');
       await role(writer,old.access);await runHealth(writer,old.hosting,hosting.bindings);
       await verifySecret(writer,P.secretArn,P.secretVersion,handoffPolicy());await absentSecret(writer);
-      check(++counts.metadata<=185&&Date.now()+20000<deadline,'KMS_WINDOW');
-      const key=JSON.parse(execFileSync('aws.exe',['kms','describe-key','--key-id',P.kmsArn,'--profile',P.profile,'--region',P.region,
-        '--endpoint-url','https://kms.ca-central-1.amazonaws.com','--output','json','--no-cli-pager'],{encoding:'utf8',windowsHide:true,
-        timeout:20000,stdio:['ignore','pipe','ignore'],env:{...process.env,AWS_MAX_ATTEMPTS:'1',AWS_PAGER:''}})).KeyMetadata;
+      const key=keyMetadata('describe-key').KeyMetadata;
       check(key?.Arn===P.kmsArn&&key.KeyState==='Enabled'&&key.Enabled===true&&key.KeyUsage==='ENCRYPT_DECRYPT','KEY_METADATA');
+      const kp=keyMetadata('get-key-policy',['--policy-name','default']);
+      check(typeof kp.Policy==='string'&&sha(policy(kp.Policy))===prior.secretMetadata?.keyPolicySha256,'KEY_POLICY_DRIFT');
+      await verifyTenantImage(writer);
       before={access,hosting};return true;
     },
     async store(value){

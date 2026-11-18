@@ -15,8 +15,8 @@ import { firstPurchaseAws } from './first-purchase-activation-aws.mjs';
 import { firstPurchaseDatabase } from './first-purchase-activation-db.mjs';
 import { validSandboxPurchaseScope } from '../../lib/purchases/sandbox-first-purchase-config.ts';
 
-const reviewPath='docs/evidence/sandbox-first-purchase-activation-consolidated.review.json';
-const riskDoc='docs/aws-sandbox-first-purchase-activation-review.md';
+const reviewPath='docs/evidence/sandbox-first-purchase-activation-renewed.review.json';
+const riskDoc='docs/aws-sandbox-first-purchase-activation-renewed-review.md';
 const approvalDocChanges=[reviewPath,'docs/aws-auto-deployment-execution-runbook.md','docs/aws-auto-deployment-mainline.md',
   'docs/aws-sandbox-first-purchase-activation-preparation.md'];
 const checkoutScopeHash='7359ccf32c3bebd4c4b754caac4cdfbdd471a8202c9206f67a298a8f020ca0fc';
@@ -25,9 +25,9 @@ const local=path.join(ROOT,'.local-secrets');
 const privateName='sandbox-first-purchase-stripe-test.json', signingName='sandbox-first-purchase-stripe-webhook-test.json';
 const prefix='techlong-platform-recovery-image-v1';
 const slot=path.join(local,'sandbox-first-purchase-activation-v1.intent.json');
-const deadline=Date.parse(draft.originalSnapshot.usableBeforeUtc), total=95*60000;
+const total=95*60000, approvalWindow=24*3600000, preflightMax=10*60000;
 const webhookApiVersion='2026-10-28.endive';
-const meta={stripeAuthenticatedGets:5,stripeApiWrites:0,operatorStripeDashboardEndpointCreatesIfAbsent:1,
+const meta={stripeAuthenticatedGets:5,stripeApiWrites:0,operatorStripeDashboardEndpointCreatesIfAbsent:0,
   sourceSts:11,awsMetadata:440,gitHubGets:213,githubCredentialLoads:1,fixedArtifactDownloadsInWorkflow:1,
   workflowGitHubApiGets:3,workflowSts:1,workflowExplicitEcrReads:3,
   stripePrivateFiles:2,configReads:1,neonTlsConnections:3,neonSqlSubmissions:76,anonymousTechnicalGets:2};
@@ -40,11 +40,17 @@ const fingerprint=x=>hash(canonical(x));
 
 export function makeFirstPurchaseReview({implementationCommit,nonce,issuedAt,riskSha256}){
   const issued=Date.parse(issuedAt);
+  const artifactEnd=Date.parse(candidate.artifactExpiresAt);
+  const hardStop=Math.min(issued+approvalWindow+total,artifactEnd);
+  const latestStart=hardStop-total;
   code(/^[a-f0-9]{40}$/.test(implementationCommit)&&/^[a-f0-9]{32}$/.test(nonce)&&/^[a-f0-9]{64}$/.test(riskSha256)&&
-    Number.isFinite(issued)&&issued<deadline-total,'REVIEW_WINDOW');
-  return {schema:'techlong/sandbox-first-purchase-activation-reviewed/v1',implementationCommit,nonce,issuedAt,riskSha256,
-    latestStartUtc:new Date(deadline-total).toISOString(),hardStopUtc:new Date(deadline).toISOString(),totalMinutesMax:95,
-    snapshotUsableBeforeUtc:draft.originalSnapshot.usableBeforeUtc,artifactExpiresAtUtc:candidate.artifactExpiresAt,
+    Number.isFinite(issued)&&issued<latestStart,'REVIEW_WINDOW');
+  return {schema:'techlong/sandbox-first-purchase-activation-reviewed/v2',implementationCommit,nonce,issuedAt,riskSha256,
+    latestStartUtc:new Date(latestStart).toISOString(),hardStopUtc:new Date(hardStop).toISOString(),totalMinutesMax:95,
+    preflight:{freshReadbacksAfterApprovalAndBeforeFirstRemoteWrite:true,maxMinutesBeforeFirstRemoteWrite:10,
+      originalSnapshotEndedUtc:draft.originalSnapshot.usableBeforeUtc,originalSnapshotUse:'expected baseline only, never current authority',
+      exactTenantImageManifestAndExistingKmsPolicy:true},
+    artifactExpiresAtUtc:candidate.artifactExpiresAt,
     sourceCi:{publisherRun:44375035526,publisherCommit:'9de0536ff4a1d064ad633c272b244995e835ce07',reusableRun:pub.S.reusableCiRun,
       reusableCommit:pub.S.reusableCommit,callerWorkflowId:422829965,postgres18Run:44374702186},
     target:{...scope,workspaceIdSha256:checkoutScopeHash,originalNeonProjectionSha256:draft.originalSnapshot.privateReceiptSha256.neon,
@@ -156,7 +162,7 @@ async function stripeGate(t,s,until){
   return {stripeTestKey:t.runtimeKey,stripeTestWebhookSecret:s.signingSecret};
 }
 
-async function publish(m,until,heads,notify,record){
+async function publish(m,until,preflightBy,heads,notify,record){
   const latest=until-25*60000, issued=Date.now();
   code(issued+3600000<latest,'INSUFFICIENT_PUBLICATION_AND_UPDATE_TIME');
   const pHead=heads(),commonRoots=['ops/platform-registration-publish-v1/cloud.mjs','ops/platform-registration-publish-v1/artifact.mjs',
@@ -170,7 +176,11 @@ async function publish(m,until,heads,notify,record){
     sourceCiRunId:m.sourceCi.publisherRun,callerWorkflowId:m.sourceCi.callerWorkflowId,sourcePins,
     riskSha256:hash(normalize(await readText(path.join(ROOT,pub.S.riskFile)))),candidate,reusableCommit:pub.S.reusableCommit,scope:pub.S.scope};
   const text=JSON.stringify(innerOuter);
-  const a=await createAws({protocol:firstPurchaseProtocol,request:pub.updateRequest,sourceLogin:true,metadataLimit:238,stsLimit:6});
+  const request=(inner,phase)=>{
+    if(phase==='grant')code(Date.now()<preflightBy,'PREFLIGHT_EXPIRED');
+    return pub.updateRequest(inner,phase);
+  };
+  const a=await createAws({protocol:firstPurchaseProtocol,request,sourceLogin:true,metadataLimit:238,stsLimit:6});
   const g=createGithub({context:pub,maxGets:213});let attempted=false,before,inner;
   const bindings=s=>fingerprint({roleTags:s.role.Role.Tags,stackTags:s.stack.Stacks[0].Tags,boundary:s.boundary.Policy,repository:s.repository.repositories});
   try{
@@ -186,7 +196,8 @@ async function publish(m,until,heads,notify,record){
       async update(r,phase){
         inner=r;
         if(phase==='grant'){
-          code(heads()===pHead&&Date.now()+60000<Date.parse(r.grantExpiresAt)&&Date.parse(r.grantExpiresAt)<=latest,'PUBLISHER_WRITE_WINDOW');
+          code(heads()===pHead&&Date.now()<preflightBy&&Date.now()+60000<Date.parse(r.grantExpiresAt)&&
+            Date.parse(r.grantExpiresAt)<=latest,'PUBLISHER_WRITE_WINDOW');
           await record('publish-grant-intent',{stack:candidate.stackId});
           const writesBefore=a.counts.writes;
           try{await record('publish-grant-ack',await a.update(r,'grant'));}
@@ -229,12 +240,15 @@ async function publish(m,until,heads,notify,record){
 
 async function execute(approvedSha,notify){
   const text=await readText(path.join(ROOT,reviewPath)),m=validateFirstPurchaseReview(text,approvedSha);
-  const start=Date.now(),until=Math.min(deadline,start+total),heads=()=>sourceGuard(m);
+  const heads=()=>sourceGuard(m);
   heads();code(hash(normalize(await readText(path.join(ROOT,riskDoc))))===m.riskSha256,'RISK_CHANGED');
   const tf=path.join(local,privateName),sf=path.join(local,signingName),config=path.join(ROOT,'.env.local');
   await absent(slot);await absent(path.join(EVIDENCE,pub.S.intentFile));
   for(const f of [tf,sf,config]){excluded(f);await noLinks(f);}
   privateAcl(local,tf,sf);
+  const start=Date.now(),until=Math.min(Date.parse(m.hardStopUtc),start+total);
+  code(start<Date.parse(m.latestStartUtc)&&until-start===total,'REVIEW_START_MISSED');
+  const preflightBy=start+preflightMax;
   const dir=await directory(prefix+'-'+m.nonce,{prefix});
   const record=(label,v)=>writeOnce(path.join(dir,'activation-'+label+'.json'),{utc:new Date().toISOString(),approvedSha,...v});
   await writeOnce(slot,{approvedSha,startedAt:new Date(start).toISOString(),endsAt:new Date(until).toISOString(),retry:false});
@@ -254,10 +268,13 @@ async function execute(approvedSha,notify){
     db=firstPurchaseDatabase({rawConfig:await readText(config,65536),historical:historic,projection:projection.checks,binding,deadline:until,record});
     aws=firstPurchaseAws({deadline:until,nonce:m.nonce,versionId:randomUUID(),prior:awsFacts.checks,record});
     await runFirstPurchaseStages({
-      preflight:step('necessary-preflight',async()=>{await aws.preflight();await db.preflight();stripe=await stripeGate(tc,sc,until);
+      preflight:step('necessary-preflight',async()=>{const observedFrom=new Date().toISOString();
+        await aws.preflight();await db.preflight();stripe=await stripeGate(tc,sc,preflightBy);
+        code(Date.now()<preflightBy,'PREFLIGHT_EXPIRED');
         tc.runtimeKey=undefined;tc.inspectionKey=undefined;sc.signingSecret=undefined;
-        await record('preflight-verified',{accountAndEndpointMatch:true,platformAndBusinessBaselineMatch:true});}),
-      publish:step('publish-and-lock',()=>publish(m,until,heads,notify,record)),
+        await record('preflight-verified',{observedFrom,observedThrough:new Date().toISOString(),
+          accountAndEndpointMatch:true,platformAndBusinessBaselineMatch:true});}),
+      publish:step('publish-and-lock',()=>publish(m,until,preflightBy,heads,notify,record)),
       install:step('install-neon',()=>db.install()),
       store:step('store-runtime-secret',async webhookDatabaseUrl=>{try{return await aws.store({...stripe,webhookDatabaseUrl});}finally{stripe=undefined;}}),
       templates:(publisher,secret)=>buildFirstPurchaseActivationTemplates({...binding,publisher,secret}),
@@ -277,6 +294,7 @@ async function cli([mode,value,...extra]){
   if(mode==='PrepareOffline'&&!value&&!extra.length){
     const implementationCommit=git(['rev-parse','HEAD']).trim();
     code(git(['status','--porcelain']).trim()===''&&git(['branch','--show-current']).trim()==='main','PREPARE_CLEAN_MAIN');
+    await absent(slot);await absent(path.join(EVIDENCE,pub.S.intentFile));
     const riskSha256=hash(normalize(await readText(path.join(ROOT,riskDoc))));
     const m=makeFirstPurchaseReview({implementationCommit,nonce:randomBytes(16).toString('hex'),issuedAt:new Date().toISOString(),riskSha256});
     await writeOnce(path.join(ROOT,reviewPath),m);
