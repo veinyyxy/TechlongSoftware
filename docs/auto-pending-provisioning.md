@@ -4,7 +4,7 @@
 
 ## 缺口 3 实施计划：新客户首次自动开通
 
-**状态：第 1 步购买到待审任务的代码已实现；生产配置未启用，尚未执行真实开通。** [D2 日常版本发布](aws-instance-version-release-plan.md#d2-closeout)已结案。本项补齐从普通购买产生的新实例到第一版可用服务的链路；首开完成后，该实例才能交给 D2 更新。执行与授权以[主线手册](aws-auto-deployment-execution-runbook.md)为准。
+**状态：第 1 步购买登记和第 2 步单租户受审执行已离线接线；尚未实际开通。** [D2 日常版本发布](aws-instance-version-release-plan.md#d2-closeout)已结案。本项补齐从普通购买产生的新实例到第一版可用服务的链路；首开完成后，该实例才能交给 D2 更新。执行与授权以[主线手册](aws-auto-deployment-execution-runbook.md)为准。
 
 ### 首版范围
 
@@ -33,7 +33,14 @@
 
 - [购买登记入口](../lib/deployments/management.ts)仅在 `AWS_SANDBOX_FIRST_ONBOARDING_WORKSPACE_ID` 匹配准确 sandbox 工作区，且产品、区域、Cell、档位符合首轮范围时走新路径。还必须有指定的 `AWS_SANDBOX_FIRST_ONBOARDING_RELEASE_ID` 和固定 `AWS_SANDBOX_IMAGE_URI`；目标范围内配置无效时不回落到普通 `apply`。两个新配置均保持未设；其余购买行为不变。
 - [首开任务及审阅合同](../lib/deployments/first-onboarding.ts)：同一实例的首开只有一个稳定去重键。登记前检查购买来源、当前有效订阅和匹配配置，拒绝已有开通记录、旧计划或租户资源代际。任务留在现有 outbox，远期可领取时间和两个普通领取入口的明确排除共同防止调度。审核须用受审读取来源重新确认范围、任务未领取、可信目录状态 `ecr_verified`、准确镜像和 Express 兼容；审阅摘要本身不授权执行。
-- 本轮不设置环境变量、不迁移旧任务、不导入或更新真实目录、不启用 worker、不创建 AWS 资源。回归有本机合成测试和既有无 AWS CI 的隔离 PostgreSQL 测试；真实环境首次领取和部署仍属于第 2 步，后续只接同一笔准确的受审任务。
+- 不设置环境变量、不迁移旧任务、不导入或更新真实目录、不启用 worker、不创建 AWS 资源。回归有本机合成测试和既有无 AWS CI 的隔离 PostgreSQL 测试。
+
+### 第 2 步交付与边界
+
+- [单次领取](../lib/deployments/first-onboarding.ts)重新核对同一笔购买、有效订阅、准确任务、计划、配置、目录版本和有效期；锁定原行，仅把原任务的唯一尝试置为运行中。保留 payload、隔离去重命名空间和领取时间标记，不派生普通任务、不允许旧槽重跑；续租不延原批准的截止时间。
+- [受审执行](../lib/deployments/execution/worker.ts)复用现有归属/配额、空库与基线初始化、运行凭据引用、首版配置、受审七资源模板和控制面读回。无可信 Express 空库能力证明即不领取；只能新建准确首开栈，拒绝接管或更新，原建栈响应不等于成功。等待建栈时只读准确 Stack ARN，不另提交写入。
+- [独立技术核验](../lib/deployments/execution/first-onboarding-inspection.ts)比较同一实例、准确栈模板和资源、DNS 目标、数据库归属和 schema、ECS 实际运行 digest、健康目标及 TLS `/health`、`/ready`。只保存技术核验检查点；不设置客户入口、不提交任务的最终完成、不写 `active`／`ready` 或 D2 `revision 0`。失败或提交不明停下核验，不重试、不清理。
+- 未接生产凭据或配置，也未验证真实 Express 空库写适配、只读核验身份或对该租户的路由、挂载及持久化。当前模板仍是 sandbox 临时图片存储，核验如实报告；D2 原有持久化要求不变。真实适配/材料在一次实际验收前集中确认，不能用已初始化租户的证据替代。本轮无 AWS 调用、无生产数据库连接、不启用 runtime 或全队列。
 
 ## 当前操作说明（实施计划不改变现有流程）
 

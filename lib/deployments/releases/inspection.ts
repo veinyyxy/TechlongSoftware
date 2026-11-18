@@ -75,6 +75,11 @@ export async function assertReleaseArtifact(target: Pick<ImageUpdatePlan["to"], 
 export type ReleaseRuntimeExpectation = Pick<ImageUpdatePlan, "selection" | "changeSet" | "templateSha256" | "configurationSha256" | "desiredCount" | "compatibility"> & {
   image: { imageUri: string; platformDigest: string };
 };
+type RuntimeChecks = Pick<ReleaseRuntimeExpectation, "templateSha256" | "configurationSha256" | "desiredCount" | "image"> & {
+  selection: Pick<ImageUpdatePlan["selection"], "instanceId">;
+  changeSet: Pick<ImageUpdatePlan["changeSet"], "StackName">;
+  compatibility: Pick<ImageUpdatePlan["compatibility"], "applicationPort" | "databaseProfile" | "databaseSchemaVersion">;
+};
 
 function isLinuxAmd64Runtime(f: ReleaseRuntimeFacts): boolean {
   const platform = f.taskDefinition.runtimePlatform;
@@ -87,8 +92,8 @@ function isLinuxAmd64Runtime(f: ReleaseRuntimeFacts): boolean {
       task.attributes?.some(a => a.name === "ecs.cpu-architecture" && a.value === "x86_64"));
 }
 
-export async function assertBoundReleaseRuntime(plan: ReleaseRuntimeExpectation, f: ReleaseRuntimeFacts,
-  readStartedAt: number, now: number, requireHttp = false): Promise<InstanceReleaseObservation> {
+async function assertRuntime(plan: RuntimeChecks, f: ReleaseRuntimeFacts,
+  readStartedAt: number, now: number, requireHttp: boolean, requirePersistentUploads: boolean): Promise<InstanceReleaseObservation> {
   const hashes = await releaseRuntimeDigests(f), image = plan.image;
   if (f.observedAt < readStartedAt || f.observedAt > now || !Number.isSafeInteger(f.observedAt)) throw new Error("RELEASE_STALE_RUNTIME_FACTS");
   if (!f.albPresent || !f.databaseAvailable || !f.service.serviceArn || !f.service.desiredCount) throw new Error("RELEASE_RESTORE_REQUIRED");
@@ -111,7 +116,7 @@ export async function assertBoundReleaseRuntime(plan: ReleaseRuntimeExpectation,
   const api = f.taskDefinition.containerDefinitions?.filter(c => c.name === name);
   if (api?.length !== 1 || api[0].image !== image.imageUri || f.parameters.ImageUri !== image.imageUri ||
     !isLinuxAmd64Runtime(f) ||
-    !f.persistentUploadsReady || f.databaseProfile !== plan.compatibility.databaseProfile ||
+    (requirePersistentUploads && !f.persistentUploadsReady) || f.databaseProfile !== plan.compatibility.databaseProfile ||
     f.databaseSchemaVersion !== plan.compatibility.databaseSchemaVersion) throw new Error("RELEASE_IMAGE_OR_COMPATIBILITY_CHANGED");
   const ips: string[] = [];
   for (const task of f.tasks) {
@@ -136,6 +141,13 @@ export async function assertBoundReleaseRuntime(plan: ReleaseRuntimeExpectation,
     databaseSchemaVersion: f.databaseSchemaVersion, desiredCount: plan.desiredCount, runningCount: f.service.runningCount!,
     pendingCount: f.service.pendingCount!, operationInProgress: false, persistentUploadsReady: f.persistentUploadsReady };
 }
+
+export const assertBoundReleaseRuntime = (plan: ReleaseRuntimeExpectation, f: ReleaseRuntimeFacts,
+  readStartedAt: number, now: number, requireHttp = false) => assertRuntime(plan, f, readStartedAt, now, requireHttp, true);
+
+// A technical first-open proof is not a D2 binding and reports actual storage readiness.
+export const assertFirstOnboardingTechnicalRuntime = (plan: RuntimeChecks, f: ReleaseRuntimeFacts,
+  readStartedAt: number, now: number) => assertRuntime(plan, f, readStartedAt, now, true, false);
 
 export const assertReleaseRuntime = (plan: ImageUpdatePlan, f: ReleaseRuntimeFacts, expected: "from" | "to",
   readStartedAt: number, now: number, requireHttp = false) =>

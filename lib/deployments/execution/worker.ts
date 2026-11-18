@@ -7,6 +7,13 @@ import {
   type AwsSandboxTenantStackInput,
 } from "../cloudformation/tenant-stack.ts";
 import type { TenantWorkloadExecutionStrategy, WorkerTenantStack } from "./single-tenant-workload-strategy.ts";
+import { createFirstOnboardingWorkloadStrategy, type SupervisedCleanupReadinessPort } from "./single-tenant-workload-strategy.ts";
+import { reviewFirstOnboarding, SELECT_FIRST_ONBOARDING, CLAIM_FIRST_ONBOARDING, firstOnboardingClaimBindings,
+  isFirstOnboardingScope, type FirstOnboardingReview, type FirstOnboardingReviewRow } from "../first-onboarding.ts";
+import { verifyFirstOnboardingRuntime, type FirstOnboardingRuntimeReader } from "./first-onboarding-inspection.ts";
+import type { SoftwareRelease } from "../releases/contract.ts";
+import { randomUUID } from "node:crypto";
+import { setTimeout as wait } from "node:timers/promises";
 import { assertSafeDeploymentOutput, normalizeDeploymentError } from "../safety.ts";
 import type { DeploymentJobType, DeploymentStatus } from "../state-machine.ts";
 import type {
@@ -130,6 +137,28 @@ class DeploymentExecutionError extends Error {
     this.code = code;
     this.retryable = retryable;
   }
+}
+
+type ReviewedLeaseConfig = DeploymentWorkerRuntimeConfig & { firstOnboardingDeadline?: number; firstOnboardingHostname?: string };
+
+function assertFirstOnboardingGate(config: DeploymentWorkerRuntimeConfig, context: DeploymentExecutionContext) {
+  const gate = evaluatePersistedExecutionGate({ config, environment: context.environment, binding: context.binding });
+  const intentionallyClosed = ["worker_disabled", "aws_apply_disabled", "database_apply_disabled", "execution_confirmation_missing"];
+  if (config.workerEnabled || config.applyEnabled || context.environment.applyEnabled ||
+    !isFirstOnboardingScope(context.environment, context.appInstance.productId, context.deployment.desiredPlan.deploymentProfileKey)) {
+    throw Error("FIRST_ONBOARDING_REQUIRES_CLOSED_QUEUE");
+  }
+  const failures = gate.failures.filter(code => !intentionallyClosed.includes(code));
+  assertExecutionGate({ ok: failures.length === 0, failures });
+}
+
+function assertFirstOnboardingContext(config: ReviewedLeaseConfig, context: DeploymentExecutionContext) {
+  const scope = context.job.payload.scope as FirstOnboardingReview["payload"]["scope"] | undefined;
+  assertFirstOnboardingGate(config, context);
+  if (!scope || context.appInstance.status !== "pending" || context.appInstance.workspaceId !== scope.workspaceId ||
+    context.workspace.id !== scope.workspaceId || context.appInstance.tenantKey !== scope.tenantKey ||
+    context.appInstance.templateVersionId !== scope.templateVersionId || context.subscription?.id !== scope.subscriptionId ||
+    tenantHostname(context) !== config.firstOnboardingHostname) throw Error("FIRST_ONBOARDING_CONTEXT_CHANGED");
 }
 
 function executionError(error: unknown): DeploymentExecutionError {
@@ -492,9 +521,10 @@ async function persistTenantLifecycleCheckpoint(input: {
 async function claimAndReloadTenantResource(input: {
   dependencies: DeploymentWorkerDependencies;
   context: DeploymentExecutionContext;
-  config: DeploymentWorkerRuntimeConfig;
+  config: ReviewedLeaseConfig;
   workerId: string;
 }): Promise<{ context: DeploymentExecutionContext }> {
+  if (input.config.firstOnboardingDeadline !== undefined) assertFirstOnboardingContext(input.config, input.context);
   const identity = await deriveTenantResourceIdentity(input.context);
   const claim = await input.dependencies.repository.claimTenantResourceGeneration({
     lease: deploymentLease(input.context, input.workerId),
@@ -515,7 +545,10 @@ async function claimAndReloadTenantResource(input: {
   );
   assertContextIntegrity(refreshed, { destructive: false });
   await assertHashes(refreshed, { configuration: true });
-  assertExecutionGate(
+  if (input.config.firstOnboardingDeadline !== undefined) {
+    assertFirstOnboardingContext(input.config, refreshed);
+    if (claim.fence.generation !== 1) throw Error("FIRST_ONBOARDING_GENERATION_CHANGED");
+  } else assertExecutionGate(
     evaluatePersistedExecutionGate({
       config: input.config,
       environment: refreshed.environment,
@@ -820,14 +853,17 @@ async function ensureApplyCleanupSchedule(input: {
 async function heartbeat(input: {
   dependencies: DeploymentWorkerDependencies;
   context: DeploymentExecutionContext;
-  config: DeploymentWorkerRuntimeConfig;
+  config: ReviewedLeaseConfig;
   workerId: string;
   now: number;
-}): Promise<void> {
+}): Promise<number> {
+  const duration = Math.min(input.config.leaseDurationMs, (input.config.firstOnboardingDeadline ?? Infinity) - input.now);
+  if (duration <= 0) throw Error("FIRST_ONBOARDING_WINDOW_CLOSED");
   const renewed = await input.dependencies.repository.heartbeat({
     lease: deploymentLease(input.context, input.workerId),
     now: input.now,
-    leaseDurationMs: input.config.leaseDurationMs,
+    leaseDurationMs: duration,
+    ...(input.config.firstOnboardingDeadline !== undefined ? { notAfter: input.config.firstOnboardingDeadline } : {}),
   });
   if (!renewed) {
     throw new DeploymentExecutionError(
@@ -836,12 +872,13 @@ async function heartbeat(input: {
       true,
     );
   }
+  return duration;
 }
 
 async function withLeaseGuard<T>(input: {
   dependencies: DeploymentWorkerDependencies;
   context: DeploymentExecutionContext;
-  config: DeploymentWorkerRuntimeConfig;
+  config: ReviewedLeaseConfig;
   workerId: string;
   execute(signal: AbortSignal): Promise<T>;
 }): Promise<T> {
@@ -905,9 +942,9 @@ async function withLeaseGuard<T>(input: {
       workerId: input.workerId,
       now: (input.dependencies.now ?? Date.now)(),
     })
-      .then(() => {
+      .then(duration => {
         const elapsedMs = Math.max(0, globalThis.performance.now() - requestedAt);
-        const remainingMs = input.config.leaseDurationMs - elapsedMs;
+        const remainingMs = duration - elapsedMs;
         if (remainingMs <= 0) {
           const error = leaseLost();
           lose(error);
@@ -1250,11 +1287,12 @@ async function guardProvisionEpochBeforeAdapterFactory(input: {
 async function handleApply(input: {
   dependencies: DeploymentWorkerDependencies;
   context: DeploymentExecutionContext;
-  config: DeploymentWorkerRuntimeConfig;
+  config: ReviewedLeaseConfig;
   workerId: string;
   aws: AwsDeploymentPort;
   stack?: WorkerTenantStack;
-}): Promise<void> {
+  firstOnboarding?: { baselineDigest: string };
+}): Promise<{ stack: WorkerTenantStack; stackId: string } | void> {
   if (["planned", "retry_wait"].includes(input.context.deployment.status)) {
     await moveState({
       ...input,
@@ -1273,9 +1311,18 @@ async function handleApply(input: {
   }
   await validateIdentity(input);
   await validateSharedCellSecurity(input);
+  if (input.firstOnboarding) {
+    const stackName = awsSandboxTenantStackName(input.context.appInstance.id);
+    const check = await checkpoint({ ...input, stepKey: "first_onboarding_stack_absence", stepInput: { stackName },
+      execute: async signal => ({ missing: (await input.aws.describeTenantStack(stackName, { signal })).state === "missing" }) });
+    if (!check.missing) throw Error("FIRST_ONBOARDING_STACK_ALREADY_EXISTS");
+    await reserveEnvironmentCapacity(input);
+    input.context = (await claimAndReloadTenantResource(input)).context;
+  }
   input.context = await requireActiveProvisionEpoch(input);
-  await reserveEnvironmentCapacity(input);
+  if (!input.firstOnboarding) await reserveEnvironmentCapacity(input);
   if (["waiting_healthy", "configuring", "verifying", "ready"].includes(input.context.deployment.status)) {
+    if (input.firstOnboarding) throw Error("FIRST_ONBOARDING_CANNOT_RESUME");
     const reconcileJob = await input.dependencies.repository.enqueueJob({
       lease: deploymentLease(input.context, input.workerId),
       deploymentId: input.context.deployment.id,
@@ -1315,6 +1362,7 @@ async function handleApply(input: {
           signal,
         }),
     });
+    if (input.firstOnboarding && prepared.lifecycleState !== "empty") throw Error("FIRST_ONBOARDING_DATABASE_NOT_EMPTY");
     await persistTenantLifecycleCheckpoint({
       dependencies: input.dependencies,
       context: input.context,
@@ -1346,6 +1394,8 @@ async function handleApply(input: {
           signal,
         }),
     });
+    if (input.firstOnboarding && (migrated.lifecycleState !== "verified" ||
+      migrated.baselineDigest !== input.firstOnboarding.baselineDigest)) throw Error("FIRST_ONBOARDING_DATABASE_BASELINE_UNVERIFIED");
     await persistTenantLifecycleCheckpoint({
       dependencies: input.dependencies,
       context: input.context,
@@ -1408,6 +1458,7 @@ async function handleApply(input: {
     input.context.deployment.createdAt +
     input.context.environment.policy.ttlSeconds * 1_000;
   if (expiresAt <= currentTime + 5 * 60_000) {
+    if (input.firstOnboarding) throw Error("FIRST_ONBOARDING_WINDOW_CLOSED");
     const existing = await checkpoint({
       ...input,
       stepKey: "cloudformation_precreate_observe",
@@ -1484,6 +1535,7 @@ async function handleApply(input: {
         : { cleanupScheduleRef: cleanupAssuranceRef }),
     },
   });
+  if (input.firstOnboarding) return { stack, stackId: applied.stackId };
   const reconcileJob = await input.dependencies.repository.enqueueJob({
     lease: deploymentLease(input.context, input.workerId),
     deploymentId: input.context.deployment.id,
@@ -1499,10 +1551,11 @@ async function handleApply(input: {
 async function handleReconcile(input: {
   dependencies: DeploymentWorkerDependencies;
   context: DeploymentExecutionContext;
-  config: DeploymentWorkerRuntimeConfig;
+  config: ReviewedLeaseConfig;
   workerId: string;
   aws: AwsDeploymentPort;
   stack: WorkerTenantStack;
+  firstOnboarding?: { stackId: string };
 }): Promise<void> {
   if (input.context.deployment.status === "ready") return;
   await validateIdentity(input);
@@ -1517,10 +1570,20 @@ async function handleReconcile(input: {
       stackName: input.stack.stackName,
       reconcileAttempt: input.context.job.attempt,
     },
-    execute: (signal) =>
-      input.aws.describeTenantStack(input.stack.stackName, { signal }),
+    execute: async signal => {
+      let observed = await input.aws.describeTenantStack(input.firstOnboarding?.stackId ?? input.stack.stackName, { signal });
+      // The original queue handles reconcile waits between jobs. The exact
+      // first-open path waits only on reads for the one acknowledged stack.
+      while (input.firstOnboarding && observed.state === "in_progress" && observed.stackId === input.firstOnboarding.stackId) {
+        await wait(input.config.pollIntervalMs, undefined, { signal });
+        observed = await input.aws.describeTenantStack(input.firstOnboarding.stackId, { signal });
+      }
+      return observed;
+    },
   });
   assertStackOwnership({ observation, expectedTags: input.stack.tags });
+  if (input.firstOnboarding && (observation.stackId !== input.firstOnboarding.stackId ||
+    observation.rawStatus !== "CREATE_COMPLETE")) throw Error("FIRST_ONBOARDING_CREATE_NOT_VERIFIED");
   if (observation.state === "in_progress") {
     throw new DeploymentExecutionError(
       "CLOUDFORMATION_IN_PROGRESS",
@@ -1663,6 +1726,7 @@ async function handleReconcile(input: {
       true,
     );
   }
+  if (input.firstOnboarding) return;
   const accessUrl = `https://${input.stack.parameters.TenantHostname}`;
   const ready = await input.dependencies.repository.markReady({
     lease: deploymentLease(input.context, input.workerId),
@@ -1687,6 +1751,110 @@ async function handleReconcile(input: {
     );
   }
   input.context.deployment.status = "ready";
+}
+
+export interface FirstOnboardingExecutionApproval {
+  jobId: string;
+  reviewSha256: string;
+  capabilitySha256: string;
+  baselineDigest: string;
+  databaseSchemaVersion: string;
+  hostname: string;
+  dnsTarget: string;
+  writeBefore: number;
+}
+
+/** One held job through the existing stages. There is intentionally no CLI,
+ * flag, network composition or ordinary claimNext path to this entry. A future
+ * caller must verify the approval's origin and supply reviewed adapters. */
+export async function runReviewedFirstOnboarding(input: {
+  approval: FirstOnboardingExecutionApproval;
+  approvedSha256: string;
+  config: DeploymentWorkerRuntimeConfig;
+  dependencies: DeploymentWorkerDependencies;
+  readJob: (sql: typeof SELECT_FIRST_ONBOARDING, bindings: [string]) => Promise<FirstOnboardingReviewRow | null>;
+  readRelease: (id: string) => Promise<SoftwareRelease | null>;
+  claimJob: (sql: typeof CLAIM_FIRST_ONBOARDING, bindings: ReturnType<typeof firstOnboardingClaimBindings>) => Promise<{ jobId: string } | null>;
+  verifyEmptyExpressCapability: (input: { review: FirstOnboardingReview; baselineDigest: string; databaseSchemaVersion: string }) =>
+    Promise<{ profile: "express_iam"; emptyDatabaseInitializationVerified: true; evidenceSha256: string } | null>;
+  cleanupReadiness: SupervisedCleanupReadinessPort;
+  independentReader: FirstOnboardingRuntimeReader;
+}) {
+  const a = structuredClone(input.approval), now = input.dependencies.now ?? Date.now;
+  const checkWindow = () => {
+    if (!Number.isSafeInteger(a.writeBefore) || a.writeBefore <= now()) throw Error("FIRST_ONBOARDING_WINDOW_CLOSED");
+  };
+  checkWindow();
+  if (input.config.workerEnabled || input.config.applyEnabled || !input.dependencies.tenantExternalOperationCoordinator ||
+    !input.verifyEmptyExpressCapability || !input.independentReader || a.writeBefore > now() + 60 * 60_000 ||
+    !/^job_[a-f0-9]{24}$/.test(a.jobId) || ![a.reviewSha256, a.capabilitySha256, a.baselineDigest].every(hash => /^[a-f0-9]{64}$/.test(hash)) ||
+    !/^[a-zA-Z0-9._-]{1,100}$/.test(a.databaseSchemaVersion) || !/^[a-z0-9][a-z0-9.-]{2,252}$/.test(a.dnsTarget) ||
+    await sha256Hex(a) !== input.approvedSha256) throw Error("FIRST_ONBOARDING_APPROVAL_MISMATCH");
+  const row = await input.readJob(SELECT_FIRST_ONBOARDING, [a.jobId]);
+  if (!row || row.job.id !== a.jobId || row.job.status !== "pending" || row.job.attempts !== 0 ||
+    !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(row.slug) || `${row.slug}.sandbox.techlong.cloud` !== a.hostname ||
+    !(Number(row.subscriptionEnd) > a.writeBefore)) throw Error("FIRST_ONBOARDING_HELD_JOB_MISSING");
+  const scope = (row.job.payload as FirstOnboardingReview["payload"] | null)?.scope;
+  if (!scope || scope.generation !== 1 || scope.accountId !== "402010193138" ||
+    await sha256Hex(row.configuration) !== scope.configurationHash || await sha256Hex(row.desiredPlan) !== scope.planHash) {
+    throw Error("FIRST_ONBOARDING_REVIEW_CHANGED");
+  }
+  const release = await input.readRelease(scope.releaseId);
+  const review = await reviewFirstOnboarding({ ...row, scope: { ...scope, appInstanceId: row.appInstanceId, workspaceId: row.workspaceId,
+    subscriptionId: row.subscriptionId, tenantKey: row.tenantKey, environmentId: row.environmentId, planId: row.planId,
+    templateVersionId: row.templateVersionId, accountId: row.accountId }, release });
+  if (!review || review.reviewSha256 !== a.reviewSha256 || release?.compatibility.applicationPort !== 3000 ||
+    !release.compatibility.schemaVersions.includes(a.databaseSchemaVersion) || !scope.artifactRef) throw Error("FIRST_ONBOARDING_REVIEW_CHANGED");
+  const capability = await input.verifyEmptyExpressCapability({ review, baselineDigest: a.baselineDigest, databaseSchemaVersion: a.databaseSchemaVersion });
+  if (capability?.profile !== "express_iam" || capability.emptyDatabaseInitializationVerified !== true ||
+    capability.evidenceSha256 !== a.capabilitySha256) throw Error("FIRST_ONBOARDING_EMPTY_EXPRESS_UNPROVED");
+  const strategy = createFirstOnboardingWorkloadStrategy({ cleanupReadiness: input.cleanupReadiness, scope: {
+    deploymentId: scope.deploymentId, appInstanceId: scope.appInstanceId, environmentId: scope.environmentId,
+    planHash: scope.planHash, configurationHash: scope.configurationHash, artifactRef: scope.artifactRef,
+  } });
+  const dependencies = { ...input.dependencies, tenantWorkloadStrategy: strategy }, repository = dependencies.repository;
+  const workerId = `first-onboarding:${a.jobId}`, leaseToken = `lease_${randomUUID().replaceAll("-", "")}`;
+  const config = { ...input.config, firstOnboardingDeadline: a.writeBefore, firstOnboardingHostname: a.hostname };
+  checkWindow();
+  const claimed = await input.claimJob(CLAIM_FIRST_ONBOARDING, firstOnboardingClaimBindings(review, row, workerId, leaseToken, a.writeBefore));
+  if (claimed?.jobId !== a.jobId) throw Error("FIRST_ONBOARDING_CLAIM_NOT_PROVED");
+  // Adapt only the in-memory job to the existing worker envelope. SQL did not
+  // rewrite the held payload, namespace, available time or attempt limit.
+  const job = { id: a.jobId, deploymentId: scope.deploymentId, jobType: "apply" as const, attempt: 1, maxAttempts: 1,
+    leaseToken, leaseExpiresAt: a.writeBefore, payload: { ...review.payload, schemaVersion: 1, deploymentId: scope.deploymentId, planHash: scope.planHash } };
+  const loadContext = async () => {
+    checkWindow();
+    const context = await repository.loadContext(job);
+    assertContextIntegrity(context, { destructive: false });
+    await assertHashes(context, { configuration: true });
+    assertFirstOnboardingContext(config, context);
+    strategy.assertScope(context);
+    if (context.job.id !== job.id || context.job.leaseToken !== job.leaseToken || context.job.attempt !== 1) {
+      throw Error("FIRST_ONBOARDING_CONTEXT_CHANGED");
+    }
+    return context;
+  };
+  let context = await loadContext();
+  if (context.deployment.status !== "planned" || context.tenantResources || context.tenantExternalOperation) throw Error("FIRST_ONBOARDING_NOT_FRESH");
+  const base = { dependencies, config, workerId };
+  await ensureExecutionCleanup({ ...base, context, now: now() });
+  checkWindow();
+  const aws = await dependencies.awsFactory({ region: context.environment.region, workerRoleArn: context.binding!.workerRoleArn });
+  const applied = await handleApply({ ...base, context, aws, firstOnboarding: { baselineDigest: a.baselineDigest } });
+  if (!applied) throw Error("FIRST_ONBOARDING_CREATE_NOT_PROVED");
+  await handleReconcile({ ...base, context: await loadContext(), aws, stack: applied.stack, firstOnboarding: { stackId: applied.stackId } });
+  context = await loadContext();
+  const receipt = await checkpoint({ ...base, context, stepKey: "first_onboarding_independent_inspection", stepInput: {
+    approvalSha256: input.approvedSha256, reviewSha256: review.reviewSha256, stackId: applied.stackId,
+  }, execute: async signal => {
+    const runtime = await verifyFirstOnboardingRuntime({ context, ...applied, dnsTarget: a.dnsTarget, baselineDigest: a.baselineDigest,
+      databaseSchemaVersion: a.databaseSchemaVersion, platformDigest: review.platformDigest, reader: input.independentReader, now, signal });
+    return { outcome: "TECHNICALLY_VERIFIED" as const, jobId: a.jobId, deploymentId: scope.deploymentId, instanceId: scope.appInstanceId,
+      releaseId: scope.releaseId, approvalSha256: input.approvedSha256, reviewSha256: review.reviewSha256,
+      hostname: applied.stack.parameters.TenantHostname, runtime, customerActivated: false as const };
+  } });
+  checkWindow();
+  return receipt;
 }
 
 async function handleDelete(input: {

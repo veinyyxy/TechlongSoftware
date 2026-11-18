@@ -1,4 +1,4 @@
-import { renderSingleTenantAcceptanceWorkload, assertSingleTenantWorkloadRender } from "../cloudformation/single-tenant-acceptance-workload.ts";
+import { renderSingleTenantAcceptanceWorkload, renderReviewedFirstOnboardingWorkload, assertSingleTenantWorkloadRender } from "../cloudformation/single-tenant-acceptance-workload.ts";
 import { assertAwsSandboxTenantRuntimeSecretRef, type AwsSandboxTenantStackInput } from "../cloudformation/tenant-stack.ts";
 import type { ApplyReadyTenantStack, AwsDeploymentPort, DeploymentExecutionContext } from "./contracts.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
@@ -13,7 +13,7 @@ export interface SupervisedTenantStack extends Omit<Rendered, "safety"> {
 export type WorkerTenantStack = ApplyReadyTenantStack | SupervisedTenantStack;
 type ApplyResult = Awaited<ReturnType<AwsDeploymentPort["applyTenantStack"]>>;
 export interface SupervisedWorkloadAwsPort extends AwsDeploymentPort {
-  applySupervisedTenantStack(stack: SupervisedTenantStack, input: { signal: AbortSignal }): Promise<ApplyResult>;
+  applySupervisedTenantStack(stack: SupervisedTenantStack, input: { signal: AbortSignal; createOnly?: true }): Promise<ApplyResult>;
 }
 
 /** Independent cleanup readiness, NOT an installed Scheduler receipt. The
@@ -104,7 +104,18 @@ export function finalizeSupervisedTenantStack(input: {
 export function createSingleTenantWorkloadStrategy(input: {
   scope: SingleDeploymentClaimScope; cleanupReadiness: SupervisedCleanupReadinessPort;
 }): TenantWorkloadExecutionStrategy {
-  const scope = validateSingleDeploymentScope(input.scope), cleanup = input.cleanupReadiness;
+  return createSupervisedStrategy(validateSingleDeploymentScope(input.scope), input.cleanupReadiness, false);
+}
+
+/** Not reachable via flags or the ordinary worker composition. */
+export function createFirstOnboardingWorkloadStrategy(input: {
+  scope: SingleDeploymentClaimScope; cleanupReadiness: SupervisedCleanupReadinessPort;
+}): TenantWorkloadExecutionStrategy {
+  return createSupervisedStrategy(Object.freeze(structuredClone(input.scope)), input.cleanupReadiness, true);
+}
+
+function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, cleanup: SupervisedCleanupReadinessPort,
+  firstOnboarding: boolean): TenantWorkloadExecutionStrategy {
   if (!cleanup || typeof cleanup.verify !== "function") fail("SUPERVISED_CLEANUP_VERIFIER_MISSING");
   const assertScope = (context: DeploymentExecutionContext) => {
     if (context.deployment.id !== scope.deploymentId || context.deployment.appInstanceId !== scope.appInstanceId ||
@@ -146,7 +157,9 @@ export function createSingleTenantWorkloadStrategy(input: {
         stackInput.externalOperation.epoch !== context.tenantExternalOperation?.epoch ||
         stackInput.externalOperation.marker !== context.tenantExternalOperation?.marker ||
         stackInput.externalOperation.operationHash !== context.tenantExternalOperation?.operationHash) fail("SUPERVISED_RENDER_CONTEXT_MISMATCH");
-      return finalizeSupervisedTenantStack({ rendered: await renderSingleTenantAcceptanceWorkload(stackInput), context,
+      return finalizeSupervisedTenantStack({ rendered: firstOnboarding
+        ? await renderReviewedFirstOnboardingWorkload(stackInput, scope.artifactRef)
+        : await renderSingleTenantAcceptanceWorkload(stackInput), context,
         expectedRuntimeSecretName: stackInput.runtimeSecretName });
     },
     async apply({ aws, stack, signal }) {
@@ -154,7 +167,9 @@ export function createSingleTenantWorkloadStrategy(input: {
       if (!("applySupervisedTenantStack" in aws) || typeof aws.applySupervisedTenantStack !== "function") {
         fail("SUPERVISED_AWS_ADAPTER_MISSING");
       }
-      return (aws as SupervisedWorkloadAwsPort).applySupervisedTenantStack(stack, { signal });
+      const result = await (aws as SupervisedWorkloadAwsPort).applySupervisedTenantStack(stack, firstOnboarding ? { signal, createOnly: true } : { signal });
+      if (firstOnboarding && result.operation !== "create") fail("FIRST_ONBOARDING_STACK_NOT_CREATED");
+      return result;
     },
   };
   return Object.freeze(strategy);

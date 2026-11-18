@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**。[步骤 1 交付](auto-pending-provisioning.md#第-1-步交付与边界)：普通购买入口能在限定 sandbox 工作区产生一条待审首开任务，旧计划和普通队列不参与，可信版本在审阅时核对。新配置未设置、worker 未启用；本轮只编码和离线回归，不启动资源或执行首开。第 2 步仅在回归通过后再接通单租户受审执行。D2 仍只覆盖既有实例版本发布，不代表新租户首开或整个 SaaS 上线。下面保留的是历史状态，不覆盖本节。
+现推进**新客户首次自动开通**：[步骤 1](auto-pending-provisioning.md#第-1-步交付与边界)购买产生一条待审任务；[步骤 2](auto-pending-provisioning.md#第-2-步交付与边界)把同一待审任务离线接到空库初始化、首版 API 建栈和独立技术核验，不进入普通队列。环境和新配置未启用，尚无真实 Express 空库写适配和云端首开证据；下一步仅离线实现原子完成及 D2 初始版绑定。D2 只覆盖既有实例版本发布。下面保留的是历史状态，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 

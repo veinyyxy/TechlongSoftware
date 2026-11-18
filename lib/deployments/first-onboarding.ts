@@ -123,6 +123,7 @@ export async function reviewFirstOnboarding(facts: FirstOnboardingReviewFacts) {
 
 export const SELECT_FIRST_ONBOARDING = `SELECT
   a.id AS "appInstanceId", a.workspace_id AS "workspaceId", a.tenant_key AS "tenantKey", a.configuration_snapshot::jsonb AS configuration,
+  a.slug AS slug, s.current_period_end AS "subscriptionEnd",
   s.id AS "subscriptionId", s.plan_id AS "planId", s.template_version_id AS "templateVersionId", e.id AS "environmentId", e.expected_account_id AS "accountId",
   (a.status='pending' AND a.provisioned_at IS NULL AND a.provisioning_source='payment_success' AND a.access_url='') AS "instancePendingFirstOpen",
   (d.subscription_id IS NOT DISTINCT FROM s.id AND a.template_version_id IS NOT DISTINCT FROM s.template_version_id AND s.status='active'
@@ -132,6 +133,7 @@ export const SELECT_FIRST_ONBOARDING = `SELECT
     AND e.key='${environmentKey}' AND e.kind='aws_sandbox' AND e.status='active' AND e.apply_enabled=0
     AND e.region='ca-central-1' AND e.cell_key='cell-sandbox-1') AS "scopeStillEligible",
   (NOT EXISTS(SELECT 1 FROM app_instance_deployments other WHERE other.app_instance_id=a.id AND other.id<>d.id)
+    AND NOT EXISTS(SELECT 1 FROM deployment_jobs sibling WHERE sibling.deployment_id=d.id AND sibling.id<>j.id)
     AND NOT EXISTS(SELECT 1 FROM deployment_tenant_resources resource WHERE resource.app_instance_id=a.id)) AS "noOtherDeploymentOrTenantGeneration",
   d.desired_plan::jsonb AS "desiredPlan",
   jsonb_build_object('id',d.id,'status',d.status,'planHash',d.plan_hash,'configurationHash',d.configuration_hash,'artifactRef',d.artifact_ref) AS deployment,
@@ -145,14 +147,14 @@ JOIN deployment_environments e ON e.id=d.environment_id
 CROSS JOIN LATERAL (SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms) clock
 WHERE j.id=$1 AND NOT (${ordinaryDeploymentJobsOnly("j.dedupe_key")})`;
 
-type ReviewRow = Omit<FirstOnboardingReviewFacts, "scope" | "release"> &
+export type FirstOnboardingReviewRow = Omit<FirstOnboardingReviewFacts, "scope" | "release"> &
   Omit<FirstOnboardingReviewFacts["scope"], "configurationHash" | "planHash" | "artifactRef" | "releaseId"> &
-  { configuration: unknown; desiredPlan: unknown };
+  { configuration: unknown; desiredPlan: unknown; slug: string; subscriptionEnd: number | string };
 
 /** A future scoped operator supplies an approved read-only projection and the
  * trusted release catalog reader; this module creates neither connection. */
 export async function loadFirstOnboardingReview(jobId: string, ports: {
-  readOne: (sql: string, parameters: [string]) => Promise<ReviewRow | null>;
+  readOne: (sql: string, parameters: [string]) => Promise<FirstOnboardingReviewRow | null>;
   readRelease: (id: string) => Promise<SoftwareRelease | null>;
 }) {
   if (!/^job_[a-f0-9]{24}$/.test(jobId)) return null;
@@ -168,4 +170,36 @@ export async function loadFirstOnboardingReview(jobId: string, ports: {
   if (!expected || job.status !== "pending" || job.attempts !== 0 || canonicalJson(job.payload) !== canonicalJson(expected.payload) ||
     !row.instancePendingFirstOpen || !row.subscriptionActiveAndCurrent || !row.scopeStillEligible || !row.noOtherDeploymentOrTenantGeneration) return null;
   return reviewFirstOnboarding({ ...row, scope, release: await ports.readRelease(releaseId) });
+}
+
+export type FirstOnboardingReview = NonNullable<Awaited<ReturnType<typeof loadFirstOnboardingReview>>>;
+
+/** Exact one-shot claim. Leave the held payload and namespace unchanged. The
+ * row selected for review is locked and compared again before consumption. */
+export const CLAIM_FIRST_ONBOARDING = `WITH eligible AS MATERIALIZED (
+  ${SELECT_FIRST_ONBOARDING} FOR UPDATE OF j,d,a,s,w,e
+), db_clock AS MATERIALIZED (
+  SELECT (extract(epoch FROM clock_timestamp()) * 1000)::bigint AS now_ms
+  FROM eligible
+)
+UPDATE deployment_jobs j SET status='running',attempts=1,lease_owner=$2,lease_token=$3,
+  lease_expires_at=$4::bigint,updated_at=t.now_ms
+FROM eligible c CROSS JOIN db_clock t
+WHERE j.id=$1 AND j.deployment_id=$5 AND j.status='pending' AND j.attempts=0 AND j.max_attempts=1
+  AND j.available_at=${FIRST_ONBOARDING_HOLD_AT} AND j.lease_owner IS NULL AND j.lease_token IS NULL
+  AND j.lease_expires_at IS NULL AND j.completed_at IS NULL
+  AND t.now_ms<$4::bigint AND c."instancePendingFirstOpen" AND c."subscriptionActiveAndCurrent"
+  AND c."scopeStillEligible" AND c."noOtherDeploymentOrTenantGeneration"
+  AND c.configuration=$6::jsonb AND c."desiredPlan"=$7::jsonb AND c.deployment=$8::jsonb AND c.job=$9::jsonb
+  AND c."appInstanceId"=$10 AND c."workspaceId"=$11 AND c."subscriptionId"=$12 AND c."tenantKey"=$13
+  AND c."environmentId"=$14 AND c."accountId"=$15 AND c."planId"=$16 AND c."templateVersionId"=$17
+  AND c.slug=$18 AND c."subscriptionEnd">$4::bigint
+RETURNING j.id AS "jobId"`;
+
+export function firstOnboardingClaimBindings(review: FirstOnboardingReview, row: FirstOnboardingReviewRow,
+  workerId: string, leaseToken: string, writeBefore: number) {
+  const s = review.payload.scope;
+  return [review.jobId, workerId, leaseToken, writeBefore, s.deploymentId, canonicalJson(row.configuration),
+    canonicalJson(row.desiredPlan), canonicalJson(row.deployment), canonicalJson(row.job), s.appInstanceId, s.workspaceId,
+    s.subscriptionId, s.tenantKey, s.environmentId, s.accountId, s.planId, s.templateVersionId, row.slug];
 }

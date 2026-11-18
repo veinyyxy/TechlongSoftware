@@ -1165,6 +1165,7 @@ export class NeonDeploymentExecutionRepository
     lease: Parameters<DeploymentExecutionRepository["heartbeat"]>[0]["lease"];
     now: number;
     leaseDurationMs: number;
+    notAfter?: number;
   }): Promise<boolean> {
     const rows = await query(
       this.sql,
@@ -1178,10 +1179,11 @@ export class NeonDeploymentExecutionRepository
            AND job.status = 'running' AND job.lease_owner = $4
            AND job.lease_token = $5 AND job.attempts = $6
            AND job.lease_expires_at > db_clock.now_ms
+           AND ($7::bigint IS NULL OR db_clock.now_ms < $7::bigint)
          FOR UPDATE OF job
        )
        UPDATE deployment_jobs AS job
-       SET lease_expires_at = owned_job.now_ms + $1,
+       SET lease_expires_at = LEAST(owned_job.now_ms + $1, $7::bigint),
            updated_at = owned_job.now_ms
        FROM owned_job
        WHERE job.id = owned_job.id
@@ -1193,6 +1195,7 @@ export class NeonDeploymentExecutionRepository
         input.lease.workerId,
         input.lease.leaseToken,
         input.lease.attempt,
+        input.notAfter ?? null,
       ],
     );
     return rows.length === 1;

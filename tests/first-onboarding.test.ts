@@ -64,7 +64,7 @@ test("read-only review binds the actual verified catalog entry and keeps executi
   assert.equal(review.jobId, held.jobId);
   assert.equal(review.catalogSha256, await sha256Hex(facts.release));
   assert.equal(review.cloudExecutionAuthorized, false);
-  const row = { ...scope, ...facts, configuration, desiredPlan };
+  const row = { ...scope, ...facts, configuration, desiredPlan, slug: "tenant-test", subscriptionEnd: Number.MAX_SAFE_INTEGER };
   let reads = 0;
   const readOne = async (sql: string, params: [string]) => { assert.equal(sql, SELECT_FIRST_ONBOARDING); assert.deepEqual(params, [held.jobId]); return row; };
   const readRelease = async (id: string) => { assert.equal(id, scope.releaseId); reads++; return facts.release; };

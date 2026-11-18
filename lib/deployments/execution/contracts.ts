@@ -144,6 +144,7 @@ export interface DeploymentExecutionRepository {
     lease: DeploymentJobLeaseFence;
     now: number;
     leaseDurationMs: number;
+    notAfter?: number;
   }): Promise<boolean>;
   transitionDeployment(input: {
     lease: DeploymentJobLeaseFence;

@@ -30,6 +30,7 @@ import {
 } from "../lib/deployments/execution/tenant-database.ts";
 import {
   runDeploymentWorkerOnce,
+  runReviewedFirstOnboarding,
   type DeploymentWorkerDependencies,
 } from "../lib/deployments/execution/worker.ts";
 import {
@@ -42,6 +43,8 @@ import { FIRST_ACCEPTANCE_APP_IMAGE } from "../lib/deployments/execution/single-
 import { createSingleTenantWorkloadStrategy, type SupervisedTenantStack } from "../lib/deployments/execution/single-tenant-workload-strategy.ts";
 import { finalizeSupervisedTenantStack } from "../lib/deployments/execution/single-tenant-workload-strategy.ts";
 import { renderSingleTenantAcceptanceWorkload } from "../lib/deployments/cloudformation/single-tenant-acceptance-workload.ts";
+import { buildFirstOnboardingJob, CLAIM_FIRST_ONBOARDING, SELECT_FIRST_ONBOARDING, reviewFirstOnboarding, type FirstOnboardingReviewRow } from "../lib/deployments/first-onboarding.ts";
+import { cycleFixture } from "./instance-release-cycle-fixture.ts";
 
 const now = Date.UTC(2026, 7, 9);
 const workerRoleArn =
@@ -150,12 +153,17 @@ test("supervised SDK accepts only finalized immutable material and rechecks prov
     tenantHostname: "tenant-one.sandbox.techlong.cloud", listenerPriority: 100, activeCellCount: 1, activeTenantCount: 0, requestedAt: now });
   const material = finalizeSupervisedTenantStack({ rendered, context, expectedRuntimeSecretName: tenantRuntimeSecretName });
   const calls: string[] = [];
+  let stackExists = false;
   class Command { readonly input: Record<string, unknown>; constructor(input: Record<string, unknown>) { this.input = input; } }
   class Identity extends Command {} class Describe extends Command {} class Create extends Command {} class Update extends Command {} class Delete extends Command {}
   const adapter = new AwsSdkDeploymentAdapter(environment.region, {
     stsClient: { send: async () => { calls.push("identity"); return { Account: "402010193138", Arn: "arn:aws:sts::402010193138:assumed-role/TechlongSandboxProvisionerRole/acceptance-test" }; } },
     cloudFormationClient: { send: async command => {
-      if (command instanceof Describe) { calls.push("describe"); throw Object.assign(Error(`Stack with id ${material.stackName} does not exist`), { name: "ValidationError" }); }
+      if (command instanceof Describe) {
+        calls.push("describe");
+        if (stackExists) return { Stacks: [{ StackId: `arn:aws:cloudformation:ca-central-1:402010193138:stack/${material.stackName}/11111111-2222-3333-4444-555555555555`, StackStatus: "CREATE_COMPLETE" }] };
+        throw Object.assign(Error(`Stack with id ${material.stackName} does not exist`), { name: "ValidationError" });
+      }
       if (command instanceof Create) { calls.push("create"); assert.equal(command.input.OnFailure, "ROLLBACK");
         assert.equal(JSON.parse(String(command.input.TemplateBody)).Resources.TenantCleanupSchedule, undefined);
         return { StackId: `arn:aws:cloudformation:ca-central-1:402010193138:stack/${material.stackName}/11111111-2222-3333-4444-555555555555` }; }
@@ -166,8 +174,151 @@ test("supervised SDK accepts only finalized immutable material and rechecks prov
   assert.deepEqual(calls, []);
   assert.equal((await adapter.applySupervisedTenantStack(material, { signal: signal() })).operation, "create");
   assert.deepEqual(calls, ["identity", "describe", "identity", "create"]);
+  calls.length = 0;
+  stackExists = true;
+  await assert.rejects(adapter.applySupervisedTenantStack(material, { signal: signal(), createOnly: true }),
+    { code: "FIRST_ONBOARDING_STACK_ALREADY_EXISTS" });
+  assert.deepEqual(calls, ["identity", "describe"]);
   rendered.tags.ManagedBy = "changed";
   assert.throws(() => finalizeSupervisedTenantStack({ rendered, context, expectedRuntimeSecretName: tenantRuntimeSecretName }));
+});
+
+async function firstOpenFixture() {
+  const { context, readiness } = await supervisedFixture(), cycle = await cycleFixture();
+  const calls: string[] = [], transitions: string[] = [];
+  const release = structuredClone(cycle.planningInput.release);
+  release.id = "release_" + "a".repeat(32);
+  release.productId = context.appInstance.productId;
+  release.image.repository = "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast";
+  context.environment.applyEnabled = false;
+  context.deployment.artifactRef = `${release.image.repository}@${release.image.manifestDigest}`;
+  const scope = { appInstanceId: context.appInstance.id, workspaceId: context.workspace.id, tenantKey: context.appInstance.tenantKey,
+    subscriptionId: context.subscription!.id, templateVersionId: context.appInstance.templateVersionId, environmentId: context.environment.id,
+    accountId: context.environment.expectedAccountId, planId: "plan_basic", releaseId: release.id, artifactRef: context.deployment.artifactRef,
+    planHash: context.deployment.planHash, configurationHash: context.deployment.configurationHash };
+  const held = (await buildFirstOnboardingJob(scope))!;
+  context.deployment.id = held.deploymentId;
+  const bound = { deploymentId: held.deploymentId, appInstanceId: scope.appInstanceId, environmentId: scope.environmentId,
+    planHash: scope.planHash, configurationHash: scope.configurationHash, artifactRef: scope.artifactRef };
+  readiness.scopeSha256 = await sha256Hex(bound);
+  const row: FirstOnboardingReviewRow = { ...scope, configuration: context.appInstance.configurationSnapshot, desiredPlan: context.deployment.desiredPlan,
+    slug: context.appInstance.slug, subscriptionEnd: now + 3600000, instancePendingFirstOpen: true, subscriptionActiveAndCurrent: true,
+    scopeStillEligible: true, noOtherDeploymentOrTenantGeneration: true,
+    deployment: { id: held.deploymentId, status: "planned", planHash: scope.planHash, configurationHash: scope.configurationHash, artifactRef: scope.artifactRef },
+    job: { id: held.jobId, deploymentId: held.deploymentId, status: "pending", jobType: "apply", payload: held.payload, dedupeKey: held.dedupeKey,
+      attempts: 0, maxAttempts: 1, availableAt: held.availableAt, leaseOwner: null, leaseToken: null, leaseExpiresAt: null, completedAt: null } };
+  const review = (await reviewFirstOnboarding({ ...row, scope, release }))!;
+  const approval = { jobId: held.jobId, reviewSha256: review.reviewSha256, capabilitySha256: "c".repeat(64),
+    baselineDigest: "b".repeat(64), databaseSchemaVersion: "schema-v1", hostname: "tenant-one.sandbox.techlong.cloud",
+    dnsTarget: "shared.elb.amazonaws.com", writeBefore: now + 120000 };
+  let applied: SupervisedTenantStack | undefined, stackId = "", consumed = false;
+  const options: Parameters<typeof runReviewedFirstOnboarding>[0] = { approval, approvedSha256: await sha256Hex(approval),
+    config: { ...enabledConfig, workerEnabled: false, applyEnabled: false }, cleanupReadiness: { verify: async () => readiness },
+    readJob: async (sql, params) => { assert.equal(sql, SELECT_FIRST_ONBOARDING); assert.deepEqual(params, [held.jobId]); return row; },
+    readRelease: async id => { assert.equal(id, release.id); return release; },
+    verifyEmptyExpressCapability: async () => ({ profile: "express_iam", emptyDatabaseInitializationVerified: true, evidenceSha256: "c".repeat(64) }),
+    claimJob: async (sql, bindings) => {
+      assert.equal(sql, CLAIM_FIRST_ONBOARDING); assert.equal(bindings[0], held.jobId); assert.equal(bindings[4], held.deploymentId);
+      calls.push("claim");
+      if (consumed) return null;
+      consumed = true;
+      return { jobId: held.jobId };
+    },
+    independentReader: { capture: async request => {
+      calls.push("inspect");
+      const stack = applied!, resource = context.tenantResources!;
+      assert.equal(request.stackId, stackId);
+      assert.equal(request.hostname, approval.hostname);
+      assert.equal(request.databaseName, resource.identity.databaseName);
+      const facts = cycle.facts();
+      Object.assign(facts, { observedAt: now, checks: facts.checks.map(c => ({ ...c, checkedAt: now })), stackId, stackStatus: "CREATE_COMPLETE",
+        template: stack.template, tags: stack.tags, parameters: stack.parameters, roleArn: stack.cloudFormationRoleArn,
+        persistentUploadsReady: false, artifact: { ...facts.artifact, repository: release.image.repository } });
+      facts.resources = Object.fromEntries(stack.resourceInventory.map(({ logicalId, type }) => [logicalId,
+        facts.resources[logicalId] ?? { type, physicalId: `synthetic-${logicalId}` }])) as typeof facts.resources;
+      facts.taskDefinition.containerDefinitions![0].image = scope.artifactRef;
+      Object.assign(facts.tasks[0].containers![0], { image: scope.artifactRef, imageDigest: release.image.platformDigest });
+      return { facts, dns: { hostname: approval.hostname, target: approval.dnsTarget },
+        database: { name: resource.identity.databaseName, roleName: resource.identity.roleName, baselineDigest: approval.baselineDigest,
+          ownershipMarker: resource.ownershipMarker } };
+    } },
+    dependencies: { repository: {
+      ...inMemoryRepository({ context, transitions, onMarkReady: () => assert.fail("step 3 activation"),
+        onEnqueue: () => assert.fail("no sibling job"), reserveCapacity: () => { calls.push("capacity"); return true; } }),
+      claimNext: async () => assert.fail("ordinary queue"), retryJob: async () => assert.fail("no retry"),
+      loadContext: async job => { context.job = job; return context; },
+      finishStep: async step => { assert.equal(step.lease.jobId, held.jobId); assert.equal(step.lease.attempt, 1);
+        if (step.stepId === "step_first_onboarding_independent_inspection" && step.status === "succeeded") calls.push("receipt");
+        return true;
+      },
+      completeJob: async () => assert.fail("activation and completion belong to step 3"),
+    },
+      applyRuntimeReady: false, tenantExternalOperationCoordinator: readyExternalOperationCoordinator(),
+      awsFactory: async () => ({ ...readyAwsPort(),
+        applyTenantStack: async () => assert.fail("legacy apply"),
+        applySupervisedTenantStack: async (stack: SupervisedTenantStack, { createOnly }: { createOnly?: true }) => {
+          assert.equal(createOnly, true); assert.equal(stack.resourceInventory.length, 7); calls.push("create"); applied = stack;
+          stackId = `arn:aws:cloudformation:ca-central-1:402010193138:stack/${stack.stackName}/11111111-2222-3333-4444-555555555555`;
+          return { operation: "create" as const, stackId };
+        },
+        describeTenantStack: async () => applied
+          ? { state: "ready" as const, rawStatus: "CREATE_COMPLETE", stackId, outputs: {}, tags: applied.tags }
+          : { state: "missing" as const, rawStatus: null, stackId: null, outputs: {}, tags: {} },
+      }),
+      cleanupScheduler: { confirmSchedule: async () => assert.fail("no schedule writes") },
+      sharedCellSecurityPreflight: verifiedSharedCellSecurityPreflight(), controlPayloadCompiler: compiledPayloadCompiler(),
+      tenantDatabase: { ensureTenantDatabase: async () => { calls.push("prepare"); return tenantLifecycleOutput(context, "empty"); },
+        migrateTenantDatabase: async () => { calls.push("migrate"); return tenantLifecycleOutput(context, "verified"); } },
+      controlClient: { waitUntilHealthy: async () => ({ ready: true, desiredConfigurationHash: null, imageRevision: null }),
+        provision: async () => { calls.push("configure"); return { accepted: true }; },
+        readConfiguration: async () => ({ ready: true, desiredConfigurationHash: scope.configurationHash, imageRevision: release.image.manifestDigest }) },
+      now: () => now,
+    },
+  };
+  return { options, context, calls, transitions, row };
+}
+
+test("reviewed first-open runs one held job to independent technical proof, not active/ready", async () => {
+  const { options, context, calls, transitions, row } = await firstOpenFixture();
+  const result = await runReviewedFirstOnboarding(options);
+  assert.equal(result.jobId, row.job.id); assert.equal(result.deploymentId, row.deployment.id);
+  assert.equal(result.runtime.persistentUploadsReady, false); assert.equal(result.customerActivated, false);
+  assert.deepEqual(transitions, ["queued", "preflight", "database_preparing", "migrating", "infrastructure_provisioning", "waiting_healthy", "configuring", "verifying"]);
+  assert.deepEqual(calls, ["claim", "capacity", "prepare", "migrate", "capacity", "create", "capacity", "configure", "inspect", "receipt"]);
+  assert.equal(context.appInstance.status, "pending");
+  assert.equal(context.deployment.status, "verifying");
+  await assert.rejects(runReviewedFirstOnboarding(options), /FIRST_ONBOARDING_CLAIM_NOT_PROVED/);
+  assert.equal(calls.filter(call => call === "create").length, 1);
+});
+
+test("missing empty-Express proof or changed/expired review stops before claim", async () => {
+  const { options, calls, row } = await firstOpenFixture();
+  await assert.rejects(runReviewedFirstOnboarding({ ...options, verifyEmptyExpressCapability: async () => null }), /EMPTY_EXPRESS_UNPROVED/);
+  await assert.rejects(runReviewedFirstOnboarding({ ...options, approval: { ...options.approval, writeBefore: now } }), /WINDOW_CLOSED/);
+  row.subscriptionActiveAndCurrent = false;
+  await assert.rejects(runReviewedFirstOnboarding(options), /REVIEW_CHANGED/);
+  assert.deepEqual(calls, []);
+});
+
+test("first-open refuses initialized DB and holds activation on independent DNS, DB, or digest mismatch", async () => {
+  const base = await firstOpenFixture();
+  base.options.dependencies.tenantDatabase.ensureTenantDatabase = async () => tenantLifecycleOutput(base.context, "verified");
+  await assert.rejects(runReviewedFirstOnboarding(base.options), /DATABASE_NOT_EMPTY/);
+  assert.equal(base.calls.includes("create"), false);
+  for (const mismatch of ["dns", "database", "digest"]) {
+    const { options, context, calls } = await firstOpenFixture(), reader = options.independentReader;
+    options.independentReader = { capture: async request => {
+      const result = await reader.capture(request);
+      if (mismatch === "dns") result.dns.target = "another.elb.amazonaws.com";
+      if (mismatch === "database") result.database.ownershipMarker = "foreign";
+      if (mismatch === "digest") result.facts.tasks[0].containers![0].imageDigest = "sha256:" + "0".repeat(64);
+      return result;
+    } };
+    await assert.rejects(runReviewedFirstOnboarding(options));
+    assert.equal(context.appInstance.status, "pending");
+    assert.equal(calls.includes("receipt"), false);
+    assert.equal(calls.filter(call => call === "create").length, 1);
+  }
 });
 
 function stackExternalOperation(

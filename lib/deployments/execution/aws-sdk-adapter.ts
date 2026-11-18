@@ -245,7 +245,7 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
     return this.applyStack(stack, input);
   }
 
-  async applySupervisedTenantStack(stack: SupervisedTenantStack, input: { signal: AbortSignal }): Promise<{
+  async applySupervisedTenantStack(stack: SupervisedTenantStack, input: { signal: AbortSignal; createOnly?: true }): Promise<{
     operation: "create" | "update" | "no_change" | "existing_in_progress"; stackId: string;
   }> {
     assertFinalizedSupervisedTenantStack(stack);
@@ -263,7 +263,7 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
 
   private async applyStack(
     stack: ApplyReadyTenantStack | SupervisedTenantStack,
-    input: { signal: AbortSignal },
+    input: { signal: AbortSignal; createOnly?: true },
     verifyCaller?: () => Promise<void>,
   ): Promise<{
     operation: "create" | "update" | "no_change" | "existing_in_progress"; stackId: string;
@@ -277,6 +277,9 @@ export class AwsSdkDeploymentAdapter implements AwsDeploymentPort {
       );
     }
     const observed = await this.describeTenantStack(stack.stackName, input);
+    if (input.createOnly && observed.state !== "missing") {
+      throw new AwsDeploymentApiError("FIRST_ONBOARDING_STACK_ALREADY_EXISTS", "First opening cannot adopt or update an existing stack.", false);
+    }
     if ("protocol" in stack && observed.state !== "missing") assertExactStackId(stack.stackName, observed.stackId);
     if (observed.state !== "missing") {
       for (const key of [

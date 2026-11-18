@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import pg from 'pg';
 import { buildFirstOnboardingJob, firstOnboardingInsertBindings, INSERT_FIRST_ONBOARDING,
-  FIRST_ONBOARDING_HOLD_AT, SELECT_FIRST_ONBOARDING } from '../lib/deployments/first-onboarding.ts';
+  FIRST_ONBOARDING_HOLD_AT, SELECT_FIRST_ONBOARDING, CLAIM_FIRST_ONBOARDING, firstOnboardingClaimBindings } from '../lib/deployments/first-onboarding.ts';
 import { buildDeploymentClaimStatement } from '../lib/deployments/lease.ts';
 import { NeonDeploymentExecutionRepository } from '../lib/deployments/execution/neon-repository.ts';
 import { sha256Hex } from '../lib/deployments/execution/hash.ts';
@@ -23,7 +23,7 @@ test('first-onboarding native PostgreSQL: atomic outbox, stale and historical re
       CREATE TEMP TABLE subscriptions (id text PRIMARY KEY,workspace_id text,product_id text,plan_id text,template_version_id text,
         status text,current_period_start bigint,current_period_end bigint,deployment_profile_key text,instance_configuration text);
       CREATE TEMP TABLE app_instances (id text PRIMARY KEY,workspace_id text,product_id text,subscription_id text,tenant_key text,
-        status text,provisioned_at bigint,provisioning_source text,access_url text,template_version_id text,configuration_snapshot text);
+        status text,provisioned_at bigint,provisioning_source text,access_url text,template_version_id text,configuration_snapshot text,slug text);
       CREATE TEMP TABLE deployment_environments (id text PRIMARY KEY,key text,kind text,status text,apply_enabled integer,expected_account_id text,region text,cell_key text);
       CREATE TEMP TABLE deployment_tenant_resources (app_instance_id text);
       CREATE TEMP TABLE app_instance_deployments (id text PRIMARY KEY,app_instance_id text,subscription_id text,purchase_order_id text,environment_id text,
@@ -45,8 +45,8 @@ test('first-onboarding native PostgreSQL: atomic outbox, stale and historical re
       await db.query('insert into workspaces values ($1,$2)',[x.workspaceId,'active']);
       await db.query(`insert into subscriptions values ($1,$2,$3,$4,$5,$6,1,9007199254740990,'standard-v1',$7)`,
         [x.subscriptionId,x.workspaceId,productId,x.planId,x.templateVersionId,substatus,configuration]);
-      await db.query(`insert into app_instances values ($1,$2,$3,$4,$5,$6,NULL,'payment_success','',$7,$8)`,
-        [x.appInstanceId,x.workspaceId,productId,x.subscriptionId,x.tenantKey,status,x.templateVersionId,configuration]);
+      await db.query(`insert into app_instances values ($1,$2,$3,$4,$5,$6,NULL,'payment_success','',$7,$8,$9)`,
+        [x.appInstanceId,x.workspaceId,productId,x.subscriptionId,x.tenantKey,status,x.templateVersionId,configuration,i]);
       return x;
     };
     const prepared=async s=>{const job=await buildFirstOnboardingJob(s);assert.ok(job);
@@ -73,5 +73,28 @@ test('first-onboarding native PostgreSQL: atomic outbox, stale and historical re
     const repository=new NeonDeploymentExecutionRepository(testUrl,undefined,()=>({query:(text,values)=>db.query(text,values)}));
     assert.equal(await repository.claimNext({workerId:'worker:new',now:1000,leaseDurationMs:5000,jobTypes:['apply']}),null);
     assert.equal((await db.query('select attempts from deployment_jobs where id=$1',[h.job.jobId])).rows[0].attempts,0);
+    await db.query('update deployment_jobs set available_at=$2 where id=$1',[h.job.jobId,FIRST_ONBOARDING_HOLD_AT]);
+    const review = {jobId:h.job.jobId,payload:h.job.payload};
+    const claim = async (deadline, approvedRow=row) => db.query(CLAIM_FIRST_ONBOARDING,firstOnboardingClaimBindings(
+      review,approvedRow,'first-onboarding:test','lease_'+'a'.repeat(32),deadline));
+    const writeBefore=Date.now()+60_000;
+    assert.equal((await claim(writeBefore)).rowCount,0); // subscription paused
+    await db.query('update subscriptions set status=$1 where id=$2',['active',scope.subscriptionId]);
+    assert.equal((await claim(Date.now()-1000)).rowCount,0);
+    assert.equal((await claim(writeBefore,{...row,slug:'changed'})).rowCount,0);
+    await db.query("insert into deployment_jobs(id,deployment_id) values ('job_sibling',$1)",[h.job.deploymentId]);
+    assert.equal((await claim(writeBefore)).rowCount,0);
+    await db.query("delete from deployment_jobs where id='job_sibling'");
+    assert.deepEqual((await claim(writeBefore)).rows,[{jobId:h.job.jobId}]);
+    assert.equal((await claim(writeBefore)).rowCount,0);
+    const claimed=(await db.query(SELECT_FIRST_ONBOARDING,[h.job.jobId])).rows[0];
+    assert.equal(claimed.job.attempts,1);
+    assert.equal(claimed.job.availableAt,FIRST_ONBOARDING_HOLD_AT);
+    assert.deepEqual(claimed.job.payload,h.job.payload);
+    assert.equal(claimed.deployment.status,'planned');
+    const lease={jobId:h.job.jobId,deploymentId:h.job.deploymentId,workerId:'first-onboarding:test',attempt:1,leaseToken:'lease_'+'a'.repeat(32)};
+    assert.equal(await repository.heartbeat({lease,now:Date.now(),leaseDurationMs:120000,notAfter:writeBefore}),true);
+    assert.equal((await db.query(SELECT_FIRST_ONBOARDING,[h.job.jobId])).rows[0].job.leaseExpiresAt,writeBefore);
+    assert.equal(await repository.heartbeat({lease,now:Date.now(),leaseDurationMs:120000,notAfter:Date.now()-1000}),false);
   } finally { await db.end(); }
 });
