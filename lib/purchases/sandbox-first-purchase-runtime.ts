@@ -5,7 +5,7 @@ import { getPlan, ManagementError } from "@/lib/admin/management";
 import { resolveTemplateConfiguration } from "@/lib/templates/validation";
 import type { CustomerPurchaseInput } from "./validation";
 import { readSandboxPurchaseConfiguration, SANDBOX_PURCHASE_PRODUCT } from "./sandbox-first-purchase-config";
-import { finishSandboxFirstCheckout, sandboxPurchaseOrderId, SANDBOX_PURCHASE_SQL, startSandboxFirstCheckout,
+import { authenticateSharedStripeWebhook, finishVerifiedSandboxFirstCheckout, sandboxPurchaseOrderId, SANDBOX_PURCHASE_SQL, startSandboxFirstCheckout,
   type SandboxPurchaseOrder } from "./sandbox-first-purchase";
 
 const bindings = env as unknown as Record<string, unknown>;
@@ -52,15 +52,20 @@ export async function readSandboxPurchaseOrder(workspaceId: string, actor: strin
     ? web<SandboxPurchaseOrder>(SANDBOX_PURCHASE_SQL.read, [actor, id]) : null;
 }
 
-export async function sandboxPurchaseWebhook(payload: string, signature: string | null) {
+export async function sandboxPurchaseWebhook(payload: string, signature: string | null, existingSecret: string | null) {
   const config = sandboxFirstPurchaseConfig();
   if (!config) return null;
+  const delivery = await authenticateSharedStripeWebhook({
+    workspaceId: config.workspaceId, payload, signature, sandboxSecret: config.signingSecret, existingSecret,
+  });
+  if (delivery.kind !== "first-purchase") return delivery;
   const sql = neon(config.webhookDatabase);
-  return finishSandboxFirstCheckout({
-    scope: config, payload, signature, signingSecret: config.signingSecret,
+  const outcome = await finishVerifiedSandboxFirstCheckout({
+    scope: config, payload, event: delivery.event,
     webhook: async <T,>(statement: string, args: (string | number)[]) => {
       const rows = await sql.query(statement, args);
       return (rows[0]?.value as T | undefined) ?? null;
     },
   });
+  return { kind: "first-purchase", outcome } as const;
 }

@@ -2,7 +2,7 @@ import { AwsEcsCellPlanOnlyDriver } from "../deployments/drivers/aws-ecs-cell.ts
 import { firstOnboardingExpressNames } from "../deployments/first-onboarding.ts";
 import { canonicalJson } from "../deployments/execution/hash.ts";
 import { stableId } from "../domain/ids.ts";
-import { createStripeCheckoutSession, sha256Hex, verifyStripeWebhook } from "../payments/stripe.ts";
+import { createStripeCheckoutSession, sha256Hex, verifyStripeWebhook, type StripeWebhookEvent } from "../payments/stripe.ts";
 import { SANDBOX_PURCHASE_ENVIRONMENT, SANDBOX_PURCHASE_ORIGIN, SANDBOX_PURCHASE_PRODUCT,
   type SandboxPurchaseScope } from "./sandbox-first-purchase-config.ts";
 
@@ -54,6 +54,44 @@ export async function finishSandboxFirstCheckout(input: {
   scope: SandboxPurchaseScope; payload: string; signature: string | null; signingSecret: string; webhook: Webhook;
 }) {
   const event = await verifyStripeWebhook(input.payload, input.signature, input.signingSecret);
+  return finishVerifiedSandboxFirstCheckout({ ...input, event });
+}
+
+type SharedWebhookRoute =
+  | { kind: "first-purchase"; event: StripeWebhookEvent }
+  | { kind: "existing"; event: StripeWebhookEvent }
+  | { kind: "ignored" }
+  | { kind: "invalid" };
+
+export async function authenticateSharedStripeWebhook(input: {
+  workspaceId: string; payload: string; signature: string | null;
+  sandboxSecret: string; existingSecret: string | null;
+}): Promise<SharedWebhookRoute> {
+  const verify = (secret: string) => verifyStripeWebhook(input.payload, input.signature, secret).catch(() => null);
+  const reservedOrder = await sandboxPurchaseOrderId(input.workspaceId);
+  const refersToReservedOrder = (event: StripeWebhookEvent) => {
+    const object = event.data.object;
+    const metadata = object.metadata as Record<string, unknown> | null | undefined;
+    // Even one matching marker keeps a conflicting or incomplete event out of the old payment path.
+    return metadata?.subscription_purchase_order_id === reservedOrder || object.client_reference_id === reservedOrder;
+  };
+  const sandboxEvent = await verify(input.sandboxSecret);
+  if (sandboxEvent && refersToReservedOrder(sandboxEvent)) {
+    return sandboxEvent.livemode === false ? { kind: "first-purchase", event: sandboxEvent } : { kind: "ignored" };
+  }
+  if (!input.existingSecret) return { kind: sandboxEvent ? "ignored" : "invalid" };
+  const sameSecret = input.existingSecret === input.sandboxSecret;
+  const existingEvent = sameSecret ? sandboxEvent : await verify(input.existingSecret);
+  if (!existingEvent || refersToReservedOrder(existingEvent) || (sameSecret && existingEvent.livemode !== false)) {
+    return { kind: "invalid" };
+  }
+  return { kind: "existing", event: existingEvent };
+}
+
+export async function finishVerifiedSandboxFirstCheckout(input: {
+  scope: SandboxPurchaseScope; payload: string; event: StripeWebhookEvent; webhook: Webhook;
+}) {
+  const { event } = input;
   if (event.livemode !== false) return "ignored";
   if (!["checkout.session.completed", "checkout.session.async_payment_succeeded"].includes(event.type)) return "ignored";
   const checkout = event.data.object;

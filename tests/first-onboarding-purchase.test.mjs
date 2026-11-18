@@ -6,7 +6,8 @@ import pg from "pg";
 import { assertRuntimeEnvironment, buildEnvironment } from "../ops/platform-hosting-v1/contract.mjs";
 import { checkIngress, ingressPolicy, PUBLIC_ORIGIN } from "../ops/platform-hosting-v1/ingress.mjs";
 import { SANDBOX_PURCHASE_WEBHOOK_ROLE, readSandboxPurchaseConfiguration } from "../lib/purchases/sandbox-first-purchase-config.ts";
-import { finishSandboxFirstCheckout, sandboxPurchaseOrderId, SANDBOX_PURCHASE_SQL, startSandboxFirstCheckout } from "../lib/purchases/sandbox-first-purchase.ts";
+import { authenticateSharedStripeWebhook, finishSandboxFirstCheckout, finishVerifiedSandboxFirstCheckout,
+  sandboxPurchaseOrderId, SANDBOX_PURCHASE_SQL, startSandboxFirstCheckout } from "../lib/purchases/sandbox-first-purchase.ts";
 import { randomId } from "../lib/domain/ids.ts";
 import { sandboxFirstPurchaseDdl } from "../ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts";
 import { buildDeploymentClaimStatement } from "../lib/deployments/lease.ts";
@@ -40,9 +41,9 @@ function event(object = {}, envelope = {}) {
       payment_intent: "pi_SandboxOne", client_reference_id: orderId, metadata: { subscription_purchase_order_id: orderId },
       amount_total: 1500, currency: "cad", ...object } }, ...envelope };
 }
-function signed(e) {
+function signed(e, secret = signingSecret) {
   const payload = JSON.stringify(e), time = Math.floor(Date.now() / 1000);
-  return { payload, signature: `t=${time},v1=${createHmac("sha256", signingSecret).update(`${time}.${payload}`).digest("hex")}` };
+  return { payload, signature: `t=${time},v1=${createHmac("sha256", secret).update(`${time}.${payload}`).digest("hex")}` };
 }
 function mockStripe(t, overrides = {}) {
   return t.mock.method(globalThis, "fetch", async (url, options) => {
@@ -53,6 +54,8 @@ function mockStripe(t, overrides = {}) {
     const body = new URLSearchParams(options.body);
     assert.equal(body.get("metadata[subscription_purchase_order_id]"), orderId);
     assert.equal(body.get("client_reference_id"), orderId);
+    assert.equal(body.get("payment_method_types[0]"), "card");
+    assert.equal(body.has("payment_method_types[1]"), false);
     assert.equal(body.get("line_items[0][price_data][unit_amount]"), "1500");
     return Response.json({ id: sessionId, url: hostedUrl, livemode: false, expires_at: Math.floor(Date.now() / 1000) + 3600, ...overrides });
   });
@@ -106,6 +109,53 @@ test("mis-scoped and live/unsigned callbacks never reach the completion database
   await assert.rejects(invoke({ ...signed(event()), signature: "bad" }), /signature/);
   assert.equal(await startSandboxFirstCheckout({ ...purchase, workspaceId: "another", web: async () => assert.fail("must not query") }), null);
   assert.equal(await startSandboxFirstCheckout({ ...purchase, planId: randomId("pln"), web: async () => assert.fail("must not query") }), null);
+});
+
+test("Dahlia snapshot for the one paid test Checkout can complete without an async event", async () => {
+  const input = signed(event({}, { api_version: "2026-05-27.dahlia" }));
+  const delivery = await authenticateSharedStripeWebhook({ ...input, workspaceId: scope.workspaceId,
+    sandboxSecret: signingSecret, existingSecret: null });
+  assert.equal(delivery.kind, "first-purchase");
+  const calls = [];
+  const webhookPort = async (stmt, args) => {
+    calls.push([stmt, args]);
+    return stmt === SANDBOX_PURCHASE_SQL.webhookOrder
+      ? { sessionId, templateId, status: "checkout_pending" } : "accepted";
+  };
+  assert.equal(await finishVerifiedSandboxFirstCheckout({ scope, ...input, event: delivery.event, webhook: webhookPort }), "accepted");
+  assert.deepEqual(calls.map(([stmt]) => stmt), [SANDBOX_PURCHASE_SQL.webhookOrder, SANDBOX_PURCHASE_SQL.complete]);
+  assert.deepEqual(calls[1][1].slice(0, 7), ["evt_SandboxOne", "checkout.session.completed", orderId, sessionId, "pi_SandboxOne", 1500, "cad"]);
+});
+
+test("unrelated events require the old credential, and reserved failures or conflicting markers cannot fall through", async () => {
+  const existingSecret = "whsec_synthetic_existing";
+  const other = { client_reference_id: "ord_other", metadata: { subscription_purchase_order_id: "ord_other" } };
+  const dispatch = (input, oldSecret = existingSecret) => authenticateSharedStripeWebhook({
+    ...input, workspaceId: scope.workspaceId, sandboxSecret: signingSecret, existingSecret: oldSecret,
+  });
+  for (const type of ["checkout.session.completed", "checkout.session.expired", "charge.refunded",
+    "payment_intent.payment_failed", "payment_intent.succeeded"]) {
+    const unrelated = event(other, { type, api_version: "2026-05-27.dahlia" });
+    assert.equal((await dispatch(signed(unrelated, existingSecret))).kind, "existing");
+    assert.equal((await dispatch(signed(unrelated))).kind, "invalid");
+    assert.equal((await dispatch(signed(unrelated), signingSecret)).kind, "existing");
+    assert.equal((await dispatch(signed(unrelated), null)).kind, "ignored");
+  }
+  const liveUnrelated = event(other, { livemode: true });
+  assert.equal((await dispatch(signed(liveUnrelated), signingSecret)).kind, "invalid");
+  assert.equal((await dispatch(signed(liveUnrelated, existingSecret))).kind, "existing");
+
+  for (const e of [event({ client_reference_id: "ord_conflict" }),
+    event({ client_reference_id: null }, { type: "payment_intent.payment_failed" })]) {
+    assert.equal((await dispatch(signed(e, existingSecret))).kind, "invalid");
+    const input = signed(e);
+    const delivery = await dispatch(input);
+    assert.equal(delivery.kind, "first-purchase");
+    assert.equal(await finishVerifiedSandboxFirstCheckout({ ...input, scope, event: delivery.event,
+      webhook: async () => assert.fail("must not query") }), "ignored");
+  }
+  assert.equal((await dispatch({ ...signed(event()), signature: "bad" })).kind, "invalid");
+  assert.equal((await dispatch(signed(event({}, { livemode: true })))).kind, "ignored");
 });
 
 test("a live Checkout response is rejected after one reservation and no attachment", async (t) => {

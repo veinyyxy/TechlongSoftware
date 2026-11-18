@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：[新一轮集中启用审批待批准，未执行](aws-sandbox-first-purchase-activation-renewed-review.md)。** 2026-11-18（温尼伯）。旧窗口结束前未启动，用户已私密供给签名；旧快照只作比对基准，现状核对跟新启用合并另批。不另开 Stripe 测试轮；[测试分工](#sandbox-first-purchase-delivery-boundary)不变。以下是保留的准备沿革，不是当前审批。工程侧未读取新凭据、发布镜像、安装权限、创建 Secret/回调端点或更新平台。
+**状态：[既有回调的最小离线兼容已实现](#sandbox-first-purchase-existing-endpoint-compatibility)，未重建或启用。** [上一轮](aws-sandbox-first-purchase-activation-renewed-review.md)在匹配检查停下，未做云侧写入；签名保持已供给，不改回调，也不另开 Stripe 测试轮。[测试分工](#sandbox-first-purchase-delivery-boundary)不变。以下是准备沿革，不是当前审批。
 
 ## 固定范围
 
@@ -179,3 +179,11 @@ Stripe 的另批范围不包含 AWS、Neon 或 GitHub 运行读取，也不刷�
 [模板生成模块](../ops/platform-ecs-v1/first-purchase-activation.mjs)已实现：重建并比对原 Access/Hosting 模板摘要，用已撤权的已审镜像发布回执和固定 Secret ARN/VersionId 生成原两栈的差异，提供新 Secret 的准确资源保护策略。Access 仅追加对新 Secret 的两条窄权限；Hosting 保留旧数据库绑定和关闭开关。本轮只用合成数据做一次本机装配检查，不读原凭据、不调用服务或调度。
 
 [单次入口](../ops/platform-ecs-v1/first-purchase-activate-reviewed.mjs)已接齐，复用发布器、PG18 安装体和模板生成；[集中审批](aws-sandbox-first-purchase-activation-review.md)绑定唯一候选及原栈。本机 3 项编排回归通过，固定发布文件无漂移；未做 Stripe/API 调用、私密读取或部署。账户、端点、栈和版本的必要核对都并入同一次启用；Stripe 只读检查，同一批准范围内若确无匹配端点，仅由用户在 Dashboard 建一个，不调用管理 API。用户测试购买及业务验收在功能启用后进行。
+
+<a id="sandbox-first-purchase-existing-endpoint-compatibility"></a>
+
+### 既有回调的最小离线兼容
+
+用户截图显示准确 URL、显式 `2026-05-27.dahlia` 和五项既有事件（`charge.refunded`、`checkout.session.completed`、`checkout.session.expired`、`payment_intent.payment_failed`、`payment_intent.succeeded`），没有异步 Checkout 成功事件。新源码只给这一次 Sandbox 首开限定银行卡。已签名且带此唯一首开订单标记的消息不落入通用处理器；只有验签及已付款、测试模式、订单与会话等原核验全部通过时才完成首开。其他事件若通过原通用签名则交给原处理器；锁定 Sandbox 不配置该凭据，故有效的无关 Sandbox 消息仅确认收到，不写业务数据。没有新增密钥、权限或异步付款支持。
+
+合成 Dahlia 回调、分流与支付回归 14 项通过，另 1 项数据库用例未运行；本次不读取凭据、不访问 Stripe/AWS、不改端点、不构建镜像、不发布或重跑。旧候选和清单均未改，不能证明此源码已上线。后继只另行准备受审候选并让新清单绑定该确切版本与事件集；测试购买由用户在技术验收后完成。

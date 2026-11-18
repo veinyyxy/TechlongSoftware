@@ -85,6 +85,8 @@ export async function createStripeCheckoutSession(
 
   const body = new URLSearchParams();
   body.set("mode", "payment");
+  // The existing sandbox endpoint only supplies checkout.session.completed for this flow.
+  if (sandbox) body.set("payment_method_types[0]", "card");
   body.set("success_url", input.successUrl);
   body.set("cancel_url", input.cancelUrl);
   body.set("client_reference_id", input.checkoutId);
