@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步已离线实现，第 4 步已完成[首开接线](auto-pending-provisioning.md#first-onboarding-step4-offline)与[首版 A 锁定](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。原平台注册页可用但本人提交出现 `42501`，[最小权限修复](auto-pending-provisioning.md#first-onboarding-step4-registration-permissions)已离线实现，隔离 PostgreSQL 回归通过。线上仍为 `NO_GO`：同范围只读已完成，不重跑；[新版安装审批](auto-pending-provisioning.md#first-onboarding-step4-registration-install-review)已离线备好，实际安装、平台更新和重试均另审。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步已离线实现，第 4 步已完成[首开接线](auto-pending-provisioning.md#first-onboarding-step4-offline)与[首版 A 锁定](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。原平台注册提交出现 `42501`；[普通注册的受限数据库函数](auto-pending-provisioning.md#first-onboarding-step4-registration-install-observed)已安装并独立回读，Web 无新增直接表写权限。原平台尚未更新，注册仍为 `NO_GO`；下一步只准备原闭控服务的最小更新审批，不重做已完成的数据库安装，实际更新及本人重试另审。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 

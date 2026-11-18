@@ -444,6 +444,14 @@
 
 **本轮只编制方案和清单。** 未读取邮箱或配置、未重新核对或连库、未生成含真实身份的 SQL、未安装、未更新平台或重试注册。下一步仅另审这一份安装范围及剩余事实时限；平台更新与本人注册均不在本清单内。
 
+<a id="first-onboarding-step4-registration-install-observed"></a>
+
+#### 数据库安装已提交并独立回读；平台尚未更新
+
+**`REGISTRATION_FUNCTION_INSTALLED_AND_INDEPENDENTLY_VERIFIED`｜2026-11-18 09:59:30.777 温尼伯 CST。** 按用户批准的 `e32b5b85…` 一次安装，收到明确提交确认；另一条验证 TLS 的只读连接回读与事务内核对一致。新 schema 和唯一函数均归专用 `NOLOGIN` definer；definer 只有原定 29 列 INSERT 和必要 schema USAGE；临时自授 SET 记录已撤掉，创建者只留系统自动的 ADMIN（SET/INHERIT 均关闭），Web 仅新增新 schema USAGE 和单函数 EXECUTE，无新增直接表写权限，PUBLIC 无新对象访问权。
+
+本机私有去敏回执 `sandbox-registration-pg18-install-e32b5b85.result.json`，文件 SHA-256 `0aaaa43569204d55a8225598853d90c4c86a8176286f9bc2e31ad00b97eeeec2`；实际 2 条 TLS 连接，安装 SQL 24、独立只读 SQL 6、DDL/授权 14，业务读写、函数调用、AWS 更新、平台更新和注册均 0。已消费安装次数，不复用清单或重跑。**下一步只准备原平台闭控服务的最小版本更新审批材料，不执行更新；平台和函数均验证后才另审本人一次注册。**
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的

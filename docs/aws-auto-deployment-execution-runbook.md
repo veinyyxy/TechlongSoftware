@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，[普通注册的新版安装审批](auto-pending-provisioning.md#first-onboarding-step4-registration-install-review)。** 同范围只读已完成，不重跑；已离线收口专用角色的对象所有权、事务内临时 SET 撤销及创建者仅保留自动 ADMIN 的差异。只等另审实际安装并满足原事实期限，不扩 Web 直接写权限；平台更新和本人重试均另审。首版 A、D2 和普通 worker 不变。
+**当前唯一继续点：缺口 3 第 4 步，[普通注册数据库安装已独立回读](auto-pending-provisioning.md#first-onboarding-step4-registration-install-observed)。** 安装已提交，临时 SET 已撤、Web 无新增直接表写权限；原安装及只读核对均不重放。下一步只准备原闭控平台服务的最小版本更新审批材料；实际更新和本人重试均另审。首版 A、D2 和普通 worker 不变。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 
