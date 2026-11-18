@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，[普通变更集参数已更正，等待新创建 SHA](auto-pending-provisioning.md#first-onboarding-step4-register-create-standard)。** 原批准在 AWS 提交前停止；只省略非法 `DeploymentMode`，未调 AWS、未创建或消费槽。新 SHA 仅限原四 Add、限定读取、一次创建及独立回读；最晚温尼伯 11 月 18 日 13:07:53.956 CST 启动，原截止不延。执行、恢复及本人注册仍另审，首版 A 不变。
+**当前唯一继续点：缺口 3 第 4 步，[原平台四 Add 变更集已创建并独立回读](auto-pending-provisioning.md#first-onboarding-step4-register-created)。** `CREATE_COMPLETE / AVAILABLE`，准确尾 ID `52eb096a…`，未执行、未恢复，创建槽已消费。下一步只准备同一 ARN 的执行审批及失败策略，不重建、不扩大资源；执行和本人注册另审，原事实不延期，首版 A 不变。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 

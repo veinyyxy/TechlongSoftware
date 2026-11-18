@@ -345,7 +345,15 @@
 
 用户批准原 `1b39fab2…` 后，提交前对照既有生命周期工具和 [AWS CreateChangeSet API](https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html#API_CreateChangeSet_RequestParameters) 发现：请求字段 `DeploymentMode` 只接受 `REVERT_DRIFT`，而 `STANDARD` 是普通变更集的验收语义。**不把 `STANDARD` 发给 AWS，也不擅自改成漂移修复。** 本轮 STS、AWS API、写入、变更集、槽消费和启动均为 0；原记录保留。
 
-**[更正后的仅创建清单](../ops/deployment-baseline/platform-register-restore-create-standard.review.json)规范 SHA `665738dfae20643d7f0fc0dbf1660ccf26b776e7b792fcf1d59ec20e5a290932` 待重新批准。** 物化请求规范 SHA `583fbccd10f2d13c851c90521f25b793af4cfe0dcef83d0597838bf90d6dadea`；实际请求唯一变化是省略 `DeploymentMode`，也不加 `DeploymentConfig`。模板、四 Add、七项保留、目标栈、候选名称、未使用的永久槽、有限前置读取（含准确 ALB 名）与独立回读边界均未变。原最晚启动 **2026-11-18 13:07:53.956 CST**，13:17:53.956 CST 事实截止，不延期。仅重新批准新 SHA 才提交；执行仍另审，不恢复或注册。
+**[更正后的仅创建清单](../ops/deployment-baseline/platform-register-restore-create-standard.review.json)规范 SHA `665738dfae20643d7f0fc0dbf1660ccf26b776e7b792fcf1d59ec20e5a290932` 随后获批。** 物化请求规范 SHA `583fbccd10f2d13c851c90521f25b793af4cfe0dcef83d0597838bf90d6dadea`；实际请求唯一变化是省略 `DeploymentMode`，也不加 `DeploymentConfig`。模板、四 Add、七项保留、目标栈、候选名称、有限前置读取（含准确 ALB 名）与独立回读边界均未变。原时限不延期，见[实际创建回执](#first-onboarding-step4-register-created)。
+
+<a id="first-onboarding-step4-register-created"></a>
+
+#### 原平台四项恢复变更集已创建，未执行
+
+**`READY_UNEXECUTED`｜2026-11-18 08:31:24.655–08:31:52.494 温尼伯 CST。** 按 `665738df…` 单次创建并经独立进程回读：[去敏回执](../ops/deployment-baseline/platform-register-restore-created-20261118.json)。准确 Change Set ID 尾段 `52eb096a-3ed2-48a8-80cf-1d34671495df`，`CREATE_COMPLETE / AVAILABLE`，普通 `UPDATE`。前置只按准确 ALB 名得到 `LoadBalancerNotFound`、准确 console DNS 名未占用。实际四项均为 Add：`LoadBalancer`、`HttpsListener`、`Service`、`DnsRecord`，无修改、删除、导入或替换；候选摘要匹配，原栈模板、角色、参数、标签、输出摘要和七项保留物理 ID 不变。
+
+实际 STS 2、元数据 10、`CreateChangeSet` 1、`ExecuteChangeSet` 0，单次创建槽已消费，不重放或删除。未启动平台、ALB、ECS 或数据库，未更新 DNS、启用队列、注册或购买，也未取 Secret 值或连接数据库。**下一步仅准备同一 ARN 的执行审批及失败策略，需另批。** 原事实仍于温尼伯 **13:17:53.956 CST** 截止，不因回读延期；本轮没有执行清单 SHA，注册页未恢复。执行后的独立核验和本人注册仍是后续单独步骤。
 
 ## 当前操作说明（实施计划不改变现有流程）
 
