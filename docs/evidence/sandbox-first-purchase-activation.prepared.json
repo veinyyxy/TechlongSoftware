@@ -1,0 +1,233 @@
+{
+  "schema": "techlong/sandbox-first-purchase-activation-preparation/v1",
+  "status": "OFFLINE_DRAFT_NOT_EXECUTABLE",
+  "evidenceDateWinnipeg": "2026-11-18",
+  "authorization": {
+    "externalReads": false,
+    "writes": false,
+    "build": false,
+    "publish": false,
+    "checkout": false,
+    "tenantDeployment": false,
+    "executionSha256": null
+  },
+  "scope": {
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "origin": "https://console.sandbox.techlong.cloud",
+    "workspaceSource": "Local ignored sandbox-first-onboarding-workspace-20261118.json; exact ID supplied by the user, not yet independently verified",
+    "expectedHostingStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "expectedAccessStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-access-v1/01b4bb80-ce60-11f1-9435-0e85c8c75895",
+    "expectedServiceArn": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+    "observedWebTaskRevision": 14,
+    "observedWebRegistryManifest": "sha256:adaa45218a5bfefcc376bf0349eb685f742efb381fc334540347745091bbe323",
+    "productId": "prd_restaurant_order_system",
+    "environmentId": "env_aws_sandbox_ca_central_1",
+    "cell": "cell-sandbox-1",
+    "profile": "standard-v1",
+    "tenantReleaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+    "tenantReleaseImage": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0"
+  },
+  "candidate": {
+    "recipe": {
+      "base": "5fcbc23ccaccec2c6a0fab8e732728a55b0b7ffc",
+      "overlay": [
+        {
+          "path": "app/api/stripe/webhook/route.ts",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "5dadbc1eecbe40dc881907261efe03ece8f6515e",
+          "sha256": "72619a70c7d53fd95dfa8e7f3a91ed1c5ad4cff8916c161cbec18113e0db4ef2"
+        },
+        {
+          "path": "app/api/workspaces/[workspaceId]/purchase-orders/route.ts",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "74320620241911376cae1a8706ee0d06da8daca2",
+          "sha256": "b920637d5110721b2cddc133237227cc850d437ad67a9b7277173cb9500953e4"
+        },
+        {
+          "path": "app/dashboard/billing/payment-result/page.tsx",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "1152ee565e8b43ca521a5a127288394482f329bd",
+          "sha256": "76900f9c7f7363a4e5d2f5e5137d0344342f60a910ce04e4b86d6bb02044642f"
+        },
+        {
+          "path": "app/dashboard/plans/page.tsx",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "b2e531002ba30e9ebada78c9352f8bd0a92050ff",
+          "sha256": "fe6d6cad16007c7c72bfe20fcad9a6244012862ab48ab6f15125eecf2022f0f2"
+        },
+        {
+          "path": "lib/auth/credentials.ts",
+          "source": "04e876b1f3cff75b262fd5f3b8eea7b8e65d6706",
+          "blob": "7fa285b86c593b66e46d816b4537ff48f41852a5",
+          "sha256": "5326c62aa5f4c22455c5c05a77b627049895b269db0373174441e4ca40351197"
+        },
+        {
+          "path": "lib/auth/sandbox-registration.ts",
+          "source": "04e876b1f3cff75b262fd5f3b8eea7b8e65d6706",
+          "blob": "571070388de9654c3d428970284c115df7de38f6",
+          "sha256": "2d981968993162c2253120838eb341d4500e0d80010bb4460ac330800118b302"
+        },
+        {
+          "path": "lib/deployments/execution/neon-repository.ts",
+          "source": "a8b57b3657b4407dbc911dabead3a5e54ffd6034",
+          "blob": "419ba4befe70b8b4eee412df694aea3be60249ee",
+          "sha256": "7a52ed752fd9bfe2e2770c773c95b922cd07bfed90be94aa844a60c5bc70b79e"
+        },
+        {
+          "path": "lib/deployments/first-onboarding.ts",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "47d893eccf9294c6abd7271412be06bebe03ada3",
+          "sha256": "1cb4ab9f54bd8834c745bcc56e2c2327bd934820cc2d7d3ca6c7044f90d3649e"
+        },
+        {
+          "path": "lib/deployments/lease.ts",
+          "source": "a8b57b3657b4407dbc911dabead3a5e54ffd6034",
+          "blob": "9b07892164b8a8781288de63bb4ad080275f031c",
+          "sha256": "1c1c2a8df1c71bfb5112692c986b4755ae15e3b285d7c0a22d7ec4b9333c0952"
+        },
+        {
+          "path": "lib/deployments/releases/contract.ts",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "c8472876b4e12fbf666e23d934cf024b816d247f",
+          "sha256": "9dc445b45b228b26d8c645ea03e870ab3e830ce8b5211c1a25f92dab8188bcf6"
+        },
+        {
+          "path": "lib/payments/stripe.ts",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "9e94a27dc81dc9745fb1999aaf8929ee01f89316",
+          "sha256": "d94384e380de422cabf6abdb324268345c3b3a1532535edbe8ef645aed7c6031"
+        },
+        {
+          "path": "lib/purchases/sandbox-first-purchase-config.ts",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "75efa9af335a1d06c36e18928de528a4acb377fa",
+          "sha256": "144c8947b14c8f00c54961b5319d5def61af5c4fbf735736e0c82e1e6fc37d7b"
+        },
+        {
+          "path": "lib/purchases/sandbox-first-purchase-runtime.ts",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "dd051c9475737da37da4cc8eaecd2dc727c83d0d",
+          "sha256": "67d0d33807261834228edcae620c268a54bbf64b91341f7da24f3b30bb2c2d07"
+        },
+        {
+          "path": "lib/purchases/sandbox-first-purchase.ts",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "5f38673a75928f149924162c8f1098c9ebfdb1ef",
+          "sha256": "b145912e19cd17c0cccd7d08ae171f020eded56933997e9d1838af8eadd66c45"
+        },
+        {
+          "path": "ops/platform-hosting-v1/Dockerfile",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "e91f247078990506d56167b600d784a612f8233d",
+          "sha256": "54dc95250e0d0e2a73f1f322e5c7bcdb6344ec937dcb5418030c9a959c4bb480"
+        },
+        {
+          "path": "ops/platform-hosting-v1/bindings.mjs",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "a73d856b46bf38396693c3d0bc1aa5523b979074",
+          "sha256": "d0e50a071b32e005e2ba333b4d5f2f4356057d7d5144c9e9d0e172720285d90f"
+        },
+        {
+          "path": "ops/platform-hosting-v1/contract.mjs",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "dcaf46b4776dfcaf0c94fac35c1828ac1f2fdd59",
+          "sha256": "ddbe316b785b2d20fe5c4a99c9099bb0ef638888b05de08f0f752bb1b7125beb"
+        },
+        {
+          "path": "ops/platform-hosting-v1/control-runtime.mjs",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "4a55ef7102d56dd07fbc20c77378bcdf6b88d560",
+          "sha256": "5b294f352aa454515d3bf286b6f7f979f1fb12b49126af572036ab7fce921afc"
+        },
+        {
+          "path": "ops/platform-hosting-v1/ingress.mjs",
+          "source": "d4c41e80d7f384e5c80c2f467847ae5fa1755637",
+          "blob": "8ef9bb4d98499e473a410cabd04d3089eab54462",
+          "sha256": "a50f2c8bde5529e1ef1cd6543443a93e6900ad7d4178ed96dc74c00600574141"
+        }
+      ]
+    },
+    "recipeSha256": "258c77666a802b08f3052f1082c279104ee45c9f643e174089f9e630110c1e9c",
+    "recipeDigestEncoding": "SHA-256 of JSON.stringify(recipe): base then overlay; overlay ordered by path; row keys path, source, blob, sha256. Blobs hashed as raw Git bytes.",
+    "overlayBuildVerified": false,
+    "buildRunId": null,
+    "artifactId": null,
+    "zipSha256": null,
+    "configDigest": null,
+    "publishedRegistryManifest": null
+  },
+  "proposedDifferences": {
+    "database": {
+      "roleWithExecuteOnly": "techlong_sandbox_first_purchase_webhook",
+      "noLoginDefiner": "techlong_sandbox_first_purchase_definer",
+      "schema": "sandbox_first_purchase",
+      "webFunctions": [
+        "reserve",
+        "attach",
+        "read_order"
+      ],
+      "webhookFunctions": [
+        "webhook_order",
+        "complete"
+      ],
+      "businessTableWritesByWeb": 0,
+      "executeCheckoutFunctionsDuringActivation": 0
+    },
+    "stripe": {
+      "mode": "test",
+      "endpoint": "https://console.sandbox.techlong.cloud/api/stripe/webhook",
+      "events": [
+        "checkout.session.completed",
+        "checkout.session.async_payment_succeeded"
+      ],
+      "checkoutSessions": 0
+    },
+    "secret": {
+      "proposedName": "techlong/sandbox/platform-web/first-purchase-v1",
+      "arn": null,
+      "versionId": null,
+      "keys": {
+        "stripeTestKey": "TECHLONG_SANDBOX_STRIPE_TEST_KEY",
+        "stripeWebhookSigningSecret": "TECHLONG_SANDBOX_STRIPE_TEST_WEBHOOK_SECRET",
+        "webhookDatabaseUrl": "TECHLONG_SANDBOX_FIRST_PURCHASE_WEBHOOK_DB"
+      }
+    },
+    "iam": {
+      "role": "TechlongSandboxPlatformWebExecutionRoleV1",
+      "inline": "ExecutionOnly",
+      "boundary": "TechlongSandboxPlatformWebExecutionBoundaryV1",
+      "newIamRoles": 0
+    },
+    "hosting": {
+      "resourceChanges": [
+        {
+          "logicalId": "TaskDefinition",
+          "action": "Modify",
+          "replacement": "True"
+        },
+        {
+          "logicalId": "Service",
+          "action": "Modify",
+          "replacement": "False"
+        }
+      ],
+      "desiredCount": 1,
+      "defaultTenantImageUnchanged": true,
+      "originalDatabaseSecretUnchanged": true,
+      "controllerEnabled": false,
+      "workerEnabled": false,
+      "awsApplyEnabled": false
+    }
+  },
+  "unresolved": {
+    "planId": null,
+    "templateVersionId": null,
+    "priceAndCurrency": null,
+    "postgresInstallAuthority": null,
+    "newSecretIdentity": null,
+    "latestCurrentMetadata": null,
+    "windowStartUtc": null,
+    "windowEndUtc": null
+  }
+}

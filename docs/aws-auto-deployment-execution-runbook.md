@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，[集中准备同一工作区测试购买的一次启用](auto-pending-provisioning.md#first-onboarding-step4-purchase-offline)。** 用户本人已注册；Stripe 测试购买到唯一挂起任务已离线接通并通过隔离 PostgreSQL。当前线上镜像仍只修注册，支付和新函数未启用；不先购买、不打开普通 worker 或控制器、不恢复 Cell/Express。实际读取、云端启用、购买及首开仍按范围另审。
+**当前唯一继续点：缺口 3 第 4 步，[按已备的同一平台启用草案补齐真实证据](aws-sandbox-first-purchase-activation-preparation.md#需要另批的最小补齐)。** 注册已由用户验证，测试购买与首开挂起已离线接通。已封存 19 个候选源码 blob 和集中启用草案，未取得新候选产物或实际执行 SHA；只另审必要候选取证/构建和限定只读，齐全后给一次实际启用审批。不先购买、不打开普通 worker 或控制器、不恢复 Cell/Express。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 
