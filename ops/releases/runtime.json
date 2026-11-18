@@ -1,6 +1,59 @@
 {
   "schema": "techlong/instance-release-runtime/v1",
-  "enabled": false,
+  "enabled": true,
   "repository": "veinyyxy/TechlongSoftware",
-  "environments": {}
+  "environments": {
+    "sandbox": {
+      "accountId": "402010193138",
+      "region": "ca-central-1",
+      "repositoryId": "1323312747",
+      "controlEnvironmentId": "env_aws_sandbox_ca_central_1",
+      "environmentName": "techlong-sandbox-deploy",
+      "environmentId": 24613410405,
+      "reviewerId": 14145707,
+      "prepareRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleasePlannerRole",
+      "executionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleaseExecutorRole",
+      "inspectionRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleaseVerifierRole",
+      "prepareSubject": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:ref:refs/heads/main",
+      "deploySubject": "repo:veinyyxy@14145707/TechlongSoftware@1323312747:environment:techlong-sandbox-deploy",
+      "database": {
+        "planner": {
+          "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/planner-db-v1-HPepzU",
+          "versionId": "fa0b55bd-fd3f-6ade-921f-86cb3ec49f48",
+          "username": "deployment_release_planner_login"
+        },
+        "executor": {
+          "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/executor-db-v1-8Nxk1p",
+          "versionId": "0e0c3551-91ec-fa50-d332-cb450ddd0fb1",
+          "username": "deployment_release_executor_login"
+        },
+        "verifier": {
+          "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/verifier-db-v1-LXqDKu",
+          "versionId": "2bf43efd-e425-c3a8-df7f-d4d8094feebc",
+          "username": "deployment_release_verifier_login"
+        }
+      },
+      "evidence": {
+        "bucket": "techlong-sandbox-cloud-worker-evidence-402010193138",
+        "owner": "402010193138",
+        "prefix": "instance-releases"
+      },
+      "maxMetadataCallsPerSnapshot": 40,
+      "promotion": {
+        "roleArn": "arn:aws:iam::402010193138:role/TechlongSandboxInstanceReleasePublisherRole",
+        "database": {
+          "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/publisher-db-v1-DpSdD3",
+          "versionId": "97c8332f-36d0-37e5-cb6d-6c126a9dbcf8",
+          "username": "deployment_release_publisher_login"
+        },
+        "artifactToken": {
+          "arn": "arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/instance-release/backend-build-read-token-v1-zjIXrv",
+          "versionId": "a8a64f33-c9bc-7525-48ec-1f50b972f426"
+        },
+        "sourceRepository": "veinyyxy/SpeedFeast_Backend_main",
+        "sourceRepositoryId": 1064124445,
+        "imageRepository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast"
+      }
+    }
+  }
 }
