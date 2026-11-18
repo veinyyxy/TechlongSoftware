@@ -371,6 +371,16 @@
 
 **风险和时限：** 只恢复原平台，仍是原公开 HTTPS 入口，不是仅 `/register` 的访问限制。CloudFormation 可能用原调用者派生会话；平台启动可由 ECS 托管拉取固定镜像、注入既有数据库 Secret 和产生普通日志，并允许正常流量。ALB、单任务、公网 IPv4 等可能持续计费，不设置 TTL、不自动关停；不恢复 Cell、租户、Aurora 或独立 RDS，不开启 worker。最晚温尼伯 **2026-11-18 13:02:53.956 CST** 启动核对，**13:05:53.956 CST** 前提交，原 **13:17:53.956 CST** 事实/读取截止不延；超时不自动刷新。此轮只复用并核验本地清单/回执/模板，没有调用 AWS、执行、注册、重建或消费执行槽。实际执行及以上限定读取均须明确批准此 SHA。
 
+<a id="first-onboarding-step4-register-executed"></a>
+
+#### 原平台注册入口已恢复并独立核验
+
+**`REGISTER_ENTRY_VERIFIED`｜2026-11-18 08:54:57.080–09:01:41.170 温尼伯 CST。** 用户批准 `f6069d7f…` 后，仅一次执行原 `52eb096a…`，`DisableRollback=false`，未创建新变更集。[实际去敏回执](../ops/deployment-baseline/platform-register-restore-executed-20261118.json)记录 `UPDATE_COMPLETE / EXECUTE_COMPLETE`，候选模板、同栈四项新归属及七项保留 ID 均匹配；仍用原任务定义 `:13`，控制器与 worker 关闭，任务 1/1/0、rollout 完成、目标 healthy。原证书在新 443 监听器上，console A Alias 指向这次的新平台 ALB。
+
+独立匿名 GET `/api/health` 和[普通注册页](https://console.sandbox.techlong.cloud/register?returnTo=%2Fdashboard%2Fsettings)各一次，均通过 TLS、返回 HTTP 200；确认普通注册表单，未提交。实际 STS 2、元数据 28（前置 12、等待 7、独立 9）、`ExecuteChangeSet` 1、GET 2，执行槽已消费。其他直接写、Secret 值读取、Agent 连库、登录、注册、购买、Cell/租户资源或两库恢复均为 0；无自动停机，平台 ALB 和任务等可能持续计费。
+
+**下一步仅由用户本人注册一次。** 使用隔离浏览器会话、自控未注册邮箱和自设密码，企业名称填「Sandbox 首开验收」。成功后只回传设置页的 `wsp_…` 工作区编号，不购买、不配置；失败或结果不明不重复提交。页面成功不代表已创建账号/工作区或已首开，独立工作区回查另审；不因这次回执延长原事实或重放执行。首版 A 不变。
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的

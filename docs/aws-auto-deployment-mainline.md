@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步已离线实现，第 4 步已完成[首开接线](auto-pending-provisioning.md#first-onboarding-step4-offline)、[定向补核](auto-pending-provisioning.md#first-onboarding-step4-install-restore-facts)与[首版 A 锁定](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。原注册入口四 Add 已创建但未执行，[同一 ARN 的执行及失败策略清单待批](auto-pending-provisioning.md#first-onboarding-step4-register-execute-review)。未恢复、未验收注册入口，不重新创建、不恢复 Cell、租户或数据库。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步已离线实现，第 4 步已完成[首开接线](auto-pending-provisioning.md#first-onboarding-step4-offline)、[定向补核](auto-pending-provisioning.md#first-onboarding-step4-install-restore-facts)与[首版 A 锁定](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。[原平台注册入口已恢复并核验](auto-pending-provisioning.md#first-onboarding-step4-register-executed)；下一步用户本人一次注册，仅回传工作区编号，不购买。未实际开通新租户，不恢复 Cell、租户或数据库，普通 worker 仍关闭。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 

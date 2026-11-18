@@ -1,0 +1,40 @@
+{
+  "schema": "techlong/platform-register-restore-executed/v1",
+  "status": "REGISTER_ENTRY_VERIFIED",
+  "approvedExecutionManifestCanonicalSha256": "f6069d7f335692444ecd4b49321fbd3ad1b3131f2c31fef7666965e21a4c605e",
+  "requestCanonicalSha256": "88d397f8a6d4ebc7a70dfe08d6bf3ae1007d361c0fc363cb0ae9ada45475a033",
+  "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+  "changeSetId": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/techlong-platform-register-restore-20261118t141753z/52eb096a-3ed2-48a8-80cf-1d34671495df",
+  "startedAt": "2026-11-18T14:54:57.080Z",
+  "submissionIntentAt": "2026-11-18T14:55:15.478Z",
+  "acknowledgedAt": "2026-11-18T14:55:16.966Z",
+  "updateCompleteObservedAt": "2026-11-18T15:01:26.454Z",
+  "independentlyVerifiedAt": "2026-11-18T15:01:41.170Z",
+  "originalFactsValidBefore": "2026-11-18T19:17:53.956Z",
+  "disableRollback": false,
+  "stackStatus": "UPDATE_COMPLETE",
+  "executionStatus": "EXECUTE_COMPLETE",
+  "appliedTemplateCanonicalSha256": "6b982ae4027bf583793f6be6e2a1631994f5c2aca0b548309e81a55b5dd5e036",
+  "retainedPhysicalIdsMatched": 7,
+  "newOwnedPhysicalIds": {
+    "DnsRecord": "console.sandbox.techlong.cloud",
+    "HttpsListener": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-platform/755c9156ca96ffe6/d66f402184bdbcb2",
+    "LoadBalancer": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:loadbalancer/app/techlong-sandbox-platform/755c9156ca96ffe6",
+    "Service": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web"
+  },
+  "taskDefinition": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:13",
+  "ecs": {"desired": 1, "running": 1, "pending": 0, "rollout": "COMPLETED", "targetHealthy": true},
+  "platformControllerAndWorkerRemainClosed": true,
+  "originalCertificateAndNewAliasVerified": true,
+  "anonymousHttps": [
+    {"path": "/api/health", "httpStatus": 200, "tlsVerified": true, "expectedPlatformHealth": true},
+    {"path": "/register?returnTo=%2Fdashboard%2Fsettings", "httpStatus": 200, "tlsVerified": true, "ordinaryRegistrationFormVerified": true}
+  ],
+  "counts": {"sts": 2, "metadata": 28, "executeChangeSet": 1, "createChangeSet": 0, "otherDirectAwsWrites": 0, "anonymousHttpsGet": 2, "operatorSecretValueReads": 0, "operatorDatabaseConnections": 0, "registration": 0, "purchase": 0},
+  "executionSlotConsumed": true,
+  "automaticShutdownConfigured": false,
+  "projections": {
+    "executionProjectionFileSha256": "8c87a2649da06b22457277a7763b618b614ffc0273e20409e0269d172f3a76b2",
+    "independentProjectionFileSha256": "4ba47bd4bff342be6932715efdc0772ae6b895e9b76834cf8ce579567f0c3a87"
+  }
+}
