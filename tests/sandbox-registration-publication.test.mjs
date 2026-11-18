@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import test from 'node:test';
+import { load } from 'js-yaml';
 import { C, FIRST_PURCHASE_CANDIDATE as F, protocol, firstPurchaseProtocol, selectOverlayPublication, verifyImageReceipt } from '../ops/platform-registration-publish-v1/contract.mjs';
 import { verifyLoaded } from '../ops/platform-registration-publish-v1/artifact.mjs';
+import { firstPurchaseSourceContext, sourceContext } from '../ops/platform-registration-publish-v1/source.mjs';
 import { hash } from '../ops/platform-image-publication-v2/plan.mjs';
 import { C as oldPlatform, RETAINED } from '../ops/platform-recovery-image-v1/candidate.mjs';
 
@@ -106,4 +108,23 @@ test('only the replacement seal can select the first-purchase publisher; retain 
   const newDigest='sha256:'+'e'.repeat(64);
   assert.ok(firstPurchaseProtocol.verifyFinalInventory({imageDetails:[...retained,image(newDigest,F.targetTag)]},newDigest));
   assert.deepEqual(firstPurchaseProtocol.templates(JSON.parse(reviewText)).revoke,protocol.templates(review).revoke);
+});
+
+test('the original manual caller routes each fixed artifact to its own reviewed reusable pin',()=>{
+  const selector=load(read(`../.github/workflows/${C.callerFile}`));
+  const old=sourceContext(), next=firstPurchaseSourceContext();
+  assert.equal(old.P,C);assert.equal(next.P,F);assert.notEqual(next.S.intentFile,old.S.intentFile);
+  assert.deepEqual(Object.keys(selector.on),['workflow_dispatch']);
+  assert.deepEqual(Object.keys(selector.jobs),['reviewed-publication','reviewed-first-purchase-publication']);
+  const reusable=`${C.repository}/.github/workflows/${C.reusableFile}@`;
+  for(const [name,{P,S}] of [['reviewed-publication',old],['reviewed-first-purchase-publication',next]]) {
+    const job=selector.jobs[name];
+    assert.ok(job.if.endsWith(`fromJSON(inputs.review_json).candidate.artifactId == ${P.artifactId}`));
+    assert.match(job.if,/github.ref == 'refs\/heads\/main'.*github.run_attempt == 1/);
+    assert.equal(job.uses,reusable+S.reusableCommit);
+    assert.deepEqual(job.permissions,{contents:'read',actions:'read','id-token':'write'});
+    assert.deepEqual(Object.keys(job.with).sort(),['review_json','review_sha']);
+  }
+  assert.equal(old.S.reusableCommit,'0b076037eaf04f9a47957548ebe36a454546d641');
+  assert.equal(next.S.reusableCiRun,44374702310);
 });

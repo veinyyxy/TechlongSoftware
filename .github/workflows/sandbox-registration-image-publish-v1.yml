@@ -14,12 +14,22 @@ on:
 permissions: {}
 jobs:
   reviewed-publication:
-    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747'
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && fromJSON(inputs.review_json).candidate.artifactId == 14444752398
     permissions:
       contents: read
       actions: read
       id-token: write
     uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-registration-image-publish-job-v1.yml@0b076037eaf04f9a47957548ebe36a454546d641
+    with:
+      review_json: ${{ inputs.review_json }}
+      review_sha: ${{ inputs.review_sha }}
+  reviewed-first-purchase-publication:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && fromJSON(inputs.review_json).candidate.artifactId == 14457164929
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-registration-image-publish-job-v1.yml@e7b2ee7ced834c065d4b9e414d4bb9d8bb6ddb42
     with:
       review_json: ${{ inputs.review_json }}
       review_sha: ${{ inputs.review_sha }}
