@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步已离线实现，第 4 步已完成[首开接线](auto-pending-provisioning.md#first-onboarding-step4-offline)、[定向补核](auto-pending-provisioning.md#first-onboarding-step4-install-restore-facts)与[首版 A 锁定](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。用户确认没有专用工作区或测试账号，[单次普通注册申请](auto-pending-provisioning.md#first-onboarding-step4-test-account)待确认入口及执行范围，未创建。`NO_GO`、无执行 SHA；读取、注册、安装、恢复、测试购买和首开分别另审，不复用旧 D2 工作区、不启动资源或全队列。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步已离线实现，第 4 步已完成[首开接线](auto-pending-provisioning.md#first-onboarding-step4-offline)、[定向补核](auto-pending-provisioning.md#first-onboarding-step4-install-restore-facts)与[首版 A 锁定](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。[既有注册入口只读核对止于 DNS 未解析](auto-pending-provisioning.md#first-onboarding-step4-register-readonly)，未建账号或工作区。`NO_GO`、无执行 SHA；不复用旧 D2 工作区、不自动启动资源或全队列，新增读取、注册、安装、恢复和首开按各自范围审批。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 

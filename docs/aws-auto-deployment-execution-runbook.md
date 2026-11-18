@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，[单次普通注册申请](auto-pending-provisioning.md#first-onboarding-step4-test-account)。** 用户确认没有专用工作区或测试账号；拟走既有普通注册一次建立账号及「Sandbox 首开验收」，不走后台重复创建。可信首版 A 不变。`NO_GO`，待确认可信可用入口和接受现有过期会话清理的实际注册范围；尚无执行批准。不自动恢复、读取生产、购买或启用全队列。
+**当前唯一继续点：缺口 3 第 4 步，[注册入口读检止于 DNS](auto-pending-provisioning.md#first-onboarding-step4-register-readonly)。** 用户接受本人未来注册时的过期会话清理，但既有入口本次未解析、未注册。`NO_GO`，无执行 SHA；先等用户给出另一个同一验收控制库的可信入口，或要求只准备最小入口方案。不自动恢复、读取生产、购买或启用全队列，首版 A 不变。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 
