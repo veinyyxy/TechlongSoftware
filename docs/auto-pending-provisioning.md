@@ -219,7 +219,23 @@
 
 **开窗和失败策略：** 先备齐可离线的安装、首版和验收材料，再另批窄恢复；只有 Cell 恢复模板和实际权限就绪才开窗，避免 Express 或 ALB 无谓提前计费。Cell 执行前须明确批准回滚选择；候选优先采用 CFN 托管回滚，不继承历史 `DisableRollback=true`，不授权主动回滚、删除 Change Set/资源或重试。未知提交、部分恢复、并发变化或窗口不足时只保留原记录，另批独立回读；不继续另一条写入来凑齐结果。恢复有持续费用，窗口结束不自动停费。**不恢复平台、旧租户、独立 RDS `speedfeast-postgres-prod`、整环境或全队列；不并入新 IAM/DNS 变更。**
 
-本轮两份材料均只编辑本地文档；AWS、Aurora、Neon、Stripe、Secret 值、调度、任务/槽写入均为 0。下一唯一动作是按以上缺项合并一次必要的定向只读补核并先确认范围；未批准前不执行。后续只围绕真实值完成两份准确可执行材料，安装、恢复、测试购买及首开执行各自批准，旧事实期限及已用槽不变。
+编制两份清单时只编辑本地文档，未访问云。随后用户另批的定向补核见[结果](#first-onboarding-step4-install-restore-facts)，不重放旧事实或审批。
+
+<a id="first-onboarding-step4-install-restore-facts"></a>
+
+#### 第 4 步安装与恢复清单：集中只读补核结果
+
+**2026-11-18 07:15:32.900–07:16:02.125（温尼伯 CST；13:15:32.900–13:16:02.125Z）｜`NO_GO`，无执行 SHA。** 固定 Source 区域 STS **1 次**匹配准确 IAM 用户；元数据 **20 次**（CFN 4、证书/trust store 2、IAM 13、Route 53 1），19 次成功，1 次为拟建核验角色 `NoSuchEntity`。未翻页、未重试。只保留本节投影，不保存模板正文、策略正文、证书内容或原始响应。
+
+| 清单项 | 证据及结论 |
+| --- | --- |
+| **共享 Cell 四项恢复** | 原栈尾 ID `b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1`，`UPDATE_COMPLETE`，一页内无活动 Change Set。实际 12/12 项匹配[已存物理归属](../ops/deployment-baseline/cell-a1-executed-20261106.json)且状态稳定。缺四项恢复资源及 `HttpsListenerArn`、`ControlListenerArn`；查询的 Original 规范 SHA `42fc857cbbce881c411ff03997805e2d38635bd498f5d2c6ba695fc884a1e355`，与从[已存 16 项候选](../ops/deployment-baseline/cell-reattach-draft.template.json)仅移除四项资源和两个输出的结果完全一致，无其它模板差异。候选规范 SHA 保持 `e32eae43616dfcef7eb6825a55a86eebedb8e8d2e01ba4f775592b2f80fcb892`。这是离线模板差异，不是 AWS 已创建的 Change Set。 |
+| **Cell 原依赖** | 原角色仍为 `TechlongSandboxFirstAcceptanceCellExecutionRole`，有 CFN trust、`TechlongSandboxFirstAcceptanceCellExecutionBoundary` 和唯一 inline `FirstAcceptanceCellResourcesV1`，无附加策略。原证书 ID `6d1f2880-9f83-449c-930a-6b17516ef49d` 为 `ISSUED`、覆盖 `*.sandbox.techlong.cloud`；原 trust store `techlong-sandbox-control-v1/aa1771fd0469cc44` 为 `ACTIVE`、1 个 CA。尚无实际新 ALB/监听器或 mTLS 独立验收；关联与元数据不等于四 Add、所选回滚及 PassRole 的实际有效权限。 |
+| **原 Express** | 未重读集群或 writer，复用 [06:40 CST 摘要](#first-onboarding-step4-readonly-result)的准确集群、writer 当时 `stopped`、PG17.9/IAM auth，不把旧事实写成新的状态核对。恢复仍拟只启动原集群一次；执行前实际状态与独立回读均属另批清单。 |
+| **首开权限** | `TechlongSandboxProvisionerRole`、`TechlongSandboxCloudFormationExecutionRole` 均存在，各只附加自己的 Boundary、无 inline；后者有 CFN trust。`TechlongSandboxTaskExecutionRole` 存在，有 ECS Tasks trust、`TechlongSandboxServiceRoleBoundary` 和唯一 inline `PullSandboxImageAndRuntimeSecrets`，无附加策略。这些是关联/信任摘要，不证明新任务角色 PassRole、准确新 g1 固定版本可读或新监听器 ARN 已被覆盖。`TechlongSandboxFirstOpenInspector` 返回 `NoSuchEntity`：需另审新专用角色，不拿既有 D2 核验角色代替。Neon 未连库，实际 GRANT 仍未证明。 |
+| **持久化和准确 DNS** | 已确认 `Z01473621BTTHKXBGOOEJ` 是 `sandbox.techlong.cloud.` 的公共 hosted zone，未枚举或读取任何记录。新租户实例/slug、桶、CDN、应用角色及 g1 Secret 未绑定；缺可靠精确原件的 archive/manifest VersionId 也未靠搜索补全。故未查名称占用、S3/CloudFront或 Secret，未预填名称、Alias 或旧 ALB 值。新域是否空闲及新存储有效权限仍未证明。 |
+
+**时序与继续点。** 已确认四 Add 的候选形状，不必再重复这一轮盘点；合用 Express 旧事实不晚于其原观测起算 5 小时（最早端 2026-11-18 11:40:50.837 CST），新补核不延旧期限、不授权开窗。先绑定单一验收工作区和可信首版，收口真实执行入口、安装权限和精确对象缺项；未绑定对象不读不写。原 Express/Cell 等其它材料齐备后再另批恢复，安装、恢复、测试购买、首开执行各自批准，不能用本节作为执行清单。**本轮 AWS 写、Secret 值、Aurora/Neon 连接、Stripe、恢复、队列启用、部署/调度、任务和槽变更均为 0。** 不改普通 worker 和 D2。
 
 ## 当前操作说明（实施计划不改变现有流程）
 
