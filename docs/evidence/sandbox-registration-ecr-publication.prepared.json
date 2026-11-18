@@ -1,0 +1,96 @@
+{
+  "schema": "techlong/sandbox-registration-ecr-publication-preparation/v1",
+  "status": "OFFLINE_DRAFT_PENDING_BOUNDED_READS_AND_EXACT_EXECUTION_APPROVAL",
+  "purpose": "One protected ECR publication of the already sealed two-file sandbox registration candidate, with immediate lock restoration and independent readback",
+  "source": {
+    "outcomeFile": "docs/evidence/sandbox-registration-platform-candidate.observed.json",
+    "repository": "veinyyxy/TechlongSoftware",
+    "repositoryId": 1323312747,
+    "producerWorkflowId": 422812180,
+    "orchestrationCommit": "aae822899184c4b69fb9b888aee647e3958aac78",
+    "buildRunId": "44343705697",
+    "buildAttempt": 1,
+    "sourceRecipeSha256": "06d91b3eb875568af5d3f9b9a9015d9a949571dc0ec8427b0ad2e764bbd8c720",
+    "sourceTreeOid": "131fc5f0fd491e642916723ea0206cd0b03f413f",
+    "artifact": {
+      "id": "14444752398",
+      "name": "sandbox-registration-overlay-06d91b3e-44343705697",
+      "zipBytes": 307790427,
+      "zipDigest": "sha256:04d70d4af727389029d77ced30142ce9623f2dcc61d8b32284723a553b9a0e62",
+      "expiresAtUtc": "2026-11-21T16:09:51Z",
+      "imageArchiveBytes": 307787591,
+      "imageArchiveSha256": "f440825a28ce6a5d1f7e8129040edec831704a40f1f978e9d2fccf5099752c06",
+      "imageConfigDigest": "sha256:cd589b786df5cc2d5cb600510ef537f28e907e30b474146088c8fcdb68b873b8",
+      "scanSummarySha256": "0fe9bd90cd1e33789b00d84d4972b621399ba1923ec2064d4a5b278ed4920e7f"
+    },
+    "basis": "Sealed build outcome and artifact metadata originally verified; ZIP not yet re-read or downloaded. Producer is workflow_dispatch; its orchestration commit is not the combined source or a legacy ordinary main-push artifact.",
+    "rebuildOrRetagDifferentBytesAllowed": false
+  },
+  "target": {
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "sourceProfile": "techlong-sandbox-user",
+    "sourceArn": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+    "publisherStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b",
+    "publisherRoleArn": "arn:aws:iam::402010193138:role/TechlongSandboxPlatformImagePublisherV2",
+    "historicalPublisherRoleId": "AROAV3GNMXTZID6CJJBA2",
+    "publisherInlinePolicy": "OnlyPlatformWebRepository",
+    "boundaryArn": "arn:aws:iam::402010193138:policy/TechlongSandboxPlatformImagePublishBoundaryV1",
+    "expectedBoundaryVersion": "v1",
+    "repositoryArn": "arn:aws:ecr:ca-central-1:402010193138:repository/techlong-sandbox-platform-web",
+    "repository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-platform-web",
+    "singleProposedImmutableTag": "platform-reg-06d91b3eb875-r44343705697-a1",
+    "oldPlatformDigestToPreserve": "sha256:71e268934bb1dbe8220f33cf68757cd48d74c89be35269ba583f6dd1b712e75a",
+    "noOtherTarget": true,
+    "historicalLockedEvidence": "ops/aws-sandbox/reviews/platform-recovery-image-v1.executed.json",
+    "currentLockedOrAvailabilityVerified": false
+  },
+  "producerCompatibilityGate": {
+    "legacyWorkflowMayNotBeReusedAsIs": true,
+    "requiredBeforeAnyGrant": "Pin and validate the new exact caller/reusable and reviewed adapter for this producer event, source recipe/tree and sealed artifact vocabulary; reuse the proven bounded publisher mechanics without changing legacy entry points, OIDC provider, boundary, or human approval gate. No workflow or adapter change in this preparation.",
+    "publishJobBeforeAwsSession": "Approve the exact protected run yourself. One original GitHub ZIP download, exact bytes and SHA, safe allowlisted extraction; independently verify the exact four-file layout and the three entries in SHA256SUMS, including the inner archive/receipt/scan summary against sealed evidence. Load (never build), verify the closed-control image config, and run same closed network-none anonymous smokes plus a fresh OS HIGH/CRITICAL gate. Do not proceed on incomplete or expired provenance. No registration submission or database credentials.",
+    "publisherCommits": null,
+    "publishedRegistryManifestDigest": null
+  },
+  "proposedReadOnlyPreparationForSeparateApproval": {
+    "condition": "After immutable publication wiring and offline checks are ready; pin and bound one current snapshot. No artifact ZIP download or account-wide discovery in this read-only preparation.",
+    "gitCredentialLoadsMax": 1,
+    "gitHubGetsMax": 12,
+    "gitHubScope": "Exact repository, fixed producer workflow/run/jobs/artifact, main and its protection, exact environment and branch restrictions, the exact candidate publication caller/reusable and one pending-publication check. Stop if pagination or facts differ.",
+    "sourceStsMax": 1,
+    "awsMetadataMax": 15,
+    "awsScope": [
+      "CFN 4 on exact publisher stack: DescribeStacks, GetTemplate Original, ListStackResources, ListChangeSets",
+      "IAM 7: GetRole, GetRolePolicy, ListRolePolicies, ListAttachedRolePolicies, GetPolicy, GetPolicyVersion, GetOpenIDConnectProvider",
+      "ECR 4: DescribeRepositories, single-page DescribeImages of the single repository, GetRepositoryPolicy, GetRegistryScanningConfiguration"
+    ],
+    "mustObserve": "Same single resource and IAM role ID, no pending change set, original no-Allow trust and explicit locked inline Deny on ecr:*, no managed attachment change, original boundary content, OIDC and approval gate intact. Exact single repo upholds immutable tags with no exclusion, preserves old platform image and captured existing inventory, and does not already contain proposed tag. Unknown drift or unavailable artifact is a stop, not an expansion.",
+    "writes": 0
+  },
+  "publishGrantAndUseForSeparateApproval": {
+    "sourceCloudFormationUpdatesMax": 2,
+    "grantUpdatesMax": 1,
+    "revokeUpdatesMax": 1,
+    "grantDurationSecondsMax": 3600,
+    "roleAssumptionsMax": 1,
+    "stsDurationSeconds": 900,
+    "workflowDispatchesMax": 1,
+    "topLevelDockerPushesMax": 1,
+    "environment": "techlong-sandbox-deploy",
+    "trustBinding": "One new pre-approved immutable reusable revision and caller/run binding: GitHub OIDC audience sts.amazonaws.com, exact repository and owner IDs, actor, main ref, environment and job_workflow_ref; job also checks actual dispatch commit and attempt 1. Date fences on trust and all temporary ECR allow statements. No boundary broadening and no ECS/IAM/Secret path in the publisher session.",
+    "permissionsBoundary": "Use only fixed existing publication actions needed to authenticate in ca-central-1, check inventory, push layers/PutImage to the exact repository, and read back its manifest. GetAuthorizationToken must be region-limited; repository actions stay repository-scoped. The fixed tag/artifact are enforced by the immutable job and evidence, not claimed to be isolated by IAM alone. No deletion, tag overwrite or promotion of other images.",
+    "window": "Separately bound each live fact and approval. Use the earlier of observed-facts expiry, review expiry, artifact expiry and grant expiry; preserve time for revocation. Do not start with insufficient runway. Do not derive new windows from historical approvals or observe a new artifact lifetime. Human approves only the one known GitHub environment run before cutoff.",
+    "order": "Create durable one-shot intent, one exact Grant, verify the temporary delta, dispatch once and wait only within the approved window. Then always run the revocation finalizer; an image-push success alone does not authorize any follow-on. Counts/IDs/window for exact execution must be finalized in a separately approved manifest after current facts are obtained."
+  },
+  "mandatoryRevocationAndIndependentProof": {
+    "finallyOn": ["success", "build artifact validation failure", "GitHub dispatch rejection or ambiguous acknowledgement", "human approval timeout", "OIDC or push failure", "monitor timeout or audit write failure"],
+    "action": "Immediately start closure once Grant may have been submitted. If the exact publisher stack is in progress, observe bounded settlement; write the original no-Allow trust and explicit Deny ecr:* in at most one exact CloudFormation Revoke when safe. If demonstrably still Locked, do not do a needless write. If source credentials or cloud state prevent closure, report not proved; no direct IAM fallback, repeated UpdateStack or automatic cleanup. Audit-output trouble must not suppress the one authorized safe attempt.",
+    "lockedDefinition": "Separate read-only process with the exact Source principal proves original same stack and RoleId, single ownership, original no-Allow trust, exact sole ecr:* Deny inline, same boundary/default version and no unintended attachments or pending operation. Runtime platform stack is outside this operation.",
+    "imageDefinition": "Independently read by exact immutable tag, hash exact ECR manifest bytes and compare registry imageDigest and config.digest against the sealed binding. Compare present inventory against baseline and require exactly one allowed new digest/tag and all prior images/tags preserved; do not substitute the local config digest. If failed/ambiguous, record presence or absence only, keep any residue; do not push, delete, re-tag, or resume automatically.",
+    "bothProofsRequiredForSuccess": true,
+    "notProofOfImmediateTokenInvalidation": true,
+    "noDeploymentFollowingPublish": true
+  },
+  "risksAndStops": "CFN/IAM/GitHub/ECR are not atomic; old tokens, propagation, SDK/docker subrequests, expired credentials and unknown writes remain possible. A single top-level push does not cap layer transfers to one API request. Stop on missing evidence or changed snapshot, keep slots and partial image facts, no retry or automatic deletion. Registry storage, scanning/GitHub and traffic may incur fees. No AWS deployment or database side effects allowed in this publication only.",
+  "authorization": {"newReads": false, "downloadArtifact": false, "grant": false, "dispatch": false, "publish": false, "platformUpdate": false, "databaseConnection": false, "register": false}
+}

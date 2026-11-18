@@ -474,6 +474,18 @@
 
 原 GitHub 产物 `14444752398` 到期 **2026-11-21 16:09:51 UTC（温尼伯 10:09:51 CST）**；未下载整包。配置摘要不是 ECR manifest digest。AWS 身份、数据库连接、ECR 发布、平台更新和注册均为 0；不重跑构建。**下一步只准备单次受保护 ECR 发布审批**；必要的产物或云端新读取先另审，发布和实际平台更新仍分开审批。
 
+<a id="first-onboarding-step4-registration-ecr-publication-review"></a>
+
+#### 同一候选产物的单次受保护 ECR 发布：离线待审
+
+[发布审批草案](evidence/sandbox-registration-ecr-publication.prepared.json)锁定 run `44343705697` 的原产物 `14444752398`、ZIP 和内层镜像档案摘要、两文件源码 Git 树及 image config digest。唯一目标为原 `ca-central-1` 仓库 `techlong-sandbox-platform-web`，拟用新不可变 tag `platform-reg-06d91b3eb875-r44343705697-a1`；保留当期平台旧镜像及已核对的其他镜像。不把本地 config digest 当成 registry manifest digest，不重建候选。
+
+1. **发布门槛。** 现有保护发布路径只接受固定的旧 `push` 产物，不能假冒本次 `workflow_dispatch` 合成源码。后续仅复用既有的保护发布、限时 IAM 与撤权机制，另审绑定新产物来源所需的最小适配及 CI。准确代码锁定后，再单独批准一次 **最多 12 次 GitHub GET＋STS 1 次／最多 15 次准确 AWS 元数据读取**：只核对原 run/产物、固定工作流和本人 environment，原单角色发布栈、角色/boundary、OIDC 和这一仓库。要求发布角色仍为 Locked、拟用 tag 未占用、旧镜像保留且产物未过期。不要先盘点其他资源或下载整包；历史 Locked 记录不等于现况。
+2. **临时授权与使用。** 最多一次通过原发布角色所属栈安装 trust＋inline，不改 boundary、角色身份、OIDC 或审批门禁。把角色限在准确不可变 reusable、仓库/actor/main/environment 和最长 60 分钟日期窗口，只准同仓库推送/核验所需 ECR 动作。只调度一个 run，由用户本人批准 `techlong-sandbox-deploy`。先复验同一个原 ZIP、封印、镜像配置、闭控禁网自检及新鲜扫描，才允许申请一次 900 秒 STS 会话并执行一次顶层 push。固定 tag/产物还靠受保护代码约束，不能声称 IAM 单独限制到了某一个镜像。原产物截至 **11 月 21 日 10:09:51（温尼伯 CST）**；实际窗口还受新事实截止和撤权预留约束，窗口不足不启动。
+3. **成功或失败都收回权限。** Grant 一旦可能已提交，成功、拒绝、超时、推送失败或响应不明都立即进入撤权流程。原栈若在处理中，只在批准时间内等待可安全写入；最多一次原栈 Revoke 恢复 trust 无 Allow、inline 显式 Deny `ecr:*`。若独立证实本来仍是 Locked 则不多写。另起只读过程检查同一栈/角色/边界及 Locked；再按准确 tag 校验 ECR 原 manifest 字节摘要与 config 匹配，并核对既有镜像无差异。两份证据均通过才算发布成功；撤权不能独立证明就如实停住，不直接改 IAM、不重放、不自动删除遗留镜像。临时权限的期限不等于已签发 token 立即失效。
+
+**仅编制审批草案，无执行 SHA。** 尚未适配/调度发布工作流、读取新状态、下载产物、授权、发布、连库、更新平台或注册。下一步只另审最小发布适配和验证，必要的限定读取随后集中另审；实际 Grant、单次发布和 Revoke 按新准确清单一并批准，平台更新与注册不在此范围。
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的

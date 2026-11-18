@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步已离线实现，第 4 步已完成[首开接线](auto-pending-provisioning.md#first-onboarding-step4-offline)与[首版 A 锁定](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。原平台注册提交出现 `42501`；[普通注册的受限数据库函数](auto-pending-provisioning.md#first-onboarding-step4-registration-install-observed)已安装并独立回读，Web 无新增直接表写权限。[两文件闭控候选](auto-pending-provisioning.md#first-onboarding-step4-registration-platform-candidate-observed)已单次构建封存，原平台尚未更新，注册仍为 `NO_GO`；下一步只准备单次受保护发布审批，必要新读、发布、更新及本人重试各另审。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步已离线实现，第 4 步已完成[首开接线](auto-pending-provisioning.md#first-onboarding-step4-offline)与[首版 A 锁定](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。原平台注册提交出现 `42501`；[普通注册受限函数](auto-pending-provisioning.md#first-onboarding-step4-registration-install-observed)已安装并独立回读。[两文件闭控候选](auto-pending-provisioning.md#first-onboarding-step4-registration-platform-candidate-observed)已单次构建封存；[受保护 ECR 发布草案](auto-pending-provisioning.md#first-onboarding-step4-registration-ecr-publication-review)已备，必要适配和读取另审。未发布或更新原平台，注册仍为 `NO_GO`；实际发布、更新和本人重试各另审。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 
