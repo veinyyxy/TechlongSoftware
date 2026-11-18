@@ -403,6 +403,23 @@
 
 **离线验收通过，线上仍为 `NO_GO`。** 实现提交 `04e876b` 的[无 AWS CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44337547242)通过离线及 PostgreSQL 16 隔离回归。本机认证回归、TypeScript 和 scoped lint 也通过。[原机器审批清单](../ops/platform-web-database-role-v1/sandbox-registration-permissions.review.json)原样保留，没有生产安装 SHA 或线上授权。未联系 AWS/Neon、未读 Secret 值、未改线上权限或重试。下一个继续点仅为另审限定只读前置核对；首版 A、普通 worker 和 D2 运行路径不变。
 
+<a id="first-onboarding-step4-registration-preflight"></a>
+
+#### 第 4 步：普通注册限定只读前置核对（已准备、待审）
+
+[待审范围](evidence/sandbox-registration-preflight.review.json)复用原平台 `:13` 恢复回执、W7m 固定 Secret 版本及 Web 角色历史 OID `196608`、原授权与隔离回归；这些是目标绑定和对照基线，不冒充实时状态。只针对原 sandbox 平台 Neon，不重复查询 AWS、ECS、CloudWatch 或 GitHub。
+
+| 只读核对 | 必须确认 |
+| --- | --- |
+| Web 角色 | 核对 Web 登录/OID、成员关系、有效库和 schema 权限、角色默认及库级 `search_path`。`users` 的 `id`、`email` 可读（现有查重所需）；四表无直接 `INSERT`，不允许改管理员位，不扩大已有授权。保留原 `user_credentials` 的 6 列读、仅 `failed_attempts`、`locked_until`、`updated_at` 可更新，以及 `auth_sessions` 的既有权限；会话表只查权限元数据。有效权限包括直接、继承和 PUBLIC，不仅比对历史 GRANT 文本，不登录或切换到 Web 角色。 |
+| 四表约束 | 只查 `public.users`、`public.workspaces`、`public.workspace_members`、`public.user_credentials` 的结构和必要目录依赖：29 个指定写入列及未显式写入列的默认值/空值兼容、PK/FK、邮箱和 `(workspace_id, user_id)` 唯一索引的有效性、其余检查约束、RLS、重写规则和非内部触发器。对照现有模板；未知差异停止，不改表、不绕过 RLS、不执行或读取触发器函数正文。 |
+| 安装角色 | 从同一已知 owner 连接只读核对身份、建角色/建 schema、PL/pgSQL、四表列及 schema 转授权限、默认 ACL、角色/名称占用和可证明的所有权路径。**有 `CREATEROLE` 不等于能直接安装。** 在标准 PostgreSQL 16，非超级用户创建角色时的自动 `ADMIN` 授予不默认给 `SET`，且创建者不能自行撤掉这条自动授予；为另一角色创建 schema 又需要能切换到该角色。若只有这一条路径且不满足原清单的无额外成员关系要求，就记安装阻塞，不试跑 DDL、不提权、不切身份。[角色规则](https://www.postgresql.org/docs/16/role-attributes.html) · [schema 所有权规则](https://www.postgresql.org/docs/16/sql-createschema.html) |
+| 唯一测试邮箱 | 待用户私下绑定上次尝试的一个邮箱。只有目标及 `public.users` 的查询安全性已确认，才允许一次参数化 `EXISTS`，按应用标准化邮箱及其派生用户 ID 分别返回布尔值，不读用户行正文。任一命中即停：已有身份不等于注册与会话成功，不重试、不认领、不修改、删除或换邮箱。 |
+
+**上限与失败处理：** 实际操作另审。届时只读取 `.env.local`、指定旧私有目录回执和批准的单邮箱输入各一次，均只进入内存；使用回执的 SHA 与目标字段比对准确 host/port/database/actor 后，最多建立一条验证服务器证书和主机名的 TLS 连接，无备用端点/角色。一次 `REPEATABLE READ READ ONLY`，最多 13 条 SQL（`BEGIN`、3 条事务局部设置、7 条目录 SELECT、1 条条件 `EXISTS`、一次 `COMMIT` 或 `ROLLBACK`）；`statement_timeout=15s`、`lock_timeout=3s`。身份不明、权限或结构漂移、输入缺失、超时即停止或不开始，不自动重试；安装能力不足但 `users` 查询已确认安全时，仅可记录原清单内的查重结果，整体仍阻塞。只留去敏标志、原因码、计数和观测时间。owner 权限较宽、文件整体进内存、提供者日志可能记录查询或绑定参数；不保存/输出连接串、邮箱、其摘要、派生 ID 或原始应答。只有全部匹配且两项查重均 `false`，才可用观测后不足 5 小时的新事实准备另一份安装审批。
+
+**本轮无线上操作。** 未绑定邮箱、未开执行窗口、未读任何私有输入、未连库；未安装权限、未更新平台或重试注册。此清单只供另审读取，本身不授权执行，也不复用旧审批或复位槽位。
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的

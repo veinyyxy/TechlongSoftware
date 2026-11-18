@@ -1,0 +1,83 @@
+{
+  "schema": "techlong/sandbox-registration-preflight-review/v1",
+  "status": "PREPARED_PENDING_PRIVATE_IDENTITY_AND_READ_ONLY_APPROVAL",
+  "scope": "One limited read-only check for ordinary registration on the original sandbox platform Neon database; review only",
+  "target": {
+    "sandboxOrigin": "https://console.sandbox.techlong.cloud",
+    "platformRestoreReceipt": "ops/deployment-baseline/platform-register-restore-executed-20261118.json",
+    "observedTaskDefinitionRevision": 13,
+    "webCredentialEvidence": "ops/aws-sandbox/reviews/platform-web-credential-w7m.observed.json",
+    "webSecretVersionId": "6ea2ca59-9a24-4f3e-b16f-ec824f32bc5f",
+    "webRole": "techlong_platform_web_acceptance_v1",
+    "historicalWebRoleOid": "196608",
+    "installer": "Same existing Neon owner identity as pinned historical catalog receipt, to be matched before connecting; never the Web role",
+    "historicalPrivateTargetReceipt": {
+      "path": "F:/ChatGPT_workshop/techlong-platform-web-db-catalog-8b2005d47002a7361de0b84e95dbff0e.json",
+      "sha256": "d351064ef8d7b4fca5266830117286febaca9e8b41fa15621c7718feab9ebf3e"
+    },
+    "definerRole": "techlong_sandbox_registration_definer",
+    "newSchema": "sandbox_registration",
+    "newFunction": "sandbox_registration.register_account(text,text,text,text)",
+    "tables": ["public.users", "public.workspaces", "public.workspace_members", "public.user_credentials"]
+  },
+  "evidence": {
+    "registrationIncidentAndProposedGrants": "ops/platform-web-database-role-v1/sandbox-registration-permissions.review.json",
+    "historicalRoleSql": "ops/platform-web-database-role-v1/no-login.sql",
+    "expectedSchemaSource": "db/postgres-schema.sql",
+    "candidateDdl": "ops/platform-web-database-role-v1/sandbox-registration-ddl.ts",
+    "candidateSourceCommit": "04e876b",
+    "disposablePostgresRunId": "44337547242",
+    "historicalEvidenceIsCurrentLiveProof": false
+  },
+  "futureApprovedInputs": {
+    "configuration": "Read .env.local once in memory, use only existing DATABASE_URL, require exact host/port/database/actor match to the pinned historical target with verified TLS and no fallback",
+    "testEmail": "Exactly one user-controlled address from the failed attempt, supplied as one separately approved private local input; bind once before connecting, never substitute another address or expose its derived values",
+    "identityBound": false,
+    "executionWindowBound": false
+  },
+  "limits": {
+    "configurationFileReads": 1,
+    "pinnedPrivateReceiptReads": 1,
+    "privateEmailInputReads": 1,
+    "neonConnectionAttempts": 1,
+    "readOnlyRepeatableReadTransactions": 1,
+    "sqlStatements": 13,
+    "sessionLocalSettings": 3,
+    "catalogSelects": 7,
+    "exactIdentityExistsSelects": 1,
+    "explicitTransactionEndStatements": 1,
+    "statementTimeoutMs": 15000,
+    "lockTimeoutMs": 3000,
+    "awsCalls": 0,
+    "gitHubApiCalls": 0,
+    "awsSecretValueReads": 0,
+    "webCredentialReadsOrConnections": 0,
+    "databaseWrites": 0,
+    "registrationAttempts": 0
+  },
+  "catalogChecksInOrder": [
+    "Exact session/current actor, database, approved target, transaction_read_only, server version and database owner compared to historical identity/OID where recorded",
+    "Fixed Web and installer role attributes, memberships (including effective inherited and SET paths), database and relevant schema metadata, and absence of candidate role/schema/function names",
+    "Web effective ACLs for the four tables and auth_sessions metadata only; proof of original users(id,email) lookup and no direct registration INSERT or privilege expansion",
+    "Exact four base tables and candidate INSERT column definitions, types, collation, nullability, defaults, generated/identity attributes and required omitted columns",
+    "Exact four tables' PK/unique/index/FK/check definitions and validity, including email and workspace membership uniqueness; no referenced-table business rows",
+    "Exact four tables' RLS and FORCE RLS, policy presence, non-internal trigger and rewrite rule metadata; no function bodies",
+    "Installer database/schema creation and PL/pgSQL use, needed schema/table grant options, ability to create the restricted role and to create/transfer owned objects without unapproved membership, relevant default ACL and provider constraints"
+  ],
+  "onlyBusinessProjection": {
+    "when": "Only after exact target and a safe ordinary public.users lookup are established; installer eligibility may be independently blocked",
+    "parameterizedSql": "SELECT EXISTS (SELECT 1 FROM public.users WHERE email = $1) AS email_exists, EXISTS (SELECT 1 FROM public.users WHERE id = $2) AS user_id_exists",
+    "parameters": "Application-normalized single email and stableId('usr', email); memory only",
+    "allowedOutput": "One row containing two booleans only; neither boolean proves a successful signup/session",
+    "ifEitherTrue": "IDENTITY_ALREADY_PRESENT: stop; do not retry registration, adopt, update, delete or pick a replacement address"
+  },
+  "decisions": {
+    "targetOrScopeMismatch": "STOP; no fallback, roles switch, alternate target, or query retry",
+    "webLookupMissingOrAclDrift": "WEB_LOOKUP_OR_ACL_DRIFT; do not mask a missing read with grants or the registration function",
+    "unsafeTableShapeOrUnexpectedObjects": "SCHEMA_OR_NAME_DRIFT; do not alter constraints, bypass RLS, reuse objects or expand scope",
+    "installerAbilityUnprovenOrUnexpectedMembership": "INSTALLER_BLOCKED_OR_UNPROVEN; no trial DDL even if rolled back, no helper role, membership or escalation",
+    "allChecksMatchWithBothIdentityFlagsFalse": "PRECHECK_PASSED_NOT_INSTALLED; eligible only to prepare a separate installation review within 5 hours of actual observation, not authority to execute"
+  },
+  "recording": "No raw catalog dumps, configuration, URL, passwords, hashes/salts, email, email fingerprint, derived IDs, business rows, function bodies or raw errors; keep only private minimal metadata, booleans, safe reason code, actual timestamps and counts. No retries; retain previous records and slots unchanged.",
+  "authorization": {"liveReads": false, "databaseChanges": false, "platformRelease": false, "retryRegistration": false}
+}
