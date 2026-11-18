@@ -1,8 +1,8 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 A PUBLISHED / A-B REGISTERED / VERIFIED CONNECTION REUSED / REMAINING ACTIVATION SCOPE PREPARED — NEW WINDOW AND BUDGET NOT APPROVED / NO RESTORE`。
+日期：2026-11-17，America/Winnipeg。状态：`D2-6 STEP 4 COMPLETED / FIRST NORMAL A→B PREPARED ONLY / 0 OF 2`。
 
-已交付代码、一次性身份安装及本轮两次真实app构建，以各自最新准确回执为准，不把原设计或离线验证当实际部署完成。本文其他待审范围不是新增生产读取、SQL/Secret/IAM修改、ECR发布、部署调度或AWS操作授权。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准；启用配置仍关闭，不启动收费环境或自动派发。
+已交付代码、一次性身份安装、A/B 构建及[步骤4实际结果](aws-instance-release-step4-finish-observed-20261117.json)，不把初始化计作正常更新。runtime 已启用，bootstrap 仍关闭。唯一继续点是[首次 A→B 待批范围](aws-instance-release-step5-a-to-b-review.md)；其他阶段状态及审批描述是历史。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准，任何待审材料均不授权实际调度、读取或发布。
 
 最新D2-5接线：[具体来源采集与受审目录命令](aws-instance-release-import.md)已完成代码/准确无AWS CI（164回归＋8原生PG测试）；用户选择仅代码与CI，真实采集/登记未执行。同审批自动晋升现为明确后继需求，不再按“可选”跳过，但不扩大这轮已有ECR路径或提前发布。
 
@@ -238,8 +238,8 @@
 | 1 一次集中取证 | 已获准并完成 | STS1/GitHub15/固定回执1，两个匹配app原件均缺失；不再查询旧构建 |
 | 2 兼容/持久化 | 离线输入已收口；云端证明未完成 | 五应用源码树不变，原9图全部找到并哈希（根5/products4）；兼容契约提案和私有迁移输入准备完毕，尚未上传/改库/写绑定 |
 | 3 合格A/B目录 | 真实完成：A已发布/ecr_verified、B已登记未晋升candidate，独立回读通过 | [第16节](#d2-6-publication-catalog-observed)原run44154605425 success，dispatch1/配置1/TLS2/SQL52；复用准确原件及代码，入口已关闭，不重复发布/登记 |
-| 4 首次启用 | 集中材料已准备，未执行 | [第17节](#d2-6-step4-prepared)最小恢复/九图证明/初始A绑定/runtime范围已明确；新读/实际操作另审，不先恢复环境 |
-| 5 两次正常更新 | 0／2 | 不以初始恢复/对齐、NO_CHANGE或模拟结果充数 |
+| 4 首次启用 | 已完成 | [真实回执](aws-instance-release-step4-finish-observed-20261117.json)：独立技术验收、初始 A/revision 0、回读及 runtime 启用完成 |
+| 5 两次正常更新 | 0／2 | [首轮 A→B 待另批](aws-instance-release-step5-a-to-b-review.md)，不以初始化、NO_CHANGE 或模拟结果充数 |
 | 6 结案 | 未完成 | 必须有两次真实成功及最终一致回写 |
 
 原路线编制轮只新增本节及同步手册，没有执行读取。步骤1后来已获明确批准并真实完成，记录如下；正常main提交推送沿用既有授权，后续步骤仍不绕过门槛或从本次读取扩权。

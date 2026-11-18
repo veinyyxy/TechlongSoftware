@@ -1,0 +1,229 @@
+{
+  "schema": "techlong/d2-6-step5-a-to-b-prepared/v1",
+  "status": "PREPARED_NO_EXECUTION_AUTHORIZATION",
+  "executionAuthorized": false,
+  "dispatchAuthorized": false,
+  "dispatched": false,
+  "inputs": {
+    "instance_id": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "release_id": "release_afcc95f9eaa20785265300c801fd7618",
+    "environment": "sandbox"
+  },
+  "workflow": {
+    "repository": "veinyyxy/TechlongSoftware",
+    "ref": "main",
+    "path": ".github/workflows/instance-release.yml",
+    "runAttempt": 1,
+    "environment": "techlong-sandbox-deploy",
+    "preparedHead": "f4944fa",
+    "runtimeSourceAnchor": "aeac8ea1bf8eeb444d59c8a5d6e26aa1e49ec058",
+    "allowedDocumentationDiffFromAnchor": [
+      "docs/aws-auto-deployment-execution-runbook.md",
+      "docs/aws-auto-deployment-mainline.md",
+      "docs/aws-instance-version-release-plan.md",
+      "docs/aws-instance-release-step4-finish-observed-20261117.json",
+      "docs/aws-instance-release-step5-a-to-b-review.md",
+      "ops/releases/d2-6-step5-a-to-b.prepared.json"
+    ],
+    "actualRunHead": null,
+    "actualRunId": null,
+    "actualRequestId": null,
+    "actualIntentSha256": null,
+    "sourceGuard": "Before a separately authorized dispatch, remote main must match the checked-out HEAD, descend from the runtime source anchor with only the exact listed documentation paths differing, and preserve every bound file hash. The one resulting main/attempt1/push-free dispatch run must use that exact HEAD and the three fixed inputs."
+  },
+  "baselineA": {
+    "releaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+    "statusInStep4Receipt": "ecr_verified",
+    "stateRevision": 0,
+    "activeRequestId": null,
+    "manifestDigest": "sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+    "platformDigest": "sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+    "bindingSha256": "40b01301033e02cd069e9bff70f1a3bcb529c0be8aefb2234889b931259143ab",
+    "templateSha256": "4de52645c3ac71fd2d61b25d31e8e27801e9af3970212343dc382e3c9d8e0c07",
+    "configurationSha256": "5d2f341b102878d50829af4697aacbde277001fb3e8fa32df6130523a2cfd56e",
+    "persistenceSha256": "86b5eecc01b36c899dd6fd84456dd637ba2ff615c1651afee2eb31106a38b2ae",
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+    "previousFactDeadlineUnchanged": "2026-11-18T00:53:21.305Z",
+    "historicalNotLive": true
+  },
+  "candidateB": {
+    "releaseId": "release_afcc95f9eaa20785265300c801fd7618",
+    "statusInCatalogReceipt": "candidate",
+    "version": "d2-6-b-b9ca2138-r44129167654",
+    "sourceRepository": "veinyyxy/SpeedFeast_Backend_main",
+    "sourceCommit": "b9ca2138738900afc23a6a2ddce141b37a1f0a31",
+    "buildRunId": 44129167654,
+    "buildRunAttempt": 1,
+    "artifactId": 14349965129,
+    "zipBytes": 72662028,
+    "zipSha256": "813f7803af5eb8a8ecfe579dda0a24a6a78f850bf349eaa410214af5a2373228",
+    "imageArchiveSha256": "6e4abe379ebe6aa022346174f3a6171e42cc5d79ada071ebd2486456e9d1345a",
+    "candidateSha256": "de1cfdb8b2a431efeb4241f71f70cd602587badf4470b797dc85c043f73dbf52",
+    "storedCandidateSha256": "910246ac67d137fd2da1c5cd70614815bf1fa69a583d98a3f8c73a54e244f536",
+    "imageConfigDigest": "sha256:fee49b1473042adb987cf0acaef4fd443b6166b65aab1cc389c53403a2afed6b",
+    "repository": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast",
+    "tag": "app-shab9ca2138738900afc23a6a2ddce141b37a1f0a31-r44129167654-a1",
+    "manifestDigest": null,
+    "platformDigest": null,
+    "digestRule": "Derive only from verified exact B registry bytes, linux/amd64 manifest and checked image config. Do not substitute the tag/config/ZIP identity or the current A digest."
+  },
+  "window": {
+    "timezone": "America/Winnipeg",
+    "artifactExpiresAt": "2026-11-18T16:45:19Z",
+    "scanDatabaseUpdatedAt": "2026-11-17T13:00:16.23116094Z",
+    "scanDatabaseExpiresAt": "2026-11-19T13:00:16.231Z",
+    "workflowPrepareTimeoutMinutes": 15,
+    "humanApprovalReserveMinutes": 15,
+    "workflowDeployTimeoutMinutes": 60,
+    "suggestedDispatchBefore": "2026-11-18T15:15:19Z",
+    "suggestedHumanApprovalBefore": "2026-11-18T15:45:19Z",
+    "handoffWriteBefore": null,
+    "writeBeforeRule": "The existing workflow derives min(fresh prepare sample + 5h, candidate validity). Approval and writes must honor this deadline; operator reserves 60 minutes before the earlier applicable deadline. No backdating, restart or extension of any existing facts, scan or artifact."
+  },
+  "futureAuthority": {
+    "step": "One new explicit approval is needed to dispatch. A separate fresh GitHub environment approval by the configured human reviewer is needed for the exact matching run.",
+    "operatorGitHub": {
+      "postsMax": 1,
+      "preDispatchMetadataGetsMax": 5,
+      "unknownRunLocateGetsMax": 4,
+      "matchingRunWaitGetsMax": 40,
+      "matchingRunWaitMinSeconds": 90,
+      "terminalJobAndLogReadsMax": 3,
+      "rerunOrSecondPost": 0,
+      "guard": "Preflight only exact main/workflow, environment and branch restriction, and one page of unresolved workflow runs; no pagination or blanket repo inventory. Ambiguous POST is never resent. No new local AWS/Neon/Secret or private artifact reads; any post-run binding/evidence supplement is separately authorized."
+    },
+    "prepare": {
+      "expectedStatus": "PROMOTION_PLANNED",
+      "matchIntent": [
+        "exact workflow run/source/inputs",
+        "exact B candidate, config and ZIP hashes, repo and tag",
+        "baseline A bindingSha256",
+        "no active request",
+        "unexpired writeBefore"
+      ],
+      "candidatePathNoBusinessOrRequestWrites": true,
+      "possibleSideEffectOnCatalogDrift": "The generic existing prepare branch for an already-verified B may record one plan or non-executable decision scoped to the selected instance/B/run before the environment gate; no ECR or CFN before approval. Do not approve any non-PROMOTION_PLANNED result."
+    },
+    "approvedJob": {
+      "oidcExchangesMax": 4,
+      "assumedRoleIdentityChecksMax": 4,
+      "pinnedSecretValueReadsMax": 5,
+      "metadataSnapshotsMax": 6,
+      "awsReadsPerSnapshotMax": 40,
+      "backendOriginalZipDownloadsMax": 1,
+      "originalZipHardLimitMiB": 500,
+      "backendGitHubMetadataAndZipRedirectGetsMax": 3,
+      "technicalHttpsGetsMax": 2,
+      "acceptedHumanApprovalGetsMax": 1,
+      "dockerPushSubmissionsMax": 1,
+      "promotionEcrCliCallsMax": 8,
+      "promotionAuditConditionalPutsMax": 4,
+      "independentS3ConditionalPutsMax": 1,
+      "independentS3VersionGetsMax": 1,
+      "cfnCreateMax": 1,
+      "cfnExecuteMax": 1,
+      "cfnChangeSetPollMax": 40,
+      "cfnStackPollMax": 60,
+      "cfnPollIntervalSeconds": 10,
+      "allowedTemplateMode": "UsePreviousTemplate; exact ImageUri only, all other parameters kept, no new RoleARN or capabilities",
+      "allowedScope": [
+        "TenantTaskDefinition",
+        "TenantService"
+      ],
+      "catalogConfirmationMax": 1,
+      "releaseRequestForThisRunMax": 1,
+      "ownerOrBusinessSql": 0,
+      "releaseLedger": "Only the existing function-driven candidate confirmation, immutable request, claim, operation ACKs, independent evidence and CAS; preserve terminal/unknown state without retry."
+    }
+  },
+  "acceptance": {
+    "requiredWorkflowResult": "SUCCEEDED",
+    "requiredCode": "INDEPENDENT_RESULT_RECORDED",
+    "expectedCurrentRelease": "release_afcc95f9eaa20785265300c801fd7618",
+    "expectedRevision": 1,
+    "expectedActiveRequestId": null,
+    "required": "Exact current independent B platform digest, confirmed healthy task and technical HTTPS, versioned S3 receipt and matching control-plane state. No count for NO_CHANGE, managed rollback, green CI or partial execution.",
+    "secondUpdateIncluded": false,
+    "normalUpdatesAccepted": 0,
+    "normalUpdatesRequired": 2
+  },
+  "exclusions": [
+    "B-to-A or additional instance",
+    "new builds, app code, workflows or recovery",
+    "resource restoration, shutdown, expiry or cleanup",
+    "IAM/Object policy/Secret/version/role/DBC schema changes",
+    "database migrations, media migration and business testing",
+    "environment approval by assistant",
+    "auto-retry, rollback, Re-run or new cloud inventory"
+  ],
+  "evidenceAndSourceLfHashes": [
+    {
+      "path": "docs/aws-instance-release-step4-finish-observed-20261117.json",
+      "lfSha256": "b1017a7e093911da3ec7ed1299fe20fb55dd9b53e3081ca84247f02163b17942"
+    },
+    {
+      "path": "docs/aws-instance-release-initial-publication-observed-20261117.json",
+      "lfSha256": "656a841c8c548870c38806f0ec50c4b4a4e7ebba06484593dbf87a97ee24f89c"
+    },
+    {
+      "path": "docs/aws-instance-release-runtime-platform-fix-ci-20261117.json",
+      "lfSha256": "5eab783de4ebd573425ba9dc04625c5f6c97683af79833f8e3387c5312d7c5a7"
+    },
+    {
+      "path": "ops/releases/d2-6-publication-catalog.review.json",
+      "lfSha256": "da639fc4b28002e01038c0ec0b906668189490ac62c61b6415d9858ea3ea7e59"
+    },
+    {
+      "path": "docs/aws-instance-release-step5-a-to-b-review.md",
+      "lfSha256": "61e25d776b42049d6c9ce86287accffe2abe763123e89752d3a9cd3ddb1d72d0"
+    },
+    {
+      "path": ".github/workflows/instance-release.yml",
+      "lfSha256": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff"
+    },
+    {
+      "path": "ops/releases/runtime.json",
+      "lfSha256": "06f24e0e9ec8829ae250062d928bcfbc57c2f57766df41884454daa09fb09757"
+    },
+    {
+      "path": "ops/releases/bootstrap.review.json",
+      "lfSha256": "93f78ef45a6b4ea940e1c7b113cb53290e5333f28c7c16501d28825721bad2e7"
+    },
+    {
+      "path": "scripts/instance-release.ts",
+      "lfSha256": "ee807b99ea23f6d7157e7518ca469984d2cc3277984b7cb34db09dc7daeeb64f"
+    },
+    {
+      "path": "lib/deployments/releases/workflow.ts",
+      "lfSha256": "a6134b6e695e4f5c5823c0e222976e2b45420e1ee4b1149ea236e1a45bb8e732"
+    },
+    {
+      "path": "lib/deployments/releases/promotion.ts",
+      "lfSha256": "e0c887b2fad9fa5a27f940b1bd7437c4931cd78e6e417b910e7b4b0940067f86"
+    },
+    {
+      "path": "lib/deployments/releases/inspection.ts",
+      "lfSha256": "4693405a0f4e2f104e32b36492d4754af1a23ba63c97b240b9512ff40dbd314f"
+    },
+    {
+      "path": "ops/releases/promotion-runtime.ts",
+      "lfSha256": "b310ee4f505d3e07ad595b392f61f3fb6486a14be22a0883aee8a304d547a947"
+    },
+    {
+      "path": "ops/releases/aws-runtime.ts",
+      "lfSha256": "04e7429f7af770bfba395f420c3277e8c00e916b76079f9fa9a20296ff593249"
+    }
+  ],
+  "preparation": {
+    "localRegressionTests": 80,
+    "passed": 79,
+    "skipped": 1,
+    "failed": 0,
+    "providerCalls": 0,
+    "credentialOrPrivateOriginalReads": 0,
+    "dbConnections": 0,
+    "awsWrites": 0,
+    "releaseDispatches": 0,
+    "oneShotSlotsConsumed": 0
+  }
+}
