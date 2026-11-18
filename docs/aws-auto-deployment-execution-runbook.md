@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 [第 4 步真实 sandbox 首开审批草案](auto-pending-provisioning.md#first-onboarding-step4-review)。** 第 1–3 步已离线接通，第 4 步范围和权限上限已写明。获批的[一次限定补核](auto-pending-provisioning.md#first-onboarding-step4-readonly)停在 Source 凭据获取（STS 尝试 1／元数据 0）；无新事实或执行 SHA。只等刷新原 Source 并另批一次精确补核。Express 空库、持久化及固定 Secret、独立核验和窄完成身份未证明前不购买或领取，不启动或启用全队列；权限/配置变更、启停和部署仍另审，不重放旧审批。
+**当前唯一继续点：缺口 3 [第 4 步就绪差异](auto-pending-provisioning.md#first-onboarding-step4-readonly-result)。** Source 刷新后限定补核通过（STS 1／元数据 20，无写）；Express 与 writer 均已停止，原 Cell 缺两条监听器输出，旧持久化及权限不能当新租户证据。结论 `NO_GO`，无执行 SHA；下一步仅离线细化已定位的最小就绪差异，不重盘、不购买或领取、不启动或启用全队列。实际读取、权限/配置变更、启停和部署仍另审，不重放旧审批。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 

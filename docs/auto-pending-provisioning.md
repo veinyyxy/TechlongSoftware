@@ -90,7 +90,7 @@
 - 待补足的准确材料：新工作区/支付模式、真实 checkout 到任务的派生与目标范围、镜像及运行版本、基线版本/SHA、模板与各资源物理引用/归属、存储与访问证明、独立核验和完成身份及负例、租户预约容量和无冲突路由、准备时效/执行截止和本人审批点。待新事实另获准后，按真实对象分别固定读取与写入上限；现在的硬上限是 **1 个验收租户／1 条任务／1 次领取／1 个租户栈／1 次完成提交**，不是可分配给其它对象的额度。
 - 开窗前记录人工监督、预计时长及成本估算（尤其既有 ALB/Express、Fargate、日志及存储/流量）。沿用 50 USD/月目标，不把它或任务截止当硬停费上限；原始执行/资源到期不得为凑时延长。停止/删除不在这轮验收授权，临时费用及资源留存分别记账，按已审流程另批。
 - 缺证据、权限多于批准范围、目录/配置变化、无法保障当前租约，或 ACK 不明就停。领取前不消费尝试；领取后不复位、不换任务、不自动补写、补偿或清理。只有独立回读证明同一实例 `active` 且 URL 准确、同一部署 `ready`、原 job `succeeded` 且无租约、D2 `revision 0` 且无活动请求、证据摘要一致，才算一次真实首开完成。否则保留已有记录；不能把没有回读的一次提交判为可重试。
-- **下一唯一动作**：先处理下方记录的 Source 凭据阻断，等用户另批一次同范围限定只读补核；按真缺项编成最小就绪差异和一次精确执行清单。未解决 Express 写适配、持久化/固定引用、独立核验与窄完成权限前，不启动 AWS、不调度、不做测试购买。
+- **下一唯一动作**：复用[已完成的限定补核](#first-onboarding-step4-readonly-result)，另行确认下方首开就绪的最小差异；不先刷新整批事实、启动 AWS、调度或做测试购买。
 
 <a id="first-onboarding-step4-readonly"></a>
 
@@ -108,7 +108,29 @@
 | 生命周期与应用权限参照 | **最多 6 次**：分别 `GetRole` 指定 `TechlongSandboxTenantLifecycleTaskRole`、`TechlongSandboxTaskRole`；分别 `GetRolePolicy` 读取两者已存准确 inline `ImmutableReceiptsAndGenerationSecretRead`、`ConnectExactExpressTenantC4e`；只在原关联匹配时 `GetPolicy`、`GetPolicyVersion` 各 1 次读取 `TechlongSandboxServiceRoleBoundary` 的当前默认版。只存边界匹配、固定版本约束及连接用户范围摘要；不做 AssumeRole、模拟、取 IAM 登录 token 或 SQL 授权验证，不把旧租户权限当首开权限。 |
 | 独立核验与原子完成权限 | **最多 5 次**：仅指定 `TechlongSandboxInstanceReleaseVerifierRole` 的 `GetRole`、`ListAttachedRolePolicies`、`ListRolePolicies`；仅在匹配已存边界时，`GetPolicy`、`GetPolicyVersion` 各 1 次，检查 `TechlongSandboxInstanceReleaseVerifierBoundaryV1` 的默认版。只比对信任、边界和读取能力，并标记可能的固定 Secret 读取、证据写入等额外能力；不假设现有 D2 验证者是纯只读或已有新首开权限。**Neon 完成身份无已审安装/执行授权证据**；不查猜测的 AWS Secret 名，不连接 Neon 验证 GRANT。必须另审受限首开入口与真实权限的正/反例，不用旧 D2 角色或 owner。 |
 
-补核仍未证明任何实际写入前置。**不得签发可执行 SHA**：新租户键未固定、Express 空库写入路径与固定基线未证明、新租户图片持久化和固定 Secret 绑定未确认、独立核验及 Neon 原子完成权限未实证。恢复方向仅为用户刷新原 Source 且另行允许一次上述限定核对；不要求同意生产访问或执行来解决身份阻断。
+上表是原停止后确定的准确只读上限，不是执行审批。下方新一轮结果保留原停止记录，不覆盖原事实或延长其期限。
+
+<a id="first-onboarding-step4-readonly-result"></a>
+
+#### Source 刷新后的单次补核结果与最小待审差异
+
+**2026-11-18 06:40:50.837–06:41:19.350（温尼伯 CST；12:40:50.837Z–12:41:19.350Z）｜元数据补核完成，首开不放行。** 用户刷新 Source 并明确允许新一轮后，区域 STS 1 次匹配 `402010193138` 的准确 IAM 用户；上表元数据 **20/20** 成功，无翻页、重试或范围扩张。不读 Secret 值、图片、基线对象或私密配置，不连 Neon/Aurora，不调用 Stripe，不启动/写入 AWS，不启用全队列，不登记或领取任务，不实际开通。仅保留以下去敏事实摘要；原凭据失败记录仍保留。准备引用按原观测及手册 5 小时规则，不产生执行窗口。
+
+| 范围 | 本轮确认 | 不可据此放行 |
+| --- | --- | --- |
+| Express / 共享 Cell（3 次） | 集群 `techlong-sandbox-express-d001` 及准确 writer 均为 **`stopped`**，物理 ID/成员匹配，Aurora PostgreSQL `17.9`、IAM DB auth 开启。原 Cell 栈为 `UPDATE_COMPLETE`，有 `ClusterName`，但无 `HttpsListenerArn`、`ControlListenerArn` 输出。 | **当前承载未就绪。** 输出缺失不是对监听器实际物理状态的核验，不用旧 ARN 补空。未核对目标库/登录空闲、SQL 能力、空库写适配或固定基线对该版本的兼容性。 |
+| 持久化参照（4 次） | 旧租户桶拥有者符合预期，四项 Public Access Block 均开启，版本化为 `Enabled`；原分发启用且 `Deployed`，桶 origin 与 OAC 匹配。 | 只证明旧租户模式，不复用其桶、权限或媒体，不能证明新租户存储/任务写入链路。 |
+| Secret 固定版本（2 次） | 控制公钥及既有 D2 核验登录的两个准确旧引用均存在且为 `AWSCURRENT`，无删除计划、未启用轮换。 | 版本元数据不证明读取权、内容或 SQL 登录，也不能替代新租户 g1 Secret。新 ARN＋VersionId 的绑定路径仍缺。 |
+| 生命周期／应用 IAM（6 次） | 两角色匹配原 `TechlongSandboxServiceRoleBoundary`（默认 `v5`）。所核对生命周期 inline 的 `rds-db:connect` 指向该集群 `postgres`；应用 inline 指向已初始化的旧租户 SQL 登录，边界摘要包含这两个用户。 | 仅说明所读允许语句，不证明交叉条件下的有效权限，不证明新的租户登录、SQL 创建/隔离和基线执行；不能把管理账号权限交给应用。 |
+| 独立核验／原子完成（5 次） | D2 核验角色命中既有 GitHub environment 信任，唯一附加策略与其专用权限边界一致（默认 `v1`），无 inline。策略有资源元数据读取，也有带版本条件的 `GetSecretValue` 和证据 `s3:PutObject` 允许语句。 | 安装态 D2 核验角色不等于首开纯只读身份；本轮没有使用这些权限。Neon 首开完成入口/实际 GRANT 未查、未证明，不能复用旧 D2 登录或 owner 完成。 |
+
+**当前审批清单结论：`NO_GO`，不签发执行 SHA。** 不做第二次盘点，下一步若获同意仅离线细化这些待审差异：
+
+1. 将**原 Express 恢复与共享 Cell 的受审恢复/输出核验**列为独立前置范围；只围绕本轮准确集群和原 Cell 栈，明确恢复后两条输出、实际监听器 mTLS、路由及费用。恢复仍另审，不把它并入首次领取、借用旧 ARN 或启动其它环境。
+2. 将**一次新租户 Express 空库初始化与首版持久化**限定为已知缺项：同一资源代际的管理/应用登录区分、无客户数据的固定版本基线与兼容性、首版 Express＋S3 配置、准确 DNS/路由，以及新 g1 Secret 版本生成与审批绑定。复用现有专用渲染器和持久化模式，不复用旧租户授权；不预填未生成的 ARN/版本。
+3. 将**独立只读核验与专用原子完成**明确分权。提出首开独立元数据/技术读回的窄身份或等效受限会话，以及只允许原任务完成语句的 Neon 入口；要测允许完成本任务，拒绝未核验、越租户或改写既有 D2 状态。真实权限核对、需要的连接或安装均另审。
+
+在缺项解决、目标任务和资源值真实绑定且另有执行授权之前，保持未购买、未领取、未启动、未开通。
 
 ## 当前操作说明（实施计划不改变现有流程）
 
