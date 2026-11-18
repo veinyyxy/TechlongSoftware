@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证，[Stripe 测试购买到一条挂起任务](auto-pending-provisioning.md#first-onboarding-step4-purchase-offline)已离线通过。[已批准的启用轮](aws-sandbox-first-purchase-activation-renewed-review.md)停于回调匹配，槽保留、不重跑。[既有回调兼容的修正版候选](aws-sandbox-first-purchase-activation-preparation.md#sandbox-first-purchase-dahlia-build-review)已固定源码和构建入口，待一次无 AWS 构建批准；未实际构建、发布或启用。仅在后继技术验收通过后由用户自己测试购买。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证，[Stripe 测试购买到一条挂起任务](auto-pending-provisioning.md#first-onboarding-step4-purchase-offline)已离线通过。[上一启用轮](aws-sandbox-first-purchase-activation-renewed-review.md)停于回调匹配，槽保留、不重跑。[修正版候选](aws-sandbox-first-purchase-activation-preparation.md#sandbox-first-purchase-dahlia-build-observed)已由一次无 AWS 构建封存并回读，未发布或启用。下一步只准备绑定该候选的单次启用；技术验收后由用户自己测试购买。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 
