@@ -2,7 +2,15 @@
 
 2026-10-27，America/Winnipeg。本手册将用户已确认的讨论固化为后续工作的执行准则；不是新的生产读取、数据库写入、权限安装、调度、部署或删除许可。未来明确的用户指示可调整主线，但必须先记录调整，不静默扩展范围。
 
-## 当前唯一继续点：最后三项接续已就绪，待准确SHA批准；不重做恢复（2026-11-17）
+## 当前唯一继续点：步骤4完成，只准备首轮正常更新 A→B（2026-11-17）
+
+用户确认 `c96a34b0…` 后，单次接续于温尼伯 18:20:17–18:21:04 完成，[实际回执](aws-instance-release-step4-finish-observed-20261117.json)。独立核验确认 A 任务 1 个运行、0 待启动，`/health` 与 `/ready` 均为验证 TLS 的 HTTP 200；Neon 唯一初始绑定 A/revision 0 明确提交，并经第二条只读连接回读，临时 owner 权限已关闭。最后仅 runtime 数据提交 `aeac8ea` 已推送 `main`；bootstrap 仍关闭。
+
+本次增量为 STS 1／AWS 元数据 29／技术 GET 2／GitHub GET 2＋helper 1／三份原件各 1／配置 1／Neon TLS 2＋SQL 21＋INSERT 1／runtime commit 和 push 各 1。AWS 写、Aurora 连接、媒体操作、部署调度和重试均为 0；保留旧窗口、证据和已用单次槽，不重放。已恢复承载可能继续计费，不自动停用或清理。
+
+下一只按[步骤5](aws-instance-version-release-plan.md)复用既有工作流及已登记 B 候选，准备首轮正常 A→B 的准确执行范围；新读取、dispatch、晋升和更新仍按范围另审，具体 GitHub environment 由用户本人批准。B 原 artifact 截止 11 月 18 日温尼伯 10:45:19，扫描期限独立，不自动延期。A→B 真实更新和独立回写通过后才准备 B→A；正常更新目前 0/2，初始化不计数。
+
+### 最后三项接续的审批前记录（已执行，不重放）
 
 用户只要求准备下一步，本轮未新增生产读取或操作。[集中清单](../ops/releases/d2-6-step4-finish.review.json)/[完整风险](aws-instance-release-step4-finish-review.md)规范SHA **`c96a34b0521ff7b3b9ab584e7661d7572e49f7e33227f227115ef6e18a9749ee`** 已生成，最后三项私有调用已接齐；语法/导入与准确源码门槛、4项delta/目标范围检查及复用端口9项合成回归通过。正式代码/模板/工作流/实际runtime未改，没有读取三份成功原件正文、凭据、配置或新INTENT。新清单不是已执行，也不从“开始下一步”推定授权。
 

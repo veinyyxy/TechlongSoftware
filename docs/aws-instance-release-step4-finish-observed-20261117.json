@@ -1,0 +1,65 @@
+{
+  "schema": "techlong/d2-6-step4-finish-observed/v1",
+  "status": "STEP4_COMPLETED",
+  "approvalSha256": "c96a34b0521ff7b3b9ab584e7661d7572e49f7e33227f227115ef6e18a9749ee",
+  "review": "ops/releases/d2-6-step4-finish.review.json",
+  "startedAt": "2026-11-18T00:20:17.401Z",
+  "completedAt": "2026-11-18T00:21:04.281Z",
+  "attemptDeadline": "2026-11-18T00:35:17.401Z",
+  "originalOperationDeadlineUnchanged": "2026-11-18T00:50:04.215Z",
+  "originalFactsDeadlineUnchanged": "2026-11-18T00:53:21.305Z",
+  "sourceSha": "29398e301bd29d1b935d2f46054983bc69dde66c",
+  "ciRunId": 44202919107,
+  "independentProof": {
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "state": "RUNNING",
+    "taskCounts": { "desired": 1, "running": 1, "pending": 0 },
+    "platformDigest": "sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+    "templateSha256": "4de52645c3ac71fd2d61b25d31e8e27801e9af3970212343dc382e3c9d8e0c07",
+    "configurationSha256": "5d2f341b102878d50829af4697aacbde277001fb3e8fa32df6130523a2cfd56e",
+    "databaseProfile": "express_iam",
+    "persistentUploadsReady": true,
+    "persistenceSha256": "86b5eecc01b36c899dd6fd84456dd637ba2ff615c1651afee2eb31106a38b2ae",
+    "factsSha256": "771fa50a44d20facbf7a0ced9fa2e4710b21c81a051552c8ddc885497a4514af",
+    "health": { "status": 200, "tlsVerified": true },
+    "ready": { "status": 200, "tlsVerified": true }
+  },
+  "initialBinding": {
+    "releaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+    "revision": 0,
+    "activeRequestId": null,
+    "bindingSha256": "40b01301033e02cd069e9bff70f1a3bcb529c0be8aefb2234889b931259143ab",
+    "commit": "ACKNOWLEDGED",
+    "independentReadback": true,
+    "temporaryOwnerClosed": true
+  },
+  "runtime": {
+    "enabled": true,
+    "commit": "aeac8ea1bf8eeb444d59c8a5d6e26aa1e49ec058",
+    "pushAcknowledged": true,
+    "changedOnly": "ops/releases/runtime.json",
+    "bootstrapEnabled": false
+  },
+  "executionDelta": {
+    "sts": 1, "awsMetadata": 29, "apiGets": 2, "githubGets": 2,
+    "gitCredentialReads": 1, "ownEvidenceReads": 3, "configReads": 1,
+    "neonConnections": 2, "neonSql": 21, "bindingInserts": 1,
+    "runtimeCommits": 1, "runtimePushes": 1,
+    "awsWrites": 0, "auroraConnections": 0, "mediaReadsOrWrites": 0,
+    "releaseDispatches": 0, "retries": 0
+  },
+  "privateEvidence": {
+    "directory": ".local-secrets/d2-6-step4-finish-c96a34b0521ff7b3",
+    "files": [
+      { "name": "approved-intent.json", "rawSha256": "8a44333ed863ea21fb3b8465c50d94eb44fdbbaf6ab6c3e9e80f6aecdfbfb9df" },
+      { "name": "journal.json", "rawSha256": "4a052e31aa2ecc87730eb5e5b88624b82f68d1c30c1f20d6b7fdc3d14aaced4f" },
+      { "name": "independent-proof.json", "rawSha256": "c55bd4da60465c92e453f0f89de7d7699fce7d1265a09569fa4621edfd6b3cb8" },
+      { "name": "initial-binding-verified.json", "rawSha256": "e3d8f9ee788e00003be08b8425756485e6db1828b9057b5a9a7f25ed3e50913a" },
+      { "name": "independent/technical-health.json", "rawSha256": "feb8eae26f419115a8def23b73b2bd9841347df082515212eb2cbb52aa656ce2" },
+      { "name": "independent/technical-ready.json", "rawSha256": "88fbc88ed266bafee9c11412b4e88875242c7239cbf6cb9fbcb11b459285b5cc" }
+    ]
+  },
+  "normalUpdatesAccepted": 0,
+  "normalUpdatesRequired": 2,
+  "nextOnly": "Prepare the first normal A-to-B update using the original workflow and exact B candidate. Dispatch, promotion and update need separate authorization and the exact run's GitHub environment approval by the user. Do not replay step4."
+}

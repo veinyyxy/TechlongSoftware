@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：最后三项接续已就绪，等待准确SHA批准（2026-11-17）
+## 当前唯一继续点：步骤4已完成，只准备首轮正常 A→B（2026-11-17）
+
+[实际回执](aws-instance-release-step4-finish-observed-20261117.json)：按 `c96a34b0…` 单次执行，A 独立技术核验通过（任务 1 个运行，`/health` 和 `/ready` 均 200）；初始 A/revision 0 绑定已提交及独立回读，临时 owner 权限关闭；runtime 数据已在 `main` 启用（`aeac8ea`），bootstrap 保持关闭。未写 AWS、未重做资源恢复／九图，也未调度或重试；资源可能继续计费。
+
+下一只准备既有工作流的首次正常 A→B，复用已登记 B 候选，不重做步骤4。新读取、dispatch、晋升、更新另审，GitHub environment 仍由用户本人批准；B artifact 原到期为 11 月 18 日温尼伯 10:45:19，不延期。A→B 成功及独立回写后才准备 B→A；目前正常更新 0/2。
+
+### 最后三项接续的准备沿革（已执行，不重放）
 
 [集中清单](../ops/releases/d2-6-step4-finish.review.json)/[风险与范围](aws-instance-release-step4-finish-review.md)，SHA **`c96a34b0521ff7b3b9ab584e7661d7572e49f7e33227f227115ef6e18a9749ee`**。复用已完成九图/四段CFN及修复CI，只待新独立技术核验、初始A绑定/回读和runtime最后启用；私有调用已接齐、4项范围/delta及复用9项合成回归/导入门槛通过，无新生产读取、成功原件正文/凭据/配置读取、写入或槽。
 
