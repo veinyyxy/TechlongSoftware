@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步已离线实现，第 4 步已完成[首开接线](auto-pending-provisioning.md#first-onboarding-step4-offline)、[定向补核](auto-pending-provisioning.md#first-onboarding-step4-install-restore-facts)与[首版 A 锁定](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。原注册入口上轮 DNS 未解析，[仅原平台栈的四资源最小可用方案](auto-pending-provisioning.md#first-onboarding-step4-register-minimal-restore)已离线准备。`NO_GO`、无执行 SHA；下一步仅另审定向只读，不启动资源、注册、购买或启用全队列。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步已离线实现，第 4 步已完成[首开接线](auto-pending-provisioning.md#first-onboarding-step4-offline)、[定向补核](auto-pending-provisioning.md#first-onboarding-step4-install-restore-facts)与[首版 A 锁定](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。[原注册入口的平台核对](auto-pending-provisioning.md#first-onboarding-step4-register-platform-facts)已证实七项停用基线、无未决变更集、任务闭控、console DNS 未占用。`NO_GO`，未恢复、无执行 SHA；下一步只准备四 Add 的「仅创建、不执行」审批材料，实际操作另审。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 
