@@ -10,9 +10,11 @@ import { checkCandidateScan } from '../platform-hosting-v1/security-scan.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const REGISTRATION = '06d91b3eb875568af5d3f9b9a9015d9a949571dc0ec8427b0ad2e764bbd8c720';
-export const FIRST_PURCHASE = '258c77666a802b08f3052f1082c279104ee45c9f643e174089f9e630110c1e9c';
+const PREVIOUS_FIRST_PURCHASE = '258c77666a802b08f3052f1082c279104ee45c9f643e174089f9e630110c1e9c';
+const PLAN_CONFIG_PATH = 'lib/purchases/sandbox-first-purchase-config.ts';
+export const FIRST_PURCHASE = 'b344a2e3f1c36ceeebca47b8d184f9e20fce8fa0c8d66e44ddcfb62454e17315';
 const REGISTRATION_TREE = '131fc5f0fd491e642916723ea0206cd0b03f413f';
-export const FIRST_PURCHASE_TREE = '33c035176b7a2decc4e595ac61c6ce888872d57f';
+export const FIRST_PURCHASE_TREE = '65f2840a23e9a0bca5a8c055ee6898ace8f926f7';
 const ARCHIVE_FILE = 'image.tar.gz';
 const SHA = /^[a-f0-9]{64}$/;
 const OID = /^[a-f0-9]{40}$/;
@@ -34,9 +36,17 @@ async function reviewedProfile(review) {
     assert.deepEqual(recipe.overlay.map(x=>x.path), fixedFiles);
     return {recipe, schema:'techlong/sandbox-registration-overlay-image/v1', treeOid:REGISTRATION_TREE};
   }
-  const candidate=JSON.parse(await readFile(path.join(root,'docs/evidence/sandbox-first-purchase-activation.prepared.json'),'utf8')).candidate;
-  const {recipe}=candidate;
+  const prior=JSON.parse(await readFile(path.join(root,'docs/evidence/sandbox-first-purchase-activation.prepared.json'),'utf8')).candidate;
+  assert.equal(prior.recipeSha256,PREVIOUS_FIRST_PURCHASE);
+  assert.equal(hash(JSON.stringify(prior.recipe)),PREVIOUS_FIRST_PURCHASE,'previous source recipe');
+  const {replacement,candidate}=JSON.parse(await readFile(path.join(root,'docs/evidence/sandbox-first-purchase-replacement.prepared.json'),'utf8'));
+  assert.equal(replacement.path,PLAN_CONFIG_PATH);
+  const old=prior.recipe.overlay.filter(row=>row.path===PLAN_CONFIG_PATH);
+  assert.equal(old.length,1);
+  assert.notEqual(old[0].blob,replacement.blob);
+  const recipe={...prior.recipe,overlay:prior.recipe.overlay.map(row=>row.path===PLAN_CONFIG_PATH?replacement:row)};
   assert.equal(candidate.recipeSha256, review);
+  assert.equal(candidate.sourceTreeOid,FIRST_PURCHASE_TREE);
   assert.equal(hash(JSON.stringify(recipe)), review, 'reviewed source recipe');
   assert.equal(recipe.overlay.length,19);
   assert.equal(new Set(recipe.overlay.map(x=>x.path)).size,19);

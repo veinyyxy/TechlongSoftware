@@ -1,0 +1,23 @@
+{
+  "schema": "techlong/sandbox-first-purchase-replacement-prepared/v1",
+  "status": "PREPARED_NOT_DISPATCHED",
+  "previous": {
+    "recipeSha256": "258c77666a802b08f3052f1082c279104ee45c9f643e174089f9e630110c1e9c",
+    "sourceTreeOid": "33c035176b7a2decc4e595ac61c6ce888872d57f",
+    "runId": 44364821939,
+    "artifactId": 14454594785
+  },
+  "replacement": {
+    "path": "lib/purchases/sandbox-first-purchase-config.ts",
+    "source": "cbaeaa741cd311e1840cfc053a4f064242b60435",
+    "blob": "b2993b95324b3fa5a349542cfc3b9890493efe2d",
+    "sha256": "0753d9351a305700754eee383a3a8c4a29eb6969d2f637c1cbcc900329702218"
+  },
+  "candidate": {
+    "recipeSha256": "b344a2e3f1c36ceeebca47b8d184f9e20fce8fa0c8d66e44ddcfb62454e17315",
+    "sourceTreeOid": "65f2840a23e9a0bca5a8c055ee6898ace8f926f7",
+    "overlayFiles": 19
+  },
+  "dispatchAuthorized": false,
+  "registryManifestDigest": null
+}

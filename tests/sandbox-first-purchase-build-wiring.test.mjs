@@ -7,7 +7,10 @@ import {load} from 'js-yaml';
 import {buildCandidateArchive,FIRST_PURCHASE,FIRST_PURCHASE_TREE} from '../ops/platform-registration-candidate-v1/candidate.mjs';
 
 const file=filepath=>new URL('../'+filepath,import.meta.url);
-test('same no-AWS manual workflow admits only the two pinned recipes and never publishes',async()=>{
+const previous=JSON.parse(await readFile(file('docs/evidence/sandbox-first-purchase-activation.prepared.json'),'utf8')).candidate;
+const prepared=JSON.parse(await readFile(file('docs/evidence/sandbox-first-purchase-replacement.prepared.json'),'utf8'));
+
+test('same no-AWS manual workflow admits registration and only the replacement first-purchase recipe',async()=>{
   const workflow=load(await readFile(file('.github/workflows/sandbox-registration-candidate-v1.yml'),'utf8'));
   assert.deepEqual(Object.keys(workflow.on),['workflow_dispatch']);
   assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs),['recipe_sha','orchestration_sha']);
@@ -20,24 +23,29 @@ test('same no-AWS manual workflow admits only the two pinned recipes and never p
     'github.sha == inputs.orchestration_sha',FIRST_PURCHASE,'06d91b3eb875568af5d3f9b9a9015d9a949571dc0ec8427b0ad2e764bbd8c720']) {
     assert.ok(job.if.includes(gate),gate);
   }
+  assert.equal((job.if.match(/inputs\.recipe_sha == '[a-f0-9]{64}'/g)??[]).length,2);
+  assert.ok(!job.if.includes(previous.recipeSha256));
   assert.deepEqual(job.env,{REVIEWED_RECIPE_SHA:'${{ inputs.recipe_sha }}'});
   const shell=job.steps.map(x=>x.run??'').join('\n');
   assert.doesNotMatch(shell,/docker push|docker login|aws login|aws sts|gh workflow run|secrets\./);
   assert.equal((shell.match(/docker build --platform/g)??[]).length,1);
   const smoke=job.steps.find(x=>x.name?.startsWith('First-purchase signed-callback'));
   assert.equal(smoke.if,`inputs.recipe_sha == '${FIRST_PURCHASE}'`);
-  for(const pin of ['--network none','--read-only','--cap-drop ALL','DEPLOYMENT_WORKER_ENABLED=false','whsec_synthetic_only','first-purchase-smoke.json'] )
+  for(const pin of ['--network none','--read-only','--cap-drop ALL','DEPLOYMENT_WORKER_ENABLED=false','whsec_synthetic_only','first-purchase-smoke.json',
+    'TECHLONG_SANDBOX_FIRST_PURCHASE_PLAN_ID=pln_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'] )
     assert.ok(smoke.run.includes(pin));
   const upload=job.steps.find(x=>x.uses?.startsWith('actions/upload-artifact@'));
-  assert.match(upload.with.name,/sandbox-first-purchase-overlay-258c7766.*sandbox-registration-overlay-06d91b3e/);
+  assert.equal(upload.with.name,"${{ inputs.recipe_sha == '"+FIRST_PURCHASE+"' && 'sandbox-first-purchase-overlay-"+
+    FIRST_PURCHASE.slice(0,8)+"' || 'sandbox-registration-overlay-06d91b3e' }}-${{ github.run_id }}");
   assert.equal(upload.with['retention-days'],3);
   assert.equal(upload.with.overwrite,false);
 });
 
-test('exact 19-blob archive is reachable while the original two-file recipe remains byte-bound',async()=>{
+test('exact 19-blob archive replaces only the plan config while the original two-file recipe stays unchanged',async()=>{
   const temp=await mkdtemp(path.join(tmpdir(),'techlong-candidate-wiring-test-'));
   try {
     await assert.rejects(buildCandidateArchive(path.join(temp,'wrong'),'0'.repeat(64)),/reviewed recipe ID/);
+    await assert.rejects(buildCandidateArchive(path.join(temp,'superseded'),previous.recipeSha256),/reviewed recipe ID/);
     const staged=path.join(temp,'first-purchase');
     const [old,next]=await Promise.all([buildCandidateArchive(path.join(temp,'registration')),buildCandidateArchive(staged,FIRST_PURCHASE)]);
     assert.equal(old.sourceTreeOid,'131fc5f0fd491e642916723ea0206cd0b03f413f');
@@ -45,7 +53,14 @@ test('exact 19-blob archive is reachable while the original two-file recipe rema
     assert.equal(next.sourceRecipeSha256,FIRST_PURCHASE);
     assert.equal(next.sourceRecipe.overlay.length,19);
     assert.equal(next.sourceRecipe.base,old.sourceRecipe.base);
+    assert.equal(next.sourceRecipe.base,previous.recipe.base);
     assert.equal(next.sourceTreeOid,FIRST_PURCHASE_TREE);
+    assert.deepEqual(next.sourceRecipe.overlay.map(x=>x.path),previous.recipe.overlay.map(x=>x.path));
+    const changed=next.sourceRecipe.overlay.filter((x,i)=>x.blob!==previous.recipe.overlay[i].blob);
+    assert.deepEqual(changed,[prepared.replacement]);
+    const unaffected=rows=>rows.filter(x=>x.path!==prepared.replacement.path);
+    assert.deepEqual(unaffected(next.sourceRecipe.overlay),unaffected(previous.recipe.overlay));
+    assert.equal(prepared.dispatchAuthorized,false);
     for(const row of old.sourceRecipe.overlay) {
       assert.equal(next.sourceRecipe.overlay.find(x=>x.path===row.path)?.sha256,row.sha256);
     }

@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：不可执行。** 2026-11-18（温尼伯）。[一次限定只读核对](#sandbox-first-purchase-readonly-observed)发现原候选拒绝实际套餐编号；[源码已修，首开专项 CI 通过](#sandbox-first-purchase-plan-id-fix)。原候选不含此修复，替代候选未构建。未发布镜像、安装权限、创建 Secret/回调端点或更新平台。执行窗口未开启，执行 SHA 为 `null`。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
+**状态：启用不可执行。** 2026-11-18（温尼伯）。[一次限定只读核对](#sandbox-first-purchase-readonly-observed)发现原候选拒绝实际套餐编号；[源码已修，首开专项 CI 通过](#sandbox-first-purchase-plan-id-fix)。[替代候选构建已离线准备](#sandbox-first-purchase-replacement-review)，未批准、未调度。未发布镜像、安装权限、创建 Secret/回调端点或更新平台。启用窗口未开启，执行 SHA 为 `null`。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
 
 ## 固定范围
 
@@ -49,7 +49,7 @@
 ## 需要另批的最小补齐
 
 1. **候选来源与产物已核验。** 复用[真实构建回执](#sandbox-first-purchase-candidate-observed)，不重新调度或重复取日志。Registry manifest 只能在实际发布后独立派生，当前不预填。
-2. **集中限定只读已完成，不重复盘点。** 结果见下节。套餐编号合同和对应回归已修，保持准确工作区、套餐、A 及测试模式绑定。当前唯一继续点是按修正源码准备替代候选的单次无 AWS 构建，实际调度另审；不能发布旧候选或改数据库套餐编号来绕过。
+2. **集中限定只读已完成，不重复盘点。** 套餐编号合同和对应回归已修，保持准确工作区、套餐、A 及测试模式绑定。当前只待批准[替代候选的单次无 AWS 构建](#sandbox-first-purchase-replacement-review)；不能发布旧候选或改数据库套餐编号来绕过。
 3. **只出一份实际启用审批。** 修正候选、准确发布入口以及 Stripe 测试端点/私密供给等必要条件齐全后才定执行 SHA。快照按真实观测五小时有效，旧期限不续；按准确发布限时与撤权预留反推开窗，不先部署等材料。校验安装者授权能力不等于已在实际 Neon 安装，也不等于放开购买。
 
 <a id="sandbox-first-purchase-readonly-observed"></a>
@@ -68,5 +68,15 @@
 源码 `cbaeaa741cd311e1840cfc053a4f064242b60435` 仅在首开共用校验中接受 `pln_` 加 32 位小写十六进制字符，保留旧 `plan_` 规则。新回归使用正式的 `randomId("pln")` 生成合成套餐号，先复现旧校验拒绝，再验证配置、DDL 及隔离库购买仍仅接受准确绑定的套餐；畸形编号和不同的合法套餐号仍被拒。定向本机测试 12 通过，1 个隔离数据库用例转由 CI 跑；lint、类型通过。[首开专项 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44368236891)原尝试 1 的 `offline` 和 `postgres`（隔离 PostgreSQL 16）均成功。
 
 [平台通用 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44368236845)在 V6 已发布执行依赖摘要检查失败，镜像构建和上传步骤跳过。通过本机重算提交及父提交的 81 个固定文件，确认两者均为 `dbff1490cd41f114cfb654386b5a1dc62d643e7f67820761b46f41f7e141b4ac`，与历史期望 `828491ec…` 不同，非本次两文件改动所致。未修改旧基线或工作流，未调用 AWS、生产数据库或 Stripe，未 dispatch 替代候选，不把专项 CI 成功当作新镜像或启用证据。
+
+<a id="sandbox-first-purchase-replacement-review"></a>
+
+### 替代候选：单次构建待批（未调度）
+
+[固定构建输入](evidence/sandbox-first-purchase-replacement.prepared.json)：与原候选使用同一个基底，19 个覆盖路径不变，**只有 `lib/purchases/sandbox-first-purchase-config.ts` 换为 `cbaeaa741cd311e1840cfc053a4f064242b60435` 的已验证 Git blob**。新配方 SHA-256 为 `b344a2e3f1c36ceeebca47b8d184f9e20fce8fa0c8d66e44ddcfb62454e17315`，源码树为 `65f2840a23e9a0bca5a8c055ee6898ace8f926f7`。离线重建两棵树，实际差异只有上述文件；归档接线与原发布合同 5 项全部通过，购买/Stripe 本机回归 12 项通过、1 项隔离数据库仍由既有专项 CI 覆盖，改动脚本 lint 通过。原两文件注册配方和树未变；旧首开配方不再被当前构建入口接受，原 `14454594785` 保留为历史，不作发布输入。
+
+- 若另获批准，只对 `veinyyxy/TechlongSoftware` 的既有 `sandbox-registration-candidate-v1.yml` 在 `main` 发起 **1 次** `workflow_dispatch`，填写上述 `recipe_sha` 和这份接线已推送的完整 `main` 提交 `orchestration_sha`。提交前核对远端 head 和工作流字节与待批版本相同；只接受同仓库、同 SHA、原尝试 1。任何漂移、提交结果不明或构建失败不补发、不 Re-run。
+- 复用原构建流程，单 job 最多 25 分钟：一个 Linux/amd64 候选、非 root/禁网自检、匿名注册表单、用合成 `pln_` 编号运行四项签名回调自检，保持控制器/普通 worker/apply 关闭。通过新鲜 HIGH/CRITICAL OS 扫描后仅向 GitHub 封存一份 `sandbox-first-purchase-overlay-b344a2e3-<runId>`，保留 3 天，不下载镜像包。
+- 待批范围可同时覆盖同一 run 的 GitHub 认证 GET 最多 40 次（头与工作流 2、定位 4、观察 29、job/去敏封存摘要/产物元数据 5），仅已有 GitHub 认证、只在内存使用。接受 GitHub 构建及存储可能产生费用和供应商日志风险。**不涉及 AWS/OIDC、ECR 认证或发布、实际 Stripe、数据库、平台更新、安装、购买或恢复。** 构建审批不等于启用审批，不延长之前的事实快照或原候选期限。
 
 **当前无需用户操作注册或购买。** 任何线上读取、构建调度、秘密供给和实际启用都不因本草案获得授权。购买及首开仍排在启用验收之后另审。
