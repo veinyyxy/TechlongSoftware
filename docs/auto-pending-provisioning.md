@@ -355,6 +355,22 @@
 
 实际 STS 2、元数据 10、`CreateChangeSet` 1、`ExecuteChangeSet` 0，单次创建槽已消费，不重放或删除。未启动平台、ALB、ECS 或数据库，未更新 DNS、启用队列、注册或购买，也未取 Secret 值或连接数据库。**下一步仅准备同一 ARN 的执行审批及失败策略，需另批。** 原事实仍于温尼伯 **13:17:53.956 CST** 截止，不因回读延期；本轮没有执行清单 SHA，注册页未恢复。执行后的独立核验和本人注册仍是后续单独步骤。
 
+<a id="first-onboarding-step4-register-execute-review"></a>
+
+#### 原平台注册入口：同一变更集的执行审批与失败策略
+
+**`PREPARED_NOT_APPROVED`。** [待审执行清单](../ops/deployment-baseline/platform-register-restore-execute.review.json)规范 SHA **`f6069d7f335692444ecd4b49321fbd3ad1b3131f2c31fef7666965e21a4c605e`**，绑定真实创建并独立回读的原 ARN（尾段 `52eb096a-3ed2-48a8-80cf-1d34671495df`）。最多一次 `ExecuteChangeSet`，精确请求摘要 `88d397f8a6d4ebc7a70dfe08d6bf3ae1007d361c0fc363cb0ae9ada45475a033`，`DisableRollback=false`，不再调用 `CreateChangeSet`、不直接做 ECS/ALB/DNS/IAM 写入。
+
+| 阶段 | 拟批准的范围和门槛 |
+| --- | --- |
+| **前置** | 固定 Source；仍是同一 `CREATE_COMPLETE / AVAILABLE` 普通变更集，无竞争变更集；恰四 Add、模板与原栈的两个摘要/七项物理 ID/原角色和标签匹配；准确 ALB 名、console DNS 名仍空。最多 12 项元数据，只包含这一个栈和确切依赖，并检查原 `:13` 仍 `ACTIVE` 和闭控、原证书、镜像 digest、已固定数据库 Secret 版本元数据（不取正文、不连库）。存在差异、权限不足、来源不符或时间不足，在写前停止，不自动改参数、换角色或补读。 |
+| **提交与托管等待** | 写单次意图后只执行原 ARN，一次提交。CloudFormation **托管回滚开启**，可能移除本次新增的资源，回到原停用状态；这不是另行手工回滚授权，也不保证失败后没有遗留资源。收到明确 ACK 后，只看原栈，最多 7 次 `DescribeStacks`、间隔至少 60 秒、最多 8 分钟。旧栈 `UPDATE_COMPLETE` 的残留读不当成这次成功；须看到本次更新已完成并进入独立读回。 |
+| **独立核验和交付** | 仅在看到本次 `UPDATE_COMPLETE` 后独立核对已 `EXECUTE_COMPLETE`、候选模板、同一栈四项归属及七项物理 ID 等未改、`:13` 和 1/1/0 任务、ALB active、443 原证书/目标 healthy、准确新 ALB Alias（最多 9 项元数据）；然后仅对 `/api/health` 与准确 `/register?returnTo=%2Fdashboard%2Fsettings` 各一次匿名验证 TLS GET，无外部跳转，不提交表单。合计 STS 最多 3、AWS 元数据 28、GET 2；无注册/登录、购买、Agent 直连数据库或调度。独立验收过后才告知本人注册，不以 HTTP 200 代替注册提交或工作区验收。 |
+
+**失败处理：** 无法确认提交时停止保留永久槽，仅另批对同一 ARN 的只读查证，不重发。失败、进入托管回滚、等候超时或审批时限用尽时记录实际状态；不强行取消仍可能在后台进行的 CloudFormation 操作，不清理或另建。若栈已更新但独立核验失败，明确记为「已更新、注册入口未验收」，不要注册；资源可能继续计费，任何补查、修复或停止另审。
+
+**风险和时限：** 只恢复原平台，仍是原公开 HTTPS 入口，不是仅 `/register` 的访问限制。CloudFormation 可能用原调用者派生会话；平台启动可由 ECS 托管拉取固定镜像、注入既有数据库 Secret 和产生普通日志，并允许正常流量。ALB、单任务、公网 IPv4 等可能持续计费，不设置 TTL、不自动关停；不恢复 Cell、租户、Aurora 或独立 RDS，不开启 worker。最晚温尼伯 **2026-11-18 13:02:53.956 CST** 启动核对，**13:05:53.956 CST** 前提交，原 **13:17:53.956 CST** 事实/读取截止不延；超时不自动刷新。此轮只复用并核验本地清单/回执/模板，没有调用 AWS、执行、注册、重建或消费执行槽。实际执行及以上限定读取均须明确批准此 SHA。
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的
