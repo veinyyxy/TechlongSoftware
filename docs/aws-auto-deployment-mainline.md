@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步已离线实现，第 4 步已完成[首开接线](auto-pending-provisioning.md#first-onboarding-step4-offline)与[首版 A 锁定](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。原平台注册提交出现 `42501`；[受限注册函数](auto-pending-provisioning.md#first-onboarding-step4-registration-install-observed)已安装并核验。[两文件候选](auto-pending-provisioning.md#first-onboarding-step4-registration-platform-candidate-observed)已封存，发布适配 CI 和限定读取已通过；[合并执行审批](auto-pending-provisioning.md#first-onboarding-step4-registration-ecr-publication-review)已准备，发布、撤权核验和换镜像不再拆审。原平台未更新，注册仍为 `NO_GO`。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步已离线实现，第 4 步已完成[首开接线](auto-pending-provisioning.md#first-onboarding-step4-offline)与[首版 A 锁定](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。原平台注册提交出现 `42501`；[受限注册函数](auto-pending-provisioning.md#first-onboarding-step4-registration-install-observed)已安装。[修复镜像已在原平台上线并独立核验](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)，原发布角色已恢复 Locked，控制器与 worker 关闭。当前只等用户亲自提交一次注册，真实首开尚未验收。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 

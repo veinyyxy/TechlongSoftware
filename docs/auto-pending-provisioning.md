@@ -490,6 +490,16 @@
 
 **只读已通过，合并为一次执行审批。** 本轮实际 STS 1、AWS 元数据 15、GitHub GET 11，核对了原 Locked 发布角色、三份既有镜像、未占用目标 tag、准确产物及人工审批门禁。没有查平台栈、下载镜像、连库或写云。唯一待审清单保存在本机私有目录 `sandbox-registration-finish-bug.review.json`，LF SHA-256 `c77b44f9cf3389915f801b8ecec9473c211a74e860afedf807a3f7c78cecfd06`。按同一外层批准，先发布并独立核验撤权与镜像，再只在原平台和两项 Change Set 差异严格匹配时换镜像；不再另要 Change Set 批准。GitHub environment 必须本人批准。整轮最晚 **2026-11-18 13:51:40.980 CST（温尼伯）** 启动，原事实 **15:26:40.980 CST** 截止，不延长。未授权执行，不重试注册。
 
+<a id="first-onboarding-step4-registration-image-observed"></a>
+
+#### 注册修复已上线，待本人单次注册（2026-11-18，温尼伯）
+
+按外层批准 `c77b44f9…` 执行 [run 44348635925](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44348635925)，由用户批准 GitHub environment。产物 `14444752398` 发布一次；独立回读证明原角色已恢复 Locked、三份旧镜像保留、新镜像 registry manifest 为 `sha256:adaa45218a5bfefcc376bf0349eb685f742efb381fc334540347745091bbe323`。
+
+只在原平台 CloudFormation 栈创建并执行同一份变更集 `73c96d93…` 各一次，仅替换任务定义和更新 ECS 服务的任务定义引用。2026-11-18 10:44:25 CST 独立核验通过：原栈 `UPDATE_COMPLETE`，服务运行任务 **1**、待启动 **0**、目标健康，实际运行新镜像、任务定义 revision **14**；原网络、域名、角色及固定数据库 Secret 版本不变，控制器和 worker 关闭。匿名 GET `/api/health` 和 `/register` 均为 **200**。平台阶段共 STS 2、AWS 元数据 34、匿名 GET 2；不连库、不注册、不重试。回执保存在私有目录 `sandbox-registration-finish-bug-c77b44f9.platform-accepted.json`。
+
+下一步只由用户用自备未注册邮箱，在[原注册入口](https://console.sandbox.techlong.cloud/register?returnTo=%2Fdashboard%2Fsettings)填写企业名「Sandbox 首开验收」并提交一次。注册页技术核验通过不代表注册已成功，更不代表购买或真实首开已完成。结果不明不重复提交，未授权恢复其他资源、购买或启动首开。
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的
