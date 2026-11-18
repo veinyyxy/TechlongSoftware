@@ -258,7 +258,21 @@
 | **隔离存储和 g1 名称** | 用[现有派生](../lib/deployments/first-onboarding.ts)：`H=sha256Hex({appInstanceId,workspaceId,productId,environmentId,cellKey})`；桶只用 `techlong-sandbox-tenant-images-402010193138-`＋`H` 前16位，角色只用 `TechlongSandboxFirstOpen-`＋同前16位；库/SQL 角色同一前缀 `tenant_<H前16位>`。只准[五资源私有存储形状](#first-onboarding-step4-installation)，对象范围 `products/*`；g1 名调用[现有代际派生](../lib/deployments/execution/tenant-database.ts)。 | [真实购买路径](../lib/instances/management.ts#L435)才随机生成 `appInstanceId`，不能现在算出准确新桶/角色/Secret 名、目标栈或 job。另批购买后仅从唯一实际 held 任务派生，确认占用/固定运行引用和基线 archive/manifest 版本；新 CDN 地址从本桶实际分发回执获取，所需 KMS、VersionId 或兼容证据缺失时不启动首开。 |
 | **API DNS** | 用已证实公共 Zone `Z01473621BTTHKXBGOOEJ`；新实例 `slug` 取真实记录（当前购买路径为 `pending-` 加实例 ID 下划线转连字符），只候选一条 `<slug>.sandbox.techlong.cloud.` 的 `CREATE A Alias`。 | 只查准确名称占用，不接受显示名或猜测的 slug、不查其它 DNS；Alias 的目标及 canonical hosted zone 只取原 Cell 恢复独立回执的实际 ALB；恢复前不装 Alias。固定动作和精确名称，冲突即停、不 `UPSERT`。 |
 
-**下一唯一动作：给出这一个验收工作区的真实 ID，或确认尚无可用专用工作区。** 已有准确 ID 时，只建议另批一条只读 Neon 连接、最多两条 SELECT：第一条只返回该工作区是否 active、该产品是否已有实例/订阅等资格布尔值，第二条按唯一 A 的 `releaseId` 核对 `ecr_verified` 和对象摘要（不读其它目录或业务资料）。如尚无工作区，准备单独的新建范围，不用只读扫描找候选。不要先扫 AWS 或启动资源；其它必要的新读取、实际安装、恢复、测试购买和首开执行仍分别另审。无可执行 SHA。本次只读已提交文件并校验摘要；AWS、数据库、Secret 值、配置读取、环境变更、队列启用、购买及开通均为 0。
+**工作区接续：** 用户确认没有可用专用工作区，转入[单工作区建立申请](#first-onboarding-step4-workspace-create)，不扫描或借用旧工作区。可信首版 A 保持不变。
+
+<a id="first-onboarding-step4-workspace-create"></a>
+
+#### 第 4 步：单工作区建立申请（仅准备）
+
+**状态：待提供负责人，未批准创建。** 只准备 1 个活跃测试工作区，企业名称固定「Sandbox 首开验收」。优先由一个现有的普通测试登录账号担任 Owner；联系人姓名、邮箱由用户给定，不沿用旧租户、不自动绑定平台管理员、不新增账号或发送邀请。这里的 sandbox 是本轮验收用途，不是现有工作区表里的隔离开关；新工作区不会自动拥有 sandbox 部署配置。
+
+| 项目 | 单次待审范围 |
+| --- | --- |
+| **入口与前置** | 复用现有[新建企业客户页面](../app/admin/customers/new/page.tsx)与[受平台管理员限制的 POST](../app/api/admin/customers/route.ts)，只在已确认连接到本次验收控制库的既有可用入口提交一次。另行批准后，按确切邮箱验既有活跃非平台管理员账号，账号 ID 必须匹配代码的 `stableId("usr", email.toLowerCase())`，且同一负责人没有这一个确切名称的工作区；只查这些条件，不列客户或用户。账号不符、无可用入口、环境不明或已有同名工作区即停，不绕过入口直写 SQL，不启动平台或 AWS。 |
+| **真实写入上限** | [createCustomer](../lib/admin/management.ts#L825) 在一个 Neon 批事务中执行三条语句：既有负责人账号仅更新 `users.updated_at`；插入 1 条新 `workspaces`（`active / not_configured / not_provisioned`）；插入 1 条该负责人的 `workspace_members`（`owner`）。原代码在邮箱缺失时会插入用户，**不在本稿批准候选范围内**；若不能把已有账号条件落实到受控提交窗口，则不执行。登录会话若需建立另界定，不取密码或 Cookie、不改用户权限。 |
+| **回执与未知结果** | 成功只接受同一次响应的真实 `wsp_…`，另行限定只读回查该 ID 的状态、归属、成员数为 1、无订阅、无实例/首开任务；新 ID 仅用于下一步与 A 绑定，不立即写部署配置。提交后成功回读不在批事务内，超时/报错不能判定未提交；现有入口生成随机 ID、无幂等键，未知结果不再提交，不自动删除，另批仅按确切负责人和名称查因。只记录必要 ID/布尔值，不把联系人邮箱或认证数据提交仓库。 |
+
+**不包含：** 新账号/邀请、套餐配置、订阅、Stripe/测试购买、实例/任务、部署配置或 A 的重新登记，以及 AWS 读取、安装、恢复、队列启用和实际首开。现有平台停用记录不构成唤醒许可。本轮只核对源码和编辑文档，未登录、读写业务库或创建；没有执行 SHA。下一步由用户提供现有普通测试账号的联系人姓名与邮箱；若没有，单独确定账号供给范围。账号资格读取、实际建立和独立回查另审。
 
 ## 当前操作说明（实施计划不改变现有流程）
 
