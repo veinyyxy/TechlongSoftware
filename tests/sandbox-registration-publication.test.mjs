@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { load } from 'js-yaml';
 import { C, FIRST_PURCHASE_CANDIDATE as F, DAHLIA_FIRST_PURCHASE_CANDIDATE as D,
   protocol, firstPurchaseProtocol, dahliaFirstPurchaseProtocol, selectOverlayPublication, verifyImageReceipt } from '../ops/platform-registration-publish-v1/contract.mjs';
@@ -153,4 +155,69 @@ test('the Dahlia publisher binds the new sealed artifact and cannot use the earl
   assert.equal(dahliaFirstPurchaseProtocol.verifyImageReceipt(sealed),sealed);
   assert.throws(()=>firstPurchaseProtocol.verifyImageReceipt(sealed),/REGISTRATION_RECEIPT/);
   assert.deepEqual(dahliaFirstPurchaseProtocol.templates(m).revoke,protocol.templates(review).revoke);
+});
+
+test('extractor uses the exact sealed image size without changing ZIP and SHA verification',t=>{
+  const driver=read('../ops/platform-registration-publish-v1/artifact.mjs');
+  assert.match(driver,/extract\.py',zip,dir,String\(C\.archiveBytes\)/);
+  assert.match(driver,/n===C\.artifactBytes && `sha256:\$\{h\.digest\('hex'\)\}`===C\.artifactDigest/);
+  assert.match(driver,/archiveBytes===C\.archiveBytes && archiveHash===C\.archiveSha256/);
+  const python=spawnSync('python3',['--version'],{encoding:'utf8',windowsHide:true,timeout:3000});
+  if(python.status!==0&&process.platform==='win32'&&!process.env.GITHUB_ACTIONS) return t.skip('local Python unavailable');
+  assert.equal(python.status,0);
+  const extractor=fileURLToPath(new URL('../ops/platform-registration-publish-v1/extract.py',import.meta.url));
+  const code=`
+import os, pathlib, stat, subprocess, sys, tempfile, zipfile
+from unittest.mock import patch
+
+extractor, previous_size, dahlia_size = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
+class ArchiveMetadata:
+    def __enter__(self): return self
+    def __exit__(self, *exception): return False
+    def infolist(self):
+        entries = [zipfile.ZipInfo(name) for name in ('image.tar.gz', 'image-receipt.json', 'os-scan-summary.json', 'SHA256SUMS')]
+        for entry in entries:
+            entry.file_size = dahlia_size if entry.filename == 'image.tar.gz' else 1
+        return entries
+def validate_dahlia(expected):
+    with patch.object(sys, 'argv', [extractor, 'no-file.zip', 'never-created', str(expected)]), \\
+         patch.object(zipfile, 'ZipFile', return_value=ArchiveMetadata()), \\
+         patch.object(os, 'mkdir', side_effect=RuntimeError('DID_REACH_EXTRACTION')):
+        try: exec(compile(pathlib.Path(extractor).read_bytes(), extractor, 'exec'), {})
+        except (ValueError, RuntimeError) as err: return str(err)
+    raise AssertionError('Did not reach size check')
+assert validate_dahlia(dahlia_size) == 'DID_REACH_EXTRACTION'
+assert validate_dahlia(previous_size) == 'REGISTRATION_ZIP_ENTRY'
+assert validate_dahlia(dahlia_size + 1) == 'REGISTRATION_ZIP_ENTRY'
+
+with tempfile.TemporaryDirectory(prefix='sandbox-registration-extract-fixture-') as tmp:
+    p = pathlib.Path(tmp)
+    def run(case, expected, extra=False, link=False, metadata_bytes=1):
+        z, out = p / (case + '.zip'), p / case
+        with zipfile.ZipFile(z, 'w') as archive:
+            image = zipfile.ZipInfo('image.tar.gz')
+            if link:
+                image.create_system, image.external_attr = 3, (stat.S_IFLNK | 0o777) << 16
+            archive.writestr(image, b'0123456789')
+            archive.writestr('image-receipt.json', b'x' * metadata_bytes)
+            archive.writestr('os-scan-summary.json', b'x')
+            archive.writestr('SHA256SUMS', b'x')
+            if extra: archive.writestr('../escape', b'x')
+        result = subprocess.run([sys.executable, extractor, str(z), str(out), str(expected)], capture_output=True, timeout=5)
+        if case == 'exact':
+            assert result.returncode == 0, result.stderr
+            assert (out / 'image.tar.gz').read_bytes() == b'0123456789'
+        else:
+            assert result.returncode != 0 and not out.exists() and b'REGISTRATION_ZIP_' in result.stderr, result.stderr
+    run('exact', 10)
+    run('too_short', 11)
+    run('too_long', 9)
+    run('over_absolute_limit', 1610612736)
+    run('metadata_too_long', 10, metadata_bytes=8193)
+    run('extra_path', 10, extra=True)
+    run('symlink', 10, link=True)
+`;
+  const result=spawnSync('python3',['-c',code,extractor,String(F.archiveBytes),String(D.archiveBytes)],
+    {encoding:'utf8',windowsHide:true,timeout:15000});
+  assert.equal(result.status,0,result.stderr);
 });

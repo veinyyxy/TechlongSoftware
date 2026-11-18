@@ -44,7 +44,7 @@ async function prepare(dir,selected,e=process.env) {
   const h=createHash('sha256');let n=0;const zip=dir+'.zip';
   await pipeline(Readable.fromWeb(blob.body),new Transform({transform(buf,_,cb){n+=buf.length;if(n>C.artifactBytes){cb(Error('REGISTRATION_ZIP_SIZE'));return;}h.update(buf);cb(null,buf);}}),createWriteStream(zip,{flags:'wx',mode:0o600}));
   must(n===C.artifactBytes && `sha256:${h.digest('hex')}`===C.artifactDigest,'REGISTRATION_ZIP_BYTES');
-  execFileSync('python3',['ops/platform-registration-publish-v1/extract.py',zip,dir],{stdio:'pipe',timeout:120000});
+  execFileSync('python3',['ops/platform-registration-publish-v1/extract.py',zip,dir,String(C.archiveBytes)],{stdio:'pipe',timeout:120000});
   const file=name=>path.join(dir,name), archive=file('image.tar.gz');
   const receipt=verifySeal(await readFile(file('image-receipt.json')),await readFile(file('os-scan-summary.json')),
     await readFile(file('SHA256SUMS'),'utf8'),(await lstat(archive)).size,await fileHash(archive),selected);
