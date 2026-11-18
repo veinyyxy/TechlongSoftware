@@ -7,15 +7,15 @@ import { suppliedTemplate, versionId } from '../platform-hosted-access-v6/contra
 
 const json = path => JSON.parse(readFileSync(new URL(`../../${path}`,import.meta.url),'utf8'));
 const evidence = 'docs/evidence/';
-const {scope} = json(evidence+'sandbox-first-purchase-activation.prepared.json');
-const draft = json(evidence+'sandbox-first-purchase-activation-consolidated.prepared.json');
+export const {scope} = json(evidence+'sandbox-first-purchase-activation.prepared.json');
+export const draft = json(evidence+'sandbox-first-purchase-activation-consolidated.prepared.json');
 const registration = json(evidence+'sandbox-registration-ecr-publication.prepared.json');
 const accessHistory = json('ops/aws-sandbox/reviews/platform-hosted-access-w8d.review.json');
 const digest = /^sha256:[a-f0-9]{64}$/;
 const sha = value => hash(canonical(value));
 const check = (ok,reason) => { if(!ok) throw Error('FIRST_PURCHASE_ACTIVATION_'+reason); };
 const arnPrefix=`arn:aws:secretsmanager:${P.region}:${P.account}:secret:${draft.runtimeMaterial.newSecretName}-`;
-function exactSecretArn(arn){
+export function exactSecretArn(arn){
   check(typeof arn==='string' && arn.startsWith(arnPrefix) && /^[A-Za-z0-9]{6}$/.test(arn.slice(arnPrefix.length)),'SECRET_ARN');
   return arn;
 }
@@ -26,7 +26,7 @@ export function firstPurchaseSecretProtection(arn){
   return policy;
 }
 
-function originals(){
+export function firstPurchaseOriginalTemplates(){
   const access=suppliedTemplate(accessHistory.appSecret.arn,accessHistory.appSecret.versionId);
   const hosting=json('ops/deployment-baseline/platform-idle-convergence.template.json');
   const box=hosting.Resources.TaskDefinition.Properties.ContainerDefinitions[0];
@@ -49,7 +49,7 @@ export function buildFirstPurchaseActivationTemplates({workspaceId,planId,publis
     ![scope.observedWebRegistryManifest,expected.imageConfigDigest].includes(publisher.manifestDigest),'PUBLISHER_RECEIPT');
   const arn=exactSecretArn(secret?.arn);
   const version=versionId(secret.versionId);
-  const {access,hosting}=originals();
+  const {access,hosting}=firstPurchaseOriginalTemplates();
   const append=[
     {Sid:'ExactFirstPurchaseSecretVersion',Effect:'Allow',Action:'secretsmanager:GetSecretValue',Resource:arn,
       Condition:{StringEquals:{'secretsmanager:VersionId':version}}},
