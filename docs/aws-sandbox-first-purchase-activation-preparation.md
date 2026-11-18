@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：Stripe 测试凭据供给方式和只读清单已准备，尚未获准读取或启用。** 2026-11-18（温尼伯）。[集中草案](#sandbox-first-purchase-consolidated-preparation)已绑定替代产物和原栈模板；[两项离线前置](#sandbox-first-purchase-offline-prerequisites-observed)已有准确 CI。下一步在用户保存材料并单独批准后，才执行[Stripe 限定只读核对](#sandbox-first-purchase-stripe-test-supply)。未发布镜像、安装权限、创建 Secret/回调端点或更新平台。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
+**状态：Stripe 限定只读在运行密钥的账户匹配处停止，启用不可执行。** 2026-11-18（温尼伯）。[集中草案](#sandbox-first-purchase-consolidated-preparation)已绑定替代产物和原栈模板；[两项离线前置](#sandbox-first-purchase-offline-prerequisites-observed)已有准确 CI。先由用户核对同一 Sandbox 的账户和密钥，[第一次读取已消费，不自动重试](#sandbox-first-purchase-stripe-readonly-stopped)。未发布镜像、安装权限、创建 Secret/回调端点或更新平台。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
 
 ## 固定范围
 
@@ -50,7 +50,7 @@
 
 1. **候选来源与产物已核验。** 只复用[替代构建回执](#sandbox-first-purchase-replacement-observed)，不重新调度或重复取日志。Registry manifest 只能在实际发布后独立派生，当前不预填。
 2. **集中限定只读和替代构建已完成，不重复盘点或重跑。** 套餐编号合同保持准确工作区、套餐、A 及测试模式绑定；只使用[替代候选的封存结果](#sandbox-first-purchase-replacement-observed)，不能发布旧候选或改套餐编号来绕过。
-3. **实际启用仍只出一份审批。** [单产物发布接线与非超级用户安装回归已完成](#sandbox-first-purchase-offline-prerequisites-observed)。[Stripe 供给及限定只读范围](#sandbox-first-purchase-stripe-test-supply)已明确，等待保存与单独读取许可。快照按真实观测五小时有效，旧期限不续；按准确发布限时与撤权预留反推开窗，不先部署等材料。隔离回归不等于已在实际 Neon 安装，也不等于放开购买。
+3. **实际启用仍只出一份审批。** [单产物发布接线与非超级用户安装回归已完成](#sandbox-first-purchase-offline-prerequisites-observed)。[Stripe 第一次限定只读](#sandbox-first-purchase-stripe-readonly-stopped)在运行密钥和预填账户匹配处停止；实际再读取仍须新批准。快照按真实观测五小时有效，旧期限不续；按准确发布限时与撤权预留反推开窗，不先部署等材料。隔离回归不等于已在实际 Neon 安装，也不等于放开购买。
 
 <a id="sandbox-first-purchase-readonly-observed"></a>
 
@@ -116,7 +116,7 @@
 
 <a id="sandbox-first-purchase-stripe-test-supply"></a>
 
-### Stripe 测试凭据私密供给与只读清单（待批准）
+### Stripe 测试凭据私密供给与限定只读范围
 
 在 [Stripe Dashboard 的 API keys](https://dashboard.stripe.com/apikeys) 先明确选中这次首开用的**同一个 Sandbox**，取该测试账户的 `acct_…` ID 和两把不同的 `rk_test_…`[受限 API 密钥](https://docs.stripe.com/keys/restricted-api-keys)。先从零权限开始，仅给下面的用途；不使用 `pk_`、`sk_live_`、`rk_live_`、组织密钥或全权 `sk_test_`。不配置 Connect 代操作或 Webhook 写权限。本轮不需要创建端点。
 
@@ -152,4 +152,12 @@
 
 只有证实可复用的准确测试端点后，才请用户从 Stripe Dashboard 的该端点取 `whsec_…`，单独存 `E:\NodejsProject\TechlongSoftware\.local-secrets\sandbox-first-purchase-stripe-webhook-test.json`，字段仅 `endpointId`、`signingSecret`；**本次只读不打开该文件**。Stripe [端点 API](https://docs.stripe.com/api/webhook_endpoints/object) 的 GET 不返回签名密钥；不使用 `stripe listen` 的签名密钥，不轮转或新建来取值。若确无端点，任何创建及所需单独的测试管理权限并入后来一份正式启用审批，不提前提供管理密钥。两种分支都不发送测试事件、不创建 Checkout 或购买。
 
-本轮只核对文件路径/权限元数据和公开文档；未打开凭据文件或调用 Stripe 账户 API。Stripe 的另批范围不包含 AWS、Neon 或 GitHub 运行读取，也不刷新旧事实；其他易变门槛仍按已存记录和必要增量另议。正式**发布、安装、更新平台、启用仍合在一份审批**；购买及首开在启用后另审。
+Stripe 的另批范围不包含 AWS、Neon 或 GitHub 运行读取，也不刷新旧事实；其他易变门槛仍按已存记录和必要增量另议。正式**发布、安装、更新平台、启用仍合在一份审批**；购买及首开在启用后另审。
+
+<a id="sandbox-first-purchase-stripe-readonly-stopped"></a>
+
+### 第一次 Stripe 限定只读停止（2026-11-18，13:47 温尼伯）
+
+用户明确批准后，固定文件的独占范围、ACL、Git 排除及两把不相同的 `rk_test_` 格式通过。只读取文件 **1** 次，运行密钥只请求 **1** 次 `GET /v1/account`；返回 200 后未通过账户对象与预填 `accountId` 的匹配，记 `STRIPE_ACCOUNT_NOT_MATCHED`。未记录 Stripe 实际返回的账户信息、请求凭据或正文，因此不猜测是预填 ID 不正确还是密钥来自另一个 Sandbox。检查密钥调用、余额、端点列表/详情、签名密钥读取及云/数据库/支付写全为 **0**。尚未证明同一测试账户、测试模式或端点情况。
+
+去敏本机回执 `sandbox-first-purchase-stripe-readonly-20261118.result.json` SHA-256 `c9310d87289b5531446a25847113ea06d8dc3959b0caf66474269efb5987e919`，单次意图 SHA-256 `bf39e371fb7431d51e1425d653050e7ebf3beaaf7b0f463e939181205d465ec1`。实际观测从 `19:47:55.045Z` 至 `19:47:56.773Z`，无重试或刷新原快照。下一步仅在 Dashboard 选中创建运行密钥的那个 Sandbox，核对本机 `accountId` 与两把键是否出自同一环境。若能确认，只在私有文件更正，绝不将 API 返回值自动覆盖用户锁定 ID；不能确认则停待用户决定诊断方式。更正不等于批准再次读取，不创建端点、不购买、不发布、不安装。
