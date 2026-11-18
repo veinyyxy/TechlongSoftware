@@ -90,7 +90,7 @@
 - 待补足的准确材料：新工作区/支付模式、真实 checkout 到任务的派生与目标范围、镜像及运行版本、基线版本/SHA、模板与各资源物理引用/归属、存储与访问证明、独立核验和完成身份及负例、租户预约容量和无冲突路由、准备时效/执行截止和本人审批点。待新事实另获准后，按真实对象分别固定读取与写入上限；现在的硬上限是 **1 个验收租户／1 条任务／1 次领取／1 个租户栈／1 次完成提交**，不是可分配给其它对象的额度。
 - 开窗前记录人工监督、预计时长及成本估算（尤其既有 ALB/Express、Fargate、日志及存储/流量）。沿用 50 USD/月目标，不把它或任务截止当硬停费上限；原始执行/资源到期不得为凑时延长。停止/删除不在这轮验收授权，临时费用及资源留存分别记账，按已审流程另批。
 - 缺证据、权限多于批准范围、目录/配置变化、无法保障当前租约，或 ACK 不明就停。领取前不消费尝试；领取后不复位、不换任务、不自动补写、补偿或清理。只有独立回读证明同一实例 `active` 且 URL 准确、同一部署 `ready`、原 job `succeeded` 且无租约、D2 `revision 0` 且无活动请求、证据摘要一致，才算一次真实首开完成。否则保留已有记录；不能把没有回读的一次提交判为可重试。
-- **下一唯一动作**：复用[已完成的限定补核](#first-onboarding-step4-readonly-result)，另行确认下方首开就绪的最小差异；不先刷新整批事实、启动 AWS、调度或做测试购买。
+- **下一唯一动作**：按下方[最小就绪候选](#first-onboarding-step4-delta)审核离线接线范围；不先重复盘点、启动 AWS、调度或做测试购买。
 
 <a id="first-onboarding-step4-readonly"></a>
 
@@ -131,6 +131,43 @@
 3. 将**独立只读核验与专用原子完成**明确分权。提出首开独立元数据/技术读回的窄身份或等效受限会话，以及只允许原任务完成语句的 Neon 入口；要测允许完成本任务，拒绝未核验、越租户或改写既有 D2 状态。真实权限核对、需要的连接或安装均另审。
 
 在缺项解决、目标任务和资源值真实绑定且另有执行授权之前，保持未购买、未领取、未启动、未开通。
+
+<a id="first-onboarding-step4-delta"></a>
+
+#### 第 4 步最小就绪差异：离线候选，不可执行
+
+**2026-11-18（温尼伯）｜`NO_GO`，无执行 SHA。** 只复用 [06:40 CST 的限定补核](#first-onboarding-step4-readonly-result)与已提交源码/历史去敏材料；事实时点不续期。本节确定候选差异和验收门槛，不是已实现的适配、已验证的权限或新一轮读取许可。实际改动只限文档。
+
+##### A. 原 Express 和共享 Cell：单独审批恢复，不重开整套环境
+
+| 对象 | 将来拟议的最小动作 | 放行与停止条件 |
+| --- | --- | --- |
+| 原 Express | 仅指 `techlong-sandbox-express-d001`（已观测物理集群 `cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM`），如果后来获准窄核对仍为 `stopped`，对原集群最多一次 `StartDBCluster`；writer 由原集群管理，不另外启动、替换或新建实例。 | 准确集群及 writer 均 `available`，物理归属、已审 PG17.9/IAM/TLS 条件未变。若已启动不再写；身份、版本、writer 或端点归属不符即停。这里不连 SQL、不建库，不启动 `speedfeast-postgres-prod`。 |
+| 原共享 Cell | 只用原栈 `techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1`。在另行核对实际停用模板、完整 12 项保留资源和空缺后，按[已验证的四资源模式](../ops/deployment-baseline/cell-a2-executed-20261107.json)派生一次变更集；只允许 Add `CellLoadBalancer`、`BusinessHttpsListener`、`ControlMtlsListener`、`BusinessControlDenyRule`，并恢复对应输出。将来创建/执行上限各 1，执行须先看到准确差异。 | 独立核对同一栈 `UPDATE_COMPLETE`、原 12 项物理 ID 不变、四项确属该栈，新 ALB/443/8443、业务拒绝规则、证书和 `verify` mTLS 正确；只使用实际新 `HttpsListenerArn`、`ControlListenerArn`。若仅缺输出而资源或模板差异不是上述 4 Add，则停并重审；不动其它栈，不导入或直接建 ALB。 |
+
+仓库的[通用环境启停入口](aws-environment-tool.md)会涉及三栈和两库，不用于这两项窄恢复。可复用的是原栈变更集和独立核验方式，不是旧清单、旧监听器或旧权限附件。新监听器若落在当前 CFN 角色允许范围之外，只列对两条实际新 ARN 的最小声明差异另审，不能夹带到恢复变更集。恢复会带来持续费用，应在其余候选齐备后另定窗口；不顺手恢复平台、旧租户或其它 RDS，不装自动停费。若实际验收所需测试支付入口另有停止状态，单列前置，不扩大本范围。
+
+##### B. 新租户：复用空基线，首版就用 Express 和隔离图片存储
+
+- **初始化窄路径。** 复用 [Express V3 管理会话/prepare 合同](aws-auto-deployment-aurora-dual-mode-c3-bootstrap.md)与[同集群 PG17.9 空基线恢复及迁移的历史验收](aws-auto-deployment-aurora-dual-mode-c3g-restore-executed.md)，只作材料和底层能力参考，不运行历史固定目标入口、不复用其 OID、数据和永久槽。新目标库名/应用 SQL role 取本任务的不可变计划，Secret 名依现有代际函数派生；疑似占名、不同 g1/epoch、跨租户访问或身份不匹配即停，不领养旧资源。拟接入 `GuardedTenantDatabasePort` 的仅首开适配：一次 prepare、一次固定 schema-only 基线恢复及已审迁移、一次独立读回；不把现有 v2 `inspect` 改成通用写入口。真实 archive/manifest 须另绑定对象版本与两份摘要，再核对引擎、restore 工具和迁移合同。历史 73 表/两迁移/九条技术 seed 可作核对基线，不是新库证明；除批准的技术 seed 外业务行须为空。
+- **SQL 与角色隔离。** 只允许核准的管理身份在指定 Express 集群操作同一新库/角色；正常应用不持管理权限。若复用 V3 quarantine，清单必须明列一次 `CREATE DATABASE`、一个新应用角色及仅本次临时 NOLOGIN guard 的建/收动作和每个阶段的 ACK；建库本身不与后续恢复/迁移算一个原子事务，失响应只读核对、不续跑。应用 `LOGIN`、目标库/Schema 权限和 `rds_iam` 依实际审核权限开启；必须证明不能登录旧租户库。若需改其它数据库的 PUBLIC ACL 才能隔离，当前方案不含这一写入，停止另审。现应用 TaskRole 的新旧任务无法仅靠资源 ARN 策略区分，不向原共享应用角色直接追加新库或新桶；首选仅本新租户可用的 TaskRole，限精确 dbuser 和图片对象。角色/边界/必要 `PassRole` 或认证若没有精确复用范围，单列最小 IAM 差异，角色凭据不下发给其它任务。
+- **一次首版渲染，不先部署本地盘版本。** [Express 渲染器](../lib/deployments/cloudformation/express-single-tenant-workload-v1.ts)可复用 IAM/TLS、实际 OID 与 bootstrap readiness；目前是 render-only、协议与普通首开 finalizer 不同，不能直接交给 AWS 适配器。另批代码时，只在首开分支组合 Express、固定注入和持久化，重新做准确角色/参数、7 项逻辑资源、标签和 `createOnly` 校验；普通 worker 和原 D2 保持。通用 [TaskRole 参数白名单](../lib/deployments/execution/parameters.ts)固定为原共享角色，须在首开分支绑定批准的准确新角色，而不是全局放宽。租户栈保持一次总计 7 项，镜像仅 D2 可信目录的固定 digest，禁止启动迁移或后装一次 `UpdateStack` 修图片。
+- **存储和 DNS 最小边界。** 现有[持久化派生](../ops/releases/persistence.ts)硬绑旧桶和角色，复用其任务字段形状而非旧常量：`IMAGE_STORAGE_PROVIDER=s3`、`IMAGE_S3_BUCKET`、`IMAGE_PUBLIC_BASE_URL`、`ALLOW_EPHEMERAL_IMAGE_STORAGE=false`。首选为新租户使用隔离私有 bucket 的 `products/*`，应用任务仅对本对象范围写；仅在证明后端、旧任务和 CDN 都隔离时才接受复用的独立前缀。没有合格预置存储时，另列私有桶、桶策略、OAC、CloudFront 分发、响应头策略 **5 项参照候选**，不是默认获批；保持 PublicAccessBlock、版本化、准确 OAC 与应用角色权限，不迁旧图、不开放桶。D2 需要确切新 hostname 的 A Alias；若该名空闲且不在栈内，才另批一次 `CREATE` 指向实际新 ALB，冲突即停，不 `UPSERT`、改旧域或用通配证据。当前首开还固定 listener priority 100，必须证明两监听器的模板所占优先级无冲突；不移动旧规则或启用全局优先级分配。
+
+##### C. 固定 Secret 与 D2 摘要：先审派生规则，后接受真实回执
+
+保留已知固定版本的原路径。对需要新建 g1 Secret 的验收，**建议仅增加首开专用的受限派生路径**，不要求采购前预测 AWS ARN，也不以阶段后得到的 hash 冒充审批。
+
+1. 外层一次性批准绑定准确任务/订阅和 g1、基线/镜像/租户配置摘要、真实 Cell/平台/zone/存储及 API 版本、静态引用完整摘要；动态字段只允许该 g1 Secret 的物理 ARN 和初始 VersionId。先固定派生的完整 Secret 名、归属、批准的加密/版本范围和截止；最多一次创建一份初始版本，不复用未知同名对象、不 rotate，不将已有旧 Secret、其它版本或 `AWSCURRENT` 占位作为替代。
+2. 保存当次创建的去敏 ACK（请求指纹、确切 ARN、实际版本、归属、代际/epoch），由分离的核验入口用 `DescribeSecret` 元数据同任务回读并与实际任务定义逐项比对，所有注入包括控制公钥均必须是批准的 ARN＋版本；不读其值。只有 ACK、独立元数据和运行引用一致，且批准的其它采样字段完全不变，才派生 D2 完整 `samplingSha256` 和相同证据；原始审批 SHA 不变。
+3. 当前 [worker](../lib/deployments/execution/worker.ts)和[完成绑定](../lib/deployments/execution/first-onboarding-completion.ts)只接受领取前已知的固定摘要，未实现上述分支。实际接线前离线验证拒绝错误名/账户/epoch、未知回执、第二版本、变更静态字段和过期；不可先领取一个无完成段的任务来获取版本，再重开原单次槽。已就绪的真实新 g1 固定引用若另行证明，则用既有固定摘要机制，不再建 Secret。
+
+##### D. 独立读回与 Neon 原子完成：两条权限边界
+
+- **技术核验者。** 提议用独立只读会话或等效首开专用身份，取准确资源的 D2 采样、实际栈/监听规则/运行 digest、持久化配置和 TLS `/health`、`/ready`；数据库归属与 schema 只用独立的只读元数据证据，不看客户行。后续若需要实际连接，另列目标/权限。复用同一 [D2 sampling](../lib/deployments/releases/sampling.ts) 的事实形状，不把运行者的成功回执当独立结果，也不复用已有附带 Secret 值读取和证据 PUT 的 D2 核验身份。核验者只返回验证结果，不改存储、数据库、路由、ECS 或 Secret，也不提交完成；执行侧只有原任务范围的安全证据检查点写入。
+- **Neon 完成者。** 候选为一个只接受同一任务实际完成材料的固定入口（优先复用本库锁及 CTE，必要时在专用无登录的最小权限所有者之下做固定 `SECURITY DEFINER` 函数，固定 `search_path`、限定参数和授权，撤销 PUBLIC 执行）。运行登录只授予该入口的 `EXECUTE`，不授予通用表 DML、D2 owner、角色管理、任意 SQL 或其它函数写权；不能交给可调用 owner 上下文的身份。依[现有语句](../lib/deployments/execution/first-onboarding-completion.ts)核对实际锁定/外键所需权限，写集合仅 1 条 D2 初始行和 3 条状态记录，一次提交；不修改目录、支付、订阅或已有 D2 记录。独立只读回查不持完成权，确认同一任务完成、实例与部署及时间/证据一致、D2 `revision 0` 无活动请求。隔离 PG 必测低权限真实登录成功、越租户/未核验/失租约拒绝、原绑定不可覆盖、部分失败整组回滚和未知回复只读回查；已有超级用户隔离 CI 不能当成最小权限实证。
+
+**实施边界与顺序。** 先等明确许可做 B–D 的最小离线候选及必要回归；不再整批盘点。能否原样复用的结论随代码与隔离测试落账，仍不足以批准安装。再按真实缺项编制准确的只读、权限/存储/DNS 写入与 A 恢复清单；不提前恢复收费资源。只有真实测试购买另批并登记了唯一任务，暨工作区、目标物理值、证据与剩余窗口已绑定，才生成并请审同任务真跑清单；另需的 GitHub environment 由用户本人批准。任何阶段出界、结果不明或剩余窗口不足即停，不启动、不补写、不重试、不清理。**本轮无 AWS/数据库/Stripe 调用，无读取私密值、资源启动、队列启用、测试购买或任务写入。**
 
 ## 当前操作说明（实施计划不改变现有流程）
 

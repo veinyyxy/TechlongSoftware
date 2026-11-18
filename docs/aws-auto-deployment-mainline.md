@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步已离线实现，[第 4 步限定补核](auto-pending-provisioning.md#first-onboarding-step4-readonly-result)已完成，仍不放行。Express 与 writer 为 `stopped`，原 Cell 缺监听器输出；新租户持久化、固定 Secret、独立读取及原子完成权尚未证明。只离线细化最小待审差异，无执行 SHA，未启动资源、开全队列或开通实例。D2 的真实验收仍只覆盖既有实例版本发布。下面保留的是历史状态，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步已离线实现；[第 4 步最小就绪候选](auto-pending-provisioning.md#first-onboarding-step4-delta)已细化，尚未接线或安装。原 Express/Cell 的恢复与首开执行分开审批；新租户只拟增加必要的空库/持久化、固定 Secret 派生和分权核验/完成。结论 `NO_GO`，未重复盘点、启动资源、开全队列或开通实例；下一步等审核离线接线范围。D2 的真实验收仍只覆盖既有实例版本发布。下面保留的是历史状态，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 
