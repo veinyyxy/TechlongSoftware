@@ -452,6 +452,20 @@
 
 本机私有去敏回执 `sandbox-registration-pg18-install-e32b5b85.result.json`，文件 SHA-256 `0aaaa43569204d55a8225598853d90c4c86a8176286f9bc2e31ad00b97eeeec2`；实际 2 条 TLS 连接，安装 SQL 24、独立只读 SQL 6、DDL/授权 14，业务读写、函数调用、AWS 更新、平台更新和注册均 0。已消费安装次数，不复用清单或重跑。**下一步只准备原平台闭控服务的最小版本更新审批材料，不执行更新；平台和函数均验证后才另审本人一次注册。**
 
+<a id="first-onboarding-step4-registration-platform-update-review"></a>
+
+#### 原闭控平台的最小版本更新：离线待审，尚无候选镜像
+
+[离线审批材料](evidence/sandbox-registration-platform-update.prepared.json)仅针对原 `ca-central-1` 平台栈 UUID `c4bf36b0…` 和原 ECS `techlong-sandbox-platform-web`。复用已确认的数据库安装，不重新连库。用原模板与历史 `DesiredCount=1` 重建的模板摘要，与最近恢复回执一致；历史任务 `:13`、旧镜像、原 `DATABASE_URL` 固定 Secret 版本、原 ALB/443 和 console Alias 仅作比对，不当作当前在线状态。
+
+**最小候选不是 `main` 全量镜像。** 旧镜像的真实构建来源是 `5fcbc23c…`，不同于已关闭控制器的 `ExecutionSource` 标记 `d098cfef…`。把整份注册修复提交 `04e876b…` 构建上线，会带入 D2 及首开任务路径等其他代码。只允许在旧镜像源码上叠加该提交的 `lib/auth/credentials.ts` 和 `lib/auth/sandbox-registration.ts` 两份固定字节文件；其余源码、Dockerfile、依赖锁和运行策略不变。隔离 PostgreSQL 回归证明的是注册函数和调用逻辑，不是这个候选镜像。现有候选工作流打包 `HEAD`，旧发布入口固定历史产物；若需最小接线才能携带合成来源的真实证明，应另审，不把复合来源冒填为单个提交，不改已有门禁或复用旧批准。
+
+1. **先证明候选，再发布。** 另审一次固定两文件范围、无 AWS 身份的 GitHub 云构建；核对源码闭包、原启动方式、禁网匿名自检和安全扫描，封存原产物及 config digest。产物具备后才另审最少的精确 GitHub/AWS 读取和保护发布；由用户批准准确的 GitHub environment。只允许同一既有 ECR 仓库的单次发布；若需临时发布授权，成功或失败后立即按另批方案撤权、独立证明 Locked，不能夹带 ECS 更新。
+2. **只在同栈换镜像。** 新不可变 registry manifest digest 完成独立核验后，才另审一轮 **STS 1＋最多 12 项准确元数据读取**（原栈/服务、任务定义和任务、目标健康、原/新镜像、固定 Secret 版本元数据、console Alias）。上线在原 CloudFormation 栈按原模板做 `UPDATE`；资源属性唯一改动是 `TaskDefinition` 中 `web.Image`。仅同步两个顶层镜像溯源元数据，不改控制器关联来源。先另批仅创建、不执行 Change Set；只接受 `TaskDefinition` 替换为新修订、同一 `Service` 不替换但引用新修订，其他九项资源物理 ID 不变，无新增、删除或导入。`DesiredCount=1`、角色、网络、DNS、Secret 引用和原启动命令不改，控制器、请求入口、worker、apply 继续关闭，租约为空。
+3. **执行和独立核验仍另审。** 只执行上一步独立验真的同一 Change Set 一次，允许 CloudFormation 托管回滚，不直接更新 ECS 或自动补救。确认完成后只验同一栈、准确任务摘要和 1/1/0、目标健康、DNS 及闭控，可另批最多两次匿名 GET（`/api/health`、普通注册页），不提交表单或登录。原滚动配置可能短时中断；任务启动会由 ECS 注入原固定 Secret，可能产生存储、任务和流量费用。遇漂移、过期、未知提交或计划不符即停；不把这次更新变成恢复、续期或清理操作。
+
+**当前 `NO_GO`。** 尚无两文件候选的构建证据、ECR 新摘要或实际 Change Set，不签出执行 SHA。本轮没有新 AWS/GitHub 事实读取、构建、镜像发布、连库、平台写入或注册。下一步只等另审两文件候选的无 AWS 构建范围；暂不刷新云端状态，不重复数据库核对。
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的

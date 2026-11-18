@@ -1,0 +1,88 @@
+{
+  "schema": "techlong/sandbox-registration-platform-update-preparation/v1",
+  "status": "OFFLINE_DRAFT_NOT_EXECUTABLE",
+  "purpose": "Make only the previously verified sandbox ordinary-registration database function reachable from the original closed-control platform service",
+  "target": {
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "stackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "serviceArn": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+    "historicalTaskDefinitionArn": "arn:aws:ecs:ca-central-1:402010193138:task-definition/techlong-sandbox-platform-web-v1:13",
+    "desiredRunningTasks": 1,
+    "consoleOrigin": "https://console.sandbox.techlong.cloud",
+    "existingEcrRepository": "techlong-sandbox-platform-web"
+  },
+  "localEvidence": {
+    "installedDatabaseReview": "docs/evidence/sandbox-registration-install-pg18.review.json",
+    "installedDatabaseReceiptSha256": "0aaaa43569204d55a8225598853d90c4c86a8176286f9bc2e31ad00b97eeeec2",
+    "databaseInstallIndependentlyVerified": true,
+    "platformRestoreReceipt": "ops/deployment-baseline/platform-register-restore-executed-20261118.json",
+    "historicalOriginalTemplateCanonicalSha256": "6b982ae4027bf583793f6be6e2a1631994f5c2aca0b548309e81a55b5dd5e036",
+    "templateReconstruction": "Use ops/deployment-baseline/platform-idle-convergence.template.json with only historical DesiredCount set to 1. Hash matches restoration receipt; not a fresh cloud read.",
+    "fixedDatabaseSecretReferenceCanonicalSha256": "b302ad1ca176e8c31e95595cf14098c1724e459926af0a00f72483da1facecb4",
+    "oldImagePublicationReceipt": "ops/aws-sandbox/reviews/platform-recovery-image-v1.executed.json",
+    "oldImageRegistryManifestDigest": "sha256:71e268934bb1dbe8220f33cf68757cd48d74c89be35269ba583f6dd1b712e75a",
+    "unchangedControllerExecutionSource": "d098cfefd11c8839d5b00fee0701a71ed74aa73c",
+    "registrationLogicOnlyCiRunId": "44337547242",
+    "registrationLogicCiIsCandidateImageProof": false
+  },
+  "candidate": {
+    "sourceRecipe": {
+      "base": "5fcbc23ccaccec2c6a0fab8e732728a55b0b7ffc",
+      "fix": "04e876b1f3cff75b262fd5f3b8eea7b8e65d6706",
+      "overlay": [
+        {"path": "lib/auth/credentials.ts", "sha256": "5326c62aa5f4c22455c5c05a77b627049895b269db0373174441e4ca40351197"},
+        {"path": "lib/auth/sandbox-registration.ts", "sha256": "2d981968993162c2253120838eb341d4500e0d80010bb4460ac330800118b302"}
+      ]
+    },
+    "sourceRecipeCanonicalSha256": "06d91b3eb875568af5d3f9b9a9015d9a949571dc0ec8427b0ad2e764bbd8c720",
+    "closedScope": "Use the deployed image's actual build source with exactly the two verified source blobs above. Neither the controller execution source nor the whole fix commit nor main HEAD is the candidate. Keep the original platform Dockerfile, locked dependencies, runtime and deployment/first-onboarding code. Exclude repository private paths, SQL install artifacts and real database configuration.",
+    "buildGate": "Separately approve one no-AWS cloud build. Prove the two-file closure and base digest, then seal the original image archive, config digest, candidate provenance, and fresh security scan. Use closed-control startup and anonymous smoke with network disabled and no database/RDS connection. No local Docker Desktop.",
+    "currentWorkflowLimit": "The existing no-AWS platform build archives HEAD; existing protected publishers validate previously pinned source/run/artifact. Their old approvals and evidence cannot publish an overlay. Any genuinely necessary recipe/envelope wiring must be reviewed and tested separately without weakening pinning or creating a branch.",
+    "buildRun": null,
+    "artifact": null,
+    "publishedRegistryManifestDigest": null
+  },
+  "minimumFutureEvidence": {
+    "beforePublication": "Only after an exact no-AWS candidate exists: separately approve bounded GitHub GET for that run, workflow, archive and human environment gate, plus exact existing publisher Locked ownership/trust/inline/boundary, OIDC and one ECR repository/tag state. No inventory outside those objects. Do not reopen prior publication windows. Only a newly approved, one-shot protected publish is eligible; if temporary publishing authority is required, use the existing publisher only, close it immediately on any outcome, and independently prove Locked. The owner approves the exact GitHub environment.",
+    "beforeChangeSet": {
+      "when": "Only after independently verified immutable target image exists; collection is separately approved and not done now",
+      "sourceStsMax": 1,
+      "awsMetadataRequestsMax": 12,
+      "singlePagePerList": true,
+      "exactRequests": [
+        "CFN DescribeStacks, GetTemplate Original, ListStackResources, and ListChangeSets: one each on the original stack UUID",
+        "ECS DescribeServices, DescribeTaskDefinition, ListTasks, and DescribeTasks: one each, only the original service and its bound current task lineage",
+        "ELBv2 DescribeTargetHealth once on the existing platform target group",
+        "ECR BatchGetImage once in the same repository for the two exact old and newly verified registry manifest digests",
+        "Secrets Manager DescribeSecret once for the exact existing fixed DATABASE_URL reference (metadata only)",
+        "Route 53 ListResourceRecordSets once at the exact existing console A alias"
+      ],
+      "deny": "No Aurora/Neon connection, GitHub search for other products, account-wide scan, secret values, lease change, stack or service write. If ownership/state/drift or cost shutdown has changed, stop; never restore it as part of this update."
+    }
+  },
+  "cloudFormationContract": {
+    "useOriginalTemplateOnlyWhenLiveProofMatches": true,
+    "onlyResourcePropertyDelta": "/Resources/TaskDefinition/Properties/ContainerDefinitions/0/Image (web): old to exact ECR manifest digest, never a tag or image config digest",
+    "onlyBookkeepingMetadataDelta": {
+      "/Metadata/ImageSource": "sha256:<verified source recipe canonical hash>, not a claimed Git commit for the combined source",
+      "/Metadata/ImageConfigDigest": "sha256:<verified image config digest>"
+    },
+    "changeSetType": "UPDATE, standard; same stack UUID. Create but do not execute on creation approval.",
+    "expectedResourceActions": [
+      {"logicalId": "TaskDefinition", "resourceType": "AWS::ECS::TaskDefinition", "action": "Modify", "replacement": "True"},
+      {"logicalId": "Service", "resourceType": "AWS::ECS::Service", "action": "Modify", "replacement": "False", "allowedEffect": "Resolve unchanged task-definition Ref to the new revision"}
+    ],
+    "expectedNoAddsRemovesImportsOrOtherResourceChanges": true,
+    "preserve": "Other nine logical/physical resources and service identity, CloudFormation role/parameters/tags/outputs, 1 desired task, service rollout strategy, cluster/ALB/443/target group/DNS, network/execution role, fixed DATABASE_URL reference, logs, CPU/memory, command and environment. No task role, controller Secret, new permissions, leases, TTL or other stack changes.",
+    "closedControl": {
+      "false": ["AWS_INITIALIZED_REQUESTS_ENABLED", "DEPLOYMENT_WORKER_ENABLED", "AWS_APPLY_ENABLED", "TECHLONG_PLATFORM_CONTROLLER_ENABLED", "TECHLONG_PLATFORM_CONTROL_LOCAL", "TECHLONG_PLATFORM_CONTROL_HOSTED"],
+      "empty": ["TECHLONG_PLATFORM_CONTROLLER_LEASE", "TECHLONG_PLATFORM_REQUEST_WINDOW_V6"],
+      "command": ["node", "ops/platform-hosting-v1/start.mjs"]
+    },
+    "separatelyApprovedExecute": "Max one execution of the independently reviewed named Change Set, with existing CloudFormation managed rollback allowed. No direct ECS update, delete, manual restore, new role or autonomous retry.",
+    "technicalReadback": "After confirmed completion and under the separately approved bounds, independently match same stack and unchanged physical IDs, exact new task and image digest, desired/running/pending 1/1/0, rollout and healthy targets, fixed Secret version metadata, unchanged console alias and closed flags; optionally 2 approved anonymous TLS GETs (/api/health and /register form). No POST or login. Confirmed technical update is not registration success."
+  },
+  "stopAndRisk": "If no exact product or current metadata is stale, no creation or execution. Check the final evidence/identity window before committing write intent. Stop on unknown acknowledgement or unexpected plan, no retry, no automatic cleanup or manual rollback; collect further diagnostics only if separately authorized. Existing rollout min 0/max 100 can introduce short downtime. CloudFormation may retire the old task revision, but do not remove the known old ECR digest. Container startup may pull a new image, inject the existing managed DATABASE_URL and emit logs; no operator secret access. Existing ALB/Fargate/public IPv4 and ECR storage may incur fees. New build facts do not renew old facts, and the document has no execution SHA.",
+  "authorization": {"newReads": false, "build": false, "ecrPublication": false, "cloudFormationChangeSetCreation": false, "platformUpdate": false, "databaseConnection": false, "register": false}
+}
