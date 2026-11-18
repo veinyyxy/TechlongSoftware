@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，[原平台注册入口已恢复并独立核验](auto-pending-provisioning.md#first-onboarding-step4-register-executed)。** 已仅执行原 `52eb096a…`，原平台 1 个健康任务，闭控，注册页 TLS/HTTP 200；未注册、未购买、不重放。下一步仅用户本人注册一次并回传 `wsp_…`，后续工作区独立核验另审。Cell、租户、两库未恢复，平台可能持续计费，首版 A 不变。
+**当前唯一继续点：缺口 3 第 4 步，[普通注册权限修复待审](auto-pending-provisioning.md#first-onboarding-step4-registration-permissions)。** 原入口已恢复，用户首次提交出现 `42501`；不重试。只拟给 Web 一个受限注册函数的调用权，不给直接写表权。下一步另批最小离线接线与隔离回归；实际权限、平台更新和本人重试均另审。首版 A、D2 和普通 worker 不变。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 

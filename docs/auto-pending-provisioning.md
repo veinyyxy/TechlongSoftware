@@ -379,7 +379,29 @@
 
 独立匿名 GET `/api/health` 和[普通注册页](https://console.sandbox.techlong.cloud/register?returnTo=%2Fdashboard%2Fsettings)各一次，均通过 TLS、返回 HTTP 200；确认普通注册表单，未提交。实际 STS 2、元数据 28（前置 12、等待 7、独立 9）、`ExecuteChangeSet` 1、GET 2，执行槽已消费。其他直接写、Secret 值读取、Agent 连库、登录、注册、购买、Cell/租户资源或两库恢复均为 0；无自动停机，平台 ALB 和任务等可能持续计费。
 
-**下一步仅由用户本人注册一次。** 使用隔离浏览器会话、自控未注册邮箱和自设密码，企业名称填「Sandbox 首开验收」。成功后只回传设置页的 `wsp_…` 工作区编号，不购买、不配置；失败或结果不明不重复提交。页面成功不代表已创建账号/工作区或已首开，独立工作区回查另审；不因这次回执延长原事实或重放执行。首版 A 不变。
+**当时交付：由用户本人注册一次，不购买。** 用户随后提交后遇到服务端通用错误，不能按页面曾验收通过推定已注册。现转入[注册权限修复待审](#first-onboarding-step4-registration-permissions)，不重复提交、不重放平台恢复。首版 A 不变。
+
+<a id="first-onboarding-step4-registration-permissions"></a>
+
+#### 第 4 步：普通注册最小数据库权限修复（离线待审）
+
+**`OFFLINE_PROPOSAL_NOT_EXECUTABLE`。** 11 月 18 日温尼伯 **09:20:27.828 CST** 的唯一注册失败日志：PostgreSQL `42501`，应用访问 `public.users` 被拒；阶段只能定位到账号查重或注册事务，未做数据库回读，账号/工作区是否存在仍不得假定。原任务的固定 `DATABASE_URL` 引用与[已验收 Web 凭据](aws-platform-hosting-web-credential-w7m-observed.md)完全匹配，项目的[原授权](../ops/platform-web-database-role-v1/no-login.sql)只设计已有账号登录/只读验收：`users` 等只给 SELECT，认证表只给原登录所需列，未给注册的四表 INSERT。若实际目录证明查重 SELECT 反而失效或角色不符，先停，不以新写权限掩盖读权限漂移。仅引用去敏日志证据，不保存原日志或邮箱。
+
+**选定方案：一个受限注册函数，不给 Web 直接写表。** 保持 `techlong_platform_web_acceptance_v1` 的既有授权不变；候选只新增独立 schema 的 `USAGE` 以及该 schema 一条固定注册函数的 `EXECUTE`，没有对 `users`、`workspaces`、`workspace_members`、`user_credentials` 的新直接 DML 或角色成员资格。不借 owner、超级用户或部署控制器；也不直接给四表列权，避免 Web SQL 任意创建管理员或为旧工作区追加 Owner。
+
+| 边界 | 拟议最小变化 |
+| --- | --- |
+| **数据库实现** | 专用 `NOLOGIN/NOINHERIT/NOBYPASSRLS` definer，仅拥有新 schema 和一条 `SECURITY DEFINER` 函数，不拥有业务表，不赋给 Web 角色或留成员关系；只给[清单](../ops/platform-web-database-role-v1/sandbox-registration-permissions.review.json)所列四表 INSERT 列与必要 schema USAGE，不给 UPDATE/DELETE/TRUNCATE、不改 RLS/约束/触发器。函数固定 `search_path=pg_catalog,pg_temp`、全限定表名、无动态 SQL，同一事务撤销 PUBLIC EXECUTE。 |
+| **注册约束** | 只绑定用户本人准备的一个规范化测试邮箱（受审私有材料中绑定摘要，不在 Git/聊天公布）及「Sandbox 首开验收」，一次最多生成 1 个普通账号、1 个工作区、1 条 Owner 成员关系、1 条密码凭据。按既有算法派生 ID，不接受调用方指定 ID、成员角色、账号状态或管理员位；普通账号、工作区的状态及非管理员值由函数写死。仅接既有 PBKDF2 结果（散列 64 位十六进制、盐 32 位、迭代 600,000），不传明文。四条 INSERT 必须同一事务，无覆盖、认领旧记录或拆分提交；已存在即拒绝。邮箱约束本身不验证邮箱归属，不把实际目标邮箱公开；若不能接受公共入口可能被知晓该邮箱者抢注的风险，不启用。 |
+| **应用接线** | 仅让 sandbox 的**普通注册**用一次带绑定参数的函数调用替换原四表 `db.batch`，保持输入校验、哈希和重复账号 409 行为。默认非本验收路径不获得该能力；不加邀请、重置密码、登录、worker 或新发布框架，不回退到用 Web 直接写四表。原会话创建在注册提交后独立进行，保留用户已知的过期会话清理；这意味着会话失败时仍可能已有账号，遇 500 或超时仍不反复注册。 |
+
+**审批清单与验收顺序（均未执行）：**
+
+1. **先另批离线实现与隔离 PostgreSQL 回归。** 只加一条受限函数、一个 sandbox 调用点和必要测试：正确目标四行成功且普通账号；错误邮箱、重复、篡改角色参数和中途约束失败均无部分记录；Web 不能直接 INSERT/改管理员、不能切换到 definer，PUBLIC 不能执行，登录/邀请与原 worker 行为不变。仅用合成数据、隔离 PostgreSQL，不去真实库试写。
+2. **实际安装和发布另批。** 仅对准确 Neon 目标、Web 登录/OID、有效权限/成员关系、四表约束/RLS、新对象名及同一测试身份做一次限定 `READ ONLY` 前置（范围与凭据使用须确认，不读密码散列或其他用户正文）。若先前提交状态不明，先查目标身份是否存在；已存在不采用重试或改旧记录。实际 SQL 固定摘要后另批，一次原子 DDL 安装及独立目录回读，不发起注册验证。后续确切平台镜像和原闭控服务最小更新还要单独批准，不改 `DATABASE_URL`、IAM、平台登录/会话权限或其它栈；SQL 与发布非原子，任何未知结果不自动重放或清理。
+3. **只读验证完成后再另批本人一次注册。** 只有函数/权限与平台代码都在实际运行中绑定且目标仍空，才让用户在原入口试一次；不购买、不创建部署任务。未知结果只查唯一派生 ID，不复制、删除或延用旧批准。
+
+**本轮只交付[机器审批清单](../ops/platform-web-database-role-v1/sandbox-registration-permissions.review.json)和上述说明。** 不含 SQL 生产安装 SHA、代码变更或任何线上授权；未联系 AWS/Neon、未读 Secret 值、未改权限或重试。下一步仅等是否批准最小离线编码及隔离回归，首版 A 和普通 worker/D2 保持不变。
 
 ## 当前操作说明（实施计划不改变现有流程）
 

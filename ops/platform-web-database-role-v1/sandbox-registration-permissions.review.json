@@ -1,0 +1,56 @@
+{
+  "schema": "techlong/sandbox-registration-permissions-review/v1",
+  "status": "OFFLINE_PROPOSAL_NOT_EXECUTABLE",
+  "incident": {
+    "observedAt": "2026-11-18T15:20:27.828Z",
+    "timezone": "America/Winnipeg",
+    "surface": "POST /api/auth/register, ordinary registration",
+    "sqlstate": "42501",
+    "allowlistedRelation": "public.users",
+    "observedStage": "account lookup or account/workspace creation transaction, not session creation",
+    "registrationResult": "NOT_INDEPENDENTLY_READ_BACK"
+  },
+  "target": {
+    "sandboxOrigin": "https://console.sandbox.techlong.cloud",
+    "platformStack": "techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "currentlyVerifiedTaskDefinitionRevision": 13,
+    "existingWebLogin": "techlong_platform_web_acceptance_v1",
+    "existingWebLoginOidHistorical": 196608,
+    "exactLiveDatabaseAndPrivilegesVerifiedInThisRound": false,
+    "maximumOrdinaryTestAccounts": 1,
+    "workspaceName": "Sandbox 首开验收",
+    "approvedTestIdentityBound": false
+  },
+  "proposedGrantDelta": {
+    "existingWebLogin": ["USAGE on the new dedicated registration schema only", "EXECUTE on its one fixed register function only"],
+    "directTableWritesToExistingWebLogin": [],
+    "newDefiner": "One dedicated NOLOGIN, NOINHERIT, NOBYPASSRLS role with no other role memberships or elevated attributes; owns only the new function/schema, not the business tables.",
+    "definerPublicSchemaUsage": true,
+    "definerColumnInsertsOnly": {
+      "public.users": ["id", "email", "name", "status", "is_platform_admin", "created_at", "updated_at"],
+      "public.workspaces": ["id", "name", "owner_id", "status", "contact_name", "contact_email", "subscription_status", "app_instance_status", "created_at", "updated_at"],
+      "public.workspace_members": ["id", "workspace_id", "user_id", "role", "joined_at"],
+      "public.user_credentials": ["user_id", "password_hash", "password_salt", "password_iterations", "password_changed_at", "created_at", "updated_at"]
+    },
+    "definerGrantedUpdateDeleteOrTruncate": [],
+    "publicFunctionExecute": false,
+    "webRoleCanBecomeDefiner": false,
+    "rlsTriggerOrConstraintEdits": 0
+  },
+  "functionBoundary": [
+    "One fixed SECURITY DEFINER routine, fixed search_path with pg_catalog first and pg_temp last, qualified business tables, no dynamic SQL or caller-provided IDs, status, role, or admin bit.",
+    "Bound privately to one exact normalized test email fingerprint; fixed workspace name. Do not publish the email, its identifying derivations, or password material. This is not email verification.",
+    "Derive the same stable user/workspace/membership IDs as the existing application. Only accept the existing application-produced PBKDF2 hash and salt with expected formats, never a plaintext password or arbitrary password iteration count.",
+    "Four inserts in the same transaction: ordinary active non-admin user, one active unconfigured and unprovisioned workspace owned by that user, one Owner membership, one credential. Reject existing identity; no adoption, UPDATE, UPSERT, READ of other business rows, or partial commit.",
+    "Return only the exact newly created ID required by the existing registration handler; existing post-commit session handling and its already-disclosed expired-session cleanup remain separate and unchanged. No purchases, dispatch or deployment."
+  ],
+  "approvalGates": {
+    "offlineImplementationAndDisposablePostgresRegression": "Separate approval to add only the reviewed routine and one sandbox registration adapter call; no production access.",
+    "catalogPreflight": "Separately approve an exact read-only database identity/effective privileges, schema/FK/RLS, role/name and one test identity existence check. If the live path does not match or the user already exists, stop rather than adding grants or issuing a new signup.",
+    "sqlInstallation": "Separate approval for exact scope and SHA, one explicit DDL transaction, independent catalog verification; no registration call or test DML against the live database.",
+    "platformRelease": "Separate approval for the pinned platform source/image and exact original closed-controller service only. Keep current database Secret and all existing login/session/worker/cloud permissions unchanged. No other stack or database restoration.",
+    "personalRetry": "Only after SQL and platform verification and an exact unused identity are independently confirmed, approve a single personal attempt. If the response is ambiguous, do not retry or delete data automatically."
+  },
+  "installSqlSha256": null,
+  "authorization": {"liveReads": false, "databaseChanges": false, "platformRelease": false, "retryRegistration": false}
+}
