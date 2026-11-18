@@ -2,6 +2,11 @@ import { env } from "cloudflare:workers";
 import { getDatabase } from "@/db";
 import { randomId, stableId } from "@/lib/domain/ids";
 import {
+  SANDBOX_REGISTER_ACCOUNT,
+  SANDBOX_REGISTRATION_WORKSPACE,
+  usesSandboxRegistration,
+} from "./sandbox-registration.ts";
+import {
   createOpaqueToken,
   hashOpaqueToken,
   hashPassword,
@@ -163,6 +168,14 @@ export async function registerAccount(input: {
   password: string;
 }): Promise<{ userId: string; session: SessionResult }> {
   const db = getDatabase();
+  const sandbox = typeof process !== "undefined" && usesSandboxRegistration(process.env);
+  if (sandbox && input.workspaceName.trim() !== SANDBOX_REGISTRATION_WORKSPACE) {
+    throw new AuthenticationError(
+      "INVALID_SANDBOX_WORKSPACE_NAME",
+      `本次 sandbox 验收的企业名称须为「${SANDBOX_REGISTRATION_WORKSPACE}」。`,
+      400,
+    );
+  }
   const email = normalizeAuthEmail(input.email);
   const existing = await db
     .prepare("SELECT id FROM users WHERE email = ? LIMIT 1")
@@ -178,6 +191,30 @@ export async function registerAccount(input: {
 
   const digest = await hashPassword(input.password);
   const userId = await stableId("usr", email);
+
+  if (sandbox) {
+    // Do not fall back to the legacy writes if the reviewed entry is unavailable.
+    try {
+      const row = await db.prepare(SANDBOX_REGISTER_ACCOUNT)
+        .bind(email, input.name.trim(), digest.hash, digest.salt)
+        .first<{ user_id: string }>();
+      if (row?.user_id !== userId) throw new Error("SANDBOX_REGISTRATION_ID_MISMATCH");
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "22023") {
+        throw new AuthenticationError("SANDBOX_REGISTRATION_OUTSIDE_SCOPE", "注册信息不在本次 sandbox 验收范围内。", 400);
+      }
+      if (isUniqueViolation(error)) {
+        throw new AuthenticationError(
+          "EMAIL_ALREADY_EXISTS",
+          "该邮箱已存在。请直接登录，或联系管理员获取邀请链接。",
+          409,
+        );
+      }
+      throw error;
+    }
+    return { userId, session: await createSession(userId) };
+  }
+
   const workspaceId = await stableId("wsp", userId);
   const membershipId = await stableId("wsm", `${workspaceId}:${userId}`);
   const now = Date.now();

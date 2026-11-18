@@ -9,6 +9,10 @@ on:
       - 'lib/deployments/releases/**'
       - 'lib/deployments/first-onboarding.ts'
       - 'lib/deployments/management.ts'
+      - 'lib/auth/credentials.ts'
+      - 'lib/auth/sandbox-registration.ts'
+      - 'ops/platform-web-database-role-v1/sandbox-registration-ddl.ts'
+      - 'tests/sandbox-registration-postgres.test.mjs'
       - 'lib/deployments/lease.ts'
       - 'lib/deployments/execution/neon-repository.ts'
       - 'lib/deployments/execution/first-onboarding*.ts'
@@ -56,6 +60,10 @@ jobs:
           node --experimental-strip-types --test --test-timeout=30000 tests/first-onboarding.test.ts tests/deployment-execution-foundation.test.ts tests/deployment-s3-worker.test.ts tests/tenant-database-lifecycle.test.ts
           node node_modules/eslint/bin/eslint.js lib/deployments/first-onboarding.ts lib/deployments/management.ts lib/deployments/lease.ts lib/deployments/execution/neon-repository.ts lib/deployments/execution/worker.ts 'lib/deployments/execution/first-onboarding*.ts' lib/deployments/execution/aws-sdk-adapter.ts lib/deployments/execution/single-tenant-workload-strategy.ts tests/first-onboarding.test.ts tests/first-onboarding-postgres.test.mjs tests/first-onboarding-completion-postgres.test.mjs tests/deployment-s3-worker.test.ts --max-warnings 0
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
+      - name: Sandbox registration scope and lint
+        run: |
+          node --experimental-strip-types --test tests/sandbox-registration-postgres.test.mjs
+          node node_modules/eslint/bin/eslint.js lib/auth/credentials.ts lib/auth/sandbox-registration.ts ops/platform-web-database-role-v1/sandbox-registration-ddl.ts tests/sandbox-registration-postgres.test.mjs --max-warnings 0
   postgres:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -84,5 +92,6 @@ jobs:
           node --experimental-strip-types --test --test-timeout=30000 tests/instance-release-postgres.test.mjs
           node --experimental-strip-types --test --test-timeout=30000 tests/first-onboarding-postgres.test.mjs
           node --experimental-strip-types --test --test-timeout=30000 tests/first-onboarding-completion-postgres.test.mjs
+          node --experimental-strip-types --test --test-timeout=30000 tests/sandbox-registration-postgres.test.mjs
         env:
           INSTANCE_RELEASE_TEST_DATABASE_URL: postgresql://postgres:synthetic-ci-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/instance_release_ci
