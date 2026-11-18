@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：核验默认值修复及CI完成，只准备最后三项接续（2026-11-17）
+## 当前唯一继续点：最后三项接续已就绪，等待准确SHA批准（2026-11-17）
+
+[集中清单](../ops/releases/d2-6-step4-finish.review.json)/[风险与范围](aws-instance-release-step4-finish-review.md)，SHA **`c96a34b0521ff7b3b9ab584e7661d7572e49f7e33227f227115ef6e18a9749ee`**。复用已完成九图/四段CFN及修复CI，只待新独立技术核验、初始A绑定/回读和runtime最后启用；私有调用已接齐、4项范围/delta及复用9项合成回归/导入门槛通过，无新生产读取、成功原件正文/凭据/配置读取、写入或槽。
+
+新增申请仅Source STS1、AWS元数据35/API技术GET2、GitHub GET2/helper1及三份成功原件各1；原未用配置1/Neon TLS2/SQL40/INSERT1/runtime提交推送1集中覆盖。没有AWS资源写、恢复、媒体/Aurora操作、身份重装或dispatch。最晚温尼伯今天18:35:04启动/最多15分钟，原18:50:04操作和18:53:21事实截止不延；不复位/重放旧槽，失败或过期不自动另开周期。下一只等该SHA准确批准，runtime仍关闭/正常更新0/2；资源可能继续计费，不自动清理。
+
+### 已完成的修复及CI沿革（保留）
 
 源码`29398e301bd29d1b935d2f46054983bc69dde66c`的[准确无AWS CI44202919107](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44202919107)原attempt1成功，offline/隔离PG16和lint/类型全过；[回执](aws-instance-release-runtime-platform-fix-ci-20261117.json)。本地244项（243通过/1既有跳过）、新增5组全过。只有核验内部条件与回归变更，不改facts/digest、模板、采样、权限、数据库或runtime；已存真实失败响应的Fargate/Linux/x86_64投影匹配，没有新增生产读取或执行。
 

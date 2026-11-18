@@ -1,0 +1,432 @@
+{
+  "schema": "techlong/d2-6-step4-finish-review/v1",
+  "status": "AWAITING_EXPLICIT_APPROVAL",
+  "executionApproved": false,
+  "executionPerformed": false,
+  "preparedAt": "2026-11-18T00:05:29Z",
+  "timezone": "America/Winnipeg",
+  "purpose": "Finish only independent technical proof, initial A binding/readback and runtime activation; do not rerun restoration, media or identity installation.",
+  "inherited": {
+    "path": "ops/releases/d2-6-step4-activation-continuation.review.json",
+    "canonicalSha256": "a33833df78d2e9457da3c47ad3a4ab499e8d03bf339bcedeb66a92b483976d58",
+    "precedence": "Only versions, two fixed application Secret metadata references, image bucket/persistence requirements, original deterministic binding/runtime rules and applicable risks are reused. The explicit read deltas, original deadlines and ZERO cloud/media/restoration writes in this review override every old action or budget. Old approvals/intents/journals are not replay authority."
+  },
+  "publicEvidence": [
+    {
+      "path": "docs/aws-instance-release-step4-activation-partial-20261117.json",
+      "lfSha256": "2a9cbbb9fa163db114c7d9a114bef91c7f8c95fd6def75be3e3bf85660bf4524"
+    },
+    {
+      "path": "docs/aws-instance-release-runtime-platform-fix-ci-20261117.json",
+      "lfSha256": "5eab783de4ebd573425ba9dc04625c5f6c97683af79833f8e3387c5312d7c5a7"
+    },
+    {
+      "path": "docs/aws-instance-release-step4-execution-review.md",
+      "lfSha256": "97bb60f3a99656a6ec0de9de96d8ac77cc65fe1658f87b9a034e0ab76aca0182"
+    },
+    {
+      "path": "docs/aws-instance-release-step4-finish-review.md",
+      "lfSha256": "0d205a920224cf3b17580d4dda0e3d873fb0a340c7324ab452116f898eed4afd"
+    }
+  ],
+  "source": {
+    "sha": "29398e301bd29d1b935d2f46054983bc69dde66c",
+    "ciRunId": 44202919107,
+    "ciEvidence": "docs/aws-instance-release-runtime-platform-fix-ci-20261117.json",
+    "files": [
+      {
+        "path": "lib/deployments/releases/inspection.ts",
+        "lfSha256": "4693405a0f4e2f104e32b36492d4754af1a23ba63c97b240b9512ff40dbd314f"
+      },
+      {
+        "path": "lib/deployments/releases/sampling.ts",
+        "lfSha256": "0cf7b386d5618954adc3285ac23e780821dba13922c26bd785d9f673bca45231"
+      },
+      {
+        "path": "lib/deployments/releases/contract.ts",
+        "lfSha256": "9dc445b45b228b26d8c645ea03e870ab3e830ce8b5211c1a25f92dab8188bcf6"
+      },
+      {
+        "path": "lib/deployments/execution/hash.ts",
+        "lfSha256": "3205a7d79369d7d70653bbb91983762b93b97f11a32972ba2b9c54bcfed0cdce"
+      },
+      {
+        "path": "ops/releases/installation-connection.mjs",
+        "lfSha256": "8ce210d535644581ea9db9f164e2d42dda4b3450408bc9b33be8da952530bc40"
+      },
+      {
+        "path": "ops/temporary-idle/environment-cfn.mjs",
+        "lfSha256": "60db64fb4a036aed122ca60c636a2ef09b46e67ceb00bf1e607a0a89f09094f6"
+      },
+      {
+        "path": "ops/releases/d2-6-runtime.disabled.json",
+        "lfSha256": "11ac5ee1b7744539b95f6161e2caaaa25084ffc470169246e7dae2a5fa9008b2"
+      },
+      {
+        "path": "ops/releases/runtime.json",
+        "lfSha256": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6"
+      },
+      {
+        "path": "ops/releases/bootstrap.review.json",
+        "lfSha256": "93f78ef45a6b4ea940e1c7b113cb53290e5333f28c7c16501d28825721bad2e7"
+      },
+      {
+        "path": ".github/workflows/instance-release-checks.yml",
+        "lfSha256": "278aa8a8cb013ac19945c9aa0cea9248cf75530a1f92c331addd441679a64cd5"
+      },
+      {
+        "path": ".github/workflows/instance-release.yml",
+        "lfSha256": "b31f33aed8a000876385e1cf8a0001d3e1157bc8ea7863002262600b509fadff"
+      },
+      {
+        "path": "tests/instance-release-cycle.test.ts",
+        "lfSha256": "24204c43791de5ec2b056c8c285854269dbd864d7b29578d94f019e7eeebf423"
+      }
+    ],
+    "permittedDocumentationDescendants": [
+      "docs/aws-auto-deployment-execution-runbook.md",
+      "docs/aws-auto-deployment-mainline.md",
+      "docs/aws-instance-release-runtime-platform-fix-ci-20261117.json",
+      "docs/aws-instance-release-step4-finish-review.md",
+      "ops/releases/d2-6-step4-finish.review.json"
+    ],
+    "rule": "Require main, exact reviewed code/data bytes, source ancestor, only listed documentation descendants, then two GitHub GETs verify current main equals local HEAD and exact source CI is still completed/success at attempt1. No workflow/trust/environment change.",
+    "outerHash": "lib/deployments/execution/hash.ts#sha256Hex",
+    "runtimeFingerprints": "lib/deployments/releases/inspection.ts#releaseRuntimeDigests without normalizing raw facts"
+  },
+  "localInvocation": {
+    "kind": "Private one-continuation composition of existing ports, not a new formal tool/framework",
+    "files": [
+      {
+        "path": ".local-secrets/d2-6-step4-finish.operator.mjs",
+      "lfSha256": "c4541c2db16a9fa5ae1ab680d064666c5231e0dc54433dbfe7f862e5525a1e70"
+      },
+      {
+        "path": ".local-secrets/d2-6-step4-finish.verifier.mjs",
+        "lfSha256": "18a7f6c72849f39f1473f6817f7212b5f887d3f67fd00ebf88e31e27d4c5966f"
+      },
+      {
+        "path": ".local-secrets/d2-6-step4-finish.scope.mjs",
+        "lfSha256": "bbef637968353bb63dd4e5cf900462ed4998a032cf872fe9d0d97241dfc2a485"
+      },
+      {
+        "path": ".local-secrets/d2-6-step4-finish.offline.test.mjs",
+        "lfSha256": "0c9fa6deaba34086f5d15c50d23b29a6793782912159a074bd7d297a32d5e264"
+      },
+      {
+        "path": ".local-secrets/d2-6-activate-a338.bind.mjs",
+        "lfSha256": "4a03ec759993916354e1dd26eb8277537852530fc1aa78c2c5ffe6bd82e4d314"
+      },
+      {
+        "path": ".local-secrets/d2-6-activate-a338.io.mjs",
+        "lfSha256": "bbedf28bfa4a11bac522d74217d29286bdcd798f766783422f1c9b0facf89abf"
+      },
+      {
+        "path": ".local-secrets/d2-6-step4-template-format-4891563c.mjs",
+        "lfSha256": "b8aa88b85b050e3acf961a74180c355ea82d19d36b554b45d6f31571387372c0"
+      }
+    ],
+    "entry": ".local-secrets/d2-6-step4-finish.operator.mjs",
+    "commandRule": "node --import tsx <entry> --approved-<this canonical SHA>",
+    "offlineCheckArgument": "--offline-check",
+    "completeBeforeApproval": true,
+    "stoppedOperatorsNotReplayed": true,
+    "oldSourceFilesNotModified": true,
+    "independentReader": ".local-secrets/d2-6-step4-finish.verifier.mjs",
+    "bindingAndRuntimePortReused": ".local-secrets/d2-6-activate-a338.bind.mjs",
+    "ownIntentDirectoryRule": ".local-secrets/d2-6-step4-finish-<this SHA first16>",
+    "intentMax": 1,
+    "budgetAuthority": "The new meter uses explicit additional deltas against preserved counters. In particular one new STS raises cumulative5 to6; old helper max arguments cannot silently reset counters or authorize excluded actions. Only sts/metadata/apiGets are allowed in the independent child; no AWS write kind has any allowance."
+  },
+  "target": {
+    "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+    "workspaceId": "ws_ac46ffc6778f44f5a4b5332c41bb9f33",
+    "productId": "prd_restaurant_order_system",
+    "controlEnvironmentId": "env_aws_sandbox_ca_central_1",
+    "region": "ca-central-1",
+    "accountId": "402010193138",
+    "aReleaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+    "bReleaseId": "release_afcc95f9eaa20785265300c801fd7618",
+    "aImageUri": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+    "cellStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-cell-sandbox-1/b64a20f0-c8a0-11f1-8aeb-02f47cc20dc1",
+    "tenantStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-tenant-9c5ee9e64509dcad/5867e9c0-d60d-11f1-b2c0-02ffdbfa6b13",
+    "iamOwnerStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-s3-bootstrap/8afbe1e0-9425-11f1-b06a-02ff648cb917",
+    "auroraId": "techlong-sandbox-express-d001",
+    "databaseName": "tenant_a0da1748bc4d5419_db",
+    "apiHostname": "first-acceptance.sandbox.techlong.cloud",
+    "hostedZoneId": "Z01473621BTTHKXBGOOEJ"
+  },
+  "platformStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+  "tenantChangeSet": "arn:aws:cloudformation:ca-central-1:402010193138:changeSet/d2-6-a338-tenant-e57ff3ae8f07/5f2ef8e0-b99a-4087-b911-40abce8a9862",
+  "persistenceSha256": "86b5eecc01b36c899dd6fd84456dd637ba2ff615c1651afee2eb31106a38b2ae",
+  "expectedBindings": {
+    "tenantTaskDefinition": "arn:aws:ecs:ca-central-1:402010193138:task-definition/tenant-9c5ee9e64509dcad-task-definition:14",
+    "httpsListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/1a0d03333be87be5/c3858fbbe678a1f6",
+    "controlListenerArn": "arn:aws:elasticloadbalancing:ca-central-1:402010193138:listener/app/techlong-sandbox-cell-sandbox-1/1a0d03333be87be5/5dc9d940508eaea7",
+    "apiAliasDnsName": "techlong-sandbox-cell-sandbox-1-2090652752.ca-central-1.elb.amazonaws.com.",
+    "policyVersion": "v11",
+    "policyCanonicalSha256": "cd78b2ef16e66b1422e033ddf99486875d643b0e7b87bc28629fefe7464bc38b",
+    "iamTemplateCanonicalSha256": "5027c73de759e5ca8e753e3bc7735a46b6b77b7f4bf4358752733fee93994360",
+    "tenantTemplateCanonicalSha256": "4de52645c3ac71fd2d61b25d31e8e27801e9af3970212343dc382e3c9d8e0c07"
+  },
+  "ownEvidence": {
+    "directory": ".local-secrets/d2-6-step4-activation-after-connect-a33833df78d2e945",
+    "files": [
+      {
+        "name": "journal.json",
+        "rawSha256": "e6d3a9740fe828ce029a3f56bde8e98c7f26933f61ff4e41a2c320f128bec2b5"
+      },
+      {
+        "name": "full-persistence-proof.json",
+        "rawSha256": "cad4cebbc4e462856a960d58cd369e1c85ed0bd3dab174308b52cf6d742ac529"
+      },
+      {
+        "name": "restored-owner-bindings.json",
+        "rawSha256": "381c0d0834d1cf99b30455bff90a1c051b0ba55eb285f635c03d7bb63cbbc5ee"
+      }
+    ],
+    "readsEachMax": 1,
+    "readsTotalMax": 3,
+    "bytesEachMax": 2097152,
+    "originalEightFilesOrThirteenOldProviderRepliesRead": 0,
+    "rule": "Only these three saved successful/closed-attempt originals; whole files may enter memory, contain identifiers/media references, and stay private. Do not follow other private references. Prior persistence is durable provenance, not fresh runtime observation."
+  },
+  "window": {
+    "originalAttemptStartedAt": "2026-11-17T23:20:04.215Z",
+    "originalOperationDeadline": "2026-11-18T00:50:04.215Z",
+    "originalFactsDeadline": "2026-11-18T00:53:21.305Z",
+    "maxMinutes": 15,
+    "latestStart": "2026-11-18T00:35:04.215Z",
+    "latestStartWinnipeg": "2026-11-17 18:35:04 CST",
+    "deadlineRule": "min(this continuation actual start+15min, original operation deadline); require full15min available before starting",
+    "oldClockJournalOrFactTimeRestamped": false,
+    "newResourceExpiry": false,
+    "ciIsNotResourceResampling": true,
+    "bArtifactExpiryUnchanged": "2026-11-18T16:45:19Z"
+  },
+  "budget": {
+    "baseline": {
+      "sts": 5,
+      "awsMetadata": 124,
+      "privateInputReads": 20,
+      "auroraConnections": 4,
+      "auroraIamTokens": 4,
+      "auroraSql": 32,
+      "imageReads": 9,
+      "imagePuts": 9,
+      "imageVersionGets": 9,
+      "publicImageGets": 9,
+      "templatePuts": 1,
+      "cfnCreate": 4,
+      "cfnExecute": 4,
+      "dnsUpserts": 1,
+      "apiGets": 2,
+      "githubGets": 6,
+      "gitCredentialReads": 1,
+      "configReads": 0,
+      "neonConnections": 0,
+      "neonSql": 0,
+      "bindingInserts": 0,
+      "runtimeCommits": 0,
+      "runtimePushes": 0
+    },
+    "additional": {
+      "sts": 1,
+      "awsMetadata": 35,
+      "apiGets": 2,
+      "configReads": 1,
+      "neonConnections": 2,
+      "neonSql": 40,
+      "bindingInserts": 1,
+      "githubGets": 2,
+      "gitCredentialReads": 1,
+      "runtimeCommits": 1,
+      "runtimePushes": 1
+    },
+    "cumulativeMax": {
+      "sts": 6,
+      "awsMetadata": 159,
+      "privateInputReads": 20,
+      "auroraConnections": 4,
+      "auroraIamTokens": 4,
+      "auroraSql": 32,
+      "imageReads": 9,
+      "imagePuts": 9,
+      "imageVersionGets": 9,
+      "publicImageGets": 9,
+      "templatePuts": 1,
+      "cfnCreate": 4,
+      "cfnExecute": 4,
+      "dnsUpserts": 1,
+      "apiGets": 4,
+      "githubGets": 8,
+      "gitCredentialReads": 2,
+      "configReads": 1,
+      "neonConnections": 2,
+      "neonSql": 40,
+      "bindingInserts": 1,
+      "runtimeCommits": 1,
+      "runtimePushes": 1
+    },
+    "explicitAddedAuthorization": [
+      "One Source STS beyond the consumed cumulative5",
+      "Two exact GitHub GETs beyond consumed6, and one new explicit credential-helper read beyond consumed1",
+      "Three own-success-evidence reads, separately bounded, not reissued original input reads"
+    ],
+    "unusedOriginalScope": [
+      "AWS metadata within original320; now bounded to35 additional/159 cumulative",
+      "API calls within original6; now2 additional/4 cumulative",
+      "Configuration1/Neon2/SQL40/one binding INSERT and runtime commit/push1 were unused"
+    ],
+    "codeCiReadsSeparate": "Prior authorized code-only CI validation GETs are recorded separately, not reused as this execution's two reads.",
+    "providerRetries": 0,
+    "pagination": 0,
+    "polling": 0,
+    "cloudWrites": 0,
+    "auroraConnectionsOrTokensOrSql": 0,
+    "originalDerivedInputReads": 0,
+    "mediaReadsOrWrites": 0,
+    "sqlMeaning": "All transaction controls, identity/eligibility/owner membership checks, temporary GRANT/SET, INSERT, COMMIT and independent READ ONLY readback count toward40."
+  },
+  "readBudgets": {
+    "operations": {
+      "cloudformation": [
+        "DescribeStacks",
+        "GetTemplate",
+        "ListStackResources",
+        "ListChangeSets",
+        "DescribeChangeSet"
+      ],
+      "iam": [
+        "GetPolicy",
+        "GetPolicyVersion"
+      ],
+      "ecs": [
+        "DescribeServices",
+        "DescribeTaskDefinition",
+        "ListTasks",
+        "DescribeTasks"
+      ],
+      "rds": [
+        "DescribeDBClusters"
+      ],
+      "elasticloadbalancing": [
+        "DescribeListeners",
+        "DescribeLoadBalancers",
+        "DescribeTargetGroups",
+        "DescribeTargetHealth",
+        "DescribeRules"
+      ],
+      "route53": [
+        "ListResourceRecordSets"
+      ],
+      "secretsmanager": [
+        "DescribeSecret"
+      ],
+      "s3": [
+        "HeadBucket"
+      ],
+      "ecr": [
+        "BatchGetImage"
+      ]
+    },
+    "exactTargets": "Private allowedRead guard pins original four stack UUIDs, old executed tenant Change Set, restored Cell/listener/service/task-definition14/target/rule IDs, original cluster/RDS/zone/name, existing boundary v11, two fixed Secret metadata ARNs and exact A manifest/bucket. Task Describe may only use ARNs returned by that exact service ListTasks. No other region/namespace/account/list or write."
+  },
+  "actions": [
+    {
+      "id": "independent_proof",
+      "source": "Fixed techlong-sandbox-user, official ca-central-1 STS, exact IAM user/UserId; independent child authenticates itself once.",
+      "required": [
+        "Exact current CFN ownership/templates/resources/role/parameters/tags and saved successful Cell/IAM/tenant outputs",
+        "Actual A on one stable healthy Fargate/Linux/x86_64 task; strict existing Express readiness; persistent S3 environment",
+        "Accurate DNS/443/8443 certificate/verify mTLS/fixed Secret versions, A ECR manifest",
+        "Exactly one verified-TLS GET to /health and /ready, no authorization/cookies/redirects/JS"
+      ],
+      "technicalOrigin": "https://first-acceptance.sandbox.techlong.cloud",
+      "technicalPaths": [
+        "/health",
+        "/ready"
+      ],
+      "httpGetsEachMax": 1,
+      "freshFactsAndHttpStatusesSavedBeforeAssertion": true,
+      "rawFactsNotNormalized": true,
+      "fingerprintRule": "Original releaseRuntimeDigests; fixed outer derivation, not a free-form binding or fabricated success."
+    },
+    {
+      "id": "initial_binding",
+      "scope": "Reuse original controlBinding rules and fixed OIDs237571/237590: once full proof passes, one .env.local read, two verified-TLS Neon connections/SQL40, one owner write transaction and one independent READ ONLY readback.",
+      "derive": "Exact original instance/workspace/product/environment IDs, active+initialized admission, current verified A/root/platform digest, fresh actual CFN/configuration hashes and sampling with the bound durable persistence proof.",
+      "row": {
+        "table": "deployment_release.instance_state",
+        "instanceId": "app_e897a4377bce498b9c5ee9e64509dcad",
+        "component": "tenant_api",
+        "currentReleaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+        "revision": 0,
+        "activeRequestId": null
+      },
+      "writableRowsMax": 1,
+      "insertOnly": true,
+      "noExistingRowUpdate": true,
+      "noCatalogRequestSchemaBusinessOrPasswordWrite": true,
+      "membership": "Creator admin is retained. Require initial SET/INHERIT false and ownerAdmin true; temporary SET inside original reviewed transaction, close before definite COMMIT, independently prove false without second membership grant.",
+      "unknownCommitStopsWithoutReadbackOrRetry": true
+    },
+    {
+      "id": "runtime_last",
+      "path": "ops/releases/runtime.json",
+      "candidatePath": "ops/releases/d2-6-runtime.disabled.json",
+      "candidateLfSha256": "11ac5ee1b7744539b95f6161e2caaaa25084ffc470169246e7dae2a5fa9008b2",
+      "beforeLfSha256": "765b7a016781f220a6880b9b94b66ecf09ef6a387661266e7bb047290844a9f6",
+      "enabledCanonicalSha256": "ed815edf557e9e5fcf080c0636622532a73d5d542b177e09168fe0e88c342ec8",
+      "commitsMax": 1,
+      "pushesMax": 1,
+      "derive": "Copy installed candidate JSON, change enabled false to true only; verify expected canonical hash. No activation before complete independent proof and initial A binding readback.",
+      "bootstrapRemainsDisabled": true,
+      "dailyWorkflowUnchanged": true,
+      "workflowDispatches": 0,
+      "normalUpdatesAcceptedByThisStep": 0,
+      "workflowOrTrustOrEnvironmentChanges": 0,
+      "dispatches": 0,
+      "preconditions": "Only definite initial binding commit plus fresh independent full row readback and temporary owner closure permit exact data file commit/push. Unknown commit or push is not retried."
+    }
+  ],
+  "risk": {
+    "path": "docs/aws-instance-release-step4-finish-review.md",
+    "explicitAcceptanceRequired": true,
+    "summary": [
+      "Wide Source/Neon owner and whole .env.local memory/provider log exposure",
+      "Existing Git credentials sent only to official GitHub, used once in memory for two GETs and final main push",
+      "Read/check/use races and no cross-service CAS",
+      "Neon/Git non-atomic; unknown commit/push or failure can leave a binding or enabled/local-only runtime, no automatic compensation/retry",
+      "Restored ALB/ECS and pre-existing Aurora may continue billing,50USD is a target not hard cap; no automatic expiry/cleanup"
+    ]
+  },
+  "stop": {
+    "preserveAllOldBytesAndSlots": true,
+    "scopeTimeIdentityBudgetOrStateMismatch": true,
+    "unknownSubmissionOrCommit": true,
+    "noRetryRefillCompensationRollbackCleanupOrAutoFreshSnapshot": true
+  },
+  "exclusions": [
+    "New AWS/IAM/CFN/ELB/ECS/DNS/Secret writes or resource start/stop",
+    "Image/media read/upload/CAS or Aurora connection/token/SQL",
+    "Original four/eight inputs, thirteen cached replies, F: exports/backups, ZIP, Secret value, PEM/PAT/HMAC",
+    "New role/schema/password/catalog/release request or existing binding update",
+    "Platform/prod restore, business tests, broad inventory, framework or UI changes",
+    "Normal A-to-B/B-to-A release dispatch or self-approval of GitHub environment"
+  ],
+  "preparation": {
+    "providerCalls": 0,
+    "credentialsOrConfigurationReads": 0,
+    "ownEvidenceBodiesRead": 0,
+    "newIntentCreated": false,
+    "sqlOrResourceWrites": 0,
+    "runtimeEnabled": false,
+    "offlineSyntaxAndScopeTests": 4,
+    "allPassed": true,
+    "fullImportAndSourceGuard": "Passed without credentials, own evidence bodies, provider calls or new intent.",
+    "reusedPortSyntheticRegression": { "tests": 9, "passed": 9, "failed": 0 },
+    "scopeAndDeltaSyntheticRegression": { "tests": 4, "passed": 4, "failed": 0 }
+  },
+  "normalUpdatesAccepted": 0
+}
