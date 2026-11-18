@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：账户 ID 已由用户更正，首开启用仍待一次集中审批。** 2026-11-18（温尼伯）。[集中草案](#sandbox-first-purchase-consolidated-preparation)已绑定替代产物和原栈模板；[两项离线前置](#sandbox-first-purchase-offline-prerequisites-observed)已有准确 CI。[测试分工与交付收口](#sandbox-first-purchase-delivery-boundary)：工程侧接功能，业务验收由用户做。本轮未发布镜像、安装权限、创建 Secret/回调端点或更新平台。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
+**状态：[集中启用审批已编好，未执行](aws-sandbox-first-purchase-activation-review.md)。** 2026-11-18（温尼伯）。用户已更正账户 ID，不另开 Stripe 测试轮；[测试分工](#sandbox-first-purchase-delivery-boundary)不变。以下是保留的准备沿革，不是审批。未读取凭据、发布镜像、安装权限、创建 Secret/回调端点或更新平台。
 
 ## 固定范围
 
@@ -178,4 +178,4 @@ Stripe 的另批范围不包含 AWS、Neon 或 GitHub 运行读取，也不刷�
 
 [模板生成模块](../ops/platform-ecs-v1/first-purchase-activation.mjs)已实现：重建并比对原 Access/Hosting 模板摘要，用已撤权的已审镜像发布回执和固定 Secret ARN/VersionId 生成原两栈的差异，提供新 Secret 的准确资源保护策略。Access 仅追加对新 Secret 的两条窄权限；Hosting 保留旧数据库绑定和关闭开关。本轮只用合成数据做一次本机装配检查，不读原凭据、不调用服务或调度。
 
-下一步只复用已验证发布器、PG18 安装体和模板生成，接齐实际启用的剩余串联，再交一份审批；账户绑定与防止接错端点、栈、权限及版本的最小核对属于这一份审批的执行前置，不在本轮执行。根据核对只会选端点复用或获批的新建，不预判其现状。用户的测试购买及业务验收在功能启用后进行。
+[单次入口](../ops/platform-ecs-v1/first-purchase-activate-reviewed.mjs)已接齐，复用发布器、PG18 安装体和模板生成；[集中审批](aws-sandbox-first-purchase-activation-review.md)绑定唯一候选及原栈。本机 3 项编排回归通过，固定发布文件无漂移；未做 Stripe/API 调用、私密读取或部署。账户、端点、栈和版本的必要核对都并入同一次启用；Stripe 只读检查，同一批准范围内若确无匹配端点，仅由用户在 Dashboard 建一个，不调用管理 API。用户测试购买及业务验收在功能启用后进行。
