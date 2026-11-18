@@ -1,0 +1,31 @@
+name: Sandbox registration publication checks - No AWS
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sandbox-registration-image-publish-v1.yml'
+      - '.github/workflows/sandbox-registration-image-publish-job-v1.yml'
+      - '.github/workflows/sandbox-registration-publication-checks.yml'
+      - 'ops/platform-registration-publish-v1/**'
+      - 'tests/sandbox-registration-publication.test.mjs'
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Registration provenance and existing push/revoke contracts, no AWS
+        run: node --test tests/sandbox-registration-publication.test.mjs tests/platform-image-publication-v2.test.mjs tests/platform-image-source-v2.test.mjs
+      - name: Parse the preflight shell and Python before any real publication
+        run: |
+          bash -n ops/platform-registration-publish-v1/preflight.sh
+          python3 -c 'import ast,pathlib; ast.parse(pathlib.Path("ops/platform-registration-publish-v1/extract.py").read_text())'
