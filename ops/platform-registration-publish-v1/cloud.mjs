@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { runPublisher,verifyPreflight } from '../platform-image-publication-v2/publish.mjs';
 import { fileHash,save } from '../platform-image-publication-v2/artifact.mjs';
 import { must } from '../platform-image-publication-v2/plan.mjs';
-import { protocol } from './contract.mjs';
+import { selectOverlayPublication } from './contract.mjs';
 import { verifyLoaded } from './artifact.mjs';
 async function oidc(env,m,validateClaimsForCandidate){
   const u=new URL(env.ACTIONS_ID_TOKEN_REQUEST_URL);
@@ -20,15 +20,15 @@ async function oidc(env,m,validateClaimsForCandidate){
   validateClaimsForCandidate(JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString('utf8')),env,m);return token;
 }
 export async function execute(dir,env=process.env){
-  const {P,validateReview,validateCloud,validateClaims}=protocol;
   const text=env.TECHLONG_PUBLICATION_REVIEW,approvedSha=env.TECHLONG_PUBLICATION_SHA;
-  const m=validateReview(text,approvedSha);validateCloud(env,m);
+  const {protocol,review:m}=selectOverlayPublication(text,approvedSha);
+  const {P,validateCloud,validateClaims}=protocol;validateCloud(env,m);
   must(path.dirname(path.resolve(dir))===path.resolve(env.RUNNER_TEMP),'PUBLICATION_DIRECTORY');
   const preflight=JSON.parse(await readFile(path.join(dir,'verified-preflight.json'),'utf8'));verifyPreflight(preflight,Date.now(),P);
   const proof=JSON.parse(await readFile(path.join(dir,'verified-artifact.json'),'utf8'));
   must(proof.artifactId===P.artifactId && proof.sourceTreeOid===P.sourceTreeOid && proof.sourceRecipeSha256===P.sourceRecipeSha256 &&
     proof.artifactZipDigest===P.artifactDigest && proof.archiveSha256===P.archiveSha256 && proof.runId===env.GITHUB_RUN_ID && proof.executorCommit===m.dispatchCommit,'REGISTRATION_EXECUTOR_ARTIFACT');
-  verifyLoaded(JSON.parse(await readFile(path.join(dir,'loaded-inspect.json'),'utf8')));must(await fileHash(path.join(dir,'os-scan.json'))===preflight.reportSha256,'SCAN_REPORT_CHANGED');
+  verifyLoaded(JSON.parse(await readFile(path.join(dir,'loaded-inspect.json'),'utf8')),P);must(await fileHash(path.join(dir,'os-scan.json'))===preflight.reportSha256,'SCAN_REPORT_CHANGED');
   const {execFileSync}=await import('node:child_process');
   must(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()===m.reusableCommit,'IMMUTABLE_SOURCE');
   const require=createRequire(new URL('../cloud-worker/package.json',import.meta.url));

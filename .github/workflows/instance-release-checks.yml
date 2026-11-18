@@ -69,8 +69,8 @@ jobs:
           node node_modules/eslint/bin/eslint.js lib/auth/credentials.ts lib/auth/sandbox-registration.ts ops/platform-web-database-role-v1/sandbox-registration-ddl.ts tests/sandbox-registration-postgres.test.mjs --max-warnings 0
       - name: Sandbox first purchase, signed callbacks and closed-runtime regression
         run: |
-          node --experimental-strip-types --experimental-loader ./tests/cloudflare-loader.mjs --test tests/first-onboarding-purchase.test.mjs tests/stripe-payment.test.ts
-          node node_modules/eslint/bin/eslint.js lib/purchases/sandbox-first-purchase*.ts lib/payments/stripe.ts ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts tests/first-onboarding-purchase.test.mjs --max-warnings 0
+          node --experimental-strip-types --experimental-loader ./tests/cloudflare-loader.mjs --test tests/first-onboarding-purchase.test.mjs tests/first-onboarding-install-pg18.test.mjs tests/stripe-payment.test.ts
+          node node_modules/eslint/bin/eslint.js lib/purchases/sandbox-first-purchase*.ts lib/payments/stripe.ts ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts tests/first-onboarding-purchase.test.mjs tests/first-onboarding-install-pg18.test.mjs --max-warnings 0
   postgres:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -103,3 +103,30 @@ jobs:
           node --experimental-strip-types --experimental-loader ./tests/cloudflare-loader.mjs --test --test-timeout=30000 tests/first-onboarding-purchase.test.mjs
         env:
           INSTANCE_RELEASE_TEST_DATABASE_URL: postgresql://postgres:synthetic-ci-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/instance_release_ci
+  first-purchase-pg18:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: first_purchase_pg18_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: synthetic-ci-only
+        ports: ['5432/tcp']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d first_purchase_pg18_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Exact non-superuser first-purchase installation and independent readback
+        run: node --experimental-strip-types --test --test-timeout=30000 tests/first-onboarding-install-pg18.test.mjs
+        env:
+          FIRST_PURCHASE_PG18_CI_DATABASE_URL: postgresql://postgres:synthetic-ci-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/first_purchase_pg18_ci

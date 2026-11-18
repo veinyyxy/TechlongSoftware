@@ -4,7 +4,7 @@ set -euo pipefail
 test "$#" -eq 0
 driver=ops/platform-registration-publish-v1/artifact.mjs
 out="$RUNNER_TEMP/sandbox-registration-publication-v1"
-image_id=$(node --input-type=module -e 'import {C} from "./ops/platform-registration-publish-v1/contract.mjs"; console.log(C.imageConfigDigest)')
+image_id=$(node --input-type=module -e 'import {selectOverlayPublication} from "./ops/platform-registration-publish-v1/contract.mjs"; const e=process.env;const {protocol,review}=selectOverlayPublication(e.TECHLONG_PUBLICATION_REVIEW,e.TECHLONG_PUBLICATION_SHA);protocol.validateCloud(e,review);console.log(protocol.P.imageConfigDigest)')
 node "$driver" prepare "$out"
 gzip -dc "$out/image.tar.gz" | docker load
 docker image inspect "$image_id" > "$out/loaded-inspect.json"

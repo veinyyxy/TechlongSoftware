@@ -56,7 +56,7 @@ jobs:
           node-version: '22.19.0'
       - name: Validate complete review and original dispatch context before download
         run: |
-          node --input-type=module -e 'import {protocol} from "./ops/platform-registration-publish-v1/contract.mjs"; const {validateReview,validateCloud}=protocol; const e=process.env;validateCloud(e,validateReview(e.TECHLONG_PUBLICATION_REVIEW,e.TECHLONG_PUBLICATION_SHA));'
+          node --input-type=module -e 'import {selectOverlayPublication} from "./ops/platform-registration-publish-v1/contract.mjs"; const e=process.env;const {protocol,review}=selectOverlayPublication(e.TECHLONG_PUBLICATION_REVIEW,e.TECHLONG_PUBLICATION_SHA);protocol.validateCloud(e,review);'
       - name: Reverify original bytes and same image before requesting AWS session
         env:
           GH_TOKEN: ${{ github.token }}

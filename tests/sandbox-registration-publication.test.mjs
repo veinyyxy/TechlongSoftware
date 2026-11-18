@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import test from 'node:test';
-import { C, protocol, verifyImageReceipt } from '../ops/platform-registration-publish-v1/contract.mjs';
+import { C, FIRST_PURCHASE_CANDIDATE as F, protocol, firstPurchaseProtocol, selectOverlayPublication, verifyImageReceipt } from '../ops/platform-registration-publish-v1/contract.mjs';
 import { verifyLoaded } from '../ops/platform-registration-publish-v1/artifact.mjs';
 import { hash } from '../ops/platform-image-publication-v2/plan.mjs';
+import { C as oldPlatform, RETAINED } from '../ops/platform-recovery-image-v1/candidate.mjs';
 
 const read = name => readFileSync(new URL(name,import.meta.url),'utf8').replaceAll('\r\n','\n');
 const now = Date.parse('2026-11-18T16:22:00Z');
@@ -70,4 +71,39 @@ test('loaded candidate, immutable workflow gate and no build/deploy paths',()=>{
   assert.doesNotMatch(script,/docker build|hosted-smoke|--hosted-controller|docker push/);
   const caller=new URL(`../.github/workflows/${C.callerFile}`,import.meta.url);
   if(existsSync(caller))assert.match(read(`../.github/workflows/${C.callerFile}`),new RegExp(`${C.reusableFile}@[0-9a-f]{40}`));
+});
+
+test('only the replacement seal can select the first-purchase publisher; retain the existing four ECR images',()=>{
+  const old=JSON.parse(read('../docs/evidence/sandbox-first-purchase-activation.prepared.json')).candidate.recipe;
+  const {replacement}=JSON.parse(read('../docs/evidence/sandbox-first-purchase-replacement.prepared.json'));
+  const sourceRecipe={...old,overlay:old.overlay.map(x=>x.path===replacement.path?replacement:x)};
+  const t=Date.parse('2026-11-18T18:40:00Z');
+  const reviewText=JSON.stringify({...review,candidate:F,issuedAt:new Date(t).toISOString(),expiresAt:new Date(t+3600000).toISOString(),
+    grantStartsAt:new Date(t).toISOString(),grantExpiresAt:new Date(t+3600000).toISOString()});
+  assert.equal(F.artifactId,14457164929);
+  assert.equal(selectOverlayPublication(reviewText,hash(reviewText),t).protocol,firstPurchaseProtocol);
+  assert.equal(selectOverlayPublication(JSON.stringify(review),hash(JSON.stringify(review)),now).protocol,protocol);
+  for(const m of [{...F,artifactId:C.artifactId},{...F,artifactId:14454594785},{...F,targetTag:C.targetTag},{...F,sourceTreeOid:C.sourceTreeOid}]) {
+    const raw=JSON.stringify({...JSON.parse(reviewText),candidate:m});assert.throws(()=>selectOverlayPublication(raw,hash(raw),t),/REGISTRATION_REVIEW_FIELDS/);
+  }
+  const f={...receipt,schema:'techlong/sandbox-first-purchase-overlay-image/v1',orchestrationCommit:F.sourceCommit,runId:String(F.runId),
+    sourceRecipe,sourceRecipeSha256:F.sourceRecipeSha256,sourceTreeOid:F.sourceTreeOid,archiveBytes:F.archiveBytes,archiveSha256:F.archiveSha256,
+    imageConfigDigest:F.imageConfigDigest,scanSummarySha256:F.scanSummarySha256,smoke:{...receipt.smoke,firstPurchaseSyntheticCallback:{
+      outcome:'SANDBOX_FIRST_PURCHASE_SYNTHETIC_CALLBACK_PASSED',validOutOfScopeIgnored:true,liveModeIgnored:true,badSignatureRejected:true,exactRouteOnly:true,workerClosed:true}}};
+  assert.equal(firstPurchaseProtocol.verifyImageReceipt(f),f);
+  assert.throws(()=>firstPurchaseProtocol.verifyImageReceipt({...f,sourceRecipe:old}),/REGISTRATION_RECEIPT/);
+  assert.throws(()=>firstPurchaseProtocol.verifyImageReceipt({...f,smoke:receipt.smoke}),/REGISTRATION_RECEIPT/);
+  assert.throws(()=>verifyImageReceipt(f),/REGISTRATION_RECEIPT/);
+  firstPurchaseProtocol.verifyCandidate({...r,id:F.runId,head_sha:F.sourceCommit,workflow_id:F.workflowId},
+    {...a,id:F.artifactId,name:F.artifactName,digest:F.artifactDigest,expires_at:F.artifactExpiresAt,size_in_bytes:F.artifactBytes,
+      workflow_run:{...a.workflow_run,id:F.runId,head_sha:F.sourceCommit}},t);
+  const reg=JSON.parse(read('../docs/evidence/sandbox-first-purchase-activation.prepared.json')).scope.observedWebRegistryManifest;
+  const oldDigest=JSON.parse(read('../docs/evidence/sandbox-registration-ecr-publication.prepared.json')).target.oldPlatformDigestToPreserve;
+  const image=(imageDigest,tag)=>({imageDigest,imageTags:[tag],registryId:F.account,repositoryName:F.ecrRepository});
+  const retained=[...RETAINED.map(i=>image(i.digest,i.tag)),image(oldDigest,oldPlatform.targetTag),image(reg,C.targetTag)];
+  assert.ok(firstPurchaseProtocol.verifyRetained({imageDetails:retained}));
+  assert.throws(()=>firstPurchaseProtocol.verifyRetained({imageDetails:retained.slice(0,-1)}),/REGISTRATION_ECR_BASE_COUNT/);
+  const newDigest='sha256:'+'e'.repeat(64);
+  assert.ok(firstPurchaseProtocol.verifyFinalInventory({imageDetails:[...retained,image(newDigest,F.targetTag)]},newDigest));
+  assert.deepEqual(firstPurchaseProtocol.templates(JSON.parse(reviewText)).revoke,protocol.templates(review).revoke);
 });

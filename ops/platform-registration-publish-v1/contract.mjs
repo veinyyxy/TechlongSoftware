@@ -1,4 +1,4 @@
-// Exact registration candidate only. The legacy push-artifact protocol stays untouched.
+// Two exact overlay lineages; no caller-supplied artifact or repository.
 import { readFileSync } from 'node:fs';
 import { P, hash, same, must } from '../platform-image-publication-v2/plan.mjs';
 import { RETAINED as BASE_IMAGES, C as OLD_PLATFORM } from '../platform-recovery-image-v1/candidate.mjs';
@@ -7,6 +7,8 @@ import { lockedPublisherFoundation } from '../platform-image-recovery-v2/publish
 const load = p => JSON.parse(readFileSync(new URL(p, import.meta.url), 'utf8'));
 const brief = load('../../docs/evidence/sandbox-registration-ecr-publication.prepared.json');
 const observed = load('../../docs/evidence/sandbox-registration-platform-candidate.observed.json');
+const replacement = load('../../docs/evidence/sandbox-first-purchase-replacement.observed.json');
+const activation = load('../../docs/evidence/sandbox-first-purchase-activation-consolidated.prepared.json');
 const source = brief.source;
 const a = source.artifact;
 const hex40 = /^[a-f0-9]{40}$/;
@@ -26,9 +28,19 @@ export const C = Object.freeze({ ...P,
   targetTag: brief.target.singleProposedImmutableTag, callerFile:'sandbox-registration-image-publish-v1.yml',
   reusableFile:'sandbox-registration-image-publish-job-v1.yml',
 });
-const S = C;
-const producerPath = observed.workflow.file;
-export function verifyCandidate(run, artifact, now=Date.now()) {
+const w=replacement.workflow, e=replacement.evidence, pinned=activation.candidate;
+must(w.runAttempt===1 && w.conclusion==='success' && w.event==='workflow_dispatch' && w.branch==='main' && w.repositoryId===C.repositoryId &&
+  e.runId===44370472025 && e.artifactId===14457164929 && pinned.runId===e.runId && pinned.artifactId===e.artifactId && pinned.recipeSha256===e.sourceRecipeSha256 &&
+  pinned.sourceTreeOid===e.sourceTreeOid && pinned.artifactZipDigest===e.artifactZipDigest && pinned.imageConfigDigest===e.imageConfigDigest &&
+  pinned.expiresAtUtc===e.expiresAtUtc && e.syntheticPlnCallbackSmokePassed && e.freshOsHighCriticalGatePassed &&
+  pinned.publisherTagProposed==='sandbox-first-purchase-b344a2e3-r44370472025','FIRST_PURCHASE_OBSERVED_PINS');
+export const FIRST_PURCHASE_CANDIDATE=Object.freeze({...C,sourceCommit:w.orchestrationCommit,runId:e.runId,workflowId:w.workflowId,
+  artifactId:e.artifactId,artifactName:e.artifactName,artifactBytes:e.artifactZipBytes,artifactDigest:e.artifactZipDigest,artifactExpiresAt:e.expiresAtUtc,
+  archiveSha256:e.archiveSha256,imageConfigDigest:e.imageConfigDigest,archiveBytes:e.archiveBytes,scanSummarySha256:e.scanSummarySha256,
+  sourceRecipeSha256:e.sourceRecipeSha256,sourceTreeOid:e.sourceTreeOid,targetTag:pinned.publisherTagProposed});
+
+function overlayProtocol(S,producerPath,firstPurchase=false){
+function verifyCandidate(run, artifact, now=Date.now()) {
   must(run.id===S.runId && run.head_sha===S.sourceCommit && run.workflow_id===S.workflowId && run.repository?.id===S.repositoryId &&
     run.head_branch==='main' && run.event==='workflow_dispatch' && run.run_attempt===1 && run.path===producerPath &&
     run.status==='completed' && run.conclusion==='success','REGISTRATION_PRODUCER');
@@ -37,19 +49,24 @@ export function verifyCandidate(run, artifact, now=Date.now()) {
     artifact.workflow_run?.id===S.runId && artifact.workflow_run.head_sha===S.sourceCommit &&
     artifact.workflow_run.repository_id===S.repositoryId && artifact.workflow_run.head_repository_id===S.repositoryId,'REGISTRATION_ARTIFACT_METADATA');
 }
-export function verifyImageReceipt(r) {
+function verifyImageReceipt(r) {
   const recipe=r?.sourceRecipe;
   const canonical={base:recipe?.base,fix:recipe?.fix,overlay:recipe?.overlay?.map(f=>({path:f.path,sha256:f.sha256}))};
   // Preserve the producer's recursive sorted-key hashing convention.
   const ordered=(x)=>Array.isArray(x)?x.map(ordered):x&&typeof x==='object'?Object.fromEntries(Object.keys(x).sort().map(k=>[k,ordered(x[k])])):x;
-  must(r?.schema==='techlong/sandbox-registration-overlay-image/v1' && r.orchestrationCommit===S.sourceCommit && r.runId===String(S.runId) && r.runAttempt===1 &&
-    r.sourceTreeOid===S.sourceTreeOid && r.sourceRecipeSha256===S.sourceRecipeSha256 && hash(JSON.stringify(ordered(canonical)))===S.sourceRecipeSha256 &&
+  const recipeHash=hash(JSON.stringify(firstPurchase?(recipe??null):ordered(canonical)));
+  const kind=firstPurchase?'sandbox-first-purchase-overlay-image':'sandbox-registration-overlay-image';
+  const smoke={networkDisabled:true,closedControl:true,healthAndLogin:true,registrationPageGetOnly:true};
+  if(firstPurchase)smoke.firstPurchaseSyntheticCallback={outcome:'SANDBOX_FIRST_PURCHASE_SYNTHETIC_CALLBACK_PASSED',
+    validOutOfScopeIgnored:true,liveModeIgnored:true,badSignatureRejected:true,exactRouteOnly:true,workerClosed:true};
+  must(r?.schema===`techlong/${kind}/v1` && r.orchestrationCommit===S.sourceCommit && r.runId===String(S.runId) && r.runAttempt===1 &&
+    r.sourceTreeOid===S.sourceTreeOid && r.sourceRecipeSha256===S.sourceRecipeSha256 && recipeHash===S.sourceRecipeSha256 &&
     r.imageConfigDigest===S.imageConfigDigest && r.archiveFile==='image.tar.gz' && r.archiveBytes===S.archiveBytes && r.archiveSha256===S.archiveSha256 &&
     r.scanSummarySha256===S.scanSummarySha256 && r.os==='linux' && r.architecture==='amd64' && r.awsIdentity===false && r.registryManifestVerified===false &&
-    same(r.smoke,{networkDisabled:true,closedControl:true,healthAndLogin:true,registrationPageGetOnly:true}),'REGISTRATION_RECEIPT');
+    same(r.smoke,smoke),'REGISTRATION_RECEIPT');
   return r;
 }
-export function validateReview(text, sha, now=Date.now()) {
+function validateReview(text, sha, now=Date.now()) {
   must(typeof text==='string' && text.length<20000 && hex64.test(sha??'') && hash(text)===sha,'REGISTRATION_REVIEW_SHA');
   const m=JSON.parse(text);
   must(m.schema==='techlong/platform-image-publication-review/v2' && same(m.candidate,S) && hex40.test(m.reusableCommit??'') && hex40.test(m.dispatchCommit??'') &&
@@ -60,7 +77,7 @@ export function validateReview(text, sha, now=Date.now()) {
   return m;
 }
 const ref = m => `${S.repository}/.github/workflows/${S.reusableFile}@${m.reusableCommit}`;
-export function validateCloud(e,m,now=Date.now()) {
+function validateCloud(e,m,now=Date.now()) {
   must(e.GITHUB_ACTIONS==='true' && e.GITHUB_REPOSITORY===S.repository && e.GITHUB_REPOSITORY_ID===String(S.repositoryId) &&
     e.GITHUB_EVENT_NAME==='workflow_dispatch' && e.GITHUB_REF==='refs/heads/main' && e.GITHUB_RUN_ATTEMPT==='1' && e.GITHUB_SHA===m.dispatchCommit &&
     e.GITHUB_ACTOR_ID===S.actorId && /^[1-9][0-9]{5,19}$/.test(e.GITHUB_RUN_ID) &&
@@ -68,18 +85,18 @@ export function validateCloud(e,m,now=Date.now()) {
   must(!Object.keys(e).some(k=>/^(AWS_|DATABASE_URL$|DOCKER_HOST$|DOCKER_CONTEXT$|DOCKER_TLS_|NODE_OPTIONS$|NODE_PATH$|NODE_EXTRA_CA_CERTS$)/.test(k)&&e[k]) &&
     e.NODE_TLS_REJECT_UNAUTHORIZED!=='0' && now>=Date.parse(m.grantStartsAt) && now+60000<Date.parse(m.grantExpiresAt),'REGISTRATION_CLOUD_BOUNDARY');
 }
-export function validateClaims(c,e,m,now=Date.now()) {
+function validateClaims(c,e,m,now=Date.now()) {
   must(c.iss==='https://token.actions.githubusercontent.com' && c.aud==='sts.amazonaws.com' && c.sub===S.subject && c.repository===S.repository &&
     c.repository_id===String(S.repositoryId) && c.repository_owner_id===S.ownerId && c.actor_id===S.actorId && c.ref==='refs/heads/main' &&
     c.event_name==='workflow_dispatch' && c.environment===S.environment && c.run_id===e.GITHUB_RUN_ID && c.run_attempt==='1' &&
     c.sha===m.dispatchCommit && c.workflow_ref===e.GITHUB_WORKFLOW_REF && c.job_workflow_ref===ref(m) && c.job_workflow_sha===m.reusableCommit &&
     Number.isSafeInteger(c.exp) && c.exp*1000>now && Number.isSafeInteger(c.iat) && c.iat*1000<=now+300000,'REGISTRATION_OIDC_CLAIMS');
 }
-export function templates(m) {
+function templates(m) {
   const raw=JSON.stringify(m);validateReview(raw,hash(raw),Date.parse(m.issuedAt));
   const grant=lockedPublisherFoundation(),role=grant.Resources.PlatformImagePublisher.Properties;
   const date={DateGreaterThanEquals:{'aws:CurrentTime':m.grantStartsAt},DateLessThan:{'aws:CurrentTime':m.grantExpiresAt}};
-  role.AssumeRolePolicyDocument.Statement.push({Sid:'OneSandboxRegistrationPublication',Effect:'Allow',
+  role.AssumeRolePolicyDocument.Statement.push({Sid:firstPurchase?'OneSandboxFirstPurchasePublication':'OneSandboxRegistrationPublication',Effect:'Allow',
     Principal:{Federated:`arn:aws:iam::${S.account}:oidc-provider/token.actions.githubusercontent.com`}, Action:['sts:AssumeRoleWithWebIdentity'],
     Condition:{StringEquals:{'token.actions.githubusercontent.com:aud':'sts.amazonaws.com','token.actions.githubusercontent.com:sub':S.subject,
       'token.actions.githubusercontent.com:repository_id':String(S.repositoryId),'token.actions.githubusercontent.com:repository_owner_id':S.ownerId,
@@ -95,8 +112,9 @@ export function templates(m) {
     Statement:[{Sid:'LockedDenyAllEcr',Effect:'Deny',Action:['ecr:*'],Resource:'*'}]};
   return {grant,revoke};
 }
-const preserved=Object.freeze([...BASE_IMAGES,{digest:brief.target.oldPlatformDigestToPreserve,tag:OLD_PLATFORM.targetTag}]);
-export function verifyRetained(v) {
+const preserved=Object.freeze([...BASE_IMAGES,{digest:brief.target.oldPlatformDigestToPreserve,tag:OLD_PLATFORM.targetTag},
+  ...(firstPurchase?[{digest:'sha256:adaa45218a5bfefcc376bf0349eb685f742efb381fc334540347745091bbe323',tag:C.targetTag}]:[])]);
+function verifyRetained(v) {
   must(!v.nextToken && v.imageDetails?.length===preserved.length,'REGISTRATION_ECR_BASE_COUNT');
   for(const p of preserved) {
     const rows=v.imageDetails.filter(i=>i.imageDigest===p.digest);
@@ -104,13 +122,13 @@ export function verifyRetained(v) {
   }
   return true;
 }
-export function verifyFinalInventory(v,newDigest) {
+function verifyFinalInventory(v,newDigest) {
   must(digest.test(newDigest??'') && !v.nextToken && v.imageDetails?.length===preserved.length+1 && !preserved.some(p=>p.digest===newDigest),'REGISTRATION_ECR_FINAL_COUNT');
   const rows=v.imageDetails.filter(r=>r.imageDigest===newDigest);
   must(rows.length===1 && rows[0].registryId===S.account && rows[0].repositoryName===S.ecrRepository && same(rows[0].imageTags,[S.targetTag]),'REGISTRATION_ECR_FINAL_TAG');
   return verifyRetained({imageDetails:v.imageDetails.filter(r=>r.imageDigest!==newDigest)});
 }
-export function verifyPublishedManifest(v) {
+function verifyPublishedManifest(v) {
   must((v.failures??[]).length===0 && v.images?.length===1,'REGISTRATION_ECR_MANIFEST_COUNT');
   const i=v.images[0],m=JSON.parse(i.imageManifest??'null');
   must(i.registryId===S.account && i.repositoryName===S.ecrRepository && i.imageId?.imageTag===S.targetTag &&
@@ -118,4 +136,18 @@ export function verifyPublishedManifest(v) {
     Array.isArray(m.layers) && m.layers.length>0 && ['application/vnd.docker.distribution.manifest.v2+json','application/vnd.oci.image.manifest.v1+json'].includes(i.imageManifestMediaType), 'REGISTRATION_ECR_MANIFEST');
   return {manifestDigest:i.imageId.imageDigest,imageConfigDigest:S.imageConfigDigest,layerCount:m.layers.length};
 }
-export const protocol=Object.freeze({P:C,verifyCandidate,validateReview,validateCloud,validateClaims,templates,verifyInventory:verifyRetained,verifyPublishedManifest});
+return Object.freeze({P:S,verifyCandidate,verifyImageReceipt,validateReview,validateCloud,validateClaims,templates,verifyRetained,
+  verifyInventory:verifyRetained,verifyFinalInventory,verifyPublishedManifest});
+}
+
+export const protocol=overlayProtocol(C,observed.workflow.file);
+export const firstPurchaseProtocol=overlayProtocol(FIRST_PURCHASE_CANDIDATE,w.file,true);
+export const {verifyCandidate,verifyImageReceipt,validateReview,validateCloud,validateClaims,templates,verifyRetained,verifyFinalInventory,verifyPublishedManifest}=protocol;
+
+export function selectOverlayPublication(text,sha,now=Date.now()) {
+  must(typeof text==='string' && text.length<20000 && hex64.test(sha??'') && hash(text)===sha,'REGISTRATION_REVIEW_SHA');
+  const candidate=JSON.parse(text).candidate;
+  const selected=[protocol,firstPurchaseProtocol].find(p=>same(p.P,candidate));
+  must(selected,'REGISTRATION_REVIEW_FIELDS');
+  return {protocol:selected,review:selected.validateReview(text,sha,now)};
+}

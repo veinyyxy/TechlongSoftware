@@ -22,11 +22,16 @@ const hash = (s: string) => createHash("sha256").update(s, "utf8").digest("hex")
 const stable = (prefix: string, value: string) => `${prefix}_${hash(`${prefix}:${value}`).slice(0, 24)}`;
 const sqlHash = (expr: string) => `encode(sha256(convert_to(${expr}, 'UTF8')), 'hex')`;
 const sqlStable = (prefix: string, expr: string) => `'${prefix}_' || left(${sqlHash(`'${prefix}:' || ${expr}`)}, 24)`;
+const routineAcl = [
+  ["reserve(text,text,text,text,text,text,text,int,text)", web], ["attach(text,text,text,text,bigint)", web], ["read_order(text,text)", web],
+  ["webhook_order(text)", webhook], ["complete(text,text,text,text,text,int,text,text,text,text,text)", webhook],
+] as const;
+const roleOptions = "NOINHERIT NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION NOBYPASSRLS";
 
 // Offline candidate only. Platform and webhook LOGIN roles must already exist.
 // The disposable test installs as its own superuser. A reviewed non-superuser
 // installation must account for schema ownership and temporary SET separately.
-export function sandboxFirstPurchaseDdl(s: SandboxPurchaseScope): string {
+function ddlParts(s: SandboxPurchaseScope) {
   if (!validSandboxPurchaseScope(s)) throw Error("Invalid sandbox first purchase scope");
   const order = stable("ord", "sandbox-first-purchase:v1:" + s.workspaceId);
   const payment = stable("pay", order);
@@ -42,19 +47,15 @@ export function sandboxFirstPurchaseDdl(s: SandboxPurchaseScope): string {
   const fn = (declaration: string, body: string) => `CREATE FUNCTION ${schema}.${declaration}
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO pg_catalog, public, pg_temp
 AS $purchase$${body}$purchase$;`;
-  return `BEGIN;
--- Existing deployment/instance triggers use unqualified public tables.
+  const guard = `-- Existing deployment/instance triggers use unqualified public tables.
 DO $guard$ BEGIN
   IF has_schema_privilege('${web}', 'public', 'CREATE') OR has_schema_privilege('${webhook}', 'public', 'CREATE')
     OR EXISTS (SELECT 1 FROM pg_catalog.pg_namespace n,
       LATERAL aclexplode(coalesce(n.nspacl, acldefault('n',n.nspowner))) a
       WHERE n.nspname='public' AND a.privilege_type='CREATE' AND a.grantee=0)
   THEN RAISE EXCEPTION 'Sandbox purchase requires protected public schema'; END IF;
-END $guard$;
-CREATE ROLE ${owner} NOLOGIN NOINHERIT NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION NOBYPASSRLS;
-CREATE SCHEMA ${schema} AUTHORIZATION ${owner};
-REVOKE ALL ON SCHEMA ${schema} FROM PUBLIC;
-GRANT USAGE ON SCHEMA public TO ${owner};
+END $guard$;`;
+  const tableGrants = `GRANT USAGE ON SCHEMA public TO ${owner};
 GRANT SELECT ON public.workspaces, public.workspace_members, public.users, public.products, public.plans,
   public.app_instance_template_versions, public.app_instance_templates, public.subscriptions, public.app_instances,
   public.payment_records, public.subscription_purchase_orders, public.deployment_environments,
@@ -68,9 +69,9 @@ GRANT UPDATE (provider_session_id, checkout_url, expires_at, subscription_id, pr
 GRANT UPDATE (reference, subscription_id, status, paid_at, provider_payment_id, provider_event_id, updated_at) ON public.payment_records TO ${owner};
 GRANT UPDATE (plan_id, subscription_status, app_instance_status, updated_at) ON public.workspaces TO ${owner};
 -- The reused registration CTE locks the two just-created rows.
-GRANT UPDATE (updated_at) ON public.app_instances, public.subscriptions, public.deployment_environments TO ${owner};
+GRANT UPDATE (updated_at) ON public.app_instances, public.subscriptions, public.deployment_environments TO ${owner};`;
 
-${fn("reserve(p_actor text, p_workspace text, p_requested_plan text, p_release text, p_image text, p_template text, p_configuration text, p_amount int, p_currency text) RETURNS jsonb", `
+  const functions = [fn("reserve(p_actor text, p_workspace text, p_requested_plan text, p_release text, p_image text, p_template text, p_configuration text, p_amount int, p_currency text) RETURNS jsonb", `
 DECLARE r public.subscription_purchase_orders; p public.plans; now_ms bigint;
 BEGIN
   IF p_workspace IS DISTINCT FROM '${s.workspaceId}' OR p_requested_plan IS DISTINCT FROM '${s.planId}'
@@ -112,9 +113,9 @@ BEGIN
     VALUES ('${order}','${s.workspaceId}',p.product_id,p.id,p.template_version_id,'${payment}',
       p_configuration,p.price_amount,p.currency,p.billing_interval,'standard-v1',p_actor,now_ms+600000,now_ms,now_ms);
   RETURN jsonb_build_object('orderId','${order}','created',true);
-END;`)}
+END;`),
 
-${fn("attach(p_actor text, p_order text, p_session text, p_url text, p_expiry bigint) RETURNS boolean", `
+fn("attach(p_actor text, p_order text, p_session text, p_url text, p_expiry bigint) RETURNS boolean", `
 DECLARE r public.subscription_purchase_orders; now_ms bigint;
 BEGIN
   IF NOT ${matchedOwner} OR p_order IS DISTINCT FROM '${order}'
@@ -130,18 +131,18 @@ BEGIN
   UPDATE public.payment_records SET reference=p_session,updated_at=now_ms WHERE id=r.payment_record_id AND status='pending';
   IF NOT FOUND THEN RAISE EXCEPTION 'Sandbox purchase payment changed'; END IF;
   RETURN true;
-END;`)}
+END;`),
 
-${fn("read_order(p_actor text, p_order text) RETURNS jsonb", `
+fn("read_order(p_actor text, p_order text) RETURNS jsonb", `
 DECLARE r public.subscription_purchase_orders;
 BEGIN
   IF NOT ${matchedOwner} OR p_order IS DISTINCT FROM '${order}' THEN RETURN NULL; END IF;
   SELECT * INTO r FROM public.subscription_purchase_orders WHERE id='${order}';
   IF NOT FOUND OR NOT (${unchangedScope}) OR r.created_by_user_id<>p_actor THEN RETURN NULL; END IF;
   RETURN jsonb_build_object('orderId',r.id,'status',r.status,'amount',r.amount,'currency',r.currency);
-END;`)}
+END;`),
 
-${fn("webhook_order(p_order text) RETURNS jsonb", `
+fn("webhook_order(p_order text) RETURNS jsonb", `
 DECLARE r public.subscription_purchase_orders;
 BEGIN
   IF p_order IS DISTINCT FROM '${order}' THEN RETURN NULL; END IF;
@@ -149,9 +150,9 @@ BEGIN
   IF NOT FOUND OR NOT (${unchangedScope}) THEN RETURN NULL; END IF;
   RETURN jsonb_build_object('configuration',r.configuration_snapshot,'templateId',r.template_version_id,
     'sessionId',r.provider_session_id,'status',r.status);
-END;`)}
+END;`),
 
-${fn("complete(p_event text, p_event_type text, p_order text, p_session text, p_intent text, p_amount int, p_currency text, p_payload_hash text, p_plan text, p_release text, p_image text) RETURNS text", `
+fn("complete(p_event text, p_event_type text, p_order text, p_session text, p_intent text, p_amount int, p_currency text, p_payload_hash text, p_plan text, p_release text, p_image text) RETURNS text", `
 DECLARE
   r public.subscription_purchase_orders; v_paid_ms bigint; period_end bigint;
   v_instance text := '${stable("app", order)}'; v_subscription text := '${stable("sub", order)}';
@@ -222,14 +223,47 @@ BEGIN
   INSERT INTO public.payment_webhook_events(id,provider,provider_event_id,event_type,purchase_order_id,payload_hash,processing_status,received_at,processed_at)
     VALUES(${sqlStable("evt","p_event")},'stripe',p_event,p_event_type,r.id,p_payload_hash,'processed',v_paid_ms,v_paid_ms);
   RETURN 'accepted';
-END;`)}
+END;`)];
+  return { guard, tableGrants, functions };
+}
+
+function functionAcl(sig: string, role: string) {
+  return `REVOKE ALL ON FUNCTION ${schema}.${sig} FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION ${schema}.${sig} TO ${role};`;
+}
+
+// Preserve the old isolated superuser fixture; never use it as the live installer.
+export function sandboxFirstPurchaseDdl(s: SandboxPurchaseScope): string {
+  const { guard, tableGrants, functions } = ddlParts(s);
+  return `BEGIN;
+${guard}
+CREATE ROLE ${owner} NOLOGIN ${roleOptions};
+CREATE SCHEMA ${schema} AUTHORIZATION ${owner};
+REVOKE ALL ON SCHEMA ${schema} FROM PUBLIC;
+${tableGrants}
+
+${functions.join("\n\n")}
 
 GRANT USAGE ON SCHEMA ${schema} TO ${web}, ${webhook};
-${[
-  ["reserve(text,text,text,text,text,text,text,int,text)", web], ["attach(text,text,text,text,bigint)", web], ["read_order(text,text)", web],
-  ["webhook_order(text)", webhook], ["complete(text,text,text,text,text,int,text,text,text,text,text)", webhook],
-].map(([sig, role]) => `ALTER FUNCTION ${schema}.${sig} OWNER TO ${owner};
-REVOKE ALL ON FUNCTION ${schema}.${sig} FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION ${schema}.${sig} TO ${role};`).join("\n")}
+${routineAcl.map(([sig, role]) => `ALTER FUNCTION ${schema}.${sig} OWNER TO ${owner};\n${functionAcl(sig, role)}`).join("\n")}
 COMMIT;`;
+}
+
+// A pure PG18 transaction body. The caller must bind the installer identity,
+// begin a transaction, verify the resulting ownership and ACL before committing,
+// and perform independent readback. No COMMIT or I/O is performed here.
+export function sandboxFirstPurchaseInstallStatements(s: SandboxPurchaseScope, generatedPassword: string): readonly string[] {
+  if (!/^[A-Za-z0-9_-]{64}$/.test(generatedPassword)) throw Error("Invalid generated sandbox webhook password");
+  const { guard, tableGrants, functions } = ddlParts(s);
+  return [
+    "SET LOCAL search_path=pg_catalog", "SET LOCAL createrole_self_grant=''", "SET LOCAL password_encryption='scram-sha-256'",
+    `CREATE ROLE ${webhook} LOGIN ${roleOptions} PASSWORD '${generatedPassword}'`,
+    guard, `CREATE ROLE ${owner} NOLOGIN ${roleOptions}`,
+    `GRANT ${owner} TO SESSION_USER WITH ADMIN FALSE, INHERIT FALSE, SET TRUE GRANTED BY CURRENT_USER`,
+    `CREATE SCHEMA ${schema} AUTHORIZATION ${owner}`, tableGrants,
+    `SET LOCAL ROLE ${owner}`, `REVOKE ALL ON SCHEMA ${schema} FROM PUBLIC`,
+    ...functions, `GRANT USAGE ON SCHEMA ${schema} TO ${web}, ${webhook}`,
+    ...routineAcl.map(([sig, role]) => functionAcl(sig, role)),
+    "SET LOCAL ROLE NONE", `REVOKE ${owner} FROM SESSION_USER GRANTED BY CURRENT_USER RESTRICT`,
+  ];
 }
