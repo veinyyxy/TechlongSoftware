@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：发布接线和隔离 PG18 回归已通过，启用仍不可执行。** 2026-11-18（温尼伯）。[集中草案](#sandbox-first-purchase-consolidated-preparation)已绑定替代产物和原栈模板；[两项离线前置](#sandbox-first-purchase-offline-prerequisites-observed)已有准确 CI。Stripe 测试供给、必要线上核对及最终整轮执行 SHA 仍未齐。未发布镜像、安装权限、创建 Secret/回调端点或更新平台。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
+**状态：Stripe 测试凭据供给方式和只读清单已准备，尚未获准读取或启用。** 2026-11-18（温尼伯）。[集中草案](#sandbox-first-purchase-consolidated-preparation)已绑定替代产物和原栈模板；[两项离线前置](#sandbox-first-purchase-offline-prerequisites-observed)已有准确 CI。下一步在用户保存材料并单独批准后，才执行[Stripe 限定只读核对](#sandbox-first-purchase-stripe-test-supply)。未发布镜像、安装权限、创建 Secret/回调端点或更新平台。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
 
 ## 固定范围
 
@@ -50,7 +50,7 @@
 
 1. **候选来源与产物已核验。** 只复用[替代构建回执](#sandbox-first-purchase-replacement-observed)，不重新调度或重复取日志。Registry manifest 只能在实际发布后独立派生，当前不预填。
 2. **集中限定只读和替代构建已完成，不重复盘点或重跑。** 套餐编号合同保持准确工作区、套餐、A 及测试模式绑定；只使用[替代候选的封存结果](#sandbox-first-purchase-replacement-observed)，不能发布旧候选或改套餐编号来绕过。
-3. **实际启用仍只出一份审批。** [单产物发布接线与非超级用户安装回归已完成](#sandbox-first-purchase-offline-prerequisites-observed)。只补 Stripe 测试供给及必要真实状态；新读取与执行另审。快照按真实观测五小时有效，旧期限不续；按准确发布限时与撤权预留反推开窗，不先部署等材料。隔离回归不等于已在实际 Neon 安装，也不等于放开购买。
+3. **实际启用仍只出一份审批。** [单产物发布接线与非超级用户安装回归已完成](#sandbox-first-purchase-offline-prerequisites-observed)。[Stripe 供给及限定只读范围](#sandbox-first-purchase-stripe-test-supply)已明确，等待保存与单独读取许可。快照按真实观测五小时有效，旧期限不续；按准确发布限时与撤权预留反推开窗，不先部署等材料。隔离回归不等于已在实际 Neon 安装，也不等于放开购买。
 
 <a id="sandbox-first-purchase-readonly-observed"></a>
 
@@ -102,7 +102,7 @@
 | 4. 原 Access 栈 | 同一变更集创建 **1**、执行 **1**。只向 `ExecutionRole.ExecutionOnly` 和 `ExecutionBoundary` 分别追加同两条语句：对新 ARN 仅 `GetSecretValue`（固定 `secretsmanager:VersionId`），对既有 Key 仅 `kms:Decrypt`（Secrets Manager 转发及固定 ARN/VersionId 上下文）。 | 只允许 `ExecutionBoundary`、`ExecutionRole` 各一次 `Modify / Replacement=False`，原角色、trust、其他语句、边界和所有已有 Secret 不变；确认生效后才部署。无新 AWS IAM 身份、无通配 ARN、无 IAM 直接写。若缺 Key 或必须改 Key policy，停止。 |
 | 5. 原 Hosting 栈与独立核验 | 同一变更集创建 **1**、执行 **1**。容器镜像用独立核验的 ECR manifest digest；追加五个首开绑定、三个 `ARN:json-key::VersionId` 引用，更新两条镜像来源 Metadata。 | 只允许 `TaskDefinition Modify/Replacement=True` 与 `Service Modify/Replacement=False`；Service 声明和旧 `DATABASE_URL` 保持，实际服务仅切换任务定义，其他 9 项资源不动。独立核对新物理 task、实际 digest、旧权限/网络/DNS/证书、目标健康、控制器/worker/apply 关闭及固定引用，并做匿名 `/api/health`、`/register` 各 **1** 次 GET。没有 Checkout 或回调业务写入验收。 |
 
-除执行前的原状态核对外，尚缺 **Stripe 私密供给和限量元数据核对**。Stripe 未来读取只拟限官方测试身份/模式与端点列表及准确端点，最多 **6** 次认证 GET（如运行/端点管理用两把测试键，分别核对账户和模式；列表一页与必要时准确端点一读）。不使用生产 Stripe 账号和密钥，不把 key、签名密钥、密码或 DSN 发到聊天或日志。安全供给方式只待给私有位置/身份，不在本轮读材料。其他服务的最终读写预算、独立读证据及截止须在真正的外层审批确定，目前不是可执行批准。
+除执行前的原状态核对外，尚缺 **Stripe 私密供给和限量元数据核对**；具体 [文件与最多 6 次认证 GET](#sandbox-first-purchase-stripe-test-supply) 已准备。其他服务的最终读写预算、独立读证据及截止须在真正的外层审批确定，目前不是可执行批准。
 
 窗口与风险：原只读快照截至 **2026-11-18 17:06:18.005 CST**；替代产物截至 **2026-11-21 12:31:59 CST**。不延长，只有到期或必要事实改变才补该门槛，发布预留不足不开窗。新 Secret 的三次拟写采用先保护、后填值；各服务间无原子提交，失败可能遗留镜像、角色、测试端点、Secret 或已改权限，会持续产生相关费用，平台滚动可能有短暂中断。除发布临时 Grant 的立即 Revoke 外，不自动补齐、回滚、删除或重试；仅保留原 CloudFormation 托管回滚。**本轮云/API、私密值读取、连接、调度及业务写均为 0。**
 
@@ -114,4 +114,42 @@
 - **PostgreSQL 18：** 隔离 [CI 44374702186](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44374702186) 的 `first-purchase-pg18` 两项实际执行均通过，无跳过。新纯安装事务体为 24 次 SQL 提交（部分提交包含多条语句，不含事务外层 `BEGIN`/核验/`COMMIT`），五个函数与旧草案逐字一致。`NOSUPERUSER CREATEROLE` 安装后在同一事务撤掉临时 `SET`，另开只读连接实测无 `SET/INHERIT`、创建者仅残留 `ADMIN`、精确 schema/函数 ACL 无 PUBLIC 或业务表直接写给运行角色；新回调用合成凭据登录并被拒绝调用 Web 读取函数。此为隔离证据，不证明实际 Neon 已安装或服务端日志安全。
 - [去敏回执及固定源码](evidence/sandbox-first-purchase-activation-prerequisites.observed.json)记录精确 CI。实际 Stripe 身份与材料、最后必要只读和一份启用 SHA 仍另审；不重跑候选，不新开栈，不消费永久槽。本轮未读 Secret、不访问 AWS/实际 Neon/Stripe、不提交部署或购买。
 
-**当前无需用户操作注册或购买。** 购买及首开仍排在启用验收之后另审。
+<a id="sandbox-first-purchase-stripe-test-supply"></a>
+
+### Stripe 测试凭据私密供给与只读清单（待批准）
+
+在 [Stripe Dashboard 的 API keys](https://dashboard.stripe.com/apikeys) 先明确选中这次首开用的**同一个 Sandbox**，取该测试账户的 `acct_…` ID 和两把不同的 `rk_test_…`[受限 API 密钥](https://docs.stripe.com/keys/restricted-api-keys)。先从零权限开始，仅给下面的用途；不使用 `pk_`、`sk_live_`、`rk_live_`、组织密钥或全权 `sk_test_`。不配置 Connect 代操作或 Webhook 写权限。本轮不需要创建端点。
+
+| 本机字段 | 最小用途 |
+| --- | --- |
+| `accountId` | Dashboard 当前 Sandbox 的账户 ID，用于和两把密钥各自返回的本账户 ID 比较；不在聊天发。 |
+| `runtimeKey` | 首开服务日后需要 Checkout Sessions **Write**；本轮核对只用本账户身份和 `Balance` **Read**，不调用 Checkout。不给此键 Webhook Endpoints 权限。 |
+| `inspectionKey` | 只读核对用：本账户身份、`Balance` **Read**，加 `Webhook Endpoints` **Read**；不给 Checkout、Webhook 或其他写权限，不进入 ECS 或 AWS Secret。 |
+
+若 Dashboard 无法仅开放所需的本账户只读范围，或限制键返回权限拒绝，停止并说明缺项，不放开 Connect、改用管理密钥或调用其他 API 来绕过。运行键写权限是后续使用所需，**只读 GET 不证明 Checkout 写权限可用**。初次供给时不需要生产密钥、签名密钥、数据库密码或 DSN。
+
+把下列结构以 UTF-8 JSON **直接保存在 `E:\NodejsProject\TechlongSoftware\.local-secrets\sandbox-first-purchase-stripe-test.json`**，只在本机编辑器替换占位符：
+
+```json
+{
+  "accountId": "acct_替换为当前Sandbox账户ID",
+  "runtimeKey": "rk_test_替换为运行密钥",
+  "inspectionKey": "rk_test_替换为只读核对密钥"
+}
+```
+
+已用本机元数据确认目录无链接、Git 忽略，访问仅属当前 Windows 用户、Administrators 与 SYSTEM。请直接在该目录创建文件以继承权限，不从共享目录移入；确认扩展名是 `.json`，不要保存到 `.env`、Git、云同步目录，或出现在终端历史、截图、附件、聊天及日志。此文件是临时供给，不替代长期秘密存储。保存后只回复“文件已保存”，不会据此自动读取。
+
+**获另行批准后才执行：** 只检查这一个文件的路径、ACL、大小与非链接状态，通过后读取 **1 次**（仅进内存，校验 JSON 和精确三字段、两把不同的测试键；拒绝空值/占位符）。固定 HTTPS `api.stripe.com`，不开重定向、不带 `Stripe-Account` 或 `Stripe-Context`、不重试。只执行下列认证请求，默认 **5** 次，最多 **6** 次：
+
+| 顺序 | 请求上限 | 仅保留的结果 |
+| --- | --- | --- |
+| 1. 身份 | 两把键各一次 `GET /v1/account`。 [Stripe SDK 本账户查询](https://github.com/stripe/stripe-node/blob/master/src/resources/Accounts.ts) | 返回的账户 `id` 都等于预绑定 `accountId`；仅保留是否匹配，不保留账户正文。 |
+| 2. 模式 | 两把键各一次 `GET /v1/balance`。 [Balance API](https://docs.stripe.com/api/balance/balance_retrieve) | 只看 `livemode === false`，不保存金额、币种或余额正文。 |
+| 3. 端点 | 仅 `inspectionKey` 一次 `GET /v1/webhook_endpoints?limit=100`，不翻页；仅找到唯一准确候选时再对该 `we_…` 一次 `GET /v1/webhook_endpoints/{id}`。 [列表](https://docs.stripe.com/api/webhook_endpoints/list)、[单项](https://docs.stripe.com/api/webhook_endpoints/retrieve) | 只核对准确 URL `https://console.sandbox.techlong.cloud/api/stripe/webhook`、端点 `id`、`livemode=false`、`enabled`、API 版本、事件集合恰为 `checkout.session.completed` 与 `checkout.session.async_payment_succeeded`，不接受通配符或相近 URL。只在私有回执保存必要的匹配端点元数据，不保存其他端点、描述、metadata 或原始正文。 |
+
+不使用真实交易、Checkout、客户、卡或事件正文来试权限；返回 401/403、超时、账户/模式冲突、分页、重复或端点配置不符即停，不扩大读取。除必要去敏投影，响应及凭据仅在内存，禁止记录请求头、原始错误正文或签名 URL。Stripe 官方认证与提供者日志仍有风险。**零匹配只表示这页 v1 结果未见同 URL，不等于可以创建**；同一 Sandbox 的 [Workbench](https://docs.stripe.com/workbench/event-destinations) 仍须排除同 URL 的其他投递配置，并确认现有准确端点是 **Your account / Snapshot**，不是 Connect 或 Thin。当前处理器依赖快照 `data.object`；版本无法证明兼容或有冲突就停，不改端点。
+
+只有证实可复用的准确测试端点后，才请用户从 Stripe Dashboard 的该端点取 `whsec_…`，单独存 `E:\NodejsProject\TechlongSoftware\.local-secrets\sandbox-first-purchase-stripe-webhook-test.json`，字段仅 `endpointId`、`signingSecret`；**本次只读不打开该文件**。Stripe [端点 API](https://docs.stripe.com/api/webhook_endpoints/object) 的 GET 不返回签名密钥；不使用 `stripe listen` 的签名密钥，不轮转或新建来取值。若确无端点，任何创建及所需单独的测试管理权限并入后来一份正式启用审批，不提前提供管理密钥。两种分支都不发送测试事件、不创建 Checkout 或购买。
+
+本轮只核对文件路径/权限元数据和公开文档；未打开凭据文件或调用 Stripe 账户 API。Stripe 的另批范围不包含 AWS、Neon 或 GitHub 运行读取，也不刷新旧事实；其他易变门槛仍按已存记录和必要增量另议。正式**发布、安装、更新平台、启用仍合在一份审批**；购买及首开在启用后另审。
