@@ -237,6 +237,29 @@
 
 **时序与继续点。** 已确认四 Add 的候选形状，不必再重复这一轮盘点；合用 Express 旧事实不晚于其原观测起算 5 小时（最早端 2026-11-18 11:40:50.837 CST），新补核不延旧期限、不授权开窗。先绑定单一验收工作区和可信首版，收口真实执行入口、安装权限和精确对象缺项；未绑定对象不读不写。原 Express/Cell 等其它材料齐备后再另批恢复，安装、恢复、测试购买、首开执行各自批准，不能用本节作为执行清单。**本轮 AWS 写、Secret 值、Aurora/Neon 连接、Stripe、恢复、队列启用、部署/调度、任务和槽变更均为 0。** 不改普通 worker 和 D2。
 
+<a id="first-onboarding-step4-candidate-binding"></a>
+
+#### 第 4 步：锁定可信首版与唯一验收范围（离线）
+
+**2026-11-18（温尼伯）｜`NO_GO`。** 固定一个专用 sandbox 验收工作区作为唯一范围（拟用显示名「Sandbox 首开验收」；**真实 `workspaceId` 未绑定**）。仓库已存验收材料中的工作区 `ws_ac46ffc6778f44f5a4b5332c41bb9f33` 已有 `app_e897a4377bce498b9c5ee9e64509dcad`，不能当首开工作区；也不借此复用其租户桶、域名或权限。不从显示名猜 ID，不把一个未创建的工作区当成现存记录。若用户提供一个确切专用工作区 ID，只准备核对该 ID；若没有，记为待另批建立一个新工作区，不搜索或自动选择其它工作区。
+
+**唯一首版固定为 A**：`release_00b9c5cfa6bceedc5fd05aa451dca811`（`d2-6-a-b9ca2138-r44128576107`），`prd_restaurant_order_system / tenant_api`。用[已存 A 目录对象](../ops/releases/d2-6-step4-activation.prepared.json)重算规范 SHA `b7aa3406a88a30cc9d38d88809dde6bfd8ee231784c5188ad11c43da62662702`，与[真实登记和独立回读](aws-instance-release-initial-publication-observed-20261117.json)一致；D2 最后一次真实验收回到 A，见[结案](aws-instance-version-release-plan.md#d2-closeout)。
+
+- 固定镜像：`402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0`。存档 manifest 与 `linux/amd64` 平台 digest 相同，不用 tag、不替换成 B、不重推、不重新登记。
+- 兼容要求：`express_iam`、`speedfeast-saas-control-v1`、端口 `3000`、`speedfeast-client-api-sha256:90191edd28decd490e95ea35461f9e26200874783a1ffc5f8598406bbc583144`；应用启动不得迁移/写数据库。已有 `ecr_verified` 是独立回读的历史事实，不替代使用前的目录未撤销、镜像仍在和新空库/基线兼容证明。
+- 同一对象范围：账号 `402010193138`、区域 `ca-central-1`、环境 `env_aws_sandbox_ca_central_1`（key `aws-sandbox-ca-central-1`）、`cell-sandbox-1`、`standard-v1`。最多 **1 工作区、1 实例、1 条首开待审任务**；拒绝已有该产品实例或订阅、非测试模式购买、旧任务或第二个任务。全队列不打开。
+
+##### 将安装清单绑定到真实值的顺序
+
+| 最小安装项 | 本轮已固定 | 缺项与放行条件 |
+| --- | --- | --- |
+| **待审登记入口** | `AWS_SANDBOX_FIRST_ONBOARDING_RELEASE_ID=release_00b9c5cfa6bceedc5fd05aa451dca811`；`AWS_SANDBOX_FIRST_ONBOARDING_WORKSPACE_ID` 只允许一个真实工作区 ID；镜像必须是上面的 A digest。只登记待审且不会被普通队列领取的任务。 | 先拿到/只读验证准确工作区及 A 的当前目录状态，再单独审该工作区的配置和一次测试购买。`AWS_SANDBOX_IMAGE_URI` 也是[普通计划使用的镜像输入](../lib/deployments/management.ts)，不得为首开改全局默认。若现有入口的镜像与 A 不符，或不能证明只作用于该工作区，停下来另审最小差异，不走普通 apply。 |
+| **首开身份／Neon** | 从[补核结果](#first-onboarding-step4-install-restore-facts)复用准确已有角色布局；缺少的独立身份只按 `TechlongSandboxFirstOpenInspector` 准备，拒用 D2 核验身份。首开完成/独立回读只用现有 `complete` / `inspect` 生成器。 | `runReviewedFirstOnboarding` 的引用目前只有定义和测试，没有已接通的真实入口；可信首版或已存在的角色不能代替签名调用者/稳定运行入口、范围、固定 Secret 版本请求和有效策略的证明。新应用角色/PassRole 与 Secret 范围须用下行真实派生名，监听器限定须等实际恢复输出；DDL 在真实 `jobId`、`deploymentId`、`appInstanceId`、执行签核的 SHA/截止固定后派生，领取前另外安装审批。不安装宽 policy、旧 D2 角色或 owner 暂代。 |
+| **隔离存储和 g1 名称** | 用[现有派生](../lib/deployments/first-onboarding.ts)：`H=sha256Hex({appInstanceId,workspaceId,productId,environmentId,cellKey})`；桶只用 `techlong-sandbox-tenant-images-402010193138-`＋`H` 前16位，角色只用 `TechlongSandboxFirstOpen-`＋同前16位；库/SQL 角色同一前缀 `tenant_<H前16位>`。只准[五资源私有存储形状](#first-onboarding-step4-installation)，对象范围 `products/*`；g1 名调用[现有代际派生](../lib/deployments/execution/tenant-database.ts)。 | [真实购买路径](../lib/instances/management.ts#L435)才随机生成 `appInstanceId`，不能现在算出准确新桶/角色/Secret 名、目标栈或 job。另批购买后仅从唯一实际 held 任务派生，确认占用/固定运行引用和基线 archive/manifest 版本；新 CDN 地址从本桶实际分发回执获取，所需 KMS、VersionId 或兼容证据缺失时不启动首开。 |
+| **API DNS** | 用已证实公共 Zone `Z01473621BTTHKXBGOOEJ`；新实例 `slug` 取真实记录（当前购买路径为 `pending-` 加实例 ID 下划线转连字符），只候选一条 `<slug>.sandbox.techlong.cloud.` 的 `CREATE A Alias`。 | 只查准确名称占用，不接受显示名或猜测的 slug、不查其它 DNS；Alias 的目标及 canonical hosted zone 只取原 Cell 恢复独立回执的实际 ALB；恢复前不装 Alias。固定动作和精确名称，冲突即停、不 `UPSERT`。 |
+
+**下一唯一动作：给出这一个验收工作区的真实 ID，或确认尚无可用专用工作区。** 已有准确 ID 时，只建议另批一条只读 Neon 连接、最多两条 SELECT：第一条只返回该工作区是否 active、该产品是否已有实例/订阅等资格布尔值，第二条按唯一 A 的 `releaseId` 核对 `ecr_verified` 和对象摘要（不读其它目录或业务资料）。如尚无工作区，准备单独的新建范围，不用只读扫描找候选。不要先扫 AWS 或启动资源；其它必要的新读取、实际安装、恢复、测试购买和首开执行仍分别另审。无可执行 SHA。本次只读已提交文件并校验摘要；AWS、数据库、Secret 值、配置读取、环境变更、队列启用、购买及开通均为 0。
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的

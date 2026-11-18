@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，[定向补核已完成](auto-pending-provisioning.md#first-onboarding-step4-install-restore-facts)。** 原 Cell 的四 Add／两输出候选差异已证实，专用核验角色不存在，公共 zone 已确认；新租户身份、存储和 DNS 值未绑定。结论 `NO_GO`，无执行 SHA。下一步收口单一验收范围、可信首版和首开入口的实际安装材料，不重复盘点或提前恢复。新读取、安装、恢复、测试购买与同任务首开分别另审；普通 worker、D2 和队列不变。
+**当前唯一继续点：缺口 3 第 4 步，[可信首版 A 已锁定，待绑定唯一验收工作区](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)。** 原 Cell 四 Add／两输出候选已证实，安装清单已区分可固定与依赖真实任务/恢复输出的字段。旧 D2 工作区已有实例，不复用；下一步只接收一个准确专用工作区 ID，或确认需要新建，不扫描。`NO_GO`，无执行 SHA；新读取、安装、恢复、测试购买和首开分别另审，不提前恢复或开队列。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 
