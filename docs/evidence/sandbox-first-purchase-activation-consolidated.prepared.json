@@ -1,0 +1,90 @@
+{
+  "schema": "techlong/sandbox-first-purchase-activation-consolidated-preparation/v1",
+  "state": "OFFLINE_SCOPE_PREPARED_EXECUTION_BLOCKED",
+  "executionAuthorized": false,
+  "executionSha256": null,
+  "executionWindowOpened": false,
+  "candidate": {
+    "observedReceipt": "docs/evidence/sandbox-first-purchase-replacement.observed.json",
+    "runId": 44370472025,
+    "runAttempt": 1,
+    "artifactId": 14457164929,
+    "artifactZipDigest": "sha256:1d2333b34271452fd55bebab83db8ca4e5f03bafdbde96f2be8e31057c80c837",
+    "recipeSha256": "b344a2e3f1c36ceeebca47b8d184f9e20fce8fa0c8d66e44ddcfb62454e17315",
+    "sourceTreeOid": "65f2840a23e9a0bca5a8c055ee6898ace8f926f7",
+    "imageConfigDigest": "sha256:1926fcca8877dfc6b14937d3478c176bd08e562d2fe0c7dbfebc01c47a42a4d5",
+    "publisherTagProposed": "sandbox-first-purchase-b344a2e3-r44370472025",
+    "publisherTagVacancyVerified": false,
+    "expiresAtUtc": "2026-11-21T18:31:59Z",
+    "registryManifestDigest": null
+  },
+  "originalSnapshot": {
+    "startedAtUtc": "2026-11-18T18:06:18.005Z",
+    "usableBeforeUtc": "2026-11-18T23:06:18.005Z",
+    "privateReceiptSha256": {
+      "aws": "25b1f420ce665f418260a99f8d4951c296d53b6a0a3032c0936f437fc4eaa1d8",
+      "github": "9c716a93ef7478574f56d1cfc40c9cc28bf478b386d8c4fdbf1f9ff5b7a31633",
+      "neon": "29547bda541a9acdfab0ef4a5c3b51725c0c9e7a3af856a2bd6c8a77d4d278e0"
+    },
+    "hostingTemplateCanonicalSha256": "fd1c9e7765e21b322ce82f1f1db8d8cdd8c4b5d6b3100a60cacb1113708ada94",
+    "accessTemplateCanonicalSha256": "4bbdb9d98748e486390a13d0fefad260b8c237c3e5fd4e4c049b25f0cd87574b",
+    "accessPolicyCanonicalSha256": "686af641cc8e521386f34289e716529cdfcf59382ebcd6f0a2a1b0678e4dfad1",
+    "actualPinnedPlanAcceptedByCorrectedValidator": true,
+    "draftDdlRawSha256": "c463bc44cd4937097a2acdb70a9b007570c0749dea16a74a2e9eaa3520a9446f",
+    "nonSuperuserInstallProvedForPurchase": false
+  },
+  "offlineTemplateShapeWitnesses": {
+    "accessPlaceholderCanonicalSha256": "d4c28b6c1eb26b75732d77ce57602e42474a71fae36a72c4fa0f0bbefed9a056",
+    "hostingPlaceholderCanonicalSha256": "1b696e9c8a2bb0a2c5f4180b01f932a8051c30d9e39ca29ff987d79af7581769",
+    "deployable": false,
+    "correctedHostingTemplateChangedResourceDeclarations": ["TaskDefinition"],
+    "hostingExpectedChangeSet": ["TaskDefinition:Modify:True", "Service:Modify:False"],
+    "accessExpectedChangeSet": ["ExecutionBoundary:Modify:False", "ExecutionRole:Modify:False"]
+  },
+  "runtimeMaterial": {
+    "stripeEndpoint": "https://console.sandbox.techlong.cloud/api/stripe/webhook",
+    "stripeEventTypes": ["checkout.session.async_payment_succeeded", "checkout.session.completed"],
+    "stripeTestAccountVerified": false,
+    "stripeEndpointBindingVerified": false,
+    "newSecretName": "techlong/sandbox/platform-web/first-purchase-v1",
+    "fixedSecretArn": null,
+    "fixedSecretVersionId": null,
+    "ecsSecretFields": {
+      "TECHLONG_SANDBOX_STRIPE_TEST_KEY": "stripeTestKey",
+      "TECHLONG_SANDBOX_STRIPE_TEST_WEBHOOK_SECRET": "stripeTestWebhookSecret",
+      "TECHLONG_SANDBOX_FIRST_PURCHASE_WEBHOOK_DB": "webhookDatabaseUrl"
+    }
+  },
+  "proposedTopLevelWriteCeilingsNotApproved": {
+    "publisherStackGrantUpdates": 1,
+    "publisherStackRevokeUpdates": 1,
+    "protectedPublicationDispatch": 1,
+    "ecrTopLevelImagePush": 1,
+    "neonInstallTransactions": 1,
+    "stripeTestWebhookEndpointCreatesIfAbsent": 1,
+    "secretsManagerCreateEmpty": 1,
+    "secretsManagerPutResourcePolicy": 1,
+    "secretsManagerPutInitialVersion": 1,
+    "accessChangeSetCreatesAndExecutes": [1, 1],
+    "hostingChangeSetCreatesAndExecutes": [1, 1],
+    "oldSecretWrites": 0,
+    "newAwsIamRoles": 0,
+    "businessWritesOrCheckout": 0,
+    "deletesOrWriteRetries": 0
+  },
+  "openGates": [
+    "exact publisher adapter and immutable reusable revision for replacement candidate",
+    "purchase-specific PostgreSQL non-superuser installation rehearsal and independent ACL contract",
+    "Stripe test account, safe credential delivery and matching webhook endpoint metadata",
+    "lookup of new tag vacancy, exact effective writes and remaining bounded preflight/readback under one fresh execution approval"
+  ],
+  "thisPreparationEffects": {
+    "awsApiCalls": 0,
+    "neonConnections": 0,
+    "stripeApiCalls": 0,
+    "credentialValueReads": 0,
+    "candidateImagesDownloaded": 0,
+    "workflowDispatches": 0,
+    "serviceOrDatabaseWrites": 0
+  }
+}

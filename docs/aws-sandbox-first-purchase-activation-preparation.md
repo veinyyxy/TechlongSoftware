@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：替代候选已封存，启用不可执行。** 2026-11-18（温尼伯）。[源码已修，首开专项 CI 通过](#sandbox-first-purchase-plan-id-fix)，[单次替代构建已执行并核验](#sandbox-first-purchase-replacement-observed)。未发布镜像、安装权限、创建 Secret/回调端点或更新平台。启用窗口未开启，执行 SHA 为 `null`。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
+**状态：集中启用草案已准备，不可执行。** 2026-11-18（温尼伯）。[单次替代构建已执行并核验](#sandbox-first-purchase-replacement-observed)，[同一平台的集中启用草案](#sandbox-first-purchase-consolidated-preparation)已绑定替代产物和原栈模板。发布接线、非超级用户安装证明及 Stripe 测试供给未齐；启用窗口未开启，执行 SHA 为 `null`。未发布镜像、安装权限、创建 Secret/回调端点或更新平台。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
 
 ## 固定范围
 
@@ -48,9 +48,9 @@
 
 ## 需要另批的最小补齐
 
-1. **候选来源与产物已核验。** 复用[真实构建回执](#sandbox-first-purchase-candidate-observed)，不重新调度或重复取日志。Registry manifest 只能在实际发布后独立派生，当前不预填。
+1. **候选来源与产物已核验。** 只复用[替代构建回执](#sandbox-first-purchase-replacement-observed)，不重新调度或重复取日志。Registry manifest 只能在实际发布后独立派生，当前不预填。
 2. **集中限定只读和替代构建已完成，不重复盘点或重跑。** 套餐编号合同保持准确工作区、套餐、A 及测试模式绑定；只使用[替代候选的封存结果](#sandbox-first-purchase-replacement-observed)，不能发布旧候选或改套餐编号来绕过。
-3. **只准备一份实际启用审批。** 复用封存结果，先备齐原发布入口的准确产物绑定，以及 Stripe 测试端点/私密供给、窄数据库安装、原平台更新和核验范围；实际新读取与执行另审。快照按真实观测五小时有效，旧期限不续；按准确发布限时与撤权预留反推开窗，不先部署等材料。校验安装者授权能力不等于已在实际 Neon 安装，也不等于放开购买。
+3. **实际启用仍只出一份审批。** 复用[集中草案](#sandbox-first-purchase-consolidated-preparation)，先补只针对本产物的发布校验和已列明的安装前置证明，不重建现有流程。实际新读取与执行另审。快照按真实观测五小时有效，旧期限不续；按准确发布限时与撤权预留反推开窗，不先部署等材料。校验安装者授权能力不等于已在实际 Neon 安装，也不等于放开购买。
 
 <a id="sandbox-first-purchase-readonly-observed"></a>
 
@@ -86,5 +86,24 @@
 用户批准后核对远端 `main` 与工作流字节，只调度 [run 44370472025](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44370472025) 一次，原尝试 1 成功。首次读回未通过运行身份门槛，随后仅用原剩余额度核对同一 ACK，不重新调度。总量：调度 1、GET 12、Re-run 0。准确 job 的封印和独立产物元数据显示，新源码树、非 root、禁网、控制器及 worker 关闭、匿名注册、使用合成 `pln_` 编号的四项回调及新鲜 OS 扫描全部通过。
 
 [封存回执](evidence/sandbox-first-purchase-replacement.observed.json)：产物 **`14457164929`**，到期 **2026-11-21 12:31:59（温尼伯 CST）**。原意图与累计日志保留在本机忽略目录。没有下载镜像包、读 Secret、访问 AWS/数据库/Stripe、发布或部署。封存的 config digest 不是 ECR manifest；正式发布入口尚未绑定此替代产物，启用仍单份另审，不重跑构建或先更新平台。
+
+<a id="sandbox-first-purchase-consolidated-preparation"></a>
+
+### 集中启用草案：固定对象、顺序和停止点
+
+[机器索引](evidence/sandbox-first-purchase-activation-consolidated.prepared.json)仅供审阅，不是执行清单。本轮复用固定 SHA 的三份只读回执和替代产物 `14457164929`。在本机从已安装 W8d 模板及原平台恢复/注册交付材料重建出 **2 项 Access、11 项 Hosting** 的原模板，摘要同时与已存 AWS 回执匹配；Access 的 9 条既有策略以及 Hosting 原数据库固定版本引用保留。用修复后的合同校验本机已锁定的工作区与 `pln_` 套餐，并渲染五个 SQL 函数，仅记录摘要，不公开实际绑定或 SQL 正文。占位模板只证明差异范围，不能提交 CloudFormation。
+
+| 顺序 | 同一份未来审批拟覆盖的动作 | 继续前必须取得的证据 |
+| --- | --- | --- |
+| 0. 在**第一笔写入前**核对 | 锁定替代 artifact/run/配方/树、原发布 Locked、原栈和策略、新 tag/Secret 名占用、已绑定业务准入，以及 Stripe 测试账户/端点元数据。只补缺项和短窗口易变门槛；已核验的原包日志不复读。 | 发布入口与新不可变 reusable commit 已离线验证；Source 准确写权限、时间、原状态和实际外层批准 SHA 均匹配。无法以只读证明测试键/账户或端点路径时，先停止，不能先发布。 |
+| 1. 发布并立即撤权 | 复用原发布角色与已验证的 Grant → 一次受保护调度/push → `finally` Revoke：原 publisher 栈 Grant/Revoke 顶层提交各 **1**，GitHub dispatch **1**，ECR 顶层 push **1**（镜像分层实际为多次 API）。拟定新不可变 tag `sandbox-first-purchase-b344a2e3-r44370472025`，其空闲尚未核验。 | 用户本人批准准确的 `techlong-sandbox-deploy` run。发布者先认证下载唯一已批准 ZIP、校验 ZIP 和档案大小、字节 SHA、封印及镜像 config，并做当前扫描，才可取得发布会话。可信回执必须独立证明旧镜像集合未动、新 ECR manifest 原字节与封存 config 对应、发布者确已恢复 Locked；单有 GitHub 成功不够。 |
+| 2. Neon 窄安装 | **1 次** PostgreSQL 18 事务：建 1 个 NOLOGIN definer、1 个受限 webhook LOGIN、1 个专用 schema、5 个函数。旧注册不变，Web 只得 `reserve/attach/read_order`，回调角色只得 `webhook_order/complete`。 | 当前 [DDL](../ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts)只在隔离库超级用户路径验证过，不能直接执行。参照[原 PG18 注册安装方式](evidence/sandbox-registration-install-pg18.review.json)，非超级用户在事务内限时切换 definer 创建 schema 内函数，先撤临时 `SET` 再提交；须离线证明两个新角色的准确创建者 `ADMIN` 残留、无 `SET/INHERIT`、原 Web/回调无直接业务写及无 `PUBLIC EXECUTE`。事务中与独立只读回读比较 ACL、归属、函数摘要及表/触发器保护；如需进一步证明 LOGIN，只连验证 TLS、执行身份/只读检查，不调用五个函数。期待的创建者 ADMIN 可重新授予，须明确接受；不重放未知提交。 |
+| 3. Stripe 与 Secret | 只用准确测试账户和测试键；端点固定为 `https://console.sandbox.techlong.cloud/api/stripe/webhook`，事件仅 `checkout.session.completed` / `checkout.session.async_payment_succeeded`。唯一完全匹配且签名密钥已可私密供给则重用；只有明确不存在时才拟建 **1** 个测试端点。Secrets Manager 拟 **3 写**：先建空的 `techlong/sandbox/platform-web/first-purchase-v1`、安装准确资源保护策略、再提交一次固定版本。 | 混合或仅凭前缀推断测试模式、账户无法一致核验、分页结果不完整、重复/冲突/失去签名供给均停止。不写旧端点、不轮转、发测试事件或购买。用既有 KMS，不改 key policy；只把测试运行 key、有效签名密钥及同一 Neon host/database 的受限 webhook TLS DSN 放入 Secret，不把管理测试端点的凭据装进运行时。先装资源策略才写值，避免未保护的 Secret 承载真实凭据。只保留准确 ARN、版本和策略摘要。旧 Web Secret 不读正文、不改。 |
+| 4. 原 Access 栈 | 同一变更集创建 **1**、执行 **1**。只向 `ExecutionRole.ExecutionOnly` 和 `ExecutionBoundary` 分别追加同两条语句：对新 ARN 仅 `GetSecretValue`（固定 `secretsmanager:VersionId`），对既有 Key 仅 `kms:Decrypt`（Secrets Manager 转发及固定 ARN/VersionId 上下文）。 | 只允许 `ExecutionBoundary`、`ExecutionRole` 各一次 `Modify / Replacement=False`，原角色、trust、其他语句、边界和所有已有 Secret 不变；确认生效后才部署。无新 AWS IAM 身份、无通配 ARN、无 IAM 直接写。若缺 Key 或必须改 Key policy，停止。 |
+| 5. 原 Hosting 栈与独立核验 | 同一变更集创建 **1**、执行 **1**。容器镜像用独立核验的 ECR manifest digest；追加五个首开绑定、三个 `ARN:json-key::VersionId` 引用，更新两条镜像来源 Metadata。 | 只允许 `TaskDefinition Modify/Replacement=True` 与 `Service Modify/Replacement=False`；Service 声明和旧 `DATABASE_URL` 保持，实际服务仅切换任务定义，其他 9 项资源不动。独立核对新物理 task、实际 digest、旧权限/网络/DNS/证书、目标健康、控制器/worker/apply 关闭及固定引用，并做匿名 `/api/health`、`/register` 各 **1** 次 GET。没有 Checkout 或回调业务写入验收。 |
+
+除执行前的原状态核对外，尚缺三类证明：**原发布入口的单产物差异与准确 CI**（保留原注册发布绑定和旧回执，不将 ID 做成任意输入）；**同一五函数的非超级用户安装回归**；**Stripe 私密供给和限量元数据核对**。Stripe 未来读取只拟限官方测试身份/模式与端点列表及准确端点，最多 **6** 次认证 GET（如运行/端点管理用两把测试键，分别核对账户和模式；列表一页与必要时准确端点一读）。不使用生产 Stripe 账号和密钥，不把 key、签名密钥、密码或 DSN 发到聊天或日志。安全供给方式只待给私有位置/身份，不在本轮读材料。其他服务的最终读写预算、独立读证据及截止须在真正的外层审批确定，目前不是可执行批准。
+
+窗口与风险：原只读快照截至 **2026-11-18 17:06:18.005 CST**；替代产物截至 **2026-11-21 12:31:59 CST**。不延长，只有到期或必要事实改变才补该门槛，发布预留不足不开窗。新 Secret 的三次拟写采用先保护、后填值；各服务间无原子提交，失败可能遗留镜像、角色、测试端点、Secret 或已改权限，会持续产生相关费用，平台滚动可能有短暂中断。除发布临时 Grant 的立即 Revoke 外，不自动补齐、回滚、删除或重试；仅保留原 CloudFormation 托管回滚。**本轮云/API、私密值读取、连接、调度及业务写均为 0。**
 
 **当前无需用户操作注册或购买。** 购买及首开仍排在启用验收之后另审。
