@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，补[集中启用草案](aws-sandbox-first-purchase-activation-preparation.md#sandbox-first-purchase-consolidated-preparation)的两项离线执行前置。** 只需既有发布入口的 `14457164929` 单产物绑定/CI，及同一五函数的 PostgreSQL 18 非超级用户安装回归；原 Access/Hosting 模板已按既有快照重建，不重复盘点或构建。Stripe 私密供给和实际读取另审，一次启用仍只出一份审批。不改套餐记录，不预先安装、发布、更新平台、购买或恢复 Cell/Express。
+**当前唯一继续点：缺口 3 第 4 步，为一份正式启用审批补 Stripe 测试私密供给和必要只读门槛，实际读取另审。** [固定产物 `14457164929` 的发布路由及隔离 PostgreSQL 18 已通过](aws-sandbox-first-purchase-activation-preparation.md#sandbox-first-purchase-offline-prerequisites-observed)；不重复盘点、构建或离线开发。只确认测试身份/端点和所需易变状态，不先安装、发布、更新平台、购买或恢复 Cell/Express；执行仍单份另审。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 
