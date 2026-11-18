@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，已定位发布前的产物大小阻断，尚未修复。** [定位证据](evidence/sandbox-first-purchase-dahlia-archive-limit-diagnosed.json)：修正版产物 `14480476839` 的 `image.tar.gz` 比[实际 run](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44421699935) 固定提取器的旧上限大 **4,920 字节**，按原谓词必被拒；日志只保留通用错误，不能排除更早检查另有问题。[启用回执](evidence/sandbox-first-purchase-dahlia-activation-stopped.json)已确认原 Dahlia 回调通过、发布会话与 push 未运行、撤权回读为 Locked、未安装或更新平台。若另行批准，下一步只离线把提取器改为严格使用已选产物的封存大小，保留 ZIP 总长、哈希、成员及安全检查；复用同一封存产物，不修改 Stripe、不重建、不重跑旧清单，发布启用仍另审。
+**当前唯一继续点：缺口 3 第 4 步，产物大小校验已修复，尚未发布或启用。** [定位证据](evidence/sandbox-first-purchase-dahlia-archive-limit-diagnosed.json)：产物 `14480476839` 的 `image.tar.gz` 比[原发布运行](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44421699935)的旧上限大 **4,920 字节**，按原谓词必被拒；日志只保留通用错误，不能排除更早检查另有问题。[修复 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44423446449)已通过：`d169811` 要求镜像包精确匹配已选产物的封存字节数（本产物 **307,792,511**），保留 ZIP 总长、哈希、成员及安全检查。[原启用回执](evidence/sandbox-first-purchase-dahlia-activation-stopped.json)仍有效：Dahlia 回调核对通过，未发布或更新平台，撤权回读为 Locked。现有实际发布入口没有改绑到修复版；后续另审绑定修复版并复用同一封存产物，不修改 Stripe、不重建、不重跑旧清单。
 
 [上一次已批准启用](aws-sandbox-first-purchase-activation-renewed-review.md) SHA `8b35a358…` 于 2026-11-18 16:28:26 CST（温尼伯）在首次写入前停于 `FIRST_PURCHASE_REVIEW_STRIPE_EXACT_ENDPOINT`。原平台与 Neon 只读核对、Stripe 两键同账户及测试模式通过。AWS 1 STS／28 项元数据／0 写入，Neon 1 条只读连接／14 条 SQL，未占发布槽或派发 GitHub run。启用尝试槽已消费，保留不复位、不重跑；去敏结果 SHA-256 `b6cb5a44db47c77f6605f422dba0df1a64564b0f0645f2e2f6459826262104e0`。
 
