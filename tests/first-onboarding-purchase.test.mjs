@@ -7,12 +7,13 @@ import { assertRuntimeEnvironment, buildEnvironment } from "../ops/platform-host
 import { checkIngress, ingressPolicy, PUBLIC_ORIGIN } from "../ops/platform-hosting-v1/ingress.mjs";
 import { SANDBOX_PURCHASE_WEBHOOK_ROLE, readSandboxPurchaseConfiguration } from "../lib/purchases/sandbox-first-purchase-config.ts";
 import { finishSandboxFirstCheckout, sandboxPurchaseOrderId, SANDBOX_PURCHASE_SQL, startSandboxFirstCheckout } from "../lib/purchases/sandbox-first-purchase.ts";
+import { randomId } from "../lib/domain/ids.ts";
 import { sandboxFirstPurchaseDdl } from "../ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts";
 import { buildDeploymentClaimStatement } from "../lib/deployments/lease.ts";
 import { buildFirstOnboardingJob, FIRST_ONBOARDING_HOLD_AT, SELECT_FIRST_ONBOARDING } from "../lib/deployments/first-onboarding.ts";
 
 const scope = {
-  workspaceId: "wsp_" + "a".repeat(24), planId: "plan_first_purchase_test",
+  workspaceId: "wsp_" + "a".repeat(24), planId: randomId("pln"),
   releaseId: "release_" + "a".repeat(32),
   imageUri: "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:" + "a".repeat(64),
 };
@@ -57,6 +58,17 @@ function mockStripe(t, overrides = {}) {
   });
 }
 
+test("first purchase accepts generated and legacy plan IDs without accepting malformed IDs", () => {
+  const configured = (planId) => readSandboxPurchaseConfiguration({ ...cfg, TECHLONG_SANDBOX_FIRST_PURCHASE_PLAN_ID: planId });
+  assert.equal(configured(scope.planId)?.planId, scope.planId);
+  assert.equal(configured("plan_first_purchase_test")?.planId, "plan_first_purchase_test");
+  assert.ok(sandboxFirstPurchaseDdl(scope).includes(`p_requested_plan IS DISTINCT FROM '${scope.planId}'`));
+  for (const planId of ["pln_" + "a".repeat(31), "pln_" + "A".repeat(32), scope.planId + "0", scope.planId + "\n", scope.planId + "'"]) {
+    assert.equal(configured(planId), null);
+    assert.throws(() => sandboxFirstPurchaseDdl({ ...scope, planId }), /Invalid sandbox first purchase scope/);
+  }
+});
+
 test("closed hosting rejects live credentials, unbound database and enabled worker; only the exact opted-in callback bypasses browser Origin", () => {
   assert.doesNotThrow(() => assertRuntimeEnvironment(cfg));
   assert.deepEqual(readSandboxPurchaseConfiguration(cfg)?.workspaceId, scope.workspaceId);
@@ -93,6 +105,7 @@ test("mis-scoped and live/unsigned callbacks never reach the completion database
   }
   await assert.rejects(invoke({ ...signed(event()), signature: "bad" }), /signature/);
   assert.equal(await startSandboxFirstCheckout({ ...purchase, workspaceId: "another", web: async () => assert.fail("must not query") }), null);
+  assert.equal(await startSandboxFirstCheckout({ ...purchase, planId: randomId("pln"), web: async () => assert.fail("must not query") }), null);
 });
 
 test("a live Checkout response is rejected after one reservation and no attachment", async (t) => {
@@ -152,6 +165,8 @@ test("disposable PostgreSQL and simulated signed Stripe: one checkout, one atomi
     const shopperPort = sql(shopper), webhookPort = sql(callback);
     assert.equal(await shopperPort(SANDBOX_PURCHASE_SQL.reserve,
       ["usr_other", scope.workspaceId, scope.planId, scope.releaseId, scope.imageUri, templateId, "{}", 1500, "CAD"]), null);
+    assert.equal(await shopperPort(SANDBOX_PURCHASE_SQL.reserve,
+      [actor, scope.workspaceId, randomId("pln"), scope.releaseId, scope.imageUri, templateId, "{}", 1500, "CAD"]), null);
     assert.equal(await shopperPort(SANDBOX_PURCHASE_SQL.reserve,
       [actor, scope.workspaceId, scope.planId, "release_wrong", scope.imageUri, templateId, "{}", 1500, "CAD"]), null);
     await assert.rejects(shopper.query("UPDATE public.payment_records SET status='paid'"), { code: "42501" });

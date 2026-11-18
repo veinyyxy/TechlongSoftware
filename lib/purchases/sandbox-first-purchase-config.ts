@@ -17,7 +17,7 @@ export const SANDBOX_PURCHASE_BINDINGS = [
 export type SandboxPurchaseScope = { workspaceId: string; planId: string; releaseId: string; imageUri: string };
 export function validSandboxPurchaseScope(s: SandboxPurchaseScope) {
   return /^wsp_[a-f0-9]{24}$/.test(s.workspaceId) &&
-    /^plan_[a-zA-Z0-9_-]{1,100}$/.test(s.planId) && /^release_[a-f0-9]{32}$/.test(s.releaseId) &&
+    /^(?:pln_[a-f0-9]{32}|plan_[a-zA-Z0-9_-]{1,100})$/.test(s.planId) && /^release_[a-f0-9]{32}$/.test(s.releaseId) &&
     /^402010193138\.dkr\.ecr\.ca-central-1\.amazonaws\.com\/techlong-sandbox-speedfeast@sha256:[a-f0-9]{64}$/.test(s.imageUri);
 }
 
