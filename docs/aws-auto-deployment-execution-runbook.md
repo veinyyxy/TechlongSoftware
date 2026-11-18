@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，保留现有 Stripe Sandbox 回调的最小离线兼容已实现。** [兼容与验证](aws-sandbox-first-purchase-activation-preparation.md#sandbox-first-purchase-existing-endpoint-compatibility)：不改现有 `2026-05-27.dahlia`、五项事件或签名；单笔首开只走银行卡和窄订单分流，原处理器验签和锁定平台权限不变。下一步只可另行准备修正版候选与单轮审批，原产物不得冒充修正版。此次未运行 Stripe 或构建、安装、部署，也不测试购买。
+**当前唯一继续点：缺口 3 第 4 步，等待修正版候选的一次无 AWS 构建批准。** [构建范围与证据](aws-sandbox-first-purchase-activation-preparation.md#sandbox-first-purchase-dahlia-build-review)：现有工作流已绑定配方 `cdfa2e16…`；19 份覆盖中只替换 `f6552db` 的 4 份回调兼容源码。修改注册构建、Stripe、发布授权、安装、部署和业务测试均不在批准范围。旧产物不得冒充修正版；本轮只准备，未调度。下一步只在批准后调度一次并核验实际产物。
 
 [上一次已批准启用](aws-sandbox-first-purchase-activation-renewed-review.md) SHA `8b35a358…` 于 2026-11-18 16:28:26 CST（温尼伯）在首次写入前停于 `FIRST_PURCHASE_REVIEW_STRIPE_EXACT_ENDPOINT`。原平台与 Neon 只读核对、Stripe 两键同账户及测试模式通过。AWS 1 STS／28 项元数据／0 写入，Neon 1 条只读连接／14 条 SQL，未占发布槽或派发 GitHub run。启用尝试槽已消费，保留不复位、不重跑；去敏结果 SHA-256 `b6cb5a44db47c77f6605f422dba0df1a64564b0f0645f2e2f6459826262104e0`。
 

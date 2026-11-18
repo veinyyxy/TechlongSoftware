@@ -32,7 +32,7 @@ for (let n=0;n<30;n++) {
 }
 assert(ready);
 function payload(live, order) {
-  return JSON.stringify({id:'evt_SyntheticOnly',type:'checkout.session.completed',livemode:live,
+  return JSON.stringify({id:'evt_SyntheticOnly',type:'checkout.session.completed',api_version:'2026-05-27.dahlia',livemode:live,
     data:{object:{id:'cs_test_SyntheticOnly',mode:'payment',livemode:live,payment_status:'paid',status:'complete',
       client_reference_id:order,metadata:{subscription_purchase_order_id:order},
       amount_total:100,currency:'cad',payment_intent:'pi_SyntheticOnly'}}});

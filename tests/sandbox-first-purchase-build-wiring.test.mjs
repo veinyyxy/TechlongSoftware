@@ -8,9 +8,10 @@ import {buildCandidateArchive,FIRST_PURCHASE,FIRST_PURCHASE_TREE} from '../ops/p
 
 const file=filepath=>new URL('../'+filepath,import.meta.url);
 const previous=JSON.parse(await readFile(file('docs/evidence/sandbox-first-purchase-activation.prepared.json'),'utf8')).candidate;
-const prepared=JSON.parse(await readFile(file('docs/evidence/sandbox-first-purchase-replacement.prepared.json'),'utf8'));
+const prior=JSON.parse(await readFile(file('docs/evidence/sandbox-first-purchase-replacement.prepared.json'),'utf8'));
+const prepared=JSON.parse(await readFile(file('docs/evidence/sandbox-first-purchase-dahlia.prepared.json'),'utf8'));
 
-test('same no-AWS manual workflow admits registration and only the replacement first-purchase recipe',async()=>{
+test('same no-AWS manual workflow admits registration and only the Dahlia first-purchase recipe',async()=>{
   const workflow=load(await readFile(file('.github/workflows/sandbox-registration-candidate-v1.yml'),'utf8'));
   assert.deepEqual(Object.keys(workflow.on),['workflow_dispatch']);
   assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs),['recipe_sha','orchestration_sha']);
@@ -25,6 +26,7 @@ test('same no-AWS manual workflow admits registration and only the replacement f
   }
   assert.equal((job.if.match(/inputs\.recipe_sha == '[a-f0-9]{64}'/g)??[]).length,2);
   assert.ok(!job.if.includes(previous.recipeSha256));
+  assert.ok(!job.if.includes(prior.candidate.recipeSha256));
   assert.deepEqual(job.env,{REVIEWED_RECIPE_SHA:'${{ inputs.recipe_sha }}'});
   const shell=job.steps.map(x=>x.run??'').join('\n');
   assert.doesNotMatch(shell,/docker push|docker login|aws login|aws sts|gh workflow run|secrets\./);
@@ -39,13 +41,15 @@ test('same no-AWS manual workflow admits registration and only the replacement f
     FIRST_PURCHASE.slice(0,8)+"' || 'sandbox-registration-overlay-06d91b3e' }}-${{ github.run_id }}");
   assert.equal(upload.with['retention-days'],3);
   assert.equal(upload.with.overwrite,false);
+  assert.match(await readFile(file('ops/platform-registration-candidate-v1/first-purchase-smoke.mjs'),'utf8'),/api_version:'2026-05-27\.dahlia'/);
 });
 
-test('exact 19-blob archive replaces only the plan config while the original two-file recipe stays unchanged',async()=>{
+test('exact 19-blob archive changes only four Dahlia compatibility files from the plan-fixed recipe',async()=>{
   const temp=await mkdtemp(path.join(tmpdir(),'techlong-candidate-wiring-test-'));
   try {
     await assert.rejects(buildCandidateArchive(path.join(temp,'wrong'),'0'.repeat(64)),/reviewed recipe ID/);
     await assert.rejects(buildCandidateArchive(path.join(temp,'superseded'),previous.recipeSha256),/reviewed recipe ID/);
+    await assert.rejects(buildCandidateArchive(path.join(temp,'pre-dahlia'),prior.candidate.recipeSha256),/reviewed recipe ID/);
     const staged=path.join(temp,'first-purchase');
     const [old,next]=await Promise.all([buildCandidateArchive(path.join(temp,'registration')),buildCandidateArchive(staged,FIRST_PURCHASE)]);
     assert.equal(old.sourceTreeOid,'131fc5f0fd491e642916723ea0206cd0b03f413f');
@@ -56,10 +60,12 @@ test('exact 19-blob archive replaces only the plan config while the original two
     assert.equal(next.sourceRecipe.base,previous.recipe.base);
     assert.equal(next.sourceTreeOid,FIRST_PURCHASE_TREE);
     assert.deepEqual(next.sourceRecipe.overlay.map(x=>x.path),previous.recipe.overlay.map(x=>x.path));
-    const changed=next.sourceRecipe.overlay.filter((x,i)=>x.blob!==previous.recipe.overlay[i].blob);
-    assert.deepEqual(changed,[prepared.replacement]);
-    const unaffected=rows=>rows.filter(x=>x.path!==prepared.replacement.path);
-    assert.deepEqual(unaffected(next.sourceRecipe.overlay),unaffected(previous.recipe.overlay));
+    const planFixed=previous.recipe.overlay.map(row=>row.path===prior.replacement.path?prior.replacement:row);
+    const changed=new Set(prepared.replacements.map(x=>x.path));
+    assert.equal(changed.size,4);
+    assert.deepEqual(next.sourceRecipe.overlay.filter(row=>changed.has(row.path)),prepared.replacements);
+    const unaffected=rows=>rows.filter(x=>!changed.has(x.path));
+    assert.deepEqual(unaffected(next.sourceRecipe.overlay),unaffected(planFixed));
     assert.equal(prepared.dispatchAuthorized,false);
     for(const row of old.sourceRecipe.overlay) {
       assert.equal(next.sourceRecipe.overlay.find(x=>x.path===row.path)?.sha256,row.sha256);

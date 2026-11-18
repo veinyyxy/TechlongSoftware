@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：[既有回调的最小离线兼容已实现](#sandbox-first-purchase-existing-endpoint-compatibility)，未重建或启用。** [上一轮](aws-sandbox-first-purchase-activation-renewed-review.md)在匹配检查停下，未做云侧写入；签名保持已供给，不改回调，也不另开 Stripe 测试轮。[测试分工](#sandbox-first-purchase-delivery-boundary)不变。以下是准备沿革，不是当前审批。
+**状态：[修正版候选已接好，待一次无 AWS 构建批准](#sandbox-first-purchase-dahlia-build-review)。** [上一轮](aws-sandbox-first-purchase-activation-renewed-review.md)在匹配检查停下，未做云侧写入；签名保持已供给，不改回调，也不另开 Stripe 测试轮。[测试分工](#sandbox-first-purchase-delivery-boundary)不变。以下是准备沿革，不是当前审批。
 
 ## 固定范围
 
@@ -187,3 +187,11 @@ Stripe 的另批范围不包含 AWS、Neon 或 GitHub 运行读取，也不刷�
 用户截图显示准确 URL、显式 `2026-05-27.dahlia` 和五项既有事件（`charge.refunded`、`checkout.session.completed`、`checkout.session.expired`、`payment_intent.payment_failed`、`payment_intent.succeeded`），没有异步 Checkout 成功事件。新源码只给这一次 Sandbox 首开限定银行卡。已签名且带此唯一首开订单标记的消息不落入通用处理器；只有验签及已付款、测试模式、订单与会话等原核验全部通过时才完成首开。其他事件若通过原通用签名则交给原处理器；锁定 Sandbox 不配置该凭据，故有效的无关 Sandbox 消息仅确认收到，不写业务数据。没有新增密钥、权限或异步付款支持。
 
 合成 Dahlia 回调、分流与支付回归 14 项通过，另 1 项数据库用例未运行；本次不读取凭据、不访问 Stripe/AWS、不改端点、不构建镜像、不发布或重跑。旧候选和清单均未改，不能证明此源码已上线。后继只另行准备受审候选并让新清单绑定该确切版本与事件集；测试购买由用户在技术验收后完成。
+
+<a id="sandbox-first-purchase-dahlia-build-review"></a>
+
+### 修正版候选：仅一次无 AWS 构建
+
+[固定构建范围](evidence/sandbox-first-purchase-dahlia.prepared.json)以已核验的 19 份覆盖为基础，仅换为 `f6552db` 的 4 份回调兼容源码，保留另外 15 份，包括原两份注册修复。配方 SHA `cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d`，树 `5a818a48940e21b2d907d6b8a64ac902ff709299`。两项离线验证通过，实际重建 Git 树和源归档与钉定值相同，旧首开配方不会再从当前构建入口调度。不更改历史凭证、原启用清单、ECR 发布或 CloudFormation。
+
+批准后只允许现有 GitHub 工作流 `sandbox-registration-candidate-v1.yml` 在准确 `main` 构建提交、给定配方、attempt 1 单次调度，最多 40 次限定 GitHub GET 核对、观察同一个 run 和封存结果。不下载镜像包，不重复 dispatch 或 Re-run。25 分钟 job 仅构建一个 linux/amd64 候选，保留闭控、注册页、禁网的合成 Dahlia 回调及原 HIGH/CRITICAL 扫描；封存一个产物给后续核验，保留 3 天。没有 AWS 身份、ECR push、实际 Stripe/Neon 访问或测试购买；实际启用另审。运行及产物存储可能有 GitHub 费用；无证据、失败或运行不明时不重派。

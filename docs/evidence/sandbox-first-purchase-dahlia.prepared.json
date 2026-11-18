@@ -1,0 +1,59 @@
+{
+  "schema": "techlong/sandbox-first-purchase-dahlia-prepared/v1",
+  "status": "PREPARED_NOT_DISPATCHED",
+  "previous": {
+    "recipeSha256": "b344a2e3f1c36ceeebca47b8d184f9e20fce8fa0c8d66e44ddcfb62454e17315",
+    "sourceTreeOid": "65f2840a23e9a0bca5a8c055ee6898ace8f926f7",
+    "artifactId": 14457164929
+  },
+  "replacements": [
+    {
+      "path": "app/api/stripe/webhook/route.ts",
+      "source": "f6552db3f9edbb82799426ee2b9c28c93c6b3384",
+      "blob": "25508d2a909ab94726094d9be85c3c1ef1186cdd",
+      "sha256": "bd1b61677ff37529a3e54cf469236133a572dc92ab7115e3316e0fd09ccee55e"
+    },
+    {
+      "path": "lib/payments/stripe.ts",
+      "source": "f6552db3f9edbb82799426ee2b9c28c93c6b3384",
+      "blob": "21906637ea97f6dfb44345b9def065ebb24f9dac",
+      "sha256": "421d08c7c090ad833fa7e8bfdadc7cad44b3c7266b611f6e220d8aedd501fbb4"
+    },
+    {
+      "path": "lib/purchases/sandbox-first-purchase-runtime.ts",
+      "source": "f6552db3f9edbb82799426ee2b9c28c93c6b3384",
+      "blob": "112707b59b86b2baa5335cc33370a1c0b3b02c8b",
+      "sha256": "d383608f7bbf0dda903984be51adbac7f5e1998c37fd78410b0c4042a07c0174"
+    },
+    {
+      "path": "lib/purchases/sandbox-first-purchase.ts",
+      "source": "f6552db3f9edbb82799426ee2b9c28c93c6b3384",
+      "blob": "6339c57efaa61a9207a88fa9cf22928f3d95b055",
+      "sha256": "492bcaf7d5f29e40e0860d31ac2541b44381ac533c3494d8e62d7088fe9b3c79"
+    }
+  ],
+  "candidate": {
+    "recipeSha256": "cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d",
+    "sourceTreeOid": "5a818a48940e21b2d907d6b8a64ac902ff709299",
+    "overlayFiles": 19
+  },
+  "reviewScope": {
+    "repository": "veinyyxy/TechlongSoftware",
+    "repositoryId": 1323312747,
+    "workflow": ".github/workflows/sandbox-registration-candidate-v1.yml",
+    "workflowId": 422812180,
+    "ref": "main",
+    "maxDispatches": 1,
+    "runAttempt": 1,
+    "jobTimeoutMinutes": 25,
+    "maxGitHubGetRequestsIncludingReadback": 40,
+    "artifactRetentionDays": 3,
+    "buildArch": "linux/amd64",
+    "awsIdentityOrRegistryWrites": false,
+    "stripeOrDatabaseCalls": false,
+    "platformUpdates": false,
+    "actualCheckout": false
+  },
+  "dispatchAuthorized": false,
+  "registryManifestDigest": null
+}

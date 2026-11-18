@@ -12,14 +12,17 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const REGISTRATION = '06d91b3eb875568af5d3f9b9a9015d9a949571dc0ec8427b0ad2e764bbd8c720';
 const PREVIOUS_FIRST_PURCHASE = '258c77666a802b08f3052f1082c279104ee45c9f643e174089f9e630110c1e9c';
 const PLAN_CONFIG_PATH = 'lib/purchases/sandbox-first-purchase-config.ts';
-export const FIRST_PURCHASE = 'b344a2e3f1c36ceeebca47b8d184f9e20fce8fa0c8d66e44ddcfb62454e17315';
+const PRE_DAHLIA_RECIPE = 'b344a2e3f1c36ceeebca47b8d184f9e20fce8fa0c8d66e44ddcfb62454e17315';
+export const FIRST_PURCHASE = 'cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d';
 const REGISTRATION_TREE = '131fc5f0fd491e642916723ea0206cd0b03f413f';
-export const FIRST_PURCHASE_TREE = '65f2840a23e9a0bca5a8c055ee6898ace8f926f7';
+export const FIRST_PURCHASE_TREE = '5a818a48940e21b2d907d6b8a64ac902ff709299';
 const ARCHIVE_FILE = 'image.tar.gz';
 const SHA = /^[a-f0-9]{64}$/;
 const OID = /^[a-f0-9]{40}$/;
 const CONFIG = /^sha256:[a-f0-9]{64}$/;
 const fixedFiles = ['lib/auth/credentials.ts', 'lib/auth/sandbox-registration.ts'];
+const dahliaFiles = ['app/api/stripe/webhook/route.ts','lib/payments/stripe.ts',
+  'lib/purchases/sandbox-first-purchase-runtime.ts','lib/purchases/sandbox-first-purchase.ts'];
 const canon = x => Array.isArray(x) ? x.map(canon) : x && typeof x === 'object' ?
   Object.fromEntries(Object.keys(x).sort().map(k => [k, canon(x[k])])) : x;
 const hash = b => createHash('sha256').update(b).digest('hex');
@@ -44,12 +47,22 @@ async function reviewedProfile(review) {
   const old=prior.recipe.overlay.filter(row=>row.path===PLAN_CONFIG_PATH);
   assert.equal(old.length,1);
   assert.notEqual(old[0].blob,replacement.blob);
-  const recipe={...prior.recipe,overlay:prior.recipe.overlay.map(row=>row.path===PLAN_CONFIG_PATH?replacement:row)};
-  assert.equal(candidate.recipeSha256, review);
-  assert.equal(candidate.sourceTreeOid,FIRST_PURCHASE_TREE);
+  const previous={...prior.recipe,overlay:prior.recipe.overlay.map(row=>row.path===PLAN_CONFIG_PATH?replacement:row)};
+  assert.equal(candidate.recipeSha256,PRE_DAHLIA_RECIPE);
+  assert.equal(hash(JSON.stringify(previous)),PRE_DAHLIA_RECIPE,'previous plan-fixed recipe');
+  const reviewed=JSON.parse(await readFile(path.join(root,'docs/evidence/sandbox-first-purchase-dahlia.prepared.json'),'utf8'));
+  assert.equal(reviewed.previous.recipeSha256,PRE_DAHLIA_RECIPE);
+  assert.equal(reviewed.previous.sourceTreeOid,candidate.sourceTreeOid);
+  assert.deepEqual(reviewed.replacements.map(x=>x.path),dahliaFiles);
+  const overrides=new Map(reviewed.replacements.map(x=>[x.path,x]));
+  assert.ok(reviewed.replacements.every(f=>previous.overlay.some(row=>row.path===f.path&&row.blob!==f.blob)));
+  const recipe={...previous,overlay:previous.overlay.map(row=>overrides.get(row.path)??row)};
+  assert.equal(reviewed.candidate.recipeSha256,review);
+  assert.equal(reviewed.candidate.sourceTreeOid,FIRST_PURCHASE_TREE);
   assert.equal(hash(JSON.stringify(recipe)), review, 'reviewed source recipe');
+  assert.equal(recipe.overlay.length,reviewed.candidate.overlayFiles);
   assert.equal(recipe.overlay.length,19);
-  assert.equal(new Set(recipe.overlay.map(x=>x.path)).size,19);
+  assert.equal(new Set(recipe.overlay.map(x=>x.path)).size,recipe.overlay.length);
   return {recipe, schema:'techlong/sandbox-first-purchase-overlay-image/v1', treeOid:FIRST_PURCHASE_TREE};
 }
 
