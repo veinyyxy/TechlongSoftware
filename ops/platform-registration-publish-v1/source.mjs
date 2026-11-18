@@ -1,7 +1,7 @@
 // Existing Grant/once/always-Revoke coordinator, restricted to exact overlay lineages.
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { C, protocol, firstPurchaseProtocol, verifyRetained, verifyFinalInventory } from './contract.mjs';
+import { C, protocol, firstPurchaseProtocol, dahliaFirstPurchaseProtocol, verifyRetained, verifyFinalInventory } from './contract.mjs';
 import { sourceAdapter } from '../platform-hosted-publication-v2/source.mjs';
 import { sourceReview, S as LEGACY } from '../platform-image-source-v2/review.mjs';
 import { errorCode } from '../platform-image-source-v2/runner.mjs';
@@ -32,6 +32,16 @@ export function firstPurchaseSourceContext() {
     riskFile:'docs/evidence/sandbox-first-purchase-activation-consolidated.prepared.json',
     publicReviewFile:'docs/evidence/sandbox-first-purchase-activation-consolidated.review.json',
     intentFile:'techlong-sandbox-first-purchase-ecr-b344a2e3.intent.json'});
+}
+// Only the combined Dahlia activation uses these exact, checked CI pins.
+export function dahliaFirstPurchaseSourceContext({reusableCommit,reusableCiRun}) {
+  must(/^[a-f0-9]{40}$/.test(reusableCommit??'')&&Number.isSafeInteger(reusableCiRun)&&reusableCiRun>0,'DAHLIA_REUSABLE_PINS');
+  return overlayContext(dahliaFirstPurchaseProtocol,{
+    reusableCommit,reusableCiRun,
+    schema:'techlong/sandbox-first-purchase-dahlia-image-source-review/v1',tokenPrefix:'first-purchase-overlay-cdfa2e16',
+    riskFile:'docs/evidence/sandbox-first-purchase-dahlia.prepared.json',
+    publicReviewFile:'docs/evidence/sandbox-first-purchase-dahlia-activation.review.json',
+    intentFile:'techlong-sandbox-first-purchase-ecr-cdfa2e16.intent.json'});
 }
 const dir='ops/platform-registration-publish-v1';
 const cloudRoots=[`${dir}/cloud.mjs`,`${dir}/artifact.mjs`,`${dir}/preflight.sh`,`${dir}/extract.py`,

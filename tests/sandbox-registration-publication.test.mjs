@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import test from 'node:test';
 import { load } from 'js-yaml';
-import { C, FIRST_PURCHASE_CANDIDATE as F, protocol, firstPurchaseProtocol, selectOverlayPublication, verifyImageReceipt } from '../ops/platform-registration-publish-v1/contract.mjs';
+import { C, FIRST_PURCHASE_CANDIDATE as F, DAHLIA_FIRST_PURCHASE_CANDIDATE as D,
+  protocol, firstPurchaseProtocol, dahliaFirstPurchaseProtocol, selectOverlayPublication, verifyImageReceipt } from '../ops/platform-registration-publish-v1/contract.mjs';
 import { verifyLoaded } from '../ops/platform-registration-publish-v1/artifact.mjs';
 import { firstPurchaseSourceContext, sourceContext } from '../ops/platform-registration-publish-v1/source.mjs';
 import { hash } from '../ops/platform-image-publication-v2/plan.mjs';
@@ -127,4 +128,26 @@ test('the original manual caller routes each fixed artifact to its own reviewed 
   }
   assert.equal(old.S.reusableCommit,'0b076037eaf04f9a47957548ebe36a454546d641');
   assert.equal(next.S.reusableCiRun,44374702310);
+});
+
+test('the Dahlia publisher binds the new sealed artifact and cannot use the earlier image or tag',()=>{
+  const base=JSON.parse(read('../docs/evidence/sandbox-first-purchase-activation.prepared.json')).candidate.recipe;
+  const {replacement}=JSON.parse(read('../docs/evidence/sandbox-first-purchase-replacement.prepared.json'));
+  const {replacements}=JSON.parse(read('../docs/evidence/sandbox-first-purchase-dahlia.prepared.json'));
+  const overlays=new Map([replacement,...replacements].map(x=>[x.path,x]));
+  const sourceRecipe={...base,overlay:base.overlay.map(x=>overlays.get(x.path)??x)};
+  const t=Date.parse('2026-11-18T23:20:00Z'), time=new Date(t).toISOString(), end=new Date(t+3600000).toISOString();
+  const m={...review,candidate:D,issuedAt:time,grantStartsAt:time,expiresAt:end,grantExpiresAt:end};
+  const text=JSON.stringify(m);assert.equal(selectOverlayPublication(text,hash(text),t).protocol,dahliaFirstPurchaseProtocol);
+  assert.equal(D.artifactId,14480476839);assert.notEqual(D.targetTag,F.targetTag);
+  dahliaFirstPurchaseProtocol.verifyCandidate({...r,id:D.runId,head_sha:D.sourceCommit,workflow_id:D.workflowId},
+    {...a,id:D.artifactId,name:D.artifactName,digest:D.artifactDigest,expires_at:D.artifactExpiresAt,size_in_bytes:D.artifactBytes,
+      workflow_run:{...a.workflow_run,id:D.runId,head_sha:D.sourceCommit}},t);
+  const sealed={...receipt,schema:'techlong/sandbox-first-purchase-overlay-image/v1',orchestrationCommit:D.sourceCommit,runId:String(D.runId),
+    sourceRecipe,sourceRecipeSha256:D.sourceRecipeSha256,sourceTreeOid:D.sourceTreeOid,archiveBytes:D.archiveBytes,archiveSha256:D.archiveSha256,
+    imageConfigDigest:D.imageConfigDigest,scanSummarySha256:D.scanSummarySha256,smoke:{...receipt.smoke,firstPurchaseSyntheticCallback:{
+      outcome:'SANDBOX_FIRST_PURCHASE_SYNTHETIC_CALLBACK_PASSED',validOutOfScopeIgnored:true,liveModeIgnored:true,badSignatureRejected:true,exactRouteOnly:true,workerClosed:true}}};
+  assert.equal(dahliaFirstPurchaseProtocol.verifyImageReceipt(sealed),sealed);
+  assert.throws(()=>firstPurchaseProtocol.verifyImageReceipt(sealed),/REGISTRATION_RECEIPT/);
+  assert.deepEqual(dahliaFirstPurchaseProtocol.templates(m).revoke,protocol.templates(review).revoke);
 });

@@ -1,4 +1,4 @@
-// Two exact overlay lineages; no caller-supplied artifact or repository.
+// Exact overlay lineages; no caller-supplied artifact or repository.
 import { readFileSync } from 'node:fs';
 import { P, hash, same, must } from '../platform-image-publication-v2/plan.mjs';
 import { RETAINED as BASE_IMAGES, C as OLD_PLATFORM } from '../platform-recovery-image-v1/candidate.mjs';
@@ -9,6 +9,8 @@ const brief = load('../../docs/evidence/sandbox-registration-ecr-publication.pre
 const observed = load('../../docs/evidence/sandbox-registration-platform-candidate.observed.json');
 const replacement = load('../../docs/evidence/sandbox-first-purchase-replacement.observed.json');
 const activation = load('../../docs/evidence/sandbox-first-purchase-activation-consolidated.prepared.json');
+const dahliaObserved = load('../../docs/evidence/sandbox-first-purchase-dahlia.observed.json');
+const dahliaPrepared = load('../../docs/evidence/sandbox-first-purchase-dahlia.prepared.json');
 const source = brief.source;
 const a = source.artifact;
 const hex40 = /^[a-f0-9]{40}$/;
@@ -38,6 +40,18 @@ export const FIRST_PURCHASE_CANDIDATE=Object.freeze({...C,sourceCommit:w.orchest
   artifactId:e.artifactId,artifactName:e.artifactName,artifactBytes:e.artifactZipBytes,artifactDigest:e.artifactZipDigest,artifactExpiresAt:e.expiresAtUtc,
   archiveSha256:e.archiveSha256,imageConfigDigest:e.imageConfigDigest,archiveBytes:e.archiveBytes,scanSummarySha256:e.scanSummarySha256,
   sourceRecipeSha256:e.sourceRecipeSha256,sourceTreeOid:e.sourceTreeOid,targetTag:pinned.publisherTagProposed});
+const dw=dahliaObserved.workflow, de=dahliaObserved.evidence, dp=dahliaPrepared.candidate;
+must(dw.runAttempt===1&&dw.conclusion==='success'&&dw.event==='workflow_dispatch'&&dw.branch==='main'&&dw.repository===C.repository&&
+  dw.repositoryId===C.repositoryId&&dw.file===dahliaPrepared.reviewScope.workflow&&dw.workflowId===dahliaPrepared.reviewScope.workflowId&&
+  de.runId===44418072086&&de.artifactId===14480476839&&de.artifactName==='sandbox-first-purchase-overlay-cdfa2e16-44418072086'&&
+  de.sourceRecipeSha256===dp.recipeSha256&&de.sourceTreeOid===dp.sourceTreeOid&&de.syntheticDahliaCallbackSmokePassed===true&&
+  de.freshOsHighCriticalGatePassed===true&&dahliaObserved.proofBoundary.artifactMetadataAndExactSuccessfulJobSealLogCompared===true&&
+  dahliaObserved.proofBoundary.registryManifestDigest===null,'DAHLIA_FIRST_PURCHASE_OBSERVED_PINS');
+export const DAHLIA_FIRST_PURCHASE_CANDIDATE=Object.freeze({...C,sourceCommit:dw.orchestrationCommit,runId:de.runId,workflowId:dw.workflowId,
+  artifactId:de.artifactId,artifactName:de.artifactName,artifactBytes:de.artifactZipBytes,artifactDigest:de.artifactZipDigest,
+  artifactExpiresAt:de.expiresAtUtc,archiveSha256:de.archiveSha256,imageConfigDigest:de.imageConfigDigest,
+  archiveBytes:de.archiveBytes,scanSummarySha256:de.scanSummarySha256,sourceRecipeSha256:de.sourceRecipeSha256,
+  sourceTreeOid:de.sourceTreeOid,targetTag:'sandbox-first-purchase-cdfa2e16-r44418072086'});
 
 function overlayProtocol(S,producerPath,firstPurchase=false){
 function verifyCandidate(run, artifact, now=Date.now()) {
@@ -142,12 +156,13 @@ return Object.freeze({P:S,verifyCandidate,verifyImageReceipt,validateReview,vali
 
 export const protocol=overlayProtocol(C,observed.workflow.file);
 export const firstPurchaseProtocol=overlayProtocol(FIRST_PURCHASE_CANDIDATE,w.file,true);
+export const dahliaFirstPurchaseProtocol=overlayProtocol(DAHLIA_FIRST_PURCHASE_CANDIDATE,dw.file,true);
 export const {verifyCandidate,verifyImageReceipt,validateReview,validateCloud,validateClaims,templates,verifyRetained,verifyFinalInventory,verifyPublishedManifest}=protocol;
 
 export function selectOverlayPublication(text,sha,now=Date.now()) {
   must(typeof text==='string' && text.length<20000 && hex64.test(sha??'') && hash(text)===sha,'REGISTRATION_REVIEW_SHA');
   const candidate=JSON.parse(text).candidate;
-  const selected=[protocol,firstPurchaseProtocol].find(p=>same(p.P,candidate));
+  const selected=[protocol,firstPurchaseProtocol,dahliaFirstPurchaseProtocol].find(p=>same(p.P,candidate));
   must(selected,'REGISTRATION_REVIEW_FIELDS');
   return {protocol:selected,review:selected.validateReview(text,sha,now)};
 }
