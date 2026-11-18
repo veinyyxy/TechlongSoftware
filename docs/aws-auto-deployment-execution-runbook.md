@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，等待修正版的单次启用审批。** [准确范围与风险](aws-sandbox-first-purchase-dahlia-activation-review.md)／[机器清单](evidence/sandbox-first-purchase-dahlia-activation.review.json) SHA `a237b03defde391c17b5471422303090fd3c2bd9333a9fb6d8a6cf39c55f5040`，最晚 2026-11-19 17:29:49.270 CST（温尼伯）前启动。唯一产物 `14480476839`，不再重构建；保留原 Dahlia 回调、五个事件和签名。获批才做必要现状核对、发布/撤权、原平台窄启用并独立回读；GitHub environment 由用户本人批准。旧启用槽与回执原样保留，不由本轮重试或复位。准备未下载包、访问 Stripe/AWS/Neon 或执行发布、安装及更新；技术核验后由用户测试购买。
+**当前唯一继续点：缺口 3 第 4 步，修正版启用停在发布前的产物复核。** [去敏回执](evidence/sandbox-first-purchase-dahlia-activation-stopped.json)：已批准 `a237b03d…` 的原平台、Neon 和既有 Dahlia 回调前置均通过；唯一 [run 44421699935](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44421699935) 在 AWS 发布会话之前的产物复核步骤失败，日志仅 `REGISTRATION_ARTIFACT_REFUSED`，没有证明具体子检查。发布会话和 push 步骤被跳过，原临时发布权限已撤销并回读 Locked，未安装、写新 Secret、更新平台或测试购买。保留两轮已用槽，不重跑或修复上线。若继续，只另行定位这一个产物复核的最小差异；不动 Stripe，不重建或换产物，用户等技术验收后再测试。
 
 [上一次已批准启用](aws-sandbox-first-purchase-activation-renewed-review.md) SHA `8b35a358…` 于 2026-11-18 16:28:26 CST（温尼伯）在首次写入前停于 `FIRST_PURCHASE_REVIEW_STRIPE_EXACT_ENDPOINT`。原平台与 Neon 只读核对、Stripe 两键同账户及测试模式通过。AWS 1 STS／28 项元数据／0 写入，Neon 1 条只读连接／14 条 SQL，未占发布槽或派发 GitHub run。启用尝试槽已消费，保留不复位、不重跑；去敏结果 SHA-256 `b6cb5a44db47c77f6605f422dba0df1a64564b0f0645f2e2f6459826262104e0`。
 

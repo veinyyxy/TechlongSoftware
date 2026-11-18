@@ -1,0 +1,42 @@
+{
+  "schema": "techlong/sandbox-first-purchase-dahlia-activation-stopped/v1",
+  "approvalSha256": "a237b03defde391c17b5471422303090fd3c2bd9333a9fb6d8a6cf39c55f5040",
+  "completedAtUtc": "2026-11-18T23:38:04.184Z",
+  "outcome": "STOPPED_BEFORE_NARROW_INSTALL_AND_PLATFORM_UPDATE",
+  "preflight": {
+    "verified": true,
+    "originalDahliaEndpointAndFiveEventsMatched": true,
+    "platformMetadataReads": 28,
+    "platformSourceSts": 1,
+    "neonReadOnlyConnections": 1,
+    "neonSqlSubmissions": 14
+  },
+  "publisher": {
+    "buildArtifactId": 14480476839,
+    "dispatchCount": 1,
+    "runId": 44421699935,
+    "runAttempt": 1,
+    "head": "0c66ae21364c6642fac52648a9f0105294a8e0fc",
+    "jobId": 135216068491,
+    "runStatus": "completed",
+    "runConclusion": "failure",
+    "failedStep": "Reverify original bytes and same image before requesting AWS session",
+    "loggedFailureCode": "REGISTRATION_ARTIFACT_REFUSED",
+    "specificArtifactCheckFailureProved": false,
+    "awsPublisherSessionAndPushStep": "skipped",
+    "temporaryGrantSubmitted": true,
+    "revokeAcknowledged": true,
+    "revokedRoleReadBackLocked": true,
+    "newEcrManifestVerified": false,
+    "publishResultSha256": "0a592216c82a12632eb5fc68a625c8432e1602f95c4af84427a14db8464a4bc2",
+    "dispatchAckSha256": "fd7cd92d6eb3a54673f4abcccfc1a52a7249c03c21d11b0d1c707464993c0633",
+    "revokeAckSha256": "0dd146dcd632b359fc5c3ae6a58c59ca9cf7432edd64f91200a5d7d7cf2fa7d5"
+  },
+  "finalResultSha256": "4e516b3598c506f60f1e5267e55151d76dfa23965a75ef2d20262b388d7283c7",
+  "diagnosticReads": { "githubGets": 3, "signedJobLogGets": 1, "stripeCalls": 0, "awsCalls": 0, "neonConnections": 0 },
+  "neonInstallExecuted": false,
+  "newSecretWritten": false,
+  "platformUpdated": false,
+  "testCheckoutExecuted": false,
+  "retryAllowed": false
+}

@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：[修正版单次启用已备审](aws-sandbox-first-purchase-dahlia-activation-review.md)，未执行。** [上一轮启用](aws-sandbox-first-purchase-activation-renewed-review.md)在匹配检查停下，未做云侧写入；保留原 Dahlia 签名和回调，不另开 Stripe 测试轮。[测试分工](#sandbox-first-purchase-delivery-boundary)不变。以下不授权实际发布、安装或启用。
+**状态：[修正版单次启用停在发布前产物复核](evidence/sandbox-first-purchase-dahlia-activation-stopped.json)。** 原 Dahlia 签名和回调的前置核对通过，发布权限已撤销并回读 Locked；没有安装或更新平台。保留旧轮与本轮已用槽，不重跑、不另开 Stripe 测试轮。[测试分工](#sandbox-first-purchase-delivery-boundary)不变。以下不授权实际发布、安装或启用。
 
 ## 固定范围
 
@@ -205,3 +205,5 @@ Stripe 的另批范围不包含 AWS、Neon 或 GitHub 运行读取，也不刷�
 [去敏回执](evidence/sandbox-first-purchase-dahlia.observed.json)绑定唯一产物 `14480476839`，截止 **2026-11-21 17:09:39（温尼伯 CST）**。实际调度 1、GET 12、Re-run 0。未下载镜像包、访问 AWS/Stripe/Neon、发布、安装、启用或发起支付。封存 config digest 不是 ECR manifest digest。下一步只准备绑定该新产物以及原 Dahlia 版本、五个事件和签名的单次启用，不重跑旧清单或重新构建。
 
 [单次启用范围](aws-sandbox-first-purchase-dahlia-activation-review.md)及[机器清单](evidence/sandbox-first-purchase-dahlia-activation.review.json)已固定；准备只核验两个确切的无 AWS CI、23 个 reusable 文件与本机 32 项回归，没有读取私密配置、外部事实核对、发布调度或启用。
+
+用户批准后，[唯一发布 run 44421699935](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44421699935) 在 `Reverify original bytes and same image before requesting AWS session` 失败。GitHub 门禁本人批准，未进入发布会话及 push 步骤；撤权应答及 Locked 回读完成。[去敏回执](evidence/sandbox-first-purchase-dahlia-activation-stopped.json)仅记录 `REGISTRATION_ARTIFACT_REFUSED`，不能认定具体是下载、包封签、镜像核验还是扫描子检查。没有下游安装、启用或测试购买，不能 Re-run。
