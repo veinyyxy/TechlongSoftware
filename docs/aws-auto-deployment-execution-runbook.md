@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，先只修正首开套餐编号合同并做最小回归。** [限定只读已完成](aws-sandbox-first-purchase-activation-preparation.md#sandbox-first-purchase-readonly-observed)：原平台健康、发布 Locked、固定 A 与工作区前置匹配；唯一合格套餐是 `pln_`，封存候选 `14454594785` 却只接受 `plan_`。不发这份候选、不改套餐记录、不重查环境；修正后的单次无 AWS 构建另审。随后仍只出一份实际启用审批；不安装、不更新平台、不购买、不恢复 Cell/Express。
+**当前唯一继续点：缺口 3 第 4 步，准备替代候选的单次无 AWS 构建，实际调度另审。** [首开套餐编号已修并通过专项 CI](aws-sandbox-first-purchase-activation-preparation.md#sandbox-first-purchase-plan-id-fix)，平台通用 CI 的旧 V6 摘要差异已核实早于本修复，不改旧基线。原候选 `14454594785` 不含修复，不发布；不改套餐记录、不重查环境。随后仍只出一份实际启用审批；不安装、不更新平台、不购买、不恢复 Cell/Express。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 

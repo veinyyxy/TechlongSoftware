@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：不可执行。** 2026-11-18（温尼伯）。无 AWS 候选已封存，随后完成批准的[一次限定只读核对](#sandbox-first-purchase-readonly-observed)，发现候选拒绝实际套餐编号。本次未发布镜像、安装权限、创建 Secret/回调端点或更新平台。执行窗口未开启，执行 SHA 为 `null`。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
+**状态：不可执行。** 2026-11-18（温尼伯）。[一次限定只读核对](#sandbox-first-purchase-readonly-observed)发现原候选拒绝实际套餐编号；[源码已修，首开专项 CI 通过](#sandbox-first-purchase-plan-id-fix)。原候选不含此修复，替代候选未构建。未发布镜像、安装权限、创建 Secret/回调端点或更新平台。执行窗口未开启，执行 SHA 为 `null`。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
 
 ## 固定范围
 
@@ -49,7 +49,7 @@
 ## 需要另批的最小补齐
 
 1. **候选来源与产物已核验。** 复用[真实构建回执](#sandbox-first-purchase-candidate-observed)，不重新调度或重复取日志。Registry manifest 只能在实际发布后独立派生，当前不预填。
-2. **集中限定只读已完成，不重复盘点。** 结果见下节。当前唯一继续点是只修正套餐编号合同和对应回归：兼容项目生产的 `pln_` 加 32 位小写十六进制编号，保持准确工作区、套餐、A 及测试模式绑定。先离线验证；由于这处代码在封存镜像内，替换候选的单次无 AWS 构建另审，不能发布旧候选或改数据库套餐编号来绕过。
+2. **集中限定只读已完成，不重复盘点。** 结果见下节。套餐编号合同和对应回归已修，保持准确工作区、套餐、A 及测试模式绑定。当前唯一继续点是按修正源码准备替代候选的单次无 AWS 构建，实际调度另审；不能发布旧候选或改数据库套餐编号来绕过。
 3. **只出一份实际启用审批。** 修正候选、准确发布入口以及 Stripe 测试端点/私密供给等必要条件齐全后才定执行 SHA。快照按真实观测五小时有效，旧期限不续；按准确发布限时与撤权预留反推开窗，不先部署等材料。校验安装者授权能力不等于已在实际 Neon 安装，也不等于放开购买。
 
 <a id="sandbox-first-purchase-readonly-observed"></a>
@@ -60,5 +60,13 @@
 - **GitHub 通过：** `techlong-sandbox-deploy` 仅 `main`，本人审批门禁保留，不允许管理员绕过；既有发布工作流与固定复用版本匹配，无活动发布，`14454594785` 的元数据未变。旧发布入口仍不接受本候选。第一次在本地编码出错，未调用 API；随后使用原未用额度完成 **12 次 GET**，无调度、下载包或重读封印日志。
 - **Neon：** 读配置 **1** 次、验证 TLS 的只读连接 **1** 条、SQL **15** 条（含事务控制），只读提交成功。准确工作区及唯一普通 Owner 存在，无该产品订单、订阅、实例或任务；A、准入打开且 apply 关闭、原 Web 无新增直接写表权限和安装者的所需授权选项检查通过。仅有 **1 个**符合套餐与模板条件的正价月付套餐。阻断是[创建套餐](../lib/admin/management.ts)使用 `randomId("pln")`，而[候选运行校验及 DDL 共用合同](../lib/purchases/sandbox-first-purchase-config.ts)只接受 `plan_`。用保存的投影离线调用真实校验器确认此套餐被拒，不是套餐缺失、重复或价格无效。未改业务记录。
 - 私有回执保存在本机忽略目录，原始字节 SHA-256：AWS `25b1f420ce665f418260a99f8d4951c296d53b6a0a3032c0936f437fc4eaa1d8`，GitHub `9c716a93ef7478574f56d1cfc40c9cc28bf478b386d8c4fdbf1f9ff5b7a31633`，Neon `29547bda541a9acdfab0ef4a5c3b51725c0c9e7a3af856a2bd6c8a77d4d278e0`。不提交工作区/套餐实际投影或认证材料；未读 Secret 值，未访问 Stripe、发布、安装、更新平台、恢复资源或购买。
+
+<a id="sandbox-first-purchase-plan-id-fix"></a>
+
+### 套餐编号修复及 CI（2026-11-18）
+
+源码 `cbaeaa741cd311e1840cfc053a4f064242b60435` 仅在首开共用校验中接受 `pln_` 加 32 位小写十六进制字符，保留旧 `plan_` 规则。新回归使用正式的 `randomId("pln")` 生成合成套餐号，先复现旧校验拒绝，再验证配置、DDL 及隔离库购买仍仅接受准确绑定的套餐；畸形编号和不同的合法套餐号仍被拒。定向本机测试 12 通过，1 个隔离数据库用例转由 CI 跑；lint、类型通过。[首开专项 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44368236891)原尝试 1 的 `offline` 和 `postgres`（隔离 PostgreSQL 16）均成功。
+
+[平台通用 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44368236845)在 V6 已发布执行依赖摘要检查失败，镜像构建和上传步骤跳过。通过本机重算提交及父提交的 81 个固定文件，确认两者均为 `dbff1490cd41f114cfb654386b5a1dc62d643e7f67820761b46f41f7e141b4ac`，与历史期望 `828491ec…` 不同，非本次两文件改动所致。未修改旧基线或工作流，未调用 AWS、生产数据库或 Stripe，未 dispatch 替代候选，不把专项 CI 成功当作新镜像或启用证据。
 
 **当前无需用户操作注册或购买。** 任何线上读取、构建调度、秘密供给和实际启用都不因本草案获得授权。购买及首开仍排在启用验收之后另审。
