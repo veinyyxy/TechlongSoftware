@@ -5,7 +5,7 @@ import { load } from 'js-yaml';
 import { C, FIRST_PURCHASE_CANDIDATE as F, DAHLIA_FIRST_PURCHASE_CANDIDATE as D,
   protocol, firstPurchaseProtocol, dahliaFirstPurchaseProtocol, selectOverlayPublication, verifyImageReceipt } from '../ops/platform-registration-publish-v1/contract.mjs';
 import { verifyLoaded } from '../ops/platform-registration-publish-v1/artifact.mjs';
-import { firstPurchaseSourceContext, sourceContext } from '../ops/platform-registration-publish-v1/source.mjs';
+import { dahliaFirstPurchaseSourceContext, firstPurchaseSourceContext, sourceContext } from '../ops/platform-registration-publish-v1/source.mjs';
 import { hash } from '../ops/platform-image-publication-v2/plan.mjs';
 import { C as oldPlatform, RETAINED } from '../ops/platform-recovery-image-v1/candidate.mjs';
 
@@ -113,8 +113,10 @@ test('only the replacement seal can select the first-purchase publisher; retain 
 
 test('the original manual caller routes each fixed artifact to its own reviewed reusable pin',()=>{
   const selector=load(read(`../.github/workflows/${C.callerFile}`));
-  const old=sourceContext(), next=firstPurchaseSourceContext();
-  assert.equal(old.P,C);assert.equal(next.P,F);assert.notEqual(next.S.intentFile,old.S.intentFile);
+  const old=sourceContext(),historical=firstPurchaseSourceContext();
+  const next=dahliaFirstPurchaseSourceContext({reusableCommit:'b38a713d9e2f67bacde1ecdd7ef29f0bea86988b',reusableCiRun:1});
+  assert.equal(old.P,C);assert.equal(next.P,D);assert.notEqual(next.S.intentFile,old.S.intentFile);
+  assert.notEqual(next.S.intentFile,historical.S.intentFile);
   assert.deepEqual(Object.keys(selector.on),['workflow_dispatch']);
   assert.deepEqual(Object.keys(selector.jobs),['reviewed-publication','reviewed-first-purchase-publication']);
   const reusable=`${C.repository}/.github/workflows/${C.reusableFile}@`;
@@ -127,7 +129,8 @@ test('the original manual caller routes each fixed artifact to its own reviewed 
     assert.deepEqual(Object.keys(job.with).sort(),['review_json','review_sha']);
   }
   assert.equal(old.S.reusableCommit,'0b076037eaf04f9a47957548ebe36a454546d641');
-  assert.equal(next.S.reusableCiRun,44374702310);
+  assert.equal(historical.S.reusableCiRun,44374702310);
+  assert.ok(!Object.values(selector.jobs).some(j=>j.if.includes(String(F.artifactId))));
 });
 
 test('the Dahlia publisher binds the new sealed artifact and cannot use the earlier image or tag',()=>{
