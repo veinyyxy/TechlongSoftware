@@ -90,7 +90,25 @@
 - 待补足的准确材料：新工作区/支付模式、真实 checkout 到任务的派生与目标范围、镜像及运行版本、基线版本/SHA、模板与各资源物理引用/归属、存储与访问证明、独立核验和完成身份及负例、租户预约容量和无冲突路由、准备时效/执行截止和本人审批点。待新事实另获准后，按真实对象分别固定读取与写入上限；现在的硬上限是 **1 个验收租户／1 条任务／1 次领取／1 个租户栈／1 次完成提交**，不是可分配给其它对象的额度。
 - 开窗前记录人工监督、预计时长及成本估算（尤其既有 ALB/Express、Fargate、日志及存储/流量）。沿用 50 USD/月目标，不把它或任务截止当硬停费上限；原始执行/资源到期不得为凑时延长。停止/删除不在这轮验收授权，临时费用及资源留存分别记账，按已审流程另批。
 - 缺证据、权限多于批准范围、目录/配置变化、无法保障当前租约，或 ACK 不明就停。领取前不消费尝试；领取后不复位、不换任务、不自动补写、补偿或清理。只有独立回读证明同一实例 `active` 且 URL 准确、同一部署 `ready`、原 job `succeeded` 且无租约、D2 `revision 0` 且无活动请求、证据摘要一致，才算一次真实首开完成。否则保留已有记录；不能把没有回读的一次提交判为可重试。
-- **下一唯一动作**：等用户另批所需的限定只读补核；按真缺项编成最小就绪差异和一次精确执行清单。未解决 Express 写适配、持久化/固定引用、独立核验与窄完成权限前，不启动 AWS、不调度、不做测试购买。
+- **下一唯一动作**：先处理下方记录的 Source 凭据阻断，等用户另批一次同范围限定只读补核；按真缺项编成最小就绪差异和一次精确执行清单。未解决 Express 写适配、持久化/固定引用、独立核验与窄完成权限前，不启动 AWS、不调度、不做测试购买。
+
+<a id="first-onboarding-step4-readonly"></a>
+
+#### 限定只读补核记录与准确范围
+
+**2026-11-18 06:33:28–06:33:30（温尼伯 CST；12:33:28–12:33:30 UTC）｜停在身份核对，未生成执行清单。** 用现有 Source profile `techlong-sandbox-user` 对官方区域 STS 尝试身份核对 1 次，去敏结果 `CREDENTIALS_UNAVAILABLE`；未收到已匹配的账号/调用者响应，不能断定会话过期或具体根因。后续资源和 IAM 元数据调用均为 0。无重试、无替代登录、无 Secret 值读取、无数据库连接、无 AWS 写、资源启动、队列启用、任务登记/领取或开通。本次记录保留；它不产生新鲜资源事实或新的执行窗口。
+
+如另行允许新一轮，Source 身份须先匹配账号 `402010193138`、区域 `ca-central-1`、IAM 用户 `techlong-sandbox-dev`。之后只核对以下确切目标：**STS 最多 1 次、AWS 元数据最多 20 次，一页、不翻页、不自动重试。** 表中对象来自本地已存引用；即使读回完全匹配，也不自动变成新租户授权。
+
+| 目的 | 仅允许的目标、调用及保留的事实 |
+| --- | --- |
+| Express 及共享 Cell 前置 | **最多 3 次**：`DescribeDBClusters` 指定 `techlong-sandbox-express-d001`；仅当物理 ID 匹配已存 `cluster-XBWGLIW2B3HPGX3ROHYJA7CNPM` 且 writer 仍为 `techlong-sandbox-express-d001-instance-1`，再对该 writer 做 `DescribeDBInstances` 1 次；`DescribeStacks` 只读 [原 Cell 的准确 Stack ARN](../ops/releases/d2-6-step4-finish.review.json)，仅保留状态和所需输出键是否存在。集群/实例状态、引擎版本、IAM auth 和物理归属不能证明目标库名/角色空闲、SQL 权限、真实空库创建或基线恢复。未绑定准确新 archive/manifest 键及版本，不列桶寻址、不读对象。 |
+| 持久化参照 | **最多 4 次**：仅对 [已存旧租户图片桶](aws-instance-release-persistence-media-installed-20261115.json) `techlong-sandbox-tenant-images-402010193138-9c5ee9e64509dcad` 做 `HeadBucket`（必须带预期拥有者）、`GetPublicAccessBlock`、`GetBucketVersioning`；仅对已存分发 `E2H9SBE05EMLAN` 做 `GetDistribution` 核对状态、原桶/OAC 绑定。仅验证既有模式可作设计参考，不确认/转用新租户桶、前缀、对象或访问权限。 |
+| 固定版本参照 | **最多 2 次**：对 [已存控制公钥引用](../ops/releases/d2-6.prepared.json)、[D2 核验登录引用](../ops/releases/runtime.json) 各 `DescribeSecret` 1 次，只比对此准确 ARN、原固定 VersionId 是否存在/当前、删除/轮换状态及 KMS 引用是否存在。不查旧租户运行时 Secret，不列 Secret、不读内容。新租户 g1 Secret 的 ARN/VersionId 仍未产生或绑定，不能从这些参照推定。 |
+| 生命周期与应用权限参照 | **最多 6 次**：分别 `GetRole` 指定 `TechlongSandboxTenantLifecycleTaskRole`、`TechlongSandboxTaskRole`；分别 `GetRolePolicy` 读取两者已存准确 inline `ImmutableReceiptsAndGenerationSecretRead`、`ConnectExactExpressTenantC4e`；只在原关联匹配时 `GetPolicy`、`GetPolicyVersion` 各 1 次读取 `TechlongSandboxServiceRoleBoundary` 的当前默认版。只存边界匹配、固定版本约束及连接用户范围摘要；不做 AssumeRole、模拟、取 IAM 登录 token 或 SQL 授权验证，不把旧租户权限当首开权限。 |
+| 独立核验与原子完成权限 | **最多 5 次**：仅指定 `TechlongSandboxInstanceReleaseVerifierRole` 的 `GetRole`、`ListAttachedRolePolicies`、`ListRolePolicies`；仅在匹配已存边界时，`GetPolicy`、`GetPolicyVersion` 各 1 次，检查 `TechlongSandboxInstanceReleaseVerifierBoundaryV1` 的默认版。只比对信任、边界和读取能力，并标记可能的固定 Secret 读取、证据写入等额外能力；不假设现有 D2 验证者是纯只读或已有新首开权限。**Neon 完成身份无已审安装/执行授权证据**；不查猜测的 AWS Secret 名，不连接 Neon 验证 GRANT。必须另审受限首开入口与真实权限的正/反例，不用旧 D2 角色或 owner。 |
+
+补核仍未证明任何实际写入前置。**不得签发可执行 SHA**：新租户键未固定、Express 空库写入路径与固定基线未证明、新租户图片持久化和固定 Secret 绑定未确认、独立核验及 Neon 原子完成权限未实证。恢复方向仅为用户刷新原 Source 且另行允许一次上述限定核对；不要求同意生产访问或执行来解决身份阻断。
 
 ## 当前操作说明（实施计划不改变现有流程）
 
