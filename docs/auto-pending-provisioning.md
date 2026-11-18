@@ -466,6 +466,14 @@
 
 **当前 `NO_GO`。** 尚无两文件候选的构建证据、ECR 新摘要或实际 Change Set，不签出执行 SHA。本轮没有新 AWS/GitHub 事实读取、构建、镜像发布、连库、平台写入或注册。下一步只等另审两文件候选的无 AWS 构建范围；暂不刷新云端状态，不重复数据库核对。
 
+<a id="first-onboarding-step4-registration-platform-candidate-observed"></a>
+
+#### 两文件闭控候选已在 GitHub 构建并封存；未发布
+
+获准的[单次 GitHub run 44343705697](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44343705697)（attempt 1）成功。原镜像实际源码 `5fcbc23c…` 加两文件形成 Git 树 `131fc5f0…`；非 root 禁网自检确认控制器、请求入口、worker 与 apply 均关闭，普通注册页仅 GET。新鲜 OS 扫描 HIGH/CRITICAL 零发现。准确 job 的封印回执、GitHub artifact 元数据均已核对：[去敏证据](evidence/sandbox-registration-platform-candidate.observed.json)。
+
+原 GitHub 产物 `14444752398` 到期 **2026-11-21 16:09:51 UTC（温尼伯 10:09:51 CST）**；未下载整包。配置摘要不是 ECR manifest digest。AWS 身份、数据库连接、ECR 发布、平台更新和注册均为 0；不重跑构建。**下一步只准备单次受保护 ECR 发布审批**；必要的产物或云端新读取先另审，发布和实际平台更新仍分开审批。
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的

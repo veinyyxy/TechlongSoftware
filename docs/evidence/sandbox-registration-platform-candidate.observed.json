@@ -1,0 +1,38 @@
+{
+  "schema": "techlong/sandbox-registration-platform-candidate-observed/v1",
+  "outcome": "NO_AWS_OVERLAY_IMAGE_BUILT_SMOKED_SCANNED_AND_SEALED",
+  "workflow": {
+    "file": ".github/workflows/sandbox-registration-candidate-v1.yml",
+    "id": 422812180,
+    "orchestrationCommit": "aae822899184c4b69fb9b888aee647e3958aac78",
+    "runId": "44343705697",
+    "jobId": "134940292846",
+    "runAttempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "dispatches": 1,
+    "retries": 0
+  },
+  "source": {
+    "base": "5fcbc23ccaccec2c6a0fab8e732728a55b0b7ffc",
+    "fix": "04e876b1f3cff75b262fd5f3b8eea7b8e65d6706",
+    "sourceRecipeSha256": "06d91b3eb875568af5d3f9b9a9015d9a949571dc0ec8427b0ad2e764bbd8c720",
+    "sourceTreeOid": "131fc5f0fd491e642916723ea0206cd0b03f413f",
+    "changedPaths": ["lib/auth/credentials.ts", "lib/auth/sandbox-registration.ts"]
+  },
+  "artifact": {
+    "id": "14444752398",
+    "name": "sandbox-registration-overlay-06d91b3e-44343705697",
+    "zipBytes": 307790427,
+    "zipDigest": "sha256:04d70d4af727389029d77ced30142ce9623f2dcc61d8b32284723a553b9a0e62",
+    "expiresAtUtc": "2026-11-21T16:09:51Z",
+    "imageArchiveBytes": 307787591,
+    "imageArchiveSha256": "f440825a28ce6a5d1f7e8129040edec831704a40f1f978e9d2fccf5099752c06",
+    "imageConfigDigest": "sha256:cd589b786df5cc2d5cb600510ef537f28e907e30b474146088c8fcdb68b873b8",
+    "scanSummarySha256": "0fe9bd90cd1e33789b00d84d4972b621399ba1923ec2064d4a5b278ed4920e7f",
+    "evidence": "Artifact metadata and exact successful job-log receipt read back; archive not downloaded or verified from ECR."
+  },
+  "checks": {"networkDisabledSmoke": true, "closedControllerAndWorker": true, "registrationGetOnly": true, "freshOsHighAndCriticalZero": true},
+  "sideEffects": {"awsIdentity": false, "databaseConnections": 0, "ecrPublications": 0, "platformUpdates": 0, "registrationAttempts": 0},
+  "releaseAuthorized": false
+}

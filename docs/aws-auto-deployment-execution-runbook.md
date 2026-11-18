@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，[原闭控平台最小更新材料](auto-pending-provisioning.md#first-onboarding-step4-registration-platform-update-review)。** 数据库安装已独立回读，不重放。已锁定旧镜像源码和仅两份注册文件，尚无候选镜像；下一步只等另审无 AWS 构建范围，不先盘点云端。新读取、发布、平台更新及本人重试各另审。控制器、worker、首版 A 和 D2 不变。
+**当前唯一继续点：缺口 3 第 4 步，[两文件闭控注册候选已封存](auto-pending-provisioning.md#first-onboarding-step4-registration-platform-candidate-observed)。** 数据库安装与单次无 AWS 构建均已完成，不重放。下一步仅准备同一候选的受保护 ECR 发布审批；必要的新读取、发布、平台更新和本人重试各另审。控制器、worker、首版 A 和 D2 不变。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 
