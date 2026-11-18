@@ -500,6 +500,20 @@
 
 下一步只由用户用自备未注册邮箱，在[原注册入口](https://console.sandbox.techlong.cloud/register?returnTo=%2Fdashboard%2Fsettings)填写企业名「Sandbox 首开验收」并提交一次。注册页技术核验通过不代表注册已成功，更不代表购买或真实首开已完成。结果不明不重复提交，未授权恢复其他资源、购买或启动首开。
 
+<a id="first-onboarding-step4-purchase-readiness"></a>
+
+#### 注册已成功；只准备同一工作区的测试购买接线
+
+2026-11-18（温尼伯），用户亲自注册成功并从工作区设置提供编号。唯一范围以本机私有记录 `sandbox-first-onboarding-workspace-20261118.json` 中的工作区 ID 为准，保留既定的餐饮产品、`standard-v1`、`cell-sandbox-1` 和[可信首版 A](#first-onboarding-step4-candidate-binding)。编号格式已验证；注册结果来自用户，尚未独立读取控制库，不推断 Owner、订阅/实例/任务或当前目录状态。
+
+**此刻不要点购买。** [线上镜像的来源记录](evidence/sandbox-registration-platform-candidate.observed.json)证明它以 `5fcbc23c…` 为基底只叠加两份注册文件；旧 `ensurePlannedAppInstanceDeployment` 没有首开挂起分支。原任务定义唯一 Secret 为数据库连接，而且 [Node 托管启动合同](../ops/platform-hosting-v1/contract.mjs)拒绝 Stripe 两个变量，[运行时 bindings](../ops/platform-hosting-v1/bindings.mjs)也不暴露它们。此外，[原 Web 角色授权](../ops/platform-web-database-role-v1/no-login.sql)和[注册函数安装](#first-onboarding-step4-registration-install-observed)都未授权现有购买代码对订单、订阅、实例和队列的直接 DML。仅改工作区参数、填 Stripe 密钥或更新镜像都不能单独放行。
+
+1. **当前唯一代码动作：接通一次购买到一条挂起任务。** 保留已通过的注册路径，复用现有购买、签名回调、首开登记 SQL 和普通队列排除条件。在原 Node 托管路径增加默认关闭、只针对准确验收工作区及餐饮标准档的测试模式；仅服务端允许测试 Stripe key 和该 HTTPS 回调签名 Secret。拒绝真实模式、其它工作区和不匹配回调；首版固定 A，不改其它工作区的默认镜像。按这条购买链的实际调用收口窄数据库调用，不给 Web 通用业务写权、不复用 owner 或普通 worker 凭据。只做相应离线/隔离回归：原闭控不变、合法测试购买只登记同一条 held job、非测试/其它工作区不进入首开、重复事件不新增任务。无须先启动 Cell、Express 或普通 worker。
+2. **购买前集中审核一次必要启用。** 定向验证该 ID 为独立 active 工作区且有唯一普通 Owner、无同产品订阅/未决购买/实例/任务，目标套餐及 A 仍匹配。实际读取另审；从现有入口和证据复用，不盘点账号。待代码与无 AWS 构建验证后，集中列出测试 Stripe Secret/对应 webhook、原平台镜像与窄配置的实际变更及费用。禁止在聊天或 Git 中接收密钥，不借用买家/商家后端的支付密钥；不以注册成功当作购买授权。
+3. **开通另行执行。** 上述条件通过后才让用户完成一次正常 Stripe 测试 Checkout；独立回读证明 `active` 订阅、`pending` 实例、`planned` 部署以及同一条未领取首开任务。再用实际 ID 审核恢复与首开，不在支付回调建资源。支付或写入结果不明时不重复提交。
+
+本节只记用户反馈及本机源码/模板核对，无 AWS、Stripe、数据库、Secret 读取、镜像构建发布、平台更新、购买或资源恢复。
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的
