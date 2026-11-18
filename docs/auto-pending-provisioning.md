@@ -324,6 +324,21 @@
 
 **下一步只用本轮事实编制「仅创建、不执行」的四 Add Change Set 审批材料。** 不重复盘点，不换角色或候选；如实际创建所需的精确依赖有未证明项，另列最小核对，不用历史数据强行放行。本轮新事实按首个采样起算至温尼伯 **2026-11-18 13:17:53.956 CST**，不延期，不自动开执行窗口。AWS 写、Secret 值读取、数据库访问、创建/执行变更集、资源启动、注册、购买和调度均为 0。实际创建与执行分别另审，页面核验通过后才由用户本人注册。
 
+<a id="first-onboarding-step4-register-create-review"></a>
+
+#### 第 4 步：原平台四项恢复变更集——仅创建审批材料
+
+**`PREPARED_NOT_APPROVED`。** [准确待审清单](../ops/deployment-baseline/platform-register-restore-create.review.json)规范 SHA **`1b39fab237fa130f9b4abe7968105c71ea67ede2b92bdae851621e2b085f2d6f`**，是「只创建、不执行」的审批指纹，不是可执行的 Change Set 或执行授权。唯一候选 `techlong-platform-register-restore-20261118t141753z`；仅 `UPDATE / STANDARD`，原平台栈，不导入或包含嵌套栈。
+
+| 核心项 | 准确范围 |
+| --- | --- |
+| **模板差异** | 用原 11 项闭控模板只派生 `Service.DesiredCount=1`，候选模板规范 SHA `6b982ae4027bf583793f6be6e2a1631994f5c2aca0b548309e81a55b5dd5e036`。相对本轮只读核实的七项停用模板，恰四 Add：`LoadBalancer`、`HttpsListener`、`Service`、`DnsRecord`；0 Modify/Remove/Import/Replace。七保留资源和模板其它段逐值不变；根 Description 的历史停用文字只作归属记录，新服务的真实期望数以新增 `Service` 声明为准。 |
+| **原参数、角色、标签** | `ControllerLease`、`HostingExpiresAt` 均 `UsePreviousValue`，原标签映射须匹配再原样传递，不续约。原栈无显式 `RoleARN`，不指定新角色或 IAM 能力；CFN 可能按原调用者的临时会话权限验证，不据此安装/扩大 IAM。任务仍用保留 `:13` 与固定 DB Secret 引用，控制器、初始请求、worker、apply 均关闭；不读 Secret 值。 |
+| **待批准调用** | 最多 `CreateChangeSet` 1 次；前置、独立回读共 STS 最多 2、元数据最多 12。一组仅核对原栈状态/更新时间/原标签/无未决变更集，以及**单个准确 ALB 名**和 console DNS 名均无碰撞；ALB 名是上轮没有读取的新对象检查，须在本次批准中明示。只在 ACK 后由独立进程使用同一固定 Source 身份，对准确 ARN 最多 4 次单页 `DescribeChangeSet`（总等待不超过 180 秒），核对 `CREATE_COMPLETE / AVAILABLE` 和四 Add，再比较变更集模板摘要、原栈模板与七项物理 ID 保持不变。不对其它栈、镜像、数据库或平台 HTTP 检查。 |
+| **失败与禁止** | 提交前写单次意图并占永久槽；超时、响应不明、变更集不符或事实变化即停，不自动重发、删除未执行记录、回滚、补齐或消费新槽。API/provider 验证与日志可能有低额非零费用；并发或 AWS 后台验证不是跨资源原子操作。`ExecuteChangeSet`、其它云写、ALB/ECS/DNS 实际恢复、注册、购买、队列、Cell 和数据库操作均为 0。 |
+
+**原事实时限不延长。** 若未来获准，最晚 **2026-11-18 13:07:53.956 CST（温尼伯）**启动本轮创建核对，事实 **13:17:53.956 CST** 截止；超过任一门槛不提交、不重放。取得并独立核对准确 Change Set ARN 后，再另报执行与失败策略审批；注册页当前仍未恢复。本轮本地复算清单、物化请求和模板三份 SHA 并核对四 Add、保留配置与边界，仅提交审批材料；没有执行工具接线、AWS 读取或写入，没有创建记录或消费槽。
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的
