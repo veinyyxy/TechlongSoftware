@@ -1,6 +1,6 @@
 # Sandbox 首开：同一平台的一次启用（离线草案）
 
-**状态：单请求已确认运行密钥返回的账户编号不同，等待用户核对，启用不可执行。** 2026-11-18（温尼伯）。[集中草案](#sandbox-first-purchase-consolidated-preparation)已绑定替代产物和原栈模板；[两项离线前置](#sandbox-first-purchase-offline-prerequisites-observed)已有准确 CI。[账户编号对照文件只存本机](#sandbox-first-purchase-stripe-account-diagnostic)，未覆盖原文件、不自动重试。未发布镜像、安装权限、创建 Secret/回调端点或更新平台。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
+**状态：账户 ID 已由用户更正，首开启用仍待一次集中审批。** 2026-11-18（温尼伯）。[集中草案](#sandbox-first-purchase-consolidated-preparation)已绑定替代产物和原栈模板；[两项离线前置](#sandbox-first-purchase-offline-prerequisites-observed)已有准确 CI。[测试分工与交付收口](#sandbox-first-purchase-delivery-boundary)：工程侧接功能，业务验收由用户做。本轮未发布镜像、安装权限、创建 Secret/回调端点或更新平台。[原离线范围与候选来源索引](evidence/sandbox-first-purchase-activation.prepared.json)保留不改。
 
 ## 固定范围
 
@@ -50,7 +50,7 @@
 
 1. **候选来源与产物已核验。** 只复用[替代构建回执](#sandbox-first-purchase-replacement-observed)，不重新调度或重复取日志。Registry manifest 只能在实际发布后独立派生，当前不预填。
 2. **集中限定只读和替代构建已完成，不重复盘点或重跑。** 套餐编号合同保持准确工作区、套餐、A 及测试模式绑定；只使用[替代候选的封存结果](#sandbox-first-purchase-replacement-observed)，不能发布旧候选或改套餐编号来绕过。
-3. **实际启用仍只出一份审批。** [单产物发布接线与非超级用户安装回归已完成](#sandbox-first-purchase-offline-prerequisites-observed)。[Stripe 第一次限定只读](#sandbox-first-purchase-stripe-readonly-stopped)在运行密钥和预填账户匹配处停止；实际再读取仍须新批准。快照按真实观测五小时有效，旧期限不续；按准确发布限时与撤权预留反推开窗，不先部署等材料。隔离回归不等于已在实际 Neon 安装，也不等于放开购买。
+3. **实际启用仍只出一份审批。** [单产物发布接线与非超级用户安装回归已完成](#sandbox-first-purchase-offline-prerequisites-observed)，用户已更正 Stripe ID。只把安全启用必需的测试账户/端点、准确 ECR/栈/权限及健康核对纳入这份审批，不再单列重复 Stripe 核对轮。快照按真实观测五小时有效，旧期限不续；按准确发布限时与撤权预留反推开窗，不先部署等材料。隔离回归不等于已在实际 Neon 安装，也不等于放开购买。
 
 <a id="sandbox-first-purchase-readonly-observed"></a>
 
@@ -169,3 +169,13 @@ Stripe 的另批范围不包含 AWS、Neon 或 GitHub 运行读取，也不刷�
 用户单独明确批准后，未重放前次只读；只读原文件 **1** 次，使用 `runtimeKey` 请求官方 `GET /v1/account` **1** 次。HTTP 200、返回对象和 `acct_` 格式均通过，**明确确认返回编号与原文件不同**。仅把返回编号与布尔比较结果写入本机 `.local-secrets/sandbox-first-purchase-stripe-account-comparison.json`；不打印、不提交 Git、不修改原凭据文件。未使用核对密钥、未查余额、测试模式或 webhook，也未执行其他 API、云写入、部署或购买。
 
 去敏诊断回执 SHA-256 `848577590ea5120c06ced9b4b21764f43e773d0b24d64488105107e646510324`，单次意图 SHA-256 `09a438eddb566e8dfbb7caa23d03c1a68373dcb143924460c68e270a098de0cb`，观测 `19:58:34.625Z–19:58:36.109Z`。用户须先核对对照文件中的 `accountIdReturnedByStripe` 与 Dashboard 所选 Sandbox；只有确认是预期账户才自行更正原文件的 `accountId`。随后是否再次限定只读须另批，不能自动替用户确认 Sandbox 或把本诊断当作启用依据。
+
+<a id="sandbox-first-purchase-delivery-boundary"></a>
+
+### 功能交付与测试分工（当前）
+
+用户确认已在本机更正账户 ID。遵守执行手册中既有分工：工程侧完成首开功能和启用接线，只做代码的必要回归和部署技术核验；实际界面、Checkout、回调后的业务结果由用户验收，不代买、不先重复 Stripe 测试、不拆额外阶段。用户更正不等于授权再读，也不冒称已核验两把密钥或端点。
+
+[模板生成模块](../ops/platform-ecs-v1/first-purchase-activation.mjs)已实现：重建并比对原 Access/Hosting 模板摘要，用已撤权的已审镜像发布回执和固定 Secret ARN/VersionId 生成原两栈的差异，提供新 Secret 的准确资源保护策略。Access 仅追加对新 Secret 的两条窄权限；Hosting 保留旧数据库绑定和关闭开关。本轮只用合成数据做一次本机装配检查，不读原凭据、不调用服务或调度。
+
+下一步只复用已验证发布器、PG18 安装体和模板生成，接齐实际启用的剩余串联，再交一份审批；账户绑定与防止接错端点、栈、权限及版本的最小核对属于这一份审批的执行前置，不在本轮执行。根据核对只会选端点复用或获批的新建，不预判其现状。用户的测试购买及业务验收在功能启用后进行。
