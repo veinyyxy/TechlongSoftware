@@ -488,6 +488,8 @@
 
 **接续：发布适配已通过 CI，不重做。** 只为已封存 `14444752398` 接线，沿用现有单次 push、无论结果都撤权及独立核验的编排；旧入口不变。不可变 reusable `0b07603…` 的[无 AWS CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44346591038)通过，固定 caller `2e42274…` 的[无 AWS CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44346902837)亦通过。未读取发布角色或 ECR、未下载产物、授权或调度。下一步只做另审的限定读取，不再拆额外方案；发布、撤权核验和原服务换镜像可集中呈审，实际按门槛顺序执行，GitHub environment 仍由本人批准。在新镜像上线前，不重试注册。
 
+**只读已通过，合并为一次执行审批。** 本轮实际 STS 1、AWS 元数据 15、GitHub GET 11，核对了原 Locked 发布角色、三份既有镜像、未占用目标 tag、准确产物及人工审批门禁。没有查平台栈、下载镜像、连库或写云。唯一待审清单保存在本机私有目录 `sandbox-registration-finish-bug.review.json`，LF SHA-256 `c77b44f9cf3389915f801b8ecec9473c211a74e860afedf807a3f7c78cecfd06`。按同一外层批准，先发布并独立核验撤权与镜像，再只在原平台和两项 Change Set 差异严格匹配时换镜像；不再另要 Change Set 批准。GitHub environment 必须本人批准。整轮最晚 **2026-11-18 13:51:40.980 CST（温尼伯）** 启动，原事实 **15:26:40.980 CST** 截止，不延长。未授权执行，不重试注册。
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的
