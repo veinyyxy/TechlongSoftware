@@ -2,7 +2,13 @@
 
 后续工作先遵守[执行手册：主线顺序、开窗门槛与禁止偏离](aws-auto-deployment-execution-runbook.md)。下方历史阶段文字保留追溯，不构成当前执行指令或批准。
 
-## 当前唯一继续点：首轮 A→B 待另批单次调度（2026-11-17）
+## 当前主线状态：D2 六阶段已完成（2026-11-17，温尼伯）
+
+[日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
+
+主线下一候选是**新客户首次自动开通**，待用户明确再进入。D2 只覆盖已初始化实例的日常后端更新，不代表新租户首开、生产推广或整套 SaaS 正式上线已完成。本次结案不重做业务测试，不复用旧批准，不启动、续租、停止或清理资源。下面保留的是历史状态，不覆盖本节。
+
+### 首轮 A→B 调度前记录（历史，已执行，不重放）
 
 [待批清单](../ops/releases/d2-6-step5-a-to-b.prepared.json) `627435730f44eadba4b4c956f1929eba0e8535b7494d7737414894774cf23201`、[步骤与风险](aws-instance-release-step5-a-to-b-review.md)已就绪。保留 A/revision 0 和已登记 B 候选，仅一次既有 workflow 的 `sandbox` 三输入；实际 `PROMOTION_PLANNED` 须由用户本人批准对应 GitHub environment。B digest 不预填；原产物 11 月 18 日温尼伯 10:45:19 到期，建议最晚 09:15:19 调度。未访问生产或调度、未变更资源与账本；正常更新 0/2，不准备 B→A，资源仍可能持续计费。
 

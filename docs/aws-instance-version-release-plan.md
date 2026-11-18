@@ -1,20 +1,29 @@
 # 缺口2：日常版本发布与更新详细实施方案
 
-日期：2026-11-17，America/Winnipeg。状态：`D2-6 STEP 4 COMPLETED / FIRST NORMAL A→B PREPARED ONLY / 0 OF 2`。
+结案日期：2026-11-17（America/Winnipeg）。状态：**D2-1 至 D2-6 全部完成；真实正常更新 2/2**。
 
-已交付代码、一次性身份安装、A/B 构建及[步骤4实际结果](aws-instance-release-step4-finish-observed-20261117.json)，不把初始化计作正常更新。runtime 已启用，bootstrap 仍关闭。唯一继续点是[首次 A→B 待批范围](aws-instance-release-step5-a-to-b-review.md)；其他阶段状态及审批描述是历史。执行以[主线手册](aws-auto-deployment-execution-runbook.md)为准，任何待审材料均不授权实际调度、读取或发布。
+<a id="d2-closeout"></a>
 
-最新D2-5接线：[具体来源采集与受审目录命令](aws-instance-release-import.md)已完成代码/准确无AWS CI（164回归＋8原生PG测试）；用户选择仅代码与CI，真实采集/登记未执行。同审批自动晋升现为明确后继需求，不再按“可选”跳过，但不扩大这轮已有ECR路径或提前发布。
+## D2 结案：既有实例的日常 API 版本发布
 
-当前按用户新要求补[同审批候选晋升](aws-instance-release-promotion.md)：同一environment批准候选原件与更新派生约束，job发布一份app、回读ECR并窄目录确认，再复用原CFN/独立核验/回写。原件、实例和范围固定；审批前不编造digest。只代码/增量SQL草案/CI，未安装、启用或实际发布。
+已交付并验证：在 GitHub 选择已登记的实例和目标版本，`prepare` 生成新请求的变更摘要；用户本人仅批准该 run 的 `techlong-sandbox-deploy` 一次。受保护 job 更新原栈的 `ImageUri`，独立核对实际镜像、原配置和服务健康，保存证据后回写版本并释放请求占用。无需平台 Web 审批。阶段细项见[第15节](#d2-stage-closeout)。
 
-该代码收尾已完成：[CI43561305617](https://github.com/veinyyxy/TechlongSoftware/actions/runs/43561305617) 对应2659d7a，171回归＋9原生PG16全过/无skip。只证明合成来源/命令和隔离数据库，不是实际ECR晋升或部署已开启。后继仍需真实候选准入、必要身份/SQL安装及两次正常技术更新验收，不重复业务测试。
+[身份安装](aws-instance-release-identity-installation-accepted-20261116.json)、[真实 A 发布与 A/B 登记](aws-instance-release-initial-publication-observed-20261117.json)、[初始 A 绑定和运行入口启用](aws-instance-release-step4-finish-observed-20261117.json)已完成；初始化为 revision 0，不计入正常更新。日常 runtime 已启用，初始引导入口仍关闭。两次更新均为同一 [instance-release.yml](../.github/workflows/instance-release.yml) 和源码 `7ac357bc04180eed1318188bedc4983cfd2f0f09`，各自使用新请求、attempt 1 和一次环境审批。
 
-一次性启用按[总清单第30节](aws-instance-release-activation.md#30-新一轮七项只读全部通过一次性身份安装正式收口)及[最终回执](aws-instance-release-identity-installation-accepted-20261116.json)正式验收通过：四CFN栈13身份资源、两已知SQL提交、四LOGIN独立认证、原目录/权限、新IAM和原三栈保护证据全部闭合。五Secret/两SQL不重做，不重装IAM或重复身份核验。runtime仍关闭，下一只按原D2-6准备真实版本/准确初始实例绑定及运行配置，实际读取/构建/登记/恢复/发布仍另审；不将身份收口当两次真实更新或全部D2完成。以下执行卡保留阶段沿革，不重做D2-1至D2-5。
+| 正常更新 | GitHub 运行 | 独立验收与控制面回读（温尼伯） |
+| --- | --- | --- |
+| A→B | [44212085264](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) | 11 月 17 日 19:26：同一次审批内把 B 从候选晋升到 ECR、确认可信目录后应用；`SUCCEEDED / INDEPENDENT_RESULT_RECORDED`，B / revision 1 / 无活动请求。 |
+| B→A | [44217368907](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) | 11 月 17 日 19:56：仅切换到已在 ECR 的 A，不重新构建或晋升；`SUCCEEDED / INDEPENDENT_RESULT_RECORDED`，A / revision 2 / 无活动请求。 |
+
+两轮的独立验收均已核对部署日志、Neon 账本与准确固定版本 S3 证据；证据内容、摘要与请求匹配。原始验收回执保留在本机私有目录，不随文档提交。最新结果取代下方历史的“待调度”“runtime 关闭”和“0/2”描述，不延长或重放旧清单与审批。
+
+**结案范围：** 已初始化 sandbox 租户的买家／商家共用后端 API 日常更新。新客户首次开通、生产推广、整套 SaaS 上线和业务验收不在 D2 结论内。无需重跑部署；不自动停费、恢复或清理。未来操作按[主线手册](aws-auto-deployment-execution-runbook.md)和新确认范围执行，本结案不授予任何操作权限。
 
 <a id="d2-6-readiness"></a>
 
-## D2-6当前执行卡：先备齐，再一次恢复、两次正常更新
+## D2-6 历史执行卡：先备齐，再一次恢复、两次正常更新
+
+以下是当时的执行记录和审批边界；“当前”“下一步”和窗口时间指原轮次。当前结果以上方结案为准。
 
 **最新第23节是唯一继续点：** 复用已存成功通道/资源/版本证据，已离线完成[剩余激活新接续](../ops/releases/d2-6-step4-activation-continuation.review.json)/[增量、时序与风险](aws-instance-release-step4-activation-continuation-review.md)，SHA `a33833df78d2e9457da3c47ad3a4ab499e8d03bf339bcedeb66a92b483976d58`。本轮无生产读取/四输入正文/连接/恢复，既有enabled形状合成28项全过、真实runtime未动。旧17:05:01窗口保持，新独立90分钟与STS/连接/四输入明确增量仍另待批准，不从“开始下一步”推定；原事实18:53:21.305到期、最晚17:23:21.305启动。完整私有调用编排未就绪不读凭据/消耗新槽，不以只有前置模块开窗，不声称一键入口已实现；正常更新仍0/2。
 
@@ -1050,18 +1059,20 @@ GitHub App当前可访问哪些仓库并未在本轮在线核对。跨仓库读�
 
 若现有适配器只接受某固定job或“只删资源”的临时范围，不能直接放宽它的安全边界以兼容发布；从现有正式CFN端口复用序列化/客户端/证据逻辑，增加当前产品明确的ImageUri更新合同。临时节费工具不导入、不改造；冻结历史入口不重写成泛用入口。
 
+<a id="d2-stage-closeout"></a>
+
 ## 15. 分步交付与停止点
 
-| 阶段 | 交付物 | 通过标准 | 云/安装边界 |
-| --- | --- | --- | --- |
-| D2-1 合同与纯计划（离线已完成） | SoftwareRelease、InstanceBinding、请求/状态合同；digest/兼容/STOPPED/仅ImageUri planner | [交付记录](#d2-1-delivered)：88项相关回归、lint/类型通过；仅纯计划，不授权live | 无SQL/配置/凭据读取、AWS/工作流变更；线上能力仍未接线 |
-| D2-2 状态与适配（离线已完成） | 三表/七函数与窄授权草案、请求CAS、CFN/证据注入适配 | [交付记录](#d2-2-delivered)：新增17项合同模型/真实SDK内存回归，总105通过；原生PG行锁/ACL未验证 | 草案未应用；安装前隔离PG验证，实际DDL/角色/Secret/IAM/GitHub另审 |
-| D2-3 已有ECR版本执行闭环（离线已完成） | executor、单独inspector入口、可信回写、NO_CHANGE/失败分类 | [交付记录](#d2-3-delivered)：不同实例/不同ECR版本、真实SDK内存模拟；相关123项本地通过，常规无AWS CI独立记录 | 不在线更新/启通用worker/写旧账本；生产采样、新进程身份接线及原生PG安装验证仍另审 |
-| D2-4 单审批工作流（代码完成/未启用） | 普通入口/摘要/准确run计划、一个受保护job、真实采样/隔离进程接线 | [交付记录](#d2-4-delivered)：14新增/137相关本地回归，真实子进程及默认关闭验证；无AWS CI/临时PG16结果独立记录 | runtime关闭；安装身份、生产读取及真实写分别批准，不自动调度 |
-| D2-5 正常版本生产接入（已有ECR与同审批晋升代码/CI完成） | 构建产物→候选release→同门禁内单app晋升/ECR原文验证→窄目录确认→原更新器 | [具体边界](aws-instance-release-promotion.md)：171回归＋9原生PG16，准确原件/派生规则固定，不伪造digest；真实生产采集/登记/晋升未执行 | 原唯一environment，未改旧两镜像发布器；新增SQL/身份尚未安装，runtime关闭，实际发布仍另审 |
-| D2-6 受控真实技术验收 | 一次明确恢复后两次独立正常版本切换，完成持久回写 | 第二次不改代码/复制workflow，单次发布一审批；实际镜像/归属/健康/记录一致 | 恢复/在线读/安装/每次发布及后续停费分别有明确授权；不执行买卖家业务测试 |
+| 阶段 | 结案结果 | 证据 |
+| --- | --- | --- |
+| D2-1 合同与纯计划 | 完成：版本、实例绑定和请求合同；兼容、停用和仅改 `ImageUri` 的门槛。 | [交付及回归](#d2-1-delivered) |
+| D2-2 状态与适配 | 完成：请求账本、原子领取、操作回执、结果回写与固定版本证据适配；后续完成隔离 PG 验证与实际安装。 | [交付](#d2-2-delivered)、[安装验收](aws-instance-release-identity-installation-accepted-20261116.json) |
+| D2-3 已有 ECR 版本执行闭环 | 完成：同一更新器变更服务、独立核验并回写；B→A 用已有 A 镜像实证。 | [交付](#d2-3-delivered)、[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) |
+| D2-4 单审批工作流 | 完成并启用：每个发布 run 只有一次 GitHub environment 人工审批，随后自动更新、独立核验和回写。 | [交付](#d2-4-delivered)、[启用回执](aws-instance-release-step4-finish-observed-20261117.json) |
+| D2-5 正常构建与可信目录 | 完成：接入真实 A/B 构建，登记可信版本；首轮同一次审批内晋升 B、确认目录并应用。 | [A 发布与 A/B 登记](aws-instance-release-initial-publication-observed-20261117.json)、[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) |
+| D2-6 受控真实技术验收 | 完成 **2/2**：同一源码、同一工作流的两次独立版本切换，最终 A / revision 2 / 无活动请求。 | [结案与两轮证据](#d2-closeout) |
 
-最快顺序：D2-1→D2-2→D2-3，离线把整轮材料与失败分支备齐；再D2-4，已有ECR版本可先安排真实验收；D2-5不要求重写既有构建器。具体阶段以可运行交付为单位，不把一项实现拆成许多聊天审批，也不承诺一段固定时间能完成尚未核对的外部权限。
+以下测试与执行条件保留原设计，供以后正常发布核对；不要求重做 D2，也不授予部署许可。
 
 ### 15.1 必要测试清单
 
