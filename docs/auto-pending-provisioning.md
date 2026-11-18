@@ -428,6 +428,22 @@
 
 接续清单已保存在本机私有目录，绑定原只读范围、修正版和独立结果文件。仍限各一次准确私有输入读取、一条验证 TLS 的 Neon 只读连接、最多 13 条 SQL；四表约束、安装角色能力和邮箱存在性仍待核对。实际连接另审，不安装权限、不更新平台、不重试注册。
 
+<a id="first-onboarding-step4-registration-install-review"></a>
+
+#### 普通注册安装审批：专用角色拥有对象，创建者仅保留系统自动授予的 ADMIN
+
+[新版待审清单](evidence/sandbox-registration-install-pg18.review.json)复用已完成的 PostgreSQL 18 只读接续回执。原 Web 有效权限、四表结构与保护均匹配；安装者是原非超级用户 owner，具 `CREATEROLE`、建 schema 和 29 列转授能力；新名称空闲，单一测试身份未命中。原阻塞是没有证明可以按旧要求转移所有权且不留下成员关系，而不是需要放宽 Web 权限。快照于 **2026-11-18 09:51:53.991（温尼伯 CST）** 取得，原五小时有效期截至 **14:51:53.991 CST / 20:51:53.991 UTC**，不重计、不重复盘点。
+
+| 对象或角色 | 待审的准确结果 |
+| --- | --- |
+| `sandbox_registration` schema 和唯一 `register_account(text,text,text,text)` | 都归专用 `techlong_sandbox_registration_definer`。schema 创建时直接指定 owner；函数以该角色创建，不再由安装者建完后转移。专用角色 `NOLOGIN / NOINHERIT / NOBYPASSRLS`，不拥有业务表；只拿 `public` 的 USAGE 和原定 29 列 INSERT。函数逻辑、固定 `search_path` 和四条原子写入不变。 |
+| 安装者 | 仅在同一安装事务中显式自授 `SET=true, INHERIT=false, ADMIN=false` 的临时记录；建完对象并配置 ACL 后恢复 `SESSION_USER`，按 `GRANTED BY CURRENT_USER RESTRICT` 只撤这条自授记录。提交后只能留下 **bootstrap 超级用户自动授予创建者的一条 `ADMIN=true, SET=false, INHERIT=false`**。安装者不能直接切换到或继承 definer，但仍能用 `ADMIN` 再授成员权限，这是真实的长期管理权，需明确接受。参考 [PostgreSQL 18 创建者权限](https://www.postgresql.org/docs/18/role-attributes.html)及工程内[已验证的非超级用户建对象模式](../ops/releases/README.md)。该历史回归不是本候选在 Neon 上的执行证明。 |
+| Web 和 PUBLIC | Web 仍只得到原拟议的**新 schema USAGE＋单函数 EXECUTE**，不扩至直接表写、CREATE、可转授权限或 definer 成员关系。PUBLIC 不得访问新 schema 或调用函数。不变更任何既有登录、会话或普通 worker 权限。 |
+
+**未来实际安装限额（尚未批准）：** 复用同一配置、封存目标回执、已完成只读回执及同一测试邮箱文件，各最多读取一次。邮箱地址留在本机，获批后才用原算法在内存派生摘要以生成同一函数正文；上一轮回执故意不保留邮箱指纹，要求确认文件自核对后未改、修改时间不得更新，不把这当成回溯性的密码学证明。函数元数据或提供者日志可能暴露可猜测的邮箱摘要；它不用于验证邮箱归属，也不进 Git。使用至多两条验证 TLS 的连接：先一次安装事务（最多 24 条 SQL，含最多 14 条 DDL/授权），提交前核对目标、最终所有权和准确权限差异；只在收到明确提交确认后，再用独立只读连接/事务回读（最多 6 条 SQL）。核对只针对本次安装及原 Web 权限边界，不重跑现状盘点或邮箱查询，不调用注册函数。提交前不符即回滚，提交结果不明停止、不重试或清理。过期或时间不足不执行。
+
+**本轮只编制方案和清单。** 未读取邮箱或配置、未重新核对或连库、未生成含真实身份的 SQL、未安装、未更新平台或重试注册。下一步仅另审这一份安装范围及剩余事实时限；平台更新与本人注册均不在本清单内。
+
 ## 当前操作说明（实施计划不改变现有流程）
 
 ### 目的

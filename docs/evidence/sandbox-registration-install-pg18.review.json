@@ -1,0 +1,116 @@
+{
+  "schema": "techlong/sandbox-registration-install-review/v2",
+  "status": "PREPARED_PENDING_SEPARATE_INSTALL_APPROVAL",
+  "purpose": "Install only the restricted ordinary sandbox registration entry on the original platform Neon PostgreSQL 18 database",
+  "basis": {
+    "readOnlyReviewSha256Lf": "cfc461514544724e968d2b333f746848a4b738eb063d35939818012dbd5e124f",
+    "privateReadOnlyReceipt": ".local-secrets/sandbox-registration-preflight-search-path.result.json",
+    "privateReadOnlyReceiptSha256": "0a4227a1e3fafeead791d08357a0e425266fbf628ef6a97c3e5167c2082806fa",
+    "observedAtUtc": "2026-11-18T15:51:53.991Z",
+    "factsValidBeforeUtc": "2026-11-18T20:51:53.991Z",
+    "useExistingObservationsOnly": true,
+    "replayPreflight": false,
+    "postgresMajor": 18
+  },
+  "target": {
+    "sandboxOrigin": "https://console.sandbox.techlong.cloud",
+    "neonInstaller": "Exact existing authenticated database owner bound through the original preflight's pinned W7k receipt, with current_user = session_user, CREATEROLE and no superuser",
+    "existingWebRole": "techlong_platform_web_acceptance_v1",
+    "existingWebRoleOid": "196608",
+    "newDefiner": "techlong_sandbox_registration_definer",
+    "newSchema": "sandbox_registration",
+    "newFunction": "sandbox_registration.register_account(text,text,text,text)",
+    "schemaOwner": "techlong_sandbox_registration_definer",
+    "functionOwner": "techlong_sandbox_registration_definer",
+    "businessTableOwnersChanged": 0
+  },
+  "expectedCreatorMembership": {
+    "bodyCreationRole": "techlong_sandbox_registration_definer",
+    "temporaryGrantor": "authenticated installer (CURRENT_USER = SESSION_USER when granting and revoking)",
+    "temporaryOptions": {"ADMIN": false, "INHERIT": false, "SET": true},
+    "temporaryRowDeletedBeforeCommit": true,
+    "onlyPersistedNewMembership": {
+      "role": "techlong_sandbox_registration_definer",
+      "member": "exact authenticated installer",
+      "grantor": "PostgreSQL bootstrap superuser",
+      "ADMIN": true,
+      "INHERIT": false,
+      "SET": false
+    },
+    "installerMayLaterRegrantMembershipUsingAdmin": true,
+    "webMemberOrEffectiveSetOrInheritancePath": false,
+    "noChangesToExistingRoleAttributesOrMemberships": true
+  },
+  "functionAssembly": {
+    "sourcePath": "ops/platform-web-database-role-v1/sandbox-registration-ddl.ts",
+    "sourceCommit": "04e876b",
+    "sourceSha256Lf": "680647ef82808ddcc87fe526843efd0590423f93c4c77c8e1fbbdd6511b37837",
+    "extractOnly": "The unique CREATE FUNCTION sandbox_registration.register_account(... through its closing $register$; inclusive, not the old surrounding DDL or COMMIT",
+    "deriveOnlyAfterSeparateApproval": "Using the same unchanged private test-email file, apply normalizeAuthEmail and SHA-256 of UTF-8. Set only the existing digest parameter of sandboxRegistrationDdl; never output or commit the address, digest or assembled production function body.",
+    "inputBindingLimit": "The previous read-only receipt intentionally contains no identity hash. Require operator confirmation that the exact email file is unchanged since that attempt and reject a newer modification time; this is not retrospective cryptographic proof.",
+    "originalFunctionLogicChanged": false,
+    "productionSqlRendered": false
+  },
+  "transactionRecipe": {
+    "beginAndLocalSettings": [
+      "BEGIN",
+      "SET LOCAL search_path=pg_catalog",
+      "SET LOCAL statement_timeout='15s'",
+      "SET LOCAL lock_timeout='3s'",
+      "SET LOCAL createrole_self_grant=''"
+    ],
+    "identityBeforeDdl": "One catalog SELECT: match pinned authenticated installer, database and owner OIDs, Web OID and PostgreSQL 18. Do not replay the prior schema/ACL/identity lookup sweep.",
+    "asInstaller": [
+      "CREATE ROLE techlong_sandbox_registration_definer NOLOGIN NOINHERIT NOSUPERUSER NOCREATEROLE NOCREATEDB NOREPLICATION NOBYPASSRLS",
+      "GRANT techlong_sandbox_registration_definer TO SESSION_USER WITH ADMIN FALSE, INHERIT FALSE, SET TRUE GRANTED BY CURRENT_USER",
+      "CREATE SCHEMA sandbox_registration AUTHORIZATION techlong_sandbox_registration_definer",
+      "GRANT USAGE ON SCHEMA public TO techlong_sandbox_registration_definer",
+      "GRANT INSERT (id, email, name, status, is_platform_admin, created_at, updated_at) ON public.users TO techlong_sandbox_registration_definer",
+      "GRANT INSERT (id, name, owner_id, status, contact_name, contact_email, subscription_status, app_instance_status, created_at, updated_at) ON public.workspaces TO techlong_sandbox_registration_definer",
+      "GRANT INSERT (id, workspace_id, user_id, role, joined_at) ON public.workspace_members TO techlong_sandbox_registration_definer",
+      "GRANT INSERT (user_id, password_hash, password_salt, password_iterations, password_changed_at, created_at, updated_at) ON public.user_credentials TO techlong_sandbox_registration_definer"
+    ],
+    "switchToDefiner": "SET LOCAL ROLE techlong_sandbox_registration_definer",
+    "beforeFunction": ["REVOKE ALL ON SCHEMA sandbox_registration FROM PUBLIC"],
+    "createFunction": "Exactly the one privately rendered function in functionAssembly",
+    "afterFunction": [
+      "REVOKE ALL ON FUNCTION sandbox_registration.register_account(text, text, text, text) FROM PUBLIC",
+      "GRANT USAGE ON SCHEMA sandbox_registration TO techlong_platform_web_acceptance_v1",
+      "GRANT EXECUTE ON FUNCTION sandbox_registration.register_account(text, text, text, text) TO techlong_platform_web_acceptance_v1"
+    ],
+    "closeTemporaryAccess": [
+      "SET LOCAL ROLE NONE",
+      "REVOKE techlong_sandbox_registration_definer FROM SESSION_USER GRANTED BY CURRENT_USER RESTRICT"
+    ],
+    "verifyThenEnd": "One catalog SELECT for expected delta in the same transaction. Explicit COMMIT only on exact match and within deadline, otherwise ROLLBACK before any commit submission. A lost commit response is unknown, not a retry or a cleanup authorization."
+  },
+  "verifyExpectedDeltaBeforeCommitAndIndependentlyAfterAcknowledgedCommit": [
+    "Exactly one new NOLOGIN, NOINHERIT, non-elevated definer. It owns exactly the new schema and registration function in scope; no business table ownership changes. Function is SECURITY DEFINER with pg_catalog, pg_temp and the exact rendered routine (body digest compared in memory, never retained).",
+    "The only membership touching the definer is the bootstrap-to-installer ADMIN-only row with SET and INHERIT false. No installer-granted row, no indirect effective SET/USAGE for installer, and no Web membership, effective SET or inheritance path.",
+    "The definer has public schema USAGE and only the 29 listed column INSERT grants, no grant options, no table-wide INSERT, no business SELECT/UPDATE/DELETE/TRUNCATE. New-schema/function ACLs contain only built-in ownership and the exact two Web permissions; PUBLIC has neither.",
+    "The Web-role effective table/column ACL on the four registration tables, plus existing auth_sessions ACL, still matches the original profile. No added Web DML, schema CREATE, membership or WITH GRANT OPTION. No changed constraints or roles outside the approved delta."
+  ],
+  "futureLimits": {
+    "existingConfigurationFileReads": 1,
+    "pinnedHistoricalPrivateReceiptReads": 1,
+    "completedReadOnlyReceiptReads": 1,
+    "samePrivateEmailFileReads": 1,
+    "verifiedTlsConnections": 2,
+    "installationTransactions": 1,
+    "independentReadOnlyTransactions": 1,
+    "installConnectionSqlMax": 24,
+    "independentConnectionSqlMax": 6,
+    "ddlAndAclStatementsMax": 14,
+    "catalogSelectsMax": 3,
+    "businessRowQueries": 0,
+    "businessWrites": 0,
+    "functionInvocations": 0,
+    "awsCalls": 0,
+    "secretValueReads": 0,
+    "platformUpdates": 0,
+    "registrationAttempts": 0,
+    "automaticRetries": 0
+  },
+  "stopAndRisk": "Do not begin if any pin/target/input changed, facts expired or time is insufficient. No replacement role, admin escalation, existing-object reuse, CASCADE or automatic retry/cleanup. The creator retains real future regrant capability, even though immediate SET/INHERIT is absent. Owner configuration and the one address enter memory; provider logs or readable routine metadata may disclose the email digest, which is guessable and is not email verification. Catalog checks do not remove concurrency/managed service/unknown-commit risk. A verified install is not a platform deployment or permission to retry registration.",
+  "authorization": {"liveReads": false, "databaseChanges": false, "platformRelease": false, "retryRegistration": false}
+}
