@@ -4,14 +4,15 @@ export const PUBLIC_ORIGIN='https://console.sandbox.techlong.cloud';
 const PUBLIC_HOST=new URL(PUBLIC_ORIGIN).host;
 const SAFE_METHODS=new Set(['GET','HEAD']);
 const WRITE_METHODS=new Set(['POST','PUT','PATCH','DELETE']);
-const CRITICAL=new Set(['host','origin','x-forwarded-host','x-forwarded-proto','x-forwarded-port','sec-fetch-site']);
+const CRITICAL=new Set(['host','origin','x-forwarded-host','x-forwarded-proto','x-forwarded-port','sec-fetch-site','stripe-signature']);
 const forwarded=name=>name==='forwarded'||name.startsWith('x-forwarded-')||name==='x-real-ip';
 
 export function ingressPolicy(env,options){
   const mode=env.TECHLONG_PLATFORM_INGRESS,origin=env.TECHLONG_PLATFORM_PUBLIC_ORIGIN;
   if(!mode&&!origin)return Object.freeze({mode:'loopback',host:`127.0.0.1:${options.port}`,origin:`http://127.0.0.1:${options.port}`});
   must(mode==='alb-https-v1'&&origin===PUBLIC_ORIGIN&&options.host==='0.0.0.0','INGRESS_CONFIG');
-  return Object.freeze({mode,host:PUBLIC_HOST,origin:PUBLIC_ORIGIN});
+  return Object.freeze({mode,host:PUBLIC_HOST,origin:PUBLIC_ORIGIN,
+    ...(env.TECHLONG_SANDBOX_FIRST_PURCHASE==='true'?{sandboxStripeWebhook:true}:{})});
 }
 
 // Validate original wire fields, before Node's merged headers can hide duplicates.
@@ -24,7 +25,7 @@ export function checkIngress(req,policy){
       values.set(name,req.rawHeaders[i+1]);
     }
   }
-  if(!values.get('host')||[...values.values()].some(v=>typeof v!=='string'||/[\r\n,]/.test(v)))return 400;
+  if(!values.get('host')||[...values].some(([k,v])=>typeof v!=='string'||/[\r\n]/.test(v)||(k!=='stripe-signature'&&v.includes(','))))return 400;
   if(!req.url?.startsWith('/')||req.url.startsWith('//')||/[\\#\x00-\x20\x7f]/.test(req.url))return 400;
   const method=req.method;
   if(!SAFE_METHODS.has(method)&&!WRITE_METHODS.has(method)&&method!=='OPTIONS')return 405;
@@ -43,6 +44,10 @@ export function checkIngress(req,policy){
   }else if(Object.keys(headers).some(forwarded))return 400;
   if(values.has('origin')&&values.get('origin')!==policy.origin)return 403;
   if(WRITE_METHODS.has(method)){
+    // Stripe is not a browser. The route still has to authenticate the exact raw body.
+    if(policy.sandboxStripeWebhook&&method==='POST'&&req.url==='/api/stripe/webhook'&&
+      values.get('stripe-signature')&&!values.has('origin')&&!values.has('sec-fetch-site')&&
+      !headers.cookie&&!headers.authorization&&!headers['next-action'])return 0;
     if(values.get('origin')!==policy.origin)return 403;
     if(values.has('sec-fetch-site')&&!['same-origin','none'].includes(values.get('sec-fetch-site')))return 403;
   }

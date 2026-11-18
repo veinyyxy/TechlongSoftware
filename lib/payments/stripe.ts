@@ -49,6 +49,7 @@ export interface StripeCheckoutSessionStatus {
 export interface StripeWebhookEvent {
   id: string;
   type: string;
+  livemode?: boolean;
   data: { object: Record<string, unknown> };
 }
 
@@ -71,9 +72,10 @@ export function hasStripePaymentConfiguration(): boolean {
 
 export async function createStripeCheckoutSession(
   input: StripeCheckoutSessionInput,
+  sandbox?: { testKey: string },
 ): Promise<StripeCheckoutSession> {
-  const secretKey = binding("STRIPE_SECRET_KEY");
-  if (!secretKey) {
+  const secretKey = sandbox ? sandbox.testKey : binding("STRIPE_SECRET_KEY");
+  if (!secretKey || (sandbox && !/^(?:sk|rk)_test_[A-Za-z0-9_]{8,}$/.test(secretKey))) {
     throw new StripeGatewayError(
       "STRIPE_NOT_CONFIGURED",
       "在线支付尚未配置，请联系平台管理员。",
@@ -105,6 +107,7 @@ export async function createStripeCheckoutSession(
   try {
     response = await fetch(`${STRIPE_API_BASE}/checkout/sessions`, {
       method: "POST",
+      ...(sandbox ? { redirect: "error" as const } : {}),
       headers: {
         authorization: `Bearer ${secretKey}`,
         "content-type": "application/x-www-form-urlencoded",
@@ -123,7 +126,9 @@ export async function createStripeCheckoutSession(
   const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
   const id = typeof payload?.id === "string" ? payload.id : "";
   const url = typeof payload?.url === "string" ? payload.url : "";
-  if (!response.ok || !id || !isStripeCheckoutUrl(url)) {
+  if (!response.ok || !id || !isStripeCheckoutUrl(url) || (sandbox &&
+      (payload?.livemode !== false || !/^cs_test_[A-Za-z0-9]{1,200}$/.test(id) ||
+        url.split("#")[0] !== `https://checkout.stripe.com/c/pay/${id}`))) {
     throw new StripeGatewayError(
       "STRIPE_CHECKOUT_FAILED",
       "无法创建在线支付页面，请稍后重试。",

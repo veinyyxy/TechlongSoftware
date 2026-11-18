@@ -34,6 +34,7 @@ COPY --from=build --chown=node:node /app/ops/platform-hosting-v1/contract.mjs /a
 # Node24 loads them directly; no repository dotenv, private key or full source tree.
 COPY --from=build --chown=node:node /app/lib/deployments/controller-v6/configuration.ts /app/lib/deployments/controller-v6/contract.ts /app/lib/deployments/controller-v6/installed-binding.ts ./lib/deployments/controller-v6/
 COPY --from=build --chown=node:node /app/lib/deployments/execution/hash.ts ./lib/deployments/execution/
+COPY --from=build --chown=node:node /app/lib/purchases/sandbox-first-purchase-config.ts ./lib/purchases/
 COPY --from=build --chown=node:node /app/ops/platform-recovery-control-v1/binding.mjs ./ops/platform-recovery-control-v1/
 COPY --from=build --chown=node:node /app/ops/platform-cloud-v6/contract.mjs ./ops/platform-cloud-v6/
 USER node

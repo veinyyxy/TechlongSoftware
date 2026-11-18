@@ -16,6 +16,7 @@ import {
   getWorkspacePurchaseOrder,
   reconcilePurchaseOrderFromStripe,
 } from "@/lib/purchases/management";
+import { readSandboxPurchaseOrder, sandboxFirstPurchaseSelected } from "@/lib/purchases/sandbox-first-purchase-runtime";
 
 export const metadata: Metadata = { title: "付款结果" };
 export const dynamic = "force-dynamic";
@@ -37,6 +38,16 @@ export default async function PaymentResultPage({
   const checkoutId =
     typeof query.checkout_id === "string" ? query.checkout_id : "";
   const orderId = typeof query.order_id === "string" ? query.order_id : "";
+  if (sandboxFirstPurchaseSelected()) {
+    const order = await readSandboxPurchaseOrder(account.workspace.id, account.user.id, orderId);
+    return (
+      <section className="empty-state standalone-empty">
+        <strong>{order?.status === "paid" ? "测试付款已确认，首开任务待审" : "尚未确认测试付款"}</strong>
+        <p>{order ? "本页只显示签名回调确认的结果。未确认时请勿重新购买。" : "未找到当前工作区的验收订单。"}</p>
+        <Link className="button button-dark button-small" href="/dashboard/plans">返回套餐列表</Link>
+      </section>
+    );
+  }
   const sessionId =
     typeof query.session_id === "string" ? query.session_id : "";
   const cancelled = query.status === "cancelled";

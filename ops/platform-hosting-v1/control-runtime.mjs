@@ -26,6 +26,7 @@ export async function hostedControlRelease(){
 }
 
 export async function prepareHostedControl(env,{now=Date.now}={}){
+  must(env.TECHLONG_SANDBOX_FIRST_PURCHASE!=='true','FIRST_PURCHASE_REQUIRES_CLOSED_CONTROLLER');
   // Reject forbidden names without inspecting their possibly private values.
   const forbidden=[...FORBIDDEN,'AWS_CONTAINER_CREDENTIALS_RELATIVE_URI','AWS_CONTAINER_CREDENTIALS_FULL_URI',
     'AWS_CONTAINER_AUTHORIZATION_TOKEN','AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE'];

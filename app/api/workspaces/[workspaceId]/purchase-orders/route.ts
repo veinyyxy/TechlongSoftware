@@ -10,6 +10,9 @@ import {
   listPurchaseOrders,
 } from "@/lib/purchases/management";
 import { validateCustomerPurchaseInput } from "@/lib/purchases/validation";
+import { readSandboxPurchaseOrder, sandboxFirstPurchaseConfig, sandboxFirstPurchaseSelected,
+  sandboxPurchaseCheckout } from "@/lib/purchases/sandbox-first-purchase-runtime";
+import { SANDBOX_PURCHASE_ORIGIN } from "@/lib/purchases/sandbox-first-purchase-config";
 import {
   hasStripePaymentConfiguration,
   StripeGatewayError,
@@ -33,6 +36,10 @@ export async function GET(_request: Request, context: RouteContext) {
       apiError("WORKSPACE_FORBIDDEN", "不能查看其他工作区的购买订单。"),
       { status: 403 },
     );
+  }
+  if (sandboxFirstPurchaseSelected()) {
+    const order = await readSandboxPurchaseOrder(workspaceId, account.user.id);
+    return Response.json(apiSuccess(order ? [order] : []), { headers: { "cache-control": "no-store" } });
   }
   return Response.json(
     apiSuccess(await listPurchaseOrders({ workspaceId })),
@@ -61,7 +68,12 @@ export async function POST(request: Request, context: RouteContext) {
       { status: 403 },
     );
   }
-  if (!hasStripePaymentConfiguration()) {
+  const sandbox = sandboxFirstPurchaseSelected();
+  if (sandbox && (sandboxFirstPurchaseConfig()?.workspaceId !== workspaceId ||
+      new URL(request.url).origin !== SANDBOX_PURCHASE_ORIGIN)) {
+    return Response.json(apiError("SANDBOX_PURCHASE_SCOPE", "不在本次 Sandbox 测试购买范围内。"), { status: 403 });
+  }
+  if (!sandbox && !hasStripePaymentConfiguration()) {
     return Response.json(
       apiError(
         "STRIPE_NOT_CONFIGURED",
@@ -80,6 +92,14 @@ export async function POST(request: Request, context: RouteContext) {
         apiError("VALIDATION_ERROR", "请检查套餐和实例配置。", result.errors),
         { status: 400 },
       );
+    }
+    if (sandbox) {
+      const checkout = await sandboxPurchaseCheckout({
+        workspaceId, actor: account.user.id, customerEmail: account.user.email, purchase: result.data,
+      });
+      return checkout
+        ? Response.json(apiSuccess(checkout), { status: checkout.reused ? 200 : 201, headers: { "cache-control": "no-store" } })
+        : Response.json(apiError("SANDBOX_PURCHASE_UNAVAILABLE", "本次 Sandbox 购买不可开始，请先核对原订单。"), { status: 409 });
     }
     const checkout = await createCustomerPurchaseCheckout({
       workspaceId,

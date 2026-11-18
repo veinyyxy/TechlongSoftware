@@ -8,13 +8,16 @@ import { subscriptionStatusLabels } from "@/lib/billing/presentation";
 import { hasStripePaymentConfiguration } from "@/lib/payments/stripe";
 import { reconcileWorkspaceExpiredSubscriptions } from "@/lib/purchases/management";
 import { getDeploymentProfile } from "@/lib/deployments/profiles";
+import { sandboxFirstPurchaseConfig, sandboxFirstPurchaseSelected } from "@/lib/purchases/sandbox-first-purchase-runtime";
 
 export const metadata: Metadata = { title: "购买套餐" };
 export const dynamic = "force-dynamic";
 
 export default async function CustomerPlansPage() {
   const account = await getDashboardAccount();
-  await reconcileWorkspaceExpiredSubscriptions(account.workspace.id);
+  const sandbox = sandboxFirstPurchaseSelected();
+  const scoped = sandboxFirstPurchaseConfig();
+  if (!sandbox) await reconcileWorkspaceExpiredSubscriptions(account.workspace.id);
   const [plans, billing] = await Promise.all([
     listPlans({ status: "active" }),
     getWorkspaceBillingSummary(account.workspace.id),
@@ -44,7 +47,7 @@ export default async function CustomerPlansPage() {
       subscription,
     ]),
   );
-  const onlinePaymentEnabled = hasStripePaymentConfiguration();
+  const onlinePaymentEnabled = sandbox ? scoped?.workspaceId === account.workspace.id : hasStripePaymentConfiguration();
 
   return (
     <>
@@ -137,7 +140,7 @@ export default async function CustomerPlansPage() {
                         <span className="muted-copy">
                           仅工作区 Owner 可以购买
                         </span>
-                      ) : onlinePaymentEnabled ? (
+                      ) : onlinePaymentEnabled && (!sandbox || plan.id === scoped?.planId) ? (
                         <Link
                           className="button button-dark button-small"
                           href={`/dashboard/plans/${plan.id}/purchase`}

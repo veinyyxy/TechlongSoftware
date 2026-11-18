@@ -1,4 +1,5 @@
 // Node hosting candidate, not a hosted deployment-controller activation.
+import { readSandboxPurchaseConfiguration, SANDBOX_PURCHASE_BINDINGS } from '../../lib/purchases/sandbox-first-purchase-config.ts';
 export const CLOSED_BINDINGS=Object.freeze({
   AWS_INITIALIZED_REQUESTS_ENABLED:'false',DEPLOYMENT_WORKER_ENABLED:'false',AWS_APPLY_ENABLED:'false',
   TECHLONG_PLATFORM_CONTROLLER_ENABLED:'false',TECHLONG_PLATFORM_CONTROL_LOCAL:'false',TECHLONG_PLATFORM_CONTROL_HOSTED:'false',
@@ -12,6 +13,11 @@ export const must=(v,code)=>{if(!v)throw Error('PLATFORM_HOSTING_'+code);};
 export function assertRuntimeEnvironment(env){
   must(FORBIDDEN.every(k=>!env[k])&&env.NODE_TLS_REJECT_UNAUTHORIZED!=='0'&&
     !Object.keys(env).some(k=>/^AWS_ENDPOINT_URL/.test(k))&&Object.entries(CLOSED_BINDINGS).every(([k,v])=>!env[k]||env[k]===v),'CLOSED_RUNTIME_REQUIRED');
+  if(env.TECHLONG_SANDBOX_FIRST_PURCHASE==='true') {
+    must(readSandboxPurchaseConfiguration(env)&&CLOSED_BINDINGS.TECHLONG_PLATFORM_CONTROL_HOSTED===(env.TECHLONG_PLATFORM_CONTROL_HOSTED??'false'),'FIRST_PURCHASE_SCOPE');
+  } else {
+    must(SANDBOX_PURCHASE_BINDINGS.filter(k=>k.startsWith('TECHLONG_SANDBOX_')&&k!=='TECHLONG_SANDBOX_FIRST_PURCHASE').every(k=>!env[k]),'FIRST_PURCHASE_DISABLED');
+  }
 }
 export function buildEnvironment(env){
   // Never forward DATABASE_URL, NEXT_PUBLIC_*, AWS/Git/Cloudflare or Node overrides.

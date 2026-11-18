@@ -20,6 +20,9 @@ on:
       - 'lib/deployments/execution/single-tenant-workload-strategy.ts'
       - 'lib/deployments/execution/aws-sdk-adapter.ts'
       - 'tests/first-onboarding*'
+      - 'lib/purchases/sandbox-first-purchase*.ts'
+      - 'lib/payments/stripe.ts'
+      - 'ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts'
       - 'tests/deployment-s3-worker.test.ts'
       - 'ops/releases/**'
       - 'tests/instance-release-*.ts'
@@ -64,6 +67,10 @@ jobs:
         run: |
           node --experimental-strip-types --test tests/sandbox-registration-postgres.test.mjs
           node node_modules/eslint/bin/eslint.js lib/auth/credentials.ts lib/auth/sandbox-registration.ts ops/platform-web-database-role-v1/sandbox-registration-ddl.ts tests/sandbox-registration-postgres.test.mjs --max-warnings 0
+      - name: Sandbox first purchase, signed callbacks and closed-runtime regression
+        run: |
+          node --experimental-strip-types --experimental-loader ./tests/cloudflare-loader.mjs --test tests/first-onboarding-purchase.test.mjs tests/stripe-payment.test.ts
+          node node_modules/eslint/bin/eslint.js lib/purchases/sandbox-first-purchase*.ts lib/payments/stripe.ts ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts tests/first-onboarding-purchase.test.mjs --max-warnings 0
   postgres:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -93,5 +100,6 @@ jobs:
           node --experimental-strip-types --test --test-timeout=30000 tests/first-onboarding-postgres.test.mjs
           node --experimental-strip-types --test --test-timeout=30000 tests/first-onboarding-completion-postgres.test.mjs
           node --experimental-strip-types --test --test-timeout=30000 tests/sandbox-registration-postgres.test.mjs
+          node --experimental-strip-types --experimental-loader ./tests/cloudflare-loader.mjs --test --test-timeout=30000 tests/first-onboarding-purchase.test.mjs
         env:
           INSTANCE_RELEASE_TEST_DATABASE_URL: postgresql://postgres:synthetic-ci-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/instance_release_ci
