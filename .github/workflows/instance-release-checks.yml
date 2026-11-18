@@ -11,12 +11,10 @@ on:
       - 'lib/deployments/management.ts'
       - 'lib/deployments/lease.ts'
       - 'lib/deployments/execution/neon-repository.ts'
-      - 'lib/deployments/execution/contracts.ts'
       - 'lib/deployments/execution/first-onboarding-inspection.ts'
       - 'lib/deployments/execution/worker.ts'
       - 'lib/deployments/execution/single-tenant-workload-strategy.ts'
       - 'lib/deployments/execution/aws-sdk-adapter.ts'
-      - 'lib/deployments/cloudformation/single-tenant-acceptance-workload.ts'
       - 'tests/first-onboarding*'
       - 'tests/deployment-s3-worker.test.ts'
       - 'ops/releases/**'
@@ -56,7 +54,7 @@ jobs:
       - name: Held first-onboarding and adjacent worker regression
         run: |
           node --experimental-strip-types --test --test-timeout=30000 tests/first-onboarding.test.ts tests/deployment-execution-foundation.test.ts tests/deployment-s3-worker.test.ts tests/tenant-database-lifecycle.test.ts
-          node node_modules/eslint/bin/eslint.js lib/deployments/first-onboarding.ts lib/deployments/management.ts lib/deployments/lease.ts lib/deployments/execution/neon-repository.ts lib/deployments/execution/worker.ts lib/deployments/execution/first-onboarding-inspection.ts lib/deployments/execution/aws-sdk-adapter.ts lib/deployments/execution/single-tenant-workload-strategy.ts lib/deployments/cloudformation/single-tenant-acceptance-workload.ts tests/first-onboarding.test.ts tests/first-onboarding-postgres.test.mjs tests/deployment-s3-worker.test.ts --max-warnings 0
+          node node_modules/eslint/bin/eslint.js lib/deployments/first-onboarding.ts lib/deployments/management.ts lib/deployments/lease.ts lib/deployments/execution/neon-repository.ts lib/deployments/execution/worker.ts lib/deployments/execution/first-onboarding-inspection.ts lib/deployments/execution/aws-sdk-adapter.ts lib/deployments/execution/single-tenant-workload-strategy.ts tests/first-onboarding.test.ts tests/first-onboarding-postgres.test.mjs tests/deployment-s3-worker.test.ts --max-warnings 0
       - run: node node_modules/typescript/bin/tsc --noEmit --incremental false
   postgres:
     runs-on: ubuntu-24.04

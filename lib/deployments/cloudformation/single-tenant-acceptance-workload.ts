@@ -22,20 +22,6 @@ export async function renderSingleTenantAcceptanceWorkload(input: AwsSandboxTena
   return result;
 }
 
-/** The reviewed first-open coordinator supplies the catalog-bound image. The
- * fixed legacy acceptance entry keeps its original image allowlist. */
-export async function renderReviewedFirstOnboardingWorkload(input: AwsSandboxTenantStackInput, reviewedImage: string) {
-  if (input.imageUri !== reviewedImage || input.resourceGeneration !== 1 ||
-    !/^402010193138\.dkr\.ecr\.ca-central-1\.amazonaws\.com\/techlong-sandbox-speedfeast@sha256:[a-f0-9]{64}$/.test(reviewedImage) ||
-    input.environment.policy.budgetLimitCents !== 5000 || input.environment.policy.maxTaskCount !== 1 ||
-    input.plan.deploymentProfileKey !== "standard-v1" || input.environment.baseDomain !== "sandbox.techlong.cloud") {
-    throw Error("FIRST_ONBOARDING_WORKLOAD_SCOPE_INVALID");
-  }
-  const result = await renderSupervisedTenantWorkloadBase(input);
-  renderedWorkloads.set(result, canonicalJson(result));
-  return result;
-}
-
 /** Shared data-only isolation transform. Not an ApplyReady capability and not
  * a replacement image allowlist for the unchanged legacy acceptance entry. */
 export async function renderSupervisedTenantWorkloadBase(input: AwsSandboxTenantStackInput) {

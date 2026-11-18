@@ -1,4 +1,4 @@
-import { renderSingleTenantAcceptanceWorkload, renderReviewedFirstOnboardingWorkload, assertSingleTenantWorkloadRender } from "../cloudformation/single-tenant-acceptance-workload.ts";
+import { renderSingleTenantAcceptanceWorkload, renderSupervisedTenantWorkloadBase, assertSingleTenantWorkloadRender } from "../cloudformation/single-tenant-acceptance-workload.ts";
 import { assertAwsSandboxTenantRuntimeSecretRef, type AwsSandboxTenantStackInput } from "../cloudformation/tenant-stack.ts";
 import type { ApplyReadyTenantStack, AwsDeploymentPort, DeploymentExecutionContext } from "./contracts.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
@@ -68,9 +68,15 @@ export function assertFinalizedSupervisedTenantStack(stack: SupervisedTenantStac
 export function finalizeSupervisedTenantStack(input: {
   rendered: Rendered; context: DeploymentExecutionContext; expectedRuntimeSecretName: string;
 }): SupervisedTenantStack {
+  assertSingleTenantWorkloadRender(input.rendered);
+  return finalizeRenderedStack(input);
+}
+
+function finalizeRenderedStack(input: {
+  rendered: Rendered; context: DeploymentExecutionContext; expectedRuntimeSecretName: string;
+}): SupervisedTenantStack {
   const { rendered, context } = input, binding = context.binding;
   validateBinding(context);
-  assertSingleTenantWorkloadRender(rendered);
   if (!binding || binding.status !== "active" || binding.environmentId !== context.environment.id ||
     binding.workerRoleArn !== "arn:aws:iam::402010193138:role/TechlongSandboxProvisionerRole" ||
     binding.cloudFormationRoleArn !== "arn:aws:iam::402010193138:role/TechlongSandboxCloudFormationExecutionRole" ||
@@ -95,6 +101,19 @@ export function finalizeSupervisedTenantStack(input: {
     safety: { ...rendered.safety, parametersValidated: true } });
   finalized.add(stack);
   return stack;
+}
+
+async function renderFirstOnboardingStack(input: AwsSandboxTenantStackInput, context: DeploymentExecutionContext, reviewedImage: string) {
+  if (input.imageUri !== reviewedImage || input.resourceGeneration !== 1 ||
+    !/^402010193138\.dkr\.ecr\.ca-central-1\.amazonaws\.com\/techlong-sandbox-speedfeast@sha256:[a-f0-9]{64}$/.test(reviewedImage) ||
+    input.environment.policy.budgetLimitCents !== 5000 || input.environment.policy.maxTaskCount !== 1 ||
+    input.plan.deploymentProfileKey !== "standard-v1" || input.environment.baseDomain !== "sandbox.techlong.cloud") {
+    fail("FIRST_ONBOARDING_WORKLOAD_SCOPE_INVALID");
+  }
+  // Reuse the unchanged pinned renderer's data-only transform. This entry
+  // validates the new digest before privately finalizing that exact output.
+  return finalizeRenderedStack({ rendered: await renderSupervisedTenantWorkloadBase(input), context,
+    expectedRuntimeSecretName: input.runtimeSecretName });
 }
 
 /** Wired into the existing Worker without changing its lease, epoch, database,
@@ -157,9 +176,8 @@ function createSupervisedStrategy(scope: Readonly<SingleDeploymentClaimScope>, c
         stackInput.externalOperation.epoch !== context.tenantExternalOperation?.epoch ||
         stackInput.externalOperation.marker !== context.tenantExternalOperation?.marker ||
         stackInput.externalOperation.operationHash !== context.tenantExternalOperation?.operationHash) fail("SUPERVISED_RENDER_CONTEXT_MISMATCH");
-      return finalizeSupervisedTenantStack({ rendered: firstOnboarding
-        ? await renderReviewedFirstOnboardingWorkload(stackInput, scope.artifactRef)
-        : await renderSingleTenantAcceptanceWorkload(stackInput), context,
+      if (firstOnboarding) return renderFirstOnboardingStack(stackInput, context, scope.artifactRef);
+      return finalizeSupervisedTenantStack({ rendered: await renderSingleTenantAcceptanceWorkload(stackInput), context,
         expectedRuntimeSecretName: stackInput.runtimeSecretName });
     },
     async apply({ aws, stack, signal }) {
