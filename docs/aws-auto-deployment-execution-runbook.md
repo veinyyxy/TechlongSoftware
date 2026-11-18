@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，[普通注册的最小权限修复](auto-pending-provisioning.md#first-onboarding-step4-registration-permissions)。** 原入口已恢复，用户首次提交出现 `42501`；不重试。已按批准离线实现一个受限函数和一个 sandbox 调用点，未给线上 Web 角色写表权限。隔离 PostgreSQL 回归通过后，只准备另审限定数据库只读前置核对；权限安装、平台更新和本人重试均另审。首版 A、D2 和普通 worker 不变。
+**当前唯一继续点：缺口 3 第 4 步，[普通注册的最小权限修复](auto-pending-provisioning.md#first-onboarding-step4-registration-permissions)。** 原入口已恢复，用户首次提交出现 `42501`；不重试。已按批准离线实现一个受限函数和一个 sandbox 调用点，隔离 PostgreSQL 回归通过，未给线上 Web 角色写表权限。下一步只准备另审限定数据库只读前置核对；权限安装、平台更新和本人重试均另审。首版 A、D2 和普通 worker 不变。
 
 ### 首轮 A→B 审批前记录（历史，已执行，不重放）
 

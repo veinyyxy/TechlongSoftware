@@ -401,7 +401,7 @@
 2. **实际安装和发布另批。** 仅对准确 Neon 目标、Web 登录/OID、有效权限/成员关系、四表约束/RLS、新对象名、安装角色的创建与转移所有权能力、默认授权及同一测试身份做一次限定 `READ ONLY` 前置（范围与凭据使用须确认，不读密码散列或其他用户正文）。隔离库能执行 DDL 不代表托管安装者具备相同权限或无自动成员关系；若无法满足清单、不保留意外 ACL/成员关系的条件，停止，不额外授权。若先前提交状态不明，先查目标身份是否存在；已存在不采用重试或改旧记录。实际 SQL 固定摘要后另批，一次原子 DDL 安装及独立目录回读，不发起注册验证。后续确切平台镜像和原闭控服务最小更新还要单独批准，不改 `DATABASE_URL`、IAM、平台登录/会话权限或其它栈；SQL 与发布非原子，任何未知结果不自动重放或清理。
 3. **只读验证完成后再另批本人一次注册。** 只有函数/权限与平台代码都在实际运行中绑定且目标仍空，才让用户在原入口试一次；不购买、不创建部署任务。未知结果只查唯一派生 ID，不复制、删除或延用旧批准。
 
-**`NO_GO`（线上仍未修复）。** [原机器审批清单](../ops/platform-web-database-role-v1/sandbox-registration-permissions.review.json)原样保留，没有生产安装 SHA 或线上授权。未联系 AWS/Neon、未读 Secret 值、未改线上权限或重试。隔离回归通过后，下一个继续点仅为另审限定只读前置核对；首版 A、普通 worker 和 D2 运行路径不变。
+**离线验收通过，线上仍为 `NO_GO`。** 实现提交 `04e876b` 的[无 AWS CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44337547242)通过离线及 PostgreSQL 16 隔离回归。本机认证回归、TypeScript 和 scoped lint 也通过。[原机器审批清单](../ops/platform-web-database-role-v1/sandbox-registration-permissions.review.json)原样保留，没有生产安装 SHA 或线上授权。未联系 AWS/Neon、未读 Secret 值、未改线上权限或重试。下一个继续点仅为另审限定只读前置核对；首版 A、普通 worker 和 D2 运行路径不变。
 
 ## 当前操作说明（实施计划不改变现有流程）
 
