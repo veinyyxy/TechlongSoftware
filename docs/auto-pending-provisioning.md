@@ -291,7 +291,26 @@
 
 **入口只读结果（2026-11-18 07:58:04.882–07:58:05.267 温尼伯 CST；13:58:04.882–13:58:05.267Z）：`DNS_UNRESOLVED`。** 对既有 `https://console.sandbox.techlong.cloud/register?returnTo=%2Fdashboard%2Fsettings` 尝试 1 次匿名 HTTPS GET，当前执行环境未解析出主机，curl 退出码 6；未建立 TLS、无 HTTP 状态、未见注册表单。未重试、未跳转或另查 DNS/平台资源。结果只说明本次入口不可达，不单凭此判断云端资源现在的状态。
 
-**停止点：不注册。** 未登录、未提交表单、未取凭据或 Cookie，账号/工作区/会话、数据库访问、购买、AWS API、恢复及队列变更均为 0。若用户已有另一个可信且绑定同一验收控制库的可用入口，可按准确地址另行核对；否则只在用户请求后准备最小的入口可用方案，不能自动恢复。入口验证通过后由用户本人用自控未注册邮箱和自设密码注册，无需把邮箱或密码发到聊天。首版 A 不变，无执行 SHA。
+**停止点：不注册。** 未登录、未提交表单、未取凭据或 Cookie，账号/工作区/会话、数据库访问、购买、AWS API、恢复及队列变更均为 0。用户随后要求只准备[既有注册入口最小恢复方案](#first-onboarding-step4-register-minimal-restore)，不能自动恢复。首版 A 不变。
+
+<a id="first-onboarding-step4-register-minimal-restore"></a>
+
+#### 第 4 步：原 sandbox 注册入口最小可用方案（离线）
+
+**2026-11-18（温尼伯）｜`NO_GO`，无执行 SHA。** 为了使用原地址 `https://console.sandbox.techlong.cloud/register?returnTo=%2Fdashboard%2Fsettings`，只考虑让**原平台栈**重新提供网页和认证，不恢复整个环境。复用[已存停用回执](../ops/temporary-idle/stop-continuation-execution-20261113.json)、[原 11 项平台闭控模板](../ops/deployment-baseline/platform-idle-convergence.template.json)和[本次 DNS 未解析的记录](#first-onboarding-step4-register-readonly)。离线校验历史模板的四项恢复差异、七项保留及来源 `d098cfefd11c8839d5b00fee0701a71ed74aa73c` 确有普通注册和工作区设置页；不把旧回执或本次 DNS 失败当成当前云端归属，也不证明线上镜像此刻可拉取。
+
+| 范围 | 候选最小变化 |
+| --- | --- |
+| **原平台栈** | 仅 `402010193138 / ca-central-1`、`techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7`。若实际仍是已知七项停用形态，只候选同一栈一次 `UPDATE` Change Set，恰四个 Add：`LoadBalancer`、`HttpsListener`（443，原证书）、`Service`（仅 1 个原 Fargate 平台任务）及 `DnsRecord`（原公共 zone `Z01473621BTTHKXBGOOEJ`、准确 console A Alias）。Alias 由模板引用**本次同栈新 ALB**的 DNS 与 canonical hosted zone，不手写旧 ARN、不在 Route 53 另做 `UPSERT`。保留 `AlbSecurityGroup`、`Cluster`、`LogGroup`、`TargetGroup`、`TaskDefinition`、`TaskIngress`、`TaskSecurityGroup` 七项及其物理 ID、参数、角色、标签、输出；不能借机更新旧资源。 |
+| **运行配置和数据** | 原平台镜像 `techlong-sandbox-platform-web@sha256:71e268934bb1dbe8220f33cf68757cd48d74c89be35269ba583f6dd1b712e75a`、原任务定义及固定 `DATABASE_URL` 注入引用不变；按已有证明绑定原验收 Neon 控制库，不另供给账号或读 Secret 值，不改数据库。控制器及 hosted/local、初始请求、worker、apply 均保持关闭；不挂载控制器私钥，不开启租约或部署入口。镜像、引用、启用态或数据库归属不能证明即停。不恢复共享 Cell、租户栈、Aurora 或独立 RDS，不调用整套环境 `start` 工具。 |
+
+**将来实际顺序（各自另审）：**
+
+1. **一次定向只读补核。** 只核对原平台栈状态、Original、保留资源和是否有未决变更集；再核准确保留任务定义的镜像与闭控/固定引用，以及该 zone 上 console 精确记录占用。复用尚有效的同证书证据；只在现有证明不足时另列准确证书、镜像或 Secret 版本元数据，不查正文、不重复盘点其它栈。若实际已恢复，只核现有入口不做写；若并非准确四 Add、出现外部同名 DNS/ALB 占用、模板/执行身份或保护变化，停止，不接管/覆盖。
+2. **只创建并审这一份变更集，执行再确认。** 固定实际模板、执行身份和差异，`CreateChangeSet` 与 `ExecuteChangeSet` 拟各最多 1 次。历史原栈未关联显式 `RoleARN`；若实际仍使用提交者派生会话，须明确审核其权限，不擅自指定新角色。看到准确四 Add、七项无 Modify/Replace/Remove 后才审核执行；明确 CFN 托管回滚的权限与副作用，无权限或需改其它资源即停。不继承旧变更集/授权，不直接改 ELB、ECS、DNS、IAM；失败或提交不明不重试、不主动回滚/清理。
+3. **独立证明页面可用，再由用户本人注册。** 回读同一平台栈 `UPDATE_COMPLETE`、四项归属/七项物理 ID、任务定义与关闭开关、ECS 1 运行/0 待启动及目标健康、443 验证的证书、准确 Alias 指向新 ALB；再做不带身份的 HTTPS GET，各最多一次 `/api/health` 和准确 `/register?returnTo=%2Fdashboard%2Fsettings`，要求正确平台响应和普通注册表单，无外部跳转。不把 `/api/health` 200 或页面表单当成数据库写入通过，不为验收追加测试 POST。通过后只把可信入口交给用户本人；注册/工作区回执和任何后续购买是独立步骤。
+
+**费用和公开面的边界。** 原 HTTPS 监听器转发整个平台，不是只开放 `/register`；拟复用原访问边界，不新加公网旁路或开启部署控制。ALB、1 个任务、公网 IPv4 等可能持续计费；本方案不设置 TTL、不自动停费或删除，注册后如需关停只按原平台栈另审。不在本轮更改正式模板、代码、配置或启停状态。**本轮只读仓库内已有证据并做离线断言；AWS/公网探测、数据库、Secret 值、创建变更集、资源启动、注册和购买均为 0。**
 
 ## 当前操作说明（实施计划不改变现有流程）
 
