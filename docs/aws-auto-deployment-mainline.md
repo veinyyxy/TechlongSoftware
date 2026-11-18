@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–2 步已离线接通购买登记、受审执行和独立技术核验；[第 3 步](auto-pending-provisioning.md#第-3-步交付与边界)已离线实现同一原任务的 D2 初始绑定、实例激活、部署就绪和任务完成的原子提交。未接真实完成写入身份，未实际开通；真实 Express 空库、持久化和独立采样尚待证明，下一步等用户另行授权准备一次 sandbox 验收。D2 的真实验收仍只覆盖既有实例版本发布。下面保留的是历史状态，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步已离线实现，[第 4 步审批草案](auto-pending-provisioning.md#first-onboarding-step4-review)已明确定向验收和最小权限，尚无可执行清单。真实 Express 写适配、首版持久化/固定 Secret 引用、独立核验及完成身份仍未证明；只等另批限定只读补核，环境和全队列未由本轮启用，未开通实例。D2 的真实验收仍只覆盖既有实例版本发布。下面保留的是历史状态，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 
