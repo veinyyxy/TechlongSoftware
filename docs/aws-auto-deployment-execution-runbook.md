@@ -10,7 +10,9 @@
 
 **首轮实际执行在第一次写入前停止，不重放。** 本机比较定位：发布器预检错误使用初装无信任的 foundation，而前一轮经过独立核验的是另一份明示 `LockedDenyAllEcr` 的 Revoke 模板；两份只差已有 inline policy。新候选 Revoke 和上一次正确的 Revoke 一致；本次 `SOURCE_STACK_STATE` 不独立证明当前角色或栈漂移。实际 AWS STS 2／元数据 41、GitHub GET 4／调度 0、Stripe 准确 GET 1、Neon 只读 1／SQL 10；Grant、AWS 写、Neon 写、发布和关联均 0，无待批 environment。
 
-**当前唯一待批动作：** [原范围单次接续](aws-sandbox-first-purchase-checkout-repair-revoke-continuation-review.md)，[清单](evidence/sandbox-first-purchase-checkout-repair-revoke-continuation.review.json) SHA `bc31603803a440175b8cfd635efddeadc92cb4459b42dbd3ce23d8a85b2401e2`。只修正本机 Locked 预期，严格复用上次 Revoke；回归验证正确模板通过、初装模板和残留 Allow 拒绝。仍按原合并边界重新核对前置、发布／撤权、换镜像和关联旧单；不重建、不重放旧批准、不延时。原最晚启动温尼伯 **11 月 19 日 17:21:57**、常规硬截止 **18:56:57**、会话历史到期 **19:16:57**。本轮未访问 AWS、Stripe 或 Neon，未调度；用户先不重试购买。
+**Checkout 修复已上线并独立核验。** [原范围单次接续](evidence/sandbox-first-purchase-checkout-repair-revoke-continuation.review.json) SHA `bc316038…` 已执行。[发布 44447225585](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44447225585) 经本人批准后成功，临时授权撤销并独立证明 Locked；原 Hosting 仅换镜像，revision 16、运行任务健康、`/api/health` 和 `/register` 均 HTTP 200。Neon 单事务仅替换 `attach` 并关联同一原订单／会话，独立回读 `checkout_pending`、付款 `pending`。[技术回执](evidence/sandbox-first-purchase-checkout-repair-rollout.verified.json)不包含私密链接或业务正文；没有重建镜像、重放旧清单、新建会话、付款或启用 worker。
+
+**当前唯一继续点：** 若用户要做 Sandbox 支付验收，由原工作区 Owner 在「订阅与账单 → 待付款订单 → 继续 Stripe 付款」打开原会话，不重复下单。Stripe 历史会话到期仍为温尼伯 **11 月 19 日 19:16:57**，到期或状态变化则停止、不新建替代单。Sandbox 测试付款、签名回调和租户首开结果尚未观察；不自动执行。
 
 **修正验证：** `5b89c18` 的[支付及 PostgreSQL 回归](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551298)全过。[通用托管候选 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551331)在构建前停于既有 81 文件部署执行闭包摘要断言；修正前后的 81 个绑定文件及其规范 SHA 均逐项一致，本修正未触及闭包或放宽门禁。该 run 没有生成发布候选，不能作为部署凭据。
 

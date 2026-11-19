@@ -1,0 +1,57 @@
+{
+  "schema": "techlong/sandbox-first-purchase-checkout-repair-rollout-verified/v1",
+  "approvalSha256": "bc31603803a440175b8cfd635efddeadc92cb4459b42dbd3ce23d8a85b2401e2",
+  "status": "CHECKOUT_REPAIR_VERIFIED",
+  "startedAtUtc": "2026-11-19T02:49:47.836Z",
+  "verifiedAtUtc": "2026-11-19T02:59:29.507Z",
+  "publication": {
+    "publisherCallerCommit": "c5c5cd3845ce5b16c8e05e2b96867d543fb2f84b",
+    "reusableWorkflowCommit": "200ca52348a2ba57f52cfdd445051012eb0dddd6",
+    "candidateBuildRunId": 44442817443,
+    "candidateArtifactId": 14491468132,
+    "protectedPublishRunId": 44447225585,
+    "attempt": 1,
+    "publicationManifestDigest": "sha256:826eebe72304231a26202b6cce3b785c128c029b6426404967b7ae4be9aa8b20",
+    "independentlyLockedAfterRevoke": true,
+    "lockedAndManifestProofSha256": "b7284554aa68c98e7ae09f9852d81fc6ab0691359ef7b48fac9c4da7b826d71a"
+  },
+  "hosting": {
+    "previousTaskDefinitionRevision": 15,
+    "taskDefinitionRevision": 16,
+    "fixedSecretBindingsUnchanged": true,
+    "healthyRunningTasks": 1,
+    "httpStatus": { "/api/health": 200, "/register": 200 },
+    "controllerAndWorkerRemainClosed": true,
+    "hostingAppliedSha256": "6358ee2420afbc8712ee9c617d362ee5d02296c7177982b5ca35b3f87a779419",
+    "platformIndependentInspectionSha256": "4bc8fe7b810997d1d2d188cb037292b3091c8acb0cc3f7fdb3a287d846a1a7dd"
+  },
+  "database": {
+    "sameOrderAndSession": true,
+    "orderStatus": "checkout_pending",
+    "paymentStatus": "pending",
+    "postRepairFunctionsSha256": "7562f2c559a18233a39d99db4ce9ac026ae2f1222a98f59f3ea4797c3bcd3bf4",
+    "commitAckSha256": "46a51a5f30ea2b8607e0e5b9fccf711aad1df8eb183bc82ba3ce382e9fcc2c5e",
+    "verifiedBySeparateReadOnlyConnection": true
+  },
+  "counts": {
+    "awsSts": 8,
+    "awsMetadataReads": 132,
+    "sourceAwsWrites": 4,
+    "topLevelEcrPushes": 1,
+    "technicalGets": 2,
+    "githubGets": 23,
+    "protectedDispatches": 1,
+    "stripeSessionGets": 2,
+    "stripeWrites": 0,
+    "neonConnections": 3,
+    "sqlSubmissions": 40,
+    "neonWriteTransactions": 1,
+    "imageRebuilds": 0,
+    "newSessions": 0,
+    "purchasesOrPurchaseRetries": 0
+  },
+  "privateResultSha256": "8eb3378400026dbda826a2bb26f37aeb17bdc9c14efdad97f4d38a4e9e8d8253",
+  "historicalOriginalSessionExpiryUtc": "2026-11-20T01:16:57.000Z",
+  "technicalAcceptanceOnly": true,
+  "existingOrderTestPaymentAndFirstOnboardingNotYetObserved": true
+}

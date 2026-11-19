@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证。[Sandbox 首开购买入口](evidence/sandbox-first-purchase-dahlia-activation-verified.json)曾通过技术验收；真实测试停在合法 Stripe 链接被固定路径误拒。Checkout 修复候选 `14491468132`、不可变发布接线和单事务回归已验证。首次执行在所有写入前停止，无 Grant、调度、发布、更新或关联。发布器预检单点修正和回归通过，下一步只待[原范围单次接续审批](aws-sandbox-first-purchase-checkout-repair-revoke-continuation-review.md)。不重建镜像或会话、不重试购买、不开启 worker 或首开。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证。[Checkout 修复](evidence/sandbox-first-purchase-checkout-repair-rollout.verified.json)已部署至 Sandbox revision 16 且独立核验，原订单与原 Stripe 测试会话已关联、付款仍待处理；发布器恢复 Locked，控制器与 worker 仍关闭。下一步仅由用户从现有待付款订单继续原 Sandbox 会话做业务验收，不重新下单、不代付。回调与首开放行尚未验证。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 
