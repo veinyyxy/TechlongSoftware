@@ -69,6 +69,24 @@ export const CHECKOUT_REPAIR_CANDIDATE=Object.freeze({...C,sourceCommit:cw.head,
   archiveBytes:ce.archiveBytes,scanSummarySha256:ce.scanSummarySha256,sourceRecipeSha256:ce.sourceRecipeSha256,
   sourceTreeOid:ce.sourceTreeOid,targetTag:checkout.scope.proposedExactImmutableTag});
 
+const billingText=readFileSync(new URL('../../docs/evidence/sandbox-first-purchase-billing-rollout.review.json',import.meta.url),'utf8').replace(/\r\n/g,'\n');
+const billingReceipt=readFileSync(new URL('../../docs/evidence/sandbox-first-purchase-billing-candidate.observed.json',import.meta.url),'utf8').replace(/\r\n/g,'\n');
+export const BILLING_REVIEW_SHA='7112a253eddda954c25c5b94f92b259b8895484a07ae127e4531d0d7d746334c';
+export const BILLING_CANDIDATE_RECEIPT_SHA='29be08d5cbb2c0004da1a3bf3544094e4900b5afda490d2101f7395514248e8f';
+must(hash(billingText)===BILLING_REVIEW_SHA&&hash(billingReceipt)===BILLING_CANDIDATE_RECEIPT_SHA,'BILLING_REVIEW_AND_RECEIPT_BYTES');
+const billing=JSON.parse(billingText),bw=JSON.parse(billingReceipt),be=bw.evidence;
+must(bw.stage==='EXISTING_CANDIDATE_VERIFIED_READ_ONLY'&&bw.approval===BILLING_REVIEW_SHA&&bw.run?.identityMatches===true&&
+  bw.repository===C.repository&&bw.repositoryId===C.repositoryId&&bw.workflowPath===dw.file&&bw.workflowId===dw.workflowId&&
+  bw.branch==='main'&&bw.event==='workflow_dispatch'&&bw.attempt===1&&bw.conclusion==='success'&&bw.run.runId===44450853247&&
+  be.runId===bw.run.runId&&be.artifactId===14495028924&&be.sourceRecipeSha256===billing.source.recipeSha256&&be.sourceTreeOid===billing.source.tree&&
+  be.noAwsIdentity===true&&be.syntheticCallbackPassed===true&&be.freshOsHighCriticalGatePassed===true&&bw.registryManifestDigest===null&&
+  bw.counts.dispatches===0,'BILLING_OBSERVED_PINS');
+export const BILLING_REPAIR_CANDIDATE=Object.freeze({...C,sourceCommit:bw.head,runId:be.runId,workflowId:bw.workflowId,
+  artifactId:be.artifactId,artifactName:be.artifactName,artifactBytes:be.artifactZipBytes,artifactDigest:be.artifactZipDigest,
+  artifactExpiresAt:be.expiresAtUtc,archiveSha256:be.archiveSha256,imageConfigDigest:be.imageConfigDigest,
+  archiveBytes:be.archiveBytes,scanSummarySha256:be.scanSummarySha256,sourceRecipeSha256:be.sourceRecipeSha256,
+  sourceTreeOid:be.sourceTreeOid,targetTag:billing.targets.proposedExactImmutableTag});
+
 function overlayProtocol(S,producerPath,firstPurchase=false,additionalRetained=[]){
 function verifyCandidate(run, artifact, now=Date.now()) {
   must(run.id===S.runId && run.head_sha===S.sourceCommit && run.workflow_id===S.workflowId && run.repository?.id===S.repositoryId &&
@@ -177,12 +195,16 @@ export const dahliaFirstPurchaseProtocol=overlayProtocol(DAHLIA_FIRST_PURCHASE_C
 export const checkoutRepairProtocol=overlayProtocol(CHECKOUT_REPAIR_CANDIDATE,cw.workflowPath,true,[
   {digest:checkout.scope.baselineEcrDigest,tag:DAHLIA_FIRST_PURCHASE_CANDIDATE.targetTag}
 ]);
+export const billingRepairProtocol=overlayProtocol(BILLING_REPAIR_CANDIDATE,bw.workflowPath,true,[
+  {digest:checkout.scope.baselineEcrDigest,tag:DAHLIA_FIRST_PURCHASE_CANDIDATE.targetTag},
+  {digest:billing.baseline.platformImageManifestDigest,tag:CHECKOUT_REPAIR_CANDIDATE.targetTag},
+]);
 export const {verifyCandidate,verifyImageReceipt,validateReview,validateCloud,validateClaims,templates,verifyRetained,verifyFinalInventory,verifyPublishedManifest}=protocol;
 
 export function selectOverlayPublication(text,sha,now=Date.now()) {
   must(typeof text==='string' && text.length<20000 && hex64.test(sha??'') && hash(text)===sha,'REGISTRATION_REVIEW_SHA');
   const candidate=JSON.parse(text).candidate;
-  const selected=[protocol,firstPurchaseProtocol,dahliaFirstPurchaseProtocol,checkoutRepairProtocol].find(p=>same(p.P,candidate));
+  const selected=[protocol,firstPurchaseProtocol,dahliaFirstPurchaseProtocol,checkoutRepairProtocol,billingRepairProtocol].find(p=>same(p.P,candidate));
   must(selected,'REGISTRATION_REVIEW_FIELDS');
   return {protocol:selected,review:selected.validateReview(text,sha,now)};
 }
