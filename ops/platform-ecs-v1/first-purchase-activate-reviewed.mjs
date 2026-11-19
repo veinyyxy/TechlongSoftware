@@ -29,7 +29,12 @@ const aclRecoveryStop='docs/evidence/sandbox-first-purchase-dahlia-continuation-
 const aclRecoveryStopSha='3708792734536c482a49081c07edf10b699eae166f0ad026b23c56f03f7777e6';
 const aclRecoveryFix=Object.freeze({commit:'614d8ca2efc95548fad53675b69aab88be42fe50',pg18CiRun:44429410826,
   file:'ops/platform-ecs-v1/first-purchase-activation-db.mjs'});
-const approvalDocChanges=[reviewPath,continuationPath,aclRecoveryPath,'docs/aws-auto-deployment-execution-runbook.md','docs/aws-auto-deployment-mainline.md',
+const sourceRefreshPath='docs/evidence/sandbox-first-purchase-dahlia-source-refresh.review.json';
+const sourceRefreshRisk='docs/aws-sandbox-first-purchase-dahlia-source-refresh-review.md';
+const sourceRefreshStop='docs/evidence/sandbox-first-purchase-dahlia-acl-recovery-stopped.json';
+const sourceRefreshStopSha='9886f08a4cf85b11e1362ca152dce5ff81a73edca707461d48610b657396c2a3';
+const sourceIdentityObservedAtUtc='2026-11-19T01:00:33.111Z', vacancyTtl=5*60*60000;
+const approvalDocChanges=[reviewPath,continuationPath,aclRecoveryPath,sourceRefreshPath,'docs/aws-auto-deployment-execution-runbook.md','docs/aws-auto-deployment-mainline.md',
   'docs/aws-sandbox-first-purchase-activation-preparation.md'];
 const checkoutScopeHash='7359ccf32c3bebd4c4b754caac4cdfbdd471a8202c9206f67a298a8f020ca0fc';
 const code=(ok,g)=>{if(!ok)throw Error('FIRST_PURCHASE_REVIEW_'+g);};
@@ -39,6 +44,7 @@ const prefix='techlong-platform-recovery-image-v1';
 const slot=path.join(local,'sandbox-first-purchase-dahlia-14480476839-size-fix.intent.json');
 const continuationSlot=path.join(local,'sandbox-first-purchase-dahlia-14480476839-remaining.intent.json');
 const aclRecoverySlot=path.join(local,'sandbox-first-purchase-dahlia-14480476839-acl-fix.intent.json');
+const sourceRefreshSlot=path.join(local,'sandbox-first-purchase-dahlia-14480476839-source-refresh.intent.json');
 const previous=Object.freeze({
   approvedSha256:'8b35a3584a5b71e3eb74d7950e66a403cfe2ce3806db434febc04edee0abf25d',
   resultPath:'techlong-platform-recovery-image-v1-74c452f0d964045a2928105f22d2a34b/activation-result.json',
@@ -197,6 +203,40 @@ export function validateAclRecoveryReview(text,approvedSha,now=Date.now()){
   return m;
 }
 
+function readSourceRefreshFacts(){
+  const read=p=>normalize(readFileSync(path.join(ROOT,p),'utf8'));
+  const raw=read(sourceRefreshStop),prior=read(aclRecoveryPath);
+  code(hash(raw)===sourceRefreshStopSha,'SOURCE_REFRESH_STOP_EVIDENCE');
+  const stopped=JSON.parse(raw),previous=validateAclRecoveryReview(prior,stopped.approvalSha256,Date.parse(JSON.parse(prior).issuedAt));
+  code(stopped.neon.readOnly===true&&stopped.neon.installationRolesAndSchemaAbsent===true&&!stopped.neon.installAttempted&&
+    stopped.aws.error==='CredentialsProviderError'&&!stopped.aws.sourceIdentityVerified&&stopped.aws.metadataReads===0&&
+    stopped.aws.writes===0&&!stopped.secretWritten&&!stopped.platformUpdated&&!stopped.retryAllowed,'SOURCE_REFRESH_PREDECESSOR');
+  return {previous,stopped};
+}
+
+export function makeSourceRefreshReview(input){
+  const {previous,stopped}=readSourceRefreshFacts(),base=makeAclRecoveryReview(input);
+  const issued=Date.parse(input.issuedAt),vacancyExpires=Date.parse(stopped.neon.observedAtUtc)+vacancyTtl;
+  const latestStart=Math.min(Date.parse(previous.latestStartUtc),vacancyExpires-preflightMax);
+  code(issued>=Date.parse(sourceIdentityObservedAtUtc)&&issued<latestStart&&input.nonce!==previous.nonce,'SOURCE_REFRESH_WINDOW');
+  return {...base,schema:'techlong/sandbox-first-purchase-after-source-refresh/v1',latestStartUtc:new Date(latestStart).toISOString(),
+    predecessor:{...base.predecessor,sourceStopApprovalSha256:stopped.approvalSha256,sourceStopReceiptSha256:sourceRefreshStopSha},
+    preflight:{...base.preflight,verifySourceBeforeConsumingSlot:true,sourceIdentityObservedAtUtc,
+      neonVacancy:{observedAtUtc:stopped.neon.observedAtUtc,validBeforeUtc:new Date(vacancyExpires).toISOString(),
+        receiptSha256:stopped.neon.preflightReceiptSha256,recheckInsideInstallBeforeDdl:true}},
+    limits:{...base.limits,neonTlsConnections:2},
+    safety:'Bind the completed Neon vacancy read and recheck inside the install transaction. Verify Source before reserving this attempt. No replay, publishing, cleanup or test purchase.'};
+}
+
+export function validateSourceRefreshReview(text,approvedSha,now=Date.now()){
+  code(/^[a-f0-9]{64}$/.test(approvedSha??'')&&hash(normalize(text))===approvedSha,'APPROVAL_SHA');
+  const m=JSON.parse(text);
+  code(m?.schema==='techlong/sandbox-first-purchase-after-source-refresh/v1','SOURCE_REFRESH_FORMAT');
+  code(same(m,makeSourceRefreshReview(m))&&Date.parse(m.issuedAt)<=now&&now<Date.parse(m.latestStartUtc)&&
+    now+continuationTotal<=Date.parse(m.hardStopUtc),'SOURCE_REFRESH_EXPIRED_OR_CHANGED');
+  return m;
+}
+
 export async function runFirstPurchaseStages(ports,{continuation=false}={}){
   await ports.preflight();
   const publisher=await (continuation?ports.inspectPublished():ports.publish());
@@ -216,7 +256,7 @@ function sourceGuard(m){
     'LOCAL_MAIN_OR_CODE_DRIFT');
   git(['merge-base','--is-ancestor',m.implementationCommit,'HEAD']);
   const head=git(['rev-parse','HEAD']).trim();
-  if(m.schema==='techlong/sandbox-first-purchase-after-acl-correction/v1'){
+  if(m.fix){
     git(['merge-base','--is-ancestor',aclRecoveryFix.commit,m.implementationCommit]);
     code(normalize(git(['show',head+':'+aclRecoveryFix.file]))===
       normalize(git(['show',aclRecoveryFix.commit+':'+aclRecoveryFix.file])),'ACL_FIX_CHANGED');
@@ -331,6 +371,18 @@ async function readAclRecoveryJournal(){
     proof.sourceRecipeSha256===candidate.sourceRecipeSha256&&proof.sourceTreeOid===candidate.sourceTreeOid,'ACL_RECOVERY_JOURNAL_CHANGED');
   for(const marker of ['db-commit-intent','db-commit-ack','secret-create-intent'])await absent(path.join(journal,'activation-'+marker+'.json'));
   return proof;
+}
+
+async function verifySourceRefreshJournal(){
+  const {previous,stopped}=readSourceRefreshFacts(),journal=path.join(EVIDENCE,prefix+'-'+previous.nonce);
+  const used=await privateJson(aclRecoverySlot);
+  const vacancy=await privateJson(path.join(journal,'activation-prior-install-objects-absent.json'),stopped.neon.preflightReceiptSha256);
+  const final=await privateJson(path.join(journal,'activation-result.json'),stopped.resultSha256);
+  code([used,vacancy,final].every(j=>j.approvedSha===stopped.approvalSha256)&&used.retry===false&&final.retry===false&&
+    vacancy.neonReadOnly===true&&vacancy.rolesAndSchemaAbsent===true&&vacancy.utc===stopped.neon.observedAtUtc&&
+    final.stage==='necessary-preflight'&&final.code==='CredentialsProviderError'&&final.aws?.writes===0&&final.aws?.metadata===0,
+    'SOURCE_REFRESH_JOURNAL_CHANGED');
+  await absent(path.join(journal,'activation-db-install-intent.json'));
 }
 
 async function reuseVerifiedImage(proof,record){
@@ -461,15 +513,16 @@ async function publish(m,until,preflightBy,heads,notify,record){
 }
 
 async function execute(approvedSha,notify,mode){
-  const aclRecovery=mode==='FinishAfterAclFix',continuation=aclRecovery||mode==='ContinueReviewed';
-  const text=await readText(path.join(ROOT,aclRecovery?aclRecoveryPath:continuation?continuationPath:reviewPath));
-  const m=(aclRecovery?validateAclRecoveryReview:continuation?validateContinuationReview:validateFirstPurchaseReview)(text,approvedSha);
+  const refreshed=mode==='FinishAfterSourceRefresh',aclRecovery=refreshed||mode==='FinishAfterAclFix',continuation=aclRecovery||mode==='ContinueReviewed';
+  const text=await readText(path.join(ROOT,refreshed?sourceRefreshPath:aclRecovery?aclRecoveryPath:continuation?continuationPath:reviewPath));
+  const m=(refreshed?validateSourceRefreshReview:aclRecovery?validateAclRecoveryReview:continuation?validateContinuationReview:validateFirstPurchaseReview)(text,approvedSha);
   const heads=()=>sourceGuard(m);
-  heads();code(hash(normalize(await readText(path.join(ROOT,aclRecovery?aclRecoveryRisk:continuation?continuationRisk:riskDoc))))===m.riskSha256,'RISK_CHANGED');
+  heads();code(hash(normalize(await readText(path.join(ROOT,refreshed?sourceRefreshRisk:aclRecovery?aclRecoveryRisk:continuation?continuationRisk:riskDoc))))===m.riskSha256,'RISK_CHANGED');
   const tf=path.join(local,privateName),sf=path.join(local,signingName),config=path.join(ROOT,'.env.local');
-  const activeSlot=aclRecovery?aclRecoverySlot:continuation?continuationSlot:slot;
+  const activeSlot=refreshed?sourceRefreshSlot:aclRecovery?aclRecoverySlot:continuation?continuationSlot:slot;
   await absent(activeSlot);
   let oldInner,oldProof;
+  if(refreshed)await verifySourceRefreshJournal();
   if(aclRecovery)oldProof=await readAclRecoveryJournal();
   else if(continuation)oldInner=await verifyContinuationJournal();
   else{
@@ -483,9 +536,15 @@ async function execute(approvedSha,notify,mode){
   const start=Date.now(),until=Math.min(Date.parse(m.hardStopUtc),start+duration);
   code(start<Date.parse(m.latestStartUtc)&&until-start===duration,'REVIEW_START_MISSED');
   const preflightBy=start+preflightMax;
-  const dir=await directory(prefix+'-'+m.nonce,{prefix});
+  let dir,slotConsumed=false;
+  const claim=async()=>{
+    code(Date.now()<preflightBy,'PREFLIGHT_EXPIRED');
+    dir=await directory(prefix+'-'+m.nonce,{prefix});
+    await writeOnce(activeSlot,{approvedSha,startedAt:new Date(start).toISOString(),endsAt:new Date(until).toISOString(),retry:false});
+    slotConsumed=true;
+  };
   const record=(label,v)=>writeOnce(path.join(dir,'activation-'+label+'.json'),{utc:new Date().toISOString(),approvedSha,...v});
-  await writeOnce(activeSlot,{approvedSha,startedAt:new Date(start).toISOString(),endsAt:new Date(until).toISOString(),retry:false});
+  if(!refreshed)await claim();
   let stage='preflight',aws,db,stripe;
   const step=(name,work)=>(...args)=>{code(Date.now()<until,'RUN_EXPIRED');stage=name;notify({stage});return work(...args);};
   try{
@@ -498,12 +557,17 @@ async function execute(approvedSha,notify,mode){
     code(hash(binding.workspaceId)===checkoutScopeHash&&validSandboxPurchaseScope(binding)&&w.releaseId===scope.tenantReleaseId&&
       w.productId===scope.productId&&w.environmentId===scope.environmentId&&w.deploymentProfileKey===scope.profile&&
       awsFacts.outcome==='AWS_READ_ONLY_VERIFIED'&&same(projection.findings,['STANDARD_PLAN_NOT_UNIQUE_OR_INVALID']),'ORIGINAL_FACTS');
-    db=firstPurchaseDatabase({rawConfig:await readText(config,65536),historical:historic,projection:projection.checks,binding,deadline:until,record});
+    const makeDb=async()=>firstPurchaseDatabase({rawConfig:await readText(config,65536),historical:historic,projection:projection.checks,binding,deadline:until,record});
+    if(!refreshed)db=await makeDb();
     aws=firstPurchaseAws({deadline:until,nonce:m.nonce,versionId:randomUUID(),prior:awsFacts.checks,record,
       ...(continuation?{metadataLimit:platformContinuationMetadata}:{})});
     await runFirstPurchaseStages({
       preflight:step('necessary-preflight',async()=>{const observedFrom=new Date().toISOString();
-        if(aclRecovery){
+        if(refreshed){
+          await aws.preflight({afterIdentity:claim});
+          await record('neon-vacancy-proof-reused',m.preflight.neonVacancy);
+          db=await makeDb();
+        }else if(aclRecovery){
           await db.preflight();
           await record('prior-install-objects-absent',{neonReadOnly:true,rolesAndSchemaAbsent:true});
           await aws.preflight();
@@ -526,12 +590,21 @@ async function execute(approvedSha,notify,mode){
     return {outcome:'SANDBOX_FIRST_PURCHASE_ENABLED_TECHNICALLY_VERIFIED',evidenceDirectory:dir,businessTest:false};
   }catch(e){
     const safe=errorCode(e);
-    await record('result',{outcome:'STOPPED_REQUIRES_INSPECTION',stage,code:safe,aws:aws?.counts,db:db?.limits,retry:false}).catch(()=>{});
-    return {outcome:'STOPPED_REQUIRES_INSPECTION',stage,code:safe,evidenceDirectory:dir,retry:false};
+    if(slotConsumed)await record('result',{outcome:'STOPPED_REQUIRES_INSPECTION',stage,code:safe,aws:aws?.counts,db:db?.limits,retry:false}).catch(()=>{});
+    return {outcome:'STOPPED_REQUIRES_INSPECTION',stage,code:safe,evidenceDirectory:dir??null,slotConsumed,retry:false};
   }finally{aws?.close();}
 }
 
 async function cli([mode,value,...extra]){
+  if(mode==='PrepareAfterSourceRefreshOffline'&&!value&&!extra.length){
+    const implementationCommit=git(['rev-parse','HEAD']).trim();
+    await absent(sourceRefreshSlot);await absent(path.join(ROOT,sourceRefreshPath));
+    const riskSha256=hash(normalize(await readText(path.join(ROOT,sourceRefreshRisk))));
+    const m=makeSourceRefreshReview({implementationCommit,nonce:randomBytes(16).toString('hex'),issuedAt:new Date().toISOString(),riskSha256});
+    sourceGuard(m);
+    await writeOnce(path.join(ROOT,sourceRefreshPath),m);
+    return {mode,approvalSha256:hash(normalize(await readText(path.join(ROOT,sourceRefreshPath)))),latestStartUtc:m.latestStartUtc,executed:false};
+  }
   if(mode==='PrepareAfterAclFixOffline'&&!value&&!extra.length){
     const implementationCommit=git(['rev-parse','HEAD']).trim();
     await absent(aclRecoverySlot);await absent(path.join(ROOT,aclRecoveryPath));
@@ -563,7 +636,7 @@ async function cli([mode,value,...extra]){
     const approvedSha=hash(normalize(await readText(path.join(ROOT,reviewPath))));
     return {mode,approvalSha256:approvedSha,latestStartUtc:m.latestStartUtc,executed:false};
   }
-  code(['RunReviewed','ContinueReviewed','FinishAfterAclFix'].includes(mode)&&value&&!extra.length,'ARGUMENTS');
+  code(['RunReviewed','ContinueReviewed','FinishAfterAclFix','FinishAfterSourceRefresh'].includes(mode)&&value&&!extra.length,'ARGUMENTS');
   return execute(value,msg=>console.log(JSON.stringify(msg)),mode);
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){

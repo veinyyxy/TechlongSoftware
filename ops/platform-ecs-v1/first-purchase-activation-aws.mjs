@@ -151,8 +151,9 @@ export function firstPurchaseAws({deadline,nonce,versionId,prior,record,metadata
   }
   let before,secret;
   return {counts,close:()=>writer.close(),
-    async preflight(){
+    async preflight({afterIdentity}={}){
       await writer.source();
+      if(afterIdentity)await afterIdentity();
       const access=await snapshot(writer,'access',old.access),hosting=await snapshot(writer,'hosting',old.hosting);
       check(!(await list(writer,names.access)).length&&!(await list(writer,names.hosting)).length,'ACTIVE_CHANGE_SET');
       await role(writer,old.access);await runHealth(writer,old.hosting,hosting.bindings);

@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { dahliaEndpoint, makeFirstPurchaseReview, validateFirstPurchaseReview, verifyDahliaStripeEndpoint,
   makeContinuationReview, validateContinuationReview, makeAclRecoveryReview, validateAclRecoveryReview,
+  makeSourceRefreshReview, validateSourceRefreshReview,
   runFirstPurchaseStages } from '../ops/platform-ecs-v1/first-purchase-activate-reviewed.mjs';
 import { buildFirstPurchaseActivationTemplates, draft } from '../ops/platform-ecs-v1/first-purchase-activation.mjs';
 import { DAHLIA_FIRST_PURCHASE_CANDIDATE as candidate, FIRST_PURCHASE_CANDIDATE as oldCandidate } from '../ops/platform-registration-publish-v1/contract.mjs';
@@ -122,6 +123,26 @@ test('ACL correction review binds the stopped install and the exact already veri
   assert.throws(()=>makeAclRecoveryReview({...input,nonce:old.nonce}),/ACL_RECOVERY_WINDOW/);
   const changed=JSON.stringify({...m,existingImage:{...m.existingImage,manifestDigest:'sha256:'+'a'.repeat(64)}});
   assert.throws(()=>validateAclRecoveryReview(changed,hash(changed),now),/EXPIRED_OR_CHANGED/);
+});
+
+test('Source refresh binds the confirmed vacancy without extending it or replaying the stopped review',()=>{
+  const hash=s=>createHash('sha256').update(s).digest('hex');
+  const old=readFileSync(new URL('../docs/evidence/sandbox-first-purchase-dahlia-acl-recovery.review.json',import.meta.url),'utf8').replaceAll('\r\n','\n');
+  const now=Date.parse('2026-11-19T01:15:00.000Z');
+  const input={implementationCommit:'a'.repeat(40),nonce:'b'.repeat(32),riskSha256:'c'.repeat(64),issuedAt:new Date(now).toISOString()};
+  const m=makeSourceRefreshReview(input),text=JSON.stringify(m);
+  assert.deepEqual(validateSourceRefreshReview(text,hash(text),now),m);
+  assert.equal(m.predecessor.sourceStopApprovalSha256,hash(old));
+  assert.equal(m.preflight.verifySourceBeforeConsumingSlot,true);
+  assert.equal(m.preflight.neonVacancy.recheckInsideInstallBeforeDdl,true);
+  assert.equal(m.latestStartUtc,'2026-11-19T05:47:53.061Z');
+  assert.equal(m.hardStopUtc,JSON.parse(old).hardStopUtc);
+  assert.equal(m.limits.neonTlsConnections,2);
+  assert.equal(m.limits.sourceSts,4);
+  assert.deepEqual(m.writes,JSON.parse(old).writes);
+  assert.throws(()=>validateSourceRefreshReview(old,hash(old),now),/SOURCE_REFRESH_FORMAT/);
+  assert.throws(()=>makeSourceRefreshReview({...input,nonce:JSON.parse(old).nonce}),/SOURCE_REFRESH_WINDOW/);
+  assert.throws(()=>validateSourceRefreshReview(text,hash(text),Date.parse(m.latestStartUtc)),/EXPIRED/);
 });
 
 test('Hosting pins the new version and retains the old Web connection and closed worker',()=>{
