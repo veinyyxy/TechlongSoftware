@@ -11,6 +11,7 @@ const replacement = load('../../docs/evidence/sandbox-first-purchase-replacement
 const activation = load('../../docs/evidence/sandbox-first-purchase-activation-consolidated.prepared.json');
 const dahliaObserved = load('../../docs/evidence/sandbox-first-purchase-dahlia.observed.json');
 const dahliaPrepared = load('../../docs/evidence/sandbox-first-purchase-dahlia.prepared.json');
+const checkoutReviewPath = new URL('../../docs/evidence/sandbox-first-purchase-checkout-repair-rollout.review.json',import.meta.url);
 const source = brief.source;
 const a = source.artifact;
 const hex40 = /^[a-f0-9]{40}$/;
@@ -53,7 +54,22 @@ export const DAHLIA_FIRST_PURCHASE_CANDIDATE=Object.freeze({...C,sourceCommit:dw
   archiveBytes:de.archiveBytes,scanSummarySha256:de.scanSummarySha256,sourceRecipeSha256:de.sourceRecipeSha256,
   sourceTreeOid:de.sourceTreeOid,targetTag:'sandbox-first-purchase-cdfa2e16-r44418072086'});
 
-function overlayProtocol(S,producerPath,firstPurchase=false){
+const checkoutText=readFileSync(checkoutReviewPath,'utf8').replace(/\r\n/g,'\n');
+export const CHECKOUT_REVIEW_SHA='d4ead3f7379f307db598160d1752f8e9a6baa36ce27f314c17f6df91d61e90c4';
+must(hash(checkoutText)===CHECKOUT_REVIEW_SHA,'CHECKOUT_REVIEW_BYTES');
+const checkout=JSON.parse(checkoutText);
+const cw=checkout.observedBuild,ce=cw.evidence;
+must(cw.repository===C.repository&&cw.repositoryId===C.repositoryId&&cw.workflowPath===dw.file&&cw.workflowId===dw.workflowId&&
+  cw.branch==='main'&&cw.event==='workflow_dispatch'&&cw.attempt===1&&cw.conclusion==='success'&&
+  ce.runId===44442817443&&ce.artifactId===14491468132&&ce.noAwsIdentity&&ce.syntheticCallbackPassed&&ce.freshOsHighCriticalGatePassed&&
+  cw.registryManifestDigest===null,'CHECKOUT_OBSERVED_PINS');
+export const CHECKOUT_REPAIR_CANDIDATE=Object.freeze({...C,sourceCommit:cw.head,runId:ce.runId,workflowId:cw.workflowId,
+  artifactId:ce.artifactId,artifactName:ce.artifactName,artifactBytes:ce.artifactZipBytes,artifactDigest:ce.artifactZipDigest,
+  artifactExpiresAt:ce.expiresAtUtc,archiveSha256:ce.archiveSha256,imageConfigDigest:ce.imageConfigDigest,
+  archiveBytes:ce.archiveBytes,scanSummarySha256:ce.scanSummarySha256,sourceRecipeSha256:ce.sourceRecipeSha256,
+  sourceTreeOid:ce.sourceTreeOid,targetTag:checkout.scope.proposedExactImmutableTag});
+
+function overlayProtocol(S,producerPath,firstPurchase=false,additionalRetained=[]){
 function verifyCandidate(run, artifact, now=Date.now()) {
   must(run.id===S.runId && run.head_sha===S.sourceCommit && run.workflow_id===S.workflowId && run.repository?.id===S.repositoryId &&
     run.head_branch==='main' && run.event==='workflow_dispatch' && run.run_attempt===1 && run.path===producerPath &&
@@ -127,7 +143,8 @@ function templates(m) {
   return {grant,revoke};
 }
 const preserved=Object.freeze([...BASE_IMAGES,{digest:brief.target.oldPlatformDigestToPreserve,tag:OLD_PLATFORM.targetTag},
-  ...(firstPurchase?[{digest:'sha256:adaa45218a5bfefcc376bf0349eb685f742efb381fc334540347745091bbe323',tag:C.targetTag}]:[])]);
+  ...(firstPurchase?[{digest:'sha256:adaa45218a5bfefcc376bf0349eb685f742efb381fc334540347745091bbe323',tag:C.targetTag}]:[]),
+  ...additionalRetained]);
 function verifyRetained(v) {
   must(!v.nextToken && v.imageDetails?.length===preserved.length,'REGISTRATION_ECR_BASE_COUNT');
   for(const p of preserved) {
@@ -157,12 +174,15 @@ return Object.freeze({P:S,verifyCandidate,verifyImageReceipt,validateReview,vali
 export const protocol=overlayProtocol(C,observed.workflow.file);
 export const firstPurchaseProtocol=overlayProtocol(FIRST_PURCHASE_CANDIDATE,w.file,true);
 export const dahliaFirstPurchaseProtocol=overlayProtocol(DAHLIA_FIRST_PURCHASE_CANDIDATE,dw.file,true);
+export const checkoutRepairProtocol=overlayProtocol(CHECKOUT_REPAIR_CANDIDATE,cw.workflowPath,true,[
+  {digest:checkout.scope.baselineEcrDigest,tag:DAHLIA_FIRST_PURCHASE_CANDIDATE.targetTag}
+]);
 export const {verifyCandidate,verifyImageReceipt,validateReview,validateCloud,validateClaims,templates,verifyRetained,verifyFinalInventory,verifyPublishedManifest}=protocol;
 
 export function selectOverlayPublication(text,sha,now=Date.now()) {
   must(typeof text==='string' && text.length<20000 && hex64.test(sha??'') && hash(text)===sha,'REGISTRATION_REVIEW_SHA');
   const candidate=JSON.parse(text).candidate;
-  const selected=[protocol,firstPurchaseProtocol,dahliaFirstPurchaseProtocol].find(p=>same(p.P,candidate));
+  const selected=[protocol,firstPurchaseProtocol,dahliaFirstPurchaseProtocol,checkoutRepairProtocol].find(p=>same(p.P,candidate));
   must(selected,'REGISTRATION_REVIEW_FIELDS');
   return {protocol:selected,review:selected.validateReview(text,sha,now)};
 }

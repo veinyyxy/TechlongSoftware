@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { load } from 'js-yaml';
 import { C, FIRST_PURCHASE_CANDIDATE as F, DAHLIA_FIRST_PURCHASE_CANDIDATE as D,
+  CHECKOUT_REPAIR_CANDIDATE as Q, checkoutRepairProtocol,
   protocol, firstPurchaseProtocol, dahliaFirstPurchaseProtocol, selectOverlayPublication, verifyImageReceipt } from '../ops/platform-registration-publish-v1/contract.mjs';
 import { verifyLoaded } from '../ops/platform-registration-publish-v1/artifact.mjs';
 import { dahliaFirstPurchaseSourceContext, dahliaSealedSizeFix, firstPurchaseSourceContext, sourceContext } from '../ops/platform-registration-publish-v1/source.mjs';
@@ -159,6 +160,35 @@ test('the Dahlia publisher binds the new sealed artifact and cannot use the earl
   assert.equal(dahliaFirstPurchaseProtocol.verifyImageReceipt(sealed),sealed);
   assert.throws(()=>firstPurchaseProtocol.verifyImageReceipt(sealed),/REGISTRATION_RECEIPT/);
   assert.deepEqual(dahliaFirstPurchaseProtocol.templates(m).revoke,protocol.templates(review).revoke);
+});
+
+test('Checkout only accepts the approved run, sealed artifact and immutable tag, retaining Dahlia',()=>{
+  const m=JSON.parse(read('../docs/evidence/sandbox-first-purchase-checkout-repair-rollout.review.json'));
+  const t=Date.parse(m.observedBuild.verifiedAtUtc)+60_000;
+  const stamp=new Date(t).toISOString(), end=new Date(t+3600000).toISOString();
+  const textFor=candidate=>JSON.stringify({...review,candidate,issuedAt:stamp,grantStartsAt:stamp,grantExpiresAt:end,expiresAt:end});
+  const q=textFor(Q);
+  assert.equal(Q.artifactId,14491468132);
+  assert.equal(selectOverlayPublication(q,hash(q),t).protocol,checkoutRepairProtocol);
+  assert.deepEqual(checkoutRepairProtocol.templates(JSON.parse(q)).revoke,protocol.templates(review).revoke);
+  for(const bad of [{...Q,targetTag:D.targetTag},{...Q,artifactId:D.artifactId},{...Q,archiveBytes:Q.archiveBytes+1},{...Q,sourceCommit:D.sourceCommit}]){
+    const raw=textFor(bad);assert.throws(()=>selectOverlayPublication(raw,hash(raw),t),/REGISTRATION_REVIEW_FIELDS/);
+  }
+  const producer={...r,id:Q.runId,workflow_id:Q.workflowId,head_sha:Q.sourceCommit};
+  const artifact={...a,id:Q.artifactId,name:Q.artifactName,size_in_bytes:Q.artifactBytes,digest:Q.artifactDigest,expires_at:Q.artifactExpiresAt,
+    workflow_run:{...a.workflow_run,id:Q.runId,head_sha:Q.sourceCommit}};
+  checkoutRepairProtocol.verifyCandidate(producer,artifact,t);
+  assert.throws(()=>checkoutRepairProtocol.verifyCandidate({...producer,run_attempt:2},artifact,t),/REGISTRATION_PRODUCER/);
+  assert.throws(()=>checkoutRepairProtocol.verifyCandidate(producer,{...artifact,size_in_bytes:artifact.size_in_bytes+1},t),/REGISTRATION_ARTIFACT_METADATA/);
+  const oldDigest=JSON.parse(read('../docs/evidence/sandbox-registration-ecr-publication.prepared.json')).target.oldPlatformDigestToPreserve;
+  const registrationDigest=JSON.parse(read('../docs/evidence/sandbox-first-purchase-activation.prepared.json')).scope.observedWebRegistryManifest;
+  const image=(imageDigest,tag)=>({imageDigest,imageTags:[tag],registryId:Q.account,repositoryName:Q.ecrRepository});
+  const before=[...RETAINED.map(i=>image(i.digest,i.tag)),image(oldDigest,oldPlatform.targetTag),image(registrationDigest,C.targetTag)];
+  const withDahlia=[...before,image(m.scope.baselineEcrDigest,D.targetTag)];
+  assert.throws(()=>checkoutRepairProtocol.verifyRetained({imageDetails:before}),/REGISTRATION_ECR_BASE_COUNT/);
+  assert.ok(checkoutRepairProtocol.verifyRetained({imageDetails:withDahlia}));
+  const nextDigest='sha256:'+'e'.repeat(64);
+  assert.ok(checkoutRepairProtocol.verifyFinalInventory({imageDetails:[...withDahlia,image(nextDigest,Q.targetTag)]},nextDigest));
 });
 
 test('extractor uses the exact sealed image size without changing ZIP and SHA verification',t=>{
