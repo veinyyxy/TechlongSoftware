@@ -1,0 +1,131 @@
+{
+  "schema": "techlong/sandbox-first-purchase-after-acl-correction/v1",
+  "implementationCommit": "3612634b0037cd2e0e6f4b90c6a117b639f0d072",
+  "nonce": "6df05167f19d1a37e28b5e8d1e10d080",
+  "issuedAt": "2026-11-19T00:34:02.799Z",
+  "riskSha256": "1f1eb7687538612e2144bcb41996338a4c5fea3a37bd9405cf8ee48748fcde9d",
+  "latestStartUtc": "2026-11-19T23:53:50.286Z",
+  "hardStopUtc": "2026-11-20T01:28:50.286Z",
+  "totalMinutesMax": 60,
+  "preflight": {
+    "freshReadbacksAfterApprovalAndBeforeFirstRemoteWrite": true,
+    "maxMinutesBeforeFirstRemoteWrite": 10,
+    "originalSnapshotEndedUtc": "2026-11-18T23:06:18.005Z",
+    "originalSnapshotUse": "expected baseline only, never current authority",
+    "exactTenantImageManifestAndExistingKmsPolicy": true,
+    "firstWriteRequiresIndependentEcrAndLockedProof": true,
+    "requireVacantInstallationObjectsBeforeWrite": true,
+    "publisherLockEvidence": "reuse exact previous independent receipt",
+    "firstWriteRequiresFreshExactEcrDigest": true
+  },
+  "predecessor": {
+    "approvalSha256": "88ff81c0d05c9ae240b9f6c9518a52048313afbf0a6bacbf284eb09348a664dc",
+    "receiptSha256": "d57d6b13f303b3b78fabbfb4898d8ee5342b91b96b7f083c5b09dc66ce3fbcc4",
+    "runId": 44425786946,
+    "dispatchCommit": "f01faef753e98921fd44397c84868ec0b71b0afa",
+    "preserveBothUsedSlots": true,
+    "preCommitStopApprovalSha256": "05cc2ecbfe7555d2ded8154629c31c70dffc8e0480dcab2fef623ac1a4b4660b",
+    "preCommitStopReceiptSha256": "3708792734536c482a49081c07edf10b699eae166f0ad026b23c56f03f7777e6",
+    "installCommitSent": false
+  },
+  "sourceCi": {
+    "publisherRun": 44424440732,
+    "publisherCommit": "d90930cfc70b82aacf682641e37857451ca4797f",
+    "reusableRun": 44423446449,
+    "reusableCommit": "d169811bfdb68f62bc1e3fad7dcea9f58f8a0423",
+    "callerWorkflowId": 422829965,
+    "postgres18Run": 44374702186
+  },
+  "target": {
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "origin": "https://console.sandbox.techlong.cloud",
+    "workspaceSource": "Local ignored sandbox-first-onboarding-workspace-20261118.json; exact ID supplied by the user, not yet independently verified",
+    "expectedHostingStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "expectedAccessStackId": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-access-v1/01b4bb80-ce60-11f1-9435-0e85c8c75895",
+    "expectedServiceArn": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+    "observedWebTaskRevision": 14,
+    "observedWebRegistryManifest": "sha256:adaa45218a5bfefcc376bf0349eb685f742efb381fc334540347745091bbe323",
+    "productId": "prd_restaurant_order_system",
+    "environmentId": "env_aws_sandbox_ca_central_1",
+    "cell": "cell-sandbox-1",
+    "profile": "standard-v1",
+    "tenantReleaseId": "release_00b9c5cfa6bceedc5fd05aa451dca811",
+    "tenantReleaseImage": "402010193138.dkr.ecr.ca-central-1.amazonaws.com/techlong-sandbox-speedfeast@sha256:a6213e0f567538bb658c13c63edb1439b80c5f9a55a2add7301d61fced5377c0",
+    "workspaceIdSha256": "7359ccf32c3bebd4c4b754caac4cdfbdd471a8202c9206f67a298a8f020ca0fc",
+    "originalNeonProjectionSha256": "29547bda541a9acdfab0ef4a5c3b51725c0c9e7a3af856a2bd6c8a77d4d278e0",
+    "originalAwsProjectionSha256": "25b1f420ce665f418260a99f8d4951c296d53b6a0a3032c0936f437fc4eaa1d8"
+  },
+  "candidate": {
+    "buildRun": 44418072086,
+    "attempt": 1,
+    "artifact": 14480476839,
+    "zipSha256": "sha256:58fa296675bae303f3d5147d411bd37caed0013cc9eab55bf67acd65beb45f09",
+    "archiveBytes": 307792511,
+    "configDigest": "sha256:86f5ba7fa888c181f7ed6467fcc18265b8c71bef4da910b9d2b1609d67454518",
+    "recipe": "cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d",
+    "tree": "5a818a48940e21b2d907d6b8a64ac902ff709299",
+    "exactTag": "sandbox-first-purchase-cdfa2e16-r44418072086",
+    "repository": "techlong-sandbox-platform-web",
+    "publisherStack": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b",
+    "environment": "techlong-sandbox-deploy"
+  },
+  "stripe": {
+    "endpoint": "https://console.sandbox.techlong.cloud/api/stripe/webhook",
+    "events": [
+      "charge.refunded",
+      "checkout.session.completed",
+      "checkout.session.expired",
+      "payment_intent.payment_failed",
+      "payment_intent.succeeded"
+    ],
+    "apiVersion": "2026-05-27.dahlia",
+    "firstPurchasePaymentMethod": "card",
+    "mode": "sandbox / your account / snapshot",
+    "credentialFilename": "sandbox-first-purchase-stripe-test.json",
+    "signingFilename": "sandbox-first-purchase-stripe-webhook-test.json",
+    "newSecretName": "techlong/sandbox/platform-web/first-purchase-v1"
+  },
+  "limits": {
+    "sourceSts": 4,
+    "awsMetadata": 201,
+    "githubApiGets": 0,
+    "githubCredentialLoads": 0,
+    "artifactDownloads": 0,
+    "stripePrivateFiles": 2,
+    "stripeAuthenticatedGets": 5,
+    "configReads": 1,
+    "neonTlsConnections": 3,
+    "neonSqlSubmissions": 76,
+    "anonymousTechnicalGets": 2
+  },
+  "writes": {
+    "publisherGrantUpdates": 0,
+    "publisherRevokeUpdates": 0,
+    "protectedDispatch": 0,
+    "topLevelEcrPush": 0,
+    "neonInstallTransactions": 1,
+    "newEmptySecret": 1,
+    "newPolicy": 1,
+    "newSecretVersion": 1,
+    "accessChangeSetCreate": 1,
+    "accessChangeSetExecute": 1,
+    "hostingChangeSetCreate": 1,
+    "hostingChangeSetExecute": 1,
+    "checkoutOrTaskBusinessWrites": 0,
+    "repeats": 0,
+    "deletes": 0
+  },
+  "safety": "Require fresh absence of prior install objects; reuse prior Locked proof with one exact ECR manifest check, then finish the original narrow installation. No publisher changes, redeploy of image, retries, cleanup or test checkout.",
+  "fix": {
+    "commit": "614d8ca2efc95548fad53675b69aab88be42fe50",
+    "pg18CiRun": 44429410826,
+    "file": "ops/platform-ecs-v1/first-purchase-activation-db.mjs"
+  },
+  "existingImage": {
+    "manifestDigest": "sha256:a27f4a5d101f884205d8e455fc68beeaadbc7136d190cf9ebf6c5055d9e50670",
+    "imageConfigDigest": "sha256:86f5ba7fa888c181f7ed6467fcc18265b8c71bef4da910b9d2b1609d67454518",
+    "layerCount": 15,
+    "lockedProofReceiptSha256": "c35680eb438997bfe517ac9d8889ca6bc5dc1cd78e35042125bde7ae9c304704"
+  }
+}
