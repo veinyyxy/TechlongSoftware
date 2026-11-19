@@ -8,7 +8,9 @@
 
 **当前唯一继续点：缺口 3 第 4 步，Checkout 修复上线和关联原会话。** [无 AWS 构建](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44442817443)原 attempt 1 成功，唯一候选 `14491468132` 已核对元数据与封签，未下载 ZIP。按[本轮合并清单](evidence/sandbox-first-purchase-checkout-repair-rollout.review.json) `d4ead3f7…`，不可变发布接线 `200ca52`／`878755e`、[发布 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44444287971)和[PG18 事务回归](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44444287959)通过。2026-11-19 02:29:11 UTC 的只读回执确认为同一 Stripe 测试会话开放未付、Neon 原订单仍是草稿、原平台匹配；此为采样事实，不证明以后状态。
 
-**首轮实际执行在第一次写入前停止，不重放。** 本机比较定位：发布器预检错误使用初装无信任的 foundation，而前一轮经过独立核验的是另一份明示 `LockedDenyAllEcr` 的 Revoke 模板；两份只差已有 inline policy。新候选 Revoke 和上一次正确的 Revoke 一致；本次 `SOURCE_STACK_STATE` 不独立证明当前角色或栈漂移。实际 AWS STS 2／元数据 41、GitHub GET 4／调度 0、Stripe 准确 GET 1、Neon 只读 1／SQL 10；Grant、AWS 写、Neon 写、发布和关联均 0，无待批 environment。保留原尝试和门槛；下一次若另批，只修正本机一处 Locked 预期并按原合并边界从新鲜前置继续，不重建镜像、不放宽校验、不复用旧批准。原最晚启动温尼伯 **11 月 19 日 17:21:57**、会话历史到期 **19:16:57** 均不延；用户先不重试购买。
+**首轮实际执行在第一次写入前停止，不重放。** 本机比较定位：发布器预检错误使用初装无信任的 foundation，而前一轮经过独立核验的是另一份明示 `LockedDenyAllEcr` 的 Revoke 模板；两份只差已有 inline policy。新候选 Revoke 和上一次正确的 Revoke 一致；本次 `SOURCE_STACK_STATE` 不独立证明当前角色或栈漂移。实际 AWS STS 2／元数据 41、GitHub GET 4／调度 0、Stripe 准确 GET 1、Neon 只读 1／SQL 10；Grant、AWS 写、Neon 写、发布和关联均 0，无待批 environment。
+
+**当前唯一待批动作：** [原范围单次接续](aws-sandbox-first-purchase-checkout-repair-revoke-continuation-review.md)，[清单](evidence/sandbox-first-purchase-checkout-repair-revoke-continuation.review.json) SHA `bc31603803a440175b8cfd635efddeadc92cb4459b42dbd3ce23d8a85b2401e2`。只修正本机 Locked 预期，严格复用上次 Revoke；回归验证正确模板通过、初装模板和残留 Allow 拒绝。仍按原合并边界重新核对前置、发布／撤权、换镜像和关联旧单；不重建、不重放旧批准、不延时。原最晚启动温尼伯 **11 月 19 日 17:21:57**、常规硬截止 **18:56:57**、会话历史到期 **19:16:57**。本轮未访问 AWS、Stripe 或 Neon，未调度；用户先不重试购买。
 
 **修正验证：** `5b89c18` 的[支付及 PostgreSQL 回归](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551298)全过。[通用托管候选 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551331)在构建前停于既有 81 文件部署执行闭包摘要断言；修正前后的 81 个绑定文件及其规范 SHA 均逐项一致，本修正未触及闭包或放宽门禁。该 run 没有生成发布候选，不能作为部署凭据。
 

@@ -10,6 +10,8 @@ import {environment} from '../ops/platform-image-source-v2/files.mjs';
 import {templates} from '../ops/platform-image-publication-v2/plan.mjs';
 import {lockedPublisherFoundation} from '../ops/platform-image-recovery-v2/publisher-foundation.mjs';
 import {RECOVERY_SCOPE as R} from '../ops/platform-image-recovery-v1/recovery.mjs';
+import {verifyCheckoutRepairPublisherLocked} from '../ops/platform-ecs-v1/checkout-repair-publisher-preflight.mjs';
+import {dahliaFirstPurchaseProtocol} from '../ops/platform-registration-publish-v1/contract.mjs';
 const now=Date.parse('2026-10-22T01:00:00Z'),head='a'.repeat(40);
 function outer(){return {schema:'techlong/platform-image-source-review/v2',issuedAt:'2026-10-22T00:00:00Z',expiresAt:'2026-10-24T00:00:00Z',latestStartAt:'2026-10-23T23:00:00Z',
   nonce:'b'.repeat(32),operatorSourceCommit:head,sourceCiRunId:123456789,callerWorkflowId:987654321,
@@ -72,6 +74,15 @@ test('post-update verification accepts only expected true RoleId/template/trust/
     const v=snapshot(t.revoke);change(v);assert.throws(()=>verifySnapshot(v,t.revoke));
   }
   assert.throws(()=>identity({Account:P.account,Arn:P.roleArn}),/SOURCE_IDENTITY/);
+});
+test('Checkout publisher preflight accepts the last verified Revoke, not the initial foundation',()=>{
+  const previous={...innerReview(outer(),head,now),candidate:dahliaFirstPurchaseProtocol.P};
+  const revoked=dahliaFirstPurchaseProtocol.templates(previous).revoke;
+  assert.equal(verifyCheckoutRepairPublisherLocked(snapshot(revoked),previous).locked,true);
+  assert.throws(()=>verifyCheckoutRepairPublisherLocked(snapshot(lockedPublisherFoundation()),previous),/SOURCE_STACK_STATE/);
+  const wrongInline=snapshot(revoked);
+  wrongInline.inline.PolicyDocument=lockedPublisherFoundation().Resources.PlatformImagePublisher.Properties.Policies[0].PolicyDocument;
+  assert.throws(()=>verifyCheckoutRepairPublisherLocked(wrongInline,previous),/SOURCE_ROLE_STATE/);
 });
 function layout(){return {user:{id:14145707,login:'veinyyxy'},repo:{id:P.repositoryId,full_name:P.repository,owner:{id:14145707}},
   oidc:{use_default:true,use_immutable_subject:true,sub_claim_prefix:'repo:veinyyxy@14145707/TechlongSoftware@1323312747'},environment:{id:24613410405,name:P.environment,

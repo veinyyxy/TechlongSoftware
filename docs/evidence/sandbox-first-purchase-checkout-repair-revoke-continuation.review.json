@@ -1,0 +1,89 @@
+{
+  "schema": "techlong/sandbox-first-purchase-checkout-repair-revoke-continuation/v1",
+  "status": "PREPARED_PENDING_NEW_APPROVAL",
+  "executionAuthorized": false,
+  "originalReviewSha256": "d4ead3f7379f307db598160d1752f8e9a6baa36ce27f314c17f6df91d61e90c4",
+  "originalReviewReplayAllowed": false,
+  "historicalReadOnlyObservationsAreNotCurrentFacts": true,
+  "stopped": {
+    "resultSha256": "509c4a7abe98892cfa386df9631d0ce44ac79e679c17279be14d2a9f0b7442c2",
+    "preflightSha256": "1741e86deadb5ee8d3e5c01e0178496f09042ee8a33ecade36917f3a0d94a812",
+    "openedSha256": "66f10f3b4eb320ddd589dde0fcfd93ee3bf581400ba857abd11a954216bcea84"
+  },
+  "previousDahliaIntentSha256": "ccb96a448fbf111c4b3640c12e1de5374e0272bde8d3e5d83b8920036db8e96e",
+  "expectedRevokeTemplateSha256": "9841a46b931a221eeb3564fdf70c59a9ecfa272e5c8ef1ffd27e2c41308cf109",
+  "baselineCommit": "c3c4159b5ed743beea0deeba5dbc37b9cb0ca964",
+  "publisherValidatedAtCommit": "878755eaafba42f97b0d9d58e39440f27b29f94c",
+  "immutableReusableCommit": "200ca52348a2ba57f52cfdd445051012eb0dddd6",
+  "sourceArtifactIdUnchanged": 14491468132,
+  "reusedCiRuns": [
+    44443705703,
+    44444287971,
+    44444287959
+  ],
+  "trackedFileSha256": {
+    "ops/platform-ecs-v1/checkout-repair-publisher-preflight.mjs": "dc9e0d935dd9836ca6e804c695613ecb59ee5152c623579c2c66cc59da9668df",
+    "tests/platform-image-source-v2.test.mjs": "533689fd530aba84d58a294c42c41956f4c7337e410d51702438726fda706eeb",
+    "docs/aws-sandbox-first-purchase-checkout-repair-revoke-continuation-review.md": "043bd1ea3ad77ef1fa5f8351a525177465f8928ca6ac5bb5955a7564185dabf8"
+  },
+  "privateExecutor": ".local-secrets/sandbox-checkout-repair-revoke-continuation.mjs",
+  "privateExecutorSha256": "49a0ab7b079a0b36a7a0d2eae558ca5e835bfba8ef02ea2477bf183feef6b7fe",
+  "allowedChangesAfterBaseline": [
+    "docs/aws-auto-deployment-execution-runbook.md",
+    "docs/aws-auto-deployment-mainline.md",
+    "docs/aws-sandbox-first-purchase-checkout-repair-revoke-continuation-review.md",
+    "docs/evidence/sandbox-first-purchase-checkout-repair-revoke-continuation.review.json",
+    "ops/platform-ecs-v1/checkout-repair-publisher-preflight.mjs",
+    "tests/platform-image-source-v2.test.mjs"
+  ],
+  "window": {
+    "historicalStripeExpiryUtc": "2026-11-20T01:16:57.000Z",
+    "latestStartUtc": "2026-11-19T23:21:57.000Z",
+    "hardStopUtc": "2026-11-20T00:56:57.000Z",
+    "maxRunMinutes": 95,
+    "preflightMinutes": 10,
+    "grantMaxMinutes": 60,
+    "originalSessionExtended": false,
+    "lockCleanupOnlyMayOutlastStop": true
+  },
+  "maximums": {
+    "sourceSts": 8,
+    "awsMetadataReads": 260,
+    "sourceGitCredentialLoads": 1,
+    "sourceGitHubApiGets": 120,
+    "oneProtectedDispatch": 1,
+    "workflowGitHubApiGets": 3,
+    "workflowExactArtifactDownloads": 1,
+    "workflowOidcSessions": 1,
+    "workflowEcrMetadataReads": 3,
+    "publisherGrant": 1,
+    "publisherRevoke": 1,
+    "topLevelEcrPush": 1,
+    "hostingChangeSetCreate": 1,
+    "hostingChangeSetExecute": 1,
+    "anonymousTechGets": 2,
+    "awsSecretValueReads": 0,
+    "stripeTestFileReads": 1,
+    "stripeOriginalSessionGets": 2,
+    "stripeWrites": 0,
+    "neonConfigReads": 1,
+    "neonTlsConnections": 3,
+    "neonSqlMax": 60,
+    "neonWriteTransactions": 1,
+    "attachReplacements": 1,
+    "exactSessionAttachments": 1,
+    "otherOrderWrites": 0,
+    "taskClaims": 0,
+    "resourceDeletes": 0,
+    "retries": 0
+  },
+  "scope": "Same original targets and bounded sequence; only the preflight expectation is the previous independently verified Revoke. One fresh attempt; no purchase, candidate rebuild or broadening of reads, writes or permissions.",
+  "currentPreparation": {
+    "awsCalls": 0,
+    "stripeCalls": 0,
+    "neonConnections": 0,
+    "protectedDispatches": 0,
+    "artifactBuilds": 0,
+    "originalIntentReplayed": false
+  }
+}
