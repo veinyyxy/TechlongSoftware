@@ -1,0 +1,79 @@
+{
+  "schema": "techlong/sandbox-first-open-baseline-copy/fc41597f/v1",
+  "preparedNotAuthorized": true,
+  "jobId": "job_fc41597f9b5ba8e02b338ecf",
+  "account": "402010193138",
+  "region": "ca-central-1",
+  "iamPrincipal": "arn:aws:iam::402010193138:user/techlong-sandbox-dev",
+  "source": {
+    "bucket": "techlong-sandbox-402010193138-ca-central-1-tenant-baselines",
+    "preserveOriginals": true
+  },
+  "target": {
+    "bucket": "techlong-sandbox-cloud-worker-evidence-402010193138",
+    "prefix": "first-open-baselines/job_fc41597f9b5ba8e02b338ecf/g1/",
+    "existingVersionedBucketOnly": true
+  },
+  "observed": {
+    "manifestUtc": "2026-11-19T04:47:20.879Z",
+    "archiveUtc": "2026-11-19T04:50:41.212Z",
+    "targetUtc": "2026-11-19T04:50:42.532Z",
+    "fullObjectShaAndSizesMatched": true,
+    "bucketVersioningEnabled": true,
+    "bucketPublicAccessBlocksEnabled": true,
+    "bucketSseS3Aes256": true,
+    "bucketOwnerEnforced": true,
+    "bucketLifecycleAbsent": true,
+    "bucketPolicySha256": "eb09fdaee82ced08bff0e3e860c32882b43f84f841bf7f22b0284e44b552a834"
+  },
+  "objects": [
+    {
+      "kind": "archive",
+      "sourceKey": "approved/1a65288b4628018932a8d9af4658db5702b6cf49966a2032bc2d919bc591d70a/baseline.dump",
+      "key": "first-open-baselines/job_fc41597f9b5ba8e02b338ecf/g1/1a65288b4628018932a8d9af4658db5702b6cf49966a2032bc2d919bc591d70a/baseline.dump",
+      "etag": "\"0b75b7ec52218e6de5b3b34414481766\"",
+      "sourceVersionId": null,
+      "bytes": 203375,
+      "sha256": "1a65288b4628018932a8d9af4658db5702b6cf49966a2032bc2d919bc591d70a"
+    },
+    {
+      "kind": "manifest",
+      "sourceKey": "approved/62b5dc8cadcf276df140be86e002a08b64d9b713bd0257e14ac515c12a996971/baseline.manifest.json",
+      "key": "first-open-baselines/job_fc41597f9b5ba8e02b338ecf/g1/62b5dc8cadcf276df140be86e002a08b64d9b713bd0257e14ac515c12a996971/baseline.manifest.json",
+      "etag": "\"a98af6a8f047c1176590cc4065251b8f\"",
+      "sourceVersionId": null,
+      "bytes": 26502,
+      "sha256": "62b5dc8cadcf276df140be86e002a08b64d9b713bd0257e14ac515c12a996971"
+    }
+  ],
+  "window": {
+    "latestStartUtc": "2026-11-19T09:37:20.879Z",
+    "factsExpireUtc": "2026-11-19T09:47:20.879Z",
+    "maximumRunSeconds": 240
+  },
+  "sequence": [
+    "Validate exact SOURCE identity and only the target replication and notification configuration; stop if either affects either reviewed key or is inconclusive",
+    "Copy archive then manifest once each with exact source ETags, two expected bucket owners, destination If-None-Match star, SHA256, AES256 and no source tag or user metadata inheritance",
+    "After both exact target VersionIds are acknowledged, independently validate both by version-bound HEAD in a separate read-only process using the same Source IAM principal"
+  ],
+  "maximums": {
+    "sts": 2,
+    "targetConfigurationGets": 2,
+    "conditionalCopyObject": 2,
+    "fixedVersionHeadObject": 2,
+    "sourceHeadObject": 0,
+    "list": 0,
+    "getObjectBody": 0,
+    "iamChanges": 0,
+    "bucketConfigurationChanges": 0,
+    "otherAwsWrites": 0,
+    "delete": 0,
+    "retry": 0,
+    "restores": 0,
+    "jobClaims": 0,
+    "deployments": 0
+  },
+  "riskDocumentSha256": "1200735a4b738a1e01abb519119888693cfb7a8fb33681618931b692647523f6",
+  "privateRunnerSha256": "f5843891bbe65f2b2f2b3438f7483ebf44029301fd0fb0633462909f68adc066",
+  "partialOrUnknownOutcomeStops": true
+}
