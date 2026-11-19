@@ -1,0 +1,37 @@
+{
+  "schema": "techlong/sandbox-first-purchase-dahlia-continuation-stopped/v1",
+  "approvalSha256": "05cc2ecbfe7555d2ded8154629c31c70dffc8e0480dcab2fef623ac1a4b4660b",
+  "completedAtUtc": "2026-11-19T00:20:10.158Z",
+  "outcome": "STOPPED_BEFORE_NEON_INSTALL_COMMIT",
+  "preflight": {
+    "verified": true,
+    "sha256": "638d5ed11b026ba76307e6048ed5b1605093f1ef8ea1ad3e763a26fb30631929"
+  },
+  "existingPublication": {
+    "runId": 44425786946,
+    "artifactId": 14480476839,
+    "locked": true,
+    "manifestDigest": "sha256:a27f4a5d101f884205d8e455fc68beeaadbc7136d190cf9ebf6c5055d9e50670",
+    "imageConfigDigest": "sha256:86f5ba7fa888c181f7ed6467fcc18265b8c71bef4da910b9d2b1609d67454518",
+    "layerCount": 15,
+    "independentReceiptSha256": "c35680eb438997bfe517ac9d8889ca6bc5dc1cd78e35042125bde7ae9c304704"
+  },
+  "neon": {
+    "connections": 2,
+    "sqlSubmissions": 53,
+    "installRecipeStatements": 24,
+    "failedBeforeCommitIntent": true,
+    "installCommitSent": false,
+    "independentRollbackReadbackPerformed": false,
+    "error": "FIRST_PURCHASE_DB_INSTALLED_ROLE_OR_ACL",
+    "failedSubconditionIdentified": false,
+    "installIntentSha256": "85457d69b7683ef99aa634b9ab5ed674fd6534c76b5925ff2f8176a2bf0cdc14"
+  },
+  "awsWrites": 0,
+  "secretWritten": false,
+  "platformUpdated": false,
+  "newGitHubDispatch": false,
+  "testCheckoutExecuted": false,
+  "retryAllowed": false,
+  "resultSha256": "076553f652350ae43c34a34b2c97757700afd6d3156684d65147cd89d362d101"
+}
