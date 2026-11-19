@@ -3,7 +3,8 @@ import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { dahliaEndpoint, makeFirstPurchaseReview, validateFirstPurchaseReview, verifyDahliaStripeEndpoint,
-  makeContinuationReview, validateContinuationReview, runFirstPurchaseStages } from '../ops/platform-ecs-v1/first-purchase-activate-reviewed.mjs';
+  makeContinuationReview, validateContinuationReview, makeAclRecoveryReview, validateAclRecoveryReview,
+  runFirstPurchaseStages } from '../ops/platform-ecs-v1/first-purchase-activate-reviewed.mjs';
 import { buildFirstPurchaseActivationTemplates, draft } from '../ops/platform-ecs-v1/first-purchase-activation.mjs';
 import { DAHLIA_FIRST_PURCHASE_CANDIDATE as candidate, FIRST_PURCHASE_CANDIDATE as oldCandidate } from '../ops/platform-registration-publish-v1/contract.mjs';
 import { dahliaSealedSizeFix } from '../ops/platform-registration-publish-v1/source.mjs';
@@ -98,6 +99,29 @@ test('continuation never calls the publication port and does not install if its 
   calls.length=0;
   await runFirstPurchaseStages(ports,{continuation:true});
   assert.deepEqual(calls.map(c=>c[0]),['preflight','read-ecr-and-lock','install','store','templates','update','update','inspect']);
+});
+
+test('ACL correction review binds the stopped install and the exact already verified image',()=>{
+  const hash=s=>createHash('sha256').update(s).digest('hex');
+  const prior=readFileSync(new URL('../docs/evidence/sandbox-first-purchase-dahlia-continuation.review.json',import.meta.url),'utf8').replaceAll('\r\n','\n');
+  const old=JSON.parse(prior),now=Date.parse('2026-11-19T00:45:00Z');
+  const input={implementationCommit:'a'.repeat(40),nonce:'b'.repeat(32),riskSha256:'c'.repeat(64),issuedAt:new Date(now).toISOString()};
+  const m=makeAclRecoveryReview(input),text=JSON.stringify(m);
+  assert.deepEqual(validateAclRecoveryReview(text,hash(text),now),m);
+  assert.equal(m.predecessor.preCommitStopApprovalSha256,hash(prior));
+  assert.equal(m.predecessor.installCommitSent,false);
+  assert.equal(m.preflight.requireVacantInstallationObjectsBeforeWrite,true);
+  assert.equal(m.existingImage.manifestDigest,'sha256:a27f4a5d101f884205d8e455fc68beeaadbc7136d190cf9ebf6c5055d9e50670');
+  assert.equal(m.fix.pg18CiRun,44429410826);
+  assert.equal(m.latestStartUtc,old.latestStartUtc);
+  assert.equal(m.hardStopUtc,old.hardStopUtc);
+  assert.equal(m.limits.sourceSts,4);
+  assert.equal(m.limits.awsMetadata,201);
+  assert.deepEqual(m.writes,old.writes);
+  assert.throws(()=>validateAclRecoveryReview(prior,hash(prior),now),/ACL_RECOVERY_FORMAT/);
+  assert.throws(()=>makeAclRecoveryReview({...input,nonce:old.nonce}),/ACL_RECOVERY_WINDOW/);
+  const changed=JSON.stringify({...m,existingImage:{...m.existingImage,manifestDigest:'sha256:'+'a'.repeat(64)}});
+  assert.throws(()=>validateAclRecoveryReview(changed,hash(changed),now),/EXPIRED_OR_CHANGED/);
 });
 
 test('Hosting pins the new version and retains the old Web connection and closed worker',()=>{

@@ -23,7 +23,13 @@ const continuationPath='docs/evidence/sandbox-first-purchase-dahlia-continuation
 const continuationRisk='docs/aws-sandbox-first-purchase-dahlia-continuation-review.md';
 const continuationReceipt='docs/evidence/sandbox-first-purchase-dahlia-size-fix-activation-stopped.json';
 const continuationReceiptSha='d57d6b13f303b3b78fabbfb4898d8ee5342b91b96b7f083c5b09dc66ce3fbcc4';
-const approvalDocChanges=[reviewPath,continuationPath,'docs/aws-auto-deployment-execution-runbook.md','docs/aws-auto-deployment-mainline.md',
+const aclRecoveryPath='docs/evidence/sandbox-first-purchase-dahlia-acl-recovery.review.json';
+const aclRecoveryRisk='docs/aws-sandbox-first-purchase-dahlia-acl-recovery-review.md';
+const aclRecoveryStop='docs/evidence/sandbox-first-purchase-dahlia-continuation-stopped.json';
+const aclRecoveryStopSha='3708792734536c482a49081c07edf10b699eae166f0ad026b23c56f03f7777e6';
+const aclRecoveryFix=Object.freeze({commit:'614d8ca2efc95548fad53675b69aab88be42fe50',pg18CiRun:44429410826,
+  file:'ops/platform-ecs-v1/first-purchase-activation-db.mjs'});
+const approvalDocChanges=[reviewPath,continuationPath,aclRecoveryPath,'docs/aws-auto-deployment-execution-runbook.md','docs/aws-auto-deployment-mainline.md',
   'docs/aws-sandbox-first-purchase-activation-preparation.md'];
 const checkoutScopeHash='7359ccf32c3bebd4c4b754caac4cdfbdd471a8202c9206f67a298a8f020ca0fc';
 const code=(ok,g)=>{if(!ok)throw Error('FIRST_PURCHASE_REVIEW_'+g);};
@@ -32,6 +38,7 @@ const privateName='sandbox-first-purchase-stripe-test.json', signingName='sandbo
 const prefix='techlong-platform-recovery-image-v1';
 const slot=path.join(local,'sandbox-first-purchase-dahlia-14480476839-size-fix.intent.json');
 const continuationSlot=path.join(local,'sandbox-first-purchase-dahlia-14480476839-remaining.intent.json');
+const aclRecoverySlot=path.join(local,'sandbox-first-purchase-dahlia-14480476839-acl-fix.intent.json');
 const previous=Object.freeze({
   approvedSha256:'8b35a3584a5b71e3eb74d7950e66a403cfe2ce3806db434febc04edee0abf25d',
   resultPath:'techlong-platform-recovery-image-v1-74c452f0d964045a2928105f22d2a34b/activation-result.json',
@@ -150,6 +157,46 @@ export function validateContinuationReview(text,approvedSha,now=Date.now()){
   return m;
 }
 
+function readAclRecoveryFacts(){
+  const read=p=>normalize(readFileSync(path.join(ROOT,p),'utf8'));
+  const raw=read(aclRecoveryStop),prior=read(continuationPath);
+  code(hash(raw)===aclRecoveryStopSha,'ACL_RECOVERY_STOP_EVIDENCE');
+  const stopped=JSON.parse(raw),previous=validateContinuationReview(prior,stopped.approvalSha256,Date.parse(JSON.parse(prior).issuedAt));
+  const p=stopped.existingPublication;
+  code(stopped.outcome==='STOPPED_BEFORE_NEON_INSTALL_COMMIT'&&stopped.neon.failedBeforeCommitIntent===true&&
+    stopped.neon.installCommitSent===false&&stopped.neon.error==='FIRST_PURCHASE_DB_INSTALLED_ROLE_OR_ACL'&&
+    stopped.awsWrites===0&&!stopped.secretWritten&&!stopped.platformUpdated&&!stopped.retryAllowed&&
+    stopped.preflight.verified===true&&p.locked===true&&p.runId===previous.predecessor.runId&&
+    p.artifactId===candidate.artifactId&&p.imageConfigDigest===candidate.imageConfigDigest,'ACL_RECOVERY_PREDECESSOR');
+  return {previous,stopped};
+}
+
+export function makeAclRecoveryReview(input){
+  const {previous,stopped}=readAclRecoveryFacts(),p=stopped.existingPublication;
+  const base=makeContinuationReview(input);
+  code(input.nonce!==previous.nonce&&Date.parse(input.issuedAt)>=Date.parse(stopped.completedAtUtc)&&
+    Date.parse(base.latestStartUtc)<=Date.parse(previous.latestStartUtc)&&base.hardStopUtc===previous.hardStopUtc,
+    'ACL_RECOVERY_WINDOW');
+  return {...base,schema:'techlong/sandbox-first-purchase-after-acl-correction/v1',
+    fix:aclRecoveryFix,predecessor:{...base.predecessor,preCommitStopApprovalSha256:stopped.approvalSha256,
+      preCommitStopReceiptSha256:aclRecoveryStopSha,installCommitSent:false},
+    preflight:{...previous.preflight,requireVacantInstallationObjectsBeforeWrite:true,
+      publisherLockEvidence:'reuse exact previous independent receipt',firstWriteRequiresFreshExactEcrDigest:true},
+    existingImage:{manifestDigest:p.manifestDigest,imageConfigDigest:p.imageConfigDigest,layerCount:p.layerCount,
+      lockedProofReceiptSha256:p.independentReceiptSha256},
+    limits:{...base.limits,sourceSts:4,awsMetadata:platformContinuationMetadata+1},
+    safety:'Require fresh absence of prior install objects; reuse prior Locked proof with one exact ECR manifest check, then finish the original narrow installation. No publisher changes, redeploy of image, retries, cleanup or test checkout.'};
+}
+
+export function validateAclRecoveryReview(text,approvedSha,now=Date.now()){
+  code(/^[a-f0-9]{64}$/.test(approvedSha??'')&&hash(normalize(text))===approvedSha,'APPROVAL_SHA');
+  const m=JSON.parse(text);
+  code(m?.schema==='techlong/sandbox-first-purchase-after-acl-correction/v1','ACL_RECOVERY_FORMAT');
+  code(same(m,makeAclRecoveryReview(m))&&Date.parse(m.issuedAt)<=now&&now<Date.parse(m.latestStartUtc)&&
+    now+continuationTotal<=Date.parse(m.hardStopUtc),'ACL_RECOVERY_EXPIRED_OR_CHANGED');
+  return m;
+}
+
 export async function runFirstPurchaseStages(ports,{continuation=false}={}){
   await ports.preflight();
   const publisher=await (continuation?ports.inspectPublished():ports.publish());
@@ -169,6 +216,11 @@ function sourceGuard(m){
     'LOCAL_MAIN_OR_CODE_DRIFT');
   git(['merge-base','--is-ancestor',m.implementationCommit,'HEAD']);
   const head=git(['rev-parse','HEAD']).trim();
+  if(m.schema==='techlong/sandbox-first-purchase-after-acl-correction/v1'){
+    git(['merge-base','--is-ancestor',aclRecoveryFix.commit,m.implementationCommit]);
+    code(normalize(git(['show',head+':'+aclRecoveryFix.file]))===
+      normalize(git(['show',aclRecoveryFix.commit+':'+aclRecoveryFix.file])),'ACL_FIX_CHANGED');
+  }
   code(normalize(git(['show',head+':.github/workflows/'+candidate.callerFile]))===
     normalize(git(['show',m.sourceCi.publisherCommit+':.github/workflows/'+candidate.callerFile])),'CALLER_WORKFLOW_DRIFT');
   return head;
@@ -263,6 +315,32 @@ async function verifyExistingPublication(m,inner,record){
     const result={locked:true,artifactId:candidate.artifactId,sourceRecipeSha256:candidate.sourceRecipeSha256,
       sourceTreeOid:candidate.sourceTreeOid,...proof.verified,runId:m.predecessor.runId};
     await record('existing-publication-independently-verified',result);return result;
+  }finally{aws.close();}
+}
+
+async function readAclRecoveryJournal(){
+  const {previous,stopped}=readAclRecoveryFacts(),p=stopped.existingPublication;
+  const journal=path.join(EVIDENCE,prefix+'-'+previous.nonce);
+  const used=await privateJson(continuationSlot);
+  const proof=await privateJson(path.join(journal,'activation-existing-publication-independently-verified.json'),p.independentReceiptSha256);
+  const final=await privateJson(path.join(journal,'activation-result.json'),stopped.finalResultSha256);
+  code([used,proof,final].every(j=>j.approvedSha===stopped.approvalSha256)&&used.retry===false&&final.retry===false&&
+    final.outcome==='STOPPED_REQUIRES_INSPECTION'&&final.stage==='install-neon'&&final.code===stopped.neon.error&&
+    final.aws?.writes===0&&proof.locked===true&&proof.artifactId===p.artifactId&&proof.runId===p.runId&&
+    proof.manifestDigest===p.manifestDigest&&proof.imageConfigDigest===p.imageConfigDigest&&proof.layerCount===p.layerCount&&
+    proof.sourceRecipeSha256===candidate.sourceRecipeSha256&&proof.sourceTreeOid===candidate.sourceTreeOid,'ACL_RECOVERY_JOURNAL_CHANGED');
+  for(const marker of ['db-commit-intent','db-commit-ack','secret-create-intent'])await absent(path.join(journal,'activation-'+marker+'.json'));
+  return proof;
+}
+
+async function reuseVerifiedImage(proof,record){
+  const aws=await createAws({protocol:firstPurchaseProtocol,sourceLogin:true,readOnly:true,metadataLimit:1,stsLimit:1});
+  try{
+    const {verified}=await aws.published();
+    const {manifestDigest,imageConfigDigest,layerCount,artifactId,sourceRecipeSha256,sourceTreeOid,runId}=proof;
+    code(same(verified,{manifestDigest,imageConfigDigest,layerCount}),'ACL_RECOVERY_ECR_DRIFT');
+    const result={...verified,artifactId,sourceRecipeSha256,sourceTreeOid,runId,locked:true};
+    await record('existing-image-digest-confirmed',{...result,lockProofReused:true});return result;
   }finally{aws.close();}
 }
 export function verifyDahliaStripeEndpoint(rows,endpointId){
@@ -382,16 +460,18 @@ async function publish(m,until,preflightBy,heads,notify,record){
   }finally{a.close();g.close();}
 }
 
-async function execute(approvedSha,notify,continuation=false){
-  const text=await readText(path.join(ROOT,continuation?continuationPath:reviewPath));
-  const m=(continuation?validateContinuationReview:validateFirstPurchaseReview)(text,approvedSha);
+async function execute(approvedSha,notify,mode){
+  const aclRecovery=mode==='FinishAfterAclFix',continuation=aclRecovery||mode==='ContinueReviewed';
+  const text=await readText(path.join(ROOT,aclRecovery?aclRecoveryPath:continuation?continuationPath:reviewPath));
+  const m=(aclRecovery?validateAclRecoveryReview:continuation?validateContinuationReview:validateFirstPurchaseReview)(text,approvedSha);
   const heads=()=>sourceGuard(m);
-  heads();code(hash(normalize(await readText(path.join(ROOT,continuation?continuationRisk:riskDoc))))===m.riskSha256,'RISK_CHANGED');
+  heads();code(hash(normalize(await readText(path.join(ROOT,aclRecovery?aclRecoveryRisk:continuation?continuationRisk:riskDoc))))===m.riskSha256,'RISK_CHANGED');
   const tf=path.join(local,privateName),sf=path.join(local,signingName),config=path.join(ROOT,'.env.local');
-  const activeSlot=continuation?continuationSlot:slot;
+  const activeSlot=aclRecovery?aclRecoverySlot:continuation?continuationSlot:slot;
   await absent(activeSlot);
-  let oldInner;
-  if(continuation)oldInner=await verifyContinuationJournal();
+  let oldInner,oldProof;
+  if(aclRecovery)oldProof=await readAclRecoveryJournal();
+  else if(continuation)oldInner=await verifyContinuationJournal();
   else{
     await verifyPriorNoRemoteWrite();
     await verifyStoppedDahlia();
@@ -418,18 +498,23 @@ async function execute(approvedSha,notify,continuation=false){
     code(hash(binding.workspaceId)===checkoutScopeHash&&validSandboxPurchaseScope(binding)&&w.releaseId===scope.tenantReleaseId&&
       w.productId===scope.productId&&w.environmentId===scope.environmentId&&w.deploymentProfileKey===scope.profile&&
       awsFacts.outcome==='AWS_READ_ONLY_VERIFIED'&&same(projection.findings,['STANDARD_PLAN_NOT_UNIQUE_OR_INVALID']),'ORIGINAL_FACTS');
-    const tc=await privateJson(tf),sc=await privateJson(sf);
     db=firstPurchaseDatabase({rawConfig:await readText(config,65536),historical:historic,projection:projection.checks,binding,deadline:until,record});
     aws=firstPurchaseAws({deadline:until,nonce:m.nonce,versionId:randomUUID(),prior:awsFacts.checks,record,
       ...(continuation?{metadataLimit:platformContinuationMetadata}:{})});
     await runFirstPurchaseStages({
       preflight:step('necessary-preflight',async()=>{const observedFrom=new Date().toISOString();
-        await aws.preflight();await db.preflight();stripe=await stripeGate(tc,sc,preflightBy);
+        if(aclRecovery){
+          await db.preflight();
+          await record('prior-install-objects-absent',{neonReadOnly:true,rolesAndSchemaAbsent:true});
+          await aws.preflight();
+        }else{await aws.preflight();await db.preflight();}
+        const tc=await privateJson(tf),sc=await privateJson(sf);
+        stripe=await stripeGate(tc,sc,preflightBy);
         code(Date.now()<preflightBy,'PREFLIGHT_EXPIRED');
         tc.runtimeKey=undefined;tc.inspectionKey=undefined;sc.signingSecret=undefined;
         await record('preflight-verified',{observedFrom,observedThrough:new Date().toISOString(),
           accountAndEndpointMatch:true,platformAndBusinessBaselineMatch:true});}),
-      inspectPublished:step('verify-existing-publication',()=>verifyExistingPublication(m,oldInner,record)),
+      inspectPublished:step('verify-existing-publication',()=>aclRecovery?reuseVerifiedImage(oldProof,record):verifyExistingPublication(m,oldInner,record)),
       publish:step('publish-and-lock',()=>publish(m,until,preflightBy,heads,notify,record)),
       install:step('install-neon',()=>{if(continuation){heads();code(Date.now()<preflightBy,'PREFLIGHT_EXPIRED');}return db.install();}),
       store:step('store-runtime-secret',async webhookDatabaseUrl=>{try{return await aws.store({...stripe,webhookDatabaseUrl});}finally{stripe=undefined;}}),
@@ -447,6 +532,15 @@ async function execute(approvedSha,notify,continuation=false){
 }
 
 async function cli([mode,value,...extra]){
+  if(mode==='PrepareAfterAclFixOffline'&&!value&&!extra.length){
+    const implementationCommit=git(['rev-parse','HEAD']).trim();
+    await absent(aclRecoverySlot);await absent(path.join(ROOT,aclRecoveryPath));
+    const riskSha256=hash(normalize(await readText(path.join(ROOT,aclRecoveryRisk))));
+    const m=makeAclRecoveryReview({implementationCommit,nonce:randomBytes(16).toString('hex'),issuedAt:new Date().toISOString(),riskSha256});
+    sourceGuard(m);
+    await writeOnce(path.join(ROOT,aclRecoveryPath),m);
+    return {mode,approvalSha256:hash(normalize(await readText(path.join(ROOT,aclRecoveryPath)))),latestStartUtc:m.latestStartUtc,executed:false};
+  }
   if(mode==='PrepareContinuationOffline'&&!value&&!extra.length){
     const implementationCommit=git(['rev-parse','HEAD']).trim();
     await absent(continuationSlot);await absent(path.join(ROOT,continuationPath));
@@ -469,8 +563,8 @@ async function cli([mode,value,...extra]){
     const approvedSha=hash(normalize(await readText(path.join(ROOT,reviewPath))));
     return {mode,approvalSha256:approvedSha,latestStartUtc:m.latestStartUtc,executed:false};
   }
-  code(['RunReviewed','ContinueReviewed'].includes(mode)&&value&&!extra.length,'ARGUMENTS');
-  return execute(value,msg=>console.log(JSON.stringify(msg)),mode==='ContinueReviewed');
+  code(['RunReviewed','ContinueReviewed','FinishAfterAclFix'].includes(mode)&&value&&!extra.length,'ARGUMENTS');
+  return execute(value,msg=>console.log(JSON.stringify(msg)),mode);
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){
   cli(process.argv.slice(2)).then(r=>{console.log(JSON.stringify(r));if(r.outcome==='STOPPED_REQUIRES_INSPECTION')process.exitCode=1;})
