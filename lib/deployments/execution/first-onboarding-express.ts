@@ -106,7 +106,7 @@ export async function composeFirstOnboardingExpress(input: {
   const program = compileExpressBootstrapCandidateV3({ target, scope: tenant, nonce: a.nonce });
   if (baseline.archiveSha256 !== input.baselineDigest || baseline.archiveSha256 !== program.baseline.archiveSha256 ||
     baseline.manifestSha256 !== program.baseline.manifestSha256) reject("FIRST_ONBOARDING_BASELINE_PIN_CHANGED");
-  validateApprovedBaseline(baseline);
+  validateApprovedBaseline(baseline, true);
   const window = (signal?: AbortSignal) => {
     signal?.throwIfAborted();
     if (input.now() >= input.deadline) reject("FIRST_ONBOARDING_WINDOW_CLOSED");
@@ -129,6 +129,7 @@ export async function composeFirstOnboardingExpress(input: {
   const disabled = async (): Promise<never> => reject("FIRST_ONBOARDING_DESTROY_DISABLED");
   const database = new GuardedTenantDatabasePort({
     approvedBaseline: baseline,
+    fixedFirstOpenBaseline: true,
     lifecycle: {
       inspect: async x => { checkFence(x); return ports.database.inspect(x); },
       prepareEmptyDatabase: async x => {

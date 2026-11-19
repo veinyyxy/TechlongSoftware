@@ -50,6 +50,7 @@ import type { ReleaseSamplingBinding } from "../lib/deployments/releases/samplin
 import type { FirstOnboardingDatabaseIdentity } from "../lib/deployments/execution/first-onboarding-express.ts";
 import { FIRST_ONBOARDING_COMPLETE_ENTRY, FIRST_ONBOARDING_READ_ENTRY } from "../lib/deployments/execution/first-onboarding-completion-entry.ts";
 import type { TenantSecretInspection, TenantDatabaseLifecycleState } from "../lib/deployments/execution/contracts.ts";
+import { FIRST_OPEN_BASELINE_BUCKET, FIRST_OPEN_BASELINE_OBJECTS } from "../lib/deployments/execution/first-onboarding-baseline-versions.ts";
 
 const now = Date.UTC(2026, 7, 9);
 const workerRoleArn =
@@ -375,7 +376,7 @@ test("D2 proof mismatches do not activate; unknown commit is not retried", async
   assert.equal(writes, 1);
 });
 
-async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | "late-version" | "database-oid" | "old-bucket" | "grant" | "readback") {
+async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | "late-version" | "database-oid" | "old-bucket" | "grant" | "readback", fixedBaseline = false) {
   const f = await firstOpenFixture(true), { options, context, calls } = f, { approval } = options;
   const templateReader = options.independentReader!;
   delete options.independentReader;
@@ -411,6 +412,11 @@ async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | 
       secrets: [control], persistence: { bucket: approvedBucket, providerVariable: "IMAGE_STORAGE_PROVIDER", bucketVariable: "IMAGE_S3_BUCKET",
         verificationSha256: "5".repeat(64) } },
   };
+  if (fixedBaseline) {
+    const baseline = approval.express.baseline;
+    baseline.archiveS3Uri = `s3://${FIRST_OPEN_BASELINE_BUCKET}/${FIRST_OPEN_BASELINE_OBJECTS.archive.key}`;
+    baseline.manifestS3Uri = `s3://${FIRST_OPEN_BASELINE_BUCKET}/${FIRST_OPEN_BASELINE_OBJECTS.manifest.key}`;
+  }
   options.approvedSha256 = await sha256Hex(approval);
   options.dependencies.tenantDatabase = { ensureTenantDatabase: async () => assert.fail("generic lifecycle"),
     migrateTenantDatabase: async () => assert.fail("generic lifecycle") };
@@ -555,7 +561,7 @@ async function derivedFirstOpenFixture(negative?: "caller" | "second-version" | 
 }
 
 test("new first-open: V3 empty DB to one create-only Express/S3 workload, independent D2 proof and scoped RPC", async () => {
-  const f = await derivedFirstOpenFixture();
+  const f = await derivedFirstOpenFixture(undefined, true);
   const result = await runReviewedFirstOnboarding(f.options);
   assert.equal(result.outcome, "ACTIVATED");
   assert.deepEqual(f.technical, ["/health","/ready"]);

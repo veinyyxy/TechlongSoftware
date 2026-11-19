@@ -14,6 +14,7 @@ import type {
   TenantSecretStorePort,
 } from "./contracts.ts";
 import { canonicalJson, sha256Hex } from "./hash.ts";
+import { isFixedFirstOpenBaseline } from "./first-onboarding-baseline-versions.ts";
 import { assertTenantApplicationAccessProof } from "./tenant-application-access-proof.ts";
 
 const postgresIdentifierPattern = /^[a-z][a-z0-9_]{0,62}$/;
@@ -552,6 +553,7 @@ function assertMutationReceipt(
 
 export function validateApprovedBaseline(
   baseline: TenantApprovedBaseline | null,
+  fixedFirstOpenBaseline = false,
 ): TenantApprovedBaseline {
   if (!baseline) {
     throw new TenantDatabaseLifecycleError(
@@ -561,8 +563,8 @@ export function validateApprovedBaseline(
   }
   if (
     baseline.contract !== "speedfeast-pg16.14-tenant-baseline-v1" ||
-    !baselineArchivePattern.test(baseline.archiveS3Uri) ||
-    !baselineManifestPattern.test(baseline.manifestS3Uri) ||
+    (!(baselineArchivePattern.test(baseline.archiveS3Uri) && baselineManifestPattern.test(baseline.manifestS3Uri)) &&
+      !(fixedFirstOpenBaseline && isFixedFirstOpenBaseline(baseline))) ||
     baseline.archiveS3Uri.includes("..") ||
     baseline.manifestS3Uri.includes("..") ||
     !sha256Pattern.test(baseline.archiveSha256) ||
@@ -670,15 +672,18 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
   private readonly lifecycle: TenantDatabaseLifecyclePort;
   private readonly secrets: TenantSecretStorePort;
   private readonly baseline: TenantApprovedBaseline | null;
+  private readonly fixedFirstOpenBaseline: boolean;
 
   constructor(input: {
     lifecycle: TenantDatabaseLifecyclePort;
     secrets: TenantSecretStorePort;
     approvedBaseline: TenantApprovedBaseline | null;
+    fixedFirstOpenBaseline?: true;
   }) {
     this.lifecycle = input.lifecycle;
     this.secrets = input.secrets;
     this.baseline = input.approvedBaseline;
+    this.fixedFirstOpenBaseline = input.fixedFirstOpenBaseline === true;
   }
 
   async ensureTenantDatabase(input: {
@@ -806,7 +811,7 @@ export class GuardedTenantDatabasePort implements TenantDatabasePort {
       accountId: input.context.environment.expectedAccountId,
       region: input.context.environment.region,
     };
-    const baseline = validateApprovedBaseline(this.baseline);
+    const baseline = validateApprovedBaseline(this.baseline, this.fixedFirstOpenBaseline);
     const secret = await this.secrets.inspectRuntimeSecret({
       fence,
       externalFence,

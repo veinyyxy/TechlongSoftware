@@ -1770,9 +1770,8 @@ export interface FirstOnboardingExecutionApproval {
   express?: FirstOnboardingExpressApproval;
 }
 
-/** One held job through the existing stages. There is intentionally no CLI,
- * flag, network composition or ordinary claimNext path to this entry. A future
- * caller must verify the approval's origin and supply reviewed adapters. */
+/** One held job through the existing stages. No default network composition
+ * or ordinary claimNext path; callers must verify approval and supply reviewed adapters. */
 export async function runReviewedFirstOnboarding(input: {
   approval: FirstOnboardingExecutionApproval;
   approvedSha256: string;
@@ -1802,7 +1801,11 @@ export async function runReviewedFirstOnboarding(input: {
     await sha256Hex(a) !== input.approvedSha256) throw Error("FIRST_ONBOARDING_APPROVAL_MISMATCH");
   const derived = a.completion && "deriveG1Secret" in a.completion ? a.completion : undefined;
   const fixed = a.completion && "samplingSha256" in a.completion ? a.completion : undefined;
-  if ((a.completion && !/^[a-zA-Z0-9._-]{1,100}$/.test(a.completion.clientApiVersion)) ||
+  // Catalog A uses the versioned digest form. Keep legacy plain names and
+  // permit the digest form only for the existing Express first-open branch.
+  const clientApi = a.completion?.clientApiVersion;
+  if ((a.completion && !(typeof clientApi === "string" && (/^[a-zA-Z0-9._-]{1,100}$/.test(clientApi) ||
+    (derived && /^speedfeast-client-api-sha256:[a-f0-9]{64}$/.test(clientApi))))) ||
     (fixed && !/^[a-f0-9]{64}$/.test(fixed.samplingSha256)) ||
     (derived && derived.deriveG1Secret !== true) ||
     Boolean(derived) !== Boolean(a.express) || Boolean(derived) !== Boolean(input.expressPorts) ||

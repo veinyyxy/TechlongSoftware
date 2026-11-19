@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，只为 `job_fc41597f9b5ba8e02b338ecf` 准备 Sandbox 首开。** 用户已确认「订阅与账单」可打开，并用原 Stripe 测试会话付款。11 月 18 日 21:56:11（温尼伯）只读确认原订单已入账、恰一条同工作区的首开任务，`pending` / `0/1` / 无租约。已编成[单任务集中审批材料](aws-sandbox-first-onboarding-fc41597f-review.md)；只是草案，真实执行入口、权限、固定基线版本与恢复输出仍未就绪。后续只补这些缺项；未经准确批准，不恢复、领取或部署。不再购买、不启用全队列。
+**当前唯一继续点：缺口 3 第 4 步，只为 `job_fc41597f9b5ba8e02b338ecf` 准备 Sandbox 首开。** 用户已用原会话付款；11 月 18 日 21:56:11（温尼伯）只读确认同工作区恰一条任务，`pending` / `0/1` / 无租约。[集中材料](aws-sandbox-first-onboarding-fc41597f-review.md)已补单任务离线入口、窄领取 SQL 与权限候选；真实连接和有效权限未安装。下一项仅待另批 **STS 1＋两准确键 HeadObject 2** 的固定基线版本核对，不自动 GET 或补写。未恢复、领取或部署；不重复购买、不启用全队列。
 
 **账单修复与本人付款已完成。** 平台 ECS revision 17 的[技术回执](evidence/sandbox-first-purchase-billing-continuation.verified.json)确认 [发布 44453235218](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44453235218) 成功、发布器撤权 Locked、只装一个只读函数、`/api/health` 和 `/register` 均 200；控制器和 worker 未开启。工程侧未代付款，付款成功不等于租户已开通。
 

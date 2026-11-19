@@ -21,7 +21,11 @@
 
 ### 1. 领取前先证明执行入口和权限，不启用队列
 
-现有 [`runReviewedFirstOnboarding`](../lib/deployments/execution/worker.ts)、[Express 编排](../lib/deployments/execution/first-onboarding-express.ts)、[独立只读适配](../lib/deployments/execution/first-onboarding-reader.ts)和[完成函数生成器](../lib/deployments/execution/first-onboarding-completion-entry.ts)可复用。[现有无 AWS CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44309450151)验证的是源码和隔离数据库，不证明真实调用入口已接通。仓库未发现绑定该入口的真实单次运行器；不能替用旧恢复 workflow、执行旧任务，或打开 `workerEnabled` / `applyEnabled`。正式执行清单须固定真实运行器源码/CI、调用身份、逐类请求数与窗口；若采用 GitHub，须固定受保护工作流及实际 run 的单次绑定规则，environment 由用户本人批准。
+本机已新增可调用的[单任务运行入口](../lib/deployments/execution/first-onboarding-run-once.ts)，直接调用既有 worker，复用 [Express 编排](../lib/deployments/execution/first-onboarding-express.ts)、[独立只读适配](../lib/deployments/execution/first-onboarding-reader.ts)和[完成函数](../lib/deployments/execution/first-onboarding-completion-entry.ts)。入口不读配置或自动创建连接，不接旧恢复 workflow、`claimNext`、普通重试或删除；`workerEnabled` / `applyEnabled` 都固定关闭。只有环境审批和实际角色分离另审的操作者，才能提供真实 adapter；不把本机接线或回归当作已安装、已获得有效权限。
+
+- [领取与读取 SQL 候选](../lib/deployments/execution/first-onboarding-claim-entry.ts)：固定本任务/部署/实例/订阅/环境和工作区摘要，领取前核对计划、配置、版本 A、审批 SHA 及截止时间；只接三条参数化 RPC，读登录无 claim，claim 登录无 read，二者都不获底表权限。领取 ACK 后才能调实例工作端口；同一程序无法重复调用，跨进程靠数据库 `pending / 0→1` 门禁。任何结果不明停，不走原普通队列。
+- [IAM 窄候选](../lib/deployments/execution/first-onboarding-run-permissions.ts)：把固定栈 CreateStack、确切 PassRole、Express 管理/应用登录、两对象版本 GET、ECR/日志、g1 创建与固定 Secret 注入分开，不包含 Update/DeleteStack、整桶或任意版本读。真实 trust、CFN 按新监听器的动作、独立核验身份、g1 实际 ARN/版本和有效权限仍须从准确事实推导；候选不是一份可直接安装的全角色策略。
+- 完整运行仍须另批绑定真实的状态/围栏/控制 adapter、隔离登录、调用计数、独立核验及完成 DDL，不能用明文 owner 或全局 AWS 权限替代。原 worker 还要求清理就绪证据和 `deployment.createdAt + 环境 TTL` 在窗口内，预检过期则保留请求，不自行改日期、复位任务或绕过门禁。若采用 GitHub，另固定受保护工作流和实际 run 的绑定，environment 由用户本人批准。
 
 | 身份边界 | 只需以下权限；不是已安装的结论 |
 | --- | --- |
@@ -43,6 +47,12 @@
 - 领取前核对同一订单/订阅仍有效，待审 `0/1`、无租约/前代/外部操作/D2 初始记录，计划与配置摘要、镜像、名称和批准窗口一致。空库初始化能力和隔离先要有可信证明；缺证明不先占用尝试。批准后仅以同一 g1 和围栏：1 次 V3 prepare（1 个应用角色先 `NOLOGIN`、1 个临时 `NOLOGIN` guard、1 次隔离建库、按合同收回 guard），确认空库后 1 次固定 schema-only 恢复、1 组 SaaS 迁移、1 次确切应用 IAM 登录激活及独立读回。空库与迁移后检查用真实本次库/角色 OID、owner/fence、schema/迁移和批准技术 seed；历史 73 表/两迁移/九条 seed 是参照，不是新库证明。证明应用不能连接旧租户数据库，禁止导入历史客户数据、启用启动迁移，或修改其它库的 PUBLIC ACL 来绕过隔离。
 - 仅创建一次 g1 初始 Secret，以同任务/围栏/审批 SHA 派生初始版本；用真实 ARN/版本回执完成采样绑定。之后只对准确新栈提交一次 `CreateStack`（ECS 服务 ×1、任务定义 ×1、目标组 ×1、监听规则 ×3、日志组 ×1），一项 Fargate 服务期望 **1 个**任务。固定 A digest 与新租户 TaskRole、持久化配置、g1/控制公钥固定版本。拒绝领养同名旧栈；不后装 `UpdateStack` 修配置，不重发写入。
 
+### 仅核对两份基线 VersionId 的最小范围（本轮未执行）
+
+1. 另批后使用既有 Source 身份，在同一受控进程最多 **1 次 STS + 2 次 HeadObject**，只对上节两个准确键；[请求生成器](../lib/deployments/execution/first-onboarding-baseline-versions.ts)固定桶、键和 `ExpectedBucketOwner=402010193138`，仅启用 checksum 元数据。不请求其它路径，不 ListObjects、ListObjectVersions、GetBucketVersioning 或 GET 对象正文。身份、响应或预算不符即停，不重试；记录去敏状态、真实 VersionId、字节数及 checksum 是否匹配。
+2. 任一版本缺失、`null`、删除标记或不匹配：不发发布/执行 SHA，不改原桶、不开版本化、不复制或上传。两版本均存在但缺可靠的完整对象 SHA-256：记录为**已定位版本，尚无字节证明**，不把 ETag、对象自带的用户元数据或组合 checksum 当成内容 SHA。需要时再另审只对已定位的固定版本 GET（最多两次，分别不超过 203375 / 26502 字节），本轮不执行，也不中途自动切换。
+3. 有两份真实 VersionId、大小和可信 SHA 相符才可将其用于后继实际审批；首次空库恢复仍校验固定版本的真实字节、schema-only 合同和 manifest 内容。本机只允许本次受审 Express 路径采用上述两个 `approved/` 精确键和固定版本；通用 worker 原 `_migration/` 路径限制不变。
+
 ### 4. 独立技术通过，才允许一次 Neon 原子完成
 
 - 由独立会话对准确资源做一次技术核验；现有读取门禁为最多 **24 次 AWS 元数据调用**（身份核对另计）、不读取 Secret 值，另只对本目标允许一次验证 TLS 的只读数据库身份/schema 核对和 `/health`、`/ready` 各 1 次。验证当前 g1 库和角色 OID、迁移/隔离、CFN `CREATE_COMPLETE` 与七项真实物理资源、路由和 Alias、ECS 1 运行/0 待启动、目标健康、A 实际运行 digest、两固定 Secret 版本、S3/CDN 配置及兼容性。不能拿执行者成功 ACK 代替独立证据；不做登录、店铺/菜单或付款测试。
@@ -50,8 +60,8 @@
 
 ## 为什么现在不能批准执行
 
-目前只确认付款和唯一任务，外加可重算的准确候选。仍需补齐：**(1)** 真实单次入口及有效的窄权限/完成 DDL；**(2)** 基线的两个固定版本、派生库/角色/存储与 DNS 的占用、当前 A；**(3)** 原 Express／Cell 当前归属、恢复后的监听器、媒体和固定 Secret/目录版本绑定。历史证据只用于缩小对象和差异，不刷新采样时间。先补有明确价值的定向核对；依赖恢复回执的实际 ARN 不能预签，安装／恢复及首开实际执行仍须按当时的准确材料审批，保留 GitHub 本人门禁。首开 `writeBefore` 按现有代码最多未来 60 分钟，所有依赖就绪前不开领取窗口。
+确认了付款和唯一任务，单次入口与窄权限候选已离线接通；仍未绑定真实端口或安装有效策略/完成 DDL，两个固定基线版本也尚未证明。**下一项外部操作只有上节最小 VersionId 核对，等用户另批。** 派生对象占用、实时 A、原 Express／Cell 归属及恢复后的监听器、媒体和 Secret 绑定不在本轮读取范围。历史证据不刷新采样时间；安装、恢复和首开实际执行仍须按当时的准确材料审批。首开 `writeBefore` 按现有代码最多未来 60 分钟，所有依赖就绪前不开领取窗口。
 
 跨 AWS、Aurora 和 Neon 非原子；开始恢复后可能持续产生 ALB、Aurora、ECS、存储/CDN 等费用，预算不是硬停费。结果不明、过期、并发或越界即停，保留真实回执与永久槽；只按另批范围对未知结果只读回查，不重试、补建、主动回滚或自动清理。数据库激活事务原子，不代表其它阶段能一起回滚。
 
-**本轮实际：** 仅本机核对已有源码、旧证据和固定名称；AWS／数据库／Stripe／GitHub 网络请求、安装、恢复、领取、调度和部署均为 0。不会重复购买或开启全队列。
+**本轮实际：** 本机 100 项定向回归、类型和定向 lint 通过；隔离 PostgreSQL 18.3（PGlite）用合成业务行验证了绑定权限、拒绝越权、拒绝已撤销版本和一次领取。新增测试已接入既有无 AWS CI，未推送或运行 GitHub CI。在线 AWS／Neon／Aurora／Stripe／GitHub 请求、权限安装、恢复、真实领取、调度和部署均为 0。不会重复购买或开启全队列。
