@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证，[Checkout 修复](evidence/sandbox-first-purchase-checkout-repair-rollout.verified.json)已关联原订单和会话。登录后「订阅与账单」500 的[修复已上线并通过独立技术核验](evidence/sandbox-first-purchase-billing-continuation.verified.json)：平台 revision 17，发布器 Locked，仅安装只读函数，原订单未变。**当前唯一继续点**：由原工作区 Owner 自行打开「订阅与账单」，若页面显示原 Stripe 会话，由用户决定是否继续测试付款；不重新下单。尚未做线上业务验收、不启用 controller/worker、未实际开通首租户。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步及第 4 步[首开核心接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[账单修复](evidence/sandbox-first-purchase-billing-continuation.verified.json)上线到平台 revision 17 后，用户已用原会话完成测试付款，独立只读确认唯一待审任务 `job_fc41597f9b5ba8e02b338ecf`（`pending` / `0/1` / 未领取）。**当前唯一继续点**：[这一条任务的 Sandbox 首开集中审批材料](aws-sandbox-first-onboarding-fc41597f-review.md)，只收口真实入口、必要权限、原 Express/Cell 恢复、固定空基线、技术核验和原子完成；仍是草案，未恢复、未实际开通、未开 worker。不重复购买。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 
