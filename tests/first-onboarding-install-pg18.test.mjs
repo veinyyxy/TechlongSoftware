@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import pg from 'pg';
-import { sandboxFirstPurchaseDdl, sandboxFirstPurchaseInstallStatements } from '../ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts';
+import { sandboxFirstPurchaseAttachReplacement, sandboxFirstPurchaseDdl, sandboxFirstPurchaseInstallStatements } from '../ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts';
 import { assertFirstPurchaseInstalledRoles } from '../ops/platform-ecs-v1/first-purchase-activation-db.mjs';
+import { expectedFunctions, functionFingerprint, installedFunctions, repairCheckoutInTransaction } from '../ops/platform-ecs-v1/checkout-repair-db.mjs';
 
 const url = process.env.FIRST_PURCHASE_PG18_CI_DATABASE_URL;
 const installer = 'first_purchase_ci_installer', web = 'techlong_platform_web_acceptance_v1';
@@ -97,6 +99,55 @@ test('isolated PostgreSQL 18: non-superuser creates and verifies exact owners, A
     await verifyInstalledRoles(writer);
     await writer.query('COMMIT');
     await reader.connect();await reader.query('BEGIN READ ONLY');await verify(reader);await reader.query('COMMIT');
+
+    const actor='usr_checkout_repair_fixture', templateId='tpl_fast_food_ordering_v1_detail';
+    const stable=(prefix,x)=>prefix+'_'+createHash('sha256').update(prefix+':'+x).digest('hex').slice(0,24);
+    const orderId=stable('ord','sandbox-first-purchase:v1:'+scope.workspaceId), pay=stable('pay',orderId);
+    const sessionId='cs_test_OriginalSandbox', expiry=Date.now()+3600000;
+    const expected={actor,amount:1500,currency:'CAD'}, checkout={...expected,expiry,url:'https://checkout.stripe.com/sandbox/pay/'+sessionId+'#synthetic'};
+    const {rows:[published]}=await writer.query("SELECT v.id FROM public.app_instance_template_versions v JOIN public.app_instance_templates t ON t.id=v.template_id WHERE t.product_id='prd_restaurant_order_system' AND v.status='published' ORDER BY v.id LIMIT 1");
+    assert.ok(published?.id,templateId);
+    await writer.query("INSERT INTO public.users(id,email,name,created_at,updated_at) VALUES ($1,'repair@example.invalid','Synthetic',1,1)",[actor]);
+    await writer.query("INSERT INTO public.workspaces(id,name,owner_id,created_at,updated_at) VALUES ($1,'Synthetic',$2,1,1)",[scope.workspaceId,actor]);
+    await writer.query("INSERT INTO public.workspace_members(id,workspace_id,user_id,role,joined_at) VALUES ('mem_repair_fixture',$1,$2,'owner',1)",[scope.workspaceId,actor]);
+    await writer.query(`INSERT INTO public.plans(id,product_id,template_version_id,name,price_amount,currency,billing_interval,created_at,updated_at)
+      VALUES ($1,'prd_restaurant_order_system',$2,'Synthetic',1500,'CAD','month',1,1)`,[scope.planId,published.id]);
+    await writer.query(`INSERT INTO public.payment_records(id,workspace_id,amount,currency,status,payment_method,provider,recorded_by_user_id,created_at,updated_at)
+      VALUES ($1,$2,1500,'CAD','pending','Stripe Checkout (sandbox test)','stripe',$3,1,1)`,[pay,scope.workspaceId,actor]);
+    await writer.query(`INSERT INTO public.subscription_purchase_orders(id,workspace_id,product_id,plan_id,template_version_id,payment_record_id,
+      configuration_snapshot,amount,currency,billing_interval,deployment_profile_key,created_by_user_id,expires_at,created_at,updated_at)
+      VALUES ($1,$2,'prd_restaurant_order_system',$3,$4,$5,'{}',1500,'CAD','month','standard-v1',$6,1,1,1)`,
+    [orderId,scope.workspaceId,scope.planId,published.id,pay,actor]);
+    const ddl=sandboxFirstPurchaseAttachReplacement(scope);
+    const legacy=ddl.replace(/^    OR octet_length\(p_url\)>8192\n    OR substring\(p_url FROM .+\) IS DISTINCT FROM p_session THEN RETURN false; END IF;$/m,
+      "    OR split_part(coalesce(p_url,''),'#',1) <> 'https://checkout.stripe.com/c/pay/' || p_session\n"+
+      "    OR octet_length(p_url)>8192 THEN RETURN false; END IF;");
+    assert.notEqual(ddl,legacy);
+    await root.query("BEGIN; SET LOCAL ROLE "+definer+";\n"+legacy+"\nCOMMIT;");
+    const qFor=db=>async (sql,params)=>(await db.query(sql,params)).rows;
+    const q=qFor(writer), read=qFor(reader);
+    const before=await installedFunctions(q), input={binding:scope,orderId,sessionId,checkout,expected,before,ddl,verifyGuards:assertFirstPurchaseInstalledRoles};
+    const after=expectedFunctions(before,ddl,functionFingerprint(before));
+    const begin=()=>q("BEGIN; SET LOCAL search_path=pg_catalog");
+    await begin();
+    await assert.rejects(repairCheckoutInTransaction(async (stmt,args)=>{
+      const rows=await q(stmt,args);
+      return stmt.startsWith('SELECT sandbox_first_purchase.attach(')?[{ok:false}]:rows;
+    },input),/CHECKOUT_REPAIR_DB_ATTACH_REFUSED/);
+    await q('ROLLBACK');
+    assert.deepEqual(await installedFunctions(read),before);
+    assert.deepEqual(await read('SELECT status,provider_session_id FROM public.subscription_purchase_orders WHERE id=$1',[orderId]),
+      [{status:'draft',provider_session_id:null}]);
+    await begin();
+    await repairCheckoutInTransaction(q,input);
+    await q('COMMIT');
+    assert.deepEqual(await installedFunctions(read),after);
+    await verify(reader);
+    assert.deepEqual(await read('SELECT status,provider_session_id FROM public.subscription_purchase_orders WHERE id=$1',[orderId]),
+      [{status:'checkout_pending',provider_session_id:sessionId}]);
+    assert.deepEqual(await read('SELECT status,reference FROM public.payment_records WHERE id=$1',[pay]),[{status:'pending',reference:sessionId}]);
+    assert.deepEqual(await read('SELECT id FROM public.deployment_jobs'),[]);
+
     await runtime.connect();await runtime.query('BEGIN READ ONLY');
     const {rows:[r]}=await runtime.query('SELECT current_user AS actor,session_user AS login');assert.deepEqual(r,{actor:webhook,login:webhook});
     await assert.rejects(runtime.query('SELECT sandbox_first_purchase.read_order($1,$2)',['usr_mock','ord_mock']),{code:'42501'});

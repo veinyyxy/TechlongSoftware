@@ -8,7 +8,7 @@ import { identity } from '../platform-image-source-v2/aws.mjs';
 import { parseCloudFormationTemplateDocument as parse } from '../aws-sandbox/scripts/cloudformation-template-document.mjs';
 import { P, hash, canonical, same, policySame, handoffPolicy } from './contract.mjs';
 import { H } from '../platform-hosted-access-v6/contract.mjs';
-import { scope, draft, firstPurchaseOriginalTemplates, exactSecretArn, firstPurchaseSecretProtection } from './first-purchase-activation.mjs';
+import { scope, draft, firstPurchaseOriginalTemplates, exactSecretArn, firstPurchaseSecretProtection, checkoutRepairHostingTarget } from './first-purchase-activation.mjs';
 
 const require=createRequire(new URL('../cloud-worker/package.json',import.meta.url));
 const codes={cfn:['cloudformation','cloudformation'],ecs:['ecs','ecs'],elb:['elastic-load-balancing-v2','elasticloadbalancing'],
@@ -27,8 +27,20 @@ const changeKind={
   TaskDefinition:['True','ContainerDefinitions'],Service:['False','TaskDefinition'],
 };
 
-export function firstPurchaseAws({deadline,nonce,versionId,prior,record,metadataLimit=185}){
-  const old=firstPurchaseOriginalTemplates(),counts={metadata:0,sts:0,writes:0,https:0};
+export function firstPurchaseAws(options){return buildAws(options);}
+export function checkoutRepairAws(options,installed){
+  check(same(Object.keys(installed).sort(),['access','baselineDigest','hosting','secret']),'REPAIR_MODE');
+  const p=buildAws(options,installed);
+  return {counts:p.counts,close:p.close,preflight:p.preflight,
+    async replaceAndInspect(proof){
+      const target=checkoutRepairHostingTarget(installed.hosting,proof,installed.baselineDigest);
+      await p.update('hosting',target);
+      await p.inspect({access:installed.access,hosting:target});
+    }};
+}
+function buildAws({deadline,nonce,versionId,prior,record,metadataLimit=185},repair){
+  const old=repair?{access:repair.access.template,hosting:repair.hosting.template}:firstPurchaseOriginalTemplates();
+  const counts={metadata:0,sts:0,writes:0,https:0};
   const names={access:scope.expectedAccessStackId,hosting:scope.expectedHostingStackId},attempts=new Set();
   function session(){
     const credentials=fromLoginCredentials({profile:P.profile,ignoreCache:true});
@@ -39,9 +51,10 @@ export function firstPurchaseAws({deadline,nonce,versionId,prior,record,metadata
     async function send(k,operation,input,label){
       check(Date.now()+20000<deadline,'WINDOW_CLOSED');
       if(label){
-        check(!attempts.has(label)&&++counts.writes<=7,'WRITE_LIMIT');attempts.add(label);
+        check((!repair||(k==='cfn'&&['hosting-create','hosting-execute'].includes(label)))&&
+          !attempts.has(label)&&++counts.writes<=(repair?2:7),'WRITE_LIMIT');attempts.add(label);
         await record(label+'-intent',{operation}); // no request body, credentials or SQL in the journal
-      }else if(k==='sts')check(++counts.sts<=3,'STS_LIMIT');
+      }else if(k==='sts')check(++counts.sts<=(repair?2:3),'STS_LIMIT');
       else check(++counts.metadata<=metadataLimit,'METADATA_LIMIT');
       return sdk[k].send(new libs[k][operation+'Command'](input),{abortSignal:AbortSignal.timeout(20000)});
     }
@@ -67,18 +80,20 @@ export function firstPurchaseAws({deadline,nonce,versionId,prior,record,metadata
     check(!r.NextToken&&rows.length===Object.keys(t.Resources).length&&new Set(rows.map(x=>x.LogicalResourceId)).size===rows.length&&
       rows.every(x=>stable.includes(x.ResourceStatus)&&x.ResourceType===t.Resources[x.LogicalResourceId]?.Type&&(
         after&&which==='hosting'&&x.LogicalResourceId==='TaskDefinition'?
-          x.PhysicalResourceId.startsWith(`arn:aws:ecs:${P.region}:${P.account}:task-definition/${P.family}:`)&&Number(x.PhysicalResourceId.split(':').at(-1))>scope.observedWebTaskRevision
+          x.PhysicalResourceId.startsWith(`arn:aws:ecs:${P.region}:${P.account}:task-definition/${P.family}:`)&&Number(x.PhysicalResourceId.split(':').at(-1))>
+            (repair?Number(saved.physicalIds.TaskDefinition.split(':').at(-1)):scope.observedWebTaskRevision)
           :x.PhysicalResourceId===saved.physicalIds[x.LogicalResourceId])),'PHYSICAL_OWNERSHIP');
     if(expected)check(same({...state,epoch:null}, {...expected.state,epoch:null}),'RETAINED_STACK_STATE');
     return {state,bindings,stack:s};
   }
-  async function role(c,t,{after=false}={}){
+  async function role(c,t,{after=false,unchangedVersion}={}){
     const role=await c.send('iam','GetRole',{RoleName:P.role}), p=await c.send('iam','GetPolicy',{PolicyArn:P.boundaryArn});
     const names=await c.send('iam','ListRolePolicies',{RoleName:P.role}),attached=await c.send('iam','ListAttachedRolePolicies',{RoleName:P.role});
     const r=role.Role,b=p.Policy,priorRole=prior.webAccess;
     check(r?.RoleId===priorRole.roleId&&r.Arn===P.roleArn&&r.Path==='/'&&r.MaxSessionDuration===3600&&r.PermissionsBoundary?.PermissionsBoundaryArn===P.boundaryArn&&
       b?.PolicyId===H.boundaryId&&b.Arn===P.boundaryArn&&b.AttachmentCount===0&&b.PermissionsBoundaryUsageCount===1&&
-      (after?b.DefaultVersionId!==priorRole.boundaryVersion:b.DefaultVersionId===priorRole.boundaryVersion)&&
+      (repair?(unchangedVersion?b.DefaultVersionId===unchangedVersion:b.DefaultVersionId!==priorRole.boundaryVersion):
+        after?b.DefaultVersionId!==priorRole.boundaryVersion:b.DefaultVersionId===priorRole.boundaryVersion)&&
       names.IsTruncated===false&&same(names.PolicyNames,[P.inline])&&attached.IsTruncated===false&&attached.AttachedPolicies?.length===0&&
       policySame(policy(r.AssumeRolePolicyDocument),t.Resources.ExecutionRole.Properties.AssumeRolePolicyDocument),'ROLE_BINDING');
     const inline=await c.send('iam','GetRolePolicy',{RoleName:P.role,PolicyName:P.inline});
@@ -86,6 +101,7 @@ export function firstPurchaseAws({deadline,nonce,versionId,prior,record,metadata
     check(v.PolicyVersion?.IsDefaultVersion===true&&v.PolicyVersion.VersionId===b.DefaultVersionId&&
       policySame(policy(inline.PolicyDocument),t.Resources.ExecutionRole.Properties.Policies[0].PolicyDocument)&&
       policySame(policy(v.PolicyVersion.Document),t.Resources.ExecutionBoundary.Properties.PolicyDocument),'ROLE_EFFECTIVE_POLICY');
+    return b.DefaultVersionId;
   }
   async function runHealth(c,hosting,b){
     const cluster=b.Cluster,arn=b.TaskDefinition,group=b.TargetGroup,conf=hosting.Resources.Service.Properties,td=hosting.Resources.TaskDefinition.Properties,
@@ -149,15 +165,20 @@ export function firstPurchaseAws({deadline,nonce,versionId,prior,record,metadata
       prior.images?.tenantA?.manifestDigest===digest,'TENANT_A_MANIFEST');
     check(JSON.parse(image.imageManifest).config?.digest===prior.images.tenantA.configDigest,'TENANT_A_CONFIG_DIGEST');
   }
-  let before,secret;
+  let before,secret=repair?.secret;
   return {counts,close:()=>writer.close(),
     async preflight({afterIdentity}={}){
       await writer.source();
       if(afterIdentity)await afterIdentity();
       const access=await snapshot(writer,'access',old.access),hosting=await snapshot(writer,'hosting',old.hosting);
       check(!(await list(writer,names.access)).length&&!(await list(writer,names.hosting)).length,'ACTIVE_CHANGE_SET');
-      await role(writer,old.access);await runHealth(writer,old.hosting,hosting.bindings);
-      await verifySecret(writer,P.secretArn,P.secretVersion,handoffPolicy());await absentSecret(writer);
+      const boundaryVersion=await role(writer,old.access);await runHealth(writer,old.hosting,hosting.bindings);
+      await verifySecret(writer,P.secretArn,P.secretVersion,handoffPolicy());
+      if(repair){
+        await verifySecret(writer,secret.arn,secret.versionId,firstPurchaseSecretProtection(secret.arn));
+        before={access,hosting,boundaryVersion};return true;
+      }
+      await absentSecret(writer);
       const key=keyMetadata('describe-key').KeyMetadata;
       check(key?.Arn===P.kmsArn&&key.KeyState==='Enabled'&&key.Enabled===true&&key.KeyUsage==='ENCRYPT_DECRYPT','KEY_METADATA');
       const kp=keyMetadata('get-key-policy',['--policy-name','default']);
@@ -166,6 +187,7 @@ export function firstPurchaseAws({deadline,nonce,versionId,prior,record,metadata
       before={access,hosting};return true;
     },
     async store(value){
+      check(!repair,'REPAIR_NO_SECRET_WRITE');
       await absentSecret(writer);
       const s=await writer.send('sm','CreateSecret',{Name:draft.runtimeMaterial.newSecretName,ClientRequestToken:versionId,KmsKeyId:P.kmsArn,
         Description:'Sandbox first purchase restricted runtime material',Tags:[{Key:'Environment',Value:'aws-sandbox'},{Key:'Purpose',Value:'first-purchase-v1'}]},'secret-create');
@@ -179,6 +201,7 @@ export function firstPurchaseAws({deadline,nonce,versionId,prior,record,metadata
       await verifySecret(writer,arn,versionId,p);secret={arn,versionId};await record('secret-verified',secret);return secret;
     },
     async update(which,target){
+      check(!repair||which==='hosting','REPAIR_HOSTING_ONLY');
       const id=names[which],priorState=before[which],c=writer,isAccess=which==='access',name=`first-purchase-${which}-${nonce}`;
       check(target.stackId===id&&same((await snapshot(c,which,old[which])).state,priorState.state)&&!(await list(c,id)).length,'STACK_CHANGED_BEFORE_CREATE');
       const body=canonical(target.template),capabilities=isAccess?['CAPABILITY_NAMED_IAM']:[];
@@ -224,7 +247,8 @@ export function firstPurchaseAws({deadline,nonce,versionId,prior,record,metadata
       await using(async c=>{
         await c.source();
         const h=await snapshot(c,'hosting',targets.hosting.template,{after:true,expected:before.hosting});
-        await snapshot(c,'access',targets.access.template,{after:true,expected:before.access});await role(c,targets.access.template,{after:true});
+        await snapshot(c,'access',targets.access.template,{after:true,expected:before.access});
+        await role(c,targets.access.template,{after:true,unchangedVersion:before.boundaryVersion});
         await runHealth(c,targets.hosting.template,h.bindings);await verifySecret(c,secret.arn,secret.versionId,firstPurchaseSecretProtection(secret.arn));
         await verifySecret(c,P.secretArn,P.secretVersion,handoffPolicy());
         await record('platform-inspected',{taskDefinition:h.bindings.TaskDefinition,image:targets.hosting.template.Resources.TaskDefinition.Properties.ContainerDefinitions[0].Image});

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { validSandboxPurchaseScope } from '../../lib/purchases/sandbox-first-purchase-config.ts';
 import { P, canonical, hash, handoffPolicy } from './contract.mjs';
 import { suppliedTemplate, versionId } from '../platform-hosted-access-v6/contract.mjs';
-import { DAHLIA_FIRST_PURCHASE_CANDIDATE } from '../platform-registration-publish-v1/contract.mjs';
+import { DAHLIA_FIRST_PURCHASE_CANDIDATE, CHECKOUT_REPAIR_CANDIDATE } from '../platform-registration-publish-v1/contract.mjs';
 
 const json = path => JSON.parse(readFileSync(new URL(`../../${path}`,import.meta.url),'utf8'));
 const evidence = 'docs/evidence/';
@@ -77,4 +77,21 @@ export function buildFirstPurchaseActivationTemplates({workspaceId,planId,publis
     access:{stackId:scope.expectedAccessStackId,template:access,canonicalSha256:sha(access),expectedChanges:draft.offlineTemplateShapeWitnesses.accessExpectedChangeSet},
     hosting:{stackId:scope.expectedHostingStackId,template:hosting,canonicalSha256:sha(hosting),expectedChanges:draft.offlineTemplateShapeWitnesses.hostingExpectedChangeSet},
   };
+}
+
+export function checkoutRepairHostingTarget(installed,publisher,baselineDigest){
+  const c=CHECKOUT_REPAIR_CANDIDATE;
+  check(publisher?.locked===true&&publisher.artifactId===c.artifactId&&publisher.sourceRecipeSha256===c.sourceRecipeSha256&&
+    publisher.sourceTreeOid===c.sourceTreeOid&&publisher.imageConfigDigest===c.imageConfigDigest&&digest.test(publisher.manifestDigest??'')&&
+    ![baselineDigest,c.imageConfigDigest].includes(publisher.manifestDigest),'REPAIR_PUBLISHER_PROOF');
+  const template=structuredClone(installed.template);
+  const box=template.Resources.TaskDefinition.Properties.ContainerDefinitions[0];
+  const uri=`${c.account}.dkr.ecr.${c.region}.amazonaws.com/${c.ecrRepository}@`;
+  check(installed.stackId===scope.expectedHostingStackId&&box.Image===uri+baselineDigest&&
+    template.Metadata.ImageSource==='sha256:'+DAHLIA_FIRST_PURCHASE_CANDIDATE.sourceRecipeSha256&&
+    template.Metadata.ImageConfigDigest===DAHLIA_FIRST_PURCHASE_CANDIDATE.imageConfigDigest,'REPAIR_BASE_TEMPLATE');
+  box.Image=uri+publisher.manifestDigest;
+  template.Metadata.ImageSource='sha256:'+c.sourceRecipeSha256;
+  template.Metadata.ImageConfigDigest=c.imageConfigDigest;
+  return {stackId:installed.stackId,template,canonicalSha256:sha(template),expectedChanges:['TaskDefinition:Modify:True','Service:Modify:False']};
 }

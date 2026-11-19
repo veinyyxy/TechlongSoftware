@@ -57,6 +57,25 @@ export async function assertFirstPurchaseInstalledRoles(q){
         END)) AS no_direct_writes`,[hook,roles,definer,web,WEB_DATABASE_PROFILE.credentialsUpdateColumns]);
   check(v&&Object.values(v).every(x=>x===true),'INSTALLED_ROLE_OR_ACL');
 }
+export async function firstPurchaseProtectedLayout(q){
+  return q(`SELECT c.relname AS name,encode(sha256(convert_to(jsonb_build_object(
+    'cols',coalesce((SELECT jsonb_agg(jsonb_build_array(a.attname,format_type(a.atttypid,a.atttypmod),a.attnotnull,
+      a.attidentity,a.attgenerated,pg_get_expr(d.adbin,d.adrelid)) ORDER BY a.attnum)
+      FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+      WHERE a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped),'[]'::jsonb),
+    'constraints',coalesce((SELECT jsonb_agg(jsonb_build_array(p.conname,p.convalidated,pg_get_constraintdef(p.oid)) ORDER BY p.conname)
+      FROM pg_constraint p WHERE p.conrelid=c.oid),'[]'::jsonb),
+    'indexes',coalesce((SELECT jsonb_agg(jsonb_build_array(i.indisvalid,i.indisready,pg_get_indexdef(i.indexrelid)) ORDER BY i.indexrelid)
+      FROM pg_index i WHERE i.indrelid=c.oid),'[]'::jsonb),
+    'triggers',coalesce((SELECT jsonb_agg(jsonb_build_array(t.tgname,t.tgenabled,pg_get_triggerdef(t.oid),p.proowner,p.prosecdef,
+      encode(sha256(convert_to(pg_get_functiondef(p.oid),'UTF8')),'hex')) ORDER BY t.tgname)
+      FROM pg_trigger t JOIN pg_proc p ON p.oid=t.tgfoid WHERE t.tgrelid=c.oid AND NOT t.tgisinternal),'[]'::jsonb))::text,'UTF8')),'hex') AS definition_sha256,
+    EXISTS(SELECT 1 FROM pg_rewrite rw WHERE rw.ev_class=c.oid) AS has_rule,
+    (SELECT count(*)::int FROM pg_trigger t WHERE t.tgrelid=c.oid AND NOT t.tgisinternal) AS visible_trigger_count
+    FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relname=ANY($1::text[]) ORDER BY c.relname`,[tables]);
+}
+
 export function firstPurchaseDatabase({rawConfig,historical,projection,binding,deadline,record}){
   check(!Object.keys(process.env).some(k=>/^PG|^SSL_CERT_(?:DIR|FILE)$/i.test(k)&&process.env[k]) &&
     process.env.NODE_TLS_REJECT_UNAUTHORIZED!=='0','PROCESS_ENV');
@@ -87,24 +106,6 @@ export function firstPurchaseDatabase({rawConfig,historical,projection,binding,d
       if(started&&!commitSent&&limits.sql<76&&Date.now()<deadline)await q('ROLLBACK').catch(()=>{});
       await db.end().catch(()=>{});
     }
-  }
-  async function layout(q){
-    return q(`SELECT c.relname AS name,encode(sha256(convert_to(jsonb_build_object(
-      'cols',coalesce((SELECT jsonb_agg(jsonb_build_array(a.attname,format_type(a.atttypid,a.atttypmod),a.attnotnull,
-        a.attidentity,a.attgenerated,pg_get_expr(d.adbin,d.adrelid)) ORDER BY a.attnum)
-        FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
-        WHERE a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped),'[]'::jsonb),
-      'constraints',coalesce((SELECT jsonb_agg(jsonb_build_array(p.conname,p.convalidated,pg_get_constraintdef(p.oid)) ORDER BY p.conname)
-        FROM pg_constraint p WHERE p.conrelid=c.oid),'[]'::jsonb),
-      'indexes',coalesce((SELECT jsonb_agg(jsonb_build_array(i.indisvalid,i.indisready,pg_get_indexdef(i.indexrelid)) ORDER BY i.indexrelid)
-        FROM pg_index i WHERE i.indrelid=c.oid),'[]'::jsonb),
-      'triggers',coalesce((SELECT jsonb_agg(jsonb_build_array(t.tgname,t.tgenabled,pg_get_triggerdef(t.oid),p.proowner,p.prosecdef,
-        encode(sha256(convert_to(pg_get_functiondef(p.oid),'UTF8')),'hex')) ORDER BY t.tgname)
-        FROM pg_trigger t JOIN pg_proc p ON p.oid=t.tgfoid WHERE t.tgrelid=c.oid AND NOT t.tgisinternal),'[]'::jsonb))::text,'UTF8')),'hex') AS definition_sha256,
-      EXISTS(SELECT 1 FROM pg_rewrite rw WHERE rw.ev_class=c.oid) AS has_rule,
-      (SELECT count(*)::int FROM pg_trigger t WHERE t.tgrelid=c.oid AND NOT t.tgisinternal) AS visible_trigger_count
-      FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-      WHERE n.nspname='public' AND c.relname=ANY($1::text[]) ORDER BY c.relname`,[tables]);
   }
   async function before(q){
     const [a]=await q(`SELECT
@@ -157,7 +158,7 @@ export function firstPurchaseDatabase({rawConfig,historical,projection,binding,d
         (!insertTables.includes(x.name)||x.can_grant_insert)),'TABLE_GRANTS');
     const [cols]=await q(`SELECT bool_and(has_column_privilege(current_user,'public.'||(x->>0),x->>1,'UPDATE WITH GRANT OPTION')) AS allowed
       FROM jsonb_array_elements($1::jsonb) x`,[JSON.stringify(columnOptions)]);
-    check(cols?.allowed===true&&same(await layout(q),projection.protectedLayout),'COLUMNS_OR_PROTECTED_LAYOUT');
+    check(cols?.allowed===true&&same(await firstPurchaseProtectedLayout(q),projection.protectedLayout),'COLUMNS_OR_PROTECTED_LAYOUT');
   }
   async function installed(q,statements){
     await assertFirstPurchaseInstalledRoles(q);
@@ -172,7 +173,7 @@ export function firstPurchaseDatabase({rawConfig,historical,projection,binding,d
     check(f.length===5&&Object.keys(expected).length===5&&new Set(f.map(x=>x.name)).size===5&&f.every(x=>x.body===expected[x.name]&&
       x.owner===definer&&x.definer===true&&same(x.config,['search_path=pg_catalog, public, pg_temp'])&&
       same([...x.acl].sort(),[`${definer}:EXECUTE:false`,`${['complete','webhook_order'].includes(x.name)?hook:web}:EXECUTE:false`].sort()))&&
-      same(await layout(q),projection.protectedLayout),'INSTALLED_FUNCTIONS_OR_LAYOUT');
+      same(await firstPurchaseProtectedLayout(q),projection.protectedLayout),'INSTALLED_FUNCTIONS_OR_LAYOUT');
     return hash(JSON.stringify(f.map(({name,body,acl})=>({name,bodySha256:hash(body),acl}))));
   }
   return {limits, preflight:()=>session(before),

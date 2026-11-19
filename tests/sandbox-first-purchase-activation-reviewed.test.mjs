@@ -6,9 +6,36 @@ import { dahliaEndpoint, makeFirstPurchaseReview, validateFirstPurchaseReview, v
   makeContinuationReview, validateContinuationReview, makeAclRecoveryReview, validateAclRecoveryReview,
   makeSourceRefreshReview, validateSourceRefreshReview,
   runFirstPurchaseStages } from '../ops/platform-ecs-v1/first-purchase-activate-reviewed.mjs';
-import { buildFirstPurchaseActivationTemplates, draft } from '../ops/platform-ecs-v1/first-purchase-activation.mjs';
-import { DAHLIA_FIRST_PURCHASE_CANDIDATE as candidate, FIRST_PURCHASE_CANDIDATE as oldCandidate } from '../ops/platform-registration-publish-v1/contract.mjs';
+import { buildFirstPurchaseActivationTemplates, checkoutRepairHostingTarget, draft } from '../ops/platform-ecs-v1/first-purchase-activation.mjs';
+import { DAHLIA_FIRST_PURCHASE_CANDIDATE as candidate, FIRST_PURCHASE_CANDIDATE as oldCandidate,
+  CHECKOUT_REPAIR_CANDIDATE as repair } from '../ops/platform-registration-publish-v1/contract.mjs';
 import { dahliaSealedSizeFix } from '../ops/platform-registration-publish-v1/source.mjs';
+
+test('Checkout targets exactly the existing Hosting stack and only swaps image provenance',()=>{
+  const baselineDigest='sha256:a27f4a5d101f884205d8e455fc68beeaadbc7136d190cf9ebf6c5055d9e50670';
+  const nextDigest='sha256:'+'7'.repeat(64);
+  const proof=(p,manifestDigest={})=>({locked:true,artifactId:p.artifactId,sourceRecipeSha256:p.sourceRecipeSha256,
+    sourceTreeOid:p.sourceTreeOid,imageConfigDigest:p.imageConfigDigest,manifestDigest});
+  const {hosting}=buildFirstPurchaseActivationTemplates({
+    workspaceId:'wsp_'+'a'.repeat(24),planId:'pln_'+'b'.repeat(32),publisher:proof(candidate,baselineDigest),
+    secret:{arn:'arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/first-purchase-v1-AbCd09',
+      versionId:'c34ca659-9a24-4f3e-b16f-ec824f32bc5f'},
+  });
+  const before=structuredClone(hosting.template);
+  const target=checkoutRepairHostingTarget(hosting,proof(repair,nextDigest),baselineDigest);
+  assert.equal(target.stackId,hosting.stackId);
+  assert.deepEqual(target.expectedChanges,['TaskDefinition:Modify:True','Service:Modify:False']);
+  const actual=structuredClone(target.template), old=before.Resources.TaskDefinition.Properties.ContainerDefinitions[0];
+  const box=actual.Resources.TaskDefinition.Properties.ContainerDefinitions[0];
+  assert.equal(box.Image,old.Image.replace(baselineDigest,nextDigest));box.Image=old.Image;
+  assert.equal(actual.Metadata.ImageSource,'sha256:'+repair.sourceRecipeSha256);
+  assert.equal(actual.Metadata.ImageConfigDigest,repair.imageConfigDigest);
+  actual.Metadata.ImageSource=before.Metadata.ImageSource;
+  actual.Metadata.ImageConfigDigest=before.Metadata.ImageConfigDigest;
+  assert.deepEqual(actual,before);assert.deepEqual(hosting.template,before);
+  assert.throws(()=>checkoutRepairHostingTarget(hosting,{...proof(repair,nextDigest),locked:false},baselineDigest),/REPAIR_PUBLISHER_PROOF/);
+  assert.throws(()=>checkoutRepairHostingTarget(hosting,proof(candidate,nextDigest),baselineDigest),/REPAIR_PUBLISHER_PROOF/);
+});
 
 test('approved envelope binds scope and stops on changed bytes or expired window',()=>{
   const now=Date.parse('2026-11-19T01:00:00.000Z');
