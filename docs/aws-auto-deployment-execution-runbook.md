@@ -16,7 +16,7 @@
 
 按[原合并审批](aws-sandbox-first-purchase-billing-rollout-review.md) SHA `7112a253…`，推送专用候选接线 `7ee7088`，只调度一次 [run 44450853247](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44450853247)；首次身份核验失败后按[停止记录](evidence/sandbox-first-purchase-billing-candidate.stopped.json)中止，具体首轮不符字段未知，不重放。
 
-**同一候选已独立只读核验：** 原 attempt 1 后续回读为 success，身份、唯一 job 和 artifact `14495028924` 的元数据与封签一致。正常 OS 扫描和禁网回归通过。[证据](evidence/sandbox-first-purchase-billing-candidate.observed.json)只用 5 次 GitHub GET、1 次签名日志 GET；无发布、数据库安装、平台更新、ZIP 下载或再次调度。下一步仅以现有产物固定不可变发布入口和剩余接续审批，再获批才执行原受保护发布／撤权、仅安装只读函数及镜像更新；不重建。原 revision 16 不变，会话历史到期仍为温尼伯 **11 月 19 日 19:16:57**，不延长、不创建替代单、不重试购买。
+**当前唯一继续点：等待账单页 500 单次接续批准。** 原 attempt 1 的 [artifact `14495028924`](evidence/sandbox-first-purchase-billing-candidate.observed.json)已独立核对身份、唯一 job 和封签，不重建。不可变发布入口已在本机固定；[合并接续清单](evidence/sandbox-first-purchase-billing-continuation.review.json) SHA `77b0771a946eb575f7c70617e21ec769c0e8bb0f042d6ddc40c8731be32c2827`，[完整范围与风险](aws-sandbox-first-purchase-billing-continuation-review.md)。获批后才快进固定源码、核对 CI 和原状态，按顺序单次发布→无论成败立即撤权并独立核验→安装一个只读函数并独立核对 ACL→只换原平台镜像。GitHub environment 由本人批准；最晚 **11 月 19 日 17:21:57（温尼伯）**启动，原到期不延。此次准备未推送或访问云端；原 revision 16 仅为上次已证实基线，不是新采样。不重放旧清单、不新建会话、不重试购买。
 
 **修正验证：** `5b89c18` 的[支付及 PostgreSQL 回归](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551298)全过。[通用托管候选 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551331)在构建前停于既有 81 文件部署执行闭包摘要断言；修正前后的 81 个绑定文件及其规范 SHA 均逐项一致，本修正未触及闭包或放宽门禁。该 run 没有生成发布候选，不能作为部署凭据。
 
