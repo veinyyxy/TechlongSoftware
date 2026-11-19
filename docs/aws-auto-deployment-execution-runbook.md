@@ -14,7 +14,7 @@
 
 **当前唯一继续点：Sandbox 账单页 500 的合并审批。** 用户报告登录后账单页返回 500；此前健康／注册探针并未覆盖该页面。隔离库已复现通用订单查询在受限 Web 角色下报 `42501`。本机源码 `c58e5b1` 改用单笔受限只读函数：原 Owner 可继续同一未到期且待付款的测试会话，非 Owner、范围不符或无效会话均无链接；Web 整表读取仍禁止，未改变原回调、订单或普通账单路径。隔离 PostgreSQL 18.3 的登录后页面及越权回归、21 项本地测试、类型和定向 lint 通过。
 
-只保留一份[数据库函数与原平台上线的合并审批](aws-sandbox-first-purchase-billing-rollout-review.md)，[清单](evidence/sandbox-first-purchase-billing-rollout.review.json) SHA `7112a253eddda954c25c5b94f92b259b8895484a07ae127e4531d0d7d746334c`。源码树已固定，真实候选封签与发布入口尚待绑定，不直接执行。未推送、未构建镜像、未调度、未调用 AWS／Stripe／Neon、未新建会话或购买；旧 revision 16 不变。原会话历史到期仍为温尼伯 **11 月 19 日 19:16:57**，不延长、不创建替代单；待登录后账单页可用再由 Owner 验收，不重试购买。
+按[合并审批](aws-sandbox-first-purchase-billing-rollout-review.md) SHA `7112a253…`，只推送了专用候选接线 `7ee7088`，唯一一次无 AWS 调度获 HTTP 200：[run 44450853247](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44450853247)。在首个运行观察请求因 `RUN_IDENTITY` **按批准边界停止**；错误记录未包含具体不符字段，不判断构建实际结论，尚无产物封签。[停止回执](evidence/sandbox-first-purchase-billing-candidate.stopped.json)：GitHub GET 5、候选调度 1、受保护调度 0、AWS／Stripe／Neon 0；未发布、未安装、未更新，原 revision 16 不变。下一步仅可另批一次对同一 run 的有界只读取证，不重新调度或 Re-run；过期或实质不匹配即停。原会话历史到期仍为温尼伯 **11 月 19 日 19:16:57**，不延长、不创建替代单、不重试购买。
 
 **修正验证：** `5b89c18` 的[支付及 PostgreSQL 回归](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551298)全过。[通用托管候选 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551331)在构建前停于既有 81 文件部署执行闭包摘要断言；修正前后的 81 个绑定文件及其规范 SHA 均逐项一致，本修正未触及闭包或放宽门禁。该 run 没有生成发布候选，不能作为部署凭据。
 

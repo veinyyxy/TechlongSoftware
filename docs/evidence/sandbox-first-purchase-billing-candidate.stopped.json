@@ -1,0 +1,37 @@
+{
+  "schema": "techlong/sandbox-first-purchase-billing-candidate-stopped/v1",
+  "approvalSha256": "7112a253eddda954c25c5b94f92b259b8895484a07ae127e4531d0d7d746334c",
+  "sourceCommitPushed": "7ee70886a0f774af1e642846f9c622e2ca899718",
+  "workflowId": 422812180,
+  "workflowPath": ".github/workflows/sandbox-registration-candidate-v1.yml",
+  "singleDispatch": {
+    "httpStatus": 200,
+    "acceptedAtUtc": "2026-11-19T03:21:24.371Z",
+    "runId": 44450853247
+  },
+  "stop": {
+    "stoppedAtUtc": "2026-11-19T03:21:36.989Z",
+    "stage": "watch",
+    "code": "RUN_IDENTITY",
+    "exactFailingFieldKnown": false,
+    "buildConclusionVerified": false,
+    "artifactVerified": false,
+    "retryAllowed": false
+  },
+  "observedCounts": {
+    "sourcePushes": 1,
+    "gitCredentialLoads": 1,
+    "githubGets": 5,
+    "candidateDispatches": 1,
+    "protectedDispatches": 0,
+    "jobLogGets": 0,
+    "artifactDownloads": 0,
+    "awsCalls": 0,
+    "stripeCalls": 0,
+    "neonConnections": 0,
+    "publications": 0,
+    "retries": 0
+  },
+  "privateIntentSha256": "864352a455ad8b015d1e1424550fecbc14c8ee8fd01033f5321dfeea1ef6b38c",
+  "privateJournalSha256": "7042a4793fd4f47bcd8d158e5f8331595cad2a8933162c5af65dd5a173c779ed"
+}
