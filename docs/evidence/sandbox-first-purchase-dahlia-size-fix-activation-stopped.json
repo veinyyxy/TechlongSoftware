@@ -1,0 +1,40 @@
+{
+  "schema": "techlong/sandbox-first-purchase-dahlia-size-fix-activation-stopped/v1",
+  "approvalSha256": "88ff81c0d05c9ae240b9f6c9518a52048313afbf0a6bacbf284eb09348a664dc",
+  "completedAtUtc": "2026-11-19T00:11:07.721Z",
+  "outcome": "STOPPED_AFTER_SUCCESSFUL_GITHUB_PUBLICATION_AND_LOCKED_READBACK",
+  "preflight": {
+    "verified": true,
+    "existingDahliaEndpointMatched": true,
+    "platformSourceSts": 1,
+    "platformMetadataReads": 28,
+    "neonConnections": 1,
+    "neonSqlSubmissions": 14,
+    "receiptSha256": "cf7b48926e0df3ad8938ba4965155eada346a2be5b074882580192cc49519d06"
+  },
+  "publisher": {
+    "artifactId": 14480476839,
+    "dispatchCount": 1,
+    "runId": 44425786946,
+    "runAttempt": 1,
+    "head": "f01faef753e98921fd44397c84868ec0b71b0afa",
+    "runStatus": "completed",
+    "runConclusion": "success",
+    "revokeAcknowledged": true,
+    "revokedRoleReadBackLocked": true,
+    "independentPublicationProofRecorded": false,
+    "stoppedAt": "publication_inspect",
+    "code": "PLATFORM_PUBLISH_V2_SOURCE_STS_BUDGET",
+    "grantAckSha256": "eaa1b3df23c60e072b4e4e2298e30c442405c6fe90994aaf11ea2a9a10269edc",
+    "dispatchAckSha256": "b9e5055c17ad94a567bf20efb5721641bf3770bc349b9b44f31f6708e732a2c1",
+    "runCompletedSha256": "40b0c1677eeb6af758166ed93eeb49cee1cbcef96986b81ad4cc3bbe09157b8b",
+    "revokeAckSha256": "5e64f1ced9d78bd3bd8ce7c03eb619a75f12e4bebf0058d64f23993aa36dffeb",
+    "resultSha256": "21d97d4cbc1b6d97aab510fe14babbdb4977945d95401a7dbeb7bec2f7bff5ca"
+  },
+  "finalResultSha256": "7eaa0cde2d7947ef07f9d3460893f1d5752eb14d9dd24001365282f120d14a18",
+  "neonInstallExecuted": false,
+  "newSecretWritten": false,
+  "platformUpdated": false,
+  "testCheckoutExecuted": false,
+  "retryAllowed": false
+}
