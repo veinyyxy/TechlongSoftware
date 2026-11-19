@@ -5,8 +5,8 @@ import test from 'node:test';
 import pg from 'pg';
 import { sandboxFirstPurchaseAttachReplacement, sandboxFirstPurchaseDdl, sandboxFirstPurchaseInstallStatements } from '../ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts';
 import { assertFirstPurchaseInstalledRoles } from '../ops/platform-ecs-v1/first-purchase-activation-db.mjs';
-import { expectedFunctions, functionFingerprint, installedFunctions, repairCheckoutInTransaction } from '../ops/platform-ecs-v1/checkout-repair-db.mjs';
-import { SANDBOX_BILLING_READ_STATEMENTS } from '../ops/platform-web-database-role-v1/sandbox-first-purchase-billing-ddl.ts';
+import { expectedFunctions, functionFingerprint, installedFunctions, repairCheckoutInTransaction,
+  installSandboxBillingFunctionInTransaction } from '../ops/platform-ecs-v1/checkout-repair-db.mjs';
 
 const url = process.env.FIRST_PURCHASE_PG18_CI_DATABASE_URL;
 const installer = 'first_purchase_ci_installer', web = 'techlong_platform_web_acceptance_v1';
@@ -152,12 +152,12 @@ test('isolated PostgreSQL 18: non-superuser creates and verifies exact owners, A
     // Install only the new read function as the existing definer; the five
     // previously deployed routines and role ACLs must still match.
     await begin();
-    await q(`GRANT ${definer} TO SESSION_USER WITH ADMIN FALSE, INHERIT FALSE, SET TRUE GRANTED BY CURRENT_USER`);
-    await q('SET LOCAL ROLE '+definer);
-    for (const statement of SANDBOX_BILLING_READ_STATEMENTS) await q(statement);
-    await q('SET LOCAL ROLE NONE');
-    await q(`REVOKE ${definer} FROM SESSION_USER GRANTED BY CURRENT_USER RESTRICT`);
-    await verifyInstalledRoles(writer);
+    const added=await installSandboxBillingFunctionInTransaction(q,{before:after,verifyGuards:assertFirstPurchaseInstalledRoles,
+      verifyOrder:async (query,lock)=>{
+        const rows=await query('SELECT status,provider_session_id,checkout_url FROM public.subscription_purchase_orders WHERE id=$1'+(lock?' FOR UPDATE':''),[orderId]);
+        assert.deepEqual(rows,[{status:'checkout_pending',provider_session_id:sessionId,checkout_url:checkout.url}]);
+      }});
+    assert.equal(added.name,'read_billing_order');
     await q('COMMIT');
     const functions=await installedFunctions(read);
     assert.deepEqual(functions.filter(r=>r.name!=='read_billing_order'),after);

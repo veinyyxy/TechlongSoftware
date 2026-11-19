@@ -6,10 +6,31 @@ import { dahliaEndpoint, makeFirstPurchaseReview, validateFirstPurchaseReview, v
   makeContinuationReview, validateContinuationReview, makeAclRecoveryReview, validateAclRecoveryReview,
   makeSourceRefreshReview, validateSourceRefreshReview,
   runFirstPurchaseStages } from '../ops/platform-ecs-v1/first-purchase-activate-reviewed.mjs';
-import { buildFirstPurchaseActivationTemplates, checkoutRepairHostingTarget, draft } from '../ops/platform-ecs-v1/first-purchase-activation.mjs';
+import { buildFirstPurchaseActivationTemplates, checkoutRepairHostingTarget, billingRepairHostingTarget, draft } from '../ops/platform-ecs-v1/first-purchase-activation.mjs';
 import { DAHLIA_FIRST_PURCHASE_CANDIDATE as candidate, FIRST_PURCHASE_CANDIDATE as oldCandidate,
-  CHECKOUT_REPAIR_CANDIDATE as repair } from '../ops/platform-registration-publish-v1/contract.mjs';
+  CHECKOUT_REPAIR_CANDIDATE as repair, BILLING_REPAIR_CANDIDATE as billing } from '../ops/platform-registration-publish-v1/contract.mjs';
 import { dahliaSealedSizeFix } from '../ops/platform-registration-publish-v1/source.mjs';
+
+test('Billing Hosting advances only the verified Checkout image and provenance',()=>{
+  const dahlia='sha256:'+'1'.repeat(64),rev16='sha256:'+'2'.repeat(64),next='sha256:'+'3'.repeat(64);
+  const proof=(c,manifestDigest)=>({locked:true,artifactId:c.artifactId,sourceRecipeSha256:c.sourceRecipeSha256,
+    sourceTreeOid:c.sourceTreeOid,imageConfigDigest:c.imageConfigDigest,manifestDigest});
+  const {hosting}=buildFirstPurchaseActivationTemplates({workspaceId:'wsp_'+'a'.repeat(24),planId:'pln_'+'b'.repeat(32),
+    publisher:proof(candidate,dahlia),secret:{arn:'arn:aws:secretsmanager:ca-central-1:402010193138:secret:techlong/sandbox/platform-web/first-purchase-v1-AbCd09',
+      versionId:'c34ca659-9a24-4f3e-b16f-ec824f32bc5f'}});
+  const current=checkoutRepairHostingTarget(hosting,proof(repair,rev16),dahlia), copied=structuredClone(current);
+  const target=billingRepairHostingTarget(current,proof(billing,next),rev16);
+  assert.equal(target.stackId,current.stackId);
+  assert.deepEqual(target.expectedChanges,['TaskDefinition:Modify:True','Service:Modify:False']);
+  const expected=structuredClone(current.template);
+  expected.Resources.TaskDefinition.Properties.ContainerDefinitions[0].Image=expected.Resources.TaskDefinition.Properties.ContainerDefinitions[0].Image.replace(rev16,next);
+  expected.Metadata.ImageSource='sha256:'+billing.sourceRecipeSha256;
+  expected.Metadata.ImageConfigDigest=billing.imageConfigDigest;
+  assert.deepEqual(target.template,expected);
+  assert.deepEqual(current,copied);
+  assert.throws(()=>billingRepairHostingTarget(hosting,proof(billing,next),dahlia),/REPAIR_BASE_TEMPLATE/);
+  assert.throws(()=>billingRepairHostingTarget(current,proof(repair,next),rev16),/REPAIR_PUBLISHER_PROOF/);
+});
 
 test('Checkout targets exactly the existing Hosting stack and only swaps image provenance',()=>{
   const baselineDigest='sha256:a27f4a5d101f884205d8e455fc68beeaadbc7136d190cf9ebf6c5055d9e50670';

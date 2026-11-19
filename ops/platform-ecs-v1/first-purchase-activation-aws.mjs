@@ -8,7 +8,8 @@ import { identity } from '../platform-image-source-v2/aws.mjs';
 import { parseCloudFormationTemplateDocument as parse } from '../aws-sandbox/scripts/cloudformation-template-document.mjs';
 import { P, hash, canonical, same, policySame, handoffPolicy } from './contract.mjs';
 import { H } from '../platform-hosted-access-v6/contract.mjs';
-import { scope, draft, firstPurchaseOriginalTemplates, exactSecretArn, firstPurchaseSecretProtection, checkoutRepairHostingTarget } from './first-purchase-activation.mjs';
+import { scope, draft, firstPurchaseOriginalTemplates, exactSecretArn, firstPurchaseSecretProtection,
+  checkoutRepairHostingTarget, billingRepairHostingTarget } from './first-purchase-activation.mjs';
 
 const require=createRequire(new URL('../cloud-worker/package.json',import.meta.url));
 const codes={cfn:['cloudformation','cloudformation'],ecs:['ecs','ecs'],elb:['elastic-load-balancing-v2','elasticloadbalancing'],
@@ -28,12 +29,14 @@ const changeKind={
 };
 
 export function firstPurchaseAws(options){return buildAws(options);}
-export function checkoutRepairAws(options,installed){
+export function checkoutRepairAws(options,installed){return imageRepairAws(options,installed,checkoutRepairHostingTarget);}
+export function billingRepairAws(options,installed){return imageRepairAws(options,installed,billingRepairHostingTarget);}
+function imageRepairAws(options,installed,selectTarget){
   check(same(Object.keys(installed).sort(),['access','baselineDigest','hosting','secret']),'REPAIR_MODE');
   const p=buildAws(options,installed);
   return {counts:p.counts,close:p.close,preflight:p.preflight,
     async replaceAndInspect(proof){
-      const target=checkoutRepairHostingTarget(installed.hosting,proof,installed.baselineDigest);
+      const target=selectTarget(installed.hosting,proof,installed.baselineDigest);
       await p.update('hosting',target);
       await p.inspect({access:installed.access,hosting:target});
     }};

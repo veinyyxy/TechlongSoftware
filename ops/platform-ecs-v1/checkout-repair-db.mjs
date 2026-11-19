@@ -1,12 +1,16 @@
 import { parseEnv } from 'node:util';
 import pg from 'pg';
 import { sandboxFirstPurchaseAttachReplacement } from '../platform-web-database-role-v1/sandbox-first-purchase-ddl.ts';
+import { SANDBOX_BILLING_READ_STATEMENTS } from '../platform-web-database-role-v1/sandbox-first-purchase-billing-ddl.ts';
 import { sandboxCheckoutSessionIdFromUrl } from '../../lib/purchases/sandbox-first-purchase-config.ts';
 import { parseTarget } from '../platform-web-database-v1/local.mjs';
 import { assertFirstPurchaseInstalledRoles, firstPurchaseProtectedLayout } from './first-purchase-activation-db.mjs';
 import { hash, same } from './contract.mjs';
 
 const definer='techlong_sandbox_first_purchase_definer';
+const web='techlong_platform_web_acceptance_v1';
+const webhook='techlong_sandbox_first_purchase_webhook';
+const billingFn='read_billing_order';
 const check=(ok,code)=>{if(!ok)throw Error('CHECKOUT_REPAIR_DB_'+code);};
 const stable=(prefix,value)=>prefix+'_'+hash(prefix+':'+value).slice(0,24);
 const grant=`GRANT ${definer} TO SESSION_USER WITH ADMIN FALSE, INHERIT FALSE, SET TRUE GRANTED BY CURRENT_USER`;
@@ -82,17 +86,64 @@ export async function repairCheckoutInTransaction(q,{binding,orderId,sessionId,c
   check(same(await orderState(q,binding,orderId,sessionId,{checkout}),expected),'ATTACH_POSTCONDITION');
 }
 
-export function checkoutRepairDatabase({configText,historical,protectedLayout,binding,orderId,sessionId,previousFingerprint,deadline,record}){
+async function verifyBillingAcl(q,exists){
+  // The installer must be able to inspect metadata after its temporary SET
+  // membership is revoked; it intentionally has no USAGE on this schema.
+  const [r]=await q(`WITH billing AS (
+    SELECT p.oid,p.provolatile,p.proisstrict,p.prokind,l.lanname
+    FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_language l ON l.oid=p.prolang
+    WHERE n.nspname='sandbox_first_purchase' AND p.proname='read_billing_order'
+      AND pg_get_function_identity_arguments(p.oid)='p_actor text, p_order text'
+  ) SELECT
+    NOT has_any_column_privilege($1::name,'public.subscription_purchase_orders','SELECT') AS no_order_table_read,
+    (SELECT has_function_privilege($1::name,oid,'EXECUTE')
+        AND NOT has_function_privilege($2::name,oid,'EXECUTE') FROM billing) AS restricted_exec,
+    (SELECT provolatile='s' AND lanname='sql' AND NOT proisstrict AND prokind='f' FROM billing) AS read_function
+    `,[web,webhook]);
+  check(r?.no_order_table_read===true&&r.restricted_exec===(exists?true:null)&&r.read_function===(exists?true:null),'BILLING_ACL');
+}
+async function inspectBillingFunction(q,before,existing){
+  const all=await installedFunctions(q), old=all.filter(f=>f.name!==billingFn);
+  check(same(old,before)&&all.length===before.length+(existing?1:0),'BILLING_ONLY_NEW_FUNCTION');
+  const found=all.find(f=>f.name===billingFn);
+  if(existing)check(found&&/^\d+$/.test(found.oid)&&found.body===SANDBOX_BILLING_READ_STATEMENTS[0].split('$billing$')[1]&&
+    found.owner===definer&&found.arguments==='p_actor text, p_order text'&&found.result==='jsonb'&&found.definer&&
+    same(found.config,['search_path=pg_catalog, public, pg_temp'])&&
+    same(found.acl,[`${definer}:EXECUTE:false`,`${web}:EXECUTE:false`].sort()),'BILLING_FUNCTION_DEFINITION');
+  await verifyBillingAcl(q,existing);
+  return found;
+}
+
+// The existing transaction helper owns COMMIT/ROLLBACK. No order update,
+// broad permission grant or old function replacement is available here.
+export async function installSandboxBillingFunctionInTransaction(q,{before,verifyGuards,verifyOrder}){
+  await verifyGuards(q);
+  await inspectBillingFunction(q,before,false);
+  await verifyOrder(q,true);
+  await q(grant);
+  await q('SET LOCAL ROLE '+definer);
+  for(const ddl of SANDBOX_BILLING_READ_STATEMENTS)await q(ddl);
+  await q('SET LOCAL ROLE NONE');
+  await q(revoke);
+  await verifyGuards(q);
+  const installed=await inspectBillingFunction(q,before,true);
+  await verifyOrder(q,false);
+  return installed;
+}
+
+export function checkoutRepairDatabase(options){return checkedPurchaseDatabase(options,false);}
+export function sandboxBillingDatabase(options){return checkedPurchaseDatabase(options,true);}
+function checkedPurchaseDatabase({configText,historical,protectedLayout,binding,orderId,sessionId,previousFingerprint,deadline,record},billing){
   check(!Object.keys(process.env).some(k=>/^PG|^SSL_CERT_(?:DIR|FILE)$/i.test(k)&&process.env[k])&&
     process.env.NODE_TLS_REJECT_UNAUTHORIZED!=='0'&&orderId===stable('ord','sandbox-first-purchase:v1:'+binding.workspaceId)&&
     /^cs_test_[A-Za-z0-9]{1,200}$/.test(sessionId),'BINDING');
   const {target,config}=parseTarget(parseEnv(configText).DATABASE_URL),known=historical.catalog?.identity;
   check(same(target,historical.target)&&known?.actor_role?.oid&&known.database_metadata?.oid,'NEON_TARGET');
-  const ddl=sandboxFirstPurchaseAttachReplacement(binding),counts={connections:0,sql:0,writeTransactions:0};
+  const ddl=billing?null:sandboxFirstPurchaseAttachReplacement(binding),counts={connections:0,sql:0,writeTransactions:0};
   let before,expected,after;
   async function session(work,readOnly=true){
     check(++counts.connections<=3&&Date.now()+20000<deadline,'CONNECTION_LIMIT');
-    const db=new pg.Client({...config,application_name:'Techlong-Reviewed-Checkout-Repair'});
+    const db=new pg.Client({...config,application_name:billing?'Techlong-Reviewed-Billing-Read':'Techlong-Reviewed-Checkout-Repair'});
     db.on('error',()=>{});
     let started=false,commitSent=false;
     const q=async(text,args)=>{
@@ -125,6 +176,38 @@ export function checkoutRepairDatabase({configText,historical,protectedLayout,bi
     await assertFirstPurchaseInstalledRoles(q);
     check(same(await firstPurchaseProtectedLayout(q),protectedLayout),'PROTECTED_LAYOUT');
   };
+  if(billing){
+    const valid=checkout=>checkout?.expiry>Date.now()+60_000&&sandboxCheckoutSessionIdFromUrl(checkout.url)===sessionId;
+    const verifyOrder=checkout=>async(q,lock)=>{
+      check(valid(checkout),'BILLING_ORIGINAL_SESSION');
+      const row=await orderState(q,binding,orderId,sessionId,{checkout,lock});
+      check(row.amount===checkout.amount&&row.currency===checkout.currency&&(!expected||same(row,expected)),'BILLING_ORIGINAL_ORDER');
+      return row;
+    };
+    return {counts,
+      async preflight(checkout){
+        check(!before,'PREFLIGHT_ONCE');
+        return session(async q=>{
+          await verifyGuards(q);before=await installedFunctions(q);
+          check(before.length===5&&functionFingerprint(before)===previousFingerprint,'BILLING_PRIOR_FUNCTIONS');
+          await inspectBillingFunction(q,before,false);
+          expected=await verifyOrder(checkout)(q,false);
+          return {exactOriginalAttachedOrder:true,billingFunctionAbsent:true};
+        });
+      },
+      async installAndReadBack(checkout){
+        check(before&&expected&&valid(checkout),'PREFLIGHT_REQUIRED');
+        const order=verifyOrder(checkout);
+        const installed=await session(q=>installSandboxBillingFunctionInTransaction(q,{before,verifyGuards,verifyOrder:order}),false);
+        return session(async q=>{
+          await verifyGuards(q);const observed=await inspectBillingFunction(q,before,true);
+          await order(q,false);
+          check(same(observed,installed),'BILLING_INDEPENDENT_READBACK');
+          return {singleReadFunctionInstalled:true,ordinaryWebTableReadDenied:true,originalOrderUnchanged:true,
+            functionOid:observed.oid,functionBodySha256:hash(observed.body)};
+        });
+      }};
+  }
   return {counts,
     async preflight(){
       check(!before,'PREFLIGHT_ONCE');

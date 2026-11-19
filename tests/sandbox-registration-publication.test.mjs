@@ -125,7 +125,7 @@ test('the original manual caller routes each fixed artifact to its own reviewed 
   assert.notEqual(next.S.publicReviewFile,stopped.S.publicReviewFile);
   assert.throws(()=>dahliaFirstPurchaseSourceContext({...dahliaSealedSizeFix,reusableCiRun:stopped.S.reusableCiRun}),/CI_PIN/);
   assert.deepEqual(Object.keys(selector.on),['workflow_dispatch']);
-  assert.deepEqual(Object.keys(selector.jobs),['reviewed-publication','reviewed-first-purchase-publication','reviewed-checkout-repair-publication']);
+  assert.deepEqual(Object.keys(selector.jobs),['reviewed-publication','reviewed-first-purchase-publication','reviewed-checkout-repair-publication','reviewed-billing-repair-publication']);
   const reusable=`${C.repository}/.github/workflows/${C.reusableFile}@`;
   for(const [name,{P,S}] of [['reviewed-publication',old],['reviewed-first-purchase-publication',next]]) {
     const job=selector.jobs[name];
@@ -143,6 +143,11 @@ test('the original manual caller routes each fixed artifact to its own reviewed 
   assert.equal(repair.uses,reusable+'200ca52348a2ba57f52cfdd445051012eb0dddd6');
   assert.deepEqual(repair.permissions,{contents:'read',actions:'read','id-token':'write'});
   assert.deepEqual(repair.with,selector.jobs['reviewed-first-purchase-publication'].with);
+  const billing=selector.jobs['reviewed-billing-repair-publication'];
+  assert.equal(billing.if,"github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && fromJSON(inputs.review_json).candidate.artifactId == "+B.artifactId);
+  assert.equal(billing.uses,reusable+'89230b2628d9719157f0a79d7ab27e5a1c091728');
+  assert.deepEqual(billing.permissions,repair.permissions);
+  assert.deepEqual(billing.with,repair.with);
 });
 
 test('the Dahlia publisher binds the new sealed artifact and cannot use the earlier image or tag',()=>{

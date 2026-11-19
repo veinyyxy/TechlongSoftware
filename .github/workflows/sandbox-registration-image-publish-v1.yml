@@ -43,3 +43,13 @@ jobs:
     with:
       review_json: ${{ inputs.review_json }}
       review_sha: ${{ inputs.review_sha }}
+  reviewed-billing-repair-publication:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.repository_id == '1323312747' && fromJSON(inputs.review_json).candidate.artifactId == 14495028924
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: veinyyxy/TechlongSoftware/.github/workflows/sandbox-registration-image-publish-job-v1.yml@89230b2628d9719157f0a79d7ab27e5a1c091728
+    with:
+      review_json: ${{ inputs.review_json }}
+      review_sha: ${{ inputs.review_sha }}
