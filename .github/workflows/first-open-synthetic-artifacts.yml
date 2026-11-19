@@ -1,0 +1,247 @@
+name: First-open synthetic artifact handoff
+run-name: fo-smoke-${{ inputs.mode }}-${{ inputs.cohort }}-${{ inputs.inspect_run }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Synthetic peer role
+        type: choice
+        options: [inspect, runonce]
+        required: true
+      cohort:
+        description: Same 32 lowercase hexadecimal characters in both runs
+        type: string
+        required: true
+      inspect_run:
+        description: 0 for Inspect; exact original Inspect run ID for RunOnce
+        type: string
+        default: '0'
+        required: true
+
+permissions:
+  actions: read
+
+jobs:
+  exchange:
+    if: github.repository_id == '1323312747' && github.actor_id == '14145707' && github.ref == 'refs/heads/main' && github.run_attempt == '1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      SMOKE_MODE: ${{ inputs.mode }}
+      SMOKE_COHORT: ${{ inputs.cohort }}
+      SMOKE_INSPECT_RUN: ${{ inputs.inspect_run }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Pair exact runs and prepare the first handoff
+        env:
+          PHASE: first
+        shell: bash
+        run: &exchange |
+          python3 - <<'PY'
+          from datetime import datetime, timezone
+          import hashlib, io, json, os, pathlib, re, time, urllib.error, urllib.parse, urllib.request, zipfile
+
+          REPO_ID, ACTOR_ID = 1323312747, 14145707
+          FILE = 'first-open-synthetic-artifacts.yml'
+          API = 'https://api.github.com/repos/veinyyxy/TechlongSoftware/actions'
+          MODE, COHORT, INSPECT_ARG = (os.environ['SMOKE_' + key] for key in ('MODE', 'COHORT', 'INSPECT_RUN'))
+          PHASE = os.environ['PHASE']
+          SELF, HEAD = int(os.environ['GITHUB_RUN_ID']), os.environ['GITHUB_SHA']
+          ROOT = pathlib.Path(os.environ['RUNNER_TEMP']) / 'first-open-smoke'
+          NAMES = ('01-inspector-ready', '02-g1-check-request', '02-g1-metadata-observed', '03-runtime-check-request', '03-runtime-observed')
+
+          class Stop(Exception):
+              pass
+
+          def need(condition, code):
+              if not condition:
+                  raise Stop(code)
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, *_):
+                  return None
+
+          HTTP = urllib.request.build_opener(NoRedirect())
+
+          def fetch(url, authenticated, limit, redirect=False):
+              headers = {'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'X-GitHub-Api-Version': '2022-11-28'} if authenticated else {}
+              try:
+                  with HTTP.open(urllib.request.Request(url, headers=headers), timeout=8) as response:
+                      need(not redirect and response.status == 200, 'HTTP_STATUS')
+                      result = response.read(limit + 1)
+                      need(len(result) <= limit, 'HTTP_SIZE')
+                      return result
+              except urllib.error.HTTPError as error:
+                  with error:
+                      if redirect and error.code == 302:
+                          return error.headers.get('Location', '')
+                      raise Stop(f'HTTP_{error.code}') from None
+
+          def api(path):
+              return json.loads(fetch(API + path, True, 1024 * 1024))
+
+          def poll(probe, code):
+              for visit in range(16):
+                  found = probe()
+                  if found is not None:
+                      return found
+                  if visit < 15:
+                      time.sleep(10)
+              raise Stop(code)
+
+          def title(mode, inspect_id):
+              return f'fo-smoke-{mode}-{COHORT}-{inspect_id if mode == "runonce" else 0}'
+
+          def timestamp(value):
+              return datetime.fromisoformat(value.replace('Z', '+00:00'))
+
+          def validate_run(run, run_id, mode, inspect_id):
+              need(run['id'] == run_id and run['workflow_id'] == workflow_id and run['path'] == '.github/workflows/' + FILE
+                   and run['head_sha'] == HEAD and run['head_branch'] == 'main' and run['event'] == 'workflow_dispatch'
+                   and run['repository']['id'] == REPO_ID and run['head_repository']['id'] == REPO_ID
+                   and run['actor']['id'] == ACTOR_ID and run['triggering_actor']['id'] == ACTOR_ID
+                   and run['run_attempt'] == 1 and run['display_title'] == title(mode, inspect_id), 'RUN_ORIGIN')
+              need(run['status'] == 'in_progress' and run['conclusion'] is None, 'PRODUCER_NOT_IN_PROGRESS')
+
+          def find_writer():
+              query = urllib.parse.urlencode({'branch': 'main', 'event': 'workflow_dispatch', 'head_sha': HEAD, 'created': '>=' + current['created_at'], 'per_page': 10})
+              page = api(f'/workflows/{workflow_id}/runs?{query}')
+              rows = page['workflow_runs']
+              need(len(rows) == page['total_count'] <= 10, 'WRITER_LIST_INCOMPLETE')
+              matches = [r for r in rows if r['display_title'] == title('runonce', SELF)]
+              need(len(matches) <= 1, 'WRITER_NOT_UNIQUE')
+              if matches:
+                  return matches[0]['id']
+
+          def sha(data):
+              return hashlib.sha256(data).hexdigest()
+
+          def body(stage):
+              return json.dumps({'schema': 'techlong/synthetic-artifact-handoff/v1', 'cohort': COHORT,
+                                 'step': NAMES[stage], 'inspectRunId': inspect, 'runOnceRunId': writer,
+                                 'producerRunId': writer if stage % 2 else inspect, 'producerAttempt': 1,
+                                 'sourceSha': HEAD, 'previousBodySha256': state['sha']},
+                                sort_keys=True, separators=(',', ':')).encode()
+
+          def read(stage):
+              mode, peer = ('runonce', writer) if stage % 2 else ('inspect', inspect)
+              need(peer != SELF, 'PEER_MUST_DIFFER')
+              name = 'fo-smoke-' + COHORT + '-' + NAMES[stage]
+
+              def locate():
+                  page = api(f'/runs/{peer}/artifacts?name={name}&per_page=2')
+                  artifacts = page['artifacts']
+                  need(len(artifacts) == page['total_count'] <= 1, 'ARTIFACT_NOT_UNIQUE')
+                  return artifacts[0] if artifacts else None
+
+              art = poll(locate, 'ARTIFACT_NOT_VISIBLE')
+              validate_run(api(f'/runs/{peer}'), peer, mode, inspect)
+              origin = art['workflow_run']
+              artifact_id, digest = art['id'], art['digest']
+              need(type(artifact_id) is int and artifact_id > 0 and art['name'] == name and art['expired'] is False
+                   and timestamp(art['expires_at']) > datetime.now(timezone.utc) and 0 < art['size_in_bytes'] <= 65536
+                   and isinstance(digest, str) and re.fullmatch(r'sha256:[a-f0-9]{64}', digest)
+                   and (origin['id'], origin['repository_id'], origin['head_repository_id'], origin['head_branch'], origin['head_sha'])
+                   == (peer, REPO_ID, REPO_ID, 'main', HEAD), 'ARTIFACT_ORIGIN_OR_DIGEST')
+              if state['observed']:
+                  need(timestamp(art['created_at']) >= timestamp(state['observed']), 'ARTIFACT_ORDER')
+              download = f'{API}/artifacts/{artifact_id}/zip'
+              need(art['archive_download_url'] == download, 'ARTIFACT_DOWNLOAD_ENDPOINT')
+              location = fetch(download, True, 0, redirect=True)
+              url = urllib.parse.urlsplit(location)
+              need(url.scheme == 'https' and url.username is None and url.password is None and url.port in (None, 443)
+                   and (url.hostname or '').endswith(('.blob.core.windows.net', '.githubusercontent.com')), 'DOWNLOAD_HOST')
+              archive = fetch(location, False, 65536)
+              validate_run(api(f'/runs/{peer}'), peer, mode, inspect)
+              need('sha256:' + sha(archive) == digest, 'ZIP_DIGEST')
+              with zipfile.ZipFile(io.BytesIO(archive)) as zipped:
+                  entries = zipped.infolist()
+                  need(len(entries) == 1 and entries[0].filename == 'handoff.json' and 0 < entries[0].file_size <= 16384, 'ZIP_ENTRIES')
+                  data = zipped.read(entries[0])
+              need(data == body(stage), 'HANDOFF_CONTENT')
+              state.update(sha=sha(data), observed=art['created_at'])
+              print(f'LIVE_HANDOFF {NAMES[stage]} source={peer} reader={SELF} artifact={artifact_id} producer=in_progress_before_and_after_download digest={digest}', flush=True)
+
+          def write(stage):
+              data = body(stage)
+              (ROOT / 'handoff.json').write_bytes(data)
+              state['sha'] = sha(data)
+
+          try:
+              need(re.fullmatch(r'[0-9a-f]{32}', COHORT) and re.fullmatch(r'[0-9a-f]{40}', HEAD)
+                   and ((MODE == 'inspect' and INSPECT_ARG == '0') or (MODE == 'runonce' and re.fullmatch(r'[1-9][0-9]{0,15}', INSPECT_ARG))), 'DISPATCH_INPUT')
+              current = api(f'/runs/{SELF}')
+              workflow_id = current['workflow_id']
+              inspect = SELF if MODE == 'inspect' else int(INSPECT_ARG)
+              validate_run(current, SELF, MODE, inspect)
+              ROOT.mkdir(exist_ok=True)
+              state_path = ROOT / 'state.json'
+              if PHASE == 'first':
+                  need(not state_path.exists(), 'LOCAL_STATE_ALREADY_EXISTS')
+                  writer = poll(find_writer, 'WRITER_NOT_FOUND') if MODE == 'inspect' else SELF
+                  need(inspect != writer, 'PEER_MUST_DIFFER')
+                  state = {'writer': writer, 'sha': None, 'observed': None}
+                  if MODE == 'runonce':
+                      read(0)
+                  write(0 if MODE == 'inspect' else 1)
+              else:
+                  state = json.loads(state_path.read_bytes())
+                  writer = state['writer']
+                  if PHASE == 'second':
+                      read(1 if MODE == 'inspect' else 2)
+                      write(2 if MODE == 'inspect' else 3)
+                  elif PHASE == 'third' and MODE == 'inspect':
+                      read(3)
+                      write(4)
+                  elif PHASE == 'finish' and MODE == 'runonce':
+                      read(4)
+                  else:
+                      raise Stop('UNEXPECTED_PHASE')
+              state_path.write_text(json.dumps(state), encoding='utf-8')
+          except Exception as error:
+              raise SystemExit('SYNTHETIC_STOP ' + (str(error) if isinstance(error, Stop) else type(error).__name__)) from None
+          PY
+      - name: Upload first synthetic message
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: fo-smoke-${{ inputs.cohort }}-${{ inputs.mode == 'inspect' && '01-inspector-ready' || '02-g1-check-request' }}
+          path: ${{ runner.temp }}/first-open-smoke/handoff.json
+          retention-days: 1
+          if-no-files-found: error
+      - name: Verify the incoming message and prepare the next message
+        env:
+          PHASE: second
+        shell: bash
+        run: *exchange
+      - name: Upload second synthetic message
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: fo-smoke-${{ inputs.cohort }}-${{ inputs.mode == 'inspect' && '02-g1-metadata-observed' || '03-runtime-check-request' }}
+          path: ${{ runner.temp }}/first-open-smoke/handoff.json
+          retention-days: 1
+          if-no-files-found: error
+      - name: Inspector verifies the last request
+        if: inputs.mode == 'inspect'
+        env:
+          PHASE: third
+        shell: bash
+        run: *exchange
+      - name: Inspector uploads the last synthetic receipt
+        if: inputs.mode == 'inspect'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: fo-smoke-${{ inputs.cohort }}-03-runtime-observed
+          path: ${{ runner.temp }}/first-open-smoke/handoff.json
+          retention-days: 1
+          if-no-files-found: error
+      - name: Keep the producer running for the final download
+        if: inputs.mode == 'inspect'
+        shell: bash
+        run: sleep 75
+      - name: RunOnce verifies the final receipt
+        if: inputs.mode == 'runonce'
+        env:
+          PHASE: finish
+        shell: bash
+        run: *exchange
