@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，准备 Checkout 链接修正上线与原会话恢复。** [原平台技术验收](evidence/sandbox-first-purchase-dahlia-activation-verified.json)已通过；用户第一次测试的 Stripe 创建请求返回 200，但获批的一次原会话 GET 显示 Stripe 的 HTTPS、官方主机和末尾测试会话 ID 匹配，路由前缀不是代码写死的 `/c/pay/`，平台在关联前误拒。本轮仅离线同步修正创建、复用和 `attach` 校验：严格固定 `checkout.stripe.com`、无查询、路径最后一段为准确测试会话 ID，不接收 URL 归一化变体；隔离 PG18.3 复现旧拒绝、单函数替换保留所有者/授权及原预留订单只关联一次。实际 Neon／平台未改；下一步另审准确候选发布、仅替换 `attach` 和原仍有效的同一会话／订单核对及关联，不重装 DDL、创建第二个 Checkout 或代购。原用户测试暂停，先不重试或绕过平台付款；不启动普通 worker 或租户首开。
+**当前唯一继续点：缺口 3 第 4 步，只为已锁定的三文件 Checkout 修复准备专用候选。** [集中草案](aws-sandbox-first-purchase-checkout-repair-review.md)与[固定范围](evidence/sandbox-first-purchase-checkout-repair.prepared.json)已完成，仍不可执行。单次无 AWS 候选取证另审，仅沿用已上线 Dahlia 源码树并替换三个修正文件；不动旧构建／发布门禁或历史产物。本轮未构建、发布、连接生产或关联。待产物绑定后才生成一次执行审批，覆盖发布／撤权、原 Hosting 只换镜像，以及同一事务只替换 `attach` 并关联仍有效的原会话与订单。原会话的历史到期为温尼伯 **11 月 19 日 19:16:57**，不证明当前状态、不延长；过期或漂移就停，不新建第二单或 Checkout。原用户测试暂停，不直接付款、不启动 worker 或首开。
 
 **修正验证：** `5b89c18` 的[支付及 PostgreSQL 回归](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551298)全过。[通用托管候选 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551331)在构建前停于既有 81 文件部署执行闭包摘要断言；修正前后的 81 个绑定文件及其规范 SHA 均逐项一致，本修正未触及闭包或放宽门禁。该 run 没有生成发布候选，不能作为部署凭据。
 

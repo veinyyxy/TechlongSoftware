@@ -1,0 +1,71 @@
+{
+  "schema": "techlong/sandbox-first-purchase-checkout-repair-prepared/v1",
+  "status": "OFFLINE_DRAFT_NOT_EXECUTABLE",
+  "executionAuthorized": false,
+  "source": {
+    "fixCommit": "5b89c1875eb80e9a8a396ea97db8b8b1c851b4c9",
+    "regressionCiRunId": 44438551298,
+    "generalHostingCandidateRunId": 44438551331,
+    "generalHostingCandidateProducedArtifact": false,
+    "baseCommit": "5fcbc23ccaccec2c6a0fab8e732728a55b0b7ffc",
+    "deployedRecipeSha256": "cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d",
+    "deployedTreeOid": "5a818a48940e21b2d907d6b8a64ac902ff709299",
+    "candidateRecipeSha256": "b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff",
+    "candidateTreeOid": "88749946405674d03892e241bbfc6f6153caa88c",
+    "overallOverlayFiles": 19,
+    "runtimeReplacements": [
+      {
+        "path": "lib/payments/stripe.ts",
+        "blob": "faab756243de295cd18de260331351e15e7b4dae",
+        "sha256": "3beaee542031b673b5a08b5da7e3e7befdbacba66dc7f9470046d5a47113a0c7"
+      },
+      {
+        "path": "lib/purchases/sandbox-first-purchase-config.ts",
+        "blob": "ec6bcf62307e5b9f00cc5289039cf9b215055a47",
+        "sha256": "65bd174fa58e6c14b2371ac3c0158a4c25a0a5539c61427f9c47aa7895fd21dc"
+      },
+      {
+        "path": "lib/purchases/sandbox-first-purchase.ts",
+        "blob": "c2e21ebd798231a57e4bee985cc44ad1d28b7363",
+        "sha256": "016e0f4f479fbab49173a85e8aeccc695e8fa5aa4b82e8c36691aff43c46258a"
+      }
+    ]
+  },
+  "originalCheckout": {
+    "workspaceSha256": "7359ccf32c3bebd4c4b754caac4cdfbdd471a8202c9206f67a298a8f020ca0fc",
+    "orderIdSha256": "a348063dbb7b51f9b37d11c09e3de32cd9bd1e6a72ad35deb82f98646cf41642",
+    "sessionIdSha256": "c5b9842506e24775f9d60b456a2bd10e01d1f30b613db3e51656fe4e088161df",
+    "observedSessionExpiresAtUtc": "2026-11-20T01:16:57.000Z",
+    "newSessionCreationAllowed": false,
+    "stateRequiresFreshVerification": true
+  },
+  "targets": {
+    "region": "ca-central-1",
+    "repository": "techlong-sandbox-platform-web",
+    "publisherStack": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b",
+    "githubEnvironment": "techlong-sandbox-deploy",
+    "hostingStack": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "service": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+    "previousTaskDefinitionRevision": 15,
+    "previousRegistryManifestDigest": "sha256:a27f4a5d101f884205d8e455fc68beeaadbc7136d190cf9ebf6c5055d9e50670",
+    "previousFunctionAclSha256": "7a39063efc3ba641ba873d0b7b9ee86688ad0fcdb81ae580c89c08d3def4ee85",
+    "onlyReplaceFunction": "sandbox_first_purchase.attach(text,text,text,text,bigint)",
+    "ddlSource": "ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts",
+    "ddlSourceSha256": "acaf9653cbc235a52e33ebcb81ebd29fc83ce740045b0346905357e0cc4b86ff"
+  },
+  "missingExecutionPins": [
+    "newly reviewed dedicated candidate and immutable publisher wiring",
+    "successful no-AWS build run, exact artifact bytes and hashes, image config digest",
+    "target immutable tag and fixed approval source",
+    "current facts, exact call budgets and expiry-bounded execution window"
+  ],
+  "performed": {
+    "awsCalls": 0,
+    "neonConnections": 0,
+    "stripeCalls": 0,
+    "githubDispatches": 0,
+    "publications": 0,
+    "platformUpdates": 0,
+    "sessionAttachments": 0
+  }
+}
