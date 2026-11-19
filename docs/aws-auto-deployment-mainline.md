@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证，[Stripe 测试购买到一条挂起任务](auto-pending-provisioning.md#first-onboarding-step4-purchase-offline)已离线通过。[ACL 修正](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44429410826)通过 PG18 回归。[旧停止回执](evidence/sandbox-first-purchase-dahlia-acl-recovery-stopped.json)已证明 Neon 无残留；Source 已刷新并验证，等待[限定接续审批](evidence/sandbox-first-purchase-dahlia-source-refresh.review.json)，复用已发布镜像和 Neon 只读回执。未安装、未更新平台、不重发或重跑旧清单。实际启用和用户测试购买仍未完成。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证。[Sandbox 首开购买入口](evidence/sandbox-first-purchase-dahlia-activation-verified.json)已启用并通过独立技术验收：Neon 安装与固定 Secret 已验证，原平台运行 revision 15，两个健康／注册技术 URL 均 200。未重发镜像、未代购、未打开普通 worker 或执行租户部署。下一步只由用户在原工作区测试一次购买，购买、回调及唯一待审首开任务尚未真实验收。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 

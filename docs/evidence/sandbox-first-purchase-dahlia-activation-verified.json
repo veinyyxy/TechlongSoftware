@@ -1,0 +1,38 @@
+{
+  "schema": "techlong/sandbox-first-purchase-dahlia-activation-verified/v1",
+  "approvalSha256": "98b3c1d03e84b8b4189f5fe8002cd1fac0a20a483c808d9d2301ec9e2833f988",
+  "completedAtUtc": "2026-11-19T01:10:51.274Z",
+  "outcome": "SANDBOX_FIRST_PURCHASE_ENABLED_TECHNICALLY_VERIFIED",
+  "publication": {
+    "reusedRunId": 44425786946,
+    "manifestDigest": "sha256:a27f4a5d101f884205d8e455fc68beeaadbc7136d190cf9ebf6c5055d9e50670",
+    "lockProofReused": true,
+    "manifestReadbackSha256": "64fdf0b623e7ccbb7078e69957f1ac1f4fab0cec2da89a63b2ae10178a48b69f",
+    "newDispatch": false,
+    "newPublication": false
+  },
+  "database": {
+    "connections": 2,
+    "sqlSubmissions": 50,
+    "functionAclSha256": "7a39063efc3ba641ba873d0b7b9ee86688ad0fcdb81ae580c89c08d3def4ee85",
+    "commitAckSha256": "c8b916fd4c0bddff82c209c60f10b862c761c592553d47fbefeed27fb91fe83c",
+    "independentReadbackSha256": "e903015211b3382c40785b7882fae30c6698f69e06f3af8abd28c2671236281f"
+  },
+  "platform": {
+    "fixedSecretVerified": true,
+    "secretVerificationSha256": "3dab4f20c1f04dcd3481f08b5b858f384260202e8f0035fa15bf74de4849ac33",
+    "accessAppliedSha256": "e4f1f5f05616a606b267236f54a2fef1a7ea2c238143b1cebd8724e3334f61be",
+    "hostingAppliedSha256": "ec2d680434f5c4ed52ba3a5e468735969d8697eb5a842fbee45d3aa939970a15",
+    "independentInspectionSha256": "b1b72cdfa9d3279e4b626eed345c0dccc807ff0a5be9ceccfba8c3032bdc4b8e",
+    "taskDefinitionRevision": 15,
+    "healthyRunningTasks": 1,
+    "httpStatus": { "/api/health": 200, "/register": 200 },
+    "deploymentControllerEnabled": false,
+    "ordinaryWorkerEnabled": false
+  },
+  "operations": { "sourceSts": 4, "awsMetadataReads": 102, "awsWrites": 7, "anonymousTechnicalGets": 2 },
+  "businessTestExecuted": false,
+  "tenantProvisioningExecuted": false,
+  "retryAllowed": false,
+  "resultSha256": "176a227f344c69b008e9116f0921e15bc25e6b950e156efe20ef07124fff766b"
+}

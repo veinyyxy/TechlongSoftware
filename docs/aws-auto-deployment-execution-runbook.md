@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，Source 已恢复，仅等剩余启用审批。** [原停止回执](evidence/sandbox-first-purchase-dahlia-acl-recovery-stopped.json)保留 Neon 无残留事实，AWS 写入为 0。刷新后同一 SDK 一次 STS 确认原 Source 身份；没有新增 Neon 连接或生产写入。[接续清单](evidence/sandbox-first-purchase-dahlia-source-refresh.review.json) SHA `98b3c1d03e84b8b4189f5fe8002cd1fac0a20a483c808d9d2301ec9e2833f988`，[范围与风险](aws-sandbox-first-purchase-dahlia-source-refresh-review.md)。执行时先验证 Source 再占新单次槽；复用旧 Neon 回执、不重复单独连接，安装事务在 DDL 前仍核对无残留；保留已验证镜像、原窄授权和原两栈更新范围。最晚在温尼伯 **11 月 18 日 23:47:53** 前启动，旧硬截止和所有旧槽不改；不重发、不需要 GitHub 审批。实际启用尚未执行；验收通过才由用户测试购买。
+**当前唯一继续点：缺口 3 第 4 步，由用户亲自完成一次限定 Sandbox 测试购买。** [接续清单 `98b3c1d0…`](evidence/sandbox-first-purchase-dahlia-source-refresh.review.json)已按批准单次执行，[去敏回执](evidence/sandbox-first-purchase-dahlia-activation-verified.json)证明 Neon 安装已提交并独立回读、固定 Secret 和原 Access／Hosting 已更新，ECS revision 15 一任务健康，`/api/health` 与 `/register` 均 200。沿用原发布镜像、未重发或启用普通 worker。用户用原测试账号登录[套餐页](https://console.sandbox.techlong.cloud/dashboard/plans)，只对原工作区做一次 Stripe 测试购买；结果不明不重复提交。业务购买、回调登记和首开任务尚未验证；不代买、不启动真实首开或队列。原槽保留，不重跑。
 
 [上一次已批准启用](aws-sandbox-first-purchase-activation-renewed-review.md) SHA `8b35a358…` 于 2026-11-18 16:28:26 CST（温尼伯）在首次写入前停于 `FIRST_PURCHASE_REVIEW_STRIPE_EXACT_ENDPOINT`。原平台与 Neon 只读核对、Stripe 两键同账户及测试模式通过。AWS 1 STS／28 项元数据／0 写入，Neon 1 条只读连接／14 条 SQL，未占发布槽或派发 GitHub run。启用尝试槽已消费，保留不复位、不重跑；去敏结果 SHA-256 `b6cb5a44db47c77f6605f422dba0df1a64564b0f0645f2e2f6459826262104e0`。
 
