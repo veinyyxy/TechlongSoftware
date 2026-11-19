@@ -1,0 +1,59 @@
+{
+  "schema": "techlong/sandbox-first-purchase-billing-continuation-verified/v1",
+  "status": "BILLING_ROLLOUT_VERIFIED",
+  "approvalSha256": "77b0771a946eb575f7c70617e21ec769c0e8bb0f042d6ddc40c8731be32c2827",
+  "startedAtUtc": "2026-11-19T03:40:59.750Z",
+  "verifiedAtUtc": "2026-11-19T03:51:15.211Z",
+  "source": {
+    "reusable": "89230b2628d9719157f0a79d7ab27e5a1c091728",
+    "caller": "1b6c9680c9ba42ca07b128aaa0f94c7eba8984e1",
+    "successfulNoAwsCi": [44453006170, 44453011842, 44453011892]
+  },
+  "publication": {
+    "artifactId": 14495028924,
+    "protectedRunId": 44453235218,
+    "userApprovedEnvironment": true,
+    "manifestDigest": "sha256:68b408d116e502daf8aad4a46bb32b5d82098a3a231bf4bebedbfe8b43156f89",
+    "revokeAcknowledgedAtUtc": "2026-11-19T03:46:28.507Z",
+    "independentlyLockedAtUtc": "2026-11-19T03:47:00.910Z",
+    "independentLockedAndManifestSha256": "8ae50042c86c4290763cf894b9c65becfc3dab1a0a12cfc940f444f7cdf6be2f"
+  },
+  "database": {
+    "singleReadFunctionInstalledAndIndependentlyVerified": true,
+    "function": "sandbox_first_purchase.read_billing_order(text,text)",
+    "functionBodySha256": "5dc8e19d73f8e1c4761121749190b7b33233d17e7353c16e1d0a1d09750dfd9f",
+    "webDirectOrderTableReadDenied": true,
+    "originalOrderUnchanged": true,
+    "originalSessionOpenAndUnpaidAtPreflight": true
+  },
+  "hosting": {
+    "previousTaskDefinitionRevision": 16,
+    "taskDefinitionRevision": 17,
+    "imageOnlyVerified": true,
+    "controllerAndWorkerClosed": true,
+    "healthStatus": 200,
+    "registerStatus": 200,
+    "independentPlatformReceiptSha256": "ac9e27079706c2985cfcfef5351ac9fde8c0839825740d8bded078da6cbaa6a3"
+  },
+  "observed": {
+    "sourcePushes": 2,
+    "githubApiGets": 38,
+    "protectedDispatches": 1,
+    "awsSts": 8,
+    "awsMetadata": 129,
+    "awsPublisherWrites": 2,
+    "awsHostingWrites": 2,
+    "technicalHttpsGets": 2,
+    "originalStripeSessionGets": 1,
+    "neonConnections": 3,
+    "neonSqlSubmissions": 46,
+    "neonDdlTransactions": 1,
+    "candidateBuilds": 0,
+    "newCheckoutSessions": 0,
+    "purchaseRetries": 0,
+    "authenticatedBillingAcceptanceByOperator": false
+  },
+  "immutableExecutionResultSha256": "84d499e631a64b12055345ba6a7eee36405057d03ce932f7b104fcc166ff4472",
+  "slotsReplayedOrReset": false,
+  "next": "Owner opens the same workspace billing page and, if it still offers the original session, decides whether to complete the test payment. No new checkout is initiated by the operator."
+}
