@@ -14,8 +14,10 @@ const PREVIOUS_FIRST_PURCHASE = '258c77666a802b08f3052f1082c279104ee45c9f643e174
 const PLAN_CONFIG_PATH = 'lib/purchases/sandbox-first-purchase-config.ts';
 const PRE_DAHLIA_RECIPE = 'b344a2e3f1c36ceeebca47b8d184f9e20fce8fa0c8d66e44ddcfb62454e17315';
 export const FIRST_PURCHASE = 'cdfa2e16aa6660698a2bce8b8a6a73b67616c1bc7d2955fc43291764abe9ed1d';
+export const CHECKOUT_REPAIR = 'b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff';
 const REGISTRATION_TREE = '131fc5f0fd491e642916723ea0206cd0b03f413f';
 export const FIRST_PURCHASE_TREE = '5a818a48940e21b2d907d6b8a64ac902ff709299';
+export const CHECKOUT_REPAIR_TREE = '88749946405674d03892e241bbfc6f6153caa88c';
 const ARCHIVE_FILE = 'image.tar.gz';
 const SHA = /^[a-f0-9]{64}$/;
 const OID = /^[a-f0-9]{40}$/;
@@ -23,6 +25,8 @@ const CONFIG = /^sha256:[a-f0-9]{64}$/;
 const fixedFiles = ['lib/auth/credentials.ts', 'lib/auth/sandbox-registration.ts'];
 const dahliaFiles = ['app/api/stripe/webhook/route.ts','lib/payments/stripe.ts',
   'lib/purchases/sandbox-first-purchase-runtime.ts','lib/purchases/sandbox-first-purchase.ts'];
+const checkoutFiles = ['lib/payments/stripe.ts',PLAN_CONFIG_PATH,'lib/purchases/sandbox-first-purchase.ts'];
+const isFirstPurchase = review => review===FIRST_PURCHASE || review===CHECKOUT_REPAIR;
 const canon = x => Array.isArray(x) ? x.map(canon) : x && typeof x === 'object' ?
   Object.fromEntries(Object.keys(x).sort().map(k => [k, canon(x[k])])) : x;
 const hash = b => createHash('sha256').update(b).digest('hex');
@@ -32,7 +36,7 @@ export const FIRST_PURCHASE_SMOKE = Object.freeze({
 });
 
 async function reviewedProfile(review) {
-  assert.ok(review===REGISTRATION || review===FIRST_PURCHASE, 'reviewed recipe ID');
+  assert.ok(review===REGISTRATION || isFirstPurchase(review), 'reviewed recipe ID');
   if (review===REGISTRATION) {
     const recipe=JSON.parse(await readFile(path.join(root,'docs/evidence/sandbox-registration-platform-update.prepared.json'),'utf8')).candidate.sourceRecipe;
     assert.equal(hash(JSON.stringify(canon(recipe))), review, 'reviewed source recipe');
@@ -57,13 +61,26 @@ async function reviewedProfile(review) {
   const overrides=new Map(reviewed.replacements.map(x=>[x.path,x]));
   assert.ok(reviewed.replacements.every(f=>previous.overlay.some(row=>row.path===f.path&&row.blob!==f.blob)));
   const recipe={...previous,overlay:previous.overlay.map(row=>overrides.get(row.path)??row)};
-  assert.equal(reviewed.candidate.recipeSha256,review);
+  assert.equal(reviewed.candidate.recipeSha256,FIRST_PURCHASE);
   assert.equal(reviewed.candidate.sourceTreeOid,FIRST_PURCHASE_TREE);
-  assert.equal(hash(JSON.stringify(recipe)), review, 'reviewed source recipe');
+  assert.equal(hash(JSON.stringify(recipe)), FIRST_PURCHASE, 'reviewed source recipe');
   assert.equal(recipe.overlay.length,reviewed.candidate.overlayFiles);
   assert.equal(recipe.overlay.length,19);
   assert.equal(new Set(recipe.overlay.map(x=>x.path)).size,recipe.overlay.length);
-  return {recipe, schema:'techlong/sandbox-first-purchase-overlay-image/v1', treeOid:FIRST_PURCHASE_TREE};
+  const schema='techlong/sandbox-first-purchase-overlay-image/v1';
+  if(review===FIRST_PURCHASE)return {recipe,schema,treeOid:FIRST_PURCHASE_TREE};
+  const repair=JSON.parse(await readFile(path.join(root,'docs/evidence/sandbox-first-purchase-checkout-repair.prepared.json'),'utf8')).source;
+  assert.equal(repair.deployedRecipeSha256,FIRST_PURCHASE);
+  assert.equal(repair.deployedTreeOid,FIRST_PURCHASE_TREE);
+  assert.equal(repair.candidateRecipeSha256,CHECKOUT_REPAIR);
+  assert.equal(repair.candidateTreeOid,CHECKOUT_REPAIR_TREE);
+  assert.deepEqual(repair.runtimeReplacements.map(x=>x.path),checkoutFiles);
+  assert.equal(repair.overallOverlayFiles,recipe.overlay.length);
+  const changes=new Map(repair.runtimeReplacements.map(({path,blob,sha256})=>[path,{path,source:repair.fixCommit,blob,sha256}]));
+  assert.ok([...changes.values()].every(f=>recipe.overlay.some(row=>row.path===f.path&&row.blob!==f.blob)));
+  const next={...recipe,overlay:recipe.overlay.map(row=>changes.get(row.path)??row)};
+  assert.equal(hash(JSON.stringify(next)), CHECKOUT_REPAIR, 'reviewed checkout repair source recipe');
+  return {recipe:next,schema,treeOid:CHECKOUT_REPAIR_TREE};
 }
 
 const git = (args, env=process.env) => execFileSync('git', ['-C',root,...args], {
@@ -83,7 +100,7 @@ export async function buildCandidateArchive(dir, review=REGISTRATION) {
   const ancestry=new Set();
   const expected=[];
   for(const f of recipe.overlay) {
-    const source=review===FIRST_PURCHASE ? f.source : recipe.fix;
+    const source=isFirstPurchase(review) ? f.source : recipe.fix;
     assert.ok(OID.test(source));
     if(!ancestry.has(source)) {
       git(['merge-base','--is-ancestor',recipe.base,source]);
@@ -93,7 +110,7 @@ export async function buildCandidateArchive(dir, review=REGISTRATION) {
     const entry=git(['ls-tree',source,'--',pathspec]).toString().trim();
     const parts=/^100644 blob ([a-f0-9]{40})\t([^\n]+)$/.exec(entry);
     assert.ok(parts?.[2]===f.path && SHA.test(f.sha256));
-    if(review===FIRST_PURCHASE) assert.equal(parts[1], f.blob);
+    if(isFirstPurchase(review)) assert.equal(parts[1], f.blob);
     assert.equal(hash(git(['cat-file','blob',parts[1]])),f.sha256);
     const old=git(['ls-tree',recipe.base,'--',pathspec]).toString().trim();
     assert.notEqual(old,entry,'overlay must change the pinned base');
@@ -144,7 +161,7 @@ async function seal(dir,cache,review) {
   const proof=await readJson(path.join(dir,'source-proof.json'),8192);
   assert.deepEqual(proof.sourceRecipe,recipe); assert.equal(proof.sourceRecipeSha256,review); assert.equal(proof.sourceTreeOid,treeOid);
   const smoke={networkDisabled:true,closedControl:true,healthAndLogin:true,registrationPageGetOnly:true};
-  if(review===FIRST_PURCHASE) {
+  if(isFirstPurchase(review)) {
     const extra=await readJson(path.join(dir,'first-purchase-smoke.json'),1024);
     assert.deepEqual(extra,FIRST_PURCHASE_SMOKE);
     smoke.firstPurchaseSyntheticCallback=extra;
