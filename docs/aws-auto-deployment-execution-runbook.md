@@ -12,7 +12,9 @@
 
 **Checkout 修复已上线并独立核验。** [原范围单次接续](evidence/sandbox-first-purchase-checkout-repair-revoke-continuation.review.json) SHA `bc316038…` 已执行。[发布 44447225585](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44447225585) 经本人批准后成功，临时授权撤销并独立证明 Locked；原 Hosting 仅换镜像，revision 16、运行任务健康、`/api/health` 和 `/register` 均 HTTP 200。Neon 单事务仅替换 `attach` 并关联同一原订单／会话，独立回读 `checkout_pending`、付款 `pending`。[技术回执](evidence/sandbox-first-purchase-checkout-repair-rollout.verified.json)不包含私密链接或业务正文；没有重建镜像、重放旧清单、新建会话、付款或启用 worker。
 
-**当前唯一继续点：** 若用户要做 Sandbox 支付验收，由原工作区 Owner 在「订阅与账单 → 待付款订单 → 继续 Stripe 付款」打开原会话，不重复下单。Stripe 历史会话到期仍为温尼伯 **11 月 19 日 19:16:57**，到期或状态变化则停止、不新建替代单。Sandbox 测试付款、签名回调和租户首开结果尚未观察；不自动执行。
+**当前唯一继续点：Sandbox 账单页 500 的合并审批。** 用户报告登录后账单页返回 500；此前健康／注册探针并未覆盖该页面。隔离库已复现通用订单查询在受限 Web 角色下报 `42501`。本机源码 `c58e5b1` 改用单笔受限只读函数：原 Owner 可继续同一未到期且待付款的测试会话，非 Owner、范围不符或无效会话均无链接；Web 整表读取仍禁止，未改变原回调、订单或普通账单路径。隔离 PostgreSQL 18.3 的登录后页面及越权回归、21 项本地测试、类型和定向 lint 通过。
+
+只保留一份[数据库函数与原平台上线的合并审批](aws-sandbox-first-purchase-billing-rollout-review.md)，[清单](evidence/sandbox-first-purchase-billing-rollout.review.json) SHA `7112a253eddda954c25c5b94f92b259b8895484a07ae127e4531d0d7d746334c`。源码树已固定，真实候选封签与发布入口尚待绑定，不直接执行。未推送、未构建镜像、未调度、未调用 AWS／Stripe／Neon、未新建会话或购买；旧 revision 16 不变。原会话历史到期仍为温尼伯 **11 月 19 日 19:16:57**，不延长、不创建替代单；待登录后账单页可用再由 Owner 验收，不重试购买。
 
 **修正验证：** `5b89c18` 的[支付及 PostgreSQL 回归](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551298)全过。[通用托管候选 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551331)在构建前停于既有 81 文件部署执行闭包摘要断言；修正前后的 81 个绑定文件及其规范 SHA 均逐项一致，本修正未触及闭包或放宽门禁。该 run 没有生成发布候选，不能作为部署凭据。
 

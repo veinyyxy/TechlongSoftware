@@ -1,0 +1,179 @@
+{
+  "schema": "techlong/sandbox-first-purchase-billing-rollout-review/v1",
+  "status": "PREPARED_OFFLINE_PENDING_APPROVAL_AND_CANDIDATE_SEAL",
+  "executionAuthorized": false,
+  "documentation": {
+    "path": "docs/aws-sandbox-first-purchase-billing-rollout-review.md",
+    "sha256": "4fef098e050e62c4b9d6c0e1def3dfd94b5312317cef53d0b10c9700d2dcda8d"
+  },
+  "source": {
+    "commit": "c58e5b1b91740dd3d32ac742b757fb12ef887e65",
+    "base": "5fcbc23ccaccec2c6a0fab8e732728a55b0b7ffc",
+    "previousRecipeSha256": "b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff",
+    "previousTree": "88749946405674d03892e241bbfc6f6153caa88c",
+    "recipeSha256": "1f01d6a8736504dad9c1351b1f8c6c6c142c2459ee158e17fb011e81d8a35f9c",
+    "tree": "8ff7f4974fe1212b101aba308809cd226cf7a373",
+    "replacements": [
+      {
+        "path": "app/dashboard/billing/page.tsx",
+        "source": "c58e5b1b91740dd3d32ac742b757fb12ef887e65",
+        "blob": "323059e4acf9682250f983e527cdec33a3377ffa",
+        "sha256": "beeda8664c15edeca42cfc987165903d757a7d14c5f7ad2b3bcd82c1e5498603"
+      },
+      {
+        "path": "lib/purchases/sandbox-first-purchase-runtime.ts",
+        "source": "c58e5b1b91740dd3d32ac742b757fb12ef887e65",
+        "blob": "622aba5b280eed6d1cde8013fb11c3e5e6182294",
+        "sha256": "74fa14bc8ca5ccf574c43d7edfd8ba01711fac245e273e4fe7ce1bde24dd9900"
+      }
+    ],
+    "overlayFiles": 20,
+    "imageBuilt": false,
+    "allowedRuntimePaths": [
+      "app/dashboard/billing/page.tsx",
+      "lib/purchases/sandbox-first-purchase-runtime.ts"
+    ],
+    "productionBillingPathUnchanged": true
+  },
+  "artifacts": {
+    "buildWorkflow": ".github/workflows/sandbox-registration-candidate-v1.yml",
+    "publishCaller": ".github/workflows/sandbox-registration-image-publish-v1.yml",
+    "publishReusable": ".github/workflows/sandbox-registration-image-publish-job-v1.yml",
+    "acceptedNewArtifactRule": "Exactly one sealed artifact from the exact new recipe/tree, main, original attempt 1 and approved source; immutable caller/reusable commits and real artifact ID, SHA, byte counts and fresh scan must be checked before opening the live window.",
+    "reviewedNewArtifactId": null,
+    "reviewedNewRegistryManifestDigest": null,
+    "reviewedImmutableWorkflowCommits": null,
+    "preservedPriorArtifactId": 14491468132
+  },
+  "baseline": {
+    "verifiedReceipt": "docs/evidence/sandbox-first-purchase-checkout-repair-rollout.verified.json",
+    "verifiedReceiptSha256": "6de68341e2e750977143833661933c149bc6662ad73169a811921241b600592a",
+    "readbackOfCurrentStateNotYetDone": true,
+    "priorProtectedRun": 44447225585,
+    "platformTaskDefinitionRevision": 16,
+    "platformImageManifestDigest": "sha256:826eebe72304231a26202b6cce3b785c128c029b6426404967b7ae4be9aa8b20",
+    "publisherRevokeTemplateSha256": "9841a46b931a221eeb3564fdf70c59a9ecfa272e5c8ef1ffd27e2c41308cf109",
+    "existingPurchaseFunctionsSha256": "7562f2c559a18233a39d99db4ce9ac026ae2f1222a98f59f3ea4797c3bcd3bf4",
+    "workspaceSha256": "7359ccf32c3bebd4c4b754caac4cdfbdd471a8202c9206f67a298a8f020ca0fc",
+    "orderSha256": "a348063dbb7b51f9b37d11c09e3de32cd9bd1e6a72ad35deb82f98646cf41642",
+    "sessionSha256": "c5b9842506e24775f9d60b456a2bd10e01d1f30b613db3e51656fe4e088161df"
+  },
+  "targets": {
+    "account": "402010193138",
+    "region": "ca-central-1",
+    "sourceProfile": "techlong-sandbox-user",
+    "publisherStack": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b",
+    "ecrRepository": "techlong-sandbox-platform-web",
+    "proposedExactImmutableTag": "sandbox-first-purchase-billing-1f01d6a8",
+    "hostedEnvironment": "techlong-sandbox-deploy",
+    "hostingStack": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "accessStackReadOnly": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-access-v1/01b4bb80-ce60-11f1-9435-0e85c8c75895",
+    "service": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+    "hostingAllowedTemplateDeltas": [
+      "/Resources/TaskDefinition/Properties/ContainerDefinitions/0/Image",
+      "/Metadata/ImageSource",
+      "/Metadata/ImageConfigDigest"
+    ],
+    "expectedChangeSet": [
+      {
+        "logicalId": "TaskDefinition",
+        "action": "Modify",
+        "replacement": "True"
+      },
+      {
+        "logicalId": "Service",
+        "action": "Modify",
+        "replacement": "False"
+      }
+    ],
+    "desiredTaskCount": 1
+  },
+  "database": {
+    "ddlSource": "ops/platform-web-database-role-v1/sandbox-first-purchase-billing-ddl.ts",
+    "ddlSourceSha256": "a32d6f689692acd8287d2ccaeab53e2c9c9ce6109076f543ec25a52abb34e073",
+    "ddlStatementsSha256": "b572e0bb067e3a7e2d248f06dca86a9755e588df359150cccb525ae341bf4c07",
+    "onlyFunction": "sandbox_first_purchase.read_billing_order(text,text)",
+    "owner": "techlong_sandbox_first_purchase_definer",
+    "onlyNewExecuteRole": "techlong_platform_web_acceptance_v1",
+    "temporarySetRemovedBeforeCommit": true,
+    "publicAndWebhookExecute": false,
+    "tableGrants": 0,
+    "newRoles": 0,
+    "oldRoutinesChanged": 0,
+    "tableOrBusinessChanges": 0
+  },
+  "sequence": [
+    "bind verified no-AWS candidate and immutable protected workflow",
+    "fresh original order/session and locked environment checks",
+    "single published image and immediate independent revoke",
+    "one Neon DDL transaction and independent ACL/definition readback",
+    "one image-only Hosting change set and independent technical health",
+    "Owner visits authenticated billing without being asked to pay"
+  ],
+  "window": {
+    "historicalSessionExpiryUtc": "2026-11-20T01:16:57.000Z",
+    "latestLiveStartUtc": "2026-11-19T23:21:57.000Z",
+    "regularHardStopUtc": "2026-11-20T00:56:57.000Z",
+    "maxLiveMinutes": 95,
+    "requiredTimeReserveForUserMinutes": 20,
+    "buildAndSealMustFinishBeforeWindow": true,
+    "automaticRetry": false,
+    "publisherRevokeOnlyMayOutlastNormalStop": true
+  },
+  "maximums": {
+    "sourceRepositoryPushesForPinning": 3,
+    "sourceSts": 8,
+    "awsMetadataReads": 260,
+    "gitCredentialLoads": 1,
+    "githubApiGetsTotal": 160,
+    "noAwsCandidateDispatches": 1,
+    "protectedPublishDispatches": 1,
+    "signedJobLogGets": 1,
+    "signedJobLogMaxBytes": 2097152,
+    "workflowArtifactDownloads": 1,
+    "workflowGithubApiGets": 3,
+    "workflowOidcSessions": 1,
+    "workflowEcrMetadataReads": 3,
+    "publisherGrant": 1,
+    "publisherRevoke": 1,
+    "ecrPush": 1,
+    "hostingChangeSetCreate": 1,
+    "hostingChangeSetExecute": 1,
+    "anonymousTechnicalGets": 2,
+    "awsSecretValueReads": 0,
+    "stripeTestFileReads": 1,
+    "stripeOriginalSessionGets": 1,
+    "stripeWrites": 0,
+    "neonConfigReads": 1,
+    "neonTlsConnections": 3,
+    "neonSqlSubmissions": 60,
+    "neonDdlTransactions": 1,
+    "neonBusinessWrites": 0,
+    "newSessions": 0,
+    "purchases": 0,
+    "taskClaims": 0,
+    "deletes": 0,
+    "retries": 0
+  },
+  "preparation": {
+    "isolatedPostgres": "18.3",
+    "authenticatedRenderAgainstRestrictedWebRole": true,
+    "ownerCanContinueExactSyntheticSession": true,
+    "anonymousAndWrongScopeDenied": true,
+    "nonOwnerAdminDenied": true,
+    "expiredBadMismatchedPaidNoLink": true,
+    "directOrderTableSelectStillDenied": "42501",
+    "webhookExecuteDenied": true,
+    "existingRoutineDefinitionsAndAclUnchanged": true,
+    "readsDoNotChangeFixtureRows": true,
+    "targetedNodeTestsPassed": 21,
+    "externalTestDbCasesSkipped": 2,
+    "typecheckPassed": true,
+    "focusedLintPassed": true,
+    "actualCandidateBuilt": false,
+    "sourcePushed": false,
+    "cloudCalls": 0,
+    "deployments": 0,
+    "purchaseRetries": 0
+  }
+}

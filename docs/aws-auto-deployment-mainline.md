@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证。[Checkout 修复](evidence/sandbox-first-purchase-checkout-repair-rollout.verified.json)已部署至 Sandbox revision 16 且独立核验，原订单与原 Stripe 测试会话已关联、付款仍待处理；发布器恢复 Locked，控制器与 worker 仍关闭。下一步仅由用户从现有待付款订单继续原 Sandbox 会话做业务验收，不重新下单、不代付。回调与首开放行尚未验证。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证。[Checkout 修复](evidence/sandbox-first-purchase-checkout-repair-rollout.verified.json)已部署至 Sandbox revision 16，原订单与原 Stripe 测试会话已关联。登录后「订阅与账单」仍因通用读路径超出 Web 权限而报 500；单笔受限读取的源码和越权回归已本地完成。下一步只待[数据库函数与原平台上线的合并审批](aws-sandbox-first-purchase-billing-rollout-review.md)，未推送或部署。不重新下单、不新建会话、不代付，回调与首开仍未验证。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 
