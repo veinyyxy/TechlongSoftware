@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证，[Stripe 测试购买到一条挂起任务](auto-pending-provisioning.md#first-onboarding-step4-purchase-offline)已离线通过。复用原产物 `14480476839` 的[发布 run](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44425786946)已成功，[撤权回读为 Locked](evidence/sandbox-first-purchase-dahlia-size-fix-activation-stopped.json)；本机 STS 子预算使独立镜像核验未完成，平台尚未启用首开购买。只等准备独立镜像回读和剩余启用的集中审批，不重建、再授权发布或重跑。技术验收通过后由用户自己测试购买。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步和第 4 步[首开执行接线](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[注册修复](auto-pending-provisioning.md#first-onboarding-step4-registration-image-observed)已上线并由用户验证，[Stripe 测试购买到一条挂起任务](auto-pending-provisioning.md#first-onboarding-step4-purchase-offline)已离线通过。[发布 run](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44425786946)成功，[原撤权回读为 Locked](evidence/sandbox-first-purchase-dahlia-size-fix-activation-stopped.json)，独立镜像核验及实际启用仍未完成。[集中接续清单](evidence/sandbox-first-purchase-dahlia-continuation.review.json)已就绪待批，不重建、再授权发布或重跑，无需 GitHub 环境审批；技术验收通过后由用户自己测试购买。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 
