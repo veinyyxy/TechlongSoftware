@@ -124,16 +124,25 @@ jobs:
                                  'sourceSha': HEAD, 'previousBodySha256': state['sha']},
                                 sort_keys=True, separators=(',', ':')).encode()
 
+          def select_artifact(page, name):
+              need(isinstance(page, dict) and isinstance(page.get('artifacts'), list), 'ARTIFACT_LIST_INVALID')
+              artifacts = page['artifacts']
+              need(all(isinstance(artifact, dict) and artifact.get('name') == name for artifact in artifacts), 'ARTIFACT_LIST_WRONG_NAME')
+              need(len(artifacts) <= 1, 'ARTIFACT_NOT_UNIQUE')
+              total = page.get('total_count')
+              need(type(total) is int and total >= 0, 'ARTIFACT_LIST_INVALID')
+              if len(artifacts) != total:
+                  print(f'ARTIFACT_LIST_PENDING listed={len(artifacts)} total={total}', flush=True)
+                  return None
+              return artifacts[0] if artifacts else None
+
           def read(stage):
               mode, peer = ('runonce', writer) if stage % 2 else ('inspect', inspect)
               need(peer != SELF, 'PEER_MUST_DIFFER')
               name = 'fo-smoke-' + COHORT + '-' + NAMES[stage]
 
               def locate():
-                  page = api(f'/runs/{peer}/artifacts?name={name}&per_page=2')
-                  artifacts = page['artifacts']
-                  need(len(artifacts) == page['total_count'] <= 1, 'ARTIFACT_NOT_UNIQUE')
-                  return artifacts[0] if artifacts else None
+                  return select_artifact(api(f'/runs/{peer}/artifacts?name={name}&per_page=2'), name)
 
               art = poll(locate, 'ARTIFACT_NOT_VISIBLE')
               validate_run(api(f'/runs/{peer}'), peer, mode, inspect)
