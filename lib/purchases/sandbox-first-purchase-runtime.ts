@@ -4,7 +4,7 @@ import { getDatabase } from "@/db";
 import { getPlan, ManagementError } from "@/lib/admin/management";
 import { resolveTemplateConfiguration } from "@/lib/templates/validation";
 import type { CustomerPurchaseInput } from "./validation";
-import { readSandboxPurchaseConfiguration, SANDBOX_PURCHASE_PRODUCT } from "./sandbox-first-purchase-config";
+import { readSandboxPurchaseConfiguration, sandboxCheckoutSessionIdFromUrl, SANDBOX_PURCHASE_PRODUCT } from "./sandbox-first-purchase-config";
 import { authenticateSharedStripeWebhook, finishVerifiedSandboxFirstCheckout, sandboxPurchaseOrderId, SANDBOX_PURCHASE_SQL, startSandboxFirstCheckout,
   type SandboxPurchaseOrder } from "./sandbox-first-purchase";
 
@@ -50,6 +50,21 @@ export async function readSandboxPurchaseOrder(workspaceId: string, actor: strin
   const id = await sandboxPurchaseOrderId(workspaceId);
   return orderId === undefined || orderId === id
     ? web<SandboxPurchaseOrder>(SANDBOX_PURCHASE_SQL.read, [actor, id]) : null;
+}
+
+export async function readSandboxPurchaseBillingOrder(workspaceId: string, actor: string) {
+  const config = sandboxFirstPurchaseConfig();
+  if (!config || workspaceId !== config.workspaceId) return null;
+  const id = await sandboxPurchaseOrderId(workspaceId);
+  const row = await web<SandboxPurchaseOrder & { checkoutUrl?: unknown }>(
+    "SELECT sandbox_first_purchase.read_billing_order(?, ?) AS value", [actor, id],
+  );
+  if (row?.orderId !== id) return null;
+  const url = row.checkoutUrl;
+  return {
+    amount: row.amount, currency: row.currency, status: row.status,
+    checkoutUrl: row.status === "checkout_pending" && typeof url === "string" && sandboxCheckoutSessionIdFromUrl(url) ? url : null,
+  };
 }
 
 export async function sandboxPurchaseWebhook(payload: string, signature: string | null, existingSecret: string | null) {

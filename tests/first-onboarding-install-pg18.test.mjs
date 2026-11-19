@@ -6,6 +6,7 @@ import pg from 'pg';
 import { sandboxFirstPurchaseAttachReplacement, sandboxFirstPurchaseDdl, sandboxFirstPurchaseInstallStatements } from '../ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts';
 import { assertFirstPurchaseInstalledRoles } from '../ops/platform-ecs-v1/first-purchase-activation-db.mjs';
 import { expectedFunctions, functionFingerprint, installedFunctions, repairCheckoutInTransaction } from '../ops/platform-ecs-v1/checkout-repair-db.mjs';
+import { SANDBOX_BILLING_READ_STATEMENTS } from '../ops/platform-web-database-role-v1/sandbox-first-purchase-billing-ddl.ts';
 
 const url = process.env.FIRST_PURCHASE_PG18_CI_DATABASE_URL;
 const installer = 'first_purchase_ci_installer', web = 'techlong_platform_web_acceptance_v1';
@@ -148,8 +149,49 @@ test('isolated PostgreSQL 18: non-superuser creates and verifies exact owners, A
     assert.deepEqual(await read('SELECT status,reference FROM public.payment_records WHERE id=$1',[pay]),[{status:'pending',reference:sessionId}]);
     assert.deepEqual(await read('SELECT id FROM public.deployment_jobs'),[]);
 
+    // Install only the new read function as the existing definer; the five
+    // previously deployed routines and role ACLs must still match.
+    await begin();
+    await q(`GRANT ${definer} TO SESSION_USER WITH ADMIN FALSE, INHERIT FALSE, SET TRUE GRANTED BY CURRENT_USER`);
+    await q('SET LOCAL ROLE '+definer);
+    for (const statement of SANDBOX_BILLING_READ_STATEMENTS) await q(statement);
+    await q('SET LOCAL ROLE NONE');
+    await q(`REVOKE ${definer} FROM SESSION_USER GRANTED BY CURRENT_USER RESTRICT`);
+    await verifyInstalledRoles(writer);
+    await q('COMMIT');
+    const functions=await installedFunctions(read);
+    assert.deepEqual(functions.filter(r=>r.name!=='read_billing_order'),after);
+    assert.equal(functions.find(r=>r.name==='read_billing_order')?.owner,definer);
+    const billingSql='SELECT sandbox_first_purchase.read_billing_order($1,$2) AS value';
+    async function readAsWeb(sql,args) {
+      await root.query('BEGIN READ ONLY');
+      try {
+        await root.query('SET LOCAL ROLE '+web);
+        return (await root.query(sql,args)).rows;
+      } finally {
+        await root.query('ROLLBACK');
+      }
+    }
+    await assert.rejects(readAsWeb('SELECT id FROM public.subscription_purchase_orders'),{code:'42501'});
+    assert.deepEqual(await readAsWeb(billingSql,[actor,orderId]),
+      [{value:{orderId,status:'checkout_pending',amount:1500,currency:'CAD',checkoutUrl:checkout.url}}]);
+    assert.deepEqual(await readAsWeb(billingSql,['usr_other_fixture',orderId]),[{value:null}]);
+    assert.deepEqual(await readAsWeb(billingSql,[actor,'ord_other_fixture']),[{value:null}]);
+    for(const [column,value] of [['expires_at',1],['checkout_url','https://checkout.stripe.com/sandbox/pay/cs_test_Other']]){
+      await writer.query(`UPDATE public.subscription_purchase_orders SET ${column}=$1 WHERE id=$2`,[value,orderId]);
+      assert.deepEqual(await readAsWeb(billingSql,[actor,orderId]),
+        [{value:{orderId,status:'checkout_pending',amount:1500,currency:'CAD',checkoutUrl:null}}]);
+      await writer.query(`UPDATE public.subscription_purchase_orders SET ${column}=$1 WHERE id=$2`,
+        [column==='expires_at'?expiry:checkout.url,orderId]);
+    }
+    assert.deepEqual(await readAsWeb('SELECT sandbox_first_purchase.read_order($1,$2) AS value',[actor,orderId]),
+      [{value:{orderId,status:'checkout_pending',amount:1500,currency:'CAD'}}]);
+
     await runtime.connect();await runtime.query('BEGIN READ ONLY');
     const {rows:[r]}=await runtime.query('SELECT current_user AS actor,session_user AS login');assert.deepEqual(r,{actor:webhook,login:webhook});
+    await runtime.query('SAVEPOINT no_billing');
+    await assert.rejects(runtime.query(billingSql,[actor,orderId]),{code:'42501'});
+    await runtime.query('ROLLBACK TO SAVEPOINT no_billing');
     await assert.rejects(runtime.query('SELECT sandbox_first_purchase.read_order($1,$2)',['usr_mock','ord_mock']),{code:'42501'});
   }finally{await Promise.allSettled([root.end(),writer.end(),reader.end(),runtime.end()]);}
 });

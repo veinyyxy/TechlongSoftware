@@ -19,12 +19,43 @@ import {
   listPurchaseOrders,
   reconcileWorkspaceExpiredSubscriptions,
 } from "@/lib/purchases/management";
+import { readSandboxPurchaseBillingOrder, sandboxFirstPurchaseSelected } from "@/lib/purchases/sandbox-first-purchase-runtime";
 
 export const metadata: Metadata = { title: "订阅与账单" };
 export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
   const account = await getDashboardAccount();
+  if (sandboxFirstPurchaseSelected()) {
+    const order = account.membership.role === "owner" && !account.user.isPlatformAdmin
+      ? await readSandboxPurchaseBillingOrder(account.workspace.id, account.user.id)
+      : null;
+    return (
+      <>
+        <header className="page-header">
+          <h1>订阅与账单</h1>
+          <p>Sandbox 验收只使用已有订单，不会重新发起购买。</p>
+        </header>
+        <section className="data-panel">
+          <h2>Sandbox 测试订单</h2>
+          {order ? (
+            <>
+              <p>{formatMoney(order.amount, order.currency)} · {order.status === "paid" ? "已付款" : "尚未确认付款"}</p>
+              {order.checkoutUrl ? (
+                <a className="button button-dark button-small" href={order.checkoutUrl} rel="noreferrer">
+                  继续 Stripe 付款
+                </a>
+              ) : (
+                <p>这笔订单没有可继续使用的付款链接，请勿重新下单。</p>
+              )}
+            </>
+          ) : (
+            <p>当前账号没有可继续的 Sandbox 订单。</p>
+          )}
+        </section>
+      </>
+    );
+  }
   await reconcileWorkspaceExpiredSubscriptions(account.workspace.id);
   const [billing, purchaseOrders] = await Promise.all([
     getWorkspaceBillingSummary(account.workspace.id),
