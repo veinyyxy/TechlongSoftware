@@ -1,0 +1,160 @@
+{
+  "schema": "techlong/sandbox-first-purchase-checkout-repair-rollout-review/v1",
+  "status": "CONSOLIDATED_SCOPE_PENDING_APPROVAL_AND_OFFLINE_GATES",
+  "executionAuthorized": false,
+  "riskDocument": "docs/aws-sandbox-first-purchase-checkout-repair-review.md",
+  "riskDocumentSha256": "de82ca0f082e9ac6702ead6a8d56b9dfea8c42811825f69b950cc9f1e1e9ac15",
+  "previousDraft": {
+    "file": "docs/evidence/sandbox-first-purchase-checkout-repair.prepared.json",
+    "sha256": "a87a17e92bb0e56ef4f42e722ddc75a12513be433751c37aae6b8fdf1a954ced"
+  },
+  "observedBuild": {
+    "approval": "5e99643c7c40a138a954686f45d9ec3e8524af0dd0a1d6843dfd933dfa6ed989",
+    "repository": "veinyyxy/TechlongSoftware",
+    "repositoryId": 1323312747,
+    "workflowId": 422812180,
+    "workflowPath": ".github/workflows/sandbox-registration-candidate-v1.yml",
+    "head": "f48056f78dca1bbdd66ce3381160510df6970cc9",
+    "workflowSha": "cb3dd0773c3d5f4d4ec1fa511435bb7ea271d33620a87b561f9488ba9fa30dcb",
+    "http": 200,
+    "dispatchReturnedAtUtc": "2026-11-19T02:14:16.523Z",
+    "completedObservedAtUtc": "2026-11-19T02:16:15.424Z",
+    "verifiedAtUtc": "2026-11-19T02:16:17.058Z",
+    "branch": "main",
+    "event": "workflow_dispatch",
+    "attempt": 1,
+    "conclusion": "success",
+    "evidence": {
+      "runId": 44442817443,
+      "jobId": 135287606302,
+      "artifactId": 14491468132,
+      "artifactName": "sandbox-first-purchase-checkout-b2faf785-44442817443",
+      "artifactZipDigest": "sha256:9598faa930ee845520cc322410323c25a3676e4c94b54898ff6c2852d06c97c6",
+      "artifactZipBytes": 307792910,
+      "expiresAtUtc": "2026-11-22T02:15:45Z",
+      "archiveBytes": 307784819,
+      "archiveSha256": "e1e32e05d080a56757c3e0927ebe2995727fe7c21c6f276bbd2eb48a7bf066cd",
+      "imageConfigDigest": "sha256:7c2b172790cc9c56fb01e555842a8735eb234efda572b7543b89b208cafaf5d6",
+      "scanSummarySha256": "e2979ae202b699df3c8c22277291b704710b2e07934d01622686e9f05afc400c",
+      "sourceRecipeSha256": "b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff",
+      "sourceTreeOid": "88749946405674d03892e241bbfc6f6153caa88c",
+      "architecture": "linux/amd64",
+      "noAwsIdentity": true,
+      "closedControllerAndWorker": true,
+      "networkDisabledSmoke": true,
+      "syntheticCallbackPassed": true,
+      "freshOsHighCriticalGatePassed": true
+    },
+    "counts": {
+      "credentialLoads": 1,
+      "githubGets": 11,
+      "signedLogGets": 1,
+      "dispatches": 1
+    },
+    "artifactZipDownloaded": false,
+    "registryManifestDigest": null
+  },
+  "scope": {
+    "region": "ca-central-1",
+    "sourceProfile": "techlong-sandbox-user",
+    "publisherStack": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-image-publisher-v2/701257e0-cd89-11f1-be5e-02452f6c634b",
+    "ecrRepository": "techlong-sandbox-platform-web",
+    "proposedExactImmutableTag": "sandbox-first-purchase-b2faf785-r44442817443",
+    "approvalEnvironment": "techlong-sandbox-deploy",
+    "callerWorkflow": ".github/workflows/sandbox-registration-image-publish-v1.yml",
+    "reusableWorkflow": ".github/workflows/sandbox-registration-image-publish-job-v1.yml",
+    "hostingStack": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-hosting-v1/c4bf36b0-cf13-11f1-b94e-06ffda9fc5c7",
+    "accessStackReadOnly": "arn:aws:cloudformation:ca-central-1:402010193138:stack/techlong-sandbox-platform-access-v1/01b4bb80-ce60-11f1-9435-0e85c8c75895",
+    "service": "arn:aws:ecs:ca-central-1:402010193138:service/techlong-sandbox-platform/techlong-sandbox-platform-web",
+    "baselineTaskRevision": 15,
+    "baselineEcrDigest": "sha256:a27f4a5d101f884205d8e455fc68beeaadbc7136d190cf9ebf6c5055d9e50670",
+    "expectedChangeSet": [
+      {
+        "logicalId": "TaskDefinition",
+        "action": "Modify",
+        "replacement": "True"
+      },
+      {
+        "logicalId": "Service",
+        "action": "Modify",
+        "replacement": "False"
+      }
+    ],
+    "allowedTemplateDeltas": [
+      "/Resources/TaskDefinition/Properties/ContainerDefinitions/0/Image",
+      "/Metadata/ImageSource",
+      "/Metadata/ImageConfigDigest"
+    ],
+    "desiredTaskCount": 1,
+    "function": "sandbox_first_purchase.attach(text,text,text,text,bigint)",
+    "definer": "techlong_sandbox_first_purchase_definer",
+    "ddlSource": "ops/platform-web-database-role-v1/sandbox-first-purchase-ddl.ts",
+    "ddlSourceSha256": "acaf9653cbc235a52e33ebcb81ebd29fc83ce740045b0346905357e0cc4b86ff",
+    "previousFunctionAclSha256": "7a39063efc3ba641ba873d0b7b9ee86688ad0fcdb81ae580c89c08d3def4ee85",
+    "orderIdSha256": "a348063dbb7b51f9b37d11c09e3de32cd9bd1e6a72ad35deb82f98646cf41642",
+    "workspaceIdSha256": "7359ccf32c3bebd4c4b754caac4cdfbdd471a8202c9206f67a298a8f020ca0fc",
+    "sessionIdSha256": "c5b9842506e24775f9d60b456a2bd10e01d1f30b613db3e51656fe4e088161df"
+  },
+  "requiredBeforeOpeningWindow": {
+    "publisherImmutableCallerAndReusableCommits": null,
+    "narrowAttachAndHostingExecutionProof": null,
+    "requiredOfflineTests": "exact candidate whitelist; legacy paths unchanged; real artifact sealed inputs; no provider credentials in tests; only attach DDL and original-order association with rollback on mismatch; image/metadata-only template delta",
+    "noCloudReadsBeforeOfflineGatesPass": true,
+    "keepOriginalOidcSecurityAndWorkflowGates": true
+  },
+  "sequence": [
+    "offline gates and pinned entrypoints",
+    "one fresh preflight including original open/unpaid Stripe session and Neon draft; zero writes on mismatch",
+    "one protected ECR publication and mandatory immediate revoke plus independent Locked and ECR checks",
+    "one image-only Hosting change set and independent technical inspection",
+    "one final read of same Stripe session, one Neon transaction with exact attach replacement and same order/session, independent Neon readback"
+  ],
+  "proposedWindow": {
+    "historicalStripeExpiryUtc": "2026-11-20T01:16:57.000Z",
+    "latestStartUtc": "2026-11-19T23:21:57.000Z",
+    "hardStopUtc": "2026-11-20T00:56:57.000Z",
+    "maxRunMinutes": 95,
+    "preflightMinutes": 10,
+    "grantMaxMinutes": 60,
+    "originalSessionExtended": false,
+    "lockCleanupOnlyMayOutlastStop": true
+  },
+  "maximums": {
+    "sourceSts": 8,
+    "awsMetadataReads": 260,
+    "sourceGitCredentialLoads": 1,
+    "sourceGitHubApiGets": 120,
+    "oneProtectedDispatch": 1,
+    "workflowGitHubApiGets": 3,
+    "workflowExactArtifactDownloads": 1,
+    "workflowOidcSessions": 1,
+    "workflowEcrMetadataReads": 3,
+    "publisherGrant": 1,
+    "publisherRevoke": 1,
+    "topLevelEcrPush": 1,
+    "hostingChangeSetCreate": 1,
+    "hostingChangeSetExecute": 1,
+    "anonymousTechGets": 2,
+    "awsSecretValueReads": 0,
+    "stripeTestFileReads": 1,
+    "stripeOriginalSessionGets": 2,
+    "stripeWrites": 0,
+    "neonConfigReads": 1,
+    "neonTlsConnections": 3,
+    "neonSqlMax": 60,
+    "neonWriteTransactions": 1,
+    "attachReplacements": 1,
+    "exactSessionAttachments": 1,
+    "otherOrderWrites": 0,
+    "taskClaims": 0,
+    "resourceDeletes": 0,
+    "retries": 0
+  },
+  "proofLimits": {
+    "artifactBytesVerifiedByBuilderAndMetadataMatchedToSeal": true,
+    "operatorDownloadedZip": false,
+    "currentCheckoutStateVerified": false,
+    "publisherLockedCurrentlyVerified": false,
+    "rolloutPassed": false
+  }
+}
