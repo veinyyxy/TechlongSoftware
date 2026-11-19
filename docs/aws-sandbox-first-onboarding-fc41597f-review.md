@@ -47,11 +47,23 @@
 - 领取前核对同一订单/订阅仍有效，待审 `0/1`、无租约/前代/外部操作/D2 初始记录，计划与配置摘要、镜像、名称和批准窗口一致。空库初始化能力和隔离先要有可信证明；缺证明不先占用尝试。批准后仅以同一 g1 和围栏：1 次 V3 prepare（1 个应用角色先 `NOLOGIN`、1 个临时 `NOLOGIN` guard、1 次隔离建库、按合同收回 guard），确认空库后 1 次固定 schema-only 恢复、1 组 SaaS 迁移、1 次确切应用 IAM 登录激活及独立读回。空库与迁移后检查用真实本次库/角色 OID、owner/fence、schema/迁移和批准技术 seed；历史 73 表/两迁移/九条 seed 是参照，不是新库证明。证明应用不能连接旧租户数据库，禁止导入历史客户数据、启用启动迁移，或修改其它库的 PUBLIC ACL 来绕过隔离。
 - 仅创建一次 g1 初始 Secret，以同任务/围栏/审批 SHA 派生初始版本；用真实 ARN/版本回执完成采样绑定。之后只对准确新栈提交一次 `CreateStack`（ECS 服务 ×1、任务定义 ×1、目标组 ×1、监听规则 ×3、日志组 ×1），一项 Fargate 服务期望 **1 个**任务。固定 A digest 与新租户 TaskRole、持久化配置、g1/控制公钥固定版本。拒绝领养同名旧栈；不后装 `UpdateStack` 修配置，不重发写入。
 
-### 仅核对两份基线 VersionId 的最小范围（本轮未执行）
+### 固定版本供给清单（只离线准备，读取和复制另审）
 
-1. 另批后使用既有 Source 身份，在同一受控进程最多 **1 次 STS + 2 次 HeadObject**，只对上节两个准确键；[请求生成器](../lib/deployments/execution/first-onboarding-baseline-versions.ts)固定桶、键和 `ExpectedBucketOwner=402010193138`，仅启用 checksum 元数据。不请求其它路径，不 ListObjects、ListObjectVersions、GetBucketVersioning 或 GET 对象正文。身份、响应或预算不符即停，不重试；记录去敏状态、真实 VersionId、字节数及 checksum 是否匹配。
-2. 任一版本缺失、`null`、删除标记或不匹配：不发发布/执行 SHA，不改原桶、不开版本化、不复制或上传。两版本均存在但缺可靠的完整对象 SHA-256：记录为**已定位版本，尚无字节证明**，不把 ETag、对象自带的用户元数据或组合 checksum 当成内容 SHA。需要时再另审只对已定位的固定版本 GET（最多两次，分别不超过 203375 / 26502 字节），本轮不执行，也不中途自动切换。
-3. 有两份真实 VersionId、大小和可信 SHA 相符才可将其用于后继实际审批；首次空库恢复仍校验固定版本的真实字节、schema-only 合同和 manifest 内容。本机只允许本次受审 Express 路径采用上述两个 `approved/` 精确键和固定版本；通用 worker 原 `_migration/` 路径限制不变。
+**已核实的历史结果：** 11 月 18 日 **22:39:01（温尼伯 CST）**，准确 Source 已通过 1 次 STS；对原 `baseline.dump` 的 1 次 HEAD 返回 **203375 字节**和匹配的 `FULL_OBJECT` SHA-256，但未返回 VersionId。按当时停止条件，manifest 未查；列表、GET 正文、复制和写入均为 0。不能据此推断 manifest 状态，也不重放这次读取。现在的方案是保留源原件、在一个已版本化的私有桶里固定两份内容完全一致的副本；**只允许副本的真实非空版本用于恢复**。
+
+| 原件（仍留原桶及原 `approved/` 键） | 已封存字节数与 SHA-256 | 目标键：`first-open-baselines/job_fc41597f9b5ba8e02b338ecf/g1/` 下的两个独立键 |
+| --- | --- | --- |
+| `baseline.dump` | 203375 / `1a65288b4628018932a8d9af4658db5702b6cf49966a2032bc2d919bc591d70a` | `1a65288b4628018932a8d9af4658db5702b6cf49966a2032bc2d919bc591d70a/baseline.dump` |
+| `baseline.manifest.json` | 26502 / `62b5dc8cadcf276df140be86e002a08b64d9b713bd0257e14ac515c12a996971` | `62b5dc8cadcf276df140be86e002a08b64d9b713bd0257e14ac515c12a996971/baseline.manifest.json` |
+
+**目标仅一个候选：`techlong-sandbox-cloud-worker-evidence-402010193138`。** [历史独立桶布局](aws-instance-release-workflow.md)记录账号 `402010193138`、`ca-central-1`、Versioning `Enabled`、SSE-S3 `AES256`、`BucketOwnerEnforced` 和四项公访阻隔；[现有证据适配](../ops/cloud-worker/cloud-evidence-v5.mjs)也采用同一桶、明确的对象版本和只建不覆盖。历史保护只证明原用途，**没有证明新前缀当前可写、可读或防删除**。不借用图片、CDN origin 或旧租户前缀，不新建桶。
+
+1. **最小 manifest 补核（下一项待批）。** 既有 Source 身份最多 1 次官方 STS；只用[原键请求](../lib/deployments/execution/first-onboarding-baseline-versions.ts)对 manifest 做 1 次 `HeadObject`（固定桶、准确键、`ExpectedBucketOwner`，开启 checksum）。要求 26502 字节和 S3 返回的 `FULL_OBJECT` SHA-256 与上表相符；留存实际 ETag（只用于防并发）和 VersionId（如有），不查询 archive 或目标桶、不下载正文。无有效源 VersionId **不是**此步骤的失败条件：它只用于证明拟复制内容，不是将来的恢复引用。缺可信完整 SHA、对象缺失或内容不符则停，不拿 ETag 或用户元数据当内容证明。
+2. **正式复制前的限定只读检查。** 另审批时仍只读准确对象和目标桶。原 archive 上次已核大小和 SHA，但未保存 ETag；只有为受条件保护的复制确需 ETag，才追加准确 archive HEAD 1 次，同时验证 SHA/大小未变。使用时效内的 manifest 回执，过期不沿用，是否重读另审。目标仅核区域/所属账号、版本化、四项公访阻隔、SSE-S3、拥有者、准确两键相关桶策略和生命周期（`HeadBucket`、`GetBucketVersioning`、`GetPublicAccessBlock`、`GetBucketEncryption`、`GetBucketOwnershipControls`、`GetBucketPolicy`、`GetBucketLifecycleConfiguration` 各至多 1 次；另需验证复制或通知会不会作用到这两键时，另列准确控制面读取，不能假定无副作用）。有仍有效的已批准事实则不重读。仅接受两个新键可私下保存、不会被匹配规则自动清除，且现有身份能力支持准确条件复制及独立读回。不为判断键是否存在授予 ListBucket 或扫描整个桶，目标占用由写请求的原子条件处理；权限、配置或既有副作用无法证明则不写。
+3. **复制写另审，服务端最多 2 次 `CopyObject`，每个准确键一次。** 从原桶精确键到上表目标键，两方均锁定 `ExpectedSourceBucketOwner` / `ExpectedBucketOwner` 为本账号；已有有效源版本时在 `CopySource` 中精确指定它，否则用已核对的源 ETag 约束 `CopySourceIfMatch`。两种情况都要求目标 `IfNoneMatch='*'`、`ChecksumAlgorithm=SHA256`、SSE-S3 `AES256`，不设置 ACL、不公开；ETag 只是复制条件，最终以独立校验为准。候选执行者只用原两键相应读权限和目标两键条件 `s3:PutObject`，核验者只读回获证的准确版本；不借旧 worker 广授权限、不改桶或 IAM 来凑条件。先复制 archive，要求解析完整回执，取得有效、非 `null` 的**目标** VersionId 才复制 manifest。分别记录源、目标、时间和响应摘要，不能把 HTTP 200 或源 VersionId 当作完成。冲突、条件不支持、拒绝、缺真实 ACK 或结果不明即停；不自动改成普通 Copy/PUT、GET 后上传或重新尝试。两次写不是原子事务，第二次失败可只留下第一份版本，不补写、不删除或回滚；两份副本合计 229877 字节，存储及请求并非零费用。
+4. **独立固定版本核验。** 从新进程用另审的只读身份（若复用现有 Source，须明确是进程分离而非身份分离，且该进程不能发写请求）做至多 1 次 STS 及两个准确 `HeadObject(Key, VersionId=对应目标 ACK)`，每个至多 1 次。开启 checksum，核对同账号/准确桶和键、回传同一有效 VersionId、非删除标记、恰好上表字节数、AES256 以及匹配的 `FULL_OBJECT` SHA-256；只保留两条去敏绑定，不读 `latest`。若固定版本可读但完整校验不明，则仍不放行；后续可另审只读 GET 那一固定版本，大小分别不得超 203375 / 26502 字节。本次方案不含 GET 对象正文。原桶、其它对象、旧版本和策略都不写不删；两新版本也不自动清理。
+
+**接续不降级。** 双副本证据须同时成立才可进入首开审批；目标版本化不是 Object Lock，也不等于永久不可删除。当前[首开原键白名单](../lib/deployments/execution/first-onboarding-baseline-versions.ts)只认原桶两个键，因此以后必须另审最小接线，将**这个任务**的已验证副本桶/精确键和真实 VersionId 绑定到恢复授权，并仍由恢复阶段对固定版本字节复算 SHA、验证 schema-only 合同。不兼容时停，不增加任何广泛桶、动态前缀或无版本回退。本稿不改运行代码，不签复制或首开的执行 SHA，不开恢复/领取窗口。
 
 ### 4. 独立技术通过，才允许一次 Neon 原子完成
 
@@ -60,8 +72,8 @@
 
 ## 为什么现在不能批准执行
 
-确认了付款和唯一任务，单次入口与窄权限候选已离线接通；仍未绑定真实端口或安装有效策略/完成 DDL，两个固定基线版本也尚未证明。**下一项外部操作只有上节最小 VersionId 核对，等用户另批。** 派生对象占用、实时 A、原 Express／Cell 归属及恢复后的监听器、媒体和 Secret 绑定不在本轮读取范围。历史证据不刷新采样时间；安装、恢复和首开实际执行仍须按当时的准确材料审批。首开 `writeBefore` 按现有代码最多未来 60 分钟，所有依赖就绪前不开领取窗口。
+确认了付款和唯一任务，单次入口与窄权限候选已离线接通；仍未绑定真实端口或安装有效策略/完成 DDL，两个固定基线版本也尚未供给。**下一项只等 manifest 的 1 次 STS＋1 次准确 HEAD 另批。** 派生对象占用、实时 A、原 Express／Cell 归属及恢复后的监听器、媒体和 Secret 绑定不在本轮读取范围。历史证据不刷新采样时间；复制、安装、恢复和首开仍须按准确材料审批。首开 `writeBefore` 按现有代码最多未来 60 分钟，所有依赖就绪前不开领取窗口。
 
 跨 AWS、Aurora 和 Neon 非原子；开始恢复后可能持续产生 ALB、Aurora、ECS、存储/CDN 等费用，预算不是硬停费。结果不明、过期、并发或越界即停，保留真实回执与永久槽；只按另批范围对未知结果只读回查，不重试、补建、主动回滚或自动清理。数据库激活事务原子，不代表其它阶段能一起回滚。
 
-**本轮实际：** 本机 100 项定向回归、类型和定向 lint 通过；隔离 PostgreSQL 18.3（PGlite）用合成业务行验证了绑定权限、拒绝越权、拒绝已撤销版本和一次领取。新增测试已接入既有无 AWS CI，未推送或运行 GitHub CI。在线 AWS／Neon／Aurora／Stripe／GitHub 请求、权限安装、恢复、真实领取、调度和部署均为 0。不会重复购买或开启全队列。
+**本轮实际：** 只更新离线清单；新的 AWS、S3 正文读取、复制/写入、权限变更、恢复、真实领取、调度和部署均为 0。原本机 100 项与隔离 PostgreSQL 回归结果沿用，本轮无运行代码或工作流变更。不重复购买或开启全队列。

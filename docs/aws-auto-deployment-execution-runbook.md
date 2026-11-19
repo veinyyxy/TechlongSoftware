@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，只为 `job_fc41597f9b5ba8e02b338ecf` 准备 Sandbox 首开。** 用户已用原会话付款；11 月 18 日 21:56:11（温尼伯）只读确认同工作区恰一条任务，`pending` / `0/1` / 无租约。[集中材料](aws-sandbox-first-onboarding-fc41597f-review.md)已补单任务离线入口、窄领取 SQL 与权限候选；真实连接和有效权限未安装。下一项仅待另批 **STS 1＋两准确键 HeadObject 2** 的固定基线版本核对，不自动 GET 或补写。未恢复、领取或部署；不重复购买、不启用全队列。
+**当前唯一继续点：缺口 3 第 4 步，只为 `job_fc41597f9b5ba8e02b338ecf` 准备 Sandbox 首开。** 用户已用原会话付款；11 月 18 日 21:56:11（温尼伯）只读确认同工作区恰一条任务，`pending` / `0/1` / 无租约。22:39:01 的源档案 HEAD 大小和完整 SHA 匹配、无 VersionId，按范围止于首键。[集中材料](aws-sandbox-first-onboarding-fc41597f-review.md)已补固定版本供给清单：只计划在现有私有版本化证据桶保留两个副本，原件不动。**下一项仅待另批 STS 1＋manifest 准确 HEAD 1**；目标核对、条件复制、独立回读和白名单接线按准确范围另审。未恢复、领取或部署；不重复购买、不启用全队列。
 
 **账单修复与本人付款已完成。** 平台 ECS revision 17 的[技术回执](evidence/sandbox-first-purchase-billing-continuation.verified.json)确认 [发布 44453235218](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44453235218) 成功、发布器撤权 Locked、只装一个只读函数、`/api/health` 和 `/register` 均 200；控制器和 worker 未开启。工程侧未代付款，付款成功不等于租户已开通。
 

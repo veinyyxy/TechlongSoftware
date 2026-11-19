@@ -6,7 +6,7 @@
 
 [日常版本发布结案](aws-instance-version-release-plan.md#d2-closeout)：原 sandbox 的 API 发布已打通“选实例与版本 → GitHub 单次人工审批 → 更新服务 → 独立核验与回写”。[A→B](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44212085264) 在同一次审批内晋升并应用 B；[B→A](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44217368907) 直接使用已发布的 A。两轮均独立验收通过，最终 **A / revision 2 / 无活动请求**，不再为 D2 重跑。
 
-现推进**新客户首次自动开通**：第 1–3 步和[第 4 步首开核心](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。[账单修复](evidence/sandbox-first-purchase-billing-continuation.verified.json)上线后，用户用原会话付款，独立只读确认唯一待审任务 `job_fc41597f9b5ba8e02b338ecf`（`pending` / `0/1` / 未领取）。[同任务集中材料](aws-sandbox-first-onboarding-fc41597f-review.md)现含离线单次入口、窄权限候选和两键版本核对。**当前唯一继续点**：等待实际固定基线 VersionId 的限定只读核对获批。真实权限未安装、未恢复 Express/Cell、未开启全队列或实际开通，没有第二次购买。以下为历史，不覆盖本节。
+现推进**新客户首次自动开通**：第 1–3 步和[第 4 步首开核心](auto-pending-provisioning.md#first-onboarding-step4-offline)已离线实现，[首版 A](auto-pending-provisioning.md#first-onboarding-step4-candidate-binding)已锁定。用户用原会话付款，独立只读确认唯一待审任务 `job_fc41597f9b5ba8e02b338ecf`（`pending` / `0/1` / 未领取）。源 archive 的大小和完整 SHA 匹配，但无 VersionId；manifest 尚未查。[固定版本供给清单](aws-sandbox-first-onboarding-fc41597f-review.md)只拟对两个准确键使用现有私有版本化桶，保留原件。**当前唯一继续点**：等待批准 **STS 1＋manifest HEAD 1**，不自动进入复制或恢复。真实权限未安装、Express/Cell 未恢复、全队列未启用、未实际开通。以下为历史，不覆盖本节。
 
 ### 首轮 A→B 调度前记录（历史，已执行，不重放）
 
