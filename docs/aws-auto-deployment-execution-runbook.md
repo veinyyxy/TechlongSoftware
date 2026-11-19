@@ -6,7 +6,7 @@
 
 [D2 结案及验收证据](aws-instance-version-release-plan.md#d2-closeout)：现有 sandbox 已初始化租户的日常 API 发布流程已完成，D2-1 至 D2-6 全部交付，真实更新 **2/2**。A→B 与 B→A 使用同一源码和工作流，各一次由本人批准 GitHub environment 的独立发布；最终独立回读为 **A / revision 2 / 无活动请求**，两次固定版本证据均与账本一致。无需再部署来证明 D2。
 
-**当前唯一继续点：缺口 3 第 4 步，只为已锁定的三文件 Checkout 修复准备专用候选。** [集中草案](aws-sandbox-first-purchase-checkout-repair-review.md)与[固定范围](evidence/sandbox-first-purchase-checkout-repair.prepared.json)已完成，仍不可执行。单次无 AWS 候选取证另审，仅沿用已上线 Dahlia 源码树并替换三个修正文件；不动旧构建／发布门禁或历史产物。本轮未构建、发布、连接生产或关联。待产物绑定后才生成一次执行审批，覆盖发布／撤权、原 Hosting 只换镜像，以及同一事务只替换 `attach` 并关联仍有效的原会话与订单。原会话的历史到期为温尼伯 **11 月 19 日 19:16:57**，不证明当前状态、不延长；过期或漂移就停，不新建第二单或 Checkout。原用户测试暂停，不直接付款、不启动 worker 或首开。
+**当前唯一继续点：缺口 3 第 4 步，等待三文件 Checkout 修复的单次无 AWS 构建批准。** 既有专用工作流已仅接入固定 recipe `b2faf785…`，离线归档验证恰三个文件差异、旧候选不变、预期树 `88749946…`。[构建清单](evidence/sandbox-first-purchase-checkout-repair-build.review.json) SHA `5e99643c7c40a138a954686f45d9ec3e8524af0dd0a1d6843dfd933dfa6ed989`，[范围与风险](aws-sandbox-first-purchase-checkout-repair-build-review.md)，最晚在温尼伯 **11 月 19 日 01:08:41** 前单次调度原 attempt 1；没有 GitHub environment、AWS、Stripe、Neon 或实际发布权限。本轮未调度或构建镜像。待成功产物绑定后，再为[发布／撤权、原 Hosting 更新、单事务替换 `attach` 与关联原会话](aws-sandbox-first-purchase-checkout-repair-review.md)出集中审批。原会话的历史到期为温尼伯 **11 月 19 日 19:16:57**；不证明当前状态，不延长或新建会话、不启动 worker/首开。用户测试仍暂停。
 
 **修正验证：** `5b89c18` 的[支付及 PostgreSQL 回归](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551298)全过。[通用托管候选 CI](https://github.com/veinyyxy/TechlongSoftware/actions/runs/44438551331)在构建前停于既有 81 文件部署执行闭包摘要断言；修正前后的 81 个绑定文件及其规范 SHA 均逐项一致，本修正未触及闭包或放宽门禁。该 run 没有生成发布候选，不能作为部署凭据。
 

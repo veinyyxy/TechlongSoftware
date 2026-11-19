@@ -1,0 +1,56 @@
+{
+  "schema": "techlong/sandbox-first-purchase-checkout-repair-build-review/v1",
+  "status": "PREPARED_NOT_DISPATCHED",
+  "issuedAtUtc": "2026-11-19T02:08:41.364Z",
+  "latestStartUtc": "2026-11-19T07:08:41.364Z",
+  "originalSessionExpiryUnchangedUtc": "2026-11-20T01:16:57.000Z",
+  "sourceCommit": "d63a01d52c2676af4450112b36a058150eb13e3a",
+  "riskDocumentSha256": "13a016ec2d2cfb1523346916224cd252271937857650c6eeaad21798936c1d52",
+  "repository": "veinyyxy/TechlongSoftware",
+  "repositoryId": 1323312747,
+  "ref": "main",
+  "workflowId": 422812180,
+  "workflowPath": ".github/workflows/sandbox-registration-candidate-v1.yml",
+  "sourcePinsSha256": {
+    ".github/workflows/sandbox-registration-candidate-v1.yml": "cb3dd0773c3d5f4d4ec1fa511435bb7ea271d33620a87b561f9488ba9fa30dcb",
+    "ops/platform-registration-candidate-v1/candidate.mjs": "d6eaed514c57d9189fcb539e8030c93362cac4285658a4d5bed02b55a6ed14b5",
+    "ops/platform-registration-candidate-v1/first-purchase-smoke.mjs": "18b4ef4266abdfa4a3eb8f58b67fb341a523f853111e32942305a5462e67e310",
+    "docs/evidence/sandbox-first-purchase-checkout-repair.prepared.json": "a87a17e92bb0e56ef4f42e722ddc75a12513be433751c37aae6b8fdf1a954ced"
+  },
+  "permittedChangesAfterSourceCommit": [
+    "docs/aws-auto-deployment-execution-runbook.md",
+    "docs/aws-auto-deployment-mainline.md",
+    "docs/aws-sandbox-first-purchase-checkout-repair-build-review.md",
+    "docs/evidence/sandbox-first-purchase-checkout-repair-build.review.json"
+  ],
+  "inputs": {
+    "recipe_sha": "b2faf785466efcef7aa4434b82c3a22b8537550c829525a3885b04105e3eaaff",
+    "orchestration_sha": "exact checked main head with only the permitted review-document differences"
+  },
+  "expect": {
+    "sourceTreeOid": "88749946405674d03892e241bbfc6f6153caa88c",
+    "overlayCount": 19,
+    "changedFromDahlia": 3,
+    "artifactNamePrefix": "sandbox-first-purchase-checkout-b2faf785-",
+    "runAttempt": 1,
+    "architecture": "linux/amd64",
+    "artifactRetentionDays": 3,
+    "enforceExistingOSScanAndSyntheticCallback": true
+  },
+  "limits": {
+    "githubCredentialLoads": 1,
+    "githubApiGets": 40,
+    "signedJobLogGets": 1,
+    "signedJobLogMaxBytes": 2097152,
+    "workflowDispatches": 1,
+    "jobTimeoutMinutes": 25,
+    "maxObservationMinutes": 35,
+    "downloadsOfImageZip": 0,
+    "retries": 0,
+    "awsCalls": 0,
+    "neonConnections": 0,
+    "stripeCalls": 0,
+    "sessionAttachments": 0
+  },
+  "deploymentAuthorized": false
+}
